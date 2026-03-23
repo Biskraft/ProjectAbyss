@@ -1,4 +1,4 @@
-import { Application, Container } from 'pixi.js';
+import { Application, Container, WebGLRenderer } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager } from '@core/InputManager';
 import { AssetLoader } from '@core/AssetLoader';
@@ -29,6 +29,7 @@ export class Game {
       resolution: 1,
       autoDensity: false,
       antialias: false,
+      preference: 'webgl',
     });
 
     const container = document.getElementById('game-container');
