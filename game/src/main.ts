@@ -6,15 +6,30 @@ function showStatus(msg: string): void {
   if (el) el.textContent = msg;
 }
 
-try {
-  showStatus('Loading fonts...');
-  // Wait for pixel font (timeout 3s so game starts regardless)
+async function waitForFont(family: string, timeoutMs = 10000): Promise<boolean> {
+  const start = Date.now();
+  // Wait for all CSS-triggered font downloads to finish
+  await document.fonts.ready;
+  // If already available, return immediately
+  if (document.fonts.check(`8px "${family}"`)) return true;
+  // Explicitly request the font load
   try {
     await Promise.race([
-      document.fonts.load('8px "Press Start 2P"'),
-      new Promise(resolve => setTimeout(resolve, 3000)),
+      document.fonts.load(`8px "${family}"`),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), timeoutMs - (Date.now() - start))
+      ),
     ]);
-  } catch { /* font load fail is non-fatal */ }
+  } catch { /* timeout */ }
+  return document.fonts.check(`8px "${family}"`);
+}
+
+try {
+  showStatus('Loading fonts...');
+  const fontLoaded = await waitForFont('Press Start 2P');
+  if (!fontLoaded) {
+    console.warn('Press Start 2P font failed to load, using fallback');
+  }
 
   showStatus('Initializing game...');
   const game = new Game();
