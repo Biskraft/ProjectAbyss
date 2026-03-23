@@ -21,9 +21,9 @@ export interface WeaponDef {
 
 /** Sword weapon definitions from Content_Stats_Weapon_List.csv */
 export const SWORD_DEFS: WeaponDef[] = [
-  { id: 'sword_common', name: '시작의 검', rarity: 'common', baseAtk: 15, atkSpeed: 1.0, range: 48, hitboxW: 29, hitboxH: 19 },
-  { id: 'sword_uncommon', name: '강철 장검', rarity: 'uncommon', baseAtk: 20, atkSpeed: 1.0, range: 48, hitboxW: 29, hitboxH: 19 },
-  { id: 'sword_rare', name: '룬 블레이드', rarity: 'rare', baseAtk: 26, atkSpeed: 1.0, range: 52, hitboxW: 31, hitboxH: 20 },
-  { id: 'sword_legendary', name: '심연의 검', rarity: 'legendary', baseAtk: 33, atkSpeed: 1.05, range: 56, hitboxW: 33, hitboxH: 21 },
-  { id: 'sword_mythic', name: '아비스 팬텀', rarity: 'mythic', baseAtk: 45, atkSpeed: 1.1, range: 60, hitboxW: 35, hitboxH: 22 },
+  { id: 'sword_common', name: '시작의 검', rarity: 'common', baseAtk: 15, atkSpeed: 1.0, range: 64, hitboxW: 45, hitboxH: 19 },
+  { id: 'sword_uncommon', name: '강철 장검', rarity: 'uncommon', baseAtk: 20, atkSpeed: 1.0, range: 64, hitboxW: 45, hitboxH: 19 },
+  { id: 'sword_rare', name: '룬 블레이드', rarity: 'rare', baseAtk: 26, atkSpeed: 1.0, range: 68, hitboxW: 47, hitboxH: 20 },
+  { id: 'sword_legendary', name: '심연의 검', rarity: 'legendary', baseAtk: 33, atkSpeed: 1.05, range: 72, hitboxW: 49, hitboxH: 21 },
+  { id: 'sword_mythic', name: '아비스 팬텀', rarity: 'mythic', baseAtk: 45, atkSpeed: 1.1, range: 76, hitboxW: 51, hitboxH: 22 },
 ];
