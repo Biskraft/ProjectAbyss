@@ -96,6 +96,14 @@
 
 ---
 
+### N
+
+| 영문 키 | 한글명 | 정의 | 관련 문서 |
+| :--- | :--- | :--- | :--- |
+| Narrative Archetype | 서사 아키타입 | 반복 가능한 퀘스트 서사 구조의 원형. 도덕적 딜레마·기대 전복·탐정 절차·구출/호위·세력 대결·기억 탐구 6개 유형으로 분류된다. 변수 치환을 통해 100개 이상의 고유 퀘스트를 양산하는 기본 템플릿 역할을 한다. | `Documents/System/System_Quest_Narrative.md` |
+
+---
+
 ### O–P
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
@@ -103,6 +111,14 @@
 | Out-of-Combat | 전투 외 상태 | 전투 상태(In-Combat)가 아닌 평상시 상태. MP 자동 회복이 활성화되고 아이템 사용 제한이 해제된다. | `Documents/System/System_Combat_Action.md` |
 | Pillar | 기둥 | Project Abyss의 3대 핵심 설계 기둥. 모든 시스템과 기능은 (1) 메트로베니아 탐험, (2) 아이템계 야리코미, (3) 온라인 멀티플레이 중 최소 하나에 정렬되어야 한다. 어느 기둥에도 해당하지 않는 기능은 채택하지 않는다. | `Documents/Terms/Project_Vision_Abyss.md` |
 | Procedural Generation | 절차적 생성 | 알고리즘과 시드를 사용하여 맵·룸·Chunk를 자동으로 생성하는 기법. 월드의 마이크로 계층과 아이템계 전 층에 적용된다. 스펠렁키의 Room Grid 방식을 레퍼런스로 사용한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
+
+---
+
+### Q
+
+| 영문 키 | 한글명 | 정의 | 관련 문서 |
+| :--- | :--- | :--- | :--- |
+| Quest Branch | 퀘스트 분기 | 플레이어 선택에 따라 퀘스트 경로가 분화하는 지점. 최소(2갈래)·표준(3갈래)·고급(4갈래+) 등급으로 분류되며, 각 경로는 고유한 서사와 보상을 제공한다. | `Documents/System/System_Quest_Narrative.md`, `Documents/System/System_Quest_Narrative.md` |
 
 ---
 
@@ -148,6 +164,10 @@
 | :--- | :--- | :--- | :--- |
 | 3-Space 모델 | 3-Space Model | 게임 세계를 월드(World)/아이템계(Item World)/허브(Hub) 세 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
+| 변수 치환 | Variable Substitution | 서사 아키타입 내 슬롯(위치·NPC·목표·보상·맥락)에 구체적 콘텐츠를 주입하여 고유 퀘스트를 생성하는 메커니즘. 동일 아키타입에서 수십 가지 변형 퀘스트를 양산할 수 있게 한다. | `Documents/System/System_Quest_Narrative.md` |
+| 맥락 레이어 | Context Layer | 변수 치환된 퀘스트에 세계관 정합성을 부여하는 5단계 필터. 아이템 기원 테마 → 지역 테마 → 시간대 맥락 → 플레이어 이력 → 환경 스토리텔링 순으로 적용된다. | `Documents/System/System_Quest_Narrative.md` |
+| 인카운터 모델 | Encounter Model | 전통적 퀘스트 모델의 대안으로, 각 장소가 퀘스트 진행도에 관계없이 독립적으로 모든 가능한 게임 상태에 대응하는 서사 설계 방식. inkle의 "Narrative Sorcery" 모델에서 차용. | `Documents/System/System_Quest_Narrative.md`, `Documents/System/System_Quest_Narrative.md` |
+| 기억 탐구 | Memory Investigation | Memory Strata 전용 서사 아키타입. 플레이어가 아이템의 기원을 환경 단서를 통해 지층별로 조사하며 아이템의 전생을 해독하는 퀘스트 구조. PA 고유의 6번째 아키타입이다. | `Documents/System/System_Quest_Narrative.md`, `Documents/Design/Design_Narrative_Worldbuilding.md` |
 
 ---
 

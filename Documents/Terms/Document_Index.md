@@ -117,10 +117,13 @@ graph TD
 - 아이템 서사 구조: 기원(Creator/Purpose/History/Fate) → 아이템계의 테마 결정
 - 레어리티 = 서사 깊이: Normal(일상) → Magic(사연) → Rare(사건) → Legendary(역사) → Ancient(신화)
 - 테마 풀 시스템: 무기 카테고리 × 기원 테마 × 레어리티로 절차적 서사 생성
+- 환경 서사 7대 원칙: 씬>플롯, 정보 제거, 묵시적 서사, 40초 법칙, 환경 일관성, 시선 차단, Fire/Ember
 - 서사 전달: 환경 서사(지형/분위기) 최우선, 유령 NPC 대사(3문장 이하), 플레이버 텍스트
+- NPC 대사 설계: 신호/잡음 이론, 이노센트 어투 차별화, "빈 시간" 설계
 - 세계관 톤: 고딕 비극(고등급) + 경쾌한 야리코미(저등급) 이중 톤
 - 월드-아이템계 수직 서사: 월드(현재) → 아이템계(과거) → 월드 복귀(이해)
 - "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층 지층이 같은 곳을 가리킨다
+
 
 ---
 
@@ -238,7 +241,20 @@ graph TD
 - 오브젝트 배치 (적, 이노센트, 보상)
 - 월드 ProcGen과의 차이점 명시
 
-### 3.7 이노센트 시스템 (Innocent)
+### 3.7 퀘스트 서사 시스템 (Quest Narrative)
+
+| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-QST-01 | Quest Narrative Framework | `System/System_Quest_Narrative.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
+
+**SYS-QST-01 Quest Narrative Framework 범위:**
+- 6개 서사 아키타입 (도덕적 딜레마/기대 전복/탐정 절차/구출·호위/세력 대결/기억 탐구)
+- 변수 치환 시스템: 아키타입 × 위치 × NPC × 목표 × 보상 조합
+- 맥락 레이어 5단계: 아이템 기원 테마 → 지역 테마 → 시간대 → 플레이어 이력 → 환경 스토리텔링
+- 3-Space별 퀘스트 매핑, 인카운터 상태 모델, 분기 등급 체계
+- 100+ 퀘스트 양산을 위한 조합 공식 및 검증 파이프라인
+
+### 3.8 이노센트 시스템 (Innocent)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -246,7 +262,7 @@ graph TD
 | SYS-INC-02 | Innocent Farm | `System/System_Innocent_Farm.md` | ⬜ 제작 필요 | Hub | 야리코미 |
 | SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ⬜ 제작 필요 | Hub | 야리코미 |
 
-### 3.8 적 & AI 시스템 (Enemy)
+### 3.10 적 & AI 시스템 (Enemy)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -254,7 +270,7 @@ graph TD
 | SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ⬜ 제작 필요 | World+IW | 탐험+야리코미 |
 | SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ⬜ 제작 필요 | World+IW | 전체 |
 
-### 3.9 멀티플레이 시스템 (Multiplayer)
+### 3.11 멀티플레이 시스템 (Multiplayer)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -263,7 +279,7 @@ graph TD
 | SYS-MP-03 | Network Sync | `System/System_Multi_NetworkSync.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | SYS-MP-04 | Ghost Message | `System/System_Multi_GhostMessage.md` | ⬜ 제작 필요 | World | 멀티플레이 |
 
-### 3.10 경제 시스템 (Economy)
+### 3.11 경제 시스템 (Economy)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -271,7 +287,7 @@ graph TD
 | SYS-ECO-02 | Trade System | `System/System_Economy_Trade.md` | ⬜ 제작 필요 | Hub | 멀티플레이 |
 | SYS-ECO-03 | Auto Hunt | `System/System_Economy_AutoHunt.md` | ⬜ 제작 필요 | World+IW | 야리코미+멀티 |
 
-### 3.11 허브 시스템 (Hub)
+### 3.12 허브 시스템 (Hub)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -435,7 +451,7 @@ graph LR
 
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
-| 15 | D-12 Narrative & Worldbuilding | ⬜ | 콘텐츠 확장 전 세계관 원칙 |
+| 15 | D-12 Narrative & Worldbuilding | ✅ | 콘텐츠 확장 전 세계관 원칙 (환경 서사 7대 원칙 보강 완료) |
 | 16 | SYS-WLD-01 Map Structure | ⬜ | 7개 구역 연결 그래프 |
 | 17 | SYS-WLD-02 Zone Design | ⬜ | 구역별 바이옴 설계 |
 | 18 | SYS-WLD-03 Ability Gating | ⬜ | 능력 게이트 설계 |
@@ -482,9 +498,9 @@ graph LR
 | 카테고리 | 문서 수 | 완료 | 진행 중 | 대기 |
 | :--- | :--- | :--- | :--- | :--- |
 | Terms | 6 | 4 | 1 | 1 |
-| Design | 12 | 5 | 0 | 7 |
-| System | 33 | 12 | 0 | 21 |
+| Design | 12 | 6 | 0 | 6 |
+| System | 34 | 13 | 0 | 21 |
 | UI | 6 | 0 | 0 | 6 |
 | Content | 8 | 0 | 0 | 8 |
 | CSV | 11 | 4 | 0 | 7 |
-| **합계** | **76** | **25** | **1** | **50** |
+| **합계** | **77** | **27** | **1** | **49** |
