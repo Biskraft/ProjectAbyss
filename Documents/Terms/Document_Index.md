@@ -120,7 +120,7 @@ graph TD
 - 서사 전달: 환경 서사(지형/분위기) 최우선, 유령 NPC 대사(3문장 이하), 플레이버 텍스트
 - 세계관 톤: 고딕 비극(고등급) + 경쾌한 야리코미(저등급) 이중 톤
 - 월드-아이템계 수직 서사: 월드(현재) → 아이템계(과거) → 월드 복귀(이해)
-- "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층이 같은 곳을 가리킨다
+- "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층 지층이 같은 곳을 가리킨다
 
 ---
 
@@ -224,15 +224,15 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-IW-01 | Item World Core | `System/System_ItemWorld_Core.md` | ⬜ 제작 필요 | IW | 야리코미 |
-| SYS-IW-02 | IW Floor Generation | `System/System_ItemWorld_FloorGen.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-IW-02 | IW Strata Generation | `System/System_ItemWorld_FloorGen.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-03 | IW Boss System | `System/System_ItemWorld_Boss.md` | ⬜ 제작 필요 | IW | 야리코미 |
 | SYS-IW-04 | Recursive Entry | `System/System_ItemWorld_Recursion.md` | ⬜ 제작 필요 | IW | 야리코미 |
 | SYS-IW-05 | Mystery Room & Events | `System/System_ItemWorld_Events.md` | ⬜ 제작 필요 | IW | 야리코미 |
 | SYS-IW-06 | Geo Effects | `System/System_ItemWorld_GeoEffects.md` | ⬜ 제작 필요 | IW | 야리코미 |
 
-**SYS-IW-02 Floor Generation 범위:**
-- 시드: `hash(itemID + itemLevel + floorNumber)`
-- Room Grid 크기 (난이도별 3x3 ~ 5x5)
+**SYS-IW-02 Strata Generation 범위:**
+- 시드: `hash(itemID + itemLevel + stratumNumber)`
+- Room Grid 크기 (지층별 3x3 ~ 5x5)
 - Critical Path 생성 알고리즘
 - Chunk 삽입 (레어리티별 복잡도)
 - 오브젝트 배치 (적, 이노센트, 보상)
