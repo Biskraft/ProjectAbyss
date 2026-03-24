@@ -94,7 +94,7 @@ graph TD
 | D-09 | Combat Design Philosophy | `Design/Design_Combat_Philosophy.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-10 | Level Design Standards | `Design/Design_Level_Standards.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ⬜ 제작 필요 | 전체 | 전체 |
-| D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ⬜ 제작 필요 | World+Hub | 탐험 |
+| D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 
 **D-09 Combat Design Philosophy 범위:**
 - 전투 미학: 타격감(Juice)의 3요소 (히트스탑, 화면흔들림, 넉백) 설계 원칙
@@ -113,11 +113,14 @@ graph TD
 - 전생(Reincarnation) 철학: 리셋의 고통 vs 재성장의 쾌감, 장기 목표 설계
 
 **D-12 Narrative & Worldbuilding 범위:**
-- 서사 전달 방식: 환경 서사(Environmental Storytelling) 중심, 최소 컷신
-- 세계관 톤: 고딕 다크 판타지 + 디스가이아적 경쾌함의 공존 원칙
-- NPC/대사 철학: 짧고 인상적인 대사, 반복 대화의 변화, 정보 전달 우선
-- 아이템 서사: 장비 설명문(Flavor Text)을 통한 세계관 전달
-- 구역별 스토리 레이어: 각 바이옴이 독립 서사를 갖되 전체 미스터리에 기여
+- 핵심 원칙: "아이템이 곧 서사 매체" — 아이템계에 들어가면 아이템의 역사가 몬스터/지형/NPC로 구현
+- 아이템 서사 구조: 기원(Creator/Purpose/History/Fate) → 아이템계의 테마 결정
+- 레어리티 = 서사 깊이: Normal(일상) → Magic(사연) → Rare(사건) → Legendary(역사) → Ancient(신화)
+- 테마 풀 시스템: 무기 카테고리 × 기원 테마 × 레어리티로 절차적 서사 생성
+- 서사 전달: 환경 서사(지형/분위기) 최우선, 유령 NPC 대사(3문장 이하), 플레이버 텍스트
+- 세계관 톤: 고딕 비극(고등급) + 경쾌한 야리코미(저등급) 이중 톤
+- 월드-아이템계 수직 서사: 월드(현재) → 아이템계(과거) → 월드 복귀(이해)
+- "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층이 같은 곳을 가리킨다
 
 ---
 
