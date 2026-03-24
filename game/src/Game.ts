@@ -90,8 +90,8 @@ export class Game {
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      this.gameContainer.x = -this.camera.renderX + GAME_WIDTH / 2;
-      this.gameContainer.y = -this.camera.renderY + GAME_HEIGHT / 2;
+      this.gameContainer.x = Math.round(-this.camera.renderX + GAME_WIDTH / 2);
+      this.gameContainer.y = Math.round(-this.camera.renderY + GAME_HEIGHT / 2);
     });
   }
 

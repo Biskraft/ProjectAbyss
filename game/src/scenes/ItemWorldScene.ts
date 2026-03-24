@@ -420,6 +420,9 @@ export class ItemWorldScene extends Scene {
   }
 
   update(dt: number): void {
+    // Toast always updates (even during transitions / menus)
+    this.toast.update(dt);
+
     // Onboarding blocks gameplay
     if (!this.onboardingDone) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
@@ -649,7 +652,6 @@ export class ItemWorldScene extends Scene {
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
-    this.toast.update(dt);
 
     // Camera
     this.game.camera.target = {

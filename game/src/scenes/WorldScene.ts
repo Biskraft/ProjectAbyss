@@ -421,6 +421,9 @@ export class WorldScene extends Scene {
   update(dt: number): void {
     this.playtime += dt;
 
+    // Toast always updates (even during transitions / game over)
+    this.toast.update(dt);
+
     // Portal transition playing
     if (this.portalTransition) {
       this.portalTransition.update(dt);
@@ -644,8 +647,7 @@ export class WorldScene extends Scene {
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
 
-    // Toast, damage numbers & Sakurai hit effects
-    this.toast.update(dt);
+    // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
