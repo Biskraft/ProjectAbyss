@@ -114,16 +114,12 @@ export class Ghost extends Enemy {
     if (!this.target) return;
     const cx = this.x + this.width / 2;
     const cy = this.y + this.height / 2;
-    const tx = this.target.x + this.target.width / 2;
-    const ty = this.target.y + this.target.height / 2;
-    const dx = tx - cx;
-    const dy = ty - cy;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const dir = this.target.x > this.x ? 1 : -1;
 
     const proj = new Projectile(
       cx - 4, cy - 4,
-      (dx / dist) * PROJECTILE_SPEED,
-      (dy / dist) * PROJECTILE_SPEED,
+      dir * PROJECTILE_SPEED,
+      0,
       this.atk,
     );
     this.pendingProjectiles.push(proj);
