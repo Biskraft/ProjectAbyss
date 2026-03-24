@@ -8,6 +8,8 @@ import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
+import { Ghost } from '@entities/Ghost';
+import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
@@ -39,6 +41,7 @@ export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private player!: Player;
   private enemies: Enemy[] = [];
+  private projectiles: Projectile[] = [];
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
@@ -242,17 +245,18 @@ export class ItemWorldScene extends Scene {
     const scale = 1 + dist * 0.2; // +20% per room distance
 
     for (let i = 0; i < count; i++) {
-      const skeleton = new Skeleton();
-      skeleton.hp = skeleton.maxHp = Math.floor(skeleton.maxHp * scale);
-      skeleton.atk = Math.floor(skeleton.atk * scale);
-
       const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
-      skeleton.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
-      skeleton.y = floorY - skeleton.height;
-      skeleton.roomData = this.roomData;
-      skeleton.target = this.player;
-      this.enemies.push(skeleton);
-      this.entityLayer.addChild(skeleton.container);
+      const isGhost = spawnRng.next() < 0.3;
+      const enemy = isGhost ? new Ghost() : new Skeleton();
+      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * scale);
+      enemy.atk = Math.floor(enemy.atk * scale);
+
+      enemy.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
+      enemy.y = floorY - enemy.height;
+      enemy.roomData = this.roomData;
+      enemy.target = this.player;
+      this.enemies.push(enemy);
+      this.entityLayer.addChild(enemy.container);
     }
   }
 
@@ -328,6 +332,8 @@ export class ItemWorldScene extends Scene {
       if (e.container.parent) e.container.parent.removeChild(e.container);
     }
     this.enemies = [];
+    for (const p of this.projectiles) p.destroy();
+    this.projectiles = [];
   }
 
   private getOppositeDirection(dir: 'left' | 'right' | 'up' | 'down'): 'left' | 'right' | 'up' | 'down' {
@@ -415,6 +421,58 @@ export class ItemWorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+      }
+    }
+
+    // Collect Ghost projectiles
+    for (const enemy of this.enemies) {
+      if (enemy instanceof Ghost && enemy.alive) {
+        for (const proj of enemy.pendingProjectiles) {
+          this.projectiles.push(proj);
+          this.entityLayer.addChild(proj.container);
+        }
+        enemy.pendingProjectiles.length = 0;
+      }
+    }
+
+    // Update projectiles & check player collision
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const proj = this.projectiles[i];
+      proj.update(dt);
+      if (!proj.alive) {
+        proj.destroy();
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      if (!this.player.invincible && this.player.hp > 0) {
+        const overlap = aabbOverlap(
+          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
+          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+        );
+        if (overlap) {
+          const dir = proj.vx > 0 ? 1 : -1;
+          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
+          this.player.onHit(dir * 80, -40, 150);
+          this.player.hp -= dmg;
+          this.player.invincible = true;
+          this.player.invincibleTimer = 500;
+          this.player.startVibrate(3, 4, true);
+          this.player.triggerFlash();
+          this.game.hitstopFrames = 2;
+          this.game.camera.shakeDirectional(2, dir, -0.2);
+          this.screenFlash.flashDamage(false);
+          this.hitSparks.spawn(this.player.x + this.player.width / 2, this.player.y + this.player.height * 0.4, false, -dir);
+          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y + this.player.height * 0.4 - 8, dmg, false);
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          }
+          proj.alive = false;
+          proj.destroy();
+          this.projectiles.splice(i, 1);
+        }
       }
     }
 

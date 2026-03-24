@@ -8,6 +8,8 @@ import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAss
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
+import { Ghost } from '@entities/Ghost';
+import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { HitManager } from '@combat/HitManager';
@@ -28,6 +30,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
+import { SaveManager } from '@utils/SaveManager';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import type { Game } from '../Game';
@@ -36,8 +39,8 @@ const TILE_SIZE = 16;
 const ROOM_W = 60;
 const ROOM_H = 34;
 const FADE_DURATION = 200;
-const GRID_W = 4;
-const GRID_H = 4;
+const GRID_W = 6;
+const GRID_H = 6;
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
@@ -45,6 +48,7 @@ export class WorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private player!: Player;
   private enemies: Enemy[] = [];
+  private projectiles: Projectile[] = [];
   private hitManager!: HitManager;
   private rng!: PRNG;
   private dropRng!: PRNG;
@@ -97,26 +101,39 @@ export class WorldScene extends Scene {
   private altarSelectIndex = 0;
   private activeAltar: Altar | null = null;
   private altarUI: Container | null = null;
+  private worldSeed = 12345;
+  private playtime = 0;
 
   constructor(game: Game) {
     super(game);
   }
 
   init(): void {
-    this.rng = new PRNG(12345);
-    this.dropRng = new PRNG(99999);
     this.hitManager = new HitManager(this.game);
-    this.inventory = new Inventory();
 
-    // Give starter weapon
-    const starterSword = createItem(SWORD_DEFS[0]);
-    this.inventory.add(starterSword);
-    this.inventory.equip(starterSword.uid);
-
-    // Generate room grid
-    this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
-    this.currentCol = this.gridData.startRoom.col;
-    this.currentRow = this.gridData.startRoom.row;
+    // Try loading save
+    const saveData = SaveManager.load();
+    if (saveData) {
+      this.worldSeed = saveData.worldSeed;
+      this.playtime = saveData.playtime;
+      this.rng = new PRNG(this.worldSeed);
+      this.dropRng = new PRNG(this.worldSeed + 54321);
+      this.inventory = SaveManager.loadInventory(saveData);
+      this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
+      this.currentCol = saveData.player.roomCol;
+      this.currentRow = saveData.player.roomRow;
+    } else {
+      this.worldSeed = 12345;
+      this.rng = new PRNG(this.worldSeed);
+      this.dropRng = new PRNG(99999);
+      this.inventory = new Inventory();
+      const starterSword = createItem(SWORD_DEFS[0]);
+      this.inventory.add(starterSword);
+      this.inventory.equip(starterSword.uid);
+      this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
+      this.currentCol = this.gridData.startRoom.col;
+      this.currentRow = this.gridData.startRoom.row;
+    }
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
@@ -130,6 +147,10 @@ export class WorldScene extends Scene {
     this.player = new Player(this.game);
     this.entityLayer.addChild(this.player.container);
     this.updatePlayerAtk();
+    if (saveData) {
+      this.player.hp = saveData.player.hp;
+      this.player.maxHp = saveData.player.maxHp;
+    }
 
     // Fade overlay
     this.fadeOverlay = new Graphics();
@@ -174,6 +195,17 @@ export class WorldScene extends Scene {
   private updatePlayerAtk(): void {
     const baseStr = 10; // Lv1 STR
     this.player.atk = baseStr + this.inventory.getWeaponAtk();
+  }
+
+  private autoSave(): void {
+    SaveManager.save(
+      { hp: this.player.hp, maxHp: this.player.maxHp, atk: this.player.atk, def: this.player.def },
+      this.currentCol,
+      this.currentRow,
+      this.inventory,
+      this.worldSeed,
+      this.playtime,
+    );
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
@@ -317,6 +349,8 @@ export class WorldScene extends Scene {
       if (e.container.parent) e.container.parent.removeChild(e.container);
     }
     this.enemies = [];
+    for (const p of this.projectiles) p.destroy();
+    this.projectiles = [];
   }
 
   private clearDrops(): void {
@@ -335,17 +369,19 @@ export class WorldScene extends Scene {
     const tier = getDifficultyTier(dist);
 
     for (let i = 0; i < count; i++) {
-      const skeleton = new Skeleton();
-      skeleton.hp = skeleton.maxHp = Math.floor(skeleton.maxHp * scale);
-      skeleton.atk = Math.floor(skeleton.atk * scale);
-
       const spawnRng = new PRNG(this.currentCol * 777 + this.currentRow * 333 + i * 111);
-      skeleton.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
-      skeleton.y = floorY - skeleton.height;
-      skeleton.roomData = this.roomData;
-      skeleton.target = this.player;
-      this.enemies.push(skeleton);
-      this.entityLayer.addChild(skeleton.container);
+      // ~30% chance to spawn Ghost instead of Skeleton
+      const isGhost = spawnRng.next() < 0.3;
+      const enemy = isGhost ? new Ghost() : new Skeleton();
+      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * scale);
+      enemy.atk = Math.floor(enemy.atk * scale);
+
+      enemy.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
+      enemy.y = floorY - enemy.height;
+      enemy.roomData = this.roomData;
+      enemy.target = this.player;
+      this.enemies.push(enemy);
+      this.entityLayer.addChild(enemy.container);
     }
 
     // Golden Monster: 0~1 per room, ~20% chance
@@ -383,6 +419,8 @@ export class WorldScene extends Scene {
   }
 
   update(dt: number): void {
+    this.playtime += dt;
+
     // Portal transition playing
     if (this.portalTransition) {
       this.portalTransition.update(dt);
@@ -469,6 +507,61 @@ export class WorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+      }
+    }
+
+    // Collect Ghost projectiles
+    for (const enemy of this.enemies) {
+      if (enemy instanceof Ghost && enemy.alive) {
+        for (const proj of enemy.pendingProjectiles) {
+          this.projectiles.push(proj);
+          this.entityLayer.addChild(proj.container);
+        }
+        enemy.pendingProjectiles.length = 0;
+      }
+    }
+
+    // Update projectiles & check player collision
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const proj = this.projectiles[i];
+      proj.update(dt);
+      if (!proj.alive) {
+        proj.destroy();
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      // Hit player?
+      if (!this.player.invincible && this.player.hp > 0) {
+        const overlap = aabbOverlap(
+          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
+          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+        );
+        if (overlap) {
+          const dir = proj.vx > 0 ? 1 : -1;
+          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
+          this.player.onHit(dir * 80, -40, 150);
+          this.player.hp -= dmg;
+          this.player.invincible = true;
+          this.player.invincibleTimer = 500;
+          this.player.startVibrate(3, 4, true);
+          this.player.triggerFlash();
+          this.game.hitstopFrames = 2;
+          this.game.camera.shakeDirectional(2, dir, -0.2);
+          this.screenFlash.flashDamage(false);
+          const hitX = this.player.x + this.player.width / 2;
+          const hitY = this.player.y + this.player.height * 0.4;
+          this.hitSparks.spawn(hitX, hitY, false, -dir);
+          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          }
+          proj.alive = false;
+          proj.destroy();
+          this.projectiles.splice(i, 1);
+        }
       }
     }
 
@@ -887,6 +980,7 @@ export class WorldScene extends Scene {
       if (this.transitionTimer <= 0) {
         this.transitionState = 'none';
         this.fadeOverlay.alpha = 0;
+        this.autoSave();
         this.pendingDirection = null;
       }
     }
