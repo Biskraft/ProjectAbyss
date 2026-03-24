@@ -1,3 +1,4 @@
+import { Graphics } from 'pixi.js';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 
@@ -6,6 +7,7 @@ const PROJECTILE_SPEED = 120; // px/s
 export class Ghost extends Enemy {
   private shootTimer = 0;
   private hasShot = false;
+  private glowSprite: Graphics;
   /** Spawned projectiles — scene must read and manage these */
   pendingProjectiles: Projectile[] = [];
 
@@ -13,7 +15,7 @@ export class Ghost extends Enemy {
     super({
       width: 14,
       height: 18,
-      color: 0x6666cc,       // purple-blue
+      color: 0xaabbff,       // bright ghostly blue
       hp: 25,
       atk: 6,
       def: 1,
@@ -22,6 +24,11 @@ export class Ghost extends Enemy {
       moveSpeed: 40,          // slow drift
       attackCooldown: 1800,   // ms between shots
     });
+
+    // Outer glow aura
+    this.glowSprite = new Graphics();
+    this.glowSprite.rect(-3, -3, 20, 24).fill({ color: 0xaabbff, alpha: 0.25 });
+    this.container.addChildAt(this.glowSprite, 0);
   }
 
   protected setupStates(): void {
@@ -158,5 +165,10 @@ export class Ghost extends Enemy {
     if (this.target) {
       this.facingRight = this.target.x > this.x;
     }
+
+    // Ghostly pulsing visibility
+    const pulse = 0.55 + 0.35 * Math.sin(Date.now() * 0.004);
+    this.container.alpha = pulse;
+    this.glowSprite.alpha = 0.15 + 0.2 * Math.sin(Date.now() * 0.003);
   }
 }
