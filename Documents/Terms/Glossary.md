@@ -50,7 +50,7 @@
 | Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 회피 행동. 쿨다운 2초, 공중 대시 1회 제한. 발동 중 i-frame이 적용되어 적 공격을 회피할 수 있으며, 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | DEX | 민첩 스탯 | Dexterity. 기동성 관련 스탯 게이트에 사용되는 스탯. 좁은 틈새, 빠른 함정 구간, 정밀 점프 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
-| Floor | 층 | 아이템계(Item World) 내부 던전의 진행 단위. 아이템계는 최대 100층으로 구성되며, 10층마다 보스가 출현한다. 레어리티에 따라 진입 가능한 최대 층수가 결정된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
+| Floor / Stratum | 층 / 지층 | 아이템계(Item World) 내부 던전의 진행 단위. 기존 "Floor(층)" 개념은 "Stratum(지층)"으로 전환되었다. 아이템계는 레어리티별 2~4개 지층(Memory Strata)으로 구성되며, 각 지층은 메트로베니아 스타일의 Room Grid 던전이다. 각 지층의 보스를 처치해야 다음 지층으로 진행한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
 
@@ -58,7 +58,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Geo Effect | 지오 이펙트 | 디스가이아의 지오 이펙트를 차용한 개념. 아이템계 특정 층에 배치되는 패널로, 해당 타일 위에 있을 때 데미지 증가·감소, 이동 제한 등 전략적 변수를 추가한다. | `Documents/System/System_ItemWorld_FloorGen.md` |
+| Geo Effect | 지오 이펙트 | 디스가이아의 지오 이펙트를 차용한 개념. 아이템계 특정 지층에 배치되는 패널로, 해당 타일 위에 있을 때 데미지 증가·감소, 이동 제한 등 전략적 변수를 추가한다. | `Documents/System/System_ItemWorld_FloorGen.md` |
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2~4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
@@ -76,11 +76,11 @@
 | Innocent | 이노센트 | 장비 아이템 내부(아이템계)에 거주하며 해당 아이템에 보너스 스탯을 부여하는 존재. 야생(Wild) 상태에서는 적으로 등장하며 격파 시 복종(Tamed) 상태로 전환된다. 복종 상태에서 효과가 2배가 되고 다른 아이템으로 이동 가능하다. | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Normal 2슬롯부터 Ancient 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |
 | INT | 지능 스탯 | Intelligence. 마법 공격력 및 마법 봉인 게이트에 사용되는 스탯. 특정 수치 이상이면 마법 장벽·룬 퍼즐·마법진 활성화 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
-| Item General | 아이템 장군 | 아이템계 10·20·30층에 출현하는 보스 등급. 처치 시 아이템 스탯 +5% 보너스를 획득한다. | `Reference/게임 기획 개요.md` |
-| Item God | 아이템 신 | 아이템계 70·80·90층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item King | 아이템 왕 | 아이템계 40·50·60층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item Overlord | 아이템 대신 | 아이템계 100층에 출현하는 최상위 보스. 처치 시 아이템 레어리티 승급 기회와 대량 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 최대 100층의 절차적 던전. 1~4인이 협동하여 층을 클리어하며 장비를 직접 강화한다. 3-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
+| Item General | 아이템 장군 | 아이템계 초기 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +5% 보너스를 획득한다. | `Reference/게임 기획 개요.md` |
+| Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
+| Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
+| Item Overlord | 아이템 대신 | 아이템계 최심층 지층에 출현하는 최상위 보스. 처치 시 아이템 레어리티 승급 기회와 대량 보상을 획득한다. | `Reference/게임 기획 개요.md` |
+| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2~4개 지층으로 구성되며, 1~4인이 협동하여 지층을 클리어하며 장비를 직접 강화한다. 3-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
 
@@ -92,7 +92,7 @@
 | LCK | 행운 스탯 | Luck. 크리티컬 확률·드랍률·비밀 방 발견 확률에 영향을 주는 스탯. LCK 게이트는 특정 수치 이상일 때 숨겨진 경로가 개방된다. | `Reference/게임 기획 개요.md`, `Documents/System/System_Combat_Damage.md` |
 | Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. Project Abyss의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | MP | 마력 | Magic Point. 스킬 시전에 소비되는 자원. 전투 외 상태(Out-of-Combat)에서 자동 회복된다. 부족 시 스킬 발동이 불가하며 UI에 게이지로 표시된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
-| Mystery Room | 미스터리 룸 | 아이템계 특정 층에 확률적으로 출현하는 특수 이벤트 룸. 상점·점술사·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
+| Mystery Room | 미스터리 룸 | 아이템계 특정 지층에 확률적으로 출현하는 특수 이벤트 룸. 상점·점술사·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
 
@@ -110,7 +110,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 최대 층수가 결정된다. | `Reference/게임 기획 개요.md` |
+| Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | Recursive Entry | 재귀적 진입 | 아이템계 내에서 획득한 장비 아이템의 아이템계에 다시 진입하는 것. 최대 깊이 3까지 허용되며, 깊이가 깊을수록 이노센트 효과 보너스가 증가한다(깊이 2: +20%, 깊이 3: +50%). | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 구역 난이도·층수에 따라 3x3~5x5 크기로 결정된다. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
@@ -147,19 +147,19 @@
 | 한글명 | 영문 키/표기 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | 3-Space 모델 | 3-Space Model | 게임 세계를 월드(World)/아이템계(Item World)/허브(Hub) 세 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
-| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 100층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
+| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
 
 ---
 
 ## 레어리티 등급 빠른 참조
 
-| 등급 | 색상 | 스탯 배율 | 이노센트 슬롯 | 아이템계 최대 층 | 드랍 확률 |
+| 등급 | 색상 | 스탯 배율 | 이노센트 슬롯 | 아이템계 지층 수 | 드랍 확률 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Normal | 흰색 | x1.0 | 2 | 30층 | 60% |
-| Magic | 초록 | x1.3 | 3 | 50층 | 25% |
-| Rare | 파랑 | x1.7 | 4 | 70층 | 10% |
-| Legendary | 보라 | x2.2 | 6 | 100층 | 4% |
-| Ancient | 금색 | x3.0 | 8 | 100층 + 보너스 | 1% |
+| Normal | 흰색 | x1.0 | 2 | 2 지층 | 60% |
+| Magic | 초록 | x1.3 | 3 | 3 지층 | 25% |
+| Rare | 파랑 | x1.7 | 4 | 3 지층 | 10% |
+| Legendary | 보라 | x2.2 | 6 | 4 지층 | 4% |
+| Ancient | 금색 | x3.0 | 8 | 4 지층 + 심연 | 1% |
 
 ---
 
@@ -178,9 +178,9 @@
 
 ## 아이템계 보스 빠른 참조
 
-| 보스 등급 | 출현 층 | 처치 보상 |
+| 보스 등급 | 출현 지층 | 처치 보상 |
 | :--- | :--- | :--- |
-| 아이템 장군 (Item General) | 10, 20, 30층 | 아이템 스탯 +5% |
-| 아이템 왕 (Item King) | 40, 50, 60층 | 아이템 스탯 +10%, 이노센트 슬롯 +1 |
-| 아이템 신 (Item God) | 70, 80, 90층 | 아이템 스탯 +15%, 특수 이노센트 드랍 |
-| 아이템 대신 (Item Overlord) | 100층 | 레어리티 승급 기회, 대량 보상 |
+| 아이템 장군 (Item General) | 각 지층의 보스 (초기 지층) | 아이템 스탯 +5% |
+| 아이템 왕 (Item King) | 각 지층의 보스 (중반 지층) | 아이템 스탯 +10%, 이노센트 슬롯 +1 |
+| 아이템 신 (Item God) | 각 지층의 보스 (후반 지층) | 아이템 스탯 +15%, 특수 이노센트 드랍 |
+| 아이템 대신 (Item Overlord) | 최심층 지층의 보스 | 레어리티 승급 기회, 대량 보상 |
