@@ -26,6 +26,9 @@ const GAME_KEYS = new Set(
   Object.values(DEFAULT_BINDINGS).flat()
 );
 
+// Virtual key prefix to avoid collisions with real key codes
+const VIRTUAL_PREFIX = 'Virtual_';
+
 export class InputManager {
   private keyState = new Map<string, boolean>();
   private prevKeyState = new Map<string, boolean>();
@@ -61,6 +64,17 @@ export class InputManager {
   private resetAll(): void {
     this.keyState.clear();
     this.prevKeyState.clear();
+  }
+
+  /** Called by VirtualPad on touchstart */
+  setVirtualAction(action: GameAction, pressed: boolean): void {
+    const vKey = VIRTUAL_PREFIX + action;
+    this.keyState.set(vKey, pressed);
+    // Also register in bindings so isDown/isJustPressed can find it
+    const keys = this.bindings[action];
+    if (!keys.includes(vKey)) {
+      keys.push(vKey);
+    }
   }
 
   update(): void {

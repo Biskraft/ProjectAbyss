@@ -12,6 +12,7 @@ import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
+import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
@@ -56,6 +57,7 @@ export class WorldScene extends Scene {
   private drops: ItemDropEntity[] = [];
   private inventoryUI!: InventoryUI;
   private hud!: HUD;
+  private controlsOverlay!: ControlsOverlay;
 
   // Room grid
   private gridData!: RoomGridData;
@@ -142,6 +144,10 @@ export class WorldScene extends Scene {
     // HUD
     this.hud = new HUD();
     this.game.app.stage.addChild(this.hud.container);
+
+    // Controls overlay
+    this.controlsOverlay = new ControlsOverlay();
+    this.game.app.stage.addChild(this.controlsOverlay.container);
 
     // Toast, damage numbers & Sakurai hit effects
     this.toast = new ToastManager(this.game.app.stage);
@@ -896,6 +902,7 @@ export class WorldScene extends Scene {
     this.toast.clear();
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.inventoryUI?.container.parent) this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }

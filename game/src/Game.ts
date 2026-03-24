@@ -98,9 +98,18 @@ export class Game {
   private handleResize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const scale = Math.max(1, Math.floor(Math.min(w / GAME_WIDTH, h / GAME_HEIGHT)));
     const canvas = this.app.canvas;
-    canvas.style.width = `${GAME_WIDTH * scale}px`;
-    canvas.style.height = `${GAME_HEIGHT * scale}px`;
+
+    // On touch devices, fill the screen (fractional scale allowed)
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isMobile) {
+      const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+      canvas.style.width = `${Math.floor(GAME_WIDTH * scale)}px`;
+      canvas.style.height = `${Math.floor(GAME_HEIGHT * scale)}px`;
+    } else {
+      const scale = Math.max(1, Math.floor(Math.min(w / GAME_WIDTH, h / GAME_HEIGHT)));
+      canvas.style.width = `${GAME_WIDTH * scale}px`;
+      canvas.style.height = `${GAME_HEIGHT * scale}px`;
+    }
   }
 }

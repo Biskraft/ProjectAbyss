@@ -10,6 +10,7 @@ import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
+import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
@@ -41,6 +42,7 @@ export class ItemWorldScene extends Scene {
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
+  private controlsOverlay!: ControlsOverlay;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private screenFlash!: ScreenFlash;
@@ -81,6 +83,16 @@ export class ItemWorldScene extends Scene {
   // Escape confirm dialog
   private escapeConfirm: Container | null = null;
   private escapeConfirmVisible = false;
+
+  // Onboarding
+  private onboardingPanel: Container | null = null;
+  private onboardingStep = 0;
+  private static readonly ONBOARDING_MSGS = [
+    'You entered the Item World!',
+    'Defeat monsters to earn EXP\nand level up your item.',
+    'Find the exit to complete\nthe dungeon. ESC to leave.',
+  ];
+  private onboardingDone = false;
 
   // Callback when done
   onComplete: (() => void) | null = null;
@@ -131,6 +143,10 @@ export class ItemWorldScene extends Scene {
     // HUD
     this.hud = new HUD();
     this.game.app.stage.addChild(this.hud.container);
+
+    // Controls overlay
+    this.controlsOverlay = new ControlsOverlay();
+    this.game.app.stage.addChild(this.controlsOverlay.container);
 
     // Toast
     this.toast = new ToastManager(this.game.app.stage);
@@ -323,9 +339,19 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  enter(): void {}
+  enter(): void {
+    this.showOnboarding();
+  }
 
   update(dt: number): void {
+    // Onboarding blocks gameplay
+    if (!this.onboardingDone) {
+      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+        this.advanceOnboarding();
+      }
+      return;
+    }
+
     // ESC to toggle escape confirm
     if (this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.escapeConfirmVisible) {
@@ -545,6 +571,71 @@ export class ItemWorldScene extends Scene {
     this.escapeConfirm = null;
   }
 
+  // --- Onboarding ---
+  private showOnboarding(): void {
+    this.onboardingStep = 0;
+    this.onboardingDone = false;
+    this.showOnboardingStep();
+  }
+
+  private showOnboardingStep(): void {
+    if (this.onboardingPanel?.parent) {
+      this.onboardingPanel.parent.removeChild(this.onboardingPanel);
+    }
+
+    const msgs = ItemWorldScene.ONBOARDING_MSGS;
+    if (this.onboardingStep >= msgs.length) {
+      this.onboardingPanel = null;
+      this.onboardingDone = true;
+      return;
+    }
+
+    const msg = msgs[this.onboardingStep];
+    const lines = msg.split('\n');
+
+    const panelW = 280;
+    const lineH = 12;
+    const padY = 10;
+    const padX = 14;
+    const panelH = padY * 2 + lines.length * lineH + 16; // +16 for prompt line
+
+    const panel = new Container();
+    const bg = new Graphics();
+    bg.roundRect(0, 0, panelW, panelH, 4).fill({ color: 0x0a0a1e, alpha: 0.92 });
+    bg.roundRect(0, 0, panelW, panelH, 4).stroke({ color: 0x6666aa, width: 1 });
+    panel.addChild(bg);
+
+    for (let i = 0; i < lines.length; i++) {
+      const t = new BitmapText({
+        text: lines[i],
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
+      });
+      t.x = padX;
+      t.y = padY + i * lineH;
+      panel.addChild(t);
+    }
+
+    const step = `${this.onboardingStep + 1}/${msgs.length}`;
+    const prompt = new BitmapText({
+      text: `[Z] Next  ${step}`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+    });
+    prompt.x = padX;
+    prompt.y = panelH - padY - 8;
+    panel.addChild(prompt);
+
+    panel.x = Math.floor((480 - panelW) / 2);
+    panel.y = Math.floor((270 - panelH) / 2) - 20;
+
+    this.onboardingPanel = panel;
+    this.game.app.stage.addChild(panel);
+  }
+
+  private advanceOnboarding(): void {
+    this.onboardingStep++;
+    this.showOnboardingStep();
+  }
+
   private startExitFade(): void {
     this.transitionState = 'exit_fade';
     this.transitionTimer = FADE_DURATION * 2;
@@ -630,8 +721,10 @@ export class ItemWorldScene extends Scene {
   exit(): void {
     this.toast.clear();
     this.hideEscapeConfirm();
+    if (this.onboardingPanel?.parent) this.onboardingPanel.parent.removeChild(this.onboardingPanel);
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
   }
 

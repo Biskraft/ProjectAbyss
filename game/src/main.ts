@@ -1,6 +1,7 @@
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { installBitmapFont } from '@ui/fonts';
+import { VirtualPad } from '@ui/VirtualPad';
 
 function showStatus(msg: string): void {
   const el = document.getElementById('load-status');
@@ -41,6 +42,11 @@ try {
 
   showStatus('Loading world...');
   await game.sceneManager.push(new WorldScene(game));
+
+  // Virtual pad for mobile
+  if (VirtualPad.isTouchDevice()) {
+    new VirtualPad(game.input);
+  }
 
   // Hide status once game is running
   const el = document.getElementById('load-status');
