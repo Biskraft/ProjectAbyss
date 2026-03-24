@@ -415,7 +415,7 @@ graph LR
 | 2 | CSV-01 Character_Base.csv | ✅ | Lv 1~10 스탯 테이블 |
 | 3 | CSV-03 Damage_Formula.csv | ✅ | 데미지 공식 계수 |
 | 4 | SYS-EQP-01 Equipment Slots | ✅ | 장비 슬롯/착용 규칙 |
-| 5 | SYS-EQP-02 Rarity System | ✅ | 5등급 배율, 아이템계 층수 연동 |
+| 5 | SYS-EQP-02 Rarity System | ✅ | 5등급 배율, 아이템계 지층 수 연동 |
 | 6 | CSV-02 Weapon_List.csv | ✅ | 검 1종, 5레어리티 스탯 |
 | 7 | SYS-CMB-03 Weapons & Slots | ✅ | 검 1종 모션/히트박스 정의 |
 | 8 | SYS-MON-01 Enemy AI | ✅ | 근접형/원거리형 2패턴 AI |
