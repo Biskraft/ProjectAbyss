@@ -2,6 +2,17 @@ import { type Rarity, RARITY_MULTIPLIER, type WeaponDef } from '@data/weapons';
 
 let nextItemId = 1;
 
+export interface ItemWorldProgress {
+  /** Index of deepest stratum unlocked (boss beaten). 0 = only stratum 0 accessible. */
+  deepestUnlocked: number;
+  /** Per-stratum visited rooms. Key: stratumIndex, Value: "col,row" strings */
+  visitedRooms: Record<number, string[]>;
+  /** Per-stratum cleared rooms */
+  clearedRooms: Record<number, string[]>;
+  /** Last stratum the player safely exited from */
+  lastSafeStratum: number;
+}
+
 export interface ItemInstance {
   uid: number;           // unique runtime id
   def: WeaponDef;        // base definition
@@ -11,6 +22,21 @@ export interface ItemInstance {
 
   // Derived (recalculated on level change)
   finalAtk: number;
+
+  // Memory Strata exploration state (lazily initialized on first Item World entry)
+  worldProgress?: ItemWorldProgress;
+}
+
+export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress {
+  if (!item.worldProgress) {
+    item.worldProgress = {
+      deepestUnlocked: 0,
+      visitedRooms: {},
+      clearedRooms: {},
+      lastSafeStratum: 0,
+    };
+  }
+  return item.worldProgress;
 }
 
 export const EXP_PER_LEVEL = 300;

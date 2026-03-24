@@ -768,6 +768,7 @@ export class WorldScene extends Scene {
       if (this.player.atk !== prevAtk) {
         this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
       }
+      this.autoSave(); // persist worldProgress changes
     };
 
     this.game.sceneManager.push(itemWorldScene, true);

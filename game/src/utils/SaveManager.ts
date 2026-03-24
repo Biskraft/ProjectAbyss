@@ -1,11 +1,11 @@
 import { SWORD_DEFS, type Rarity } from '@data/weapons';
-import { createItem, recalcItemAtk, type ItemInstance } from '@items/ItemInstance';
+import { createItem, recalcItemAtk, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { Inventory } from '@items/Inventory';
 
 const SAVE_KEY = 'projectabyss_save';
 
 interface SaveData {
-  version: 1;
+  version: 1 | 2;
   player: {
     hp: number;
     maxHp: number;
@@ -28,16 +28,21 @@ interface SerializedItem {
   level: number;
   exp: number;
   uid: number;
+  worldProgress?: ItemWorldProgress;
 }
 
 function serializeItem(item: ItemInstance): SerializedItem {
-  return {
+  const si: SerializedItem = {
     defId: item.def.id,
     rarity: item.rarity,
     level: item.level,
     exp: item.exp,
     uid: item.uid,
   };
+  if (item.worldProgress) {
+    si.worldProgress = item.worldProgress;
+  }
+  return si;
 }
 
 function deserializeItem(data: SerializedItem): ItemInstance | null {
@@ -46,6 +51,9 @@ function deserializeItem(data: SerializedItem): ItemInstance | null {
   const item = createItem(def, data.rarity);
   item.level = data.level;
   item.exp = data.exp;
+  if (data.worldProgress) {
+    item.worldProgress = data.worldProgress;
+  }
   recalcItemAtk(item);
   return item;
 }
@@ -60,7 +68,7 @@ export class SaveManager {
     playtime: number,
   ): void {
     const data: SaveData = {
-      version: 1,
+      version: 2,
       player: {
         ...playerState,
         roomCol,
@@ -85,7 +93,7 @@ export class SaveManager {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw) as SaveData;
-      if (data.version !== 1) return null;
+      if (data.version !== 1 && data.version !== 2) return null;
       return data;
     } catch {
       return null;
