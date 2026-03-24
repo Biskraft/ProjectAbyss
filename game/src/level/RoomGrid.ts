@@ -22,6 +22,130 @@ export interface RoomGridData {
   endRoom: { col: number; row: number };
 }
 
+/* ── Unified Grid: all strata stitched vertically ── */
+
+export interface UnifiedRoomCell extends RoomCell {
+  stratumIndex: number;
+  absoluteRow: number;
+}
+
+export interface StratumBound {
+  rowOffset: number;
+  width: number;
+  height: number;
+}
+
+export interface UnifiedGridData {
+  totalWidth: number;
+  totalHeight: number;
+  cells: (UnifiedRoomCell | null)[][];
+  strataOffsets: StratumBound[];
+  stratumEndRooms: { col: number; absoluteRow: number; stratumIndex: number }[];
+  startRoom: { col: number; absoluteRow: number };
+  endRoom: { col: number; absoluteRow: number };
+}
+
+export function generateUnifiedGrid(
+  strataDefs: { gridWidth: number; gridHeight: number }[],
+  itemUid: number,
+): UnifiedGridData {
+  const totalWidth = Math.max(...strataDefs.map(d => d.gridWidth));
+
+  // Generate each stratum grid independently
+  const perStratum: RoomGridData[] = [];
+  for (let si = 0; si < strataDefs.length; si++) {
+    const def = strataDefs[si];
+    const stratumRng = new PRNG(itemUid * 1000 + si * 7919);
+    perStratum.push(generateRoomGrid(def.gridWidth, def.gridHeight, stratumRng));
+  }
+
+  // Calculate row offsets
+  const strataOffsets: StratumBound[] = [];
+  let rowOffset = 0;
+  for (let si = 0; si < strataDefs.length; si++) {
+    strataOffsets.push({ rowOffset, width: strataDefs[si].gridWidth, height: strataDefs[si].gridHeight });
+    rowOffset += strataDefs[si].gridHeight;
+  }
+  const totalHeight = rowOffset;
+
+  // Build unified cells array
+  const cells: (UnifiedRoomCell | null)[][] = [];
+  for (let absRow = 0; absRow < totalHeight; absRow++) {
+    const row: (UnifiedRoomCell | null)[] = [];
+    for (let col = 0; col < totalWidth; col++) {
+      row.push(null);
+    }
+    cells.push(row);
+  }
+
+  const stratumEndRooms: UnifiedGridData['stratumEndRooms'] = [];
+
+  for (let si = 0; si < perStratum.length; si++) {
+    const grid = perStratum[si];
+    const offset = strataOffsets[si];
+
+    for (let localRow = 0; localRow < grid.height; localRow++) {
+      for (let col = 0; col < grid.width; col++) {
+        const src = grid.cells[localRow][col];
+        const absRow = offset.rowOffset + localRow;
+        cells[absRow][col] = {
+          ...src,
+          row: absRow,
+          absoluteRow: absRow,
+          stratumIndex: si,
+        };
+      }
+    }
+
+    stratumEndRooms.push({
+      col: grid.endRoom.col,
+      absoluteRow: offset.rowOffset + grid.endRoom.row,
+      stratumIndex: si,
+    });
+  }
+
+  // Connect strata: endRoom of N → startRoom of N+1
+  for (let si = 0; si < perStratum.length - 1; si++) {
+    const endGrid = perStratum[si];
+    const startGrid = perStratum[si + 1];
+    const endOffset = strataOffsets[si];
+    const startOffset = strataOffsets[si + 1];
+
+    const endAbsRow = endOffset.rowOffset + endGrid.endRoom.row;
+    const startAbsRow = startOffset.rowOffset + startGrid.startRoom.row;
+
+    const endCell = cells[endAbsRow][endGrid.endRoom.col]!;
+    const startCell = cells[startAbsRow][startGrid.startRoom.col]!;
+
+    // Open down exit on end room, up exit on start room
+    endCell.exits.down = true;
+    endCell.type = determineRoomType(endCell);
+
+    startCell.exits.up = true;
+    startCell.type = determineRoomType(startCell);
+  }
+
+  const firstGrid = perStratum[0];
+  const lastGrid = perStratum[perStratum.length - 1];
+  const lastOffset = strataOffsets[strataOffsets.length - 1];
+
+  return {
+    totalWidth,
+    totalHeight,
+    cells,
+    strataOffsets,
+    stratumEndRooms,
+    startRoom: {
+      col: firstGrid.startRoom.col,
+      absoluteRow: firstGrid.startRoom.row, // offset 0
+    },
+    endRoom: {
+      col: lastGrid.endRoom.col,
+      absoluteRow: lastOffset.rowOffset + lastGrid.endRoom.row,
+    },
+  };
+}
+
 // Critical Path direction weights
 const WEIGHT_LEFT = 0.3;
 const WEIGHT_RIGHT = 0.3;

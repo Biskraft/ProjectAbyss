@@ -1,7 +1,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { TilemapRenderer } from '@level/TilemapRenderer';
-import { generateRoomGrid, type RoomGridData } from '@level/RoomGrid';
+import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
 import { aabbOverlap } from '@core/Physics';
@@ -62,13 +62,13 @@ export class ItemWorldScene extends Scene {
   private currentStratumDef!: StratumDef;
   private progress!: ItemWorldProgress;
 
-  // Dungeon state (current stratum)
+  // Unified grid (all strata combined)
   private earnedExp = 0;
   private roomsCleared = 0;
   private totalRooms = 0;
-  private gridData!: RoomGridData;
+  private unifiedGrid!: UnifiedGridData;
   private currentCol = 0;
-  private currentRow = 0;
+  private currentRow = 0; // absolute row in unified grid
   private roomData: number[][] = [];
   private rng!: PRNG;
 
@@ -76,7 +76,6 @@ export class ItemWorldScene extends Scene {
   private transitionState: TransitionState = 'none';
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
-  private pendingStratumTransition: number | null = null;
 
   // Escape altar
   private altarTrigger: { x: number; y: number; width: number; height: number } | null = null;
@@ -84,7 +83,7 @@ export class ItemWorldScene extends Scene {
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
-  // Exit trigger (at end room)
+  // Exit trigger (at stratum end rooms)
   private exitTrigger: { x: number; y: number; width: number; height: number } | null = null;
   private exitVisual: Graphics | null = null;
 
@@ -123,14 +122,38 @@ export class ItemWorldScene extends Scene {
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
     this.progress = getOrCreateWorldProgress(this.item);
-    this.currentStratumIndex = Math.min(
+    this.rng = new PRNG(this.item.uid * 1000);
+
+    this.hitManager = new HitManager(this.game);
+
+    // Generate unified grid (all strata at once)
+    this.unifiedGrid = generateUnifiedGrid(this.strataConfig.strata, this.item.uid);
+
+    // Determine starting position based on progress
+    const startStratumIndex = Math.min(
       this.progress.lastSafeStratum,
       this.progress.deepestUnlocked,
     );
-    this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    this.rng = new PRNG(this.item.uid * 1000 + this.currentStratumIndex * 7919);
+    if (startStratumIndex > 0 && startStratumIndex < this.unifiedGrid.strataOffsets.length) {
+      const offset = this.unifiedGrid.strataOffsets[startStratumIndex];
+      // Find the start room of the target stratum (first row, search for a non-null critical path cell)
+      const startRow = offset.rowOffset;
+      let startCol = 0;
+      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+        const cell = this.unifiedGrid.cells[startRow][c];
+        if (cell && cell.onCriticalPath) { startCol = c; break; }
+      }
+      this.currentCol = startCol;
+      this.currentRow = startRow;
+    } else {
+      this.currentCol = this.unifiedGrid.startRoom.col;
+      this.currentRow = this.unifiedGrid.startRoom.absoluteRow;
+    }
 
-    this.hitManager = new HitManager(this.game);
+    // Derive current stratum from cell
+    const startCell = this.unifiedGrid.cells[this.currentRow][this.currentCol];
+    this.currentStratumIndex = startCell?.stratumIndex ?? 0;
+    this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
@@ -176,44 +199,49 @@ export class ItemWorldScene extends Scene {
     // Toast
     this.toast = new ToastManager(this.game.app.stage);
 
-    // Generate current stratum dungeon
-    this.generateDungeon();
+    // Restore persistent exploration state & count rooms
+    this.restoreRoomState();
+    this.countTotalRooms();
+
+    // Load first room
+    this.loadRoom('down');
+    this.updateHudText();
 
     // Camera
     this.game.camera.setBounds(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE);
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
   }
 
-  private generateDungeon(): void {
-    const def = this.currentStratumDef;
-    const stratumRng = new PRNG(this.item.uid * 1000 + this.currentStratumIndex * 7919);
-    this.gridData = generateRoomGrid(def.gridWidth, def.gridHeight, stratumRng);
-    this.currentCol = this.gridData.startRoom.col;
-    this.currentRow = this.gridData.startRoom.row;
-
-    // Restore persistent exploration state
-    this.restoreRoomState();
-
-    // Count total traversable rooms
+  private countTotalRooms(): void {
     this.totalRooms = 0;
-    for (let r = 0; r < def.gridHeight; r++) {
-      for (let c = 0; c < def.gridWidth; c++) {
-        if (this.gridData.cells[r][c].type !== 0) this.totalRooms++;
+    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
+      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+        const cell = this.unifiedGrid.cells[r][c];
+        if (cell && cell.type !== 0) this.totalRooms++;
       }
     }
+  }
 
-    this.loadRoom('down');
-    this.updateHudText();
+  private getCell(col: number, row: number): UnifiedRoomCell | null {
+    if (row < 0 || row >= this.unifiedGrid.totalHeight) return null;
+    if (col < 0 || col >= this.unifiedGrid.totalWidth) return null;
+    return this.unifiedGrid.cells[row][col];
+  }
+
+  private getCurrentCell(): UnifiedRoomCell {
+    return this.unifiedGrid.cells[this.currentRow][this.currentCol]!;
   }
 
   private restoreRoomState(): void {
-    const visited = new Set(this.progress.visitedRooms[this.currentStratumIndex] ?? []);
-    const cleared = new Set(this.progress.clearedRooms[this.currentStratumIndex] ?? []);
+    const visited = new Set(this.progress.visitedRooms);
+    const cleared = new Set(this.progress.clearedRooms);
 
     this.roomsCleared = 0;
-    for (const row of this.gridData.cells) {
-      for (const cell of row) {
-        const key = `${cell.col},${cell.row}`;
+    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
+      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+        const cell = this.unifiedGrid.cells[r][c];
+        if (!cell) continue;
+        const key = `${c},${r}`;
         cell.visited = visited.has(key);
         cell.cleared = cleared.has(key);
         if (cell.cleared) this.roomsCleared++;
@@ -222,26 +250,59 @@ export class ItemWorldScene extends Scene {
   }
 
   private persistRoomState(): void {
-    const si = this.currentStratumIndex;
     const visited: string[] = [];
     const cleared: string[] = [];
-    for (const row of this.gridData.cells) {
-      for (const cell of row) {
-        const key = `${cell.col},${cell.row}`;
+    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
+      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+        const cell = this.unifiedGrid.cells[r][c];
+        if (!cell) continue;
+        const key = `${c},${r}`;
         if (cell.visited) visited.push(key);
         if (cell.cleared) cleared.push(key);
       }
     }
-    this.progress.visitedRooms[si] = visited;
-    this.progress.clearedRooms[si] = cleared;
+    this.progress.visitedRooms = visited;
+    this.progress.clearedRooms = cleared;
+  }
+
+  /** Check if a cell is a stratum end room (boss room) */
+  private isStratumEndRoom(col: number, row: number): boolean {
+    return this.unifiedGrid.stratumEndRooms.some(
+      e => e.col === col && e.absoluteRow === row,
+    );
+  }
+
+  /** Check if this is the final end room (deepest stratum boss) */
+  private isFinalEndRoom(col: number, row: number): boolean {
+    return col === this.unifiedGrid.endRoom.col &&
+           row === this.unifiedGrid.endRoom.absoluteRow;
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
-    const cell = this.gridData.cells[this.currentRow][this.currentCol];
-    const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow + this.currentStratumIndex * 1000000);
+    const cell = this.getCurrentCell();
+    const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
     this.roomData = assembleRoom(cell, roomRng);
     this.tilemap.loadRoom(this.roomData);
     this.player.roomData = this.roomData;
+
+    // Update stratum context from cell
+    const prevStratumIndex = this.currentStratumIndex;
+    this.currentStratumIndex = cell.stratumIndex;
+    this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
+    this.tilemap.setTheme(this.currentStratumDef.theme);
+
+    // Stratum change toast
+    if (prevStratumIndex !== this.currentStratumIndex) {
+      this.toast.show(`Stratum ${this.currentStratumIndex + 1} — Deeper...`, 0xff4488);
+
+      // Update progress on stratum descent
+      if (this.currentStratumIndex > prevStratumIndex) {
+        if (this.progress.deepestUnlocked < this.currentStratumIndex) {
+          this.progress.deepestUnlocked = this.currentStratumIndex;
+        }
+        this.progress.lastSafeStratum = this.currentStratumIndex;
+      }
+    }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
     const spawn = getSpawnPosition(spawnSide);
@@ -261,9 +322,8 @@ export class ItemWorldScene extends Scene {
 
     this.drawDoorMarkers(cell);
 
-    // End room — boss + descent/exit trigger
-    const isEndRoom = this.currentCol === this.gridData.endRoom.col &&
-                      this.currentRow === this.gridData.endRoom.row;
+    // Stratum end room — boss + descent/exit trigger
+    const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
 
     if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
     this.exitVisual = null;
@@ -277,10 +337,10 @@ export class ItemWorldScene extends Scene {
       this.exitTrigger = { x: exitX, y: exitY, width: 3 * TILE_SIZE, height: 3 * TILE_SIZE };
 
       // Visual: blue for descent, gold for final exit
-      const hasNext = this.currentStratumIndex + 1 < this.strataConfig.strata.length;
-      const baseColor = hasNext ? 0x4444cc : 0xcc8844;
-      const midColor = hasNext ? 0x5555dd : 0xddaa55;
-      const topColor = hasNext ? 0x6666ff : 0xeebb66;
+      const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
+      const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
+      const midColor = isFinal ? 0xddaa55 : 0x5555dd;
+      const topColor = isFinal ? 0xeebb66 : 0x6666ff;
 
       this.exitVisual = new Graphics();
       this.exitVisual.rect(0, 24, 48, 16).fill(baseColor);
@@ -306,14 +366,15 @@ export class ItemWorldScene extends Scene {
   private spawnEnemies(): void {
     const floorY = (ROOM_H - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
-    const dist = Math.abs(this.currentCol - this.gridData.startRoom.col)
-               + Math.abs(this.currentRow - this.gridData.startRoom.row);
+    // Distance from the unified start room
+    const dist = Math.abs(this.currentCol - this.unifiedGrid.startRoom.col)
+               + Math.abs(this.currentRow - this.unifiedGrid.startRoom.absoluteRow);
     const count = 2 + Math.floor(dist * 0.5) + def.enemyCountBonus;
     const hpScale = (1 + dist * 0.2) * def.enemyHpScale;
     const atkScale = (1 + dist * 0.2) * def.enemyAtkScale;
 
     for (let i = 0; i < count; i++) {
-      const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i + this.currentStratumIndex * 500000);
+      const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
       const isGhost = spawnRng.next() < 0.3;
       const enemy = isGhost ? new Ghost() : new Skeleton();
       enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * hpScale);
@@ -595,14 +656,13 @@ export class ItemWorldScene extends Scene {
     }
 
     // Room cleared
-    const cell = this.gridData.cells[this.currentRow][this.currentCol];
+    const cell = this.getCurrentCell();
     if (!cell.cleared && this.enemies.filter(e => e.alive).length === 0) {
       cell.cleared = true;
       this.roomsCleared++;
 
       // EXP per room (scaled by stratum)
-      const isEndRoom = this.currentCol === this.gridData.endRoom.col &&
-                        this.currentRow === this.gridData.endRoom.row;
+      const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
       const baseExp = isEndRoom ? BASE_EXP_PER_ROOM + BASE_BOSS_BONUS_EXP : BASE_EXP_PER_ROOM;
       const expGain = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
       addItemExp(this.item, expGain);
@@ -626,7 +686,7 @@ export class ItemWorldScene extends Scene {
       this.drawMiniMap();
     }
 
-    // Exit trigger (end room, after cleared) → descend or exit
+    // Exit trigger (stratum end room, after cleared)
     if (this.exitTrigger && cell.cleared) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       if (aabbOverlap(pb, this.exitTrigger)) {
@@ -786,22 +846,23 @@ export class ItemWorldScene extends Scene {
   }
 
   private handleStratumExit(): void {
-    const nextIndex = this.currentStratumIndex + 1;
-    const hasNextStratum = nextIndex < this.strataConfig.strata.length;
+    const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
 
-    if (hasNextStratum) {
-      // Boss cleared → unlock next stratum permanently
-      if (this.progress.deepestUnlocked < nextIndex) {
-        this.progress.deepestUnlocked = nextIndex;
+    if (!isFinal) {
+      // Find the next stratum's start room in unified grid
+      const nextStratumIndex = this.currentStratumIndex + 1;
+      const nextOffset = this.unifiedGrid.strataOffsets[nextStratumIndex];
+      const nextStartRow = nextOffset.rowOffset;
+
+      // Find the start room column (first critical path cell in that row)
+      let nextStartCol = 0;
+      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+        const cell = this.unifiedGrid.cells[nextStartRow][c];
+        if (cell && cell.onCriticalPath) { nextStartCol = c; break; }
       }
-      this.progress.lastSafeStratum = nextIndex;
-      this.persistRoomState();
 
-      // Trigger stratum descent transition
-      this.transitionState = 'fade_out';
-      this.transitionTimer = FADE_DURATION;
-      this.pendingStratumTransition = nextIndex;
-      this.pendingDirection = null;
+      // Use regular room transition — the key change!
+      this.startTransition('down', nextStartCol, nextStartRow);
     } else {
       // Deepest stratum cleared — exit item world
       this.progress.lastSafeStratum = this.currentStratumIndex;
@@ -820,12 +881,12 @@ export class ItemWorldScene extends Scene {
   }
 
   private trySpawnEscapeAltar(cell: RoomCell): void {
-    const isStartRoom = this.currentCol === this.gridData.startRoom.col &&
-                        this.currentRow === this.gridData.startRoom.row;
+    const isStartRoom = this.currentCol === this.unifiedGrid.startRoom.col &&
+                        this.currentRow === this.unifiedGrid.startRoom.absoluteRow;
     if (isStartRoom) return;
     if (!cell.onCriticalPath) return;
 
-    const altarRng = new PRNG(this.item.uid * 50000 + this.currentStratumIndex * 100 + this.currentCol * 10 + this.currentRow);
+    const altarRng = new PRNG(this.item.uid * 50000 + this.currentRow * 100 + this.currentCol * 10);
     if (altarRng.next() >= 0.25) return; // 25% chance
 
     const altarX = (ROOM_W / 2 + 8) * TILE_SIZE;
@@ -868,13 +929,10 @@ export class ItemWorldScene extends Scene {
       if (aabbOverlap(pb, trigger)) {
         const nextCol = this.currentCol + (trigger.direction === 'right' ? 1 : trigger.direction === 'left' ? -1 : 0);
         const nextRow = this.currentRow + (trigger.direction === 'down' ? 1 : trigger.direction === 'up' ? -1 : 0);
-        if (nextRow >= 0 && nextRow < this.gridData.height &&
-            nextCol >= 0 && nextCol < this.gridData.width) {
-          const nextCell = this.gridData.cells[nextRow][nextCol];
-          if (nextCell.type !== 0) {
-            this.startTransition(trigger.direction, nextCol, nextRow);
-            return;
-          }
+        const nextCell = this.getCell(nextCol, nextRow);
+        if (nextCell && nextCell.type !== 0) {
+          this.startTransition(trigger.direction, nextCol, nextRow);
+          return;
         }
       }
     }
@@ -882,7 +940,7 @@ export class ItemWorldScene extends Scene {
 
   private startTransition(direction: 'left' | 'right' | 'up' | 'down', nextCol: number, nextRow: number): void {
     // Grant pass-through EXP if room wasn't cleared (skipping enemies)
-    const cell = this.gridData.cells[this.currentRow][this.currentCol];
+    const cell = this.getCurrentCell();
     if (!cell.cleared) {
       const passExp = Math.floor(BASE_EXP_ROOM_PASS * this.currentStratumDef.expMultiplier);
       addItemExp(this.item, passExp);
@@ -903,18 +961,7 @@ export class ItemWorldScene extends Scene {
     if (this.transitionState === 'fade_out') {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
-        if (this.pendingStratumTransition !== null) {
-          // Descend to next stratum
-          this.currentStratumIndex = this.pendingStratumTransition;
-          this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
-          this.pendingStratumTransition = null;
-          this.clearEnemies();
-          this.clearEscapeAltar();
-          this.generateDungeon();
-          this.toast.show(`Stratum ${this.currentStratumIndex + 1} — Deeper...`, 0xff4488);
-        } else {
-          this.loadRoom(this.pendingDirection!);
-        }
+        this.loadRoom(this.pendingDirection!);
         this.transitionState = 'fade_in';
         this.transitionTimer = FADE_DURATION;
         this.fadeOverlay.alpha = 1;
@@ -956,58 +1003,68 @@ export class ItemWorldScene extends Scene {
     const cellSize = 6;
     const gap = 1;
     const padding = 4;
-    const gridW = this.gridData.width;
-    const gridH = this.gridData.height;
+    const grid = this.unifiedGrid;
+
+    // Calculate minimap dimensions accounting for variable-width strata
+    const bgW = grid.totalWidth * (cellSize + gap) + gap + padding * 2;
+    // Add extra pixels for stratum dividers
+    const dividerCount = grid.strataOffsets.length - 1;
+    const bgH = grid.totalHeight * (cellSize + gap) + gap + padding * 2 + dividerCount * 2;
 
     const bg = new Graphics();
-    const bgW = gridW * (cellSize + gap) + gap + padding * 2;
-    const bgH = gridH * (cellSize + gap) + gap + padding * 2 + 10; // +10 for stratum indicator
     bg.rect(0, 0, bgW, bgH).fill({ color: 0x220000, alpha: 0.6 });
     this.miniMapContainer.addChild(bg);
 
-    // Stratum depth indicator
-    for (let s = 0; s < this.strataConfig.strata.length; s++) {
-      const dotX = padding + s * 7;
-      const dotY = bgH - 8;
-      const dotColor = s <= this.currentStratumIndex ? 0xff4488 : 0x444444;
-      const dot = new Graphics();
-      dot.circle(0, 0, 2.5).fill(dotColor);
-      dot.x = dotX + 3;
-      dot.y = dotY;
-      this.miniMapContainer.addChild(dot);
-    }
-
-    for (let row = 0; row < gridH; row++) {
-      for (let col = 0; col < gridW; col++) {
-        const cell = this.gridData.cells[row][col];
-        if (cell.type === 0) continue;
-
-        const x = padding + col * (cellSize + gap);
-        const y = padding + row * (cellSize + gap);
-
-        const isEndRoom = col === this.gridData.endRoom.col && row === this.gridData.endRoom.row;
-        let color = 0x333333;
-        let alpha = 0.3;
-
-        if (cell.visited) {
-          alpha = 1;
-          color = cell.cleared ? 0x6a2a2a : 0x6a4a4a;
-        }
-        if (isEndRoom) {
-          color = cell.visited ? 0x4444cc : 0x2222aa;
-          alpha = 1;
-        }
-        if (col === this.currentCol && row === this.currentRow) {
-          color = 0xe74c3c;
-          alpha = 1;
-        }
-
-        const cellGfx = new Graphics();
-        cellGfx.rect(0, 0, cellSize, cellSize).fill({ color, alpha });
-        cellGfx.x = x;
-        cellGfx.y = y;
-        this.miniMapContainer.addChild(cellGfx);
+    // Draw stratum divider lines
+    let yAccum = padding;
+    for (let si = 0; si < grid.strataOffsets.length; si++) {
+      const bound = grid.strataOffsets[si];
+      if (si > 0) {
+        // Draw divider line
+        const divider = new Graphics();
+        divider.rect(padding, yAccum - 1, bgW - padding * 2, 1).fill({ color: 0x663366, alpha: 0.8 });
+        this.miniMapContainer.addChild(divider);
+        yAccum += 2; // divider spacing
       }
+
+      for (let localRow = 0; localRow < bound.height; localRow++) {
+        const absRow = bound.rowOffset + localRow;
+        for (let col = 0; col < grid.totalWidth; col++) {
+          const cell = grid.cells[absRow][col];
+          if (!cell || cell.type === 0) continue;
+
+          const x = padding + col * (cellSize + gap);
+          const y = yAccum + localRow * (cellSize + gap);
+
+          const isEndRoom = this.isStratumEndRoom(col, absRow);
+          let color = 0x333333;
+          let alpha = 0.3;
+
+          // Stratum-based tint
+          const stratumTint = cell.stratumIndex * 0.15;
+
+          if (cell.visited) {
+            alpha = 1;
+            color = cell.cleared ? 0x6a2a2a : 0x6a4a4a;
+          }
+          if (isEndRoom) {
+            color = cell.visited ? 0x4444cc : 0x2222aa;
+            alpha = 1;
+          }
+          if (col === this.currentCol && absRow === this.currentRow) {
+            color = 0xe74c3c;
+            alpha = 1;
+          }
+
+          const cellGfx = new Graphics();
+          cellGfx.rect(0, 0, cellSize, cellSize).fill({ color, alpha });
+          cellGfx.x = x;
+          cellGfx.y = y;
+          this.miniMapContainer.addChild(cellGfx);
+        }
+      }
+
+      yAccum += bound.height * (cellSize + gap);
     }
 
     this.miniMapContainer.x = 4;

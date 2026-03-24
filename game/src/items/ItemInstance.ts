@@ -5,10 +5,10 @@ let nextItemId = 1;
 export interface ItemWorldProgress {
   /** Index of deepest stratum unlocked (boss beaten). 0 = only stratum 0 accessible. */
   deepestUnlocked: number;
-  /** Per-stratum visited rooms. Key: stratumIndex, Value: "col,row" strings */
-  visitedRooms: Record<number, string[]>;
-  /** Per-stratum cleared rooms */
-  clearedRooms: Record<number, string[]>;
+  /** Visited rooms as "col,absoluteRow" strings (unified grid coordinates) */
+  visitedRooms: string[];
+  /** Cleared rooms as "col,absoluteRow" strings (unified grid coordinates) */
+  clearedRooms: string[];
   /** Last stratum the player safely exited from */
   lastSafeStratum: number;
 }
@@ -31,8 +31,8 @@ export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress 
   if (!item.worldProgress) {
     item.worldProgress = {
       deepestUnlocked: 0,
-      visitedRooms: {},
-      clearedRooms: {},
+      visitedRooms: [],
+      clearedRooms: [],
       lastSafeStratum: 0,
     };
   }
