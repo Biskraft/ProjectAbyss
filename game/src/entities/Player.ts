@@ -83,7 +83,7 @@ export class Player extends Entity implements CombatEntity {
 
     // Placeholder sprite
     this.sprite = new Graphics();
-    this.sprite.rect(0, 0, this.width, this.height).fill(0xe74c3c);
+    this.sprite.rect(0, 0, this.width, this.height).fill(0x2ecc71);
     this.container.addChild(this.sprite);
 
     // Attack hitbox visual (hidden by default)

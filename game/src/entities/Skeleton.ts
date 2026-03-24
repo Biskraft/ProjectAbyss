@@ -11,7 +11,7 @@ export class Skeleton extends Enemy {
     super({
       width: 16,
       height: 24,
-      color: 0x8e8e8e,       // gray
+      color: 0xcc3333,       // red
       hp: 40,
       atk: 8,
       def: 3,
