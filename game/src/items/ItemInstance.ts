@@ -61,11 +61,11 @@ export function itemLevelUp(item: ItemInstance): void {
   recalcItemAtk(item);
 }
 
-/** Color associated with rarity */
+/** Diablo-style rarity colors */
 export const RARITY_COLOR: Record<Rarity, number> = {
-  common: 0xaaaaaa,
-  uncommon: 0x55cc55,
-  rare: 0x5555ff,
-  legendary: 0xffaa00,
-  mythic: 0xff55ff,
+  normal: 0xffffff,   // White   — Diablo Normal
+  magic: 0x6969ff,    // Blue    — Diablo Magic
+  rare: 0xffff00,     // Yellow  — Diablo Rare
+  legendary: 0xff8000, // Orange  — Diablo Legendary
+  ancient: 0x00ff00,  // Green   — Diablo Ancient/Set
 };

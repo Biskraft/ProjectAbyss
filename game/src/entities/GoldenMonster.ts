@@ -6,9 +6,9 @@ const FRAME_MS = 1000 / 60;
 
 /** Rarity weights by difficulty tier */
 const RARITY_WEIGHTS: Record<string, [Rarity, number][]> = {
-  low: [['common', 70], ['uncommon', 25], ['rare', 5]],
-  mid: [['common', 30], ['uncommon', 40], ['rare', 25], ['legendary', 5]],
-  high: [['uncommon', 20], ['rare', 40], ['legendary', 30], ['mythic', 10]],
+  low: [['normal', 70], ['magic', 25], ['rare', 5]],
+  mid: [['normal', 30], ['magic', 40], ['rare', 25], ['legendary', 5]],
+  high: [['magic', 20], ['rare', 40], ['legendary', 30], ['ancient', 10]],
 };
 
 function pickRarity(difficulty: 'low' | 'mid' | 'high'): Rarity {

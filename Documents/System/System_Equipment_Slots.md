@@ -226,10 +226,10 @@ item_data_structure:
   id: "ITM_WPN_SWORD_001"          # 아이템 고유 ID (문자열)
   name: "낡은 검"                   # 표시 이름
   type: "weapon"                   # 슬롯 타입: weapon / sub_weapon / head / armor / cloak / accessory
-  rarity: "Common"                 # 등급: Common / Uncommon / Rare / Legendary / Mythic
+  rarity: "Normal"                 # 등급: Normal / Magic / Rare / Legendary / Ancient
   level: 1                         # 현재 아이템 레벨 (아이템계 층 클리어로 증가)
   baseStats:
-    atk: 15                        # 기본 공격력 (Common 검 Lv1 기준)
+    atk: 15                        # 기본 공격력 (Normal 검 Lv1 기준)
     def: 0
     int: 0
     vit: 0
@@ -298,14 +298,14 @@ mvp_base_values:
     spd: 8
     lck: 5
 
-  sword_common_lv1:
-    id: "ITM_WPN_SWORD_COMMON_001"
+  sword_normal_lv1:
+    id: "ITM_WPN_SWORD_NORMAL_001"
     name: "낡은 검"
     type: "weapon"
-    rarity: "Common"
+    rarity: "Normal"
     level: 1
     baseStats:
-      atk: 15    # Common 검 기본 ATK. System_Equipment_Rarity.md 배율 x1.0 적용
+      atk: 15    # Normal 검 기본 ATK. System_Equipment_Rarity.md 배율 x1.0 적용
     itemWorldDepth: 30
 
   stat_gate_example:
@@ -358,7 +358,7 @@ reincarnation_params:
 | :------------------------------ | :--------------------------------------------------------------------- |
 | 알 수 없는 아이템 타입           | 서버 로드 시 타입 검증. 알 수 없는 타입은 착용 불가 처리               |
 | 아이템 데이터 손상 (innocents 배열 null) | null 안전 처리. InnocentBonus = 0으로 폴백                      |
-| 레어리티 없는 아이템 데이터      | Common으로 폴백 처리. 개발 로그에 경고 기록                           |
+| 레어리티 없는 아이템 데이터      | Normal으로 폴백 처리. 개발 로그에 경고 기록                           |
 
 ---
 
@@ -368,7 +368,7 @@ reincarnation_params:
 - [ ] 타입 불일치 착용 시도가 명확한 오류 메시지와 함께 거부되는가?
 - [ ] 장비 착용/해제 시 스탯 UI가 즉시 갱신되는가?
 - [ ] 아이템 데이터 구조(id, name, type, rarity, level, baseStats, innocents[])가 모든 아이템에 완전하게 정의되어 있는가?
-- [ ] MVP 검 Common Lv1의 ATK 15가 전투 데미지 공식에 정확히 반영되는가? (`System_Combat_Damage.md` 연동)
+- [ ] MVP 검 Normal Lv1의 ATK 15가 전투 데미지 공식에 정확히 반영되는가? (`System_Combat_Damage.md` 연동)
 - [ ] 장비 해제 후 스탯 게이트 미달 상태에서 게이트 구역 재진입 시 차단이 동작하는가?
 - [ ] Phase 2 슬롯(세트 효과, 아이템 전생)은 데이터 구조만 정의되고 Phase 1에서 기능이 활성화되지 않는가?
 - [ ] 이 시스템이 야리코미 기둥(아이템계 강화 - 스탯 상승 - 탐험 확장)의 순환 구조를 강화하는가?

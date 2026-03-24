@@ -25,11 +25,11 @@ const PHASE_ABSORB_END = 900;
 const PHASE_TEXT_END = 1300;
 
 const SHAKE_INTENSITY: Record<Rarity, number> = {
-  common: 2,
-  uncommon: 3,
+  normal: 2,
+  magic: 3,
   rare: 5,
   legendary: 8,
-  mythic: 12,
+  ancient: 12,
 };
 
 export class PortalTransition {
@@ -146,7 +146,7 @@ export class PortalTransition {
 
     // Trigger hitstop at start
     if (this.timer < 20) {
-      const hitstopFrames = this.rarity === 'mythic' ? 6 : this.rarity === 'legendary' ? 4 : 2;
+      const hitstopFrames = this.rarity === 'ancient' ? 6 : this.rarity === 'legendary' ? 4 : 2;
       this.onHitstop?.(hitstopFrames);
     }
   }

@@ -304,7 +304,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 #### GDD-NEW-03: 레어리티 시스템 (`System/System_Equipment_Rarity.md`)
 
 **MVP에 필요한 범위만:**
-- 5등급 정의 (Common ~ Mythic)
+- 5등급 정의 (Normal ~ Ancient)
 - 등급별 스탯 배율 (x1.0 ~ x3.0)
 - 등급별 드랍 확률
 - 아이템계 층수 제한 (MVP에서는 3층 고정이지만 데이터는 정의)
@@ -348,8 +348,8 @@ Level,HP,STR,INT,DEX,VIT,SPD,LCK,ExpToNext
 #### CSV-02: `Sheets/Content_Stats_Weapon_List.csv`
 ```
 WeaponID,Name,Type,Rarity,BaseATK,AtkSpeed,Range,HitboxW,HitboxH
-sword_common_01,시작의 검,Sword,Common,15,1.0,48,40,32
-sword_uncommon_01,강철 장검,Sword,Uncommon,20,1.0,48,40,32
+sword_normal_01,시작의 검,Sword,Normal,15,1.0,48,40,32
+sword_magic_01,강철 장검,Sword,Magic,20,1.0,48,40,32
 ...
 ```
 

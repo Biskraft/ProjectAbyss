@@ -6,11 +6,11 @@ import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
 const DROP_CHANCE = 0.15;
 
 const RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
-  { rarity: 'common', weight: 0.60 },
-  { rarity: 'uncommon', weight: 0.25 },
+  { rarity: 'normal', weight: 0.60 },
+  { rarity: 'magic', weight: 0.25 },
   { rarity: 'rare', weight: 0.10 },
   { rarity: 'legendary', weight: 0.04 },
-  { rarity: 'mythic', weight: 0.01 },
+  { rarity: 'ancient', weight: 0.01 },
 ];
 
 /** Roll whether an enemy drops an item, and if so, create it */
@@ -20,7 +20,7 @@ export function rollDrop(rng: PRNG): ItemInstance | null {
   // Pick rarity
   const roll = rng.next();
   let cumulative = 0;
-  let rarity: Rarity = 'common';
+  let rarity: Rarity = 'normal';
   for (const w of RARITY_WEIGHTS) {
     cumulative += w.weight;
     if (roll < cumulative) {
@@ -37,7 +37,7 @@ export function rollDrop(rng: PRNG): ItemInstance | null {
 const GOLDEN_RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
   { rarity: 'rare', weight: 0.50 },
   { rarity: 'legendary', weight: 0.35 },
-  { rarity: 'mythic', weight: 0.15 },
+  { rarity: 'ancient', weight: 0.15 },
 ];
 
 /** Golden Monster guaranteed drop — always rare or above */

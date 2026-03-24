@@ -175,11 +175,11 @@ EquipStat = sum(Equipment_Base_Stat * Rarity_Multiplier)  for all equipped items
 
 | 레어리티   | 스탯 배율 |
 | :--------- | :-------- |
-| Common     | 1.0       |
-| Uncommon   | 1.3       |
+| Normal     | 1.0       |
+| Magic      | 1.3       |
 | Rare       | 1.7       |
 | Legendary  | 2.2       |
-| Mythic     | 3.0       |
+| Ancient    | 3.0       |
 
 ### 2.3. HP / MP 파생 공식
 
@@ -331,11 +331,11 @@ critical_system:
   crit_multiplier_cap: 3.0    # 크리티컬 배율 상한
 
 rarity_multiplier:
-  Common: 1.0
-  Uncommon: 1.3
+  Normal: 1.0
+  Magic: 1.3
   Rare: 1.7
   Legendary: 2.2
-  Mythic: 3.0
+  Ancient: 3.0
 
 damage_variance:
   min: 0.9
@@ -429,8 +429,8 @@ example_lv1_no_equip:
 ```
 
 ```yaml
-# Lv 5, Common 검 (STR+10) 장착, 이노센트 없음 기준
-example_lv5_common_sword:
+# Lv 5, Normal 검 (STR+10) 장착, 이노센트 없음 기준
+example_lv5_normal_sword:
   level: 5
   BaseStat:
     STR: 18
@@ -440,7 +440,7 @@ example_lv5_common_sword:
     SPD: 12
     LCK: 9
   EquipStat:
-    STR: 10          # Common 검 기본 STR+10 * 1.0
+    STR: 10          # Normal 검 기본 STR+10 * 1.0
   InnocentBonus: 0
   FinalStat:
     STR: 28          # 18 + 10
@@ -524,10 +524,10 @@ phase2_reserved:
 | 검증 항목                                            | 기대 결과                                                     |
 | :--------------------------------------------------- | :------------------------------------------------------------ |
 | Lv 1 캐릭터, 장비/이노센트 없음                      | FinalStat = BaseStat. MaxHP = 200, MaxMP = 107               |
-| Lv 1에서 Common 검 (STR+10) 장착                     | FinalStat STR = 20, ATK = 20, 장비 해제 시 STR = 10 복귀     |
+| Lv 1에서 Normal 검 (STR+10) 장착                     | FinalStat STR = 20, ATK = 20, 장비 해제 시 STR = 10 복귀     |
 | 레벨업 시 BaseStat 증가                               | Lv 1→2: STR 10→12, VIT 10→12, MaxHP 200→220                  |
 | Lv 10 도달 후 추가 경험치 획득                        | BaseStat Lv 10 값 고정, 경험치 획득 없음                      |
-| Lv 10에서 Mythic 검 (STR+50) 장착                    | FinalStat STR = 78, ATK = 78                                  |
+| Lv 10에서 Ancient 검 (STR+50) 장착                    | FinalStat STR = 78, ATK = 78                                  |
 | VIT = 0 상태에서 MaxHP 계산                           | MaxHP = 100 (base_hp 보장)                                    |
 | 디버프로 STR -20 적용, FinalStat STR = 10             | FinalStat STR = 0 (하한 클램핑), ATK = 0, 실제 데미지 최소 1 |
 
@@ -538,7 +538,7 @@ phase2_reserved:
 | 아이템계 1층 클리어 후 장비 강화 체감             | EquipStat 증가 → 데미지 수치 가시적 상승                   |
 | Lv 1 대비 Lv 10의 전투 체감 차이                 | STR 10→28, ATK 10→28, 데미지 약 2.8배 상승 체감            |
 | LCK 5 대비 LCK 14의 드랍률 차이 체감             | Drop_Rate 1.01 → 1.028, 장기 파밍에서 드랍 빈도 차이 인식  |
-| Common → Mythic 레어리티 승급 시 스탯 차이       | 동일 기본 장비 STR+10 기준: Common 10 → Mythic 30 (+200%)  |
+| Normal → Ancient 레어리티 승급 시 스탯 차이       | 동일 기본 장비 STR+10 기준: Normal 10 → Ancient 30 (+200%)  |
 
 ### 연동 검증
 

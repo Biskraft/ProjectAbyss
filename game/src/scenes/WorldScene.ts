@@ -684,7 +684,7 @@ export class WorldScene extends Scene {
     this.game.camera.shake(portal.spawnShake);
 
     // Flash for rare+ portals
-    if (rarity !== 'common') {
+    if (rarity !== 'normal') {
       this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
     }
   }

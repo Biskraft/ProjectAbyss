@@ -74,7 +74,7 @@
 | i-frame | 무적 프레임 | Invincibility Frame. 대시 발동 중 또는 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 대시의 핵심 전투 가치이며 남용 방지를 위해 쿨다운으로 제한된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | Innocent | 이노센트 | 장비 아이템 내부(아이템계)에 거주하며 해당 아이템에 보너스 스탯을 부여하는 존재. 야생(Wild) 상태에서는 적으로 등장하며 격파 시 복종(Tamed) 상태로 전환된다. 복종 상태에서 효과가 2배가 되고 다른 아이템으로 이동 가능하다. | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
-| Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Common 2슬롯부터 Mythic 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |
+| Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Normal 2슬롯부터 Ancient 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |
 | INT | 지능 스탯 | Intelligence. 마법 공격력 및 마법 봉인 게이트에 사용되는 스탯. 특정 수치 이상이면 마법 장벽·룬 퍼즐·마법진 활성화 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
 | Item General | 아이템 장군 | 아이템계 10·20·30층에 출현하는 보스 등급. 처치 시 아이템 스탯 +5% 보너스를 획득한다. | `Reference/게임 기획 개요.md` |
 | Item God | 아이템 신 | 아이템계 70·80·90층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
@@ -110,7 +110,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Rarity | 레어리티 | 장비 아이템의 등급 체계. Common·Uncommon·Rare·Legendary·Mythic 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 최대 층수가 결정된다. | `Reference/게임 기획 개요.md` |
+| Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 최대 층수가 결정된다. | `Reference/게임 기획 개요.md` |
 | Recursive Entry | 재귀적 진입 | 아이템계 내에서 획득한 장비 아이템의 아이템계에 다시 진입하는 것. 최대 깊이 3까지 허용되며, 깊이가 깊을수록 이노센트 효과 보너스가 증가한다(깊이 2: +20%, 깊이 3: +50%). | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 구역 난이도·층수에 따라 3x3~5x5 크기로 결정된다. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
@@ -155,11 +155,11 @@
 
 | 등급 | 색상 | 스탯 배율 | 이노센트 슬롯 | 아이템계 최대 층 | 드랍 확률 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Common | 흰색 | x1.0 | 2 | 30층 | 60% |
-| Uncommon | 초록 | x1.3 | 3 | 50층 | 25% |
+| Normal | 흰색 | x1.0 | 2 | 30층 | 60% |
+| Magic | 초록 | x1.3 | 3 | 50층 | 25% |
 | Rare | 파랑 | x1.7 | 4 | 70층 | 10% |
 | Legendary | 보라 | x2.2 | 6 | 100층 | 4% |
-| Mythic | 금색 | x3.0 | 8 | 100층 + 보너스 | 1% |
+| Ancient | 금색 | x3.0 | 8 | 100층 + 보너스 | 1% |
 
 ---
 

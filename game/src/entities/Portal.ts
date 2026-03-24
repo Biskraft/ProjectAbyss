@@ -5,51 +5,51 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
 
 export const PORTAL_COLOR: Record<Rarity, number> = {
-  common: 0xffffff,
-  uncommon: 0x44ff44,
-  rare: 0x4488ff,
-  legendary: 0xaa44ff,
-  mythic: 0xffaa00,
+  normal: 0xffffff,
+  magic: 0x6969ff,
+  rare: 0xffff00,
+  legendary: 0xff8000,
+  ancient: 0x00ff00,
 };
 
 const PORTAL_SIZE: Record<Rarity, number> = {
-  common: 20,
-  uncommon: 24,
+  normal: 20,
+  magic: 24,
   rare: 28,
   legendary: 32,
-  mythic: 36,
+  ancient: 36,
 };
 
 const PARTICLE_COUNT: Record<Rarity, number> = {
-  common: 5,
-  uncommon: 8,
+  normal: 5,
+  magic: 8,
   rare: 12,
   legendary: 16,
-  mythic: 24,
+  ancient: 24,
 };
 
 const PULSE_SPEED: Record<Rarity, number> = {
-  common: 1.5,
-  uncommon: 2.0,
+  normal: 1.5,
+  magic: 2.0,
   rare: 2.5,
   legendary: 3.0,
-  mythic: 4.0,
+  ancient: 4.0,
 };
 
 const SPAWN_HITSTOP: Record<Rarity, number> = {
-  common: 0,
-  uncommon: 3,
+  normal: 0,
+  magic: 3,
   rare: 6,
   legendary: 9,
-  mythic: 12,
+  ancient: 12,
 };
 
 const SPAWN_SHAKE: Record<Rarity, number> = {
-  common: 1,
-  uncommon: 2,
+  normal: 1,
+  magic: 2,
   rare: 3,
   legendary: 5,
-  mythic: 8,
+  ancient: 8,
 };
 
 export type PortalSourceType = 'monster' | 'altar';

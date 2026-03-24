@@ -30,7 +30,7 @@
 | IWF-09-A      | 시스템 | 지오 이펙트 패널 배치              |    P2    | ⬜ 제작 필요 | 선택적 전략 레이어          |
 | IWF-10-A      | 시스템 | 멀티플레이 스케일링                |    P1    | ⬜ 제작 필요 | 1~4인 체력 보정             |
 | IWF-11-A      | 시스템 | 재귀 진입 시드 충돌 방지           |    P2    | ⬜ 제작 필요 | 최대 깊이 3                 |
-| IWF-12-A      | 시스템 | Mythic 보너스 층 (101~110)         |    P3    | ⬜ 제작 필요 | Mythic 전용 엔드콘텐츠      |
+| IWF-12-A      | 시스템 | Ancient 보너스 층 (101~110)        |    P3    | ⬜ 제작 필요 | Ancient 전용 엔드콘텐츠     |
 
 ---
 
@@ -171,11 +171,11 @@ gridHeight = clamp(gridHeight, 3, 5)
 
 | 레어리티 | Chunk 풀 크기 | 특성 |
 | :------- | :------------ | :--- |
-| Common | 기본 풀 (50종) | 단순 지형, 함정 없음 |
-| Uncommon | 기본 풀 + 확장 A (70종) | 이동 플랫폼 추가 |
+| Normal | 기본 풀 (50종) | 단순 지형, 함정 없음 |
+| Magic | 기본 풀 + 확장 A (70종) | 이동 플랫폼 추가 |
 | Rare | 기본 풀 + 확장 A, B (100종) | 함정, 파괴 가능 지형 추가 |
 | Legendary | 전체 풀 (140종) | 복합 함정, 숨겨진 경로 추가 |
-| Mythic | 전체 풀 + Mythic 전용 (160종) | 지오 이펙트 내장 Chunk 포함 |
+| Ancient | 전체 풀 + Ancient 전용 (160종) | 지오 이펙트 내장 Chunk 포함 |
 
 #### Step 6: 적 배치 (Enemy Placement)
 
@@ -265,11 +265,11 @@ gridSize = clamp(gridSize, 3, 5)
 
 | 레어리티 | 최대 진입 층 | 보스 전투 횟수 | 비고 |
 | :------- | :----------- | :------------- | :--- |
-| Common | 30 | 3회 (10, 20, 30) | 입문용 |
-| Uncommon | 50 | 5회 | 중급 |
+| Normal | 30 | 3회 (10, 20, 30) | 입문용 |
+| Magic | 50 | 5회 | 중급 |
 | Rare | 70 | 7회 | 상급 |
 | Legendary | 100 | 10회 | 최종 보스 아이템 신(Item God) 포함 |
-| Mythic | 110 (100 + 보너스 10층) | 11회 | 101~110 보너스 층은 Mythic 전용 |
+| Ancient | 110 (100 + 보너스 10층) | 11회 | 101~110 보너스 층은 Ancient 전용 |
 
 - 레어리티 상한 층에 도달하면 강제 탈출 처리된다
 - 보너스 층(101~110)은 적 레벨이 100층 대비 1.5배로 급상승한다
@@ -278,11 +278,11 @@ gridSize = clamp(gridSize, 3, 5)
 
 | 레어리티 | 함정 밀도 | 파괴 가능 지형 비율 | 숨겨진 경로 확률 | 이동 플랫폼 빈도 |
 | :------- | :-------- | :------------------ | :--------------- | :---------------- |
-| Common | 0% | 0% | 0% | 0% |
-| Uncommon | 5% | 10% | 5% | 15% |
+| Normal | 0% | 0% | 0% | 0% |
+| Magic | 5% | 10% | 5% | 15% |
 | Rare | 15% | 20% | 10% | 25% |
 | Legendary | 25% | 30% | 20% | 35% |
-| Mythic | 35% | 40% | 30% | 40% |
+| Ancient | 35% | 40% | 30% | 40% |
 
 ### 3.4. 적 스케일링 규칙 (Enemy Scaling Rules)
 
@@ -379,7 +379,7 @@ enemy_scaling:
     tier_4:                       # 91~100층
       floor_range: [91, 100]
       multiplier: 2.0
-    tier_bonus:                   # 101~110층 (Mythic 전용)
+    tier_bonus:                   # 101~110층 (Ancient 전용)
       floor_range: [101, 110]
       multiplier: 3.0
   item_level_coefficient: 0.02   # 아이템 레벨 보정 계수
@@ -466,7 +466,7 @@ boss_tiers:
     phase_count: 3
     has_custom_bgm: true
     has_custom_cutscene: true
-  mythic_guardian:                 # 신화 수호자 (101~110 전용)
+  ancient_guardian:                # 신화 수호자 (101~110 전용)
     floors: [110]
     hp_multiplier: 75.0
     atk_multiplier: 15.0
@@ -517,13 +517,13 @@ multiplayer_scaling:
 
 ```yaml
 chunk_pool:
-  common:
+  normal:
     pool_size: 50
     trap_density: 0.00
     destructible_ratio: 0.00
     hidden_path_chance: 0.00
     moving_platform_freq: 0.00
-  uncommon:
+  magic:
     pool_size: 70
     trap_density: 0.05
     destructible_ratio: 0.10
@@ -541,7 +541,7 @@ chunk_pool:
     destructible_ratio: 0.30
     hidden_path_chance: 0.20
     moving_platform_freq: 0.35
-  mythic:
+  ancient:
     pool_size: 160
     trap_density: 0.35
     destructible_ratio: 0.40
@@ -605,15 +605,15 @@ innocent_town:
 | 서버 측 아이템 데이터 손상 | 현재 층 강제 탈출, 마지막 이노센트 타운 저장 지점으로 롤백 |
 | 파티 리더가 아이템 장착 해제 | 탐사에 영향 없음 (아이템계 진입 시점의 아이템 상태 스냅샷 사용) |
 
-### 5.4. 100층 초과 보너스 층 - Mythic 전용 (Bonus Floors Beyond 100)
+### 5.4. 100층 초과 보너스 층 - Ancient 전용 (Bonus Floors Beyond 100)
 
-- Mythic 레어리티 아이템만 101~110층 진입 가능
+- Ancient 레어리티 아이템만 101~110층 진입 가능
 - 보너스 층 특성:
   - 적 레벨 배율 3.0 (100층 대비 1.5배 급상승)
   - Grid 크기 고정 5x5, Void 비율 5% (거의 모든 셀 활성)
   - 지오 이펙트 패널이 모든 Combat Room에 배치
-  - 110층 보스: 신화 수호자(Mythic Guardian) — 4페이즈 전투
-  - 110층 클리어 보상: Mythic 전용 이노센트, 아이템 레벨 +5 보너스
+  - 110층 보스: 신화 수호자(Ancient Guardian) — 4페이즈 전투
+  - 110층 클리어 보상: Ancient 전용 이노센트, 아이템 레벨 +5 보너스
 
 ### 5.5. 네트워크 단절 시 처리 (Network Disconnection)
 
@@ -659,10 +659,10 @@ innocent_town:
 * [ ] Critical Path가 입구에서 출구까지 100% 연결되는지 확인
 * [ ] 보스 층(10의 배수)에 보스 방이 정상 생성되는지 확인
 * [ ] 이노센트 타운이 25, 50, 75층에 고정 출현하는지 확인
-* [ ] 레어리티별 최대 층 제한 (Common 30, Uncommon 50, Rare 70, Legendary 100, Mythic 110) 동작 확인
+* [ ] 레어리티별 최대 층 제한 (Normal 30, Magic 50, Rare 70, Legendary 100, Ancient 110) 동작 확인
 * [ ] 멀티플레이 적 HP 배율이 파티 인원수에 따라 정확히 적용되는지 확인
 * [ ] 파티 리더 접속 해제 시 60초 대기 후 전원 강제 탈출 처리 확인
 * [ ] 탐사 중 아이템 거래/분해/강화 차단 로직 동작 확인
-* [ ] Mythic 보너스 층(101~110) 진입 시 레어리티 검증 확인
+* [ ] Ancient 보너스 층(101~110) 진입 시 레어리티 검증 확인
 * [ ] 미스터리 룸이 보스 층에서 출현하지 않는지 확인
 * [ ] 네트워크 단절 시 솔로/멀티 각 시나리오별 복구 처리 확인
