@@ -1,21 +1,5 @@
 # D-01: 3-Space Architecture (3-Space 분리 모델 설계 철학)
 
-## 구현 현황 (Implementation Status)
-
-> 최근 업데이트: 2026-03-23
-> 문서 상태: `작성 중 (Draft)`
-> 3-Space: 전체
-> 기둥: 전체
-
-| 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
-| :--- | :--- | :--- | :---: | :--- | :--- |
-| D-01-01 | Architecture | 3-Space 분리 원칙 정의 | P0 | 진행 중 | 본 문서 |
-| D-01-02 | Architecture | 공간 간 전환 리듬 설계 | P0 | 진행 중 | 본 문서 |
-| D-01-03 | Architecture | 공간 간 연결 원칙 정의 | P0 | 진행 중 | 본 문서 |
-| D-01-04 | Architecture | 규칙 독립성 원칙 정의 | P1 | 진행 중 | 본 문서 |
-
----
-
 ## 0. 필수 참고 자료 (Mandatory References)
 
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 3-Space, 핵심 판타지, 금지 규칙)
