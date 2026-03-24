@@ -2,13 +2,25 @@ import { Container, Graphics, type Texture, Sprite, Texture as PixiTexture, Rect
 
 const TILE_SIZE = 16;
 
+export type TilemapTheme = 'world' | 'itemworld';
+
+const THEME_COLORS: Record<TilemapTheme, { floor: number; wall: number; platform: number; border: number }> = {
+  world: { floor: 0x4a4a6a, wall: 0x2a2a4a, platform: 0x6a4a2a, border: 0x222222 },
+  itemworld: { floor: 0x8b2252, wall: 0x4a0e2e, platform: 0xcc6633, border: 0x330011 },
+};
+
 export class TilemapRenderer {
   container: Container;
   private tileSize: number;
+  private theme: TilemapTheme = 'world';
 
   constructor(tileSize = TILE_SIZE) {
     this.container = new Container();
     this.tileSize = tileSize;
+  }
+
+  setTheme(theme: TilemapTheme): void {
+    this.theme = theme;
   }
 
   loadRoom(roomData: number[][], tileset?: Texture): void {
@@ -45,16 +57,17 @@ export class TilemapRenderer {
   }
 
   private renderPlaceholderTile(x: number, y: number, tileId: number): void {
+    const t = THEME_COLORS[this.theme];
     const colors: Record<number, number> = {
-      1: 0x4a4a6a, // floor
-      2: 0x2a2a4a, // wall
-      3: 0x6a4a2a, // platform
+      1: t.floor,
+      2: t.wall,
+      3: t.platform,
     };
     const color = colors[tileId] ?? 0x333333;
 
     const gfx = new Graphics();
     gfx.rect(0, 0, this.tileSize, this.tileSize).fill(color);
-    gfx.rect(0, 0, this.tileSize, this.tileSize).stroke({ color: 0x222222, width: 0.5 });
+    gfx.rect(0, 0, this.tileSize, this.tileSize).stroke({ color: t.border, width: 0.5 });
     gfx.x = x * this.tileSize;
     gfx.y = y * this.tileSize;
     this.container.addChild(gfx);

@@ -113,6 +113,7 @@ export class ItemWorldScene extends Scene {
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
+    this.tilemap.setTheme('itemworld');
     this.container.addChild(this.tilemap.container);
 
     // Entity layer
