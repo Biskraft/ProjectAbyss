@@ -511,10 +511,11 @@ export class ItemWorldScene extends Scene {
     const T = TILE_SIZE;
     const gfx = new Graphics();
 
-    // Always draw visible blocks on entityLayer (guaranteed visible)
+    // Draw bright red blocks so they're impossible to miss (debug)
     for (const [c, r] of changed) {
-      gfx.rect(c * T, r * T, T, T).fill(0x3a2515);
+      gfx.rect(c * T, r * T, T, T).fill(0xff0000);
     }
+    console.log(`[ItemWorld] addSealSprites: ${changed.length} blocks, entityLayer children before=${this.entityLayer.children.length}`);
 
     // If we have LDtk tiles, overlay matching wall tiles
     if (this.atlas && this.currentLdtkLevel) {
