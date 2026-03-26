@@ -382,8 +382,7 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        // Seal unused exits in fullGrid (solid wall over passages without neighbors)
-        this.sealCellExits(cell, offC, offR, ROOM_TILES);
+        // No sealing — all passages open in full-map mode
 
         // Render room tiles at pixel offset within fullMapContainer
         const roomContainer = new Container();
