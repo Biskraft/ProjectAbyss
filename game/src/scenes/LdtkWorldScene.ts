@@ -100,6 +100,8 @@ export class LdtkWorldScene extends Scene {
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
   private pendingLevelId: string | null = null;
+  private pendingPlayerTileY = 0;  // player's tile row when transition started
+  private pendingPlayerTileX = 0;  // player's tile col when transition started
   private fadeOverlay!: Graphics;
 
   // Toast, damage numbers & Sakurai hit effects
@@ -563,41 +565,39 @@ export class LdtkWorldScene extends Scene {
     let spawnX: number;
     let spawnY: number;
 
-    // GridVania: find the actual open passage on the entry edge, then place
-    // the player at that passage. "enterFrom=right" means player came from the
-    // right side, so spawn at the RIGHT edge's open passage in the new level.
+    // pendingPlayerTileY/X are in WORLD tile coords. Convert to this level's local tiles.
+    const hintRow = this.pendingPlayerTileY - Math.floor(level.worldY / TILE_SIZE);
+    const hintCol = this.pendingPlayerTileX - Math.floor(level.worldX / TILE_SIZE);
+
+    // GridVania: find the closest open passage on the entry edge to where
+    // the player was in the previous room.
     switch (enterFrom) {
       case 'left': {
-        // Player came from left → spawn at LEFT edge open passage
-        const passageY = this.findEdgePassage(grid, 'left');
+        const passageY = this.findEdgePassage(grid, 'left', hintRow);
         spawnX = 1 * TILE_SIZE;
         spawnY = passageY * TILE_SIZE;
         break;
       }
       case 'right': {
-        // Player came from right → spawn at RIGHT edge open passage
-        const passageY = this.findEdgePassage(grid, 'right');
+        const passageY = this.findEdgePassage(grid, 'right', hintRow);
         spawnX = (level.gridW - 2) * TILE_SIZE;
         spawnY = passageY * TILE_SIZE;
         break;
       }
       case 'up': {
-        // Player came from above → spawn at TOP edge open passage
-        const passageX = this.findEdgePassage(grid, 'up');
+        const passageX = this.findEdgePassage(grid, 'up', hintCol);
         spawnX = passageX * TILE_SIZE;
         spawnY = 1 * TILE_SIZE;
         break;
       }
       case 'down':
       default: {
-        // First load or came from below
         const playerEntity = level.entities.find((e) => e.type === 'Player');
         if (playerEntity) {
           spawnX = playerEntity.px[0];
           spawnY = playerEntity.px[1] - ph;
         } else {
-          // Spawn at BOTTOM edge open passage
-          const passageX = this.findEdgePassage(grid, 'down');
+          const passageX = this.findEdgePassage(grid, 'down', hintCol);
           spawnX = passageX * TILE_SIZE;
           spawnY = (level.gridH - 2) * TILE_SIZE;
         }
@@ -620,40 +620,49 @@ export class LdtkWorldScene extends Scene {
    * For up/down edges: returns the X tile column of the passage.
    * Falls back to the middle of the edge if no passage found.
    */
-  private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down'): number {
+  /**
+   * @param hintTile - preferred tile index (row for left/right, col for up/down).
+   *                   Picks the closest open passage to this hint.
+   */
+  private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down', hintTile = -1): number {
+    const openTiles: number[] = [];
+
     switch (edge) {
-      case 'left': {
-        // Scan column 0 for open tiles
-        for (let row = 0; row < grid.length; row++) {
-          if (grid[row][0] === 0) return row;
-        }
-        return Math.floor(grid.length / 2);
-      }
+      case 'left':
+        for (let row = 0; row < grid.length; row++) { if (grid[row][0] === 0) openTiles.push(row); }
+        break;
       case 'right': {
-        // Scan last column for open tiles
         const col = (grid[0]?.length ?? 1) - 1;
-        for (let row = 0; row < grid.length; row++) {
-          if (grid[row][col] === 0) return row;
-        }
-        return Math.floor(grid.length / 2);
+        for (let row = 0; row < grid.length; row++) { if (grid[row][col] === 0) openTiles.push(row); }
+        break;
       }
-      case 'up': {
-        // Scan row 0 for open tiles
-        const firstRow = grid[0] ?? [];
-        for (let col = 0; col < firstRow.length; col++) {
-          if (firstRow[col] === 0) return col;
-        }
-        return Math.floor(firstRow.length / 2);
-      }
+      case 'up':
+        for (let col = 0; col < (grid[0]?.length ?? 0); col++) { if (grid[0]?.[col] === 0) openTiles.push(col); }
+        break;
       case 'down': {
-        // Scan last row for open tiles
         const lastRow = grid[grid.length - 1] ?? [];
-        for (let col = 0; col < lastRow.length; col++) {
-          if (lastRow[col] === 0) return col;
-        }
-        return Math.floor(lastRow.length / 2);
+        for (let col = 0; col < lastRow.length; col++) { if (lastRow[col] === 0) openTiles.push(col); }
+        break;
       }
     }
+
+    if (openTiles.length === 0) {
+      const len = (edge === 'left' || edge === 'right') ? grid.length : (grid[0]?.length ?? 1);
+      return Math.floor(len / 2);
+    }
+
+    // Pick closest to hint
+    if (hintTile >= 0) {
+      let best = openTiles[0];
+      let bestDist = Math.abs(best - hintTile);
+      for (const t of openTiles) {
+        const d = Math.abs(t - hintTile);
+        if (d < bestDist) { best = t; bestDist = d; }
+      }
+      return best;
+    }
+
+    return openTiles[0];
   }
 
   /**
@@ -935,6 +944,9 @@ export class LdtkWorldScene extends Scene {
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = direction;
     this.pendingLevelId = levelId;
+    // Remember player's WORLD position for spawn hint in next room
+    this.pendingPlayerTileY = Math.floor((this.currentLevel.worldY + this.player.y + this.player.height / 2) / TILE_SIZE);
+    this.pendingPlayerTileX = Math.floor((this.currentLevel.worldX + this.player.x + this.player.width / 2) / TILE_SIZE);
   }
 
   private updateTransition(dt: number): void {
