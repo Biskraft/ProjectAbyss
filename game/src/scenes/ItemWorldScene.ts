@@ -478,7 +478,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /** Seal depth for blocked passages (4 tiles thick) */
-  private static readonly SEAL_DEPTH = 4;
+  private static readonly SEAL_DEPTH = 2;
 
   /**
    * Seal passages on edges that don't connect to a neighbor cell.
@@ -490,49 +490,49 @@ export class ItemWorldScene extends Scene {
     const w = grid[0]?.length ?? 0;
     const D = ItemWorldScene.SEAL_DEPTH;
 
+    // Track which tiles change from open(0) to wall(1)
+    const changed: Array<[number, number]> = []; // [col, row]
+
+    const seal = (r: number, c: number) => {
+      if (r >= 0 && r < h && c >= 0 && c < w && grid[r][c] === 0) {
+        grid[r][c] = 1;
+        changed.push([c, r]);
+      }
+    };
+
     if (!cell.exits.left) {
-      for (let r = 0; r < h; r++) for (let c = 0; c < D && c < w; c++) grid[r][c] = 1;
+      for (let r = 0; r < h; r++) for (let c = 0; c < D; c++) seal(r, c);
     }
     if (!cell.exits.right) {
-      for (let r = 0; r < h; r++) for (let c = w - D; c < w; c++) if (c >= 0) grid[r][c] = 1;
+      for (let r = 0; r < h; r++) for (let c = w - D; c < w; c++) seal(r, c);
     }
     if (!cell.exits.up) {
-      for (let r = 0; r < D && r < h; r++) for (let c = 0; c < w; c++) grid[r][c] = 1;
+      for (let r = 0; r < D; r++) for (let c = 0; c < w; c++) seal(r, c);
     }
     if (!cell.exits.down) {
-      for (let r = h - D; r < h; r++) if (r >= 0) for (let c = 0; c < w; c++) grid[r][c] = 1;
+      for (let r = h - D; r < h; r++) for (let c = 0; c < w; c++) seal(r, c);
     }
 
-    if (this.ldtkRenderer && this.atlas) {
-      this.addSealSprites(cell);
-    } else {
+    if (changed.length > 0 && this.ldtkRenderer && this.atlas) {
+      this.addSealSprites(changed);
+    } else if (changed.length > 0) {
       this.tilemap.loadRoom(this.roomData);
     }
   }
 
-  /** Render auto-tiled wall sprites over sealed passages */
-  private addSealSprites(cell: UnifiedRoomCell): void {
+  /** Render auto-tiled wall sprites only on tiles that changed (0→1) */
+  private addSealSprites(changed: Array<[number, number]>): void {
     if (!this.ldtkRenderer || !this.atlas) return;
     const grid = this.roomData;
     const h = grid.length;
     const w = grid[0]?.length ?? 0;
     const T = TILE_SIZE;
-    const D = ItemWorldScene.SEAL_DEPTH;
     const src = this.atlas.source;
 
-    // SunnyLand auto-tile coords (px in atlas)
-    // Top row: grass-topped dirt
-    const TOP_L  = [48, 0];   // top-left corner
-    const TOP_M  = [64, 0];   // top middle (grass)
-    const TOP_R  = [80, 0];   // top-right corner
-    // Middle row: dirt sides
-    const MID_L  = [48, 16];  // left edge
-    const MID_F  = [64, 16];  // fill (inner)
-    const MID_R  = [80, 16];  // right edge
-    // Bottom row: dirt bottom
-    const BOT_L  = [48, 32];  // bottom-left corner
-    const BOT_M  = [64, 32];  // bottom middle
-    const BOT_R  = [80, 32];  // bottom-right corner
+    // SunnyLand auto-tile coords
+    const TOP_L = [48, 0], TOP_M = [64, 0], TOP_R = [80, 0];
+    const MID_L = [48, 16], MID_F = [64, 16], MID_R = [80, 16];
+    const BOT_L = [48, 32], BOT_M = [64, 32], BOT_R = [80, 32];
 
     const texCache = new Map<string, PixiTexture>();
     const getTex = (sx: number, sy: number): PixiTexture => {
@@ -542,66 +542,33 @@ export class ItemWorldScene extends Scene {
       return tex;
     };
 
-    const place = (px: number, py: number, tile: number[]) => {
-      const s = new Sprite(getTex(tile[0], tile[1]));
-      s.x = px; s.y = py;
-      this.ldtkRenderer!.container.addChild(s);
+    const isSolid = (c: number, r: number) => {
+      if (r < 0 || r >= h || c < 0 || c >= w) return true;
+      return grid[r][c] >= 1;
     };
 
-    // Seal LEFT (4 cols from left)
-    if (!cell.exits.left) {
-      for (let r = 0; r < h; r++) {
-        for (let c = 0; c < D && c < w; c++) {
-          const isTop = r === 0;
-          const isBot = r === h - 1;
-          const isEdge = c === D - 1; // rightmost col = face toward room
-          if (isTop) place(c * T, r * T, isEdge ? TOP_R : TOP_M);
-          else if (isBot) place(c * T, r * T, isEdge ? BOT_R : BOT_M);
-          else place(c * T, r * T, isEdge ? MID_R : MID_F);
-        }
-      }
-    }
+    for (const [c, r] of changed) {
+      // Pick tile based on neighboring solids (simple 4-neighbor auto-tile)
+      const up = isSolid(c, r - 1);
+      const down = isSolid(c, r + 1);
+      const left = isSolid(c - 1, r);
+      const right = isSolid(c + 1, r);
 
-    // Seal RIGHT
-    if (!cell.exits.right) {
-      for (let r = 0; r < h; r++) {
-        for (let c = w - D; c < w; c++) {
-          if (c < 0) continue;
-          const isTop = r === 0;
-          const isBot = r === h - 1;
-          const isEdge = c === w - D; // leftmost col = face toward room
-          if (isTop) place(c * T, r * T, isEdge ? TOP_L : TOP_M);
-          else if (isBot) place(c * T, r * T, isEdge ? BOT_L : BOT_M);
-          else place(c * T, r * T, isEdge ? MID_L : MID_F);
-        }
-      }
-    }
+      let tile: number[];
+      if (!up && down && !left && right) tile = TOP_L;       // top-left corner
+      else if (!up && down && left && right) tile = TOP_M;    // top edge
+      else if (!up && down && left && !right) tile = TOP_R;   // top-right corner
+      else if (up && down && !left && right) tile = MID_L;    // left edge
+      else if (up && down && left && !right) tile = MID_R;    // right edge
+      else if (up && !down && !left && right) tile = BOT_L;   // bottom-left corner
+      else if (up && !down && left && right) tile = BOT_M;    // bottom edge
+      else if (up && !down && left && !right) tile = BOT_R;   // bottom-right corner
+      else tile = MID_F;                                       // fully surrounded
 
-    // Seal TOP (4 rows from top)
-    if (!cell.exits.up) {
-      for (let r = 0; r < D && r < h; r++) {
-        for (let c = 0; c < w; c++) {
-          const isLeft = c === 0;
-          const isRight = c === w - 1;
-          const isEdge = r === D - 1; // bottom row = face toward room
-          if (isEdge) place(c * T, r * T, isLeft ? BOT_L : isRight ? BOT_R : BOT_M);
-          else place(c * T, r * T, MID_F);
-        }
-      }
-    }
-
-    // Seal BOTTOM
-    if (!cell.exits.down) {
-      for (let r = h - D; r < h; r++) {
-        if (r < 0) continue;
-        for (let c = 0; c < w; c++) {
-          const isLeft = c === 0;
-          const isRight = c === w - 1;
-          const isEdge = r === h - D; // top row = face toward room
-          if (isEdge) place(c * T, r * T, isLeft ? TOP_L : isRight ? TOP_R : TOP_M);
-          else place(c * T, r * T, MID_F);
-        }
-      }
+      const s = new Sprite(getTex(tile[0], tile[1]));
+      s.x = c * T;
+      s.y = r * T;
+      this.ldtkRenderer!.container.addChild(s);
     }
   }
 
