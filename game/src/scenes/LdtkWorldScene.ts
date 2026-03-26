@@ -545,11 +545,11 @@ export class LdtkWorldScene extends Scene {
     this.clearAltars();
 
     if (level.roomType !== 'Shop') {
-      this.spawnEnemies(level);
-      this.spawnAltarInLevel(level);
+      this.spawnEnemiesFromLdtk(level);
+      this.spawnAltarsFromLdtk(level);
     }
 
-    // Process LDtk entities (Items, GameSaver, etc.)
+    // Process other LDtk entities (Items, GameSaver, etc.)
     this.processLdtkEntities(level);
 
     // Camera: snap + set target to prevent lerp jitter on first frame
@@ -718,7 +718,54 @@ export class LdtkWorldScene extends Scene {
   // Enemy spawning
   // ---------------------------------------------------------------------------
 
-  private spawnEnemies(level: LdtkLevel): void {
+  /**
+   * Spawn enemies from LDtk Enemy_Spawn entities. Falls back to random
+   * spawning if no Enemy_Spawn entities are placed in the level.
+   */
+  private spawnEnemiesFromLdtk(level: LdtkLevel): void {
+    const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
+
+    if (spawners.length > 0) {
+      // Use LDtk-placed spawners
+      const grid = level.collisionGrid;
+      const levelSeed = (level.worldX * 31 + level.worldY * 17) >>> 0;
+      const dist = Math.round(Math.sqrt(level.worldX ** 2 + level.worldY ** 2) / 200);
+      const scale = 1 + dist * 0.15;
+      const tier = getDifficultyTier(dist);
+
+      for (const spawner of spawners) {
+        const enemyType = (spawner.fields['type'] as string) ?? 'Skeleton';
+        const enemyLevel = (spawner.fields['level'] as number) ?? 1;
+        const localScale = scale * (1 + (enemyLevel - 1) * 0.1);
+
+        let enemy: Enemy;
+        if (enemyType === 'Golden') {
+          const golden = new GoldenMonster(tier);
+          golden.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
+          enemy = golden;
+        } else if (enemyType === 'Ghost') {
+          enemy = new Ghost();
+        } else {
+          enemy = new Skeleton();
+        }
+
+        enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * localScale);
+        enemy.atk = Math.floor(enemy.atk * localScale);
+        enemy.x = spawner.px[0];
+        enemy.y = spawner.px[1] - enemy.height;
+        enemy.roomData = this.collisionGrid;
+        enemy.target = this.player;
+        this.enemies.push(enemy);
+        this.entityLayer.addChild(enemy.container);
+      }
+      return;
+    }
+
+    // Fallback: random spawning (no Enemy_Spawn entities in this level)
+    this.spawnEnemiesRandom(level);
+  }
+
+  private spawnEnemiesRandom(level: LdtkLevel): void {
     const grid = level.collisionGrid;
     // Scale enemy count by level area (larger rooms = more enemies)
     const area = level.gridW * level.gridH;
@@ -828,11 +875,24 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  private spawnAltarInLevel(level: LdtkLevel): void {
-    // Already called from loadLevel for non-Shop rooms — guard against double-spawn
+  /**
+   * Spawn altars from LDtk Altar entities. Falls back to random if none placed.
+   */
+  private spawnAltarsFromLdtk(level: LdtkLevel): void {
+    const altarEnts = level.entities.filter(e => e.type === 'Altar');
+
+    if (altarEnts.length > 0) {
+      for (const ent of altarEnts) {
+        const altar = new Altar(ent.px[0], ent.px[1] - 24); // pivot bottom
+        this.altars.push(altar);
+        this.entityLayer.addChild(altar.container);
+      }
+      return;
+    }
+
+    // Fallback: 30% chance random altar
     if (this.altars.length > 0) return;
     if (Math.random() > 0.3) return;
-
     const midTileX = Math.floor(level.gridW / 2);
     const altarX = level.pxWid / 2 + (Math.random() - 0.5) * 6 * TILE_SIZE;
     const altarY = this.findFloorY(level.collisionGrid, midTileX, TILE_SIZE);
