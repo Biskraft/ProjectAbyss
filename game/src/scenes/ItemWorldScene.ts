@@ -357,37 +357,16 @@ export class ItemWorldScene extends Scene {
     }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
-    // Use player's previous tile position as hint for finding the closest passage
-    const prevTileRow = Math.floor(this.player.y / TILE_SIZE);
-    const prevTileCol = Math.floor(this.player.x / TILE_SIZE);
-    const grid = this.roomData;
+    // Fixed spawn at standardized door positions (center of 32×32 room)
+    const DOOR_POS = 15; // tile 15 = center of row/col 14~17 range
     const rW = this.roomW;
+    const rH = this.roomH;
     let spawnX: number, spawnY: number;
     switch (spawnSide) {
-      case 'left': {
-        const passageRow = this.findEdgeOpen(grid, 'left', prevTileRow);
-        spawnX = 2 * TILE_SIZE;
-        spawnY = passageRow * TILE_SIZE;
-        break;
-      }
-      case 'right': {
-        const passageRow = this.findEdgeOpen(grid, 'right', prevTileRow);
-        spawnX = (rW - 3) * TILE_SIZE;
-        spawnY = passageRow * TILE_SIZE;
-        break;
-      }
-      case 'up': {
-        const passageCol = this.findEdgeOpen(grid, 'up', prevTileCol);
-        spawnX = passageCol * TILE_SIZE;
-        spawnY = 2 * TILE_SIZE;
-        break;
-      }
-      case 'down': default: {
-        const passageCol = this.findEdgeOpen(grid, 'down', prevTileCol);
-        spawnX = passageCol * TILE_SIZE;
-        spawnY = this.findFloorY(passageCol);
-        break;
-      }
+      case 'left':  spawnX = 2 * TILE_SIZE;          spawnY = DOOR_POS * TILE_SIZE; break;
+      case 'right': spawnX = (rW - 3) * TILE_SIZE;   spawnY = DOOR_POS * TILE_SIZE; break;
+      case 'up':    spawnX = DOOR_POS * TILE_SIZE;    spawnY = 2 * TILE_SIZE;        break;
+      case 'down': default: spawnX = DOOR_POS * TILE_SIZE; spawnY = (rH - 3) * TILE_SIZE; break;
     }
     this.player.x = spawnX;
     this.player.y = spawnY;
@@ -460,21 +439,21 @@ export class ItemWorldScene extends Scene {
     const doorThick = 2 * T;
     const doorLen = 6 * T;
 
+    // Fixed door positions at center (tiles 13~18)
+    const DOOR_START = 13 * T;
+    const DOOR_SIZE = 6 * T;
+
     if (cell.exits.left) {
-      const row = this.findEdgeOpen(grid, 'left');
-      triggers.push({ x: 0, y: (row - 1) * T, width: T, height: doorLen, direction: 'left' });
+      triggers.push({ x: 0, y: DOOR_START, width: T, height: DOOR_SIZE, direction: 'left' });
     }
     if (cell.exits.right) {
-      const row = this.findEdgeOpen(grid, 'right');
-      triggers.push({ x: (rW - 1) * T, y: (row - 1) * T, width: T, height: doorLen, direction: 'right' });
+      triggers.push({ x: (rW - 1) * T, y: DOOR_START, width: T, height: DOOR_SIZE, direction: 'right' });
     }
     if (cell.exits.up) {
-      const col = this.findEdgeOpen(grid, 'up');
-      triggers.push({ x: (col - 1) * T, y: 0, width: doorLen, height: T, direction: 'up' });
+      triggers.push({ x: DOOR_START, y: 0, width: DOOR_SIZE, height: T, direction: 'up' });
     }
     if (cell.exits.down) {
-      const col = this.findEdgeOpen(grid, 'down');
-      triggers.push({ x: (col - 1) * T, y: (rH - 1) * T, width: doorLen, height: T, direction: 'down' });
+      triggers.push({ x: DOOR_START, y: (rH - 1) * T, width: DOOR_SIZE, height: T, direction: 'down' });
     }
     return triggers;
   }
