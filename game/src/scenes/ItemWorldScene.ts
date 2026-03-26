@@ -1,4 +1,4 @@
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
@@ -40,6 +40,7 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
 
 export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
+  private atlas: Texture | null = null;
   private player!: Player;
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -119,7 +120,10 @@ export class ItemWorldScene extends Scene {
     this.sourcePlayer = sourcePlayer;
   }
 
-  init(): void {
+  async init(): Promise<void> {
+    // Load tileset atlas for template rooms
+    this.atlas = await Assets.load('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
+
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
     this.progress = getOrCreateWorldProgress(this.item);
@@ -209,7 +213,7 @@ export class ItemWorldScene extends Scene {
     this.updateHudText();
 
     // Camera
-    this.game.camera.setBounds(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE);
+    // Camera bounds set dynamically in loadRoom()
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
   }
 
@@ -332,7 +336,8 @@ export class ItemWorldScene extends Scene {
     this.player.vy = 0;
     this.player.savePrevPosition();
 
-    this.doorTriggers = getDoorTriggers(cell);
+    // Generate door triggers based on actual room dimensions
+    this.doorTriggers = this.buildDoorTriggers(cell);
     this.clearEnemies();
     this.clearEscapeAltar();
 
@@ -352,8 +357,8 @@ export class ItemWorldScene extends Scene {
       if (!cell.cleared) {
         this.spawnBoss();
       }
-      const exitX = (ROOM_W / 2 - 1) * TILE_SIZE;
-      const exitY = (ROOM_H - 6) * TILE_SIZE;
+      const exitX = (this.roomW / 2 - 1) * TILE_SIZE;
+      const exitY = (this.roomH - 4) * TILE_SIZE;
       this.exitTrigger = { x: exitX, y: exitY, width: 3 * TILE_SIZE, height: 3 * TILE_SIZE };
 
       // Visual: blue for descent, gold for final exit
@@ -383,6 +388,32 @@ export class ItemWorldScene extends Scene {
     this.drawMiniMap();
   }
 
+  /** Build door triggers matching actual room size + template door positions */
+  private buildDoorTriggers(cell: UnifiedRoomCell): Array<{ x: number; y: number; width: number; height: number; direction: 'left'|'right'|'up'|'down' }> {
+    const triggers: Array<{ x: number; y: number; width: number; height: number; direction: 'left'|'right'|'up'|'down' }> = [];
+    const rW = this.roomW;
+    const rH = this.roomH;
+    const T = TILE_SIZE;
+    // Template door positions: L/R at rows 6-9, U/D at cols 14-17 (for 32×16)
+    // For legacy rooms (60×34), use proportional positions
+    const doorThick = 2 * T;  // trigger depth
+    const doorLen = 4 * T;    // 4 tiles wide/tall
+
+    if (cell.exits.left) {
+      triggers.push({ x: -doorThick, y: 6 * T, width: doorThick, height: doorLen, direction: 'left' });
+    }
+    if (cell.exits.right) {
+      triggers.push({ x: rW * T, y: 6 * T, width: doorThick, height: doorLen, direction: 'right' });
+    }
+    if (cell.exits.up) {
+      triggers.push({ x: 14 * T, y: -doorThick, width: doorLen, height: doorThick, direction: 'up' });
+    }
+    if (cell.exits.down) {
+      triggers.push({ x: 14 * T, y: rH * T, width: doorLen, height: doorThick, direction: 'down' });
+    }
+    return triggers;
+  }
+
   /** Find floor Y in current room at given tile column */
   private findFloorY(tileX: number): number {
     const grid = this.roomData;
@@ -409,7 +440,7 @@ export class ItemWorldScene extends Scene {
   }
 
   private spawnEnemies(): void {
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
+    const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
     // Distance from the unified start room
     const dist = Math.abs(this.currentCol - this.unifiedGrid.startRoom.col)
@@ -426,7 +457,7 @@ export class ItemWorldScene extends Scene {
       enemy.hp = enemy.maxHp = Math.floor(def.enemyHp * distScale);
       enemy.atk = Math.floor(def.enemyAtk * distScale);
 
-      enemy.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
+      enemy.x = spawnRng.nextInt(4, this.roomW - 5) * TILE_SIZE;
       enemy.y = floorY - enemy.height;
       enemy.roomData = this.roomData;
       enemy.target = this.player;
@@ -436,14 +467,14 @@ export class ItemWorldScene extends Scene {
   }
 
   private spawnBoss(): void {
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
+    const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
     const boss = new Skeleton();
     boss.hp = boss.maxHp = def.bossHp;
     boss.atk = def.bossAtk;
     const visualScale = 1.5 + this.currentStratumIndex * 0.2;
     boss.container.scale.set(visualScale);
-    boss.x = (ROOM_W / 2) * TILE_SIZE;
+    boss.x = (this.roomW / 2) * TILE_SIZE;
     boss.y = floorY - boss.height * visualScale;
     boss.roomData = this.roomData;
     boss.target = this.player;
@@ -457,16 +488,14 @@ export class ItemWorldScene extends Scene {
     }
     this.doorMarkers = [];
 
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
     const doorH = 4 * TILE_SIZE;
     const markerW = 4;
 
     if (cell.exits.left) {
       const marker = new Graphics();
       marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(-6, doorH / 2 - 3, 6, 6).fill({ color: 0x44ff44, alpha: 0.8 });
       marker.x = 0;
-      marker.y = floorY - doorH;
+      marker.y = 6 * TILE_SIZE;
       this.entityLayer.addChild(marker);
       this.doorMarkers.push(marker);
     }
@@ -474,26 +503,25 @@ export class ItemWorldScene extends Scene {
     if (cell.exits.right) {
       const marker = new Graphics();
       marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(markerW, doorH / 2 - 3, 6, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = (ROOM_W - 1) * TILE_SIZE;
-      marker.y = floorY - doorH;
+      marker.x = (this.roomW - 1) * TILE_SIZE;
+      marker.y = 6 * TILE_SIZE;
       this.entityLayer.addChild(marker);
       this.doorMarkers.push(marker);
     }
 
     if (cell.exits.down) {
-      const cx = Math.floor(ROOM_W / 2) * TILE_SIZE;
+      const cx = Math.floor(this.roomW / 2) * TILE_SIZE;
       const marker = new Graphics();
       marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
       marker.rect(TILE_SIZE, markerW, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
       marker.x = cx - TILE_SIZE;
-      marker.y = (ROOM_H - 1) * TILE_SIZE - markerW;
+      marker.y = (this.roomH - 1) * TILE_SIZE - markerW;
       this.entityLayer.addChild(marker);
       this.doorMarkers.push(marker);
     }
 
     if (cell.exits.up) {
-      const cx = Math.floor(ROOM_W / 2) * TILE_SIZE;
+      const cx = Math.floor(this.roomW / 2) * TILE_SIZE;
       const marker = new Graphics();
       marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
       marker.rect(TILE_SIZE, -6, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
@@ -935,8 +963,8 @@ export class ItemWorldScene extends Scene {
     const altarRng = new PRNG(this.item.uid * 50000 + this.currentRow * 100 + this.currentCol * 10);
     if (altarRng.next() >= 0.25) return; // 25% chance
 
-    const altarX = (ROOM_W / 2 + 8) * TILE_SIZE;
-    const altarY = (ROOM_H - 6) * TILE_SIZE;
+    const altarX = (this.roomW / 2 + 4) * TILE_SIZE;
+    const altarY = (this.roomH - 4) * TILE_SIZE;
     this.altarTrigger = { x: altarX, y: altarY, width: 2 * TILE_SIZE, height: 3 * TILE_SIZE };
 
     this.altarVisual = new Graphics();
