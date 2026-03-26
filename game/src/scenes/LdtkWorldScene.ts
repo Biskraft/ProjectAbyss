@@ -190,13 +190,7 @@ export class LdtkWorldScene extends Scene {
     this.loadLevel(ENTRANCE_LEVEL, 'down');
     this.initialized = true;
 
-    // Debug: log all levels and their neighbors
-    console.log('[LDtk] Levels:', this.loader.getLevelIds());
-    for (const id of this.loader.getLevelIds()) {
-      const l = this.loader.getLevel(id)!;
-      console.log(`[LDtk] ${id}: world(${l.worldX},${l.worldY}) size(${l.pxWid}x${l.pxHei}) grid(${l.gridW}x${l.gridH}) neighbors=[${l.neighbors.join(',')}] roomType=${l.roomType}`);
-      console.log(`[LDtk]   collision grid: ${l.gridH} rows x ${l.gridW} cols, first row sample:`, l.collisionGrid[0]?.slice(0,10));
-    }
+    console.log(`[LDtk] Loaded ${this.loader.getLevelIds().length} levels`);
   }
 
   enter(): void {
@@ -455,7 +449,7 @@ export class LdtkWorldScene extends Scene {
 
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
-    this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+    this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
 
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);
@@ -488,6 +482,7 @@ export class LdtkWorldScene extends Scene {
     }
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
+    if (this.minimap?.parent) this.minimap.parent.removeChild(this.minimap);
   }
 
   // ---------------------------------------------------------------------------
@@ -524,12 +519,7 @@ export class LdtkWorldScene extends Scene {
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
-    console.log(`[LDtk] loadLevel("${levelId}") enter=${enterDirection} size=${level.pxWid}x${level.pxHei} grid=${level.gridW}x${level.gridH}`);
-    console.log(`[LDtk]   collision sample row[0]:`, this.collisionGrid[0]?.slice(0,20));
-    console.log(`[LDtk]   collision sample mid-row:`, this.collisionGrid[Math.floor(level.gridH/2)]?.slice(0,20));
-    console.log(`[LDtk]   entities:`, level.entities.map(e => `${e.type}@(${e.px[0]},${e.px[1]})`));
-    console.log(`[LDtk]   neighbors:`, level.neighbors, `dir:`, JSON.stringify(level.dirNeighbors));
-    console.log(`[LDtk]   bgTiles:${level.backgroundTiles.length} wallTiles:${level.wallTiles.length} shadowTiles:${level.shadowTiles.length}`);
+    console.log(`[LDtk] → ${levelId} (${level.pxWid}x${level.pxHei}) enter=${enterDirection} walls=${level.wallTiles.length} entities=${level.entities.length}`);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -545,11 +535,17 @@ export class LdtkWorldScene extends Scene {
       this.spawnAltarInLevel(level);
     }
 
+    // Process LDtk entities (Items, GameSaver, etc.)
+    this.processLdtkEntities(level);
+
     // Camera snap
     this.game.camera.snap(
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
+
+    // Update minimap
+    this.drawMinimap();
   }
 
   /**
@@ -615,7 +611,7 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.roomData = this.collisionGrid;
     this.player.savePrevPosition();
-    console.log(`[LDtk] Player placed at (${spawnX.toFixed(0)}, ${spawnY.toFixed(0)}) enterFrom=${enterFrom}`);
+    console.log(`[LDtk] Spawn: (${spawnX|0},${spawnY|0}) from=${enterFrom}`);
   }
 
   /**
@@ -739,6 +735,57 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /**
+   * Convert LDtk entity instances into gameplay objects.
+   * Player entity is handled separately in placePlayer().
+   */
+  private processLdtkEntities(level: LdtkLevel): void {
+    for (const ent of level.entities) {
+      switch (ent.type) {
+        case 'Item': {
+          const itemType = ent.fields['type'] as string ?? 'Gold';
+          const count = ent.fields['count'] as number ?? 1;
+          // Map LDtk item types to game items
+          if (itemType === 'Healing_potion') {
+            // TODO: potion pickup — for now heal player directly on pickup
+          } else {
+            // Create a visible drop entity at the LDtk position
+            const swordDef = SWORD_DEFS[0]; // default sword for now
+            const item = createItem(swordDef);
+            const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
+            this.drops.push(drop);
+            this.entityLayer.addChild(drop.container);
+          }
+          break;
+        }
+        case 'GameSaver': {
+          // Save point — show a visual marker, save on interaction
+          const marker = new Graphics();
+          marker.rect(-6, -6, 12, 12).fill({ color: 0x44ffaa, alpha: 0.6 });
+          marker.rect(-6, -6, 12, 12).stroke({ color: 0x44ffaa, width: 1 });
+          marker.x = ent.px[0];
+          marker.y = ent.px[1];
+          this.entityLayer.addChild(marker);
+          break;
+        }
+        case 'SecretArea': {
+          // TODO: secret area trigger with jingle
+          break;
+        }
+        case 'Teleport': {
+          // TODO: teleport to destination entity
+          break;
+        }
+        case 'Exit': {
+          // Exits are handled by edge detection, not entity interaction
+          break;
+        }
+        // Player handled in placePlayer()
+        // Ladder removed
+      }
+    }
+  }
+
   private spawnAltarInLevel(level: LdtkLevel): void {
     // Already called from loadLevel for non-Shop rooms — guard against double-spawn
     if (this.altars.length > 0) return;
@@ -804,7 +851,7 @@ export class LdtkWorldScene extends Scene {
     if (direction === null) return;
 
     const neighborId = this.getNeighborInDirection(direction);
-    console.log(`[LDtk] Edge hit: direction=${direction} player=(${px.toFixed(0)},${py.toFixed(0)}) levelSize=(${level.pxWid},${level.pxHei}) neighbor=${neighborId}`);
+    if (neighborId) console.log(`[LDtk] Transition: ${direction} → ${neighborId}`);
     if (!neighborId) return;
 
     this.startTransition(direction, neighborId);
@@ -954,7 +1001,7 @@ export class LdtkWorldScene extends Scene {
     if (input.isJustPressed(GameAction.ATTACK)) {
       this.inventoryUI.equipSelected();
       this.updatePlayerAtk();
-      this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+      this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
     }
     if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
   }
@@ -1221,6 +1268,63 @@ export class LdtkWorldScene extends Scene {
   private clearAltars(): void {
     for (const a of this.altars) a.destroy();
     this.altars = [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Minimap
+  // ---------------------------------------------------------------------------
+
+  private minimap: Container | null = null;
+
+  private drawMinimap(): void {
+    if (this.minimap) {
+      if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
+    }
+    this.minimap = new Container();
+
+    const worldMap = this.loader.getWorldMap();
+    if (worldMap.length === 0) return;
+
+    // Find bounds
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of worldMap) {
+      minX = Math.min(minX, r.x);
+      minY = Math.min(minY, r.y);
+      maxX = Math.max(maxX, r.x + r.w);
+      maxY = Math.max(maxY, r.y + r.h);
+    }
+
+    const worldW = maxX - minX;
+    const worldH = maxY - minY;
+    const mapW = 80;
+    const mapH = 50;
+    const scale = Math.min(mapW / worldW, mapH / worldH);
+
+    // Background
+    const bg = new Graphics();
+    bg.rect(0, 0, mapW + 4, mapH + 4).fill({ color: 0x000000, alpha: 0.6 });
+    this.minimap.addChild(bg);
+
+    for (const r of worldMap) {
+      const rx = (r.x - minX) * scale + 2;
+      const ry = (r.y - minY) * scale + 2;
+      const rw = Math.max(2, r.w * scale);
+      const rh = Math.max(2, r.h * scale);
+
+      const isCurrent = r.id === this.currentLevel?.identifier;
+      const visited = this.clearedLevels.has(r.id);
+      const color = isCurrent ? 0x44ff44 : visited ? 0x6688aa : 0x334455;
+
+      const g = new Graphics();
+      g.rect(rx, ry, rw, rh).fill(color);
+      g.rect(rx, ry, rw, rh).stroke({ color: 0x88aacc, width: 0.5 });
+      this.minimap.addChild(g);
+    }
+
+    // Position at top-right corner
+    this.minimap.x = 480 - mapW - 8;
+    this.minimap.y = 4;
+    this.game.app.stage.addChild(this.minimap);
   }
 
   // ---------------------------------------------------------------------------
