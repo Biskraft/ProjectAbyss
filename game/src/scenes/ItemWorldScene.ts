@@ -8,6 +8,7 @@ import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir }
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
@@ -329,6 +330,8 @@ export class ItemWorldScene extends Scene {
       this.tilemap.container.visible = true;
       this.tilemap.loadRoom(this.roomData);
     }
+    // Seal passages that don't connect to a neighbor cell
+    this.sealUnusedExits(cell);
     this.player.roomData = this.roomData;
 
     // Update camera bounds for current room size (template rooms are 32×16, legacy 60×34)
@@ -472,6 +475,75 @@ export class ItemWorldScene extends Scene {
       triggers.push({ x: (col - 1) * T, y: (rH - 1) * T, width: doorLen, height: T, direction: 'down' });
     }
     return triggers;
+  }
+
+  /**
+   * Seal passages on edges that don't connect to a neighbor cell.
+   * Fills open tiles (0) with walls (1) in the collision grid AND
+   * adds wall sprites to the LDtk renderer so it looks correct.
+   */
+  private sealUnusedExits(cell: UnifiedRoomCell): void {
+    const grid = this.roomData;
+    const h = grid.length;
+    const w = grid[0]?.length ?? 0;
+
+    // Left edge: seal if no left exit
+    if (!cell.exits.left) {
+      for (let r = 0; r < h; r++) if (grid[r][0] === 0) grid[r][0] = 1;
+    }
+    // Right edge
+    if (!cell.exits.right) {
+      for (let r = 0; r < h; r++) if (grid[r][w - 1] === 0) grid[r][w - 1] = 1;
+    }
+    // Top edge
+    if (!cell.exits.up) {
+      for (let c = 0; c < w; c++) if (grid[0][c] === 0) grid[0][c] = 1;
+    }
+    // Bottom edge
+    if (!cell.exits.down) {
+      for (let c = 0; c < w; c++) if (grid[h - 1][c] === 0) grid[h - 1][c] = 1;
+    }
+
+    // Also re-render the tilemap to reflect sealed passages visually
+    if (this.ldtkRenderer && this.atlas) {
+      // Add wall sprites over sealed passages
+      this.addSealSprites(cell);
+    } else {
+      this.tilemap.loadRoom(this.roomData);
+    }
+  }
+
+  /** Add wall tile sprites over sealed passage openings */
+  private addSealSprites(cell: UnifiedRoomCell): void {
+    if (!this.ldtkRenderer || !this.atlas) return;
+    const grid = this.roomData;
+    const h = grid.length;
+    const w = grid[0]?.length ?? 0;
+    const T = TILE_SIZE;
+
+    // Wall tile from SunnyLand atlas at (192, 192)
+    const frame = new Rectangle(192, 192, T, T);
+    const wallTex = new PixiTexture({ source: this.atlas.source, frame });
+
+    const addWall = (px: number, py: number) => {
+      const s = new Sprite(wallTex);
+      s.x = px;
+      s.y = py;
+      this.ldtkRenderer!.container.addChild(s);
+    };
+
+    if (!cell.exits.left) {
+      for (let r = 0; r < h; r++) addWall(0, r * T);
+    }
+    if (!cell.exits.right) {
+      for (let r = 0; r < h; r++) addWall((w - 1) * T, r * T);
+    }
+    if (!cell.exits.up) {
+      for (let c = 0; c < w; c++) addWall(c * T, 0);
+    }
+    if (!cell.exits.down) {
+      for (let c = 0; c < w; c++) addWall(c * T, (h - 1) * T);
+    }
   }
 
   /** Find the first open tile (0) on a room edge. Returns row for L/R, col for U/D. */
