@@ -399,6 +399,8 @@ export class ItemWorldScene extends Scene {
     this.doorTriggers = this.buildDoorTriggers(cell);
     this.clearEnemies();
     this.clearEscapeAltar();
+    if (this.sealGfx?.parent) this.sealGfx.parent.removeChild(this.sealGfx);
+    this.sealGfx = null;
 
     if (!cell.cleared) {
       this.spawnEnemies();
@@ -479,6 +481,7 @@ export class ItemWorldScene extends Scene {
 
   /** Seal depth for blocked passages (4 tiles thick) */
   private static readonly SEAL_DEPTH = 2;
+  private sealGfx: Graphics | null = null;
 
   /**
    * Seal passages on edges that don't connect to a neighbor cell.
@@ -530,8 +533,9 @@ export class ItemWorldScene extends Scene {
       gfx.rect(c * T, r * T, T, T).fill(0x4a3020);
       gfx.rect(c * T + 1, r * T + 1, T - 2, T - 2).fill(0x6b4830);
     }
-    // Add to entity layer so it's above tiles but below player
+    this.sealGfx = gfx;
     this.entityLayer.addChild(gfx);
+    console.log(`[ItemWorld] Sealed ${changed.length} tiles`);
   }
 
   /** Find the first open tile (0) on a room edge. Returns row for L/R, col for U/D. */
