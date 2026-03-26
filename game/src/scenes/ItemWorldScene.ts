@@ -490,6 +490,8 @@ export class ItemWorldScene extends Scene {
     const w = grid[0]?.length ?? 0;
     const D = ItemWorldScene.SEAL_DEPTH;
 
+    console.log(`[ItemWorld] sealUnusedExits: cell(${this.currentCol},${this.currentRow}) exits: L=${cell.exits.left} R=${cell.exits.right} U=${cell.exits.up} D=${cell.exits.down}`);
+
     // Track which tiles change from open(0) to wall(1)
     const changed: Array<[number, number]> = []; // [col, row]
 
