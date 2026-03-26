@@ -215,6 +215,7 @@ export class ItemWorldScene extends Scene {
     // Camera
     // Camera bounds set dynamically in loadRoom()
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+    this.initialized = true;
   }
 
   private countTotalRooms(): void {
@@ -554,7 +555,11 @@ export class ItemWorldScene extends Scene {
     this.showOnboarding();
   }
 
+  private initialized = false;
+
   update(dt: number): void {
+    if (!this.initialized) return;
+
     // Toast always updates (even during transitions / menus)
     this.toast.update(dt);
 
@@ -1058,6 +1063,7 @@ export class ItemWorldScene extends Scene {
   }
 
   render(alpha: number): void {
+    if (!this.initialized) return;
     this.player.render(alpha);
     for (const enemy of this.enemies) enemy.render(alpha);
   }
