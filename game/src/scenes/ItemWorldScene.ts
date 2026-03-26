@@ -83,6 +83,11 @@ export class ItemWorldScene extends Scene {
   private roomData: number[][] = [];
   private rng!: PRNG;
 
+  // Full-map rendering (all rooms rendered into one continuous grid)
+  private fullGrid: number[][] = [];
+  private fullMapContainer: Container | null = null;
+  private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
+
   // Room transition
   private transitionState: TransitionState = 'none';
   private transitionTimer = 0;
@@ -242,12 +247,20 @@ export class ItemWorldScene extends Scene {
     this.restoreRoomState();
     this.countTotalRooms();
 
-    // Load first room
-    this.loadRoom('down');
+    // Build full map (all rooms rendered into a single continuous grid)
+    this.buildFullMap();
     this.updateHudText();
 
+    // Spawn player at start cell position (near bottom of start room)
+    const startCol = this.currentCol;
+    const startRow = this.currentRow;
+    this.player.x = startCol * 512 + 256;
+    this.player.y = startRow * 512 + 400;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+
     // Camera
-    // Camera bounds set dynamically in loadRoom()
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.initialized = true;
   }
@@ -316,6 +329,206 @@ export class ItemWorldScene extends Scene {
   private isFinalEndRoom(col: number, row: number): boolean {
     return col === this.unifiedGrid.endRoom.col &&
            row === this.unifiedGrid.endRoom.absoluteRow;
+  }
+
+  /**
+   * Build the full map for the current stratum state.
+   * Renders all room templates into a single continuous 2048×2048px grid.
+   * Called from init() and on stratum transitions (replaces loadRoom).
+   * Implements: System_ItemWorld_Core — full-map rendering spec.
+   */
+  private buildFullMap(): void {
+    // Clear previous full map
+    if (this.fullMapContainer?.parent) {
+      this.fullMapContainer.parent.removeChild(this.fullMapContainer);
+    }
+    this.fullMapContainer = new Container();
+    this.spawnedRooms.clear();
+    this.clearEnemies();
+    this.clearEscapeAltar();
+
+    const GRID_W = 4, GRID_H = 4;   // 4×4 room grid
+    const ROOM_TILES = 32;           // 32×32 tiles per room
+    const FULL_TILES = GRID_W * ROOM_TILES; // 128 tiles total
+
+    // Initialize full grid as solid (1) — unrendered regions remain impassable
+    this.fullGrid = [];
+    for (let r = 0; r < FULL_TILES; r++) {
+      this.fullGrid[r] = new Array(FULL_TILES).fill(1);
+    }
+
+    // Place each room template into the full grid
+    const grid = this.unifiedGrid;
+    for (let row = 0; row < grid.totalHeight && row < GRID_H; row++) {
+      for (let col = 0; col < grid.totalWidth && col < GRID_W; col++) {
+        const cell = grid.cells[row]?.[col];
+        if (!cell || cell.type === 0) continue;
+
+        // Pick LDtk template (no code template fallback — LDtk only)
+        const rng = new PRNG(this.item.uid * 10000 + col * 100 + row);
+        const ldtkLevel = this.pickLdtkTemplate(cell, rng);
+        if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
+
+        const roomGrid = ldtkLevel.collisionGrid;
+        const roomH = roomGrid.length;
+        const roomW = roomGrid[0]?.length ?? 0;
+
+        // Copy room collision data into fullGrid at offset
+        const offR = row * ROOM_TILES;
+        const offC = col * ROOM_TILES;
+        for (let tr = 0; tr < roomH && tr < ROOM_TILES; tr++) {
+          for (let tc = 0; tc < roomW && tc < ROOM_TILES; tc++) {
+            this.fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
+          }
+        }
+
+        // Seal unused exits in fullGrid (solid wall over passages without neighbors)
+        this.sealCellExits(cell, offC, offR, ROOM_TILES);
+
+        // Render room tiles at pixel offset within fullMapContainer
+        const roomContainer = new Container();
+        roomContainer.x = col * 512;
+        roomContainer.y = row * 512;
+        const renderer = new LdtkRenderer();
+        renderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
+        roomContainer.addChild(renderer.container);
+        this.fullMapContainer.addChild(roomContainer);
+
+        // Mark start room as visited
+        if (col === this.currentCol && row === this.currentRow) {
+          cell.visited = true;
+        }
+
+        // Place exit portal in stratum end rooms
+        const isEndRoom = this.isStratumEndRoom(col, row);
+        if (isEndRoom) {
+          const isFinal = this.isFinalEndRoom(col, row);
+          const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
+          const midColor  = isFinal ? 0xddaa55 : 0x5555dd;
+          const topColor  = isFinal ? 0xeebb66 : 0x6666ff;
+          const exitX = col * 512 + (16 / 2 - 1) * TILE_SIZE;
+          const exitY = row * 512 + (32 - 4) * TILE_SIZE;
+          const portalGfx = new Graphics();
+          portalGfx.rect(0, 24, 48, 16).fill(baseColor);
+          portalGfx.rect(8, 16, 32, 8).fill(midColor);
+          portalGfx.rect(16, 8, 16, 8).fill(topColor);
+          portalGfx.rect(18, -4, 12, 10).fill(0xffff44);
+          portalGfx.rect(22, -10, 4, 6).fill(0xffff88);
+          portalGfx.x = exitX;
+          portalGfx.y = exitY;
+          this.fullMapContainer.addChild(portalGfx);
+          // Set exit trigger at global coordinates
+          this.exitTrigger = { x: exitX, y: exitY, width: 3 * TILE_SIZE, height: 3 * TILE_SIZE };
+        }
+      }
+    }
+
+    // Seal visuals: dark background = already black where no tiles rendered.
+    // Explicit visual pass handles remaining details.
+    this.addFullMapSealVisuals();
+
+    // Insert map container at bottom of scene (below entity layer)
+    this.container.addChildAt(this.fullMapContainer, 0);
+
+    // Set collision and camera to full 128×128 tile map
+    this.roomData = this.fullGrid;
+    this.player.roomData = this.fullGrid;
+    this.game.camera.setBounds(0, 0, FULL_TILES * TILE_SIZE, FULL_TILES * TILE_SIZE);
+
+    this.persistRoomState();
+    this.drawMiniMap();
+  }
+
+  /**
+   * Seal passages in fullGrid at the edges of a room cell that have no neighbor.
+   * Writes solid tiles (1) over the passage area (SEAL_DEPTH tiles deep).
+   */
+  private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, size: number): void {
+    const SEAL = ItemWorldScene.SEAL_DEPTH;
+    const FULL_H = this.fullGrid.length;
+    const FULL_W = this.fullGrid[0]?.length ?? 0;
+
+    if (!cell.exits.left) {
+      for (let r = offR; r < offR + size && r < FULL_H; r++)
+        for (let c = offC; c < offC + SEAL && c < FULL_W; c++)
+          this.fullGrid[r][c] = 1;
+    }
+    if (!cell.exits.right) {
+      for (let r = offR; r < offR + size && r < FULL_H; r++)
+        for (let c = offC + size - SEAL; c < offC + size && c < FULL_W; c++)
+          this.fullGrid[r][c] = 1;
+    }
+    if (!cell.exits.up) {
+      for (let r = offR; r < offR + SEAL && r < FULL_H; r++)
+        for (let c = offC; c < offC + size && c < FULL_W; c++)
+          this.fullGrid[r][c] = 1;
+    }
+    if (!cell.exits.down) {
+      for (let r = offR + size - SEAL; r < offR + size && r < FULL_H; r++)
+        for (let c = offC; c < offC + size && c < FULL_W; c++)
+          this.fullGrid[r][c] = 1;
+    }
+  }
+
+  /**
+   * Add seal visuals over passages that have no neighbor.
+   * Unrendered cells are already dark (scene background). This is a no-op for now
+   * because the dark background naturally covers solid regions.
+   */
+  private addFullMapSealVisuals(): void {
+    if (!this.fullMapContainer) return;
+    // No explicit graphics needed: solid tiles in fullGrid have no tile sprites rendered,
+    // so they show as the dark scene background color. This keeps them visually sealed.
+  }
+
+  /**
+   * Spawn enemies in the given room cell (lazy — triggered on first player entry).
+   * Replaces the per-room spawnEnemies() used in loadRoom().
+   */
+  private spawnEnemiesInRoom(col: number, row: number): void {
+    const cell = this.unifiedGrid.cells[row]?.[col];
+    if (!cell || cell.cleared) return;
+
+    const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
+    const offX = col * 512;
+    const offY = row * 512;
+    const floorY = offY + (32 - 3) * TILE_SIZE;
+
+    const dist = Math.abs(col - this.unifiedGrid.startRoom.col)
+               + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
+    const count = 2 + Math.floor(dist * 0.5) + stratumDef.enemyCountBonus;
+    const distScale = 1 + dist * 0.1;
+
+    const isEndRoom = this.isStratumEndRoom(col, row);
+    if (isEndRoom) {
+      // Spawn boss
+      const boss = new Skeleton();
+      boss.hp = boss.maxHp = stratumDef.bossHp;
+      boss.atk = stratumDef.bossAtk;
+      const visualScale = 1.5 + (cell.stratumIndex ?? 0) * 0.2;
+      boss.container.scale.set(visualScale);
+      boss.x = offX + 256;
+      boss.y = floorY - boss.height * visualScale;
+      boss.roomData = this.fullGrid;
+      boss.target = this.player;
+      this.enemies.push(boss);
+      this.entityLayer.addChild(boss.container);
+      return;
+    }
+
+    for (let i = 0; i < count; i++) {
+      const spawnRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + i);
+      const isGhost = spawnRng.next() < 0.3;
+      const enemy = isGhost ? new Ghost() : new Skeleton();
+      enemy.hp = enemy.maxHp = Math.floor(stratumDef.enemyHp * distScale);
+      enemy.atk = Math.floor(stratumDef.enemyAtk * distScale);
+      enemy.x = offX + spawnRng.nextInt(64, 448);
+      enemy.y = floorY - enemy.height;
+      enemy.roomData = this.fullGrid;
+      enemy.target = this.player;
+      this.enemies.push(enemy);
+      this.entityLayer.addChild(enemy.container);
+    }
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
@@ -975,8 +1188,29 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Door triggers
-    this.checkDoorTriggers();
+    // Track which room the player is in and lazy-spawn enemies on first entry
+    const playerRoomCol = Math.floor(this.player.x / 512);
+    const playerRoomRow = Math.floor(this.player.y / 512);
+    const roomKey = `${playerRoomCol},${playerRoomRow}`;
+    if (!this.spawnedRooms.has(roomKey)) {
+      this.spawnedRooms.add(roomKey);
+      this.currentCol = playerRoomCol;
+      this.currentRow = playerRoomRow;
+      const enteredCell = this.getCell(playerRoomCol, playerRoomRow);
+      if (enteredCell) {
+        enteredCell.visited = true;
+        this.currentStratumIndex = enteredCell.stratumIndex ?? 0;
+        this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
+        this.persistRoomState();
+        this.drawMiniMap();
+        // Escape altar chance for non-start, non-end critical path rooms
+        if (!(playerRoomCol === this.unifiedGrid.startRoom.col && playerRoomRow === this.unifiedGrid.startRoom.absoluteRow)
+            && !this.isStratumEndRoom(playerRoomCol, playerRoomRow)) {
+          this.trySpawnEscapeAltar(enteredCell);
+        }
+      }
+      this.spawnEnemiesInRoom(playerRoomCol, playerRoomRow);
+    }
 
     // HUD, damage numbers, toast & Sakurai effects
     this.hud.updateHP(this.player.hp, this.player.maxHp);
@@ -1160,8 +1394,9 @@ export class ItemWorldScene extends Scene {
     const altarRng = new PRNG(this.item.uid * 50000 + this.currentRow * 100 + this.currentCol * 10);
     if (altarRng.next() >= 0.25) return; // 25% chance
 
-    const altarX = (this.roomW / 2 + 4) * TILE_SIZE;
-    const altarY = (this.roomH - 4) * TILE_SIZE;
+    // Global pixel coordinates: room origin + room-local altar position (32×32 tile room)
+    const altarX = this.currentCol * 512 + (16 + 4) * TILE_SIZE;
+    const altarY = this.currentRow * 512 + (32 - 4) * TILE_SIZE;
     this.altarTrigger = { x: altarX, y: altarY, width: 2 * TILE_SIZE, height: 3 * TILE_SIZE };
 
     this.altarVisual = new Graphics();
@@ -1232,7 +1467,13 @@ export class ItemWorldScene extends Scene {
     if (this.transitionState === 'fade_out') {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
-        this.loadRoom(this.pendingDirection!);
+        // Rebuild full map for the new stratum, then reposition player at start cell
+        this.buildFullMap();
+        this.player.x = this.currentCol * 512 + 256;
+        this.player.y = this.currentRow * 512 + 400;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.savePrevPosition();
         this.transitionState = 'fade_in';
         this.transitionTimer = FADE_DURATION;
         this.fadeOverlay.alpha = 1;
