@@ -787,9 +787,7 @@ export class LdtkWorldScene extends Scene {
       }
       return;
     }
-
-    // Fallback: random spawning (no Enemy_Spawn entities in this level)
-    this.spawnEnemiesRandom(level);
+    // No fallback — only LDtk-placed enemies spawn in the world
   }
 
   private spawnEnemiesRandom(level: LdtkLevel): void {
@@ -934,16 +932,7 @@ export class LdtkWorldScene extends Scene {
       }
       return;
     }
-
-    // Fallback: 30% chance random altar
-    if (this.altars.length > 0) return;
-    if (Math.random() > 0.3) return;
-    const midTileX = Math.floor(level.gridW / 2);
-    const altarX = level.pxWid / 2 + (Math.random() - 0.5) * 6 * TILE_SIZE;
-    const altarY = this.findFloorY(level.collisionGrid, midTileX, TILE_SIZE);
-    const altar = new Altar(altarX, altarY);
-    this.altars.push(altar);
-    this.entityLayer.addChild(altar.container);
+    // No fallback — only LDtk-placed altars in the world
   }
 
   // ---------------------------------------------------------------------------
