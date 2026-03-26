@@ -229,8 +229,8 @@ export class ItemWorldScene extends Scene {
     this.container.addChild(this.fadeOverlay);
 
     // Minimap
+    // Minimap disabled for Item World full-map mode
     this.miniMapContainer = new Container();
-    this.game.app.stage.addChild(this.miniMapContainer);
 
     // HUD
     this.hud = new HUD();
