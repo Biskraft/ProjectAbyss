@@ -573,7 +573,7 @@ export class LdtkWorldScene extends Scene {
     // the player was in the previous room.
     // Spawn 3 tiles inward from the edge to avoid immediately re-triggering
     // the transition back to the previous room.
-    const INSET = 3 * TILE_SIZE;
+    const INSET = 2 * TILE_SIZE;
 
     switch (enterFrom) {
       case 'left': {
