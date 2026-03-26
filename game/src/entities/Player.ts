@@ -1,7 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isSolid } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG } from '@combat/CombatData';
 import type { CombatEntity } from '@combat/HitManager';
@@ -20,6 +20,13 @@ const DASH_DURATION = 150;        // ms
 const DASH_GROUND_DELAY = 500;    // ms (ground dash recharge)
 const ATTACK_MOVE_MULT = 0.8;     // 80% speed during attack
 const BARE_HAND_ATK = 5;
+
+// Wall Jump / Wall Slide (GDD System_3C_Character.md)
+const WALL_SLIDE_SPEED = 60;         // px/s (slow descent on wall)
+const WALL_JUMP_VX = 180;            // px/s horizontal kick-off
+const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 64); // ~80% of normal jump
+const WALL_JUMP_COOLDOWN = 200;      // ms before next wall interaction
+const WALL_CHECK_DIST = 2;           // px to check for wall adjacency
 
 // Derived: jump velocity from v² = 2*g*h => v = sqrt(2*g*h)
 const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upward
@@ -51,6 +58,17 @@ export class Player extends Entity implements CombatEntity {
   // Drop-through one-way platforms (down + jump)
   dropThroughTimer = 0;
   private static readonly DROP_THROUGH_MS = 150;
+
+  // Abilities (unlocked by relic pickups)
+  abilities = {
+    wallJump: false,
+    doubleJump: false,
+  };
+
+  // Wall slide / wall jump
+  private touchingWallDir = 0;      // -1 left wall, +1 right wall, 0 none
+  private wallSliding = false;
+  private wallJumpCooldown = 0;     // ms remaining
 
   // Physics
   private grounded = false;
@@ -189,8 +207,18 @@ export class Player extends Entity implements CombatEntity {
       // Down + Jump = drop through one-way platform
       if (this.grounded && this.game.input.isDown(GameAction.LOOK_DOWN)) {
         this.dropThroughTimer = Player.DROP_THROUGH_MS;
-        this.y += 2; // nudge below platform surface
+        this.y += 2;
         this.grounded = false;
+      }
+      // Wall Jump: touching wall + jump → kick off opposite direction
+      else if (this.wallSliding && this.touchingWallDir !== 0) {
+        this.vx = -this.touchingWallDir * WALL_JUMP_VX;
+        this.vy = WALL_JUMP_VY;
+        this.facingRight = this.touchingWallDir < 0; // face away from wall
+        this.wallJumpCooldown = WALL_JUMP_COOLDOWN;
+        this.wallSliding = false;
+        this.touchingWallDir = 0;
+        this.fsm.transition('jump');
       } else {
         this.jumpBufferTimer = JUMP_BUFFER;
       }
@@ -272,6 +300,31 @@ export class Player extends Entity implements CombatEntity {
     if (ry.collided) {
       if (this.vy > 0) this.vy = 0;
       if (this.vy < 0) this.vy = 0;
+    }
+
+    // Wall detection (for wall slide/jump) — check tiles adjacent to player sides
+    this.touchingWallDir = 0;
+    this.wallSliding = false;
+    if (this.wallJumpCooldown > 0) this.wallJumpCooldown -= dt;
+    if (!this.grounded && this.abilities.wallJump && this.wallJumpCooldown <= 0) {
+      const TILE = 16;
+      const midRow = Math.floor((this.y + colOffY + this.collisionH / 2) / TILE);
+      const leftCol = Math.floor((this.x + colOffX - WALL_CHECK_DIST) / TILE);
+      const rightCol = Math.floor((this.x + colOffX + this.collisionW + WALL_CHECK_DIST) / TILE);
+      const leftSolid = isSolid(this.roomData[midRow]?.[leftCol] ?? 1);
+      const rightSolid = isSolid(this.roomData[midRow]?.[rightCol] ?? 1);
+
+      if (leftSolid && this.game.input.isDown(GameAction.MOVE_LEFT)) {
+        this.touchingWallDir = -1;
+      } else if (rightSolid && this.game.input.isDown(GameAction.MOVE_RIGHT)) {
+        this.touchingWallDir = 1;
+      }
+
+      // Wall slide: slow descent when touching wall and falling
+      if (this.touchingWallDir !== 0 && this.vy > 0) {
+        this.vy = WALL_SLIDE_SPEED;
+        this.wallSliding = true;
+      }
     }
 
     // State transitions based on grounded

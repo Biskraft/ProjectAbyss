@@ -127,6 +127,8 @@ export class LdtkWorldScene extends Scene {
 
   // Cleared level tracking
   private clearedLevels: Set<string> = new Set();
+  private collectedRelics: Set<string> = new Set();
+  private relicMarkers: Graphics[] = [];
 
   constructor(game: Game) {
     super(game);
@@ -419,6 +421,29 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
+    // Ability Relic pickups
+    for (let i = this.relicMarkers.length - 1; i >= 0; i--) {
+      const relic = this.relicMarkers[i];
+      const dx = Math.abs((this.player.x + this.player.width / 2) - relic.x);
+      const dy = Math.abs((this.player.y + this.player.height / 2) - relic.y);
+      if (dx < 16 && dy < 16) {
+        const abilityName = (relic as any)._abilityName as string;
+        const relicKey = (relic as any)._relicKey as string;
+        this.collectedRelics.add(relicKey);
+        if (abilityName === 'wallJump') {
+          this.player.abilities.wallJump = true;
+          this.toast.show('Wall Jump unlocked!', 0xffd700);
+        } else if (abilityName === 'doubleJump') {
+          this.player.abilities.doubleJump = true;
+          this.toast.show('Double Jump unlocked!', 0xffd700);
+        }
+        this.game.hitstopFrames = 8;
+        this.game.camera.shake(3);
+        if (relic.parent) relic.parent.removeChild(relic);
+        this.relicMarkers.splice(i, 1);
+      }
+    }
+
     // Item pickups
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i];
@@ -543,6 +568,8 @@ export class LdtkWorldScene extends Scene {
     this.clearDrops();
     this.clearPortals();
     this.clearAltars();
+    for (const r of this.relicMarkers) { if (r.parent) r.parent.removeChild(r); }
+    this.relicMarkers = [];
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
@@ -855,6 +882,24 @@ export class LdtkWorldScene extends Scene {
           marker.x = ent.px[0];
           marker.y = ent.px[1];
           this.entityLayer.addChild(marker);
+          break;
+        }
+        case 'AbilityRelic': {
+          // Ability pickup — golden glowing marker
+          const abilityName = ent.fields['ability'] as string ?? 'wallJump';
+          const relicKey = `relic_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+          if (!this.collectedRelics.has(relicKey)) {
+            const relic = new Graphics();
+            relic.circle(0, 0, 8).fill({ color: 0xffd700, alpha: 0.8 });
+            relic.circle(0, 0, 5).fill({ color: 0xffffff, alpha: 0.6 });
+            relic.x = ent.px[0];
+            relic.y = ent.px[1];
+            (relic as any)._abilityName = abilityName;
+            (relic as any)._relicKey = relicKey;
+            (relic as any)._isRelic = true;
+            this.entityLayer.addChild(relic);
+            this.relicMarkers.push(relic);
+          }
           break;
         }
         case 'SecretArea': {
