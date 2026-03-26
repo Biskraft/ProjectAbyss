@@ -883,7 +883,7 @@ export class LdtkWorldScene extends Scene {
 
     if (altarEnts.length > 0) {
       for (const ent of altarEnts) {
-        const altar = new Altar(ent.px[0], ent.px[1] - 24); // pivot bottom
+        const altar = new Altar(ent.px[0], ent.px[1]);
         this.altars.push(altar);
         this.entityLayer.addChild(altar.container);
       }
