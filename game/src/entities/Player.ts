@@ -208,11 +208,14 @@ export class Player extends Entity implements CombatEntity {
 
     // Jump buffer: register press
     if (this.game.input.isJustPressed(GameAction.JUMP)) {
-      // Down + Jump = drop through one-way platform
+      // Down + Jump = drop through one-way platform (no jump)
       if (this.grounded && this.game.input.isDown(GameAction.LOOK_DOWN)) {
         this.dropThroughTimer = Player.DROP_THROUGH_MS;
         this.y += 2;
         this.grounded = false;
+        this.coyoteTimer = 0;       // prevent coyote jump after drop
+        this.jumpBufferTimer = 0;   // consume the input — don't also jump
+        return;                     // skip all other jump/attack processing this frame
       }
       // Wall Jump: touching wall + jump → kick off opposite direction
       else if (this.wallSliding && this.touchingWallDir !== 0) {
