@@ -532,24 +532,23 @@ export class ItemWorldScene extends Scene {
     const T = TILE_SIZE;
 
     const sealContainer = new Container();
-    if (this.atlas) {
-      // Stone wall tiles from SunnyLand atlas
-      const src = this.atlas.source;
-      const tex1 = new PixiTexture({ source: src, frame: new Rectangle(192, 176, T, T) });
-      const tex2 = new PixiTexture({ source: src, frame: new Rectangle(208, 176, T, T) });
-      for (const [c, r] of changed) {
-        const s = new Sprite((c + r) % 2 === 0 ? tex1 : tex2); // checkerboard variety
-        s.x = c * T;
-        s.y = r * T;
-        sealContainer.addChild(s);
-      }
-    } else {
-      const gfx = new Graphics();
-      for (const [c, r] of changed) {
-        gfx.rect(c * T, r * T, T, T).fill(0x555566);
-      }
-      sealContainer.addChild(gfx);
+    const gfx = new Graphics();
+    for (const [c, r] of changed) {
+      const x = c * T;
+      const y = r * T;
+      // Stone wall base
+      gfx.rect(x, y, T, T).fill(0x3a3a4a);
+      // Brick lines (horizontal)
+      gfx.rect(x, y + 5, T, 1).fill(0x2a2a3a);
+      gfx.rect(x, y + 11, T, 1).fill(0x2a2a3a);
+      // Brick lines (vertical, offset per row)
+      const vOff = (r % 2 === 0) ? 4 : 12;
+      gfx.rect(x + vOff, y, 1, 5).fill(0x2a2a3a);
+      gfx.rect(x + vOff + 8, y + 6, 1, 5).fill(0x2a2a3a);
+      // Highlight
+      gfx.rect(x + 1, y + 1, 2, 1).fill(0x4a4a5a);
     }
+    sealContainer.addChild(gfx);
 
     console.log(`[ItemWorld] Seal: ${changed.length} tiles, container.children=${this.container.children.length}, sealContainer.children=${sealContainer.children.length}`);
     this.sealGfx = sealContainer;
