@@ -492,25 +492,38 @@ export class ItemWorldScene extends Scene {
     if (!cell || cell.cleared) return;
 
     const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
+    const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localRow = row - stratumStart;
     const offX = col * 512;
-    const offY = row * 512;
-    const floorY = offY + (32 - 3) * TILE_SIZE;
+    const offY = localRow * 512;
 
     const dist = Math.abs(col - this.unifiedGrid.startRoom.col)
                + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
     const count = 2 + Math.floor(dist * 0.5) + stratumDef.enemyCountBonus;
     const distScale = 1 + dist * 0.1;
 
+    /** Find floor Y at a given world pixel X using fullGrid collision */
+    const findFloor = (worldX: number, entityH: number): number => {
+      const tileCol = Math.floor(worldX / TILE_SIZE);
+      const startTileRow = Math.floor(offY / TILE_SIZE);
+      const endTileRow = startTileRow + 32;
+      for (let tr = endTileRow - 1; tr >= startTileRow; tr--) {
+        if (this.fullGrid[tr]?.[tileCol] >= 1) {
+          return tr * TILE_SIZE - entityH;
+        }
+      }
+      return offY + 28 * TILE_SIZE - entityH; // fallback
+    };
+
     const isEndRoom = this.isStratumEndRoom(col, row);
     if (isEndRoom) {
-      // Spawn boss
       const boss = new Skeleton();
       boss.hp = boss.maxHp = stratumDef.bossHp;
       boss.atk = stratumDef.bossAtk;
       const visualScale = 1.5 + (cell.stratumIndex ?? 0) * 0.2;
       boss.container.scale.set(visualScale);
       boss.x = offX + 256;
-      boss.y = floorY - boss.height * visualScale;
+      boss.y = findFloor(offX + 256, boss.height * visualScale);
       boss.roomData = this.fullGrid;
       boss.target = this.player;
       this.enemies.push(boss);
@@ -524,8 +537,9 @@ export class ItemWorldScene extends Scene {
       const enemy = isGhost ? new Ghost() : new Skeleton();
       enemy.hp = enemy.maxHp = Math.floor(stratumDef.enemyHp * distScale);
       enemy.atk = Math.floor(stratumDef.enemyAtk * distScale);
-      enemy.x = offX + spawnRng.nextInt(64, 448);
-      enemy.y = floorY - enemy.height;
+      const ex = offX + spawnRng.nextInt(64, 448);
+      enemy.x = ex;
+      enemy.y = findFloor(ex, enemy.height);
       enemy.roomData = this.fullGrid;
       enemy.target = this.player;
       this.enemies.push(enemy);
