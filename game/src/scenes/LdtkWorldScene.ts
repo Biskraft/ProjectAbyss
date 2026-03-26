@@ -164,10 +164,11 @@ export class LdtkWorldScene extends Scene {
     this.entityLayer.addChild(this.player.container);
     this.updatePlayerAtk();
 
-    // Fade overlay — will be sized per level in loadLevel()
+    // Fade overlay — on stage (camera-independent) so it always covers the full screen
     this.fadeOverlay = new Graphics();
+    this.fadeOverlay.rect(0, 0, 480, 270).fill(0x000000);
     this.fadeOverlay.alpha = 0;
-    this.container.addChild(this.fadeOverlay);
+    this.game.app.stage.addChild(this.fadeOverlay);
 
     // HUD
     this.hud = new HUD();
@@ -485,6 +486,7 @@ export class LdtkWorldScene extends Scene {
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
     if (this.minimap?.parent) this.minimap.parent.removeChild(this.minimap);
+    if (this.fadeOverlay?.parent) this.fadeOverlay.parent.removeChild(this.fadeOverlay);
   }
 
   // ---------------------------------------------------------------------------
@@ -513,11 +515,6 @@ export class LdtkWorldScene extends Scene {
     // Collision grid — same format as WorldScene.roomData
     this.collisionGrid = level.collisionGrid;
 
-    // Resize fade overlay to match this level
-    this.fadeOverlay.clear();
-    this.fadeOverlay.rect(0, 0, level.pxWid, level.pxHei).fill(0x000000);
-    this.fadeOverlay.alpha = 0;
-
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
@@ -540,11 +537,11 @@ export class LdtkWorldScene extends Scene {
     // Process LDtk entities (Items, GameSaver, etc.)
     this.processLdtkEntities(level);
 
-    // Camera snap
-    this.game.camera.snap(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2,
-    );
+    // Camera: snap + set target to prevent lerp jitter on first frame
+    const camX = this.player.x + this.player.width / 2;
+    const camY = this.player.y + this.player.height / 2;
+    this.game.camera.target = { x: camX, y: camY };
+    this.game.camera.snap(camX, camY);
 
     // Update minimap
     this.drawMinimap();
