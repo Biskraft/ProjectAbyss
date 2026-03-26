@@ -357,33 +357,33 @@ export class ItemWorldScene extends Scene {
     }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
-    // Scan collision grid for actual passage position on the entry edge
-    const rW = this.roomW;
-    const rH = this.roomH;
+    // Use player's previous tile position as hint for finding the closest passage
+    const prevTileRow = Math.floor(this.player.y / TILE_SIZE);
+    const prevTileCol = Math.floor(this.player.x / TILE_SIZE);
     const grid = this.roomData;
+    const rW = this.roomW;
     let spawnX: number, spawnY: number;
     switch (spawnSide) {
       case 'left': {
-        // Find open row on left edge (col 0), spawn 2 tiles inward
-        const passageRow = this.findEdgeOpen(grid, 'left');
+        const passageRow = this.findEdgeOpen(grid, 'left', prevTileRow);
         spawnX = 2 * TILE_SIZE;
         spawnY = passageRow * TILE_SIZE;
         break;
       }
       case 'right': {
-        const passageRow = this.findEdgeOpen(grid, 'right');
+        const passageRow = this.findEdgeOpen(grid, 'right', prevTileRow);
         spawnX = (rW - 3) * TILE_SIZE;
         spawnY = passageRow * TILE_SIZE;
         break;
       }
       case 'up': {
-        const passageCol = this.findEdgeOpen(grid, 'up');
+        const passageCol = this.findEdgeOpen(grid, 'up', prevTileCol);
         spawnX = passageCol * TILE_SIZE;
         spawnY = 2 * TILE_SIZE;
         break;
       }
       case 'down': default: {
-        const passageCol = this.findEdgeOpen(grid, 'down');
+        const passageCol = this.findEdgeOpen(grid, 'down', prevTileCol);
         spawnX = passageCol * TILE_SIZE;
         spawnY = this.findFloorY(passageCol);
         break;
@@ -538,24 +538,41 @@ export class ItemWorldScene extends Scene {
     console.log(`[ItemWorld] Sealed ${changed.length} tiles`);
   }
 
-  /** Find the first open tile (0) on a room edge. Returns row for L/R, col for U/D. */
-  private findEdgeOpen(grid: number[][], edge: 'left'|'right'|'up'|'down'): number {
+  /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
+  private findEdgeOpen(grid: number[][], edge: 'left'|'right'|'up'|'down', hint = -1): number {
     const h = grid.length;
     const w = grid[0]?.length ?? 0;
+    const openTiles: number[] = [];
+
     switch (edge) {
       case 'left':
-        for (let r = 0; r < h; r++) if (grid[r][0] === 0) return r;
-        return Math.floor(h / 2);
+        for (let r = 0; r < h; r++) if (grid[r][0] === 0) openTiles.push(r);
+        break;
       case 'right':
-        for (let r = 0; r < h; r++) if (grid[r][w - 1] === 0) return r;
-        return Math.floor(h / 2);
+        for (let r = 0; r < h; r++) if (grid[r][w - 1] === 0) openTiles.push(r);
+        break;
       case 'up':
-        for (let c = 0; c < w; c++) if (grid[0][c] === 0) return c;
-        return Math.floor(w / 2);
+        for (let c = 0; c < w; c++) if (grid[0][c] === 0) openTiles.push(c);
+        break;
       case 'down':
-        for (let c = 0; c < w; c++) if (grid[h - 1][c] === 0) return c;
-        return Math.floor(w / 2);
+        for (let c = 0; c < w; c++) if (grid[h - 1][c] === 0) openTiles.push(c);
+        break;
     }
+
+    if (openTiles.length === 0) {
+      const len = (edge === 'left' || edge === 'right') ? h : w;
+      return Math.floor(len / 2);
+    }
+
+    // Pick closest to hint (player's previous position)
+    if (hint >= 0) {
+      let best = openTiles[0];
+      for (const t of openTiles) if (Math.abs(t - hint) < Math.abs(best - hint)) best = t;
+      return best;
+    }
+
+    // No hint: pick middle of open range
+    return openTiles[Math.floor(openTiles.length / 2)];
   }
 
   /** Find floor Y in current room at given tile column */
