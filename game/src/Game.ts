@@ -9,7 +9,7 @@ import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
 
 export const GAME_WIDTH = 480;
-export const GAME_HEIGHT = 270;
+export const GAME_HEIGHT = 256;
 const FIXED_STEP = 1000 / 60; // 16.6667ms
 const MAX_ACCUMULATED = FIXED_STEP * 5;
 
