@@ -571,23 +571,27 @@ export class LdtkWorldScene extends Scene {
 
     // GridVania: find the closest open passage on the entry edge to where
     // the player was in the previous room.
+    // Spawn 3 tiles inward from the edge to avoid immediately re-triggering
+    // the transition back to the previous room.
+    const INSET = 3 * TILE_SIZE;
+
     switch (enterFrom) {
       case 'left': {
         const passageY = this.findEdgePassage(grid, 'left', hintRow);
-        spawnX = 1 * TILE_SIZE;
+        spawnX = INSET;
         spawnY = passageY * TILE_SIZE;
         break;
       }
       case 'right': {
         const passageY = this.findEdgePassage(grid, 'right', hintRow);
-        spawnX = (level.gridW - 2) * TILE_SIZE;
+        spawnX = level.pxWid - INSET - pw;
         spawnY = passageY * TILE_SIZE;
         break;
       }
       case 'up': {
         const passageX = this.findEdgePassage(grid, 'up', hintCol);
         spawnX = passageX * TILE_SIZE;
-        spawnY = 1 * TILE_SIZE;
+        spawnY = INSET;
         break;
       }
       case 'down':
@@ -599,7 +603,7 @@ export class LdtkWorldScene extends Scene {
         } else {
           const passageX = this.findEdgePassage(grid, 'down', hintCol);
           spawnX = passageX * TILE_SIZE;
-          spawnY = (level.gridH - 2) * TILE_SIZE;
+          spawnY = level.pxHei - INSET - ph;
         }
         break;
       }
