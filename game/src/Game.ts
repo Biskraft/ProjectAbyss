@@ -100,16 +100,10 @@ export class Game {
     const h = window.innerHeight;
     const canvas = this.app.canvas;
 
-    // On touch devices, fill the screen (fractional scale allowed)
-    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (isMobile) {
-      const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
-      canvas.style.width = `${Math.floor(GAME_WIDTH * scale)}px`;
-      canvas.style.height = `${Math.floor(GAME_HEIGHT * scale)}px`;
-    } else {
-      const scale = Math.max(1, Math.floor(Math.min(w / GAME_WIDTH, h / GAME_HEIGHT)));
-      canvas.style.width = `${GAME_WIDTH * scale}px`;
-      canvas.style.height = `${GAME_HEIGHT * scale}px`;
-    }
+    // Fill the entire window while maintaining aspect ratio
+    const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    canvas.style.width = `${Math.floor(GAME_WIDTH * scale)}px`;
+    canvas.style.height = `${Math.floor(GAME_HEIGHT * scale)}px`;
+    canvas.style.imageRendering = 'pixelated';
   }
 }
