@@ -21,7 +21,7 @@
 | 기능 ID       | 분류   | 기능명 (Feature Name)                   | 우선순위 | 구현 상태  | 비고 (Notes)                    |
 | :------------ | :----- | :-------------------------------------- | :------: | :--------- | :------------------------------ |
 | IWF-01-A      | 시스템 | 시드 기반 지층 생성 파이프라인          |    P1    | ✅ 구현    | StrataConfig + PRNG 기반        |
-| IWF-02-A      | 시스템 | 지층별 Room Grid 레이아웃 생성         |    P1    | ✅ 구현    | 3x3 ~ 5x5 레어리티별           |
+| IWF-02-A      | 시스템 | 지층별 Room Grid 레이아웃 생성         |    P1    | ✅ 구현    | 4×4 고정, 통합 수직 연결        |
 | IWF-03-A      | 시스템 | Critical Path 알고리즘                  |    P1    | ✅ 구현    | 입구 → 출구 경로 보장           |
 | IWF-04-A      | 시스템 | Chunk 조립 시스템                       |    P1    | ✅ 구현    | ChunkAssembler 재사용           |
 | IWF-05-A      | 시스템 | 적 배치 및 지층별 난이도 스케일링      |    P1    | ✅ 구현    | StratumDef 기반 HP/ATK 배율    |
@@ -439,25 +439,28 @@ interface ItemWorldProgress {
 
 ```yaml
 strata_by_rarity:
-  normal:
-    - { grid: 3x3, enemyHp: 1.0, enemyAtk: 1.0, bonus: +0, bossHp: 4x, bossAtk: 2x, exp: 1.0x }
-    - { grid: 4x4, enemyHp: 1.5, enemyAtk: 1.3, bonus: +1, bossHp: 6x, bossAtk: 2.5x, exp: 1.5x }
-  magic:
-    - { grid: 3x3, enemyHp: 1.0, enemyAtk: 1.0, bonus: +0, bossHp: 4x, bossAtk: 2x, exp: 1.0x }
-    - { grid: 4x4, enemyHp: 1.6, enemyAtk: 1.4, bonus: +1, bossHp: 6x, bossAtk: 2.5x, exp: 1.5x }
-    - { grid: 4x4, enemyHp: 2.2, enemyAtk: 1.8, bonus: +1, bossHp: 8x, bossAtk: 3x, exp: 2.0x }
-  rare:
-    - { grid: 3x3, enemyHp: 1.0, enemyAtk: 1.0, bonus: +0, bossHp: 4x, bossAtk: 2x, exp: 1.0x }
-    - { grid: 4x4, enemyHp: 1.6, enemyAtk: 1.4, bonus: +1, bossHp: 6x, bossAtk: 2.5x, exp: 1.5x }
-    - { grid: 5x5, enemyHp: 2.5, enemyAtk: 2.0, bonus: +2, bossHp: 10x, bossAtk: 3.5x, exp: 2.5x }
-  legendary:
-    - { grid: 3x3, enemyHp: 1.0, enemyAtk: 1.0, bonus: +0, bossHp: 4x, bossAtk: 2x, exp: 1.0x }
-    - { grid: 4x4, enemyHp: 1.6, enemyAtk: 1.4, bonus: +1, bossHp: 6x, bossAtk: 2.5x, exp: 1.5x }
-    - { grid: 5x5, enemyHp: 2.5, enemyAtk: 2.0, bonus: +2, bossHp: 10x, bossAtk: 3.5x, exp: 2.5x }
-    - { grid: 5x5, enemyHp: 3.5, enemyAtk: 2.8, bonus: +3, bossHp: 14x, bossAtk: 4.5x, exp: 3.5x }
-  ancient:
-    - (legendary와 동일 4지층)
-    - Phase 2: 심연 (Abyss) 추가
+  normal:   # 2지층, 4×4 고정
+    - { grid: 4x4, enemyHp: 40, enemyAtk: 8,  bonus: +0, bossHp: 160, bossAtk: 16, exp: 1.0x }
+    - { grid: 4x4, enemyHp: 50, enemyAtk: 10, bonus: +1, bossHp: 200, bossAtk: 20, exp: 1.5x }
+  magic:    # 3지층, 4×4 고정
+    - { grid: 4x4, enemyHp: 60,  enemyAtk: 12, bonus: +0, bossHp: 240, bossAtk: 24, exp: 1.0x }
+    - { grid: 4x4, enemyHp: 75,  enemyAtk: 15, bonus: +1, bossHp: 300, bossAtk: 30, exp: 1.5x }
+    - { grid: 4x4, enemyHp: 90,  enemyAtk: 18, bonus: +1, bossHp: 360, bossAtk: 36, exp: 2.0x }
+  rare:     # 3지층, 4×4 고정
+    - { grid: 4x4, enemyHp: 90,  enemyAtk: 18, bonus: +0, bossHp: 360, bossAtk: 36, exp: 1.0x }
+    - { grid: 4x4, enemyHp: 110, enemyAtk: 22, bonus: +1, bossHp: 440, bossAtk: 44, exp: 1.5x }
+    - { grid: 4x4, enemyHp: 130, enemyAtk: 25, bonus: +2, bossHp: 520, bossAtk: 50, exp: 2.5x }
+  legendary: # 4지층, 4×4 고정
+    - { grid: 4x4, enemyHp: 130, enemyAtk: 25, bonus: +0, bossHp: 520, bossAtk: 50, exp: 1.0x }
+    - { grid: 4x4, enemyHp: 155, enemyAtk: 30, bonus: +1, bossHp: 620, bossAtk: 60, exp: 1.5x }
+    - { grid: 4x4, enemyHp: 180, enemyAtk: 35, bonus: +2, bossHp: 720, bossAtk: 70, exp: 2.5x }
+    - { grid: 4x4, enemyHp: 220, enemyAtk: 42, bonus: +3, bossHp: 880, bossAtk: 84, exp: 3.5x }
+  ancient:  # 4지층 + 심연, 4×4 고정
+    - { grid: 4x4, enemyHp: 180, enemyAtk: 35, bonus: +0, bossHp: 720,  bossAtk: 70,  exp: 1.0x }
+    - { grid: 4x4, enemyHp: 220, enemyAtk: 42, bonus: +1, bossHp: 880,  bossAtk: 84,  exp: 1.5x }
+    - { grid: 4x4, enemyHp: 270, enemyAtk: 50, bonus: +2, bossHp: 1080, bossAtk: 100, exp: 2.5x }
+    - { grid: 4x4, enemyHp: 330, enemyAtk: 60, bonus: +3, bossHp: 1320, bossAtk: 120, exp: 3.5x }
+    # Phase 2: 심연 (Abyss) 추가
 ```
 
 ### 4.2. EXP 기본값 (Base EXP Values)
