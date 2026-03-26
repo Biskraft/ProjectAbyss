@@ -305,6 +305,10 @@ export class ItemWorldScene extends Scene {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
 
+    // Clear previous seal BEFORE creating new one
+    if (this.sealGfx?.parent) this.sealGfx.parent.removeChild(this.sealGfx);
+    this.sealGfx = null;
+
     // Pick room: LDtk template → code template → ChunkAssembler fallback
     const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
     this.currentLdtkLevel = ldtkLevel;
@@ -378,8 +382,7 @@ export class ItemWorldScene extends Scene {
     this.doorTriggers = this.buildDoorTriggers(cell);
     this.clearEnemies();
     this.clearEscapeAltar();
-    if (this.sealGfx?.parent) this.sealGfx.parent.removeChild(this.sealGfx);
-    this.sealGfx = null;
+    // Note: sealGfx is cleared at TOP of loadRoom before sealUnusedExits creates new one
 
     if (!cell.cleared) {
       this.spawnEnemies();
