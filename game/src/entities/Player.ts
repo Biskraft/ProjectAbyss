@@ -41,6 +41,10 @@ export class Player extends Entity implements CombatEntity {
   def = 5;                   // VIT(10) * 0.5
   facingRight = true;
 
+  // Collision box (70% of visual size)
+  collisionW = 9;
+  collisionH = 16;
+
   // Physics
   private grounded = false;
 
@@ -80,6 +84,10 @@ export class Player extends Entity implements CombatEntity {
     this.game = game;
     this.width = 14;
     this.height = 24;
+
+    // Collision box is 70% of visual size (tighter feel in tile-based levels)
+    this.collisionW = Math.floor(this.width * 0.7);   // 9px
+    this.collisionH = Math.floor(this.height * 0.7);  // 16px
 
     // Placeholder sprite
     this.sprite = new Graphics();
@@ -226,16 +234,18 @@ export class Player extends Entity implements CombatEntity {
       if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
     }
 
-    // Move & collide
+    // Move & collide using smaller collision box (70% of visual)
     const moveX = this.vx * dtSec;
     const moveY = this.vy * dtSec;
+    const colOffX = (this.width - this.collisionW) / 2;   // center horizontally
+    const colOffY = this.height - this.collisionH;         // anchor at feet
 
-    const rx = resolveX(this.x, this.y, this.width, this.height, moveX, this.roomData);
-    this.x = rx.x;
+    const rx = resolveX(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveX, this.roomData);
+    this.x = rx.x - colOffX;
     if (rx.collided) this.vx = 0;
 
-    const ry = resolveY(this.x, this.y, this.width, this.height, moveY, this.roomData);
-    this.y = ry.y;
+    const ry = resolveY(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData);
+    this.y = ry.y - colOffY;
     this.grounded = ry.grounded;
     if (ry.collided) {
       if (this.vy > 0) this.vy = 0;
