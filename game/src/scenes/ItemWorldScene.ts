@@ -551,7 +551,7 @@ export class ItemWorldScene extends Scene {
     }
 
     this.sealGfx = gfx;
-    this.entityLayer.addChild(gfx);
+    this.container.addChild(gfx); // top of scene container (above everything)
   }
 
   /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
