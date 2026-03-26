@@ -48,6 +48,10 @@ export class Player extends Entity implements CombatEntity {
   // Water
   inWater = false;
 
+  // Drop-through one-way platforms (down + jump)
+  dropThroughTimer = 0;
+  private static readonly DROP_THROUGH_MS = 150;
+
   // Physics
   private grounded = false;
 
@@ -182,8 +186,18 @@ export class Player extends Entity implements CombatEntity {
 
     // Jump buffer: register press
     if (this.game.input.isJustPressed(GameAction.JUMP)) {
-      this.jumpBufferTimer = JUMP_BUFFER;
+      // Down + Jump = drop through one-way platform
+      if (this.grounded && this.game.input.isDown(GameAction.LOOK_DOWN)) {
+        this.dropThroughTimer = Player.DROP_THROUGH_MS;
+        this.y += 2; // nudge below platform surface
+        this.grounded = false;
+      } else {
+        this.jumpBufferTimer = JUMP_BUFFER;
+      }
     }
+
+    // Tick drop-through timer
+    if (this.dropThroughTimer > 0) this.dropThroughTimer -= dt;
 
     const state = this.fsm.currentState;
 
@@ -252,7 +266,7 @@ export class Player extends Entity implements CombatEntity {
     this.x = rx.x - colOffX;
     if (rx.collided) this.vx = 0;
 
-    const ry = resolveY(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData);
+    const ry = resolveY(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData, this.dropThroughTimer > 0);
     this.y = ry.y - colOffY;
     this.grounded = ry.grounded;
     if (ry.collided) {

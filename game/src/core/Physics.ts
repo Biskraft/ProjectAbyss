@@ -81,7 +81,7 @@ export function resolveX(
  */
 export function resolveY(
   x: number, y: number, width: number, height: number,
-  vy: number, roomData: number[][]
+  vy: number, roomData: number[][], ignoreOneWay = false
 ): { y: number; grounded: boolean; collided: boolean } {
   if (vy === 0) return { y, grounded: false, collided: false };
 
@@ -105,7 +105,7 @@ export function resolveY(
     }
 
     // One-way: only collide when falling and feet were above the platform
-    if (isOneWay(tile) && vy > 0) {
+    if (isOneWay(tile) && vy > 0 && !ignoreOneWay) {
       const platformTop = checkRow * TILE_SIZE;
       const feetBefore = y + height;
       if (feetBefore <= platformTop + 1) {
