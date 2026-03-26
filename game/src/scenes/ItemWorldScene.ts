@@ -48,6 +48,8 @@ export class ItemWorldScene extends Scene {
   private ldtkLoader: LdtkLoader | null = null;
   private ldtkRenderer: LdtkRenderer | null = null;
   private ldtkTemplates: LdtkLevel[] = [];
+  private outsideRenderer: LdtkRenderer | null = null;
+  private outsideLevel: LdtkLevel | null = null;
   private player!: Player;
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -141,6 +143,21 @@ export class ItemWorldScene extends Scene {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
     }
 
+    // Load outside frame
+    try {
+      const outsideJson = await fetch('assets/World_ProjectAbyss_ItemStratum_Outside.ldtk').then(r => r.json());
+      const outsideLoader = new LdtkLoader();
+      outsideLoader.load(outsideJson);
+      const ids = outsideLoader.getLevelIds();
+      if (ids.length > 0) {
+        this.outsideLevel = outsideLoader.getLevel(ids[0])!;
+        this.outsideRenderer = new LdtkRenderer();
+        console.log(`[ItemWorld] Loaded outside frame: ${this.outsideLevel.pxWid}x${this.outsideLevel.pxHei}`);
+      }
+    } catch (e) {
+      console.warn('[ItemWorld] Outside frame not found');
+    }
+
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
     this.progress = getOrCreateWorldProgress(this.item);
@@ -182,8 +199,28 @@ export class ItemWorldScene extends Scene {
     this.tilemap.setTheme(this.currentStratumDef.theme);
     this.container.addChild(this.tilemap.container);
 
-    // Entity layer
+    // Outside frame (rendered behind everything, fixed position)
+    if (this.outsideRenderer && this.outsideLevel && this.atlas) {
+      this.outsideRenderer.renderLevel(
+        this.outsideLevel.backgroundTiles,
+        this.outsideLevel.wallTiles,
+        this.outsideLevel.shadowTiles,
+        this.atlas,
+      );
+      this.container.addChildAt(this.outsideRenderer.container, 0);
+      console.log(`[ItemWorld] Outside frame rendered`);
+    }
+
+    // Room offset: center the 4×4 grid inside the outside frame
+    // Outside = 2560px, Grid = 4×512 = 2048px, offset = (2560-2048)/2 = 256
+    const outsideSize = this.outsideLevel?.pxWid ?? 0;
+    const gridSize = 4 * 512; // 4×4 rooms of 512px each
+    const roomOffset = outsideSize > 0 ? Math.floor((outsideSize - gridSize) / 2) : 0;
+
+    // Entity layer (offset to align with room grid inside frame)
     this.entityLayer = new Container();
+    this.entityLayer.x = roomOffset;
+    this.entityLayer.y = roomOffset;
     this.container.addChild(this.entityLayer);
 
     // Player (clone stats from world player)
@@ -320,7 +357,9 @@ export class ItemWorldScene extends Scene {
       this.ldtkRenderer.clear();
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
       if (!this.ldtkRenderer.container.parent) {
-        this.container.addChildAt(this.ldtkRenderer.container, 0);
+        // Add after outside frame but before entity layer
+        const insertIdx = this.outsideRenderer ? 1 : 0;
+        this.container.addChildAt(this.ldtkRenderer.container, insertIdx);
       }
     } else {
       // Code template or ChunkAssembler fallback
@@ -339,6 +378,7 @@ export class ItemWorldScene extends Scene {
     this.player.roomData = this.roomData;
 
     // Update camera bounds for current room size (template rooms are 32×16, legacy 60×34)
+    // Camera bounds = single room (offset applied by entityLayer)
     this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE);
 
     // Update stratum context from cell
