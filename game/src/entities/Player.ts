@@ -224,9 +224,9 @@ export class Player extends Entity implements CombatEntity {
         this.touchingWallDir = 0;
         this.fsm.transition('jump');
       }
-      // Double Jump: in air + ability unlocked + not used yet
-      else if (!this.grounded && this.abilities.doubleJump && this.doubleJumpAvailable) {
-        this.vy = JUMP_VELOCITY * 0.85; // slightly weaker than ground jump
+      // Double Jump: in air + no coyote + ability unlocked + not used yet
+      else if (!this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
+        this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
         this.fsm.transition('jump');
       } else {
