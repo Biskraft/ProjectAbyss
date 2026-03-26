@@ -850,7 +850,11 @@ export class LdtkWorldScene extends Scene {
 
     if (direction === null) return;
 
-    const neighborId = this.getNeighborInDirection(direction);
+    // Pass player's world position so we pick the correct neighbor
+    // when multiple neighbors share the same edge (e.g. two rooms to the right)
+    const playerWorldX = this.currentLevel.worldX + px;
+    const playerWorldY = this.currentLevel.worldY + py;
+    const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
     if (neighborId) console.log(`[LDtk] Transition: ${direction} → ${neighborId}`);
     if (!neighborId) return;
 
@@ -874,28 +878,54 @@ export class LdtkWorldScene extends Scene {
    *   'n'=north(up), 's'=south(down), 'e'=east(right), 'w'=west(left)
    *   '>'=deeper depth, '<'=shallower depth
    */
-  private getNeighborInDirection(direction: 'left' | 'right' | 'up' | 'down'): string | null {
+  private getNeighborInDirection(
+    direction: 'left' | 'right' | 'up' | 'down',
+    playerWorldX: number,
+    playerWorldY: number,
+  ): string | null {
     const cur = this.currentLevel;
     const dirMap: Record<string, string> = { left: 'w', right: 'e', up: 'n', down: 's' };
     const ldtkDir = dirMap[direction];
+    const candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
 
-    // Primary: use LDtk's __neighbours directional data
-    const dirNbs = cur.dirNeighbors[ldtkDir];
-    if (dirNbs && dirNbs.length > 0) return dirNbs[0];
+    // Single candidate — return immediately
+    if (candidates.length === 1) return candidates[0];
 
-    // Fallback: geometric
+    // Multiple candidates — pick the one whose rect contains the player position
+    if (candidates.length > 1) {
+      for (const nId of candidates) {
+        const nb = this.loader.getLevel(nId);
+        if (!nb) continue;
+        if (direction === 'left' || direction === 'right') {
+          if (playerWorldY >= nb.worldY && playerWorldY < nb.worldY + nb.pxHei) return nId;
+        } else {
+          if (playerWorldX >= nb.worldX && playerWorldX < nb.worldX + nb.pxWid) return nId;
+        }
+      }
+      return candidates[0]; // fallback to first
+    }
+
+    // No dirNeighbors — geometric fallback with player position check
     const curRight = cur.worldX + cur.pxWid;
     const curBottom = cur.worldY + cur.pxHei;
+    const T = 4;
     for (const nId of cur.neighbors) {
       const nb = this.loader.getLevel(nId);
       if (!nb) continue;
       const nbR = nb.worldX + nb.pxWid;
       const nbB = nb.worldY + nb.pxHei;
-      const T = 4;
-      if (direction === 'right' && Math.abs(nb.worldX - curRight) <= T && cur.worldY < nbB && curBottom > nb.worldY) return nId;
-      if (direction === 'left' && Math.abs(nbR - cur.worldX) <= T && cur.worldY < nbB && curBottom > nb.worldY) return nId;
-      if (direction === 'down' && Math.abs(nb.worldY - curBottom) <= T && cur.worldX < nbR && curRight > nb.worldX) return nId;
-      if (direction === 'up' && Math.abs(nbB - cur.worldY) <= T && cur.worldX < nbR && curRight > nb.worldX) return nId;
+      let edge = false;
+      if (direction === 'right') edge = Math.abs(nb.worldX - curRight) <= T && cur.worldY < nbB && curBottom > nb.worldY;
+      if (direction === 'left')  edge = Math.abs(nbR - cur.worldX) <= T && cur.worldY < nbB && curBottom > nb.worldY;
+      if (direction === 'down')  edge = Math.abs(nb.worldY - curBottom) <= T && cur.worldX < nbR && curRight > nb.worldX;
+      if (direction === 'up')    edge = Math.abs(nbB - cur.worldY) <= T && cur.worldX < nbR && curRight > nb.worldX;
+      if (edge) {
+        if (direction === 'left' || direction === 'right') {
+          if (playerWorldY >= nb.worldY && playerWorldY < nb.worldY + nb.pxHei) return nId;
+        } else {
+          if (playerWorldX >= nb.worldX && playerWorldX < nb.worldX + nb.pxWid) return nId;
+        }
+      }
     }
     return null;
   }
