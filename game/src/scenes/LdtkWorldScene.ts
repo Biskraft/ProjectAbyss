@@ -979,6 +979,10 @@ export class LdtkWorldScene extends Scene {
           };
           const enterFrom = opposite[this.pendingDirection!] ?? 'down';
           this.loadLevel(this.pendingLevelId, enterFrom);
+          // Immediately sync prev positions so render(alpha) doesn't interpolate
+          // between old room coords and new room coords
+          this.player.savePrevPosition();
+          for (const e of this.enemies) e.savePrevPosition();
         }
         this.transitionState = 'fade_in';
         this.transitionTimer = FADE_DURATION;
@@ -991,6 +995,9 @@ export class LdtkWorldScene extends Scene {
         this.fadeOverlay.alpha = 0;
         this.pendingDirection = null;
         this.pendingLevelId = null;
+        // Sync all entity prev positions to prevent render interpolation jitter
+        this.player.savePrevPosition();
+        for (const e of this.enemies) e.savePrevPosition();
       }
     }
   }
