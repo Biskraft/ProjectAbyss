@@ -354,15 +354,37 @@ export class ItemWorldScene extends Scene {
     }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
-    // Template-aware spawn position
+    // Scan collision grid for actual passage position on the entry edge
     const rW = this.roomW;
     const rH = this.roomH;
+    const grid = this.roomData;
     let spawnX: number, spawnY: number;
     switch (spawnSide) {
-      case 'left':  spawnX = 2 * TILE_SIZE; spawnY = this.findFloorY(2); break;
-      case 'right': spawnX = (rW - 3) * TILE_SIZE; spawnY = this.findFloorY(rW - 3); break;
-      case 'up':    spawnX = Math.floor(rW / 2) * TILE_SIZE; spawnY = 2 * TILE_SIZE; break;
-      case 'down':  default: spawnX = Math.floor(rW / 2) * TILE_SIZE; spawnY = this.findFloorY(Math.floor(rW / 2)); break;
+      case 'left': {
+        // Find open row on left edge (col 0), spawn 2 tiles inward
+        const passageRow = this.findEdgeOpen(grid, 'left');
+        spawnX = 2 * TILE_SIZE;
+        spawnY = passageRow * TILE_SIZE;
+        break;
+      }
+      case 'right': {
+        const passageRow = this.findEdgeOpen(grid, 'right');
+        spawnX = (rW - 3) * TILE_SIZE;
+        spawnY = passageRow * TILE_SIZE;
+        break;
+      }
+      case 'up': {
+        const passageCol = this.findEdgeOpen(grid, 'up');
+        spawnX = passageCol * TILE_SIZE;
+        spawnY = 2 * TILE_SIZE;
+        break;
+      }
+      case 'down': default: {
+        const passageCol = this.findEdgeOpen(grid, 'down');
+        spawnX = passageCol * TILE_SIZE;
+        spawnY = this.findFloorY(passageCol);
+        break;
+      }
     }
     this.player.x = spawnX;
     this.player.y = spawnY;
@@ -427,25 +449,48 @@ export class ItemWorldScene extends Scene {
     const triggers: Array<{ x: number; y: number; width: number; height: number; direction: 'left'|'right'|'up'|'down' }> = [];
     const rW = this.roomW;
     const rH = this.roomH;
+    const grid = this.roomData;
     const T = TILE_SIZE;
-    // Template door positions: L/R at rows 6-9, U/D at cols 14-17 (for 32×16)
-    // For legacy rooms (60×34), use proportional positions
-    const doorThick = 2 * T;  // trigger depth
-    const doorLen = 4 * T;    // 4 tiles wide/tall
+    const doorThick = 2 * T;
+    const doorLen = 6 * T;
 
     if (cell.exits.left) {
-      triggers.push({ x: -doorThick, y: 6 * T, width: doorThick, height: doorLen, direction: 'left' });
+      const row = this.findEdgeOpen(grid, 'left');
+      triggers.push({ x: -doorThick, y: (row - 1) * T, width: doorThick, height: doorLen, direction: 'left' });
     }
     if (cell.exits.right) {
-      triggers.push({ x: rW * T, y: 6 * T, width: doorThick, height: doorLen, direction: 'right' });
+      const row = this.findEdgeOpen(grid, 'right');
+      triggers.push({ x: rW * T, y: (row - 1) * T, width: doorThick, height: doorLen, direction: 'right' });
     }
     if (cell.exits.up) {
-      triggers.push({ x: 14 * T, y: -doorThick, width: doorLen, height: doorThick, direction: 'up' });
+      const col = this.findEdgeOpen(grid, 'up');
+      triggers.push({ x: (col - 1) * T, y: -doorThick, width: doorLen, height: doorThick, direction: 'up' });
     }
     if (cell.exits.down) {
-      triggers.push({ x: 14 * T, y: rH * T, width: doorLen, height: doorThick, direction: 'down' });
+      const col = this.findEdgeOpen(grid, 'down');
+      triggers.push({ x: (col - 1) * T, y: rH * T, width: doorLen, height: doorThick, direction: 'down' });
     }
     return triggers;
+  }
+
+  /** Find the first open tile (0) on a room edge. Returns row for L/R, col for U/D. */
+  private findEdgeOpen(grid: number[][], edge: 'left'|'right'|'up'|'down'): number {
+    const h = grid.length;
+    const w = grid[0]?.length ?? 0;
+    switch (edge) {
+      case 'left':
+        for (let r = 0; r < h; r++) if (grid[r][0] === 0) return r;
+        return Math.floor(h / 2);
+      case 'right':
+        for (let r = 0; r < h; r++) if (grid[r][w - 1] === 0) return r;
+        return Math.floor(h / 2);
+      case 'up':
+        for (let c = 0; c < w; c++) if (grid[0][c] === 0) return c;
+        return Math.floor(w / 2);
+      case 'down':
+        for (let c = 0; c < w; c++) if (grid[h - 1][c] === 0) return c;
+        return Math.floor(w / 2);
+    }
   }
 
   /** Find floor Y in current room at given tile column */
