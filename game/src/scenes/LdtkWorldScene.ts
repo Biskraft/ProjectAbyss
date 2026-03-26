@@ -462,16 +462,24 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera — snap after transition, then smooth follow
+    // Camera — pixel-perfect snap with deadzone (no lerp = no jitter)
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
-    this.game.camera.target = { x: cx, y: cy };
-    if (this.postTransitionSnapFrames > 0) {
-      this.game.camera.snap(cx, cy);
-      this.postTransitionSnapFrames--;
-    } else {
-      this.game.camera.update(dt);
-    }
+    const cam = this.game.camera;
+    const dz = cam.deadZoneX;
+    const dzY = cam.deadZoneY;
+
+    // Only move camera when player exits the deadzone
+    const dx = cx - cam.x;
+    const dy = cy - cam.y;
+    if (Math.abs(dx) > dz) cam.x = cx - Math.sign(dx) * dz;
+    if (Math.abs(dy) > dzY) cam.y = cy - Math.sign(dy) * dzY;
+
+    // Bounds clamp
+    cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
+    cam.target = { x: cx, y: cy };
+    // Force renderX/Y to match (no shake during normal play)
+    cam.snap(cam.x, cam.y);
   }
 
   render(alpha: number): void {
