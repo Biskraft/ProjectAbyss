@@ -256,8 +256,14 @@ export class LdtkWorldScene extends Scene {
 
     // Room transition fade
     if (this.transitionState !== 'none') {
+      const wasFading = this.transitionState;
       this.updateTransition(dt);
-      return;
+      if (this.transitionState as string !== 'none') return; // still fading — skip normal update
+      // Transition just ended — snap camera so first normal frame has no lerp
+      this.game.camera.snap(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height / 2,
+      );
     }
 
     // Player
