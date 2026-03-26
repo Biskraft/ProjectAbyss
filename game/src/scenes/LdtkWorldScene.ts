@@ -260,7 +260,7 @@ export class LdtkWorldScene extends Scene {
       this.updateTransition(dt);
       if (this.transitionState as string !== 'none') return;
       // Transition just ended — force snap for several frames to prevent lerp jitter
-      this.postTransitionSnapFrames = 10;
+      this.postTransitionSnapFrames = 30; // ~0.5s snap to let physics settle
     }
 
     // Player
@@ -462,11 +462,16 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera — always snap (DEBUG: testing if lerp causes jitter)
+    // Camera — snap after transition, then smooth follow
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
     this.game.camera.target = { x: cx, y: cy };
-    this.game.camera.snap(cx, cy);
+    if (this.postTransitionSnapFrames > 0) {
+      this.game.camera.snap(cx, cy);
+      this.postTransitionSnapFrames--;
+    } else {
+      this.game.camera.update(dt);
+    }
   }
 
   render(alpha: number): void {
