@@ -1,5 +1,6 @@
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
+import { LdtkWorldScene } from '@scenes/LdtkWorldScene';
 import { installBitmapFont } from '@ui/fonts';
 import { VirtualPad } from '@ui/VirtualPad';
 
@@ -41,7 +42,13 @@ try {
   await game.init();
 
   showStatus('Loading world...');
-  await game.sceneManager.push(new WorldScene(game));
+  // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)
+  const useProcgen = new URLSearchParams(window.location.search).has('procgen');
+  if (useProcgen) {
+    await game.sceneManager.push(new WorldScene(game));
+  } else {
+    await game.sceneManager.push(new LdtkWorldScene(game));
+  }
 
   // Virtual pad for mobile
   if (VirtualPad.isTouchDevice()) {

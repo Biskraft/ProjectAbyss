@@ -86,14 +86,13 @@ graph TD
 | D-01 | 3-Space Architecture | `Design/Design_Architecture_3Space.md` | ✅ 완료 | 전체 | 전체 |
 | D-02 | Core Loop Design | `Design/Design_CoreLoop_Circulation.md` | ✅ 완료 | 전체 | 전체 |
 | D-03 | Difficulty Philosophy | `Design/Design_Difficulty_Progression.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
-| D-04 | Metroidvania Philosophy | `Design/Design_Metroidvania_Philosophy.md` | ⬜ 제작 필요 | World | 탐험 |
-| D-05 | Yarikomi Philosophy | `Design/Design_Yarikomi_Philosophy.md` | ⬜ 제작 필요 | ItemWorld | 야리코미 |
+| D-04 | Metroidvania Philosophy | `Design/Design_Metroidvania_Philosophy.md` | ✅ 완료 | World | 탐험 |
+| D-05 | Yarikomi Philosophy | `Design/Design_Yarikomi_Philosophy.md` | ✅ 완료 | ItemWorld | 야리코미 |
 | D-06 | Online Design Principles | `Design/Design_Online_Principles.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | D-07 | Economy Philosophy | `Design/Design_Economy_FaucetSink.md` | ⬜ 제작 필요 | 전체 | 전체 |
-| D-08 | Season & Live Service | `Design/Design_Season_LiveService.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | D-09 | Combat Design Philosophy | `Design/Design_Combat_Philosophy.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-10 | Level Design Standards | `Design/Design_Level_Standards.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
-| D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ⬜ 제작 필요 | 전체 | 전체 |
+| D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ✅ 완료 | 전체 | 전체 |
 | D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 
 **D-09 Combat Design Philosophy 범위:**
@@ -168,7 +167,7 @@ graph TD
 | SYS-CMB-04 | SubWeapon System | `System/System_Combat_SubWeapon.md` | ⬜ 제작 필요 | World+IW | 탐험 |
 | SYS-CMB-05 | Elemental Affinity | `System/System_Combat_Elements.md` | ⬜ 제작 필요 | World+IW | 전체 |
 | SYS-CMB-06 | Status Effects | `System/System_Combat_StatusEffects.md` | ⬜ 제작 필요 | World+IW | 전체 |
-| SYS-CMB-07 | Hit Feedback | `System/System_Combat_HitFeedback.md` | ⬜ 제작 필요 | World+IW | 전체 |
+| SYS-CMB-07 | Hit Feedback | `System/System_Combat_HitFeedback.md` | ✅ 완료 | World+IW | 전체 |
 
 **SYS-CMB-01 Action System 범위:**
 - 자동 콤보 3타 (무기별 모션 차이)
@@ -217,7 +216,7 @@ graph TD
 **SYS-WLD-05 World ProcGen 범위:**
 - 매크로 = 핸드크래프트 (구역 배치 고정)
 - 마이크로 = 절차적 (Room Grid 내 Chunk 조립)
-- 시드 시스템 (서버 고정 시드, 시즌 리셋)
+- 시드 시스템 (서버 고정 시드)
 - Room Type 0~3 역할 + 출입구 연결
 - Chunk 팔레트 (바이옴별)
 - Always Winnable 보장 알고리즘
@@ -226,7 +225,7 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-IW-01 | Item World Core | `System/System_ItemWorld_Core.md` | ⬜ 제작 필요 | IW | 야리코미 |
+| SYS-IW-01 | Item World Core | `System/System_ItemWorld_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-02 | IW Strata Generation | `System/System_ItemWorld_FloorGen.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-03 | IW Boss System | `System/System_ItemWorld_Boss.md` | ⬜ 제작 필요 | IW | 야리코미 |
 | SYS-IW-04 | Recursive Entry | `System/System_ItemWorld_Recursion.md` | ⬜ 제작 필요 | IW | 야리코미 |
@@ -313,6 +312,7 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
+| CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
 | CNT-01 | Weapon List | `Content/Content_Weapons_List.md` | ⬜ 제작 필요 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Innocent Catalog | `Content/Content_Innocent_Catalog.md` | ⬜ 제작 필요 |
@@ -442,10 +442,10 @@ graph LR
 
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
-| 11 | SYS-CMB-07 Hit Feedback | ⬜ | M1.3 전투 구현 중 병행 |
-| 12 | D-04 Metroidvania Philosophy | ⬜ | M1.4 맵 생성 중 병행 |
-| 13 | D-05 Yarikomi Philosophy | ⬜ | M1.5 아이템계 중 병행 |
-| 14 | D-11 Progression & Reward | ⬜ | M1.6 밸런스 튜닝 전 |
+| 11 | SYS-CMB-07 Hit Feedback | ✅ | M1.3 전투 구현 중 병행 (사쿠라이 8기법 + 11레이어 피드백 체계) |
+| 12 | D-04 Metroidvania Philosophy | ✅ | M1.4 맵 생성 중 병행 (이중 게이트 철학, 맵 상호연결성, 탐험 보상 경제) |
+| 13 | D-05 Yarikomi Philosophy | ✅ | M1.5 아이템계 중 병행 (중첩 성장, "한 층만 더" 심리학, D5/D7 교훈) |
+| 14 | D-11 Progression & Reward | ✅ | M1.6 밸런스 튜닝 전 (성장 3단계 곡선, 보상 심리, 드랍 설계, 전생 철학) |
 
 ### Phase 2: 알파 (성장/탐험) — 27건
 
@@ -458,7 +458,7 @@ graph LR
 | 19 | SYS-WLD-04 Stat Gating | ⬜ | 스탯 게이트 설계 |
 | 20 | SYS-WLD-06 Save & Warp | ⬜ | 세이브/워프 규칙 |
 | 21 | SYS-WLD-07 Secrets & Rewards | ⬜ | 비밀 구역/보상 |
-| 22 | SYS-IW-01 IW Core | ⬜ | 아이템계 전체 규칙 |
+| 22 | SYS-IW-01 IW Core | ✅ | 아이템계 전체 규칙 (진입/진행/탈출/보상/보스/보너스게이지/멀티) |
 | 23 | SYS-INC-01 Innocent Core | ⬜ | 이노센트 기본 시스템 |
 | 24 | SYS-CMB-04 SubWeapon | ⬜ | 서브웨폰 시스템 |
 | 25 | SYS-CMB-05 Elements | ⬜ | 원소 상성 |
@@ -485,12 +485,6 @@ graph LR
 | 60~65 | UI-01~06 | ⬜ | HUD/인벤토리/맵/아이템계/팜/파티 UI |
 | 66~69 | CNT-03,04,07,08 | ⬜ | Innocent/Monster/Boss/RoomTemplate 카탈로그 |
 
-### Phase 4: 런칭 — 1건
-
-| 순서 | 문서 | 상태 | 이유 |
-| :--- | :--- | :--- | :--- |
-| 70 | D-08 Season & Live Service | ⬜ | 시즌/라이브 서비스 |
-
 ---
 
 ## 통계
@@ -498,9 +492,9 @@ graph LR
 | 카테고리 | 문서 수 | 완료 | 진행 중 | 대기 |
 | :--- | :--- | :--- | :--- | :--- |
 | Terms | 6 | 4 | 1 | 1 |
-| Design | 12 | 6 | 0 | 6 |
-| System | 34 | 13 | 0 | 21 |
+| Design | 12 | 9 | 0 | 3 |
+| System | 34 | 15 | 0 | 19 |
 | UI | 6 | 0 | 0 | 6 |
 | Content | 8 | 0 | 0 | 8 |
 | CSV | 11 | 4 | 0 | 7 |
-| **합계** | **77** | **27** | **1** | **49** |
+| **합계** | **78** | **33** | **1** | **44** |

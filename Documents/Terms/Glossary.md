@@ -163,6 +163,12 @@
 | 한글명 | 영문 키/표기 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | 3-Space 모델 | 3-Space Model | 게임 세계를 월드(World)/아이템계(Item World)/허브(Hub) 세 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
+| 세계수 | Yggveil (이그베일) | 세계 창조 이전에 존재하던 원초적 존재. 자신의 기억을 재료로 세계를 빚었다. 세계의 모든 사물은 세계수의 기억이 응고된 것이며, 이것이 아이템계의 형이상학적 근거이다. | `Documents/Content/Content_World_Bible.md` |
+| 심연 | Abyss | 세계가 존재하기 위해 지불한 대가가 쌓인 곳. 세계수가 창조 과정에서 포기한 가능성들의 기억이 소멸하지 못하고 가라앉은 장소. 악의가 아닌 결핍("나는 왜 존재하지 못하는가")의 감정을 가진다. | `Documents/Content/Content_World_Bible.md` |
+| 심연 전쟁 | Abyss War | 약 150~100년 전 발생한 세계적 전쟁. 심연의 기억을 해방하려는 해방파(기억 연구원)와 현재 세계를 수호하려는 수호파(성채 의회+수호단)가 대립. 영웅 카엘 오르스가 심연과 협약을 맺어 종결했다. | `Documents/Content/Content_World_Bible.md` |
+| 카엘 오르스 | Kael Ors | 심연 전쟁의 영웅. 심연의 검을 들고 심연 속으로 뛰어들어 심연과 협약을 맺었다. 협약의 닻으로서 100년간 심연 속에 머물고 있다. 심연의 검 최심층에서 기억으로서 대면 가능. | `Documents/Content/Content_World_Bible.md` |
+| 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
+| 수렴 계시 | Convergence Revelation | 5개 Ancient 아이템을 모두 탐구했을 때 발동하는 최종 계시 시스템. Zone 7 해금과 카엘 오르스 대면으로 이어진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_Quest_Narrative.md` |
 | 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
 | 변수 치환 | Variable Substitution | 서사 아키타입 내 슬롯(위치·NPC·목표·보상·맥락)에 구체적 콘텐츠를 주입하여 고유 퀘스트를 생성하는 메커니즘. 동일 아키타입에서 수십 가지 변형 퀘스트를 양산할 수 있게 한다. | `Documents/System/System_Quest_Narrative.md` |
 | 맥락 레이어 | Context Layer | 변수 치환된 퀘스트에 세계관 정합성을 부여하는 5단계 필터. 아이템 기원 테마 → 지역 테마 → 시간대 맥락 → 플레이어 이력 → 환경 스토리텔링 순으로 적용된다. | `Documents/System/System_Quest_Narrative.md` |

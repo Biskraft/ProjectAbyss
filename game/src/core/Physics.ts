@@ -16,13 +16,18 @@ export function aabbOverlap(a: AABB, b: AABB): boolean {
 
 const TILE_SIZE = 16;
 
-/** Tile types: 0=empty, 1=solid(floor), 2=solid(wall), 3=one-way platform */
+/** Tile types for procedural WorldScene: 0=empty, 1=solid(floor), 2=solid(wall), 3=one-way platform */
 export function isSolid(tileId: number): boolean {
   return tileId === 1 || tileId === 2;
 }
 
 export function isOneWay(tileId: number): boolean {
   return tileId === 3;
+}
+
+/** LDtk IntGrid tile types: 0=empty, 1=solid wall, 2=water (passable) */
+export function isSolidLdtk(tileId: number): boolean {
+  return tileId === 1;
 }
 
 /**

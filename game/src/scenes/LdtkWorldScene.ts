@@ -1,0 +1,1238 @@
+/**
+ * LdtkWorldScene.ts
+ *
+ * World-space scene that loads hand-crafted LDtk levels instead of procedurally
+ * generated rooms. Implements the World (탐험) space of the 3-Space separation
+ * model (Design_Architecture_3Space.md).
+ *
+ * Key differences from WorldScene:
+ *  - No RoomGrid / ChunkAssembler: levels are loaded from a .ldtk project file.
+ *  - LdtkLoader parses the project; LdtkRenderer draws the tiles.
+ *  - Room data comes from level.collisionGrid (same 2D format the Player uses).
+ *  - Room transitions use world-space coordinates and level.neighbors.
+ *  - Variable level sizes — camera bounds are set per level.
+ *  - Player spawn position read from the LDtk "Player" entity.
+ *
+ * All combat, portal, altar, inventory, and game-over systems are copied
+ * faithfully from WorldScene.ts.
+ */
+
+import { Container, Graphics, BitmapText, Assets, Texture } from 'pixi.js';
+import { Scene } from '@core/Scene';
+import { GameAction } from '@core/InputManager';
+import { aabbOverlap } from '@core/Physics';
+import { LdtkLoader } from '@level/LdtkLoader';
+import { LdtkRenderer } from '@level/LdtkRenderer';
+import type { LdtkLevel } from '@level/LdtkLoader';
+import { Player } from '@entities/Player';
+import { Skeleton } from '@entities/Skeleton';
+import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
+import { Ghost } from '@entities/Ghost';
+import { Projectile } from '@entities/Projectile';
+import { Portal, type PortalSourceType } from '@entities/Portal';
+import { Altar } from '@entities/Altar';
+import { HitManager } from '@combat/HitManager';
+import { HUD } from '@ui/HUD';
+import { ControlsOverlay } from '@ui/ControlsOverlay';
+import { InventoryUI } from '@ui/InventoryUI';
+import { Inventory } from '@items/Inventory';
+import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
+import { SWORD_DEFS } from '@data/weapons';
+import { createItem } from '@items/ItemInstance';
+import type { ItemInstance } from '@items/ItemInstance';
+import { ItemWorldScene } from './ItemWorldScene';
+import { PortalTransition } from '@effects/PortalTransition';
+import { HitSparkManager } from '@effects/HitSpark';
+import { ScreenFlash } from '@effects/ScreenFlash';
+import { ToastManager } from '@ui/Toast';
+import { PIXEL_FONT } from '@ui/fonts';
+import { DamageNumberManager } from '@ui/DamageNumber';
+import { PRNG } from '@utils/PRNG';
+import type { Rarity } from '@data/weapons';
+import type { Enemy } from '@entities/Enemy';
+import type { CombatEntity } from '@combat/HitManager';
+import type { Game } from '../Game';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const TILE_SIZE = 16;
+const FADE_DURATION = 200;
+
+const LDTK_PATH = 'assets/World_ProjectAbyss_Layout.ldtk';
+const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
+const ENTRANCE_LEVEL = 'Entrance';
+
+type TransitionState = 'none' | 'fade_out' | 'fade_in';
+
+// ---------------------------------------------------------------------------
+// LdtkWorldScene
+// ---------------------------------------------------------------------------
+
+export class LdtkWorldScene extends Scene {
+  // LDtk level data
+  private loader!: LdtkLoader;
+  private renderer!: LdtkRenderer;
+  private atlas!: Texture;
+  private currentLevel!: LdtkLevel;
+  private collisionGrid: number[][] = [];
+
+  // Layers
+  private entityLayer!: Container;
+
+  // Entities
+  private player!: Player;
+  private enemies: Enemy[] = [];
+  private projectiles: Projectile[] = [];
+  private hitManager!: HitManager;
+  private dropRng!: PRNG;
+
+  // Items
+  private inventory!: Inventory;
+  private drops: ItemDropEntity[] = [];
+  private inventoryUI!: InventoryUI;
+  private hud!: HUD;
+  private controlsOverlay!: ControlsOverlay;
+
+  // Room transition
+  private transitionState: TransitionState = 'none';
+  private transitionTimer = 0;
+  private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+  private pendingLevelId: string | null = null;
+  private fadeOverlay!: Graphics;
+
+  // Toast, damage numbers & Sakurai hit effects
+  private toast!: ToastManager;
+  private dmgNumbers!: DamageNumberManager;
+  private hitSparks!: HitSparkManager;
+  private screenFlash!: ScreenFlash;
+
+  // Game Over
+  private gameOverOverlay: Container | null = null;
+  private gameOverActive = false;
+
+  // Portal system
+  private portals: Portal[] = [];
+  private altars: Altar[] = [];
+  private portalTransition: PortalTransition | null = null;
+  private pendingPortalData: { rarity: Rarity; sourceType: PortalSourceType; sourceItem?: ItemInstance } | null = null;
+  private altarSelectActive = false;
+  private altarSelectIndex = 0;
+  private activeAltar: Altar | null = null;
+  private altarUI: Container | null = null;
+
+  // Cleared level tracking
+  private clearedLevels: Set<string> = new Set();
+
+  constructor(game: Game) {
+    super(game);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Scene lifecycle
+  // ---------------------------------------------------------------------------
+
+  async init(): Promise<void> {
+    this.hitManager = new HitManager(this.game);
+    this.dropRng = new PRNG(99999);
+    this.inventory = new Inventory();
+    const starterSword = createItem(SWORD_DEFS[0]);
+    this.inventory.add(starterSword);
+    this.inventory.equip(starterSword.uid);
+
+    // Fetch and parse LDtk project
+    const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
+    this.loader = new LdtkLoader();
+    this.loader.load(json);
+
+    // Load tileset atlas
+    this.atlas = await Assets.load(ATLAS_PATH);
+
+    // LDtk renderer — tiles only, no entity markers in production
+    this.renderer = new LdtkRenderer();
+    this.container.addChild(this.renderer.container);
+
+    // Entity layer (enemies, drops, portals, altars)
+    this.entityLayer = new Container();
+    this.container.addChild(this.entityLayer);
+
+    // Player
+    this.player = new Player(this.game);
+    this.entityLayer.addChild(this.player.container);
+    this.updatePlayerAtk();
+
+    // Fade overlay — will be sized per level in loadLevel()
+    this.fadeOverlay = new Graphics();
+    this.fadeOverlay.alpha = 0;
+    this.container.addChild(this.fadeOverlay);
+
+    // HUD
+    this.hud = new HUD();
+    this.game.app.stage.addChild(this.hud.container);
+
+    // Controls overlay
+    this.controlsOverlay = new ControlsOverlay();
+    this.game.app.stage.addChild(this.controlsOverlay.container);
+
+    // Toast, damage numbers, hit sparks, screen flash
+    this.toast = new ToastManager(this.game.app.stage);
+    this.dmgNumbers = new DamageNumberManager(this.entityLayer);
+    this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.screenFlash = new ScreenFlash();
+    this.game.app.stage.addChild(this.screenFlash.overlay);
+
+    // Inventory UI
+    this.inventoryUI = new InventoryUI(this.inventory);
+    this.game.app.stage.addChild(this.inventoryUI.container);
+
+    // Load the entrance level
+    this.loadLevel(ENTRANCE_LEVEL, 'down');
+    this.initialized = true;
+
+    // Debug: log all levels and their neighbors
+    console.log('[LDtk] Levels:', this.loader.getLevelIds());
+    for (const id of this.loader.getLevelIds()) {
+      const l = this.loader.getLevel(id)!;
+      console.log(`[LDtk] ${id}: world(${l.worldX},${l.worldY}) size(${l.pxWid}x${l.pxHei}) grid(${l.gridW}x${l.gridH}) neighbors=[${l.neighbors.join(',')}] roomType=${l.roomType}`);
+      console.log(`[LDtk]   collision grid: ${l.gridH} rows x ${l.gridW} cols, first row sample:`, l.collisionGrid[0]?.slice(0,10));
+    }
+  }
+
+  enter(): void {
+    // Re-show everything when returning from Item World
+    this.container.visible = true;
+    if (this.hud) this.hud.container.visible = true;
+    this.updatePlayerAtk();
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
+  }
+
+  private initialized = false;
+
+  update(dt: number): void {
+    // Guard: init() is async — game loop may call update() before it completes
+    if (!this.initialized) return;
+
+    // Toast always updates (even during transitions / game over)
+    this.toast.update(dt);
+
+    // Portal transition playing
+    if (this.portalTransition) {
+      this.portalTransition.update(dt);
+      this.game.camera.update(dt);
+      if (this.portalTransition.isDone) {
+        this.completePendingPortalEntry();
+      }
+      return;
+    }
+
+    // Game Over state
+    if (this.gameOverActive) {
+      if (
+        this.game.input.isJustPressed(GameAction.ATTACK) ||
+        this.game.input.isJustPressed(GameAction.JUMP)
+      ) {
+        this.respawnPlayer();
+      }
+      return;
+    }
+
+    // Altar selection UI
+    if (this.altarSelectActive) {
+      this.updateAltarInput();
+      return;
+    }
+
+    // Inventory UI toggle
+    if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
+      this.game.input.consumeJustPressed(GameAction.INVENTORY);
+      this.inventoryUI.toggle();
+    }
+
+    if (this.inventoryUI.visible) {
+      this.updateInventoryInput();
+      return; // Pause game while inventory open
+    }
+
+    // Room transition fade
+    if (this.transitionState !== 'none') {
+      this.updateTransition(dt);
+      return;
+    }
+
+    // Player
+    this.player.update(dt);
+
+    // Check player death
+    if (this.player.isDead && !this.gameOverActive) {
+      this.showGameOver();
+      return;
+    }
+
+    // Update enemies
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      const wasAlive = enemy.alive;
+      enemy.update(dt);
+
+      // Enemy just died — roll drop
+      if (wasAlive && !enemy.alive) {
+        const isGolden = enemy instanceof GoldenMonster;
+        const drop = isGolden
+          ? rollGoldenDrop(this.dropRng)
+          : rollDrop(this.dropRng);
+        if (drop) {
+          const dropEntity = new ItemDropEntity(
+            enemy.x + enemy.width / 2,
+            enemy.y + enemy.height - 4,
+            drop,
+          );
+          this.drops.push(dropEntity);
+          this.entityLayer.addChild(dropEntity.container);
+        }
+      }
+
+      if (enemy.shouldRemove) {
+        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
+        this.enemies.splice(i, 1);
+      }
+    }
+
+    // Player attacks — Sakurai full feedback chain
+    if (this.player.isAttackActive()) {
+      const targets = this.enemies.filter((e) => e.alive) as CombatEntity[];
+      const hits = this.hitManager.checkHits(
+        this.player,
+        this.player.comboIndex,
+        this.player.hitList,
+        targets,
+      );
+      for (const hit of hits) {
+        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
+        this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
+        if (hit.heavy) this.screenFlash.flashHit(true);
+      }
+    }
+
+    // Collect Ghost projectiles
+    for (const enemy of this.enemies) {
+      if (enemy instanceof Ghost && enemy.alive) {
+        for (const proj of enemy.pendingProjectiles) {
+          this.projectiles.push(proj);
+          this.entityLayer.addChild(proj.container);
+        }
+        enemy.pendingProjectiles.length = 0;
+      }
+    }
+
+    // Update projectiles & check player collision
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const proj = this.projectiles[i];
+      proj.update(dt);
+      if (!proj.alive) {
+        proj.destroy();
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      if (!this.player.invincible && this.player.hp > 0) {
+        const overlap = aabbOverlap(
+          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
+          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+        );
+        if (overlap) {
+          const dir = proj.vx > 0 ? 1 : -1;
+          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
+          this.player.onHit(dir * 80, -40, 150);
+          this.player.hp -= dmg;
+          this.player.invincible = true;
+          this.player.invincibleTimer = 500;
+          this.player.startVibrate(3, 4, true);
+          this.player.triggerFlash();
+          this.game.hitstopFrames = 2;
+          this.game.camera.shakeDirectional(2, dir, -0.2);
+          this.screenFlash.flashDamage(false);
+          const hitX = this.player.x + this.player.width / 2;
+          const hitY = this.player.y + this.player.height * 0.4;
+          this.hitSparks.spawn(hitX, hitY, false, -dir);
+          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          }
+          proj.alive = false;
+          proj.destroy();
+          this.projectiles.splice(i, 1);
+        }
+      }
+    }
+
+    // Enemy attacks — Sakurai: player hit feedback (vibration + flash + directional shake)
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const isAttacking =
+        (enemy instanceof Skeleton || enemy instanceof GoldenMonster) &&
+        enemy.isAttackActive();
+      if (isAttacking) {
+        if (this.player.invincible || this.player.hp <= 0) continue;
+        const dx = Math.abs(
+          (enemy.x + enemy.width / 2) - (this.player.x + this.player.width / 2),
+        );
+        const dy = Math.abs(
+          (enemy.y + enemy.height / 2) - (this.player.y + this.player.height / 2),
+        );
+        if (
+          dx < enemy.width + this.player.width &&
+          dy < Math.max(enemy.height, this.player.height)
+        ) {
+          const dir = enemy.facingRight ? 1 : -1;
+          const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
+          this.player.onHit(dir * 100, -50, 200);
+          this.player.hp -= dmg;
+          this.player.invincible = true;
+          this.player.invincibleTimer = 500;
+
+          // Sakurai feedback: victim vibrates, flash, directional shake
+          this.player.startVibrate(4, 5, this.player.vy === 0);
+          this.player.triggerFlash();
+          this.game.hitstopFrames = 3;
+          this.game.camera.shakeDirectional(3, dir, -0.3);
+          this.screenFlash.flashDamage(dmg > 20);
+
+          // Hit spark at player position
+          const hitX = this.player.x + this.player.width / 2;
+          const hitY = this.player.y + this.player.height * 0.4;
+          this.hitSparks.spawn(hitX, hitY, false, -dir);
+
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            // Kill = extra hitstop + heavy screen flash
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          }
+        }
+      }
+    }
+
+    // Item pickups
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const drop = this.drops[i];
+      drop.update(dt);
+      if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
+        if (this.inventory.add(drop.item)) {
+          this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          drop.destroy();
+          this.drops.splice(i, 1);
+        }
+      }
+    }
+
+    // Level cleared
+    const aliveCount = this.enemies.filter((e) => e.alive).length;
+    if (aliveCount === 0) {
+      const id = this.currentLevel.identifier;
+      if (!this.clearedLevels.has(id)) {
+        this.clearedLevels.add(id);
+        const heal = Math.floor(this.player.maxHp * 0.2);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+        this.toast.show(`Room Clear! +${heal} HP`, 0x44ff44);
+      }
+    }
+
+    // Portal & Altar interactions (portals take priority over altars)
+    const portalEntered = this.updatePortals(dt);
+    if (!portalEntered) {
+      this.updateAltars(dt);
+    }
+
+    // Room transition detection — edge-based
+    this.checkLevelEdges();
+
+    // HUD
+    this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+
+    // Damage numbers & Sakurai hit effects
+    this.dmgNumbers.update(dt);
+    this.hitSparks.update(dt);
+    this.screenFlash.update(dt);
+
+    // Camera
+    this.game.camera.target = {
+      x: this.player.x + this.player.width / 2,
+      y: this.player.y + this.player.height / 2,
+    };
+    this.game.camera.update(dt);
+  }
+
+  render(alpha: number): void {
+    if (!this.initialized) return;
+    this.player.render(alpha);
+    for (const enemy of this.enemies) enemy.render(alpha);
+    // Portals and altars are static, no interpolation needed
+  }
+
+  exit(): void {
+    this.toast.clear();
+    if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.controlsOverlay?.container.parent) {
+      this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
+    }
+    if (this.inventoryUI?.container.parent) {
+      this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
+    }
+    if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
+    if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Level loading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Load a level by its LDtk identifier.
+   *
+   * @param levelId        - Identifier string from the .ldtk file (e.g. "Entrance").
+   * @param enterDirection - Direction from which the player arrives, used to
+   *                         place the player on the opposite edge.
+   */
+  private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
+    const level = this.loader.getLevel(levelId);
+    if (!level) {
+      console.error(`[LdtkWorldScene] Level not found: "${levelId}"`);
+      return;
+    }
+    this.currentLevel = level;
+
+    // Render tiles
+    this.renderer.clear();
+    this.renderer.renderLevel(level.backgroundTiles, level.shadowTiles, this.atlas);
+
+    // Collision grid — same format as WorldScene.roomData
+    this.collisionGrid = level.collisionGrid;
+
+    // Resize fade overlay to match this level
+    this.fadeOverlay.clear();
+    this.fadeOverlay.rect(0, 0, level.pxWid, level.pxHei).fill(0x000000);
+    this.fadeOverlay.alpha = 0;
+
+    // Camera bounds
+    this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
+
+    console.log(`[LDtk] loadLevel("${levelId}") enter=${enterDirection} size=${level.pxWid}x${level.pxHei} grid=${level.gridW}x${level.gridH}`);
+    console.log(`[LDtk]   collision sample row[0]:`, this.collisionGrid[0]?.slice(0,20));
+    console.log(`[LDtk]   collision sample mid-row:`, this.collisionGrid[Math.floor(level.gridH/2)]?.slice(0,20));
+    console.log(`[LDtk]   entities:`, level.entities.map(e => `${e.type}@(${e.px[0]},${e.px[1]})`));
+    console.log(`[LDtk]   neighbors:`, level.neighbors, `dir:`, JSON.stringify(level.dirNeighbors));
+    console.log(`[LDtk]   bgTiles:${level.backgroundTiles.length} shadowTiles:${level.shadowTiles.length}`);
+
+    // Place player
+    this.placePlayer(level, enterDirection);
+
+    // Spawn enemies (skip for Shop rooms)
+    this.clearEnemies();
+    this.clearDrops();
+    this.clearPortals();
+    this.clearAltars();
+
+    if (level.roomType !== 'Shop') {
+      this.spawnEnemies(level);
+      this.spawnAltarInLevel(level);
+    }
+
+    // Camera snap
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
+  }
+
+  /**
+   * Position the player in the freshly loaded level.
+   * Priority:
+   *  1. If entering from a specific direction, place on the opposite edge.
+   *  2. Otherwise use the LDtk "Player" entity spawn point.
+   *  3. Fallback: center-bottom of the level.
+   */
+  private placePlayer(level: LdtkLevel, enterFrom: 'left' | 'right' | 'up' | 'down'): void {
+    const pw = this.player.width;
+    const ph = this.player.height;
+    const grid = level.collisionGrid;
+
+    let spawnX: number;
+    let spawnY: number;
+
+    // GridVania: find the actual open passage on the entry edge, then place
+    // the player at that passage. "enterFrom=right" means player came from the
+    // right side, so spawn at the RIGHT edge's open passage in the new level.
+    switch (enterFrom) {
+      case 'left': {
+        // Player came from left → spawn at LEFT edge open passage
+        const passageY = this.findEdgePassage(grid, 'left');
+        spawnX = 1 * TILE_SIZE;
+        spawnY = passageY * TILE_SIZE;
+        break;
+      }
+      case 'right': {
+        // Player came from right → spawn at RIGHT edge open passage
+        const passageY = this.findEdgePassage(grid, 'right');
+        spawnX = (level.gridW - 2) * TILE_SIZE;
+        spawnY = passageY * TILE_SIZE;
+        break;
+      }
+      case 'up': {
+        // Player came from above → spawn at TOP edge open passage
+        const passageX = this.findEdgePassage(grid, 'up');
+        spawnX = passageX * TILE_SIZE;
+        spawnY = 1 * TILE_SIZE;
+        break;
+      }
+      case 'down':
+      default: {
+        // First load or came from below
+        const playerEntity = level.entities.find((e) => e.type === 'Player');
+        if (playerEntity) {
+          spawnX = playerEntity.px[0];
+          spawnY = playerEntity.px[1] - ph;
+        } else {
+          // Spawn at BOTTOM edge open passage
+          const passageX = this.findEdgePassage(grid, 'down');
+          spawnX = passageX * TILE_SIZE;
+          spawnY = (level.gridH - 2) * TILE_SIZE;
+        }
+        break;
+      }
+    }
+
+    this.player.x = spawnX;
+    this.player.y = spawnY;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.roomData = this.collisionGrid;
+    this.player.savePrevPosition();
+    console.log(`[LDtk] Player placed at (${spawnX.toFixed(0)}, ${spawnY.toFixed(0)}) enterFrom=${enterFrom}`);
+  }
+
+  /**
+   * Find the tile coordinate of an open passage (0) on the given edge.
+   * For left/right edges: returns the Y tile row of the passage.
+   * For up/down edges: returns the X tile column of the passage.
+   * Falls back to the middle of the edge if no passage found.
+   */
+  private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down'): number {
+    switch (edge) {
+      case 'left': {
+        // Scan column 0 for open tiles
+        for (let row = 0; row < grid.length; row++) {
+          if (grid[row][0] === 0) return row;
+        }
+        return Math.floor(grid.length / 2);
+      }
+      case 'right': {
+        // Scan last column for open tiles
+        const col = (grid[0]?.length ?? 1) - 1;
+        for (let row = 0; row < grid.length; row++) {
+          if (grid[row][col] === 0) return row;
+        }
+        return Math.floor(grid.length / 2);
+      }
+      case 'up': {
+        // Scan row 0 for open tiles
+        const firstRow = grid[0] ?? [];
+        for (let col = 0; col < firstRow.length; col++) {
+          if (firstRow[col] === 0) return col;
+        }
+        return Math.floor(firstRow.length / 2);
+      }
+      case 'down': {
+        // Scan last row for open tiles
+        const lastRow = grid[grid.length - 1] ?? [];
+        for (let col = 0; col < lastRow.length; col++) {
+          if (lastRow[col] === 0) return col;
+        }
+        return Math.floor(lastRow.length / 2);
+      }
+    }
+  }
+
+  /**
+   * Find a safe floor Y coordinate for an entity at the given tile column.
+   * Scans from the bottom of the collision grid upward to find the first solid
+   * tile, then returns a Y position one entity-height above it.
+   */
+  private findFloorY(grid: number[][], tileX: number, entityHeight: number): number {
+    const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
+    for (let row = grid.length - 1; row >= 0; row--) {
+      if (grid[row][clampedX] >= 1) {
+        return row * TILE_SIZE - entityHeight;
+      }
+    }
+    // No floor found — place near bottom
+    return (grid.length - 2) * TILE_SIZE - entityHeight;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enemy spawning
+  // ---------------------------------------------------------------------------
+
+  private spawnEnemies(level: LdtkLevel): void {
+    const grid = level.collisionGrid;
+    // Scale enemy count by level area (larger rooms = more enemies)
+    const area = level.gridW * level.gridH;
+    const count = Math.max(2, Math.min(5, Math.floor(area / 300)));
+
+    // Pre-compute columns that have a solid floor (for enemy placement)
+    const validColumns: number[] = [];
+    for (let tx = 3; tx < level.gridW - 3; tx++) {
+      for (let row = grid.length - 1; row >= Math.floor(grid.length / 2); row--) {
+        if (grid[row][tx] >= 1) { validColumns.push(tx); break; }
+      }
+    }
+    if (validColumns.length === 0) return; // no valid spawn positions
+
+    // Use worldX/worldY as a stable seed so the same level always has the same
+    // enemies across visits (deterministic but varied per room).
+    const levelSeed = (level.worldX * 31 + level.worldY * 17) >>> 0;
+    const dist = Math.round(
+      Math.sqrt(level.worldX * level.worldX + level.worldY * level.worldY) / 200,
+    );
+    const scale = 1 + dist * 0.15;
+    const tier = getDifficultyTier(dist);
+
+    for (let i = 0; i < count; i++) {
+      const spawnRng = new PRNG(levelSeed + i * 111);
+      const isGhost = spawnRng.next() < 0.3;
+      const enemy = isGhost ? new Ghost() : new Skeleton();
+      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * scale);
+      enemy.atk = Math.floor(enemy.atk * scale);
+
+      const tileX = validColumns[spawnRng.nextInt(0, validColumns.length - 1)];
+      enemy.x = tileX * TILE_SIZE;
+      enemy.y = this.findFloorY(grid, tileX, enemy.height);
+      enemy.roomData = this.collisionGrid;
+      enemy.target = this.player;
+      this.enemies.push(enemy);
+      this.entityLayer.addChild(enemy.container);
+    }
+
+    // Golden Monster: ~20% chance per level
+    const goldenRng = new PRNG(levelSeed + 77);
+    if (goldenRng.next() < 0.2 && validColumns.length > 0) {
+      const golden = new GoldenMonster(tier);
+      golden.hp = golden.maxHp = Math.floor(golden.maxHp * scale);
+      golden.atk = Math.floor(golden.atk * scale);
+      const gtX = validColumns[goldenRng.nextInt(0, validColumns.length - 1)];
+      golden.x = gtX * TILE_SIZE;
+      golden.y = this.findFloorY(grid, gtX, golden.height);
+      golden.roomData = this.collisionGrid;
+      golden.target = this.player;
+      golden.onDeathCallback = (x, y, rarity) => {
+        this.spawnPortal(x, y, rarity, 'monster');
+      };
+      this.enemies.push(golden);
+      this.entityLayer.addChild(golden.container);
+    }
+  }
+
+  private spawnAltarInLevel(level: LdtkLevel): void {
+    // Already called from loadLevel for non-Shop rooms — guard against double-spawn
+    if (this.altars.length > 0) return;
+    if (Math.random() > 0.3) return;
+
+    const midTileX = Math.floor(level.gridW / 2);
+    const altarX = level.pxWid / 2 + (Math.random() - 0.5) * 6 * TILE_SIZE;
+    const altarY = this.findFloorY(level.collisionGrid, midTileX, TILE_SIZE);
+    const altar = new Altar(altarX, altarY);
+    this.altars.push(altar);
+    this.entityLayer.addChild(altar.container);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Room transition — edge detection
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Detect when the player crosses a level edge and find the adjacent level to
+   * transition into. Thresholds use ±4 px tolerance to give a comfortable feel.
+   */
+  private checkLevelEdges(): void {
+    if (this.transitionState !== 'none') return;
+
+    const px = this.player.x;
+    const py = this.player.y;
+    const pw = this.player.width;
+    const ph = this.player.height;
+    const level = this.currentLevel;
+    const grid = this.collisionGrid;
+
+    let direction: 'left' | 'right' | 'up' | 'down' | null = null;
+
+    // GridVania transition: detect player near open edge tiles (0 = passage)
+    // Check right edge: player near right side + last column has open tiles
+    const playerTileY = Math.floor((py + ph / 2) / TILE_SIZE);
+    const playerTileX = Math.floor((px + pw / 2) / TILE_SIZE);
+
+    if (px + pw > level.pxWid - TILE_SIZE) {
+      // Check if the rightmost column at player's height is open
+      const edgeCol = level.gridW - 1;
+      if (playerTileY >= 0 && playerTileY < level.gridH && grid[playerTileY]?.[edgeCol] === 0) {
+        direction = 'right';
+      }
+    } else if (px < TILE_SIZE) {
+      // Check leftmost column
+      if (playerTileY >= 0 && playerTileY < level.gridH && grid[playerTileY]?.[0] === 0) {
+        direction = 'left';
+      }
+    } else if (py + ph > level.pxHei - TILE_SIZE) {
+      // Check bottom row
+      const edgeRow = level.gridH - 1;
+      if (playerTileX >= 0 && playerTileX < level.gridW && grid[edgeRow]?.[playerTileX] === 0) {
+        direction = 'down';
+      }
+    } else if (py < TILE_SIZE) {
+      // Check top row
+      if (playerTileX >= 0 && playerTileX < level.gridW && grid[0]?.[playerTileX] === 0) {
+        direction = 'up';
+      }
+    }
+
+    if (direction === null) return;
+
+    const neighborId = this.getNeighborInDirection(direction);
+    console.log(`[LDtk] Edge hit: direction=${direction} player=(${px.toFixed(0)},${py.toFixed(0)}) levelSize=(${level.pxWid},${level.pxHei}) neighbor=${neighborId}`);
+    if (!neighborId) return;
+
+    this.startTransition(direction, neighborId);
+  }
+
+  /**
+   * Find the neighbor level identifier in the given direction.
+   *
+   * Uses world-space bounding rectangles to determine which neighbor lies in
+   * the requested direction and whose Y (or X) intervals overlap.
+   *
+   * Direction semantics:
+   *   right  → neighbor whose left edge aligns with current level's right edge
+   *   left   → neighbor whose right edge aligns with current level's left edge
+   *   down   → neighbor whose top edge aligns with current level's bottom edge
+   *   up     → neighbor whose bottom edge aligns with current level's top edge
+   */
+  /**
+   * LDtk __neighbours dir codes:
+   *   'n'=north(up), 's'=south(down), 'e'=east(right), 'w'=west(left)
+   *   '>'=deeper depth, '<'=shallower depth
+   */
+  private getNeighborInDirection(direction: 'left' | 'right' | 'up' | 'down'): string | null {
+    const cur = this.currentLevel;
+    const dirMap: Record<string, string> = { left: 'w', right: 'e', up: 'n', down: 's' };
+    const ldtkDir = dirMap[direction];
+
+    // Primary: use LDtk's __neighbours directional data
+    const dirNbs = cur.dirNeighbors[ldtkDir];
+    if (dirNbs && dirNbs.length > 0) return dirNbs[0];
+
+    // Fallback: geometric
+    const curRight = cur.worldX + cur.pxWid;
+    const curBottom = cur.worldY + cur.pxHei;
+    for (const nId of cur.neighbors) {
+      const nb = this.loader.getLevel(nId);
+      if (!nb) continue;
+      const nbR = nb.worldX + nb.pxWid;
+      const nbB = nb.worldY + nb.pxHei;
+      const T = 4;
+      if (direction === 'right' && Math.abs(nb.worldX - curRight) <= T && cur.worldY < nbB && curBottom > nb.worldY) return nId;
+      if (direction === 'left' && Math.abs(nbR - cur.worldX) <= T && cur.worldY < nbB && curBottom > nb.worldY) return nId;
+      if (direction === 'down' && Math.abs(nb.worldY - curBottom) <= T && cur.worldX < nbR && curRight > nb.worldX) return nId;
+      if (direction === 'up' && Math.abs(nbB - cur.worldY) <= T && cur.worldX < nbR && curRight > nb.worldX) return nId;
+    }
+    return null;
+  }
+
+  private startTransition(direction: 'left' | 'right' | 'up' | 'down', levelId: string): void {
+    this.transitionState = 'fade_out';
+    this.transitionTimer = FADE_DURATION;
+    this.pendingDirection = direction;
+    this.pendingLevelId = levelId;
+  }
+
+  private updateTransition(dt: number): void {
+    this.transitionTimer -= dt;
+    if (this.transitionState === 'fade_out') {
+      this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
+      if (this.transitionTimer <= 0) {
+        if (this.pendingLevelId) {
+          this.loadLevel(this.pendingLevelId, this.pendingDirection!);
+        }
+        this.transitionState = 'fade_in';
+        this.transitionTimer = FADE_DURATION;
+        this.fadeOverlay.alpha = 1;
+      }
+    } else if (this.transitionState === 'fade_in') {
+      this.fadeOverlay.alpha = Math.max(0, this.transitionTimer / FADE_DURATION);
+      if (this.transitionTimer <= 0) {
+        this.transitionState = 'none';
+        this.fadeOverlay.alpha = 0;
+        this.pendingDirection = null;
+        this.pendingLevelId = null;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Game Over
+  // ---------------------------------------------------------------------------
+
+  private showGameOver(): void {
+    this.gameOverActive = true;
+    const overlay = new Container();
+
+    const bg = new Graphics();
+    bg.rect(0, 0, 480, 270).fill({ color: 0x000000, alpha: 0.7 });
+    overlay.addChild(bg);
+
+    const title = new BitmapText({
+      text: 'GAME OVER',
+      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 },
+    });
+    title.anchor.set(0.5);
+    title.x = 240;
+    title.y = 120;
+    overlay.addChild(title);
+
+    const hint = new BitmapText({
+      text: 'Press Z or X to respawn',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+    });
+    hint.anchor.set(0.5);
+    hint.x = 240;
+    hint.y = 150;
+    overlay.addChild(hint);
+
+    this.gameOverOverlay = overlay;
+    this.game.app.stage.addChild(overlay);
+  }
+
+  private respawnPlayer(): void {
+    this.gameOverActive = false;
+    if (this.gameOverOverlay?.parent) {
+      this.gameOverOverlay.parent.removeChild(this.gameOverOverlay);
+    }
+    this.gameOverOverlay = null;
+
+    // Return to entrance and place player from 'down' spawn
+    this.loadLevel(ENTRANCE_LEVEL, 'down');
+    this.player.respawn();
+    this.player.savePrevPosition();
+    this.game.camera.snap(this.player.x, this.player.y);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Inventory UI
+  // ---------------------------------------------------------------------------
+
+  private updatePlayerAtk(): void {
+    const baseStr = 10; // Lv1 STR
+    this.player.atk = baseStr + this.inventory.getWeaponAtk();
+  }
+
+  private updateInventoryInput(): void {
+    const input = this.game.input;
+    if (input.isJustPressed(GameAction.MOVE_LEFT)) this.inventoryUI.navigate('left');
+    if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.inventoryUI.navigate('right');
+    if (input.isJustPressed(GameAction.LOOK_UP)) this.inventoryUI.navigate('up');
+    if (input.isJustPressed(GameAction.LOOK_DOWN)) this.inventoryUI.navigate('down');
+    if (input.isJustPressed(GameAction.ATTACK)) {
+      this.inventoryUI.equipSelected();
+      this.updatePlayerAtk();
+      this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+    }
+    if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Portal System
+  // ---------------------------------------------------------------------------
+
+  private spawnPortal(
+    x: number,
+    y: number,
+    rarity: Rarity,
+    sourceType: PortalSourceType,
+    sourceItem?: ItemInstance,
+  ): void {
+    const portal = new Portal(x, y, rarity, sourceType, sourceItem);
+    this.portals.push(portal);
+    this.entityLayer.addChild(portal.container);
+
+    // Spawn effects (Sakurai: Stop for Big Moments)
+    this.game.hitstopFrames += portal.spawnHitstop;
+    this.game.camera.shake(portal.spawnShake);
+
+    if (rarity !== 'normal') {
+      this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
+    }
+  }
+
+  private enterPortal(portal: Portal): void {
+    this.closeAltarUI();
+
+    const cam = this.game.camera;
+    const screenX = portal.x - cam.renderX + 480 / 2;
+    const screenY = portal.y - cam.renderY + 270 / 2;
+
+    const transition = new PortalTransition(
+      screenX, screenY,
+      portal.rarity, portal.sourceType, portal.sourceItem,
+    );
+    this.portalTransition = transition;
+    this.game.app.stage.addChild(transition.container);
+
+    transition.onShake = (intensity) => this.game.camera.shake(intensity);
+    transition.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+
+    const idx = this.portals.indexOf(portal);
+    if (idx >= 0) this.portals.splice(idx, 1);
+    portal.destroy();
+
+    this.pendingPortalData = {
+      rarity: portal.rarity,
+      sourceType: portal.sourceType,
+      sourceItem: portal.sourceItem,
+    };
+  }
+
+  private completePendingPortalEntry(): void {
+    const data = this.pendingPortalData;
+    if (!data) return;
+    this.pendingPortalData = null;
+
+    const isAltar = data.sourceType === 'altar';
+
+    let dungeonItem: ItemInstance | undefined;
+    if (!isAltar) {
+      const defs = SWORD_DEFS.filter((d) => d.rarity === data.rarity);
+      const def = defs.length > 0 ? defs[0] : SWORD_DEFS[0];
+      dungeonItem = createItem(def, data.rarity);
+    }
+
+    const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
+    const prevLevel = targetItem.level;
+    const prevAtk = this.player.atk;
+
+    if (this.portalTransition) {
+      this.portalTransition.destroy();
+      this.portalTransition = null;
+    }
+
+    // Hide world while in Item World
+    this.container.visible = false;
+    this.hud.container.visible = false;
+
+    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    itemWorldScene.onComplete = () => {
+      this.game.sceneManager.pop();
+      this.updatePlayerAtk();
+
+      if (isAltar) {
+        if (targetItem.level > prevLevel) {
+          this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+        }
+      } else {
+        if (this.inventory.add(dungeonItem!)) {
+          this.toast.show(
+            `Got ${dungeonItem!.def.name} [${dungeonItem!.rarity.toUpperCase()}]`,
+            0xffcc44,
+          );
+        }
+      }
+      if (this.player.atk !== prevAtk) {
+        this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+      }
+    };
+
+    this.game.sceneManager.push(itemWorldScene, true);
+  }
+
+  /** Returns true if player entered a portal this frame */
+  private updatePortals(dt: number): boolean {
+    for (const portal of this.portals) {
+      portal.update(dt);
+
+      const near = portal.overlaps(
+        this.player.x - 8, this.player.y - 8,
+        this.player.width + 16, this.player.height + 16,
+      );
+      portal.setShowHint(near);
+
+      if (portal.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
+        if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
+          this.enterPortal(portal);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private clearPortals(): void {
+    for (const p of this.portals) p.destroy();
+    this.portals = [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Altar System
+  // ---------------------------------------------------------------------------
+
+  private updateAltars(dt: number): void {
+    for (const altar of this.altars) {
+      altar.update(dt);
+
+      if (altar.used) {
+        altar.setShowHint(false);
+        continue;
+      }
+
+      const near = altar.overlaps(
+        this.player.x - 8, this.player.y - 8,
+        this.player.width + 16, this.player.height + 16,
+      );
+      altar.setShowHint(near);
+
+      if (altar.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
+        if (this.game.input.isJustPressed(GameAction.LOOK_UP) && !this.altarSelectActive) {
+          this.openAltarUI(altar);
+          return;
+        }
+      }
+    }
+  }
+
+  private openAltarUI(altar: Altar): void {
+    if (this.inventory.items.length === 0) {
+      this.toast.show('No items to offer', 0xff4444);
+      return;
+    }
+    this.altarSelectActive = true;
+    this.altarSelectIndex = 0;
+    this.activeAltar = altar;
+    this.drawAltarUI();
+  }
+
+  private drawAltarUI(): void {
+    if (this.altarUI) {
+      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
+      this.altarUI.destroy({ children: true });
+      this.altarUI = null;
+    }
+
+    const items = this.inventory.items;
+    const ui = new Container();
+
+    const bg = new Graphics();
+    const panelW = 260;
+    const panelH = 20 + items.length * 12;
+    const px = Math.floor((480 - panelW) / 2);
+    const py = Math.floor((270 - panelH) / 2);
+    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
+    bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+    bg.x = px;
+    bg.y = py;
+    ui.addChild(bg);
+
+    const title = new BitmapText({
+      text: 'Offer item to altar:',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff },
+    });
+    title.x = px + 6;
+    title.y = py + 4;
+    ui.addChild(title);
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const selected = i === this.altarSelectIndex;
+      const prefix = selected ? '> ' : '  ';
+      const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
+      const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
+      const t = new BitmapText({
+        text: label,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : 0xffffff },
+      });
+      t.x = px + 6;
+      t.y = py + 16 + i * 12;
+      ui.addChild(t);
+    }
+
+    this.altarUI = ui;
+    this.game.app.stage.addChild(ui);
+  }
+
+  private closeAltarUI(): void {
+    this.altarSelectActive = false;
+    this.activeAltar = null;
+    if (this.altarUI) {
+      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
+      this.altarUI.destroy({ children: true });
+      this.altarUI = null;
+    }
+  }
+
+  private updateAltarInput(): void {
+    const input = this.game.input;
+    const items = this.inventory.items;
+
+    if (input.isJustPressed(GameAction.LOOK_UP)) {
+      this.altarSelectIndex = Math.max(0, this.altarSelectIndex - 1);
+      this.drawAltarUI();
+      return;
+    }
+    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
+      this.altarSelectIndex = Math.min(items.length - 1, this.altarSelectIndex + 1);
+      this.drawAltarUI();
+      return;
+    }
+    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
+      const item = items[this.altarSelectIndex];
+      if (item && this.activeAltar) {
+        const altar = this.activeAltar;
+        altar.used = true;
+        this.closeAltarUI();
+        this.spawnPortal(altar.x, altar.y - 20, item.rarity, 'altar', item);
+      } else {
+        this.closeAltarUI();
+      }
+      return;
+    }
+    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
+      this.closeAltarUI();
+      return;
+    }
+  }
+
+  private clearAltars(): void {
+    for (const a of this.altars) a.destroy();
+    this.altars = [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Entity cleanup helpers
+  // ---------------------------------------------------------------------------
+
+  private clearEnemies(): void {
+    for (const e of this.enemies) {
+      if (e.container.parent) e.container.parent.removeChild(e.container);
+    }
+    this.enemies = [];
+    for (const p of this.projectiles) p.destroy();
+    this.projectiles = [];
+  }
+
+  private clearDrops(): void {
+    for (const d of this.drops) d.destroy();
+    this.drops = [];
+  }
+}
