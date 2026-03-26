@@ -502,17 +502,29 @@ export class ItemWorldScene extends Scene {
     const count = 2 + Math.floor(dist * 0.5) + stratumDef.enemyCountBonus;
     const distScale = 1 + dist * 0.1;
 
-    /** Find floor Y at a given world pixel X using fullGrid collision */
+    /**
+     * Raycast: start from mid-room (air), scan DOWN to find first solid tile.
+     * If mid-room is already solid, scan UP first to find air, then DOWN.
+     */
     const findFloor = (worldX: number, entityH: number): number => {
       const tileCol = Math.floor(worldX / TILE_SIZE);
-      const startTileRow = Math.floor(offY / TILE_SIZE);
-      const endTileRow = startTileRow + 32;
-      for (let tr = endTileRow - 1; tr >= startTileRow; tr--) {
-        if (this.fullGrid[tr]?.[tileCol] >= 1) {
+      const roomTopRow = Math.floor(offY / TILE_SIZE);
+      const roomBotRow = roomTopRow + 32;
+      const midRow = roomTopRow + 8; // start from ~25% height (likely air)
+
+      // Find air first: scan UP from midRow
+      let airRow = midRow;
+      for (let tr = midRow; tr >= roomTopRow; tr--) {
+        if ((this.fullGrid[tr]?.[tileCol] ?? 1) === 0) { airRow = tr; break; }
+      }
+
+      // From air, scan DOWN to find solid (floor)
+      for (let tr = airRow; tr < roomBotRow; tr++) {
+        if ((this.fullGrid[tr]?.[tileCol] ?? 1) >= 1) {
           return tr * TILE_SIZE - entityH;
         }
       }
-      return offY + 28 * TILE_SIZE - entityH; // fallback
+      return offY + 28 * TILE_SIZE - entityH;
     };
 
     const isEndRoom = this.isStratumEndRoom(col, row);
