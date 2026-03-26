@@ -251,11 +251,12 @@ export class ItemWorldScene extends Scene {
     this.buildFullMap();
     this.updateHudText();
 
-    // Spawn player at start cell position (near bottom of start room)
+    // Spawn player at start cell position (local row within current stratum)
     const startCol = this.currentCol;
-    const startRow = this.currentRow;
+    const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localStartRow = this.currentRow - stratumStart;
     this.player.x = startCol * 512 + 256;
-    this.player.y = startRow * 512 + 400;
+    this.player.y = localStartRow * 512 + 400;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
@@ -357,15 +358,17 @@ export class ItemWorldScene extends Scene {
       this.fullGrid[r] = new Array(FULL_TILES).fill(1);
     }
 
-    // Place each room template into the full grid
+    // Place each room template into the full grid (current stratum only)
     const grid = this.unifiedGrid;
-    for (let row = 0; row < grid.totalHeight && row < GRID_H; row++) {
-      for (let col = 0; col < grid.totalWidth && col < GRID_W; col++) {
-        const cell = grid.cells[row]?.[col];
+    const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+
+    for (let localRow = 0; localRow < GRID_H; localRow++) {
+      const absRow = stratumRowStart + localRow;
+      for (let col = 0; col < GRID_W; col++) {
+        const cell = grid.cells[absRow]?.[col];
         if (!cell || cell.type === 0) continue;
 
-        // Pick LDtk template (no code template fallback — LDtk only)
-        const rng = new PRNG(this.item.uid * 10000 + col * 100 + row);
+        const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
         const ldtkLevel = this.pickLdtkTemplate(cell, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
@@ -373,8 +376,8 @@ export class ItemWorldScene extends Scene {
         const roomH = roomGrid.length;
         const roomW = roomGrid[0]?.length ?? 0;
 
-        // Copy room collision data into fullGrid at offset
-        const offR = row * ROOM_TILES;
+        // Copy room collision data into fullGrid at LOCAL offset
+        const offR = localRow * ROOM_TILES;
         const offC = col * ROOM_TILES;
         for (let tr = 0; tr < roomH && tr < ROOM_TILES; tr++) {
           for (let tc = 0; tc < roomW && tc < ROOM_TILES; tc++) {
@@ -387,7 +390,7 @@ export class ItemWorldScene extends Scene {
         // Render room tiles at pixel offset within fullMapContainer
         const roomContainer = new Container();
         roomContainer.x = col * 512;
-        roomContainer.y = row * 512;
+        roomContainer.y = localRow * 512;
         const renderer = new LdtkRenderer();
         renderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
         roomContainer.addChild(renderer.container);
