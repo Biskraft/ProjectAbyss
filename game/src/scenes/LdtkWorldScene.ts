@@ -511,7 +511,7 @@ export class LdtkWorldScene extends Scene {
 
     // Render tiles
     this.renderer.clear();
-    this.renderer.renderLevel(level.backgroundTiles, level.shadowTiles, this.atlas);
+    this.renderer.renderLevel(level.backgroundTiles, level.wallTiles, level.shadowTiles, this.atlas);
 
     // Collision grid — same format as WorldScene.roomData
     this.collisionGrid = level.collisionGrid;
@@ -529,7 +529,7 @@ export class LdtkWorldScene extends Scene {
     console.log(`[LDtk]   collision sample mid-row:`, this.collisionGrid[Math.floor(level.gridH/2)]?.slice(0,20));
     console.log(`[LDtk]   entities:`, level.entities.map(e => `${e.type}@(${e.px[0]},${e.px[1]})`));
     console.log(`[LDtk]   neighbors:`, level.neighbors, `dir:`, JSON.stringify(level.dirNeighbors));
-    console.log(`[LDtk]   bgTiles:${level.backgroundTiles.length} shadowTiles:${level.shadowTiles.length}`);
+    console.log(`[LDtk]   bgTiles:${level.backgroundTiles.length} wallTiles:${level.wallTiles.length} shadowTiles:${level.shadowTiles.length}`);
 
     // Place player
     this.placePlayer(level, enterDirection);

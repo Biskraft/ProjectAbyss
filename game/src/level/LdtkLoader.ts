@@ -72,7 +72,9 @@ export interface LdtkLevel {
   collisionGrid: number[][];
   /** Visual tiles from the Background AutoLayer. */
   backgroundTiles: LdtkTile[];
-  /** Visual tiles from the Wall_shadows AutoLayer. */
+  /** Wall/terrain tiles from Collisions IntGrid autoLayerTiles (full opacity). */
+  wallTiles: LdtkTile[];
+  /** Visual tiles from the Wall_shadows AutoLayer (reduced opacity overlay). */
   shadowTiles: LdtkTile[];
   /** Entities placed in the Entities layer. */
   entities: LdtkEntity[];
@@ -299,6 +301,7 @@ export class LdtkLoader {
     // Default empty structures — used when a layer is absent or has no data.
     let collisionGrid: number[][] = this.emptyGrid(gridW, gridH);
     let backgroundTiles: LdtkTile[] = [];
+    let wallTiles: LdtkTile[] = [];
     let shadowTiles: LdtkTile[] = [];
     let entities: LdtkEntity[] = [];
 
@@ -311,21 +314,19 @@ export class LdtkLoader {
           if (layer.intGridCsv.length > 0) {
             collisionGrid = this.parseIntGrid(layer.intGridCsv, layer.__cWid, layer.__cHei);
           }
-          // IntGrid layers can also carry autoLayerTiles (auto-rule visuals
-          // painted from the IntGrid values). These are the primary wall/terrain
-          // tiles — merge them into shadowTiles.
+          // IntGrid layers carry autoLayerTiles (auto-rule visuals) — these
+          // are the primary wall/terrain tiles. Render at FULL opacity.
           if (layer.autoLayerTiles.length > 0) {
-            shadowTiles = shadowTiles.concat(this.parseAutoLayerTiles(layer.autoLayerTiles));
+            wallTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
           }
           break;
 
         case 'Background':
-          // AutoLayer with the background visual tiles.
           backgroundTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
           break;
 
         case 'Wall_shadows':
-          // AutoLayer with shadow/overlay visual tiles.
+          // Overlay shadows at reduced opacity.
           shadowTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
           break;
 
@@ -351,6 +352,7 @@ export class LdtkLoader {
       roomType,
       collisionGrid,
       backgroundTiles,
+      wallTiles,
       shadowTiles,
       entities,
       neighbors: [], // populated later from __neighbours + computeNeighbors()

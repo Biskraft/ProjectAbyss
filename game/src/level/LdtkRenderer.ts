@@ -49,7 +49,10 @@ export class LdtkRenderer {
   /** Background autoLayer tiles (rendered first / bottom). */
   private bgLayer: Container;
 
-  /** Wall_shadows autoLayer tiles (rendered above bg). */
+  /** Wall/terrain tiles from Collisions IntGrid autoLayerTiles (100% opacity). */
+  private wallLayer: Container;
+
+  /** Wall_shadows autoLayer tiles (rendered above walls, reduced opacity). */
   private shadowLayer: Container;
 
   /** Optional debug markers for entity positions. */
@@ -59,11 +62,13 @@ export class LdtkRenderer {
     this.container = new Container();
 
     this.bgLayer = new Container();
+    this.wallLayer = new Container();
     this.shadowLayer = new Container();
     this.entityMarkers = new Container();
 
-    // Render order: bg → shadows → entity markers (debug only)
+    // Render order: bg → walls → shadows → entity markers
     this.container.addChild(this.bgLayer);
+    this.container.addChild(this.wallLayer);
     this.container.addChild(this.shadowLayer);
     this.container.addChild(this.entityMarkers);
   }
@@ -78,6 +83,7 @@ export class LdtkRenderer {
    */
   renderLevel(
     bgTiles: LdtkTile[],
+    wallTiles: LdtkTile[],
     shadowTiles: LdtkTile[],
     atlas: Texture,
     shadowOpacity: number = DEFAULT_SHADOW_OPACITY,
@@ -88,6 +94,12 @@ export class LdtkRenderer {
       this.bgLayer.addChild(this.buildSprite(tile, atlas));
     }
 
+    // Wall/terrain tiles at full opacity
+    for (const tile of wallTiles) {
+      this.wallLayer.addChild(this.buildSprite(tile, atlas));
+    }
+
+    // Shadow overlay at reduced opacity
     this.shadowLayer.alpha = shadowOpacity;
     for (const tile of shadowTiles) {
       this.shadowLayer.addChild(this.buildSprite(tile, atlas));
@@ -118,6 +130,7 @@ export class LdtkRenderer {
   /** Remove all rendered tiles and markers. */
   clear(): void {
     this.bgLayer.removeChildren();
+    this.wallLayer.removeChildren();
     this.shadowLayer.removeChildren();
     this.entityMarkers.removeChildren();
   }
