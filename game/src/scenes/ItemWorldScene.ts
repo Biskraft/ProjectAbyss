@@ -5,6 +5,9 @@ import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from 
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
+import { LdtkLoader } from '@level/LdtkLoader';
+import { LdtkRenderer } from '@level/LdtkRenderer';
+import type { LdtkLevel } from '@level/LdtkLoader';
 import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
@@ -41,6 +44,9 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
 export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
+  private ldtkLoader: LdtkLoader | null = null;
+  private ldtkRenderer: LdtkRenderer | null = null;
+  private ldtkTemplates: LdtkLevel[] = [];
   private player!: Player;
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -121,8 +127,18 @@ export class ItemWorldScene extends Scene {
   }
 
   async init(): Promise<void> {
-    // Load tileset atlas for template rooms
+    // Load tileset atlas + LDtk item world templates
     this.atlas = await Assets.load('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
+    try {
+      const json = await fetch('assets/World_ProjectAbyss_ItemStratum.ldtk').then(r => r.json());
+      this.ldtkLoader = new LdtkLoader();
+      this.ldtkLoader.load(json);
+      this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
+      this.ldtkRenderer = new LdtkRenderer();
+      console.log(`[ItemWorld] Loaded ${this.ldtkTemplates.length} LDtk templates`);
+    } catch (e) {
+      console.warn('[ItemWorld] LDtk templates not found, using code templates');
+    }
 
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
@@ -288,14 +304,29 @@ export class ItemWorldScene extends Scene {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
 
-    // Use template if available, fallback to ChunkAssembler
-    const template = this.pickTemplateForCell(cell, roomRng);
-    if (template) {
-      this.roomData = template.grid.map(row => [...row]); // deep copy
+    // Pick room: LDtk template → code template → ChunkAssembler fallback
+    const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
+    if (ldtkLevel && this.ldtkRenderer && this.atlas) {
+      // Use LDtk hand-crafted template with tile rendering
+      this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
+      this.tilemap.container.visible = false;
+      this.ldtkRenderer.clear();
+      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
+      if (!this.ldtkRenderer.container.parent) {
+        this.container.addChildAt(this.ldtkRenderer.container, 0);
+      }
     } else {
-      this.roomData = assembleRoom(cell, roomRng);
+      // Code template or ChunkAssembler fallback
+      const template = this.pickTemplateForCell(cell, roomRng);
+      if (template) {
+        this.roomData = template.grid.map(row => [...row]);
+      } else {
+        this.roomData = assembleRoom(cell, roomRng);
+      }
+      if (this.ldtkRenderer) this.ldtkRenderer.clear();
+      this.tilemap.container.visible = true;
+      this.tilemap.loadRoom(this.roomData);
     }
-    this.tilemap.loadRoom(this.roomData);
     this.player.roomData = this.roomData;
 
     // Update camera bounds for current room size (template rooms are 32×16, legacy 60×34)
@@ -428,6 +459,12 @@ export class ItemWorldScene extends Scene {
   /** Current room dimensions in tiles (varies with template vs legacy) */
   private get roomW(): number { return this.roomData[0]?.length ?? ROOM_W; }
   private get roomH(): number { return this.roomData.length ?? ROOM_H; }
+
+  /** Pick a random LDtk template from loaded templates */
+  private pickLdtkTemplate(cell: UnifiedRoomCell, rng: PRNG): LdtkLevel | null {
+    if (this.ldtkTemplates.length === 0) return null;
+    return this.ldtkTemplates[rng.nextInt(0, this.ldtkTemplates.length - 1)];
+  }
 
   /** Map cell exits to template exits and pick a matching template */
   private pickTemplateForCell(cell: UnifiedRoomCell, rng: PRNG): RoomTemplate | null {
