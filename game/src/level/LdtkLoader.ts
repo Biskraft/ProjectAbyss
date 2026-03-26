@@ -248,6 +248,9 @@ export class LdtkLoader {
     // Also run geometric neighbor detection as fallback.
     this.computeNeighbors();
 
+    // Validate passages: warn if a neighbor direction has no open edge tiles
+    this.validatePassages();
+
     this.project = {
       ldtkVersion: (json['ldtkVersion'] as string) ?? 'unknown',
       levels: Array.from(this.levels.values()),
@@ -483,6 +486,62 @@ export class LdtkLoader {
    *   - On one axis: the far boundary of one equals the near boundary of the other.
    *   - On the other axis: the intervals overlap (strictly, not just touch).
    */
+  /**
+   * Validate that every directional neighbor has at least one open tile (0)
+   * on the matching edge. Logs warnings for blocked passages.
+   */
+  private validatePassages(): void {
+    const dirToEdge: Record<string, 'right' | 'left' | 'top' | 'bottom'> = {
+      e: 'right', w: 'left', n: 'top', s: 'bottom',
+    };
+    let ok = 0;
+    let blocked = 0;
+
+    for (const level of this.levels.values()) {
+      for (const [dir, nIds] of Object.entries(level.dirNeighbors)) {
+        const edge = dirToEdge[dir];
+        if (!edge) continue; // skip diagonal/depth neighbors
+
+        const hasOpen = this.hasOpenEdgeTile(level, edge);
+        if (hasOpen) {
+          ok++;
+        } else {
+          blocked++;
+          const nbNames = nIds.join(', ');
+          console.warn(`[LDtk] ⚠ ${level.identifier} → ${dir}(${edge}) → [${nbNames}]: edge is ALL WALLS — passage blocked`);
+        }
+      }
+    }
+
+    if (blocked > 0) {
+      console.warn(`[LDtk] Passage check: ${ok} ok, ${blocked} blocked. Open walls in LDtk editor.`);
+    } else {
+      console.log(`[LDtk] ✓ All ${ok} passages verified open.`);
+    }
+  }
+
+  /** Check if a level has at least one open tile (0) on the given edge. */
+  private hasOpenEdgeTile(level: LdtkLevel, edge: 'right' | 'left' | 'top' | 'bottom'): boolean {
+    const grid = level.collisionGrid;
+    const h = grid.length;
+    const w = grid[0]?.length ?? 0;
+
+    switch (edge) {
+      case 'right':
+        for (let row = 0; row < h; row++) { if (grid[row][w - 1] === 0) return true; }
+        return false;
+      case 'left':
+        for (let row = 0; row < h; row++) { if (grid[row][0] === 0) return true; }
+        return false;
+      case 'bottom':
+        for (let col = 0; col < w; col++) { if (grid[h - 1][col] === 0) return true; }
+        return false;
+      case 'top':
+        for (let col = 0; col < w; col++) { if (grid[0][col] === 0) return true; }
+        return false;
+    }
+  }
+
   private shareEdge(a: LdtkLevel, b: LdtkLevel): boolean {
     const aRight  = a.worldX + a.pxWid;
     const aBottom = a.worldY + a.pxHei;
