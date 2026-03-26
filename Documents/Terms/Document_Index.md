@@ -183,7 +183,7 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-LVL-01 | Stat System | `System/System_Growth_Stats.md` | ✅ 완료 | 전체 | 전체 |
-| SYS-LVL-02 | Level & Experience | `System/System_Growth_LevelExp.md` | ⬜ 제작 필요 | 전체 | 야리코미 |
+| SYS-LVL-02 | Level & Experience | `System/System_Growth_LevelExp.md` | ✅ 완료 | 전체 | 야리코미 |
 | SYS-LVL-03 | Skill Tree | `System/System_Growth_SkillTree.md` | ⬜ 제작 필요 | 전체 | 탐험+야리코미 |
 | SYS-LVL-04 | Reincarnation | `System/System_Growth_Reincarnation.md` | ⬜ 제작 필요 | Hub | 야리코미 |
 
@@ -199,10 +199,10 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-WLD-01 | World Map Structure | `System/System_World_MapStructure.md` | ⬜ 제작 필요 | World | 탐험 |
+| SYS-WLD-01 | World Map Structure | `System/System_World_MapStructure.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-02 | Zone Design | `System/System_World_ZoneDesign.md` | ⬜ 제작 필요 | World | 탐험 |
-| SYS-WLD-03 | Ability Gating | `System/System_World_AbilityGating.md` | ⬜ 제작 필요 | World | 탐험 |
-| SYS-WLD-04 | Stat Gating | `System/System_World_StatGating.md` | ⬜ 제작 필요 | World | 탐험+야리코미 |
+| SYS-WLD-03 | Ability Gating | `System/System_World_AbilityGating.md` | ✅ 완료 | World | 탐험 |
+| SYS-WLD-04 | Stat Gating | `System/System_World_StatGating.md` | ✅ 완료 | World | 탐험+야리코미 |
 | SYS-WLD-05 | World ProcGen | `System/System_World_ProcGen.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-06 | Save & Warp | `System/System_World_SaveWarp.md` | ⬜ 제작 필요 | World | 탐험 |
 | SYS-WLD-07 | Secrets & Rewards | `System/System_World_Secrets.md` | ⬜ 제작 필요 | World | 탐험 |
@@ -257,7 +257,7 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ⬜ 제작 필요 | IW+Hub | 야리코미 |
+| SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW+Hub | 야리코미 |
 | SYS-INC-02 | Innocent Farm | `System/System_Innocent_Farm.md` | ⬜ 제작 필요 | Hub | 야리코미 |
 | SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ⬜ 제작 필요 | Hub | 야리코미 |
 
@@ -493,8 +493,8 @@ graph LR
 | :--- | :--- | :--- | :--- | :--- |
 | Terms | 6 | 4 | 1 | 1 |
 | Design | 12 | 9 | 0 | 3 |
-| System | 34 | 15 | 0 | 19 |
+| System | 34 | 20 | 0 | 14 |
 | UI | 6 | 0 | 0 | 6 |
 | Content | 8 | 0 | 0 | 8 |
 | CSV | 11 | 4 | 0 | 7 |
-| **합계** | **78** | **33** | **1** | **44** |
+| **합계** | **78** | **38** | **1** | **39** |

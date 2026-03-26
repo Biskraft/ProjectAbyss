@@ -1,4 +1,4 @@
-import { type Rarity, RARITY_MULTIPLIER, type WeaponDef } from '@data/weapons';
+import { type Rarity, type WeaponDef } from '@data/weapons';
 
 let nextItemId = 1;
 
@@ -57,15 +57,18 @@ export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
   return item;
 }
 
-/**
- * Disgaea-style exponential growth.
- * Lv0=base, Lv10≈2.6x, Lv30≈17x, Lv50≈117x, Lv99≈19,000x+
- * Formula: baseAtk * rarityMult * (1 + level)^1.5 * (1 + 0.03*level)
- */
+/** ATK per level by rarity — linear growth, no exponential scaling */
+const ATK_PER_LEVEL: Record<Rarity, number> = {
+  normal: 2,
+  magic: 3,
+  rare: 4,
+  legendary: 5,
+  ancient: 7,
+};
+
+/** Linear growth: finalAtk = baseAtk + atkPerLevel × level */
 export function recalcItemAtk(item: ItemInstance): void {
-  const base = item.def.baseAtk * RARITY_MULTIPLIER[item.rarity];
-  const growth = Math.pow(1 + item.level, 1.5) * (1 + 0.03 * item.level);
-  item.finalAtk = Math.floor(base * growth);
+  item.finalAtk = item.def.baseAtk + ATK_PER_LEVEL[item.rarity] * item.level;
 }
 
 export function addItemExp(item: ItemInstance, exp: number): boolean {

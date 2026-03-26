@@ -1,6 +1,6 @@
 # Project Abyss: 전체 개발 로드맵 (Development Roadmap)
 
-> **최근 업데이트:** 2026-03-23
+> **최근 업데이트:** 2026-03-25
 > **문서 상태:** `작성 중 (Draft)`
 
 ---
@@ -9,20 +9,21 @@
 
 | 항목 | 상태 |
 | :--- | :--- |
-| GDD 문서 | 21/65 완료 (32.3%) |
+| GDD 문서 | 33/78 완료 (42.3%) — Terms 4, Design 9, System 15, Content 2, Research 15 |
 | CSV 데이터 시트 | 4/11 완료 |
-| 코드 | 0줄 (기획 단계) |
-| 완료된 GDD | Vision, GDD_Roles, Sheets_Rules, Glossary, 3C(3), Combat(3), ProcGen(2), Growth_Stats, Equipment(2), Enemy_AI, Design(5) |
+| 코드 | ~6,900줄 TypeScript (game/src/ 45+ 파일) |
 | Phase 0 | ✅ 완료 (10/10) |
+| Phase 1 (P1 범위) | 🔧 81% (66/81 구현 완료, 8 부분 구현, 7 미착수) |
+| Phase 1 마일스톤 | M1.1~M1.4 ✅ 완료, M1.5 🔧 90%, M1.6 🔧 70% |
 
 ---
 
 ## 전체 로드맵 개요
 
 ```
-Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶  Phase 2 (알파)  ──▶  Phase 3 (베타)  ──▶  Phase 4 (런칭)
-기획 최소 단위 확정          핵심 루프 검증                 성장/탐험 루프       멀티+야리코미        라이브 서비스
-~2주                        ~8주                          ~12주               ~16주               ~12주
+Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶  Phase 2 (알파)  ──▶  Phase 3 (베타)
+기획 최소 단위 확정          핵심 루프 검증                 성장/탐험 루프       멀티+야리코미
+~2주                        ~8주                          ~12주               ~16주
 ```
 
 ---
@@ -71,7 +72,7 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 | 0-9 | **Room 템플릿 CSV** | `Sheets/Content_Level_RoomTemplate.csv` | ✅ | Castle 10개 + ItemWorld 3개 = 13 템플릿 |
 | 0-10 | **용어집** | `Terms/Glossary.md` | ✅ | 38개 핵심 용어 + Quick Reference |
 
-**Phase 0 완료:** ✅ 10/10 항목 완료 (2026-03-23) → Phase 1 코딩 시작 가능
+**Phase 0 완료:** ✅ 10/10 항목 완료 (2026-03-23) → Phase 1 코딩 진행 중
 
 ---
 
@@ -251,22 +252,6 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | M3.8 모바일 대응 | 가상 패드 + 터치 최적화 + 반응형 UI |
 
 ---
-
-## Phase 4: 런칭 — "장기 운영"
-
-### 목표
-> 시즌 시스템 + 거래소 + 이벤트 + 길드 + 라이브 운영 파이프라인
-
-### 주요 마일스톤
-
-| 마일스톤 | 핵심 내용 |
-| :--- | :--- |
-| M4.1 시즌 시스템 | 3~6개월 시즌 리셋, 월드 재시드 |
-| M4.2 거래소 | 플레이어 간 아이템/이노센트 거래 |
-| M4.3 길드 | 길드 생성, 길드 레이드 |
-| M4.4 이벤트 | 시즌 이벤트, 한정 보상 |
-| M4.5 콘텐츠 확장 | 역전 성, 심연 구역, 추가 무기/스킬 |
-| M4.6 라이브 운영 | 모니터링, 밸런스 패치, CS |
 
 ---
 
@@ -497,7 +482,6 @@ graph TD
 | 15 | Design | `Design/Design_Narrative_Worldbuilding.md` | Phase 2 | ⬜ |
 | 42 | Design | `Design/Design_Online_Principles.md` | Phase 3 | ⬜ |
 | 43 | Design | `Design/Design_Economy_FaucetSink.md` | Phase 3 | ⬜ |
-| 70 | Design | `Design/Design_Season_LiveService.md` | Phase 4 | ⬜ |
 
 ---
 
