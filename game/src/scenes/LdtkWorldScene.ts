@@ -579,13 +579,13 @@ export class LdtkWorldScene extends Scene {
       case 'left': {
         const passageY = this.findEdgePassage(grid, 'left', hintRow);
         spawnX = INSET;
-        spawnY = passageY * TILE_SIZE;
+        spawnY = this.snapToFloor(grid, Math.floor(INSET / TILE_SIZE), passageY, ph);
         break;
       }
       case 'right': {
         const passageY = this.findEdgePassage(grid, 'right', hintRow);
         spawnX = level.pxWid - INSET - pw;
-        spawnY = passageY * TILE_SIZE;
+        spawnY = this.snapToFloor(grid, level.gridW - 3, passageY, ph);
         break;
       }
       case 'up': {
@@ -624,6 +624,23 @@ export class LdtkWorldScene extends Scene {
    * For up/down edges: returns the X tile column of the passage.
    * Falls back to the middle of the edge if no passage found.
    */
+  /**
+   * From a passage row, scan downward to find the floor, then place entity
+   * directly on top of it. Prevents spawning inside the floor.
+   */
+  private snapToFloor(grid: number[][], tileX: number, passageRow: number, entityHeight: number): number {
+    const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
+    // Scan down from passage row to find first solid tile below
+    for (let row = passageRow; row < grid.length; row++) {
+      if (grid[row][clampedX] >= 1) {
+        // Floor found — place entity on top of it
+        return row * TILE_SIZE - entityHeight;
+      }
+    }
+    // No floor below — use passage row directly
+    return passageRow * TILE_SIZE;
+  }
+
   /**
    * @param hintTile - preferred tile index (row for left/right, col for up/down).
    *                   Picks the closest open passage to this hint.
