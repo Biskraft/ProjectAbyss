@@ -513,30 +513,12 @@ export class ItemWorldScene extends Scene {
     if (changed.length === 0) return;
     const T = TILE_SIZE;
 
-    // One sprite per sealed tile using atlas wall texture
     const sealContainer = new Container();
-    if (this.atlas) {
-      const frame = new Rectangle(64, 16, T, T);
-      const wallTex = new PixiTexture({ source: this.atlas.source, frame });
-      for (const [c, r] of changed) {
-        const s = new Sprite(wallTex);
-        s.x = c * T;
-        s.y = r * T;
-        sealContainer.addChild(s);
-      }
-    } else {
-      // Fallback: colored rectangles
-      const gfx = new Graphics();
-      for (const [c, r] of changed) {
-        gfx.rect(c * T, r * T, T, T).fill(0xff0000);
-      }
-      sealContainer.addChild(gfx);
+    const gfx = new Graphics();
+    for (const [c, r] of changed) {
+      gfx.rect(c * T, r * T, T, T).fill(0x6b4830);
     }
-
-    // DEBUG: add a big red square in the CENTER of the room to test rendering
-    const debugGfx = new Graphics();
-    debugGfx.rect(200, 200, 100, 100).fill(0xff0000);
-    sealContainer.addChild(debugGfx);
+    sealContainer.addChild(gfx);
 
     console.log(`[ItemWorld] Seal: ${changed.length} tiles, container.children=${this.container.children.length}, sealContainer.children=${sealContainer.children.length}`);
     this.sealGfx = sealContainer;
