@@ -514,60 +514,11 @@ export class ItemWorldScene extends Scene {
     const T = TILE_SIZE;
 
     const sealContainer = new Container();
-
-    if (this.atlas && this.currentLdtkLevel && this.currentLdtkLevel.wallTiles.length > 0) {
-      // Build tile lookup from existing wall tiles
-      const lookup = new Map<string, [number, number]>();
-      for (const t of this.currentLdtkLevel.wallTiles) {
-        lookup.set(`${Math.floor(t.px[0]/T)},${Math.floor(t.px[1]/T)}`, t.src);
-      }
-
-      // Pick a default wall tile (most common src in the level)
-      const srcCount = new Map<string, { src: [number, number]; count: number }>();
-      for (const t of this.currentLdtkLevel.wallTiles) {
-        const key = `${t.src[0]},${t.src[1]}`;
-        const entry = srcCount.get(key);
-        if (entry) entry.count++; else srcCount.set(key, { src: t.src, count: 1 });
-      }
-      let defaultSrc: [number, number] = [64, 16];
-      let maxCount = 0;
-      for (const entry of srcCount.values()) {
-        if (entry.count > maxCount) { maxCount = entry.count; defaultSrc = entry.src; }
-      }
-
-      const texCache = new Map<string, PixiTexture>();
-      const getTex = (sx: number, sy: number) => {
-        const k = `${sx},${sy}`;
-        let tex = texCache.get(k);
-        if (!tex) { tex = new PixiTexture({ source: this.atlas!.source, frame: new Rectangle(sx, sy, T, T) }); texCache.set(k, tex); }
-        return tex;
-      };
-
-      for (const [c, r] of changed) {
-        // Find closest existing wall tile
-        let src: [number, number] | undefined;
-        for (let rad = 1; rad <= 5 && !src; rad++) {
-          for (let dr = -rad; dr <= rad && !src; dr++) {
-            for (let dc = -rad; dc <= rad && !src; dc++) {
-              src = lookup.get(`${c+dc},${r+dr}`);
-            }
-          }
-        }
-        if (!src) src = defaultSrc;
-
-        const sprite = new Sprite(getTex(src[0], src[1]));
-        sprite.x = c * T;
-        sprite.y = r * T;
-        sealContainer.addChild(sprite);
-      }
-    } else {
-      // Fallback: brown blocks
-      const gfx = new Graphics();
-      for (const [c, r] of changed) {
-        gfx.rect(c * T, r * T, T, T).fill(0x6b4830);
-      }
-      sealContainer.addChild(gfx);
+    const gfx = new Graphics();
+    for (const [c, r] of changed) {
+      gfx.rect(c * T, r * T, T, T).fill(0x000000);
     }
+    sealContainer.addChild(gfx);
 
     console.log(`[ItemWorld] Seal: ${changed.length} tiles, container.children=${this.container.children.length}, sealContainer.children=${sealContainer.children.length}`);
     this.sealGfx = sealContainer;
