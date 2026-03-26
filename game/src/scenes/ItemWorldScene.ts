@@ -4,6 +4,7 @@ import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
+import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
 import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
@@ -180,7 +181,7 @@ export class ItemWorldScene extends Scene {
 
     // Fade overlay
     this.fadeOverlay = new Graphics();
-    this.fadeOverlay.rect(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE).fill(0x000000);
+    this.fadeOverlay.rect(0, 0, 960, 544).fill(0x000000); // large enough for any room
     this.fadeOverlay.alpha = 0;
     this.container.addChild(this.fadeOverlay);
 
@@ -281,9 +282,19 @@ export class ItemWorldScene extends Scene {
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
-    this.roomData = assembleRoom(cell, roomRng);
+
+    // Use template if available, fallback to ChunkAssembler
+    const template = this.pickTemplateForCell(cell, roomRng);
+    if (template) {
+      this.roomData = template.grid.map(row => [...row]); // deep copy
+    } else {
+      this.roomData = assembleRoom(cell, roomRng);
+    }
     this.tilemap.loadRoom(this.roomData);
     this.player.roomData = this.roomData;
+
+    // Update camera bounds for current room size (template rooms are 32×16, legacy 60×34)
+    this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE);
 
     // Update stratum context from cell
     const prevStratumIndex = this.currentStratumIndex;
@@ -305,9 +316,18 @@ export class ItemWorldScene extends Scene {
     }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
-    const spawn = getSpawnPosition(spawnSide);
-    this.player.x = spawn.x;
-    this.player.y = spawn.y;
+    // Template-aware spawn position
+    const rW = this.roomW;
+    const rH = this.roomH;
+    let spawnX: number, spawnY: number;
+    switch (spawnSide) {
+      case 'left':  spawnX = 2 * TILE_SIZE; spawnY = this.findFloorY(2); break;
+      case 'right': spawnX = (rW - 3) * TILE_SIZE; spawnY = this.findFloorY(rW - 3); break;
+      case 'up':    spawnX = Math.floor(rW / 2) * TILE_SIZE; spawnY = 2 * TILE_SIZE; break;
+      case 'down':  default: spawnX = Math.floor(rW / 2) * TILE_SIZE; spawnY = this.findFloorY(Math.floor(rW / 2)); break;
+    }
+    this.player.x = spawnX;
+    this.player.y = spawnY;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
@@ -363,6 +383,31 @@ export class ItemWorldScene extends Scene {
     this.drawMiniMap();
   }
 
+  /** Find floor Y in current room at given tile column */
+  private findFloorY(tileX: number): number {
+    const grid = this.roomData;
+    const cx = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
+    for (let row = grid.length - 1; row >= 0; row--) {
+      if (grid[row][cx] >= 1) return row * TILE_SIZE - this.player.height;
+    }
+    return (grid.length - 2) * TILE_SIZE - this.player.height;
+  }
+
+  /** Current room dimensions in tiles (varies with template vs legacy) */
+  private get roomW(): number { return this.roomData[0]?.length ?? ROOM_W; }
+  private get roomH(): number { return this.roomData.length ?? ROOM_H; }
+
+  /** Map cell exits to template exits and pick a matching template */
+  private pickTemplateForCell(cell: UnifiedRoomCell, rng: PRNG): RoomTemplate | null {
+    const exits: ExitDir[] = [];
+    if (cell.exits.left) exits.push('L');
+    if (cell.exits.right) exits.push('R');
+    if (cell.exits.up) exits.push('U');
+    if (cell.exits.down) exits.push('D');
+    if (exits.length === 0) return null;
+    return pickTemplate(exits, rng);
+  }
+
   private spawnEnemies(): void {
     const floorY = (ROOM_H - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
@@ -370,15 +415,16 @@ export class ItemWorldScene extends Scene {
     const dist = Math.abs(this.currentCol - this.unifiedGrid.startRoom.col)
                + Math.abs(this.currentRow - this.unifiedGrid.startRoom.absoluteRow);
     const count = 2 + Math.floor(dist * 0.5) + def.enemyCountBonus;
-    const hpScale = (1 + dist * 0.2) * def.enemyHpScale;
-    const atkScale = (1 + dist * 0.2) * def.enemyAtkScale;
+    // Distance scaling: +10% HP/ATK per tile from start
+    const distScale = 1 + dist * 0.1;
 
     for (let i = 0; i < count; i++) {
       const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
       const isGhost = spawnRng.next() < 0.3;
       const enemy = isGhost ? new Ghost() : new Skeleton();
-      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * hpScale);
-      enemy.atk = Math.floor(enemy.atk * atkScale);
+      // Use absolute stats from StrataConfig instead of scaling base enemy stats
+      enemy.hp = enemy.maxHp = Math.floor(def.enemyHp * distScale);
+      enemy.atk = Math.floor(def.enemyAtk * distScale);
 
       enemy.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
       enemy.y = floorY - enemy.height;
@@ -393,8 +439,8 @@ export class ItemWorldScene extends Scene {
     const floorY = (ROOM_H - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
     const boss = new Skeleton();
-    boss.hp = boss.maxHp = Math.floor(boss.maxHp * def.bossHpScale);
-    boss.atk = Math.floor(boss.atk * def.bossAtkScale);
+    boss.hp = boss.maxHp = def.bossHp;
+    boss.atk = def.bossAtk;
     const visualScale = 1.5 + this.currentStratumIndex * 0.2;
     boss.container.scale.set(visualScale);
     boss.x = (ROOM_W / 2) * TILE_SIZE;
