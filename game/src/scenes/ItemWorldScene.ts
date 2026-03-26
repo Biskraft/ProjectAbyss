@@ -505,53 +505,34 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Render seal visuals — copies nearby wall tiles, falls back to solid block */
+  /** Render seal visuals */
   private addSealSprites(changed: Array<[number, number]>): void {
     if (changed.length === 0) return;
     const T = TILE_SIZE;
-    const gfx = new Graphics();
 
-    // Draw bright red blocks so they're impossible to miss (debug)
-    for (const [c, r] of changed) {
-      gfx.rect(c * T, r * T, T, T).fill(0xff0000);
-    }
-    console.log(`[ItemWorld] addSealSprites: ${changed.length} blocks, entityLayer children before=${this.entityLayer.children.length}`);
-
-    // If we have LDtk tiles, overlay matching wall tiles
-    if (this.atlas && this.currentLdtkLevel) {
-      const src = this.atlas.source;
-      const tileLookup = new Map<string, [number, number]>();
-      for (const tile of this.currentLdtkLevel.wallTiles) {
-        tileLookup.set(`${Math.floor(tile.px[0]/T)},${Math.floor(tile.px[1]/T)}`, tile.src);
-      }
-
-      const texCache = new Map<string, PixiTexture>();
+    // One sprite per sealed tile using atlas wall texture
+    const sealContainer = new Container();
+    if (this.atlas) {
+      const frame = new Rectangle(64, 16, T, T);
+      const wallTex = new PixiTexture({ source: this.atlas.source, frame });
       for (const [c, r] of changed) {
-        // Find nearest wall tile
-        let tileSrc: [number, number] | null = null;
-        for (let rad = 1; rad <= 3 && !tileSrc; rad++) {
-          for (let dr = -rad; dr <= rad && !tileSrc; dr++) {
-            for (let dc = -rad; dc <= rad && !tileSrc; dc++) {
-              const s = tileLookup.get(`${c+dc},${r+dr}`);
-              if (s) tileSrc = s;
-            }
-          }
-        }
-        if (!tileSrc) tileSrc = [64, 16];
-
-        const key = `${tileSrc[0]},${tileSrc[1]}`;
-        let tex = texCache.get(key);
-        if (!tex) { tex = new PixiTexture({ source: src, frame: new Rectangle(tileSrc[0], tileSrc[1], T, T) }); texCache.set(key, tex); }
-
-        const sprite = new Sprite(tex);
-        sprite.x = c * T;
-        sprite.y = r * T;
-        gfx.addChild(sprite);
+        const s = new Sprite(wallTex);
+        s.x = c * T;
+        s.y = r * T;
+        sealContainer.addChild(s);
       }
+    } else {
+      // Fallback: colored rectangles
+      const gfx = new Graphics();
+      for (const [c, r] of changed) {
+        gfx.rect(c * T, r * T, T, T).fill(0xff0000);
+      }
+      sealContainer.addChild(gfx);
     }
 
-    this.sealGfx = gfx;
-    this.container.addChild(gfx); // top of scene container (above everything)
+    console.log(`[ItemWorld] Seal: ${changed.length} sprites, container.children=${this.container.children.length}`);
+    this.sealGfx = sealContainer;
+    this.container.addChild(sealContainer);
   }
 
   /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
