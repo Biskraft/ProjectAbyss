@@ -502,29 +502,27 @@ export class ItemWorldScene extends Scene {
     const count = 2 + Math.floor(dist * 0.5) + stratumDef.enemyCountBonus;
     const distScale = 1 + dist * 0.1;
 
-    /**
-     * Raycast: start from mid-room (air), scan DOWN to find first solid tile.
-     * If mid-room is already solid, scan UP first to find air, then DOWN.
-     */
-    const findFloor = (worldX: number, entityH: number): number => {
-      const tileCol = Math.floor(worldX / TILE_SIZE);
-      const roomTopRow = Math.floor(offY / TILE_SIZE);
-      const roomBotRow = roomTopRow + 32;
-      const midRow = roomTopRow + 8; // start from ~25% height (likely air)
+    // Pre-compute all valid spawn positions: air tile with solid tile below
+    const roomTopRow = Math.floor(offY / TILE_SIZE);
+    const roomTopCol = Math.floor(offX / TILE_SIZE);
+    const spawnPoints: Array<{ x: number; y: number }> = [];
 
-      // Find air first: scan UP from midRow
-      let airRow = midRow;
-      for (let tr = midRow; tr >= roomTopRow; tr--) {
-        if ((this.fullGrid[tr]?.[tileCol] ?? 1) === 0) { airRow = tr; break; }
-      }
-
-      // From air, scan DOWN to find solid (floor)
-      for (let tr = airRow; tr < roomBotRow; tr++) {
-        if ((this.fullGrid[tr]?.[tileCol] ?? 1) >= 1) {
-          return tr * TILE_SIZE - entityH;
+    for (let tc = roomTopCol + 2; tc < roomTopCol + 30; tc++) {
+      for (let tr = roomTopRow + 2; tr < roomTopRow + 30; tr++) {
+        const here = this.fullGrid[tr]?.[tc] ?? 1;
+        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
+        // Air tile with solid floor below = valid spawn
+        if (here === 0 && below >= 1) {
+          spawnPoints.push({ x: tc * TILE_SIZE, y: (tr + 1) * TILE_SIZE });
         }
       }
-      return offY + 28 * TILE_SIZE - entityH;
+    }
+
+    if (spawnPoints.length === 0) return;
+
+    const pickSpawn = (rng: PRNG, entityH: number) => {
+      const pt = spawnPoints[rng.nextInt(0, spawnPoints.length - 1)];
+      return { x: pt.x, y: pt.y - entityH };
     };
 
     const isEndRoom = this.isStratumEndRoom(col, row);
@@ -534,8 +532,10 @@ export class ItemWorldScene extends Scene {
       boss.atk = stratumDef.bossAtk;
       const visualScale = 1.5 + (cell.stratumIndex ?? 0) * 0.2;
       boss.container.scale.set(visualScale);
-      boss.x = offX + 256;
-      boss.y = findFloor(offX + 256, boss.height * visualScale);
+      const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
+      const sp = pickSpawn(bossRng, boss.height * visualScale);
+      boss.x = sp.x;
+      boss.y = sp.y;
       boss.roomData = this.fullGrid;
       boss.target = this.player;
       this.enemies.push(boss);
@@ -549,9 +549,9 @@ export class ItemWorldScene extends Scene {
       const enemy = isGhost ? new Ghost() : new Skeleton();
       enemy.hp = enemy.maxHp = Math.floor(stratumDef.enemyHp * distScale);
       enemy.atk = Math.floor(stratumDef.enemyAtk * distScale);
-      const ex = offX + spawnRng.nextInt(64, 448);
-      enemy.x = ex;
-      enemy.y = findFloor(ex, enemy.height);
+      const sp = pickSpawn(spawnRng, enemy.height);
+      enemy.x = sp.x;
+      enemy.y = sp.y;
       enemy.roomData = this.fullGrid;
       enemy.target = this.player;
       this.enemies.push(enemy);
