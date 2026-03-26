@@ -530,7 +530,12 @@ export class ItemWorldScene extends Scene {
       sealContainer.addChild(gfx);
     }
 
-    console.log(`[ItemWorld] Seal: ${changed.length} sprites, container.children=${this.container.children.length}`);
+    // DEBUG: add a big red square in the CENTER of the room to test rendering
+    const debugGfx = new Graphics();
+    debugGfx.rect(200, 200, 100, 100).fill(0xff0000);
+    sealContainer.addChild(debugGfx);
+
+    console.log(`[ItemWorld] Seal: ${changed.length} tiles, container.children=${this.container.children.length}, sealContainer.children=${sealContainer.children.length}`);
     this.sealGfx = sealContainer;
     this.container.addChild(sealContainer);
   }
