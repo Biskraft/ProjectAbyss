@@ -306,9 +306,11 @@ export class ItemWorldScene extends Scene {
 
     // Pick room: LDtk template → code template → ChunkAssembler fallback
     const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
+    console.log(`[ItemWorld] loadRoom: ldtkLevel=${ldtkLevel?.identifier ?? 'null'} ldtkRenderer=${!!this.ldtkRenderer} atlas=${!!this.atlas} templates=${this.ldtkTemplates.length}`);
     if (ldtkLevel && this.ldtkRenderer && this.atlas) {
       // Use LDtk hand-crafted template with tile rendering
       this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
+      console.log(`[ItemWorld] Using LDtk "${ldtkLevel.identifier}" grid=${this.roomData.length}x${this.roomData[0]?.length} bg=${ldtkLevel.backgroundTiles.length} wall=${ldtkLevel.wallTiles.length}`);
       this.tilemap.container.visible = false;
       this.ldtkRenderer.clear();
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
