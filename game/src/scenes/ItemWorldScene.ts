@@ -8,7 +8,7 @@ import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir }
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
+// Sprite/Texture imports kept for potential future LDtk tile sealing
 import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
@@ -520,56 +520,16 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Render auto-tiled wall sprites only on tiles that changed (0→1) */
+  /** Render wall blocks over sealed passage tiles */
   private addSealSprites(changed: Array<[number, number]>): void {
-    if (!this.ldtkRenderer || !this.atlas) return;
-    const grid = this.roomData;
-    const h = grid.length;
-    const w = grid[0]?.length ?? 0;
     const T = TILE_SIZE;
-    const src = this.atlas.source;
-
-    // SunnyLand auto-tile coords
-    const TOP_L = [48, 0], TOP_M = [64, 0], TOP_R = [80, 0];
-    const MID_L = [48, 16], MID_F = [64, 16], MID_R = [80, 16];
-    const BOT_L = [48, 32], BOT_M = [64, 32], BOT_R = [80, 32];
-
-    const texCache = new Map<string, PixiTexture>();
-    const getTex = (sx: number, sy: number): PixiTexture => {
-      const key = `${sx},${sy}`;
-      let tex = texCache.get(key);
-      if (!tex) { tex = new PixiTexture({ source: src, frame: new Rectangle(sx, sy, T, T) }); texCache.set(key, tex); }
-      return tex;
-    };
-
-    const isSolid = (c: number, r: number) => {
-      if (r < 0 || r >= h || c < 0 || c >= w) return true;
-      return grid[r][c] >= 1;
-    };
-
+    const gfx = new Graphics();
     for (const [c, r] of changed) {
-      // Pick tile based on neighboring solids (simple 4-neighbor auto-tile)
-      const up = isSolid(c, r - 1);
-      const down = isSolid(c, r + 1);
-      const left = isSolid(c - 1, r);
-      const right = isSolid(c + 1, r);
-
-      let tile: number[];
-      if (!up && down && !left && right) tile = TOP_L;       // top-left corner
-      else if (!up && down && left && right) tile = TOP_M;    // top edge
-      else if (!up && down && left && !right) tile = TOP_R;   // top-right corner
-      else if (up && down && !left && right) tile = MID_L;    // left edge
-      else if (up && down && left && !right) tile = MID_R;    // right edge
-      else if (up && !down && !left && right) tile = BOT_L;   // bottom-left corner
-      else if (up && !down && left && right) tile = BOT_M;    // bottom edge
-      else if (up && !down && left && !right) tile = BOT_R;   // bottom-right corner
-      else tile = MID_F;                                       // fully surrounded
-
-      const s = new Sprite(getTex(tile[0], tile[1]));
-      s.x = c * T;
-      s.y = r * T;
-      this.ldtkRenderer!.container.addChild(s);
+      gfx.rect(c * T, r * T, T, T).fill(0x4a3020);
+      gfx.rect(c * T + 1, r * T + 1, T - 2, T - 2).fill(0x6b4830);
     }
+    // Add to entity layer so it's above tiles but below player
+    this.entityLayer.addChild(gfx);
   }
 
   /** Find the first open tile (0) on a room edge. Returns row for L/R, col for U/D. */
