@@ -100,9 +100,10 @@ export class LdtkWorldScene extends Scene {
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
   private pendingLevelId: string | null = null;
-  private pendingPlayerTileY = 0;  // player's tile row when transition started
-  private pendingPlayerTileX = 0;  // player's tile col when transition started
+  private pendingPlayerTileY = 0;
+  private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
+  private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
@@ -256,14 +257,10 @@ export class LdtkWorldScene extends Scene {
 
     // Room transition fade
     if (this.transitionState !== 'none') {
-      const wasFading = this.transitionState;
       this.updateTransition(dt);
-      if (this.transitionState as string !== 'none') return; // still fading — skip normal update
-      // Transition just ended — snap camera so first normal frame has no lerp
-      this.game.camera.snap(
-        this.player.x + this.player.width / 2,
-        this.player.y + this.player.height / 2,
-      );
+      if (this.transitionState as string !== 'none') return;
+      // Transition just ended — force snap for several frames to prevent lerp jitter
+      this.postTransitionSnapFrames = 10;
     }
 
     // Player
@@ -465,12 +462,16 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera
-    this.game.camera.target = {
-      x: this.player.x + this.player.width / 2,
-      y: this.player.y + this.player.height / 2,
-    };
-    this.game.camera.update(dt);
+    // Camera — force snap for a few frames after room transition to prevent jitter
+    const cx = this.player.x + this.player.width / 2;
+    const cy = this.player.y + this.player.height / 2;
+    this.game.camera.target = { x: cx, y: cy };
+    if (this.postTransitionSnapFrames > 0) {
+      this.game.camera.snap(cx, cy);
+      this.postTransitionSnapFrames--;
+    } else {
+      this.game.camera.update(dt);
+    }
   }
 
   render(alpha: number): void {
