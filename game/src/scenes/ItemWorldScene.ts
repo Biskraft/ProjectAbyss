@@ -397,19 +397,19 @@ export class ItemWorldScene extends Scene {
         this.fullMapContainer.addChild(roomContainer);
 
         // Mark start room as visited
-        if (col === this.currentCol && row === this.currentRow) {
+        if (col === this.currentCol && absRow === this.currentRow) {
           cell.visited = true;
         }
 
         // Place exit portal in stratum end rooms
-        const isEndRoom = this.isStratumEndRoom(col, row);
+        const isEndRoom = this.isStratumEndRoom(col, absRow);
         if (isEndRoom) {
-          const isFinal = this.isFinalEndRoom(col, row);
+          const isFinal = this.isFinalEndRoom(col, absRow);
           const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
           const midColor  = isFinal ? 0xddaa55 : 0x5555dd;
           const topColor  = isFinal ? 0xeebb66 : 0x6666ff;
           const exitX = col * 512 + (16 / 2 - 1) * TILE_SIZE;
-          const exitY = row * 512 + (32 - 4) * TILE_SIZE;
+          const exitY = localRow * 512 + (32 - 4) * TILE_SIZE;
           const portalGfx = new Graphics();
           portalGfx.rect(0, 24, 48, 16).fill(baseColor);
           portalGfx.rect(8, 16, 32, 8).fill(midColor);
