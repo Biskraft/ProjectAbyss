@@ -199,28 +199,8 @@ export class ItemWorldScene extends Scene {
     this.tilemap.setTheme(this.currentStratumDef.theme);
     this.container.addChild(this.tilemap.container);
 
-    // Outside frame (rendered behind everything, fixed position)
-    if (this.outsideRenderer && this.outsideLevel && this.atlas) {
-      this.outsideRenderer.renderLevel(
-        this.outsideLevel.backgroundTiles,
-        this.outsideLevel.wallTiles,
-        this.outsideLevel.shadowTiles,
-        this.atlas,
-      );
-      this.container.addChildAt(this.outsideRenderer.container, 0);
-      console.log(`[ItemWorld] Outside frame rendered`);
-    }
-
-    // Room offset: center the 4×4 grid inside the outside frame
-    // Outside = 2560px, Grid = 4×512 = 2048px, offset = (2560-2048)/2 = 256
-    const outsideSize = this.outsideLevel?.pxWid ?? 0;
-    const gridSize = 4 * 512; // 4×4 rooms of 512px each
-    const roomOffset = outsideSize > 0 ? Math.floor((outsideSize - gridSize) / 2) : 0;
-
-    // Entity layer (offset to align with room grid inside frame)
+    // Entity layer
     this.entityLayer = new Container();
-    this.entityLayer.x = roomOffset;
-    this.entityLayer.y = roomOffset;
     this.container.addChild(this.entityLayer);
 
     // Player (clone stats from world player)
@@ -357,9 +337,7 @@ export class ItemWorldScene extends Scene {
       this.ldtkRenderer.clear();
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
       if (!this.ldtkRenderer.container.parent) {
-        // Add after outside frame but before entity layer
-        const insertIdx = this.outsideRenderer ? 1 : 0;
-        this.container.addChildAt(this.ldtkRenderer.container, insertIdx);
+        this.container.addChildAt(this.ldtkRenderer.container, 0);
       }
     } else {
       // Code template or ChunkAssembler fallback
