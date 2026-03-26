@@ -498,75 +498,59 @@ export class ItemWorldScene extends Scene {
       for (let r = h - D; r < h; r++) for (let c = 0; c < w; c++) seal(r, c);
     }
 
-    if (changed.length > 0 && this.ldtkRenderer && this.atlas) {
+    console.log(`[ItemWorld] Sealed ${changed.length} tiles. Grid sample row14: ${this.roomData[14]?.slice(0,5)} col0: ${[0,1,2,3,4].map(r=>this.roomData[r]?.[0])}`);
+
+    if (changed.length > 0) {
       this.addSealSprites(changed);
-    } else if (changed.length > 0) {
-      this.tilemap.loadRoom(this.roomData);
     }
   }
 
-  /** Render wall sprites by copying adjacent wall tiles from the LDtk level */
+  /** Render seal visuals — copies nearby wall tiles, falls back to solid block */
   private addSealSprites(changed: Array<[number, number]>): void {
-    if (!this.atlas || changed.length === 0) return;
+    if (changed.length === 0) return;
     const T = TILE_SIZE;
+    const gfx = new Graphics();
 
-    // Build a lookup of existing wall tiles: key "col,row" → src [x,y]
-    const currentLevel = this.currentLdtkLevel;
-    const tileLookup = new Map<string, [number, number]>();
-    if (currentLevel) {
-      for (const tile of currentLevel.wallTiles) {
-        const tc = Math.floor(tile.px[0] / T);
-        const tr = Math.floor(tile.px[1] / T);
-        tileLookup.set(`${tc},${tr}`, tile.src);
-      }
-      // Also include background tiles as fallback
-      for (const tile of currentLevel.backgroundTiles) {
-        const tc = Math.floor(tile.px[0] / T);
-        const tr = Math.floor(tile.px[1] / T);
-        if (!tileLookup.has(`${tc},${tr}`)) {
-          tileLookup.set(`${tc},${tr}`, tile.src);
-        }
-      }
+    // Always draw visible blocks on entityLayer (guaranteed visible)
+    for (const [c, r] of changed) {
+      gfx.rect(c * T, r * T, T, T).fill(0x3a2515);
     }
 
-    const sealContainer = new Container();
-    const src = this.atlas.source;
-    const texCache = new Map<string, PixiTexture>();
+    // If we have LDtk tiles, overlay matching wall tiles
+    if (this.atlas && this.currentLdtkLevel) {
+      const src = this.atlas.source;
+      const tileLookup = new Map<string, [number, number]>();
+      for (const tile of this.currentLdtkLevel.wallTiles) {
+        tileLookup.set(`${Math.floor(tile.px[0]/T)},${Math.floor(tile.px[1]/T)}`, tile.src);
+      }
 
-    for (const [c, r] of changed) {
-      // Find nearest existing wall tile to copy
-      let tileSrc: [number, number] | null = null;
-
-      // Search nearby tiles in expanding radius
-      for (let radius = 1; radius <= 4 && !tileSrc; radius++) {
-        for (let dr = -radius; dr <= radius && !tileSrc; dr++) {
-          for (let dc = -radius; dc <= radius && !tileSrc; dc++) {
-            if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
-            const key = `${c + dc},${r + dr}`;
-            if (tileLookup.has(key)) tileSrc = tileLookup.get(key)!;
+      const texCache = new Map<string, PixiTexture>();
+      for (const [c, r] of changed) {
+        // Find nearest wall tile
+        let tileSrc: [number, number] | null = null;
+        for (let rad = 1; rad <= 3 && !tileSrc; rad++) {
+          for (let dr = -rad; dr <= rad && !tileSrc; dr++) {
+            for (let dc = -rad; dc <= rad && !tileSrc; dc++) {
+              const s = tileLookup.get(`${c+dc},${r+dr}`);
+              if (s) tileSrc = s;
+            }
           }
         }
+        if (!tileSrc) tileSrc = [64, 16];
+
+        const key = `${tileSrc[0]},${tileSrc[1]}`;
+        let tex = texCache.get(key);
+        if (!tex) { tex = new PixiTexture({ source: src, frame: new Rectangle(tileSrc[0], tileSrc[1], T, T) }); texCache.set(key, tex); }
+
+        const sprite = new Sprite(tex);
+        sprite.x = c * T;
+        sprite.y = r * T;
+        gfx.addChild(sprite);
       }
-
-      // Fallback: use a solid dirt tile from atlas
-      if (!tileSrc) tileSrc = [64, 16];
-
-      const texKey = `${tileSrc[0]},${tileSrc[1]}`;
-      let tex = texCache.get(texKey);
-      if (!tex) {
-        tex = new PixiTexture({ source: src, frame: new Rectangle(tileSrc[0], tileSrc[1], T, T) });
-        texCache.set(texKey, tex);
-      }
-
-      const sprite = new Sprite(tex);
-      sprite.x = c * T;
-      sprite.y = r * T;
-      sealContainer.addChild(sprite);
     }
 
-    // Use sealGfx slot (cast — it's a Container now, not Graphics)
-    this.sealGfx = sealContainer as any;
-    this.ldtkRenderer!.container.addChild(sealContainer);
+    this.sealGfx = gfx;
+    this.entityLayer.addChild(gfx);
   }
 
   /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
