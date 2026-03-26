@@ -866,7 +866,12 @@ export class LdtkWorldScene extends Scene {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
         if (this.pendingLevelId) {
-          this.loadLevel(this.pendingLevelId, this.pendingDirection!);
+          // Invert direction: player traveled RIGHT → enters new room from LEFT
+          const opposite: Record<string, 'left'|'right'|'up'|'down'> = {
+            left: 'right', right: 'left', up: 'down', down: 'up',
+          };
+          const enterFrom = opposite[this.pendingDirection!] ?? 'down';
+          this.loadLevel(this.pendingLevelId, enterFrom);
         }
         this.transitionState = 'fade_in';
         this.transitionTimer = FADE_DURATION;
