@@ -401,7 +401,8 @@ export class ItemWorldScene extends Scene {
       this.spawnEnemies();
     }
 
-    this.drawDoorMarkers(cell);
+    // Door markers disabled — LDtk passages are visible in the tilemap
+    // this.drawDoorMarkers(cell);
 
     // Stratum end room — boss + descent/exit trigger
     const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
@@ -456,19 +457,19 @@ export class ItemWorldScene extends Scene {
 
     if (cell.exits.left) {
       const row = this.findEdgeOpen(grid, 'left');
-      triggers.push({ x: -doorThick, y: (row - 1) * T, width: doorThick, height: doorLen, direction: 'left' });
+      triggers.push({ x: 0, y: (row - 1) * T, width: T, height: doorLen, direction: 'left' });
     }
     if (cell.exits.right) {
       const row = this.findEdgeOpen(grid, 'right');
-      triggers.push({ x: rW * T, y: (row - 1) * T, width: doorThick, height: doorLen, direction: 'right' });
+      triggers.push({ x: (rW - 1) * T, y: (row - 1) * T, width: T, height: doorLen, direction: 'right' });
     }
     if (cell.exits.up) {
       const col = this.findEdgeOpen(grid, 'up');
-      triggers.push({ x: (col - 1) * T, y: -doorThick, width: doorLen, height: doorThick, direction: 'up' });
+      triggers.push({ x: (col - 1) * T, y: 0, width: doorLen, height: T, direction: 'up' });
     }
     if (cell.exits.down) {
       const col = this.findEdgeOpen(grid, 'down');
-      triggers.push({ x: (col - 1) * T, y: rH * T, width: doorLen, height: doorThick, direction: 'down' });
+      triggers.push({ x: (col - 1) * T, y: (rH - 1) * T, width: doorLen, height: T, direction: 'down' });
     }
     return triggers;
   }
