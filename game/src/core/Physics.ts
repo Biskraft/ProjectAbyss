@@ -16,18 +16,30 @@ export function aabbOverlap(a: AABB, b: AABB): boolean {
 
 const TILE_SIZE = 16;
 
-/** Tile types for procedural WorldScene: 0=empty, 1=solid(floor), 2=solid(wall), 3=one-way platform */
+/**
+ * Tile types (shared by procedural + LDtk):
+ *   0 = empty / passable
+ *   1 = solid (wall/floor)
+ *   2 = water (passable, applies water physics)
+ *   3 = one-way platform
+ */
 export function isSolid(tileId: number): boolean {
-  return tileId === 1 || tileId === 2;
+  return tileId === 1;
 }
 
 export function isOneWay(tileId: number): boolean {
   return tileId === 3;
 }
 
-/** LDtk IntGrid tile types: 0=empty, 1=solid wall, 2=water (passable) */
-export function isSolidLdtk(tileId: number): boolean {
-  return tileId === 1;
+export function isWater(tileId: number): boolean {
+  return tileId === 2;
+}
+
+/** Check if an entity overlaps any water tile */
+export function isInWater(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const midCol = Math.floor((x + width / 2) / TILE_SIZE);
+  const midRow = Math.floor((y + height / 2) / TILE_SIZE);
+  return isWater(getTile(roomData, midCol, midRow));
 }
 
 /**
@@ -107,7 +119,7 @@ export function resolveY(
 
 function getTile(roomData: number[][], col: number, row: number): number {
   if (row < 0 || row >= roomData.length || col < 0 || col >= (roomData[0]?.length ?? 0)) {
-    return 2; // out of bounds = solid
+    return 1; // out of bounds = solid wall
   }
   return roomData[row][col];
 }

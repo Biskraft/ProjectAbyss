@@ -1,7 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY } from '@core/Physics';
+import { resolveX, resolveY, isInWater } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG } from '@combat/CombatData';
 import type { CombatEntity } from '@combat/HitManager';
@@ -44,6 +44,9 @@ export class Player extends Entity implements CombatEntity {
   // Collision box (70% of visual size)
   collisionW = 9;
   collisionH = 16;
+
+  // Water
+  inWater = false;
 
   // Physics
   private grounded = false;
@@ -228,14 +231,19 @@ export class Player extends Entity implements CombatEntity {
     // Run FSM
     this.fsm.update(dt);
 
-    // Apply gravity (except during dash)
+    // Water detection
+    this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
+    const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
+
+    // Apply gravity (except during dash) — reduced in water
     if (state !== 'dash') {
-      this.vy += GRAVITY * dtSec;
-      if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
+      this.vy += GRAVITY * waterMult * dtSec;
+      const maxFall = this.inWater ? MAX_FALL_SPEED * 0.4 : MAX_FALL_SPEED;
+      if (this.vy > maxFall) this.vy = maxFall;
     }
 
-    // Move & collide using smaller collision box (70% of visual)
-    const moveX = this.vx * dtSec;
+    // Slow horizontal movement in water
+    const moveX = this.vx * waterMult * dtSec;
     const moveY = this.vy * dtSec;
     const colOffX = (this.width - this.collisionW) / 2;   // center horizontally
     const colOffY = this.height - this.collisionH;         // anchor at feet
