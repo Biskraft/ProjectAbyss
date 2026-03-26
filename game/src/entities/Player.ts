@@ -65,6 +65,9 @@ export class Player extends Entity implements CombatEntity {
     doubleJump: false,
   };
 
+  // Double jump
+  private doubleJumpAvailable = false;
+
   // Wall slide / wall jump
   private touchingWallDir = 0;      // -1 left wall, +1 right wall, 0 none
   private wallSliding = false;
@@ -194,6 +197,7 @@ export class Player extends Entity implements CombatEntity {
     // Reset air dash on landing
     if (this.grounded && !this.wasGrounded) {
       this.airDashAvailable = true;
+      this.doubleJumpAvailable = true;
     }
     // Recharge ground dash after delay
     if (this.grounded && this.groundDashDelayTimer <= 0) {
@@ -218,6 +222,12 @@ export class Player extends Entity implements CombatEntity {
         this.wallJumpCooldown = WALL_JUMP_COOLDOWN;
         this.wallSliding = false;
         this.touchingWallDir = 0;
+        this.fsm.transition('jump');
+      }
+      // Double Jump: in air + ability unlocked + not used yet
+      else if (!this.grounded && this.abilities.doubleJump && this.doubleJumpAvailable) {
+        this.vy = JUMP_VELOCITY * 0.85; // slightly weaker than ground jump
+        this.doubleJumpAvailable = false;
         this.fsm.transition('jump');
       } else {
         this.jumpBufferTimer = JUMP_BUFFER;
