@@ -533,20 +533,29 @@ export class ItemWorldScene extends Scene {
 
     const sealContainer = new Container();
     const gfx = new Graphics();
+    // 4×4 pixel brick pattern (each cell = 4×4 px, tile = 16×16 px = 4×4 cells)
+    const BRICK_W = 4;
+    const BRICK_H = 4;
+    const colors = [0x3a3a4a, 0x33334a, 0x404050, 0x383848]; // stone variations
+    const mortar = 0x222233;
+
     for (const [c, r] of changed) {
       const x = c * T;
       const y = r * T;
-      // Stone wall base
-      gfx.rect(x, y, T, T).fill(0x3a3a4a);
-      // Brick lines (horizontal)
-      gfx.rect(x, y + 5, T, 1).fill(0x2a2a3a);
-      gfx.rect(x, y + 11, T, 1).fill(0x2a2a3a);
-      // Brick lines (vertical, offset per row)
-      const vOff = (r % 2 === 0) ? 4 : 12;
-      gfx.rect(x + vOff, y, 1, 5).fill(0x2a2a3a);
-      gfx.rect(x + vOff + 8, y + 6, 1, 5).fill(0x2a2a3a);
-      // Highlight
-      gfx.rect(x + 1, y + 1, 2, 1).fill(0x4a4a5a);
+
+      // Fill mortar background
+      gfx.rect(x, y, T, T).fill(mortar);
+
+      // Draw 4×4 brick grid (4 bricks per row, 4 rows)
+      for (let by = 0; by < 4; by++) {
+        const offset = (by + r) % 2 === 0 ? 0 : 2; // offset every other row
+        for (let bx = 0; bx < 4; bx++) {
+          const brickX = x + ((bx * BRICK_W + offset * (BRICK_W / 2)) % T);
+          const brickY = y + by * BRICK_H;
+          const color = colors[(bx + by + c + r) % colors.length];
+          gfx.rect(brickX, brickY, BRICK_W - 1, BRICK_H - 1).fill(color);
+        }
+      }
     }
     sealContainer.addChild(gfx);
 
