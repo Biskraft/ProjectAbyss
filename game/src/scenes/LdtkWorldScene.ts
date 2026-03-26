@@ -462,16 +462,11 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera — force snap for a few frames after room transition to prevent jitter
+    // Camera — always snap (DEBUG: testing if lerp causes jitter)
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
     this.game.camera.target = { x: cx, y: cy };
-    if (this.postTransitionSnapFrames > 0) {
-      this.game.camera.snap(cx, cy);
-      this.postTransitionSnapFrames--;
-    } else {
-      this.game.camera.update(dt);
-    }
+    this.game.camera.snap(cx, cy);
   }
 
   render(alpha: number): void {
