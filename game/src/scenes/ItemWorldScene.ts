@@ -8,7 +8,7 @@ import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir }
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
-// Sprite/Texture imports kept for potential future LDtk tile sealing
+import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
@@ -307,7 +307,7 @@ export class ItemWorldScene extends Scene {
 
     // Pick room: LDtk template → code template → ChunkAssembler fallback
     const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
-    console.log(`[ItemWorld] loadRoom: ldtkLevel=${ldtkLevel?.identifier ?? 'null'} ldtkRenderer=${!!this.ldtkRenderer} atlas=${!!this.atlas} templates=${this.ldtkTemplates.length}`);
+    this.currentLdtkLevel = ldtkLevel;
     if (ldtkLevel && this.ldtkRenderer && this.atlas) {
       // Use LDtk hand-crafted template with tile rendering
       this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
@@ -460,7 +460,8 @@ export class ItemWorldScene extends Scene {
 
   /** Seal depth for blocked passages (4 tiles thick) */
   private static readonly SEAL_DEPTH = 2;
-  private sealGfx: Graphics | null = null;
+  private sealGfx: Container | Graphics | null = null;
+  private currentLdtkLevel: LdtkLevel | null = null;
 
   /**
    * Seal passages on edges that don't connect to a neighbor cell.
@@ -504,17 +505,68 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Render wall blocks over sealed passage tiles */
+  /** Render wall sprites by copying adjacent wall tiles from the LDtk level */
   private addSealSprites(changed: Array<[number, number]>): void {
+    if (!this.atlas || changed.length === 0) return;
     const T = TILE_SIZE;
-    const gfx = new Graphics();
-    for (const [c, r] of changed) {
-      gfx.rect(c * T, r * T, T, T).fill(0x4a3020);
-      gfx.rect(c * T + 1, r * T + 1, T - 2, T - 2).fill(0x6b4830);
+
+    // Build a lookup of existing wall tiles: key "col,row" → src [x,y]
+    const currentLevel = this.currentLdtkLevel;
+    const tileLookup = new Map<string, [number, number]>();
+    if (currentLevel) {
+      for (const tile of currentLevel.wallTiles) {
+        const tc = Math.floor(tile.px[0] / T);
+        const tr = Math.floor(tile.px[1] / T);
+        tileLookup.set(`${tc},${tr}`, tile.src);
+      }
+      // Also include background tiles as fallback
+      for (const tile of currentLevel.backgroundTiles) {
+        const tc = Math.floor(tile.px[0] / T);
+        const tr = Math.floor(tile.px[1] / T);
+        if (!tileLookup.has(`${tc},${tr}`)) {
+          tileLookup.set(`${tc},${tr}`, tile.src);
+        }
+      }
     }
-    this.sealGfx = gfx;
-    this.entityLayer.addChild(gfx);
-    console.log(`[ItemWorld] Sealed ${changed.length} tiles`);
+
+    const sealContainer = new Container();
+    const src = this.atlas.source;
+    const texCache = new Map<string, PixiTexture>();
+
+    for (const [c, r] of changed) {
+      // Find nearest existing wall tile to copy
+      let tileSrc: [number, number] | null = null;
+
+      // Search nearby tiles in expanding radius
+      for (let radius = 1; radius <= 4 && !tileSrc; radius++) {
+        for (let dr = -radius; dr <= radius && !tileSrc; dr++) {
+          for (let dc = -radius; dc <= radius && !tileSrc; dc++) {
+            if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
+            const key = `${c + dc},${r + dr}`;
+            if (tileLookup.has(key)) tileSrc = tileLookup.get(key)!;
+          }
+        }
+      }
+
+      // Fallback: use a solid dirt tile from atlas
+      if (!tileSrc) tileSrc = [64, 16];
+
+      const texKey = `${tileSrc[0]},${tileSrc[1]}`;
+      let tex = texCache.get(texKey);
+      if (!tex) {
+        tex = new PixiTexture({ source: src, frame: new Rectangle(tileSrc[0], tileSrc[1], T, T) });
+        texCache.set(texKey, tex);
+      }
+
+      const sprite = new Sprite(tex);
+      sprite.x = c * T;
+      sprite.y = r * T;
+      sealContainer.addChild(sprite);
+    }
+
+    // Use sealGfx slot (cast — it's a Container now, not Graphics)
+    this.sealGfx = sealContainer as any;
+    this.ldtkRenderer!.container.addChild(sealContainer);
   }
 
   /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
