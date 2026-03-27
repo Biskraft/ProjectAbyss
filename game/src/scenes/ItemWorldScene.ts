@@ -254,12 +254,26 @@ export class ItemWorldScene extends Scene {
     this.buildFullMap();
     this.updateHudText();
 
-    // Spawn player at start cell position (local row within current stratum)
+    // Spawn player at start cell — find valid floor tile in fullGrid
     const startCol = this.currentCol;
     const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const localStartRow = this.currentRow - stratumStart;
-    this.player.x = startCol * 512 + 256;
-    this.player.y = localStartRow * 512 + 400;
+    const spawnCenterX = startCol * 512 + 256;
+    const spawnTileCol = Math.floor(spawnCenterX / TILE_SIZE);
+    const roomTopTile = localStartRow * 32;
+
+    // Scan for air-above-solid from top of room
+    let spawnY = localStartRow * 512 + 256; // fallback: center
+    for (let tr = roomTopTile + 2; tr < roomTopTile + 30; tr++) {
+      const here = this.fullGrid[tr]?.[spawnTileCol] ?? 1;
+      const below = this.fullGrid[tr + 1]?.[spawnTileCol] ?? 1;
+      if (here === 0 && below >= 1) {
+        spawnY = (tr + 1) * TILE_SIZE - this.player.height;
+        break;
+      }
+    }
+    this.player.x = spawnCenterX;
+    this.player.y = spawnY;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
