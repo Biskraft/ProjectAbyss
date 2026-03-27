@@ -372,6 +372,10 @@ export class ItemWorldScene extends Scene {
     const ROOM_TILES = 32;           // 32×32 tiles per room
     const FULL_TILES = GRID_W * ROOM_TILES; // 128 tiles total
 
+    const _dbgRowStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const _dbgHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
+    console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${this.unifiedGrid.totalWidth}x${_dbgHeight} templates=${this.ldtkTemplates.length}`);
+
     // Initialize full grid as solid (1) — unrendered regions remain impassable
     this.fullGrid = [];
     for (let r = 0; r < FULL_TILES; r++) {
