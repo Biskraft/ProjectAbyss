@@ -38,7 +38,7 @@ import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
-import { createItem } from '@items/ItemInstance';
+import { createItem, calcInnocentBonus } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
@@ -1097,7 +1097,27 @@ export class LdtkWorldScene extends Scene {
 
   private updatePlayerAtk(): void {
     const baseStr = 10; // Lv1 STR
-    this.player.atk = baseStr + this.inventory.getWeaponAtk();
+    const weaponAtk = this.inventory.getWeaponAtk();
+
+    // Innocent bonus ATK — flat bonus from all subdued/wild innocent 'atk' slots
+    const equippedItem = this.inventory.equipped;
+    const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
+
+    this.player.atk = baseStr + weaponAtk + innocentAtk;
+
+    // Innocent bonus DEF — base 5 + innocent 'def' bonus
+    const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
+    this.player.def = 5 + innocentDef;
+
+    // Innocent bonus MaxHP — base 100 + innocent 'hp' bonus
+    const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
+    const newMaxHp = 100 + innocentHp;
+    if (newMaxHp !== this.player.maxHp) {
+      // Scale current HP proportionally when max changes (standard RPG convention)
+      const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
+      this.player.maxHp = newMaxHp;
+      this.player.hp = Math.round(newMaxHp * hpRatio);
+    }
   }
 
   private updateInventoryInput(): void {

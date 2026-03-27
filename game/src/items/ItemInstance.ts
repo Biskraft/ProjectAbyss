@@ -1,4 +1,12 @@
 import { type Rarity, type WeaponDef } from '@data/weapons';
+import {
+  type Innocent,
+  type InnocentStatKey,
+  INNOCENT_SLOTS_BY_RARITY,
+  getInnocentEffectiveValue,
+} from '@data/innocents';
+
+export type { Innocent, InnocentStatKey };
 
 let nextItemId = 1;
 
@@ -22,6 +30,12 @@ export interface ItemInstance {
 
   // Derived (recalculated on level change)
   finalAtk: number;
+
+  /**
+   * Innocents residing inside this item.
+   * Capped at INNOCENT_SLOTS_BY_RARITY[rarity]. Wild = 50%, subdued = 100%.
+   */
+  innocents: Innocent[];
 
   // Memory Strata exploration state (lazily initialized on first Item World entry)
   worldProgress?: ItemWorldProgress;
@@ -52,6 +66,7 @@ export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
     exp: 0,
     rarity: r,
     finalAtk: 0,
+    innocents: [],
   };
   recalcItemAtk(item);
   return item;
@@ -88,6 +103,57 @@ export function itemLevelUp(item: ItemInstance): void {
   if (item.level >= MAX_ITEM_LEVEL) return;
   item.level++;
   recalcItemAtk(item);
+}
+
+// ---------------------------------------------------------------------------
+// Innocent helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the max number of innocents this item can hold based on rarity.
+ */
+export function getInnocentSlotCount(item: ItemInstance): number {
+  return INNOCENT_SLOTS_BY_RARITY[item.rarity];
+}
+
+/**
+ * Returns true if the item has room for at least one more innocent.
+ */
+export function canAddInnocent(item: ItemInstance): boolean {
+  return item.innocents.length < getInnocentSlotCount(item);
+}
+
+/**
+ * Adds an innocent to the item if a slot is available. Returns true on success.
+ */
+export function addInnocent(item: ItemInstance, innocent: Innocent): boolean {
+  if (!canAddInnocent(item)) return false;
+  item.innocents.push(innocent);
+  return true;
+}
+
+/**
+ * Subdue an innocent by index — upgrades effectiveness from 50% to 100%.
+ */
+export function subduedInnocent(item: ItemInstance, index: number): void {
+  const innocent = item.innocents[index];
+  if (innocent) innocent.isSubdued = true;
+}
+
+/**
+ * Aggregates total effective bonus for a given stat key across all innocents.
+ * Wild = 50% of value, subdued = 100%.
+ *
+ * Design ref: System_ItemWorld_Core.md — calcInnocentBonus
+ */
+export function calcInnocentBonus(item: ItemInstance, stat: InnocentStatKey): number {
+  let total = 0;
+  for (const innocent of item.innocents) {
+    if (innocent.stat === stat) {
+      total += getInnocentEffectiveValue(innocent);
+    }
+  }
+  return total;
 }
 
 /** Diablo-style rarity colors */

@@ -14,6 +14,7 @@ import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
+import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
@@ -22,7 +23,8 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, itemLevelUp, getOrCreateWorldProgress, EXP_PER_LEVEL, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { addItemExp, itemLevelUp, getOrCreateWorldProgress, EXP_PER_LEVEL, addInnocent, canAddInnocent, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
@@ -546,6 +548,34 @@ export class ItemWorldScene extends Scene {
 
     for (let i = 0; i < count; i++) {
       const spawnRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + i);
+
+      // 15% chance to spawn an InnocentNPC instead of a regular enemy.
+      // Only spawn if the item still has open innocent slots.
+      const innocentRoll = spawnRng.next();
+      if (innocentRoll < INNOCENT_SPAWN_CHANCE && canAddInnocent(this.item)) {
+        const stratumIndex = cell.stratumIndex ?? 0;
+        const seedForArchetype = this.item.uid + col * 13 + row * 7 + i;
+        const innocent = createRandomInnocent(seedForArchetype, stratumIndex);
+
+        const npc = new InnocentNPC();
+        npc.innocent = innocent;
+        npc.onSubdued = () => {
+          innocent.isSubdued = true;
+          addInnocent(this.item, innocent);
+          this.toast.show(`${innocent.name} subdued! +${innocent.value} ${innocent.stat}`, 0xffdd44);
+          this.updateHudText();
+        };
+
+        const sp = pickSpawn(spawnRng, npc.height);
+        npc.x = sp.x;
+        npc.y = sp.y;
+        npc.roomData = this.fullGrid;
+        npc.target = this.player;
+        this.enemies.push(npc);
+        this.entityLayer.addChild(npc.container);
+        continue;
+      }
+
       const isGhost = spawnRng.next() < 0.3;
       const enemy = isGhost ? new Ghost() : new Skeleton();
       enemy.hp = enemy.maxHp = Math.floor(stratumDef.enemyHp * distScale);
@@ -1049,13 +1079,16 @@ export class ItemWorldScene extends Scene {
       const wasAlive = enemy.alive;
       enemy.update(dt);
 
-      // Monster killed — grant EXP (scaled by stratum)
+      // Monster killed — grant EXP (scaled by stratum).
+      // InnocentNPC kills trigger their own onSubdued callback instead of EXP.
       if (wasAlive && !enemy.alive) {
-        const killExp = Math.floor(BASE_EXP_PER_KILL * this.currentStratumDef.expMultiplier);
-        addItemExp(this.item, killExp);
-        this.earnedExp += killExp;
-        this.toast.show(`+${killExp} EXP`, 0x88ccff);
-        this.updateHudText();
+        if (!(enemy instanceof InnocentNPC)) {
+          const killExp = Math.floor(BASE_EXP_PER_KILL * this.currentStratumDef.expMultiplier);
+          addItemExp(this.item, killExp);
+          this.earnedExp += killExp;
+          this.toast.show(`+${killExp} EXP`, 0x88ccff);
+          this.updateHudText();
+        }
       }
 
       if (enemy.shouldRemove) {
