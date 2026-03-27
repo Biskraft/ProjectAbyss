@@ -429,8 +429,17 @@ export class ItemWorldScene extends Scene {
           const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
           const midColor  = isFinal ? 0xddaa55 : 0x5555dd;
           const topColor  = isFinal ? 0xeebb66 : 0x6666ff;
-          const exitX = col * 512 + (16 / 2 - 1) * TILE_SIZE;
-          const exitY = localRow * 512 + (32 - 4) * TILE_SIZE;
+          // Find floor position for exit portal using fullGrid scan
+          const exitTileCol = col * 32 + 16; // center of room
+          const roomTop = localRow * 32;
+          let exitFloorY = localRow * 512 + 400; // fallback
+          for (let tr = roomTop + 2; tr < roomTop + 30; tr++) {
+            const here = this.fullGrid[tr]?.[exitTileCol] ?? 1;
+            const below = this.fullGrid[tr + 1]?.[exitTileCol] ?? 1;
+            if (here === 0 && below >= 1) { exitFloorY = (tr + 1) * TILE_SIZE - 48; break; }
+          }
+          const exitX = col * 512 + 16 * TILE_SIZE;
+          const exitY = exitFloorY;
           const portalGfx = new Graphics();
           portalGfx.rect(0, 24, 48, 16).fill(baseColor);
           portalGfx.rect(8, 16, 32, 8).fill(midColor);
@@ -1092,28 +1101,8 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const enemy = this.enemies[i];
-      const wasAlive = enemy.alive;
-      enemy.update(dt);
-
-      // Monster killed — grant EXP (scaled by stratum).
-      // InnocentNPC kills trigger their own onSubdued callback instead of EXP.
-      if (wasAlive && !enemy.alive) {
-        if (!(enemy instanceof InnocentNPC)) {
-          const killExp = Math.floor(BASE_EXP_PER_KILL * this.currentStratumDef.expMultiplier);
-          addItemExp(this.item, killExp);
-          this.earnedExp += killExp;
-          this.toast.show(`+${killExp} EXP`, 0x88ccff);
-          this.updateHudText();
-        }
-      }
-
-      if (enemy.shouldRemove) {
-        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
-        this.enemies.splice(i, 1);
-      }
-    }
+    // Update enemies
+    for (const enemy of this.enemies) enemy.update(dt);
 
     // Player attacks — Sakurai full feedback chain
     if (this.player.isAttackActive()) {
@@ -1123,6 +1112,24 @@ export class ItemWorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+      }
+    }
+
+    // Check for kills AFTER combat (checkHits may have set alive=false)
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      if (!enemy.alive && !(enemy as any)._expGranted) {
+        (enemy as any)._expGranted = true;
+        if (!(enemy instanceof InnocentNPC)) {
+          const killExp = Math.floor(BASE_EXP_PER_KILL * this.currentStratumDef.expMultiplier);
+          addItemExp(this.item, killExp);
+          this.earnedExp += killExp;
+          this.toast.show(`+${killExp} EXP`, 0x88ccff);
+        }
+      }
+      if (enemy.shouldRemove) {
+        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
+        this.enemies.splice(i, 1);
       }
     }
 
