@@ -1241,7 +1241,7 @@ export class ItemWorldScene extends Scene {
     // Exit trigger — walk into boss portal
     if (this.exitTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-      if (aabbOverlap(pb, this.exitTrigger)) {
+      if (aabbOverlap(pb, this.exitTrigger) && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
         this.handleStratumExit();
         return;
       }
