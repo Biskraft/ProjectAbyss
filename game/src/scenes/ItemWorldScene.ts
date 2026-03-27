@@ -365,14 +365,14 @@ export class ItemWorldScene extends Scene {
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
 
+    let roomCount = 0;
     for (let localRow = 0; localRow < GRID_H; localRow++) {
       const absRow = stratumRowStart + localRow;
       for (let col = 0; col < GRID_W; col++) {
         const cell = grid.cells[absRow]?.[col];
-        if (!cell || cell.type === 0) continue;
-
+        // Fill ALL 16 cells with rooms (critical path + filler rooms)
         const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
-        const ldtkLevel = this.pickLdtkTemplate(cell, rng);
+        const ldtkLevel = this.pickLdtkTemplate(cell ?? null as any, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
         const roomGrid = ldtkLevel.collisionGrid;
@@ -399,8 +399,9 @@ export class ItemWorldScene extends Scene {
         roomContainer.addChild(renderer.container);
         this.fullMapContainer.addChild(roomContainer);
 
+        roomCount++;
         // Mark start room as visited
-        if (col === this.currentCol && absRow === this.currentRow) {
+        if (cell && col === this.currentCol && absRow === this.currentRow) {
           cell.visited = true;
         }
 
