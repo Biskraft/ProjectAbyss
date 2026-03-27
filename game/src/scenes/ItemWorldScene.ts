@@ -143,7 +143,6 @@ export class ItemWorldScene extends Scene {
       this.ldtkLoader.load(json);
       this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
       this.ldtkRenderer = new LdtkRenderer();
-      console.log(`[ItemWorld] Loaded ${this.ldtkTemplates.length} LDtk templates`);
     } catch (e) {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
     }
@@ -157,7 +156,6 @@ export class ItemWorldScene extends Scene {
       if (ids.length > 0) {
         this.outsideLevel = outsideLoader.getLevel(ids[0])!;
         this.outsideRenderer = new LdtkRenderer();
-        console.log(`[ItemWorld] Loaded outside frame: ${this.outsideLevel.pxWid}x${this.outsideLevel.pxHei}`);
       }
     } catch (e) {
       console.warn('[ItemWorld] Outside frame not found');
@@ -344,6 +342,7 @@ export class ItemWorldScene extends Scene {
     // Clear previous full map
     if (this.fullMapContainer?.parent) {
       this.fullMapContainer.parent.removeChild(this.fullMapContainer);
+      this.fullMapContainer.destroy({ children: true }); // free GPU textures
     }
     this.fullMapContainer = new Container();
     this.spawnedRooms.clear();
@@ -575,7 +574,6 @@ export class ItemWorldScene extends Scene {
     if (ldtkLevel && this.ldtkRenderer && this.atlas) {
       // Use LDtk hand-crafted template with tile rendering
       this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
-      console.log(`[ItemWorld] Using LDtk "${ldtkLevel.identifier}" grid=${this.roomData.length}x${this.roomData[0]?.length} bg=${ldtkLevel.backgroundTiles.length} wall=${ldtkLevel.wallTiles.length}`);
       this.tilemap.container.visible = false;
       this.ldtkRenderer.clear();
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
@@ -737,7 +735,6 @@ export class ItemWorldScene extends Scene {
     const w = grid[0]?.length ?? 0;
     const D = ItemWorldScene.SEAL_DEPTH;
 
-    console.log(`[ItemWorld] sealUnusedExits: cell(${this.currentCol},${this.currentRow}) exits: L=${cell.exits.left} R=${cell.exits.right} U=${cell.exits.up} D=${cell.exits.down}`);
 
     // Track which tiles change from open(0) to wall(1)
     const changed: Array<[number, number]> = []; // [col, row]
@@ -762,7 +759,6 @@ export class ItemWorldScene extends Scene {
       for (let r = h - D; r < h; r++) for (let c = 0; c < w; c++) seal(r, c);
     }
 
-    console.log(`[ItemWorld] Sealed ${changed.length} tiles. Grid sample row14: ${this.roomData[14]?.slice(0,5)} col0: ${[0,1,2,3,4].map(r=>this.roomData[r]?.[0])}`);
 
     if (changed.length > 0) {
       this.addSealSprites(changed);
@@ -802,7 +798,6 @@ export class ItemWorldScene extends Scene {
     }
     sealContainer.addChild(gfx);
 
-    console.log(`[ItemWorld] Seal: ${changed.length} tiles, container.children=${this.container.children.length}, sealContainer.children=${sealContainer.children.length}`);
     this.sealGfx = sealContainer;
     this.container.addChild(sealContainer);
   }

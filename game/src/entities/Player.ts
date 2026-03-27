@@ -498,10 +498,7 @@ export class Player extends Entity implements CombatEntity {
   private stateAttack(dt: number): void {
     this.applyHorizontalInput(dt, ATTACK_MOVE_MULT);
 
-    // Apply gravity if airborne
-    if (!this.grounded) {
-      this.vy += GRAVITY * (dt / 1000);
-    }
+    // Gravity already applied in update() before state dispatch — no double gravity
 
     this.attackTimer -= dt;
 

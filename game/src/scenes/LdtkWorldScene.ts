@@ -128,7 +128,7 @@ export class LdtkWorldScene extends Scene {
   // Cleared level tracking
   private clearedLevels: Set<string> = new Set();
   private collectedRelics: Set<string> = new Set();
-  private relicMarkers: Graphics[] = [];
+  private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
 
   constructor(game: Game) {
     super(game);
@@ -196,7 +196,6 @@ export class LdtkWorldScene extends Scene {
     this.loadLevel(ENTRANCE_LEVEL, 'down');
     this.initialized = true;
 
-    console.log(`[LDtk] Loaded ${this.loader.getLevelIds().length} levels`);
   }
 
   enter(): void {
@@ -423,12 +422,10 @@ export class LdtkWorldScene extends Scene {
 
     // Ability Relic pickups
     for (let i = this.relicMarkers.length - 1; i >= 0; i--) {
-      const relic = this.relicMarkers[i];
-      const dx = Math.abs((this.player.x + this.player.width / 2) - relic.x);
-      const dy = Math.abs((this.player.y + this.player.height / 2) - relic.y);
+      const { gfx, abilityName, relicKey } = this.relicMarkers[i];
+      const dx = Math.abs((this.player.x + this.player.width / 2) - gfx.x);
+      const dy = Math.abs((this.player.y + this.player.height / 2) - gfx.y);
       if (dx < 16 && dy < 16) {
-        const abilityName = (relic as any)._abilityName as string;
-        const relicKey = (relic as any)._relicKey as string;
         this.collectedRelics.add(relicKey);
         if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
@@ -439,7 +436,7 @@ export class LdtkWorldScene extends Scene {
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);
-        if (relic.parent) relic.parent.removeChild(relic);
+        if (gfx.parent) gfx.parent.removeChild(gfx);
         this.relicMarkers.splice(i, 1);
       }
     }
@@ -558,7 +555,6 @@ export class LdtkWorldScene extends Scene {
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
-    console.log(`[LDtk] → ${levelId} (${level.pxWid}x${level.pxHei}) enter=${enterDirection} walls=${level.wallTiles.length} entities=${level.entities.length}`);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -568,7 +564,7 @@ export class LdtkWorldScene extends Scene {
     this.clearDrops();
     this.clearPortals();
     this.clearAltars();
-    for (const r of this.relicMarkers) { if (r.parent) r.parent.removeChild(r); }
+    for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
 
     if (level.roomType !== 'Shop') {
@@ -654,7 +650,6 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.roomData = this.collisionGrid;
     this.player.savePrevPosition();
-    console.log(`[LDtk] Spawn: (${spawnX|0},${spawnY|0}) from=${enterFrom}`);
   }
 
   /**
@@ -790,65 +785,6 @@ export class LdtkWorldScene extends Scene {
     // No fallback — only LDtk-placed enemies spawn in the world
   }
 
-  private spawnEnemiesRandom(level: LdtkLevel): void {
-    const grid = level.collisionGrid;
-    // Scale enemy count by level area (larger rooms = more enemies)
-    const area = level.gridW * level.gridH;
-    const count = Math.max(2, Math.min(5, Math.floor(area / 300)));
-
-    // Pre-compute columns that have a solid floor (for enemy placement)
-    const validColumns: number[] = [];
-    for (let tx = 3; tx < level.gridW - 3; tx++) {
-      for (let row = grid.length - 1; row >= Math.floor(grid.length / 2); row--) {
-        if (grid[row][tx] >= 1) { validColumns.push(tx); break; }
-      }
-    }
-    if (validColumns.length === 0) return; // no valid spawn positions
-
-    // Use worldX/worldY as a stable seed so the same level always has the same
-    // enemies across visits (deterministic but varied per room).
-    const levelSeed = (level.worldX * 31 + level.worldY * 17) >>> 0;
-    const dist = Math.round(
-      Math.sqrt(level.worldX * level.worldX + level.worldY * level.worldY) / 200,
-    );
-    const scale = 1 + dist * 0.15;
-    const tier = getDifficultyTier(dist);
-
-    for (let i = 0; i < count; i++) {
-      const spawnRng = new PRNG(levelSeed + i * 111);
-      const isGhost = spawnRng.next() < 0.3;
-      const enemy = isGhost ? new Ghost() : new Skeleton();
-      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * scale);
-      enemy.atk = Math.floor(enemy.atk * scale);
-
-      const tileX = validColumns[spawnRng.nextInt(0, validColumns.length - 1)];
-      enemy.x = tileX * TILE_SIZE;
-      enemy.y = this.findFloorY(grid, tileX, enemy.height);
-      enemy.roomData = this.collisionGrid;
-      enemy.target = this.player;
-      this.enemies.push(enemy);
-      this.entityLayer.addChild(enemy.container);
-    }
-
-    // Golden Monster: ~20% chance per level
-    const goldenRng = new PRNG(levelSeed + 77);
-    if (goldenRng.next() < 0.2 && validColumns.length > 0) {
-      const golden = new GoldenMonster(tier);
-      golden.hp = golden.maxHp = Math.floor(golden.maxHp * scale);
-      golden.atk = Math.floor(golden.atk * scale);
-      const gtX = validColumns[goldenRng.nextInt(0, validColumns.length - 1)];
-      golden.x = gtX * TILE_SIZE;
-      golden.y = this.findFloorY(grid, gtX, golden.height);
-      golden.roomData = this.collisionGrid;
-      golden.target = this.player;
-      golden.onDeathCallback = (x, y, rarity) => {
-        this.spawnPortal(x, y, rarity, 'monster');
-      };
-      this.enemies.push(golden);
-      this.entityLayer.addChild(golden.container);
-    }
-  }
-
   /**
    * Convert LDtk entity instances into gameplay objects.
    * Player entity is handled separately in placePlayer().
@@ -892,11 +828,8 @@ export class LdtkWorldScene extends Scene {
             relic.circle(0, 0, 5).fill({ color: 0xffffff, alpha: 0.6 });
             relic.x = ent.px[0];
             relic.y = ent.px[1];
-            (relic as any)._abilityName = abilityName;
-            (relic as any)._relicKey = relicKey;
-            (relic as any)._isRelic = true;
             this.entityLayer.addChild(relic);
-            this.relicMarkers.push(relic);
+            this.relicMarkers.push({ gfx: relic, abilityName, relicKey });
           }
           break;
         }
@@ -991,7 +924,6 @@ export class LdtkWorldScene extends Scene {
     const playerWorldX = this.currentLevel.worldX + px;
     const playerWorldY = this.currentLevel.worldY + py;
     const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
-    if (neighborId) console.log(`[LDtk] Transition: ${direction} → ${neighborId}`);
     if (!neighborId) return;
 
     this.startTransition(direction, neighborId);

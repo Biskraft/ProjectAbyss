@@ -1,34 +1,9 @@
 /**
  * LdtkRenderer — renders parsed LDtk level data using PixiJS v8 sprites.
- *
- * Implements: LDtk auto-layer tile rendering for the World space (3-Space model).
- * When LdtkLoader.ts is created, import LdtkTile from there and remove the
- * local definition below.
  */
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
-
-const TILE_SIZE = 16;
-
-/** Tile entry from an LDtk autoLayerTiles or gridTiles array. */
-export interface LdtkTile {
-  /** Destination position in level space (pixels): [x, y] */
-  px: [number, number];
-  /** Source position in the tileset atlas (pixels): [x, y] */
-  src: [number, number];
-  /** Flip flags: 0 = none, 1 = flipX, 2 = flipY, 3 = both */
-  f: number;
-  /** Alpha (0–1) */
-  a: number;
-}
-
-/** Entity data extracted from an LDtk level for optional debug rendering. */
-export interface LdtkEntity {
-  /** Entity identifier (e.g. "Player", "Item", "Exit", "Teleport") */
-  id: string;
-  /** Position in level space (pixels) */
-  px: [number, number];
-}
+import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -116,7 +91,7 @@ export class LdtkRenderer {
     this.entityMarkers.removeChildren();
 
     for (const entity of entities) {
-      const color = ENTITY_COLORS[entity.id] ?? ENTITY_COLOR_FALLBACK;
+      const color = ENTITY_COLORS[entity.type] ?? ENTITY_COLOR_FALLBACK;
       const half = ENTITY_MARKER_SIZE / 2;
 
       const marker = new Graphics();
