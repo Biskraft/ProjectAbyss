@@ -1,6 +1,6 @@
 # Project Abyss GDD 문서 인덱스 (Document Index)
 
-> **최근 업데이트:** 2026-03-23
+> **최근 업데이트:** 2026-03-27
 > **문서 상태:** `작성 중 (Draft)`
 
 이 문서는 Project Abyss의 전체 GDD 문서 트리를 정의합니다. 모든 시스템 문서의 위치, 상태, 의존 관계를 추적합니다.
@@ -94,6 +94,7 @@ graph TD
 | D-10 | Level Design Standards | `Design/Design_Level_Standards.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ✅ 완료 | 전체 | 전체 |
 | D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
+| D-13 | WorldLayout GridVania Analysis | `Design/WorldLayout_GridVania_Analysis.md` | ✅ 완료 | World | 탐험 |
 
 **D-09 Combat Design Philosophy 범위:**
 - 전투 미학: 타격감(Juice)의 3요소 (히트스탑, 화면흔들림, 넉백) 설계 원칙
@@ -234,13 +235,21 @@ graph TD
 
 **SYS-IW-02 Strata Generation 범위:**
 - 시드: `hash(itemID + itemLevel + stratumNumber)`
-- Room Grid 크기 (지층별 3x3 ~ 5x5)
+- Room Grid 크기 (아이템계 4×4 고정)
 - Critical Path 생성 알고리즘
 - Chunk 삽입 (레어리티별 복잡도)
 - 오브젝트 배치 (적, 이노센트, 보상)
 - 월드 ProcGen과의 차이점 명시
 
-### 3.7 퀘스트 서사 시스템 (Quest Narrative)
+### 3.7 아이템 서사 시스템 (Item Narrative)
+
+| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-INR-01 | Item Narrative Template | `System/System_ItemNarrative_Template.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-INR-02 | Environment Pool | `System/System_ItemNarrative_EnvironmentPool.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-INR-03 | Monster Pool | `System/System_ItemNarrative_MonsterPool.md` | ✅ 완료 | IW | 야리코미 |
+
+### 3.8 퀘스트 서사 시스템 (Quest Narrative)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -313,6 +322,7 @@ graph TD
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
 | CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
+| CNT-ITM-001 | Item Narrative: 할아버지의 부엌칼 | `Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | ✅ 완료 |
 | CNT-01 | Weapon List | `Content/Content_Weapons_List.md` | ⬜ 제작 필요 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Innocent Catalog | `Content/Content_Innocent_Catalog.md` | ⬜ 제작 필요 |
@@ -339,6 +349,43 @@ graph TD
 | Content_Level_RoomTemplate.csv | `Sheets/` | SYS-WLD-05, SYS-IW-02, CNT-08 | ✅ 완료 |
 | Content_System_LevelExp_Curve.csv | `Sheets/` | SYS-LVL-02 | ⬜ 제작 필요 |
 | Content_System_Damage_Formula.csv | `Sheets/` | SYS-CMB-02 | ✅ 완료 |
+
+---
+
+## 7. Research (리서치 문서)
+
+| ID | 문서명 | 경로 | 주제 |
+| :--- | :--- | :--- | :--- |
+| RES-IDX | Research Index | `Research/RESEARCH_INDEX.md` | 20개 리서치 1줄 요약 |
+| RES-DG-00 | Disgaea IW Research Summary | `Research/Disgaea_ItemWorld_Research_Summary.md` | 메타 인덱스 |
+| RES-DG-01 | Disgaea IW Core Mechanics | `Research/Disgaea_ItemWorld_CoreMechanics.md` | 아이템계 기본 구조 |
+| RES-DG-02 | Disgaea IW Innocent System | `Research/Disgaea_ItemWorld_InnocentSystem.md` | 이노센트 시스템 |
+| RES-DG-03 | Disgaea IW Growth Economy | `Research/Disgaea_ItemWorld_GrowthEconomy.md` | 성장/경제 곡선 |
+| RES-DG-04 | Disgaea IW Procedural Gen | `Research/Disgaea_ItemWorld_ProceduralGeneration.md` | 절차적 생성 |
+| RES-DG-05 | Disgaea IW UX Patterns | `Research/Disgaea_ItemWorld_UXPatterns.md` | UX 설계 패턴 |
+| RES-MV-01 | Metroidvania Map & Gate | `Research/Metroidvania_MapStructure_GateDesign.md` | 맵 구조/게이트 설계 |
+| RES-CMB-01 | SideScrolling Combat | `Research/SideScrolling_Combat_System_Research.md` | 전투 시스템 |
+| RES-NET-01 | Online Coop Netcode | `Research/OnlineCoop_Netcode_Research.md` | 네트워크 아키텍처 |
+| RES-PCG-01 | World ProcGen | `Research/ProceduralGeneration_World_Research.md` | 절차적 생성 |
+| RES-ECO-01 | Endgame Loop Economy | `Research/EndgameLoop_Economy_Research.md` | 엔드게임 경제 |
+| RES-HUB-01 | Hub & Social Design | `Research/HubSpace_Social_Design_Research.md` | 허브/소셜 |
+| RES-EQP-01 | Equipment Drop Economy | `Research/Equipment_DropRate_Economy_Research.md` | 장비 드랍 |
+| RES-BSS-01 | Boss Design SideScrolling | `Research/BossDesign_SideScrolling_Research.md` | 보스 설계 |
+| RES-INC-01 | Innocent Combat Behavior | `Research/Innocent_Combat_Behavior_Research.md` | 이노센트 전투 행동 |
+| RES-INC-02 | Innocent Growth Economy | `Research/Innocent_Growth_Economy_Research.md` | 이노센트 경제 |
+| RES-INC-03 | Innocent Classification | `Research/Innocent_Classification_Balance_Research.md` | 이노센트 분류 |
+| RES-INC-04 | Innocent Multiplayer Social | `Research/Innocent_Multiplayer_Social_Research.md` | 이노센트 멀티 |
+| RES-INC-05 | Innocent Narrative | `Research/Innocent_Narrative_Worldbuilding_Research.md` | 이노센트 서사 |
+| RES-LVL-01 | Level Progression Shape | `Research/LevelDesign_ProgressionShape_Research.md` | 레벨 진행 형태 |
+
+---
+
+## 8. Plan (프로젝트 관리)
+
+| ID | 문서명 | 경로 | 상태 |
+| :--- | :--- | :--- | :--- |
+| PLN-01 | Development Roadmap | `Plan/Development_Roadmap.md` | 🔄 진행 중 |
+| PLN-02 | P1 Status Dashboard | `Plan/Project_Status_Dashboard_P1.md` | 🔄 진행 중 |
 
 ---
 

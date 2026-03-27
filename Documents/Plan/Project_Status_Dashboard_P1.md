@@ -181,7 +181,7 @@
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 근거 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | IWF-01-A | 시스템 | 시드 기반 지층 생성 파이프라인 | P1 | ✅ 구현 완료 | RoomGrid.ts: PRNG 시드 기반, 아이템별 결정적 생성 |
-| IWF-02-A | 시스템 | Room Grid 레이아웃 생성 | P1 | ✅ 구현 완료 | RoomGrid.ts: 3×3~5×5 그리드, 통합 수직 연결 |
+| IWF-02-A | 시스템 | Room Grid 레이아웃 생성 | P1 | ✅ 구현 완료 | RoomGrid.ts: 4×4 고정 그리드, 통합 수직 연결 |
 | IWF-03-A | 시스템 | Critical Path 알고리즘 | P1 | ✅ 구현 완료 | RoomGrid.ts: 가중치 경로 (좌30%/우35%/직진35%) |
 | IWF-04-A | 시스템 | Chunk 조립 시스템 | P1 | ✅ 구현 완료 | ChunkAssembler.ts: 벽/바닥/문 카빙/플랫폼 생성 |
 | IWF-05-A | 시스템 | 적 배치 및 난이도 스케일링 | P1 | ✅ 구현 완료 | StrataConfig.ts + ItemWorldScene: 지층별 적 스탯 스케일링 |

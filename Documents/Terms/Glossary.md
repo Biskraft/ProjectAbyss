@@ -1,6 +1,6 @@
 # Project Abyss 용어집 (Glossary)
 
-> 최근 업데이트: 2026-03-23
+> 최근 업데이트: 2026-03-27
 > 문서 상태: `작성 중 (Draft)`
 
 ---
@@ -128,7 +128,7 @@
 | :--- | :--- | :--- | :--- |
 | Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | Recursive Entry | 재귀적 진입 | 아이템계 내에서 획득한 장비 아이템의 아이템계에 다시 진입하는 것. 최대 깊이 3까지 허용되며, 깊이가 깊을수록 이노센트 효과 보너스가 증가한다(깊이 2: +20%, 깊이 3: +50%). | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
-| Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 구역 난이도·지층 깊이에 따라 3x3~5x5 크기로 결정된다. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
+| Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 아이템계는 4×4 고정, 월드 구역은 난이도에 따라 3×3~5×5. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Type | 룸 타입 | Room Grid 내 각 셀의 역할 분류. 전투룸·보상룸·함정룸·빈 룸 등으로 나뉘며, Critical Path 상의 룸과 분기 룸을 구분한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
 
@@ -148,7 +148,15 @@
 
 ---
 
-### T–W
+### T–U
+
+| 영문 키 | 한글명 | 정의 | 관련 문서 |
+| :--- | :--- | :--- | :--- |
+| Unified Grid | 통합 그리드 | 아이템계의 모든 지층을 수직으로 이어붙인 단일 2D 배열 구조. 지층 간 씬 전환 없이 연속적 탐험이 가능하다. `UnifiedGridData` 타입으로 구현. | `game/src/level/RoomGrid.ts` |
+
+---
+
+### V–W
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
@@ -181,11 +189,11 @@
 
 | 등급 | 색상 | 스탯 배율 | 이노센트 슬롯 | 아이템계 지층 수 | 드랍 확률 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Normal | 흰색 | x1.0 | 2 | 2 지층 | 60% |
-| Magic | 초록 | x1.3 | 3 | 3 지층 | 25% |
-| Rare | 파랑 | x1.7 | 4 | 3 지층 | 10% |
-| Legendary | 보라 | x2.2 | 6 | 4 지층 | 4% |
-| Ancient | 금색 | x3.0 | 8 | 4 지층 + 심연 | 1% |
+| Normal | 흰색 #FFFFFF | x1.0 | 2 | 2 지층 (4×4 고정) | 60% |
+| Magic | 파란 #6969FF | x1.3 | 3 | 3 지층 (4×4 고정) | 25% |
+| Rare | 노란 #FFFF00 | x1.7 | 4 | 3 지층 (4×4 고정) | 10% |
+| Legendary | 주황 #FF8000 | x2.2 | 6 | 4 지층 (4×4 고정) | 4% |
+| Ancient | 초록 #00FF00 | x3.0 | 8 | 4 지층 + 심연 (4×4 고정) | 1% |
 
 ---
 
