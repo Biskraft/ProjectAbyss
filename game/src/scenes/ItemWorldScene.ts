@@ -1268,7 +1268,9 @@ export class ItemWorldScene extends Scene {
     if (!this.spawnedRooms.has(roomKey)) {
       this.spawnedRooms.add(roomKey);
       this.currentCol = playerRoomCol;
-      this.currentRow = playerRoomRow;
+      // Convert local row (0-3) to absolute row for unifiedGrid access
+      const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+      this.currentRow = stratumOffset + playerRoomRow;
       const enteredCell = this.getCell(playerRoomCol, playerRoomRow);
       if (enteredCell) {
         enteredCell.visited = true;
