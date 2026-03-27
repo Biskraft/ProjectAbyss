@@ -1174,8 +1174,9 @@ export class ItemWorldScene extends Scene {
         this.roomsCleared++;
 
         // Level up item based on accumulated EXP
-        const leveled = itemLevelUp(this.item);
-        if (leveled) {
+        const prevLevel = this.item.level;
+        itemLevelUp(this.item);
+        if (this.item.level > prevLevel) {
           this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
         }
         this.toast.show('BOSS DEFEATED! Exit opened.', 0xff8844);
