@@ -214,6 +214,8 @@ export class ItemWorldScene extends Scene {
     this.player.maxHp = this.sourcePlayer.maxHp;
     this.player.atk = this.sourcePlayer.atk;
     this.player.def = this.sourcePlayer.def;
+    this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
+    this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
     this.entityLayer.addChild(this.player.container);
 
     // Damage numbers & Sakurai hit effects
