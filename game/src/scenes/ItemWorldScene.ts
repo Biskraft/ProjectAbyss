@@ -300,7 +300,9 @@ export class ItemWorldScene extends Scene {
   }
 
   private getCurrentCell(): UnifiedRoomCell {
-    return this.unifiedGrid.cells[this.currentRow][this.currentCol]!;
+    const row = this.unifiedGrid.cells[this.currentRow];
+    if (!row) return this.unifiedGrid.cells[0][0]!; // fallback
+    return row[this.currentCol] ?? this.unifiedGrid.cells[0][0]!;
   }
 
   private restoreRoomState(): void {
@@ -1252,8 +1254,9 @@ export class ItemWorldScene extends Scene {
     }
 
     // Track which room the player is in and lazy-spawn enemies on first entry
-    const playerRoomCol = Math.floor(this.player.x / 512);
-    const playerRoomRow = Math.floor(this.player.y / 512);
+    // Clamp to grid bounds to prevent out-of-range access
+    const playerRoomCol = Math.max(0, Math.min(3, Math.floor(this.player.x / 512)));
+    const playerRoomRow = Math.max(0, Math.min(3, Math.floor(this.player.y / 512)));
     const roomKey = `${playerRoomCol},${playerRoomRow}`;
     if (!this.spawnedRooms.has(roomKey)) {
       this.spawnedRooms.add(roomKey);
@@ -1281,6 +1284,13 @@ export class ItemWorldScene extends Scene {
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
+
+    // Clamp player to map bounds (4×4 rooms × 512px = 2048px)
+    const MAP_SIZE = 2048;
+    if (this.player.x < 0) this.player.x = 0;
+    if (this.player.y < 0) this.player.y = 0;
+    if (this.player.x > MAP_SIZE - this.player.width) this.player.x = MAP_SIZE - this.player.width;
+    if (this.player.y > MAP_SIZE - this.player.height) this.player.y = MAP_SIZE - this.player.height;
 
     // Camera
     this.game.camera.target = {
