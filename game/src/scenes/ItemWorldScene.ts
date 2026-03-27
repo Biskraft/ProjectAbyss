@@ -231,8 +231,9 @@ export class ItemWorldScene extends Scene {
     this.container.addChild(this.fadeOverlay);
 
     // Minimap
-    // Minimap disabled for Item World full-map mode
+    // Minimap — always visible for debug/navigation
     this.miniMapContainer = new Container();
+    this.game.app.stage.addChild(this.miniMapContainer);
 
     // HUD
     this.hud = new HUD();
@@ -1588,29 +1589,32 @@ export class ItemWorldScene extends Scene {
       for (let localRow = 0; localRow < bound.height; localRow++) {
         const absRow = bound.rowOffset + localRow;
         for (let col = 0; col < grid.totalWidth; col++) {
-          const cell = grid.cells[absRow][col];
-          if (!cell || cell.type === 0) continue;
+          const cell = grid.cells[absRow]?.[col];
 
           const x = padding + col * (cellSize + gap);
           const y = yAccum + localRow * (cellSize + gap);
 
-          const isEndRoom = this.isStratumEndRoom(col, absRow);
-          let color = 0x333333;
-          let alpha = 0.3;
+          const isEndRoom = cell ? this.isStratumEndRoom(col, absRow) : false;
+          let color = 0x222222; // default: dark (room exists but unvisited)
+          let alpha = 0.5;
 
-          // Stratum-based tint
-          const stratumTint = cell.stratumIndex * 0.15;
-
-          if (cell.visited) {
+          if (!cell || cell.type === 0) {
+            color = 0x444444; // filler room (no critical path)
+            alpha = 0.3;
+          } else if (cell.visited) {
             alpha = 1;
             color = cell.cleared ? 0x6a2a2a : 0x6a4a4a;
           }
           if (isEndRoom) {
-            color = cell.visited ? 0x4444cc : 0x2222aa;
+            color = (cell?.visited) ? 0x4444cc : 0x2222aa;
             alpha = 1;
           }
-          if (col === this.currentCol && absRow === this.currentRow) {
-            color = 0xe74c3c;
+
+          // Player position — based on actual player coords, not currentCol/Row
+          const playerCellCol = Math.floor(this.player.x / 512);
+          const playerCellRow = Math.floor(this.player.y / 512);
+          if (col === playerCellCol && localRow === playerCellRow) {
+            color = 0xe74c3c; // red = player here
             alpha = 1;
           }
 
