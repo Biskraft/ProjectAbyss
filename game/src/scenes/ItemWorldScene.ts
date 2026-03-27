@@ -1164,38 +1164,26 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Room cleared
+    // Boss killed check — activates exit
     const cell = this.getCurrentCell();
-    if (!cell.cleared && this.enemies.filter(e => e.alive).length === 0) {
-      cell.cleared = true;
-      this.roomsCleared++;
-
-      // EXP per room (scaled by stratum)
+    if (!cell.cleared) {
+      // Check if boss room and boss is dead
       const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
-      const baseExp = isEndRoom ? BASE_EXP_PER_ROOM + BASE_BOSS_BONUS_EXP : BASE_EXP_PER_ROOM;
-      const expGain = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
-      addItemExp(this.item, expGain);
-      this.earnedExp += expGain;
+      if (isEndRoom && this.enemies.filter(e => e.alive).length === 0 && this.spawnedRooms.has(`${this.currentCol},${this.currentRow}`)) {
+        cell.cleared = true;
+        this.roomsCleared++;
 
-      // Heal 20%
-      const heal = Math.floor(this.player.maxHp * 0.2);
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-
-      // Boss kill → bonus level up
-      if (isEndRoom) {
-        itemLevelUp(this.item);
-        this.toast.show(`BOSS CLEAR! +${expGain} EXP`, 0xffaa00);
-        this.toast.show(`HP +${heal} recovered`, 0x44ff44);
-      } else {
-        this.toast.show(`Room Clear! +${expGain} EXP`, 0x88ccff);
-        this.toast.show(`HP +${heal} recovered`, 0x44ff44);
+        // Level up item based on accumulated EXP
+        const leveled = itemLevelUp(this.item);
+        if (leveled) {
+          this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
+        }
+        this.toast.show('BOSS DEFEATED! Exit opened.', 0xff8844);
+        this.updateHudText();
       }
-
-      this.updateHudText();
-      this.drawMiniMap();
     }
 
-    // Exit trigger (stratum end room, after cleared)
+    // Exit trigger (boss room, after boss killed)
     if (this.exitTrigger && cell.cleared) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       if (aabbOverlap(pb, this.exitTrigger)) {
@@ -1239,6 +1227,7 @@ export class ItemWorldScene extends Scene {
 
     // HUD, damage numbers, toast & Sakurai effects
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.updateHudText();
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
@@ -1252,9 +1241,9 @@ export class ItemWorldScene extends Scene {
   }
 
   private updateHudText(): void {
-    const stratumLabel = `Stratum ${this.currentStratumIndex + 1}/${this.strataConfig.strata.length}`;
+    const stratumLabel = `S${this.currentStratumIndex + 1}`;
     this.hud.setFloorText(
-      `${stratumLabel}  ${this.roomsCleared}/${this.totalRooms}  +${this.earnedExp}EXP`
+      `${stratumLabel} ${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
     );
   }
 
@@ -1397,8 +1386,8 @@ export class ItemWorldScene extends Scene {
       // Deepest stratum cleared — exit item world
       this.progress.lastSafeStratum = this.currentStratumIndex;
       this.persistRoomState();
-      itemLevelUp(this.item);
-      this.toast.show('All Strata cleared! Item Level UP!', 0xffaa00);
+      // Level up already happened on boss kill — just show result
+      this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
       this.startExitFade();
     }
   }
@@ -1473,11 +1462,7 @@ export class ItemWorldScene extends Scene {
     // Grant pass-through EXP if room wasn't cleared (skipping enemies)
     const cell = this.getCurrentCell();
     if (!cell.cleared) {
-      const passExp = Math.floor(BASE_EXP_ROOM_PASS * this.currentStratumDef.expMultiplier);
-      addItemExp(this.item, passExp);
-      this.earnedExp += passExp;
-      this.toast.show(`Room passed +${passExp} EXP`, 0xaaaaaa);
-      this.updateHudText();
+      // Room pass EXP removed — only monster kills grant EXP
     }
 
     this.transitionState = 'fade_out';
