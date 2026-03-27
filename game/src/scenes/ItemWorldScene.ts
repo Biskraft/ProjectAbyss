@@ -422,36 +422,7 @@ export class ItemWorldScene extends Scene {
           cell.visited = true;
         }
 
-        // Place exit portal in stratum end rooms
-        const isEndRoom = this.isStratumEndRoom(col, absRow);
-        if (isEndRoom) {
-          const isFinal = this.isFinalEndRoom(col, absRow);
-          const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
-          const midColor  = isFinal ? 0xddaa55 : 0x5555dd;
-          const topColor  = isFinal ? 0xeebb66 : 0x6666ff;
-          // Find floor position for exit portal using fullGrid scan
-          const exitTileCol = col * 32 + 16; // center of room
-          const roomTop = localRow * 32;
-          let exitFloorY = localRow * 512 + 400; // fallback
-          for (let tr = roomTop + 2; tr < roomTop + 30; tr++) {
-            const here = this.fullGrid[tr]?.[exitTileCol] ?? 1;
-            const below = this.fullGrid[tr + 1]?.[exitTileCol] ?? 1;
-            if (here === 0 && below >= 1) { exitFloorY = (tr + 1) * TILE_SIZE - 48; break; }
-          }
-          const exitX = col * 512 + 16 * TILE_SIZE;
-          const exitY = exitFloorY;
-          const portalGfx = new Graphics();
-          portalGfx.rect(0, 24, 48, 16).fill(baseColor);
-          portalGfx.rect(8, 16, 32, 8).fill(midColor);
-          portalGfx.rect(16, 8, 16, 8).fill(topColor);
-          portalGfx.rect(18, -4, 12, 10).fill(0xffff44);
-          portalGfx.rect(22, -10, 4, 6).fill(0xffff88);
-          portalGfx.x = exitX;
-          portalGfx.y = exitY;
-          this.fullMapContainer.addChild(portalGfx);
-          // Set exit trigger at global coordinates
-          this.exitTrigger = { x: exitX, y: exitY, width: 3 * TILE_SIZE, height: 3 * TILE_SIZE };
-        }
+        // Exit portal spawned on boss death, not pre-placed
       }
     }
 
@@ -558,6 +529,7 @@ export class ItemWorldScene extends Scene {
     const isEndRoom = this.isStratumEndRoom(col, row);
     if (isEndRoom) {
       const boss = new Skeleton();
+      (boss as any)._isBoss = true;
       boss.hp = boss.maxHp = stratumDef.bossHp;
       boss.atk = stratumDef.bossAtk;
       const visualScale = 1.5 + (cell.stratumIndex ?? 0) * 0.2;
@@ -1222,28 +1194,48 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Boss killed check — activates exit
-    const cell = this.getCurrentCell();
-    if (!cell.cleared) {
-      // Check if boss room and boss is dead
-      const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
-      if (isEndRoom && this.enemies.filter(e => e.alive).length === 0 && this.spawnedRooms.has(`${this.currentCol},${this.currentRow}`)) {
-        cell.cleared = true;
-        this.roomsCleared++;
+    // Boss killed check — spawn exit portal at boss death location
+    if (!this.exitTrigger) {
+      // Find boss that just died (check _expGranted as "just processed" flag)
+      for (const enemy of this.enemies) {
+        if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
+          (enemy as any)._portalSpawned = true;
+          const cell = this.getCurrentCell();
+          cell.cleared = true;
 
-        // Level up item based on accumulated EXP
-        const prevLevel = this.item.level;
-        itemLevelUp(this.item);
-        if (this.item.level > prevLevel) {
-          this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
+          // Level up
+          const prevLevel = this.item.level;
+          itemLevelUp(this.item);
+          if (this.item.level > prevLevel) {
+            this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
+          }
+
+          // Spawn portal at boss death position
+          const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
+          const portalColor = isFinal ? 0xcc8844 : 0x4444cc;
+          const portalGfx = new Graphics();
+          portalGfx.rect(-24, -8, 48, 16).fill(portalColor);
+          portalGfx.rect(-16, -16, 32, 8).fill(0xffff44);
+          portalGfx.rect(-8, -24, 16, 8).fill(0xffff88);
+          portalGfx.x = enemy.x + enemy.width / 2;
+          portalGfx.y = enemy.y + enemy.height;
+          this.entityLayer.addChild(portalGfx);
+
+          this.exitTrigger = {
+            x: enemy.x - 16, y: enemy.y,
+            width: enemy.width + 32, height: enemy.height + 16,
+          };
+
+          this.toast.show('BOSS DEFEATED! Portal opened.', 0xff8844);
+          this.game.hitstopFrames = 12;
+          this.game.camera.shake(4);
+          break;
         }
-        this.toast.show('BOSS DEFEATED! Exit opened.', 0xff8844);
-        this.updateHudText();
       }
     }
 
-    // Exit trigger (boss room, after boss killed)
-    if (this.exitTrigger && cell.cleared) {
+    // Exit trigger — walk into boss portal
+    if (this.exitTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       if (aabbOverlap(pb, this.exitTrigger)) {
         this.handleStratumExit();
@@ -1546,10 +1538,22 @@ export class ItemWorldScene extends Scene {
     if (this.transitionState === 'fade_out') {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
-        // Rebuild full map for the new stratum, then reposition player at start cell
+        // Rebuild full map for the new stratum
         this.buildFullMap();
-        this.player.x = this.currentCol * 512 + 256;
-        this.player.y = this.currentRow * 512 + 400;
+        // Spawn at start cell using floor scan (same as init)
+        const stOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+        const localRow = this.currentRow - stOff;
+        const spawnCX = this.currentCol * 512 + 256;
+        const spawnTileC = Math.floor(spawnCX / TILE_SIZE);
+        const roomTopT = localRow * 32;
+        let spawnY = localRow * 512 + 256;
+        for (let tr = roomTopT + 2; tr < roomTopT + 30; tr++) {
+          if ((this.fullGrid[tr]?.[spawnTileC] ?? 1) === 0 && (this.fullGrid[tr+1]?.[spawnTileC] ?? 1) >= 1) {
+            spawnY = (tr + 1) * TILE_SIZE - this.player.height; break;
+          }
+        }
+        this.player.x = spawnCX;
+        this.player.y = spawnY;
         this.player.vx = 0;
         this.player.vy = 0;
         this.player.savePrevPosition();
