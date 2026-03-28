@@ -1,6 +1,7 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-03-27
+> 최근 업데이트: 2026-03-29
+> 총 24개 리서치 문서
 
 ---
 
@@ -25,7 +26,7 @@
 | **Multiplayer_Social** | 아이템 오너 귀속 + 동행자 보상 → 역할 분담과 공정성 동시 달성 |
 | **Narrative_Worldbuilding** | 이노센트 = "아이템의 기억이 응결된 의지". 디스가이아 경쾌함 → PA 고딕 톤 재해석 |
 
-## Game Systems Research (9)
+## Game Systems Research (12)
 
 | 문서 | 핵심 인사이트 |
 |:-----|:-----|
@@ -36,5 +37,31 @@
 | **EndgameLoop_Economy** | 짧은 루프(30층) + 명확한 종료 신호 > 무한 콘텐츠 (장기 리텐션) |
 | **HubSpace_Social** | 기능 분산 = 인지 부하 증가. 단일 통합 허브가 UX 마찰 최소화 |
 | **Equipment_DropRate** | 최상위 거래 제한은 파밍 동기 보존, 과도하면 사교 보상 훼손 |
-| **BossDesign_SideScrolling** | 패턴 학습(Cuphead)/패링 혼합(Dead Cells)/취약 체인(메가맨X) 중 하나를 일관 채택 |
-| **LevelDesign_ProgressionShape** | 16개 공간 패턴 조합과 순서 → 긴장/이완 곡선 + 발견 만족도 직접 제어 |
+| **BossDesign_SideScrolling** | 6대분류×23소분류 공격 패턴 분류, 4-Layer 모듈러 보스 합성, 등급별 텔레그래프 배율 |
+| **LevelDesign_ProgressionShape** | 16개 공간 패턴(4카테고리) + 태그 시스템 + 페이싱 시퀀싱 규칙 5종 |
+| **ItemWorld_DepthReward_RiskBalance** | 지수 HP + 구간별 데미지 스케일링, 손실회피(λ=2.25) 보정 기대값, 톱니파 긴장곡선 |
+| **ItemWorld_EntryTransition** | 아이템 다이브 연출 시퀀스, 14종 픽셀아트 전환 기법(GLSL), 레어리티별 차별화 |
+| **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |
+| **SkillSystem_ActionRPG** | 7종 게임 분석, "무기별 분기+공용 트리" 하이브리드 구조, 4슬롯 깊이 확보 6방안 |
+
+---
+
+## 리서치 커버리지 현황
+
+### 리서치 충분 → 설계 문서 작성 대기
+
+| 시스템 | 리서치 문서 | 설계 문서 (미작성) |
+|:------|:----------|:----------------|
+| 아이템계 보스 | BossDesign (1,483줄) | SYS-IW-03 |
+| 스킬트리 | SkillSystem (신규) | SYS-LVL-03 |
+| 재귀적 진입 | RecursiveEntry + DepthReward (2개) | SYS-IW-04 |
+| 이노센트 팜 | Innocent 시리즈 5개 | SYS-INC-02 |
+| 경제 철학 | EndgameLoop + Equipment + DropRate (3개) | D-07 |
+
+### 리서치 부족 → 추가 리서치 필요
+
+| 영역 | 기존 리서치 | 필요 |
+|:-----|:----------|:-----|
+| UI/UX 패턴 | 없음 | HUD, 인벤토리, 맵 UI 레퍼런스 |
+| 넷코드 상세 | OnlineCoop 1개 (개요) | 클라이언트 예측, 롤백 등 Phase 3용 |
+| 허브 상세 | HubSpace 1개 (개요) | 시설, NPC, 상점 구체화 Phase 2용 |
