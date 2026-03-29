@@ -539,9 +539,11 @@ export class LdtkWorldScene extends Scene {
     this.updatePortals(dt);
 
     // Area dialogue triggers
-    this.dialogueManager.checkAreaTriggers(
-      this.player.x, this.player.y, this.currentLevel.identifier,
-    );
+    if (this.currentLevel) {
+      this.dialogueManager.checkAreaTriggers(
+        this.player.x, this.player.y, this.currentLevel.identifier,
+      );
+    }
 
     // Room transition detection — edge-based
     this.checkLevelEdges();
