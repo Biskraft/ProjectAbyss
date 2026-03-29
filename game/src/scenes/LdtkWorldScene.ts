@@ -23,15 +23,18 @@ import { GameAction } from '@core/InputManager';
 import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel } from '@level/LdtkLoader';
+import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
 import { Ghost } from '@entities/Ghost';
+import { Slime } from '@entities/Slime';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
+import { Anvil } from '@entities/Anvil';
 import { HitManager } from '@combat/HitManager';
+import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
@@ -42,9 +45,11 @@ import { createItem, calcInnocentBonus } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
+import { FloorCollapse } from '@effects/FloorCollapse';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ToastManager } from '@ui/Toast';
+import { DialogueManager } from '@systems/DialogueManager';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { PRNG } from '@utils/PRNG';
@@ -62,7 +67,7 @@ const FADE_DURATION = 200;
 
 const LDTK_PATH = 'assets/World_ProjectAbyss_Layout.ldtk';
 const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
-const ENTRANCE_LEVEL = 'Entrance';
+const ENTRANCE_LEVEL = 'World_Level_16';
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
@@ -105,6 +110,9 @@ export class LdtkWorldScene extends Scene {
   private fadeOverlay!: Graphics;
   private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
 
+  // Dialogue
+  private dialogueManager!: DialogueManager;
+
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
   private dmgNumbers!: DamageNumberManager;
@@ -125,8 +133,18 @@ export class LdtkWorldScene extends Scene {
   private activeAltar: Altar | null = null;
   private altarUI: Container | null = null;
 
+  // Anvil + Floor Collapse system
+  private anvil: Anvil | null = null;
+  private floorCollapse: FloorCollapse | null = null;
+  private collapseItem: ItemInstance | null = null;
+  /** True while player is inside an ItemTunnel level, heading to Item World. */
+  private inItemTunnel = false;
+  /** The level to return to after exiting Item World via tunnel. */
+  private preTunnelLevelId: string | null = null;
+
   // Cleared level tracking
   private clearedLevels: Set<string> = new Set();
+  private collectedItems: Set<string> = new Set();
   private collectedRelics: Set<string> = new Set();
   private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
 
@@ -188,6 +206,9 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.app.stage.addChild(this.screenFlash.overlay);
 
+    // Dialogue
+    this.dialogueManager = new DialogueManager(this.game.input, this.game.app.stage);
+
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
     this.game.app.stage.addChild(this.inventoryUI.container);
@@ -199,9 +220,21 @@ export class LdtkWorldScene extends Scene {
   }
 
   enter(): void {
-    // Re-show everything when returning from Item World
     this.container.visible = true;
     if (this.hud) this.hud.container.visible = true;
+
+    // Restore collision + tileset if collapse was active
+    if (this.floorCollapse) {
+      this.floorCollapse.restore();
+      this.floorCollapse.destroy();
+      this.floorCollapse = null;
+    }
+
+    // Always re-sync collision grid and tilemap from current level data
+    this.collisionGrid = this.currentLevel.collisionGrid;
+    this.player.roomData = this.collisionGrid;
+    this.rerenderTilemap();
+
     this.updatePlayerAtk();
     this.game.camera.snap(
       this.player.x + this.player.width / 2,
@@ -215,8 +248,18 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async — game loop may call update() before it completes
     if (!this.initialized) return;
 
-    // Toast always updates (even during transitions / game over)
+    // Toast & dialogue always update
     this.toast.update(dt);
+    this.dialogueManager.update(dt);
+
+    // Dialogue active — block game input (NPC dialogue blocks movement)
+    if (this.dialogueManager.isActive()) {
+      if (!this.dialogueManager.blocksMovement()) {
+        this.player.update(dt);
+      }
+      this.game.camera.update(dt);
+      return;
+    }
 
     // Portal transition playing
     if (this.portalTransition) {
@@ -225,6 +268,25 @@ export class LdtkWorldScene extends Scene {
       if (this.portalTransition.isDone) {
         this.completePendingPortalEntry();
       }
+      return;
+    }
+
+    // Floor collapse in progress — all input blocked, camera frozen
+    if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
+      this.floorCollapse.update(dt);
+
+      const ph = this.floorCollapse.phase;
+      if (ph === 'anvil_fall' || ph === 'fade_out' || ph === 'done') {
+        this.player.update(dt);
+      }
+
+      if (this.floorCollapse.shouldTransition) {
+        this.completeFloorCollapseEntry();
+        return;
+      }
+
+      this.hitSparks.update(dt);
+      this.screenFlash.update(dt);
       return;
     }
 
@@ -239,9 +301,14 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Altar selection UI
+    // Altar / Anvil selection UI
     if (this.altarSelectActive) {
-      this.updateAltarInput();
+      // Anvil mode: activeAltar is null, anvil exists without item
+      if (!this.activeAltar && this.anvil) {
+        this.updateAnvilInput();
+      } else {
+        this.updateAltarInput();
+      }
       return;
     }
 
@@ -448,6 +515,8 @@ export class LdtkWorldScene extends Scene {
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
           this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          const key = (drop as any)._itemKey as string | undefined;
+          if (key) this.collectedItems.add(key);
           drop.destroy();
           this.drops.splice(i, 1);
         }
@@ -460,17 +529,19 @@ export class LdtkWorldScene extends Scene {
       const id = this.currentLevel.identifier;
       if (!this.clearedLevels.has(id)) {
         this.clearedLevels.add(id);
-        const heal = Math.floor(this.player.maxHp * 0.2);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-        this.toast.show(`Room Clear! +${heal} HP`, 0x44ff44);
       }
     }
 
-    // Portal & Altar interactions (portals take priority over altars)
-    const portalEntered = this.updatePortals(dt);
-    if (!portalEntered) {
-      this.updateAltars(dt);
-    }
+    // Anvil interaction + attack hit detection
+    this.updateAnvil(dt);
+
+    // Portal interactions
+    this.updatePortals(dt);
+
+    // Area dialogue triggers
+    this.dialogueManager.checkAreaTriggers(
+      this.player.x, this.player.y, this.currentLevel.identifier,
+    );
 
     // Room transition detection — edge-based
     this.checkLevelEdges();
@@ -513,6 +584,7 @@ export class LdtkWorldScene extends Scene {
 
   exit(): void {
     this.toast.clear();
+    this.dialogueManager.destroy();
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.controlsOverlay?.container.parent) {
       this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
@@ -563,17 +635,21 @@ export class LdtkWorldScene extends Scene {
     this.clearEnemies();
     this.clearDrops();
     this.clearPortals();
-    this.clearAltars();
     for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
-      this.spawnAltarsFromLdtk(level);
     }
+    this.spawnAnvilFromLdtk(level);
 
     // Process other LDtk entities (Items, GameSaver, etc.)
     this.processLdtkEntities(level);
+
+    // Register LDtk Dialogue entities as triggers
+    if (this.dialogueManager) {
+      this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
+    }
 
     // Camera: snap + set target to prevent lerp jitter on first frame
     const camX = this.player.x + this.player.width / 2;
@@ -583,6 +659,11 @@ export class LdtkWorldScene extends Scene {
 
     // Update minimap
     this.drawMinimap();
+
+    // Auto dialogue triggers for this level
+    if (this.dialogueManager) {
+      this.dialogueManager.checkAutoTriggers(level.identifier);
+    }
   }
 
   /**
@@ -745,6 +826,18 @@ export class LdtkWorldScene extends Scene {
    * spawning if no Enemy_Spawn entities are placed in the level.
    */
   private spawnEnemiesFromLdtk(level: LdtkLevel): void {
+    // Direct entity types (Slime, etc.) — spawn without Enemy_Spawn wrapper
+    const directEnemies = level.entities.filter(e => e.type === 'Slime');
+    for (const ent of directEnemies) {
+      const enemy = new Slime();
+      enemy.x = ent.px[0];
+      enemy.y = ent.px[1] - enemy.height;
+      enemy.roomData = this.collisionGrid;
+      enemy.target = this.player;
+      this.enemies.push(enemy);
+      this.entityLayer.addChild(enemy.container);
+    }
+
     const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
 
     if (spawners.length > 0) {
@@ -767,6 +860,8 @@ export class LdtkWorldScene extends Scene {
           enemy = golden;
         } else if (enemyType === 'Ghost') {
           enemy = new Ghost();
+        } else if (enemyType === 'Slime') {
+          enemy = new Slime();
         } else {
           enemy = new Skeleton();
         }
@@ -793,16 +888,17 @@ export class LdtkWorldScene extends Scene {
     for (const ent of level.entities) {
       switch (ent.type) {
         case 'Item': {
+          const itemKey = `${level.identifier}:${ent.px[0]},${ent.px[1]}`;
+          if (this.collectedItems.has(itemKey)) break;
+
           const itemType = ent.fields['type'] as string ?? 'Gold';
-          const count = ent.fields['count'] as number ?? 1;
-          // Map LDtk item types to game items
           if (itemType === 'Healing_potion') {
-            // TODO: potion pickup — for now heal player directly on pickup
+            // TODO: potion pickup
           } else {
-            // Create a visible drop entity at the LDtk position
-            const swordDef = SWORD_DEFS[0]; // default sword for now
+            const swordDef = SWORD_DEFS[0];
             const item = createItem(swordDef);
             const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
+            (drop as any)._itemKey = itemKey;
             this.drops.push(drop);
             this.entityLayer.addChild(drop.container);
           }
@@ -919,6 +1015,12 @@ export class LdtkWorldScene extends Scene {
 
     if (direction === null) return;
 
+    // In a tunnel: reaching the bottom edge → warp to Item World
+    if (this.inItemTunnel && direction === 'down') {
+      this.startTunnelExitTransition();
+      return;
+    }
+
     // Pass player's world position so we pick the correct neighbor
     // when multiple neighbors share the same edge (e.g. two rooms to the right)
     const playerWorldX = this.currentLevel.worldX + px;
@@ -1013,15 +1115,21 @@ export class LdtkWorldScene extends Scene {
     if (this.transitionState === 'fade_out') {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
+        if (this.pendingLevelId === '__item_world__') {
+          // Tunnel exit → enter Item World (no fade_in, scene push handles it)
+          this.transitionState = 'none';
+          this.fadeOverlay.alpha = 0;
+          this.pendingDirection = null;
+          this.pendingLevelId = null;
+          this.enterItemWorldFromTunnel();
+          return;
+        }
         if (this.pendingLevelId) {
-          // Invert direction: player traveled RIGHT → enters new room from LEFT
           const opposite: Record<string, 'left'|'right'|'up'|'down'> = {
             left: 'right', right: 'left', up: 'down', down: 'up',
           };
           const enterFrom = opposite[this.pendingDirection!] ?? 'down';
           this.loadLevel(this.pendingLevelId, enterFrom);
-          // Immediately sync prev positions so render(alpha) doesn't interpolate
-          // between old room coords and new room coords
           this.player.savePrevPosition();
           for (const e of this.enemies) e.savePrevPosition();
         }
@@ -1303,7 +1411,8 @@ export class LdtkWorldScene extends Scene {
     this.drawAltarUI();
   }
 
-  private drawAltarUI(): void {
+  /** Shared item-selection panel used by both Altar and Anvil. */
+  private drawItemSelectUI(titleText: string, accentColor: number): void {
     if (this.altarUI) {
       if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
       this.altarUI.destroy({ children: true });
@@ -1319,14 +1428,14 @@ export class LdtkWorldScene extends Scene {
     const px = Math.floor((480 - panelW) / 2);
     const py = Math.floor((270 - panelH) / 2);
     bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+    bg.rect(0, 0, panelW, panelH).stroke({ color: accentColor, width: 1 });
     bg.x = px;
     bg.y = py;
     ui.addChild(bg);
 
     const title = new BitmapText({
-      text: 'Offer item to altar:',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff },
+      text: titleText,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: accentColor },
     });
     title.x = px + 6;
     title.y = py + 4;
@@ -1340,7 +1449,7 @@ export class LdtkWorldScene extends Scene {
       const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
       const t = new BitmapText({
         text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : 0xffffff },
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffcc44 : 0xffffff },
       });
       t.x = px + 6;
       t.y = py + 16 + i * 12;
@@ -1349,6 +1458,10 @@ export class LdtkWorldScene extends Scene {
 
     this.altarUI = ui;
     this.game.app.stage.addChild(ui);
+  }
+
+  private drawAltarUI(): void {
+    this.drawItemSelectUI('Offer item to altar:', 0xaaccff);
   }
 
   private closeAltarUI(): void {
@@ -1361,27 +1474,28 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  private updateAltarInput(): void {
+  /** Shared input handler for item selection (Altar / Anvil). */
+  private updateItemSelectInput(
+    onConfirm: (item: ItemInstance) => void,
+    redrawFn: () => void,
+  ): void {
     const input = this.game.input;
     const items = this.inventory.items;
 
     if (input.isJustPressed(GameAction.LOOK_UP)) {
       this.altarSelectIndex = Math.max(0, this.altarSelectIndex - 1);
-      this.drawAltarUI();
+      redrawFn();
       return;
     }
     if (input.isJustPressed(GameAction.LOOK_DOWN)) {
       this.altarSelectIndex = Math.min(items.length - 1, this.altarSelectIndex + 1);
-      this.drawAltarUI();
+      redrawFn();
       return;
     }
     if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
       const item = items[this.altarSelectIndex];
-      if (item && this.activeAltar) {
-        const altar = this.activeAltar;
-        altar.used = true;
-        this.closeAltarUI();
-        this.spawnPortal(altar.x, altar.y - 20, item.rarity, 'altar', item);
+      if (item) {
+        onConfirm(item);
       } else {
         this.closeAltarUI();
       }
@@ -1393,9 +1507,246 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private updateAltarInput(): void {
+    this.updateItemSelectInput(
+      (item) => {
+        if (this.activeAltar) {
+          const altar = this.activeAltar;
+          altar.used = true;
+          this.closeAltarUI();
+          this.spawnPortal(altar.x, altar.y - 20, item.rarity, 'altar', item);
+        } else {
+          this.closeAltarUI();
+        }
+      },
+      () => this.drawAltarUI(),
+    );
+  }
+
   private clearAltars(): void {
     for (const a of this.altars) a.destroy();
     this.altars = [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Anvil + Floor Collapse System
+  // ---------------------------------------------------------------------------
+
+  private spawnAnvilFromLdtk(level: LdtkLevel): void {
+    // Clean up existing anvil
+    if (this.anvil) {
+      this.anvil.destroy();
+      this.anvil = null;
+    }
+
+    const anvilEnts = level.entities.filter(e => e.type === 'Anvil');
+    if (anvilEnts.length > 0) {
+      const ent = anvilEnts[0]; // One anvil per level
+      this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.entityLayer.addChild(this.anvil.container);
+      return;
+    }
+
+    // Prototype fallback: spawn anvil at first altar position
+    const altarEnts = level.entities.filter(e => e.type === 'Altar');
+    if (altarEnts.length > 0) {
+      console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" — using first Altar position as fallback`);
+      const ent = altarEnts[0];
+      this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.entityLayer.addChild(this.anvil.container);
+    }
+  }
+
+  private updateAnvil(dt: number): void {
+    if (!this.anvil || this.anvil.used) return;
+
+    this.anvil.update(dt);
+
+    // Proximity check — show hint
+    const near = this.anvil.overlaps(
+      this.player.x - 8, this.player.y - 8,
+      this.player.width + 16, this.player.height + 16,
+    );
+    this.anvil.setShowHint(near);
+
+    // UP key — place weapon on anvil (if no weapon placed yet)
+    if (!this.anvil.hasItem() && this.anvil.overlaps(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+    )) {
+      if (this.game.input.isJustPressed(GameAction.LOOK_UP) && !this.altarSelectActive) {
+        this.openAnvilUI();
+        return;
+      }
+    }
+
+    if (this.anvil.hasItem() && this.player.isAttackActive()) {
+      const step = COMBO_STEPS[this.player.comboIndex];
+      if (step) {
+        const hitbox = getAttackHitbox(
+          this.player.x, this.player.y, this.player.width, this.player.height,
+          this.player.facingRight ?? true, step,
+        );
+        if (aabbOverlap(hitbox, this.anvil.getHitAABB())) {
+          this.triggerFloorCollapse();
+        }
+      }
+    }
+  }
+
+  private openAnvilUI(): void {
+    if (this.inventory.items.length === 0) {
+      this.toast.show('No items to place', 0xff4444);
+      return;
+    }
+    this.altarSelectActive = true;
+    this.altarSelectIndex = 0;
+    this.activeAltar = null; // null = anvil mode
+    this.drawAnvilUI();
+  }
+
+  private drawAnvilUI(): void {
+    this.drawItemSelectUI('Place weapon on anvil:', 0xff8844);
+  }
+
+  private updateAnvilInput(): void {
+    this.updateItemSelectInput(
+      (item) => {
+        if (this.anvil) {
+          this.anvil.placeItem(item);
+          this.collapseItem = item;
+          this.closeAltarUI();
+          this.toast.show('Strike the anvil!', 0xff8844);
+        } else {
+          this.closeAltarUI();
+        }
+      },
+      () => this.drawAnvilUI(),
+    );
+  }
+
+  private rerenderTilemap(): void {
+    const collapsed = this.floorCollapse?.collapsedPositions;
+
+    // Only rebuild the wall layer — background and shadows stay intact
+    this.renderer.rebuildWallLayer(
+      collapsed && collapsed.size > 0
+        ? this.currentLevel.wallTiles.filter(t => {
+            const col = Math.floor(t.px[0] / TILE_SIZE);
+            const row = Math.floor(t.px[1] / TILE_SIZE);
+            return !collapsed.has(`${col},${row}`) && !collapsed.has(`${col},${row + 1}`);
+          })
+        : this.currentLevel.wallTiles,
+      this.atlas,
+    );
+  }
+
+  private triggerFloorCollapse(): void {
+    if (!this.anvil || !this.collapseItem) return;
+
+    this.anvil.used = true;
+    this.anvil.setShowHint(false);
+
+    // Deep-copy collision grid so the original level data stays intact for restore
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    const workingGrid = this.collisionGrid.map(row => row.slice());
+    // Extend downward so player can fall past the map bottom
+    for (let i = 0; i < 30; i++) {
+      workingGrid.push(new Array(gridW).fill(0));
+    }
+    this.collisionGrid = workingGrid;
+    this.player.roomData = workingGrid;
+
+    const collapse = new FloorCollapse(
+      this.anvil.x,
+      this.anvil.y,
+      this.collapseItem.rarity,
+      workingGrid,
+    );
+
+    collapse.onShake = (intensity) => this.game.camera.shake(intensity);
+    collapse.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+    collapse.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
+    collapse.onTilesRemoved = () => this.rerenderTilemap();
+
+    this.floorCollapse = collapse;
+    this.entityLayer.addChild(collapse.container);
+
+    // Hit sparks at anvil position
+    this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
+
+    collapse.start();
+  }
+
+  /** Rarity → ItemTunnel level name mapping. */
+  private static readonly TUNNEL_BY_RARITY: Record<Rarity, string> = {
+    normal: 'ItemTunnel_01',
+    magic: 'ItemTunnel_02',
+    rare: 'ItemTunnel_03',
+    legendary: 'ItemTunnel_04',
+    ancient: 'ItemTunnel_05',
+  };
+
+  /** After floor collapse fade-out, load the tunnel level. */
+  private completeFloorCollapseEntry(): void {
+    if (!this.collapseItem) return;
+
+    // Clean up collapse effect
+    if (this.floorCollapse) {
+      this.floorCollapse.destroy();
+      this.floorCollapse = null;
+    }
+
+    // Remember where we came from so we can return
+    this.preTunnelLevelId = this.currentLevel.identifier;
+    this.inItemTunnel = true;
+
+    const tunnelId = LdtkWorldScene.TUNNEL_BY_RARITY[this.collapseItem.rarity];
+    const tunnelExists = this.loader.getLevel(tunnelId);
+    const targetTunnel = tunnelExists ? tunnelId : 'ItemTunnel_01';
+    this.loadLevel(targetTunnel, 'up');
+  }
+
+  /** Fade out at the bottom of the tunnel, then enter Item World. */
+  private startTunnelExitTransition(): void {
+    this.transitionState = 'fade_out';
+    this.transitionTimer = FADE_DURATION;
+    this.pendingDirection = 'down';
+    this.pendingLevelId = '__item_world__';
+  }
+
+  /** Called when player reaches the end of an ItemTunnel → enter Item World. */
+  private enterItemWorldFromTunnel(): void {
+    if (!this.collapseItem) return;
+
+    const targetItem = this.collapseItem;
+    const prevLevel = targetItem.level;
+    const prevAtk = this.player.atk;
+
+    this.container.visible = false;
+    this.hud.container.visible = false;
+
+    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    itemWorldScene.onComplete = () => {
+      this.game.sceneManager.pop();
+      this.updatePlayerAtk();
+
+      if (targetItem.level > prevLevel) {
+        this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+      }
+      if (this.player.atk !== prevAtk) {
+        this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+      }
+
+      // Return to the forge room (not the tunnel)
+      this.inItemTunnel = false;
+      if (this.preTunnelLevelId) {
+        this.loadLevel(this.preTunnelLevelId, 'down');
+        this.preTunnelLevelId = null;
+      }
+      this.collapseItem = null;
+    };
+
+    this.game.sceneManager.push(itemWorldScene, true);
   }
 
   // ---------------------------------------------------------------------------

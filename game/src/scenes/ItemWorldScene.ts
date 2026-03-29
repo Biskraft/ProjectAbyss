@@ -39,7 +39,7 @@ const ROOM_H = 34;
 const FADE_DURATION = 200;
 const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
-const BASE_EXP_PER_KILL = 30;
+const BASE_EXP_PER_KILL = 60;
 const BASE_EXP_ROOM_PASS = 60;
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
@@ -262,16 +262,8 @@ export class ItemWorldScene extends Scene {
     const spawnTileCol = Math.floor(spawnCenterX / TILE_SIZE);
     const roomTopTile = localStartRow * 32;
 
-    // Scan for air-above-solid from top of room
-    let spawnY = localStartRow * 512 + 256; // fallback: center
-    for (let tr = roomTopTile + 2; tr < roomTopTile + 30; tr++) {
-      const here = this.fullGrid[tr]?.[spawnTileCol] ?? 1;
-      const below = this.fullGrid[tr + 1]?.[spawnTileCol] ?? 1;
-      if (here === 0 && below >= 1) {
-        spawnY = (tr + 1) * TILE_SIZE - this.player.height;
-        break;
-      }
-    }
+    // Spawn at the very top of the room and let player fall
+    const spawnY = roomTopTile * TILE_SIZE + 2;
     this.player.x = spawnCenterX;
     this.player.y = spawnY;
     this.player.vx = 0;
@@ -367,6 +359,7 @@ export class ItemWorldScene extends Scene {
     this.spawnedRooms.clear();
     this.clearEnemies();
     this.clearEscapeAltar();
+    this.exitTrigger = null;
 
     const GRID_W = 4, GRID_H = 4;   // 4×4 room grid
     const ROOM_TILES = 32;           // 32×32 tiles per room
@@ -531,6 +524,7 @@ export class ItemWorldScene extends Scene {
     };
 
     const isEndRoom = this.isStratumEndRoom(col, row);
+    console.log(`[ItemWorld] spawnEnemiesInRoom col=${col} row=${row} stratum=${cell.stratumIndex} isEndRoom=${isEndRoom} endRooms=${JSON.stringify(this.unifiedGrid.stratumEndRooms)}`);
     if (isEndRoom) {
       const boss = new Skeleton();
       (boss as any)._isBoss = true;
@@ -886,9 +880,46 @@ export class ItemWorldScene extends Scene {
   private get roomW(): number { return this.roomData[0]?.length ?? ROOM_W; }
   private get roomH(): number { return this.roomData.length ?? ROOM_H; }
 
-  /** Pick a random LDtk template from loaded templates */
-  private pickLdtkTemplate(cell: UnifiedRoomCell, rng: PRNG): LdtkLevel | null {
+  /**
+   * Pick an LDtk template based on the cell's role → RoomType enum.
+   * Start room → "Start", boss room → "Boss", otherwise → "Combat" (with small
+   * chance for Treasure/Rest/Puzzle on non-critical-path rooms).
+   */
+  private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
     if (this.ldtkTemplates.length === 0) return null;
+
+    // Determine desired RoomType based on cell role
+    let desiredType: string;
+    if (!cell) {
+      desiredType = 'Combat';
+    } else {
+      const isStart = cell.col === this.unifiedGrid.startRoom.col
+        && cell.absoluteRow === this.unifiedGrid.startRoom.absoluteRow;
+      const isBoss = this.isStratumEndRoom(cell.col, cell.absoluteRow);
+
+      if (isStart) {
+        desiredType = 'Start';
+      } else if (isBoss) {
+        desiredType = 'Boss';
+      } else if (!cell.onCriticalPath) {
+        // Off-path rooms: 60% Combat, 20% Treasure, 10% Rest, 10% Puzzle
+        const roll = rng.next();
+        if (roll < 0.20) desiredType = 'Treasure';
+        else if (roll < 0.30) desiredType = 'Rest';
+        else if (roll < 0.40) desiredType = 'Puzzle';
+        else desiredType = 'Combat';
+      } else {
+        desiredType = 'Combat';
+      }
+    }
+
+    // Filter templates by roomType
+    const matching = this.ldtkTemplates.filter(t => t.roomType === desiredType);
+    if (matching.length > 0) {
+      return matching[rng.nextInt(0, matching.length - 1)];
+    }
+
+    // Fallback: any template
     return this.ldtkTemplates[rng.nextInt(0, this.ldtkTemplates.length - 1)];
   }
 
@@ -1199,42 +1230,49 @@ export class ItemWorldScene extends Scene {
     }
 
     // Boss killed check — spawn exit portal at boss death location
-    if (!this.exitTrigger) {
-      // Find boss that just died (check _expGranted as "just processed" flag)
-      for (const enemy of this.enemies) {
-        if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
-          (enemy as any)._portalSpawned = true;
-          const cell = this.getCurrentCell();
-          cell.cleared = true;
+    // Check ALL dead bosses regardless of exitTrigger state
+    for (const enemy of this.enemies) {
+      if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
+        (enemy as any)._portalSpawned = true;
+        const cell = this.getCurrentCell();
+        cell.cleared = true;
 
-          // Level up
-          const prevLevel = this.item.level;
-          itemLevelUp(this.item);
-          if (this.item.level > prevLevel) {
-            this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
-          }
-
-          // Spawn portal at boss death position
-          const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
-          const portalColor = isFinal ? 0xcc8844 : 0x4444cc;
-          const portalGfx = new Graphics();
-          portalGfx.rect(-24, -8, 48, 16).fill(portalColor);
-          portalGfx.rect(-16, -16, 32, 8).fill(0xffff44);
-          portalGfx.rect(-8, -24, 16, 8).fill(0xffff88);
-          portalGfx.x = enemy.x + enemy.width / 2;
-          portalGfx.y = enemy.y + enemy.height;
-          this.entityLayer.addChild(portalGfx);
-
-          this.exitTrigger = {
-            x: enemy.x - 16, y: enemy.y,
-            width: enemy.width + 32, height: enemy.height + 16,
-          };
-
-          this.toast.show('BOSS DEFEATED! Portal opened.', 0xff8844);
-          this.game.hitstopFrames = 12;
-          this.game.camera.shake(4);
-          break;
+        // Level up
+        const prevLevel = this.item.level;
+        itemLevelUp(this.item);
+        if (this.item.level > prevLevel) {
+          this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
         }
+
+        // Remove any existing escape altar so portal is the only interactable
+        this.clearEscapeAltar();
+
+        // Spawn red portal at boss death position
+        const portalGfx = new Graphics();
+        // Outer glow
+        portalGfx.rect(-28, -32, 56, 48).fill({ color: 0xff0000, alpha: 0.25 });
+        // Portal body
+        portalGfx.rect(-20, -28, 40, 40).fill(0xcc0000);
+        portalGfx.rect(-14, -24, 28, 32).fill(0xff2222);
+        // Inner bright core
+        portalGfx.rect(-8, -20, 16, 24).fill(0xff6666);
+        portalGfx.rect(-4, -16, 8, 16).fill(0xffaaaa);
+        const px = enemy.x + enemy.width / 2;
+        const py = enemy.y + enemy.height;
+        portalGfx.x = px;
+        portalGfx.y = py;
+        this.entityLayer.addChild(portalGfx);
+
+        this.exitTrigger = {
+          x: px - 24, y: py - 32,
+          width: 48, height: 48,
+        };
+
+        console.log(`[ItemWorld] Boss portal spawned at (${px}, ${py}) exitTrigger=`, this.exitTrigger);
+        this.toast.show('BOSS DEFEATED! Red portal opened — press UP.', 0xff4444);
+        this.game.hitstopFrames = 12;
+        this.game.camera.shake(4);
+        break;
       }
     }
 
@@ -1267,20 +1305,22 @@ export class ItemWorldScene extends Scene {
       // Convert local row (0-3) to absolute row for unifiedGrid access
       const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
       this.currentRow = stratumOffset + playerRoomRow;
-      const enteredCell = this.getCell(playerRoomCol, playerRoomRow);
+      const enteredCell = this.getCurrentCell();
       if (enteredCell) {
         enteredCell.visited = true;
         this.currentStratumIndex = enteredCell.stratumIndex ?? 0;
         this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
         this.persistRoomState();
         this.drawMiniMap();
-        // Escape altar chance for non-start, non-end critical path rooms
-        if (!(playerRoomCol === this.unifiedGrid.startRoom.col && playerRoomRow === this.unifiedGrid.startRoom.absoluteRow)
-            && !this.isStratumEndRoom(playerRoomCol, playerRoomRow)) {
+        // Escape altar chance: skip start rooms (per stratum) and boss rooms
+        const absRow = this.currentRow;
+        const sOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+        const isStratumStart = sOff && playerRoomRow === 0 && enteredCell.onCriticalPath;
+        if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, absRow)) {
           this.trySpawnEscapeAltar(enteredCell);
         }
       }
-      this.spawnEnemiesInRoom(playerRoomCol, playerRoomRow);
+      this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
     }
 
     // HUD, damage numbers, toast & Sakurai effects
@@ -1445,7 +1485,12 @@ export class ItemWorldScene extends Scene {
         if (cell && cell.onCriticalPath) { nextStartCol = c; break; }
       }
 
-      // Use regular room transition — the key change!
+      // Advance stratum BEFORE transition so buildFullMap uses the new stratum
+      this.currentStratumIndex = nextStratumIndex;
+      this.currentStratumDef = this.strataConfig.strata[nextStratumIndex];
+      this.progress.lastSafeStratum = this.currentStratumIndex;
+
+      this.toast.show(`Stratum ${nextStratumIndex + 1} — Descending...`, 0x8888ff);
       this.startTransition('down', nextStartCol, nextStartRow);
     } else {
       // Deepest stratum cleared — exit item world
@@ -1473,9 +1518,23 @@ export class ItemWorldScene extends Scene {
     const altarRng = new PRNG(this.item.uid * 50000 + this.currentRow * 100 + this.currentCol * 10);
     if (altarRng.next() >= 0.25) return; // 25% chance
 
-    // Global pixel coordinates: room origin + room-local altar position (32×32 tile room)
-    const altarX = this.currentCol * 512 + (16 + 4) * TILE_SIZE;
-    const altarY = this.currentRow * 512 + (32 - 4) * TILE_SIZE;
+    // Local row within current stratum (full-map renders stratum locally at 0-3)
+    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localRow = this.currentRow - stratumOffset;
+
+    // Find a valid floor position inside the room for altar placement (randomized X)
+    const roomTopTile = localRow * 32;
+    const roomLeftTile = this.currentCol * 32;
+    // Random X column within room (avoid edges: +4 to +28)
+    const altarTC = roomLeftTile + 4 + altarRng.nextInt(0, 24);
+    let altarTileY = roomTopTile + 28; // default near bottom
+    for (let tr = roomTopTile + 4; tr < roomTopTile + 30; tr++) {
+      if ((this.fullGrid[tr]?.[altarTC] ?? 1) === 0 && (this.fullGrid[tr + 1]?.[altarTC] ?? 1) >= 1) {
+        altarTileY = tr; break;
+      }
+    }
+    const altarX = altarTC * TILE_SIZE;
+    const altarY = (altarTileY + 1) * TILE_SIZE - 40;
     this.altarTrigger = { x: altarX, y: altarY, width: 2 * TILE_SIZE, height: 3 * TILE_SIZE };
 
     this.altarVisual = new Graphics();

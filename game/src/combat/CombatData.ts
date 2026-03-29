@@ -44,6 +44,19 @@ export const COMBO_STEPS: ComboStep[] = [
   },
 ];
 
+/** Build the attack hitbox AABB for a given attacker and combo step. */
+export function getAttackHitbox(
+  ax: number, ay: number, aw: number, ah: number,
+  facingRight: boolean, step: ComboStep,
+): { x: number; y: number; width: number; height: number } {
+  return {
+    x: facingRight ? ax + aw : ax - step.hitboxW,
+    y: ay + (ah - step.hitboxH) / 2,
+    width: step.hitboxW,
+    height: step.hitboxH,
+  };
+}
+
 export const COMBO_WINDOW = 400;      // ms to input next attack
 export const COMBO3_END_LAG = 600;    // ms end lag after 3rd hit
 export const INVINCIBILITY_ON_HIT = 500; // ms invincibility after being hit

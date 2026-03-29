@@ -74,11 +74,11 @@ export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
 
 /** ATK per level by rarity — linear growth, no exponential scaling */
 const ATK_PER_LEVEL: Record<Rarity, number> = {
-  normal: 2,
-  magic: 3,
-  rare: 4,
-  legendary: 5,
-  ancient: 7,
+  normal: 4,
+  magic: 6,
+  rare: 8,
+  legendary: 10,
+  ancient: 14,
 };
 
 /** Linear growth: finalAtk = baseAtk + atkPerLevel × level */

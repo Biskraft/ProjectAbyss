@@ -626,10 +626,7 @@ export class WorldScene extends Scene {
       const cell = this.gridData.cells[this.currentRow][this.currentCol];
       if (!cell.cleared) {
         cell.cleared = true;
-        // Heal 20% on room clear
-        const heal = Math.floor(this.player.maxHp * 0.2);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-        this.toast.show(`Room Clear! +${heal} HP`, 0x44ff44);
+        this.toast.show('Room Clear!', 0x44ff44);
         this.drawMiniMap();
       }
     }

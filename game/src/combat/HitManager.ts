@@ -1,6 +1,6 @@
 import { aabbOverlap, type AABB } from '@core/Physics';
 import { calculateDamage } from '@data/damage';
-import { COMBO_STEPS, type ComboStep } from './CombatData';
+import { COMBO_STEPS, getAttackHitbox, type ComboStep } from './CombatData';
 import type { Entity } from '@entities/Entity';
 import type { Game } from '../Game';
 
@@ -63,14 +63,10 @@ export class HitManager {
     if (!step) return [];
 
     const facingRight = attacker.facingRight ?? true;
-    const hitbox: AABB = {
-      x: facingRight
-        ? attacker.x + attacker.width
-        : attacker.x - step.hitboxW,
-      y: attacker.y + (attacker.height - step.hitboxH) / 2,
-      width: step.hitboxW,
-      height: step.hitboxH,
-    };
+    const hitbox: AABB = getAttackHitbox(
+      attacker.x, attacker.y, attacker.width, attacker.height,
+      facingRight, step,
+    );
 
     const results: HitResult[] = [];
 

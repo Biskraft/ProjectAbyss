@@ -102,6 +102,14 @@ export class LdtkRenderer {
     }
   }
 
+  /** Rebuild only the wall layer (leaves background and shadows untouched). */
+  rebuildWallLayer(wallTiles: LdtkTile[], atlas: Texture): void {
+    this.wallLayer.removeChildren();
+    for (const tile of wallTiles) {
+      this.wallLayer.addChild(this.buildSprite(tile, atlas));
+    }
+  }
+
   /** Remove all rendered tiles and markers. */
   clear(): void {
     this.bgLayer.removeChildren();

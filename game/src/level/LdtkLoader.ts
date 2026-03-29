@@ -298,8 +298,9 @@ export class LdtkLoader {
     const gridW = Math.round(raw.pxWid / TILE_SIZE);
     const gridH = Math.round(raw.pxHei / TILE_SIZE);
 
-    // Extract the roomType custom field (enum value stored as a string).
-    const roomType = this.extractFieldValue(raw.fieldInstances, 'roomType') as string | null;
+    // Extract the RoomType custom field (Array<LocalEnum.RoomType> — take first value).
+    const rawRoomType = this.extractFieldValue(raw.fieldInstances, 'RoomType');
+    const roomType = Array.isArray(rawRoomType) ? (rawRoomType[0] as string ?? null) : (rawRoomType as string | null);
 
     // Default empty structures — used when a layer is absent or has no data.
     let collisionGrid: number[][] = this.emptyGrid(gridW, gridH);
