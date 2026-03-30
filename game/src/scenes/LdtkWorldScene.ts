@@ -116,6 +116,7 @@ export class LdtkWorldScene extends Scene {
 
   // Tutorial hints
   private tutorialHint!: TutorialHint;
+  private playerSpawnLevelId = '';
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
@@ -221,8 +222,8 @@ export class LdtkWorldScene extends Scene {
     this.game.app.stage.addChild(this.inventoryUI.container);
 
     // Find the level containing a Player entity; fall back to hardcoded level
-    const entranceLevel = this.findPlayerSpawnLevel();
-    this.loadLevel(entranceLevel, 'down');
+    this.playerSpawnLevelId = this.findPlayerSpawnLevel();
+    this.loadLevel(this.playerSpawnLevelId, 'down');
     this.initialized = true;
 
   }
@@ -271,7 +272,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Tutorial hints — only show after dialogue finishes
-    if (this.currentLevel?.identifier === FALLBACK_ENTRANCE_LEVEL) {
+    if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
       this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Attack  X: Jump');
     }
 
@@ -1225,7 +1226,7 @@ export class LdtkWorldScene extends Scene {
     this.gameOverOverlay = null;
 
     // Return to player spawn level
-    this.loadLevel(this.findPlayerSpawnLevel(), 'down');
+    this.loadLevel(this.playerSpawnLevelId, 'down');
     this.player.respawn();
     this.player.savePrevPosition();
     this.game.camera.snap(this.player.x, this.player.y);

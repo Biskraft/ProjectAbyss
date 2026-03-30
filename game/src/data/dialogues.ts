@@ -38,7 +38,6 @@ export const DIALOGUE_TRIGGERS: DialogueTrigger[] = [
     id: 'intro_monologue',
     type: 'auto',
     once: true,
-    levelId: 'World_Level_16',
     lines: [
       { text: 'Another repair job...', autoCloseMs: 3000 },
       { text: 'Thirty enchantments, and rent is still due.', autoCloseMs: 3000 },
