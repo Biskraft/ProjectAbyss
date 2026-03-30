@@ -4,7 +4,7 @@ import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
-import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
+import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
@@ -611,7 +611,7 @@ export class ItemWorldScene extends Scene {
       // Code template or ChunkAssembler fallback
       const template = this.pickTemplateForCell(cell, roomRng);
       if (template) {
-        this.roomData = template.grid.map(row => [...row]);
+        this.roomData = resolveTiles(template.grid, roomRng);
       } else {
         this.roomData = assembleRoom(cell, roomRng);
       }

@@ -52,6 +52,7 @@ import { ToastManager } from '@ui/Toast';
 import { DialogueManager } from '@systems/DialogueManager';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
+import { TutorialHint } from '@ui/TutorialHint';
 import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
@@ -67,7 +68,7 @@ const FADE_DURATION = 200;
 
 const LDTK_PATH = 'assets/World_ProjectAbyss_Layout.ldtk';
 const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
-const ENTRANCE_LEVEL = 'World_Level_16';
+const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
@@ -112,6 +113,9 @@ export class LdtkWorldScene extends Scene {
 
   // Dialogue
   private dialogueManager!: DialogueManager;
+
+  // Tutorial hints
+  private tutorialHint!: TutorialHint;
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
@@ -209,12 +213,16 @@ export class LdtkWorldScene extends Scene {
     // Dialogue
     this.dialogueManager = new DialogueManager(this.game.input, this.game.app.stage);
 
+    // Tutorial hints
+    this.tutorialHint = new TutorialHint(this.game.input, this.game.app.stage);
+
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
     this.game.app.stage.addChild(this.inventoryUI.container);
 
-    // Load the entrance level
-    this.loadLevel(ENTRANCE_LEVEL, 'down');
+    // Find the level containing a Player entity; fall back to hardcoded level
+    const entranceLevel = this.findPlayerSpawnLevel();
+    this.loadLevel(entranceLevel, 'down');
     this.initialized = true;
 
   }
@@ -248,8 +256,9 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async — game loop may call update() before it completes
     if (!this.initialized) return;
 
-    // Toast & dialogue always update
+    // Toast, tutorial hints & dialogue always update
     this.toast.update(dt);
+    this.tutorialHint.update(dt);
     this.dialogueManager.update(dt);
 
     // Dialogue active — block game input (NPC dialogue blocks movement)
@@ -259,6 +268,11 @@ export class LdtkWorldScene extends Scene {
       }
       this.game.camera.update(dt);
       return;
+    }
+
+    // Tutorial hints — only show after dialogue finishes
+    if (this.currentLevel?.identifier === FALLBACK_ENTRANCE_LEVEL) {
+      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Attack  X: Jump');
     }
 
     // Portal transition playing
@@ -348,6 +362,7 @@ export class LdtkWorldScene extends Scene {
 
       // Enemy just died — roll drop
       if (wasAlive && !enemy.alive) {
+        this.game.stats.enemiesKilled++;
         const isGolden = enemy instanceof GoldenMonster;
         const drop = isGolden
           ? rollGoldenDrop(this.dropRng)
@@ -360,6 +375,7 @@ export class LdtkWorldScene extends Scene {
           );
           this.drops.push(dropEntity);
           this.entityLayer.addChild(dropEntity.container);
+          this.tutorialHint.tryShow('hint_item', 'Walk over items to pick them up');
         }
       }
 
@@ -514,7 +530,9 @@ export class LdtkWorldScene extends Scene {
       drop.update(dt);
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
+          this.game.stats.itemsCollected++;
           this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          this.tutorialHint.tryShow('hint_inventory', 'I: Open Inventory  Z: Equip/Unequip');
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
           drop.destroy();
@@ -586,6 +604,7 @@ export class LdtkWorldScene extends Scene {
 
   exit(): void {
     this.toast.clear();
+    this.tutorialHint.destroy();
     this.dialogueManager.destroy();
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.controlsOverlay?.container.parent) {
@@ -611,6 +630,16 @@ export class LdtkWorldScene extends Scene {
    * @param enterDirection - Direction from which the player arrives, used to
    *                         place the player on the opposite edge.
    */
+  private findPlayerSpawnLevel(): string {
+    for (const id of this.loader.getLevelIds()) {
+      const level = this.loader.getLevel(id);
+      if (level?.entities.some((e) => e.type === 'Player')) {
+        return id;
+      }
+    }
+    return FALLBACK_ENTRANCE_LEVEL;
+  }
+
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
     const level = this.loader.getLevel(levelId);
     if (!level) {
@@ -666,6 +695,7 @@ export class LdtkWorldScene extends Scene {
     if (this.dialogueManager) {
       this.dialogueManager.checkAutoTriggers(level.identifier);
     }
+
   }
 
   /**
@@ -1194,8 +1224,8 @@ export class LdtkWorldScene extends Scene {
     }
     this.gameOverOverlay = null;
 
-    // Return to entrance and place player from 'down' spawn
-    this.loadLevel(ENTRANCE_LEVEL, 'down');
+    // Return to player spawn level
+    this.loadLevel(this.findPlayerSpawnLevel(), 'down');
     this.player.respawn();
     this.player.savePrevPosition();
     this.game.camera.snap(this.player.x, this.player.y);
@@ -1266,6 +1296,7 @@ export class LdtkWorldScene extends Scene {
     if (rarity !== 'normal') {
       this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
     }
+    this.tutorialHint.tryShow('hint_portal', 'UP: Enter the Memory Strata');
   }
 
   private enterPortal(portal: Portal): void {
@@ -1749,6 +1780,74 @@ export class LdtkWorldScene extends Scene {
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Narrative event chains
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fire a narrative event. Handles chained events:
+   * - echo_shelved → marta_note_complete (with silhouette)
+   */
+  async fireNarrativeEvent(eventName: string): Promise<void> {
+    await this.dialogueManager.fireEvent(eventName);
+
+    // Chain: after Marta's note, fire silhouette event
+    if (eventName === 'echo_shelved') {
+      await this.showSeraSilhouette();
+    }
+  }
+
+  /**
+   * T-12: Sera silhouette sequence.
+   * 1. Echo vibrates (player sprite shakes 1s)
+   * 2. Silhouette appears on rooftop
+   * 3. "...Who was that?" dialogue
+   * 4. Silhouette fades out
+   */
+  private async showSeraSilhouette(): Promise<void> {
+    // 1. Echo vibration — shake player for 1 second
+    this.player.startVibrate(2, 60, false); // amplitude=2px, 60 frames ≈ 1s
+
+    await this.delay(1000);
+
+    // 2. Draw silhouette above the scene (rooftop position relative to player)
+    const silhouette = new Graphics();
+    // Simple dark figure: head (circle) + body (rect)
+    silhouette.circle(0, -20, 5).fill({ color: 0x111122, alpha: 0.7 });
+    silhouette.rect(-4, -15, 8, 18).fill({ color: 0x111122, alpha: 0.7 });
+    silhouette.x = this.player.x + 60;
+    silhouette.y = this.player.y - 48;
+    silhouette.alpha = 0.6;
+    this.entityLayer.addChild(silhouette);
+
+    // 3. Fire the dialogue
+    await this.dialogueManager.fireEvent('marta_note_complete');
+
+    // 4. Fade out silhouette
+    const fadeMs = 500;
+    const startAlpha = silhouette.alpha;
+    const startTime = performance.now();
+    await new Promise<void>((resolve) => {
+      const fadeStep = () => {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(1, elapsed / fadeMs);
+        silhouette.alpha = startAlpha * (1 - t);
+        if (t >= 1) {
+          if (silhouette.parent) silhouette.parent.removeChild(silhouette);
+          silhouette.destroy();
+          resolve();
+        } else {
+          requestAnimationFrame(fadeStep);
+        }
+      };
+      requestAnimationFrame(fadeStep);
+    });
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // ---------------------------------------------------------------------------

@@ -105,6 +105,16 @@ export class InputManager {
     }
   }
 
+  /** True if any key was just pressed this frame (for title screen, etc.) */
+  anyKeyJustPressed(): boolean {
+    for (const [key, down] of this.keyState) {
+      if (down && this.prevKeyState.get(key) !== true && !this.consumed.has(key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   isJustReleased(action: GameAction): boolean {
     const keys = this.bindings[action];
     return keys.some(

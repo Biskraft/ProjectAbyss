@@ -26,6 +26,12 @@ export class Game {
   gameContainer!: Container;
 
   hitstopFrames = 0;
+  stats = {
+    enemiesKilled: 0,
+    itemsCollected: 0,
+    gatesBroken: 0,
+    playTimeMs: 0,
+  };
   private accumulated = 0;
 
   async init(): Promise<void> {
@@ -78,6 +84,7 @@ export class Game {
         if (this.hitstopFrames > 0) {
           this.hitstopFrames--;
         } else {
+          this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);
         }
         this.accumulated -= FIXED_STEP;

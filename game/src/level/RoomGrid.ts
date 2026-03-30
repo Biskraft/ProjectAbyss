@@ -196,14 +196,9 @@ export function generateRoomGrid(
       if (cell.onCriticalPath) {
         cell.type = determineRoomType(cell);
       } else {
-        // Non-path: 20-30% become type 1 (branch rooms)
-        if (rng.next() < 0.25) {
-          cell.type = 1;
-          // Connect to adjacent path room if possible
-          connectBranchRoom(cells, col, row, gridW, gridH);
-        } else {
-          cell.type = 0;
-        }
+        // Non-path: ALL become branch rooms (Spelunky-style full grid fill)
+        cell.type = 1;
+        connectBranchRoom(cells, col, row, gridW, gridH);
       }
     }
   }
