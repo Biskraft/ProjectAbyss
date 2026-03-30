@@ -17,7 +17,7 @@
 | **category** | Sword |
 | **narrative_archetype** | SA-01 기억 탐구 |
 | **themes** | 지층 1: T-HOME/kitchen · 지층 2: T-MILITARY/castle_patrol · 지층 3: T-HOME + T-MILITARY (Crossroads) |
-| **드랍 위치** | Zone 5 중앙 성채 근교 묘지 소구역 / Zone 1 묘지·카타콤 초입 일반 드랍 |
+| **드랍 위치** | WZD-02 중앙 성채 근교 묘지 소구역 / WZD-07 묘지·카타콤 초입 일반 드랍 |
 
 ---
 
