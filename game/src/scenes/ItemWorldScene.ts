@@ -31,7 +31,7 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
-import type { Game } from '../Game';
+import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -1389,8 +1389,8 @@ export class ItemWorldScene extends Scene {
     controls.y = 48;
     panel.addChild(controls);
 
-    panel.x = Math.floor((480 - panelW) / 2);
-    panel.y = Math.floor((270 - panelH) / 2);
+    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
 
     this.escapeConfirm = panel;
     this.game.app.stage.addChild(panel);
@@ -1457,8 +1457,8 @@ export class ItemWorldScene extends Scene {
     prompt.y = panelH - padY - 8;
     panel.addChild(prompt);
 
-    panel.x = Math.floor((480 - panelW) / 2);
-    panel.y = Math.floor((270 - panelH) / 2) - 20;
+    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2) - 20;
 
     this.onboardingPanel = panel;
     this.game.app.stage.addChild(panel);

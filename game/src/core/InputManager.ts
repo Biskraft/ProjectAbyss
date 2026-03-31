@@ -15,9 +15,9 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.MOVE_RIGHT]: ['ArrowRight'],
   [GameAction.LOOK_UP]: ['ArrowUp'],
   [GameAction.LOOK_DOWN]: ['ArrowDown'],
-  [GameAction.JUMP]: ['KeyX'],
+  [GameAction.JUMP]: ['KeyZ'],
   [GameAction.DASH]: ['KeyC'],
-  [GameAction.ATTACK]: ['KeyZ'],
+  [GameAction.ATTACK]: ['KeyX'],
   [GameAction.INVENTORY]: ['KeyI'],
   [GameAction.MENU]: ['Escape'],
 };

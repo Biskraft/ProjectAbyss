@@ -8,14 +8,14 @@ import type { CombatEntity } from '@combat/HitManager';
 import type { Game } from '../Game';
 
 // GDD System_3C_Character.md (SSoT)
-const MOVE_SPEED = 192;           // px/s
+const MOVE_SPEED = 144;           // px/s
 const ACCEL_FRAMES = 4;           // frames to reach max speed
 const GRAVITY = 980;              // px/s²
 const MAX_FALL_SPEED = 576;       // px/s
-const JUMP_HEIGHT = 96;           // px (6 tiles)
+const JUMP_HEIGHT = 79;           // px (~5 tiles)
 const COYOTE_TIME = 150;          // ms
 const JUMP_BUFFER = 250;          // ms
-const DASH_DISTANCE = 64;         // px
+const DASH_DISTANCE = 96;         // px (6 tiles)
 const DASH_DURATION = 150;        // ms
 const DASH_GROUND_DELAY = 500;    // ms (ground dash recharge)
 const ATTACK_MOVE_MULT = 0.8;     // 80% speed during attack

@@ -57,7 +57,7 @@ import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
-import type { Game } from '../Game';
+import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -192,7 +192,7 @@ export class LdtkWorldScene extends Scene {
 
     // Fade overlay — on stage (camera-independent) so it always covers the full screen
     this.fadeOverlay = new Graphics();
-    this.fadeOverlay.rect(0, 0, 480, 270).fill(0x000000);
+    this.fadeOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.fadeOverlay.alpha = 0;
     this.game.app.stage.addChild(this.fadeOverlay);
 
@@ -273,7 +273,7 @@ export class LdtkWorldScene extends Scene {
 
     // Tutorial hints — only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
-      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Attack  X: Jump');
+      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Jump  X: Attack  C: Dash');
     }
 
     // Portal transition playing
@@ -361,23 +361,10 @@ export class LdtkWorldScene extends Scene {
       const wasAlive = enemy.alive;
       enemy.update(dt);
 
-      // Enemy just died — roll drop
+      // Track which enemies were alive before combat resolution
       if (wasAlive && !enemy.alive) {
-        this.game.stats.enemiesKilled++;
-        const isGolden = enemy instanceof GoldenMonster;
-        const drop = isGolden
-          ? rollGoldenDrop(this.dropRng)
-          : rollDrop(this.dropRng);
-        if (drop) {
-          const dropEntity = new ItemDropEntity(
-            enemy.x + enemy.width / 2,
-            enemy.y + enemy.height - 4,
-            drop,
-          );
-          this.drops.push(dropEntity);
-          this.entityLayer.addChild(dropEntity.container);
-          this.tutorialHint.tryShow('hint_item', 'Walk over items to pick them up');
-        }
+        // died during enemy.update() (e.g. DOT) — handle drop now
+        this.handleEnemyKill(enemy);
       }
 
       if (enemy.shouldRemove) {
@@ -399,6 +386,13 @@ export class LdtkWorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+      }
+      // Check kills after combat resolution
+      for (const enemy of this.enemies) {
+        if (!enemy.alive && !enemy.shouldRemove && !(enemy as any).__killHandled) {
+          (enemy as any).__killHandled = true;
+          this.handleEnemyKill(enemy);
+        }
       }
     }
 
@@ -480,6 +474,9 @@ export class LdtkWorldScene extends Scene {
           this.player.hp -= dmg;
           this.player.invincible = true;
           this.player.invincibleTimer = 500;
+          if (enemy instanceof Skeleton) {
+            this.dialogueManager.fireEvent('first_skeleton_hit');
+          }
 
           // Sakurai feedback: victim vibrates, flash, directional shake
           this.player.startVibrate(4, 5, this.player.vy === 0);
@@ -639,6 +636,29 @@ export class LdtkWorldScene extends Scene {
       }
     }
     return FALLBACK_ENTRANCE_LEVEL;
+  }
+
+  private handleEnemyKill(enemy: Enemy): void {
+    this.game.stats.enemiesKilled++;
+    if (enemy instanceof Slime) {
+      setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
+    } else if (enemy instanceof Skeleton) {
+      this.dialogueManager.fireEvent('first_skeleton_kill');
+    }
+    const isGolden = enemy instanceof GoldenMonster;
+    const drop = isGolden
+      ? rollGoldenDrop(this.dropRng)
+      : rollDrop(this.dropRng);
+    if (drop) {
+      const dropEntity = new ItemDropEntity(
+        enemy.x + enemy.width / 2,
+        enemy.y + enemy.height - 4,
+        drop,
+      );
+      this.drops.push(dropEntity);
+      this.entityLayer.addChild(dropEntity.container);
+      this.tutorialHint.tryShow('hint_item', 'Walk over items to pick them up');
+    }
   }
 
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
@@ -1193,7 +1213,7 @@ export class LdtkWorldScene extends Scene {
     const overlay = new Container();
 
     const bg = new Graphics();
-    bg.rect(0, 0, 480, 270).fill({ color: 0x000000, alpha: 0.7 });
+    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.7 });
     overlay.addChild(bg);
 
     const title = new BitmapText({
@@ -1304,8 +1324,8 @@ export class LdtkWorldScene extends Scene {
     this.closeAltarUI();
 
     const cam = this.game.camera;
-    const screenX = portal.x - cam.renderX + 480 / 2;
-    const screenY = portal.y - cam.renderY + 270 / 2;
+    const screenX = portal.x - cam.renderX + GAME_WIDTH / 2;
+    const screenY = portal.y - cam.renderY + GAME_HEIGHT / 2;
 
     const transition = new PortalTransition(
       screenX, screenY,
@@ -1459,8 +1479,8 @@ export class LdtkWorldScene extends Scene {
     const bg = new Graphics();
     const panelW = 260;
     const panelH = 20 + items.length * 12;
-    const px = Math.floor((480 - panelW) / 2);
-    const py = Math.floor((270 - panelH) / 2);
+    const px = Math.floor((GAME_WIDTH - panelW) / 2);
+    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
     bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
     bg.rect(0, 0, panelW, panelH).stroke({ color: accentColor, width: 1 });
     bg.x = px;
@@ -1903,7 +1923,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Position at top-right corner
-    this.minimap.x = 480 - mapW - 8;
+    this.minimap.x = GAME_WIDTH - mapW - 8;
     this.minimap.y = 4;
     this.game.app.stage.addChild(this.minimap);
   }

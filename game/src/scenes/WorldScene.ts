@@ -33,7 +33,7 @@ import type { Rarity } from '@data/weapons';
 import { SaveManager } from '@utils/SaveManager';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
-import type { Game } from '../Game';
+import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -257,7 +257,7 @@ export class WorldScene extends Scene {
     const overlay = new Container();
 
     const bg = new Graphics();
-    bg.rect(0, 0, 480, 270).fill({ color: 0x000000, alpha: 0.7 });
+    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.7 });
     overlay.addChild(bg);
 
     const title = new BitmapText({ text: 'GAME OVER', style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 } });
@@ -694,8 +694,8 @@ export class WorldScene extends Scene {
 
     // Calculate portal screen position for transition
     const cam = this.game.camera;
-    const screenX = portal.x - cam.renderX + 480 / 2;
-    const screenY = portal.y - cam.renderY + 270 / 2;
+    const screenX = portal.x - cam.renderX + GAME_WIDTH / 2;
+    const screenY = portal.y - cam.renderY + GAME_HEIGHT / 2;
 
     const transition = new PortalTransition(
       screenX, screenY,
@@ -811,8 +811,8 @@ export class WorldScene extends Scene {
     const bg = new Graphics();
     const panelW = 260;
     const panelH = 20 + items.length * 12;
-    const px = Math.floor((480 - panelW) / 2);
-    const py = Math.floor((270 - panelH) / 2);
+    const px = Math.floor((GAME_WIDTH - panelW) / 2);
+    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
     bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
     bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
     bg.x = px;

@@ -13,7 +13,7 @@ import type { InputManager } from '@core/InputManager';
 const DISPLAY_DURATION = 8000;
 const FADE_DURATION = 500;
 const BOX_Y = 16;
-const GAME_WIDTH = 480;
+import { GAME_WIDTH } from '../Game';
 
 export class TutorialHint {
   readonly container: Container;

@@ -49,6 +49,7 @@ export class DialogueManager {
       const once = (ent.fields['once'] as boolean) ?? true;
       const autoCloseMs = (ent.fields['autoCloseMs'] as number) || undefined;
       const eventName = (ent.fields['eventName'] as string) || undefined;
+      const freezePlayer = (ent.fields['freezePlayer'] as boolean) ?? undefined;
 
       // Split text by "|" for multi-line dialogues
       const textLines = rawText.split('|').map(s => s.trim()).filter(Boolean);
@@ -77,6 +78,7 @@ export class DialogueManager {
           height: ent.height,
         } : undefined,
         eventName,
+        freezePlayer,
       });
     }
   }
@@ -163,6 +165,6 @@ export class DialogueManager {
 
   private fire(trigger: DialogueTrigger): Promise<void> {
     if (trigger.once) this.firedTriggers.add(trigger.id);
-    return this.box.showDialogue(trigger.lines);
+    return this.box.showDialogue(trigger.lines, trigger.freezePlayer);
   }
 }

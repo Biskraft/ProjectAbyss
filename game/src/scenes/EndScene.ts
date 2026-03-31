@@ -23,7 +23,7 @@ export class EndScene extends Scene {
   init(): void {
     // Black background
     const bg = new Graphics();
-    bg.rect(0, 0, 480, 270).fill(0x000000);
+    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.container.addChild(bg);
 
     const s = this.game.stats;

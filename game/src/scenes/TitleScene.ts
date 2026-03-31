@@ -29,14 +29,15 @@ export class TitleScene extends Scene {
       'Client name: None.',
     ];
 
-    let y = 100;
+    const cx = GAME_WIDTH / 2;
+    let y = GAME_HEIGHT / 2 - 40;
     for (const line of lines) {
       const text = new BitmapText({
         text: line,
         style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
       });
       text.anchor.set(0.5, 0);
-      text.x = 240;
+      text.x = cx;
       text.y = y;
       this.container.addChild(text);
       y += 16;
@@ -47,8 +48,8 @@ export class TitleScene extends Scene {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666 },
     });
     this.hint.anchor.set(0.5, 0);
-    this.hint.x = 240;
-    this.hint.y = 200;
+    this.hint.x = cx;
+    this.hint.y = y + 40;
     this.hint.visible = false;
     this.container.addChild(this.hint);
   }

@@ -11,9 +11,9 @@ import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
 import type { DialogueLine } from '@data/dialogues';
 
-const GAME_WIDTH = 480;
+import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 const BOX_HEIGHT = 60;
-const BOX_Y = 270 - BOX_HEIGHT;
+const BOX_Y = GAME_HEIGHT - BOX_HEIGHT;
 const PADDING_X = 10;
 const SPEAKER_Y = 6;
 const BODY_Y = 20;
@@ -92,12 +92,12 @@ export class DialogueBox {
   }
 
   /** Show a sequence of dialogue lines. Resolves when all lines are done. */
-  showDialogue(lines: DialogueLine[]): Promise<void> {
+  showDialogue(lines: DialogueLine[], freezePlayer?: boolean): Promise<void> {
     this.lines = lines;
     this.lineIndex = 0;
 
-    // Determine if this blocks movement (any line has a speaker = NPC dialogue)
-    this.blocksMovement = lines.some(l => l.speaker !== undefined);
+    // freezePlayer explicit override, otherwise block if any line has a speaker
+    this.blocksMovement = freezePlayer ?? lines.some(l => l.speaker !== undefined);
 
     this.container.visible = true;
     this.startLine();

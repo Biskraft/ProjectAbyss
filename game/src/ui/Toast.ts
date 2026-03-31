@@ -22,7 +22,7 @@ export class ToastManager {
 
     const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: color } });
     text.anchor.set(0.5, 0);
-    text.x = 240; // center of 480
+    text.x = 320; // center of 640
     container.addChild(text);
 
     // Stack below existing toasts

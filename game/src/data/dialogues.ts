@@ -20,6 +20,8 @@ export interface DialogueTrigger {
   area?: { x: number; y: number; width: number; height: number };
   /** event trigger only */
   eventName?: string;
+  /** If true, player input is blocked while dialogue is active. */
+  freezePlayer?: boolean;
 }
 
 // Speaker color constants
@@ -41,6 +43,39 @@ export const DIALOGUE_TRIGGERS: DialogueTrigger[] = [
     lines: [
       { text: 'Another repair job...', autoCloseMs: 3000 },
       { text: 'Thirty enchantments, and rent is still due.', autoCloseMs: 3000 },
+    ],
+  },
+
+  // Screen 4 — first slime kill monologue
+  {
+    id: 'first_slime_kill',
+    type: 'event',
+    eventName: 'first_slime_kill',
+    once: true,
+    lines: [
+      { text: 'Since when did these things start showing up in the woods...', autoCloseMs: 4000 },
+    ],
+  },
+
+  // Screen 6 — first skeleton hit (player takes damage)
+  {
+    id: 'first_skeleton_hit',
+    type: 'event',
+    eventName: 'first_skeleton_hit',
+    once: true,
+    lines: [
+      { text: 'Ow. This one is nothing like a slime.', autoCloseMs: 3000 },
+    ],
+  },
+
+  // Screen 6 — first skeleton kill
+  {
+    id: 'first_skeleton_kill',
+    type: 'event',
+    eventName: 'first_skeleton_kill',
+    once: true,
+    lines: [
+      { text: "Those joints shouldn't hold together like that...", autoCloseMs: 4000 },
     ],
   },
 
