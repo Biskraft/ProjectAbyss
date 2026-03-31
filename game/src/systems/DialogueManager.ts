@@ -6,6 +6,7 @@
  */
 
 import { DialogueBox } from '@ui/DialogueBox';
+import { ThoughtBubble } from '@ui/ThoughtBubble';
 import { type DialogueTrigger, type DialogueLine, DIALOGUE_TRIGGERS } from '@data/dialogues';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import type { InputManager } from '@core/InputManager';
@@ -13,12 +14,15 @@ import type { Container } from 'pixi.js';
 
 export class DialogueManager {
   readonly box: DialogueBox;
+  readonly thought: ThoughtBubble;
   private firedTriggers: Set<string> = new Set();
   private triggers: DialogueTrigger[];
 
-  constructor(input: InputManager, uiParent: Container) {
+  constructor(input: InputManager, uiParent: Container, worldLayer: Container) {
     this.box = new DialogueBox(input);
     uiParent.addChild(this.box.container);
+    this.thought = new ThoughtBubble();
+    worldLayer.addChild(this.thought.container);
     this.triggers = [...DIALOGUE_TRIGGERS];
   }
 
@@ -85,7 +89,7 @@ export class DialogueManager {
 
   /** True if dialogue is currently being displayed. */
   isActive(): boolean {
-    return this.box.isActive;
+    return this.box.isActive || this.thought.isActive;
   }
 
   /** True if the current dialogue blocks player movement. */
@@ -96,6 +100,12 @@ export class DialogueManager {
   /** Must be called every frame. */
   update(dt: number): void {
     this.box.update(dt);
+    this.thought.update(dt);
+  }
+
+  /** Update thought bubble position to follow the player. */
+  updateThoughtPosition(worldX: number, worldY: number): void {
+    this.thought.updatePosition(worldX, worldY);
   }
 
   /** Check area triggers against current player position. */
@@ -132,7 +142,7 @@ export class DialogueManager {
 
   /** Fire a named event trigger (e.g., 'boss_clear'). */
   async fireEvent(eventName: string): Promise<void> {
-    if (this.box.isActive) return;
+    if (this.box.isActive || this.thought.isActive) return;
 
     for (const trigger of this.triggers) {
       if (trigger.type !== 'event') continue;
@@ -158,6 +168,7 @@ export class DialogueManager {
   /** Clean up (call on scene exit). */
   destroy(): void {
     this.box.close();
+    this.thought.destroy();
     if (this.box.container.parent) {
       this.box.container.parent.removeChild(this.box.container);
     }
@@ -165,6 +176,22 @@ export class DialogueManager {
 
   private fire(trigger: DialogueTrigger): Promise<void> {
     if (trigger.once) this.firedTriggers.add(trigger.id);
+
+    // Monologue (no speaker, all lines have autoClose) → thought bubble
+    const isMonologue = trigger.lines.every(l => !l.speaker && l.autoCloseMs);
+    if (isMonologue && !trigger.freezePlayer) {
+      // Show lines sequentially as thought bubbles
+      return this.fireThoughtSequence(trigger.lines);
+    }
+
     return this.box.showDialogue(trigger.lines, trigger.freezePlayer);
+  }
+
+  private async fireThoughtSequence(lines: DialogueLine[]): Promise<void> {
+    for (const line of lines) {
+      const duration = line.autoCloseMs ?? 3000;
+      this.thought.show(line.text, duration);
+      await new Promise<void>(resolve => setTimeout(resolve, duration));
+    }
   }
 }

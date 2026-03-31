@@ -142,10 +142,12 @@ export class InventoryUI {
     const item = this.inventory.items[this.selectedIndex];
     if (item) {
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
+      const tag = item.commission ? ' [Commission]' : '';
+      const hint = item.commission ? 'Anvil only' : 'Z:Equip';
       this.infoText.text =
-        `${item.def.name}${equipped} Lv${item.level}\n` +
+        `${item.def.name}${equipped}${tag} Lv${item.level}\n` +
         `ATK:${item.finalAtk} ${item.rarity.toUpperCase()}\n` +
-        `Z:Equip`;
+        `${hint}`;
     } else {
       this.infoText.text = `${this.inventory.items.length}/20 items`;
     }

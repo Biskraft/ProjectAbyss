@@ -31,6 +31,9 @@ export class Game {
     itemsCollected: 0,
     gatesBroken: 0,
     playTimeMs: 0,
+    firstEchoStrike: false,
+    firstItemWorldLanding: false,
+    forgeReturnSequenceDone: false,
   };
   private accumulated = 0;
 

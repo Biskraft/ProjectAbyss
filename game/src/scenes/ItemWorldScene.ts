@@ -31,6 +31,7 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
+import { ThoughtBubble } from '@ui/ThoughtBubble';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 
 const TILE_SIZE = 16;
@@ -63,6 +64,7 @@ export class ItemWorldScene extends Scene {
   private hitSparks!: HitSparkManager;
   private screenFlash!: ScreenFlash;
   private toast!: ToastManager;
+  private thought!: ThoughtBubble;
 
   // Item being explored
   private item: ItemInstance;
@@ -246,6 +248,10 @@ export class ItemWorldScene extends Scene {
     // Toast
     this.toast = new ToastManager(this.game.app.stage);
 
+    // Thought bubble (monologue above player)
+    this.thought = new ThoughtBubble();
+    this.entityLayer.addChild(this.thought.container);
+
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
     this.countTotalRooms();
@@ -272,6 +278,21 @@ export class ItemWorldScene extends Scene {
 
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+
+    // First item world entry — landing monologue (Screen 10)
+    if (this.game.stats.firstEchoStrike && !this.game.stats.firstItemWorldLanding) {
+      this.game.stats.firstItemWorldLanding = true;
+      setTimeout(() => {
+        this.thought.show('...Where am I.', 3000);
+        setTimeout(() => {
+          this.thought.show("The crystal structure on these walls...\nit's the same as that sword.", 4000);
+          setTimeout(() => {
+            this.thought.show('Am I really inside it?', 3000);
+          }, 4200);
+        }, 3200);
+      }, 1500);
+    }
+
     this.initialized = true;
   }
 
@@ -1054,8 +1075,13 @@ export class ItemWorldScene extends Scene {
   update(dt: number): void {
     if (!this.initialized) return;
 
-    // Toast always updates (even during transitions / menus)
+    // Toast & thought bubble always update
     this.toast.update(dt);
+    this.thought.update(dt);
+    this.thought.updatePosition(
+      this.player.x + this.player.width / 2,
+      this.player.y,
+    );
 
     // Onboarding blocks gameplay
     if (!this.onboardingDone) {

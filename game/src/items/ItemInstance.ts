@@ -37,6 +37,12 @@ export interface ItemInstance {
    */
   innocents: Innocent[];
 
+  /** Commission item — cannot be equipped, anvil-only. */
+  commission?: boolean;
+
+  /** Fixed LDtk level ID — loads this hand-crafted level instead of procedural item world. */
+  fixedLevelId?: string;
+
   // Memory Strata exploration state (lazily initialized on first Item World entry)
   worldProgress?: ItemWorldProgress;
 }

@@ -33,6 +33,7 @@ import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { Anvil } from '@entities/Anvil';
+import { LockedDoor } from '@entities/LockedDoor';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -146,12 +147,18 @@ export class LdtkWorldScene extends Scene {
   private inItemTunnel = false;
   /** The level to return to after exiting Item World via tunnel. */
   private preTunnelLevelId: string | null = null;
+  /** True while inside a fixed (hand-crafted) item world level. */
+  private inFixedItemWorld = false;
+  private fixedItemWorldItem: ItemInstance | null = null;
 
   // Cleared level tracking
   private clearedLevels: Set<string> = new Set();
   private collectedItems: Set<string> = new Set();
   private collectedRelics: Set<string> = new Set();
   private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
+  private lockedDoors: LockedDoor[] = [];
+  /** Events that have been triggered globally (persists across level loads). */
+  private unlockedEvents: Set<string> = new Set();
 
   constructor(game: Game) {
     super(game);
@@ -168,6 +175,13 @@ export class LdtkWorldScene extends Scene {
     const starterSword = createItem(SWORD_DEFS[0]);
     this.inventory.add(starterSword);
     this.inventory.equip(starterSword.uid);
+
+    // Commission: the old sword from the opening note (Magic grade, anvil-only)
+    const commissionSword = createItem(SWORD_DEFS[1]); // Magic grade
+    commissionSword.commission = true;
+    commissionSword.fixedLevelId = 'ItemWorld_FirstSword';
+    (commissionSword.def as any) = { ...commissionSword.def, name: 'Old Sword (Commission)' };
+    this.inventory.add(commissionSword);
 
     // Fetch and parse LDtk project
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
@@ -212,7 +226,7 @@ export class LdtkWorldScene extends Scene {
     this.game.app.stage.addChild(this.screenFlash.overlay);
 
     // Dialogue
-    this.dialogueManager = new DialogueManager(this.game.input, this.game.app.stage);
+    this.dialogueManager = new DialogueManager(this.game.input, this.game.app.stage, this.entityLayer);
 
     // Tutorial hints
     this.tutorialHint = new TutorialHint(this.game.input, this.game.app.stage);
@@ -261,9 +275,13 @@ export class LdtkWorldScene extends Scene {
     this.toast.update(dt);
     this.tutorialHint.update(dt);
     this.dialogueManager.update(dt);
+    this.dialogueManager.updateThoughtPosition(
+      this.player.x + this.player.width / 2,
+      this.player.y,
+    );
 
-    // Dialogue active — block game input (NPC dialogue blocks movement)
-    if (this.dialogueManager.isActive()) {
+    // Dialogue box active — block game input (NPC dialogue blocks movement)
+    if (this.dialogueManager.box.isActive) {
       if (!this.dialogueManager.blocksMovement()) {
         this.player.update(dt);
       }
@@ -630,6 +648,8 @@ export class LdtkWorldScene extends Scene {
    */
   private findPlayerSpawnLevel(): string {
     for (const id of this.loader.getLevelIds()) {
+      // Skip non-world levels (item tunnels, fixed item worlds)
+      if (id.startsWith('ItemTunnel') || id.startsWith('ItemWorld')) continue;
       const level = this.loader.getLevel(id);
       if (level?.entities.some((e) => e.type === 'Player')) {
         return id;
@@ -640,10 +660,21 @@ export class LdtkWorldScene extends Scene {
 
   private handleEnemyKill(enemy: Enemy): void {
     this.game.stats.enemiesKilled++;
-    if (enemy instanceof Slime) {
+    if ((enemy as any)._isBoss) {
+      // Boss killed — dialogue first, then spawn exit portal
+      const bossX = enemy.x + enemy.width / 2;
+      const bossY = enemy.y + enemy.height - 4;
+      const rarity = this.fixedItemWorldItem?.rarity ?? 'magic';
+      const sourceItem = this.fixedItemWorldItem ?? undefined;
+      setTimeout(async () => {
+        await this.dialogueManager.fireEvent('first_boss_kill');
+        // Portal appears after dialogue completes
+        this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
+      }, 1000);
+    } else if (enemy instanceof Slime) {
       setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
     } else if (enemy instanceof Skeleton) {
-      this.dialogueManager.fireEvent('first_skeleton_kill');
+      setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
     }
     const isGolden = enemy instanceof GoldenMonster;
     const drop = isGolden
@@ -694,6 +725,9 @@ export class LdtkWorldScene extends Scene {
       this.spawnEnemiesFromLdtk(level);
     }
     this.spawnAnvilFromLdtk(level);
+
+    // Spawn locked doors
+    this.spawnLockedDoors(level);
 
     // Process other LDtk entities (Items, GameSaver, etc.)
     this.processLdtkEntities(level);
@@ -874,12 +908,48 @@ export class LdtkWorldScene extends Scene {
   // Enemy spawning
   // ---------------------------------------------------------------------------
 
+  private spawnLockedDoors(level: LdtkLevel): void {
+    // Clean up previous doors
+    for (const door of this.lockedDoors) door.destroy();
+    this.lockedDoors = [];
+
+    const doorEntities = level.entities.filter(e => e.type === 'LockedDoor');
+    for (const ent of doorEntities) {
+      const unlockEvent = (ent.fields['unlockEvent'] as string) || 'marta_sequence_complete';
+
+      // Already unlocked — skip
+      if (this.unlockedEvents.has(unlockEvent)) continue;
+
+      const door = new LockedDoor(
+        ent.px[0], ent.px[1],
+        ent.width, ent.height,
+        unlockEvent,
+      );
+      door.injectCollision(this.collisionGrid);
+      this.lockedDoors.push(door);
+      this.entityLayer.addChild(door.container);
+    }
+  }
+
+  /** Unlock all doors matching the given event name. */
+  unlockDoors(eventName: string): void {
+    this.unlockedEvents.add(eventName);
+    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
+      const door = this.lockedDoors[i];
+      if (door.unlockEvent === eventName) {
+        door.unlock(this.collisionGrid);
+        door.destroy();
+        this.lockedDoors.splice(i, 1);
+      }
+    }
+  }
+
   /**
    * Spawn enemies from LDtk Enemy_Spawn entities. Falls back to random
    * spawning if no Enemy_Spawn entities are placed in the level.
    */
   private spawnEnemiesFromLdtk(level: LdtkLevel): void {
-    // Direct entity types (Slime, etc.) — spawn without Enemy_Spawn wrapper
+    // Direct entity types (Slime, Boss, etc.) — spawn without Enemy_Spawn wrapper
     const directEnemies = level.entities.filter(e => e.type === 'Slime');
     for (const ent of directEnemies) {
       const enemy = new Slime();
@@ -889,6 +959,28 @@ export class LdtkWorldScene extends Scene {
       enemy.target = this.player;
       this.enemies.push(enemy);
       this.entityLayer.addChild(enemy.container);
+    }
+
+    // Boss entities — larger skeleton, on death spawns exit portal
+    const bossEntities = level.entities.filter(e => e.type === 'Boss');
+    for (const ent of bossEntities) {
+      const boss = new Skeleton();
+      (boss as any)._isBoss = true;
+      boss.hp = boss.maxHp = Math.floor(boss.maxHp * 1.5);
+      boss.atk = Math.floor(boss.atk * 2);
+      // Resize sprite to 2x — redraw at larger size instead of scaling container
+      const bw = boss.width * 2;
+      const bh = boss.height * 2;
+      boss.width = bw;
+      boss.height = bh;
+      (boss as any).sprite.clear();
+      (boss as any).sprite.rect(0, 0, bw, bh).fill(0xcc3333);
+      boss.x = ent.px[0] - bw / 2;
+      boss.y = ent.px[1] - bh;
+      boss.roomData = this.collisionGrid;
+      boss.target = this.player;
+      this.enemies.push(boss);
+      this.entityLayer.addChild(boss.container);
     }
 
     const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
@@ -915,6 +1007,17 @@ export class LdtkWorldScene extends Scene {
           enemy = new Ghost();
         } else if (enemyType === 'Slime') {
           enemy = new Slime();
+        } else if (enemyType === 'Boss') {
+          enemy = new Skeleton();
+          (enemy as any)._isBoss = true;
+          enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * 1.5);
+          enemy.atk = Math.floor(enemy.atk * 2);
+          const bw = enemy.width * 2;
+          const bh = enemy.height * 2;
+          enemy.width = bw;
+          enemy.height = bh;
+          (enemy as any).sprite.clear();
+          (enemy as any).sprite.rect(0, 0, bw, bh).fill(0xcc3333);
         } else {
           enemy = new Skeleton();
         }
@@ -1245,6 +1348,24 @@ export class LdtkWorldScene extends Scene {
     }
     this.gameOverOverlay = null;
 
+    // First item world (commission sword) — respawn inside, no penalty
+    if (this.inFixedItemWorld && this.fixedItemWorldItem?.commission) {
+      // 50% HP, no EXP loss, no stratum rollback
+      this.player.respawn();
+      this.player.hp = Math.floor(this.player.maxHp * 0.5);
+      // Reload same level (boss HP preserved via enemy persistence)
+      this.loadLevel(this.fixedItemWorldItem.fixedLevelId!, 'down');
+      this.player.savePrevPosition();
+      this.game.camera.snap(this.player.x, this.player.y);
+      return;
+    }
+
+    // Clear fixed item world / tunnel state
+    this.inFixedItemWorld = false;
+    this.fixedItemWorldItem = null;
+    this.inItemTunnel = false;
+    this.collapseItem = null;
+
     // Return to player spawn level
     this.loadLevel(this.playerSpawnLevelId, 'down');
     this.player.respawn();
@@ -1352,6 +1473,12 @@ export class LdtkWorldScene extends Scene {
     const data = this.pendingPortalData;
     if (!data) return;
     this.pendingPortalData = null;
+
+    // In fixed item world — portal = return to forge
+    if (this.inFixedItemWorld) {
+      this.exitFixedItemWorld();
+      return;
+    }
 
     const isAltar = data.sourceType === 'altar';
 
@@ -1669,7 +1796,13 @@ export class LdtkWorldScene extends Scene {
           this.anvil.placeItem(item);
           this.collapseItem = item;
           this.closeAltarUI();
-          this.toast.show('Strike the anvil!', 0xff8844);
+
+          // First commission sword placement — Screen 8 dialogue
+          if (item.commission) {
+            this.dialogueManager.fireEvent('first_anvil_commission');
+          } else {
+            this.toast.show('Strike the anvil!', 0xff8844);
+          }
         } else {
           this.closeAltarUI();
         }
@@ -1728,6 +1861,12 @@ export class LdtkWorldScene extends Scene {
     // Hit sparks at anvil position
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
+    // First echo strike — extended hitstop (10 frames vs normal)
+    if (this.collapseItem.commission && !this.game.stats.firstEchoStrike) {
+      this.game.stats.firstEchoStrike = true;
+      this.game.hitstopFrames = 10;
+    }
+
     collapse.start();
   }
 
@@ -1773,6 +1912,13 @@ export class LdtkWorldScene extends Scene {
     if (!this.collapseItem) return;
 
     const targetItem = this.collapseItem;
+
+    // Fixed (hand-crafted) item world — load LDtk level directly
+    if (targetItem.fixedLevelId) {
+      this.enterFixedItemWorld(targetItem);
+      return;
+    }
+
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;
 
@@ -1801,6 +1947,103 @@ export class LdtkWorldScene extends Scene {
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
+  }
+
+  /**
+   * Enter a hand-crafted item world level (fixedLevelId).
+   * Uses the same LdtkWorldScene level loading — player spawns at Player entity.
+   * Navigates back via portal or edge transition.
+   */
+  private enterFixedItemWorld(item: ItemInstance): void {
+    const levelId = item.fixedLevelId!;
+    const level = this.loader.getLevel(levelId);
+    if (!level) {
+      console.error(`[LdtkWorldScene] Fixed item world level not found: "${levelId}"`);
+      // Fallback to procedural
+      this.collapseItem = item;
+      const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player);
+      itemWorldScene.onComplete = () => {
+        this.game.sceneManager.pop();
+        this.inItemTunnel = false;
+        if (this.preTunnelLevelId) {
+          this.loadLevel(this.preTunnelLevelId, 'down');
+          this.preTunnelLevelId = null;
+        }
+        this.collapseItem = null;
+      };
+      this.container.visible = false;
+      this.hud.container.visible = false;
+      this.game.sceneManager.push(itemWorldScene, true);
+      return;
+    }
+
+    // Track that we're in a fixed item world (for return logic)
+    this.inFixedItemWorld = true;
+    this.fixedItemWorldItem = item;
+
+    // Load the hand-crafted level — 'down' uses Player entity spawn
+    this.inItemTunnel = false;
+    this.loadLevel(levelId, 'down');
+
+    // First entry landing dialogue (Screen 10)
+    if (this.game.stats.firstEchoStrike && !this.game.stats.firstItemWorldLanding) {
+      this.game.stats.firstItemWorldLanding = true;
+      setTimeout(() => this.dialogueManager.fireEvent('first_itemworld_landing'), 1500);
+    }
+  }
+
+  /** Exit fixed item world — return to the forge room. */
+  private exitFixedItemWorld(): void {
+    if (this.portalTransition) {
+      this.portalTransition.destroy();
+      this.portalTransition = null;
+    }
+
+    this.inFixedItemWorld = false;
+    this.fixedItemWorldItem = null;
+    this.collapseItem = null;
+
+    // Return to forge
+    const returnLevel = this.preTunnelLevelId ?? this.playerSpawnLevelId;
+    this.preTunnelLevelId = null;
+    this.loadLevel(returnLevel, 'down');
+
+    // Place player next to anvil if it exists
+    if (this.anvil) {
+      this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
+      this.player.y = this.anvil.y - this.player.height;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+      this.game.camera.snap(this.player.x, this.player.y);
+    }
+
+    // First commission return — trigger Screen 15~17 sequence
+    if (this.game.stats.firstEchoStrike && !this.game.stats.forgeReturnSequenceDone) {
+      this.game.stats.forgeReturnSequenceDone = true;
+      setTimeout(() => this.runForgeReturnSequence(), 1000);
+    }
+  }
+
+  /**
+   * Screen 15~17 auto sequence after first item world return.
+   * freezePlayer dialogues chained sequentially.
+   */
+  private async runForgeReturnSequence(): Promise<void> {
+    // Screen 15 — check sword stats
+    await this.dialogueManager.fireEvent('forge_return_check');
+    // Screen 15 — refusal
+    await this.dialogueManager.fireEvent('forge_return_refusal');
+    // Screen 16 — Marta's note (echo_shelved)
+    await this.dialogueManager.fireEvent('echo_shelved');
+    // Screen 17 — Sera silhouette
+    await this.dialogueManager.fireEvent('marta_note_complete');
+    // Unlock the door
+    this.unlockDoors('marta_sequence_complete');
+    // Hint to leave
+    setTimeout(() => {
+      this.dialogueManager.fireEvent('forge_return_hint');
+    }, 500);
   }
 
   // ---------------------------------------------------------------------------
@@ -1883,7 +2126,8 @@ export class LdtkWorldScene extends Scene {
     }
     this.minimap = new Container();
 
-    const worldMap = this.loader.getWorldMap();
+    const worldMap = this.loader.getWorldMap()
+      .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld'));
     if (worldMap.length === 0) return;
 
     // Find bounds
