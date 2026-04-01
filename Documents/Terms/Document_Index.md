@@ -1,6 +1,6 @@
 # Project Abyss GDD 문서 인덱스 (Document Index)
 
-> **최근 업데이트:** 2026-03-27
+> **최근 업데이트:** 2026-04-02
 > **문서 상태:** `작성 중 (Draft)`
 
 이 문서는 Project Abyss의 전체 GDD 문서 트리를 정의합니다. 모든 시스템 문서의 위치, 상태, 의존 관계를 추적합니다.
@@ -89,7 +89,7 @@ graph TD
 | D-04 | Metroidvania Philosophy | `Design/Design_Metroidvania_Philosophy.md` | ✅ 완료 | World | 탐험 |
 | D-05 | Yarikomi Philosophy | `Design/Design_Yarikomi_Philosophy.md` | ✅ 완료 | ItemWorld | 야리코미 |
 | D-06 | Online Design Principles | `Design/Design_Online_Principles.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
-| D-07 | Economy Philosophy | `Design/Design_Economy_FaucetSink.md` | ⬜ 제작 필요 | 전체 | 전체 |
+| D-07 | Economy Philosophy | `Design/Design_Economy_FaucetSink.md` | ✅ 완료 | 전체 | 전체 |
 | D-09 | Combat Design Philosophy | `Design/Design_Combat_Philosophy.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-10 | Level Design Standards | `Design/Design_Level_Standards.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ✅ 완료 | 전체 | 전체 |
@@ -185,8 +185,8 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-LVL-01 | Stat System | `System/System_Growth_Stats.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-LVL-02 | Level & Experience | `System/System_Growth_LevelExp.md` | ✅ 완료 | 전체 | 야리코미 |
-| SYS-LVL-03 | Skill Tree | `System/System_Growth_SkillTree.md` | ⬜ 제작 필요 | 전체 | 탐험+야리코미 |
-| SYS-LVL-04 | Reincarnation | `System/System_Growth_Reincarnation.md` | ⬜ 제작 필요 | Hub | 야리코미 |
+| SYS-LVL-03 | Skill Tree | `System/System_Growth_SkillTree.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
+| SYS-LVL-04 | Reincarnation | `System/System_Growth_Reincarnation.md` | ✅ 완료 | Hub | 야리코미 |
 
 ### 3.4 장비 시스템 (Equipment)
 
@@ -194,14 +194,14 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-EQP-01 | Equipment Slots | `System/System_Equipment_Slots.md` | ✅ 완료 | 전체 | 야리코미 |
 | SYS-EQP-02 | Rarity System | `System/System_Equipment_Rarity.md` | ✅ 완료 | 전체 | 야리코미 |
-| SYS-EQP-03 | Item Growth Path | `System/System_Equipment_Growth.md` | ⬜ 제작 필요 | IW | 야리코미 |
+| SYS-EQP-03 | Item Growth Path | `System/System_Equipment_Growth.md` | ✅ 완료 | IW | 야리코미 |
 
 ### 3.5 월드 시스템 (World)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-WLD-01 | World Map Structure | `System/System_World_MapStructure.md` | ✅ 완료 | World | 탐험 |
-| SYS-WLD-02 | Zone Design | `System/System_World_ZoneDesign.md` | ⬜ 제작 필요 | World | 탐험 |
+| SYS-WLD-02 | Zone Design | `System/System_World_ZoneDesign.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-03 | Ability Gating | `System/System_World_AbilityGating.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-04 | Stat Gating | `System/System_World_StatGating.md` | ✅ 완료 | World | 탐험+야리코미 |
 | SYS-WLD-05 | World ProcGen | `System/System_World_ProcGen.md` | ✅ 완료 | World | 탐험 |
@@ -228,9 +228,9 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-IW-01 | Item World Core | `System/System_ItemWorld_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-02 | IW Strata Generation | `System/System_ItemWorld_FloorGen.md` | ✅ 완료 | IW | 야리코미 |
-| SYS-IW-03 | IW Boss System | `System/System_ItemWorld_Boss.md` | ⬜ 제작 필요 | IW | 야리코미 |
-| SYS-IW-04 | Recursive Entry | `System/System_ItemWorld_Recursion.md` | ⬜ 제작 필요 | IW | 야리코미 |
-| SYS-IW-05 | Mystery Room & Events | `System/System_ItemWorld_Events.md` | ⬜ 제작 필요 | IW | 야리코미 |
+| SYS-IW-03 | IW Boss System | `System/System_ItemWorld_Boss.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-IW-04 | Recursive Entry | `System/System_ItemWorld_Recursion.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-IW-05 | Mystery Room & Events | `System/System_ItemWorld_Events.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-06 | Geo Effects | `System/System_ItemWorld_GeoEffects.md` | ⬜ 제작 필요 | IW | 야리코미 |
 
 **SYS-IW-02 Strata Generation 범위:**
@@ -262,20 +262,26 @@ graph TD
 - 3-Space별 퀘스트 매핑, 인카운터 상태 모델, 분기 등급 체계
 - 100+ 퀘스트 양산을 위한 조합 공식 및 검증 파이프라인
 
+### 3.9 대화 시스템 (Dialogue)
+
+| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-DLG-01 | Dialogue System | `System/System_Dialogue.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
+
 ### 3.8 이노센트 시스템 (Innocent)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW+Hub | 야리코미 |
-| SYS-INC-02 | Innocent Farm | `System/System_Innocent_Farm.md` | ⬜ 제작 필요 | Hub | 야리코미 |
-| SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ⬜ 제작 필요 | Hub | 야리코미 |
+| SYS-INC-02 | Innocent Farm | `System/System_Innocent_Farm.md` | ✅ 완료 | Hub | 야리코미 |
+| SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ✅ 완료 | Hub | 야리코미 |
 
 ### 3.10 적 & AI 시스템 (Enemy)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-MON-01 | Enemy AI Behavior | `System/System_Enemy_AI.md` | ✅ 완료 | World+IW | 탐험 |
-| SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ⬜ 제작 필요 | World+IW | 탐험+야리코미 |
+| SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ⬜ 제작 필요 | World+IW | 전체 |
 
 ### 3.11 멀티플레이 시스템 (Multiplayer)
@@ -324,6 +330,7 @@ graph TD
 | CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
 | CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 완료 |
 | CNT-ITM-001 | Item Narrative: 할아버지의 부엌칼 | `Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | ✅ 완료 |
+| CNT-ITM-002 | Item Narrative: First Sword | `Content/Content_Item_Narrative_FirstSword.md` | ✅ 완료 |
 | CNT-01 | Weapon List | `Content/Content_Weapons_List.md` | ⬜ 제작 필요 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Innocent Catalog | `Content/Content_Innocent_Catalog.md` | ⬜ 제작 필요 |
