@@ -57,7 +57,7 @@ risk_reward_analysis:
 
 Project Abyss 적용 예시:
 
-* 월드 탐험: 미지의 구역 진입(리스크: 사망 시 세이브 포인트 복귀) -> 새 능력 발견(리턴)
+* 월드 탐험: 미지의 층위 진입(리스크: 사망 시 세이브 포인트 복귀) -> 새 능력 발견(리턴)
 * 아이템계: 깊은 지층 도전(리스크: 탈출 실패 시 진행 손실) -> 이노센트/레어리티 승급(리턴)
 * 재귀적 진입: 아이템계 내 아이템의 아이템계 진입(리스크: 전멸 시 상위 지층도 손실) -> 이중 강화(리턴)
 
@@ -106,7 +106,7 @@ Project Abyss 보상 유형:
 reward_types:
   exploration:  # 탐험 보상
     - ability_unlock: "능력 렐릭 획득 (이단 점프, 벽 타기 등)"
-    - map_reveal: "새 구역 발견, 숨겨진 방"
+    - map_reveal: "새 층위 발견, 숨겨진 방"
     - lore: "세계관 단편, NPC 대화"
 
   yarikomi:  # 야리코미 보상
@@ -120,7 +120,7 @@ reward_types:
     - social: "허브 내 장비 자랑, 길드 활동"
 
   progression:  # 성장 보상
-    - stat_gate_unlock: "스탯 게이트 해금 -> 새 구역"
+    - stat_gate_unlock: "스탯 게이트 해금 -> 새 층위"
     - skill_tree: "스킬 트리 확장"
     - reincarnation: "전생으로 잠재력 상승"
 ```
@@ -426,7 +426,7 @@ System 중분류:
 | Combat | 전투 관련 | Action, Damage, Weapons, SubWeapon, Elements, StatusEffects, HitFeedback |
 | Growth | 성장 시스템 | Stats, LevelExp, SkillTree, Reincarnation |
 | Equipment | 장비 시스템 | Slots, Rarity, Growth |
-| World | 월드 시스템 | MapStructure, ZoneDesign, AbilityGating, StatGating, ProcGen, SaveWarp, Secrets |
+| World | 월드 시스템 | MapStructure, TierDesign, AbilityGating, StatGating, ProcGen, SaveWarp, Secrets |
 | ItemWorld | 아이템계 시스템 | Core, FloorGen, Boss, Recursion, Events, GeoEffects |
 | Innocent | 이노센트 시스템 | Core, Farm, Dual |
 | Enemy | 적/AI 시스템 | AI, BossDesign, Spawning |
@@ -465,7 +465,7 @@ Content 중분류:
 | Armor | 방어구/악세서리 | List |
 | Innocent | 이노센트 카탈로그 | Catalog |
 | Monster | 몬스터 도감 | Bestiary |
-| Zone | 구역/바이옴 | List |
+| Tier | 층위/바이옴 | List |
 | Skill | 스킬 목록 | List |
 | Boss | 보스 목록 | List |
 | RoomTemplate | 룸 템플릿 | Catalog |

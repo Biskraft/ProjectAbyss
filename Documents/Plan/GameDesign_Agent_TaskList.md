@@ -225,7 +225,7 @@
 | **파일 경로** | `Documents/System/System_World_ZoneDesign.md` |
 | **리서치 기반** | `Research/Metroidvania_MapStructure_GateDesign.md`, `Research/LevelDesign_ProgressionShape_Research.md` |
 | **추가 참조** | `System/System_World_MapStructure.md`, `System/System_World_ProcGen.md` |
-| **범위** | 7개 구역별 바이옴, 난이도 곡선, 게이트 배치, 특수 지형/기믹 |
+| **범위** | 7개 층위별 바이옴, 난이도 곡선, 게이트 배치, 특수 지형/기믹 |
 
 ---
 

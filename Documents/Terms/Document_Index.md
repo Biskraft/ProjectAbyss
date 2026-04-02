@@ -209,13 +209,13 @@ graph TD
 | SYS-WLD-07 | Secrets & Rewards | `System/System_World_Secrets.md` | ⬜ 제작 필요 | World | 탐험 |
 
 **SYS-WLD-01 World Map Structure 범위:**
-- 매크로 구조: 허브 & 스포크 + 원형 순환 토폴로지
-- 구역 연결 그래프 (Concept Graph)
+- 매크로 구조: 수직 하강 + 가지 경로 토폴로지
+- 층위 연결 그래프 (Concept Graph)
 - 진행 순서 (Critical Path) vs 자유 탐험
-- 역전 성/심연 구역 (엔드게임)
+- 역전 성/심연 층위 (엔드게임)
 
 **SYS-WLD-05 World ProcGen 범위:**
-- 매크로 = 핸드크래프트 (구역 배치 고정)
+- 매크로 = 핸드크래프트 (층위 배치 고정)
 - 마이크로 = 절차적 (Room Grid 내 Chunk 조립)
 - 시드 시스템 (서버 고정 시드)
 - Room Type 0~3 역할 + 출입구 연결

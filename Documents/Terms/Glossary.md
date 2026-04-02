@@ -1,6 +1,6 @@
 # Project Abyss 용어집 (Glossary)
 
-> 최근 업데이트: 2026-03-27 (에르다/마르타/에코/넘버원 캐릭터 용어 추가)
+> 최근 업데이트: 2026-04-03 (수직 구조 용어 추가: Bulkhead, Bulkhead Surveyor, The Shaft, Tier)
 > 문서 상태: `작성 중 (Draft)`
 
 ---
@@ -34,11 +34,13 @@
 | Air Attack | 공중 공격 | 점프·낙하 등 공중 상태에서 공격 버튼을 입력할 때 발동하는 단일 타격. 전방 공격과 하방 공격(바운스 포함) 두 종류가 존재한다. 공중 공격은 1회로 제한된다. | `Documents/System/System_Combat_Action.md` |
 | Always Winnable | 항상 클리어 가능 | 절차적으로 생성된 모든 시드에서 입구부터 출구까지 반드시 클리어 가능한 경로(Critical Path)가 보장됨을 의미하는 설계 원칙. 검증 실패 시 재시드를 수행한다. | `Documents/System/System_World_ProcGen.md` |
 | Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 모바일 가상 패드에서 타이밍 기반 콤보 입력의 어려움을 해소하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
-| Auto-Hunt | 자동 사냥 | 플레이어가 직접 조작하지 않아도 캐릭터가 지정 구역에서 자동으로 전투를 반복하는 기능. 해당 구역을 직접 클리어한 경우에만 해금된다. 직접 플레이 대비 효율 상한(60%)이 존재한다. | `Reference/게임 기획 개요.md`, `Documents/System/System_Combat_Action.md` |
+| Auto-Hunt | 자동 사냥 | 플레이어가 직접 조작하지 않아도 캐릭터가 지정 층위에서 자동으로 전투를 반복하는 기능. 해당 층위를 직접 클리어한 경우에만 해금된다. 직접 플레이 대비 효율 상한(60%)이 존재한다. | `Reference/게임 기획 개요.md`, `Documents/System/System_Combat_Action.md` |
+| Bulkhead | 격벽 | 층위(Tier) 사이를 분리하는 세계수 Yggveil의 수평 가지 구조물. 각 격벽은 특정 능력 게이트로 기능하며, 해당 능력을 획득해야 통과할 수 있다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_World_MapStructure.md` |
+| Bulkhead Surveyor | 격벽 측량사 | 격벽 사이의 통행로를 점검하고 유지하는 독립 계약직. 에르다 벤-나흐트의 부업. 망치 에코로 격벽을 두드려 구조적 약점과 숨겨진 통로를 탐지한다. | `Documents/Content/Content_World_Bible.md` |
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
 | Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다. | `Documents/System/System_Combat_Action.md` |
 | Cooldown | 쿨다운 | 스킬 또는 대시를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3~15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
-| Core Loop | 핵심 순환 | 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 구역 탐험으로 이어지는 Project Abyss의 주요 순환 구조. | `Documents/Design/Design_CoreLoop_Circulation.md`, `Reference/게임 기획 개요.md` |
+| Core Loop | 핵심 순환 | 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 층위 탐험으로 이어지는 Project Abyss의 주요 순환 구조. | `Documents/Design/Design_CoreLoop_Circulation.md`, `Reference/게임 기획 개요.md` |
 | Critical Path | 크리티컬 패스 | 절차적으로 생성된 Room Grid에서 입구부터 출구까지 플레이어가 반드시 통과 가능한 경로. 생성 알고리즘이 이 경로를 최우선으로 보장한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 
 ---
@@ -49,12 +51,12 @@
 | :--- | :--- | :--- | :--- |
 | Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 회피 행동. 쿨다운 2초, 공중 대시 1회 제한. 발동 중 i-frame이 적용되어 적 공격을 회피할 수 있으며, 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | DEX | 민첩 스탯 | Dexterity. 기동성 관련 스탯 게이트에 사용되는 스탯. 좁은 틈새, 빠른 함정 구간, 정밀 점프 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
-| Echo | 에코 | 에르다의 대장간 망치. **전투 무기가 아닌 도구.** 두 가지 기능: (1) 무기에 원소를 인챈트 (전투 중 1초 모션으로 원소 전환), (2) 모루/제단에서 무기를 두드려 아이템계 진입. 대장간 화로에서 단련되어 기본 속성 화(Fire). 보스 처치 시 원소를 영구 흡수 (빙→뇌→풍→광 순). 스승 마르타에게서 물려받음. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_ItemWorld_Core.md` |
+| Echo | 에코 | 에르다의 대장간 망치. **전투 무기가 아닌 도구.** 세 가지 기능: (1) 무기에 원소를 인챈트 (전투 중 1초 모션으로 원소 전환), (2) 모루/제단에서 무기를 두드려 아이템계 진입, (3) 격벽을 두드려 구조적 약점과 숨겨진 통로를 탐지. 대장간 화로에서 단련되어 기본 속성 화(Fire). 보스 처치 시 원소를 영구 흡수 (빙→뇌→풍→광 순). 스승 마르타에게서 물려받음. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_ItemWorld_Core.md` |
 | Echo Strike | 기억의 두드림 | 에코로 무기를 두드려 아이템계에 진입하는 행위. 허브 대장간, 필드 균열 제단, 기억의 방랑자가 남긴 임시 제단 등 어떤 진입 장소에서든 동일한 행위로 수행된다. | `Documents/System/System_ItemWorld_Core.md` |
 | Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소를 순환: 화→빙→뇌→풍→광→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
-| Erda ven-Nacht | 에르다 벤-나흐트 | 플레이어 캐릭터. 19세 여성 독립 대장장이. 스승 마르타 벤-나흐트에게 기술을 전수받았다. 망치 에코로 무기를 두드려 기억의 균열을 열고 아이템계에 진입한다. 캐릭터 레퍼런스: 윈리 록벨(강철의 연금술사). | `Documents/Content/Content_World_Bible.md`, `Documents/Terms/Project_Vision_Abyss.md` |
-| Field Fissure Altar | 필드 균열 제단 | 월드 각 구역에 1~2개 고정 배치된 아이템계 진입 지점. 심연 전쟁의 상흔이 안정화된 옛 야전 대장간 폐허. 탐험으로 발견하면 이후 항상 사용 가능. | `Documents/System/System_ItemWorld_Core.md`, `Documents/System/System_World_MapStructure.md` |
+| Erda ven-Nacht | 에르다 벤-나흐트 | 플레이어 캐릭터. 19세 여성 독립 대장장이 겸 격벽 측량사. 스승 마르타 벤-나흐트에게 기술을 전수받았다. 망치 에코로 무기를 두드려 기억의 균열을 열고 아이템계에 진입한다. 캐릭터 레퍼런스: 윈리 록벨(강철의 연금술사). | `Documents/Content/Content_World_Bible.md`, `Documents/Terms/Project_Vision_Abyss.md` |
+| Field Fissure Altar | 필드 균열 제단 | 월드 각 층위에 1~2개 고정 배치된 아이템계 진입 지점. 심연 전쟁의 상흔이 안정화된 옛 야전 대장간 폐허. 탐험으로 발견하면 이후 항상 사용 가능. | `Documents/System/System_ItemWorld_Core.md`, `Documents/System/System_World_MapStructure.md` |
 | Floor / Stratum | 층 / 지층 | 아이템계(Item World) 내부 던전의 진행 단위. 기존 "Floor(층)" 개념은 "Stratum(지층)"으로 전환되었다. 아이템계는 레어리티별 2~4개 지층(Memory Strata)으로 구성되며, 각 지층은 메트로베니아 스타일의 Room Grid 던전이다. 각 지층의 보스를 처치해야 다음 지층으로 진행한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
@@ -160,6 +162,8 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
+| The Shaft | 대공동 | 세계수 Yggveil이 하늘에서 뿌리를 내리며 수직으로 관통한 거대 공동. 세계의 물리적 골격. 7개 층위(Tier 1~7)가 격벽으로 분리되어 수직으로 쌓여 있다. | `Documents/Content/Content_World_Bible.md` |
+| Tier | 층위 | 수직 대공동(The Shaft)을 구성하는 대구역 단위. Tier 1 천공의 정원 ~ Tier 7 심연의 구까지 7개. 각 층위는 격벽(Bulkhead)으로 분리된다. | `Documents/Content/Content_World_Bible.md` |
 | Unified Grid | 통합 그리드 | 아이템계의 모든 지층을 수직으로 이어붙인 단일 2D 배열 구조. 지층 간 씬 전환 없이 연속적 탐험이 가능하다. `UnifiedGridData` 타입으로 구현. | `game/src/level/RoomGrid.ts` |
 
 ---
