@@ -84,10 +84,12 @@ export class LdtkWorldScene extends Scene {
   private atlas!: Texture;
   private currentLevel!: LdtkLevel;
   private collisionGrid: number[][] = [];
-  private levelCameraConfig: {
+  private cameraZones: {
+    x: number; y: number; w: number; h: number;
     zoom: number; deadZoneX: number; deadZoneY: number;
     lookAheadDistance: number; followLerp: number; zoomLerp: number;
-  } | null = null;
+  }[] = [];
+  private activeCameraZone: typeof this.cameraZones[number] | null = null;
 
   // Layers
   private entityLayer!: Container;
@@ -586,6 +588,9 @@ export class LdtkWorldScene extends Scene {
     // Room transition detection — edge-based
     this.checkLevelEdges();
 
+    // Camera zone detection — check if player entered/exited a camera area
+    this.updateCameraZones();
+
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
@@ -595,24 +600,14 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera — pixel-perfect snap with deadzone (no lerp = no jitter)
+    // Camera — deadzone follow + zoom lerp
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
     const cam = this.game.camera;
-    const dz = cam.deadZoneX;
-    const dzY = cam.deadZoneY;
 
-    // Only move camera when player exits the deadzone
-    const dx = cx - cam.x;
-    const dy = cy - cam.y;
-    if (Math.abs(dx) > dz) cam.x = cx - Math.sign(dx) * dz;
-    if (Math.abs(dy) > dzY) cam.y = cy - Math.sign(dy) * dzY;
-
-    // Bounds clamp
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
-    // Force renderX/Y to match (no shake during normal play)
-    cam.snap(cam.x, cam.y);
+    cam.update(dt);
   }
 
   render(alpha: number): void {
@@ -757,22 +752,15 @@ export class LdtkWorldScene extends Scene {
       this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
     }
 
-    // Camera: apply per-level config from Camera entity, then snap
+    // Camera: reset zones and defaults, area triggers will override in update()
     const cam = this.game.camera;
-    if (this.levelCameraConfig) {
-      cam.deadZoneX = this.levelCameraConfig.deadZoneX;
-      cam.deadZoneY = this.levelCameraConfig.deadZoneY;
-      cam.lookAheadDistance = this.levelCameraConfig.lookAheadDistance;
-      cam.followLerp = this.levelCameraConfig.followLerp;
-      cam.zoomTo(this.levelCameraConfig.zoom, this.levelCameraConfig.zoomLerp);
-    } else {
-      cam.deadZoneX = 32;
-      cam.deadZoneY = 24;
-      cam.lookAheadDistance = 0;
-      cam.followLerp = 0.08;
-      cam.zoomTo(1.0);
-    }
-    this.levelCameraConfig = null;
+    this.cameraZones = [];
+    this.activeCameraZone = null;
+    cam.deadZoneX = 32;
+    cam.deadZoneY = 24;
+    cam.lookAheadDistance = 0;
+    cam.followLerp = 0.08;
+    cam.zoomTo(1.0);
 
     const camX = this.player.x + this.player.width / 2;
     const camY = this.player.y + this.player.height / 2;
@@ -1134,14 +1122,20 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'Camera': {
-          this.levelCameraConfig = {
+          const pivotX = ent.px[0];
+          const pivotY = ent.px[1];
+          this.cameraZones.push({
+            x: pivotX - ent.width / 2,
+            y: pivotY - ent.height / 2,
+            w: ent.width,
+            h: ent.height,
             zoom: ent.fields['zoom'] as number ?? 1.0,
             deadZoneX: ent.fields['deadZoneX'] as number ?? 32,
             deadZoneY: ent.fields['deadZoneY'] as number ?? 24,
             lookAheadDistance: ent.fields['lookAheadDistance'] as number ?? 0,
             followLerp: ent.fields['followLerp'] as number ?? 0.08,
             zoomLerp: ent.fields['zoomLerp'] as number ?? 0.05,
-          };
+          });
           break;
         }
         // Player handled in placePlayer()
@@ -1170,6 +1164,42 @@ export class LdtkWorldScene extends Scene {
   // ---------------------------------------------------------------------------
   // Room transition — edge detection
   // ---------------------------------------------------------------------------
+
+  /**
+   * Check if player is inside a Camera zone and apply/restore settings with lerp.
+   */
+  private updateCameraZones(): void {
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+    const cam = this.game.camera;
+
+    let insideZone: typeof this.cameraZones[number] | null = null;
+    for (const zone of this.cameraZones) {
+      if (pcx >= zone.x && pcx <= zone.x + zone.w &&
+          pcy >= zone.y && pcy <= zone.y + zone.h) {
+        insideZone = zone;
+        break;
+      }
+    }
+
+    if (insideZone && insideZone !== this.activeCameraZone) {
+      // Entered a new camera zone — apply with lerp
+      this.activeCameraZone = insideZone;
+      cam.deadZoneX = insideZone.deadZoneX;
+      cam.deadZoneY = insideZone.deadZoneY;
+      cam.lookAheadDistance = insideZone.lookAheadDistance;
+      cam.followLerp = insideZone.followLerp;
+      cam.zoomTo(insideZone.zoom, insideZone.zoomLerp);
+    } else if (!insideZone && this.activeCameraZone) {
+      // Exited all camera zones — restore defaults with lerp
+      this.activeCameraZone = null;
+      cam.deadZoneX = 32;
+      cam.deadZoneY = 24;
+      cam.lookAheadDistance = 0;
+      cam.followLerp = 0.08;
+      cam.zoomTo(1.0, 0.05);
+    }
+  }
 
   /**
    * Detect when the player crosses a level edge and find the adjacent level to
