@@ -5,11 +5,14 @@
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 * Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 * Glossary: `Documents/Terms/Glossary.md`
-* 아이템계 코어: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01) — 진입 규칙, 탈출 메커니즘, 보상 체계
+* 아이템계 코어: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01) — 진입 규칙, 탈출 메커니즘, 보상 체계, 멀티플레이 HP 스케일링 SSoT
 * 지층 생성: `Documents/System/System_ItemWorld_FloorGen.md` (SYS-IW-02) — 보스 방 배치 알고리즘
+* 적 AI 기반: `Documents/System/System_Enemy_AI.md` — 기본 FSM 구조. 보스 FSM은 이를 대체하며 Patrol/Chase/Retreat 상태를 제거하고 PHASE_CHANGE를 추가한다
 * 전투 설계 철학: `Documents/Design/Design_Combat_Philosophy.md`
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`
 * 타격 피드백: `Documents/System/System_Combat_HitFeedback.md`
+* 첫 30분 경험 흐름: `Documents/Content/Content_First30Min_ExperienceFlow.md` (CNT-EXP-001) — Screen 13 그림자 검사 보스 확정 스펙
+* 첫 아이템 서사: `Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) — 그림자 검사 내러티브 근거
 * 보스 디자인 리서치: `Documents/Research/BossDesign_SideScrolling_Research.md`
 * 야리코미 철학: `Documents/Design/Design_Yarikomi_Philosophy.md`
 
@@ -110,10 +113,10 @@
 
 | 등급 | 한국어 | 영어 | 출현 지층 | 내러티브 정체 |
 | :--- | :--- | :--- | :--- | :--- |
-| Tier 1 | 아이템 장군 | Item General | 1지층 말단 | 기억의 수문장 — 가장 오래된 첫 기억의 문지기. 아이템을 처음 사용했던 자의 습관과 반사가 결정화됨 |
-| Tier 2 | 아이템 왕 | Item King | 2지층 말단 | 기억의 군주 — 숙련의 기억. 사용자가 무기를 완전히 자신의 것으로 만들었던 시절의 정수 |
-| Tier 3 | 아이템 신 | Item God | 3지층 말단 | 기억의 신 — 절정의 기억. 아이템을 사용한 인생에서 가장 강렬했던 순간들이 집결 |
-| Tier 4 | 아이템 대신 | Item Overlord | 4지층 + 심연 | 기억의 핵 — 기억의 본질. 아이템에 깃든 모든 기억의 원형이자 핵심. 이를 넘어서는 것은 아이템의 완전한 해방 |
+| Tier 1 | 아이템 장군 | Item General | 1지층 말단 | 기억의 수문장 (Memory Gatekeeper) — 가장 오래된 첫 기억의 문지기. 아이템을 처음 사용했던 자의 습관과 반사가 결정화됨 |
+| Tier 2 | 아이템 왕 | Item King | 2지층 말단 | 기억의 군주 (Memory Sovereign) — 숙련의 기억. 사용자가 무기를 완전히 자신의 것으로 만들었던 시절의 정수 |
+| Tier 3 | 아이템 신 | Item God | 3지층 말단 | 기억의 신 (Memory Deity) — 절정의 기억. 아이템을 사용한 인생에서 가장 강렬했던 순간들이 집결 |
+| Tier 4 | 아이템 대신 | Item Overlord | 4지층 + 심연 | 기억의 핵 (Memory Core) — 기억의 본질. 아이템에 깃든 모든 기억의 원형이자 핵심. 이를 넘어서는 것은 아이템의 완전한 해방 |
 
 #### 등급별 구조 비교 (10개 난이도 축)
 
@@ -424,16 +427,16 @@ arena_common:
 
 #### HP 스케일링
 
-SYS-IW-01의 멀티플레이 규칙을 보스에 동일 적용한다.
+SYS-IW-01 §2.5의 멀티플레이 규칙을 보스에 동일 적용한다. **SSoT는 SYS-IW-01이며 이 문서는 참조만 한다.**
 
 ```
-Boss_HP(N명) = Base_HP × (1 + (N-1) × 0.7)
+Boss_HP(N명) = Base_HP × hp_scale[N]
 
-예시:
-  1인: Base_HP × 1.0
-  2인: Base_HP × 1.7
-  3인: Base_HP × 2.4
-  4인: Base_HP × 3.1
+hp_scale (SYS-IW-01 §2.5 기준):
+  1인: ×1.0
+  2인: ×1.5
+  3인: ×2.0
+  4인: ×2.5
 ```
 
 #### 패턴 스케일링
@@ -458,6 +461,76 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 | COOP-02 | 신 이상 | 2인+ | 보스의 연속 패링 공격을 2인이 순서대로 패링 | 2인 모두 MP 회복 + 보스 스태거 | 패링 실패자에게 전체 피해 |
 | COOP-03 | 대신 전용 | 2인+ | 대형 AOE-04(전체 폭발) 시 안전 구역 분리. 각 플레이어가 다른 안전 구역 점유 | 피해 없음 | 안전 구역 겹치면 구역 무효화, 전체 피해 |
 | COOP-04 | 왕 이상 | 2인+ | 한 플레이어가 보스 어그로 유지 중 다른 플레이어가 보스 후면 취약 부위 공격 | 후면 공격 ×2.0 데미지 배율 | 어그로 이탈 시 기회 소멸 |
+
+### 2.9. 첫 보스 참조 명세: 그림자 검사 (Shadow Swordsman) — P0
+
+> **내러티브 참조:** `CNT-ITM-002` §3.1 보스 오버라이드 / `CNT-EXP-001` Screen 13
+> **등급:** Tier 1 — 아이템 장군 (기억의 수문장)
+> **출현 아이템:** 수리 의뢰의 낡은 검 (Magic 등급) — 튜토리얼 전용 고정 인스턴스
+
+이 섹션은 CNT-EXP-001 Screen 13에 확정된 그림자 검사 보스의 구현 명세다. 모듈형 보스 시스템(섹션 2.2)의 Tier 1 인스턴스이며, 최초 아이템계 진입 특례(SYS-IW-01 §2.3)가 동시 적용된다.
+
+#### 전투 수치 (확정)
+
+| 항목 | 값 | 근거 |
+| :--- | :--- | :--- |
+| Boss HP | 80 | CNT-EXP-001 Screen 13. 에르다 ATK 15 기준 6히트 처치 목표 |
+| Boss ATK | 12 | CNT-EXP-001 Screen 13. 에르다 HP 100 기준 8히트 사망 — 학습 여유 보장 |
+| 에르다 기준 ATK | 15 | 첫 진입 시점 기본값 (장비 무강화, 무원소) |
+| 에르다 기준 HP | 100 | 동 시점 기본값 |
+| 솔로 고정 | 1인 전용 (첫 아이템계 특례) | SYS-IW-01 §2.3 — 첫 진입 멀티 불가 |
+
+#### 본체 레이어
+
+| 레이어 | 값 |
+| :--- | :--- |
+| 본체 템플릿 | 검류(Sword) × Tier 1 = 갑옷 입은 기사 실루엣 (섹션 2.2 본체 템플릿 표) |
+| 외형 오버라이드 | **그림자 검사** — 얼굴 없음. 용병의 전투 방식이 그대로 반영된 실루엣 |
+| 수식어 | MOD-08 없음 (Unmodified) 고정 — 첫 도전. 변형 요소 배제 |
+| 아레나 변형 | ARN-01 평지형 (Open) 고정 — 장애물 없는 순수 패턴 학습 환경 |
+
+#### 패턴 명세 (2패턴 고정)
+
+CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패턴으로 학습 가능성 최대화.
+
+| 패턴 ID | 명칭 | 서술 | 텔레그래프 | 회피 |
+| :--- | :--- | :--- | :--- | :--- |
+| CHG-01 | 돌진 (좌우 왕복) | 좌우 직선 돌진. 벽 충돌 후 0.5초 경직. 용병의 전선 돌파 방식 | 후방 도약 모션 (0.6초 — Tier 1 배율 ×1.2 적용) | 점프 또는 대시 |
+| MEL-02 | 점프 내려찍기 | 플레이어 위 도약 후 수직 하강. 착지 시 충격파 (반경 64px). 용병의 급소 공격 | 보스 상승 + 조준점 이동 표시 (0.54초) | 착지 직전 좌우 이동 |
+
+#### 사망 처리 (첫 아이템계 특례 — SYS-IW-01 §2.3)
+
+| 항목 | 특례 규칙 |
+| :--- | :--- |
+| 사망 시 귀환 | 아이템계 내부 입구 (Screen 10 착지점) |
+| HP 회복 | 50% |
+| EXP 손실 | 없음 |
+| 지층 롤백 | 없음 |
+| 잡몹 리스폰 | 비활성화 (보스 방만 재도전) |
+| 보스 HP | 사망 직전 수치 유지 (리셋 없음) |
+| 횟수 제한 | 없음 |
+
+> **내러티브 근거:** 의뢰 검(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 첫 아이템계(의뢰 검) 한정. 이후 자기 무기로 진입하면 정상 규칙 적용.
+
+#### 보스 처치 결과
+
+```yaml
+shadow_swordsman_clear:
+  kill_visual: "그림자가 부서진다. 파편이 빛으로 변하며 흩어진다."
+  kill_drop:
+    item: "수리 의뢰 영수증 조각"
+    interaction_text: "30 coins. No name. Unclaimed."
+  permanent_bonus:
+    stat: ATK
+    value: "+8"
+    display: "Old Sword — ATK +8 (Permanent)"
+    timing: "처치 후 1초 뒤 화면 중앙 큰 텍스트 + 효과음"
+  erda_dialogue:
+    line: "The sword got stronger. Working inside actually raises the numbers? ...I should add this to the commission fee."
+    mandatory: true
+```
+
+> **SSoT 주의:** 위 수치(HP 80, ATK 12, ATK +8)는 CNT-EXP-001 Screen 13이 SSoT다. 이 섹션은 참조 요약이며, 값 변경 시 CNT-EXP-001을 먼저 수정하고 이 섹션을 동기화한다.
 
 ---
 
@@ -857,7 +930,7 @@ SYS-IW-01 permanentBonus 계산
 | 텔레그래프가 min_telegraph_ms 이상 보장되는가 | 모든 패턴 실행 시 텔레그래프 시간 측정 | 어떤 조건에서도 min_guarantee_ms 미달 없음 |
 | 클리어 불가 패턴 조합이 발생하지 않는가 | isComboFeasible() 실패 케이스 로그 | 3회 재시도 내 항상 클리어 가능 조합 선택 |
 | 보스 처치 시 permanentBonus가 정확히 적용되는가 | 보스 처치 전후 아이템 스탯 비교 | SYS-IW-01 공식 결과값과 ±0.01% 이내 일치 |
-| 멀티플레이 HP 스케일링이 인원에 따라 정확한가 | 1~4인 테스트에서 보스 HP 로그 확인 | Base_HP × (1 + (N-1) × 0.7) ±1% 이내 |
+| 멀티플레이 HP 스케일링이 인원에 따라 정확한가 | 1~4인 테스트에서 보스 HP 로그 확인 | SYS-IW-01 §2.5 hp_scale 테이블 기준값 ±1% 이내 (2인×1.5, 3인×2.0, 4인×2.5) |
 | 수식어가 생성 시드에 따라 결정론적으로 결정되는가 | 동일 시드로 10회 생성하여 수식어 비교 | 100% 동일 결과 |
 | 보스 방 진입 시 HP/MP 오브가 스폰되는가 | 진입 직후 오브 수 확인 | HP 오브 5개, MP 오브 3개 |
 | 재귀 깊이 3에서 추가 재귀 진입 차단되는가 | recursionDepth=3 상태에서 진입 시도 | 진입 불가 메시지 표시, 아이템계 생성 없음 |

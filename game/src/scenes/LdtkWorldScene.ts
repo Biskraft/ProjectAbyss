@@ -42,7 +42,7 @@ import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
-import { createItem, calcInnocentBonus } from '@items/ItemInstance';
+import { createItem, calcInnocentBonus, itemLevelUp } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
@@ -661,14 +661,30 @@ export class LdtkWorldScene extends Scene {
   private handleEnemyKill(enemy: Enemy): void {
     this.game.stats.enemiesKilled++;
     if ((enemy as any)._isBoss) {
-      // Boss killed — dialogue first, then spawn exit portal
       const bossX = enemy.x + enemy.width / 2;
       const bossY = enemy.y + enemy.height - 4;
       const rarity = this.fixedItemWorldItem?.rarity ?? 'magic';
       const sourceItem = this.fixedItemWorldItem ?? undefined;
+
+      // 1. Level up the item + show stat popup immediately
+      if (this.fixedItemWorldItem) {
+        const prevLevel = this.fixedItemWorldItem.level;
+        const prevAtk = this.fixedItemWorldItem.finalAtk;
+        itemLevelUp(this.fixedItemWorldItem);
+        this.updatePlayerAtk();
+        if (this.fixedItemWorldItem.level > prevLevel) {
+          this.toast.show(`${this.fixedItemWorldItem.def.name} Level Up! Lv${this.fixedItemWorldItem.level}`, 0xff88ff);
+        }
+        if (this.fixedItemWorldItem.finalAtk > prevAtk) {
+          this.toast.show(`ATK ${prevAtk} → ${this.fixedItemWorldItem.finalAtk}`, 0xffff44);
+        }
+      }
+
+      // 2. After 1s → dialogue → 3. portal
       setTimeout(async () => {
+        if (!this.initialized) return;
         await this.dialogueManager.fireEvent('first_boss_kill');
-        // Portal appears after dialogue completes
+        if (!this.initialized) return;
         this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
       }, 1000);
     } else if (enemy instanceof Slime) {
@@ -1792,6 +1808,11 @@ export class LdtkWorldScene extends Scene {
   private updateAnvilInput(): void {
     this.updateItemSelectInput(
       (item) => {
+        // Cannot place equipped weapon on anvil
+        if (this.inventory.equipped?.uid === item.uid) {
+          this.toast.show('Unequip first', 0xff4444);
+          return;
+        }
         if (this.anvil) {
           this.anvil.placeItem(item);
           this.collapseItem = item;
