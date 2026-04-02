@@ -507,7 +507,7 @@ graph LR
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
 | 15 | D-12 Narrative & Worldbuilding | ✅ | 콘텐츠 확장 전 세계관 원칙 (환경 서사 7대 원칙 보강 완료) |
-| 16 | SYS-WLD-01 Map Structure | ⬜ | 7개 구역 연결 그래프 |
+| 16 | SYS-WLD-01 Map Structure | ⬜ | 7개 층위 수직 연결 |
 | 17 | SYS-WLD-02 Zone Design | ⬜ | 구역별 바이옴 설계 |
 | 18 | SYS-WLD-03 Ability Gating | ⬜ | 능력 게이트 설계 |
 | 19 | SYS-WLD-04 Stat Gating | ⬜ | 스탯 게이트 설계 |
