@@ -40,10 +40,10 @@ export class Game {
   private renderer!: WebGLRenderer;
   private worldRT!: RenderTexture;
   private worldSprite!: Sprite;
+  private prevRTW = 0;
+  private prevRTH = 0;
 
   async init(): Promise<void> {
-    // Create WebGLRenderer directly (bypasses autoDetectRenderer's
-    // dynamic import that hangs in Vite production builds)
     this.renderer = new WebGLRenderer();
     await this.renderer.init({
       width: GAME_WIDTH,
@@ -72,16 +72,19 @@ export class Game {
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
 
-    // Game world container — rendered to RT, not added to stage
+    // Game world container — rendered to RT at 1x, NOT on stage
     this.gameContainer = new Container();
 
-    // RenderTexture pipeline: world renders at 1x → RT → scaled sprite on stage
+    // Initial RT at default viewport size
     this.worldRT = RenderTexture.create({
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
       resolution: 1,
       antialias: false,
     });
+    this.prevRTW = GAME_WIDTH;
+    this.prevRTH = GAME_HEIGHT;
+
     this.worldSprite = new Sprite(this.worldRT);
     this.worldSprite.texture.source.scaleMode = 'nearest';
     this.app.stage.addChild(this.worldSprite);
@@ -107,24 +110,34 @@ export class Game {
         this.accumulated -= FIXED_STEP;
       }
 
-      // Advance input state AFTER all fixed updates so isJustPressed
-      // remains true for the entire frame's physics ticks
       this.input.update();
 
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      // Zoom via RenderTexture: render world at 1x → scale the result
-      // Tiles always at integer positions → zero seams, smooth zoom
+      // --- Zoom via RenderTexture ---
+      // Render world at 1x into a larger RT, then scale down to screen.
+      // Tiles stay at integer positions → no seams, smooth zoom.
       const zoom = this.camera.zoom;
       const rtW = Math.min(Math.ceil(GAME_WIDTH / zoom), MAX_RT_SIZE);
       const rtH = Math.min(Math.ceil(GAME_HEIGHT / zoom), MAX_RT_SIZE);
 
-      if (this.worldRT.width !== rtW || this.worldRT.height !== rtH) {
-        this.worldRT.resize(rtW, rtH);
+      // Recreate RT when size changes (resize can leave stale texture data)
+      if (rtW !== this.prevRTW || rtH !== this.prevRTH) {
+        this.worldRT.destroy();
+        this.worldRT = RenderTexture.create({
+          width: rtW,
+          height: rtH,
+          resolution: 1,
+          antialias: false,
+        });
+        this.worldRT.source.scaleMode = 'nearest';
+        this.worldSprite.texture = this.worldRT;
+        this.prevRTW = rtW;
+        this.prevRTH = rtH;
       }
 
-      // Position gameContainer at 1x scale for RT rendering
+      // Position gameContainer at 1x scale
       this.gameContainer.scale.set(1);
       this.gameContainer.x = Math.round(-this.camera.renderX + rtW / 2);
       this.gameContainer.y = Math.round(-this.camera.renderY + rtH / 2);
@@ -136,11 +149,12 @@ export class Game {
         clear: true,
       });
 
-      // Display RT scaled to fit screen
-      this.worldSprite.scale.set(zoom);
+      // Scale RT sprite to fill 640×360 screen
+      this.worldSprite.scale.x = GAME_WIDTH / rtW;
+      this.worldSprite.scale.y = GAME_HEIGHT / rtH;
 
-      // Final render: stage (which contains worldSprite) → screen
-      this.renderer.render(stage);
+      // Render stage (worldSprite) to screen
+      this.renderer.render({ container: stage });
     });
   }
 
@@ -149,7 +163,6 @@ export class Game {
     const h = window.innerHeight;
     const canvas = this.app.canvas;
 
-    // Fill the entire window while maintaining aspect ratio
     const scale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
     canvas.style.width = `${Math.floor(GAME_WIDTH * scale)}px`;
     canvas.style.height = `${Math.floor(GAME_HEIGHT * scale)}px`;
