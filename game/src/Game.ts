@@ -2,7 +2,7 @@
 // dynamic-import hang in Vite production builds
 import 'pixi.js/browser';
 
-import { Container, Ticker, WebGLRenderer } from 'pixi.js';
+import { Container, RenderTexture, Sprite, Ticker, WebGLRenderer } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager } from '@core/InputManager';
 import { AssetLoader } from '@core/AssetLoader';
@@ -12,6 +12,7 @@ export const GAME_WIDTH = 640;
 export const GAME_HEIGHT = 360;
 const FIXED_STEP = 1000 / 60; // 16.6667ms
 const MAX_ACCUMULATED = FIXED_STEP * 5;
+const MAX_RT_SIZE = 4096;
 
 export class Game {
   app!: {
@@ -36,12 +37,15 @@ export class Game {
     forgeReturnSequenceDone: false,
   };
   private accumulated = 0;
+  private renderer!: WebGLRenderer;
+  private worldRT!: RenderTexture;
+  private worldSprite!: Sprite;
 
   async init(): Promise<void> {
     // Create WebGLRenderer directly (bypasses autoDetectRenderer's
     // dynamic import that hangs in Vite production builds)
-    const renderer = new WebGLRenderer();
-    await renderer.init({
+    this.renderer = new WebGLRenderer();
+    await this.renderer.init({
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
       backgroundColor: 0x1a1a2e,
@@ -53,12 +57,11 @@ export class Game {
 
     const stage = new Container();
     const ticker = new Ticker();
-    ticker.add(() => renderer.render(stage));
     ticker.start();
 
     this.app = {
       stage,
-      canvas: renderer.canvas as HTMLCanvasElement,
+      canvas: this.renderer.canvas as HTMLCanvasElement,
       ticker,
     };
 
@@ -69,8 +72,19 @@ export class Game {
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
 
+    // Game world container — rendered to RT, not added to stage
     this.gameContainer = new Container();
-    this.app.stage.addChild(this.gameContainer);
+
+    // RenderTexture pipeline: world renders at 1x → RT → scaled sprite on stage
+    this.worldRT = RenderTexture.create({
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      resolution: 1,
+      antialias: false,
+    });
+    this.worldSprite = new Sprite(this.worldRT);
+    this.worldSprite.texture.source.scaleMode = 'nearest';
+    this.app.stage.addChild(this.worldSprite);
 
     this.input = new InputManager();
     this.assetLoader = new AssetLoader();
@@ -100,11 +114,34 @@ export class Game {
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      // Fine-grain zoom snap: 640 steps per unit, smooth lerp + negligible sub-pixel error
-      const z = Math.max(1, Math.round(GAME_WIDTH * this.camera.zoom)) / GAME_WIDTH;
-      this.gameContainer.scale.set(z);
-      this.gameContainer.x = Math.round(-this.camera.renderX * z + GAME_WIDTH / 2);
-      this.gameContainer.y = Math.round(-this.camera.renderY * z + GAME_HEIGHT / 2);
+      // Zoom via RenderTexture: render world at 1x → scale the result
+      // Tiles always at integer positions → zero seams, smooth zoom
+      const zoom = this.camera.zoom;
+      const rtW = Math.min(Math.ceil(GAME_WIDTH / zoom), MAX_RT_SIZE);
+      const rtH = Math.min(Math.ceil(GAME_HEIGHT / zoom), MAX_RT_SIZE);
+
+      if (this.worldRT.width !== rtW || this.worldRT.height !== rtH) {
+        this.worldRT.resize(rtW, rtH);
+      }
+
+      // Position gameContainer at 1x scale for RT rendering
+      this.gameContainer.scale.set(1);
+      this.gameContainer.x = Math.round(-this.camera.renderX + rtW / 2);
+      this.gameContainer.y = Math.round(-this.camera.renderY + rtH / 2);
+
+      // Render world to offscreen texture
+      this.renderer.render({
+        container: this.gameContainer,
+        target: this.worldRT,
+        clear: true,
+      });
+
+      // Display RT scaled to fit screen
+      this.worldSprite.width = GAME_WIDTH;
+      this.worldSprite.height = GAME_HEIGHT;
+
+      // Final render: stage (which contains worldSprite) → screen
+      this.renderer.render(stage);
     });
   }
 
