@@ -47,10 +47,9 @@ try {
   const params = new URLSearchParams(window.location.search);
   if (params.has('procgen')) {
     await game.sceneManager.push(new WorldScene(game));
-  } else if (params.has('notitle')) {
-    await game.sceneManager.push(new LdtkWorldScene(game));
   } else {
-    await game.sceneManager.push(new TitleScene(game));
+    // Skip title screen — go straight to game (TODO: restore TitleScene later)
+    await game.sceneManager.push(new LdtkWorldScene(game));
   }
 
   // Virtual pad for mobile
