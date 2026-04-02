@@ -100,9 +100,8 @@ export class Game {
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      // Snap zoom so TILE_SIZE(16) * zoom is always integer → no tile seams
-      const TILE = 16;
-      const z = Math.max(1, Math.round(TILE * this.camera.zoom)) / TILE;
+      // Fine-grain zoom snap: 640 steps per unit, smooth lerp + negligible sub-pixel error
+      const z = Math.max(1, Math.round(GAME_WIDTH * this.camera.zoom)) / GAME_WIDTH;
       this.gameContainer.scale.set(z);
       this.gameContainer.x = Math.round(-this.camera.renderX * z + GAME_WIDTH / 2);
       this.gameContainer.y = Math.round(-this.camera.renderY * z + GAME_HEIGHT / 2);
