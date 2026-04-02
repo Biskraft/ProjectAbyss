@@ -744,15 +744,7 @@ export class LdtkWorldScene extends Scene {
     // Spawn locked doors
     this.spawnLockedDoors(level);
 
-    // Process other LDtk entities (Items, GameSaver, etc.)
-    this.processLdtkEntities(level);
-
-    // Register LDtk Dialogue entities as triggers
-    if (this.dialogueManager) {
-      this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
-    }
-
-    // Camera: reset zones and defaults, area triggers will override in update()
+    // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
     this.cameraZones = [];
     this.activeCameraZone = null;
@@ -761,6 +753,14 @@ export class LdtkWorldScene extends Scene {
     cam.lookAheadDistance = 0;
     cam.followLerp = 0.08;
     cam.zoomTo(1.0);
+
+    // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
+    this.processLdtkEntities(level);
+
+    // Register LDtk Dialogue entities as triggers
+    if (this.dialogueManager) {
+      this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
+    }
 
     const camX = this.player.x + this.player.width / 2;
     const camY = this.player.y + this.player.height / 2;
