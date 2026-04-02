@@ -84,6 +84,10 @@ export class LdtkWorldScene extends Scene {
   private atlas!: Texture;
   private currentLevel!: LdtkLevel;
   private collisionGrid: number[][] = [];
+  private levelCameraConfig: {
+    zoom: number; deadZoneX: number; deadZoneY: number;
+    lookAheadDistance: number; followLerp: number; zoomLerp: number;
+  } | null = null;
 
   // Layers
   private entityLayer!: Container;
@@ -753,11 +757,27 @@ export class LdtkWorldScene extends Scene {
       this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
     }
 
-    // Camera: snap + set target to prevent lerp jitter on first frame
+    // Camera: apply per-level config from Camera entity, then snap
+    const cam = this.game.camera;
+    if (this.levelCameraConfig) {
+      cam.deadZoneX = this.levelCameraConfig.deadZoneX;
+      cam.deadZoneY = this.levelCameraConfig.deadZoneY;
+      cam.lookAheadDistance = this.levelCameraConfig.lookAheadDistance;
+      cam.followLerp = this.levelCameraConfig.followLerp;
+      cam.zoomTo(this.levelCameraConfig.zoom, this.levelCameraConfig.zoomLerp);
+    } else {
+      cam.deadZoneX = 32;
+      cam.deadZoneY = 24;
+      cam.lookAheadDistance = 0;
+      cam.followLerp = 0.08;
+      cam.zoomTo(1.0);
+    }
+    this.levelCameraConfig = null;
+
     const camX = this.player.x + this.player.width / 2;
     const camY = this.player.y + this.player.height / 2;
-    this.game.camera.target = { x: camX, y: camY };
-    this.game.camera.snap(camX, camY);
+    cam.target = { x: camX, y: camY };
+    cam.snap(camX, camY);
 
     // Update minimap
     this.drawMinimap();
@@ -1111,6 +1131,17 @@ export class LdtkWorldScene extends Scene {
         }
         case 'Exit': {
           // Exits are handled by edge detection, not entity interaction
+          break;
+        }
+        case 'Camera': {
+          this.levelCameraConfig = {
+            zoom: ent.fields['zoom'] as number ?? 1.0,
+            deadZoneX: ent.fields['deadZoneX'] as number ?? 32,
+            deadZoneY: ent.fields['deadZoneY'] as number ?? 24,
+            lookAheadDistance: ent.fields['lookAheadDistance'] as number ?? 0,
+            followLerp: ent.fields['followLerp'] as number ?? 0.08,
+            zoomLerp: ent.fields['zoomLerp'] as number ?? 0.05,
+          };
           break;
         }
         // Player handled in placePlayer()

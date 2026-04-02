@@ -100,8 +100,10 @@ export class Game {
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      this.gameContainer.x = Math.round(-this.camera.renderX + GAME_WIDTH / 2);
-      this.gameContainer.y = Math.round(-this.camera.renderY + GAME_HEIGHT / 2);
+      const z = this.camera.zoom;
+      this.gameContainer.scale.set(z);
+      this.gameContainer.x = Math.round(-this.camera.renderX * z + GAME_WIDTH / 2);
+      this.gameContainer.y = Math.round(-this.camera.renderY * z + GAME_HEIGHT / 2);
     });
   }
 

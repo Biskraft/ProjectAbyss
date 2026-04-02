@@ -10,6 +10,11 @@ export class Camera {
   deadZoneX = 32;
   deadZoneY = 24;
 
+  // Zoom (1.0 = default, 0.5 = 2x wider view, 0.01 = extreme zoom-out)
+  zoom = 1.0;
+  private targetZoom = 1.0;
+  private zoomSpeed = 0.05;
+
   // Look Ahead
   lookAheadDistance = 0;
   lookAheadLerp = 0.05;
@@ -47,6 +52,19 @@ export class Camera {
     this.bounds = null;
   }
 
+  /** Instantly set zoom level (no lerp) */
+  setZoom(value: number): void {
+    const clamped = Math.max(0.01, Math.min(1.0, value));
+    this.zoom = clamped;
+    this.targetZoom = clamped;
+  }
+
+  /** Smoothly transition to target zoom */
+  zoomTo(target: number, lerp?: number): void {
+    this.targetZoom = Math.max(0.01, Math.min(1.0, target));
+    if (lerp !== undefined) this.zoomSpeed = lerp;
+  }
+
   /** Instantly set look-ahead to its final value (no lerp) */
   setLookAhead(direction: number): void {
     this.facingDirection = direction;
@@ -58,6 +76,7 @@ export class Camera {
   snap(x: number, y: number): void {
     this.x = x;
     this.y = y;
+    this.zoom = this.targetZoom;
     this.currentLookAheadX = 0;
     this.targetLookAheadX = 0;
     this.facingDirection = 0;
@@ -65,17 +84,20 @@ export class Camera {
     this.shakeOffsetX = 0;
     this.shakeOffsetY = 0;
 
-    // Apply bounds immediately after snap
-    if (this.bounds) {
-      const halfW = this.viewportW / 2;
-      const halfH = this.viewportH / 2;
-      const minX = this.bounds.left + halfW;
-      const maxX = this.bounds.right - halfW;
-      const minY = this.bounds.top + halfH;
-      const maxY = this.bounds.bottom - halfH;
-      this.x = minX >= maxX ? (this.bounds.left + this.bounds.right) / 2 : Math.max(minX, Math.min(maxX, this.x));
-      this.y = minY >= maxY ? (this.bounds.top + this.bounds.bottom) / 2 : Math.max(minY, Math.min(maxY, this.y));
-    }
+    // Apply bounds immediately after snap (zoom-aware)
+    this.clampToBounds();
+  }
+
+  private clampToBounds(): void {
+    if (!this.bounds) return;
+    const halfW = (this.viewportW / 2) / this.zoom;
+    const halfH = (this.viewportH / 2) / this.zoom;
+    const minX = this.bounds.left + halfW;
+    const maxX = this.bounds.right - halfW;
+    const minY = this.bounds.top + halfH;
+    const maxY = this.bounds.bottom - halfH;
+    this.x = minX >= maxX ? (this.bounds.left + this.bounds.right) / 2 : Math.max(minX, Math.min(maxX, this.x));
+    this.y = minY >= maxY ? (this.bounds.top + this.bounds.bottom) / 2 : Math.max(minY, Math.min(maxY, this.y));
   }
 
   shake(intensity: number): void {
@@ -104,6 +126,13 @@ export class Camera {
 
     const dtFactor = dt / 16.6667;
 
+    // Zoom lerp
+    if (Math.abs(this.zoom - this.targetZoom) > 0.001) {
+      this.zoom += (this.targetZoom - this.zoom) * this.zoomSpeed * dtFactor;
+    } else {
+      this.zoom = this.targetZoom;
+    }
+
     // Dead zone check + Smooth Follow
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
@@ -119,10 +148,10 @@ export class Camera {
     this.targetLookAheadX = this.facingDirection * this.lookAheadDistance;
     this.currentLookAheadX += (this.targetLookAheadX - this.currentLookAheadX) * this.lookAheadLerp * dtFactor;
 
-    // Bounds clamping (clamp renderX/renderY, not just camera.x/y)
+    // Bounds clamping (zoom-aware)
     if (this.bounds) {
-      const halfW = this.viewportW / 2;
-      const halfH = this.viewportH / 2;
+      const halfW = (this.viewportW / 2) / this.zoom;
+      const halfH = (this.viewportH / 2) / this.zoom;
       const minX = this.bounds.left + halfW;
       const maxX = this.bounds.right - halfW;
       const minY = this.bounds.top + halfH;
@@ -132,7 +161,6 @@ export class Camera {
         this.x = (this.bounds.left + this.bounds.right) / 2;
         this.currentLookAheadX = 0;
       } else {
-        // Clamp the effective render position (x + lookAhead)
         const effectiveX = this.x + this.currentLookAheadX;
         if (effectiveX < minX) {
           this.currentLookAheadX = minX - this.x;
