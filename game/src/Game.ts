@@ -100,7 +100,9 @@ export class Game {
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);
 
-      const z = this.camera.zoom;
+      // Snap zoom so TILE_SIZE(16) * zoom is always integer → no tile seams
+      const TILE = 16;
+      const z = Math.max(1, Math.round(TILE * this.camera.zoom)) / TILE;
       this.gameContainer.scale.set(z);
       this.gameContainer.x = Math.round(-this.camera.renderX * z + GAME_WIDTH / 2);
       this.gameContainer.y = Math.round(-this.camera.renderY * z + GAME_HEIGHT / 2);
