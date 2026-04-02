@@ -137,8 +137,7 @@ export class Game {
       });
 
       // Display RT scaled to fit screen
-      this.worldSprite.width = GAME_WIDTH;
-      this.worldSprite.height = GAME_HEIGHT;
+      this.worldSprite.scale.set(zoom);
 
       // Final render: stage (which contains worldSprite) → screen
       this.renderer.render(stage);
