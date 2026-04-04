@@ -1,9 +1,11 @@
 # System_Quest_Narrative: 모듈형 퀘스트 서사 프레임워크
 
+> **⚠️ DEPRECATED:** NPC 퀘스트 프레임워크는 스코프 축소로 삭제되었습니다. PA의 서사는 아이템 내러티브 시스템(System_ItemNarrative_Template.md)으로 전달됩니다. 에르다는 말하지 않는다.
+
 > **문서 ID:** SYS-QST-01
-> **문서 상태:** Draft
-> **3-Space 범위:** World / Item World (Memory Strata) / Hub
-> **최종 수정:** 2026-03-24
+> **문서 상태:** ❌ DEPRECATED
+> **3-Space 범위:** ~~World / Item World (Memory Strata) / Hub~~ — 폐기됨
+> **최종 수정:** 2026-04-04
 
 ---
 

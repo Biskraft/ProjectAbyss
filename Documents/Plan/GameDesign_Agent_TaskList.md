@@ -113,7 +113,7 @@
 | 깊이/보상 밸런스 | `Research/ItemWorld_DepthReward_RiskBalance_Research.md` | 보상 스케일링 수학 모델 |
 | 성장/보상 철학 | `Design/Design_Progression_Reward.md` | 성장 곡선, 보상 심리 |
 | 야리코미 철학 | `Design/Design_Yarikomi_Philosophy.md` | 무한 파밍 동기 구조 |
-| 코어 루프 | `Design/Design_CoreLoop_Circulation.md` | 월드→아이템계→허브 순환 |
+| 코어 루프 | `Design/Design_CoreLoop_Circulation.md` | 월드→아이템계 순환 (2-Space) |
 
 ---
 
@@ -180,7 +180,7 @@
 | D-06 | Online Design Principles | 넷코드 1개만 | Phase 3 |
 | SYS-MP-01~04 | 멀티플레이 전체 | 넷코드 1개만 | Phase 3 |
 | SYS-ECO-01~03 | 경제 시스템 | D-07 선행 필요 | Phase 2+ |
-| SYS-HUB-01~02 | 허브 시설/NPC | 허브 리서치 1개만 | Phase 2+ |
+| ~~SYS-HUB-01~02~~ | ~~허브 시설/NPC~~ | ~~DEPRECATED~~ | — |
 | SYS-CMB-04~06 | 서브웨폰/원소/상태이상 | 전투 리서치 있음 | Phase 2 |
 | SYS-WLD-06~07 | 세이브워프/비밀 | 메트로베니아 리서치 있음 | Phase 2 |
 | SYS-IW-06 | 지오 이펙트 | 디스가이아 리서치 있음 | Phase 2 |

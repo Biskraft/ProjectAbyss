@@ -21,7 +21,7 @@
 ```mermaid
 graph TD
     VISION[Project Vision] --> CORE[Core Systems]
-    VISION --> SPACE[3-Space Architecture]
+    VISION --> SPACE[2-Space Architecture]
 
     CORE --> 3C[3C: Character/Camera/Control]
     CORE --> COMBAT[Combat System]
@@ -29,18 +29,15 @@ graph TD
 
     SPACE --> WORLD[World Systems]
     SPACE --> IW[Item World Systems]
-    SPACE --> HUB[Hub Systems]
 
     WORLD --> MAP[World Map Structure]
     WORLD --> GATE[Gating Systems]
     WORLD --> PROCGEN_W[World Procedural Generation]
+    WORLD --> SAVEPOINT[Save Point: Forge/Shop]
 
     IW --> IW_DUNGEON[Item World Dungeon]
     IW --> INNOCENT[Innocent System]
     IW --> PROCGEN_IW[IW Procedural Generation]
-
-    HUB --> FACILITY[Hub Facilities]
-    HUB --> SOCIAL[Social/Trade]
 
     COMBAT --> ACTION[Action System]
     COMBAT --> DAMAGE[Damage System]
@@ -83,7 +80,7 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| D-01 | 3-Space Architecture | `Design/Design_Architecture_3Space.md` | ✅ 완료 | 전체 | 전체 |
+| D-01 | 2-Space Architecture | `Design/Design_Architecture_3Space.md` | ✅ 완료 | 전체 | 전체 |
 | D-02 | Core Loop Design | `Design/Design_CoreLoop_Circulation.md` | ✅ 완료 | 전체 | 전체 |
 | D-03 | Difficulty Philosophy | `Design/Design_Difficulty_Progression.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
 | D-04 | Metroidvania Philosophy | `Design/Design_Metroidvania_Philosophy.md` | ✅ 완료 | World | 탐험 |
@@ -250,28 +247,23 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-QST-01 | Quest Narrative Framework | `System/System_Quest_Narrative.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
+| SYS-QST-01 | ~~Quest Narrative Framework~~ | `System/System_Quest_Narrative.md` | ❌ DEPRECATED | — | — |
 
-**SYS-QST-01 Quest Narrative Framework 범위:**
-- 6개 서사 아키타입 (도덕적 딜레마/기대 전복/탐정 절차/구출·호위/세력 대결/기억 탐구)
-- 변수 치환 시스템: 아키타입 × 위치 × NPC × 목표 × 보상 조합
-- 맥락 레이어 5단계: 아이템 기원 테마 → 지역 테마 → 시간대 → 플레이어 이력 → 환경 스토리텔링
-- 3-Space별 퀘스트 매핑, 인카운터 상태 모델, 분기 등급 체계
-- 100+ 퀘스트 양산을 위한 조합 공식 및 검증 파이프라인
+> DEPRECATED: 퀘스트 서사 프레임워크는 스코프 축소로 삭제. 서사는 아이템 내러티브 시스템으로 전달.
 
 ### 3.9 대화 시스템 (Dialogue)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-DLG-01 | Dialogue System | `System/System_Dialogue.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
+| SYS-DLG-01 | ~~Dialogue System~~ | `System/System_Dialogue.md` | ❌ DEPRECATED | — | — |
 
 ### 3.8 이노센트 시스템 (Innocent)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW+Hub | 야리코미 |
+| SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-INC-02 | ~~Innocent Farm~~ | `System/System_Innocent_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
-| SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ✅ 완료 | Hub | 야리코미 |
+| SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ✅ 완료 | IW | 야리코미 |
 
 ### 3.10 적 & AI 시스템 (Enemy)
 
@@ -286,7 +278,7 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-MP-01 | Multiplayer Architecture | `System/System_Multi_Architecture.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
-| SYS-MP-02 | Party System | `System/System_Multi_Party.md` | ⬜ 제작 필요 | IW+Hub | 멀티플레이 |
+| SYS-MP-02 | Party System | `System/System_Multi_Party.md` | ⬜ 제작 필요 | IW | 멀티플레이 |
 | SYS-MP-03 | Network Sync | `System/System_Multi_NetworkSync.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | SYS-MP-04 | Ghost Message | `System/System_Multi_GhostMessage.md` | ⬜ 제작 필요 | World | 멀티플레이 |
 
@@ -295,14 +287,16 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
-| SYS-ECO-02 | Trade System | `System/System_Economy_Trade.md` | ⬜ 제작 필요 | Hub | 멀티플레이 |
+| ~~SYS-ECO-02~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
 
-### 3.12 허브 시스템 (Hub)
+### ~~3.12 허브 시스템 (Hub)~~ — DEPRECATED
+
+> 허브가 폐기되어 대장간/상점은 월드 세이브 포인트로 통합.
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-HUB-01 | Hub Facilities | `System/System_Hub_Facilities.md` | ⬜ 제작 필요 | Hub | 전체 |
-| SYS-HUB-02 | NPC & Shop | `System/System_Hub_NPCShop.md` | ⬜ 제작 필요 | Hub | 전체 |
+| ~~SYS-HUB-01~~ | ~~Hub Facilities~~ | ~~`System/System_Hub_Facilities.md`~~ | ❌ DEPRECATED | — | — |
+| ~~SYS-HUB-02~~ | ~~NPC & Shop~~ | ~~`System/System_Hub_NPCShop.md`~~ | ❌ DEPRECATED | — | — |
 
 ---
 
@@ -314,8 +308,8 @@ graph TD
 | UI-02 | Inventory UI | `UI/UI_Inventory.md` | ⬜ 제작 필요 | 전체 |
 | UI-03 | Map UI | `UI/UI_Map.md` | ⬜ 제작 필요 | World |
 | UI-04 | Item World UI | `UI/UI_ItemWorld.md` | ⬜ 제작 필요 | IW |
-| UI-05 | ~~Innocent Farm UI~~ | `UI/UI_InnocentFarm.md` | ❌ DEPRECATED | Hub |
-| UI-06 | Party & Matching UI | `UI/UI_PartyMatching.md` | ⬜ 제작 필요 | Hub |
+| UI-05 | ~~Innocent Farm UI~~ | `UI/UI_InnocentFarm.md` | ❌ DEPRECATED | — |
+| UI-06 | ~~Party & Matching UI~~ | ~~`UI/UI_PartyMatching.md`~~ | ❌ DEPRECATED | — |
 
 ---
 
@@ -372,7 +366,7 @@ graph TD
 | RES-NET-01 | Online Coop Netcode | `Research/OnlineCoop_Netcode_Research.md` | 네트워크 아키텍처 |
 | RES-PCG-01 | World ProcGen | `Research/ProceduralGeneration_World_Research.md` | 절차적 생성 |
 | RES-ECO-01 | Endgame Loop Economy | `Research/EndgameLoop_Economy_Research.md` | 엔드게임 경제 |
-| RES-HUB-01 | Hub & Social Design | `Research/HubSpace_Social_Design_Research.md` | 허브/소셜 |
+| ~~RES-HUB-01~~ | ~~Hub & Social Design~~ | ~~`Research/HubSpace_Social_Design_Research.md`~~ | ~~허브/소셜 — DEPRECATED~~ |
 | RES-EQP-01 | Equipment Drop Economy | `Research/Equipment_DropRate_Economy_Research.md` | 장비 드랍 |
 | RES-BSS-01 | Boss Design SideScrolling | `Research/BossDesign_SideScrolling_Research.md` | 보스 설계 |
 | RES-INC-01 | Innocent Combat Behavior | `Research/Innocent_Combat_Behavior_Research.md` | 이노센트 전투 행동 |
@@ -529,7 +523,7 @@ graph LR
 | 42~43 | D-06, D-07 | ⬜ | Online/Economy 철학 |
 | 44~47 | SYS-MP-01~04 | ⬜ | 멀티플레이 아키텍처/파티/동기화/고스트 |
 | 48~49 | SYS-ECO-01~02 | ⬜ | 자원순환/거래 |
-| 51~52 | SYS-HUB-01~02 | ⬜ | 허브 시설/NPC 상점 |
+| 51~52 | ~~SYS-HUB-01~02~~ | ❌ DEPRECATED | ~~허브 시설/NPC 상점~~ |
 | 53~56 | SYS-IW-03~06 | ⬜ | 아이템계 보스/재귀/이벤트/지오 |
 | 57~58 | SYS-INC-03 | ⬜ | 듀얼 이노센트 |
 | 59 | SYS-LVL-04 Reincarnation | ~~삭제~~ | ~~전생 시스템~~ (스코프 축소로 삭제) |

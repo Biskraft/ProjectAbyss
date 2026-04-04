@@ -51,7 +51,7 @@
 | Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 회피 행동. 쿨다운 2초, 공중 대시 1회 제한. 발동 중 i-frame이 적용되어 적 공격을 회피할 수 있으며, 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | ~~DEX~~ | ~~민첩 스탯~~ | ~~DEPRECATED. 기존 기동성 게이트 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제.~~ | — |
 | Echo | 에코 | 에르다가 휴대하는 도구이자 무기. GBE(BLAME!) 오마주. 네 가지 기능: (1) 격벽 관통 — 격벽의 약점을 두드려 균열을 만든다, (2) 아이템계 진입 — 무기/제단을 두드려 기억의 균열을 연다, (3) 인챈트 — 전투 중 무기를 두드려 원소를 입힌다, (4) 전투 보조 — 느리지만 강력한 단발 타격. 에코의 정체와 출처는 최종장까지 불명이며, 에르다의 정체와 함께 밝혀진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_ItemWorld_Core.md` |
-| Echo Strike | 기억의 두드림 | 에코로 무기를 두드려 아이템계에 진입하는 행위. 허브 대장간, 필드 균열 제단, 기억의 방랑자가 남긴 임시 제단 등 어떤 진입 장소에서든 동일한 행위로 수행된다. | `Documents/System/System_ItemWorld_Core.md` |
+| Echo Strike | 기억의 두드림 | 에코로 무기를 두드려 아이템계에 진입하는 행위. 세이브 포인트 대장간, 필드 균열 제단, 기억의 방랑자가 남긴 임시 제단 등 어떤 진입 장소에서든 동일한 행위로 수행된다. | `Documents/System/System_ItemWorld_Core.md` |
 | Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소�� 순환: 화→빙→뇌→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
 | Erda ven-Nacht | 에르다 벤-나흐트 | 플레이어 캐릭터. 정체불명의 여성. 이름조차 게임 후반까지 밝혀지지 않는다. 에코(Echo)를 들고 대공동을 아래로 내려간다. 과묵하며 대사가 거의 없다. 행동으로 서사를 전달하는 캐릭터. 캐릭터 레퍼런스: 킬리(BLAME!). | `Documents/Content/Content_World_Bible.md`, `Documents/Terms/Project_Vision_Abyss.md` |
@@ -68,7 +68,7 @@
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2~4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
-| Hub | 허브 | 3-Space 모델의 세 번째 공간. 사교·거래·파티 매칭이 이루어지는 고정 맵 사교 공간. 전투가 없으며 무제한 인원이 동시 접속 가능하다. | `Documents/Design/Design_Architecture_3Space.md`, `Reference/게임 기획 개요.md` |
+| ~~Hub~~ | ~~허브~~ | ~~DEPRECATED. 기존 3-Space 모델의 세 번째 공간. 사교·거래·파티 매칭이 이루어지는 고정 맵 사교 공간. 2-Space 전환으로 폐기. 대장간/상점은 월드 세이브 포인트에 통합, 파티 합류는 URL 링크 공유로 아이템계 직접 진입.~~ | — |
 | Hurtbox | 허트박스 | 피격 판정이 발생하는 캐릭터의 영역. 상대방의 히트박스와 겹쳤을 때 피해를 받는다. 일반적으로 캐릭터 스프라이트 크기보다 약간 작게 설정되어 관대한 판정을 제공한다. | `Documents/System/System_3C_Character.md` |
 
 ---
@@ -109,7 +109,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | No.1 | 넘버 원 | 에르다의 첫 이노센트. 말을 못하는 빛나는 구체. 정체는 스승 마르타가 남긴 이노센트로, 10년간 에르다와 마르타를 연결하는 매개체였다. Act 1에서 개그 마스코트, Act 3에서 서사적 핵심. | `Documents/Content/Content_World_Bible.md` |
-| Narrative Archetype | 서사 아키타입 | 반복 가능한 퀘스트 서사 구조의 원형. 도덕적 딜레마·기대 전복·탐정 절차·구출/호위·세력 대결·기억 탐구 6개 유형으로 분류된다. 변수 치환을 통해 100개 이상의 고유 퀘스트를 양산하는 기본 템플릿 역할을 한다. | `Documents/System/System_Quest_Narrative.md` |
+| ~~Narrative Archetype~~ | ~~서사 아키타입~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제. 서사는 아이템 내러티브 시스템으로 전달.~~ | — |
 
 ---
 
@@ -127,7 +127,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Quest Branch | 퀘스트 분기 | 플레이어 선택에 따라 퀘스트 경로가 분화하는 지점. 최소(2갈래)·표준(3갈래)·고급(4갈래+) 등급으로 분류되며, 각 경로는 고유한 서사와 보상을 제공한다. | `Documents/System/System_Quest_Narrative.md`, `Documents/System/System_Quest_Narrative.md` |
+| ~~Quest Branch~~ | ~~퀘스트 분기~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
 
 ---
 
@@ -147,7 +147,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Skill Slot | 스킬 슬롯 | 캐릭터가 전투에 장착할 수 있는 스킬 칸. 총 4개 슬롯이 존재하며, 각 슬롯에 하나의 스킬을 장착한다. 장착 변경은 허브에서만 가능하다. 슬롯 제한이 빌드 선택의 전략성을 만든다. | `Documents/System/System_3C_Control.md`, `Documents/System/System_3C_Character.md` |
+| Skill Slot | 스킬 슬롯 | 캐릭터가 전투에 장착할 수 있는 스킬 칸. 총 4개 슬롯이 존재하며, 각 슬롯에 하나의 스킬을 장착한다. 장착 변경은 세이브 포인트에서만 가능하다. 슬롯 제한이 빌드 선택의 전략성을 만든다. | `Documents/System/System_3C_Control.md`, `Documents/System/System_3C_Character.md` |
 | SkillCast | 스킬 시전 | 스킬 슬롯에 장착된 스킬을 발동하는 행동. 쿨다운 기반으로 발동되며, 스킬 카테고리(근접·원거리·범위·버프·소환)에 따라 발동 중 이동 가능 여부가 다르다. 자동 조준이 적용된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
 | ~~SPD~~ | ~~속도 스탯~~ | ~~DEPRECATED. 기존 이동/공격 속도 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 이동/공격 속도는 무기 유형별 고정값 + 이노센트 보정.~~ | — |
 | SSoT | 단일 진실 공급원 | Single Source of Truth. 수치 데이터는 `Sheets/` CSV 파일에서만 정의하고, 기획 문서는 해당 파일을 참조하는 방식. 데이터의 중복 정의와 불일치를 방지하는 데이터 관리 원칙. | `Documents/Terms/GDD_Writing_Rules.md`, `Documents/Terms/Sheets_Writing_Rules.md` |
@@ -182,7 +182,7 @@
 
 | 한글명 | 영문 키/표기 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| 3-Space 모델 | 3-Space Model | 게임 세계를 월드(World)/아이템계(Item World)/허브(Hub) 세 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
+| 2-Space 모델 | 2-Space Model | 게임 세계를 월드(World)/아이템계(Item World) 두 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. 허브(Hub)는 폐기되어 대장간/상점은 월드 세이브 포인트에 통합. | `Documents/Design/Design_Architecture_3Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | 세계수 | Yggveil (이그베일) | 세계 창조 이전에 존재하던 원초적 존재. 자신의 기억을 재료로 세계를 빚었다. 세계의 모든 사물은 세계수의 기억이 응고된 것이며, 이것이 아이템계의 형이상학적 근거이다. | `Documents/Content/Content_World_Bible.md` |
 | 심연 | Abyss | 세계가 존재하기 위해 지불한 대가가 쌓인 곳. 세계수가 창조 과정에서 포기한 가능성들의 기억이 소멸하지 못하고 가라앉은 장소. 악의가 아닌 결핍("나는 왜 존재하지 못하는가")의 감정을 가진다. | `Documents/Content/Content_World_Bible.md` |
 | 심연 전쟁 | Abyss War | 약 150~100년 전 발생한 세계적 전쟁. 심연의 기억을 해방하려는 해방파(기억 연구원)와 현재 세계를 수호하려는 수호파(성채 의회+수호단)가 대립. 영웅 카엘 오르스가 심연과 협약을 맺어 종결했다. | `Documents/Content/Content_World_Bible.md` |
@@ -190,9 +190,9 @@
 | 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
 | 수렴 계시 | Convergence Revelation | 5개 Ancient 아이템을 모두 탐구했을 때 발동하는 최종 계시 시스템. Tier 7 해금과 카엘 오르스 대면으로 이어진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_Quest_Narrative.md` |
 | 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
-| 변수 치환 | Variable Substitution | 서사 아키타입 내 슬롯(위치·NPC·목표·보상·맥락)에 구체적 콘텐츠를 주입하여 고유 퀘스트를 생성하는 메커니즘. 동일 아키타입에서 수십 가지 변형 퀘스트를 양산할 수 있게 한다. | `Documents/System/System_Quest_Narrative.md` |
-| 맥락 레이어 | Context Layer | 변수 치환된 퀘스트에 세계관 정합성을 부여하는 5단계 필터. 아이템 기원 테마 → 지역 테마 → 시간대 맥락 → 플레이어 이력 → 환경 스토리텔링 순으로 적용된다. | `Documents/System/System_Quest_Narrative.md` |
-| 인카운터 모델 | Encounter Model | 전통적 퀘스트 모델의 대안으로, 각 장소가 퀘스트 진행도에 관계없이 독립적으로 모든 가능한 게임 상태에 대응하는 서사 설계 방식. inkle의 "Narrative Sorcery" 모델에서 차용. | `Documents/System/System_Quest_Narrative.md`, `Documents/System/System_Quest_Narrative.md` |
+| ~~변수 치환~~ | ~~Variable Substitution~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
+| ~~맥락 레이어~~ | ~~Context Layer~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
+| ~~인카운터 모델~~ | ~~Encounter Model~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
 | 기억 탐구 | Memory Investigation | Memory Strata 전용 서사 아키타입. 플레이어가 아이템의 기원을 환경 단서를 통해 지층별로 조사하며 아이템의 전생을 해독하는 퀘스트 구조. PA 고유의 6번째 아키타입이다. | `Documents/System/System_Quest_Narrative.md`, `Documents/Design/Design_Narrative_Worldbuilding.md` |
 
 ---

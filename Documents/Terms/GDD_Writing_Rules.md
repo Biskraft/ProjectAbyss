@@ -8,7 +8,7 @@
 
 모든 기획서 작성 및 수정 시, 다음의 자료를 반드시 참고하여 문맥과 규칙을 유지해야 합니다.
 
-* Project Vision: `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 3-Space, 핵심 판타지, 금지 규칙)
+* Project Vision: `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 2-Space, 핵심 판타지, 금지 규칙)
 * Writing Standards: `Documents/Terms/GDD_Writing_Rules.md` (본 문서)
 * Sheets Writing Rules: `Documents/Terms/Sheets_Writing_Rules.md` (CSV 데이터 시트 작성 규칙)
 * Document Index: `Documents/Terms/Document_Index.md` (전체 문서 트리 및 의존 관계)
@@ -117,7 +117,7 @@ reward_types:
   multiplayer:  # 멀티플레이 보상
     - party_bonus: "파티 클리어 보상 배율 증가"
     - trade: "NPC 상점 경제 활동"
-    - social: "허브 내 장비 자랑, 길드 활동"
+    - social: "파티 플레이 내 장비 기여, 아이템계 협동"
 
   progression:  # 성장 보상
     - stat_gate_unlock: "스탯 게이트 해금 -> 새 층위"
@@ -129,7 +129,7 @@ reward_types:
 
 * Consistency: "A는 항상 B다"라는 규칙이 상황에 따라 "C일 수도 있다"로 바뀌면 안 된다. 예외가 많을수록 학습 곡선은 가파라진다.
 * Simplicity: 룰이 두 개가 충돌하거나 조건이 복잡해지면(If-Else), 과감하게 하나를 제거하거나 통합하여 단순화해야 한다.
-* 3-Space 일관성: 각 공간(월드/아이템계/허브)의 규칙은 해당 공간 내에서 일관성을 유지한다. 공간 간 규칙 충돌이 발생하면 3-Space 분리 원칙으로 해결한다.
+* 2-Space 일관성: 각 공간(월드/아이템계)의 규칙은 해당 공간 내에서 일관성을 유지한다. 공간 간 규칙 충돌이 발생하면 2-Space 분리 원칙으로 해결한다.
 
 ### 0.5.5. 창발적 깊이: 상호작용의 조합 (Combinatorial Depth)
 
@@ -207,11 +207,11 @@ GDD 작성 시:
 * 적용: 어느 기둥에도 해당하지 않는 시스템은 프로젝트에 포함하지 않는다.
 * 표기: 문서 상단 메타데이터에 반드시 `기둥:` 필드를 명시한다.
 
-### 1.5. 3-Space 명시 의무 (3-Space Declaration Requirement)
+### 1.5. 2-Space 명시 의무 (2-Space Declaration Requirement)
 
-* 원칙: 모든 시스템 문서는 해당 시스템이 작동하는 공간(World / Item World / Hub / 전체)을 명시해야 한다.
+* 원칙: 모든 시스템 문서는 해당 시스템이 작동하는 공간(World / Item World / 전체)을 명시해야 한다.
 * 적용: 동일 시스템이라도 공간에 따라 규칙이 달라질 수 있으므로, 공간별 차이점을 명확히 기술한다.
-* 표기: 문서 상단 메타데이터에 반드시 `3-Space:` 필드를 명시한다.
+* 표기: 문서 상단 메타데이터에 반드시 `2-Space:` 필드를 명시한다.
 
 ---
 
@@ -228,7 +228,7 @@ GDD 작성 시:
 
 > 최근 업데이트: [날짜]
 > 문서 상태: `작성 중 (Draft)` / `검토 중 (Review)` / `확정 (Final)`
-> 3-Space: [World / Item World / Hub / 전체]
+> 2-Space: [World / Item World / 전체]
 > 기둥: [탐험 / 야리코미 / 멀티플레이 / 전체]
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
@@ -271,7 +271,7 @@ GDD 작성 시:
 게임 내에서 발생하는 현상을 동사(Verb) 중심으로 서술한다.
 
 * "플레이어는 [행동] 할 수 있다" 또는 "오브젝트는 [조건] 시 [반응] 한다"
-* 3-Space별로 메커닉이 달라지는 경우, 공간별로 분리 기술한다.
+* 2-Space별로 메커닉이 달라지는 경우, 공간별로 분리 기술한다.
 
 ### 2.3. 규칙 (Rules) - 필수 섹션 4-5
 
@@ -312,7 +312,7 @@ Project Abyss의 핵심 Cursed Problems:
 
 | 문제 | 해결 방향 |
 | :--- | :--- |
-| 메트로베니아 탐험감 vs 온라인 멀티 | 3-Space 분리: 월드는 솔로-2인, 아이템계는 1-4인 |
+| 메트로베니아 탐험감 vs 온라인 멀티 | 2-Space 분리: 월드는 솔로, 아이템계는 1-4인 |
 | 야리코미(무한 파밍) vs 탐험의 가치 보존 | 순환 구조: 깊은 아이템계를 위해 넓은 월드 탐험 필요 |
 | 솔로 재미 vs 파티 필수 콘텐츠 | "혼자서도 재미있고 함께하면 더 재미있다" 원칙 |
 
@@ -431,7 +431,7 @@ System 중분류:
 | Enemy | 적/AI 시스템 | AI, BossDesign, Spawning |
 | Multi | 멀티플레이 | Architecture, Party, NetworkSync, GhostMessage |
 | Economy | 경제 시스템 | Resources, Trade |
-| Hub | 허브 시스템 | Facilities, NPCShop |
+| ~~Hub~~ | ~~허브 시스템~~ | ~~DEPRECATED~~ |
 
 Design 중분류:
 
@@ -498,8 +498,8 @@ Content 중분류:
    * 정렬 기둥: [탐험 / 야리코미 / 멀티플레이]
    * 구체적 기여: [기둥별 기여 내용]
 
-2. [ ] 3-Space 명시: 이 시스템이 작동하는 공간이 명확히 정의되었는가?
-   * 작동 공간: [World / Item World / Hub / 전체]
+2. [ ] 2-Space 명시: 이 시스템이 작동하는 공간이 명확히 정의되었는가?
+   * 작동 공간: [World / Item World / 전체]
    * 공간별 규칙 차이가 기술되었는가?
 
 3. [ ] 순환 구조 강화: 이 시스템이 핵심 루프(탐험 -> 획득 -> 강화 -> 해금 -> 탐험)의 어느 단계를 지원하는가?
