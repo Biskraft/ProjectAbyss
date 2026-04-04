@@ -103,14 +103,12 @@ graph TD
 - 보스전 철학: 패턴 학습 → 마스터리, 페이즈 전환, 위기/보상 리듬
 - 무기 다양성 원칙: 무기 간 차별화 축 (사거리/속도/범위), 플레이스타일 분기
 - 난이도와 공정함: "죽음은 플레이어의 실수", 히트박스 정직성, 반응 가능한 공격
-- 자동 사냥과 수동 전투의 쾌감 차이 보장
 
 **D-11 Progression & Reward Design 범위:**
 - 성장 곡선 철학: 초반 급성장 → 중반 안정 → 후반 야리코미 곡선
 - 보상 심리: 가변비율 강화(Variable Ratio Reinforcement), 니어미스 효과
 - 드랍 설계 원칙: 직접 드랍 vs 제작 소재, 레어리티별 기대감 곡선
 - 파워 판타지 밸런스: 강해지는 느낌 vs 도전의 유지, 수치 인플레이션 관리
-- 전생(Reincarnation) 철학: 리셋의 고통 vs 재성장의 쾌감, 장기 목표 설계
 
 **D-12 Narrative & Worldbuilding 범위:**
 - 핵심 원칙: "아이템이 곧 서사 매체" — 아이템계에 들어가면 아이템의 역사가 몬스터/지형/NPC로 구현
@@ -156,7 +154,6 @@ graph TD
 - 키보드/게임패드 매핑
 - 입력 버퍼링 (Coyote Time, Input Buffer)
 - 조작 복잡도 계층 (기본 → 고급 → 마스터)
-- 모바일 대응 계획 (터치 인터페이스)
 
 ### 3.2 전투 시스템 (Combat)
 
@@ -177,7 +174,6 @@ graph TD
 - 공중 공격, 하방 공격 바운스
 - 피격 경직 (Hitstun) + 넉백 + 슈퍼 아머
 - 히트스탑 (타격감)
-- 자동 사냥 전투 AI
 
 ### 3.3 성장 시스템 (Growth)
 
@@ -185,8 +181,8 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-LVL-01 | Stat System | `System/System_Growth_Stats.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-LVL-02 | Level & Experience | `System/System_Growth_LevelExp.md` | ✅ 완료 | 전체 | 야리코미 |
-| SYS-LVL-03 | Skill Tree | `System/System_Growth_SkillTree.md` | ✅ 완료 | 전체 | 탐험+야리코미 |
-| SYS-LVL-04 | Reincarnation | `System/System_Growth_Reincarnation.md` | ✅ 완료 | Hub | 야리코미 |
+| SYS-LVL-03 | ~~Skill Tree~~ | `System/System_Growth_SkillTree.md` | ~~DEPRECATED~~ | - | - |
+| SYS-LVL-04 | ~~Reincarnation~~ | `System/System_Growth_Reincarnation.md` | ~~DEPRECATED~~ | - | - |
 
 ### 3.4 장비 시스템 (Equipment)
 
@@ -273,7 +269,7 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW+Hub | 야리코미 |
-| SYS-INC-02 | Innocent Farm | `System/System_Innocent_Farm.md` | ✅ 완료 | Hub | 야리코미 |
+| SYS-INC-02 | ~~Innocent Farm~~ | `System/System_Innocent_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
 | SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ✅ 완료 | Hub | 야리코미 |
 
 ### 3.10 적 & AI 시스템 (Enemy)
@@ -299,7 +295,6 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
 | SYS-ECO-02 | Trade System | `System/System_Economy_Trade.md` | ⬜ 제작 필요 | Hub | 멀티플레이 |
-| SYS-ECO-03 | Auto Hunt | `System/System_Economy_AutoHunt.md` | ⬜ 제작 필요 | World+IW | 야리코미+멀티 |
 
 ### 3.12 허브 시스템 (Hub)
 
@@ -318,7 +313,7 @@ graph TD
 | UI-02 | Inventory UI | `UI/UI_Inventory.md` | ⬜ 제작 필요 | 전체 |
 | UI-03 | Map UI | `UI/UI_Map.md` | ⬜ 제작 필요 | World |
 | UI-04 | Item World UI | `UI/UI_ItemWorld.md` | ⬜ 제작 필요 | IW |
-| UI-05 | Innocent Farm UI | `UI/UI_InnocentFarm.md` | ⬜ 제작 필요 | Hub |
+| UI-05 | ~~Innocent Farm UI~~ | `UI/UI_InnocentFarm.md` | ❌ DEPRECATED | Hub |
 | UI-06 | Party & Matching UI | `UI/UI_PartyMatching.md` | ⬜ 제작 필요 | Hub |
 
 ---
@@ -482,7 +477,7 @@ graph LR
 
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
-| 1 | SYS-LVL-01 Stat System | ✅ | 6대 스탯 공식 = 데미지 계산 기반 |
+| 1 | SYS-LVL-01 Stat System | ✅ | ATK/INT/HP 3스탯 공식 = 데미지 계산 기반 |
 | 2 | CSV-01 Character_Base.csv | ✅ | Lv 1~10 스탯 테이블 |
 | 3 | CSV-03 Damage_Formula.csv | ✅ | 데미지 공식 계수 |
 | 4 | SYS-EQP-01 Equipment Slots | ✅ | 장비 슬롯/착용 규칙 |
@@ -500,7 +495,7 @@ graph LR
 | 11 | SYS-CMB-07 Hit Feedback | ✅ | M1.3 전투 구현 중 병행 (사쿠라이 8기법 + 11레이어 피드백 체계) |
 | 12 | D-04 Metroidvania Philosophy | ✅ | M1.4 맵 생성 중 병행 (이중 게이트 철학, 맵 상호연결성, 탐험 보상 경제) |
 | 13 | D-05 Yarikomi Philosophy | ✅ | M1.5 아이템계 중 병행 (중첩 성장, "한 층만 더" 심리학, D5/D7 교훈) |
-| 14 | D-11 Progression & Reward | ✅ | M1.6 밸런스 튜닝 전 (성장 3단계 곡선, 보상 심리, 드랍 설계, 전생 철학) |
+| 14 | D-11 Progression & Reward | ✅ | M1.6 밸런스 튜닝 전 (성장 3단계 곡선, 보상 심리, 드랍 설계) |
 
 ### Phase 2: 알파 (성장/탐험) — 27건
 
@@ -519,7 +514,7 @@ graph LR
 | 25 | SYS-CMB-05 Elements | ⬜ | 원소 상성 |
 | 26 | SYS-CMB-06 Status Effects | ⬜ | 상태이상 |
 | 27 | SYS-LVL-02 Level & Experience | ⬜ | 레벨/경험치 곡선 |
-| 28 | SYS-LVL-03 Skill Tree | ⬜ | 스킬 트리 |
+| 28 | ~~SYS-LVL-03 Skill Tree~~ | ~~DEPRECATED~~ | ~~스킬 트리 — 무기 내장 스킬로 대체~~ |
 | 29 | SYS-EQP-03 Item Growth Path | ⬜ | 장비 성장 경로 |
 | 30 | SYS-MON-02 Boss Design | ⬜ | 보스 설계 |
 | 31 | SYS-MON-03 Monster Spawning | ⬜ | 몬스터 스폰 |
@@ -532,11 +527,11 @@ graph LR
 | :--- | :--- | :--- | :--- |
 | 42~43 | D-06, D-07 | ⬜ | Online/Economy 철학 |
 | 44~47 | SYS-MP-01~04 | ⬜ | 멀티플레이 아키텍처/파티/동기화/고스트 |
-| 48~50 | SYS-ECO-01~03 | ⬜ | 자원순환/거래/자동사냥 |
+| 48~49 | SYS-ECO-01~02 | ⬜ | 자원순환/거래 |
 | 51~52 | SYS-HUB-01~02 | ⬜ | 허브 시설/NPC 상점 |
 | 53~56 | SYS-IW-03~06 | ⬜ | 아이템계 보스/재귀/이벤트/지오 |
-| 57~58 | SYS-INC-02~03 | ⬜ | 이노센트 팜/듀얼 |
-| 59 | SYS-LVL-04 Reincarnation | ⬜ | 전생 시스템 |
+| 57~58 | SYS-INC-03 | ⬜ | 듀얼 이노센트 |
+| 59 | SYS-LVL-04 Reincarnation | ~~삭제~~ | ~~전생 시스템~~ (스코프 축소로 삭제) |
 | 60~65 | UI-01~06 | ⬜ | HUD/인벤토리/맵/아이템계/팜/파티 UI |
 | 66~69 | CNT-03,04,07,08 | ⬜ | Innocent/Monster/Boss/RoomTemplate 카탈로그 |
 

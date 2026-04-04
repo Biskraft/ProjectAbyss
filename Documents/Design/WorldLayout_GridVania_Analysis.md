@@ -1,3 +1,5 @@
+> **⚠️ 스탯 게이트 업데이트 필요:** 이 문서의 STR/DEX/VIT/LCK 게이트 참조는 ATK/INT 이중 게이트로 대체되었습니다. System_World_StatGating.md 참조.
+
 # WorldLayout GridVania 분석 — Project Abyss
 
 > 분석 대상: `game/public/assets/World_ProjectAbyss_Layout.ldtk`

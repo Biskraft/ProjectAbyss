@@ -1,3 +1,5 @@
+> **⚠️ 스탯 게이트 업데이트 필요:** 이 문서의 STR 게이트 참조는 ATK 게이트로 대체되었습니다. "STR 15"→"ATK 15" 등. System_World_StatGating.md 참조.
+
 # 첫 30분 경험 흐름 설계 (First 30-Minute Experience Flow) — CNT-EXP-001
 
 ## 0. 필수 참고 자료 (Mandatory References)

@@ -1,3 +1,5 @@
+> **⚠️ 스탯 게이트 업데이트 필요:** 이 문서의 6대 스탯 게이트(STR/INT/DEX/VIT/SPD/LCK) 참조는 ATK/INT 이중 게이트로 대체되었습니다. STR→ATK, INT 유지(마법 봉인), 나머지 스탯 게이트(DEX/VIT/SPD/LCK)→삭제 또는 능력 게이트/환경 퍼즐로 재설계 예정. System_World_StatGating.md 참조.
+
 # 월드 맵 구조 시스템 (World Map Structure System)
 
 ## 구현 현황 (Implementation Status)

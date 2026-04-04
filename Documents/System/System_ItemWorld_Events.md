@@ -1,3 +1,5 @@
+> **⚠️ LCK 참조 업데이트 필요:** 이 문서의 LCK 스탯 참조는 삭제되었습니다. 미스터리 룸 발견 확률은 고정값 + 이노센트 보정으로 대체. System_Combat_Damage.md 참조.
+
 # 아이템계 미스터리 룸 & 이벤트 시스템 (Item World Mystery Rooms & Events) — SYS-IW-05
 
 ## 0. 필수 참고 자료 (Mandatory References)

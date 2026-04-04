@@ -33,8 +33,7 @@
 | Ability Gate | 능력 게이트 | 특정 이동 능력(이단 점프, 벽 타기, 안개 변신 등)을 보유해야 통과 가능한 월드 진행 장벽. 보스 처치 또는 렐릭 획득으로 해금된다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_3Space.md` |
 | Air Attack | 공중 공격 | 점프·낙하 등 공중 상태에서 공격 버튼을 입력할 때 발동하는 단일 타격. 전방 공격과 하방 공격(바운스 포함) 두 종류가 존재한다. 공중 공격은 1회로 제한된다. | `Documents/System/System_Combat_Action.md` |
 | Always Winnable | 항상 클리어 가능 | 절차적으로 생성된 모든 시드에서 입구부터 출구까지 반드시 클리어 가능한 경로(Critical Path)가 보장됨을 의미하는 설계 원칙. 검증 실패 시 재시드를 수행한다. | `Documents/System/System_World_ProcGen.md` |
-| Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 모바일 가상 패드에서 타이밍 기반 콤보 입력의 어려움을 해소하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
-| Auto-Hunt | 자동 사냥 | 플레이어가 직접 조작하지 않아도 캐릭터가 지정 층위에서 자동으로 전투를 반복하는 기능. 해당 층위를 직접 클리어한 경우에만 해금된다. 직접 플레이 대비 효율 상한(60%)이 존재한다. | `Reference/게임 기획 개요.md`, `Documents/System/System_Combat_Action.md` |
+| Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 접근성을 높이고 전투 흐름을 유지하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
 | Bulkhead | 격벽 | 층위(Tier) 사이를 분리하는 세계수 Yggveil의 수평 가지 구조물. 각 격벽은 특정 능력 게이트로 기능하며, 해당 능력을 획득해야 통과할 수 있다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_World_MapStructure.md` |
 | Bulkhead Surveyor | 격벽 측량사 | 격벽 사이의 통행로를 점검하고 유지하는 독립 계약직. 에르다 벤-나흐트의 부업. 망치 에코로 격벽을 두드려 구조적 약점과 숨겨진 통로를 탐지한다. | `Documents/Content/Content_World_Bible.md` |
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
@@ -50,10 +49,10 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 회피 행동. 쿨다운 2초, 공중 대시 1회 제한. 발동 중 i-frame이 적용되어 적 공격을 회피할 수 있으며, 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
-| DEX | 민첩 스탯 | Dexterity. 기동성 관련 스탯 게이트에 사용되는 스탯. 좁은 틈새, 빠른 함정 구간, 정밀 점프 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
+| ~~DEX~~ | ~~민첩 스탯~~ | ~~DEPRECATED. 기존 기동성 게이트 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제.~~ | — |
 | Echo | 에코 | 에르다가 휴대하는 도구이자 무기. GBE(BLAME!) 오마주. 네 가지 기능: (1) 격벽 관통 — 격벽의 약점을 두드려 균열을 만든다, (2) 아이템계 진입 — 무기/제단을 두드려 기억의 균열을 연다, (3) 인챈트 — 전투 중 무기를 두드려 원소를 입힌다, (4) 전투 보조 — 느리지만 강력한 단발 타격. 에코의 정체와 출처는 최종장까지 불명이며, 에르다의 정체와 함께 밝혀진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_ItemWorld_Core.md` |
 | Echo Strike | 기억의 두드림 | 에코로 무기를 두드려 아이템계에 진입하는 행위. 허브 대장간, 필드 균열 제단, 기억의 방랑자가 남긴 임시 제단 등 어떤 진입 장소에서든 동일한 행위로 수행된다. | `Documents/System/System_ItemWorld_Core.md` |
-| Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소를 순환: 화→빙→뇌→풍→광→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
+| Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소�� 순환: 화→빙→뇌→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
 | Erda ven-Nacht | 에르다 벤-나흐트 | 플레이어 캐릭터. 정체불명의 여성. 이름조차 게임 후반까지 밝혀지지 않는다. 에코(Echo)를 들고 대공동을 아래로 내려간다. 과묵하며 대사가 거의 없다. 행동으로 서사를 전달하는 캐릭터. 캐릭터 레퍼런스: 킬리(BLAME!). | `Documents/Content/Content_World_Bible.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | Field Fissure Altar | 필드 균열 제단 | 월드 각 층위에 1~2개 고정 배치된 아이템계 진입 지점. 심연 전쟁의 상흔이 안정화된 옛 야전 대장간 폐허. 탐험으로 발견하면 이후 항상 사용 가능. | `Documents/System/System_ItemWorld_Core.md`, `Documents/System/System_World_MapStructure.md` |
@@ -69,7 +68,7 @@
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2~4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
-| Hub | 허브 | 3-Space 모델의 세 번째 공간. 사교·거래·파티 매칭·이노센트 팜이 이루어지는 고정 맵 사교 공간. 전투가 없으며 무제한 인원이 동시 접속 가능하다. | `Documents/Design/Design_Architecture_3Space.md`, `Reference/게임 기획 개요.md` |
+| Hub | 허브 | 3-Space 모델의 세 번째 공간. 사교·거래·파티 매칭이 이루어지는 고정 맵 사교 공간. 전투가 없으며 무제한 인원이 동시 접속 가능하다. | `Documents/Design/Design_Architecture_3Space.md`, `Reference/게임 기획 개요.md` |
 | Hurtbox | 허트박스 | 피격 판정이 발생하는 캐릭터의 영역. 상대방의 히트박스와 겹쳤을 때 피해를 받는다. 일반적으로 캐릭터 스프라이트 크기보다 약간 작게 설정되어 관대한 판정을 제공한다. | `Documents/System/System_3C_Character.md` |
 
 ---
@@ -82,7 +81,7 @@
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | Innocent | 이노센트 | 장비 아이템 내부(아이템계)에 거주하며 해당 아이템에 보너스 스탯을 부여하는 존재. 야생(Wild) 상태에서는 적으로 등장하며 격파 시 복종(Tamed) 상태로 전환된다. 복종 상태에서 효과가 2배가 되고 다른 아이템으로 이동 가능하다. | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Normal 2슬롯부터 Ancient 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |
-| INT | 지능 스탯 | Intelligence. 마법 공격력 및 마법 봉인 게이트에 사용되는 스탯. 특정 수치 이상이면 마법 장벽·룬 퍼즐·마법진 활성화 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
+| INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
 | Item General | 아이템 장군 | 아이템계 초기 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +5% 보너스를 획득한다. | `Reference/게임 기획 개요.md` |
 | Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
@@ -98,9 +97,9 @@
 | Knockback | 넉백 | 피격 시 캐릭터가 공격 반대 방향으로 밀려나는 물리적 반응. 넉백 거리는 공격 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Character.md` |
 | Memory Wanderer | 기억의 방랑자 | 월드 필드에 랜덤 출현하는 유령형 존재. 과거에 아이템 속으로 들어갔다 돌아오지 못한 자들의 잔상. 접촉하면 임시 균열 제단이 생성되며, 이를 통해 보상 강화 아이템계로 진입 가능. 평균 30~45분에 1회 출현. | `Documents/System/System_ItemWorld_Core.md` |
 | Marta ven-Nacht | 마르타 벤-나흐트 | 에르다의 스승. 중년 여성 장인. 10년 전 Ancient 아이템 내부로 들어가 자발적으로 남아 기억을 지키고 있다. 카엘 오르스와 마찬가지로 기억을 지키기 위한 자발적 유배를 선택한 인물. | `Documents/Content/Content_World_Bible.md` |
-| LCK | 행운 스탯 | Luck. 크리티컬 확률·드랍률·비밀 방 발견 확률에 영향을 주는 스탯. LCK 게이트는 특정 수치 이상일 때 숨겨진 경로가 개방된다. | `Reference/게임 기획 개요.md`, `Documents/System/System_Combat_Damage.md` |
+| ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5% + 이노센트 보정, 드랍률은 적 테이블 + 이노센트 보정.~~ | — |
 | Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. Project Abyss의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
-| MP | 마력 | Magic Point. 스킬 시전에 소비되는 자원. 전투 외 상태(Out-of-Combat)에서 자동 회복된다. 부족 시 스킬 발동이 불가하며 UI에 게이지로 표시된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
+| ~~MP~~ | ~~마력~~ | ~~DEPRECATED. 기존 스킬 소비 자원. MP 시스템 삭제, 스킬은 쿨다운 기반으로 전환.~~ | — |
 | Mystery Room | 미스터리 룸 | 아이템계 특정 지층에 확률적으로 출현하는 특수 이벤트 룸. 상점·점술사·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
@@ -149,11 +148,11 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Skill Slot | 스킬 슬롯 | 캐릭터가 전투에 장착할 수 있는 스킬 칸. 총 4개 슬롯이 존재하며, 각 슬롯에 하나의 스킬을 장착한다. 장착 변경은 허브에서만 가능하다. 슬롯 제한이 빌드 선택의 전략성을 만든다. | `Documents/System/System_3C_Control.md`, `Documents/System/System_3C_Character.md` |
-| SkillCast | 스킬 시전 | 스킬 슬롯에 장착된 스킬을 발동하는 행동. MP 소비 + 쿨다운 소비가 발생하며, 스킬 카테고리(근접·원거리·범위·버프·소환)에 따라 발동 중 이동 가능 여부가 다르다. 자동 조준이 적용된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
-| SPD | 속도 스탯 | Speed. 이동 속도 및 시간 제한 게이트에 영향을 주는 스탯. SPD 게이트는 닫히는 문·무너지는 바닥·추적 장치 등 시간 제한 구간을 통과하기 위한 요건이다. | `Reference/게임 기획 개요.md` |
+| SkillCast | 스킬 시전 | 스킬 슬롯에 장착된 스킬을 발동하는 행동. 쿨다운 기반으로 발동되며, 스킬 카테고리(근접·원거리·범위·버프·소환)에 따라 발동 중 이동 가능 여부가 다르다. 자동 조준이 적용된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
+| ~~SPD~~ | ~~속도 스탯~~ | ~~DEPRECATED. 기존 이동/공격 속도 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 이동/공격 속도는 무기 유형별 고정값 + 이노센트 보정.~~ | — |
 | SSoT | 단일 진실 공급원 | Single Source of Truth. 수치 데이터는 `Sheets/` CSV 파일에서만 정의하고, 기획 문서는 해당 파일을 참조하는 방식. 데이터의 중복 정의와 불일치를 방지하는 데이터 관리 원칙. | `Documents/Terms/GDD_Writing_Rules.md`, `Documents/Terms/Sheets_Writing_Rules.md` |
-| Stat Gate | 스탯 게이트 | 장비 스탯이 특정 수치 이상일 때 열리는 월드 진행 장벽. STR·INT·DEX·VIT·SPD·LCK 6가지 스탯이 각각 다른 유형의 장벽과 연결된다. 아이템계에서 장비를 강화하여 해금하는 것이 핵심 순환의 동력이다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_3Space.md` |
-| STR | 근력 스탯 | Strength. 물리 공격력 및 물리 장벽 게이트에 사용되는 스탯. 무거운 문 밀기·바위 파괴·레버 당기기 등의 장벽을 해제한다. | `Reference/게임 기획 개요.md` |
+| Stat Gate | 스탯 게이트 | 장비 ATK 또는 INT가 특정 수치 이상일 때 열리는 월드 진행 장벽. ATK 게이트(물리 장벽: 파괴 가능한 벽, 바리케이드)와 INT 게이트(마법 봉인: 룬 장벽, 마법 잠금)로 구분된다. 아이템계에서 장비를 강화하여 ATK/INT를 올리고 게이트를 해금하는 것이 핵심 순환의 동력이다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_3Space.md` |
+| ~~STR~~ | ~~근력 스탯~~ | ~~DEPRECATED. 기존 물리 공격력 스탯. ATK/INT/HP 3스탯 체계 전환으로 ATK에 통합.~~ | — |
 | Super Armor | 슈퍼 아머 | 특정 공격을 받아도 피격 경직(Hitstun)이 발생하지 않는 상태. 보스 및 강화 적 전용이며, 이 상태의 적은 넉백도 무효화된다. | `Documents/System/System_Combat_Action.md` |
 
 ---
@@ -164,6 +163,7 @@
 | :--- | :--- | :--- | :--- |
 | The Shaft | 대공동 | 세계수 Yggveil이 하늘에서 뿌리를 내리며 수직으로 관통한 거대 공동. 세계의 물리적 골격. 7개 층위(Tier 1~7)가 격벽으로 분리되어 수직으로 쌓여 있다. | `Documents/Content/Content_World_Bible.md` |
 | Tier | 층위 | 수직 대공동(The Shaft)을 구성하는 대구역 단위. Tier 1 천공의 정원 ~ Tier 7 심연의 구까지 7개. 각 층위는 격벽(Bulkhead)으로 분리된다. | `Documents/Content/Content_World_Bible.md` |
+| Tutor | 튜터 | INT +X 효과를 부여하는 기본형 이노센트. 원소/인챈트 빌드의 핵심이며 INT 게이트(마법 봉인) 해금에 기여한다. 레벨당 INT +1. 야생 50%, 복종 100%. | `Documents/System/System_Innocent_Core.md` |
 | Unified Grid | 통합 그리드 | 아이템계의 모든 지층을 수직으로 이어붙인 단일 2D 배열 구조. 지층 간 씬 전환 없이 연속적 탐험이 가능하다. `UnifiedGridData` 타입으로 구현. | `game/src/level/RoomGrid.ts` |
 
 ---
@@ -173,7 +173,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Tell | 예고 동작 | 적 또는 보스가 강력한 공격을 시전하기 직전 재생하는 예고 모션·이펙트. 플레이어가 회피를 준비할 수 있는 공정성 장치. | `Documents/System/System_Combat_Action.md` |
-| VIT | 생명력 스탯 | Vitality. 최대 HP 및 환경 저항 게이트에 영향을 주는 스탯. 독 지대·용암 구간·저온 지역 등 환경 데미지를 견뎌야 하는 구간의 장벽으로 사용된다. | `Reference/게임 기획 개요.md` |
+| ~~VIT~~ | ~~생명력 스탯~~ | ~~DEPRECATED. 기존 최대 HP/환경 저항 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. MaxHP는 레벨 + Dietician 이노센트로 성장.~~ | — |
 | World | 월드 | 3-Space 모델의 첫 번째 공간. 솔로(1인) 탐험을 중심으로 한 핸드크래프트+절차적 혼합 맵. 능력 게이트와 스탯 게이트로 비선형 진행이 설계되며, 아이템 획득과 능력 해금이 주요 보상이다. | `Documents/Design/Design_Architecture_3Space.md`, `Reference/게임 기획 개요.md` |
 
 ---
@@ -213,12 +213,10 @@
 
 | 스탯 | 게이트 유형 | 예시 장벽 |
 | :--- | :--- | :--- |
-| STR | 물리 장벽 | 무거운 문, 바위 파괴, 레버 |
-| INT | 마법 봉인 | 마법 장벽, 룬 퍼즐, 마법진 |
-| DEX | 기동성 장벽 | 좁은 틈새, 함정 구간, 정밀 점프 |
-| VIT | 환경 저항 | 독 지대, 용암 구간, 저온 지역 |
-| SPD | 시간 제한 | 닫히는 문, 무너지는 바닥, 추적 장치 |
-| LCK | 숨겨진 경로 | 비밀 방 발견 확률 |
+| ATK | 물리 장�� | 금이 간 벽 파괴, 바리케��드 돌파, 중문/쇠사슬/바위 |
+| INT | 마법 봉인 | 룬 문양 장벽, 마법 봉인 문, 아케인 잠금장치, 룬 퍼즐 |
+
+> **설계 변경:** 기존 6대 스탯 게이트(STR/INT/DEX/VIT/SPD/LCK)는 ATK/INT 이중 게이트로 재설계. ATK는 물리 장벽(파괴), INT는 마법 봉인(해제). 기동성/환경 저항/시간 제한 등은 능력 게이트나 환경 퍼즐로 재설계 예정.
 
 ---
 

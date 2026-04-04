@@ -39,13 +39,13 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 [완료] T-01  Project Vision         ← MVP 충분
 [완료] SYS-3C-01 Character          ← MVP 충분 (물리 파라미터 확정)
 [완료] SYS-3C-02 Camera             ← MVP 충분
-[완료] SYS-3C-03 Control            ← MVP 충분 (키보드 우선, 모바일 후순위)
+[완료] SYS-3C-03 Control            ← MVP 충분 (키보드 우선)
 [완료] SYS-CMB-01 Action            ← MVP 충분 (기본 공격 + 대시 + 스킬)
 [완료] SYS-CMB-02 Damage            ← MVP 충분 (기본 공식)
 [완료] SYS-WLD-05 World ProcGen     ← MVP 충분 (Room Grid + Chunk)
 [완료] SYS-IW-02 IW Floor Gen       ← MVP 충분 (지층 생성 파이프라인)
 
-[완료] SYS-LVL-01 Stat System       ← ✅ 6대 스탯, Lv 1~10 성장 공식, HP/MP 파생
+[완료] SYS-LVL-01 Stat System       ← ✅ ATK/INT/HP 3스탯, Lv 1~10 성장 공식
 [완료] SYS-EQP-01 Equipment Slots   ← ✅ 무기 1슬롯, 착용/해제, 스탯 합산
 [완료] SYS-EQP-02 Rarity System     ← ✅ 5등급 배율, 드랍 확률, 아이템계 지층 수
 [완료] SYS-MON-01 Enemy AI          ← ✅ Skeleton/Ghost 2종, 7-state FSM
@@ -61,10 +61,10 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 
 | # | 작업 | 산출물 | 상태 | 내용 |
 | :--- | :--- | :--- | :---: | :--- |
-| 0-1 | **스탯 시스템 GDD** | `System/System_Growth_Stats.md` | ✅ | 6대 스탯 정의, Lv 1~10 성장 공식, HP/MP 파생 공식 |
+| 0-1 | **스탯 시스템 GDD** | `System/System_Growth_Stats.md` | ✅ | ATK/INT/HP 3스탯 정의, Lv 1~10 성장 공식 |
 | 0-2 | **장비 슬롯 GDD** | `System/System_Equipment_Slots.md` | ✅ | MVP 무기 1슬롯, 착용 규칙, 스탯 합산 공식 |
 | 0-3 | **레어리티 GDD** | `System/System_Equipment_Rarity.md` | ✅ | 5등급 배율(x1.0~x3.0), 이노센트 슬롯, 지층 수, 드랍 연출 |
-| 0-4 | **무기 시스템 GDD** | `System/System_Combat_Weapons.md` | ✅ | 검 1종 3타 콤보, 히트박스, 8무기 카테고리 정의 |
+| 0-4 | **무기 시스템 GDD** | `System/System_Combat_Weapons.md` | ✅ | 검 1종 3타 콤보, 히트박스, 5무기 카테고리 정의 (검/대검/단검/활/지팡이) |
 | 0-5 | **적 AI GDD** | `System/System_Enemy_AI.md` | ✅ | Skeleton(근접)/Ghost(원거리) 7-state FSM |
 | 0-6 | **캐릭터 기본 스탯 CSV** | `Sheets/Content_Stats_Character_Base.csv` | ✅ | Lv 1~10 기본 스탯 테이블 |
 | 0-7 | **무기 스탯 CSV** | `Sheets/Content_Stats_Weapon_List.csv` | ✅ | 검 5레어리티 스탯 |
@@ -92,7 +92,7 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 | 아이템 드랍 (검 1종, 5레어리티) | 전체 장비 슬롯, 방어구 |
 | 미니 아이템계 (1지층 + 보스 1개) | 전체 지층, 이노센트, 지오 이펙트 |
 | 데미지 숫자 표시 | DPS 미터, 전투 로그 |
-| 키보드 조작 | 모바일, 게임패드 |
+| 키보드 조작 | 게임패드 |
 | 싱글 플레이 | 멀티플레이, 허브 |
 | 로컬 세이브 (localStorage) | 서버, DB, 계정 |
 
@@ -195,11 +195,11 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | :--- | :--- |
 | SYS-WLD-01 Map Structure | 7개 층위 수직 연결 |
 | SYS-WLD-03 Ability Gating | 능력 게이트 (이단점프, 벽점프, 안개 변신) |
-| SYS-WLD-04 Stat Gating | 스탯 게이트 (STR/INT/DEX 문) |
+| SYS-WLD-04 Stat Gating | 스탯 게이트 (ATK/INT 이중 게이트) |
 | SYS-IW-01 IW Core | 아이템계 전체 규칙 |
 | SYS-INC-01 Innocent Core | 이노센트 기본 시스템 |
 | SYS-LVL-02 Level & Experience | 레벨/경험치 곡선 |
-| SYS-LVL-03 Skill Tree | 스킬 트리 (최소 10개 스킬) |
+| ~~SYS-LVL-03 Skill Tree~~ | ~~DEPRECATED — 스킬은 무기 내장 스킬로 대체~~ |
 | SYS-MON-02 Boss Design | 보스 5종 설계 |
 | SYS-CMB-04 SubWeapon | 서브웨폰 시스템 |
 | SYS-CMB-05 Elements | 원소 상성 6종 |
@@ -209,7 +209,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | 마일스톤 | 핵심 내용 |
 | :--- | :--- |
 | M2.1 월드 확장 | 7개 층위 연결, 층위별 바이옴 Chunk 풀, 워프 포인트 |
-| M2.2 게이팅 시스템 | 능력 게이트 3종 (이단점프/벽점프/안개 변신) + 스탯 게이트 3종 (STR/INT/VIT) |
+| M2.2 게이팅 시스템 | 능력 게이트 3종 (이단점프/벽점프/안개 변신) + 스탯 게이트 2종 (ATK 물리 장벽/INT 마법 봉인) |
 | M2.3 보스 시스템 | 구역 보스 3종 + 아이템계 보스 3등급 |
 | M2.4 장비 확장 | 무기 4종 + 방어구 3부위 + 장신구 |
 | M2.5 아이템계 전체 지층 | 지층별 보스, 레어리티별 지층 수 제한 |
@@ -222,7 +222,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 ## Phase 3: 베타 — "함께 파밍하는 재미"
 
 ### 목표
-> 멀티플레이(1~4인 아이템계) + 전 지층 + 허브 + 자동 사냥
+> 멀티플레이(1~4인 아이템계) + 전 지층 + 허브
 
 ### 추가 기획 필요
 
@@ -232,10 +232,9 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | SYS-MP-02 Party System | 파티 생성/매칭 |
 | SYS-MP-03 Network Sync | 물리/전투 동기화 |
 | SYS-ECO-01 Resources | 자원 순환 밸런스 |
-| SYS-ECO-03 Auto Hunt | 자동 사냥 3단계 |
-| SYS-HUB-01 Facilities | 허브 시설 (상점, 대장간, 이노센트 팜) |
+| SYS-HUB-01 Facilities | 허브 시설 (상점, 대장간) |
 | SYS-IW-03~06 | 아이템계 고급 (보스, 재귀, 이벤트, 지오) |
-| SYS-INC-02~03 | 이노센트 팜, 듀얼 이노센트 |
+| SYS-INC-03 | 듀얼 이노센트 |
 | 전체 UI 문서 (UI-01~06) | HUD, 인벤토리, 맵, 파티 UI |
 
 ### 주요 마일스톤
@@ -246,10 +245,8 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | M3.2 네트워크 동기화 | 서버 권위 모델 + 클라이언트 예측 + 롤백 |
 | M3.3 파티 시스템 | 파티 생성/초대/매칭 + 역할 분담 |
 | M3.4 아이템계 전 지층 | 전체 지층 + 4등급 보스 + 미스터리 룸 |
-| M3.5 이노센트 완성 | 전체 이노센트 + 팜 + 합성 + 듀얼 |
-| M3.6 허브 | 허브 공간 + NPC/상점 + 이노센트 팜 시설 |
-| M3.7 자동 사냥 | 3단계 자동 사냥 + 수동 정복 선행 조건 |
-| M3.8 모바일 대응 | 가상 패드 + 터치 최적화 + 반응형 UI |
+| M3.5 이노센트 완성 | 전체 이노센트 + 합성 + 듀얼 |
+| M3.6 허브 | 허브 공간 + NPC/상점 |
 
 ---
 
@@ -262,16 +259,15 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 #### GDD-NEW-01: 스탯 시스템 (`System/System_Growth_Stats.md`)
 
 **MVP에 필요한 범위만:**
-- 6대 스탯 정의 (STR, INT, DEX, VIT, SPD, LCK)
-- 기본 스탯 공식: `FinalStat = BaseStat + EquipStat + InnocentBonus`
+- ATK/INT/HP 3스탯 정의 (ATK, INT, HP. DEF/RES는 장비 제공)
+- 기본 스탯 공식: `Final_ATK = Base_ATK + Equipment_ATK + Innocent_ATK_Bonus`
 - Lv 1~10 성장 테이블 (MVP 레벨 캡 = 10)
 - 스탯이 데미지 공식에 반영되는 방식 (SYS-CMB-02 연동)
 
 **Phase 2에서 추가할 것:**
 - Lv 11~100 성장 곡선
-- 전생 시스템
 - 스탯 게이트 임계값
-- 스킬 트리 스탯 연동
+- ~~스킬 트리 스탯 연동~~ (DEPRECATED — 스킬 트리 삭제)
 
 #### GDD-NEW-02: 장비 슬롯 (`System/System_Equipment_Slots.md`)
 
@@ -284,7 +280,6 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 **Phase 2에서 추가할 것:**
 - 전체 6슬롯 (무기, 보조무기, 머리, 갑옷, 망토, 장신구x2)
 - 세트 효과
-- 아이템 전생
 
 #### GDD-NEW-03: 레어리티 시스템 (`System/System_Equipment_Rarity.md`)
 
@@ -303,7 +298,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
   - 기본 ATK 스탯
 
 **Phase 2에서 추가할 것:**
-- 무기 8종 (창, 도끼, 채찍, 지팡이, 너클, 활, 대검)
+- 나머지 무기 4종 (대검, 단검, 활, 지팡이)
 - 무기별 고유 모션 차이
 
 #### GDD-NEW-05: 적 AI MVP (`System/System_Enemy_AI.md`)
@@ -435,7 +430,7 @@ graph TD
 | 14 | GDD | `System/System_ItemWorld_Core.md` | 신규 |
 | 15 | GDD | `System/System_Innocent_Core.md` | 신규 |
 | 16 | GDD | `System/System_Growth_LevelExp.md` | 신규 |
-| 17 | GDD | `System/System_Growth_SkillTree.md` | 신규 |
+| 17 | GDD | ~~`System/System_Growth_SkillTree.md`~~ | ~~DEPRECATED~~ |
 | 18 | GDD | `System/System_Enemy_BossDesign.md` | 신규 |
 | 19 | GDD | `System/System_Combat_SubWeapon.md` | 신규 |
 | 20 | GDD | `System/System_Combat_Elements.md` | 신규 |
@@ -456,14 +451,14 @@ graph TD
 | 30 | GDD | `System/System_Multi_GhostMessage.md` | 신규 |
 | 31 | GDD | `System/System_Economy_Resources.md` | 신규 |
 | 32 | GDD | `System/System_Economy_Trade.md` | 신규 |
-| 33 | GDD | `System/System_Economy_AutoHunt.md` | 신규 |
+| 33 | GDD | ~~`System/System_Economy_AutoHunt.md`~~ | ❌ DEPRECATED |
 | 34 | GDD | `System/System_Hub_Facilities.md` | 신규 |
 | 35 | GDD | `System/System_Hub_NPCShop.md` | 신규 |
 | 36 | GDD | `System/System_ItemWorld_Boss.md` | 신규 |
 | 37 | GDD | `System/System_ItemWorld_Recursion.md` | 신규 |
 | 38 | GDD | `System/System_ItemWorld_Events.md` | 신규 |
 | 39 | GDD | `System/System_ItemWorld_GeoEffects.md` | 신규 |
-| 40 | GDD | `System/System_Innocent_Farm.md` | 신규 |
+| 40 | GDD | `System/System_Innocent_Farm.md` | ❌ DEPRECATED |
 | 41 | GDD | `System/System_Innocent_Dual.md` | 신규 |
 | 42~47 | UI | `UI/UI_HUD_Layout.md` 외 5건 | 신규 |
 

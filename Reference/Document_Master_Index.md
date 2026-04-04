@@ -146,8 +146,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | :--- | :--- | :--- | :--- | :--- |
 | SE-01 | SYS_Economy_Core.md | 경제 순환 구조 (Faucet/Sink, 자원 흐름도) | GDC: Albion Online Economy | 신규 |
 | SE-02 | SYS_Economy_Currency.md | 재화 시스템 (골드, 마나, 프리미엄 재화) | DG: Mana, HL (Hell) | 신규 |
-| SE-03 | SYS_Economy_Shop.md | 상점 시스템 (NPC 상점, 거래소, 가격 결정) | DG: Rosen Queen, Hospital, Cheat Shop | 신규 |
-| SE-04 | SYS_Economy_Trade.md | 플레이어 간 거래 (거래소, 직거래, 제한) | GDC: Governance F2P | 신규 |
+| SE-03 | SYS_Economy_Shop.md | 상점 시스템 (NPC 상점, 가격 결정) | DG: Rosen Queen, Hospital, Cheat Shop | 신규 |
 | SE-05 | SYS_Economy_Resource.md | 자원 종류 (월드 소재, 아이템계 소재, 허브 전용) | - | 신규 |
 | SE-06 | SYS_Economy_Craft.md | 제작 시스템 (장비 제작, 소모품 제작) | DG: Item Assembly / GDC: Astroneer Crafting | 신규 |
 
@@ -200,7 +199,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | U-04 | UI_ItemWorld_Entry.md | 아이템계 진입 화면 (아이템 선택, 파티 구성) | 신규 |
 | U-05 | UI_Map.md | 월드 맵 화면 (탐험율, 게이트 표시, 워프) | 신규 |
 | U-06 | UI_InnocentFarm.md | 이노센트 팜 화면 (합성, 번식, 이동) | 신규 |
-| U-07 | UI_Shop.md | 상점/거래소 화면 | 신규 |
+| U-07 | UI_Shop.md | 상점 화면 | 신규 |
 | U-08 | UI_Party.md | 파티 화면 (초대, 상태, 킥) | 신규 |
 | U-09 | UI_AutoHunt.md | 자동사냥 설정 화면 | 신규 |
 | U-10 | UI_ClassSkill.md | 클래스/스킬트리 화면 | 신규 |

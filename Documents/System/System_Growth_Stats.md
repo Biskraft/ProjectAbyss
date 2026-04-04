@@ -1,3 +1,5 @@
+> **ℹ️ 3스탯 체계 (ATK / INT / HP):** 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK)은 ATK/INT/HP 3스탯 체계로 단순화되었습니다. ATK는 물리 공격력(장비 ATK + 캐릭터 기본 ATK), INT는 원소/인챈트 데미지(장비 INT + 캐릭터 기본 INT), HP는 생존력(레벨 + 장비)입니다. DEF는 장비에서 직접 제공되며, MP 시스템은 쿨다운으로 대체됩니다. 크리티컬/드랍률/이동속도는 이노센트로만 보정됩니다. 스탯 게이트는 ATK(물리 장벽) + INT(마법 봉인) 이중 게이트입니다.
+
 # 성장 스탯 시스템 (Growth Stats System)
 
 ## 구현 현황 (Implementation Status)
@@ -471,8 +473,8 @@ phase2_reserved:
     DEX_gate_example: 50      # DEX >= 50 시 기동성 관문 통과
     SPD_gate_example: 30      # SPD >= 30 시 시간제한 관문 통과
     LCK_gate_example: 20      # LCK >= 20 시 숨겨진 경로 발견 확률 해금
-  reincarnation: false        # 전생 시스템 - Phase 2
-  skill_tree_stat_bonus: false # 스킬 트리 스탯 연동 - Phase 2
+  # reincarnation: DEPRECATED (스코프 축소로 삭제)
+  # skill_tree_stat_bonus: DEPRECATED (스코프 축소로 삭제 — 스킬은 무기 내장 스킬로 대체)
   growth_curve: linear        # MVP는 선형. Phase 2에서 지수/계단형 검토
 ```
 

@@ -1,3 +1,5 @@
+> **⚠️ 주의: 6대 스탯 참조 업데이트 필요.** 이 문서는 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK) 체계 기반으로 작성되었습니다. ATK/INT/HP 3스탯 체계 전환에 따라 듀얼 이노센트의 스탯 조합과 효과가 전면 재설계되어야 합니다. Phase 2 구현 시 ATK/INT/HP 기반으로 재작성될 예정입니다.
+
 # 듀얼 이노센트 시스템 (Dual Innocent System) — SYS-INC-03
 
 ## 구현 현황 (Implementation Status)
@@ -28,7 +30,7 @@
 - Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 - Glossary: `Documents/Terms/Glossary.md`
 - 이노센트 코어 (SYS-INC-01): `Documents/System/System_Innocent_Core.md` — 야생/복종 이분법, 슬롯, MVP 타입, 넘버 원
-- 이노센트 팜 (SYS-INC-02): `Documents/System/System_Innocent_Farm.md` — 이종 합성 기본 규칙, 팜 번식 흐름
+- ~~이노센트 팜 (SYS-INC-02): `Documents/System/System_Innocent_Farm.md` — DEPRECATED (스코프 축소로 삭제)~~
 - 이노센트 분류 리서치: `Documents/Research/Innocent_Classification_Balance_Research.md` — 듀얼 이노센트 조합 매트릭스, 빌드 다양성 분석, 소프트 캡 근거
 - 야리코미 철학: `Documents/Design/Design_Yarikomi_Philosophy.md` — 복종과 합성의 심리학
 - 수치 데이터 SSoT: `Sheets/Innocent_Dual_Params.csv` (Phase 2 생성 예정)
@@ -460,13 +462,13 @@ Dual_Grade_Rule: "min"                 # 재료 중 낮은 등급 기준 ("min" 
 | 의존 시스템 | 관계 | 데이터 흐름 |
 | :--- | :--- | :--- |
 | 이노센트 코어 (SYS-INC-01) | 야생/복종 이분법, 슬롯 규칙, 넘버 원 예외 | INC-01 → INC-03 (복종 상태 검증, 슬롯 규칙 상속) |
-| 이노센트 팜 (SYS-INC-02) | 팜 번식 발생, 이종 합성 기본 규칙 정의 | INC-02 ↔ INC-03 (번식 확률 공유, 합성 상세 규칙 확장) |
+| ~~이노센트 팜 (SYS-INC-02)~~ | ~~DEPRECATED~~ | ~~스코프 축소로 삭제~~ |
 | 장비 레어리티 (SYS-EQP-RAR) | 슬롯 수 결정 → 듀얼 이노센트 가치 결정 | EQP → INC-03 (슬롯 수 전달, 장비별 배치 제약) |
 | 전투 시스템 (SYS-CBT) | 듀얼 스탯 보너스 적용, 원소 효과 연산 | INC-03 → CBT (듀얼 스탯 배열 전달) |
 | 아이템계 코어 (SYS-IW-01) | 야생 듀얼 이노센트 드롭 발생 지점 | IW ← INC-03 (지층별 드롭 확률 전달) |
 | 경제/마나 결정 시스템 | 합성 비용 Mana_Crystal 소비 및 환급 | ECC ↔ INC-03 (비용 차감, 실패 환급) |
 | UI 시스템 | 듀얼 아이콘 그라디언트, 레시피 발견 알림, 합성 UI | UI → INC-03 (렌더링), INC-03 → UI (상태 전달) |
-| 상태 저장 (Persistence) | 레시피 발견 상태, 팜 번식 번식 중 상태, 이노센트 배치 | INC-03 ↔ PER (양방향) |
+| 상태 저장 (Persistence) | 레시피 발견 상태, 이노센트 배치 | INC-03 ↔ PER (양방향) |
 
 ---
 
@@ -493,10 +495,9 @@ Dual_Grade_Rule: "min"                 # 재료 중 낮은 등급 기준 ("min" 
 - [ ] **실패 후 동기 유지:** 합성 실패로 재료를 잃었을 때 "다시 파밍해서 재도전하겠다"는 회복 의지가 좌절보다 강한가? (실패 환급과 즉시 재시도 가능성이 이를 뒷받침하는가?)
 - [ ] **레시피 발견의 보상감:** 아이템계에서 새 레시피를 발견하거나 야생 듀얼 이노센트를 처음 마주치는 순간이 "탐험의 발견 순간"으로 느껴지는가?
 - [ ] **빌드 정체성:** 듀얼 이노센트를 중심으로 구성한 빌드가 단순 수치 최적화와 구별되는 "내 스타일"이라는 감각을 주는가?
-- [ ] **팜 번식 서프라이즈:** 세션 복귀 후 팜에서 예상치 못한 듀얼 이노센트가 탄생한 것을 발견했을 때 긍정적인 놀라움이 있는가?
 
 ---
 
 **작성자:** Game Design Team
 **최종 검수:** 2026-03-29
-**다음 단계:** Phase 2 이노센트 팜 구현 시 번식 확률 플레이테스트. 이종 합성 성공률 60% 체감 검증 (±10%p 조정 범위 검토).
+**다음 단계:** 이종 합성 성공률 60% 체감 검증 (±10%p 조정 범위 검토).

@@ -11,7 +11,7 @@
 | :-------- | :--------- | :------------------------------- | :------: | :----------- | :------------------------------- |
 | LVL-01-A  | 레벨 시스템 | 캐릭터 레벨 1~10 (MVP)          |    P1    | ✅ 완성      | Phase 2에서 Lv 60까지 확장      |
 | LVL-01-B  | 레벨 시스템 | 캐릭터 레벨 1~60 (Phase 2)      |    P2    | 📅 계획      | 3단계 곡선 적용                  |
-| LVL-01-C  | 레벨 시스템 | 야리코미 레벨 60+ (끝없는 성장) |    P2+   | 📅 계획      | 전생 루프와 연동                 |
+| LVL-01-C  | 레벨 시스템 | 야리코미 레벨 60+ (끝없는 성장) |    P2+   | 📅 계획      | 아이템계 클리어 + 이노센트 연동  |
 | EXP-01-A  | 경험치      | EXP 수집 공식                   |    P1    | ✅ 완성      | 4개 EXP 수급원                   |
 | EXP-02-A  | 경험치      | 3-Space 배율 체계               |    P1    | ✅ 완성      | World/ItemWorld/Hub             |
 | EXP-03-A  | 경험치      | EXP 곡선 테이블 (Lv1~100)       |    P1    | ✅ 완성      | MVP Lv1~10 구현, 이후 확장      |
@@ -323,8 +323,8 @@ System_ItemWorld_Core.md §3.1 정의:
 ### 5.1. System_Growth_Stats.md와의 연동
 
 - **BaseStat 공급:** 이 문서의 레벨 테이블이 System_Growth_Stats.md §2.2 FinalStat 공식의 첫 항목(BaseStat)을 결정.
-- **6대 스탯:** STR/INT/DEX/VIT/SPD/LCK 모두 레벨과 함께 상승.
-- **2차 파생 스탯:** MaxHP/MaxMP/ATK/DEF 등은 System_Growth_Stats.md에서 공식화.
+- **기본 스탯:** ATK/INT/HP가 레벨과 함께 상승. DEF/RES는 장비에서 직접 제공.
+- **참고:** 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK)은 ATK/INT/HP 3스탯으로 대체. System_Growth_Stats.md 참조.
 
 ### 5.2. Design_Progression_Reward.md와의 연동
 
@@ -338,7 +338,7 @@ System_ItemWorld_Core.md §3.1 정의:
 
 - **캐릭터 레벨 캡:** Lv60에서 더 이상 올라가지 않음. 이후 성장은 아이템 EXP가 담당.
 - **무한 성장 동기:** 캐릭터 레벨은 천장이지만, 아이템 레벨(특히 Ancient)은 무한 상승. 이것이 야리코미 지속 동력.
-- **아이템 전생 루프:** 캐릭터 Lv는 초기화되지 않지만, 아이템은 전생으로 재시작. 이때 캐릭터 Lv은 상수 역할.
+- **아이템 성장:** 캐릭터 Lv는 Lv60 천장 이후 고정. 아이템 성장은 아이템계 지층 클리어와 이노센트로 진행.
 
 ### 5.4. System_ItemWorld_Core.md와의 연동
 

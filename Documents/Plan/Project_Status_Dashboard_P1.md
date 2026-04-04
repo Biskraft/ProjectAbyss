@@ -70,13 +70,13 @@
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 근거 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | CTRL-01-A | 입력 | 키보드 입력 처리 프레임워크 | P1 | ✅ 구현 완료 | InputManager.ts: KeyboardEvent, isDown/isJustPressed |
-| CTRL-01-C | 입력 | 모바일 가상 패드 입력 프레임워크 | P1 | ✅ 구현 완료 | VirtualPad.ts: Touch API, 멀티터치 추적 (MVP 범위 초과 보너스) |
+| CTRL-01-C | 입력 | ~~모바일 가상 패드 입력 프레임워크~~ | — | ❌ 삭제 | 모바일 미지원으로 삭제 |
 | CTRL-02-A | 스킬 | 스킬 슬롯 시스템 (4슬롯) | P2 | ⬜ P2+ | MVP OUT: "스킬 슬롯" 제외 |
 | CTRL-02-B | 스킬 | 스킬 쿨다운 관리 시스템 | P2 | ⬜ P2+ | MVP OUT |
 | CTRL-02-C | 스킬 | 자동 조준 시스템 | P2 | ⬜ P2+ | MVP OUT: "자동 조준" 제외 |
 | CTRL-03-A | 기본 조작 | 기본 공격 자동 콤보 (3타) | P1 | ✅ 구현 완료 | Player.ts: comboIndex, COMBO_WINDOW=400ms, 공격 큐잉 |
 | CTRL-03-B | 기본 조작 | 점프 (고정 높이) | P1 | ✅ 구현 완료 | InputManager: JUMP 바인딩, Player.ts: tryJump |
-| CTRL-04-A | 가상 패드 | 가상 패드 레이아웃 렌더링 | P1 | ✅ 구현 완료 | VirtualPad.ts: D-pad + 액션 버튼, 반응형 CSS |
+| CTRL-04-A | 가상 패드 | ~~가상 패드 레이아웃 렌더링~~ | — | ❌ 삭제 | 모바일 미지원으로 삭제 |
 | CTRL-06-A | 예외 | 포커스 해제 시 입력 초기화 | P1 | ✅ 구현 완료 | InputManager.ts: blur/visibilitychange 핸들러, 키 리셋 |
 
 ### [System_Combat_Action.md](../System/System_Combat_Action.md)
@@ -98,12 +98,12 @@
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | DMG-01-A | 공식 | 기본 데미지 공식 | P1 | ✅ 구현 완료 | Damage.ts: calculateDamage() ATK-DEF 감산 + 랜덤 분산 |
 | DMG-01-B | 공식 | 스킬 데미지 공식 | P2 | ⬜ P2+ | MVP OUT: 스킬 시스템 없음 |
-| DMG-01-C | 공식 | 마법 데미지 공식 | P2 | ⬜ P2+ | MVP OUT: INT/RES 시스템 없음 |
+| ~~DMG-01-C~~ | ~~공식~~ | ~~마법 데미지 공식~~ DEPRECATED | — | ❌ DEPRECATED | ATK 통합으로 별도 마법 공식 삭제 |
 | DMG-02-A | 크리티컬 | 크리티컬 확률 시스템 | P1 | 🔧 부분 구현 | Damage.ts: criticalMultiplier 파라미터 존재, 실제 확률 계산 미구현 |
-| DMG-02-B | 크리티컬 | 크리티컬 배율 시스템 | P1 | 🔧 부분 구현 | 기본 1.0x 고정 — LCK 기반 배율 연동 필요 |
+| DMG-02-B | 크리티컬 | 크리티컬 배율 시스템 | P1 | 🔧 부분 구현 | 고정 1.5x 배율 (LCK 삭제, 이노센트 보정 Phase 2) |
 | DMG-03-A | 원소 | 원소 상성 배율 | P2 | ⬜ P2+ | MVP OUT: "원소" 제외 |
 | DMG-04-A | 방어 | 물리 방어력 감산 공식 | P1 | ✅ 구현 완료 | Damage.ts: def * defFactor 감산 |
-| DMG-04-B | 방어 | 마법 저항력 감산 공식 | P2 | ⬜ P2+ | MVP OUT: 마법 시스템 없음 |
+| ~~DMG-04-B~~ | ~~방어~~ | ~~마법 저항력 감산 공식~~ DEPRECATED | — | ❌ DEPRECATED | RES 삭제, DEF로 통합 |
 | DMG-05-A | 스케일링 | 아이템계 지층별 데미지 스케일링 | P1 | ✅ 구현 완료 | StrataConfig.ts: 레어리티×지층별 적 스탯 정의 |
 | DMG-06-A | UI | 데미지 넘버 표시 | P1 | ✅ 구현 완료 | DamageNumber.ts: 색상/크기 차별화, 플로팅 표시 |
 | DMG-07-A | 멀티 | 서버 데미지 검증 | P3 | ⬜ P2+ | MVP OUT: "싱글 플레이" 한정 |
@@ -160,19 +160,19 @@
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 근거 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| STAT-01-A | 스탯 정의 | 6대 기본 스탯 시스템 | P1 | ✅ 구현 완료 | Stats.ts: CharacterStats 인터페이스 (STR~LCK) |
-| STAT-01-B | 스탯 정의 | 2차 파생 스탯 (ATK/DEF/RES 등) | P1 | 🔧 부분 구현 | ATK/DEF 파생 존재, RES/회피/명중 미구현 |
+| STAT-01-A | 스탯 정의 | ATK/INT/HP 3스탯 시스템 | P1 | 🔧 부분 구현 | Stats.ts: CharacterStats에 INT 추가 필요 |
+| STAT-01-B | 스탯 정의 | ~~2차 파생 스탯~~ DEPRECATED | — | ❌ DEPRECATED | ATK/INT/HP 3스탯으로 단순화, 파생 스탯 불필요 |
 | STAT-02-A | 공식 | FinalStat 합산 공식 | P1 | 🔧 부분 구현 | Base + Equip 합산 동작, Innocent 항 없음 (P2) |
 | STAT-02-B | 공식 | MaxHP 산출 공식 | P1 | ✅ 구현 완료 | Player 고정 HP 존재 + 지층별 스케일링 |
-| STAT-02-C | 공식 | MaxMP 산출 공식 | P1 | 📅 대기 | MP 시스템 미구현 (스킬 없으므로 P1에서 불필요) |
+| STAT-02-C | 공식 | ~~MaxMP 산출 공식~~ DEPRECATED | — | ❌ DEPRECATED | MP 시스템 삭제, 스킬은 쿨다운 기반 |
 | STAT-03-A | 성장 테이블 | Lv 1-10 기본 스탯 성장 곡선 | P1 | ✅ 구현 완료 | Stats.ts: BASE_STATS[Lv1~Lv10], CSV 데이터 연동 |
 | STAT-03-B | 성장 테이블 | 레벨업 경험치 요구량 테이블 | P1 | 📅 대기 | 아이템 레벨업 EXP 존재, 캐릭터 레벨업 미구현 |
-| STAT-04-A | 전투 연동 | STR → ATK 변환 | P1 | ✅ 구현 완료 | 데미지 계산에 ATK 직접 사용 |
-| STAT-04-B | 전투 연동 | INT → 마법 ATK 및 MaxMP 연동 | P2 | ⬜ P2+ | MVP OUT: 마법 시스템 없음 |
-| STAT-04-C | 전투 연동 | DEX → 명중/회피/크리티컬 연동 | P1 | 📅 대기 | 회피/명중 판정 미구현 |
-| STAT-04-D | 전투 연동 | VIT → MaxHP 및 DEF 연동 | P1 | 📅 대기 | HP 고정값 사용 중, VIT 파생 미연동 |
-| STAT-04-E | 전투 연동 | SPD → 이동/공격 속도 연동 | P2 | ⬜ P2+ | MVP 범위: 고정 속도로 충분 |
-| STAT-04-F | 전투 연동 | LCK → 드랍률/크리티컬 보조 연동 | P2 | ⬜ P2+ | MVP 범위: 고정 드랍률로 충분 |
+| STAT-04-A | 전투 연동 | ATK → 데미지 산출 | P1 | ✅ 구현 완료 | 데미지 계산에 ATK 직접 사용 |
+| ~~STAT-04-B~~ | ~~전투 연동~~ | ~~INT → 마법 ATK~~ DEPRECATED | — | ❌ DEPRECATED | INT 삭제, 모든 공격은 ATK 기반 |
+| ~~STAT-04-C~~ | ~~전투 연동~~ | ~~DEX → 명중/회피~~ DEPRECATED | — | ❌ DEPRECATED | DEX 삭제, 회피는 대시 i-frame |
+| ~~STAT-04-D~~ | ~~전투 연동~~ | ~~VIT → MaxHP/DEF~~ DEPRECATED | — | ❌ DEPRECATED | VIT 삭제, HP는 레벨 기반, DEF는 장비 제공 |
+| ~~STAT-04-E~~ | ~~전투 연동~~ | ~~SPD → 이동/공격 속도~~ DEPRECATED | — | ❌ DEPRECATED | SPD 삭제, 속도는 무기별 고정 + 이노센트 |
+| ~~STAT-04-F~~ | ~~전투 연동~~ | ~~LCK → 드랍률/크리티컬~~ DEPRECATED | — | ❌ DEPRECATED | LCK 삭제, 크리티컬 5% 고정 + 이노센트 |
 | STAT-05-A | 이노센트 | 이노센트 보너스 합산 처리 | P2 | ⬜ P2+ | MVP OUT: "이노센트" 제외 |
 | STAT-06-A | UI | 스탯 패널 표시 | P2 | ⬜ P2+ | MVP: HUD HP바로 충분, 풀 패널은 P2 |
 
@@ -234,18 +234,18 @@
 | :--- | :--- | :--- |
 | CAM-06-A | Boss Lock (보스전 카메라) | 아이템계 보스 전투 구현 시 함께 |
 | ENM-02-B | 시야각 (FoV) 판정 | 선택적 — 현재 수평 거리로도 동작 |
-| STAT-02-C | MaxMP 산출 공식 | 스킬 없는 P1에서는 불필요 |
+| ~~STAT-02-C~~ | ~~MaxMP 산출 공식~~ | DEPRECATED — MP 시스템 삭제 |
 | STAT-03-B | 캐릭터 레벨업 경험치 | 아이템 레벨이 주요 성장축 |
-| STAT-04-C | DEX → 명중/회피 | 선택적 — P1 밸런스 단순화 |
-| STAT-04-D | VIT → MaxHP/DEF 파생 | 선택적 — 고정값으로도 동작 |
+| ~~STAT-04-C~~ | ~~DEX → 명중/회피~~ | DEPRECATED — DEX 삭제, 회피는 대시 i-frame |
+| ~~STAT-04-D~~ | ~~VIT → MaxHP/DEF~~ | DEPRECATED — VIT 삭제, HP는 레벨 기��� |
 | CHR-08-B | 원웨이 플랫폼 하강 | 하방 입력+점프로 플랫폼 통과 |
 
 ### 🔧 부분 구현 (8개)
 
 | ID | 기능 | 남은 작업 |
 | :--- | :--- | :--- |
-| DMG-02-A | 크리티컬 확률 | LCK 기반 확률 계산 추가 |
-| DMG-02-B | 크리티컬 배율 | 1.5x 기본 배율 + LCK 보너스 |
+| DMG-02-A | 크리티컬 확률 | 고��� 5% + 이노센트 보정 (Phase 2) |
+| DMG-02-B | 크리티컬 배율 | 고정 1.5x 배율 적용 |
 | ENM-01-B | 화면 밖 비활성화 | 틱 최적화 확인/구현 |
 | ENM-02-C | Line of Sight | 장애물 차단 판정 추가 |
 | IWF-07-A | 보스 지층 | 보스 전용 AI/패턴 구현 |

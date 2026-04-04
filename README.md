@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/language-TypeScript-3178c6?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/bundler-Vite-646cff?logo=vite&logoColor=white" alt="Vite">
   <img src="https://img.shields.io/badge/phase-Prototype-orange" alt="Phase: Prototype">
-  <img src="https://img.shields.io/badge/platform-Web%20(PC%20%2B%20Mobile)-brightgreen" alt="Platform: Web">
+  <img src="https://img.shields.io/badge/platform-Web%20(PC)-brightgreen" alt="Platform: Web (PC)">
 </p>
 
 ---
@@ -135,7 +135,7 @@ ProjectAbyss/
 - [x] 아이템계 진입 (포탈 → ItemWorldScene)
 - [x] 아이템계 전용 크림슨 타일맵 테마
 - [x] 골든 몬스터
-- [x] 모바일 가상패드 지원
+- [x] 키보드 + 게임패드 조작 지원
 - [x] 세이브/로드 (SaveManager)
 - [ ] 스탯 게이트 / 능력 게이트
 - [ ] 이노센트 시스템
@@ -152,7 +152,7 @@ ProjectAbyss/
 | `↑` / `W` / `Space` | 점프 |
 | `Z` / `X` | 공격 |
 | `I` | 인벤토리 열기/닫기 |
-| 모바일 | 가상 패드 자동 표시 |
+| 게임패드 | 표준 레이아웃 지원 |
 
 ---
 
@@ -162,8 +162,8 @@ ProjectAbyss/
 |-------|------|-----------|
 | **Phase 1** (프로토타입) | 핵심 루프가 재미있는가? | 이동/전투, 타일맵, 절차적 방 생성, 아이템계 미니 버전 |
 | **Phase 2** (알파) | 성장/탐험 쾌감이 있는가? | 장비/이노센트, 스탯·능력 게이트, 월드 연결, 보스 |
-| **Phase 3** (베타) | 파티 플레이/무한 파밍이 작동하는가? | WebSocket 멀티, 아이템계 100층, 허브, 자동 사냥 |
-| **Phase 4** (런칭) | 장기 운영 가능한가? | 시즌, 거래소, 이벤트, 길드 |
+| **Phase 3** (베타) | 파티 플레이/무한 파밍이 작동하는가? | WebSocket 멀티, 아이템계 100층, 허브 |
+| **Phase 4** (런칭) | 장기 운영 가능한가? | 시즌, 이벤트, 길드 |
 
 ---
 

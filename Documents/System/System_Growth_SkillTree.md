@@ -1,4 +1,6 @@
-# 스킬 트리 시스템 (Skill Tree System) — SYS-LVL-03
+> **⚠️ DEPRECATED:** 이 시스템은 스코프 축소로 삭제되었습니다. 스킬은 무기 내장 스킬로 대체됩니다. 전투 스킬 슬롯은 System_Combat_Action.md에서 관리합니다.
+
+# ~~스킬 트리 시스템 (Skill Tree System) — SYS-LVL-03~~
 
 ## 구현 현황 (Implementation Status)
 
@@ -12,7 +14,7 @@
 | SKL-01-A   | 트리 구조      | 공용 트리 — 유틸리티 분기 (이동/생존/탐험)       |    P1    | 📅 대기   | 무기 교체 후에도 유지되는 캐릭터 아이덴티티       |
 | SKL-01-B   | 트리 구조      | 공용 트리 — 원소 분기 (화/빙/뇌/암)              |    P1    | 📅 대기   | Echo 원소 해금 순서와 연동 (Section 2.3)          |
 | SKL-01-C   | 트리 구조      | 무기별 분기 — 검 전용 스킬 트리                  |    P0    | 📅 대기   | MVP Phase 검 우선 구현                            |
-| SKL-01-D   | 트리 구조      | 무기별 분기 — 나머지 7종 스킬 트리               |    P2    | 📅 대기   | Phase 2에서 단검/대검/도끼/창/지팡이/활/채찍      |
+| SKL-01-D   | 트리 구조      | 무기별 분기 — 나머지 4종 스킬 트리               |    P2    | 📅 대기   | Phase 2에서 대검/단검/활/지팡이                    |
 | SKL-02-A   | SP 시스템      | 레벨업 SP 획득 (1SP/레벨)                        |    P1    | 📅 대기   | System_Growth_LevelExp.md 연동                    |
 | SKL-02-B   | SP 시스템      | 탐험 보너스 SP 획득 경로 3종                     |    P2    | 📅 대기   | 보스 처치 / 비밀방 / NPC 교환                     |
 | SKL-02-C   | SP 시스템      | SP 총량 희소성 — 전체 스킬 최대 불가 설계        |    P1    | 📅 대기   | DFO SP 부족 패턴 차용                             |
@@ -36,7 +38,7 @@
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 - Glossary: `Documents/Terms/Glossary.md`
 - 전투 액션 시스템: `Documents/System/System_Combat_Action.md` — 4슬롯, 5카테고리, 원소 시너지
-- 무기 시스템: `Documents/System/System_Combat_Weapons.md` — 8종 무기, 시그니처 메커닉
+- 무기 시스템: `Documents/System/System_Combat_Weapons.md` — 5종 무기, 시그니처 메커닉
 - 성장 스탯 시스템: `Documents/System/System_Growth_Stats.md` — 6대 스탯, FinalStat 공식
 - 레벨/경험치 시스템: `Documents/System/System_Growth_LevelExp.md` — SP 획득 기반, 레벨 커브
 - 성장과 보상 철학: `Documents/Design/Design_Progression_Reward.md` — 성장 곡선, 야리코미 철학
@@ -75,7 +77,7 @@ SP 희소성의 본질은 "나는 이것을 포기해서 저것을 얻는다"는
 
 | 원형 | Project Abyss의 독창적 변형 |
 | :--- | :--- |
-| DFO의 SP 부족 | 무기별 트리(8종) + 공용 트리(2분기)로 분리. 무기 교체 시 무기별 SP는 잠금, 공용 SP는 유지 |
+| DFO의 SP 부족 | 무기별 트리(5종) + 공용 트리(2분기)로 분리. 무기 교체 시 무기별 SP는 잠금, 공용 SP는 유지 |
 | Dead Cells 리스펙 | 허브 NPC 전용. 아이템계 내 리스펙 불가로 진입 전 준비의 중요성 강조 |
 | Hades 듀오 부운 | 4슬롯 중 특정 2스킬 동시 장착 시 시너지 효과 발동 — 슬롯 조합이 숨겨진 빌드를 만든다 |
 | PoE 서포트 젬 | 이노센트가 스킬 슬롯에 부착되어 원소/효과를 부여 — 복잡도 없이 커스터마이즈 깊이 확보 |
@@ -93,10 +95,10 @@ SP 희소성의 본질은 "나는 이것을 포기해서 저것을 얻는다"는
 | 문제 | 위험 | 해결 방향 |
 | :--- | :--- | :--- |
 | SP 희소성 vs 빌드 실험 자유 | 너무 희소하면 리스펙 없이 게임이 망가진다 | 허브 NPC 리스펙 제공 (비용 상한 존재). 실험은 허용, 무한 교체는 억제 |
-| 8종 무기별 트리 vs 무기 교체 자유 | 무기를 자주 교체하면 무기별 스킬이 무의미해진다 | 무기 교체 시 해당 무기 SP는 잠금 상태로 보존. 재장착 시 즉시 복원 |
+| 5종 무기별 트리 vs 무기 교체 자유 | 무기를 자주 교체하면 무기별 스킬이 무의미해진다 | 무기 교체 시 해당 무기 SP는 잠금 상태로 보존. 재장착 시 즉시 복원 |
 | 4슬롯 제한 vs 빌드 다양성 | 슬롯 4개로는 깊이가 부족하다 | 슬롯 외 패시브 노드 + 스킬 레벨 + 이노센트 수정 3중 레이어로 보완 |
 | 아이템계 리스펙 불가 vs 진입 부담 | 잘못된 빌드로 진입 시 전멸 위험 | 진입 전 스킬 미리보기 UI 필수. 아이템계 내 스킬 슬롯 재배치(위치 변경)는 허용 |
-| 모바일 vs 스킬 트리 UI 복잡도 | 트리 탐색이 모바일 화면에서 불편 | 허브 접속 시 전용 스킬 트리 화면. 스크롤/탭 기반 UI. 전투 중 트리 UI 접근 불가 |
+| 스킬 트리 UI 복잡도 | 트리 탐색이 복잡할 수 있음 | 허브 접속 시 전용 스킬 트리 화면. 스크롤/탭 기반 UI. 전투 중 트리 UI 접근 불가 |
 
 ### 1.5. 위험과 보상 (Risk & Reward)
 
@@ -129,15 +131,12 @@ SP 희소성의 본질은 "나는 이것을 포기해서 저것을 얻는다"는
 │       ├── 번개 클러스터 (Lightning Cluster)
 │       └── 암흑 클러스터 (Dark Cluster)
 │
-└── [무기별 분기] — 장착 무기에 따라 활성화 (8종)
+└── [무기별 분기] — 장착 무기에 따라 활성화 (5종)
     ├── 검 분기 (Sword Branch) — MVP P0
-    ├── 단검 분기 (Dagger Branch) — Phase 2
     ├── 대검 분기 (Greatsword Branch) — Phase 2
-    ├── 도끼 분기 (Axe Branch) — Phase 2
-    ├── 창 분기 (Spear Branch) — Phase 2
-    ├── 지팡이 분기 (Staff Branch) — Phase 2
+    ├── 단검 분기 (Dagger Branch) — Phase 2
     ├── 활 분기 (Bow Branch) — Phase 2
-    └── 채찍 분기 (Whip Branch) — Phase 2
+    └── 지팡이 분기 (Staff Branch) — Phase 2
 ```
 
 ```mermaid
@@ -156,7 +155,7 @@ graph TD
 
     subgraph "무기별 분기 (장착 무기만 활성)"
         SW[검 분기 MVP]
-        WPN[나머지 7종 Phase2]
+        WPN[나머지 4종 Phase2]
     end
 
     subgraph "4슬롯 전투 장착"
@@ -237,14 +236,12 @@ graph TD
 
 ```
 검 분기 (Sword Branch)
-├── 액티브 스킬 노드 (4개 — 4슬롯 장착 가능)
+├── 액티브 스킬 노드 (3개 — 4슬롯 장착 가능)
 │   ├── Blade Rush        (근접 돌진기)
 │   ├── Cleave Arc        (전방 부채꼴 범위기)
-│   ├── Guard Stance      (패링 강화 버프기)
 │   └── Rising Slash      (띄우기 + 에어 콤보 시동기)
-└── 패시브 노드 (4개 — 상시 적용)
+└── 패시브 노드 (3개 — 상시 적용)
     ├── Combo Mastery     (3타 피니셔 피해 강화)
-    ├── Counter Edge      (패링 성공 시 반격 피해 증가)
     ├── Sword Reach       (검 공격 히트박스 확장)
     └── Finisher Crit     (3타 피니셔 크리티컬 확률 증가)
 ```
@@ -255,25 +252,20 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | SW-ACT-01 | Blade Rush | 근접 액티브 | free | `sw_rush_cd`초 | `sw_rush_mp` | STR | 없음 |
 | SW-ACT-02 | Cleave Arc | 범위 액티브 | slow | `sw_cleave_cd`초 | `sw_cleave_mp` | STR | SW-ACT-01 |
-| SW-ACT-03 | Guard Stance | 버프 | free | `sw_guard_cd`초 | `sw_guard_mp` | VIT | SW-ACT-01 |
-| SW-ACT-04 | Rising Slash | 근접 액티브 | free | `sw_rise_cd`초 | `sw_rise_mp` | STR, DEX | SW-ACT-02 |
+| SW-ACT-03 | Rising Slash | 근접 액티브 | free | `sw_rise_cd`초 | `sw_rise_mp` | STR, DEX | SW-ACT-02 |
 | SW-PAS-01 | Combo Mastery | 패시브 | — | — | — | STR | SW-ACT-01 |
-| SW-PAS-02 | Counter Edge | 패시브 | — | — | — | STR | SW-ACT-03 |
 | SW-PAS-03 | Sword Reach | 패시브 | — | — | — | — | 없음 |
 | SW-PAS-04 | Finisher Crit | 패시브 | — | — | — | LCK | SW-PAS-01 |
 
-#### 무기별 분기 스킬 설계 원칙 (8종)
+#### 무기별 분기 스킬 설계 원칙 (5종)
 
 | 무기 | 액티브 스킬 테마 | 파티 역할 경향 | 주력 스탯 |
 | :--- | :--- | :--- | :--- |
-| 검 (Sword) | 돌진, 범위기, 버프, 에어 콤보 시동 | 밸런스 딜러 | STR |
-| 단검 (Dagger) | 배후 강타, 연속 찌르기, 회피 강화 | 암살 딜러 | DEX, STR |
-| 대검 (Greatsword) | 충격파, 회전 광역, 대기 충전기 | AoE 딜러 | STR |
-| 도끼 (Axe) | 내려치기, 점프 강화, 균열 생성 | 탱크 딜러 | STR, VIT |
-| 창 (Spear) | 관통기, 도발, 범위 견제 | 리치 딜러/서포터 | STR, INT |
+| 검 (Sword) | 돌진, 범위기, 버프, 에어 콤보 시동 | 밸런스 딜러 | ATK |
+| 대검 (Greatsword) | 충격파, 회전 광역, 대기 충전기 | AoE 딜러 | ATK |
+| 단검 (Dagger) | 배후 강타, 연속 찌르기, 회피 강화 | 암살 딜러 | ATK |
+| 활 (Bow) | 다중 화살, 트랩 설치, 카이팅 강화 | 원거리 물리 딜러 | ATK |
 | 지팡이 (Staff) | 원소 투사체, 원소 장 설치, 보호막 | 마법 딜러/서포터 | INT |
-| 활 (Bow) | 다중 화살, 트랩 설치, 카이팅 강화 | 원거리 딜러 | DEX |
-| 채찍 (Whip) | 거리 견제, 디버프, 복수 적 감속 | 컨트롤러 | DEX, INT |
 
 ### 2.5. SP 시스템 (Skill Point System)
 
@@ -604,7 +596,7 @@ respec_cost_cap: 4000
 | 시스템 | 의존 내용 | 연동 방향 |
 | :--- | :--- | :--- |
 | `System_Combat_Action.md` | 4슬롯 구조, 스킬 5카테고리, MP/쿨다운 프레임워크, 원소 인챈트 | 스킬 트리가 전투 액션 슬롯에 스킬 데이터를 공급 |
-| `System_Combat_Weapons.md` | 8종 무기 정의, 시그니처 메커닉 | 무기 장착/교체 이벤트가 무기별 분기 활성화/잠금을 결정 |
+| `System_Combat_Weapons.md` | 5종 무기 정의, 시그니처 메커닉 | 무기 장착/교체 이벤트가 무기별 분기 활성화/잠금을 결정 |
 | `System_Growth_Stats.md` | FinalStat 공식, 6대 스탯 | 스킬 트리가 FinalStat 값을 PrimaryStat으로 수신 |
 | `System_Growth_LevelExp.md` | 레벨업 이벤트 | 레벨 시스템이 SP 지급 이벤트를 스킬 트리에 전달 |
 | `System_Innocent_Core.md` | 이노센트 스킬 수정자 (Phase 2) | 이노센트가 스킬 슬롯에 부착되어 효과 변경 |
@@ -687,4 +679,4 @@ graph LR
 - [ ] SkillDamage 공식이 FinalStat 공식과 정확히 연동되는가?
 - [ ] 모든 수치 파라미터가 `Sheets/Content_System_SkillTree.csv`를 참조하는가?
 - [ ] 게임 내 스킬명/UI 레이블이 모두 영문으로 작성되어 있는가?
-- [ ] 모바일 가상 패드 환경에서 스킬 트리 UI 접근 방법이 정의되어 있는가?
+- [ ] 스킬 트리 UI가 허브에서만 접근 가능하도록 설계되어 있는가?

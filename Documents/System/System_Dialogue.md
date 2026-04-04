@@ -1,3 +1,5 @@
+> **⚠️ 스탯 참조 업데이트 필요:** 이 문서의 STR 게이트 참조는 ATK 게이트로 대체되었습니다. "STR 15"→"ATK 15" 등. System_World_StatGating.md 참조.
+
 # 대화 시스템 (Dialogue System) — SYS-DLG-01
 
 ## 구현 현황 (Implementation Status)

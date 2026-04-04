@@ -231,7 +231,7 @@ HP <= 0 확인
 데미지 공식: `System_Combat_Damage.md` 기본 공식을 따른다.
 물리 데미지: `(ATK * skill_multiplier) - DEF`, 최솟값 1.
 스케일링 적용 스탯: HP, ATK, DEF.
-스케일링 미적용 스탯: SPD, Weight (속도와 무게는 지층과 무관하게 고정).
+스케일링 미적용 스탯: Weight (무게는 지층과 무관하게 고정). 이동/공격 속도는 무기 유형별 고정값.
 
 ```yaml
 item_world_scaling:

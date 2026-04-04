@@ -116,13 +116,13 @@ reward_types:
 
   multiplayer:  # 멀티플레이 보상
     - party_bonus: "파티 클리어 보상 배율 증가"
-    - trade: "거래소 경제 활동"
+    - trade: "NPC 상점 경제 활동"
     - social: "허브 내 장비 자랑, 길드 활동"
 
   progression:  # 성장 보상
     - stat_gate_unlock: "스탯 게이트 해금 -> 새 층위"
-    - skill_tree: "스킬 트리 확장"
-    - reincarnation: "전생으로 잠재력 상승"
+    - weapon_skill_growth: "무기 레벨업으로 내장 스킬 해금"
+    - rarity_upgrade: "레어리티 승급으로 잠재력 상승"
 ```
 
 ### 0.5.4. 직관적이고 일관된 규칙 (Intuitive & Consistent Rules)
@@ -314,7 +314,6 @@ Project Abyss의 핵심 Cursed Problems:
 | :--- | :--- |
 | 메트로베니아 탐험감 vs 온라인 멀티 | 3-Space 분리: 월드는 솔로-2인, 아이템계는 1-4인 |
 | 야리코미(무한 파밍) vs 탐험의 가치 보존 | 순환 구조: 깊은 아이템계를 위해 넓은 월드 탐험 필요 |
-| 자동 사냥 편의성 vs 직접 플레이 유인 | 수동 정복 선행 + 자동 사냥 효율 상한(60%) |
 | 솔로 재미 vs 파티 필수 콘텐츠 | "혼자서도 재미있고 함께하면 더 재미있다" 원칙 |
 
 ### 3.2. 소통 규약 (Communication Protocol)
@@ -424,14 +423,14 @@ System 중분류:
 | :--- | :--- | :--- |
 | 3C | 캐릭터/카메라/컨트롤 | Character, Camera, Control |
 | Combat | 전투 관련 | Action, Damage, Weapons, SubWeapon, Elements, StatusEffects, HitFeedback |
-| Growth | 성장 시스템 | Stats, LevelExp, SkillTree, Reincarnation |
+| Growth | 성장 시스템 | Stats, LevelExp |
 | Equipment | 장비 시스템 | Slots, Rarity, Growth |
 | World | 월드 시스템 | MapStructure, TierDesign, AbilityGating, StatGating, ProcGen, SaveWarp, Secrets |
 | ItemWorld | 아이템계 시스템 | Core, FloorGen, Boss, Recursion, Events, GeoEffects |
 | Innocent | 이노센트 시스템 | Core, Farm, Dual |
 | Enemy | 적/AI 시스템 | AI, BossDesign, Spawning |
 | Multi | 멀티플레이 | Architecture, Party, NetworkSync, GhostMessage |
-| Economy | 경제 시스템 | Resources, Trade, AutoHunt |
+| Economy | 경제 시스템 | Resources, Trade |
 | Hub | 허브 시스템 | Facilities, NPCShop |
 
 Design 중분류:
@@ -454,7 +453,7 @@ UI 중분류:
 | Inventory | 인벤토리 | (단일 문서) |
 | Map | 맵 UI | (단일 문서) |
 | ItemWorld | 아이템계 UI | (단일 문서) |
-| InnocentFarm | 이노센트 목장 UI | (단일 문서) |
+| ~~InnocentFarm~~ | ~~이노��트 목장 UI~~ | ~~(단일 문서) — DEPRECATED~~ |
 | PartyMatching | 파티/매칭 UI | (단일 문서) |
 
 Content 중분류:
@@ -524,7 +523,7 @@ Content 중분류:
 3. [ ] Reward System: 플레이어 동기를 유지할 보상이 설계되었는가?
    * 즉각적 보상 (전투, 아이템 드랍)
    * 중기적 보상 (장비 강화, 스킬 해금)
-   * 장기적 보상 (스탯 게이트 해금, 레어리티 승급, 전생)
+   * 장기적 보상 (스탯 게이트 해금, 레어리티 승급)
 
 4. [ ] Parameter Design: 조정 대상 수치가 CSV로 분리 가능한가?
     * `Sheets/` CSV 관리 가능
@@ -537,7 +536,7 @@ Content 중분류:
 
 6. [ ] Combinatorial Depth: 시스템 간 상호작용이 단순 수치 합산이 아닌 창발적 결과를 만드는가?
 
-7. [ ] Cross-Platform: PC와 모바일 모두에서 동일한 경험을 제공하는가? (터치 입력, 가상 패드 고려)
+7. [ ] Cross-Platform: PC (웹 브라우저)에서 일관된 경험을 제공하는가?
 
 ---
 

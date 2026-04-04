@@ -248,7 +248,6 @@ world_procgen:
   # 시드 설정
   seed:
     type: "server_fixed"     # 서버에서 시드 고정
-    season_duration_months: 3  # 최소 3개월, 최대 6개월
     reseed_max_retry: 10     # 재시드 최대 시도 횟수
 
   # 층위 정의

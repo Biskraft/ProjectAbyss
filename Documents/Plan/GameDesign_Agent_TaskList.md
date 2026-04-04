@@ -13,33 +13,9 @@
 
 ---
 
-### A-1. SYS-LVL-03 — 스킬트리 시스템
+### ~~A-1. SYS-LVL-03 — 스킬트리 시스템~~ (DEPRECATED)
 
-| 항목 | 내용 |
-|:-----|:-----|
-| **파일 경로** | `Documents/System/System_Growth_SkillTree.md` |
-| **3-Space** | 전체 |
-| **기둥** | 탐험 + 야리코미 |
-
-**설계할 내용:**
-- 스킬 트리 구조: "무기별 분기 + 공용 트리" 하이브리드
-- 공용 트리: 유틸리티 분기(이동/생존/탐험) + 원소 분기(화염/빙결/번개/암흑)
-- 무기별 분기: 8종 무기 각각의 전용 스킬 트리
-- SP(스킬 포인트) 획득/배분 규칙 (총량 부족 → 선택 강제)
-- 스킬 획득 경로: 레벨업 SP, 월드 탐험, 아이템계 보상, 보스 드랍, NPC 교환
-- 4슬롯 깊이 확보: 스킬 레벨, 이노센트 수정, 공중/지상 차별화, 시너지 콤보
-- 스킬 스케일링 공식: `SkillBase × (1 + Stat × Coeff) × Level × ElementBonus`
-- 리스펙: 허브 NPC, 점진적 비용 증가(Dead Cells식), 아이템계 내 불가
-
-**필수 참조:**
-| 문서 | 경로 | 읽어야 할 이유 |
-|:-----|:-----|:-------------|
-| 스킬 시스템 리서치 | `Research/SkillSystem_ActionRPG_Research.md` | 7종 게임 분석, 설계 제안 전체 |
-| 전투 액션 시스템 | `System/System_Combat_Action.md` | 4슬롯, 5카테고리, 이동 설정, 원소 시너지 (이미 정의된 것) |
-| 스탯 시스템 | `System/System_Growth_Stats.md` | 6대 스탯, FinalStat 공식 |
-| 레벨/경험치 | `System/System_Growth_LevelExp.md` | 레벨 커브, SP 획득 주기 |
-| 성장/보상 철학 | `Design/Design_Progression_Reward.md` | 성장 곡선, 야리코미 곡선 |
-| 무기 시스템 | `System/System_Combat_Weapons.md` | 8종 무기 정의 |
+> **⚠️ DEPRECATED:** 스킬 트리 시스템은 스코프 축소로 전면 삭제되었습니다. 스킬은 무기 내장 스킬로 대체됩니다. 전투 스킬 슬롯은 `System_Combat_Action.md`에서 관리합니다.
 
 ---
 
@@ -107,33 +83,7 @@
 
 ---
 
-### A-4. SYS-INC-02 — 이노센트 팜 시스템
-
-| 항목 | 내용 |
-|:-----|:-----|
-| **파일 경로** | `Documents/System/System_Innocent_Farm.md` |
-| **3-Space** | Hub |
-| **기둥** | 야리코미 |
-
-**설계할 내용:**
-- 야생 이노센트 → 복종 메커닉 (포획 조건, 성공 확률)
-- 이노센트 팜 시설: 배치, 수확, 교배, 성장
-- 이노센트 슬롯 관리: 장비별 슬롯 수, 이노센트 이동/제거 규칙
-- 이노센트 합성/분해: 같은 종류 합성 시 효과 상승, 분해 시 소재 회수
-- 자동 팜 vs 수동 관리: 수동 정복 선행 원칙과의 연계
-- 이노센트 등급/레어리티: Common → Legendary 이노센트 등급 체계
-- 멀티플레이 교환: 이노센트 거래 규칙
-
-**필수 참조:**
-| 문서 | 경로 | 읽어야 할 이유 |
-|:-----|:-----|:-------------|
-| 이노센트 코어 | `System/System_Innocent_Core.md` | 이노센트 기본 정의, 야생/복종 이분법 |
-| 이노센트 분류/밸런스 리서치 | `Research/Innocent_Classification_Balance_Research.md` | 스탯형/파밍형/상태이상형 분류 |
-| 이노센트 성장/경제 리서치 | `Research/Innocent_Growth_Economy_Research.md` | 선형 합산 + 자동 팜 하이브리드 |
-| 이노센트 전투 리서치 | `Research/Innocent_Combat_Behavior_Research.md` | 야생 이노센트 도주 행동 |
-| 이노센트 멀티 리서치 | `Research/Innocent_Multiplayer_Social_Research.md` | 오너 귀속, 동행자 보상 |
-| 이노센트 내러티브 리서치 | `Research/Innocent_Narrative_Worldbuilding_Research.md` | "기억이 응결된 의지" |
-| 디스가이아 이노센트 | `Research/Disgaea_ItemWorld_InnocentSystem.md` | 원작 이노센트 시스템 상세 |
+### ~~A-4. SYS-INC-02 — 이노센트 팜 시스템~~ (DEPRECATED — 스코프 축소로 삭제)
 
 ---
 
@@ -147,13 +97,12 @@
 
 **설계할 내용:**
 - 자원 Faucet(생성원)/Sink(소멸원) 매핑: 3-Space별 자원 흐름
-- 핵심 통화: 골드, 제작 소재, 이노센트, 스킬 포인트, 경험치
-- 인플레이션 방지: 골드 싱크 설계 (리스펙, 장비 강화, NPC 상점)
+- 핵심 통화: 골드, 제작 소재, 이노센트, 경험치
+- 인플레이션 방지: 골드 싱크 설계 (장비 강화, NPC 상점)
 - 드롭 경제: 레어리티별 기대 드롭률, 보스 드롭 보너스
 - 거래 제한: 최상위 장비 거래 제한 (파밍 동기 보존)
-- 자동 사냥 경제: 수동 정복 선행 + 자동 효율 감소 (×0.5)
 - 세션 경제: 10~15분 아이템계 런의 기대 수익
-- 장기 경제: 전생(Reincarnation)이 경제 리셋 역할
+- 장기 경제: 레어리티 승급 비용이 경제 Sink 역할
 
 **필수 참조:**
 | 문서 | 경로 | 읽어야 할 이유 |
@@ -181,14 +130,9 @@
 | **추가 참조** | `System/System_ItemWorld_Core.md`, `Research/ItemWorld_RecursiveEntry_Research.md` (재귀의 문) |
 | **범위** | 미스터리 룸 종류, 스폰 확률, 이벤트 목록, 보상 테이블 |
 
-### B-2. SYS-LVL-04 — 전생 시스템
+### ~~B-2. SYS-LVL-04 — 전��� 시스템~~ (스코프 축소로 삭제)
 
-| 항목 | 내용 |
-|:-----|:-----|
-| **파일 경로** | `Documents/System/System_Growth_Reincarnation.md` |
-| **리서치 기반** | `Research/Disgaea_ItemWorld_GrowthEconomy.md` (전생 섹션) |
-| **추가 참조** | `Design/Design_Progression_Reward.md` (전생 철학), `System/System_Growth_LevelExp.md` |
-| **범위** | 전생 조건, 보너스 스탯, 레벨 리셋 규칙, 장기 목표 |
+> 아이템 성장은 아이템계 지층 클리어(`System_ItemWorld_Core.md`)와 이노센트(`System_Innocent_Core.md`)로 관리합니다.
 
 ### B-3. SYS-MON-02 — 보스 디자인 (월드 보스)
 
@@ -258,20 +202,20 @@
 ### 문서 작성 순서 권장
 
 ```
-1. A-1 (스킬트리) — 전투/성장 시스템의 핵심 빈칸
+1. ~~A-1 (스킬트리) — DEPRECATED~~
 2. A-2 (아이템계 보스) — 아이템계 진행의 핵심 빈칸
 3. A-5 (경제 철학) — 모든 보상/드롭의 기초
 4. A-3 (재귀적 진입) — A-2 완료 후 진행 (보스 체계 의존)
-5. A-4 (이노센트 팜) — A-5 완료 후 진행 (경제 체계 의존)
+5. ~~A-4 (이노센트 팜) — DEPRECATED~~
 ```
 
 ### 의존 관계
 
 ```
-A-1 (스킬트리) ← 독립 (즉시 시작 가능)
+~~A-1 (스킬트리) — DEPRECATED~~
 A-2 (보스) ← 독립 (즉시 시작 가능)
 A-5 (경제) ← 독립 (즉시 시작 가능)
 A-3 (재귀) ← A-2 (보스 등급 체계 필요)
-A-4 (이노센트 팜) ← A-5 (경제 순환 필요)
+~~A-4 (이노센트 팜) — DEPRECATED~~
 B-1~6 ← A 시리즈 완료 후
 ```

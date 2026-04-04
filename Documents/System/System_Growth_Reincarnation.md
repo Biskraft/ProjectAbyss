@@ -1,3 +1,5 @@
+> **⚠️ DEPRECATED:** 이 시스템은 스코프 축소로 삭제되었습니다. 아이템 성장은 아이템계 지층 클리어(System_ItemWorld_Core.md)와 이노센트(System_Innocent_Core.md)로 관리합니다.
+
 # 아이템 전생 시스템 (Item Reincarnation System) — SYS-LVL-04
 
 ## 구현 현황 (Implementation Status)
