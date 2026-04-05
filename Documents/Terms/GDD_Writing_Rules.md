@@ -59,7 +59,7 @@ Project Abyss 적용 예시:
 
 * 월드 탐험: 미지의 층위 진입(리스크: 사망 시 세이브 포인트 복귀) -> 새 능력 발견(리턴)
 * 아이템계: 깊은 지층 도전(리스크: 탈출 실패 시 진행 손실) -> 이노센트/레어리티 승급(리턴)
-* 재귀적 진입: 아이템계 내 아이템의 아이템계 진입(리스크: 전멸 시 상위 지층도 손실) -> 이중 강화(리턴)
+* 순환 진입: 아이템계에서 획득한 더 좋은 아이템을 월드에서 다시 진입(리스크: 더 높은 레어리티 = 더 높은 난이도) -> 무한 성장 루프(리턴)
 
 ### 0.5.2. 독창성 창출: 분해-분석-재구축 (Deconstruct-Analyze-Rebuild)
 
@@ -112,7 +112,7 @@ reward_types:
   yarikomi:  # 야리코미 보상
     - item_growth: "레어리티 승급, 아이템 레벨 상승"
     - innocent_capture: "이노센트 포획/복종"
-    - recursive_depth: "재귀 진입으로 이중 강화"
+    - sequential_entry: "순환 진입으로 무한 성장 루프"
 
   multiplayer:  # 멀티플레이 보상
     - party_bonus: "파티 클리어 보상 배율 증가"
@@ -295,7 +295,7 @@ GDD 작성 시:
 Project Abyss 특수 예외:
 
 * 아이템계 중 접속 끊김: 현재 지층 진행 보존 여부
-* 재귀적 진입 중 사망: 상위 아이템계로의 복귀 규칙
+* 아이템계 전멸 시: 현재 지층 진행 손실, 장비 보존, 월드 귀환 규칙
 * 멀티플레이 중 파티원 이탈: 난이도 동적 조정 여부
 * 월드 탐험 중 세이브 포인트 미저장 사망: 복구 규칙
 
@@ -390,7 +390,7 @@ Project Abyss의 핵심 Cursed Problems:
 
 * 조건: 단일 시스템에 새로운 룰이 대규모로 추가되면서 Flattened Hierarchy(최대 4단계)를 초과할 경우에만 사용한다.
 * 관리법: 기존 뼈대 문서는 유지하고, 신규 모듈을 위한 새 문서를 작성하여 링크로 연결한다.
-  * 예: `System_ItemWorld_Core.md` -> `System_ItemWorld_Recursion.md` (재귀적 진입 상세)
+  * 예: `System_ItemWorld_Core.md` -> `System_ItemWorld_Boss.md` (보스 시스템 상세)
 
 ### 4.5. 파일 네이밍 규칙 (File Naming Convention)
 

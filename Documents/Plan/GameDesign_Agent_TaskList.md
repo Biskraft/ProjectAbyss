@@ -51,35 +51,9 @@
 
 ---
 
-### A-3. SYS-IW-04 — 재귀적 진입 시스템
+### ~~A-3. SYS-IW-04 — 재귀적 진입 시스템~~ (DEPRECATED — 재귀적 중첩 진입 삭제, 순환 구조로 대체)
 
-| 항목 | 내용 |
-|:-----|:-----|
-| **파일 경로** | `Documents/System/System_ItemWorld_Recursion.md` |
-| **3-Space** | Item World |
-| **기둥** | 야리코미 |
-
-**설계할 내용:**
-- 재귀의 문 스폰 조건: 레어리티별 확률, 지층별 확률, 깊이별 확률
-- 진입 가능 아이템 최소 조건: Magic 이상 레어리티
-- 깊이별 난이도 스케일링: 적 HP/ATK 배율, 보스 등급 변화
-- 재귀 전용 보상: 깊이 2/3에서만 획득 가능한 이노센트/소재 목록
-- 깊이 3에서 획득 아이템은 재귀 불가 (무한 루프 방지)
-- 상위 깊이 상태 동결 규칙: 적 리스폰, 아이템 보존, 시간 경과
-- 탈출 시 순차 복귀 UX: 3→2→1→월드 연출 시퀀스
-- 멀티플레이 동의 메커닉: 파티 전원 동의/투표/분리 규칙
-- HUD: 마트료시카 깊이 아이콘 + 브레드크럼 네비게이션
-- 깊이별 시각/오디오 변형: 채도, 색수차, BGM 변형
-- 익스플로잇 방지: 재방문 감쇠, 드랍 테이블 차등
-
-**필수 참조:**
-| 문서 | 경로 | 읽어야 할 이유 |
-|:-----|:-----|:-------------|
-| 재귀 진입 리서치 | `Research/ItemWorld_RecursiveEntry_Research.md` | 7가지 설계 원칙, UX, 밸런스 전체 |
-| 깊이/보상 밸런스 리서치 | `Research/ItemWorld_DepthReward_RiskBalance_Research.md` | 수학적 모델, 스케일링 공식 |
-| 아이템계 코어 | `System/System_ItemWorld_Core.md` | IWC-11-A 재귀 기존 정의 |
-| 야리코미 철학 | `Design/Design_Yarikomi_Philosophy.md` | 깊이별 리스크-리턴 테이블 |
-| 진입 연출 리서치 | `Research/ItemWorld_EntryTransition_Research.md` | 재귀 진입 연출 변형 |
+> **DEPRECATED (2026-04-05):** 재귀적(중첩) 진입은 삭제되었습니다. 아이템계 진입은 항상 월드에서만 가능합니다. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체되었습니다.
 
 ---
 
@@ -127,7 +101,7 @@
 |:-----|:-----|
 | **파일 경로** | `Documents/System/System_ItemWorld_Events.md` |
 | **리서치 기반** | `Research/Disgaea_ItemWorld_CoreMechanics.md` (미스터리 룸 섹션) |
-| **추가 참조** | `System/System_ItemWorld_Core.md`, `Research/ItemWorld_RecursiveEntry_Research.md` (재귀의 문) |
+| **추가 참조** | `System/System_ItemWorld_Core.md` |
 | **범위** | 미스터리 룸 종류, 스폰 확률, 이벤트 목록, 보상 테이블 |
 
 ### ~~B-2. SYS-LVL-04 — 전��� 시스템~~ (스코프 축소로 삭제)
@@ -205,7 +179,7 @@
 1. ~~A-1 (스킬트리) — DEPRECATED~~
 2. A-2 (아이템계 보스) — 아이템계 진행의 핵심 빈칸
 3. A-5 (경제 철학) — 모든 보상/드롭의 기초
-4. A-3 (재귀적 진입) — A-2 완료 후 진행 (보스 체계 의존)
+4. ~~A-3 (재귀적 진입) — DEPRECATED. 재귀적 중첩 진입 삭제~~
 5. ~~A-4 (이노센트 팜) — DEPRECATED~~
 ```
 
@@ -215,7 +189,7 @@
 ~~A-1 (스킬트리) — DEPRECATED~~
 A-2 (보스) ← 독립 (즉시 시작 가능)
 A-5 (경제) ← 독립 (즉시 시작 가능)
-A-3 (재귀) ← A-2 (보스 등급 체계 필요)
+~~A-3 (재귀) — DEPRECATED~~
 ~~A-4 (이노센트 팜) — DEPRECATED~~
 B-1~6 ← A 시리즈 완료 후
 ```

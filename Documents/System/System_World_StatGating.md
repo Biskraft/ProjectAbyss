@@ -234,7 +234,7 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 
 - **클리어 보상**: 보스 처치 시 장비 ATK 영구 증가 (IWC-06-A)
 - **지층 수 레어리티 비례**: 고레어리티 장비 = 더 많은 지층 = 더 많은 보상
-- **재귀적 진입**: 깊은 아이템계일수록 더 높은 ATK 증가 → 높은 임계값 게이트 해금
+- **순환 진입**: 더 높은 레어리티 아이템의 아이템계일수록 더 높은 ATK 증가 → 높은 임계값 게이트 해금
 
 ### 5.3. System_Equipment_Rarity.md와의 연동
 

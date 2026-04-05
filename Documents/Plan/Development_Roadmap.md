@@ -233,7 +233,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | SYS-MP-03 Network Sync | 물리/전투 동기화 |
 | SYS-ECO-01 Resources | 자원 순환 밸런스 |
 | ~~SYS-HUB-01 Facilities~~ | ~~허브 시설 — DEPRECATED. 대장간/상점은 월드 세이브 포인트로 통합~~ |
-| SYS-IW-03~06 | 아이템계 고급 (보스, 재귀, 이벤트, 지오) |
+| SYS-IW-03~06 | 아이템계 고급 (보스, ~~재귀 DEPRECATED~~, 이벤트, 지오) |
 | SYS-INC-03 | 듀얼 이노센트 |
 | 전체 UI 문서 (UI-01~06) | HUD, 인벤토리, 맵, 파티 UI |
 
