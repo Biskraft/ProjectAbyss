@@ -484,55 +484,43 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Enemy attacks — Sakurai: player hit feedback (vibration + flash + directional shake)
+    // Enemy contact damage — all enemies deal damage on body overlap
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      const isAttacking =
-        (enemy instanceof Skeleton || enemy instanceof GoldenMonster || enemy instanceof Guardian) &&
-        enemy.isAttackActive();
-      if (isAttacking) {
-        if (this.player.invincible || this.player.hp <= 0) continue;
-        const dx = Math.abs(
-          (enemy.x + enemy.width / 2) - (this.player.x + this.player.width / 2),
-        );
-        const dy = Math.abs(
-          (enemy.y + enemy.height / 2) - (this.player.y + this.player.height / 2),
-        );
-        if (
-          dx < enemy.width + this.player.width &&
-          dy < Math.max(enemy.height, this.player.height)
-        ) {
-          const dir = enemy.facingRight ? 1 : -1;
-          const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
-          this.player.onHit(dir * 100, -50, 200);
-          this.player.hp -= dmg;
-          this.player.invincible = true;
-          this.player.invincibleTimer = 500;
-          // if (enemy instanceof Skeleton) {
-          //   this.dialogueManager.fireEvent('first_skeleton_hit');
-          // }
+      if (this.player.invincible || this.player.hp <= 0) continue;
 
-          // Sakurai feedback: victim vibrates, flash, directional shake
-          this.player.startVibrate(4, 5, this.player.vy === 0);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 3;
-          this.game.camera.shakeDirectional(3, dir, -0.3);
-          this.screenFlash.flashDamage(dmg > 20);
+      const overlap = aabbOverlap(
+        { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+        { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height },
+      );
+      if (!overlap) continue;
 
-          // Hit spark at player position
-          const hitX = this.player.x + this.player.width / 2;
-          const hitY = this.player.y + this.player.height * 0.4;
-          this.hitSparks.spawn(hitX, hitY, false, -dir);
+      const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
+      const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
+      this.player.onHit(dir * 100, -50, 200);
+      this.player.hp -= dmg;
+      this.player.invincible = true;
+      this.player.invincibleTimer = 500;
 
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            // Kill = extra hitstop + heavy screen flash
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-        }
+      // Sakurai feedback: victim vibrates, flash, directional shake
+      this.player.startVibrate(4, 5, this.player.vy === 0);
+      this.player.triggerFlash();
+      this.game.hitstopFrames = 3;
+      this.game.camera.shakeDirectional(3, -dir, -0.3);
+      this.screenFlash.flashDamage(dmg > 20);
+
+      // Hit spark at player position
+      const hitX = this.player.x + this.player.width / 2;
+      const hitY = this.player.y + this.player.height * 0.4;
+      this.hitSparks.spawn(hitX, hitY, false, dir);
+
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.player.onDeath();
+        this.game.hitstopFrames = 8;
+        this.screenFlash.flashDamage(true);
       }
+      break; // one hit per frame
     }
 
     // Ability Relic pickups
@@ -542,12 +530,15 @@ export class LdtkWorldScene extends Scene {
       const dy = Math.abs((this.player.y + this.player.height / 2) - gfx.y);
       if (dx < 16 && dy < 16) {
         this.collectedRelics.add(relicKey);
-        if (abilityName === 'wallJump') {
+        if (abilityName === 'dash') {
+          this.player.abilities.dash = true;
+          this.toast.showBig('Dash unlocked!', 0xffd700);
+        } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
-          this.toast.show('Wall Jump unlocked!', 0xffd700);
+          this.toast.showBig('Wall Jump unlocked!', 0xffd700);
         } else if (abilityName === 'doubleJump') {
           this.player.abilities.doubleJump = true;
-          this.toast.show('Double Jump unlocked!', 0xffd700);
+          this.toast.showBig('Double Jump unlocked!', 0xffd700);
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);

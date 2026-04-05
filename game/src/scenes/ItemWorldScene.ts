@@ -217,6 +217,7 @@ export class ItemWorldScene extends Scene {
     this.player.maxHp = this.sourcePlayer.maxHp;
     this.player.atk = this.sourcePlayer.atk;
     this.player.def = this.sourcePlayer.def;
+    this.player.abilities.dash = this.sourcePlayer.abilities.dash;
     this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
     this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
     this.entityLayer.addChild(this.player.container);
@@ -1217,41 +1218,43 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Enemy attacks — Sakurai: player hit feedback
+    // Enemy contact damage — all enemies deal damage on body overlap
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      if ((enemy instanceof Skeleton || enemy instanceof Guardian) && enemy.isAttackActive()) {
-        if (this.player.invincible || this.player.hp <= 0) continue;
-        const dx = Math.abs((enemy.x + enemy.width / 2) - (this.player.x + this.player.width / 2));
-        const dy = Math.abs((enemy.y + enemy.height / 2) - (this.player.y + this.player.height / 2));
-        if (dx < enemy.width + this.player.width && dy < Math.max(enemy.height, this.player.height)) {
-          const dir = enemy.facingRight ? 1 : -1;
-          const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
-          this.player.onHit(dir * 100, -50, 200);
-          this.player.hp -= dmg;
-          this.player.invincible = true;
-          this.player.invincibleTimer = 500;
+      if (this.player.invincible || this.player.hp <= 0) continue;
 
-          // Sakurai feedback
-          this.player.startVibrate(4, 5, true);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 3;
-          this.game.camera.shakeDirectional(3, dir, -0.3);
-          this.screenFlash.flashDamage(dmg > 20);
-          this.hitSparks.spawn(
-            this.player.x + this.player.width / 2,
-            this.player.y + this.player.height * 0.4,
-            false, -dir,
-          );
+      const overlap = aabbOverlap(
+        { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+        { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height },
+      );
+      if (!overlap) continue;
 
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-        }
+      const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
+      const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
+      this.player.onHit(dir * 100, -50, 200);
+      this.player.hp -= dmg;
+      this.player.invincible = true;
+      this.player.invincibleTimer = 500;
+
+      // Sakurai feedback
+      this.player.startVibrate(4, 5, true);
+      this.player.triggerFlash();
+      this.game.hitstopFrames = 3;
+      this.game.camera.shakeDirectional(3, -dir, -0.3);
+      this.screenFlash.flashDamage(dmg > 20);
+      this.hitSparks.spawn(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height * 0.4,
+        false, dir,
+      );
+
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.player.onDeath();
+        this.game.hitstopFrames = 8;
+        this.screenFlash.flashDamage(true);
       }
+      break;
     }
 
     // Boss killed check — spawn exit portal at boss death location

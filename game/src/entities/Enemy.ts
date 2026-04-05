@@ -31,6 +31,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected attackCooldown: number;
   protected cooldownTimer = 0;
 
+  // Super armor — if true, hits don't interrupt actions (no hitstun/knockback)
+  superArmor = false;
+
   // Target reference
   target: CombatEntity | null = null;
   roomData: number[][] = [];
@@ -160,10 +163,13 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void {
     if (!this.alive) return;
-    this.vx = knockbackX;
-    this.vy = knockbackY;
-    this._hitstunTimer = hitstun;
-    this.fsm.transition('hit' as S);
+
+    if (!this.superArmor) {
+      this.vx = knockbackX;
+      this.vy = knockbackY;
+      this._hitstunTimer = hitstun;
+      this.fsm.transition('hit' as S);
+    }
 
     // Show HP bar on hit
     this.hpBarVisible = true;

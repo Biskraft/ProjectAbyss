@@ -57,6 +57,7 @@ export class Guardian extends Enemy<GuardianState> {
       moveSpeed: 50,          // slow patrol
       attackCooldown: COOLDOWN_NORMAL,
     });
+    this.superArmor = true;
   }
 
   protected setupStates(): void {

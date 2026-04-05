@@ -61,6 +61,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Abilities (unlocked by relic pickups)
   abilities = {
+    dash: false,
     wallJump: false,
     doubleJump: false,
   };
@@ -242,8 +243,8 @@ export class Player extends Entity implements CombatEntity {
 
     const state = this.fsm.currentState;
 
-    // Dash input (available from most states, cancels 3타 end lag)
-    if (this.game.input.isJustPressed(GameAction.DASH) &&
+    // Dash input (requires dash ability, available from most states, cancels 3타 end lag)
+    if (this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
         state !== 'dash' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
       if (canDash) {
@@ -456,7 +457,6 @@ export class Player extends Entity implements CombatEntity {
       this.airDashAvailable = false;
     }
     this.dashTimer = DASH_DURATION;
-    this.invincible = true;
 
     const input = this.game.input;
     if (input.isDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
@@ -471,7 +471,6 @@ export class Player extends Entity implements CombatEntity {
   private stateDash(dt: number): void {
     this.dashTimer -= dt;
     if (this.dashTimer <= 0) {
-      this.invincible = false;
       this.vx = this.dashDirX * MOVE_SPEED * 0.5;
       if (this.grounded) {
         this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');
