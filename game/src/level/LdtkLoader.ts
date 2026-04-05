@@ -116,6 +116,8 @@ export interface LdtkTile {
 export interface LdtkEntity {
   /** Entity type identifier, e.g. "Item", "SpawnPoint", "Door". */
   type: string;
+  /** Instance unique ID (UUID). Used for entity references. */
+  iid: string;
   /** Pixel position [x, y] of the entity's pivot, relative to level origin. */
   px: [number, number];
   /** Grid cell position [gx, gy] of the entity. */
@@ -157,6 +159,7 @@ interface RawLdtkAutoTile {
 interface RawLdtkEntityInstance {
   __identifier: string;
   __grid: [number, number];
+  iid: string;
   px: [number, number];
   width: number;
   height: number;
@@ -412,6 +415,7 @@ export class LdtkLoader {
   private parseEntities(instances: RawLdtkEntityInstance[]): LdtkEntity[] {
     return instances.map((inst) => ({
       type: inst.__identifier,
+      iid: inst.iid ?? '',
       px: [inst.px[0], inst.px[1]],
       grid: [inst.__grid[0], inst.__grid[1]],
       width: inst.width,

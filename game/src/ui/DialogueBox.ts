@@ -73,7 +73,7 @@ export class DialogueBox {
     this.container.addChild(this.bodyText);
 
     this.advanceHint = new BitmapText({
-      text: 'Z',
+      text: 'X',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
     this.advanceHint.x = HINT_X;

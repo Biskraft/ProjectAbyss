@@ -1,13 +1,20 @@
 /**
- * LockedDoor.ts — A barrier that blocks passage until an event unlocks it.
+ * LockedDoor.ts — A barrier that blocks passage until unlocked.
+ *
+ * Unlock conditions:
+ *  - 'event':  unlocked externally via unlockDoors(eventName)
+ *  - 'switch': player attacks the door to unlock it
+ *  - 'stat':   player attacks the door AND meets a stat threshold (e.g. ATK >= 40)
  *
  * Renders as a solid colored rect matching the entity size.
  * Injects collision tiles into the grid on spawn, removes them on unlock.
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 
 const TILE_SIZE = 16;
+
+export type UnlockCondition = 'event' | 'switch' | 'stat';
 
 export class LockedDoor {
   container: Container;
@@ -15,31 +22,92 @@ export class LockedDoor {
   y: number;
   width: number;
   height: number;
+
+  /** LDtk entity instance ID — used by Switch entity references. */
+  iid: string;
+  /** For 'event' condition: the event name that unlocks this door. */
   unlockEvent: string;
+  /** What kind of condition unlocks this door. */
+  unlockCondition: UnlockCondition;
+  /** For 'stat' condition: which stat to check (e.g. 'atk'). */
+  statType: string;
+  /** For 'stat' condition: minimum stat value required. */
+  statThreshold: number;
+
   locked = true;
 
   private gfx: Graphics;
+  private label: Text | null = null;
   /** Collision grid cells this door occupies — stored for removal on unlock. */
   private gridCells: { col: number; row: number }[] = [];
 
-  constructor(x: number, y: number, width: number, height: number, unlockEvent: string) {
+  /** Reject animation timer (ms remaining). */
+  private rejectTimer = 0;
+  private rejectShakeOffset = 0;
+
+  constructor(
+    x: number, y: number,
+    width: number, height: number,
+    iid: string,
+    unlockCondition: UnlockCondition,
+    unlockEvent: string,
+    statType: string,
+    statThreshold: number,
+  ) {
     // Entity pivot is bottom-center, so adjust y
     this.x = x - width / 2;
     this.y = y - height;
     this.width = width;
     this.height = height;
+    this.iid = iid;
+    this.unlockCondition = unlockCondition;
     this.unlockEvent = unlockEvent;
+    this.statType = statType;
+    this.statThreshold = statThreshold;
 
     this.container = new Container();
     this.container.x = this.x;
     this.container.y = this.y;
 
     this.gfx = new Graphics();
-    this.gfx.rect(0, 0, width, height).fill({ color: 0x8b4513, alpha: 0.9 });
-    this.gfx.rect(0, 0, width, height).stroke({ color: 0x5a2d0c, width: 1 });
-    // Door frame lines
-    this.gfx.rect(2, 2, width - 4, height - 4).stroke({ color: 0xa0522d, width: 1 });
+    this.drawDoor();
     this.container.addChild(this.gfx);
+
+    // Show stat threshold label for 'stat' condition doors
+    if (unlockCondition === 'stat' && statThreshold > 0) {
+      const style = new TextStyle({
+        fontFamily: 'monospace',
+        fontSize: 8,
+        fill: 0xff4444,
+        align: 'center',
+        fontWeight: 'bold',
+      });
+      this.label = new Text({ text: `${statType.toUpperCase()} ${statThreshold}`, style });
+      this.label.anchor.set(0.5, 0.5);
+      this.label.x = width / 2;
+      this.label.y = height / 2;
+      this.container.addChild(this.label);
+    }
+  }
+
+  private drawDoor(): void {
+    this.gfx.clear();
+    const color = this.unlockCondition === 'stat' ? 0x994422 : 0x8b4513;
+    this.gfx.rect(0, 0, this.width, this.height).fill({ color, alpha: 0.9 });
+    this.gfx.rect(0, 0, this.width, this.height).stroke({ color: 0x5a2d0c, width: 1 });
+    this.gfx.rect(2, 2, this.width - 4, this.height - 4).stroke({ color: 0xa0522d, width: 1 });
+
+    // Stat doors get crack lines to hint at destructibility
+    if (this.unlockCondition === 'stat' || this.unlockCondition === 'switch') {
+      this.gfx.moveTo(4, this.height * 0.3)
+        .lineTo(this.width * 0.4, this.height * 0.5)
+        .lineTo(6, this.height * 0.7)
+        .stroke({ color: 0x332211, width: 1 });
+      this.gfx.moveTo(this.width - 4, this.height * 0.25)
+        .lineTo(this.width * 0.6, this.height * 0.45)
+        .lineTo(this.width - 6, this.height * 0.65)
+        .stroke({ color: 0x332211, width: 1 });
+    }
   }
 
   /** Inject solid collision tiles into the grid. */
@@ -61,7 +129,33 @@ export class LockedDoor {
     }
   }
 
-  /** Remove collision and hide the door. */
+  /**
+   * Try to unlock via player attack. Returns result:
+   *  - 'unlocked': door opens
+   *  - 'rejected': stat too low, plays reject animation
+   *  - 'ignored':  this door doesn't respond to attacks (event-type)
+   */
+  tryAttackUnlock(playerStats: Record<string, number>, grid: number[][]): 'unlocked' | 'rejected' | 'ignored' {
+    if (!this.locked) return 'ignored';
+
+    // 'event' and 'switch' doors don't respond to direct attacks.
+    // 'switch' doors are unlocked by hitting a linked Switch entity.
+    if (this.unlockCondition === 'event' || this.unlockCondition === 'switch') return 'ignored';
+
+    if (this.unlockCondition === 'stat') {
+      const val = playerStats[this.statType] ?? 0;
+      if (val >= this.statThreshold) {
+        this.unlock(grid);
+        return 'unlocked';
+      }
+      this.reject();
+      return 'rejected';
+    }
+
+    return 'ignored';
+  }
+
+  /** Remove collision and hide the door with a brief break effect. */
   unlock(grid: number[][]): void {
     if (!this.locked) return;
     this.locked = false;
@@ -73,6 +167,36 @@ export class LockedDoor {
       }
     }
     this.gridCells = [];
+  }
+
+  /** Play reject animation — shake + red flash. */
+  private reject(): void {
+    this.rejectTimer = 400; // ms
+  }
+
+  /** Call every frame with dt in ms. */
+  update(dt: number): void {
+    if (this.rejectTimer > 0) {
+      this.rejectTimer -= dt;
+      // Shake horizontally
+      this.rejectShakeOffset = Math.sin(this.rejectTimer * 0.05) * 3;
+      this.container.x = this.x + this.rejectShakeOffset;
+
+      // Flash red tint
+      const flash = Math.sin(this.rejectTimer * 0.02) > 0;
+      if (this.label) this.label.style.fill = flash ? 0xff0000 : 0xff4444;
+
+      if (this.rejectTimer <= 0) {
+        this.rejectTimer = 0;
+        this.container.x = this.x;
+        if (this.label) this.label.style.fill = 0xff4444;
+      }
+    }
+  }
+
+  /** Get the door's AABB for hit detection. */
+  getHitAABB(): { x: number; y: number; width: number; height: number } {
+    return { x: this.x, y: this.y, width: this.width, height: this.height };
   }
 
   destroy(): void {

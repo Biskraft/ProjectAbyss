@@ -33,7 +33,8 @@ import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { Anvil } from '@entities/Anvil';
-import { LockedDoor } from '@entities/LockedDoor';
+import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
+import { Switch } from '@entities/Switch';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -88,6 +89,7 @@ export class LdtkWorldScene extends Scene {
     x: number; y: number; w: number; h: number;
     zoom: number; deadZoneX: number; deadZoneY: number;
     lookAheadDistance: number; followLerp: number; zoomLerp: number;
+    entireLevel: boolean;
   }[] = [];
   private activeCameraZone: typeof this.cameraZones[number] | null = null;
 
@@ -163,6 +165,7 @@ export class LdtkWorldScene extends Scene {
   private collectedRelics: Set<string> = new Set();
   private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
   private lockedDoors: LockedDoor[] = [];
+  private switches: Switch[] = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
@@ -220,9 +223,9 @@ export class LdtkWorldScene extends Scene {
     this.hud = new HUD();
     this.game.app.stage.addChild(this.hud.container);
 
-    // Controls overlay
-    this.controlsOverlay = new ControlsOverlay();
-    this.game.app.stage.addChild(this.controlsOverlay.container);
+    // Controls overlay (disabled)
+    // this.controlsOverlay = new ControlsOverlay();
+    // this.game.app.stage.addChild(this.controlsOverlay.container);
 
     // Toast, damage numbers, hit sparks, screen flash
     this.toast = new ToastManager(this.game.app.stage);
@@ -498,9 +501,9 @@ export class LdtkWorldScene extends Scene {
           this.player.hp -= dmg;
           this.player.invincible = true;
           this.player.invincibleTimer = 500;
-          if (enemy instanceof Skeleton) {
-            this.dialogueManager.fireEvent('first_skeleton_hit');
-          }
+          // if (enemy instanceof Skeleton) {
+          //   this.dialogueManager.fireEvent('first_skeleton_hit');
+          // }
 
           // Sakurai feedback: victim vibrates, flash, directional shake
           this.player.startVibrate(4, 5, this.player.vy === 0);
@@ -554,7 +557,7 @@ export class LdtkWorldScene extends Scene {
         if (this.inventory.add(drop.item)) {
           this.game.stats.itemsCollected++;
           this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
-          this.tutorialHint.tryShow('hint_inventory', 'I: Open Inventory  Z: Equip/Unequip');
+          this.tutorialHint.tryShow('hint_inventory', 'I: Open Inventory  X: Equip/Unequip');
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
           drop.destroy();
@@ -574,6 +577,11 @@ export class LdtkWorldScene extends Scene {
 
     // Anvil interaction + attack hit detection
     this.updateAnvil(dt);
+
+    // Locked door & switch attack detection + update
+    this.checkAttackOnDoors();
+    this.checkAttackOnSwitches();
+    for (const door of this.lockedDoors) door.update(dt);
 
     // Portal interactions
     this.updatePortals(dt);
@@ -622,9 +630,9 @@ export class LdtkWorldScene extends Scene {
     this.tutorialHint.destroy();
     this.dialogueManager.destroy();
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.controlsOverlay?.container.parent) {
-      this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
-    }
+    // if (this.controlsOverlay?.container.parent) {
+    //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
+    // }
     if (this.inventoryUI?.container.parent) {
       this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
     }
@@ -682,14 +690,14 @@ export class LdtkWorldScene extends Scene {
       // 2. After 1s → dialogue → 3. portal
       setTimeout(async () => {
         if (!this.initialized) return;
-        await this.dialogueManager.fireEvent('first_boss_kill');
+        // await this.dialogueManager.fireEvent('first_boss_kill');
         if (!this.initialized) return;
         this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
       }, 1000);
     } else if (enemy instanceof Slime) {
-      setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
+      // setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
     } else if (enemy instanceof Skeleton) {
-      setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
+      // setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
     }
     const isGolden = enemy instanceof GoldenMonster;
     const drop = isGolden
@@ -741,8 +749,9 @@ export class LdtkWorldScene extends Scene {
     }
     this.spawnAnvilFromLdtk(level);
 
-    // Spawn locked doors
+    // Spawn locked doors and switches
     this.spawnLockedDoors(level);
+    this.spawnSwitches(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -856,9 +865,9 @@ export class LdtkWorldScene extends Scene {
    */
   private snapToFloor(grid: number[][], tileX: number, passageRow: number, entityHeight: number): number {
     const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
-    // Scan down from passage row to find first solid tile below
+    // Scan down from passage row to find first solid (non-water) tile below
     for (let row = passageRow; row < grid.length; row++) {
-      if (grid[row][clampedX] >= 1) {
+      if (grid[row][clampedX] === 1) {
         // Floor found — place entity on top of it
         return row * TILE_SIZE - entityHeight;
       }
@@ -873,22 +882,24 @@ export class LdtkWorldScene extends Scene {
    */
   private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down', hintTile = -1): number {
     const openTiles: number[] = [];
+    // 0 = empty, 2 = water — both are passable
+    const isPassable = (v: number) => v === 0 || v === 2;
 
     switch (edge) {
       case 'left':
-        for (let row = 0; row < grid.length; row++) { if (grid[row][0] === 0) openTiles.push(row); }
+        for (let row = 0; row < grid.length; row++) { if (isPassable(grid[row][0])) openTiles.push(row); }
         break;
       case 'right': {
         const col = (grid[0]?.length ?? 1) - 1;
-        for (let row = 0; row < grid.length; row++) { if (grid[row][col] === 0) openTiles.push(row); }
+        for (let row = 0; row < grid.length; row++) { if (isPassable(grid[row][col])) openTiles.push(row); }
         break;
       }
       case 'up':
-        for (let col = 0; col < (grid[0]?.length ?? 0); col++) { if (grid[0]?.[col] === 0) openTiles.push(col); }
+        for (let col = 0; col < (grid[0]?.length ?? 0); col++) { if (isPassable(grid[0]?.[col])) openTiles.push(col); }
         break;
       case 'down': {
         const lastRow = grid[grid.length - 1] ?? [];
-        for (let col = 0; col < lastRow.length; col++) { if (lastRow[col] === 0) openTiles.push(col); }
+        for (let col = 0; col < lastRow.length; col++) { if (isPassable(lastRow[col])) openTiles.push(col); }
         break;
       }
     }
@@ -939,15 +950,24 @@ export class LdtkWorldScene extends Scene {
 
     const doorEntities = level.entities.filter(e => e.type === 'LockedDoor');
     for (const ent of doorEntities) {
-      const unlockEvent = (ent.fields['unlockEvent'] as string) || 'marta_sequence_complete';
+      const unlockCondition = (ent.fields['unlockCondition'] as UnlockCondition) || 'event';
+      const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
+      const statType = (ent.fields['statType'] as string) || 'atk';
+      const statThreshold = (ent.fields['statThreshold'] as number) || 0;
 
-      // Already unlocked — skip
-      if (this.unlockedEvents.has(unlockEvent)) continue;
+      // Already unlocked — skip (event-based doors use unlockEvent key, others use position key)
+      const doorKey = unlockCondition === 'event'
+        ? unlockEvent
+        : `door_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+      if (this.unlockedEvents.has(doorKey)) continue;
 
       const door = new LockedDoor(
         ent.px[0], ent.px[1],
         ent.width, ent.height,
-        unlockEvent,
+        unlockCondition,
+        unlockCondition === 'event' ? unlockEvent : doorKey,
+        statType,
+        statThreshold,
       );
       door.injectCollision(this.collisionGrid);
       this.lockedDoors.push(door);
@@ -964,6 +984,95 @@ export class LdtkWorldScene extends Scene {
         door.unlock(this.collisionGrid);
         door.destroy();
         this.lockedDoors.splice(i, 1);
+      }
+    }
+  }
+
+  /** Check player attack against locked doors (switch/stat conditions). */
+  private checkAttackOnDoors(): void {
+    if (!this.player.isAttackActive()) return;
+
+    const step = COMBO_STEPS[this.player.comboIndex];
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
+      const door = this.lockedDoors[i];
+      if (!door.locked) continue;
+      if (!aabbOverlap(hitbox, door.getHitAABB())) continue;
+
+      const playerStats: Record<string, number> = {
+        atk: this.player.atk,
+        def: this.player.def,
+      };
+
+      const result = door.tryAttackUnlock(playerStats, this.collisionGrid);
+
+      if (result === 'unlocked') {
+        this.unlockedEvents.add(door.unlockEvent);
+        // Break effect — camera shake + flash
+        this.game.camera.shake(6);
+        this.screenFlash.flashHit(true);
+        this.toast.show('Gate Destroyed!', 0x44ffaa);
+        door.destroy();
+        this.lockedDoors.splice(i, 1);
+      } else if (result === 'rejected') {
+        // Brief shake + feedback
+        this.game.camera.shake(2);
+        const threshold = door.statThreshold;
+        const current = playerStats[door.statType] ?? 0;
+        this.toast.show(`${door.statType.toUpperCase()} ${current} / ${threshold} required`, 0xff4444);
+      }
+    }
+  }
+
+  private spawnSwitches(level: LdtkLevel): void {
+    for (const sw of this.switches) sw.destroy();
+    this.switches = [];
+
+    const switchEntities = level.entities.filter(e => e.type === 'Switch');
+    for (const ent of switchEntities) {
+      const targetEvent = (ent.fields['targetEvent'] as string) || '';
+      if (!targetEvent) continue;
+
+      // Already activated — show activated state
+      const sw = new Switch(
+        ent.px[0], ent.px[1],
+        ent.width, ent.height,
+        targetEvent,
+      );
+      if (this.unlockedEvents.has(targetEvent)) {
+        sw.activate();
+      }
+      this.switches.push(sw);
+      this.entityLayer.addChild(sw.container);
+    }
+  }
+
+  /** Check player attack against switches. */
+  private checkAttackOnSwitches(): void {
+    if (!this.player.isAttackActive()) return;
+
+    const step = COMBO_STEPS[this.player.comboIndex];
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    for (const sw of this.switches) {
+      if (sw.activated) continue;
+      if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
+
+      if (sw.activate()) {
+        this.game.camera.shake(3);
+        this.unlockDoors(sw.targetEvent);
+        this.toast.show('Switch Activated!', 0x44ffaa);
       }
     }
   }
@@ -1135,6 +1244,7 @@ export class LdtkWorldScene extends Scene {
             lookAheadDistance: ent.fields['lookAheadDistance'] as number ?? 0,
             followLerp: ent.fields['followLerp'] as number ?? 0.08,
             zoomLerp: ent.fields['zoomLerp'] as number ?? 0.05,
+            entireLevel: ent.fields['entireLevel'] as boolean ?? false,
           });
           break;
         }
@@ -1175,8 +1285,9 @@ export class LdtkWorldScene extends Scene {
 
     let insideZone: typeof this.cameraZones[number] | null = null;
     for (const zone of this.cameraZones) {
-      if (pcx >= zone.x && pcx <= zone.x + zone.w &&
-          pcy >= zone.y && pcy <= zone.y + zone.h) {
+      if (zone.entireLevel ||
+          (pcx >= zone.x && pcx <= zone.x + zone.w &&
+           pcy >= zone.y && pcy <= zone.y + zone.h)) {
         insideZone = zone;
         break;
       }
@@ -1222,26 +1333,25 @@ export class LdtkWorldScene extends Scene {
     const playerTileY = Math.floor((py + ph / 2) / TILE_SIZE);
     const playerTileX = Math.floor((px + pw / 2) / TILE_SIZE);
 
+    // Edge tile is passable if empty (0) or water (2)
+    const passable = (tile: number | undefined) => tile === 0 || tile === 2;
+
     if (px + pw > level.pxWid - TILE_SIZE) {
-      // Check if the rightmost column at player's height is open
       const edgeCol = level.gridW - 1;
-      if (playerTileY >= 0 && playerTileY < level.gridH && grid[playerTileY]?.[edgeCol] === 0) {
+      if (playerTileY >= 0 && playerTileY < level.gridH && passable(grid[playerTileY]?.[edgeCol])) {
         direction = 'right';
       }
     } else if (px < TILE_SIZE) {
-      // Check leftmost column
-      if (playerTileY >= 0 && playerTileY < level.gridH && grid[playerTileY]?.[0] === 0) {
+      if (playerTileY >= 0 && playerTileY < level.gridH && passable(grid[playerTileY]?.[0])) {
         direction = 'left';
       }
     } else if (py + ph > level.pxHei - TILE_SIZE) {
-      // Check bottom row
       const edgeRow = level.gridH - 1;
-      if (playerTileX >= 0 && playerTileX < level.gridW && grid[edgeRow]?.[playerTileX] === 0) {
+      if (playerTileX >= 0 && playerTileX < level.gridW && passable(grid[edgeRow]?.[playerTileX])) {
         direction = 'down';
       }
     } else if (py < TILE_SIZE) {
-      // Check top row
-      if (playerTileX >= 0 && playerTileX < level.gridW && grid[0]?.[playerTileX] === 0) {
+      if (playerTileX >= 0 && playerTileX < level.gridW && passable(grid[0]?.[playerTileX])) {
         direction = 'up';
       }
     }
@@ -1254,11 +1364,13 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Pass player's world position so we pick the correct neighbor
+    // Pass player's world position (center) so we pick the correct neighbor
     // when multiple neighbors share the same edge (e.g. two rooms to the right)
-    const playerWorldX = this.currentLevel.worldX + px;
-    const playerWorldY = this.currentLevel.worldY + py;
+    const playerWorldX = this.currentLevel.worldX + px + pw / 2;
+    const playerWorldY = this.currentLevel.worldY + py + ph / 2;
+    console.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
     const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
+    console.log(`[EdgeTransition] → neighborId=${neighborId}`);
     if (!neighborId) return;
 
     this.startTransition(direction, neighborId);
@@ -1295,17 +1407,27 @@ export class LdtkWorldScene extends Scene {
     if (candidates.length === 1) return candidates[0];
 
     // Multiple candidates — pick the one whose rect contains the player position
+    // Use half-open intervals but pick the CLOSEST candidate as fallback
+    // instead of blindly returning candidates[0].
     if (candidates.length > 1) {
+      let bestId: string | null = null;
+      let bestDist = Infinity;
       for (const nId of candidates) {
         const nb = this.loader.getLevel(nId);
         if (!nb) continue;
         if (direction === 'left' || direction === 'right') {
-          if (playerWorldY >= nb.worldY && playerWorldY < nb.worldY + nb.pxHei) return nId;
+          const nbMidY = nb.worldY + nb.pxHei / 2;
+          const dist = Math.abs(playerWorldY - nbMidY);
+          if (playerWorldY >= nb.worldY && playerWorldY <= nb.worldY + nb.pxHei) return nId;
+          if (dist < bestDist) { bestDist = dist; bestId = nId; }
         } else {
-          if (playerWorldX >= nb.worldX && playerWorldX < nb.worldX + nb.pxWid) return nId;
+          const nbMidX = nb.worldX + nb.pxWid / 2;
+          const dist = Math.abs(playerWorldX - nbMidX);
+          if (playerWorldX >= nb.worldX && playerWorldX <= nb.worldX + nb.pxWid) return nId;
+          if (dist < bestDist) { bestDist = dist; bestId = nId; }
         }
       }
-      return candidates[0]; // fallback to first
+      return bestId ?? candidates[0];
     }
 
     // No dirNeighbors — geometric fallback with player position check
@@ -1324,9 +1446,9 @@ export class LdtkWorldScene extends Scene {
       if (direction === 'up')    edge = Math.abs(nbB - cur.worldY) <= T && cur.worldX < nbR && curRight > nb.worldX;
       if (edge) {
         if (direction === 'left' || direction === 'right') {
-          if (playerWorldY >= nb.worldY && playerWorldY < nb.worldY + nb.pxHei) return nId;
+          if (playerWorldY >= nb.worldY && playerWorldY <= nb.worldY + nb.pxHei) return nId;
         } else {
-          if (playerWorldX >= nb.worldX && playerWorldX < nb.worldX + nb.pxWid) return nId;
+          if (playerWorldX >= nb.worldX && playerWorldX <= nb.worldX + nb.pxWid) return nId;
         }
       }
     }
@@ -1881,7 +2003,7 @@ export class LdtkWorldScene extends Scene {
 
           // First commission sword placement — Screen 8 dialogue
           if (item.commission) {
-            this.dialogueManager.fireEvent('first_anvil_commission');
+            // this.dialogueManager.fireEvent('first_anvil_commission');
           } else {
             this.toast.show('Strike the anvil!', 0xff8844);
           }
@@ -2070,7 +2192,7 @@ export class LdtkWorldScene extends Scene {
     // First entry landing dialogue (Screen 10)
     if (this.game.stats.firstEchoStrike && !this.game.stats.firstItemWorldLanding) {
       this.game.stats.firstItemWorldLanding = true;
-      setTimeout(() => this.dialogueManager.fireEvent('first_itemworld_landing'), 1500);
+      // setTimeout(() => this.dialogueManager.fireEvent('first_itemworld_landing'), 1500);
     }
   }
 
@@ -2112,20 +2234,20 @@ export class LdtkWorldScene extends Scene {
    * freezePlayer dialogues chained sequentially.
    */
   private async runForgeReturnSequence(): Promise<void> {
-    // Screen 15 — check sword stats
-    await this.dialogueManager.fireEvent('forge_return_check');
-    // Screen 15 — refusal
-    await this.dialogueManager.fireEvent('forge_return_refusal');
-    // Screen 16 — Marta's note (echo_shelved)
-    await this.dialogueManager.fireEvent('echo_shelved');
-    // Screen 17 — Sera silhouette
-    await this.dialogueManager.fireEvent('marta_note_complete');
+    // // Screen 15 — check sword stats
+    // await this.dialogueManager.fireEvent('forge_return_check');
+    // // Screen 15 — refusal
+    // await this.dialogueManager.fireEvent('forge_return_refusal');
+    // // Screen 16 — Marta's note (echo_shelved)
+    // await this.dialogueManager.fireEvent('echo_shelved');
+    // // Screen 17 — Sera silhouette
+    // await this.dialogueManager.fireEvent('marta_note_complete');
     // Unlock the door
     this.unlockDoors('marta_sequence_complete');
-    // Hint to leave
-    setTimeout(() => {
-      this.dialogueManager.fireEvent('forge_return_hint');
-    }, 500);
+    // // Hint to leave
+    // setTimeout(() => {
+    //   this.dialogueManager.fireEvent('forge_return_hint');
+    // }, 500);
   }
 
   // ---------------------------------------------------------------------------
@@ -2137,12 +2259,12 @@ export class LdtkWorldScene extends Scene {
    * - echo_shelved → marta_note_complete (with silhouette)
    */
   async fireNarrativeEvent(eventName: string): Promise<void> {
-    await this.dialogueManager.fireEvent(eventName);
+    // await this.dialogueManager.fireEvent(eventName);
 
-    // Chain: after Marta's note, fire silhouette event
-    if (eventName === 'echo_shelved') {
-      await this.showSeraSilhouette();
-    }
+    // // Chain: after Marta's note, fire silhouette event
+    // if (eventName === 'echo_shelved') {
+    //   await this.showSeraSilhouette();
+    // }
   }
 
   /**
@@ -2169,7 +2291,7 @@ export class LdtkWorldScene extends Scene {
     this.entityLayer.addChild(silhouette);
 
     // 3. Fire the dialogue
-    await this.dialogueManager.fireEvent('marta_note_complete');
+    // await this.dialogueManager.fireEvent('marta_note_complete');
 
     // 4. Fade out silhouette
     const fadeMs = 500;

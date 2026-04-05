@@ -20,7 +20,7 @@
 
 ## 구현 현황 (Implementation Status)
 
-> **최근 업데이트:** 2026-04-01
+> **최근 업데이트:** 2026-04-05
 > **문서 상태:** `작성 중 (Draft)`
 > **3-Space:** Item World
 > **기둥:** 야리코미 (주), 온라인 멀티플레이 (부)
@@ -31,7 +31,7 @@
 | IWB-01-B   | 코어       | 첫 보스 참조 명세 — 그림자 검사 (Shadow Swordsman)             |    P0    | 대기      | CNT-EXP-001 Screen 13 확정 스펙. 섹션 2.9 참조        |
 | IWB-02-A   | FSM        | 보스 AI 상태 머신 (IDLE/ENGAGE/ATTACK/STAGGER/PHASE_CHANGE/DEAD) |    P1    | 대기      | 6상태 FSM                                             |
 | IWB-02-B   | BT         | 패턴 선택 행동 트리 (Behavior Tree)                            |    P1    | 대기      | 가중 랜덤 풀에서 선택                                 |
-| IWB-03-A   | 패턴       | 6분류 × 23서브 패턴 정의                                       |    P1    | 대기      | 근접/돌진/투사체/장판/소환/특수                        |
+| IWB-03-A   | 패턴       | 6분류 × 25서브 패턴 정의                                       |    P1    | 대기      | 근접/돌진/투사체/장판/소환/특수                        |
 | IWB-04-A   | 텔레그래프 | 다중 감각 텔레그래프 시스템                                    |    P1    | 대기      | 시각+색상+음향+포지션+UI 5채널                         |
 | IWB-04-B   | 텔레그래프 | 등급별 텔레그래프 배율 적용                                    |    P1    | 대기      | 장군×1.2 ~ 대신×0.7                                  |
 | IWB-05-A   | 페이즈     | HP 임계점 기반 페이즈 전환 (100%/75%/50%/25%)                  |    P1    | 대기      | 4페이즈 구조. 대신 전용                               |
@@ -249,7 +249,7 @@
 
 ### 2.4. 공격 패턴 분류 (Attack Pattern Classification)
 
-모든 보스 패턴은 6개 주분류와 23개 서브분류로 정의된다. 각 등급의 패턴 풀은 이 분류에서 조합된다.
+모든 보스 패턴은 6개 주분류와 25개 서브분류로 정의된다. 각 등급의 패턴 풀은 이 분류에서 조합된다.
 
 #### 분류 1: 근접 공격 (Melee)
 
@@ -650,8 +650,9 @@ telegraph_timing:
     projectile: 300
     area_denial: 600
     summon:     500
-    special_parriable: 350
-    special_dodge_only: 300
+    special_dodge_only: 300   # SPC-02 회피 전용 공격
+    special_teleport: 300     # SPC-04 순간이동
+    special_phase_only: 350   # SPC-03 분노 돌입, SPC-05 기억 해방
 
   # 등급별 배율 (섹션 2.6과 동기화)
   tier_multiplier:
@@ -857,7 +858,7 @@ checksum 함수: isComboFeasible(activePatterns[], arenaLayout)
 
 | 의존 대상 | 요구 내용 |
 | :--- | :--- |
-| `System_ItemWorld_Core.md` (SYS-IW-01) | 현재 아이템 레어리티, 지층 번호, 파티 인원 수, itemLevel, `recursionDepth` |
+| `System_ItemWorld_Core.md` (SYS-IW-01) | 현재 아이템 레어리티, 지층 번호, 파티 인원 수, `itemLevel` |
 | `System_ItemWorld_FloorGen.md` (SYS-IW-02) | 생성 시드 (보스 레이어 3수식어 및 레이어 4아레나 변형 결정에 사용), 보스 방 배치 좌표 |
 | `System_Combat_Damage.md` | 데미지 공식 (보스 공격 → 플레이어, 플레이어 공격 → 보스 모두) |
 | `System_Combat_HitFeedback.md` | 히트스탑 프레임, 카메라 쉐이크 파라미터 |

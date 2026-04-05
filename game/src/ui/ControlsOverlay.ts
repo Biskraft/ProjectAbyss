@@ -17,8 +17,8 @@ export class ControlsOverlay {
 
   private static readonly CONTROLS: [string, string][] = [
     ['← →', 'Move'],
-    ['Z', 'Attack'],
-    ['X', 'Jump'],
+    ['Z', 'Jump'],
+    ['X', 'Attack'],
     ['C', 'Dash'],
     ['I', 'Item'],
   ];

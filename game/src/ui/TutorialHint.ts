@@ -1,7 +1,7 @@
 /**
  * TutorialHint.ts — One-time tutorial popups.
  *
- * Shows a semi-transparent panel at top-center, auto-dismisses after 4s or on Z key.
+ * Shows a semi-transparent panel at top-center, auto-dismisses after 4s or on X key.
  * Each hint ID fires at most once per session.
  */
 
@@ -70,7 +70,7 @@ export class TutorialHint {
 
     this.timer -= dt;
 
-    // Z key to dismiss immediately
+    // X key (attack) to dismiss immediately
     if (this.input.isJustPressed(GameAction.ATTACK)) {
       this.input.consumeJustPressed(GameAction.ATTACK);
       this.timer = Math.min(this.timer, FADE_DURATION);
