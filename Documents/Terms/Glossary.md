@@ -37,8 +37,8 @@
 | Bulkhead | 격벽 | 층위(Tier) 사이를 분리하는 세계수 Yggveil의 수평 가지 구조물. 각 격벽은 특정 능력 게이트로 기능하며, 해당 능력을 획득해야 통과할 수 있다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_World_MapStructure.md` |
 | Bulkhead Surveyor | 격벽 측량사 | 격벽 사이의 통행로를 점검하고 유지하는 독립 계약직. 에르다 벤-나흐트의 부업. 망치 에코로 격벽을 두드려 구조적 약점과 숨겨진 통로를 탐지한다. | `Documents/Content/Content_World_Bible.md` |
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
-| Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다. | `Documents/System/System_Combat_Action.md` |
-| Cooldown | 쿨다운 | 스킬 또는 대시를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3~15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
+| Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다(대시 렐릭 획득 후). | `Documents/System/System_Combat_Action.md` |
+| Cooldown | 쿨다운 | 스킬 또는 대시(렐릭 해금 후)를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3~15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
 | Core Loop | 핵심 순환 | 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 층위 탐험으로 이어지는 Project Abyss의 주요 순환 구조. | `Documents/Design/Design_CoreLoop_Circulation.md`, `Reference/게임 기획 개요.md` |
 | Critical Path | 크리티컬 패스 | 절차적으로 생성된 Room Grid에서 입구부터 출구까지 플레이어가 반드시 통과 가능한 경로. 생성 알고리즘이 이 경로를 최우선으로 보장한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 

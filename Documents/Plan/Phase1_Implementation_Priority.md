@@ -21,7 +21,7 @@
 
 | 순서 | 시스템 | 구현 내용 | 참조 문서 | 완료 기준 |
 |:----:|:-------|:----------|:----------|:----------|
-| **1** | 3C (이동/점프/대시) | 에르다 이동, 점프, 대시 i-frame (240ms) | `System_3C_Character.md`, `System_3C_Control.md` | 플랫폼 위를 자유롭게 이동하고, 대시로 적 공격을 회피할 수 있다 |
+| **1** | 3C (이동/점프) | 에르다 이동, 점프. 대시는 렐릭 해금 후 활성화 | `System_3C_Character.md`, `System_3C_Control.md` | 플랫폼 위를 자유롭게 이동하고, 점프로 장애물을 넘을 수 있다 |
 | **2** | 검 전투 | 3타 콤보, 히트스탑 (2~4f), 넉백, 데미지(ATK-DEF) | `System_Combat_Action.md`, `System_Combat_Damage.md`, `System_Combat_Weapons.md` | 적을 때렸을 때 "맞았다"는 감각이 명확하다 |
 | **3** | 아이템계 진입/탈출 | 장비 선택 → 진입 연출 → 내부 로드 → 탈출 | `System_ItemWorld_Core.md` | "아이템 속으로 들어간다"는 경험이 시각적으로 전달된다 |
 | **4** | 절차적 방 생성 | 4×4 Room Grid, 템플릿 기반 방 조립, Critical Path 보장 | `System_ItemWorld_FloorGen.md` | 매번 다른 맵이 생성되고, 시작→끝 경로가 항상 존재한다 |

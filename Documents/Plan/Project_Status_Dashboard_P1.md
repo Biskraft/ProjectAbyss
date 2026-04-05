@@ -55,7 +55,7 @@
 | CHR-01-A | 시스템 | 기본 이동 (가속/감속) | P1 | ✅ 구현 완료 | Player.ts: applyHorizontalInput(), MOVE_SPEED=192 |
 | CHR-01-B | 시스템 | 고정 높이 점프 | P1 | ✅ 구현 완료 | Player.ts: tryJump(), JUMP_HEIGHT=80 |
 | CHR-01-C | 시스템 | Coyote Time / Jump Buffer | P1 | ✅ 구현 완료 | Player.ts: COYOTE_TIME=150ms, JUMP_BUFFER=250ms |
-| CHR-02-D | 시스템 | 대시 (Dash) | P1 | ✅ 구현 완료 | Player.ts: startDash/stateDash, i-frame, 지상/공중 분리 쿨다운 |
+| CHR-02-D | 시스템 | 대시 (Dash) — 렐릭 해금 | P2 | ✅ 코드 완료 | Player.ts: startDash/stateDash, i-frame. 렐릭 시스템 연동 필요 (획득 전 비활성) |
 | CHR-03-A | 시스템 | 벽 슬라이드 (Wall Slide) | P2 | ⬜ P2+ | MVP OUT: "벽 점프, 이중 점프, 변신" 제외 |
 | CHR-03-B | 시스템 | 벽 점프 (Wall Jump) | P2 | ⬜ P2+ | MVP OUT: 능력 게이트 해금 시스템 (Phase 2) |
 | CHR-05-A | 시스템 | 히트박스/허트박스 시스템 | P1 | ✅ 구현 완료 | HitManager.ts: AABB 히트박스, CombatData.ts: 콤보별 크기 |
@@ -207,7 +207,7 @@
 | 마일스톤 | 핵심 | 상태 | 근거 |
 | :--- | :--- | :--- | :--- |
 | M1.1 엔진 기반 | Vite/TS/PixiJS/60fps | ✅ 완료 | Game.ts: 고정 60fps, PixiJS v8 WebGL, 480×270 해상도 |
-| M1.2 캐릭터 물리 | 이동/점프/대시/충돌 | ✅ 완료 | Player.ts: FSM 8상태, 물리 완성, 코요테/점프버퍼 |
+| M1.2 캐릭터 물리 | 이동/점프/충돌 (대시는 렐릭) | ✅ 완료 | Player.ts: FSM 8상태, 물리 완성, 코요테/점프버퍼. 대시 코드 완료되었으나 렐릭 시스템 연동 필요 |
 | M1.3 전투 시스템 | 콤보/데미지/피격 | ✅ 완료 | 사쿠라이 8기법, 3타 콤보, 적 2종, 아이템 드랍 |
 | M1.4 맵 생성 시스템 | Room Grid/Chunk/Spawn | ✅ 완료 | RoomGrid + ChunkAssembler + TilemapRenderer |
 | M1.5 미니 아이템계 | 진입/생성/클리어/강화 | 🔧 90% | 통합 지층, EXP/레벨업 동작. 보스 AI만 미완 |

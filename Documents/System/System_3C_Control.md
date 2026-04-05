@@ -27,6 +27,7 @@
 | CTRL-02-C  | 스킬       | 자동 조준 시스템                     |    P1    | 📅 대기      | 사거리 내 최근접 적 타겟팅      |
 | CTRL-03-A  | 기본 조작  | 기본 공격 자동 콤보 (3타)             |    P1    | 📅 대기      | 연타 시 자동 연결               |
 | CTRL-03-B  | 기본 조작  | 점프 (고정 높이)                     |    P1    | 📅 대기      | 가변 높이 제거                  |
+| CTRL-03-C  | 렐릭 슬롯  | 대시 (Dash) — 렐릭 해금 후 활성      |    P2    | 📅 대기      | 대시 렐릭 획득 전 비활성        |
 | CTRL-04-A  | 가상 패드  | (삭제됨 — 모바일 미지원)              |    —     | ❌ 삭제      | —                               |
 | CTRL-04-B  | 가상 패드  | (삭제됨 — 모바일 미지원)              |    —     | ❌ 삭제      | —                               |
 | CTRL-05-A  | 설정       | 키 리바인딩 시스템 (PC 전용)          |    P2    | 📅 대기      | localStorage 저장              |
@@ -121,7 +122,7 @@ graph TD
     subgraph 게임 시스템 (Game System)
         BA[기본 공격 BasicAttack]
         SK[스킬 슬롯 SkillSlots]
-        DS[대시 Dash]
+        DS[대시 Dash — 렐릭 해금 후]
         MV[이동 Movement]
         JP[점프 Jump]
     end
@@ -152,7 +153,7 @@ graph TD
 | 위 보기 / 상호작용     | ArrowUp           | 컨텍스트에 따라 분기     |
 | 아래 보기             | ArrowDown         | -                       |
 | 점프                  | KeyX              | -                       |
-| 대시                  | KeyC              | 쿨다운 2초               |
+| 렐릭 슬롯             | KeyC              | 초기 비활성. 대시 렐릭 획득 후 대시로 활성화 |
 | 기본 공격             | KeyZ              | 연타 시 자동 3타 콤보    |
 | 스킬 1                | KeyA              | -                       |
 | 스킬 2                | KeyS              | -                       |
@@ -169,7 +170,7 @@ graph TD
 | 이동                  | Left Stick / D-Pad     | 4방향                   |
 | 점프                  | A (South)              | -                       |
 | 기본 공격             | B (East)               | 연타 시 자동 3타 콤보    |
-| 대시                  | X (West)               | 쿨다운 2초               |
+| 렐릭 슬롯             | X (West)               | 초기 비활성. 대시 렐릭 획득 후 대시로 활성화 |
 | 스킬 1                | RB (Right Bumper)      | -                       |
 | 스킬 2                | RT (Right Trigger)     | -                       |
 | 스킬 3                | LB (Left Bumper)       | -                       |
@@ -210,13 +211,15 @@ graph TD
 * 이단 점프: 게임 진행 중 특정 능력을 해금하면 활성화된다. 공중에서 점프 버튼을 한 번 더 누르면 `double_jump_height_tiles`(2.5타일) 만큼 추가 상승한다.
 * 하강 통과: 반투명 플랫폼 위에서 아래 방향 + 점프 동시 입력 시 플랫폼을 통과하여 하강한다. 이 조합은 유일한 방향키+버튼 조합이며, 전투 중 사용 빈도가 낮다.
 
-### 2.7. 대시 (Dash)
+### 2.7. 대시 (Dash) — 렐릭 해금 후 활성화
 
-* 대시 버튼을 누르면 캐릭터가 바라보는 방향으로 고정 거리(`dash_distance` = 4타일)를 빠르게 이동한다.
+> **조건:** 대시는 기본 조작이 아니다. 게임 초반 월드에서 **대시 렐릭(Dash Relic)**을 획득한 이후에만 활성화된다. 렐릭 획득 전에는 KeyC / X(West) 버튼 입력이 무시된다.
+
+* 대시 렐릭 획득 후, 렐릭 슬롯 버튼을 누르면 캐릭터가 바라보는 방향으로 고정 거리(`dash_distance` = 4타일)를 빠르게 이동한다.
 * 대시 중 i-frame(무적)이 적용된다 (`dash_i_frame_ms` = 150ms).
 * 대시 후 `dash_cooldown_ms`(2초) 쿨다운이 적용된다. 쿨다운 중에는 대시 버튼이 비활성이며, 잔여 쿨다운을 원형 게이지로 표시한다.
 * 지상/공중 모두 사용 가능하다. 공중 대시는 착지 전 1회만 사용 가능하다.
-* 3타 콤보 후딜(`combo_end_lag_ms`) 중 대시 입력 시 후딜을 즉시 캔슬한다. 이는 전투 리듬에서 "반격 기회"를 "회피 기회"로 전환하는 핵심 메커닉이다.
+* 3타 콤보 후딜(`combo_end_lag_ms`) 중 대시 입력 시 후딜을 즉시 캔슬한다. 이는 전투 리듬에서 "반격 기회"를 "회피 기회"로 전환하는 핵심 메커닉이다. (대시 렐릭 획득 후에만 가능)
 
 ---
 
@@ -227,7 +230,7 @@ graph TD
 동일 프레임에 복수 행동이 동시에 요청되면 다음 우선순위에 따라 하나만 실행한다:
 
 ```text
-대시(Dash) > 스킬(Skill) > 기본 공격(Basic Attack) > 점프(Jump) > 이동(Move)
+대시(Dash, 렐릭 해금 후) > 스킬(Skill) > 기본 공격(Basic Attack) > 점프(Jump) > 이동(Move)
 ```
 
 * 우선순위가 높은 행동이 실행되면, 낮은 행동은 입력 버퍼에 저장된다.
@@ -318,12 +321,13 @@ control:
   jump_height_tiles: 3
   double_jump_height_tiles: 2.5
 
-  # --- 대시 (Dash) ---
+  # --- 대시 (Dash) — 렐릭 해금 후 적용 ---
+  # 대시 렐릭(Dash Relic) 획득 전까지 아래 값은 비활성 상태이다.
   dash_distance_tiles: 4
   dash_i_frame_ms: 150
   dash_cooldown_ms: 2000
-  dash_key_keyboard: "KeyC"
-  dash_key_gamepad: "ButtonX"  # X (West)
+  dash_key_keyboard: "KeyC"    # 렐릭 획득 전 비활성
+  dash_key_gamepad: "ButtonX"  # X (West), 렐릭 획득 전 비활성
 
   # --- 가상 패드 (삭제됨 — 모바일 미지원) ---
 
@@ -338,7 +342,7 @@ control:
     move_up: "ArrowUp"
     move_down: "ArrowDown"
     jump: "KeyX"
-    dash: "KeyC"
+    relic_slot: "KeyC"    # 초기 비활성. 대시 렐릭 획득 후 대시로 활성화
     basic_attack: "KeyZ"
     skill_1: "KeyA"
     skill_2: "KeyS"
@@ -353,7 +357,7 @@ control:
     move: "LeftStick"
     jump: "ButtonA"
     basic_attack: "ButtonB"
-    dash: "ButtonX"
+    relic_slot: "ButtonX"   # 초기 비활성. 대시 렐릭 획득 후 대시로 활성화
     skill_1: "RightBumper"
     skill_2: "RightTrigger"
     skill_3: "LeftBumper"
