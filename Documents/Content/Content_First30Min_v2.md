@@ -1,3 +1,5 @@
+> **⚠️ DEPRECATED: 이 문서는 초기 v2 초안입니다. 최신 첫 30분 설계는 `Content_First30Min_ExperienceFlow.md` (CNT-EXP-001)를 참조하세요.**
+
 > **⚠️ 스탯 게이트 업데이트 필요:** 이 문서의 STR 게이트 참조는 ATK 게이트로 대체되었습니다. "STR 40"→"ATK 40" 등. System_World_StatGating.md 참조.
 
 # 첫 30분 경험 흐름 — v2: 대공동 (The Shaft)
