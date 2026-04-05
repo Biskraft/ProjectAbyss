@@ -257,15 +257,15 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-DLG-01 | ~~Dialogue System~~ | `System/System_Dialogue.md` | ❌ DEPRECATED | — | — |
 
-### 3.8 이노센트 시스템 (Innocent)
+### 3.10 이노센트 시스템 (Innocent)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-INC-02 | ~~Innocent Farm~~ | `System/System_Innocent_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
-| SYS-INC-03 | Dual Innocent | `System/System_Innocent_Dual.md` | ✅ 완료 | IW | 야리코미 |
+| ~~SYS-INC-03~~ | ~~Dual Innocent~~ | ~~`System/System_Innocent_Dual.md`~~ | ❌ DEPRECATED | — | — |
 
-### 3.10 적 & AI 시스템 (Enemy)
+### 3.11 적 & AI 시스템 (Enemy)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -273,7 +273,7 @@ graph TD
 | SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ⬜ 제작 필요 | World+IW | 전체 |
 
-### 3.11 멀티플레이 시스템 (Multiplayer)
+### 3.12 멀티플레이 시스템 (Multiplayer)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -282,14 +282,14 @@ graph TD
 | SYS-MP-03 | Network Sync | `System/System_Multi_NetworkSync.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | SYS-MP-04 | Ghost Message | `System/System_Multi_GhostMessage.md` | ⬜ 제작 필요 | World | 멀티플레이 |
 
-### 3.11 경제 시스템 (Economy)
+### 3.13 경제 시스템 (Economy)
 
 | ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
 | ~~SYS-ECO-02~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
 
-### ~~3.12 허브 시스템 (Hub)~~ — DEPRECATED
+### ~~3.14 허브 시스템 (Hub)~~ — DEPRECATED
 
 > 허브가 폐기되어 대장간/상점은 월드 세이브 포인트로 통합.
 
@@ -329,6 +329,7 @@ graph TD
 | CNT-06 | Skill List | `Content/Content_Skill_List.md` | ⬜ 제작 필요 |
 | CNT-07 | Boss List | `Content/Content_Boss_List.md` | ⬜ 제작 필요 |
 | CNT-08 | Room Template Catalog | `Content/Content_RoomTemplate_Catalog.md` | ⬜ 제작 필요 |
+| CNT-EXP-002 | 첫 30분 경험 플로우 v2 | `Content/Content_First30Min_v2.md` | 🔄 진행 중 |
 
 ---
 
@@ -375,6 +376,16 @@ graph TD
 | RES-INC-04 | Innocent Multiplayer Social | `Research/Innocent_Multiplayer_Social_Research.md` | 이노센트 멀티 |
 | RES-INC-05 | Innocent Narrative | `Research/Innocent_Narrative_Worldbuilding_Research.md` | 이노센트 서사 |
 | RES-LVL-01 | Level Progression Shape | `Research/LevelDesign_ProgressionShape_Research.md` | 레벨 진행 형태 |
+| RES-BLM-01 | BLAME Biomega WorldDesign | `Research/BLAME_Biomega_WorldDesign_Research.md` | BLAME!/바이오메가 월드 디자인 |
+| RES-BLM-02 | BLAME Killy Character | `Research/BLAME_Killy.md` | 킬리 캐릭터 분석 |
+| RES-ELE-01 | Elemental System Comparison | `Research/ElementalSystem_Comparison_Research.md` | 원소 시스템 비교 |
+| RES-IW-DR-01 | IW Depth Reward Risk Balance | `Research/ItemWorld_DepthReward_RiskBalance_Research.md` | 아이템계 깊이/보상/위험 밸런스 |
+| RES-IW-ET-01 | IW Entry Transition | `Research/ItemWorld_EntryTransition_Research.md` | 아이템계 진입 전환 연출 |
+| RES-IW-RE-01 | IW Recursive Entry | `Research/ItemWorld_RecursiveEntry_Research.md` | 아이템계 재귀 진입 |
+| RES-MV-ST-01 | Metroidvania Stat System Comparison | `Research/Metroidvania_StatSystem_Comparison_Research.md` | 메트로베니아 스탯 시스템 비교 |
+| RES-SKL-01 | Skill System ActionRPG | `Research/SkillSystem_ActionRPG_Research.md` | 액션RPG 스킬 시스템 |
+| RES-SPK-01 | Spike Feature Competitive Analysis | `Research/SpikeFeature_CompetitiveAnalysis_Research.md` | 스파이크 피처 경쟁 분석 |
+| RES-SPK-02 | Spike Review Post Redesign | `Research/SpikeReview_PostRedesign_2026-04-05.md` | 스파이크 리뷰 재설계 후 점검 |
 
 ---
 
@@ -384,6 +395,12 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | PLN-01 | Development Roadmap | `Plan/Development_Roadmap.md` | 🔄 진행 중 |
 | PLN-02 | P1 Status Dashboard | `Plan/Project_Status_Dashboard_P1.md` | 🔄 진행 중 |
+| PLN-03 | GameDesign Agent TaskList | `Plan/GameDesign_Agent_TaskList.md` | 🔄 진행 중 |
+| PLN-04 | Phase1 Implementation Priority | `Plan/Phase1_Implementation_Priority.md` | 🔄 진행 중 |
+| PLN-05 | Prototype ItemWorld Entry FloorCollapse | `Plan/Prototype_ItemWorldEntry_FloorCollapse.md` | 🔄 진행 중 |
+| PLN-06 | Roadmap To Demo | `Plan/Roadmap_To_Demo.md` | 🔄 진행 중 |
+| PLN-07 | Task Dialogue Implementation | `Plan/Task_Dialogue_Implementation.md` | 🔄 진행 중 |
+| PLN-08 | Task NightWork Brief | `Plan/Task_NightWork_Brief.md` | 🔄 진행 중 |
 
 ---
 

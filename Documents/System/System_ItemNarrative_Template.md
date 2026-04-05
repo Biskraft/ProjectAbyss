@@ -17,7 +17,7 @@
 | INS-05-A   | 검증         | 서사 완성도 체크리스트                   |    P1    | 대기         | 필수 항목 / 권장 항목 분리               |
 | INS-06-A   | 모듈         | 몬스터 풀 시스템 (외부 문서 연결)        |    P2    | 대기         | `System_ItemNarrative_MonsterPool.md`    |
 | INS-06-B   | 모듈         | 환경 팔레트 풀 시스템 (외부 문서 연결)   |    P2    | 대기         | `System_ItemNarrative_EnvironmentPool.md`|
-| INS-06-C   | 모듈         | 이노센트 타입 풀 (외부 문서 연결)        |    P2    | 대기         | `System_ItemNarrative_InnocentTypes.md`  |
+| INS-06-C   | 모듈         | 이노센트 타입 풀 (외부 문서 연결)        |    P2    | 대기         | `System_Innocent_Core.md` §3             |
 
 ---
 
@@ -99,7 +99,7 @@
 | **보스 기본 템플릿** | `System_ItemNarrative_MonsterPool.md` (보스 섹션) | 테마 ID별 기본 보스 + 서사 오버라이드 3줄로 커스텀 |
 | **환경 팔레트** | `System_ItemNarrative_EnvironmentPool.md` | 테마 ID별 배경/조명/지형 타입 자동 배정 |
 | **40초 이벤트 풀** | `System_ItemNarrative_EnvironmentPool.md` (이벤트 섹션) | 테마별 20개 풀에서 지층당 5개 랜덤 선택 |
-| **이노센트 기본 타입** | `System_ItemNarrative_InnocentTypes.md` | 6개 기본 타입 중 선택. 이름/대사만 고유 |
+| **이노센트 기본 타입** | `System_Innocent_Core.md` §3 | 6개 기본 타입 중 선택. 이름/대사만 고유 |
 | **배경 음악 태그** | `System_ItemNarrative_EnvironmentPool.md` (사운드 섹션) | 테마별 BGM 태그 자동 배정 |
 
 > **주의:** 모듈 문서 3개(`MonsterPool`, `EnvironmentPool`, `InnocentTypes`)는 본 시스템 문서가 완성된 이후 별도 작성한다. 현재는 테마 정의와 인터페이스 명세만 확립한다.
@@ -232,7 +232,7 @@ npc_ghost:
 # 5. 이노센트 (Innocents) — 타입 선택 + 이름/대사만 수작업
 # -----------------------------------------------------------
 innocents:
-  - type: "[System_ItemNarrative_InnocentTypes.md의 6개 타입 중 선택]"
+  - type: "[System_Innocent_Core.md §3의 6개 타입 중 선택]"
     name: "[이 아이템에서의 고유 이름]"
     bonus_stat: "[ATK / DEF / HP 등]"
     personality: "[한 줄 성격 설명 — 대사 톤 기준]"
@@ -411,7 +411,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 | 아이템 서사 기준 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | 완성 | — |
 | 몬스터 풀 시스템 | `Documents/System/System_ItemNarrative_MonsterPool.md` | 미작성 | P2 |
 | 환경 팔레트 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` | 미작성 | P2 |
-| 이노센트 타입 정의 | `Documents/System/System_ItemNarrative_InnocentTypes.md` | 미작성 | P2 |
+| 이노센트 타입 정의 | `Documents/System/System_Innocent_Core.md` §3 | Draft | — |
 | 내러티브 & 월드빌딩 | `Documents/Design/Design_Narrative_Worldbuilding.md` | 완성 | — |
 | 아이템계 코어 | `Documents/System/System_ItemWorld_Core.md` | Draft | — |
 | 장비 레어리티 | `Documents/System/System_Equipment_Rarity.md` | Draft | — |

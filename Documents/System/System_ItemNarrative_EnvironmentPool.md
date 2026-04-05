@@ -15,7 +15,7 @@
 | :--- | :--- |
 | Narrative & Worldbuilding | `Documents/Design/Design_Narrative_Worldbuilding.md` |
 | 몬스터 풀 | `Documents/System/System_ItemNarrative_MonsterPool.md` |
-| 이노센트 타입 | `Documents/System/System_ItemNarrative_InnocentTypes.md` |
+| 이노센트 타입 | `Documents/System/System_Innocent_Core.md` §3 |
 | 아이템 서사 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
 | Item World Core | `Documents/System/System_ItemWorld_Core.md` |
 

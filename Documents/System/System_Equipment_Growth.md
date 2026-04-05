@@ -468,7 +468,7 @@ rarity_upgrade:
 | 장비 슬롯 (SYS-EQP-02) | `FinalEquipStat` (레벨+보스보너스+이노센트 합산) | 캐릭터 스탯 계산 |
 | 데미지 시스템 | `FinalEquipStat.atk` | 전투 데미지 계산 |
 | 스탯 게이트 | `FinalEquipStat` 각 스탯 | 게이트 해금 판정 |
-| 월드 스탯 게이트 | `FinalEquipStat.str/int/dex/vit` 등 | 새 구역 개방 여부 판정 |
+| 월드 스탯 게이트 | `FinalEquipStat.atk` | 새 구역 개방 여부 판정 (ATK 단일 게이트) |
 | 허브 강화 UI | 아이템 레벨, `permanentBossBonus`, 승급 가능 여부, 피티 카운터 | 대장간 화면 표시 |
 
 ### 6.3. 연동 계약 (Integration Contract)
@@ -532,7 +532,7 @@ consumes:
 | 승급 실패 시 | "아직 준비가 안 됐나 봐. 조금만 더." |
 | Ancient 레벨 99 달성 시 | "...완성됐어. 이게 이 검이 간직하고 싶었던 기억의 전부야." |
 
-> 대사 전체 목록과 보이스 연출 지침: `Documents/Content/Content_Erda_Dialogue.md` (Phase 2)
+> 대사 전체 목록과 보이스 연출 지침: (DEPRECATED) <!-- Content_Erda_Dialogue.md — 대화 시스템 DEPRECATED -->
 
 ### 8.2. 강화 화면 UI 정보 표시
 
@@ -544,7 +544,7 @@ consumes:
 승급 조건: 지층 클리어 3/3 ✓ | 재료 ✓ → [승급 시도]
 ```
 
-> UI 상세 스펙: `Documents/UI/UI_HUD_Forge.md` (Phase 2)
+> UI 상세 스펙: (Phase 2 제작 예정) <!-- UI_HUD_Forge.md -->
 
 ---
 

@@ -519,7 +519,7 @@ Dead Cells 롤(400ms)보다 짧게 설정한 이유: Project Abyss는 대시가 
 
 ### 3.5. 스킬 시너지 규칙 (Skill Synergy Rules)
 
-특정 스킬 조합은 추가 효과를 발생시킨다. 상세 원소 시스템은 `System_Combat_Elements.md`에서 정의한다.
+특정 스킬 조합은 추가 효과를 발생시킨다. 상세 원소 시스템은 `System_Combat_Damage.md` §3 원소 섹션에서 정의한다. <!-- System_Combat_Elements.md는 Phase 2 제작 예정 -->
 
 | 시너지 조건                      | 추가 효과                                        |
 | :------------------------------- | :----------------------------------------------- |

@@ -2,6 +2,8 @@
 
 # 듀얼 이노센트 시스템 (Dual Innocent System) — SYS-INC-03
 
+> ⚠️ DEPRECATED: 이중 이노센트 시스템은 스코프 축소로 전면 삭제되었습니다. 이노센트 빌드 차별화는 행동 변형 이노센트(System_Innocent_Core.md)로 대체됩니다.
+
 ## 구현 현황 (Implementation Status)
 
 > 최근 업데이트: 2026-03-29

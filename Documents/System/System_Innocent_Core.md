@@ -215,17 +215,19 @@ Tamed 실효 효과  = (Wild_Lv × TAMED_LEVEL_MULTIPLIER) × 1.0
 
 ### §2.7. 잉여 이노센트 분해 → 레어리티 승급 재료
 
-슬롯 구성상 사용하지 않는 잉여 이노센트는 세이브 포인트 대장간 NPC에서 분해하여 레어리티 승급 재료로 전환한다. 이노센트가 Memory Fragments를 겸하는 구조다 (PoE 커런시 모델).
+슬롯 구성상 사용하지 않는 잉여 이노센트는 세이브 포인트 대장간 NPC에서 분해하여 레어리티 승급 재료로 전환한다. 이노센트가 별도 강화 소재를 겸하는 구조다 (PoE 커런시 모델).
 
 ```
 분해 공식:
   분해 가능 조건: Tamed 상태 이노센트
   획득 재료: Remnant Fragment (레어리티 승급 재료)
   획득량:    floor(이노센트_레벨 / FRAGMENT_DIVISOR) 개
+  분해 수수료: floor(이노센트_레벨 × SALVAGE_FEE_PER_LEVEL) HL
 
 분해 시 주의:
   - 분해는 되돌릴 수 없음 (UI 경고 + 확인 필요)
   - Wild 이노센트는 분해 불가 (복종 후 분해 가능)
+  - 분해 수수료는 HL로 즉시 차감 (고레벨 이노센트 분해 시 HL Sink 역할)
 ```
 
 Remnant Fragment 활용처는 `System_Equipment_Rarity.md` 승급 규칙 참조.
@@ -468,6 +470,7 @@ Item_Overlord_innocent_lv_range: [80, 150] # 아이템 대신
 
 # 분해 재료 획득
 FRAGMENT_DIVISOR: 10  # floor(이노센트_레벨 / 10) 개의 Remnant Fragment
+SALVAGE_FEE_PER_LEVEL: 5  # 분해 수수료 = floor(Lv × 5) HL. 고레벨 분해 시 HL Sink
 ```
 
 ### §5.3. 튜닝 파라미터 요약
@@ -479,6 +482,7 @@ FRAGMENT_DIVISOR: 10  # floor(이노센트_레벨 / 10) 개의 Remnant Fragment
 | `INNOCENT_SPAWN_RATE` | 0.15 | 0.05~0.25 | 방 클리어당 조우 긴장감 — 높을수록 아이템계가 이노센트 사냥터로 느껴짐 |
 | `INNOCENT_SOFT_CAP` | 300 | 100~500 | 야리코미 장기 목표 거리 — 높을수록 파밍 기간 연장 |
 | `FRAGMENT_DIVISOR` | 10 | 5~20 | 분해 경제 밀도 — 낮을수록 잉여 이노센트가 더 많은 재료로 전환 |
+| `SALVAGE_FEE_PER_LEVEL` | 5 | 2~10 | 분해 수수료 HL 단가 — 높을수록 고레벨 분해 시 HL Sink 강화 |
 | `INNOCENT_COMBAT_DIFFICULTY_RATIO` | 1.2 | 1.0~1.5 | 복종 전투 긴장감 — 보스급보다 낮되 일반 적보다 강한 범위 유지 |
 
 ---

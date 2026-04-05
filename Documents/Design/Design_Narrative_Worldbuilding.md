@@ -9,8 +9,8 @@
 * Equipment Rarity: `Documents/System/System_Equipment_Rarity.md`
 * Item World Core: `Documents/System/System_ItemWorld_Core.md`
 * Game Overview: `Reference/게임 기획 개요.md`
-* Libido Research: `Documents/Research/Libido_NarrativeTheme_Research.md`
-* Religious Symbolism Research: `Documents/Research/Research_Religious_Symbolism_TabooDesign.md`
+* Libido Research: (미작성) <!-- Libido_NarrativeTheme_Research.md — 추후 제작 예정 -->
+* Religious Symbolism Research: (미작성) <!-- Research_Religious_Symbolism_TabooDesign.md — 추후 제작 예정 -->
 
 ---
 
@@ -347,7 +347,7 @@ Project Abyss의 세계관은 두 가지 톤이 공존한다:
 
 ## 6. 욕망의 하강 (Descent of Desire) — 지층 깊이 = 욕망의 깊이
 
-> **리서치 기반:** `Research/Libido_NarrativeTheme_Research.md`, `Research/Research_Religious_Symbolism_TabooDesign.md`, `Research/ItemWorld_DesireDepth_ThemeMapping_Research.md`
+> **리서치 기반:** (미작성) <!-- Libido_NarrativeTheme_Research.md, Research_Religious_Symbolism_TabooDesign.md, ItemWorld_DesireDepth_ThemeMapping_Research.md — 추후 제작 예정 -->
 
 ### 6.1. 핵심 전제
 
@@ -367,7 +367,7 @@ Project Abyss의 세계관은 두 가지 톤이 공존한다:
 
 ### 6.3. 14개 욕망 테마 그룹 (Desire Theme Groups)
 
-> 상세 정의: `Research/ItemWorld_DesireDepth_ThemeMapping_Research.md`
+> 상세 정의: (미작성) <!-- ItemWorld_DesireDepth_ThemeMapping_Research.md — 추후 제작 예정 -->
 > 170여 종의 인간 심리 동인을 6개 심리 축 × 14개 테마 그룹으로 추상화. 모든 것은 적/환경/아이템/메커닉으로만 표현한다.
 
 #### 6개 심리 축

@@ -1,4 +1,4 @@
-> **⚠️ 스탯 게이트 업데이트 필요:** 이 문서의 STR/DEX/VIT/LCK 게이트 참조는 ATK/INT 이중 게이트로 대체되었습니다. System_World_StatGating.md 참조.
+> **✅ 3스탯 체계 적용 완료:** 스탯 게이트 참조를 ATK 스탯 게이트 + 능력 게이트로 치환 완료. System_World_StatGating.md 참조.
 
 # WorldLayout GridVania 분석 — Project Abyss
 
@@ -275,7 +275,7 @@ Ossuary ── Water_supply ── Entrance ── Cross_roads ── Shop_entra
 | 엔티티 | 위치 (grid) | 상세 |
 |:-------|:-----------|:-----|
 | Player | [18, 10] | 초기 인벤토리: Ammo x?, Bow / HP=10 |
-| Item: Gold | [28, 10] | count=100 |
+| Item: HL | [28, 10] | count=100 |
 | Item: Healing_potion | [3, 5] | count=1 |
 | Item: Ammo | [7, 5] | count=5 |
 | Ladder | [5, 6] | 높이 80px (세로 이동 구조물) |
@@ -419,7 +419,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 | 설계 원칙 | 현재 레이아웃 적용 상태 | 권고 사항 |
 |:---------|:----------------------|:---------|
-| 스탯 게이트 | 미설정 (룸 타입에 gate 정보 없음) | Garden/Ossuary 진입에 STR 또는 DEX 게이트 추가 권고 |
+| 스탯 게이트 | 미설정 (룸 타입에 gate 정보 없음) | Garden/Ossuary 진입에 ATK 스탯 게이트 추가 권고 |
 | 능력 게이트 | 미설정 | The_tower 진입에 벽 타기, Flooded_rooms에 수중 호흡 게이트 추가 |
 | Critical Path 보장 | Cross_roads → Shop_entrance → SaveRoom → Boss_room 경로 명확 | 현재 구조 유지 |
 | 탐험 보상 배치 | Ossuary 하단에 Fire_blade/Armor 배치됨 (탐험 유도) | 적절 |
@@ -435,13 +435,13 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 2. **Cross_roads → Water_supply (서쪽 경계)**
    - 현재: 직접 이동 가능
-   - 권고: STR 게이트 (물리 장벽) → Ossuary는 중~후반 탐험 구역으로 배치
+   - 권고: ATK 스탯 게이트 (물리 장벽) → Ossuary는 중~후반 탐험 구역으로 배치
 
 3. **Sewers1 → The_ponds (하단 경계)**
-   - 권고: 수중 호흡 또는 VIT 게이트 → Sewers/수중 계열 구역 접근 제한
+   - 권고: 수중 호흡 능력 게이트 → Sewers/수중 계열 구역 접근 제한
 
 4. **Hidden_cave (이름 그대로 숨겨진 진입)**
-   - 권고: LCK 게이트(숨겨진 경로) 또는 시각적 힌트만으로 발견 유도
+   - 권고: 시각적 힌트만으로 발견 유도 (숨겨진 경로)
 
 ### 8-3. 페이싱 개선 제안
 
@@ -464,7 +464,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 **페이싱 이슈:**
 - Ossuary는 서쪽 사이드 브랜치인데 Fire_blade라는 강력한 아이템을 보유 → 조기 과강화 우려
-  - 권고: STR 게이트로 Ossuary를 중반 이후 구역으로 잠금 설정
+  - 권고: ATK 스탯 게이트로 Ossuary를 중반 이후 구역으로 잠금 설정
 
 ### 8-4. 내러티브 공간 활용
 
@@ -483,7 +483,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 | 월드 아이템 획득 위치 | 아이템 | 아이템계 지층 수 (등급 추정) |
 |:--------------------|:-------|:---------------------------|
-| Entrance | Healing_potion, Ammo, Gold | Normal (2지층) |
+| Entrance | Healing_potion, Ammo, HL | Normal (2지층) |
 | Ossuary 하단 | Armor, Fire_blade | Rare 이상 권고 (3지층) |
 | Boss_room | Fire_blade | Legendary 권고 (4지층) |
 | Shop 구매 | Vorpal_blade (500G) | Rare~Legendary |
@@ -504,7 +504,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 1. **게이트 시스템 미적용** → 모든 룸이 이론상 즉시 접근 가능. 스탯/능력 게이트 정의 필요
 2. **세이브 포인트 1개** → 월드 규모 대비 부족. Ossuary 또는 Sewers2 구역에 추가 검토
-3. **Ossuary 고보상 조기 접근** → STR 게이트로 중반 잠금 권고
+3. **Ossuary 고보상 조기 접근** → ATK 스탯 게이트로 중반 잠금 권고
 4. **The_ponds~Flooded_rooms 하단 루트** → 출구가 없는 막힌 구조. 순환 연결 또는 숏컷 추가 필요
 5. **World_Level_21 미명명** → 자동 생성 이름, 콘텐츠 미완성 룸으로 추정. 설계 완료 필요
 

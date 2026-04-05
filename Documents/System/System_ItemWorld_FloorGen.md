@@ -345,7 +345,7 @@ Crawl 방 진입 시:
 | 2 | **물 (Water)** | 속도 ×0.5, 중력 ×0.3, 부유 느낌 | (미정의 — P2) | ✅ |
 | 3 | **원웨이 플랫폼** | 위에서 착지, 아래서 통과 | 표준 | ✅ |
 | 4 | **얼음 (Ice)** | 마찰 ×0.2, 관성 이동. 감속 극도로 느림 | 넉백 거리 ×2 (적·플레이어 양쪽) | P1 |
-| 5 | **가시 (Spike)** | 접촉 시 고정 피해 (최대 HP 10%) + 위로 약 넉백 | 적도 동일 피해. 넉백으로 적을 밀어넣기 가능 | P1 |
+| 5 | **가시 (Spike)** | 접촉 시 고정 피해 (최대 HP `SPIKE_DAMAGE_PERCENT`%) + 위로 약 넉백 | 적도 동일 피해. 넉백으로 적을 밀어넣기 가능 | P1 |
 | 6 | **거미줄 (Web)** | 속도 ×0.3, 점프 ×0.5. 공중 진입 시 느린 낙하 | 적도 동일 감속. 화염 공격으로 일시 소각(→ID 0, 10초 후 재생) 가능. **진행 차단 없음** | P2 |
 | 7 | **상승 기류 (Updraft)** | vy에 -150 지속 추가. 점프 없이 상승 | 적 투사체 궤도 상향 편향. 공중 체공 시간 증가 | P2 |
 | 8 | **어둠 (Darkness)** | 물리 = 빈 공간과 동일. 시야 반경 2타일로 제한 | 적 텔레그래프 안 보임. 히트 스파크(L9)가 순간 조명 역할 | P2 |
@@ -353,8 +353,8 @@ Crawl 방 진입 시:
 | 10 | **함몰 가시 (Retractable Spike)** | 주기적으로 돌출/함몰 반복. 돌출 시 ID 5와 동일 피해 | 타이밍 기반 통과. 빙(Ice) 공격 시 돌출 고정 | P1 |
 | 11 | **화염 분출기 (Flame Jet)** | 벽/바닥에서 주기적으로 화염 분출. 접촉 시 화상(Burn) | 분출 주기 사이로 통과. 빙(Ice)으로 일시 정지(3초) | P1 |
 | 12 | **사라지는 발판 (Vanishing Platform)** | 밟으면 2초 후 소멸, 3초 후 재생. 원웨이처럼 위에서만 착지 | 연속 배치 시 리듬 기반 이동 강제. 빙(Ice)으로 동결 시 영구 유지 | P1 |
-| 13 | **용암 (Lava)** | 접촉 시 최대 HP 20% 고정 피해 + 화상(Burn). 물처럼 채워진 구역 | 빙(Ice)으로 표면만 동결 → 얼음(ID 4) 위를 걸을 수 있음 (3초 유지 후 재용해) | P2 |
-| 14 | **산성 (Acid)** | 접촉 시 최대 HP 15% 고정 피해 + 독(Poison) 3초. 물처럼 채워진 구역 | 빙(Ice)으로 동결 불가 (산성은 어는점이 낮다) | P2 |
+| 13 | **용암 (Lava)** | 접촉 시 최대 HP `LAVA_DAMAGE_PERCENT`% 고정 피해 + 화상(Burn). 물처럼 채워진 구역 | 빙(Ice)으로 표면만 동결 → 얼음(ID 4) 위를 걸을 수 있음 (`LAVA_FREEZE_MS`ms 유지 후 재용해) | P2 |
+| 14 | **산성 (Acid)** | 접촉 시 최대 HP `ACID_DAMAGE_PERCENT`% 고정 피해 + 독(Poison) `ACID_POISON_SEC`초. 물처럼 채워진 구역 | 빙(Ice)으로 동결 불가 (산성은 어는점이 낮다) | P2 |
 | 15 | **압력판 (Pressure Plate)** | 밟으면 연결된 함정 작동 (화살 발사, 가시 돌출, 바닥 붕괴 등) | 시각 단서(색 다른 타일)로 인지. 적/투척물로 대신 기폭 가능. 1회/반복 두 유형 | P1 |
 
 **지형별 상세 규칙:**
@@ -367,8 +367,8 @@ Crawl 방 진입 시:
 
 **ID 5 — 가시:**
 - 접촉 판정: 엔티티 하단이 가시 타일 상단과 겹칠 때
-- 피해: `max(1, maxHP × 0.10)` 고정. 방어력 무시
-- 무적 시간: 피격 후 0.5초 (연속 피해 방지)
+- 피해: `max(1, maxHP × SPIKE_DAMAGE_PERCENT/100)` 고정. 방어력 무시
+- 무적 시간: 피격 후 `SPIKE_INVULN_MS`ms (연속 피해 방지)
 - 넉백: vy = -120 (위로 튕김). 가시에서 탈출하는 느낌
 - 적용: 솔리드 위에 배치 (바닥 가시) 또는 천장에 배치 (천장 가시)
 
@@ -401,7 +401,7 @@ Crawl 방 진입 시:
 
 **ID 10 — 함몰 가시 (Retractable Spike):**
 - 주기: `retract_cycle_ms: 2000` (1초 돌출, 1초 함몰)
-- 돌출 상태: ID 5(가시)와 동일한 피해 판정 (10% HP 고정, 방어 무시)
+- 돌출 상태: ID 5(가시)와 동일한 피해 판정 (`SPIKE_DAMAGE_PERCENT`% HP 고정, 방어 무시)
 - 함몰 상태: ID 0(빈 공간)과 동일. 안전하게 통과 가능
 - 시각: 돌출 0.2초 전에 빛남 (텔레그래프). 함몰 시 바닥으로 들어감
 - 원소 상호작용: 빙(Ice) 공격 시 **현재 상태에서 동결 고정** (돌출 중 빙결 → 영구 가시, 함몰 중 빙결 → 영구 안전)
@@ -410,7 +410,7 @@ Crawl 방 진입 시:
 **ID 11 — 화염 분출기 (Flame Jet):**
 - 배치: 벽면 또는 바닥에 고정. 분출 방향은 배치에 따라 수평/수직
 - 주기: `jet_on_ms: 800, jet_off_ms: 1200` (0.8초 분출, 1.2초 정지)
-- 분출 중 접촉: 화상(Burn) 상태이상 즉시 적용 + 최대 HP 8% 피해
+- 분출 중 접촉: 화상(Burn) 상태이상 즉시 적용 + 최대 HP `FLAME_JET_DAMAGE_PERCENT`% 피해
 - 분출 범위: 분출기에서 3타일 직선
 - 시각: 정지 중 분출구에서 연기 파티클 (텔레그래프). 분출 시 화염 스프라이트
 - 원소 상호작용:
@@ -431,9 +431,9 @@ Crawl 방 진입 시:
 
 **ID 13 — 용암 (Lava):**
 - 물(ID 2)과 동일한 액체 구역 형태. 중력 ×0.3 미적용 (용암은 밀도가 높아 빠르게 가라앉음)
-- 접촉 피해: `max(1, maxHP × 0.20)` 고정. 방어력 무시
-- 접촉 시 화상(Burn) 상태이상 즉시 부여 (3초)
-- 무적 시간: 0.3초 (가시보다 짧음 — 더 위험)
+- 접촉 피해: `max(1, maxHP × LAVA_DAMAGE_PERCENT/100)` 고정. 방어력 무시
+- 접촉 시 화상(Burn) 상태이상 즉시 부여 (`ACID_POISON_SEC`초)
+- 무적 시간: `LAVA_INVULN_MS`ms (가시보다 짧음 — 더 위험)
 - 시각: 붉은 주황색 액체. 표면에서 기포 파티클
 - 원소 상호작용:
   - 빙(Ice): **표면만 동결 → ID 4(얼음) 위를 걸을 수 있음.** `freeze_duration_ms: 3000` (3초 후 재용해 → 위에 있으면 용암 추락). 이것이 용암 구역 횡단의 핵심 전략
@@ -442,9 +442,9 @@ Crawl 방 진입 시:
 
 **ID 14 — 산성 (Acid):**
 - 물(ID 2)과 동일한 액체 구역 형태. 중력 ×0.3 적용 (산성 액체에서 부유)
-- 접촉 피해: `max(1, maxHP × 0.15)` 고정. 방어력 무시
-- 접촉 시 독(Poison) 상태이상 부여 (3초, HP 2%/초 지속 피해)
-- 무적 시간: 0.5초
+- 접촉 피해: `max(1, maxHP × ACID_DAMAGE_PERCENT/100)` 고정. 방어력 무시
+- 접촉 시 독(Poison) 상태이상 부여 (`ACID_POISON_SEC`초, HP `ACID_POISON_DPS_PERCENT`%/초 지속 피해)
+- 무적 시간: `ACID_INVULN_MS`ms
 - 시각: 녹색 불투명 액체. 표면에서 거품 파티클
 - 원소 상호작용:
   - 빙(Ice): **동결 불가** (산성은 어는점이 극도로 낮다 — 물리적 직관)
@@ -1000,6 +1000,53 @@ multiplayer_scaling:
   party_size_2: { hp: 1.6x, count: +1, reward: 1.2x }
   party_size_3: { hp: 2.2x, count: +2, reward: 1.4x }
   party_size_4: { hp: 2.8x, count: +3, reward: 1.6x }
+```
+
+### 4.6. 지형 타일 수치 파라미터 (Terrain Tile Parameters)
+
+```yaml
+terrain_params:
+  # --- 이동 효과 ---
+  ICE_FRICTION:            0.2     # 얼음 마찰 계수 (표준 1.0)
+  ICE_KNOCKBACK_MULT:      2.0     # 얼음 위 넉백 배율
+  WATER_SPEED_MULT:        0.5     # 물 이동 속도 배율
+  WATER_GRAVITY_MULT:      0.3     # 물 중력 배율
+  WEB_SPEED_MULT:          0.3     # 거미줄 이동 속도 배율
+  WEB_JUMP_MULT:           0.5     # 거미줄 점프 배율
+  UPDRAFT_VY:              -150    # 상승 기류 vy 추가값
+  DARKNESS_SIGHT_TILES:    2       # 어둠 시야 제한 (타일)
+
+  # --- 피해 ---
+  SPIKE_DAMAGE_PERCENT:    10      # 가시 접촉 피해 (최대 HP %)
+  SPIKE_INVULN_MS:         500     # 가시 무적 시간 (ms)
+  LAVA_DAMAGE_PERCENT:     20      # 용암 접촉 피해 (최대 HP %)
+  LAVA_INVULN_MS:          300     # 용암 무적 시간 (ms)
+  ACID_DAMAGE_PERCENT:     15      # 산성 접촉 피해 (최대 HP %)
+  ACID_POISON_SEC:         3       # 산성 독 지속 시간 (초)
+  ACID_POISON_DPS_PERCENT: 2       # 산성 독 초당 피해 (최대 HP %)
+  ACID_INVULN_MS:          500     # 산성 무적 시간 (ms)
+  FLAME_JET_DAMAGE_PERCENT: 8     # 화염 분출기 접촉 피해 (최대 HP %)
+
+  # --- 타이밍 ---
+  CRUMBLE_DELAY_MS:        500     # 부서지는 바닥 붕괴 대기 (ms)
+  CRUMBLE_REGEN_MS:        5000    # 부서지는 바닥 재생 시간 (ms)
+  RETRACT_CYCLE_MS:        2000    # 함몰 가시 주기 (ms, 1초 돌출 + 1초 함몰)
+  FLAME_JET_ON_MS:         800     # 화염 분출 시간 (ms)
+  FLAME_JET_OFF_MS:        1200    # 화염 정지 시간 (ms)
+  FLAME_JET_RANGE_TILES:   3       # 화염 분출 기본 범위 (타일)
+  FLAME_JET_FIRE_BOOST_RANGE: 5   # 화(Fire) 강화 시 확장 범위 (타일)
+  FLAME_JET_FIRE_BOOST_MS: 10000  # 화 강화 지속 시간 (ms)
+  FLAME_JET_ICE_PAUSE_MS:  3000    # 빙(Ice) 일시 정지 시간 (ms)
+  VANISH_DELAY_MS:         2000    # 사라지는 발판 소멸 대기 (ms)
+  VANISH_REGEN_MS:         3000    # 사라지는 발판 재생 시간 (ms)
+  LAVA_FREEZE_MS:          3000    # 용암 표면 동결 유지 시간 (ms)
+  WEB_REGEN_MS:            10000   # 거미줄 소각 후 재생 시간 (ms)
+  WATER_EVAP_REGEN_MS:     8000    # 물 증발 후 재생 시간 (ms)
+  ICE_MELT_MS:             15000   # 물→얼음 동결 해빙 시간 (ms)
+  ELECTRO_DURATION_MS:     2000    # 감전 구역 지속 시간 (ms)
+  ELECTRO_MAX_TILES:       64      # flood-fill 감전 최대 타일 수
+  ACID_STEAM_HEIGHT_TILES: 2       # 산성 증기 높이 (타일)
+  ACID_STEAM_DURATION_MS:  5000    # 산성 증기 지속 시간 (ms)
 ```
 
 ---

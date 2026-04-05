@@ -273,7 +273,7 @@ ItemWorldProgress {
 
 | 탈출 경로 | 조건 | 보상 보존 |
 | :--- | :--- | :--- |
-| **탈출 제단** | 크리티컬 패스 방 25% 확률 스폰 | ✅ 전부 보존 |
+| **탈출 제단** | 크리티컬 패스 방 `ESCAPE_ALTAR_BASE_CHANCE`% 확률 스폰 | ✅ 전부 보존 |
 | **보스 후 탈출** | 기억의 문 격파 직후 "탈출" 선택 | ✅ 전부 보존 |
 | **사망 탈출** | HP 0 자동 귀환 | ⚠️ 패널티 적용 |
 
@@ -281,7 +281,7 @@ ItemWorldProgress {
 
 | 항목 | 내용 |
 | :--- | :--- |
-| EXP 손실 | 현재 지층 EXP의 30% |
+| EXP 손실 | 현재 지층 EXP의 `DEATH_EXP_LOSS_PERCENT`% |
 | 지층 롤백 | currentStratum -1 (deepestUnlocked는 유지) |
 | 아이템 보존 | 항상 (획득 전리품도 보존) |
 | 보스 보너스 | 보존 (영구 스탯 증가는 취소 불가) |
@@ -293,7 +293,7 @@ ItemWorldProgress {
 | 사망 시 귀환 위치 | 아이템계 내부 입구 (Screen 10) | 정상: 허브 귀환 |
 | EXP 손실 | 없음 | 정상: 30% |
 | 지층 롤백 | 없음 | 정상: −1 |
-| HP 회복 | 50% | 정상: 해당 없음 |
+| HP 회복 | `FIRST_ENTRY_DEATH_HP_RECOVERY`% | 정상: 해당 없음 |
 | 잡몹 리스폰 | 비활성화 (보스만 재도전) | 정상: 전부 리스폰 |
 | 보스 HP | 사망 직전 수치 유지 (리셋 없음) | 정상: 풀 HP 리셋 |
 | 횟수 제한 | 없음 | — |
@@ -312,7 +312,7 @@ ItemWorldProgress {
 
 **최종 지층 클리어:** 레어리티 승급 기회 (확률 기반, Phase 2)
 
-**재방문 감소:** 클리어 지층 재방문 시 보상 ×0.5
+**재방문 감소:** 클리어 지층 재방문 시 보상 ×`REVISIT_REWARD_MULTIPLIER`
 
 ### 2.5. 멀티플레이 규칙 [Phase 3]
 
@@ -408,7 +408,7 @@ permanentBonus = BaseStat × (0.05 + itemLevel / 400) × bossTierMultiplier
 
 ### 3.3. 탈출 제단 확률
 
-기본 확률 25%에 지층 깊이 보너스가 가산된다. 깊이가 깊어질수록 탈출 수단이 조금 더 자주 등장하여 극단적 진행을 완화한다.
+기본 확률 `ESCAPE_ALTAR_BASE_CHANCE`%에 지층 깊이 보너스가 가산된다. 깊이가 깊어질수록 탈출 수단이 조금 더 자주 등장하여 극단적 진행을 완화한다.
 
 | 지층 | 탈출 제단 스폰 확률 | 설계 의도 |
 | :---: | :---: | :--- |
@@ -424,7 +424,7 @@ permanentBonus = BaseStat × (0.05 + itemLevel / 400) × bossTierMultiplier
 
 | 파라미터 | 수치 | 비고 |
 | :--- | :---: | :--- |
-| EXP 손실 비율 | 30% | 현재 지층 진입 이후 획득분 기준 |
+| EXP 손실 비율 | `DEATH_EXP_LOSS_PERCENT`% | 현재 지층 진입 이후 획득분 기준 |
 | 지층 롤백 | −1 | `currentStratum` 감소, `deepestUnlocked` 유지 |
 | 최소 귀환 지층 | 0 | 지층 1에서 사망 시 0 (다음 진입은 지층 1부터) |
 | 아이템 드랍 보존 | 항상 | 전리품 손실 없음 |
@@ -466,6 +466,25 @@ permanentBonus = BaseStat × (0.05 + itemLevel / 400) × bossTierMultiplier
 | Platinum | 400 | 희귀 드랍 확률 +5% |
 
 > 탐험 점수: 방 방문 +10, 방 클리어 +20, 비밀방 발견 +50, 보스 처치 +100
+
+### 3.8. 공통 파라미터 (Common Parameters)
+
+```yaml
+item_world_core_params:
+  # --- 탈출 제단 ---
+  ESCAPE_ALTAR_BASE_CHANCE: 25        # % — 기본 탈출 제단 스폰 확률
+  ESCAPE_ALTAR_DEPTH_BONUS_PER_STRATUM: 3  # % — 지층당 추가 스폰 확률 (근사)
+
+  # --- 사망 패널티 ---
+  DEATH_EXP_LOSS_PERCENT: 30          # % — 사망 시 EXP 손실 비율
+  DEATH_STRATUM_ROLLBACK: 1           # 사망 시 지층 롤백 수
+
+  # --- 재방문 ---
+  REVISIT_REWARD_MULTIPLIER: 0.50     # 클리어 지층 재방문 시 보상 배율
+
+  # --- 첫 아이템계 특례 ---
+  FIRST_ENTRY_DEATH_HP_RECOVERY: 50   # % — 첫 진입 사망 시 HP 회복
+```
 
 ---
 

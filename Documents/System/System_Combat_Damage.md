@@ -37,7 +37,7 @@
 * 전투 액션: `Documents/System/System_Combat_Action.md`
 * 스탯 시스템: `Documents/System/System_Growth_Stats.md`
 * 장비 시스템: `Documents/System/System_Equipment_Slots.md`
-* 원소 상성: `Documents/System/System_Combat_Elements.md`
+* 원소 상성: 본 문서 §3 원소 섹션 참조 <!-- System_Combat_Elements.md는 Phase 2 제작 예정 -->
 * 이노센트 시스템: `Documents/System/System_Innocent_Core.md`
 * 데미지 공식 데이터: `Sheets/Content_System_Damage_Formula.csv`
 * Game Overview: `Reference/게임 기획 개요.md`
@@ -250,10 +250,10 @@ Critical_Multiplier = 1.5    # 고정값
 
 | 원소     | 색상   | 상태이상          | 상태이상 효과                        |
 | :------- | :----- | :---------------- | :----------------------------------- |
-| 화 (Fire)| 빨강   | 화상 (Burn)       | 3초간 초당 최대HP 3% 지속 피해       |
-| 빙 (Ice) | 파랑   | 빙결 (Freeze)     | 1.5초간 이동 불가, 피해 20% 증가     |
-| 뇌 (Thunder)| 노랑| 감전 (Shock)      | 2초간 행동 속도 30% 감소             |
-| 암 (Dark)| 보라   | 저주 (Curse)      | 3초간 회복량 50% 감소                |
+| 화 (Fire)| 빨강   | 화상 (Burn)       | `burn_duration_s`초간 초당 최대HP `burn_damage_per_sec`×100% 지속 피해 |
+| 빙 (Ice) | 파랑   | 빙결 (Freeze)     | `freeze_duration_s`초�� 이동 불가, 피해 `freeze_damage_bonus`×100% 증가 |
+| 뇌 (Thunder)| 노랑| 감전 (Shock)      | `shock_duration_s`초간 행동 속도 `shock_speed_reduction`×100% 감소 |
+| 암 (Dark)| 보라   | 저주 (Curse)      | `curse_duration_s`초간 회복량 `curse_heal_reduction`×100% 감소 |
 
 #### 원소 상성표 (Elemental Affinity Table)
 
@@ -521,7 +521,7 @@ Step 10: 소수점 내림 = floor(Step 9)
 | 일반 (Normal)  | DEF       | 적용      | 기본 공격, 모든 스킬                  |
 | 고정 (True)    | 없음      | 없음      | DEF 무시. 특수 스킬, 원소 시너지      |
 | 반사 (Reflect) | 없음      | 없음      | 피격 데미지의 일정 비율 반사          |
-| 지속 (DoT)     | DEF       | 없음      | 상태이상(화상/독). 방어 50% 감산 적용 |
+| 지속 (DoT)     | DEF       | 없음      | 상태이상(화상/독). 방어 `dot_defense_factor` 비�� 감산 적용 |
 
 > **설계 변경:** ATK/INT/HP 3스탯 체계. 물리 공격은 ATK - DEF, 원소 공격(에코 인챈트)은 INT × ElementMultiplier - RES.
 
@@ -535,9 +535,9 @@ Step 10: 소수점 내림 = floor(Step 9)
 
 | 종류                      | 배율 범위     | 중첩 규칙                        |
 | :------------------------ | :------------ | :------------------------------- |
-| 공격력 증가 버프          | 1.1x ~ 1.5x  | 가장 높은 배율 1개만 적용        |
-| 공격력 감소 디버프        | 0.5x ~ 0.9x  | 가장 낮은 배율 1개만 적용        |
-| 피해량 증가 (받는 측)     | 1.1x ~ 1.5x  | 중첩 가능, 곱연산                |
+| 공격력 증가 버프          | `atk_buff_min`x ~ `atk_buff_max`x  | 가장 높은 배율 1개만 적용        |
+| 공격력 감소 디버프        | `atk_debuff_min`x ~ `atk_debuff_max`x  | 가장 낮은 배율 1개만 적용        |
+| 피해량 증가 (받는 측)     | `atk_buff_min`x ~ `atk_buff_max`x  | 중첩 가능, 곱연산. 상한 `damage_taken_increase_cap`x |
 | 원소 상태이상 추가 피해   | 개별 적용     | 원소 시너지와 별도 계산          |
 
 * 버프와 디버프가 동시에 존재하면 각각 독립 적용 후 곱연산한다.

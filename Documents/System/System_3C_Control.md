@@ -4,9 +4,9 @@
 
 * Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 * Project Definition: `Documents/Terms/Project_Vision_Abyss.md`
-* 이동 시스템: `Documents/System/System_3C_Movement.md`
-* 전투 시스템: `Documents/System/System_Combat_Core.md`
-* 3-Space 시스템: `Documents/System/System_3Space_Structure.md`
+* 이동 시스템: `Documents/System/System_3C_Character.md`
+* 전투 시스템: `Documents/System/System_Combat_Action.md`
+* 3-Space 시스템: `Documents/Design/Design_Architecture_3Space.md`
 
 ---
 

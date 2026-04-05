@@ -8,7 +8,7 @@
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`
 * 캐릭터 물리: `Documents/System/System_3C_Character.md`
 * 조작 체계: `Documents/System/System_3C_Control.md`
-* 원소 시스템: `Documents/System/System_Combat_Elements.md`
+* 원소 시스템: `Documents/System/System_Combat_Damage.md` §3 원소 섹션 <!-- System_Combat_Elements.md는 Phase 2 제작 예정 -->
 * 장비 시스템: `Documents/System/System_Equipment_Slots.md`
 * Game Overview: `Reference/게임 기획 개요.md`
 * 캐슬바니아 시스템 분석: `Reference/캐슬바니아 시스템 분석.md`

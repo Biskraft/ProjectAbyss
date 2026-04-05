@@ -464,10 +464,10 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 
 | 항목 | 값 | 근거 |
 | :--- | :--- | :--- |
-| Boss HP | 80 | CNT-EXP-001 Screen 13. 에르다 ATK 15 기준 6히트 처치 목표 |
-| Boss ATK | 12 | CNT-EXP-001 Screen 13. 에르다 HP 100 기준 8히트 사망 — 학습 여유 보장 |
-| 에르다 기준 ATK | 15 | 첫 진입 시점 기본값 (장비 무강화, 무원소) |
-| 에르다 기준 HP | 100 | 동 시점 기본값 |
+| Boss HP | `SHADOW_BOSS_HP` (파라미터 참조) | CNT-EXP-001 Screen 13. 에르다 ATK 기준 6히트 처치 목표 |
+| Boss ATK | `SHADOW_BOSS_ATK` (파라미터 참조) | CNT-EXP-001 Screen 13. 에르다 HP 기준 8히트 사망 — 학습 여유 보장 |
+| 에르다 기준 ATK | `SHADOW_ERDA_BASE_ATK` (파라미터 참조) | 첫 진입 시점 기본값 (장비 무강화, 무원소) |
+| 에르다 기준 HP | `SHADOW_ERDA_BASE_HP` (파라미터 참조) | 동 시점 기본값 |
 | 솔로 고정 | 1인 전용 (첫 아이템계 특례) | SYS-IW-01 §2.3 — 첫 진입 멀티 불가 |
 
 #### 본체 레이어
@@ -493,7 +493,7 @@ CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패
 | 항목 | 특례 규칙 |
 | :--- | :--- |
 | 사망 시 귀환 | 아이템계 내부 입구 (Screen 10 착지점) |
-| HP 회복 | 50% |
+| HP 회복 | `SHADOW_DEATH_HP_RECOVERY`×100% |
 | EXP 손실 | 없음 |
 | 지층 롤백 | 없음 |
 | 잡몹 리스폰 | 비활성화 (보스 방만 재도전) |
@@ -512,7 +512,7 @@ shadow_swordsman_clear:
     interaction_text: "30 coins. No name. Unclaimed."
   permanent_bonus:
     stat: ATK
-    value: "+8"
+    value: "+SHADOW_CLEAR_ATK_BONUS"  # 파라미터 참조: 8
     display: "Old Sword — ATK +8 (Permanent)"
     timing: "처치 후 1초 뒤 화면 중앙 큰 텍스트 + 효과음"
   erda_dialogue:
@@ -608,6 +608,18 @@ boss_scaling:
     exp_reward: 600         # ×stratumDef.expMultiplier로 지층별 증폭
 ```
 
+```yaml
+# 그림자 검사 (Shadow Swordsman) — CNT-EXP-001 Screen 13 SSoT 참조
+shadow_swordsman:
+  SHADOW_BOSS_HP: 80              # 그림자 검사 HP
+  SHADOW_BOSS_ATK: 12             # 그림자 검사 ATK
+  SHADOW_ERDA_BASE_ATK: 15        # 에르다 첫 진입 기준 ATK
+  SHADOW_ERDA_BASE_HP: 100        # 에르다 첫 진입 기준 HP
+  SHADOW_CLEAR_ATK_BONUS: 8       # 처치 보상 영구 ATK 증가
+  SHADOW_DEATH_HP_RECOVERY: 0.50  # 사망 시 HP 50% 회복
+  # 주의: 이 값은 CNT-EXP-001이 SSoT. 변경 시 CNT-EXP-001 먼저 수정
+```
+
 > 레어리티별 추가 배율 공식: `Documents/Research/BossDesign_SideScrolling_Research.md` 섹션 4.4 참조
 > 영구 스탯 증가 공식: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01) 섹션 3.2 참조
 
@@ -691,12 +703,12 @@ boss_rewards:
     god:      0.50  # 50%
     overlord: 0.70  # 70%
 
-  # 이노센트 드랍 레어리티 범위
-  innocent_rarity_range:
-    general:  [Normal, Magic]
-    king:     [Magic, Rare]
-    god:      [Rare, Legendary]
-    overlord: [Legendary, Ancient]
+  # 이노센트 드랍 레벨 범위 (이노센트에는 레어리티 없음, 레벨만 존재)
+  innocent_drop_level_range:
+    general:  [1, 15]      # Lv.1~15
+    king:     [10, 30]     # Lv.10~30
+    god:      [25, 60]     # Lv.25~60
+    overlord: [50, 100]    # Lv.50~100
 
   # 레어리티 승급 기회 (대신 처치 시만, Phase 2)
   rarity_upgrade_chance:
