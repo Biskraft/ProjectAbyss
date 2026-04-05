@@ -32,6 +32,20 @@ export class ToastManager {
     this.toasts.push({ container, timer: TOAST_DURATION });
   }
 
+  /** Large centered text for boss clear rewards, level ups, etc. */
+  showBig(message: string, color = 0xffd700, durationMs = 3000): void {
+    const container = new Container();
+
+    const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: color } });
+    text.anchor.set(0.5, 0.5);
+    text.x = 320;
+    text.y = 180; // center of 360
+    container.addChild(text);
+
+    this.parent.addChild(container);
+    this.toasts.push({ container, timer: durationMs });
+  }
+
   update(dt: number): void {
     for (let i = this.toasts.length - 1; i >= 0; i--) {
       const toast = this.toasts[i];

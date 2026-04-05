@@ -13,6 +13,7 @@ import { aabbOverlap } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
+import { Guardian } from '@entities/Guardian';
 import { Ghost } from '@entities/Ghost';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
@@ -54,7 +55,7 @@ export class ItemWorldScene extends Scene {
   private outsideRenderer: LdtkRenderer | null = null;
   private outsideLevel: LdtkLevel | null = null;
   private player!: Player;
-  private enemies: Enemy[] = [];
+  private enemies: Enemy<string>[] = [];
   private projectiles: Projectile[] = [];
   private hitManager!: HitManager;
   private entityLayer!: Container;
@@ -985,13 +986,11 @@ export class ItemWorldScene extends Scene {
   private spawnBoss(): void {
     const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
-    const boss = new Skeleton();
+    const boss = new Guardian();
     boss.hp = boss.maxHp = def.bossHp;
     boss.atk = def.bossAtk;
-    const visualScale = 1.5 + this.currentStratumIndex * 0.2;
-    boss.container.scale.set(visualScale);
     boss.x = (this.roomW / 2) * TILE_SIZE;
-    boss.y = floorY - boss.height * visualScale;
+    boss.y = floorY - boss.height;
     boss.roomData = this.roomData;
     boss.target = this.player;
     this.enemies.push(boss);
@@ -1142,7 +1141,7 @@ export class ItemWorldScene extends Scene {
       const targets = this.enemies.filter(e => e.alive) as CombatEntity[];
       const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
       for (const hit of hits) {
-        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
+        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
       }
@@ -1221,7 +1220,7 @@ export class ItemWorldScene extends Scene {
     // Enemy attacks — Sakurai: player hit feedback
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      if (enemy instanceof Skeleton && enemy.isAttackActive()) {
+      if ((enemy instanceof Skeleton || enemy instanceof Guardian) && enemy.isAttackActive()) {
         if (this.player.invincible || this.player.hp <= 0) continue;
         const dx = Math.abs((enemy.x + enemy.width / 2) - (this.player.x + this.player.width / 2));
         const dy = Math.abs((enemy.y + enemy.height / 2) - (this.player.y + this.player.height / 2));

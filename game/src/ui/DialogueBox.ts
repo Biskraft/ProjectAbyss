@@ -121,8 +121,8 @@ export class DialogueBox {
   update(dt: number): void {
     if (this.state === 'hidden') return;
 
-    const zPressed = this.input.isJustPressed(GameAction.ATTACK);
-    if (zPressed) this.input.consumeJustPressed(GameAction.ATTACK);
+    const zPressed = this.input.isJustPressed(GameAction.JUMP);
+    if (zPressed) this.input.consumeJustPressed(GameAction.JUMP);
 
     if (this.state === 'typing') {
       this.typeTimer += dt;

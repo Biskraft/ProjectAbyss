@@ -27,13 +27,17 @@ export class DamageNumberManager {
     this.parent = parent;
   }
 
-  spawn(x: number, y: number, damage: number, heavy = false): void {
+  spawn(x: number, y: number, damage: number, heavy = false, critical = false): void {
     // Tiered color and size (Sakurai: visual distinction per strength)
     let color: number;
     let size: number;
     let punchScale: number;
 
-    if (heavy) {
+    if (critical) {
+      color = 0xff4444;
+      size = 12;
+      punchScale = 2.5;
+    } else if (heavy) {
       color = 0xffff44;
       size = 11;
       punchScale = 2.2;

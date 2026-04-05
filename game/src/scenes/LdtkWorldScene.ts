@@ -29,6 +29,7 @@ import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
+import { Guardian } from '@entities/Guardian';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
@@ -98,7 +99,7 @@ export class LdtkWorldScene extends Scene {
 
   // Entities
   private player!: Player;
-  private enemies: Enemy[] = [];
+  private enemies: Enemy<string>[] = [];
   private projectiles: Projectile[] = [];
   private hitManager!: HitManager;
   private dropRng!: PRNG;
@@ -119,6 +120,10 @@ export class LdtkWorldScene extends Scene {
   private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
   private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
+
+  // Boss lock
+  private bossActive = false;
+  private bossLockDoors: LockedDoor[] = [];
 
   // Dialogue
   private dialogueManager!: DialogueManager;
@@ -280,23 +285,25 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async — game loop may call update() before it completes
     if (!this.initialized) return;
 
-    // Toast, tutorial hints & dialogue always update
-    this.toast.update(dt);
-    this.tutorialHint.update(dt);
+    // Dialogue box active — block game input (NPC dialogue blocks movement)
+    // Check dialogue FIRST, before UI consumes input
     this.dialogueManager.update(dt);
     this.dialogueManager.updateThoughtPosition(
       this.player.x + this.player.width / 2,
       this.player.y,
     );
-
-    // Dialogue box active — block game input (NPC dialogue blocks movement)
     if (this.dialogueManager.box.isActive) {
+      this.toast.update(dt);
       if (!this.dialogueManager.blocksMovement()) {
         this.player.update(dt);
       }
       this.game.camera.update(dt);
       return;
     }
+
+    // Toast & tutorial hints update after gameplay input is processed
+    this.toast.update(dt);
+    this.tutorialHint.update(dt);
 
     // Tutorial hints — only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
@@ -410,7 +417,7 @@ export class LdtkWorldScene extends Scene {
         targets,
       );
       for (const hit of hits) {
-        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
+        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
       }
@@ -481,7 +488,7 @@ export class LdtkWorldScene extends Scene {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       const isAttacking =
-        (enemy instanceof Skeleton || enemy instanceof GoldenMonster) &&
+        (enemy instanceof Skeleton || enemy instanceof GoldenMonster || enemy instanceof Guardian) &&
         enemy.isAttackActive();
       if (isAttacking) {
         if (this.player.invincible || this.player.hp <= 0) continue;
@@ -665,35 +672,73 @@ export class LdtkWorldScene extends Scene {
     return FALLBACK_ENTRANCE_LEVEL;
   }
 
-  private handleEnemyKill(enemy: Enemy): void {
+  /** Seal level exits with temporary collision doors when boss fight starts. */
+  private activateBossLock(level: LdtkLevel): void {
+    this.bossActive = true;
+    // Create barrier doors at each edge opening
+    const w = level.pxWid;
+    const h = level.pxHei;
+    const doorThick = 16;
+    const positions = [
+      { x: doorThick / 2, y: h / 2, dw: doorThick, dh: h },           // left
+      { x: w - doorThick / 2, y: h / 2, dw: doorThick, dh: h },       // right
+      { x: w / 2, y: doorThick, dw: w, dh: doorThick },               // top (pivot bottom-center)
+      { x: w / 2, y: h, dw: w, dh: doorThick },                       // bottom
+    ];
+    for (const pos of positions) {
+      const door = new LockedDoor(
+        pos.x, pos.y + pos.dh / 2, // adjust for bottom-center pivot
+        pos.dw, pos.dh,
+        '', 'event', '', 'atk', 0,
+      );
+      door.injectCollision(this.collisionGrid);
+      this.bossLockDoors.push(door);
+      this.entityLayer.addChild(door.container);
+    }
+  }
+
+  /** Remove boss lock doors when boss is defeated. */
+  private deactivateBossLock(): void {
+    this.bossActive = false;
+    for (const door of this.bossLockDoors) {
+      door.unlock(this.collisionGrid);
+      door.destroy();
+    }
+    this.bossLockDoors = [];
+  }
+
+  private handleEnemyKill(enemy: Enemy<string>): void {
     this.game.stats.enemiesKilled++;
     if ((enemy as any)._isBoss) {
       const bossX = enemy.x + enemy.width / 2;
       const bossY = enemy.y + enemy.height - 4;
-      const rarity = this.fixedItemWorldItem?.rarity ?? 'magic';
-      const sourceItem = this.fixedItemWorldItem ?? undefined;
 
-      // 1. Level up the item + show stat popup immediately
+      // Gold flash on boss kill + unlock arena
+      this.screenFlash.flash(0xffd700, 0.5, 300);
+      this.game.hitstopFrames = 12;
+      if (this.bossActive) this.deactivateBossLock();
+
+      // Level up item if inside fixed item world
       if (this.fixedItemWorldItem) {
-        const prevLevel = this.fixedItemWorldItem.level;
+        const rarity = this.fixedItemWorldItem.rarity;
+        const sourceItem = this.fixedItemWorldItem;
         const prevAtk = this.fixedItemWorldItem.finalAtk;
         itemLevelUp(this.fixedItemWorldItem);
         this.updatePlayerAtk();
-        if (this.fixedItemWorldItem.level > prevLevel) {
-          this.toast.show(`${this.fixedItemWorldItem.def.name} Level Up! Lv${this.fixedItemWorldItem.level}`, 0xff88ff);
+        const atkGain = this.fixedItemWorldItem.finalAtk - prevAtk;
+        if (atkGain > 0) {
+          this.toast.showBig(`ATK +${atkGain}`, 0xffd700);
         }
-        if (this.fixedItemWorldItem.finalAtk > prevAtk) {
-          this.toast.show(`ATK ${prevAtk} → ${this.fixedItemWorldItem.finalAtk}`, 0xffff44);
-        }
-      }
 
-      // 2. After 1s → dialogue → 3. portal
-      setTimeout(async () => {
-        if (!this.initialized) return;
-        // await this.dialogueManager.fireEvent('first_boss_kill');
-        if (!this.initialized) return;
-        this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
-      }, 1000);
+        // Spawn portal after delay
+        setTimeout(async () => {
+          if (!this.initialized) return;
+          this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
+        }, 1500);
+      } else {
+        // World boss (test) — no portal, just big toast
+        this.toast.showBig('BOSS DEFEATED!', 0xffd700);
+      }
     } else if (enemy instanceof Slime) {
       // setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
     } else if (enemy instanceof Skeleton) {
@@ -950,20 +995,23 @@ export class LdtkWorldScene extends Scene {
 
     const doorEntities = level.entities.filter(e => e.type === 'LockedDoor');
     for (const ent of doorEntities) {
-      const unlockCondition = (ent.fields['unlockCondition'] as UnlockCondition) || 'event';
+      // LDtk field names are PascalCase; enum values are PascalCase too
+      const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
+      const unlockCondition = rawCondition.toLowerCase() as UnlockCondition || 'event';
       const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
-      const statType = (ent.fields['statType'] as string) || 'atk';
-      const statThreshold = (ent.fields['statThreshold'] as number) || 0;
+      const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
+      const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
 
-      // Already unlocked — skip (event-based doors use unlockEvent key, others use position key)
+      // Build a persistent key for tracking unlocked state
       const doorKey = unlockCondition === 'event'
         ? unlockEvent
-        : `door_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+        : ent.iid; // use entity IID as unique key
       if (this.unlockedEvents.has(doorKey)) continue;
 
       const door = new LockedDoor(
         ent.px[0], ent.px[1],
         ent.width, ent.height,
+        ent.iid,
         unlockCondition,
         unlockCondition === 'event' ? unlockEvent : doorKey,
         statType,
@@ -988,7 +1036,25 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** Check player attack against locked doors (switch/stat conditions). */
+  /** Unlock a single door by its LDtk entity IID. */
+  private unlockDoorByIid(iid: string): void {
+    this.unlockedEvents.add(iid);
+    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
+      const door = this.lockedDoors[i];
+      if (door.iid === iid) {
+        door.unlock(this.collisionGrid);
+        // Break effect
+        this.game.camera.shake(6);
+        this.screenFlash.flashHit(true);
+        this.toast.show('Gate Opened!', 0x44ffaa);
+        door.destroy();
+        this.lockedDoors.splice(i, 1);
+        return;
+      }
+    }
+  }
+
+  /** Check player attack against locked doors (stat conditions only). */
   private checkAttackOnDoors(): void {
     if (!this.player.isAttackActive()) return;
 
@@ -1013,7 +1079,7 @@ export class LdtkWorldScene extends Scene {
       const result = door.tryAttackUnlock(playerStats, this.collisionGrid);
 
       if (result === 'unlocked') {
-        this.unlockedEvents.add(door.unlockEvent);
+        this.unlockedEvents.add(door.iid);
         // Break effect — camera shake + flash
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
@@ -1036,17 +1102,20 @@ export class LdtkWorldScene extends Scene {
 
     const switchEntities = level.entities.filter(e => e.type === 'Switch');
     for (const ent of switchEntities) {
-      const targetEvent = (ent.fields['targetEvent'] as string) || '';
-      if (!targetEvent) continue;
+      // targetDoor / TargetDoor is an EntityRef: { entityIid: "...", ... } or null
+      const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
+      if (!ref?.entityIid) continue;
 
-      // Already activated — show activated state
       const sw = new Switch(
         ent.px[0], ent.px[1],
         ent.width, ent.height,
-        targetEvent,
+        ref.entityIid,
       );
-      if (this.unlockedEvents.has(targetEvent)) {
-        sw.activate();
+      // Already activated — skip collision injection, just show as broken
+      if (this.unlockedEvents.has(ref.entityIid)) {
+        sw.activate(this.collisionGrid);
+      } else {
+        sw.injectCollision(this.collisionGrid);
       }
       this.switches.push(sw);
       this.entityLayer.addChild(sw.container);
@@ -1069,10 +1138,11 @@ export class LdtkWorldScene extends Scene {
       if (sw.activated) continue;
       if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
 
-      if (sw.activate()) {
+      if (sw.activate(this.collisionGrid)) {
         this.game.camera.shake(3);
-        this.unlockDoors(sw.targetEvent);
-        this.toast.show('Switch Activated!', 0x44ffaa);
+        this.screenFlash.flashHit(false);
+        this.unlockDoorByIid(sw.targetDoorIid);
+        this.toast.show('Switch Destroyed!', 0x44ffaa);
       }
     }
   }
@@ -1094,26 +1164,20 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(enemy.container);
     }
 
-    // Boss entities — larger skeleton, on death spawns exit portal
+    // Boss entities — Guardian (기억의 수문장)
     const bossEntities = level.entities.filter(e => e.type === 'Boss');
     for (const ent of bossEntities) {
-      const boss = new Skeleton();
+      const boss = new Guardian();
       (boss as any)._isBoss = true;
-      boss.hp = boss.maxHp = Math.floor(boss.maxHp * 1.5);
-      boss.atk = Math.floor(boss.atk * 2);
-      // Resize sprite to 2x — redraw at larger size instead of scaling container
-      const bw = boss.width * 2;
-      const bh = boss.height * 2;
-      boss.width = bw;
-      boss.height = bh;
-      (boss as any).sprite.clear();
-      (boss as any).sprite.rect(0, 0, bw, bh).fill(0xcc3333);
-      boss.x = ent.px[0] - bw / 2;
-      boss.y = ent.px[1] - bh;
+      boss.x = ent.px[0] - boss.width / 2;
+      boss.y = ent.px[1] - boss.height;
       boss.roomData = this.collisionGrid;
       boss.target = this.player;
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
+
+      // Activate boss lock — seal exits with temporary doors
+      this.activateBossLock(level);
     }
 
     const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
@@ -1131,7 +1195,7 @@ export class LdtkWorldScene extends Scene {
         const enemyLevel = (spawner.fields['level'] as number) ?? 1;
         const localScale = scale * (1 + (enemyLevel - 1) * 0.1);
 
-        let enemy: Enemy;
+        let enemy: Enemy<string>;
         if (enemyType === 'Golden') {
           const golden = new GoldenMonster(tier);
           golden.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
@@ -1141,16 +1205,9 @@ export class LdtkWorldScene extends Scene {
         } else if (enemyType === 'Slime') {
           enemy = new Slime();
         } else if (enemyType === 'Boss') {
-          enemy = new Skeleton();
-          (enemy as any)._isBoss = true;
-          enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * 1.5);
-          enemy.atk = Math.floor(enemy.atk * 2);
-          const bw = enemy.width * 2;
-          const bh = enemy.height * 2;
-          enemy.width = bw;
-          enemy.height = bh;
-          (enemy as any).sprite.clear();
-          (enemy as any).sprite.rect(0, 0, bw, bh).fill(0xcc3333);
+          const g = new Guardian();
+          (g as any)._isBoss = true;
+          enemy = g;
         } else {
           enemy = new Skeleton();
         }

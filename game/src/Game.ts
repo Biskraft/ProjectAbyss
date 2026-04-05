@@ -107,10 +107,9 @@ export class Game {
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);
         }
+        this.input.update();
         this.accumulated -= FIXED_STEP;
       }
-
-      this.input.update();
 
       const alpha = this.accumulated / FIXED_STEP;
       this.sceneManager.render(alpha);

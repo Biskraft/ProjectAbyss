@@ -33,6 +33,8 @@ export interface HitResult {
   dirX: number;
   /** Whether this is a heavy hit (3타 or killing blow) */
   heavy: boolean;
+  /** Whether this hit was a critical strike */
+  critical: boolean;
 }
 
 /**
@@ -85,10 +87,13 @@ export class HitManager {
       if (aabbOverlap(hitbox, targetBox)) {
         hitList.add(target);
 
+        const critical = Math.random() < 0.05; // 5% crit chance
+        const isFinisher = comboIndex >= 2; // 3타 finisher bonus
         const damage = calculateDamage({
           atk: attacker.atk,
           def: target.def,
-          skillMultiplier: 1.0,
+          skillMultiplier: isFinisher ? 1.5 : 1.0,
+          criticalMultiplier: critical ? 1.5 : 1.0,
         });
 
         target.hp -= damage;
@@ -110,7 +115,7 @@ export class HitManager {
           target.onDeath?.();
         }
 
-        const heavy = comboIndex >= 2 || isKill;
+        const heavy = comboIndex >= 2 || isKill || critical;
 
         // --- Sakurai Feedback System ---
         const attackerEntity = attacker as unknown as Entity;
@@ -155,7 +160,7 @@ export class HitManager {
 
         results.push({
           target, damage, comboStep: step,
-          hitX, hitY, dirX, heavy,
+          hitX, hitY, dirX, heavy, critical,
         });
       }
     }

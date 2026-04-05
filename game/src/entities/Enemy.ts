@@ -9,8 +9,8 @@ const MAX_FALL_SPEED = 576;
 
 export type EnemyState = 'idle' | 'chase' | 'attack' | 'cooldown' | 'hit' | 'death';
 
-export abstract class Enemy extends Entity implements CombatEntity {
-  fsm: StateMachine<EnemyState>;
+export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
+  fsm: StateMachine<S>;
   protected sprite: Graphics;
 
   // Stats
@@ -78,9 +78,9 @@ export abstract class Enemy extends Entity implements CombatEntity {
     this.hpBarContainer.visible = false;
     this.container.addChild(this.hpBarContainer);
 
-    this.fsm = new StateMachine<EnemyState>();
+    this.fsm = new StateMachine<S>();
     this.setupStates();
-    this.fsm.transition('idle');
+    this.fsm.transition('idle' as S);
   }
 
   protected abstract setupStates(): void;
@@ -163,7 +163,7 @@ export abstract class Enemy extends Entity implements CombatEntity {
     this.vx = knockbackX;
     this.vy = knockbackY;
     this._hitstunTimer = hitstun;
-    this.fsm.transition('hit');
+    this.fsm.transition('hit' as S);
 
     // Show HP bar on hit
     this.hpBarVisible = true;
@@ -176,7 +176,7 @@ export abstract class Enemy extends Entity implements CombatEntity {
     this.alive = false;
     this.deathTimer = 0;
     this.vx = 0;
-    this.fsm.transition('death');
+    this.fsm.transition('death' as S);
   }
 
   get shouldRemove(): boolean {
@@ -222,7 +222,7 @@ export abstract class Enemy extends Entity implements CombatEntity {
     this._hitstunTimer -= dt;
     this.vx *= 0.9;
     if (this._hitstunTimer <= 0) {
-      this.fsm.transition('idle');
+      this.fsm.transition('idle' as S);
     }
   }
 }

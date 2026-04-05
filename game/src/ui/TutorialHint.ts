@@ -70,9 +70,9 @@ export class TutorialHint {
 
     this.timer -= dt;
 
-    // X key (attack) to dismiss immediately
-    if (this.input.isJustPressed(GameAction.ATTACK)) {
-      this.input.consumeJustPressed(GameAction.ATTACK);
+    // Z key (jump) to dismiss immediately
+    if (this.input.isJustPressed(GameAction.JUMP)) {
+      this.input.consumeJustPressed(GameAction.JUMP);
       this.timer = Math.min(this.timer, FADE_DURATION);
       this.fading = true;
     }
