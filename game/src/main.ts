@@ -1,7 +1,6 @@
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { LdtkWorldScene } from '@scenes/LdtkWorldScene';
-import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 import { VirtualPad } from '@ui/VirtualPad';
 
@@ -48,7 +47,6 @@ try {
   if (params.has('procgen')) {
     await game.sceneManager.push(new WorldScene(game));
   } else {
-    // Skip title screen — go straight to game (TODO: restore TitleScene later)
     await game.sceneManager.push(new LdtkWorldScene(game));
   }
 

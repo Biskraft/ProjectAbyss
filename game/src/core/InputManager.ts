@@ -35,13 +35,6 @@ export class InputManager {
   private consumed = new Set<string>();
   private bindings: Record<GameAction, string[]>;
 
-  // Debug overlay
-  private debugEl: HTMLDivElement | null = null;
-  private lastKeydownCode = '';
-  private lastKeydownKey = '';
-  private lastKeydownComposing = false;
-  private keydownCount = 0;
-
   constructor() {
     this.bindings = { ...DEFAULT_BINDINGS };
 
@@ -55,7 +48,6 @@ export class InputManager {
 
     // Prevent IME from stealing game keys by intercepting at the document level.
     this.setupIMEBlock();
-    this.setupDebugOverlay();
   }
 
   /**
@@ -89,12 +81,6 @@ export class InputManager {
   private onKeyDown(e: KeyboardEvent): void {
     const code = e.code;
 
-    // Debug tracking
-    this.lastKeydownCode = code || '(empty)';
-    this.lastKeydownKey = e.key;
-    this.lastKeydownComposing = e.isComposing;
-    this.keydownCount++;
-
     // IME produces keydown with key='Process' and sometimes empty code.
     // Always use e.code (physical key) which is reliable even during IME.
     if (e.key === 'Process' || e.isComposing) {
@@ -126,34 +112,6 @@ export class InputManager {
     this.prevKeyState.clear();
   }
 
-  private setupDebugOverlay(): void {
-    const el = document.createElement('div');
-    el.style.cssText = 'position:fixed;top:0;left:0;background:rgba(0,0,0,0.8);color:#0f0;font:12px monospace;padding:6px;z-index:99999;pointer-events:none;white-space:pre';
-    document.body.appendChild(el);
-    this.debugEl = el;
-  }
-
-  private updateDebugOverlay(): void {
-    if (!this.debugEl) return;
-    const z = this.keyState.get('KeyZ') ? 'DOWN' : 'up';
-    const x = this.keyState.get('KeyX') ? 'DOWN' : 'up';
-    const c = this.keyState.get('KeyC') ? 'DOWN' : 'up';
-    const pz = this.prevKeyState.get('KeyZ') ? 'DOWN' : 'up';
-    const px = this.prevKeyState.get('KeyX') ? 'DOWN' : 'up';
-    const pc = this.prevKeyState.get('KeyC') ? 'DOWN' : 'up';
-    const jp_z = this.isJustPressed(GameAction.JUMP) ? 'YES' : 'no';
-    const jp_x = this.isJustPressed(GameAction.ATTACK) ? 'YES' : 'no';
-    const jp_c = this.isJustPressed(GameAction.DASH) ? 'YES' : 'no';
-    const focus = document.activeElement?.tagName ?? '?';
-    this.debugEl.textContent =
-      `[Input Debug]\n` +
-      `Last keydown: code=${this.lastKeydownCode} key=${this.lastKeydownKey} composing=${this.lastKeydownComposing} #${this.keydownCount}\n` +
-      `KeyZ(jump):   curr=${z} prev=${pz} justPressed=${jp_z}\n` +
-      `KeyX(attack): curr=${x} prev=${px} justPressed=${jp_x}\n` +
-      `KeyC(dash):   curr=${c} prev=${pc} justPressed=${jp_c}\n` +
-      `Focus: ${focus} | consumed: [${[...this.consumed].join(',')}]`;
-  }
-
   /** Called by VirtualPad on touchstart */
   setVirtualAction(action: GameAction, pressed: boolean): void {
     const vKey = VIRTUAL_PREFIX + action;
@@ -166,7 +124,6 @@ export class InputManager {
   }
 
   update(): void {
-    this.updateDebugOverlay();
     this.prevKeyState = new Map(this.keyState);
     this.consumed.clear();
   }

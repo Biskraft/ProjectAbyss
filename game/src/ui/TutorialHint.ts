@@ -7,7 +7,6 @@
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
-import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
 
 const DISPLAY_DURATION = 8000;
@@ -69,13 +68,6 @@ export class TutorialHint {
     if (!this.panel) return;
 
     this.timer -= dt;
-
-    // Z key (jump) to dismiss immediately
-    if (this.input.isJustPressed(GameAction.JUMP)) {
-      this.input.consumeJustPressed(GameAction.JUMP);
-      this.timer = Math.min(this.timer, FADE_DURATION);
-      this.fading = true;
-    }
 
     if (this.timer <= FADE_DURATION) {
       this.fading = true;

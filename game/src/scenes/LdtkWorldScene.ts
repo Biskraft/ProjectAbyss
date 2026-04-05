@@ -23,7 +23,7 @@ import { GameAction } from '@core/InputManager';
 import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
+import type { LdtkLevel } from '@level/LdtkLoader';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
@@ -190,13 +190,6 @@ export class LdtkWorldScene extends Scene {
     this.inventory.add(starterSword);
     this.inventory.equip(starterSword.uid);
 
-    // Commission: the old sword from the opening note (Magic grade, anvil-only)
-    const commissionSword = createItem(SWORD_DEFS[1]); // Magic grade
-    commissionSword.commission = true;
-    commissionSword.fixedLevelId = 'ItemWorld_FirstSword';
-    (commissionSword.def as any) = { ...commissionSword.def, name: 'Old Sword (Commission)' };
-    this.inventory.add(commissionSword);
-
     // Fetch and parse LDtk project
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
     this.loader = new LdtkLoader();
@@ -307,7 +300,7 @@ export class LdtkWorldScene extends Scene {
 
     // Tutorial hints — only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
-      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Jump  X: Attack  C: Dash');
+      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Jump  X: Attack');
     }
 
     // Portal transition playing
