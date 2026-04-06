@@ -283,6 +283,7 @@ export class LdtkWorldScene extends Scene {
   enter(): void {
     this.container.visible = true;
     if (this.hud) this.hud.container.visible = true;
+    if (!this.currentLevel) return; // first init — loadLevel handles setup
 
     // Clean up collapse effect (tiles stay destroyed — permanent collapse)
     if (this.floorCollapse) {
