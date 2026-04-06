@@ -167,7 +167,8 @@ export class LdtkWorldScene extends Scene {
   private inFixedItemWorld = false;
   private fixedItemWorldItem: ItemInstance | null = null;
 
-  // Cleared level tracking
+  // Level tracking
+  private visitedLevels: Set<string> = new Set(); // entered at least once → revealed on minimap
   private clearedLevels: Set<string> = new Set();
   private collectedItems: Set<string> = new Set();
   private collectedRelics: Set<string> = new Set();
@@ -204,6 +205,7 @@ export class LdtkWorldScene extends Scene {
       this.unlockedEvents = new Set(saveData.unlockedEvents);
       this.collectedRelics = new Set(saveData.collectedRelics);
       this.collectedItems = new Set(saveData.collectedItems);
+      this.visitedLevels = new Set(saveData.visitedLevels ?? []);
       this.clearedLevels = new Set(saveData.clearedLevels);
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
@@ -801,6 +803,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
     this.currentLevel = level;
+    this.visitedLevels.add(level.identifier);
 
     // Render tiles
     this.renderer.clear();
@@ -1164,6 +1167,7 @@ export class LdtkWorldScene extends Scene {
       unlockedEvents: this.unlockedEvents,
       collectedRelics: this.collectedRelics,
       collectedItems: this.collectedItems,
+      visitedLevels: this.visitedLevels,
       clearedLevels: this.clearedLevels,
       playtime: this.game.stats.playTimeMs,
     });
@@ -1803,6 +1807,7 @@ export class LdtkWorldScene extends Scene {
       this.unlockedEvents = new Set(saveData.unlockedEvents);
       this.collectedRelics = new Set(saveData.collectedRelics);
       this.collectedItems = new Set(saveData.collectedItems);
+      this.visitedLevels = new Set(saveData.visitedLevels ?? []);
       this.clearedLevels = new Set(saveData.clearedLevels);
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
@@ -2585,9 +2590,25 @@ export class LdtkWorldScene extends Scene {
       .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld'));
     if (worldMap.length === 0) return;
 
-    // Find bounds
+    // Only show visited rooms + their immediate neighbors (as silhouettes)
+    const visibleIds = new Set<string>();
+    const adjacentIds = new Set<string>();
+    for (const id of this.visitedLevels) {
+      visibleIds.add(id);
+      const level = this.loader.getLevel(id);
+      if (level) {
+        for (const nb of level.neighbors) {
+          if (!visibleIds.has(nb)) adjacentIds.add(nb);
+        }
+      }
+    }
+
+    const relevantMap = worldMap.filter(r => visibleIds.has(r.id) || adjacentIds.has(r.id));
+    if (relevantMap.length === 0) return;
+
+    // Find bounds of visible area
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const r of worldMap) {
+    for (const r of relevantMap) {
       minX = Math.min(minX, r.x);
       minY = Math.min(minY, r.y);
       maxX = Math.max(maxX, r.x + r.w);
@@ -2597,33 +2618,67 @@ export class LdtkWorldScene extends Scene {
     const worldW = maxX - minX;
     const worldH = maxY - minY;
     const mapW = 80;
-    const mapH = 50;
+    const mapH = 60;
     const scale = Math.min(mapW / worldW, mapH / worldH);
+    const actualW = worldW * scale + 4;
+    const actualH = worldH * scale + 4;
 
     // Background
     const bg = new Graphics();
-    bg.rect(0, 0, mapW + 4, mapH + 4).fill({ color: 0x000000, alpha: 0.6 });
+    bg.rect(0, 0, actualW, actualH).fill({ color: 0x000000, alpha: 0.5 });
+    bg.rect(0, 0, actualW, actualH).stroke({ color: 0x445566, width: 0.5 });
     this.minimap.addChild(bg);
 
-    for (const r of worldMap) {
+    // Draw rooms
+    for (const r of relevantMap) {
       const rx = (r.x - minX) * scale + 2;
       const ry = (r.y - minY) * scale + 2;
       const rw = Math.max(2, r.w * scale);
       const rh = Math.max(2, r.h * scale);
 
       const isCurrent = r.id === this.currentLevel?.identifier;
-      const visited = this.clearedLevels.has(r.id);
-      const color = isCurrent ? 0x44ff44 : visited ? 0x6688aa : 0x334455;
+      const visited = this.visitedLevels.has(r.id);
+      const adjacent = adjacentIds.has(r.id);
+
+      let color: number;
+      let alpha: number;
+      if (isCurrent) {
+        color = 0x44ff44; alpha = 1.0;
+      } else if (visited) {
+        color = 0x5577aa; alpha = 0.8;
+      } else if (adjacent) {
+        color = 0x333344; alpha = 0.4; // fog silhouette
+      } else {
+        continue;
+      }
 
       const g = new Graphics();
-      g.rect(rx, ry, rw, rh).fill(color);
-      g.rect(rx, ry, rw, rh).stroke({ color: 0x88aacc, width: 0.5 });
+      g.rect(rx, ry, rw, rh).fill({ color, alpha });
+      if (visited || isCurrent) {
+        g.rect(rx, ry, rw, rh).stroke({ color: 0x88aacc, width: 0.5 });
+      }
       this.minimap.addChild(g);
     }
 
+    // Markers — save points
+    for (const r of relevantMap) {
+      if (!this.visitedLevels.has(r.id)) continue;
+      const level = this.loader.getLevel(r.id);
+      if (!level) continue;
+      const hasSave = level.entities.some(e => e.type === 'GameSaver');
+      if (hasSave) {
+        const rx = (r.x - minX) * scale + 2 + (r.w * scale) / 2;
+        const ry = (r.y - minY) * scale + 2 + (r.h * scale) / 2;
+        const marker = new Graphics();
+        marker.circle(rx, ry, 1.5).fill(0xff4444);
+        this.minimap.addChild(marker);
+      }
+    }
+
     // Position at top-right corner
-    this.minimap.x = GAME_WIDTH - mapW - 8;
+    this.minimap.x = GAME_WIDTH - actualW - 4;
     this.minimap.y = 4;
+    this.minimap.alpha = 0.85;
     this.game.app.stage.addChild(this.minimap);
   }
 

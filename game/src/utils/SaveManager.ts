@@ -31,6 +31,8 @@ export interface SaveData {
   collectedRelics: string[];
   /** Collected item keys. */
   collectedItems: string[];
+  /** Visited level identifiers (fog of war reveal). */
+  visitedLevels: string[];
   /** Cleared level identifiers. */
   clearedLevels: string[];
   /** Total play time in ms. */
@@ -82,6 +84,7 @@ export class SaveManager {
     unlockedEvents: Set<string>;
     collectedRelics: Set<string>;
     collectedItems: Set<string>;
+    visitedLevels: Set<string>;
     clearedLevels: Set<string>;
     playtime: number;
   }): void {
@@ -97,6 +100,7 @@ export class SaveManager {
       unlockedEvents: [...params.unlockedEvents],
       collectedRelics: [...params.collectedRelics],
       collectedItems: [...params.collectedItems],
+      visitedLevels: [...params.visitedLevels],
       clearedLevels: [...params.clearedLevels],
       playtime: params.playtime,
     };
