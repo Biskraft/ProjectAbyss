@@ -20,6 +20,7 @@ export interface SaveData {
   };
   abilities: {
     dash: boolean;
+    diveAttack: boolean;
     wallJump: boolean;
     doubleJump: boolean;
   };
@@ -76,7 +77,7 @@ export class SaveManager {
     player: { hp: number; maxHp: number; atk: number; def: number };
     levelId: string;
     inventory: Inventory;
-    abilities: { dash: boolean; wallJump: boolean; doubleJump: boolean };
+    abilities: { dash: boolean; diveAttack: boolean; wallJump: boolean; doubleJump: boolean };
     unlockedEvents: Set<string>;
     collectedRelics: Set<string>;
     collectedItems: Set<string>;

@@ -37,6 +37,7 @@ import { Anvil } from '@entities/Anvil';
 import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
+import { CrackedFloor } from '@entities/CrackedFloor';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -174,6 +175,7 @@ export class LdtkWorldScene extends Scene {
   private lockedDoors: LockedDoor[] = [];
   private switches: Switch[] = [];
   private growingWalls: GrowingWall[] = [];
+  private crackedFloors: CrackedFloor[] = [];
   private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
@@ -229,6 +231,7 @@ export class LdtkWorldScene extends Scene {
       this.player.hp = saveData.player.hp;
       this.player.maxHp = saveData.player.maxHp;
       this.player.abilities.dash = saveData.abilities.dash;
+      this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
     }
@@ -551,6 +554,9 @@ export class LdtkWorldScene extends Scene {
         if (abilityName === 'dash') {
           this.player.abilities.dash = true;
           this.toast.showBig('Dash unlocked!', 0xffd700);
+        } else if (abilityName === 'diveAttack') {
+          this.player.abilities.diveAttack = true;
+          this.toast.showBig('Dive Attack unlocked!', 0xffd700);
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
           this.toast.showBig('Wall Jump unlocked!', 0xffd700);
@@ -599,6 +605,11 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnSwitches();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) wall.update(dt);
+
+    // Dive attack landing — area damage + cracked floor check
+    if (this.player.diveLanded) {
+      this.handleDiveLanding();
+    }
 
     // Save point interaction — UP key near save point
     this.checkSavePoints();
@@ -818,6 +829,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnLockedDoors(level);
     this.spawnSwitches(level);
     this.spawnGrowingWalls(level);
+    this.spawnCrackedFloors(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -1155,6 +1167,92 @@ export class LdtkWorldScene extends Scene {
     // Heal to full on save
     this.player.hp = this.player.maxHp;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+  }
+
+  private spawnCrackedFloors(level: LdtkLevel): void {
+    for (const cf of this.crackedFloors) cf.destroy();
+    this.crackedFloors = [];
+
+    const entities = level.entities.filter(e => e.type === 'CrackedFloor');
+    for (const ent of entities) {
+      const key = `crack_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+      // Already destroyed in a previous session
+      if (this.unlockedEvents.has(key)) continue;
+
+      const cf = new CrackedFloor(ent.px[0], ent.px[1], ent.width, ent.height);
+      (cf as any)._key = key;
+      cf.injectCollision(this.collisionGrid);
+      this.crackedFloors.push(cf);
+      this.entityLayer.addChild(cf.container);
+    }
+  }
+
+  /** Handle dive attack landing — area damage + cracked floor shatter. */
+  private handleDiveLanding(): void {
+    const dist = this.player.diveFallDistance;
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height;
+
+    // Damage tier based on fall distance
+    let dmgMult: number;
+    let radius: number;
+    if (dist > 128) {
+      dmgMult = 2.5; radius = 32;
+    } else if (dist > 64) {
+      dmgMult = 1.5; radius = 24;
+    } else {
+      dmgMult = 1.0; radius = 16;
+    }
+
+    // Camera shake + hitstop proportional to fall distance
+    const shakeIntensity = Math.min(8, 3 + dist / 32);
+    this.game.camera.shake(shakeIntensity);
+    this.game.hitstopFrames = dist > 128 ? 8 : dist > 64 ? 6 : 4;
+    this.screenFlash.flashHit(dist > 64);
+
+    // Dust particles at landing point
+    for (let i = 0; i < 4; i++) {
+      this.hitSparks.spawn(px + (Math.random() - 0.5) * radius, py - 4, dist > 64, 0);
+    }
+
+    // Area damage to enemies
+    const impactBox = { x: px - radius, y: py - 8, width: radius * 2, height: 16 };
+    const dmg = Math.floor(this.player.atk * dmgMult);
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const enemyBox = { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height };
+      if (aabbOverlap(impactBox, enemyBox)) {
+        enemy.hp -= dmg;
+        enemy.onHit(0, -80, 200);
+        if (enemy.hp <= 0) {
+          enemy.hp = 0;
+          enemy.onDeath();
+        }
+        this.dmgNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, true);
+        this.hitSparks.spawn(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, true, 0);
+      }
+    }
+
+    // Shatter cracked floors
+    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
+      const cf = this.crackedFloors[i];
+      if (cf.destroyed) continue;
+      const cfBox = cf.getAABB();
+      // Check if landing point is on or near the cracked floor
+      const landBox = { x: px - radius, y: py - 4, width: radius * 2, height: 8 };
+      if (aabbOverlap(landBox, cfBox)) {
+        cf.shatter(this.collisionGrid);
+        const key = (cf as any)._key as string;
+        if (key) this.unlockedEvents.add(key);
+        // Extra effects for floor break
+        this.game.hitstopFrames += 4;
+        this.screenFlash.flash(0xffffff, 0.4, 150);
+        this.game.camera.shake(10);
+        this.toast.show('Floor Destroyed!', 0xffaa44);
+        cf.destroy();
+        this.crackedFloors.splice(i, 1);
+      }
+    }
   }
 
   private spawnGrowingWalls(level: LdtkLevel): void {
@@ -1703,6 +1801,7 @@ export class LdtkWorldScene extends Scene {
       this.collectedItems = new Set(saveData.collectedItems);
       this.clearedLevels = new Set(saveData.clearedLevels);
       this.player.abilities.dash = saveData.abilities.dash;
+      this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.loadLevel(saveData.levelId, 'down');

@@ -33,7 +33,7 @@ const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upwar
 
 const FRAME_MS = 1000 / 60;
 
-export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'attack' | 'hit' | 'death';
+export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | 'attack' | 'hit' | 'death';
 
 export class Player extends Entity implements CombatEntity {
   private game: Game;
@@ -62,9 +62,17 @@ export class Player extends Entity implements CombatEntity {
   // Abilities (unlocked by relic pickups)
   abilities = {
     dash: false,
+    diveAttack: false,
     wallJump: false,
     doubleJump: false,
   };
+
+  // Dive attack
+  private diveStartY = 0;
+  /** True on the frame dive attack lands — scene checks this for effects. */
+  diveLanded = false;
+  /** Fall distance of the last dive landing (px). */
+  diveFallDistance = 0;
 
   // Double jump
   private doubleJumpAvailable = false;
@@ -158,6 +166,11 @@ export class Player extends Entity implements CombatEntity {
       update: (dt) => this.stateDash(dt),
     });
     this.fsm.addState({
+      name: 'dive',
+      enter: () => this.startDive(),
+      update: () => this.stateDive(),
+    });
+    this.fsm.addState({
       name: 'attack',
       enter: () => this.startAttack(),
       update: (dt) => this.stateAttack(dt),
@@ -180,6 +193,7 @@ export class Player extends Entity implements CombatEntity {
 
   update(dt: number): void {
     this.savePrevPosition();
+    this.diveLanded = false; // reset each frame — scene reads this flag
     this.updateInvincibility(dt);
     const dtSec = dt / 1000;
 
@@ -254,9 +268,18 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
+    // Dive attack input — air + ↓ + X
+    if (this.abilities.diveAttack && !this.grounded &&
+        this.game.input.isDown(GameAction.LOOK_DOWN) &&
+        this.game.input.isJustPressed(GameAction.ATTACK) &&
+        state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
+      this.fsm.transition('dive');
+      return;
+    }
+
     // Attack input
     if (this.game.input.isJustPressed(GameAction.ATTACK) &&
-        state !== 'dash' && state !== 'hit' && state !== 'death') {
+        state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
       if (state === 'attack') {
         // Queue next combo hit
         this.attackQueued = true;
@@ -280,7 +303,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // End lag finished → return to normal state
-    if (state !== 'attack' && state !== 'hit' && state !== 'death' && state !== 'dash' && this.endLagTimer > 0) {
+    if (state !== 'attack' && state !== 'hit' && state !== 'death' && state !== 'dash' && state !== 'dive' && this.endLagTimer > 0) {
       // Still in end lag, don't transition
     }
 
@@ -291,8 +314,8 @@ export class Player extends Entity implements CombatEntity {
     this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
     const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
 
-    // Apply gravity (except during dash) — reduced in water
-    if (state !== 'dash') {
+    // Apply gravity (except during dash/dive) — reduced in water
+    if (state !== 'dash' && state !== 'dive') {
       this.vy += GRAVITY * waterMult * dtSec;
       const maxFall = this.inWater ? MAX_FALL_SPEED * 0.4 : MAX_FALL_SPEED;
       if (this.vy > maxFall) this.vy = maxFall;
@@ -477,6 +500,32 @@ export class Player extends Entity implements CombatEntity {
       } else {
         this.fsm.transition('fall');
       }
+    }
+  }
+
+  // --- Dive Attack ---
+
+  private static readonly DIVE_SPEED = 900; // px/s
+
+  private startDive(): void {
+    this.diveStartY = this.y;
+    this.vy = Player.DIVE_SPEED;
+    this.vx = 0;
+    this.diveLanded = false;
+    this.attackActive = true;
+  }
+
+  private stateDive(): void {
+    // Fixed downward speed, no horizontal movement
+    this.vy = Player.DIVE_SPEED;
+    this.vx = 0;
+
+    if (this.grounded) {
+      // Landed
+      this.diveFallDistance = Math.max(0, this.y - this.diveStartY);
+      this.diveLanded = true;
+      this.attackActive = false;
+      this.fsm.transition('idle');
     }
   }
 
