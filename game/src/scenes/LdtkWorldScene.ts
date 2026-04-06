@@ -38,6 +38,7 @@ import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
+import { Spike } from '@entities/Spike';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -177,6 +178,7 @@ export class LdtkWorldScene extends Scene {
   private switches: Switch[] = [];
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
+  private spikes: Spike[] = [];
   private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
@@ -635,6 +637,9 @@ export class LdtkWorldScene extends Scene {
       this.handleDiveLanding();
     }
 
+    // Spike hazard contact
+    this.checkSpikeContact();
+
     // Save point interaction — UP key near save point
     this.checkSavePoints();
 
@@ -864,6 +869,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnSwitches(level);
     this.spawnGrowingWalls(level);
     this.spawnCrackedFloors(level);
+    this.spawnSpikes(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -1247,6 +1253,63 @@ export class LdtkWorldScene extends Scene {
     // Heal to full on save
     this.player.hp = this.player.maxHp;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+  }
+
+  private spawnSpikes(level: LdtkLevel): void {
+    for (const sp of this.spikes) sp.destroy();
+    this.spikes = [];
+
+    const spikeEnts = level.entities.filter(e => e.type === 'Spike');
+    for (const ent of spikeEnts) {
+      const spike = new Spike(ent.px[0], ent.px[1], ent.width, ent.height);
+      this.spikes.push(spike);
+      this.entityLayer.addChild(spike.container);
+    }
+  }
+
+  /** Check player overlap with spikes — damage + teleport to last safe ground. */
+  private checkSpikeContact(): void {
+    if (this.player.invincible || this.player.hp <= 0) return;
+
+    const playerBox = {
+      x: this.player.x, y: this.player.y,
+      width: this.player.width, height: this.player.height,
+    };
+
+    for (const spike of this.spikes) {
+      if (!aabbOverlap(playerBox, spike.getAABB())) continue;
+
+      // 20% max HP damage
+      const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
+      this.player.hp -= dmg;
+      this.player.invincible = true;
+      this.player.invincibleTimer = 500;
+
+      // Feedback
+      this.game.hitstopFrames = 4;
+      this.game.camera.shake(5);
+      this.screenFlash.flashDamage(true);
+      this.player.triggerFlash();
+      this.dmgNumbers.spawn(
+        this.player.x + this.player.width / 2,
+        this.player.y - 8, dmg, true,
+      );
+
+      // Teleport to last safe ground
+      this.player.x = this.player.lastSafeX;
+      this.player.y = this.player.lastSafeY;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.player.onDeath();
+        this.game.hitstopFrames = 8;
+        this.screenFlash.flashDamage(true);
+      }
+      return; // one spike per frame
+    }
   }
 
   private spawnCrackedFloors(level: LdtkLevel): void {

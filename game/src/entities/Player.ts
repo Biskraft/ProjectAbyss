@@ -85,6 +85,10 @@ export class Player extends Entity implements CombatEntity {
   /** Fall distance of the last dive landing (px). */
   diveFallDistance = 0;
 
+  // Last safe ground position (for spike hazard respawn)
+  lastSafeX = 0;
+  lastSafeY = 0;
+
   // Double jump
   private doubleJumpAvailable = false;
 
@@ -232,10 +236,14 @@ export class Player extends Entity implements CombatEntity {
     }
     if (this.coyoteTimer > 0) this.coyoteTimer -= dt;
 
-    // Reset air dash on landing
+    // Reset air dash on landing + track last safe ground
     if (this.grounded && !this.wasGrounded) {
       this.airDashAvailable = true;
       this.doubleJumpAvailable = true;
+    }
+    if (this.grounded && this.hp > 0) {
+      this.lastSafeX = this.x;
+      this.lastSafeY = this.y;
     }
     // Recharge ground dash after delay
     if (this.grounded && this.groundDashDelayTimer <= 0) {
