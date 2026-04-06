@@ -33,7 +33,7 @@ const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upwar
 
 const FRAME_MS = 1000 / 60;
 
-export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | 'attack' | 'hit' | 'death';
+export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | 'surge_charge' | 'surge_fly' | 'attack' | 'hit' | 'death';
 
 export class Player extends Entity implements CombatEntity {
   private game: Game;
@@ -63,9 +63,20 @@ export class Player extends Entity implements CombatEntity {
   abilities = {
     dash: false,
     diveAttack: false,
+    surge: false,
     wallJump: false,
     doubleJump: false,
   };
+
+  // Surge (Counter-Current Surge)
+  private static readonly SURGE_CHARGE_MS = 200;  // 0.2s charge
+  private static readonly SURGE_SPEED = 700;       // px/s upward (~2.5x double jump)
+  private static readonly SURGE_DURATION = 350;    // ms of upward flight
+  private surgeChargeTimer = 0;
+  private surgeFlyTimer = 0;
+  private surgeDirX = 0; // 0 = straight up, ±1 = diagonal off wall
+  /** True during surge flight — scene can check for contact damage. */
+  surgeActive = false;
 
   // Dive attack
   private diveStartY = 0;
@@ -171,6 +182,18 @@ export class Player extends Entity implements CombatEntity {
       update: () => this.stateDive(),
     });
     this.fsm.addState({
+      name: 'surge_charge',
+      enter: () => this.startSurgeCharge(),
+      update: (dt) => this.stateSurgeCharge(dt),
+      exit: () => { this.vx = 0; },
+    });
+    this.fsm.addState({
+      name: 'surge_fly',
+      enter: () => this.startSurgeFly(),
+      update: (dt) => this.stateSurgeFly(dt),
+      exit: () => { this.surgeActive = false; },
+    });
+    this.fsm.addState({
       name: 'attack',
       enter: () => this.startAttack(),
       update: (dt) => this.stateAttack(dt),
@@ -257,9 +280,18 @@ export class Player extends Entity implements CombatEntity {
 
     const state = this.fsm.currentState;
 
+    // Surge input — ↑ + C on ground or wall
+    if (this.abilities.surge && this.game.input.isJustPressed(GameAction.DASH) &&
+        this.game.input.isDown(GameAction.LOOK_UP) &&
+        (this.grounded || this.wallSliding) &&
+        state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
+      this.fsm.transition('surge_charge');
+      return;
+    }
+
     // Dash input (requires dash ability, available from most states, cancels 3타 end lag)
     if (this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
-        state !== 'dash' && state !== 'hit' && state !== 'death') {
+        state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
       if (canDash) {
         this.endLagTimer = 0;
@@ -314,8 +346,8 @@ export class Player extends Entity implements CombatEntity {
     this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
     const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
 
-    // Apply gravity (except during dash/dive) — reduced in water
-    if (state !== 'dash' && state !== 'dive') {
+    // Apply gravity (except during dash/dive/surge) — reduced in water
+    if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
       this.vy += GRAVITY * waterMult * dtSec;
       const maxFall = this.inWater ? MAX_FALL_SPEED * 0.4 : MAX_FALL_SPEED;
       if (this.vy > maxFall) this.vy = maxFall;
@@ -526,6 +558,64 @@ export class Player extends Entity implements CombatEntity {
       this.diveLanded = true;
       this.attackActive = false;
       this.fsm.transition('idle');
+    }
+  }
+
+  // --- Surge (Counter-Current Surge) ---
+
+  private startSurgeCharge(): void {
+    this.surgeChargeTimer = Player.SURGE_CHARGE_MS;
+    this.vx = 0;
+    this.vy = 0;
+
+    // Determine launch direction — wall bounce or straight up
+    if (this.wallSliding && this.touchingWallDir !== 0) {
+      this.surgeDirX = -this.touchingWallDir; // diagonal away from wall
+    } else {
+      this.surgeDirX = 0; // straight up
+    }
+  }
+
+  private stateSurgeCharge(dt: number): void {
+    this.surgeChargeTimer -= dt;
+    this.vx = 0;
+    this.vy = 0;
+
+    if (this.surgeChargeTimer <= 0) {
+      this.fsm.transition('surge_fly');
+    }
+  }
+
+  private startSurgeFly(): void {
+    this.surgeFlyTimer = Player.SURGE_DURATION;
+    this.surgeActive = true;
+    this.attackActive = true;
+    this.vy = -Player.SURGE_SPEED;
+    this.vx = this.surgeDirX * Player.SURGE_SPEED * 0.5; // diagonal component
+
+    if (this.surgeDirX !== 0) {
+      this.facingRight = this.surgeDirX > 0;
+    }
+  }
+
+  private stateSurgeFly(dt: number): void {
+    this.surgeFlyTimer -= dt;
+
+    // Maintain upward velocity (resist gravity)
+    this.vy = -Player.SURGE_SPEED * Math.max(0, this.surgeFlyTimer / Player.SURGE_DURATION);
+
+    if (this.surgeFlyTimer <= 0) {
+      this.surgeActive = false;
+      this.attackActive = false;
+      this.fsm.transition('fall');
+    }
+
+    // Hit ceiling → end early
+    if (this.vy <= 0 && this.y <= 0) {
+      this.surgeActive = false;
+      this.attackActive = false;
+      this.vy = 0;
+      this.fsm.transition('fall');
     }
   }
 

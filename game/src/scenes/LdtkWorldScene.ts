@@ -232,6 +232,7 @@ export class LdtkWorldScene extends Scene {
       this.player.maxHp = saveData.player.maxHp;
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
+      this.player.abilities.surge = saveData.abilities.surge ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
     }
@@ -557,6 +558,9 @@ export class LdtkWorldScene extends Scene {
         } else if (abilityName === 'diveAttack') {
           this.player.abilities.diveAttack = true;
           this.toast.showBig('Dive Attack unlocked!', 0xffd700);
+        } else if (abilityName === 'surge') {
+          this.player.abilities.surge = true;
+          this.toast.showBig('Counter-Current Surge unlocked!', 0xffd700);
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
           this.toast.showBig('Wall Jump unlocked!', 0xffd700);
@@ -1802,6 +1806,7 @@ export class LdtkWorldScene extends Scene {
       this.clearedLevels = new Set(saveData.clearedLevels);
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
+      this.player.abilities.surge = saveData.abilities.surge ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.loadLevel(saveData.levelId, 'down');
