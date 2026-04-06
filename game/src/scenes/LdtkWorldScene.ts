@@ -278,6 +278,12 @@ export class LdtkWorldScene extends Scene {
       this.playerSpawnLevelId = this.findPlayerSpawnLevel();
     }
     this.loadLevel(this.playerSpawnLevelId, 'down');
+
+    // If loading from save, snap player to save point
+    if (saveData && this.savePoints.length > 0) {
+      this.snapPlayerToSavePoint();
+    }
+
     this.initialized = true;
 
   }
@@ -1192,6 +1198,29 @@ export class LdtkWorldScene extends Scene {
 
   private saveHintShown = false;
 
+  /** Place player next to the nearest save point in the current level. */
+  private snapPlayerToSavePoint(): void {
+    if (this.savePoints.length === 0) return;
+    // Find closest save point
+    const pcx = this.player.x + this.player.width / 2;
+    let closest = this.savePoints[0];
+    let bestDist = Infinity;
+    for (const sp of this.savePoints) {
+      const d = Math.abs(sp.x - pcx);
+      if (d < bestDist) { bestDist = d; closest = sp; }
+    }
+    // Place player next to save point, on the ground
+    this.player.x = closest.x - this.player.width / 2;
+    this.player.y = closest.y - this.player.height;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
+  }
+
   private performSave(): void {
     // Visual feedback
     this.screenFlash.flash(0x44ffaa, 0.3, 200);
@@ -1889,12 +1918,11 @@ export class LdtkWorldScene extends Scene {
       this.loadLevel(this.playerSpawnLevelId, 'down');
     }
 
-    // Full HP restore
+    // Full HP restore + snap to save point
     this.player.respawn();
     this.player.hp = this.player.maxHp;
     this.updatePlayerAtk();
-    this.player.savePrevPosition();
-    this.game.camera.snap(this.player.x, this.player.y);
+    this.snapPlayerToSavePoint();
   }
 
   // ---------------------------------------------------------------------------
