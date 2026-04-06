@@ -844,7 +844,9 @@ export class LdtkWorldScene extends Scene {
     this.clearPortals();
     for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
+    for (const sp of this.savePoints) { if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx); }
     this.savePoints = [];
+    this.saveHintShown = false;
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
@@ -1179,10 +1181,10 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Show/hide save hint
+    // Show save hint once when approaching
     if (nearSave && !this.saveHintShown) {
       this.saveHintShown = true;
-      this.tutorialHint.tryShow('hint_save', 'UP: Save');
+      this.toast.show('UP: Save', 0x44ffaa);
     } else if (!nearSave) {
       this.saveHintShown = false;
     }
