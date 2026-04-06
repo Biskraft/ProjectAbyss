@@ -16,6 +16,7 @@ const LOGO_PATH = 'assets/ui/title_logo.png';
 
 export class TitleScene extends Scene {
   private canProceed = false;
+  private transitioning = false;
   private hint!: BitmapText;
   private elapsed = 0;
 
@@ -91,7 +92,8 @@ export class TitleScene extends Scene {
       this.hint.alpha = 0.5 + Math.sin(this.elapsed / 400) * 0.5;
     }
 
-    if (this.canProceed && this.game.input.anyKeyJustPressed()) {
+    if (this.canProceed && !this.transitioning && this.game.input.anyKeyJustPressed()) {
+      this.transitioning = true;
       this.game.sceneManager.replace(new LdtkWorldScene(this.game));
     }
   }

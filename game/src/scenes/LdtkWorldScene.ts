@@ -272,7 +272,9 @@ export class LdtkWorldScene extends Scene {
     this.game.app.stage.addChild(this.inventoryUI.container);
 
     // Spawn level — saved level or default Player entity level
-    if (!saveData) {
+    if (saveData && saveData.levelId) {
+      this.playerSpawnLevelId = saveData.levelId;
+    } else {
       this.playerSpawnLevelId = this.findPlayerSpawnLevel();
     }
     this.loadLevel(this.playerSpawnLevelId, 'down');
