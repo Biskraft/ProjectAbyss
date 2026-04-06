@@ -54,6 +54,15 @@ export class Player extends Entity implements CombatEntity {
 
   // Water
   inWater = false;
+  /** True when player head is submerged (2+ tiles deep). */
+  submerged = false;
+
+  // Oxygen system
+  private static readonly OXYGEN_MAX = 20000; // 20 seconds in ms
+  /** Current oxygen remaining (ms). Scene reads this for HUD. */
+  oxygen = Player.OXYGEN_MAX;
+  /** True when oxygen has run out → scene triggers death. */
+  drowned = false;
 
   // Drop-through one-way platforms (down + jump)
   dropThroughTimer = 0;
@@ -64,6 +73,7 @@ export class Player extends Entity implements CombatEntity {
     dash: false,
     diveAttack: false,
     surge: false,
+    waterBreathing: false,
     wallJump: false,
     doubleJump: false,
   };
@@ -353,6 +363,25 @@ export class Player extends Entity implements CombatEntity {
     // Water detection
     this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
     const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
+
+    // Submersion check — head (top of sprite) is in water = 2+ tiles deep
+    const headRow = Math.floor(this.y / 16);
+    const midCol = Math.floor((this.x + this.width / 2) / 16);
+    const headInWater = this.roomData[headRow]?.[midCol] === 2;
+    this.submerged = this.inWater && headInWater;
+
+    // Oxygen timer
+    this.drowned = false;
+    if (this.submerged && !this.abilities.waterBreathing) {
+      this.oxygen -= dt;
+      if (this.oxygen <= 0) {
+        this.oxygen = 0;
+        this.drowned = true;
+      }
+    } else {
+      // Recover oxygen when not submerged (fast recovery)
+      this.oxygen = Math.min(Player.OXYGEN_MAX, this.oxygen + dt * 3);
+    }
 
     // Apply gravity (except during dash/dive/surge) — reduced in water
     if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
@@ -697,6 +726,11 @@ export class Player extends Entity implements CombatEntity {
   /** Whether the attack hitbox is currently active (for HitManager to check) */
   isAttackActive(): boolean {
     return this.attackActive;
+  }
+
+  /** Oxygen ratio 0~1 (1 = full, 0 = drowned). */
+  get oxygenRatio(): number {
+    return this.oxygen / Player.OXYGEN_MAX;
   }
 
   private updateAttackVisual(): void {

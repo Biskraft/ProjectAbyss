@@ -156,6 +156,10 @@ export class LdtkWorldScene extends Scene {
   private activeAltar: Altar | null = null;
   private altarUI: Container | null = null;
 
+  // Oxygen HUD
+  private oxygenOverlay: Graphics | null = null;
+  private oxygenBar: Graphics | null = null;
+
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
   private floorCollapse: FloorCollapse | null = null;
@@ -237,6 +241,7 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
       this.player.abilities.surge = saveData.abilities.surge ?? false;
+      this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
     }
@@ -417,6 +422,16 @@ export class LdtkWorldScene extends Scene {
     // Player
     this.player.update(dt);
 
+    // Check drowning
+    if (this.player.drowned && !this.gameOverActive) {
+      this.player.hp = 0;
+      this.player.onDeath();
+      this.game.hitstopFrames = 8;
+      this.screenFlash.flashDamage(true);
+      this.showGameOver();
+      return;
+    }
+
     // Check player death
     if (this.player.isDead && !this.gameOverActive) {
       this.showGameOver();
@@ -573,6 +588,9 @@ export class LdtkWorldScene extends Scene {
         } else if (abilityName === 'surge') {
           this.player.abilities.surge = true;
           this.toast.showBig('Counter-Current Surge unlocked!', 0xffd700);
+        } else if (abilityName === 'waterBreathing') {
+          this.player.abilities.waterBreathing = true;
+          this.toast.showBig('Water Breathing unlocked!', 0x4488ff);
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
           this.toast.showBig('Wall Jump unlocked!', 0xffd700);
@@ -688,6 +706,74 @@ export class LdtkWorldScene extends Scene {
       cam.snap(cx, cy);
     } else {
       cam.update(dt);
+    }
+
+    // Oxygen overlay — vignette + bar when submerged
+    this.updateOxygenOverlay();
+  }
+
+  private updateOxygenOverlay(): void {
+    const ratio = this.player.oxygenRatio;
+    const submerged = this.player.submerged && !this.player.abilities.waterBreathing;
+
+    // Vignette overlay
+    if (submerged && ratio < 1) {
+      if (!this.oxygenOverlay) {
+        this.oxygenOverlay = new Graphics();
+        this.oxygenOverlay.eventMode = 'none';
+        this.game.app.stage.addChild(this.oxygenOverlay);
+      }
+
+      this.oxygenOverlay.clear();
+      // Blue → red vignette based on oxygen
+      const color = ratio > 0.5 ? 0x1122aa : ratio > 0.25 ? 0x882244 : 0xaa2222;
+      const intensity = (1 - ratio) * 0.5;
+      // Pulse effect when low
+      const pulse = ratio < 0.5 ? Math.sin(Date.now() * (ratio < 0.15 ? 0.015 : 0.008)) * 0.1 : 0;
+      const alpha = Math.min(0.6, intensity + pulse);
+
+      // Draw border vignette
+      this.oxygenOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+        .fill({ color, alpha });
+      // Clear center to create vignette effect
+      const cx = GAME_WIDTH / 2;
+      const cy = GAME_HEIGHT / 2;
+      const r = GAME_WIDTH * 0.35 * (0.5 + ratio * 0.5);
+      this.oxygenOverlay.circle(cx, cy, r).cut();
+
+      this.oxygenOverlay.visible = true;
+    } else {
+      if (this.oxygenOverlay) {
+        this.oxygenOverlay.visible = false;
+      }
+    }
+
+    // Oxygen bar (bottom center, only when submerged)
+    if (submerged && ratio < 1) {
+      if (!this.oxygenBar) {
+        this.oxygenBar = new Graphics();
+        this.oxygenBar.eventMode = 'none';
+        this.game.app.stage.addChild(this.oxygenBar);
+      }
+
+      this.oxygenBar.clear();
+      const barW = 60;
+      const barH = 4;
+      const bx = GAME_WIDTH / 2 - barW / 2;
+      const by = GAME_HEIGHT - 20;
+      // BG
+      this.oxygenBar.rect(bx, by, barW, barH).fill({ color: 0x111133, alpha: 0.7 });
+      // Fill
+      const fillColor = ratio > 0.5 ? 0x4488ff : ratio > 0.25 ? 0xff8844 : 0xff2222;
+      this.oxygenBar.rect(bx, by, barW * ratio, barH).fill(fillColor);
+      // Border
+      this.oxygenBar.rect(bx, by, barW, barH).stroke({ color: 0x446688, width: 0.5 });
+
+      this.oxygenBar.visible = true;
+    } else {
+      if (this.oxygenBar) {
+        this.oxygenBar.visible = false;
+      }
     }
   }
 
@@ -1973,6 +2059,7 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
       this.player.abilities.surge = saveData.abilities.surge ?? false;
+      this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.loadLevel(saveData.levelId, 'down');

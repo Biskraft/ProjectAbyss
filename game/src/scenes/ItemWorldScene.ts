@@ -220,6 +220,7 @@ export class ItemWorldScene extends Scene {
     this.player.abilities.dash = this.sourcePlayer.abilities.dash;
     this.player.abilities.diveAttack = this.sourcePlayer.abilities.diveAttack;
     this.player.abilities.surge = this.sourcePlayer.abilities.surge;
+    this.player.abilities.waterBreathing = this.sourcePlayer.abilities.waterBreathing;
     this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
     this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
     this.entityLayer.addChild(this.player.container);
