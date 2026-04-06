@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-04-06
-> 총 25개 리서치 문서
+> 최근 업데이트: 2026-04-07
+> 총 27개 리서치 문서
 
 ---
 
@@ -44,6 +44,8 @@
 | **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |
 | **SkillSystem_ActionRPG** | 7종 게임 분석, "무기별 분기+공용 트리" 하이브리드 구조, 4슬롯 깊이 확보 6방안 |
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
+| **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0~2 우선순위) |
+| **PixelArt_Animation_Principles** | 키프레임 우선 4~8f 원칙 + 예비동작 프레임표 + 스프라이트 크기 규격 + Phase 1 최소 세트 |
 
 ---
 
@@ -67,3 +69,4 @@
 | 넷코드 상세 | OnlineCoop 1개 (개요) | 클라이언트 예측, 롤백 등 Phase 3용 |
 | 허브 상세 | HubSpace 1개 (개요) | 시설, NPC, 상점 구체화 Phase 2용 |
 | 적 AI 구현 | EnemyDesign_MobArchetype (아키타입 정의) | FSM/행동트리 상세 구현 명세 (System_Enemy_AI.md 선행 필요) |
+| 픽셀아트 스타일 가이드 | PixelArt_Animation_Principles (애니메이션 원칙) | 아트 바이블 정식 문서 (Documents/Design/Design_Art_Direction.md 필요) |
