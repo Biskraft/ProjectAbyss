@@ -284,14 +284,13 @@ export class LdtkWorldScene extends Scene {
     this.container.visible = true;
     if (this.hud) this.hud.container.visible = true;
 
-    // Restore collision + tileset if collapse was active
+    // Clean up collapse effect (tiles stay destroyed — permanent collapse)
     if (this.floorCollapse) {
-      this.floorCollapse.restore();
       this.floorCollapse.destroy();
       this.floorCollapse = null;
     }
 
-    // Always re-sync collision grid and tilemap from current level data
+    // Re-sync collision grid and tilemap (collapsed tiles remain at 0)
     this.collisionGrid = this.currentLevel.collisionGrid;
     this.player.roomData = this.collisionGrid;
     this.rerenderTilemap();
@@ -2404,6 +2403,16 @@ export class LdtkWorldScene extends Scene {
         this.preTunnelLevelId = null;
       }
       this.collapseItem = null;
+
+      // Spawn next to anvil (collapse point)
+      if (this.anvil) {
+        this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
+        this.player.y = this.anvil.y - this.player.height;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.savePrevPosition();
+        this.game.camera.snap(this.player.x, this.player.y);
+      }
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
@@ -2430,6 +2439,15 @@ export class LdtkWorldScene extends Scene {
           this.preTunnelLevelId = null;
         }
         this.collapseItem = null;
+        // Spawn next to anvil
+        if (this.anvil) {
+          this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
+          this.player.y = this.anvil.y - this.player.height;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          this.player.savePrevPosition();
+          this.game.camera.snap(this.player.x, this.player.y);
+        }
       };
       this.container.visible = false;
       this.hud.container.visible = false;

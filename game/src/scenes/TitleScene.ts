@@ -1,16 +1,18 @@
 /**
- * TitleScene.ts — Screen 0: Commission note on black background.
+ * TitleScene.ts — Title screen.
  *
- * Shows commission text, then "PRESS ANY KEY" after 1.5s.
+ * Shows ECHORIS logo (image or placeholder), then "PRESS ANY KEY".
  * Any key press transitions to LdtkWorldScene.
  */
 
-import { BitmapText } from 'pixi.js';
+import { BitmapText, Sprite, Texture, Assets, Container, Graphics } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { PIXEL_FONT } from '@ui/fonts';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
+
+const LOGO_PATH = 'assets/ui/title_logo.png';
 
 export class TitleScene extends Scene {
   private canProceed = false;
@@ -21,42 +23,57 @@ export class TitleScene extends Scene {
     super(game);
   }
 
-  init(): void {
-    const lines = [
-      'Commission: Repair an old sword.',
-      'Prepaid 30 coins.',
-      'Location: Ben-Nacht forge, outer citadel.',
-      'Client name: None.',
-    ];
-
+  async init(): Promise<void> {
     const cx = GAME_WIDTH / 2;
-    let y = GAME_HEIGHT / 2 - 40;
-    for (const line of lines) {
-      const text = new BitmapText({
-        text: line,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
-      });
-      text.anchor.set(0.5, 0);
-      text.x = cx;
-      text.y = y;
-      this.container.addChild(text);
-      y += 16;
+
+    // Try loading logo image, fall back to text placeholder
+    let logoLoaded = false;
+    try {
+      const tex = await Assets.load(LOGO_PATH);
+      if (tex && tex.width > 1) {
+        const logo = new Sprite(tex);
+        logo.anchor.set(0.5);
+        logo.x = cx;
+        logo.y = GAME_HEIGHT / 2 - 30;
+        this.container.addChild(logo);
+        logoLoaded = true;
+      }
+    } catch {
+      // No logo file — use placeholder
     }
 
+    if (!logoLoaded) {
+      // Placeholder: styled text logo
+      const logoText = new BitmapText({
+        text: 'ECHORIS',
+        style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd },
+      });
+      logoText.anchor.set(0.5);
+      logoText.x = cx;
+      logoText.y = GAME_HEIGHT / 2 - 30;
+      this.container.addChild(logoText);
+
+      // Subtle underline accent
+      const line = new Graphics();
+      line.rect(cx - 60, GAME_HEIGHT / 2 - 8, 120, 1)
+        .fill({ color: 0x556677, alpha: 0.6 });
+      this.container.addChild(line);
+    }
+
+    // Press any key hint
     this.hint = new BitmapText({
       text: 'PRESS ANY KEY',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666 },
     });
-    this.hint.anchor.set(0.5, 0);
+    this.hint.anchor.set(0.5);
     this.hint.x = cx;
-    this.hint.y = y + 40;
+    this.hint.y = GAME_HEIGHT / 2 + 40;
     this.hint.visible = false;
     this.container.addChild(this.hint);
   }
 
   enter(): void {
     this.container.visible = true;
-    // Snap camera so gameContainer offset is (0,0)
     this.game.camera.snap(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.game.camera.target = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
   }
@@ -78,11 +95,7 @@ export class TitleScene extends Scene {
     }
   }
 
-  render(_alpha: number): void {
-    // Static scene — nothing to interpolate
-  }
+  render(_alpha: number): void {}
 
-  exit(): void {
-    // Nothing to clean up
-  }
+  exit(): void {}
 }

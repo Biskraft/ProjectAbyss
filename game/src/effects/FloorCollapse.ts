@@ -320,34 +320,6 @@ export class FloorCollapse {
     this.updateDebris(dt);
   }
 
-  /** Restore all removed tiles to their original values. */
-  restore(): void {
-    for (const [key, value] of this.savedTiles) {
-      const [col, row] = key.split(',').map(Number);
-      if (this.roomData[row] !== undefined) {
-        this.roomData[row][col] = value;
-      }
-    }
-    for (const [key, value] of this.preservedTiles) {
-      const [col, row] = key.split(',').map(Number);
-      if (this.roomData[row] !== undefined) {
-        this.roomData[row][col] = value;
-      }
-    }
-    this.savedTiles.clear();
-    this.preservedTiles.clear();
-
-    for (const d of this.debrisList) {
-      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-    }
-    this.debrisList = [];
-    this.crackOverlay.clear();
-    this.tintOverlay.clear();
-    this.fadeOverlay.clear();
-    this.fadeOverlay.alpha = 0;
-    this.phase = 'idle';
-  }
-
   destroy(): void {
     for (const d of this.debrisList) {
       if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
