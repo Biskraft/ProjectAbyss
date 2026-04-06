@@ -49,6 +49,7 @@ export class DialogueManager {
       const speaker = (ent.fields['speaker'] as string) || undefined;
       const rawColor = ent.fields['speakerColor'] as string | undefined;
       const speakerColor = rawColor ? parseInt(rawColor, 16) || undefined : undefined;
+      const portrait = (ent.fields['portrait'] as string) || undefined;
       const triggerType = (ent.fields['triggerType'] as string ?? 'area') as DialogueTrigger['type'];
       const once = (ent.fields['once'] as boolean) ?? true;
       const autoCloseMs = (ent.fields['autoCloseMs'] as number) || undefined;
@@ -61,6 +62,7 @@ export class DialogueManager {
         text,
         speaker,
         speakerColor,
+        portrait,
         autoCloseMs,
       }));
 

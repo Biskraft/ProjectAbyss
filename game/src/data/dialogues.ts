@@ -5,6 +5,8 @@
 export interface DialogueLine {
   speaker?: string;
   speakerColor?: number;
+  /** Portrait key — loads assets/portraits/{portrait}.png. Falls back to speaker name. */
+  portrait?: string;
   text: string;
   autoCloseMs?: number;
 }
