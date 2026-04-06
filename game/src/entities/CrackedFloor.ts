@@ -26,8 +26,8 @@ export class CrackedFloor {
   private gridCells: { col: number; row: number }[] = [];
 
   constructor(x: number, y: number, width: number, height: number) {
-    // Pivot bottom-center
-    this.x = x - width / 2;
+    // Pivot bottom-left
+    this.x = x;
     this.y = y - height;
     this.width = width;
     this.height = height;

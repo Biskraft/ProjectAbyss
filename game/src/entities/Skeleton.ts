@@ -20,6 +20,7 @@ export class Skeleton extends Enemy {
       moveSpeed: 60,          // px/s (slow)
       attackCooldown: 1200,   // ms
     });
+    this.jumpTiles = 6;
   }
 
   protected setupStates(): void {

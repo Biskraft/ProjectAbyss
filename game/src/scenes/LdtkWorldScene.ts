@@ -306,7 +306,7 @@ export class LdtkWorldScene extends Scene {
 
   update(dt: number): void {
     // Guard: init() is async — game loop may call update() before it completes
-    if (!this.initialized) return;
+    if (!this.initialized || !this.currentLevel) return;
 
     // Dialogue box active — block game input (NPC dialogue blocks movement)
     // Check dialogue FIRST, before UI consumes input
@@ -609,7 +609,17 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
     for (const door of this.lockedDoors) door.update(dt);
-    for (const wall of this.growingWalls) wall.update(dt);
+    for (const wall of this.growingWalls) {
+      wall.update(dt);
+      // Pick up spawned slimes
+      for (const slime of wall.pendingSlimes) {
+        slime.roomData = this.collisionGrid;
+        slime.target = this.player;
+        this.enemies.push(slime);
+        this.entityLayer.addChild(slime.container);
+      }
+      wall.pendingSlimes.length = 0;
+    }
 
     // Dive attack landing — area damage + cracked floor check
     if (this.player.diveLanded) {
@@ -657,7 +667,14 @@ export class LdtkWorldScene extends Scene {
 
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
-    cam.update(dt);
+
+    // Force snap for several frames after room transition to prevent lerp bounce
+    if (this.postTransitionSnapFrames > 0) {
+      this.postTransitionSnapFrames--;
+      cam.snap(cx, cy);
+    } else {
+      cam.update(dt);
+    }
   }
 
   render(alpha: number): void {
@@ -1135,24 +1152,46 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** Check if player is near a save point and pressing UP. */
+  /** Check if player is near a save point — show hint, save on UP. */
   private checkSavePoints(): void {
-    if (!this.game.input.isJustPressed(GameAction.LOOK_UP)) return;
-
     const pcx = this.player.x + this.player.width / 2;
     const pcy = this.player.y + this.player.height / 2;
+    const RANGE = 32;
 
+    let nearSave = false;
     for (const sp of this.savePoints) {
       const dx = Math.abs(pcx - sp.x);
       const dy = Math.abs(pcy - sp.y);
-      if (dx < 20 && dy < 20) {
-        this.performSave();
-        return;
+      if (dx < RANGE && dy < RANGE) {
+        nearSave = true;
+        // Pulse the save marker
+        sp.gfx.alpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+
+        if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
+          this.performSave();
+          return;
+        }
+      } else {
+        sp.gfx.alpha = 0.6;
       }
+    }
+
+    // Show/hide save hint
+    if (nearSave && !this.saveHintShown) {
+      this.saveHintShown = true;
+      this.tutorialHint.tryShow('hint_save', 'UP: Save');
+    } else if (!nearSave) {
+      this.saveHintShown = false;
     }
   }
 
+  private saveHintShown = false;
+
   private performSave(): void {
+    // Visual feedback
+    this.screenFlash.flash(0x44ffaa, 0.3, 200);
+    this.game.hitstopFrames = 4;
+
     SaveManager.save({
       player: {
         hp: this.player.hp,
@@ -1258,6 +1297,30 @@ export class LdtkWorldScene extends Scene {
         this.toast.show('Floor Destroyed!', 0xffaa44);
         cf.destroy();
         this.crackedFloors.splice(i, 1);
+      }
+    }
+
+    // Shatter growing walls
+    const wallBox = { x: px - radius, y: py - 12, width: radius * 2, height: 16 };
+    for (let i = this.growingWalls.length - 1; i >= 0; i--) {
+      const wall = this.growingWalls[i];
+      if (wall.destroyed) continue;
+      if (aabbOverlap(wallBox, wall.getAABB())) {
+        wall.shatter(this.collisionGrid);
+        this.game.hitstopFrames += 4;
+        this.screenFlash.flash(0xffffff, 0.4, 150);
+        this.game.camera.shake(10);
+        this.toast.show('Wall Shattered!', 0xffaa44);
+        // Spawn debris particles
+        for (let j = 0; j < 6; j++) {
+          this.hitSparks.spawn(
+            wall.x + Math.random() * wall.width,
+            wall.y + Math.random() * wall.height,
+            true, 0,
+          );
+        }
+        wall.destroy();
+        this.growingWalls.splice(i, 1);
       }
     }
   }
@@ -1433,17 +1496,19 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'GameSaver': {
-          // Save point — show a visual marker, save on UP interaction
+          // Save point — pivot bottom-left, center the marker on entity
+          const spx = ent.px[0] + ent.width / 2;
+          const spy = ent.px[1] - ent.height / 2;
           const marker = new Graphics();
           marker.rect(-8, -8, 16, 16).fill({ color: 0x44ffaa, alpha: 0.6 });
           marker.rect(-8, -8, 16, 16).stroke({ color: 0x44ffaa, width: 1 });
           // Pulsing diamond inside
           marker.moveTo(0, -5).lineTo(5, 0).lineTo(0, 5).lineTo(-5, 0).closePath()
             .fill({ color: 0xffffff, alpha: 0.4 });
-          marker.x = ent.px[0];
-          marker.y = ent.px[1];
+          marker.x = spx;
+          marker.y = spy;
           this.entityLayer.addChild(marker);
-          this.savePoints.push({ x: ent.px[0], y: ent.px[1], gfx: marker });
+          this.savePoints.push({ x: spx, y: spy, gfx: marker });
           break;
         }
         case 'AbilityRelic': {

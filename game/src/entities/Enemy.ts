@@ -6,6 +6,7 @@ import type { CombatEntity } from '@combat/HitManager';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = 576;
+const TILE_SIZE = 16;
 
 export type EnemyState = 'idle' | 'chase' | 'attack' | 'cooldown' | 'hit' | 'death';
 
@@ -33,6 +34,14 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   // Super armor — if true, hits don't interrupt actions (no hitstun/knockback)
   superArmor = false;
+
+  // Navigation jump — when blocked by wall during chase, jump to clear obstacle
+  /** Max jump height in tiles (0 = no jumping). Override in subclass. */
+  protected jumpTiles = 0;
+  private wallBlockedTimer = 0;
+  private static readonly WALL_BLOCK_THRESHOLD = 150; // ms blocked before jumping
+  private static readonly JUMP_COOLDOWN = 500; // ms between jumps
+  private jumpCooldownTimer = 0;
 
   // Target reference
   target: CombatEntity | null = null;
@@ -120,6 +129,30 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     if (this.roomData.length > 0) {
       const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
       this.x = rx.x;
+
+      // Wall-blocked jump: scan wall height, jump just enough to clear it
+      if (rx.collided && this.vx !== 0) {
+        this.vx = 0;
+        if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0) {
+          this.wallBlockedTimer += dt;
+          if (this.wallBlockedTimer >= Enemy.WALL_BLOCK_THRESHOLD) {
+            const wallHeight = this.scanWallHeight();
+            if (wallHeight > 0 && wallHeight <= this.jumpTiles) {
+              // Jump just enough to clear: wall height + 1 tile margin
+              const jumpHeight = (wallHeight + 1) * TILE_SIZE;
+              this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+              this.wallBlockedTimer = 0;
+              this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+            } else {
+              // Wall too tall — give up, don't keep trying
+              this.wallBlockedTimer = 0;
+              this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+            }
+          }
+        }
+      } else {
+        this.wallBlockedTimer = 0;
+      }
       if (rx.collided) this.vx = 0;
 
       const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
@@ -130,6 +163,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         if (this.vy < 0) this.vy = 0;
       }
     }
+
+    // Jump cooldown
+    if (this.jumpCooldownTimer > 0) this.jumpCooldownTimer -= dt;
 
     // Facing
     if (this.target) {
@@ -222,6 +258,36 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     const ratio = Math.max(0, this.hp / this.maxHp);
     const color = ratio > 0.5 ? 0x22cc22 : ratio > 0.25 ? 0xcccc22 : 0xcc2222;
     this.hpBarContainer.rect(barX, barY, barW * ratio, barH).fill(color);
+  }
+
+  /**
+   * Scan the wall in front of the enemy to measure its height in tiles.
+   * Returns 0 if no wall, or the number of solid tiles stacked vertically.
+   */
+  private scanWallHeight(): number {
+    if (this.roomData.length === 0) return 0;
+    const TILE = 16;
+    const dir = this.facingRight ? 1 : -1;
+    // Check column in front of the enemy
+    const checkCol = dir > 0
+      ? Math.floor((this.x + this.width + 2) / TILE)
+      : Math.floor((this.x - 2) / TILE);
+    const feetRow = Math.floor((this.y + this.height - 1) / TILE);
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+
+    if (checkCol < 0 || checkCol >= gridW) return 0;
+
+    // Count solid tiles upward from feet level
+    let height = 0;
+    for (let row = feetRow; row >= 0; row--) {
+      if (this.roomData[row]?.[checkCol] === 1) {
+        height++;
+      } else {
+        break; // found air — wall ends here
+      }
+    }
+    return height;
   }
 
   protected stateHitUpdate(dt: number): void {

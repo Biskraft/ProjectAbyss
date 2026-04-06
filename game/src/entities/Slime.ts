@@ -35,6 +35,7 @@ export class Slime extends Enemy {
 
     this.hopTimer = HOP_TIMER_MIN + Math.random() * (HOP_TIMER_MAX - HOP_TIMER_MIN);
     if (Math.random() < 0.5) this.wanderDir = -1;
+    this.jumpTiles = 6;
   }
 
   protected setupStates(): void {

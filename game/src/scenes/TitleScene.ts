@@ -79,6 +79,7 @@ export class TitleScene extends Scene {
   }
 
   update(dt: number): void {
+    if (!this.hint) return; // init() still loading
     this.elapsed += dt;
 
     if (!this.canProceed && this.elapsed >= 1500) {
