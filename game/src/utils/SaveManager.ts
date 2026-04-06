@@ -4,22 +4,35 @@ import { Inventory } from '@items/Inventory';
 
 const SAVE_KEY = 'projectabyss_save';
 
-interface SaveData {
-  version: 1 | 2;
+export interface SaveData {
+  version: 3;
   player: {
     hp: number;
     maxHp: number;
     atk: number;
     def: number;
-    roomCol: number;
-    roomRow: number;
   };
+  /** Current level identifier for respawn. */
+  levelId: string;
   inventory: {
     items: SerializedItem[];
     equippedUid: number | null;
   };
-  worldSeed: number;
-  playtime: number; // ms
+  abilities: {
+    dash: boolean;
+    wallJump: boolean;
+    doubleJump: boolean;
+  };
+  /** Unlocked doors/switches (by IID or event name). */
+  unlockedEvents: string[];
+  /** Collected relic keys. */
+  collectedRelics: string[];
+  /** Collected item keys. */
+  collectedItems: string[];
+  /** Cleared level identifiers. */
+  clearedLevels: string[];
+  /** Total play time in ms. */
+  playtime: number;
 }
 
 interface SerializedItem {
@@ -59,32 +72,36 @@ function deserializeItem(data: SerializedItem): ItemInstance | null {
 }
 
 export class SaveManager {
-  static save(
-    playerState: { hp: number; maxHp: number; atk: number; def: number },
-    roomCol: number,
-    roomRow: number,
-    inventory: Inventory,
-    worldSeed: number,
-    playtime: number,
-  ): void {
+  static save(params: {
+    player: { hp: number; maxHp: number; atk: number; def: number };
+    levelId: string;
+    inventory: Inventory;
+    abilities: { dash: boolean; wallJump: boolean; doubleJump: boolean };
+    unlockedEvents: Set<string>;
+    collectedRelics: Set<string>;
+    collectedItems: Set<string>;
+    clearedLevels: Set<string>;
+    playtime: number;
+  }): void {
     const data: SaveData = {
-      version: 2,
-      player: {
-        ...playerState,
-        roomCol,
-        roomRow,
-      },
+      version: 3,
+      player: { ...params.player },
+      levelId: params.levelId,
       inventory: {
-        items: inventory.items.map(serializeItem),
-        equippedUid: inventory.equipped?.uid ?? null,
+        items: params.inventory.items.map(serializeItem),
+        equippedUid: params.inventory.equipped?.uid ?? null,
       },
-      worldSeed,
-      playtime,
+      abilities: { ...params.abilities },
+      unlockedEvents: [...params.unlockedEvents],
+      collectedRelics: [...params.collectedRelics],
+      collectedItems: [...params.collectedItems],
+      clearedLevels: [...params.clearedLevels],
+      playtime: params.playtime,
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch {
-      // Storage full or unavailable — silently fail
+      // Storage full or unavailable
     }
   }
 
@@ -92,9 +109,9 @@ export class SaveManager {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
-      const data = JSON.parse(raw) as SaveData;
-      if (data.version !== 1 && data.version !== 2) return null;
-      return data;
+      const data = JSON.parse(raw);
+      if (data.version !== 3) return null;
+      return data as SaveData;
     } catch {
       return null;
     }
@@ -113,7 +130,14 @@ export class SaveManager {
   }
 
   static hasSave(): boolean {
-    return localStorage.getItem(SAVE_KEY) !== null;
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      return data.version === 3;
+    } catch {
+      return false;
+    }
   }
 
   static deleteSave(): void {

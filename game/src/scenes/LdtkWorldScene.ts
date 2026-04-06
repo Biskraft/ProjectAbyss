@@ -36,6 +36,7 @@ import { Altar } from '@entities/Altar';
 import { Anvil } from '@entities/Anvil';
 import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
+import { GrowingWall } from '@entities/GrowingWall';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -51,6 +52,7 @@ import { PortalTransition } from '@effects/PortalTransition';
 import { FloorCollapse } from '@effects/FloorCollapse';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
+import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
 import { DialogueManager } from '@systems/DialogueManager';
 import { PIXEL_FONT } from '@ui/fonts';
@@ -171,6 +173,8 @@ export class LdtkWorldScene extends Scene {
   private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
   private lockedDoors: LockedDoor[] = [];
   private switches: Switch[] = [];
+  private growingWalls: GrowingWall[] = [];
+  private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
@@ -185,15 +189,27 @@ export class LdtkWorldScene extends Scene {
   async init(): Promise<void> {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
-    this.inventory = new Inventory();
-    const starterSword = createItem(SWORD_DEFS[0]);
-    this.inventory.add(starterSword);
-    this.inventory.equip(starterSword.uid);
 
     // Fetch and parse LDtk project
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
     this.loader = new LdtkLoader();
     this.loader.load(json);
+
+    // Load save or create fresh inventory
+    const saveData = SaveManager.load();
+    if (saveData) {
+      this.inventory = SaveManager.loadInventory(saveData);
+      this.unlockedEvents = new Set(saveData.unlockedEvents);
+      this.collectedRelics = new Set(saveData.collectedRelics);
+      this.collectedItems = new Set(saveData.collectedItems);
+      this.clearedLevels = new Set(saveData.clearedLevels);
+      this.game.stats.playTimeMs = saveData.playtime;
+    } else {
+      this.inventory = new Inventory();
+      const starterSword = createItem(SWORD_DEFS[0]);
+      this.inventory.add(starterSword);
+      this.inventory.equip(starterSword.uid);
+    }
 
     // Load tileset atlas
     this.atlas = await Assets.load(ATLAS_PATH);
@@ -209,6 +225,13 @@ export class LdtkWorldScene extends Scene {
     // Player
     this.player = new Player(this.game);
     this.entityLayer.addChild(this.player.container);
+    if (saveData) {
+      this.player.hp = saveData.player.hp;
+      this.player.maxHp = saveData.player.maxHp;
+      this.player.abilities.dash = saveData.abilities.dash;
+      this.player.abilities.wallJump = saveData.abilities.wallJump;
+      this.player.abilities.doubleJump = saveData.abilities.doubleJump;
+    }
     this.updatePlayerAtk();
 
     // Fade overlay — on stage (camera-independent) so it always covers the full screen
@@ -242,8 +265,10 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI = new InventoryUI(this.inventory);
     this.game.app.stage.addChild(this.inventoryUI.container);
 
-    // Find the level containing a Player entity; fall back to hardcoded level
-    this.playerSpawnLevelId = this.findPlayerSpawnLevel();
+    // Spawn level — saved level or default Player entity level
+    if (!saveData) {
+      this.playerSpawnLevelId = this.findPlayerSpawnLevel();
+    }
     this.loadLevel(this.playerSpawnLevelId, 'down');
     this.initialized = true;
 
@@ -573,6 +598,16 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
     for (const door of this.lockedDoors) door.update(dt);
+    for (const wall of this.growingWalls) wall.update(dt);
+
+    // Save point interaction — UP key near save point
+    this.checkSavePoints();
+
+    // Debug: R key to reset save and reload
+    if (this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
+      SaveManager.deleteSave();
+      window.location.reload();
+    }
 
     // Portal interactions
     this.updatePortals(dt);
@@ -772,6 +807,7 @@ export class LdtkWorldScene extends Scene {
     this.clearPortals();
     for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
+    this.savePoints = [];
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
@@ -781,6 +817,7 @@ export class LdtkWorldScene extends Scene {
     // Spawn locked doors and switches
     this.spawnLockedDoors(level);
     this.spawnSwitches(level);
+    this.spawnGrowingWalls(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -1080,6 +1117,62 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /** Check if player is near a save point and pressing UP. */
+  private checkSavePoints(): void {
+    if (!this.game.input.isJustPressed(GameAction.LOOK_UP)) return;
+
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+
+    for (const sp of this.savePoints) {
+      const dx = Math.abs(pcx - sp.x);
+      const dy = Math.abs(pcy - sp.y);
+      if (dx < 20 && dy < 20) {
+        this.performSave();
+        return;
+      }
+    }
+  }
+
+  private performSave(): void {
+    SaveManager.save({
+      player: {
+        hp: this.player.hp,
+        maxHp: this.player.maxHp,
+        atk: this.player.atk,
+        def: this.player.def,
+      },
+      levelId: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+      inventory: this.inventory,
+      abilities: { ...this.player.abilities },
+      unlockedEvents: this.unlockedEvents,
+      collectedRelics: this.collectedRelics,
+      collectedItems: this.collectedItems,
+      clearedLevels: this.clearedLevels,
+      playtime: this.game.stats.playTimeMs,
+    });
+    this.toast.show('Game Saved!', 0x44ffaa);
+    // Heal to full on save
+    this.player.hp = this.player.maxHp;
+    this.hud.updateHP(this.player.hp, this.player.maxHp);
+  }
+
+  private spawnGrowingWalls(level: LdtkLevel): void {
+    for (const wall of this.growingWalls) wall.destroy();
+    this.growingWalls = [];
+
+    const wallEntities = level.entities.filter(e => e.type === 'GrowingWall');
+    for (const ent of wallEntities) {
+      const wall = new GrowingWall(
+        ent.px[0], ent.px[1],
+        ent.width, ent.height,
+      );
+      wall.injectCollision(this.collisionGrid);
+      this.growingWalls.push(wall);
+      this.entityLayer.addChild(wall.container);
+    }
+  }
+
   private spawnSwitches(level: LdtkLevel): void {
     for (const sw of this.switches) sw.destroy();
     this.switches = [];
@@ -1235,13 +1328,17 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'GameSaver': {
-          // Save point — show a visual marker, save on interaction
+          // Save point — show a visual marker, save on UP interaction
           const marker = new Graphics();
-          marker.rect(-6, -6, 12, 12).fill({ color: 0x44ffaa, alpha: 0.6 });
-          marker.rect(-6, -6, 12, 12).stroke({ color: 0x44ffaa, width: 1 });
+          marker.rect(-8, -8, 16, 16).fill({ color: 0x44ffaa, alpha: 0.6 });
+          marker.rect(-8, -8, 16, 16).stroke({ color: 0x44ffaa, width: 1 });
+          // Pulsing diamond inside
+          marker.moveTo(0, -5).lineTo(5, 0).lineTo(0, 5).lineTo(-5, 0).closePath()
+            .fill({ color: 0xffffff, alpha: 0.4 });
           marker.x = ent.px[0];
           marker.y = ent.px[1];
           this.entityLayer.addChild(marker);
+          this.savePoints.push({ x: ent.px[0], y: ent.px[1], gfx: marker });
           break;
         }
         case 'AbilityRelic': {
@@ -1555,26 +1652,27 @@ export class LdtkWorldScene extends Scene {
     this.gameOverActive = true;
     const overlay = new Container();
 
+    // Desaturated dark overlay
     const bg = new Graphics();
-    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.7 });
+    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x111111, alpha: 0.8 });
     overlay.addChild(bg);
 
     const title = new BitmapText({
-      text: 'GAME OVER',
-      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 },
+      text: 'YOU DIED',
+      style: { fontFamily: PIXEL_FONT, fontSize: 14, fill: 0xff2222 },
     });
     title.anchor.set(0.5);
-    title.x = 240;
-    title.y = 120;
+    title.x = GAME_WIDTH / 2;
+    title.y = GAME_HEIGHT / 2 - 20;
     overlay.addChild(title);
 
     const hint = new BitmapText({
-      text: 'Press Z or X to respawn',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+      text: 'Press Z or X to return to save point',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
     });
     hint.anchor.set(0.5);
-    hint.x = 240;
-    hint.y = 150;
+    hint.x = GAME_WIDTH / 2;
+    hint.y = GAME_HEIGHT / 2 + 10;
     overlay.addChild(hint);
 
     this.gameOverOverlay = overlay;
@@ -1588,27 +1686,35 @@ export class LdtkWorldScene extends Scene {
     }
     this.gameOverOverlay = null;
 
-    // First item world (commission sword) — respawn inside, no penalty
-    if (this.inFixedItemWorld && this.fixedItemWorldItem?.commission) {
-      // 50% HP, no EXP loss, no stratum rollback
-      this.player.respawn();
-      this.player.hp = Math.floor(this.player.maxHp * 0.5);
-      // Reload same level (boss HP preserved via enemy persistence)
-      this.loadLevel(this.fixedItemWorldItem.fixedLevelId!, 'down');
-      this.player.savePrevPosition();
-      this.game.camera.snap(this.player.x, this.player.y);
-      return;
-    }
-
     // Clear fixed item world / tunnel state
     this.inFixedItemWorld = false;
     this.fixedItemWorldItem = null;
     this.inItemTunnel = false;
     this.collapseItem = null;
 
-    // Return to player spawn level
-    this.loadLevel(this.playerSpawnLevelId, 'down');
+    // Load save data — return to last save point
+    const saveData = SaveManager.load();
+    if (saveData) {
+      // Restore inventory and progress from save
+      this.inventory = SaveManager.loadInventory(saveData);
+      this.inventoryUI.setInventory(this.inventory);
+      this.unlockedEvents = new Set(saveData.unlockedEvents);
+      this.collectedRelics = new Set(saveData.collectedRelics);
+      this.collectedItems = new Set(saveData.collectedItems);
+      this.clearedLevels = new Set(saveData.clearedLevels);
+      this.player.abilities.dash = saveData.abilities.dash;
+      this.player.abilities.wallJump = saveData.abilities.wallJump;
+      this.player.abilities.doubleJump = saveData.abilities.doubleJump;
+      this.loadLevel(saveData.levelId, 'down');
+    } else {
+      // No save — return to spawn level
+      this.loadLevel(this.playerSpawnLevelId, 'down');
+    }
+
+    // Full HP restore
     this.player.respawn();
+    this.player.hp = this.player.maxHp;
+    this.updatePlayerAtk();
     this.player.savePrevPosition();
     this.game.camera.snap(this.player.x, this.player.y);
   }

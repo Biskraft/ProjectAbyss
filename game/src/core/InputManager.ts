@@ -8,6 +8,7 @@ export enum GameAction {
   ATTACK = 'ATTACK',
   INVENTORY = 'INVENTORY',
   MENU = 'MENU',
+  DEBUG_RESET = 'DEBUG_RESET',
 }
 
 const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
@@ -20,6 +21,7 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.ATTACK]: ['KeyX'],
   [GameAction.INVENTORY]: ['KeyI'],
   [GameAction.MENU]: ['Escape'],
+  [GameAction.DEBUG_RESET]: ['KeyP'],
 };
 
 const GAME_KEYS = new Set(

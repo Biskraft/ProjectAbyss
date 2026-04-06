@@ -111,18 +111,8 @@ export class WorldScene extends Scene {
   init(): void {
     this.hitManager = new HitManager(this.game);
 
-    // Try loading save
-    const saveData = SaveManager.load();
-    if (saveData) {
-      this.worldSeed = saveData.worldSeed;
-      this.playtime = saveData.playtime;
-      this.rng = new PRNG(this.worldSeed);
-      this.dropRng = new PRNG(this.worldSeed + 54321);
-      this.inventory = SaveManager.loadInventory(saveData);
-      this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
-      this.currentCol = saveData.player.roomCol;
-      this.currentRow = saveData.player.roomRow;
-    } else {
+    // Procgen mode — no save/load, fresh start
+    {
       this.worldSeed = 12345;
       this.rng = new PRNG(this.worldSeed);
       this.dropRng = new PRNG(99999);
@@ -147,10 +137,6 @@ export class WorldScene extends Scene {
     this.player = new Player(this.game);
     this.entityLayer.addChild(this.player.container);
     this.updatePlayerAtk();
-    if (saveData) {
-      this.player.hp = saveData.player.hp;
-      this.player.maxHp = saveData.player.maxHp;
-    }
 
     // Fade overlay
     this.fadeOverlay = new Graphics();
@@ -198,14 +184,7 @@ export class WorldScene extends Scene {
   }
 
   private autoSave(): void {
-    SaveManager.save(
-      { hp: this.player.hp, maxHp: this.player.maxHp, atk: this.player.atk, def: this.player.def },
-      this.currentCol,
-      this.currentRow,
-      this.inventory,
-      this.worldSeed,
-      this.playtime,
-    );
+    // Procgen mode — no save
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {

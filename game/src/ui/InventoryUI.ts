@@ -24,6 +24,10 @@ export class InventoryUI {
   private titleText: BitmapText;
   private panel: Graphics;
 
+  setInventory(inventory: Inventory): void {
+    this.inventory = inventory;
+  }
+
   constructor(inventory: Inventory) {
     this.inventory = inventory;
     this.container = new Container();
