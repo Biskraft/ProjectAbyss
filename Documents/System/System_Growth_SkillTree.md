@@ -179,7 +179,7 @@ graph TD
 
 | 스킬 ID | 스킬명 (영문) | 효과 | SP 비용 | 선행 조건 |
 | :--- | :--- | :--- | :---: | :--- |
-| UTL-MV-01 | Dash Extend | 대시 거리 `mv_dash_ext`% 증가, i-frame 3프레임 추가 | 2 | 없음 |
+| UTL-MV-01 | Dash Extend | 대시 거리 `mv_dash_ext`% 증가, 대시 쿨다운 50ms 감소 | 2 | 없음 |
 | UTL-MV-02 | Air Dash | 공중 대시 1회 추가 (총 2회) | 3 | UTL-MV-01 |
 | UTL-MV-03 | Wall Grip | 벽에 `mv_wall_hold_s`초 매달리기 가능 | 3 | UTL-MV-01 |
 | UTL-MV-04 | Phantom Step | 대시 직후 `mv_phantom_dur`초 동안 이동속도 `mv_phantom_spd`% 유지 | 2 | UTL-MV-01 |

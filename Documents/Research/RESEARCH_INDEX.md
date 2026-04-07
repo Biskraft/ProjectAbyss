@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
 > 최근 업데이트: 2026-04-07
-> 총 27개 리서치 문서
+> 총 28개 리서치 문서
 
 ---
 
@@ -39,6 +39,7 @@
 | **Equipment_DropRate** | 최상위 거래 제한은 파밍 동기 보존, 과도하면 사교 보상 훼손 |
 | **BossDesign_SideScrolling** | 6대분류×23소분류 공격 패턴 분류, 4-Layer 모듈러 보스 합성, 등급별 텔레그래프 배율 |
 | **LevelDesign_ProgressionShape** | 16개 공간 패턴(4카테고리) + 태그 시스템 + 페이싱 시퀀싱 규칙 5종 |
+| **Research_LevelDesign_Flow** | 연쇄 해금 구조 + 톱니파 난이도곡선 + 감정 아크 + 세션 정지점 + 맵완성도 심리 → 30분 슬라이스 적용 지침 포함 |
 | **ItemWorld_DepthReward_RiskBalance** | 지수 HP + 구간별 데미지 스케일링, 손실회피(λ=2.25) 보정 기대값, 톱니파 긴장곡선 |
 | **ItemWorld_EntryTransition** | 아이템 다이브 연출 시퀀스, 14종 픽셀아트 전환 기법(GLSL), 레어리티별 차별화 |
 | **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |

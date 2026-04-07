@@ -74,9 +74,14 @@ echo "Context compaction occurred at $(date)." \
     >> "$SESSION_LOG_DIR/compaction-log.txt" 2>/dev/null
 
 echo ""
+echo "## Wiki Update Reminder"
+echo "IMPORTANT: Before compaction completes, run /wiki-update to persist session work to the dev wiki."
+echo "Wiki location: C:\\Users\\Victor\\.claude\\projects\\c--Users-Victor-Documents-Works-ProjectAbyss\\memory\\wiki\\"
+echo ""
 echo "## Recovery Instructions"
 echo "After compaction, read $STATE_FILE to recover full working context."
 echo "Then read any files listed above that are being actively worked on."
+echo "Also read wiki/WIKI_INDEX.md for prior session context."
 echo "=== END SESSION STATE ==="
 
 exit 0
