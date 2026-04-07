@@ -138,8 +138,10 @@ export class Game {
 
       // Position gameContainer at 1x scale
       this.gameContainer.scale.set(1);
-      this.gameContainer.x = Math.round(-this.camera.renderX + rtW / 2);
-      this.gameContainer.y = Math.round(-this.camera.renderY + rtH / 2);
+      const gcx = Math.round(-this.camera.renderX + rtW / 2);
+      const gcy = Math.round(-this.camera.renderY + rtH / 2);
+      this.gameContainer.x = gcx;
+      this.gameContainer.y = gcy;
 
       // Render world to offscreen texture
       this.renderer.render({

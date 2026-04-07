@@ -415,9 +415,13 @@ export class LdtkWorldScene extends Scene {
     // Room transition fade
     if (this.transitionState !== 'none') {
       this.updateTransition(dt);
+
       if (this.transitionState as string !== 'none') return;
-      // Transition just ended — force snap for several frames to prevent lerp jitter
-      this.postTransitionSnapFrames = 30; // ~0.5s snap to let physics settle
+      // Transition just ended
+      this.postTransitionSnapFrames = 15; // ~250ms snap after fade ends
+      this.player.savePrevPosition();
+      for (const e of this.enemies) e.savePrevPosition();
+      return;
     }
 
     // Player
@@ -710,13 +714,7 @@ export class LdtkWorldScene extends Scene {
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
 
-    // Force snap for several frames after room transition to prevent lerp bounce
-    if (this.postTransitionSnapFrames > 0) {
-      this.postTransitionSnapFrames--;
-      cam.snap(cx, cy);
-    } else {
-      cam.update(dt);
-    }
+    cam.update(dt);
 
     // Oxygen overlay — vignette + bar when submerged
     this.updateOxygenOverlay();
@@ -789,8 +787,10 @@ export class LdtkWorldScene extends Scene {
 
   render(alpha: number): void {
     if (!this.initialized) return;
-    this.player.render(alpha);
-    for (const enemy of this.enemies) enemy.render(alpha);
+    // During post-transition snap, disable interpolation to prevent 1-frame jitter
+    const a = this.postTransitionSnapFrames > 0 ? 1 : alpha;
+    this.player.render(a);
+    for (const enemy of this.enemies) enemy.render(a);
     // Portals and altars are static, no interpolation needed
   }
 
@@ -1002,10 +1002,21 @@ export class LdtkWorldScene extends Scene {
       this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
     }
 
+    // Settle player physics (gravity snap to floor) before camera snap
+    for (let i = 0; i < 5; i++) {
+      this.player.update(16.667);
+    }
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+
     const camX = this.player.x + this.player.width / 2;
     const camY = this.player.y + this.player.height / 2;
     cam.target = { x: camX, y: camY };
     cam.snap(camX, camY);
+    // Run one camera.update() so cam position matches what update() would produce.
+    // This prevents a 1-frame jump when transitioning from snap to normal update.
+    cam.update(16.667);
 
     // Update minimap
     this.drawMinimap();
@@ -2040,6 +2051,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   private startTransition(direction: 'left' | 'right' | 'up' | 'down', levelId: string): void {
+    const cam = this.game.camera;
     this.transitionState = 'fade_out';
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = direction;

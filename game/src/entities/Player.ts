@@ -7,24 +7,24 @@ import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG } from '@combat/CombatData';
 import type { CombatEntity } from '@combat/HitManager';
 import type { Game } from '../Game';
 
-// GDD System_3C_Character.md (SSoT)
-const MOVE_SPEED = 144;           // px/s
+// GDD System_3C_Character.md (SSoT) — 2026-04-08 레퍼런스 전수조사 기반 재조정
+const MOVE_SPEED = 128;           // px/s (8 tiles/s, SotN~HK 범위)
 const ACCEL_FRAMES = 4;           // frames to reach max speed
 const GRAVITY = 980;              // px/s²
-const MAX_FALL_SPEED = 576;       // px/s
-const JUMP_HEIGHT = 119;          // px (~7.5 tiles, 1.5x)
+const MAX_FALL_SPEED = 480;       // px/s (30 tiles/s, 공중 제어감 확보)
+const JUMP_HEIGHT = 80;           // px (5 tiles, HK/MMX/DeadCells 평균)
 const COYOTE_TIME = 150;          // ms
 const JUMP_BUFFER = 250;          // ms
-const DASH_DISTANCE = 96;         // px (6 tiles)
+const DASH_DISTANCE = 64;         // px (4 tiles, Celeste/SotN 범위)
 const DASH_DURATION = 150;        // ms
-const DASH_GROUND_DELAY = 500;    // ms (ground dash recharge)
+const DASH_GROUND_DELAY = 400;    // ms (ground dash recharge, DeadCells 370ms 참고)
 const ATTACK_MOVE_MULT = 0.8;     // 80% speed during attack
 const BARE_HAND_ATK = 5;
 
 // Wall Jump / Wall Slide (GDD System_3C_Character.md)
-const WALL_SLIDE_SPEED = 60;         // px/s (slow descent on wall)
-const WALL_JUMP_VX = 180;            // px/s horizontal kick-off
-const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 64); // ~80% of normal jump
+const WALL_SLIDE_SPEED = 50;         // px/s (벽에서 더 오래 머무름)
+const WALL_JUMP_VX = 140;            // px/s horizontal kick-off (Celeste 130 참고)
+const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 56); // ~70% of normal jump (3.5 tiles)
 const WALL_JUMP_COOLDOWN = 200;      // ms before next wall interaction
 const WALL_CHECK_DIST = 2;           // px to check for wall adjacency
 
@@ -45,7 +45,7 @@ export class Player extends Entity implements CombatEntity {
   hp = 100;
   maxHp = 100;
   atk = 10 + BARE_HAND_ATK; // STR(Lv1) + bare hand
-  def = 5;                   // VIT(10) * 0.5
+  def = 5;                   // Lv1 base DEF (from Content_Stats_Character_Base.csv)
   facingRight = true;
 
   // Collision box (70% of visual size)
@@ -285,7 +285,7 @@ export class Player extends Entity implements CombatEntity {
       }
       // Double Jump: in air + no coyote + ability unlocked + not used yet
       else if (!this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
-        this.vy = JUMP_VELOCITY * 0.85;
+        this.vy = JUMP_VELOCITY * 0.75; // 75% of normal jump → 3.75 tiles (total reach ~8.75 tiles)
         this.doubleJumpAvailable = false;
         this.fsm.transition('jump');
       } else {
