@@ -1196,7 +1196,7 @@ export class ItemWorldScene extends Scene {
         );
         if (overlap) {
           const dir = proj.vx > 0 ? 1 : -1;
-          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
+          const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
           this.player.onHit(dir * 80, -40, 150);
           this.player.hp -= dmg;
           this.player.invincible = true;
@@ -1233,7 +1233,7 @@ export class ItemWorldScene extends Scene {
       if (!overlap) continue;
 
       const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
-      const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
+      const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
       this.player.onHit(dir * 100, -50, 200);
       this.player.hp -= dmg;
       this.player.invincible = true;
@@ -1245,11 +1245,10 @@ export class ItemWorldScene extends Scene {
       this.game.hitstopFrames = 3;
       this.game.camera.shakeDirectional(3, -dir, -0.3);
       this.screenFlash.flashDamage(dmg > 20);
-      this.hitSparks.spawn(
-        this.player.x + this.player.width / 2,
-        this.player.y + this.player.height * 0.4,
-        false, dir,
-      );
+      const hitX = this.player.x + this.player.width / 2;
+      const hitY = this.player.y + this.player.height * 0.4;
+      this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
+      this.hitSparks.spawn(hitX, hitY, false, dir);
 
       if (this.player.hp <= 0) {
         this.player.hp = 0;

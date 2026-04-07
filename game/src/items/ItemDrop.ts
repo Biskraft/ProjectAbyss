@@ -3,7 +3,7 @@ import { PRNG } from '@utils/PRNG';
 import { SWORD_DEFS, type Rarity } from '@data/weapons';
 import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
 
-const DROP_CHANCE = 0.15;
+const DROP_CHANCE = 0.30;
 
 const RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
   { rarity: 'normal', weight: 0.60 },

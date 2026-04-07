@@ -26,7 +26,8 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
-import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
+import { GoldenMonster } from '@entities/GoldenMonster';
+import { getEnemyStats } from '@data/enemyStats';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
 import { Guardian } from '@entities/Guardian';
@@ -506,7 +507,7 @@ export class LdtkWorldScene extends Scene {
         );
         if (overlap) {
           const dir = proj.vx > 0 ? 1 : -1;
-          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
+          const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
           this.player.onHit(dir * 80, -40, 150);
           this.player.hp -= dmg;
           this.player.invincible = true;
@@ -518,6 +519,7 @@ export class LdtkWorldScene extends Scene {
           this.screenFlash.flashDamage(false);
           const hitX = this.player.x + this.player.width / 2;
           const hitY = this.player.y + this.player.height * 0.4;
+          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
           this.hitSparks.spawn(hitX, hitY, false, -dir);
           this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
           if (this.player.hp <= 0) {
@@ -545,7 +547,7 @@ export class LdtkWorldScene extends Scene {
       if (!overlap) continue;
 
       const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
-      const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
+      const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
       this.player.onHit(dir * 100, -50, 200);
       this.player.hp -= dmg;
       this.player.invincible = true;
@@ -558,9 +560,12 @@ export class LdtkWorldScene extends Scene {
       this.game.camera.shakeDirectional(3, -dir, -0.3);
       this.screenFlash.flashDamage(dmg > 20);
 
-      // Hit spark at player position
+      // Damage number on player
       const hitX = this.player.x + this.player.width / 2;
       const hitY = this.player.y + this.player.height * 0.4;
+      this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
+
+      // Hit spark at player position
       this.hitSparks.spawn(hitX, hitY, false, dir);
 
       if (this.player.hp <= 0) {
@@ -653,6 +658,11 @@ export class LdtkWorldScene extends Scene {
     // Dive attack landing — area damage + cracked floor check
     if (this.player.diveLanded) {
       this.handleDiveLanding();
+    }
+
+    // Surge flight — break walls/floors on contact
+    if (this.player.surgeActive) {
+      this.handleSurgeContact();
     }
 
     // Spike hazard contact
@@ -861,9 +871,21 @@ export class LdtkWorldScene extends Scene {
 
   private handleEnemyKill(enemy: Enemy<string>): void {
     this.game.stats.enemiesKilled++;
+
+    // Unlock linked LockedDoors if this enemy had targets
+    const unlockIids = (enemy as any)._unlockTargetIids as string[] | undefined;
+    if (unlockIids) {
+      for (const iid of unlockIids) {
+        this.unlockDoorByIid(iid);
+      }
+    }
     if ((enemy as any)._isBoss) {
       const bossX = enemy.x + enemy.width / 2;
       const bossY = enemy.y + enemy.height - 4;
+
+      // Mark boss as permanently killed
+      const bossKey = (enemy as any)._bossKey as string;
+      if (bossKey) this.unlockedEvents.add(bossKey);
 
       // Gold flash on boss kill + unlock arena
       this.screenFlash.flash(0xffd700, 0.5, 300);
@@ -921,12 +943,17 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Render tiles
-    this.renderer.clear();
-    this.renderer.renderLevel(level.backgroundTiles, level.wallTiles, level.shadowTiles, this.atlas);
-
     // Collision grid — same format as WorldScene.roomData
     this.collisionGrid = level.collisionGrid;
+
+    // Render tiles — filter wall tiles by collision grid (destroyed tiles stay gone)
+    this.renderer.clear();
+    const filteredWalls = level.wallTiles.filter(t => {
+      const col = Math.floor(t.px[0] / TILE_SIZE);
+      const row = Math.floor(t.px[1] / TILE_SIZE);
+      return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
+    });
+    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlas);
 
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
@@ -1371,8 +1398,8 @@ export class LdtkWorldScene extends Scene {
       this.player.invincible = true;
       this.player.invincibleTimer = 500;
 
-      // Feedback
-      this.game.hitstopFrames = 4;
+      // Feedback — strong hitstop for spike pain
+      this.game.hitstopFrames = 16;
       this.game.camera.shake(5);
       this.screenFlash.flashDamage(true);
       this.player.triggerFlash();
@@ -1417,6 +1444,55 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Handle dive attack landing — area damage + cracked floor shatter. */
+  /** Surge flight — break GrowingWalls and CrackedFloors on body contact. */
+  private handleSurgeContact(): void {
+    const pBox = {
+      x: this.player.x, y: this.player.y,
+      width: this.player.width, height: this.player.height,
+    };
+
+    // Break growing walls
+    for (let i = this.growingWalls.length - 1; i >= 0; i--) {
+      const wall = this.growingWalls[i];
+      if (wall.destroyed) continue;
+      if (aabbOverlap(pBox, wall.getAABB())) {
+        wall.shatter(this.collisionGrid);
+        const key = (wall as any)._key as string;
+        if (key) this.unlockedEvents.add(key);
+        this.game.hitstopFrames += 4;
+        this.screenFlash.flash(0xffffff, 0.4, 150);
+        this.game.camera.shake(8);
+        this.toast.show('Wall Shattered!', 0xffaa44);
+        for (let j = 0; j < 6; j++) {
+          this.hitSparks.spawn(
+            wall.x + Math.random() * wall.width,
+            wall.y + Math.random() * wall.height,
+            true, 0,
+          );
+        }
+        wall.destroy();
+        this.growingWalls.splice(i, 1);
+      }
+    }
+
+    // Break cracked floors
+    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
+      const cf = this.crackedFloors[i];
+      if (cf.destroyed) continue;
+      if (aabbOverlap(pBox, cf.getAABB())) {
+        cf.shatter(this.collisionGrid);
+        const key = (cf as any)._key as string;
+        if (key) this.unlockedEvents.add(key);
+        this.game.hitstopFrames += 4;
+        this.screenFlash.flash(0xffffff, 0.4, 150);
+        this.game.camera.shake(10);
+        this.toast.show('Floor Destroyed!', 0xffaa44);
+        cf.destroy();
+        this.crackedFloors.splice(i, 1);
+      }
+    }
+  }
+
   private handleDiveLanding(): void {
     const dist = this.player.diveFallDistance;
     const px = this.player.x + this.player.width / 2;
@@ -1490,6 +1566,8 @@ export class LdtkWorldScene extends Scene {
       if (wall.destroyed) continue;
       if (aabbOverlap(wallBox, wall.getAABB())) {
         wall.shatter(this.collisionGrid);
+        const wkey = (wall as any)._key as string;
+        if (wkey) this.unlockedEvents.add(wkey);
         this.game.hitstopFrames += 4;
         this.screenFlash.flash(0xffffff, 0.4, 150);
         this.game.camera.shake(10);
@@ -1514,10 +1592,11 @@ export class LdtkWorldScene extends Scene {
 
     const wallEntities = level.entities.filter(e => e.type === 'GrowingWall');
     for (const ent of wallEntities) {
-      const wall = new GrowingWall(
-        ent.px[0], ent.px[1],
-        ent.width, ent.height,
-      );
+      const key = `gwall_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+      if (this.unlockedEvents.has(key)) continue; // already destroyed
+
+      const wall = new GrowingWall(ent.px[0], ent.px[1], ent.width, ent.height);
+      (wall as any)._key = key;
       wall.injectCollision(this.collisionGrid);
       this.growingWalls.push(wall);
       this.entityLayer.addChild(wall.container);
@@ -1592,11 +1671,15 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(enemy.container);
     }
 
-    // Boss entities — Guardian (기억의 수문장)
+    // Boss entities — Guardian (기억의 수문장). Skip if already killed.
     const bossEntities = level.entities.filter(e => e.type === 'Boss');
     for (const ent of bossEntities) {
+      const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+      if (this.unlockedEvents.has(bossKey)) continue; // already killed permanently
+
       const boss = new Guardian();
       (boss as any)._isBoss = true;
+      (boss as any)._bossKey = bossKey;
       boss.x = ent.px[0] - boss.width / 2;
       boss.y = ent.px[1] - boss.height;
       boss.roomData = this.collisionGrid;
@@ -1611,21 +1694,14 @@ export class LdtkWorldScene extends Scene {
     const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
 
     if (spawners.length > 0) {
-      // Use LDtk-placed spawners
-      const grid = level.collisionGrid;
-      const levelSeed = (level.worldX * 31 + level.worldY * 17) >>> 0;
-      const dist = Math.round(Math.sqrt(level.worldX ** 2 + level.worldY ** 2) / 200);
-      const scale = 1 + dist * 0.15;
-      const tier = getDifficultyTier(dist);
-
       for (const spawner of spawners) {
         const enemyType = (spawner.fields['type'] as string) ?? 'Skeleton';
         const enemyLevel = (spawner.fields['level'] as number) ?? 1;
-        const localScale = scale * (1 + (enemyLevel - 1) * 0.1);
+        const stats = getEnemyStats(enemyType === 'Golden' ? 'GoldenMonster' : enemyType === 'Boss' ? 'Guardian' : enemyType, enemyLevel);
 
         let enemy: Enemy<string>;
         if (enemyType === 'Golden') {
-          const golden = new GoldenMonster(tier);
+          const golden = new GoldenMonster('mid');
           golden.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
           enemy = golden;
         } else if (enemyType === 'Ghost') {
@@ -1633,19 +1709,40 @@ export class LdtkWorldScene extends Scene {
         } else if (enemyType === 'Slime') {
           enemy = new Slime();
         } else if (enemyType === 'Boss') {
+          const bossKey = `boss_${level.identifier}_${spawner.px[0]}_${spawner.px[1]}`;
+          if (this.unlockedEvents.has(bossKey)) continue; // already killed permanently
           const g = new Guardian();
           (g as any)._isBoss = true;
+          (g as any)._bossKey = bossKey;
           enemy = g;
         } else {
           enemy = new Skeleton();
         }
 
-        enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * localScale);
-        enemy.atk = Math.floor(enemy.atk * localScale);
+        // Apply CSV stats
+        enemy.hp = enemy.maxHp = stats.hp;
+        enemy.atk = stats.atk;
+        enemy.def = stats.def;
+        if (stats.jumpTiles > 0) (enemy as any).jumpTiles = stats.jumpTiles;
         enemy.x = spawner.px[0];
         enemy.y = spawner.px[1] - enemy.height;
         enemy.roomData = this.collisionGrid;
         enemy.target = this.player;
+
+        // Link to LockedDoors — killing this enemy unlocks target doors
+        const targetField = spawner.fields['TargetDoor'] ?? spawner.fields['targetDoor'];
+        const targetRefs: string[] = [];
+        if (Array.isArray(targetField)) {
+          for (const ref of targetField) {
+            if (ref?.entityIid) targetRefs.push(ref.entityIid);
+          }
+        } else if (targetField && (targetField as any).entityIid) {
+          targetRefs.push((targetField as any).entityIid);
+        }
+        if (targetRefs.length > 0) {
+          (enemy as any)._unlockTargetIids = targetRefs;
+        }
+
         this.enemies.push(enemy);
         this.entityLayer.addChild(enemy.container);
       }
@@ -1665,17 +1762,14 @@ export class LdtkWorldScene extends Scene {
           const itemKey = `${level.identifier}:${ent.px[0]},${ent.px[1]}`;
           if (this.collectedItems.has(itemKey)) break;
 
-          const itemType = ent.fields['type'] as string ?? 'Gold';
-          if (itemType === 'Healing_potion') {
-            // TODO: potion pickup
-          } else {
-            const swordDef = SWORD_DEFS[0];
-            const item = createItem(swordDef);
-            const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
-            (drop as any)._itemKey = itemKey;
-            this.drops.push(drop);
-            this.entityLayer.addChild(drop.container);
-          }
+          const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
+          const itemId = rawItemId.toLowerCase();
+          const swordDef = (itemId ? SWORD_DEFS.find(d => d.id === itemId) : null) ?? SWORD_DEFS[0];
+          const item = createItem(swordDef, swordDef.rarity);
+          const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
+          (drop as any)._itemKey = itemKey;
+          this.drops.push(drop);
+          this.entityLayer.addChild(drop.container);
           break;
         }
         case 'GameSaver': {
@@ -1722,11 +1816,10 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'Camera': {
-          const pivotX = ent.px[0];
-          const pivotY = ent.px[1];
+          // Pivot bottom-left
           this.cameraZones.push({
-            x: pivotX - ent.width / 2,
-            y: pivotY - ent.height / 2,
+            x: ent.px[0],
+            y: ent.px[1] - ent.height,
             w: ent.width,
             h: ent.height,
             zoom: ent.fields['zoom'] as number ?? 1.0,
@@ -2519,19 +2612,15 @@ export class LdtkWorldScene extends Scene {
   }
 
   private rerenderTilemap(): void {
-    const collapsed = this.floorCollapse?.collapsedPositions;
-
-    // Only rebuild the wall layer — background and shadows stay intact
-    this.renderer.rebuildWallLayer(
-      collapsed && collapsed.size > 0
-        ? this.currentLevel.wallTiles.filter(t => {
-            const col = Math.floor(t.px[0] / TILE_SIZE);
-            const row = Math.floor(t.px[1] / TILE_SIZE);
-            return !collapsed.has(`${col},${row}`) && !collapsed.has(`${col},${row + 1}`);
-          })
-        : this.currentLevel.wallTiles,
-      this.atlas,
-    );
+    // Filter out wall tiles where collision grid is 0 (destroyed floors/walls)
+    const grid = this.collisionGrid;
+    const filteredTiles = this.currentLevel.wallTiles.filter(t => {
+      const col = Math.floor(t.px[0] / TILE_SIZE);
+      const row = Math.floor(t.px[1] / TILE_SIZE);
+      // Keep tile only if collision cell is still solid (1) or water (2)
+      return (grid[row]?.[col] ?? 0) !== 0;
+    });
+    this.renderer.rebuildWallLayer(filteredTiles, this.atlas);
   }
 
   private triggerFloorCollapse(): void {
@@ -2620,11 +2709,12 @@ export class LdtkWorldScene extends Scene {
 
     const targetItem = this.collapseItem;
 
-    // Fixed (hand-crafted) item world — load LDtk level directly
-    if (targetItem.fixedLevelId) {
-      this.enterFixedItemWorld(targetItem);
-      return;
+    // Always use hand-crafted item world (Build 0: all items → ItemWorld_FirstSword)
+    if (!targetItem.fixedLevelId) {
+      targetItem.fixedLevelId = 'ItemWorld_FirstSword';
     }
+    this.enterFixedItemWorld(targetItem);
+    return;
 
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;

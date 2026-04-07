@@ -79,9 +79,9 @@ export class Player extends Entity implements CombatEntity {
   };
 
   // Surge (Counter-Current Surge)
-  private static readonly SURGE_CHARGE_MS = 200;  // 0.2s charge
-  private static readonly SURGE_SPEED = 700;       // px/s upward (~2.5x double jump)
-  private static readonly SURGE_DURATION = 350;    // ms of upward flight
+  private static readonly SURGE_CHARGE_MS = 1500; // 1.5s charge
+  private static readonly SURGE_SPEED = 800;       // px/s upward
+  private static readonly SURGE_DURATION = 500;    // ms of upward flight
   private surgeChargeTimer = 0;
   private surgeFlyTimer = 0;
   private surgeDirX = 0; // 0 = straight up, ±1 = diagonal off wall
@@ -618,7 +618,20 @@ export class Player extends Entity implements CombatEntity {
     this.vx = 0;
     this.vy = 0;
 
+    // Charging vibration — intensifies as charge completes
+    const progress = 1 - this.surgeChargeTimer / Player.SURGE_CHARGE_MS;
+    this.startVibrate(progress * 3, 2, true);
+
+    // Camera rumble — escalating shake
+    this.game.camera.shake(progress * 2);
+
+    // Red tint — flash faster as charge progresses
+    const flashSpeed = 200 - progress * 150; // 200ms → 50ms
+    const flashOn = Math.sin(Date.now() / flashSpeed) > 0;
+    this.sprite.tint = flashOn ? 0xff4444 : 0xffffff;
+
     if (this.surgeChargeTimer <= 0) {
+      this.sprite.tint = 0xffffff;
       this.fsm.transition('surge_fly');
     }
   }
@@ -633,13 +646,18 @@ export class Player extends Entity implements CombatEntity {
     if (this.surgeDirX !== 0) {
       this.facingRight = this.surgeDirX > 0;
     }
+
+    // Launch impact — camera shake + hitstop + flash
+    this.game.camera.shakeDirectional(5, 0, 1); // upward bias
+    this.game.hitstopFrames = 3;
+    this.triggerFlash();
   }
 
   private stateSurgeFly(dt: number): void {
     this.surgeFlyTimer -= dt;
 
-    // Maintain upward velocity (resist gravity)
-    this.vy = -Player.SURGE_SPEED * Math.max(0, this.surgeFlyTimer / Player.SURGE_DURATION);
+    // Maintain upward velocity (constant — resist gravity entirely)
+    this.vy = -Player.SURGE_SPEED;
 
     if (this.surgeFlyTimer <= 0) {
       this.surgeActive = false;

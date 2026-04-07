@@ -54,8 +54,8 @@ export class LockedDoor {
     statType: string,
     statThreshold: number,
   ) {
-    // Entity pivot is bottom-center, so adjust y
-    this.x = x - width / 2;
+    // Pivot bottom-left
+    this.x = x;
     this.y = y - height;
     this.width = width;
     this.height = height;

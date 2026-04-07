@@ -46,8 +46,8 @@ export class Guardian extends Enemy<GuardianState> {
 
   constructor() {
     super({
-      width: 24,
-      height: 32,
+      width: 32,
+      height: 48,
       color: 0x8844aa,       // purple — guardian theme
       hp: 80,
       atk: 12,
