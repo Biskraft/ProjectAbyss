@@ -295,16 +295,16 @@ Ironclad:
   play_change: 보스전 안정, 진지 사수. 넉백 저항이 올라갈수록 타격교환 유리
 
 Ghost:
-  effect_iframe:  대시 i-frame + (Lv × GHOST_IFRAME_PER_LV) ms
+  effect_iframe:  대시 i-frame 0ms(기본) + (Lv × GHOST_IFRAME_PER_LV) ms  # 기본 대시에 i-frame 없음, Ghost가 유일한 부여 수단
   effect_range:   대시 거리   + (Lv × GHOST_DASH_RANGE_PER_LV) %
   GHOST_IFRAME_PER_LV:     0.5      # +0.5ms/레벨
   GHOST_DASH_RANGE_PER_LV: 0.33    # +0.33%/레벨
   soft_cap_lv: 60                   # 소프트 캡 레벨 60
-  soft_cap_effect: i-frame +30ms, 대시 거리 +20%
-  # i-frame 근거: Dead Cells/Hades 패턴 — 직접 증가 최소 폭 유지. +30ms = 타이밍 허용 소폭 확대,
-  #              회피 스킬을 대체하지 않는 수준
-  # 거리 근거: 기본 200px 기준 +20% = 240px. 체감 가능하지만 전술적 위치 변동 수준
-  play_change: 회피 특화. 레벨이 높을수록 "들어가서 치고 빠지기" 간격 여유 증가
+  soft_cap_effect: i-frame +30ms (기본 0ms → 30ms), 대시 거리 +20%
+  # i-frame 근거: 기본 대시에 i-frame 없음 (2026-04-08 제거). Ghost가 유일한 i-frame 부여 수단.
+  #              +30ms = 타이밍 허용 소폭 확대, 회피 스킬을 대체하지 않는 수준
+  # 거리 근거: 기본 64px 기준 +20% = 76.8px. 체감 가능하지만 전술적 위치 변동 수준
+  play_change: 회피 특화. Ghost 없이는 대시에 무적 없음. 레벨이 높을수록 "들어가서 치고 빠지기" 간격 여유 증가
 
 Sprinter:
   effect: 이동 속도 + (Lv × SPRINTER_SPEED_PER_LV) %

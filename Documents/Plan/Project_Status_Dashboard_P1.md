@@ -52,10 +52,10 @@
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 근거 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| CHR-01-A | 시스템 | 기본 이동 (가속/감속) | P1 | ✅ 구현 완료 | Player.ts: applyHorizontalInput(), MOVE_SPEED=192 |
+| CHR-01-A | 시스템 | 기본 이동 (가속/감속) | P1 | ✅ 구현 완료 | Player.ts: applyHorizontalInput(), MOVE_SPEED=128 |
 | CHR-01-B | 시스템 | 고정 높이 점프 | P1 | ✅ 구현 완료 | Player.ts: tryJump(), JUMP_HEIGHT=80 |
 | CHR-01-C | 시스템 | Coyote Time / Jump Buffer | P1 | ✅ 구현 완료 | Player.ts: COYOTE_TIME=150ms, JUMP_BUFFER=250ms |
-| CHR-02-D | 시스템 | 대시 (Dash) — 렐릭 해금 | P2 | ✅ 코드 완료 | Player.ts: startDash/stateDash, i-frame. 렐릭 시스템 연동 필요 (획득 전 비활성) |
+| CHR-02-D | 시스템 | 대시 (Dash) — 렐릭 해금 | P2 | ✅ 코드 완료 | Player.ts: startDash/stateDash, 무적 없음. 렐릭 시스템 연동 필요 (획득 전 비활성) |
 | CHR-03-A | 시스템 | 벽 슬라이드 (Wall Slide) | P2 | ⬜ P2+ | MVP OUT: "벽 점프, 이중 점프, 변신" 제외 |
 | CHR-03-B | 시스템 | 벽 점프 (Wall Jump) | P2 | ⬜ P2+ | MVP OUT: 능력 게이트 해금 시스템 (Phase 2) |
 | CHR-05-A | 시스템 | 히트박스/허트박스 시스템 | P1 | ✅ 구현 완료 | HitManager.ts: AABB 히트박스, CombatData.ts: 콤보별 크기 |
@@ -169,7 +169,7 @@
 | STAT-03-B | 성장 테이블 | 레벨업 경험치 요구량 테이블 | P1 | 📅 대기 | 아이템 레벨업 EXP 존재, 캐릭터 레벨업 미구현 |
 | STAT-04-A | 전투 연동 | ATK → 데미지 산출 | P1 | ✅ 구현 완료 | 데미지 계산에 ATK 직접 사용 |
 | ~~STAT-04-B~~ | ~~전투 연동~~ | ~~INT → 마법 ATK~~ DEPRECATED | — | ❌ DEPRECATED | INT 삭제, 모든 공격은 ATK 기반 |
-| ~~STAT-04-C~~ | ~~전투 연동~~ | ~~DEX → 명중/회피~~ DEPRECATED | — | ❌ DEPRECATED | DEX 삭제, 회피는 대시 i-frame |
+| ~~STAT-04-C~~ | ~~전투 연동~~ | ~~DEX → 명중/회피~~ DEPRECATED | — | ❌ DEPRECATED | DEX 삭제, 회피는 대시 위치 이탈 |
 | ~~STAT-04-D~~ | ~~전투 연동~~ | ~~VIT → MaxHP/DEF~~ DEPRECATED | — | ❌ DEPRECATED | VIT 삭제, HP는 레벨 기반, DEF는 장비 제공 |
 | ~~STAT-04-E~~ | ~~전투 연동~~ | ~~SPD → 이동/공격 속도~~ DEPRECATED | — | ❌ DEPRECATED | SPD 삭제, 속도는 무기별 고정 + 이노센트 |
 | ~~STAT-04-F~~ | ~~전투 연동~~ | ~~LCK → 드랍률/크리티컬~~ DEPRECATED | — | ❌ DEPRECATED | LCK 삭제, 크리티컬 5% 고정 + 이노센트 |
@@ -236,7 +236,7 @@
 | ENM-02-B | 시야각 (FoV) 판정 | 선택적 — 현재 수평 거리로도 동작 |
 | ~~STAT-02-C~~ | ~~MaxMP 산출 공식~~ | DEPRECATED — MP 시스템 삭제 |
 | STAT-03-B | 캐릭터 레벨업 경험치 | 아이템 레벨이 주요 성장축 |
-| ~~STAT-04-C~~ | ~~DEX → 명중/회피~~ | DEPRECATED — DEX 삭제, 회피는 대시 i-frame |
+| ~~STAT-04-C~~ | ~~DEX → 명중/회피~~ | DEPRECATED — DEX 삭제, 회피는 대시 위치 이탈 |
 | ~~STAT-04-D~~ | ~~VIT → MaxHP/DEF~~ | DEPRECATED — VIT 삭제, HP는 레벨 기��� |
 | CHR-08-B | 원웨이 플랫폼 하강 | 하방 입력+점프로 플랫폼 통과 |
 

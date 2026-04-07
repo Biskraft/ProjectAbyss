@@ -48,7 +48,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 회피 행동. 쿨다운 2초, 공중 대시 1회 제한. 발동 중 i-frame이 적용되어 적 공격을 회피할 수 있으며, 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
+| Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 기동 행동. 쿨다운 400ms, 공중 대시 1회 제한. 기본 대시에 i-frame(무적)은 없으며, 위치 재설정으로 적 공격을 회피한다. 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | ~~DEX~~ | ~~민첩 스탯~~ | ~~DEPRECATED. 기존 기동성 게이트 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제.~~ | — |
 | Echo | 에코 | 에르다가 휴대하는 도구이자 무기. GBE(BLAME!) 오마주. 네 가지 기능: (1) 격벽 관통 — 격벽의 약점을 두드려 균열을 만든다, (2) 아이템계 진입 — 무기/제단을 두드려 기억의 균열을 연다, (3) 인챈트 — 전투 중 무기를 두드려 원소를 입힌다, (4) 전투 보조 — 느리지만 강력한 단발 타격. 에코의 정체와 출처는 최종장까지 불명이며, 에르다의 정체와 함께 밝혀진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_ItemWorld_Core.md` |
 | Echo Strike | 기억의 두드림 | 에코로 무기를 두드려 아이템계에 진입하는 행위. 세이브 포인트 대장간, 필드 균열 제단, 기억의 방랑자가 남긴 임시 제단 등 어떤 진입 장소에서든 동일한 행위로 수행된다. | `Documents/System/System_ItemWorld_Core.md` |
@@ -78,7 +78,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| i-frame | 무적 프레임 | Invincibility Frame. 대시 발동 중 또는 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 대시의 핵심 전투 가치이며 남용 방지를 위해 쿨다운으로 제한된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
+| i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). Ghost 이노센트 등으로 대시 i-frame을 추가할 수 있다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md`, `Documents/System/System_Innocent_Core.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | Innocent | 이노센트 | 장비 아이템 내부(아이템계)에 거주하며 해당 아이템에 보너스 스탯을 부여하는 존재. 야생(Wild) 상태에서는 적으로 등장하며 격파 시 복종(Tamed) 상태로 전환된다. 복종 상태에서 효과가 2배가 되고 다른 아이템으로 이동 가능하다. | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Normal 2슬롯부터 Ancient 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |

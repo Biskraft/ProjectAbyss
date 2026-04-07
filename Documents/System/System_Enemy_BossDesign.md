@@ -35,7 +35,7 @@
 - **Project Vision:** `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 에르다 정의, 순환 구조)
 - **월드 맵 구조:** `Documents/System/System_World_MapStructure.md` (보스 배치 규칙, 층위 정체성, 진입 조건)
 - **적 AI 시스템:** `Documents/System/System_Enemy_AI.md` (Tell 시스템, 상태 머신 공통 구조)
-- **전투 액션:** `Documents/System/System_Combat_Action.md` (히트스탑, 콤보, 대시 i-frame)
+- **전투 액션:** `Documents/System/System_Combat_Action.md` (히트스탑, 콤보, 대시)
 - **전투 데미지:** `Documents/System/System_Combat_Damage.md` (데미지 공식, 속성 저항)
 - **보스 디자인 리서치:** `Documents/Research/BossDesign_SideScrolling_Research.md` (HK/Cuphead/Dead Cells 레퍼런스)
 - **세계 성경:** `Documents/Content/Content_World_Bible.md` (층위 역사, 세력, 카엘 오르스)
@@ -389,7 +389,7 @@ HP `EYE_P3_HP_RANGE`(파라미터 참조) 구간. 예언의 파편이 아레나 
 | 예언 각인 | 아레나 바닥 전체에 예언 문자 빛이 새겨짐. 1.5초 후 일부가 폭발 | 문자 새겨지기 시작 (700ms) | 폭발 예정 문자(빨간색) 회피 |
 | 전방위 렌즈 | 렌즈 6개 동시 소환. 무작위 2개씩 3연속 돌진 | 소환 이펙트 (500ms) | 돌진 순서 파악 후 각개 격파 |
 | 눈 개방 | 거대 눈 완전 개방. 시야 전체 비추며 에르다 행동 속도 `Eye_Open_Slow` 감소 | 눈꺼풀 열리기 (600ms) | 렌즈 4개 제거로 상쇄 가능 |
-| 마지막 예언 | 화면 전체 발광 후 방향 불명 강력 광선 1회 | 발광 최고조 (1000ms) | 발광 직전 i-frame 대시 |
+| 마지막 예언 | 화면 전체 발광 후 방향 불명 강력 광선 1회 | 발광 최고조 (1000ms) | 발광 직전 대시 이탈 |
 
 #### 보상
 
@@ -499,7 +499,7 @@ HP `KAEL_P2_HP_RANGE`(파라미터 참조) 구간. 카엘이 본격적으로 막
 | 심연 폭풍 | 전방 부채꼴 범위 심연 에너지 방출 | 검 회전 준비 (600ms) | 뒤로 이탈 또는 근접 틈새 |
 | 협약의 검압 | 원거리에서 검을 내리쳐 충격파 | 검 수직 들어올리기 (500ms) | 충격파 방향 수직 이동 |
 | 심연 기억 소환 | 역방향 심연 파편 소환 (위에서 낙하) | 위쪽에서 파편 모임 (600ms) | 낙하 사이 이동 |
-| 에코 공명 반응 (신규) | 에코(에르다 망치)와 카엘 검이 공명. 에르다 이동 속도 일시 감소 | 검 발광 + 에코 진동 (500ms) | 빠른 i-frame 대시로 상쇄 |
+| 에코 공명 반응 (신규) | 에코(에르다 망치)와 카엘 검이 공명. 에르다 이동 속도 일시 감소 | 검 발광 + 에코 진동 (500ms) | 빠른 대시 이탈로 상쇄 |
 
 **서사 장치:** 에코 공명 반응은 에르다의 망치 에코가 카엘의 심연의 검과 "연결"이 있음을 암시한다. 에르다는 이것을 독백으로 인식한다.
 
