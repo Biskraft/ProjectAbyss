@@ -40,6 +40,8 @@ import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { Spike } from '@entities/Spike';
+import { CollapsingPlatform } from '@entities/CollapsingPlatform';
+import { HealthShard } from '@entities/HealthShard';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -184,6 +186,8 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private spikes: Spike[] = [];
+  private collapsingPlatforms: CollapsingPlatform[] = [];
+  private healthShards: HealthShard[] = [];
   private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
@@ -581,6 +585,28 @@ export class LdtkWorldScene extends Scene {
       break; // one hit per frame
     }
 
+    // Health Shard pickups
+    for (let i = this.healthShards.length - 1; i >= 0; i--) {
+      const shard = this.healthShards[i];
+      if (shard.collected) continue;
+      shard.update(dt);
+      const dx = Math.abs((this.player.x + this.player.width / 2) - (shard.x + shard.width / 2));
+      const dy = Math.abs((this.player.y + this.player.height / 2) - (shard.y + shard.height / 2));
+      if (dx < 16 && dy < 16) {
+        const key = (shard as any)._key as string;
+        this.collectedRelics.add(key);
+        shard.collect();
+        this.player.maxHp += shard.hpBonus;
+        this.player.hp = this.player.maxHp; // full heal on pickup
+        this.game.hitstopFrames = 8;
+        this.screenFlash.flash(0xff4488, 0.4, 200);
+        this.game.camera.shake(4);
+        this.toast.showBig(`MAX HP +${shard.hpBonus}`, 0xff4488);
+        shard.destroy();
+        this.healthShards.splice(i, 1);
+      }
+    }
+
     // Ability Relic pickups
     for (let i = this.relicMarkers.length - 1; i >= 0; i--) {
       const { gfx, abilityName, relicKey } = this.relicMarkers[i];
@@ -667,6 +693,24 @@ export class LdtkWorldScene extends Scene {
     // Surge flight — break walls/floors on contact
     if (this.player.surgeActive) {
       this.handleSurgeContact();
+    }
+
+    // Collapsing platforms — check if player is standing on them
+    for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
+      const cp = this.collapsingPlatforms[i];
+      const wasSolid = (cp as any).state !== 'collapsed' && (cp as any).state !== 'respawning';
+      cp.update(dt);
+      if (cp.isPlayerOnTop(this.player.x, this.player.y, this.player.width, this.player.height)) {
+        cp.startShake();
+      }
+      // Save permanent collapse for non-respawning platforms
+      const isCollapsed = (cp as any).state === 'collapsed';
+      if (wasSolid && isCollapsed && !(cp as any)._respawns) {
+        const key = (cp as any)._key as string;
+        if (key) this.unlockedEvents.add(key);
+        cp.destroy();
+        this.collapsingPlatforms.splice(i, 1);
+      }
     }
 
     // Spike hazard contact
@@ -971,6 +1015,8 @@ export class LdtkWorldScene extends Scene {
     for (const sp of this.savePoints) { if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx); }
     this.savePoints = [];
     this.saveHintShown = false;
+    for (const sh of this.healthShards) sh.destroy();
+    this.healthShards = [];
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
@@ -983,6 +1029,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnGrowingWalls(level);
     this.spawnCrackedFloors(level);
     this.spawnSpikes(level);
+    this.spawnCollapsingPlatforms(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -1377,6 +1424,31 @@ export class LdtkWorldScene extends Scene {
     // Heal to full on save
     this.player.hp = this.player.maxHp;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+  }
+
+  private spawnCollapsingPlatforms(level: LdtkLevel): void {
+    for (const cp of this.collapsingPlatforms) cp.destroy();
+    this.collapsingPlatforms = [];
+
+    const entities = level.entities.filter(e => e.type === 'CollapsingPlatform');
+    for (const ent of entities) {
+      const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
+      const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
+      const key = `cplat_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+
+      // Non-respawning platform already collapsed — skip
+      if (!respawns && this.unlockedEvents.has(key)) continue;
+
+      const cp = new CollapsingPlatform(
+        ent.px[0], ent.px[1], ent.width, ent.height,
+        respawns, respawnTime,
+      );
+      (cp as any)._key = key;
+      (cp as any)._respawns = respawns;
+      cp.injectCollision(this.collisionGrid);
+      this.collapsingPlatforms.push(cp);
+      this.entityLayer.addChild(cp.container);
+    }
   }
 
   private spawnSpikes(level: LdtkLevel): void {
@@ -1797,6 +1869,16 @@ export class LdtkWorldScene extends Scene {
           marker.y = spy;
           this.entityLayer.addChild(marker);
           this.savePoints.push({ x: spx, y: spy, gfx: marker });
+          break;
+        }
+        case 'HealthShard': {
+          const shardKey = `shard_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+          if (this.collectedRelics.has(shardKey)) break;
+          const hpBonus = (ent.fields['HpBonus'] ?? ent.fields['hpBonus'] ?? 10) as number;
+          const shard = new HealthShard(ent.px[0], ent.px[1], hpBonus);
+          (shard as any)._key = shardKey;
+          this.healthShards.push(shard);
+          this.entityLayer.addChild(shard.container);
           break;
         }
         case 'AbilityRelic': {

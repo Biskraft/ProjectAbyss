@@ -569,41 +569,108 @@ Screen 2의 봉인된 복도가 이제 증식 구역을 통해 도달 가능 —
 
 ---
 
-## 8. Build 0 TODO (Victor 작업 목록)
+## 8. Build 0 콘텐츠 수량표
 
-> 코드 시스템은 완성됨. 아래는 **LDtk 맵 + 에셋 작업**.
+> 리서치 3종(Macro/Micro/Flow)에서 도출. 30분 데모 적정 자극량.
+
+### 요약
+
+| 항목 | 수량 | 근거 |
+|:--|:--|:--|
+| 핸드크래프트 방 | **23개** | SM 초반 15~20 + 아이템계 재방문 |
+| 아이템계 방 템플릿 | **24개** | Magic 2지층 + Rare 3지층 × 4방/지층 |
+| 릴릭 획득 | **2개** | doubleJump(분12) + dash 예고(분25) |
+| 보스 | **1종, 2~3회** | 아이템 장군 Mk.1/Mk.2 |
+| 적 유형 | **4종** | Slime → Skeleton → Ghost → WildInnocent |
+| 스탯 게이트 | **2개** | ATK 40 (필수) + ATK 20 (선택) |
+| 아이템계 다이브 | **2회 필수 + 1회 선택** | |
+| 세이브 포인트 | **3개** | 대장간, 하강로, 그림자 시장 |
+| 시크릿 | **4개** | 탐험 공간의 17% |
+
+### 환경 기믹 배치 수량
+
+| 기믹 | 수량 | 소개 위치 |
+|:--|:--|:--|
+| GrowingWall | 3개 | S10 증식 구역 |
+| CrackedFloor | 4개 | S2 복도 + S13 하강로 |
+| Spike | 6개 | S13~14 하강로 |
+| CollapsingPlatform | 3개 | S13~14 하강로 |
+| Switch+LockedDoor | 1세트 | 아이템계 내부 |
+| HealthShard | 2개 | 시크릿 보상 |
+
+### 시크릿 보상표
+
+| 위치 | 접근 조건 | 보상 |
+|:--|:--|:--|
+| S2 봉인된 복도 상단 | doubleJump 재방문 | Rare 검 (보장) |
+| S10 증식 구역 막다른 방 | 탐험 | Legendary 검 |
+| 아이템계 숨겨진 방 | 전투 전멸 후 발견 | HealthShard (HP +10) |
+| S14 대공동 선반 | doubleJump + 정밀 점프 | HealthShard (HP +10) + 로어 |
+
+### 난이도 곡선
+
+```
+난이도
+  ▲
+  │                              ★ 대공동(경외)
+  │              ★보스2     ╱╲
+  │         ╱╲  (주체성) ╱    ╲___
+  │        ╱  ╲____╱╲ ╱  하강로
+  │   ╱╲  ╱  보스1  ╲╱
+  │  ╱  ╲╱
+  │ ╱ 튜토리얼
+  └──────────────────────────────→
+   0   5   8  12  16  20  25  30분
+```
+
+### 구현 우선순위
+
+1. **핵심 루프 방** — 대장간, 아이템계 착지, 보스 방, 제단
+2. **루프 인식** — 증식 구역, ATK 게이트
+3. **세션 종료** — 그림자 시장, 발코니
+4. **아이템계 템플릿** — Rare 검 추가 지층
+5. **시크릿 + 기믹** — 탐험 보상
+
+---
+
+## 9. Build 0 TODO (Victor LDtk 작업)
 
 ### LDtk 엔티티 생성 (에디터에서 1회)
-- [ ] **GrowingWall** 엔티티 생성 — resizable, pivot 좌하단, 색상 #8a8a7a
-- [ ] **CrackedFloor** 엔티티 생성 — resizable, pivot 좌하단, 색상 #7a7a6a
-- [ ] **Dialogue** 엔티티에 `portrait` (String) 필드 추가
+- [ ] **GrowingWall** — resizable, pivot 좌하단
+- [ ] **CrackedFloor** — resizable, pivot 좌하단
+- [ ] **Spike** — resizable, pivot 좌하단
+- [ ] **CollapsingPlatform** — resizable, pivot 좌하단, 필드: Respawn(Bool), RespawnTime(Float)
+- [ ] **HealthShard** — 16×16 고정, pivot 좌하단, 필드: HpBonus(Int, 기본 10)
+- [ ] **Dialogue에 portrait 필드** — String 추가
 
 ### 맵 구축 (스크린 순서)
-- [ ] **Screen 1: 대장간** — Anvil + GameSaver + Player 스폰 배치
-- [ ] **Screen 2: 봉인된 복도** — 이동+점프 교습. 바닥 틈새. 끝에 StatGate(ATK 25)
-- [ ] **Screen 3: 첫 전투** — 슬라임 2~3마리 배치
-- [ ] **Screen 9-10: 증식 구역** — GrowingWall 배치 + 슬라임/스켈레톤. 밝은 타일
-- [ ] **Screen 12: STR 게이트** — StatGate(ATK 40 or 50)
-- [ ] **Screen 14: 대공동 전망** — 큰 레벨 + Camera 엔티티(zoom-out)
-- [ ] **Screen 16: 그림자 시장** — GameSaver + Dialogue NPC(오렌, 이렌)
-- [ ] **Screen 17: 발코니** — 종료 트리거 영역 (발코니 종료 시퀀스용)
-- [ ] **맵 collision 정리** — World_Level_0 ↔ Sewers1 edge 타일 수정
+- [ ] **S1 대장간** — Anvil + GameSaver + Player + Item(sword_normal)
+- [ ] **S2 봉인된 복도** — 이동+점프. StatGate(ATK 20, 선택), 상단 시크릿 공간
+- [ ] **S3 첫 전투** — Slime 2~3마리
+- [ ] **S9~10 증식 구역** — GrowingWall ×3 + Slime/Skeleton. Rare 검 시크릿
+- [ ] **S12 ATK 게이트** — StatGate(ATK 40)
+- [ ] **S13~14 하강로 + 대공동** — Skeleton+Ghost, Spike ×6, CollapsingPlatform ×3, CrackedFloor ×2, Camera zoom-out
+- [ ] **S16 그림자 시장** — GameSaver + Dialogue NPC(오렌, 이렌)
+- [ ] **S17 발코니** — 종료 트리거 영역
+- [ ] **레벨 identifier 고정** — useAutoIdentifier 끄기
+- [ ] **맵 collision 정리** — edge 타일 수정
+- [ ] **중복 타일 수정** — WorldEntrance2/3
 
 ### 릴릭 / 게이트 / 기믹 배치
-- [ ] **AbilityRelic: dash** — ability="dash"
-- [ ] **AbilityRelic: diveAttack** — ability="diveAttack", 하강 경로 근처
-- [ ] **AbilityRelic: surge** — ability="surge", 상승 필요 구간 전
-- [ ] **CrackedFloor** — dive로 파괴할 바닥 (하부 숏컷)
-- [ ] **Switch + LockedDoor** — EntityRef 연결
-- [ ] **Boss 배치** — 아이템계용 (Guardian 스폰)
+- [ ] **AbilityRelic: doubleJump** — Rare 아이템계 보스 보상 or S11 부근
+- [ ] **AbilityRelic: dash** — S16 그림자 시장 (클리프행어)
+- [ ] **CrackedFloor ×4** — S2 + S13 하강로
+- [ ] **Switch + LockedDoor ×1세트** — 아이템계 내부
+- [ ] **HealthShard ×2** — 아이템계 시크릿 + S14 대공동 선반
+- [ ] **Boss 배치** — ItemWorld_FirstSword 내부
 
 ### NPC 대화
-- [ ] **Dialogue 엔티티 배치** — 그림자 시장 NPC 위치. speaker/text/portrait 필드
-- [ ] **NPC 포트레이트** — `game/public/assets/portraits/` 에 이미지 추가
+- [ ] **Dialogue 엔티티** — 그림자 시장 NPC. speaker/text/portrait 필드
+- [ ] **NPC 포트레이트** — `game/public/assets/portraits/`
 
 ### 에셋 (선택)
-- [ ] **타이틀 로고** — `game/public/assets/ui/title_logo.png` 교체
-- [ ] **타일셋 교체** — 그레이박스 → 실제 아트 (Build 1 이후)
+- [ ] **타이틀 로고** — `game/public/assets/ui/title_logo.png`
+- [ ] **타일셋 교체** — Build 1 이후
 
 ---
 
