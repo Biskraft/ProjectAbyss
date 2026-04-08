@@ -188,6 +188,15 @@ export class LdtkWorldScene extends Scene {
   private spikes: Spike[] = [];
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
+
+  // Ending sequence
+  private endingTriggers: Array<{ x: number; y: number; w: number; h: number }> = [];
+  private endingActive = false;
+  private endingTimer = 0;
+  private endingPhase: 'idle' | 'rumble' | 'fade' | 'title' | 'done' = 'idle';
+  private endingOverlay: Graphics | null = null;
+  private endingTitle: BitmapText | null = null;
+  private endingHint: BitmapText | null = null;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
@@ -328,6 +337,12 @@ export class LdtkWorldScene extends Scene {
   update(dt: number): void {
     // Guard: init() is async — game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
+
+    // Ending sequence active — block everything
+    if (this.endingActive) {
+      this.updateEnding(dt);
+      return;
+    }
 
     // Dialogue box active — block game input (NPC dialogue blocks movement)
     // Check dialogue FIRST, before UI consumes input
@@ -735,6 +750,11 @@ export class LdtkWorldScene extends Scene {
       );
     }
 
+    // Ending trigger check
+    if (!this.endingActive) {
+      this.checkEndingTrigger();
+    }
+
     // Room transition detection — edge-based
     this.checkLevelEdges();
 
@@ -1017,6 +1037,7 @@ export class LdtkWorldScene extends Scene {
     this.saveHintShown = false;
     for (const sh of this.healthShards) sh.destroy();
     this.healthShards = [];
+    this.endingTriggers = [];
 
     if (level.roomType !== 'Shop') {
       this.spawnEnemiesFromLdtk(level);
@@ -1900,6 +1921,15 @@ export class LdtkWorldScene extends Scene {
           // TODO: secret area trigger with jingle
           break;
         }
+        case 'EndingTrigger': {
+          this.endingTriggers.push({
+            x: ent.px[0],
+            y: ent.px[1] - ent.height,
+            w: ent.width,
+            h: ent.height,
+          });
+          break;
+        }
         case 'Teleport': {
           // TODO: teleport to destination entity
           break;
@@ -2703,6 +2733,116 @@ export class LdtkWorldScene extends Scene {
       },
       () => this.drawAnvilUI(),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ending sequence (Screen 17 — balcony)
+  // ---------------------------------------------------------------------------
+
+  private checkEndingTrigger(): void {
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+    for (const t of this.endingTriggers) {
+      if (pcx >= t.x && pcx <= t.x + t.w && pcy >= t.y && pcy <= t.y + t.h) {
+        this.startEnding();
+        return;
+      }
+    }
+  }
+
+  private startEnding(): void {
+    this.endingActive = true;
+    this.endingPhase = 'rumble';
+    this.endingTimer = 0;
+
+    // Lock player
+    this.player.vx = 0;
+    this.player.vy = 0;
+  }
+
+  private updateEnding(dt: number): void {
+    this.endingTimer += dt;
+
+    // Phase 1: Echo rumble (0~2000ms) — camera micro-shake
+    if (this.endingPhase === 'rumble') {
+      const intensity = Math.min(3, this.endingTimer / 500);
+      this.game.camera.shake(intensity * 0.3);
+
+      if (this.endingTimer >= 2000) {
+        this.endingPhase = 'fade';
+        this.endingTimer = 0;
+        this.endingOverlay = new Graphics();
+        this.endingOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
+        this.endingOverlay.alpha = 0;
+        this.endingOverlay.eventMode = 'none';
+        this.game.app.stage.addChild(this.endingOverlay);
+      }
+    }
+
+    // Phase 2: Slow fade out (0~3000ms)
+    else if (this.endingPhase === 'fade') {
+      const progress = Math.min(1, this.endingTimer / 3000);
+      if (this.endingOverlay) this.endingOverlay.alpha = progress;
+
+      if (this.endingTimer >= 3000) {
+        this.endingPhase = 'title';
+        this.endingTimer = 0;
+
+        // Show ECHORIS title
+        this.endingTitle = new BitmapText({
+          text: 'ECHORIS',
+          style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd },
+        });
+        this.endingTitle.anchor.set(0.5);
+        this.endingTitle.x = GAME_WIDTH / 2;
+        this.endingTitle.y = GAME_HEIGHT / 2;
+        this.endingTitle.alpha = 0;
+        this.game.app.stage.addChild(this.endingTitle);
+      }
+    }
+
+    // Phase 3: Title display (0~4000ms) — fade in title, then show hint
+    else if (this.endingPhase === 'title') {
+      // Title fade in (0~1500ms)
+      if (this.endingTitle) {
+        this.endingTitle.alpha = Math.min(1, this.endingTimer / 1500);
+      }
+
+      // Show hint after 2500ms
+      if (this.endingTimer >= 2500 && !this.endingHint) {
+        this.endingHint = new BitmapText({
+          text: 'PRESS ANY KEY',
+          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666 },
+        });
+        this.endingHint.anchor.set(0.5);
+        this.endingHint.x = GAME_WIDTH / 2;
+        this.endingHint.y = GAME_HEIGHT / 2 + 40;
+        this.game.app.stage.addChild(this.endingHint);
+      }
+
+      // Blink hint
+      if (this.endingHint) {
+        this.endingHint.alpha = 0.5 + Math.sin(this.endingTimer / 400) * 0.5;
+      }
+
+      // Wait for key press to return to title
+      if (this.endingTimer >= 2500 && this.game.input.anyKeyJustPressed()) {
+        this.endingPhase = 'done';
+        // Clean up
+        if (this.endingOverlay?.parent) this.endingOverlay.parent.removeChild(this.endingOverlay);
+        if (this.endingTitle?.parent) this.endingTitle.parent.removeChild(this.endingTitle);
+        if (this.endingHint?.parent) this.endingHint.parent.removeChild(this.endingHint);
+        this.endingOverlay = null;
+        this.endingTitle = null;
+        this.endingHint = null;
+
+        // Return to title scene
+        // Dynamic import to avoid circular dependency
+        import('./TitleScene').then(({ TitleScene }) => {
+          this.game.sceneManager.replace(new TitleScene(this.game));
+        });
+      }
+    }
   }
 
   private rerenderTilemap(): void {
