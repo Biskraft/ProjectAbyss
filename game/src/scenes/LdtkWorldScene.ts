@@ -2826,9 +2826,20 @@ export class LdtkWorldScene extends Scene {
         this.endingHint.alpha = 0.5 + Math.sin(this.endingTimer / 400) * 0.5;
       }
 
-      // Wait for key press to return to title
+      // Wait for key press → fade out title → transition
       if (this.endingTimer >= 2500 && this.game.input.anyKeyJustPressed()) {
         this.endingPhase = 'done';
+        this.endingTimer = 0;
+      }
+    }
+
+    // Phase 4: Fade out title text (0~1500ms) → replace scene
+    else if (this.endingPhase === 'done') {
+      const progress = Math.min(1, this.endingTimer / 1500);
+      if (this.endingTitle) this.endingTitle.alpha = 1 - progress;
+      if (this.endingHint) this.endingHint.alpha = (1 - progress) * 0.5;
+
+      if (this.endingTimer >= 1500) {
         // Clean up
         if (this.endingOverlay?.parent) this.endingOverlay.parent.removeChild(this.endingOverlay);
         if (this.endingTitle?.parent) this.endingTitle.parent.removeChild(this.endingTitle);
@@ -2837,11 +2848,9 @@ export class LdtkWorldScene extends Scene {
         this.endingTitle = null;
         this.endingHint = null;
 
-        // Return to title scene
-        // Reset camera before returning to title
+        // Reset camera and return to title
         this.game.camera.setZoom(1.0);
         this.game.camera.clearBounds();
-        // Dynamic import to avoid circular dependency
         import('./TitleScene').then(({ TitleScene }) => {
           this.game.sceneManager.replace(new TitleScene(this.game));
         });
