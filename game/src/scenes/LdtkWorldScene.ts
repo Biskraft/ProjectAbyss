@@ -2755,9 +2755,10 @@ export class LdtkWorldScene extends Scene {
     this.endingPhase = 'rumble';
     this.endingTimer = 0;
 
-    // Lock player
+    // Lock player and sync position to prevent render jitter
     this.player.vx = 0;
     this.player.vy = 0;
+    this.player.savePrevPosition();
   }
 
   private updateEnding(dt: number): void {
@@ -2837,6 +2838,9 @@ export class LdtkWorldScene extends Scene {
         this.endingHint = null;
 
         // Return to title scene
+        // Reset camera before returning to title
+        this.game.camera.setZoom(1.0);
+        this.game.camera.clearBounds();
         // Dynamic import to avoid circular dependency
         import('./TitleScene').then(({ TitleScene }) => {
           this.game.sceneManager.replace(new TitleScene(this.game));
