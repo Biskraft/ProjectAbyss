@@ -19,23 +19,20 @@ export class Slime extends Enemy {
   private wanderDir = 1;
   private spawnX = 0;
 
-  constructor() {
+  constructor(level = 1) {
     super({
       width: 16,
       height: 16,
       color: 0x44cc44,
-      hp: 15,
-      atk: 3,
-      def: 1,
-      detectRange: 0,
-      attackRange: 0,
+      hp: 1, atk: 1, def: 0,          // placeholder — overwritten by applyStats
+      detectRange: 0, attackRange: 0,
       moveSpeed: WANDER_SPEED,
       attackCooldown: 0,
     });
+    this.applyStats('Slime', level);
 
     this.hopTimer = HOP_TIMER_MIN + Math.random() * (HOP_TIMER_MAX - HOP_TIMER_MIN);
     if (Math.random() < 0.5) this.wanderDir = -1;
-    this.jumpTiles = 6;
   }
 
   protected setupStates(): void {

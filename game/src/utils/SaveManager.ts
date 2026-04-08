@@ -36,6 +36,8 @@ export interface SaveData {
   visitedLevels: string[];
   /** Cleared level identifiers. */
   clearedLevels: string[];
+  /** Player gold. */
+  gold: number;
   /** Total play time in ms. */
   playtime: number;
 }
@@ -87,6 +89,7 @@ export class SaveManager {
     collectedItems: Set<string>;
     visitedLevels: Set<string>;
     clearedLevels: Set<string>;
+    gold: number;
     playtime: number;
   }): void {
     const data: SaveData = {
@@ -103,6 +106,7 @@ export class SaveManager {
       collectedItems: [...params.collectedItems],
       visitedLevels: [...params.visitedLevels],
       clearedLevels: [...params.clearedLevels],
+      gold: params.gold,
       playtime: params.playtime,
     };
     try {

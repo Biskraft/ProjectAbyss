@@ -27,7 +27,7 @@ import type { LdtkLevel } from '@level/LdtkLoader';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster } from '@entities/GoldenMonster';
-import { getEnemyStats } from '@data/enemyStats';
+// Enemy stats are now applied in each Enemy subclass constructor via applyStats()
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
 import { Guardian } from '@entities/Guardian';
@@ -43,6 +43,7 @@ import { Spike } from '@entities/Spike';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup } from '@entities/HealingPickup';
+import { GoldPickup } from '@entities/GoldPickup';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -56,6 +57,7 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { FloorCollapse } from '@effects/FloorCollapse';
+import { MemoryDive } from '@effects/MemoryDive';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { SaveManager } from '@utils/SaveManager';
@@ -167,6 +169,7 @@ export class LdtkWorldScene extends Scene {
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
   private floorCollapse: FloorCollapse | null = null;
+  private memoryDive: MemoryDive | null = null;
   private collapseItem: ItemInstance | null = null;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
   private inItemTunnel = false;
@@ -190,6 +193,8 @@ export class LdtkWorldScene extends Scene {
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
   private healingPickups: HealingPickup[] = [];
+  private goldPickups: GoldPickup[] = [];
+  private gold = 0;
 
   // Ending sequence
   private endingTriggers: Array<{ x: number; y: number; w: number; h: number }> = [];
@@ -229,6 +234,7 @@ export class LdtkWorldScene extends Scene {
       this.collectedItems = new Set(saveData.collectedItems);
       this.visitedLevels = new Set(saveData.visitedLevels ?? []);
       this.clearedLevels = new Set(saveData.clearedLevels);
+      this.gold = saveData.gold ?? 0;
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
       this.inventory = new Inventory();
@@ -316,7 +322,11 @@ export class LdtkWorldScene extends Scene {
     if (this.hud) this.hud.container.visible = true;
     if (!this.currentLevel) return; // first init — loadLevel handles setup
 
-    // Clean up collapse effect (tiles stay destroyed — permanent collapse)
+    // Clean up dive/collapse effect
+    if (this.memoryDive) {
+      this.memoryDive.destroy();
+      this.memoryDive = null;
+    }
     if (this.floorCollapse) {
       this.floorCollapse.destroy();
       this.floorCollapse = null;
@@ -381,7 +391,21 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Floor collapse in progress — all input blocked, camera frozen
+    // Memory Dive in progress — all input blocked
+    if (this.memoryDive && this.memoryDive.phase !== 'idle') {
+      this.memoryDive.update(dt);
+
+      if (this.memoryDive.shouldTransition) {
+        this.completeFloorCollapseEntry();
+        return;
+      }
+
+      this.hitSparks.update(dt);
+      this.screenFlash.update(dt);
+      return;
+    }
+
+    // Floor collapse in progress (legacy) — all input blocked, camera frozen
     if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
       this.floorCollapse.update(dt);
 
@@ -602,6 +626,24 @@ export class LdtkWorldScene extends Scene {
       break; // one hit per frame
     }
 
+    // Gold pickups
+    for (let i = this.goldPickups.length - 1; i >= 0; i--) {
+      const gp = this.goldPickups[i];
+      if (gp.collected) continue;
+      gp.update(dt);
+      const dx = Math.abs((this.player.x + this.player.width / 2) - (gp.x + gp.width / 2));
+      const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
+      if (dx < 16 && dy < 16) {
+        const key = (gp as any)._key as string;
+        this.collectedItems.add(key);
+        gp.collect();
+        this.gold += gp.amount;
+        this.toast.show(`+${gp.amount} G`, 0xffd700);
+        gp.destroy();
+        this.goldPickups.splice(i, 1);
+      }
+    }
+
     // Healing pickups
     for (let i = this.healingPickups.length - 1; i >= 0; i--) {
       const hp = this.healingPickups[i];
@@ -709,6 +751,7 @@ export class LdtkWorldScene extends Scene {
     // Locked door & switch attack detection + update
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
+    this.checkAttackOnCrackedFloors();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) {
       wall.update(dt);
@@ -785,6 +828,7 @@ export class LdtkWorldScene extends Scene {
 
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.hud.updateGold(this.gold);
     this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
 
     // Damage numbers & Sakurai hit effects
@@ -1061,6 +1105,8 @@ export class LdtkWorldScene extends Scene {
     this.healthShards = [];
     for (const hp of this.healingPickups) hp.destroy();
     this.healingPickups = [];
+    for (const gp of this.goldPickups) gp.destroy();
+    this.goldPickups = [];
     this.endingTriggers = [];
 
     if (level.roomType !== 'Shop') {
@@ -1409,12 +1455,15 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Show save hint once when approaching
-    if (nearSave && !this.saveHintShown) {
-      this.saveHintShown = true;
-      this.toast.show('UP: Save', 0x44ffaa);
-    } else if (!nearSave) {
+    // Show/hide persistent save hint
+    if (nearSave) {
+      if (!this.saveHintShown) {
+        this.saveHintShown = true;
+        this.hud.setFloorText('UP: Save');
+      }
+    } else if (this.saveHintShown) {
       this.saveHintShown = false;
+      this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
     }
   }
 
@@ -1463,12 +1512,14 @@ export class LdtkWorldScene extends Scene {
       collectedItems: this.collectedItems,
       visitedLevels: this.visitedLevels,
       clearedLevels: this.clearedLevels,
+      gold: this.gold,
       playtime: this.game.stats.playTimeMs,
     });
     this.toast.show('Game Saved!', 0x44ffaa);
     // Heal to full on save
     this.player.hp = this.player.maxHp;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.hud.updateGold(this.gold);
   }
 
   private spawnCollapsingPlatforms(level: LdtkLevel): void {
@@ -1758,6 +1809,35 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Check player attack against switches. */
+  /** Check player attack against cracked floors/walls — normal attack can break them. */
+  private checkAttackOnCrackedFloors(): void {
+    if (!this.player.isAttackActive()) return;
+
+    const step = COMBO_STEPS[this.player.comboIndex];
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
+      const cf = this.crackedFloors[i];
+      if (cf.destroyed) continue;
+      if (!aabbOverlap(hitbox, cf.getAABB())) continue;
+
+      cf.shatter(this.collisionGrid);
+      const key = (cf as any)._key as string;
+      if (key) this.unlockedEvents.add(key);
+      this.game.hitstopFrames += 4;
+      this.screenFlash.flash(0xffffff, 0.4, 150);
+      this.game.camera.shake(6);
+      this.toast.show('Wall Destroyed!', 0xffaa44);
+      cf.destroy();
+      this.crackedFloors.splice(i, 1);
+    }
+  }
+
   private checkAttackOnSwitches(): void {
     if (!this.player.isAttackActive()) return;
 
@@ -1825,33 +1905,25 @@ export class LdtkWorldScene extends Scene {
       for (const spawner of spawners) {
         const enemyType = (spawner.fields['type'] as string) ?? 'Skeleton';
         const enemyLevel = (spawner.fields['level'] as number) ?? 1;
-        const stats = getEnemyStats(enemyType === 'Golden' ? 'GoldenMonster' : enemyType === 'Boss' ? 'Guardian' : enemyType, enemyLevel);
 
         let enemy: Enemy<string>;
         if (enemyType === 'Golden') {
-          const golden = new GoldenMonster('mid');
+          const golden = new GoldenMonster('mid', enemyLevel);
           golden.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
           enemy = golden;
         } else if (enemyType === 'Ghost') {
-          enemy = new Ghost();
+          enemy = new Ghost(enemyLevel);
         } else if (enemyType === 'Slime') {
-          enemy = new Slime();
+          enemy = new Slime(enemyLevel);
         } else if (enemyType === 'Boss') {
           const bossKey = `boss_${level.identifier}_${spawner.px[0]}_${spawner.px[1]}`;
-          if (this.unlockedEvents.has(bossKey)) continue; // already killed permanently
-          const g = new Guardian();
-          (g as any)._isBoss = true;
+          if (this.unlockedEvents.has(bossKey)) continue;
+          const g = new Guardian(enemyLevel);
           (g as any)._bossKey = bossKey;
           enemy = g;
         } else {
-          enemy = new Skeleton();
+          enemy = new Skeleton(enemyLevel);
         }
-
-        // Apply CSV stats
-        enemy.hp = enemy.maxHp = stats.hp;
-        enemy.atk = stats.atk;
-        enemy.def = stats.def;
-        if (stats.jumpTiles > 0) (enemy as any).jumpTiles = stats.jumpTiles;
         enemy.x = spawner.px[0];
         enemy.y = spawner.px[1] - enemy.height;
         enemy.roomData = this.collisionGrid;
@@ -1914,6 +1986,16 @@ export class LdtkWorldScene extends Scene {
           marker.y = spy;
           this.entityLayer.addChild(marker);
           this.savePoints.push({ x: spx, y: spy, gfx: marker });
+          break;
+        }
+        case 'GoldPickup': {
+          const goldKey = `gold_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+          if (this.collectedItems.has(goldKey)) break;
+          const amount = (ent.fields['Amount'] ?? ent.fields['amount'] ?? 10) as number;
+          const gp = new GoldPickup(ent.px[0], ent.px[1], amount);
+          (gp as any)._key = goldKey;
+          this.goldPickups.push(gp);
+          this.entityLayer.addChild(gp.container);
           break;
         }
         case 'HealingPickup': {
@@ -2928,41 +3010,24 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // Deep-copy collision grid so the original level data stays intact for restore
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    const workingGrid = this.collisionGrid.map(row => row.slice());
-    // Extend downward so player can fall past the map bottom
-    for (let i = 0; i < 30; i++) {
-      workingGrid.push(new Array(gridW).fill(0));
-    }
-    this.collisionGrid = workingGrid;
-    this.player.roomData = workingGrid;
-
-    const collapse = new FloorCollapse(
-      this.anvil.x,
+    // Use MemoryDive instead of FloorCollapse
+    const dive = new MemoryDive(
+      this.anvil.x + this.anvil.width / 2,
       this.anvil.y,
       this.collapseItem.rarity,
-      workingGrid,
     );
 
-    collapse.onShake = (intensity) => this.game.camera.shake(intensity);
-    collapse.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-    collapse.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
-    collapse.onTilesRemoved = () => this.rerenderTilemap();
+    dive.onShake = (intensity) => this.game.camera.shake(intensity);
+    dive.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+    dive.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
 
-    this.floorCollapse = collapse;
-    this.entityLayer.addChild(collapse.container);
+    this.memoryDive = dive;
+    this.entityLayer.addChild(dive.container);
 
     // Hit sparks at anvil position
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    // First echo strike — extended hitstop (10 frames vs normal)
-    if (this.collapseItem.commission && !this.game.stats.firstEchoStrike) {
-      this.game.stats.firstEchoStrike = true;
-      this.game.hitstopFrames = 10;
-    }
-
-    collapse.start();
+    dive.start();
   }
 
   /** Rarity → ItemTunnel level name mapping. */
@@ -2978,7 +3043,11 @@ export class LdtkWorldScene extends Scene {
   private completeFloorCollapseEntry(): void {
     if (!this.collapseItem) return;
 
-    // Clean up collapse effect
+    // Clean up dive/collapse effect
+    if (this.memoryDive) {
+      this.memoryDive.destroy();
+      this.memoryDive = null;
+    }
     if (this.floorCollapse) {
       this.floorCollapse.destroy();
       this.floorCollapse = null;

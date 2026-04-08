@@ -3,6 +3,7 @@ import { Entity } from './Entity';
 import { resolveX, resolveY } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
+import { getEnemyStats } from '@data/enemyStats';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = 576;
@@ -93,6 +94,20 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.fsm = new StateMachine<S>();
     this.setupStates();
     this.fsm.transition('idle' as S);
+  }
+
+  /** Apply stats from CSV table. Call in subclass constructor after super(). */
+  applyStats(type: string, level: number): void {
+    const s = getEnemyStats(type, level);
+    this.hp = s.hp;
+    this.maxHp = s.hp;
+    this.atk = s.atk;
+    this.def = s.def;
+    this.detectRange = s.detectRange;
+    this.attackRange = s.attackRange;
+    this.moveSpeed = s.moveSpeed;
+    this.attackCooldown = s.attackCooldown;
+    this.jumpTiles = s.jumpTiles;
   }
 
   protected abstract setupStates(): void;

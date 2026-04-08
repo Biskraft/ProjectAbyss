@@ -7,20 +7,16 @@ export class Skeleton extends Enemy {
   private attackTimer = 0;
   private attackActive = false;
 
-  constructor() {
+  constructor(level = 1) {
     super({
       width: 16,
       height: 24,
-      color: 0xcc3333,       // red
-      hp: 40,
-      atk: 8,
-      def: 3,
-      detectRange: 160,       // px
-      attackRange: 18,        // px — close enough to touch player
-      moveSpeed: 60,          // px/s (slow)
-      attackCooldown: 1200,   // ms
+      color: 0xcc3333,
+      hp: 1, atk: 1, def: 0,
+      detectRange: 160, attackRange: 18,
+      moveSpeed: 60, attackCooldown: 1200,
     });
-    this.jumpTiles = 6;
+    this.applyStats('Skeleton', level);
   }
 
   protected setupStates(): void {

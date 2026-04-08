@@ -11,19 +11,16 @@ export class Ghost extends Enemy {
   /** Spawned projectiles — scene must read and manage these */
   pendingProjectiles: Projectile[] = [];
 
-  constructor() {
+  constructor(level = 1) {
     super({
       width: 14,
       height: 18,
-      color: 0xaabbff,       // bright ghostly blue
-      hp: 25,
-      atk: 6,
-      def: 1,
-      detectRange: 240,       // long sight
-      attackRange: 200,       // shoots from far
-      moveSpeed: 40,          // slow drift
-      attackCooldown: 1800,   // ms between shots
+      color: 0xaabbff,
+      hp: 1, atk: 1, def: 0,
+      detectRange: 240, attackRange: 200,
+      moveSpeed: 40, attackCooldown: 1800,
     });
+    this.applyStats('Ghost', level);
 
     // Outer glow aura
     this.glowSprite = new Graphics();

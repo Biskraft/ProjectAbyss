@@ -44,19 +44,16 @@ export class Guardian extends Enemy<GuardianState> {
   /** Marker for boss kill handling in scene. */
   readonly _isBoss = true;
 
-  constructor() {
+  constructor(level = 1) {
     super({
       width: 32,
       height: 48,
-      color: 0x8844aa,       // purple — guardian theme
-      hp: 80,
-      atk: 12,
-      def: 5,
-      detectRange: 300,
-      attackRange: 200,       // engages from far
-      moveSpeed: 50,          // slow patrol
-      attackCooldown: COOLDOWN_NORMAL,
+      color: 0x8844aa,
+      hp: 1, atk: 1, def: 0,
+      detectRange: 300, attackRange: 200,
+      moveSpeed: 50, attackCooldown: COOLDOWN_NORMAL,
     });
+    this.applyStats('Guardian', level);
     this.superArmor = true;
   }
 

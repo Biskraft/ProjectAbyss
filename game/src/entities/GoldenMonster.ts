@@ -38,19 +38,16 @@ export class GoldenMonster extends Enemy {
   /** Callback when this monster dies — WorldScene uses this to spawn a portal */
   onDeathCallback: ((x: number, y: number, rarity: Rarity) => void) | null = null;
 
-  constructor(difficulty: 'low' | 'mid' | 'high') {
+  constructor(difficulty: 'low' | 'mid' | 'high', level = 1) {
     super({
       width: 18,
       height: 26,
-      color: 0xffd700,       // gold
-      hp: 80,                // 2x normal skeleton
-      atk: 12,
-      def: 5,
-      detectRange: 200,
-      attackRange: 20,        // close enough to touch player
-      moveSpeed: 90,         // 1.5x faster
-      attackCooldown: 1000,
+      color: 0xffd700,
+      hp: 1, atk: 1, def: 0,
+      detectRange: 200, attackRange: 20,
+      moveSpeed: 90, attackCooldown: 1000,
     });
+    this.applyStats('GoldenMonster', level);
 
     this.portalRarity = pickRarity(difficulty);
   }

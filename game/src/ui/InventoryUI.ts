@@ -147,7 +147,7 @@ export class InventoryUI {
     if (item) {
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
       const tag = item.commission ? ' [Commission]' : '';
-      const hint = item.commission ? 'Anvil only' : 'Z:Equip';
+      const hint = item.commission ? 'Anvil only' : 'X:Equip';
       this.infoText.text =
         `${item.def.name}${equipped}${tag} Lv${item.level}\n` +
         `ATK:${item.finalAtk} ${item.rarity.toUpperCase()}\n` +
