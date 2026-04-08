@@ -2789,24 +2789,39 @@ export class LdtkWorldScene extends Scene {
         this.endingPhase = 'title';
         this.endingTimer = 0;
 
-        // Show ECHORIS title
+        // Show ECHORIS title + To be continued
         this.endingTitle = new BitmapText({
           text: 'ECHORIS',
           style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd },
         });
         this.endingTitle.anchor.set(0.5);
         this.endingTitle.x = GAME_WIDTH / 2;
-        this.endingTitle.y = GAME_HEIGHT / 2;
+        this.endingTitle.y = GAME_HEIGHT / 2 - 20;
         this.endingTitle.alpha = 0;
         this.game.app.stage.addChild(this.endingTitle);
+
+        const tbc = new BitmapText({
+          text: 'To be continued...',
+          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+        });
+        tbc.anchor.set(0.5);
+        tbc.x = GAME_WIDTH / 2;
+        tbc.y = GAME_HEIGHT / 2 + 10;
+        tbc.alpha = 0;
+        this.game.app.stage.addChild(tbc);
+        (this as any)._tbcText = tbc;
       }
     }
 
     // Phase 3: Title display (0~4000ms) — fade in title, then show hint
     else if (this.endingPhase === 'title') {
-      // Title fade in (0~1500ms)
+      // Title + tbc fade in (0~1500ms)
       if (this.endingTitle) {
         this.endingTitle.alpha = Math.min(1, this.endingTimer / 1500);
+      }
+      const tbc = (this as any)._tbcText as BitmapText | undefined;
+      if (tbc) {
+        tbc.alpha = Math.min(1, Math.max(0, (this.endingTimer - 500) / 1500));
       }
 
       // Show hint after 2500ms
@@ -2817,7 +2832,7 @@ export class LdtkWorldScene extends Scene {
         });
         this.endingHint.anchor.set(0.5);
         this.endingHint.x = GAME_WIDTH / 2;
-        this.endingHint.y = GAME_HEIGHT / 2 + 40;
+        this.endingHint.y = GAME_HEIGHT / 2 + 35;
         this.game.app.stage.addChild(this.endingHint);
       }
 
@@ -2838,12 +2853,15 @@ export class LdtkWorldScene extends Scene {
       const progress = Math.min(1, this.endingTimer / 3000);
       if (this.endingTitle) this.endingTitle.alpha = 1 - progress;
       if (this.endingHint) this.endingHint.alpha = (1 - progress) * 0.5;
+      const tbc2 = (this as any)._tbcText as BitmapText | undefined;
+      if (tbc2) tbc2.alpha = 1 - progress;
 
       if (this.endingTimer >= 3000) {
         // Clean up
         if (this.endingOverlay?.parent) this.endingOverlay.parent.removeChild(this.endingOverlay);
         if (this.endingTitle?.parent) this.endingTitle.parent.removeChild(this.endingTitle);
         if (this.endingHint?.parent) this.endingHint.parent.removeChild(this.endingHint);
+        if (tbc2?.parent) tbc2.parent.removeChild(tbc2);
         this.endingOverlay = null;
         this.endingTitle = null;
         this.endingHint = null;
