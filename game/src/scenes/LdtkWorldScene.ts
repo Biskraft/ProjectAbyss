@@ -2769,7 +2769,7 @@ export class LdtkWorldScene extends Scene {
       const intensity = Math.min(3, this.endingTimer / 500);
       this.game.camera.shake(intensity * 0.3);
 
-      if (this.endingTimer >= 2000) {
+      if (this.endingTimer >= 1000) {
         this.endingPhase = 'fade';
         this.endingTimer = 0;
         this.endingOverlay = new Graphics();
@@ -2782,10 +2782,10 @@ export class LdtkWorldScene extends Scene {
 
     // Phase 2: Slow fade out (0~3000ms)
     else if (this.endingPhase === 'fade') {
-      const progress = Math.min(1, this.endingTimer / 3000);
+      const progress = Math.min(1, this.endingTimer / 1500);
       if (this.endingOverlay) this.endingOverlay.alpha = progress;
 
-      if (this.endingTimer >= 3000) {
+      if (this.endingTimer >= 1500) {
         this.endingPhase = 'title';
         this.endingTimer = 0;
 
@@ -2835,11 +2835,11 @@ export class LdtkWorldScene extends Scene {
 
     // Phase 4: Fade out title text (0~1500ms) → replace scene
     else if (this.endingPhase === 'done') {
-      const progress = Math.min(1, this.endingTimer / 1500);
+      const progress = Math.min(1, this.endingTimer / 3000);
       if (this.endingTitle) this.endingTitle.alpha = 1 - progress;
       if (this.endingHint) this.endingHint.alpha = (1 - progress) * 0.5;
 
-      if (this.endingTimer >= 1500) {
+      if (this.endingTimer >= 3000) {
         // Clean up
         if (this.endingOverlay?.parent) this.endingOverlay.parent.removeChild(this.endingOverlay);
         if (this.endingTitle?.parent) this.endingTitle.parent.removeChild(this.endingTitle);
