@@ -429,6 +429,11 @@ export class Player extends Entity implements CombatEntity {
       // Wall slide: slow descent when touching wall and falling
       if (this.touchingWallDir !== 0 && this.vy > 0) {
         this.vy = WALL_SLIDE_SPEED;
+        if (!this.wallSliding) {
+          // Just started wall slide — reset double jump and air dash
+          this.doubleJumpAvailable = true;
+          this.airDashAvailable = true;
+        }
         this.wallSliding = true;
       }
     }

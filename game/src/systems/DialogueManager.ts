@@ -78,8 +78,8 @@ export class DialogueManager {
         lines,
         levelId,
         area: triggerType === 'area' ? {
-          x: ent.px[0] - ent.width / 2,
-          y: ent.px[1] - ent.height / 2,
+          x: ent.px[0],
+          y: ent.px[1] - ent.height,
           width: ent.width,
           height: ent.height,
         } : undefined,

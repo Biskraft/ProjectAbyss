@@ -42,6 +42,7 @@ import { CrackedFloor } from '@entities/CrackedFloor';
 import { Spike } from '@entities/Spike';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
+import { HealingPickup } from '@entities/HealingPickup';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
@@ -188,6 +189,7 @@ export class LdtkWorldScene extends Scene {
   private spikes: Spike[] = [];
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
+  private healingPickups: HealingPickup[] = [];
 
   // Ending sequence
   private endingTriggers: Array<{ x: number; y: number; w: number; h: number }> = [];
@@ -598,6 +600,26 @@ export class LdtkWorldScene extends Scene {
         this.screenFlash.flashDamage(true);
       }
       break; // one hit per frame
+    }
+
+    // Healing pickups
+    for (let i = this.healingPickups.length - 1; i >= 0; i--) {
+      const hp = this.healingPickups[i];
+      if (hp.collected) continue;
+      hp.update(dt);
+      const dx = Math.abs((this.player.x + this.player.width / 2) - (hp.x + hp.width / 2));
+      const dy = Math.abs((this.player.y + this.player.height / 2) - (hp.y + hp.height / 2));
+      if (dx < 16 && dy < 16) {
+        const key = (hp as any)._key as string;
+        this.collectedItems.add(key);
+        hp.collect();
+        const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
+        this.screenFlash.flash(0x44ff44, 0.3, 150);
+        this.toast.show(`HP +${healed}`, 0x44ff44);
+        hp.destroy();
+        this.healingPickups.splice(i, 1);
+      }
     }
 
     // Health Shard pickups
@@ -1037,6 +1059,8 @@ export class LdtkWorldScene extends Scene {
     this.saveHintShown = false;
     for (const sh of this.healthShards) sh.destroy();
     this.healthShards = [];
+    for (const hp of this.healingPickups) hp.destroy();
+    this.healingPickups = [];
     this.endingTriggers = [];
 
     if (level.roomType !== 'Shop') {
@@ -1890,6 +1914,16 @@ export class LdtkWorldScene extends Scene {
           marker.y = spy;
           this.entityLayer.addChild(marker);
           this.savePoints.push({ x: spx, y: spy, gfx: marker });
+          break;
+        }
+        case 'HealingPickup': {
+          const healKey = `heal_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+          if (this.collectedItems.has(healKey)) break;
+          const healAmount = (ent.fields['HealAmount'] ?? ent.fields['healAmount'] ?? 30) as number;
+          const heal = new HealingPickup(ent.px[0], ent.px[1], healAmount);
+          (heal as any)._key = healKey;
+          this.healingPickups.push(heal);
+          this.entityLayer.addChild(heal.container);
           break;
         }
         case 'HealthShard': {
