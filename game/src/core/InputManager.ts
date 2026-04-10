@@ -7,6 +7,7 @@ export enum GameAction {
   DASH = 'DASH',
   ATTACK = 'ATTACK',
   INVENTORY = 'INVENTORY',
+  MAP = 'MAP',
   MENU = 'MENU',
   DEBUG_RESET = 'DEBUG_RESET',
 }
@@ -20,6 +21,7 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.DASH]: ['KeyC'],
   [GameAction.ATTACK]: ['KeyX'],
   [GameAction.INVENTORY]: ['KeyI'],
+  [GameAction.MAP]: ['KeyM'],
   [GameAction.MENU]: ['Escape'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
 };

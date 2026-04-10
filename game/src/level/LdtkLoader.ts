@@ -16,6 +16,8 @@
  *   0 = empty / passable
  *   1 = solid wall
  *   2 = water
+ *   3 = one-way platform
+ *   4 = updraft (strong upward wind)
  *
  * No external dependencies beyond the TypeScript standard library.
  */

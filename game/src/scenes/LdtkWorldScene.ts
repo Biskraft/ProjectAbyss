@@ -40,6 +40,7 @@ import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { Spike } from '@entities/Spike';
+import { isInUpdraft } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup } from '@entities/HealingPickup';
@@ -62,6 +63,7 @@ import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
+import { WorldMapOverlay } from '@ui/WorldMapOverlay';
 import { DialogueManager } from '@systems/DialogueManager';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
@@ -190,6 +192,9 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private spikes: Spike[] = [];
+  // Updraft: IntGrid value 4 — handled in applyUpdrafts()
+  private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
+  private updraftGfx: Graphics | null = null;
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
   private healingPickups: HealingPickup[] = [];
@@ -300,6 +305,11 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI = new InventoryUI(this.inventory);
     this.game.app.stage.addChild(this.inventoryUI.container);
 
+    // World Map overlay
+    this.worldMap = new WorldMapOverlay();
+    this.worldMap.setRooms(this.loader.getWorldMap());
+    this.game.app.stage.addChild(this.worldMap.container);
+
     // Spawn level — saved level or default Player entity level
     if (saveData && saveData.levelId) {
       this.playerSpawnLevelId = saveData.levelId;
@@ -315,11 +325,14 @@ export class LdtkWorldScene extends Scene {
 
     this.initialized = true;
 
+    // Show controls toast on first load
+    this.toast.show('Z:Attack  X:Jump  C:Dash', 0xaaaaaa);
   }
 
   enter(): void {
     this.container.visible = true;
     if (this.hud) this.hud.container.visible = true;
+    if (this.minimap) this.minimap.visible = true;
     if (!this.currentLevel) return; // first init — loadLevel handles setup
 
     // Clean up dive/collapse effect
@@ -444,6 +457,22 @@ export class LdtkWorldScene extends Scene {
         this.updateAltarInput();
       }
       return;
+    }
+
+    // World Map toggle (M key)
+    if (this.game.input.isJustPressed(GameAction.MAP)) {
+      this.game.input.consumeJustPressed(GameAction.MAP);
+      if (this.worldMap.visible) {
+        this.worldMap.close();
+      } else {
+        // Update exploration state before opening
+        this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
+        this.worldMap.setMarkers(this.collectMapMarkers());
+        this.worldMap.toggle();
+      }
+    }
+    if (this.worldMap.visible) {
+      this.worldMap.update(dt);
     }
 
     // Inventory UI toggle
@@ -795,6 +824,9 @@ export class LdtkWorldScene extends Scene {
 
     // Spike hazard contact
     this.checkSpikeContact();
+
+    // Updraft wind zones
+    this.applyUpdrafts(dt);
 
     // Save point interaction — UP key near save point
     this.checkSavePoints();
@@ -1156,8 +1188,13 @@ export class LdtkWorldScene extends Scene {
     // This prevents a 1-frame jump when transitioning from snap to normal update.
     cam.update(16.667);
 
-    // Update minimap
+    // Update minimap + world map
     this.drawMinimap();
+    if (this.worldMap?.visible) {
+      this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
+      this.worldMap.setMarkers(this.collectMapMarkers());
+      this.worldMap.redraw();
+    }
 
     // Auto dialogue triggers for this level
     if (this.dialogueManager) {
@@ -1389,9 +1426,26 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /** Track doors already rejected during current attack to prevent spam. */
+  private doorRejectSet = new Set<string>();
+  private lastDoorCheckCombo = -1;
+
   /** Check player attack against locked doors (stat conditions only). */
   private checkAttackOnDoors(): void {
-    if (!this.player.isAttackActive()) return;
+    if (!this.player.isAttackActive()) {
+      // Reset reject tracking when attack ends
+      if (this.doorRejectSet.size > 0) {
+        this.doorRejectSet.clear();
+        this.lastDoorCheckCombo = -1;
+      }
+      return;
+    }
+
+    // Reset on new combo hit
+    if (this.player.comboIndex !== this.lastDoorCheckCombo) {
+      this.doorRejectSet.clear();
+      this.lastDoorCheckCombo = this.player.comboIndex;
+    }
 
     const step = COMBO_STEPS[this.player.comboIndex];
     if (!step) return;
@@ -1404,6 +1458,7 @@ export class LdtkWorldScene extends Scene {
     for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
       const door = this.lockedDoors[i];
       if (!door.locked) continue;
+      if (this.doorRejectSet.has(door.iid)) continue; // already rejected this attack
       if (!aabbOverlap(hitbox, door.getHitAABB())) continue;
 
       const playerStats: Record<string, number> = {
@@ -1415,18 +1470,18 @@ export class LdtkWorldScene extends Scene {
 
       if (result === 'unlocked') {
         this.unlockedEvents.add(door.iid);
-        // Break effect — camera shake + flash
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
         this.toast.show('Gate Destroyed!', 0x44ffaa);
         door.destroy();
         this.lockedDoors.splice(i, 1);
       } else if (result === 'rejected') {
-        // Brief shake + feedback
+        this.doorRejectSet.add(door.iid);
         this.game.camera.shake(2);
         const threshold = door.statThreshold;
         const current = playerStats[door.statType] ?? 0;
         this.toast.show(`${door.statType.toUpperCase()} ${current} / ${threshold} required`, 0xff4444);
+        break;
       }
     }
   }
@@ -1557,6 +1612,101 @@ export class LdtkWorldScene extends Scene {
       this.spikes.push(spike);
       this.entityLayer.addChild(spike.container);
     }
+  }
+
+  /** Apply updraft force when player stands on IntGrid value 4, + render particles */
+  private applyUpdrafts(dt: number): void {
+    const dtSec = dt / 1000;
+    const TILE = 16;
+    const UPDRAFT_FORCE = 980 * 2.2;
+    const MAX_UPDRAFT_VY = -250;
+    const P_COLOR = 0x66ddff;
+    const P_SPEED = 140;
+    const P_MAX = 50;
+
+    // --- Physics ---
+    if (this.player.fsm.currentState !== 'dash') {
+      const inUpdraft = isInUpdraft(
+        this.player.x, this.player.y, this.player.width, this.player.height,
+        this.collisionGrid,
+      );
+      if (inUpdraft) {
+        this.player.vy -= UPDRAFT_FORCE * dtSec;
+        if (this.player.vy < MAX_UPDRAFT_VY) this.player.vy = MAX_UPDRAFT_VY;
+      }
+    }
+
+    // --- Particles ---
+    // Lazy-create graphics
+    if (!this.updraftGfx) {
+      this.updraftGfx = new Graphics();
+      this.entityLayer.addChild(this.updraftGfx);
+    }
+
+    // Spawn particles in visible updraft tiles (camera viewport)
+    const cam = this.game.camera;
+    const viewL = cam.x;
+    const viewT = cam.y;
+    const viewR = viewL + GAME_WIDTH / cam.zoom;
+    const viewB = viewT + GAME_HEIGHT / cam.zoom;
+
+    const colL = Math.max(0, Math.floor(viewL / TILE));
+    const colR = Math.min((this.collisionGrid[0]?.length ?? 1) - 1, Math.ceil(viewR / TILE));
+    const rowT = Math.max(0, Math.floor(viewT / TILE));
+    const rowB = Math.min(this.collisionGrid.length - 1, Math.ceil(viewB / TILE));
+
+    // Spawn new particles from updraft tiles
+    if (this.updraftParticles.length < P_MAX) {
+      for (let row = rowT; row <= rowB; row++) {
+        for (let col = colL; col <= colR; col++) {
+          if ((this.collisionGrid[row]?.[col] ?? 0) !== 4) continue;
+          // ~5% chance per tile per frame to spawn
+          if (Math.random() > 0.05) continue;
+          if (this.updraftParticles.length >= P_MAX) break;
+
+          this.updraftParticles.push({
+            x: col * TILE + Math.random() * TILE,
+            y: row * TILE + TILE,  // spawn at bottom of tile
+            speed: P_SPEED * (0.6 + Math.random() * 0.8),
+            alpha: 0.3 + Math.random() * 0.5,
+            len: 2 + Math.random() * 3,
+            wobble: Math.random() * Math.PI * 2,
+          });
+        }
+        if (this.updraftParticles.length >= P_MAX) break;
+      }
+    }
+
+    // Update + draw particles
+    this.updraftGfx.clear();
+    const alive: typeof this.updraftParticles = [];
+
+    for (const p of this.updraftParticles) {
+      p.y -= p.speed * dtSec;
+      const wx = p.x + Math.sin(p.y * 0.06 + p.wobble) * 1.5;
+
+      // Check if still inside an updraft tile
+      const tCol = Math.floor(p.x / TILE);
+      const tRow = Math.floor(p.y / TILE);
+      const stillInUpdraft = (this.collisionGrid[tRow]?.[tCol] ?? 0) === 4;
+
+      if (!stillInUpdraft || p.y < viewT - 20) continue; // kill particle
+
+      // Fade at edges
+      const rowInTile = (p.y % TILE) / TILE;
+      let alpha = p.alpha;
+      if (rowInTile < 0.2) alpha *= rowInTile / 0.2;
+      if (rowInTile > 0.8) alpha *= (1 - rowInTile) / 0.2;
+
+      this.updraftGfx
+        .moveTo(wx, p.y)
+        .lineTo(wx, p.y - p.len)
+        .stroke({ color: P_COLOR, width: 1, alpha });
+
+      alive.push(p);
+    }
+
+    this.updraftParticles = alive;
   }
 
   /** Check player overlap with spikes — damage + teleport to last safe ground. */
@@ -2536,6 +2686,7 @@ export class LdtkWorldScene extends Scene {
     // Hide world while in Item World
     this.container.visible = false;
     this.hud.container.visible = false;
+    if (this.minimap) this.minimap.visible = false;
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.onComplete = () => {
@@ -3077,18 +3228,25 @@ export class LdtkWorldScene extends Scene {
 
     const targetItem = this.collapseItem;
 
-    // Always use hand-crafted item world (Build 0: all items → ItemWorld_FirstSword)
-    if (!targetItem.fixedLevelId) {
-      targetItem.fixedLevelId = 'ItemWorld_FirstSword';
+    // Hand-crafted item world (disabled — using procedural generation by rarity)
+    // if (!targetItem.fixedLevelId) {
+    //   targetItem.fixedLevelId = 'ItemWorld_FirstSword';
+    // }
+    // this.enterFixedItemWorld(targetItem);
+    // return;
+
+    // Fixed level override (if set on item)
+    if (targetItem.fixedLevelId) {
+      this.enterFixedItemWorld(targetItem);
+      return;
     }
-    this.enterFixedItemWorld(targetItem);
-    return;
 
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;
 
     this.container.visible = false;
     this.hud.container.visible = false;
+    if (this.minimap) this.minimap.visible = false;
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.onComplete = () => {
@@ -3157,6 +3315,7 @@ export class LdtkWorldScene extends Scene {
       };
       this.container.visible = false;
       this.hud.container.visible = false;
+      if (this.minimap) this.minimap.visible = false;
       this.game.sceneManager.push(itemWorldScene, true);
       return;
     }
@@ -3303,6 +3462,7 @@ export class LdtkWorldScene extends Scene {
   // ---------------------------------------------------------------------------
 
   private minimap: Container | null = null;
+  private worldMap!: WorldMapOverlay;
 
   private drawMinimap(): void {
     if (this.minimap) {
@@ -3371,7 +3531,7 @@ export class LdtkWorldScene extends Scene {
       } else if (visited) {
         color = 0x5577aa; alpha = 0.8;
       } else if (adjacent) {
-        color = 0x333344; alpha = 0.4; // fog silhouette
+        color = 0x333344; alpha = 0.4;
       } else {
         continue;
       }
@@ -3404,6 +3564,41 @@ export class LdtkWorldScene extends Scene {
     this.minimap.y = 4;
     this.minimap.alpha = 0.85;
     this.game.app.stage.addChild(this.minimap);
+  }
+
+  // ---------------------------------------------------------------------------
+  // World Map markers
+  // ---------------------------------------------------------------------------
+
+  private collectMapMarkers(): { roomId: string; type: 'save' | 'anvil' | 'boss' | 'gate'; label?: string }[] {
+    const markers: { roomId: string; type: 'save' | 'anvil' | 'boss' | 'gate'; label?: string }[] = [];
+
+    for (const id of this.visitedLevels) {
+      const level = this.loader.getLevel(id);
+      if (!level) continue;
+
+      for (const e of level.entities) {
+        if (e.type === 'GameSaver') {
+          markers.push({ roomId: id, type: 'save' });
+        } else if (e.type === 'Anvil') {
+          markers.push({ roomId: id, type: 'anvil' });
+        } else if (e.type === 'Enemy_Spawn') {
+          const enemyType = (e.fields['type'] as string) ?? '';
+          if (enemyType === 'Boss') {
+            markers.push({ roomId: id, type: 'boss' });
+          }
+        } else if (e.type === 'LockedDoor') {
+          const condition = (e.fields['UnlockCondition'] as string) ?? '';
+          if (condition === 'Stat') {
+            const statType = (e.fields['StatType'] as string) ?? 'atk';
+            const threshold = (e.fields['StatThreshold'] as number) ?? 0;
+            markers.push({ roomId: id, type: 'gate', label: `${statType.toUpperCase()} ${threshold}` });
+          }
+        }
+      }
+    }
+
+    return markers;
   }
 
   // ---------------------------------------------------------------------------

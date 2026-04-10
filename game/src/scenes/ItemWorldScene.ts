@@ -15,6 +15,9 @@ import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Guardian } from '@entities/Guardian';
 import { Ghost } from '@entities/Ghost';
+import { Slime } from '@entities/Slime';
+import { GoldenMonster } from '@entities/GoldenMonster';
+import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -92,6 +95,7 @@ export class ItemWorldScene extends Scene {
   private fullGrid: number[][] = [];
   private fullMapContainer: Container | null = null;
   private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
+  private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
 
   // Room transition
   private transitionState: TransitionState = 'none';
@@ -165,6 +169,9 @@ export class ItemWorldScene extends Scene {
     } catch (e) {
       console.warn('[ItemWorld] Outside frame not found');
     }
+
+    // Load spawn table CSV
+    await loadSpawnTable();
 
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
@@ -246,9 +253,9 @@ export class ItemWorldScene extends Scene {
     this.hud = new HUD();
     this.game.app.stage.addChild(this.hud.container);
 
-    // Controls overlay
+    // Controls overlay (disabled)
     this.controlsOverlay = new ControlsOverlay();
-    this.game.app.stage.addChild(this.controlsOverlay.container);
+    this.controlsOverlay.container.visible = false;
 
     // Toast
     this.toast = new ToastManager(this.game.app.stage);
@@ -383,6 +390,7 @@ export class ItemWorldScene extends Scene {
     }
     this.fullMapContainer = new Container();
     this.spawnedRooms.clear();
+    this.roomTypeMap.clear();
     this.clearEnemies();
     this.clearEscapeAltar();
     this.exitTrigger = null;
@@ -414,6 +422,9 @@ export class ItemWorldScene extends Scene {
         const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
         const ldtkLevel = this.pickLdtkTemplate(cell ?? null as any, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
+
+        // Store roomType for spawn logic
+        this.roomTypeMap.set(`${col}:${absRow}`, ldtkLevel.roomType ?? 'Combat');
 
         const roomGrid = ldtkLevel.collisionGrid;
         const roomH = roomGrid.length;
@@ -549,17 +560,18 @@ export class ItemWorldScene extends Scene {
       return { x: pt.x, y: pt.y - entityH };
     };
 
-    const isEndRoom = this.isStratumEndRoom(col, row);
-    console.log(`[ItemWorld] spawnEnemiesInRoom col=${col} row=${row} stratum=${cell.stratumIndex} isEndRoom=${isEndRoom} endRooms=${JSON.stringify(this.unifiedGrid.stratumEndRooms)}`);
-    if (isEndRoom) {
-      const boss = new Skeleton();
+    const roomType = this.roomTypeMap.get(`${col}:${row}`) ?? 'Combat';
+    const isBossRoom = roomType === 'Boss';
+    const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
+    const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
+
+    // Boss room — only spawn boss when LDtk template is 'Boss' type
+    if (isBossRoom && spawnTable.boss) {
+      const bossEntry = spawnTable.boss;
+      const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level);
       (boss as any)._isBoss = true;
-      boss.hp = boss.maxHp = stratumDef.bossHp;
-      boss.atk = stratumDef.bossAtk;
-      const visualScale = 1.5 + (cell.stratumIndex ?? 0) * 0.2;
-      boss.container.scale.set(visualScale);
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
-      const sp = pickSpawn(bossRng, boss.height * visualScale);
+      const sp = pickSpawn(bossRng, boss.height);
       boss.x = sp.x;
       boss.y = sp.y;
       boss.roomData = this.fullGrid;
@@ -569,16 +581,18 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
+    // Normal room — spawn from weighted table
+    const normalEntries = spawnTable.normal;
+    if (normalEntries.length === 0) return;
+
     for (let i = 0; i < count; i++) {
       const spawnRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + i);
 
-      // 15% chance to spawn an InnocentNPC instead of a regular enemy.
-      // Only spawn if the item still has open innocent slots.
+      // 15% chance to spawn an InnocentNPC instead of a regular enemy
       const innocentRoll = spawnRng.next();
       if (innocentRoll < INNOCENT_SPAWN_CHANCE && canAddInnocent(this.item)) {
-        const stratumIndex = cell.stratumIndex ?? 0;
         const seedForArchetype = this.item.uid + col * 13 + row * 7 + i;
-        const innocent = createRandomInnocent(seedForArchetype, stratumIndex);
+        const innocent = createRandomInnocent(seedForArchetype, cell.stratumIndex ?? 0);
 
         const npc = new InnocentNPC();
         npc.innocent = innocent;
@@ -599,10 +613,11 @@ export class ItemWorldScene extends Scene {
         continue;
       }
 
-      const isGhost = spawnRng.next() < 0.3;
-      const enemy = isGhost ? new Ghost() : new Skeleton();
-      enemy.hp = enemy.maxHp = Math.floor(stratumDef.enemyHp * distScale);
-      enemy.atk = Math.floor(stratumDef.enemyAtk * distScale);
+      // Pick enemy from weighted spawn table
+      const picked = pickWeightedEnemy(normalEntries, spawnRng.next());
+      if (!picked) continue;
+
+      const enemy = this.createEnemyFromType(picked.enemyType, picked.level);
       const sp = pickSpawn(spawnRng, enemy.height);
       enemy.x = sp.x;
       enemy.y = sp.y;
@@ -610,6 +625,17 @@ export class ItemWorldScene extends Scene {
       enemy.target = this.player;
       this.enemies.push(enemy);
       this.entityLayer.addChild(enemy.container);
+    }
+  }
+
+  /** Create an enemy instance by type name and level. */
+  private createEnemyFromType(type: string, level: number): Enemy<string> {
+    switch (type) {
+      case 'Slime': return new Slime(level);
+      case 'Ghost': return new Ghost(level);
+      case 'GoldenMonster': return new GoldenMonster('mid');
+      case 'Guardian': return new Guardian(level);
+      default: return new Skeleton(level);
     }
   }
 
@@ -703,8 +729,9 @@ export class ItemWorldScene extends Scene {
     // Door markers disabled — LDtk passages are visible in the tilemap
     // this.drawDoorMarkers(cell);
 
-    // Stratum end room — boss + descent/exit trigger
-    const isEndRoom = this.isStratumEndRoom(this.currentCol, this.currentRow);
+    // Boss room — check LDtk roomType, fallback to stratum end room
+    const ldtkRoomType = this.currentLdtkLevel?.roomType ?? '';
+    const isEndRoom = ldtkRoomType === 'Boss' || this.isStratumEndRoom(this.currentCol, this.currentRow);
 
     if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
     this.exitVisual = null;
@@ -1070,7 +1097,8 @@ export class ItemWorldScene extends Scene {
   }
 
   enter(): void {
-    this.showOnboarding();
+    // Onboarding disabled
+    this.onboardingDone = true;
   }
 
   private initialized = false;
@@ -1506,6 +1534,14 @@ export class ItemWorldScene extends Scene {
       // Find the next stratum's start room in unified grid
       const nextStratumIndex = this.currentStratumIndex + 1;
       const nextOffset = this.unifiedGrid.strataOffsets[nextStratumIndex];
+      if (!nextOffset) {
+        // No more strata — treat as final exit
+        this.progress.lastSafeStratum = this.currentStratumIndex;
+        this.persistRoomState();
+        this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
+        this.startExitFade();
+        return;
+      }
       const nextStartRow = nextOffset.rowOffset;
 
       // Find the start room column (first critical path cell in that row)
@@ -1759,7 +1795,8 @@ export class ItemWorldScene extends Scene {
       yAccum += bound.height * (cellSize + gap);
     }
 
-    this.miniMapContainer.x = 4;
+    // Position at top-right corner (same spot as world minimap)
+    this.miniMapContainer.x = 640 - bgW - 4;
     this.miniMapContainer.y = 4;
   }
 }

@@ -22,6 +22,7 @@ const TILE_SIZE = 16;
  *   1 = solid (wall/floor)
  *   2 = water (passable, applies water physics)
  *   3 = one-way platform
+ *   4 = updraft (passable, applies strong upward wind)
  */
 export function isSolid(tileId: number): boolean {
   return tileId === 1;
@@ -33,6 +34,17 @@ export function isOneWay(tileId: number): boolean {
 
 export function isWater(tileId: number): boolean {
   return tileId === 2;
+}
+
+export function isUpdraft(tileId: number): boolean {
+  return tileId === 4;
+}
+
+/** Check if an entity overlaps any updraft tile */
+export function isInUpdraft(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const midCol = Math.floor((x + width / 2) / TILE_SIZE);
+  const midRow = Math.floor((y + height / 2) / TILE_SIZE);
+  return isUpdraft(getTile(roomData, midCol, midRow));
 }
 
 /** Check if an entity overlaps any water tile */

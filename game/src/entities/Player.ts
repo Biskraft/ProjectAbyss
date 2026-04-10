@@ -70,7 +70,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Abilities (unlocked by relic pickups)
   abilities = {
-    dash: false,
+    dash: true,           // 기본 능력 — 처음부터 보유
     diveAttack: false,
     surge: false,
     waterBreathing: false,
