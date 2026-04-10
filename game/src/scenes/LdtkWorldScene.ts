@@ -2,15 +2,15 @@
  * LdtkWorldScene.ts
  *
  * World-space scene that loads hand-crafted LDtk levels instead of procedurally
- * generated rooms. Implements the World (탐험) space of the 3-Space separation
- * model (Design_Architecture_3Space.md).
+ * generated rooms. Implements the World (?�험) space of the 3-Space separation
+ * model (Design_Architecture_2Space.md).
  *
  * Key differences from WorldScene:
  *  - No RoomGrid / ChunkAssembler: levels are loaded from a .ldtk project file.
  *  - LdtkLoader parses the project; LdtkRenderer draws the tiles.
  *  - Room data comes from level.collisionGrid (same 2D format the Player uses).
  *  - Room transitions use world-space coordinates and level.neighbors.
- *  - Variable level sizes — camera bounds are set per level.
+ *  - Variable level sizes ??camera bounds are set per level.
  *  - Player spawn position read from the LDtk "Player" entity.
  *
  * All combat, portal, altar, inventory, and game-over systems are copied
@@ -182,7 +182,7 @@ export class LdtkWorldScene extends Scene {
   private fixedItemWorldItem: ItemInstance | null = null;
 
   // Level tracking
-  private visitedLevels: Set<string> = new Set(); // entered at least once → revealed on minimap
+  private visitedLevels: Set<string> = new Set(); // entered at least once ??revealed on minimap
   private clearedLevels: Set<string> = new Set();
   private collectedItems: Set<string> = new Set();
   private collectedRelics: Set<string> = new Set();
@@ -192,7 +192,7 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private spikes: Spike[] = [];
-  // Updraft: IntGrid value 4 — handled in applyUpdrafts()
+  // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
   private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
   private updraftGfx: Graphics | null = null;
   private collapsingPlatforms: CollapsingPlatform[] = [];
@@ -251,7 +251,7 @@ export class LdtkWorldScene extends Scene {
     // Load tileset atlas
     this.atlas = await Assets.load(ATLAS_PATH);
 
-    // LDtk renderer — tiles only, no entity markers in production
+    // LDtk renderer ??tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
 
@@ -274,7 +274,7 @@ export class LdtkWorldScene extends Scene {
     }
     this.updatePlayerAtk();
 
-    // Fade overlay — on stage (camera-independent) so it always covers the full screen
+    // Fade overlay ??on stage (camera-independent) so it always covers the full screen
     this.fadeOverlay = new Graphics();
     this.fadeOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.fadeOverlay.alpha = 0;
@@ -310,7 +310,7 @@ export class LdtkWorldScene extends Scene {
     this.worldMap.setRooms(this.loader.getWorldMap());
     this.game.app.stage.addChild(this.worldMap.container);
 
-    // Spawn level — saved level or default Player entity level
+    // Spawn level ??saved level or default Player entity level
     if (saveData && saveData.levelId) {
       this.playerSpawnLevelId = saveData.levelId;
     } else {
@@ -333,7 +333,7 @@ export class LdtkWorldScene extends Scene {
     this.container.visible = true;
     if (this.hud) this.hud.container.visible = true;
     if (this.minimap) this.minimap.visible = true;
-    if (!this.currentLevel) return; // first init — loadLevel handles setup
+    if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
     // Clean up dive/collapse effect
     if (this.memoryDive) {
@@ -360,16 +360,16 @@ export class LdtkWorldScene extends Scene {
   private initialized = false;
 
   update(dt: number): void {
-    // Guard: init() is async — game loop may call update() before it completes
+    // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
-    // Ending sequence active — block everything
+    // Ending sequence active ??block everything
     if (this.endingActive) {
       this.updateEnding(dt);
       return;
     }
 
-    // Dialogue box active — block game input (NPC dialogue blocks movement)
+    // Dialogue box active ??block game input (NPC dialogue blocks movement)
     // Check dialogue FIRST, before UI consumes input
     this.dialogueManager.update(dt);
     this.dialogueManager.updateThoughtPosition(
@@ -389,7 +389,7 @@ export class LdtkWorldScene extends Scene {
     this.toast.update(dt);
     this.tutorialHint.update(dt);
 
-    // Tutorial hints — only show after dialogue finishes
+    // Tutorial hints ??only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
       this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Jump  X: Attack');
     }
@@ -404,7 +404,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Memory Dive in progress — all input blocked
+    // Memory Dive in progress ??all input blocked
     if (this.memoryDive && this.memoryDive.phase !== 'idle') {
       this.memoryDive.update(dt);
 
@@ -418,7 +418,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Floor collapse in progress (legacy) — all input blocked, camera frozen
+    // Floor collapse in progress (legacy) ??all input blocked, camera frozen
     if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
       this.floorCollapse.update(dt);
 
@@ -525,7 +525,7 @@ export class LdtkWorldScene extends Scene {
 
       // Track which enemies were alive before combat resolution
       if (wasAlive && !enemy.alive) {
-        // died during enemy.update() (e.g. DOT) — handle drop now
+        // died during enemy.update() (e.g. DOT) ??handle drop now
         this.handleEnemyKill(enemy);
       }
 
@@ -535,7 +535,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Player attacks — Sakurai full feedback chain
+    // Player attacks ??Sakurai full feedback chain
     if (this.player.isAttackActive()) {
       const targets = this.enemies.filter((e) => e.alive) as CombatEntity[];
       const hits = this.hitManager.checkHits(
@@ -613,7 +613,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Enemy contact damage — all enemies deal damage on body overlap
+    // Enemy contact damage ??all enemies deal damage on body overlap
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       if (this.player.invincible || this.player.hp <= 0) continue;
@@ -681,8 +681,8 @@ export class LdtkWorldScene extends Scene {
       const dx = Math.abs((this.player.x + this.player.width / 2) - (hp.x + hp.width / 2));
       const dy = Math.abs((this.player.y + this.player.height / 2) - (hp.y + hp.height / 2));
       if (dx < 16 && dy < 16) {
-        const key = (hp as any)._key as string;
-        this.collectedItems.add(key);
+        const key = (hp as any)._key as string | undefined;
+        if (key) this.collectedItems.add(key);
         hp.collect();
         const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
@@ -794,17 +794,17 @@ export class LdtkWorldScene extends Scene {
       wall.pendingSlimes.length = 0;
     }
 
-    // Dive attack landing — area damage + cracked floor check
+    // Dive attack landing ??area damage + cracked floor check
     if (this.player.diveLanded) {
       this.handleDiveLanding();
     }
 
-    // Surge flight — break walls/floors on contact
+    // Surge flight ??break walls/floors on contact
     if (this.player.surgeActive) {
       this.handleSurgeContact();
     }
 
-    // Collapsing platforms — check if player is standing on them
+    // Collapsing platforms ??check if player is standing on them
     for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
       const cp = this.collapsingPlatforms[i];
       const wasSolid = (cp as any).state !== 'collapsed' && (cp as any).state !== 'respawning';
@@ -828,7 +828,7 @@ export class LdtkWorldScene extends Scene {
     // Updraft wind zones
     this.applyUpdrafts(dt);
 
-    // Save point interaction — UP key near save point
+    // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
     // Debug: R key to reset save and reload
@@ -852,10 +852,10 @@ export class LdtkWorldScene extends Scene {
       this.checkEndingTrigger();
     }
 
-    // Room transition detection — edge-based
+    // Room transition detection ??edge-based
     this.checkLevelEdges();
 
-    // Camera zone detection — check if player entered/exited a camera area
+    // Camera zone detection ??check if player entered/exited a camera area
     this.updateCameraZones();
 
     // HUD
@@ -868,7 +868,7 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Camera — deadzone follow + zoom lerp
+    // Camera ??deadzone follow + zoom lerp
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
     const cam = this.game.camera;
@@ -878,7 +878,7 @@ export class LdtkWorldScene extends Scene {
 
     cam.update(dt);
 
-    // Oxygen overlay — vignette + bar when submerged
+    // Oxygen overlay ??vignette + bar when submerged
     this.updateOxygenOverlay();
   }
 
@@ -895,7 +895,7 @@ export class LdtkWorldScene extends Scene {
       }
 
       this.oxygenOverlay.clear();
-      // Blue → red vignette based on oxygen
+      // Blue ??red vignette based on oxygen
       const color = ratio > 0.5 ? 0x1122aa : ratio > 0.25 ? 0x882244 : 0xaa2222;
       const intensity = (1 - ratio) * 0.5;
       // Pulse effect when low
@@ -1072,7 +1072,7 @@ export class LdtkWorldScene extends Scene {
           this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
         }, 1500);
       } else {
-        // World boss (test) — no portal, just big toast
+        // World boss (test) ??no portal, just big toast
         this.toast.showBig('BOSS DEFEATED!', 0xffd700);
       }
     } else if (enemy instanceof Slime) {
@@ -1094,6 +1094,17 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(dropEntity.container);
       this.tutorialHint.tryShow('hint_item', 'Walk over items to pick them up');
     }
+
+    // 20% chance to drop a HealingPickup (ephemeral, not persisted)
+    if (this.dropRng.next() < 0.2) {
+      const heal = new HealingPickup(
+        enemy.x + enemy.width / 2 - 8,
+        enemy.y + enemy.height,
+        20,
+      );
+      this.healingPickups.push(heal);
+      this.entityLayer.addChild(heal.container);
+    }
   }
 
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
@@ -1105,10 +1116,10 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Collision grid — same format as WorldScene.roomData
+    // Collision grid ??same format as WorldScene.roomData
     this.collisionGrid = level.collisionGrid;
 
-    // Render tiles — filter wall tiles by collision grid (destroyed tiles stay gone)
+    // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone)
     this.renderer.clear();
     const filteredWalls = level.wallTiles.filter(t => {
       const col = Math.floor(t.px[0] / TILE_SIZE);
@@ -1285,11 +1296,11 @@ export class LdtkWorldScene extends Scene {
     // Scan down from passage row to find first solid (non-water) tile below
     for (let row = passageRow; row < grid.length; row++) {
       if (grid[row][clampedX] === 1) {
-        // Floor found — place entity on top of it
+        // Floor found ??place entity on top of it
         return row * TILE_SIZE - entityHeight;
       }
     }
-    // No floor below — use passage row directly
+    // No floor below ??use passage row directly
     return passageRow * TILE_SIZE;
   }
 
@@ -1299,7 +1310,7 @@ export class LdtkWorldScene extends Scene {
    */
   private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down', hintTile = -1): number {
     const openTiles: number[] = [];
-    // 0 = empty, 2 = water — both are passable
+    // 0 = empty, 2 = water ??both are passable
     const isPassable = (v: number) => v === 0 || v === 2;
 
     switch (edge) {
@@ -1352,7 +1363,7 @@ export class LdtkWorldScene extends Scene {
         return row * TILE_SIZE - entityHeight;
       }
     }
-    // No floor found — place near bottom
+    // No floor found ??place near bottom
     return (grid.length - 2) * TILE_SIZE - entityHeight;
   }
 
@@ -1486,7 +1497,7 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** Check if player is near a save point — show hint, save on UP. */
+  /** Check if player is near a save point ??show hint, save on UP. */
   private checkSavePoints(): void {
     const pcx = this.player.x + this.player.width / 2;
     const pcy = this.player.y + this.player.height / 2;
@@ -1587,7 +1598,7 @@ export class LdtkWorldScene extends Scene {
       const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
       const key = `cplat_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
 
-      // Non-respawning platform already collapsed — skip
+      // Non-respawning platform already collapsed ??skip
       if (!respawns && this.unlockedEvents.has(key)) continue;
 
       const cp = new CollapsingPlatform(
@@ -1709,7 +1720,7 @@ export class LdtkWorldScene extends Scene {
     this.updraftParticles = alive;
   }
 
-  /** Check player overlap with spikes — damage + teleport to last safe ground. */
+  /** Check player overlap with spikes ??damage + teleport to last safe ground. */
   private checkSpikeContact(): void {
     if (this.player.invincible || this.player.hp <= 0) return;
 
@@ -1727,7 +1738,7 @@ export class LdtkWorldScene extends Scene {
       this.player.invincible = true;
       this.player.invincibleTimer = 500;
 
-      // Feedback — strong hitstop for spike pain
+      // Feedback ??strong hitstop for spike pain
       this.game.hitstopFrames = 16;
       this.game.camera.shake(5);
       this.screenFlash.flashDamage(true);
@@ -1772,8 +1783,8 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** Handle dive attack landing — area damage + cracked floor shatter. */
-  /** Surge flight — break GrowingWalls and CrackedFloors on body contact. */
+  /** Handle dive attack landing ??area damage + cracked floor shatter. */
+  /** Surge flight ??break GrowingWalls and CrackedFloors on body contact. */
   private handleSurgeContact(): void {
     const pBox = {
       x: this.player.x, y: this.player.y,
@@ -1947,7 +1958,7 @@ export class LdtkWorldScene extends Scene {
         ent.width, ent.height,
         ref.entityIid,
       );
-      // Already activated — skip collision injection, just show as broken
+      // Already activated ??skip collision injection, just show as broken
       if (this.unlockedEvents.has(ref.entityIid)) {
         sw.activate(this.collisionGrid);
       } else {
@@ -1959,7 +1970,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Check player attack against switches. */
-  /** Check player attack against cracked floors/walls — normal attack can break them. */
+  /** Check player attack against cracked floors/walls ??normal attack can break them. */
   private checkAttackOnCrackedFloors(): void {
     if (!this.player.isAttackActive()) return;
 
@@ -2017,7 +2028,7 @@ export class LdtkWorldScene extends Scene {
    * spawning if no Enemy_Spawn entities are placed in the level.
    */
   private spawnEnemiesFromLdtk(level: LdtkLevel): void {
-    // Direct entity types (Slime, Boss, etc.) — spawn without Enemy_Spawn wrapper
+    // Direct entity types (Slime, Boss, etc.) ??spawn without Enemy_Spawn wrapper
     const directEnemies = level.entities.filter(e => e.type === 'Slime');
     for (const ent of directEnemies) {
       const enemy = new Slime();
@@ -2029,7 +2040,7 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(enemy.container);
     }
 
-    // Boss entities — Guardian (기억의 수문장). Skip if already killed.
+    // Boss entities ??Guardian (기억???�문??. Skip if already killed.
     const bossEntities = level.entities.filter(e => e.type === 'Boss');
     for (const ent of bossEntities) {
       const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
@@ -2045,7 +2056,7 @@ export class LdtkWorldScene extends Scene {
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
 
-      // Activate boss lock — seal exits with temporary doors
+      // Activate boss lock ??seal exits with temporary doors
       this.activateBossLock(level);
     }
 
@@ -2079,7 +2090,7 @@ export class LdtkWorldScene extends Scene {
         enemy.roomData = this.collisionGrid;
         enemy.target = this.player;
 
-        // Link to LockedDoors — killing this enemy unlocks target doors
+        // Link to LockedDoors ??killing this enemy unlocks target doors
         const targetField = spawner.fields['TargetDoor'] ?? spawner.fields['targetDoor'];
         const targetRefs: string[] = [];
         if (Array.isArray(targetField)) {
@@ -2098,7 +2109,7 @@ export class LdtkWorldScene extends Scene {
       }
       return;
     }
-    // No fallback — only LDtk-placed enemies spawn in the world
+    // No fallback ??only LDtk-placed enemies spawn in the world
   }
 
   /**
@@ -2123,7 +2134,7 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'GameSaver': {
-          // Save point — pivot bottom-left, center the marker on entity
+          // Save point ??pivot bottom-left, center the marker on entity
           const spx = ent.px[0] + ent.width / 2;
           const spy = ent.px[1] - ent.height / 2;
           const marker = new Graphics();
@@ -2169,7 +2180,7 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'AbilityRelic': {
-          // Ability pickup — golden glowing marker
+          // Ability pickup ??golden glowing marker
           const abilityName = ent.fields['ability'] as string ?? 'wallJump';
           const relicKey = `relic_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
           if (!this.collectedRelics.has(relicKey)) {
@@ -2241,11 +2252,11 @@ export class LdtkWorldScene extends Scene {
       }
       return;
     }
-    // No fallback — only LDtk-placed altars in the world
+    // No fallback ??only LDtk-placed altars in the world
   }
 
   // ---------------------------------------------------------------------------
-  // Room transition — edge detection
+  // Room transition ??edge detection
   // ---------------------------------------------------------------------------
 
   /**
@@ -2267,7 +2278,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     if (insideZone && insideZone !== this.activeCameraZone) {
-      // Entered a new camera zone — apply with lerp
+      // Entered a new camera zone ??apply with lerp
       this.activeCameraZone = insideZone;
       cam.deadZoneX = insideZone.deadZoneX;
       cam.deadZoneY = insideZone.deadZoneY;
@@ -2275,7 +2286,7 @@ export class LdtkWorldScene extends Scene {
       cam.followLerp = insideZone.followLerp;
       cam.zoomTo(insideZone.zoom, insideZone.zoomLerp);
     } else if (!insideZone && this.activeCameraZone) {
-      // Exited all camera zones — restore defaults with lerp
+      // Exited all camera zones ??restore defaults with lerp
       this.activeCameraZone = null;
       cam.deadZoneX = 32;
       cam.deadZoneY = 24;
@@ -2331,7 +2342,7 @@ export class LdtkWorldScene extends Scene {
 
     if (direction === null) return;
 
-    // In a tunnel: reaching the bottom edge → warp to Item World
+    // In a tunnel: reaching the bottom edge ??warp to Item World
     if (this.inItemTunnel && direction === 'down') {
       this.startTunnelExitTransition();
       return;
@@ -2343,7 +2354,7 @@ export class LdtkWorldScene extends Scene {
     const playerWorldY = this.currentLevel.worldY + py + ph / 2;
     console.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
     const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
-    console.log(`[EdgeTransition] → neighborId=${neighborId}`);
+    console.log(`[EdgeTransition] ??neighborId=${neighborId}`);
     if (!neighborId) return;
 
     this.startTransition(direction, neighborId);
@@ -2356,10 +2367,10 @@ export class LdtkWorldScene extends Scene {
    * the requested direction and whose Y (or X) intervals overlap.
    *
    * Direction semantics:
-   *   right  → neighbor whose left edge aligns with current level's right edge
-   *   left   → neighbor whose right edge aligns with current level's left edge
-   *   down   → neighbor whose top edge aligns with current level's bottom edge
-   *   up     → neighbor whose bottom edge aligns with current level's top edge
+   *   right  ??neighbor whose left edge aligns with current level's right edge
+   *   left   ??neighbor whose right edge aligns with current level's left edge
+   *   down   ??neighbor whose top edge aligns with current level's bottom edge
+   *   up     ??neighbor whose bottom edge aligns with current level's top edge
    */
   /**
    * LDtk __neighbours dir codes:
@@ -2376,10 +2387,10 @@ export class LdtkWorldScene extends Scene {
     const ldtkDir = dirMap[direction];
     const candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
 
-    // Single candidate — return immediately
+    // Single candidate ??return immediately
     if (candidates.length === 1) return candidates[0];
 
-    // Multiple candidates — pick the one whose rect contains the player position
+    // Multiple candidates ??pick the one whose rect contains the player position
     // Use half-open intervals but pick the CLOSEST candidate as fallback
     // instead of blindly returning candidates[0].
     if (candidates.length > 1) {
@@ -2403,7 +2414,7 @@ export class LdtkWorldScene extends Scene {
       return bestId ?? candidates[0];
     }
 
-    // No dirNeighbors — geometric fallback with player position check
+    // No dirNeighbors ??geometric fallback with player position check
     const curRight = cur.worldX + cur.pxWid;
     const curBottom = cur.worldY + cur.pxHei;
     const T = 4;
@@ -2445,7 +2456,7 @@ export class LdtkWorldScene extends Scene {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
         if (this.pendingLevelId === '__item_world__') {
-          // Tunnel exit → enter Item World (no fade_in, scene push handles it)
+          // Tunnel exit ??enter Item World (no fade_in, scene push handles it)
           this.transitionState = 'none';
           this.fadeOverlay.alpha = 0;
           this.pendingDirection = null;
@@ -2528,7 +2539,7 @@ export class LdtkWorldScene extends Scene {
     this.inItemTunnel = false;
     this.collapseItem = null;
 
-    // Load save data — return to last save point
+    // Load save data ??return to last save point
     const saveData = SaveManager.load();
     if (saveData) {
       // Restore inventory and progress from save
@@ -2547,7 +2558,7 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.loadLevel(saveData.levelId, 'down');
     } else {
-      // No save — return to spawn level
+      // No save ??return to spawn level
       this.loadLevel(this.playerSpawnLevelId, 'down');
     }
 
@@ -2566,17 +2577,17 @@ export class LdtkWorldScene extends Scene {
     const baseStr = 10; // Lv1 STR
     const weaponAtk = this.inventory.getWeaponAtk();
 
-    // Innocent bonus ATK — flat bonus from all subdued/wild innocent 'atk' slots
+    // Innocent bonus ATK ??flat bonus from all subdued/wild innocent 'atk' slots
     const equippedItem = this.inventory.equipped;
     const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
 
     this.player.atk = baseStr + weaponAtk + innocentAtk;
 
-    // Innocent bonus DEF — base 5 + innocent 'def' bonus
+    // Innocent bonus DEF ??base 5 + innocent 'def' bonus
     const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
     this.player.def = 5 + innocentDef;
 
-    // Innocent bonus MaxHP — base 100 + innocent 'hp' bonus
+    // Innocent bonus MaxHP ??base 100 + innocent 'hp' bonus
     const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
     const newMaxHp = 100 + innocentHp;
     if (newMaxHp !== this.player.maxHp) {
@@ -2659,7 +2670,7 @@ export class LdtkWorldScene extends Scene {
     if (!data) return;
     this.pendingPortalData = null;
 
-    // In fixed item world — portal = return to forge
+    // In fixed item world ??portal = return to forge
     if (this.inFixedItemWorld) {
       this.exitFixedItemWorld();
       return;
@@ -2917,7 +2928,7 @@ export class LdtkWorldScene extends Scene {
     // Prototype fallback: spawn anvil at first altar position
     const altarEnts = level.entities.filter(e => e.type === 'Altar');
     if (altarEnts.length > 0) {
-      console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" — using first Altar position as fallback`);
+      console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" ??using first Altar position as fallback`);
       const ent = altarEnts[0];
       this.anvil = new Anvil(ent.px[0], ent.px[1]);
       this.entityLayer.addChild(this.anvil.container);
@@ -2929,14 +2940,14 @@ export class LdtkWorldScene extends Scene {
 
     this.anvil.update(dt);
 
-    // Proximity check — show hint
+    // Proximity check ??show hint
     const near = this.anvil.overlaps(
       this.player.x - 8, this.player.y - 8,
       this.player.width + 16, this.player.height + 16,
     );
     this.anvil.setShowHint(near);
 
-    // UP key — place weapon on anvil (if no weapon placed yet)
+    // UP key ??place weapon on anvil (if no weapon placed yet)
     if (!this.anvil.hasItem() && this.anvil.overlaps(
       this.player.x, this.player.y, this.player.width, this.player.height,
     )) {
@@ -2988,7 +2999,7 @@ export class LdtkWorldScene extends Scene {
           this.collapseItem = item;
           this.closeAltarUI();
 
-          // First commission sword placement — Screen 8 dialogue
+          // First commission sword placement ??Screen 8 dialogue
           if (item.commission) {
             // this.dialogueManager.fireEvent('first_anvil_commission');
           } else {
@@ -3003,7 +3014,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   // ---------------------------------------------------------------------------
-  // Ending sequence (Screen 17 — balcony)
+  // Ending sequence (Screen 17 ??balcony)
   // ---------------------------------------------------------------------------
 
   private checkEndingTrigger(): void {
@@ -3031,7 +3042,7 @@ export class LdtkWorldScene extends Scene {
   private updateEnding(dt: number): void {
     this.endingTimer += dt;
 
-    // Phase 1: Echo rumble (0~2000ms) — camera micro-shake
+    // Phase 1: Echo rumble (0~2000ms) ??camera micro-shake
     if (this.endingPhase === 'rumble') {
       const intensity = Math.min(3, this.endingTimer / 500);
       this.game.camera.shake(intensity * 0.3);
@@ -3080,7 +3091,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Phase 3: Title display (0~4000ms) — fade in title, then show hint
+    // Phase 3: Title display (0~4000ms) ??fade in title, then show hint
     else if (this.endingPhase === 'title') {
       // Title + tbc fade in (0~1500ms)
       if (this.endingTitle) {
@@ -3108,14 +3119,14 @@ export class LdtkWorldScene extends Scene {
         this.endingHint.alpha = 0.5 + Math.sin(this.endingTimer / 400) * 0.5;
       }
 
-      // Wait for key press → fade out title → transition
+      // Wait for key press ??fade out title ??transition
       if (this.endingTimer >= 2500 && this.game.input.anyKeyJustPressed()) {
         this.endingPhase = 'done';
         this.endingTimer = 0;
       }
     }
 
-    // Phase 4: Fade out title text (0~1500ms) → replace scene
+    // Phase 4: Fade out title text (0~1500ms) ??replace scene
     else if (this.endingPhase === 'done') {
       const progress = Math.min(1, this.endingTimer / 3000);
       if (this.endingTitle) this.endingTitle.alpha = 1 - progress;
@@ -3181,7 +3192,7 @@ export class LdtkWorldScene extends Scene {
     dive.start();
   }
 
-  /** Rarity → ItemTunnel level name mapping. */
+  /** Rarity ??ItemTunnel level name mapping. */
   private static readonly TUNNEL_BY_RARITY: Record<Rarity, string> = {
     normal: 'ItemTunnel_01',
     magic: 'ItemTunnel_02',
@@ -3222,13 +3233,13 @@ export class LdtkWorldScene extends Scene {
     this.pendingLevelId = '__item_world__';
   }
 
-  /** Called when player reaches the end of an ItemTunnel → enter Item World. */
+  /** Called when player reaches the end of an ItemTunnel ??enter Item World. */
   private enterItemWorldFromTunnel(): void {
     if (!this.collapseItem) return;
 
     const targetItem = this.collapseItem;
 
-    // Hand-crafted item world (disabled — using procedural generation by rarity)
+    // Hand-crafted item world (disabled ??using procedural generation by rarity)
     // if (!targetItem.fixedLevelId) {
     //   targetItem.fixedLevelId = 'ItemWorld_FirstSword';
     // }
@@ -3284,7 +3295,7 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Enter a hand-crafted item world level (fixedLevelId).
-   * Uses the same LdtkWorldScene level loading — player spawns at Player entity.
+   * Uses the same LdtkWorldScene level loading ??player spawns at Player entity.
    * Navigates back via portal or edge transition.
    */
   private enterFixedItemWorld(item: ItemInstance): void {
@@ -3324,7 +3335,7 @@ export class LdtkWorldScene extends Scene {
     this.inFixedItemWorld = true;
     this.fixedItemWorldItem = item;
 
-    // Load the hand-crafted level — 'down' uses Player entity spawn
+    // Load the hand-crafted level ??'down' uses Player entity spawn
     this.inItemTunnel = false;
     this.loadLevel(levelId, 'down');
 
@@ -3335,7 +3346,7 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** Exit fixed item world — return to the forge room. */
+  /** Exit fixed item world ??return to the forge room. */
   private exitFixedItemWorld(): void {
     if (this.portalTransition) {
       this.portalTransition.destroy();
@@ -3361,7 +3372,7 @@ export class LdtkWorldScene extends Scene {
       this.game.camera.snap(this.player.x, this.player.y);
     }
 
-    // First commission return — trigger Screen 15~17 sequence
+    // First commission return ??trigger Screen 15~17 sequence
     if (this.game.stats.firstEchoStrike && !this.game.stats.forgeReturnSequenceDone) {
       this.game.stats.forgeReturnSequenceDone = true;
       setTimeout(() => this.runForgeReturnSequence(), 1000);
@@ -3373,13 +3384,13 @@ export class LdtkWorldScene extends Scene {
    * freezePlayer dialogues chained sequentially.
    */
   private async runForgeReturnSequence(): Promise<void> {
-    // // Screen 15 — check sword stats
+    // // Screen 15 ??check sword stats
     // await this.dialogueManager.fireEvent('forge_return_check');
-    // // Screen 15 — refusal
+    // // Screen 15 ??refusal
     // await this.dialogueManager.fireEvent('forge_return_refusal');
-    // // Screen 16 — Marta's note (echo_shelved)
+    // // Screen 16 ??Marta's note (echo_shelved)
     // await this.dialogueManager.fireEvent('echo_shelved');
-    // // Screen 17 — Sera silhouette
+    // // Screen 17 ??Sera silhouette
     // await this.dialogueManager.fireEvent('marta_note_complete');
     // Unlock the door
     this.unlockDoors('marta_sequence_complete');
@@ -3395,7 +3406,7 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Fire a narrative event. Handles chained events:
-   * - echo_shelved → marta_note_complete (with silhouette)
+   * - echo_shelved ??marta_note_complete (with silhouette)
    */
   async fireNarrativeEvent(eventName: string): Promise<void> {
     // await this.dialogueManager.fireEvent(eventName);
@@ -3414,8 +3425,8 @@ export class LdtkWorldScene extends Scene {
    * 4. Silhouette fades out
    */
   private async showSeraSilhouette(): Promise<void> {
-    // 1. Echo vibration — shake player for 1 second
-    this.player.startVibrate(2, 60, false); // amplitude=2px, 60 frames ≈ 1s
+    // 1. Echo vibration ??shake player for 1 second
+    this.player.startVibrate(2, 60, false); // amplitude=2px, 60 frames ??1s
 
     await this.delay(1000);
 
@@ -3544,7 +3555,7 @@ export class LdtkWorldScene extends Scene {
       this.minimap.addChild(g);
     }
 
-    // Markers — save points
+    // Markers ??save points
     for (const r of relevantMap) {
       if (!this.visitedLevels.has(r.id)) continue;
       const level = this.loader.getLevel(r.id);
