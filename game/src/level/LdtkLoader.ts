@@ -185,6 +185,17 @@ interface RawLdtkLevel {
   __neighbours?: Array<{ levelIid: string; dir: string }>;
 }
 
+interface RawLdtkWorld {
+  iid: string;
+  identifier: string;
+  defaultLevelWidth?: number;
+  defaultLevelHeight?: number;
+  worldGridWidth?: number;
+  worldGridHeight?: number;
+  worldLayout?: string;
+  levels: RawLdtkLevel[];
+}
+
 // ---------------------------------------------------------------------------
 // LdtkLoader
 // ---------------------------------------------------------------------------
@@ -210,12 +221,39 @@ export class LdtkLoader {
    * Parse a raw LDtk JSON object (already fetched/imported) into LdtkLevel
    * structures. Call this once; results are cached in the internal map.
    *
+   * Supports both single-world (legacy) and multi-world LDtk projects.
+   * For multi-world projects, pass `worldId` to pick the correct world's
+   * levels. If omitted, the first world is used.
+   *
    * @param json - The parsed JSON object from a .ldtk file.
+   * @param worldId - Optional world identifier for multi-world projects.
    */
-  load(json: Record<string, unknown>): void {
+  load(json: Record<string, unknown>, worldId?: string): void {
     this.levels.clear();
 
-    const rawLevels = json['levels'] as RawLdtkLevel[];
+    let rawLevels: RawLdtkLevel[];
+
+    const worlds = json['worlds'] as RawLdtkWorld[] | undefined;
+    if (Array.isArray(worlds) && worlds.length > 0) {
+      // Multi-world project: pick the matching world (or the first one).
+      let world: RawLdtkWorld | undefined;
+      if (worldId) {
+        world = worlds.find((w) => w.identifier === worldId);
+        if (!world) {
+          const available = worlds.map((w) => w.identifier).join(', ');
+          throw new Error(
+            `[LdtkLoader] World "${worldId}" not found. Available: [${available}]`,
+          );
+        }
+      } else {
+        world = worlds[0];
+      }
+      rawLevels = world.levels;
+    } else {
+      // Single-world (legacy) project: root-level `levels`.
+      rawLevels = json['levels'] as RawLdtkLevel[];
+    }
+
     if (!Array.isArray(rawLevels)) {
       throw new Error('[LdtkLoader] JSON is missing "levels" array. Is this a valid .ldtk file?');
     }
