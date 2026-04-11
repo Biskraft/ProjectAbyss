@@ -76,7 +76,8 @@ export class InventoryUI {
     this.visible = !this.visible;
     this.container.visible = this.visible;
     if (this.visible) {
-      this.selectedIndex = -1;
+      // Auto-select leftmost item on open
+      this.selectedIndex = this.inventory.items.length > 0 ? 0 : -1;
       this.refresh();
     }
   }
@@ -139,6 +140,11 @@ export class InventoryUI {
         if (item.level > 0) {
           slot.rect(1, 1, 6, 6).fill(0x000000);
         }
+
+        // Cleared badge (bottom-right green square)
+        if (item.worldProgress?.cleared) {
+          slot.rect(SLOT_SIZE - 5, SLOT_SIZE - 5, 4, 4).fill(0x44ff44);
+        }
       }
     }
 
@@ -146,12 +152,13 @@ export class InventoryUI {
     const item = this.inventory.items[this.selectedIndex];
     if (item) {
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
-      const tag = item.commission ? ' [Commission]' : '';
-      const hint = item.commission ? 'Anvil only' : 'X:Equip';
+      const cycle = item.worldProgress?.cycle ?? 0;
+      const cycleTag = cycle > 0 ? ` C${cycle}` : '';
+      const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
       this.infoText.text =
-        `${item.def.name}${equipped}${tag} Lv${item.level}\n` +
+        `${item.def.name}${equipped} Lv${item.level}${cycleTag}${clearTag}\n` +
         `ATK:${item.finalAtk} ${item.rarity.toUpperCase()}\n` +
-        `${hint}`;
+        `X:Equip`;
     } else {
       this.infoText.text = `${this.inventory.items.length}/20 items`;
     }

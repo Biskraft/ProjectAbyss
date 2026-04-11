@@ -29,7 +29,7 @@ export class Inventory {
 
   equip(uid: number): void {
     const item = this.items.find(i => i.uid === uid);
-    if (item && !item.commission) {
+    if (item) {
       this.equipped = item;
     }
   }
