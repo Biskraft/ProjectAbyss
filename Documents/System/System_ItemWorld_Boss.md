@@ -456,7 +456,7 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 
 > **내러티브 참조:** `CNT-ITM-002` §3.1 보스 오버라이드 / `CNT-EXP-001` Screen 13
 > **등급:** Tier 1 — 아이템 장군 (기억의 수문장)
-> **출현 아이템:** 수리 의뢰의 낡은 검 (Magic 등급) — 튜토리얼 전용 고정 인스턴스
+> **출현 아이템:** 격벽 틈에서 꺼낸 낡은 검 (Magic 등급) — 튜토리얼 전용 고정 인스턴스
 
 이 섹션은 CNT-EXP-001 Screen 13에 확정된 그림자 검사 보스의 구현 명세다. 모듈형 보스 시스템(섹션 2.2)의 Tier 1 인스턴스이며, 최초 아이템계 진입 특례(SYS-IW-01 §2.3)가 동시 적용된다.
 
@@ -500,7 +500,7 @@ CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패
 | 보스 HP | 사망 직전 수치 유지 (리셋 없음) |
 | 횟수 제한 | 없음 |
 
-> **내러티브 근거:** 의뢰 검(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 첫 아이템계(의뢰 검) 한정. 이후 자기 무기로 진입하면 정상 규칙 적용.
+> **내러티브 근거:** 격벽 틈에서 꺼낸 낡은 검(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 First Sword 한정. 이후 자기 무기로 진입하면 정상 규칙 적용.
 
 #### 보스 처치 결과
 
@@ -508,16 +508,14 @@ CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패
 shadow_swordsman_clear:
   kill_visual: "그림자가 부서진다. 파편이 빛으로 변하며 흩어진다."
   kill_drop:
-    item: "수리 의뢰 영수증 조각"
-    interaction_text: "30 coins. No name. Unclaimed."
+    item: "닳은 여행 표지"
+    interaction_text: "글자가 지워져 있다. 방향이 새겨져 있었던 것 같다. 어디로 가던 길이었는지 알 수 없다."
   permanent_bonus:
     stat: ATK
     value: "+SHADOW_CLEAR_ATK_BONUS"  # 파라미터 참조: 8
     display: "Old Sword — ATK +8 (Permanent)"
     timing: "처치 후 1초 뒤 화면 중앙 큰 텍스트 + 효과음"
-  erda_dialogue:
-    line: "The sword got stronger. Working inside actually raises the numbers? ...I should add this to the commission fee."
-    mandatory: true
+  # 에르다 대사 없음 — 행동/환경 묘사만 (CNT-ITM-002 F-13 정합)
 ```
 
 > **SSoT 주의:** 위 수치(HP 80, ATK 12, ATK +8)는 CNT-EXP-001 Screen 13이 SSoT다. 이 섹션은 참조 요약이며, 값 변경 시 CNT-EXP-001을 먼저 수정하고 이 섹션을 동기화한다.

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — Enter the memory of your weapon</title>
+<meta name="description" content="A 2D action RPG where you explore a colossal megastructure and dive into your weapons' memories. Free on itch.io.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@1,300&family=Inter:wght@300;400&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   ECHORIS Website — Echo Pulse + Survey Report
+   Art Direction §11
+   ═══════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0A0A0A;
+  --pulse: #2A8A8A;
+  --pulse-dim: #1A4A4A;
+  --grid: rgba(26,58,58,.3);
+  --cta: #E87830;
+  --cta-glow: rgba(232,120,48,.25);
+  --text-1: #F0F0F0;
+  --text-2: #C0C0C0;
+  --text-3: #4A8A8A;
+  --pulse-item: #E87830;
+  --font-title: 'Cinzel', serif;
+  --font-sub: 'Cormorant Garamond', serif;
+  --font-label: 'Rajdhani', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulse-dim) var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* ── Particles (orange drift) ── */
+.particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.particles span {
+  position: absolute;
+  display: block;
+  width: 1px;
+  height: 1px;
+  background: var(--cta);
+  opacity: 0;
+  animation: drift linear infinite;
+}
+@keyframes drift {
+  0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10%  { opacity: 0.5; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+}
+
+/* ── Scanline Overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.03) 2px,
+    rgba(0,0,0,.03) 4px
+  );
+}
+
+/* ── Survey Grid Overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+body.grid-active::before { opacity: var(--grid-fade, 1); }
+
+/* ── Depth Indicator (right bar) ── */
+#depth-indicator {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+body.grid-active #depth-indicator { opacity: 1; }
+
+#depth-bar {
+  width: 2px;
+  height: 200px;
+  background: var(--pulse-dim);
+  position: relative;
+}
+#depth-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: var(--pulse);
+  transition: height 0.3s ease;
+  height: 0%;
+}
+#depth-label {
+  font-family: var(--font-label);
+  font-size: 0.65rem;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+#depth-value {
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  color: var(--pulse);
+  letter-spacing: 0.05em;
+}
+
+/* ── Echo Pulse Effect (면 느낌, 느린 확산) ── */
+.echo-pulse {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    transparent 40%,
+    rgba(42,138,138,.12) 60%,
+    rgba(42,138,138,.06) 80%,
+    transparent 100%
+  );
+  border: 1px solid rgba(42,138,138,.3);
+}
+.echo-pulse.fire {
+  animation: pulse-expand 2.5s cubic-bezier(.15,.6,.35,1) forwards;
+}
+@keyframes pulse-expand {
+  0% { width: 0; height: 0; opacity: 0.9; }
+  40% { opacity: 0.7; }
+  100% { width: 250vmax; height: 250vmax; opacity: 0; }
+}
+.echo-pulse.item-world {
+  background: radial-gradient(
+    circle,
+    transparent 40%,
+    rgba(232,120,48,.12) 60%,
+    rgba(232,120,48,.06) 80%,
+    transparent 100%
+  );
+  border-color: rgba(232,120,48,.3);
+}
+
+/* ── Sections (deeper = darker) ── */
+section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 24px;
+  position: relative;
+}
+
+/* Depth gradient: surface has faint ambient light, deepest is pure void */
+#hero       { background: linear-gradient(180deg, #0F1214 0%, #0A0A0A 100%); }
+#shaft      { background: linear-gradient(180deg, #0A0A0A 0%, #080808 100%); }
+#explore    { background: linear-gradient(180deg, #080808 0%, #060607 100%); }
+#erda       { background: linear-gradient(180deg, #060607 0%, #040405 100%); }
+#item-world { background: linear-gradient(180deg, #040405 0%, #030303 100%); }
+#community  { background: #020202; }
+
+/* Text also dims with depth */
+#shaft      { --text-2: #B8B8B8; }
+#explore    { --text-2: #A8A8A8; }
+#erda       { --text-2: #989898; }
+#item-world { --text-2: #888888; }
+#community  { --text-2: #707070; }
+
+/* Sector label border dims too */
+#explore .sector-label    { border-color: rgba(26,74,74,.6); }
+#erda .sector-label       { border-color: rgba(26,74,74,.4); }
+#item-world .sector-label { border-color: rgba(232,120,48,.25); }
+#community .sector-label  { border-color: rgba(26,74,74,.2); }
+
+/* ── Sector Label ── */
+/* ── Sector Label (large, clear section marker) ── */
+.sector-label {
+  font-family: var(--font-label);
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+  padding: 12px 24px;
+  border: 1px solid var(--pulse-dim);
+  background: rgba(10,10,10,.8);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.sector-label.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Reveal animation (echo pulse triggered) ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 1s ease, transform 1s ease, filter 1s ease;
+  filter: brightness(0) sepia(1) saturate(5) hue-rotate(140deg);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: none;
+}
+.reveal.wireframe {
+  filter: brightness(0) sepia(1) saturate(5) hue-rotate(140deg);
+  opacity: 0.6;
+}
+
+/* Staggered delays */
+.reveal[data-delay="1"] { transition-delay: 0.15s; }
+.reveal[data-delay="2"] { transition-delay: 0.3s; }
+.reveal[data-delay="3"] { transition-delay: 0.45s; }
+.reveal[data-delay="4"] { transition-delay: 0.6s; }
+
+/* ── SECTOR 00: Hero ── */
+#hero {
+  min-height: 100vh;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Radial orange pulse behind the title (KPI-style) */
+#hero::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 800px;
+  max-width: 90vw;
+  max-height: 90vw;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, var(--cta-glow) 0%, transparent 70%);
+  animation: hero-pulse 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes hero-pulse {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.6; transform: translate(-50%, -50%) scale(1.15); }
+}
+#hero > * { position: relative; z-index: 1; }
+
+.hero-title {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: clamp(4rem, 12vw, 9rem);
+  line-height: 0.85;
+  color: var(--text-1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.hero-title span { color: var(--cta); }
+
+.hero-tagline {
+  font-family: var(--font-sub);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  color: var(--text-3);
+  letter-spacing: 0.05em;
+  margin-bottom: 48px;
+  max-width: 560px;
+  opacity: 0.9;
+}
+
+.cta-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cta {
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 32px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta-primary {
+  background: var(--cta);
+  color: var(--bg);
+  animation: cta-pulse 3s ease-in-out infinite;
+}
+.cta-primary:hover {
+  box-shadow: 0 0 30px var(--cta-glow);
+  transform: translateY(-2px);
+}
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 10px var(--cta-glow); }
+  50% { box-shadow: 0 0 25px var(--cta-glow); }
+}
+
+.cta-secondary {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--pulse-dim);
+}
+.cta-secondary:hover {
+  border-color: var(--pulse);
+  color: var(--text-1);
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 40px;
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  color: var(--text-3);
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+/* ── SECTOR 01: The Shaft ── */
+.shaft-image {
+  max-width: min(400px, 80vw);
+  height: auto;
+  border: 1px solid var(--pulse-dim);
+  margin-bottom: 24px;
+}
+
+.section-quote {
+  font-family: var(--font-sub);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+  color: var(--text-3);
+  text-align: center;
+  max-width: 500px;
+}
+
+/* ── SECTOR 02: Explore ── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  max-width: 900px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.feature-card {
+  border: 1px solid var(--pulse-dim);
+  padding: 24px;
+  background: rgba(16,16,20,.6);
+  transition: border-color 0.3s ease;
+}
+.feature-card:hover {
+  border-color: var(--pulse);
+}
+
+.feature-card h3 {
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--pulse);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.loop-diagram {
+  font-family: var(--font-label);
+  font-size: 0.8rem;
+  color: var(--text-3);
+  text-align: center;
+  letter-spacing: 0.1em;
+  margin-top: 16px;
+}
+.loop-diagram span { color: var(--pulse); }
+
+/* ── SECTOR 03: Erda ── */
+.erda-container {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  max-width: 800px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.erda-image {
+  max-width: 280px;
+  height: auto;
+  border: 1px solid var(--pulse-dim);
+}
+
+.erda-info {
+  flex: 1;
+  min-width: 260px;
+}
+
+.erda-info h2 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.erda-info .job {
+  font-family: var(--font-label);
+  font-size: 0.7rem;
+  color: var(--pulse);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.erda-info p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* ── SECTOR 04: Item World (orange shift) ── */
+#item-world {
+  --section-pulse: var(--pulse-item);
+}
+#item-world .sector-label { color: var(--cta); }
+#item-world .sector-label::before,
+#item-world .sector-label::after { color: rgba(232,120,48,.4); }
+
+.iw-visual {
+  position: relative;
+  max-width: 700px;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: 1px solid rgba(232,120,48,.3);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(232,120,48,.02) 0px,
+    rgba(232,120,48,.02) 2px,
+    transparent 2px,
+    transparent 8px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.iw-visual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(232,120,48,.08) 0%, transparent 70%);
+}
+
+.iw-text {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  color: var(--cta);
+  text-align: center;
+  z-index: 1;
+  letter-spacing: 0.1em;
+}
+
+.iw-quote {
+  font-family: var(--font-sub);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+  color: rgba(232,120,48,.7);
+  text-align: center;
+  max-width: 500px;
+}
+
+/* ── SECTOR 05: Community ── */
+.social-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.social-link {
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--pulse-dim);
+  transition: all 0.3s ease;
+}
+.social-link:hover {
+  border-color: var(--pulse);
+  color: var(--text-1);
+}
+
+/* ── Footer ── */
+footer {
+  padding: 40px 24px;
+  text-align: center;
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  border-top: 1px solid var(--pulse-dim);
+  opacity: 0.5;
+}
+
+/* ── Gallery Row ── */
+.gallery-row {
+  display: flex;
+  gap: 12px;
+  max-width: 900px;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+.gallery-row img {
+  height: 180px;
+  width: auto;
+  border: 1px solid var(--pulse-dim);
+  flex-shrink: 0;
+  transition: border-color 0.3s;
+}
+.gallery-row img:hover { border-color: var(--pulse); }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  section { padding: 60px 16px; }
+  .hero-title { letter-spacing: 0.15em; }
+  #depth-indicator { display: none; }
+  .erda-container { flex-direction: column; text-align: center; }
+  .gallery-row img { height: 140px; }
+}
+
+@media (hover: none) {
+  body::before { opacity: 0.3 !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Echo Pulse Element (reused via JS) -->
+<div class="echo-pulse" id="echoPulse"></div>
+
+<!-- Depth Indicator -->
+<div id="depth-indicator">
+  <div id="depth-value">0m</div>
+  <div id="depth-bar"><div id="depth-fill"></div></div>
+  <div id="depth-label">DEPTH</div>
+</div>
+
+<!-- ═══ SECTOR 00: HERO ═══ -->
+<section id="hero">
+  <div class="sector-label reveal" data-delay="1">SECTOR 00 — SURFACE</div>
+  <h1 class="hero-title reveal" data-delay="2">ECHO<span>RIS</span></h1>
+  <p class="hero-tagline reveal" data-delay="3">Enter the memory of your weapon.</p>
+  <div class="cta-group reveal" data-delay="4">
+    <a href="#" class="cta cta-primary">Play Free</a>
+    <a href="#" class="cta cta-secondary">Wishlist on Steam</a>
+  </div>
+  <div class="scroll-hint">SCROLL TO SURVEY</div>
+</section>
+
+<!-- ═══ SECTOR 01: THE SHAFT ═══ -->
+<section id="shaft" data-depth="0">
+  <div class="sector-label reveal">SECTOR 01 — DEPTH: 0m — THE SHAFT</div>
+  <img
+    class="shaft-image reveal" data-delay="1"
+    src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_vertical_panorama_the_full_shaft_viewed_from_a_c8a08754-529e-4356-831f-ea396f211944_1.png"
+    alt="The Shaft — A colossal vertical megastructure"
+    loading="lazy"
+  >
+  <p class="section-quote reveal" data-delay="2">
+    A vertical megastructure left by the Builders.<br>
+    No one knows how deep it goes.
+  </p>
+</section>
+
+<!-- ═══ SECTOR 02: EXPLORE ═══ -->
+<section id="explore" data-depth="340">
+  <div class="sector-label reveal">SECTOR 02 — DEPTH: 340m — EXPLORE</div>
+
+  <div class="gallery-row reveal" data-delay="1">
+    <img src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_side-scrolling_game_screenshot_a_young_female__bea240a1-4768-4351-80b3-76137d403610_3.png" alt="Exploration — Container district" loading="lazy">
+    <img src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_side-scrolling_game_screenshot_a_young_female__bea240a1-4768-4351-80b3-76137d403610_2.png" alt="Platforming — Bridge crossing" loading="lazy">
+    <img src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_side-scrolling_game_screenshot_the_blacksmith__422127af-c172-4ed7-8f4a-0aec6d34e6c1_1.png" alt="Combat — Bridge fight" loading="lazy">
+    <img src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_side-scrolling_game_screenshot_a_save_point_fo_d2e395a1-f2f3-4268-9af0-749f21435ff9_3.png" alt="Save Point — Forge alcove" loading="lazy">
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card reveal" data-delay="1">
+      <h3>Explore</h3>
+      <p>Descend through 7 tiers of a colossal megastructure. Unlock ability relics to reach deeper sectors.</p>
+    </div>
+    <div class="feature-card reveal" data-delay="2">
+      <h3>Dive</h3>
+      <p>Strike any weapon with Echo to enter its memory. Every item contains a procedural dungeon shaped by its past.</p>
+    </div>
+    <div class="feature-card reveal" data-delay="3">
+      <h3>Grow</h3>
+      <p>Defeat Innocents — remnant memories of previous wielders — to strengthen your gear and break through stat gates.</p>
+    </div>
+  </div>
+
+  <div class="loop-diagram reveal" data-delay="4">
+    <span>Explore</span> → Acquire → <span>Dive</span> → Strengthen → <span>Break Through</span> → Explore
+  </div>
+</section>
+
+<!-- ═══ SECTOR 03: ERDA ═══ -->
+<section id="erda" data-depth="780">
+  <div class="sector-label reveal">SECTOR 03 — DEPTH: 780m — ERDA</div>
+
+  <div class="erda-container">
+    <img
+      class="erda-image reveal"
+      src="../Documents/Content/image/Content_World_Bible/Bisk_pixel_art_character_sprite_sheet_young_female_blacksmith_f51a4c1b-d583-40a7-9a8e-c01c36f105ab_0.png"
+      alt="Erda — Bulkhead Surveyor"
+      loading="lazy"
+    >
+    <div class="erda-info">
+      <h2 class="reveal" data-delay="1">Erda</h2>
+      <div class="job reveal" data-delay="1">Bulkhead Surveyor</div>
+      <p class="reveal" data-delay="2">
+        She reads the world by striking it. Her tool, Echo, resonates through bulkheads to reveal hidden passages and structural weaknesses.
+      </p>
+      <p class="reveal" data-delay="3">
+        She does not speak. She does not take commissions. She simply descends — deeper into the Shaft, deeper into the memories trapped within steel.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SECTOR 04: ITEM WORLD ═══ -->
+<section id="item-world" data-depth="1240">
+  <div class="sector-label reveal">SECTOR 04 — DEPTH: 1,240m — ITEM WORLD</div>
+
+  <div class="iw-visual reveal" data-delay="1">
+    <div class="iw-text">
+      The memory of your weapon<br>becomes the dungeon.
+    </div>
+  </div>
+
+  <p class="iw-quote reveal" data-delay="2">
+    Folded steel becomes corridors. Damascus grain becomes walls.<br>
+    Previous wielders linger as Innocents — ghosts repeating their final moments.
+  </p>
+
+  <div class="feature-grid" style="margin-top:32px;">
+    <div class="feature-card reveal" data-delay="2" style="border-color:rgba(232,120,48,.3);">
+      <h3 style="color:var(--cta);">Memory Strata</h3>
+      <p>Each weapon contains 2-4 procedural floors. Deeper strata hold stronger Innocents and rarer rewards.</p>
+    </div>
+    <div class="feature-card reveal" data-delay="3" style="border-color:rgba(232,120,48,.3);">
+      <h3 style="color:var(--cta);">Innocents</h3>
+      <p>Remnant personalities of previous owners. Defeat them wild, and they serve you — boosting your weapon's stats forever.</p>
+    </div>
+    <div class="feature-card reveal" data-delay="4" style="border-color:rgba(232,120,48,.3);">
+      <h3 style="color:var(--cta);">Co-op Dive</h3>
+      <p>Share a URL. Friends join your Item World instantly. No lobbies. No accounts. Just click and fight together.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SECTOR 05: COMMUNITY ═══ -->
+<section id="community" data-depth="9999">
+  <div class="sector-label reveal">SECTOR 05 — DEPTH: ???m — SIGNAL</div>
+
+  <p class="section-quote reveal" data-delay="1" style="margin-bottom:32px;">
+    The survey continues.<br>Follow the signal.
+  </p>
+
+  <div class="social-links reveal" data-delay="2">
+    <a href="#" class="social-link">Discord</a>
+    <a href="#" class="social-link">X / Twitter</a>
+    <a href="#" class="social-link">itch.io</a>
+    <a href="#" class="social-link">Steam</a>
+    <a href="#" class="social-link">Presskit</a>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  &copy; 2026 ECHORIS. All rights reserved.
+</footer>
+
+<script>
+/* ═══════════════════════════════════════
+   ECHORIS — Echo Pulse Interaction
+   ═══════════════════════════════════════ */
+
+const pulse = document.getElementById('echoPulse');
+const depthFill = document.getElementById('depth-fill');
+const depthValue = document.getElementById('depth-value');
+const sections = document.querySelectorAll('section');
+const reveals = document.querySelectorAll('.reveal');
+let gridActivated = false;
+
+// Track which sections have already fired a pulse
+const pulsedSections = new Set();
+
+// ── Intersection Observer: reveal elements ──
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+reveals.forEach(el => revealObserver.observe(el));
+
+// ── Section Observer: fire pulse once per section ──
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !pulsedSections.has(entry.target.id)) {
+      pulsedSections.add(entry.target.id);
+
+      // Activate grid on first section change
+      if (!gridActivated) {
+        document.body.classList.add('grid-active');
+        gridActivated = true;
+      }
+
+      const isItemWorld = entry.target.id === 'item-world';
+      firePulse(isItemWorld);
+    }
+  });
+}, { threshold: 0.3 });
+
+sections.forEach(sec => sectionObserver.observe(sec));
+
+// ── Auto-fallback: reveal hero after 3s if not scrolled ──
+setTimeout(() => {
+  document.querySelectorAll('#hero .reveal').forEach(el => {
+    el.classList.add('visible');
+  });
+}, 3000);
+
+// ── Echo Pulse: fire once per section entry ──
+function firePulse(isItemWorld) {
+  pulse.classList.remove('fire', 'item-world');
+  void pulse.offsetWidth; // reflow
+  if (isItemWorld) pulse.classList.add('item-world');
+  pulse.classList.add('fire');
+}
+
+// ── Depth calculation ──
+function updateDepth() {
+  const scrollPercent = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+  const maxDepth = 2000;
+  const depth = Math.round(scrollPercent * maxDepth);
+
+  depthFill.style.height = (scrollPercent * 100) + '%';
+
+  if (depth > 1200) {
+    depthValue.textContent = '???m';
+    depthValue.style.color = 'var(--cta)';
+    depthFill.style.background = 'var(--cta)';
+  } else {
+    depthValue.textContent = depth + 'm';
+    depthValue.style.color = '';
+    depthFill.style.background = '';
+  }
+}
+
+// ── Scroll: depth + grid fade ──
+let scrollTicking = false;
+window.addEventListener('scroll', () => {
+  if (!scrollTicking) {
+    requestAnimationFrame(() => {
+      updateDepth();
+
+      // Grid overlay fades with depth
+      const scrollPercent = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+      const gridOpacity = Math.max(0.05, 1 - scrollPercent * 1.5);
+      document.body.style.setProperty('--grid-fade', gridOpacity);
+
+      scrollTicking = false;
+    });
+    scrollTicking = true;
+  }
+});
+
+// ── Initial state ──
+updateDepth();
+
+// ── Generate particles ──
+(function() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 40; i++) {
+    const span = document.createElement('span');
+    span.style.left = Math.random() * 100 + '%';
+    span.style.animationDuration = (8 + Math.random() * 16) + 's';
+    span.style.animationDelay = (Math.random() * 20) + 's';
+    if (Math.random() > 0.7) span.style.width = '2px';
+    if (Math.random() > 0.7) span.style.height = '2px';
+    container.appendChild(span);
+  }
+})();
+</script>
+</body>
+</html>
