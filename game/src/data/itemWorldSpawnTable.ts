@@ -1,11 +1,14 @@
 /**
  * itemWorldSpawnTable.ts — Item World enemy spawn configuration.
  *
- * Loads from data/Content_ItemWorld_SpawnTable.csv at runtime.
+ * SSoT: Sheets/Content_ItemWorld_SpawnTable.csv (imported at build time via ?raw)
  * CSV columns: Rarity,Stratum,EnemyType,Weight,Level,MinCount,MaxCount,IsBoss
+ *
+ * Edit the CSV in Sheets/; rebuild picks it up automatically.
  */
 
 import type { Rarity } from '@data/weapons';
+import csvText from '../../../Sheets/Content_ItemWorld_SpawnTable.csv?raw';
 
 export interface SpawnEntry {
   enemyType: string;
@@ -23,12 +26,11 @@ interface SpawnBucket {
 
 // Index by "rarity:stratum"
 const SPAWN_TABLE = new Map<string, SpawnBucket>();
-let loaded = false;
 
 /** Parse CSV text into spawn table. */
-function parseCSV(csvText: string): void {
+function parseCSV(text: string): void {
   SPAWN_TABLE.clear();
-  const lines = csvText.trim().split('\n');
+  const lines = text.trim().split('\n');
   // Skip header
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].trim().split(',');
@@ -56,28 +58,17 @@ function parseCSV(csvText: string): void {
       bucket.normal.push(entry);
     }
   }
-  loaded = true;
 }
 
-/** Load spawn table from CSV. Call once during init. */
+// Parse at module load — synchronous, deterministic, no fetch.
+parseCSV(csvText);
+
+/**
+ * Legacy async shim — kept for backward compatibility with callers.
+ * Data is already loaded at module import time; this is a no-op.
+ */
 export async function loadSpawnTable(): Promise<void> {
-  if (loaded) return;
-  try {
-    const res = await fetch('data/Content_ItemWorld_SpawnTable.csv');
-    const text = await res.text();
-    parseCSV(text);
-  } catch (e) {
-    console.error('[SpawnTable] Failed to load CSV, using fallback', e);
-    // Minimal fallback
-    SPAWN_TABLE.set('normal:1', {
-      normal: [
-        { enemyType: 'Slime', weight: 70, level: 1, minCount: 2, maxCount: 3, isBoss: false },
-        { enemyType: 'Skeleton', weight: 30, level: 1, minCount: 1, maxCount: 2, isBoss: false },
-      ],
-      boss: { enemyType: 'Guardian', weight: 100, level: 1, minCount: 1, maxCount: 1, isBoss: true },
-    });
-    loaded = true;
-  }
+  return;
 }
 
 /** Get spawn entries for a given rarity and stratum (1-based). */

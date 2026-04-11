@@ -27,6 +27,8 @@ import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
 import { getEnemyStats } from '@data/enemyStats';
+import { getMemoryRoom } from '@data/memoryRoomTable';
+import { DialogueBox } from '@ui/DialogueBox';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -50,6 +52,23 @@ import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 const TILE_SIZE = 16;
 const ROOM_W = 60;
 const ROOM_H = 34;
+// Item World room geometry (2026-04-11: rooms compressed to 512×256 = 32×16 tiles)
+const IW_GRID_W = 4;
+const IW_GRID_H = 4;
+const IW_ROOM_W_TILES = 32;                         // 512 px
+const IW_ROOM_H_TILES = 16;                         // 256 px
+const IW_ROOM_W_PX = IW_ROOM_W_TILES * TILE_SIZE;   // 512
+const IW_ROOM_H_PX = IW_ROOM_H_TILES * TILE_SIZE;   // 256
+const IW_FULL_W_TILES = IW_GRID_W * IW_ROOM_W_TILES; // 128
+const IW_FULL_H_TILES = IW_GRID_H * IW_ROOM_H_TILES; // 64
+// Door mask — auto carving / sealing at room edges based on cell.exits
+const IW_DOOR_DEPTH = 2;        // tiles carved/sealed into the room from an edge
+const IW_DOOR_H_HEIGHT = 3;     // horizontal door (LEFT/RIGHT): 3 tiles tall
+const IW_DOOR_V_WIDTH = 3;      // vertical door (UP/DOWN): 3 tiles wide
+// STANDARD horizontal door row — fixed across all templates so neighboring
+// rooms align regardless of each template's natural floor level. Templates
+// should be designed with walkable floor at (IW_DOOR_FLOOR_ROW..H-1).
+const IW_DOOR_FLOOR_ROW = 13;   // floor is at row 13, door spans rows 11-13
 const FADE_DURATION = 200;
 const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
@@ -127,6 +146,27 @@ export class ItemWorldScene extends Scene {
   private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
   private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
   private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
+  private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
+
+  // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
+  private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" → memory template
+  private memoryTriggers: Array<{
+    x: number; y: number; w: number; h: number;
+    text: string;
+    speaker?: string;
+    portrait?: string;
+    active: boolean; // currently inside the trigger — reset on exit to allow re-read
+    // Visual (legendary-tier crystal, distinct from sword drops)
+    anchorX: number; anchorY: number;           // visual anchor world pos
+    container: Container;                        // holds glow + shard + particles
+    shardGfx: Graphics;                          // rotated diamond
+    glowGfx: Graphics;                           // outer radial glow
+    particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; gfx: Graphics }>;
+    spawnTimer: number;
+    pulseTimer: number;
+    bobTimer: number;
+  }> = [];
+  private dialogueBox: DialogueBox | null = null;
 
   // Room transition
   private transitionState: TransitionState = 'none';
@@ -216,22 +256,20 @@ export class ItemWorldScene extends Scene {
     // Generate unified grid (all strata at once)
     this.unifiedGrid = generateUnifiedGrid(this.strataConfig.strata, this.item.uid);
 
+    // Pre-compute Memory Room placements per stratum (from CSV lookup)
+    this.computeMemoryRoomPlacements();
+
     // Determine starting position based on progress
     const startStratumIndex = Math.min(
       this.progress.lastSafeStratum,
       this.progress.deepestUnlocked,
     );
     if (startStratumIndex > 0 && startStratumIndex < this.unifiedGrid.strataOffsets.length) {
+      // Use the stratum's actual critical path origin (not the leftmost row-0 scan)
+      const stratumStart = this.unifiedGrid.stratumStartRooms?.[startStratumIndex];
       const offset = this.unifiedGrid.strataOffsets[startStratumIndex];
-      // Find the start room of the target stratum (first row, search for a non-null critical path cell)
-      const startRow = offset.rowOffset;
-      let startCol = 0;
-      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-        const cell = this.unifiedGrid.cells[startRow][c];
-        if (cell && cell.onCriticalPath) { startCol = c; break; }
-      }
-      this.currentCol = startCol;
-      this.currentRow = startRow;
+      this.currentCol = stratumStart?.col ?? 0;
+      this.currentRow = stratumStart?.absoluteRow ?? offset.rowOffset;
     } else {
       this.currentCol = this.unifiedGrid.startRoom.col;
       this.currentRow = this.unifiedGrid.startRoom.absoluteRow;
@@ -277,10 +315,10 @@ export class ItemWorldScene extends Scene {
     this.fadeOverlay.alpha = 0;
     this.container.addChild(this.fadeOverlay);
 
-    // Minimap
-    // Minimap — always visible for debug/navigation
+    // Minimap — disabled (Spelunky-style blind exploration).
+    // Container still exists for legacy code paths but is never rendered.
     this.miniMapContainer = new Container();
-    this.game.app.stage.addChild(this.miniMapContainer);
+    this.miniMapContainer.visible = false;
 
     // HUD
     this.hud = new HUD();
@@ -305,16 +343,25 @@ export class ItemWorldScene extends Scene {
     this.buildFullMap();
     this.updateHudText();
 
-    // Spawn player at start cell — find valid floor tile in fullGrid
+    // Spawn player at start cell — find first air-above-solid in the center
+    // column (template's natural floor).
     const startCol = this.currentCol;
     const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const localStartRow = this.currentRow - stratumStart;
-    const spawnCenterX = startCol * 512 + 256;
+    const spawnCenterX = startCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
     const spawnTileCol = Math.floor(spawnCenterX / TILE_SIZE);
-    const roomTopTile = localStartRow * 32;
+    const roomTopTile = localStartRow * IW_ROOM_H_TILES;
 
-    // Spawn at the very top of the room and let player fall
-    const spawnY = roomTopTile * TILE_SIZE + 2;
+    // Fallback: just below the top of the room
+    let spawnY = roomTopTile * TILE_SIZE + 2;
+    for (let tr = roomTopTile + 1; tr < roomTopTile + IW_ROOM_H_TILES - 1; tr++) {
+      const here = this.fullGrid[tr]?.[spawnTileCol] ?? 1;
+      const below = this.fullGrid[tr + 1]?.[spawnTileCol] ?? 1;
+      if (here === 0 && below >= 1) {
+        spawnY = (tr + 1) * TILE_SIZE - this.player.height;
+        break;
+      }
+    }
     this.player.x = spawnCenterX;
     this.player.y = spawnY;
     this.player.vx = 0;
@@ -323,6 +370,10 @@ export class ItemWorldScene extends Scene {
 
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+
+    // Dialogue box for Memory Rooms — reuses the same UI as LdtkWorldScene
+    this.dialogueBox = new DialogueBox(this.game.input);
+    this.game.app.stage.addChild(this.dialogueBox.container);
 
     this.initialized = true;
 
@@ -429,18 +480,15 @@ export class ItemWorldScene extends Scene {
     this.clearEscapeAltar();
     this.exitTrigger = null;
 
-    const GRID_W = 4, GRID_H = 4;   // 4×4 room grid
-    const ROOM_TILES = 32;           // 32×32 tiles per room
-    const FULL_TILES = GRID_W * ROOM_TILES; // 128 tiles total
-
     const _dbgRowStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const _dbgHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
     console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${this.unifiedGrid.totalWidth}x${_dbgHeight} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
+    // fullGrid is IW_FULL_H_TILES rows × IW_FULL_W_TILES cols (128 wide × 64 tall)
     this.fullGrid = [];
-    for (let r = 0; r < FULL_TILES; r++) {
-      this.fullGrid[r] = new Array(FULL_TILES).fill(1);
+    for (let r = 0; r < IW_FULL_H_TILES; r++) {
+      this.fullGrid[r] = new Array(IW_FULL_W_TILES).fill(1);
     }
 
     // Clear any previously spawned static entities (rebuild = fresh world)
@@ -451,9 +499,9 @@ export class ItemWorldScene extends Scene {
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
 
     let roomCount = 0;
-    for (let localRow = 0; localRow < GRID_H; localRow++) {
+    for (let localRow = 0; localRow < IW_GRID_H; localRow++) {
       const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < GRID_W; col++) {
+      for (let col = 0; col < IW_GRID_W; col++) {
         const cell = grid.cells[absRow]?.[col];
         // Fill ALL 16 cells with rooms (critical path + filler rooms)
         const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
@@ -468,27 +516,50 @@ export class ItemWorldScene extends Scene {
         const roomW = roomGrid[0]?.length ?? 0;
 
         // Copy room collision data into fullGrid at LOCAL offset
-        const offR = localRow * ROOM_TILES;
-        const offC = col * ROOM_TILES;
-        for (let tr = 0; tr < roomH && tr < ROOM_TILES; tr++) {
-          for (let tc = 0; tc < roomW && tc < ROOM_TILES; tc++) {
+        const offR = localRow * IW_ROOM_H_TILES;
+        const offC = col * IW_ROOM_W_TILES;
+        for (let tr = 0; tr < roomH && tr < IW_ROOM_H_TILES; tr++) {
+          for (let tc = 0; tc < roomW && tc < IW_ROOM_W_TILES; tc++) {
             this.fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
           }
         }
 
-        // No sealing — all passages open in full-map mode
+        // Door mask: carve openings where the cell has a logical exit,
+        // seal the full edge strip where it doesn't. Without this, every
+        // template's 4-way doors stay open and the critical path collapses
+        // into a direct shortcut to the boss.
+        const mask = this.computeDoorMask(cell ?? null, ldtkLevel);
+        this.applyDoorMaskToFullGrid(mask, offR, offC);
 
-        // Render room tiles at pixel offset within fullMapContainer
+        // Render room tiles at pixel offset within fullMapContainer.
+        // Bounds filter still enforces the 512×256 box so stray template
+        // tiles can never bleed into a neighbor's container.
         const roomContainer = new Container();
-        roomContainer.x = col * 512;
-        roomContainer.y = localRow * 512;
+        roomContainer.x = col * IW_ROOM_W_PX;
+        roomContainer.y = localRow * IW_ROOM_H_PX;
+        const inBounds = (t: { px: [number, number] }) =>
+          t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
+          t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
+        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+        const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
+        // Drop template wall sprites that sit inside a carved door opening
+        // so the visible wall matches the carved collision.
+        const wallTiles = this.filterWallTilesByCarves(
+          ldtkLevel.wallTiles.filter(inBounds),
+          mask.carveRectsLocal,
+        );
         const renderer = new LdtkRenderer();
-        renderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlas);
         roomContainer.addChild(renderer.container);
+
+        // No visual seal overlay — the dark 0x383838 rects looked like holes.
+        // Sealed edges rely purely on template art; collision is still blocked
+        // by applyDoorMaskToFullGrid above. Templates should be designed with
+        // walls at edges so sealed sides never reveal open space.
         this.fullMapContainer.addChild(roomContainer);
 
         // Spawn LDtk-placed static entities for this room (with world offset)
-        this.spawnStaticEntitiesForRoom(ldtkLevel, col * 512, localRow * 512);
+        this.spawnStaticEntitiesForRoom(ldtkLevel, col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX);
 
         roomCount++;
         // Mark start room as visited
@@ -507,10 +578,10 @@ export class ItemWorldScene extends Scene {
     // Insert map container at bottom of scene (below entity layer)
     this.container.addChildAt(this.fullMapContainer, 0);
 
-    // Set collision and camera to full 128×128 tile map
+    // Set collision and camera to full map (128w × 64h tiles)
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
-    this.game.camera.setBounds(0, 0, FULL_TILES * TILE_SIZE, FULL_TILES * TILE_SIZE);
+    this.game.camera.setBounds(0, 0, IW_FULL_W_TILES * TILE_SIZE, IW_FULL_H_TILES * TILE_SIZE);
 
     this.persistRoomState();
     this.drawMiniMap();
@@ -571,6 +642,18 @@ export class ItemWorldScene extends Scene {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell || cell.cleared) return;
 
+    // Memory Room — lore pause, no enemies. Mark as cleared to keep it empty,
+    // mirroring the normal clear path (counter bump + persist). HUD refreshes
+    // automatically every frame via update()'s updateHudText() call.
+    if (this.memoryRoomPlacements.has(`${col}:${row}`)) {
+      if (!cell.cleared) {
+        cell.cleared = true;
+        this.roomsCleared++;
+        this.persistRoomState();
+      }
+      return;
+    }
+
     const roomKey = `${col},${row}`;
     // Helper to tag a freshly-spawned enemy with its room and bump live count
     const trackEnemy = (e: Enemy<string>) => {
@@ -581,21 +664,21 @@ export class ItemWorldScene extends Scene {
     const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
     const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const localRow = row - stratumStart;
-    const offX = col * 512;
-    const offY = localRow * 512;
+    const offX = col * IW_ROOM_W_PX;
+    const offY = localRow * IW_ROOM_H_PX;
 
     const dist = Math.abs(col - this.unifiedGrid.startRoom.col)
                + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
-    const count = 2 + Math.floor(dist * 0.5) + stratumDef.enemyCountBonus;
     const distScale = 1 + dist * 0.1;
 
-    // Pre-compute all valid spawn positions: air tile with solid tile below
+    // Pre-compute all valid spawn positions: air tile with solid tile below.
+    // Scan the room's tile range (32 cols × 16 rows), leaving a 2-tile margin.
     const roomTopRow = Math.floor(offY / TILE_SIZE);
     const roomTopCol = Math.floor(offX / TILE_SIZE);
     const spawnPoints: Array<{ x: number; y: number }> = [];
 
-    for (let tc = roomTopCol + 2; tc < roomTopCol + 30; tc++) {
-      for (let tr = roomTopRow + 2; tr < roomTopRow + 30; tr++) {
+    for (let tc = roomTopCol + 2; tc < roomTopCol + IW_ROOM_W_TILES - 2; tc++) {
+      for (let tr = roomTopRow + 2; tr < roomTopRow + IW_ROOM_H_TILES - 2; tr++) {
         const here = this.fullGrid[tr]?.[tc] ?? 1;
         const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
         // Air tile with solid floor below = valid spawn
@@ -617,31 +700,72 @@ export class ItemWorldScene extends Scene {
     const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
     const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
 
-    // Cycle scaling — each replay cycle bumps the enemy's CSV level by +1.
-    // HP/ATK multiplier = (CSV level N+cycle) / (CSV level N), so balance is
-    // tunable directly in Sheets/Content_Stats_Enemy.csv.
+    // Cycle scaling — bump CSV level by +cycle so each replay uses the next
+    // row in Content_Stats_Enemy.csv (CSV jump is the "1 level stronger" feel).
     const cycle = this.progress?.cycle ?? 0;
-    const cycleRatio = (type: string, baseLevel: number): { hp: number; atk: number } => {
-      if (cycle <= 0) return { hp: 1, atk: 1 };
-      const base = getEnemyStats(type, baseLevel);
-      const scaled = getEnemyStats(type, baseLevel + cycle);
-      return {
-        hp: base.hp > 0 ? scaled.hp / base.hp : 1,
-        atk: base.atk > 0 ? scaled.atk / base.atk : 1,
-      };
-    };
+
+    // ─── RoomType-specific branching ────────────────────────────────────────
+    // Rest / Puzzle rooms carry zero enemies — they break the combat rhythm.
+    // Rest also drops 1-2 HealingPickups. Mark cleared so HUD counters update.
+    if (roomType === 'Rest') {
+      const restRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 42);
+      const healCount = 1 + restRng.nextInt(0, 1); // 1-2 pickups
+      for (let i = 0; i < healCount && spawnPoints.length > 0; i++) {
+        const pt = spawnPoints[restRng.nextInt(0, spawnPoints.length - 1)];
+        const heal = new HealingPickup(pt.x, pt.y, 30);
+        this.healingPickups.push(heal);
+        this.entityLayer.addChild(heal.container);
+      }
+      if (!cell.cleared) {
+        cell.cleared = true;
+        this.roomsCleared++;
+        this.persistRoomState();
+      }
+      return;
+    }
+
+    if (roomType === 'Puzzle') {
+      // Puzzle content (switches / locked doors) lives in the LDtk template.
+      // Spawn nothing; do NOT auto-clear — solving the puzzle clears it.
+      return;
+    }
+
+    // Treasure room — 1 GoldenMonster as an elite encounter.
+    if (roomType === 'Treasure') {
+      const gold = this.createEnemyFromType('GoldenMonster', 1 + cycle);
+      gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul * distScale));
+      gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul * distScale));
+      const goldRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 99);
+      const sp = pickSpawn(goldRng, gold.height);
+      gold.x = sp.x;
+      gold.y = sp.y;
+      gold.roomData = this.fullGrid;
+      gold.target = this.player;
+      this.enemies.push(gold);
+      this.entityLayer.addChild(gold.container);
+      trackEnemy(gold);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     // Boss room — only spawn boss when LDtk template is 'Boss' type
     if (isBossRoom && spawnTable.boss) {
       const bossEntry = spawnTable.boss;
       const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
       (boss as any)._isBoss = true;
-      // Override with stratum-tier boss stats (cycle scaled via CSV level ratio)
-      const br = cycleRatio(bossEntry.enemyType, bossEntry.level);
-      boss.hp = boss.maxHp = Math.max(1, Math.floor(stratumDef.bossHp * br.hp));
-      boss.atk = Math.max(1, Math.floor(stratumDef.bossAtk * br.atk));
+      // Multiply CSV-based stats by stratum boss multipliers
+      boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul));
+      boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul));
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
-      const sp = pickSpawn(bossRng, boss.height);
+      // Prefer the center of a 16-tile continuous flat floor; fall back to
+      // a random valid spawn point if no such run exists.
+      const flat = this.findFlatFloorCenter(roomTopCol, roomTopRow, 16);
+      let sp: { x: number; y: number };
+      if (flat) {
+        sp = { x: flat.x - boss.width / 2, y: flat.y - boss.height };
+      } else {
+        sp = pickSpawn(bossRng, boss.height);
+      }
       boss.x = sp.x;
       boss.y = sp.y;
       boss.roomData = this.fullGrid;
@@ -652,17 +776,36 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Normal room — spawn from weighted table
+    // Normal room — spawn from weighted table.
+    // Single-entry weighted pick per room: CSV weights sum to 100 per
+    // (rarity,stratum) group with per-entry deltas (10..70), which matches
+    // pickWeightedEnemy's "pick one" semantics. GoldenMonster's 10% weight
+    // should only trigger 10% of the time, not every room.
     const normalEntries = spawnTable.normal;
     if (normalEntries.length === 0) return;
 
-    for (let i = 0; i < count; i++) {
-      const spawnRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + i);
+    const pickSeed = this.item.uid * 999 + col * 77 + row * 33;
+    const pickRng = new PRNG(pickSeed);
+    const picked = pickWeightedEnemy(normalEntries, pickRng.next());
+    if (!picked) return;
+
+    // Count roll for the picked entry
+    const countSeed = pickSeed + picked.enemyType.charCodeAt(0) * 17;
+    const countRng = new PRNG(countSeed);
+    const range = picked.maxCount - picked.minCount;
+    const rolledCount = range > 0
+      ? picked.minCount + countRng.nextInt(0, range)
+      : picked.minCount;
+
+    let spawnIndex = 0;
+    for (let i = 0; i < rolledCount; i++) {
+      const spawnRng = new PRNG(pickSeed + spawnIndex);
+      spawnIndex++;
 
       // 15% chance to spawn an InnocentNPC instead of a regular enemy
       const innocentRoll = spawnRng.next();
       if (innocentRoll < INNOCENT_SPAWN_CHANCE && canAddInnocent(this.item)) {
-        const seedForArchetype = this.item.uid + col * 13 + row * 7 + i;
+        const seedForArchetype = this.item.uid + col * 13 + row * 7 + spawnIndex;
         const innocent = createRandomInnocent(seedForArchetype, cell.stratumIndex ?? 0);
 
         const npc = new InnocentNPC();
@@ -685,15 +828,11 @@ export class ItemWorldScene extends Scene {
         continue;
       }
 
-      // Pick enemy from weighted spawn table
-      const picked = pickWeightedEnemy(normalEntries, spawnRng.next());
-      if (!picked) continue;
-
+      // Spawn the picked entry's enemy type
       const enemy = this.createEnemyFromType(picked.enemyType, picked.level + cycle);
-      // Override with stratum-tier enemy stats (distance + cycle scaled via CSV ratio)
-      const er = cycleRatio(picked.enemyType, picked.level);
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(stratumDef.enemyHp * distScale * er.hp));
-      enemy.atk = Math.max(1, Math.floor(stratumDef.enemyAtk * distScale * er.atk));
+      // Multiply CSV-based stats by stratum + distance multipliers.
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul * distScale));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul * distScale));
       const sp = pickSpawn(spawnRng, enemy.height);
       enemy.x = sp.x;
       enemy.y = sp.y;
@@ -744,12 +883,12 @@ export class ItemWorldScene extends Scene {
     // Compute portal anchor at boss room's center-bottom in fullGrid space
     const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const localRow = endRoom.absoluteRow - stratumOffset;
-    const roomCenterX = endRoom.col * 512 + 256;
+    const roomCenterX = endRoom.col * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
     // Find a solid floor tile in the boss room to place the portal just above
-    const roomTopTile = localRow * 32;
+    const roomTopTile = localRow * IW_ROOM_H_TILES;
     const centerTileCol = Math.floor(roomCenterX / TILE_SIZE);
-    let portalTileY = roomTopTile + 28;
-    for (let tr = roomTopTile + 4; tr < roomTopTile + 30; tr++) {
+    let portalTileY = roomTopTile + IW_ROOM_H_TILES - 4;
+    for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
       if ((this.fullGrid[tr]?.[centerTileCol] ?? 1) === 0 &&
           (this.fullGrid[tr + 1]?.[centerTileCol] ?? 1) >= 1) {
         portalTileY = tr; break;
@@ -762,6 +901,285 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
+   * Check if the player has entered any Memory Room trigger area. Shows the
+   * dialogue once per entry; the trigger resets to "inactive" when the player
+   * leaves the area, so re-reading is possible (AC5).
+   */
+  private checkMemoryTriggers(dt: number = 16): void {
+    // Animate every memory shard (bob, pulse, particles) regardless of dialogue state
+    for (const t of this.memoryTriggers) {
+      // Bob up/down
+      t.bobTimer += dt;
+      const bobOffset = Math.sin(t.bobTimer * 0.0025) * 2;
+      t.container.y = t.anchorY + bobOffset;
+
+      // Pulse scale + glow alpha
+      t.pulseTimer += dt;
+      const pulse = Math.sin(t.pulseTimer * 0.004);
+      const scale = 1.0 + pulse * 0.18;
+      t.shardGfx.scale.set(scale);
+      t.shardGfx.rotation = Math.sin(t.pulseTimer * 0.002) * 0.08; // gentle rotation sway
+      t.glowGfx.alpha = 0.7 + pulse * 0.3;
+
+      // Particle spawn (3 per cycle, 400ms interval)
+      t.spawnTimer -= dt;
+      if (t.spawnTimer <= 0) {
+        t.spawnTimer = 400;
+        for (let i = 0; i < 3; i++) {
+          const pgfx = new Graphics();
+          const size = 1 + Math.random() * 1.5;
+          pgfx.rect(-size / 2, -size / 2, size, size)
+            .fill({ color: i % 2 === 0 ? 0xff8000 : 0xffcc66 });
+          const px = (Math.random() - 0.5) * 16;
+          const py = 4 + Math.random() * 4;
+          pgfx.x = px;
+          pgfx.y = py;
+          t.container.addChild(pgfx);
+          const maxLife = 900 + Math.random() * 500;
+          t.particles.push({
+            x: px, y: py,
+            vx: (Math.random() - 0.5) * 20,
+            vy: -(20 + Math.random() * 20),
+            life: maxLife, maxLife,
+            gfx: pgfx,
+          });
+        }
+      }
+
+      // Update existing particles
+      for (let i = t.particles.length - 1; i >= 0; i--) {
+        const p = t.particles[i];
+        p.life -= dt;
+        p.x += p.vx * (dt / 1000) + Math.sin(p.life * 0.01) * 0.3;
+        p.y += p.vy * (dt / 1000);
+        p.gfx.x = p.x;
+        p.gfx.y = p.y;
+        p.gfx.alpha = Math.max(0, p.life / p.maxLife) * 0.9;
+        if (p.life <= 0) {
+          if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+          t.particles.splice(i, 1);
+        }
+      }
+    }
+
+    // Dialogue trigger check
+    if (!this.dialogueBox) return;
+    if (this.dialogueBox.isActive) return;
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+    for (const t of this.memoryTriggers) {
+      const inside = pcx >= t.x && pcx < t.x + t.w && pcy >= t.y && pcy < t.y + t.h;
+      if (inside && !t.active) {
+        t.active = true;
+        this.dialogueBox.showDialogue([{
+          text: t.text,
+          speaker: t.speaker,
+          portrait: t.portrait,
+        }], false);
+        break;
+      }
+      if (!inside && t.active) {
+        t.active = false;
+      }
+    }
+  }
+
+  /**
+   * Memory Room placement — for each stratum that has a memory room configured
+   * for the current weapon (Sheets/Content_ItemWorld_MemoryRooms.csv), reserve
+   * a branch cell in that stratum so the template is inserted deterministically
+   * into the procedural grid.
+   *
+   * Prefers off-critical-path rooms. Falls back to any non-boss, non-start cell.
+   */
+  private computeMemoryRoomPlacements(): void {
+    this.memoryRoomPlacements.clear();
+    if (!this.ldtkTemplates || this.ldtkTemplates.length === 0) return;
+
+    const weaponId = this.item.def.id;
+    for (let si = 0; si < this.strataConfig.strata.length; si++) {
+      const roomName = getMemoryRoom(weaponId, si);
+      if (!roomName) continue;
+      const template = this.ldtkTemplates.find(t => t.identifier === roomName);
+      if (!template) {
+        console.warn(`[ItemWorld] Memory room template "${roomName}" not found for ${weaponId} stratum ${si}`);
+        continue;
+      }
+
+      const offset = this.unifiedGrid.strataOffsets[si];
+      if (!offset) continue;
+      const height = this.strataConfig.strata[si].gridHeight;
+
+      const startCol = this.unifiedGrid.startRoom.col;
+      const startAbsRow = this.unifiedGrid.startRoom.absoluteRow;
+
+      // First pass: prefer off-critical-path branch rooms
+      const branchCandidates: { col: number; absRow: number }[] = [];
+      // Second pass fallback: any non-boss, non-start cell
+      const anyCandidates: { col: number; absRow: number }[] = [];
+
+      for (let localRow = 0; localRow < height; localRow++) {
+        for (let col = 0; col < this.unifiedGrid.totalWidth; col++) {
+          const absRow = offset.rowOffset + localRow;
+          const cell = this.unifiedGrid.cells[absRow]?.[col];
+          if (!cell) continue;
+          if (this.isStratumEndRoom(col, absRow)) continue;
+          if (col === startCol && absRow === startAbsRow) continue;
+          if (!cell.onCriticalPath) branchCandidates.push({ col, absRow });
+          anyCandidates.push({ col, absRow });
+        }
+      }
+
+      const pool = branchCandidates.length > 0 ? branchCandidates : anyCandidates;
+      if (pool.length === 0) continue;
+
+      const rng = new PRNG(this.item.uid * 131 + si * 7 + 13);
+      const picked = pool[rng.nextInt(0, pool.length - 1)];
+      const key = `${picked.col}:${picked.absRow}`;
+      this.memoryRoomPlacements.set(key, template);
+      console.log(`[ItemWorld] Memory room placement stratum=${si} weapon=${weaponId} cell=(${picked.col},${picked.absRow}) template=${roomName}`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Door mask — auto-carve exits + auto-seal unused edges, driven by cell.exits
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Compute carve/seal rectangles in room-local tile coords.
+   * - carveRectsLocal: passable openings (fullGrid → 0) where the logical
+   *   exit is required. Horizontal doors use the template's floor row so
+   *   the player can walk through; vertical doors use the midpoint column.
+   * - sealRectsLocal: solid strips (fullGrid → 1) across the full edge when
+   *   the direction has no exit, blocking any natural template openings.
+   * Rectangles are `{c0, r0, cN, rN}` in room-local tile units.
+   */
+  private computeDoorMask(
+    cell: UnifiedRoomCell | null,
+    ldtkLevel: LdtkLevel,
+  ): {
+    carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
+    sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
+  } {
+    const carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }> = [];
+    const sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }> = [];
+
+    if (!cell) return { carveRectsLocal, sealRectsLocal };
+
+    // Suppress ldtkLevel unused-warning — the loader-computed doorAnchors
+    // are retained for future per-template tuning but door row is now fixed
+    // across all templates so adjacent rooms align perfectly.
+    void ldtkLevel;
+
+    const W = IW_ROOM_W_TILES;
+    const H = IW_ROOM_H_TILES;
+    const D = IW_DOOR_DEPTH;
+    const DH = IW_DOOR_H_HEIGHT;
+    const DV = IW_DOOR_V_WIDTH;
+
+    // Fixed horizontal door position — door sits ABOVE the floor row.
+    // For DH=3 and IW_DOOR_FLOOR_ROW=13 → door rows 10..12, floor row 13
+    // stays solid so the player has something to walk on through the door.
+    const hDoorR0 = Math.max(0, IW_DOOR_FLOOR_ROW - DH);
+    // Vertical door horizontal span (centered on midpoint)
+    const midC = Math.floor(W / 2);
+    const vDoorC0 = Math.max(0, midC - Math.floor(DV / 2));
+
+    // LEFT
+    if (cell.exits.left) {
+      carveRectsLocal.push({ c0: 0, r0: hDoorR0, cN: D, rN: hDoorR0 + DH });
+    } else {
+      sealRectsLocal.push({ c0: 0, r0: 0, cN: D, rN: H });
+    }
+    // RIGHT
+    if (cell.exits.right) {
+      carveRectsLocal.push({ c0: W - D, r0: hDoorR0, cN: W, rN: hDoorR0 + DH });
+    } else {
+      sealRectsLocal.push({ c0: W - D, r0: 0, cN: W, rN: H });
+    }
+    // UP
+    if (cell.exits.up) {
+      carveRectsLocal.push({ c0: vDoorC0, r0: 0, cN: vDoorC0 + DV, rN: D });
+    } else {
+      // Seal the ceiling edge strip — templates have open U doorways that
+      // need to be physically closed when there's no logical up connection.
+      sealRectsLocal.push({ c0: 0, r0: 0, cN: W, rN: D });
+    }
+    // DOWN
+    if (cell.exits.down) {
+      carveRectsLocal.push({ c0: vDoorC0, r0: H - D, cN: vDoorC0 + DV, rN: H });
+    } else {
+      // Same rationale as UP: close any floor pit the template left open.
+      sealRectsLocal.push({ c0: 0, r0: H - D, cN: W, rN: H });
+    }
+
+    return { carveRectsLocal, sealRectsLocal };
+  }
+
+  /** Write the door mask into fullGrid at a given room offset. */
+  private applyDoorMaskToFullGrid(
+    mask: {
+      carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
+      sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
+    },
+    offR: number,
+    offC: number,
+  ): void {
+    const H = this.fullGrid.length;
+    const W = this.fullGrid[0]?.length ?? 0;
+    // Seals first (solid), then carves (passable) — carves win on overlap
+    for (const rect of mask.sealRectsLocal) {
+      for (let r = rect.r0; r < rect.rN; r++) {
+        for (let c = rect.c0; c < rect.cN; c++) {
+          const gr = offR + r, gc = offC + c;
+          if (gr >= 0 && gr < H && gc >= 0 && gc < W) this.fullGrid[gr][gc] = 1;
+        }
+      }
+    }
+    for (const rect of mask.carveRectsLocal) {
+      for (let r = rect.r0; r < rect.rN; r++) {
+        for (let c = rect.c0; c < rect.cN; c++) {
+          const gr = offR + r, gc = offC + c;
+          if (gr >= 0 && gr < H && gc >= 0 && gc < W) this.fullGrid[gr][gc] = 0;
+        }
+      }
+    }
+  }
+
+  /** Remove wall tiles whose pixel position falls inside any carve rect. */
+  private filterWallTilesByCarves<T extends { px: [number, number] }>(
+    wallTiles: T[],
+    carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>,
+  ): T[] {
+    if (carveRectsLocal.length === 0) return wallTiles;
+    return wallTiles.filter(t => {
+      const tc = Math.floor(t.px[0] / TILE_SIZE);
+      const tr = Math.floor(t.px[1] / TILE_SIZE);
+      for (const rect of carveRectsLocal) {
+        if (tr >= rect.r0 && tr < rect.rN && tc >= rect.c0 && tc < rect.cN) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Draw dark overlay rects over sealed edge strips to hide any open terrain. */
+  private drawSealOverlays(
+    roomContainer: Container,
+    sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>,
+  ): void {
+    if (sealRectsLocal.length === 0) return;
+    const gfx = new Graphics();
+    for (const rect of sealRectsLocal) {
+      const px = rect.c0 * TILE_SIZE;
+      const py = rect.r0 * TILE_SIZE;
+      const pw = (rect.cN - rect.c0) * TILE_SIZE;
+      const ph = (rect.rN - rect.r0) * TILE_SIZE;
+      gfx.rect(px, py, pw, ph).fill({ color: 0x383838, alpha: 1.0 });
+    }
+    roomContainer.addChild(gfx);
+  }
+
+  /**
    * Pre-spawn enemies in the 4 neighboring rooms (N/S/E/W) of the given local
    * room coordinates so the player never sees a "pop-in" when crossing a doorway.
    * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
@@ -770,25 +1188,101 @@ export class ItemWorldScene extends Scene {
     const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const stratumHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
     const directions = [
-      { dc: -1, dr: 0 },
-      { dc: 1, dr: 0 },
-      { dc: 0, dr: -1 },
-      { dc: 0, dr: 1 },
+      { dc: -1, dr: 0, name: 'W' },
+      { dc: 1, dr: 0, name: 'E' },
+      { dc: 0, dr: -1, name: 'N' },
+      { dc: 0, dr: 1, name: 'S' },
     ];
-    for (const { dc, dr } of directions) {
+    console.log(`[ItemWorld] preSpawnNeighborRooms from (${localCol},${localRow}) stratumOffset=${stratumOffset} stratumHeight=${stratumHeight}`);
+    let spawnedCount = 0;
+    let skippedBounds = 0;
+    let skippedSpawned = 0;
+    let skippedNullCell = 0;
+    for (const { dc, dr, name } of directions) {
       const ncLocal = localCol + dc;
       const nrLocal = localRow + dr;
-      if (ncLocal < 0 || ncLocal > 3) continue;
-      if (nrLocal < 0 || nrLocal >= stratumHeight) continue;
+      if (ncLocal < 0 || ncLocal > 3 || nrLocal < 0 || nrLocal >= stratumHeight) {
+        console.log(`  [${name}] skip: out of bounds (${ncLocal},${nrLocal})`);
+        skippedBounds++;
+        continue;
+      }
       const nrAbs = stratumOffset + nrLocal;
       const nKey = `${ncLocal},${nrAbs}`;
-      if (this.spawnedRooms.has(nKey)) continue;
+      if (this.spawnedRooms.has(nKey)) {
+        console.log(`  [${name}] skip: already spawned ${nKey}`);
+        skippedSpawned++;
+        continue;
+      }
       const nCell = this.unifiedGrid.cells[nrAbs]?.[ncLocal];
-      if (!nCell) continue;
+      if (!nCell) {
+        console.log(`  [${name}] skip: null cell ${nKey}`);
+        skippedNullCell++;
+        continue;
+      }
       this.spawnedRooms.add(nKey);
+      const beforeCount = this.enemies.length;
       this.spawnEnemiesInRoom(ncLocal, nrAbs);
+      const spawned = this.enemies.length - beforeCount;
+      console.log(`  [${name}] spawned ${spawned} enemies in ${nKey} (roomType=${this.roomTypeMap.get(`${ncLocal}:${nrAbs}`) ?? '?'}, cleared=${nCell.cleared})`);
+      spawnedCount++;
     }
+    console.log(`[ItemWorld] preSpawn result: ${spawnedCount} rooms spawned, ${skippedBounds} bounds, ${skippedSpawned} already, ${skippedNullCell} null`);
     this.persistRoomState();
+  }
+
+  /**
+   * Find the center of the longest continuous horizontal flat floor inside a
+   * single 32×32 room, requiring at least `minLen` tiles in a row. The floor
+   * is a row where each tile has `fullGrid[r][c] === 0` (air) AND
+   * `fullGrid[r+1][c] >= 1` (solid tile directly below).
+   *
+   * Returns the world-pixel center (x = center tile × TILE + TILE/2, y = top
+   * of the row × TILE) of the best run, or null if no run of minLen exists.
+   * Prefers the row closer to the bottom of the room (where boss arenas feel
+   * natural) and, within ties, the longest run.
+   */
+  private findFlatFloorCenter(
+    roomTopCol: number,
+    roomTopRow: number,
+    minLen: number,
+  ): { x: number; y: number } | null {
+    let best: { row: number; startCol: number; length: number } | null = null;
+
+    // Scan each row (from bottom to top so ties prefer lower rows)
+    for (let localRow = IW_ROOM_H_TILES - 1; localRow >= 0; localRow--) {
+      const tr = roomTopRow + localRow;
+      if (tr < 0 || tr + 1 >= this.fullGrid.length) continue;
+
+      let runStart = -1;
+      let runLen = 0;
+      for (let localCol = 0; localCol < IW_ROOM_W_TILES; localCol++) {
+        const tc = roomTopCol + localCol;
+        const here = this.fullGrid[tr]?.[tc] ?? 1;
+        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
+        const isFloor = here === 0 && below >= 1;
+
+        if (isFloor) {
+          if (runStart < 0) runStart = tc;
+          runLen++;
+          // Check and update best on extension
+          if (runLen >= minLen) {
+            if (!best || runLen > best.length) {
+              best = { row: tr, startCol: runStart, length: runLen };
+            }
+          }
+        } else {
+          runStart = -1;
+          runLen = 0;
+        }
+      }
+    }
+
+    if (!best) return null;
+    const centerTile = best.startCol + Math.floor(best.length / 2);
+    return {
+      x: centerTile * TILE_SIZE + TILE_SIZE / 2,
+      y: best.row * TILE_SIZE + TILE_SIZE, // top of the air row + one tile = floor line
+    };
   }
 
   /** Create an enemy instance by type name and level. */
@@ -1115,6 +1609,17 @@ export class ItemWorldScene extends Scene {
   private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
     if (this.ldtkTemplates.length === 0) return null;
 
+    // Memory Room placement overrides procedural selection — deterministic.
+    if (cell) {
+      const placed = this.memoryRoomPlacements.get(`${cell.col}:${cell.absoluteRow}`);
+      if (placed) return placed;
+    }
+
+    // Exclude memory room templates from the random pool so they only appear
+    // where explicitly placed above. LDtk editor may capitalize the prefix
+    // ("Memory_*") — match case-insensitively.
+    const pool = this.ldtkTemplates.filter(t => !/^memory_/i.test(t.identifier));
+
     // Determine desired RoomType based on cell role
     let desiredType: string;
     if (!cell) {
@@ -1141,13 +1646,14 @@ export class ItemWorldScene extends Scene {
     }
 
     // Filter templates by roomType
-    const matching = this.ldtkTemplates.filter(t => t.roomType === desiredType);
+    const matching = pool.filter(t => t.roomType === desiredType);
     if (matching.length > 0) {
       return matching[rng.nextInt(0, matching.length - 1)];
     }
 
-    // Fallback: any template
-    return this.ldtkTemplates[rng.nextInt(0, this.ldtkTemplates.length - 1)];
+    // Fallback: any non-memory template
+    if (pool.length === 0) return null;
+    return pool[rng.nextInt(0, pool.length - 1)];
   }
 
   /** Map cell exits to template exits and pick a matching template */
@@ -1175,9 +1681,9 @@ export class ItemWorldScene extends Scene {
       const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
       const isGhost = spawnRng.next() < 0.3;
       const enemy = isGhost ? new Ghost() : new Skeleton();
-      // Use absolute stats from StrataConfig instead of scaling base enemy stats
-      enemy.hp = enemy.maxHp = Math.floor(def.enemyHp * distScale);
-      enemy.atk = Math.floor(def.enemyAtk * distScale);
+      // Multiply CSV-based stats (from constructor applyStats) by stratum + dist
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul * distScale));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul * distScale));
 
       enemy.x = spawnRng.nextInt(4, this.roomW - 5) * TILE_SIZE;
       enemy.y = floorY - enemy.height;
@@ -1192,8 +1698,8 @@ export class ItemWorldScene extends Scene {
     const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
     const boss = new Guardian();
-    boss.hp = boss.maxHp = def.bossHp;
-    boss.atk = def.bossAtk;
+    boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
+    boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
     boss.x = (this.roomW / 2) * TILE_SIZE;
     boss.y = floorY - boss.height;
     boss.roomData = this.roomData;
@@ -1261,6 +1767,8 @@ export class ItemWorldScene extends Scene {
     this.projectiles = [];
     for (const hp of this.healingPickups) hp.destroy();
     this.healingPickups = [];
+    // Reset pre-spawn cascade tracker so new stratum's neighbors get pre-spawned
+    this.lastPreSpawnRoomKey = null;
   }
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
@@ -1427,6 +1935,64 @@ export class ItemWorldScene extends Scene {
           this.entityLayer.addChild(door.container);
           break;
         }
+        case 'Memory': {
+          const text = (ent.fields['text'] as string) ?? '';
+          if (!text) break;
+          const speaker = (ent.fields['speaker'] as string) || undefined;
+          const portrait = (ent.fields['portrait'] as string) || undefined;
+          // Anchor the visual at the entity pivot (LDtk Memory pivot is bottom-left)
+          const anchorX = offX + ent.px[0] + ent.width / 2;
+          const anchorY = offY + ent.px[1] - ent.height / 2;
+
+          // Build the Memory Shard visual — legendary-tier but distinct:
+          //   - Larger than item drops (shard ≈ 16×16 vs item 8×8)
+          //   - Rotated diamond shape (45°) — clear visual contrast vs sword's square
+          //   - Double outline (bright orange → pale gold)
+          //   - Wide radial glow
+          //   - Orange particles that drift UP with horizontal sway
+          const shardContainer = new Container();
+          shardContainer.x = anchorX;
+          shardContainer.y = anchorY;
+
+          const glowGfx = new Graphics();
+          glowGfx.circle(0, 0, 24).fill({ color: 0xff8000, alpha: 0.22 });
+          glowGfx.circle(0, 0, 14).fill({ color: 0xffaa33, alpha: 0.35 });
+          shardContainer.addChild(glowGfx);
+
+          const shardGfx = new Graphics();
+          // Rotated diamond = square rotated 45°. Draw as polygon.
+          //   Points: top(0,-11) right(11,0) bottom(0,11) left(-11,0)
+          shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).fill({ color: 0xff8000 });
+          shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).stroke({ color: 0xffcc66, width: 1 });
+          // Inner bright diamond
+          shardGfx.poly([0, -6, 6, 0, 0, 6, -6, 0]).fill({ color: 0xffe6b3, alpha: 0.85 });
+          // Tiny white center pip
+          shardGfx.poly([0, -2, 2, 0, 0, 2, -2, 0]).fill({ color: 0xffffff });
+          shardContainer.addChild(shardGfx);
+
+          this.entityLayer.addChild(shardContainer);
+
+          this.memoryTriggers.push({
+            x: anchorX - 20,
+            y: anchorY - 20,
+            w: 40,
+            h: 40,
+            text,
+            speaker,
+            portrait,
+            active: false,
+            anchorX,
+            anchorY,
+            container: shardContainer,
+            shardGfx,
+            glowGfx,
+            particles: [],
+            spawnTimer: Math.random() * 300,
+            pulseTimer: Math.random() * 2000,
+            bobTimer: Math.random() * 3000,
+          });
+          break;
+        }
         case 'Camera': {
           this.cameraZones.push({
             x: ax,
@@ -1464,6 +2030,15 @@ export class ItemWorldScene extends Scene {
     this.lockedDoors = [];
     this.cameraZones = [];
     this.activeCameraZone = null;
+    // Destroy memory shard visuals + particles
+    for (const t of this.memoryTriggers) {
+      for (const p of t.particles) {
+        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+      }
+      t.particles = [];
+      if (t.container.parent) t.container.parent.removeChild(t.container);
+    }
+    this.memoryTriggers = [];
   }
 
   /** Per-frame: spike contact + collapsing platforms + entity update logic. */
@@ -1658,6 +2233,12 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
+    // Dialogue box (Memory Room lore) — when active, pause gameplay
+    if (this.dialogueBox?.isActive) {
+      this.dialogueBox.update(dt);
+      return;
+    }
+
     // ESC to toggle escape confirm
     if (this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.escapeConfirmVisible) {
@@ -1698,6 +2279,9 @@ export class ItemWorldScene extends Scene {
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
     this.updateStaticEntities(dt);
+
+    // Memory Room triggers — animate shards + show dialogue on entry
+    this.checkMemoryTriggers(dt);
 
     if (this.player.isDead) {
       // Death penalty: lose 30% earned EXP, drop back one stratum
@@ -1942,13 +2526,15 @@ export class ItemWorldScene extends Scene {
 
     // Track which room the player is in and lazy-spawn enemies on first entry
     // Clamp to grid bounds to prevent out-of-range access
-    const playerRoomCol = Math.max(0, Math.min(3, Math.floor(this.player.x / 512)));
-    const playerRoomRow = Math.max(0, Math.min(3, Math.floor(this.player.y / 512)));
+    const playerRoomCol = Math.max(0, Math.min(IW_GRID_W - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
+    const playerRoomRow = Math.max(0, Math.min(IW_GRID_H - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     // Convert local row (0-3) to absolute row so room keys are globally unique
     // across strata and survive exit/re-entry persistence.
     const _stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const playerAbsRow = _stratumOffset + playerRoomRow;
     const roomKey = `${playerRoomCol},${playerAbsRow}`;
+
+    // Spawn enemies in this room if not yet spawned (first-ever visit)
     if (!this.spawnedRooms.has(roomKey)) {
       this.spawnedRooms.add(roomKey);
       this.currentCol = playerRoomCol;
@@ -1969,8 +2555,14 @@ export class ItemWorldScene extends Scene {
         }
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
-      // Pre-spawn enemies in the 4-direction neighboring rooms so they don't
-      // pop in front of the player when crossing a doorway.
+    }
+
+    // Pre-spawn neighbors whenever player enters a DIFFERENT room (first time
+    // that room triggers pre-spawn this session). This must run INDEPENDENTLY
+    // of spawnedRooms so that walking into a pre-spawned room still cascades
+    // pre-spawn to its own neighbors.
+    if (this.lastPreSpawnRoomKey !== roomKey) {
+      this.lastPreSpawnRoomKey = roomKey;
       this.preSpawnNeighborRooms(playerRoomCol, playerRoomRow);
     }
 
@@ -2108,7 +2700,7 @@ export class ItemWorldScene extends Scene {
 
       const stratumDef = this.strataConfig.strata[i];
       const label = new BitmapText({
-        text: `${isSel ? '> ' : '  '}Stratum ${i + 1}  HP:${stratumDef.enemyHp} ATK:${stratumDef.enemyAtk}`,
+        text: `${isSel ? '> ' : '  '}Stratum ${i + 1}  HP x${stratumDef.hpMul.toFixed(1)} ATK x${stratumDef.atkMul.toFixed(1)}`,
         style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? 0xffff88 : 0xaaaaaa },
       });
       label.x = 14;
@@ -2183,15 +2775,12 @@ export class ItemWorldScene extends Scene {
     this.currentStratumIndex = stratumIndex;
     this.currentStratumDef = this.strataConfig.strata[stratumIndex];
 
-    // Find this stratum's start room (first row of stratum, on critical path)
+    // Use the stratum's actual critical path origin
+    const stratumStart = this.unifiedGrid.stratumStartRooms?.[stratumIndex];
     const offset = this.unifiedGrid.strataOffsets[stratumIndex];
     if (!offset) return;
-    const startRow = offset.rowOffset;
-    let startCol = 0;
-    for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-      const cell = this.unifiedGrid.cells[startRow][c];
-      if (cell && cell.onCriticalPath) { startCol = c; break; }
-    }
+    const startRow = stratumStart?.absoluteRow ?? offset.rowOffset;
+    const startCol = stratumStart?.col ?? 0;
 
     this.toast.show(`Stratum ${stratumIndex + 1} — Beginning...`, 0x88ccff);
     this.startTransition('down', startCol, startRow);
@@ -2277,14 +2866,11 @@ export class ItemWorldScene extends Scene {
         this.startExitFade();
         return;
       }
-      const nextStartRow = nextOffset.rowOffset;
-
-      // Find the start room column (first critical path cell in that row)
-      let nextStartCol = 0;
-      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-        const cell = this.unifiedGrid.cells[nextStartRow][c];
-        if (cell && cell.onCriticalPath) { nextStartCol = c; break; }
-      }
+      // Use the stratum's ACTUAL critical path origin, not a heuristic scan.
+      // generateUnifiedGrid exposes this via stratumStartRooms[si].
+      const nextStart = this.unifiedGrid.stratumStartRooms?.[nextStratumIndex];
+      const nextStartRow = nextStart?.absoluteRow ?? nextOffset.rowOffset;
+      const nextStartCol = nextStart?.col ?? 0;
 
       // Advance stratum BEFORE transition so buildFullMap uses the new stratum
       this.currentStratumIndex = nextStratumIndex;
@@ -2330,12 +2916,12 @@ export class ItemWorldScene extends Scene {
     const localRow = this.currentRow - stratumOffset;
 
     // Find a valid floor position inside the room for altar placement (randomized X)
-    const roomTopTile = localRow * 32;
-    const roomLeftTile = this.currentCol * 32;
-    // Random X column within room (avoid edges: +4 to +28)
-    const altarTC = roomLeftTile + 4 + altarRng.nextInt(0, 24);
-    let altarTileY = roomTopTile + 28; // default near bottom
-    for (let tr = roomTopTile + 4; tr < roomTopTile + 30; tr++) {
+    const roomTopTile = localRow * IW_ROOM_H_TILES;
+    const roomLeftTile = this.currentCol * IW_ROOM_W_TILES;
+    // Random X column within room (avoid edges: +4 to +(W-4))
+    const altarTC = roomLeftTile + 4 + altarRng.nextInt(0, IW_ROOM_W_TILES - 8);
+    let altarTileY = roomTopTile + IW_ROOM_H_TILES - 4; // default near bottom
+    for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
       if ((this.fullGrid[tr]?.[altarTC] ?? 1) === 0 && (this.fullGrid[tr + 1]?.[altarTC] ?? 1) >= 1) {
         altarTileY = tr; break;
       }
@@ -2438,11 +3024,11 @@ export class ItemWorldScene extends Scene {
         // Spawn at start cell using floor scan (same as init)
         const stOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
         const localRow = this.currentRow - stOff;
-        const spawnCX = this.currentCol * 512 + 256;
+        const spawnCX = this.currentCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
         const spawnTileC = Math.floor(spawnCX / TILE_SIZE);
-        const roomTopT = localRow * 32;
-        let spawnY = localRow * 512 + 256;
-        for (let tr = roomTopT + 2; tr < roomTopT + 30; tr++) {
+        const roomTopT = localRow * IW_ROOM_H_TILES;
+        let spawnY = localRow * IW_ROOM_H_PX + IW_ROOM_H_PX / 2;
+        for (let tr = roomTopT + 2; tr < roomTopT + IW_ROOM_H_TILES - 2; tr++) {
           if ((this.fullGrid[tr]?.[spawnTileC] ?? 1) === 0 && (this.fullGrid[tr+1]?.[spawnTileC] ?? 1) >= 1) {
             spawnY = (tr + 1) * TILE_SIZE - this.player.height; break;
           }
@@ -2483,6 +3069,13 @@ export class ItemWorldScene extends Scene {
     this.toast.clear();
     this.hideEscapeConfirm();
     this.clearStaticEntities();
+    if (this.dialogueBox) {
+      this.dialogueBox.close();
+      if (this.dialogueBox.container.parent) {
+        this.dialogueBox.container.parent.removeChild(this.dialogueBox.container);
+      }
+      this.dialogueBox = null;
+    }
     if (this.onboardingPanel?.parent) this.onboardingPanel.parent.removeChild(this.onboardingPanel);
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
@@ -2490,80 +3083,12 @@ export class ItemWorldScene extends Scene {
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
   }
 
+  /**
+   * Minimap rendering — disabled for Spelunky-style blind exploration.
+   * Kept as a no-op so existing call sites (buildFullMap, room transition,
+   * lazy spawn) remain valid without branching.
+   */
   private drawMiniMap(): void {
-    this.miniMapContainer.removeChildren();
-    const cellSize = 6;
-    const gap = 1;
-    const padding = 4;
-    const grid = this.unifiedGrid;
-
-    // Calculate minimap dimensions accounting for variable-width strata
-    const bgW = grid.totalWidth * (cellSize + gap) + gap + padding * 2;
-    // Add extra pixels for stratum dividers
-    const dividerCount = grid.strataOffsets.length - 1;
-    const bgH = grid.totalHeight * (cellSize + gap) + gap + padding * 2 + dividerCount * 2;
-
-    const bg = new Graphics();
-    bg.rect(0, 0, bgW, bgH).fill({ color: 0x220000, alpha: 0.6 });
-    this.miniMapContainer.addChild(bg);
-
-    // Draw stratum divider lines
-    let yAccum = padding;
-    for (let si = 0; si < grid.strataOffsets.length; si++) {
-      const bound = grid.strataOffsets[si];
-      if (si > 0) {
-        // Draw divider line
-        const divider = new Graphics();
-        divider.rect(padding, yAccum - 1, bgW - padding * 2, 1).fill({ color: 0x663366, alpha: 0.8 });
-        this.miniMapContainer.addChild(divider);
-        yAccum += 2; // divider spacing
-      }
-
-      for (let localRow = 0; localRow < bound.height; localRow++) {
-        const absRow = bound.rowOffset + localRow;
-        for (let col = 0; col < grid.totalWidth; col++) {
-          const cell = grid.cells[absRow]?.[col];
-
-          const x = padding + col * (cellSize + gap);
-          const y = yAccum + localRow * (cellSize + gap);
-
-          const isEndRoom = cell ? this.isStratumEndRoom(col, absRow) : false;
-          let color = 0x222222; // default: dark (room exists but unvisited)
-          let alpha = 0.5;
-
-          if (!cell || cell.type === 0) {
-            color = 0x444444; // filler room (no critical path)
-            alpha = 0.3;
-          } else if (cell.visited) {
-            alpha = 1;
-            color = cell.cleared ? 0x6a2a2a : 0x6a4a4a;
-          }
-          if (isEndRoom) {
-            color = (cell?.visited) ? 0x4444cc : 0x2222aa;
-            alpha = 1;
-          }
-
-          // Player position — based on actual player coords, not currentCol/Row
-          const playerCellCol = Math.floor(this.player.x / 512);
-          const playerCellRow = Math.floor(this.player.y / 512);
-          if (col === playerCellCol && localRow === playerCellRow) {
-            color = 0xe74c3c; // red = player here
-            alpha = 1;
-          }
-
-          const cellGfx = new Graphics();
-          cellGfx.rect(0, 0, cellSize, cellSize).fill({ color, alpha });
-          cellGfx.x = x;
-          cellGfx.y = y;
-          this.miniMapContainer.addChild(cellGfx);
-        }
-      }
-
-      yAccum += bound.height * (cellSize + gap);
-    }
-
-    // Position at top-right corner (same spot as world minimap)
-    this.miniMapContainer.x = 640 - bgW - 4;
-    this.miniMapContainer.y = 4;
+    // intentionally empty
   }
 }
