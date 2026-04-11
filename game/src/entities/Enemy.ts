@@ -20,6 +20,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   maxHp: number;
   atk: number;
   def: number;
+  /** EXP awarded to player on kill (from CSV; 0 = use scene fallback) */
+  exp = 0;
   facingRight = false;
   alive = true;
 
@@ -108,6 +110,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.moveSpeed = s.moveSpeed;
     this.attackCooldown = s.attackCooldown;
     this.jumpTiles = s.jumpTiles;
+    this.exp = s.exp;
   }
 
   protected abstract setupStates(): void;

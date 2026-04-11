@@ -2,7 +2,7 @@
  * LdtkWorldScene.ts
  *
  * World-space scene that loads hand-crafted LDtk levels instead of procedurally
- * generated rooms. Implements the World (?�험) space of the 3-Space separation
+ * generated rooms. Implements the World (?�험) space of the 3-Space separation
  * model (Design_Architecture_2Space.md).
  *
  * Key differences from WorldScene:
@@ -53,7 +53,7 @@ import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
-import { createItem, calcInnocentBonus, itemLevelUp } from '@items/ItemInstance';
+import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
@@ -81,7 +81,8 @@ import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 
-const LDTK_PATH = 'assets/World_ProjectAbyss_Layout.ldtk';
+const LDTK_PATH = 'assets/World_ProjectAbyss.ldtk';
+const LDTK_WORLD_ID = 'Overworld';
 const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
@@ -163,6 +164,9 @@ export class LdtkWorldScene extends Scene {
   private altarSelectIndex = 0;
   private activeAltar: Altar | null = null;
   private altarUI: Container | null = null;
+  /** When set, anvil UI is showing a re-dive confirmation for this cleared item. */
+  private cyclePromptItem: ItemInstance | null = null;
+  private cyclePromptUI: Container | null = null;
 
   // Oxygen HUD
   private oxygenOverlay: Graphics | null = null;
@@ -225,10 +229,10 @@ export class LdtkWorldScene extends Scene {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
 
-    // Fetch and parse LDtk project
+    // Fetch and parse LDtk project (multi-world → pick Overworld)
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
     this.loader = new LdtkLoader();
-    this.loader.load(json);
+    this.loader.load(json, LDTK_WORLD_ID);
 
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
@@ -2040,7 +2044,7 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(enemy.container);
     }
 
-    // Boss entities ??Guardian (기억???�문??. Skip if already killed.
+    // Boss entities ??Guardian (기억???�문??. Skip if already killed.
     const bossEntities = level.entities.filter(e => e.type === 'Boss');
     for (const ent of bossEntities) {
       const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
@@ -2850,6 +2854,7 @@ export class LdtkWorldScene extends Scene {
       this.altarUI.destroy({ children: true });
       this.altarUI = null;
     }
+    this.closeCyclePromptUI();
   }
 
   /** Shared input handler for item selection (Altar / Anvil). */
@@ -2987,6 +2992,12 @@ export class LdtkWorldScene extends Scene {
   }
 
   private updateAnvilInput(): void {
+    // Re-dive confirmation prompt (shown when a cleared item is selected)
+    if (this.cyclePromptItem) {
+      this.updateCyclePromptInput();
+      return;
+    }
+
     this.updateItemSelectInput(
       (item) => {
         // Cannot place equipped weapon on anvil
@@ -2994,23 +3005,112 @@ export class LdtkWorldScene extends Scene {
           this.toast.show('Unequip first', 0xff4444);
           return;
         }
-        if (this.anvil) {
-          this.anvil.placeItem(item);
-          this.collapseItem = item;
-          this.closeAltarUI();
-
-          // First commission sword placement ??Screen 8 dialogue
-          if (item.commission) {
-            // this.dialogueManager.fireEvent('first_anvil_commission');
-          } else {
-            this.toast.show('Strike the anvil!', 0xff8844);
-          }
-        } else {
-          this.closeAltarUI();
+        // Fully cleared item — confirm re-dive (increments cycle, resets strata)
+        if (isItemFullyCleared(item)) {
+          this.cyclePromptItem = item;
+          this.drawCyclePromptUI(item);
+          return;
         }
+        this.placeItemOnAnvil(item);
       },
       () => this.drawAnvilUI(),
     );
+  }
+
+  /** Shared "commit item to anvil" path. */
+  private placeItemOnAnvil(item: ItemInstance): void {
+    if (!this.anvil) {
+      this.closeAltarUI();
+      return;
+    }
+    this.anvil.placeItem(item);
+    this.collapseItem = item;
+    this.closeAltarUI();
+    this.toast.show('Strike the anvil!', 0xff8844);
+  }
+
+  private drawCyclePromptUI(item: ItemInstance): void {
+    if (this.cyclePromptUI) {
+      if (this.cyclePromptUI.parent) this.cyclePromptUI.parent.removeChild(this.cyclePromptUI);
+      this.cyclePromptUI.destroy({ children: true });
+      this.cyclePromptUI = null;
+    }
+
+    const ui = new Container();
+    const panelW = 220;
+    const panelH = 80;
+    const px = Math.floor((GAME_WIDTH - panelW) / 2);
+    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
+
+    const bg = new Graphics();
+    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
+    bg.rect(0, 0, panelW, panelH).stroke({ color: 0xff8844, width: 1 });
+    bg.x = px;
+    bg.y = py;
+    ui.addChild(bg);
+
+    const title = new BitmapText({
+      text: '[MEMORY ALREADY ECHOED]',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xff8844 },
+    });
+    title.x = px + 8;
+    title.y = py + 6;
+    ui.addChild(title);
+
+    const nextCycle = (item.worldProgress?.cycle ?? 0) + 1;
+    const lines = [
+      `${item.def.name}`,
+      '',
+      'Dive again? Memories rewind.',
+      'Enemies grow sharper.',
+      '',
+      `Cycle ${nextCycle}`,
+      '',
+      '[Z] Dive Again   [C] Cancel',
+    ];
+    for (let i = 0; i < lines.length; i++) {
+      const fill = i === 0 ? 0xffcc44 : i === lines.length - 1 ? 0xaaaaaa : 0xffffff;
+      const t = new BitmapText({
+        text: lines[i],
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill },
+      });
+      t.x = px + 8;
+      t.y = py + 18 + i * 8;
+      ui.addChild(t);
+    }
+
+    this.cyclePromptUI = ui;
+    this.game.app.stage.addChild(ui);
+  }
+
+  private closeCyclePromptUI(): void {
+    this.cyclePromptItem = null;
+    if (this.cyclePromptUI) {
+      if (this.cyclePromptUI.parent) this.cyclePromptUI.parent.removeChild(this.cyclePromptUI);
+      this.cyclePromptUI.destroy({ children: true });
+      this.cyclePromptUI = null;
+    }
+  }
+
+  private updateCyclePromptInput(): void {
+    const input = this.game.input;
+    const item = this.cyclePromptItem;
+    if (!item) return;
+
+    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
+      // Confirm re-dive — reset progress, close prompt, proceed to anvil strike
+      resetItemForNextCycle(item);
+      this.closeCyclePromptUI();
+      this.toast.show(`Cycle ${item.worldProgress?.cycle ?? 0} — Memories rewind`, 0xff8844);
+      this.placeItemOnAnvil(item);
+      return;
+    }
+    if (input.isJustPressed(GameAction.DASH) || input.isJustPressed(GameAction.MENU)) {
+      // Cancel — return to item select UI
+      this.closeCyclePromptUI();
+      this.drawAnvilUI();
+      return;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -3338,12 +3438,6 @@ export class LdtkWorldScene extends Scene {
     // Load the hand-crafted level ??'down' uses Player entity spawn
     this.inItemTunnel = false;
     this.loadLevel(levelId, 'down');
-
-    // First entry landing dialogue (Screen 10)
-    if (this.game.stats.firstEchoStrike && !this.game.stats.firstItemWorldLanding) {
-      this.game.stats.firstItemWorldLanding = true;
-      // setTimeout(() => this.dialogueManager.fireEvent('first_itemworld_landing'), 1500);
-    }
   }
 
   /** Exit fixed item world ??return to the forge room. */
@@ -3371,33 +3465,6 @@ export class LdtkWorldScene extends Scene {
       this.player.savePrevPosition();
       this.game.camera.snap(this.player.x, this.player.y);
     }
-
-    // First commission return ??trigger Screen 15~17 sequence
-    if (this.game.stats.firstEchoStrike && !this.game.stats.forgeReturnSequenceDone) {
-      this.game.stats.forgeReturnSequenceDone = true;
-      setTimeout(() => this.runForgeReturnSequence(), 1000);
-    }
-  }
-
-  /**
-   * Screen 15~17 auto sequence after first item world return.
-   * freezePlayer dialogues chained sequentially.
-   */
-  private async runForgeReturnSequence(): Promise<void> {
-    // // Screen 15 ??check sword stats
-    // await this.dialogueManager.fireEvent('forge_return_check');
-    // // Screen 15 ??refusal
-    // await this.dialogueManager.fireEvent('forge_return_refusal');
-    // // Screen 16 ??Marta's note (echo_shelved)
-    // await this.dialogueManager.fireEvent('echo_shelved');
-    // // Screen 17 ??Sera silhouette
-    // await this.dialogueManager.fireEvent('marta_note_complete');
-    // Unlock the door
-    this.unlockDoors('marta_sequence_complete');
-    // // Hint to leave
-    // setTimeout(() => {
-    //   this.dialogueManager.fireEvent('forge_return_hint');
-    // }, 500);
   }
 
   // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap } from '@core/Physics';
+import { aabbOverlap, isInUpdraft } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
@@ -17,7 +17,16 @@ import { Guardian } from '@entities/Guardian';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
 import { GoldenMonster } from '@entities/GoldenMonster';
+import { HealingPickup } from '@entities/HealingPickup';
+import { Spike } from '@entities/Spike';
+import { CrackedFloor } from '@entities/CrackedFloor';
+import { CollapsingPlatform } from '@entities/CollapsingPlatform';
+import { GrowingWall } from '@entities/GrowingWall';
+import { Switch } from '@entities/Switch';
+import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
+import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
+import { getEnemyStats } from '@data/enemyStats';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -27,7 +36,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, itemLevelUp, getOrCreateWorldProgress, EXP_PER_LEVEL, addInnocent, canAddInnocent, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { addItemExp, itemLevelUp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
@@ -60,6 +69,8 @@ export class ItemWorldScene extends Scene {
   private player!: Player;
   private enemies: Enemy<string>[] = [];
   private projectiles: Projectile[] = [];
+  private healingPickups: HealingPickup[] = [];
+  private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
@@ -94,8 +105,28 @@ export class ItemWorldScene extends Scene {
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
   private fullMapContainer: Container | null = null;
+
+  // Updraft (IntGrid value 4) — particles + force handled per-frame
+  private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
+  private updraftGfx: Graphics | null = null;
+
+  // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
+  private spikes: Spike[] = [];
+  private crackedFloors: CrackedFloor[] = [];
+  private collapsingPlatforms: CollapsingPlatform[] = [];
+  private growingWalls: GrowingWall[] = [];
+  private switches: Switch[] = [];
+  private lockedDoors: LockedDoor[] = [];
+  private cameraZones: {
+    x: number; y: number; w: number; h: number;
+    zoom: number; deadZoneX: number; deadZoneY: number;
+    lookAheadDistance: number; followLerp: number; zoomLerp: number;
+    entireLevel: boolean;
+  }[] = [];
+  private activeCameraZone: typeof this.cameraZones[number] | null = null;
   private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
   private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
+  private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
 
   // Room transition
   private transitionState: TransitionState = 'none';
@@ -105,6 +136,8 @@ export class ItemWorldScene extends Scene {
   // Escape altar
   private altarTrigger: { x: number; y: number; width: number; height: number } | null = null;
   private altarVisual: Graphics | null = null;
+  private altarHint: Container | null = null;
+  private escapeConfirmFromAltar = false;
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
@@ -121,6 +154,12 @@ export class ItemWorldScene extends Scene {
   // Escape confirm dialog
   private escapeConfirm: Container | null = null;
   private escapeConfirmVisible = false;
+
+  // Stratum picker (shown on entry when player has unlocked >1 stratum)
+  private stratumPicker: Container | null = null;
+  private stratumPickerVisible = false;
+  private stratumPickerSelection = 0;
+  private stratumPickerMax = 0;
 
   // Onboarding
   private onboardingPanel: Container | null = null;
@@ -144,30 +183,16 @@ export class ItemWorldScene extends Scene {
   }
 
   async init(): Promise<void> {
-    // Load tileset atlas + LDtk item world templates
+    // Load tileset atlas + LDtk item world templates (merged multi-world file)
     this.atlas = await Assets.load('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
     try {
-      const json = await fetch('assets/World_ProjectAbyss_ItemStratum.ldtk').then(r => r.json());
+      const json = await fetch('assets/World_ProjectAbyss.ldtk').then(r => r.json());
       this.ldtkLoader = new LdtkLoader();
-      this.ldtkLoader.load(json);
+      this.ldtkLoader.load(json, 'ItemStratum');
       this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
       this.ldtkRenderer = new LdtkRenderer();
     } catch (e) {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
-    }
-
-    // Load outside frame
-    try {
-      const outsideJson = await fetch('assets/World_ProjectAbyss_ItemStratum_Outside.ldtk').then(r => r.json());
-      const outsideLoader = new LdtkLoader();
-      outsideLoader.load(outsideJson);
-      const ids = outsideLoader.getLevelIds();
-      if (ids.length > 0) {
-        this.outsideLevel = outsideLoader.getLevel(ids[0])!;
-        this.outsideRenderer = new LdtkRenderer();
-      }
-    } catch (e) {
-      console.warn('[ItemWorld] Outside frame not found');
     }
 
     // Load spawn table CSV
@@ -176,6 +201,14 @@ export class ItemWorldScene extends Scene {
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
     this.progress = getOrCreateWorldProgress(this.item);
+    // If the item was previously fully cleared, this entry is a "re-dive":
+    // reset all per-cycle progress (cleared rooms, deepest unlocked, etc.)
+    // so monsters respawn fresh. Item level / innocents are preserved.
+    if (this.progress.cleared) {
+      resetItemForNextCycle(this.item);
+      this.progress = getOrCreateWorldProgress(this.item);
+      console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
+    }
     this.rng = new PRNG(this.item.uid * 1000);
 
     this.hitManager = new HitManager(this.game);
@@ -291,21 +324,14 @@ export class ItemWorldScene extends Scene {
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
-    // First item world entry — landing monologue (Screen 10)
-    if (this.game.stats.firstEchoStrike && !this.game.stats.firstItemWorldLanding) {
-      this.game.stats.firstItemWorldLanding = true;
-      setTimeout(() => {
-        this.thought.show('...Where am I.', 3000);
-        setTimeout(() => {
-          this.thought.show("The crystal structure on these walls...\nit's the same as that sword.", 4000);
-          setTimeout(() => {
-            this.thought.show('Am I really inside it?', 3000);
-          }, 4200);
-        }, 3200);
-      }, 1500);
-    }
-
     this.initialized = true;
+
+    // Show stratum picker if player has unlocked more than one stratum on this item
+    const totalStrata = this.strataConfig.strata.length;
+    const maxSelectable = Math.min(this.progress.deepestUnlocked + 1, totalStrata);
+    if (maxSelectable > 1) {
+      this.showStratumPicker(maxSelectable);
+    }
   }
 
   private countTotalRooms(): void {
@@ -345,6 +371,13 @@ export class ItemWorldScene extends Scene {
         if (cell.cleared) this.roomsCleared++;
       }
     }
+
+    // Restore spawned rooms set so previously-entered rooms don't re-spawn enemies.
+    // Also use roomKey format "playerRoomCol,playerRoomRow" used by lazy spawn check.
+    this.spawnedRooms.clear();
+    for (const key of this.progress.spawnedRooms ?? []) {
+      this.spawnedRooms.add(key);
+    }
   }
 
   private persistRoomState(): void {
@@ -361,6 +394,7 @@ export class ItemWorldScene extends Scene {
     }
     this.progress.visitedRooms = visited;
     this.progress.clearedRooms = cleared;
+    this.progress.spawnedRooms = Array.from(this.spawnedRooms);
   }
 
   /** Check if a cell is a stratum end room (boss room) */
@@ -409,6 +443,9 @@ export class ItemWorldScene extends Scene {
       this.fullGrid[r] = new Array(FULL_TILES).fill(1);
     }
 
+    // Clear any previously spawned static entities (rebuild = fresh world)
+    this.clearStaticEntities();
+
     // Place each room template into the full grid (current stratum only)
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
@@ -450,6 +487,9 @@ export class ItemWorldScene extends Scene {
         roomContainer.addChild(renderer.container);
         this.fullMapContainer.addChild(roomContainer);
 
+        // Spawn LDtk-placed static entities for this room (with world offset)
+        this.spawnStaticEntitiesForRoom(ldtkLevel, col * 512, localRow * 512);
+
         roomCount++;
         // Mark start room as visited
         if (cell && col === this.currentCol && absRow === this.currentRow) {
@@ -474,6 +514,11 @@ export class ItemWorldScene extends Scene {
 
     this.persistRoomState();
     this.drawMiniMap();
+
+    // Restore boss portal if the current stratum's boss was previously killed.
+    // Reset exitTrigger first — it may be stale from a prior stratum build.
+    this.exitTrigger = null;
+    this.restorePortalIfStratumCleared();
   }
 
   /**
@@ -526,6 +571,13 @@ export class ItemWorldScene extends Scene {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell || cell.cleared) return;
 
+    const roomKey = `${col},${row}`;
+    // Helper to tag a freshly-spawned enemy with its room and bump live count
+    const trackEnemy = (e: Enemy<string>) => {
+      (e as any)._roomKey = roomKey;
+      this.roomEnemyCount.set(roomKey, (this.roomEnemyCount.get(roomKey) ?? 0) + 1);
+    };
+
     const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
     const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     const localRow = row - stratumStart;
@@ -565,11 +617,29 @@ export class ItemWorldScene extends Scene {
     const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
     const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
 
+    // Cycle scaling — each replay cycle bumps the enemy's CSV level by +1.
+    // HP/ATK multiplier = (CSV level N+cycle) / (CSV level N), so balance is
+    // tunable directly in Sheets/Content_Stats_Enemy.csv.
+    const cycle = this.progress?.cycle ?? 0;
+    const cycleRatio = (type: string, baseLevel: number): { hp: number; atk: number } => {
+      if (cycle <= 0) return { hp: 1, atk: 1 };
+      const base = getEnemyStats(type, baseLevel);
+      const scaled = getEnemyStats(type, baseLevel + cycle);
+      return {
+        hp: base.hp > 0 ? scaled.hp / base.hp : 1,
+        atk: base.atk > 0 ? scaled.atk / base.atk : 1,
+      };
+    };
+
     // Boss room — only spawn boss when LDtk template is 'Boss' type
     if (isBossRoom && spawnTable.boss) {
       const bossEntry = spawnTable.boss;
-      const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level);
+      const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
       (boss as any)._isBoss = true;
+      // Override with stratum-tier boss stats (cycle scaled via CSV level ratio)
+      const br = cycleRatio(bossEntry.enemyType, bossEntry.level);
+      boss.hp = boss.maxHp = Math.max(1, Math.floor(stratumDef.bossHp * br.hp));
+      boss.atk = Math.max(1, Math.floor(stratumDef.bossAtk * br.atk));
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
       const sp = pickSpawn(bossRng, boss.height);
       boss.x = sp.x;
@@ -578,6 +648,7 @@ export class ItemWorldScene extends Scene {
       boss.target = this.player;
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
+      trackEnemy(boss);
       return;
     }
 
@@ -610,6 +681,7 @@ export class ItemWorldScene extends Scene {
         npc.target = this.player;
         this.enemies.push(npc);
         this.entityLayer.addChild(npc.container);
+        trackEnemy(npc);
         continue;
       }
 
@@ -617,7 +689,11 @@ export class ItemWorldScene extends Scene {
       const picked = pickWeightedEnemy(normalEntries, spawnRng.next());
       if (!picked) continue;
 
-      const enemy = this.createEnemyFromType(picked.enemyType, picked.level);
+      const enemy = this.createEnemyFromType(picked.enemyType, picked.level + cycle);
+      // Override with stratum-tier enemy stats (distance + cycle scaled via CSV ratio)
+      const er = cycleRatio(picked.enemyType, picked.level);
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(stratumDef.enemyHp * distScale * er.hp));
+      enemy.atk = Math.max(1, Math.floor(stratumDef.enemyAtk * distScale * er.atk));
       const sp = pickSpawn(spawnRng, enemy.height);
       enemy.x = sp.x;
       enemy.y = sp.y;
@@ -625,18 +701,116 @@ export class ItemWorldScene extends Scene {
       enemy.target = this.player;
       this.enemies.push(enemy);
       this.entityLayer.addChild(enemy.container);
+      trackEnemy(enemy);
     }
+  }
+
+  /**
+   * Create the boss-exit red portal at a pixel position, register it as the
+   * exitTrigger, and add graphics to entityLayer. Shared by fresh boss kills
+   * and by re-entry into already-cleared boss rooms.
+   */
+  private spawnBossPortal(px: number, py: number): void {
+    const portalGfx = new Graphics();
+    portalGfx.rect(-28, -32, 56, 48).fill({ color: 0xff0000, alpha: 0.25 });
+    portalGfx.rect(-20, -28, 40, 40).fill(0xcc0000);
+    portalGfx.rect(-14, -24, 28, 32).fill(0xff2222);
+    portalGfx.rect(-8, -20, 16, 24).fill(0xff6666);
+    portalGfx.rect(-4, -16, 8, 16).fill(0xffaaaa);
+    portalGfx.x = px;
+    portalGfx.y = py;
+    this.entityLayer.addChild(portalGfx);
+
+    this.exitTrigger = {
+      x: px - 24, y: py - 32,
+      width: 48, height: 48,
+    };
+    console.log(`[ItemWorld] Boss portal spawned at (${px}, ${py}) exitTrigger=`, this.exitTrigger);
+  }
+
+  /**
+   * On stratum load, if the current stratum's boss room is already cleared
+   * (player killed it in a previous session and re-entered via the stratum
+   * picker), restore the exit portal so the player can descend again.
+   */
+  private restorePortalIfStratumCleared(): void {
+    const endRoom = this.unifiedGrid.stratumEndRooms.find(
+      e => e.stratumIndex === this.currentStratumIndex,
+    );
+    if (!endRoom) return;
+    const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
+    if (!cell || !cell.cleared) return;
+
+    // Compute portal anchor at boss room's center-bottom in fullGrid space
+    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localRow = endRoom.absoluteRow - stratumOffset;
+    const roomCenterX = endRoom.col * 512 + 256;
+    // Find a solid floor tile in the boss room to place the portal just above
+    const roomTopTile = localRow * 32;
+    const centerTileCol = Math.floor(roomCenterX / TILE_SIZE);
+    let portalTileY = roomTopTile + 28;
+    for (let tr = roomTopTile + 4; tr < roomTopTile + 30; tr++) {
+      if ((this.fullGrid[tr]?.[centerTileCol] ?? 1) === 0 &&
+          (this.fullGrid[tr + 1]?.[centerTileCol] ?? 1) >= 1) {
+        portalTileY = tr; break;
+      }
+    }
+    const portalX = roomCenterX;
+    const portalY = (portalTileY + 1) * TILE_SIZE;
+    this.spawnBossPortal(portalX, portalY);
+    this.toast.show('Boss room cleared — red portal ready.', 0xff8844);
+  }
+
+  /**
+   * Pre-spawn enemies in the 4 neighboring rooms (N/S/E/W) of the given local
+   * room coordinates so the player never sees a "pop-in" when crossing a doorway.
+   * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
+   */
+  private preSpawnNeighborRooms(localCol: number, localRow: number): void {
+    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const stratumHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
+    const directions = [
+      { dc: -1, dr: 0 },
+      { dc: 1, dr: 0 },
+      { dc: 0, dr: -1 },
+      { dc: 0, dr: 1 },
+    ];
+    for (const { dc, dr } of directions) {
+      const ncLocal = localCol + dc;
+      const nrLocal = localRow + dr;
+      if (ncLocal < 0 || ncLocal > 3) continue;
+      if (nrLocal < 0 || nrLocal >= stratumHeight) continue;
+      const nrAbs = stratumOffset + nrLocal;
+      const nKey = `${ncLocal},${nrAbs}`;
+      if (this.spawnedRooms.has(nKey)) continue;
+      const nCell = this.unifiedGrid.cells[nrAbs]?.[ncLocal];
+      if (!nCell) continue;
+      this.spawnedRooms.add(nKey);
+      this.spawnEnemiesInRoom(ncLocal, nrAbs);
+    }
+    this.persistRoomState();
   }
 
   /** Create an enemy instance by type name and level. */
   private createEnemyFromType(type: string, level: number): Enemy<string> {
+    let enemy: Enemy<string>;
     switch (type) {
-      case 'Slime': return new Slime(level);
-      case 'Ghost': return new Ghost(level);
-      case 'GoldenMonster': return new GoldenMonster('mid');
-      case 'Guardian': return new Guardian(level);
-      default: return new Skeleton(level);
+      case 'Slime': enemy = new Slime(level); break;
+      case 'Ghost': enemy = new Ghost(level); break;
+      case 'GoldenMonster': enemy = new GoldenMonster('mid'); break;
+      case 'Guardian': enemy = new Guardian(level); break;
+      default: enemy = new Skeleton(level); break;
     }
+    this.applyCycleScaling(enemy);
+    return enemy;
+  }
+
+  /**
+   * Replaced by direct level bump (cycle added to spawn level in spawnEnemiesInRoom).
+   * Kept as a no-op so existing call sites in createEnemyFromType remain intact.
+   */
+  private applyCycleScaling(_enemy: Enemy<string>): void {
+    // No-op — cycle scaling now happens via level bump at spawn time.
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
@@ -1085,6 +1259,362 @@ export class ItemWorldScene extends Scene {
     this.enemies = [];
     for (const p of this.projectiles) p.destroy();
     this.projectiles = [];
+    for (const hp of this.healingPickups) hp.destroy();
+    this.healingPickups = [];
+  }
+
+  /** Apply updraft force when player stands on IntGrid value 4, + render particles */
+  private applyUpdrafts(dt: number): void {
+    const dtSec = dt / 1000;
+    const TILE = 16;
+    const UPDRAFT_FORCE = 980 * 2.2;
+    const MAX_UPDRAFT_VY = -250;
+    const P_COLOR = 0x66ddff;
+    const P_SPEED = 140;
+    const P_MAX = 50;
+
+    // --- Physics ---
+    if (this.player.fsm.currentState !== 'dash') {
+      const inUpdraft = isInUpdraft(
+        this.player.x, this.player.y, this.player.width, this.player.height,
+        this.fullGrid,
+      );
+      if (inUpdraft) {
+        this.player.vy -= UPDRAFT_FORCE * dtSec;
+        if (this.player.vy < MAX_UPDRAFT_VY) this.player.vy = MAX_UPDRAFT_VY;
+      }
+    }
+
+    // --- Particles ---
+    if (!this.updraftGfx) {
+      this.updraftGfx = new Graphics();
+      this.entityLayer.addChild(this.updraftGfx);
+    }
+
+    const cam = this.game.camera;
+    const viewL = cam.x;
+    const viewT = cam.y;
+    const viewR = viewL + GAME_WIDTH / cam.zoom;
+    const viewB = viewT + GAME_HEIGHT / cam.zoom;
+
+    const colL = Math.max(0, Math.floor(viewL / TILE));
+    const colR = Math.min((this.fullGrid[0]?.length ?? 1) - 1, Math.ceil(viewR / TILE));
+    const rowT = Math.max(0, Math.floor(viewT / TILE));
+    const rowB = Math.min(this.fullGrid.length - 1, Math.ceil(viewB / TILE));
+
+    if (this.updraftParticles.length < P_MAX) {
+      for (let row = rowT; row <= rowB; row++) {
+        for (let col = colL; col <= colR; col++) {
+          if ((this.fullGrid[row]?.[col] ?? 0) !== 4) continue;
+          if (Math.random() > 0.05) continue;
+          if (this.updraftParticles.length >= P_MAX) break;
+
+          this.updraftParticles.push({
+            x: col * TILE + Math.random() * TILE,
+            y: row * TILE + TILE,
+            speed: P_SPEED * (0.6 + Math.random() * 0.8),
+            alpha: 0.3 + Math.random() * 0.5,
+            len: 2 + Math.random() * 3,
+            wobble: Math.random() * Math.PI * 2,
+          });
+        }
+        if (this.updraftParticles.length >= P_MAX) break;
+      }
+    }
+
+    this.updraftGfx.clear();
+    const alive: typeof this.updraftParticles = [];
+
+    for (const p of this.updraftParticles) {
+      p.y -= p.speed * dtSec;
+      const wx = p.x + Math.sin(p.y * 0.06 + p.wobble) * 1.5;
+
+      const tCol = Math.floor(p.x / TILE);
+      const tRow = Math.floor(p.y / TILE);
+      const stillInUpdraft = (this.fullGrid[tRow]?.[tCol] ?? 0) === 4;
+
+      if (!stillInUpdraft || p.y < viewT - 20) continue;
+
+      const rowInTile = (p.y % TILE) / TILE;
+      let alpha = p.alpha;
+      if (rowInTile < 0.2) alpha *= rowInTile / 0.2;
+      if (rowInTile > 0.8) alpha *= (1 - rowInTile) / 0.2;
+
+      this.updraftGfx
+        .moveTo(wx, p.y)
+        .lineTo(wx, p.y - p.len)
+        .stroke({ color: P_COLOR, width: 1, alpha });
+
+      alive.push(p);
+    }
+
+    this.updraftParticles = alive;
+  }
+
+  // ---------------------------------------------------------------------------
+  // LDtk-placed static entities (Option A: hazards + puzzles + camera zones)
+  // ---------------------------------------------------------------------------
+
+  /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
+  private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
+    // Per-room iid prefix — when the same template is reused in multiple rooms,
+    // we must keep entity iids unique so Switch→LockedDoor matching is room-scoped.
+    const roomPrefix = `r${offX}_${offY}:`;
+
+    for (const ent of level.entities) {
+      const ax = ent.px[0] + offX;
+      const ay = ent.px[1] + offY;
+
+      switch (ent.type) {
+        case 'Spike': {
+          const spike = new Spike(ax, ay, ent.width, ent.height);
+          this.spikes.push(spike);
+          this.entityLayer.addChild(spike.container);
+          break;
+        }
+        case 'CrackedFloor': {
+          const cf = new CrackedFloor(ax, ay, ent.width, ent.height);
+          cf.injectCollision(this.fullGrid);
+          this.crackedFloors.push(cf);
+          this.entityLayer.addChild(cf.container);
+          break;
+        }
+        case 'CollapsingPlatform': {
+          const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
+          const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
+          const cp = new CollapsingPlatform(ax, ay, ent.width, ent.height, respawns, respawnTime);
+          cp.injectCollision(this.fullGrid);
+          this.collapsingPlatforms.push(cp);
+          this.entityLayer.addChild(cp.container);
+          break;
+        }
+        case 'GrowingWall': {
+          const wall = new GrowingWall(ax, ay, ent.width, ent.height);
+          wall.injectCollision(this.fullGrid);
+          this.growingWalls.push(wall);
+          this.entityLayer.addChild(wall.container);
+          break;
+        }
+        case 'Switch': {
+          const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
+          if (!ref?.entityIid) break;
+          // Remap target iid to room-scoped iid (matches room's LockedDoor)
+          const targetIid = roomPrefix + ref.entityIid;
+          const sw = new Switch(ax, ay, ent.width, ent.height, targetIid);
+          sw.injectCollision(this.fullGrid);
+          this.switches.push(sw);
+          this.entityLayer.addChild(sw.container);
+          break;
+        }
+        case 'LockedDoor': {
+          const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
+          const unlockCondition = (rawCondition.toLowerCase() as UnlockCondition) || 'event';
+          const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
+          const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
+          const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
+          // Room-scoped iid so multi-room template reuse doesn't cause cross-room unlocks
+          const scopedIid = roomPrefix + ent.iid;
+          const door = new LockedDoor(
+            ax, ay, ent.width, ent.height,
+            scopedIid,
+            unlockCondition,
+            unlockCondition === 'event' ? unlockEvent : scopedIid,
+            statType,
+            statThreshold,
+          );
+          door.injectCollision(this.fullGrid);
+          this.lockedDoors.push(door);
+          this.entityLayer.addChild(door.container);
+          break;
+        }
+        case 'Camera': {
+          this.cameraZones.push({
+            x: ax,
+            y: ay - ent.height,
+            w: ent.width,
+            h: ent.height,
+            zoom: (ent.fields['zoom'] as number) ?? 1.0,
+            deadZoneX: (ent.fields['deadZoneX'] as number) ?? 32,
+            deadZoneY: (ent.fields['deadZoneY'] as number) ?? 24,
+            lookAheadDistance: (ent.fields['lookAheadDistance'] as number) ?? 0,
+            followLerp: (ent.fields['followLerp'] as number) ?? 0.08,
+            zoomLerp: (ent.fields['zoomLerp'] as number) ?? 0.05,
+            entireLevel: (ent.fields['entireLevel'] as boolean) ?? false,
+          });
+          break;
+        }
+        // Other entity types intentionally not handled in ItemWorldScene
+      }
+    }
+  }
+
+  /** Destroy and clear all LDtk-placed static entities. Called on rebuild + exit. */
+  private clearStaticEntities(): void {
+    for (const e of this.spikes) e.destroy();
+    this.spikes = [];
+    for (const e of this.crackedFloors) e.destroy();
+    this.crackedFloors = [];
+    for (const e of this.collapsingPlatforms) e.destroy();
+    this.collapsingPlatforms = [];
+    for (const e of this.growingWalls) e.destroy();
+    this.growingWalls = [];
+    for (const e of this.switches) e.destroy();
+    this.switches = [];
+    for (const e of this.lockedDoors) e.destroy();
+    this.lockedDoors = [];
+    this.cameraZones = [];
+    this.activeCameraZone = null;
+  }
+
+  /** Per-frame: spike contact + collapsing platforms + entity update logic. */
+  private updateStaticEntities(dt: number): void {
+    // Spike hazard contact
+    if (!this.player.invincible && this.player.hp > 0) {
+      const playerBox = {
+        x: this.player.x, y: this.player.y,
+        width: this.player.width, height: this.player.height,
+      };
+      for (const spike of this.spikes) {
+        if (!aabbOverlap(playerBox, spike.getAABB())) continue;
+        const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
+        this.player.hp -= dmg;
+        this.player.invincible = true;
+        this.player.invincibleTimer = 500;
+        this.game.hitstopFrames = 16;
+        this.game.camera.shake(5);
+        this.screenFlash.flashDamage(true);
+        this.player.triggerFlash();
+        this.dmgNumbers.spawn(
+          this.player.x + this.player.width / 2,
+          this.player.y - 8, dmg, true,
+        );
+        this.player.x = this.player.lastSafeX;
+        this.player.y = this.player.lastSafeY;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.savePrevPosition();
+        if (this.player.hp <= 0) {
+          this.player.hp = 0;
+          this.player.onDeath();
+        }
+        break;
+      }
+    }
+
+    // Collapsing platforms — shake when stood on, may collapse + respawn
+    for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
+      const cp = this.collapsingPlatforms[i];
+      cp.update(dt);
+      if (cp.isPlayerOnTop(this.player.x, this.player.y, this.player.width, this.player.height)) {
+        cp.startShake();
+      }
+    }
+
+    // Growing walls — pulse, grow/shrink cycle, slime/dust spawn
+    for (const wall of this.growingWalls) {
+      wall.update(dt);
+      // Promote any pending slimes spawned by the wall into the enemy list
+      if (wall.pendingSlimes.length > 0) {
+        for (const slime of wall.pendingSlimes) {
+          slime.roomData = this.fullGrid;
+          slime.target = this.player;
+          this.enemies.push(slime);
+          this.entityLayer.addChild(slime.container);
+        }
+        wall.pendingSlimes.length = 0;
+      }
+    }
+
+    // Locked doors — reject animation timer
+    for (const door of this.lockedDoors) {
+      door.update(dt);
+    }
+
+    // Player attack vs CrackedFloors (normal attack breaks them)
+    if (this.player.isAttackActive()) {
+      const step = COMBO_STEPS[this.player.comboIndex];
+      if (step) {
+        const hitbox = getAttackHitbox(
+          this.player.x, this.player.y, this.player.width, this.player.height,
+          this.player.facingRight ?? true, step,
+        );
+        // Cracked floors
+        for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
+          const cf = this.crackedFloors[i];
+          if (cf.destroyed) continue;
+          if (!aabbOverlap(hitbox, cf.getAABB())) continue;
+          cf.shatter(this.fullGrid);
+          this.game.hitstopFrames += 4;
+          this.screenFlash.flash(0xffffff, 0.4, 150);
+          this.game.camera.shake(6);
+          cf.destroy();
+          this.crackedFloors.splice(i, 1);
+        }
+        // Switches
+        for (const sw of this.switches) {
+          if (sw.activated) continue;
+          if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
+          if (sw.activate(this.fullGrid)) {
+            this.game.camera.shake(3);
+            this.screenFlash.flashHit(false);
+            this.unlockDoorByIidLocal(sw.targetDoorIid);
+          }
+        }
+      }
+    }
+
+    // Camera zone tracking
+    this.updateCameraZones();
+  }
+
+  /** Unlock a door in this scene by its LDtk iid (mirrors LdtkWorldScene logic). */
+  private unlockDoorByIidLocal(iid: string): void {
+    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
+      const door = this.lockedDoors[i];
+      if (door.iid === iid) {
+        door.unlock(this.fullGrid);
+        this.game.camera.shake(6);
+        this.screenFlash.flashHit(true);
+        this.toast.show('Gate Opened!', 0x44ffaa);
+        door.destroy();
+        this.lockedDoors.splice(i, 1);
+        return;
+      }
+    }
+  }
+
+  /** Apply Camera entity zoom/dead-zone settings when player enters a zone. */
+  private updateCameraZones(): void {
+    if (this.cameraZones.length === 0 && !this.activeCameraZone) return;
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+    const cam = this.game.camera;
+
+    let insideZone: typeof this.cameraZones[number] | null = null;
+    for (const zone of this.cameraZones) {
+      if (zone.entireLevel ||
+          (pcx >= zone.x && pcx <= zone.x + zone.w &&
+           pcy >= zone.y && pcy <= zone.y + zone.h)) {
+        insideZone = zone;
+        break;
+      }
+    }
+
+    if (insideZone && insideZone !== this.activeCameraZone) {
+      this.activeCameraZone = insideZone;
+      cam.deadZoneX = insideZone.deadZoneX;
+      cam.deadZoneY = insideZone.deadZoneY;
+      cam.lookAheadDistance = insideZone.lookAheadDistance;
+      cam.followLerp = insideZone.followLerp;
+      cam.zoomTo(insideZone.zoom, insideZone.zoomLerp);
+    } else if (!insideZone && this.activeCameraZone) {
+      this.activeCameraZone = null;
+      cam.deadZoneX = 32;
+      cam.deadZoneY = 24;
+      cam.lookAheadDistance = 0;
+      cam.followLerp = 0.08;
+      cam.zoomTo(1.0, 0.05);
+    }
   }
 
   private getOppositeDirection(dir: 'left' | 'right' | 'up' | 'down'): 'left' | 'right' | 'up' | 'down' {
@@ -1122,6 +1652,12 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
+    // Stratum picker blocks gameplay
+    if (this.stratumPickerVisible) {
+      this.handleStratumPickerInput();
+      return;
+    }
+
     // ESC to toggle escape confirm
     if (this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.escapeConfirmVisible) {
@@ -1134,8 +1670,13 @@ export class ItemWorldScene extends Scene {
 
     if (this.escapeConfirmVisible) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+        const fromAltar = this.escapeConfirmFromAltar;
         this.hideEscapeConfirm();
-        this.startExitFade();
+        if (fromAltar) {
+          this.useEscapeAltar();
+        } else {
+          this.startExitFade();
+        }
         return;
       }
       if (this.game.input.isJustPressed(GameAction.DASH) ||
@@ -1151,6 +1692,12 @@ export class ItemWorldScene extends Scene {
     }
 
     this.player.update(dt);
+
+    // Updraft wind zones (IntGrid value 4 in fullGrid)
+    this.applyUpdrafts(dt);
+
+    // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
+    this.updateStaticEntities(dt);
 
     if (this.player.isDead) {
       // Death penalty: lose 30% earned EXP, drop back one stratum
@@ -1184,16 +1731,73 @@ export class ItemWorldScene extends Scene {
       const enemy = this.enemies[i];
       if (!enemy.alive && !(enemy as any)._expGranted) {
         (enemy as any)._expGranted = true;
+
+        // Decrement room enemy count; if it reaches zero, mark room cleared
+        const rk = (enemy as any)._roomKey as string | undefined;
+        if (rk) {
+          const remaining = (this.roomEnemyCount.get(rk) ?? 1) - 1;
+          if (remaining <= 0) {
+            this.roomEnemyCount.delete(rk);
+            const [colStr, rowStr] = rk.split(',');
+            const c = parseInt(colStr, 10);
+            const r = parseInt(rowStr, 10);
+            const clearedCell = this.unifiedGrid.cells[r]?.[c];
+            if (clearedCell && !clearedCell.cleared) {
+              clearedCell.cleared = true;
+              this.roomsCleared++;
+              this.persistRoomState();
+            }
+          } else {
+            this.roomEnemyCount.set(rk, remaining);
+          }
+        }
+
         if (!(enemy instanceof InnocentNPC)) {
-          const killExp = Math.floor(BASE_EXP_PER_KILL * this.currentStratumDef.expMultiplier);
+          // CSV-driven kill EXP (Sheets/Content_Stats_Enemy.csv → Exp column).
+          // Falls back to BASE_EXP_PER_KILL if the enemy lacks an exp value.
+          const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
+          const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
           addItemExp(this.item, killExp);
           this.earnedExp += killExp;
           this.toast.show(`+${killExp} EXP`, 0x88ccff);
+
+          // 20% chance to drop a HealingPickup (value 20)
+          if (this.dropRng.next() < 0.2) {
+            const heal = new HealingPickup(
+              enemy.x + enemy.width / 2 - 8,
+              enemy.y + enemy.height,
+              20,
+            );
+            this.healingPickups.push(heal);
+            this.entityLayer.addChild(heal.container);
+          }
         }
       }
       if (enemy.shouldRemove) {
         if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
         this.enemies.splice(i, 1);
+      }
+    }
+
+    // Healing pickups — collect on overlap
+    for (let i = this.healingPickups.length - 1; i >= 0; i--) {
+      const hp = this.healingPickups[i];
+      if (hp.collected) {
+        hp.destroy();
+        this.healingPickups.splice(i, 1);
+        continue;
+      }
+      hp.update(dt);
+      const dx = Math.abs((this.player.x + this.player.width / 2) - (hp.x + hp.width / 2));
+      const dy = Math.abs((this.player.y + this.player.height / 2) - (hp.y + hp.height / 2));
+      if (dx < 16 && dy < 16) {
+        const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
+        this.screenFlash.flash(0x44ff44, 0.3, 150);
+        if (healed > 0) this.toast.show(`HP +${healed}`, 0x44ff44);
+        hp.collect();
+        hp.destroy();
+        this.healingPickups.splice(i, 1);
       }
     }
 
@@ -1305,28 +1909,10 @@ export class ItemWorldScene extends Scene {
         // Remove any existing escape altar so portal is the only interactable
         this.clearEscapeAltar();
 
-        // Spawn red portal at boss death position
-        const portalGfx = new Graphics();
-        // Outer glow
-        portalGfx.rect(-28, -32, 56, 48).fill({ color: 0xff0000, alpha: 0.25 });
-        // Portal body
-        portalGfx.rect(-20, -28, 40, 40).fill(0xcc0000);
-        portalGfx.rect(-14, -24, 28, 32).fill(0xff2222);
-        // Inner bright core
-        portalGfx.rect(-8, -20, 16, 24).fill(0xff6666);
-        portalGfx.rect(-4, -16, 8, 16).fill(0xffaaaa);
         const px = enemy.x + enemy.width / 2;
         const py = enemy.y + enemy.height;
-        portalGfx.x = px;
-        portalGfx.y = py;
-        this.entityLayer.addChild(portalGfx);
+        this.spawnBossPortal(px, py);
 
-        this.exitTrigger = {
-          x: px - 24, y: py - 32,
-          width: 48, height: 48,
-        };
-
-        console.log(`[ItemWorld] Boss portal spawned at (${px}, ${py}) exitTrigger=`, this.exitTrigger);
         this.toast.show('BOSS DEFEATED! Red portal opened — press UP.', 0xff4444);
         this.game.hitstopFrames = 12;
         this.game.camera.shake(4);
@@ -1343,11 +1929,13 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Escape altar interaction
+    // Escape altar interaction — UP to open confirmation dialog
     if (this.altarTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-      if (aabbOverlap(pb, this.altarTrigger) && this.game.input.isJustPressed(GameAction.JUMP)) {
-        this.useEscapeAltar();
+      const overlapping = aabbOverlap(pb, this.altarTrigger);
+      if (this.altarHint) this.altarHint.visible = overlapping;
+      if (overlapping && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
+        this.showEscapeConfirm(true);
         return;
       }
     }
@@ -1356,13 +1944,15 @@ export class ItemWorldScene extends Scene {
     // Clamp to grid bounds to prevent out-of-range access
     const playerRoomCol = Math.max(0, Math.min(3, Math.floor(this.player.x / 512)));
     const playerRoomRow = Math.max(0, Math.min(3, Math.floor(this.player.y / 512)));
-    const roomKey = `${playerRoomCol},${playerRoomRow}`;
+    // Convert local row (0-3) to absolute row so room keys are globally unique
+    // across strata and survive exit/re-entry persistence.
+    const _stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const playerAbsRow = _stratumOffset + playerRoomRow;
+    const roomKey = `${playerRoomCol},${playerAbsRow}`;
     if (!this.spawnedRooms.has(roomKey)) {
       this.spawnedRooms.add(roomKey);
       this.currentCol = playerRoomCol;
-      // Convert local row (0-3) to absolute row for unifiedGrid access
-      const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-      this.currentRow = stratumOffset + playerRoomRow;
+      this.currentRow = playerAbsRow;
       const enteredCell = this.getCurrentCell();
       if (enteredCell) {
         enteredCell.visited = true;
@@ -1379,6 +1969,9 @@ export class ItemWorldScene extends Scene {
         }
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
+      // Pre-spawn enemies in the 4-direction neighboring rooms so they don't
+      // pop in front of the player when crossing a doorway.
+      this.preSpawnNeighborRooms(playerRoomCol, playerRoomRow);
     }
 
     // HUD, damage numbers, toast & Sakurai effects
@@ -1405,13 +1998,15 @@ export class ItemWorldScene extends Scene {
 
   private updateHudText(): void {
     const stratumLabel = `S${this.currentStratumIndex + 1}`;
+    const cycleTag = this.progress.cycle > 0 ? ` C${this.progress.cycle}` : '';
     this.hud.setFloorText(
-      `${stratumLabel} ${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
+      `${stratumLabel}${cycleTag} ${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
     );
   }
 
-  private showEscapeConfirm(): void {
+  private showEscapeConfirm(fromAltar = false): void {
     this.escapeConfirmVisible = true;
+    this.escapeConfirmFromAltar = fromAltar;
 
     const panelW = 260;
     const panelH = 72;
@@ -1421,7 +2016,8 @@ export class ItemWorldScene extends Scene {
     bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
     panel.addChild(bg);
 
-    const title = new BitmapText({ text: 'Leave Item World?', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
+    const titleText = fromAltar ? 'Use Escape Altar?' : 'Leave Item World?';
+    const title = new BitmapText({ text: titleText, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     title.x = 12;
     title.y = 6;
     panel.addChild(title);
@@ -1442,7 +2038,7 @@ export class ItemWorldScene extends Scene {
     floorInfo.y = 33;
     panel.addChild(floorInfo);
 
-    const controls = new BitmapText({ text: '[Z] Yes   [X/C] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
+    const controls = new BitmapText({ text: '[X] Yes   [Z/C] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
     controls.x = 12;
     controls.y = 48;
     panel.addChild(controls);
@@ -1456,10 +2052,149 @@ export class ItemWorldScene extends Scene {
 
   private hideEscapeConfirm(): void {
     this.escapeConfirmVisible = false;
+    this.escapeConfirmFromAltar = false;
     if (this.escapeConfirm?.parent) {
       this.escapeConfirm.parent.removeChild(this.escapeConfirm);
     }
     this.escapeConfirm = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stratum picker — choose starting stratum on re-entry (after first clear)
+  // ---------------------------------------------------------------------------
+
+  private showStratumPicker(maxSelectable: number): void {
+    this.stratumPickerVisible = true;
+    this.stratumPickerMax = maxSelectable;
+    // Default selection = lowest cleared (or current default behavior)
+    this.stratumPickerSelection = Math.min(this.currentStratumIndex, maxSelectable - 1);
+    this.drawStratumPicker();
+  }
+
+  private drawStratumPicker(): void {
+    if (this.stratumPicker?.parent) {
+      this.stratumPicker.parent.removeChild(this.stratumPicker);
+    }
+
+    const panelW = 300;
+    const rowH = 14;
+    const headerH = 28;
+    const footerH = 18;
+    const panelH = headerH + rowH * this.stratumPickerMax + footerH + 12;
+
+    const panel = new Container();
+    const bg = new Graphics();
+    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
+    bg.rect(0, 0, panelW, panelH).stroke({ color: 0x6a6a9a, width: 1 });
+    panel.addChild(bg);
+
+    const title = new BitmapText({
+      text: 'Select Starting Stratum',
+      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: 0xffffff },
+    });
+    title.x = 12;
+    title.y = 8;
+    panel.addChild(title);
+
+    for (let i = 0; i < this.stratumPickerMax; i++) {
+      const isSel = i === this.stratumPickerSelection;
+      const y = headerH + i * rowH;
+
+      if (isSel) {
+        const hl = new Graphics();
+        hl.rect(6, y - 2, panelW - 12, rowH).fill({ color: 0x4444aa, alpha: 0.6 });
+        panel.addChild(hl);
+      }
+
+      const stratumDef = this.strataConfig.strata[i];
+      const label = new BitmapText({
+        text: `${isSel ? '> ' : '  '}Stratum ${i + 1}  HP:${stratumDef.enemyHp} ATK:${stratumDef.enemyAtk}`,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? 0xffff88 : 0xaaaaaa },
+      });
+      label.x = 14;
+      label.y = y;
+      panel.addChild(label);
+    }
+
+    const controls = new BitmapText({
+      text: '[<-/->] Change   [X] Confirm   [ESC] Cancel',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88aacc },
+    });
+    controls.x = 12;
+    controls.y = panelH - footerH;
+    panel.addChild(controls);
+
+    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
+
+    this.stratumPicker = panel;
+    this.game.app.stage.addChild(panel);
+  }
+
+  private hideStratumPicker(): void {
+    this.stratumPickerVisible = false;
+    if (this.stratumPicker?.parent) {
+      this.stratumPicker.parent.removeChild(this.stratumPicker);
+    }
+    this.stratumPicker = null;
+  }
+
+  private handleStratumPickerInput(): void {
+    const input = this.game.input;
+
+    if (input.isJustPressed(GameAction.MOVE_LEFT)) {
+      this.stratumPickerSelection = (this.stratumPickerSelection - 1 + this.stratumPickerMax) % this.stratumPickerMax;
+      this.drawStratumPicker();
+      return;
+    }
+    if (input.isJustPressed(GameAction.MOVE_RIGHT)) {
+      this.stratumPickerSelection = (this.stratumPickerSelection + 1) % this.stratumPickerMax;
+      this.drawStratumPicker();
+      return;
+    }
+    if (input.isJustPressed(GameAction.LOOK_UP)) {
+      this.stratumPickerSelection = (this.stratumPickerSelection - 1 + this.stratumPickerMax) % this.stratumPickerMax;
+      this.drawStratumPicker();
+      return;
+    }
+    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
+      this.stratumPickerSelection = (this.stratumPickerSelection + 1) % this.stratumPickerMax;
+      this.drawStratumPicker();
+      return;
+    }
+    if (input.isJustPressed(GameAction.ATTACK)) {
+      const picked = this.stratumPickerSelection;
+      this.hideStratumPicker();
+      this.jumpToStratum(picked);
+      return;
+    }
+    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
+      // Cancel — keep default starting stratum
+      this.hideStratumPicker();
+      return;
+    }
+  }
+
+  /** Jump to the specified stratum's start room and rebuild the full map. */
+  private jumpToStratum(stratumIndex: number): void {
+    if (stratumIndex === this.currentStratumIndex) return;
+    if (stratumIndex < 0 || stratumIndex >= this.strataConfig.strata.length) return;
+
+    this.currentStratumIndex = stratumIndex;
+    this.currentStratumDef = this.strataConfig.strata[stratumIndex];
+
+    // Find this stratum's start room (first row of stratum, on critical path)
+    const offset = this.unifiedGrid.strataOffsets[stratumIndex];
+    if (!offset) return;
+    const startRow = offset.rowOffset;
+    let startCol = 0;
+    for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
+      const cell = this.unifiedGrid.cells[startRow][c];
+      if (cell && cell.onCriticalPath) { startCol = c; break; }
+    }
+
+    this.toast.show(`Stratum ${stratumIndex + 1} — Beginning...`, 0x88ccff);
+    this.startTransition('down', startCol, startRow);
   }
 
   // --- Onboarding ---
@@ -1555,12 +2290,18 @@ export class ItemWorldScene extends Scene {
       this.currentStratumIndex = nextStratumIndex;
       this.currentStratumDef = this.strataConfig.strata[nextStratumIndex];
       this.progress.lastSafeStratum = this.currentStratumIndex;
+      // Permanent unlock: track deepest stratum the player has ever reached
+      if (this.progress.deepestUnlocked < nextStratumIndex) {
+        this.progress.deepestUnlocked = nextStratumIndex;
+      }
+      this.persistRoomState();
 
       this.toast.show(`Stratum ${nextStratumIndex + 1} — Descending...`, 0x8888ff);
       this.startTransition('down', nextStartCol, nextStartRow);
     } else {
       // Deepest stratum cleared — exit item world
       this.progress.lastSafeStratum = this.currentStratumIndex;
+      markItemCleared(this.item);
       this.persistRoomState();
       // Level up already happened on boss kill — just show result
       this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
@@ -1610,12 +2351,37 @@ export class ItemWorldScene extends Scene {
     this.altarVisual.x = altarX;
     this.altarVisual.y = altarY;
     this.entityLayer.addChild(this.altarVisual);
+
+    // Hover hint label — shows only when player overlaps the altar
+    const hint = new Container();
+    const hintLabel = new BitmapText({
+      text: '^ UP to Exit',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
+    });
+    const hintBg = new Graphics();
+    const padX = 3;
+    const padY = 2;
+    const hintW = Math.ceil(hintLabel.width) + padX * 2;
+    const hintH = Math.ceil(hintLabel.height) + padY * 2;
+    hintBg.rect(0, 0, hintW, hintH).fill({ color: 0x1a1a2e, alpha: 0.85 });
+    hintBg.rect(0, 0, hintW, hintH).stroke({ color: 0x8888cc, width: 1 });
+    hintLabel.x = padX;
+    hintLabel.y = padY;
+    hint.addChild(hintBg);
+    hint.addChild(hintLabel);
+    hint.x = Math.floor(altarX + 16 - hintW / 2);
+    hint.y = Math.floor(altarY - hintH - 4);
+    hint.visible = false;
+    this.altarHint = hint;
+    this.entityLayer.addChild(hint);
   }
 
   private clearEscapeAltar(): void {
     if (this.altarVisual?.parent) this.altarVisual.parent.removeChild(this.altarVisual);
     this.altarVisual = null;
     this.altarTrigger = null;
+    if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
+    this.altarHint = null;
   }
 
   private startExitFade(): void {
@@ -1716,6 +2482,7 @@ export class ItemWorldScene extends Scene {
   exit(): void {
     this.toast.clear();
     this.hideEscapeConfirm();
+    this.clearStaticEntities();
     if (this.onboardingPanel?.parent) this.onboardingPanel.parent.removeChild(this.onboardingPanel);
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);

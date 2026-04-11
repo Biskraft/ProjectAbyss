@@ -17,8 +17,14 @@ export interface ItemWorldProgress {
   visitedRooms: string[];
   /** Cleared rooms as "col,absoluteRow" strings (unified grid coordinates) */
   clearedRooms: string[];
+  /** Rooms whose enemies have been spawned at least once (kill persistence) */
+  spawnedRooms: string[];
   /** Last stratum the player safely exited from */
   lastSafeStratum: number;
+  /** All strata beaten at least once. Enables re-dive prompt. */
+  cleared: boolean;
+  /** Replay cycle counter. 0 = first playthrough, 1+ = re-dives. */
+  cycle: number;
 }
 
 export interface ItemInstance {
@@ -37,9 +43,6 @@ export interface ItemInstance {
    */
   innocents: Innocent[];
 
-  /** Commission item — cannot be equipped, anvil-only. */
-  commission?: boolean;
-
   /** Fixed LDtk level ID — loads this hand-crafted level instead of procedural item world. */
   fixedLevelId?: string;
 
@@ -53,10 +56,44 @@ export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress 
       deepestUnlocked: 0,
       visitedRooms: [],
       clearedRooms: [],
+      spawnedRooms: [],
       lastSafeStratum: 0,
+      cleared: false,
+      cycle: 0,
     };
+  } else {
+    // Backfill new fields for existing saves.
+    if (item.worldProgress.cleared === undefined) item.worldProgress.cleared = false;
+    if (item.worldProgress.cycle === undefined) item.worldProgress.cycle = 0;
+    if (item.worldProgress.spawnedRooms === undefined) item.worldProgress.spawnedRooms = [];
   }
   return item.worldProgress;
+}
+
+/** True when the player has beaten every stratum of this item at least once. */
+export function isItemFullyCleared(item: ItemInstance): boolean {
+  return item.worldProgress?.cleared === true;
+}
+
+/** Mark the item as fully cleared (call on deepest stratum boss defeat). */
+export function markItemCleared(item: ItemInstance): void {
+  const wp = getOrCreateWorldProgress(item);
+  wp.cleared = true;
+}
+
+/**
+ * Reset room/stratum progress for another playthrough. Increments the cycle
+ * counter; item level, innocents, and equipment state are preserved.
+ */
+export function resetItemForNextCycle(item: ItemInstance): void {
+  const wp = getOrCreateWorldProgress(item);
+  wp.visitedRooms = [];
+  wp.clearedRooms = [];
+  wp.spawnedRooms = [];
+  wp.lastSafeStratum = 0;
+  wp.deepestUnlocked = 0;
+  wp.cleared = false;
+  wp.cycle += 1;
 }
 
 export const EXP_PER_LEVEL = 300;

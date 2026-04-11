@@ -18,6 +18,7 @@ export interface EnemyStatEntry {
   moveSpeed: number;
   attackCooldown: number;
   jumpTiles: number;
+  exp: number;
 }
 
 /** All enemy stats indexed by "Type:Level" key. */
@@ -40,6 +41,7 @@ for (let i = 1; i < lines.length; i++) {  // skip header
     moveSpeed: parseInt(cols[7]),
     attackCooldown: parseInt(cols[8]),
     jumpTiles: parseInt(cols[9]),
+    exp: cols.length >= 11 ? parseInt(cols[10]) : 0,
   };
 
   ENEMY_STATS.set(`${entry.type}:${entry.level}`, entry);
@@ -49,5 +51,5 @@ for (let i = 1; i < lines.length; i++) {  // skip header
 export function getEnemyStats(type: string, level: number): EnemyStatEntry {
   return ENEMY_STATS.get(`${type}:${level}`)
     ?? ENEMY_STATS.get(`${type}:1`)
-    ?? { type, level: 1, hp: 50, atk: 10, def: 1, detectRange: 160, attackRange: 18, moveSpeed: 60, attackCooldown: 1200, jumpTiles: 0 };
+    ?? { type, level: 1, hp: 50, atk: 10, def: 1, detectRange: 160, attackRange: 18, moveSpeed: 60, attackCooldown: 1200, jumpTiles: 0, exp: 0 };
 }
