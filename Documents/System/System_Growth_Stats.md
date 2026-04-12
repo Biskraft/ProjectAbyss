@@ -1,5 +1,3 @@
-> **⚠️ DEPRECATED — 3스탯 체계 적용 완료:** 이 문서의 6대 스탯(STR/INT/DEX/VIT/SPD/LCK) 내용은 폐기되었습니다. 현재 체계: ATK(물리 공격력) / INT(원소/인챈트) / HP(생존력) 3스탯. DEF는 장비 직접 제공, 크리티컬/드랍률/이동속도는 이노센트 보정. 스탯 게이트는 ATK 단일. 아래 본문은 참조용으로 보존하되, 실제 설계는 3스탯 체계를 따릅니다.
-
 # 성장 스탯 시스템 (Growth Stats System)
 
 ## 구현 현황 (Implementation Status)
@@ -15,11 +13,10 @@
 | STAT-01-B  | 스탯 정의  | 2차 파생 스탯 (ATK/DEF/RES 등)          |    P1    | 📅 대기   | 1차 스탯에서 산출                  |
 | STAT-02-A  | 공식       | FinalStat 합산 공식                     |    P1    | 📅 대기   | Base + Equip + Innocent            |
 | STAT-02-B  | 공식       | MaxHP 산출 공식                         |    P1    | 📅 대기   | 레벨 + 장비 HP 기반                |
-| STAT-02-C  | 공식       | MaxMP 산출 공식                         |    P1    | 📅 대기   | INT + 레벨 기반                    |
 | STAT-03-A  | 성장 테이블| Lv 1-10 기본 스탯 성장 곡선             |    P1    | 📅 대기   | MVP 레벨 캡 = 10                   |
 | STAT-03-B  | 성장 테이블| 레벨업 경험치 요구량 테이블             |    P1    | 📅 대기   | Sheets/Content_System_LevelExp.csv |
 | STAT-04-A  | 전투 연동  | ATK → 전투 데미지 연동                   |    P1    | 📅 대기   | System_Combat_Damage.md 연동       |
-| STAT-04-B  | 전투 연동  | INT → 마법 ATK 및 MaxMP 연동            |    P1    | 📅 대기   | System_Combat_Damage.md 연동       |
+| STAT-04-B  | 전투 연동  | INT → 원소/인챈트 데미지 연동           |    P1    | 📅 대기   | System_Combat_Damage.md 연동       |
 | STAT-04-C  | 전투 연동  | ~~DEX → 명중/회피/크리티컬~~ (삭제)     |    —     | ❌ 폐기   | 이노센트로 대체                    |
 | STAT-04-D  | 전투 연동  | HP → MaxHP 연동                          |    P1    | 📅 대기   | 레벨 + 장비 HP 합산               |
 | STAT-04-E  | 전투 연동  | ~~SPD → 이동/공격 속도~~ (삭제)          |    —     | ❌ 폐기   | 이노센트로 대체                    |
@@ -97,9 +94,9 @@ Project Abyss의 성장 스탯 시스템은 다음 한 문장으로 정의한다
 
 ## 2. 메커닉 (Mechanics)
 
-### 2.1. 6대 기본 스탯 정의
+### 2.1. 3대 기본 스탯 정의
 
-Project Abyss의 모든 전투, 탐험, 성장 계산은 다음 6대 기본 스탯을 기반으로 한다.
+Project Abyss의 모든 전투, 탐험, 성장 계산은 다음 3대 기본 스탯을 기반으로 한다.
 
 | 스탯 ID | 스탯명        | 영문       | 주요 역할                                             | 비고                           |
 | :------ | :------------ | :--------- | :---------------------------------------------------- | :----------------------------- |
@@ -174,7 +171,7 @@ EquipStat = sum(Equipment_Base_Stat * Rarity_Multiplier)  for all equipped items
 | Legendary  | 2.2       |
 | Ancient    | 3.0       |
 
-### 2.3. HP / MP 파생 공식
+### 2.3. HP 파생 공식
 
 #### MaxHP
 
@@ -185,17 +182,6 @@ MaxHP = base_hp + (Level * hp_per_level) + equip_hp
 - `base_hp`: Lv 1 기본값 100
 - `hp_per_level`: 레벨당 HP 증가량 (파라미터 섹션에서 정의)
 - Lv 1에서 base_hp = 100이면, MaxHP = 100 + equip_hp
-
-#### MaxMP
-
-```
-MaxMP = mp_base + (Level * mp_growth_per_level) + (INT * mp_int_scaling)
-```
-
-- `mp_base` = 100
-- `mp_growth_per_level` = 5
-- `mp_int_scaling` = 0.3
-- Lv 1에서 INT = 8이면, MaxMP = 100 + (1 * 5) + (8 * 0.3) = 107.4 → 107 (floor 처리)
 
 ### 2.4. 2차 파생 스탯 산출 흐름
 
@@ -221,6 +207,7 @@ graph TD
     ATK_S --> |물리 데미지| DMG[Damage]
     INT_S --> |원소/인챈트| DMG
     HP_S --> MAXHP[MaxHP]
+    DEF --> |물리 피해 감산| DMG
 ```
 
 ---
@@ -233,7 +220,7 @@ graph TD
 2. 장착된 모든 장비의 스탯을 레어리티 배율 적용 후 합산하여 EquipStat을 구한다.
 3. 복종 상태인 이노센트의 보너스를 모두 합산하여 InnocentBonus를 구한다.
 4. `FinalStat = BaseStat + EquipStat + InnocentBonus`
-5. FinalStat을 기반으로 2차 파생 스탯 (ATK, DEF, MaxHP, MaxMP 등)을 계산한다.
+5. FinalStat을 기반으로 2차 파생 스탯 (ATK, DEF, MaxHP 등)을 계산한다.
 6. 버프/디버프는 2차 파생 스탯 계산 이후에 별도 적용한다 (런타임).
 
 ### 3.2. 스탯 계산 시점
@@ -249,7 +236,7 @@ graph TD
 
 - 스탯 패널에는 FinalStat을 표시한다.
 - 항목별로 BaseStat / EquipStat / InnocentBonus 분해 값을 툴팁으로 제공한다.
-- 소수점 이하 값은 표시하지 않는다 (floor 처리). 단, MaxHP/MaxMP는 소수 없이 정수로 표시한다.
+- 소수점 이하 값은 표시하지 않는다 (floor 처리). 단, MaxHP는 소수 없이 정수로 표시한다.
 
 ### 3.4. 스탯 값 범위
 
@@ -281,23 +268,6 @@ hp_formula:
   # MaxHP = base_hp + (Level * hp_per_level) + equip_hp
   # Lv 1: MaxHP = 100 + equip_hp
 
-mp_formula:
-  mp_base: 100                # 기본 MaxMP (레벨/스탯 독립 고정값)
-  mp_growth_per_level: 5      # 레벨 1당 MaxMP 증가량
-  mp_int_scaling: 0.3         # INT 1당 MaxMP 증가량
-  # MaxMP = 100 + (Level * 5) + (INT * 0.3)
-  # Lv 1: INT=8 → MaxMP = 100 + 5 + 2.4 = 107 (floor)
-
-# [DEPRECATED] 아래 변환 계수는 6스탯 체계 기준이며 현재 폐기됨.
-# 3스탯 체계에서는 ATK/INT가 직접 데미지에, HP가 직접 MaxHP에 반영.
-# DEF는 장비 직접 제공. 크리티컬/드랍률/이동속도는 이노센트로만 보정.
-stat_to_secondary_DEPRECATED:
-  str_to_atk: 1.0             # (폐기) ATK는 직접 스탯
-  vit_to_def: 0.5             # (폐기) DEF는 장비 직접 제공
-  dex_to_hit: 1.0             # (폐기) 이노센트로 대체
-  spd_to_move: 0.2            # (폐기) 이노센트로 대체
-  lck_to_drop: 0.002          # (폐기) 이노센트로 대체
-
 critical_system:
   base_crit_rate: 5.0         # 기본 크리티컬 확률 (%)
   # 크리티컬 보정은 이노센트로만 적용
@@ -323,12 +293,9 @@ level_cap_mvp: 10             # MVP 레벨 상한
 
 ### 4.2. Lv 1-10 기본 스탯 성장 테이블
 
-Lv 1 기준값: HP 100, ATK 10, INT 8 (3스탯 체계. 아래 테이블은 폐기된 6스탯 참조용)
-
-레벨당 증가량은 스탯 ID별 `growth_per_level`에 따라 선형으로 누적된다.
+Lv 1 기준값: HP 100, ATK 10, INT 8. 레벨당 증가량은 스탯 ID별 `growth_per_level`에 따라 선형으로 누적된다.
 
 ```yaml
-# [DEPRECATED] 6스탯 기준 성장량. 3스탯 체계에서는 ATK/INT/HP만 사용.
 # 레벨당 BaseStat 증가량 (growth_per_level)
 base_stat_growth:
   ATK: 2    # 레벨당 +2
@@ -412,7 +379,7 @@ phase2_reserved:
   level_cap_phase2: 100
   stat_gate_thresholds:
     ATK_gate_example: 50      # ATK >= 50 시 물리 장벽 해제 (ATK 단일 게이트)
-    # INT/DEX/VIT/SPD/LCK 게이트는 폐기됨 → 능력 게이트로 대체
+    # INT 게이트는 마법 봉인 해제. 구체적 임계값은 Phase 2에서 정의
   # reincarnation: DEPRECATED (스코프 축소로 삭제)
   # skill_tree_stat_bonus: DEPRECATED (스코프 축소로 삭제 — 스킬은 무기 내장 스킬로 대체)
   growth_curve: linear        # MVP는 선형. Phase 2에서 지수/계단형 검토
@@ -430,13 +397,11 @@ phase2_reserved:
 | 장비 해제 후 EquipStat 제거 시 음수 방지 | EquipStat은 항상 0 이상. 음수 장비 스탯은 존재하지 않는다  |
 | InnocentBonus가 음수인 경우             | 저주(Curse) 이노센트 구현 전까지 InnocentBonus는 0 이상만 허용 |
 
-### 5.2. MaxHP / MaxMP 최솟값
+### 5.2. MaxHP 최솟값
 
 | 상황                               | 처리 방법                                 |
 | :--------------------------------- | :---------------------------------------- |
 | HP가 base_hp 미만인 경우            | MaxHP = base_hp (100) 보장               |
-| INT = 0이고 Lv 1에서 MaxMP 계산    | MaxMP = mp_base + mp_growth_per_level = 105 |
-| MaxMP < mp_base인 경우             | MaxMP = mp_base (100) 보장               |
 
 ### 5.3. 장비 중복 스탯 처리
 
@@ -455,7 +420,7 @@ phase2_reserved:
 
 - 모든 파생 스탯 계산에서 최종 값에 `floor()` 를 적용한다.
 - MaxHP, MaxMP, ATK, DEF는 정수로 저장하고 표시한다.
-- Hit Rate, Evasion, Crit Chance는 소수점 1자리까지 표시한다 (내부 계산은 float 유지).
+- Crit Chance는 소수점 1자리까지 표시한다 (내부 계산은 float 유지).
 
 ---
 

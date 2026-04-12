@@ -201,6 +201,9 @@ graph TD
 | SYS-WLD-05 | World ProcGen | `System/System_World_ProcGen.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-06 | Save & Warp | `System/System_World_SaveWarp.md` | ⬜ 제작 필요 | World | 탐험 |
 | SYS-WLD-07 | Secrets & Rewards | `System/System_World_Secrets.md` | ⬜ 제작 필요 | World | 탐험 |
+| SYS-WLD-08 | Vertical Gimmicks | `System/System_World_VerticalGimmicks.md` | ⬜ 제작 필요 — B1 | World | 탐험 |
+| SYS-WLD-09 | Hazards & Traps | `System/System_World_Hazards.md` | ⬜ 제작 필요 | World | 탐험 |
+| SYS-WLD-10 | Interactables | `System/System_World_Interactables.md` | ⬜ 제작 필요 | World | 탐험 |
 
 **SYS-WLD-01 World Map Structure 범위:**
 - 매크로 구조: 수직 하강 + 가지 경로 토폴로지

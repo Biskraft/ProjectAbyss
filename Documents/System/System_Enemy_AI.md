@@ -147,10 +147,63 @@ Project Abyss의 적 AI 시스템은 다음 한 문장으로 정의한다:
 | Idle | 스폰 직후, 또는 방 비활성 상태 | patrol_enabled = true: Patrol 전환. 플레이어 감지: Detect 전환 | 제자리 대기. 애니메이션: 기본 서 있는 자세 |
 | Patrol | Idle에서 patrol_enabled 조건 충족 | 플레이어 감지: Detect 전환 | patrol_range 범위 내 왕복 이동. 플랫폼 엣지에서 반전 |
 | Detect | 감지 반경 + 시야각 + LoS 동시 충족 | detect_confirm_ms 경과: Chase/Retreat 전환. 조건 미충족 복귀: Patrol 전환 | 이동 정지. 감지 확인 딜레이. 시각적 느낌표 이펙트 표시 |
-| Chase | Detect 확정 후 (근접형) | 공격 사거리 진입: Attack 전환. 감지 범위 이탈: Patrol 전환 | 플레이어 방향으로 chase_speed로 이동 |
+| Chase | Detect 확정 후 (근접형) | 공격 사거리 진입: Attack 전환. 감지 범위 이탈: Patrol 전환 | 아래 §2.2-A Chase 수직 이동 규칙 참조 |
 | Retreat | Detect 확정 후 (원거리형) | 유지 거리 범위 도달: Attack 전환 | 플레이어와의 거리를 keep_distance_min ~ keep_distance_max 유지하며 이동 |
 | Attack | 공격 사거리 내 진입 (근접형) 또는 유지 거리 확보 (원거리형) | 공격 판정 완료: Cooldown 전환 | Tell 애니메이션 재생 후 공격 판정. 공격 중 이동 불가 |
 | Cooldown | Attack 완료 | cooldown_ms 경과: Chase/Retreat 전환 | 이동 정지. 공격 불가. "숨 쉴 틈" 보장 |
+
+#### 2.2-A. Chase 수직 이동 규칙 (지상형 전용)
+
+MovementType=ground인 적(Skeleton, Slime, GoldenMonster 등)의 Chase 상태에서 플레이어와 높이가 다를 때의 행동. MovementType=flying(Ghost, Spark Bat)은 자유 방향 이동이므로 이 규칙 미적용.
+
+**Case 1: 플레이어가 위에 있을 때 (적.Y > 플레이어.Y)**
+
+```
+IF 높이 차 <= JumpTiles * TILE_SIZE:
+  플레이어 방향으로 이동 후 점프
+ELSE:
+  도달 불가. lose_target_delay_ms 후 Patrol 복귀
+```
+
+**Case 2: 플레이어가 아래에 있을 때 (적.Y < 플레이어.Y)**
+
+적은 현재 바닥의 가장자리를 찾아 걸어가서 낙하한다. 단, **낙하 높이가 JumpTiles 범위를 초과하면 뛰어내리지 않는다** (적도 자기 한계를 안다).
+
+```
+1. 현재 바닥의 좌/우 가장자리 탐색
+   가장자리 = 현재 발밑 타일 행에서 바로 아래가 air(0)인 첫 지점
+
+2. 가장자리에서 아래 착지 지점까지 높이 측정
+
+3. IF 낙하 높이 <= JumpTiles * TILE_SIZE:
+     플레이어 방향의 가장자리로 chase_speed 이동 -> 낙하
+   ELSE:
+     도달 불가. lose_target_delay_ms 후 Patrol 복귀
+
+4. 착지 후 Chase 판정 반복
+   - 아직 아래 -> 다시 가장자리 탐색
+   - 같은 층 -> 수평 Chase 재개
+```
+
+**Case 3: 같은 높이**
+
+기존 규칙. 플레이어 방향으로 chase_speed 수평 이동.
+
+**Patrol vs Chase 낙하 차이:**
+- Patrol: 플랫폼 엣지에서 **반전** (떨어지지 않음)
+- Chase: 플레이어가 아래에 있으면 엣지에서 **낙하** (JumpTiles 범위 내일 때만)
+
+#### 2.2-B. 이동 유형 분류 (MovementType)
+
+| MovementType | 지형 충돌 | 수직 이동 | 해당 적 |
+| :--- | :--- | :--- | :--- |
+| **ground** | 벽/바닥 충돌 | 점프 (JumpTiles 위) + 가장자리 낙하 (JumpTiles 아래) | Skeleton, Slime, GoldenMonster, Guardian |
+| **flying** | 솔리드 벽만 충돌, 플랫폼/빈 공간 통과 | 자유 방향 이동 | Ghost, Spark Bat |
+
+- flying 적은 Chase 시 플레이어를 향해 직선 이동. 플랫폼/빈 공간 무시.
+- flying 적은 솔리드 벽(IntGrid 1)에는 충돌 (벽 통과 금지, 공정성).
+
+> **CSV 반영:** `Content_Stats_Enemy.csv`에 `MovementType` 컬럼 추가 필요 (ground/flying).
 
 ### 2.3. 감지 시스템 (Detection System)
 
@@ -430,10 +483,10 @@ enemy_skeleton:
   type: melee
   display_name: "스켈레톤"
 
-  # 기본 스탯 (Lv1, 아이템계 미적용)
+  # 기본 스탯 (Lv1, 아이템계 미적용) — SSoT: Content_Stats_Enemy.csv
   stats:
-    hp: 50
-    atk: 8
+    hp: 80
+    atk: 20
     def: 3
     spd: 1.5        # 이동 속도 (타일/초)
     weight: 1.0     # 넉백 저항 계수. actual_knockback = force / weight
@@ -482,9 +535,9 @@ enemy_skeleton:
   spawn:
     spawn_grace_ms: 500           # 스폰 후 Attack 상태 진입 금지 시간
 
-  # 드랍 테이블
+  # 드랍 테이블 — xp SSoT: Content_Stats_Enemy.csv
   drop:
-    xp: 10
+    xp: 60
     drop_table_ref: "Sheets/Content_Enemy_Drop_Table.csv#ENM_SKELETON"
 ```
 
@@ -496,10 +549,10 @@ enemy_ghost:
   type: ranged
   display_name: "고스트"
 
-  # 기본 스탯 (Lv1, 아이템계 미적용)
+  # 기본 스탯 (Lv1, 아이템계 미적용) — SSoT: Content_Stats_Enemy.csv
   stats:
-    hp: 30
-    atk: 10
+    hp: 40
+    atk: 15
     def: 1
     spd: 2.0        # 이동 속도 (타일/초)
     weight: 0.5     # 가벼운 적: 넉백이 크다. actual_knockback = force / 0.5
@@ -559,9 +612,9 @@ enemy_ghost:
   spawn:
     spawn_grace_ms: 500
 
-  # 드랍 테이블
+  # 드랍 테이블 — xp SSoT: Content_Stats_Enemy.csv
   drop:
-    xp: 15
+    xp: 80
     drop_table_ref: "Sheets/Content_Enemy_Drop_Table.csv#ENM_GHOST"
 ```
 
