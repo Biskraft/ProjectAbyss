@@ -54,7 +54,6 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 [완료] Content_Stats_Character_Base.csv   ← ✅ Lv 1~10 기본 스탯
 [완료] Content_Stats_Weapon_List.csv      ← ✅ 검 5레어리티
 [완료] Content_System_Damage_Formula.csv  ← ✅ 3타입 계수
-[완료] Content_Level_RoomTemplate.csv     ← ✅ 13개 템플릿
 ```
 
 ### Phase 0 작업 목록 (MVP 최소 기획 단위)
@@ -69,10 +68,9 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 | 0-6 | **캐릭터 기본 스탯 CSV** | `Sheets/Content_Stats_Character_Base.csv` | ✅ | Lv 1~10 기본 스탯 테이블 |
 | 0-7 | **무기 스탯 CSV** | `Sheets/Content_Stats_Weapon_List.csv` | ✅ | 검 5레어리티 스탯 |
 | 0-8 | **데미지 공식 CSV** | `Sheets/Content_System_Damage_Formula.csv` | ✅ | Physical/Magical/True 3타입 계수 |
-| 0-9 | **Room 템플릿 CSV** | `Sheets/Content_Level_RoomTemplate.csv` | ✅ | Castle 10개 + ItemWorld 3개 = 13 템플릿 |
-| 0-10 | **용어집** | `Terms/Glossary.md` | ✅ | 38개 핵심 용어 + Quick Reference |
+| 0-9 | **용어집** | `Terms/Glossary.md` | ✅ | 38개 핵심 용어 + Quick Reference |
 
-**Phase 0 완료:** ✅ 10/10 항목 완료 (2026-03-23) → Phase 1 코딩 진행 중
+**Phase 0 완료:** ✅ 9/9 항목 완료 (2026-03-23) → Phase 1 코딩 진행 중
 
 ---
 
@@ -340,14 +338,6 @@ physical,Physical,(ATK * SkillMult) - DEF,1,0.9,1.1,1.5,3.0
 magical,Magical,(INT * SkillMult) - RES,1,0.9,1.1,1.5,3.0
 ```
 
-#### CSV-04: `Sheets/Content_Level_RoomTemplate.csv`
-```
-TemplateID,Biome,Width,Height,ExitTop,ExitBottom,ExitLeft,ExitRight,Difficulty,Tags
-room_castle_01,Castle,320,192,true,false,true,true,1,basic;corridor
-room_castle_02,Castle,320,192,false,true,true,true,1,basic;pit
-...
-```
-
 ### 3. 추가 작성 필요한 메타 문서 (1개)
 
 #### META-01: 용어집 MVP (`Terms/Glossary.md`)
@@ -417,8 +407,7 @@ graph TD
 | 6 | CSV | `Sheets/Content_Stats_Character_Base.csv` | 신규 |
 | 7 | CSV | `Sheets/Content_Stats_Weapon_List.csv` | 신규 |
 | 8 | CSV | `Sheets/Content_System_Damage_Formula.csv` | 신규 |
-| 9 | CSV | `Sheets/Content_Level_RoomTemplate.csv` | 신규 |
-| 10 | META | `Terms/Glossary.md` | 신규 |
+| 9 | META | `Terms/Glossary.md` | 신규 |
 
 ### Phase 2 (알파 직전) — 10건 GDD + 6건 CSV
 
@@ -455,7 +444,7 @@ graph TD
 | 34 | GDD | ~~`System/System_Hub_Facilities.md`~~ | ❌ DEPRECATED |
 | 35 | GDD | ~~`System/System_Hub_NPCShop.md`~~ | ❌ DEPRECATED |
 | 36 | GDD | `System/System_ItemWorld_Boss.md` | 신규 |
-| 37 | GDD | `System/System_ItemWorld_Recursion.md` | 신규 |
+| 37 | GDD | `System/System_ItemWorld_Recursion.md` | 신규 | (REMOVED - 재귀 진입 폐기, DEC-001)
 | 38 | GDD | `System/System_ItemWorld_Events.md` | 신규 |
 | 39 | GDD | `System/System_ItemWorld_GeoEffects.md` | 신규 |
 | 40 | GDD | `System/System_Innocent_Farm.md` | ❌ DEPRECATED |

@@ -5,7 +5,7 @@
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 * Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 * Glossary: `Documents/Terms/Glossary.md`
-* 3-Space Architecture: `Documents/Design/Design_Architecture_2Space.md`
+* 2-Space Architecture: `Documents/Design/Design_Architecture_2Space.md`
 * Equipment Rarity: `Documents/System/System_Equipment_Rarity.md`
 * Item World Core: `Documents/System/System_ItemWorld_Core.md`
 * Game Overview: `Reference/게임 기획 개요.md`

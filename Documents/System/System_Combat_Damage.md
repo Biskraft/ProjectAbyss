@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-04-07
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** 전체 (World + Item World + Hub는 전투 없음)
+> **2-Space:** 전체 (World + Item World + Hub는 전투 없음)
 > **기둥:** 전체
 
 | 기능 ID    | 분류       | 기능명 (Feature Name)                | 우선순위 | 구현 상태    | 비고 (Notes)                  |
@@ -365,7 +365,7 @@ Stratum_Enemy_HP  = Base_HP  * (1 + Stratum_Number * Stratum_HP_Scale)
 
 #### 설계 철학: Push Forward Combat
 
-Hollow Knight의 "공격=회복 연료" 철학을 채택한다. HP 회복의 주 경로를 전투 행동(적 처치)과 연동하여, 적을 피해 다니는 소극적 플레이보다 적극적인 전투가 생존에 유리한 구조를 만든다. 단, Hollow Knight와 달리 Project Abyss는 3-Space 간 긴장감 차등이 필요하므로 공간별로 회복률을 조정한다.
+Hollow Knight의 "공격=회복 연료" 철학을 채택한다. HP 회복의 주 경로를 전투 행동(적 처치)과 연동하여, 적을 피해 다니는 소극적 플레이보다 적극적인 전투가 생존에 유리한 구조를 만든다. 단, Hollow Knight와 달리 Project Abyss는 2-Space 간 긴장감 차등이 필요하므로 공간별로 회복률을 조정한다.
 
 #### 전투 외 자동 회복 (Out-of-Combat Auto-Regen)
 

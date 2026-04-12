@@ -14,7 +14,6 @@
 * 아이템 서사 템플릿: `Documents/System/System_ItemNarrative_Template.md` (SYS-INS-01)
 * 이노센트 코어: `Documents/System/System_Innocent_Core.md` (Phase 2)
 * 리서치: `Documents/Research/Disgaea_ItemWorld_CoreMechanics.md` (§4 미스터리 게이트)
-* 리서치: `Documents/Research/ItemWorld_RecursiveEntry_Research.md`
 
 ---
 
@@ -22,7 +21,7 @@
 
 > **최근 업데이트:** 2026-03-29
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** Item World
+> **2-Space:** Item World
 > **기둥:** 야리코미 (주), 메트로베니아 탐험 (부)
 
 | 기능 ID  | 분류     | 기능명 (Feature Name)                       | 우선순위 | 구현 상태 | 비고 (Notes)                                       |

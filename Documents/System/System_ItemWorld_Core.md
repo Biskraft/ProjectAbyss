@@ -10,7 +10,7 @@
 * 지층 생성 알고리즘: `Documents/System/System_ItemWorld_FloorGen.md` (SYS-IW-02) — HOW를 다룸. 이 문서와 중복 금지
 * 장비 레어리티: `Documents/System/System_Equipment_Rarity.md`
 * 이노센트 시스템: `Documents/System/System_Innocent_Core.md` (Phase 2)
-* 3-Space 아키텍처: `Documents/Design/Design_Architecture_2Space.md`
+* 2-Space 아키텍처: `Documents/Design/Design_Architecture_2Space.md`
 * 디스가이아 아이템계 연구: `Documents/Research/Disgaea_ItemWorld_CoreMechanics.md`
 
 ---
@@ -19,7 +19,7 @@
 
 > **최근 업데이트:** 2026-03-25
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** Item World
+> **2-Space:** Item World
 > **기둥:** 야리코미 (주), 온라인 멀티플레이 (부)
 
 | 기능 ID   | 분류   | 기능명 (Feature Name)             | 우선순위 | 구현 상태       | 비고 (Notes)                          |

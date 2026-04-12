@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-03-25
 > **문서 상태:** `Draft`
-> **3-Space:** Item World (서사 정의), Hub (아이템 프로필 표시)
+> **2-Space:** Item World (서사 정의), Hub (아이템 프로필 표시)
 > **기둥:** 야리코미 (주), 메트로베니아 탐험 (부)
 
 | 기능 ID    | 분류         | 기능명 (Feature Name)                    | 우선순위 | 구현 상태    | 비고 (Notes)                             |
@@ -24,7 +24,6 @@
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Narrative & Worldbuilding: `Documents/Design/Design_Narrative_Worldbuilding.md`
-* Quest Narrative Framework: `Documents/System/System_Quest_Narrative.md`
 * Item World Core: `Documents/System/System_ItemWorld_Core.md`
 * Equipment Rarity: `Documents/System/System_Equipment_Rarity.md`
 * World Bible: `Documents/Content/Content_World_Bible.md`

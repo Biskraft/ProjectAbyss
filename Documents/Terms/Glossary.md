@@ -69,7 +69,7 @@
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2~4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
-| ~~Hub~~ | ~~허브~~ | ~~DEPRECATED. 기존 3-Space 모델의 세 번째 공간. 사교·거래·파티 매칭이 이루어지는 고정 맵 사교 공간. 2-Space 전환으로 폐기. 대장간/상점은 월드 세이브 포인트에 통합, 파티 합류는 URL 링크 공유로 아이템계 직접 진입.~~ | — |
+| ~~Hub~~ | ~~허브~~ | ~~DEPRECATED. 기존 2-Space 모델의 세 번째 공간. 사교·거래·파티 매칭이 이루어지는 고정 맵 사교 공간. 2-Space 전환으로 폐기. 대장간/상점은 월드 세이브 포인트에 통합, 파티 합류는 URL 링크 공유로 아이템계 직접 진입.~~ | — |
 | Hurtbox | 허트박스 | 피격 판정이 발생하는 캐릭터의 영역. 상대방의 히트박스와 겹쳤을 때 피해를 받는다. 일반적으로 캐릭터 스프라이트 크기보다 약간 작게 설정되어 관대한 판정을 제공한다. | `Documents/System/System_3C_Character.md` |
 
 ---
@@ -87,7 +87,7 @@
 | Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item Overlord | 아이템 대신 | 아이템계 최심층 지층에 출현하는 최상위 보스. 처치 시 아이템 레어리티 승급 기회와 대량 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2~4개 지층으로 구성되며, 1~4인이 협동하여 지층을 클리어하며 장비를 직접 강화한다. 3-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
+| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2~4개 지층으로 구성되며, 1~4인이 협동하여 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
 
@@ -110,7 +110,6 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | No.1 | 넘버 원 | 에르다의 첫 이노센트. 말을 못하는 빛나는 구체. 정체는 스승 마르타가 남긴 이노센트로, 10년간 에르다와 마르타를 연결하는 매개체였다. Act 1에서 개그 마스코트, Act 3에서 서사적 핵심. | `Documents/Content/Content_World_Bible.md` |
-| ~~Narrative Archetype~~ | ~~서사 아키타입~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제. 서사는 아이템 내러티브 시스템으로 전달.~~ | — |
 
 ---
 
@@ -128,7 +127,6 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| ~~Quest Branch~~ | ~~퀘스트 분기~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
 
 ---
 
@@ -176,7 +174,7 @@
 | :--- | :--- | :--- | :--- |
 | Tell | 예고 동작 | 적 또는 보스가 강력한 공격을 시전하기 직전 재생하는 예고 모션·이펙트. 플레이어가 회피를 준비할 수 있는 공정성 장치. | `Documents/System/System_Combat_Action.md` |
 | ~~VIT~~ | ~~생명력 스탯~~ | ~~DEPRECATED. 기존 최대 HP/환경 저항 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. MaxHP는 레벨 + Dietician 이노센트로 성장.~~ | — |
-| World | 월드 | 3-Space 모델의 첫 번째 공간. 솔로(1인) 탐험을 중심으로 한 핸드크래프트+절차적 혼합 맵. 능력 게이트와 스탯 게이트로 비선형 진행이 설계되며, 아이템 획득과 능력 해금이 주요 보상이다. | `Documents/Design/Design_Architecture_2Space.md`, `Reference/게임 기획 개요.md` |
+| World | 월드 | 2-Space 모델의 첫 번째 공간. 솔로(1인) 탐험을 중심으로 한 핸드크래프트+절차적 혼합 맵. 능력 게이트와 스탯 게이트로 비선형 진행이 설계되며, 아이템 획득과 능력 해금이 주요 보상이다. | `Documents/Design/Design_Architecture_2Space.md`, `Reference/게임 기획 개요.md` |
 
 ---
 
@@ -190,12 +188,7 @@
 | 심연 전쟁 | Abyss War | 약 150~100년 전 발생한 세계적 전쟁. 심연의 기억을 해방하려는 해방파(기억 연구원)와 현재 세계를 수호하려는 수호파(성채 의회+수호단)가 대립. 영웅 카엘 오르스가 심연과 협약을 맺어 종결했다. | `Documents/Content/Content_World_Bible.md` |
 | 카엘 오르스 | Kael Ors | 심연 전쟁의 영웅. 심연의 검을 들고 심연 속으로 뛰어들어 심연과 협약을 맺었다. 협약의 닻으로서 100년간 심연 속에 머물고 있다. 심연의 검 최심층에서 기억으로서 대면 가능. | `Documents/Content/Content_World_Bible.md` |
 | 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
-| 수렴 계시 | Convergence Revelation | 5개 Ancient 아이템을 모두 탐구했을 때 발동하는 최종 계시 시스템. Tier 7 해금과 카엘 오르스 대면으로 이어진다. | `Documents/Content/Content_World_Bible.md`, `Documents/System/System_Quest_Narrative.md` |
 | 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
-| ~~변수 치환~~ | ~~Variable Substitution~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
-| ~~맥락 레이어~~ | ~~Context Layer~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
-| ~~인카운터 모델~~ | ~~Encounter Model~~ | ~~DEPRECATED. 기존 퀘스트 서사 프레임워크의 구성 요소. System_Quest_Narrative.md 폐기로 삭제.~~ | — |
-| 기억 탐구 | Memory Investigation | Memory Strata 전용 서사 아키타입. 플레이어가 아이템의 기원을 환경 단서를 통해 지층별로 조사하며 아이템의 전생을 해독하는 퀘스트 구조. PA 고유의 6번째 아키타입이다. | `Documents/System/System_Quest_Narrative.md`, `Documents/Design/Design_Narrative_Worldbuilding.md` |
 
 ---
 

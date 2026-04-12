@@ -6,7 +6,7 @@
 > **참조 문서:**
 > - `Documents/Research/Disgaea_ItemWorld_UXPatterns.md`
 > - `Documents/Research/Disgaea_ItemWorld_InnocentSystem.md`
-> - `Documents/Research/HubSpace_Social_Design_Research.md`
+> - `Documents/Research/HubSpace_Social_Design_Research.md (archived, removed 2026-04-10)`
 > - `Reference/게임 기획 개요.md`
 > **외부 레퍼런스:** Monster Hunter, Diablo 4, Destiny 2, Warframe, Pokemon, FFXIV, WoW
 

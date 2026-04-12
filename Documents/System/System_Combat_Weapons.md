@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-03-29
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** World + Item World
+> **2-Space:** World + Item World
 > **기둥:** 야리코미 (주), 메트로베니아 탐험 (부)
 
 | 기능 ID    | 분류           | 기능명 (Feature Name)                        | 우선순위 | 구현 상태  | 비고 (Notes)                                      |
@@ -131,6 +131,8 @@ Project Abyss 무기 시스템은 다음 한 문장으로 정의한다:
 ### 3.1. 무기 비교 매트릭스 (Weapon Comparison Matrix)
 
 검을 Baseline(1.0)으로 한 상대 배율이다. 절대값은 `Sheets/Content_Stats_Weapon_List.csv`가 SSoT이다.
+
+> **SSoT 주의:** CSV의 Range 값은 추상 수치(48-60)이며, 코드(`weapons.ts`)에서 픽셀 단위(64-76)로 변환된다. 변환식: `pixelRange = csvRange + 16`. 밸런스 조정 시 CSV를 수정하면 코드 변환이 자동 적용된다.
 
 | 무기         | 타수 | 사거리 | 속도  | 범위  | DPS 지수 | 주력 스탯 | 스탯 배율 | 구현 Phase |
 | :----------- | :--: | :----: | :---: | :---: | :------: | :-------: | :-------: | :--------: |

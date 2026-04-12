@@ -78,7 +78,7 @@ graph TD
 
 ## 2. Design (설계 원칙/철학)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | D-01 | 2-Space Architecture | `Design/Design_Architecture_2Space.md` | ✅ 완료 | 전체 | 전체 |
 | D-02 | Core Loop Design | `Design/Design_CoreLoop_Circulation.md` | ✅ 완료 | 전체 | 전체 |
@@ -127,7 +127,7 @@ graph TD
 
 ### 3.1 Core: 3C (Character / Camera / Control)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-3C-01 | Character Design | `System/System_3C_Character.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-3C-02 | Camera System | `System/System_3C_Camera.md` | ✅ 완료 | 전체 | 탐험 |
@@ -155,7 +155,7 @@ graph TD
 
 ### 3.2 전투 시스템 (Combat)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-CMB-01 | Action System | `System/System_Combat_Action.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | SYS-CMB-02 | Damage System | `System/System_Combat_Damage.md` | ✅ 완료 | 전체 | 전체 |
@@ -175,7 +175,7 @@ graph TD
 
 ### 3.3 성장 시스템 (Growth)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-LVL-01 | Stat System | `System/System_Growth_Stats.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-LVL-02 | Level & Experience | `System/System_Growth_LevelExp.md` | ✅ 완료 | 전체 | 야리코미 |
@@ -184,7 +184,7 @@ graph TD
 
 ### 3.4 장비 시스템 (Equipment)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-EQP-01 | Equipment Slots | `System/System_Equipment_Slots.md` | ✅ 완료 | 전체 | 야리코미 |
 | SYS-EQP-02 | Rarity System | `System/System_Equipment_Rarity.md` | ✅ 완료 | 전체 | 야리코미 |
@@ -192,7 +192,7 @@ graph TD
 
 ### 3.5 월드 시스템 (World)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-WLD-01 | World Map Structure | `System/System_World_MapStructure.md` | ✅ 완료 | World | 탐험 |
 | SYS-WLD-02 | Zone Design | `System/System_World_ZoneDesign.md` | ✅ 완료 | World | 탐험 |
@@ -218,7 +218,7 @@ graph TD
 
 ### 3.6 아이템계 시스템 (Item World)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-IW-01 | Item World Core | `System/System_ItemWorld_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-IW-02 | IW Strata Generation | `System/System_ItemWorld_FloorGen.md` | ✅ 완료 | IW | 야리코미 |
@@ -237,7 +237,7 @@ graph TD
 
 ### 3.7 아이템 서사 시스템 (Item Narrative)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-INR-01 | Item Narrative Template | `System/System_ItemNarrative_Template.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-INR-02 | Environment Pool | `System/System_ItemNarrative_EnvironmentPool.md` | ✅ 완료 | IW | 야리코미 |
@@ -245,7 +245,7 @@ graph TD
 
 ### 3.8 퀘스트 서사 시스템 (Quest Narrative)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-QST-01 | ~~Quest Narrative Framework~~ | `System/System_Quest_Narrative.md` | ❌ DEPRECATED | — | — |
 
@@ -253,13 +253,13 @@ graph TD
 
 ### 3.9 대화 시스템 (Dialogue)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-DLG-01 | ~~Dialogue System~~ | `System/System_Dialogue.md` | ❌ DEPRECATED | — | — |
 
 ### 3.10 이노센트 시스템 (Innocent)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW | 야리코미 |
 | SYS-INC-02 | ~~Innocent Farm~~ | `System/System_Innocent_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
@@ -267,7 +267,7 @@ graph TD
 
 ### 3.11 적 & AI 시스템 (Enemy)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-MON-01 | Enemy AI Behavior | `System/System_Enemy_AI.md` | ✅ 완료 | World+IW | 탐험 |
 | SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
@@ -275,7 +275,7 @@ graph TD
 
 ### 3.12 멀티플레이 시스템 (Multiplayer)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-MP-01 | Multiplayer Architecture | `System/System_Multi_Architecture.md` | ⬜ 제작 필요 | 전체 | 멀티플레이 |
 | SYS-MP-02 | Party System | `System/System_Multi_Party.md` | ⬜ 제작 필요 | IW | 멀티플레이 |
@@ -284,7 +284,7 @@ graph TD
 
 ### 3.13 경제 시스템 (Economy)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
 | ~~SYS-ECO-02~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
@@ -293,7 +293,7 @@ graph TD
 
 > 허브가 폐기되어 대장간/상점은 월드 세이브 포인트로 통합.
 
-| ID | 문서명 | 경로 | 상태 | 3-Space | 기둥 |
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | ~~SYS-HUB-01~~ | ~~Hub Facilities~~ | ~~`System/System_Hub_Facilities.md`~~ | ❌ DEPRECATED | — | — |
 | ~~SYS-HUB-02~~ | ~~NPC & Shop~~ | ~~`System/System_Hub_NPCShop.md`~~ | ❌ DEPRECATED | — | — |
@@ -302,7 +302,7 @@ graph TD
 
 ## 4. UI (UI/HUD 명세)
 
-| ID | 문서명 | 경로 | 상태 | 3-Space |
+| ID | 문서명 | 경로 | 상태 | 2-Space |
 | :--- | :--- | :--- | :--- | :--- |
 | UI-01 | HUD Layout | `UI/UI_HUD_Layout.md` | ⬜ 제작 필요 | 전체 |
 | UI-02 | Inventory UI | `UI/UI_Inventory.md` | ⬜ 제작 필요 | 전체 |
@@ -329,7 +329,7 @@ graph TD
 | CNT-06 | Skill List | `Content/Content_Skill_List.md` | ⬜ 제작 필요 |
 | CNT-07 | Boss List | `Content/Content_Boss_List.md` | ⬜ 제작 필요 |
 | CNT-08 | Room Template Catalog | `Content/Content_RoomTemplate_Catalog.md` | ⬜ 제작 필요 |
-| CNT-EXP-002 | 첫 30분 경험 플로우 v2 | `Content/Content_First30Min_v2.md` | 🔄 진행 중 |
+| CNT-EXP-002 | 첫 30분 경험 플로우 v2 | `Content/Content_First30Min_v2.md` | 🔄 REMOVED |
 
 ---
 
@@ -345,7 +345,6 @@ graph TD
 | Content_Level_Zone_Config.csv | `Sheets/` | SYS-WLD-02, CNT-05 | ⬜ 제작 필요 |
 | Content_System_Skill_List.csv | `Sheets/` | SYS-LVL-03, CNT-06 | ⬜ 제작 필요 |
 | Content_System_IW_BossTable.csv | `Sheets/` | SYS-IW-03, CNT-07 | ⬜ 제작 필요 |
-| Content_Level_RoomTemplate.csv | `Sheets/` | SYS-WLD-05, SYS-IW-02, CNT-08 | ✅ 완료 |
 | Content_System_LevelExp_Curve.csv | `Sheets/` | SYS-LVL-02 | ⬜ 제작 필요 |
 | Content_System_Damage_Formula.csv | `Sheets/` | SYS-CMB-02 | ✅ 완료 |
 
@@ -381,7 +380,7 @@ graph TD
 | RES-ELE-01 | Elemental System Comparison | `Research/ElementalSystem_Comparison_Research.md` | 원소 시스템 비교 |
 | RES-IW-DR-01 | IW Depth Reward Risk Balance | `Research/ItemWorld_DepthReward_RiskBalance_Research.md` | 아이템계 깊이/보상/위험 밸런스 |
 | RES-IW-ET-01 | IW Entry Transition | `Research/ItemWorld_EntryTransition_Research.md` | 아이템계 진입 전환 연출 |
-| RES-IW-RE-01 | IW Recursive Entry | `Research/ItemWorld_RecursiveEntry_Research.md` | 아이템계 재귀 진입 |
+| RES-IW-RE-01 | IW Recursive Entry | `Research/ItemWorld_RecursiveEntry_Research.md` | 아이템계 재귀 진입 | (REMOVED)
 | RES-MV-ST-01 | Metroidvania Stat System Comparison | `Research/Metroidvania_StatSystem_Comparison_Research.md` | 메트로베니아 스탯 시스템 비교 |
 | RES-SKL-01 | Skill System ActionRPG | `Research/SkillSystem_ActionRPG_Research.md` | 액션RPG 스킬 시스템 |
 | RES-SPK-01 | Spike Feature Competitive Analysis | `Research/SpikeFeature_CompetitiveAnalysis_Research.md` | 스파이크 피처 경쟁 분석 |
@@ -415,7 +414,7 @@ graph LR
     end
 
     subgraph "Design Philosophy"
-        D01[D-01 3-Space]
+        D01[D-01 2-Space]
         D02[D-02 Core Loop]
         D04[D-04 Metroidvania]
         D05[D-05 Yarikomi]
@@ -497,8 +496,7 @@ graph LR
 | 6 | CSV-02 Weapon_List.csv | ✅ | 검 1종, 5레어리티 스탯 |
 | 7 | SYS-CMB-03 Weapons & Slots | ✅ | 검 1종 모션/히트박스 정의 |
 | 8 | SYS-MON-01 Enemy AI | ✅ | 근접형/원거리형 2패턴 AI |
-| 9 | CSV-04 RoomTemplate.csv | ✅ | Room 템플릿 13개 메타데이터 |
-| 10 | T-03 Glossary | ✅ | MVP 38용어 정의 |
+| 9 | T-03 Glossary | ✅ | MVP 38용어 정의 |
 
 ### Phase 1: MVP 프로토타입 (코딩 중 병행) — 4건
 

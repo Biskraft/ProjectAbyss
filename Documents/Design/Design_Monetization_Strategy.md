@@ -4,7 +4,7 @@
 
 > 최근 업데이트: 2026-04-04
 > 문서 상태: `작성 중 (Draft)`
-> 3-Space: 전체 (World / Item World / Hub)
+> 2-Space: 전체 (World / Item World / Hub)
 > 기둥: 전체 (탐험 / 야리코미 / 멀티플레이)
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
@@ -22,7 +22,7 @@
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 - Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 - Glossary: `Documents/Terms/Glossary.md`
-- 3-Space 분리 모델 (D-01): `Documents/Design/Design_Architecture_2Space.md`
+- 2-Space 분리 모델 (D-01): `Documents/Design/Design_Architecture_2Space.md`
 - 핵심 순환 구조 (D-02): `Documents/Design/Design_CoreLoop_Circulation.md`
 - 경제 설계 철학 (D-07): `Documents/Design/Design_Economy_FaucetSink.md`
 - 성장과 보상 설계 (D-11): `Documents/Design/Design_Progression_Reward.md`

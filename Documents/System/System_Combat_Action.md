@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-03-23
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** World + Item World
+> **2-Space:** World + Item World
 > **기둥:** 탐험 + 야리코미
 
 | 기능 ID    | 분류       | 기능명 (Feature Name)                | 우선순위 | 구현 상태    | 비고 (Notes)                  |

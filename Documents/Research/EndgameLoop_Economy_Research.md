@@ -805,7 +805,7 @@ HL 리셋으로 경제 신선도 유지
 
 ---
 
-## 7. Project Abyss 3-Space 순환 경제 설계 시사점
+## 7. Project Abyss 2-Space 순환 경제 설계 시사점
 
 ### 7.1 월드 → 아이템계 → 허브 순환의 경제적 균형
 
@@ -1023,7 +1023,7 @@ Ancient 아이템 획득까지 평균 소요 시간 (수동): 30~50시간
 ## 참고 자료
 
 ### 내부 문서
-- `Reference/게임 기획 개요.md` — 3-Space 모델, 핵심 순환 구조
+- `Reference/게임 기획 개요.md` — 2-Space 모델, 핵심 순환 구조
 - `Documents/System/System_Equipment_Rarity.md` — 레어리티 체계, 드랍률
 - `Documents/System/System_Equipment_Slots.md` — 장비 슬롯 구조
 - `Documents/System/System_Growth_Stats.md` — 성장 스탯 시스템

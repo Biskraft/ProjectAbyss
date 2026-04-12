@@ -515,11 +515,11 @@ PA는 주인공이 완전 침묵이므로 일반 게임보다 더 강한 시각 
 
 ### 내부 연계 문서
 
-- `Documents/Content/Content_First30Min_v2.md` — PA 첫 30분 스크린별 상세 설계
+- `Documents/Content/Content_First30Min_ExperienceFlow.md` — PA 첫 30분 스크린별 상세 설계
 - `Documents/Design/Design_CoreLoop_Circulation.md` — PA 핵심 순환 구조
 - `Documents/System/System_World_StatGating.md` — ATK/스탯 게이트 시스템
 - `Documents/System/System_Innocent_Core.md` — 이노센트 시스템 핵심
 
 ---
 
-*본 리서치는 `Content_First30Min_v2.md`의 설계 공리를 이론적으로 검증하고, 구현 단계에서 참조할 기법 카탈로그를 제공하기 위해 작성되었습니다. 개별 패턴은 독립적으로 적용 가능하며, 조합 효과는 PA 첫 30분 설계에서 이미 적용되어 있습니다.*
+*본 리서치는 `Content_First30Min_ExperienceFlow.md`의 설계 공리를 이론적으로 검증하고, 구현 단계에서 참조할 기법 카탈로그를 제공하기 위해 작성되었습니다. 개별 패턴은 독립적으로 적용 가능하며, 조합 효과는 PA 첫 30분 설계에서 이미 적용되어 있습니다.*

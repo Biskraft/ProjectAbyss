@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-04-08
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** 전체 (World + Item World + Hub)
+> **2-Space:** 전체 (World + Item World + Hub)
 > **기둥:** 탐험 + 야리코미 + 멀티플레이
 
 | 기능 ID    | 분류   | 기능명 (Feature Name)              | 우선순위 | 구현 상태    | 비고 (Notes)              |

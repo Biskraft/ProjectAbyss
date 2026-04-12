@@ -6,7 +6,7 @@
 * Project Definition: `Documents/Terms/Project_Vision_Abyss.md`
 * 이동 시스템: `Documents/System/System_3C_Character.md`
 * 전투 시스템: `Documents/System/System_Combat_Action.md`
-* 3-Space 시스템: `Documents/Design/Design_Architecture_2Space.md`
+* 2-Space 시스템: `Documents/Design/Design_Architecture_2Space.md`
 
 ---
 
@@ -14,7 +14,7 @@
 
 > **최근 업데이트:** 2026-03-23
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** 전체
+> **2-Space:** 전체
 > **기둥:** 전체
 
 | 기능 ID    | 분류       | 기능명 (Feature Name)                | 우선순위 | 구현 상태    | 비고 (Notes)                  |

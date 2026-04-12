@@ -6,7 +6,7 @@
 > **참조 문서:**
 > - `Documents/Design/Design_Narrative_Worldbuilding.md`
 > - `Documents/System/System_ItemWorld_Core.md`
-> - `Documents/Research/ItemWorld_RecursiveEntry_Research.md`
+> - `Documents/Research/ItemWorld_RecursiveEntry_Research.md (archived, removed 2026-04-10)`
 
 ---
 

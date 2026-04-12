@@ -6,7 +6,7 @@
 
 > **최근 업데이트:** 2026-04-02
 > **문서 상태:** `초안 (Draft)`
-> **3-Space:** World
+> **2-Space:** World
 > **기둥:** 탐험
 
 | 기능 ID      | 분류   | 기능명 (Feature Name)              | 우선순위 | 구현 상태    | 비고 (Notes)                  |
@@ -26,7 +26,7 @@
 
 - **Project Vision:** `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 이중 게이트, 순환 구조, 주인공 정의)
 - **첫 30분 플로우:** `Documents/Content/Content_First30Min_ExperienceFlow.md` (에르다의 첫 경험, 영웅의 여정)
-- **3-Space 철학:** `Documents/Design/Design_Architecture_2Space.md` (월드의 존재 이유, 솔로 격리 원칙)
+- **2-Space 철학:** `Documents/Design/Design_Architecture_2Space.md` (월드의 존재 이유, 솔로 격리 원칙)
 - **메트로베니아 설계:** `Documents/Design/Design_Metroidvania_Philosophy.md` (비선형 탐험, 능력 게이트 심리학)
 - **절차적 생성:** `Documents/System/System_World_ProcGen.md` (매크로 구조 고정, 마이크로 절차적)
 - **세계관:** `Documents/Content/Content_World_Bible.md` (7개 층위 배경, 심연 전쟁 역사, 에르다/마르타/세라/카엘 정의)

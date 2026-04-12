@@ -7,7 +7,7 @@
 * Glossary: `Documents/Terms/Glossary.md`
 * Game Overview: `Reference/게임 기획 개요.md`
 * GDD Roles: `Documents/Terms/GDD_Roles.md`
-* 3-Space Architecture (D-01): `Documents/Design/Design_Architecture_2Space.md`
+* 2-Space Architecture (D-01): `Documents/Design/Design_Architecture_2Space.md`
 * 디스가이아 시스템 분석: `Reference/디스가이아 시스템 분석.md`
 * 캐슬바니아 시스템 분석: `Reference/캐슬바니아 시스템 분석.md`
 * 아이템계 역기획서: `Reference/Disgaea_ItemWorld_Reverse_GDD.md`
@@ -59,7 +59,7 @@ Project Abyss는 이 본질을 이중 게이트(능력 게이트 + 스탯 게이
 | :--- | :--- |
 | 능력 게이트만 존재 (순수 메트로베니아) | 능력 게이트 + 스탯 게이트 이중 구조. 탐험만으로는 모든 곳에 갈 수 없고, 아이템계에서 장비를 강화해야 한다 |
 | 아이템 강화가 자기 완결적 (순수 야리코미) | 아이템계에서 강화한 장비가 월드의 스탯 게이트를 해금. 강화의 목적이 외부(월드)에 존재한다 |
-| 파밍과 탐험이 같은 공간 (디아블로) | 3-Space 분리로 파밍(아이템계)과 탐험(월드)의 감정을 분리하여 각각의 순수한 재미를 보존한다 |
+| 파밍과 탐험이 같은 공간 (디아블로) | 2-Space 분리로 파밍(아이템계)과 탐험(월드)의 감정을 분리하여 각각의 순수한 재미를 보존한다 |
 
 ---
 
@@ -294,9 +294,9 @@ graph LR
 
 ---
 
-## 9. 순환 구조와 3-Space의 관계
+## 9. 순환 구조와 2-Space의 관계
 
-순환 구조는 3-Space 분리 모델 위에서 작동한다. 각 공간이 순환의 특정 역할을 담당하며, 공간 간 이동이 곧 순환의 전환이다.
+순환 구조는 2-Space 분리 모델 위에서 작동한다. 각 공간이 순환의 특정 역할을 담당하며, 공간 간 이동이 곧 순환의 전환이다.
 
 ### 9-1. 공간별 순환 역할
 

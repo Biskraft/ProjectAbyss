@@ -4,7 +4,7 @@
 
 > 최근 업데이트: 2026-03-23
 > 문서 상태: `작성 중 (Draft)`
-> 3-Space: 전체 (World + Item World - 아이템 획득/착용, Hub - 장비 관리)
+> 2-Space: 전체 (World + Item World - 아이템 획득/착용, Hub - 장비 관리)
 > 기둥: 야리코미
 
 | 기능 ID  | 분류     | 기능명 (Feature Name)               | 우선순위 | 구현 상태 | 비고 (Notes)                        |

@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-04-07
 > **문서 상태:** `작성 중 (Draft)`
-> **3-Space:** World (비-크리티컬 경로)
+> **2-Space:** World (비-크리티컬 경로)
 > **기둥:** 메트로베니아 (탐험), 야리코미 (아이템계 연결)
 
 | 기능 ID     | 분류     | 기능명 (Feature Name)              | 우선순위 | 구현 상태   | 비고 (Notes)                                    |
@@ -23,7 +23,7 @@
 
 - **프로젝트 비전**: `Documents/Terms/Project_Vision_Abyss.md`
 - **작성 규칙**: `Documents/Terms/GDD_Writing_Rules.md`
-- **3-Space 아키텍처**: `Documents/Design/Design_Architecture_2Space.md`
+- **2-Space 아키텍처**: `Documents/Design/Design_Architecture_2Space.md`
 - **메트로베니아 철학 (§4 이중 게이트)**: `Documents/Design/Design_Metroidvania_Philosophy.md`
 - **레벨 디자인 규격 (§4-2 스탯 게이트)**: `Documents/Design/Design_Level_Standards.md`
 - **성장 스탯 시스템**: `Documents/System/System_Growth_Stats.md`

@@ -24,7 +24,7 @@
 | 항목 | 내용 |
 |:-----|:-----|
 | **파일 경로** | `Documents/System/System_ItemWorld_Boss.md` |
-| **3-Space** | Item World |
+| **2-Space** | Item World |
 | **기둥** | 야리코미 |
 
 **설계할 내용:**
@@ -66,11 +66,11 @@
 | 항목 | 내용 |
 |:-----|:-----|
 | **파일 경로** | `Documents/Design/Design_Economy_FaucetSink.md` |
-| **3-Space** | 전체 |
+| **2-Space** | 전체 |
 | **기둥** | 전체 |
 
 **설계할 내용:**
-- 자원 Faucet(생성원)/Sink(소멸원) 매핑: 3-Space별 자원 흐름
+- 자원 Faucet(생성원)/Sink(소멸원) 매핑: 2-Space별 자원 흐름
 - 핵심 통화: HL, 제작 소재, 이노센트, 경험치
 - 인플레이션 방지: HL 싱크 설계 (장비 강화, NPC 상점)
 - 드롭 경제: 레어리티별 기대 드롭률, 보스 드롭 보너스

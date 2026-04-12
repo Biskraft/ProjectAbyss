@@ -4,7 +4,7 @@
 > **문서 ID:** SYS-INN-001
 > **문서 상태:** Draft
 > **작성일:** 2026-03-25
-> **3-Space:** Item World (아이템계 전용)
+> **2-Space:** Item World (아이템계 전용)
 > **설계 의도:** 100개 이상의 아이템 서사를 효율적으로 제작하기 위한 테마 기반 몬스터 풀 시스템. 개별 아이템 서사 문서는 이 풀에서 몬스터를 조합하여 사용한다.
 
 ---
@@ -15,7 +15,7 @@
 | :--- | :--- |
 | Narrative & Worldbuilding | `Documents/Design/Design_Narrative_Worldbuilding.md` |
 | Enemy AI System | `Documents/System/System_Enemy_AI.md` |
-| Quest Narrative Framework | `Documents/System/System_Quest_Narrative.md` |
+| Quest Narrative Framework | `Documents/System/System_ItemNarrative_Template.md` |
 | 아이템 서사 예시 (기준 문서) | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
 | 환경 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` |
 | 이노센트 타입 | `Documents/System/System_Innocent_Core.md` §3 |

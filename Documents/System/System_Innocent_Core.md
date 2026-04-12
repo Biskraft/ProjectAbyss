@@ -10,7 +10,7 @@
 - 아이템계 코어: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01)
 - 장비 레어리티: `Documents/System/System_Equipment_Rarity.md`
 - 스탯 게이트: `Documents/System/System_World_StatGating.md`
-- 3-Space 아키텍처: `Documents/Design/Design_Architecture_2Space.md`
+- 2-Space 아키텍처: `Documents/Design/Design_Architecture_2Space.md`
 - 디스가이아 이노센트 연구: `Documents/Research/Disgaea_ItemWorld_InnocentSystem.md`
 - 이노센트 분류 밸런스 연구: `Documents/Research/Innocent_Classification_Balance_Research.md`
 - 이노센트 성장 경제 연구: `Documents/Research/Innocent_Growth_Economy_Research.md`
