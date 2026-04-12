@@ -2,7 +2,7 @@ import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
-import { VirtualPad } from '@ui/VirtualPad';
+
 import { trackGameStart } from '@utils/Analytics';
 
 function showStatus(msg: string): void {
@@ -49,11 +49,6 @@ try {
     await game.sceneManager.push(new WorldScene(game));
   } else {
     await game.sceneManager.push(new TitleScene(game));
-  }
-
-  // Virtual pad for mobile
-  if (VirtualPad.isTouchDevice()) {
-    new VirtualPad(game.input);
   }
 
   // Analytics: session start

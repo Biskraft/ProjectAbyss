@@ -1,19 +1,22 @@
 /**
- * DialogueBox.ts — Portrait-style dialogue UI with typing effect.
+ * LoreDisplay.ts — Portrait-style lore text UI with typing effect.
  *
  * Layout:
  *  ┌──────┬──────────────────────────────┐
- *  │      │  Speaker Name                │
- *  │ PORT │  Dialogue text typing...     │
+ *  │      │  Source Name                 │
+ *  │ PORT │  Lore text typing...         │
  *  │ RAIT │                           ▼  │
  *  └──────┴──────────────────────────────┘
+ *
+ * Used in ItemWorldScene Memory Rooms to replay an item's memory fragments.
+ * This is NOT character dialogue — Erda never speaks. The text represents
+ * the item's recorded memory being replayed.
  *
  * Features:
  *  - Left-side portrait (sprite or colored placeholder)
  *  - Typewriter effect with punctuation delays
  *  - Slide-in / slide-out animation
  *  - ▼ blinking advance indicator
- *  - Silent protagonist: Erda never appears in dialogue UI
  */
 
 import { Container, Graphics, BitmapText, Sprite, Texture, Assets } from 'pixi.js';
@@ -21,7 +24,6 @@ import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
 import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
-import type { DialogueLine } from '@data/dialogues';
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
@@ -34,7 +36,6 @@ const PORTRAIT_PAD = 6;
 const TEXT_LEFT = PORTRAIT_SIZE + PORTRAIT_PAD * 2 + 4;
 const SPEAKER_Y = 6;
 const BODY_Y = 20;
-const BODY_MAX_W = GAME_WIDTH - TEXT_LEFT - 12;
 
 // Timing
 const TYPE_SPEED = 35;          // ms per character
@@ -46,10 +47,25 @@ const BLINK_SPEED = 500;        // ms per blink cycle
 
 type BoxState = 'hidden' | 'slide_in' | 'typing' | 'waiting' | 'slide_out';
 
+/** A single lore line displayed in the memory replay UI. */
+export interface LoreLine {
+  /** The text content of this memory fragment. */
+  text: string;
+  /** Optional source label (item name, fragment ID, etc.). */
+  speaker?: string;
+  /** Optional speaker color override (hex number). */
+  speakerColor?: number;
+  /** Portrait key — loads assets/portraits/{portrait}.png. Falls back to speaker. */
+  portrait?: string;
+  /** If set, the line auto-closes after this many milliseconds. */
+  autoCloseMs?: number;
+}
+
 // Portrait cache
 const portraitCache = new Map<string, Texture>();
 
-export class DialogueBox {
+/** Displays item memory fragment text in a slide-up panel. */
+export class LoreDisplay {
   readonly container: Container;
   private boxContainer: Container;  // slides up/down
   private bg: Graphics;
@@ -62,7 +78,7 @@ export class DialogueBox {
   private portraitPlaceholder: Graphics;
 
   private state: BoxState = 'hidden';
-  private lines: DialogueLine[] = [];
+  private lines: LoreLine[] = [];
   private lineIndex = 0;
   private charIndex = 0;
   private typeTimer = 0;
@@ -74,7 +90,7 @@ export class DialogueBox {
   private resolveFn: (() => void) | null = null;
   private input: InputManager;
 
-  /** True during NPC dialogue — blocks player movement. */
+  /** True while lore text is being displayed — blocks player movement. */
   blocksMovement = false;
 
   constructor(input: InputManager) {
@@ -109,13 +125,13 @@ export class DialogueBox {
       .stroke({ color: 0x556677, width: 1 });
     this.portraitContainer.addChild(portraitBorder);
 
-    // Placeholder (colored square for NPCs without portrait image)
+    // Placeholder (colored square for sources without portrait image)
     this.portraitPlaceholder = new Graphics();
     this.portraitPlaceholder.rect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE)
       .fill({ color: 0x334455 });
     this.portraitContainer.addChild(this.portraitPlaceholder);
 
-    // Speaker name
+    // Source label
     this.speakerText = new BitmapText({
       text: '',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc44 },
@@ -131,7 +147,6 @@ export class DialogueBox {
     });
     this.bodyText.x = TEXT_LEFT;
     this.bodyText.y = BODY_Y;
-    // BitmapText doesn't support maxWidth — manual line breaks in text data
     this.boxContainer.addChild(this.bodyText);
 
     // Advance hint ▼
@@ -146,17 +161,13 @@ export class DialogueBox {
     this.boxContainer.addChild(this.advanceHint);
   }
 
+  /** True when the display is visible (not in 'hidden' state). */
   get isActive(): boolean {
     return this.state !== 'hidden';
   }
 
-  /** Show a single monologue line (auto-close, doesn't block movement). */
-  showMonologue(text: string, autoCloseMs = 3000): Promise<void> {
-    return this.showDialogue([{ text, autoCloseMs }]);
-  }
-
-  /** Show a sequence of dialogue lines. Resolves when all lines are done. */
-  showDialogue(lines: DialogueLine[], freezePlayer?: boolean): Promise<void> {
+  /** Show a sequence of lore lines. Resolves when all lines are dismissed. */
+  showDialogue(lines: LoreLine[], freezePlayer?: boolean): Promise<void> {
     this.lines = lines;
     this.lineIndex = 0;
 
@@ -175,6 +186,7 @@ export class DialogueBox {
     });
   }
 
+  /** Immediately hide the display and resolve any pending promise. */
   close(): void {
     this.state = 'hidden';
     this.container.visible = false;
@@ -186,6 +198,7 @@ export class DialogueBox {
     }
   }
 
+  /** Must be called every frame while the display may be active. */
   update(dt: number): void {
     if (this.state === 'hidden') return;
 
@@ -281,7 +294,6 @@ export class DialogueBox {
   private startLine(): void {
     const line = this.lines[this.lineIndex];
 
-    // Speaker name
     if (line.speaker) {
       this.speakerText.text = line.speaker;
       this.speakerText.style.fill = line.speakerColor ?? 0xffcc44;
@@ -290,10 +302,8 @@ export class DialogueBox {
       this.speakerText.visible = false;
     }
 
-    // Portrait
     this.preparePortrait(line);
 
-    // Reset typing state
     this.bodyText.text = '';
     this.charIndex = 0;
     this.typeTimer = 0;
@@ -307,18 +317,16 @@ export class DialogueBox {
     if (this.lineIndex < this.lines.length) {
       this.startLine();
     } else {
-      // Slide out
       this.state = 'slide_out';
       this.slideTimer = SLIDE_DURATION;
     }
   }
 
-  private preparePortrait(line: DialogueLine): void {
+  private preparePortrait(line: LoreLine): void {
     const key = line.portrait ?? line.speaker ?? '';
     if (key === this.currentPortraitKey) return;
     this.currentPortraitKey = key;
 
-    // Remove old sprite
     if (this.portraitSprite) {
       this.portraitContainer.removeChild(this.portraitSprite);
       this.portraitSprite = null;
@@ -329,14 +337,12 @@ export class DialogueBox {
       return;
     }
 
-    // Try cached texture
     const cached = portraitCache.get(key);
     if (cached) {
       this.setPortraitTexture(cached);
       return;
     }
 
-    // Try loading from assets/portraits/{key}.png
     const path = assetPath(`assets/portraits/${key}.png`);
     Assets.load(path).then((tex: Texture) => {
       portraitCache.set(key, tex);
@@ -344,7 +350,6 @@ export class DialogueBox {
         this.setPortraitTexture(tex);
       }
     }).catch(() => {
-      // No portrait file — show colored placeholder with initial
       this.portraitPlaceholder.visible = true;
       this.portraitPlaceholder.clear();
       const color = line.speakerColor ?? 0x556677;

@@ -28,7 +28,7 @@ import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
 import { getEnemyStats } from '@data/enemyStats';
 import { getMemoryRoom } from '@data/memoryRoomTable';
-import { DialogueBox } from '@ui/DialogueBox';
+import { LoreDisplay } from '@ui/LoreDisplay';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -46,7 +46,6 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
-import { ThoughtBubble } from '@ui/ThoughtBubble';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
@@ -100,7 +99,6 @@ export class ItemWorldScene extends Scene {
   private hitSparks!: HitSparkManager;
   private screenFlash!: ScreenFlash;
   private toast!: ToastManager;
-  private thought!: ThoughtBubble;
 
   // Item being explored
   private item: ItemInstance;
@@ -172,7 +170,7 @@ export class ItemWorldScene extends Scene {
     pulseTimer: number;
     bobTimer: number;
   }> = [];
-  private dialogueBox: DialogueBox | null = null;
+  private loreDisplay: LoreDisplay | null = null;
 
   // Room transition
   private transitionState: TransitionState = 'none';
@@ -341,10 +339,6 @@ export class ItemWorldScene extends Scene {
     // Toast
     this.toast = new ToastManager(this.game.app.stage);
 
-    // Thought bubble (monologue above player)
-    this.thought = new ThoughtBubble();
-    this.entityLayer.addChild(this.thought.container);
-
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
     this.countTotalRooms();
@@ -381,9 +375,9 @@ export class ItemWorldScene extends Scene {
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
-    // Dialogue box for Memory Rooms — reuses the same UI as LdtkWorldScene
-    this.dialogueBox = new DialogueBox(this.game.input);
-    this.game.app.stage.addChild(this.dialogueBox.container);
+    // LoreDisplay for Memory Rooms — displays item memory fragments
+    this.loreDisplay = new LoreDisplay(this.game.input);
+    this.game.app.stage.addChild(this.loreDisplay.container);
 
     this.initialized = true;
 
@@ -541,11 +535,10 @@ export class ItemWorldScene extends Scene {
         const mask = this.computeDoorMask(cell ?? null, ldtkLevel);
         this.applyDoorMaskToFullGrid(mask, offR, offC);
 
-        // Render room tiles at pixel offset within fullMapContainer.
-        // Template wallTiles are INTENTIONALLY skipped — we draw a single
-        // flat 0x383838 rect per solid collision cell instead, so every
-        // wall in the item world looks uniform regardless of template art.
-        // Background/shadow layers still render normally from LDtk.
+        // Render room tiles — ALL layers including wallTiles so that LDtk
+        // auto-tile rules for platform(3), updraft(4), etc. render properly.
+        // drawUniformWalls then overlays flat color ONLY on wall(1)/spike(5)/
+        // ice(7)/breakable(9), leaving platform/updraft LDtk art intact.
         const roomContainer = new Container();
         roomContainer.x = col * IW_ROOM_W_PX;
         roomContainer.y = localRow * IW_ROOM_H_PX;
@@ -553,9 +546,10 @@ export class ItemWorldScene extends Scene {
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+        const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
-        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlas);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlas);
         roomContainer.addChild(renderer.container);
 
         // Uniform flat wall fill: every solid tile in this room's fullGrid
@@ -985,15 +979,15 @@ export class ItemWorldScene extends Scene {
     }
 
     // Dialogue trigger check
-    if (!this.dialogueBox) return;
-    if (this.dialogueBox.isActive) return;
+    if (!this.loreDisplay) return;
+    if (this.loreDisplay.isActive) return;
     const pcx = this.player.x + this.player.width / 2;
     const pcy = this.player.y + this.player.height / 2;
     for (const t of this.memoryTriggers) {
       const inside = pcx >= t.x && pcx < t.x + t.w && pcy >= t.y && pcy < t.y + t.h;
       if (inside && !t.active) {
         t.active = true;
-        this.dialogueBox.showDialogue([{
+        this.loreDisplay.showDialogue([{
           text: t.text,
           speaker: t.speaker,
           portrait: t.portrait,
@@ -1158,11 +1152,17 @@ export class ItemWorldScene extends Scene {
         }
       }
     }
+    // Carves: only overwrite SOLID tiles (wall/ice/breakable) to air.
+    // Non-solid tiles (platform, water, updraft, spike, air) are preserved
+    // so template-placed platforms near door edges don't get destroyed.
     for (const rect of mask.carveRectsLocal) {
       for (let r = rect.r0; r < rect.rN; r++) {
         for (let c = rect.c0; c < rect.cN; c++) {
           const gr = offR + r, gc = offC + c;
-          if (gr >= 0 && gr < H && gc >= 0 && gc < W) this.fullGrid[gr][gc] = 0;
+          if (gr >= 0 && gr < H && gc >= 0 && gc < W) {
+            const v = this.fullGrid[gr][gc];
+            if (v === 1 || v === 7 || v === 9) this.fullGrid[gr][gc] = 0;
+          }
         }
       }
     }
@@ -1198,11 +1198,14 @@ export class ItemWorldScene extends Scene {
         if (v === 0) continue; // air
         const px = lc * TILE_SIZE;
         const py = lr * TILE_SIZE;
-        let color = 0x383838; // default wall
-        if (v === 5) color = 0xcc3333;      // spike — red
+        // Only overlay uniform color on specific solid types.
+        // Platform(3), updraft(4), water(2) keep their LDtk auto-tile visuals.
+        let color: number;
+        if (v === 1) color = 0x383838;       // wall — uniform gray
+        else if (v === 5) color = 0xcc3333;  // spike — red
         else if (v === 7) color = 0x88ccff;  // ice — light blue
         else if (v === 9) color = 0x5a4433;  // breakable — dark brown
-        else if (v === 2 || v === 3 || v === 4) continue; // water/platform/updraft: skip (keep template bg)
+        else continue;                       // 2/3/4/others: LDtk handles rendering
         gfx.rect(px, py, TILE_SIZE, TILE_SIZE).fill({ color, alpha: 1.0 });
       }
     }
@@ -2362,13 +2365,8 @@ export class ItemWorldScene extends Scene {
   update(dt: number): void {
     if (!this.initialized) return;
 
-    // Toast & thought bubble always update
+    // Toast always updates
     this.toast.update(dt);
-    this.thought.update(dt);
-    this.thought.updatePosition(
-      this.player.x + this.player.width / 2,
-      this.player.y,
-    );
 
     // Onboarding blocks gameplay
     if (!this.onboardingDone) {
@@ -2384,9 +2382,9 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Dialogue box (Memory Room lore) — when active, pause gameplay
-    if (this.dialogueBox?.isActive) {
-      this.dialogueBox.update(dt);
+    // LoreDisplay (Memory Room lore) — when active, pause gameplay
+    if (this.loreDisplay?.isActive) {
+      this.loreDisplay.update(dt);
       return;
     }
 
@@ -2648,6 +2646,11 @@ export class ItemWorldScene extends Scene {
         if (this.item.level > prevLevel) {
           this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
         }
+
+        // Boss clear heal: 30% maxHP (GDD HEL-03)
+        const bossHeal = Math.floor(this.player.maxHp * 0.30);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + bossHeal);
+        if (bossHeal > 0) this.toast.show(`HP +${bossHeal}`, 0x44ff44);
 
         // Remove any existing escape altar so portal is the only interactable
         this.clearEscapeAltar();
@@ -3232,12 +3235,12 @@ export class ItemWorldScene extends Scene {
     this.toast.clear();
     this.hideEscapeConfirm();
     this.clearStaticEntities();
-    if (this.dialogueBox) {
-      this.dialogueBox.close();
-      if (this.dialogueBox.container.parent) {
-        this.dialogueBox.container.parent.removeChild(this.dialogueBox.container);
+    if (this.loreDisplay) {
+      this.loreDisplay.close();
+      if (this.loreDisplay.container.parent) {
+        this.loreDisplay.container.parent.removeChild(this.loreDisplay.container);
       }
-      this.dialogueBox = null;
+      this.loreDisplay = null;
     }
     if (this.onboardingPanel?.parent) this.onboardingPanel.parent.removeChild(this.onboardingPanel);
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);

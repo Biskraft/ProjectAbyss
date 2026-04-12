@@ -54,6 +54,7 @@ import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
 import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
+import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
@@ -64,7 +65,7 @@ import { ScreenFlash } from '@effects/ScreenFlash';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
 import { WorldMapOverlay } from '@ui/WorldMapOverlay';
-import { DialogueManager } from '@systems/DialogueManager';
+
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
@@ -142,9 +143,6 @@ export class LdtkWorldScene extends Scene {
   // Boss lock
   private bossActive = false;
   private bossLockDoors: LockedDoor[] = [];
-
-  // Dialogue
-  private dialogueManager!: DialogueManager;
 
   // Tutorial hints
   private tutorialHint!: TutorialHint;
@@ -309,9 +307,6 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.app.stage.addChild(this.screenFlash.overlay);
 
-    // Dialogue
-    this.dialogueManager = new DialogueManager(this.game.input, this.game.app.stage, this.entityLayer);
-
     // Tutorial hints
     this.tutorialHint = new TutorialHint(this.game.input, this.game.app.stage);
 
@@ -385,20 +380,6 @@ export class LdtkWorldScene extends Scene {
 
     // Dialogue box active ??block game input (NPC dialogue blocks movement)
     // Check dialogue FIRST, before UI consumes input
-    this.dialogueManager.update(dt);
-    this.dialogueManager.updateThoughtPosition(
-      this.player.x + this.player.width / 2,
-      this.player.y,
-    );
-    if (this.dialogueManager.box.isActive) {
-      this.toast.update(dt);
-      if (!this.dialogueManager.blocksMovement()) {
-        this.player.update(dt);
-      }
-      this.game.camera.update(dt);
-      return;
-    }
-
     // Toast & tutorial hints update after gameplay input is processed
     this.toast.update(dt);
     this.tutorialHint.update(dt);
@@ -871,13 +852,6 @@ export class LdtkWorldScene extends Scene {
     // Portal interactions
     this.updatePortals(dt);
 
-    // Area dialogue triggers
-    if (this.currentLevel) {
-      this.dialogueManager.checkAreaTriggers(
-        this.player.x, this.player.y, this.currentLevel.identifier,
-      );
-    }
-
     // Ending trigger check
     if (!this.endingActive) {
       this.checkEndingTrigger();
@@ -990,7 +964,6 @@ export class LdtkWorldScene extends Scene {
   exit(): void {
     this.toast.clear();
     this.tutorialHint.destroy();
-    this.dialogueManager.destroy();
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     // if (this.controlsOverlay?.container.parent) {
     //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
@@ -1211,11 +1184,6 @@ export class LdtkWorldScene extends Scene {
     // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
     this.processLdtkEntities(level);
 
-    // Register LDtk Dialogue entities as triggers
-    if (this.dialogueManager) {
-      this.dialogueManager.registerLdtkDialogues(level.entities, level.identifier);
-    }
-
     // Settle player physics (gravity snap to floor) before camera snap
     for (let i = 0; i < 5; i++) {
       this.player.update(16.667);
@@ -1238,11 +1206,6 @@ export class LdtkWorldScene extends Scene {
       this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
       this.worldMap.setMarkers(this.collectMapMarkers());
       this.worldMap.redraw();
-    }
-
-    // Auto dialogue triggers for this level
-    if (this.dialogueManager) {
-      this.dialogueManager.checkAutoTriggers(level.identifier);
     }
 
   }
@@ -1592,6 +1555,10 @@ export class LdtkWorldScene extends Scene {
   }
 
   private performSave(): void {
+    // Full heal + Flask refill at save point (GDD HEL-04)
+    this.player.hp = this.player.maxHp;
+    this.player.flaskCharges = this.player.flaskMaxCharges;
+
     // Visual feedback
     this.screenFlash.flash(0x44ffaa, 0.3, 200);
     this.game.hitstopFrames = 4;
@@ -2655,27 +2622,27 @@ export class LdtkWorldScene extends Scene {
   // ---------------------------------------------------------------------------
 
   private updatePlayerAtk(): void {
-    const baseStr = 10; // Lv1 STR
+    // Base stats from CSV (SSoT: Sheets/Content_Stats_Character_Base.csv)
+    const base = getPlayerBaseStats(1); // Lv1 for now (no player leveling yet)
     const weaponAtk = this.inventory.getWeaponAtk();
 
-    // Innocent bonus ATK ??flat bonus from all subdued/wild innocent 'atk' slots
+    // Innocent bonus ATK — flat bonus from all subdued/wild innocent 'atk' slots
     const equippedItem = this.inventory.equipped;
     const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
 
     // DEBUG cheat relic — flat +99999 on top of everything
     const cheatBonus = this.player.abilities.cheat ? 99999 : 0;
 
-    this.player.atk = baseStr + weaponAtk + innocentAtk + cheatBonus;
+    this.player.atk = base.atk + weaponAtk + innocentAtk + cheatBonus;
 
-    // Innocent bonus DEF ??base 5 + innocent 'def' bonus
+    // DEF: base from CSV + innocent bonus
     const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
-    this.player.def = 5 + innocentDef;
+    this.player.def = base.def + innocentDef;
 
-    // Innocent bonus MaxHP ??base 100 + innocent 'hp' bonus
+    // MaxHP: base from CSV + innocent bonus + cheat
     const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
-    const newMaxHp = 100 + innocentHp + cheatBonus;
+    const newMaxHp = base.hp + innocentHp + cheatBonus;
     if (newMaxHp !== this.player.maxHp) {
-      // Scale current HP proportionally when max changes (standard RPG convention)
       const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
       this.player.maxHp = newMaxHp;
       this.player.hp = Math.round(newMaxHp * hpRatio);
@@ -3398,6 +3365,7 @@ export class LdtkWorldScene extends Scene {
     // Remember where we came from so we can return
     this.preTunnelLevelId = this.currentLevel.identifier;
     this.inItemTunnel = true;
+    if (this.minimap) this.minimap.visible = false;
 
     const tunnelId = LdtkWorldScene.TUNNEL_BY_RARITY[this.collapseItem.rarity];
     const tunnelExists = this.loader.getLevel(tunnelId);
@@ -3622,105 +3590,140 @@ export class LdtkWorldScene extends Scene {
   private minimap: Container | null = null;
   private worldMap!: WorldMapOverlay;
 
+  /**
+   * Fixed-viewport HUD minimap (GDD System_UI_Minimap.md §1).
+   * - Panel: 128×72 px (16:9). Position: top-right.
+   * - Viewport: current room centered, ±3 cells shown.
+   * - Background: alpha 0.6 black. Border: 1px #666666.
+   * - Current room: white 2px border + blinking player dot.
+   * - Visited: tier theme color. Adjacent: dim. Undiscovered: hidden.
+   * - Save point: red dot. Opacity: 70% normal.
+   */
   private drawMinimap(): void {
     if (this.minimap) {
       if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
     }
     this.minimap = new Container();
 
+    if (!this.currentLevel) return;
+
     const worldMap = this.loader.getWorldMap()
       .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld'));
     if (worldMap.length === 0) return;
 
-    // Only show visited rooms + their immediate neighbors (as silhouettes)
-    const visibleIds = new Set<string>();
+    // GDD spec: 128×72 panel (16:9)
+    const PW = 128;
+    const PH = 72;
+
+    // Viewport: 16:9 world-space window centered on current room.
+    // "3 cells" ≈ 3 × 768 px (typical room width) → ~2304 wide.
+    const VP_W = 2304;
+    const VP_H = VP_W * (PH / PW); // maintain 16:9 → 1296
+
+    const curCX = this.currentLevel.worldX + this.currentLevel.pxWid / 2;
+    const curCY = this.currentLevel.worldY + this.currentLevel.pxHei / 2;
+    const vpLeft = curCX - VP_W / 2;
+    const vpTop  = curCY - VP_H / 2;
+    const scaleX = PW / VP_W;
+    const scaleY = PH / VP_H;
+
+    // Fog of war
+    const visitedIds = this.visitedLevels;
     const adjacentIds = new Set<string>();
-    for (const id of this.visitedLevels) {
-      visibleIds.add(id);
+    for (const id of visitedIds) {
       const level = this.loader.getLevel(id);
       if (level) {
         for (const nb of level.neighbors) {
-          if (!visibleIds.has(nb)) adjacentIds.add(nb);
+          if (!visitedIds.has(nb)) adjacentIds.add(nb);
         }
       }
     }
 
-    const relevantMap = worldMap.filter(r => visibleIds.has(r.id) || adjacentIds.has(r.id));
-    if (relevantMap.length === 0) return;
-
-    // Find bounds of visible area
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const r of relevantMap) {
-      minX = Math.min(minX, r.x);
-      minY = Math.min(minY, r.y);
-      maxX = Math.max(maxX, r.x + r.w);
-      maxY = Math.max(maxY, r.y + r.h);
-    }
-
-    const worldW = maxX - minX;
-    const worldH = maxY - minY;
-    const mapW = 80;
-    const mapH = 60;
-    const scale = Math.min(mapW / worldW, mapH / worldH);
-    const actualW = worldW * scale + 4;
-    const actualH = worldH * scale + 4;
-
     // Background
     const bg = new Graphics();
-    bg.rect(0, 0, actualW, actualH).fill({ color: 0x000000, alpha: 0.5 });
-    bg.rect(0, 0, actualW, actualH).stroke({ color: 0x445566, width: 0.5 });
+    bg.rect(0, 0, PW, PH).fill({ color: 0x000000, alpha: 0.6 });
+    bg.rect(0, 0, PW, PH).stroke({ color: 0x666666, width: 1 });
     this.minimap.addChild(bg);
 
-    // Draw rooms
-    for (const r of relevantMap) {
-      const rx = (r.x - minX) * scale + 2;
-      const ry = (r.y - minY) * scale + 2;
-      const rw = Math.max(2, r.w * scale);
-      const rh = Math.max(2, r.h * scale);
+    // Clip content inside panel
+    const content = new Container();
 
-      const isCurrent = r.id === this.currentLevel?.identifier;
-      const visited = this.visitedLevels.has(r.id);
+    // Draw rooms
+    for (const r of worldMap) {
+      if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
+      if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
+
+      const isCurrent = r.id === this.currentLevel.identifier;
+      const visited = visitedIds.has(r.id);
       const adjacent = adjacentIds.has(r.id);
+      if (!isCurrent && !visited && !adjacent) continue;
+
+      let rx = (r.x - vpLeft) * scaleX;
+      let ry = (r.y - vpTop) * scaleY;
+      let rw = Math.max(1, r.w * scaleX);
+      let rh = Math.max(1, r.h * scaleY);
+
+      // Clamp to panel bounds
+      if (rx < 0) { rw += rx; rx = 0; }
+      if (ry < 0) { rh += ry; ry = 0; }
+      if (rx + rw > PW) rw = PW - rx;
+      if (ry + rh > PH) rh = PH - ry;
+      if (rw <= 0 || rh <= 0) continue;
 
       let color: number;
       let alpha: number;
       if (isCurrent) {
-        color = 0x44ff44; alpha = 1.0;
+        color = 0x5A7A8C; alpha = 1.0; // tier theme (default: central fortress blue-gray)
       } else if (visited) {
         color = 0x5577aa; alpha = 0.8;
-      } else if (adjacent) {
-        color = 0x333344; alpha = 0.4;
       } else {
-        continue;
+        color = 0x333344; alpha = 0.4;
       }
 
       const g = new Graphics();
       g.rect(rx, ry, rw, rh).fill({ color, alpha });
-      if (visited || isCurrent) {
-        g.rect(rx, ry, rw, rh).stroke({ color: 0x88aacc, width: 0.5 });
+      if (visited) {
+        g.rect(rx, ry, rw, rh).stroke({ color: 0x556688, width: 0.5 });
       }
-      this.minimap.addChild(g);
+      // Current room: white 2px border (GDD §1.5)
+      if (isCurrent) {
+        g.rect(rx, ry, rw, rh).stroke({ color: 0xffffff, width: 2 });
+      }
+      content.addChild(g);
     }
 
-    // Markers ??save points
-    for (const r of relevantMap) {
-      if (!this.visitedLevels.has(r.id)) continue;
+    // Save point markers (red ★)
+    for (const r of worldMap) {
+      if (!visitedIds.has(r.id)) continue;
+      if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
+      if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
       const level = this.loader.getLevel(r.id);
       if (!level) continue;
       const hasSave = level.entities.some(e => e.type === 'GameSaver');
       if (hasSave) {
-        const rx = (r.x - minX) * scale + 2 + (r.w * scale) / 2;
-        const ry = (r.y - minY) * scale + 2 + (r.h * scale) / 2;
+        const mx = Math.min(PW - 2, Math.max(2, (r.x - vpLeft) * scaleX + (r.w * scaleX) / 2));
+        const my = Math.min(PH - 2, Math.max(2, (r.y - vpTop) * scaleY + (r.h * scaleY) / 2));
         const marker = new Graphics();
-        marker.circle(rx, ry, 1.5).fill(0xff4444);
-        this.minimap.addChild(marker);
+        marker.circle(mx, my, 2).fill(0xff4444);
+        content.addChild(marker);
       }
     }
 
-    // Position at top-right corner
-    this.minimap.x = GAME_WIDTH - actualW - 4;
+    // Player dot (3×3 white, blinking via update alpha modulation)
+    {
+      const px = Math.min(PW - 2, Math.max(2, (this.player.x + this.currentLevel.worldX - vpLeft) * scaleX));
+      const py = Math.min(PH - 2, Math.max(2, (this.player.y + this.currentLevel.worldY - vpTop) * scaleY));
+      const dot = new Graphics();
+      dot.rect(px - 1.5, py - 1.5, 3, 3).fill(0xffffff);
+      content.addChild(dot);
+    }
+
+    this.minimap.addChild(content);
+
+    // Position: top-right (GDD §1.1)
+    this.minimap.x = GAME_WIDTH - PW - 4;
     this.minimap.y = 4;
-    this.minimap.alpha = 0.85;
+    this.minimap.alpha = 0.7;
     this.game.app.stage.addChild(this.minimap);
   }
 
