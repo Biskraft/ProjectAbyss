@@ -1,7 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater, isSolid } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isOnIce, isSolid } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG } from '@combat/CombatData';
 import type { CombatEntity } from '@combat/HitManager';
@@ -76,6 +76,7 @@ export class Player extends Entity implements CombatEntity {
     waterBreathing: false,
     wallJump: false,
     doubleJump: false,
+    cheat: false,         // DEBUG: ATK +99999 / HP +99999 via AbilityRelic (ability=cheat)
   };
 
   // Surge (Counter-Current Surge)
@@ -490,8 +491,14 @@ export class Player extends Entity implements CombatEntity {
   private applyHorizontalInput(dt: number, speedMult = 1): void {
     const dtSec = dt / 1000;
     const input = this.game.input;
-    const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60);
     const targetSpeed = MOVE_SPEED * speedMult;
+
+    // Ice (IntGrid 7): near-zero friction. Acceleration and deceleration are
+    // reduced to 10% so the player slides with heavy inertia. Direction changes
+    // take much longer, and releasing input barely slows down.
+    const onIce = this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
+    const frictionMul = onIce ? 0.1 : 1.0;
+    const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60) * frictionMul;
 
     let inputX = 0;
     if (input.isDown(GameAction.MOVE_LEFT)) inputX -= 1;

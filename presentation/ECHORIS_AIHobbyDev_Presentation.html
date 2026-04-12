@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — AI로 취미 게임 만들기</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@1,300&family=Rajdhani:wght@400;600&family=Inter:wght@300;400&family=Noto+Sans+KR:wght@300;400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --void:#0a0a0a;--struct:#101014;--panel:#16161c;--line:#1a3a3a;
+    --tx1:#c0c0c0;--tx2:#4a8a8a;--tx3:#3a3a48;
+    --red:#e87830;--red-dim:rgba(232,120,48,.12);--red-glow:rgba(232,120,48,.25);
+    --white:#f0f0f0;
+    --pulse:#2a8a8a;
+  }
+  html{scroll-behavior:smooth;scroll-snap-type:y proximity}
+  body{background:var(--void);color:var(--tx1);font-family:'Inter','Noto Sans KR',sans-serif;font-weight:300;overflow-x:hidden;cursor:crosshair}
+  ::selection{background:var(--red);color:var(--void)}
+
+  body::before{
+    content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(26,58,58,.3) 79px,rgba(26,58,58,.3) 80px),
+               repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(26,58,58,.3) 79px,rgba(26,58,58,.3) 80px);
+    opacity:1;
+  }
+  body::after{
+    content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+  }
+
+  .particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .particles span{
+    position:absolute;display:block;width:1px;height:1px;background:#E87830;
+    opacity:0;animation:drift linear infinite;
+  }
+  @keyframes drift{
+    0%{transform:translateY(100vh) translateX(0);opacity:0}
+    10%{opacity:.6}90%{opacity:.6}
+    100%{transform:translateY(-10vh) translateX(30px);opacity:0}
+  }
+
+  section{
+    min-height:100vh;scroll-snap-align:start;position:relative;z-index:1;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:48px clamp(32px,6vw,96px);
+    border-bottom:1px solid var(--line);
+  }
+
+  .cinzel{font-family:'Cinzel',serif;letter-spacing:.12em}
+  .mono{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--tx2);letter-spacing:.06em}
+  h1{font-family:'Cinzel',serif;font-size:clamp(4rem,12vw,9rem);line-height:.85;color:var(--white);letter-spacing:.08em;text-transform:uppercase}
+  h1 span{color:var(--red)}
+  h2{font-family:'Cinzel',serif;font-size:clamp(1.8rem,4.2vw,3rem);color:var(--white);letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;position:relative;padding-left:20px}
+  h2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+  h3{font-size:.85rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.15em;margin-bottom:16px}
+  p{color:var(--tx2);line-height:1.65;font-size:.88rem;max-width:640px;font-weight:300}
+  strong{color:var(--tx1);font-weight:600}
+
+  /* HERO */
+  .hero{align-items:center;text-align:center;padding:0;justify-content:center;position:relative;overflow:hidden}
+  .hero::before{
+    content:'';position:absolute;top:50%;left:50%;width:800px;height:800px;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle,var(--red-dim) 0%,transparent 70%);
+    animation:pulse 6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.3;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.15)}}
+  .hero-sub{font-size:.85rem;color:var(--tx2);letter-spacing:.3em;text-transform:uppercase;margin-bottom:24px}
+  .hero h1{margin-bottom:24px;position:relative;z-index:1}
+  .hero-desc{color:var(--tx2);font-size:1rem;letter-spacing:.05em;position:relative;z-index:1;max-width:560px}
+  .hero-meta{position:relative;z-index:1;margin-top:32px;display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
+  .hero-meta span{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--tx3);letter-spacing:.15em}
+  .hero-meta span::before{content:'// ';color:var(--red)}
+  .hero-scroll{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);color:var(--tx3);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;animation:bob 2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+
+  /* SPIKE SECTION */
+  .spike-statement{
+    font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.8rem);
+    color:var(--white);line-height:1.3;letter-spacing:.04em;text-align:center;
+    max-width:780px;margin:0 auto 40px;
+  }
+  .spike-statement em{font-style:normal;color:var(--red)}
+  .loop-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .loop-node{
+    background:var(--struct);border:1px solid var(--line);padding:12px 18px;
+    font-size:.8rem;font-weight:500;color:var(--tx1);
+  }
+  .loop-node.core{border-color:var(--red);color:var(--red);font-weight:700}
+  .loop-arrow{color:var(--tx3);font-size:1rem}
+
+  /* REALITY GRID */
+  .reality-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);margin-top:16px;max-width:960px;
+  }
+  .reality-cell{background:var(--struct);padding:20px;transition:background .3s}
+  .reality-cell:hover{background:var(--panel)}
+  .reality-cell .label{font-size:.65rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.15em;margin-bottom:8px}
+  .reality-cell .value{font-family:'Cinzel',serif;font-size:1.4rem;color:var(--white);letter-spacing:.05em}
+  .reality-cell .desc{font-size:.75rem;color:var(--tx2);margin-top:4px;line-height:1.5}
+  .reality-cell.dead .value{color:var(--tx3);text-decoration:line-through}
+  .reality-cell.live{background:var(--red-dim)}
+  .reality-cell.live .value{color:var(--red)}
+
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px;max-width:1000px}
+  .metrics.row5{grid-template-columns:repeat(5,1fr)}
+  @media(max-width:860px){.metrics.row5{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
+  .metric{
+    background:var(--struct);border:1px solid var(--line);padding:16px 18px;
+    position:relative;overflow:hidden;transition:border-color .3s;
+  }
+  .metrics.row5 .metric{padding:14px 14px}
+  .metrics.row5 .metric .num{font-size:1.5rem}
+  .metrics.row5 .metric .detail{font-size:.66rem;line-height:1.45}
+  .metric:hover{border-color:var(--red)}
+  .metric::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .4s}
+  .metric:hover::after{transform:scaleX(1)}
+  .metric .num{font-family:'Cinzel',serif;font-size:2rem;color:var(--white);line-height:1;letter-spacing:.04em}
+  .metric .num .unit{font-size:.9rem;color:var(--tx2)}
+  .metric .tag{font-size:.62rem;color:var(--red);text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px}
+  .metric .detail{font-size:.7rem;color:var(--tx2);margin-top:6px;line-height:1.5}
+
+  /* HERO METRIC */
+  .hero-metric{
+    display:flex;align-items:center;justify-content:center;gap:36px;
+    margin:24px 0;flex-wrap:wrap;
+  }
+  .hero-metric-main{text-align:center}
+  .hero-metric-main .num{
+    font-family:'Cinzel',serif;font-size:clamp(4.5rem,12vw,9rem);
+    color:var(--red);line-height:.85;letter-spacing:.02em;
+    text-shadow:0 0 80px var(--red-glow);
+  }
+  .hero-metric-main .label{
+    font-size:.85rem;color:var(--tx2);letter-spacing:.2em;text-transform:uppercase;margin-top:8px;
+  }
+  .hero-metric-sub{max-width:360px;text-align:left}
+  .hero-metric-sub p{font-size:.82rem;margin-bottom:10px;max-width:none;line-height:1.6}
+
+  /* KILL METRIC */
+  .kill{
+    margin-top:20px;padding:16px 20px;border-left:3px solid var(--red);
+    background:var(--red-dim);max-width:800px;
+  }
+  .kill .title{font-size:.68rem;color:var(--red);text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;font-weight:700}
+  .kill p{color:var(--tx1);font-size:.78rem;line-height:1.65;max-width:none}
+
+  /* PROMPT BOX */
+  .prompt{
+    background:var(--struct);border-left:3px solid var(--red);
+    padding:14px 20px;margin:16px 0;max-width:760px;
+    font-family:'DM Mono',monospace;font-size:.75rem;color:var(--tx1);
+    line-height:1.65;
+  }
+  .prompt::before{
+    content:'PROMPT //';display:block;font-size:.62rem;
+    color:var(--red);letter-spacing:.2em;margin-bottom:8px;font-weight:700;
+    font-family:'DM Mono',monospace;
+  }
+  .prompt em{color:var(--tx2);font-style:italic}
+
+  /* PHASE TABLE */
+  .phase-table{border-collapse:collapse;width:100%;max-width:960px;margin-top:16px}
+  .phase-table th{
+    text-align:left;padding:12px 16px;font-size:.65rem;color:var(--tx3);
+    text-transform:uppercase;letter-spacing:.12em;border-bottom:2px solid var(--line);font-weight:600;
+  }
+  .phase-table td{padding:14px 16px;border-bottom:1px solid var(--line);font-size:.82rem;color:var(--tx2);transition:color .2s;vertical-align:top}
+  .phase-table tr:hover td{color:var(--tx1)}
+  .phase-table .highlight{color:var(--red);font-weight:700}
+  .phase-table td:first-child{font-family:'Cinzel',serif;color:var(--white);font-size:.9rem;letter-spacing:.05em;width:100px}
+
+  /* TOP 5 / STEP LIST */
+  .top5{margin-top:24px;max-width:820px}
+  .top5-item{display:flex;align-items:center;gap:20px;padding:20px 0;border-bottom:1px solid var(--line)}
+  .top5-num{font-family:'Cinzel',serif;font-size:2.8rem;color:var(--tx3);width:60px;text-align:center;flex-shrink:0;line-height:1}
+  .top5-item:first-child .top5-num{color:var(--red);font-size:3.6rem}
+  .top5-content{flex:1}
+  .top5-title{font-weight:700;font-size:1rem;color:var(--white);margin-bottom:4px}
+  .top5-detail{font-size:.78rem;color:var(--tx2);line-height:1.5}
+
+  /* PATH SPLIT */
+  .path-split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:16px;max-width:960px}
+  .path-col{background:var(--struct);padding:24px 26px}
+  .path-col h3{margin-bottom:14px;font-size:.82rem}
+  .path-col ul{list-style:none;padding:0}
+  .path-col li{padding:8px 0;font-size:.8rem;color:var(--tx2);border-bottom:1px solid var(--line);display:flex;gap:10px;line-height:1.5}
+  .path-col li:last-child{border-bottom:none}
+  .path-col li::before{content:'//';color:var(--tx3);font-family:'DM Mono',monospace;font-size:.7rem;flex-shrink:0}
+  .path-col.warn{background:rgba(232,120,48,.08);border-left:2px solid var(--red)}
+  .path-col.warn h3{color:var(--red)}
+  .path-col.warn li{color:var(--tx1)}
+  .path-col.warn li::before{color:var(--red)}
+
+  /* BENCH LIST (used for references) */
+  .bench-list{margin-top:16px;max-width:960px}
+  .bench-item{
+    display:grid;grid-template-columns:32px 1fr 260px;gap:16px;
+    padding:16px 0;border-bottom:1px solid var(--line);align-items:center;
+    transition:background .2s;
+  }
+  .bench-item:hover{background:rgba(232,120,48,.03)}
+  .bench-rank{font-family:'Cinzel',serif;font-size:1.2rem;color:var(--tx3);text-align:center}
+  .bench-name{font-weight:600;color:var(--tx1);font-size:.9rem}
+  .bench-name small{display:block;font-weight:300;color:var(--tx2);font-size:.72rem;margin-top:4px}
+  .bench-extract{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--red);text-align:right;line-height:1.5}
+
+  /* CLOSING */
+  .closing{align-items:center;text-align:center;justify-content:center}
+  .closing-title{
+    font-family:'Cinzel',serif;font-size:clamp(2.5rem,8vw,5rem);
+    color:var(--white);letter-spacing:.08em;margin-bottom:16px;text-transform:uppercase;
+  }
+  .closing-sub{color:var(--tx2);font-size:1.1rem;letter-spacing:.08em;margin-bottom:48px;max-width:520px}
+  .closing-line{width:60px;height:1px;background:var(--red);margin:0 auto 48px;opacity:.5}
+  .closing-quote{
+    font-family:'Cinzel',serif;font-size:clamp(1.2rem,3vw,1.8rem);
+    color:var(--red);letter-spacing:.15em;text-transform:uppercase;opacity:.75;
+  }
+
+  .sec-num{
+    font-family:'Cinzel',serif;font-size:8rem;color:var(--line);
+    position:absolute;top:40px;right:clamp(40px,8vw,120px);line-height:1;
+    letter-spacing:.05em;user-select:none;
+  }
+
+  .footer{
+    min-height:auto;padding:40px clamp(40px,8vw,120px);
+    display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid var(--line);
+  }
+  .footer .left{font-size:.7rem;color:var(--tx3);letter-spacing:.1em}
+  .footer .right{font-size:.65rem;color:var(--tx3);letter-spacing:.08em}
+
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.visible{opacity:1;transform:translateY(0)}
+
+  @media(max-width:768px){
+    section{padding:60px 24px}
+    .path-split{grid-template-columns:1fr}
+    .bench-item{grid-template-columns:24px 1fr;gap:8px}
+    .bench-extract{grid-column:1/-1;text-align:left;padding-left:32px}
+    .sec-num{font-size:4rem;right:24px}
+    .hero-metric{flex-direction:column;gap:24px}
+    .hero-metric-sub{text-align:center;max-width:none}
+    .phase-table td:first-child{width:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <p class="hero-sub mono">Hobby Game Dev Methodology</p>
+  <h1>ECHO<span>RIS</span></h1>
+  <p class="hero-desc">AI로 취미 게임 만들기 — 기획부터 개발까지.<br>1인 개발 워크플로우의 실제.</p>
+  <div class="hero-meta">
+    <span>LECTURE 01</span>
+    <span>85 MIN + Q&amp;A</span>
+    <span>FOR DESIGN STUDENTS</span>
+  </div>
+  <p class="hero-scroll mono">scroll to descend</p>
+</section>
+
+<!-- ═══ THESIS ═══ -->
+<section style="align-items:center;text-align:center">
+  <p class="mono" style="margin-bottom:32px">SECTOR 00 — THESIS</p>
+  <div class="spike-statement reveal">
+    AI는 1인 개발자의 팀원이 아니라,<br>기획자의 <em>근력 증폭기</em>다.
+  </div>
+  <p class="reveal" style="margin:0 auto 32px;text-align:center;max-width:560px">
+    증폭할 근력이 없는 사람에게는 쓸모가 없고,<br>
+    근력이 있는 사람에게는 혼자 할 수 있는 일의 한계를 <strong>10배</strong> 넓혀준다.
+  </p>
+  <div class="loop-flow reveal">
+    <div class="loop-node">레퍼런스</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node core">스파이크</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">GDD</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">구현</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">배포</div>
+  </div>
+</section>
+
+<!-- ═══ 01: 세 개의 벽 ═══ -->
+<section>
+  <div class="sec-num">01</div>
+  <h2>세 개의 벽</h2>
+  <p>취미 게임 개발을 중단시키는 3대 벽. AI는 이 중 2개를 약화시켰다.</p>
+  <div class="reality-grid reveal">
+    <div class="reality-cell dead">
+      <div class="label">벽 1</div>
+      <div class="value">시간</div>
+      <div class="desc">리서치·문서·코드 초안 같은 언어 작업 <strong>10배 압축</strong></div>
+    </div>
+    <div class="reality-cell dead">
+      <div class="label">벽 2</div>
+      <div class="value">기술</div>
+      <div class="desc">모르는 API 5분 학습<br>구조는 본인, 구현은 AI</div>
+    </div>
+    <div class="reality-cell live">
+      <div class="label">벽 3</div>
+      <div class="value">외로움</div>
+      <div class="desc">피드백·위로·동료감<br><strong>AI가 대체하지 못함</strong></div>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">경계선</div>
+    <p><strong>AI가 바꾼 것:</strong> 시간의 경제학. 혼자 1년 걸릴 리서치가 1주일로.<br>
+    <strong>AI가 바꾸지 못한 것:</strong> 재미의 판단, 방향성의 결정, 지속성의 심리.</p>
+  </div>
+</section>
+
+<!-- ═══ 02: 컨셉 — 레퍼런스 삼각측량 ═══ -->
+<section>
+  <div class="sec-num">02</div>
+  <h2>컨셉</h2>
+  <p>좋은 시작은 "장르 선택"이 아니라 "삼각측량"이다. 각 레퍼런스에서 <strong>요소 하나씩만</strong> 추출한다.</p>
+  <div class="bench-list reveal">
+    <div class="bench-item">
+      <div class="bench-rank">01</div>
+      <div class="bench-name">BLAME!<small>츠토무 니헤이 — 만화</small></div>
+      <div class="bench-extract">거대 수직 메가스트럭처의 스케일감</div>
+    </div>
+    <div class="bench-item">
+      <div class="bench-rank">02</div>
+      <div class="bench-name">Disgaea<small>Nippon Ichi Software — 게임</small></div>
+      <div class="bench-extract">아이템 내부 무한 파밍 루프</div>
+    </div>
+    <div class="bench-item">
+      <div class="bench-rank">03</div>
+      <div class="bench-name">Castlevania: SotN<small>Konami — 게임</small></div>
+      <div class="bench-extract">횡스크롤 탐험의 감각</div>
+    </div>
+    <div class="bench-item">
+      <div class="bench-rank">04</div>
+      <div class="bench-name">Spelunky<small>Mossmouth — 게임</small></div>
+      <div class="bench-extract">절차적 생성의 반복 가치</div>
+    </div>
+    <div class="bench-item">
+      <div class="bench-rank">05</div>
+      <div class="bench-name">Made in Abyss<small>츠카사 아키히토 — 만화</small></div>
+      <div class="bench-extract">깊이에 대한 공포와 유혹</div>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:32px;color:var(--red);font-weight:600;font-size:.88rem;text-align:center;max-width:none">
+    레퍼런스 하나에서 여러 요소를 가져오면 "복사", 하나씩 가져오면 "독창"
+  </p>
+</section>
+
+<!-- ═══ 03: 스파이크 ═══ -->
+<section style="align-items:center;text-align:center">
+  <div class="sec-num">03</div>
+  <p class="mono" style="margin-bottom:20px">SPIKE // ONE SENTENCE</p>
+  <div class="spike-statement reveal">
+    아이템 속으로 들어가면,<br>그 아이템의 <em>기억이 던전</em>이 된다.
+  </div>
+  <p class="reveal" style="margin:0 auto 24px;text-align:center;max-width:620px">
+    한 문장으로 설명할 수 있는 것만 게임이다.<br>
+    "그리고"가 나오면 두 개의 게임이다. 형용사가 많으면 아직 스파이크가 아니다.
+  </p>
+  <div class="kill reveal" style="margin:0 auto;max-width:600px;text-align:left">
+    <div class="title">판정 기준</div>
+    <p>이 문장이 <strong>이후 모든 설계 결정의 판정 기준</strong>이 된다.<br>
+    "이 시스템이 이 문장을 강화하는가?" 아니면 삭제.</p>
+  </div>
+</section>
+
+<!-- ═══ 04: 레드팀 프롬프트 ═══ -->
+<section style="align-items:center;text-align:center">
+  <div class="sec-num">04</div>
+  <h2 style="text-align:left">레드팀</h2>
+  <p style="margin:0 auto 28px;max-width:620px">AI의 역할은 아이디어 생성이 아니라 <strong>아이디어 압박 테스트</strong>. 컨셉을 찬양하지 말고 공격하게 한다.</p>
+  <div class="prompt reveal" style="text-align:left;margin:0 auto">
+    나는 다음 컨셉으로 게임을 만들 계획이다:<br>
+    "아이템 속으로 들어가면, 그 아이템의 기억이 던전이 된다."<br><br>
+    <em>이 컨셉이 게임으로 구현됐을 때 가장 실패할 가능성이 높은 부분 3가지를 냉정하게 지적해줘. 칭찬은 하지 마.</em>
+  </div>
+  <p class="reveal" style="margin:28px auto 0;max-width:620px;font-size:.82rem">
+    AI의 답변을 받으면 각 약점마다 <strong>해결책 또는 수용 범위</strong>를 결정한다.<br>
+    이것이 컨셉을 단단하게 만드는 과정.
+  </p>
+</section>
+
+<!-- ═══ 05: 리서치 규모 ═══ -->
+<section style="align-items:center;text-align:center">
+  <div class="sec-num">05</div>
+  <h2 style="text-align:left">리서치</h2>
+  <p style="margin:0 auto">기획자의 진짜 무기는 리서치 깊이. AI 없이는 혼자 할 수 없는 영역.</p>
+  <div class="hero-metric reveal">
+    <div class="hero-metric-main">
+      <div class="num">48</div>
+      <div class="label">Research Documents</div>
+    </div>
+    <div class="hero-metric-sub">
+      <p><strong>위키 덤프 9,000+ 파일</strong>을 AI가 주제별로 인덱싱했다.</p>
+      <p>유튜브 트랜스크립트 100+ 편에서 채널별 인사이트 자동 추출.</p>
+      <p>디스가이아·스펠렁키·데드셀 역기획서 3건 생성.</p>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:20px;text-align:center;max-width:none;font-size:.82rem">
+    혼자서 몇 달이 걸리던 리서치가 <strong style="color:var(--red)">1주일</strong>로 압축된다.
+  </p>
+</section>
+
+<!-- ═══ 06: 리서치 파이프라인 ═══ -->
+<section>
+  <div class="sec-num">06</div>
+  <h2>파이프라인</h2>
+  <p>자료를 받는 것과 인사이트를 얻는 것은 다르다. 5단계 파이프라인이 그 격차를 메운다.</p>
+  <div class="loop-flow reveal" style="margin-top:24px">
+    <div class="loop-node">자료 수집</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">형식 통일 (MD)</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node core">AI 요약</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">교차 검증</div>
+    <span class="loop-arrow">&rarr;</span>
+    <div class="loop-node">GDD 반영</div>
+  </div>
+  <div class="metrics reveal" style="margin-top:24px;max-width:900px">
+    <div class="metric">
+      <div class="tag">수집</div>
+      <div class="num">Wiki</div>
+      <div class="detail">디스가이아·캐슬바니아<br>덤프 9,000+ 파일</div>
+    </div>
+    <div class="metric">
+      <div class="tag">트랜스크립트</div>
+      <div class="num">100+</div>
+      <div class="detail">GMTK·사쿠라이·Tim Cain<br>Extra Credits·Design Doc</div>
+    </div>
+    <div class="metric">
+      <div class="tag">역기획서</div>
+      <div class="num">3편</div>
+      <div class="detail">디스가이아 아이템계<br>스펠렁키·데드셀 생성</div>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">주의</div>
+    <p>AI 요약은 때때로 <strong>없는 사실을 만들어낸다.</strong> 수치·인물·날짜는 반드시 원본 재확인.
+    <strong>AI 요약은 초안이지 진실이 아니다.</strong></p>
+  </div>
+</section>
+
+<!-- ═══ 07: GDD 5단계 ═══ -->
+<section>
+  <div class="sec-num">07</div>
+  <h2>GDD 5단계</h2>
+  <p>AI 시대의 GDD는 "읽는 문서"가 아니라 "질의 가능한 데이터베이스".</p>
+  <div class="metrics row5 reveal">
+    <div class="metric">
+      <div class="tag">01</div>
+      <div class="num">Why</div>
+      <div class="detail">왜 존재하는가<br><strong style="color:var(--red)">AI가 못 쓴다</strong></div>
+    </div>
+    <div class="metric">
+      <div class="tag">02</div>
+      <div class="num">What</div>
+      <div class="detail">무엇인가<br>정의와 범위</div>
+    </div>
+    <div class="metric">
+      <div class="tag">03</div>
+      <div class="num">How</div>
+      <div class="detail">어떻게 작동하는가<br>메커닉 서술</div>
+    </div>
+    <div class="metric">
+      <div class="tag">04</div>
+      <div class="num">Data</div>
+      <div class="detail">수치와 테이블<br>CSV 참조</div>
+    </div>
+    <div class="metric">
+      <div class="tag">05</div>
+      <div class="num">Verify</div>
+      <div class="detail">검증 체크리스트<br>스파이크 정렬</div>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:20px;font-size:.8rem;max-width:none;text-align:center">
+    <strong style="color:var(--red)">Why는 AI가 대신 쓸 수 없다.</strong> 왜 이 시스템이 필요한지는 본인이 결정해야 한다.
+  </p>
+</section>
+
+<!-- ═══ 08: CSV SSoT ═══ -->
+<section>
+  <div class="sec-num">08</div>
+  <h2>CSV SSoT</h2>
+  <p>수치는 한 곳에만 있어야 한다. 두 곳에 있으면 <strong>언젠가 반드시 어긋난다.</strong></p>
+  <div class="path-split reveal">
+    <div class="path-col">
+      <h3>전통적 방식</h3>
+      <ul>
+        <li>GDD 문서에 수치 직접 기재</li>
+        <li>CSV는 참조 자료</li>
+        <li>수치 변경 시 양쪽 수정</li>
+        <li>한쪽 누락 → 충돌</li>
+        <li>"어느 쪽이 정답인가?" 지옥</li>
+      </ul>
+    </div>
+    <div class="path-col warn">
+      <h3>ECHORIS 방식</h3>
+      <ul>
+        <li>CSV가 <strong>Single Source of Truth</strong></li>
+        <li>GDD는 CSV를 설명만</li>
+        <li>수치 변경 시 CSV만 수정</li>
+        <li>코드도 CSV를 직접 읽음</li>
+        <li>정합성 검증 자동화 가능</li>
+      </ul>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">실전 사례</div>
+    <p>"Skeleton HP가 GDD는 50, CSV는 80"의 상황이 실제로 발생했다. <strong>CSV를 정답</strong>으로 정하고, GDD는 참조만 하도록 다시 썼다. 이후 같은 문제가 사라졌다.</p>
+  </div>
+</section>
+
+<!-- ═══ 09: 스코프 규율 ═══ -->
+<section>
+  <div class="sec-num">09</div>
+  <h2>스코프 규율</h2>
+  <p>AI 시대에는 "안 만드는 결정"이 더 어려워진다. AI가 해주니까 더 많이 만들고 싶어진다.</p>
+  <div class="hero-metric reveal" style="justify-content:flex-start">
+    <div class="hero-metric-main" style="text-align:left">
+      <div class="num">33<span style="font-size:.4em;color:var(--tx3)"> &rarr; </span>19</div>
+      <div class="label">System Reduction</div>
+    </div>
+    <div class="hero-metric-sub">
+      <p><strong>17개 시스템을 하루 만에 삭제.</strong></p>
+      <p>자동 사냥, 거래소, 스킬 트리, 이노센트 팜, 아이템 전생, 패링, 허브, NPC 퀘스트, 대화 시스템 등.</p>
+      <p style="color:var(--tx3);font-size:.72rem">삭제 기준: "이 시스템이 스파이크를 강화하는가, 희석시키는가?"</p>
+    </div>
+  </div>
+  <div class="prompt reveal">
+    이 시스템이 "아이템 속으로 들어가는 경험"을<br>
+    강화하는가, 희석시키는가?<br>
+    <em>근거와 함께 답해줘.</em>
+  </div>
+  <p class="reveal" style="margin-top:16px;max-width:760px">
+    AI는 <strong>감정 없이 판단</strong>한다. 혼자 했다면 "이것도 재미있을 텐데..."라며 유지했을 시스템을, AI의 답변을 보고 삭제할 수 있다. 이것이 AI의 진짜 가치.
+  </p>
+</section>
+
+<!-- ═══ 10: 기술 스택 ═══ -->
+<section>
+  <div class="sec-num">10</div>
+  <h2>기술 스택</h2>
+  <p>1인 개발에서 엔진 선택은 설계의 일부. 배포의 복잡도가 지속성을 좌우한다.</p>
+  <div class="reality-grid reveal">
+    <div class="reality-cell">
+      <div class="label">Rendering</div>
+      <div class="value">PixiJS v8</div>
+      <div class="desc">WebGL/WebGPU<br>2D 특화</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">Language</div>
+      <div class="value">TypeScript</div>
+      <div class="desc">타입 안전<br>AI 학습량 최다</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">Build</div>
+      <div class="value">Vite</div>
+      <div class="desc">저장 즉시 핫리로드<br>초고속 반복</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">Deploy</div>
+      <div class="value">git push</div>
+      <div class="desc">GitHub Pages<br>심사 없음</div>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">왜 Unity/Unreal이 아닌가</div>
+    <p><strong>반복 속도</strong>가 다르다. Unity는 실행만 30초, 웹은 저장 즉시 화면. 1인 개발에서 이 차이가 생산성을 좌우.<br>
+    <strong>배포가 git push</strong>로 끝난다. Steam 심사나 앱스토어 등록 없이 URL 하나로 공유 가능.</p>
+  </div>
+</section>
+
+<!-- ═══ 11: 구현 워크플로우 ═══ -->
+<section>
+  <div class="sec-num">11</div>
+  <h2>구현</h2>
+  <p>기획자가 코딩을 하게 될 때. AI는 "실장된 아이디어"를 돌려준다.</p>
+  <div class="top5 reveal">
+    <div class="top5-item">
+      <div class="top5-num">1</div>
+      <div class="top5-content">
+        <div class="top5-title">기획 문서 먼저</div>
+        <div class="top5-detail">구현 전에 GDD가 있어야 한다. 코드부터 시작하면 AI가 엉뚱한 방향으로 간다.</div>
+      </div>
+    </div>
+    <div class="top5-item">
+      <div class="top5-num">2</div>
+      <div class="top5-content">
+        <div class="top5-title">AI에게 기획 문서를 읽히기</div>
+        <div class="top5-detail">"이 GDD를 읽고 기존 코드베이스와 연결해서 구현 계획을 세워줘. 아직 코드는 쓰지 마."</div>
+      </div>
+    </div>
+    <div class="top5-item">
+      <div class="top5-num">3</div>
+      <div class="top5-content">
+        <div class="top5-title">계획 검토</div>
+        <div class="top5-detail">AI의 계획을 사람이 먼저 읽는다. 잘못된 가정이 있으면 수정한다. 구현 전 단계.</div>
+      </div>
+    </div>
+    <div class="top5-item">
+      <div class="top5-num">4</div>
+      <div class="top5-content">
+        <div class="top5-title">구현 위임</div>
+        <div class="top5-detail">"계획대로 코드를 작성해. 각 파일 변경마다 타입 에러를 확인해."</div>
+      </div>
+    </div>
+    <div class="top5-item">
+      <div class="top5-num">5</div>
+      <div class="top5-content">
+        <div class="top5-title">코드 이해 후 커밋</div>
+        <div class="top5-detail">생성된 코드를 <strong>반드시 읽고 이해</strong>한다. 이해 못 한 코드는 6개월 후 기술부채 폭탄.</div>
+      </div>
+    </div>
+    <div class="top5-item">
+      <div class="top5-num">6</div>
+      <div class="top5-content">
+        <div class="top5-title">플레이테스트</div>
+        <div class="top5-detail">눈으로 읽은 것과 실행한 것은 다르다. 커밋 전에 반드시 플레이.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 12: 실전 팁 3가지 ═══ -->
+<section>
+  <div class="sec-num">12</div>
+  <h2>실전 팁</h2>
+  <p>워크플로우를 지탱하는 3가지 습관. 이것이 없으면 AI 코드는 기술부채가 된다.</p>
+  <div class="metrics reveal" style="max-width:960px">
+    <div class="metric">
+      <div class="tag">01 // Commit</div>
+      <div class="num" style="font-size:1.6rem">작게 커밋</div>
+      <div class="detail">3시간 세션 = 1-3 커밋.<br>너무 크면 롤백 불가,<br>너무 작으면 히스토리 혼란.</div>
+    </div>
+    <div class="metric">
+      <div class="tag">02 // Understand</div>
+      <div class="num" style="font-size:1.6rem">이해 후 커밋</div>
+      <div class="detail">"AI가 만든 거니까"는 함정.<br>이해 못 한 코드는<br>6개월 후 기술부채 폭탄.</div>
+    </div>
+    <div class="metric">
+      <div class="tag">03 // Second Opinion</div>
+      <div class="num" style="font-size:1.6rem">2차 의견</div>
+      <div class="detail">Claude가 못 풀면 GPT로.<br>GPT도 막히면 Codex로.<br>각 AI는 강점이 다르다.</div>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">진짜 규칙</div>
+    <p>코드 품질의 한계는 <strong>AI의 한계가 아니라 여러분의 리뷰 역량</strong>이다. 리뷰할 수 없는 코드는 절대 커밋하지 말 것.</p>
+  </div>
+</section>
+
+<!-- ═══ 13: 에이전트 역할 분리 ═══ -->
+<section>
+  <div class="sec-num">13</div>
+  <h2>역할 분리</h2>
+  <p>한 세션에 한 역할만. AI와 대화할 때 역할을 섞으면 품질이 무너진다.</p>
+  <div class="path-split reveal">
+    <div class="path-col">
+      <h3>PM 모드</h3>
+      <ul>
+        <li>문서 작성 + 검증</li>
+        <li>우선순위 조정</li>
+        <li>정합성 검증</li>
+        <li>코드는 건드리지 않음</li>
+        <li>기획 결정 기록</li>
+      </ul>
+    </div>
+    <div class="path-col">
+      <h3>구현 모드</h3>
+      <ul>
+        <li>실제 코드 작성</li>
+        <li>버그 진단 + 수정</li>
+        <li>타입·빌드 검증</li>
+        <li>기획을 임의로 바꾸지 않음</li>
+        <li>커밋 단위 분리</li>
+      </ul>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">왜 분리하는가</div>
+    <p>PM 모드는 "이 문서가 정확한가"를 본다. 구현 모드는 "이 코드가 돌아가는가"를 본다. 관점이 섞이면 <strong>문서도 반쯤 고치고 코드도 반쯤 고쳐서</strong> 결국 둘 다 깨진다.</p>
+  </div>
+</section>
+
+<!-- ═══ 14: 아트의 벽 ═══ -->
+<section>
+  <div class="sec-num">14</div>
+  <h2>아트의 벽</h2>
+  <p>1인 개발이 중단되는 가장 흔한 이유는 "코딩이 어려워서"가 아니라 "아트가 안 만들어져서".</p>
+  <div class="path-split reveal">
+    <div class="path-col">
+      <h3>AI 아트의 힘</h3>
+      <ul>
+        <li>PixelLab MCP — 캐릭터·타일셋 생성</li>
+        <li>GAN 워크플로우 — 컨셉 이미지</li>
+        <li>아트 디렉션 문서가 선행</li>
+        <li>일관된 프롬프트 템플릿</li>
+        <li>시드 고정으로 재현성 확보</li>
+      </ul>
+    </div>
+    <div class="path-col warn">
+      <h3>AI 아트의 함정</h3>
+      <ul>
+        <li>저작권 · 라이선스 논란</li>
+        <li>프롬프트마다 달라지는 스타일</li>
+        <li>"대충 뽑고 넘어가기" 누적 비용</li>
+        <li>수정 없이 투입하면 퀄리티 붕괴</li>
+        <li>상업 배포 전 약관 필수 확인</li>
+      </ul>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">원칙</div>
+    <p><strong>아트 디렉션 문서를 먼저 쓴다.</strong> 팔레트·톤·실루엣 원칙을 정의한 뒤 프롬프트에 포함.<br>
+    AI가 뽑은 아트도 <strong>최소 한 번 이상 직접 수정</strong>해서 투입한다.</p>
+  </div>
+</section>
+
+<!-- ═══ 15: 솔직한 한계 ═══ -->
+<section>
+  <div class="sec-num">15</div>
+  <h2>AI가 못하는 것</h2>
+  <p>이 섹션이 없는 AI 강연은 사기다. 5가지 한계를 먼저 알아야 한다.</p>
+  <div class="reality-grid reveal">
+    <div class="reality-cell">
+      <div class="label">01</div>
+      <div class="value">재미 판단</div>
+      <div class="desc">"재미있는지"는 플레이테스트로만 안다. AI에게 묻지 말 것.</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">02</div>
+      <div class="value">방향 결정</div>
+      <div class="desc">"어느 장르로 갈까?"를 AI에게 물으면 평균으로 수렴한다.</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">03</div>
+      <div class="value">코드 책임</div>
+      <div class="desc">AI가 만들었어도 당신이 커밋했다. 버그도 당신 책임.</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">04</div>
+      <div class="value">스코프 유혹</div>
+      <div class="desc">"AI가 해주니까 더 만들까?" 이 생각이 가장 위험.</div>
+    </div>
+    <div class="reality-cell">
+      <div class="label">05</div>
+      <div class="value">외로움</div>
+      <div class="desc">동료의 피드백·축하·위로는 대체되지 않는다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 16: 3시간의 경제학 ═══ -->
+<section>
+  <div class="sec-num">16</div>
+  <h2>3시간의 경제학</h2>
+  <p>취미 개발의 진짜 적은 기술이 아니라 지속성. 속도가 아니라 리듬이다.</p>
+  <div class="hero-metric reveal" style="justify-content:flex-start">
+    <div class="hero-metric-main" style="text-align:left">
+      <div class="num">3<span style="font-size:.4em;color:var(--tx2)">hr</span></div>
+      <div class="label">Per Day, Sustainable</div>
+    </div>
+    <div class="hero-metric-sub">
+      <p><strong>회사 틈새 30분 + 집 1시간 + 취침 전 1시간.</strong></p>
+      <p>이 이상은 번아웃 유발. 매일 3시간 × 5일이 1주 하루 16시간보다 더 많이 만든다.</p>
+      <p style="color:var(--tx3);font-size:.72rem">"1년 후에도 계속할 수 있는 리듬"이 기준.</p>
+    </div>
+  </div>
+  <h3 style="margin-top:40px">세션 종료 시 반드시 남기는 것</h3>
+  <div class="metrics reveal" style="max-width:900px">
+    <div class="metric">
+      <div class="tag">01</div>
+      <div class="num">커밋</div>
+      <div class="detail">오늘 한 작업을 git에 기록</div>
+    </div>
+    <div class="metric">
+      <div class="tag">02</div>
+      <div class="num">위키</div>
+      <div class="detail">daily log로 작업 일지 남기기</div>
+    </div>
+    <div class="metric">
+      <div class="tag">03</div>
+      <div class="num">다음 할 일</div>
+      <div class="detail">내일 어디서부터 시작할지 한 줄</div>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">번아웃 경보</div>
+    <p>번아웃은 <strong>열정의 부족이 아니라 속도의 초과</strong>에서 온다. "이번 주말에 다 할 수 있어!"라고 무리하면 다음 달에 번아웃이 온다.</p>
+  </div>
+</section>
+
+<!-- ═══ 17: 번아웃 방지 ═══ -->
+<section>
+  <div class="sec-num">17</div>
+  <h2>번아웃 방지</h2>
+  <p>취미 개발의 가장 큰 적은 기술이 아니라 지속성. 번아웃은 열정 부족이 아니라 <strong>속도 초과</strong>에서 온다.</p>
+  <div class="path-split reveal">
+    <div class="path-col">
+      <h3>실패 패턴</h3>
+      <ul>
+        <li>주말 폭주 → 다음 달 번아웃</li>
+        <li>"이번 주에 다 할 수 있어"</li>
+        <li>외로움 누적 → 동기 상실</li>
+        <li>완벽주의 → 출시 무한 연기</li>
+        <li>공개 없음 → 피드백 0</li>
+      </ul>
+    </div>
+    <div class="path-col warn">
+      <h3>지속 리듬</h3>
+      <ul>
+        <li>매일 3시간 × 5일</li>
+        <li>주말 무조건 휴식</li>
+        <li>공개: 트위터·디스코드·블로그</li>
+        <li>소규모 테스터 3명 이상</li>
+        <li>완성 기준을 낮게 유지</li>
+      </ul>
+    </div>
+  </div>
+  <div class="kill reveal">
+    <div class="title">핵심 원칙</div>
+    <p><strong>1년 후에도 계속할 수 있는 리듬</strong>이 기준이다. 1주 후 완성되는 리듬이 아니다. 속도를 낮추는 것이 더 빨리 도착하는 길.</p>
+  </div>
+</section>
+
+<!-- ═══ 18: 4주 로드맵 ═══ -->
+<section>
+  <div class="sec-num">18</div>
+  <h2>4주 로드맵</h2>
+  <p>월요일 아침부터 시작할 수 있는 것만. 이 4주를 거치면 포트폴리오에 "플레이 가능한 빌드"가 생긴다.</p>
+  <table class="phase-table reveal">
+    <thead><tr><th>주차</th><th>목표</th><th>산출물</th><th>핵심 도구</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Week 1</td>
+        <td><strong>컨셉 확립</strong><br><span style="color:var(--tx3);font-size:.75rem">레퍼런스 삼각측량 + 스파이크 한 문장</span></td>
+        <td>concept.md 1장</td>
+        <td class="highlight">레드팀 프롬프트</td>
+      </tr>
+      <tr>
+        <td>Week 2</td>
+        <td><strong>GDD 초안</strong><br><span style="color:var(--tx3);font-size:.75rem">5단계 구조로 핵심 시스템 3개 작성</span></td>
+        <td>System_*.md 3개</td>
+        <td class="highlight">스파이크 게이트</td>
+      </tr>
+      <tr>
+        <td>Week 3</td>
+        <td><strong>프로토타입 범위 정의</strong><br><span style="color:var(--tx3);font-size:.75rem">"1분 플레이하면 이해되는 것" 기준</span></td>
+        <td>prototype_scope.md</td>
+        <td class="highlight">AI 검토</td>
+      </tr>
+      <tr>
+        <td>Week 4</td>
+        <td><strong>최소 플레이 가능 빌드</strong><br><span style="color:var(--tx3);font-size:.75rem">아트·사운드·UI 없이 핵심 루프만</span></td>
+        <td>플레이 가능한 빌드 + 피드백 1건</td>
+        <td class="highlight">Claude Code</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="kill reveal">
+    <div class="title">포트폴리오 관점</div>
+    <p>채용 시장에서 "구현까지 해본 기획자"는 드물다. 완성된 초미니 게임 하나가 <strong>미완성 기획서 다섯 개보다 훨씬 강력</strong>하다.</p>
+  </div>
+</section>
+
+<!-- ═══ CLOSING ═══ -->
+<section class="closing">
+  <div class="closing-title reveal">ECHO<span style="color:var(--red)">RIS</span></div>
+  <p class="closing-sub reveal">아이디어에서 플레이 가능한 것까지의 거리.<br>역사상 가장 짧아졌다.</p>
+  <div class="closing-line reveal"></div>
+  <p class="closing-quote reveal">오늘 한 문장부터 써보세요</p>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="left mono">ECHORIS — AI HOBBY GAME DEV LECTURE</div>
+  <div class="right mono">2026 — FOR DESIGN STUDENTS</div>
+</div>
+
+<script>
+  // Particles
+  const pc=document.getElementById('particles');
+  for(let i=0;i<40;i++){
+    const s=document.createElement('span');
+    s.style.left=Math.random()*100+'%';
+    s.style.animationDuration=(8+Math.random()*16)+'s';
+    s.style.animationDelay=Math.random()*10+'s';
+    s.style.width=(Math.random()>.7?'2px':'1px');
+    s.style.height=s.style.width;
+    pc.appendChild(s);
+  }
+
+  // Scroll reveal
+  const obs=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}});
+  },{threshold:.15});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

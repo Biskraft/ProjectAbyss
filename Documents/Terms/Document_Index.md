@@ -289,7 +289,13 @@ graph TD
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
 | ~~SYS-ECO-02~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
 
-### ~~3.14 허브 시스템 (Hub)~~ — DEPRECATED
+### 3.14 분석 및 텔레메트리 (Analytics & Telemetry)
+
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-TEL-01 | Analytics Telemetry | `System/System_Analytics_Telemetry.md` | ✅ 완료 | 전체 | 전체 |
+
+### ~~3.15 허브 시스템 (Hub)~~ — DEPRECATED
 
 > 허브가 폐기되어 대장간/상점은 월드 세이브 포인트로 통합.
 

@@ -23,9 +23,14 @@ const TILE_SIZE = 16;
  *   2 = water (passable, applies water physics)
  *   3 = one-way platform
  *   4 = updraft (passable, applies strong upward wind)
+ *   5 = spike (passable, contact = physical damage + respawn)
+ *   6 = magma (passable, contact = burn DoT) [Phase 1]
+ *   7 = ice (solid, zero friction surface) [Phase 1]
+ *   8 = charged (passable, contact = shock DoT) [Phase 1]
+ *   9 = breakable (solid, 1-hit destroy → air) [Phase 0]
  */
 export function isSolid(tileId: number): boolean {
-  return tileId === 1;
+  return tileId === 1 || tileId === 7 || tileId === 9;
 }
 
 export function isOneWay(tileId: number): boolean {
@@ -38,6 +43,43 @@ export function isWater(tileId: number): boolean {
 
 export function isUpdraft(tileId: number): boolean {
   return tileId === 4;
+}
+
+export function isSpike(tileId: number): boolean {
+  return tileId === 5;
+}
+
+export function isBreakable(tileId: number): boolean {
+  return tileId === 9;
+}
+
+export function isIce(tileId: number): boolean {
+  return tileId === 7;
+}
+
+/** Check if an entity is standing ON an ice tile (feet on ice surface). */
+export function isOnIce(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const feetRow = Math.floor((y + height) / TILE_SIZE);
+  const leftCol = Math.floor(x / TILE_SIZE);
+  const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
+  for (let col = leftCol; col <= rightCol; col++) {
+    if (isIce(getTile(roomData, col, feetRow))) return true;
+  }
+  return false;
+}
+
+/** Check if an entity overlaps any spike tile (any corner touching spike = hit) */
+export function isInSpike(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const l = Math.floor(x / TILE_SIZE);
+  const r = Math.floor((x + width - 1) / TILE_SIZE);
+  const t = Math.floor(y / TILE_SIZE);
+  const b = Math.floor((y + height - 1) / TILE_SIZE);
+  for (let row = t; row <= b; row++) {
+    for (let col = l; col <= r; col++) {
+      if (isSpike(getTile(roomData, col, row))) return true;
+    }
+  }
+  return false;
 }
 
 /** Check if an entity overlaps any updraft tile */

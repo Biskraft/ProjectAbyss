@@ -9,7 +9,7 @@ import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import type { InputManager } from '@core/InputManager';
 
-const DISPLAY_DURATION = 8000;
+const DISPLAY_DURATION = 4000;
 const FADE_DURATION = 500;
 const BOX_Y = 16;
 import { GAME_WIDTH } from '../Game';

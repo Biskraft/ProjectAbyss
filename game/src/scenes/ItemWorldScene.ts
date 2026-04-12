@@ -9,7 +9,7 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
@@ -48,6 +48,7 @@ import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ThoughtBubble } from '@ui/ThoughtBubble';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
+import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -147,6 +148,10 @@ export class ItemWorldScene extends Scene {
   private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
   private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
   private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
+  // Breakable tile (IntGrid 9) hit tracking — 3 swings to destroy
+  private breakableHits: Map<string, number> = new Map(); // "tileCol,tileRow" → hits taken
+  private breakableHitThisSwing: Set<string> = new Set();
+  private breakableLastCombo = -1;
 
   // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
   private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" → memory template
@@ -178,6 +183,7 @@ export class ItemWorldScene extends Scene {
   private altarVisual: Graphics | null = null;
   private altarHint: Container | null = null;
   private escapeConfirmFromAltar = false;
+  private exitReason: 'escape' | 'clear' = 'escape';
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
@@ -250,6 +256,9 @@ export class ItemWorldScene extends Scene {
       console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
     this.rng = new PRNG(this.item.uid * 1000);
+
+    // Analytics: item world entry
+    trackItemWorldEnter(this.item.rarity);
 
     this.hitManager = new HitManager(this.game);
 
@@ -532,8 +541,10 @@ export class ItemWorldScene extends Scene {
         this.applyDoorMaskToFullGrid(mask, offR, offC);
 
         // Render room tiles at pixel offset within fullMapContainer.
-        // Bounds filter still enforces the 512×256 box so stray template
-        // tiles can never bleed into a neighbor's container.
+        // Template wallTiles are INTENTIONALLY skipped — we draw a single
+        // flat 0x383838 rect per solid collision cell instead, so every
+        // wall in the item world looks uniform regardless of template art.
+        // Background/shadow layers still render normally from LDtk.
         const roomContainer = new Container();
         roomContainer.x = col * IW_ROOM_W_PX;
         roomContainer.y = localRow * IW_ROOM_H_PX;
@@ -542,20 +553,15 @@ export class ItemWorldScene extends Scene {
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-        // Drop template wall sprites that sit inside a carved door opening
-        // so the visible wall matches the carved collision.
-        const wallTiles = this.filterWallTilesByCarves(
-          ldtkLevel.wallTiles.filter(inBounds),
-          mask.carveRectsLocal,
-        );
         const renderer = new LdtkRenderer();
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlas);
+        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlas);
         roomContainer.addChild(renderer.container);
 
-        // No visual seal overlay — the dark 0x383838 rects looked like holes.
-        // Sealed edges rely purely on template art; collision is still blocked
-        // by applyDoorMaskToFullGrid above. Templates should be designed with
-        // walls at edges so sealed sides never reveal open space.
+        // Uniform flat wall fill: every solid tile in this room's fullGrid
+        // region gets a 16×16 0x383838 rect. Covers template walls and the
+        // door-mask seal strips with the same color in one pass.
+        this.drawUniformWalls(roomContainer, offR, offC);
+
         this.fullMapContainer.addChild(roomContainer);
 
         // Spawn LDtk-placed static entities for this room (with world offset)
@@ -641,6 +647,21 @@ export class ItemWorldScene extends Scene {
   private spawnEnemiesInRoom(col: number, row: number): void {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell || cell.cleared) return;
+
+    // Stratum start room — safe zone, no monsters. Mark cleared so re-entry
+    // skips the spawn path entirely.
+    const si = cell.stratumIndex ?? 0;
+    const stratumStartCell = this.unifiedGrid.stratumStartRooms?.[si];
+    if (stratumStartCell &&
+        stratumStartCell.col === col &&
+        stratumStartCell.absoluteRow === row) {
+      if (!cell.cleared) {
+        cell.cleared = true;
+        this.roomsCleared++;
+        this.persistRoomState();
+      }
+      return;
+    }
 
     // Memory Room — lore pause, no enemies. Mark as cleared to keep it empty,
     // mirroring the normal clear path (counter bump + persist). HUD refreshes
@@ -1162,19 +1183,66 @@ export class ItemWorldScene extends Scene {
     });
   }
 
-  /** Draw dark overlay rects over sealed edge strips to hide any open terrain. */
+  /**
+   * Paint every solid cell (fullGrid value >= 1) in this room's region with
+   * a uniform 0x383838 rect. Called after the renderer so flat walls sit on
+   * top of the template's background layer. Replaces per-template wall art
+   * with a single consistent look across the whole item world.
+   */
+  private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
+    const gfx = new Graphics();
+    for (let lr = 0; lr < IW_ROOM_H_TILES; lr++) {
+      for (let lc = 0; lc < IW_ROOM_W_TILES; lc++) {
+        const v = this.fullGrid[offR + lr]?.[offC + lc] ?? 0;
+        if (v === 0) continue; // air
+        const px = lc * TILE_SIZE;
+        const py = lr * TILE_SIZE;
+        let color = 0x383838; // default wall
+        if (v === 5) color = 0xcc3333;      // spike — red
+        else if (v === 9) color = 0x5a4433;  // breakable — dark brown
+        else if (v === 2 || v === 3 || v === 4) continue; // water/platform/updraft: skip (keep template bg)
+        gfx.rect(px, py, TILE_SIZE, TILE_SIZE).fill({ color, alpha: 1.0 });
+      }
+    }
+    roomContainer.addChild(gfx);
+  }
+
+  /**
+   * Draw stone-brick blocks over sealed edge strips so players read them as
+   * solid walls, not holes. Each tile gets a mortar base + 4×4 brick grid
+   * with 4 stone color variations (matches addSealSprites palette).
+   */
   private drawSealOverlays(
     roomContainer: Container,
     sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>,
   ): void {
     if (sealRectsLocal.length === 0) return;
     const gfx = new Graphics();
+    const T = TILE_SIZE;
+    const BRICK_W = 4;
+    const BRICK_H = 4;
+    const colors = [0x6a6a80, 0x5c5c74, 0x727288, 0x64647c];
+    const mortar = 0x33334a;
+
     for (const rect of sealRectsLocal) {
-      const px = rect.c0 * TILE_SIZE;
-      const py = rect.r0 * TILE_SIZE;
-      const pw = (rect.cN - rect.c0) * TILE_SIZE;
-      const ph = (rect.rN - rect.r0) * TILE_SIZE;
-      gfx.rect(px, py, pw, ph).fill({ color: 0x383838, alpha: 1.0 });
+      for (let r = rect.r0; r < rect.rN; r++) {
+        for (let c = rect.c0; c < rect.cN; c++) {
+          const x = c * T;
+          const y = r * T;
+          // Mortar base
+          gfx.rect(x, y, T, T).fill(mortar);
+          // 4×4 brick grid with row-offset stagger
+          for (let by = 0; by < 4; by++) {
+            const offset = (by + r) % 2 === 0 ? 0 : 2;
+            for (let bx = 0; bx < 4; bx++) {
+              const brickX = x + ((bx * BRICK_W + offset * (BRICK_W / 2)) % T);
+              const brickY = y + by * BRICK_H;
+              const color = colors[(bx + by + c + r) % colors.length];
+              gfx.rect(brickX, brickY, BRICK_W - 1, BRICK_H - 1).fill(color);
+            }
+          }
+        }
+      }
     }
     roomContainer.addChild(gfx);
   }
@@ -1634,11 +1702,11 @@ export class ItemWorldScene extends Scene {
       } else if (isBoss) {
         desiredType = 'Boss';
       } else if (!cell.onCriticalPath) {
-        // Off-path rooms: 60% Combat, 20% Treasure, 10% Rest, 10% Puzzle
+        // Off-path rooms: equal 25% for Treasure / Rest / Puzzle / Combat
         const roll = rng.next();
-        if (roll < 0.20) desiredType = 'Treasure';
-        else if (roll < 0.30) desiredType = 'Rest';
-        else if (roll < 0.40) desiredType = 'Puzzle';
+        if (roll < 0.25) desiredType = 'Treasure';
+        else if (roll < 0.50) desiredType = 'Rest';
+        else if (roll < 0.75) desiredType = 'Puzzle';
         else desiredType = 'Combat';
       } else {
         desiredType = 'Combat';
@@ -2041,16 +2109,12 @@ export class ItemWorldScene extends Scene {
     this.memoryTriggers = [];
   }
 
-  /** Per-frame: spike contact + collapsing platforms + entity update logic. */
+  /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
   private updateStaticEntities(dt: number): void {
-    // Spike hazard contact
+    // IntGrid spike (value 5) — contact damage + safe-ground respawn.
+    // Replaces the old Entity-based Spike AABB check with fullGrid tile scan.
     if (!this.player.invincible && this.player.hp > 0) {
-      const playerBox = {
-        x: this.player.x, y: this.player.y,
-        width: this.player.width, height: this.player.height,
-      };
-      for (const spike of this.spikes) {
-        if (!aabbOverlap(playerBox, spike.getAABB())) continue;
+      if (isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid)) {
         const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
         this.player.hp -= dmg;
         this.player.invincible = true;
@@ -2072,7 +2136,6 @@ export class ItemWorldScene extends Scene {
           this.player.hp = 0;
           this.player.onDeath();
         }
-        break;
       }
     }
 
@@ -2105,8 +2168,13 @@ export class ItemWorldScene extends Scene {
       door.update(dt);
     }
 
-    // Player attack vs CrackedFloors (normal attack breaks them)
+    // Player attack vs CrackedFloors / Switches / Breakables
     if (this.player.isAttackActive()) {
+      // Reset breakable swing tracking on new combo step
+      if (this.player.comboIndex !== this.breakableLastCombo) {
+        this.breakableHitThisSwing.clear();
+        this.breakableLastCombo = this.player.comboIndex;
+      }
       const step = COMBO_STEPS[this.player.comboIndex];
       if (step) {
         const hitbox = getAttackHitbox(
@@ -2135,11 +2203,92 @@ export class ItemWorldScene extends Scene {
             this.unlockDoorByIidLocal(sw.targetDoorIid);
           }
         }
+        // Breakable tiles (IntGrid 9) — 3 hits to destroy → air(0)
+        this.checkAttackOnBreakables(hitbox);
+      }
+    } else {
+      // Attack ended — reset breakable swing tracking
+      if (this.breakableHitThisSwing.size > 0) {
+        this.breakableHitThisSwing.clear();
+        this.breakableLastCombo = -1;
       }
     }
 
     // Camera zone tracking
     this.updateCameraZones();
+  }
+
+  /** Scan breakable tiles overlapping the attack hitbox. 3 SWINGS → air.
+   *  Each swing counts once per tile; subsequent frames of the same swing
+   *  are ignored so the player must land 3 distinct combo hits. */
+  private checkAttackOnBreakables(hitbox: { x: number; y: number; width: number; height: number }): void {
+    const T = TILE_SIZE;
+    const HITS_TO_BREAK = 3;
+    const l = Math.floor(hitbox.x / T);
+    const r = Math.floor((hitbox.x + hitbox.width - 1) / T);
+    const t = Math.floor(hitbox.y / T);
+    const b = Math.floor((hitbox.y + hitbox.height - 1) / T);
+    let broken = false;
+    for (let row = t; row <= b; row++) {
+      for (let col = l; col <= r; col++) {
+        const v = this.fullGrid[row]?.[col];
+        if (v !== 9) continue;
+        const key = `${col},${row}`;
+        if (this.breakableHitThisSwing.has(key)) continue; // already counted this swing
+        this.breakableHitThisSwing.add(key);
+        const hits = (this.breakableHits.get(key) ?? 0) + 1;
+        if (hits >= HITS_TO_BREAK) {
+          this.fullGrid[row][col] = 0;
+          this.breakableHits.delete(key);
+          broken = true;
+        } else {
+          this.breakableHits.set(key, hits);
+        }
+      }
+    }
+    if (broken) {
+      this.game.hitstopFrames += 4;
+      this.game.camera.shake(4);
+      this.screenFlash.flash(0xffffff, 0.3, 100);
+      this.rebuildRoomVisuals();
+    }
+  }
+
+  /** Re-render all room containers with updated fullGrid state. */
+  private rebuildRoomVisuals(): void {
+    if (!this.fullMapContainer || !this.atlas) return;
+    // Remove and rebuild all room containers. This is called rarely (only on
+    // breakable tile destruction) so performance is acceptable.
+    this.fullMapContainer.removeChildren();
+    const grid = this.unifiedGrid;
+    const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+
+    for (let localRow = 0; localRow < IW_GRID_H; localRow++) {
+      const absRow = stratumRowStart + localRow;
+      for (let col = 0; col < IW_GRID_W; col++) {
+        const cell = grid.cells[absRow]?.[col];
+        const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
+        const ldtkLevel = this.pickLdtkTemplate(cell ?? null as any, rng);
+        if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
+
+        const offR = localRow * IW_ROOM_H_TILES;
+        const offC = col * IW_ROOM_W_TILES;
+
+        const roomContainer = new Container();
+        roomContainer.x = col * IW_ROOM_W_PX;
+        roomContainer.y = localRow * IW_ROOM_H_PX;
+        const inBounds = (t: { px: [number, number] }) =>
+          t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
+          t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
+        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+        const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
+        const renderer = new LdtkRenderer();
+        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlas);
+        roomContainer.addChild(renderer.container);
+        this.drawUniformWalls(roomContainer, offR, offC);
+        this.fullMapContainer.addChild(roomContainer);
+      }
+    }
   }
 
   /** Unlock a door in this scene by its LDtk iid (mirrors LdtkWorldScene logic). */
@@ -2284,6 +2433,11 @@ export class ItemWorldScene extends Scene {
     this.checkMemoryTriggers(dt);
 
     if (this.player.isDead) {
+      // Analytics: death in item world
+      const cell = this.getCurrentCell();
+      trackPlayerDeath('itemworld', cell?.col ?? 0, cell?.row ?? 0, 'unknown');
+      trackItemWorldExit('death', this.currentStratumIndex);
+
       // Death penalty: lose 30% earned EXP, drop back one stratum
       const penalty = Math.floor(this.earnedExp * 0.3);
       this.earnedExp = Math.max(0, this.earnedExp - penalty);
@@ -2482,6 +2636,9 @@ export class ItemWorldScene extends Scene {
         (enemy as any)._portalSpawned = true;
         const cell = this.getCurrentCell();
         cell.cleared = true;
+
+        // Analytics: stratum boss defeated
+        trackItemWorldFloorClear(this.currentStratumIndex, this.item.rarity);
 
         // Level up
         const prevLevel = this.item.level;
@@ -2886,6 +3043,7 @@ export class ItemWorldScene extends Scene {
       this.startTransition('down', nextStartCol, nextStartRow);
     } else {
       // Deepest stratum cleared — exit item world
+      this.exitReason = 'clear';
       this.progress.lastSafeStratum = this.currentStratumIndex;
       markItemCleared(this.item);
       this.persistRoomState();
@@ -2976,6 +3134,9 @@ export class ItemWorldScene extends Scene {
   }
 
   private exitItemWorld(): void {
+    // Analytics: exit (escape or clear — death is tracked separately)
+    trackItemWorldExit(this.exitReason, this.currentStratumIndex);
+
     this.sourcePlayer.hp = this.player.hp;
 
     this.hideEscapeConfirm();

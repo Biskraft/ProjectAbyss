@@ -3,6 +3,7 @@ import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 import { VirtualPad } from '@ui/VirtualPad';
+import { trackGameStart } from '@utils/Analytics';
 
 function showStatus(msg: string): void {
   const el = document.getElementById('load-status');
@@ -54,6 +55,9 @@ try {
   if (VirtualPad.isTouchDevice()) {
     new VirtualPad(game.input);
   }
+
+  // Analytics: session start
+  trackGameStart();
 
   // Hide status once game is running
   const el = document.getElementById('load-status');

@@ -25,6 +25,7 @@ export interface SaveData {
     waterBreathing: boolean;
     wallJump: boolean;
     doubleJump: boolean;
+    cheat?: boolean;
   };
   /** Unlocked doors/switches (by IID or event name). */
   unlockedEvents: string[];
@@ -83,7 +84,7 @@ export class SaveManager {
     player: { hp: number; maxHp: number; atk: number; def: number };
     levelId: string;
     inventory: Inventory;
-    abilities: { dash: boolean; diveAttack: boolean; surge: boolean; waterBreathing: boolean; wallJump: boolean; doubleJump: boolean };
+    abilities: { dash: boolean; diveAttack: boolean; surge: boolean; waterBreathing: boolean; wallJump: boolean; doubleJump: boolean; cheat?: boolean };
     unlockedEvents: Set<string>;
     collectedRelics: Set<string>;
     collectedItems: Set<string>;

@@ -38,10 +38,10 @@ export class Skeleton extends Enemy {
           this.fsm.transition('idle');
           return;
         }
-        if (dist <= this.attackRange && this.cooldownTimer <= 0) {
-          this.fsm.transition('attack');
-          return;
-        }
+        // No ranged attack — keep chasing until bodies overlap. The scene's
+        // AABB contact check deals damage on touch. Stopping at attackRange
+        // would freeze the skeleton 2 px short of the player and prevent
+        // contact damage entirely.
         this.moveTowardTarget(this.moveSpeed);
       },
     });

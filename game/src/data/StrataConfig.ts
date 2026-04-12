@@ -4,15 +4,15 @@ import type { TilemapTheme } from '@level/TilemapRenderer';
 export interface StratumDef {
   gridWidth: number;
   gridHeight: number;
-  /** Base enemy HP for this stratum (replaces skeleton's default) */
-  enemyHp: number;
-  /** Base enemy ATK for this stratum */
-  enemyAtk: number;
+  /** Multiplier applied to enemy HP from CSV (Sheets/Content_Stats_Enemy.csv) */
+  hpMul: number;
+  /** Multiplier applied to enemy ATK from CSV */
+  atkMul: number;
   enemyCountBonus: number;
-  /** Boss HP */
-  bossHp: number;
-  /** Boss ATK */
-  bossAtk: number;
+  /** Multiplier applied to boss HP from CSV */
+  bossHpMul: number;
+  /** Multiplier applied to boss ATK from CSV */
+  bossAtkMul: number;
   expMultiplier: number;
   theme: TilemapTheme;
 }
@@ -24,42 +24,41 @@ export interface StrataConfig {
 /**
  * Item World grid size & enemy stats by rarity.
  *
- * Per CLAUDE.md spec: 4×4 fixed grid, rarity differentiates by stratum count.
- *   Normal    4×4 × 2지층 = 32방
- *   Magic     4×4 × 3지층 = 48방
- *   Rare      4×4 × 3지층 = 48방
- *   Legendary 4×4 × 4지층 = 64방
- *   Ancient   4×4 × 4지층 = 64방  (+ Abyss 심연 phase 2)
+ * Final HP = CSV.hp × hpMul × distScale
+ * Final ATK = CSV.atk × atkMul × distScale
+ * (cycle scaling is applied automatically via CSV level bump in createEnemyFromType)
  *
- * Enemy stat scaling: each stratum ramps HP +25% / ATK +20% from previous.
- * Boss HP = enemyHp × 4, Boss ATK = enemyAtk × 2.
+ * Every stratum — including normal s1 — has a multiplier above 1.0 so the
+ * difficulty curve is always moving. The values are roughly geometric:
+ * each stratum steps up ~1.2-1.3× HP / ~1.15-1.25× ATK from the previous.
+ * Tune this file to change difficulty globally; tune CSV for per-enemy-type variance.
  */
 export const STRATA_BY_RARITY: Record<Rarity, StrataConfig> = {
   normal: { strata: [
-    { gridWidth: 4, gridHeight: 4, enemyHp: 40, enemyAtk: 8, enemyCountBonus: 0, bossHp: 160, bossAtk: 16, expMultiplier: 1.0, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 50, enemyAtk: 10, enemyCountBonus: 1, bossHp: 200, bossAtk: 20, expMultiplier: 1.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 1.1, atkMul: 1.05, enemyCountBonus: 0, bossHpMul: 1.0, bossAtkMul: 0.9, expMultiplier: 1.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 1.4, atkMul: 1.25, enemyCountBonus: 1, bossHpMul: 1.25, bossAtkMul: 1.0, expMultiplier: 1.5, theme: 'itemworld' },
   ]},
   magic: { strata: [
-    { gridWidth: 4, gridHeight: 4, enemyHp: 60, enemyAtk: 12, enemyCountBonus: 0, bossHp: 240, bossAtk: 24, expMultiplier: 1.0, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 75, enemyAtk: 15, enemyCountBonus: 1, bossHp: 300, bossAtk: 30, expMultiplier: 1.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 90, enemyAtk: 18, enemyCountBonus: 1, bossHp: 360, bossAtk: 36, expMultiplier: 2.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 1.7, atkMul: 1.4, enemyCountBonus: 0, bossHpMul: 1.4, bossAtkMul: 1.1, expMultiplier: 1.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 2.1, atkMul: 1.6, enemyCountBonus: 1, bossHpMul: 1.6, bossAtkMul: 1.2, expMultiplier: 1.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 2.6, atkMul: 1.9, enemyCountBonus: 1, bossHpMul: 1.9, bossAtkMul: 1.3, expMultiplier: 2.0, theme: 'itemworld' },
   ]},
   rare: { strata: [
-    { gridWidth: 4, gridHeight: 4, enemyHp: 90, enemyAtk: 18, enemyCountBonus: 0, bossHp: 360, bossAtk: 36, expMultiplier: 1.0, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 110, enemyAtk: 22, enemyCountBonus: 1, bossHp: 440, bossAtk: 44, expMultiplier: 1.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 130, enemyAtk: 25, enemyCountBonus: 2, bossHp: 520, bossAtk: 50, expMultiplier: 2.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 2.4, atkMul: 1.8, enemyCountBonus: 0, bossHpMul: 1.75, bossAtkMul: 1.25, expMultiplier: 1.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 3.0, atkMul: 2.1, enemyCountBonus: 1, bossHpMul: 2.0, bossAtkMul: 1.4, expMultiplier: 1.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 3.7, atkMul: 2.5, enemyCountBonus: 2, bossHpMul: 2.25, bossAtkMul: 1.55, expMultiplier: 2.5, theme: 'itemworld' },
   ]},
   legendary: { strata: [
-    { gridWidth: 4, gridHeight: 4, enemyHp: 130, enemyAtk: 25, enemyCountBonus: 0, bossHp: 520, bossAtk: 50, expMultiplier: 1.0, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 155, enemyAtk: 30, enemyCountBonus: 1, bossHp: 620, bossAtk: 60, expMultiplier: 1.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 180, enemyAtk: 35, enemyCountBonus: 2, bossHp: 720, bossAtk: 70, expMultiplier: 2.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 220, enemyAtk: 42, enemyCountBonus: 3, bossHp: 880, bossAtk: 84, expMultiplier: 3.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 3.5, atkMul: 2.4, enemyCountBonus: 0, bossHpMul: 2.25, bossAtkMul: 1.5, expMultiplier: 1.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 4.3, atkMul: 2.8, enemyCountBonus: 1, bossHpMul: 2.6, bossAtkMul: 1.65, expMultiplier: 1.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 5.2, atkMul: 3.2, enemyCountBonus: 2, bossHpMul: 3.0, bossAtkMul: 1.8, expMultiplier: 2.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 6.3, atkMul: 3.7, enemyCountBonus: 3, bossHpMul: 3.4, bossAtkMul: 2.0, expMultiplier: 3.5, theme: 'itemworld' },
   ]},
   ancient: { strata: [
-    { gridWidth: 4, gridHeight: 4, enemyHp: 180, enemyAtk: 35, enemyCountBonus: 0, bossHp: 720, bossAtk: 70, expMultiplier: 1.0, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 220, enemyAtk: 42, enemyCountBonus: 1, bossHp: 880, bossAtk: 84, expMultiplier: 1.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 270, enemyAtk: 50, enemyCountBonus: 2, bossHp: 1080, bossAtk: 100, expMultiplier: 2.5, theme: 'itemworld' },
-    { gridWidth: 4, gridHeight: 4, enemyHp: 330, enemyAtk: 60, enemyCountBonus: 3, bossHp: 1320, bossAtk: 120, expMultiplier: 3.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 4.9, atkMul: 3.3, enemyCountBonus: 0, bossHpMul: 3.0, bossAtkMul: 1.9, expMultiplier: 1.0, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 5.9, atkMul: 3.8, enemyCountBonus: 1, bossHpMul: 3.4, bossAtkMul: 2.1, expMultiplier: 1.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 7.2, atkMul: 4.4, enemyCountBonus: 2, bossHpMul: 3.75, bossAtkMul: 2.3, expMultiplier: 2.5, theme: 'itemworld' },
+    { gridWidth: 4, gridHeight: 4, hpMul: 8.7, atkMul: 5.1, enemyCountBonus: 3, bossHpMul: 4.25, bossAtkMul: 2.5, expMultiplier: 3.5, theme: 'itemworld' },
     // Phase 2: Abyss stratum (infinite, requires Anchor)
   ]},
 };

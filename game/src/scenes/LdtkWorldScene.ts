@@ -40,7 +40,7 @@ import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft } from '@core/Physics';
+import { isInUpdraft, isInSpike } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup } from '@entities/HealingPickup';
@@ -73,6 +73,7 @@ import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
+import { trackPlayerDeath } from '@utils/Analytics';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -82,7 +83,10 @@ const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 
 const LDTK_PATH = 'assets/World_ProjectAbyss.ldtk';
-const LDTK_WORLD_ID = 'Overworld';
+// Load Overworld + ItemTunnel worlds into the same loader so the existing
+// tunnel flow (floor collapse → loadLevel('ItemTunnel_*') → enter item world)
+// keeps working after tunnels were moved out of the Overworld world.
+const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
 const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
@@ -196,9 +200,13 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private spikes: Spike[] = [];
-  // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
+  // Updraft: IntGrid value 4 — handled in applyUpdrafts()
   private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
   private updraftGfx: Graphics | null = null;
+  // Breakable tile (IntGrid 9) hit tracking — 3 hits to destroy
+  private breakableHits: Map<string, number> = new Map();
+  private breakableHitThisSwing: Set<string> = new Set();
+  private breakableLastCombo = -1;
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
   private healingPickups: HealingPickup[] = [];
@@ -232,7 +240,7 @@ export class LdtkWorldScene extends Scene {
     // Fetch and parse LDtk project (multi-world → pick Overworld)
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
     this.loader = new LdtkLoader();
-    this.loader.load(json, LDTK_WORLD_ID);
+    this.loader.load(json, LDTK_WORLD_IDS);
 
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
@@ -275,6 +283,7 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
+      this.player.abilities.cheat = saveData.abilities.cheat ?? false;
     }
     this.updatePlayerAtk();
 
@@ -328,9 +337,9 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.initialized = true;
-
-    // Show controls toast on first load
-    this.toast.show('Z:Attack  X:Jump  C:Dash', 0xaaaaaa);
+    // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
+    // update() — fires once per session with auto-dismiss. No unconditional
+    // toast here so returning from item world doesn't re-spam controls.
   }
 
   enter(): void {
@@ -511,12 +520,14 @@ export class LdtkWorldScene extends Scene {
       this.player.onDeath();
       this.game.hitstopFrames = 8;
       this.screenFlash.flashDamage(true);
+      trackPlayerDeath('world', 0, 0, 'drown');
       this.showGameOver();
       return;
     }
 
     // Check player death
     if (this.player.isDead && !this.gameOverActive) {
+      trackPlayerDeath('world', 0, 0, 'unknown');
       this.showGameOver();
       return;
     }
@@ -744,6 +755,20 @@ export class LdtkWorldScene extends Scene {
         } else if (abilityName === 'doubleJump') {
           this.player.abilities.doubleJump = true;
           this.toast.showBig('Double Jump unlocked!', 0xffd700);
+        } else if (abilityName === 'cheat') {
+          // ============================================================
+          // KNOWN-ISSUE (DEC-010): Phase 0 전용 디버그 치트 렐릭.
+          //
+          // 목적: 빠른 플레이테스트/밸런스 조정용. 맵에 숨겨져 있음.
+          // 위험: SaveManager를 통해 영구 저장됨. 콘텐츠 기반 트리거이므로
+          //       LDtk에 ability=cheat 엔티티가 있으면 gate 없이 발동.
+          // 제거 조건: Phase 1 진입 시점. 빌드 플래그로 전환 또는 완전 제거.
+          // 참조: Codex adversarial review task bjpvo3ft2 — no-ship 판정
+          // ============================================================
+          this.player.abilities.cheat = true;
+          this.updatePlayerAtk(); // re-applies +99999 via cheat branch
+          this.player.hp = this.player.maxHp; // full heal to new cap
+          this.toast.showBig('CHEAT: ATK/HP +99999', 0xff00ff);
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);
@@ -785,6 +810,7 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
     this.checkAttackOnCrackedFloors();
+    this.checkAttackOnBreakables();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) {
       wall.update(dt);
@@ -1120,8 +1146,10 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Collision grid ??same format as WorldScene.roomData
+    // Collision grid — same format as WorldScene.roomData
     this.collisionGrid = level.collisionGrid;
+    // Reset breakable hit tracking on level transition
+    this.breakableHits.clear();
 
     // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone)
     this.renderer.clear();
@@ -1725,47 +1753,40 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Check player overlap with spikes ??damage + teleport to last safe ground. */
+  /** IntGrid spike (value 5) check — replaces Entity-based Spike AABB loop. */
   private checkSpikeContact(): void {
     if (this.player.invincible || this.player.hp <= 0) return;
 
-    const playerBox = {
-      x: this.player.x, y: this.player.y,
-      width: this.player.width, height: this.player.height,
-    };
+    if (!isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.collisionGrid)) return;
 
-    for (const spike of this.spikes) {
-      if (!aabbOverlap(playerBox, spike.getAABB())) continue;
+    // 20% max HP damage
+    const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
+    this.player.hp -= dmg;
+    this.player.invincible = true;
+    this.player.invincibleTimer = 500;
 
-      // 20% max HP damage
-      const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
-      this.player.hp -= dmg;
-      this.player.invincible = true;
-      this.player.invincibleTimer = 500;
+    // Feedback — strong hitstop for spike pain
+    this.game.hitstopFrames = 16;
+    this.game.camera.shake(5);
+    this.screenFlash.flashDamage(true);
+    this.player.triggerFlash();
+    this.dmgNumbers.spawn(
+      this.player.x + this.player.width / 2,
+      this.player.y - 8, dmg, true,
+    );
 
-      // Feedback ??strong hitstop for spike pain
-      this.game.hitstopFrames = 16;
-      this.game.camera.shake(5);
+    // Teleport to last safe ground
+    this.player.x = this.player.lastSafeX;
+    this.player.y = this.player.lastSafeY;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+
+    if (this.player.hp <= 0) {
+      this.player.hp = 0;
+      this.player.onDeath();
+      this.game.hitstopFrames = 8;
       this.screenFlash.flashDamage(true);
-      this.player.triggerFlash();
-      this.dmgNumbers.spawn(
-        this.player.x + this.player.width / 2,
-        this.player.y - 8, dmg, true,
-      );
-
-      // Teleport to last safe ground
-      this.player.x = this.player.lastSafeX;
-      this.player.y = this.player.lastSafeY;
-      this.player.vx = 0;
-      this.player.vy = 0;
-      this.player.savePrevPosition();
-
-      if (this.player.hp <= 0) {
-        this.player.hp = 0;
-        this.player.onDeath();
-        this.game.hitstopFrames = 8;
-        this.screenFlash.flashDamage(true);
-      }
-      return; // one spike per frame
     }
   }
 
@@ -2024,6 +2045,61 @@ export class LdtkWorldScene extends Scene {
         this.unlockDoorByIid(sw.targetDoorIid);
         this.toast.show('Switch Destroyed!', 0x44ffaa);
       }
+    }
+  }
+
+  /** IntGrid breakable (9) — 3 SWINGS to destroy → air(0).
+   *  Each attack swing (combo step) counts as 1 hit per tile. Subsequent
+   *  frames of the same swing are ignored so holding attack doesn't insta-break. */
+  private checkAttackOnBreakables(): void {
+    if (!this.player.isAttackActive()) {
+      // Attack ended — reset swing tracking
+      if (this.breakableHitThisSwing.size > 0) {
+        this.breakableHitThisSwing.clear();
+        this.breakableLastCombo = -1;
+      }
+      return;
+    }
+    // New combo step = new swing opportunity
+    if (this.player.comboIndex !== this.breakableLastCombo) {
+      this.breakableHitThisSwing.clear();
+      this.breakableLastCombo = this.player.comboIndex;
+    }
+    const step = COMBO_STEPS[this.player.comboIndex];
+    if (!step) return;
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+    const T = 16;
+    const HITS_TO_BREAK = 3;
+    const l = Math.floor(hitbox.x / T);
+    const r = Math.floor((hitbox.x + hitbox.width - 1) / T);
+    const t = Math.floor(hitbox.y / T);
+    const b = Math.floor((hitbox.y + hitbox.height - 1) / T);
+    let broken = false;
+    for (let row = t; row <= b; row++) {
+      for (let col = l; col <= r; col++) {
+        if ((this.collisionGrid[row]?.[col] ?? 0) !== 9) continue;
+        const key = `${col},${row}`;
+        if (this.breakableHitThisSwing.has(key)) continue; // already hit this swing
+        this.breakableHitThisSwing.add(key);
+        const hits = (this.breakableHits.get(key) ?? 0) + 1;
+        if (hits >= HITS_TO_BREAK) {
+          this.collisionGrid[row][col] = 0;
+          this.breakableHits.delete(key);
+          broken = true;
+        } else {
+          this.breakableHits.set(key, hits);
+        }
+      }
+    }
+    if (broken) {
+      this.game.hitstopFrames += 4;
+      this.game.camera.shake(4);
+      this.screenFlash.flash(0xffffff, 0.3, 100);
+      this.toast.show('Wall Destroyed!', 0xffaa44);
+      this.rerenderTilemap();
     }
   }
 
@@ -2585,7 +2661,10 @@ export class LdtkWorldScene extends Scene {
     const equippedItem = this.inventory.equipped;
     const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
 
-    this.player.atk = baseStr + weaponAtk + innocentAtk;
+    // DEBUG cheat relic — flat +99999 on top of everything
+    const cheatBonus = this.player.abilities.cheat ? 99999 : 0;
+
+    this.player.atk = baseStr + weaponAtk + innocentAtk + cheatBonus;
 
     // Innocent bonus DEF ??base 5 + innocent 'def' bonus
     const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
@@ -2593,7 +2672,7 @@ export class LdtkWorldScene extends Scene {
 
     // Innocent bonus MaxHP ??base 100 + innocent 'hp' bonus
     const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
-    const newMaxHp = 100 + innocentHp;
+    const newMaxHp = 100 + innocentHp + cheatBonus;
     if (newMaxHp !== this.player.maxHp) {
       // Scale current HP proportionally when max changes (standard RPG convention)
       const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;

@@ -91,6 +91,18 @@ export interface LdtkLevel {
    * Values: level identifiers.
    */
   dirNeighbors: Record<string, string[]>;
+  /**
+   * Auto-detected door anchor rows/cols for runtime door carving.
+   * See ItemWorldScene door-mask logic. Values are local tile coords.
+   */
+  doorAnchors: {
+    /** Row on col 0 where air meets floor (player walk-through row). */
+    leftFloorRow: number;
+    /** Row on col (gridW-1) where air meets floor. */
+    rightFloorRow: number;
+    /** Middle column for vertical doors (up/down). */
+    midCol: number;
+  };
 }
 
 /**
@@ -222,33 +234,50 @@ export class LdtkLoader {
    * structures. Call this once; results are cached in the internal map.
    *
    * Supports both single-world (legacy) and multi-world LDtk projects.
-   * For multi-world projects, pass `worldId` to pick the correct world's
-   * levels. If omitted, the first world is used.
+   * For multi-world projects, pass `worldId` (or an array of worldIds to merge
+   * levels from multiple worlds into a single loader). If omitted, the first
+   * world is used.
    *
    * @param json - The parsed JSON object from a .ldtk file.
-   * @param worldId - Optional world identifier for multi-world projects.
+   * @param worldId - Optional world identifier, or array of identifiers.
    */
-  load(json: Record<string, unknown>, worldId?: string): void {
+  load(json: Record<string, unknown>, worldId?: string | string[]): void {
     this.levels.clear();
 
     let rawLevels: RawLdtkLevel[];
 
     const worlds = json['worlds'] as RawLdtkWorld[] | undefined;
     if (Array.isArray(worlds) && worlds.length > 0) {
-      // Multi-world project: pick the matching world (or the first one).
-      let world: RawLdtkWorld | undefined;
-      if (worldId) {
-        world = worlds.find((w) => w.identifier === worldId);
-        if (!world) {
-          const available = worlds.map((w) => w.identifier).join(', ');
-          throw new Error(
-            `[LdtkLoader] World "${worldId}" not found. Available: [${available}]`,
-          );
+      // Multi-world project: pick matching world(s) or the first one.
+      if (Array.isArray(worldId)) {
+        // Merge levels from multiple worlds
+        const merged: RawLdtkLevel[] = [];
+        for (const wid of worldId) {
+          const w = worlds.find((x) => x.identifier === wid);
+          if (!w) {
+            const available = worlds.map((x) => x.identifier).join(', ');
+            throw new Error(
+              `[LdtkLoader] World "${wid}" not found. Available: [${available}]`,
+            );
+          }
+          merged.push(...w.levels);
         }
+        rawLevels = merged;
       } else {
-        world = worlds[0];
+        let world: RawLdtkWorld | undefined;
+        if (worldId) {
+          world = worlds.find((w) => w.identifier === worldId);
+          if (!world) {
+            const available = worlds.map((w) => w.identifier).join(', ');
+            throw new Error(
+              `[LdtkLoader] World "${worldId}" not found. Available: [${available}]`,
+            );
+          }
+        } else {
+          world = worlds[0];
+        }
+        rawLevels = world.levels;
       }
-      rawLevels = world.levels;
     } else {
       // Single-world (legacy) project: root-level `levels`.
       rawLevels = json['levels'] as RawLdtkLevel[];
@@ -388,6 +417,8 @@ export class LdtkLoader {
       }
     }
 
+    const doorAnchors = this.computeDoorAnchors(collisionGrid, gridW, gridH);
+
     return {
       identifier: raw.identifier,
       worldX: raw.worldX,
@@ -404,7 +435,35 @@ export class LdtkLoader {
       entities,
       neighbors: [], // populated later from __neighbours + computeNeighbors()
       dirNeighbors: {}, // populated later from __neighbours
+      doorAnchors,
     };
+  }
+
+  /**
+   * Scan the collision grid to find natural door anchor rows/cols.
+   * For horizontal exits (left/right), we look for the highest row on each
+   * vertical edge where an air tile sits directly above a solid tile (floor).
+   * For vertical exits (up/down) we just pick the horizontal midpoint.
+   *
+   * This lets the door-carving logic in ItemWorldScene align with the
+   * template's actual floor level instead of using a fixed magic row.
+   */
+  private computeDoorAnchors(grid: number[][], gridW: number, gridH: number): LdtkLevel['doorAnchors'] {
+    const findFloorRow = (col: number): number => {
+      if (col < 0 || col >= gridW) return Math.max(0, gridH - 4);
+      for (let r = gridH - 2; r >= 0; r--) {
+        const here = grid[r]?.[col] ?? 1;
+        const below = grid[r + 1]?.[col] ?? 1;
+        if (here === 0 && below >= 1) return r;
+      }
+      return Math.max(0, gridH - 4);
+    };
+    // Look at the first INSIDE column (col 1) not the outer wall (col 0),
+    // since outer walls are often solid and won't yield a floor hit.
+    const leftFloorRow = findFloorRow(Math.min(1, gridW - 1));
+    const rightFloorRow = findFloorRow(Math.max(0, gridW - 2));
+    const midCol = Math.floor(gridW / 2);
+    return { leftFloorRow, rightFloorRow, midCol };
   }
 
   /**
