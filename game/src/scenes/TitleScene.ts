@@ -11,8 +11,9 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
+import { assetPath } from '@core/AssetLoader';
 
-const LOGO_PATH = 'assets/ui/title_logo.png';
+const LOGO_PATH = assetPath('assets/ui/title_logo.png');
 
 export class TitleScene extends Scene {
   private canProceed = false;

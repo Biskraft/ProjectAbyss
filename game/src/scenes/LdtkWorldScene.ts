@@ -74,6 +74,7 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackPlayerDeath } from '@utils/Analytics';
+import { assetPath } from '@core/AssetLoader';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -82,12 +83,12 @@ import { trackPlayerDeath } from '@utils/Analytics';
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 
-const LDTK_PATH = 'assets/World_ProjectAbyss.ldtk';
+const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // Load Overworld + ItemTunnel worlds into the same loader so the existing
 // tunnel flow (floor collapse → loadLevel('ItemTunnel_*') → enter item world)
 // keeps working after tunnels were moved out of the Overworld world.
 const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
-const ATLAS_PATH = 'assets/atlas/SunnyLand_by_Ansimuz-extended.png';
+const ATLAS_PATH = assetPath('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';

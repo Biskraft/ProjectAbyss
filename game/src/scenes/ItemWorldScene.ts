@@ -49,6 +49,7 @@ import { ScreenFlash } from '@effects/ScreenFlash';
 import { ThoughtBubble } from '@ui/ThoughtBubble';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
+import { assetPath } from '@core/AssetLoader';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -230,9 +231,9 @@ export class ItemWorldScene extends Scene {
 
   async init(): Promise<void> {
     // Load tileset atlas + LDtk item world templates (merged multi-world file)
-    this.atlas = await Assets.load('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
+    this.atlas = await Assets.load(assetPath('assets/atlas/SunnyLand_by_Ansimuz-extended.png'));
     try {
-      const json = await fetch('assets/World_ProjectAbyss.ldtk').then(r => r.json());
+      const json = await fetch(assetPath('assets/World_ProjectAbyss.ldtk')).then(r => r.json());
       this.ldtkLoader = new LdtkLoader();
       this.ldtkLoader.load(json, 'ItemStratum');
       this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
@@ -1199,6 +1200,7 @@ export class ItemWorldScene extends Scene {
         const py = lr * TILE_SIZE;
         let color = 0x383838; // default wall
         if (v === 5) color = 0xcc3333;      // spike — red
+        else if (v === 7) color = 0x88ccff;  // ice — light blue
         else if (v === 9) color = 0x5a4433;  // breakable — dark brown
         else if (v === 2 || v === 3 || v === 4) continue; // water/platform/updraft: skip (keep template bg)
         gfx.rect(px, py, TILE_SIZE, TILE_SIZE).fill({ color, alpha: 1.0 });

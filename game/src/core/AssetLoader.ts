@@ -1,5 +1,16 @@
 import { Assets, Texture, Graphics, RenderTexture, type Renderer } from 'pixi.js';
 
+/**
+ * Resolve an asset path using Vite's base URL so paths work on both
+ * localhost (base="/") and GitHub Pages (base="/ProjectAbyss/").
+ */
+export function assetPath(relativePath: string): string {
+  const base = import.meta.env.BASE_URL ?? '/';
+  // Avoid double slashes
+  const trimmed = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
+  return base.endsWith('/') ? `${base}${trimmed}` : `${base}/${trimmed}`;
+}
+
 export class AssetLoader {
   private textures = new Map<string, Texture>();
 

@@ -17,6 +17,7 @@
  */
 
 import { Container, Graphics, BitmapText, Sprite, Texture, Assets } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
 import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
@@ -336,7 +337,7 @@ export class DialogueBox {
     }
 
     // Try loading from assets/portraits/{key}.png
-    const path = `assets/portraits/${key}.png`;
+    const path = assetPath(`assets/portraits/${key}.png`);
     Assets.load(path).then((tex: Texture) => {
       portraitCache.set(key, tex);
       if (this.currentPortraitKey === key) {
