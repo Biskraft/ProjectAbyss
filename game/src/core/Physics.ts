@@ -137,7 +137,21 @@ export function resolveY(
   x: number, y: number, width: number, height: number,
   vy: number, roomData: number[][], ignoreOneWay = false
 ): { y: number; grounded: boolean; collided: boolean } {
-  if (vy === 0) return { y, grounded: false, collided: false };
+  if (vy === 0) {
+    // Even when stationary, check if standing on a solid or one-way tile
+    // so grounded state persists across frames (prevents one-way platform
+    // flicker where player cycles ground→air→ground every frame).
+    const feetRow = Math.floor((y + height) / TILE_SIZE);
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
+    for (let col = leftCol; col <= rightCol; col++) {
+      const tile = getTile(roomData, col, feetRow);
+      if (isSolid(tile) || (isOneWay(tile) && !ignoreOneWay)) {
+        return { y, grounded: true, collided: false };
+      }
+    }
+    return { y, grounded: false, collided: false };
+  }
 
   const newY = y + vy;
 

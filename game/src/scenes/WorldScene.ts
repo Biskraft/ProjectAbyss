@@ -621,6 +621,8 @@ export class WorldScene extends Scene {
 
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
+    this.hud.update(dt);
     this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
 
     // Damage numbers & Sakurai hit effects

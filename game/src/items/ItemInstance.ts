@@ -5,6 +5,8 @@ import {
   INNOCENT_SLOTS_BY_RARITY,
   getInnocentEffectiveValue,
 } from '@data/innocents';
+import { getItemGrowth, EXP_PER_LEVEL as _CSV_EXP, MAX_ITEM_LEVEL as _CSV_MAX } from '@data/itemGrowth';
+import { getRarityConfig } from '@data/rarityConfig';
 
 export type { Innocent, InnocentStatKey };
 
@@ -96,9 +98,10 @@ export function resetItemForNextCycle(item: ItemInstance): void {
   wp.cycle += 1;
 }
 
-export const EXP_PER_LEVEL = 300;
+// SSoT: Sheets/Content_Item_Growth.csv via itemGrowth.ts
+export const EXP_PER_LEVEL = _CSV_EXP;
 export const EXP_PER_FLOOR = 100;
-export const MAX_ITEM_LEVEL = 99;
+export const MAX_ITEM_LEVEL = _CSV_MAX;
 
 export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
   const r = rarity ?? def.rarity;
@@ -115,18 +118,10 @@ export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
   return item;
 }
 
-/** ATK per level by rarity — linear growth, no exponential scaling */
-const ATK_PER_LEVEL: Record<Rarity, number> = {
-  normal: 4,
-  magic: 6,
-  rare: 8,
-  legendary: 10,
-  ancient: 14,
-};
-
-/** Linear growth: finalAtk = baseAtk + atkPerLevel × level */
+/** Linear growth: finalAtk = baseAtk + atkPerLevel(CSV) × level */
 export function recalcItemAtk(item: ItemInstance): void {
-  item.finalAtk = item.def.baseAtk + ATK_PER_LEVEL[item.rarity] * item.level;
+  const growth = getItemGrowth(item.rarity);
+  item.finalAtk = item.def.baseAtk + growth.atkPerLevel * item.level;
 }
 
 export function addItemExp(item: ItemInstance, exp: number): boolean {
@@ -199,11 +194,11 @@ export function calcInnocentBonus(item: ItemInstance, stat: InnocentStatKey): nu
   return total;
 }
 
-/** Diablo-style rarity colors */
+/** Diablo-style rarity colors — SSoT: Sheets/Content_Rarity.csv */
 export const RARITY_COLOR: Record<Rarity, number> = {
-  normal: 0xffffff,   // White   — Diablo Normal
-  magic: 0x6969ff,    // Blue    — Diablo Magic
-  rare: 0xffff00,     // Yellow  — Diablo Rare
-  legendary: 0xff8000, // Orange  — Diablo Legendary
-  ancient: 0x00ff00,  // Green   — Diablo Ancient/Set
+  normal: getRarityConfig('normal').color,
+  magic: getRarityConfig('magic').color,
+  rare: getRarityConfig('rare').color,
+  legendary: getRarityConfig('legendary').color,
+  ancient: getRarityConfig('ancient').color,
 };

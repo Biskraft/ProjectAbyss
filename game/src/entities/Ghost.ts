@@ -28,52 +28,117 @@ export class Ghost extends Enemy {
     this.container.addChildAt(this.glowSprite, 0);
   }
 
+  // GDD §4.2 movement params
+  private spawnX = 0;
+  private spawnY = 0;
+  private patrolDir = 1;
+  private patrolRangePx = 5 * 16; // 5 tiles
+  private detectTimer = 0;
+  private loseTargetTimer = 0;
+  private static readonly DETECT_CONFIRM_MS = 150;  // GDD: faster than Skeleton
+  private static readonly LOSE_TARGET_MS = 2000;
+  private static readonly KEEP_DIST_MIN = 4 * 16;   // 4 tiles min
+  private static readonly KEEP_DIST_MAX = 6 * 16;   // 6 tiles max
+
   protected setupStates(): void {
+    // ── Idle → Patrol ──
     this.fsm.addState({
       name: 'idle',
+      enter: () => { this.vx = 0; this.vy = 0; this.spawnX = this.x; this.spawnY = this.y; },
       update: () => {
-        this.vx = 0;
+        this.vx = 0; this.vy = 0;
         if (this.distToTarget() <= this.detectRange) {
-          this.fsm.transition('chase');
+          this.fsm.transition('detect');
+          return;
+        }
+        this.fsm.transition('patrol');
+      },
+    });
+
+    // ── Patrol: floating wander ──
+    this.fsm.addState({
+      name: 'patrol',
+      enter: () => { if (this.spawnX === 0) { this.spawnX = this.x; this.spawnY = this.y; } },
+      update: () => {
+        if (this.distToTarget() <= this.detectRange) {
+          this.fsm.transition('detect');
+          return;
+        }
+        const speed = this.moveSpeed * 0.6;
+        this.vx = this.patrolDir * speed;
+        this.vy = 0;
+        if (this.x > this.spawnX + this.patrolRangePx) this.patrolDir = -1;
+        if (this.x < this.spawnX - this.patrolRangePx) this.patrolDir = 1;
+      },
+    });
+
+    // ── Detect: brief pause (150ms) ──
+    this.fsm.addState({
+      name: 'detect',
+      enter: () => { this.vx = 0; this.vy = 0; this.detectTimer = Ghost.DETECT_CONFIRM_MS; },
+      update: (dt) => {
+        this.vx = 0; this.vy = 0;
+        this.detectTimer -= dt;
+        if (this.distToTarget() > this.detectRange) {
+          this.fsm.transition('patrol');
+          return;
+        }
+        if (this.detectTimer <= 0) {
+          this.fsm.transition('retreat');
         }
       },
     });
 
-    // Ghost retreats to maintain distance, doesn't rush in
+    // ── Chase: unused for Ghost, but kept for state machine fallback ──
     this.fsm.addState({
       name: 'chase',
-      update: () => {
-        const dist = this.horizontalDistToTarget();
+      update: () => { this.fsm.transition('retreat'); },
+    });
+
+    // ── Retreat: maintain distance (GDD: keep_distance_min..max) ──
+    this.fsm.addState({
+      name: 'retreat',
+      enter: () => { this.loseTargetTimer = Ghost.LOSE_TARGET_MS; },
+      update: (dt) => {
+        const dist = this.distToTarget();
         if (dist > this.detectRange * 1.5) {
-          this.fsm.transition('idle');
-          return;
+          this.loseTargetTimer -= dt;
+          if (this.loseTargetTimer <= 0) {
+            this.fsm.transition('patrol');
+            return;
+          }
+        } else {
+          this.loseTargetTimer = Ghost.LOSE_TARGET_MS;
         }
 
-        // Keep distance ~120px from player
-        const preferredDist = 120;
-        if (dist < preferredDist - 20) {
-          // Too close — retreat
+        const hDist = this.horizontalDistToTarget();
+        if (hDist < Ghost.KEEP_DIST_MIN) {
           this.moveAwayFromTarget(this.moveSpeed);
-        } else if (dist > preferredDist + 40) {
-          // Too far — approach slowly
+        } else if (hDist > Ghost.KEEP_DIST_MAX) {
           this.moveTowardTarget(this.moveSpeed * 0.6);
         } else {
           this.vx = 0;
         }
+        // Vertical: gently float toward player Y
+        if (this.target) {
+          const dy = (this.target.y + this.target.height / 2) - (this.y + this.height / 2);
+          this.vy = Math.sign(dy) * Math.min(Math.abs(dy), this.moveSpeed * 0.4);
+        }
 
         // Ready to shoot?
-        if (dist <= this.attackRange && this.cooldownTimer <= 0) {
+        if (hDist <= this.attackRange && this.cooldownTimer <= 0) {
           this.fsm.transition('attack');
         }
       },
     });
 
+    // ── Attack: wind-up (Tell 500ms) then shoot ──
     this.fsm.addState({
       name: 'attack',
       enter: () => {
-        this.shootTimer = 400; // wind-up before shooting
+        this.shootTimer = 500; // GDD: tell_duration_ms
         this.hasShot = false;
-        this.vx = 0;
+        this.vx = 0; this.vy = 0;
       },
       update: (dt) => {
         this.shootTimer -= dt;
@@ -86,25 +151,20 @@ export class Ghost extends Enemy {
       },
     });
 
+    // ── Cooldown ──
     this.fsm.addState({
       name: 'cooldown',
       update: () => {
-        this.vx = 0;
+        this.vx = 0; this.vy = 0;
         if (this.cooldownTimer <= 0) {
-          this.fsm.transition('chase');
+          this.fsm.transition('retreat');
         }
       },
     });
 
-    this.fsm.addState({
-      name: 'hit',
-      update: (dt) => this.stateHitUpdate(dt),
-    });
-
-    this.fsm.addState({
-      name: 'death',
-      update: () => {},
-    });
+    // ── Hit / Death ──
+    this.fsm.addState({ name: 'hit', update: (dt) => this.stateHitUpdate(dt) });
+    this.fsm.addState({ name: 'death', update: () => {} });
   }
 
   private shoot(): void {
@@ -133,31 +193,14 @@ export class Ghost extends Enemy {
     return false;
   }
 
-  // Override: Ghost ignores gravity and terrain (floats through walls)
+  // Flying: delegates physics to base class (no gravity, solid wall collision
+  // only, platforms/air pass-through). Adds Ghost-specific visual effects.
   update(dt: number): void {
-    if (!this.alive) {
-      // Death fade handled by parent, but we need to update the timer
-      super.update(dt);
-      return;
-    }
+    super.update(dt);
+    if (!this.alive) return;
 
-    this.savePrevPosition();
-    this.updateInvincibility(dt);
-    const dtSec = dt / 1000;
-
-    if (this.cooldownTimer > 0) this.cooldownTimer -= dt;
-
-    this.fsm.update(dt);
-
-    // No gravity, no terrain collision — ghost floats
-    this.x += this.vx * dtSec;
-    // Gentle vertical bob
+    // Gentle vertical bob (cosmetic, on top of physics)
     this.y += Math.sin(Date.now() * 0.003) * 0.3;
-
-    // Facing
-    if (this.target) {
-      this.facingRight = this.target.x > this.x;
-    }
 
     // Ghostly pulsing visibility
     const pulse = 0.55 + 0.35 * Math.sin(Date.now() * 0.004);

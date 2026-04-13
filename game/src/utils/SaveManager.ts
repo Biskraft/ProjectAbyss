@@ -41,6 +41,8 @@ export interface SaveData {
   gold: number;
   /** Total play time in ms. */
   playtime: number;
+  /** Accumulated HealthShard maxHP bonus. */
+  healthShardBonus?: number;
 }
 
 interface SerializedItem {
@@ -92,6 +94,7 @@ export class SaveManager {
     clearedLevels: Set<string>;
     gold: number;
     playtime: number;
+    healthShardBonus?: number;
   }): void {
     const data: SaveData = {
       version: 3,
@@ -109,6 +112,7 @@ export class SaveManager {
       clearedLevels: [...params.clearedLevels],
       gold: params.gold,
       playtime: params.playtime,
+      healthShardBonus: params.healthShardBonus ?? 0,
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));

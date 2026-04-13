@@ -1,44 +1,47 @@
+/**
+ * ItemDrop.ts — Drop rate and rarity selection loaded from CSV.
+ *
+ * SSoT: Sheets/Content_Item_DropRate.csv
+ * CSV columns: Pool,Rarity,Weight
+ */
+
+import dropCsvText from '../../../Sheets/Content_Item_DropRate.csv?raw';
 import { Container, Graphics } from 'pixi.js';
 import { PRNG } from '@utils/PRNG';
 import { SWORD_DEFS, type Rarity } from '@data/weapons';
 import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
+import { DROP_CHANCE } from '@data/rarityConfig';
 
-const DROP_CHANCE = 0.30;
+// Parse CSV into weight pools
+const POOLS = new Map<string, { rarity: Rarity; weight: number }[]>();
+const _dLines = dropCsvText.trim().split('\n');
+for (let i = 1; i < _dLines.length; i++) {
+  const cols = _dLines[i].split(',');
+  if (cols.length < 3) continue;
+  const pool = cols[0].trim().toLowerCase();
+  if (!POOLS.has(pool)) POOLS.set(pool, []);
+  POOLS.get(pool)!.push({
+    rarity: cols[1].trim().toLowerCase() as Rarity,
+    weight: parseFloat(cols[2]),
+  });
+}
 
-const RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
-  { rarity: 'normal', weight: 0.60 },
-  { rarity: 'magic', weight: 0.25 },
-  { rarity: 'rare', weight: 0.10 },
-  { rarity: 'legendary', weight: 0.04 },
-  { rarity: 'ancient', weight: 0.01 },
-];
+const RARITY_WEIGHTS = POOLS.get('normal') ?? [];
+const GOLDEN_RARITY_WEIGHTS = POOLS.get('golden') ?? [];
 
 /** Roll whether an enemy drops an item, and if so, create it */
 export function rollDrop(rng: PRNG): ItemInstance | null {
   if (rng.next() > DROP_CHANCE) return null;
-
-  // Pick rarity
   const roll = rng.next();
   let cumulative = 0;
   let rarity: Rarity = 'normal';
   for (const w of RARITY_WEIGHTS) {
     cumulative += w.weight;
-    if (roll < cumulative) {
-      rarity = w.rarity;
-      break;
-    }
+    if (roll < cumulative) { rarity = w.rarity; break; }
   }
-
-  // Pick weapon def matching rarity (or fallback to common)
   const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[0];
   return createItem(def, rarity);
 }
-
-const GOLDEN_RARITY_WEIGHTS: { rarity: Rarity; weight: number }[] = [
-  { rarity: 'rare', weight: 0.50 },
-  { rarity: 'legendary', weight: 0.35 },
-  { rarity: 'ancient', weight: 0.15 },
-];
 
 /** Golden Monster guaranteed drop — always rare or above */
 export function rollGoldenDrop(rng: PRNG): ItemInstance {
@@ -47,13 +50,9 @@ export function rollGoldenDrop(rng: PRNG): ItemInstance {
   let rarity: Rarity = 'rare';
   for (const w of GOLDEN_RARITY_WEIGHTS) {
     cumulative += w.weight;
-    if (roll < cumulative) {
-      rarity = w.rarity;
-      break;
-    }
+    if (roll < cumulative) { rarity = w.rarity; break; }
   }
-
-  const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[2]; // fallback to rare
+  const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[2];
   return createItem(def, rarity);
 }
 

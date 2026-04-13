@@ -7,6 +7,8 @@
 
 import csvText from '../../../Sheets/Content_Stats_Enemy.csv?raw';
 
+export type MovementType = 'ground' | 'flying';
+
 export interface EnemyStatEntry {
   type: string;
   level: number;
@@ -19,6 +21,7 @@ export interface EnemyStatEntry {
   attackCooldown: number;
   jumpTiles: number;
   exp: number;
+  movementType: MovementType;
 }
 
 /** All enemy stats indexed by "Type:Level" key. */
@@ -42,6 +45,7 @@ for (let i = 1; i < lines.length; i++) {  // skip header
     attackCooldown: parseInt(cols[8]),
     jumpTiles: parseInt(cols[9]),
     exp: cols.length >= 11 ? parseInt(cols[10]) : 0,
+    movementType: (cols.length >= 12 ? cols[11].trim().toLowerCase() : 'ground') as MovementType,
   };
 
   ENEMY_STATS.set(`${entry.type}:${entry.level}`, entry);
@@ -51,5 +55,5 @@ for (let i = 1; i < lines.length; i++) {  // skip header
 export function getEnemyStats(type: string, level: number): EnemyStatEntry {
   return ENEMY_STATS.get(`${type}:${level}`)
     ?? ENEMY_STATS.get(`${type}:1`)
-    ?? { type, level: 1, hp: 50, atk: 10, def: 1, detectRange: 160, attackRange: 18, moveSpeed: 60, attackCooldown: 1200, jumpTiles: 0, exp: 0 };
+    ?? { type, level: 1, hp: 50, atk: 10, def: 1, detectRange: 160, attackRange: 18, moveSpeed: 60, attackCooldown: 1200, jumpTiles: 0, exp: 0, movementType: 'ground' as MovementType };
 }

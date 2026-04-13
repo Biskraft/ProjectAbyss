@@ -17,7 +17,7 @@ import { Guardian } from '@entities/Guardian';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
 import { GoldenMonster } from '@entities/GoldenMonster';
-import { HealingPickup } from '@entities/HealingPickup';
+import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } from '@entities/HealingPickup';
 import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
@@ -309,6 +309,16 @@ export class ItemWorldScene extends Scene {
     this.player.abilities.waterBreathing = this.sourcePlayer.abilities.waterBreathing;
     this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
     this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
+    // Flask charges by rarity (GDD HEL-01 §2.3)
+    const FLASK_BY_RARITY: Record<string, number> = {
+      normal: 5, magic: 4, rare: 3, legendary: 2, ancient: 1,
+    };
+    this.player.flaskCharges = FLASK_BY_RARITY[this.item.rarity] ?? 3;
+    // Flask/combo heal toast
+    this.player.onFlaskHeal = (amount) => {
+      this.screenFlash.flash(0x44ff44, 0.3, 150);
+      this.toast.show(`HP +${amount}`, 0x44ff44);
+    };
     this.entityLayer.addChild(this.player.container);
 
     // Damage numbers & Sakurai hit effects
@@ -728,7 +738,7 @@ export class ItemWorldScene extends Scene {
       const healCount = 1 + restRng.nextInt(0, 1); // 1-2 pickups
       for (let i = 0; i < healCount && spawnPoints.length > 0; i++) {
         const pt = spawnPoints[restRng.nextInt(0, spawnPoints.length - 1)];
-        const heal = new HealingPickup(pt.x, pt.y, 30);
+        const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
         this.healingPickups.push(heal);
         this.entityLayer.addChild(heal.container);
       }
@@ -749,8 +759,8 @@ export class ItemWorldScene extends Scene {
     // Treasure room — 1 GoldenMonster as an elite encounter.
     if (roomType === 'Treasure') {
       const gold = this.createEnemyFromType('GoldenMonster', 1 + cycle);
-      gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul * distScale));
-      gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul * distScale));
+      gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul));
+      gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul));
       const goldRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 99);
       const sp = pickSpawn(goldRng, gold.height);
       gold.x = sp.x;
@@ -789,6 +799,8 @@ export class ItemWorldScene extends Scene {
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
       trackEnemy(boss);
+      // P2: Show boss HP bar
+      this.hud.showBossHP(bossEntry.enemyType, boss.hp, boss.maxHp);
       return;
     }
 
@@ -847,8 +859,8 @@ export class ItemWorldScene extends Scene {
       // Spawn the picked entry's enemy type
       const enemy = this.createEnemyFromType(picked.enemyType, picked.level + cycle);
       // Multiply CSV-based stats by stratum + distance multipliers.
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul * distScale));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul * distScale));
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul));
       const sp = pickSpawn(spawnRng, enemy.height);
       enemy.x = sp.x;
       enemy.y = sp.y;
@@ -1755,8 +1767,8 @@ export class ItemWorldScene extends Scene {
       const isGhost = spawnRng.next() < 0.3;
       const enemy = isGhost ? new Ghost() : new Skeleton();
       // Multiply CSV-based stats (from constructor applyStats) by stratum + dist
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul * distScale));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul * distScale));
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul));
 
       enemy.x = spawnRng.nextInt(4, this.roomW - 5) * TILE_SIZE;
       enemy.y = floorY - enemy.height;
@@ -1777,8 +1789,10 @@ export class ItemWorldScene extends Scene {
     boss.y = floorY - boss.height;
     boss.roomData = this.roomData;
     boss.target = this.player;
+    (boss as any)._isBoss = true;
     this.enemies.push(boss);
     this.entityLayer.addChild(boss.container);
+    this.hud.showBossHP('Guardian', boss.hp, boss.maxHp);
   }
 
   private drawDoorMarkers(cell: RoomCell): void {
@@ -2122,6 +2136,7 @@ export class ItemWorldScene extends Scene {
       if (isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid)) {
         const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
         this.player.hp -= dmg;
+        this.hud.flashDamage();
         this.player.invincible = true;
         this.player.invincibleTimer = 500;
         this.game.hitstopFrames = 16;
@@ -2491,7 +2506,7 @@ export class ItemWorldScene extends Scene {
         }
 
         if (!(enemy instanceof InnocentNPC)) {
-          // CSV-driven kill EXP (Sheets/Content_Stats_Enemy.csv → Exp column).
+          // CSV-driven kill EXP (Sheets/Content_Stats_Enemy.csv -> Exp column).
           // Falls back to BASE_EXP_PER_KILL if the enemy lacks an exp value.
           const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
           const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
@@ -2499,13 +2514,18 @@ export class ItemWorldScene extends Scene {
           this.earnedExp += killExp;
           this.toast.show(`+${killExp} EXP`, 0x88ccff);
 
-          // 20% chance to drop a HealingPickup (value 20)
-          if (this.dropRng.next() < 0.2) {
-            const heal = new HealingPickup(
-              enemy.x + enemy.width / 2 - 8,
-              enemy.y + enemy.height,
-              20,
-            );
+          // HEL-05: Tiered healing drops (GDD §4.1)
+          const dropX = enemy.x + enemy.width / 2 - 8;
+          const dropY = enemy.y + enemy.height;
+          const isGolden = enemy instanceof GoldenMonster;
+          if (isGolden && this.dropRng.next() < 0.5) {
+            // Elite: 50% Forge Ember (25% maxHP)
+            const heal = createForgeEmber(dropX, dropY, this.player.maxHp);
+            this.healingPickups.push(heal);
+            this.entityLayer.addChild(heal.container);
+          } else if (!isGolden && this.dropRng.next() < 0.2) {
+            // Normal: 20% Ember Shard (10% maxHP)
+            const heal = createEmberShard(dropX, dropY, this.player.maxHp);
             this.healingPickups.push(heal);
             this.entityLayer.addChild(heal.container);
           }
@@ -2569,6 +2589,7 @@ export class ItemWorldScene extends Scene {
           const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
           this.player.onHit(dir * 80, -40, 150);
           this.player.hp -= dmg;
+          this.hud.flashDamage();
           this.player.invincible = true;
           this.player.invincibleTimer = 500;
           this.player.startVibrate(3, 4, true);
@@ -2606,6 +2627,7 @@ export class ItemWorldScene extends Scene {
       const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
       this.player.onHit(dir * 100, -50, 200);
       this.player.hp -= dmg;
+      this.hud.flashDamage();
       this.player.invincible = true;
       this.player.invincibleTimer = 500;
 
@@ -2634,6 +2656,7 @@ export class ItemWorldScene extends Scene {
     for (const enemy of this.enemies) {
       if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
         (enemy as any)._portalSpawned = true;
+        this.hud.hideBossHP();
         const cell = this.getCurrentCell();
         cell.cleared = true;
 
@@ -2650,7 +2673,17 @@ export class ItemWorldScene extends Scene {
         // Boss clear heal: 30% maxHP (GDD HEL-03)
         const bossHeal = Math.floor(this.player.maxHp * 0.30);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + bossHeal);
-        if (bossHeal > 0) this.toast.show(`HP +${bossHeal}`, 0x44ff44);
+        if (bossHeal > 0) {
+          this.toast.show(`HP +${bossHeal}`, 0x44ff44);
+          this.hud.flashBossHeal();
+        }
+
+        // HEL-05: Boss drops Anvil Flame (50% maxHP) 100% chance
+        const anvilX = enemy.x + enemy.width / 2 - 8;
+        const anvilY = enemy.y + enemy.height;
+        const anvil = createAnvilFlame(anvilX, anvilY, this.player.maxHp);
+        this.healingPickups.push(anvil);
+        this.entityLayer.addChild(anvil.container);
 
         // Remove any existing escape altar so portal is the only interactable
         this.clearEscapeAltar();
@@ -2730,6 +2763,11 @@ export class ItemWorldScene extends Scene {
 
     // HUD, damage numbers, toast & Sakurai effects
     this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
+    // P2: Update boss HP bar if a boss is alive
+    const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
+    if (activeBoss) this.hud.updateBossHP(activeBoss.hp);
+    this.hud.update(dt);
     this.updateHudText();
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);

@@ -19,7 +19,7 @@ const DASH_DISTANCE = 64;         // px (4 tiles, Celeste/SotN 범위)
 const DASH_DURATION = 150;        // ms
 const DASH_GROUND_DELAY = 400;    // ms (ground dash recharge, DeadCells 370ms 참고)
 const ATTACK_MOVE_MULT = 0.8;     // 80% speed during attack
-const BARE_HAND_ATK = 5;
+import { BARE_HAND_ATK } from '@data/rarityConfig';
 
 // Wall Jump / Wall Slide (GDD System_3C_Character.md)
 const WALL_SLIDE_SPEED = 50;         // px/s (벽에서 더 오래 머무름)
@@ -67,6 +67,17 @@ export class Player extends Entity implements CombatEntity {
   // Drop-through one-way platforms (down + jump)
   dropThroughTimer = 0;
   private static readonly DROP_THROUGH_MS = 150;
+
+  // Echo Flask (GDD System_Healing_Recovery.md)
+  flaskCharges = 3;
+  flaskMaxCharges = 3;
+  private static readonly FLASK_HEAL_PERCENT = 0.40;
+  private static readonly FLASK_CAST_MS = 600;
+  private flaskCastTimer = 0;
+  private flaskCasting = false;
+
+  /** Callback: scene reads this to show heal VFX/toast after successful flask use. */
+  onFlaskHeal: ((healAmount: number) => void) | null = null;
 
   // Abilities (unlocked by relic pickups)
   abilities = {
@@ -358,8 +369,35 @@ export class Player extends Entity implements CombatEntity {
       // Still in end lag, don't transition
     }
 
-    // Run FSM
-    this.fsm.update(dt);
+    // Echo Flask casting (GDD HEL-01)
+    if (this.flaskCasting) {
+      this.flaskCastTimer -= dt;
+      this.vx = 0; // movement locked during cast
+      if (this.flaskCastTimer <= 0) {
+        // Cast complete → heal + consume
+        this.flaskCasting = false;
+        this.flaskCharges--;
+        const healAmt = Math.max(1, Math.floor(this.maxHp * Player.FLASK_HEAL_PERCENT));
+        this.hp = Math.min(this.maxHp, this.hp + healAmt);
+        this.onFlaskHeal?.(healAmt);
+      }
+      // Skip FSM + movement while casting
+    } else {
+      // Flask input check: R key, grounded, has charges, not attacking/dashing/dead
+      if (this.game.input.isJustPressed(GameAction.FLASK) &&
+          this.flaskCharges > 0 && this.grounded && this.hp < this.maxHp &&
+          state !== 'attack' && state !== 'dash' && state !== 'dive' &&
+          state !== 'hit' && state !== 'death' && state !== 'surge_fly') {
+        this.flaskCasting = true;
+        this.flaskCastTimer = Player.FLASK_CAST_MS;
+        this.vx = 0;
+      }
+    }
+
+    // Run FSM (skip if flask casting — player is locked)
+    if (!this.flaskCasting) {
+      this.fsm.update(dt);
+    }
 
     // Water detection
     this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
@@ -464,6 +502,11 @@ export class Player extends Entity implements CombatEntity {
   // --- CombatEntity interface ---
 
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void {
+    // Flask cancel on hit: abort cast, do NOT consume charge (mercy rule GDD HEL-01)
+    if (this.flaskCasting) {
+      this.flaskCasting = false;
+      this.flaskCastTimer = 0;
+    }
     this.vx = knockbackX;
     this.vy = knockbackY;
     this._hitstunDuration = hitstun;

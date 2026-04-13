@@ -1,11 +1,24 @@
+/**
+ * weapons.ts — Weapon definitions loaded from CSV at build time.
+ *
+ * SSoT: Sheets/Content_Stats_Weapon_List.csv
+ * CSV columns: WeaponID,Name,Type,Rarity,BaseATK,AtkSpeed,Range,HitboxW,HitboxH
+ */
+
+import csvText from '../../../Sheets/Content_Stats_Weapon_List.csv?raw';
+
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';
 
+// RARITY_MULTIPLIER is now derived from Content_Rarity.csv via rarityConfig.ts.
+// Kept here as a computed record for backward compatibility with existing imports.
+import { getRarityConfig } from './rarityConfig';
+
 export const RARITY_MULTIPLIER: Record<Rarity, number> = {
-  normal: 1.0,
-  magic: 1.3,
-  rare: 1.7,
-  legendary: 2.2,
-  ancient: 3.0,
+  normal: getRarityConfig('normal').multiplier,
+  magic: getRarityConfig('magic').multiplier,
+  rare: getRarityConfig('rare').multiplier,
+  legendary: getRarityConfig('legendary').multiplier,
+  ancient: getRarityConfig('ancient').multiplier,
 };
 
 /** Diablo-style display names */
@@ -37,11 +50,21 @@ export interface WeaponDef {
   hitboxH: number;
 }
 
-/** Sword weapon definitions from Content_Stats_Weapon_List.csv */
-export const SWORD_DEFS: WeaponDef[] = [
-  { id: 'sword_normal', name: 'Starter Blade', rarity: 'normal', baseAtk: 15, atkSpeed: 1.0, range: 64, hitboxW: 45, hitboxH: 19 },
-  { id: 'sword_magic', name: 'Steel Longsword', rarity: 'magic', baseAtk: 20, atkSpeed: 1.0, range: 64, hitboxW: 45, hitboxH: 19 },
-  { id: 'sword_rare', name: 'Rune Blade', rarity: 'rare', baseAtk: 26, atkSpeed: 1.0, range: 68, hitboxW: 47, hitboxH: 20 },
-  { id: 'sword_legendary', name: 'Abyssal Edge', rarity: 'legendary', baseAtk: 33, atkSpeed: 1.05, range: 72, hitboxW: 49, hitboxH: 21 },
-  { id: 'sword_ancient', name: 'Abyss Phantom', rarity: 'ancient', baseAtk: 45, atkSpeed: 1.1, range: 76, hitboxW: 51, hitboxH: 22 },
-];
+/** Sword weapon definitions — parsed from Content_Stats_Weapon_List.csv */
+export const SWORD_DEFS: WeaponDef[] = [];
+
+const lines = csvText.trim().split('\n');
+for (let i = 1; i < lines.length; i++) {
+  const cols = lines[i].split(',');
+  if (cols.length < 9) continue;
+  SWORD_DEFS.push({
+    id: cols[0].trim(),
+    name: cols[1].trim(),
+    rarity: cols[3].trim().toLowerCase() as Rarity,
+    baseAtk: parseFloat(cols[4]),
+    atkSpeed: parseFloat(cols[5]),
+    range: parseInt(cols[6]),
+    hitboxW: parseInt(cols[7]),
+    hitboxH: parseInt(cols[8]),
+  });
+}

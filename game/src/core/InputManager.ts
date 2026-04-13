@@ -9,6 +9,7 @@ export enum GameAction {
   INVENTORY = 'INVENTORY',
   MAP = 'MAP',
   MENU = 'MENU',
+  FLASK = 'FLASK',
   DEBUG_RESET = 'DEBUG_RESET',
 }
 
@@ -23,6 +24,7 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.INVENTORY]: ['KeyI'],
   [GameAction.MAP]: ['KeyM'],
   [GameAction.MENU]: ['Escape'],
+  [GameAction.FLASK]: ['KeyR'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
 };
 
@@ -84,6 +86,12 @@ export class InputManager {
 
   private onKeyDown(e: KeyboardEvent): void {
     const code = e.code;
+
+    // P0 CK-12: Block Tab from moving focus away from canvas
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      return;
+    }
 
     // IME produces keydown with key='Process' and sometimes empty code.
     // Always use e.code (physical key) which is reliable even during IME.

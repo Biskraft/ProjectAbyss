@@ -1,7 +1,7 @@
 import type { ItemInstance } from './ItemInstance';
+import { BARE_HAND_ATK } from '@data/rarityConfig';
 
 const MAX_SLOTS = 20;
-const BARE_HAND_ATK = 5;
 
 export class Inventory {
   items: ItemInstance[] = [];

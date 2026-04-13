@@ -3,13 +3,13 @@ import { Entity } from './Entity';
 import { resolveX, resolveY } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
-import { getEnemyStats } from '@data/enemyStats';
+import { getEnemyStats, type MovementType } from '@data/enemyStats';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = 576;
 const TILE_SIZE = 16;
 
-export type EnemyState = 'idle' | 'chase' | 'attack' | 'cooldown' | 'hit' | 'death';
+export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'hit' | 'death';
 
 export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
   fsm: StateMachine<S>;
@@ -22,6 +22,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   def: number;
   /** EXP awarded to player on kill (from CSV; 0 = use scene fallback) */
   exp = 0;
+  /** Movement type from CSV: 'ground' = wall/floor collision, 'flying' = solids only */
+  movementType: MovementType = 'ground';
   facingRight = false;
   alive = true;
 
@@ -111,6 +113,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.attackCooldown = s.attackCooldown;
     this.jumpTiles = s.jumpTiles;
     this.exp = s.exp;
+    this.movementType = s.movementType;
   }
 
   protected abstract setupStates(): void;
@@ -139,46 +142,60 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
     this.fsm.update(dt);
 
-    // Gravity
-    this.vy += GRAVITY * dtSec;
-    if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
+    if (this.movementType === 'flying') {
+      // Flying enemies: no gravity, free movement. Only solid walls block.
+      if (this.roomData.length > 0) {
+        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
+        this.x = rx.x;
+        if (rx.collided) this.vx = 0;
 
-    // Collision
-    if (this.roomData.length > 0) {
-      const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
-      this.x = rx.x;
+        const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
+        this.y = ry.y;
+        if (ry.collided) this.vy = 0;
+      } else {
+        this.x += this.vx * dtSec;
+        this.y += this.vy * dtSec;
+      }
+      this.grounded = false;
+    } else {
+      // Ground enemies: gravity + full collision (wall, platform, one-way).
+      this.vy += GRAVITY * dtSec;
+      if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
 
-      // Wall-blocked jump: scan wall height, jump just enough to clear it
-      if (rx.collided && this.vx !== 0) {
-        this.vx = 0;
-        if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0) {
-          this.wallBlockedTimer += dt;
-          if (this.wallBlockedTimer >= Enemy.WALL_BLOCK_THRESHOLD) {
-            const wallHeight = this.scanWallHeight();
-            if (wallHeight > 0 && wallHeight <= this.jumpTiles) {
-              // Jump just enough to clear: wall height + 1 tile margin
-              const jumpHeight = (wallHeight + 1) * TILE_SIZE;
-              this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
-              this.wallBlockedTimer = 0;
-              this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
-            } else {
-              // Wall too tall — give up, don't keep trying
-              this.wallBlockedTimer = 0;
-              this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+      if (this.roomData.length > 0) {
+        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
+        this.x = rx.x;
+
+        // Wall-blocked jump: scan wall height, jump just enough to clear it
+        if (rx.collided && this.vx !== 0) {
+          this.vx = 0;
+          if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0) {
+            this.wallBlockedTimer += dt;
+            if (this.wallBlockedTimer >= Enemy.WALL_BLOCK_THRESHOLD) {
+              const wallHeight = this.scanWallHeight();
+              if (wallHeight > 0 && wallHeight <= this.jumpTiles) {
+                const jumpHeight = (wallHeight + 1) * TILE_SIZE;
+                this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+                this.wallBlockedTimer = 0;
+                this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+              } else {
+                this.wallBlockedTimer = 0;
+                this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+              }
             }
           }
+        } else {
+          this.wallBlockedTimer = 0;
         }
-      } else {
-        this.wallBlockedTimer = 0;
-      }
-      if (rx.collided) this.vx = 0;
+        if (rx.collided) this.vx = 0;
 
-      const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
-      this.y = ry.y;
-      this.grounded = ry.grounded;
-      if (ry.collided) {
-        if (this.vy > 0) this.vy = 0;
-        if (this.vy < 0) this.vy = 0;
+        const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
+        this.y = ry.y;
+        this.grounded = ry.grounded;
+        if (ry.collided) {
+          if (this.vy > 0) this.vy = 0;
+          if (this.vy < 0) this.vy = 0;
+        }
       }
     }
 
@@ -259,6 +276,120 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   protected moveTowardTarget(speed: number): void {
     if (!this.target) return;
+
+    // Flying enemies: direct XY movement toward target (§2.4)
+    if (this.movementType === 'flying') {
+      this.moveTowardTargetFlying(speed);
+      return;
+    }
+
+    // Ground enemies: vertical chase rules (§2.2-A)
+    const targetCY = this.target.y + this.target.height / 2;
+    const myCY = this.y + this.height / 2;
+    const heightDiff = targetCY - myCY; // positive = player below
+    const HEIGHT_THRESHOLD = TILE_SIZE * 2;
+
+    if (heightDiff > HEIGHT_THRESHOLD) {
+      // Player is below — find floor gap and drop (§2.2-A Case 2)
+      this.moveTowardEdgeDrop(speed);
+    } else if (heightDiff < -HEIGHT_THRESHOLD && this.jumpTiles > 0) {
+      // Player is above — find ceiling gap and move under it to jump through
+      this.moveTowardCeilingGap(speed);
+    } else {
+      // Same level — horizontal chase (§2.2-A Case 3)
+      const dir = this.target.x > this.x ? 1 : -1;
+      this.vx = dir * speed;
+    }
+  }
+
+  /**
+   * Flying enemy: move toward target in both X and Y (direct line).
+   * Wall collision handled by the base update()'s resolveX/Y for flying.
+   */
+  private moveTowardTargetFlying(speed: number): void {
+    if (!this.target) return;
+    const dx = (this.target.x + this.target.width / 2) - (this.x + this.width / 2);
+    const dy = (this.target.y + this.target.height / 2) - (this.y + this.height / 2);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return;
+    this.vx = (dx / dist) * speed;
+    this.vy = (dy / dist) * speed;
+  }
+
+  /**
+   * Ground enemy: player is below. Find the nearest air tile (gap/hole) in the
+   * floor row beneath the enemy's feet and walk INTO it — gravity does the rest.
+   * Scans outward from current position so the enemy always picks the closest gap.
+   */
+  private moveTowardEdgeDrop(speed: number): void {
+    if (!this.target || this.roomData.length === 0) return;
+    const feetRow = Math.floor((this.y + this.height) / TILE_SIZE);
+    const myCol = Math.floor((this.x + this.width / 2) / TILE_SIZE);
+    const gridW = this.roomData[0]?.length ?? 0;
+
+    // Scan outward from enemy position for nearest air tile in feetRow
+    for (let offset = 1; offset < gridW; offset++) {
+      const r = myCol + offset;
+      const l = myCol - offset;
+      if (r < gridW && this.roomData[feetRow]?.[r] === 0) {
+        this.vx = speed;  // move right toward gap
+        return;
+      }
+      if (l >= 0 && this.roomData[feetRow]?.[l] === 0) {
+        this.vx = -speed; // move left toward gap
+        return;
+      }
+    }
+    // No gap found — floor is completely sealed. Cannot reach player.
+    this.vx = 0;
+  }
+
+  /**
+   * Ground enemy: player is above. Find the nearest air tile in the ceiling row
+   * (headRow - 1) and walk under it so wall-blocked jump can launch through.
+   * Mirror logic of moveTowardEdgeDrop but scans the row ABOVE the enemy's head.
+   */
+  private moveTowardCeilingGap(speed: number): void {
+    if (!this.target || this.roomData.length === 0) return;
+    const headRow = Math.floor(this.y / TILE_SIZE);
+    const myCol = Math.floor((this.x + this.width / 2) / TILE_SIZE);
+    const gridW = this.roomData[0]?.length ?? 0;
+
+    // Scan outward for nearest air tile in the row above head
+    for (let offset = 0; offset < gridW; offset++) {
+      const r = myCol + offset;
+      const l = myCol - offset;
+      if (r < gridW && this.roomData[headRow]?.[r] === 0) {
+        const gapX = r * TILE_SIZE + TILE_SIZE / 2;
+        const myX = this.x + this.width / 2;
+        if (Math.abs(gapX - myX) < TILE_SIZE) {
+          // Already under the gap — jump!
+          if (this.grounded && this.jumpCooldownTimer <= 0) {
+            const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
+            this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+            this.jumpCooldownTimer = 500;
+          }
+        } else {
+          this.vx = gapX > myX ? speed : -speed;
+        }
+        return;
+      }
+      if (l >= 0 && this.roomData[headRow]?.[l] === 0) {
+        const gapX = l * TILE_SIZE + TILE_SIZE / 2;
+        const myX = this.x + this.width / 2;
+        if (Math.abs(gapX - myX) < TILE_SIZE) {
+          if (this.grounded && this.jumpCooldownTimer <= 0) {
+            const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
+            this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+            this.jumpCooldownTimer = 500;
+          }
+        } else {
+          this.vx = gapX > myX ? speed : -speed;
+        }
+        return;
+      }
+    }
+    // No ceiling gap — move toward player X as fallback
     const dir = this.target.x > this.x ? 1 : -1;
     this.vx = dir * speed;
   }

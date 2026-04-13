@@ -2,69 +2,64 @@
  * innocents.ts
  *
  * Innocent type definitions, slot tables, spawn chance, and factory function.
- * Implements System_ItemNarrative_* — Innocent residents that grant bonus stats
- * to items they inhabit.
  *
- * Wild innocents = 50% effectiveness (need to be subdued to reach 100%).
- * Stat keys: 'atk', 'def', 'hp', 'exp%', 'luck'
- *
- * Design ref: System_ItemWorld_Core.md — Innocent System
+ * SSoT:
+ *   Archetypes → Sheets/Content_Innocents.csv
+ *   Slots/Spawn → Sheets/Content_Rarity.csv (via rarityConfig.ts)
  */
 
+import innocentCsvText from '../../../Sheets/Content_Innocents.csv?raw';
 import type { Rarity } from './weapons';
+import { getRarityConfig } from './rarityConfig';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-/** The five stat keys an innocent can buff. */
 export type InnocentStatKey = 'atk' | 'def' | 'hp' | 'exp%' | 'luck';
 
-/** A single innocent resident living inside an item. */
 export interface Innocent {
-  /** Display name shown in item tooltip and Item World HUD. */
   name: string;
-  /** Which stat this innocent amplifies. */
   stat: InnocentStatKey;
-  /** Raw bonus value at full (subdued) effectiveness. */
   value: number;
-  /**
-   * Whether the player has subdued (defeated) this innocent in the Item World.
-   * Wild = 50% effectiveness. Subdued = 100%.
-   */
   isSubdued: boolean;
 }
 
-/** Per-rarity slot count (max innocents an item may contain). */
+/** Per-rarity slot count — SSoT: Sheets/Content_Rarity.csv */
 export const INNOCENT_SLOTS_BY_RARITY: Record<Rarity, number> = {
-  normal:    2,
-  magic:     3,
-  rare:      4,
-  legendary: 6,
-  ancient:   8,
+  normal:    getRarityConfig('normal').innocentSlots,
+  magic:     getRarityConfig('magic').innocentSlots,
+  rare:      getRarityConfig('rare').innocentSlots,
+  legendary: getRarityConfig('legendary').innocentSlots,
+  ancient:   getRarityConfig('ancient').innocentSlots,
 };
 
 // ---------------------------------------------------------------------------
 // Spawn configuration
 // ---------------------------------------------------------------------------
 
-/** Probability (0–1) that any given enemy spawn is replaced by an InnocentNPC. */
-export const INNOCENT_SPAWN_CHANCE = 0.15;
+/** Probability (0-1) — SSoT: Sheets/Content_Rarity.csv */
+export const INNOCENT_SPAWN_CHANCE = getRarityConfig('normal').innocentSpawnChance;
 
-/** Innocent archetype table — designer-tunable values. */
+/** Innocent archetype table — SSoT: Sheets/Content_Innocents.csv */
 interface InnocentArchetype {
   name: string;
   stat: InnocentStatKey;
   baseValue: number;
 }
 
-export const INNOCENT_ARCHETYPES: InnocentArchetype[] = [
-  { name: 'Gladiator',  stat: 'atk',  baseValue: 5  },
-  { name: 'Guardian',   stat: 'def',  baseValue: 8  },
-  { name: 'Vitality',   stat: 'hp',   baseValue: 20 },
-  { name: 'Scholar',    stat: 'exp%', baseValue: 10 },
-  { name: 'Fortune',    stat: 'luck', baseValue: 6  },
-];
+export const INNOCENT_ARCHETYPES: InnocentArchetype[] = [];
+
+const _iLines = innocentCsvText.trim().split('\n');
+for (let i = 1; i < _iLines.length; i++) {
+  const cols = _iLines[i].split(',');
+  if (cols.length < 3) continue;
+  INNOCENT_ARCHETYPES.push({
+    name: cols[0].trim(),
+    stat: cols[1].trim() as InnocentStatKey,
+    baseValue: parseInt(cols[2]),
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Effectiveness
