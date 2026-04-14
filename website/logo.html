@@ -106,12 +106,12 @@ body::after {
   line-height: 0.85;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: transparent;
   color: #3a9a9a;
   filter: url(#grunge);
   user-select: none;
+  transition: filter 0.6s ease;
 }
-.logo span { color: #e87830; }
+.logo span { color: #e87830; transition: color 0.6s ease; }
 
 /* ── Corroded line under logo ── */
 .logo-wrap::after {
@@ -162,10 +162,12 @@ body::after {
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Hover: faint pulse ring ── */
+/* ── Hover: grunge fades, metal revives ── */
 .logo-wrap:hover .logo {
-  filter: url(#grunge) drop-shadow(0 0 30px rgba(42,138,138,.12));
-  transition: filter 0.6s ease;
+  filter: url(#grunge-clean) drop-shadow(0 0 40px rgba(42,138,138,.15));
+}
+.logo-wrap:hover .logo span {
+  color: #f09040;
 }
 
 /* ── Corner marks ── */
@@ -224,6 +226,20 @@ body::after {
     <feBlend in="grunged" in2="grainLight" mode="multiply" result="final"/>
     <!-- Clip to original text shape -->
     <feComposite in="final" in2="SourceGraphic" operator="in"/>
+  </filter>
+  <!-- Hover: restored metal — light grain only, no chunks -->
+  <filter id="grunge-clean" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="2" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="1.5" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+    <feTurbulence type="fractalNoise" baseFrequency="1.8" numOctaves="2" seed="11" result="grain"/>
+    <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+    <feComponentTransfer in="grainBW" result="grainLight">
+      <feFuncR type="linear" slope="0.15" intercept="0.85"/>
+      <feFuncG type="linear" slope="0.15" intercept="0.85"/>
+      <feFuncB type="linear" slope="0.15" intercept="0.85"/>
+    </feComponentTransfer>
+    <feBlend in="warped" in2="grainLight" mode="multiply"/>
+    <feComposite in2="SourceGraphic" operator="in"/>
   </filter>
 </svg>
 

@@ -757,15 +757,9 @@ export class LdtkWorldScene extends Scene {
           this.player.abilities.doubleJump = true;
           this.toast.showBig('Double Jump unlocked!', 0xffd700);
         } else if (abilityName === 'cheat') {
-          // ============================================================
-          // KNOWN-ISSUE (DEC-010): Phase 0 전용 디버그 치트 렐릭.
-          //
-          // 목적: 빠른 플레이테스트/밸런스 조정용. 맵에 숨겨져 있음.
-          // 위험: SaveManager를 통해 영구 저장됨. 콘텐츠 기반 트리거이므로
-          //       LDtk에 ability=cheat 엔티티가 있으면 gate 없이 발동.
-          // 제거 조건: Phase 1 진입 시점. 빌드 플래그로 전환 또는 완전 제거.
-          // 참조: Codex adversarial review task bjpvo3ft2 — no-ship 판정
-          // ============================================================
+          // DEC-010: 디버그 치트 렐릭.
+          // Gate: Debug_ 방에 배치 → ?debug URL 파라미터 없이는 접근 불가.
+          // 일반 유저에게 노출되지 않음. 추가 gate 불필요.
           this.player.abilities.cheat = true;
           this.updatePlayerAtk(); // re-applies +99999 via cheat branch
           this.player.hp = this.player.maxHp; // full heal to new cap
