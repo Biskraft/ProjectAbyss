@@ -12,11 +12,10 @@ import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
 import { Player } from '@entities/Player';
-import { Skeleton } from '@entities/Skeleton';
-import { Guardian } from '@entities/Guardian';
 import { Ghost } from '@entities/Ghost';
-import { Slime } from '@entities/Slime';
+import { Guardian } from '@entities/Guardian';
 import { GoldenMonster } from '@entities/GoldenMonster';
+import { createEnemy } from '@entities/EnemyFactory';
 import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } from '@entities/HealingPickup';
 import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
@@ -50,6 +49,7 @@ import { ScreenFlash } from '@effects/ScreenFlash';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
+import { UpdraftSystem } from '@systems/UpdraftSystem';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -129,8 +129,7 @@ export class ItemWorldScene extends Scene {
   private fullMapContainer: Container | null = null;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
-  private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
-  private updraftGfx: Graphics | null = null;
+  private updraftSystem!: UpdraftSystem;
 
   // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
   private spikes: Spike[] = [];
@@ -300,6 +299,9 @@ export class ItemWorldScene extends Scene {
     // Entity layer
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
+
+    // Updraft system (shared physics + particles)
+    this.updraftSystem = new UpdraftSystem(this.entityLayer);
 
     // Player (clone stats from world player)
     this.player = new Player(this.game);
@@ -1383,14 +1385,7 @@ export class ItemWorldScene extends Scene {
 
   /** Create an enemy instance by type name and level. */
   private createEnemyFromType(type: string, level: number): Enemy<string> {
-    let enemy: Enemy<string>;
-    switch (type) {
-      case 'Slime': enemy = new Slime(level); break;
-      case 'Ghost': enemy = new Ghost(level); break;
-      case 'GoldenMonster': enemy = new GoldenMonster('mid'); break;
-      case 'Guardian': enemy = new Guardian(level); break;
-      default: enemy = new Skeleton(level); break;
-    }
+    const enemy = createEnemy(type, level);
     this.applyCycleScaling(enemy);
     return enemy;
   }
@@ -1776,7 +1771,7 @@ export class ItemWorldScene extends Scene {
     for (let i = 0; i < count; i++) {
       const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
       const isGhost = spawnRng.next() < 0.3;
-      const enemy = isGhost ? new Ghost() : new Skeleton();
+      const enemy = createEnemy(isGhost ? 'Ghost' : 'Skeleton');
       // Multiply CSV-based stats (from constructor applyStats) by stratum + dist
       enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul));
       enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul));
@@ -1793,7 +1788,7 @@ export class ItemWorldScene extends Scene {
   private spawnBoss(): void {
     const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
-    const boss = new Guardian();
+    const boss = createEnemy('Guardian') as Guardian;
     boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
     boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
     boss.x = (this.roomW / 2) * TILE_SIZE;
@@ -1871,90 +1866,7 @@ export class ItemWorldScene extends Scene {
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
   private applyUpdrafts(dt: number): void {
-    const dtSec = dt / 1000;
-    const TILE = 16;
-    const UPDRAFT_FORCE = 980 * 2.2;
-    const MAX_UPDRAFT_VY = -250;
-    const P_COLOR = 0x66ddff;
-    const P_SPEED = 140;
-    const P_MAX = 50;
-
-    // --- Physics ---
-    if (this.player.fsm.currentState !== 'dash') {
-      const inUpdraft = isInUpdraft(
-        this.player.x, this.player.y, this.player.width, this.player.height,
-        this.fullGrid,
-      );
-      if (inUpdraft) {
-        this.player.vy -= UPDRAFT_FORCE * dtSec;
-        if (this.player.vy < MAX_UPDRAFT_VY) this.player.vy = MAX_UPDRAFT_VY;
-      }
-    }
-
-    // --- Particles ---
-    if (!this.updraftGfx) {
-      this.updraftGfx = new Graphics();
-      this.entityLayer.addChild(this.updraftGfx);
-    }
-
-    const cam = this.game.camera;
-    const viewL = cam.x;
-    const viewT = cam.y;
-    const viewR = viewL + GAME_WIDTH / cam.zoom;
-    const viewB = viewT + GAME_HEIGHT / cam.zoom;
-
-    const colL = Math.max(0, Math.floor(viewL / TILE));
-    const colR = Math.min((this.fullGrid[0]?.length ?? 1) - 1, Math.ceil(viewR / TILE));
-    const rowT = Math.max(0, Math.floor(viewT / TILE));
-    const rowB = Math.min(this.fullGrid.length - 1, Math.ceil(viewB / TILE));
-
-    if (this.updraftParticles.length < P_MAX) {
-      for (let row = rowT; row <= rowB; row++) {
-        for (let col = colL; col <= colR; col++) {
-          if ((this.fullGrid[row]?.[col] ?? 0) !== 4) continue;
-          if (Math.random() > 0.05) continue;
-          if (this.updraftParticles.length >= P_MAX) break;
-
-          this.updraftParticles.push({
-            x: col * TILE + Math.random() * TILE,
-            y: row * TILE + TILE,
-            speed: P_SPEED * (0.6 + Math.random() * 0.8),
-            alpha: 0.3 + Math.random() * 0.5,
-            len: 2 + Math.random() * 3,
-            wobble: Math.random() * Math.PI * 2,
-          });
-        }
-        if (this.updraftParticles.length >= P_MAX) break;
-      }
-    }
-
-    this.updraftGfx.clear();
-    const alive: typeof this.updraftParticles = [];
-
-    for (const p of this.updraftParticles) {
-      p.y -= p.speed * dtSec;
-      const wx = p.x + Math.sin(p.y * 0.06 + p.wobble) * 1.5;
-
-      const tCol = Math.floor(p.x / TILE);
-      const tRow = Math.floor(p.y / TILE);
-      const stillInUpdraft = (this.fullGrid[tRow]?.[tCol] ?? 0) === 4;
-
-      if (!stillInUpdraft || p.y < viewT - 20) continue;
-
-      const rowInTile = (p.y % TILE) / TILE;
-      let alpha = p.alpha;
-      if (rowInTile < 0.2) alpha *= rowInTile / 0.2;
-      if (rowInTile > 0.8) alpha *= (1 - rowInTile) / 0.2;
-
-      this.updraftGfx
-        .moveTo(wx, p.y)
-        .lineTo(wx, p.y - p.len)
-        .stroke({ color: P_COLOR, width: 1, alpha });
-
-      alive.push(p);
-    }
-
-    this.updraftParticles = alive;
+    this.updraftSystem.update(dt, this.player, this.fullGrid, this.game.camera);
   }
 
   // ---------------------------------------------------------------------------

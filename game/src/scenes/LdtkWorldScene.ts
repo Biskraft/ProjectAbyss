@@ -26,11 +26,11 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
-import { GoldenMonster } from '@entities/GoldenMonster';
-// Enemy stats are now applied in each Enemy subclass constructor via applyStats()
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
 import { Guardian } from '@entities/Guardian';
+import { GoldenMonster } from '@entities/GoldenMonster';
+import { createEnemy } from '@entities/EnemyFactory';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
@@ -68,6 +68,8 @@ import { ToastManager } from '@ui/Toast';
 import { WorldMapOverlay } from '@ui/WorldMapOverlay';
 
 import { PIXEL_FONT } from '@ui/fonts';
+import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
+import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { PRNG } from '@utils/PRNG';
@@ -202,8 +204,7 @@ export class LdtkWorldScene extends Scene {
   private crackedFloors: CrackedFloor[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 — handled in applyUpdrafts()
-  private updraftParticles: { x: number; y: number; speed: number; alpha: number; len: number; wobble: number }[] = [];
-  private updraftGfx: Graphics | null = null;
+  private updraftSystem!: UpdraftSystem;
   // Breakable tile (IntGrid 9) hit tracking — 3 hits to destroy
   private breakableHits: Map<string, number> = new Map();
   private breakableHitThisSwing: Set<string> = new Set();
@@ -216,13 +217,8 @@ export class LdtkWorldScene extends Scene {
   private healthShardBonus = 0;
 
   // Ending sequence
-  private endingTriggers: Array<{ x: number; y: number; w: number; h: number }> = [];
-  private endingActive = false;
-  private endingTimer = 0;
-  private endingPhase: 'idle' | 'rumble' | 'fade' | 'title' | 'done' = 'idle';
-  private endingOverlay: Graphics | null = null;
-  private endingTitle: BitmapText | null = null;
-  private endingHint: BitmapText | null = null;
+  private endingTriggers: EndingTrigger[] = [];
+  private ending!: EndingSequence;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
@@ -273,6 +269,9 @@ export class LdtkWorldScene extends Scene {
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
 
+    // Updraft system (shared physics + particles)
+    this.updraftSystem = new UpdraftSystem(this.entityLayer);
+
     // Player
     this.player = new Player(this.game);
     this.player.onFlaskHeal = (amount) => {
@@ -317,6 +316,13 @@ export class LdtkWorldScene extends Scene {
 
     // Tutorial hints
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
+
+    // Ending sequence
+    this.ending = new EndingSequence({
+      uiContainer: this.game.legacyUIContainer,
+      camera: this.game.camera,
+      input: this.game.input,
+    });
 
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
@@ -388,9 +394,16 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
-    // Ending sequence active ??block everything
-    if (this.endingActive) {
-      this.updateEnding(dt);
+    // Ending sequence active — block everything
+    if (this.ending.isActive) {
+      this.ending.update(dt);
+      if (this.ending.isDone) {
+        this.game.camera.setZoom(1.0);
+        this.game.camera.clearBounds();
+        import('./TitleScene').then(({ TitleScene }) => {
+          this.game.sceneManager.replace(new TitleScene(this.game));
+        });
+      }
       return;
     }
 
@@ -886,8 +899,15 @@ export class LdtkWorldScene extends Scene {
     this.updatePortals(dt);
 
     // Ending trigger check
-    if (!this.endingActive) {
-      this.checkEndingTrigger();
+    if (!this.ending.isActive) {
+      const pcx = this.player.x + this.player.width / 2;
+      const pcy = this.player.y + this.player.height / 2;
+      this.ending.checkTrigger(pcx, pcy, this.endingTriggers);
+      if (this.ending.isActive) {
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.savePrevPosition();
+      }
     }
 
     // Room transition detection ??edge-based
@@ -1704,97 +1724,7 @@ export class LdtkWorldScene extends Scene {
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
   private applyUpdrafts(dt: number): void {
-    const dtSec = dt / 1000;
-    const TILE = 16;
-    const UPDRAFT_FORCE = 980 * 2.2;
-    const MAX_UPDRAFT_VY = -250;
-    const P_COLOR = 0x66ddff;
-    const P_SPEED = 140;
-    const P_MAX = 50;
-
-    // --- Physics ---
-    if (this.player.fsm.currentState !== 'dash') {
-      const inUpdraft = isInUpdraft(
-        this.player.x, this.player.y, this.player.width, this.player.height,
-        this.collisionGrid,
-      );
-      if (inUpdraft) {
-        this.player.vy -= UPDRAFT_FORCE * dtSec;
-        if (this.player.vy < MAX_UPDRAFT_VY) this.player.vy = MAX_UPDRAFT_VY;
-      }
-    }
-
-    // --- Particles ---
-    // Lazy-create graphics
-    if (!this.updraftGfx) {
-      this.updraftGfx = new Graphics();
-      this.entityLayer.addChild(this.updraftGfx);
-    }
-
-    // Spawn particles in visible updraft tiles (camera viewport)
-    const cam = this.game.camera;
-    const viewL = cam.x;
-    const viewT = cam.y;
-    const viewR = viewL + GAME_WIDTH / cam.zoom;
-    const viewB = viewT + GAME_HEIGHT / cam.zoom;
-
-    const colL = Math.max(0, Math.floor(viewL / TILE));
-    const colR = Math.min((this.collisionGrid[0]?.length ?? 1) - 1, Math.ceil(viewR / TILE));
-    const rowT = Math.max(0, Math.floor(viewT / TILE));
-    const rowB = Math.min(this.collisionGrid.length - 1, Math.ceil(viewB / TILE));
-
-    // Spawn new particles from updraft tiles
-    if (this.updraftParticles.length < P_MAX) {
-      for (let row = rowT; row <= rowB; row++) {
-        for (let col = colL; col <= colR; col++) {
-          if ((this.collisionGrid[row]?.[col] ?? 0) !== 4) continue;
-          // ~5% chance per tile per frame to spawn
-          if (Math.random() > 0.05) continue;
-          if (this.updraftParticles.length >= P_MAX) break;
-
-          this.updraftParticles.push({
-            x: col * TILE + Math.random() * TILE,
-            y: row * TILE + TILE,  // spawn at bottom of tile
-            speed: P_SPEED * (0.6 + Math.random() * 0.8),
-            alpha: 0.3 + Math.random() * 0.5,
-            len: 2 + Math.random() * 3,
-            wobble: Math.random() * Math.PI * 2,
-          });
-        }
-        if (this.updraftParticles.length >= P_MAX) break;
-      }
-    }
-
-    // Update + draw particles
-    this.updraftGfx.clear();
-    const alive: typeof this.updraftParticles = [];
-
-    for (const p of this.updraftParticles) {
-      p.y -= p.speed * dtSec;
-      const wx = p.x + Math.sin(p.y * 0.06 + p.wobble) * 1.5;
-
-      // Check if still inside an updraft tile
-      const tCol = Math.floor(p.x / TILE);
-      const tRow = Math.floor(p.y / TILE);
-      const stillInUpdraft = (this.collisionGrid[tRow]?.[tCol] ?? 0) === 4;
-
-      if (!stillInUpdraft || p.y < viewT - 20) continue; // kill particle
-
-      // Fade at edges
-      const rowInTile = (p.y % TILE) / TILE;
-      let alpha = p.alpha;
-      if (rowInTile < 0.2) alpha *= rowInTile / 0.2;
-      if (rowInTile > 0.8) alpha *= (1 - rowInTile) / 0.2;
-
-      this.updraftGfx
-        .moveTo(wx, p.y)
-        .lineTo(wx, p.y - p.len)
-        .stroke({ color: P_COLOR, width: 1, alpha });
-
-      alive.push(p);
-    }
-
-    this.updraftParticles = alive;
+    this.updraftSystem.update(dt, this.player, this.collisionGrid, this.game.camera);
   }
 
   /** Check player overlap with spikes ??damage + teleport to last safe ground. */
@@ -2193,23 +2123,19 @@ export class LdtkWorldScene extends Scene {
         const enemyType = (spawner.fields['type'] as string) ?? 'Skeleton';
         const enemyLevel = (spawner.fields['level'] as number) ?? 1;
 
+        // Boss type needs special handling (bossKey + skip if killed)
         let enemy: Enemy<string>;
-        if (enemyType === 'Golden') {
-          const golden = new GoldenMonster('mid', enemyLevel);
-          golden.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
-          enemy = golden;
-        } else if (enemyType === 'Ghost') {
-          enemy = new Ghost(enemyLevel);
-        } else if (enemyType === 'Slime') {
-          enemy = new Slime(enemyLevel);
-        } else if (enemyType === 'Boss') {
+        if (enemyType === 'Boss') {
           const bossKey = `boss_${level.identifier}_${spawner.px[0]}_${spawner.px[1]}`;
           if (this.unlockedEvents.has(bossKey)) continue;
-          const g = new Guardian(enemyLevel);
-          (g as any)._bossKey = bossKey;
-          enemy = g;
+          enemy = createEnemy('Boss', enemyLevel);
+          (enemy as any)._bossKey = bossKey;
         } else {
-          enemy = new Skeleton(enemyLevel);
+          enemy = createEnemy(enemyType, enemyLevel);
+        }
+        // Golden monster portal callback
+        if (enemy instanceof GoldenMonster) {
+          enemy.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
         }
         enemy.x = spawner.px[0];
         enemy.y = spawner.px[1] - enemy.height;
@@ -3277,145 +3203,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   // ---------------------------------------------------------------------------
-  // Ending sequence (Screen 17 ??balcony)
+  // Ending sequence — delegated to EndingSequence class
   // ---------------------------------------------------------------------------
-
-  private checkEndingTrigger(): void {
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-    for (const t of this.endingTriggers) {
-      if (pcx >= t.x && pcx <= t.x + t.w && pcy >= t.y && pcy <= t.y + t.h) {
-        this.startEnding();
-        return;
-      }
-    }
-  }
-
-  private startEnding(): void {
-    this.endingActive = true;
-    this.endingPhase = 'rumble';
-    this.endingTimer = 0;
-
-    // Lock player and sync position to prevent render jitter
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-  }
-
-  private updateEnding(dt: number): void {
-    this.endingTimer += dt;
-
-    // Phase 1: Echo rumble (0~2000ms) ??camera micro-shake
-    if (this.endingPhase === 'rumble') {
-      const intensity = Math.min(3, this.endingTimer / 500);
-      this.game.camera.shake(intensity * 0.3);
-
-      if (this.endingTimer >= 1000) {
-        this.endingPhase = 'fade';
-        this.endingTimer = 0;
-        this.endingOverlay = new Graphics();
-        this.endingOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
-        this.endingOverlay.alpha = 0;
-        this.endingOverlay.eventMode = 'none';
-        this.game.legacyUIContainer.addChild(this.endingOverlay);
-      }
-    }
-
-    // Phase 2: Slow fade out (0~3000ms)
-    else if (this.endingPhase === 'fade') {
-      const progress = Math.min(1, this.endingTimer / 1500);
-      if (this.endingOverlay) this.endingOverlay.alpha = progress;
-
-      if (this.endingTimer >= 1500) {
-        this.endingPhase = 'title';
-        this.endingTimer = 0;
-
-        // Show ECHORIS title + To be continued
-        this.endingTitle = new BitmapText({
-          text: 'ECHORIS',
-          style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd },
-        });
-        this.endingTitle.anchor.set(0.5);
-        this.endingTitle.x = GAME_WIDTH / 2;
-        this.endingTitle.y = GAME_HEIGHT / 2 - 20;
-        this.endingTitle.alpha = 0;
-        this.game.legacyUIContainer.addChild(this.endingTitle);
-
-        const tbc = new BitmapText({
-          text: 'To be continued...',
-          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
-        });
-        tbc.anchor.set(0.5);
-        tbc.x = GAME_WIDTH / 2;
-        tbc.y = GAME_HEIGHT / 2 + 10;
-        tbc.alpha = 0;
-        this.game.legacyUIContainer.addChild(tbc);
-        (this as any)._tbcText = tbc;
-      }
-    }
-
-    // Phase 3: Title display (0~4000ms) ??fade in title, then show hint
-    else if (this.endingPhase === 'title') {
-      // Title + tbc fade in (0~1500ms)
-      if (this.endingTitle) {
-        this.endingTitle.alpha = Math.min(1, this.endingTimer / 1500);
-      }
-      const tbc = (this as any)._tbcText as BitmapText | undefined;
-      if (tbc) {
-        tbc.alpha = Math.min(1, Math.max(0, (this.endingTimer - 500) / 1500));
-      }
-
-      // Show hint after 2500ms
-      if (this.endingTimer >= 2500 && !this.endingHint) {
-        this.endingHint = new BitmapText({
-          text: 'PRESS ANY KEY',
-          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666 },
-        });
-        this.endingHint.anchor.set(0.5);
-        this.endingHint.x = GAME_WIDTH / 2;
-        this.endingHint.y = GAME_HEIGHT / 2 + 35;
-        this.game.legacyUIContainer.addChild(this.endingHint);
-      }
-
-      // Blink hint
-      if (this.endingHint) {
-        this.endingHint.alpha = 0.5 + Math.sin(this.endingTimer / 400) * 0.5;
-      }
-
-      // Wait for key press ??fade out title ??transition
-      if (this.endingTimer >= 2500 && this.game.input.anyKeyJustPressed()) {
-        this.endingPhase = 'done';
-        this.endingTimer = 0;
-      }
-    }
-
-    // Phase 4: Fade out title text (0~1500ms) ??replace scene
-    else if (this.endingPhase === 'done') {
-      const progress = Math.min(1, this.endingTimer / 3000);
-      if (this.endingTitle) this.endingTitle.alpha = 1 - progress;
-      if (this.endingHint) this.endingHint.alpha = (1 - progress) * 0.5;
-      const tbc2 = (this as any)._tbcText as BitmapText | undefined;
-      if (tbc2) tbc2.alpha = 1 - progress;
-
-      if (this.endingTimer >= 3000) {
-        // Clean up
-        if (this.endingOverlay?.parent) this.endingOverlay.parent.removeChild(this.endingOverlay);
-        if (this.endingTitle?.parent) this.endingTitle.parent.removeChild(this.endingTitle);
-        if (this.endingHint?.parent) this.endingHint.parent.removeChild(this.endingHint);
-        if (tbc2?.parent) tbc2.parent.removeChild(tbc2);
-        this.endingOverlay = null;
-        this.endingTitle = null;
-        this.endingHint = null;
-
-        // Reset camera and return to title
-        this.game.camera.setZoom(1.0);
-        this.game.camera.clearBounds();
-        import('./TitleScene').then(({ TitleScene }) => {
-          this.game.sceneManager.replace(new TitleScene(this.game));
-        });
-      }
-    }
-  }
 
   private rerenderTilemap(): void {
     // Filter out wall tiles where collision grid is 0 (destroyed floors/walls)
