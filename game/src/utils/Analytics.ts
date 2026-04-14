@@ -3,7 +3,8 @@
  *
  * P0 events (spike validation):
  *   game_start, session_end, item_world_enter,
- *   item_world_exit, item_world_floor_clear, player_death
+ *   item_world_exit, item_world_floor_clear, player_death,
+ *   player_save
  *
  * Debug mode: on localhost or ?debug_analytics, logs to console only.
  */
@@ -113,6 +114,14 @@ export function trackPlayerDeath(
     room_col: roomCol,
     room_row: roomRow,
     enemy_type: enemyType,
+  });
+}
+
+/** TEL-07: Player saved at a save point */
+export function trackSave(levelId: string, playtimeSec: number): void {
+  send('player_save', {
+    level_id: levelId,
+    playtime_sec: playtimeSec,
   });
 }
 

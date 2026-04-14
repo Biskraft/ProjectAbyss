@@ -48,6 +48,7 @@ import { GoldPickup } from '@entities/GoldPickup';
 import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
+import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
@@ -74,7 +75,7 @@ import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
-import { trackPlayerDeath } from '@utils/Analytics';
+import { trackPlayerDeath, trackSave } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 
 // ---------------------------------------------------------------------------
@@ -177,6 +178,7 @@ export class LdtkWorldScene extends Scene {
 
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
+  private anvilPrompt: Container | null = null;
   private floorCollapse: FloorCollapse | null = null;
   private memoryDive: MemoryDive | null = null;
   private collapseItem: ItemInstance | null = null;
@@ -221,7 +223,7 @@ export class LdtkWorldScene extends Scene {
   private endingOverlay: Graphics | null = null;
   private endingTitle: BitmapText | null = null;
   private endingHint: BitmapText | null = null;
-  private savePoints: Array<{ x: number; y: number; gfx: Graphics }> = [];
+  private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
@@ -296,34 +298,34 @@ export class LdtkWorldScene extends Scene {
     this.fadeOverlay = new Graphics();
     this.fadeOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.fadeOverlay.alpha = 0;
-    this.game.app.stage.addChild(this.fadeOverlay);
+    this.game.legacyUIContainer.addChild(this.fadeOverlay);
 
     // HUD
-    this.hud = new HUD();
-    this.game.app.stage.addChild(this.hud.container);
+    this.hud = new HUD(this.game.uiScale);
+    this.game.uiContainer.addChild(this.hud.container);
 
     // Controls overlay (disabled)
     // this.controlsOverlay = new ControlsOverlay();
-    // this.game.app.stage.addChild(this.controlsOverlay.container);
+    // this.game.legacyUIContainer.addChild(this.controlsOverlay.container);
 
     // Toast, damage numbers, hit sparks, screen flash
-    this.toast = new ToastManager(this.game.app.stage);
-    this.dmgNumbers = new DamageNumberManager(this.entityLayer);
+    this.toast = new ToastManager(this.game.legacyUIContainer);
+    this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.screenFlash = new ScreenFlash();
-    this.game.app.stage.addChild(this.screenFlash.overlay);
+    this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
     // Tutorial hints
-    this.tutorialHint = new TutorialHint(this.game.input, this.game.app.stage);
+    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
 
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
-    this.game.app.stage.addChild(this.inventoryUI.container);
+    this.game.legacyUIContainer.addChild(this.inventoryUI.container);
 
     // World Map overlay
     this.worldMap = new WorldMapOverlay();
     this.worldMap.setRooms(this.loader.getWorldMap());
-    this.game.app.stage.addChild(this.worldMap.container);
+    this.game.legacyUIContainer.addChild(this.worldMap.container);
 
     // Spawn level ??saved level or default Player entity level
     if (saveData && saveData.levelId) {
@@ -395,7 +397,7 @@ export class LdtkWorldScene extends Scene {
 
     // Tutorial hints ??only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
-      this.tutorialHint.tryShow('hint_combat', 'Arrow: Move  Z: Jump  X: Attack');
+      // hint removed — key prompts shown in HUD
     }
 
     // Portal transition playing
@@ -675,7 +677,7 @@ export class LdtkWorldScene extends Scene {
         this.collectedItems.add(key);
         gp.collect();
         this.gold += gp.amount;
-        this.toast.show(`+${gp.amount} G`, 0xffd700);
+        this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
         gp.destroy();
         this.goldPickups.splice(i, 1);
       }
@@ -779,7 +781,7 @@ export class LdtkWorldScene extends Scene {
         if (this.inventory.add(drop.item)) {
           this.game.stats.itemsCollected++;
           this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
-          this.tutorialHint.tryShow('hint_inventory', 'I: Open Inventory  X: Equip/Unequip');
+          // hint removed
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
           drop.destroy();
@@ -878,9 +880,14 @@ export class LdtkWorldScene extends Scene {
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
+    this.hud.updateATK(this.player.atk);
     this.hud.updateGold(this.gold);
     this.hud.update(dt);
-    this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
+    this.hud.setFloorText(this.currentLevel?.identifier ?? '');
+
+    // Hide minimap + adjust gold in item tunnel
+    if (this.inItemTunnel && this.minimap) this.minimap.visible = false;
+    this.hud.setGoldBelowMinimap(!this.inItemTunnel && !!this.minimap?.visible);
 
     // Minimap: player dot blink + combat opacity
     if (this.minimap && this.minimap.visible) {
@@ -920,7 +927,7 @@ export class LdtkWorldScene extends Scene {
       if (!this.oxygenOverlay) {
         this.oxygenOverlay = new Graphics();
         this.oxygenOverlay.eventMode = 'none';
-        this.game.app.stage.addChild(this.oxygenOverlay);
+        this.game.legacyUIContainer.addChild(this.oxygenOverlay);
       }
 
       this.oxygenOverlay.clear();
@@ -952,7 +959,7 @@ export class LdtkWorldScene extends Scene {
       if (!this.oxygenBar) {
         this.oxygenBar = new Graphics();
         this.oxygenBar.eventMode = 'none';
-        this.game.app.stage.addChild(this.oxygenBar);
+        this.game.legacyUIContainer.addChild(this.oxygenBar);
       }
 
       this.oxygenBar.clear();
@@ -1120,7 +1127,7 @@ export class LdtkWorldScene extends Scene {
       );
       this.drops.push(dropEntity);
       this.entityLayer.addChild(dropEntity.container);
-      this.tutorialHint.tryShow('hint_item', 'Walk over items to pick them up');
+      // hint removed
     }
 
     // HEL-05: Tiered healing drops (GDD §4.1)
@@ -1173,7 +1180,10 @@ export class LdtkWorldScene extends Scene {
     this.clearPortals();
     for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
-    for (const sp of this.savePoints) { if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx); }
+    for (const sp of this.savePoints) {
+      if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx);
+      if (sp.prompt?.parent) sp.prompt.parent.removeChild(sp.prompt);
+    }
     this.savePoints = [];
     this.saveHintShown = false;
     for (const sh of this.healthShards) sh.destroy();
@@ -1226,8 +1236,12 @@ export class LdtkWorldScene extends Scene {
     // This prevents a 1-frame jump when transitioning from snap to normal update.
     cam.update(16.667);
 
-    // Update minimap + world map
-    this.drawMinimap();
+    // Update minimap + world map (skip in item tunnel)
+    if (!this.inItemTunnel) {
+      this.drawMinimap();
+    } else if (this.minimap) {
+      this.minimap.visible = false;
+    }
     if (this.worldMap?.visible) {
       this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
       this.worldMap.setMarkers(this.collectMapMarkers());
@@ -1531,8 +1545,17 @@ export class LdtkWorldScene extends Scene {
       const dy = Math.abs(pcy - sp.y);
       if (dx < RANGE && dy < RANGE) {
         nearSave = true;
-        // Pulse the save marker
         sp.gfx.alpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+        // Show context prompt — convert world pos to native screen pos
+        if (sp.prompt) {
+          sp.prompt.visible = true;
+          const us = this.game.uiScale;
+          const cam = this.game.camera;
+          const sx = (sp.x - cam.renderX + GAME_WIDTH / 2) * us - sp.prompt.width / 2;
+          const sy = (sp.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
+          sp.prompt.x = Math.round(sx);
+          sp.prompt.y = Math.round(sy);
+        }
 
         if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
           this.performSave();
@@ -1540,18 +1563,16 @@ export class LdtkWorldScene extends Scene {
         }
       } else {
         sp.gfx.alpha = 0.6;
+        if (sp.prompt) sp.prompt.visible = false;
       }
     }
 
-    // Show/hide persistent save hint
     if (nearSave) {
       if (!this.saveHintShown) {
         this.saveHintShown = true;
-        this.hud.setFloorText('UP: Save');
       }
     } else if (this.saveHintShown) {
       this.saveHintShown = false;
-      this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
     }
   }
 
@@ -1609,6 +1630,10 @@ export class LdtkWorldScene extends Scene {
       healthShardBonus: this.healthShardBonus,
     });
     this.toast.show('Game Saved!', 0x44ffaa);
+    trackSave(
+      this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+      Math.floor(this.game.stats.playTimeMs / 1000),
+    );
     // Heal to full on save
     this.player.hp = this.player.maxHp;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
@@ -2222,7 +2247,12 @@ export class LdtkWorldScene extends Scene {
           marker.x = spx;
           marker.y = spy;
           this.entityLayer.addChild(marker);
-          this.savePoints.push({ x: spx, y: spy, gfx: marker });
+          // Context prompt — rendered in uiContainer for crisp text
+          const us = this.game.uiScale;
+          const prompt = KeyPrompt.createPrompt('\u2191', 'Save', us);
+          prompt.visible = false;
+          this.game.uiContainer.addChild(prompt);
+          this.savePoints.push({ x: spx, y: spy, gfx: marker, prompt });
           break;
         }
         case 'GoldPickup': {
@@ -2573,6 +2603,10 @@ export class LdtkWorldScene extends Scene {
 
   private showGameOver(): void {
     this.gameOverActive = true;
+    // Clear floating UI (damage numbers, prompts) on death
+    this.game.uiContainer.removeChildren();
+    this.game.uiContainer.addChild(this.hud.container);
+    if (this.minimap) this.game.uiContainer.addChild(this.minimap);
     const overlay = new Container();
 
     // Desaturated dark overlay
@@ -2599,7 +2633,7 @@ export class LdtkWorldScene extends Scene {
     overlay.addChild(hint);
 
     this.gameOverOverlay = overlay;
-    this.game.app.stage.addChild(overlay);
+    this.game.legacyUIContainer.addChild(overlay);
   }
 
   private respawnPlayer(): void {
@@ -2688,7 +2722,7 @@ export class LdtkWorldScene extends Scene {
     if (input.isJustPressed(GameAction.ATTACK)) {
       this.inventoryUI.equipSelected();
       this.updatePlayerAtk();
-      this.hud.setFloorText(`${this.currentLevel?.identifier ?? ''} ATK:${this.player.atk}`);
+      this.hud.updateATK(this.player.atk);
     }
     if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
   }
@@ -2715,7 +2749,7 @@ export class LdtkWorldScene extends Scene {
     if (rarity !== 'normal') {
       this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
     }
-    this.tutorialHint.tryShow('hint_portal', 'UP: Enter the Memory Strata');
+    // hint removed
   }
 
   private enterPortal(portal: Portal): void {
@@ -2730,7 +2764,7 @@ export class LdtkWorldScene extends Scene {
       portal.rarity, portal.sourceType, portal.sourceItem,
     );
     this.portalTransition = transition;
-    this.game.app.stage.addChild(transition.container);
+    this.game.legacyUIContainer.addChild(transition.container);
 
     transition.onShake = (intensity) => this.game.camera.shake(intensity);
     transition.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
@@ -2916,7 +2950,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.altarUI = ui;
-    this.game.app.stage.addChild(ui);
+    this.game.legacyUIContainer.addChild(ui);
   }
 
   private drawAltarUI(): void {
@@ -2998,6 +3032,10 @@ export class LdtkWorldScene extends Scene {
       this.anvil.destroy();
       this.anvil = null;
     }
+    if (this.anvilPrompt?.parent) {
+      this.anvilPrompt.parent.removeChild(this.anvilPrompt);
+      this.anvilPrompt = null;
+    }
 
     const anvilEnts = level.entities.filter(e => e.type === 'Anvil');
     if (anvilEnts.length > 0) {
@@ -3022,12 +3060,32 @@ export class LdtkWorldScene extends Scene {
 
     this.anvil.update(dt);
 
-    // Proximity check ??show hint
+    // Proximity check
     const near = this.anvil.overlaps(
       this.player.x - 8, this.player.y - 8,
       this.player.width + 16, this.player.height + 16,
     );
-    this.anvil.setShowHint(near);
+    this.anvil.setShowHint(false); // disable built-in hint — use KeyPrompt instead
+
+    // KeyPrompt — create lazily, show/hide + position in uiContainer
+    if (near && !this.anvil.hasItem()) {
+      if (!this.anvilPrompt) {
+        this.anvilPrompt = KeyPrompt.createPrompt('\u2191', 'Place Weapon', this.game.uiScale);
+        this.anvilPrompt.visible = false;
+        this.game.uiContainer.addChild(this.anvilPrompt);
+      }
+      this.anvilPrompt.visible = true;
+      const us = this.game.uiScale;
+      const cam = this.game.camera;
+      const ax = this.anvil.container.x + 16;
+      const ay = this.anvil.container.y;
+      const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilPrompt.width / 2;
+      const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
+      this.anvilPrompt.x = Math.round(sx);
+      this.anvilPrompt.y = Math.round(sy);
+    } else if (this.anvilPrompt) {
+      this.anvilPrompt.visible = false;
+    }
 
     // UP key ??place weapon on anvil (if no weapon placed yet)
     if (!this.anvil.hasItem() && this.anvil.overlaps(
@@ -3157,7 +3215,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.cyclePromptUI = ui;
-    this.game.app.stage.addChild(ui);
+    this.game.legacyUIContainer.addChild(ui);
   }
 
   private closeCyclePromptUI(): void {
@@ -3231,7 +3289,7 @@ export class LdtkWorldScene extends Scene {
         this.endingOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
         this.endingOverlay.alpha = 0;
         this.endingOverlay.eventMode = 'none';
-        this.game.app.stage.addChild(this.endingOverlay);
+        this.game.legacyUIContainer.addChild(this.endingOverlay);
       }
     }
 
@@ -3253,7 +3311,7 @@ export class LdtkWorldScene extends Scene {
         this.endingTitle.x = GAME_WIDTH / 2;
         this.endingTitle.y = GAME_HEIGHT / 2 - 20;
         this.endingTitle.alpha = 0;
-        this.game.app.stage.addChild(this.endingTitle);
+        this.game.legacyUIContainer.addChild(this.endingTitle);
 
         const tbc = new BitmapText({
           text: 'To be continued...',
@@ -3263,7 +3321,7 @@ export class LdtkWorldScene extends Scene {
         tbc.x = GAME_WIDTH / 2;
         tbc.y = GAME_HEIGHT / 2 + 10;
         tbc.alpha = 0;
-        this.game.app.stage.addChild(tbc);
+        this.game.legacyUIContainer.addChild(tbc);
         (this as any)._tbcText = tbc;
       }
     }
@@ -3288,7 +3346,7 @@ export class LdtkWorldScene extends Scene {
         this.endingHint.anchor.set(0.5);
         this.endingHint.x = GAME_WIDTH / 2;
         this.endingHint.y = GAME_HEIGHT / 2 + 35;
-        this.game.app.stage.addChild(this.endingHint);
+        this.game.legacyUIContainer.addChild(this.endingHint);
       }
 
       // Blink hint
@@ -3798,15 +3856,17 @@ export class LdtkWorldScene extends Scene {
 
     this.minimap.addChild(content);
 
-    // Position: top-right (GDD §1.1)
-    this.minimap.x = GAME_WIDTH - PW - 8; // P0: safe zone margin 8px
-    this.minimap.y = 8;
+    // Position: top-right (GDD §1.1) — scaled to native resolution
+    const us = this.game.uiScale;
+    this.minimap.scale.set(us);
+    this.minimap.x = (GAME_WIDTH - PW - 8) * us;
+    this.minimap.y = 8 * us;
 
     // Opacity: 70% normal, 40% during combat (GDD §1.1)
     const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
     this.minimap.alpha = inCombat ? 0.4 : 0.7;
 
-    this.game.app.stage.addChild(this.minimap);
+    this.game.uiContainer.addChild(this.minimap);
   }
 
   // ---------------------------------------------------------------------------
