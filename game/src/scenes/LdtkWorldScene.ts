@@ -348,11 +348,16 @@ export class LdtkWorldScene extends Scene {
 
   enter(): void {
     this.container.visible = true;
+    // Re-attach HUD + minimap to uiContainer (may have been removed by ItemWorldScene)
     if (this.hud) {
+      if (!this.hud.container.parent) this.game.uiContainer.addChild(this.hud.container);
       this.hud.container.visible = true;
       this.hud.setGoldBelowMinimap(!this.inItemTunnel);
     }
-    if (this.minimap) this.minimap.visible = true;
+    if (this.minimap) {
+      if (!this.minimap.parent) this.game.uiContainer.addChild(this.minimap);
+      this.minimap.visible = !this.inItemTunnel;
+    }
     if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
     // Clean up dive/collapse effect
@@ -598,7 +603,7 @@ export class LdtkWorldScene extends Scene {
           this.player.hp -= dmg;
           this.hud.flashDamage();
           this.player.invincible = true;
-          this.player.invincibleTimer = 500;
+          this.player.invincibleTimer = 1000;
           this.player.startVibrate(3, 4, true);
           this.player.triggerFlash();
           this.game.hitstopFrames = 2;
@@ -639,7 +644,7 @@ export class LdtkWorldScene extends Scene {
       this.player.hp -= dmg;
       this.hud.flashDamage();
       this.player.invincible = true;
-      this.player.invincibleTimer = 500;
+      this.player.invincibleTimer = 1000;
 
       // Sakurai feedback: victim vibrates, flash, directional shake
       this.player.startVibrate(4, 5, this.player.vy === 0);
@@ -857,10 +862,30 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
-    // Debug: R key to reset save and reload
-    if (this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
-      SaveManager.deleteSave();
-      window.location.reload();
+    // Debug commands — only active with ?debug=1 in URL
+    if (new URLSearchParams(window.location.search).has('debug')) {
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
+        SaveManager.deleteSave();
+        window.location.reload();
+      }
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
+        const a = this.player.abilities;
+        const allOn = a.cheat;
+        if (allOn) {
+          // Toggle off — reset all to false except dash (default ability)
+          for (const key of Object.keys(a)) {
+            (a as Record<string, boolean>)[key] = key === 'dash';
+          }
+          this.toast.show('CHEAT OFF — abilities reset', 0xff4444);
+        } else {
+          // All on — set every ability to true
+          for (const key of Object.keys(a)) {
+            (a as Record<string, boolean>)[key] = true;
+          }
+          this.toast.show('CHEAT ON — all relics unlocked', 0xff4444);
+        }
+        this.updatePlayerAtk();
+      }
     }
 
     // Portal interactions
@@ -1144,7 +1169,13 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private static readonly debugMode = new URLSearchParams(window.location.search).has('debug');
+
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
+    // Debug_ rooms only accessible with ?debug in URL
+    if (levelId.startsWith('Debug_') && !LdtkWorldScene.debugMode) {
+      return;
+    }
     const level = this.loader.getLevel(levelId);
     if (!level) {
       console.error(`[LdtkWorldScene] Level not found: "${levelId}"`);
@@ -1784,7 +1815,7 @@ export class LdtkWorldScene extends Scene {
     this.player.hp -= dmg;
     this.hud.flashDamage();
     this.player.invincible = true;
-    this.player.invincibleTimer = 500;
+    this.player.invincibleTimer = 1000;
 
     // Feedback — strong hitstop for spike pain
     this.game.hitstopFrames = 16;
@@ -2491,9 +2522,12 @@ export class LdtkWorldScene extends Scene {
     const cur = this.currentLevel;
     const dirMap: Record<string, string> = { left: 'w', right: 'e', up: 'n', down: 's' };
     const ldtkDir = dirMap[direction];
-    const candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
+    let candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
+    // Filter out Debug_ rooms unless ?debug
+    if (!LdtkWorldScene.debugMode) {
+      candidates = candidates.filter(id => !id.startsWith('Debug_'));
+    }
 
-    // Single candidate ??return immediately
     if (candidates.length === 1) return candidates[0];
 
     // Multiple candidates ??pick the one whose rect contains the player position
@@ -3704,13 +3738,14 @@ export class LdtkWorldScene extends Scene {
       .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld'));
     if (worldMap.length === 0) return;
 
-    // GDD spec: 128x72 panel (16:9)
-    const PW = 128;
-    const PH = 72;
+    // GDD spec: 128x72 panel (16:9), scaled to native resolution
+    const us = this.game.uiScale;
+    const PW = 128 * us;
+    const PH = 72 * us;
 
     // Viewport: 16:9 world-space window centered on current room.
-    // "3 cells" ~ 3 x 768 px (typical room width) -> ~2304 wide.
-    const VP_W = 2304;
+    // 5 cells wide (~3840px) to show more surrounding rooms comfortably.
+    const VP_W = 3840;
     const VP_H = VP_W * (PH / PW); // maintain 16:9 -> 1296
 
     const curCX = this.currentLevel.worldX + this.currentLevel.pxWid / 2;
@@ -3736,22 +3771,24 @@ export class LdtkWorldScene extends Scene {
     // Background (GDD: alpha 0.6 black, 1px #666666 border)
     const bg = new Graphics();
     bg.rect(0, 0, PW, PH).fill({ color: 0x000000, alpha: 0.6 });
-    bg.rect(0, 0, PW, PH).stroke({ color: 0x666666, width: 1 });
+    bg.rect(0, 0, PW, PH).stroke({ color: 0x666666, width: us });
     this.minimap.addChild(bg);
 
     const content = new Container();
+    // Clip content to panel bounds (rooms keep correct proportions)
+    const clipMask = new Graphics();
+    clipMask.rect(0, 0, PW, PH).fill(0xffffff);
+    this.minimap.addChild(clipMask);
+    content.mask = clipMask;
 
-    // Helper: project world rect to panel coords, clamped
+    // Helper: project world rect to panel coords (no clamping — mask handles overflow)
     const project = (r: { x: number; y: number; w: number; h: number }) => {
-      let rx = (r.x - vpLeft) * scaleX;
-      let ry = (r.y - vpTop) * scaleY;
-      let rw = Math.max(1, r.w * scaleX);
-      let rh = Math.max(1, r.h * scaleY);
-      if (rx < 0) { rw += rx; rx = 0; }
-      if (ry < 0) { rh += ry; ry = 0; }
-      if (rx + rw > PW) rw = PW - rx;
-      if (ry + rh > PH) rh = PH - ry;
-      return { rx, ry, rw, rh, visible: rw > 0 && rh > 0 };
+      const rx = (r.x - vpLeft) * scaleX;
+      const ry = (r.y - vpTop) * scaleY;
+      const rw = Math.max(1, r.w * scaleX);
+      const rh = Math.max(1, r.h * scaleY);
+      const visible = rx + rw > 0 && rx < PW && ry + rh > 0 && ry < PH;
+      return { rx, ry, rw, rh, visible };
     };
 
     // GDD tier colors (§1.4)
@@ -3769,7 +3806,7 @@ export class LdtkWorldScene extends Scene {
       return DEFAULT_TIER_COLOR;
     };
 
-    // Draw rooms
+    // Draw rooms — visited rooms show internal tile structure
     for (const r of worldMap) {
       if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
       if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
@@ -3783,31 +3820,64 @@ export class LdtkWorldScene extends Scene {
       const p = project(r);
       if (!p.visible) continue;
 
-      let color: number;
-      let alpha: number;
+      const g = new Graphics();
+
       if (isCurrent || visited) {
-        color = getTierColor(r.id);
-        alpha = isCurrent ? 1.0 : 0.8;
+        const tierColor = getTierColor(r.id);
+        const level = this.loader.getLevel(r.id);
+
+        if (level && level.collisionGrid.length > 0) {
+          // Render tile-level detail for visited rooms
+          const grid = level.collisionGrid;
+          const gridH = grid.length;
+          const gridW = grid[0]?.length ?? 0;
+          const tileW = p.rw / gridW;
+          const tileH = p.rh / gridH;
+
+          // Background (air = dark)
+          g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: 0x111118, alpha: isCurrent ? 0.9 : 0.7 });
+
+          // Solid tiles
+          for (let ty = 0; ty < gridH; ty++) {
+            for (let tx = 0; tx < gridW; tx++) {
+              const v = grid[ty][tx];
+              if (v === 0) continue; // air — skip
+              const px = p.rx + tx * tileW;
+              const py = p.ry + ty * tileH;
+              const tw = Math.max(0.5, tileW);
+              const th = Math.max(0.5, tileH);
+              let tileColor = tierColor;
+              let tileAlpha = isCurrent ? 0.9 : 0.7;
+              if (v === 1) { tileColor = tierColor; } // wall
+              else if (v === 2) { tileColor = 0x2244aa; tileAlpha = 0.5; } // water
+              else if (v === 3) { tileColor = tierColor; tileAlpha *= 0.6; } // platform
+              else if (v === 5) { tileColor = 0xcc3333; } // spike
+              else { tileColor = tierColor; tileAlpha *= 0.5; } // other
+              g.rect(px, py, tw, th).fill({ color: tileColor, alpha: tileAlpha });
+            }
+          }
+        } else {
+          // Fallback: solid fill
+          g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: tierColor, alpha: isCurrent ? 1.0 : 0.8 });
+        }
+
+        if (visited) {
+          g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0x556688, width: us });
+        }
       } else {
         // Adjacent/outlined: dim outline only
-        color = 0x333344;
-        alpha = 0.4;
+        g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: 0x333344, alpha: 0.4 });
       }
 
-      const g = new Graphics();
-      g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color, alpha });
-      if (visited) {
-        g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0x556688, width: 0.5 });
-      }
-      // Current room: white 2px border (GDD §1.5)
+      // Current room: white border
       if (isCurrent) {
-        g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0xffffff, width: 2 });
+        g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0xffffff, width: 2 * us });
       }
-      // Cleared room: small check mark (GDD §1.3)
+      // Cleared room: check mark
       if (cleared && visited && !isCurrent) {
-        const cx = p.rx + p.rw - 4;
-        const cy = p.ry + p.rh - 4;
-        g.moveTo(cx - 2, cy).lineTo(cx, cy + 2).lineTo(cx + 3, cy - 2).stroke({ color: 0x44ff44, width: 1 });
+        const cmx = p.rx + p.rw - 4 * us;
+        const cmy = p.ry + p.rh - 4 * us;
+        g.moveTo(cmx - 2 * us, cmy).lineTo(cmx, cmy + 2 * us).lineTo(cmx + 3 * us, cmy - 2 * us).stroke({ color: 0x44ff44, width: us });
       }
       content.addChild(g);
     }
@@ -3820,46 +3890,46 @@ export class LdtkWorldScene extends Scene {
       const level = this.loader.getLevel(r.id);
       if (!level) continue;
 
-      const mx = Math.min(PW - 2, Math.max(2, (r.x - vpLeft) * scaleX + (r.w * scaleX) / 2));
-      const my = Math.min(PH - 2, Math.max(2, (r.y - vpTop) * scaleY + (r.h * scaleY) / 2));
+      const mx = Math.min(PW - 2 * us, Math.max(2 * us, (r.x - vpLeft) * scaleX + (r.w * scaleX) / 2));
+      const my = Math.min(PH - 2 * us, Math.max(2 * us, (r.y - vpTop) * scaleY + (r.h * scaleY) / 2));
 
-      // Save point: red circle (GDD: red star)
+      // Save point: red circle
       if (level.entities.some(e => e.type === 'GameSaver')) {
         const marker = new Graphics();
-        marker.circle(mx, my, 2).fill(0xff4444);
+        marker.circle(mx, my, 2 * us).fill(0xff4444);
         content.addChild(marker);
       }
-      // Anvil (ItemTunnel entrance): gold circle
+      // Anvil: gold circle
       if (level.entities.some(e => e.type === 'Anvil' || e.type === 'ItemTunnelEntrance')) {
         const marker = new Graphics();
-        marker.circle(mx + 3, my, 1.5).fill(0xffd700);
+        marker.circle(mx + 3 * us, my, 1.5 * us).fill(0xffd700);
         content.addChild(marker);
       }
-      // Boss room: orange circle (undefeated) or gray (defeated)
+      // Boss room: orange/gray circle
       if (level.entities.some(e => e.type === 'Boss' || e.type === 'BossSpawn')) {
         const defeated = clearedIds.has(r.id);
         const marker = new Graphics();
-        marker.circle(mx, my - 3, 2).fill(defeated ? 0x666666 : 0xff8800);
+        marker.circle(mx, my - 3 * us, 2 * us).fill(defeated ? 0x666666 : 0xff8800);
         content.addChild(marker);
       }
     }
 
-    // Player dot (3x3 white, blinking) — GDD §1.5
+    // Player dot (blinking) — GDD §1.5
     {
-      const px = Math.min(PW - 2, Math.max(2, (this.player.x + this.currentLevel.worldX - vpLeft) * scaleX));
-      const py = Math.min(PH - 2, Math.max(2, (this.player.y + this.currentLevel.worldY - vpTop) * scaleY));
+      const dotSize = 3 * us;
+      const px = Math.min(PW - dotSize, Math.max(dotSize, (this.player.x + this.currentLevel.worldX - vpLeft) * scaleX));
+      const py = Math.min(PH - dotSize, Math.max(dotSize, (this.player.y + this.currentLevel.worldY - vpTop) * scaleY));
       const dot = new Graphics();
-      dot.rect(px - 1.5, py - 1.5, 3, 3).fill(0xffffff);
+      dot.rect(px - dotSize / 2, py - dotSize / 2, dotSize, dotSize).fill(0xffffff);
       this.minimapDot = dot;
       content.addChild(dot);
     }
 
     this.minimap.addChild(content);
 
-    // Position: top-right (GDD §1.1) — scaled to native resolution
-    const us = this.game.uiScale;
-    this.minimap.scale.set(us);
-    this.minimap.x = (GAME_WIDTH - PW - 8) * us;
+    // Position: top-right (no scale — PW/PH already in native res)
+    this.minimap.scale.set(1);
+    this.minimap.x = GAME_WIDTH * us - PW - 8 * us;
     this.minimap.y = 8 * us;
 
     // Opacity: 70% normal, 40% during combat (GDD §1.1)

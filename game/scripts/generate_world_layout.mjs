@@ -472,7 +472,7 @@ function generateLdtk() {
   console.log(`  = ${worldW / GRID}×${worldH / GRID} grid cells`);
   console.log(`  = ${(worldW / BASE_W).toFixed(1)}×${(worldH / BASE_H).toFixed(1)} standard rooms`);
   console.log(`\n  Hollow Knight reference: ~72,000×33,000 px (~200 rooms)`);
-  console.log(`  Project Abyss: ${worldW}×${worldH} px (${totalRooms} rooms)`);
+  console.log(`  ECHORIS: ${worldW}×${worldH} px (${totalRooms} rooms)`);
 }
 
 generateLdtk();

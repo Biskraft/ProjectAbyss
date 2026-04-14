@@ -11,6 +11,7 @@ export enum GameAction {
   MENU = 'MENU',
   FLASK = 'FLASK',
   DEBUG_RESET = 'DEBUG_RESET',
+  DEBUG_CHEAT = 'DEBUG_CHEAT',
 }
 
 const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
@@ -26,11 +27,20 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.MENU]: ['Escape'],
   [GameAction.FLASK]: ['KeyR'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
+  [GameAction.DEBUG_CHEAT]: ['KeyO'],
 };
 
 const GAME_KEYS = new Set(
   Object.values(DEFAULT_BINDINGS).flat()
 );
+
+// Fallback: map key characters to e.code for IME situations where e.code is empty
+const KEY_CHAR_TO_CODE = new Map<string, string>();
+for (const codes of Object.values(DEFAULT_BINDINGS)) {
+  for (const code of codes) {
+    if (code.startsWith('Key')) KEY_CHAR_TO_CODE.set(code.slice(3).toLowerCase(), code);
+  }
+}
 
 // Virtual key prefix to avoid collisions with real key codes
 const VIRTUAL_PREFIX = 'Virtual_';
@@ -40,6 +50,8 @@ export class InputManager {
   private prevKeyState = new Map<string, boolean>();
   private consumed = new Set<string>();
   private bindings: Record<GameAction, string[]>;
+  /** True while Shift is held. Used for debug key combos (Shift+O, Shift+P). */
+  shiftDown = false;
 
   constructor() {
     this.bindings = { ...DEFAULT_BINDINGS };
@@ -88,6 +100,7 @@ export class InputManager {
     // Never intercept browser shortcuts (Ctrl/Meta combos like Ctrl+R, Ctrl+Shift+R)
     if (e.ctrlKey || e.metaKey) return;
 
+    this.shiftDown = e.shiftKey;
     const code = e.code;
 
     // P0 CK-12: Block Tab from moving focus away from canvas
@@ -98,11 +111,13 @@ export class InputManager {
 
     // IME produces keydown with key='Process' and sometimes empty code.
     // Always use e.code (physical key) which is reliable even during IME.
+    // Some browsers/OS combos produce empty code — fallback to key-based lookup.
     if (e.key === 'Process' || e.isComposing) {
-      if (code && GAME_KEYS.has(code)) {
+      const resolvedCode = (code && GAME_KEYS.has(code)) ? code : KEY_CHAR_TO_CODE.get(e.key?.toLowerCase() ?? '');
+      if (resolvedCode && GAME_KEYS.has(resolvedCode)) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!e.repeat) this.keyState.set(code, true);
+        if (!e.repeat) this.keyState.set(resolvedCode, true);
       }
       return;
     }
@@ -115,6 +130,7 @@ export class InputManager {
   }
 
   private onKeyUp(e: KeyboardEvent): void {
+    this.shiftDown = e.shiftKey;
     const code = e.code;
     if (GAME_KEYS.has(code)) {
       e.preventDefault();

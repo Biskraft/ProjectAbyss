@@ -49,8 +49,8 @@
 
   .cinzel{font-family:'Cinzel',serif;letter-spacing:.12em}
   .mono{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--tx2);letter-spacing:.06em}
-  h1{font-family:'Cinzel',serif;font-size:clamp(4rem,12vw,9rem);line-height:.85;color:var(--white);letter-spacing:.08em;text-transform:uppercase}
-  h1 span{color:var(--red)}
+  h1{font-family:'Cinzel',serif;font-size:clamp(4rem,12vw,9rem);line-height:.85;color:#3a9a9a;letter-spacing:.12em;text-transform:uppercase;filter:url(#grunge)}
+  h1 span{color:#e87830}
   h2{font-family:'Cinzel',serif;font-size:clamp(2rem,5vw,3.5rem);color:var(--white);letter-spacing:.1em;text-transform:uppercase;margin-bottom:32px;position:relative;padding-left:24px}
   h2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
   h3{font-size:.85rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.15em;margin-bottom:16px}
@@ -196,8 +196,9 @@
   .closing{align-items:center;text-align:center;justify-content:center}
   .closing-title{
     font-family:'Cinzel',serif;font-size:clamp(2.5rem,8vw,5rem);
-    color:var(--white);letter-spacing:.08em;margin-bottom:16px;text-transform:uppercase;
+    color:#3a9a9a;letter-spacing:.12em;margin-bottom:16px;text-transform:uppercase;filter:url(#grunge);
   }
+  .closing-title span{color:#e87830!important}
   .closing-sub{color:var(--tx2);font-size:1.1rem;letter-spacing:.08em;margin-bottom:48px;max-width:400px}
   .closing-line{width:60px;height:1px;background:var(--red);margin:0 auto 48px;opacity:.5}
   .closing-quote{
@@ -235,6 +236,31 @@
 </style>
 </head>
 <body>
+
+<!-- SVG Grunge Filter -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="grunge" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="6" seed="2" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="5" result="coarse"/>
+    <feColorMatrix in="coarse" type="saturate" values="0" result="coarseBW"/>
+    <feComponentTransfer in="coarseBW" result="coarseContrast">
+      <feFuncR type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncG type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncB type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+    </feComponentTransfer>
+    <feBlend in="warped" in2="coarseContrast" mode="multiply" result="grunged"/>
+    <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="11" result="grain"/>
+    <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+    <feComponentTransfer in="grainBW" result="grainLight">
+      <feFuncR type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncG type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncB type="linear" slope="0.6" intercept="0.4"/>
+    </feComponentTransfer>
+    <feBlend in="grunged" in2="grainLight" mode="multiply" result="final"/>
+    <feComposite in="final" in2="SourceGraphic" operator="in"/>
+  </filter>
+</svg>
 
 <div class="particles" id="particles"></div>
 

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — Logo Export</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  overflow: auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+body.dark-bg { background-image: none; background-color: #0A0A0A; }
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 80px 20px;
+}
+
+/* Live preview with SVG filter */
+.logo-live {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(4rem, 14vw, 10rem);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3a9a9a;
+  filter: url(#grunge);
+  user-select: none;
+}
+.logo-live span { color: #e87830; }
+
+#exportCanvas {
+  max-width: 85vw;
+  max-height: 30vh;
+  border: 1px dashed rgba(42,138,138,.3);
+  display: none;
+}
+
+.controls {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 10; flex-wrap: wrap; justify-content: center;
+}
+.controls button {
+  font-size: 0.75rem; color: #666; background: rgba(255,255,255,.92);
+  border: 1px solid #ccc; padding: 6px 14px; cursor: pointer;
+}
+.controls button:hover { background: #fff; }
+body.dark-bg .controls button { color: #888; background: rgba(20,20,20,.92); border-color: #333; }
+
+.size-group {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; z-index: 10;
+}
+.size-group button {
+  font-size: 0.65rem; color: #999; background: rgba(255,255,255,.85);
+  border: 1px solid #ddd; padding: 4px 12px; cursor: pointer;
+}
+.size-group button.active { border-color: #E87830; color: #E87830; }
+body.dark-bg .size-group button { color: #666; background: rgba(20,20,20,.85); border-color: #333; }
+body.dark-bg .size-group button.active { border-color: #E87830; color: #E87830; }
+
+#status {
+  position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+  font-size: 0.7rem; color: #999; z-index: 10;
+}
+</style>
+</head>
+<body>
+
+<!-- SVG Grunge Filter (live preview) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="grunge" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="6" seed="2" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="5" result="coarse"/>
+    <feColorMatrix in="coarse" type="saturate" values="0" result="coarseBW"/>
+    <feComponentTransfer in="coarseBW" result="coarseContrast">
+      <feFuncR type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncG type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncB type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+    </feComponentTransfer>
+    <feBlend in="warped" in2="coarseContrast" mode="multiply" result="grunged"/>
+    <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="11" result="grain"/>
+    <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+    <feComponentTransfer in="grainBW" result="grainLight">
+      <feFuncR type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncG type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncB type="linear" slope="0.6" intercept="0.4"/>
+    </feComponentTransfer>
+    <feBlend in="grunged" in2="grainLight" mode="multiply" result="final"/>
+    <feComposite in="final" in2="SourceGraphic" operator="in"/>
+  </filter>
+</svg>
+
+<div class="container">
+  <div class="logo-live">ECHO<span>RIS</span></div>
+  <canvas id="exportCanvas"></canvas>
+</div>
+
+<div class="size-group">
+  <button onclick="setSize(1)" class="active">1x</button>
+  <button onclick="setSize(2)">2x</button>
+  <button onclick="setSize(4)">4x</button>
+</div>
+<div id="status">Ready</div>
+<div class="controls">
+  <button onclick="document.body.classList.toggle('dark-bg')">Toggle BG</button>
+  <button onclick="doExport(false)">PNG transparent</button>
+  <button onclick="doExport(true)">PNG black bg</button>
+</div>
+
+<script>
+let currentScale = 1;
+let fontDataURI = null; // cached
+
+function setSize(s) {
+  currentScale = s;
+  document.querySelectorAll('.size-group button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Fetch Google Font woff2 and convert to data URI for SVG embedding
+async function getFontDataURI() {
+  if (fontDataURI) return fontDataURI;
+  const status = document.getElementById('status');
+  status.textContent = 'Loading font for export...';
+
+  // Fetch the CSS to find the woff2 URL
+  const cssResp = await fetch(
+    'https://fonts.googleapis.com/css2?family=Cinzel:wght@900&display=swap'
+  );
+  const cssText = await cssResp.text();
+  const urlMatch = cssText.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+\.woff2)\)/);
+
+  if (!urlMatch) {
+    // Fallback: try ttf
+    const ttfMatch = cssText.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/);
+    if (!ttfMatch) throw new Error('Font URL not found');
+    const resp = await fetch(ttfMatch[1]);
+    const blob = await resp.blob();
+    fontDataURI = await blobToDataURI(blob);
+    return fontDataURI;
+  }
+
+  const fontResp = await fetch(urlMatch[1]);
+  const fontBlob = await fontResp.blob();
+  fontDataURI = await blobToDataURI(fontBlob);
+  return fontDataURI;
+}
+
+function blobToDataURI(blob) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Build standalone SVG string with embedded font + grunge filter + text
+function buildSVG(fontSize, fontData) {
+  const pad = 40;
+  // Approximate text width (Cinzel 900 is roughly 0.7em per char + spacing)
+  const charW = fontSize * 0.72;
+  const spacing = fontSize * 0.12;
+  const echoW = charW * 4 + spacing * 3;
+  const risW = charW * 3 + spacing * 2;
+  const totalW = echoW + spacing + risW;
+  const w = Math.ceil(totalW + pad * 2);
+  const h = Math.ceil(fontSize * 1.3 + pad * 2);
+  const textY = pad + fontSize;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'CinzelEmbed';
+        font-weight: 900;
+        src: url('${fontData}') format('woff2');
+      }
+    </style>
+    <filter id="g" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="6" seed="2" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="5" result="coarse"/>
+      <feColorMatrix in="coarse" type="saturate" values="0" result="coarseBW"/>
+      <feComponentTransfer in="coarseBW" result="cc">
+        <feFuncR type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+        <feFuncG type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+        <feFuncB type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      </feComponentTransfer>
+      <feBlend in="warped" in2="cc" mode="multiply" result="grunged"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="11" result="grain"/>
+      <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+      <feComponentTransfer in="grainBW" result="gl">
+        <feFuncR type="linear" slope="0.6" intercept="0.4"/>
+        <feFuncG type="linear" slope="0.6" intercept="0.4"/>
+        <feFuncB type="linear" slope="0.6" intercept="0.4"/>
+      </feComponentTransfer>
+      <feBlend in="grunged" in2="gl" mode="multiply" result="final"/>
+      <feComposite in="final" in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+  <text font-family="CinzelEmbed, Cinzel, serif" font-weight="900" font-size="${fontSize}"
+        letter-spacing="${spacing}" text-anchor="middle" dominant-baseline="auto"
+        x="${w / 2}" y="${textY}" filter="url(#g)">
+    <tspan fill="#3a9a9a">ECHO</tspan><tspan fill="#e87830">RIS</tspan>
+  </text>
+</svg>`;
+}
+
+async function doExport(withBlackBg) {
+  const status = document.getElementById('status');
+  try {
+    const fontData = await getFontDataURI();
+    status.textContent = 'Rendering SVG...';
+
+    const fontSize = 160 * currentScale;
+    const svgStr = buildSVG(fontSize, fontData);
+
+    // Convert SVG string to image
+    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    // Draw to canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+
+    if (withBlackBg) {
+      ctx.fillStyle = '#0A0A0A';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+
+    // Show preview
+    const preview = document.getElementById('exportCanvas');
+    preview.width = canvas.width;
+    preview.height = canvas.height;
+    preview.getContext('2d').drawImage(canvas, 0, 0);
+    preview.style.display = 'block';
+
+    // Download
+    const link = document.createElement('a');
+    const suffix = withBlackBg ? 'black' : 'transparent';
+    link.download = `ECHORIS_logo_${suffix}_${currentScale}x.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    status.textContent = `${canvas.width} x ${canvas.height}px — downloaded`;
+
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+    console.error(e);
+  }
+}
+
+document.fonts.ready.then(() => {
+  document.getElementById('status').textContent = 'Ready';
+});
+</script>
+</body>
+</html>

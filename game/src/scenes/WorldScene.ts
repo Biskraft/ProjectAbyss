@@ -382,7 +382,10 @@ export class WorldScene extends Scene {
     // Re-show everything when returning from item world
     this.container.visible = true;
     if (this.miniMapContainer) this.miniMapContainer.visible = true;
-    if (this.hud) this.hud.container.visible = true;
+    if (this.hud) {
+      if (!this.hud.container.parent) this.game.uiContainer.addChild(this.hud.container);
+      this.hud.container.visible = true;
+    }
     this.updatePlayerAtk();
     // Snap camera to player position on re-enter
     this.game.camera.snap(
@@ -518,7 +521,7 @@ export class WorldScene extends Scene {
           this.player.onHit(dir * 80, -40, 150);
           this.player.hp -= dmg;
           this.player.invincible = true;
-          this.player.invincibleTimer = 500;
+          this.player.invincibleTimer = 1000;
           this.player.startVibrate(3, 4, true);
           this.player.triggerFlash();
           this.game.hitstopFrames = 2;
@@ -555,7 +558,7 @@ export class WorldScene extends Scene {
           this.player.onHit(dir * 100, -50, 200);
           this.player.hp -= dmg;
           this.player.invincible = true;
-          this.player.invincibleTimer = 500;
+          this.player.invincibleTimer = 1000;
 
           // Sakurai feedback: victim vibrates, flash, directional shake
           this.player.startVibrate(4, 5, this.player.vy === 0);

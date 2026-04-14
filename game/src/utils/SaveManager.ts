@@ -2,7 +2,7 @@ import { SWORD_DEFS, type Rarity } from '@data/weapons';
 import { createItem, recalcItemAtk, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { Inventory } from '@items/Inventory';
 
-const SAVE_KEY = 'projectabyss_save';
+const SAVE_KEY = 'echoris_save';
 
 export interface SaveData {
   version: 3;

@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
 > 최근 업데이트: 2026-04-13
-> 총 51개 리서치 문서
+> 총 54개 리서치 문서
 
 ---
 
@@ -50,6 +50,9 @@
 | **HealingSystem_Recovery** | Flask+전투연동+이노센트 복합 모델 권장. 레어리티별 Flask 차등(5→1), SotN Dark Metamorphosis→단조열 봉합, 디스가이아 층간 무회복 채택 |
 | **ReferenceGame_UI_UX** | 6종 레퍼런스 전수조사. 2-Space별 HUD 전략, Rally HP→단조열 봉합, 맵 색상 코딩, God Mode→기억의 보호, 핵심 차용 패턴 TOP 10 |
 | **UX_Layout_Sizing** | HUD 크기/배치/간격 정량 기준. 세이프존, 시선추적, 피츠법칙, 해상도 스케일링, 레퍼런스 실측(HP 너비 8-25%), 웹 제약(정수배율/ESC충돌) |
+| **CoopSynergy_ItemWorld** | 15개 게임 분석. 자동/근접/의도 3계층 시너지, 원소 퓨전, 저주 부활, 인원별 스케일링, 루트 인스턴스, 스파이크 검증 통과 8건 |
+| **TwoPlayerNetcode_Architecture** | 2인 PvE 전용 4종 아키텍처 비교. Host Authoritative + WebSocket Relay 권장. 기존 코드 재활용, Relay 150줄, 월 $6, 구현 15일 |
+| **URLJoin_CoopSession** | URL 즉시 합류 설계. `echoris.io/join/{6자리 코드}`, Guest 1클릭 합류, 세션 상태 머신, OG 태그, 익명 합류, 에러 처리, 구현 3-4주 |
 
 ---
 

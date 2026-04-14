@@ -87,7 +87,7 @@
 | Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item Overlord | 아이템 대신 | 아이템계 최심층 지층에 출현하는 최상위 보스. 처치 시 아이템 레어리티 승급 기회와 대량 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2~4개 지층으로 구성되며, 1~4인이 협동하여 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
+| Item World | 아이템계 | 모든 장비 아이템 내부에 존재하는 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2~4개 지층으로 구성되며, 1-2인이 협동하여 (Phase 4+에서 최대 4인) 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
 ---
 

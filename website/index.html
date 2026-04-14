@@ -267,39 +267,53 @@ section {
   overflow: hidden;
 }
 
-/* Radial orange pulse behind the title (KPI-style) */
-#hero::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 800px;
-  height: 800px;
-  max-width: 90vw;
-  max-height: 90vw;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, var(--cta-glow) 0%, transparent 70%);
-  animation: hero-pulse 6s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-@keyframes hero-pulse {
-  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
-  50%      { opacity: 0.6; transform: translate(-50%, -50%) scale(1.15); }
-}
+/* Hero z-index */
 #hero > * { position: relative; z-index: 1; }
+
+/* ── ECHORIS Logo (two-tone grunge) ── */
+.hero-logo {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 24px;
+}
 
 .hero-title {
   font-family: var(--font-title);
   font-weight: 900;
-  font-size: clamp(4rem, 12vw, 9rem);
+  font-size: clamp(3.5rem, 12vw, 9rem);
   line-height: 0.85;
-  color: var(--text-1);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 24px;
+  color: transparent;
+  color: #3a9a9a;
+  filter: url(#grunge);
+  margin: 0;
 }
-.hero-title span { color: var(--cta); }
+.hero-title span { color: #e87830; }
+
+/* Subtle edge glow on hover */
+.hero-logo:hover .hero-title {
+  filter: url(#grunge) drop-shadow(0 0 20px rgba(42,138,138,.12));
+}
+
+/* Thin corroded line under the logo */
+.hero-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(42,138,138,.3) 15%,
+    rgba(192,192,192,.35) 50%,
+    rgba(232,120,48,.3) 85%,
+    transparent 100%
+  );
+  filter: url(#grunge);
+}
 
 .hero-tagline {
   font-family: var(--font-sub);
@@ -591,7 +605,7 @@ footer {
 /* ── Mobile ── */
 @media (max-width: 768px) {
   section { padding: 60px 16px; }
-  .hero-title { letter-spacing: 0.15em; }
+  .hero-title { letter-spacing: 0.08em; font-size: clamp(2.5rem, 12vw, 5rem); }
   #depth-indicator { display: none; }
   .erda-container { flex-direction: column; text-align: center; }
   .gallery-row img { height: 140px; }
@@ -620,7 +634,33 @@ footer {
 <!-- ═══ SECTOR 00: HERO ═══ -->
 <section id="hero">
   <div class="sector-label reveal" data-delay="1">SECTOR 00 — SURFACE</div>
-  <h1 class="hero-title reveal" data-delay="2">ECHO<span>RIS</span></h1>
+  <!-- SVG grunge filter (corrosion + erosion + grain) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="grunge" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="6" seed="2" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="5" result="coarse"/>
+      <feColorMatrix in="coarse" type="saturate" values="0" result="coarseBW"/>
+      <feComponentTransfer in="coarseBW" result="coarseContrast">
+        <feFuncR type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+        <feFuncG type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+        <feFuncB type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      </feComponentTransfer>
+      <feBlend in="warped" in2="coarseContrast" mode="multiply" result="grunged"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="11" result="grain"/>
+      <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+      <feComponentTransfer in="grainBW" result="grainLight">
+        <feFuncR type="linear" slope="0.6" intercept="0.4"/>
+        <feFuncG type="linear" slope="0.6" intercept="0.4"/>
+        <feFuncB type="linear" slope="0.6" intercept="0.4"/>
+      </feComponentTransfer>
+      <feBlend in="grunged" in2="grainLight" mode="multiply" result="final"/>
+      <feComposite in="final" in2="SourceGraphic" operator="in"/>
+    </filter>
+  </svg>
+  <div class="hero-logo reveal" data-delay="2">
+    <h1 class="hero-title">ECHO<span>RIS</span></h1>
+  </div>
   <p class="hero-tagline reveal" data-delay="3">Enter the memory of your weapon.</p>
   <div class="cta-group reveal" data-delay="4">
     <a href="#" class="cta cta-primary">Play Free</a>

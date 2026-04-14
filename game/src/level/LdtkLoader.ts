@@ -2,7 +2,7 @@
  * LdtkLoader.ts
  *
  * Parses a LDtk JSON project file into typed data structures for use with
- * the Project Abyss world (3-Space model — World space hand-crafted levels).
+ * the ECHORIS world (3-Space model — World space hand-crafted levels).
  *
  * Implements: System_World_ProcGen (hand-crafted room loading path)
  *

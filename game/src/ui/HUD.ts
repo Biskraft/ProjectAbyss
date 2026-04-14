@@ -82,6 +82,15 @@ export class HUD {
   private bossHp = 0;
   private bossMaxHp = 0;
 
+  // Depth Gauge (item world only)
+  private depthGauge: Container;
+  private depthGaugeGfx: Graphics;
+  private depthLabels: BitmapText[] = [];
+  private depthTotal = 0;
+  private depthCurrent = 0;
+  private depthCleared: boolean[] = [];
+  private depthPulseTimer = 0;
+
   constructor(uiScale = 1) {
     this.s = uiScale;
     this.container = new Container();
@@ -248,6 +257,29 @@ export class HUD {
     this.bossBarContainer.addChild(this.bossNameShadow);
     this.bossBarContainer.addChild(this.bossNameText);
     this.container.addChild(this.bossBarContainer);
+
+    // --- Depth Gauge (hidden by default, shown in item world) ---
+    this.depthGauge = new Container();
+    this.depthGauge.visible = false;
+    this.depthGaugeGfx = new Graphics();
+    this.depthGauge.addChild(this.depthGaugeGfx);
+    this.container.addChild(this.depthGauge);
+
+    // DEBUG label — bottom-left, only when ?debug in URL
+    if (new URLSearchParams(window.location.search).has('debug')) {
+      const dbgShadow = new BitmapText({ text: 'DEBUG', style: { fontFamily: PIXEL_FONT, fontSize: 16 * s, fill: 0x000000 } });
+      const dbgText = new BitmapText({ text: 'DEBUG', style: { fontFamily: PIXEL_FONT, fontSize: 16 * s, fill: 0xff2222 } });
+      dbgShadow.anchor.set(1, 0);
+      dbgText.anchor.set(1, 0);
+      dbgShadow.x = this.SW - this.MARGIN + s;
+      dbgShadow.y = this.SH - this.MARGIN - 16 * s + s;
+      dbgText.x = this.SW - this.MARGIN;
+      dbgText.y = this.SH - this.MARGIN - 16 * s;
+      dbgText.alpha = 0.7;
+      dbgShadow.alpha = 0.7;
+      this.container.addChild(dbgShadow);
+      this.container.addChild(dbgText);
+    }
   }
 
   // ----- Public API -----
@@ -358,6 +390,30 @@ export class HUD {
     this.bossBarContainer.visible = false;
   }
 
+  // --- Depth Gauge ---
+
+  /** Initialize depth gauge for item world entry. */
+  showDepthGauge(totalStrata: number, currentStratum: number, clearedStrata: boolean[]): void {
+    this.depthTotal = totalStrata;
+    this.depthCurrent = currentStratum;
+    this.depthCleared = [...clearedStrata];
+    this.depthGauge.visible = true;
+    this.depthPulseTimer = 0;
+    this.redrawDepthGauge();
+  }
+
+  /** Update current stratum (0-based). */
+  updateDepthGauge(currentStratum: number, clearedStrata: boolean[]): void {
+    this.depthCurrent = currentStratum;
+    this.depthCleared = [...clearedStrata];
+    this.redrawDepthGauge();
+  }
+
+  /** Hide when leaving item world. */
+  hideDepthGauge(): void {
+    this.depthGauge.visible = false;
+  }
+
   update(dt: number): void {
     if (this.ghostTimer > 0) {
       this.ghostTimer -= dt;
@@ -386,6 +442,11 @@ export class HUD {
       this.drawVignette(a);
     } else if (this.vignette.alpha > 0) {
       this.vignette.alpha = 0;
+    }
+    // Depth gauge pulse
+    if (this.depthGauge.visible) {
+      this.depthPulseTimer = (this.depthPulseTimer + dt) % 800;
+      this.redrawDepthGauge();
     }
   }
 
@@ -461,5 +522,79 @@ export class HUD {
     this.vignette.rect(0, this.SH - M, this.SW, M).fill(c);
     this.vignette.rect(0, 0, M, this.SH).fill(c);
     this.vignette.rect(this.SW - M, 0, M, this.SH).fill(c);
+  }
+
+  // Depth gradient: shallow (orange) → deep (dark red)
+  private static readonly DEPTH_COLORS = [0xFF8833, 0xCC6622, 0x993311, 0x661100];
+
+  private depthColor(index: number): number {
+    const t = this.depthTotal <= 1 ? 0 : index / (this.depthTotal - 1);
+    const colors = HUD.DEPTH_COLORS;
+    const pos = t * (colors.length - 1);
+    const lo = Math.floor(pos);
+    const hi = Math.min(lo + 1, colors.length - 1);
+    const frac = pos - lo;
+    // Lerp RGB
+    const r = ((colors[lo] >> 16) & 0xff) + (((colors[hi] >> 16) & 0xff) - ((colors[lo] >> 16) & 0xff)) * frac;
+    const g = ((colors[lo] >> 8) & 0xff) + (((colors[hi] >> 8) & 0xff) - ((colors[lo] >> 8) & 0xff)) * frac;
+    const b = (colors[lo] & 0xff) + ((colors[hi] & 0xff) - (colors[lo] & 0xff)) * frac;
+    return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+  }
+
+  private redrawDepthGauge(): void {
+    const g = this.depthGaugeGfx;
+    g.clear();
+
+    // Remove old labels
+    for (const l of this.depthLabels) { if (l.parent) l.parent.removeChild(l); }
+    this.depthLabels = [];
+
+    const s = this.s;
+    const blockSize = 8 * s;
+    const lineLen = 4 * s;
+    const step = blockSize + lineLen; // 12*s per stratum
+    const startX = this.MARGIN;
+    const startY = this.MARGIN + this.HP_H + 2 * s + this.FLASK_SIZE + 4 * s + 16 * s + 4 * s;
+    // ^^ HP bar + flask row + ATK text height + gap
+
+    const pulseAlpha = 0.7 + 0.3 * ((Math.sin(this.depthPulseTimer / 800 * Math.PI * 2) + 1) / 2);
+
+    for (let i = 0; i < this.depthTotal; i++) {
+      const bx = startX;
+      const by = startY + i * step;
+      const isCurrent = i === this.depthCurrent;
+      const isCleared = this.depthCleared[i] ?? false;
+
+      if (isCleared || isCurrent) {
+        // Filled block with depth color
+        const color = this.depthColor(i);
+        g.rect(bx, by, blockSize, blockSize).fill(color);
+        if (isCurrent) {
+          // White pulsing border
+          g.rect(bx, by, blockSize, blockSize).stroke({ color: 0xffffff, width: s, alpha: pulseAlpha });
+        }
+      } else {
+        // Unreached: empty outline
+        g.rect(bx, by, blockSize, blockSize).stroke({ color: 0x333333, width: s });
+      }
+
+      // Connecting line (except last)
+      if (i < this.depthTotal - 1) {
+        const lx = bx + blockSize / 2;
+        const ly = by + blockSize;
+        g.rect(lx - Math.floor(s / 2), ly, s, lineLen).fill(0x333333);
+      }
+
+      // Label: "Depth N"
+      const numColor = (isCleared || isCurrent) ? this.depthColor(i) : 0x333333;
+      const label = new BitmapText({
+        text: `Depth ${i + 1}`,
+        style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: isCurrent ? 0xffffff : numColor },
+      });
+      label.x = bx + blockSize + 3 * s;
+      label.y = by + Math.floor((blockSize - label.height) / 2);
+      this.depthGauge.addChild(label);
+      this.depthLabels.push(label);
+    }
   }
 }

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — Logo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@1,300&family=Rajdhani:wght@400;600&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0A0A0A;
+  --pulse: #2A8A8A;
+  --pulse-dim: #1A4A4A;
+  --grid: rgba(26,58,58,.3);
+  --cta: #E87830;
+  --cta-glow: rgba(232,120,48,.25);
+  --text-1: #F0F0F0;
+  --text-2: #C0C0C0;
+  --text-3: #4A8A8A;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+/* ── Survey Grid ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.5;
+}
+
+/* ── Scanlines ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px
+  );
+}
+
+/* ── Particles ── */
+.particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.particles span {
+  position: absolute;
+  display: block;
+  width: 1px;
+  height: 1px;
+  background: var(--cta);
+  opacity: 0;
+  animation: drift linear infinite;
+}
+@keyframes drift {
+  0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10%  { opacity: 0.4; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(-10vh) translateX(20px); opacity: 0; }
+}
+
+/* ── Layout ── */
+.container {
+  position: relative;
+  z-index: 3;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+/* ── Logo ── */
+.logo-wrap {
+  position: relative;
+  display: inline-block;
+  opacity: 0;
+  animation: logo-in 2s ease-out 0.5s forwards;
+}
+
+@keyframes logo-in {
+  0%   { opacity: 0; letter-spacing: 0.5em; filter: blur(8px); }
+  100% { opacity: 1; letter-spacing: 0.12em; filter: blur(0); }
+}
+
+.logo {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(4rem, 14vw, 12rem);
+  line-height: 0.85;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: transparent;
+  color: #3a9a9a;
+  filter: url(#grunge);
+  user-select: none;
+}
+.logo span { color: #e87830; }
+
+/* ── Corroded line under logo ── */
+.logo-wrap::after {
+  content: '';
+  display: block;
+  margin: 12px auto 0;
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(42,138,138,.3) 15%,
+    rgba(192,192,192,.35) 50%,
+    rgba(232,120,48,.3) 85%,
+    transparent 100%
+  );
+  filter: url(#grunge);
+}
+
+/* ── Tagline ── */
+.tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(0.85rem, 2.5vw, 1.3rem);
+  color: var(--text-3);
+  letter-spacing: 0.15em;
+  margin-top: 20px;
+  opacity: 0;
+  animation: fade-in 1.5s ease-out 2s forwards;
+}
+
+/* ── Coordinates ── */
+.coords {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--pulse-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 40px;
+  opacity: 0;
+  animation: fade-in 1.5s ease-out 2.5s forwards;
+}
+
+@keyframes fade-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Hover: faint pulse ring ── */
+.logo-wrap:hover .logo {
+  filter: url(#grunge) drop-shadow(0 0 30px rgba(42,138,138,.12));
+  transition: filter 0.6s ease;
+}
+
+/* ── Corner marks ── */
+.corner {
+  position: fixed;
+  width: 24px;
+  height: 24px;
+  border-color: var(--pulse-dim);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0;
+  z-index: 4;
+  animation: fade-in 1s ease-out 3s forwards;
+}
+.corner-tl { top: 24px; left: 24px; border-top-width: 1px; border-left-width: 1px; }
+.corner-tr { top: 24px; right: 24px; border-top-width: 1px; border-right-width: 1px; }
+.corner-bl { bottom: 24px; left: 24px; border-bottom-width: 1px; border-left-width: 1px; }
+.corner-br { bottom: 24px; right: 24px; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .logo { letter-spacing: 0.06em; }
+  @keyframes logo-in {
+    0%   { opacity: 0; letter-spacing: 0.3em; filter: blur(6px); }
+    100% { opacity: 1; letter-spacing: 0.06em; filter: blur(0); }
+  }
+  .corner { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- SVG Grunge Filter (corrosion + erosion + grain) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="grunge" x="-10%" y="-10%" width="120%" height="120%">
+    <!-- Layer 1: heavy edge erosion -->
+    <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="6" seed="2" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+    <!-- Layer 2: aggressive grunge chunks -->
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="5" result="coarse"/>
+    <feColorMatrix in="coarse" type="saturate" values="0" result="coarseBW"/>
+    <feComponentTransfer in="coarseBW" result="coarseContrast">
+      <feFuncR type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncG type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+      <feFuncB type="discrete" tableValues="0 0 0 0.3 0.7 1"/>
+    </feComponentTransfer>
+    <feBlend in="warped" in2="coarseContrast" mode="multiply" result="grunged"/>
+    <!-- Layer 3: heavy grain -->
+    <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="11" result="grain"/>
+    <feColorMatrix in="grain" type="saturate" values="0" result="grainBW"/>
+    <feComponentTransfer in="grainBW" result="grainLight">
+      <feFuncR type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncG type="linear" slope="0.6" intercept="0.4"/>
+      <feFuncB type="linear" slope="0.6" intercept="0.4"/>
+    </feComponentTransfer>
+    <feBlend in="grunged" in2="grainLight" mode="multiply" result="final"/>
+    <!-- Clip to original text shape -->
+    <feComposite in="final" in2="SourceGraphic" operator="in"/>
+  </filter>
+</svg>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Corner marks -->
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<!-- Logo -->
+<div class="container">
+  <div class="logo-wrap">
+    <div class="logo">ECHO<span>RIS</span></div>
+  </div>
+  <div class="tagline">Enter the memory of your weapon.</div>
+  <div class="coords">SECTOR 00 — SURFACE — DEPTH: 0m</div>
+</div>
+
+<script>
+const pc = document.getElementById('particles');
+for (let i = 0; i < 30; i++) {
+  const s = document.createElement('span');
+  s.style.left = Math.random() * 100 + '%';
+  s.style.animationDuration = (8 + Math.random() * 12) + 's';
+  s.style.animationDelay = (Math.random() * 10) + 's';
+  pc.appendChild(s);
+}
+</script>
+</body>
+</html>

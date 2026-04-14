@@ -155,7 +155,7 @@
 | ID | 문서명 | 상태 | 빌드 | 비고 |
 |:---|:-------|:-----|:-----|:-----|
 | SYS-MP-01 | **Multiplayer Architecture** | **NEW** | **B2** | 서버 권위, WebSocket. 레퍼런스: `OnlineCoop_Netcode_Research.md` |
-| SYS-MP-02 | **Party System** | **NEW** | **B2** | URL 링크 합류, 1-4인, 아이템 오너 귀속. 디스가이아 멀티 참고 |
+| SYS-MP-02 | **Party System** | **NEW** | **B2** | URL 링크 합류, 1-2인 (Phase 3), 최대 4인 (Phase 4+), 아이템 오너 귀속. 디스가이아 멀티 참고 |
 | SYS-MP-03 | **Network Sync** | **NEW** | **B2** | 클라이언트 예측, 롤백, 대역폭 |
 | SYS-MP-04 | **Ghost Message** | **NEW** | **B2** | 비동기 메시지, 다크소울 혈흔 오마주 |
 

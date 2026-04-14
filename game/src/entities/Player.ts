@@ -296,8 +296,11 @@ export class Player extends Entity implements CombatEntity {
         this.fsm.transition('jump');
       }
       // Double Jump: in air + no coyote + ability unlocked + not used yet
+      // Reset vy to 0 first so the jump height is consistent regardless of
+      // whether the player is rising or falling when they press jump.
       else if (!this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
-        this.vy = JUMP_VELOCITY * 0.75; // 75% of normal jump → 3.75 tiles (total reach ~8.75 tiles)
+        this.vy = 0;
+        this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
         this.fsm.transition('jump');
       } else {
@@ -573,6 +576,14 @@ export class Player extends Entity implements CombatEntity {
     const wantsJump = this.jumpBufferTimer > 0;
 
     if (canJump && wantsJump) {
+      // If already in jump state, this is a buffered double-jump, not a ground re-jump
+      if (this.fsm.currentState === 'jump' && this.abilities.doubleJump && this.doubleJumpAvailable) {
+        this.jumpBufferTimer = 0;
+        this.vy = 0;
+        this.vy = JUMP_VELOCITY * 0.85;
+        this.doubleJumpAvailable = false;
+        return true;
+      }
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
       this.fsm.transition('jump');

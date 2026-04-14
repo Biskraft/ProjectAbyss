@@ -192,6 +192,7 @@ export class ItemWorldScene extends Scene {
   // Exit trigger (at stratum end rooms)
   private exitTrigger: { x: number; y: number; width: number; height: number } | null = null;
   private exitVisual: Graphics | null = null;
+  private exitPrompt: Container | null = null;
 
   // Door markers
   private doorMarkers: Graphics[] = [];
@@ -355,6 +356,11 @@ export class ItemWorldScene extends Scene {
 
     // Build full map (all rooms rendered into a single continuous grid)
     this.buildFullMap();
+    // Initialize depth gauge
+    {
+      const n = this.strataConfig.strata.length;
+      this.hud.showDepthGauge(n, this.currentStratumIndex, new Array(n).fill(false));
+    }
     this.updateHudText();
 
     // Spawn player at start cell — find first air-above-solid in the center
@@ -599,8 +605,12 @@ export class ItemWorldScene extends Scene {
     this.drawMiniMap();
 
     // Restore boss portal if the current stratum's boss was previously killed.
-    // Reset exitTrigger first — it may be stale from a prior stratum build.
+    // Clean up stale portal from prior stratum.
     this.exitTrigger = null;
+    if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
+    this.exitVisual = null;
+    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
+    this.exitPrompt = null;
     this.restorePortalIfStratumCleared();
   }
 
@@ -880,6 +890,10 @@ export class ItemWorldScene extends Scene {
    * and by re-entry into already-cleared boss rooms.
    */
   private spawnBossPortal(px: number, py: number): void {
+    // Clean up previous portal if any
+    if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
+    this.exitVisual = null;
+
     const portalGfx = new Graphics();
     portalGfx.rect(-28, -32, 56, 48).fill({ color: 0xff0000, alpha: 0.25 });
     portalGfx.rect(-20, -28, 40, 40).fill(0xcc0000);
@@ -889,12 +903,18 @@ export class ItemWorldScene extends Scene {
     portalGfx.x = px;
     portalGfx.y = py;
     this.entityLayer.addChild(portalGfx);
+    this.exitVisual = portalGfx;
 
     this.exitTrigger = {
       x: px - 24, y: py - 32,
       width: 48, height: 48,
     };
-    console.log(`[ItemWorld] Boss portal spawned at (${px}, ${py}) exitTrigger=`, this.exitTrigger);
+
+    // Context prompt for portal
+    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
+    this.exitPrompt = KeyPrompt.createPrompt('\u2191', 'Descend', this.game.uiScale);
+    this.exitPrompt.visible = false;
+    this.game.uiContainer.addChild(this.exitPrompt);
   }
 
   /**
@@ -2129,7 +2149,7 @@ export class ItemWorldScene extends Scene {
         this.player.hp -= dmg;
         this.hud.flashDamage();
         this.player.invincible = true;
-        this.player.invincibleTimer = 500;
+        this.player.invincibleTimer = 1000;
         this.game.hitstopFrames = 16;
         this.game.camera.shake(5);
         this.screenFlash.flashDamage(true);
@@ -2590,7 +2610,7 @@ export class ItemWorldScene extends Scene {
           this.player.hp -= dmg;
           this.hud.flashDamage();
           this.player.invincible = true;
-          this.player.invincibleTimer = 500;
+          this.player.invincibleTimer = 1000;
           this.player.startVibrate(3, 4, true);
           this.player.triggerFlash();
           this.game.hitstopFrames = 2;
@@ -2628,7 +2648,7 @@ export class ItemWorldScene extends Scene {
       this.player.hp -= dmg;
       this.hud.flashDamage();
       this.player.invincible = true;
-      this.player.invincibleTimer = 500;
+      this.player.invincibleTimer = 1000;
 
       // Sakurai feedback
       this.player.startVibrate(4, 5, true);
@@ -2701,7 +2721,23 @@ export class ItemWorldScene extends Scene {
     // Exit trigger — walk into boss portal
     if (this.exitTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-      if (aabbOverlap(pb, this.exitTrigger) && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
+      const nearPortal = aabbOverlap(pb, this.exitTrigger);
+
+      // Show/hide prompt
+      if (this.exitPrompt) {
+        this.exitPrompt.visible = nearPortal;
+        if (nearPortal) {
+          const us = this.game.uiScale;
+          const cam = this.game.camera;
+          const cx = this.exitTrigger.x + this.exitTrigger.width / 2;
+          const sx = (cx - cam.renderX + GAME_WIDTH / 2) * us - this.exitPrompt.width / 2;
+          const sy = (this.exitTrigger.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
+          this.exitPrompt.x = Math.round(sx);
+          this.exitPrompt.y = Math.round(sy);
+        }
+      }
+
+      if (nearPortal && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
         this.handleStratumExit();
         return;
       }
@@ -2809,11 +2845,24 @@ export class ItemWorldScene extends Scene {
   }
 
   private updateHudText(): void {
-    const stratumLabel = `S${this.currentStratumIndex + 1}`;
-    const cycleTag = this.progress.cycle > 0 ? ` C${this.progress.cycle}` : '';
+    const cycleTag = this.progress.cycle > 0 ? `C${this.progress.cycle} ` : '';
     this.hud.setFloorText(
-      `${stratumLabel}${cycleTag} ${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
+      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
     );
+
+    // Update depth gauge
+    const totalStrata = this.strataConfig.strata.length;
+    const cleared: boolean[] = [];
+    for (let i = 0; i < totalStrata; i++) {
+      const endRoom = this.unifiedGrid.stratumEndRooms.find(e => e.stratumIndex === i);
+      if (endRoom) {
+        const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
+        cleared.push(cell?.cleared ?? false);
+      } else {
+        cleared.push(false);
+      }
+    }
+    this.hud.updateDepthGauge(this.currentStratumIndex, cleared);
   }
 
   private showEscapeConfirm(fromAltar = false): void {
@@ -3187,7 +3236,14 @@ export class ItemWorldScene extends Scene {
 
     this.hideEscapeConfirm();
     if (this.miniMapContainer.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
+    // Clean up all UI owned by this scene
+    this.hud.hideDepthGauge();
     if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
+    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
+    // Remove any lingering damage numbers / prompts from uiContainer
+    // (keep only persistent items — world scene re-adds its own in enter())
+    this.game.uiContainer.removeChildren();
 
     this.onComplete?.();
   }
