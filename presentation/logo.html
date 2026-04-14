@@ -99,7 +99,8 @@ body::after {
   100% { opacity: 1; letter-spacing: 0.12em; filter: blur(0); }
 }
 
-.logo {
+/* Base shared style for both layers */
+.logo, .logo-clean {
   font-family: 'Cinzel', serif;
   font-weight: 900;
   font-size: clamp(4rem, 14vw, 12rem);
@@ -107,11 +108,30 @@ body::after {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #3a9a9a;
-  filter: url(#grunge);
   user-select: none;
-  transition: filter 0.6s ease;
 }
-.logo span { color: #e87830; transition: color 0.6s ease; }
+.logo span, .logo-clean span { color: #e87830; }
+
+/* Corroded layer (default visible) */
+.logo {
+  filter: url(#grunge);
+}
+
+/* Clean layer (overlaid, fades in on hover) */
+.logo-clean {
+  position: absolute;
+  top: 0;
+  left: 0;
+  filter: url(#grunge-clean) drop-shadow(0 0 40px rgba(42,138,138,.15));
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.logo-clean span { color: #f09040; }
+
+/* Hover: crossfade */
+.logo-wrap:hover .logo-clean { opacity: 1; }
+.logo-wrap:hover .logo { opacity: 0.3; transition: opacity 0.8s ease; }
 
 /* ── Corroded line under logo ── */
 .logo-wrap::after {
@@ -162,13 +182,8 @@ body::after {
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Hover: grunge fades, metal revives ── */
-.logo-wrap:hover .logo {
-  filter: url(#grunge-clean) drop-shadow(0 0 40px rgba(42,138,138,.15));
-}
-.logo-wrap:hover .logo span {
-  color: #f09040;
-}
+/* ── Hover transition for corroded layer ── */
+.logo { transition: opacity 0.8s ease; }
 
 /* ── Corner marks ── */
 .corner {
@@ -256,6 +271,7 @@ body::after {
 <div class="container">
   <div class="logo-wrap">
     <div class="logo">ECHO<span>RIS</span></div>
+    <div class="logo-clean" aria-hidden="true">ECHO<span>RIS</span></div>
   </div>
   <div class="tagline">Enter the memory of your weapon.</div>
   <div class="coords">SECTOR 00 — SURFACE — DEPTH: 0m</div>
