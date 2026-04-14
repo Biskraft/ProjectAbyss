@@ -26,6 +26,21 @@ export class Game {
   camera!: Camera;
   gameContainer!: Container;
 
+  /**
+   * UI layer rendered at native resolution (Celeste-style dual-res).
+   * HUD with high-res fonts goes here.
+   */
+  uiContainer!: Container;
+
+  /**
+   * Legacy UI layer for 640x360-coordinate overlays (inventory, worldMap, etc.).
+   * Auto-scaled by uiScale so they fill the native-res canvas.
+   */
+  legacyUIContainer!: Container;
+
+  /** Integer pixel scale (1x=640, 2x=1280, 3x=1920). */
+  uiScale = 1;
+
   hitstopFrames = 0;
   stats = {
     enemiesKilled: 0,
@@ -41,11 +56,20 @@ export class Game {
   private prevRTH = 0;
 
   async init(): Promise<void> {
+    // Compute integer pixel scale for native resolution
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    // Round up to maximize font quality — CSS scales down to fit window
+    this.uiScale = Math.max(1, Math.round(Math.min(screenW / GAME_WIDTH, screenH / GAME_HEIGHT)));
+    const nativeW = GAME_WIDTH * this.uiScale;
+    const nativeH = GAME_HEIGHT * this.uiScale;
+
+    // Renderer at native resolution — UI renders crisp here
     this.renderer = new WebGLRenderer();
     await this.renderer.init({
-      width: GAME_WIDTH,
-      height: GAME_HEIGHT,
-      backgroundColor: 0x1a1a2e,
+      width: nativeW,
+      height: nativeH,
+      backgroundColor: 0x0a0a0e,
       resolution: 1,
       autoDensity: false,
       antialias: false,
@@ -69,10 +93,10 @@ export class Game {
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
 
-    // Game world container — rendered to RT at 1x, NOT on stage
+    // Game world container — rendered to RT at 640x360
     this.gameContainer = new Container();
 
-    // Initial RT at default viewport size
+    // Initial RT at base resolution
     this.worldRT = RenderTexture.create({
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
@@ -82,9 +106,20 @@ export class Game {
     this.prevRTW = GAME_WIDTH;
     this.prevRTH = GAME_HEIGHT;
 
+    // World sprite: scales 640x360 RT up to native resolution
     this.worldSprite = new Sprite(this.worldRT);
     this.worldSprite.texture.source.scaleMode = 'nearest';
+    this.worldSprite.scale.set(this.uiScale);
     this.app.stage.addChild(this.worldSprite);
+
+    // Legacy UI layer — 640x360 coordinates, scaled up to native
+    this.legacyUIContainer = new Container();
+    this.legacyUIContainer.scale.set(this.uiScale);
+    this.app.stage.addChild(this.legacyUIContainer);
+
+    // Hi-res UI layer — native resolution coordinates (HUD, minimap)
+    this.uiContainer = new Container();
+    this.app.stage.addChild(this.uiContainer);
 
     this.input = new InputManager();
     this.assetLoader = new AssetLoader();
@@ -112,13 +147,11 @@ export class Game {
       this.sceneManager.render(alpha);
 
       // --- Zoom via RenderTexture ---
-      // Render world at 1x into a larger RT, then scale down to screen.
-      // Tiles stay at integer positions → no seams, smooth zoom.
       const zoom = this.camera.zoom;
       const rtW = Math.min(Math.ceil(GAME_WIDTH / zoom), MAX_RT_SIZE);
       const rtH = Math.min(Math.ceil(GAME_HEIGHT / zoom), MAX_RT_SIZE);
 
-      // Recreate RT when size changes (resize can leave stale texture data)
+      // Recreate RT when size changes
       if (rtW !== this.prevRTW || rtH !== this.prevRTH) {
         this.worldRT.destroy();
         this.worldRT = RenderTexture.create({
@@ -140,18 +173,18 @@ export class Game {
       this.gameContainer.x = gcx;
       this.gameContainer.y = gcy;
 
-      // Render world to offscreen texture
+      // Render world to offscreen texture at base resolution
       this.renderer.render({
         container: this.gameContainer,
         target: this.worldRT,
         clear: true,
       });
 
-      // Scale RT sprite to fill 640×360 screen
-      this.worldSprite.scale.x = GAME_WIDTH / rtW;
-      this.worldSprite.scale.y = GAME_HEIGHT / rtH;
+      // Scale RT sprite to fill native resolution
+      this.worldSprite.scale.x = (GAME_WIDTH / rtW) * this.uiScale;
+      this.worldSprite.scale.y = (GAME_HEIGHT / rtH) * this.uiScale;
 
-      // Render stage (worldSprite) to screen
+      // Render stage (worldSprite + uiContainer) to screen at native res
       this.renderer.render({ container: stage });
     });
   }
@@ -161,10 +194,11 @@ export class Game {
     const h = window.innerHeight;
     const canvas = this.app.canvas;
 
-    // P0 CK-10: Integer-only scaling to preserve pixel-perfect rendering
-    const scale = Math.max(1, Math.floor(Math.min(w / GAME_WIDTH, h / GAME_HEIGHT)));
-    canvas.style.width = `${GAME_WIDTH * scale}px`;
-    canvas.style.height = `${GAME_HEIGHT * scale}px`;
+    // uiScale is locked at init — renderer/fonts/HUD are all built for that scale.
+    // Only CSS changes to fit the window.
+    const displayScale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    canvas.style.width = `${Math.floor(GAME_WIDTH * displayScale)}px`;
+    canvas.style.height = `${Math.floor(GAME_HEIGHT * displayScale)}px`;
     canvas.style.imageRendering = 'pixelated';
   }
 }

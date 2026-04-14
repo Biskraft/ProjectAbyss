@@ -33,6 +33,7 @@ import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
+import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
@@ -123,6 +124,8 @@ export class ItemWorldScene extends Scene {
 
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
+  /** Cells written by door-mask seal (code-generated walls, not LDtk). */
+  private sealedCells = new Set<string>();
   private fullMapContainer: Container | null = null;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
@@ -309,11 +312,8 @@ export class ItemWorldScene extends Scene {
     this.player.abilities.waterBreathing = this.sourcePlayer.abilities.waterBreathing;
     this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
     this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
-    // Flask charges by rarity (GDD HEL-01 §2.3)
-    const FLASK_BY_RARITY: Record<string, number> = {
-      normal: 5, magic: 4, rare: 3, legendary: 2, ancient: 1,
-    };
-    this.player.flaskCharges = FLASK_BY_RARITY[this.item.rarity] ?? 3;
+    // Flask fixed at 3 — rarity scaling is a future upgrade element
+    this.player.flaskCharges = 3;
     // Flask/combo heal toast
     this.player.onFlaskHeal = (amount) => {
       this.screenFlash.flash(0x44ff44, 0.3, 150);
@@ -322,10 +322,10 @@ export class ItemWorldScene extends Scene {
     this.entityLayer.addChild(this.player.container);
 
     // Damage numbers & Sakurai hit effects
-    this.dmgNumbers = new DamageNumberManager(this.entityLayer);
+    this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.screenFlash = new ScreenFlash();
-    this.game.app.stage.addChild(this.screenFlash.overlay);
+    this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
     // Fade overlay
     this.fadeOverlay = new Graphics();
@@ -339,15 +339,15 @@ export class ItemWorldScene extends Scene {
     this.miniMapContainer.visible = false;
 
     // HUD
-    this.hud = new HUD();
-    this.game.app.stage.addChild(this.hud.container);
+    this.hud = new HUD(this.game.uiScale);
+    this.game.uiContainer.addChild(this.hud.container);
 
     // Controls overlay (disabled)
     this.controlsOverlay = new ControlsOverlay();
     this.controlsOverlay.container.visible = false;
 
     // Toast
-    this.toast = new ToastManager(this.game.app.stage);
+    this.toast = new ToastManager(this.game.legacyUIContainer);
 
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
@@ -387,7 +387,7 @@ export class ItemWorldScene extends Scene {
 
     // LoreDisplay for Memory Rooms — displays item memory fragments
     this.loreDisplay = new LoreDisplay(this.game.input);
-    this.game.app.stage.addChild(this.loreDisplay.container);
+    this.game.legacyUIContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
 
@@ -501,6 +501,7 @@ export class ItemWorldScene extends Scene {
     // Initialize full grid as solid (1) — unrendered regions remain impassable
     // fullGrid is IW_FULL_H_TILES rows × IW_FULL_W_TILES cols (128 wide × 64 tall)
     this.fullGrid = [];
+    this.sealedCells.clear();
     for (let r = 0; r < IW_FULL_H_TILES; r++) {
       this.fullGrid[r] = new Array(IW_FULL_W_TILES).fill(1);
     }
@@ -799,8 +800,6 @@ export class ItemWorldScene extends Scene {
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
       trackEnemy(boss);
-      // P2: Show boss HP bar
-      this.hud.showBossHP(bossEntry.enemyType, boss.hp, boss.maxHp);
       return;
     }
 
@@ -841,7 +840,10 @@ export class ItemWorldScene extends Scene {
         npc.onSubdued = () => {
           innocent.isSubdued = true;
           addInnocent(this.item, innocent);
-          this.toast.show(`${innocent.name} subdued! +${innocent.value} ${innocent.stat}`, 0xffdd44);
+          this.dmgNumbers.spawnSpecial(
+            npc.x + npc.width / 2, npc.y - 16,
+            `${innocent.name} +${innocent.value} ${innocent.stat}`, 0xffdd44,
+          );
           this.updateHudText();
         };
 
@@ -1160,7 +1162,10 @@ export class ItemWorldScene extends Scene {
       for (let r = rect.r0; r < rect.rN; r++) {
         for (let c = rect.c0; c < rect.cN; c++) {
           const gr = offR + r, gc = offC + c;
-          if (gr >= 0 && gr < H && gc >= 0 && gc < W) this.fullGrid[gr][gc] = 1;
+          if (gr >= 0 && gr < H && gc >= 0 && gc < W) {
+            this.fullGrid[gr][gc] = 1;
+            this.sealedCells.add(`${gr},${gc}`);
+          }
         }
       }
     }
@@ -1196,29 +1201,15 @@ export class ItemWorldScene extends Scene {
     });
   }
 
-  /**
-   * Paint every solid cell (fullGrid value >= 1) in this room's region with
-   * a uniform 0x383838 rect. Called after the renderer so flat walls sit on
-   * top of the template's background layer. Replaces per-template wall art
-   * with a single consistent look across the whole item world.
-   */
+  /** Paint only code-generated seal walls. LDtk template tiles render as-is. */
   private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
     const gfx = new Graphics();
     for (let lr = 0; lr < IW_ROOM_H_TILES; lr++) {
       for (let lc = 0; lc < IW_ROOM_W_TILES; lc++) {
-        const v = this.fullGrid[offR + lr]?.[offC + lc] ?? 0;
-        if (v === 0) continue; // air
-        const px = lc * TILE_SIZE;
-        const py = lr * TILE_SIZE;
-        // Only overlay uniform color on specific solid types.
-        // Platform(3), updraft(4), water(2) keep their LDtk auto-tile visuals.
-        let color: number;
-        if (v === 1) color = 0x383838;       // wall — uniform gray
-        else if (v === 5) color = 0xcc3333;  // spike — red
-        else if (v === 7) color = 0x88ccff;  // ice — light blue
-        else if (v === 9) color = 0x5a4433;  // breakable — dark brown
-        else continue;                       // 2/3/4/others: LDtk handles rendering
-        gfx.rect(px, py, TILE_SIZE, TILE_SIZE).fill({ color, alpha: 1.0 });
+        const gr = offR + lr;
+        const gc = offC + lc;
+        if (!this.sealedCells.has(`${gr},${gc}`)) continue;
+        gfx.rect(lc * TILE_SIZE, lr * TILE_SIZE, TILE_SIZE, TILE_SIZE).fill(0x101010);
       }
     }
     roomContainer.addChild(gfx);
@@ -1792,7 +1783,7 @@ export class ItemWorldScene extends Scene {
     (boss as any)._isBoss = true;
     this.enemies.push(boss);
     this.entityLayer.addChild(boss.container);
-    this.hud.showBossHP('Guardian', boss.hp, boss.maxHp);
+    // Boss HP bar shown when boss detects player (in update loop)
   }
 
   private drawDoorMarkers(cell: RoomCell): void {
@@ -2453,6 +2444,11 @@ export class ItemWorldScene extends Scene {
       trackPlayerDeath('itemworld', cell?.col ?? 0, cell?.row ?? 0, 'unknown');
       trackItemWorldExit('death', this.currentStratumIndex);
 
+      // Clear all UI overlays on death
+      this.hud.hideBossHP();
+      this.game.uiContainer.removeChildren();
+      this.game.uiContainer.addChild(this.hud.container);
+
       // Death penalty: lose 30% earned EXP, drop back one stratum
       const penalty = Math.floor(this.earnedExp * 0.3);
       this.earnedExp = Math.max(0, this.earnedExp - penalty);
@@ -2512,7 +2508,10 @@ export class ItemWorldScene extends Scene {
           const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
           addItemExp(this.item, killExp);
           this.earnedExp += killExp;
-          this.toast.show(`+${killExp} EXP`, 0x88ccff);
+          this.dmgNumbers.spawnEXP(
+            enemy.x + enemy.width / 2, enemy.y - 16,
+            `+${killExp} EXP`,
+          );
 
           // HEL-05: Tiered healing drops (GDD §4.1)
           const dropX = enemy.x + enemy.width / 2 - 8;
@@ -2712,7 +2711,17 @@ export class ItemWorldScene extends Scene {
     if (this.altarTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       const overlapping = aabbOverlap(pb, this.altarTrigger);
-      if (this.altarHint) this.altarHint.visible = overlapping;
+      if (this.altarHint) {
+        this.altarHint.visible = overlapping;
+        if (overlapping) {
+          const us = this.game.uiScale;
+          const cam = this.game.camera;
+          const sx = (this.altarTrigger.x + 16 - cam.renderX + GAME_WIDTH / 2) * us - this.altarHint.width / 2;
+          const sy = (this.altarTrigger.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
+          this.altarHint.x = Math.round(sx);
+          this.altarHint.y = Math.round(sy);
+        }
+      }
       if (overlapping && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
         this.showEscapeConfirm(true);
         return;
@@ -2764,9 +2773,20 @@ export class ItemWorldScene extends Scene {
     // HUD, damage numbers, toast & Sakurai effects
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
-    // P2: Update boss HP bar if a boss is alive
+    this.hud.updateATK(this.player.atk);
+    // Boss HP bar — show only when boss detects player
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
-    if (activeBoss) this.hud.updateBossHP(activeBoss.hp);
+    if (activeBoss) {
+      const st = activeBoss.fsm.currentState;
+      const detected = st === 'chase' || st === 'attack' || st === 'retreat' || st === 'cooldown' || st === 'hit';
+      if (detected && !(activeBoss as any)._bossBarShown) {
+        (activeBoss as any)._bossBarShown = true;
+        this.hud.showBossHP((activeBoss as any).enemyType ?? 'Boss', activeBoss.hp, activeBoss.maxHp);
+      }
+      if ((activeBoss as any)._bossBarShown) {
+        this.hud.updateBossHP(activeBoss.hp);
+      }
+    }
     this.hud.update(dt);
     this.updateHudText();
     this.dmgNumbers.update(dt);
@@ -2839,7 +2859,7 @@ export class ItemWorldScene extends Scene {
     panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
 
     this.escapeConfirm = panel;
-    this.game.app.stage.addChild(panel);
+    this.game.legacyUIContainer.addChild(panel);
   }
 
   private hideEscapeConfirm(): void {
@@ -2920,7 +2940,7 @@ export class ItemWorldScene extends Scene {
     panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
 
     this.stratumPicker = panel;
-    this.game.app.stage.addChild(panel);
+    this.game.legacyUIContainer.addChild(panel);
   }
 
   private hideStratumPicker(): void {
@@ -3043,7 +3063,7 @@ export class ItemWorldScene extends Scene {
     panel.y = Math.floor((GAME_HEIGHT - panelH) / 2) - 20;
 
     this.onboardingPanel = panel;
-    this.game.app.stage.addChild(panel);
+    this.game.legacyUIContainer.addChild(panel);
   }
 
   private advanceOnboarding(): void {
@@ -3139,28 +3159,11 @@ export class ItemWorldScene extends Scene {
     this.altarVisual.y = altarY;
     this.entityLayer.addChild(this.altarVisual);
 
-    // Hover hint label — shows only when player overlaps the altar
-    const hint = new Container();
-    const hintLabel = new BitmapText({
-      text: '^ UP to Exit',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-    });
-    const hintBg = new Graphics();
-    const padX = 3;
-    const padY = 2;
-    const hintW = Math.ceil(hintLabel.width) + padX * 2;
-    const hintH = Math.ceil(hintLabel.height) + padY * 2;
-    hintBg.rect(0, 0, hintW, hintH).fill({ color: 0x1a1a2e, alpha: 0.85 });
-    hintBg.rect(0, 0, hintW, hintH).stroke({ color: 0x8888cc, width: 1 });
-    hintLabel.x = padX;
-    hintLabel.y = padY;
-    hint.addChild(hintBg);
-    hint.addChild(hintLabel);
-    hint.x = Math.floor(altarX + 16 - hintW / 2);
-    hint.y = Math.floor(altarY - hintH - 4);
+    // Context prompt — rendered in uiContainer for crisp text
+    const hint = KeyPrompt.createPrompt('\u2191', 'Exit', this.game.uiScale);
     hint.visible = false;
     this.altarHint = hint;
-    this.entityLayer.addChild(hint);
+    this.game.uiContainer.addChild(hint);
   }
 
   private clearEscapeAltar(): void {

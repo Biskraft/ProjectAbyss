@@ -14,7 +14,6 @@ import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
-import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
@@ -61,7 +60,6 @@ export class WorldScene extends Scene {
   private drops: ItemDropEntity[] = [];
   private inventoryUI!: InventoryUI;
   private hud!: HUD;
-  private controlsOverlay!: ControlsOverlay;
 
   // Room grid
   private gridData!: RoomGridData;
@@ -146,26 +144,22 @@ export class WorldScene extends Scene {
 
     // Mini-map
     this.miniMapContainer = new Container();
-    this.game.app.stage.addChild(this.miniMapContainer);
+    this.game.legacyUIContainer.addChild(this.miniMapContainer);
 
     // HUD
-    this.hud = new HUD();
-    this.game.app.stage.addChild(this.hud.container);
-
-    // Controls overlay
-    this.controlsOverlay = new ControlsOverlay();
-    this.game.app.stage.addChild(this.controlsOverlay.container);
+    this.hud = new HUD(this.game.uiScale);
+    this.game.uiContainer.addChild(this.hud.container);
 
     // Toast, damage numbers & Sakurai hit effects
-    this.toast = new ToastManager(this.game.app.stage);
-    this.dmgNumbers = new DamageNumberManager(this.entityLayer);
+    this.toast = new ToastManager(this.game.legacyUIContainer);
+    this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.screenFlash = new ScreenFlash();
-    this.game.app.stage.addChild(this.screenFlash.overlay);
+    this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
-    this.game.app.stage.addChild(this.inventoryUI.container);
+    this.game.legacyUIContainer.addChild(this.inventoryUI.container);
 
     // Load starting room
     this.loadRoom('down');
@@ -252,7 +246,7 @@ export class WorldScene extends Scene {
     overlay.addChild(hint);
 
     this.gameOverOverlay = overlay;
-    this.game.app.stage.addChild(overlay);
+    this.game.legacyUIContainer.addChild(overlay);
   }
 
   private respawnPlayer(): void {
@@ -622,8 +616,9 @@ export class WorldScene extends Scene {
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
+    this.hud.updateATK(this.player.atk);
     this.hud.update(dt);
-    this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+    this.hud.setFloorText(`Items:${this.inventory.items.length}`);
 
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);
@@ -647,7 +642,7 @@ export class WorldScene extends Scene {
     if (input.isJustPressed(GameAction.ATTACK)) {
       this.inventoryUI.equipSelected();
       this.updatePlayerAtk();
-      this.hud.setFloorText(`ATK:${this.player.atk} Items:${this.inventory.items.length}`);
+      this.hud.setFloorText(`Items:${this.inventory.items.length}`);
     }
     if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
   }
@@ -683,7 +678,7 @@ export class WorldScene extends Scene {
       portal.rarity, portal.sourceType, portal.sourceItem,
     );
     this.portalTransition = transition;
-    this.game.app.stage.addChild(transition.container);
+    this.game.legacyUIContainer.addChild(transition.container);
 
     transition.onShake = (intensity) => this.game.camera.shake(intensity);
     transition.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
@@ -818,7 +813,7 @@ export class WorldScene extends Scene {
     }
 
     this.altarUI = ui;
-    this.game.app.stage.addChild(ui);
+    this.game.legacyUIContainer.addChild(ui);
   }
 
   private closeAltarUI(): void {
@@ -977,7 +972,6 @@ export class WorldScene extends Scene {
     this.toast.clear();
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.inventoryUI?.container.parent) this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }

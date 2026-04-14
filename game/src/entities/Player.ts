@@ -373,12 +373,17 @@ export class Player extends Entity implements CombatEntity {
     if (this.flaskCasting) {
       this.flaskCastTimer -= dt;
       this.vx = 0; // movement locked during cast
+      // Trembling during cast — continuous small vibration
+      if (this.vibrateFrames <= 0) {
+        this.startVibrate(1.5, 4, true);
+      }
       if (this.flaskCastTimer <= 0) {
-        // Cast complete → heal + consume
+        // Cast complete → heal + consume + white flash
         this.flaskCasting = false;
         this.flaskCharges--;
         const healAmt = Math.max(1, Math.floor(this.maxHp * Player.FLASK_HEAL_PERCENT));
         this.hp = Math.min(this.maxHp, this.hp + healAmt);
+        this.triggerFlash();
         this.onFlaskHeal?.(healAmt);
       }
       // Skip FSM + movement while casting
@@ -391,6 +396,7 @@ export class Player extends Entity implements CombatEntity {
         this.flaskCasting = true;
         this.flaskCastTimer = Player.FLASK_CAST_MS;
         this.vx = 0;
+        this.startVibrate(1.5, 4, true);
       }
     }
 

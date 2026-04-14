@@ -16,7 +16,7 @@ import { getRarityConfig } from './rarityConfig';
 // Types
 // ---------------------------------------------------------------------------
 
-export type InnocentStatKey = 'atk' | 'def' | 'hp' | 'exp%' | 'luck';
+export type InnocentStatKey = 'atk' | 'def' | 'hp';
 
 export interface Innocent {
   name: string;

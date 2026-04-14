@@ -35,7 +35,7 @@ export class Ghost extends Enemy {
   private patrolRangePx = 5 * 16; // 5 tiles
   private detectTimer = 0;
   private loseTargetTimer = 0;
-  private static readonly DETECT_CONFIRM_MS = 150;  // GDD: faster than Skeleton
+  private static readonly DETECT_CONFIRM_MS = 350;  // brief pause when spotting player
   private static readonly LOSE_TARGET_MS = 2000;
   private static readonly KEEP_DIST_MIN = 4 * 16;   // 4 tiles min
   private static readonly KEEP_DIST_MAX = 6 * 16;   // 6 tiles max

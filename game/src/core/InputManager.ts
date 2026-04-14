@@ -85,6 +85,9 @@ export class InputManager {
   }
 
   private onKeyDown(e: KeyboardEvent): void {
+    // Never intercept browser shortcuts (Ctrl/Meta combos like Ctrl+R, Ctrl+Shift+R)
+    if (e.ctrlKey || e.metaKey) return;
+
     const code = e.code;
 
     // P0 CK-12: Block Tab from moving focus away from canvas

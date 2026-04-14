@@ -242,11 +242,13 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.fsm.transition('hit' as S);
     }
 
-    // Show HP bar on hit
-    this.hpBarVisible = true;
-    this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
-    this.hpBarContainer.visible = true;
-    this.updateHpBar();
+    // Show HP bar on hit (skip for bosses — HUD bar handles it)
+    if (!(this as any)._isBoss) {
+      this.hpBarVisible = true;
+      this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
+      this.hpBarContainer.visible = true;
+      this.updateHpBar();
+    }
   }
 
   onDeath(): void {

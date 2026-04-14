@@ -1104,3 +1104,98 @@ terrain_params:
 - [ ] Normal 아이템 = 2 지층, Legendary 아이템 = 4 지층 확인
 - [ ] 미니맵에 지층 깊이 점 표시기 확인
 - [ ] 지층별 적 HP/ATK 스케일링이 StrataConfig와 일치
+
+---
+
+## 6. 방 템플릿 설계 규칙 (Template Design Rules)
+
+아이템계 방 템플릿을 제작할 때 반드시 준수해야 하는 규칙이다. 이 규칙은 buildFullMap의 computeDoorMask 로직과 직접 연동되며, 규칙을 어기면 런타임에서 seal/carve가 올바르게 작동하지 않는다.
+
+### 6.1. Exit 위치 표준
+
+각 방의 출구(Exit)는 아래 위치 범위 안에 배치해야 한다. 위치는 타일 인덱스 기준이다 (방 크기 32x16 타일).
+
+| Exit 방향 | 표준 위치 | 타일 수 | 비고 |
+| :--- | :--- | :---: | :--- |
+| L (왼쪽 벽) | rows 12-13 (바닥에서 2번째, 3번째 타일) | 2 | 바닥 근처 2타일 통로 |
+| R (오른쪽 벽) | rows 12-13 | 2 | 좌우 대칭 |
+| U (위쪽 벽) | cols 14-17 (가로 중앙) | 4 | 정중앙 4타일 |
+| D (아래쪽 벽) | cols 14-17 | 4 | 좌우 대칭 |
+
+**예외 규칙:**
+
+| RoomType | Exit 예외 |
+| :--- | :--- |
+| Memory | 4방향 전체 개방. computeDoorMask가 미연결 방향을 자동으로 seal 처리하므로 템플릿에서 모든 방향을 열어 둔다 |
+| Boss | U 방향에 한해 와이드 개방 허용 (표준 4타일 초과). 보스방 진입 연출을 위한 극적 공간 확보 목적 |
+
+### 6.2. Seal/Carve 규칙
+
+buildFullMap은 cell.exits 데이터를 읽어 각 방의 벽을 seal(닫기) 또는 carve(열기)로 처리한다.
+
+| 조건 | 처리 | 방식 |
+| :--- | :--- | :--- |
+| 셀에 해당 방향 exit 없음 | seal | 해당 벽 타일을 IntGrid 1(wall)로 덮어쓰기 + 시각 오버레이 적용 |
+| 셀에 해당 방향 exit 있음 | carve | 해당 벽 위치를 IntGrid 0(air)으로 열기 |
+
+**적용 순서:** seal을 먼저 실행하고, carve를 나중에 실행한다. carve가 seal보다 우선한다. 동일 타일에 seal과 carve가 충돌할 경우 carve가 이긴다.
+
+### 6.3. 방 크기
+
+모든 방은 **32x16 타일 (512x256 px)** 고정이다. 방 크기가 다르면 computeDoorMask의 exit 위치 계산이 깨진다. 예외 없음.
+
+### 6.4. 크리티컬 패스 보호
+
+| 규칙 | 내용 |
+| :--- | :--- |
+| start/end 셀 브랜치 연결 금지 | 시작 셀(start)과 보스 셀(boss/end)은 브랜치(side branch) 연결 대상에서 제외한다. 크리티컬 패스의 양 끝점이 분기 목적지가 되면 탐험 흐름이 역전된다 |
+| 지층 간 경계는 포털 전용 | 지층 1에서 지층 2로 내려가는 연결은 물리 구멍(바닥 뚫기)이 아닌 포털(Portal) 오브젝트로 처리한다. 물리 구멍은 방 크기/경계 계산 충돌을 유발한다 |
+
+---
+
+## 7. RoomType별 콘텐츠 정의 (RoomType Content Definition)
+
+아이템계 4x4 Grid의 각 셀은 RoomType이 지정된다. RoomType은 런타임에 해당 방의 몹 스폰, 특수 콘텐츠, 클리어 조건을 결정한다.
+
+| RoomType | 몹 스폰 | 특수 콘텐츠 | 자동 클리어 조건 |
+| :--- | :--- | :--- | :--- |
+| **Combat** | CSV 스폰 테이블 기반 2-4마리 | 없음 | 몹 전멸 시 |
+| **Start** | Combat과 동일 | 없음 | 몹 전멸 시 |
+| **Rest** | 0마리 | HealingPickup 1-2개 | 진입 즉시 |
+| **Treasure** | GoldenMonster 1체 고정 | 엘리트 전투. 처치 시 고급 드랍 | 몹 전멸 시 |
+| **Puzzle** | 0마리 | Switch + LockedDoor (LDtk 템플릿 배치) | 퍼즐 풀이 완료 시 |
+| **Memory** | 0마리 | Memory Entity (대화 텍스트) | 진입 즉시 |
+| **Boss** | 보스 1체 | 처치 후 포털 생성 (다음 지층 또는 탈출) | 보스 전멸 시 |
+
+### 7.1. RoomType별 상세 규칙
+
+**Combat / Start:**
+- 스폰 수는 `StratumDef.enemyCountBonus`와 roomDistance에 따라 2-4마리 범위에서 결정된다
+- 스폰 구성은 `Content_ItemWorld_SpawnTable.csv` 기반으로 아이템 레어리티 및 지층 깊이에 따라 적을 선택한다
+- Start 방은 Combat과 동일 규칙이나, 아이템계 첫 진입 시 진입 연출(MemoryDive 이펙트)이 재생된 후 적이 스폰된다
+
+**Rest:**
+- HealingPickup은 각각 최대 HP의 15-25%를 회복한다
+- 진입 즉시 클리어 처리되어 미니맵에 클리어 표시가 된다
+- 파티 플레이 시 HealingPickup 수가 +1 추가된다 (파티원 수 무관 고정)
+
+**Treasure:**
+- GoldenMonster는 일반 몹 대비 HP 3배, ATK 1.5배, 드랍률 3배의 엘리트 적이다
+- 반드시 1체만 스폰한다. 추가 몹 없음
+- 처치 보상은 해당 지층의 일반 방 클리어 보상의 3배를 적용한다
+
+**Puzzle:**
+- Switch와 LockedDoor의 연결은 LDtk 템플릿에서 EntityRef로 미리 지정된다
+- 런타임에서 연결 관계를 재생성하지 않는다 (SSoT = LDtk 템플릿)
+- 퍼즐 클리어 시 LockedDoor가 열리고 방 클리어 처리된다
+
+**Memory:**
+- Memory Entity는 아이템의 기억 단편을 대화 텍스트로 표시한다
+- 텍스트 내용은 아이템 레어리티와 지층 인덱스에 따라 `MemoryTextTable`에서 선택된다
+- 진입 즉시 클리어이므로 탈출 제단 배치 대상에서 제외된다
+
+**Boss:**
+- 보스는 1체만 스폰한다. 보스 처치 시 포털이 생성된다
+- 마지막 지층 보스 포털 = 아이템계 탈출 + 아이템 레벨 +1
+- 중간 지층 보스 포털 = 다음 지층 진입
+- 보스방에는 탈출 제단이 스폰되지 않는다 (IWF-R30 준용)

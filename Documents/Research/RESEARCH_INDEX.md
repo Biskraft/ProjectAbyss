@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-04-07
-> 총 28개 리서치 문서
+> 최근 업데이트: 2026-04-13
+> 총 51개 리서치 문서
 
 ---
 
@@ -26,7 +26,7 @@
 | **Multiplayer_Social** | 아이템 오너 귀속 + 동행자 보상 → 역할 분담과 공정성 동시 달성 |
 | **Narrative_Worldbuilding** | 이노센트 = "아이템의 기억이 응결된 의지". 디스가이아 경쾌함 → PA 고딕 톤 재해석 |
 
-## Game Systems Research (12)
+## Game Systems Research (15)
 
 | 문서 | 핵심 인사이트 |
 |:-----|:-----|
@@ -47,27 +47,46 @@
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
 | **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0~2 우선순위) |
 | **PixelArt_Animation_Principles** | 키프레임 우선 4~8f 원칙 + 예비동작 프레임표 + 스프라이트 크기 규격 + Phase 1 최소 세트 |
+| **HealingSystem_Recovery** | Flask+전투연동+이노센트 복합 모델 권장. 레어리티별 Flask 차등(5→1), SotN Dark Metamorphosis→단조열 봉합, 디스가이아 층간 무회복 채택 |
+| **ReferenceGame_UI_UX** | 6종 레퍼런스 전수조사. 2-Space별 HUD 전략, Rally HP→단조열 봉합, 맵 색상 코딩, God Mode→기억의 보호, 핵심 차용 패턴 TOP 10 |
+| **UX_Layout_Sizing** | HUD 크기/배치/간격 정량 기준. 세이프존, 시선추적, 피츠법칙, 해상도 스케일링, 레퍼런스 실측(HP 너비 8-25%), 웹 제약(정수배율/ESC충돌) |
 
 ---
 
 ## 리서치 커버리지 현황
 
-### 리서치 충분 → 설계 문서 작성 대기
+### 리서치 충분 → 설계 문서 작성 완료
 
-| 시스템 | 리서치 문서 | 설계 문서 (미작성) |
-|:------|:----------|:----------------|
-| 아이템계 보스 | BossDesign (1,483줄) | SYS-IW-03 |
-| 스킬트리 | SkillSystem (신규) | SYS-LVL-03 |
-| 재귀적 진입 | RecursiveEntry + DepthReward (2개) | SYS-IW-04 |
-| 이노센트 팜 | Innocent 시리즈 5개 | SYS-INC-02 |
-| 경제 철학 | EndgameLoop + Equipment + DropRate (3개) | D-07 |
+| 시스템 | 리서치 문서 | 설계 문서 |
+|:------|:----------|:---|
+| 아이템계 보스 | BossDesign | System_ItemWorld_Boss.md ✅ |
+| 미니맵 | Research_Minimap_Systems | System_UI_Minimap.md ✅ |
+| 타일 체계 | ElementalSystem_Comparison | System_World_TileSystem.md ✅ |
+| 레벨 디자인 흐름 | LevelDesign 시리즈 4개 | System_ItemWorld_FloorGen.md ✅ |
+| 수직 이동 렐릭 | Vertical_Movement_Relics | System_World_AbilityGating.md ✅ |
+
+### 리서치 충분 → 설계 문서 작성 필요
+
+| 시스템 | 리서치 문서 | 필요한 설계 문서 |
+|:------|:----------|:---|
+| 환경 교습 | SilentTutorial_EnvironmentalTeaching | System_Tutorial_Flow.md |
+| 수직 기믹 | Vertical_Traversal_Gimmicks | System_World_VerticalGimmicks.md |
+| 사운드 디자인 | AudioDirection_SoundDesign | System_Audio_Direction.md |
+| 드롭률/경제 | Equipment_DropRate_Economy + EndgameLoop | System_Economy_DropRate.md |
+| 애니메이션 규격 | PixelArt_Animation_Principles | Design_Art_AnimationSpec.md |
+| 성능 버짓 | WebGameFeel_Optimization | System_Performance_Budget.md |
+
+### 삭제된 설계 (리서치만 보존, 기획 불필요)
+
+| 시스템 | 리서치 문서 | 삭제 근거 |
+|:------|:----------|:---|
+| ~~스킬트리~~ | SkillSystem_ActionRPG | 스파이크 축소 17건 (2026-04-05) |
+| ~~재귀적 진입~~ | ItemWorld_RecursiveEntry | 스파이크 축소 17건 |
+| ~~이노센트 팜~~ | Innocent_Growth_Economy (팜 부분) | 스파이크 축소 17건 |
 
 ### 리서치 부족 → 추가 리서치 필요
 
 | 영역 | 기존 리서치 | 필요 |
 |:-----|:----------|:-----|
-| UI/UX 패턴 | 없음 | HUD, 인벤토리, 맵 UI 레퍼런스 |
 | 넷코드 상세 | OnlineCoop 1개 (개요) | 클라이언트 예측, 롤백 등 Phase 3용 |
-| 허브 상세 | HubSpace 1개 (개요) | 시설, NPC, 상점 구체화 Phase 2용 |
-| 적 AI 구현 | EnemyDesign_MobArchetype (아키타입 정의) | FSM/행동트리 상세 구현 명세 (System_Enemy_AI.md 선행 필요) |
-| 픽셀아트 스타일 가이드 | PixelArt_Animation_Principles (애니메이션 원칙) | 아트 바이블 정식 문서 (Documents/Design/Design_Art_Direction.md 필요) |
+| 접근성 | 없음 | 컬러블라인드, 리매핑, 텍스트 크기 등 |

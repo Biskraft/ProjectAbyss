@@ -34,13 +34,22 @@ try {
   if (!fontLoaded) {
     console.warn('Press Start 2P font failed to load, using fallback');
   }
-
-  // Install BitmapFont from the now-loaded CSS font
-  installBitmapFont();
+  // Google Fonts: Cinzel (title), Rajdhani (in-game UI)
+  // Must explicitly load with correct weight so browser fetches the right files
+  showStatus('Loading web fonts...');
+  await Promise.all([
+    document.fonts.load('900 48px "Cinzel"').catch(() => {}),
+    document.fonts.load('700 16px "Rajdhani"').catch(() => {}),
+  ]);
+  // Wait for all pending font downloads to settle
+  await document.fonts.ready;
 
   showStatus('Initializing game...');
   const game = new Game();
   await game.init();
+
+  // Install BitmapFont at native resolution (must be after game.init for uiScale)
+  installBitmapFont(game.uiScale);
 
   showStatus('Loading...');
   // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)

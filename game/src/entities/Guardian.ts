@@ -15,7 +15,7 @@
 import { Enemy } from './Enemy';
 import { Graphics } from 'pixi.js';
 
-export type GuardianState = 'idle' | 'chase' | 'telegraph' | 'charge' | 'slam_rise' | 'slam_fall' | 'slam_land' | 'swipe' | 'attack' | 'cooldown' | 'hit' | 'death';
+export type GuardianState = 'idle' | 'detect' | 'chase' | 'telegraph' | 'charge' | 'slam_rise' | 'slam_fall' | 'slam_land' | 'swipe' | 'attack' | 'cooldown' | 'hit' | 'death';
 
 const TELEGRAPH_DURATION = 500; // ms — 0.5s warning
 const CHARGE_SPEED = 350;       // px/s
@@ -64,6 +64,23 @@ export class Guardian extends Enemy<GuardianState> {
       update: () => {
         this.vx = 0;
         if (this.distToTarget() <= this.detectRange) {
+          this.fsm.transition('detect');
+        }
+      },
+    });
+
+    // --- DETECT (brief pause before chasing) ---
+    let detectTimer = 0;
+    this.fsm.addState({
+      name: 'detect',
+      enter: () => { this.vx = 0; detectTimer = 2000; },
+      update: (dt: number) => {
+        detectTimer -= dt;
+        if (this.distToTarget() > this.detectRange) {
+          this.fsm.transition('idle');
+          return;
+        }
+        if (detectTimer <= 0) {
           this.fsm.transition('chase');
         }
       },

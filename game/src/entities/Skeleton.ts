@@ -4,7 +4,7 @@ import { isSolid } from '@core/Physics';
 const TILE_SIZE = 16;
 const SKELETON_ATTACK_FRAMES = 10;
 const FRAME_MS = 1000 / 60;
-const DETECT_CONFIRM_MS = 200;  // GDD §4.1: detect_confirm_ms
+const DETECT_CONFIRM_MS = 1000;  // long pause when spotting player
 const PATROL_SPEED_MULT = 0.5;  // patrol_speed / chase_speed ratio
 const LOSE_TARGET_MS = 1500;    // GDD §4.1: lose_target_delay_ms
 
