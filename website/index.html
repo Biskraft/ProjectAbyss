@@ -28,8 +28,9 @@
   --cta: #E87830;
   --text-1: #F0F0F0;
   --text-2: #B0B0B0;
-  --text-3: #5AACAC;
-  --text-dim: #606060;
+  --text-3: #4A8A8A;
+  --text-dim: #3A6A6A;
+  --grid: rgba(26,58,58,.3);
   --beam: rgba(42,138,138,.1);
   --font-title: 'Cinzel', serif;
   --font-sub: 'Cormorant Garamond', serif;
@@ -67,6 +68,13 @@ body::after {
   content: ''; position: fixed; inset: 0; z-index: 2; pointer-events: none;
   background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.02) 2px, rgba(0,0,0,.02) 4px);
 }
+/* Survey Grid Overlay */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+body.scrolled::before { opacity: var(--grid-fade, 1); }
 
 /* ── Echo Pulse ── */
 .echo-pulse {
@@ -264,15 +272,15 @@ footer {
 
 /* Links row */
 .links-row {
-  display: flex; gap: 24px; flex-wrap: wrap; margin-top: 20px;
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;
 }
 .links-row a {
-  font-family: var(--font-label); font-size: 0.7rem; font-weight: 600;
-  color: var(--text-dim); text-decoration: none; letter-spacing: 0.1em;
-  text-transform: uppercase; transition: color 0.3s;
-  padding-bottom: 2px; border-bottom: 1px solid transparent;
+  font-family: var(--font-label); font-size: 0.85rem; font-weight: 600;
+  color: var(--text-2); text-decoration: none; letter-spacing: 0.15em;
+  text-transform: uppercase; transition: all 0.3s;
+  padding: 14px 32px; border: 1px solid var(--pulse-dim);
 }
-.links-row a:hover { color: var(--text-2); border-color: var(--pulse-dim); }
+.links-row a:hover { color: var(--text-1); border-color: var(--pulse); }
 
 /* ═══ Mobile ═══ */
 @media (max-width: 768px) {
@@ -427,10 +435,10 @@ footer {
 <div class="divider"></div>
 <section id="signal">
   <div class="content" style="text-align:center">
-    <p class="block-label reveal">Signal</p>
-    <p class="block-quote reveal" data-delay="1" style="margin-bottom:24px">
+    <p class="block-label reveal" style="margin-bottom:20px">Signal</p>
+    <h2 class="block-heading reveal" data-delay="1" style="margin-bottom:32px">
       The survey continues.
-    </p>
+    </h2>
     <div class="links-row reveal" data-delay="2" style="justify-content:center">
       <a href="javascript:void(0)">Discord</a>
       <a href="javascript:void(0)">X</a>
@@ -499,6 +507,9 @@ function update() {
   } else { depthValue.style.color = ''; }
 
   depthValue.textContent = depth > 1240 ? '???' : depth + 'm';
+
+  // Grid overlay fades with depth
+  document.body.style.setProperty('--grid-fade', Math.max(0.05, 1 - pct * 1.5));
 }
 
 let ticking = false;
