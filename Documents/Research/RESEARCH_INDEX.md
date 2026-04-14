@@ -67,17 +67,19 @@
 | 타일 체계 | ElementalSystem_Comparison | System_World_TileSystem.md ✅ |
 | 레벨 디자인 흐름 | LevelDesign 시리즈 4개 | System_ItemWorld_FloorGen.md ✅ |
 | 수직 이동 렐릭 | Vertical_Movement_Relics | System_World_AbilityGating.md ✅ |
+| 원소 상성 | ElementalSystem_Comparison | System_Combat_Elements.md ✅ |
+| 드롭률/경제 | Equipment_DropRate_Economy + EndgameLoop | System_Economy_DropRate.md ✅ |
+| 수직 기믹 | Vertical_Traversal_Gimmicks | System_World_VerticalGimmicks.md ✅ |
+| 성능 버짓 | WebGameFeel_Optimization | System_Performance_Budget.md ✅ |
+| 애니메이션 규격 | PixelArt_Animation_Principles | Design_Art_AnimationSpec.md ✅ |
+| 사운드 디자인 | AudioDirection_SoundDesign | System_Audio_Direction.md ✅ |
+| 환경 교습 | SilentTutorial_EnvironmentalTeaching | Design_Tutorial_EnvironmentalTeaching.md ✅ |
 
 ### 리서치 충분 → 설계 문서 작성 필요
 
 | 시스템 | 리서치 문서 | 필요한 설계 문서 |
 |:------|:----------|:---|
-| 환경 교습 | SilentTutorial_EnvironmentalTeaching | System_Tutorial_Flow.md |
-| 수직 기믹 | Vertical_Traversal_Gimmicks | System_World_VerticalGimmicks.md |
-| 사운드 디자인 | AudioDirection_SoundDesign | System_Audio_Direction.md |
-| 드롭률/경제 | Equipment_DropRate_Economy + EndgameLoop | System_Economy_DropRate.md |
-| 애니메이션 규격 | PixelArt_Animation_Principles | Design_Art_AnimationSpec.md |
-| 성능 버짓 | WebGameFeel_Optimization | System_Performance_Budget.md |
+| (모든 항목 완료) | — | — |
 
 ### 삭제된 설계 (리서치만 보존, 기획 불필요)
 

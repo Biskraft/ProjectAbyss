@@ -26,17 +26,24 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install & Build
+      - name: Build game
         working-directory: game
         run: |
           npm install
           npm run build
 
+      - name: Assemble site
+        run: |
+          mkdir -p site/play
+          cp -r game/dist/* site/play/
+          cp website/index.html site/
+          cp game/public/CNAME site/
+
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: game/dist
+          path: site
 
       - id: deployment
         uses: actions/deploy-pages@v4
