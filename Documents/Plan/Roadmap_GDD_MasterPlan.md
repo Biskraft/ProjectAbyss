@@ -95,7 +95,7 @@
 | ID | 문서명 | 상태 | 빌드 | 비고 |
 |:---|:-------|:-----|:-----|:-----|
 | SYS-EQP-01 | Equipment Slots | Done | - | 무기/방어구/악세서리 슬롯 |
-| SYS-EQP-02 | Rarity System | Done | - | Normal~Ancient 5등급. 디스가이아 `Rank.md` 참고 |
+| SYS-EQP-02 | Rarity System | Done | - | Normal-Ancient 5등급. 디스가이아 `Rank.md` 참고 |
 | SYS-EQP-03 | Item Growth Path | Done | - | 아이템 레벨/경험치/강화 경로 |
 
 ### 2.5 월드 시스템 (World) - 7개 (5 Done + 2 NEW)
@@ -326,7 +326,7 @@
 
 **NEW:**
 1. `D-06` Online Design Principles
-2. `SYS-MP-01~04` Multiplayer 4개 (Architecture, Party, Network, Ghost)
+2. `SYS-MP-01-04` Multiplayer 4개 (Architecture, Party, Network, Ghost)
 3. ~~`SYS-IW-06` Geo Effects~~ — 삭제 (Diablo Rift Modifier로 재설계 예정)
 4. `SYS-ACC-01` Accessibility Standards
 5. 2개 리서치 (접근성, 넷코드 상세)
@@ -409,7 +409,7 @@
 | Vertical_Traversal_Gimmicks | SYS-WLD-08 |
 | Equipment_DropRate_Economy | SYS-ECO-01, SYS-ECO-02 |
 | EndgameLoop_Economy | SYS-ECO-01 |
-| OnlineCoop_Netcode | D-06, SYS-MP-01~04 |
+| OnlineCoop_Netcode | D-06, SYS-MP-01-04 |
 | EnemyDesign_MobArchetype | SYS-MON-03, CNT-04 |
 | BossDesign_SideScrolling | CNT-07 |
 | ItemWorld_DepthReward_RiskBalance | SYS-IW-01 보완 |

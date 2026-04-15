@@ -83,7 +83,7 @@ shatter(grid) 호출:
 
 **시각 효과:**
 - 호흡 펄스: `sin(pulseTimer * 0.001) * 1.5` — 미묘한 x 스케일 진동
-- 먼지 입자: DUST_INTERVAL(2000ms)마다 위로 떠오르는 1~2px 파티클
+- 먼지 입자: DUST_INTERVAL(2000ms)마다 위로 떠오르는 1-2px 파티클
 - 균열 패턴: 3개의 zig-zag 균열선으로 파괴 가능성 시각적 힌트
 
 ### 3.3 CrackedFloor (균열 바닥)
@@ -247,14 +247,14 @@ gfx.alpha = 0.5 + (shakeTimer / SHAKE_DURATION) * 0.5
 
 | 노브 | 위치 | 범위 | 카테고리 | 기본값 | 설명 |
 |------|------|------|----------|--------|------|
-| Spike 데미지 비율 | `Spike.ts` 처리 로직 | 5%~50% | Feel | 20% | 낮을수록 패널티 가벼움 |
-| GROW_INTERVAL | `GrowingWall.ts:20` | 3000~15000ms | Gate | 8000ms | 성장 주기 |
-| GROW_DURATION | `GrowingWall.ts:21` | 1000~6000ms | Gate | 3000ms | 확장 지속 시간 |
-| SLIME_INTERVAL_MIN/MAX | `GrowingWall.ts:25~26` | 5000~30000ms | Gate | 10000~18000ms | 슬라임 스폰 주기 |
-| SHAKE_DURATION | `CollapsingPlatform.ts:16` | 100~1000ms | Feel | 500ms | 붕괴 경고 시간 |
-| SHAKE_INTENSITY | `CollapsingPlatform.ts:17` | 1~5px | Feel | 2px | 쉐이크 진폭 |
-| Updraft STRENGTH_FORCE | `Updraft.ts:19~22` | 중력 x 0.3~3.0 | Feel | 0.6/1.2/2.2 | 강도별 부력 |
-| Updraft MAX_UPDRAFT_VY | `Updraft.ts:25~29` | -30~-400 px/s | Gate | -60/-120/-250 | 최대 상승 속도 |
+| Spike 데미지 비율 | `Spike.ts` 처리 로직 | 5%50 내외% | Feel | 20% | 낮을수록 패널티 가벼움 |
+| GROW_INTERVAL | `GrowingWall.ts:20` | 3000-15000ms | Gate | 8000ms | 성장 주기 |
+| GROW_DURATION | `GrowingWall.ts:21` | 1000-6000ms | Gate | 3000ms | 확장 지속 시간 |
+| SLIME_INTERVAL_MIN/MAX | `GrowingWall.ts:25-26` | 5000-30000ms | Gate | 10000-18000ms | 슬라임 스폰 주기 |
+| SHAKE_DURATION | `CollapsingPlatform.ts:16` | 100-1000ms | Feel | 500ms | 붕괴 경고 시간 |
+| SHAKE_INTENSITY | `CollapsingPlatform.ts:17` | 1-5px | Feel | 2px | 쉐이크 진폭 |
+| Updraft STRENGTH_FORCE | `Updraft.ts:19-22` | 중력 x 0.3-3.0 | Feel | 0.6/1.2/2.2 | 강도별 부력 |
+| Updraft MAX_UPDRAFT_VY | `Updraft.ts:25-29` | -30--400 px/s | Gate | -60/-120/-250 | 최대 상승 속도 |
 
 ---
 

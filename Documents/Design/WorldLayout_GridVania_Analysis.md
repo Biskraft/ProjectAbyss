@@ -356,7 +356,7 @@ Entrance → Cross_roads → Shop_entrance → Pit → SaveRoom → Hidden_cave 
 ```
 - 총 6개 룸 통과
 - 세이브 포인트 1회 경유
-- 예상 플레이타임: 20~40분 (탐험 속도 의존)
+- 예상 플레이타임: 20-40분 (탐험 속도 의존)
 
 **대안 경로 (우회 루트):**
 ```
@@ -435,7 +435,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 2. **Cross_roads → Water_supply (서쪽 경계)**
    - 현재: 직접 이동 가능
-   - 권고: ATK 스탯 게이트 (물리 장벽) → Ossuary는 중~후반 탐험 구역으로 배치
+   - 권고: ATK 스탯 게이트 (물리 장벽) → Ossuary는 중-후반 탐험 구역으로 배치
 
 3. **Sewers1 → The_ponds (하단 경계)**
    - 권고: 수중 호흡 능력 게이트 → Sewers/수중 계열 구역 접근 제한
@@ -459,7 +459,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 ```
 
 **휴식 포인트 (Rest Point) 확인:**
-- SaveRoom: 적절한 위치 (보스 직전 2~3룸 전)
+- SaveRoom: 적절한 위치 (보스 직전 2-3룸 전)
 - Shop: 중반부에 배치 → 상점 접근이 자연스러운 흐름
 
 **페이싱 이슈:**
@@ -486,7 +486,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 | Entrance | Healing_potion, Ammo, HL | Normal (2지층) |
 | Ossuary 하단 | Armor, Fire_blade | Rare 이상 권고 (3지층) |
 | Boss_room | Fire_blade | Legendary 권고 (4지층) |
-| Shop 구매 | Vorpal_blade (500G) | Rare~Legendary |
+| Shop 구매 | Vorpal_blade (500G) | Rare-Legendary |
 
 ---
 
@@ -505,7 +505,7 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 1. **게이트 시스템 미적용** → 모든 룸이 이론상 즉시 접근 가능. 스탯/능력 게이트 정의 필요
 2. **세이브 포인트 1개** → 월드 규모 대비 부족. Ossuary 또는 Sewers2 구역에 추가 검토
 3. **Ossuary 고보상 조기 접근** → ATK 스탯 게이트로 중반 잠금 권고
-4. **The_ponds~Flooded_rooms 하단 루트** → 출구가 없는 막힌 구조. 순환 연결 또는 숏컷 추가 필요
+4. **The_ponds-Flooded_rooms 하단 루트** → 출구가 없는 막힌 구조. 순환 연결 또는 숏컷 추가 필요
 5. **World_Level_21 미명명** → 자동 생성 이름, 콘텐츠 미완성 룸으로 추정. 설계 완료 필요
 
 ---

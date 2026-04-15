@@ -1,6 +1,6 @@
 # Project Abyss GDD 문서 인덱스 (Document Index)
 
-> **최근 업데이트:** 2026-04-02
+> **최근 업데이트:** 2026-04-15
 > **문서 상태:** `작성 중 (Draft)`
 
 이 문서는 Project Abyss의 전체 GDD 문서 트리를 정의합니다. 모든 시스템 문서의 위치, 상태, 의존 관계를 추적합니다.
@@ -93,6 +93,9 @@ graph TD
 | D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-13 | WorldLayout GridVania Analysis | `Design/WorldLayout_GridVania_Analysis.md` | ✅ 완료 | World | 탐험 |
 | D-14 | Monetization Strategy | `Design/Design_Monetization_Strategy.md` | ✅ 완료 | 전체 | 전체 |
+| D-15 | Art Direction | `Design/Design_Art_Direction.md` | ✅ 완료 | 전체 | 전체 |
+| D-16 | Art Animation Spec | `Design/Design_Art_AnimationSpec.md` | ✅ 완료 | 전체 | 전체 |
+| D-17 | Tutorial & Environmental Teaching | `Design/Design_Tutorial_EnvironmentalTeaching.md` | ✅ 완료 | World | 탐험 |
 
 **D-09 Combat Design Philosophy 범위:**
 - 전투 미학: 타격감(Juice)의 3요소 (히트스탑, 화면흔들림, 넉백) 설계 원칙
@@ -161,7 +164,7 @@ graph TD
 | SYS-CMB-02 | Damage System | `System/System_Combat_Damage.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-CMB-03 | Weapons & Slots | `System/System_Combat_Weapons.md` | ✅ 완료 | 전체 | 야리코미 |
 | SYS-CMB-04 | SubWeapon System | `System/System_Combat_SubWeapon.md` | ⬜ 제작 필요 | World+IW | 탐험 |
-| SYS-CMB-05 | Elemental Affinity | `System/System_Combat_Elements.md` | ⬜ 제작 필요 | World+IW | 전체 |
+| SYS-CMB-05 | Elemental Affinity | `System/System_Combat_Elements.md` | ✅ 완료 | World+IW | 전체 |
 | SYS-CMB-06 | Status Effects | `System/System_Combat_StatusEffects.md` | ⬜ 제작 필요 | World+IW | 전체 |
 | SYS-CMB-07 | Hit Feedback | `System/System_Combat_HitFeedback.md` | ✅ 완료 | World+IW | 전체 |
 
@@ -204,6 +207,7 @@ graph TD
 | SYS-WLD-08 | Vertical Gimmicks | `System/System_World_VerticalGimmicks.md` | ⬜ 제작 필요 — B1 | World | 탐험 |
 | SYS-WLD-09 | Hazards & Traps | `System/System_World_Hazards.md` | ⬜ 제작 필요 | World | 탐험 |
 | SYS-WLD-10 | Interactables | `System/System_World_Interactables.md` | ⬜ 제작 필요 | World | 탐험 |
+| SYS-WLD-11 | Tile System | `System/System_World_TileSystem.md` | ✅ 완료 | World | 탐험 |
 
 **SYS-WLD-01 World Map Structure 범위:**
 - 매크로 구조: 수직 하강 + 가지 경로 토폴로지
@@ -215,7 +219,7 @@ graph TD
 - 매크로 = 핸드크래프트 (층위 배치 고정)
 - 마이크로 = 절차적 (Room Grid 내 Chunk 조립)
 - 시드 시스템 (서버 고정 시드)
-- Room Type 0~3 역할 + 출입구 연결
+- Room Type 0-3 역할 + 출입구 연결
 - Chunk 팔레트 (바이옴별)
 - Always Winnable 보장 알고리즘
 
@@ -274,7 +278,7 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-MON-01 | Enemy AI Behavior | `System/System_Enemy_AI.md` | ✅ 완료 | World+IW | 탐험 |
 | SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
-| SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ⬜ 제작 필요 | World+IW | 전체 |
+| SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ✅ 완료 | World+IW | 전체 |
 
 ### 3.12 멀티플레이 시스템 (Multiplayer)
 
@@ -290,7 +294,8 @@ graph TD
 | ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-ECO-01 | Resource Circulation | `System/System_Economy_Resources.md` | ⬜ 제작 필요 | 전체 | 전체 |
-| ~~SYS-ECO-02~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
+| SYS-ECO-02 | Drop Rate System | `System/System_Economy_DropRate.md` | ✅ 완료 | 전체 | 야리코미 |
+| ~~SYS-ECO-03~~ | ~~Trade System~~ | ~~`System/System_Economy_Trade.md`~~ | ❌ DEPRECATED | — | — |
 
 ### 3.14 분석 및 텔레메트리 (Analytics & Telemetry)
 
@@ -298,7 +303,30 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-TEL-01 | Analytics Telemetry | `System/System_Analytics_Telemetry.md` | ✅ 완료 | 전체 | 전체 |
 
-### ~~3.15 허브 시스템 (Hub)~~ — DEPRECATED
+### 3.15 플레이어 시스템 (Player)
+
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-PLR-01 | Player Abilities | `System/System_Player_Abilities.md` | ✅ 완료 | World | 탐험 |
+| SYS-PLR-02 | Pickup Items | `System/System_Pickup_Items.md` | ✅ 완료 | 전체 | 전체 |
+| SYS-PLR-03 | Healing & Recovery | `System/System_Healing_Recovery.md` | ✅ 완료 | 전체 | 전체 |
+
+### 3.16 협동 시스템 (Coop)
+
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-COOP-01 | Coop Synergy | `System/System_Coop_Synergy.md` | ✅ 완료 | IW | 멀티플레이 |
+
+### 3.17 기술/연출 시스템 (Technical)
+
+| ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SYS-TEC-01 | Effects & Transitions | `System/System_Effects_Transitions.md` | ✅ 완료 | 전체 | 전체 |
+| SYS-TEC-02 | Performance Budget | `System/System_Performance_Budget.md` | ✅ 완료 | 전체 | 전체 |
+| SYS-TEC-03 | Audio Direction | `System/System_Audio_Direction.md` | ✅ 완료 | 전체 | 전체 |
+| SYS-TEC-04 | Save Data Schema | `System/System_Save_DataSchema.md` | ✅ 완료 | 전체 | 전체 |
+
+### ~~3.18 허브 시스템 (Hub)~~ — DEPRECATED
 
 > 허브가 폐기되어 대장간/상점은 월드 세이브 포인트로 통합.
 
@@ -313,12 +341,17 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 2-Space |
 | :--- | :--- | :--- | :--- | :--- |
-| UI-01 | HUD Layout | `UI/UI_HUD_Layout.md` | ⬜ 제작 필요 | 전체 |
-| UI-02 | Inventory UI | `UI/UI_Inventory.md` | ⬜ 제작 필요 | 전체 |
+| UI-01 | HUD Layout | `UI/UI_HUD_Layout.md` | ✅ 완료 | 전체 |
+| UI-02 | Inventory UI | `UI/UI_Inventory.md` | ✅ 완료 | 전체 |
 | UI-03 | Map UI | `UI/UI_Map.md` | ⬜ 제작 필요 | World |
 | UI-04 | Item World UI | `UI/UI_ItemWorld.md` | ⬜ 제작 필요 | IW |
 | UI-05 | ~~Innocent Farm UI~~ | `UI/UI_InnocentFarm.md` | ❌ DEPRECATED | — |
 | UI-06 | ~~Party & Matching UI~~ | ~~`UI/UI_PartyMatching.md`~~ | ❌ DEPRECATED | — |
+| UI-07 | Minimap | `UI/UI_Minimap.md` | ✅ 완료 | World |
+| UI-08 | Notifications | `UI/UI_Notifications.md` | ✅ 완료 | 전체 |
+| UI-09 | Healing HUD | `UI/UI_Healing_HUD.md` | ✅ 완료 | 전체 |
+| UI-10 | HUD Master Plan | `UI/UI_HUD_MasterPlan.md` | ✅ 완료 | 전체 |
+| UI-11 | Item World Depth Gauge | `UI/UI_ItemWorld_DepthGauge.md` | ✅ 완료 | IW |
 
 ---
 
@@ -330,10 +363,10 @@ graph TD
 | CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 완료 |
 | CNT-ITM-001 | Item Narrative: 할아버지의 부엌칼 | `Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | ✅ 완료 |
 | CNT-ITM-002 | Item Narrative: First Sword | `Content/Content_Item_Narrative_FirstSword.md` | ✅ 완료 |
-| CNT-01 | Weapon List | `Content/Content_Weapons_List.md` | ⬜ 제작 필요 |
+| CNT-01 | Weapon List | `Content/Content_Weapon_List.md` | ✅ 완료 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Innocent Catalog | `Content/Content_Innocent_Catalog.md` | ⬜ 제작 필요 |
-| CNT-04 | Monster Bestiary | `Content/Content_Monster_Bestiary.md` | ⬜ 제작 필요 |
+| CNT-04 | Monster Bestiary | `Content/Content_Monster_Bestiary.md` | ✅ 완료 |
 | CNT-05 | Zone & Biome List | `Content/Content_Zone_List.md` | ⬜ 제작 필요 |
 | CNT-06 | Skill List | `Content/Content_Skill_List.md` | ⬜ 제작 필요 |
 | CNT-07 | Boss List | `Content/Content_Boss_List.md` | ⬜ 제작 필요 |
@@ -394,6 +427,27 @@ graph TD
 | RES-SKL-01 | Skill System ActionRPG | `Research/SkillSystem_ActionRPG_Research.md` | 액션RPG 스킬 시스템 |
 | RES-SPK-01 | Spike Feature Competitive Analysis | `Research/SpikeFeature_CompetitiveAnalysis_Research.md` | 스파이크 피처 경쟁 분석 |
 | RES-SPK-02 | Spike Review Post Redesign | `Research/SpikeReview_PostRedesign_2026-04-05.md` | 스파이크 리뷰 재설계 후 점검 |
+| RES-AUD-01 | Audio & Sound Design | `Research/AudioDirection_SoundDesign_Research.md` | 오디오/사운드 디자인 |
+| RES-DLG-01 | Dialogue UI Systems | `Research/Research_Dialogue_UI_Systems.md` | 대화 UI 시스템 |
+| RES-DST-01 | Dual Stat ATK/INT Balance | `Research/DualStat_ATK_INT_Balance_Research.md` | ATK/INT 이중 스탯 밸런스 |
+| RES-ENM-01 | Enemy Mob Archetype | `Research/EnemyDesign_MobArchetype_Research.md` | 적 몹 아키타입 |
+| RES-INC-06 | Innocent Behavioral Modifier | `Research/InnocentBalance_BehavioralModifier_Research.md` | 이노센트 행동 수정자 밸런스 |
+| RES-IW-BS-01 | IW Boss Pattern Design | `Research/ItemWorldBoss_PatternDesign_Research.md` | 아이템계 보스 패턴 설계 |
+| RES-IW-ET-02 | IW Entry Tech Implementation | `Research/ItemWorldEntry_TechImplementation_Research.md` | 아이템계 진입 기술 구현 |
+| RES-IW-VS-01 | IW Visual Memory Theme | `Research/ItemWorldVisual_MemoryTheme_Research.md` | 아이템계 비주얼/기억 테마 |
+| RES-LVL-02 | Level Design Flow | `Research/Research_LevelDesign_Flow.md` | 레벨 디자인 플로우 |
+| RES-LVL-03 | Level Design Macro | `Research/Research_LevelDesign_Macro.md` | 레벨 디자인 매크로 |
+| RES-LVL-04 | Level Design Micro | `Research/Research_LevelDesign_Micro.md` | 레벨 디자인 마이크로 |
+| RES-MAP-01 | Minimap Systems | `Research/Research_Minimap_Systems.md` | 미니맵 시스템 |
+| RES-MKT-01 | Web Game Marketing Discovery | `Research/WebGameMarketing_Discovery_Research.md` | 웹게임 마케팅/발견성 |
+| RES-NRR-01 | Procedural Narrative Item Story | `Research/ProceduralNarrative_ItemStory_Research.md` | 절차적 서사/아이템 스토리 |
+| RES-OPT-01 | Web Game Feel Optimization | `Research/WebGameFeel_Optimization_Research.md` | 웹게임 게임필 최적화 |
+| RES-PXL-01 | Pixel Art Animation Principles | `Research/PixelArt_Animation_Principles_Research.md` | 픽셀아트 애니메이션 원칙 |
+| RES-RET-01 | Retention Hour 1 to 10 | `Research/Retention_Hour1to10_Research.md` | 1-10시간 리텐션 |
+| RES-TUT-01 | Silent Tutorial Environmental Teaching | `Research/SilentTutorial_EnvironmentalTeaching_Research.md` | 무언 튜토리얼/환경 교육 |
+| RES-VRT-01 | Vertical Traversal Gimmicks | `Research/Research_Vertical_Traversal_Gimmicks.md` | 수직 이동 기믹 |
+| RES-VRT-02 | Vertical Movement Relics | `Research/Research_Vertical_Movement_Relics.md` | 수직 이동 렐릭 |
+| RES-KPI-01 | ECHORIS KPI Critical Analysis | `Research/ECHORIS_KPI_CriticalAnalysis.md` | ECHORIS KPI 비판적 분석 |
 
 ---
 
@@ -409,6 +463,15 @@ graph TD
 | PLN-06 | Roadmap To Demo | `Plan/Roadmap_To_Demo.md` | 🔄 진행 중 |
 | PLN-07 | Task Dialogue Implementation | `Plan/Task_Dialogue_Implementation.md` | 🔄 진행 중 |
 | PLN-08 | Task NightWork Brief | `Plan/Task_NightWork_Brief.md` | 🔄 진행 중 |
+| PLN-09 | Plan MemoryRoom Phase0 | `Plan/Plan_MemoryRoom_Phase0.md` | 🔄 진행 중 |
+| PLN-10 | Task ItemWorld Spawn Clear Hotfix | `Plan/Task_ItemWorld_Spawn_Clear_Hotfix.md` | 🔄 진행 중 |
+| PLN-11 | Task GDD Integrity Fix | `Plan/Task_GDD_Integrity_Fix.md` | 🔄 진행 중 |
+| PLN-12 | Task Build0 Document List | `Plan/Task_Build0_DocumentList.md` | 🔄 진행 중 |
+| PLN-13 | Task Enemy VerticalChase | `Plan/Task_Enemy_VerticalChase.md` | 🔄 진행 중 |
+| PLN-14 | Task HUD MasterPlan Implementation | `Plan/Task_HUD_MasterPlan_Implementation.md` | 🔄 진행 중 |
+| PLN-15 | Roadmap GDD MasterPlan | `Plan/Roadmap_GDD_MasterPlan.md` | 🔄 진행 중 |
+| PLN-16 | Marketing Plan | `Plan/Marketing_Plan.md` | 🔄 진행 중 |
+| PLN-17 | Workflow GAN Development | `Plan/Workflow_GAN_Development.md` | 🔄 진행 중 |
 
 ---
 
@@ -498,7 +561,7 @@ graph LR
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
 | 1 | SYS-LVL-01 Stat System | ✅ | ATK/INT/HP 3스탯 공식 = 데미지 계산 기반 |
-| 2 | CSV-01 Character_Base.csv | ✅ | Lv 1~10 스탯 테이블 |
+| 2 | CSV-01 Character_Base.csv | ✅ | Lv 1-10 스탯 테이블 |
 | 3 | CSV-03 Damage_Formula.csv | ✅ | 데미지 공식 계수 |
 | 4 | SYS-EQP-01 Equipment Slots | ✅ | 장비 슬롯/착용 규칙 |
 | 5 | SYS-EQP-02 Rarity System | ✅ | 5등급 배율, 아이템계 지층 수 연동 |
@@ -537,22 +600,22 @@ graph LR
 | 29 | SYS-EQP-03 Item Growth Path | ⬜ | 장비 성장 경로 |
 | 30 | SYS-MON-02 Boss Design | ⬜ | 보스 설계 |
 | 31 | SYS-MON-03 Monster Spawning | ⬜ | 몬스터 스폰 |
-| 32~37 | CSV-05~10 | ⬜ | Innocent/Monster/Zone/Skill/IWBoss/LevelExp CSV |
-| 38~41 | CNT-01,02,05,06 | ⬜ | Weapon/Armor/Zone/Skill 목록 |
+| 32-37 | CSV-05-10 | ⬜ | Innocent/Monster/Zone/Skill/IWBoss/LevelExp CSV |
+| 38-41 | CNT-01,02,05,06 | ⬜ | Weapon/Armor/Zone/Skill 목록 |
 
 ### Phase 3: 베타 (멀티+야리코미) — 27건
 
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
-| 42~43 | D-06, D-07 | ⬜ | Online/Economy 철학 |
-| 44~47 | SYS-MP-01~04 | ⬜ | 멀티플레이 아키텍처/파티/동기화/고스트 |
-| 48~49 | SYS-ECO-01~02 | ⬜ | 자원순환/거래 |
-| 51~52 | ~~SYS-HUB-01~02~~ | ❌ DEPRECATED | ~~허브 시설/NPC 상점~~ |
-| 53~56 | SYS-IW-03~06 | ⬜ (SYS-IW-04 DEPRECATED) | 아이템계 보스/~~재귀~~(삭제)/이벤트/지오 |
-| 57~58 | SYS-INC-03 | ⬜ | 듀얼 이노센트 |
+| 42-43 | D-06, D-07 | ⬜ | Online/Economy 철학 |
+| 44-47 | SYS-MP-01-04 | ⬜ | 멀티플레이 아키텍처/파티/동기화/고스트 |
+| 48-49 | SYS-ECO-01-02 | ⬜ | 자원순환/거래 |
+| 51-52 | ~~SYS-HUB-01-02~~ | ❌ DEPRECATED | ~~허브 시설/NPC 상점~~ |
+| 53-56 | SYS-IW-03-06 | ⬜ (SYS-IW-04 DEPRECATED) | 아이템계 보스/~~재귀~~(삭제)/이벤트/지오 |
+| 57-58 | SYS-INC-03 | ⬜ | 듀얼 이노센트 |
 | 59 | SYS-LVL-04 Reincarnation | ~~삭제~~ | ~~전생 시스템~~ (스코프 축소로 삭제) |
-| 60~65 | UI-01~06 | ⬜ | HUD/인벤토리/맵/아이템계/팜/파티 UI |
-| 66~69 | CNT-03,04,07,08 | ⬜ | Innocent/Monster/Boss/RoomTemplate 카탈로그 |
+| 60-65 | UI-01-06 | ⬜ | HUD/인벤토리/맵/아이템계/팜/파티 UI |
+| 66-69 | CNT-03,04,07,08 | ⬜ | Innocent/Monster/Boss/RoomTemplate 카탈로그 |
 
 ---
 

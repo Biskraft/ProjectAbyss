@@ -2,7 +2,7 @@
 
 > **Last Sync:** 2026-03-25 (3차 동기화 — 코드 대조 완료)
 > **범위:** Phase 1 프로토타입 대상 기능
-> **코드베이스:** game/src/ (~6,900줄 TypeScript)
+> **코드베이스:** game/src/ (6 내외,900줄 TypeScript)
 
 ## 범례
 
@@ -136,8 +136,8 @@
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 근거 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| RAR-01-A | 등급 | 5등급 레어리티 정의 | P1 | ✅ 구현 완료 | ItemInstance.ts: Normal~Ancient 데이터 구조 |
-| RAR-01-B | 등급 | 레어리티별 스탯 배율 적용 | P1 | ✅ 구현 완료 | Weapons.ts: RARITY_MULTIPLIER (x1.0~x3.0) |
+| RAR-01-A | 등급 | 5등급 레어리티 정의 | P1 | ✅ 구현 완료 | ItemInstance.ts: Normal-Ancient 데이터 구조 |
+| RAR-01-B | 등급 | 레어리티별 스탯 배율 적용 | P1 | ✅ 구현 완료 | Weapons.ts: RARITY_MULTIPLIER (x1.0-x3.0) |
 | RAR-02-A | 아이템계 | 레어리티별 아이템계 지층 수 정의 | P1 | ✅ 구현 완료 | StrataConfig.ts: Normal=2, Magic=3, ... Ancient=4+심연 |
 | RAR-02-B | 아이템계 | 아이템계 진입 규칙 (레어리티 연동) | P1 | ✅ 구현 완료 | ItemWorldScene.ts: 아이템별 지층 구성 로드 |
 | RAR-03-A | 이노센트 | 레어리티별 이노센트 슬롯 수 정의 | P2 | ⬜ P2+ | MVP OUT: "이노센트" 제외 |
@@ -165,7 +165,7 @@
 | STAT-02-A | 공식 | FinalStat 합산 공식 | P1 | 🔧 부분 구현 | Base + Equip 합산 동작, Innocent 항 없음 (P2) |
 | STAT-02-B | 공식 | MaxHP 산출 공식 | P1 | ✅ 구현 완료 | Player 고정 HP 존재 + 지층별 스케일링 |
 | STAT-02-C | 공식 | ~~MaxMP 산출 공식~~ DEPRECATED | — | ❌ DEPRECATED | MP 시스템 삭제, 스킬은 쿨다운 기반 |
-| STAT-03-A | 성장 테이블 | Lv 1-10 기본 스탯 성장 곡선 | P1 | ✅ 구현 완료 | Stats.ts: BASE_STATS[Lv1~Lv10], CSV 데이터 연동 |
+| STAT-03-A | 성장 테이블 | Lv 1-10 기본 스탯 성장 곡선 | P1 | ✅ 구현 완료 | Stats.ts: BASE_STATS[Lv1-Lv10], CSV 데이터 연동 |
 | STAT-03-B | 성장 테이블 | 레벨업 경험치 요구량 테이블 | P1 | 📅 대기 | 아이템 레벨업 EXP 존재, 캐릭터 레벨업 미구현 |
 | STAT-04-A | 전투 연동 | ATK → 데미지 산출 | P1 | ✅ 구현 완료 | 데미지 계산에 ATK 직접 사용 |
 | ~~STAT-04-B~~ | ~~전투 연동~~ | ~~INT → 마법 ATK~~ DEPRECATED | — | ❌ DEPRECATED | INT 삭제, 모든 공격은 ATK 기반 |
@@ -195,7 +195,7 @@
 | WPG-01-A | 시스템 | 매크로 구조 로드 | P1 | ✅ 구현 완료 | WorldScene.ts: 6×6 Room Grid 하드코딩 (MVP 충분) |
 | WPG-02-A | 시스템 | Room Grid 생성 | P1 | ✅ 구현 완료 | RoomGrid.ts: generateWorldGrid() |
 | WPG-03-A | 시스템 | Critical Path 생성 | P1 | ✅ 구현 완료 | RoomGrid.ts: 입구→출구 경로 보장 |
-| WPG-04-A | 시스템 | Room Type 배정 | P1 | ✅ 구현 완료 | RoomGrid.ts: Type 0~3 (dead-end/LR/LRD/LRU) |
+| WPG-04-A | 시스템 | Room Type 배정 | P1 | ✅ 구현 완료 | RoomGrid.ts: Type 0-3 (dead-end/LR/LRD/LRU) |
 | WPG-05-A | 시스템 | Chunk 조립 | P1 | ✅ 구현 완료 | ChunkAssembler.ts: assembleRoom(), 플랫폼/장애물 |
 | WPG-07-A | 시스템 | 게이트 검증 | P2 | ⬜ P2+ | 능력/스탯 게이트는 Phase 2 범위 |
 | WPG-08-A | 시스템 | 시드 시스템 | P1 | ✅ 구현 완료 | PRNG.ts: 시드 기반 결정적 생성, SaveManager 연동 |

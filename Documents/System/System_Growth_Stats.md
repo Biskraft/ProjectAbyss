@@ -4,7 +4,7 @@
 
 > **최근 업데이트:** 2026-03-23
 > **문서 상태:** `작성 중 (Draft)`
-> **2-Space:** 전체 (World + Item World + Hub)
+> **2-Space:** 전체 (World + Item World)
 > **기둥:** 전체
 
 | 기능 ID    | 분류       | 기능명 (Feature Name)                   | 우선순위 | 구현 상태 | 비고 (Notes)                       |

@@ -54,12 +54,12 @@
 
 **시각 효과:**
 - 녹색 십자가 형상 (`#44ff44`, 흰색 중앙 코어)
-- 부유 애니메이션: `y = baseY + sin(timer * 0.003) * 2` (2px 진폭, ~0.5 Hz)
+- 부유 애니메이션: `y = baseY + sin(timer * 0.003) * 2` (2px 진폭, 0.5 내외 Hz)
 - 글로우 펄스: `alpha = 0.7 + sin(timer * 0.005) * 0.3` (0→완전 불투명 사이)
 
 **배치 컨텍스트:**
 - 월드: 핸드크래프트 위치에 탐험 보상으로 배치
-- 아이템계 Rest 방: `spawnEnemiesInRoom`에서 1~2개 자동 배치
+- 아이템계 Rest 방: `spawnEnemiesInRoom`에서 1-2개 자동 배치
 
 ### 3.2 HealthShard (HP 증가 파편)
 
@@ -213,7 +213,7 @@ totalWeight = sum(w.weight)
 | 읽음 | `RARITY_COLOR` | 레어리티 → 색상 매핑 |
 | 읽음 | `DROP_CHANCE` | 일반 드롭 기본 확률 (30%) |
 | 읽음 | `PRNG` | 결정론적 난수 (씨드 기반) |
-| 호출됨 | `ItemWorldScene.spawnEnemiesInRoom` | Rest 방에서 HealingPickup 1~2개 자동 배치 |
+| 호출됨 | `ItemWorldScene.spawnEnemiesInRoom` | Rest 방에서 HealingPickup 1-2개 자동 배치 |
 | 제공 | `overlapsPlayer()` | ItemDropEntity 획득 범위 판정 |
 | 제공 | `collected` 플래그 | 씬에서 재획득 방지 |
 
@@ -223,14 +223,14 @@ totalWeight = sum(w.weight)
 
 | 노브 | 위치 | 범위 | 카테고리 | 기본값 | 설명 |
 |------|------|------|----------|--------|------|
-| HealAmount | LDtk 필드 / `HealingPickup.ts:8` | 5~100 | Gate | 30 | 회복 HP |
-| HpBonus | LDtk 필드 / `HealthShard.ts:9` | 5~50 | Curve | 10 | 최대 HP 증가량 |
-| GoldAmount | LDtk 필드 / `GoldPickup.ts:8` | 1~1000 | Gate | 10 | 획득 골드량 |
-| DROP_CHANCE | `rarityConfig.ts` / CSV | 0.0~1.0 | Gate | 0.30 (30%) | 일반 드롭 확률 |
-| RARITY_WEIGHTS | `Content_Item_DropRate.csv` | 각 0~1 (합산 1.0) | Curve | 풀별 상이 | 레어리티별 드롭 비율 |
-| 부유 진폭 | `HealingPickup.ts:53` | 0~8px | Feel | 2px | 부유 높이 |
-| 부유 주기 계수 | `HealingPickup.ts:53` | 0.001~0.01 | Feel | 0.003 | 부유 속도 |
-| Drop VFX particleCount | `ItemDrop.ts:72~76` | 0~10 | Feel | 1~3 | 레어리티별 파티클 수 |
+| HealAmount | LDtk 필드 / `HealingPickup.ts:8` | 5-100 | Gate | 30 | 회복 HP |
+| HpBonus | LDtk 필드 / `HealthShard.ts:9` | 5-50 | Curve | 10 | 최대 HP 증가량 |
+| GoldAmount | LDtk 필드 / `GoldPickup.ts:8` | 1-1000 | Gate | 10 | 획득 골드량 |
+| DROP_CHANCE | `rarityConfig.ts` / CSV | 0.0-1.0 | Gate | 0.30 (30%) | 일반 드롭 확률 |
+| RARITY_WEIGHTS | `Content_Item_DropRate.csv` | 각 0-1 (합산 1.0) | Curve | 풀별 상이 | 레어리티별 드롭 비율 |
+| 부유 진폭 | `HealingPickup.ts:53` | 0-8px | Feel | 2px | 부유 높이 |
+| 부유 주기 계수 | `HealingPickup.ts:53` | 0.001-0.01 | Feel | 0.003 | 부유 속도 |
+| Drop VFX particleCount | `ItemDrop.ts:72-76` | 0-10 | Feel | 1-3 | 레어리티별 파티클 수 |
 
 ---
 
@@ -242,7 +242,7 @@ totalWeight = sum(w.weight)
 - [ ] HealthShard 획득 시 maxHp가 hpBonus만큼 영구 증가
 - [ ] GoldPickup 획득 시 player.gold가 amount만큼 즉시 증가
 - [ ] GoldenMonster 처치 시 항상 rare 이상 아이템 드롭
-- [ ] 일반 적 처치 시 30% 확률로 아이템 드롭 (100회 샘플 기준 25~35%)
+- [ ] 일반 적 처치 시 30% 확률로 아이템 드롭 (100회 샘플 기준 25-35%)
 - [ ] ancient 레어리티 드롭 시 글로우 반경 18px, 파티클 3개 확인
 
 **경험 검증:**

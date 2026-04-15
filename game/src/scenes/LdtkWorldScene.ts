@@ -3656,12 +3656,6 @@ export class LdtkWorldScene extends Scene {
       if (isCurrent) {
         g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0xffffff, width: 2 * us });
       }
-      // Cleared room: check mark
-      if (cleared && visited && !isCurrent) {
-        const cmx = p.rx + p.rw - 4 * us;
-        const cmy = p.ry + p.rh - 4 * us;
-        g.moveTo(cmx - 2 * us, cmy).lineTo(cmx, cmy + 2 * us).lineTo(cmx + 3 * us, cmy - 2 * us).stroke({ color: 0x44ff44, width: us });
-      }
       content.addChild(g);
     }
 

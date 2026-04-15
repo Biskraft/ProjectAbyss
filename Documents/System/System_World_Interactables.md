@@ -118,9 +118,9 @@ getHitAABB() — 공격 히트 감지용
 ```
 
 **파티클:**
-- 레어리티 색상의 1~3px 사각형
-- 포탈 가장자리에서 스폰, 위로 부유 (vy = -(speed * 0.5~1.0))
-- 생존 시간: 600~1400ms
+- 레어리티 색상의 1-3px 사각형
+- 포탈 가장자리에서 스폰, 위로 부유 (vy = -(speed * 0.5-1.0))
+- 생존 시간: 600-1400ms
 
 **상호작용:**
 - 플레이어가 포탈 AABB와 겹침 → setShowHint(true) → "UP: Enter"
@@ -222,7 +222,7 @@ renderSize = baseSize * pulse
 rejectShakeOffset = sin(rejectTimer * 0.05) * 3
 container.x = door.x + rejectShakeOffset
 ```
-rejectTimer 400ms 기준: 주파수 = 0.05 rad/ms → ~0.7 Hz
+rejectTimer 400ms 기준: 주파수 = 0.05 rad/ms → 0.7 내외 Hz
 
 ---
 
@@ -264,11 +264,11 @@ rejectTimer 400ms 기준: 주파수 = 0.05 rad/ms → ~0.7 Hz
 
 | 노브 | 위치 | 범위 | 카테고리 | 기본값 | 설명 |
 |------|------|------|----------|--------|------|
-| Portal baseSize (레어리티별) | `Portal.ts:15~21` | 16~48px | Feel | 20~36px | 포탈 기본 크기 |
-| PULSE_SPEED (레어리티별) | `Portal.ts:31~37` | 1.0~6.0 | Feel | 1.5~4.0 | 포탈 박동 속도 |
-| SPAWN_HITSTOP (레어리티별) | `Portal.ts:39~45` | 0~20 프레임 | Feel | 0~12 | 포탈 생성 시 히트스탑 |
-| SPAWN_SHAKE (레어리티별) | `Portal.ts:47~53` | 1~15px | Feel | 1~8px | 포탈 생성 시 쉐이크 강도 |
-| rejectTimer | `LockedDoor.ts:174` | 200~600ms | Feel | 400ms | stat 문 거부 애니메이션 시간 |
+| Portal baseSize (레어리티별) | `Portal.ts:15-21` | 16-48px | Feel | 20-36px | 포탈 기본 크기 |
+| PULSE_SPEED (레어리티별) | `Portal.ts:31-37` | 1.0-6.0 | Feel | 1.5-4.0 | 포탈 박동 속도 |
+| SPAWN_HITSTOP (레어리티별) | `Portal.ts:39-45` | 0-20 프레임 | Feel | 0-12 | 포탈 생성 시 히트스탑 |
+| SPAWN_SHAKE (레어리티별) | `Portal.ts:47-53` | 1-15px | Feel | 1-8px | 포탈 생성 시 쉐이크 강도 |
+| rejectTimer | `LockedDoor.ts:174` | 200-600ms | Feel | 400ms | stat 문 거부 애니메이션 시간 |
 | Anvil.used 재사용 방지 | `Anvil.ts:25` | bool | Gate | true | 아이템계 중복 진입 방지 |
 
 ---

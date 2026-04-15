@@ -35,7 +35,7 @@
 
 ### 3.1 MemoryDive (메모리 다이브)
 
-**총 지속시간:** ~2500ms (2.5초) + 씬 전환
+**총 지속시간:** 2500ms 내외 (2.5초) + 씬 전환
 
 **5단계 시퀀스:**
 
@@ -49,7 +49,7 @@ Phase 4: done       → shouldTransition = true → 씬 전환
 
 **각 단계 상세:**
 
-**Phase 0 — ritual (0~400ms):**
+**Phase 0 — ritual (0-400ms):**
 ```
 - start() 호출 시 즉시: onHitstop(8프레임), onScreenFlash(rarityColor, 0.5)
 - 쇼크웨이브 링: 무기 위치에서 반경 0→120px 확장
@@ -58,7 +58,7 @@ Phase 4: done       → shouldTransition = true → 씬 전환
 - 카메라 쉐이크: intensity = 2 * progress (최대 2px)
 ```
 
-**Phase 1 — dissolve (400~1200ms, 내부 0~800ms):**
+**Phase 1 — dissolve (400-1200ms, 내부 0-800ms):**
 ```
 - 균열선 8개: 무기 중심에서 방사, 길이 0→200px
   rotation += progress * 0.3 rad (천천히 회전)
@@ -68,7 +68,7 @@ Phase 4: done       → shouldTransition = true → 씬 전환
 - 카메라 쉐이크: intensity = 3 * progress (최대 3px)
 ```
 
-**Phase 2 — absorb (1200~2000ms, 내부 0~800ms):**
+**Phase 2 — absorb (1200-2000ms, 내부 0-800ms):**
 ```
 - 검정 오버레이: alpha 0.5 → 0.9
 - 포탈 원형 홀: 무기 중심, 반경 = progress² * 200 (가속 성장)
@@ -83,7 +83,7 @@ Phase 4: done       → shouldTransition = true → 씬 전환
 - 카메라 쉐이크: intensity = 5 * progress (최대 5px)
 ```
 
-**Phase 3 — flash (2000~2500ms, 내부 0~500ms):**
+**Phase 3 — flash (2000-2500ms, 내부 0-500ms):**
 ```
 - 전면 채우기 오버레이:
   progress < 0.3: 레어리티 색상, alpha (1 - progress/0.3) * 0.8 (빠른 소멸)
@@ -106,11 +106,11 @@ onScreenFlash: (color: number, intensity: number) => void
 
 | 단계 | 시간 범위 | 내용 |
 |------|---------|------|
-| Phase 1: Flash | 0~100ms | 흰색/검정 교차 플래시 (33ms 주기) |
-| Phase 2: Pulse | 100~400ms | 포탈 확장 + 카메라 쉐이크 감쇠 |
-| Phase 3: Absorb | 400~900ms | 포탈이 화면 중앙으로 이동하며 성장 |
-| Phase 4: Text | 900~1300ms | 아이템 정보 텍스트 페이드 인 |
-| Phase 5: Fill | 1300~1800ms | 레어리티 색상으로 화면 채움 |
+| Phase 1: Flash | 0-100ms | 흰색/검정 교차 플래시 (33ms 주기) |
+| Phase 2: Pulse | 100-400ms | 포탈 확장 + 카메라 쉐이크 감쇠 |
+| Phase 3: Absorb | 400-900ms | 포탈이 화면 중앙으로 이동하며 성장 |
+| Phase 4: Text | 900-1300ms | 아이템 정보 텍스트 페이드 인 |
+| Phase 5: Fill | 1300-1800ms | 레어리티 색상으로 화면 채움 |
 
 **레어리티별 쉐이크 강도:**
 ```
@@ -160,13 +160,13 @@ infoText.alpha = 1 - max(0, (progress - 0.5) * 2) (후반부 페이드 아웃)
 
 | 단계 | 시간 범위 | 주요 처리 |
 |------|---------|---------|
-| impact | 0~100ms | 히트스탑 8프레임 + 흰색 플래시 0.6 |
-| rumble | 100~500ms | 균열 확산 (progress 0→1) + 쉐이크 30% |
-| warning | 500~800ms | 균열 깜빡임 + 빨간 타일 틴트 + 쉐이크 30→70% |
-| collapse_outer | 800~1200ms | 외곽 링부터 타일 붕괴 (RING_DELAY 60ms 간격) |
-| collapse_inner | 1200~1600ms | 내부 링 붕괴 + 먼지 파티클 상승 + 쉐이크 피크 |
-| anvil_fall | 1600~2800ms | 플레이어 낙하 + 쉐이크 소멸 |
-| fade_out | 2800~3400ms | 검정 페이드 아웃 |
+| impact | 0-100ms | 히트스탑 8프레임 + 흰색 플래시 0.6 |
+| rumble | 100-500ms | 균열 확산 (progress 0→1) + 쉐이크 30% |
+| warning | 500-800ms | 균열 깜빡임 + 빨간 타일 틴트 + 쉐이크 30→70% |
+| collapse_outer | 800-1200ms | 외곽 링부터 타일 붕괴 (RING_DELAY 60ms 간격) |
+| collapse_inner | 1200-1600ms | 내부 링 붕괴 + 먼지 파티클 상승 + 쉐이크 피크 |
+| anvil_fall | 1600-2800ms | 플레이어 낙하 + 쉐이크 소멸 |
+| fade_out | 2800-3400ms | 검정 페이드 아웃 |
 | done | - | shouldTransition = true |
 
 **레어리티별 붕괴 반경 (X축):**
@@ -246,7 +246,7 @@ flash(color, intensity, durationMs):  // 임의 색상/강도/시간
 **용도:** 적에게 피격 시 히트 포인트에서 발생하는 불꽃 이펙트
 
 **파라미터:**
-- `heavy = false`: 일반 공격 (1~3콤보)
+- `heavy = false`: 일반 공격 (1-3콤보)
 - `heavy = true`: 강공격 (3타 또는 크리티컬)
 
 **생성 구조:**
@@ -337,7 +337,7 @@ heavyRange: 151~353 px/s
 | HitSpark spawn 위치가 화면 밖 | 파티클이 화면 밖으로 이동 후 수명 만료 — 문제없음 |
 | HitSpark dirX가 0이 아닌 경우 | biasAngle = angle + dirX * 0.4 — 넉백 방향으로 파티클 편향 |
 | FloorCollapse onTilesRemoved 콜백 없음 (null) | ?. 연산자로 안전 호출 |
-| MemoryDive 파티클 수 제한 없음 | dissolve 단계에서 매 프레임 확률 생성 — 800ms × 60fps × 30% = ~14개 |
+| MemoryDive 파티클 수 제한 없음 | dissolve 단계에서 매 프레임 확률 생성 — 800ms × 60fps × 30% = 14개 내외 |
 
 ---
 
@@ -361,19 +361,19 @@ heavyRange: 151~353 px/s
 
 | 노브 | 위치 | 범위 | 카테고리 | 기본값 | 설명 |
 |------|------|------|----------|--------|------|
-| T_RITUAL | `MemoryDive.ts:22` | 200~600ms | Feel | 400ms | ritual 단계 지속 시간 |
-| T_DISSOLVE | `MemoryDive.ts:23` | 400~1200ms | Feel | 800ms | dissolve 단계 지속 시간 |
-| T_ABSORB | `MemoryDive.ts:24` | 400~1200ms | Feel | 800ms | absorb 단계 지속 시간 |
-| T_FLASH | `MemoryDive.ts:25` | 200~800ms | Feel | 500ms | flash 단계 지속 시간 |
-| TOTAL_DURATION (PortalTransition) | `PortalTransition.ts:19` | 1000~3000ms | Feel | 1800ms | 포탈 전환 총 길이 |
-| SHAKE_INTENSITY (Portal, 레어리티별) | `PortalTransition.ts:27~34` | 1~20px | Feel | 2~12px | 레어리티별 쉐이크 강도 |
-| COLLAPSE_RADIUS_X (레어리티별) | `FloorCollapse.ts:37~44` | 2~20타일 | Gate | 3~12 | 붕괴 폭 |
-| RING_DELAY | `FloorCollapse.ts:34` | 30~150ms | Feel | 60ms | 링 간격 — 빠를수록 빠른 붕괴 |
-| flashHit 강도/지속 | `ScreenFlash.ts:33~34` | 0.1~0.6 / 40~200ms | Feel | 0.15~0.35 / 60~100ms | 공격 플래시 강도 |
-| flashDamage 강도/지속 | `ScreenFlash.ts:37~38` | 0.1~0.6 / 40~200ms | Feel | 0.2~0.4 / 80~150ms | 데미지 플래시 강도 |
-| SPARK_COUNT_LIGHT/HEAVY | `HitSpark.ts:19~20` | 2~12 / 4~16 | Feel | 4 / 7 | 스파크 라인 수 |
-| SPARK_SPEED | `HitSpark.ts:22` | 100~300 px/s | Feel | 180 | 스파크 초기 속도 |
-| SPARK_LIFE | `HitSpark.ts:23` | 100~400ms | Feel | 180ms | 스파크 수명 |
+| T_RITUAL | `MemoryDive.ts:22` | 200-600ms | Feel | 400ms | ritual 단계 지속 시간 |
+| T_DISSOLVE | `MemoryDive.ts:23` | 400-1200ms | Feel | 800ms | dissolve 단계 지속 시간 |
+| T_ABSORB | `MemoryDive.ts:24` | 400-1200ms | Feel | 800ms | absorb 단계 지속 시간 |
+| T_FLASH | `MemoryDive.ts:25` | 200-800ms | Feel | 500ms | flash 단계 지속 시간 |
+| TOTAL_DURATION (PortalTransition) | `PortalTransition.ts:19` | 1000-3000ms | Feel | 1800ms | 포탈 전환 총 길이 |
+| SHAKE_INTENSITY (Portal, 레어리티별) | `PortalTransition.ts:27-34` | 1-20px | Feel | 2-12px | 레어리티별 쉐이크 강도 |
+| COLLAPSE_RADIUS_X (레어리티별) | `FloorCollapse.ts:37-44` | 2-20타일 | Gate | 3-12 | 붕괴 폭 |
+| RING_DELAY | `FloorCollapse.ts:34` | 30-150ms | Feel | 60ms | 링 간격 — 빠를수록 빠른 붕괴 |
+| flashHit 강도/지속 | `ScreenFlash.ts:33-34` | 0.1-0.6 / 40-200ms | Feel | 0.15-0.35 / 60-100ms | 공격 플래시 강도 |
+| flashDamage 강도/지속 | `ScreenFlash.ts:37-38` | 0.1-0.6 / 40-200ms | Feel | 0.2-0.4 / 80-150ms | 데미지 플래시 강도 |
+| SPARK_COUNT_LIGHT/HEAVY | `HitSpark.ts:19-20` | 2-12 / 4-16 | Feel | 4 / 7 | 스파크 라인 수 |
+| SPARK_SPEED | `HitSpark.ts:22` | 100-300 px/s | Feel | 180 | 스파크 초기 속도 |
+| SPARK_LIFE | `HitSpark.ts:23` | 100-400ms | Feel | 180ms | 스파크 수명 |
 
 ---
 
@@ -396,7 +396,7 @@ heavyRange: 151~353 px/s
 **경험 검증:**
 - [ ] MemoryDive 전체 2.5초가 "무기 속으로 빨려 들어가는" 감각을 충분히 전달함
 - [ ] MemoryDive의 레어리티 색상이 진입 아이템의 가치를 시각적으로 표현함
-- [ ] FloorCollapse의 경고 단계(500~800ms)가 "피해야 한다"는 긴장감을 줌
+- [ ] FloorCollapse의 경고 단계(500-800ms)가 "피해야 한다"는 긴장감을 줌
 - [ ] ScreenFlash 빨간 오버레이가 데미지를 "몸으로 느끼는" 피드백을 제공함
 - [ ] HitSpark의 어두운 윤곽 + 밝은 코어 구조가 "단조 타격감"을 강화함
 

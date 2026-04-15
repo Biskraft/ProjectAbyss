@@ -275,7 +275,7 @@ clampedY = clamp(camera.y, bounds.top + halfViewH, bounds.bottom - halfViewH)
 | Look Ahead         | 활성                  | 활성                       |
 | Room Transition    | Scroll / Fade         | Cut (빠른 전환 우선)       |
 | Camera Shake       | 표준 감쇠             | 1.5배 강도 (타격감 강조)   |
-| 줌 범위            | 고정 (1.0)            | 0.7 ~ 1.0 (동적)          |
+| 줌 범위            | 고정 (1.0)            | 0.7-1.0 (동적)          |
 | Vertical Look      | 활성                  | 비활성 (전투 집중)         |
 | Boss Lock          | 활성                  | 활성                       |
 

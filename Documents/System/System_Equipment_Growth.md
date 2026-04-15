@@ -4,12 +4,12 @@
 
 > **최근 업데이트:** 2026-03-29
 > **문서 상태:** `작성 중 (Draft)`
-> **2-Space:** Item World (주), Hub (부)
+> **2-Space:** Item World (주), World (부)
 > **기둥:** 야리코미 (주), 메트로베니아 탐험 (부)
 
 | 기능 ID   | 분류     | 기능명 (Feature Name)                       | 우선순위 | 구현 상태    | 비고 (Notes)                                              |
 | :-------- | :------- | :------------------------------------------ | :------: | :----------- | :-------------------------------------------------------- |
-| EGP-01-A  | 레벨     | 아이템 레벨 시스템 (0~99)                   |    P1    | 대기         | 레어리티별 레벨 상한 분리                                 |
+| EGP-01-A  | 레벨     | 아이템 레벨 시스템 (0-99)                   |    P1    | 대기         | 레어리티별 레벨 상한 분리                                 |
 | EGP-01-B  | 레벨     | 아이템 EXP 수급 및 레벨업 처리              |    P1    | 대기         | `System_ItemWorld_Core.md` EXP 테이블 연동                |
 | EGP-02-A  | 성장     | 보스 처치 → 영구 스탯 보너스 지급           |    P1    | 대기         | `permanentBonus` 공식 구현. `System_ItemWorld_Core.md`    |
 | EGP-02-B  | 성장     | 레벨별 기본 스탯 성장 적용                  |    P1    | 대기         | `ItemStat(level) = BaseStat × (1 + level × 0.05)` 공식   |
@@ -123,11 +123,11 @@ FinalEquipStat =
 
 | 레어리티 | 레벨 범위 | 최대 스탯 배율 (레벨 보정만) | 비고 |
 | :--- | :---: | :---: | :--- |
-| Normal | 0 ~ 10 | ×1.50 | 2지층 클리어 시 도달 가능 |
-| Magic | 0 ~ 15 | ×1.75 | 3지층 클리어 시 도달 가능 |
-| Rare | 0 ~ 15 | ×1.75 | 3지층 클리어 시 도달 가능 |
-| Legendary | 0 ~ 20 | ×2.00 | 4지층 클리어 시 도달 가능 |
-| Ancient | 0 ~ 99 | ×5.95 | 심연 파밍으로 장기 성장 가능 (Phase 2) |
+| Normal | 0-10 | ×1.50 | 2지층 클리어 시 도달 가능 |
+| Magic | 0-15 | ×1.75 | 3지층 클리어 시 도달 가능 |
+| Rare | 0-15 | ×1.75 | 3지층 클리어 시 도달 가능 |
+| Legendary | 0-20 | ×2.00 | 4지층 클리어 시 도달 가능 |
+| Ancient | 0-99 | ×5.95 | 심연 파밍으로 장기 성장 가능 (Phase 2) |
 
 > Ancient의 레벨 상한 99는 심연 파수꾼 반복 처치로만 도달 가능하다. 레벨 20까지는 4지층 클리어로 달성하며, 20 이후는 심연 페이즈 전용 파밍 구간이다.
 
@@ -180,8 +180,8 @@ permanentBonus = BaseStat × (0.05 + itemLevel / 400) × bossTierMultiplier
 | 파라미터 | 설명 | 범위 |
 | :--- | :--- | :--- |
 | `BaseStat` | 해당 스탯의 기준값 | `Sheets/Content_Stats_Weapon_List.csv` |
-| `itemLevel` | 처치 시점의 현재 아이템 레벨 | 0 ~ 99 |
-| `bossTierMultiplier` | 보스 등급 배율 | ×1 ~ ×4 (아래 테이블) |
+| `itemLevel` | 처치 시점의 현재 아이템 레벨 | 0-99 |
+| `bossTierMultiplier` | 보스 등급 배율 | ×1 - ×4 (아래 테이블) |
 
 | 보스 등급 | `bossTierMultiplier` | 예시 (BaseStat=100, level=10) |
 | :--- | :---: | :--- |
@@ -501,14 +501,14 @@ consumes:
 
 | 파라미터 | 기본값 | 범위 | 카테고리 | 근거 |
 | :--- | :---: | :--- | :--- | :--- |
-| `GrowthRate` | 0.05 | 0.03 ~ 0.08 | Curve | 레벨당 5% 선형 성장. 디스가이아 D1 원본 공식 직접 채택 |
-| `bassBonusBaseCoefficient` | 0.05 | 0.03 ~ 0.08 | Curve | 보스 보너스 공식의 기저 계수. 낮추면 보스 보상 약화, 높이면 성장 가속 |
-| `bossLevelScaleCoefficient` | 0.0025 (=1/400) | 0.001 ~ 0.004 | Curve | 레벨이 높을수록 보스 보너스 증가. 파밍 깊이 vs 보상 밸런스 |
-| `expBasePerLevel` | 200 | 100 ~ 400 | Feel | 레벨 1당 기본 EXP 요구량. 낮을수록 빠른 성장 |
-| `expIncrementPerLevel` | 50 | 0 ~ 150 | Curve | 레벨당 추가 EXP 증분. 0이면 완전 선형 |
-| `rarityExpMultiplier_ancient` | 2.0 | 1.5 ~ 3.0 | Curve | Ancient 레벨 1~99 구간 파밍 세션 길이 조정 |
-| `upgradeChance_legendary_to_ancient` | 0.15 | 0.08 ~ 0.25 | Gate | 최고 희귀도 승급 확률. 야리코미 최종 목표 긴장감 조정 |
-| `pityLimit_legendary_to_ancient` | 15 | 8 ~ 20 | Gate | Legendary → Ancient 최대 실패 허용 횟수. 박탈감 방지 상한 |
+| `GrowthRate` | 0.05 | 0.03-0.08 | Curve | 레벨당 5% 선형 성장. 디스가이아 D1 원본 공식 직접 채택 |
+| `bassBonusBaseCoefficient` | 0.05 | 0.03-0.08 | Curve | 보스 보너스 공식의 기저 계수. 낮추면 보스 보상 약화, 높이면 성장 가속 |
+| `bossLevelScaleCoefficient` | 0.0025 (=1/400) | 0.001-0.004 | Curve | 레벨이 높을수록 보스 보너스 증가. 파밍 깊이 vs 보상 밸런스 |
+| `expBasePerLevel` | 200 | 100-400 | Feel | 레벨 1당 기본 EXP 요구량. 낮을수록 빠른 성장 |
+| `expIncrementPerLevel` | 50 | 0-150 | Curve | 레벨당 추가 EXP 증분. 0이면 완전 선형 |
+| `rarityExpMultiplier_ancient` | 2.0 | 1.5-3.0 | Curve | Ancient 레벨 1-99 구간 파밍 세션 길이 조정 |
+| `upgradeChance_legendary_to_ancient` | 0.15 | 0.08-0.25 | Gate | 최고 희귀도 승급 확률. 야리코미 최종 목표 긴장감 조정 |
+| `pityLimit_legendary_to_ancient` | 15 | 8-20 | Gate | Legendary → Ancient 최대 실패 허용 횟수. 박탈감 방지 상한 |
 
 > 모든 파라미터 SSoT: `Sheets/Content_Equipment_Growth_Params.csv`
 > 느낌(Feel) 노브는 플레이테스트 직관으로 조정. 곡선(Curve) 노브는 수학 모델로 조정. 게이트(Gate) 노브는 세션 길이 목표(평균 45분 세션)를 기준으로 조정.
@@ -576,6 +576,6 @@ consumes:
 
 ### 9.3. 밸런스 기준
 
-- Phase 1 기준: Normal 장비 레벨 10 달성에 소요되는 세션 수는 **2~3 세션** (세션당 평균 45분)이어야 한다.
-- 보스 보너스가 레벨 성장 보너스의 **30~50%** 수준이어야 한다. 보스 보너스가 지나치게 크면 레벨 성장의 가치가 희석된다.
+- Phase 1 기준: Normal 장비 레벨 10 달성에 소요되는 세션 수는 **2-3 세션** (세션당 평균 45분)이어야 한다.
+- 보스 보너스가 레벨 성장 보너스의 **30-50%** 수준이어야 한다. 보스 보너스가 지나치게 크면 레벨 성장의 가치가 희석된다.
 - Legendary → Ancient 승급 기대 시도 횟수(피티 포함): **평균 5회, 최대 15회** 이내.

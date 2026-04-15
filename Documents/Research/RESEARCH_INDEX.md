@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
 > 최근 업데이트: 2026-04-13
-> 총 54개 리서치 문서
+> 총 55개 리서치 문서
 
 ---
 
@@ -53,6 +53,7 @@
 | **CoopSynergy_ItemWorld** | 15개 게임 분석. 자동/근접/의도 3계층 시너지, 원소 퓨전, 저주 부활, 인원별 스케일링, 루트 인스턴스, 스파이크 검증 통과 8건 |
 | **TwoPlayerNetcode_Architecture** | 2인 PvE 전용 4종 아키텍처 비교. Host Authoritative + WebSocket Relay 권장. 기존 코드 재활용, Relay 150줄, 월 $6, 구현 15일 |
 | **URLJoin_CoopSession** | URL 즉시 합류 설계. `echoris.io/join/{6자리 코드}`, Guest 1클릭 합류, 세션 상태 머신, OG 태그, 익명 합류, 에러 처리, 구현 3-4주 |
+| **SaveSync_CoopSession** | 솔로↔코옵 세이브 연동. D1 권위+localStorage 캐시, Express Join(신규 Guest 프리셋), 보스 클리어=체크포인트, Progressive Auth(UUID→OAuth), 비용 $0-5/월 |
 
 ---
 

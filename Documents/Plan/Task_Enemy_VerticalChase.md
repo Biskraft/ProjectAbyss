@@ -154,10 +154,10 @@ Ghost는 바닥 구멍 찾기 불필요 — 직선 비행으로 해결.
 
 | 파일 | 변경 | 규모 |
 |:---|:---|:---|
-| `Skeleton.ts` | Chase update에 바닥 구멍 탐색 인라인 | ~20줄 |
-| `Enemy.ts` | `moveTowardTarget()`에 flying 분기 | ~8줄 |
+| `Skeleton.ts` | Chase update에 바닥 구멍 탐색 인라인 | 20 내외줄 |
+| `Enemy.ts` | `moveTowardTarget()`에 flying 분기 | 8 내외줄 |
 
-총 ~28줄. 새 메서드 0개. 새 필드 0개.
+총 28 내외줄. 새 메서드 0개. 새 필드 0개.
 
 ---
 

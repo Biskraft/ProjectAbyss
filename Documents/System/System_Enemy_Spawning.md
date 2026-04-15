@@ -53,10 +53,10 @@ Rarity, Stratum, EnemyType, Weight, Level, MinCount, MaxCount, IsBoss
 
 | 방 타입 | 스폰 내용 | 클리어 조건 |
 |---------|----------|------------|
-| **Combat** | 가중치 기반 무작위 적 1종 + MinCount~MaxCount마리 | 모든 적 처치 |
+| **Combat** | 가중치 기반 무작위 적 1종 + MinCount-MaxCount마리 | 모든 적 처치 |
 | **Boss** | SpawnBucket.boss의 단일 보스 (cycle 레벨 보정) | 보스 처치 |
 | **Treasure** | GoldenMonster 1마리 (엘리트 인카운터) | GoldenMonster 처치 |
-| **Rest** | 적 없음 + HealingPickup 1~2개 | 즉시 클리어 |
+| **Rest** | 적 없음 + HealingPickup 1-2개 | 즉시 클리어 |
 | **Puzzle** | 적 없음 (LDtk 템플릿 오브젝트가 퍼즐 구성) | 퍼즐 해결 시 수동 클리어 |
 | **Stratum Start** | 안전 지역 — 스폰 없음 | 즉시 클리어 |
 | **Memory Room** | 스폰 없음 (로어 장면) | 즉시 클리어 |
@@ -109,9 +109,9 @@ getEnemyStats(type, level) → ENEMY_STATS.get("Type:Level")
 | 레어리티 | 지층 | Weight (일반 풀) | 비고 |
 |---------|------|----------------|------|
 | magic | 2, 3 | 10 / 100 | 10% 확률 |
-| rare | 1, 2, 3 | 10~20 / 100 | 10~17% |
-| legendary | 1~4 | 20~30 / 100 | 17~25% |
-| ancient | 1~4 | 30~60 / 100 | 30~60% |
+| rare | 1, 2, 3 | 10-20 / 100 | 10-17% |
+| legendary | 1-4 | 20-30 / 100 | 17-25% |
+| ancient | 1-4 | 30-60 / 100 | 30-60% |
 
 - normal 레어리티에는 GoldenMonster가 스폰되지 않음
 - Treasure 방에서는 레어리티/지층 무관하게 무조건 GoldenMonster 1마리 강제 스폰
@@ -192,12 +192,12 @@ getEnemyStats(type, effectiveLevel)
 
 | 노브 | 위치 | 범위 | 카테고리 | 기본값 | 설명 |
 |------|------|------|----------|--------|------|
-| Weight (각 EnemyType) | CSV col 4 | 0~100 | Feel | 가변 | 방당 등장 빈도 |
-| MinCount / MaxCount | CSV col 6~7 | 1~5 | Gate | 가변 | 방당 적 수 |
-| Level (CSV) | CSV col 5 | 1~3 | Curve | 가변 | 기준 스탯 레벨 |
-| INNOCENT_SPAWN_CHANCE | `ItemWorldScene.ts` | 0~0.5 | Gate | 0.15 (15%) | 이노센트 NPC 대체 확률 |
-| distScale coefficient | `ItemWorldScene.ts` | 0~0.5 | Curve | 0.1 | 거리당 스탯 증가율 |
-| RING_DELAY (보스 스폰 전 평탄 바닥 탐색 타일) | `ItemWorldScene.ts` | 8~32 | Feel | 16 | 보스 배치 선호 바닥 길이 |
+| Weight (각 EnemyType) | CSV col 4 | 0-100 | Feel | 가변 | 방당 등장 빈도 |
+| MinCount / MaxCount | CSV col 6-7 | 1-5 | Gate | 가변 | 방당 적 수 |
+| Level (CSV) | CSV col 5 | 1-3 | Curve | 가변 | 기준 스탯 레벨 |
+| INNOCENT_SPAWN_CHANCE | `ItemWorldScene.ts` | 0-0.5 | Gate | 0.15 (15%) | 이노센트 NPC 대체 확률 |
+| distScale coefficient | `ItemWorldScene.ts` | 0-0.5 | Curve | 0.1 | 거리당 스탯 증가율 |
+| RING_DELAY (보스 스폰 전 평탄 바닥 탐색 타일) | `ItemWorldScene.ts` | 8-32 | Feel | 16 | 보스 배치 선호 바닥 길이 |
 
 ---
 
@@ -214,7 +214,7 @@ getEnemyStats(type, effectiveLevel)
 
 **경험 검증:**
 - [ ] normal 레어리티 아이템에서는 GoldenMonster가 등장하지 않음
-- [ ] ancient 레어리티 지층 3~4에서는 Ghost/GoldenMonster가 주력 적으로 체감됨
+- [ ] ancient 레어리티 지층 3-4에서는 Ghost/GoldenMonster가 주력 적으로 체감됨
 - [ ] Rest 방은 전투 없이 회복만 제공하는 "숨 고르기" 공간으로 인식됨
 - [ ] Treasure 방의 GoldenMonster는 일반 전투보다 긴장감 있게 느껴짐
 

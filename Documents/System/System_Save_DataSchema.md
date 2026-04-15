@@ -85,7 +85,7 @@
 | :--- | :--- | :--- |
 | `defId` | `string` | `SWORD_DEFS`에서 무기 정의를 조회할 키 |
 | `rarity` | `Rarity` | 아이템 레어리티 |
-| `level` | `number` | 현재 아이템 레벨 (0~MAX_ITEM_LEVEL) |
+| `level` | `number` | 현재 아이템 레벨 (0-MAX_ITEM_LEVEL) |
 | `exp` | `number` | 다음 레벨까지 누적된 경험치 |
 | `uid` | `number` | 런타임 고유 ID (인벤토리 내 equip 참조에 사용) |
 | `worldProgress` | `ItemWorldProgress?` | 아이템계 탐험 진행 데이터 (선택적) |
