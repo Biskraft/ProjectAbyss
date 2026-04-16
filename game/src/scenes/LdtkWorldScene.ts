@@ -276,7 +276,11 @@ export class LdtkWorldScene extends Scene {
     this.player = new Player(this.game);
     this.player.onFlaskHeal = (amount) => {
       this.screenFlash.flash(0x44ff44, 0.3, 150);
-      this.toast.show(`HP +${amount}`, 0x44ff44);
+      this.dmgNumbers.spawnSpecial(
+        this.player.x + this.player.width / 2,
+        this.player.y - 16,
+        `+${amount}`, 0x44ff44,
+      );
     };
     this.entityLayer.addChild(this.player.container);
     if (saveData) {
@@ -595,7 +599,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Update projectiles & check player collision
+    // Update projectiles — player attack can destroy them
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.update(dt);
@@ -603,6 +607,23 @@ export class LdtkWorldScene extends Scene {
         proj.destroy();
         this.projectiles.splice(i, 1);
         continue;
+      }
+      // Player attack deflects projectile
+      if (this.player.isAttackActive()) {
+        const step = COMBO_STEPS[this.player.comboIndex];
+        if (step) {
+          const hitbox = getAttackHitbox(
+            this.player.x, this.player.y, this.player.width, this.player.height,
+            this.player.facingRight ?? true, step,
+          );
+          if (aabbOverlap(hitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
+            this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
+            proj.alive = false;
+            proj.destroy();
+            this.projectiles.splice(i, 1);
+            continue;
+          }
+        }
       }
       if (!this.player.invincible && this.player.hp > 0) {
         const overlap = aabbOverlap(
@@ -928,11 +949,16 @@ export class LdtkWorldScene extends Scene {
     if (this.inItemTunnel && this.minimap) this.minimap.visible = false;
     this.hud.setGoldBelowMinimap(!this.inItemTunnel && !!this.minimap?.visible);
 
-    // Minimap: player dot blink + combat opacity
-    if (this.minimap && this.minimap.visible) {
+    // Minimap: real-time dot tracking + blink + combat opacity
+    if (this.minimap && this.minimap.visible && this.currentLevel) {
       this.minimapBlinkTimer = (this.minimapBlinkTimer + dt) % 800;
       if (this.minimapDot) {
         this.minimapDot.alpha = this.minimapBlinkTimer < 400 ? 1.0 : 0.3;
+        const dotSize = 3 * this.game.uiScale;
+        const px = Math.min(this.minimapPW - dotSize, Math.max(dotSize, (this.player.x + this.currentLevel.worldX - this.minimapVpLeft) * this.minimapScaleX));
+        const py = Math.min(this.minimapPH - dotSize, Math.max(dotSize, (this.player.y + this.currentLevel.worldY - this.minimapVpTop) * this.minimapScaleY));
+        this.minimapDot.x = px - dotSize / 2;
+        this.minimapDot.y = py - dotSize / 2;
       }
       const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
       this.minimap.alpha = inCombat ? 0.4 : 0.7;
@@ -3496,6 +3522,12 @@ export class LdtkWorldScene extends Scene {
   private minimap: Container | null = null;
   private minimapDot: Graphics | null = null;
   private minimapBlinkTimer = 0;
+  private minimapVpLeft = 0;
+  private minimapVpTop = 0;
+  private minimapScaleX = 1;
+  private minimapScaleY = 1;
+  private minimapPW = 0;
+  private minimapPH = 0;
   private worldMap!: WorldMapOverlay;
 
   /**
@@ -3537,6 +3569,14 @@ export class LdtkWorldScene extends Scene {
     const vpTop  = curCY - VP_H / 2;
     const scaleX = PW / VP_W;
     const scaleY = PH / VP_H;
+
+    // Cache for real-time dot tracking in update()
+    this.minimapVpLeft = vpLeft;
+    this.minimapVpTop = vpTop;
+    this.minimapScaleX = scaleX;
+    this.minimapScaleY = scaleY;
+    this.minimapPW = PW;
+    this.minimapPH = PH;
 
     // Fog of war: visited + adjacent (outlined)
     const visitedIds = this.visitedLevels;
@@ -3692,12 +3732,15 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Player dot (blinking) — GDD §1.5
+    // Drawn at origin; position updated every frame in update()
     {
       const dotSize = 3 * us;
+      const dot = new Graphics();
+      dot.rect(0, 0, dotSize, dotSize).fill(0xffffff);
       const px = Math.min(PW - dotSize, Math.max(dotSize, (this.player.x + this.currentLevel.worldX - vpLeft) * scaleX));
       const py = Math.min(PH - dotSize, Math.max(dotSize, (this.player.y + this.currentLevel.worldY - vpTop) * scaleY));
-      const dot = new Graphics();
-      dot.rect(px - dotSize / 2, py - dotSize / 2, dotSize, dotSize).fill(0xffffff);
+      dot.x = px - dotSize / 2;
+      dot.y = py - dotSize / 2;
       this.minimapDot = dot;
       content.addChild(dot);
     }

@@ -445,7 +445,7 @@ export class HUD {
     }
     // Depth gauge pulse
     if (this.depthGauge.visible) {
-      this.depthPulseTimer = (this.depthPulseTimer + dt) % 800;
+      this.depthPulseTimer = (this.depthPulseTimer + dt) % 2000;
       this.redrawDepthGauge();
     }
   }
@@ -550,14 +550,14 @@ export class HUD {
     this.depthLabels = [];
 
     const s = this.s;
-    const blockSize = 8 * s;
-    const lineLen = 4 * s;
-    const step = blockSize + lineLen; // 12*s per stratum
+    const blockSize = 12 * s;
+    const lineLen = 6 * s;
+    const step = blockSize + lineLen; // 18*s per stratum
     const startX = this.MARGIN;
     const startY = this.MARGIN + this.HP_H + 2 * s + this.FLASK_SIZE + 4 * s + 16 * s + 4 * s;
     // ^^ HP bar + flask row + ATK text height + gap
 
-    const pulseAlpha = 0.7 + 0.3 * ((Math.sin(this.depthPulseTimer / 800 * Math.PI * 2) + 1) / 2);
+    const pulseAlpha = 0.4 + 0.6 * ((Math.sin(this.depthPulseTimer / 2000 * Math.PI * 2) + 1) / 2);
 
     for (let i = 0; i < this.depthTotal; i++) {
       const bx = startX;
@@ -589,7 +589,7 @@ export class HUD {
       const numColor = (isCleared || isCurrent) ? this.depthColor(i) : 0x333333;
       const label = new BitmapText({
         text: `Depth ${i + 1}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: isCurrent ? 0xffffff : numColor },
+        style: { fontFamily: PIXEL_FONT, fontSize: 12 * s, fill: isCurrent ? 0xffffff : numColor },
       });
       label.x = bx + blockSize + 3 * s;
       label.y = by + Math.floor((blockSize - label.height) / 2);

@@ -38,7 +38,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, itemLevelUp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { addItemExp, itemLevelUp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
@@ -320,7 +320,11 @@ export class ItemWorldScene extends Scene {
     // Flask/combo heal toast
     this.player.onFlaskHeal = (amount) => {
       this.screenFlash.flash(0x44ff44, 0.3, 150);
-      this.toast.show(`HP +${amount}`, 0x44ff44);
+      this.dmgNumbers.spawnSpecial(
+        this.player.x + this.player.width / 2,
+        this.player.y - 16,
+        `+${amount}`, 0x44ff44,
+      );
     };
     this.entityLayer.addChild(this.player.container);
 
@@ -398,6 +402,12 @@ export class ItemWorldScene extends Scene {
     this.game.legacyUIContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
+
+    // Entry banner — announce item name + stratum
+    const rarityColor = RARITY_COLOR[this.item.rarity];
+    const stratumLabel = `Memory Stratum ${this.currentStratumIndex + 1}`;
+    this.toast.showBig(this.item.def.name, rarityColor, 3000);
+    this.toast.show(stratumLabel, rarityColor);
 
     // Show stratum picker if player has unlocked more than one stratum on this item
     const totalStrata = this.strataConfig.strata.length;
@@ -792,9 +802,9 @@ export class ItemWorldScene extends Scene {
       const bossEntry = spawnTable.boss;
       const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
       (boss as any)._isBoss = true;
-      // Multiply CSV-based stats by stratum boss multipliers
-      boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul));
-      boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul));
+      // Multiply CSV-based stats by stratum boss multipliers + distance scaling
+      boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
+      boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul * distScale));
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
       // Prefer the center of a 16-tile continuous flat floor; fall back to
       // a random valid spawn point if no such run exists.
@@ -872,9 +882,9 @@ export class ItemWorldScene extends Scene {
 
       // Spawn the picked entry's enemy type
       const enemy = this.createEnemyFromType(picked.enemyType, picked.level + cycle);
-      // Multiply CSV-based stats by stratum + distance multipliers.
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul));
+      // Multiply CSV-based stats by stratum + distance scaling
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul * distScale));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul * distScale));
       const sp = pickSpawn(spawnRng, enemy.height);
       enemy.x = sp.x;
       enemy.y = sp.y;
@@ -1773,8 +1783,8 @@ export class ItemWorldScene extends Scene {
       const isGhost = spawnRng.next() < 0.3;
       const enemy = createEnemy(isGhost ? 'Ghost' : 'Skeleton');
       // Multiply CSV-based stats (from constructor applyStats) by stratum + dist
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul));
+      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul * distScale));
+      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul * distScale));
 
       enemy.x = spawnRng.nextInt(4, this.roomW - 5) * TILE_SIZE;
       enemy.y = floorY - enemy.height;
@@ -2501,7 +2511,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Update projectiles & check player collision
+    // Update projectiles — player attack can destroy them
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.update(dt);
@@ -2509,6 +2519,23 @@ export class ItemWorldScene extends Scene {
         proj.destroy();
         this.projectiles.splice(i, 1);
         continue;
+      }
+      // Player attack deflects projectile
+      if (this.player.isAttackActive()) {
+        const step = COMBO_STEPS[this.player.comboIndex];
+        if (step) {
+          const hitbox = getAttackHitbox(
+            this.player.x, this.player.y, this.player.width, this.player.height,
+            this.player.facingRight ?? true, step,
+          );
+          if (aabbOverlap(hitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
+            this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
+            proj.alive = false;
+            proj.destroy();
+            this.projectiles.splice(i, 1);
+            continue;
+          }
+        }
       }
       if (!this.player.invincible && this.player.hp > 0) {
         const overlap = aabbOverlap(
