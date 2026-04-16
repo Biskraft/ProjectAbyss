@@ -8,6 +8,8 @@
 | HP 텍스트 (`HP X/Y`) | 구현 완료 |
 | Gold 표시 (`G N`) | 구현 완료 |
 | 지층 텍스트 (floorText) | 구현 완료 |
+| 아이템 EXP 바 (아이템계 전용) | 구현 완료 |
+| Depth Gauge (아이템계 전용) | 구현 완료 |
 | 산소 게이지 | 미구현 (Player.oxygenRatio는 존재, HUD 연동 필요) |
 | 장착 아이템 미리보기 | 미구현 |
 | 월드 vs 아이템계 HUD 전환 | 미구현 (현재 동일 HUD 사용) |
@@ -115,7 +117,32 @@ ratio 기준:
 | `C` | Dash |
 | `I` | Item |
 
-### 3.6 산소 게이지 (미구현 — 설계 예약)
+### 3.6 아이템 EXP 바 (구현 완료)
+
+아이템계 진입 시 표시되며, 현재 장비 아이템의 경험치 진행도를 실시간으로 보여준다. Depth Gauge 하단에 배치.
+
+| 항목 | 값 |
+| :--- | :--- |
+| 표시 조건 | 아이템계 진입 시 표시, 퇴장 시 숨김 |
+| 위치 | Depth Gauge 하단 (좌측 MARGIN, Depth 블록 끝 + 2px) |
+| 아이템명 | BitmapText 8px. 레어리티 색상 적용 (RARITY_COLOR) |
+| 레벨 텍스트 | "Lv.N" (흰색). MAX 도달 시 "Lv.MAX" (주황 `0xFF8833`) |
+| 바 너비/높이 | 60 x 4 px (BASE_EXP_W x BASE_EXP_H, uiScale 적용) |
+| 바 테두리 | `0x444444` (1px) |
+| 바 배경색 | `0x222222` |
+| 바 채움색 | `0xFFD700` (금색). MAX 시 `0xFF8833` (주황) |
+| 채움 애니메이션 | EXP 획득 시 300ms lerp로 부드럽게 증가 |
+| 레벨업 연출 | 흰색 플래시 400ms + 레벨 텍스트 scale bounce (1.3x→1.0x) |
+
+공개 API:
+
+```
+showItemExp(name, rarityColor, level, exp, maxExp)  -- 아이템계 진입 시
+updateItemExp(level, exp, maxExp, leveled)           -- EXP 획득/레벨업 시
+hideItemExp()                                        -- 아이템계 퇴장 시
+```
+
+### 3.7 산소 게이지 (미구현 — 설계 예약)
 
 `Player.oxygenRatio` (0.0-1.0)가 이미 구현되어 있으며, HUD 연동이 필요하다.
 

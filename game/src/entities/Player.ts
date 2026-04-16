@@ -73,8 +73,10 @@ export class Player extends Entity implements CombatEntity {
   flaskMaxCharges = 3;
   private static readonly FLASK_HEAL_PERCENT = 0.40;
   private static readonly FLASK_CAST_MS = 600;
+  private static readonly FLASK_BUFFER_MS = 200;
   private flaskCastTimer = 0;
   private flaskCasting = false;
+  private flaskBufferTimer = 0;
 
   /** Callback: scene reads this to show heal VFX/toast after successful flask use. */
   onFlaskHeal: ((healAmount: number) => void) | null = null;
@@ -391,15 +393,22 @@ export class Player extends Entity implements CombatEntity {
       }
       // Skip FSM + movement while casting
     } else {
-      // Flask input check: R key, grounded, has charges, not attacking/dashing/dead
-      if (this.game.input.isJustPressed(GameAction.FLASK) &&
-          this.flaskCharges > 0 && this.grounded && this.hp < this.maxHp &&
-          state !== 'attack' && state !== 'dash' && state !== 'dive' &&
-          state !== 'hit' && state !== 'death' && state !== 'surge_fly') {
-        this.flaskCasting = true;
-        this.flaskCastTimer = Player.FLASK_CAST_MS;
-        this.vx = 0;
-        this.startVibrate(1.5, 4, true);
+      // Buffer R key press for 200ms so it doesn't get swallowed during attack/dash
+      if (this.game.input.isJustPressed(GameAction.FLASK)) {
+        this.flaskBufferTimer = Player.FLASK_BUFFER_MS;
+      }
+      if (this.flaskBufferTimer > 0) {
+        this.flaskBufferTimer -= dt;
+        // Flask input check: grounded, has charges, not in a blocking state
+        if (this.flaskCharges > 0 && this.grounded && this.hp < this.maxHp &&
+            state !== 'attack' && state !== 'dash' && state !== 'dive' &&
+            state !== 'hit' && state !== 'death' && state !== 'surge_fly') {
+          this.flaskCasting = true;
+          this.flaskCastTimer = Player.FLASK_CAST_MS;
+          this.flaskBufferTimer = 0;
+          this.vx = 0;
+          this.startVibrate(1.5, 4, true);
+        }
       }
     }
 

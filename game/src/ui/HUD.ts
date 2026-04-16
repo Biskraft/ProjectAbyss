@@ -29,6 +29,15 @@ const BOSS_HEAL_FLASH_DURATION = 400;
 const LOW_HP_PULSE_PERIOD = 1000;
 const HP_TEXT_FLASH_DURATION = 200;
 
+// Item EXP bar
+const BASE_EXP_W = 60;
+const BASE_EXP_H = 4;
+const EXP_BG_COLOR = 0x222222;
+const EXP_BAR_COLOR = 0xffd700;
+const EXP_BAR_MAX_COLOR = 0xff8833;
+const EXP_LERP_DURATION = 300;
+const EXP_LEVELUP_FLASH_DURATION = 400;
+
 export class HUD {
   container: Container;
   private s: number; // uiScale
@@ -90,6 +99,24 @@ export class HUD {
   private depthCurrent = 0;
   private depthCleared: boolean[] = [];
   private depthPulseTimer = 0;
+
+  // Item EXP bar (item world only)
+  private expBarContainer: Container;
+  private expBarGfx: Graphics;
+  private expNameText: BitmapText;
+  private expNameShadow: BitmapText;
+  private expLevelText: BitmapText;
+  private expLevelShadow: BitmapText;
+  private expItemName = '';
+  private expItemRarityColor = 0xffffff;
+  private expLevel = 0;
+  private expCurrent = 0;
+  private expMax = 300;
+  private expDisplayRatio = 0;  // lerp target
+  private expTargetRatio = 0;
+  private expLerpTimer = 0;
+  private expLevelUpFlash = 0;
+  private expIsMax = false;
 
   constructor(uiScale = 1) {
     this.s = uiScale;
@@ -265,6 +292,21 @@ export class HUD {
     this.depthGauge.addChild(this.depthGaugeGfx);
     this.container.addChild(this.depthGauge);
 
+    // --- Item EXP bar (hidden by default, shown in item world) ---
+    this.expBarContainer = new Container();
+    this.expBarContainer.visible = false;
+    this.expBarGfx = new Graphics();
+    this.expBarContainer.addChild(this.expBarGfx);
+    this.expNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
+    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.expLevelShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
+    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.expBarContainer.addChild(this.expNameShadow);
+    this.expBarContainer.addChild(this.expNameText);
+    this.expBarContainer.addChild(this.expLevelShadow);
+    this.expBarContainer.addChild(this.expLevelText);
+    this.container.addChild(this.expBarContainer);
+
     // DEBUG label — bottom-left, only when ?debug in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
       const dbgShadow = new BitmapText({ text: 'DEBUG', style: { fontFamily: PIXEL_FONT, fontSize: 16 * s, fill: 0x000000 } });
@@ -414,6 +456,49 @@ export class HUD {
     this.depthGauge.visible = false;
   }
 
+  // --- Item EXP Bar ---
+
+  /** Show item EXP bar (call on item world entry). */
+  showItemExp(name: string, rarityColor: number, level: number, exp: number, maxExp: number): void {
+    this.expItemName = name;
+    this.expItemRarityColor = rarityColor;
+    this.expLevel = level;
+    this.expCurrent = exp;
+    this.expMax = maxExp;
+    this.expIsMax = level >= 99;
+    this.expTargetRatio = this.expIsMax ? 1 : Math.min(1, exp / maxExp);
+    this.expDisplayRatio = this.expTargetRatio;
+    this.expLerpTimer = 0;
+    this.expLevelUpFlash = 0;
+    this.expBarContainer.visible = true;
+    this.redrawExpBar();
+  }
+
+  /** Update EXP bar (call on EXP gain / level up). */
+  updateItemExp(level: number, exp: number, maxExp: number, leveled = false): void {
+    const prevLevel = this.expLevel;
+    this.expLevel = level;
+    this.expCurrent = exp;
+    this.expMax = maxExp;
+    this.expIsMax = level >= 99;
+    this.expTargetRatio = this.expIsMax ? 1 : Math.min(1, exp / maxExp);
+
+    if (leveled) {
+      // On level up: flash + reset bar from 0
+      this.expLevelUpFlash = EXP_LEVELUP_FLASH_DURATION;
+      this.expDisplayRatio = 0;
+    }
+
+    // Start lerp animation
+    this.expLerpTimer = EXP_LERP_DURATION;
+    this.redrawExpBar();
+  }
+
+  /** Hide item EXP bar (call on leaving item world). */
+  hideItemExp(): void {
+    this.expBarContainer.visible = false;
+  }
+
   update(dt: number): void {
     if (this.ghostTimer > 0) {
       this.ghostTimer -= dt;
@@ -447,6 +532,20 @@ export class HUD {
     if (this.depthGauge.visible) {
       this.depthPulseTimer = (this.depthPulseTimer + dt) % 2000;
       this.redrawDepthGauge();
+    }
+    // Item EXP bar lerp + level-up flash
+    if (this.expBarContainer.visible) {
+      if (this.expLerpTimer > 0) {
+        this.expLerpTimer -= dt;
+        const t = 1 - Math.max(0, this.expLerpTimer) / EXP_LERP_DURATION;
+        this.expDisplayRatio += (this.expTargetRatio - this.expDisplayRatio) * Math.min(1, t * 2);
+        this.redrawExpBar();
+      }
+      if (this.expLevelUpFlash > 0) {
+        this.expLevelUpFlash -= dt;
+        if (this.expLevelUpFlash <= 0) this.expLevelUpFlash = 0;
+        this.redrawExpBar();
+      }
     }
   }
 
@@ -596,5 +695,75 @@ export class HUD {
       this.depthGauge.addChild(label);
       this.depthLabels.push(label);
     }
+  }
+
+  private redrawExpBar(): void {
+    const g = this.expBarGfx;
+    g.clear();
+
+    const s = this.s;
+    const barW = BASE_EXP_W * s;
+    const barH = BASE_EXP_H * s;
+
+    // Position: right of depth gauge current block
+    // Depth gauge startX = MARGIN, block = 12*s, label ~60*s → put EXP bar at x=MARGIN
+    // Y: below depth gauge (after all strata blocks)
+    const depthStartY = this.MARGIN + this.HP_H + 2 * s + this.FLASK_SIZE + 4 * s + 16 * s + 4 * s;
+    const depthBlockSize = 12 * s;
+    const depthStep = depthBlockSize + 6 * s;
+    const depthEndY = depthStartY + this.depthTotal * depthStep + 2 * s;
+    const startX = this.MARGIN;
+    const startY = depthEndY;
+
+    // Item name (rarity colored)
+    this.expNameText.style.fill = this.expItemRarityColor;
+    this.expNameText.text = this.expItemName;
+    this.expNameShadow.text = this.expItemName;
+    this.expNameText.x = startX;
+    this.expNameText.y = startY;
+    this.expNameShadow.x = startX + s;
+    this.expNameShadow.y = startY + s;
+
+    // Level text (right of name)
+    const lvText = this.expIsMax ? 'Lv.MAX' : `Lv.${this.expLevel}`;
+    this.expLevelText.text = lvText;
+    this.expLevelShadow.text = lvText;
+    this.expLevelText.style.fill = this.expIsMax ? EXP_BAR_MAX_COLOR : 0xffffff;
+    const lvX = startX + this.expNameText.width + 4 * s;
+    this.expLevelText.x = lvX;
+    this.expLevelText.y = startY;
+    this.expLevelShadow.x = lvX + s;
+    this.expLevelShadow.y = startY + s;
+
+    // EXP bar background
+    const barY = startY + this.FONT + 2 * s;
+    g.rect(startX - s, barY - s, barW + 2 * s, barH + 2 * s).fill(0x444444);
+    g.rect(startX, barY, barW, barH).fill(EXP_BG_COLOR);
+
+    // EXP bar fill (lerped)
+    const fillW = barW * Math.max(0, Math.min(1, this.expDisplayRatio));
+    const barColor = this.expIsMax ? EXP_BAR_MAX_COLOR : EXP_BAR_COLOR;
+    if (fillW > 0) {
+      g.rect(startX, barY, fillW, barH).fill(barColor);
+    }
+
+    // Level-up flash overlay
+    if (this.expLevelUpFlash > 0) {
+      const flashAlpha = this.expLevelUpFlash / EXP_LEVELUP_FLASH_DURATION;
+      g.rect(startX, barY, barW, barH).fill({ color: 0xffffff, alpha: flashAlpha * 0.8 });
+      // Scale bounce on level text
+      const bounce = 1 + 0.3 * flashAlpha;
+      this.expLevelText.scale.set(bounce);
+      this.expLevelShadow.scale.set(bounce);
+    } else {
+      this.expLevelText.scale.set(1);
+      this.expLevelShadow.scale.set(1);
+    }
+
+    // EXP fraction text (below bar, small)
+    const expStr = this.expIsMax ? 'MAX' : `${this.expCurrent}/${this.expMax}`;
+    // Draw as part of graphics to avoid extra BitmapText allocation
+    // Just reuse level text area — place EXP fraction right-aligned under bar
+    // (keeping it simple: no extra text object, info is in the floor text already)
   }
 }

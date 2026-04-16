@@ -41,6 +41,11 @@ export class Guardian extends Enemy<GuardianState> {
   private enraged = false;
   private telegraphFlashTimer = 0;
 
+  /** When true, 50% HP enrage is suppressed (first Normal entry special). */
+  noEnrage = false;
+  /** When true, only use charge pattern (first Normal entry special). */
+  chargeOnly = false;
+
   /** Marker for boss kill handling in scene. */
   readonly _isBoss = true;
 
@@ -110,8 +115,8 @@ export class Guardian extends Enemy<GuardianState> {
         this.telegraphFlashTimer = 0;
         this.vx = 0;
 
-        // Pick attack based on distance
-        if (!this.target) {
+        // Pick attack based on distance (chargeOnly: first Normal entry)
+        if (this.chargeOnly || !this.target) {
           this.pendingAttack = 'charge';
         } else {
           const dist = this.horizontalDistToTarget();
@@ -295,8 +300,8 @@ export class Guardian extends Enemy<GuardianState> {
       name: 'hit',
       update: (dt) => {
         this.stateHitUpdate(dt);
-        // Check for enrage at 50% HP
-        if (!this.enraged && this.hp <= this.maxHp * 0.5) {
+        // Check for enrage at 50% HP (suppressed by noEnrage flag)
+        if (!this.noEnrage && !this.enraged && this.hp <= this.maxHp * 0.5) {
           this.enraged = true;
         }
       },

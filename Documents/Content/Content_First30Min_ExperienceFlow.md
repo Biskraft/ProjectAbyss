@@ -223,12 +223,12 @@
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 아이템 | 낡은 검 (Old Sword). Magic 등급. 기본 ATK 20 |
+| 아이템 | 낡은 검 (Old Sword). **Normal 등급**. 기본 ATK 15 |
 | 배치 | 방 정중앙 바닥. 빛이 위에서 내려와 검만 비춘다 |
 | 상호작용 | 접근 → 자동 줍기 |
 | 환경 디테일 | 검 주변 바닥에 긁힌 자국. 누군가 여기서 오랫동안 검을 끌고 다닌 흔적 |
 | MV 힌트 | 방 구석에 금이 간 바닥 — 깨질 것 같지만 깰 수 없음 (바닥 찍기 복선) |
-| 설계 의도 | 텅 빈 공간에 검 하나. "이것은 누구의 것이었는가?" |
+| 설계 의도 | 텅 빈 공간에 검 하나. "이것은 누구의 것이었는가?" **플레이어가 처음 얻는 아이템은 반드시 Normal 등급이다.** Normal 아이템계(2지층)의 짧고 집중된 경험으로 핵심 루프를 체득시킨다 |
 
 ---
 
@@ -279,7 +279,7 @@ echo_strike_sequence:
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 생성 방식 | 절차적 생성 (RoomGrid 4x4 + ChunkAssembler + ItemWorldTemplates). 매 진입마다 다른 레이아웃 |
+| 생성 방식 | 절차적 생성. **첫 Normal 아이템계 특례: 3x3 그리드** (이후 Normal은 4x4). 매 진입마다 다른 레이아웃 |
 | 테마 | 방랑의 기억. 황갈색 색조. 이름 없는 여관. 빗소리 |
 | 환경 서사 | 벽의 결정 구조가 흙길과 나무 판벽 아래 희미하게 비친다 |
 | 첫 인상 | "누군가의 기억 속에 들어왔다"를 환경으로 전달 |
@@ -312,9 +312,9 @@ echo_strike_sequence:
 | 패턴 1 | 돌진 (좌우 왕복) |
 | 패턴 2 | 점프 내려찍기 |
 | 패턴 3 | 근접 스와이프 |
-| HP / ATK | CSV 참조: Guardian Lv.1 (HP 600, ATK 30, DEF 5) |
-| 전투 시간 | Starter Blade ATK 25 → 데미지 22.5 내외/타 → 27 내외타. 장기전 |
-| 50% HP 격노 | 쿨다운 감소 (1200→700ms), 돌진 속도 증가 |
+| HP / ATK | CSV 참조: Guardian Lv.1 (HP 600, ATK 30, DEF 5). **첫 Normal 특례: HP x0.7 = 420** |
+| 전투 시간 | Starter Blade ATK 25 → 데미지 22.5 내외/타 → 약 19타 (특례 HP 420 기준). 적절한 도전 |
+| 50% HP 격노 | **첫 Normal 특례: 격노 없음**. 이후 재진입부터 정상 규칙 (쿨다운 1200→700ms, 돌진 속도 증가) |
 | 아레나 | 640x360 (장군 규격) |
 
 **보스 처치 후:**
@@ -329,16 +329,23 @@ boss_clear:
   design_note: "30분 전체에서 유일한 시스템 UI"
 ```
 
-**첫 아이템계 사망 특례:**
+**첫 Normal 아이템계 진입 특례 (First Entry Special):**
 
 ```yaml
-first_itemworld_death:
-  rule: "첫 아이템계 진입에 한해 사망 패널티 없음 + 내부 리스폰"
-  respawn: "SCREEN 11 착지점. HP 50% 회복"
-  mob_respawn: false
-  boss_hp_retain: true
-  death_count_limit: null
-  scope: "첫 아이템계에만 적용. 이후 재진입부터 정상 규칙"
+first_normal_entry_special:
+  rule: "첫 Normal 아이템계 진입에 한해 적용되는 튜토리얼 특례"
+  grid_size: "3x3 (일반 Normal은 4x4)"
+  boss_hp_multiplier: 0.7
+  boss_enrage: false
+  escape_altar: "100% 보장 (최소 1개)"
+  death_special:
+    enabled: true
+    rule: "사망 패널티 없음 + 내부 리스폰"
+    respawn: "SCREEN 11 착지점. HP 50% 회복"
+    mob_respawn: false
+    boss_hp_retain: true
+    death_count_limit: null
+  scope: "첫 Normal 아이템계에만 적용. 이후 재진입부터 정상 규칙"
 ```
 
 ---
@@ -360,14 +367,14 @@ first_itemworld_death:
 
 **LDtk 레벨:** `WorldEntrance2` → `WorldEntrance` 방향
 
-모루 앞으로 귀환. 강화된 Starter Blade (ATK 25+8 = 33).
+모루 앞으로 귀환. Old Sword(Normal)가 아이템계에서 레벨업하여 강화. Starter Blade(ATK 25)도 장착 가능하고 Old Sword(ATK 15+레벨업분)도 장착 가능. 장착 무기 ATK가 30 이상이면 게이트 돌파.
 
 에르다가 이전 구간으로 돌아가면 SCREEN 5-6의 적이 리스폰되어 있다.
 
-| 적 (Lv.1) | 강화 전 (ATK 25) | 강화 후 (ATK 33) | 체감 |
+| 적 (Lv.1) | 강화 전 (ATK 25) | 강화 후 (ATK 31+) | 체감 |
 | :--- | :--- | :--- | :--- |
 | 슬라임 (HP 80) | 4 내외타 | 3 내외타 | 확실히 빠름 |
-| 스켈레톤 (HP 100) | 5 내외타 | 4 내외타 | 체감 가능 |
+| 스켈레톤 (HP 100) | 5 내외타 | 3-4 내외타 | 체감 가능 |
 
 설계 의도: 아이템계의 결과를 월드에서 체감. 대사 없이 숫자와 타격감이 전달.
 
@@ -381,7 +388,7 @@ first_itemworld_death:
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 게이트 조건 | ATK >= 30. 현재 에르다 ATK: 33 (25 + 8 강화). 돌파 가능 |
+| 게이트 조건 | ATK >= 30. 에르다 Starter Blade ATK 25 + Old Sword Normal 강화분. 장착 무기 ATK >= 30이면 돌파 가능 |
 | 돌파 연출 | 에코로 두드림 → 균열 → 파괴. 파편 폭발 + 카메라 흔들림 |
 | 설계 의도 | "막힘→강화→돌파" 첫 사이클 완성. 쾌감의 정점 |
 
@@ -426,7 +433,7 @@ first_itemworld_death:
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 아이템 | Rare 등급 대검 (또는 단검). ATK 26 |
+| 아이템 | Magic 등급 검 (Steel Longsword). ATK 20. Normal 다음으로 한 단계 높은 등급 |
 | 배치 | SCREEN 8과 유사한 연출 — 텅 빈 공간, 바닥에 아이템만 |
 | 설계 의도 | "모루로 돌아가야겠다." 플레이어가 스스로 루프를 떠올린다 |
 
@@ -497,18 +504,18 @@ first_30min_params:
   WALL_JUMP_ENABLED: false     # Phase 2 렐릭
   DIVE_ATTACK_ENABLED: false   # Phase 2 렐릭
 
-  # 첫 아이템 (낡은 검)
-  FIRST_SWORD_RARITY: "Magic"
-  FIRST_SWORD_BASE_ATK: 20
-  FIRST_SWORD_PERMANENT_BONUS: 8  # 보스 처치 후 영구 강화
+  # 첫 아이템 (낡은 검) — Normal 등급 먼저
+  FIRST_SWORD_RARITY: "Normal"
+  FIRST_SWORD_BASE_ATK: 15
+  FIRST_SWORD_PERMANENT_BONUS: 8  # 보스 처치 후 영구 강화 (Normal Lv0 ATK15 + 레벨업 ATK → 게이트1 돌파)
 
   # ATK 게이트
   GATE_1_REQUIREMENT: 30   # 첫 번째 게이트 (25+8=33 → 돌파 가능)
   GATE_2_REQUIREMENT: 50   # 두 번째 게이트 (Phase 1 끝)
 
-  # 두 번째 아이템
-  SECOND_ITEM_RARITY: "Rare"
-  SECOND_ITEM_BASE_ATK: 26
+  # 두 번째 아이템 — Magic 등급 (Normal → Magic 순서)
+  SECOND_ITEM_RARITY: "Magic"
+  SECOND_ITEM_BASE_ATK: 20
 
   # 보스 — CSV 참조 (Content_Stats_Enemy.csv SSoT)
   # Guardian Lv.1: HP 600, ATK 30, DEF 5
@@ -517,7 +524,11 @@ first_30min_params:
   # Slime Lv.1: HP 80, ATK 16, DEF 1
   # Skeleton Lv.1: HP 100, ATK 32, DEF 3
 
-  # 첫 진입 사망 특례
+  # 첫 Normal 진입 특례
+  FIRST_NORMAL_GRID_SIZE: "3x3"
+  FIRST_NORMAL_BOSS_HP_MUL: 0.7
+  FIRST_NORMAL_BOSS_ENRAGE: false
+  FIRST_NORMAL_ESCAPE_ALTAR_GUARANTEED: true
   FIRST_DEATH_RESPAWN_HP_PERCENT: 50
   FIRST_DEATH_MOB_RESPAWN: false
   FIRST_DEATH_BOSS_HP_RETAIN: true

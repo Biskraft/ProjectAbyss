@@ -129,7 +129,7 @@ export class TitleScene extends Scene {
       style: new TextStyle({
         fontFamily: '"Rajdhani", sans-serif',
         fontSize: 9 * s,
-        fontWeight: '500',
+        fontWeight: '700',
         fill: COL_DIM,
         letterSpacing: 3 * s,
       }),

@@ -52,7 +52,7 @@ import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
-import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
+import { ItemDropEntity } from '@items/ItemDrop';
 import { SWORD_DEFS } from '@data/weapons';
 import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
@@ -334,6 +334,7 @@ export class LdtkWorldScene extends Scene {
 
     // World Map overlay
     this.worldMap = new WorldMapOverlay();
+    this.worldMap.setLoader(this.loader);
     this.worldMap.setRooms(this.loader.getWorldMap());
     this.game.legacyUIContainer.addChild(this.worldMap.container);
 
@@ -496,10 +497,22 @@ export class LdtkWorldScene extends Scene {
         // Update exploration state before opening
         this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
         this.worldMap.setMarkers(this.collectMapMarkers());
+        if (this.currentLevel) {
+          this.worldMap.setPlayerPosition(
+            this.player.x + this.currentLevel.worldX,
+            this.player.y + this.currentLevel.worldY,
+          );
+        }
         this.worldMap.toggle();
       }
     }
     if (this.worldMap.visible) {
+      if (this.currentLevel) {
+        this.worldMap.setPlayerPosition(
+          this.player.x + this.currentLevel.worldX,
+          this.player.y + this.currentLevel.worldY,
+        );
+      }
       this.worldMap.update(dt);
     }
 
@@ -1180,19 +1193,18 @@ export class LdtkWorldScene extends Scene {
     } else if (enemy instanceof Skeleton) {
       // setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
     }
+    // Gold drop on kill (Elden Ring style — items are hand-placed, not monster drops)
     const isGolden = enemy instanceof GoldenMonster;
-    const drop = isGolden
-      ? rollGoldenDrop(this.dropRng)
-      : rollDrop(this.dropRng);
-    if (drop) {
-      const dropEntity = new ItemDropEntity(
-        enemy.x + enemy.width / 2,
-        enemy.y + enemy.height - 4,
-        drop,
+    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
+    const goldAmount = isGolden ? baseGold * 3 : baseGold;
+    if (goldAmount > 0) {
+      const gp = new GoldPickup(
+        enemy.x + enemy.width / 2 - 8,
+        enemy.y + enemy.height,
+        goldAmount,
       );
-      this.drops.push(dropEntity);
-      this.entityLayer.addChild(dropEntity.container);
-      // hint removed
+      this.goldPickups.push(gp);
+      this.entityLayer.addChild(gp.container);
     }
 
     // HEL-05: Tiered healing drops (GDD §4.1)
@@ -2799,6 +2811,12 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
 
+      // Collect earned gold from Item World
+      if (itemWorldScene.earnedGold > 0) {
+        this.gold += itemWorldScene.earnedGold;
+        this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+      }
+
       if (isAltar) {
         if (targetItem.level > prevLevel) {
           this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
@@ -3343,6 +3361,12 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
 
+      // Collect earned gold from Item World
+      if (itemWorldScene.earnedGold > 0) {
+        this.gold += itemWorldScene.earnedGold;
+        this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+      }
+
       if (targetItem.level > prevLevel) {
         this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
       }
@@ -3388,6 +3412,11 @@ export class LdtkWorldScene extends Scene {
       itemWorldScene.onComplete = () => {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
+        // Collect earned gold from Item World
+        if (itemWorldScene.earnedGold > 0) {
+          this.gold += itemWorldScene.earnedGold;
+          this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+        }
         this.inItemTunnel = false;
         if (this.preTunnelLevelId) {
           this.loadLevel(this.preTunnelLevelId, 'down');

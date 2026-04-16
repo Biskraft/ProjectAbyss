@@ -5,8 +5,8 @@
  * SotN-style grid map with Hollow Knight-style overlay (game continues in background).
  *
  * Features:
- * - Room-based grid showing visited levels
- * - Current position blinking indicator
+ * - Room-based grid showing visited levels with tile-level detail
+ * - Current position blinking player dot
  * - Markers for save points, anvils, bosses, ATK gates
  * - Exploration percentage
  * - Player can still move while map is open
@@ -14,6 +14,7 @@
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import type { LdtkLoader } from '@level/LdtkLoader';
 
 const GAME_WIDTH = 640;
 const GAME_HEIGHT = 360;
@@ -25,12 +26,17 @@ const MAP_W = GAME_WIDTH - MAP_MARGIN_X * 2;  // 520
 const MAP_H = GAME_HEIGHT - MAP_MARGIN_Y * 2;  // 300
 
 // Room colors
-const COLOR_CURRENT = 0x44ff44;    // green — current room
-const COLOR_VISITED = 0x4466aa;    // blue — visited
-const COLOR_ADJACENT = 0x222233;   // dark — fog silhouette
 const COLOR_BG = 0x0a0a12;        // near-black background
 const COLOR_BORDER = 0x445566;
-const COLOR_GRID = 0x1a1a2a;
+const COLOR_ROOM_BG = 0x111118;   // dark interior background
+const COLOR_ADJACENT = 0x222233;   // dark — fog silhouette
+
+// Tier colors (same as minimap)
+const TIER_COLORS: Record<string, number> = {
+  'Tier1': 0x4A8A4A, 'Tier2': 0x5A7A8C, 'Tier3': 0x4A3A2A,
+  'Tier4': 0x2A4A6C, 'Tier5': 0x6A4A8C, 'Tier6': 0x4AACCC, 'Tier7': 0x8C2A2A,
+};
+const DEFAULT_TIER_COLOR = 0x5A7A8C;
 
 // Marker colors
 const MARKER_SAVE = 0xffee44;      // yellow — save point
@@ -52,6 +58,13 @@ interface MapMarker {
   label?: string; // e.g. "ATK 30"
 }
 
+function getTierColor(id: string): number {
+  for (const key of Object.keys(TIER_COLORS)) {
+    if (id.startsWith(key)) return TIER_COLORS[key];
+  }
+  return DEFAULT_TIER_COLOR;
+}
+
 export class WorldMapOverlay {
   container: Container;
   visible = false;
@@ -66,6 +79,22 @@ export class WorldMapOverlay {
   private currentLevelId = '';
   private markers: MapMarker[] = [];
   private totalRooms = 0;
+  private loader: LdtkLoader | null = null;
+
+  // Player world position (updated each frame by scene)
+  private playerWorldX = 0;
+  private playerWorldY = 0;
+
+  // Cached projection for real-time dot update
+  private projMinX = 0;
+  private projMinY = 0;
+  private projScale = 1;
+  private projOffsetX = 0;
+  private projOffsetY = 0;
+
+  // Blinking elements
+  private currentRoomGfx: Graphics | null = null;
+  private playerDot: Graphics | null = null;
 
   constructor() {
     this.container = new Container();
@@ -80,6 +109,11 @@ export class WorldMapOverlay {
     // Map content container
     this.mapContainer = new Container();
     this.container.addChild(this.mapContainer);
+  }
+
+  /** Provide LdtkLoader reference for collision grid access */
+  setLoader(loader: LdtkLoader): void {
+    this.loader = loader;
   }
 
   /** Set world map data from LdtkLoader.getWorldMap() */
@@ -97,6 +131,12 @@ export class WorldMapOverlay {
   setExplorationState(visited: Set<string>, currentId: string): void {
     this.visitedLevels = visited;
     this.currentLevelId = currentId;
+  }
+
+  /** Update player world position for dot tracking */
+  setPlayerPosition(worldX: number, worldY: number): void {
+    this.playerWorldX = worldX;
+    this.playerWorldY = worldY;
   }
 
   /** Scan levels for marker entities */
@@ -121,23 +161,31 @@ export class WorldMapOverlay {
     if (!this.visible) return;
     this.blinkTimer += dt;
 
-    // Blink current room indicator
+    // Blink current room border
     if (this.currentRoomGfx) {
-      const blink = Math.sin(this.blinkTimer * 0.005) > 0;
-      this.currentRoomGfx.alpha = blink ? 1.0 : 0.4;
+      const pulse = 0.5 + 0.5 * Math.sin(this.blinkTimer * 0.005);
+      this.currentRoomGfx.alpha = pulse;
+    }
+
+    // Update player dot position in real-time
+    if (this.playerDot) {
+      const px = this.projOffsetX + (this.playerWorldX - this.projMinX) * this.projScale;
+      const py = this.projOffsetY + (this.playerWorldY - this.projMinY) * this.projScale;
+      this.playerDot.x = px;
+      this.playerDot.y = py;
+      // Blink
+      this.playerDot.alpha = (Math.sin(this.blinkTimer * 0.008) > 0) ? 1.0 : 0.3;
     }
   }
-
-  private currentRoomGfx: Graphics | null = null;
 
   redraw(): void {
     // Clear
     this.mapContainer.removeChildren();
     this.currentRoomGfx = null;
+    this.playerDot = null;
 
     if (this.rooms.length === 0) return;
 
-    // Show ALL rooms — full world visible for scale
     // Compute bounds of entire world
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const r of this.rooms) {
@@ -155,6 +203,13 @@ export class WorldMapOverlay {
     const mapActualH = worldH * scale;
     const offsetX = MAP_MARGIN_X + (MAP_W - mapActualW) / 2;
     const offsetY = MAP_MARGIN_Y + (MAP_H - mapActualH) / 2;
+
+    // Cache projection for real-time dot
+    this.projMinX = minX;
+    this.projMinY = minY;
+    this.projScale = scale;
+    this.projOffsetX = offsetX;
+    this.projOffsetY = offsetY;
 
     // Border frame
     const frame = new Graphics();
@@ -174,15 +229,55 @@ export class WorldMapOverlay {
 
       const g = new Graphics();
 
-      if (isCurrent) {
-        g.rect(rx, ry, rw, rh).fill({ color: COLOR_CURRENT, alpha: 0.9 });
-        g.rect(rx, ry, rw, rh).stroke({ color: 0x88ffaa, width: 1 });
-        this.currentRoomGfx = g;
-      } else if (visited) {
-        g.rect(rx, ry, rw, rh).fill({ color: COLOR_VISITED, alpha: 0.7 });
+      if (isCurrent || visited) {
+        const tierColor = getTierColor(r.id);
+        const level = this.loader?.getLevel(r.id);
+
+        if (level && level.collisionGrid.length > 0) {
+          // Tile-level detail
+          const grid = level.collisionGrid;
+          const gridH = grid.length;
+          const gridW = grid[0]?.length ?? 0;
+          const tileW = rw / gridW;
+          const tileH = rh / gridH;
+
+          // Dark background (air)
+          g.rect(rx, ry, rw, rh).fill({ color: COLOR_ROOM_BG, alpha: isCurrent ? 0.9 : 0.7 });
+
+          // Solid tiles
+          for (let ty = 0; ty < gridH; ty++) {
+            for (let tx = 0; tx < gridW; tx++) {
+              const v = grid[ty][tx];
+              if (v === 0) continue; // air
+              const px = rx + tx * tileW;
+              const py = ry + ty * tileH;
+              const tw = Math.max(0.5, tileW);
+              const th = Math.max(0.5, tileH);
+              let tileColor = tierColor;
+              let tileAlpha = isCurrent ? 0.9 : 0.7;
+              if (v === 2) { tileColor = 0x2244aa; tileAlpha = 0.5; } // water
+              else if (v === 3) { tileAlpha *= 0.6; } // platform
+              else if (v === 5) { tileColor = 0xcc3333; } // spike
+              g.rect(px, py, tw, th).fill({ color: tileColor, alpha: tileAlpha });
+            }
+          }
+        } else {
+          // Fallback: solid fill
+          g.rect(rx, ry, rw, rh).fill({ color: getTierColor(r.id), alpha: isCurrent ? 1.0 : 0.8 });
+        }
+
+        // Border for visited rooms
         g.rect(rx, ry, rw, rh).stroke({ color: COLOR_BORDER, width: 0.5 });
+
+        // Current room: white border (separate gfx for blinking)
+        if (isCurrent) {
+          const border = new Graphics();
+          border.rect(rx, ry, rw, rh).stroke({ color: 0xffffff, width: 1.5 });
+          this.mapContainer.addChild(border);
+          this.currentRoomGfx = border;
+        }
       } else {
-        // Unvisited — dark silhouette to show world scale
+        // Unvisited — dark silhouette
         g.rect(rx, ry, rw, rh).fill({ color: COLOR_ADJACENT, alpha: 0.2 });
       }
 
@@ -193,6 +288,13 @@ export class WorldMapOverlay {
         this.drawMarkers(r, rx, ry, rw, rh);
       }
     }
+
+    // Player dot (positioned in update())
+    const dot = new Graphics();
+    dot.circle(0, 0, 3).fill(0xffffff);
+    dot.circle(0, 0, 1.5).fill(0x44ff44);
+    this.playerDot = dot;
+    this.mapContainer.addChild(dot);
 
     // Title
     const title = new BitmapText({

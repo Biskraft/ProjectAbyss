@@ -17,6 +17,7 @@ import { Guardian } from '@entities/Guardian';
 import { GoldenMonster } from '@entities/GoldenMonster';
 import { createEnemy } from '@entities/EnemyFactory';
 import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } from '@entities/HealingPickup';
+import { GoldPickup } from '@entities/GoldPickup';
 import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
@@ -38,7 +39,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, itemLevelUp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
@@ -91,6 +92,7 @@ export class ItemWorldScene extends Scene {
   private enemies: Enemy<string>[] = [];
   private projectiles: Projectile[] = [];
   private healingPickups: HealingPickup[] = [];
+  private goldPickups: GoldPickup[] = [];
   private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
@@ -112,8 +114,15 @@ export class ItemWorldScene extends Scene {
   private currentStratumDef!: StratumDef;
   private progress!: ItemWorldProgress;
 
+  // First Normal entry special (tutorial): 3x3 grid, boss HP x0.7, no enrage
+  private isFirstNormalEntry = false;
+  // Last non-boss room coords for first-entry respawn
+  private lastSafeRoomCol = 0;
+  private lastSafeRoomRow = 0;
+
   // Unified grid (all strata combined)
   private earnedExp = 0;
+  earnedGold = 0;
   private roomsCleared = 0;
   private totalRooms = 0;
   private unifiedGrid!: UnifiedGridData;
@@ -257,6 +266,26 @@ export class ItemWorldScene extends Scene {
       this.progress = getOrCreateWorldProgress(this.item);
       console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
+
+    // First Normal entry special: 3x3 grid, boss HP x0.7, no enrage
+    // Condition: Normal rarity + cycle 0 + no strata cleared yet
+    this.isFirstNormalEntry = this.item.rarity === 'normal'
+      && this.progress.cycle === 0
+      && this.progress.deepestUnlocked === 0
+      && this.progress.clearedRooms.length === 0;
+    if (this.isFirstNormalEntry) {
+      // Override: 1 stratum only, 3x3 grid, boss HP x0.7
+      const first = this.strataConfig.strata[0];
+      this.strataConfig = {
+        strata: [{
+          ...first,
+          gridWidth: 3,
+          gridHeight: 3,
+          bossHpMul: first.bossHpMul * 0.7,
+        }],
+      };
+      console.log('[ItemWorld] First Normal entry special: 1 stratum, 3x3 grid, boss HP x0.7, no enrage');
+    }
     this.rng = new PRNG(this.item.uid * 1000);
 
     // Analytics: item world entry
@@ -367,6 +396,14 @@ export class ItemWorldScene extends Scene {
       const n = this.strataConfig.strata.length;
       this.hud.showDepthGauge(n, this.currentStratumIndex, new Array(n).fill(false));
     }
+    // Initialize item EXP bar
+    this.hud.showItemExp(
+      this.item.def.name,
+      RARITY_COLOR[this.item.rarity],
+      this.item.level,
+      this.item.exp,
+      EXP_PER_LEVEL,
+    );
     this.updateHudText();
 
     // Spawn player at start cell — find first air-above-solid in the center
@@ -805,6 +842,12 @@ export class ItemWorldScene extends Scene {
       // Multiply CSV-based stats by stratum boss multipliers + distance scaling
       boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
       boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul * distScale));
+      // First Normal entry special: charge only, no enrage, ATK halved
+      if (this.isFirstNormalEntry && boss instanceof Guardian) {
+        boss.noEnrage = true;
+        boss.chargeOnly = true;
+        boss.atk = Math.max(1, Math.floor(boss.atk * 0.5));
+      }
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
       // Prefer the center of a 16-tile continuous flat floor; fall back to
       // a random valid spawn point if no such run exists.
@@ -1801,6 +1844,12 @@ export class ItemWorldScene extends Scene {
     const boss = createEnemy('Guardian') as Guardian;
     boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
     boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
+    // First Normal entry special: charge only, no enrage, ATK halved
+    if (this.isFirstNormalEntry) {
+      boss.noEnrage = true;
+      boss.chargeOnly = true;
+      boss.atk = Math.max(1, Math.floor(boss.atk * 0.5));
+    }
     boss.x = (this.roomW / 2) * TILE_SIZE;
     boss.y = floorY - boss.height;
     boss.roomData = this.roomData;
@@ -1870,6 +1919,8 @@ export class ItemWorldScene extends Scene {
     this.projectiles = [];
     for (const hp of this.healingPickups) hp.destroy();
     this.healingPickups = [];
+    for (const gp of this.goldPickups) gp.destroy();
+    this.goldPickups = [];
     // Reset pre-spawn cascade tracker so new stratum's neighbors get pre-spawned
     this.lastPreSpawnRoomKey = null;
   }
@@ -2381,6 +2432,24 @@ export class ItemWorldScene extends Scene {
     this.checkMemoryTriggers(dt);
 
     if (this.player.isDead) {
+      // First Normal entry special: respawn in last safe room, full HP, no penalty
+      if (this.isFirstNormalEntry) {
+        this.player.respawn();
+        this.player.hp = this.player.maxHp;
+        // Teleport to last safe (non-boss) room — convert absolute row to local
+        const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+        const localRow = this.lastSafeRoomRow - stratumOffset;
+        const respawnX = this.lastSafeRoomCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
+        const respawnY = localRow * IW_ROOM_H_PX + IW_ROOM_H_PX / 2;
+        this.player.x = respawnX - this.player.width / 2;
+        this.player.y = respawnY - this.player.height;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.hud.hideBossHP();
+        this.toast.show('Respawn — Try again!', 0x88ccff);
+        return;
+      }
+
       // Analytics: death in item world
       const cell = this.getCurrentCell();
       trackPlayerDeath('itemworld', cell?.col ?? 0, cell?.row ?? 0, 'unknown');
@@ -2448,12 +2517,14 @@ export class ItemWorldScene extends Scene {
           // Falls back to BASE_EXP_PER_KILL if the enemy lacks an exp value.
           const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
           const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
-          addItemExp(this.item, killExp);
+          const leveled = addItemExp(this.item, killExp);
           this.earnedExp += killExp;
           this.dmgNumbers.spawnEXP(
             enemy.x + enemy.width / 2, enemy.y - 16,
             `+${killExp} EXP`,
           );
+          // Update EXP bar with lerp animation
+          this.hud.updateItemExp(this.item.level, this.item.exp, EXP_PER_LEVEL, leveled);
 
           // HEL-05: Tiered healing drops (GDD §4.1)
           const dropX = enemy.x + enemy.width / 2 - 8;
@@ -2469,6 +2540,15 @@ export class ItemWorldScene extends Scene {
             const heal = createEmberShard(dropX, dropY, this.player.maxHp);
             this.healingPickups.push(heal);
             this.entityLayer.addChild(heal.container);
+          }
+
+          // Gold drop on kill
+          const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
+          const goldAmount = isGolden ? baseGold * 3 : baseGold;
+          if (goldAmount > 0) {
+            const gp = new GoldPickup(dropX, dropY, goldAmount);
+            this.goldPickups.push(gp);
+            this.entityLayer.addChild(gp.container);
           }
         }
       }
@@ -2497,6 +2577,22 @@ export class ItemWorldScene extends Scene {
         hp.collect();
         hp.destroy();
         this.healingPickups.splice(i, 1);
+      }
+    }
+
+    // Gold pickups — collect on overlap
+    for (let i = this.goldPickups.length - 1; i >= 0; i--) {
+      const gp = this.goldPickups[i];
+      if (gp.collected) continue;
+      gp.update(dt);
+      const dx = Math.abs((this.player.x + this.player.width / 2) - (gp.x + gp.width / 2));
+      const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
+      if (dx < 16 && dy < 16) {
+        gp.collect();
+        this.earnedGold += gp.amount;
+        this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
+        gp.destroy();
+        this.goldPickups.splice(i, 1);
       }
     }
 
@@ -2621,12 +2717,8 @@ export class ItemWorldScene extends Scene {
         // Analytics: stratum boss defeated
         trackItemWorldFloorClear(this.currentStratumIndex, this.item.rarity);
 
-        // Level up
-        const prevLevel = this.item.level;
-        itemLevelUp(this.item);
-        if (this.item.level > prevLevel) {
-          this.toast.show(`${this.item.def.name} Level Up! Lv${this.item.level}`, 0xffaa00);
-        }
+        // Boss EXP is granted via normal kill EXP path (CSV Exp column = 1200).
+        // No forced itemLevelUp() — SSoT: Content_Stats_Enemy.csv
 
         // Boss clear heal: 30% maxHP (GDD HEL-03)
         const bossHeal = Math.floor(this.player.maxHp * 0.30);
@@ -2705,8 +2797,10 @@ export class ItemWorldScene extends Scene {
 
     // Track which room the player is in and lazy-spawn enemies on first entry
     // Clamp to grid bounds to prevent out-of-range access
-    const playerRoomCol = Math.max(0, Math.min(IW_GRID_W - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
-    const playerRoomRow = Math.max(0, Math.min(IW_GRID_H - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
+    const curGridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
+    const curGridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const playerRoomCol = Math.max(0, Math.min(curGridW - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
+    const playerRoomRow = Math.max(0, Math.min(curGridH - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     // Convert local row (0-3) to absolute row so room keys are globally unique
     // across strata and survive exit/re-entry persistence.
     const _stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
@@ -2731,6 +2825,9 @@ export class ItemWorldScene extends Scene {
         const isStratumStart = sOff && playerRoomRow === 0 && enteredCell.onCriticalPath;
         if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, absRow)) {
           this.trySpawnEscapeAltar(enteredCell);
+          // Remember last non-boss room for first-entry respawn
+          this.lastSafeRoomCol = this.currentCol;
+          this.lastSafeRoomRow = this.currentRow;
         }
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
@@ -2768,8 +2865,10 @@ export class ItemWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
-    // Clamp player to map bounds (4×4 rooms × 512px = 2048px)
-    const MAP_SIZE = 2048;
+    // Clamp player to map bounds (gridW rooms × 512px)
+    const gridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
+    const gridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const MAP_SIZE = Math.max(gridW, gridH) * IW_ROOM_W_PX;
     if (this.player.x < 0) this.player.x = 0;
     if (this.player.y < 0) this.player.y = 0;
     if (this.player.x > MAP_SIZE - this.player.width) this.player.x = MAP_SIZE - this.player.width;
@@ -2785,8 +2884,10 @@ export class ItemWorldScene extends Scene {
 
   private updateHudText(): void {
     const cycleTag = this.progress.cycle > 0 ? `C${this.progress.cycle} ` : '';
+    // DEBUG: first entry special conditions
+    const dbg = `[1st:${this.isFirstNormalEntry ? 'Y' : 'N'} r=${this.item.rarity} cy=${this.progress.cycle} deep=${this.progress.deepestUnlocked} clr=${this.progress.clearedRooms.length}]`;
     this.hud.setFloorText(
-      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp}`
+      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}`
     );
 
     // Update depth gauge
@@ -2831,7 +2932,7 @@ export class ItemWorldScene extends Scene {
     panel.addChild(expInfo);
 
     const floorInfo = new BitmapText({
-      text: `Rooms ${this.roomsCleared}/${this.totalRooms}  Earned: +${this.earnedExp} EXP`,
+      text: `Rooms ${this.roomsCleared}/${this.totalRooms}  +${this.earnedExp} EXP  +${this.earnedGold} G`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
     floorInfo.x = 12;
@@ -3177,6 +3278,7 @@ export class ItemWorldScene extends Scene {
     if (this.miniMapContainer.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     // Clean up all UI owned by this scene
     this.hud.hideDepthGauge();
+    this.hud.hideItemExp();
     if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
     if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);

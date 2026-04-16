@@ -40,6 +40,7 @@ try {
   await Promise.all([
     document.fonts.load('900 48px "Cinzel"').catch(() => {}),
     document.fonts.load('700 16px "Rajdhani"').catch(() => {}),
+    document.fonts.load('500 16px "Rajdhani"').catch(() => {}),
   ]);
   // Wait for all pending font downloads to settle
   await document.fonts.ready;
