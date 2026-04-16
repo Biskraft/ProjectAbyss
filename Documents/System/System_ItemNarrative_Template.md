@@ -35,7 +35,7 @@
 
 ### 1.1. 문제 정의 — 왜 템플릿 시스템이 필요한가?
 
-`Content_Item_Narrative_GrandfatherKitchenKnife.md`는 Project Abyss 아이템 서사의 기준점이자 품질 목표다. 그러나 그 포맷을 그대로 100개 아이템에 적용하면 다음 문제가 발생한다.
+`Content_Item_Narrative_GrandfatherKitchenKnife.md`는 ECHORIS 아이템 서사의 기준점이자 품질 목표다. 그러나 그 포맷을 그대로 100개 아이템에 적용하면 다음 문제가 발생한다.
 
 | 문제 | 수치 | 영향 |
 | :--- | :--- | :--- |

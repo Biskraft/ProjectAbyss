@@ -1,6 +1,6 @@
 > **✅ 3스탯 체계 적용 완료:** 스탯 게이트 참조를 ATK 스탯 게이트 + 능력 게이트로 치환 완료. System_World_StatGating.md 참조.
 
-# WorldLayout GridVania 분석 — Project Abyss
+# WorldLayout GridVania 분석 — ECHORIS
 
 > 분석 대상: `game/public/assets/World_ProjectAbyss_Layout.ldtk`
 > 분석 기준일: 2026-03-26
@@ -410,11 +410,11 @@ Y 범위: -256 ~ 2048 (총 2304px = 9 grid unit)
 
 ---
 
-## 8. Project Abyss 설계 연계 권고사항
+## 8. ECHORIS 설계 연계 권고사항
 
 ### 8-1. 2-Space 모델과의 정합성
 
-현재 LDtk 레이아웃은 **월드(World) 공간**에 해당하며, Project Abyss의 2-Space 모델에서
+현재 LDtk 레이아웃은 **월드(World) 공간**에 해당하며, ECHORIS의 2-Space 모델에서
 가장 핵심적인 "탐험가 판타지"를 구현하는 레이어다.
 
 | 설계 원칙 | 현재 레이아웃 적용 상태 | 권고 사항 |

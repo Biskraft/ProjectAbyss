@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-03-25
 > **담당:** 레벨 디자이너 팀
-> **목적:** Project Abyss 기억의 지층 절차적 생성 설계를 위한 비교 분석
+> **목적:** ECHORIS 기억의 지층 절차적 생성 설계를 위한 비교 분석
 > **참조 문서:**
 > - `Reference/Disgaea_ItemWorld_Reverse_GDD.md`
 > - `Reference/Spelunky-LevelGeneration-ReverseGDD.md`
@@ -179,7 +179,7 @@ D7 (2023): 30층 + 전생 반복 → "짧은 루프 + 무한 반복"
 
 ---
 
-## 8. Project Abyss 기억의 지층 설계 권장사항
+## 8. ECHORIS 기억의 지층 설계 권장사항
 
 ### 8.1 생성 방식 비교 및 권장
 

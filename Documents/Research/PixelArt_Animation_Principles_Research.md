@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-04-07
 > **담당:** 아트 디렉터
-> **목적:** Project Abyss 에르다, 적, 보스, VFX 스프라이트 애니메이션 가이드라인 수립
+> **목적:** ECHORIS 에르다, 적, 보스, VFX 스프라이트 애니메이션 가이드라인 수립
 > **레퍼런스:** Saint11 튜토리얼, Celeste, Dead Cells, Hollow Knight, Hyper Light Drifter, Blasphemous
 > **참조 문서:**
 > - `Documents/Terms/Project_Vision_Abyss.md` — 톤 & 매너, 에르다 외형

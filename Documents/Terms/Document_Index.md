@@ -1,9 +1,9 @@
-# Project Abyss GDD 문서 인덱스 (Document Index)
+# ECHORIS GDD 문서 인덱스 (Document Index)
 
 > **최근 업데이트:** 2026-04-15
 > **문서 상태:** `작성 중 (Draft)`
 
-이 문서는 Project Abyss의 전체 GDD 문서 트리를 정의합니다. 모든 시스템 문서의 위치, 상태, 의존 관계를 추적합니다.
+이 문서는 ECHORIS의 전체 GDD 문서 트리를 정의합니다. 모든 시스템 문서의 위치, 상태, 의존 관계를 추적합니다.
 
 ---
 

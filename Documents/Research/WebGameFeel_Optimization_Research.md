@@ -4,7 +4,7 @@
 
 > **작성일:** 2026-04-06
 > **문서 상태:** `리서치 완료 (Research Complete)`
-> **적용 대상:** Project Abyss — PixiJS v8 + TypeScript 프로토타입
+> **적용 대상:** ECHORIS — PixiJS v8 + TypeScript 프로토타입
 > **참조 시스템:** `System_Combat_HitFeedback.md`, `Game.ts`, `HitManager.ts`, `HitSpark.ts`, `Entity.ts`, `InputManager.ts`
 
 ---

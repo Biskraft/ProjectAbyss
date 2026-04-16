@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-04-01
 > **담당:** 연구원
-> **목적:** BLAME!의 메가스트럭처와 BIOMEGA의 코드 월드를 분석하여, Project Abyss의 "끝없는 지층 하강/상승" 세계관 구축에 활용
+> **목적:** BLAME!의 메가스트럭처와 BIOMEGA의 코드 월드를 분석하여, ECHORIS의 "끝없는 지층 하강/상승" 세계관 구축에 활용
 > **참조 문서:**
 > - `Documents/Design/Design_Narrative_Worldbuilding.md`
 > - `Documents/System/System_ItemWorld_Core.md`
@@ -17,7 +17,7 @@
 3. [BLAME! — 감정 설계](#3-blame--감정-설계)
 4. [BIOMEGA — 코드 월드와 세계 변형](#4-biomega--코드-월드와-세계-변형)
 5. [니헤이의 디자인 철학](#5-니헤이의-디자인-철학)
-6. [Project Abyss 매핑](#6-project-abyss-매핑)
+6. [ECHORIS 매핑](#6-project-abyss-매핑)
 
 ---
 
@@ -149,11 +149,11 @@
 
 ---
 
-## 6. Project Abyss 매핑
+## 6. ECHORIS 매핑
 
 ### 6.1. 구조적 대응
 
-| BLAME! | Project Abyss | 적용 |
+| BLAME! | ECHORIS | 적용 |
 |:-------|:-------------|:-----|
 | 도시의 수직 지층 | 기억의 지층(Memory Strata) | 각 스트라텀이 전환 연출로 분리 |
 | 빌더의 무한 무질서 건설 | 절차적 방 생성 | "깨진 기억이 끝없이 자기복제/재구성" = 절차적 생성의 다이에제틱 정당화 |

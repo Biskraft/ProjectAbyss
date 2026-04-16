@@ -1,4 +1,4 @@
-# Project Abyss: 전체 개발 로드맵 (Development Roadmap)
+# ECHORIS: 전체 개발 로드맵 (Development Roadmap)
 
 > **최근 업데이트:** 2026-03-25
 > **문서 상태:** `작성 중 (Draft)`

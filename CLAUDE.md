@@ -1,10 +1,10 @@
-# Project Abyss — 프로젝트
+# ECHORIS — 프로젝트
 
 > This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 프로젝트 개요
 
-Project Abyss는 웹 기반 횡스크롤 온라인 액션 RPG (메트로베니아 + 야리코미)이다. Projectbyss저장소는 게임 기획 리서치, 레퍼런스 분석, 프로토타입을 관리하는 중앙 저장소이다.
+ECHORIS는 웹 기반 횡스크롤 온라인 액션 RPG (메트로베니아 + 야리코미)이다. Projectbyss저장소는 게임 기획 리서치, 레퍼런스 분석, 프로토타입을 관리하는 중앙 저장소이다.
 
 - **장르:** 웹 기반 횡스크롤 온라인 액션 RPG
 - **플랫폼:** 웹 브라우저 (PC)
@@ -49,7 +49,7 @@ VibeCoding/
 │   └── Content/                 # 콘텐츠 목록 문서
 ├── Sheets/                      # CSV 데이터 시트 (SSoT)
 └── Reference/                   # 레퍼런스 및 리서치 자료
-    ├── 게임 기획 개요.md          # 핵심 기획서 (Project Abyss 전체 설계)
+    ├── 게임 기획 개요.md          # 핵심 기획서 (ECHORIS 전체 설계)
     ├── WIKI_INDEX.md             # 위키 MD 파일 주제별 인덱스
     ├── 디스가이아 시스템 분석.md    # 위키 기반 디스가이아 시스템 분석
     ├── 캐슬바니아 시스템 분석.md    # 위키 기반 캐슬바니아 시스템 분석

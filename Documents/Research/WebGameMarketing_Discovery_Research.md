@@ -3,7 +3,7 @@
 > **작성일:** 2026-04-07
 > **작성자:** Community Manager
 > **상태:** 초안 (Draft)
-> **목적:** Project Abyss 웹 무료 + Steam 프리미엄 모델의 바이럴 마케팅 전략 수립
+> **목적:** ECHORIS 웹 무료 + Steam 프리미엄 모델의 바이럴 마케팅 전략 수립
 
 ---
 
@@ -177,7 +177,7 @@
 ### 3.2. 채널 설계
 
 ```
-Project Abyss Discord Server
+ECHORIS Discord Server
 ├── 공지 & 정보
 │   ├── #공지 (공식 업데이트만. 읽기 전용)
 │   ├── #뉴스 (커뮤니티 관련 소식)
@@ -263,13 +263,13 @@ Project Abyss Discord Server
 ```
 [매크로 크리에이터에게]
 
-제목: Project Abyss — 웹 액션 RPG, 플레이해보실래요?
+제목: ECHORIS — 웹 액션 RPG, 플레이해보실래요?
 
 본문:
 
 안녕하세요! [크리에이터명] 님께
 
-저희는 웹 기반 메트로베니아 + 아이템계 액션 RPG "Project Abyss"를 개발 중입니다.
+저희는 웹 기반 메트로베니아 + 아이템계 액션 RPG "ECHORIS"를 개발 중입니다.
 
 [스파이크 설명]
 게임의 핵심은 "아이템 속으로 들어가면, 그 아이템의 기억이 던전이 된다"는 메커닉입니다.
@@ -310,7 +310,7 @@ Project Abyss Discord Server
 
 | 주기 | 타이틀 & 포스트 컨셉 | 대상 커뮤니티 |
 | :--- | :--- | :--- |
-| 월 1회 | "Project Abyss Development Update #X — [주요 업데이트 내용]" (5분 읽기) | r/indiegaming, r/metroidvania |
+| 월 1회 | "ECHORIS Development Update #X — [주요 업데이트 내용]" (5분 읽기) | r/indiegaming, r/metroidvania |
 | 월 1회 | 스크린샷 3~5장 + 간단한 설명 (30초 읽기) | r/PixelArt (아트만), r/metroidvania (스크린샷만) |
 | 분기 1회 | "Designing [특정 메커닉]: How We Made [기술/디자인 결정]" (기술 글) | r/GameDev |
 | 공개 전 | "WebGame 개발기: [기술 스택] 선택 이유" (투명한 개발 이야기) | r/webgames, r/GameDev |
@@ -419,7 +419,7 @@ Exploration, Difficulty-Configurable
 **바이럴 가능성:**
 - **각 플레이어가 마케팅 엔진이 됨** — 클리어할 때마다 친구를 초대 → 친구가 또 초대
 - **비동기 바이럴** — 같은 시간에 온라인일 필요 없음. 링크를 저장했다가 나중에 할 수 있음
-- **Discord 자동 임베딩** — 링크를 Discord에 보내면 자동으로 "Project Abyss 아이템계" 카드 표시
+- **Discord 자동 임베딩** — 링크를 Discord에 보내면 자동으로 "ECHORIS 아이템계" 카드 표시
 - **입소문의 스택** — 한 사람이 초대하면 그 사람의 친구들도 또 초대 → 기하급수적 확산 가능
 
 **구현 우선순위:**
@@ -430,14 +430,14 @@ Exploration, Difficulty-Configurable
 
 ```html
 <!-- 사용자가 "https://abyss.web/itemworld/abc123" 공유할 때 -->
-<meta property="og:title" content="Legendary Sword (3F) — Project Abyss" />
+<meta property="og:title" content="Legendary Sword (3F) — ECHORIS" />
 <meta property="og:description" content="PlayerA가 당신을 초대합니다. 함께 내려가시겠어요?" />
 <meta property="og:image" content="[아이템계 스크린샷]" />
 <meta property="og:url" content="https://abyss.web/itemworld/abc123?invited_by=PlayerA" />
 
 <!-- 결과: Discord/Twitter에 카드 표시 -->
 <!-- [이미지 썸네일]
-     "Legendary Sword (3F) — Project Abyss"
+     "Legendary Sword (3F) — ECHORIS"
      PlayerA가 당신을 초대합니다...
 ```
 
@@ -461,7 +461,7 @@ Exploration, Difficulty-Configurable
 - 조건: 받은 물품(키)에 대한 정책 투명성 준수
 
 **Phase 2: 공식 협력 (Steam EA)**
-- 형식: 공식 "Project Abyss 협력 스트리머"
+- 형식: 공식 "ECHORIS 협력 스트리머"
 - 선택 기준: 팔로워 1만~100만, 월 1회 이상 플레이 가능
 - 혜택: 월정액 협찬금 또는 판매액 퍼센테이지
 - 조건: 매월 최소 X시간 스트림, 하지만 "강제 긍정" 아님 (비판도 가능)
@@ -475,7 +475,7 @@ Exploration, Difficulty-Configurable
 ### 8.2. 협력 계약 템플릿 (예시)
 
 ```
-Project Abyss 공식 협력 스트리머 계약
+ECHORIS 공식 협력 스트리머 계약
 
 1. 스트리머 정보
    이름: [크리에이터명]
@@ -490,7 +490,7 @@ Project Abyss 공식 협력 스트리머 계약
 3. 의무
    - 월 최소 2회 스트림 (각 30분~1시간)
    - 스트림 영상 공개 불가 (클립 공유는 가능)
-   - Project Abyss 커뮤니티 위반 시 협력 중단 가능
+   - ECHORIS 커뮤니티 위반 시 협력 중단 가능
 
 4. 혜택
    - 월 KRW 000,000 협찬금
@@ -500,7 +500,7 @@ Project Abyss 공식 협력 스트리머 계약
 5. 자유도
    - 게임에 대한 비판적 의견 표현 권리
    - 다른 게임 동시 스트림 가능
-   - 협찬 공개: "This stream is sponsored by Project Abyss" 표시
+   - 협찬 공개: "This stream is sponsored by ECHORIS" 표시
 
 6. 보상 메트릭
    - 스트림 시청자 증가율

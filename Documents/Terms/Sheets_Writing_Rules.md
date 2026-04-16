@@ -1,6 +1,6 @@
-# Project Abyss: 시트 작성 규칙 (Sheets Writing Rules)
+# ECHORIS: 시트 작성 규칙 (Sheets Writing Rules)
 
-본 문서는 Project Abyss의 모든 CSV 데이터 시트를 작성하고 유지 관리하기 위한 표준 규칙을 정의합니다. 이 규칙은 인간 기획자와 AI(Agent), 그리고 게임 엔진이 데이터를 일관성 있게 파악하고 처리할 수 있도록 돕습니다.
+본 문서는 ECHORIS의 모든 CSV 데이터 시트를 작성하고 유지 관리하기 위한 표준 규칙을 정의합니다. 이 규칙은 인간 기획자와 AI(Agent), 그리고 게임 엔진이 데이터를 일관성 있게 파악하고 처리할 수 있도록 돕습니다.
 
 ---
 

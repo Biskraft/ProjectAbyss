@@ -3,7 +3,7 @@
 
 > **작성일:** 2026-04-06
 > **담당:** 시스템 디자이너 (Systems Designer)
-> **목적:** Project Abyss의 행동형(Behavioral) 이노센트 6종 수치 밸런스를 업계 레퍼런스 기반으로 검증하고, 각 파라미터의 권장 범위와 설계 근거를 수립한다.
+> **목적:** ECHORIS의 행동형(Behavioral) 이노센트 6종 수치 밸런스를 업계 레퍼런스 기반으로 검증하고, 각 파라미터의 권장 범위와 설계 근거를 수립한다.
 > **연관 문서:**
 > - `Documents/System/System_Innocent_Core.md` — 이노센트 타입 정의, Wild/Tamed 규칙, 슬롯 경제
 > - `Documents/Research/Innocent_Classification_Balance_Research.md` — 전체 분류 체계

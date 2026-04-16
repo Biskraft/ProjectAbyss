@@ -1,6 +1,6 @@
-# Project Abyss: GDD 작성 표준 가이드 (GDD Writing Standards)
+# ECHORIS: GDD 작성 표준 가이드 (GDD Writing Standards)
 
-본 문서는 Project Abyss의 기획서가 "문서이자 데이터베이스"로 기능하기 위한 작성 규칙을 정의합니다. 레퍼런스 분석(GDC 강연, 사쿠라이 인사이트, GMTK 등)과 실전 GDD 사례를 기반으로 합니다.
+본 문서는 ECHORIS의 기획서가 "문서이자 데이터베이스"로 기능하기 위한 작성 규칙을 정의합니다. 레퍼런스 분석(GDC 강연, 사쿠라이 인사이트, GMTK 등)과 실전 GDD 사례를 기반으로 합니다.
 
 ---
 
@@ -35,7 +35,7 @@
 > **"뾰족하지 않은 것은 존재할 이유가 없다."**
 > — GDC "Be Spiky" (Jamie Cheng, Klei) + "Subnautica Postmortem" (Jonas Boetel)
 
-### Project Abyss의 스파이크
+### ECHORIS의 스파이크
 
 > **"아이템 속으로 들어가면, 그 아이템의 기억이 던전이 된다"**
 
@@ -98,7 +98,7 @@ risk_reward_analysis:
   peak_moment: "최대 리스크 = 최대 리턴인 순간이 있는가?"
 ```
 
-Project Abyss 적용 예시:
+ECHORIS 적용 예시:
 
 * 월드 탐험: 미지의 층위 진입(리스크: 사망 시 세이브 포인트 복귀) -> 새 능력 발견(리턴)
 * 아이템계: 깊은 지층 도전(리스크: 탈출 실패 시 진행 손실) -> 이노센트/레어리티 승급(리턴)
@@ -127,10 +127,10 @@ GDD 적용:
 
 ### 재구축 (Rebuild)
 - 독창적 변형: [본질은 유지하되 차별화 요소]
-- 추가 가치: [Project Abyss만의 강점]
+- 추가 가치: [ECHORIS만의 강점]
 ```
 
-Project Abyss 적용 예시:
+ECHORIS 적용 예시:
 
 * 분해: "디스가이아의 아이템계는 장비 안에 다층 던전이 있다"
 * 분석: "아이템에 감정적 애착 + 끝없는 성장 목표 = 야리코미의 핵심"
@@ -143,7 +143,7 @@ Project Abyss 적용 예시:
 * 플레이어에게 무엇을 보상으로 줄 것인가?
 * 보상이 없으면 진행 동기가 사라짐
 
-Project Abyss 보상 유형:
+ECHORIS 보상 유형:
 
 ```yaml
 reward_types:
@@ -181,7 +181,7 @@ reward_types:
 * Multiplication Rule: A와 B가 만났을 때 단순히 A+B가 아닌, A x B의 새로운 결과가 나와야 한다.
 * Systemic Interaction: 모든 오브젝트는 정해진 "속성(Tag)"에 따라 일관되게 반응해야 한다.
 
-Project Abyss 적용 예시:
+ECHORIS 적용 예시:
 
 * 단순 합산(Bad): "불 속성 무기로 얼음 적을 치면 데미지 10% 증가"
 * 상태 변화(Good): "불 속성 무기로 얼음 적을 치면 녹아서 물 웅덩이 생성 -> 번개 스킬이 감전 범위 확대"
@@ -335,7 +335,7 @@ GDD 작성 시:
 
 네트워크 단절, 동시 입력, 자원 부족 등 실패 케이스에 대한 처리 방침을 반드시 기술한다.
 
-Project Abyss 특수 예외:
+ECHORIS 특수 예외:
 
 * 아이템계 중 접속 끊김: 현재 지층 진행 보존 여부
 * 아이템계 전멸 시: 현재 지층 진행 손실, 장비 보존, 월드 귀환 규칙
@@ -351,7 +351,7 @@ Project Abyss 특수 예외:
 * 원칙: 기획 초기에 상충하는 두 가지 약속(Incompatible Player Promises)이 없는지 확인한다.
 * 적용: 발견된다면, 해결하려 하지 말고(불가능함), 어느 한 쪽을 희생(Sacrifice/Weaken)하거나 제약을 두어 명시해야 한다.
 
-Project Abyss의 핵심 Cursed Problems:
+ECHORIS의 핵심 Cursed Problems:
 
 | 문제 | 해결 방향 |
 | :--- | :--- |
@@ -369,7 +369,7 @@ Project Abyss의 핵심 Cursed Problems:
 
 * 복잡한 메커니즘은 장황한 텍스트보다 작동하는 프로토타입이 훨씬 강력한 기획서가 된다.
 * 텍스트로 설명하기 힘든 "느낌(Feel)"이나 "타이밍"은 프로토타입 제작을 우선 과제로 설정한다.
-* Project Abyss 우선 프로토타입 대상: 캐릭터 이동/점프 물리, 타격감(히트스탑/넉백), 절차적 방 생성
+* ECHORIS 우선 프로토타입 대상: 캐릭터 이동/점프 물리, 타격감(히트스탑/넉백), 절차적 방 생성
 
 ---
 
@@ -534,7 +534,7 @@ Content 중분류:
 6. [ ] Edge Cases: 예외 상황(네트워크, 리소스 부족 등) 처리가 명시되었는가?
 7. [ ] Implementation Status: 문서 상단에 구현 현황 테이블이 존재하는가?
 
-### 5.2. Project Abyss 정렬 (Project Alignment)
+### 5.2. ECHORIS 정렬 (Project Alignment)
 
 1. [ ] 3대 기둥 정렬: 이 시스템이 탐험/야리코미/멀티플레이 중 최소 1개에 기여하는가?
    * 정렬 기둥: [탐험 / 야리코미 / 멀티플레이]
@@ -626,6 +626,6 @@ Design Docs (`Reference/designdocs/`)
 
 ---
 
-문서 버전: v4.0 (Project Abyss 전용 개조)
+문서 버전: v4.0 (ECHORIS 전용 개조)
 마지막 업데이트: 2026-03-23
-작성자: Project Abyss Team
+작성자: ECHORIS Team

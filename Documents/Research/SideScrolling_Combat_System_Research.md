@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-03-25
 > **담당:** 게임 디자이너 팀
-> **목적:** Project Abyss 전투 설계 참고자료
+> **목적:** ECHORIS 전투 설계 참고자료
 > **레퍼런스:** 월하의 야상곡, Dead Cells, Hollow Knight
 > **참조 문서:**
 > - `Documents/System/System_Combat_Action.md`
@@ -27,7 +27,7 @@
 | **Dead Cells** | 2~3f | 4~5f | 6~8f | 없음 | 피격자만 정지, 공격자 지속 |
 | **Hollow Knight** | 1~2f | 2~3f | 3~4f | 없음 | 극도로 짧음, 반응성 우선 |
 | **SotN** | 없음 | 없음 | 없음 | 없음 | 히트스탑 미적용, 넉백으로 대체 |
-| **Project Abyss (현재)** | 1타 3f | 2타 4f | 3타 6f | +5f | 사쿠라이 기법 기반 |
+| **ECHORIS (현재)** | 1타 3f | 2타 4f | 3타 6f | +5f | 사쿠라이 기법 기반 |
 
 **스매시 브라더스 히트스탑 공식:**
 ```
@@ -54,7 +54,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 |:-----|:------:|:------:|:--------:|:-----|:------|
 | **Dead Cells** | 1~2px | 3~5px | 8~12px | 지수적 | 넉백 방향 |
 | **Hollow Knight** | 0~1px | 2~3px | 5~7px | 지수적 | 타격 방향 |
-| **Project Abyss** | 1.5px | 4px | 미설계 | 0.88/f | 넉백 방향 ✓ |
+| **ECHORIS** | 1.5px | 4px | 미설계 | 0.88/f | 넉백 방향 ✓ |
 
 ### 1.3 넉백(Knockback)
 
@@ -63,7 +63,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 | **SotN** | ~30px 수평 | ~60px 수평 | 정지 | 없음 |
 | **Dead Cells** | 80~120px | 200~300px | 바운스/스턴 | 체급별 감소 |
 | **Hollow Knight** | 20~40px | 50~100px | 정지 | 없음 |
-| **Project Abyss** | 120px/s | 240px/s | 미설계 | 1.0 고정 |
+| **ECHORIS** | 120px/s | 240px/s | 미설계 | 1.0 고정 |
 
 **벽 충돌 처리 옵션:**
 1. **정지 방식** (SotN): 단순, 안정적
@@ -76,7 +76,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 |:-----|:--------:|:-----------|:----:|
 | **Dead Cells** | 8~15개 | 선형+원형 혼합 | 150~250ms |
 | **Hollow Knight** | 4~8개 | 동심원 스파크 | 100~180ms |
-| **Project Abyss** | 라이트4/헤비7 | 선형+중앙플래시 | 180ms |
+| **ECHORIS** | 라이트4/헤비7 | 선형+중앙플래시 | 180ms |
 
 ### 1.5 사운드(SFX)
 
@@ -134,7 +134,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 | **SotN** | 0.5~1초 | 없음 | 탐험 쾌적성 |
 | **Dead Cells** | ~0.5초 | 롤 전구간 0.4초 | 롤이 핵심 회피 |
 | **Hollow Knight** | ~1.5초 | 없음→Shadow Dash 전구간 | 업그레이드 보상 |
-| **Project Abyss** | hitstun 중 | **수치 미명시** | **갭 존재** |
+| **ECHORIS** | hitstun 중 | **수치 미명시** | **갭 존재** |
 
 ### 3.2 패링 3요소 원칙
 
@@ -159,7 +159,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 | **SotN** | 포션 아이템 | 자동 MP 회복 | 아이템 관리 |
 | **Dead Cells** | 특정 변이/스킬 | 적 처치 시 일부 | Push Forward 약화 |
 | **Hollow Knight** | 벤치 | Soul 소비 힐링 | 공격=회복 연료 |
-| **Project Abyss** | **미명시** | **미명시** | **설계 갭** |
+| **ECHORIS** | **미명시** | **미명시** | **설계 갭** |
 
 ---
 
@@ -185,7 +185,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 - 페이즈마다 새 패턴 추가 + 속도 증가
 - **Delta of Chance:** 공격 파동 → 안전 창(1~2초) → 반복 (안전 창 없으면 "불공평")
 
-**Project Abyss 아이템계 보스 페이즈 권장:**
+**ECHORIS 아이템계 보스 페이즈 권장:**
 - 아이템 장군: 1~2페이즈
 - 아이템 왕: 2~3페이즈
 - 아이템 신: 3페이즈
@@ -217,7 +217,7 @@ hitlag = ⌊(damage × 0.65 + 6) × hitlag_multiplier × electric_modifier⌋
 
 ---
 
-## 6. Project Abyss 적용 시사점
+## 6. ECHORIS 적용 시사점
 
 ### 6.1 기존 System 문서 갭 분석
 

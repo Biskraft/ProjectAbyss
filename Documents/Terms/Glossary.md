@@ -1,4 +1,4 @@
-# Project Abyss 용어집 (Glossary)
+# ECHORIS 용어집 (Glossary)
 
 > 최근 업데이트: 2026-04-03 (수직 구조 용어 추가: Bulkhead, Bulkhead Surveyor, The Shaft, Tier)
 > 문서 상태: `작성 중 (Draft)`
@@ -39,7 +39,7 @@
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
 | Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다(대시 렐릭 획득 후). | `Documents/System/System_Combat_Action.md` |
 | Cooldown | 쿨다운 | 스킬 또는 대시(렐릭 해금 후)를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3-15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
-| Core Loop | 핵심 순환 | 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 층위 탐험으로 이어지는 Project Abyss의 주요 순환 구조. | `Documents/Design/Design_CoreLoop_Circulation.md`, `Reference/게임 기획 개요.md` |
+| Core Loop | 핵심 순환 | 월드 탐험 → 아이템 획득 → 아이템계 진입 → 장비 강화 → 스탯 게이트 해금 → 새 층위 탐험으로 이어지는 ECHORIS의 주요 순환 구조. | `Documents/Design/Design_CoreLoop_Circulation.md`, `Reference/게임 기획 개요.md` |
 | Critical Path | 크리티컬 패스 | 절차적으로 생성된 Room Grid에서 입구부터 출구까지 플레이어가 반드시 통과 가능한 경로. 생성 알고리즘이 이 경로를 최우선으로 보장한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 
 ---
@@ -65,7 +65,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Geo Effect | 지오 이펙트 | 디스가이아의 지오 이펙트를 차용한 개념. 아이템계 특정 지층에 배치되는 패널로, 해당 타일 위에 있을 때 데미지 증가·감소, 이동 제한 등 전략적 변수를 추가한다. | `Documents/System/System_ItemWorld_FloorGen.md` |
-| HL | HL | Project Abyss의 기본 화폐 단위. 몹 처치, 아이템계 보상으로 획득하며, NPC 상점/장비 강화/이노센트 합성 등에 소비된다. | `Documents/Design/Design_Economy_FaucetSink.md`, `Documents/Design/Design_Yarikomi_Philosophy.md` |
+| HL | HL | ECHORIS의 기본 화폐 단위. 몹 처치, 아이템계 보상으로 획득하며, NPC 상점/장비 강화/이노센트 합성 등에 소비된다. | `Documents/Design/Design_Economy_FaucetSink.md`, `Documents/Design/Design_Yarikomi_Philosophy.md` |
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2-4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
@@ -99,7 +99,7 @@
 | Memory Wanderer | 기억의 방랑자 | 월드 필드에 랜덤 출현하는 유령형 존재. 과거에 아이템 속으로 들어갔다 돌아오지 못한 자들의 잔상. 접촉하면 임시 균열 제단이 생성되며, 이를 통해 보상 강화 아이템계로 진입 가능. 평균 30-45분에 1회 출현. | `Documents/System/System_ItemWorld_Core.md` |
 | Marta ven-Nacht | 마르타 벤-나흐트 | 에르다의 스승. 중년 여성 장인. 10년 전 Ancient 아이템 내부로 들어가 자발적으로 남아 기억을 지키고 있다. 카엘 오르스와 마찬가지로 기억을 지키기 위한 자발적 유배를 선택한 인물. | `Documents/Content/Content_World_Bible.md` |
 | ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5% + 이노센트 보정, 드랍률은 적 테이블 + 이노센트 보정.~~ | — |
-| Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. Project Abyss의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
+| Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. ECHORIS의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | ~~MP~~ | ~~마력~~ | ~~DEPRECATED. 기존 스킬 소비 자원. MP 시스템 삭제, 스킬은 쿨다운 기반으로 전환.~~ | — |
 | Mystery Room | 미스터리 룸 | 아이템계 특정 지층에 확률적으로 출현하는 특수 이벤트 룸. 상점·점술사·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
@@ -118,7 +118,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Out-of-Combat | 전투 외 상태 | 전투 상태(In-Combat)가 아닌 평상시 상태. MP 자동 회복이 활성화되고 아이템 사용 제한이 해제된다. | `Documents/System/System_Combat_Action.md` |
-| Pillar | 기둥 | Project Abyss의 3대 핵심 설계 기둥. 모든 시스템과 기능은 (1) 메트로베니아 탐험, (2) 아이템계 야리코미, (3) 온라인 멀티플레이 중 최소 하나에 정렬되어야 한다. 어느 기둥에도 해당하지 않는 기능은 채택하지 않는다. | `Documents/Terms/Project_Vision_Abyss.md` |
+| Pillar | 기둥 | ECHORIS의 3대 핵심 설계 기둥. 모든 시스템과 기능은 (1) 메트로베니아 탐험, (2) 아이템계 야리코미, (3) 온라인 멀티플레이 중 최소 하나에 정렬되어야 한다. 어느 기둥에도 해당하지 않는 기능은 채택하지 않는다. | `Documents/Terms/Project_Vision_Abyss.md` |
 | Procedural Generation | 절차적 생성 | 알고리즘과 시드를 사용하여 맵·룸·Chunk를 자동으로 생성하는 기법. 월드의 마이크로 계층과 아이템계 전 층에 적용된다. 스펠렁키의 Room Grid 방식을 레퍼런스로 사용한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 
 ---
@@ -182,13 +182,13 @@
 
 | 한글명 | 영문 키/표기 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| 2-Space 모델 | 2-Space Model | 게임 세계를 월드(World)/아이템계(Item World) 두 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 Project Abyss의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. 허브(Hub)는 폐기되어 대장간/상점은 월드 세이브 포인트에 통합. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
+| 2-Space 모델 | 2-Space Model | 게임 세계를 월드(World)/아이템계(Item World) 두 공간으로 분리하여 각 공간이 고유한 규칙과 목적을 갖도록 설계한 ECHORIS의 핵심 구조 원칙. 메트로베니아 탐험과 온라인 멀티플레이의 충돌을 해결하는 핵심 해법이다. 허브(Hub)는 폐기되어 대장간/상점은 월드 세이브 포인트에 통합. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | 세계수 | Yggveil (이그베일) | 세계 창조 이전에 존재하던 원초적 존재. 자신의 기억을 재료로 세계를 빚었다. 세계의 모든 사물은 세계수의 기억이 응고된 것이며, 이것이 아이템계의 형이상학적 근거이다. | `Documents/Content/Content_World_Bible.md` |
 | 심연 | Abyss | 세계가 존재하기 위해 지불한 대가가 쌓인 곳. 세계수가 창조 과정에서 포기한 가능성들의 기억이 소멸하지 못하고 가라앉은 장소. 악의가 아닌 결핍("나는 왜 존재하지 못하는가")의 감정을 가진다. | `Documents/Content/Content_World_Bible.md` |
 | 심연 전쟁 | Abyss War | 약 150-100년 전 발생한 세계적 전쟁. 심연의 기억을 해방하려는 해방파(기억 연구원)와 현재 세계를 수호하려는 수호파(성채 의회+수호단)가 대립. 영웅 카엘 오르스가 심연과 협약을 맺어 종결했다. | `Documents/Content/Content_World_Bible.md` |
 | 카엘 오르스 | Kael Ors | 심연 전쟁의 영웅. 심연의 검을 들고 심연 속으로 뛰어들어 심연과 협약을 맺었다. 협약의 닻으로서 100년간 심연 속에 머물고 있다. 심연의 검 최심층에서 기억으로서 대면 가능. | `Documents/Content/Content_World_Bible.md` |
 | 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
-| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. Project Abyss에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
+| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. ECHORIS에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
 
 ---
 

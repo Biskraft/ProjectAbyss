@@ -1,8 +1,8 @@
 > **✅ 3스탯 체계 적용 완료:** 6대 스탯 → ATK/INT/HP 3스탯 체계로 치환 완료. 스탯 게이트는 ATK 단일. DEX/VIT/SPD/LCK 게이트는 능력 게이트로 대체. System_World_StatGating.md 참조.
 
-# Content_World_Bible: Project Abyss 세계 성경
+# Content_World_Bible: ECHORIS 세계 성경
 
-> 이 문서는 Project Abyss 세계관의 단일 진실 공급원(SSoT)이다.
+> 이 문서는 ECHORIS 세계관의 단일 진실 공급원(SSoT)이다.
 > 모든 퀘스트, 아이템 서사, NPC 대사, 환경 디자인은 이 문서에서 파생된다.
 
 ---

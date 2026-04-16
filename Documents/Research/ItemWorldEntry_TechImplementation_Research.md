@@ -22,7 +22,7 @@
 5. [14가지 픽셀아트 전환 기법 — GLSL 구현](#5-14가지-픽셀아트-전환-기법--glsl-구현)
 6. [전체 시퀀스 체이닝: 바닥 붕괴 → 다크닝 → 와이프 → 씬 로드](#6-전체-시퀀스-체이닝)
 7. [성능 고려사항 — GC 스톨 방지](#7-성능-고려사항--gc-스톨-방지)
-8. [Project Abyss 권장 구현 설계](#8-project-abyss-권장-구현-설계)
+8. [ECHORIS 권장 구현 설계](#8-project-abyss-권장-구현-설계)
 9. [출처](#9-출처)
 
 ---
@@ -31,7 +31,7 @@
 
 ### 1-1. 기존 코드베이스 현황
 
-Project Abyss는 이미 두 개의 전환 이펙트 클래스를 보유하고 있다.
+ECHORIS는 이미 두 개의 전환 이펙트 클래스를 보유하고 있다.
 
 | 파일 | 역할 | 현재 상태 |
 |:-----|:-----|:---------|
@@ -215,7 +215,7 @@ void main() {
 - 핵심은 **팔레트 시프트(color grading)** + **환경 변화(배경, 타일셋 교체)**의 조합.
 - 전환 효과보다 **입장 직후의 환경 극변**이 임팩트를 담당한다.
 
-**Project Abyss 적용:**
+**ECHORIS 적용:**
 - 아이템계 각 지층 진입 시 `ColorMatrixFilter`로 색조를 변경.
 - 전환 셰이더 자체에는 큰 투자 불필요 — 착지 후 타일셋/배경 색상 변화가 핵심.
 
@@ -246,7 +246,7 @@ scene.container.filters = [colorFilter];
 
 **핵심 인사이트:** "연출에 드는 프레임이 짧을수록 충격이 더 크다." 1프레임 플래시 + 0.5초 전환이 2초짜리 긴 연출보다 강렬할 수 있다.
 
-**Project Abyss 적용:**
+**ECHORIS 적용:**
 - `FloorCollapse`의 `fade_out` 페이즈 진입 직전 — 0.3초 Ripple 셰이더 삽입.
 - Ripple은 `worldSprite.filters`에 임시 적용 후 완료 시 제거.
 
@@ -260,7 +260,7 @@ scene.container.filters = [colorFilter];
 
 **핵심 인사이트:** "전환 셰이더 자체보다 도착 후의 '착지 연출'이 플레이어 기억에 남는다."
 
-**Project Abyss 적용:**
+**ECHORIS 적용:**
 - 아이템계 첫 진입: `FloorCollapse` → 암전 → `ItemWorldScene.init()` → **플레이어 착지 충격파** 이펙트.
 - 착지 충격파가 "전환이 완료되었다"는 신호를 강하게 전달.
 
@@ -1154,7 +1154,7 @@ filterPool.release('iris_wipe', this.entryFilter);
 
 ---
 
-## 8. Project Abyss 권장 구현 설계
+## 8. ECHORIS 권장 구현 설계
 
 ### 8-1. 권장 전환 스택 (구현 난이도 순)
 

@@ -40,7 +40,7 @@
 
 ### 1.1. 설계 의도 (Intent)
 
-Project Abyss의 전투 액션 시스템은 다음 한 문장으로 정의한다:
+ECHORIS의 전투 액션 시스템은 다음 한 문장으로 정의한다:
 
 > "버튼 하나로 시작하고, 스킬 조합으로 깊어지는 전투"
 
@@ -358,7 +358,7 @@ sequenceDiagram
 | **Hollow Knight** | 없음 / Shadow Dash 전구간 | 업그레이드로 i-frame 부여      |
 | **Celeste**     | 없음              | 대시는 순수 이동 기동                   |
 | **Ori**         | 없음              | 대시는 이동 수단                        |
-| **Project Abyss** | **없음**         | SotN/HK/Celeste/Ori 기준. 위치 재설정 중심 회피 |
+| **ECHORIS** | **없음**         | SotN/HK/Celeste/Ori 기준. 위치 재설정 중심 회피 |
 
 #### 상세 규칙
 

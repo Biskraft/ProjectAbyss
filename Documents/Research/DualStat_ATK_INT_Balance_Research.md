@@ -567,7 +567,7 @@ Phase 1 프로토타입 밸런스 검증을 위한 시뮬레이션 파라미터:
 - Team Cherry, *Hollow Knight* (2017) — Nail vs Spell 균형 모델
 - Supergiant Games, *Hades* (2020) — 버프 특이화, 듀오 버프 메커니즘
 
-**Project Abyss 연결 문서:**
+**ECHORIS 연결 문서:**
 - `Documents/System/System_Combat_Damage.md` — 공식 파라미터 반영 대상
 - `Documents/System/System_World_StatGating.md` — 게이트 배분 비율 반영 대상
 - `Documents/System/System_Innocent_Core.md` — Gladiator/Tutor 수치 기준 반영 대상
