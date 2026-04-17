@@ -53,7 +53,8 @@ import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
-import { SWORD_DEFS } from '@data/weapons';
+import { SWORD_DEFS, type WeaponDef } from '@data/weapons';
+import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
 import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -63,6 +64,13 @@ import { FloorCollapse } from '@effects/FloorCollapse';
 import { MemoryDive } from '@effects/MemoryDive';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
+import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import {
+  getAreaPalette,
+  getAreaPaletteAtlas,
+  getAreaPaletteRow,
+  ensureAreaTilesetsLoaded,
+} from '@data/areaPalettes';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
 import { WorldMapOverlay } from '@ui/WorldMapOverlay';
@@ -92,7 +100,9 @@ const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // tunnel flow (floor collapse → loadLevel('ItemTunnel_*') → enter item world)
 // keeps working after tunnels were moved out of the Overworld world.
 const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
-const ATLAS_PATH = assetPath('assets/atlas/SunnyLand_by_Ansimuz-extended.png');
+// AreaIDs used by the overworld — Content_System_Area_Palette.csv's Tileset
+// column drives which atlases get loaded for this scene.
+const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
@@ -106,6 +116,8 @@ export class LdtkWorldScene extends Scene {
   private loader!: LdtkLoader;
   private renderer!: LdtkRenderer;
   private atlas!: Texture;
+  /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
+  private atlases: Record<string, Texture> = {};
   private currentLevel!: LdtkLevel;
   private collisionGrid: number[][] = [];
   private cameraZones: {
@@ -258,12 +270,52 @@ export class LdtkWorldScene extends Scene {
       this.inventory.equip(starterSword.uid);
     }
 
-    // Load tileset atlas
-    this.atlas = await Assets.load(ATLAS_PATH);
+    // Lazy-load only the tilesets this area needs. Driven by the Tileset
+    // column of Content_System_Area_Palette.csv.  Additional tilesets are
+    // loaded on demand when the player enters a new area.
+    await ensureAreaTilesetsLoaded(WORLD_AREA_IDS as unknown as string[], this.atlases);
+    // Primary atlas kept for any legacy single-atlas paths.
+    this.atlas =
+      this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
+      Object.values(this.atlases)[0];
 
     // LDtk renderer ??tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
+
+    // Dead Cells-style palette swap filter — production default.
+    // Data-driven via Sheets/Content_System_Area_Palette.csv: rows for
+    // "world_shaft_bg" / "world_shaft_wall" supply stops + depth/brightness
+    // params. Atlas is a single shared GPU texture with one row per AreaID.
+    // See: Documents/Research/DeadCells_GrayscalePalette_Research.md
+    {
+      const atlas = getAreaPaletteAtlas();
+      const bgEntry = getAreaPalette('world_shaft_bg');
+      const wallEntry = getAreaPalette('world_shaft_wall');
+      const bgFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
+        strength: 1.0,
+        depthBias: bgEntry.depthBias,
+        depthCenter: bgEntry.depthCenter,
+        brightness: bgEntry.brightness,
+        tint: bgEntry.tint,
+      });
+      const wallFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(wallEntry.id),
+        strength: 1.0,
+        depthBias: wallEntry.depthBias,
+        depthCenter: wallEntry.depthCenter,
+        brightness: wallEntry.brightness,
+        tint: wallEntry.tint,
+      });
+      this.renderer.bgLayer.filters = [bgFilter];
+      this.renderer.wallLayer.filters = [wallFilter];
+      this.renderer.shadowLayer.filters = [wallFilter];
+    }
 
     // Entity layer (enemies, drops, portals, altars)
     this.entityLayer = new Container();
@@ -725,8 +777,10 @@ export class LdtkWorldScene extends Scene {
       const dx = Math.abs((this.player.x + this.player.width / 2) - (gp.x + gp.width / 2));
       const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
       if (dx < 16 && dy < 16) {
-        const key = (gp as any)._key as string;
-        this.collectedItems.add(key);
+        // LDtk-placed pickups have _key for permanent collection state.
+        // Monster drops have no _key — collected once on pickup but not persisted.
+        const key = (gp as any)._key as string | undefined;
+        if (key) this.collectedItems.add(key);
         gp.collect();
         this.gold += gp.amount;
         this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
@@ -1248,7 +1302,7 @@ export class LdtkWorldScene extends Scene {
       const row = Math.floor(t.px[1] / TILE_SIZE);
       return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
     });
-    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlas);
+    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases);
 
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
@@ -2215,8 +2269,14 @@ export class LdtkWorldScene extends Scene {
 
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
-          const swordDef = (itemId ? SWORD_DEFS.find(d => d.id === itemId) : null) ?? SWORD_DEFS[0];
-          const item = createItem(swordDef, swordDef.rarity);
+          // Lore weapons (hand-placed, Elden Ring-style) take precedence over
+          // generic sword drops. Their combat stats inherit from the matching
+          // rarity sword template since LoreWeapon CSV only tracks baseAtk.
+          const loreDef = itemId ? LORE_WEAPONS.get(itemId) : null;
+          const def: WeaponDef = loreDef
+            ? loreWeaponToWeaponDef(loreDef)
+            : (SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0]);
+          const item = createItem(def, def.rarity);
           const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
           (drop as any)._itemKey = itemKey;
           this.drops.push(drop);
@@ -2807,9 +2867,12 @@ export class LdtkWorldScene extends Scene {
     if (this.minimap) this.minimap.visible = false;
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
+      // Mark global Item World tutorial as done
+      this.unlockedEvents.add('__itemWorldTutorialDone');
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -3259,7 +3322,7 @@ export class LdtkWorldScene extends Scene {
       // Keep tile only if collision cell is still solid (1) or water (2)
       return (grid[row]?.[col] ?? 0) !== 0;
     });
-    this.renderer.rebuildWallLayer(filteredTiles, this.atlas);
+    this.renderer.rebuildWallLayer(filteredTiles, this.atlases);
   }
 
   private triggerFloorCollapse(): void {
@@ -3357,9 +3420,11 @@ export class LdtkWorldScene extends Scene {
     if (this.minimap) this.minimap.visible = false;
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
+      this.unlockedEvents.add('__itemWorldTutorialDone');
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -3409,9 +3474,11 @@ export class LdtkWorldScene extends Scene {
       // Fallback to procedural
       this.collapseItem = item;
       const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player);
+      itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
       itemWorldScene.onComplete = () => {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
+        this.unlockedEvents.add('__itemWorldTutorialDone');
         // Collect earned gold from Item World
         if (itemWorldScene.earnedGold > 0) {
           this.gold += itemWorldScene.earnedGold;

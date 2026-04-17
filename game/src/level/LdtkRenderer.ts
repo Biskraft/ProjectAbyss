@@ -22,13 +22,13 @@ export class LdtkRenderer {
   readonly container: Container;
 
   /** Background autoLayer tiles (rendered first / bottom). */
-  private bgLayer: Container;
+  readonly bgLayer: Container;
 
   /** Wall/terrain tiles from Collisions IntGrid autoLayerTiles (100% opacity). */
-  private wallLayer: Container;
+  readonly wallLayer: Container;
 
   /** Wall_shadows autoLayer tiles (rendered above walls, reduced opacity). */
-  private shadowLayer: Container;
+  readonly shadowLayer: Container;
 
   /** Optional debug markers for entity positions. */
   private entityMarkers: Container;
@@ -53,31 +53,39 @@ export class LdtkRenderer {
    *
    * @param bgTiles       - Tiles from the Background autoLayer.
    * @param shadowTiles   - Tiles from the Wall_shadows autoLayer.
-   * @param atlas          - The full tileset atlas texture (e.g. SunnyLand).
+   * @param atlases        - Either a single atlas Texture (legacy — applied to
+   *                         every tile) or a map keyed by the tileset's
+   *                         __tilesetRelPath. Per-tile tilesetPath (set by
+   *                         LdtkLoader from __tilesetRelPath) picks the
+   *                         matching atlas; tiles whose tileset isn't in the
+   *                         map are silently skipped.
    * @param shadowOpacity  - Opacity for the shadow layer (default 0.53, from LDtk).
    */
   renderLevel(
     bgTiles: LdtkTile[],
     wallTiles: LdtkTile[],
     shadowTiles: LdtkTile[],
-    atlas: Texture,
+    atlases: Texture | Record<string, Texture>,
     shadowOpacity: number = DEFAULT_SHADOW_OPACITY,
   ): void {
     this.clear();
 
     for (const tile of bgTiles) {
-      this.bgLayer.addChild(this.buildSprite(tile, atlas));
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.bgLayer.addChild(sprite);
     }
 
     // Wall/terrain tiles at full opacity
     for (const tile of wallTiles) {
-      this.wallLayer.addChild(this.buildSprite(tile, atlas));
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.wallLayer.addChild(sprite);
     }
 
     // Shadow overlay at reduced opacity
     this.shadowLayer.alpha = shadowOpacity;
     for (const tile of shadowTiles) {
-      this.shadowLayer.addChild(this.buildSprite(tile, atlas));
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.shadowLayer.addChild(sprite);
     }
   }
 
@@ -103,10 +111,11 @@ export class LdtkRenderer {
   }
 
   /** Rebuild only the wall layer (leaves background and shadows untouched). */
-  rebuildWallLayer(wallTiles: LdtkTile[], atlas: Texture): void {
+  rebuildWallLayer(wallTiles: LdtkTile[], atlases: Texture | Record<string, Texture>): void {
     this.wallLayer.removeChildren();
     for (const tile of wallTiles) {
-      this.wallLayer.addChild(this.buildSprite(tile, atlas));
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.wallLayer.addChild(sprite);
     }
   }
 
@@ -128,8 +137,32 @@ export class LdtkRenderer {
    * Flip is encoded in the `f` bitmask:
    *   bit 0 (f & 1) → horizontal flip: scale.x = -1, anchor.x = 1
    *   bit 1 (f & 2) → vertical flip:   scale.y = -1, anchor.y = 1
+   *
+   * Returns null when `atlases` is a map and the tile's tileset is absent —
+   * caller should skip the tile (e.g. scene didn't load that atlas yet).
    */
-  private buildSprite(tile: LdtkTile, atlas: Texture): Sprite {
+  private buildSprite(
+    tile: LdtkTile,
+    atlases: Texture | Record<string, Texture>,
+  ): Sprite | null {
+    // Resolve the correct atlas for this tile's tileset.
+    let atlas: Texture | undefined;
+    if (atlases instanceof Texture) {
+      atlas = atlases;
+    } else if (tile.tilesetPath && atlases[tile.tilesetPath]) {
+      atlas = atlases[tile.tilesetPath];
+    } else {
+      // Fallback: first atlas in the map so tiles without tilesetPath
+      // metadata (legacy) still render if the scene supplied at least one.
+      const firstKey = Object.keys(atlases)[0];
+      atlas = firstKey ? atlases[firstKey] : undefined;
+      if (!atlas) return null;
+      if (tile.tilesetPath && !atlases[tile.tilesetPath]) {
+        // Tileset was referenced but not loaded — skip rather than miscolor.
+        return null;
+      }
+    }
+
     const frame = new Rectangle(tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
     // Reuse the atlas GPU source; only the frame rect differs per tile.
     const texture = new Texture({ source: atlas.source, frame });

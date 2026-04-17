@@ -47,6 +47,13 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
+import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import {
+  getAreaPalette,
+  getAreaPaletteAtlas,
+  getAreaPaletteRow,
+  ensureAreaTilesetsLoaded,
+} from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
@@ -83,6 +90,8 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
 export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
+  /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
+  private atlases: Record<string, Texture> = {};
   private ldtkLoader: LdtkLoader | null = null;
   private ldtkRenderer: LdtkRenderer | null = null;
   private ldtkTemplates: LdtkLevel[] = [];
@@ -136,6 +145,21 @@ export class ItemWorldScene extends Scene {
   /** Cells written by door-mask seal (code-generated walls, not LDtk). */
   private sealedCells = new Set<string>();
   private fullMapContainer: Container | null = null;
+  /** Palette-swap filter for background tiles (production default). */
+  private bgPaletteFilter!: PaletteSwapFilter;
+  /** Palette-swap filter for wall + shadow tiles (dark, cool row). */
+  private wallPaletteFilter!: PaletteSwapFilter;
+  /**
+   * Aggregate layer containers sitting INSIDE fullMapContainer. All rooms'
+   * bg/wall/shadow sub-layers are re-parented into these so the palette
+   * filter sees ONE continuous target — otherwise each per-room filter
+   * instance has its own filter bounds and the depth gradient visibly
+   * resets at every room seam. Rebuilt alongside fullMapContainer.
+   */
+  private bgAggregate: Container | null = null;
+  private wallAggregate: Container | null = null;
+  private shadowAggregate: Container | null = null;
+  private sealAggregate: Container | null = null;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
   private updraftSystem!: UpdraftSystem;
@@ -232,6 +256,9 @@ export class ItemWorldScene extends Scene {
   // Callback when done
   onComplete: (() => void) | null = null;
 
+  /** Set to true if the global Item World tutorial has already been completed. */
+  itemWorldTutorialDone = false;
+
   constructor(game: Game, item: ItemInstance, inventory: Inventory, sourcePlayer: Player) {
     super(game);
     this.item = item;
@@ -240,8 +267,16 @@ export class ItemWorldScene extends Scene {
   }
 
   async init(): Promise<void> {
-    // Load tileset atlas + LDtk item world templates (merged multi-world file)
-    this.atlas = await Assets.load(assetPath('assets/atlas/SunnyLand_by_Ansimuz-extended.png'));
+    // Lazy-load only the tilesets this item world needs. Driven by the
+    // Tileset column of Content_System_Area_Palette.csv — the rarity of the
+    // current item determines which rows (iw_{rarity}_bg/wall) are consulted.
+    const rarityId = this.item.rarity;
+    const areaIds = [`iw_${rarityId}_bg`, `iw_${rarityId}_wall`];
+    await ensureAreaTilesetsLoaded(areaIds, this.atlases);
+    this.atlas =
+      this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
+      Object.values(this.atlases)[0] ??
+      null;
     try {
       const json = await fetch(assetPath('assets/World_ProjectAbyss.ldtk')).then(r => r.json());
       this.ldtkLoader = new LdtkLoader();
@@ -268,8 +303,9 @@ export class ItemWorldScene extends Scene {
     }
 
     // First Normal entry special: 3x3 grid, boss HP x0.7, no enrage
-    // Condition: Normal rarity + cycle 0 + no strata cleared yet
-    this.isFirstNormalEntry = this.item.rarity === 'normal'
+    // Condition: global tutorial not yet done + Normal rarity + cycle 0 + no strata cleared
+    this.isFirstNormalEntry = !this.itemWorldTutorialDone
+      && this.item.rarity === 'normal'
       && this.progress.cycle === 0
       && this.progress.deepestUnlocked === 0
       && this.progress.clearedRooms.length === 0;
@@ -324,6 +360,47 @@ export class ItemWorldScene extends Scene {
     this.tilemap = new TilemapRenderer(TILE_SIZE);
     this.tilemap.setTheme(this.currentStratumDef.theme);
     this.container.addChild(this.tilemap.container);
+
+    // Dead Cells-style palette swap — production default.
+    // Rarity picks BG+WALL palette pair; BG is hue-rich/warm, WALL is
+    // dark/complementary. Built once; applied to aggregate containers each
+    // rebuild so the gradient is continuous across all rooms.
+    // See: Documents/Research/DeadCells_GrayscalePalette_Research.md
+    {
+      // Data-driven biome: rarity picks an AreaID pair in
+      // Sheets/Content_System_Area_Palette.csv. Missing rarity falls back to
+      // the Normal pair.
+      const rarity = this.item.rarity;
+      const bgId = `iw_${rarity}_bg`;
+      const wallId = `iw_${rarity}_wall`;
+      const bgEntry = getAreaPalette(
+        getAreaPaletteAtlas().rowIndex.has(bgId) ? bgId : 'iw_normal_bg',
+      );
+      const wallEntry = getAreaPalette(
+        getAreaPaletteAtlas().rowIndex.has(wallId) ? wallId : 'iw_normal_wall',
+      );
+      const atlas = getAreaPaletteAtlas();
+      this.bgPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
+        strength: 1.0,
+        depthBias: bgEntry.depthBias,
+        depthCenter: bgEntry.depthCenter,
+        brightness: bgEntry.brightness,
+        tint: bgEntry.tint,
+      });
+      this.wallPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(wallEntry.id),
+        strength: 1.0,
+        depthBias: wallEntry.depthBias,
+        depthCenter: wallEntry.depthCenter,
+        brightness: wallEntry.brightness,
+        tint: wallEntry.tint,
+      });
+    }
 
     // Entity layer
     this.entityLayer = new Container();
@@ -543,6 +620,23 @@ export class ItemWorldScene extends Scene {
       this.fullMapContainer.destroy({ children: true }); // free GPU textures
     }
     this.fullMapContainer = new Container();
+    // Create aggregate layer containers so the palette filter spans the
+    // entire map in ONE pass (continuous gradient across all rooms).
+    this.bgAggregate = new Container();
+    this.wallAggregate = new Container();
+    this.shadowAggregate = new Container();
+    this.sealAggregate = new Container();
+    // Render order: bg -> walls -> shadows -> seal overlays
+    this.fullMapContainer.addChild(this.bgAggregate);
+    this.fullMapContainer.addChild(this.wallAggregate);
+    this.fullMapContainer.addChild(this.shadowAggregate);
+    this.fullMapContainer.addChild(this.sealAggregate);
+    this.bgAggregate.filters = [this.bgPaletteFilter];
+    this.wallAggregate.filters = [this.wallPaletteFilter];
+    this.shadowAggregate.filters = [this.wallPaletteFilter];
+    // Seal walls use the wall filter so their brick pattern reads in the
+    // same dark-cool silhouette family as LDtk wall tiles.
+    this.sealAggregate.filters = [this.wallPaletteFilter];
     this.spawnedRooms.clear();
     this.roomTypeMap.clear();
     this.clearEnemies();
@@ -603,11 +697,11 @@ export class ItemWorldScene extends Scene {
 
         // Render room tiles — ALL layers including wallTiles so that LDtk
         // auto-tile rules for platform(3), updraft(4), etc. render properly.
-        // drawUniformWalls then overlays flat color ONLY on wall(1)/spike(5)/
-        // ice(7)/breakable(9), leaving platform/updraft LDtk art intact.
-        const roomContainer = new Container();
-        roomContainer.x = col * IW_ROOM_W_PX;
-        roomContainer.y = localRow * IW_ROOM_H_PX;
+        // Each room's layers are re-parented into the aggregate containers
+        // so the palette filter runs ONCE over the full map (continuous
+        // gradient, no per-room seams).
+        const roomX = col * IW_ROOM_W_PX;
+        const roomY = localRow * IW_ROOM_H_PX;
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
@@ -615,15 +709,21 @@ export class ItemWorldScene extends Scene {
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlas);
-        roomContainer.addChild(renderer.container);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases);
+        renderer.bgLayer.position.set(roomX, roomY);
+        renderer.wallLayer.position.set(roomX, roomY);
+        renderer.shadowLayer.position.set(roomX, roomY);
+        this.bgAggregate!.addChild(renderer.bgLayer);
+        this.wallAggregate!.addChild(renderer.wallLayer);
+        this.shadowAggregate!.addChild(renderer.shadowLayer);
 
-        // Uniform flat wall fill: every solid tile in this room's fullGrid
-        // region gets a 16×16 0x383838 rect. Covers template walls and the
-        // door-mask seal strips with the same color in one pass.
-        this.drawUniformWalls(roomContainer, offR, offC);
-
-        this.fullMapContainer.addChild(roomContainer);
+        // Seal-wall overlays (code-generated 0x101010 fills on door-mask cells).
+        // Drawn on the seal aggregate so they render above tiles and are
+        // NOT swept by the wall palette (flat black seam look intentional).
+        const sealContainer = new Container();
+        sealContainer.position.set(roomX, roomY);
+        this.drawUniformWalls(sealContainer, offR, offC);
+        this.sealAggregate!.addChild(sealContainer);
 
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX);
@@ -1276,15 +1376,47 @@ export class ItemWorldScene extends Scene {
     });
   }
 
-  /** Paint only code-generated seal walls. LDtk template tiles render as-is. */
+  /**
+   * Paint code-generated seal walls with a mortar + 4×4 brick pattern per
+   * sealed cell. The luma variation (mortar ~0.21, bricks ~0.37–0.45) feeds
+   * the palette filter so each brick maps to a different palette position,
+   * producing a natural wall silhouette instead of a flat black hole.
+   * When the palette filter is off, the pattern still reads as a stone wall.
+   * LDtk template tiles render as-is.
+   */
   private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
     const gfx = new Graphics();
+    const T = TILE_SIZE;
+    const BRICK_W = 4;
+    const BRICK_H = 4;
+    // Palette-friendly mid-luma stone tones. Chosen so filter output spans
+    // the wall palette's dark-to-mid range for brick texture readability.
+    const brickColors = [0x6a6a80, 0x5c5c74, 0x727288, 0x64647c];
+    const mortar = 0x33334a;
+
     for (let lr = 0; lr < IW_ROOM_H_TILES; lr++) {
       for (let lc = 0; lc < IW_ROOM_W_TILES; lc++) {
         const gr = offR + lr;
         const gc = offC + lc;
         if (!this.sealedCells.has(`${gr},${gc}`)) continue;
-        gfx.rect(lc * TILE_SIZE, lr * TILE_SIZE, TILE_SIZE, TILE_SIZE).fill(0x101010);
+
+        const x = lc * T;
+        const y = lr * T;
+        // Mortar base
+        gfx.rect(x, y, T, T).fill(mortar);
+        // 4×4 brick grid with row-offset stagger for masonry look
+        for (let by = 0; by < 4; by++) {
+          const offset = (by + lr) % 2 === 0 ? 0 : 2;
+          for (let bx = 0; bx < 4; bx++) {
+            const bxPos = x + ((bx * BRICK_W + offset) % T);
+            const byPos = y + by * BRICK_H;
+            // Deterministic color pick per brick so the pattern is stable
+            // across rebuilds (breakable tile destruction re-invokes this).
+            const colorIdx = (lc * 7 + lr * 13 + bx * 3 + by) % brickColors.length;
+            gfx.rect(bxPos + 1, byPos + 1, BRICK_W - 1, BRICK_H - 1)
+               .fill(brickColors[colorIdx]);
+          }
+        }
       }
     }
     roomContainer.addChild(gfx);
@@ -1467,7 +1599,7 @@ export class ItemWorldScene extends Scene {
       this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
       this.tilemap.container.visible = false;
       this.ldtkRenderer.clear();
-      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlas);
+      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases);
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
       }
@@ -2261,9 +2393,14 @@ export class ItemWorldScene extends Scene {
   /** Re-render all room containers with updated fullGrid state. */
   private rebuildRoomVisuals(): void {
     if (!this.fullMapContainer || !this.atlas) return;
-    // Remove and rebuild all room containers. This is called rarely (only on
-    // breakable tile destruction) so performance is acceptable.
-    this.fullMapContainer.removeChildren();
+    if (!this.bgAggregate || !this.wallAggregate || !this.shadowAggregate || !this.sealAggregate) return;
+    // Clear aggregate children (preserves the aggregate containers and their
+    // palette filters, so the continuous gradient is maintained).
+    this.bgAggregate.removeChildren();
+    this.wallAggregate.removeChildren();
+    this.shadowAggregate.removeChildren();
+    this.sealAggregate.removeChildren();
+
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
 
@@ -2277,20 +2414,27 @@ export class ItemWorldScene extends Scene {
 
         const offR = localRow * IW_ROOM_H_TILES;
         const offC = col * IW_ROOM_W_TILES;
+        const roomX = col * IW_ROOM_W_PX;
+        const roomY = localRow * IW_ROOM_H_PX;
 
-        const roomContainer = new Container();
-        roomContainer.x = col * IW_ROOM_W_PX;
-        roomContainer.y = localRow * IW_ROOM_H_PX;
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
-        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlas);
-        roomContainer.addChild(renderer.container);
-        this.drawUniformWalls(roomContainer, offR, offC);
-        this.fullMapContainer.addChild(roomContainer);
+        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases);
+        renderer.bgLayer.position.set(roomX, roomY);
+        renderer.wallLayer.position.set(roomX, roomY);
+        renderer.shadowLayer.position.set(roomX, roomY);
+        this.bgAggregate.addChild(renderer.bgLayer);
+        this.wallAggregate.addChild(renderer.wallLayer);
+        this.shadowAggregate.addChild(renderer.shadowLayer);
+
+        const sealContainer = new Container();
+        sealContainer.position.set(roomX, roomY);
+        this.drawUniformWalls(sealContainer, offR, offC);
+        this.sealAggregate.addChild(sealContainer);
       }
     }
   }
@@ -2384,6 +2528,8 @@ export class ItemWorldScene extends Scene {
     // LoreDisplay (Memory Room lore) — when active, pause gameplay
     if (this.loreDisplay?.isActive) {
       this.loreDisplay.update(dt);
+      // Sync prev position so render interpolation doesn't cause jitter
+      this.player.savePrevPosition();
       return;
     }
 
@@ -2445,7 +2591,10 @@ export class ItemWorldScene extends Scene {
         this.player.y = respawnY - this.player.height;
         this.player.vx = 0;
         this.player.vy = 0;
+        this.player.savePrevPosition();
         this.hud.hideBossHP();
+        // Refresh EXP bar to current item state (prevents visual reset to 0)
+        this.hud.updateItemExp(this.item.level, this.item.exp, EXP_PER_LEVEL, false);
         this.toast.show('Respawn — Try again!', 0x88ccff);
         return;
       }

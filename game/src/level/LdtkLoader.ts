@@ -124,6 +124,13 @@ export interface LdtkTile {
   f: number;
   /** Alpha value (0.0 – 1.0). */
   a: number;
+  /**
+   * Relative path of the source tileset (from the LDtk layer's __tilesetRelPath).
+   * Renderer uses this to pick the right loaded atlas texture when a level
+   * mixes tiles from multiple tilesets (e.g. Background from world_01.png,
+   * Collisions from SunnyLand). Null if the layer has no assigned tileset.
+   */
+  tilesetPath: string | null;
 }
 
 /** An entity instance placed in the Entities layer. */
@@ -156,6 +163,8 @@ interface RawLdtkLayer {
   __type: string;
   __cWid: number;
   __cHei: number;
+  __tilesetDefUid?: number | null;
+  __tilesetRelPath?: string | null;
   intGridCsv: number[];
   autoLayerTiles: RawLdtkAutoTile[];
   entityInstances: RawLdtkEntityInstance[];
@@ -384,6 +393,7 @@ export class LdtkLoader {
     const layers = raw.layerInstances ?? [];
 
     for (const layer of layers) {
+      const layerTilesetPath = layer.__tilesetRelPath ?? null;
       switch (layer.__identifier) {
         case 'Collisions':
           // IntGrid layer — convert 1D csv to 2D grid.
@@ -393,17 +403,17 @@ export class LdtkLoader {
           // IntGrid layers carry autoLayerTiles (auto-rule visuals) — these
           // are the primary wall/terrain tiles. Render at FULL opacity.
           if (layer.autoLayerTiles.length > 0) {
-            wallTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
+            wallTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
           }
           break;
 
         case 'Background':
-          backgroundTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
+          backgroundTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
           break;
 
         case 'Wall_shadows':
           // Overlay shadows at reduced opacity.
-          shadowTiles = this.parseAutoLayerTiles(layer.autoLayerTiles);
+          shadowTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
           break;
 
         case 'Entities':
@@ -494,12 +504,16 @@ export class LdtkLoader {
    * Drops the LDtk-internal "t" (tileId) and "d" (destination indices) fields
    * since rendering only needs destination pixel coords, source coords, flip, and alpha.
    */
-  private parseAutoLayerTiles(rawTiles: RawLdtkAutoTile[]): LdtkTile[] {
+  private parseAutoLayerTiles(
+    rawTiles: RawLdtkAutoTile[],
+    tilesetPath: string | null,
+  ): LdtkTile[] {
     return rawTiles.map((t) => ({
       px: [t.px[0], t.px[1]],
       src: [t.src[0], t.src[1]],
       f: t.f,
       a: t.a,
+      tilesetPath,
     }));
   }
 

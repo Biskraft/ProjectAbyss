@@ -29,8 +29,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
 // Layout constants
 const BOX_HEIGHT = 64;
-const BOX_Y_TARGET = GAME_HEIGHT - BOX_HEIGHT;  // final position
-const BOX_Y_HIDDEN = GAME_HEIGHT + 4;            // off-screen (slide-out)
+const BOX_Y_TARGET = GAME_HEIGHT - BOX_HEIGHT - 48;  // final position (raised 3 tiles to avoid HUD overlap)
+const BOX_Y_HIDDEN = GAME_HEIGHT + 4;                 // off-screen (slide-out)
 const PORTRAIT_SIZE = 48;
 const PORTRAIT_PAD = 6;
 const TEXT_LEFT = PORTRAIT_SIZE + PORTRAIT_PAD * 2 + 4;
