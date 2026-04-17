@@ -70,6 +70,7 @@ import {
   getAreaPaletteAtlas,
   getAreaPaletteRow,
   ensureAreaTilesetsLoaded,
+  aliasAreaTilesetForLdtkTiles,
 } from '@data/areaPalettes';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
@@ -1302,6 +1303,13 @@ export class LdtkWorldScene extends Scene {
       const row = Math.floor(t.px[1] / TILE_SIZE);
       return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
     });
+    // CSV `Tileset` column is authoritative: if the LDtk project still
+    // references the old tileset path (e.g. atlas/world_01.png) but the CSV
+    // points at a different file (world_02), alias the loaded CSV atlas under
+    // the LDtk-expected path so the renderer finds it.
+    aliasAreaTilesetForLdtkTiles('world_shaft_bg', level.backgroundTiles, this.atlases);
+    aliasAreaTilesetForLdtkTiles('world_shaft_wall', filteredWalls, this.atlases);
+    aliasAreaTilesetForLdtkTiles('world_shaft_wall', level.shadowTiles, this.atlases);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases);
 
     // Camera bounds

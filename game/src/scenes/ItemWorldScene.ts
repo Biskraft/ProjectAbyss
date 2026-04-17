@@ -53,6 +53,7 @@ import {
   getAreaPaletteAtlas,
   getAreaPaletteRow,
   ensureAreaTilesetsLoaded,
+  aliasAreaTilesetForLdtkTiles,
 } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
@@ -709,6 +710,14 @@ export class ItemWorldScene extends Scene {
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
+        // CSV Tileset is authoritative: alias CSV-loaded atlases under the
+        // LDtk-referenced paths so renderer finds them even when LDtk and CSV
+        // point at different tileset files (e.g. CSV=world_02, LDtk=world_01).
+        const bgAreaId = `iw_${this.item.rarity}_bg`;
+        const wallAreaId = `iw_${this.item.rarity}_wall`;
+        aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
+        aliasAreaTilesetForLdtkTiles(wallAreaId, wallTiles, this.atlases);
+        aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
         renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
@@ -1599,6 +1608,13 @@ export class ItemWorldScene extends Scene {
       this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
       this.tilemap.container.visible = false;
       this.ldtkRenderer.clear();
+      {
+        const bgAreaId = `iw_${this.item.rarity}_bg`;
+        const wallAreaId = `iw_${this.item.rarity}_wall`;
+        aliasAreaTilesetForLdtkTiles(bgAreaId, ldtkLevel.backgroundTiles, this.atlases);
+        aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.wallTiles, this.atlases);
+        aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.shadowTiles, this.atlases);
+      }
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases);
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
@@ -2423,6 +2439,12 @@ export class ItemWorldScene extends Scene {
         const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
+        {
+          const bgAreaId = `iw_${this.item.rarity}_bg`;
+          const wallAreaId = `iw_${this.item.rarity}_wall`;
+          aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
+          aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
+        }
         renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);

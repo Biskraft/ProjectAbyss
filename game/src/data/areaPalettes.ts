@@ -205,3 +205,34 @@ export async function ensureAreaTilesetsLoaded(
   }
   await Promise.all(tasks);
 }
+
+/**
+ * Alias the atlas loaded for `areaId` so it also answers under every LDtk
+ * `tilesetPath` referenced by the supplied tiles.
+ *
+ * This makes the CSV `Tileset` column authoritative: when the CSV specifies
+ * e.g. `world_02` for a BG area but the LDtk project still references
+ * `atlas/world_01.png` on its Background layer, calling this with the level's
+ * background tiles will register the loaded `world_02` texture under
+ * `atlas/world_01.png` too — so the renderer's per-tile lookup hits a real
+ * atlas instead of returning null (empty visuals).
+ *
+ * Idempotent: entries already present in `atlases` are not overwritten.
+ * Scenes that mix BG and WALL atlases must call this once per layer with the
+ * AreaID that governs that layer, so the BG and WALL aliases never collide.
+ */
+export function aliasAreaTilesetForLdtkTiles(
+  areaId: string,
+  tiles: ReadonlyArray<{ tilesetPath: string | null }>,
+  atlases: Record<string, Texture>,
+): void {
+  const entry = AREA_PALETTES.get(areaId);
+  if (!entry?.tileset) return;
+  const sourceKey = tilesetRelPath(entry.tileset);
+  const sourceAtlas = atlases[sourceKey];
+  if (!sourceAtlas) return;
+  for (const t of tiles) {
+    const p = t.tilesetPath;
+    if (p && !atlases[p]) atlases[p] = sourceAtlas;
+  }
+}
