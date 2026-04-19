@@ -4,8 +4,23 @@
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
+import { isSpecialVisualTile } from '@core/Physics';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
+
+/**
+ * Atlas 원색 보존 영역 (src 좌표, px 기준).
+ *
+ * 아틀라스 오른쪽 하단 구역에 배치된 해저드/신호 타일들(물/가시/바람/불 등)은
+ * 색상 자체가 플레이어 커뮤니케이션 역할을 하므로 biome PaletteSwapFilter 에
+ * 물들지 않도록 `specialLayer` 로 우회시킨다.
+ *
+ * IntGrid 값이 특수(2/4/5/6/8)가 아니더라도, tile.src 가 이 사각형 안에 들면
+ * 무조건 specialLayer 로 간주. 아틀라스마다 색상 영역이 달라지면 이 상수만
+ * 조정하면 된다.
+ */
+const COLOR_TILE_MIN_SRC_X = 160;
+const COLOR_TILE_MIN_SRC_Y = 208;
 
 /** Color used per entity type for debug markers. */
 const ENTITY_COLORS: Record<string, number> = {
@@ -27,6 +42,14 @@ export class LdtkRenderer {
   /** Wall/terrain tiles from Collisions IntGrid autoLayerTiles (100% opacity). */
   readonly wallLayer: Container;
 
+  /**
+   * Hazard/signal tiles (water/spike/updraft/magma/charged) separated from
+   * wallLayer so callers can skip PaletteSwapFilter on this layer and keep
+   * the load-bearing original colors. Populated only when collisionGrid is
+   * supplied to renderLevel/rebuildWallLayer.
+   */
+  readonly specialLayer: Container;
+
   /** Wall_shadows autoLayer tiles (rendered above walls, reduced opacity). */
   readonly shadowLayer: Container;
 
@@ -38,12 +61,14 @@ export class LdtkRenderer {
 
     this.bgLayer = new Container();
     this.wallLayer = new Container();
+    this.specialLayer = new Container();
     this.shadowLayer = new Container();
     this.entityMarkers = new Container();
 
-    // Render order: bg → walls → shadows → entity markers
+    // Render order: bg → walls → special (hazards) → shadows → entity markers
     this.container.addChild(this.bgLayer);
     this.container.addChild(this.wallLayer);
+    this.container.addChild(this.specialLayer);
     this.container.addChild(this.shadowLayer);
     this.container.addChild(this.entityMarkers);
   }
@@ -60,6 +85,11 @@ export class LdtkRenderer {
    *                         matching atlas; tiles whose tileset isn't in the
    *                         map are silently skipped.
    * @param shadowOpacity  - Opacity for the shadow layer (default 0.53, from LDtk).
+   * @param collisionGrid  - Optional IntGrid used to route hazard tiles
+   *                         (water/spike/updraft/magma/charged) to specialLayer
+   *                         instead of wallLayer so the caller can skip palette
+   *                         swap on them. When absent, every wall tile goes to
+   *                         wallLayer (legacy behavior).
    */
   renderLevel(
     bgTiles: LdtkTile[],
@@ -67,6 +97,7 @@ export class LdtkRenderer {
     shadowTiles: LdtkTile[],
     atlases: Texture | Record<string, Texture>,
     shadowOpacity: number = DEFAULT_SHADOW_OPACITY,
+    collisionGrid?: number[][],
   ): void {
     this.clear();
 
@@ -75,10 +106,15 @@ export class LdtkRenderer {
       if (sprite) this.bgLayer.addChild(sprite);
     }
 
-    // Wall/terrain tiles at full opacity
+    // Wall/terrain tiles at full opacity. Hazards routed to specialLayer.
     for (const tile of wallTiles) {
       const sprite = this.buildSprite(tile, atlases);
-      if (sprite) this.wallLayer.addChild(sprite);
+      if (!sprite) continue;
+      if (this.isSpecialTile(tile, collisionGrid)) {
+        this.specialLayer.addChild(sprite);
+      } else {
+        this.wallLayer.addChild(sprite);
+      }
     }
 
     // Shadow overlay at reduced opacity
@@ -110,12 +146,22 @@ export class LdtkRenderer {
     }
   }
 
-  /** Rebuild only the wall layer (leaves background and shadows untouched). */
-  rebuildWallLayer(wallTiles: LdtkTile[], atlases: Texture | Record<string, Texture>): void {
+  /** Rebuild only the wall + special layers (leaves background and shadows untouched). */
+  rebuildWallLayer(
+    wallTiles: LdtkTile[],
+    atlases: Texture | Record<string, Texture>,
+    collisionGrid?: number[][],
+  ): void {
     this.wallLayer.removeChildren();
+    this.specialLayer.removeChildren();
     for (const tile of wallTiles) {
       const sprite = this.buildSprite(tile, atlases);
-      if (sprite) this.wallLayer.addChild(sprite);
+      if (!sprite) continue;
+      if (this.isSpecialTile(tile, collisionGrid)) {
+        this.specialLayer.addChild(sprite);
+      } else {
+        this.wallLayer.addChild(sprite);
+      }
     }
   }
 
@@ -123,8 +169,31 @@ export class LdtkRenderer {
   clear(): void {
     this.bgLayer.removeChildren();
     this.wallLayer.removeChildren();
+    this.specialLayer.removeChildren();
     this.shadowLayer.removeChildren();
     this.entityMarkers.removeChildren();
+  }
+
+  /**
+   * Decide if a tile should live on specialLayer instead of wallLayer.
+   *
+   * 두 가지 조건 중 하나라도 true 면 specialLayer 로:
+   *   1) tile.src 가 아틀라스 컬러 영역(오른쪽 하단) 안에 있을 때 — 원색 보존
+   *   2) IntGrid 값이 특수 해저드(water/spike/updraft/magma/charged)일 때
+   *
+   * (1)은 IntGrid 정보가 없어도 동작하므로, 해저드가 아닌 장식용 컬러 타일도
+   * 팔레트 스왑에 물들지 않는다.
+   */
+  private isSpecialTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {
+    if (tile.src[0] >= COLOR_TILE_MIN_SRC_X && tile.src[1] >= COLOR_TILE_MIN_SRC_Y) {
+      return true;
+    }
+    if (!collisionGrid) return false;
+    const col = Math.floor(tile.px[0] / TILE_SIZE);
+    const row = Math.floor(tile.px[1] / TILE_SIZE);
+    const rowData = collisionGrid[row];
+    if (!rowData) return false;
+    return isSpecialVisualTile(rowData[col] ?? 0);
   }
 
   // ---------------------------------------------------------------------------

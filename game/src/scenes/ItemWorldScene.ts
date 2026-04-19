@@ -29,6 +29,7 @@ import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorl
 import { getEnemyStats } from '@data/enemyStats';
 import { getMemoryRoom } from '@data/memoryRoomTable';
 import { LoreDisplay } from '@ui/LoreDisplay';
+import { ReturnHint } from '@ui/ReturnHint';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -38,6 +39,7 @@ import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
+import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
@@ -46,6 +48,7 @@ import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/Stra
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
+import { DeathParticleManager } from '@effects/DeathParticles';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import {
@@ -86,7 +89,8 @@ const BASE_BOSS_BONUS_EXP = 600;
 const BASE_EXP_PER_KILL = 60;
 const BASE_EXP_ROOM_PASS = 60;
 
-type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade';
+
+type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold';
 
 export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
@@ -107,11 +111,26 @@ export class ItemWorldScene extends Scene {
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
+  private returnHint: ReturnHint | null = null;
   private controlsOverlay!: ControlsOverlay;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
+  private deathParticles!: DeathParticleManager;
   private screenFlash!: ScreenFlash;
   private toast!: ToastManager;
+  // A15: innocent capture seal orbs — rise from capture point, home to player
+  private captureOrbs: { gfx: Graphics; x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
+  // A16: before/after stratum-clear panel. Stays until player presses X.
+  private stratumClearPanel: { container: Container; confirmed: boolean } | null = null;
+  // A17: boss-kill choice panel (Continue deeper vs Exit safely).
+  private bossChoicePanel: Container | null = null;
+  private bossChoiceVisible = false;
+  private _pendingStratumSnapshot: {
+    a6BeforeAtk: number;
+    a6AfterAtk: number;
+    a16: { beforeAtk: number; afterAtk: number; beforeLevel: number; afterLevel: number; beforeInnocents: number; afterInnocents: number };
+  } | null = null;
+  private _pendingNextStratumIndex = -1;
 
   // Item being explored
   private item: ItemInstance;
@@ -123,6 +142,13 @@ export class ItemWorldScene extends Scene {
   private currentStratumIndex = 0;
   private currentStratumDef!: StratumDef;
   private progress!: ItemWorldProgress;
+  // A6 (playtest 2026-04-17): captured item.finalAtk at the start of each
+  // stratum so we can show "+X% DMG" when the stratum is cleared.
+  private stratumStartAtk = 0;
+  // A16 (playtest 2026-04-17): additional before-stratum snapshot for the
+  // stratum-clear before/after panel.
+  private stratumStartLevel = 0;
+  private stratumStartInnocentCount = 0;
 
   // First Normal entry special (tutorial): 3x3 grid, boss HP x0.7, no enrage
   private isFirstNormalEntry = false;
@@ -160,6 +186,8 @@ export class ItemWorldScene extends Scene {
   private bgAggregate: Container | null = null;
   private wallAggregate: Container | null = null;
   private shadowAggregate: Container | null = null;
+  /** Filter-free aggregate for hazard/signal tiles (water/spike/updraft/...). */
+  private specialAggregate: Container | null = null;
   private sealAggregate: Container | null = null;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
@@ -303,7 +331,7 @@ export class ItemWorldScene extends Scene {
       console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
-    // First Normal entry special: 3x3 grid, boss HP x0.7, no enrage
+    // First Normal entry special: 2x2 grid, boss HP x0.7, no enrage
     // Condition: global tutorial not yet done + Normal rarity + cycle 0 + no strata cleared
     this.isFirstNormalEntry = !this.itemWorldTutorialDone
       && this.item.rarity === 'normal'
@@ -311,17 +339,17 @@ export class ItemWorldScene extends Scene {
       && this.progress.deepestUnlocked === 0
       && this.progress.clearedRooms.length === 0;
     if (this.isFirstNormalEntry) {
-      // Override: 1 stratum only, 3x3 grid, boss HP x0.7
+      // Override: 1 stratum only, 2x2 grid, boss HP x0.7
       const first = this.strataConfig.strata[0];
       this.strataConfig = {
         strata: [{
           ...first,
-          gridWidth: 3,
-          gridHeight: 3,
+          gridWidth: 2,
+          gridHeight: 2,
           bossHpMul: first.bossHpMul * 0.7,
         }],
       };
-      console.log('[ItemWorld] First Normal entry special: 1 stratum, 3x3 grid, boss HP x0.7, no enrage');
+      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid, boss HP x0.7, no enrage');
     }
     this.rng = new PRNG(this.item.uid * 1000);
 
@@ -356,6 +384,9 @@ export class ItemWorldScene extends Scene {
     const startCell = this.unifiedGrid.cells[this.currentRow][this.currentCol];
     this.currentStratumIndex = startCell?.stratumIndex ?? 0;
     this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
+    this.stratumStartAtk = this.item.finalAtk;
+    this.stratumStartLevel = this.item.level;
+    this.stratumStartInnocentCount = this.item.innocents.length;
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
@@ -438,6 +469,7 @@ export class ItemWorldScene extends Scene {
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.deathParticles = new DeathParticleManager(this.entityLayer);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -517,6 +549,12 @@ export class ItemWorldScene extends Scene {
     this.game.legacyUIContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
+
+    // Sacred Pickup T6 — Return hint HUD. First-ever landing: big-to-small
+    // shrink tween. Subsequent landings: small icon straight away.
+    this.returnHint = new ReturnHint();
+    this.game.uiContainer.addChild(this.returnHint.container);
+    this.returnHint.show();
 
     // Entry banner — announce item name + stratum
     const rarityColor = RARITY_COLOR[this.item.rarity];
@@ -625,15 +663,19 @@ export class ItemWorldScene extends Scene {
     // entire map in ONE pass (continuous gradient across all rooms).
     this.bgAggregate = new Container();
     this.wallAggregate = new Container();
+    this.specialAggregate = new Container();
     this.shadowAggregate = new Container();
     this.sealAggregate = new Container();
-    // Render order: bg -> walls -> shadows -> seal overlays
+    // Render order: bg -> walls -> special(hazards) -> shadows -> seal overlays
     this.fullMapContainer.addChild(this.bgAggregate);
     this.fullMapContainer.addChild(this.wallAggregate);
+    this.fullMapContainer.addChild(this.specialAggregate);
     this.fullMapContainer.addChild(this.shadowAggregate);
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
     this.wallAggregate.filters = [this.wallPaletteFilter];
+    // specialAggregate: NO filter — hazard color cues (water/spike/updraft)
+    // are gameplay-critical and must not be swept into the biome palette.
     this.shadowAggregate.filters = [this.wallPaletteFilter];
     // Seal walls use the wall filter so their brick pattern reads in the
     // same dark-cool silhouette family as LDtk wall tiles.
@@ -718,12 +760,14 @@ export class ItemWorldScene extends Scene {
         aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
         aliasAreaTilesetForLdtkTiles(wallAreaId, wallTiles, this.atlases);
         aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
+        renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
         this.bgAggregate!.addChild(renderer.bgLayer);
         this.wallAggregate!.addChild(renderer.wallLayer);
+        this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
 
         // Seal-wall overlays (code-generated 0x101010 fills on door-mask cells).
@@ -1019,6 +1063,17 @@ export class ItemWorldScene extends Scene {
             `${innocent.name} +${innocent.value} ${innocent.stat}`, 0xffdd44,
           );
           this.updateHudText();
+          // A15 (playtest 2026-04-17): capture ceremony.
+          // - Cyan screen flash (matches innocent aesthetic, distinct from kill)
+          // - Capture SFX (rising sweep + crystal ping)
+          // - Seal orb VFX that rises from the innocent and implodes toward the
+          //   player, representing "sealed into the item".
+          this.screenFlash.flash(0x88ddff, 0.35, 180);
+          SFX.play('capture');
+          this.spawnCaptureOrb(
+            npc.x + npc.width / 2,
+            npc.y + npc.height / 2,
+          );
         };
 
         const sp = pickSpawn(spawnRng, npc.height);
@@ -1615,7 +1670,7 @@ export class ItemWorldScene extends Scene {
         aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.wallTiles, this.atlases);
         aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.shadowTiles, this.atlases);
       }
-      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases);
+      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
       }
@@ -2414,6 +2469,7 @@ export class ItemWorldScene extends Scene {
     // palette filters, so the continuous gradient is maintained).
     this.bgAggregate.removeChildren();
     this.wallAggregate.removeChildren();
+    this.specialAggregate?.removeChildren();
     this.shadowAggregate.removeChildren();
     this.sealAggregate.removeChildren();
 
@@ -2445,12 +2501,14 @@ export class ItemWorldScene extends Scene {
           aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
           aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
         }
-        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases);
+        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
+        renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
         this.bgAggregate.addChild(renderer.bgLayer);
         this.wallAggregate.addChild(renderer.wallLayer);
+        this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
 
         const sealContainer = new Container();
@@ -2533,6 +2591,9 @@ export class ItemWorldScene extends Scene {
     // Toast always updates
     this.toast.update(dt);
 
+    // Return hint shrink tween (first-entry only).
+    this.returnHint?.update(dt);
+
     // Onboarding blocks gameplay
     if (!this.onboardingDone) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
@@ -2583,9 +2644,45 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
+    // 모달/전이 상태에서는 매 프레임 world-space 프롬프트를 숨겨
+    // 결과 패널 뒤에 "\u2191 Descend" 등이 잔존하는 것을 방지.
+    if (this.shouldSuppressWorldPrompts()) {
+      this.hideWorldPrompts();
+    }
+
+    // A17 (playtest 2026-04-17): boss-kill choice panel. After a non-final
+    // stratum boss, the portal would auto-advance; now the player explicitly
+    // chooses CONTINUE (deeper) or EXIT (bank progress and leave).
+    if (this.bossChoiceVisible) {
+      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+        this.hideBossChoice();
+        this._continueToNextStratum();
+        return;
+      }
+      if (this.game.input.isJustPressed(GameAction.DASH) ||
+          this.game.input.isJustPressed(GameAction.JUMP)) {
+        this.hideBossChoice();
+        this._exitAfterBoss();
+        return;
+      }
+      return;
+    }
+
     if (this.transitionState !== 'none') {
       this.updateTransition(dt);
       return;
+    }
+
+    // World Map / Inventory are unavailable inside Item World — surface a
+    // short English toast so the player understands the key was recognised
+    // but intentionally disabled here.
+    if (this.game.input.isJustPressed(GameAction.MAP)) {
+      this.game.input.consumeJustPressed(GameAction.MAP);
+      this.toast.show('Currently unavailable', 0xaaaaaa);
+    }
+    if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
+      this.game.input.consumeJustPressed(GameAction.INVENTORY);
+      this.toast.show('Currently unavailable', 0xaaaaaa);
     }
 
     this.player.update(dt);
@@ -2654,6 +2751,10 @@ export class ItemWorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+        if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
+          this.screenFlash.flashHit(true);
+          this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
+        }
       }
     }
 
@@ -2662,6 +2763,17 @@ export class ItemWorldScene extends Scene {
       const enemy = this.enemies[i];
       if (!enemy.alive && !(enemy as any)._expGranted) {
         (enemy as any)._expGranted = true;
+
+        // A11: enhanced death burst. Innocents are "captured" (A15 handles
+        // them separately) so skip the burst for them to avoid double-fx.
+        if (!(enemy instanceof InnocentNPC)) {
+          const heavy = !!(enemy as any)._isBoss;
+          this.deathParticles.spawn(
+            enemy.x + enemy.width / 2,
+            enemy.y + enemy.height / 2,
+            heavy,
+          );
+        }
 
         // Decrement room enemy count; if it reaches zero, mark room cleared
         const rk = (enemy as any)._roomKey as string | undefined;
@@ -2696,6 +2808,8 @@ export class ItemWorldScene extends Scene {
           );
           // Update EXP bar with lerp animation
           this.hud.updateItemExp(this.item.level, this.item.exp, EXP_PER_LEVEL, leveled);
+          // A2: auditory reward on in-run level up (pairs with EXP bar flash)
+          if (leveled) SFX.play('upgrade');
 
           // HEL-05: Tiered healing drops (GDD §4.1)
           const dropX = enemy.x + enemy.width / 2 - 8;
@@ -2913,9 +3027,25 @@ export class ItemWorldScene extends Scene {
         const py = enemy.y + enemy.height;
         this.spawnBossPortal(px, py);
 
-        this.toast.show('BOSS DEFEATED! Red portal opened — press UP.', 0xff4444);
-        this.game.hitstopFrames = 12;
-        this.game.camera.shake(4);
+        // A12 (playtest 2026-04-17): boss kills previously used the same
+        // feedback as regular kills (hitstop 12, shake 4, small toast). Upgrade
+        // to a short cinematic: heavy hitstop + double screen flash + massive
+        // shake + large centered "BOSS DEFEATED" banner, then a follow-up info
+        // toast after the flash clears. Secondary burst (gold flash + extra
+        // particles) fires ~160ms later for a two-beat "hit, then reward".
+        const bossCx = enemy.x + enemy.width / 2;
+        const bossCy = enemy.y + enemy.height / 2;
+        this.game.hitstopFrames = 24;
+        this.game.camera.shake(9);
+        this.screenFlash.flash(0xffffff, 0.55, 180);
+        this.toast.showBig('BOSS DEFEATED', 0xffd35a, 2200);
+        this.toast.show('Red portal opened — press UP', 0xff7744);
+        // Follow-up burst: ember-gold flash + second particle layer
+        setTimeout(() => {
+          this.screenFlash.flash(0xffaa22, 0.35, 220);
+          this.deathParticles.spawn(bossCx, bossCy, true);
+          this.game.camera.shake(5);
+        }, 160);
         break;
       }
     }
@@ -3034,6 +3164,9 @@ export class ItemWorldScene extends Scene {
     this.updateHudText();
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
+    this.deathParticles.update(dt);
+    this.updateCaptureOrbs(dt);
+    this._updateStratumClearPanel(dt);
     this.screenFlash.update(dt);
 
     // Clamp player to map bounds (gridW rooms × 512px)
@@ -3079,6 +3212,7 @@ export class ItemWorldScene extends Scene {
   private showEscapeConfirm(fromAltar = false): void {
     this.escapeConfirmVisible = true;
     this.escapeConfirmFromAltar = fromAltar;
+    this.hideWorldPrompts();
 
     const panelW = 260;
     const panelH = 72;
@@ -3331,39 +3465,68 @@ export class ItemWorldScene extends Scene {
     this.showOnboardingStep();
   }
 
+  /**
+   * 월드 공간(world-space)에 떠 있는 컨텍스트 프롬프트를 일괄 숨긴다.
+   * modal 패널(bossChoice / stratumClearPanel / escapeConfirm / post_clear_hold)이
+   * 활성화된 프레임에 update 루프가 early-return 하면, 프롬프트의 가시성
+   * 토글 분기에 도달하지 못해 마지막 visible=true 상태가 결과 패널 위에
+   * 잔존한다. 모달 진입 시점과 update 선두에서 이 함수를 호출해 방지.
+   */
+  private hideWorldPrompts(): void {
+    if (this.exitPrompt) this.exitPrompt.visible = false;
+    if (this.altarHint) this.altarHint.visible = false;
+  }
+
+  /** 현재 프레임에서 world-space 프롬프트가 숨겨져 있어야 하는지 판정. */
+  private shouldSuppressWorldPrompts(): boolean {
+    return (
+      this.bossChoiceVisible ||
+      this.escapeConfirmVisible ||
+      this.stratumClearPanel !== null ||
+      this.transitionState !== 'none'
+    );
+  }
+
   private handleStratumExit(): void {
+    this.hideWorldPrompts();
     const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
 
+    // A6 + A16: capture before/after snapshot (we're still on the stratum
+    // that just ended — no state changes yet). A6 renders a one-line toast;
+    // A16 shows a structured before/after panel that auto-dismisses.
+    const _a6BeforeAtk = this.stratumStartAtk;
+    const _a6AfterAtk = this.item.finalAtk;
+    const _a16Snapshot = {
+      beforeAtk: this.stratumStartAtk,
+      afterAtk: this.item.finalAtk,
+      beforeLevel: this.stratumStartLevel,
+      afterLevel: this.item.level,
+      beforeInnocents: this.stratumStartInnocentCount,
+      afterInnocents: this.item.innocents.length,
+    };
+
     if (!isFinal) {
-      // Find the next stratum's start room in unified grid
       const nextStratumIndex = this.currentStratumIndex + 1;
-      const nextOffset = this.unifiedGrid.strataOffsets[nextStratumIndex];
-      if (!nextOffset) {
-        // No more strata — treat as final exit
+      const hasNextStratum = !!this.unifiedGrid.strataOffsets[nextStratumIndex];
+
+      if (!hasNextStratum) {
+        // No more strata — auto-exit (no choice offered; there's nothing to descend into)
         this.progress.lastSafeStratum = this.currentStratumIndex;
         this.persistRoomState();
         this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
-        this.startExitFade();
+        this._showA6DmgToast(_a6BeforeAtk, _a6AfterAtk);
+        this._showStratumClearPanel(_a16Snapshot, true);
+        this.startPostClearHold();
         return;
       }
-      // Use the stratum's ACTUAL critical path origin, not a heuristic scan.
-      // generateUnifiedGrid exposes this via stratumStartRooms[si].
-      const nextStart = this.unifiedGrid.stratumStartRooms?.[nextStratumIndex];
-      const nextStartRow = nextStart?.absoluteRow ?? nextOffset.rowOffset;
-      const nextStartCol = nextStart?.col ?? 0;
 
-      // Advance stratum BEFORE transition so buildFullMap uses the new stratum
-      this.currentStratumIndex = nextStratumIndex;
-      this.currentStratumDef = this.strataConfig.strata[nextStratumIndex];
-      this.progress.lastSafeStratum = this.currentStratumIndex;
-      // Permanent unlock: track deepest stratum the player has ever reached
-      if (this.progress.deepestUnlocked < nextStratumIndex) {
-        this.progress.deepestUnlocked = nextStratumIndex;
-      }
-      this.persistRoomState();
-
-      this.toast.show(`Stratum ${nextStratumIndex + 1} — Descending...`, 0x8888ff);
-      this.startTransition('down', nextStartCol, nextStartRow);
+      // A17: offer a choice instead of auto-descending. Stash the snapshot so
+      // the chosen branch can surface it in toasts/panels. Also pre-compute
+      // the "peek" at next stratum difficulty so the player can make an
+      // informed call.
+      this._pendingStratumSnapshot = { a6BeforeAtk: _a6BeforeAtk, a6AfterAtk: _a6AfterAtk, a16: _a16Snapshot };
+      this.showBossChoice(nextStratumIndex);
+      return;
     } else {
       // Deepest stratum cleared — exit item world
       this.exitReason = 'clear';
@@ -3372,8 +3535,290 @@ export class ItemWorldScene extends Scene {
       this.persistRoomState();
       // Level up already happened on boss kill — just show result
       this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
-      this.startExitFade();
+      this._showA6DmgToast(_a6BeforeAtk, _a6AfterAtk);
+      this._showStratumClearPanel(_a16Snapshot, true);
+      this.startPostClearHold();
     }
+  }
+
+  /** A6: show "+X% DMG (before → after)" when a stratum completes. Silent when atk did not change. */
+  private _showA6DmgToast(beforeAtk: number, afterAtk: number): void {
+    if (afterAtk <= beforeAtk || beforeAtk <= 0) return;
+    const pct = Math.round(((afterAtk - beforeAtk) / beforeAtk) * 100);
+    if (pct <= 0) return;
+    this.toast.show(`+${pct}% DMG  (${beforeAtk} \u2192 ${afterAtk})`, 0xffcc44);
+  }
+
+  /**
+   * A16 (playtest 2026-04-17): structured before/after stats panel shown on
+   * stratum clear. Displays ATK, item Lv, and Innocent count deltas side-by-
+   * side. The toast stack gives a running log, but this panel gives a single
+   * readable "progress snapshot" the player can parse at a glance.
+   */
+  private _showStratumClearPanel(
+    snap: { beforeAtk: number; afterAtk: number; beforeLevel: number; afterLevel: number; beforeInnocents: number; afterInnocents: number },
+    isFinal: boolean,
+  ): void {
+    // Replace any existing panel (e.g. rapid back-to-back clears)
+    if (this.stratumClearPanel) {
+      const p = this.stratumClearPanel;
+      if (p.container.parent) p.container.parent.removeChild(p.container);
+      p.container.destroy({ children: true });
+      this.stratumClearPanel = null;
+    }
+
+    const container = new Container();
+
+    // Panel geometry — doubled for readability
+    const W = 400;
+    const H = 172;
+    const x = Math.floor((GAME_WIDTH - W) / 2);
+    const y = Math.floor((GAME_HEIGHT - H) / 2);
+    const bg = new Graphics();
+    bg.roundRect(0, 0, W, H, 6).fill({ color: 0x0c0c18, alpha: 0.92 });
+    bg.roundRect(0, 0, W, H, 6).stroke({ color: 0xffcc44, width: 2, alpha: 0.9 });
+    container.addChild(bg);
+
+    const title = new BitmapText({
+      text: isFinal ? 'ITEM CLEARED' : `STRATUM ${this.currentStratumIndex + 1} CLEAR`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xffd35a },
+    });
+    title.x = Math.floor(W / 2 - title.width / 2);
+    title.y = 12;
+    container.addChild(title);
+
+    const rowY = 44;
+    const rowH = 24;
+    const labelX = 20;
+    const valueX = 148;
+    const arrowX = 240;
+    const afterX = 280;
+    const deltaX = 352;
+
+    const rows: [string, number, number][] = [
+      ['ATK',       snap.beforeAtk,       snap.afterAtk],
+      ['Lv',        snap.beforeLevel,     snap.afterLevel],
+      ['Innocents', snap.beforeInnocents, snap.afterInnocents],
+    ];
+
+    for (let i = 0; i < rows.length; i++) {
+      const [label, before, after] = rows[i];
+      const ry = rowY + i * rowH;
+      const delta = after - before;
+      const hasDelta = delta !== 0;
+      const deltaColor = delta > 0 ? 0x88ff88 : (delta < 0 ? 0xff8888 : 0x666677);
+
+      const lbl = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xbbbbcc } });
+      lbl.x = labelX; lbl.y = ry;
+      container.addChild(lbl);
+
+      const bef = new BitmapText({ text: String(before), style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
+      bef.x = valueX; bef.y = ry;
+      container.addChild(bef);
+
+      const arrow = new BitmapText({ text: '\u2192', style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
+      arrow.x = arrowX; arrow.y = ry;
+      container.addChild(arrow);
+
+      const aft = new BitmapText({
+        text: String(after),
+        style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? 0xffffff : 0x888899 },
+      });
+      aft.x = afterX; aft.y = ry;
+      container.addChild(aft);
+
+      if (hasDelta) {
+        const sign = delta > 0 ? '+' : '';
+        const d = new BitmapText({
+          text: `${sign}${delta}`,
+          style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: deltaColor },
+        });
+        d.x = deltaX; d.y = ry;
+        container.addChild(d);
+      }
+    }
+
+    // [X] confirm hint at bottom center
+    const hint = new BitmapText({
+      text: '[X] OK',
+      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
+    });
+    hint.x = Math.floor(W / 2 - hint.width / 2);
+    hint.y = H - 30;
+    container.addChild(hint);
+
+    container.x = x;
+    container.y = y;
+    this.game.legacyUIContainer.addChild(container);
+    this.stratumClearPanel = { container, confirmed: false };
+  }
+
+  private _updateStratumClearPanel(_dt: number): void {
+    const p = this.stratumClearPanel;
+    if (!p) return;
+    // Wait for X key confirmation
+    if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
+      p.confirmed = true;
+      if (p.container.parent) p.container.parent.removeChild(p.container);
+      p.container.destroy({ children: true });
+      this.stratumClearPanel = null;
+    }
+  }
+
+  /**
+   * A15: Spawn a seal orb at the capture position. The orb briefly rises, then
+   * homes toward the player while shrinking — reads as "sealed into the weapon".
+   * Pure VFX, no hit logic. Parented under entityLayer so world-space transform
+   * matches the player, making the homing motion accurate under camera moves.
+   */
+  private spawnCaptureOrb(x: number, y: number): void {
+    // Outer glow + inner core
+    const gfx = new Graphics();
+    gfx.circle(0, 0, 5).fill({ color: 0x88ddff, alpha: 0.35 });
+    gfx.circle(0, 0, 3).fill({ color: 0xffffff, alpha: 0.9 });
+    gfx.x = x;
+    gfx.y = y;
+    this.entityLayer.addChild(gfx);
+    // Initial upward drift (40 px/s), gravity is handled in update via homing.
+    this.captureOrbs.push({
+      gfx, x, y, vx: 0, vy: -40,
+      life: 520, maxLife: 520,
+    });
+  }
+
+  private updateCaptureOrbs(dt: number): void {
+    if (this.captureOrbs.length === 0) return;
+    const dtSec = dt / 1000;
+    const targetX = this.player.x + this.player.width / 2;
+    const targetY = this.player.y + this.player.height / 2;
+    for (let i = this.captureOrbs.length - 1; i >= 0; i--) {
+      const o = this.captureOrbs[i];
+      o.life -= dt;
+      const k = Math.max(0, o.life / o.maxLife);
+      // In the last 70% of lifetime, blend drift into homing toward player.
+      // Early: float up. Late: accelerate toward player.
+      const homeBlend = 1 - k; // 0..1
+      const dx = targetX - o.x;
+      const dy = targetY - o.y;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      const homeSpeed = 240 * homeBlend;
+      o.vx = o.vx * 0.9 + (dx / dist) * homeSpeed * homeBlend;
+      o.vy = o.vy * 0.9 + (dy / dist) * homeSpeed * homeBlend - 30 * k; // still a bit of rise early
+      o.x += o.vx * dtSec;
+      o.y += o.vy * dtSec;
+      o.gfx.x = o.x;
+      o.gfx.y = o.y;
+      // Shrink + fade-in-fade-out (hold alpha, shrink at the end)
+      const s = 0.6 + k * 0.4;
+      o.gfx.scale.set(s);
+      o.gfx.alpha = k > 0.1 ? 1 : k / 0.1;
+      if (o.life <= 0 || dist < 6) {
+        // Implode flash on arrival
+        this.screenFlash.flash(0xaaeeff, 0.2, 90);
+        if (o.gfx.parent) o.gfx.parent.removeChild(o.gfx);
+        o.gfx.destroy();
+        this.captureOrbs.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * A17 (playtest 2026-04-17): after a non-final stratum boss, offer the
+   * player a choice — Continue deeper, or Exit safely with progress banked.
+   * Previously the portal auto-advanced, which felt like the player had no
+   * agency over their run length.
+   */
+  private showBossChoice(nextStratumIndex: number): void {
+    this._pendingNextStratumIndex = nextStratumIndex;
+    this.hideBossChoice();
+
+    const panelW = 220;
+    const panelH = 84;
+    const panel = new Container();
+
+    const bg = new Graphics();
+    bg.roundRect(0, 0, panelW, panelH, 4).fill({ color: 0x0a0a1e, alpha: 0.95 });
+    bg.roundRect(0, 0, panelW, panelH, 4).stroke({ color: 0xffcc66, width: 1 });
+    panel.addChild(bg);
+
+    const title = new BitmapText({
+      text: 'BOSS DEFEATED',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc66 },
+    });
+    title.x = Math.floor((panelW - title.width) / 2);
+    title.y = 8;
+    panel.addChild(title);
+
+    const info = new BitmapText({
+      text: `Next: Stratum ${nextStratumIndex + 1}`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
+    });
+    info.x = Math.floor((panelW - info.width) / 2);
+    info.y = 24;
+    panel.addChild(info);
+
+    const goPrompt = new BitmapText({
+      text: '[Z] Continue Deeper',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
+    });
+    goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
+    goPrompt.y = 44;
+    panel.addChild(goPrompt);
+
+    const exitPrompt = new BitmapText({
+      text: '[X/C] Exit Safely',
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
+    });
+    exitPrompt.x = Math.floor((panelW - exitPrompt.width) / 2);
+    exitPrompt.y = 60;
+    panel.addChild(exitPrompt);
+
+    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2) - 20;
+
+    this.bossChoicePanel = panel;
+    this.bossChoiceVisible = true;
+    this.game.legacyUIContainer.addChild(panel);
+  }
+
+  private hideBossChoice(): void {
+    if (this.bossChoicePanel) {
+      if (this.bossChoicePanel.parent) this.bossChoicePanel.parent.removeChild(this.bossChoicePanel);
+      this.bossChoicePanel.destroy({ children: true });
+      this.bossChoicePanel = null;
+    }
+    this.bossChoiceVisible = false;
+  }
+
+  /** A17: player chose to continue — descend into the next stratum. */
+  private _continueToNextStratum(): void {
+    const snap = this._pendingStratumSnapshot;
+    const next = this._pendingNextStratumIndex;
+    this._pendingStratumSnapshot = null;
+    this._pendingNextStratumIndex = -1;
+    if (snap) {
+      this._showA6DmgToast(snap.a6BeforeAtk, snap.a6AfterAtk);
+      this._showStratumClearPanel(snap.a16, false);
+    }
+    if (next >= 0) {
+      this.jumpToStratum(next);
+    }
+  }
+
+  /** A17: player chose to exit — bank progress, leave the item world. */
+  private _exitAfterBoss(): void {
+    const snap = this._pendingStratumSnapshot;
+    this._pendingStratumSnapshot = null;
+    this._pendingNextStratumIndex = -1;
+    this.progress.lastSafeStratum = this.currentStratumIndex;
+    this.persistRoomState();
+    this.toast.show(`${this.item.def.name} Lv${this.item.level} — Returning with progress...`, 0xffaa00);
+    if (snap) {
+      this._showA6DmgToast(snap.a6BeforeAtk, snap.a6AfterAtk);
+      this._showStratumClearPanel(snap.a16, false);
+    }
+    this.startPostClearHold();
   }
 
   private useEscapeAltar(): void {
@@ -3439,6 +3884,15 @@ export class ItemWorldScene extends Scene {
     this.transitionTimer = FADE_DURATION * 2;
   }
 
+  /**
+   * Hold on the StratumClearPanel until the player presses X to confirm,
+   * then kick off the exit fade.
+   */
+  private startPostClearHold(): void {
+    this.transitionState = 'post_clear_hold';
+    this.transitionTimer = 0; // not timer-based; waits for panel confirm
+  }
+
   private exitItemWorld(): void {
     // Analytics: exit (escape or clear — death is tracked separately)
     trackItemWorldExit(this.exitReason, this.currentStratumIndex);
@@ -3451,6 +3905,7 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
     if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.returnHint) { this.returnHint.destroy(); this.returnHint = null; }
     if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
     if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
     // Remove any lingering damage numbers / prompts from uiContainer
@@ -3531,6 +3986,13 @@ export class ItemWorldScene extends Scene {
         this.transitionState = 'none';
         this.exitItemWorld();
       }
+    } else if (this.transitionState === 'post_clear_hold') {
+      // Wait for the player to confirm the StratumClearPanel with X key.
+      // _updateStratumClearPanel handles input and sets confirmed + destroys panel.
+      this._updateStratumClearPanel(dt);
+      if (!this.stratumClearPanel) {
+        this.startExitFade();
+      }
     }
   }
 
@@ -3556,6 +4018,12 @@ export class ItemWorldScene extends Scene {
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
+    if (this.stratumClearPanel) {
+      const p = this.stratumClearPanel;
+      if (p.container.parent) p.container.parent.removeChild(p.container);
+      p.container.destroy({ children: true });
+      this.stratumClearPanel = null;
+    }
   }
 
   /**

@@ -1,7 +1,8 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
-import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { type ItemInstance } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { ItemImage } from './ItemImage';
 
 const SLOT_SIZE = 20;
 const SLOT_GAP = 2;
@@ -14,15 +15,28 @@ const PANEL_H = ROWS * (SLOT_SIZE + SLOT_GAP) + SLOT_GAP + PADDING * 2 + 40; // 
 
 import { PIXEL_FONT } from './fonts';
 
+/** UI mode — inventory equips selected; anvil places selected onto the anvil. */
+export type InventoryUIMode = 'inventory' | 'anvil';
+
 export class InventoryUI {
   container: Container;
   visible = false;
   private inventory: Inventory;
   private slots: Graphics[] = [];
+  /** 슬롯별 ItemImage를 담는 컨테이너 (slot Graphics와 1:1, panel 좌표계). */
+  private slotImageContainers: Container[] = [];
+  /** 각 슬롯에 현재 그려진 ItemImage와 uid — item 변경 감지용. */
+  private slotImages: (ItemImage | null)[] = [];
+  private slotItemUids: (number | null)[] = [];
   private selectedIndex = -1;
   private infoText: BitmapText;
   private titleText: BitmapText;
   private panel: Graphics;
+
+  /** Current UI mode. 'anvil' repurposes confirm (X) to call onSelect instead of equipping. */
+  private mode: InventoryUIMode = 'inventory';
+  /** Callback used when mode==='anvil'. Receives the selected item on confirm. */
+  private onSelect: ((item: ItemInstance) => void) | null = null;
 
   setInventory(inventory: Inventory): void {
     this.inventory = inventory;
@@ -54,15 +68,26 @@ export class InventoryUI {
     this.titleText.y = 4;
     this.panel.addChild(this.titleText);
 
-    // Slot graphics
+    // Slot graphics + ItemImage 컨테이너.
     for (let i = 0; i < COLS * ROWS; i++) {
       const col = i % COLS;
       const row = Math.floor(i / COLS);
+      const sx = PADDING + SLOT_GAP + col * (SLOT_SIZE + SLOT_GAP);
+      const sy = 16 + SLOT_GAP + row * (SLOT_SIZE + SLOT_GAP);
       const slot = new Graphics();
-      slot.x = PADDING + SLOT_GAP + col * (SLOT_SIZE + SLOT_GAP);
-      slot.y = 16 + SLOT_GAP + row * (SLOT_SIZE + SLOT_GAP);
+      slot.x = sx;
+      slot.y = sy;
       this.panel.addChild(slot);
       this.slots.push(slot);
+
+      // ItemImage는 Graphics 위에 겹쳐 표시 (slot 내부 3px 패딩).
+      const imgHolder = new Container();
+      imgHolder.x = sx + 3;
+      imgHolder.y = sy + 3;
+      this.panel.addChild(imgHolder);
+      this.slotImageContainers.push(imgHolder);
+      this.slotImages.push(null);
+      this.slotItemUids.push(null);
     }
 
     // Info text
@@ -73,18 +98,56 @@ export class InventoryUI {
   }
 
   toggle(): void {
-    this.visible = !this.visible;
-    this.container.visible = this.visible;
     if (this.visible) {
-      // Auto-select leftmost item on open
-      this.selectedIndex = this.inventory.items.length > 0 ? 0 : -1;
-      this.refresh();
+      this.close();
+      return;
     }
+    this.open('inventory', null);
+  }
+
+  /**
+   * Open the inventory in the given mode.
+   *
+   * - 'inventory': normal use (equip on confirm).
+   * - 'anvil': weapon-placement flow — confirm calls `onSelect(item)` instead
+   *    of equipping. Used by the forge anvil so the player sees the same grid
+   *    UI as the main inventory.
+   */
+  open(mode: InventoryUIMode, onSelect: ((item: ItemInstance) => void) | null): void {
+    this.mode = mode;
+    this.onSelect = onSelect;
+    this.visible = true;
+    this.container.visible = true;
+    this.selectedIndex = this.inventory.items.length > 0 ? 0 : -1;
+    this.refresh();
+  }
+
+  /** Convenience — open in anvil mode with the placement callback. */
+  openForAnvil(onSelect: (item: ItemInstance) => void): void {
+    this.open('anvil', onSelect);
   }
 
   close(): void {
     this.visible = false;
     this.container.visible = false;
+    this.mode = 'inventory';
+    this.onSelect = null;
+  }
+
+  /** Confirm button (X). In inventory mode equips; in anvil mode invokes onSelect. */
+  confirmSelected(): void {
+    const item = this.inventory.items[this.selectedIndex];
+    if (!item) return;
+    if (this.mode === 'anvil') {
+      this.onSelect?.(item);
+      return;
+    }
+    this.inventory.equip(item.uid);
+    this.refresh();
+  }
+
+  isAnvilMode(): boolean {
+    return this.mode === 'anvil';
   }
 
   /** Navigate selection */
@@ -115,6 +178,9 @@ export class InventoryUI {
   }
 
   refresh(): void {
+    // Mode-dependent title.
+    this.titleText.text = this.mode === 'anvil' ? 'PLACE ON ANVIL' : 'INVENTORY';
+
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
       slot.clear();
@@ -131,10 +197,27 @@ export class InventoryUI {
         slot.rect(0, 0, SLOT_SIZE, SLOT_SIZE).stroke({ color: 0xffff00, width: 1 });
       }
 
+      // 슬롯이 비었으면 기존 ItemImage 제거.
+      if (!item && this.slotImages[i]) {
+        this.slotImages[i]?.destroy();
+        this.slotImages[i] = null;
+        this.slotItemUids[i] = null;
+      }
+      if (!item) {
+        this.slotImageContainers[i].visible = false;
+      }
+
       if (item) {
-        // Item color by rarity
-        const rarityCol = RARITY_COLOR[item.rarity];
-        slot.rect(3, 3, SLOT_SIZE - 6, SLOT_SIZE - 6).fill(rarityCol);
+        // Item image — 이전 프레임의 sprite와 uid가 다르면 재생성.
+        if (this.slotItemUids[i] !== item.uid) {
+          const prev = this.slotImages[i];
+          if (prev) prev.destroy();
+          const img = new ItemImage(item, SLOT_SIZE - 6);
+          this.slotImageContainers[i].addChild(img.container);
+          this.slotImages[i] = img;
+          this.slotItemUids[i] = item.uid;
+        }
+        this.slotImageContainers[i].visible = true;
 
         // Level indicator
         if (item.level > 0) {
@@ -145,6 +228,15 @@ export class InventoryUI {
         if (item.worldProgress?.cleared) {
           slot.rect(SLOT_SIZE - 5, SLOT_SIZE - 5, 4, 4).fill(0x44ff44);
         }
+
+        // A4: "Dive available" pictogram — concentric portal in top-right.
+        // Always shown on any weapon item since every weapon is dive-able
+        // at altar/anvil. Teaches "this is not just loot — it has a world".
+        const dx = SLOT_SIZE - 7;
+        const dy = 1;
+        slot.rect(dx, dy, 6, 6).fill({ color: 0x000000, alpha: 0.7 });
+        slot.circle(dx + 3, dy + 3, 2.2).stroke({ color: 0x88ccff, width: 1, alpha: 0.9 });
+        slot.circle(dx + 3, dy + 3, 1.1).fill({ color: 0xffffff, alpha: 0.9 });
       }
     }
 
@@ -155,12 +247,17 @@ export class InventoryUI {
       const cycle = item.worldProgress?.cycle ?? 0;
       const cycleTag = cycle > 0 ? ` C${cycle}` : '';
       const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
+      const action = this.mode === 'anvil'
+        ? 'X:Place on anvil  ESC:Cancel'
+        : 'X:Equip  @:Dive at altar/anvil';
       this.infoText.text =
         `${item.def.name}${equipped} Lv${item.level}${cycleTag}${clearTag}\n` +
         `ATK:${item.finalAtk} ${item.rarity.toUpperCase()}\n` +
-        `X:Equip`;
+        action;
     } else {
-      this.infoText.text = `${this.inventory.items.length}/20 items`;
+      this.infoText.text = this.mode === 'anvil'
+        ? 'No items to place'
+        : `${this.inventory.items.length}/20 items`;
     }
   }
 }

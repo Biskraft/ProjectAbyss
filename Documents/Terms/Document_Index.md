@@ -352,6 +352,7 @@ graph TD
 | UI-09 | Healing HUD | `UI/UI_Healing_HUD.md` | ✅ 완료 | 전체 |
 | UI-10 | HUD Master Plan | `UI/UI_HUD_MasterPlan.md` | ✅ 완료 | 전체 |
 | UI-11 | Item World Depth Gauge | `UI/UI_ItemWorld_DepthGauge.md` | ✅ 완료 | IW |
+| UI-12 | Sacred Pickup (획득/앵빌/다이브 UX) | `UI/UI_SacredPickup.md` | ✅ 설계 완료 (구현 대기) | 전체 |
 
 ---
 
@@ -448,6 +449,7 @@ graph TD
 | RES-VRT-01 | Vertical Traversal Gimmicks | `Research/Research_Vertical_Traversal_Gimmicks.md` | 수직 이동 기믹 |
 | RES-VRT-02 | Vertical Movement Relics | `Research/Research_Vertical_Movement_Relics.md` | 수직 이동 렐릭 |
 | RES-KPI-01 | ECHORIS KPI Critical Analysis | `Research/ECHORIS_KPI_CriticalAnalysis.md` | ECHORIS KPI 비판적 분석 |
+| RES-RT-01 | Room Transition Readability | `Research/RoomTransition_Readability_Research.md` | 방 전환부 가독성 (출구 오인 문제 해결) |
 
 ---
 

@@ -12,6 +12,21 @@
 
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 
+/**
+ * Build a small hammer pictogram (no language text) hinting the upgrade altar.
+ * See Playtest 2026-04-17 §9.6-T3: gate must point to its own solution.
+ */
+function buildHammerIcon(): Graphics {
+  const g = new Graphics();
+  // Handle (diagonal wooden rod)
+  g.rect(0, 4, 8, 2).fill(0xc8854a);
+  g.rect(0, 4, 8, 2).stroke({ color: 0x5a3a1a, width: 1 });
+  // Head (steel block)
+  g.rect(6, 1, 5, 5).fill(0xcfd6dd);
+  g.rect(6, 1, 5, 5).stroke({ color: 0x444b55, width: 1 });
+  return g;
+}
+
 const TILE_SIZE = 16;
 
 export type UnlockCondition = 'event' | 'switch' | 'stat';
@@ -38,6 +53,10 @@ export class LockedDoor {
 
   private gfx: Graphics;
   private label: Text | null = null;
+  /** Hammer pictogram shown on stat gates — points the player to the altar. */
+  private hammerIcon: Graphics | null = null;
+  /** Red X shown on rejected attack (stat insufficient). */
+  private rejectCross: Graphics | null = null;
   /** Collision grid cells this door occupies — stored for removal on unlock. */
   private gridCells: { col: number; row: number }[] = [];
 
@@ -85,8 +104,24 @@ export class LockedDoor {
       this.label = new Text({ text: `${statType.toUpperCase()} ${statThreshold}`, style });
       this.label.anchor.set(0.5, 0.5);
       this.label.x = width / 2;
-      this.label.y = height / 2;
+      this.label.y = height / 2 - 6;
       this.container.addChild(this.label);
+
+      // A8/T3: hammer pictogram below the stat number points at the solution.
+      this.hammerIcon = buildHammerIcon();
+      // Center the ~11x6 hammer horizontally under the label
+      this.hammerIcon.x = width / 2 - 5;
+      this.hammerIcon.y = height / 2 + 2;
+      this.container.addChild(this.hammerIcon);
+
+      // Reject-state cross (hidden by default, flashed on failed attack)
+      this.rejectCross = new Graphics();
+      this.rejectCross.moveTo(-4, -4).lineTo(4, 4).stroke({ color: 0xff2222, width: 2 });
+      this.rejectCross.moveTo(4, -4).lineTo(-4, 4).stroke({ color: 0xff2222, width: 2 });
+      this.rejectCross.x = width / 2;
+      this.rejectCross.y = height / 2 - 6;
+      this.rejectCross.visible = false;
+      this.container.addChild(this.rejectCross);
     }
   }
 
@@ -182,14 +217,19 @@ export class LockedDoor {
       this.rejectShakeOffset = Math.sin(this.rejectTimer * 0.05) * 3;
       this.container.x = this.x + this.rejectShakeOffset;
 
-      // Flash red tint
+      // Flash red tint + show cross over the stat requirement
       const flash = Math.sin(this.rejectTimer * 0.02) > 0;
       if (this.label) this.label.style.fill = flash ? 0xff0000 : 0xff4444;
+      if (this.rejectCross) this.rejectCross.visible = flash;
+      // Pulse the hammer hint to say "this is how you solve it"
+      if (this.hammerIcon) this.hammerIcon.alpha = 0.6 + Math.abs(Math.sin(this.rejectTimer * 0.03)) * 0.4;
 
       if (this.rejectTimer <= 0) {
         this.rejectTimer = 0;
         this.container.x = this.x;
         if (this.label) this.label.style.fill = 0xff4444;
+        if (this.rejectCross) this.rejectCross.visible = false;
+        if (this.hammerIcon) this.hammerIcon.alpha = 1;
       }
     }
   }

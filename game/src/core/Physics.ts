@@ -57,6 +57,18 @@ export function isIce(tileId: number): boolean {
   return tileId === 7;
 }
 
+/**
+ * Hazard/signal tiles whose original tileset color is load-bearing for
+ * player communication (water blue, spike red/white, updraft upward wind,
+ * magma orange, charged yellow). Rendered on a filter-free layer so the
+ * PaletteSwapFilter does not wash them out into the biome palette.
+ * Neutral structural tiles (solid wall, one-way, ice, breakable) stay on
+ * the filtered wall layer.
+ */
+export function isSpecialVisualTile(tileId: number): boolean {
+  return tileId === 2 || tileId === 4 || tileId === 5 || tileId === 6 || tileId === 8;
+}
+
 /** Check if an entity is standing ON an ice tile (feet on ice surface). */
 export function isOnIce(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
   const feetRow = Math.floor((y + height) / TILE_SIZE);

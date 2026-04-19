@@ -1,6 +1,7 @@
 import { SWORD_DEFS, type Rarity } from '@data/weapons';
 import { createItem, recalcItemAtk, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { Inventory } from '@items/Inventory';
+import { sacredSave, type SacredSaveState } from '@save/PlayerSave';
 
 const SAVE_KEY = 'echoris_save';
 
@@ -43,6 +44,11 @@ export interface SaveData {
   playtime: number;
   /** Accumulated HealthShard maxHP bonus. */
   healthShardBonus?: number;
+  /**
+   * Sacred Pickup 첫-경험 플래그 / dive 카운터 / 설정.
+   * 레거시 세이브에는 없을 수 있으므로 optional.
+   */
+  sacredState?: SacredSaveState;
 }
 
 interface SerializedItem {
@@ -113,6 +119,7 @@ export class SaveManager {
       gold: params.gold,
       playtime: params.playtime,
       healthShardBonus: params.healthShardBonus ?? 0,
+      sacredState: sacredSave.serialize(),
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -127,6 +134,8 @@ export class SaveManager {
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (data.version !== 3) return null;
+      // sacredState 백필 — 레거시 세이브도 빈 상태로 초기화.
+      sacredSave.hydrate(data.sacredState ?? null);
       return data as SaveData;
     } catch {
       return null;
@@ -158,5 +167,7 @@ export class SaveManager {
 
   static deleteSave(): void {
     localStorage.removeItem(SAVE_KEY);
+    // 신규 플레이스루 시작 시 첫-경험 플래그도 깨끗하게.
+    sacredSave.reset();
   }
 }

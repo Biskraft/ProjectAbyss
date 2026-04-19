@@ -17,16 +17,18 @@ import { HUD } from '@ui/HUD';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
-import { SWORD_DEFS } from '@data/weapons';
+import { SWORD_DEFS, STARTER_ONLY_IDS } from '@data/weapons';
 import { createItem } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { HitSparkManager } from '@effects/HitSpark';
+import { DeathParticleManager } from '@effects/DeathParticles';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ToastManager } from '@ui/Toast';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
+import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
 import { SaveManager } from '@utils/SaveManager';
@@ -81,6 +83,7 @@ export class WorldScene extends Scene {
   private toast!: ToastManager;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
+  private deathParticles!: DeathParticleManager;
   private screenFlash!: ScreenFlash;
 
   // Game Over
@@ -115,7 +118,8 @@ export class WorldScene extends Scene {
       this.rng = new PRNG(this.worldSeed);
       this.dropRng = new PRNG(99999);
       this.inventory = new Inventory();
-      const starterSword = createItem(SWORD_DEFS[0]);
+      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
+      const starterSword = createItem(starterDef);
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid);
       this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
@@ -154,6 +158,7 @@ export class WorldScene extends Scene {
     this.toast = new ToastManager(this.game.legacyUIContainer);
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.deathParticles = new DeathParticleManager(this.entityLayer);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -457,6 +462,12 @@ export class WorldScene extends Scene {
 
       // Enemy just died — roll drop
       if (wasAlive && !enemy.alive) {
+        // A11: death particle burst
+        this.deathParticles.spawn(
+          enemy.x + enemy.width / 2,
+          enemy.y + enemy.height / 2,
+          false,
+        );
         const isGolden = enemy instanceof GoldenMonster;
         const drop = isGolden
           ? rollGoldenDrop(this.dropRng)    // guaranteed rare+ drop
@@ -483,9 +494,13 @@ export class WorldScene extends Scene {
       const targets = this.enemies.filter(e => e.alive) as CombatEntity[];
       const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
       for (const hit of hits) {
-        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy);
+        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         if (hit.heavy) this.screenFlash.flashHit(true);
+        if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
+          this.screenFlash.flashHit(true);
+          this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
+        }
       }
     }
 
@@ -626,6 +641,7 @@ export class WorldScene extends Scene {
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
+    this.deathParticles.update(dt);
     this.screenFlash.update(dt);
 
     // Camera
@@ -709,8 +725,8 @@ export class WorldScene extends Scene {
     // For monster portals, create the dungeon reward item
     let dungeonItem: ItemInstance | undefined;
     if (!isAltar) {
-      const defs = SWORD_DEFS.filter(d => d.rarity === data.rarity);
-      const def = defs.length > 0 ? defs[0] : SWORD_DEFS[0];
+      const defs = SWORD_DEFS.filter(d => d.rarity === data.rarity && !STARTER_ONLY_IDS.has(d.id));
+      const def = defs.length > 0 ? defs[0] : (SWORD_DEFS.find(d => !STARTER_ONLY_IDS.has(d.id)) ?? SWORD_DEFS[0]);
       dungeonItem = createItem(def, data.rarity);
     }
 
@@ -737,6 +753,7 @@ export class WorldScene extends Scene {
       if (isAltar) {
         if (targetItem.level > prevLevel) {
           this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+          SFX.play('upgrade');
         }
       } else {
         if (this.inventory.add(dungeonItem!)) {

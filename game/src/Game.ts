@@ -69,7 +69,7 @@ export class Game {
     await this.renderer.init({
       width: nativeW,
       height: nativeH,
-      backgroundColor: 0x0a0a0e,
+      backgroundColor: 0x3a1a28,
       resolution: 1,
       autoDensity: false,
       antialias: false,

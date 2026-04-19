@@ -16,7 +16,7 @@
 
 import csvText from '../../../Sheets/Content_Stats_Weapon_Lore.csv?raw';
 import type { Rarity } from './weapons';
-import { SWORD_DEFS, type WeaponDef } from './weapons';
+import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from './weapons';
 
 // Eagerly bundle every lore MD file so resolution is synchronous.
 const loreMarkdownBundle = import.meta.glob(
@@ -120,7 +120,9 @@ export function allLoreWeapons(): LoreWeaponDef[] {
  * and `rarity`.
  */
 export function loreWeaponToWeaponDef(lore: LoreWeaponDef): WeaponDef {
-  const template = SWORD_DEFS.find(d => d.rarity === lore.rarity) ?? SWORD_DEFS[0];
+  const template = SWORD_DEFS.find(d => d.rarity === lore.rarity && !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS.find(d => !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS[0];
   return {
     id: lore.id,
     name: lore.name,

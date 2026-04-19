@@ -53,7 +53,7 @@ import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
-import { SWORD_DEFS, type WeaponDef } from '@data/weapons';
+import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
 import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
 import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
@@ -62,6 +62,12 @@ import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { FloorCollapse } from '@effects/FloorCollapse';
 import { MemoryDive } from '@effects/MemoryDive';
+import { WeaponPulse } from '@effects/WeaponPulse';
+import { AnvilTether } from '@effects/AnvilTether';
+import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
+import { LorePopup } from '@ui/LorePopup';
+import { DivePreview } from '@ui/DivePreview';
+import { sacredSave } from '@save/PlayerSave';
 import { HitSparkManager } from '@effects/HitSpark';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
@@ -197,6 +203,31 @@ export class LdtkWorldScene extends Scene {
   private floorCollapse: FloorCollapse | null = null;
   private memoryDive: MemoryDive | null = null;
   private collapseItem: ItemInstance | null = null;
+
+  // Sacred Pickup — weapon pickup cutscene + lore popup + dive preview.
+  private lorePopup: LorePopup | null = null;
+  /** Item awaiting its LorePopup (set by sacredPickupFlow, consumed once pulse finishes). */
+  private lorePopupItem: ItemInstance | null = null;
+  /** Item currently displayed by LorePopup (used by confirm key handler). */
+  private activeLorePopupItem: ItemInstance | null = null;
+  private divePreview: DivePreview | null = null;
+  private activeWeaponPulse: WeaponPulse | null = null;
+  private activeAnvilTether: AnvilTether | null = null;
+  private pickupZoomOverride = 1.0;
+  /** LDtk iid of the currently-spawned anvil (null when no anvil exists). */
+  private currentAnvilIid: string | null = null;
+  /**
+   * iids of anvils that have already been used (one-shot). spawnAnvilFromLdtk
+   * skips these on every future level load so the anvil does not respawn.
+   * Persists across loadLevel / item-world round-trips.
+   */
+  private usedAnvilIids: Set<string> = new Set();
+  /**
+   * Snapshot of the used anvil's position so the player can be returned next
+   * to it after clearing the item world, even though the anvil itself is
+   * gone by then.
+   */
+  private lastUsedAnvilPos: { x: number; y: number; width: number; height: number } | null = null;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
   private inItemTunnel = false;
   /** The level to return to after exiting Item World via tunnel. */
@@ -233,6 +264,12 @@ export class LdtkWorldScene extends Scene {
   private endingTriggers: EndingTrigger[] = [];
   private ending!: EndingSequence;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
+  /**
+   * Exit Light Bleed — 방 가장자리의 열린 구간(이웃 방이 있는 쪽)에 주황 글로우를
+   * 띄워 "이곳이 출구"라는 공통 시각 언어를 제공한다.
+   * (Documents/Research/RoomTransition_Readability_Research.md A2)
+   */
+  private exitGlows: ExitGlow[] = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
@@ -269,6 +306,9 @@ export class LdtkWorldScene extends Scene {
       const starterSword = createItem(SWORD_DEFS[0]);
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid);
+      // Starter sword: mark seen so the broken blade never triggers a
+      // LorePopup / pickup cutscene on fresh start.
+      sacredSave.markItemSeen(starterSword.def.id);
     }
 
     // Lazy-load only the tilesets this area needs. Driven by the Tileset
@@ -385,6 +425,13 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI = new InventoryUI(this.inventory);
     this.game.legacyUIContainer.addChild(this.inventoryUI.container);
 
+    // Sacred Pickup — LorePopup + DivePreview sit in the legacy UI layer so
+    // they render above gameplay but under debug overlays.
+    this.lorePopup = new LorePopup();
+    this.game.legacyUIContainer.addChild(this.lorePopup.container);
+    this.divePreview = new DivePreview();
+    this.game.legacyUIContainer.addChild(this.divePreview.container);
+
     // World Map overlay
     this.worldMap = new WorldMapOverlay();
     this.worldMap.setLoader(this.loader);
@@ -471,6 +518,21 @@ export class LdtkWorldScene extends Scene {
     this.toast.update(dt);
     this.tutorialHint.update(dt);
 
+    // Sacred Pickup cutscene + LorePopup + DivePreview. When blocking, abort
+    // gameplay input for this frame (player stays put, camera override still
+    // applied below).
+    const sacredBlocking = this.updateSacredPickup(dt);
+    if (sacredBlocking) {
+      // T2 cutscene drives camera zoom via onZoom callback.
+      if (this.activeWeaponPulse?.isBlocking) {
+        this.game.camera.setZoom(this.pickupZoomOverride);
+      }
+      this.game.camera.update(dt);
+      this.hitSparks.update(dt);
+      this.screenFlash.update(dt);
+      return;
+    }
+
     // Tutorial hints ??only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
       // hint removed — key prompts shown in HUD
@@ -530,14 +592,9 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Altar / Anvil selection UI
+    // Altar selection UI (anvil now uses the unified InventoryUI in anvil mode)
     if (this.altarSelectActive) {
-      // Anvil mode: activeAltar is null, anvil exists without item
-      if (!this.activeAltar && this.anvil) {
-        this.updateAnvilInput();
-      } else {
-        this.updateAltarInput();
-      }
+      this.updateAltarInput();
       return;
     }
 
@@ -576,6 +633,11 @@ export class LdtkWorldScene extends Scene {
     }
 
     if (this.inventoryUI.visible) {
+      // Re-dive confirmation prompt overlays the inventory (anvil mode only)
+      if (this.cyclePromptItem) {
+        this.updateCyclePromptInput();
+        return;
+      }
       this.updateInventoryInput();
       return; // Pause game while inventory open
     }
@@ -885,8 +947,12 @@ export class LdtkWorldScene extends Scene {
           // hint removed
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
+          const pickedItem = drop.item;
+          const pickupX = drop.x;
+          const pickupY = drop.y;
           drop.destroy();
           this.drops.splice(i, 1);
+          this.sacredPickupFlow(pickedItem, pickupX, pickupY);
         }
       }
     }
@@ -954,6 +1020,16 @@ export class LdtkWorldScene extends Scene {
 
     // Updraft wind zones
     this.applyUpdrafts(dt);
+
+    // Exit Light Bleed pulse + 플레이어 거리 기반 두께 확장.
+    if (this.exitGlows.length > 0) {
+      const pcx = this.player.x + this.player.width / 2;
+      const pcy = this.player.y + this.player.height / 2;
+      for (const g of this.exitGlows) {
+        g.setPlayer(pcx, pcy);
+        g.update(dt);
+      }
+    }
 
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
@@ -1331,6 +1407,8 @@ export class LdtkWorldScene extends Scene {
     }
     this.savePoints = [];
     this.saveHintShown = false;
+    for (const g of this.exitGlows) g.destroy();
+    this.exitGlows = [];
     for (const sh of this.healthShards) sh.destroy();
     this.healthShards = [];
     for (const hp of this.healingPickups) hp.destroy();
@@ -1364,6 +1442,9 @@ export class LdtkWorldScene extends Scene {
 
     // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
     this.processLdtkEntities(level);
+
+    // Exit Light Bleed — 이웃 방이 있는 방향의 열린 타일 구간에 주황 글로우.
+    this.spawnExitGlows(level);
 
     // Settle player physics (gravity snap to floor) before camera snap
     for (let i = 0; i < 5; i++) {
@@ -1807,6 +1888,73 @@ export class LdtkWorldScene extends Scene {
       cp.injectCollision(this.collisionGrid);
       this.collapsingPlatforms.push(cp);
       this.entityLayer.addChild(cp.container);
+    }
+  }
+
+  /**
+   * 방 가장자리에서 "이웃이 있으며 통과 가능한 타일 구간"을 찾아 ExitGlow 를 띄운다.
+   * (Documents/Research/RoomTransition_Readability_Research.md A2)
+   *
+   * 수평 에지(w/e): 열 0 또는 gridW-1을 세로로 스캔 → 연속 passable run 마다 글로우 1개.
+   * 수직 에지(n/s): 행 0 또는 gridH-1을 가로로 스캔 → 동일.
+   * passable 판정은 checkLevelEdges() 와 동일(빈칸 0 또는 물 2).
+   */
+  private spawnExitGlows(level: LdtkLevel): void {
+    const TS = 16;
+    const grid = level.collisionGrid;
+    const W = level.gridW;
+    const H = level.gridH;
+    const passable = (t: number | undefined) => t === 0 || t === 2;
+
+    const hasNeighbor = (dir: 'n' | 's' | 'e' | 'w') =>
+      (level.dirNeighbors[dir]?.length ?? 0) > 0;
+
+    const addRuns = (
+      dir: ExitGlowDir,
+      count: number,
+      isPassableAt: (i: number) => boolean,
+      toWorld: (runStart: number, runLen: number) => { x: number; y: number; span: number },
+    ) => {
+      let i = 0;
+      while (i < count) {
+        if (!isPassableAt(i)) { i++; continue; }
+        let j = i;
+        while (j < count && isPassableAt(j)) j++;
+        const { x, y, span } = toWorld(i, j - i);
+        const glow = new ExitGlow(dir, x, y, span);
+        this.entityLayer.addChild(glow.container);
+        this.exitGlows.push(glow);
+        i = j;
+      }
+    };
+
+    // Right edge: column W-1, rows 0..H-1
+    if (hasNeighbor('e')) {
+      addRuns('right', H,
+        (r) => passable(grid[r]?.[W - 1]),
+        (rs, rl) => ({ x: W * TS, y: rs * TS, span: rl * TS }),
+      );
+    }
+    // Left edge: column 0
+    if (hasNeighbor('w')) {
+      addRuns('left', H,
+        (r) => passable(grid[r]?.[0]),
+        (rs, rl) => ({ x: 0, y: rs * TS, span: rl * TS }),
+      );
+    }
+    // Bottom edge: row H-1
+    if (hasNeighbor('s')) {
+      addRuns('down', W,
+        (c) => passable(grid[H - 1]?.[c]),
+        (cs, cl) => ({ x: cs * TS, y: H * TS, span: cl * TS }),
+      );
+    }
+    // Top edge: row 0
+    if (hasNeighbor('n')) {
+      addRuns('up', W,
+        (c) => passable(grid[0]?.[c]),
+        (cs, cl) => ({ x: cs * TS, y: 0, span: cl * TS }),
+      );
     }
   }
 
@@ -2780,9 +2928,13 @@ export class LdtkWorldScene extends Scene {
     if (input.isJustPressed(GameAction.LOOK_UP)) this.inventoryUI.navigate('up');
     if (input.isJustPressed(GameAction.LOOK_DOWN)) this.inventoryUI.navigate('down');
     if (input.isJustPressed(GameAction.ATTACK)) {
-      this.inventoryUI.equipSelected();
-      this.updatePlayerAtk();
-      this.hud.updateATK(this.player.atk);
+      const wasAnvilMode = this.inventoryUI.isAnvilMode();
+      this.inventoryUI.confirmSelected();
+      // Skip ATK recalc when confirming anvil placement — nothing was equipped.
+      if (!wasAnvilMode) {
+        this.updatePlayerAtk();
+        this.hud.updateATK(this.player.atk);
+      }
     }
     if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
   }
@@ -2898,6 +3050,11 @@ export class LdtkWorldScene extends Scene {
             `Got ${dungeonItem!.def.name} [${dungeonItem!.rarity.toUpperCase()}]`,
             0xffcc44,
           );
+          this.sacredPickupFlow(
+            dungeonItem!,
+            this.player.x + this.player.width / 2,
+            this.player.y + this.player.height / 2,
+          );
         }
       }
       if (this.player.atk !== prevAtk) {
@@ -2906,6 +3063,187 @@ export class LdtkWorldScene extends Scene {
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sacred Pickup flow
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Dispatch the appropriate pickup cutscene tier based on sacredSave flags.
+   * Starter-only items are silently marked seen without VFX.
+   */
+  private sacredPickupFlow(item: ItemInstance, wx: number, wy: number): void {
+    // Starter-only items never trigger the cutscene or LorePopup.
+    if (STARTER_ONLY_IDS.has(item.def.id)) {
+      sacredSave.markItemSeen(item.def.id);
+      return;
+    }
+
+    // "처음 보는 아이템" → 첫 아이템과 동일하게 T2 컷신(줌인 + 입력 차단 +
+    // LorePopup 대기)으로 처리. 이미 본 def 를 다시 주울 때는 펄스/컷신 없이
+    // 조용히 인벤토리에 들어간다 — 반복 습득에서 리듬을 끊지 않도록.
+    const firstEver = !sacredSave.isFirstPickupDone();
+    const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
+    if (firstEver) sacredSave.markFirstPickupDone();
+
+    // Tear down any lingering pulse / tether so rapid pickups don't stack.
+    if (this.activeWeaponPulse) { this.activeWeaponPulse.destroy(); this.activeWeaponPulse = null; }
+    if (this.activeAnvilTether) { this.activeAnvilTether.destroy(); this.activeAnvilTether = null; }
+
+    if (isFirstSeen) {
+      const pulse = new WeaponPulse(wx, wy, item.rarity, 'T2_FULL_CUTSCENE');
+      this.entityLayer.addChild(pulse.container);
+      pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
+      // Tether는 LorePopup 닫힘 이후 지속 모드로 생성하므로 펄스 중엔 발동하지 않음.
+      pulse.start();
+      this.activeWeaponPulse = pulse;
+    }
+
+    // Lore popup — open on first-seen items (or always-on setting).
+    // Deferred behind the pulse (if any) so the cutscene completes first.
+    // For already-seen items without the alwaysShowLore option this resolves
+    // to a no-op in LorePopup.showIfNew().
+    this.lorePopupItem = item;
+  }
+
+  /**
+   * 플레이어 → 가장 가까운 앵빌까지의 벡터를 해석. 앵빌을 찾지 못하면 null.
+   *
+   * 앵빌 좌표계: Anvil 클래스는 container를 bottom-center pivot 으로 그리므로
+   * `anvil.x`는 시각적 수평 중앙, `anvil.y`는 시각적 바닥이 된다.
+   * Tether 도착점은 앵빌의 **top-center**(머리 윗부분)를 가리켜야
+   * 점선이 우하단 모서리가 아닌 앵빌 꼭대기로 자연스럽게 꽂힌다.
+   */
+  private resolveAnvilTarget(fromX: number, fromY: number): { x: number; y: number } | null {
+    if (this.anvil) {
+      return { x: this.anvil.x, y: this.anvil.y - this.anvil.height };
+    }
+    if (this.currentLevel?.entities) {
+      let best: { d: number; x: number; y: number } | null = null;
+      for (const ent of this.currentLevel.entities) {
+        if (ent.type !== 'Anvil') continue;
+        if (this.usedAnvilIids.has(ent.iid)) continue;
+        // LDtk Anvil entity 의 pivot 도 bottom-center 로 설정돼 있어
+        // ent.px[1] 이 시각적 바닥. top-center 로 끌어올린다.
+        const ex = ent.px[0];
+        const ey = ent.px[1] - ent.height;
+        const d = (ex - fromX) * (ex - fromX) + (ey - fromY) * (ey - fromY);
+        if (!best || d < best.d) best = { d, x: ex, y: ey };
+      }
+      if (best) return { x: best.x, y: best.y };
+    }
+    if (this.lastUsedAnvilPos) {
+      return {
+        x: this.lastUsedAnvilPos.x,
+        y: this.lastUsedAnvilPos.y - this.lastUsedAnvilPos.height,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * LorePopup 닫힘 이후 호출되어 지속 tether를 생성. 플레이어가 앵빌에
+   * 도달해 openAnvilUI를 호출하면 requestFadeOut으로 점진 소멸한다.
+   */
+  private spawnPersistentAnvilTether(rarity: Rarity): void {
+    const fromX = this.player.x + this.player.width / 2;
+    const fromY = this.player.y + this.player.height / 2;
+    const target = this.resolveAnvilTarget(fromX, fromY);
+    if (!target) return;
+
+    if (this.activeAnvilTether) {
+      this.activeAnvilTether.destroy();
+      this.activeAnvilTether = null;
+    }
+    const tether = new AnvilTether(fromX, fromY, target.x, target.y, rarity);
+    this.entityLayer.addChild(tether.container);
+    this.activeAnvilTether = tether;
+  }
+
+  /**
+   * Advance pulse + tether. Returns true while input must remain blocked for
+   * this frame (i.e. T2 cutscene or LorePopup is up).
+   */
+  private updateSacredPickup(dt: number): boolean {
+    let blocking = false;
+
+    if (this.activeWeaponPulse) {
+      this.activeWeaponPulse.update(dt);
+      if (this.activeWeaponPulse.isBlocking) blocking = true;
+      if (this.activeWeaponPulse.isDone) {
+        this.activeWeaponPulse.destroy();
+        this.activeWeaponPulse = null;
+        this.pickupZoomOverride = 1.0;
+      }
+    }
+    if (this.activeAnvilTether) {
+      // Endpoint를 매 프레임 플레이어 중심 → 현재 앵빌 위치로 갱신.
+      const fx = this.player.x + this.player.width / 2;
+      const fy = this.player.y + this.player.height / 2;
+      const target = this.resolveAnvilTarget(fx, fy);
+      if (target) {
+        this.activeAnvilTether.setEndpoints(fx, fy, target.x, target.y);
+      }
+      this.activeAnvilTether.update(dt);
+      if (this.activeAnvilTether.isDone) {
+        this.activeAnvilTether.destroy();
+        this.activeAnvilTether = null;
+      }
+    }
+
+    // Once the pulse finishes (or immediately for S4), open LorePopup for
+    // items not yet seen. Cache the item so the confirm key-handler below
+    // knows which defId to mark as seen on close.
+    if (this.lorePopupItem && !this.activeWeaponPulse && this.lorePopup) {
+      const item = this.lorePopupItem;
+      const shown = this.lorePopup.showIfNew(item, () => {
+        this.activeLorePopupItem = null;
+        // LorePopup 닫힘 → 아직 첫 다이브 전이면 persistent tether를 띄워
+        // 앵빌까지의 경로를 유지. 이미 다이브 해봤다면 건너뛴다.
+        if (!sacredSave.isFirstDiveDone()) {
+          this.spawnPersistentAnvilTether(item.rarity);
+        }
+      });
+      if (shown) {
+        this.activeLorePopupItem = item;
+      } else {
+        sacredSave.markItemSeen(item.def.id);
+        this.activeLorePopupItem = null;
+      }
+      this.lorePopupItem = null;
+    }
+
+    if (this.lorePopup?.isBlocking()) {
+      // 타이머(입력 잠금)는 팝업이 떠 있는 동안 항상 진행.
+      this.lorePopup.update(dt);
+      blocking = true;
+      const input = this.game.input;
+      // 초기 1초 입력 잠금이 풀린 뒤에만 X 확인을 받는다.
+      if (this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+        input.consumeJustPressed(GameAction.ATTACK);
+        const item = this.activeLorePopupItem;
+        if (item) this.lorePopup.confirm(item);
+        else this.lorePopup.close();
+      } else if (!this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+        // 잠금 동안 들어온 X 는 소비해 다른 루프(예: 공격)로 새지 않도록.
+        input.consumeJustPressed(GameAction.ATTACK);
+      }
+    }
+
+    // Dive preview modal takes priority over other UI input.
+    if (this.divePreview?.isBlocking()) {
+      blocking = true;
+      const input = this.game.input;
+      if (input.isJustPressed(GameAction.ATTACK)) {
+        input.consumeJustPressed(GameAction.ATTACK);
+        this.divePreview.confirm();
+      } else if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
+        this.divePreview.cancel();
+      }
+    }
+
+    return blocking;
   }
 
   /** Returns true if player entered a portal this frame */
@@ -3073,6 +3411,12 @@ export class LdtkWorldScene extends Scene {
   private updateAltarInput(): void {
     this.updateItemSelectInput(
       (item) => {
+        // Starter-only weapons (e.g. the Broken Sword) have no item world —
+        // altar must refuse to spawn a dive portal for them.
+        if (STARTER_ONLY_IDS.has(item.def.id)) {
+          this.toast.show('Cannot dive — too broken', 0xff4444);
+          return;
+        }
         if (this.activeAltar) {
           const altar = this.activeAltar;
           altar.used = true;
@@ -3105,11 +3449,16 @@ export class LdtkWorldScene extends Scene {
       this.anvilPrompt.parent.removeChild(this.anvilPrompt);
       this.anvilPrompt = null;
     }
+    this.currentAnvilIid = null;
 
-    const anvilEnts = level.entities.filter(e => e.type === 'Anvil');
+    // Skip anvils already consumed — they are one-shot per item-world run.
+    const anvilEnts = level.entities.filter(
+      e => e.type === 'Anvil' && !this.usedAnvilIids.has(e.iid),
+    );
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
       this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.currentAnvilIid = ent.iid;
       this.entityLayer.addChild(this.anvil.container);
       return;
     }
@@ -3120,6 +3469,7 @@ export class LdtkWorldScene extends Scene {
       console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" ??using first Altar position as fallback`);
       const ent = altarEnts[0];
       this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.currentAnvilIid = ent.iid;
       this.entityLayer.addChild(this.anvil.container);
     }
   }
@@ -3180,56 +3530,78 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /**
+   * Open the unified inventory UI in "anvil" mode. The player sees the same
+   * grid inventory as the regular INVENTORY key but confirming an item places
+   * it on the anvil instead of equipping.
+   */
   private openAnvilUI(): void {
     if (this.inventory.items.length === 0) {
       this.toast.show('No items to place', 0xff4444);
       return;
     }
-    this.altarSelectActive = true;
-    this.altarSelectIndex = 0;
-    this.activeAltar = null; // null = anvil mode
-    this.drawAnvilUI();
-  }
-
-  private drawAnvilUI(): void {
-    this.drawItemSelectUI('Place weapon on anvil:', 0xff8844);
-  }
-
-  private updateAnvilInput(): void {
-    // Re-dive confirmation prompt (shown when a cleared item is selected)
-    if (this.cyclePromptItem) {
-      this.updateCyclePromptInput();
-      return;
-    }
-
-    this.updateItemSelectInput(
-      (item) => {
-        // Cannot place equipped weapon on anvil
-        if (this.inventory.equipped?.uid === item.uid) {
-          this.toast.show('Unequip first', 0xff4444);
-          return;
-        }
-        // Fully cleared item — confirm re-dive (increments cycle, resets strata)
-        if (isItemFullyCleared(item)) {
-          this.cyclePromptItem = item;
-          this.drawCyclePromptUI(item);
-          return;
-        }
-        this.placeItemOnAnvil(item);
-      },
-      () => this.drawAnvilUI(),
-    );
+    // 플레이어가 앵빌에 도달 → 안내용 tether 임무 완료.
+    this.activeAnvilTether?.requestFadeOut();
+    // Hide the approach prompt while the inventory is open — it would
+    // otherwise bleed through the translucent inventory overlay. If the
+    // player cancels, updateAnvil re-shows it on the next frame.
+    if (this.anvilPrompt) this.anvilPrompt.visible = false;
+    this.inventoryUI.openForAnvil((item) => {
+      // Cannot place equipped weapon on anvil
+      if (this.inventory.equipped?.uid === item.uid) {
+        this.toast.show('Unequip first', 0xff4444);
+        return;
+      }
+      // Starter-only weapons (e.g. the Broken Sword) have no item world —
+      // they are story props, not dive-able loot. Block placement outright.
+      if (STARTER_ONLY_IDS.has(item.def.id)) {
+        this.toast.show('Cannot dive — too broken', 0xff4444);
+        return;
+      }
+      // Fully cleared item — confirm re-dive (increments cycle, resets strata).
+      // Reuse the existing cycle-prompt overlay; it draws on top of the
+      // inventory and steals input via the updateCyclePromptInput path.
+      if (isItemFullyCleared(item)) {
+        this.cyclePromptItem = item;
+        this.drawCyclePromptUI(item);
+        return;
+      }
+      this.placeItemOnAnvil(item);
+    });
   }
 
   /** Shared "commit item to anvil" path. */
   private placeItemOnAnvil(item: ItemInstance): void {
     if (!this.anvil) {
-      this.closeAltarUI();
+      this.inventoryUI.close();
       return;
     }
+    // Sacred Pickup S6 / T5 — show preview before committing. Full modal for
+    // first ever dive, compact strip thereafter.
+    if (this.divePreview) {
+      const confirm = () => {
+        if (!this.anvil) return;
+        sacredSave.markFirstDiveDone();
+        this.anvil.placeItem(item);
+        this.collapseItem = item;
+        this.inventoryUI.close();
+        this.toast.show('Strike the anvil!', 0xff8844);
+      };
+      const cancel = () => {
+        // Reopen the inventory in anvil mode so user can pick another item.
+        this.inventoryUI.refresh();
+      };
+      if (!sacredSave.isFirstDiveDone()) {
+        this.divePreview.showFull(item, confirm, cancel);
+      } else {
+        this.divePreview.showCompact(item, confirm, cancel);
+      }
+      return;
+    }
+    // Fallback path if preview unavailable.
     this.anvil.placeItem(item);
     this.collapseItem = item;
-    this.closeAltarUI();
+    this.inventoryUI.close();
     this.toast.show('Strike the anvil!', 0xff8844);
   }
 
@@ -3310,9 +3682,15 @@ export class LdtkWorldScene extends Scene {
       return;
     }
     if (input.isJustPressed(GameAction.DASH) || input.isJustPressed(GameAction.MENU)) {
-      // Cancel — return to item select UI
+      // Cancel — return to the item select UI.
+      // Anvil path uses the unified InventoryUI (already open in anvil mode),
+      // while the altar path uses the legacy drawItemSelectUI overlay.
       this.closeCyclePromptUI();
-      this.drawAnvilUI();
+      if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
+        this.inventoryUI.refresh();
+      } else {
+        this.drawItemSelectUI('Offer item to altar:', 0xaaccff);
+      }
       return;
     }
   }
@@ -3339,11 +3717,29 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // Use MemoryDive instead of FloorCollapse
+    // Mark this anvil as consumed BEFORE the item-world round-trip so the
+    // returning loadLevel() in onComplete skips it and the anvil entity is
+    // never respawned. Snapshot position since the Anvil instance itself is
+    // destroyed by the upcoming level reload.
+    if (this.currentAnvilIid) {
+      this.usedAnvilIids.add(this.currentAnvilIid);
+    }
+    this.lastUsedAnvilPos = {
+      x: this.anvil.x,
+      y: this.anvil.y,
+      width: this.anvil.width,
+      height: this.anvil.height,
+    };
+
+    // Use MemoryDive instead of FloorCollapse. Bump per-item dive count BEFORE
+    // the dive begins so the first-ever dive sees count===1 (full duration).
+    const diveCount = sacredSave.incrementDive(this.collapseItem.def.id);
+    const skipDive = sacredSave.getSettings().skipDive;
     const dive = new MemoryDive(
       this.anvil.x + this.anvil.width / 2,
       this.anvil.y,
       this.collapseItem.rarity,
+      { diveCount, skipDive },
     );
 
     dive.onShake = (intensity) => this.game.camera.shake(intensity);
@@ -3455,18 +3851,29 @@ export class LdtkWorldScene extends Scene {
       }
       this.collapseItem = null;
 
-      // Spawn next to anvil (collapse point)
-      if (this.anvil) {
-        this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
-        this.player.y = this.anvil.y - this.player.height;
-        this.player.vx = 0;
-        this.player.vy = 0;
-        this.player.savePrevPosition();
-        this.game.camera.snap(this.player.x, this.player.y);
-      }
+      // Spawn next to the (now-removed) anvil using the snapshot position.
+      this.placePlayerAtReturnPoint();
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
+  }
+
+  /**
+   * Position the player at the used-anvil snapshot after returning from the
+   * item world. Falls back to the current anvil position if the snapshot is
+   * missing (shouldn't happen in normal flow but keeps the scene coherent).
+   */
+  private placePlayerAtReturnPoint(): void {
+    const snap = this.lastUsedAnvilPos ?? (this.anvil
+      ? { x: this.anvil.x, y: this.anvil.y, width: this.anvil.width, height: this.anvil.height }
+      : null);
+    if (!snap) return;
+    this.player.x = snap.x + snap.width / 2 + 8;
+    this.player.y = snap.y - this.player.height;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+    this.game.camera.snap(this.player.x, this.player.y);
   }
 
   /**
@@ -3498,15 +3905,8 @@ export class LdtkWorldScene extends Scene {
           this.preTunnelLevelId = null;
         }
         this.collapseItem = null;
-        // Spawn next to anvil
-        if (this.anvil) {
-          this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
-          this.player.y = this.anvil.y - this.player.height;
-          this.player.vx = 0;
-          this.player.vy = 0;
-          this.player.savePrevPosition();
-          this.game.camera.snap(this.player.x, this.player.y);
-        }
+        // Spawn next to the (now-removed) anvil using the snapshot position.
+        this.placePlayerAtReturnPoint();
       };
       this.container.visible = false;
       this.hud.container.visible = false;
@@ -3540,15 +3940,8 @@ export class LdtkWorldScene extends Scene {
     this.preTunnelLevelId = null;
     this.loadLevel(returnLevel, 'down');
 
-    // Place player next to anvil if it exists
-    if (this.anvil) {
-      this.player.x = this.anvil.x + this.anvil.width / 2 + 8;
-      this.player.y = this.anvil.y - this.player.height;
-      this.player.vx = 0;
-      this.player.vy = 0;
-      this.player.savePrevPosition();
-      this.game.camera.snap(this.player.x, this.player.y);
-    }
+    // Place player next to the (possibly-removed) anvil snapshot.
+    this.placePlayerAtReturnPoint();
   }
 
   // ---------------------------------------------------------------------------

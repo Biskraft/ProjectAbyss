@@ -8,7 +8,7 @@
 import dropCsvText from '../../../Sheets/Content_Item_DropRate.csv?raw';
 import { Container, Graphics } from 'pixi.js';
 import { PRNG } from '@utils/PRNG';
-import { SWORD_DEFS, type Rarity } from '@data/weapons';
+import { SWORD_DEFS, STARTER_ONLY_IDS, type Rarity } from '@data/weapons';
 import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
 import { DROP_CHANCE } from '@data/rarityConfig';
 
@@ -39,7 +39,9 @@ export function rollDrop(rng: PRNG): ItemInstance | null {
     cumulative += w.weight;
     if (roll < cumulative) { rarity = w.rarity; break; }
   }
-  const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[0];
+  const def = SWORD_DEFS.find(d => d.rarity === rarity && !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS.find(d => !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS[0];
   return createItem(def, rarity);
 }
 
@@ -52,7 +54,9 @@ export function rollGoldenDrop(rng: PRNG): ItemInstance {
     cumulative += w.weight;
     if (roll < cumulative) { rarity = w.rarity; break; }
   }
-  const def = SWORD_DEFS.find(d => d.rarity === rarity) ?? SWORD_DEFS[2];
+  const def = SWORD_DEFS.find(d => d.rarity === rarity && !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS.find(d => d.rarity === 'rare' && !STARTER_ONLY_IDS.has(d.id))
+    ?? SWORD_DEFS[2];
   return createItem(def, rarity);
 }
 
@@ -67,12 +71,17 @@ interface DropVFX {
   glowRadius: number;
 }
 
+// Sacred Pickup §3.2 / §3.11 — per-rarity halo + particle spawn rates.
+// Normal keeps a minimal static halo only (no particles); spawnInterval=0 and
+// particleCount=0 ensure the particle code path is skipped at runtime while
+// the object itself remains non-null so the existing `if (!this.vfx) return;`
+// guard still short-circuits only when a rarity has truly no config.
 const DROP_VFX: Record<Rarity, DropVFX | null> = {
-  normal: null,
-  magic:     { particleColor: 0x6969ff, particleCount: 1, spawnInterval: 800,  pulseSpeed: 0,      glowAlpha: 0,    glowRadius: 0 },
-  rare:      { particleColor: 0xffff00, particleCount: 1, spawnInterval: 600,  pulseSpeed: 0.003,  glowAlpha: 0.15, glowRadius: 10 },
-  legendary: { particleColor: 0xff8000, particleCount: 2, spawnInterval: 400,  pulseSpeed: 0.004,  glowAlpha: 0.25, glowRadius: 14 },
-  ancient:   { particleColor: 0x00ff00, particleCount: 3, spawnInterval: 300,  pulseSpeed: 0.005,  glowAlpha: 0.35, glowRadius: 18 },
+  normal:    { particleColor: 0xffffff, particleCount: 0, spawnInterval: 0,   pulseSpeed: 0,      glowAlpha: 0.10, glowRadius: 8 },
+  magic:     { particleColor: 0x6969ff, particleCount: 1, spawnInterval: 500, pulseSpeed: 0.003,  glowAlpha: 0.20, glowRadius: 12 },
+  rare:      { particleColor: 0xffff00, particleCount: 1, spawnInterval: 333, pulseSpeed: 0.003,  glowAlpha: 0.25, glowRadius: 16 },
+  legendary: { particleColor: 0xff8000, particleCount: 1, spawnInterval: 250, pulseSpeed: 0.004,  glowAlpha: 0.30, glowRadius: 20 },
+  ancient:   { particleColor: 0x00ff00, particleCount: 1, spawnInterval: 166, pulseSpeed: 0.005,  glowAlpha: 0.35, glowRadius: 24 },
 };
 
 interface Particle {
@@ -149,12 +158,15 @@ export class ItemDropEntity {
       }
     }
 
-    // Spawn particles
-    this.spawnTimer -= dt;
-    if (this.spawnTimer <= 0) {
-      this.spawnTimer = this.vfx.spawnInterval;
-      for (let i = 0; i < this.vfx.particleCount; i++) {
-        this.spawnParticle();
+    // Spawn particles — skip entirely when particleCount or spawnInterval is 0
+    // (normal rarity: static halo only, no particles).
+    if (this.vfx.particleCount > 0 && this.vfx.spawnInterval > 0) {
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0) {
+        this.spawnTimer = this.vfx.spawnInterval;
+        for (let i = 0; i < this.vfx.particleCount; i++) {
+          this.spawnParticle();
+        }
       }
     }
 

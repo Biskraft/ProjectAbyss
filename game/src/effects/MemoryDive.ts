@@ -18,11 +18,25 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
 export type DivePhase = 'idle' | 'ritual' | 'dissolve' | 'absorb' | 'flash' | 'done';
 
-// Phase timings (ms)
-const T_RITUAL = 400;
-const T_DISSOLVE = 800;  // 400~1200
-const T_ABSORB = 800;    // 1200~2000
-const T_FLASH = 500;     // 2000~2500
+/**
+ * Optional dive tuning. Controls duration tiers driven by Sacred Pickup S7:
+ *   diveCount (after incrementDive) ≤ 1 → full 2700ms (default when unset)
+ *   diveCount 2-5                        → compressed 800ms
+ *   diveCount ≥ 6                        → ultra-compressed 300ms
+ *   skipDive true                        → 100ms flash-only bypass
+ */
+export interface MemoryDiveOptions {
+  /** Post-increment dive count for this item (1 = first ever). */
+  diveCount?: number;
+  /** User setting — bypass ritual/dissolve/absorb; 100ms flash only. */
+  skipDive?: boolean;
+}
+
+// Default (tier 1) phase timings (ms).
+const T_RITUAL_DEFAULT = 400;
+const T_DISSOLVE_DEFAULT = 800;  // 400~1200
+const T_ABSORB_DEFAULT = 800;    // 1200~2000
+const T_FLASH_DEFAULT = 500;     // 2000~2500
 
 interface DiveParticle {
   gfx: Graphics;
@@ -43,6 +57,13 @@ export class MemoryDive {
   private rarity: Rarity;
   private rarityColor: number;
 
+  // Per-instance phase durations — scaled from defaults based on diveCount/skip.
+  private T_RITUAL: number;
+  private T_DISSOLVE: number;
+  private T_ABSORB: number;
+  private T_FLASH: number;
+  private skipDive: boolean;
+
   // Visual layers
   private shockwaveGfx: Graphics;
   private crackGfx: Graphics;
@@ -57,11 +78,40 @@ export class MemoryDive {
   get isDone(): boolean { return this.phase === 'done'; }
   get shouldTransition(): boolean { return this.phase === 'done'; }
 
-  constructor(weaponX: number, weaponY: number, rarity: Rarity) {
+  constructor(weaponX: number, weaponY: number, rarity: Rarity, options?: MemoryDiveOptions) {
     this.weaponX = weaponX;
     this.weaponY = weaponY;
     this.rarity = rarity;
     this.rarityColor = RARITY_COLOR[rarity];
+
+    const opts = options ?? {};
+    this.skipDive = opts.skipDive === true;
+    const count = opts.diveCount;
+
+    if (this.skipDive) {
+      // Skip mode — only a brief flash fills the screen.
+      this.T_RITUAL = 0;
+      this.T_DISSOLVE = 0;
+      this.T_ABSORB = 0;
+      this.T_FLASH = 100;
+    } else if (count === undefined || count <= 1) {
+      this.T_RITUAL = T_RITUAL_DEFAULT;
+      this.T_DISSOLVE = T_DISSOLVE_DEFAULT;
+      this.T_ABSORB = T_ABSORB_DEFAULT;
+      this.T_FLASH = T_FLASH_DEFAULT;
+    } else if (count <= 5) {
+      // 800ms tier — proportional split (120 / 240 / 240 / 200).
+      this.T_RITUAL = 120;
+      this.T_DISSOLVE = 240;
+      this.T_ABSORB = 240;
+      this.T_FLASH = 200;
+    } else {
+      // 300ms tier — 50 / 80 / 90 / 80.
+      this.T_RITUAL = 50;
+      this.T_DISSOLVE = 80;
+      this.T_ABSORB = 90;
+      this.T_FLASH = 80;
+    }
 
     this.container = new Container();
     this.shockwaveGfx = new Graphics();
@@ -74,6 +124,13 @@ export class MemoryDive {
   }
 
   start(): void {
+    if (this.skipDive) {
+      // Flash-only: skip directly to flash phase.
+      this.phase = 'flash';
+      this.timer = 0;
+      this.onScreenFlash?.(this.rarityColor, 0.5);
+      return;
+    }
     this.phase = 'ritual';
     this.timer = 0;
     this.onHitstop?.(8);
@@ -87,7 +144,7 @@ export class MemoryDive {
     // --- Phase 0: Ritual (0~400ms) ---
     if (this.phase === 'ritual') {
       // Expanding shockwave ring from weapon position
-      const progress = this.timer / T_RITUAL;
+      const progress = this.T_RITUAL > 0 ? this.timer / this.T_RITUAL : 1;
       const radius = progress * 120;
       this.shockwaveGfx.clear();
       this.shockwaveGfx.circle(this.weaponX, this.weaponY, radius)
@@ -100,7 +157,7 @@ export class MemoryDive {
         this.spawnParticle(this.weaponX, this.weaponY, 80, true);
       }
 
-      if (this.timer >= T_RITUAL) {
+      if (this.timer >= this.T_RITUAL) {
         this.phase = 'dissolve';
         this.timer = 0;
         this.shockwaveGfx.clear();
@@ -109,7 +166,7 @@ export class MemoryDive {
 
     // --- Phase 1: Dissolve (0~800ms) ---
     else if (this.phase === 'dissolve') {
-      const progress = this.timer / T_DISSOLVE;
+      const progress = this.T_DISSOLVE > 0 ? this.timer / this.T_DISSOLVE : 1;
 
       // Rarity-colored cracks radiating from weapon center
       this.crackGfx.clear();
@@ -142,7 +199,7 @@ export class MemoryDive {
         );
       }
 
-      if (this.timer >= T_DISSOLVE) {
+      if (this.timer >= this.T_DISSOLVE) {
         this.phase = 'absorb';
         this.timer = 0;
         this.crackGfx.clear();
@@ -151,7 +208,7 @@ export class MemoryDive {
 
     // --- Phase 2: Absorb (0~800ms) ---
     else if (this.phase === 'absorb') {
-      const progress = this.timer / T_ABSORB;
+      const progress = this.T_ABSORB > 0 ? this.timer / this.T_ABSORB : 1;
 
       // Dark overlay with expanding transparent portal hole in center
       this.overlayGfx.clear();
@@ -208,7 +265,7 @@ export class MemoryDive {
 
       this.onShake?.(5 * progress);
 
-      if (this.timer >= T_ABSORB) {
+      if (this.timer >= this.T_ABSORB) {
         this.phase = 'flash';
         this.timer = 0;
         this.crackGfx.clear();
@@ -219,7 +276,7 @@ export class MemoryDive {
 
     // --- Phase 3: Flash (0~500ms) ---
     else if (this.phase === 'flash') {
-      const progress = this.timer / T_FLASH;
+      const progress = this.T_FLASH > 0 ? this.timer / this.T_FLASH : 1;
 
       // Full screen rarity color → black
       this.overlayGfx.clear();
@@ -230,7 +287,7 @@ export class MemoryDive {
       this.overlayGfx.x = -GAME_WIDTH * 1.5;
       this.overlayGfx.y = -GAME_HEIGHT * 1.5;
 
-      if (this.timer >= T_FLASH) {
+      if (this.timer >= this.T_FLASH) {
         this.phase = 'done';
       }
     }

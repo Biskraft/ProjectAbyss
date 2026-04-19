@@ -2,15 +2,16 @@
 
 ## 구현 현황 (Implementation Status)
 
-> 최근 업데이트: 2026-03-23
+> 최근 업데이트: 2026-04-18
 > 문서 상태: `작성 중 (Draft)`
 > 2-Space: 전체 (World - 탐험/장비 관리, Item World - 아이템 획득/강화)
 > 기둥: 야리코미
+> 분류 결정: `memory/wiki/decisions/DEC-026.md` (장비 슬롯 sci-fi 리네이밍)
 
 | 기능 ID  | 분류     | 기능명 (Feature Name)               | 우선순위 | 구현 상태 | 비고 (Notes)                        |
 | :------- | :------- | :---------------------------------- | :------: | :-------- | :---------------------------------- |
-| EQP-01-A | 슬롯     | 무기 슬롯 (MVP: 검 1종)             |    P1    | 대기      | Phase 1 MVP 범위                    |
-| EQP-01-B | 슬롯     | 전체 6슬롯 (무기/보조/머리/갑옷/망토/장신구x2) | P2 | 대기 | Phase 2 추가                        |
+| EQP-01-A | 슬롯     | 무기 슬롯 (MVP: Blade 1종)          |    P1    | 대기      | Phase 1 MVP 범위                    |
+| EQP-01-B | 슬롯     | 전체 8슬롯 (무기/보조/Visor/Plate/Gauntlet/Greaves/Rig/Sigil x2/Seal) | P2 | 대기 | Phase 2 추가 (DEC-026 리네이밍 반영) |
 | EQP-02-A | 착용     | 아이템 착용 규칙                    |    P1    | 대기      | 타입 일치 검증                      |
 | EQP-02-B | 착용     | 아이템 해제 규칙                    |    P1    | 대기      | 빈 슬롯 복귀                        |
 | EQP-03-A | 스탯합산 | 장비 스탯 → 캐릭터 스탯 합산        |    P1    | 대기      | FinalStat = Base + Equip + Innocent |
@@ -56,6 +57,7 @@ ECHORIS의 장비 슬롯 시스템은 다음 한 문장으로 정의한다:
 | 타입 제한 착용 규칙         | 무기 슬롯에 갑옷을 착용하는 오류 방지. 직관적 규칙이 학습 곡선을 줄임                 |
 | 이노센트 보너스를 합산에 포함 | 이노센트가 장비에 귀속되므로, 장비를 착용해야 이노센트 효과도 활성화. 착용의 가치 강화 |
 | 세트 효과를 Phase 2로 연기  | MVP에서 세트 조합 가짓수가 없음. 콘텐츠 볼륨 확보 후 도입이 적절                      |
+| Cloak → Rig, Ring/Amulet → Sigil/Seal 리네이밍 (DEC-026) | 메가스트럭처 sci-fi 세계관에 판타지 용어(Cloak/Ring/Amulet) 충돌. Rig=배면 장착 모듈, Sigil=빌더 문양 인장, Seal=상위 빌더 권한 봉인체 |
 
 ### 1.3. 3대 기둥 정렬 (Pillar Alignment)
 
@@ -91,17 +93,20 @@ ECHORIS의 장비 슬롯 시스템은 다음 한 문장으로 정의한다:
 ```mermaid
 graph TD
     subgraph "Phase 1 MVP"
-        WPN[무기 슬롯 - 검]
+        WPN[무기 슬롯 - Blade]
     end
 
     subgraph "Phase 2 확장"
         WPN2[무기 슬롯]
         SUB[보조무기 슬롯]
-        HMT[머리 슬롯]
-        ARM[갑옷 슬롯]
-        CLK[망토 슬롯]
-        ACC1[장신구 슬롯 1]
-        ACC2[장신구 슬롯 2]
+        VSR[Visor - 관측 헬멧]
+        PLT[Plate - 판금 장갑]
+        GNT[Gauntlet - 단조 건틀릿]
+        GRV[Greaves - 등반 각반]
+        RIG[Rig - 배면 모듈]
+        SGL1[Sigil 1 - 빌더 인장]
+        SGL2[Sigil 2 - 빌더 인장]
+        SEAL[Seal - 권한 봉인체]
     end
 
     subgraph "스탯 합산"
@@ -111,11 +116,14 @@ graph TD
     WPN --> FINAL
     WPN2 --> FINAL
     SUB --> FINAL
-    HMT --> FINAL
-    ARM --> FINAL
-    CLK --> FINAL
-    ACC1 --> FINAL
-    ACC2 --> FINAL
+    VSR --> FINAL
+    PLT --> FINAL
+    GNT --> FINAL
+    GRV --> FINAL
+    RIG --> FINAL
+    SGL1 --> FINAL
+    SGL2 --> FINAL
+    SEAL --> FINAL
 ```
 
 ### 2.2. 스탯 합산 공식 (Stat Aggregation Formula)
@@ -192,8 +200,8 @@ graph LR
 
 | Phase   | 개방 슬롯                              | 비고                             |
 | :------ | :------------------------------------- | :------------------------------- |
-| Phase 1 | 무기 슬롯 1개 (검)                     | MVP 범위. 검 1종만 지원          |
-| Phase 2 | 무기, 보조무기, 머리, 갑옷, 망토, 장신구 x2 | 세트 효과 추가                  |
+| Phase 1 | 무기 슬롯 1개 (Blade)                  | MVP 범위. Blade 1종만 지원       |
+| Phase 2 | 무기, 보조무기, Visor, Plate, Gauntlet, Greaves, Rig, Sigil×2, Seal | 총 10슬롯. 세트 효과 추가 |
 | Phase 3 | Phase 2 유지 + 특수 슬롯 검토          | 특수 슬롯 확장 검토              |
 
 ### 3.4. 세트 효과 규칙 (Set Effect Rules) - Phase 2
@@ -212,9 +220,9 @@ graph LR
 
 ```yaml
 item_data_structure:
-  id: "ITM_WPN_SWORD_001"          # 아이템 고유 ID (문자열)
-  name: "낡은 검"                   # 표시 이름
-  type: "weapon"                   # 슬롯 타입: weapon / sub_weapon / head / armor / cloak / accessory
+  id: "ITM_WPN_BLADE_001"          # 아이템 고유 ID (문자열)
+  name: "Starter Blade"            # 표시 이름
+  type: "weapon"                   # 슬롯 타입: weapon / sub_weapon / visor / plate / gauntlet / greaves / rig / sigil / seal
   rarity: "Normal"                 # 등급: Normal / Magic / Rare / Legendary / Ancient
   level: 1                         # 현재 아이템 레벨 (아이템계 지층 클리어로 증가)
   baseStats:
@@ -246,30 +254,42 @@ equipment_slots:
   phase2:
     slots:
       - id: "weapon"
-        name: "무기"
+        name: "Weapon"
         allowed_types: ["weapon"]
         count: 1
       - id: "sub_weapon"
-        name: "보조무기"
+        name: "Sub Weapon"
         allowed_types: ["sub_weapon"]
         count: 1
-      - id: "head"
-        name: "머리"
-        allowed_types: ["head"]
+      - id: "visor"
+        name: "Visor"
+        allowed_types: ["visor"]
         count: 1
-      - id: "armor"
-        name: "갑옷"
-        allowed_types: ["armor"]
+      - id: "plate"
+        name: "Plate"
+        allowed_types: ["plate"]
         count: 1
-      - id: "cloak"
-        name: "망토"
-        allowed_types: ["cloak"]
+      - id: "gauntlet"
+        name: "Gauntlet"
+        allowed_types: ["gauntlet"]
         count: 1
-      - id: "accessory"
-        name: "장신구"
-        allowed_types: ["accessory"]
+      - id: "greaves"
+        name: "Greaves"
+        allowed_types: ["greaves"]
+        count: 1
+      - id: "rig"
+        name: "Rig"
+        allowed_types: ["rig"]
+        count: 1
+      - id: "sigil"
+        name: "Sigil"
+        allowed_types: ["sigil"]
         count: 2
-    total_slots: 7  # 무기 포함 총 슬롯 수 (장신구 2개 포함)
+      - id: "seal"
+        name: "Seal"
+        allowed_types: ["seal"]
+        count: 1
+    total_slots: 10  # 무기 2 + 장비 5(Visor/Plate/Gauntlet/Greaves/Rig) + 장신구 3(Sigil×2 + Seal)
 ```
 
 ### 4.3. MVP 기준 수치 (MVP Base Values)
@@ -286,14 +306,14 @@ mvp_base_values:
     spd: 8
     lck: 5
 
-  sword_normal_lv1:
-    id: "ITM_WPN_SWORD_NORMAL_001"
-    name: "낡은 검"
+  blade_normal_lv1:
+    id: "ITM_WPN_BLADE_NORMAL_001"
+    name: "Starter Blade"
     type: "weapon"
     rarity: "Normal"
     level: 1
     baseStats:
-      atk: 15    # Normal 검 기본 ATK. System_Equipment_Rarity.md 배율 x1.0 적용
+      atk: 15    # Normal Blade 기본 ATK. System_Equipment_Rarity.md 배율 x1.0 적용
     itemWorldDepth: 30
 
   stat_gate_example:
@@ -346,7 +366,8 @@ mvp_base_values:
 - [ ] 타입 불일치 착용 시도가 명확한 오류 메시지와 함께 거부되는가?
 - [ ] 장비 착용/해제 시 스탯 UI가 즉시 갱신되는가?
 - [ ] 아이템 데이터 구조(id, name, type, rarity, level, baseStats, innocents[])가 모든 아이템에 완전하게 정의되어 있는가?
-- [ ] MVP 검 Normal Lv1의 ATK 15가 전투 데미지 공식에 정확히 반영되는가? (`System_Combat_Damage.md` 연동)
+- [ ] MVP Blade Normal Lv1의 ATK 15가 전투 데미지 공식에 정확히 반영되는가? (`System_Combat_Damage.md` 연동)
+- [ ] Phase 2 슬롯 10종(무기 2 + Visor/Plate/Gauntlet/Greaves/Rig + Sigil×2/Seal)이 DEC-026 리네이밍을 따르는가?
 - [ ] 장비 해제 후 스탯 게이트 미달 상태에서 게이트 구역 재진입 시 차단이 동작하는가?
 - [ ] Phase 2 슬롯(세트 효과)은 데이터 구조만 정의되고 Phase 1에서 기능이 활성화되지 않는가?
 - [ ] 이 시스템이 야리코미 기둥(아이템계 강화 - 스탯 상승 - 탐험 확장)의 순환 구조를 강화하는가?

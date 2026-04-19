@@ -50,6 +50,12 @@ export interface WeaponDef {
   hitboxH: number;
 }
 
+/**
+ * Weapon IDs that are only usable as starter/story items — excluded from
+ * random drop pools and rarity-template lookups.
+ */
+export const STARTER_ONLY_IDS: ReadonlySet<string> = new Set(['sword_broken']);
+
 /** Sword weapon definitions — parsed from Content_Stats_Weapon_List.csv */
 export const SWORD_DEFS: WeaponDef[] = [];
 

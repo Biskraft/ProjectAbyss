@@ -844,6 +844,7 @@ export class Player extends Entity implements CombatEntity {
     } else {
       this.attackSprite.x = -step.hitboxW;
     }
+    this.attackSprite.scale.x = 1;
     this.attackSprite.y = offsetY;
     this.attackSprite.visible = true;
   }
@@ -905,11 +906,7 @@ export class Player extends Entity implements CombatEntity {
     // Update attack visual position on flip
     if (this.attackSprite.visible) {
       const step = COMBO_STEPS[this.comboIndex];
-      if (this.facingRight) {
-        this.attackSprite.x = this.width;
-      } else {
-        this.attackSprite.x = -step.hitboxW;
-      }
+      this.attackSprite.x = this.facingRight ? this.width : -step.hitboxW;
     }
   }
 }

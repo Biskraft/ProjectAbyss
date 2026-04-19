@@ -15,6 +15,8 @@ export default defineConfig({
       '@utils': path.resolve(__dirname, 'src/utils'),
       '@effects': path.resolve(__dirname, 'src/effects'),
       '@systems': path.resolve(__dirname, 'src/systems'),
+      '@audio': path.resolve(__dirname, 'src/audio'),
+      '@save': path.resolve(__dirname, 'src/save'),
     },
   },
   server: {

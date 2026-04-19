@@ -34,19 +34,26 @@
 
 **LDtk 엔티티:** Anvil (32x16 고정 크기, pivot 하단 중앙)
 
-**상호작용 흐름:**
+> **UI/UX 연출 마스터 스펙:** `Documents/UI/UI_SacredPickup.md`
+> 앵빌 전체 UX 흐름(앵빌 도달 → 대장간 UI → DIVE/BACK → 다이브 연출)은 Sacred Pickup 체계의 일부로 관리되며, 1회성(T5 풀 프리뷰 / T6 Return 아이콘) 과 다회성(S5 [E] 프롬프트 / S6 그리드 UI / S7 단축 연출)이 분리되어 있다. 본 섹션은 엔티티/AABB/충돌 측면의 계약만 정의한다.
+
+**상호작용 흐름 (엔티티 계약):**
 ```
 1. 플레이어 근접 → overlaps() = true
-2. Anvil.setShowHint(true) → "UP: Place weapon" 힌트 텍스트 표시
-3. [UP 키] 누름 → 인벤토리에서 아이템 선택
-4. placeItem(item) 호출:
-   - item 저장
-   - itemGfx: 아이템 레어리티 색상 사각형을 모루 상단에 렌더
-   - hintText 변경: "ATK: Strike!" (주황색 #ffcc44)
-5. [ATK 키] 누름 → 플레이어 공격이 getHitAABB()와 겹치면
-6. scene: FloorCollapse + MemoryDive 시퀀스 시작
-7. used = true → 재사용 불가
+2. Anvil.setShowHint(true) → [E] 심볼 프롬프트 표시 (S5, 텍스트 "UP: Place weapon" 폐기)
+3. [E] 키 누름 → InventoryUI.openForAnvil(onSelect) 호출
+   (기존 drawItemSelectUI 텍스트 리스트는 폐기. 인벤토리 그리드 UI와 단일화)
+4. 플레이어 그리드에서 아이템 선택 + [E] 확인:
+   - firstDiveDone === false → T5 풀 프리뷰 패널 표시 (층수/적 레벨/리워드)
+   - firstDiveDone === true  → S6 요약 프리뷰 (1줄) 표시
+5. 프리뷰에서 [E] DIVE 확인 → placeItem(item) + 다이브 연출 트리거
+   ([ESC] BACK 시 그리드로 복귀)
+6. 다이브 연출(S7): diveCount[itemDefId] 기준 풀/단축/초단축 분기
+7. scene: FloorCollapse + MemoryDive 시퀀스 시작
+8. used = true → 재사용 불가 (씬 레벨에서 보장)
 ```
+
+**장착 해제 요구사항:** 장착 중인 아이템은 DIVE 선택 불가. 그리드 내에서 장착 중 아이템 선택 시 프롬프트에 "Unequip first"가 표시된다. 근거: `Documents/System/System_ItemWorld_Core.md §2.1` — 디스가이아 원본 규칙 준수 ("무기를 가지고 그 무기의 안으로 들어갈 수 없다").
 
 **AABB 구조:**
 ```
@@ -61,7 +68,8 @@ getHitAABB() — 공격 히트 감지용
 - 모루 몸체: 청회색 계열 3단 구조 (상판 + 기둥 + 받침)
 - 글로우 펄스: `alpha = 0.9 + sin(t * 2) * 0.1` (1초 주기)
 - 아이템 배치 후 itemGfx 글로우: `alpha = 0.8 + sin(t * 4) * 0.2` (0.5초 주기)
-- hintText 펄스: `alpha = 0.7 + sin(t * 3) * 0.3`
+- [E] 심볼 프롬프트 맥동: Sacred Pickup §3.7 기준 (레어리티 색상 동기화 포함. 기존 hintText 펄스는 제거)
+- Tether 수렴 이펙트(1회성): firstPickupDone === false 인 첫 획득 이후 이 앵빌에 Tether 가 수렴할 때 0.2초 섬광. 자세한 수식은 UI_SacredPickup §3.6 참조
 
 **상태:**
 - `item = null`: 빈 모루 (무기 배치 대기)

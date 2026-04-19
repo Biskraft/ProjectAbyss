@@ -2,9 +2,13 @@
  * HealingPickup.ts — Tiered healing item that restores HP on pickup.
  *
  * GDD System_Healing_Recovery.md §4 — 3-tier drop system:
- *   Small  (Ember Shard)  — 10% maxHP, green cross
- *   Medium (Forge Ember)  — 25% maxHP, blue cross
- *   Large  (Anvil Flame)  — 50% maxHP, gold cross
+ *   Small  (Ember Shard)  — 10% maxHP, bright green cross (small)
+ *   Medium (Forge Ember)  — 25% maxHP, rich green cross (medium)
+ *   Large  (Anvil Flame)  — 50% maxHP, pale green cross + glow ring (large)
+ *
+ * All tiers share a unified green hue so players instantly parse "healing".
+ * Tier is communicated by cross size and the large-tier glow ring, not color —
+ * playtests showed blue/gold variants were not recognised as HP pickups.
  *
  * LDtk entity: HealingPickup (16x16 fixed, pivot bottom-left)
  * Fields:
@@ -16,9 +20,9 @@ import { Container, Graphics } from 'pixi.js';
 export type HealingTier = 'small' | 'medium' | 'large';
 
 const TIER_COLORS: Record<HealingTier, number> = {
-  small:  0x44ff44, // green
-  medium: 0x44aaff, // blue
-  large:  0xffd700, // gold
+  small:  0x44ff44, // bright green
+  medium: 0x22dd44, // rich green
+  large:  0x88ff88, // pale green (paired with glow ring for tier cue)
 };
 
 const TIER_SIZES: Record<HealingTier, { cross: number; center: number }> = {
