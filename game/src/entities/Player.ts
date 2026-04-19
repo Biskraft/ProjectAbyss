@@ -1,4 +1,5 @@
-import { Graphics } from 'pixi.js';
+import { Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
 import { resolveX, resolveY, isInWater, isOnIce, isSolid } from '@core/Physics';
@@ -37,7 +38,46 @@ export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | '
 
 export class Player extends Entity implements CombatEntity {
   private game: Game;
+  /**
+   * Placeholder green rect — 에셋 로딩 중/실패 시 fallback.
+   * erdaSprite 가 붙으면 invisible 처리.
+   */
   private sprite: Graphics;
+  /**
+   * Erda 캐릭터 스프라이트. 32×32 RGBA (assets/characters/erda_atlas.png).
+   * 8프레임 가로 아틀라스 — idle(0–3), jump(4–7).
+   * 히트박스(14×24)보다 크므로 anchor=(0.5, 1) 로 "발 중앙" 정렬.
+   * 로딩이 비동기이므로 로드 전엔 null, 로드 완료 시 컨테이너에 부착.
+   */
+  private erdaSprite: Sprite | null = null;
+  /** 아틀라스에서 잘라낸 8개 프레임 텍스처 (idle 0–3, jump 4–7). */
+  private erdaFrames: Texture[] = [];
+  /**
+   * 애니메이션 서브 스테이트:
+   *   - idle   : 프레임 0..3 루프 (400ms/frame)
+   *   - run    : 프레임 8..15 루프 (100ms/frame)
+   *   - takeoff: 프레임 4, 짧은 이륙 squash (160ms)
+   *   - air    : 프레임 5, 공중 지속
+   *   - land   : 프레임 6 → 7, 짧은 착지 복구 (각 150ms)
+   * idle ↔ run 은 지상에서 |vx| 기준으로 매 프레임 스위칭.
+   * 공중 진입/착지는 grounded 엣지로 트리거.
+   */
+  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' = 'idle';
+  /** idle/run/land 용 서브 프레임 인덱스 (0 기준). takeoff/air 는 사용 안 함. */
+  private erdaAnimFrame = 0;
+  /** 프레임 누적 타이머 (ms). */
+  private erdaAnimTimer = 0;
+  /** 이전 프레임의 grounded. 이륙/착지 엣지 감지용. */
+  private erdaPrevGrounded = true;
+  /**
+   * 공중 진입이 점프(jump 입력)인지 단순 낙하(ledge walk-off)인지.
+   * 낙하 시 air(5) / land 초반(6) 프레임을 스킵해 간결한 낙하-착지만 재생.
+   */
+  private erdaJumpedOff = false;
+  private static readonly ANIM_IDLE_FRAME_MS = 400;  // 원본 100ms × 4 느리게
+  private static readonly ANIM_RUN_FRAME_MS = 100;    // running — atlas 원본 속도
+  private static readonly ANIM_TAKEOFF_MS = 160;      // 프레임 4 — 짧은 이륙 squash (2배 튜닝)
+  private static readonly ANIM_LAND_FRAME_MS = 150;   // 프레임 6, 7 각각 — 속도 2/3 로 감속 (100→150ms)
   private attackSprite: Graphics;
   fsm: StateMachine<PlayerState>;
 
@@ -165,7 +205,7 @@ export class Player extends Entity implements CombatEntity {
     this.collisionW = Math.floor(this.width * 0.7);   // 9px
     this.collisionH = Math.floor(this.height * 0.7);  // 16px
 
-    // Placeholder sprite
+    // Placeholder sprite — erdaSprite 로딩 전까지만 보임.
     this.sprite = new Graphics();
     this.sprite.rect(0, 0, this.width, this.height).fill(0x2ecc71);
     this.container.addChild(this.sprite);
@@ -174,6 +214,9 @@ export class Player extends Entity implements CombatEntity {
     this.attackSprite = new Graphics();
     this.attackSprite.visible = false;
     this.container.addChild(this.attackSprite);
+
+    // 비동기 로드: 완료 시 Graphics 를 숨기고 Sprite 로 교체.
+    this.loadErdaSprite();
 
     // State machine
     this.fsm = new StateMachine<PlayerState>();
@@ -515,6 +558,9 @@ export class Player extends Entity implements CombatEntity {
 
     // Update camera facing
     this.game.camera.facingDirection = this.facingRight ? 1 : -1;
+
+    // Erda atlas 프레임 애니메이션 — grounded 여부로 idle/jump 전환.
+    this.updateErdaAnimation(dt);
   }
 
   // --- CombatEntity interface ---
@@ -879,11 +925,157 @@ export class Player extends Entity implements CombatEntity {
   // Sakurai: Flash overlay for player hit feedback
   private flashOverlay: Graphics | null = null;
 
+  /**
+   * Erda 스프라이트 비동기 로드.
+   * 에셋 부재/네트워크 실패 시 fallback 은 기존 녹색 placeholder 유지.
+   */
+  private loadErdaSprite(): void {
+    const path = assetPath('assets/characters/erda_atlas.png');
+    Assets.load(path).then((tex: Texture) => {
+      if (this.container.destroyed) return;
+      // pixel-perfect — 주변 업스케일 파이프라인(worldRT nearest)과 일치.
+      tex.source.scaleMode = 'nearest';
+
+      // 아틀라스 가로 16프레임(32×32) 을 sub-rect 텍스처로 분할.
+      // idle 0..3 / jump 4..7 / running 8..15. 모두 같은 source 공유.
+      this.erdaFrames = [];
+      for (let i = 0; i < 16; i++) {
+        this.erdaFrames.push(
+          new Texture({
+            source: tex.source,
+            frame: new Rectangle(i * 32, 0, 32, 32),
+          }),
+        );
+      }
+
+      const s = new Sprite(this.erdaFrames[0]);
+      // 발 중앙 기준: 히트박스(14×24) 의 하단 중앙에 스프라이트 앵커를 건다.
+      // 32×32 스프라이트가 박스보다 가로 18px, 세로 8px 커서 바깥으로 삐져나옴 (의도).
+      s.anchor.set(0.5, 1);
+      s.x = this.width / 2;
+      s.y = this.height;
+      // attackSprite / flashOverlay 보다 아래에 놓아 히트박스 디버그 오버레이를 가리지 않도록.
+      this.container.addChildAt(s, 0);
+      this.erdaSprite = s;
+      this.sprite.visible = false; // placeholder off.
+    }).catch(() => {
+      // 로드 실패 → placeholder 유지.
+    });
+  }
+
+  /**
+   * 애니메이션 갱신:
+   *   grounded 엣지 감지 → takeoff(이륙) / land(착지) 트리거.
+   *   각 서브 스테이트가 자체 타이머로 다음 스테이트로 진행.
+   *     idle (loop) ─leave─> takeoff ─80ms─> air ─land edge─> land(6,50ms) ─> land(7,50ms) ─> idle
+   */
+  private updateErdaAnimation(dt: number): void {
+    if (!this.erdaSprite || this.erdaFrames.length === 0) return;
+
+    // 엣지 감지 — grounded 변화 순간에만 서브 스테이트 전이.
+    if (this.erdaPrevGrounded && !this.grounded) {
+      // 이륙. vy < 0 = 점프 입력 → takeoff(4) 시퀀스.
+      // vy ≥ 0 = 벼랑 낙하 → 서브 스테이트 그대로(idle) 유지, 프레임 얼려 공중에서 idle 포즈 정지.
+      this.erdaJumpedOff = this.vy < 0;
+      if (this.erdaJumpedOff) {
+        this.erdaAnim = 'takeoff';
+        this.erdaAnimTimer = 0;
+        this.erdaAnimFrame = 0;
+      }
+    } else if (!this.erdaPrevGrounded && this.grounded) {
+      // 착지. 점프였으면 6→7, 낙하였으면 7만 재생.
+      this.erdaAnim = 'land';
+      this.erdaAnimTimer = 0;
+      this.erdaAnimFrame = this.erdaJumpedOff ? 0 : 1;
+    }
+    this.erdaPrevGrounded = this.grounded;
+
+    // 지상 상태에서 |vx| 로 idle ↔ run 전환. 공중/착지 시퀀스엔 개입하지 않음.
+    if (this.grounded && (this.erdaAnim === 'idle' || this.erdaAnim === 'run')) {
+      const desired: 'idle' | 'run' = Math.abs(this.vx) > 10 ? 'run' : 'idle';
+      if (desired !== this.erdaAnim) {
+        this.erdaAnim = desired;
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+    }
+
+    this.erdaAnimTimer += dt;
+    let textureIdx = 0;
+
+    switch (this.erdaAnim) {
+      case 'takeoff': {
+        textureIdx = 4;
+        if (this.erdaAnimTimer >= Player.ANIM_TAKEOFF_MS) {
+          this.erdaAnim = 'air';
+          this.erdaAnimTimer = 0;
+        }
+        break;
+      }
+      case 'air': {
+        textureIdx = 5;
+        break;
+      }
+      case 'land': {
+        // 반응성 우선: 좌우 이동이 걸리면 land 를 끊고 run 으로 점프컷.
+        // 재점프는 다음 프레임 grounded 엣지가 takeoff 로 자동 전이시킴.
+        if (Math.abs(this.vx) > 10) {
+          this.erdaAnim = 'run';
+          this.erdaAnimFrame = 0;
+          this.erdaAnimTimer = 0;
+          textureIdx = 8;
+          break;
+        }
+        // sub 0 → 프레임 6, sub 1 → 프레임 7.
+        textureIdx = 6 + this.erdaAnimFrame;
+        if (this.erdaAnimTimer >= Player.ANIM_LAND_FRAME_MS) {
+          this.erdaAnimTimer = 0;
+          if (this.erdaAnimFrame === 0) {
+            this.erdaAnimFrame = 1;
+          } else {
+            // 착지 복구 종료 → idle 루프 진입.
+            this.erdaAnim = 'idle';
+            this.erdaAnimFrame = 0;
+          }
+        }
+        break;
+      }
+      case 'run': {
+        // 지상일 때만 프레임 진행 — 벼랑 낙하 중엔 마지막 run 프레임을 공중에서 유지.
+        if (this.grounded) {
+          while (this.erdaAnimTimer >= Player.ANIM_RUN_FRAME_MS) {
+            this.erdaAnimTimer -= Player.ANIM_RUN_FRAME_MS;
+            this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 8;
+          }
+        }
+        textureIdx = 8 + this.erdaAnimFrame; // 8..15
+        break;
+      }
+      case 'idle':
+      default: {
+        // 지상일 때만 프레임 진행 — 벼랑 낙하 중에는 마지막 idle 프레임을 공중에서 유지.
+        if (this.grounded) {
+          while (this.erdaAnimTimer >= Player.ANIM_IDLE_FRAME_MS) {
+            this.erdaAnimTimer -= Player.ANIM_IDLE_FRAME_MS;
+            this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
+          }
+        }
+        textureIdx = this.erdaAnimFrame; // 0..3
+        break;
+      }
+    }
+
+    this.erdaSprite.texture = this.erdaFrames[textureIdx];
+  }
+
   render(alpha: number): void {
     super.render(alpha);
 
+    // 활성 시각(Graphics placeholder 또는 Sprite) 참조 — 깜박임/플립을 동일 대상에 적용.
+    const activeVisual = this.erdaSprite ?? this.sprite;
+
     // Flash when invincible (blink)
-    this.sprite.alpha = this.invincible ? (Math.floor(Date.now() / 50) % 2 === 0 ? 0.4 : 1) : 1;
+    activeVisual.alpha = this.invincible ? (Math.floor(Date.now() / 50) % 2 === 0 ? 0.4 : 1) : 1;
 
     // Sakurai: White flash on taking damage (overlaid during flashTimer)
     if (this.flashTimer > 0) {
@@ -899,9 +1091,15 @@ export class Player extends Entity implements CombatEntity {
       this.flashOverlay.visible = false;
     }
 
-    // Flip sprite based on facing
-    this.sprite.scale.x = this.facingRight ? 1 : -1;
-    this.sprite.x = this.facingRight ? 0 : this.width;
+    // Flip visual based on facing.
+    if (this.erdaSprite) {
+      // Sprite 는 anchor(0.5, 1) 기준이므로 scale.x 만 뒤집으면 중심 축 회전.
+      this.erdaSprite.scale.x = this.facingRight ? 1 : -1;
+    } else {
+      // Placeholder Graphics 는 top-left 기준 → x 보정 필요 (기존 로직 유지).
+      this.sprite.scale.x = this.facingRight ? 1 : -1;
+      this.sprite.x = this.facingRight ? 0 : this.width;
+    }
 
     // Update attack visual position on flip
     if (this.attackSprite.visible) {

@@ -93,6 +93,9 @@ export class ItemImage {
 
   private applyTexture(tex: Texture): void {
     this.placeholder.visible = false;
+    // Pixel-art 아이콘 — legacyUIContainer 가 uiScale 배수로 업스케일되므로
+    // linear 필터면 64 → native 192 로 보간되어 뭉개짐. NEAREST 강제.
+    tex.source.scaleMode = 'nearest';
     const sprite = new Sprite(tex);
     sprite.width = this.size;
     sprite.height = this.size;

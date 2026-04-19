@@ -35,6 +35,9 @@ export function installBitmapFont(scale = 1): void {
       ['0', '9'],
       ' .,;:!?-+=/\\@#$%^&*()[]{}\'\"<>_~`|→←↑↓…×♦★',
     ],
+    // 픽셀 미학 유지 — legacyUIContainer 가 uiScale 배수로 업스케일될 때
+    // linear 필터면 글리프가 뭉개짐. nearest 로 샤프 에지 강제.
+    textureStyle: { scaleMode: 'nearest' },
   });
 
   // Title font — Cinzel serif
@@ -57,5 +60,6 @@ export function installBitmapFont(scale = 1): void {
       ['0', '9'],
       ' -:.',
     ],
+    textureStyle: { scaleMode: 'nearest' },
   });
 }

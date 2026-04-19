@@ -217,11 +217,22 @@ export class LdtkWorldScene extends Scene {
   /** LDtk iid of the currently-spawned anvil (null when no anvil exists). */
   private currentAnvilIid: string | null = null;
   /**
-   * iids of anvils that have already been used (one-shot). spawnAnvilFromLdtk
-   * skips these on every future level load so the anvil does not respawn.
-   * Persists across loadLevel / item-world round-trips.
+   * iids of anvils that have already been consumed (one-shot tutorial anvil).
+   * spawnAnvilFromLdtk skips these on every future level load so the anvil
+   * does not respawn. Persists across loadLevel / item-world round-trips.
+   *
+   * NOTE: 일반 앵빌은 반복 사용이 원칙이므로 여기 추가되지 않는다. 튜토리얼
+   * 앵빌(플레이어의 최초 다이브에 쓰인 앵빌)만 1회성으로 사라진다 —
+   * "첫 다이브는 스토리, 이후는 반복 파밍" 구조를 시각적으로 강조.
    */
   private usedAnvilIids: Set<string> = new Set();
+  /**
+   * 현재 다이브가 "튜토리얼 다이브(플레이어 최초)"인지 confirm 시점에서 캡처한 값.
+   * markFirstDiveDone() 이 confirm 직후 호출되므로, triggerFloorCollapse 타이밍에
+   * sacredSave.isFirstDiveDone() 을 다시 읽으면 항상 true → 판별 불가.
+   * 그래서 confirm 에서 캡처해 여기에 저장한 뒤 triggerFloorCollapse 에서 참조.
+   */
+  private collapseIsTutorial: boolean = false;
   /**
    * Snapshot of the used anvil's position so the player can be returned next
    * to it after clearing the item world, even though the anvil itself is
@@ -468,6 +479,13 @@ export class LdtkWorldScene extends Scene {
     if (this.minimap) {
       if (!this.minimap.parent) this.game.uiContainer.addChild(this.minimap);
       this.minimap.visible = !this.inItemTunnel;
+    }
+    // exit() 에서 detach 한 modal overlay 들을 재부착 (닫힌 상태로).
+    if (this.worldMap && !this.worldMap.container.parent) {
+      this.game.legacyUIContainer.addChild(this.worldMap.container);
+    }
+    if (this.inventoryUI && !this.inventoryUI.container.parent) {
+      this.game.legacyUIContainer.addChild(this.inventoryUI.container);
     }
     if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
@@ -1086,6 +1104,22 @@ export class LdtkWorldScene extends Scene {
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
     this.hud.updateGold(this.gold);
+
+    // Boss HP bar — bossActive 가 arena lock 과 동시에 true 가 되므로
+    // 교전 시작 시점을 FSM 없이도 정확히 포착한다. 매 프레임 boss 엔티티를
+    // enemies 에서 다시 찾아 갱신 (멀티 보스는 불가정, 첫 _isBoss 사용).
+    if (this.bossActive) {
+      const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
+      if (activeBoss) {
+        if (!(activeBoss as any)._bossBarShown) {
+          (activeBoss as any)._bossBarShown = true;
+          const name = (activeBoss as any).enemyType ?? 'GUARDIAN';
+          this.hud.showBossHP(name, activeBoss.hp, activeBoss.maxHp);
+        }
+        this.hud.updateBossHP(activeBoss.hp);
+      }
+    }
+
     this.hud.update(dt);
     this.hud.setFloorText(this.currentLevel?.identifier ?? '');
 
@@ -1208,8 +1242,20 @@ export class LdtkWorldScene extends Scene {
     // if (this.controlsOverlay?.container.parent) {
     //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     // }
-    if (this.inventoryUI?.container.parent) {
-      this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
+    // Close and detach modal overlays so they don't bleed into the next scene.
+    // (Previously: M/I 가 열린 채 아이템계로 진입하면 overlay 가 legacyUIContainer
+    //  에 그대로 남아 ItemWorldScene 에서 닫을 수 없는 "stuck" 상태가 됨.)
+    if (this.worldMap) {
+      if (this.worldMap.visible) this.worldMap.close();
+      if (this.worldMap.container.parent) {
+        this.worldMap.container.parent.removeChild(this.worldMap.container);
+      }
+    }
+    if (this.inventoryUI) {
+      if (this.inventoryUI.visible) this.inventoryUI.close();
+      if (this.inventoryUI.container.parent) {
+        this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
+      }
     }
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
@@ -1273,6 +1319,8 @@ export class LdtkWorldScene extends Scene {
       door.destroy();
     }
     this.bossLockDoors = [];
+    // arena 해제 = 보스 처치 직후이므로 HP 바도 내린다.
+    this.hud.hideBossHP();
   }
 
   private handleEnemyKill(enemy: Enemy<string>): void {
@@ -1371,6 +1419,9 @@ export class LdtkWorldScene extends Scene {
     this.collisionGrid = level.collisionGrid;
     // Reset breakable hit tracking on level transition
     this.breakableHits.clear();
+    // 보스 HP 바 초기화 — 이전 레벨에서 남아있을 가능성(사망·워프 등) 차단.
+    // 새 레벨이 보스방이면 activateBossLock → update 루프에서 다시 표시된다.
+    this.hud.hideBossHP();
 
     // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone)
     this.renderer.clear();
@@ -3581,6 +3632,9 @@ export class LdtkWorldScene extends Scene {
     if (this.divePreview) {
       const confirm = () => {
         if (!this.anvil) return;
+        // 튜토리얼 앵빌 판별: markFirstDiveDone() 호출 "전"에 캡처해야
+        // 이후 triggerFloorCollapse 에서 anvil 소모 여부를 정확히 결정할 수 있다.
+        this.collapseIsTutorial = !sacredSave.isFirstDiveDone();
         sacredSave.markFirstDiveDone();
         this.anvil.placeItem(item);
         this.collapseItem = item;
@@ -3717,11 +3771,12 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // Mark this anvil as consumed BEFORE the item-world round-trip so the
-    // returning loadLevel() in onComplete skips it and the anvil entity is
-    // never respawned. Snapshot position since the Anvil instance itself is
-    // destroyed by the upcoming level reload.
-    if (this.currentAnvilIid) {
+    // 튜토리얼 앵빌만 consume — 일반 앵빌은 반복 사용이 원칙.
+    // Mark BEFORE the item-world round-trip so the returning loadLevel() in
+    // onComplete skips it and the anvil entity is never respawned. Snapshot
+    // position since the Anvil instance itself is destroyed by the upcoming
+    // level reload.
+    if (this.currentAnvilIid && this.collapseIsTutorial) {
       this.usedAnvilIids.add(this.currentAnvilIid);
     }
     this.lastUsedAnvilPos = {

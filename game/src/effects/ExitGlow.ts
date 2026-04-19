@@ -29,8 +29,8 @@ const GLOW_COLOR = 0xe07028;
 const GLOW_REACH = 40;            // px inward from edge (고정)
 const GLOW_BANDS = 5;             // quantized gradient bands
 const PULSE_PERIOD_MS = 1000;
-const PULSE_BASE = 0.3;
-const PULSE_AMP = 0.1;
+const PULSE_BASE = 0.6;   // 0.3 * 2 — 가시성 2배 강화
+const PULSE_AMP = 0.2;    // 0.1 * 2 — 맥동 폭도 동일 비율
 
 // --- Dust particles ---------------------------------------------------------
 /** 먼지가 퍼지는 방 안쪽 깊이 (10 타일 = 원본 4타일의 2.5배). */
@@ -47,6 +47,17 @@ const DUST_CLOSE_DIST = 48;
 const DUST_FAR_DIST = 256;
 const DUST_MAX_ALPHA = 0.39;     // 0.3 * 1.3 — 30% 진하게
 const DUST_ALPHA_LERP = 0.08;     // 프레임당 그룹 알파 보간
+/**
+ * proximityFactor=1 일 때 먼지 드리프트 속도 배수.
+ * "가까이 갈수록 바람이 세진다" 감각의 핵심 파라미터.
+ */
+const DUST_DRIFT_CLOSE_MULT = 2.5;
+/**
+ * 예비 파티클 풀 배수. 기본 개수 대비 이 배수만큼 더 생성하고,
+ * 예비 파티클은 proximityFactor 에 비례해 알파로 페이드인 —
+ * 근접 시 "밀도가 올라간다" 체감.
+ */
+const DUST_DENSITY_BOOST = 1.8;
 /** 개별 입자 반경(px). 1~2. */
 const DUST_RADIUS_MIN = 0.6;
 const DUST_RADIUS_MAX = 1.4;
@@ -75,7 +86,6 @@ export class ExitGlow {
   readonly container: Container;
   private gfx: Graphics;
   private dustGfx: Graphics;
-  private time = 0;
   private span: number;
   private dir: ExitGlowDir;
 
@@ -90,6 +100,10 @@ export class ExitGlow {
   /** 거리 기반 먼지 그룹 알파 — 0 → DUST_MAX_ALPHA 사이 lerp 추종. */
   private dustAlpha = 0;
   private dustTargetAlpha = 0;
+  /** 0(far) → 1(close). setPlayer 에서 계산되어 드리프트/밀도에 반영. */
+  private proximityFactor = 0;
+  /** 기본 파티클 개수(예비 풀 분리 기준). spawnInitialParticles 에서 캐시. */
+  private baseCount = 0;
 
   /**
    * @param dir   which edge the opening belongs to. Light points from edge
@@ -138,12 +152,14 @@ export class ExitGlow {
     const dist = this.pointToSegmentDist(playerX, playerY);
     const t = clamp01((DUST_FAR_DIST - dist) / (DUST_FAR_DIST - DUST_CLOSE_DIST));
     this.dustTargetAlpha = DUST_MAX_ALPHA * t;
+    this.proximityFactor = t;
   }
 
   update(dt: number): void {
-    this.time += dt;
-    // 빛 맥동은 거리와 무관하게 유지.
-    const phase = (this.time % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
+    // 공용 시계로 위상 계산 — 모든 ExitGlow 인스턴스가 같은 박자로 숨쉰다.
+    // 내부 누적 시간을 쓰면 인스턴스 생성 시점에 따라 위상이 갈려
+    // 여러 출구가 제각각 맥동 → "출구들이 살아있다" 통일감이 깨진다.
+    const phase = (performance.now() % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
     const alpha = PULSE_BASE + PULSE_AMP * Math.sin(phase * Math.PI * 2);
     this.draw(alpha);
 
@@ -164,8 +180,9 @@ export class ExitGlow {
   }
 
   private spawnInitialParticles(): void {
-    const n = this.particleCount();
-    for (let i = 0; i < n; i++) {
+    this.baseCount = this.particleCount();
+    const total = Math.round(this.baseCount * DUST_DENSITY_BOOST);
+    for (let i = 0; i < total; i++) {
       this.particles.push(this.makeParticle(true));
     }
   }
@@ -226,10 +243,12 @@ export class ExitGlow {
   }
 
   private updateParticles(dt: number): void {
+    // 플레이어가 가까우면 바람이 세지는 느낌 — 드리프트 속도 proximity 반응.
+    const driftMult = 1 + (DUST_DRIFT_CLOSE_MULT - 1) * this.proximityFactor;
     for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
+      p.x += p.vx * dt * driftMult;
+      p.y += p.vy * dt * driftMult;
       p.ageMs += dt;
       // 4타일을 벗어났거나 수명 종료 → 에지에서 재생성.
       const depth = this.localDepth(p.x, p.y);
@@ -250,7 +269,8 @@ export class ExitGlow {
   private drawDust(): void {
     const g = this.dustGfx;
     g.clear();
-    for (const p of this.particles) {
+    for (let i = 0; i < this.particles.length; i++) {
+      const p = this.particles[i];
       const lifeT = p.ageMs / p.lifeMs;
       // 수명 앞/뒤 15%는 페이드인/아웃.
       let lifeAlpha: number;
@@ -258,7 +278,10 @@ export class ExitGlow {
       else if (lifeT > 0.85) lifeAlpha = (1 - lifeT) / 0.15;
       else lifeAlpha = 1;
       lifeAlpha = clamp01(lifeAlpha);
-      g.circle(p.x, p.y, p.r).fill({ color: DUST_COLOR, alpha: lifeAlpha });
+      // baseCount 이후의 예비 파티클은 proximity 에 비례해 페이드인 →
+      // 멀리 있을 땐 기본 밀도, 가까워지면 DUST_DENSITY_BOOST 배까지 증가.
+      const densityMask = i < this.baseCount ? 1 : this.proximityFactor;
+      g.circle(p.x, p.y, p.r).fill({ color: DUST_COLOR, alpha: lifeAlpha * densityMask });
     }
   }
 

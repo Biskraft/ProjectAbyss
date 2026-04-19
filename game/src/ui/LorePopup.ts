@@ -9,7 +9,7 @@
  *
  * 레이아웃:
  *   - 중앙 모달, 오버레이 #000000 alpha 0.6
- *   - 무기 스프라이트 48×48 / 이름 12px / Lore 2줄 8px #ccccdd / 스탯 / "Memory Strata: N" / "[X] CLOSE"
+ *   - 무기 스프라이트 64×64 (아이콘 원본 1:1) / 이름 12px / Lore 2줄 8px #ccccdd / 스탯 / "Memory Strata: N" / "[X] CLOSE"
  *
  * 통합:
  *   - WorldScene 쪽에서 pickup 시 `LorePopup.showIfNew(item, ...)` 호출
@@ -184,8 +184,10 @@ export class LorePopup {
       child.destroy?.({ children: true });
     }
 
+    // H 168 = 아이콘 64 + 위아래 여백 + 본문/스탯/프롬프트 행을 겹침 없이 수용.
+    // (이전 150 에서는 아이콘 하단이 divider 와 4px 겹침 발생.)
     const W = 260;
-    const H = 150;
+    const H = 168;
     const px = Math.floor((GAME_WIDTH - W) / 2);
     const py = Math.floor((GAME_HEIGHT - H) / 2);
 
@@ -196,11 +198,17 @@ export class LorePopup {
     bg.y = py;
     this.panel.addChild(bg);
 
-    // 아이템 포트레이트 48x48 — LoreDisplay portrait 규칙 준수.
+    // 아이템 포트레이트 64×64 — 아이콘 원본(64px)과 1:1 로 렌더해
+    // pixel-perfect 유지 (48 은 0.75× 비정수 축소로 뿌옇게 보임).
     const rColor = RARITY_COLOR[item.rarity];
-    const image = new ItemImage(item, 48);
-    image.container.x = px + 12;
-    image.container.y = py + 14;
+    const ICON_SIZE = 64;
+    const ICON_X = px + 12;
+    const ICON_Y = py + 12;
+    // 텍스트 좌측 = 아이콘 오른쪽 + 8px 여백.
+    const TEXT_X = ICON_X + ICON_SIZE + 8;
+    const image = new ItemImage(item, ICON_SIZE);
+    image.container.x = ICON_X;
+    image.container.y = ICON_Y;
     this.panel.addChild(image.container);
 
     // 이름 (12px)
@@ -208,7 +216,7 @@ export class LorePopup {
       text: item.def.name,
       style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rColor },
     });
-    nameText.x = px + 72;
+    nameText.x = TEXT_X;
     nameText.y = py + 14;
     this.panel.addChild(nameText);
 
@@ -217,7 +225,7 @@ export class LorePopup {
       text: RARITY_DISPLAY_NAME[item.rarity].toUpperCase(),
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: rColor },
     });
-    rarityText.x = px + 72;
+    rarityText.x = TEXT_X;
     rarityText.y = py + 28;
     this.panel.addChild(rarityText);
 
@@ -229,15 +237,15 @@ export class LorePopup {
         text: line,
         style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xccccdd },
       });
-      t.x = px + 72;
+      t.x = TEXT_X;
       t.y = ly;
       this.panel.addChild(t);
       ly += 10;
     }
 
-    // 구분선
+    // 구분선 — 아이콘 하단(py+76) 아래로 14px 여유를 두고 배치.
     const div = new Graphics();
-    div.rect(px + 12, py + 72, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
+    div.rect(px + 12, py + 90, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
     this.panel.addChild(div);
 
     // 스탯
@@ -247,7 +255,7 @@ export class LorePopup {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
     });
     stat.x = px + 12;
-    stat.y = py + 80;
+    stat.y = py + 98;
     this.panel.addChild(stat);
 
     // Memory Strata
@@ -257,7 +265,7 @@ export class LorePopup {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
     });
     strataText.x = px + 12;
-    strataText.y = py + 94;
+    strataText.y = py + 112;
     this.panel.addChild(strataText);
 
     // [X] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).

@@ -13,6 +13,15 @@ const PADDING = 8;
 const PANEL_W = COLS * (SLOT_SIZE + SLOT_GAP) + SLOT_GAP + PADDING * 2;
 const PANEL_H = ROWS * (SLOT_SIZE + SLOT_GAP) + SLOT_GAP + PADDING * 2 + 40; // extra for title + info
 
+/**
+ * Anvil mode에서 장착 중인 아이템 슬롯을 dim 처리할 때 쓰는 알파.
+ * 앵빌에는 "Unequip first" 룰이 있어 장착 무기는 배치 불가 → 시각적으로
+ * "이건 선택해도 안 된다"를 즉각 전달하기 위해 아이콘만 흐리게 낮춘다.
+ * 슬롯 배경/선택 하이라이트/border 는 그대로 남겨 키보드 네비가 헛돈다는
+ * 느낌은 주지 않는다.
+ */
+const ANVIL_EQUIPPED_DIM_ALPHA = 0.15;
+
 import { PIXEL_FONT } from './fonts';
 
 /** UI mode — inventory equips selected; anvil places selected onto the anvil. */
@@ -80,10 +89,10 @@ export class InventoryUI {
       this.panel.addChild(slot);
       this.slots.push(slot);
 
-      // ItemImage는 Graphics 위에 겹쳐 표시 (slot 내부 3px 패딩).
+      // ItemImage는 Graphics 위에 겹쳐 표시 (slot 내부 2px 패딩 = 20 - 16).
       const imgHolder = new Container();
-      imgHolder.x = sx + 3;
-      imgHolder.y = sy + 3;
+      imgHolder.x = sx + 2;
+      imgHolder.y = sy + 2;
       this.panel.addChild(imgHolder);
       this.slotImageContainers.push(imgHolder);
       this.slotImages.push(null);
@@ -209,15 +218,20 @@ export class InventoryUI {
 
       if (item) {
         // Item image — 이전 프레임의 sprite와 uid가 다르면 재생성.
+        // 내부 크기 = SLOT_SIZE - 4 = 16px. 64px 원본을 정수 4× 축소하여
+        // pixel-perfect 유지 (포트레이트 64px 1:1 과 함께 양쪽 정수 스케일).
         if (this.slotItemUids[i] !== item.uid) {
           const prev = this.slotImages[i];
           if (prev) prev.destroy();
-          const img = new ItemImage(item, SLOT_SIZE - 6);
+          const img = new ItemImage(item, SLOT_SIZE - 4);
           this.slotImageContainers[i].addChild(img.container);
           this.slotImages[i] = img;
           this.slotItemUids[i] = item.uid;
         }
         this.slotImageContainers[i].visible = true;
+        // Anvil 모드에서 장착 중인 아이템 → dim (배치 불가 신호).
+        this.slotImageContainers[i].alpha =
+          this.mode === 'anvil' && isEquipped ? ANVIL_EQUIPPED_DIM_ALPHA : 1.0;
 
         // Level indicator
         if (item.level > 0) {

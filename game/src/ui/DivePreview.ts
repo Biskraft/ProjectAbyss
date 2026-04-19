@@ -135,13 +135,14 @@ export class DivePreview {
     title.y = py + 10;
     this.panel.addChild(title);
 
-    // Item portrait — LorePopup과 동일 규칙.
-    const image = new ItemImage(item, 48);
+    // Item portrait — LorePopup과 동일 규칙 (64px 원본 1:1).
+    const ICON_SIZE = 64;
+    const image = new ItemImage(item, ICON_SIZE);
     image.container.x = px + 12;
     image.container.y = py + 26;
     this.panel.addChild(image.container);
 
-    const textX = px + 12 + 48 + 10;
+    const textX = px + 12 + ICON_SIZE + 10;
 
     // Item name.
     const nameText = new BitmapText({
@@ -171,9 +172,10 @@ export class DivePreview {
     stratumInline.y = py + 58;
     this.panel.addChild(stratumInline);
 
-    // Divider below portrait row.
+    // Divider below portrait row. 아이콘이 64px 로 커지면서 아래쪽 여백이
+    // 줄었으므로 icon 하단(py+90) 아래로 밀어 겹침 방지.
     const div = new Graphics();
-    div.rect(px + 12, py + 84, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
+    div.rect(px + 12, py + 96, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
     this.panel.addChild(div);
 
     // Reward hint.
@@ -181,7 +183,7 @@ export class DivePreview {
       { text: 'Estimated reward:',                    color: 0xaaaaaa },
       { text: 'XP, Innocents, Fragments',             color: 0xffffff },
     ];
-    let ly = py + 94;
+    let ly = py + 104;
     for (const line of lines) {
       const t = new BitmapText({
         text: line.text,
