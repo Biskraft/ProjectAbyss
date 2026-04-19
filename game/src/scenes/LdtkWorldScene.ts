@@ -3627,8 +3627,8 @@ export class LdtkWorldScene extends Scene {
       this.inventoryUI.close();
       return;
     }
-    // Sacred Pickup S6 / T5 — show preview before committing. Full modal for
-    // first ever dive, compact strip thereafter.
+    // Sacred Pickup S6 / T5 — show preview before committing.
+    // 첫 다이브 이후에도 동일한 full 모달 사용 (compact 스트립 폐기).
     if (this.divePreview) {
       const confirm = () => {
         if (!this.anvil) return;
@@ -3645,11 +3645,7 @@ export class LdtkWorldScene extends Scene {
         // Reopen the inventory in anvil mode so user can pick another item.
         this.inventoryUI.refresh();
       };
-      if (!sacredSave.isFirstDiveDone()) {
-        this.divePreview.showFull(item, confirm, cancel);
-      } else {
-        this.divePreview.showCompact(item, confirm, cancel);
-      }
+      this.divePreview.showFull(item, confirm, cancel);
       return;
     }
     // Fallback path if preview unavailable.
