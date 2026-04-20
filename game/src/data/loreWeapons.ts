@@ -15,7 +15,7 @@
  */
 
 import csvText from '../../../Sheets/Content_Stats_Weapon_Lore.csv?raw';
-import type { Rarity } from './weapons';
+import type { Rarity, WeaponType } from './weapons';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from './weapons';
 
 // Eagerly bundle every lore MD file so resolution is synchronous.
@@ -23,8 +23,6 @@ const loreMarkdownBundle = import.meta.glob(
   '../../../Sheets/LoreTexts/*.md',
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
-
-export type WeaponType = 'Sword' | 'GS' | 'Dagger' | 'Bow' | 'Staff';
 
 export interface LoreWeaponDef {
   id: string;
@@ -126,6 +124,7 @@ export function loreWeaponToWeaponDef(lore: LoreWeaponDef): WeaponDef {
   return {
     id: lore.id,
     name: lore.name,
+    type: lore.type,
     rarity: lore.rarity,
     baseAtk: lore.baseAtk,
     atkSpeed: template.atkSpeed,

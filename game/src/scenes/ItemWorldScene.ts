@@ -447,6 +447,9 @@ export class ItemWorldScene extends Scene {
     this.player.maxHp = this.sourcePlayer.maxHp;
     this.player.atk = this.sourcePlayer.atk;
     this.player.def = this.sourcePlayer.def;
+    this.player.equippedWeaponType = this.sourcePlayer.equippedWeaponType;
+    this.player.equippedRarity = this.sourcePlayer.equippedRarity;
+    this.player.attackHitboxMul = this.sourcePlayer.attackHitboxMul;
     this.player.abilities.dash = this.sourcePlayer.abilities.dash;
     this.player.abilities.diveAttack = this.sourcePlayer.abilities.diveAttack;
     this.player.abilities.surge = this.sourcePlayer.abilities.surge;
@@ -2382,7 +2385,7 @@ export class ItemWorldScene extends Scene {
         this.breakableHitThisSwing.clear();
         this.breakableLastCombo = this.player.comboIndex;
       }
-      const step = COMBO_STEPS[this.player.comboIndex];
+      const step = this.player.getAttackStep(this.player.comboIndex);
       if (step) {
         const hitbox = getAttackHitbox(
           this.player.x, this.player.y, this.player.width, this.player.height,
@@ -2903,7 +2906,7 @@ export class ItemWorldScene extends Scene {
       }
       // Player attack deflects projectile
       if (this.player.isAttackActive()) {
-        const step = COMBO_STEPS[this.player.comboIndex];
+        const step = this.player.getAttackStep(this.player.comboIndex);
         if (step) {
           const hitbox = getAttackHitbox(
             this.player.x, this.player.y, this.player.width, this.player.height,

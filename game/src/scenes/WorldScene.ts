@@ -12,7 +12,7 @@ import { Ghost } from '@entities/Ghost';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
-import { HitManager } from '@combat/HitManager';
+import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
@@ -180,6 +180,10 @@ export class WorldScene extends Scene {
   private updatePlayerAtk(): void {
     const baseStr = 10; // Lv1 STR
     this.player.atk = baseStr + this.inventory.getWeaponAtk();
+    const eq = this.inventory.equipped;
+    this.player.equippedWeaponType = eq ? eq.def.type : null;
+    this.player.equippedRarity = eq ? eq.rarity : null;
+    this.player.attackHitboxMul = eq ? eq.def.hitboxW / BASE_HITBOX_W : 1;
   }
 
   private autoSave(): void {

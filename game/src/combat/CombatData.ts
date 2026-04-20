@@ -4,6 +4,10 @@
  * SSoT: Sheets/Content_Combat_Combo.csv
  * CSV columns: Step,HitboxW,HitboxH,ActiveFrames,TotalFrames,HitstopFrames,
  *              Hitstun,KnockbackX,KnockbackY,ShakeIntensity,ComboWindow,EndLag
+ *
+ * Visual FX (slash sprite, scale, offset, tint) is now owned by
+ * Sheets/Content_FX_WeaponType.csv via WeaponFx.ts. This sheet is
+ * mechanics-only (hitbox, frames, knockback, timing).
  */
 
 import csvText from '../../../Sheets/Content_Combat_Combo.csv?raw';

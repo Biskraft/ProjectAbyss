@@ -45,7 +45,7 @@ import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
 import { GoldPickup } from '@entities/GoldPickup';
-import { HitManager } from '@combat/HitManager';
+import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
 import { KeyPrompt } from '@ui/KeyPrompt';
@@ -756,7 +756,7 @@ export class LdtkWorldScene extends Scene {
       }
       // Player attack deflects projectile
       if (this.player.isAttackActive()) {
-        const step = COMBO_STEPS[this.player.comboIndex];
+        const step = this.player.getAttackStep(this.player.comboIndex);
         if (step) {
           const hitbox = getAttackHitbox(
             this.player.x, this.player.y, this.player.width, this.player.height,
@@ -1771,7 +1771,7 @@ export class LdtkWorldScene extends Scene {
       this.lastDoorCheckCombo = this.player.comboIndex;
     }
 
-    const step = COMBO_STEPS[this.player.comboIndex];
+    const step = this.player.getAttackStep(this.player.comboIndex);
     if (!step) return;
 
     const hitbox = getAttackHitbox(
@@ -2274,7 +2274,7 @@ export class LdtkWorldScene extends Scene {
   private checkAttackOnCrackedFloors(): void {
     if (!this.player.isAttackActive()) return;
 
-    const step = COMBO_STEPS[this.player.comboIndex];
+    const step = this.player.getAttackStep(this.player.comboIndex);
     if (!step) return;
 
     const hitbox = getAttackHitbox(
@@ -2302,7 +2302,7 @@ export class LdtkWorldScene extends Scene {
   private checkAttackOnSwitches(): void {
     if (!this.player.isAttackActive()) return;
 
-    const step = COMBO_STEPS[this.player.comboIndex];
+    const step = this.player.getAttackStep(this.player.comboIndex);
     if (!step) return;
 
     const hitbox = getAttackHitbox(
@@ -2340,7 +2340,7 @@ export class LdtkWorldScene extends Scene {
       this.breakableHitThisSwing.clear();
       this.breakableLastCombo = this.player.comboIndex;
     }
-    const step = COMBO_STEPS[this.player.comboIndex];
+    const step = this.player.getAttackStep(this.player.comboIndex);
     if (!step) return;
     const hitbox = getAttackHitbox(
       this.player.x, this.player.y, this.player.width, this.player.height,
@@ -2958,6 +2958,13 @@ export class LdtkWorldScene extends Scene {
 
     this.player.atk = base.atk + weaponAtk + innocentAtk + cheatBonus;
 
+    // Sync equipped weapon properties for FX + attack hitbox scaling.
+    this.player.equippedWeaponType = equippedItem ? equippedItem.def.type : null;
+    this.player.equippedRarity = equippedItem ? equippedItem.rarity : null;
+    this.player.attackHitboxMul = equippedItem
+      ? equippedItem.def.hitboxW / BASE_HITBOX_W
+      : 1;
+
     // DEF: base from CSV + innocent bonus
     const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
     this.player.def = base.def + innocentDef;
@@ -3568,7 +3575,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     if (this.anvil.hasItem() && this.player.isAttackActive()) {
-      const step = COMBO_STEPS[this.player.comboIndex];
+      const step = this.player.getAttackStep(this.player.comboIndex);
       if (step) {
         const hitbox = getAttackHitbox(
           this.player.x, this.player.y, this.player.width, this.player.height,

@@ -18,9 +18,33 @@ export interface CombatEntity {
   invincible: boolean;
   invincibleTimer: number;  // ms remaining
   facingRight?: boolean;
+  /**
+   * Weapon-driven scale multiplier applied to COMBO_STEPS hitboxW/H.
+   * Default 1 (no scaling). Player sets this based on equipped weapon;
+   * enemies leave it undefined.
+   */
+  attackHitboxMul?: number;
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void;
   onDeath?(): void;
 }
+
+/** Compose a scaled ComboStep when a weapon multiplier is in play. */
+export function scaleComboStep(base: ComboStep, mul: number): ComboStep {
+  if (mul === 1) return base;
+  return {
+    ...base,
+    hitboxW: Math.round(base.hitboxW * mul),
+    hitboxH: Math.round(base.hitboxH * mul),
+  };
+}
+
+/**
+ * Baseline HitboxW used as the "1.0x" reference for computing
+ * WeaponDef.hitboxW → attackHitboxMul. Matches Content_Stats_Weapon_List.csv
+ * `sword_normal` (the starter full-size blade) and Content_Combat_Combo.csv
+ * step 1 (HitboxW=45, bare-hand baseline).
+ */
+export const BASE_HITBOX_W = 45;
 
 export interface HitResult {
   target: CombatEntity;
@@ -61,8 +85,9 @@ export class HitManager {
     hitList: Set<CombatEntity>,
     targets: CombatEntity[],
   ): HitResult[] {
-    const step = COMBO_STEPS[comboIndex];
-    if (!step) return [];
+    const baseStep = COMBO_STEPS[comboIndex];
+    if (!baseStep) return [];
+    const step = scaleComboStep(baseStep, attacker.attackHitboxMul ?? 1);
 
     const facingRight = attacker.facingRight ?? true;
     const hitbox: AABB = getAttackHitbox(

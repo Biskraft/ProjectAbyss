@@ -4,9 +4,10 @@ import 'pixi.js/browser';
 
 import { Container, RenderTexture, Sprite, Ticker, WebGLRenderer } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
-import { InputManager } from '@core/InputManager';
+import { InputManager, GameAction } from '@core/InputManager';
 import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
+import { Debug } from '@core/Debug';
 
 export const GAME_WIDTH = 640;
 export const GAME_HEIGHT = 360;
@@ -136,6 +137,11 @@ export class Game {
         if (this.hitstopFrames > 0) {
           this.hitstopFrames--;
         } else {
+          // Shift+I — 전역 디버그 오버레이 토글. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
+          if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
+            this.input.consumeJustPressed(GameAction.INVENTORY);
+            Debug.visible = !Debug.visible;
+          }
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);
         }

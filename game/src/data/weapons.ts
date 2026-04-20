@@ -9,6 +9,24 @@ import csvText from '../../../Sheets/Content_Stats_Weapon_List.csv?raw';
 
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';
 
+/**
+ * Canonical weapon type taxonomy (DEC-026). SSoT for both procedural
+ * (Content_Stats_Weapon_List.csv) and lore (Content_Stats_Weapon_Lore.csv)
+ * weapons. Keep this list in sync with any Type column entries in those CSVs.
+ */
+export type WeaponType =
+  | 'Blade'
+  | 'Cleaver'
+  | 'Shiv'
+  | 'Harpoon'
+  | 'Chain'
+  | 'Railbow'
+  | 'Emitter';
+
+export const WEAPON_TYPES: readonly WeaponType[] = [
+  'Blade', 'Cleaver', 'Shiv', 'Harpoon', 'Chain', 'Railbow', 'Emitter',
+];
+
 // RARITY_MULTIPLIER is now derived from Content_Rarity.csv via rarityConfig.ts.
 // Kept here as a computed record for backward compatibility with existing imports.
 import { getRarityConfig } from './rarityConfig';
@@ -42,6 +60,7 @@ export const RARITY_TIER: Record<Rarity, number> = {
 export interface WeaponDef {
   id: string;
   name: string;
+  type: WeaponType;
   rarity: Rarity;
   baseAtk: number;
   atkSpeed: number;
@@ -66,6 +85,7 @@ for (let i = 1; i < lines.length; i++) {
   SWORD_DEFS.push({
     id: cols[0].trim(),
     name: cols[1].trim(),
+    type: cols[2].trim() as WeaponType,
     rarity: cols[3].trim().toLowerCase() as Rarity,
     baseAtk: parseFloat(cols[4]),
     atkSpeed: parseFloat(cols[5]),

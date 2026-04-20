@@ -3,9 +3,12 @@ import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
 import { resolveX, resolveY, isInWater, isOnIce, isSolid } from '@core/Physics';
+import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
-import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG } from '@combat/CombatData';
-import type { CombatEntity } from '@combat/HitManager';
+import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
+import { resolveComboFx, FX_SLASH_FRAMES } from '@combat/WeaponFx';
+import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
+import type { Rarity, WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 
 // GDD System_3C_Character.md (SSoT) — 2026-04-08 레퍼런스 전수조사 기반 재조정
@@ -59,10 +62,13 @@ export class Player extends Entity implements CombatEntity {
    *   - takeoff: 프레임 4, 짧은 이륙 squash (160ms)
    *   - air    : 프레임 5, 공중 지속
    *   - land   : 프레임 6 → 7, 짧은 착지 복구 (각 150ms)
+   *   - dash   : 프레임 16 → 17 (startup 30ms + linger 120ms)
+   *   - attack : 프레임 18..21, 진행률 기반 스크럽 (step.totalFrames*FRAME_MS 에 맞춰 4프레임 분할)
    * idle ↔ run 은 지상에서 |vx| 기준으로 매 프레임 스위칭.
    * 공중 진입/착지는 grounded 엣지로 트리거.
+   * dash / attack 은 FSM state 감지로 진입/이탈.
    */
-  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' = 'idle';
+  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' = 'idle';
   /** idle/run/land 용 서브 프레임 인덱스 (0 기준). takeoff/air 는 사용 안 함. */
   private erdaAnimFrame = 0;
   /** 프레임 누적 타이머 (ms). */
@@ -78,6 +84,19 @@ export class Player extends Entity implements CombatEntity {
   private static readonly ANIM_RUN_FRAME_MS = 100;    // running — atlas 원본 속도
   private static readonly ANIM_TAKEOFF_MS = 160;      // 프레임 4 — 짧은 이륙 squash (2배 튜닝)
   private static readonly ANIM_LAND_FRAME_MS = 150;   // 프레임 6, 7 각각 — 속도 2/3 로 감속 (100→150ms)
+  private static readonly ANIM_DASH_STARTUP_MS = 30;  // 프레임 16 — 날카로운 시동 (짧게)
+  private static readonly ANIM_DASH_LINGER_MS = 120;  // 프레임 17 — 잔상 여운 (길게). 합계 150ms = DASH_DURATION
+  /** Slash FX — atlas 프레임 ms. FX 스펙(sprite/scale/offset/color) 은 CSV(COMBO_STEPS) SSoT. */
+  private static readonly ANIM_SLASH_FRAME_MS = 40;
+  private slashFrames: Texture[] = [];
+  private slashSprite: Sprite | null = null;
+  private slashTimer = 0;          // 슬래시 애니메이션 타이머 (ms)
+  private slashFrameIdx = 0;       // 현재 재생 중인 atlas 프레임 인덱스
+  private slashFromIdx = 0;        // 재생 구간 시작
+  private slashToIdx = -1;         // 재생 구간 끝 (비활성 시 -1)
+  private slashHitboxW = 0;        // 이번 슬래시가 참조하는 히트박스 가로 — 위치 계산용
+  private slashOffsetX = 0;        // CSV FxOffsetX 캐시 (공격 중 comboIndex 가 바뀌어도 현재 FX 유지)
+  private slashOffsetY = 0;        // CSV FxOffsetY 캐시
   private attackSprite: Graphics;
   fsm: StateMachine<PlayerState>;
 
@@ -87,6 +106,26 @@ export class Player extends Entity implements CombatEntity {
   atk = 10 + BARE_HAND_ATK; // STR(Lv1) + bare hand
   def = 5;                   // Lv1 base DEF (from Content_Stats_Character_Base.csv)
   facingRight = true;
+
+  /**
+   * Currently equipped weapon type — set by the scene whenever inventory
+   * equip state changes. `null` = bare hand (falls back to Combo.csv FX).
+   * Consumed by triggerSlash() to pick per-type FX from Content_FX_WeaponType.
+   */
+  equippedWeaponType: WeaponType | null = null;
+
+  /**
+   * Currently equipped weapon rarity — used for rarity-tinted slash FX.
+   * `null` = bare hand.
+   */
+  equippedRarity: Rarity | null = null;
+
+  /**
+   * Hitbox scale multiplier derived from equipped weapon's HitboxW vs the
+   * baseline bare-hand value (BASE_HITBOX_W). Applied to COMBO_STEPS in
+   * getAttackStep(). Also consumed by HitManager via CombatEntity.attackHitboxMul.
+   */
+  attackHitboxMul = 1;
 
   // Collision box (70% of visual size)
   collisionW = 9;
@@ -217,6 +256,7 @@ export class Player extends Entity implements CombatEntity {
 
     // 비동기 로드: 완료 시 Graphics 를 숨기고 Sprite 로 교체.
     this.loadErdaSprite();
+    this.loadSlashSprite();
 
     // State machine
     this.fsm = new StateMachine<PlayerState>();
@@ -561,6 +601,8 @@ export class Player extends Entity implements CombatEntity {
 
     // Erda atlas 프레임 애니메이션 — grounded 여부로 idle/jump 전환.
     this.updateErdaAnimation(dt);
+    // Slash FX — 재생 중일 때만 프레임 갱신, 완료 시 자동 숨김.
+    this.updateSlashFX(dt);
   }
 
   // --- CombatEntity interface ---
@@ -813,6 +855,8 @@ export class Player extends Entity implements CombatEntity {
 
     // Show attack hitbox visual
     this.updateAttackVisual();
+    // Slash FX — comboIndex 별 태그/스케일.
+    this.triggerSlash(this.comboIndex);
   }
 
   private stateAttack(dt: number): void {
@@ -879,7 +923,8 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private updateAttackVisual(): void {
-    const step = COMBO_STEPS[this.comboIndex];
+    // Debug visual reflects scaled hitbox so equipment feedback is visible.
+    const step = this.getAttackStep(this.comboIndex) ?? COMBO_STEPS[this.comboIndex];
     this.attackSprite.clear();
     this.attackSprite.rect(0, 0, step.hitboxW, step.hitboxH)
       .fill({ color: 0xffff00, alpha: 0.3 });
@@ -892,7 +937,8 @@ export class Player extends Entity implements CombatEntity {
     }
     this.attackSprite.scale.x = 1;
     this.attackSprite.y = offsetY;
-    this.attackSprite.visible = true;
+    // 히트박스 디버그 박스는 Debug.visible 이 true 일 때만 표시.
+    this.attackSprite.visible = Debug.visible;
   }
 
   // --- Hit ---
@@ -936,10 +982,10 @@ export class Player extends Entity implements CombatEntity {
       // pixel-perfect — 주변 업스케일 파이프라인(worldRT nearest)과 일치.
       tex.source.scaleMode = 'nearest';
 
-      // 아틀라스 가로 16프레임(32×32) 을 sub-rect 텍스처로 분할.
-      // idle 0..3 / jump 4..7 / running 8..15. 모두 같은 source 공유.
+      // 아틀라스 가로 22프레임(32×32) 을 sub-rect 텍스처로 분할.
+      // idle 0..3 / jump 4..7 / running 8..15 / dash 16..17 / attack1 18..21. 모두 같은 source 공유.
       this.erdaFrames = [];
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 22; i++) {
         this.erdaFrames.push(
           new Texture({
             source: tex.source,
@@ -964,6 +1010,116 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
+   * Slash FX 아틀라스 비동기 로드. 6 프레임(32×32), 단일 source 공유.
+   * 재생은 startAttack() 에서 triggerSlash(comboIndex) 로 시작, updateSlashFX() 가 프레임 진행.
+   */
+  private loadSlashSprite(): void {
+    const path = assetPath('assets/sprites/fx_slash.png');
+    Assets.load(path).then((tex: Texture) => {
+      if (this.container.destroyed) return;
+      tex.source.scaleMode = 'nearest';
+      this.slashFrames = [];
+      for (let i = 0; i < 6; i++) {
+        this.slashFrames.push(
+          new Texture({ source: tex.source, frame: new Rectangle(i * 32, 0, 32, 32) }),
+        );
+      }
+      const s = new Sprite(this.slashFrames[0]);
+      // 앵커: 가로 중앙(0.5) + 세로 중앙(0.5) — 플레이어 높이 중앙에 맞춰 배치.
+      s.anchor.set(0.5, 0.5);
+      s.visible = false;
+      // attackSprite 위(디버그 박스 위)에 오도록 그냥 추가.
+      this.container.addChild(s);
+      this.slashSprite = s;
+    }).catch(() => {
+      // 실패 시 FX 만 생략. 전투 자체엔 영향 없음.
+    });
+  }
+
+  /**
+   * Weapon-aware hitbox: scales COMBO_STEPS by attackHitboxMul.
+   * All player attack hitbox queries go through this, so equipment
+   * actually changes reach. Enemies keep using COMBO_STEPS directly.
+   */
+  getAttackStep(comboIndex: number): ComboStep | null {
+    const base = COMBO_STEPS[comboIndex];
+    if (!base) return null;
+    return scaleComboStep(base, this.attackHitboxMul);
+  }
+
+  /**
+   * 콤보 스텝별 slash FX 트리거. 스펙 SSoT:
+   *   - 공격 판정:  COMBO_STEPS[step] × attackHitboxMul
+   *   - 시각 FX:    resolveComboFx(equippedWeaponType, equippedRarity, step)
+   *     ├─ L1 sprite/scale/offset/color: Content_FX_WeaponType.csv
+   *     └─ L2 tint:                     Content_Rarity.csv FxTint
+   *
+   * FxScaleX/Y 는 무기 hitbox 배율과 연동: FX 크기도 공격 범위에 비례.
+   */
+  private triggerSlash(comboIndex: number): void {
+    if (!this.slashSprite || this.slashFrames.length === 0) return;
+    const step = this.getAttackStep(comboIndex);
+    if (!step) return;
+    const s = this.slashSprite;
+
+    // FX: type(L1) + rarity tint(L2).
+    const fx = resolveComboFx(this.equippedWeaponType, this.equippedRarity, comboIndex);
+    if (!fx) return;
+    const range = FX_SLASH_FRAMES[fx.sprite];
+    if (!range) return; // 알 수 없는 태그 — FX 생략.
+    const [from, to] = range;
+
+    this.slashFromIdx = from;
+    this.slashToIdx = to;
+    this.slashFrameIdx = from;
+    this.slashTimer = 0;
+    this.slashHitboxW = step.hitboxW;
+    this.slashOffsetX = fx.offsetX;
+    this.slashOffsetY = fx.offsetY;
+
+    // FX 시각 크기도 공격 범위에 비례.
+    const mul = this.attackHitboxMul;
+    s.scale.set(
+      this.facingRight ? fx.scaleX * mul : -fx.scaleX * mul,
+      fx.scaleY * mul,
+    );
+    s.tint = fx.color;
+    s.texture = this.slashFrames[from];
+    s.visible = true;
+  }
+
+  /**
+   * 매 프레임 slash FX 위치/프레임 갱신. stateAttack 중에만 의미 있음.
+   * slashToIdx === -1 이면 비활성.
+   */
+  private updateSlashFX(dt: number): void {
+    if (!this.slashSprite || this.slashToIdx < 0) return;
+    const s = this.slashSprite;
+
+    // 중심 = 히트박스 중심 + FxOffsetX(좌향 시 부호 반전). Y = 플레이어 높이 중앙 + FxOffsetY.
+    const hw = this.slashHitboxW;
+    const hitboxCenterX = this.facingRight ? (this.width + hw / 2) : (-hw / 2);
+    s.x = this.facingRight ? (hitboxCenterX + this.slashOffsetX) : (hitboxCenterX - this.slashOffsetX);
+    s.y = this.height / 2 + this.slashOffsetY;
+    // 방향 유지 (공격 중 facing 이 바뀌진 않지만 보수적 갱신).
+    const sx = Math.abs(s.scale.x);
+    s.scale.x = this.facingRight ? sx : -sx;
+
+    this.slashTimer += dt;
+    while (this.slashTimer >= Player.ANIM_SLASH_FRAME_MS) {
+      this.slashTimer -= Player.ANIM_SLASH_FRAME_MS;
+      this.slashFrameIdx++;
+      if (this.slashFrameIdx > this.slashToIdx) {
+        // 재생 완료 → 숨김.
+        s.visible = false;
+        this.slashToIdx = -1;
+        return;
+      }
+    }
+    s.texture = this.slashFrames[this.slashFrameIdx];
+  }
+
+  /**
    * 애니메이션 갱신:
    *   grounded 엣지 감지 → takeoff(이륙) / land(착지) 트리거.
    *   각 서브 스테이트가 자체 타이머로 다음 스테이트로 진행.
@@ -971,6 +1127,55 @@ export class Player extends Entity implements CombatEntity {
    */
   private updateErdaAnimation(dt: number): void {
     if (!this.erdaSprite || this.erdaFrames.length === 0) return;
+
+    // Dash 우선 — FSM state === 'dash' 진입 엣지에 애니메이션 리셋.
+    // dash 중엔 grounded 엣지(takeoff/land) 전이를 건너뛰어 16→17 시퀀스를 보장.
+    const fsmState = this.fsm.currentState;
+    if (fsmState === 'dash') {
+      if (this.erdaAnim !== 'dash') {
+        this.erdaAnim = 'dash';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaPrevGrounded = this.grounded;
+      this.erdaAnimTimer += dt;
+      // 프레임 16 (startup, 30ms) → 17 (linger, 120ms). 잔상은 dash 종료 엣지까지 유지.
+      if (this.erdaAnimFrame === 0 && this.erdaAnimTimer >= Player.ANIM_DASH_STARTUP_MS) {
+        this.erdaAnimFrame = 1;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaSprite.texture = this.erdaFrames[16 + this.erdaAnimFrame];
+      return;
+    }
+    if (this.erdaAnim === 'dash') {
+      // dash 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
+      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnimFrame = 0;
+      this.erdaAnimTimer = 0;
+    }
+
+    // Attack — FSM state === 'attack' 진입 시 attackTimer 진행률로 18..21 스크럽.
+    // 매 콤보 스텝의 startAttack() 에서 attackTimer 가 total 로 리셋되므로 각 타격마다 18→21 재생.
+    if (fsmState === 'attack') {
+      if (this.erdaAnim !== 'attack') {
+        this.erdaAnim = 'attack';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaPrevGrounded = this.grounded;
+      const step = COMBO_STEPS[this.comboIndex];
+      const total = step.totalFrames * FRAME_MS;
+      const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
+      const idx = Math.min(3, Math.floor(progress * 4));
+      this.erdaSprite.texture = this.erdaFrames[18 + idx];
+      return;
+    }
+    if (this.erdaAnim === 'attack') {
+      // attack 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
+      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnimFrame = 0;
+      this.erdaAnimTimer = 0;
+    }
 
     // 엣지 감지 — grounded 변화 순간에만 서브 스테이트 전이.
     if (this.erdaPrevGrounded && !this.grounded) {
@@ -1101,9 +1306,10 @@ export class Player extends Entity implements CombatEntity {
       this.sprite.x = this.facingRight ? 0 : this.width;
     }
 
-    // Update attack visual position on flip
+    // Update attack visual position on flip. Debug 토글이 중간에 꺼지면 즉시 숨김.
+    this.attackSprite.visible = this.attackActive && Debug.visible;
     if (this.attackSprite.visible) {
-      const step = COMBO_STEPS[this.comboIndex];
+      const step = this.getAttackStep(this.comboIndex) ?? COMBO_STEPS[this.comboIndex];
       this.attackSprite.x = this.facingRight ? this.width : -step.hitboxW;
     }
   }
