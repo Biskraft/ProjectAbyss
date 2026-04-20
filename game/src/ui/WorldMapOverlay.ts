@@ -29,7 +29,8 @@ const MAP_H = GAME_HEIGHT - MAP_MARGIN_Y * 2;  // 300
 const COLOR_BG = 0x0a0a12;        // near-black background
 const COLOR_BORDER = 0x445566;
 const COLOR_ROOM_BG = 0x111118;   // dark interior background
-const COLOR_ADJACENT = 0x222233;   // dark — fog silhouette
+const COLOR_ADJACENT = 0x445577;   // fog silhouette — bright enough to read shape
+const COLOR_ADJACENT_BORDER = 0x667799;
 
 // Tier colors (same as minimap)
 const TIER_COLORS: Record<string, number> = {
@@ -101,13 +102,17 @@ export class WorldMapOverlay {
     this.container.visible = false;
     this.container.zIndex = 900; // above game, below dialogue
 
-    // Semi-transparent background
+    // Opaque background — covers game & all UI beneath for clean readability
     this.bg = new Graphics();
-    this.bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: COLOR_BG, alpha: 0.93 });
+    this.bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: COLOR_BG, alpha: 1.0 });
     this.container.addChild(this.bg);
 
-    // Map content container
+    // Map content container — scaled to 70% around screen center, keeps bg full-screen
     this.mapContainer = new Container();
+    const MAP_SCALE = 0.7;
+    this.mapContainer.scale.set(MAP_SCALE);
+    this.mapContainer.x = (GAME_WIDTH * (1 - MAP_SCALE)) / 2;
+    this.mapContainer.y = (GAME_HEIGHT * (1 - MAP_SCALE)) / 2;
     this.container.addChild(this.mapContainer);
   }
 
@@ -277,8 +282,9 @@ export class WorldMapOverlay {
           this.currentRoomGfx = border;
         }
       } else {
-        // Unvisited — dark silhouette
-        g.rect(rx, ry, rw, rh).fill({ color: COLOR_ADJACENT, alpha: 0.2 });
+        // Unvisited — readable silhouette with border so layout is visible before visiting
+        g.rect(rx, ry, rw, rh).fill({ color: COLOR_ADJACENT, alpha: 0.55 });
+        g.rect(rx, ry, rw, rh).stroke({ color: COLOR_ADJACENT_BORDER, width: 0.5 });
       }
 
       this.mapContainer.addChild(g);
@@ -299,30 +305,39 @@ export class WorldMapOverlay {
     // Title
     const title = new BitmapText({
       text: 'WORLD MAP',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88aacc },
+      style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0x88aacc },
     });
     title.x = MAP_MARGIN_X;
-    title.y = MAP_MARGIN_Y - 14;
+    title.y = MAP_MARGIN_Y - 30;
     this.mapContainer.addChild(title);
 
-    // Exploration percentage
+    // Exploration percentage — larger, right-aligned
     const visitedCount = this.rooms.filter(r => this.visitedLevels.has(r.id)).length;
     const percent = this.totalRooms > 0 ? Math.floor((visitedCount / this.totalRooms) * 100) : 0;
     const pctText = new BitmapText({
       text: `${percent}%`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc44 },
+      style: { fontFamily: PIXEL_FONT, fontSize: 40, fill: 0xffcc44 },
     });
     pctText.x = GAME_WIDTH - MAP_MARGIN_X - pctText.width;
-    pctText.y = MAP_MARGIN_Y - 14;
+    pctText.y = MAP_MARGIN_Y - 42;
     this.mapContainer.addChild(pctText);
+
+    // Exploration label next to percentage
+    const pctLabel = new BitmapText({
+      text: 'EXPLORED',
+      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xaa8833 },
+    });
+    pctLabel.x = pctText.x - pctLabel.width - 10;
+    pctLabel.y = MAP_MARGIN_Y - 22;
+    this.mapContainer.addChild(pctLabel);
 
     // Controls hint
     const hint = new BitmapText({
       text: 'M: Close',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666688 },
+      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x666688 },
     });
     hint.x = GAME_WIDTH - MAP_MARGIN_X - hint.width;
-    hint.y = GAME_HEIGHT - MAP_MARGIN_Y + 4;
+    hint.y = GAME_HEIGHT - MAP_MARGIN_Y + 6;
     this.mapContainer.addChild(hint);
 
     // Legend
@@ -368,8 +383,8 @@ export class WorldMapOverlay {
 
   private drawLegend(): void {
     const lx = MAP_MARGIN_X;
-    const ly = GAME_HEIGHT - MAP_MARGIN_Y + 4;
-    const spacing = 50;
+    const ly = GAME_HEIGHT - MAP_MARGIN_Y + 6;
+    const spacing = 88;
 
     const items: [number, string][] = [
       [MARKER_SAVE, 'Save'],
@@ -383,14 +398,14 @@ export class WorldMapOverlay {
       const x = lx + i * spacing;
 
       const dot = new Graphics();
-      dot.circle(x, ly + 4, 2).fill(color);
+      dot.circle(x, ly + 8, 4).fill(color);
       this.mapContainer.addChild(dot);
 
       const text = new BitmapText({
         text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666688 },
+        style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
       });
-      text.x = x + 5;
+      text.x = x + 10;
       text.y = ly;
       this.mapContainer.addChild(text);
     }

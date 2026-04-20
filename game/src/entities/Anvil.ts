@@ -112,7 +112,7 @@ export class Anvil {
     this.particleLayer = new Container();
     this.container.addChild(this.particleLayer);
 
-    // Symbol prompt: [UP] + [sword] when empty, [X] + [hammer] when item placed.
+    // Symbol prompt: [UP] + [sword] when empty, [C] + [hammer] when item placed.
     this.hintContainer = this.buildSymbolPrompt();
     this.hintContainer.visible = false;
     // Anchor prompt so it sits above the anvil top
@@ -135,7 +135,7 @@ export class Anvil {
    *
    * Layout (both states cached, toggled via .visible):
    *   Empty  : [↑] + [sword]   — "place your weapon"
-   *   Placed : [X] + [hammer]  — "strike it"
+   *   Placed : [C] + [hammer]  — "strike it"
    *
    * Only one pair is visible at a time. No language text.
    */
@@ -153,8 +153,8 @@ export class Anvil {
     this.swordIcon.y = -1;
     c.addChild(this.swordIcon);
 
-    // Placed state: X key + hammer icon (stacked on top — hidden by default)
-    this.keyStrike = KeyPrompt.createKeyIcon('X', 9);
+    // Placed state: C key + hammer icon (stacked on top — hidden by default)
+    this.keyStrike = KeyPrompt.createKeyIcon('C', 9);
     this.keyStrike.x = 0;
     this.keyStrike.y = 0;
     this.keyStrike.visible = false;

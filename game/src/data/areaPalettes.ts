@@ -207,32 +207,36 @@ export async function ensureAreaTilesetsLoaded(
 }
 
 /**
- * Alias the atlas loaded for `areaId` so it also answers under every LDtk
- * `tilesetPath` referenced by the supplied tiles.
+ * Retag each tile's `tilesetPath` so it points at the CSV-declared tileset
+ * for this AreaID. CSV (`Sheets/Content_System_Area_Palette.csv`) is the
+ * single source of truth — LDtk's `__tilesetRelPath` is ignored after this
+ * call.
  *
- * This makes the CSV `Tileset` column authoritative: when the CSV specifies
- * e.g. `world_02` for a BG area but the LDtk project still references
- * `atlas/world_01.png` on its Background layer, calling this with the level's
- * background tiles will register the loaded `world_02` texture under
- * `atlas/world_01.png` too — so the renderer's per-tile lookup hits a real
- * atlas instead of returning null (empty visuals).
+ * Why this exists: LDtk stores one `__tilesetRelPath` per layer at authoring
+ * time (e.g. `atlas/world_01.png`). The CSV often specifies different tilesets
+ * for BG vs WALL (e.g. BG=world_01, WALL=SunnyLand). Without retag, BG and
+ * WALL collide on the same LDtk key and the renderer resolves both to
+ * whichever atlas was registered first. Retag moves the lookup from LDtk's
+ * path to the CSV-derived path so each layer picks its own atlas.
  *
- * Idempotent: entries already present in `atlases` are not overwritten.
- * Scenes that mix BG and WALL atlases must call this once per layer with the
- * AreaID that governs that layer, so the BG and WALL aliases never collide.
+ * Hazard "color region" tiles (src[0] >= 160 && src[1] >= 208) are left
+ * untouched — they're raw color swatches baked into the LDtk source atlas
+ * (world_01), and the CSV-specified replacement tileset (e.g. SunnyLand)
+ * would have different pixels at those coordinates.
+ *
+ * Scenes must still call `ensureAreaTilesetsLoaded` beforehand so the
+ * CSV-keyed atlas textures exist in the atlases map.
  */
-export function aliasAreaTilesetForLdtkTiles(
+export function applyAreaTilesetToLdtkTiles(
   areaId: string,
-  tiles: ReadonlyArray<{ tilesetPath: string | null }>,
-  atlases: Record<string, Texture>,
+  tiles: ReadonlyArray<{ tilesetPath: string | null; src: [number, number] }>,
 ): void {
   const entry = AREA_PALETTES.get(areaId);
   if (!entry?.tileset) return;
-  const sourceKey = tilesetRelPath(entry.tileset);
-  const sourceAtlas = atlases[sourceKey];
-  if (!sourceAtlas) return;
+  const csvKey = tilesetRelPath(entry.tileset);
   for (const t of tiles) {
-    const p = t.tilesetPath;
-    if (p && !atlases[p]) atlases[p] = sourceAtlas;
+    // Preserve hazard/color-region tiles on their authored atlas.
+    if (t.src[0] >= 160 && t.src[1] >= 208) continue;
+    (t as { tilesetPath: string | null }).tilesetPath = csvKey;
   }
 }

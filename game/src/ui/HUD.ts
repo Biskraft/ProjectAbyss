@@ -11,8 +11,8 @@ const BASE_HP_H = 10;
 const BASE_FLASK_SIZE = 10;
 const BASE_FLASK_GAP = 3;
 const BASE_FONT = 8;
-const BASE_BOSS_W = 200;
-const BASE_BOSS_H = 6;
+const BASE_BOSS_W = 280;
+const BASE_BOSS_H = 14;
 
 const HP_BORDER_COLOR = 0x444444;
 const HP_BG_COLOR = 0x222222;
@@ -28,6 +28,10 @@ const HEAL_FLASH_DURATION = 300;
 const BOSS_HEAL_FLASH_DURATION = 400;
 const LOW_HP_PULSE_PERIOD = 1000;
 const HP_TEXT_FLASH_DURATION = 200;
+/** HP 비율이 이 값 이하로 떨어지면 [R] Flask 키가 pulse 하여 사용을 유도. */
+const FLASK_LOW_HP_THRESHOLD = 0.4;
+/** Flask 키 pulse 1 사이클(scale 저점→고점→저점) 길이. */
+const FLASK_PULSE_PERIOD = 600;
 
 // Item EXP bar
 const BASE_EXP_W = 60;
@@ -78,7 +82,18 @@ export class HUD {
   private flaskMax = 3;
 
   private flaskKeyLabel: Container;
+  private flaskPulseGlow: Graphics;
+  private flaskPulseTimer = 0;
   private actionKeyBar: Container;
+
+  // [I]tem 키 강조 — 첫 아이템계 클리어 후 플레이어가 인벤토리를 열 때까지 flask 와 동일하게 펄스.
+  private itemKeyIcon: Container | null = null;
+  private itemKeyPulseGlow: Graphics;
+  private itemKeyPulseTimer = 0;
+  private itemKeyPulseActive = false;
+  private itemKeyCenterX = 0;
+  private itemKeyCenterY = 0;
+  private itemKeySize = 0;
 
   private vignette: Graphics;
   private vignetteTimer = 0;
@@ -138,7 +153,9 @@ export class HUD {
     this.BOSS_W = BASE_BOSS_W * s;
     this.BOSS_H = BASE_BOSS_H * s;
     this.BOSS_X = (this.SW - this.BOSS_W) / 2;
-    this.BOSS_Y = (BASE_H - 22) * s; // 338 * s
+    // 보스 바를 화면 상단으로 이동. BOSS_Y 아래에 막대가 그려지고
+    // 보스 이름은 BOSS_Y - 10*s 에 배치되므로 최소 10*s 위 여백 필요.
+    this.BOSS_Y = 24 * s;
 
     // --- HP bar ---
     this.hpBar = new Graphics();
@@ -191,13 +208,13 @@ export class HUD {
     const KEY_FONT = 8 * s;   // label font next to icon
     const KEY_LABEL_COLOR = 0xaaaaaa;
 
-    // --- Action key bar: [Z]Jump [X]Atk [C]Dash — bottom-left (above floor text) ---
+    // --- Action key bar: [Z]Jump [X]Dash [C]Atk — bottom-left (above floor text) ---
     this.actionKeyBar = new Container();
     const ACTION_BAR_Y = this.SH - this.MARGIN - this.FONT - 4 * s - KEY_ICON;
     const actions: Array<{ key: string; label: string }> = [
       { key: 'Z', label: 'Jump' },
-      { key: 'X', label: 'Atk' },
-      { key: 'C', label: 'Dash' },
+      { key: 'X', label: 'Dash' },
+      { key: 'C', label: 'Atk' },
     ];
     let actionX = this.MARGIN;
     for (const a of actions) {
@@ -234,9 +251,16 @@ export class HUD {
     this.container.addChild(this.vignette);
 
     // --- Flask [R] key label (same height as flask icons) ---
+    // Pulse glow sits behind the icon so low-HP animation reads clearly.
+    this.flaskPulseGlow = new Graphics();
+    this.flaskPulseGlow.alpha = 0;
+    this.container.addChild(this.flaskPulseGlow);
+
     this.flaskKeyLabel = KeyPrompt.createKeyIcon('R', this.FLASK_SIZE);
-    this.flaskKeyLabel.x = this.HP_X;
-    this.flaskKeyLabel.y = this.FLASK_Y;
+    // Center pivot so pulse scales in place (position stays anchored to HP_X,FLASK_Y).
+    this.flaskKeyLabel.pivot.set(this.FLASK_SIZE / 2, this.FLASK_SIZE / 2);
+    this.flaskKeyLabel.x = this.HP_X + this.FLASK_SIZE / 2;
+    this.flaskKeyLabel.y = this.FLASK_Y + this.FLASK_SIZE / 2;
     this.container.addChild(this.flaskKeyLabel);
 
     // --- [I]Item [M]Map — top-right, below minimap ---
@@ -245,6 +269,10 @@ export class HUD {
       { key: 'I', label: 'Item' },
       { key: 'M', label: 'Map' },
     ];
+    // [I] 키 펄스 glow 는 아이콘 뒤에 그려야 하므로 루프보다 먼저 추가.
+    this.itemKeyPulseGlow = new Graphics();
+    this.itemKeyPulseGlow.alpha = 0;
+    this.container.addChild(this.itemKeyPulseGlow);
     let sideX = this.SW - this.MARGIN;
     for (let i = sideActions.length - 1; i >= 0; i--) {
       const a = sideActions[i];
@@ -261,6 +289,16 @@ export class HUD {
       const icon = KeyPrompt.createKeyIcon(a.key, KEY_ICON);
       icon.x = sideX;
       icon.y = sideKeyY;
+      // Flask 키처럼 in-place 스케일을 위해 center pivot 으로 재배치.
+      if (a.key === 'I') {
+        icon.pivot.set(KEY_ICON / 2, KEY_ICON / 2);
+        icon.x = sideX + KEY_ICON / 2;
+        icon.y = sideKeyY + KEY_ICON / 2;
+        this.itemKeyIcon = icon;
+        this.itemKeyCenterX = icon.x;
+        this.itemKeyCenterY = icon.y;
+        this.itemKeySize = KEY_ICON;
+      }
       this.container.addChild(icon);
 
       sideX -= 8 * s;
@@ -326,6 +364,25 @@ export class HUD {
 
   // ----- Public API -----
 
+  /**
+   * 저체력 관련 시각 효과(Flask R pulse, glow, HP bar pulse, 데미지 vignette)를
+   * 즉시 초기화. 사망 후 리스폰/아이템계에서 월드 복귀 시 호출하여 잔상이
+   * 새 프레임까지 남지 않도록 보장한다.
+   */
+  resetLowHpEffects(): void {
+    this.lowHpTimer = 0;
+    this.flaskPulseTimer = 0;
+    this.flaskKeyLabel.scale.set(1);
+    this.flaskPulseGlow.clear();
+    this.flaskPulseGlow.alpha = 0;
+    this.hpTextFlashTimer = 0;
+    this.hpText.tint = 0xffffff;
+    this.vignetteTimer = 0;
+    this.vignette.alpha = 0;
+    this.vignette.clear();
+    this.redrawHpBar();
+  }
+
   updateHP(hp: number, maxHp: number): void {
     const prevHp = this.currentHp;
     this.currentHp = hp;
@@ -359,12 +416,20 @@ export class HUD {
     this.redrawFlask();
 
     const totalFlaskW = Math.min(max, FLASK_MAX_DISPLAY) * (this.FLASK_SIZE + this.FLASK_GAP);
-    // [R] key label sits right of the flask icons
-    this.flaskKeyLabel.x = this.HP_X + totalFlaskW + 2 * this.s;
-    this.flaskKeyLabel.y = this.FLASK_Y;
-    // HP text follows after the [R] label
-    this.hpText.x = this.HP_X + totalFlaskW + 2 * this.s + this.FLASK_SIZE + 4 * this.s;
+    // [R] key label sits right of the flask icons.
+    // Pivot is centered so the low-HP pulse scales in place — we compensate
+    // here by +FLASK_SIZE/2 so the icon's bounding box still occupies the
+    // same row as the flasks (top at FLASK_Y).
+    const flaskKeyLeft = this.HP_X + totalFlaskW + 2 * this.s;
+    this.flaskKeyLabel.x = flaskKeyLeft + this.FLASK_SIZE / 2;
+    this.flaskKeyLabel.y = this.FLASK_Y + this.FLASK_SIZE / 2;
+    // HP text follows after the [R] label.
+    // 100/100 텍스트의 세로 중심을 아이콘 중심(FLASK_Y + FLASK_SIZE/2)에 맞춘다
+    // — 아이콘(FLASK_SIZE=10s)이 텍스트(FONT=8s)보다 커서 top-정렬하면 어긋남.
+    this.hpText.x = flaskKeyLeft + this.FLASK_SIZE + 4 * this.s;
+    this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.FONT) / 2;
     this.hpTextShadow.x = this.hpText.x + this.s;
+    this.hpTextShadow.y = this.hpText.y + this.s;
     // Dim [R] label when no flasks remain
     this.flaskKeyLabel.alpha = current <= 0 ? 0.4 : 1.0;
   }
@@ -499,6 +564,17 @@ export class HUD {
     this.expBarContainer.visible = false;
   }
 
+  /** [I]tem 키 강조 on/off — 첫 아이템계 클리어 유도 후 I 입력까지만 true. */
+  setItemKeyHighlight(active: boolean): void {
+    this.itemKeyPulseActive = active;
+    if (!active) {
+      this.itemKeyPulseTimer = 0;
+      if (this.itemKeyIcon) this.itemKeyIcon.scale.set(1);
+      this.itemKeyPulseGlow.clear();
+      this.itemKeyPulseGlow.alpha = 0;
+    }
+  }
+
   update(dt: number): void {
     if (this.ghostTimer > 0) {
       this.ghostTimer -= dt;
@@ -516,6 +592,62 @@ export class HUD {
       this.redrawHpBar();
     } else {
       this.lowHpTimer = 0;
+    }
+
+    // --- Flask [R] pulse: HP <= 40% → 키가 커졌다 작아졌다 + 뒤에 붉은 glow ring ---
+    if (ratio > 0 && ratio <= FLASK_LOW_HP_THRESHOLD) {
+      this.flaskPulseTimer = (this.flaskPulseTimer + dt) % FLASK_PULSE_PERIOD;
+      const phase = (this.flaskPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
+      const pulse = 0.5 + 0.5 * Math.sin(phase); // 0..1
+      const scale = 1.0 + pulse * 0.45;          // 1.0..1.45
+      this.flaskKeyLabel.scale.set(scale);
+
+      // Glow ring — red halo grows/fades with the pulse.
+      this.flaskPulseGlow.clear();
+      const cx = this.HP_X + this.FLASK_SIZE / 2;
+      const cy = this.FLASK_Y + this.FLASK_SIZE / 2;
+      const baseR = this.FLASK_SIZE * 0.7;
+      const r = baseR + pulse * this.FLASK_SIZE * 0.8;
+      this.flaskPulseGlow
+        .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.18 + pulse * 0.22 });
+      this.flaskPulseGlow
+        .circle(cx, cy, r * 0.6).fill({ color: 0xffaa66, alpha: 0.25 + pulse * 0.25 });
+      this.flaskPulseGlow.alpha = 1;
+    } else if (this.flaskPulseTimer !== 0 || this.flaskKeyLabel.scale.x !== 1) {
+      // Reset on recovery.
+      this.flaskPulseTimer = 0;
+      this.flaskKeyLabel.scale.set(1);
+      this.flaskPulseGlow.clear();
+      this.flaskPulseGlow.alpha = 0;
+    }
+
+    // --- [I]tem 키 펄스 — 첫 아이템계 클리어 후 플레이어가 I 를 누를 때까지. ---
+    if (this.itemKeyPulseActive && this.itemKeyIcon) {
+      this.itemKeyPulseTimer = (this.itemKeyPulseTimer + dt) % FLASK_PULSE_PERIOD;
+      const phase = (this.itemKeyPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
+      const pulse = 0.5 + 0.5 * Math.sin(phase);
+      const scale = 1.0 + pulse * 0.45;
+      this.itemKeyIcon.scale.set(scale);
+
+      this.itemKeyPulseGlow.clear();
+      const cx = this.itemKeyCenterX;
+      const cy = this.itemKeyCenterY;
+      const baseR = this.itemKeySize * 0.7;
+      const r = baseR + pulse * this.itemKeySize * 0.8;
+      // Flask 는 붉은 위험 색, [I] 는 안내색(주황-노랑) 으로 구별.
+      this.itemKeyPulseGlow
+        .circle(cx, cy, r).fill({ color: 0xffaa44, alpha: 0.18 + pulse * 0.22 });
+      this.itemKeyPulseGlow
+        .circle(cx, cy, r * 0.6).fill({ color: 0xffee88, alpha: 0.25 + pulse * 0.25 });
+      this.itemKeyPulseGlow.alpha = 1;
+    } else if (
+      this.itemKeyIcon &&
+      (this.itemKeyPulseTimer !== 0 || this.itemKeyIcon.scale.x !== 1)
+    ) {
+      this.itemKeyPulseTimer = 0;
+      this.itemKeyIcon.scale.set(1);
+      this.itemKeyPulseGlow.clear();
+      this.itemKeyPulseGlow.alpha = 0;
     }
     if (this.hpTextFlashTimer > 0) {
       this.hpTextFlashTimer -= dt;
@@ -605,10 +737,19 @@ export class HUD {
     const maxHp = this.bossMaxHp || 1;
     const ratio = Math.max(0, Math.min(1, this.bossHp / maxHp));
 
-    g.rect(-this.s, -this.s, W + 2 * this.s, H + 2 * this.s).fill(HP_BORDER_COLOR);
+    // Outer border (black) + inner bezel for contrast on any background.
+    g.rect(-2 * this.s, -2 * this.s, W + 4 * this.s, H + 4 * this.s).fill(0x000000);
+    g.rect(-this.s, -this.s, W + 2 * this.s, H + 2 * this.s).fill(0xbbbbbb);
     g.rect(0, 0, W, H).fill(HP_BG_COLOR);
-    const color = ratio > 0.5 ? 0xcc4444 : ratio > 0.25 ? 0xcc6622 : 0xcc2222;
-    g.rect(0, 0, W * ratio, H).fill(color);
+
+    // 주황/빨강 배경에 묻히지 않도록 magenta → violet 스펙트럼. 체력이 깎일수록
+    // 어두워지면서도 주황 월드 타일에 섞이지 않는 채도를 유지.
+    const fillColor = ratio > 0.5 ? 0xff3388 : ratio > 0.25 ? 0xcc2277 : 0x882266;
+    const fillW = W * ratio;
+    g.rect(0, 0, fillW, H).fill(fillColor);
+    // Top-edge highlight — 바가 두꺼워진 만큼 입체감 한 줄.
+    const highlight = ratio > 0.5 ? 0xffaacc : ratio > 0.25 ? 0xff88bb : 0xcc66aa;
+    g.rect(0, 0, fillW, Math.max(1, Math.floor(this.s))).fill({ color: highlight, alpha: 0.8 });
   }
 
   private drawVignette(alpha: number): void {

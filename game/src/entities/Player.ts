@@ -135,6 +135,13 @@ export class Player extends Entity implements CombatEntity {
   inWater = false;
   /** True when player head is submerged (2+ tiles deep). */
   submerged = false;
+  /** Tracks the previous frame's inWater flag to detect enter/exit transitions. */
+  private prevInWater = false;
+  /**
+   * Transition flag: +1 = entered water this frame, -1 = exited water this
+   * frame, 0 = no transition. Consumed by the scene for splash VFX.
+   */
+  private _waterTransition: 0 | 1 | -1 = 0;
 
   // Oxygen system
   private static readonly OXYGEN_MAX = 20000; // 20 seconds in ms
@@ -207,6 +214,32 @@ export class Player extends Entity implements CombatEntity {
   private coyoteTimer = 0;
   private jumpBufferTimer = 0;
   private wasGrounded = false;
+
+  // --- VFX event flags (one-shot, consumed by scene per-frame) ---
+  /** Peak downward vy observed during the current airborne segment (px/s). */
+  private peakFallSpeed = 0;
+  /** Set on the frame the player touches ground after being airborne. */
+  private _justLanded = false;
+  /** Fall speed captured at the landing frame (px/s, positive). */
+  private _landingFallSpeed = 0;
+  /** Set on the frame a dash started. */
+  private _justDashed = false;
+  /** Dash direction at the moment of the dash event (-1/+1). */
+  private _dashDir = 1;
+  /** Set on the frame a double jump was performed. */
+  private _justDoubleJumped = false;
+  /** Set on the frame a wall jump kick-off was performed. */
+  private _justWallJumped = false;
+  /** Wall side at the moment of the wall jump (-1=left wall kicked right, +1=right wall kicked left). */
+  private _wallJumpDir = 0;
+  /** Set on the frame a grounded (or coyote) jump fired — for takeoff puff. */
+  private _justJumpedGround = false;
+  /** Set on the frame the drop-through one-way move was triggered. */
+  private _justDroppedThrough = false;
+  /** Set on the frame startHit() ran (player took damage this frame). */
+  private _justHitThisFrame = false;
+  /** Captured hit direction at the moment of damage (+1 knocked right, -1 left). */
+  private _hitKnockDir = 0;
 
   // Dash
   private dashTimer = 0;
@@ -347,6 +380,16 @@ export class Player extends Entity implements CombatEntity {
     if (this.grounded && !this.wasGrounded) {
       this.airDashAvailable = true;
       this.doubleJumpAvailable = true;
+      // VFX: landing event — fall speed = whichever is larger (current vy or the
+      // peak observed while airborne, in case resolveY clamped vy to 0 already).
+      const landedSpeed = Math.max(this.vy, this.peakFallSpeed, 0);
+      this._justLanded = true;
+      this._landingFallSpeed = landedSpeed;
+      this.peakFallSpeed = 0;
+    }
+    // Track peak downward speed while airborne for accurate landing VFX sizing.
+    if (!this.grounded && this.vy > this.peakFallSpeed) {
+      this.peakFallSpeed = this.vy;
     }
     if (this.grounded && this.hp > 0) {
       this.lastSafeX = this.x;
@@ -368,16 +411,21 @@ export class Player extends Entity implements CombatEntity {
         this.grounded = false;
         this.coyoteTimer = 0;       // prevent coyote jump after drop
         this.jumpBufferTimer = 0;   // consume the input — don't also jump
+        this._justDroppedThrough = true; // VFX: drop-through dust
         return;                     // skip all other jump/attack processing this frame
       }
       // Wall Jump: touching wall + jump → kick off opposite direction
       else if (this.wallSliding && this.touchingWallDir !== 0) {
-        this.vx = -this.touchingWallDir * WALL_JUMP_VX;
+        const kickDir = -this.touchingWallDir; // +1 = kicked to right, -1 = kicked to left
+        this.vx = kickDir * WALL_JUMP_VX;
         this.vy = WALL_JUMP_VY;
         this.facingRight = this.touchingWallDir < 0; // face away from wall
         this.wallJumpCooldown = WALL_JUMP_COOLDOWN;
         this.wallSliding = false;
         this.touchingWallDir = 0;
+        // VFX: wall-jump kick event
+        this._justWallJumped = true;
+        this._wallJumpDir = kickDir;
         this.fsm.transition('jump');
       }
       // Double Jump: in air + no coyote + ability unlocked + not used yet
@@ -387,6 +435,8 @@ export class Player extends Entity implements CombatEntity {
         this.vy = 0;
         this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
+        // VFX: double-jump event
+        this._justDoubleJumped = true;
         this.fsm.transition('jump');
       } else {
         this.jumpBufferTimer = JUMP_BUFFER;
@@ -418,7 +468,7 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    // Dive attack input — air + ↓ + X
+    // Dive attack input — air + ↓ + C
     if (this.abilities.diveAttack && !this.grounded &&
         this.game.input.isDown(GameAction.LOOK_DOWN) &&
         this.game.input.isJustPressed(GameAction.ATTACK) &&
@@ -502,6 +552,10 @@ export class Player extends Entity implements CombatEntity {
 
     // Water detection
     this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
+    // Edge-detect water enter/exit for splash VFX
+    if (this.inWater && !this.prevInWater) this._waterTransition = 1;
+    else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
+    this.prevInWater = this.inWater;
     const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
 
     // Submersion check — head (top of sprite) is in water = 2+ tiles deep
@@ -616,6 +670,9 @@ export class Player extends Entity implements CombatEntity {
     this.vx = knockbackX;
     this.vy = knockbackY;
     this._hitstunDuration = hitstun;
+    // VFX: player took damage this frame
+    this._justHitThisFrame = true;
+    this._hitKnockDir = knockbackX >= 0 ? 1 : -1;
     this.fsm.transition('hit');
   }
 
@@ -679,10 +736,13 @@ export class Player extends Entity implements CombatEntity {
         this.vy = 0;
         this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
+        this._justDoubleJumped = true;
         return true;
       }
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
+      // VFX: ground takeoff event (only fires for grounded jump — coyote counts)
+      this._justJumpedGround = true;
       this.fsm.transition('jump');
       return true;
     }
@@ -727,6 +787,10 @@ export class Player extends Entity implements CombatEntity {
     const dashSpeed = DASH_DISTANCE / (DASH_DURATION / 1000);
     this.vx = this.dashDirX * dashSpeed;
     this.vy = 0;
+
+    // VFX: dash start event (consumed by scene for boost puff)
+    this._justDashed = true;
+    this._dashDir = this.dashDirX;
   }
 
   private stateDash(dt: number): void {
@@ -915,6 +979,119 @@ export class Player extends Entity implements CombatEntity {
   /** Whether the attack hitbox is currently active (for HitManager to check) */
   isAttackActive(): boolean {
     return this.attackActive;
+  }
+
+  /** True while the dash state is active (scene can spawn afterimage trail). */
+  isDashing(): boolean {
+    return this.fsm.currentState === 'dash';
+  }
+
+  /**
+   * Returns the currently visible erda atlas texture (or null if the atlas has
+   * not loaded yet). Used by DashAfterimageManager to clone the exact frame for
+   * the afterimage trail so the silhouette matches the player's current pose.
+   */
+  getCurrentErdaTexture(): import('pixi.js').Texture | null {
+    if (!this.erdaSprite || this.erdaSprite.visible === false) return null;
+    return this.erdaSprite.texture;
+  }
+
+  // --- VFX one-shot event consumers ---
+  // Each returns the payload if the event fired this frame, else null,
+  // and immediately clears the flag so subsequent polls in the same frame
+  // return null. Scenes poll these once per frame after player.update().
+
+  /** Returns absolute fall speed (px/s) if the player landed this frame, else null. */
+  consumeLandedEvent(): number | null {
+    if (!this._justLanded) return null;
+    this._justLanded = false;
+    return this._landingFallSpeed;
+  }
+
+  /** Returns dash direction (-1/+1) if a dash started this frame, else null. */
+  consumeDashedEvent(): number | null {
+    if (!this._justDashed) return null;
+    this._justDashed = false;
+    return this._dashDir;
+  }
+
+  /** Returns true if a double jump was performed this frame. */
+  consumeDoubleJumpEvent(): boolean {
+    if (!this._justDoubleJumped) return false;
+    this._justDoubleJumped = false;
+    return true;
+  }
+
+  /**
+   * Returns the wall-jump kick direction sign if a wall jump was performed this frame.
+   *   -1 → pushed off right wall (moving left)
+   *   +1 → pushed off left wall (moving right)
+   * Returns null if no wall jump this frame.
+   */
+  consumeWallJumpEvent(): number | null {
+    if (!this._justWallJumped) return null;
+    this._justWallJumped = false;
+    return this._wallJumpDir;
+  }
+
+  /** True if a grounded jump fired this frame. */
+  consumeGroundJumpEvent(): boolean {
+    if (!this._justJumpedGround) return false;
+    this._justJumpedGround = false;
+    return true;
+  }
+
+  /** True if a drop-through one-way platform move fired this frame. */
+  consumeDropThroughEvent(): boolean {
+    if (!this._justDroppedThrough) return false;
+    this._justDroppedThrough = false;
+    return true;
+  }
+
+  /**
+   * Returns the knockback direction (+1 / -1) if the player took damage this
+   * frame, else null.
+   */
+  consumePlayerHitEvent(): number | null {
+    if (!this._justHitThisFrame) return null;
+    this._justHitThisFrame = false;
+    return this._hitKnockDir;
+  }
+
+  /** True while the player is wall-sliding (for continuous dust emission). */
+  isWallSliding(): boolean { return this.wallSliding; }
+  /** Wall contact side: -1 = wall on left, +1 = wall on right, 0 = none. */
+  wallContactDir(): number { return this.touchingWallDir; }
+
+  /** FSM state probes for VFX driving. */
+  isSurgeCharging(): boolean { return this.fsm.currentState === 'surge_charge'; }
+  isSurgeFlying(): boolean { return this.fsm.currentState === 'surge_fly'; }
+  /** 0..1 charge progress for surge VFX amplitude. */
+  getSurgeChargeRatio(): number {
+    if (this.fsm.currentState !== 'surge_charge') return 0;
+    return Math.min(1, this.surgeChargeTimer / Player.SURGE_CHARGE_MS);
+  }
+
+  /** Current vx — for footstep puff movement check. */
+  getVx(): number { return this.vx; }
+  /** Current vy — for dive landing severity / jumpland intensity. */
+  getVy(): number { return this.vy; }
+  /** Grounded accessor (scene-side VFX polling). */
+  isGrounded(): boolean { return this.grounded; }
+  /** Ice-tile accessor for skid streak VFX. */
+  isStandingOnIce(): boolean {
+    return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
+  }
+  /**
+   * One-shot water enter/exit edge event.
+   * Returns +1 on the frame water is entered, -1 on the frame water is exited,
+   * or null otherwise.
+   */
+  consumeWaterTransitionEvent(): 1 | -1 | null {
+    if (this._waterTransition === 0) return null;
+    const v = this._waterTransition;
+    this._waterTransition = 0;
+    return v;
   }
 
   /** Oxygen ratio 0~1 (1 = full, 0 = drowned). */

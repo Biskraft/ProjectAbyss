@@ -61,6 +61,7 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { FloorCollapse } from '@effects/FloorCollapse';
+import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
 import { WeaponPulse } from '@effects/WeaponPulse';
 import { AnvilTether } from '@effects/AnvilTether';
@@ -69,6 +70,29 @@ import { LorePopup } from '@ui/LorePopup';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave } from '@save/PlayerSave';
 import { HitSparkManager } from '@effects/HitSpark';
+import { LandingDustManager } from '@effects/LandingDust';
+import { DashAfterimageManager } from '@effects/DashAfterimage';
+import { DashBoostPuffManager } from '@effects/DashBoostPuff';
+import { DoubleJumpRingManager } from '@effects/DoubleJumpRing';
+import { WallJumpDustManager } from '@effects/WallJumpDust';
+import { JumpTakeoffPuffManager } from '@effects/JumpTakeoffPuff';
+import { WallSlideDustManager } from '@effects/WallSlideDust';
+import { FootstepPuffManager } from '@effects/FootstepPuff';
+import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
+import { SurgeVfxManager } from '@effects/SurgeVfx';
+import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
+import { CriticalHighlightManager } from '@effects/CriticalHighlight';
+import { HitBloodSprayManager } from '@effects/HitBloodSpray';
+import { DiveLandImpactManager } from '@effects/DiveLandImpact';
+import { WaterSplashManager } from '@effects/WaterSplash';
+import { WaterBubblesManager } from '@effects/WaterBubbles';
+import { DropThroughDustManager } from '@effects/DropThroughDust';
+import { IceSkidStreakManager } from '@effects/IceSkidStreak';
+import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
+import { RelicAuraBurstManager } from '@effects/RelicAuraBurst';
+import { SavepointPulseManager } from '@effects/SavepointPulse';
+import { LowHpVignetteManager } from '@effects/LowHpVignette';
+import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import {
@@ -76,7 +100,7 @@ import {
   getAreaPaletteAtlas,
   getAreaPaletteRow,
   ensureAreaTilesetsLoaded,
-  aliasAreaTilesetForLdtkTiles,
+  applyAreaTilesetToLdtkTiles,
 } from '@data/areaPalettes';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
@@ -174,6 +198,28 @@ export class LdtkWorldScene extends Scene {
   private toast!: ToastManager;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
+  private landingDust!: LandingDustManager;
+  private dashAfterimage!: DashAfterimageManager;
+  private dashBoostPuff!: DashBoostPuffManager;
+  private doubleJumpRing!: DoubleJumpRingManager;
+  private wallJumpDust!: WallJumpDustManager;
+  private jumpTakeoff!: JumpTakeoffPuffManager;
+  private wallSlideDust!: WallSlideDustManager;
+  private footstepPuff!: FootstepPuffManager;
+  private flaskBurst!: FlaskHealBurstManager;
+  private surgeVfx!: SurgeVfxManager;
+  private comboFinisherBurst!: ComboFinisherBurstManager;
+  private criticalHighlight!: CriticalHighlightManager;
+  private hitBloodSpray!: HitBloodSprayManager;
+  private diveLandImpact!: DiveLandImpactManager;
+  private waterSplash!: WaterSplashManager;
+  private waterBubbles!: WaterBubblesManager;
+  private dropThroughDust!: DropThroughDustManager;
+  private iceSkidStreak!: IceSkidStreakManager;
+  private itemPickupGlow!: ItemPickupGlowManager;
+  private relicAuraBurst!: RelicAuraBurstManager;
+  private savepointPulse!: SavepointPulseManager;
+  private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
 
   // Game Over
@@ -201,6 +247,7 @@ export class LdtkWorldScene extends Scene {
   private anvil: Anvil | null = null;
   private anvilPrompt: Container | null = null;
   private floorCollapse: FloorCollapse | null = null;
+  private screenCrack: ScreenCrack | null = null;
   private memoryDive: MemoryDive | null = null;
   private collapseItem: ItemInstance | null = null;
 
@@ -385,6 +432,12 @@ export class LdtkWorldScene extends Scene {
         this.player.y - 16,
         `+${amount}`, 0x44ff44,
       );
+      // VFX: healing burst
+      this.flaskBurst.spawn(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height / 2,
+        Math.min(1, amount / Math.max(1, this.player.maxHp * 0.4)),
+      );
     };
     this.entityLayer.addChild(this.player.container);
     if (saveData) {
@@ -419,6 +472,29 @@ export class LdtkWorldScene extends Scene {
     this.toast = new ToastManager(this.game.legacyUIContainer);
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.landingDust = new LandingDustManager(this.entityLayer);
+    this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
+    this.dashBoostPuff = new DashBoostPuffManager(this.entityLayer);
+    this.doubleJumpRing = new DoubleJumpRingManager(this.entityLayer);
+    this.wallJumpDust = new WallJumpDustManager(this.entityLayer);
+    this.jumpTakeoff = new JumpTakeoffPuffManager(this.entityLayer);
+    this.wallSlideDust = new WallSlideDustManager(this.entityLayer);
+    this.footstepPuff = new FootstepPuffManager(this.entityLayer);
+    this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
+    this.surgeVfx = new SurgeVfxManager(this.entityLayer);
+    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
+    this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
+    this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
+    this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
+    this.waterSplash = new WaterSplashManager(this.entityLayer);
+    this.waterBubbles = new WaterBubblesManager(this.entityLayer);
+    this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
+    this.iceSkidStreak = new IceSkidStreakManager(this.entityLayer);
+    this.itemPickupGlow = new ItemPickupGlowManager(this.entityLayer);
+    this.relicAuraBurst = new RelicAuraBurstManager(this.entityLayer);
+    this.savepointPulse = new SavepointPulseManager(this.entityLayer);
+    this.lowHpVignette = new LowHpVignetteManager(this.game.legacyUIContainer);
+    this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -475,6 +551,16 @@ export class LdtkWorldScene extends Scene {
       if (!this.hud.container.parent) this.game.uiContainer.addChild(this.hud.container);
       this.hud.container.visible = true;
       this.hud.setGoldBelowMinimap(!this.inItemTunnel);
+      // 아이템계에서 사망/탈출 후 복귀 시, 진입 전 저체력 펄스/글로우/비네트가
+      // 남아있지 않도록 HUD 상태를 초기화. 현재 체력이 여전히 낮다면 이어지는
+      // update 루프에서 자연스럽게 다시 재점화된다.
+      this.hud.resetLowHpEffects();
+      this.hud.updateHP(this.player.hp, this.player.maxHp);
+      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 [I] 키 강조 재점화 (저장 복귀 대응).
+      this.hud.setItemKeyHighlight(
+        this.unlockedEvents.has('__itemWorldTutorialDone')
+          && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld'),
+      );
     }
     if (this.minimap) {
       if (!this.minimap.parent) this.game.uiContainer.addChild(this.minimap);
@@ -499,8 +585,8 @@ export class LdtkWorldScene extends Scene {
       this.floorCollapse = null;
     }
 
-    // Re-sync collision grid and tilemap (collapsed tiles remain at 0)
-    this.collisionGrid = this.currentLevel.collisionGrid;
+    // Re-sync collision grid and tilemap (deep copy to restore original state)
+    this.collisionGrid = this.currentLevel.collisionGrid.map(row => [...row]);
     this.player.roomData = this.collisionGrid;
     this.rerenderTilemap();
 
@@ -580,13 +666,21 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Floor collapse in progress (legacy) ??all input blocked, camera frozen
+    // Screen crack effect update
+    if (this.screenCrack && !this.screenCrack.isDone) {
+      this.screenCrack.update(dt);
+    }
+
+    // Floor collapse in progress — all input blocked, camera frozen
     if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
       this.floorCollapse.update(dt);
 
       const ph = this.floorCollapse.phase;
       if (ph === 'anvil_fall' || ph === 'fade_out' || ph === 'done') {
-        this.player.update(dt);
+        // 충돌 무시 — 플레이어가 화면 밖으로 자유 낙하 (자연스러운 중력)
+        if (this.player.vy == null || this.player.vy === 0) this.player.vy = 0.5;
+        this.player.vy = this.player.vy + 0.02 * dt;
+        this.player.y += this.player.vy * (dt / 16.67);
       }
 
       if (this.floorCollapse.shouldTransition) {
@@ -621,6 +715,9 @@ export class LdtkWorldScene extends Scene {
       this.game.input.consumeJustPressed(GameAction.MAP);
       if (this.worldMap.visible) {
         this.worldMap.close();
+        // Restore HUD + minimap
+        this.hud.container.visible = true;
+        if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
       } else {
         // Update exploration state before opening
         this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
@@ -632,6 +729,9 @@ export class LdtkWorldScene extends Scene {
           );
         }
         this.worldMap.toggle();
+        // Hide HUD + minimap so the full map is unobstructed
+        this.hud.container.visible = false;
+        if (this.minimap) this.minimap.visible = false;
       }
     }
     if (this.worldMap.visible) {
@@ -648,6 +748,12 @@ export class LdtkWorldScene extends Scene {
     if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
       this.game.input.consumeJustPressed(GameAction.INVENTORY);
       this.inventoryUI.toggle();
+      // 첫 아이템계 클리어 후 I 강조 펄스 중이었다면 해제.
+      if (this.unlockedEvents.has('__itemWorldTutorialDone')
+        && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+        this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
+        this.hud.setItemKeyHighlight(false);
+      }
     }
 
     if (this.inventoryUI.visible) {
@@ -669,6 +775,20 @@ export class LdtkWorldScene extends Scene {
       this.postTransitionSnapFrames = 15; // ~250ms snap after fade ends
       this.player.savePrevPosition();
       for (const e of this.enemies) e.savePrevPosition();
+      return;
+    }
+
+    // Anvil 입력 선점: 빈 앵빌과 겹친 상태에서 C(ATTACK) 를 누르면 인벤토리를
+    // 열고 공격 입력을 소비한다. player.update() 전에 처리해야 플레이어가 같은
+    // 프레임에 헛스윙하지 않음.
+    if (
+      this.anvil && !this.anvil.used && !this.anvil.hasItem() &&
+      !this.altarSelectActive &&
+      this.anvil.overlaps(this.player.x, this.player.y, this.player.width, this.player.height) &&
+      this.game.input.isJustPressed(GameAction.ATTACK)
+    ) {
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
+      this.openAnvilUI();
       return;
     }
 
@@ -723,7 +843,11 @@ export class LdtkWorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-        if (hit.heavy) this.screenFlash.flashHit(true);
+        if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
+        if (hit.heavy) {
+          this.screenFlash.flashHit(true);
+          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
+        }
       }
       // Check kills after combat resolution
       for (const enemy of this.enemies) {
@@ -949,6 +1073,9 @@ export class LdtkWorldScene extends Scene {
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);
+        // Batch E: relic aura burst — tinted per ability family
+        const relicTint = abilityName === 'waterBreathing' ? 0x4488ff : 0xffd700;
+        this.relicAuraBurst.spawn(gfx.x, gfx.y, relicTint);
         if (gfx.parent) gfx.parent.removeChild(gfx);
         this.relicMarkers.splice(i, 1);
       }
@@ -968,6 +1095,8 @@ export class LdtkWorldScene extends Scene {
           const pickedItem = drop.item;
           const pickupX = drop.x;
           const pickupY = drop.y;
+          // Batch E: rarity-tinted pickup glow
+          this.itemPickupGlow.spawn(pickupX, pickupY, getRarityConfig(pickedItem.rarity).fxTint);
           drop.destroy();
           this.drops.splice(i, 1);
           this.sacredPickupFlow(pickedItem, pickupX, pickupY);
@@ -1105,12 +1234,19 @@ export class LdtkWorldScene extends Scene {
     this.hud.updateATK(this.player.atk);
     this.hud.updateGold(this.gold);
 
-    // Boss HP bar — bossActive 가 arena lock 과 동시에 true 가 되므로
-    // 교전 시작 시점을 FSM 없이도 정확히 포착한다. 매 프레임 boss 엔티티를
-    // enemies 에서 다시 찾아 갱신 (멀티 보스는 불가정, 첫 _isBoss 사용).
-    if (this.bossActive) {
-      const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
-      if (activeBoss) {
+    // Boss HP bar — 교전 감지 3중 트리거.
+    //  1) FSM 상태 전이 (detect/chase/hit/...) — 일반 경우 커버
+    //  2) hp < maxHp — Guardian 은 superArmor=true 라 타격해도 FSM 이 hit 으로
+    //     전이되지 않아 idle 에 머무를 수 있다. 데미지 기록이 "맞았다" 의 직접 증거.
+    //  3) bossActive(arena lock) — 보스방 진입 순간부터 표시. 플레이어가 아직
+    //     인지 범위 밖이어도 '갇혔다' 는 시점에 바를 띄워 교전 컨텍스트를 명시.
+    const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
+    if (activeBoss) {
+      const st = activeBoss.fsm.currentState;
+      const fsmEngaged = st !== null && st !== 'idle' && st !== 'death';
+      const wasHit = activeBoss.hp < activeBoss.maxHp;
+      const engaged = fsmEngaged || wasHit || this.bossActive;
+      if (engaged) {
         if (!(activeBoss as any)._bossBarShown) {
           (activeBoss as any)._bossBarShown = true;
           const name = (activeBoss as any).enemyType ?? 'GUARDIAN';
@@ -1147,6 +1283,9 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.update(dt);
     this.screenFlash.update(dt);
 
+    // Movement VFX (consume player one-shot events + trail updates)
+    this.updateMovementVfx(dt);
+
     // Camera ??deadzone follow + zoom lerp
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
@@ -1159,6 +1298,148 @@ export class LdtkWorldScene extends Scene {
 
     // Oxygen overlay ??vignette + bar when submerged
     this.updateOxygenOverlay();
+  }
+
+  /**
+   * Drain player VFX one-shot events and tick the per-frame trails
+   * (landing dust / dash afterimage / dash boost / double jump / wall jump).
+   * Called each frame after player.update().
+   */
+  private updateMovementVfx(dt: number): void {
+    const p = this.player;
+
+    // Landing dust — on grounded edge
+    const landedSpeed = p.consumeLandedEvent();
+    if (landedSpeed !== null) {
+      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
+    }
+
+    // Dash boost puff — on dash start
+    const dashDir = p.consumeDashedEvent();
+    if (dashDir !== null) {
+      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
+    }
+
+    // Double jump ring — on mid-air second jump
+    if (p.consumeDoubleJumpEvent()) {
+      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+
+    // Wall jump dust — wall side = -kickDir
+    const kickDir = p.consumeWallJumpEvent();
+    if (kickDir !== null) {
+      const wallX = kickDir > 0 ? p.x : p.x + p.width;
+      const wallY = p.y + p.height * 0.45;
+      this.wallJumpDust.spawn(wallX, wallY, kickDir);
+    }
+
+    // Dash afterimage trail — continuous while dashing
+    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
+      x: p.x, y: p.y, w: p.width, h: p.height,
+      facingRight: p.facingRight,
+      texture: p.getCurrentErdaTexture(),
+      spriteCenterX: p.x + p.width / 2,
+      spriteFootY: p.y + p.height,
+    }));
+
+    // --- Batch B ---
+    // Ground takeoff puff
+    if (p.consumeGroundJumpEvent()) {
+      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+    // (Drop-through handled in Batch D section below)
+    // Wall slide continuous dust
+    if (p.isWallSliding()) {
+      const wallSide = p.wallContactDir(); // -1 left, +1 right
+      const wallX = wallSide < 0 ? p.x : p.x + p.width;
+      const outDir = -wallSide;
+      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
+    }
+    // Footstep puff on ground movement
+    this.footstepPuff.stepIfMoving(
+      dt, p.isGrounded(),
+      p.x + p.width / 2, p.y + p.height,
+      p.getVx(), p.facingRight,
+    );
+    // Surge VFX — drive by state
+    if (p.isSurgeCharging()) {
+      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
+    } else if (p.isSurgeFlying()) {
+      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
+    } else {
+      this.surgeVfx.idleTick(dt);
+    }
+
+    // --- Batch D ---
+    // Dive landing impact — fires on diveLanded OR any fast fall land
+    if (p.diveLanded) {
+      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
+    } else if (landedSpeed !== null && landedSpeed > 520) {
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
+    }
+    // Water enter/exit splash
+    const waterT = p.consumeWaterTransitionEvent();
+    if (waterT !== null) {
+      const strength = waterT > 0 ? 1.0 : 0.8;
+      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
+    }
+    // Continuous rising bubbles while submerged
+    this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
+    // Drop-through dust streak
+    if (p.consumeDropThroughEvent()) {
+      this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
+    }
+    // Ice skid streak
+    this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
+
+    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!e.alive) continue;
+      const ex = e.x + e.width / 2;
+      const ey = e.y + e.height;
+      if (e.waterTransition !== 0) {
+        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
+        this.waterSplash.spawn(ex, ey, strength);
+      }
+      const key = `enemy_${i}`;
+      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
+      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
+      const eLanded = e.consumeLandedEvent();
+      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
+      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
+    }
+
+    // --- Batch C ---
+    // Player hit blood spray
+    const hitDir = p.consumePlayerHitEvent();
+    if (hitDir !== null) {
+      this.hitBloodSpray.spawn(p.x + p.width / 2, p.y + p.height * 0.4, hitDir);
+    }
+
+    // Tick all particle managers
+    this.landingDust.update(dt);
+    this.dashBoostPuff.update(dt);
+    this.doubleJumpRing.update(dt);
+    this.wallJumpDust.update(dt);
+    this.jumpTakeoff.update(dt);
+    this.wallSlideDust.update(dt);
+    this.footstepPuff.update(dt);
+    this.flaskBurst.update(dt);
+    this.comboFinisherBurst.update(dt);
+    this.criticalHighlight.update(dt);
+    this.hitBloodSpray.update(dt);
+    this.diveLandImpact.update(dt);
+    this.waterSplash.update(dt);
+    this.waterBubbles.update(dt);
+    this.dropThroughDust.update(dt);
+    this.iceSkidStreak.update(dt);
+    this.itemPickupGlow.update(dt);
+    this.relicAuraBurst.update(dt);
+    this.savepointPulse.update(dt);
+    const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 0;
+    this.lowHpVignette.update(dt, hpRatio);
   }
 
   private updateOxygenOverlay(): void {
@@ -1415,8 +1696,8 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Collision grid — same format as WorldScene.roomData
-    this.collisionGrid = level.collisionGrid;
+    // Collision grid — deep copy so runtime modifications don't persist across reloads
+    this.collisionGrid = level.collisionGrid.map(row => [...row]);
     // Reset breakable hit tracking on level transition
     this.breakableHits.clear();
     // 보스 HP 바 초기화 — 이전 레벨에서 남아있을 가능성(사망·워프 등) 차단.
@@ -1430,13 +1711,12 @@ export class LdtkWorldScene extends Scene {
       const row = Math.floor(t.px[1] / TILE_SIZE);
       return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
     });
-    // CSV `Tileset` column is authoritative: if the LDtk project still
-    // references the old tileset path (e.g. atlas/world_01.png) but the CSV
-    // points at a different file (world_02), alias the loaded CSV atlas under
-    // the LDtk-expected path so the renderer finds it.
-    aliasAreaTilesetForLdtkTiles('world_shaft_bg', level.backgroundTiles, this.atlases);
-    aliasAreaTilesetForLdtkTiles('world_shaft_wall', filteredWalls, this.atlases);
-    aliasAreaTilesetForLdtkTiles('world_shaft_wall', level.shadowTiles, this.atlases);
+    // CSV `Tileset` column is authoritative — retag tiles to point at the
+    // CSV-derived atlas key so BG and WALL never collide on LDtk's shared
+    // __tilesetRelPath.
+    applyAreaTilesetToLdtkTiles('world_shaft_bg', level.backgroundTiles);
+    applyAreaTilesetToLdtkTiles('world_shaft_wall', filteredWalls);
+    applyAreaTilesetToLdtkTiles('world_shaft_wall', level.shadowTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases);
 
     // Camera bounds
@@ -1517,6 +1797,10 @@ export class LdtkWorldScene extends Scene {
     if (!this.inItemTunnel) {
       this.drawMinimap();
     } else if (this.minimap) {
+      this.minimap.visible = false;
+    }
+    // When the world map is open, the freshly-drawn minimap must stay hidden.
+    if (this.worldMap?.visible && this.minimap) {
       this.minimap.visible = false;
     }
     if (this.worldMap?.visible) {
@@ -1817,11 +2101,13 @@ export class LdtkWorldScene extends Scene {
     const RANGE = 32;
 
     let nearSave = false;
+    let nearSavePt: { x: number; y: number } | null = null;
     for (const sp of this.savePoints) {
       const dx = Math.abs(pcx - sp.x);
       const dy = Math.abs(pcy - sp.y);
       if (dx < RANGE && dy < RANGE) {
         nearSave = true;
+        nearSavePt = { x: sp.x, y: sp.y };
         sp.gfx.alpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
         // Show context prompt — convert world pos to native screen pos
         if (sp.prompt) {
@@ -1848,8 +2134,10 @@ export class LdtkWorldScene extends Scene {
       if (!this.saveHintShown) {
         this.saveHintShown = true;
       }
-    } else if (this.saveHintShown) {
-      this.saveHintShown = false;
+      if (nearSavePt) this.savepointPulse.attach(nearSavePt.x, nearSavePt.y);
+    } else {
+      if (this.saveHintShown) this.saveHintShown = false;
+      this.savepointPulse.detach();
     }
   }
 
@@ -1886,6 +2174,17 @@ export class LdtkWorldScene extends Scene {
     // Visual feedback
     this.screenFlash.flash(0x44ffaa, 0.3, 200);
     this.game.hitstopFrames = 4;
+    // Batch E: pulse ring at nearest savepoint
+    {
+      const pcx = this.player.x + this.player.width / 2;
+      let closest = this.savePoints[0];
+      let bestDist = Infinity;
+      for (const sp of this.savePoints) {
+        const d = Math.abs(sp.x - pcx);
+        if (d < bestDist) { bestDist = d; closest = sp; }
+      }
+      if (closest) this.savepointPulse.pulse(closest.x, closest.y);
+    }
 
     SaveManager.save({
       player: {
@@ -2429,6 +2728,9 @@ export class LdtkWorldScene extends Scene {
           if (this.unlockedEvents.has(bossKey)) continue;
           enemy = createEnemy('Boss', enemyLevel);
           (enemy as any)._bossKey = bossKey;
+          // Arena lock — direct 'Boss' 엔티티 경로와 동일하게 Enemy_Spawn 경로에서도
+          // 보스방 탈출을 봉쇄한다. 누락 시 플레이어가 교전 전 방에서 이탈 가능.
+          this.activateBossLock(level);
         } else {
           enemy = createEnemy(enemyType, enemyLevel);
         }
@@ -2866,6 +3168,11 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.removeChildren();
     this.game.uiContainer.addChild(this.hud.container);
     if (this.minimap) this.game.uiContainer.addChild(this.minimap);
+    // 저체력 경고 VFX(Flask R pulse, glow, vignette, HP bar pulse) 즉시 제거.
+    // gameOverActive=true 에선 update() 가 early-return 하여 hud.update(dt) 가
+    // 호출되지 않으므로, 여기서 명시적으로 초기화하지 않으면 Game Over 화면에
+    // 펄스 잔상이 얼어붙은 채 남는다.
+    this.hud.resetLowHpEffects();
     const overlay = new Container();
 
     // Desaturated dark overlay
@@ -2938,6 +3245,9 @@ export class LdtkWorldScene extends Scene {
     this.updatePlayerAtk();
     this.player.hp = this.player.maxHp;
     this.snapPlayerToSavePoint();
+    // 저체력 경고 VFX(Flask R pulse, glow, HP bar pulse, vignette) 잔상 제거.
+    this.hud.resetLowHpEffects();
+    this.hud.updateHP(this.player.hp, this.player.maxHp);
   }
 
   // ---------------------------------------------------------------------------
@@ -3091,6 +3401,10 @@ export class LdtkWorldScene extends Scene {
       this.updatePlayerAtk();
       // Mark global Item World tutorial as done
       this.unlockedEvents.add('__itemWorldTutorialDone');
+      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+        this.hud.setItemKeyHighlight(true);
+      }
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -3544,10 +3858,12 @@ export class LdtkWorldScene extends Scene {
     );
     this.anvil.setShowHint(false); // disable built-in hint — use KeyPrompt instead
 
-    // KeyPrompt — create lazily, show/hide + position in uiContainer
+    // KeyPrompt — create lazily, show/hide + position in uiContainer.
+    // Pattern A(Modal): C(ATTACK) 로 인벤토리(Anvil 모드) 열기. ↑(LOOK_UP)은
+    // 방향 입력이라 확인 키로 부적합(UI_Interaction_Patterns.md).
     if (near && !this.anvil.hasItem()) {
       if (!this.anvilPrompt) {
-        this.anvilPrompt = KeyPrompt.createPrompt('\u2191', 'Place Weapon', this.game.uiScale);
+        this.anvilPrompt = KeyPrompt.createPrompt('C', 'Place Weapon', this.game.uiScale);
         this.anvilPrompt.visible = false;
         this.game.uiContainer.addChild(this.anvilPrompt);
       }
@@ -3564,16 +3880,8 @@ export class LdtkWorldScene extends Scene {
       this.anvilPrompt.visible = false;
     }
 
-    // UP key ??place weapon on anvil (if no weapon placed yet)
-    if (!this.anvil.hasItem() && this.anvil.overlaps(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-    )) {
-      if (this.game.input.isJustPressed(GameAction.LOOK_UP) && !this.altarSelectActive) {
-        this.openAnvilUI();
-        return;
-      }
-    }
-
+    // 앵빌 UI 열기는 update() 도입부의 선점 분기에서 처리한다
+    // (player.update 전에 C 입력을 소비해야 헛스윙을 막을 수 있음).
     if (this.anvil.hasItem() && this.player.isAttackActive()) {
       const step = this.player.getAttackStep(this.player.comboIndex);
       if (step) {
@@ -3646,7 +3954,8 @@ export class LdtkWorldScene extends Scene {
         this.anvil.placeItem(item);
         this.collapseItem = item;
         this.inventoryUI.close();
-        this.toast.show('Strike the anvil!', 0xff8844);
+        // 공격 단계 생략 — 아이템 선택 즉시 다이브 진입
+        this.triggerFloorCollapse();
       };
       const cancel = () => {
         // Reopen the inventory in anvil mode so user can pick another item.
@@ -3656,10 +3965,13 @@ export class LdtkWorldScene extends Scene {
       return;
     }
     // Fallback path if preview unavailable.
+    this.collapseIsTutorial = !sacredSave.isFirstDiveDone();
+    sacredSave.markFirstDiveDone();
     this.anvil.placeItem(item);
     this.collapseItem = item;
     this.inventoryUI.close();
-    this.toast.show('Strike the anvil!', 0xff8844);
+    // 공격 단계 생략 — 아이템 선택 즉시 다이브 진입
+    this.triggerFloorCollapse();
   }
 
   private drawCyclePromptUI(item: ItemInstance): void {
@@ -3699,7 +4011,7 @@ export class LdtkWorldScene extends Scene {
       '',
       `Cycle ${nextCycle}`,
       '',
-      '[Z] Dive Again   [C] Cancel',
+      '[C] Dive Again   [ESC] Cancel',
     ];
     for (let i = 0; i < lines.length; i++) {
       const fill = i === 0 ? 0xffcc44 : i === lines.length - 1 ? 0xaaaaaa : 0xffffff;
@@ -3730,7 +4042,9 @@ export class LdtkWorldScene extends Scene {
     const item = this.cyclePromptItem;
     if (!item) return;
 
-    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
+    // Pattern A(Modal): C = 확인, ESC = 취소. Z/X 는 UI 에서 사용 금지
+    // (UI_Interaction_Patterns.md). Jump/Dash 게임 액션과 충돌하지 않도록 분리.
+    if (input.isJustPressed(GameAction.ATTACK)) {
       // Confirm re-dive — reset progress, close prompt, proceed to anvil strike
       resetItemForNextCycle(item);
       this.closeCyclePromptUI();
@@ -3738,7 +4052,7 @@ export class LdtkWorldScene extends Scene {
       this.placeItemOnAnvil(item);
       return;
     }
-    if (input.isJustPressed(GameAction.DASH) || input.isJustPressed(GameAction.MENU)) {
+    if (input.isJustPressed(GameAction.MENU)) {
       // Cancel — return to the item select UI.
       // Anvil path uses the unified InventoryUI (already open in anvil mode),
       // while the altar path uses the legacy drawItemSelectUI overlay.
@@ -3789,28 +4103,46 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
 
-    // Use MemoryDive instead of FloorCollapse. Bump per-item dive count BEFORE
-    // the dive begins so the first-ever dive sees count===1 (full duration).
-    const diveCount = sacredSave.incrementDive(this.collapseItem.def.id);
-    const skipDive = sacredSave.getSettings().skipDive;
-    const dive = new MemoryDive(
-      this.anvil.x + this.anvil.width / 2,
-      this.anvil.y,
-      this.collapseItem.rarity,
-      { diveCount, skipDive },
-    );
+    // ScreenCrack → FloorCollapse 시퀀스
+    sacredSave.incrementDive(this.collapseItem.def.id);
 
-    dive.onShake = (intensity) => this.game.camera.shake(intensity);
-    dive.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-    dive.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
+    // Phase 1: 화면 균열 — 앤빌 위치를 스크린 좌표로 변환
+    const cam = this.game.camera;
+    const screenX = this.anvil.x - cam.renderX + GAME_WIDTH / 2;
+    const screenY = this.anvil.y - cam.renderY + GAME_HEIGHT / 2;
+    const crack = new ScreenCrack(screenX, screenY);
 
-    this.memoryDive = dive;
-    this.entityLayer.addChild(dive.container);
+    crack.onShake = (intensity) => this.game.camera.shake(intensity);
+    crack.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+    crack.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
+
+    // Phase 2: 균열 완료 → 바닥 무너짐 시작
+    crack.onCrackComplete = () => {
+      if (!this.anvil || !this.collapseItem) return;
+      const collapse = new FloorCollapse(
+        this.anvil.x,
+        this.anvil.y,
+        this.collapseItem.rarity,
+        this.collisionGrid,
+      );
+      collapse.onShake = (intensity) => this.game.camera.shake(intensity);
+      collapse.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+      collapse.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
+      collapse.onTilesRemoved = () => this.rerenderTilemap();
+
+      this.floorCollapse = collapse;
+      this.entityLayer.addChild(collapse.container);
+      collapse.start();
+    };
+
+    this.screenCrack = crack;
+    // Legacy UI 레이어에 추가 (640×360 스크린 좌표계)
+    this.game.legacyUIContainer.addChild(crack.container);
 
     // Hit sparks at anvil position
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    dive.start();
+    crack.start();
   }
 
   /** Rarity ??ItemTunnel level name mapping. */
@@ -3826,7 +4158,11 @@ export class LdtkWorldScene extends Scene {
   private completeFloorCollapseEntry(): void {
     if (!this.collapseItem) return;
 
-    // Clean up dive/collapse effect
+    // Clean up dive/collapse/crack effects
+    if (this.screenCrack) {
+      this.screenCrack.destroy();
+      this.screenCrack = null;
+    }
     if (this.memoryDive) {
       this.memoryDive.destroy();
       this.memoryDive = null;
@@ -3887,6 +4223,10 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
       this.unlockedEvents.add('__itemWorldTutorialDone');
+      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+        this.hud.setItemKeyHighlight(true);
+      }
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -3908,6 +4248,12 @@ export class LdtkWorldScene extends Scene {
         this.preTunnelLevelId = null;
       }
       this.collapseItem = null;
+
+      // Reset anvil so it can be reused for repeated Item World dives
+      if (this.anvil) {
+        this.anvil.used = false;
+        this.anvil.item = null;
+      }
 
       // Spawn next to the (now-removed) anvil using the snapshot position.
       this.placePlayerAtReturnPoint();
@@ -3952,6 +4298,10 @@ export class LdtkWorldScene extends Scene {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
         this.unlockedEvents.add('__itemWorldTutorialDone');
+        // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+        if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+          this.hud.setItemKeyHighlight(true);
+        }
         // Collect earned gold from Item World
         if (itemWorldScene.earnedGold > 0) {
           this.gold += itemWorldScene.earnedGold;

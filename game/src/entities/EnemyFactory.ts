@@ -12,7 +12,7 @@ import { Guardian } from './Guardian';
 import { GoldenMonster } from './GoldenMonster';
 import type { Enemy } from './Enemy';
 
-export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'Guardian' | 'GoldenMonster' | 'Boss';
+export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'WeakSlime' | 'Guardian' | 'GoldenMonster' | 'Boss';
 
 /**
  * Create an enemy instance by type name.
@@ -31,6 +31,8 @@ export function createEnemy(
       return new Ghost(level);
     case 'Slime':
       return new Slime(level);
+    case 'WeakSlime':
+      return new Slime(level, 'WeakSlime');
     case 'Guardian':
     case 'Boss':
       return new Guardian(level);

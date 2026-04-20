@@ -49,6 +49,26 @@ import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
 import { DeathParticleManager } from '@effects/DeathParticles';
+import { LandingDustManager } from '@effects/LandingDust';
+import { DashAfterimageManager } from '@effects/DashAfterimage';
+import { DashBoostPuffManager } from '@effects/DashBoostPuff';
+import { DoubleJumpRingManager } from '@effects/DoubleJumpRing';
+import { WallJumpDustManager } from '@effects/WallJumpDust';
+import { JumpTakeoffPuffManager } from '@effects/JumpTakeoffPuff';
+import { WallSlideDustManager } from '@effects/WallSlideDust';
+import { FootstepPuffManager } from '@effects/FootstepPuff';
+import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
+import { SurgeVfxManager } from '@effects/SurgeVfx';
+import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
+import { CriticalHighlightManager } from '@effects/CriticalHighlight';
+import { HitBloodSprayManager } from '@effects/HitBloodSpray';
+import { DiveLandImpactManager } from '@effects/DiveLandImpact';
+import { WaterSplashManager } from '@effects/WaterSplash';
+import { WaterBubblesManager } from '@effects/WaterBubbles';
+import { DropThroughDustManager } from '@effects/DropThroughDust';
+import { IceSkidStreakManager } from '@effects/IceSkidStreak';
+import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
+import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import {
@@ -56,7 +76,7 @@ import {
   getAreaPaletteAtlas,
   getAreaPaletteRow,
   ensureAreaTilesetsLoaded,
-  aliasAreaTilesetForLdtkTiles,
+  applyAreaTilesetToLdtkTiles,
 } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
@@ -116,6 +136,26 @@ export class ItemWorldScene extends Scene {
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private deathParticles!: DeathParticleManager;
+  private landingDust!: LandingDustManager;
+  private dashAfterimage!: DashAfterimageManager;
+  private dashBoostPuff!: DashBoostPuffManager;
+  private doubleJumpRing!: DoubleJumpRingManager;
+  private wallJumpDust!: WallJumpDustManager;
+  private jumpTakeoff!: JumpTakeoffPuffManager;
+  private wallSlideDust!: WallSlideDustManager;
+  private footstepPuff!: FootstepPuffManager;
+  private flaskBurst!: FlaskHealBurstManager;
+  private surgeVfx!: SurgeVfxManager;
+  private comboFinisherBurst!: ComboFinisherBurstManager;
+  private criticalHighlight!: CriticalHighlightManager;
+  private hitBloodSpray!: HitBloodSprayManager;
+  private diveLandImpact!: DiveLandImpactManager;
+  private waterSplash!: WaterSplashManager;
+  private waterBubbles!: WaterBubblesManager;
+  private dropThroughDust!: DropThroughDustManager;
+  private iceSkidStreak!: IceSkidStreakManager;
+  private itemPickupGlow!: ItemPickupGlowManager;
+  private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
   private toast!: ToastManager;
   // A15: innocent capture seal orbs — rise from capture point, home to player
@@ -466,6 +506,11 @@ export class ItemWorldScene extends Scene {
         this.player.y - 16,
         `+${amount}`, 0x44ff44,
       );
+      this.flaskBurst?.spawn(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height / 2,
+        Math.min(1, amount / Math.max(1, this.player.maxHp * 0.4)),
+      );
     };
     this.entityLayer.addChild(this.player.container);
 
@@ -473,6 +518,27 @@ export class ItemWorldScene extends Scene {
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.deathParticles = new DeathParticleManager(this.entityLayer);
+    this.landingDust = new LandingDustManager(this.entityLayer);
+    this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
+    this.dashBoostPuff = new DashBoostPuffManager(this.entityLayer);
+    this.doubleJumpRing = new DoubleJumpRingManager(this.entityLayer);
+    this.wallJumpDust = new WallJumpDustManager(this.entityLayer);
+    this.jumpTakeoff = new JumpTakeoffPuffManager(this.entityLayer);
+    this.wallSlideDust = new WallSlideDustManager(this.entityLayer);
+    this.footstepPuff = new FootstepPuffManager(this.entityLayer);
+    this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
+    this.surgeVfx = new SurgeVfxManager(this.entityLayer);
+    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
+    this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
+    this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
+    this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
+    this.waterSplash = new WaterSplashManager(this.entityLayer);
+    this.waterBubbles = new WaterBubblesManager(this.entityLayer);
+    this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
+    this.iceSkidStreak = new IceSkidStreakManager(this.entityLayer);
+    this.itemPickupGlow = new ItemPickupGlowManager(this.entityLayer);
+    this.lowHpVignette = new LowHpVignetteManager(this.game.legacyUIContainer);
+    this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -755,14 +821,13 @@ export class ItemWorldScene extends Scene {
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
-        // CSV Tileset is authoritative: alias CSV-loaded atlases under the
-        // LDtk-referenced paths so renderer finds them even when LDtk and CSV
-        // point at different tileset files (e.g. CSV=world_02, LDtk=world_01).
+        // CSV Tileset is authoritative — retag tiles to the CSV-derived atlas
+        // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
         const bgAreaId = `iw_${this.item.rarity}_bg`;
         const wallAreaId = `iw_${this.item.rarity}_wall`;
-        aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
-        aliasAreaTilesetForLdtkTiles(wallAreaId, wallTiles, this.atlases);
-        aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
+        applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
         renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
@@ -1669,9 +1734,9 @@ export class ItemWorldScene extends Scene {
       {
         const bgAreaId = `iw_${this.item.rarity}_bg`;
         const wallAreaId = `iw_${this.item.rarity}_wall`;
-        aliasAreaTilesetForLdtkTiles(bgAreaId, ldtkLevel.backgroundTiles, this.atlases);
-        aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.wallTiles, this.atlases);
-        aliasAreaTilesetForLdtkTiles(wallAreaId, ldtkLevel.shadowTiles, this.atlases);
+        applyAreaTilesetToLdtkTiles(bgAreaId, ldtkLevel.backgroundTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.shadowTiles);
       }
       this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
       if (!this.ldtkRenderer.container.parent) {
@@ -2501,8 +2566,8 @@ export class ItemWorldScene extends Scene {
         {
           const bgAreaId = `iw_${this.item.rarity}_bg`;
           const wallAreaId = `iw_${this.item.rarity}_wall`;
-          aliasAreaTilesetForLdtkTiles(bgAreaId, bgTiles, this.atlases);
-          aliasAreaTilesetForLdtkTiles(wallAreaId, shadowTiles, this.atlases);
+          applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
+          applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
         }
         renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
         renderer.bgLayer.position.set(roomX, roomY);
@@ -2619,8 +2684,10 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // ESC to toggle escape confirm
-    if (this.game.input.isJustPressed(GameAction.MENU)) {
+    // ESC to toggle escape confirm. bossChoice 패널이 열려 있을 땐 여기서
+    // 가로채지 않고 아래 bossChoice 핸들러가 ESC 를 Exit Safely 로 처리하도록
+    // 양보한다 (Pattern A — 해당 모달의 취소 키).
+    if (!this.bossChoiceVisible && this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.escapeConfirmVisible) {
         this.hideEscapeConfirm();
       } else {
@@ -2656,14 +2723,16 @@ export class ItemWorldScene extends Scene {
     // A17 (playtest 2026-04-17): boss-kill choice panel. After a non-final
     // stratum boss, the portal would auto-advance; now the player explicitly
     // chooses CONTINUE (deeper) or EXIT (bank progress and leave).
+    // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=확인(Continue
+    // Deeper), ESC(MENU)=취소(Exit Safely). Z/X 는 UI 에서 사용 금지 — 점프/
+    // 대시 액션과 근육 기억 충돌을 막기 위함.
     if (this.bossChoiceVisible) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.hideBossChoice();
         this._continueToNextStratum();
         return;
       }
-      if (this.game.input.isJustPressed(GameAction.DASH) ||
-          this.game.input.isJustPressed(GameAction.JUMP)) {
+      if (this.game.input.isJustPressed(GameAction.MENU)) {
         this.hideBossChoice();
         this._exitAfterBoss();
         return;
@@ -2753,7 +2822,11 @@ export class ItemWorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-        if (hit.heavy) this.screenFlash.flashHit(true);
+        if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
+        if (hit.heavy) {
+          this.screenFlash.flashHit(true);
+          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
+        }
         if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
           this.screenFlash.flashHit(true);
           this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
@@ -2862,6 +2935,7 @@ export class ItemWorldScene extends Scene {
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
         this.screenFlash.flash(0x44ff44, 0.3, 150);
         if (healed > 0) this.toast.show(`HP +${healed}`, 0x44ff44);
+        this.itemPickupGlow.spawn(hp.x + hp.width / 2, hp.y + hp.height / 2, 0x44ff44);
         hp.collect();
         hp.destroy();
         this.healingPickups.splice(i, 1);
@@ -2879,6 +2953,7 @@ export class ItemWorldScene extends Scene {
         gp.collect();
         this.earnedGold += gp.amount;
         this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
+        this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
         gp.destroy();
         this.goldPickups.splice(i, 1);
       }
@@ -3150,12 +3225,17 @@ export class ItemWorldScene extends Scene {
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
-    // Boss HP bar — show only when boss detects player
+    // Boss HP bar — 교전 감지 2중 트리거.
+    //  1) FSM 상태 ≠ idle/death
+    //  2) hp < maxHp — superArmor 보스는 타격해도 FSM 이 hit 으로 전이되지 않으므로
+    //     데미지 기록을 직접 본다.
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
     if (activeBoss) {
       const st = activeBoss.fsm.currentState;
-      const detected = st === 'chase' || st === 'attack' || st === 'retreat' || st === 'cooldown' || st === 'hit';
-      if (detected && !(activeBoss as any)._bossBarShown) {
+      const fsmEngaged = st !== null && st !== 'idle' && st !== 'death';
+      const wasHit = activeBoss.hp < activeBoss.maxHp;
+      const engaged = fsmEngaged || wasHit;
+      if (engaged && !(activeBoss as any)._bossBarShown) {
         (activeBoss as any)._bossBarShown = true;
         this.hud.showBossHP((activeBoss as any).enemyType ?? 'Boss', activeBoss.hp, activeBoss.maxHp);
       }
@@ -3172,6 +3252,9 @@ export class ItemWorldScene extends Scene {
     this._updateStratumClearPanel(dt);
     this.screenFlash.update(dt);
 
+    // Movement VFX (consume player one-shot events + trail updates)
+    this.updateMovementVfx(dt);
+
     // Clamp player to map bounds (gridW rooms × 512px)
     const gridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
     const gridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
@@ -3187,6 +3270,126 @@ export class ItemWorldScene extends Scene {
       y: this.player.y + this.player.height / 2,
     };
     this.game.camera.update(dt);
+  }
+
+  /**
+   * Drain player VFX one-shot events and tick the per-frame trails
+   * (landing dust / dash afterimage / dash boost / double jump / wall jump).
+   */
+  private updateMovementVfx(dt: number): void {
+    const p = this.player;
+
+    const landedSpeed = p.consumeLandedEvent();
+    if (landedSpeed !== null) {
+      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
+    }
+    const dashDir = p.consumeDashedEvent();
+    if (dashDir !== null) {
+      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
+    }
+    if (p.consumeDoubleJumpEvent()) {
+      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+    const kickDir = p.consumeWallJumpEvent();
+    if (kickDir !== null) {
+      const wallX = kickDir > 0 ? p.x : p.x + p.width;
+      const wallY = p.y + p.height * 0.45;
+      this.wallJumpDust.spawn(wallX, wallY, kickDir);
+    }
+
+    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
+      x: p.x, y: p.y, w: p.width, h: p.height,
+      facingRight: p.facingRight,
+      texture: p.getCurrentErdaTexture(),
+      spriteCenterX: p.x + p.width / 2,
+      spriteFootY: p.y + p.height,
+    }));
+
+    // --- Batch B ---
+    if (p.consumeGroundJumpEvent()) {
+      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+    // (Drop-through handled in Batch D section below)
+    if (p.isWallSliding()) {
+      const wallSide = p.wallContactDir();
+      const wallX = wallSide < 0 ? p.x : p.x + p.width;
+      const outDir = -wallSide;
+      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
+    }
+    this.footstepPuff.stepIfMoving(
+      dt, p.isGrounded(),
+      p.x + p.width / 2, p.y + p.height,
+      p.getVx(), p.facingRight,
+    );
+    if (p.isSurgeCharging()) {
+      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
+    } else if (p.isSurgeFlying()) {
+      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
+    } else {
+      this.surgeVfx.idleTick(dt);
+    }
+
+    // --- Batch C ---
+    const hitDir = p.consumePlayerHitEvent();
+    if (hitDir !== null) {
+      this.hitBloodSpray.spawn(p.x + p.width / 2, p.y + p.height * 0.4, hitDir);
+    }
+
+    // --- Batch D ---
+    if (p.diveLanded) {
+      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
+    } else if (landedSpeed !== null && landedSpeed > 520) {
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
+    }
+    const waterT = p.consumeWaterTransitionEvent();
+    if (waterT !== null) {
+      const strength = waterT > 0 ? 1.0 : 0.8;
+      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
+    }
+    this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
+    if (p.consumeDropThroughEvent()) {
+      this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
+    }
+    this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
+
+    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!e.alive) continue;
+      const ex = e.x + e.width / 2;
+      const ey = e.y + e.height;
+      if (e.waterTransition !== 0) {
+        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
+        this.waterSplash.spawn(ex, ey, strength);
+      }
+      const key = `enemy_${i}`;
+      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
+      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
+      const eLanded = e.consumeLandedEvent();
+      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
+      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
+    }
+
+    this.landingDust.update(dt);
+    this.dashBoostPuff.update(dt);
+    this.doubleJumpRing.update(dt);
+    this.wallJumpDust.update(dt);
+    this.jumpTakeoff.update(dt);
+    this.wallSlideDust.update(dt);
+    this.footstepPuff.update(dt);
+    this.flaskBurst.update(dt);
+    this.comboFinisherBurst.update(dt);
+    this.criticalHighlight.update(dt);
+    this.hitBloodSpray.update(dt);
+    this.diveLandImpact.update(dt);
+    this.waterSplash.update(dt);
+    this.waterBubbles.update(dt);
+    this.dropThroughDust.update(dt);
+    this.iceSkidStreak.update(dt);
+    this.itemPickupGlow.update(dt);
+    const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 0;
+    this.lowHpVignette.update(dt, hpRatio);
   }
 
   private updateHudText(): void {
@@ -3247,7 +3450,7 @@ export class ItemWorldScene extends Scene {
     floorInfo.y = 33;
     panel.addChild(floorInfo);
 
-    const controls = new BitmapText({ text: '[X] Yes   [Z/C] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
+    const controls = new BitmapText({ text: '[C] Yes   [Z/X] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
     controls.x = 12;
     controls.y = 48;
     panel.addChild(controls);
@@ -3326,7 +3529,7 @@ export class ItemWorldScene extends Scene {
     }
 
     const controls = new BitmapText({
-      text: '[<-/->] Change   [X] Confirm   [ESC] Cancel',
+      text: '[<-/->] Change   [C] Confirm   [ESC] Cancel',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88aacc },
     });
     controls.x = 12;
@@ -3449,7 +3652,7 @@ export class ItemWorldScene extends Scene {
 
     const step = `${this.onboardingStep + 1}/${msgs.length}`;
     const prompt = new BitmapText({
-      text: `[Z] Next  ${step}`,
+      text: `[C] Next  ${step}`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
     });
     prompt.x = padX;
@@ -3641,9 +3844,9 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // [X] confirm hint at bottom center
+    // [C] confirm hint at bottom center
     const hint = new BitmapText({
-      text: '[X] OK',
+      text: '[C] OK',
       style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
     });
     hint.x = Math.floor(W / 2 - hint.width / 2);
@@ -3762,7 +3965,7 @@ export class ItemWorldScene extends Scene {
     panel.addChild(info);
 
     const goPrompt = new BitmapText({
-      text: '[Z] Continue Deeper',
+      text: '[C] Continue Deeper',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
     });
     goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
@@ -3770,7 +3973,7 @@ export class ItemWorldScene extends Scene {
     panel.addChild(goPrompt);
 
     const exitPrompt = new BitmapText({
-      text: '[X/C] Exit Safely',
+      text: '[ESC] Exit Safely',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
     });
     exitPrompt.x = Math.floor((panelW - exitPrompt.width) / 2);
@@ -4021,6 +4224,11 @@ export class ItemWorldScene extends Scene {
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
+    // LowHpVignette 는 legacyUIContainer 에 attach 되므로 scene exit 시 반드시 destroy.
+    // 누락 시 저체력 사망 후 WORLD 로 복귀해도 붉은 vignette 이 그대로 남는 버그 발생.
+    if (this.lowHpVignette) {
+      this.lowHpVignette.destroy();
+    }
     if (this.stratumClearPanel) {
       const p = this.stratumClearPanel;
       if (p.container.parent) p.container.parent.removeChild(p.container);

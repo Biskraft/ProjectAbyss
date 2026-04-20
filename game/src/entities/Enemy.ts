@@ -1,6 +1,6 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from './Entity';
-import { resolveX, resolveY } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isOnIce } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
@@ -29,6 +29,24 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   // Physics
   protected grounded = false;
+
+  // Environment state (for VFX: WaterSplash / WaterBubbles / IceSkidStreak).
+  // Player 와 동일한 의미를 유지한다:
+  //  - inWater: AABB 중심이 water 타일 위
+  //  - submerged: 머리까지 잠김 (중심에서 2 타일 위도 water)
+  //  - waterTransition: 이번 프레임의 enter(+1) / exit(-1) / none(0)
+  inWater = false;
+  submerged = false;
+  waterTransition: 0 | 1 | -1 = 0;
+  private prevInWater = false;
+
+  // Ground/jump transition events — Player 와 동일한 consume 패턴.
+  //  - landedFallSpeed: 이번 프레임에 착지했으면 |이전 vy|, 아니면 null
+  //  - jumpedThisFrame: 이번 프레임에 grounded 에서 이륙했고 vy < 0
+  private landedFallSpeed: number | null = null;
+  private jumpedThisFrame = false;
+  private prevGrounded = false;
+  private prevVy = 0;
 
   // AI
   protected detectRange: number;
@@ -206,6 +224,59 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     if (this.target) {
       this.facingRight = this.target.x > this.x;
     }
+
+    // Water/submerged 상태 + enter/exit 전이 기록 — 씬에서 매 프레임 enemy 를
+    // 순회하며 VFX(WaterSplash / WaterBubbles) 를 트리거할 때 사용.
+    if (this.roomData.length > 0) {
+      this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
+      // 머리 부위(중심에서 -2 타일) 도 water 면 submerged
+      const headInWater = isInWater(
+        this.x, this.y - TILE_SIZE * 2, this.width, this.height, this.roomData,
+      );
+      this.submerged = this.inWater && headInWater;
+    } else {
+      this.inWater = false;
+      this.submerged = false;
+    }
+    if (this.inWater && !this.prevInWater) this.waterTransition = 1;
+    else if (!this.inWater && this.prevInWater) this.waterTransition = -1;
+    else this.waterTransition = 0;
+    this.prevInWater = this.inWater;
+
+    // Land/jump 전이 감지 (flying 은 grounded 가 항상 false 이므로 자연스럽게 제외됨)
+    if (!this.prevGrounded && this.grounded && this.prevVy > 0) {
+      this.landedFallSpeed = this.prevVy;
+    }
+    if (this.prevGrounded && !this.grounded && this.vy < -50) {
+      this.jumpedThisFrame = true;
+    }
+    this.prevGrounded = this.grounded;
+    this.prevVy = this.vy;
+  }
+
+  /** Consumes the land event from this frame. Returns fall speed (px/s) or null. */
+  consumeLandedEvent(): number | null {
+    const v = this.landedFallSpeed;
+    this.landedFallSpeed = null;
+    return v;
+  }
+
+  /** Consumes the ground jump event from this frame. */
+  consumeGroundJumpEvent(): boolean {
+    const v = this.jumpedThisFrame;
+    this.jumpedThisFrame = false;
+    return v;
+  }
+
+  /** True when the enemy is grounded on an ice tile (for IceSkidStreak VFX). */
+  isStandingOnIce(): boolean {
+    if (this.roomData.length === 0) return false;
+    return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
+  }
+
+  /** Expose vx for VFX direction calculations (IceSkidStreak 등). */
+  getVx(): number {
+    return this.vx;
   }
 
   render(alpha: number): void {

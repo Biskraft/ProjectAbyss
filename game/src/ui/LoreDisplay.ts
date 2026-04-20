@@ -202,8 +202,10 @@ export class LoreDisplay {
   update(dt: number): void {
     if (this.state === 'hidden') return;
 
-    const zPressed = this.input.isJustPressed(GameAction.JUMP);
-    if (zPressed) this.input.consumeJustPressed(GameAction.JUMP);
+    // Pattern B(Prompt): C(ATTACK) = 진행/스킵. Z/X 는 UI 에서 사용 금지
+    // (UI_Interaction_Patterns.md).
+    const advance = this.input.isJustPressed(GameAction.ATTACK);
+    if (advance) this.input.consumeJustPressed(GameAction.ATTACK);
 
     // --- Slide In ---
     if (this.state === 'slide_in') {
@@ -253,8 +255,8 @@ export class LoreDisplay {
         }
       }
 
-      // Z key — skip to full text
-      if (zPressed && this.charIndex < fullText.length) {
+      // C key — skip to full text
+      if (advance && this.charIndex < fullText.length) {
         this.charIndex = fullText.length;
         this.bodyText.text = fullText;
       }
@@ -273,12 +275,12 @@ export class LoreDisplay {
 
       if (line.autoCloseMs) {
         this.autoCloseTimer -= dt;
-        if (this.autoCloseTimer <= 0 || zPressed) {
+        if (this.autoCloseTimer <= 0 || advance) {
           this.advanceLine();
           return;
         }
       } else {
-        if (zPressed) {
+        if (advance) {
           this.advanceLine();
           return;
         }

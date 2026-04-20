@@ -262,8 +262,8 @@ export class InventoryUI {
       const cycleTag = cycle > 0 ? ` C${cycle}` : '';
       const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
       const action = this.mode === 'anvil'
-        ? 'X:Place on anvil  ESC:Cancel'
-        : 'X:Equip  @:Dive at altar/anvil';
+        ? 'C:Place on anvil  ESC:Cancel'
+        : 'C:Equip  @:Dive at altar/anvil';
       this.infoText.text =
         `${item.def.name}${equipped} Lv${item.level}${cycleTag}${clearTag}\n` +
         `ATK:${item.finalAtk} ${item.rarity.toUpperCase()}\n` +

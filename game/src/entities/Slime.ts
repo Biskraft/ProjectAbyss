@@ -19,17 +19,17 @@ export class Slime extends Enemy {
   private wanderDir = 1;
   private spawnX = 0;
 
-  constructor(level = 1) {
+  constructor(level = 1, statsKey: 'Slime' | 'WeakSlime' = 'Slime') {
     super({
       width: 16,
       height: 16,
-      color: 0x44cc44,
+      color: statsKey === 'WeakSlime' ? 0x88dd88 : 0x44cc44,
       hp: 1, atk: 1, def: 0,          // placeholder — overwritten by applyStats
       detectRange: 0, attackRange: 0,
       moveSpeed: WANDER_SPEED,
       attackCooldown: 0,
     });
-    this.applyStats('Slime', level);
+    this.applyStats(statsKey, level);
 
     this.hopTimer = HOP_TIMER_MIN + Math.random() * (HOP_TIMER_MAX - HOP_TIMER_MIN);
     if (Math.random() < 0.5) this.wanderDir = -1;

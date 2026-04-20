@@ -24,6 +24,27 @@ import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { HitSparkManager } from '@effects/HitSpark';
 import { DeathParticleManager } from '@effects/DeathParticles';
+import { LandingDustManager } from '@effects/LandingDust';
+import { DashAfterimageManager } from '@effects/DashAfterimage';
+import { DashBoostPuffManager } from '@effects/DashBoostPuff';
+import { DoubleJumpRingManager } from '@effects/DoubleJumpRing';
+import { WallJumpDustManager } from '@effects/WallJumpDust';
+import { JumpTakeoffPuffManager } from '@effects/JumpTakeoffPuff';
+import { WallSlideDustManager } from '@effects/WallSlideDust';
+import { FootstepPuffManager } from '@effects/FootstepPuff';
+import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
+import { SurgeVfxManager } from '@effects/SurgeVfx';
+import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
+import { CriticalHighlightManager } from '@effects/CriticalHighlight';
+import { HitBloodSprayManager } from '@effects/HitBloodSpray';
+import { DiveLandImpactManager } from '@effects/DiveLandImpact';
+import { WaterSplashManager } from '@effects/WaterSplash';
+import { WaterBubblesManager } from '@effects/WaterBubbles';
+import { DropThroughDustManager } from '@effects/DropThroughDust';
+import { IceSkidStreakManager } from '@effects/IceSkidStreak';
+import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
+import { LowHpVignetteManager } from '@effects/LowHpVignette';
+import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ToastManager } from '@ui/Toast';
 import { PIXEL_FONT } from '@ui/fonts';
@@ -84,6 +105,26 @@ export class WorldScene extends Scene {
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private deathParticles!: DeathParticleManager;
+  private landingDust!: LandingDustManager;
+  private dashAfterimage!: DashAfterimageManager;
+  private dashBoostPuff!: DashBoostPuffManager;
+  private doubleJumpRing!: DoubleJumpRingManager;
+  private wallJumpDust!: WallJumpDustManager;
+  private jumpTakeoff!: JumpTakeoffPuffManager;
+  private wallSlideDust!: WallSlideDustManager;
+  private footstepPuff!: FootstepPuffManager;
+  private flaskBurst!: FlaskHealBurstManager;
+  private surgeVfx!: SurgeVfxManager;
+  private comboFinisherBurst!: ComboFinisherBurstManager;
+  private criticalHighlight!: CriticalHighlightManager;
+  private hitBloodSpray!: HitBloodSprayManager;
+  private diveLandImpact!: DiveLandImpactManager;
+  private waterSplash!: WaterSplashManager;
+  private waterBubbles!: WaterBubblesManager;
+  private dropThroughDust!: DropThroughDustManager;
+  private iceSkidStreak!: IceSkidStreakManager;
+  private itemPickupGlow!: ItemPickupGlowManager;
+  private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
 
   // Game Over
@@ -159,6 +200,27 @@ export class WorldScene extends Scene {
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.deathParticles = new DeathParticleManager(this.entityLayer);
+    this.landingDust = new LandingDustManager(this.entityLayer);
+    this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
+    this.dashBoostPuff = new DashBoostPuffManager(this.entityLayer);
+    this.doubleJumpRing = new DoubleJumpRingManager(this.entityLayer);
+    this.wallJumpDust = new WallJumpDustManager(this.entityLayer);
+    this.jumpTakeoff = new JumpTakeoffPuffManager(this.entityLayer);
+    this.wallSlideDust = new WallSlideDustManager(this.entityLayer);
+    this.footstepPuff = new FootstepPuffManager(this.entityLayer);
+    this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
+    this.surgeVfx = new SurgeVfxManager(this.entityLayer);
+    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
+    this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
+    this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
+    this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
+    this.waterSplash = new WaterSplashManager(this.entityLayer);
+    this.waterBubbles = new WaterBubblesManager(this.entityLayer);
+    this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
+    this.iceSkidStreak = new IceSkidStreakManager(this.entityLayer);
+    this.itemPickupGlow = new ItemPickupGlowManager(this.entityLayer);
+    this.lowHpVignette = new LowHpVignetteManager(this.game.legacyUIContainer);
+    this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -236,6 +298,9 @@ export class WorldScene extends Scene {
 
   private showGameOver(): void {
     this.gameOverActive = true;
+    // 저체력 경고 VFX 즉시 초기화 — gameOverActive 동안 hud.update(dt) 가
+    // 호출되지 않아 잔상이 얼어붙는 것을 방지 (LdtkWorldScene 과 동일 패턴).
+    this.hud.resetLowHpEffects();
     const overlay = new Container();
 
     const bg = new Graphics();
@@ -500,7 +565,11 @@ export class WorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-        if (hit.heavy) this.screenFlash.flashHit(true);
+        if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
+        if (hit.heavy) {
+          this.screenFlash.flashHit(true);
+          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
+        }
         if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
           this.screenFlash.flashHit(true);
           this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
@@ -609,6 +678,7 @@ export class WorldScene extends Scene {
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
           this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          this.itemPickupGlow.spawn(drop.x, drop.y, getRarityConfig(drop.item.rarity).fxTint);
           drop.destroy();
           this.drops.splice(i, 1);
         }
@@ -648,12 +718,135 @@ export class WorldScene extends Scene {
     this.deathParticles.update(dt);
     this.screenFlash.update(dt);
 
+    // Movement VFX (consume player one-shot events + trail updates)
+    this.updateMovementVfx(dt);
+
     // Camera
     this.game.camera.target = {
       x: this.player.x + this.player.width / 2,
       y: this.player.y + this.player.height / 2,
     };
     this.game.camera.update(dt);
+  }
+
+  /**
+   * Drain player VFX one-shot events and tick the per-frame trails
+   * (landing dust / dash afterimage / dash boost / double jump / wall jump).
+   */
+  private updateMovementVfx(dt: number): void {
+    const p = this.player;
+
+    const landedSpeed = p.consumeLandedEvent();
+    if (landedSpeed !== null) {
+      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
+    }
+    const dashDir = p.consumeDashedEvent();
+    if (dashDir !== null) {
+      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
+    }
+    if (p.consumeDoubleJumpEvent()) {
+      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+    const kickDir = p.consumeWallJumpEvent();
+    if (kickDir !== null) {
+      const wallX = kickDir > 0 ? p.x : p.x + p.width;
+      const wallY = p.y + p.height * 0.45;
+      this.wallJumpDust.spawn(wallX, wallY, kickDir);
+    }
+
+    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
+      x: p.x, y: p.y, w: p.width, h: p.height,
+      facingRight: p.facingRight,
+      texture: p.getCurrentErdaTexture(),
+      spriteCenterX: p.x + p.width / 2,
+      spriteFootY: p.y + p.height,
+    }));
+
+    // --- Batch B ---
+    if (p.consumeGroundJumpEvent()) {
+      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
+    }
+    // (Drop-through handled in Batch D section below)
+    if (p.isWallSliding()) {
+      const wallSide = p.wallContactDir();
+      const wallX = wallSide < 0 ? p.x : p.x + p.width;
+      const outDir = -wallSide;
+      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
+    }
+    this.footstepPuff.stepIfMoving(
+      dt, p.isGrounded(),
+      p.x + p.width / 2, p.y + p.height,
+      p.getVx(), p.facingRight,
+    );
+    if (p.isSurgeCharging()) {
+      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
+    } else if (p.isSurgeFlying()) {
+      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
+    } else {
+      this.surgeVfx.idleTick(dt);
+    }
+
+    // --- Batch C ---
+    const hitDir = p.consumePlayerHitEvent();
+    if (hitDir !== null) {
+      this.hitBloodSpray.spawn(p.x + p.width / 2, p.y + p.height * 0.4, hitDir);
+    }
+
+    // --- Batch D ---
+    if (p.diveLanded) {
+      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
+    } else if (landedSpeed !== null && landedSpeed > 520) {
+      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
+    }
+    const waterT = p.consumeWaterTransitionEvent();
+    if (waterT !== null) {
+      const strength = waterT > 0 ? 1.0 : 0.8;
+      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
+    }
+    this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
+    if (p.consumeDropThroughEvent()) {
+      this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
+    }
+    this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
+
+    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
+    for (let i = 0; i < this.enemies.length; i++) {
+      const e = this.enemies[i];
+      if (!e.alive) continue;
+      const ex = e.x + e.width / 2;
+      const ey = e.y + e.height;
+      if (e.waterTransition !== 0) {
+        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
+        this.waterSplash.spawn(ex, ey, strength);
+      }
+      const key = `enemy_${i}`;
+      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
+      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
+      const eLanded = e.consumeLandedEvent();
+      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
+      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
+    }
+
+    this.landingDust.update(dt);
+    this.dashBoostPuff.update(dt);
+    this.doubleJumpRing.update(dt);
+    this.wallJumpDust.update(dt);
+    this.jumpTakeoff.update(dt);
+    this.wallSlideDust.update(dt);
+    this.footstepPuff.update(dt);
+    this.flaskBurst.update(dt);
+    this.comboFinisherBurst.update(dt);
+    this.criticalHighlight.update(dt);
+    this.hitBloodSpray.update(dt);
+    this.diveLandImpact.update(dt);
+    this.waterSplash.update(dt);
+    this.waterBubbles.update(dt);
+    this.dropThroughDust.update(dt);
+    this.iceSkidStreak.update(dt);
+    this.itemPickupGlow.update(dt);
+    const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 0;
+    this.lowHpVignette.update(dt, hpRatio);
   }
 
   private updateInventoryInput(): void {

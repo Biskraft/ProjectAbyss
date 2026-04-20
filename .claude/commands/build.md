@@ -4,13 +4,17 @@
 
 ## 프로세스
 
-1. **디렉토리 이동** — `game/` 폴더에서 실행.
+1. **CSV 정합성 검증** — 프로젝트 루트에서 `node Sheets/tools/validate.mjs` 실행.
+   - 실패(exit 1) 시 중단하고 수정.
+   - Content_System_Area_Palette.csv ↔ 하드코딩 AreaID ↔ atlas PNG 실존 ↔ LDtk tileset diff.
 
-2. **타입 체크** — `npx tsc --noEmit` 실행.
+2. **디렉토리 이동** — `game/` 폴더에서 실행.
+
+3. **타입 체크** — `npx tsc --noEmit` 실행.
    - 에러가 있으면 출력하고 수정 방안 제시.
    - 통과하면 다음 단계.
 
-3. **Vite 빌드** — `npx vite build` 실행.
+4. **Vite 빌드** — `npx vite build` 실행.
    - 결과물: `game/dist/` (index.html + assets/)
    - chunk size 경고는 무시해도 됨 (현재 ~680KB).
 

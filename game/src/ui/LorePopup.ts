@@ -5,11 +5,11 @@
  *
  * 트리거 규칙:
  *   - `!save.hasSeenItem(defId)` 이거나 settings.alwaysShowLore === true
- *   - 닫기는 [X] 키만 (ESC 비활성). 닫으면 markItemSeen() + 저장.
+ *   - 닫기는 [C] 키만 (ESC 비활성). 닫으면 markItemSeen() + 저장.
  *
  * 레이아웃:
  *   - 중앙 모달, 오버레이 #000000 alpha 0.6
- *   - 무기 스프라이트 64×64 (아이콘 원본 1:1) / 이름 12px / Lore 2줄 8px #ccccdd / 스탯 / "Memory Strata: N" / "[X] CLOSE"
+ *   - 무기 스프라이트 64×64 (아이콘 원본 1:1) / 이름 12px / Lore 2줄 8px #ccccdd / 스탯 / "Memory Strata: N" / "[C] CLOSE"
  *
  * 통합:
  *   - WorldScene 쪽에서 pickup 시 `LorePopup.showIfNew(item, ...)` 호출
@@ -46,7 +46,7 @@ const STRATA_BY_RARITY: Record<string, number> = {
 const INPUT_LOCK_FIRST_MS = 1000;
 const INPUT_LOCK_REPEAT_MS = 300;
 
-/** 잠금 중 [X] CLOSE 프롬프트의 dim 알파. */
+/** 잠금 중 [C] CLOSE 프롬프트의 dim 알파. */
 const PROMPT_DIM_ALPHA = 0.3;
 /** 잠금 해제 시 프롬프트 기본 알파. */
 const PROMPT_NORMAL_ALPHA = 1.0;
@@ -62,7 +62,7 @@ export class LorePopup {
   /** 이번 show() 에서 설정한 총 잠금 길이(ms). 프로그레스 아크 비율 계산용. */
   private totalLockMs = INPUT_LOCK_FIRST_MS;
 
-  // [X] CLOSE 프롬프트 — dim/arc 갱신을 위해 참조를 저장.
+  // [C] CLOSE 프롬프트 — dim/arc 갱신을 위해 참조를 저장.
   private closePrompt: Container | null = null;
   private closeLabel: BitmapText | null = null;
   /** 프롬프트 주변에 그려지는 잠금 프로그레스 아크 (wipe ring). */
@@ -103,7 +103,7 @@ export class LorePopup {
   }
 
   /**
-   * 잠금 상태에 따라 [X] CLOSE 프롬프트 dim + wipe-ring 갱신.
+   * 잠금 상태에 따라 [C] CLOSE 프롬프트 dim + wipe-ring 갱신.
    * 잠금 중: alpha 0.3 + 시계 방향으로 차오르는 원형 링.
    * 해제 시: alpha 1.0 + 링 clear.
    */
@@ -268,9 +268,9 @@ export class LorePopup {
     strataText.y = py + 112;
     this.panel.addChild(strataText);
 
-    // [X] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).
+    // [C] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).
     const iconSize = 10;
-    const closePrompt = KeyPrompt.createKeyIcon('X', iconSize);
+    const closePrompt = KeyPrompt.createKeyIcon('C', iconSize);
     closePrompt.x = px + W - 72;
     closePrompt.y = py + H - 18;
     this.panel.addChild(closePrompt);

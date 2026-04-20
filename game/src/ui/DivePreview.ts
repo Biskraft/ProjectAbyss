@@ -5,8 +5,8 @@
  * 모달(풀 패널) 또는 하단 스트립(요약) UI.
  *
  *   - showFull:    첫 다이브(sacredSave.isFirstDiveDone === false)에서 사용.
- *                  260×180 중앙 모달, [X] DIVE / [ESC] CANCEL.
- *   - showCompact: 이후 다이브. 화면 하단 1줄 스트립, [X] OK / [ESC] CANCEL.
+ *                  260×180 중앙 모달, [C] DIVE / [ESC] CANCEL.
+ *   - showCompact: 이후 다이브. 화면 하단 1줄 스트립, [C] OK / [ESC] CANCEL.
  */
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
@@ -197,7 +197,7 @@ export class DivePreview {
 
     // Prompts row.
     const promptY = py + H - 18;
-    const dIcon = KeyPrompt.createKeyIcon('X', 10);
+    const dIcon = KeyPrompt.createKeyIcon('C', 10);
     dIcon.x = px + 12;
     dIcon.y = promptY;
     this.panel.addChild(dIcon);
@@ -251,7 +251,7 @@ export class DivePreview {
     text.y = y + Math.floor((H - text.height) / 2);
     this.panel.addChild(text);
 
-    const okIcon = KeyPrompt.createKeyIcon('X', 10);
+    const okIcon = KeyPrompt.createKeyIcon('C', 10);
     okIcon.x = GAME_WIDTH - 90;
     okIcon.y = y + 4;
     this.panel.addChild(okIcon);

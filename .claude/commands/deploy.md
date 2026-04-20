@@ -10,30 +10,34 @@ ECHORIS 웹 빌드를 GitHub Pages에 배포합니다.
 - 전부 커밋하라고 하면 `git add -A && git commit`으로 일괄 커밋.
 
 ### 1. Codex 리뷰 (Phase별 제어)
-- **Phase 0 (현재):** 스킵. 바로 Step 2로.
+- **Phase 0 (현재):** 스킵. 바로 Step 2(CSV 정합성 검증)로.
 - **Phase 1 (데모):** `/codex:review` 실행. P0/P1 이슈 발견 시 중단하고 수정. P2 이하는 경고만.
 - **Phase 2+ (출시):** `/codex:review` + `/codex:adversarial-review` 모두 실행. 이슈 발견 시 중단.
 
 현재 Phase는 CLAUDE.md의 "개발 우선순위 (Phase)" 섹션에서 확인.
 
-### 2. 타입 체크
+### 2. CSV 정합성 검증
+- 프로젝트 루트에서 `node Sheets/tools/validate.mjs` 실행. 실패(exit 1) 시 중단하고 수정.
+- 검증 범위: Content_System_Area_Palette.csv ↔ 하드코딩 AreaID ↔ atlas PNG 실존 ↔ LDtk tileset diff.
+
+### 3. 타입 체크
 - `game/` 디렉토리에서 `npx tsc --noEmit` 실행. 에러가 있으면 중단하고 수정.
 
-### 3. 프로덕션 빌드
+### 4. 프로덕션 빌드
 - `game/` 디렉토리에서 `npx vite build` 실행. `game/dist/`에 결과물 생성.
   - `vite.config.ts`의 `base: '/'` 설정 (커스텀 도메인 사용).
   - `public/` 폴더의 에셋이 `dist/`로 복사됨.
   - `public/CNAME`이 `dist/CNAME`에 포함되어야 함 (echoris.io).
 
-### 4. 푸시
+### 5. 푸시
 - `git push origin main`으로 push.
 - `.github/workflows/deploy.yml`이 자동 실행됨.
 
-### 5. 배포 확인
+### 6. 배포 확인
 - `gh run list --limit 1`로 배포 상태 확인.
 - 완료까지 약 30-40초 소요.
 
-### 6. 배포 검증
+### 7. 배포 검증
 - `curl -s https://echoris.io/ | grep "script.*src"` 로 JS 해시가 최신인지 확인.
 - HTTP 200 응답 확인.
 
