@@ -94,32 +94,34 @@ export class LockedDoor {
 
     // Show stat threshold label for 'stat' condition doors
     if (unlockCondition === 'stat' && statThreshold > 0) {
+      // Label 은 gate 위쪽으로 크게 띄워서 가독성 확보 (fontSize 8 → 16, 어두운 외곽선 추가).
       const style = new TextStyle({
         fontFamily: 'monospace',
-        fontSize: 8,
-        fill: 0xff4444,
+        fontSize: 16,
+        fill: 0xff5555,
         align: 'center',
         fontWeight: 'bold',
+        stroke: { color: 0x000000, width: 3 },
       });
       this.label = new Text({ text: `${statType.toUpperCase()} ${statThreshold}`, style });
-      this.label.anchor.set(0.5, 0.5);
+      this.label.anchor.set(0.5, 1); // anchor 하단 → label.y 는 label bottom 위치
       this.label.x = width / 2;
-      this.label.y = height / 2 - 6;
+      this.label.y = -4; // gate 상단에서 4px 위에 label bottom
       this.container.addChild(this.label);
 
-      // A8/T3: hammer pictogram below the stat number points at the solution.
+      // A8/T3: hammer pictogram — label 과 gate 사이가 붐비므로 gate 내부(기존 위치) 유지.
       this.hammerIcon = buildHammerIcon();
-      // Center the ~11x6 hammer horizontally under the label
       this.hammerIcon.x = width / 2 - 5;
       this.hammerIcon.y = height / 2 + 2;
       this.container.addChild(this.hammerIcon);
 
       // Reject-state cross (hidden by default, flashed on failed attack)
+      // Label 위치와 겹치도록 label 중심에 맞춤.
       this.rejectCross = new Graphics();
-      this.rejectCross.moveTo(-4, -4).lineTo(4, 4).stroke({ color: 0xff2222, width: 2 });
-      this.rejectCross.moveTo(4, -4).lineTo(-4, 4).stroke({ color: 0xff2222, width: 2 });
+      this.rejectCross.moveTo(-7, -7).lineTo(7, 7).stroke({ color: 0xff2222, width: 3 });
+      this.rejectCross.moveTo(7, -7).lineTo(-7, 7).stroke({ color: 0xff2222, width: 3 });
       this.rejectCross.x = width / 2;
-      this.rejectCross.y = height / 2 - 6;
+      this.rejectCross.y = -4 - 8; // label 중앙 부근
       this.rejectCross.visible = false;
       this.container.addChild(this.rejectCross);
     }
@@ -219,7 +221,7 @@ export class LockedDoor {
 
       // Flash red tint + show cross over the stat requirement
       const flash = Math.sin(this.rejectTimer * 0.02) > 0;
-      if (this.label) this.label.style.fill = flash ? 0xff0000 : 0xff4444;
+      if (this.label) this.label.style.fill = flash ? 0xff0000 : 0xff5555;
       if (this.rejectCross) this.rejectCross.visible = flash;
       // Pulse the hammer hint to say "this is how you solve it"
       if (this.hammerIcon) this.hammerIcon.alpha = 0.6 + Math.abs(Math.sin(this.rejectTimer * 0.03)) * 0.4;
@@ -227,7 +229,7 @@ export class LockedDoor {
       if (this.rejectTimer <= 0) {
         this.rejectTimer = 0;
         this.container.x = this.x;
-        if (this.label) this.label.style.fill = 0xff4444;
+        if (this.label) this.label.style.fill = 0xff5555;
         if (this.rejectCross) this.rejectCross.visible = false;
         if (this.hammerIcon) this.hammerIcon.alpha = 1;
       }

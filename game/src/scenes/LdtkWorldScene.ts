@@ -20,6 +20,7 @@
 import { Container, Graphics, BitmapText, Assets, Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { GameAction } from '@core/InputManager';
+import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
 import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
@@ -331,8 +332,46 @@ export class LdtkWorldScene extends Scene {
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
+  /** Pattern D (proximity-interaction) 라우터 — 세이브/앤빌/제단 통합 관리. */
+  private proximity: ProximityRouter = new ProximityRouter();
+
   constructor(game: Game) {
     super(game);
+    this.registerProximityHandlers();
+  }
+
+  /**
+   * Pattern D 핸들러 등록. 우선순위 규약:
+   *   Altar(30) > Anvil(20) > SavePoint(10)
+   * 핸들러는 `this.*` 를 closure 로 참조하므로 재등록 불요.
+   */
+  private registerProximityHandlers(): void {
+    const anvil: ProximityInteraction = {
+      label: 'Anvil',
+      priority: 20,
+      canInteract: () =>
+        !!this.anvil && !this.anvil.used && !this.anvil.hasItem() &&
+        !this.altarSelectActive &&
+        this.anvil.overlaps(this.player.x, this.player.y, this.player.width, this.player.height),
+      onInteract: () => this.openAnvilUI(),
+    };
+    const savePoint: ProximityInteraction = {
+      label: 'SavePoint',
+      priority: 10,
+      canInteract: () => {
+        if (this.altarSelectActive) return false;
+        const pcx = this.player.x + this.player.width / 2;
+        const pcy = this.player.y + this.player.height / 2;
+        const RANGE = 32;
+        for (const sp of this.savePoints) {
+          if (Math.abs(pcx - sp.x) < RANGE && Math.abs(pcy - sp.y) < RANGE) return true;
+        }
+        return false;
+      },
+      onInteract: () => this.performSave(),
+    };
+    this.proximity.register(anvil);
+    this.proximity.register(savePoint);
   }
 
   // ---------------------------------------------------------------------------
@@ -778,19 +817,10 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Anvil 입력 선점: 빈 앵빌과 겹친 상태에서 C(ATTACK) 를 누르면 인벤토리를
-    // 열고 공격 입력을 소비한다. player.update() 전에 처리해야 플레이어가 같은
-    // 프레임에 헛스윙하지 않음.
-    if (
-      this.anvil && !this.anvil.used && !this.anvil.hasItem() &&
-      !this.altarSelectActive &&
-      this.anvil.overlaps(this.player.x, this.player.y, this.player.width, this.player.height) &&
-      this.game.input.isJustPressed(GameAction.ATTACK)
-    ) {
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-      this.openAnvilUI();
-      return;
-    }
+    // Pattern D (proximity-interaction): 세이브/앤빌/제단 입력 선점.
+    // 반드시 player.update() 전에 실행되어야 같은 프레임 헛스윙 방지됨.
+    // 핸들러 등록은 registerProximityHandlers() 참조.
+    if (this.proximity.tryInteract(this.game.input)) return;
 
     // Player
     this.player.update(dt);
@@ -2120,10 +2150,7 @@ export class LdtkWorldScene extends Scene {
           sp.prompt.y = Math.round(sy);
         }
 
-        if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
-          this.performSave();
-          return;
-        }
+        // 입력 처리는 update() 의 save point 선점 블록에서 수행 (C/ATTACK, pre-player.update).
       } else {
         sp.gfx.alpha = 0.6;
         if (sp.prompt) sp.prompt.visible = false;
@@ -2807,7 +2834,7 @@ export class LdtkWorldScene extends Scene {
           this.entityLayer.addChild(marker);
           // Context prompt — rendered in uiContainer for crisp text
           const us = this.game.uiScale;
-          const prompt = KeyPrompt.createPrompt('\u2191', 'Save', us);
+          const prompt = KeyPrompt.createPrompt('C', 'Save', us);
           prompt.visible = false;
           this.game.uiContainer.addChild(prompt);
           this.savePoints.push({ x: spx, y: spy, gfx: marker, prompt });

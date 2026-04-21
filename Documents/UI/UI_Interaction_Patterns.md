@@ -1,12 +1,19 @@
-# UI Interaction Patterns - 3-Pattern Unification
+# UI Interaction Patterns - 4-Pattern Unification
 
-> 모든 UI 인터랙션은 3가지 패턴 중 하나에 속한다. 예외 없음.
+> 모든 UI 인터랙션은 4가지 패턴 중 하나에 속한다. 예외 없음.
+>
+> - **Pattern A (Modal):** 게임 멈춤 + 선택 요구 (Inventory, Altar Select, Boss Choice 등)
+> - **Pattern B (Prompt):** 게임 멈춤 + 읽기만 (LorePopup, LoreDisplay)
+> - **Pattern C (Overlay):** 게임 계속 + 정보 표시 (HUD, Map, Toast)
+> - **Pattern D (Proximity):** 게임 계속 + 근접 상호작용 (Save Point, Anvil, Altar 접근)
 
 ---
 
 ## Reference Game Analysis
 
 4개 레퍼런스 게임에서 도출한 UI/UX 설계 원칙.
+
+> **Sources disclaimer:** 위키/가이드 기반 2차 소스. 영상/스크린샷 1차 검증 미완료.
 
 ### Cross-Game Comparison
 
@@ -113,6 +120,65 @@
 
 ---
 
+## Pattern D: Proximity Interaction
+
+근접하면 자동으로 힌트가 뜨고, 확인 키로 상호작용하는 world-space UI. Modal 도 Prompt 도 아닌 "월드 내 오브젝트 상호작용" 전용 패턴.
+
+| 속성 | 규칙 |
+|------|------|
+| 게임 차단 | NO (접근 시 힌트만 표시, 게임 계속) |
+| 힌트 표시 | 근접 범위 진입 시 자동 (KeyPrompt: [C] Label) |
+| 확인 | **C** (ATTACK 액션) |
+| 취소 | 없음 (범위 이탈로 자동 해제) |
+| 입력 처리 | `player.update()` **전** 에 선점 + `consumeJustPressed(ATTACK)` 로 헛스윙 방지 |
+| Z/X 사용 | 금지 |
+| 화살표 사용 | 금지 (방향 입력은 상호작용 키가 아님) |
+
+### 해당 컴포넌트
+
+| 컴포넌트 | 근접 트리거 | 확인 키 | 동작 |
+|----------|------------|--------|------|
+| Save Point | 32px 범위 | C | 세이브 실행 |
+| Anvil (empty) | AABB overlap | C | InventoryUI (anvil mode) 열기 |
+| Altar | 접촉 범위 | C | Altar Select (Pattern A) 열기 |
+| Portal | 접촉 범위 | 자동 | 아이템계 진입 (입력 불요) |
+
+### Pattern D 세부 규칙
+
+1. **공격 충돌 방지:** 확인 키(C) 가 공격 키와 동일하므로, 상호작용 성공 시 반드시 `consumeJustPressed(ATTACK)` 호출하여 같은 프레임에 플레이어가 헛스윙하지 않게 한다.
+2. **선점 순서:** 상호작용 입력 처리는 `player.update()` **전** 에 수행. 순서가 뒤바뀌면 공격이 먼저 발사되어 취소 불가.
+3. **상호 배타:** 여러 proximity 오브젝트가 겹친 경우 우선순위에 따라 최상위 핸들러만 실행. **Altar 30 > Anvil 20 > SavePoint 10**.
+4. **시각 피드백:** 근접 시 오브젝트 맥동(pulse) + KeyPrompt 표시. 이탈 시 모두 숨김.
+
+### 구현: ProximityRouter
+
+Pattern D 규약은 `src/core/ProximityRouter.ts` 가 강제한다. 인라인으로 `isJustPressed(ATTACK) + consume + 조건 분기` 를 반복 작성하지 말 것.
+
+**핸들러 등록** (`LdtkWorldScene.registerProximityHandlers` 참조):
+```ts
+this.proximity.register({
+  label: 'Anvil',
+  priority: 20,
+  canInteract: () => /* proximity + 상태 */,
+  onInteract: () => this.openAnvilUI(),
+});
+```
+
+**씬 update 에서 호출**:
+```ts
+// player.update() 호출 전에:
+if (this.proximity.tryInteract(this.game.input)) return;
+```
+
+`tryInteract` 은 ATTACK 입력 + 최고 우선순위의 `canInteract()` 매칭 핸들러를 찾아 실행하고, 입력을 소비한다. 매칭이 없으면 false 반환 — 플레이어가 정상적으로 공격.
+
+**규칙:**
+- 새 proximity 오브젝트 추가 시 반드시 라우터에 등록 (직접 `isJustPressed(ATTACK)` 검사 금지)
+- 우선순위는 위 표준값(30/20/10) 중에서 선택, 필요 시 새 값 협의 후 추가
+- 핸들러는 씬 생성 시 1회 등록, closure 로 `this.*` 참조
+
+---
+
 ## Pattern C: Overlay
 
 게임이 계속 진행되며, 정보를 표시하는 UI.
@@ -145,7 +211,7 @@
 
 ## Migration Checklist
 
-### 변경 필요 항목 (3건)
+### 변경 필요 항목 (4건)
 
 #### 1. Cycle Prompt: Z/X 확인/취소 → C/ESC
 
@@ -168,6 +234,13 @@
 - **Before:** Z(JUMP) = advance/skip text
 - **After:** C(ATTACK) = advance/skip text
 - **이유:** Pattern B 준수. C = "확인/진행"으로 통일.
+
+#### 4. Save Point: ↑키 세이브 → C키 세이브 ✅ (완료)
+
+- **파일:** `src/scenes/LdtkWorldScene.ts` (update() pre-player 블록 + checkSavePoints + KeyPrompt)
+- **Before:** LOOK_UP(↑) = 세이브 실행, KeyPrompt 아이콘 `[↑] Save`
+- **After:** ATTACK(C) = 세이브 실행 + `consumeJustPressed`, KeyPrompt 아이콘 `[C] Save`
+- **이유:** Pattern D 준수. 화살표는 네비게이션 전용이고, proximity-interaction 은 C 키로 통일.
 
 ---
 
@@ -193,3 +266,41 @@
 3. **Z/X UI 금지:** 점프/대시 키가 UI에서 다른 의미를 가지면 근육 기억 충돌 발생.
 4. **화살표 = 네비게이션 전용:** 이동과 UI 선택을 동일 키로. 모달 중 이동이 차단되므로 충돌 없음.
 5. **오버레이는 입력 안 먹음:** 게임 흐름을 끊지 않는 정보는 별도 입력 불필요.
+
+---
+
+## Sources
+
+### Castlevania: Symphony of the Night
+
+- [Controls - StrategyWiki](https://strategywiki.org/wiki/Castlevania:_Symphony_of_the_Night/Controls)
+- [Relics - StrategyWiki](https://strategywiki.org/wiki/Castlevania:_Symphony_of_the_Night/Relics)
+- [SotN Inventory - Castlevania Wiki Fandom](https://castlevania.fandom.com/wiki/Symphony_of_the_Night_Inventory)
+- [Warp Room - Castlevania Wiki Fandom](https://castlevania.fandom.com/wiki/Warp_Room)
+- [SotN Instruction Manual - Castlevania Crypt](https://www.castlevaniacrypt.com/sotn-manual-ps/)
+
+### Disgaea
+
+- [Item World - Disgaea Wiki Fandom](https://disgaea.fandom.com/wiki/Item_World)
+- [Item World - StrategyWiki](https://strategywiki.org/wiki/Disgaea:_Hour_of_Darkness/Item_World)
+- [Item Bosses - Disgaea Wiki Fandom](https://disgaea.fandom.com/wiki/Item_Bosses)
+- [Mr. Gency's Exit - Disgaea Wiki Fandom](https://disgaea.fandom.com/wiki/Mr._Gency%27s_Exit)
+- [Controls - StrategyWiki](https://strategywiki.org/wiki/Disgaea:_Hour_of_Darkness/Controls)
+- [Geo Panels - StrategyWiki](https://strategywiki.org/wiki/Disgaea:_Hour_of_Darkness/Geo_Panels)
+- [Disgaea 5 Item World - Gamer Guides](https://www.gamerguides.com/disgaea-5-alliance-of-vengeance/guide/extras/item-world/overview)
+
+### Spelunky 2
+
+- [Controls - Spelunky Wiki Fandom](https://spelunky.fandom.com/wiki/Controls)
+- [Shop - Spelunky Wiki Fandom](https://spelunky.fandom.com/wiki/Spelunky_2:Shop)
+- [Terra Tunnel - Spelunky Wiki Fandom](https://spelunky.fandom.com/wiki/Terra_Tunnel_(2))
+- [Game UI Database - Spelunky 2](https://www.gameuidatabase.com/gameData.php?id=1329)
+
+### Dead Cells
+
+- [Gear - Dead Cells Wiki](https://deadcells.wiki.gg/wiki/Gear)
+- [Mutations - Dead Cells Wiki](https://deadcells.wiki.gg/wiki/Mutations)
+- [Biomes - Dead Cells Wiki](https://deadcells.wiki.gg/wiki/Biomes)
+- [Bosses - Dead Cells Wiki](https://deadcells.wiki.gg/wiki/Bosses)
+- [Game UI Database - Dead Cells](https://www.gameuidatabase.com/gameData.php?id=1780)
+- [Dead Cells Accessibility Update - NintendoLife](https://www.nintendolife.com/news/2022/06/dead-cells-accessibility-focused-update-adds-assist-mode-difficulty-options-and-more)

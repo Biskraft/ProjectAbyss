@@ -197,6 +197,172 @@ export function resolveY(
   return { y: newY, grounded: false, collided: false };
 }
 
+/**
+ * Corner correction for upward movement (vy<0) — "ledge grab" QoL helper.
+ * When the player's head is about to clip a ceiling tile at a corner, and the
+ * overlap with the obstacle is within `tolerance`, nudge the player
+ * horizontally so they pass through instead of stopping.
+ *
+ * Only triggers when the head-row hit is caused by a solid column at exactly
+ * one edge of the player's AABB (the "corner" condition). Wide ceilings with
+ * fully-solid head rows are filtered out.
+ *
+ * Returns the corrected x, or null if no correction applies.
+ */
+export function tryCornerCorrectUp(
+  x: number, y: number, width: number, height: number,
+  vy: number, roomData: number[][], tolerance: number,
+): number | null {
+  if (vy >= 0) return null;
+  const newY = y + vy;
+  const headRow = Math.floor(newY / TILE_SIZE);
+  const leftCol = Math.floor(x / TILE_SIZE);
+  const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
+
+  // Need at least 2 columns spanned for corner logic to make sense.
+  if (leftCol === rightCol) return null;
+
+  const leftSolid = isSolid(getTile(roomData, leftCol, headRow));
+  const rightSolid = isSolid(getTile(roomData, rightCol, headRow));
+
+  // One side blocked, the other free — candidate for corner nudge.
+  if (leftSolid && !rightSolid) {
+    const obstacleRight = (leftCol + 1) * TILE_SIZE;
+    const overlap = obstacleRight - x;
+    if (overlap > 0 && overlap <= tolerance) {
+      const nx = obstacleRight;
+      // Verify head row is clear across the new AABB.
+      const nl = Math.floor(nx / TILE_SIZE);
+      const nr = Math.floor((nx + width - 1) / TILE_SIZE);
+      for (let col = nl; col <= nr; col++) {
+        if (isSolid(getTile(roomData, col, headRow))) return null;
+      }
+      return nx;
+    }
+  }
+  if (rightSolid && !leftSolid) {
+    const obstacleLeft = rightCol * TILE_SIZE;
+    const overlap = (x + width) - obstacleLeft;
+    if (overlap > 0 && overlap <= tolerance) {
+      const nx = obstacleLeft - width;
+      const nl = Math.floor(nx / TILE_SIZE);
+      const nr = Math.floor((nx + width - 1) / TILE_SIZE);
+      for (let col = nl; col <= nr; col++) {
+        if (isSolid(getTile(roomData, col, headRow))) return null;
+      }
+      return nx;
+    }
+  }
+  return null;
+}
+
+/**
+ * Ledge snap for horizontal movement — "ledge grab" QoL helper.
+ * When a horizontal move would hit a tile's side but the player is only
+ * slightly below the top of that tile (overlap <= tolerance) AND the tile
+ * above is empty, lift the player up onto the ledge.
+ *
+ * Ignores one-way platforms (they are passable from the side already).
+ * Returns the corrected y, or null if no correction applies.
+ */
+export function tryLedgeSnap(
+  x: number, y: number, width: number, height: number,
+  vx: number, roomData: number[][], tolerance: number,
+): number | null {
+  if (vx === 0) return null;
+  const newX = x + vx;
+  const leadX = vx > 0 ? newX + width : newX;
+  const checkCol = Math.floor(leadX / TILE_SIZE);
+  const topRow = Math.floor(y / TILE_SIZE);
+  const bottomRow = Math.floor((y + height - 1) / TILE_SIZE);
+
+  // Topmost solid in the player's vertical sweep at the leading column.
+  let topSolidRow = -1;
+  for (let row = topRow; row <= bottomRow; row++) {
+    if (isSolid(getTile(roomData, checkCol, row))) {
+      topSolidRow = row;
+      break;
+    }
+  }
+  if (topSolidRow < 0) return null;
+
+  // Must be a ledge — tile above must be empty (not solid).
+  if (isSolid(getTile(roomData, checkCol, topSolidRow - 1))) return null;
+
+  const tileTop = topSolidRow * TILE_SIZE;
+  const overlap = (y + height) - tileTop;
+  if (overlap <= 0 || overlap > tolerance) return null;
+
+  const targetY = tileTop - height;
+  // Verify rows between new top and old top are clear across the player's columns.
+  const newTopRow = Math.floor(targetY / TILE_SIZE);
+  const ocLeft = Math.floor(x / TILE_SIZE);
+  const ocRight = Math.floor((x + width - 1) / TILE_SIZE);
+  for (let row = newTopRow; row < topRow; row++) {
+    for (let col = ocLeft; col <= ocRight; col++) {
+      if (isSolid(getTile(roomData, col, row))) return null;
+    }
+  }
+  return targetY;
+}
+
+/**
+ * Dash corner correction — 대시 중 수평 진행이 벽에 막힐 때 세로로 살짝 밀어 통과시키는 보정.
+ *
+ * 대시는 수평(vy=0) 으로 전진하므로, 진행 방향 leading 컬럼의 플레이어 세로 스팬에
+ * 솔리드가 "한쪽 끝(top-only or bottom-only)" 만 있고 overlap 이 tolerance 이내면
+ * 그 반대 방향으로 밀어 지나가게 한다. 양쪽 다 막혔거나 중간이 막혀 있으면 미동작.
+ *
+ * 적용 대상: 대시 상태 전용. 일반 수평 이동에는 tryLedgeSnap 을 쓴다 (방향이 편도).
+ * Returns: 보정된 y, 또는 null (보정 불가).
+ */
+export function tryDashCornerCorrect(
+  x: number, y: number, width: number, height: number,
+  vx: number, roomData: number[][], tolerance: number,
+): number | null {
+  if (vx === 0) return null;
+  const newX = x + vx;
+  const leadX = vx > 0 ? newX + width : newX;
+  const checkCol = Math.floor(leadX / TILE_SIZE);
+  const topRow = Math.floor(y / TILE_SIZE);
+  const bottomRow = Math.floor((y + height - 1) / TILE_SIZE);
+  if (topRow === bottomRow) return null; // 단일 행 스팬은 의미 없음
+
+  const topSolid = isSolid(getTile(roomData, checkCol, topRow));
+  const bottomSolid = isSolid(getTile(roomData, checkCol, bottomRow));
+
+  // 머리 쪽만 막힘 → 아래로 밀어 통과.
+  if (topSolid && !bottomSolid) {
+    const obstacleBottom = (topRow + 1) * TILE_SIZE;
+    const overlap = obstacleBottom - y;
+    if (overlap > 0 && overlap <= tolerance) {
+      const ny = obstacleBottom;
+      // 보정 후 leading 컬럼의 새 세로 스팬이 완전히 비어 있는지 검증.
+      const nTop = Math.floor(ny / TILE_SIZE);
+      const nBot = Math.floor((ny + height - 1) / TILE_SIZE);
+      for (let row = nTop; row <= nBot; row++) {
+        if (isSolid(getTile(roomData, checkCol, row))) return null;
+      }
+      return ny;
+    }
+  }
+  // 발 쪽만 막힘 → 위로 밀어 통과.
+  if (bottomSolid && !topSolid) {
+    const obstacleTop = bottomRow * TILE_SIZE;
+    const overlap = (y + height) - obstacleTop;
+    if (overlap > 0 && overlap <= tolerance) {
+      const ny = obstacleTop - height;
+      const nTop = Math.floor(ny / TILE_SIZE);
+      const nBot = Math.floor((ny + height - 1) / TILE_SIZE);
+      for (let row = nTop; row <= nBot; row++) {
+        if (isSolid(getTile(roomData, checkCol, row))) return null;
+      }
+      return ny;
+    }
+  }
+  return null;
+}
+
 function getTile(roomData: number[][], col: number, row: number): number {
   if (row < 0 || row >= roomData.length || col < 0 || col >= (roomData[0]?.length ?? 0)) {
     return 1; // out of bounds = solid wall
