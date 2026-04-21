@@ -4,10 +4,10 @@ ECHORIS 웹 빌드를 GitHub Pages에 배포합니다.
 
 ## 프로세스
 
-### 0. 미커밋 파일 확인
-- `git status --short`로 미커밋 파일이 있는지 확인.
-- 미커밋 파일이 있으면 사용자에게 먼저 커밋할지 물어본다.
-- 전부 커밋하라고 하면 `git add -A && git commit`으로 일괄 커밋.
+### 0. 자동 커밋
+- `git status --short`로 미커밋 파일 확인.
+- 변경사항이 있으면 **묻지 않고** `git add -A && git commit`으로 일괄 커밋.
+- 커밋 메시지는 변경 내용을 요약하여 자동 생성.
 
 ### 1. Codex 리뷰 (Phase별 제어)
 - **Phase 0 (현재):** 스킵. 바로 Step 2(CSV 정합성 검증)로.
@@ -31,15 +31,16 @@ ECHORIS 웹 빌드를 GitHub Pages에 배포합니다.
 
 ### 5. 푸시
 - `git push origin main`으로 push.
-- `.github/workflows/deploy.yml`이 자동 실행됨.
+- GitHub Actions(`.github/workflows/deploy.yml`)가 게임 빌드 자동 배포.
+- Vercel이 MkDocs GDD 사이트 자동 빌드/배포.
 
 ### 6. 배포 확인
-- `gh run list --limit 1`로 배포 상태 확인.
-- 완료까지 약 30-40초 소요.
+- **게임:** `gh run list --limit 1`로 GitHub Actions 배포 상태 확인 (약 30-40초).
+- **GDD:** Vercel 배포는 push 시 자동. 별도 확인 불필요.
 
 ### 7. 배포 검증
-- `curl -s https://echoris.io/ | grep "script.*src"` 로 JS 해시가 최신인지 확인.
-- HTTP 200 응답 확인.
+- **게임:** `curl -s https://echoris.io/ | grep "script.*src"` 로 JS 해시가 최신인지 확인. HTTP 200 응답 확인.
+- **GDD:** `curl -s -o /dev/null -w "%{http_code}" https://<vercel-domain>/` 로 HTTP 200 확인.
 
 ## 주의사항
 

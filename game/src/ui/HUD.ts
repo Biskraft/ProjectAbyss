@@ -1,6 +1,7 @@
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Sprite } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
+import type { UISkin } from './UISkin';
 
 // Base values at 640x360. Multiplied by uiScale for native resolution.
 const BASE_W = 640;
@@ -85,6 +86,7 @@ export class HUD {
   private flaskPulseGlow: Graphics;
   private flaskPulseTimer = 0;
   private actionKeyBar: Container;
+  private sideKeyBar: Container;
 
   // [I]tem 키 강조 — 첫 아이템계 클리어 후 플레이어가 인벤토리를 열 때까지 flask 와 동일하게 펄스.
   private itemKeyIcon: Container | null = null;
@@ -132,6 +134,40 @@ export class HUD {
   private expLerpTimer = 0;
   private expLevelUpFlash = 0;
   private expIsMax = false;
+
+  // Skin sprites — populated by applySkin()
+  private skinLayer: Container | null = null;
+  private skinHpFill: Sprite | null = null;
+  private skinHpFillMaxW = 0;
+  private skinFloorFill: Sprite | null = null;
+  private skinFloorFillMaxH = 0;
+  // Skin flask pulse position (overrides HP_X/FLASK_Y when skin is active)
+  private skinFlaskCx = 0;
+  private skinFlaskCy = 0;
+  private skinFlaskR = 0;
+  private hasSkin = false;
+  // Skin depth indicator (item world only)
+  private skinDepthFrame: Sprite | null = null;
+  private skinDepthFill: Sprite | null = null;
+  private skinDepthFillTex: import('pixi.js').Texture | null = null;
+  private skinDepthFillX = 0;
+  private skinDepthFillY = 0;
+  private skinDepthFillW = 0;
+  private skinDepthFillMaxH = 0;
+  private skinDepthTickContainer: Container | null = null;
+
+  // Skin [I] key pulse position
+  private skinItemKeyCx = 0;
+  private skinItemKeyCy = 0;
+  private skinItemKeyR = 0;
+  // Skin flask icons
+  private skinFlaskIcons: Sprite[] = [];
+  private skinFlaskFillTex: import('pixi.js').Texture | null = null;
+  private skinFlaskEmptyTex: import('pixi.js').Texture | null = null;
+  private skinFlaskStartX = 0;
+  private skinFlaskStartY = 0;
+  private skinFlaskIconSize = 0;
+  private skinFlaskGap = 0;
 
   constructor(uiScale = 1) {
     this.s = uiScale;
@@ -235,13 +271,15 @@ export class HUD {
     }
     this.container.addChild(this.actionKeyBar);
 
-    // --- Floor/Item text — very bottom-left ---
+    // --- Floor/Item text — debug only (Shift+I to toggle) ---
     this.floorTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
     this.floorText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
     this.floorTextShadow.x = this.MARGIN + s;
     this.floorTextShadow.y = this.SH - this.MARGIN - this.FONT + s;
     this.floorText.x = this.MARGIN;
     this.floorText.y = this.SH - this.MARGIN - this.FONT;
+    this.floorText.visible = false;
+    this.floorTextShadow.visible = false;
     this.container.addChild(this.floorTextShadow);
     this.container.addChild(this.floorText);
 
@@ -264,6 +302,7 @@ export class HUD {
     this.container.addChild(this.flaskKeyLabel);
 
     // --- [I]Item [M]Map — top-right, below minimap ---
+    this.sideKeyBar = new Container();
     const sideKeyY = this.MARGIN + 72 * s + 6 * s; // below minimap
     const sideActions: Array<{ key: string; label: string }> = [
       { key: 'I', label: 'Item' },
@@ -272,7 +311,7 @@ export class HUD {
     // [I] 키 펄스 glow 는 아이콘 뒤에 그려야 하므로 루프보다 먼저 추가.
     this.itemKeyPulseGlow = new Graphics();
     this.itemKeyPulseGlow.alpha = 0;
-    this.container.addChild(this.itemKeyPulseGlow);
+    this.sideKeyBar.addChild(this.itemKeyPulseGlow);
     let sideX = this.SW - this.MARGIN;
     for (let i = sideActions.length - 1; i >= 0; i--) {
       const a = sideActions[i];
@@ -283,7 +322,7 @@ export class HUD {
       sideX -= lbl.width;
       lbl.x = sideX;
       lbl.y = sideKeyY + Math.floor((KEY_ICON - lbl.height) / 2);
-      this.container.addChild(lbl);
+      this.sideKeyBar.addChild(lbl);
 
       sideX -= 2 * s + KEY_ICON;
       const icon = KeyPrompt.createKeyIcon(a.key, KEY_ICON);
@@ -299,10 +338,11 @@ export class HUD {
         this.itemKeyCenterY = icon.y;
         this.itemKeySize = KEY_ICON;
       }
-      this.container.addChild(icon);
+      this.sideKeyBar.addChild(icon);
 
       sideX -= 8 * s;
     }
+    this.container.addChild(this.sideKeyBar);
 
     // --- Boss HP bar (hidden by default) ---
     this.bossBarContainer = new Container();
@@ -423,13 +463,13 @@ export class HUD {
     const flaskKeyLeft = this.HP_X + totalFlaskW + 2 * this.s;
     this.flaskKeyLabel.x = flaskKeyLeft + this.FLASK_SIZE / 2;
     this.flaskKeyLabel.y = this.FLASK_Y + this.FLASK_SIZE / 2;
-    // HP text follows after the [R] label.
-    // 100/100 텍스트의 세로 중심을 아이콘 중심(FLASK_Y + FLASK_SIZE/2)에 맞춘다
-    // — 아이콘(FLASK_SIZE=10s)이 텍스트(FONT=8s)보다 커서 top-정렬하면 어긋남.
-    this.hpText.x = flaskKeyLeft + this.FLASK_SIZE + 4 * this.s;
-    this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.FONT) / 2;
-    this.hpTextShadow.x = this.hpText.x + this.s;
-    this.hpTextShadow.y = this.hpText.y + this.s;
+    // HP text follows after the [R] label — skip if skin controls position
+    if (!this.hasSkin) {
+      this.hpText.x = flaskKeyLeft + this.FLASK_SIZE + 4 * this.s;
+      this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.FONT) / 2;
+      this.hpTextShadow.x = this.hpText.x + this.s;
+      this.hpTextShadow.y = this.hpText.y + this.s;
+    }
     // Dim [R] label when no flasks remain
     this.flaskKeyLabel.alpha = current <= 0 ? 0.4 : 1.0;
   }
@@ -449,6 +489,13 @@ export class HUD {
   setFloorText(text: string): void {
     this.floorText.text = text;
     this.floorTextShadow.text = text;
+  }
+
+  /** Toggle debug info (floor text) visibility. */
+  toggleDebugInfo(): void {
+    const show = !this.floorText.visible;
+    this.floorText.visible = show;
+    this.floorTextShadow.visible = show;
   }
 
   flashHeal(amount: number): void {
@@ -504,8 +551,11 @@ export class HUD {
     this.depthTotal = totalStrata;
     this.depthCurrent = currentStratum;
     this.depthCleared = [...clearedStrata];
-    this.depthGauge.visible = true;
+    this.depthGauge.visible = !this.hasSkin;
     this.depthPulseTimer = 0;
+    if (this.skinDepthFrame) this.skinDepthFrame.visible = true;
+    if (this.skinDepthFill) this.skinDepthFill.visible = true;
+    if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = true;
     this.redrawDepthGauge();
   }
 
@@ -519,6 +569,9 @@ export class HUD {
   /** Hide when leaving item world. */
   hideDepthGauge(): void {
     this.depthGauge.visible = false;
+    if (this.skinDepthFrame) this.skinDepthFrame.visible = false;
+    if (this.skinDepthFill) this.skinDepthFill.visible = false;
+    if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = false;
   }
 
   // --- Item EXP Bar ---
@@ -604,10 +657,11 @@ export class HUD {
 
       // Glow ring — red halo grows/fades with the pulse.
       this.flaskPulseGlow.clear();
-      const cx = this.HP_X + this.FLASK_SIZE / 2;
-      const cy = this.FLASK_Y + this.FLASK_SIZE / 2;
-      const baseR = this.FLASK_SIZE * 0.7;
-      const r = baseR + pulse * this.FLASK_SIZE * 0.8;
+      const cx = this.hasSkin ? this.skinFlaskCx : (this.HP_X + this.FLASK_SIZE / 2);
+      const cy = this.hasSkin ? this.skinFlaskCy : (this.FLASK_Y + this.FLASK_SIZE / 2);
+      const glowSize = this.hasSkin ? this.skinFlaskR : this.FLASK_SIZE;
+      const baseR = glowSize * 0.7;
+      const r = baseR + pulse * glowSize * 0.8;
       this.flaskPulseGlow
         .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.18 + pulse * 0.22 });
       this.flaskPulseGlow
@@ -622,30 +676,28 @@ export class HUD {
     }
 
     // --- [I]tem 키 펄스 — 첫 아이템계 클리어 후 플레이어가 I 를 누를 때까지. ---
-    if (this.itemKeyPulseActive && this.itemKeyIcon) {
+    if (this.itemKeyPulseActive) {
       this.itemKeyPulseTimer = (this.itemKeyPulseTimer + dt) % FLASK_PULSE_PERIOD;
       const phase = (this.itemKeyPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
       const pulse = 0.5 + 0.5 * Math.sin(phase);
-      const scale = 1.0 + pulse * 0.45;
-      this.itemKeyIcon.scale.set(scale);
+      // Scale only if old icon exists and is visible
+      if (this.itemKeyIcon && !this.hasSkin) {
+        this.itemKeyIcon.scale.set(1.0 + pulse * 0.45);
+      }
 
       this.itemKeyPulseGlow.clear();
       const cx = this.itemKeyCenterX;
       const cy = this.itemKeyCenterY;
       const baseR = this.itemKeySize * 0.7;
       const r = baseR + pulse * this.itemKeySize * 0.8;
-      // Flask 는 붉은 위험 색, [I] 는 안내색(주황-노랑) 으로 구별.
       this.itemKeyPulseGlow
         .circle(cx, cy, r).fill({ color: 0xffaa44, alpha: 0.18 + pulse * 0.22 });
       this.itemKeyPulseGlow
         .circle(cx, cy, r * 0.6).fill({ color: 0xffee88, alpha: 0.25 + pulse * 0.25 });
       this.itemKeyPulseGlow.alpha = 1;
-    } else if (
-      this.itemKeyIcon &&
-      (this.itemKeyPulseTimer !== 0 || this.itemKeyIcon.scale.x !== 1)
-    ) {
+    } else if (this.itemKeyPulseTimer !== 0) {
       this.itemKeyPulseTimer = 0;
-      this.itemKeyIcon.scale.set(1);
+      if (this.itemKeyIcon) this.itemKeyIcon.scale.set(1);
       this.itemKeyPulseGlow.clear();
       this.itemKeyPulseGlow.alpha = 0;
     }
@@ -714,12 +766,39 @@ export class HUD {
       fillAlpha = 0.7 + 0.3 * ((pulse + 1) / 2);
     }
     g.rect(0, 0, W * ratio, H).fill({ color: hpColor, alpha: fillAlpha });
+
+    // Sync skin HP fill sprite
+    this.updateSkinHpFill();
   }
 
   private redrawFlask(): void {
     const g = this.flaskGfx;
     g.clear();
     const count = Math.min(this.flaskMax, FLASK_MAX_DISPLAY);
+
+    // Skin flask icons
+    if (this.hasSkin && this.skinFlaskFillTex && this.skinFlaskEmptyTex) {
+      // Remove old icons
+      for (const icon of this.skinFlaskIcons) {
+        if (icon.parent) icon.parent.removeChild(icon);
+      }
+      this.skinFlaskIcons = [];
+      const iconS = this.skinFlaskIconSize * this.s;
+      const gap = this.skinFlaskGap * this.s;
+      for (let i = 0; i < count; i++) {
+        const tex = i < this.flaskCurrent ? this.skinFlaskFillTex : this.skinFlaskEmptyTex;
+        const icon = new Sprite(tex);
+        icon.x = this.skinFlaskStartX + i * (iconS + gap);
+        icon.y = this.skinFlaskStartY;
+        icon.width = iconS;
+        icon.height = iconS;
+        this.skinLayer!.addChild(icon);
+        this.skinFlaskIcons.push(icon);
+      }
+      return;
+    }
+
+    // Fallback: old Graphics circles
     for (let i = 0; i < count; i++) {
       const x = i * (this.FLASK_SIZE + this.FLASK_GAP);
       const color = i < this.flaskCurrent ? FLASK_FULL_COLOR : FLASK_EMPTY_COLOR;
@@ -782,60 +861,113 @@ export class HUD {
   }
 
   private redrawDepthGauge(): void {
+    const s = this.s;
+    const total = this.depthTotal;
+    if (total <= 0) return;
+
+    // --- Skin depth indicator mode ---
+    if (this.hasSkin && this.skinDepthFill && this.skinDepthTickContainer) {
+      // Clear old ticks/labels
+      this.skinDepthTickContainer.removeChildren();
+
+      // How many strata are cleared (including current)
+      const filledCount = Math.min(this.depthCurrent + 1, total);
+      const fillRatio = filledCount / total;
+
+      // Fill grows top → bottom
+      this.skinDepthFill.y = this.skinDepthFillY;
+      this.skinDepthFill.height = this.skinDepthFillMaxH * fillRatio;
+
+      // Draw tick marks for each stratum boundary
+      const tickGfx = new Graphics();
+      const segH = this.skinDepthFillMaxH / total;
+      const frameX = this.skinDepthFillX;
+      const frameW = this.skinDepthFillW;
+      const pulseAlpha = 0.4 + 0.6 * ((Math.sin(this.depthPulseTimer / 2000 * Math.PI * 2) + 1) / 2);
+
+      for (let i = 0; i < total; i++) {
+        const tickY = this.skinDepthFillY + i * segH;
+        const isCurrent = i === this.depthCurrent;
+        const isCleared = this.depthCleared[i] ?? false;
+        const tickColor = (isCleared || isCurrent) ? 0xffffff : 0x555555;
+
+        // Tick line
+        tickGfx.rect(frameX - 2 * s, tickY, frameW + 4 * s, s).fill({ color: tickColor, alpha: 0.6 });
+
+        // Depth label: >N for all strata
+        const numColor = isCurrent ? 0xffffff : (isCleared ? 0xaaaaaa : 0x555555);
+        const label = new BitmapText({
+          text: `\u27A4${i + 1}`,
+          style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: numColor },
+        });
+        if (isCurrent) {
+          label.alpha = pulseAlpha;
+        }
+        label.x = frameX + frameW + 3 * s;
+        label.y = tickY + (segH - label.height) / 2;
+        this.skinDepthTickContainer.addChild(label);
+      }
+
+      // Bottom closing tick
+      tickGfx.rect(frameX - 2 * s, this.skinDepthFillY + this.skinDepthFillMaxH, frameW + 4 * s, s)
+        .fill({ color: 0x555555, alpha: 0.6 });
+
+      this.skinDepthTickContainer.addChild(tickGfx);
+      return;
+    }
+
+    // --- Fallback: old Graphics-based depth gauge ---
     const g = this.depthGaugeGfx;
     g.clear();
-
-    // Remove old labels
     for (const l of this.depthLabels) { if (l.parent) l.parent.removeChild(l); }
     this.depthLabels = [];
 
-    const s = this.s;
-    const blockSize = 12 * s;
-    const lineLen = 6 * s;
-    const step = blockSize + lineLen; // 18*s per stratum
-    const startX = this.MARGIN;
-    const startY = this.MARGIN + this.HP_H + 2 * s + this.FLASK_SIZE + 4 * s + 16 * s + 4 * s;
-    // ^^ HP bar + flask row + ATK text height + gap
-
+    const railX = 4 * s;
+    const railW = 3 * s;
+    const topY = 80 * s;
+    const bottomY = 280 * s;
+    const railH = bottomY - topY;
+    const tickW = 8 * s;
+    const tickH = 2 * s;
     const pulseAlpha = 0.4 + 0.6 * ((Math.sin(this.depthPulseTimer / 2000 * Math.PI * 2) + 1) / 2);
 
-    for (let i = 0; i < this.depthTotal; i++) {
-      const bx = startX;
-      const by = startY + i * step;
+    g.rect(railX, topY, railW, railH).fill({ color: 0x222222, alpha: 0.8 });
+    const segH = railH / total;
+
+    for (let i = 0; i < total; i++) {
+      const segY = topY + i * segH;
       const isCurrent = i === this.depthCurrent;
       const isCleared = this.depthCleared[i] ?? false;
 
       if (isCleared || isCurrent) {
-        // Filled block with depth color
         const color = this.depthColor(i);
-        g.rect(bx, by, blockSize, blockSize).fill(color);
-        if (isCurrent) {
-          // White pulsing border
-          g.rect(bx, by, blockSize, blockSize).stroke({ color: 0xffffff, width: s, alpha: pulseAlpha });
-        }
-      } else {
-        // Unreached: empty outline
-        g.rect(bx, by, blockSize, blockSize).stroke({ color: 0x333333, width: s });
+        const alpha = isCurrent ? pulseAlpha : 0.9;
+        g.rect(railX, segY, railW, segH).fill({ color, alpha });
       }
 
-      // Connecting line (except last)
-      if (i < this.depthTotal - 1) {
-        const lx = bx + blockSize / 2;
-        const ly = by + blockSize;
-        g.rect(lx - Math.floor(s / 2), ly, s, lineLen).fill(0x333333);
+      const tickColor = (isCleared || isCurrent) ? 0xffffff : 0x444444;
+      g.rect(railX, segY, tickW, tickH).fill({ color: tickColor, alpha: 0.7 });
+
+      if (isCurrent) {
+        const arrowX = railX + tickW + 2 * s;
+        const arrowY = segY + segH / 2;
+        g.moveTo(arrowX, arrowY - 3 * s)
+          .lineTo(arrowX + 4 * s, arrowY)
+          .lineTo(arrowX, arrowY + 3 * s)
+          .fill({ color: 0xffffff, alpha: pulseAlpha });
       }
 
-      // Label: "Depth N"
-      const numColor = (isCleared || isCurrent) ? this.depthColor(i) : 0x333333;
+      const numColor = (isCleared || isCurrent) ? this.depthColor(i) : 0x444444;
       const label = new BitmapText({
-        text: `Depth ${i + 1}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 12 * s, fill: isCurrent ? 0xffffff : numColor },
+        text: `${i + 1}`,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: isCurrent ? 0xffffff : numColor },
       });
-      label.x = bx + blockSize + 3 * s;
-      label.y = by + Math.floor((blockSize - label.height) / 2);
+      label.x = railX + tickW + (isCurrent ? 8 * s : 2 * s);
+      label.y = segY + (segH - label.height) / 2;
       this.depthGauge.addChild(label);
       this.depthLabels.push(label);
     }
+    g.rect(railX, bottomY, tickW, tickH).fill({ color: 0x444444, alpha: 0.7 });
   }
 
   private redrawExpBar(): void {
@@ -846,15 +978,9 @@ export class HUD {
     const barW = BASE_EXP_W * s;
     const barH = BASE_EXP_H * s;
 
-    // Position: right of depth gauge current block
-    // Depth gauge startX = MARGIN, block = 12*s, label ~60*s → put EXP bar at x=MARGIN
-    // Y: below depth gauge (after all strata blocks)
-    const depthStartY = this.MARGIN + this.HP_H + 2 * s + this.FLASK_SIZE + 4 * s + 16 * s + 4 * s;
-    const depthBlockSize = 12 * s;
-    const depthStep = depthBlockSize + 6 * s;
-    const depthEndY = depthStartY + this.depthTotal * depthStep + 2 * s;
-    const startX = this.MARGIN;
-    const startY = depthEndY;
+    // Position: below ATK text
+    const startX = this.atkText.x;
+    const startY = this.atkText.y + (this.atkText.style.fontSize as number) + 4 * s;
 
     // Item name (rarity colored)
     this.expNameText.style.fill = this.expItemRarityColor;
@@ -906,5 +1032,261 @@ export class HUD {
     // Draw as part of graphics to avoid extra BitmapText allocation
     // Just reuse level text area — place EXP fraction right-aligned under bar
     // (keeping it simple: no extra text object, info is in the floor text already)
+  }
+
+  // ===== Skin System =====
+
+  /**
+   * Apply a loaded UISkin. Places skin sprites behind existing dynamic elements.
+   * Hides the old Graphics-based frames. Call once after skin.load() resolves.
+   */
+  applySkin(skin: UISkin): void {
+    if (!skin.isLoaded) return;
+
+    const s = this.s;
+
+    // Create a skin layer that sits behind everything else
+    this.skinLayer = new Container();
+    this.container.addChildAt(this.skinLayer, 0);
+
+    // Helper: create a sprite from a slice, positioned at its 640x360 bounds * uiScale
+    const place = (name: string): Sprite | null => {
+      const tex = skin.getTexture(name);
+      const bounds = skin.getBounds(name);
+      if (!tex || !bounds) return null;
+
+      const sprite = new Sprite(tex);
+      sprite.x = bounds.x * s;
+      sprite.y = bounds.y * s;
+      sprite.width = bounds.w * s;
+      sprite.height = bounds.h * s;
+      this.skinLayer!.addChild(sprite);
+      return sprite;
+    };
+
+    // --- Static frames ---
+    place('hud_status_frame');
+    place('hud_status_hp_frame');
+    place('hud_status_portrait_frame');
+    place('hud_status_atk_frame');
+    place('hud_floor_indicator');
+    place('hud_map_frame');
+
+    // --- Depth indicator (item world only, hidden by default) ---
+    {
+      const depthFrameTex = skin.getTexture('hud_depth_indicator');
+      const depthFrameBounds = skin.getBounds('hud_depth_indicator');
+      const depthFillTex = skin.getTexture('hud_depth_indicator_fill');
+      const depthFillBounds = skin.getBounds('hud_depth_indicator_fill');
+      if (depthFrameTex && depthFrameBounds && depthFillTex && depthFillBounds) {
+        this.skinDepthFrame = new Sprite(depthFrameTex);
+        this.skinDepthFrame.x = depthFrameBounds.x * s;
+        this.skinDepthFrame.y = depthFrameBounds.y * s;
+        this.skinDepthFrame.width = depthFrameBounds.w * s;
+        this.skinDepthFrame.height = depthFrameBounds.h * s;
+        this.skinDepthFrame.visible = false;
+        this.skinLayer!.addChild(this.skinDepthFrame);
+
+        // Position fill INSIDE the frame, using fill texture height as gauge length
+        const topPad = (depthFrameBounds.h - depthFillBounds.h) / 2 + 9;
+        this.skinDepthFillTex = depthFillTex;
+        this.skinDepthFillX = (depthFrameBounds.x + (depthFrameBounds.w - depthFillBounds.w) / 2) * s;
+        this.skinDepthFillY = (depthFrameBounds.y + topPad) * s;
+        this.skinDepthFillW = depthFillBounds.w * s;
+        this.skinDepthFillMaxH = depthFillBounds.h * s;
+
+        this.skinDepthFill = new Sprite(depthFillTex);
+        this.skinDepthFill.x = this.skinDepthFillX;
+        this.skinDepthFill.y = this.skinDepthFillY;
+        this.skinDepthFill.width = this.skinDepthFillW;
+        this.skinDepthFill.height = 0; // starts empty
+        this.skinDepthFill.visible = false;
+        this.skinLayer!.addChild(this.skinDepthFill);
+
+        // Tick container for depth marks
+        this.skinDepthTickContainer = new Container();
+        this.skinDepthTickContainer.visible = false;
+        this.skinLayer!.addChild(this.skinDepthTickContainer);
+      }
+    }
+
+    // --- HP fill (dynamic width) — position inside hp_frame using 9-slice center ---
+    const hpFillTex = skin.getTexture('hud_status_hp_fill');
+    const hpFrameBoundsForFill = skin.getBounds('hud_status_hp_frame');
+    const hpFrameCenter = skin.getCenter('hud_status_hp_frame');
+    if (hpFillTex && hpFrameBoundsForFill && hpFrameCenter) {
+      this.skinHpFill = new Sprite(hpFillTex);
+      // Place fill inside hp_frame's center (inner area)
+      this.skinHpFill.x = (hpFrameBoundsForFill.x + hpFrameCenter.x) * s;
+      this.skinHpFill.y = (hpFrameBoundsForFill.y + hpFrameCenter.y + 1) * s;
+      this.skinHpFill.height = hpFrameCenter.h * s;
+      this.skinHpFillMaxW = hpFrameCenter.w * s;
+      this.skinHpFill.width = this.skinHpFillMaxW;
+      this.skinLayer.addChild(this.skinHpFill);
+    }
+
+    // --- Floor indicator fill (dynamic height) ---
+    const floorFillTex = skin.getTexture('hud_floor_indicator_fill');
+    const floorFillBounds = skin.getBounds('hud_floor_indicator_fill');
+    if (floorFillTex && floorFillBounds) {
+      this.skinFloorFill = new Sprite(floorFillTex);
+      this.skinFloorFill.x = floorFillBounds.x * s;
+      this.skinFloorFill.y = floorFillBounds.y * s;
+      this.skinFloorFillMaxH = floorFillBounds.h * s;
+      this.skinFloorFill.width = floorFillBounds.w * s;
+      this.skinFloorFill.height = this.skinFloorFillMaxH;
+      this.skinLayer.addChild(this.skinFloorFill);
+    }
+
+    // --- Key hint sprites (skin background) + text labels on top ---
+    const placeKey = (name: string, label: string) => {
+      const sprite = place(name);
+      if (!sprite) return;
+      const bounds = skin.getBounds(name)!;
+      const txt = new BitmapText({
+        text: label,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xffffff },
+      });
+      txt.anchor.set(0.5, 0.5);
+      txt.x = (bounds.x + bounds.w / 2) * s;
+      txt.y = (bounds.y + bounds.h / 2) * s;
+      this.skinLayer!.addChild(txt);
+    };
+    // Action keys: key letter in upper half + action name below the box
+    const placeActionKey = (name: string, key: string, action: string) => {
+      const sprite = place(name);
+      if (!sprite) return;
+      const bounds = skin.getBounds(name)!;
+      // Key letter — centered inside box
+      const keyTxt = new BitmapText({
+        text: key,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xffffff },
+      });
+      keyTxt.anchor.set(0.5, 0.5);
+      keyTxt.x = (bounds.x + bounds.w / 2) * s;
+      keyTxt.y = (bounds.y + bounds.h * 0.12 + 2) * s;
+      this.skinLayer!.addChild(keyTxt);
+      // Action name — below box
+      const actionTxt = new BitmapText({
+        text: action,
+        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xaaaaaa },
+      });
+      actionTxt.anchor.set(0.5, 0);
+      actionTxt.x = (bounds.x + bounds.w / 2) * s;
+      actionTxt.y = (bounds.y + bounds.h + 2) * s;
+      this.skinLayer!.addChild(actionTxt);
+    };
+    // Flask key — 25% larger font + store pulse position
+    {
+      const sprite = place('hud_status_key_flask');
+      const bounds = skin.getBounds('hud_status_key_flask');
+      if (sprite && bounds) {
+        const txt = new BitmapText({
+          text: 'R',
+          style: { fontFamily: PIXEL_FONT, fontSize: 10 * s, fill: 0xffffff },
+        });
+        txt.anchor.set(0.5, 0.5);
+        txt.x = (bounds.x + bounds.w / 2) * s;
+        txt.y = (bounds.y + bounds.h / 2) * s;
+        this.skinLayer!.addChild(txt);
+        // Store center for pulse glow
+        this.skinFlaskCx = txt.x;
+        this.skinFlaskCy = txt.y;
+        this.skinFlaskR = Math.max(bounds.w, bounds.h) / 2 * s;
+      }
+    }
+    // Flask fill/empty icons — positioned right of [R] key
+    {
+      const fillTex = skin.getTexture('hud_status_flask_fill');
+      const emptyTex = skin.getTexture('hud_status_flask_empty');
+      const fillBounds = skin.getBounds('hud_status_flask_fill');
+      const flaskKeyBounds = skin.getBounds('hud_status_key_flask');
+      if (fillTex && emptyTex && fillBounds && flaskKeyBounds) {
+        this.skinFlaskFillTex = fillTex;
+        this.skinFlaskEmptyTex = emptyTex;
+        this.skinFlaskIconSize = fillBounds.w;
+        this.skinFlaskGap = 1;
+        // Start right of [R] key with 2px gap
+        this.skinFlaskStartX = (flaskKeyBounds.x + flaskKeyBounds.w + 2) * s;
+        this.skinFlaskStartY = (flaskKeyBounds.y + (flaskKeyBounds.h - fillBounds.h) / 2) * s;
+      }
+    }
+    // I key — store position for pulse glow
+    {
+      placeKey('hud_map_key_item_normal', 'I');
+      const iBounds = skin.getBounds('hud_map_key_item_normal');
+      if (iBounds) {
+        this.skinItemKeyCx = (iBounds.x + iBounds.w / 2) * s;
+        this.skinItemKeyCy = (iBounds.y + iBounds.h / 2) * s;
+        this.skinItemKeyR = Math.max(iBounds.w, iBounds.h) / 2 * s;
+      }
+    }
+    placeKey('hud_map_key_inv_normal', 'M');
+    placeActionKey('hud_action_key_jump', 'Z', 'JUMP');
+    placeActionKey('hud_action_key_dash', 'X', 'DASH');
+    placeActionKey('hud_action_key_attack', 'C', 'ATK');
+
+    // Hide old Graphics-based elements that the skin replaces
+    this.hpBar.visible = false;
+    this.flaskGfx.visible = false;
+    this.flaskKeyLabel.visible = false;
+    this.actionKeyBar.visible = false;
+    this.sideKeyBar.visible = false;
+
+    // Move [I] pulse glow from hidden sideKeyBar to main container
+    if (this.itemKeyPulseGlow.parent) this.itemKeyPulseGlow.parent.removeChild(this.itemKeyPulseGlow);
+    this.container.addChild(this.itemKeyPulseGlow);
+    // Update pulse center to skin I key position
+    this.itemKeyCenterX = this.skinItemKeyCx;
+    this.itemKeyCenterY = this.skinItemKeyCy;
+    this.itemKeySize = this.skinItemKeyR * 2;
+
+    // Reposition text to match skin layout
+    const hpFrameBounds = skin.getBounds('hud_status_hp_frame');
+    if (hpFrameBounds) {
+      // HP text: right of HP bar
+      const hpRight = (hpFrameBounds.x + hpFrameBounds.w + 2) * s;
+      this.hpText.x = hpRight;
+      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - this.FONT) / 2;
+      this.hpTextShadow.x = this.hpText.x + s;
+      this.hpTextShadow.y = this.hpText.y + s;
+    }
+
+    // ATK text: below flask key, same font size as flask labels
+    const flaskKeyBounds = skin.getBounds('hud_status_key_flask');
+    if (flaskKeyBounds) {
+      this.atkText.style.fontSize = 16 * s;
+      this.atkTextShadow.style.fontSize = 16 * s;
+      this.atkText.x = flaskKeyBounds.x * s;
+      this.atkText.y = (flaskKeyBounds.y + flaskKeyBounds.h + 6) * s;
+      this.atkTextShadow.x = this.atkText.x + s;
+      this.atkTextShadow.y = this.atkText.y + s;
+    }
+
+    this.hasSkin = true;
+    // Trigger a redraw with skin HP fill
+    this.redrawHpBar();
+
+    // If depth gauge was already showing (async skin load), switch to skin mode
+    if (this.depthGauge.visible) {
+      this.depthGauge.visible = false;
+      if (this.skinDepthFrame) this.skinDepthFrame.visible = true;
+      if (this.skinDepthFill) this.skinDepthFill.visible = true;
+      if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = true;
+      this.redrawDepthGauge();
+    }
+
+    // Force EXP bar redraw at new ATK position
+    if (this.expBarContainer.visible) {
+      this.redrawExpBar();
+    }
+  }
+
+  /** Update skin HP fill width to match current HP ratio. Called from redrawHpBar. */
+  private updateSkinHpFill(): void {
+    if (!this.skinHpFill) return;
+    const maxHp = this.currentMaxHp || 1;
+    const ratio = Math.max(0, Math.min(1, this.currentHp / maxHp));
+    this.skinHpFill.width = this.skinHpFillMaxW * ratio;
   }
 }

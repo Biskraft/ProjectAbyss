@@ -53,6 +53,9 @@ export class LdtkRenderer {
   /** Wall_shadows autoLayer tiles (rendered above walls, reduced opacity). */
   readonly shadowLayer: Container;
 
+  /** Interior decoration tiles (no collision, rendered between walls and shadows). */
+  readonly interiorLayer: Container;
+
   /** Optional debug markers for entity positions. */
   private entityMarkers: Container;
 
@@ -62,11 +65,13 @@ export class LdtkRenderer {
     this.bgLayer = new Container();
     this.wallLayer = new Container();
     this.specialLayer = new Container();
+    this.interiorLayer = new Container();
     this.shadowLayer = new Container();
     this.entityMarkers = new Container();
 
-    // Render order: bg → walls → special (hazards) → shadows → entity markers
+    // Render order: bg → interior → walls → special (hazards) → shadows → entity markers
     this.container.addChild(this.bgLayer);
+    this.container.addChild(this.interiorLayer);
     this.container.addChild(this.wallLayer);
     this.container.addChild(this.specialLayer);
     this.container.addChild(this.shadowLayer);
@@ -98,6 +103,7 @@ export class LdtkRenderer {
     atlases: Texture | Record<string, Texture>,
     shadowOpacity: number = DEFAULT_SHADOW_OPACITY,
     collisionGrid?: number[][],
+    interiorTiles: LdtkTile[] = [],
   ): void {
     this.clear();
 
@@ -115,6 +121,12 @@ export class LdtkRenderer {
       } else {
         this.wallLayer.addChild(sprite);
       }
+    }
+
+    // Interior decoration (no collision, between walls and shadows)
+    for (const tile of interiorTiles) {
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.interiorLayer.addChild(sprite);
     }
 
     // Shadow overlay at reduced opacity
@@ -170,6 +182,7 @@ export class LdtkRenderer {
     this.bgLayer.removeChildren();
     this.wallLayer.removeChildren();
     this.specialLayer.removeChildren();
+    this.interiorLayer.removeChildren();
     this.shadowLayer.removeChildren();
     this.entityMarkers.removeChildren();
   }

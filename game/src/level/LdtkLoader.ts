@@ -76,6 +76,8 @@ export interface LdtkLevel {
   backgroundTiles: LdtkTile[];
   /** Wall/terrain tiles from Collisions IntGrid autoLayerTiles (full opacity). */
   wallTiles: LdtkTile[];
+  /** Interior decoration tiles (no collision). */
+  interiorTiles: LdtkTile[];
   /** Visual tiles from the Wall_shadows AutoLayer (reduced opacity overlay). */
   shadowTiles: LdtkTile[];
   /** Entities placed in the Entities layer. */
@@ -387,6 +389,7 @@ export class LdtkLoader {
     let collisionGrid: number[][] = this.emptyGrid(gridW, gridH);
     let backgroundTiles: LdtkTile[] = [];
     let wallTiles: LdtkTile[] = [];
+    let interiorTiles: LdtkTile[] = [];
     let shadowTiles: LdtkTile[] = [];
     let entities: LdtkEntity[] = [];
 
@@ -407,11 +410,19 @@ export class LdtkLoader {
           }
           break;
 
+        case 'Interior':
+          // Decoration-only IntGrid — no collision, visual tiles only
+          if (layer.autoLayerTiles.length > 0) {
+            interiorTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
+          }
+          break;
+
         case 'Background':
           backgroundTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
           break;
 
         case 'Wall_shadows':
+        case 'Wall_shadow':
           // Overlay shadows at reduced opacity.
           shadowTiles = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
           break;
@@ -441,6 +452,7 @@ export class LdtkLoader {
       collisionGrid,
       backgroundTiles,
       wallTiles,
+      interiorTiles,
       shadowTiles,
       entities,
       neighbors: [], // populated later from __neighbours + computeNeighbors()

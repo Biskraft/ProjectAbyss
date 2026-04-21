@@ -17,7 +17,7 @@
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, Texture, Sprite } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { GameAction } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
@@ -49,6 +49,7 @@ import { GoldPickup } from '@entities/GoldPickup';
 import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
+import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
@@ -96,6 +97,7 @@ import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import { RimLightFilter } from '@effects/RimLightFilter';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
@@ -307,6 +309,10 @@ export class LdtkWorldScene extends Scene {
   private inFixedItemWorld = false;
   private fixedItemWorldItem: ItemInstance | null = null;
 
+  // Debug: Shift+U UI mockup toggle
+  private debugUIHidden = false;
+  private debugHudMockup: Sprite | null = null;
+
   // Level tracking
   private visitedLevels: Set<string> = new Set(); // entered at least once ??revealed on minimap
   private clearedLevels: Set<string> = new Set();
@@ -462,8 +468,20 @@ export class LdtkWorldScene extends Scene {
         brightness: wallEntry.brightness,
         tint: wallEntry.tint,
       });
+      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
+      const interiorFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
+        strength: 1.0,
+        depthBias: bgEntry.depthBias,
+        depthCenter: bgEntry.depthCenter,
+        brightness: (bgEntry.brightness ?? 1.0) * 0.65,
+        tint: bgEntry.tint,
+      });
       this.renderer.bgLayer.filters = [bgFilter];
-      this.renderer.wallLayer.filters = [wallFilter];
+      this.renderer.wallLayer.filters = [wallFilter, rimFilter];
+      this.renderer.interiorLayer.filters = [interiorFilter];
       this.renderer.shadowLayer.filters = [wallFilter];
     }
 
@@ -514,6 +532,10 @@ export class LdtkWorldScene extends Scene {
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.game.uiContainer.addChild(this.hud.container);
+
+    // Load & apply UI skin (async, non-blocking)
+    const hudSkin = new UISkin();
+    hudSkin.load().then(() => this.hud.applySkin(hudSkin));
 
     // Controls overlay (disabled)
     // this.controlsOverlay = new ControlsOverlay();
@@ -573,7 +595,7 @@ export class LdtkWorldScene extends Scene {
     // World Map overlay
     this.worldMap = new WorldMapOverlay();
     this.worldMap.setLoader(this.loader);
-    this.worldMap.setRooms(this.loader.getWorldMap());
+    this.worldMap.setRooms(this.loader.getWorldMap().filter(r => !r.id.startsWith('Debug_')));
     this.game.legacyUIContainer.addChild(this.worldMap.container);
 
     // Spawn level ??saved level or default Player entity level
@@ -761,8 +783,8 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // World Map toggle (M key)
-    if (this.game.input.isJustPressed(GameAction.MAP)) {
+    // World Map toggle (M key) — disabled inside item tunnels
+    if (this.game.input.isJustPressed(GameAction.MAP) && !this.inItemTunnel) {
       this.game.input.consumeJustPressed(GameAction.MAP);
       if (this.worldMap.visible) {
         this.worldMap.close();
@@ -795,8 +817,8 @@ export class LdtkWorldScene extends Scene {
       this.worldMap.update(dt);
     }
 
-    // Inventory UI toggle
-    if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
+    // Inventory UI toggle — disabled inside item tunnels, Shift+I is debug
+    if (this.game.input.isJustPressed(GameAction.INVENTORY) && !this.inItemTunnel && !this.game.input.shiftDown) {
       this.game.input.consumeJustPressed(GameAction.INVENTORY);
       this.inventoryUI.toggle();
       // 첫 아이템계 클리어 후 I 강조 펄스 중이었다면 해제.
@@ -1244,6 +1266,45 @@ export class LdtkWorldScene extends Scene {
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
         SaveManager.deleteSave();
         window.location.reload();
+      }
+      // Shift+U: toggle all UI off and show HUD mockup image
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
+        this.game.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
+        this.debugUIHidden = !this.debugUIHidden;
+        // Hide/show real UI layers
+        this.game.uiContainer.visible = !this.debugUIHidden;
+        this.game.legacyUIContainer.visible = !this.debugUIHidden;
+        // Show/hide mockup
+        if (this.debugUIHidden) {
+          const showMockup = (tex: Texture) => {
+            tex.source.scaleMode = 'nearest';
+            this.debugHudMockup = new Sprite(tex);
+            this.debugHudMockup.zIndex = 99999;
+            this.debugHudMockup.width = this.game.app.canvas.width;
+            this.debugHudMockup.height = this.game.app.canvas.height;
+            this.game.app.stage.addChild(this.debugHudMockup);
+          };
+          if (this.debugHudMockup) {
+            this.debugHudMockup.width = this.game.app.canvas.width;
+            this.debugHudMockup.height = this.game.app.canvas.height;
+            this.debugHudMockup.visible = true;
+          } else {
+            const url = assetPath('assets/ui/ui_hud_01.png');
+            Assets.load<Texture>(url).then((tex) => {
+              if (this.debugUIHidden) showMockup(tex);
+            });
+          }
+          this.toast.show('UI MOCKUP ON', 0x44aaff);
+        } else {
+          if (this.debugHudMockup) this.debugHudMockup.visible = false;
+          this.toast.show('UI MOCKUP OFF', 0x44aaff);
+        }
+      }
+      // Shift+I: toggle debug info (floor text, coordinates)
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.INVENTORY)) {
+        this.game.input.consumeJustPressed(GameAction.INVENTORY);
+        this.hud.toggleDebugInfo();
+        this.toast.show('DEBUG INFO TOGGLE', 0x44aaff);
       }
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         const a = this.player.abilities;
@@ -1805,8 +1866,9 @@ export class LdtkWorldScene extends Scene {
     // __tilesetRelPath.
     applyAreaTilesetToLdtkTiles('world_shaft_bg', level.backgroundTiles);
     applyAreaTilesetToLdtkTiles('world_shaft_wall', filteredWalls);
-    applyAreaTilesetToLdtkTiles('world_shaft_wall', level.shadowTiles);
-    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases);
+    // shadowTiles: keep original LDtk tileset (SunnyLand) — do NOT retag
+    applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
+    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
 
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
@@ -4562,13 +4624,13 @@ export class LdtkWorldScene extends Scene {
     if (!this.currentLevel) return;
 
     const worldMap = this.loader.getWorldMap()
-      .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld'));
+      .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld') && !r.id.startsWith('Debug_'));
     if (worldMap.length === 0) return;
 
-    // GDD spec: 128x72 panel (16:9), scaled to native resolution
+    // Panel size matches skin hud_map_frame inner area (center: 112x60 at 640x360)
     const us = this.game.uiScale;
-    const PW = 128 * us;
-    const PH = 72 * us;
+    const PW = 112 * us;
+    const PH = 60 * us;
 
     // Viewport: 16:9 world-space window centered on current room.
     // 5 cells wide (~3840px) to show more surrounding rooms comfortably.
@@ -4603,11 +4665,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Background (GDD: alpha 0.6 black, 1px #666666 border)
-    const bg = new Graphics();
-    bg.rect(0, 0, PW, PH).fill({ color: 0x000000, alpha: 0.6 });
-    bg.rect(0, 0, PW, PH).stroke({ color: 0x666666, width: us });
-    this.minimap.addChild(bg);
+    // No background — skin hud_map_frame provides the panel chrome
 
     const content = new Container();
     // Clip content to panel bounds (rooms keep correct proportions)
@@ -4759,10 +4817,10 @@ export class LdtkWorldScene extends Scene {
 
     this.minimap.addChild(content);
 
-    // Position: top-right (no scale — PW/PH already in native res)
+    // Position: inside skin hud_map_frame (bounds x=515,y=6, center x=6,y=5)
     this.minimap.scale.set(1);
-    this.minimap.x = GAME_WIDTH * us - PW - 8 * us;
-    this.minimap.y = 8 * us;
+    this.minimap.x = (515 + 6) * us;
+    this.minimap.y = (6 + 5 - 3) * us;
 
     // Opacity: 70% normal, 40% during combat (GDD §1.1)
     const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);

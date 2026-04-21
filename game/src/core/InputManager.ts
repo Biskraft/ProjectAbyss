@@ -12,6 +12,7 @@ export enum GameAction {
   FLASK = 'FLASK',
   DEBUG_RESET = 'DEBUG_RESET',
   DEBUG_CHEAT = 'DEBUG_CHEAT',
+  DEBUG_UI_TOGGLE = 'DEBUG_UI_TOGGLE',
 }
 
 const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
@@ -28,6 +29,7 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.FLASK]: ['KeyR'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
   [GameAction.DEBUG_CHEAT]: ['KeyO'],
+  [GameAction.DEBUG_UI_TOGGLE]: ['KeyU'],
 };
 
 const GAME_KEYS = new Set(

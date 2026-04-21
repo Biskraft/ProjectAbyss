@@ -1,8 +1,13 @@
 import { Enemy } from './Enemy';
+import { isSolid } from '@core/Physics';
 import type { Rarity } from '@data/weapons';
 
-const ATTACK_FRAMES = 8;
+const TILE_SIZE = 16;
+const ATTACK_FRAMES = 10;
 const FRAME_MS = 1000 / 60;
+const DETECT_CONFIRM_MS = 1000;
+const PATROL_SPEED_MULT = 0.5;
+const LOSE_TARGET_MS = 1500;
 
 /** Rarity weights by difficulty tier */
 const RARITY_WEIGHTS: Record<string, [Rarity, number][]> = {
@@ -31,6 +36,11 @@ export function getDifficultyTier(distanceFromStart: number): 'low' | 'mid' | 'h
 export class GoldenMonster extends Enemy {
   private attackTimer = 0;
   private attackActive = false;
+  private spawnX = 0;
+  private patrolDir = 1;
+  private patrolRangePx = 4 * TILE_SIZE;
+  private detectTimer = 0;
+  private loseTargetTimer = 0;
 
   /** The rarity of the portal this monster will drop */
   readonly portalRarity: Rarity;
@@ -53,32 +63,82 @@ export class GoldenMonster extends Enemy {
   }
 
   protected setupStates(): void {
+    // ── Idle: spawn grace, then → Patrol ──
     this.fsm.addState({
       name: 'idle',
+      enter: () => { this.vx = 0; this.spawnX = this.x; },
       update: () => {
         this.vx = 0;
         if (this.distToTarget() <= this.detectRange) {
+          this.fsm.transition('detect');
+          return;
+        }
+        this.fsm.transition('patrol');
+      },
+    });
+
+    // ── Patrol: wander within patrol range, reverse at edge ──
+    this.fsm.addState({
+      name: 'patrol',
+      enter: () => { if (this.spawnX === 0) this.spawnX = this.x; },
+      update: () => {
+        if (this.distToTarget() <= this.detectRange) {
+          this.fsm.transition('detect');
+          return;
+        }
+        const patrolSpeed = this.moveSpeed * PATROL_SPEED_MULT;
+        this.vx = this.patrolDir * patrolSpeed;
+
+        if (this.x > this.spawnX + this.patrolRangePx) this.patrolDir = -1;
+        if (this.x < this.spawnX - this.patrolRangePx) this.patrolDir = 1;
+
+        const feetCol = Math.floor((this.x + this.width / 2 + this.patrolDir * 8) / TILE_SIZE);
+        const feetRow = Math.floor((this.y + this.height) / TILE_SIZE);
+        const belowTile = this.roomData[feetRow]?.[feetCol] ?? 0;
+        if (!isSolid(belowTile) && belowTile !== 3) {
+          this.patrolDir *= -1;
+          this.vx = this.patrolDir * patrolSpeed;
+        }
+      },
+    });
+
+    // ── Detect: brief pause before chasing ──
+    this.fsm.addState({
+      name: 'detect',
+      enter: () => { this.vx = 0; this.detectTimer = DETECT_CONFIRM_MS; },
+      update: (dt) => {
+        this.vx = 0;
+        this.detectTimer -= dt;
+        if (this.distToTarget() > this.detectRange) {
+          this.fsm.transition('patrol');
+          return;
+        }
+        if (this.detectTimer <= 0) {
           this.fsm.transition('chase');
         }
       },
     });
 
+    // ── Chase: move toward player ──
     this.fsm.addState({
       name: 'chase',
-      update: () => {
-        const dist = this.horizontalDistToTarget();
+      enter: () => { this.loseTargetTimer = LOSE_TARGET_MS; },
+      update: (dt) => {
+        const dist = this.distToTarget();
         if (dist > this.detectRange * 1.5) {
-          this.fsm.transition('idle');
-          return;
-        }
-        if (dist <= this.attackRange && this.cooldownTimer <= 0) {
-          this.fsm.transition('attack');
-          return;
+          this.loseTargetTimer -= dt;
+          if (this.loseTargetTimer <= 0) {
+            this.fsm.transition('patrol');
+            return;
+          }
+        } else {
+          this.loseTargetTimer = LOSE_TARGET_MS;
         }
         this.moveTowardTarget(this.moveSpeed);
       },
     });
 
+    // ── Attack ──
     this.fsm.addState({
       name: 'attack',
       enter: () => {
@@ -97,6 +157,7 @@ export class GoldenMonster extends Enemy {
       exit: () => { this.attackActive = false; },
     });
 
+    // ── Cooldown ──
     this.fsm.addState({
       name: 'cooldown',
       update: () => {
@@ -107,15 +168,9 @@ export class GoldenMonster extends Enemy {
       },
     });
 
-    this.fsm.addState({
-      name: 'hit',
-      update: (dt) => this.stateHitUpdate(dt),
-    });
-
-    this.fsm.addState({
-      name: 'death',
-      update: () => {},
-    });
+    // ── Hit / Death ──
+    this.fsm.addState({ name: 'hit', update: (dt) => this.stateHitUpdate(dt) });
+    this.fsm.addState({ name: 'death', update: () => {} });
   }
 
   isAttackActive(): boolean {

@@ -34,6 +34,7 @@ import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
+import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
@@ -71,6 +72,7 @@ import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import { RimLightFilter } from '@effects/RimLightFilter';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
@@ -565,6 +567,10 @@ export class ItemWorldScene extends Scene {
     this.hud = new HUD(this.game.uiScale);
     this.game.uiContainer.addChild(this.hud.container);
 
+    // Load & apply UI skin (async, non-blocking)
+    const hudSkin = new UISkin();
+    hudSkin.load().then(() => this.hud.applySkin(hudSkin));
+
     // Controls overlay (disabled)
     this.controlsOverlay = new ControlsOverlay();
     this.controlsOverlay.container.visible = false;
@@ -750,7 +756,8 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.shadowAggregate);
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
-    this.wallAggregate.filters = [this.wallPaletteFilter];
+    const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
+    this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
     // specialAggregate: NO filter — hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
     this.shadowAggregate.filters = [this.wallPaletteFilter];
@@ -1207,7 +1214,7 @@ export class ItemWorldScene extends Scene {
 
     // Context prompt for portal
     if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
-    this.exitPrompt = KeyPrompt.createPrompt('\u2191', 'Descend', this.game.uiScale);
+    this.exitPrompt = KeyPrompt.createPrompt('C', 'Descend', this.game.uiScale);
     this.exitPrompt.visible = false;
     this.game.uiContainer.addChild(this.exitPrompt);
   }
@@ -3182,7 +3189,7 @@ export class ItemWorldScene extends Scene {
         }
       }
 
-      if (nearPortal && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
+      if (nearPortal && this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.handleStratumExit();
         return;
       }

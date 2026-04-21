@@ -3,10 +3,10 @@
  *
  * "The world breaks, not the weapon."
  *
- * Timeline (~1.2s):
- *   Phase 1: crack_spread   0~600ms    Crack lines radiate from impact point
- *   Phase 2: shatter        600~900ms  Fragments separate, Damascus light bleeds through
- *   Phase 3: hold           900~1200ms Hold shattered state → FloorCollapse takes over
+ * Timeline (~0.5s):
+ *   Phase 1: crack_spread   0~250ms    Crack lines radiate from impact point
+ *   Phase 2: shatter        250~375ms  Fragments separate, Damascus light bleeds through
+ *   Phase 3: hold           375~500ms  Hold shattered state → FloorCollapse takes over
  *
  * After hold, the effect stays visible while FloorCollapse runs underneath.
  */
@@ -14,10 +14,10 @@
 import { Container, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
-const T_SPREAD_END = 600;
-const T_SHATTER_END = 900;
-const T_HOLD_END = 1200;
-const T_DISSOLVE_DURATION = 1000;
+const T_SPREAD_END = 250;
+const T_SHATTER_END = 375;
+const T_HOLD_END = 500;
+const T_DISSOLVE_DURATION = 400;
 
 /** A single crack branch. */
 interface CrackLine {
