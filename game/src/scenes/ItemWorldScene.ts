@@ -293,7 +293,8 @@ export class ItemWorldScene extends Scene {
   private altarVisual: Graphics | null = null;
   private altarHint: Container | null = null;
   private escapeConfirmFromAltar = false;
-  private exitReason: 'escape' | 'clear' = 'escape';
+  private exitReason: 'escape' | 'clear' | 'death' = 'escape';
+  private exitTracked = false;
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
@@ -2806,7 +2807,9 @@ export class ItemWorldScene extends Scene {
         room_row: cell?.row ?? 0,
         enemy_type: this.player.lastDamageSource,
       });
+      this.exitReason = 'death';
       trackItemWorldExit('death', this.currentStratumIndex);
+      this.exitTracked = true;
 
       // Clear all UI overlays on death
       this.hud.hideBossHP();
@@ -4132,8 +4135,10 @@ export class ItemWorldScene extends Scene {
   }
 
   private exitItemWorld(): void {
-    // Analytics: exit (escape or clear — death is tracked separately)
-    trackItemWorldExit(this.exitReason, this.currentStratumIndex);
+    // Analytics: guard against double-fire (death path tracks exit earlier)
+    if (!this.exitTracked) {
+      trackItemWorldExit(this.exitReason, this.currentStratumIndex);
+    }
 
     this.sourcePlayer.hp = this.player.hp;
 
