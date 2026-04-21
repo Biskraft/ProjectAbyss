@@ -8,6 +8,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import type { InputManager } from '@core/InputManager';
+import { trackTutorialStep } from '@utils/Analytics';
 
 const DISPLAY_DURATION = 4000;
 const FADE_DURATION = 500;
@@ -33,6 +34,7 @@ export class TutorialHint {
     if (this.shown.has(id)) return;
     if (this.panel) return; // one at a time
     this.shown.add(id);
+    trackTutorialStep(id);
 
     const panel = new Container();
 

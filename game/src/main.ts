@@ -3,7 +3,9 @@ import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 
-import { trackGameStart } from '@utils/Analytics';
+import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
+
+const bootStartTime = Date.now();
 
 function showStatus(msg: string): void {
   const el = document.getElementById('load-status');
@@ -61,8 +63,9 @@ try {
     await game.sceneManager.push(new TitleScene(game));
   }
 
-  // Analytics: session start
+  // Analytics: session start + load time
   trackGameStart();
+  trackGameLoaded(Date.now() - bootStartTime);
 
   // Hide status once game is running
   const el = document.getElementById('load-status');

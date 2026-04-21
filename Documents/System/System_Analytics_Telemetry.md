@@ -2,31 +2,33 @@
 
 ## 구현 현황 (Implementation Status)
 
-> 최근 업데이트: 2026-04-12
+> 최근 업데이트: 2026-04-21
 > 문서 상태: `작성 중 (Draft)`
 > 2-Space: 전체 (World / Item World)
+
+**모든 이벤트 공통 파라미터(default params):** `run_id` (페이지 로드 단위 세션 ID, 12자 hex) · `build_version` (`import.meta.env.MODE`, fallback `dev`). 단일 세션 내 이벤트 시퀀스 상관관계 추적용.
 
 | ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | TEL-01 | 세션 | game_start | P0 | 구현 완료 | GA4 커스텀 이벤트 |
-| TEL-02 | 세션 | session_end | P0 | 구현 완료 | beforeunload로 playtime_sec 전송 |
+| TEL-02 | 세션 | session_end | P0 | 구현 완료 | beforeunload+visibilitychange. **이중발화 가드 적용** |
 | TEL-03 | 스파이크 | item_world_enter | P0 | 구현 완료 | 재진입률 = 핵심 KPI |
 | TEL-04 | 스파이크 | item_world_exit | P0 | 구현 완료 | exit_type: clear/escape/death |
 | TEL-05 | 스파이크 | item_world_floor_clear | P0 | 구현 완료 | 지층별 클리어율 |
-| TEL-06 | 전투 | player_death | P0 | 구현 완료 | 사망 히트맵 |
+| TEL-06 | 전투 | player_death | P0 | 구현 완료 | **World=level_id+tile pos, ItemWorld=room col/row. enemy_type=Player.lastDamageSource** |
 | TEL-07 | 세이브 | player_save | P0 | 구현 완료 | 세이브 포인트 발견/사용 추적 |
-| TEL-08 | 세션 | game_loaded | P1 | 대기 | 로딩 시간 측정 |
-| TEL-09 | 전투 | enemy_kill | P1 | 대기 | 적 처치 분포 |
-| TEL-10 | 전투 | boss_fight | P1 | 대기 | 보스 난이도 검증 |
-| TEL-11 | 진행 | item_drop | P1 | 대기 | 드랍 체감 분석 |
-| TEL-12 | 진행 | item_equip | P1 | 대기 | 장비 교체 패턴 |
-| TEL-13 | 진행 | item_level_up | P1 | 대기 | 아이템계 보상 체감 |
-| TEL-14 | 진행 | gate_break | P1 | 대기 | 진행 페이싱 검증 |
+| TEL-08 | 세션 | game_loaded | P1 | 구현 완료 | main.ts 부팅 시간 측정 (`load_time_ms`) |
+| TEL-09 | 전투 | enemy_kill | P1 | 구현 완료 | handleEnemyKill + ItemWorld kill loop. Innocent 제외 |
+| TEL-10 | 전투 | boss_fight | P1 | 구현 완료 | start/clear 2-phase. activateBossLock + deactivateBossLock 훅 |
+| TEL-11 | 진행 | item_drop | P1 | 구현 완료 | source=enemy/golden/hand_placed. WorldScene 드랍 + LDtk Item 엔티티 |
+| TEL-12 | 진행 | item_equip | P1 | 구현 완료 | Inventory.equip silent 플래그로 starter/load 제외, 유저 액션만 추적 |
+| TEL-13 | 진행 | item_level_up | P1 | 구현 완료 | 아이템계 EXP 레벨업 + 보스 레벨업 (source 구분) |
+| TEL-14 | 진행 | gate_break | P1 | 구현 완료 | stat/switch/event 게이트 전부 훅 |
 | TEL-15 | 진행 | player_level_up | P2 | 대기 | 레벨 곡선 검증 |
 | TEL-16 | 탐험 | room_enter | P2 | 대기 | 동선 히트맵 |
 | TEL-17 | 탐험 | room_clear | P2 | 대기 | 방별 체류시간 |
-| TEL-18 | 진행 | relic_acquire | P1 | 대기 | 능력 게이트 검증 |
-| TEL-19 | UI | tutorial_step | P1 | 대기 | 튜토리얼 이탈 지점 |
+| TEL-18 | 진행 | relic_acquire | P1 | 구현 완료 | 렐릭 획득 시점에서 트리거 |
+| TEL-19 | UI | tutorial_step | P1 | 구현 완료 | TutorialHint.tryShow 첫 표시 시 step_id |
 | TEL-20 | UI | inventory_open | P2 | 대기 | 인벤토리 사용 빈도 |
 | ~~TEL-21~~ | ~~세션~~ | ~~save_game~~ | ~~P2~~ | ~~TEL-07로 승격~~ | ~~TEL-07 player_save로 대체~~ |
 | TEL-22 | 전환 | demo_complete | P2-Phase | 대기 | 데모 완주율 |

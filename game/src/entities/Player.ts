@@ -269,6 +269,10 @@ export class Player extends Entity implements CombatEntity {
   // Death
   isDead = false;
   private deathTimer = 0;
+  /** Telemetry: source of the most recent damage applied to the player.
+   *  Set by scene damage sites (enemy name, 'projectile', 'spike', 'drown').
+   *  Read by trackPlayerDeath when isDead fires on the next frame. */
+  lastDamageSource = 'unknown';
 
   // Invincibility
   invincible = false;
@@ -758,6 +762,7 @@ export class Player extends Entity implements CombatEntity {
   respawn(): void {
     this.isDead = false;
     this.deathTimer = 0;
+    this.lastDamageSource = 'unknown';
     this.hp = this.maxHp;
     this.invincible = true;
     this.invincibleTimer = 1000;

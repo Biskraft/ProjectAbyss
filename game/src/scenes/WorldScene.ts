@@ -1,6 +1,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { GameAction } from '@core/InputManager';
+import { trackItemDrop } from '@utils/Analytics';
 import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateRoomGrid, type RoomGridData, type RoomCell } from '@level/RoomGrid';
@@ -162,7 +163,7 @@ export class WorldScene extends Scene {
       const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
       const starterSword = createItem(starterDef);
       this.inventory.add(starterSword);
-      this.inventory.equip(starterSword.uid);
+      this.inventory.equip(starterSword.uid, true);
       this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
       this.currentCol = this.gridData.startRoom.col;
       this.currentRow = this.gridData.startRoom.row;
@@ -549,6 +550,11 @@ export class WorldScene extends Scene {
           );
           this.drops.push(dropEntity);
           this.entityLayer.addChild(dropEntity.container);
+          trackItemDrop({
+            source: isGolden ? 'golden' : 'enemy',
+            item_id: drop.def.id,
+            item_rarity: drop.rarity,
+          });
         }
       }
 

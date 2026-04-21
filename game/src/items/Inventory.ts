@@ -1,5 +1,6 @@
 import type { ItemInstance } from './ItemInstance';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
+import { trackItemEquip } from '@utils/Analytics';
 
 const MAX_SLOTS = 20;
 
@@ -27,10 +28,22 @@ export class Inventory {
     return item;
   }
 
-  equip(uid: number): void {
+  /**
+   * Equip an item by uid.
+   * @param silent If true, skip telemetry (starter equip, save-load restore).
+   */
+  equip(uid: number, silent: boolean = false): void {
     const item = this.items.find(i => i.uid === uid);
     if (item) {
+      const prev = this.equipped;
       this.equipped = item;
+      if (!silent) {
+        trackItemEquip({
+          item_id: item.def.id,
+          item_rarity: item.rarity,
+          previous_rarity: prev?.rarity ?? 'none',
+        });
+      }
     }
   }
 

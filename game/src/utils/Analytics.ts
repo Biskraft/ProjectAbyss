@@ -6,6 +6,13 @@
  *   item_world_exit, item_world_floor_clear, player_death,
  *   player_save
  *
+ * P1 events (balance + progression):
+ *   game_loaded, enemy_kill, boss_fight, item_drop, item_equip,
+ *   item_level_up, gate_break, relic_acquire, tutorial_step
+ *
+ * Default params attached to EVERY event:
+ *   run_id, build_version
+ *
  * Debug mode: on localhost or ?debug_analytics, logs to console only.
  */
 
@@ -14,6 +21,7 @@
 // ---------------------------------------------------------------------------
 
 type ExitType = 'clear' | 'escape' | 'death';
+type Area = 'world' | 'itemworld';
 
 interface GtagParams {
   [key: string]: string | number | boolean | undefined;
@@ -32,21 +40,45 @@ const isDebug =
    window.location.hostname === '127.0.0.1' ||
    new URLSearchParams(window.location.search).has('debug_analytics'));
 
+/** Unique per page-load. Allows grouping every event from a single session. */
+const runId: string = (() => {
+  // 12-char random hex. No crypto dep; collision risk is fine for session grouping.
+  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8);
+})();
+
+/** Build version from Vite env. Fallback 'dev' if not injected. */
+const buildVersion: string = (() => {
+  try {
+    const mode = (import.meta as any)?.env?.MODE ?? 'dev';
+    return mode;
+  } catch {
+    return 'dev';
+  }
+})();
+
 let sessionStartTime = 0;
 let itemWorldEntryCount = 0;
 let itemWorldEntryTime = 0;
+
+/** Guards session_end against double-fire (beforeunload + visibilitychange). */
+let sessionEnded = false;
 
 // ---------------------------------------------------------------------------
 // Internal
 // ---------------------------------------------------------------------------
 
 function send(eventName: string, params?: GtagParams): void {
+  const enriched: GtagParams = {
+    run_id: runId,
+    build_version: buildVersion,
+    ...(params ?? {}),
+  };
   if (isDebug) {
-    console.log(`[Analytics] ${eventName}`, params ?? '');
+    console.log(`[Analytics] ${eventName}`, enriched);
     return;
   }
   if (typeof gtag === 'function') {
-    gtag('event', eventName, params);
+    gtag('event', eventName, enriched);
   }
 }
 
@@ -58,12 +90,15 @@ function send(eventName: string, params?: GtagParams): void {
 export function trackGameStart(): void {
   sessionStartTime = Date.now();
   itemWorldEntryCount = 0;
+  sessionEnded = false;
   send('game_start');
 }
 
-/** TEL-02: Session end (call from beforeunload / visibilitychange) */
+/** TEL-02: Session end (auto-registered via beforeunload / visibilitychange) */
 export function trackSessionEnd(): void {
+  if (sessionEnded) return;
   if (sessionStartTime === 0) return;
+  sessionEnded = true;
   const playtimeSec = Math.floor((Date.now() - sessionStartTime) / 1000);
   send('session_end', { playtime_sec: playtimeSec });
 }
@@ -102,19 +137,27 @@ export function trackItemWorldFloorClear(floor: number, itemRarity: string): voi
   });
 }
 
-/** TEL-06: Player died */
-export function trackPlayerDeath(
-  area: 'world' | 'itemworld',
-  roomCol: number,
-  roomRow: number,
-  enemyType: string,
-): void {
-  send('player_death', {
-    area,
-    room_col: roomCol,
-    room_row: roomRow,
-    enemy_type: enemyType,
-  });
+/**
+ * TEL-06: Player died.
+ *
+ * For World deaths, pass level_id (LDtk level identifier) + player tile position.
+ * For ItemWorld deaths, pass the room cell col/row (level_id omitted).
+ */
+export function trackPlayerDeath(params: {
+  area: Area;
+  level_id?: string;
+  room_col: number;
+  room_row: number;
+  enemy_type: string;
+}): void {
+  const payload: GtagParams = {
+    area: params.area,
+    room_col: params.room_col,
+    room_row: params.room_row,
+    enemy_type: params.enemy_type,
+  };
+  if (params.level_id) payload.level_id = params.level_id;
+  send('player_death', payload);
 }
 
 /** TEL-07: Player saved at a save point */
@@ -123,6 +166,120 @@ export function trackSave(levelId: string, playtimeSec: number): void {
     level_id: levelId,
     playtime_sec: playtimeSec,
   });
+}
+
+// ---------------------------------------------------------------------------
+// P1 Events
+// ---------------------------------------------------------------------------
+
+/** TEL-08: Game fully loaded (post-asset + first scene pushed) */
+export function trackGameLoaded(loadTimeMs: number): void {
+  send('game_loaded', { load_time_ms: loadTimeMs });
+}
+
+/** TEL-09: Enemy killed. Tracks distribution for combat/drop balance. */
+export function trackEnemyKill(params: {
+  area: Area;
+  enemy_type: string;
+  is_boss: boolean;
+  is_elite: boolean;
+}): void {
+  send('enemy_kill', {
+    area: params.area,
+    enemy_type: params.enemy_type,
+    is_boss: params.is_boss,
+    is_elite: params.is_elite,
+  });
+}
+
+/**
+ * TEL-13: Item levelled up (inside Item World or via anvil upgrade).
+ * Fires whenever an item's .level increases.
+ */
+export function trackItemLevelUp(params: {
+  source: 'itemworld_boss' | 'itemworld_exp' | 'anvil';
+  item_rarity: string;
+  new_level: number;
+}): void {
+  send('item_level_up', {
+    source: params.source,
+    item_rarity: params.item_rarity,
+    new_level: params.new_level,
+  });
+}
+
+/** TEL-14: Stat/switch/event gate was broken (progression pacing signal). */
+export function trackGateBreak(params: {
+  gate_type: 'stat' | 'switch' | 'event';
+  stat_type?: string;
+  stat_threshold?: number;
+  level_id?: string;
+}): void {
+  const payload: GtagParams = { gate_type: params.gate_type };
+  if (params.stat_type) payload.stat_type = params.stat_type;
+  if (params.stat_threshold !== undefined) payload.stat_threshold = params.stat_threshold;
+  if (params.level_id) payload.level_id = params.level_id;
+  send('gate_break', payload);
+}
+
+/** TEL-18: Ability relic acquired (ability gate unlocked). */
+export function trackRelicAcquire(abilityName: string, levelId?: string): void {
+  const payload: GtagParams = { ability_name: abilityName };
+  if (levelId) payload.level_id = levelId;
+  send('relic_acquire', payload);
+}
+
+/**
+ * TEL-10: Boss encounter lifecycle. `phase` distinguishes start/clear.
+ * `start` fires on arena lock engaged; `clear` fires on boss defeated.
+ */
+export function trackBossFight(params: {
+  phase: 'start' | 'clear';
+  area: Area;
+  boss_id: string;
+  level_id?: string;
+}): void {
+  const payload: GtagParams = {
+    phase: params.phase,
+    area: params.area,
+    boss_id: params.boss_id,
+  };
+  if (params.level_id) payload.level_id = params.level_id;
+  send('boss_fight', payload);
+}
+
+/** TEL-11: Item dropped (from enemy, boss, or hand-placed in world). */
+export function trackItemDrop(params: {
+  source: 'enemy' | 'golden' | 'hand_placed';
+  item_id: string;
+  item_rarity: string;
+  level_id?: string;
+}): void {
+  const payload: GtagParams = {
+    source: params.source,
+    item_id: params.item_id,
+    item_rarity: params.item_rarity,
+  };
+  if (params.level_id) payload.level_id = params.level_id;
+  send('item_drop', payload);
+}
+
+/** TEL-12: Item equipped (weapon swap). Excludes starter/load-path equips. */
+export function trackItemEquip(params: {
+  item_id: string;
+  item_rarity: string;
+  previous_rarity: string;
+}): void {
+  send('item_equip', {
+    item_id: params.item_id,
+    item_rarity: params.item_rarity,
+    previous_rarity: params.previous_rarity,
+  });
+}
+
+/** TEL-19: Tutorial hint shown (first-time trigger only, one per id per session). */
+export function trackTutorialStep(stepId: string): void {
+  send('tutorial_step', { step_id: stepId });
 }
 
 // ---------------------------------------------------------------------------

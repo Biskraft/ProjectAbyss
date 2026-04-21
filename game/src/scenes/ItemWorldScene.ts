@@ -79,7 +79,14 @@ import {
   applyAreaTilesetToLdtkTiles,
 } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
-import { trackItemWorldEnter, trackItemWorldExit, trackItemWorldFloorClear, trackPlayerDeath } from '@utils/Analytics';
+import {
+  trackItemWorldEnter,
+  trackItemWorldExit,
+  trackItemWorldFloorClear,
+  trackPlayerDeath,
+  trackEnemyKill,
+  trackItemLevelUp,
+} from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 
@@ -2390,6 +2397,7 @@ export class ItemWorldScene extends Scene {
     if (!this.player.invincible && this.player.hp > 0) {
       if (isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid)) {
         const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
+        this.player.lastDamageSource = 'spike';
         this.player.hp -= dmg;
         this.hud.flashDamage();
         this.player.invincible = true;
@@ -2792,7 +2800,12 @@ export class ItemWorldScene extends Scene {
 
       // Analytics: death in item world
       const cell = this.getCurrentCell();
-      trackPlayerDeath('itemworld', cell?.col ?? 0, cell?.row ?? 0, 'unknown');
+      trackPlayerDeath({
+        area: 'itemworld',
+        room_col: cell?.col ?? 0,
+        room_row: cell?.row ?? 0,
+        enemy_type: this.player.lastDamageSource,
+      });
       trackItemWorldExit('death', this.currentStratumIndex);
 
       // Clear all UI overlays on death
@@ -2840,6 +2853,16 @@ export class ItemWorldScene extends Scene {
       if (!enemy.alive && !(enemy as any)._expGranted) {
         (enemy as any)._expGranted = true;
 
+        // Analytics: enemy kill distribution (excludes Innocents — capture, not kill)
+        if (!(enemy instanceof InnocentNPC)) {
+          trackEnemyKill({
+            area: 'itemworld',
+            enemy_type: enemy.constructor.name.toLowerCase(),
+            is_boss: !!(enemy as any)._isBoss,
+            is_elite: enemy instanceof GoldenMonster,
+          });
+        }
+
         // A11: enhanced death burst. Innocents are "captured" (A15 handles
         // them separately) so skip the burst for them to avoid double-fx.
         if (!(enemy instanceof InnocentNPC)) {
@@ -2885,7 +2908,14 @@ export class ItemWorldScene extends Scene {
           // Update EXP bar with lerp animation
           this.hud.updateItemExp(this.item.level, this.item.exp, EXP_PER_LEVEL, leveled);
           // A2: auditory reward on in-run level up (pairs with EXP bar flash)
-          if (leveled) SFX.play('upgrade');
+          if (leveled) {
+            SFX.play('upgrade');
+            trackItemLevelUp({
+              source: 'itemworld_exp',
+              item_rarity: this.item.rarity,
+              new_level: this.item.level,
+            });
+          }
 
           // HEL-05: Tiered healing drops (GDD §4.1)
           const dropX = enemy.x + enemy.width / 2 - 8;
@@ -3005,6 +3035,7 @@ export class ItemWorldScene extends Scene {
           const dir = proj.vx > 0 ? 1 : -1;
           const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
           this.player.onHit(dir * 80, -40, 150);
+          this.player.lastDamageSource = 'projectile';
           this.player.hp -= dmg;
           this.hud.flashDamage();
           this.player.invincible = true;
@@ -3043,6 +3074,7 @@ export class ItemWorldScene extends Scene {
       const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
       const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
       this.player.onHit(dir * 100, -50, 200);
+      this.player.lastDamageSource = enemy.constructor.name.toLowerCase();
       this.player.hp -= dmg;
       this.hud.flashDamage();
       this.player.invincible = true;

@@ -117,7 +117,16 @@ import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
-import { trackPlayerDeath, trackSave } from '@utils/Analytics';
+import {
+  trackPlayerDeath,
+  trackSave,
+  trackEnemyKill,
+  trackGateBreak,
+  trackRelicAcquire,
+  trackItemLevelUp,
+  trackBossFight,
+  trackItemDrop,
+} from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 
 // ---------------------------------------------------------------------------
@@ -190,6 +199,9 @@ export class LdtkWorldScene extends Scene {
   // Boss lock
   private bossActive = false;
   private bossLockDoors: LockedDoor[] = [];
+  /** Telemetry: boss_id captured when arena lock engages so clear event matches start. */
+  private bossLockId = '';
+  private bossLockLevelId = '';
 
   // Tutorial hints
   private tutorialHint!: TutorialHint;
@@ -402,7 +414,7 @@ export class LdtkWorldScene extends Scene {
       this.inventory = new Inventory();
       const starterSword = createItem(SWORD_DEFS[0]);
       this.inventory.add(starterSword);
-      this.inventory.equip(starterSword.uid);
+      this.inventory.equip(starterSword.uid, true);
       // Starter sword: mark seen so the broken blade never triggers a
       // LorePopup / pickup cutscene on fresh start.
       sacredSave.markItemSeen(starterSword.def.id);
@@ -828,17 +840,30 @@ export class LdtkWorldScene extends Scene {
     // Check drowning
     if (this.player.drowned && !this.gameOverActive) {
       this.player.hp = 0;
+      this.player.lastDamageSource = 'drown';
       this.player.onDeath();
       this.game.hitstopFrames = 8;
       this.screenFlash.flashDamage(true);
-      trackPlayerDeath('world', 0, 0, 'drown');
+      trackPlayerDeath({
+        area: 'world',
+        level_id: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+        room_col: Math.floor((this.player.x + this.player.width / 2) / TILE_SIZE),
+        room_row: Math.floor((this.player.y + this.player.height / 2) / TILE_SIZE),
+        enemy_type: 'drown',
+      });
       this.showGameOver();
       return;
     }
 
     // Check player death
     if (this.player.isDead && !this.gameOverActive) {
-      trackPlayerDeath('world', 0, 0, 'unknown');
+      trackPlayerDeath({
+        area: 'world',
+        level_id: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+        room_col: Math.floor((this.player.x + this.player.width / 2) / TILE_SIZE),
+        room_row: Math.floor((this.player.y + this.player.height / 2) / TILE_SIZE),
+        enemy_type: this.player.lastDamageSource,
+      });
       this.showGameOver();
       return;
     }
@@ -934,6 +959,7 @@ export class LdtkWorldScene extends Scene {
           const dir = proj.vx > 0 ? 1 : -1;
           const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
           this.player.onHit(dir * 80, -40, 150);
+          this.player.lastDamageSource = 'projectile';
           this.player.hp -= dmg;
           this.hud.flashDamage();
           this.player.invincible = true;
@@ -975,6 +1001,7 @@ export class LdtkWorldScene extends Scene {
       const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
       const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
       this.player.onHit(dir * 100, -50, 200);
+      this.player.lastDamageSource = enemy.constructor.name.toLowerCase();
       this.player.hp -= dmg;
       this.hud.flashDamage();
       this.player.invincible = true;
@@ -1074,6 +1101,7 @@ export class LdtkWorldScene extends Scene {
       const dy = Math.abs((this.player.y + this.player.height / 2) - gfx.y);
       if (dx < 16 && dy < 16) {
         this.collectedRelics.add(relicKey);
+        trackRelicAcquire(abilityName, this.currentLevel?.identifier);
         if (abilityName === 'dash') {
           this.player.abilities.dash = true;
           this.toast.showBig('Dash unlocked!', 0xffd700);
@@ -1598,8 +1626,17 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Seal level exits with temporary collision doors when boss fight starts. */
-  private activateBossLock(level: LdtkLevel): void {
+  private activateBossLock(level: LdtkLevel, bossId: string = 'unknown'): void {
+    if (this.bossActive) return; // already locked; avoid double start event
     this.bossActive = true;
+    this.bossLockId = bossId;
+    this.bossLockLevelId = level.identifier;
+    trackBossFight({
+      phase: 'start',
+      area: 'world',
+      boss_id: bossId,
+      level_id: level.identifier,
+    });
     // Create barrier doors at each edge opening
     const w = level.pxWid;
     const h = level.pxHei;
@@ -1624,6 +1661,7 @@ export class LdtkWorldScene extends Scene {
 
   /** Remove boss lock doors when boss is defeated. */
   private deactivateBossLock(): void {
+    if (!this.bossActive) return;
     this.bossActive = false;
     for (const door of this.bossLockDoors) {
       door.unlock(this.collisionGrid);
@@ -1632,10 +1670,26 @@ export class LdtkWorldScene extends Scene {
     this.bossLockDoors = [];
     // arena 해제 = 보스 처치 직후이므로 HP 바도 내린다.
     this.hud.hideBossHP();
+    trackBossFight({
+      phase: 'clear',
+      area: 'world',
+      boss_id: this.bossLockId || 'unknown',
+      level_id: this.bossLockLevelId || undefined,
+    });
+    this.bossLockId = '';
+    this.bossLockLevelId = '';
   }
 
   private handleEnemyKill(enemy: Enemy<string>): void {
     this.game.stats.enemiesKilled++;
+
+    // Analytics: enemy kill distribution
+    trackEnemyKill({
+      area: 'world',
+      enemy_type: enemy.constructor.name.toLowerCase(),
+      is_boss: !!(enemy as any)._isBoss,
+      is_elite: enemy instanceof GoldenMonster,
+    });
 
     // Unlock linked LockedDoors if this enemy had targets
     const unlockIids = (enemy as any)._unlockTargetIids as string[] | undefined;
@@ -1663,6 +1717,11 @@ export class LdtkWorldScene extends Scene {
         const sourceItem = this.fixedItemWorldItem;
         const prevAtk = this.fixedItemWorldItem.finalAtk;
         itemLevelUp(this.fixedItemWorldItem);
+        trackItemLevelUp({
+          source: 'itemworld_boss',
+          item_rarity: rarity,
+          new_level: this.fixedItemWorldItem.level,
+        });
         this.updatePlayerAtk();
         const atkGain = this.fixedItemWorldItem.finalAtk - prevAtk;
         if (atkGain > 0) {
@@ -2040,6 +2099,10 @@ export class LdtkWorldScene extends Scene {
       const door = this.lockedDoors[i];
       if (door.unlockEvent === eventName) {
         door.unlock(this.collisionGrid);
+        trackGateBreak({
+          gate_type: 'event',
+          level_id: this.currentLevel?.identifier,
+        });
         door.destroy();
         this.lockedDoors.splice(i, 1);
       }
@@ -2053,6 +2116,10 @@ export class LdtkWorldScene extends Scene {
       const door = this.lockedDoors[i];
       if (door.iid === iid) {
         door.unlock(this.collisionGrid);
+        trackGateBreak({
+          gate_type: door.unlockCondition === 'switch' ? 'switch' : 'event',
+          level_id: this.currentLevel?.identifier,
+        });
         // Break effect
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
@@ -2108,6 +2175,12 @@ export class LdtkWorldScene extends Scene {
 
       if (result === 'unlocked') {
         this.unlockedEvents.add(door.iid);
+        trackGateBreak({
+          gate_type: 'stat',
+          stat_type: door.statType,
+          stat_threshold: door.statThreshold,
+          level_id: this.currentLevel?.identifier,
+        });
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
         this.toast.show('Gate Destroyed!', 0x44ffaa);
@@ -2361,6 +2434,7 @@ export class LdtkWorldScene extends Scene {
 
     // 20% max HP damage
     const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
+    this.player.lastDamageSource = 'spike';
     this.player.hp -= dmg;
     this.hud.flashDamage();
     this.player.invincible = true;
@@ -2738,7 +2812,7 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(boss.container);
 
       // Activate boss lock ??seal exits with temporary doors
-      this.activateBossLock(level);
+      this.activateBossLock(level, bossKey);
     }
 
     const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
@@ -2757,7 +2831,7 @@ export class LdtkWorldScene extends Scene {
           (enemy as any)._bossKey = bossKey;
           // Arena lock — direct 'Boss' 엔티티 경로와 동일하게 Enemy_Spawn 경로에서도
           // 보스방 탈출을 봉쇄한다. 누락 시 플레이어가 교전 전 방에서 이탈 가능.
-          this.activateBossLock(level);
+          this.activateBossLock(level, bossKey);
         } else {
           enemy = createEnemy(enemyType, enemyLevel);
         }
@@ -2817,6 +2891,12 @@ export class LdtkWorldScene extends Scene {
           (drop as any)._itemKey = itemKey;
           this.drops.push(drop);
           this.entityLayer.addChild(drop.container);
+          trackItemDrop({
+            source: 'hand_placed',
+            item_id: def.id,
+            item_rarity: def.rarity,
+            level_id: level.identifier,
+          });
           break;
         }
         case 'GameSaver': {

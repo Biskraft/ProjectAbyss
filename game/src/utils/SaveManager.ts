@@ -149,7 +149,7 @@ export class SaveManager {
       if (item) inv.add(item);
     }
     if (data.inventory.equippedUid != null) {
-      inv.equip(data.inventory.equippedUid);
+      inv.equip(data.inventory.equippedUid, true);
     }
     return inv;
   }
