@@ -92,6 +92,7 @@ import {
 import { assetPath } from '@core/AssetLoader';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { ProceduralDecorator } from '@level/ProceduralDecorator';
+import { ParallaxBackground } from '@level/ParallaxBackground';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -242,6 +243,7 @@ export class ItemWorldScene extends Scene {
   private decoAggregate: Container | null = null;
   private structAggregate: Container | null = null;
   private _procDecoEnabled = false;
+  private parallaxBG!: ParallaxBackground;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
   private updraftSystem!: UpdraftSystem;
@@ -488,6 +490,19 @@ export class ItemWorldScene extends Scene {
         depthCenter: wallEntry.depthCenter,
         brightness: wallEntry.brightness,
         tint: wallEntry.tint,
+      });
+    }
+
+    // Parallax background (behind everything — index 0)
+    this.parallaxBG = new ParallaxBackground();
+    this.container.addChildAt(this.parallaxBG.container, 0);
+    {
+      const bgEntry = getAreaPalette(`iw_${this.item.rarity}_bg`);
+      const atlas = getAreaPaletteAtlas();
+      this.parallaxBG.setup(bgEntry, IW_FULL_W_TILES * TILE_SIZE, IW_FULL_H_TILES * TILE_SIZE, {
+        texture: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
       });
     }
 
@@ -771,8 +786,21 @@ export class ItemWorldScene extends Scene {
     this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
     // specialAggregate: NO filter — hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
-    this.decoAggregate.filters = [this.wallPaletteFilter];
-    this.structAggregate.filters = [this.wallPaletteFilter];
+    // Decoration filter — reduced strength so natural colors show through
+    const wallEntry = getAreaPalette(`iw_${this.item.rarity}_wall`);
+    const baseOpts = {
+      paletteTex: getAreaPaletteAtlas().texture,
+      rowCount: getAreaPaletteAtlas().rowCount,
+      row: getAreaPaletteRow(wallEntry.id),
+      depthBias: wallEntry.depthBias,
+      depthCenter: wallEntry.depthCenter,
+      brightness: wallEntry.brightness,
+      tint: wallEntry.tint,
+    };
+    const naturalFilter = new PaletteSwapFilter({ ...baseOpts, strength: 0.5 });
+    const structFilter = new PaletteSwapFilter({ ...baseOpts, strength: 1.0 });
+    this.decoAggregate.filters = [naturalFilter];
+    this.structAggregate.filters = [structFilter];
     this.shadowAggregate.filters = [this.wallPaletteFilter];
     // Seal walls use the wall filter so their brick pattern reads in the
     // same dark-cool silhouette family as LDtk wall tiles.
@@ -866,15 +894,6 @@ export class ItemWorldScene extends Scene {
         this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
 
-        // Procedural decorations for this room (split into two aggregates)
-        if (this._procDecoEnabled) {
-          const decorator = new ProceduralDecorator();
-          const roomSeed = this.item.uid * 10000 + col * 100 + absRow + 777;
-          decorator.generate(roomGrid, roomSeed, roomX, roomY);
-          this.decoAggregate!.addChild(decorator.detailLayer);
-          this.structAggregate!.addChild(decorator.structureLayer);
-        }
-
         // Seal-wall overlays (code-generated 0x101010 fills on door-mask cells).
         // Drawn on the seal aggregate so they render above tiles and are
         // NOT swept by the wall palette (flat black seam look intentional).
@@ -900,8 +919,19 @@ export class ItemWorldScene extends Scene {
     // Explicit visual pass handles remaining details.
     this.addFullMapSealVisuals();
 
-    // Insert map container at bottom of scene (below entity layer)
-    this.container.addChildAt(this.fullMapContainer, 0);
+    // Procedural decorations — generated from the final fullGrid (after door masks)
+    // so decorations respect carved doors and spread evenly across all rooms.
+    if (this._procDecoEnabled) {
+      const decorator = new ProceduralDecorator();
+      const seed = this.item.uid * 10000 + this.currentStratumIndex * 7919 + 777;
+      decorator.generate(this.fullGrid, seed);
+      this.decoAggregate!.addChild(decorator.detailLayer);
+      this.structAggregate!.addChild(decorator.structureLayer);
+    }
+
+    // Insert map container at bottom of scene (below entity layer, above parallax)
+    // Parallax is at index 0, fullMap goes at index 1
+    this.container.addChildAt(this.fullMapContainer, 1);
 
     // Set collision and camera to full map (128w × 64h tiles)
     this.roomData = this.fullGrid;
@@ -4272,6 +4302,8 @@ export class ItemWorldScene extends Scene {
     if (!this.initialized) return;
     this.player.render(alpha);
     for (const enemy of this.enemies) enemy.render(alpha);
+    const cam = this.game.camera;
+    this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
   }
 
   exit(): void {

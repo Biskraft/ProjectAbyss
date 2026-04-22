@@ -1891,8 +1891,23 @@ export class LdtkWorldScene extends Scene {
       this.procDecorator.clear();
       this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));
       if (this.wallPaletteFilter) {
-        this.procDecorator.detailLayer.filters = [this.wallPaletteFilter];
-        this.procDecorator.structureLayer.filters = [this.wallPaletteFilter];
+        // Wall palette at reduced strength — natural colors show through,
+        // then the full wall filter overlays on top for biome consistency.
+        const atlas = getAreaPaletteAtlas();
+        const wallEntry = getAreaPalette('world_shaft_wall');
+        const baseOpts = {
+          paletteTex: atlas.texture,
+          rowCount: atlas.rowCount,
+          row: getAreaPaletteRow(wallEntry.id),
+          depthBias: wallEntry.depthBias,
+          depthCenter: wallEntry.depthCenter,
+          brightness: wallEntry.brightness,
+          tint: wallEntry.tint,
+        };
+        const naturalFilter = new PaletteSwapFilter({ ...baseOpts, strength: 0.5 });
+        const structFilter = new PaletteSwapFilter({ ...baseOpts, strength: 1.0 });
+        this.procDecorator.detailLayer.filters = [naturalFilter];
+        this.procDecorator.structureLayer.filters = [structFilter];
       }
       // Structure layer behind walls (between bg and wall)
       const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
@@ -1902,8 +1917,9 @@ export class LdtkWorldScene extends Scene {
       this.renderer.container.addChildAt(this.procDecorator.detailLayer, detailIdx);
     }
 
-    // Parallax background — setup from BG palette entry
-    {
+    // Parallax background — only rebuild on first load (skip on room transitions
+    // within the same area to prevent jarring position resets).
+    if (!this.parallaxBG.isReady) {
       const bgEntry = getAreaPalette('world_shaft_bg');
       const atlas = getAreaPaletteAtlas();
       this.parallaxBG.setup(bgEntry, level.pxWid, level.pxHei, {
@@ -3344,11 +3360,14 @@ export class LdtkWorldScene extends Scene {
           return;
         }
         if (this.pendingLevelId) {
+          const prevCamX = this.game.camera.renderX;
+          const prevCamY = this.game.camera.renderY;
           const opposite: Record<string, 'left'|'right'|'up'|'down'> = {
             left: 'right', right: 'left', up: 'down', down: 'up',
           };
           const enterFrom = opposite[this.pendingDirection!] ?? 'down';
           this.loadLevel(this.pendingLevelId, enterFrom);
+          this.parallaxBG.onRoomTransition(prevCamX, prevCamY, this.game.camera.renderX, this.game.camera.renderY);
           this.player.savePrevPosition();
           for (const e of this.enemies) e.savePrevPosition();
         }
@@ -4315,46 +4334,27 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
 
-    // ScreenCrack → FloorCollapse 시퀀스
+    // MemoryDive 시퀀스 (FloorCollapse 비활성화 — 모듈은 유지)
     sacredSave.incrementDive(this.collapseItem.def.id);
 
-    // Phase 1: 화면 균열 — 앤빌 위치를 스크린 좌표로 변환
-    const cam = this.game.camera;
-    const screenX = this.anvil.x - cam.renderX + GAME_WIDTH / 2;
-    const screenY = this.anvil.y - cam.renderY + GAME_HEIGHT / 2;
-    const crack = new ScreenCrack(screenX, screenY);
+    const diveCount = sacredSave.getDiveCount(this.collapseItem.def.id);
+    const dive = new MemoryDive(
+      this.anvil.x,
+      this.anvil.y,
+      this.collapseItem.rarity,
+      { diveCount },
+    );
+    dive.onShake = (intensity) => this.game.camera.shake(intensity);
+    dive.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
+    dive.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
 
-    crack.onShake = (intensity) => this.game.camera.shake(intensity);
-    crack.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-    crack.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
-
-    // Phase 2: 균열 완료 → 바닥 무너짐 시작
-    crack.onCrackComplete = () => {
-      if (!this.anvil || !this.collapseItem) return;
-      const collapse = new FloorCollapse(
-        this.anvil.x,
-        this.anvil.y,
-        this.collapseItem.rarity,
-        this.collisionGrid,
-      );
-      collapse.onShake = (intensity) => this.game.camera.shake(intensity);
-      collapse.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-      collapse.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
-      collapse.onTilesRemoved = () => this.rerenderTilemap();
-
-      this.floorCollapse = collapse;
-      this.entityLayer.addChild(collapse.container);
-      collapse.start();
-    };
-
-    this.screenCrack = crack;
-    // Legacy UI 레이어에 추가 (640×360 스크린 좌표계)
-    this.game.legacyUIContainer.addChild(crack.container);
+    this.memoryDive = dive;
+    this.entityLayer.addChild(dive.container);
 
     // Hit sparks at anvil position
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    crack.start();
+    dive.start();
   }
 
   /** Rarity ??ItemTunnel level name mapping. */

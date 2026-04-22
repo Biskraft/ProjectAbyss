@@ -1,42 +1,49 @@
 /**
- * ParallaxBackground — CSV-driven gradient + optional image parallax.
+ * ParallaxBackground — 4-layer parallax: gradient + far + mid + near.
  *
- * Sits behind all LDtk layers. Scrolls at `factor` speed relative to the camera.
- * Gradient is baked from the BG entry's palette stops + depth params.
+ * Sits behind all LDtk layers. Each image layer scrolls at an independent
+ * factor relative to the camera. Gradient is baked from CSV palette stops.
  */
 
 import { Container, Sprite, Texture, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
-import { sampleRow, unpack, lerp } from '@effects/PaletteSwapFilter';
+import { sampleRow, unpack } from '@effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import type { AreaPaletteEntry } from '@data/areaPalettes';
 
+interface ImageLayerState {
+  container: Container;
+  factor: number;
+}
+
 export class ParallaxBackground {
-  /** Top-level container — add this to the scene. */
   readonly container: Container;
-  /** Gradient lives here (not parallax-scrolled, fixed to camera). */
+  /** True after setup() has been called at least once. */
+  isReady = false;
   private gradientLayer: Container;
-  /** Parallax images live here (scrolled by factor). */
-  private parallaxLayer: Container;
   private gradientSprite: Sprite | null = null;
-  private imageLayer: Container | null = null;
-  private factor = 0.3;
+  private imageLayers: ImageLayerState[] = [];
+  /** Last camera position — used to detect room-transition jumps. */
+  private lastCamX = 0;
+  private lastCamY = 0;
+  /** Accumulated offset to keep parallax continuous across room transitions. */
+  private offsetX = 0;
+  private offsetY = 0;
 
   constructor() {
     this.container = new Container();
     this.gradientLayer = new Container();
-    this.parallaxLayer = new Container();
     this.container.addChild(this.gradientLayer);
-    this.container.addChild(this.parallaxLayer);
   }
 
   /**
-   * Build parallax background from a CSV BG entry.
+   * Build 4-layer parallax from a CSV BG entry.
    *
-   * @param entry   - Area palette entry (BG row)
-   * @param levelW  - Level width in pixels
-   * @param levelH  - Level height in pixels
-   * @param paletteAtlas - Optional palette atlas for image layer PaletteSwapFilter
+   * Layer order (back to front):
+   *   L0: gradient   (factor=0.0, fixed)
+   *   L1: far image  (entry.parallaxFactor, default 0.1)
+   *   L2: mid image  (entry.parallaxFactorMid, default 0.25)
+   *   L3: near image (entry.parallaxFactorNear, default 0.45)
    */
   async setup(
     entry: AreaPaletteEntry,
@@ -45,91 +52,84 @@ export class ParallaxBackground {
     paletteAtlas?: { texture: Texture; rowCount: number; row: number },
   ): Promise<void> {
     this.clear();
-    this.factor = entry.parallaxFactor || 0.3;
 
-    // 1. Build vertical gradient at actual pixel height — no GPU stretching
-    const totalW = levelW + 640;
-    const totalH = levelH + 360;
-    const gradTex = this.buildGradientTexture(entry, totalH);
+    // L0: Vertical gradient — oversized to survive room transitions.
+    // Width covers viewport (repositioned each frame), height covers max world.
+    const gradW = 640 + 320 * 2;
+    const gradH = Math.max(levelH * 5, 4000);
+    const gradTex = this.buildGradientTexture(entry, gradH);
     this.gradientSprite = new Sprite(gradTex);
-    // Width only needs scaling (1px → totalW), height is 1:1
-    this.gradientSprite.width = totalW;
-    this.gradientSprite.height = totalH;
+    this.gradientSprite.width = gradW;
+    this.gradientSprite.height = gradH;
     this.gradientSprite.x = -320;
-    this.gradientSprite.y = -180;
+    this.gradientSprite.y = -gradH / 2;
     this.gradientLayer.addChild(this.gradientSprite);
 
-    // 2. Optional parallax image — no vertical tiling, horizontal repeat via cloned sprites
+    // L1: Far image
     if (entry.parallaxImage) {
-      try {
-        const tex = await Assets.load<Texture>(assetPath(`assets/parallax/${entry.parallaxImage}.png`));
-        tex.source.scaleMode = 'nearest';
-        tex.source.addressMode = 'clamp-to-edge';
-
-        // Scale to fit viewport height, anchor to room bottom
-        const fitScale = 360 / tex.height;
-        const scaledW = tex.width * fitScale;
-        const scaledH = 360;
-        // Repeat horizontally to cover level width
-        const totalCoverW = levelW + 640;
-        const copies = Math.ceil(totalCoverW / scaledW) + 1;
-        // Y: bottom-anchored — image bottom aligns with level bottom
-        const imageY = levelH - scaledH;
-
-        this.imageLayer = new Container();
-        for (let i = 0; i < copies; i++) {
-          const s = new Sprite(tex);
-          s.width = scaledW;
-          s.height = scaledH;
-          s.x = -320 + i * scaledW;
-          s.y = imageY;
-          this.imageLayer.addChild(s);
-        }
-
-        // PaletteSwapFilter on container — depthBias=0 to prevent inversion
-        if (paletteAtlas) {
-          this.imageLayer.filters = [
-            new PaletteSwapFilter({
-              paletteTex: paletteAtlas.texture,
-              rowCount: paletteAtlas.rowCount,
-              row: paletteAtlas.row,
-              strength: 1.0,
-              depthBias: 0,
-              depthCenter: 0.5,
-              brightness: entry.brightness,
-              tint: entry.tint,
-            }),
-          ];
-        }
-        this.parallaxLayer.addChild(this.imageLayer);
-      } catch {
-        // Image not found — gradient only
-      }
+      await this.addImageLayer(
+        entry.parallaxImage,
+        entry.parallaxFactor || 0.1,
+        levelW, levelH, entry, paletteAtlas,
+      );
     }
+
+    // L2: Mid image
+    if (entry.parallaxImageMid) {
+      await this.addImageLayer(
+        entry.parallaxImageMid,
+        entry.parallaxFactorMid || 0.25,
+        levelW, levelH, entry, paletteAtlas,
+      );
+    }
+
+    // L3: Near image
+    if (entry.parallaxImageNear) {
+      await this.addImageLayer(
+        entry.parallaxImageNear,
+        entry.parallaxFactorNear || 0.45,
+        levelW, levelH, entry, paletteAtlas,
+      );
+    }
+    this.isReady = true;
+  }
+
+  /** Notify that a room transition occurred so the parallax absorbs the camera jump. */
+  onRoomTransition(prevCamX: number, prevCamY: number, newCamX: number, newCamY: number): void {
+    const dx = newCamX - prevCamX;
+    const dy = newCamY - prevCamY;
+    this.offsetX -= dx;
+    this.offsetY -= dy;
+    this.lastCamX = newCamX;
+    this.lastCamY = newCamY;
   }
 
   /** Update scroll position each frame. */
   updateScroll(cameraX: number, cameraY: number): void {
-    // Gradient: fixed to camera (no parallax)
-    // — it's a child of container which is a child of gameContainer,
-    //   so we counter the camera offset to stay screen-fixed
-    // Parallax image: scroll at reduced speed
-    this.parallaxLayer.x = cameraX * (1 - this.factor);
-    this.parallaxLayer.y = cameraY * (1 - this.factor);
+    this.lastCamX = cameraX;
+    this.lastCamY = cameraY;
+
+    // Gradient follows camera horizontally, stays vertically centered
+    if (this.gradientSprite) {
+      this.gradientSprite.x = cameraX - 320;
+    }
+
+    for (const layer of this.imageLayers) {
+      layer.container.x = (cameraX + this.offsetX) * (1 - layer.factor);
+      layer.container.y = (cameraY + this.offsetY) * (1 - layer.factor);
+    }
   }
 
-  /** Remove all children. */
   clear(): void {
     if (this.gradientSprite) {
       this.gradientSprite.destroy();
       this.gradientSprite = null;
     }
-    if (this.imageLayer) {
-      this.imageLayer.destroy({ children: true });
-      this.imageLayer = null;
-    }
     this.gradientLayer.removeChildren();
-    this.parallaxLayer.removeChildren();
+    for (const layer of this.imageLayers) {
+      layer.container.destroy({ children: true });
+    }
+    this.imageLayers = [];
   }
 
   destroy(): void {
@@ -137,14 +137,74 @@ export class ParallaxBackground {
     this.container.destroy();
   }
 
-  /**
-   * Bake a 1 x 256 vertical gradient texture from CSV stops + depth params.
-   * Each Y pixel samples the palette at a depth-biased luma.
-   */
-  /**
-   * Build gradient at actual target height — no GPU stretching needed.
-   * @param targetH - final pixel height of the gradient sprite
-   */
+  // ---------------------------------------------------------------------------
+  // Image layer builder
+  // ---------------------------------------------------------------------------
+
+  private async addImageLayer(
+    imageName: string,
+    factor: number,
+    levelW: number,
+    levelH: number,
+    entry: AreaPaletteEntry,
+    paletteAtlas?: { texture: Texture; rowCount: number; row: number },
+  ): Promise<void> {
+    try {
+      const tex = await Assets.load<Texture>(assetPath(`assets/parallax/${imageName}.png`));
+      tex.source.scaleMode = 'nearest';
+      tex.source.addressMode = 'repeat';
+
+      const fitScale = (360 / tex.height) * 1.5;
+      const scaledW = tex.width * fitScale;
+      const scaledH = tex.height * fitScale;
+
+      // Oversized coverage to survive accumulated offsets across room transitions
+      const totalCoverW = Math.max(levelW * 5, 4000);
+      const copiesX = Math.ceil(totalCoverW / scaledW) + 1;
+      const totalCoverH = Math.max(levelH * 5, 4000);
+      const copiesY = Math.ceil(totalCoverH / scaledH) + 1;
+
+      const layerContainer = new Container();
+      // Tile grid: extend left/up from origin so camera at (0,0) sees coverage
+      const startX = -totalCoverW * 0.3;
+      const startY = -totalCoverH * 0.3;
+      for (let iy = 0; iy < copiesY; iy++) {
+        for (let ix = 0; ix < copiesX; ix++) {
+          const s = new Sprite(tex);
+          s.width = scaledW;
+          s.height = scaledH;
+          s.x = startX + ix * scaledW;
+          s.y = startY + iy * scaledH;
+          layerContainer.addChild(s);
+        }
+      }
+
+      if (paletteAtlas) {
+        layerContainer.filters = [
+          new PaletteSwapFilter({
+            paletteTex: paletteAtlas.texture,
+            rowCount: paletteAtlas.rowCount,
+            row: paletteAtlas.row,
+            strength: 1.0,
+            depthBias: entry.depthBias ?? 0.35,
+            depthCenter: entry.depthCenter ?? 0.5,
+            brightness: entry.brightness,
+            tint: entry.tint,
+          }),
+        ];
+      }
+
+      this.container.addChild(layerContainer);
+      this.imageLayers.push({ container: layerContainer, factor });
+    } catch {
+      // Image not found — skip this layer
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Gradient texture
+  // ---------------------------------------------------------------------------
+
   private buildGradientTexture(entry: AreaPaletteEntry, targetH: number): Texture {
     const h = Math.max(1, Math.ceil(targetH));
     const canvas = document.createElement('canvas');
@@ -158,7 +218,7 @@ export class ParallaxBackground {
     const tintMul = [tintRgb[0] / 255, tintRgb[1] / 255, tintRgb[2] / 255];
 
     for (let y = 0; y < h; y++) {
-      const screenY = y / (h - 1);
+      const screenY = y / (h - 1 || 1);
       const luma = 0.5;
       const depthShift = (screenY - (entry.depthCenter ?? 0.5)) * (entry.depthBias ?? 0);
       const biased = Math.max(0, Math.min(1, luma + depthShift));

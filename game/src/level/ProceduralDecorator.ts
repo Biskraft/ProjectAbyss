@@ -42,19 +42,22 @@ const DEFAULTS: DecoConfig = {
 // Scale multiplier for all detail decorations
 const SCALE = 1;
 
-// Grayscale colors — PaletteSwapFilter remaps these to biome palette
-const COLOR_GROWER = 0x808080;
-const COLOR_HANGER = 0x606060;
-const COLOR_CLINGER = 0x909090;
+// Natural colors — tinted through PaletteSwapFilter at reduced strength
+const COLOR_GROWER = 0x3a7a2a;       // green grass
+const COLOR_GROWER_TIP = 0x5a9a3a;   // lighter green tip
+const COLOR_HANGER = 0x5a4030;       // dark brown roots
+const COLOR_HANGER_DRIP = 0x607888;  // blue-gray water drip
+const COLOR_CLINGER = 0x4a6a3a;      // moss green
+const COLOR_CLINGER_VINE = 0x3a5a2a; // dark vine green
 
 // Scale multiplier for structure decorations
 const STRUCT_SCALE = 2;
 
-// Structure colors (darker/lighter for depth contrast)
-const COLOR_STEEL = 0x5a5a5a;
-const COLOR_CONCRETE = 0x707070;
-const COLOR_REBAR = 0x4a4a4a;
-const COLOR_PIPE = 0x656565;
+// Structure colors — industrial tones
+const COLOR_STEEL = 0x5a6068;        // cool steel gray
+const COLOR_CONCRETE = 0x787872;     // warm concrete gray
+const COLOR_REBAR = 0x6a3a2a;        // rusty brown
+const COLOR_PIPE = 0x7a4a30;         // rust orange-brown
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -243,7 +246,7 @@ export class ProceduralDecorator {
       gfx.lineTo(baseX + ox, baseY - stemH);
       gfx.stroke({ width: 1 * S, color: COLOR_GROWER });
       gfx.circle(baseX + ox, baseY - stemH, 1.5 * S);
-      gfx.fill(COLOR_GROWER);
+      gfx.fill(COLOR_GROWER_TIP);
     }
   }
 
@@ -269,7 +272,7 @@ export class ProceduralDecorator {
       const ox = rng.nextFloat(3, T - 3);
       const dropLen = rng.nextFloat(4, 7) * S;
       gfx.circle(baseX + ox, baseY + dropLen, 1.2 * S);
-      gfx.fill(COLOR_HANGER);
+      gfx.fill(COLOR_HANGER_DRIP);
     }
   }
 
@@ -299,7 +302,7 @@ export class ProceduralDecorator {
 
       gfx.moveTo(wallX, baseY + oy);
       gfx.lineTo(wallX + vineLen, baseY + oy + rng.nextFloat(-2, 2) * S);
-      gfx.stroke({ width: 1 * S, color: COLOR_CLINGER });
+      gfx.stroke({ width: 1 * S, color: COLOR_CLINGER_VINE });
 
       const leafX = wallX + vineLen;
       const leafY = baseY + oy + rng.nextFloat(-2, 2) * S;
@@ -308,7 +311,7 @@ export class ProceduralDecorator {
         leafX + 2 * S * dir, leafY,
         leafX, leafY + 1 * S,
       ]);
-      gfx.fill(COLOR_CLINGER);
+      gfx.fill(COLOR_CLINGER_VINE);
     }
   }
 
@@ -507,7 +510,7 @@ export class ProceduralDecorator {
     const pipeR = rng.nextFloat(2, 5) * SS;
     const pipeLen = rng.nextFloat(1.5, 3.5) * T * SS;
 
-    const A = 0.8;
+    const A = 1.0;
     if (edge.type === 'floor' || edge.type === 'ceiling') {
       // Horizontal pipe — offset away from surface
       const gap = rng.nextFloat(6, 16) * SS;

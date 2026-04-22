@@ -9,7 +9,7 @@ const BASE_H = 360;
 const BASE_MARGIN = 8;
 const BASE_HP_W = 120;
 const BASE_HP_H = 10;
-const BASE_FLASK_SIZE = 10;
+const BASE_FLASK_SIZE = 20;
 const BASE_FLASK_GAP = 3;
 const BASE_FONT = 8;
 const BASE_BOSS_W = 280;
@@ -652,7 +652,7 @@ export class HUD {
       this.flaskPulseTimer = (this.flaskPulseTimer + dt) % FLASK_PULSE_PERIOD;
       const phase = (this.flaskPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
       const pulse = 0.5 + 0.5 * Math.sin(phase); // 0..1
-      const scale = 1.0 + pulse * 0.45;          // 1.0..1.45
+      const scale = 1.0 + pulse * 0.9;           // 1.0..1.9
       this.flaskKeyLabel.scale.set(scale);
 
       // Glow ring — red halo grows/fades with the pulse.
@@ -661,7 +661,7 @@ export class HUD {
       const cy = this.hasSkin ? this.skinFlaskCy : (this.FLASK_Y + this.FLASK_SIZE / 2);
       const glowSize = this.hasSkin ? this.skinFlaskR : this.FLASK_SIZE;
       const baseR = glowSize * 0.7;
-      const r = baseR + pulse * glowSize * 0.8;
+      const r = baseR + pulse * glowSize * 1.6;
       this.flaskPulseGlow
         .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.18 + pulse * 0.22 });
       this.flaskPulseGlow

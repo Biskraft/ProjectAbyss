@@ -3,267 +3,379 @@
 > **작성일:** 2026-04-22
 > **작성자:** Art Director
 > **대상:** Programmer Agent
-> **상태:** 승인 대기
+> **상태:** 확정
 
-## Context
+---
 
-ECHORIS는 실내 메가스트럭처 횡스크롤 게임이다. 현재 모든 레이어가 카메라와 동일 속도(1:1)로 스크롤되어 깊이감이 없다. 실내 구조물 뒤로 보이는 원경(수직 대공동, 먼 구조물)에 패럴랙스를 적용하여 공간감을 확보한다.
+## 1. Context
+
+ECHORIS는 실내 메가스트럭처 횡스크롤 게임이다. 현재 모든 레이어가 카메라와 동일 속도(1:1)로 스크롤되어 깊이감이 없다. 컨셉아트(The Shaft 수직 전경)에서 보이는 **끝없는 수직 구조물, 다리, 안개로 사라지는 깊이**를 3-Layer 패럴랙스로 재현한다.
+
+### 레퍼런스 이미지
+
+`Documents/Content/image/Content_World_Bible/Bisk_..._c8a08754..._1.png` (The Shaft 수직 전경)
+
+핵심 요소:
+- 중앙 거대 수직 구조물 (기둥/타워)
+- 좌우 동굴 암벽 프레임
+- 수평 다리/크레인이 구조물과 암벽을 연결
+- 아래로 갈수록 안개에 사라짐
+- 인물 대비로 스케일 표현
 
 ### 설계 원칙 (아트 디렉터 확정)
 
-- **실내 타일**: LDtk Background AutoLayer에 유저가 직접 칠함. **패럴랙스 없음** (1:1 스크롤)
-- **원경 배경**: `Content_System_Area_Palette.csv`의 BG 팔레트 stops로 생성하는 **그라디언트 배경** + 선택적 패럴랙스 이미지. 패럴랙스 적용 (X+Y 모두)
-- LDtk에 새 레이어를 추가하지 않음. 기존 4레이어 구조 유지
-- **패럴랙스 단위**: 서브 에어리어(AreaID) 단위. Overworld 내 Garden, Sewers 등 각각 다른 패럴랙스 이미지/factor 지정 가능
-
-### 레벨 → 에어리어 매핑
-
-LDtk 레벨은 서브 에어리어에 속한다. 매핑은 코드 또는 LDtk 레벨 필드로 관리:
-
-```
-World_Level_0    → world_shaft (기본)
-Garden, Garden2  → world_garden
-Sewers1          → world_sewers
-Water_supply     → world_sewers
-SaveRoom*        → world_shaft
-```
-
-각 에어리어에 대응하는 CSV BG 행이 패럴랙스 설정을 포함한다.
+- **실내 타일**: LDtk Background AutoLayer. 1:1 스크롤 (패럴랙스 없음)
+- **원경 배경**: 3-Layer 패럴랙스 (그라디언트 + 원경 구조물 + 근경 프레임)
+- **패럴랙스 단위**: 서브 에어리어(AreaID) 단위. Overworld 내 shaft/garden/sewers 각각 다른 설정
+- **이미지**: 그레이스케일 PNG. 기존 PaletteSwapFilter로 착색
+- LDtk 레이어 구조 변경 없음
 
 ---
 
-## 렌더 순서 (변경 후)
+## 2. 렌더 순서
 
 ```
-gameContainer (Game.ts에서 -camX+rtW/2, -camY+rtH/2 오프셋)
+gameContainer (Game.ts: -camX+rtW/2, -camY+rtH/2)
 │
-├── parallaxBG        ← [신규] CSV 그라디언트 TilingSprite, 패럴랙스 스크롤
+├── parallaxContainer                     ← [신규]
+│   ├── L0: gradientSprite    factor=0.0  ← CSV stops 세로 그라디언트 (고정)
+│   ├── L1: farSprite         factor=0.15 ← 원경 구조물 실루엣
+│   └── L2: nearSprite        factor=0.4  ← 근경 암벽/파이프 프레임
 │
-└── scene.container   ← 기존 (1:1 스크롤)
+└── scene.container                       ← 기존 (1:1)
     ├── renderer.container
-    │   ├── bgLayer       ← LDtk Background (실내 타일, 팔레트 필터)
-    │   ├── wallLayer     ← LDtk Collisions (벽, 팔레트 필터)
-    │   ├── specialLayer  ← 해저드 (원색 보존)
-    │   └── shadowLayer   ← 그림자 오버레이
-    └── entityLayer       ← 플레이어, 적, 아이템
+    │   ├── bgLayer     ← LDtk Background (실내 타일, PaletteSwapFilter)
+    │   ├── wallLayer   ← LDtk Collisions (벽, PaletteSwapFilter)
+    │   ├── specialLayer
+    │   └── shadowLayer
+    └── entityLayer
 ```
 
 ---
 
-## 패럴랙스 수학
+## 3. 데이터 테이블 설계
 
-`gameContainer`는 매 프레임 다음과 같이 위치한다 (`Game.ts:177-180`):
+### 3.1 기존 CSV 변경: `Content_System_Area_Palette.csv`
+
+**ParallaxImage, ParallaxFactor 컬럼 제거.** 패럴랙스 설정은 별도 CSV로 분리한다. 팔레트 CSV는 팔레트 전용으로 유지.
+
+변경 후 헤더 (원복):
+```
+AreaID,Name,Layer,Brightness,Tint,DepthBias,DepthCenter,Stops,Description,Tileset
+```
+
+서브 에어리어 BG/WALL 행은 필요 시 추가:
+```csv
+world_garden_bg,정원,BG,1.00,...,정원 배경,SunnyLand_by_Ansimuz-extended
+world_garden_wall,정원,WALL,1.00,...,정원 벽,world_01
+world_sewers_bg,수로,BG,1.00,...,수로 배경,SunnyLand_by_Ansimuz-extended
+world_sewers_wall,수로,WALL,1.00,...,수로 벽,world_01
+```
+
+### 3.2 신규 CSV: `Content_System_Parallax.csv`
+
+패럴랙스 레이어 전용 데이터 테이블.
+
+**헤더:**
+```
+AreaID,Depth,Image,Factor,TileX,TileY,Opacity,PaletteRef,Description
+```
+
+**컬럼 정의:**
+
+| 컬럼 | 타입 | 필수 | 설명 |
+|:-----|:-----|:-----|:-----|
+| `AreaID` | string | O | 에어리어 식별자. Palette CSV의 접두사와 동일 (e.g. `world_shaft`) |
+| `Depth` | int | O | 렌더 순서. 0=가장 뒤 (그라디언트), 1=원경, 2=근경. 숫자가 클수록 앞 |
+| `Image` | string | - | 이미지 경로 (`parallax/shaft_far.png`). 빈 값이면 그라디언트 자동 생성 |
+| `Factor` | float | O | 패럴랙스 스크롤 속도 (0.0=고정, 1.0=카메라 동기). X/Y 동일 적용 |
+| `TileX` | bool | O | 수평 타일 반복 여부 |
+| `TileY` | bool | O | 수직 타일 반복 여부 |
+| `Opacity` | float | O | 레이어 불투명도 (0.0~1.0) |
+| `PaletteRef` | string | - | PaletteSwapFilter에 사용할 AreaID (e.g. `world_shaft_bg`). 빈 값이면 필터 미적용 |
+| `Description` | string | - | 설명 |
+
+**데이터:**
+
+```csv
+AreaID,Depth,Image,Factor,TileX,TileY,Opacity,PaletteRef,Description
+world_shaft,0,,0.0,true,false,1.0,world_shaft_bg,세로 그라디언트 (stops에서 자동 생성)
+world_shaft,1,parallax/shaft_far.png,0.15,false,true,0.7,world_shaft_bg,원경: 거대 기둥 + 먼 다리
+world_shaft,2,parallax/shaft_near.png,0.4,false,true,0.9,world_shaft_bg,근경: 좌우 암벽 + 파이프
+world_garden,0,,0.0,true,false,1.0,world_garden_bg,정원 그라디언트
+world_garden,1,parallax/garden_far.png,0.2,true,true,0.6,world_garden_bg,원경: 이끼 낀 구조물
+world_sewers,0,,0.0,true,false,1.0,world_sewers_bg,수로 그라디언트
+world_sewers,1,parallax/sewers_far.png,0.2,false,true,0.8,world_sewers_bg,원경: 파손 배관
+iw_normal,0,,0.0,true,false,1.0,iw_normal_bg,아이템계 노말 그라디언트
+iw_normal,1,parallax/iw_damascus.png,0.15,true,true,0.5,iw_normal_bg,원경: 다마스커스 결 패턴
+```
+
+**규칙:**
+- `Depth=0` + `Image` 빈 값 → 해당 AreaID의 Palette CSV BG stops로 세로 그라디언트 자동 생성
+- `Depth=0` + `Image` 있음 → 이미지를 그라디언트 대신 사용
+- `Depth>0` + `Image` 있음 → 그라디언트 위에 레이어 합성
+- `PaletteRef` → PaletteSwapFilter 적용. 그레이스케일 이미지를 에어리어 팔레트로 착색
+- 한 AreaID에 레이어 수 제한 없음 (Depth 0, 1, 2, 3, ...)
+
+### 3.3 레벨 → 에어리어 매핑
+
+LDtk 레벨이 어떤 에어리어에 속하는지 매핑 필요. **코드 상수**로 관리:
+
+```typescript
+// LdtkWorldScene.ts
+const LEVEL_AREA_MAP: Record<string, string> = {
+  'Garden':       'world_garden',
+  'Garden2':      'world_garden',
+  'Sewers1':      'world_sewers',
+  'Water_supply': 'world_sewers',
+  // 등록 안 된 레벨 → DEFAULT_AREA
+};
+const DEFAULT_AREA = 'world_shaft';
+```
+
+향후 LDtk 레벨 커스텀 필드(`AreaID` enum)로 이관 가능.
+
+### 3.4 파일 경로 규칙
+
+```
+game/public/assets/
+├── atlas/                          ← 기존 타일셋
+│   ├── world_01.png
+│   └── SunnyLand_by_Ansimuz-extended.png
+├── parallax/                       ← [신규] 패럴랙스 이미지
+│   ├── shaft_far.png               ← 그레이스케일, 세로 타일링
+│   ├── shaft_near.png              ← 그레이스케일, 세로 타일링
+│   ├── garden_far.png
+│   ├── sewers_far.png
+│   └── iw_damascus.png
+Sheets/
+├── Content_System_Area_Palette.csv ← 기존 (ParallaxImage/Factor 컬럼 제거)
+└── Content_System_Parallax.csv     ← [신규] 패럴랙스 레이어 정의
+```
+
+---
+
+## 4. 패럴랙스 수학
+
+`gameContainer`는 매 프레임 (`Game.ts:177-180`):
 ```
 gameContainer.x = round(-camera.renderX + rtW / 2)
 gameContainer.y = round(-camera.renderY + rtH / 2)
 ```
 
-`parallaxBG`는 `gameContainer`의 자식이므로, 역보정으로 다른 속도를 만든다:
+각 패럴랙스 레이어는 `gameContainer` 자식. 역보정으로 독립 스크롤:
 ```
-parallaxBG.x = camera.renderX * (1 - factorX)
-parallaxBG.y = camera.renderY * (1 - factorY)
+layer.x = camera.renderX * (1 - factor)
+layer.y = camera.renderY * (1 - factor)
 ```
 
-결과: `parallaxBG`의 화면 위치 = `rtW/2 - camX*factorX`, `rtH/2 - camY*factorY`
-- factor=0.3이면 카메라의 30% 속도로 스크롤 (먼 배경)
+| factor | 결과 | 용도 |
+|:-------|:-----|:-----|
+| 0.0 | 고정 (스크롤 안 함) | L0 그라디언트 |
+| 0.15 | 15% 속도 | L1 원경 (매우 먼 구조물) |
+| 0.4 | 40% 속도 | L2 근경 (가까운 암벽) |
+| 1.0 | 카메라 동기 | 실내 타일/벽/엔티티 |
 
 ---
 
-## CSV 확장: 패럴랙스 컬럼 추가
-
-기존 `Content_System_Area_Palette.csv`의 BG 행에 2개 컬럼을 추가한다:
-
-### 변경 후 헤더
+## 5. 그라디언트 텍스처 생성 (Depth=0, Image 없음)
 
 ```
-AreaID,Name,Layer,Brightness,Tint,DepthBias,DepthCenter,Stops,Description,Tileset,ParallaxImage,ParallaxFactor
-```
-
-| 신규 컬럼 | 타입 | 예시 | 설명 |
-|:----------|:-----|:-----|:-----|
-| `ParallaxImage` | string (경로) | `parallax/shaft.png` | 패럴랙스 이미지. 빈 값이면 그라디언트만 사용 |
-| `ParallaxFactor` | float | `0.3` | 스크롤 속도 배율 (0=고정, 1=동일). 빈 값이면 패럴랙스 미적용 |
-
-### 변경 후 CSV 예시
-
-```csv
-AreaID,Name,Layer,...,Tileset,ParallaxImage,ParallaxFactor
-world_shaft_bg,거대 수직공동,BG,...,SunnyLand_by_Ansimuz-extended,parallax/shaft.png,0.3
-world_shaft_wall,거대 수직공동,WALL,...,world_01,,
-world_garden_bg,정원,BG,...,SunnyLand_by_Ansimuz-extended,parallax/garden.png,0.4
-world_garden_wall,정원,WALL,...,world_01,,
-world_sewers_bg,수로,BG,...,SunnyLand_by_Ansimuz-extended,,0.3
-world_sewers_wall,수로,WALL,...,world_01,,
-iw_normal_bg,기억의 지층 일반,BG,...,SunnyLand_by_Ansimuz-extended,,0.3
-iw_normal_wall,기억의 지층 일반,WALL,...,world_01,,
-```
-
-- `world_shaft_bg`: 이미지(`parallax/shaft.png`) + 그라디언트 합성, factor 0.3
-- `world_sewers_bg`: 이미지 없음, 그라디언트만, factor 0.3
-- WALL 행: ParallaxImage/Factor 빈 값 (WALL은 패럴랙스 대상 아님)
-
-### 패럴랙스 이미지 사양
-
-| 항목 | 값 |
-|:-----|:---|
-| 포맷 | 그레이스케일 PNG (PaletteSwapFilter 호환) |
-| 경로 | `game/public/assets/parallax/{name}.png` |
-| 크기 | 자유 (TilingSprite로 반복). 권장: 640x360 (1뷰포트) 이상 |
-| 내용 | 원경 실루엣 (먼 메가스트럭처, 파이프, 철골 등) |
-
----
-
-## 그라디언트 텍스처 생성
-
-CSV BG 행의 stops + depthBias + brightness를 bake하여 **세로 그라디언트 텍스처** 생성:
-
-```
-입력: world_shaft_bg 엔트리
-  stops: 0.00:#10060a | 0.12:#30101a | ... | 1.00:#f8a878
-  depthBias: 0.94, depthCenter: 0.37, brightness: 1.91
+입력: world_shaft_bg (Palette CSV)
+  stops, depthBias, depthCenter, brightness, tint
 
 처리:
-  1. 세로 256px 텍스처 생성 (1px 폭)
-  2. 각 Y 픽셀(0~255)에 대해:
-     - screenY = y / 255
-     - luma = 0.5 (소스 타일 없으므로 중간값)
-     - depthShift = (screenY - depthCenter) * depthBias
-     - biased = clamp(luma + depthShift, 0, 1)
-     - color = sampleRow(stops, biased) * brightness * tint
-  3. 결과: 위=밝은 주황, 아래=어두운 진홍의 세로 그라디언트
+  1. 1 x 256 canvas 생성
+  2. Y=0~255:
+     screenY = y / 255
+     depthShift = (screenY - depthCenter) * depthBias
+     biased = clamp(0.5 + depthShift, 0, 1)
+     color = sampleRow(stops, biased) * brightness * tint
+  3. Texture.from(canvas), scaleMode='nearest'
 
-출력: 1 x 256 Texture (nearest 필터)
-```
-
-### 패럴랙스 렌더링 합성 순서
-
-```
-1. 그라디언트 TilingSprite (항상 존재, CSV stops 기반)
-2. 패럴랙스 이미지 Sprite (ParallaxImage가 있을 때만, 그라디언트 위에 합성)
-   → 이미지에 PaletteSwapFilter 적용 (그레이스케일 → 에어리어 팔레트 착색)
-3. 둘 다 동일 parallaxFactor로 스크롤
+적용: TilingSprite
+  tileX=true (수평 무한 반복)
+  tileY=false (세로 스트레치: tileScale.y = levelH * 3 / 256)
 ```
 
 ---
 
-## 변경 대상 파일
+## 6. 변경 대상 파일
 
-### 1. `Sheets/Content_System_Area_Palette.csv` — 컬럼 추가
+### 6.1 `Sheets/Content_System_Area_Palette.csv`
 
-헤더에 `ParallaxImage`, `ParallaxFactor` 추가. 기존 행에 빈 값 채움. 서브 에어리어 BG/WALL 행 추가.
+- `ParallaxImage`, `ParallaxFactor` 컬럼 제거 (원복)
+- 서브 에어리어 행 추가 시 별도 작업
 
-### 2. `game/src/data/areaPalettes.ts` — 신규 필드 파싱
+### 6.2 `Sheets/Content_System_Parallax.csv` — [신규]
 
-`AreaPaletteEntry` 인터페이스에 추가:
+위 3.2절의 테이블 데이터 작성.
+
+### 6.3 `game/src/data/parallaxData.ts` — [신규]
+
+Parallax CSV 파서. 기존 `areaPalettes.ts`와 동일 패턴.
 
 ```typescript
-export interface AreaPaletteEntry {
-  // ... 기존 필드 ...
-  parallaxImage: string;   // 'parallax/shaft.png' 또는 '' (빈 값)
-  parallaxFactor: number;  // 0.3 등. 0이면 패럴랙스 미적용
+import csvText from '../../../Sheets/Content_System_Parallax.csv?raw';
+
+export interface ParallaxLayerDef {
+  areaId: string;
+  depth: number;
+  image: string;       // '' = 그라디언트 자동 생성
+  factor: number;
+  tileX: boolean;
+  tileY: boolean;
+  opacity: number;
+  paletteRef: string;  // '' = PaletteSwapFilter 미적용
+  description: string;
+}
+
+/** AreaID → depth 순 정렬된 레이어 배열 */
+export const PARALLAX_LAYERS: Map<string, ParallaxLayerDef[]> = new Map();
+
+// CSV 파싱 + PARALLAX_LAYERS 맵 구축
+// ...
+
+/** 특정 에어리어의 패럴랙스 레이어 목록 조회. 없으면 빈 배열. */
+export function getParallaxLayers(areaId: string): ParallaxLayerDef[] {
+  return PARALLAX_LAYERS.get(areaId) ?? [];
 }
 ```
 
-CSV 파싱 부분 (line ~94-107)에서 cols[10], cols[11] 읽기 추가.
+### 6.4 `game/src/effects/PaletteSwapFilter.ts`
 
-### 3. `game/src/effects/PaletteSwapFilter.ts` — 유틸 함수 export
+`sampleRow`, `unpack`, `lerp` 3개 함수에 `export` 추가 (lines 186-209).
 
-기존 `sampleRow()`, `unpack()`, `lerp()`는 모듈 내부 함수. 그라디언트 텍스처 빌더에서 재사용하려면 export 필요.
+### 6.5 `game/src/level/ParallaxBackground.ts` — [신규]
 
-```typescript
-// 현재: function sampleRow(...) (private)
-// 변경: export function sampleRow(...)  ← export 추가
-// 대상: sampleRow, unpack, lerp (3개)
-```
-
-**위치**: lines 186-209
-
-### 4. `game/src/level/ParallaxBackground.ts` — [신규 파일]
-
-패럴랙스 배경 전담 클래스.
+다중 레이어 패럴랙스 배경 관리 클래스.
 
 ```typescript
-import { Container, Texture, TilingSprite, Sprite, Assets } from 'pixi.js';
+import { Container, Texture, TilingSprite, Assets } from 'pixi.js';
 import { sampleRow } from '../effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '../effects/PaletteSwapFilter';
-import type { AreaPaletteEntry } from '../data/areaPalettes';
+import { getAreaPalette, getAreaPaletteAtlas, getAreaPaletteRow }
+  from '../data/areaPalettes';
+import type { ParallaxLayerDef } from '../data/parallaxData';
+import { assetPath } from '@core/AssetLoader';
+
+interface ActiveLayer {
+  sprite: TilingSprite;
+  factor: number;
+}
 
 export class ParallaxBackground {
   readonly container: Container;
-  private gradientSprite: TilingSprite;   // 항상 존재 (CSV stops 기반)
-  private imageSprite: TilingSprite|null; // ParallaxImage 있을 때만
-  private factor: number;                 // X/Y 동일 factor
+  private layers: ActiveLayer[] = [];
 
-  constructor() { ... }
+  constructor() {
+    this.container = new Container();
+  }
 
   /**
-   * CSV BG 엔트리로부터 패럴랙스 배경 구성.
-   * 1. 세로 그라디언트 텍스처 생성 (stops + depthBias bake)
-   * 2. ParallaxImage 있으면 로드 + PaletteSwapFilter 적용
-   * 3. factor 설정
+   * 에어리어의 패럴랙스 레이어 목록으로 배경 구성.
+   * @param defs     - Content_System_Parallax.csv에서 읽은 레이어 정의
+   * @param levelW   - 레벨 폭 (px)
+   * @param levelH   - 레벨 높이 (px)
    */
-  async setup(entry: AreaPaletteEntry, levelW: number, levelH: number,
-              paletteAtlas?: { texture: Texture, rowCount: number, row: number }): Promise<void> {
-    this.factor = entry.parallaxFactor || 0.3;
+  async setup(defs: ParallaxLayerDef[], levelW: number, levelH: number): Promise<void> {
+    this.clear();
 
-    // 그라디언트
-    this.buildGradient(entry, levelW, levelH);
+    // depth 순 정렬 (0=맨 뒤)
+    const sorted = [...defs].sort((a, b) => a.depth - b.depth);
 
-    // 이미지 (있으면)
-    if (entry.parallaxImage) {
-      const tex = await Assets.load(assetPath(`assets/${entry.parallaxImage}`));
-      this.buildImageLayer(tex, levelW, levelH, paletteAtlas);
+    for (const def of sorted) {
+      let texture: Texture;
+
+      if (!def.image) {
+        // Depth=0 그라디언트 자동 생성
+        texture = this.buildGradientTexture(def.paletteRef);
+      } else {
+        // 이미지 로드
+        texture = await Assets.load(assetPath(`assets/${def.image}`));
+      }
+
+      const sprite = new TilingSprite({
+        texture,
+        width: levelW + 1280,    // 패럴랙스 여유
+        height: levelH + 720,
+      });
+      sprite.x = -640;
+      sprite.y = -360;
+      sprite.alpha = def.opacity;
+
+      // 타일링 설정
+      if (!def.tileX) sprite.tileScale.x = (levelW + 1280) / texture.width;
+      if (!def.tileY) sprite.tileScale.y = (levelH + 720) / texture.height;
+
+      // PaletteSwapFilter 적용 (그레이스케일 → 에어리어 팔레트)
+      if (def.paletteRef && def.image) {
+        const atlas = getAreaPaletteAtlas();
+        const entry = getAreaPalette(def.paletteRef);
+        sprite.filters = [new PaletteSwapFilter({
+          paletteTex: atlas.texture,
+          rowCount: atlas.rowCount,
+          row: getAreaPaletteRow(def.paletteRef),
+          strength: 1.0,
+          depthBias: entry.depthBias,
+          depthCenter: entry.depthCenter,
+          brightness: entry.brightness,
+          tint: entry.tint,
+        })];
+      }
+
+      this.container.addChild(sprite);
+      this.layers.push({ sprite, factor: def.factor });
     }
   }
 
-  /** 매 프레임: 카메라 기반 패럴랙스 오프셋 */
+  /** 매 프레임: 각 레이어에 독립 패럴랙스 오프셋 적용 */
   updateScroll(cameraX: number, cameraY: number): void {
-    this.container.x = cameraX * (1 - this.factor);
-    this.container.y = cameraY * (1 - this.factor);
+    for (const layer of this.layers) {
+      layer.sprite.x = -640 + cameraX * (1 - layer.factor);
+      layer.sprite.y = -360 + cameraY * (1 - layer.factor);
+    }
   }
 
-  /** 에어리어 전환 시 재구성 */
-  async changeArea(entry: AreaPaletteEntry, levelW: number, levelH: number, ...): Promise<void> { ... }
+  /** CSV BG stops → 1x256 세로 그라디언트 텍스처 */
+  private buildGradientTexture(paletteRef: string): Texture { ... }
 
+  clear(): void { ... }
   destroy(): void { ... }
 }
 ```
 
-### 5. `game/src/scenes/LdtkWorldScene.ts` — 패럴랙스 통합
+### 6.6 `game/src/scenes/LdtkWorldScene.ts`
 
-**레벨→에어리어 매핑 (신규 상수 또는 LDtk 필드):**
+**레벨→에어리어 매핑 추가:**
 ```typescript
-// 레벨 identifier → AreaID prefix 매핑
 const LEVEL_AREA_MAP: Record<string, string> = {
-  'Garden': 'world_garden',
-  'Garden2': 'world_garden',
-  'Sewers1': 'world_sewers',
-  'Water_supply': 'world_sewers',
-  // 매핑 없는 레벨은 기본값 'world_shaft' 사용
+  'Garden': 'world_garden', 'Garden2': 'world_garden',
+  'Sewers1': 'world_sewers', 'Water_supply': 'world_sewers',
 };
 const DEFAULT_AREA = 'world_shaft';
-
 function getAreaForLevel(levelId: string): string {
   return LEVEL_AREA_MAP[levelId] ?? DEFAULT_AREA;
 }
 ```
 
-**init 시** (line ~440):
+**init 시** (~line 440):
 ```typescript
 this.parallaxBG = new ParallaxBackground();
 this.container.addChildAt(this.parallaxBG.container, 0);
 ```
 
-**레벨 로드 시** (line ~1845):
+**레벨 로드 시** (~line 1845):
 ```typescript
 const areaId = getAreaForLevel(level.identifier);
 const bgEntry = getAreaPalette(`${areaId}_bg`);
 const wallEntry = getAreaPalette(`${areaId}_wall`);
-// 팔레트 필터도 에어리어별로 전환
+// 팔레트 필터 전환
 this.bgFilter.setRow(getAreaPaletteRow(bgEntry.id));
 this.wallFilter.setRow(getAreaPaletteRow(wallEntry.id));
 // 패럴랙스 갱신
-await this.parallaxBG.setup(bgEntry, level.pxWid, level.pxHei, ...);
+const plxDefs = getParallaxLayers(areaId);
+await this.parallaxBG.setup(plxDefs, level.pxWid, level.pxHei);
 ```
 
 **render(alpha) 시:**
@@ -276,62 +388,64 @@ this.parallaxBG.updateScroll(
 
 ---
 
-## TilingSprite 크기/위치 계산
+## 7. 패럴랙스 이미지 사양
 
+| 항목 | 값 |
+|:-----|:---|
+| 포맷 | 그레이스케일 PNG (PaletteSwapFilter 호환) |
+| 경로 | `game/public/assets/parallax/{name}.png` |
+| 내용 | 구조물 실루엣. 투명 영역은 뒤 레이어가 비침 |
+
+### L1 원경 (`shaft_far.png`)
 ```
-레벨: pxWid x pxHei (예: 1152 x 384)
-뷰포트: 640 x 360 (zoom=1 기준)
-factor: 0.3
+권장 크기: 320 x 720 (세로 타일링)
+내용: 거대 수직 기둥, 수평 다리, 케이블
+배치: 화면 중앙. 좌우 여백 투명
+세로 타일 이음새가 자연스럽도록 제작
+```
 
-카메라 이동 범위: 0 ~ pxWid
-패럴랙스 이동 범위: 0 ~ pxWid * (1 - 0.3) = 0 ~ pxWid * 0.7
-
-TilingSprite 필요 크기:
-  폭 = 뷰포트W + pxWid * (1 - factor)   ← 보장 최소 크기
-  높 = 뷰포트H + pxHei * (1 - factor)
-
-→ TilingSprite는 수평 무한 반복이므로 폭은 문제없음 (1px 텍스처 타일링)
-→ 세로도 텍스처가 스트레치되므로 충분히 큰 height 설정
-
-실제 구현:
-  sprite.width = viewportW / zoom + pxWid  (넉넉한 여유)
-  sprite.height = viewportH / zoom + pxHei
-  sprite.x = -pxWid / 2   (센터링 오프셋)
-  sprite.y = -pxHei / 2
+### L2 근경 (`shaft_near.png`)
+```
+권장 크기: 640 x 480 (세로 타일링)
+내용: 좌우 암벽 + 파이프/크레인
+배치: 화면 좌우 가장자리. 중앙 투명 (게임플레이 시야 확보)
 ```
 
 ---
 
-## 엣지 케이스
+## 8. 엣지 케이스
 
 | 케이스 | 처리 |
 |:-------|:-----|
-| 줌 변경 | `updateScroll`에서 `rtW/rtH` 고려. TilingSprite 크기 재조정 불필요 (충분히 크게 생성) |
-| 카메라 셰이크 | `camera.renderX/Y`에 이미 포함 → 패럴랙스도 자연스럽게 흔들림 (약하게) |
-| 에어리어 전환 | `changeArea()` 호출 → 그라디언트 + 이미지 재구성 |
-| 이미지 없는 에어리어 | ParallaxImage 빈 값 → 그라디언트만 표시 (정상 동작) |
-| 서브 에어리어 CSV 미등록 | `getAreaPalette()` fallback → `world_shaft_bg` 기본값 |
-| 아이템계 | ItemWorldScene에도 동일 패턴 적용 가능 (별도 결정 필요) |
-| 레벨 경계 클램프 | 카메라 bounds 클램프 후의 renderX/Y 사용하므로 자동 처리 |
+| CSV에 AreaID 미등록 | `getParallaxLayers()` 빈 배열 반환 → 패럴랙스 없이 검정 배경 |
+| Palette CSV에 서브에어리어 미등록 | `getAreaPalette()` fallback 필요. world_shaft_bg 기본값 |
+| 줌 변경 | TilingSprite 크기를 충분히 크게 생성하여 별도 처리 불필요 |
+| 카메라 셰이크 | `camera.renderX/Y`에 포함 → 패럴랙스도 약하게 흔들림 (자연스러움) |
+| 레벨 경계 | 카메라 bounds 클램프 후 renderX/Y 사용 → 자동 처리 |
+| 이미지 로드 실패 | `Assets.load` catch → 해당 레이어 스킵, 콘솔 경고 |
+| 에어리어 전환 (같은 에어리어 내 레벨 이동) | areaId 동일하면 `setup()` 스킵 (불필요한 재로드 방지) |
 
 ---
 
-## 구현 순서
+## 9. 구현 순서
 
-1. `Content_System_Area_Palette.csv` — `ParallaxImage`, `ParallaxFactor` 컬럼 추가 + 서브 에어리어 행 추가
-2. `areaPalettes.ts` — `AreaPaletteEntry`에 신규 필드 추가 + CSV 파싱 확장
-3. `PaletteSwapFilter.ts` — `sampleRow`, `unpack`, `lerp` export 추가
-4. `ParallaxBackground.ts` — 신규 클래스 작성 (그라디언트 + 이미지 + 스크롤)
-5. `LdtkWorldScene.ts` — 레벨→에어리어 매핑 + init/loadLevel/render 통합
-6. 빌드 + 테스트
+1. `Content_System_Area_Palette.csv` — ParallaxImage/Factor 컬럼 제거
+2. `Content_System_Parallax.csv` — 신규 CSV 작성
+3. `parallaxData.ts` — CSV 파서 + `PARALLAX_LAYERS` 맵
+4. `PaletteSwapFilter.ts` — `sampleRow`, `unpack`, `lerp` export
+5. `ParallaxBackground.ts` — 다중 레이어 클래스
+6. `LdtkWorldScene.ts` — 레벨→에어리어 매핑 + init/loadLevel/render 통합
+7. `parallax/` 디렉토리 + 테스트용 placeholder 이미지
+8. 빌드 + 테스트
 
 ---
 
-## 검증
+## 10. 검증
 
-1. `pnpm dev`로 개발 서버 실행
-2. 게임 시작 → 월드 진입
-3. 좌우 이동 시 **배경 그라디언트가 벽/플레이어보다 느리게 스크롤**되는지 확인
-4. 상하 이동 시 **세로 패럴랙스**도 동작하는지 확인
-5. 실내 타일(LDtk Background)은 벽과 동일 속도(1:1)로 스크롤되는지 확인
-6. CSV 팔레트 색상이 그라디언트에 정확히 반영되는지 확인
+1. `pnpm dev` → 게임 시작 → 월드 진입
+2. 좌우 이동: L1(원경)이 L2(근경)보다 느리게, L2가 벽보다 느리게 스크롤
+3. 상하 이동: Y축 패럴랙스도 동일하게 동작
+4. 실내 타일(LDtk Background): 벽과 동일 속도(1:1)로 스크롤 확인
+5. 레벨 전환(Garden→Sewers): 에어리어별 패럴랙스 이미지/팔레트 자동 전환
+6. CSV 팔레트 색상이 그라디언트 + 이미지 착색에 정확히 반영
+7. 패럴랙스 이미지 없는 에어리어: 그라디언트만 표시 (에러 없음)

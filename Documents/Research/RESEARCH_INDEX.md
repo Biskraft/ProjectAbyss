@@ -1,7 +1,17 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-04-13
-> 총 55개 리서치 문서
+> 최근 업데이트: 2026-04-21
+> 총 58개 리서치 문서
+
+---
+
+## Rain World 아트 스타일 시리즈 (3)
+
+| 문서 | 핵심 인사이트 |
+|:-----|:-----|
+| **RainWorld_ArtStyle_VisualAnalysis** | 팔레트 PNG 구조(32x16) + 3레이어 깊이 시스템 + 지역별 색채 분석 + 유기-산업 미학 6대 기법 + ECHORIS Tier별 팔레트 적용 기준 |
+| **RainWorld_ProceduralEffects** | 7단계 에디터 파이프라인 + Grower/Hanger/Clinger 3패턴 + 10개 테마 이펙트 프리셋 + PixiJS 실시간 구현 가이드 |
+| **RainWorld_RegionDecor_DetailedAnalysis** | 12+5(DLC) 지역별 바닥/천장/벽/배경/고유 이펙트 분류 + 장식 밀도 히트맵 + 지역 전환 패턴 5축 + ECHORIS Tier 대응 매핑 |
 
 ---
 
