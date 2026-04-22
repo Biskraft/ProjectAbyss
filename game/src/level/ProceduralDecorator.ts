@@ -322,7 +322,7 @@ export class ProceduralDecorator {
       case 0: this.drawSteelBeam(gfx, edge, rng); break;
       case 1: this.drawConcreteChunk(gfx, edge, rng); break;
       case 2: this.drawRebar(gfx, edge, rng); break;
-      case 3: this.drawPipeSegment(gfx, edge, rng); break;
+      case 3: if (rng.next() < 0.5) this.drawPipeSegment(gfx, edge, rng); break;
       case 4: this.drawGirderOutline(gfx, edge, rng, grid); break;
     }
   }
@@ -507,6 +507,7 @@ export class ProceduralDecorator {
     const pipeR = rng.nextFloat(2, 5) * SS;
     const pipeLen = rng.nextFloat(1.5, 3.5) * T * SS;
 
+    const A = 0.8;
     if (edge.type === 'floor' || edge.type === 'ceiling') {
       // Horizontal pipe — offset away from surface
       const gap = rng.nextFloat(6, 16) * SS;
@@ -514,14 +515,14 @@ export class ProceduralDecorator {
       const x0 = baseX + rng.nextFloat(-T * 0.5, 0);
       // Pipe body (rounded rect)
       gfx.roundRect(x0, y0 - pipeR, pipeLen, pipeR * 2, pipeR);
-      gfx.fill(COLOR_PIPE);
+      gfx.fill({ color: COLOR_PIPE, alpha: A });
       // Pipe outline
       gfx.roundRect(x0, y0 - pipeR, pipeLen, pipeR * 2, pipeR);
-      gfx.stroke({ width: 1, color: COLOR_STEEL });
+      gfx.stroke({ width: 1, color: COLOR_STEEL, alpha: A });
       // Joint ring
       const jointX = x0 + pipeLen * rng.nextFloat(0.3, 0.7);
       gfx.rect(jointX - 1, y0 - pipeR - 1, 3, pipeR * 2 + 2);
-      gfx.fill(COLOR_STEEL);
+      gfx.fill({ color: COLOR_STEEL, alpha: A });
     } else {
       // Vertical pipe — offset away from wall
       const isLeft = edge.type === 'wall_left';
@@ -529,12 +530,12 @@ export class ProceduralDecorator {
       const wallX = isLeft ? baseX - pipeR - gap : baseX + T + pipeR + gap;
       const y0 = baseY + rng.nextFloat(-T * 0.5, 0);
       gfx.roundRect(wallX - pipeR, y0, pipeR * 2, pipeLen, pipeR);
-      gfx.fill(COLOR_PIPE);
+      gfx.fill({ color: COLOR_PIPE, alpha: A });
       gfx.roundRect(wallX - pipeR, y0, pipeR * 2, pipeLen, pipeR);
-      gfx.stroke({ width: 1, color: COLOR_STEEL });
+      gfx.stroke({ width: 1, color: COLOR_STEEL, alpha: A });
       const jointY = y0 + pipeLen * rng.nextFloat(0.3, 0.7);
       gfx.rect(wallX - pipeR - 1, jointY - 1, pipeR * 2 + 2, 3);
-      gfx.fill(COLOR_STEEL);
+      gfx.fill({ color: COLOR_STEEL, alpha: A });
     }
   }
 
