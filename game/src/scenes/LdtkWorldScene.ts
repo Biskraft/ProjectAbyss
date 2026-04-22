@@ -1885,8 +1885,8 @@ export class LdtkWorldScene extends Scene {
     applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
 
-    // Procedural decorations (?proc toggle)
-    if (new URLSearchParams(window.location.search).has('proc')) {
+    // Procedural decorations (always on; ?noproc to disable)
+    if (!new URLSearchParams(window.location.search).has('noproc')) {
       this.procDecorator ??= new ProceduralDecorator();
       this.procDecorator.clear();
       this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));

@@ -370,8 +370,8 @@ export class ItemWorldScene extends Scene {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
     }
 
-    // Procedural decorations toggle (?proc=1)
-    this._procDecoEnabled = new URLSearchParams(window.location.search).has('proc');
+    // Procedural decorations (always on; ?noproc to disable)
+    this._procDecoEnabled = !new URLSearchParams(window.location.search).has('noproc');
 
     // Load spawn table CSV
     await loadSpawnTable();
