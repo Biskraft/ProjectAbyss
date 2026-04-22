@@ -184,10 +184,9 @@ export class LorePopup {
       child.destroy?.({ children: true });
     }
 
-    // H 168 = 아이콘 64 + 위아래 여백 + 본문/스탯/프롬프트 행을 겹침 없이 수용.
-    // (이전 150 에서는 아이콘 하단이 divider 와 4px 겹침 발생.)
-    const W = 260;
-    const H = 168;
+    // H 136 = 아이콘 32 + 위아래 여백 + 본문/스탯/프롬프트 행.
+    const W = 220;
+    const H = 136;
     const px = Math.floor((GAME_WIDTH - W) / 2);
     const py = Math.floor((GAME_HEIGHT - H) / 2);
 
@@ -198,10 +197,9 @@ export class LorePopup {
     bg.y = py;
     this.panel.addChild(bg);
 
-    // 아이템 포트레이트 64×64 — 아이콘 원본(64px)과 1:1 로 렌더해
-    // pixel-perfect 유지 (48 은 0.75× 비정수 축소로 뿌옇게 보임).
+    // 아이템 포트레이트 32×32.
     const rColor = RARITY_COLOR[item.rarity];
-    const ICON_SIZE = 64;
+    const ICON_SIZE = 32;
     const ICON_X = px + 12;
     const ICON_Y = py + 12;
     // 텍스트 좌측 = 아이콘 오른쪽 + 8px 여백.

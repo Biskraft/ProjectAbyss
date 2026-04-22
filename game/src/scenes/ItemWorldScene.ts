@@ -91,6 +91,7 @@ import {
 } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
+import { ProceduralDecorator } from '@level/ProceduralDecorator';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -238,6 +239,9 @@ export class ItemWorldScene extends Scene {
   /** Filter-free aggregate for hazard/signal tiles (water/spike/updraft/...). */
   private specialAggregate: Container | null = null;
   private sealAggregate: Container | null = null;
+  private decoAggregate: Container | null = null;
+  private structAggregate: Container | null = null;
+  private _procDecoEnabled = false;
 
   // Updraft (IntGrid value 4) — particles + force handled per-frame
   private updraftSystem!: UpdraftSystem;
@@ -365,6 +369,9 @@ export class ItemWorldScene extends Scene {
     } catch (e) {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
     }
+
+    // Procedural decorations toggle (?proc=1)
+    this._procDecoEnabled = new URLSearchParams(window.location.search).has('proc');
 
     // Load spawn table CSV
     await loadSpawnTable();
@@ -749,10 +756,14 @@ export class ItemWorldScene extends Scene {
     this.specialAggregate = new Container();
     this.shadowAggregate = new Container();
     this.sealAggregate = new Container();
-    // Render order: bg -> walls -> special(hazards) -> shadows -> seal overlays
+    // Render order: bg -> structDeco -> walls -> special(hazards) -> detailDeco -> shadows -> seal
+    this.decoAggregate = new Container();         // detail (grass/roots) — above walls
+    this.structAggregate = new Container();        // structure (beams/concrete) — behind walls
     this.fullMapContainer.addChild(this.bgAggregate);
+    this.fullMapContainer.addChild(this.structAggregate);
     this.fullMapContainer.addChild(this.wallAggregate);
     this.fullMapContainer.addChild(this.specialAggregate);
+    this.fullMapContainer.addChild(this.decoAggregate);
     this.fullMapContainer.addChild(this.shadowAggregate);
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
@@ -760,6 +771,8 @@ export class ItemWorldScene extends Scene {
     this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
     // specialAggregate: NO filter — hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
+    this.decoAggregate.filters = [this.wallPaletteFilter];
+    this.structAggregate.filters = [this.wallPaletteFilter];
     this.shadowAggregate.filters = [this.wallPaletteFilter];
     // Seal walls use the wall filter so their brick pattern reads in the
     // same dark-cool silhouette family as LDtk wall tiles.
@@ -852,6 +865,15 @@ export class ItemWorldScene extends Scene {
         this.wallAggregate!.addChild(renderer.wallLayer);
         this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
+
+        // Procedural decorations for this room (split into two aggregates)
+        if (this._procDecoEnabled) {
+          const decorator = new ProceduralDecorator();
+          const roomSeed = this.item.uid * 10000 + col * 100 + absRow + 777;
+          decorator.generate(roomGrid, roomSeed, roomX, roomY);
+          this.decoAggregate!.addChild(decorator.detailLayer);
+          this.structAggregate!.addChild(decorator.structureLayer);
+        }
 
         // Seal-wall overlays (code-generated 0x101010 fills on door-mask cells).
         // Drawn on the seal aggregate so they render above tiles and are

@@ -39,6 +39,10 @@ export interface AreaPaletteEntry {
    * means no tileset is associated with this area.
    */
   tileset: string;
+  /** Parallax background image path (e.g. "parallax/shaft.png"). Empty = gradient only. */
+  parallaxImage: string;
+  /** Parallax scroll factor (0=fixed, 1=same as camera). 0 = no parallax. */
+  parallaxFactor: number;
 }
 
 /** Parsed area palette entries, keyed by AreaID. */
@@ -102,6 +106,8 @@ for (let i = 1; i < lines.length; i++) {
     stops: parseStops(cols[7]),
     description: cols[8].trim(),
     tileset: (cols[9] ?? '').trim(),
+    parallaxImage: (cols[10] ?? '').trim(),
+    parallaxFactor: parseFloat(cols[11]) || 0,
   };
   AREA_PALETTES.set(entry.id, entry);
 }

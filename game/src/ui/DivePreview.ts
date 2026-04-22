@@ -135,8 +135,8 @@ export class DivePreview {
     title.y = py + 10;
     this.panel.addChild(title);
 
-    // Item portrait — LorePopup과 동일 규칙 (64px 원본 1:1).
-    const ICON_SIZE = 64;
+    // Item portrait — 32px icon.
+    const ICON_SIZE = 32;
     const image = new ItemImage(item, ICON_SIZE);
     image.container.x = px + 12;
     image.container.y = py + 26;

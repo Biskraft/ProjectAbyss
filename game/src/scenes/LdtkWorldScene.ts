@@ -98,6 +98,8 @@ import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
+import { ParallaxBackground } from '@level/ParallaxBackground';
+import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
@@ -158,6 +160,10 @@ export class LdtkWorldScene extends Scene {
   // LDtk level data
   private loader!: LdtkLoader;
   private renderer!: LdtkRenderer;
+  private procDecorator: ProceduralDecorator | null = null;
+  private wallPaletteFilter: PaletteSwapFilter | null = null;
+  private wallRimFilter: RimLightFilter | null = null;
+  private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
@@ -435,7 +441,11 @@ export class LdtkWorldScene extends Scene {
       this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
       Object.values(this.atlases)[0];
 
-    // LDtk renderer ??tiles only, no entity markers in production
+    // Parallax background — behind everything
+    this.parallaxBG = new ParallaxBackground();
+    this.container.addChild(this.parallaxBG.container);
+
+    // LDtk renderer — tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
 
@@ -468,7 +478,9 @@ export class LdtkWorldScene extends Scene {
         brightness: wallEntry.brightness,
         tint: wallEntry.tint,
       });
+      this.wallPaletteFilter = wallFilter;
       const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
+      this.wallRimFilter = rimFilter;
       const interiorFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
         rowCount: atlas.rowCount,
@@ -1415,7 +1427,10 @@ export class LdtkWorldScene extends Scene {
 
     cam.update(dt);
 
-    // Oxygen overlay ??vignette + bar when submerged
+    // Parallax background scroll
+    this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
+
+    // Oxygen overlay — vignette + bar when submerged
     this.updateOxygenOverlay();
   }
 
@@ -1869,6 +1884,34 @@ export class LdtkWorldScene extends Scene {
     // shadowTiles: keep original LDtk tileset (SunnyLand) — do NOT retag
     applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
+
+    // Procedural decorations (?proc toggle)
+    if (new URLSearchParams(window.location.search).has('proc')) {
+      this.procDecorator ??= new ProceduralDecorator();
+      this.procDecorator.clear();
+      this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));
+      if (this.wallPaletteFilter) {
+        this.procDecorator.detailLayer.filters = [this.wallPaletteFilter];
+        this.procDecorator.structureLayer.filters = [this.wallPaletteFilter];
+      }
+      // Structure layer behind walls (between bg and wall)
+      const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
+      this.renderer.container.addChildAt(this.procDecorator.structureLayer, structIdx);
+      // Detail layer in front of walls (between special and shadow)
+      const detailIdx = this.renderer.container.getChildIndex(this.renderer.shadowLayer);
+      this.renderer.container.addChildAt(this.procDecorator.detailLayer, detailIdx);
+    }
+
+    // Parallax background — setup from BG palette entry
+    {
+      const bgEntry = getAreaPalette('world_shaft_bg');
+      const atlas = getAreaPaletteAtlas();
+      this.parallaxBG.setup(bgEntry, level.pxWid, level.pxHei, {
+        texture: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
+      });
+    }
 
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);

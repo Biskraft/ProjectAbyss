@@ -183,11 +183,11 @@ export interface PaletteDefinition {
   stops: PaletteStop[];
 }
 
-function lerp(a: number, b: number, t: number): number {
+export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function sampleRow(stops: PaletteStop[], t: number): [number, number, number] {
+export function sampleRow(stops: PaletteStop[], t: number): [number, number, number] {
   const sorted = [...stops].sort((a, b) => a.t - b.t);
   if (t <= sorted[0].t) return unpack(sorted[0].color);
   if (t >= sorted[sorted.length - 1].t) return unpack(sorted[sorted.length - 1].color);
@@ -204,7 +204,7 @@ function sampleRow(stops: PaletteStop[], t: number): [number, number, number] {
   return unpack(sorted[sorted.length - 1].color);
 }
 
-function unpack(rgb: number): [number, number, number] {
+export function unpack(rgb: number): [number, number, number] {
   return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff];
 }
 
