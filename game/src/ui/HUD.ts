@@ -1,4 +1,5 @@
-import { Container, Graphics, BitmapText, Sprite } from 'pixi.js';
+import { Container, Graphics, BitmapText, Sprite, Assets, Texture } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
 import type { UISkin } from './UISkin';
@@ -134,6 +135,9 @@ export class HUD {
   private expLerpTimer = 0;
   private expLevelUpFlash = 0;
   private expIsMax = false;
+
+  // Portrait
+  private portraitSprite: Sprite | null = null;
 
   // Skin sprites — populated by applySkin()
   private skinLayer: Container | null = null;
@@ -1073,6 +1077,25 @@ export class HUD {
     place('hud_status_frame');
     place('hud_status_hp_frame');
     place('hud_status_portrait_frame');
+
+    // Portrait image inside portrait frame
+    {
+      const pBounds = skin.getBounds('hud_status_portrait_frame');
+      if (pBounds) {
+        const pad = 4; // inner padding from frame edge
+        Assets.load<Texture>(assetPath('assets/portraits/erda.png')).then(tex => {
+          tex.source.scaleMode = 'nearest';
+          const sprite = new Sprite(tex);
+          sprite.x = (pBounds.x + pad) * s;
+          sprite.y = (pBounds.y + pad) * s;
+          sprite.width = (pBounds.w - pad * 2) * s;
+          sprite.height = (pBounds.h - pad * 2) * s;
+          this.skinLayer!.addChild(sprite);
+          this.portraitSprite = sprite;
+        });
+      }
+    }
+
     place('hud_status_atk_frame');
     place('hud_floor_indicator');
     place('hud_map_frame');
