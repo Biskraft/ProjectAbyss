@@ -1082,14 +1082,13 @@ export class HUD {
     {
       const pBounds = skin.getBounds('hud_status_portrait_frame');
       if (pBounds) {
-        const pad = 4; // inner padding from frame edge
         Assets.load<Texture>(assetPath('assets/portraits/erda.png')).then(tex => {
           tex.source.scaleMode = 'nearest';
           const sprite = new Sprite(tex);
-          sprite.x = (pBounds.x + pad) * s;
-          sprite.y = (pBounds.y + pad) * s;
-          sprite.width = (pBounds.w - pad * 2) * s;
-          sprite.height = (pBounds.h - pad * 2) * s;
+          sprite.x = pBounds.x * s;
+          sprite.y = pBounds.y * s;
+          sprite.width = pBounds.w * s;
+          sprite.height = pBounds.h * s;
           this.skinLayer!.addChild(sprite);
           this.portraitSprite = sprite;
         });
