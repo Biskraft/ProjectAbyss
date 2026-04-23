@@ -12,6 +12,11 @@ export type { Innocent, InnocentStatKey };
 
 let nextItemId = 1;
 
+/** Ensure the global UID counter is above `uid` so future items never collide. */
+export function ensureUidAbove(uid: number): void {
+  if (uid >= nextItemId) nextItemId = uid + 1;
+}
+
 export interface ItemWorldProgress {
   /** Index of deepest stratum unlocked (boss beaten). 0 = only stratum 0 accessible. */
   deepestUnlocked: number;
@@ -93,7 +98,11 @@ export function resetItemForNextCycle(item: ItemInstance): void {
   wp.clearedRooms = [];
   wp.spawnedRooms = [];
   wp.lastSafeStratum = 0;
-  wp.deepestUnlocked = 0;
+  // deepestUnlocked is PRESERVED across deaths — it represents permanent progress.
+  // Only reset to 0 when the item is fully cleared and starting a new cycle.
+  if (wp.cleared) {
+    wp.deepestUnlocked = 0;
+  }
   wp.cleared = false;
   wp.cycle += 1;
 }

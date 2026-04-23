@@ -13,19 +13,19 @@ export const PORTAL_COLOR: Record<Rarity, number> = {
 };
 
 const PORTAL_SIZE: Record<Rarity, number> = {
-  normal: 20,
-  magic: 24,
-  rare: 28,
-  legendary: 32,
-  ancient: 36,
+  normal: 15,
+  magic: 15,
+  rare: 15,
+  legendary: 15,
+  ancient: 15,
 };
 
 const PARTICLE_COUNT: Record<Rarity, number> = {
-  normal: 5,
-  magic: 8,
-  rare: 12,
-  legendary: 16,
-  ancient: 24,
+  normal: 4,
+  magic: 6,
+  rare: 9,
+  legendary: 12,
+  ancient: 18,
 };
 
 const PULSE_SPEED: Record<Rarity, number> = {
@@ -109,7 +109,7 @@ export class Portal {
     this.particleGfx = new Graphics();
     this.container.addChild(this.particleGfx);
 
-    this.hintText = new BitmapText({ text: 'UP: Enter', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
+    this.hintText = new BitmapText({ text: 'C: Enter', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     this.hintText.anchor.set(0.5);
     this.hintText.y = -this.baseSize / 2 - 12;
     this.hintText.visible = false;
@@ -179,16 +179,16 @@ export class Portal {
 
   private spawnParticle(): void {
     const angle = Math.random() * Math.PI * 2;
-    const dist = this.baseSize / 2 + Math.random() * 8;
-    const speed = 15 + Math.random() * 25;
+    const dist = this.baseSize / 2 + Math.random() * 6;
+    const speed = 11 + Math.random() * 19;
     this.particles.push({
-      x: Math.cos(angle) * dist * 0.5,
-      y: Math.sin(angle) * dist * 0.3,
-      vx: Math.cos(angle) * speed * 0.3,
-      vy: -speed * (0.5 + Math.random() * 0.5), // float upward
-      life: 600 + Math.random() * 800,
-      maxLife: 1400,
-      size: 1 + Math.random() * 2,
+      x: Math.cos(angle) * dist * 0.4,
+      y: Math.sin(angle) * dist * 0.22,
+      vx: Math.cos(angle) * speed * 0.22,
+      vy: -speed * (0.4 + Math.random() * 0.4),
+      life: 450 + Math.random() * 600,
+      maxLife: 1050,
+      size: 0.75 + Math.random() * 1.5,
     });
   }
 

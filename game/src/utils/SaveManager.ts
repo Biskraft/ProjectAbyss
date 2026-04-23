@@ -1,5 +1,5 @@
 import { SWORD_DEFS, type Rarity } from '@data/weapons';
-import { createItem, recalcItemAtk, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { createItem, recalcItemAtk, ensureUidAbove, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { Inventory } from '@items/Inventory';
 import { sacredSave, type SacredSaveState } from '@save/PlayerSave';
 
@@ -78,6 +78,8 @@ function deserializeItem(data: SerializedItem): ItemInstance | null {
   const def = SWORD_DEFS.find(d => d.id === data.defId);
   if (!def) return null;
   const item = createItem(def, data.rarity);
+  item.uid = data.uid; // Restore original uid so equippedUid matches
+  ensureUidAbove(data.uid); // Prevent future UID collisions
   item.level = data.level;
   item.exp = data.exp;
   if (data.worldProgress) {

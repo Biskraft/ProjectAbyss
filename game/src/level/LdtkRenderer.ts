@@ -177,6 +177,26 @@ export class LdtkRenderer {
     }
   }
 
+  /**
+   * Remove wall/shadow tiles that overlap a pixel-space AABB.
+   * Used by SecretWall to erase the AutoTile visuals when broken.
+   */
+  clearTilesInRect(x: number, y: number, w: number, h: number): void {
+    const remove = (layer: Container) => {
+      for (let i = layer.children.length - 1; i >= 0; i--) {
+        const child = layer.children[i];
+        if (
+          child.x >= x - TILE_SIZE && child.x < x + w &&
+          child.y >= y - TILE_SIZE && child.y < y + h
+        ) {
+          layer.removeChildAt(i);
+        }
+      }
+    };
+    remove(this.wallLayer);
+    remove(this.shadowLayer);
+  }
+
   /** Remove all rendered tiles and markers. */
   clear(): void {
     this.bgLayer.removeChildren();

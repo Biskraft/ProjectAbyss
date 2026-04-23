@@ -25,12 +25,16 @@
 
 import { Container, Graphics } from 'pixi.js';
 
-const GLOW_COLOR = 0xe07028;
-const GLOW_REACH = 40;            // px inward from edge (고정)
-const GLOW_BANDS = 5;             // quantized gradient bands
+const GLOW_COLOR_DEFAULT = 0xe07028;
+const GLOW_COLOR_SAVE = 0x2888ee;  // blue for save point rooms
+const GLOW_REACH = 40;
+const GLOW_REACH_SAVE = 60;       // larger reach for save point rooms
+const GLOW_BANDS = 5;
 const PULSE_PERIOD_MS = 1000;
-const PULSE_BASE = 0.6;   // 0.3 * 2 — 가시성 2배 강화
-const PULSE_AMP = 0.2;    // 0.1 * 2 — 맥동 폭도 동일 비율
+const PULSE_BASE = 0.6;
+const PULSE_AMP = 0.2;
+const PULSE_BASE_SAVE = 0.8;     // brighter for save rooms
+const PULSE_AMP_SAVE = 0.3;
 
 // --- Dust particles ---------------------------------------------------------
 /** 먼지가 퍼지는 방 안쪽 깊이 (10 타일 = 원본 4타일의 2.5배). */
@@ -111,13 +115,21 @@ export class ExitGlow {
    * @param x,y   world-space anchor of the opening (top-left of the edge run).
    * @param span  length of the opening along the edge in pixels (= tiles*16).
    */
-  constructor(dir: ExitGlowDir, x: number, y: number, span: number) {
+  private glowColor: number;
+  private glowReach: number;
+  private pulseBase: number;
+  private pulseAmp: number;
+
+  constructor(dir: ExitGlowDir, x: number, y: number, span: number, isSaveRoom = false) {
     this.dir = dir;
     this.span = span;
+    this.glowColor = isSaveRoom ? GLOW_COLOR_SAVE : GLOW_COLOR_DEFAULT;
+    this.glowReach = isSaveRoom ? GLOW_REACH_SAVE : GLOW_REACH;
+    this.pulseBase = isSaveRoom ? PULSE_BASE_SAVE : PULSE_BASE;
+    this.pulseAmp = isSaveRoom ? PULSE_AMP_SAVE : PULSE_AMP;
     this.container = new Container();
     this.container.x = x;
     this.container.y = y;
-    // Additive so the glow feels like emitted light, not painted fill.
     this.container.blendMode = 'add';
 
     this.gfx = new Graphics();
@@ -140,7 +152,7 @@ export class ExitGlow {
     }
 
     this.spawnInitialParticles();
-    this.draw(PULSE_BASE);
+    this.draw(this.pulseBase);
     this.drawDust();
   }
 
@@ -160,7 +172,7 @@ export class ExitGlow {
     // 내부 누적 시간을 쓰면 인스턴스 생성 시점에 따라 위상이 갈려
     // 여러 출구가 제각각 맥동 → "출구들이 살아있다" 통일감이 깨진다.
     const phase = (performance.now() % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
-    const alpha = PULSE_BASE + PULSE_AMP * Math.sin(phase * Math.PI * 2);
+    const alpha = this.pulseBase + this.pulseAmp * Math.sin(phase * Math.PI * 2);
     this.draw(alpha);
 
     // 먼지 그룹 알파 보간 + 파티클 시뮬 + 렌더.
@@ -303,7 +315,7 @@ export class ExitGlow {
   private draw(baseAlpha: number): void {
     const g = this.gfx;
     g.clear();
-    const step = GLOW_REACH / GLOW_BANDS;
+    const step = this.glowReach / GLOW_BANDS;
     for (let i = 0; i < GLOW_BANDS; i++) {
       // Band 0 sits closest to the edge (brightest); band N-1 is the furthest
       // inward band (dimmest). Quadratic falloff reads as a soft gradient.
@@ -331,7 +343,7 @@ export class ExitGlow {
         rw = this.span;
         rh = step;
       }
-      g.rect(rx, ry, rw, rh).fill({ color: GLOW_COLOR, alpha: bandAlpha });
+      g.rect(rx, ry, rw, rh).fill({ color: this.glowColor, alpha: bandAlpha });
     }
   }
 

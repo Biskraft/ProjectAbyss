@@ -12,8 +12,8 @@ const BASE_HP_H = 10;
 const BASE_FLASK_SIZE = 20;
 const BASE_FLASK_GAP = 3;
 const BASE_FONT = 8;
-const BASE_BOSS_W = 280;
-const BASE_BOSS_H = 14;
+const BASE_BOSS_W = 140;
+const BASE_BOSS_H = 8;
 
 const HP_BORDER_COLOR = 0x444444;
 const HP_BG_COLOR = 0x222222;
@@ -652,7 +652,7 @@ export class HUD {
       this.flaskPulseTimer = (this.flaskPulseTimer + dt) % FLASK_PULSE_PERIOD;
       const phase = (this.flaskPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
       const pulse = 0.5 + 0.5 * Math.sin(phase); // 0..1
-      const scale = 1.0 + pulse * 0.9;           // 1.0..1.9
+      const scale = 1.0 + pulse * 1.8;           // 1.0..2.8
       this.flaskKeyLabel.scale.set(scale);
 
       // Glow ring — red halo grows/fades with the pulse.
@@ -661,11 +661,11 @@ export class HUD {
       const cy = this.hasSkin ? this.skinFlaskCy : (this.FLASK_Y + this.FLASK_SIZE / 2);
       const glowSize = this.hasSkin ? this.skinFlaskR : this.FLASK_SIZE;
       const baseR = glowSize * 0.7;
-      const r = baseR + pulse * glowSize * 1.6;
+      const r = baseR + pulse * glowSize * 3.2;
       this.flaskPulseGlow
-        .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.18 + pulse * 0.22 });
+        .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.25 + pulse * 0.35 });
       this.flaskPulseGlow
-        .circle(cx, cy, r * 0.6).fill({ color: 0xffaa66, alpha: 0.25 + pulse * 0.25 });
+        .circle(cx, cy, r * 0.6).fill({ color: 0xffaa66, alpha: 0.35 + pulse * 0.35 });
       this.flaskPulseGlow.alpha = 1;
     } else if (this.flaskPulseTimer !== 0 || this.flaskKeyLabel.scale.x !== 1) {
       // Reset on recovery.
@@ -712,9 +712,14 @@ export class HUD {
     } else if (this.vignette.alpha > 0) {
       this.vignette.alpha = 0;
     }
-    // Depth gauge pulse
-    if (this.depthGauge.visible) {
-      this.depthPulseTimer = (this.depthPulseTimer + dt) % 2000;
+    // Depth gauge pulse — frame stays static, fill + ticks sparkle
+    if (this.depthGauge.visible || (this.skinDepthFrame && this.skinDepthFrame.visible)) {
+      this.depthPulseTimer = (this.depthPulseTimer + dt) % 3000;
+      const t = this.depthPulseTimer / 3000 * Math.PI * 2;
+      const flash = 0.5 + 0.5 * Math.abs(Math.sin(t * 2)); // sharp double-pulse shimmer
+      if (this.skinDepthFill) this.skinDepthFill.alpha = flash;
+      if (this.skinDepthTickContainer) this.skinDepthTickContainer.alpha = flash;
+      this.depthGaugeGfx.alpha = flash;
       this.redrawDepthGauge();
     }
     // Item EXP bar lerp + level-up flash

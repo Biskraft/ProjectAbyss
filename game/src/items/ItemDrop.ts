@@ -6,7 +6,8 @@
  */
 
 import dropCsvText from '../../../Sheets/Content_Item_DropRate.csv?raw';
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, Assets } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 import { PRNG } from '@utils/PRNG';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type Rarity } from '@data/weapons';
 import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
@@ -130,15 +131,37 @@ export class ItemDropEntity {
       this.container.addChild(this.glowGfx);
     }
 
-    // Item square
+    // Item square (placeholder until icon loads)
     this.itemGfx = new Graphics();
     this.itemGfx.rect(-4, -4, 8, 8).fill(RARITY_COLOR[item.rarity]);
     this.itemGfx.rect(-3, -3, 6, 6).fill({ color: 0xffffff, alpha: 0.4 });
     this.container.addChild(this.itemGfx);
 
+    // Try to load item icon sprite
+    this.loadItemIcon(item);
+
     // Randomize timers
     this.spawnTimer = Math.random() * (this.vfx?.spawnInterval ?? 1000);
     this.pulseTimer = Math.random() * 2000;
+  }
+
+  private itemSprite: Sprite | null = null;
+
+  private async loadItemIcon(item: ItemInstance): Promise<void> {
+    try {
+      const tex = await Assets.load<Texture>(assetPath(`assets/items/${item.def.id}.png`));
+      tex.source.scaleMode = 'nearest';
+      const sprite = new Sprite(tex);
+      sprite.anchor.set(0.5, 0.5);
+      sprite.width = 24;
+      sprite.height = 24;
+      this.itemSprite = sprite;
+      // Hide placeholder, show icon
+      this.itemGfx.visible = false;
+      this.container.addChild(sprite);
+    } catch {
+      // No icon — keep placeholder square
+    }
   }
 
   update(dt: number): void {
@@ -153,6 +176,10 @@ export class ItemDropEntity {
       this.pulseTimer += dt;
       const scale = 1.0 + Math.sin(this.pulseTimer * this.vfx.pulseSpeed) * 0.15;
       this.itemGfx.scale.set(scale);
+      if (this.itemSprite) {
+        const base = 24 / this.itemSprite.texture.width;
+        this.itemSprite.scale.set(base * scale);
+      }
       if (this.glowGfx) {
         this.glowGfx.alpha = this.vfx.glowAlpha * (0.6 + Math.sin(this.pulseTimer * this.vfx.pulseSpeed * 1.5) * 0.4);
       }

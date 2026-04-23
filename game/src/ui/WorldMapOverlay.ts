@@ -13,6 +13,8 @@
  */
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
+import { create9SlicePanel } from './ModalPanel';
+import type { UISkin } from './UISkin';
 import { PIXEL_FONT } from './fonts';
 import type { LdtkLoader } from '@level/LdtkLoader';
 
@@ -97,14 +99,17 @@ export class WorldMapOverlay {
   private currentRoomGfx: Graphics | null = null;
   private playerDot: Graphics | null = null;
 
-  constructor() {
+  private skin: UISkin | null = null;
+
+  constructor(skin?: UISkin | null) {
+    this.skin = skin ?? null;
     this.container = new Container();
     this.container.visible = false;
-    this.container.zIndex = 900; // above game, below dialogue
+    this.container.zIndex = 900;
 
-    // Opaque background — covers game & all UI beneath for clean readability
+    // Opaque background
     this.bg = new Graphics();
-    this.bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: COLOR_BG, alpha: 1.0 });
+    this.bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: COLOR_BG, alpha: 0.7 });
     this.container.addChild(this.bg);
 
     // Map content container — scaled to 70% around screen center, keeps bg full-screen
@@ -216,11 +221,19 @@ export class WorldMapOverlay {
     this.projOffsetX = offsetX;
     this.projOffsetY = offsetY;
 
-    // Border frame
-    const frame = new Graphics();
-    frame.rect(MAP_MARGIN_X - 2, MAP_MARGIN_Y - 2, MAP_W + 4, MAP_H + 4)
-      .stroke({ color: COLOR_BORDER, width: 1 });
-    this.mapContainer.addChild(frame);
+    // Border frame — 9-slice or fallback
+    const frameW = MAP_W + 4, frameH = MAP_H + 4;
+    const sliceFrame = this.skin?.isLoaded ? create9SlicePanel(this.skin, frameW, frameH) : null;
+    if (sliceFrame) {
+      sliceFrame.x = MAP_MARGIN_X - 2;
+      sliceFrame.y = MAP_MARGIN_Y - 2;
+      this.mapContainer.addChild(sliceFrame);
+    } else {
+      const frame = new Graphics();
+      frame.rect(MAP_MARGIN_X - 2, MAP_MARGIN_Y - 2, frameW, frameH)
+        .stroke({ color: COLOR_BORDER, width: 1 });
+      this.mapContainer.addChild(frame);
+    }
 
     // Draw rooms
     for (const r of this.rooms) {
@@ -281,11 +294,12 @@ export class WorldMapOverlay {
           this.mapContainer.addChild(border);
           this.currentRoomGfx = border;
         }
-      } else {
-        // Unvisited — readable silhouette with border so layout is visible before visiting
-        g.rect(rx, ry, rw, rh).fill({ color: COLOR_ADJACENT, alpha: 0.55 });
+      } else if (this.isAdjacentToVisited(r.id)) {
+        // OUTLINED: adjacent to visited — dim silhouette, no tile detail
+        g.rect(rx, ry, rw, rh).fill({ color: COLOR_ADJACENT, alpha: 0.3 });
         g.rect(rx, ry, rw, rh).stroke({ color: COLOR_ADJACENT_BORDER, width: 0.5 });
       }
+      // UNDISCOVERED: not adjacent — completely hidden (no drawing)
 
       this.mapContainer.addChild(g);
 
@@ -342,6 +356,23 @@ export class WorldMapOverlay {
 
     // Legend
     this.drawLegend();
+  }
+
+  /** Check if a room is adjacent to any visited room (Fog of War: OUTLINED state) */
+  private isAdjacentToVisited(roomId: string): boolean {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room) return false;
+    for (const visited of this.visitedLevels) {
+      const vr = this.rooms.find(r => r.id === visited);
+      if (!vr) continue;
+      // Check overlap/adjacency (touching or overlapping bounding boxes with margin)
+      const margin = 16; // px tolerance for adjacency
+      if (room.x + room.w + margin >= vr.x && room.x <= vr.x + vr.w + margin &&
+          room.y + room.h + margin >= vr.y && room.y <= vr.y + vr.h + margin) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private drawMarkers(room: WorldMapRoom, rx: number, ry: number, rw: number, rh: number): void {

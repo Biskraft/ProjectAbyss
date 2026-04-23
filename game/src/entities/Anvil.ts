@@ -15,10 +15,11 @@
  * (Design_Tutorial_EnvironmentalTeaching §Symbol Prompt).
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
+import { assetPath } from '@core/AssetLoader';
 
 interface Spark {
   gfx: Graphics;
@@ -86,12 +87,22 @@ export class Anvil {
   private sparks: Spark[] = [];
   private sparkCooldown = 0;
   private itemGfx: Graphics | null = null;
+  private fxSprite: Sprite | null = null;
+  private fxFrames: Texture[] = [];
+  private fxTimer = 0;
+  private fxFrameIndex = 0;
+  private fxPlaying = false;
+  private itemIcon: Sprite | null = null;
+  /** Called when FX animation completes — scene uses this to trigger warp. */
+  onFxComplete: (() => void) | null = null;
 
   /** Cached icons so we can swap them in/out when item state changes. */
   private swordIcon: Graphics | null = null;
   private hammerIcon: Graphics | null = null;
   private keyUp: Container | null = null;
   private keyStrike: Container | null = null;
+
+  private anvilSprite: Sprite | null = null;
 
   constructor(x: number, y: number) {
     this.x = x;
@@ -106,8 +117,13 @@ export class Anvil {
     this.container.addChild(this.halo);
 
     this.gfx = new Graphics();
-    this.drawAnvil();
+    this.drawAnvil(); // placeholder until sprite loads
     this.container.addChild(this.gfx);
+
+    // Load the anvil sprite (replaces placeholder Graphics)
+    this.loadAnvilSprite();
+    // Pre-load FX019 so it's instant when activated
+    this.preloadFX();
 
     this.particleLayer = new Container();
     this.container.addChild(this.particleLayer);
@@ -118,6 +134,38 @@ export class Anvil {
     // Anchor prompt so it sits above the anvil top
     this.hintContainer.y = -this.height - 16;
     this.container.addChild(this.hintContainer);
+  }
+
+  /** Pre-load FX019 spritesheet at init time so it's ready when needed. */
+  private async preloadFX(): Promise<void> {
+    try {
+      const sheetTex = await Assets.load<Texture>(assetPath('assets/sprites/FX019.png'));
+      const jsonData = await fetch(assetPath('assets/sprites/FX019.json')).then(r => r.json());
+      sheetTex.source.scaleMode = 'nearest';
+      this.fxFrames = [];
+      const frameKeys = Object.keys(jsonData.frames).sort();
+      for (const key of frameKeys) {
+        const f = jsonData.frames[key].frame;
+        this.fxFrames.push(new Texture({
+          source: sheetTex.source,
+          frame: new Rectangle(f.x, f.y, f.w, f.h),
+        }));
+      }
+    } catch { /* FX not available */ }
+  }
+
+  private async loadAnvilSprite(): Promise<void> {
+    try {
+      const tex = await Assets.load<Texture>(assetPath('assets/sprites/anvil_gate_01.png'));
+      tex.source.scaleMode = 'nearest';
+      const sprite = new Sprite(tex);
+      sprite.anchor.set(0.5, 1); // bottom-center pivot
+      this.anvilSprite = sprite;
+      this.gfx.visible = false;
+      this.container.addChildAt(sprite, this.container.getChildIndex(this.gfx));
+    } catch {
+      // Sprite not found — keep placeholder Graphics
+    }
   }
 
   private drawAnvil(): void {
@@ -196,8 +244,104 @@ export class Anvil {
     this.itemGfx.rect(-4, -this.height - 11, 2, 4).fill(color);
     this.container.addChild(this.itemGfx);
 
+    // Show item icon at anvil center
+    this.showItemIcon(item);
+
+    // Play FX019 activation effect at anvil center
+    this.playActivationFX();
+
     // Symbol prompt now advertises strike action
     this.refreshSymbolPrompt();
+  }
+
+  private showItemIcon(item: ItemInstance): void {
+    if (this.itemIcon) {
+      this.container.removeChild(this.itemIcon);
+      this.itemIcon.destroy();
+    }
+    // Load item sprite as icon at anvil gate center (the transparent hole)
+    const iconPath = assetPath(`assets/items/${item.def.id}.png`);
+    Assets.load<Texture>(iconPath).then(tex => {
+      if (!this.item || this.item.uid !== item.uid) return;
+      tex.source.scaleMode = 'nearest';
+      const icon = new Sprite(tex);
+      icon.anchor.set(0.5, 0.5);
+      // Gate center + 50px down offset
+      const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
+      icon.x = -3;
+      icon.y = -47;
+      icon.width = 64;
+      icon.height = 64;
+      this.itemIcon = icon;
+      this.container.addChild(icon);
+    }).catch(() => { /* no icon available */ });
+  }
+
+  private playActivationFX(): void {
+    if (this.fxFrames.length === 0) return;
+
+    if (this.fxSprite) {
+      this.container.removeChild(this.fxSprite);
+      this.fxSprite.destroy();
+    }
+    this.fxSprite = new Sprite(this.fxFrames[0]);
+    this.fxSprite.anchor.set(0.5, 0.5);
+    const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
+    this.fxSprite.x = -3;
+    this.fxSprite.y = -47;
+    this.fxSprite.scale.set(0.84);
+    this.fxSprite.blendMode = 'add';
+    this.container.addChild(this.fxSprite);
+
+    this.fxTimer = 0;
+    this.fxFrameIndex = 0;
+    this.fxPlaying = true;
+
+    // Drive animation via requestAnimationFrame (works during hitstop)
+    // Start icon scale-up when FX reaches 80% progress
+    const totalFrames = this.fxFrames.length;
+    const scaleUpStart = Math.floor(totalFrames * 0.7);
+    let iconScaling = false;
+    let iconScale = 1.0;
+
+    const animate = () => {
+      if (!this.fxPlaying || !this.fxSprite) return;
+      this.fxTimer += 16.67;
+      const fps = 15;
+      const frameInterval = 1000 / fps;
+      if (this.fxTimer >= frameInterval) {
+        this.fxTimer -= frameInterval;
+        this.fxFrameIndex++;
+
+        // Start icon scale-up at 70% of FX
+        if (this.fxFrameIndex >= scaleUpStart && !iconScaling) {
+          iconScaling = true;
+        }
+
+        if (this.fxFrameIndex >= totalFrames) {
+          // FX complete
+          this.fxPlaying = false;
+          if (this.fxSprite.parent) this.fxSprite.parent.removeChild(this.fxSprite);
+          this.fxSprite.destroy();
+          this.fxSprite = null;
+          // Notify scene that FX is done — trigger warp
+          this.onFxComplete?.();
+          return;
+        }
+        this.fxSprite.texture = this.fxFrames[this.fxFrameIndex];
+      }
+
+      // Icon scale-up animation (accelerating growth)
+      if (iconScaling && this.itemIcon) {
+        iconScale += 0.15; // ~10x over remaining 30% of frames
+        this.itemIcon.width = 64 * iconScale;
+        this.itemIcon.height = 64 * iconScale;
+        this.itemIcon.alpha = 0.9;
+      }
+
+      requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
   }
 
   hasItem(): boolean {
@@ -223,6 +367,15 @@ export class Anvil {
     if (this.itemGfx) {
       this.itemGfx.alpha = 0.8 + Math.sin(t * 4) * 0.2;
     }
+    // Item icon float animation at gate center + 50px down
+    if (this.itemIcon) {
+      const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
+      this.itemIcon.y = -47 + Math.sin(t * 3) * 2;
+    }
+
+    // FX019 spritesheet animation is driven by playActivationFX() via rAF.
+    // update() must NOT advance frames independently — doing so races with
+    // the rAF loop and can clear fxPlaying before onFxComplete fires.
 
     // --- Halo pulse (A3 affordance) --------------------------------------
     // Slow outer ring + faster inner shimmer. Strengthens on approach.

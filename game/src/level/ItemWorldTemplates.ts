@@ -5,7 +5,7 @@
  * Implements: System_ItemWorld_Core.md — Template-based room layout system.
  * Spelunky-inspired probabilistic tiles and template mirroring.
  *
- * Template size: 32×16 tiles (512×256 px at 16px/tile).
+ * Template size: 48×32 tiles (768×512 px at 16px/tile).
  * Navigation: room-by-room with fade (existing ItemWorldScene pattern).
  * Templates replace ChunkAssembler output per-room.
  * Floor is baked into each template — no runtime floor injection needed.
@@ -22,10 +22,10 @@
  *   7 = 25% solid, 75% empty    (sparse obstacles)
  *
  * Door openings (always 0, never 1):
- *   Left  exit: col  0, rows 6-9  (4 tiles tall, vertically centred)
- *   Right exit: col 31, rows 6-9  (4 tiles tall, vertically centred)
- *   Top   exit: row  0, cols 14-17 (4 tiles wide, horizontally centred)
- *   Bottom exit: row 15, cols 14-17 (4 tiles wide, horizontally centred)
+ *   Left  exit: col  0, rows 12-19 (8 tiles tall, vertically centred)
+ *   Right exit: col 47, rows 12-19 (8 tiles tall, vertically centred)
+ *   Top   exit: row  0, cols 20-27 (8 tiles wide, horizontally centred)
+ *   Bottom exit: row 31, cols 20-27 (8 tiles wide, horizontally centred)
  *
  * Outer border is solid (1) everywhere EXCEPT the door openings above.
  */
@@ -52,25 +52,25 @@ export interface RoomTemplate {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const TEMPLATE_W = 32;
-export const TEMPLATE_H = 16;
-export const TEMPLATE_PX_W = TEMPLATE_W * 16; // 512
-export const TEMPLATE_PX_H = TEMPLATE_H * 16; // 256
+export const TEMPLATE_W = 48;
+export const TEMPLATE_H = 32;
+export const TEMPLATE_PX_W = TEMPLATE_W * 16; // 768
+export const TEMPLATE_PX_H = TEMPLATE_H * 16; // 512
 
-// Door opening tile ranges (inclusive)
+// Door opening tile ranges (inclusive) — scaled for 48×32
 export const DOOR_LEFT_COL    = 0;
-export const DOOR_RIGHT_COL   = 31;
-export const DOOR_ROW_MIN     = 6;
-export const DOOR_ROW_MAX     = 9;
+export const DOOR_RIGHT_COL   = TEMPLATE_W - 1;  // 47
+export const DOOR_ROW_MIN     = 12;               // vertically centered door
+export const DOOR_ROW_MAX     = 19;               // 8 tiles tall
 export const DOOR_TOP_ROW     = 0;
-export const DOOR_BOTTOM_ROW  = 15;
-export const DOOR_COL_MIN     = 14;
-export const DOOR_COL_MAX     = 17;
+export const DOOR_BOTTOM_ROW  = TEMPLATE_H - 1;   // 31
+export const DOOR_COL_MIN     = 20;               // horizontally centered door
+export const DOOR_COL_MAX     = 27;               // 8 tiles wide
 
 // ─── Template helpers ────────────────────────────────────────────────────────
 
 /**
- * Build a full 16×32 border of 1s.
+ * Build a full TEMPLATE_H × TEMPLATE_W border of 1s.
  * Door openings are punched afterward by individual template definitions.
  */
 function solidBorder(): number[][] {
@@ -94,10 +94,10 @@ function punchLeft(grid: number[][]): void {
   }
 }
 
-/** Punch a right-wall door opening (rows 6-9, col 31 → 0). */
+/** Punch a right-wall door opening. */
 function punchRight(grid: number[][]): void {
   for (let r = DOOR_ROW_MIN; r <= DOOR_ROW_MAX; r++) {
-    grid[r][31] = 0;
+    grid[r][DOOR_RIGHT_COL] = 0;
   }
 }
 
@@ -108,10 +108,10 @@ function punchTop(grid: number[][]): void {
   }
 }
 
-/** Punch a bottom-wall door opening (row 15, cols 14-17 → 0). */
+/** Punch a bottom-wall door opening. */
 function punchBottom(grid: number[][]): void {
   for (let c = DOOR_COL_MIN; c <= DOOR_COL_MAX; c++) {
-    grid[15][c] = 0;
+    grid[DOOR_BOTTOM_ROW][c] = 0;
   }
 }
 
@@ -716,6 +716,51 @@ function makeBossU02(): RoomTemplate {
   return { name: 'boss_U_02', exits: ['U'], type: 'boss', grid };
 }
 
+// ─── Sample 48×32 entry room ─────────────────────────────────────────────────
+//
+// Simple box room with floor, platforms, and all 4 doors.
+// Used as fallback/entry template for the new 768×512 room size.
+//
+function makeSampleEntry(): RoomTemplate {
+  const grid = solidBorder();
+  // Floor at row 27
+  hLine(grid, 27, 1, TEMPLATE_W - 2, 1);
+  // Platforms for vertical traversal
+  hLine(grid, 20, 8, 18, 3);
+  hLine(grid, 20, 28, 38, 3);
+  hLine(grid, 13, 14, 32, 3);
+  // Punch all 4 doors
+  punchLeft(grid);
+  punchRight(grid);
+  punchTop(grid);
+  punchBottom(grid);
+  return { name: 'sample_LRUD', exits: ['L', 'R', 'U', 'D'], type: 'combat', grid };
+}
+
+function makeSampleStartD(): RoomTemplate {
+  const grid = solidBorder();
+  // Floor at row 27
+  hLine(grid, 27, 1, TEMPLATE_W - 2, 1);
+  // Landing platform
+  hLine(grid, 18, 16, 30, 3);
+  // Only bottom door
+  punchBottom(grid);
+  return { name: 'sample_start_D', exits: ['D'], type: 'start', grid };
+}
+
+function makeSampleBossU(): RoomTemplate {
+  const grid = solidBorder();
+  // Floor at row 27
+  hLine(grid, 27, 1, TEMPLATE_W - 2, 1);
+  // Arena platforms
+  hLine(grid, 22, 6, 14, 3);
+  hLine(grid, 22, 32, 40, 3);
+  hLine(grid, 16, 18, 28, 3);
+  // Only top door (enter from below)
+  punchTop(grid);
+  return { name: 'sample_boss_U', exits: ['U'], type: 'boss', grid };
+}
+
 // ─── Assemble ALL_TEMPLATES ──────────────────────────────────────────────────
 
 export const ALL_TEMPLATES: RoomTemplate[] = [
@@ -740,6 +785,10 @@ export const ALL_TEMPLATES: RoomTemplate[] = [
   makeDeadEndU(),
   makeBossU(),
   makeBossU02(),
+  // 48×32 sample templates
+  makeSampleEntry(),
+  makeSampleStartD(),
+  makeSampleBossU(),
 ];
 
 // ─── Probabilistic tile resolver ────────────────────────────────────────────

@@ -28,11 +28,18 @@ const LDTK_PATH = resolve(ROOT, 'game', 'public', 'assets', 'World_ProjectAbyss.
 const REQUIRED_AREA_IDS = [
   'world_shaft_bg',
   'world_shaft_wall',
-  'iw_normal_bg',    'iw_normal_wall',
-  'iw_magic_bg',     'iw_magic_wall',
-  'iw_rare_bg',      'iw_rare_wall',
-  'iw_legendary_bg', 'iw_legendary_wall',
-  'iw_ancient_bg',   'iw_ancient_wall',
+  // 11 theme-based pairs (DEC-030: rarity 5-pair → theme 11-pair)
+  'iw_habitat_bg',      'iw_habitat_wall',
+  'iw_security_bg',     'iw_security_wall',
+  'iw_foundry_bg',      'iw_foundry_wall',
+  'iw_biozone_bg',      'iw_biozone_wall',
+  'iw_archive_bg',      'iw_archive_wall',
+  'iw_logistics_bg',    'iw_logistics_wall',
+  'iw_command_bg',      'iw_command_wall',
+  'iw_malfunction_bg',  'iw_malfunction_wall',
+  'iw_breach_bg',       'iw_breach_wall',
+  'iw_coolant_bg',      'iw_coolant_wall',
+  'iw_echo_bg',         'iw_echo_wall',
 ];
 
 // ---------------------------------------------------------------------------

@@ -40,6 +40,8 @@ import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
+import { SecretWall } from '@entities/SecretWall';
+import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
 import { isInUpdraft, isInSpike } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
@@ -53,6 +55,8 @@ import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
+import { PauseMenu } from '@ui/PauseMenu';
+import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
@@ -161,7 +165,9 @@ export class LdtkWorldScene extends Scene {
   private loader!: LdtkLoader;
   private renderer!: LdtkRenderer;
   private procDecorator: ProceduralDecorator | null = null;
+  private _extraDecorators: ProceduralDecorator[] = [];
   private wallPaletteFilter: PaletteSwapFilter | null = null;
+  private naturalPaletteFilter: PaletteSwapFilter | null = null;
   private wallRimFilter: RimLightFilter | null = null;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
@@ -192,7 +198,11 @@ export class LdtkWorldScene extends Scene {
   private drops: ItemDropEntity[] = [];
   private inventoryUI!: InventoryUI;
   private hud!: HUD;
+  private uiSkin: UISkin | null = null;
   private controlsOverlay!: ControlsOverlay;
+  private pauseMenu!: PauseMenu;
+  private deathScreen!: DeathScreen;
+  private isPaused = false;
 
   // Room transition
   private transitionState: TransitionState = 'none';
@@ -285,23 +295,6 @@ export class LdtkWorldScene extends Scene {
   /** LDtk iid of the currently-spawned anvil (null when no anvil exists). */
   private currentAnvilIid: string | null = null;
   /**
-   * iids of anvils that have already been consumed (one-shot tutorial anvil).
-   * spawnAnvilFromLdtk skips these on every future level load so the anvil
-   * does not respawn. Persists across loadLevel / item-world round-trips.
-   *
-   * NOTE: 일반 앵빌은 반복 사용이 원칙이므로 여기 추가되지 않는다. 튜토리얼
-   * 앵빌(플레이어의 최초 다이브에 쓰인 앵빌)만 1회성으로 사라진다 —
-   * "첫 다이브는 스토리, 이후는 반복 파밍" 구조를 시각적으로 강조.
-   */
-  private usedAnvilIids: Set<string> = new Set();
-  /**
-   * 현재 다이브가 "튜토리얼 다이브(플레이어 최초)"인지 confirm 시점에서 캡처한 값.
-   * markFirstDiveDone() 이 confirm 직후 호출되므로, triggerFloorCollapse 타이밍에
-   * sacredSave.isFirstDiveDone() 을 다시 읽으면 항상 true → 판별 불가.
-   * 그래서 confirm 에서 캡처해 여기에 저장한 뒤 triggerFloorCollapse 에서 참조.
-   */
-  private collapseIsTutorial: boolean = false;
-  /**
    * Snapshot of the used anvil's position so the player can be returned next
    * to it after clearing the item world, even though the anvil itself is
    * gone by then.
@@ -329,6 +322,7 @@ export class LdtkWorldScene extends Scene {
   private switches: Switch[] = [];
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
+  private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 — handled in applyUpdrafts()
   private updraftSystem!: UpdraftSystem;
@@ -479,6 +473,16 @@ export class LdtkWorldScene extends Scene {
         tint: wallEntry.tint,
       });
       this.wallPaletteFilter = wallFilter;
+      this.naturalPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(wallEntry.id),
+        strength: 0.5,
+        depthBias: wallEntry.depthBias,
+        depthCenter: wallEntry.depthCenter,
+        brightness: wallEntry.brightness,
+        tint: wallEntry.tint,
+      });
       const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
       this.wallRimFilter = rimFilter;
       const interiorFilter = new PaletteSwapFilter({
@@ -547,6 +551,7 @@ export class LdtkWorldScene extends Scene {
 
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
+    this.uiSkin = hudSkin;
     hudSkin.load().then(() => this.hud.applySkin(hudSkin));
 
     // Controls overlay (disabled)
@@ -583,6 +588,28 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
+    // Pause menu (9-slice from UISkin)
+    this.pauseMenu = new PauseMenu(this.uiSkin);
+    this.pauseMenu.onAction = (action) => {
+      if (action === 'continue') { this.isPaused = false; }
+      else if (action === 'quit_confirmed') {
+        this.isPaused = false;
+        import('./TitleScene').then(({ TitleScene }) => {
+          this.game.sceneManager.replace(new TitleScene(this.game));
+        });
+      }
+    };
+    this.game.legacyUIContainer.addChild(this.pauseMenu.container);
+
+    // Death screen
+    this.deathScreen = new DeathScreen(this.uiSkin);
+    this.deathScreen.onRespawn = () => {
+      // Reload from last save point
+      this.loadLevel(this.playerSpawnLevelId, 'down');
+      this.player.hp = this.player.maxHp;
+    };
+    this.game.legacyUIContainer.addChild(this.deathScreen.container);
+
     // Tutorial hints
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
 
@@ -595,17 +622,18 @@ export class LdtkWorldScene extends Scene {
 
     // Inventory UI
     this.inventoryUI = new InventoryUI(this.inventory);
+    this.inventoryUI.setSkin(this.uiSkin!);
     this.game.legacyUIContainer.addChild(this.inventoryUI.container);
 
     // Sacred Pickup — LorePopup + DivePreview sit in the legacy UI layer so
     // they render above gameplay but under debug overlays.
-    this.lorePopup = new LorePopup();
+    this.lorePopup = new LorePopup(this.uiSkin);
     this.game.legacyUIContainer.addChild(this.lorePopup.container);
-    this.divePreview = new DivePreview();
+    this.divePreview = new DivePreview(this.uiSkin);
     this.game.legacyUIContainer.addChild(this.divePreview.container);
 
     // World Map overlay
-    this.worldMap = new WorldMapOverlay();
+    this.worldMap = new WorldMapOverlay(this.uiSkin);
     this.worldMap.setLoader(this.loader);
     this.worldMap.setRooms(this.loader.getWorldMap().filter(r => !r.id.startsWith('Debug_')));
     this.game.legacyUIContainer.addChild(this.worldMap.container);
@@ -694,10 +722,37 @@ export class LdtkWorldScene extends Scene {
       if (this.ending.isDone) {
         this.game.camera.setZoom(1.0);
         this.game.camera.clearBounds();
+        // Reset save on ending completion
+        SaveManager.deleteSave();
         import('./TitleScene').then(({ TitleScene }) => {
           this.game.sceneManager.replace(new TitleScene(this.game));
         });
       }
+      return;
+    }
+
+    // Pause menu handling (ESC toggle)
+    if (this.pauseMenu.visible) {
+      const input = this.game.input;
+      if (input.isJustPressed(GameAction.MENU)) { this.pauseMenu.cancel(); this.isPaused = false; }
+      else if (input.isJustPressed(GameAction.LOOK_UP)) this.pauseMenu.navigate('up');
+      else if (input.isJustPressed(GameAction.LOOK_DOWN)) this.pauseMenu.navigate('down');
+      else if (input.isJustPressed(GameAction.MOVE_LEFT)) this.pauseMenu.navigate('left');
+      else if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.pauseMenu.navigate('right');
+      else if (input.isJustPressed(GameAction.ATTACK)) this.pauseMenu.confirm();
+      return;
+    }
+    if (!this.deathScreen.visible && this.game.input.isJustPressed(GameAction.MENU)
+        && !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible) {
+      this.isPaused = true;
+      this.pauseMenu.open();
+      return;
+    }
+
+    // Death screen handling
+    if (this.deathScreen.visible) {
+      this.deathScreen.update(dt);
+      if (this.game.input.isJustPressed(GameAction.ATTACK)) this.deathScreen.confirm();
       return;
     }
 
@@ -1212,6 +1267,7 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
     this.checkAttackOnCrackedFloors();
+    this.checkAttackOnSecretWalls();
     this.checkAttackOnBreakables();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) {
@@ -1885,36 +1941,37 @@ export class LdtkWorldScene extends Scene {
     applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
 
-    // Procedural decorations (always on; ?noproc to disable)
+    // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
     if (!new URLSearchParams(window.location.search).has('noproc')) {
+      // Clear previous
+      if (this.procDecorator) {
+        if (this.procDecorator.naturalLayer.parent) this.procDecorator.naturalLayer.parent.removeChild(this.procDecorator.naturalLayer);
+        if (this.procDecorator.artificialLayer.parent) this.procDecorator.artificialLayer.parent.removeChild(this.procDecorator.artificialLayer);
+        if (this.procDecorator.structureLayer.parent) this.procDecorator.structureLayer.parent.removeChild(this.procDecorator.structureLayer);
+      }
+      for (const old of this._extraDecorators) {
+        if (old.naturalLayer.parent) old.naturalLayer.parent.removeChild(old.naturalLayer);
+        if (old.artificialLayer.parent) old.artificialLayer.parent.removeChild(old.artificialLayer);
+        if (old.structureLayer.parent) old.structureLayer.parent.removeChild(old.structureLayer);
+      }
+      this._extraDecorators = [];
+
       this.procDecorator ??= new ProceduralDecorator();
+      // Only apply theme if explicitly requested via URL (?theme=T-FOUNDRY)
+      const themeParam = new URLSearchParams(window.location.search).get('theme');
+      if (themeParam) this.procDecorator.setTheme(themeParam);
       this.procDecorator.clear();
       this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));
       if (this.wallPaletteFilter) {
-        // Wall palette at reduced strength — natural colors show through,
-        // then the full wall filter overlays on top for biome consistency.
-        const atlas = getAreaPaletteAtlas();
-        const wallEntry = getAreaPalette('world_shaft_wall');
-        const baseOpts = {
-          paletteTex: atlas.texture,
-          rowCount: atlas.rowCount,
-          row: getAreaPaletteRow(wallEntry.id),
-          depthBias: wallEntry.depthBias,
-          depthCenter: wallEntry.depthCenter,
-          brightness: wallEntry.brightness,
-          tint: wallEntry.tint,
-        };
-        const naturalFilter = new PaletteSwapFilter({ ...baseOpts, strength: 0.5 });
-        const structFilter = new PaletteSwapFilter({ ...baseOpts, strength: 1.0 });
-        this.procDecorator.detailLayer.filters = [naturalFilter];
-        this.procDecorator.structureLayer.filters = [structFilter];
+        this.procDecorator.naturalLayer.filters = [this.naturalPaletteFilter!];
+        this.procDecorator.artificialLayer.filters = [this.wallPaletteFilter];
+        this.procDecorator.structureLayer.filters = [this.wallPaletteFilter];
       }
-      // Structure layer behind walls (between bg and wall)
       const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
       this.renderer.container.addChildAt(this.procDecorator.structureLayer, structIdx);
-      // Detail layer in front of walls (between special and shadow)
       const detailIdx = this.renderer.container.getChildIndex(this.renderer.shadowLayer);
-      this.renderer.container.addChildAt(this.procDecorator.detailLayer, detailIdx);
+      this.renderer.container.addChildAt(this.procDecorator.naturalLayer, detailIdx);
+      this.renderer.container.addChildAt(this.procDecorator.artificialLayer, detailIdx + 1);
     }
 
     // Parallax background — only rebuild on first load (skip on room transitions
@@ -1968,6 +2025,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnSwitches(level);
     this.spawnGrowingWalls(level);
     this.spawnCrackedFloors(level);
+    this.spawnSecretWalls(level);
     this.spawnSpikes(level);
     this.spawnCollapsingPlatforms(level);
 
@@ -2480,11 +2538,22 @@ export class LdtkWorldScene extends Scene {
     const hasNeighbor = (dir: 'n' | 's' | 'e' | 'w') =>
       (level.dirNeighbors[dir]?.length ?? 0) > 0;
 
+    // Check if any neighbor in a direction has a save point
+    const neighborHasSave = (dir: 'n' | 's' | 'e' | 'w'): boolean => {
+      const neighbors = level.dirNeighbors[dir] ?? [];
+      for (const nId of neighbors) {
+        const nLevel = this.loader.getLevel(nId);
+        if (nLevel?.entities.some(e => e.type === 'SavePoint')) return true;
+      }
+      return false;
+    };
+
     const addRuns = (
       dir: ExitGlowDir,
       count: number,
       isPassableAt: (i: number) => boolean,
       toWorld: (runStart: number, runLen: number) => { x: number; y: number; span: number },
+      isSaveRoom: boolean,
     ) => {
       let i = 0;
       while (i < count) {
@@ -2492,7 +2561,7 @@ export class LdtkWorldScene extends Scene {
         let j = i;
         while (j < count && isPassableAt(j)) j++;
         const { x, y, span } = toWorld(i, j - i);
-        const glow = new ExitGlow(dir, x, y, span);
+        const glow = new ExitGlow(dir, x, y, span, isSaveRoom);
         this.entityLayer.addChild(glow.container);
         this.exitGlows.push(glow);
         i = j;
@@ -2504,6 +2573,7 @@ export class LdtkWorldScene extends Scene {
       addRuns('right', H,
         (r) => passable(grid[r]?.[W - 1]),
         (rs, rl) => ({ x: W * TS, y: rs * TS, span: rl * TS }),
+        neighborHasSave('e'),
       );
     }
     // Left edge: column 0
@@ -2511,6 +2581,7 @@ export class LdtkWorldScene extends Scene {
       addRuns('left', H,
         (r) => passable(grid[r]?.[0]),
         (rs, rl) => ({ x: 0, y: rs * TS, span: rl * TS }),
+        neighborHasSave('w'),
       );
     }
     // Bottom edge: row H-1
@@ -2518,6 +2589,7 @@ export class LdtkWorldScene extends Scene {
       addRuns('down', W,
         (c) => passable(grid[H - 1]?.[c]),
         (cs, cl) => ({ x: cs * TS, y: H * TS, span: cl * TS }),
+        neighborHasSave('s'),
       );
     }
     // Top edge: row 0
@@ -2525,6 +2597,7 @@ export class LdtkWorldScene extends Scene {
       addRuns('up', W,
         (c) => passable(grid[0]?.[c]),
         (cs, cl) => ({ x: cs * TS, y: 0, span: cl * TS }),
+        neighborHasSave('n'),
       );
     }
   }
@@ -2601,6 +2674,143 @@ export class LdtkWorldScene extends Scene {
       cf.injectCollision(this.collisionGrid);
       this.crackedFloors.push(cf);
       this.entityLayer.addChild(cf.container);
+    }
+  }
+
+  private spawnSecretWalls(level: LdtkLevel): void {
+    for (const sw of this.secretWalls) sw.destroy();
+    this.secretWalls = [];
+
+    const entities = level.entities.filter(e => e.type === 'SecretWall');
+    for (const ent of entities) {
+      const key = `secret_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
+      // Already destroyed in a previous session
+      if (this.unlockedEvents.has(key)) continue;
+
+      const mode = ((ent.fields['Mode'] ?? 'Item') as string).toLowerCase() as 'item' | 'passage';
+      const hintAlpha = (ent.fields['HintAlpha'] as number) ?? 0.08;
+      // LDtk enum uses PascalCase (Sword_normal), master sheet uses lowercase (sword_normal)
+      const rawItemId = (ent.fields['ItemId'] as string) ?? null;
+      const itemId = rawItemId ? rawItemId.toLowerCase() : null;
+
+      const wall = new SecretWall({
+        x: ent.px[0],
+        y: ent.px[1],
+        width: ent.width,
+        height: ent.height,
+        mode,
+        hintAlpha,
+      });
+      (wall as any)._key = key;
+      (wall as any)._itemId = itemId;
+      // IntGrid is already solid(1) — just record which cells to clear on break
+      wall.recordCollision(this.collisionGrid);
+      this.secretWalls.push(wall);
+      // Add to wallLayer so PaletteSwapFilter applies to hint cracks
+      this.renderer.wallLayer.addChild(wall.container);
+    }
+  }
+
+  private checkAttackOnSecretWalls(): void {
+    if (!this.player.isAttackActive()) return;
+
+    const step = this.player.getAttackStep(this.player.comboIndex);
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    const dirX = (this.player.facingRight ?? true) ? 1 : -1;
+
+    for (let i = this.secretWalls.length - 1; i >= 0; i--) {
+      const wall = this.secretWalls[i];
+      if (wall.destroyed) continue;
+      if (!aabbOverlap(hitbox, wall.getHitAABB())) continue;
+
+      // Break the wall
+      if (wall.break(this.collisionGrid, this.game, dirX)) {
+        const key = (wall as any)._key as string;
+        if (key) this.unlockedEvents.add(key);
+
+        // Erase the AutoTile wall sprites at this position
+        this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height);
+
+        // Mode=Item: spawn item drop at wall center
+        if (wall.mode === 'item') {
+          const itemId = (wall as any)._itemId as string | null;
+          if (itemId) {
+            this.spawnFixedItemAt(wall.centerX, wall.centerY, itemId);
+          } else {
+            // No ItemId set — random weapon drop (minimum Rare)
+            const pool = SWORD_DEFS.filter(d => d.rarity !== 'normal');
+            const def = pool[Math.floor(Math.random() * pool.length)] ?? SWORD_DEFS[0];
+            const item = createItem(def, def.rarity);
+            const drop = new ItemDropEntity(wall.centerX, wall.centerY, item);
+            this.drops.push(drop);
+            this.entityLayer.addChild(drop.container);
+          }
+          this.toast.show('Secret Found!', 0xffd700);
+        } else {
+          this.toast.show('Path Opened!', 0x44ffaa);
+        }
+
+        wall.destroy();
+        this.secretWalls.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Spawn an item by master ItemID. Handles weapons, currency, consumables.
+   * Uses Content_Item_Master.csv as the unified registry.
+   */
+  private spawnFixedItemAt(x: number, y: number, itemId: string, itemKey?: string): void {
+    const master = getMasterItem(itemId);
+    if (!master) {
+      // Fallback: try direct weapon lookup for backwards compatibility
+      const loreDef = LORE_WEAPONS.get(itemId);
+      const def: WeaponDef = loreDef
+        ? loreWeaponToWeaponDef(loreDef)
+        : (SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0]);
+      const item = createItem(def, def.rarity);
+      const drop = new ItemDropEntity(x, y, item);
+      if (itemKey) (drop as any)._itemKey = itemKey;
+      this.drops.push(drop);
+      this.entityLayer.addChild(drop.container);
+      return;
+    }
+
+    switch (master.category) {
+      case 'weapon': {
+        const key = master.sourceKey;
+        const loreDef = master.sourceSheet === 'Weapon_Lore' ? LORE_WEAPONS.get(key) : null;
+        const def: WeaponDef = loreDef
+          ? loreWeaponToWeaponDef(loreDef)
+          : (SWORD_DEFS.find(d => d.id === key) ?? SWORD_DEFS[0]);
+        const item = createItem(def, def.rarity);
+        const drop = new ItemDropEntity(x, y, item);
+        if (itemKey) (drop as any)._itemKey = itemKey;
+        this.drops.push(drop);
+        this.entityLayer.addChild(drop.container);
+        break;
+      }
+      case 'currency': {
+        const match = master.name.match(/\((\d+)\)/);
+        const amount = match ? parseInt(match[1], 10) : 100;
+        const gp = new GoldPickup(x, y, amount);
+        if (itemKey) (gp as any)._key = itemKey;
+        this.goldPickups.push(gp);
+        this.entityLayer.addChild(gp.container);
+        break;
+      }
+      case 'consumable': {
+        this.toast.show(master.name, 0x44ff88);
+        break;
+      }
+      default:
+        break;
     }
   }
 
@@ -3000,22 +3210,13 @@ export class LdtkWorldScene extends Scene {
 
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
-          // Lore weapons (hand-placed, Elden Ring-style) take precedence over
-          // generic sword drops. Their combat stats inherit from the matching
-          // rarity sword template since LoreWeapon CSV only tracks baseAtk.
-          const loreDef = itemId ? LORE_WEAPONS.get(itemId) : null;
-          const def: WeaponDef = loreDef
-            ? loreWeaponToWeaponDef(loreDef)
-            : (SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0]);
-          const item = createItem(def, def.rarity);
-          const drop = new ItemDropEntity(ent.px[0], ent.px[1], item);
-          (drop as any)._itemKey = itemKey;
-          this.drops.push(drop);
-          this.entityLayer.addChild(drop.container);
+          // Use unified spawnFixedItemAt which handles weapons, currency,
+          // consumables via Content_Item_Master.csv lookup.
+          this.spawnFixedItemAt(ent.px[0], ent.px[1], itemId, itemKey);
           trackItemDrop({
             source: 'hand_placed',
-            item_id: def.id,
-            item_rarity: def.rarity,
+            item_id: itemId,
+            item_rarity: getMasterItem(itemId)?.rarity ?? 'normal',
             level_id: level.identifier,
           });
           break;
@@ -3025,11 +3226,11 @@ export class LdtkWorldScene extends Scene {
           const spx = ent.px[0] + ent.width / 2;
           const spy = ent.px[1] - ent.height / 2;
           const marker = new Graphics();
-          marker.rect(-8, -8, 16, 16).fill({ color: 0x44ffaa, alpha: 0.6 });
-          marker.rect(-8, -8, 16, 16).stroke({ color: 0x44ffaa, width: 1 });
+          marker.rect(-12, -12, 24, 24).fill({ color: 0x2244cc, alpha: 0.85 });
+          marker.rect(-12, -12, 24, 24).stroke({ color: 0x3366ff, width: 2 });
           // Pulsing diamond inside
-          marker.moveTo(0, -5).lineTo(5, 0).lineTo(0, 5).lineTo(-5, 0).closePath()
-            .fill({ color: 0xffffff, alpha: 0.4 });
+          marker.moveTo(0, -7).lineTo(7, 0).lineTo(0, 7).lineTo(-7, 0).closePath()
+            .fill({ color: 0x88aaff, alpha: 0.5 });
           marker.x = spx;
           marker.y = spy;
           this.entityLayer.addChild(marker);
@@ -3535,7 +3736,16 @@ export class LdtkWorldScene extends Scene {
         this.hud.updateATK(this.player.atk);
       }
     }
-    if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
+    if (input.isJustPressed(GameAction.JUMP)) {
+      this.inventoryUI.toggleCompare();
+    }
+    if (input.isJustPressed(GameAction.MENU)) {
+      if (this.inventoryUI.isAnvilMode()) {
+        this.inventoryUI.cancelAnvil();
+      } else {
+        this.inventoryUI.close();
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -3726,7 +3936,6 @@ export class LdtkWorldScene extends Scene {
       let best: { d: number; x: number; y: number } | null = null;
       for (const ent of this.currentLevel.entities) {
         if (ent.type !== 'Anvil') continue;
-        if (this.usedAnvilIids.has(ent.iid)) continue;
         // LDtk Anvil entity 의 pivot 도 bottom-center 로 설정돼 있어
         // ent.px[1] 이 시각적 바닥. top-center 로 끌어올린다.
         const ex = ent.px[0];
@@ -4054,15 +4263,14 @@ export class LdtkWorldScene extends Scene {
     }
     this.currentAnvilIid = null;
 
-    // Skip anvils already consumed — they are one-shot per item-world run.
     const anvilEnts = level.entities.filter(
-      e => e.type === 'Anvil' && !this.usedAnvilIids.has(e.iid),
+      e => e.type === 'Anvil',
     );
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
       this.anvil = new Anvil(ent.px[0], ent.px[1]);
       this.currentAnvilIid = ent.iid;
-      this.entityLayer.addChild(this.anvil.container);
+      this.entityLayer.addChildAt(this.anvil.container, 0);
       return;
     }
 
@@ -4073,7 +4281,7 @@ export class LdtkWorldScene extends Scene {
       const ent = altarEnts[0];
       this.anvil = new Anvil(ent.px[0], ent.px[1]);
       this.currentAnvilIid = ent.iid;
-      this.entityLayer.addChild(this.anvil.container);
+      this.entityLayer.addChildAt(this.anvil.container, 0);
     }
   }
 
@@ -4178,9 +4386,6 @@ export class LdtkWorldScene extends Scene {
     if (this.divePreview) {
       const confirm = () => {
         if (!this.anvil) return;
-        // 튜토리얼 앵빌 판별: markFirstDiveDone() 호출 "전"에 캡처해야
-        // 이후 triggerFloorCollapse 에서 anvil 소모 여부를 정확히 결정할 수 있다.
-        this.collapseIsTutorial = !sacredSave.isFirstDiveDone();
         sacredSave.markFirstDiveDone();
         this.anvil.placeItem(item);
         this.collapseItem = item;
@@ -4196,7 +4401,6 @@ export class LdtkWorldScene extends Scene {
       return;
     }
     // Fallback path if preview unavailable.
-    this.collapseIsTutorial = !sacredSave.isFirstDiveDone();
     sacredSave.markFirstDiveDone();
     this.anvil.placeItem(item);
     this.collapseItem = item;
@@ -4319,14 +4523,7 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // 튜토리얼 앵빌만 consume — 일반 앵빌은 반복 사용이 원칙.
-    // Mark BEFORE the item-world round-trip so the returning loadLevel() in
-    // onComplete skips it and the anvil entity is never respawned. Snapshot
-    // position since the Anvil instance itself is destroyed by the upcoming
-    // level reload.
-    if (this.currentAnvilIid && this.collapseIsTutorial) {
-      this.usedAnvilIids.add(this.currentAnvilIid);
-    }
+    // All anvils are reusable — snapshot position for player return point.
     this.lastUsedAnvilPos = {
       x: this.anvil.x,
       y: this.anvil.y,
@@ -4334,27 +4531,24 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
 
-    // MemoryDive 시퀀스 (FloorCollapse 비활성화 — 모듈은 유지)
+    // ARCHIVED: MemoryDive sequence — replaced by anvil gate FX019 activation
+    // The anvil's placeItem() already triggers FX019 + item icon display.
+    // We just need hitstop + flash + delayed entry.
     sacredSave.incrementDive(this.collapseItem.def.id);
 
-    const diveCount = sacredSave.getDiveCount(this.collapseItem.def.id);
-    const dive = new MemoryDive(
-      this.anvil.x,
-      this.anvil.y,
-      this.collapseItem.rarity,
-      { diveCount },
-    );
-    dive.onShake = (intensity) => this.game.camera.shake(intensity);
-    dive.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-    dive.onScreenFlash = (color, intensity) => this.screenFlash.flash(color, intensity);
+    // Hitstop freeze so player sees the FX + icon on the gate
+    this.game.hitstopFrames = 8; // short hit freeze
 
-    this.memoryDive = dive;
-    this.entityLayer.addChild(dive.container);
-
-    // Hit sparks at anvil position
+    // Short hit feedback + zoom into anvil
+    this.game.camera.shake(3);
+    this.game.camera.zoomTo(2, 0.03);
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    dive.start();
+    // Warp when FX019 animation completes (icon scales up → screen transition)
+    this.anvil.onFxComplete = () => {
+      this.game.camera.setZoom(1.0);
+      this.completeFloorCollapseEntry();
+    };
   }
 
   /** Rarity ??ItemTunnel level name mapping. */

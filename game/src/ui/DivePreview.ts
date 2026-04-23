@@ -16,6 +16,8 @@ import { ItemImage } from './ItemImage';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, createModalPanel } from './ModalPanel';
+import type { UISkin } from './UISkin';
 
 /** Floors per rarity — matches LorePopup STRATA_BY_RARITY table. */
 const STRATA_BY_RARITY: Record<string, number> = {
@@ -35,8 +37,10 @@ export class DivePreview {
   private mode: Mode = 'hidden';
   private onConfirm: (() => void) | null = null;
   private onCancel: (() => void) | null = null;
+  private skin: UISkin | null = null;
 
-  constructor() {
+  constructor(skin?: UISkin | null) {
+    this.skin = skin ?? null;
     this.container = new Container();
     this.container.visible = false;
 
@@ -109,40 +113,41 @@ export class DivePreview {
   }
 
   private drawFullPanel(item: ItemInstance): void {
+    // Clear everything and rebuild with overlay + 9-slice panel
     this.clearChildren(this.panel);
     this.overlay.clear();
-    this.overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.6 });
 
     const W = 260;
     const H = 180;
-    const px = Math.floor((GAME_WIDTH - W) / 2);
-    const py = Math.floor((GAME_HEIGHT - H) / 2);
     const rColor = RARITY_COLOR[item.rarity];
 
-    const bg = new Graphics();
-    bg.rect(0, 0, W, H).fill({ color: 0x1a1a2e, alpha: 0.96 });
-    bg.rect(0, 0, W, H).stroke({ color: rColor, width: 1 });
-    bg.x = px;
-    bg.y = py;
-    this.panel.addChild(bg);
+    // Remove old children, rebuild via createModalPanel
+    this.container.removeChildren();
+    const { overlay, panel } = createModalPanel(this.skin, W, H);
+    this.overlay = overlay;
+    this.container.addChild(this.overlay);
+    this.panel = panel;
+    this.container.addChild(this.panel);
+
+    // All coordinates are now panel-local (0,0 = top-left of panel).
 
     // Title.
     const title = new BitmapText({
       text: 'DIVE INTO MEMORY',
       style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: 0xffcc44 },
     });
-    title.x = px + 12;
-    title.y = py + 10;
+    title.x = 12;
+    title.y = 10;
     this.panel.addChild(title);
 
     // Item portrait — 32px icon.
     const ICON_SIZE = 32;
     const image = new ItemImage(item, ICON_SIZE);
-    image.container.x = px + 12;
-    image.container.y = py + 26;
+    image.container.x = 12;
+    image.container.y = 26;
     this.panel.addChild(image.container);
 
-    const textX = px + 12 + ICON_SIZE + 10;
+    const textX = 12 + ICON_SIZE + 10;
 
     // Item name.
     const nameText = new BitmapText({
@@ -150,7 +155,7 @@ export class DivePreview {
       style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rColor },
     });
     nameText.x = textX;
-    nameText.y = py + 28;
+    nameText.y = 28;
     this.panel.addChild(nameText);
 
     // Rarity badge.
@@ -159,7 +164,7 @@ export class DivePreview {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: rColor },
     });
     rarityText.x = textX;
-    rarityText.y = py + 44;
+    rarityText.y = 44;
     this.panel.addChild(rarityText);
 
     // Stratum quick stat beside portrait.
@@ -169,13 +174,12 @@ export class DivePreview {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
     });
     stratumInline.x = textX;
-    stratumInline.y = py + 58;
+    stratumInline.y = 58;
     this.panel.addChild(stratumInline);
 
-    // Divider below portrait row. 아이콘이 64px 로 커지면서 아래쪽 여백이
-    // 줄었으므로 icon 하단(py+90) 아래로 밀어 겹침 방지.
+    // Divider below portrait row.
     const div = new Graphics();
-    div.rect(px + 12, py + 96, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
+    div.rect(12, 96, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
     this.panel.addChild(div);
 
     // Reward hint.
@@ -183,41 +187,41 @@ export class DivePreview {
       { text: 'Estimated reward:',                    color: 0xaaaaaa },
       { text: 'XP, Innocents, Fragments',             color: 0xffffff },
     ];
-    let ly = py + 104;
+    let ly = 104;
     for (const line of lines) {
       const t = new BitmapText({
         text: line.text,
         style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: line.color },
       });
-      t.x = px + 12;
+      t.x = 12;
       t.y = ly;
       this.panel.addChild(t);
       ly += 12;
     }
 
     // Prompts row.
-    const promptY = py + H - 18;
+    const promptY = H - 18;
     const dIcon = KeyPrompt.createKeyIcon('C', 10);
-    dIcon.x = px + 12;
+    dIcon.x = 12;
     dIcon.y = promptY;
     this.panel.addChild(dIcon);
     const dLabel = new BitmapText({
       text: 'DIVE',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
     });
-    dLabel.x = px + 26;
+    dLabel.x = 26;
     dLabel.y = promptY + 1;
     this.panel.addChild(dLabel);
 
     const cIcon = KeyPrompt.createKeyIcon('ESC', 10);
-    cIcon.x = px + W - 78;
+    cIcon.x = W - 78;
     cIcon.y = promptY;
     this.panel.addChild(cIcon);
     const cLabel = new BitmapText({
       text: 'CANCEL',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
-    cLabel.x = px + W - 60;
+    cLabel.x = W - 60;
     cLabel.y = promptY + 1;
     this.panel.addChild(cLabel);
   }
@@ -233,7 +237,7 @@ export class DivePreview {
 
     const bg = new Graphics();
     bg.roundRect(8, y, GAME_WIDTH - 16, H, 2).fill({ color: 0x000000, alpha: 0.75 });
-    bg.roundRect(8, y, GAME_WIDTH - 16, H, 2).stroke({ color: rColor, width: 1 });
+    bg.roundRect(8, y, GAME_WIDTH - 16, H, 2).stroke({ color: MODAL_BORDER, width: MODAL_BORDER_W });
     this.panel.addChild(bg);
 
     // Compact 14x14 thumbnail inline with the text.

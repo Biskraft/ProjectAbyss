@@ -24,6 +24,8 @@ import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { sacredSave, getWeaponLore } from '@save/PlayerSave';
+import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, createModalPanel } from './ModalPanel';
+import type { UISkin } from './UISkin';
 
 /** 레어리티별 기억의 지층 개수 — GDD §레어리티 체계 기준. */
 const STRATA_BY_RARITY: Record<string, number> = {
@@ -61,6 +63,7 @@ export class LorePopup {
   private inputLockMs = 0;
   /** 이번 show() 에서 설정한 총 잠금 길이(ms). 프로그레스 아크 비율 계산용. */
   private totalLockMs = INPUT_LOCK_FIRST_MS;
+  private skin: UISkin | null = null;
 
   // [C] CLOSE 프롬프트 — dim/arc 갱신을 위해 참조를 저장.
   private closePrompt: Container | null = null;
@@ -70,12 +73,12 @@ export class LorePopup {
   /** closePrompt 아이콘 크기 — 링 반경 산출에 사용. */
   private closePromptSize = 10;
 
-  constructor() {
+  constructor(skin?: UISkin | null) {
+    this.skin = skin ?? null;
     this.container = new Container();
     this.container.visible = false;
 
     this.overlay = new Graphics();
-    this.overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.6 });
     this.container.addChild(this.overlay);
 
     this.panel = new Container();
@@ -178,30 +181,26 @@ export class LorePopup {
   // ---------------------------------------------------------------------------
 
   private drawPanel(item: ItemInstance): void {
-    // 기존 패널 내용 초기화.
-    for (const child of [...this.panel.children]) {
-      this.panel.removeChild(child);
-      child.destroy?.({ children: true });
-    }
+    // 기존 내용 초기화 (overlay + panel 모두).
+    this.container.removeChildren();
 
     // H 136 = 아이콘 32 + 위아래 여백 + 본문/스탯/프롬프트 행.
     const W = 220;
     const H = 136;
-    const px = Math.floor((GAME_WIDTH - W) / 2);
-    const py = Math.floor((GAME_HEIGHT - H) / 2);
 
-    const bg = new Graphics();
-    bg.rect(0, 0, W, H).fill({ color: 0x1a1a2e, alpha: 0.96 });
-    bg.rect(0, 0, W, H).stroke({ color: RARITY_COLOR[item.rarity], width: 1 });
-    bg.x = px;
-    bg.y = py;
-    this.panel.addChild(bg);
+    const { overlay, panel } = createModalPanel(this.skin, W, H);
+    this.overlay = overlay;
+    this.container.addChild(this.overlay);
+    this.panel = panel;
+    this.container.addChild(this.panel);
+
+    // Panel is already centered by createModalPanel — use panel-local coords (0,0 = top-left of panel).
 
     // 아이템 포트레이트 32×32.
     const rColor = RARITY_COLOR[item.rarity];
     const ICON_SIZE = 32;
-    const ICON_X = px + 12;
-    const ICON_Y = py + 12;
+    const ICON_X = 12;
+    const ICON_Y = 12;
     // 텍스트 좌측 = 아이콘 오른쪽 + 8px 여백.
     const TEXT_X = ICON_X + ICON_SIZE + 8;
     const image = new ItemImage(item, ICON_SIZE);
@@ -215,7 +214,7 @@ export class LorePopup {
       style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rColor },
     });
     nameText.x = TEXT_X;
-    nameText.y = py + 14;
+    nameText.y = 14;
     this.panel.addChild(nameText);
 
     // 레어리티 뱃지
@@ -224,12 +223,12 @@ export class LorePopup {
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: rColor },
     });
     rarityText.x = TEXT_X;
-    rarityText.y = py + 28;
+    rarityText.y = 28;
     this.panel.addChild(rarityText);
 
     // Lore 2줄 (8px)
     const lore = getWeaponLore(item.def.id, item.def.name, item.rarity);
-    let ly = py + 44;
+    let ly = 44;
     for (const line of lore) {
       const t = new BitmapText({
         text: line,
@@ -241,9 +240,9 @@ export class LorePopup {
       ly += 10;
     }
 
-    // 구분선 — 아이콘 하단(py+76) 아래로 14px 여유를 두고 배치.
+    // 구분선 — 아이콘 하단 아래로 14px 여유를 두고 배치.
     const div = new Graphics();
-    div.rect(px + 12, py + 90, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
+    div.rect(12, 90, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
     this.panel.addChild(div);
 
     // 스탯
@@ -252,8 +251,8 @@ export class LorePopup {
       text: statLine,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
     });
-    stat.x = px + 12;
-    stat.y = py + 98;
+    stat.x = 12;
+    stat.y = 98;
     this.panel.addChild(stat);
 
     // Memory Strata
@@ -262,15 +261,15 @@ export class LorePopup {
       text: `Memory Strata: ${strata} Floors`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
     });
-    strataText.x = px + 12;
-    strataText.y = py + 112;
+    strataText.x = 12;
+    strataText.y = 112;
     this.panel.addChild(strataText);
 
     // [C] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).
     const iconSize = 10;
     const closePrompt = KeyPrompt.createKeyIcon('C', iconSize);
-    closePrompt.x = px + W - 72;
-    closePrompt.y = py + H - 18;
+    closePrompt.x = W - 72;
+    closePrompt.y = H - 18;
     this.panel.addChild(closePrompt);
 
     // 잠금 wipe-ring — closePrompt 위에 자식으로 얹어 좌표를 공유.
@@ -281,8 +280,8 @@ export class LorePopup {
       text: 'CLOSE',
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
-    closeLabel.x = px + W - 58;
-    closeLabel.y = py + H - 16;
+    closeLabel.x = W - 58;
+    closeLabel.y = H - 16;
     this.panel.addChild(closeLabel);
 
     // update() 가 dim/arc 을 갱신할 수 있도록 참조 캐시.

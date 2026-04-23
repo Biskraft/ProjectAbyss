@@ -67,6 +67,8 @@ export interface WeaponDef {
   range: number;
   hitboxW: number;
   hitboxH: number;
+  /** Item World visual theme. e.g. "T-HABITAT", "T-FOUNDRY" */
+  themeId: string;
 }
 
 /**
@@ -92,5 +94,6 @@ for (let i = 1; i < lines.length; i++) {
     range: parseInt(cols[6]),
     hitboxW: parseInt(cols[7]),
     hitboxH: parseInt(cols[8]),
+    themeId: (cols[9] ?? 'T-HABITAT').trim(),
   });
 }

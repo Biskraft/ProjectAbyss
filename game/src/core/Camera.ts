@@ -54,14 +54,14 @@ export class Camera {
 
   /** Instantly set zoom level (no lerp) */
   setZoom(value: number): void {
-    const clamped = Math.max(0.01, Math.min(1.0, value));
+    const clamped = Math.max(0.01, Math.min(4.0, value));
     this.zoom = clamped;
     this.targetZoom = clamped;
   }
 
   /** Smoothly transition to target zoom */
   zoomTo(target: number, lerp?: number): void {
-    this.targetZoom = Math.max(0.01, Math.min(1.0, target));
+    this.targetZoom = Math.max(0.01, Math.min(4.0, target));
     if (lerp !== undefined) this.zoomSpeed = lerp;
   }
 
