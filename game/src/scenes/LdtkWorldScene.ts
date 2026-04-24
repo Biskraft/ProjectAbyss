@@ -121,6 +121,8 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { PRNG } from '@utils/PRNG';
+import { WorldUiController } from './world/WorldUiController';
+import { WorldTransitionController } from './world/WorldTransitionController';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
@@ -146,10 +148,10 @@ const FADE_DURATION = 200;
 
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // Load Overworld + ItemTunnel worlds into the same loader so the existing
-// tunnel flow (floor collapse → loadLevel('ItemTunnel_*') → enter item world)
+// tunnel flow (floor collapse ??loadLevel('ItemTunnel_*') ??enter item world)
 // keeps working after tunnels were moved out of the Overworld world.
 const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
-// AreaIDs used by the overworld — Content_System_Area_Palette.csv's Tileset
+// AreaIDs used by the overworld ??Content_System_Area_Palette.csv's Tileset
 // column drives which atlases get loaded for this scene.
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
@@ -223,6 +225,8 @@ export class LdtkWorldScene extends Scene {
 
   // Tutorial hints
   private tutorialHint!: TutorialHint;
+  private uiController!: WorldUiController;
+  private transitionController!: WorldTransitionController;
   private playerSpawnLevelId = '';
 
   // Toast, damage numbers & Sakurai hit effects
@@ -282,7 +286,7 @@ export class LdtkWorldScene extends Scene {
   private memoryDive: MemoryDive | null = null;
   private collapseItem: ItemInstance | null = null;
 
-  // Sacred Pickup — weapon pickup cutscene + lore popup + dive preview.
+  // Sacred Pickup ??weapon pickup cutscene + lore popup + dive preview.
   private lorePopup: LorePopup | null = null;
   /** Item awaiting its LorePopup (set by sacredPickupFlow, consumed once pulse finishes). */
   private lorePopupItem: ItemInstance | null = null;
@@ -324,9 +328,9 @@ export class LdtkWorldScene extends Scene {
   private crackedFloors: CrackedFloor[] = [];
   private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
-  // Updraft: IntGrid value 4 — handled in applyUpdrafts()
+  // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
   private updraftSystem!: UpdraftSystem;
-  // Breakable tile (IntGrid 9) hit tracking — 3 hits to destroy
+  // Breakable tile (IntGrid 9) hit tracking ??3 hits to destroy
   private breakableHits: Map<string, number> = new Map();
   private breakableHitThisSwing: Set<string> = new Set();
   private breakableLastCombo = -1;
@@ -342,15 +346,15 @@ export class LdtkWorldScene extends Scene {
   private ending!: EndingSequence;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
   /**
-   * Exit Light Bleed — 방 가장자리의 열린 구간(이웃 방이 있는 쪽)에 주황 글로우를
-   * 띄워 "이곳이 출구"라는 공통 시각 언어를 제공한다.
+   * Exit Light Bleed ??�?가?�자리의 ?�린 구간(?�웃 방이 ?�는 �???주황 글로우�?
+   * ?�워 "?�곳??출구"?�는 공통 ?�각 ?�어�??�공?�다.
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    */
   private exitGlows: ExitGlow[] = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
-  /** Pattern D (proximity-interaction) 라우터 — 세이브/앤빌/제단 통합 관리. */
+  /** Pattern D (proximity-interaction) ?�우?????�이�??�빌/?�단 ?�합 관�? */
   private proximity: ProximityRouter = new ProximityRouter();
 
   constructor(game: Game) {
@@ -359,9 +363,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Pattern D 핸들러 등록. 우선순위 규약:
+   * Pattern D ?�들???�록. ?�선?�위 규약:
    *   Altar(30) > Anvil(20) > SavePoint(10)
-   * 핸들러는 `this.*` 를 closure 로 참조하므로 재등록 불요.
+   * ?�들?�는 `this.*` �?closure �?참조?��?�??�등�?불요.
    */
   private registerProximityHandlers(): void {
     const anvil: ProximityInteraction = {
@@ -400,7 +404,7 @@ export class LdtkWorldScene extends Scene {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
 
-    // Fetch and parse LDtk project (multi-world → pick Overworld)
+    // Fetch and parse LDtk project (multi-world ??pick Overworld)
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
     this.loader = new LdtkLoader();
     this.loader.load(json, LDTK_WORLD_IDS);
@@ -435,15 +439,15 @@ export class LdtkWorldScene extends Scene {
       this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
       Object.values(this.atlases)[0];
 
-    // Parallax background — behind everything
+    // Parallax background ??behind everything
     this.parallaxBG = new ParallaxBackground();
     this.container.addChild(this.parallaxBG.container);
 
-    // LDtk renderer — tiles only, no entity markers in production
+    // LDtk renderer ??tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
 
-    // Dead Cells-style palette swap filter — production default.
+    // Dead Cells-style palette swap filter ??production default.
     // Data-driven via Sheets/Content_System_Area_Palette.csv: rows for
     // "world_shaft_bg" / "world_shaft_wall" supply stops + depth/brightness
     // params. Atlas is a single shared GPU texture with one row per AreaID.
@@ -625,7 +629,7 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI.setSkin(this.uiSkin!);
     this.game.legacyUIContainer.addChild(this.inventoryUI.container);
 
-    // Sacred Pickup — LorePopup + DivePreview sit in the legacy UI layer so
+    // Sacred Pickup ??LorePopup + DivePreview sit in the legacy UI layer so
     // they render above gameplay but under debug overlays.
     this.lorePopup = new LorePopup(this.uiSkin);
     this.game.legacyUIContainer.addChild(this.lorePopup.container);
@@ -637,6 +641,19 @@ export class LdtkWorldScene extends Scene {
     this.worldMap.setLoader(this.loader);
     this.worldMap.setRooms(this.loader.getWorldMap().filter(r => !r.id.startsWith('Debug_')));
     this.game.legacyUIContainer.addChild(this.worldMap.container);
+
+    this.transitionController = new WorldTransitionController();
+    this.uiController = new WorldUiController(this.game, {
+      hud: this.hud,
+      pauseMenu: this.pauseMenu,
+      deathScreen: this.deathScreen,
+      tutorialHint: this.tutorialHint,
+      inventoryUI: this.inventoryUI,
+      worldMap: this.worldMap,
+      toast: this.toast,
+      minimap: this.minimap,
+      fadeOverlay: this.fadeOverlay,
+    });
 
     // Spawn level ??saved level or default Player entity level
     if (saveData && saveData.levelId) {
@@ -653,39 +670,21 @@ export class LdtkWorldScene extends Scene {
 
     this.initialized = true;
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
-    // update() — fires once per session with auto-dismiss. No unconditional
+    // update() ??fires once per session with auto-dismiss. No unconditional
     // toast here so returning from item world doesn't re-spam controls.
   }
 
   enter(): void {
     this.container.visible = true;
-    // Re-attach HUD + minimap to uiContainer (may have been removed by ItemWorldScene)
-    if (this.hud) {
-      if (!this.hud.container.parent) this.game.uiContainer.addChild(this.hud.container);
-      this.hud.container.visible = true;
-      this.hud.setGoldBelowMinimap(!this.inItemTunnel);
-      // 아이템계에서 사망/탈출 후 복귀 시, 진입 전 저체력 펄스/글로우/비네트가
-      // 남아있지 않도록 HUD 상태를 초기화. 현재 체력이 여전히 낮다면 이어지는
-      // update 루프에서 자연스럽게 다시 재점화된다.
-      this.hud.resetLowHpEffects();
-      this.hud.updateHP(this.player.hp, this.player.maxHp);
-      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 [I] 키 강조 재점화 (저장 복귀 대응).
-      this.hud.setItemKeyHighlight(
+    this.uiController.enter({
+      showMinimap: !this.inItemTunnel,
+      goldBelowMinimap: !this.inItemTunnel,
+      playerHp: this.player.hp,
+      playerMaxHp: this.player.maxHp,
+      highlightItemKey:
         this.unlockedEvents.has('__itemWorldTutorialDone')
-          && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld'),
-      );
-    }
-    if (this.minimap) {
-      if (!this.minimap.parent) this.game.uiContainer.addChild(this.minimap);
-      this.minimap.visible = !this.inItemTunnel;
-    }
-    // exit() 에서 detach 한 modal overlay 들을 재부착 (닫힌 상태로).
-    if (this.worldMap && !this.worldMap.container.parent) {
-      this.game.legacyUIContainer.addChild(this.worldMap.container);
-    }
-    if (this.inventoryUI && !this.inventoryUI.container.parent) {
-      this.game.legacyUIContainer.addChild(this.inventoryUI.container);
-    }
+        && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld'),
+    });
     if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
     // Clean up dive/collapse effect
@@ -710,13 +709,20 @@ export class LdtkWorldScene extends Scene {
     );
   }
 
+  private detachSharedUiForItemWorld(): void {
+    this.uiController.detachForItemWorld();
+    if (this.altarUI?.parent) {
+      this.altarUI.parent.removeChild(this.altarUI);
+    }
+  }
+
   private initialized = false;
 
   update(dt: number): void {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
-    // Ending sequence active — block everything
+    // Ending sequence active ??block everything
     if (this.ending.isActive) {
       this.ending.update(dt);
       if (this.ending.isDone) {
@@ -731,36 +737,20 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Pause menu handling (ESC toggle)
-    if (this.pauseMenu.visible) {
-      const input = this.game.input;
-      if (input.isJustPressed(GameAction.MENU)) { this.pauseMenu.cancel(); this.isPaused = false; }
-      else if (input.isJustPressed(GameAction.LOOK_UP)) this.pauseMenu.navigate('up');
-      else if (input.isJustPressed(GameAction.LOOK_DOWN)) this.pauseMenu.navigate('down');
-      else if (input.isJustPressed(GameAction.MOVE_LEFT)) this.pauseMenu.navigate('left');
-      else if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.pauseMenu.navigate('right');
-      else if (input.isJustPressed(GameAction.ATTACK)) this.pauseMenu.confirm();
-      return;
-    }
-    if (!this.deathScreen.visible && this.game.input.isJustPressed(GameAction.MENU)
-        && !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible) {
-      this.isPaused = true;
-      this.pauseMenu.open();
-      return;
-    }
-
-    // Death screen handling
-    if (this.deathScreen.visible) {
-      this.deathScreen.update(dt);
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) this.deathScreen.confirm();
+    const pauseOrDeath = this.uiController.handlePauseAndDeath({
+      dt,
+      canOpenPause: !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible,
+      onPauseOpened: () => { this.isPaused = true; },
+      onPauseClosed: () => { this.isPaused = false; },
+    });
+    if (pauseOrDeath !== 'none') {
       return;
     }
 
     // Dialogue box active ??block game input (NPC dialogue blocks movement)
     // Check dialogue FIRST, before UI consumes input
     // Toast & tutorial hints update after gameplay input is processed
-    this.toast.update(dt);
-    this.tutorialHint.update(dt);
+    this.uiController.updatePersistent(dt);
 
     // Sacred Pickup cutscene + LorePopup + DivePreview. When blocking, abort
     // gameplay input for this frame (player stays put, camera override still
@@ -779,7 +769,7 @@ export class LdtkWorldScene extends Scene {
 
     // Tutorial hints ??only show after dialogue finishes
     if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
-      // hint removed — key prompts shown in HUD
+      // hint removed ??key prompts shown in HUD
     }
 
     // Portal transition playing
@@ -811,13 +801,13 @@ export class LdtkWorldScene extends Scene {
       this.screenCrack.update(dt);
     }
 
-    // Floor collapse in progress — all input blocked, camera frozen
+    // Floor collapse in progress ??all input blocked, camera frozen
     if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
       this.floorCollapse.update(dt);
 
       const ph = this.floorCollapse.phase;
       if (ph === 'anvil_fall' || ph === 'fade_out' || ph === 'done') {
-        // 충돌 무시 — 플레이어가 화면 밖으로 자유 낙하 (자연스러운 중력)
+        // 충돌 무시 ???�레?�어가 ?�면 밖으�??�유 ?�하 (?�연?�러??중력)
         if (this.player.vy == null || this.player.vy === 0) this.player.vy = 0.5;
         this.player.vy = this.player.vy + 0.02 * dt;
         this.player.y += this.player.vy * (dt / 16.67);
@@ -850,16 +840,10 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // World Map toggle (M key) — disabled inside item tunnels
-    if (this.game.input.isJustPressed(GameAction.MAP) && !this.inItemTunnel) {
-      this.game.input.consumeJustPressed(GameAction.MAP);
-      if (this.worldMap.visible) {
-        this.worldMap.close();
-        // Restore HUD + minimap
-        this.hud.container.visible = true;
-        if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
-      } else {
-        // Update exploration state before opening
+    // World Map toggle (M key) ??disabled inside item tunnels
+    this.uiController.handleWorldMapToggle({
+      canToggle: !this.inItemTunnel,
+      onBeforeOpen: () => {
         this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
         this.worldMap.setMarkers(this.collectMapMarkers());
         if (this.currentLevel) {
@@ -868,33 +852,27 @@ export class LdtkWorldScene extends Scene {
             this.player.y + this.currentLevel.worldY,
           );
         }
-        this.worldMap.toggle();
-        // Hide HUD + minimap so the full map is unobstructed
-        this.hud.container.visible = false;
-        if (this.minimap) this.minimap.visible = false;
-      }
-    }
-    if (this.worldMap.visible) {
-      if (this.currentLevel) {
-        this.worldMap.setPlayerPosition(
-          this.player.x + this.currentLevel.worldX,
-          this.player.y + this.currentLevel.worldY,
-        );
-      }
-      this.worldMap.update(dt);
+      },
+    });
+    if (this.worldMap.visible && this.currentLevel) {
+      this.uiController.updateWorldMap({
+        dt,
+        playerWorldX: this.player.x + this.currentLevel.worldX,
+        playerWorldY: this.player.y + this.currentLevel.worldY,
+      });
     }
 
-    // Inventory UI toggle — disabled inside item tunnels, Shift+I is debug
-    if (this.game.input.isJustPressed(GameAction.INVENTORY) && !this.inItemTunnel && !this.game.input.shiftDown) {
-      this.game.input.consumeJustPressed(GameAction.INVENTORY);
-      this.inventoryUI.toggle();
-      // 첫 아이템계 클리어 후 I 강조 펄스 중이었다면 해제.
-      if (this.unlockedEvents.has('__itemWorldTutorialDone')
-        && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-        this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
-        this.hud.setItemKeyHighlight(false);
-      }
-    }
+    // Inventory UI toggle ??disabled inside item tunnels, Shift+I is debug
+    this.uiController.handleInventoryToggle({
+      canToggle: !this.inItemTunnel && !this.game.input.shiftDown,
+      onToggled: () => {
+        if (this.unlockedEvents.has('__itemWorldTutorialDone')
+          && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+          this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
+          this.hud.setItemKeyHighlight(false);
+        }
+      },
+    });
 
     if (this.inventoryUI.visible) {
       // Re-dive confirmation prompt overlays the inventory (anvil mode only)
@@ -902,7 +880,11 @@ export class LdtkWorldScene extends Scene {
         this.updateCyclePromptInput();
         return;
       }
-      this.updateInventoryInput();
+      const inventoryResult = this.uiController.handleInventoryInput();
+      if (inventoryResult === 'confirmed_equipment_change') {
+        this.updatePlayerAtk();
+        this.hud.updateATK(this.player.atk);
+      }
       return; // Pause game while inventory open
     }
 
@@ -918,9 +900,9 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Pattern D (proximity-interaction): 세이브/앤빌/제단 입력 선점.
-    // 반드시 player.update() 전에 실행되어야 같은 프레임 헛스윙 방지됨.
-    // 핸들러 등록은 registerProximityHandlers() 참조.
+    // Pattern D (proximity-interaction): ?�이�??�빌/?�단 ?�력 ?�점.
+    // 반드??player.update() ?�에 ?�행?�어??같�? ?�레???�스??방�???
+    // ?�들???�록?� registerProximityHandlers() 참조.
     if (this.proximity.tryInteract(this.game.input)) return;
 
     // Player
@@ -1013,7 +995,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Update projectiles — player attack can destroy them
+    // Update projectiles ??player attack can destroy them
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.update(dt);
@@ -1129,7 +1111,7 @@ export class LdtkWorldScene extends Scene {
       const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
       if (dx < 16 && dy < 16) {
         // LDtk-placed pickups have _key for permanent collection state.
-        // Monster drops have no _key — collected once on pickup but not persisted.
+        // Monster drops have no _key ??collected once on pickup but not persisted.
         const key = (gp as any)._key as string | undefined;
         if (key) this.collectedItems.add(key);
         gp.collect();
@@ -1210,9 +1192,9 @@ export class LdtkWorldScene extends Scene {
           this.player.abilities.doubleJump = true;
           this.toast.showBig('Double Jump unlocked!', 0xffd700);
         } else if (abilityName === 'cheat') {
-          // DEC-010: 디버그 치트 렐릭.
-          // Gate: Debug_ 방에 배치 → ?debug URL 파라미터 없이는 접근 불가.
-          // 일반 유저에게 노출되지 않음. 추가 gate 불필요.
+          // DEC-010: ?�버�?치트 ?�릭.
+          // Gate: Debug_ 방에 배치 ???debug URL ?�라미터 ?�이???�근 불�?.
+          // ?�반 ?��??�게 ?�출?��? ?�음. 추�? gate 불필??
           this.player.abilities.cheat = true;
           this.updatePlayerAtk(); // re-applies +99999 via cheat branch
           this.player.hp = this.player.maxHp; // full heal to new cap
@@ -1220,7 +1202,7 @@ export class LdtkWorldScene extends Scene {
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);
-        // Batch E: relic aura burst — tinted per ability family
+        // Batch E: relic aura burst ??tinted per ability family
         const relicTint = abilityName === 'waterBreathing' ? 0x4488ff : 0xffd700;
         this.relicAuraBurst.spawn(gfx.x, gfx.y, relicTint);
         if (gfx.parent) gfx.parent.removeChild(gfx);
@@ -1316,7 +1298,7 @@ export class LdtkWorldScene extends Scene {
     // Updraft wind zones
     this.applyUpdrafts(dt);
 
-    // Exit Light Bleed pulse + 플레이어 거리 기반 두께 확장.
+    // Exit Light Bleed pulse + ?�레?�어 거리 기반 ?�께 ?�장.
     if (this.exitGlows.length > 0) {
       const pcx = this.player.x + this.player.width / 2;
       const pcy = this.player.y + this.player.height / 2;
@@ -1329,7 +1311,7 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
-    // Debug commands — only active with ?debug=1 in URL
+    // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
         SaveManager.deleteSave();
@@ -1378,17 +1360,17 @@ export class LdtkWorldScene extends Scene {
         const a = this.player.abilities;
         const allOn = a.cheat;
         if (allOn) {
-          // Toggle off — reset all to false except dash (default ability)
+          // Toggle off ??reset all to false except dash (default ability)
           for (const key of Object.keys(a)) {
             (a as Record<string, boolean>)[key] = key === 'dash';
           }
-          this.toast.show('CHEAT OFF — abilities reset', 0xff4444);
+          this.toast.show('CHEAT OFF ??abilities reset', 0xff4444);
         } else {
-          // All on — set every ability to true
+          // All on ??set every ability to true
           for (const key of Object.keys(a)) {
             (a as Record<string, boolean>)[key] = true;
           }
-          this.toast.show('CHEAT ON — all relics unlocked', 0xff4444);
+          this.toast.show('CHEAT ON ??all relics unlocked', 0xff4444);
         }
         this.updatePlayerAtk();
       }
@@ -1421,12 +1403,12 @@ export class LdtkWorldScene extends Scene {
     this.hud.updateATK(this.player.atk);
     this.hud.updateGold(this.gold);
 
-    // Boss HP bar — 교전 감지 3중 트리거.
-    //  1) FSM 상태 전이 (detect/chase/hit/...) — 일반 경우 커버
-    //  2) hp < maxHp — Guardian 은 superArmor=true 라 타격해도 FSM 이 hit 으로
-    //     전이되지 않아 idle 에 머무를 수 있다. 데미지 기록이 "맞았다" 의 직접 증거.
-    //  3) bossActive(arena lock) — 보스방 진입 순간부터 표시. 플레이어가 아직
-    //     인지 범위 밖이어도 '갇혔다' 는 시점에 바를 띄워 교전 컨텍스트를 명시.
+    // Boss HP bar ??교전 감�? 3�??�리�?
+    //  1) FSM ?�태 ?�이 (detect/chase/hit/...) ???�반 경우 커버
+    //  2) hp < maxHp ??Guardian ?� superArmor=true ???�격해??FSM ??hit ?�로
+    //     ?�이?��? ?�아 idle ??머무�????�다. ?��?지 기록??"맞았?? ??직접 증거.
+    //  3) bossActive(arena lock) ??보스�?진입 ?�간부???�시. ?�레?�어가 ?�직
+    //     ?��? 범위 밖이?�도 '갇혔?? ???�점??바�? ?�워 교전 컨텍?�트�?명시.
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
     if (activeBoss) {
       const st = activeBoss.fsm.currentState;
@@ -1486,7 +1468,7 @@ export class LdtkWorldScene extends Scene {
     // Parallax background scroll
     this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
 
-    // Oxygen overlay — vignette + bar when submerged
+    // Oxygen overlay ??vignette + bar when submerged
     this.updateOxygenOverlay();
   }
 
@@ -1498,24 +1480,24 @@ export class LdtkWorldScene extends Scene {
   private updateMovementVfx(dt: number): void {
     const p = this.player;
 
-    // Landing dust — on grounded edge
+    // Landing dust ??on grounded edge
     const landedSpeed = p.consumeLandedEvent();
     if (landedSpeed !== null) {
       this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
     }
 
-    // Dash boost puff — on dash start
+    // Dash boost puff ??on dash start
     const dashDir = p.consumeDashedEvent();
     if (dashDir !== null) {
       this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
     }
 
-    // Double jump ring — on mid-air second jump
+    // Double jump ring ??on mid-air second jump
     if (p.consumeDoubleJumpEvent()) {
       this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
     }
 
-    // Wall jump dust — wall side = -kickDir
+    // Wall jump dust ??wall side = -kickDir
     const kickDir = p.consumeWallJumpEvent();
     if (kickDir !== null) {
       const wallX = kickDir > 0 ? p.x : p.x + p.width;
@@ -1523,7 +1505,7 @@ export class LdtkWorldScene extends Scene {
       this.wallJumpDust.spawn(wallX, wallY, kickDir);
     }
 
-    // Dash afterimage trail — continuous while dashing
+    // Dash afterimage trail ??continuous while dashing
     this.dashAfterimage.tick(dt, p.isDashing(), () => ({
       x: p.x, y: p.y, w: p.width, h: p.height,
       facingRight: p.facingRight,
@@ -1551,7 +1533,7 @@ export class LdtkWorldScene extends Scene {
       p.x + p.width / 2, p.y + p.height,
       p.getVx(), p.facingRight,
     );
-    // Surge VFX — drive by state
+    // Surge VFX ??drive by state
     if (p.isSurgeCharging()) {
       this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
     } else if (p.isSurgeFlying()) {
@@ -1561,7 +1543,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     // --- Batch D ---
-    // Dive landing impact — fires on diveLanded OR any fast fall land
+    // Dive landing impact ??fires on diveLanded OR any fast fall land
     if (p.diveLanded) {
       const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
       this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
@@ -1583,7 +1565,7 @@ export class LdtkWorldScene extends Scene {
     // Ice skid streak
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
 
-    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
+    // --- Enemies: ?�경 VFX ?�사??(water/ice + land/jump dust) ---
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       if (!e.alive) continue;
@@ -1708,30 +1690,15 @@ export class LdtkWorldScene extends Scene {
 
   exit(): void {
     this.toast.clear();
-    this.tutorialHint.destroy();
-    if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    this.uiController.destroy();
     // if (this.controlsOverlay?.container.parent) {
     //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     // }
     // Close and detach modal overlays so they don't bleed into the next scene.
-    // (Previously: M/I 가 열린 채 아이템계로 진입하면 overlay 가 legacyUIContainer
-    //  에 그대로 남아 ItemWorldScene 에서 닫을 수 없는 "stuck" 상태가 됨.)
-    if (this.worldMap) {
-      if (this.worldMap.visible) this.worldMap.close();
-      if (this.worldMap.container.parent) {
-        this.worldMap.container.parent.removeChild(this.worldMap.container);
-      }
-    }
-    if (this.inventoryUI) {
-      if (this.inventoryUI.visible) this.inventoryUI.close();
-      if (this.inventoryUI.container.parent) {
-        this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
-      }
-    }
+    // (Previously: M/I 가 ?�린 �??�이?�계�?진입?�면 overlay 가 legacyUIContainer
+    //  ??그�?�??�아 ItemWorldScene ?�서 ?�을 ???�는 "stuck" ?�태가 ??)
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
-    if (this.minimap?.parent) this.minimap.parent.removeChild(this.minimap);
-    if (this.fadeOverlay?.parent) this.fadeOverlay.parent.removeChild(this.fadeOverlay);
   }
 
   // ---------------------------------------------------------------------------
@@ -1746,15 +1713,7 @@ export class LdtkWorldScene extends Scene {
    *                         place the player on the opposite edge.
    */
   private findPlayerSpawnLevel(): string {
-    for (const id of this.loader.getLevelIds()) {
-      // Skip non-world levels (item tunnels, fixed item worlds)
-      if (id.startsWith('ItemTunnel') || id.startsWith('ItemWorld')) continue;
-      const level = this.loader.getLevel(id);
-      if (level?.entities.some((e) => e.type === 'Player')) {
-        return id;
-      }
-    }
-    return FALLBACK_ENTRANCE_LEVEL;
+    return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
   }
 
   /** Seal level exits with temporary collision doors when boss fight starts. */
@@ -1800,7 +1759,7 @@ export class LdtkWorldScene extends Scene {
       door.destroy();
     }
     this.bossLockDoors = [];
-    // arena 해제 = 보스 처치 직후이므로 HP 바도 내린다.
+    // arena ?�제 = 보스 처치 직후?��?�?HP 바도 ?�린??
     this.hud.hideBossHP();
     trackBossFight({
       phase: 'clear',
@@ -1874,7 +1833,7 @@ export class LdtkWorldScene extends Scene {
     } else if (enemy instanceof Skeleton) {
       // setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
     }
-    // Gold drop on kill (Elden Ring style — items are hand-placed, not monster drops)
+    // Gold drop on kill (Elden Ring style ??items are hand-placed, not monster drops)
     const isGolden = enemy instanceof GoldenMonster;
     const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
     const goldAmount = isGolden ? baseGold * 3 : baseGold;
@@ -1917,12 +1876,12 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Collision grid — deep copy so runtime modifications don't persist across reloads
+    // Collision grid ??deep copy so runtime modifications don't persist across reloads
     this.collisionGrid = level.collisionGrid.map(row => [...row]);
     // Reset breakable hit tracking on level transition
     this.breakableHits.clear();
-    // 보스 HP 바 초기화 — 이전 레벨에서 남아있을 가능성(사망·워프 등) 차단.
-    // 새 레벨이 보스방이면 activateBossLock → update 루프에서 다시 표시된다.
+    // 보스 HP �?초기?????�전 ?�벨?�서 ?�아?�을 가?�성(?�망·?�프 ?? 차단.
+    // ???�벨??보스방이�?activateBossLock ??update 루프?�서 ?�시 ?�시?�다.
     this.hud.hideBossHP();
 
     // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone)
@@ -1932,12 +1891,12 @@ export class LdtkWorldScene extends Scene {
       const row = Math.floor(t.px[1] / TILE_SIZE);
       return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
     });
-    // CSV `Tileset` column is authoritative — retag tiles to point at the
+    // CSV `Tileset` column is authoritative ??retag tiles to point at the
     // CSV-derived atlas key so BG and WALL never collide on LDtk's shared
     // __tilesetRelPath.
     applyAreaTilesetToLdtkTiles('world_shaft_bg', level.backgroundTiles);
     applyAreaTilesetToLdtkTiles('world_shaft_wall', filteredWalls);
-    // shadowTiles: keep original LDtk tileset (SunnyLand) — do NOT retag
+    // shadowTiles: keep original LDtk tileset (SunnyLand) ??do NOT retag
     applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
 
@@ -1974,7 +1933,7 @@ export class LdtkWorldScene extends Scene {
       this.renderer.container.addChildAt(this.procDecorator.artificialLayer, detailIdx + 1);
     }
 
-    // Parallax background — only rebuild on first load (skip on room transitions
+    // Parallax background ??only rebuild on first load (skip on room transitions
     // within the same area to prevent jarring position resets).
     if (!this.parallaxBG.isReady) {
       const bgEntry = getAreaPalette('world_shaft_bg');
@@ -2042,7 +2001,7 @@ export class LdtkWorldScene extends Scene {
     // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
     this.processLdtkEntities(level);
 
-    // Exit Light Bleed — 이웃 방이 있는 방향의 열린 타일 구간에 주황 글로우.
+    // Exit Light Bleed ???�웃 방이 ?�는 방향???�린 ?�??구간??주황 글로우.
     this.spawnExitGlows(level);
 
     // Settle player physics (gravity snap to floor) before camera snap
@@ -2157,79 +2116,15 @@ export class LdtkWorldScene extends Scene {
    * directly on top of it. Prevents spawning inside the floor.
    */
   private snapToFloor(grid: number[][], tileX: number, passageRow: number, entityHeight: number): number {
-    const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
-    // Scan down from passage row to find first solid (non-water) tile below
-    for (let row = passageRow; row < grid.length; row++) {
-      if (grid[row][clampedX] === 1) {
-        // Floor found ??place entity on top of it
-        return row * TILE_SIZE - entityHeight;
-      }
-    }
-    // No floor below ??use passage row directly
-    return passageRow * TILE_SIZE;
+    return this.transitionController.snapToFloor(grid, tileX, passageRow, entityHeight);
   }
 
-  /**
-   * @param hintTile - preferred tile index (row for left/right, col for up/down).
-   *                   Picks the closest open passage to this hint.
-   */
   private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down', hintTile = -1): number {
-    const openTiles: number[] = [];
-    // 0 = empty, 2 = water ??both are passable
-    const isPassable = (v: number) => v === 0 || v === 2;
-
-    switch (edge) {
-      case 'left':
-        for (let row = 0; row < grid.length; row++) { if (isPassable(grid[row][0])) openTiles.push(row); }
-        break;
-      case 'right': {
-        const col = (grid[0]?.length ?? 1) - 1;
-        for (let row = 0; row < grid.length; row++) { if (isPassable(grid[row][col])) openTiles.push(row); }
-        break;
-      }
-      case 'up':
-        for (let col = 0; col < (grid[0]?.length ?? 0); col++) { if (isPassable(grid[0]?.[col])) openTiles.push(col); }
-        break;
-      case 'down': {
-        const lastRow = grid[grid.length - 1] ?? [];
-        for (let col = 0; col < lastRow.length; col++) { if (isPassable(lastRow[col])) openTiles.push(col); }
-        break;
-      }
-    }
-
-    if (openTiles.length === 0) {
-      const len = (edge === 'left' || edge === 'right') ? grid.length : (grid[0]?.length ?? 1);
-      return Math.floor(len / 2);
-    }
-
-    // Pick closest to hint
-    if (hintTile >= 0) {
-      let best = openTiles[0];
-      let bestDist = Math.abs(best - hintTile);
-      for (const t of openTiles) {
-        const d = Math.abs(t - hintTile);
-        if (d < bestDist) { best = t; bestDist = d; }
-      }
-      return best;
-    }
-
-    return openTiles[0];
+    return this.transitionController.findEdgePassage(grid, edge, hintTile);
   }
 
-  /**
-   * Find a safe floor Y coordinate for an entity at the given tile column.
-   * Scans from the bottom of the collision grid upward to find the first solid
-   * tile, then returns a Y position one entity-height above it.
-   */
   private findFloorY(grid: number[][], tileX: number, entityHeight: number): number {
-    const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
-    for (let row = grid.length - 1; row >= 0; row--) {
-      if (grid[row][clampedX] >= 1) {
-        return row * TILE_SIZE - entityHeight;
-      }
-    }
-    // No floor found ??place near bottom
-    return (grid.length - 2) * TILE_SIZE - entityHeight;
+    return this.transitionController.findFloorY(grid, tileX, entityHeight);
   }
 
   // ---------------------------------------------------------------------------
@@ -2391,7 +2286,7 @@ export class LdtkWorldScene extends Scene {
         nearSave = true;
         nearSavePt = { x: sp.x, y: sp.y };
         sp.gfx.alpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
-        // Show context prompt — convert world pos to native screen pos
+        // Show context prompt ??convert world pos to native screen pos
         if (sp.prompt) {
           sp.prompt.visible = true;
           const us = this.game.uiScale;
@@ -2402,7 +2297,7 @@ export class LdtkWorldScene extends Scene {
           sp.prompt.y = Math.round(sy);
         }
 
-        // 입력 처리는 update() 의 save point 선점 블록에서 수행 (C/ATTACK, pre-player.update).
+        // ?�력 처리??update() ??save point ?�점 블록?�서 ?�행 (C/ATTACK, pre-player.update).
       } else {
         sp.gfx.alpha = 0.6;
         if (sp.prompt) sp.prompt.visible = false;
@@ -2521,12 +2416,12 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * 방 가장자리에서 "이웃이 있으며 통과 가능한 타일 구간"을 찾아 ExitGlow 를 띄운다.
+   * �?가?�자리에??"?�웃???�으�??�과 가?�한 ?�??구간"??찾아 ExitGlow �??�운??
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    *
-   * 수평 에지(w/e): 열 0 또는 gridW-1을 세로로 스캔 → 연속 passable run 마다 글로우 1개.
-   * 수직 에지(n/s): 행 0 또는 gridH-1을 가로로 스캔 → 동일.
-   * passable 판정은 checkLevelEdges() 와 동일(빈칸 0 또는 물 2).
+   * ?�평 ?��?(w/e): ??0 ?�는 gridW-1???�로�??�캔 ???�속 passable run 마다 글로우 1�?
+   * ?�직 ?��?(n/s): ??0 ?�는 gridH-1??가로로 ?�캔 ???�일.
+   * passable ?�정?� checkLevelEdges() ?� ?�일(빈칸 0 ?�는 �?2).
    */
   private spawnExitGlows(level: LdtkLevel): void {
     const TS = 16;
@@ -2620,7 +2515,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Check player overlap with spikes ??damage + teleport to last safe ground. */
-  /** IntGrid spike (value 5) check — replaces Entity-based Spike AABB loop. */
+  /** IntGrid spike (value 5) check ??replaces Entity-based Spike AABB loop. */
   private checkSpikeContact(): void {
     if (this.player.invincible || this.player.hp <= 0) return;
 
@@ -2634,7 +2529,7 @@ export class LdtkWorldScene extends Scene {
     this.player.invincible = true;
     this.player.invincibleTimer = 1000;
 
-    // Feedback — strong hitstop for spike pain
+    // Feedback ??strong hitstop for spike pain
     this.game.hitstopFrames = 16;
     this.game.camera.shake(5);
     this.screenFlash.flashDamage(true);
@@ -2703,7 +2598,7 @@ export class LdtkWorldScene extends Scene {
       });
       (wall as any)._key = key;
       (wall as any)._itemId = itemId;
-      // IntGrid is already solid(1) — just record which cells to clear on break
+      // IntGrid is already solid(1) ??just record which cells to clear on break
       wall.recordCollision(this.collisionGrid);
       this.secretWalls.push(wall);
       // Add to wallLayer so PaletteSwapFilter applies to hint cracks
@@ -2743,7 +2638,7 @@ export class LdtkWorldScene extends Scene {
           if (itemId) {
             this.spawnFixedItemAt(wall.centerX, wall.centerY, itemId);
           } else {
-            // No ItemId set — random weapon drop (minimum Rare)
+            // No ItemId set ??random weapon drop (minimum Rare)
             const pool = SWORD_DEFS.filter(d => d.rarity !== 'normal');
             const def = pool[Math.floor(Math.random() * pool.length)] ?? SWORD_DEFS[0];
             const item = createItem(def, def.rarity);
@@ -3054,12 +2949,12 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** IntGrid breakable (9) — 3 SWINGS to destroy → air(0).
+  /** IntGrid breakable (9) ??3 SWINGS to destroy ??air(0).
    *  Each attack swing (combo step) counts as 1 hit per tile. Subsequent
    *  frames of the same swing are ignored so holding attack doesn't insta-break. */
   private checkAttackOnBreakables(): void {
     if (!this.player.isAttackActive()) {
-      // Attack ended — reset swing tracking
+      // Attack ended ??reset swing tracking
       if (this.breakableHitThisSwing.size > 0) {
         this.breakableHitThisSwing.clear();
         this.breakableLastCombo = -1;
@@ -3160,8 +3055,8 @@ export class LdtkWorldScene extends Scene {
           if (this.unlockedEvents.has(bossKey)) continue;
           enemy = createEnemy('Boss', enemyLevel);
           (enemy as any)._bossKey = bossKey;
-          // Arena lock — direct 'Boss' 엔티티 경로와 동일하게 Enemy_Spawn 경로에서도
-          // 보스방 탈출을 봉쇄한다. 누락 시 플레이어가 교전 전 방에서 이탈 가능.
+          // Arena lock ??direct 'Boss' ?�티??경로?� ?�일?�게 Enemy_Spawn 경로?�서??
+          // 보스�??�출??봉쇄?�다. ?�락 ???�레?�어가 교전 ??방에???�탈 가??
           this.activateBossLock(level, bossKey);
         } else {
           enemy = createEnemy(enemyType, enemyLevel);
@@ -3234,7 +3129,7 @@ export class LdtkWorldScene extends Scene {
           marker.x = spx;
           marker.y = spy;
           this.entityLayer.addChild(marker);
-          // Context prompt — rendered in uiContainer for crisp text
+          // Context prompt ??rendered in uiContainer for crisp text
           const us = this.game.uiScale;
           const prompt = KeyPrompt.createPrompt('C', 'Save', us);
           prompt.visible = false;
@@ -3453,86 +3348,14 @@ export class LdtkWorldScene extends Scene {
     this.startTransition(direction, neighborId);
   }
 
-  /**
-   * Find the neighbor level identifier in the given direction.
-   *
-   * Uses world-space bounding rectangles to determine which neighbor lies in
-   * the requested direction and whose Y (or X) intervals overlap.
-   *
-   * Direction semantics:
-   *   right  ??neighbor whose left edge aligns with current level's right edge
-   *   left   ??neighbor whose right edge aligns with current level's left edge
-   *   down   ??neighbor whose top edge aligns with current level's bottom edge
-   *   up     ??neighbor whose bottom edge aligns with current level's top edge
-   */
-  /**
-   * LDtk __neighbours dir codes:
-   *   'n'=north(up), 's'=south(down), 'e'=east(right), 'w'=west(left)
-   *   '>'=deeper depth, '<'=shallower depth
-   */
   private getNeighborInDirection(
     direction: 'left' | 'right' | 'up' | 'down',
     playerWorldX: number,
     playerWorldY: number,
   ): string | null {
-    const cur = this.currentLevel;
-    const dirMap: Record<string, string> = { left: 'w', right: 'e', up: 'n', down: 's' };
-    const ldtkDir = dirMap[direction];
-    let candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
-    // Filter out Debug_ rooms unless ?debug
-    if (!LdtkWorldScene.debugMode) {
-      candidates = candidates.filter(id => !id.startsWith('Debug_'));
-    }
-
-    if (candidates.length === 1) return candidates[0];
-
-    // Multiple candidates ??pick the one whose rect contains the player position
-    // Use half-open intervals but pick the CLOSEST candidate as fallback
-    // instead of blindly returning candidates[0].
-    if (candidates.length > 1) {
-      let bestId: string | null = null;
-      let bestDist = Infinity;
-      for (const nId of candidates) {
-        const nb = this.loader.getLevel(nId);
-        if (!nb) continue;
-        if (direction === 'left' || direction === 'right') {
-          const nbMidY = nb.worldY + nb.pxHei / 2;
-          const dist = Math.abs(playerWorldY - nbMidY);
-          if (playerWorldY >= nb.worldY && playerWorldY <= nb.worldY + nb.pxHei) return nId;
-          if (dist < bestDist) { bestDist = dist; bestId = nId; }
-        } else {
-          const nbMidX = nb.worldX + nb.pxWid / 2;
-          const dist = Math.abs(playerWorldX - nbMidX);
-          if (playerWorldX >= nb.worldX && playerWorldX <= nb.worldX + nb.pxWid) return nId;
-          if (dist < bestDist) { bestDist = dist; bestId = nId; }
-        }
-      }
-      return bestId ?? candidates[0];
-    }
-
-    // No dirNeighbors ??geometric fallback with player position check
-    const curRight = cur.worldX + cur.pxWid;
-    const curBottom = cur.worldY + cur.pxHei;
-    const T = 4;
-    for (const nId of cur.neighbors) {
-      const nb = this.loader.getLevel(nId);
-      if (!nb) continue;
-      const nbR = nb.worldX + nb.pxWid;
-      const nbB = nb.worldY + nb.pxHei;
-      let edge = false;
-      if (direction === 'right') edge = Math.abs(nb.worldX - curRight) <= T && cur.worldY < nbB && curBottom > nb.worldY;
-      if (direction === 'left')  edge = Math.abs(nbR - cur.worldX) <= T && cur.worldY < nbB && curBottom > nb.worldY;
-      if (direction === 'down')  edge = Math.abs(nb.worldY - curBottom) <= T && cur.worldX < nbR && curRight > nb.worldX;
-      if (direction === 'up')    edge = Math.abs(nbB - cur.worldY) <= T && cur.worldX < nbR && curRight > nb.worldX;
-      if (edge) {
-        if (direction === 'left' || direction === 'right') {
-          if (playerWorldY >= nb.worldY && playerWorldY <= nb.worldY + nb.pxHei) return nId;
-        } else {
-          if (playerWorldX >= nb.worldX && playerWorldX <= nb.worldX + nb.pxWid) return nId;
-        }
-      }
-    }
-    return null;
+    return this.transitionController.getNeighborInDirection(
+      this.loader, this.currentLevel, direction, playerWorldX, playerWorldY, LdtkWorldScene.debugMode,
+    );
   }
 
   private startTransition(direction: 'left' | 'right' | 'up' | 'down', levelId: string): void {
@@ -3600,10 +3423,10 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.removeChildren();
     this.game.uiContainer.addChild(this.hud.container);
     if (this.minimap) this.game.uiContainer.addChild(this.minimap);
-    // 저체력 경고 VFX(Flask R pulse, glow, vignette, HP bar pulse) 즉시 제거.
-    // gameOverActive=true 에선 update() 가 early-return 하여 hud.update(dt) 가
-    // 호출되지 않으므로, 여기서 명시적으로 초기화하지 않으면 Game Over 화면에
-    // 펄스 잔상이 얼어붙은 채 남는다.
+    // ?�체력 경고 VFX(Flask R pulse, glow, vignette, HP bar pulse) 즉시 ?�거.
+    // gameOverActive=true ?�선 update() 가 early-return ?�여 hud.update(dt) 가
+    // ?�출?��? ?�으므�? ?�기??명시?�으�?초기?�하지 ?�으�?Game Over ?�면??
+    // ?�스 ?�상???�어붙�? �??�는??
     this.hud.resetLowHpEffects();
     const overlay = new Container();
 
@@ -3677,7 +3500,7 @@ export class LdtkWorldScene extends Scene {
     this.updatePlayerAtk();
     this.player.hp = this.player.maxHp;
     this.snapPlayerToSavePoint();
-    // 저체력 경고 VFX(Flask R pulse, glow, HP bar pulse, vignette) 잔상 제거.
+    // ?�체력 경고 VFX(Flask R pulse, glow, HP bar pulse, vignette) ?�상 ?�거.
     this.hud.resetLowHpEffects();
     this.hud.updateHP(this.player.hp, this.player.maxHp);
   }
@@ -3691,11 +3514,11 @@ export class LdtkWorldScene extends Scene {
     const base = getPlayerBaseStats(1); // Lv1 for now (no player leveling yet)
     const weaponAtk = this.inventory.getWeaponAtk();
 
-    // Innocent bonus ATK — flat bonus from all subdued/wild innocent 'atk' slots
+    // Innocent bonus ATK ??flat bonus from all subdued/wild innocent 'atk' slots
     const equippedItem = this.inventory.equipped;
     const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
 
-    // DEBUG cheat relic — flat +99999 on top of everything
+    // DEBUG cheat relic ??flat +99999 on top of everything
     const cheatBonus = this.player.abilities.cheat ? 99999 : 0;
 
     this.player.atk = base.atk + weaponAtk + innocentAtk + cheatBonus;
@@ -3718,33 +3541,6 @@ export class LdtkWorldScene extends Scene {
       const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
       this.player.maxHp = newMaxHp;
       this.player.hp = Math.round(newMaxHp * hpRatio);
-    }
-  }
-
-  private updateInventoryInput(): void {
-    const input = this.game.input;
-    if (input.isJustPressed(GameAction.MOVE_LEFT)) this.inventoryUI.navigate('left');
-    if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.inventoryUI.navigate('right');
-    if (input.isJustPressed(GameAction.LOOK_UP)) this.inventoryUI.navigate('up');
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) this.inventoryUI.navigate('down');
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      const wasAnvilMode = this.inventoryUI.isAnvilMode();
-      this.inventoryUI.confirmSelected();
-      // Skip ATK recalc when confirming anvil placement — nothing was equipped.
-      if (!wasAnvilMode) {
-        this.updatePlayerAtk();
-        this.hud.updateATK(this.player.atk);
-      }
-    }
-    if (input.isJustPressed(GameAction.JUMP)) {
-      this.inventoryUI.toggleCompare();
-    }
-    if (input.isJustPressed(GameAction.MENU)) {
-      if (this.inventoryUI.isAnvilMode()) {
-        this.inventoryUI.cancelAnvil();
-      } else {
-        this.inventoryUI.close();
-      }
     }
   }
 
@@ -3830,10 +3626,9 @@ export class LdtkWorldScene extends Scene {
       this.portalTransition = null;
     }
 
-    // Hide world while in Item World
+    // Hide world while in Item World and detach shared UI from global containers.
     this.container.visible = false;
-    this.hud.container.visible = false;
-    if (this.minimap) this.minimap.visible = false;
+    this.detachSharedUiForItemWorld();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
@@ -3842,7 +3637,7 @@ export class LdtkWorldScene extends Scene {
       this.updatePlayerAtk();
       // Mark global Item World tutorial as done
       this.unlockedEvents.add('__itemWorldTutorialDone');
-      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+      // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
       if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
         this.hud.setItemKeyHighlight(true);
       }
@@ -3893,9 +3688,9 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // "처음 보는 아이템" → 첫 아이템과 동일하게 T2 컷신(줌인 + 입력 차단 +
-    // LorePopup 대기)으로 처리. 이미 본 def 를 다시 주울 때는 펄스/컷신 없이
-    // 조용히 인벤토리에 들어간다 — 반복 습득에서 리듬을 끊지 않도록.
+    // "처음 보는 ?�이?? ??�??�이?�과 ?�일?�게 T2 컷신(줌인 + ?�력 차단 +
+    // LorePopup ?��??�로 처리. ?��? �?def �??�시 주울 ?�는 ?�스/컷신 ?�이
+    // 조용???�벤?�리???�어간다 ??반복 ?�득?�서 리듬???��? ?�도�?
     const firstEver = !sacredSave.isFirstPickupDone();
     const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
     if (firstEver) sacredSave.markFirstPickupDone();
@@ -3908,12 +3703,12 @@ export class LdtkWorldScene extends Scene {
       const pulse = new WeaponPulse(wx, wy, item.rarity, 'T2_FULL_CUTSCENE');
       this.entityLayer.addChild(pulse.container);
       pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
-      // Tether는 LorePopup 닫힘 이후 지속 모드로 생성하므로 펄스 중엔 발동하지 않음.
+      // Tether??LorePopup ?�힘 ?�후 지??모드�??�성?��?�??�스 중엔 발동?��? ?�음.
       pulse.start();
       this.activeWeaponPulse = pulse;
     }
 
-    // Lore popup — open on first-seen items (or always-on setting).
+    // Lore popup ??open on first-seen items (or always-on setting).
     // Deferred behind the pulse (if any) so the cutscene completes first.
     // For already-seen items without the alwaysShowLore option this resolves
     // to a no-op in LorePopup.showIfNew().
@@ -3921,12 +3716,12 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * 플레이어 → 가장 가까운 앵빌까지의 벡터를 해석. 앵빌을 찾지 못하면 null.
+   * ?�레?�어 ??가??가까운 ?�빌까�???벡터�??�석. ?�빌??찾�? 못하�?null.
    *
-   * 앵빌 좌표계: Anvil 클래스는 container를 bottom-center pivot 으로 그리므로
-   * `anvil.x`는 시각적 수평 중앙, `anvil.y`는 시각적 바닥이 된다.
-   * Tether 도착점은 앵빌의 **top-center**(머리 윗부분)를 가리켜야
-   * 점선이 우하단 모서리가 아닌 앵빌 꼭대기로 자연스럽게 꽂힌다.
+   * ?�빌 좌표�? Anvil ?�래?�는 container�?bottom-center pivot ?�로 그리므�?
+   * `anvil.x`???�각???�평 중앙, `anvil.y`???�각??바닥???�다.
+   * Tether ?�착?��? ?�빌??**top-center**(머리 ?��?�?�?가리켜??
+   * ?�선???�하??모서리�? ?�닌 ?�빌 �??기로 ?�연?�럽�?꽂힌??
    */
   private resolveAnvilTarget(fromX: number, fromY: number): { x: number; y: number } | null {
     if (this.anvil) {
@@ -3936,8 +3731,8 @@ export class LdtkWorldScene extends Scene {
       let best: { d: number; x: number; y: number } | null = null;
       for (const ent of this.currentLevel.entities) {
         if (ent.type !== 'Anvil') continue;
-        // LDtk Anvil entity 의 pivot 도 bottom-center 로 설정돼 있어
-        // ent.px[1] 이 시각적 바닥. top-center 로 끌어올린다.
+        // LDtk Anvil entity ??pivot ??bottom-center �??�정???�어
+        // ent.px[1] ???�각??바닥. top-center �??�어?�린??
         const ex = ent.px[0];
         const ey = ent.px[1] - ent.height;
         const d = (ex - fromX) * (ex - fromX) + (ey - fromY) * (ey - fromY);
@@ -3955,8 +3750,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * LorePopup 닫힘 이후 호출되어 지속 tether를 생성. 플레이어가 앵빌에
-   * 도달해 openAnvilUI를 호출하면 requestFadeOut으로 점진 소멸한다.
+   * LorePopup ?�힘 ?�후 ?�출?�어 지??tether�??�성. ?�레?�어가 ?�빌??
+   * ?�달??openAnvilUI�??�출?�면 requestFadeOut?�로 ?�진 ?�멸?�다.
    */
   private spawnPersistentAnvilTether(rarity: Rarity): void {
     const fromX = this.player.x + this.player.width / 2;
@@ -3990,7 +3785,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
     if (this.activeAnvilTether) {
-      // Endpoint를 매 프레임 플레이어 중심 → 현재 앵빌 위치로 갱신.
+      // Endpoint�?�??�레???�레?�어 중심 ???�재 ?�빌 ?�치�?갱신.
       const fx = this.player.x + this.player.width / 2;
       const fy = this.player.y + this.player.height / 2;
       const target = this.resolveAnvilTarget(fx, fy);
@@ -4011,8 +3806,8 @@ export class LdtkWorldScene extends Scene {
       const item = this.lorePopupItem;
       const shown = this.lorePopup.showIfNew(item, () => {
         this.activeLorePopupItem = null;
-        // LorePopup 닫힘 → 아직 첫 다이브 전이면 persistent tether를 띄워
-        // 앵빌까지의 경로를 유지. 이미 다이브 해봤다면 건너뛴다.
+        // LorePopup ?�힘 ???�직 �??�이�??�이�?persistent tether�??�워
+        // ?�빌까�???경로�??��?. ?��? ?�이�??�봤?�면 건너?�다.
         if (!sacredSave.isFirstDiveDone()) {
           this.spawnPersistentAnvilTether(item.rarity);
         }
@@ -4027,18 +3822,18 @@ export class LdtkWorldScene extends Scene {
     }
 
     if (this.lorePopup?.isBlocking()) {
-      // 타이머(입력 잠금)는 팝업이 떠 있는 동안 항상 진행.
+      // ?�?�머(?�력 ?�금)???�업?????�는 ?�안 ??�� 진행.
       this.lorePopup.update(dt);
       blocking = true;
       const input = this.game.input;
-      // 초기 1초 입력 잠금이 풀린 뒤에만 X 확인을 받는다.
+      // 초기 1�??�력 ?�금???��??�에�?X ?�인??받는??
       if (this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
         input.consumeJustPressed(GameAction.ATTACK);
         const item = this.activeLorePopupItem;
         if (item) this.lorePopup.confirm(item);
         else this.lorePopup.close();
       } else if (!this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        // 잠금 동안 들어온 X 는 소비해 다른 루프(예: 공격)로 새지 않도록.
+        // ?�금 ?�안 ?�어??X ???�비???�른 루프(?? 공격)�??��? ?�도�?
         input.consumeJustPressed(GameAction.ATTACK);
       }
     }
@@ -4223,10 +4018,10 @@ export class LdtkWorldScene extends Scene {
   private updateAltarInput(): void {
     this.updateItemSelectInput(
       (item) => {
-        // Starter-only weapons (e.g. the Broken Sword) have no item world —
+        // Starter-only weapons (e.g. the Broken Sword) have no item world ??
         // altar must refuse to spawn a dive portal for them.
         if (STARTER_ONLY_IDS.has(item.def.id)) {
-          this.toast.show('Cannot dive — too broken', 0xff4444);
+          this.toast.show('Cannot dive ??too broken', 0xff4444);
           return;
         }
         if (this.activeAltar) {
@@ -4295,11 +4090,11 @@ export class LdtkWorldScene extends Scene {
       this.player.x - 8, this.player.y - 8,
       this.player.width + 16, this.player.height + 16,
     );
-    this.anvil.setShowHint(false); // disable built-in hint — use KeyPrompt instead
+    this.anvil.setShowHint(false); // disable built-in hint ??use KeyPrompt instead
 
-    // KeyPrompt — create lazily, show/hide + position in uiContainer.
-    // Pattern A(Modal): C(ATTACK) 로 인벤토리(Anvil 모드) 열기. ↑(LOOK_UP)은
-    // 방향 입력이라 확인 키로 부적합(UI_Interaction_Patterns.md).
+    // KeyPrompt ??create lazily, show/hide + position in uiContainer.
+    // Pattern A(Modal): C(ATTACK) �??�벤?�리(Anvil 모드) ?�기. ??LOOK_UP)?�
+    // 방향 ?�력?�라 ?�인 ?�로 부?�합(UI_Interaction_Patterns.md).
     if (near && !this.anvil.hasItem()) {
       if (!this.anvilPrompt) {
         this.anvilPrompt = KeyPrompt.createPrompt('C', 'Place Weapon', this.game.uiScale);
@@ -4319,8 +4114,8 @@ export class LdtkWorldScene extends Scene {
       this.anvilPrompt.visible = false;
     }
 
-    // 앵빌 UI 열기는 update() 도입부의 선점 분기에서 처리한다
-    // (player.update 전에 C 입력을 소비해야 헛스윙을 막을 수 있음).
+    // ?�빌 UI ?�기??update() ?�입부???�점 분기?�서 처리?�다
+    // (player.update ?�에 C ?�력???�비?�야 ?�스?�을 막을 ???�음).
     if (this.anvil.hasItem() && this.player.isAttackActive()) {
       const step = this.player.getAttackStep(this.player.comboIndex);
       if (step) {
@@ -4345,9 +4140,9 @@ export class LdtkWorldScene extends Scene {
       this.toast.show('No items to place', 0xff4444);
       return;
     }
-    // 플레이어가 앵빌에 도달 → 안내용 tether 임무 완료.
+    // ?�레?�어가 ?�빌???�달 ???�내??tether ?�무 ?�료.
     this.activeAnvilTether?.requestFadeOut();
-    // Hide the approach prompt while the inventory is open — it would
+    // Hide the approach prompt while the inventory is open ??it would
     // otherwise bleed through the translucent inventory overlay. If the
     // player cancels, updateAnvil re-shows it on the next frame.
     if (this.anvilPrompt) this.anvilPrompt.visible = false;
@@ -4357,13 +4152,13 @@ export class LdtkWorldScene extends Scene {
         this.toast.show('Unequip first', 0xff4444);
         return;
       }
-      // Starter-only weapons (e.g. the Broken Sword) have no item world —
+      // Starter-only weapons (e.g. the Broken Sword) have no item world ??
       // they are story props, not dive-able loot. Block placement outright.
       if (STARTER_ONLY_IDS.has(item.def.id)) {
-        this.toast.show('Cannot dive — too broken', 0xff4444);
+        this.toast.show('Cannot dive ??too broken', 0xff4444);
         return;
       }
-      // Fully cleared item — confirm re-dive (increments cycle, resets strata).
+      // Fully cleared item ??confirm re-dive (increments cycle, resets strata).
       // Reuse the existing cycle-prompt overlay; it draws on top of the
       // inventory and steals input via the updateCyclePromptInput path.
       if (isItemFullyCleared(item)) {
@@ -4381,8 +4176,8 @@ export class LdtkWorldScene extends Scene {
       this.inventoryUI.close();
       return;
     }
-    // Sacred Pickup S6 / T5 — show preview before committing.
-    // 첫 다이브 이후에도 동일한 full 모달 사용 (compact 스트립 폐기).
+    // Sacred Pickup S6 / T5 ??show preview before committing.
+    // �??�이�??�후?�도 ?�일??full 모달 ?�용 (compact ?�트�??�기).
     if (this.divePreview) {
       const confirm = () => {
         if (!this.anvil) return;
@@ -4390,7 +4185,7 @@ export class LdtkWorldScene extends Scene {
         this.anvil.placeItem(item);
         this.collapseItem = item;
         this.inventoryUI.close();
-        // 공격 단계 생략 — 아이템 선택 즉시 다이브 진입
+        // 공격 ?�계 ?�략 ???�이???�택 즉시 ?�이�?진입
         this.triggerFloorCollapse();
       };
       const cancel = () => {
@@ -4405,7 +4200,7 @@ export class LdtkWorldScene extends Scene {
     this.anvil.placeItem(item);
     this.collapseItem = item;
     this.inventoryUI.close();
-    // 공격 단계 생략 — 아이템 선택 즉시 다이브 진입
+    // 공격 ?�계 ?�략 ???�이???�택 즉시 ?�이�?진입
     this.triggerFloorCollapse();
   }
 
@@ -4477,18 +4272,18 @@ export class LdtkWorldScene extends Scene {
     const item = this.cyclePromptItem;
     if (!item) return;
 
-    // Pattern A(Modal): C = 확인, ESC = 취소. Z/X 는 UI 에서 사용 금지
-    // (UI_Interaction_Patterns.md). Jump/Dash 게임 액션과 충돌하지 않도록 분리.
+    // Pattern A(Modal): C = ?�인, ESC = 취소. Z/X ??UI ?�서 ?�용 금�?
+    // (UI_Interaction_Patterns.md). Jump/Dash 게임 ?�션�?충돌?��? ?�도�?분리.
     if (input.isJustPressed(GameAction.ATTACK)) {
-      // Confirm re-dive — reset progress, close prompt, proceed to anvil strike
+      // Confirm re-dive ??reset progress, close prompt, proceed to anvil strike
       resetItemForNextCycle(item);
       this.closeCyclePromptUI();
-      this.toast.show(`Cycle ${item.worldProgress?.cycle ?? 0} — Memories rewind`, 0xff8844);
+      this.toast.show(`Cycle ${item.worldProgress?.cycle ?? 0} ??Memories rewind`, 0xff8844);
       this.placeItemOnAnvil(item);
       return;
     }
     if (input.isJustPressed(GameAction.MENU)) {
-      // Cancel — return to the item select UI.
+      // Cancel ??return to the item select UI.
       // Anvil path uses the unified InventoryUI (already open in anvil mode),
       // while the altar path uses the legacy drawItemSelectUI overlay.
       this.closeCyclePromptUI();
@@ -4502,7 +4297,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   // ---------------------------------------------------------------------------
-  // Ending sequence — delegated to EndingSequence class
+  // Ending sequence ??delegated to EndingSequence class
   // ---------------------------------------------------------------------------
 
   private rerenderTilemap(): void {
@@ -4523,7 +4318,7 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // All anvils are reusable — snapshot position for player return point.
+    // All anvils are reusable ??snapshot position for player return point.
     this.lastUsedAnvilPos = {
       x: this.anvil.x,
       y: this.anvil.y,
@@ -4531,7 +4326,7 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
 
-    // ARCHIVED: MemoryDive sequence — replaced by anvil gate FX019 activation
+    // ARCHIVED: MemoryDive sequence ??replaced by anvil gate FX019 activation
     // The anvil's placeItem() already triggers FX019 + item icon display.
     // We just need hitstop + flash + delayed entry.
     sacredSave.incrementDive(this.collapseItem.def.id);
@@ -4544,7 +4339,7 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.zoomTo(2, 0.03);
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    // Warp when FX019 animation completes (icon scales up → screen transition)
+    // Warp when FX019 animation completes (icon scales up ??screen transition)
     this.anvil.onFxComplete = () => {
       this.game.camera.setZoom(1.0);
       this.completeFloorCollapseEntry();
@@ -4629,7 +4424,7 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
       this.unlockedEvents.add('__itemWorldTutorialDone');
-      // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+      // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
       if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
         this.hud.setItemKeyHighlight(true);
       }
@@ -4704,7 +4499,7 @@ export class LdtkWorldScene extends Scene {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
         this.unlockedEvents.add('__itemWorldTutorialDone');
-        // 첫 아이템계 클리어 후 아직 I 를 안 눌렀다면 HUD [I] 키 펄스 강조 ON.
+        // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
         if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
           this.hud.setItemKeyHighlight(true);
         }
@@ -4723,8 +4518,7 @@ export class LdtkWorldScene extends Scene {
         this.placePlayerAtReturnPoint();
       };
       this.container.visible = false;
-      this.hud.container.visible = false;
-      if (this.minimap) this.minimap.visible = false;
+      this.detachSharedUiForItemWorld();
       this.game.sceneManager.push(itemWorldScene, true);
       return;
     }
@@ -4902,7 +4696,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // No background — skin hud_map_frame provides the panel chrome
+    // No background ??skin hud_map_frame provides the panel chrome
 
     const content = new Container();
     // Clip content to panel bounds (rooms keep correct proportions)
@@ -4911,7 +4705,7 @@ export class LdtkWorldScene extends Scene {
     this.minimap.addChild(clipMask);
     content.mask = clipMask;
 
-    // Helper: project world rect to panel coords (no clamping — mask handles overflow)
+    // Helper: project world rect to panel coords (no clamping ??mask handles overflow)
     const project = (r: { x: number; y: number; w: number; h: number }) => {
       const rx = (r.x - vpLeft) * scaleX;
       const ry = (r.y - vpTop) * scaleY;
@@ -4936,7 +4730,7 @@ export class LdtkWorldScene extends Scene {
       return DEFAULT_TIER_COLOR;
     };
 
-    // Draw rooms — visited rooms show internal tile structure
+    // Draw rooms ??visited rooms show internal tile structure
     for (const r of worldMap) {
       if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
       if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
@@ -4971,7 +4765,7 @@ export class LdtkWorldScene extends Scene {
           for (let ty = 0; ty < gridH; ty++) {
             for (let tx = 0; tx < gridW; tx++) {
               const v = grid[ty][tx];
-              if (v === 0) continue; // air — skip
+              if (v === 0) continue; // air ??skip
               const px = p.rx + tx * tileW;
               const py = p.ry + ty * tileH;
               const tw = Math.max(0.5, tileW);
@@ -5006,7 +4800,7 @@ export class LdtkWorldScene extends Scene {
       content.addChild(g);
     }
 
-    // Auto markers (GDD §2) — save, boss, anvil
+    // Auto markers (GDD §2) ??save, boss, anvil
     for (const r of worldMap) {
       if (!visitedIds.has(r.id)) continue;
       if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
@@ -5038,7 +4832,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Player dot (blinking) — GDD §1.5
+    // Player dot (blinking) ??GDD §1.5
     // Drawn at origin; position updated every frame in update()
     {
       const dotSize = 3 * us;

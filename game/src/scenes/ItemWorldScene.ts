@@ -1,4 +1,4 @@
-import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
+﻿import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
@@ -29,7 +29,6 @@ import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorl
 import { getEnemyStats } from '@data/enemyStats';
 import { getMemoryRoom } from '@data/memoryRoomTable';
 import { LoreDisplay } from '@ui/LoreDisplay';
-import { ReturnHint } from '@ui/ReturnHint';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -71,7 +70,6 @@ import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { ScreenFlash } from '@effects/ScreenFlash';
-import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
 import { create9SlicePanel } from '@ui/ModalPanel';
 import { Portal } from '@entities/Portal';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
@@ -96,27 +94,24 @@ import { assetPath } from '@core/AssetLoader';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { ParallaxBackground } from '@level/ParallaxBackground';
+import { ItemWorldUiController } from './itemworld/ItemWorldUiController';
+import { ItemWorldProgressController } from './itemworld/ItemWorldProgressController';
+import {
+  ItemWorldMapController,
+  TILE_SIZE as IW_TILE_SIZE,
+  IW_GRID_W, IW_GRID_H,
+  IW_ROOM_W_TILES, IW_ROOM_H_TILES,
+  IW_ROOM_W_PX, IW_ROOM_H_PX,
+  IW_FULL_W_TILES, IW_FULL_H_TILES,
+  IW_DOOR_DEPTH, IW_DOOR_H_HEIGHT, IW_DOOR_V_WIDTH, IW_DOOR_FLOOR_ROW,
+  SEAL_DEPTH,
+  type DoorMask,
+} from './itemworld/ItemWorldMapController';
+import { ItemWorldSpawnController } from './itemworld/ItemWorldSpawnController';
 
-const TILE_SIZE = 16;
+const TILE_SIZE = IW_TILE_SIZE;
 const ROOM_W = 60;
 const ROOM_H = 34;
-// Item World room geometry — 768×512 = 48×32 tiles
-const IW_GRID_W = 4;
-const IW_GRID_H = 4;
-const IW_ROOM_W_TILES = 48;                         // 768 px
-const IW_ROOM_H_TILES = 32;                         // 512 px
-const IW_ROOM_W_PX = IW_ROOM_W_TILES * TILE_SIZE;   // 768
-const IW_ROOM_H_PX = IW_ROOM_H_TILES * TILE_SIZE;   // 512
-const IW_FULL_W_TILES = IW_GRID_W * IW_ROOM_W_TILES; // 192
-const IW_FULL_H_TILES = IW_GRID_H * IW_ROOM_H_TILES; // 128
-// Door mask — auto carving / sealing at room edges based on cell.exits
-const IW_DOOR_DEPTH = 3;        // tiles carved/sealed into the room from an edge
-const IW_DOOR_H_HEIGHT = 4;     // horizontal door (LEFT/RIGHT): 4 tiles tall
-const IW_DOOR_V_WIDTH = 4;      // vertical door (UP/DOWN): 4 tiles wide
-// STANDARD horizontal door row — fixed across all templates so neighboring
-// rooms align regardless of each template's natural floor level. Templates
-// should be designed with walkable floor at (IW_DOOR_FLOOR_ROW..H-1).
-const IW_DOOR_FLOOR_ROW = 27;   // floor is at row 27, door spans rows 23-27
 const FADE_DURATION = 200;
 const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
@@ -145,7 +140,10 @@ export class ItemWorldScene extends Scene {
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
-  private returnHint: ReturnHint | null = null;
+  private uiController!: ItemWorldUiController;
+  private progressController!: ItemWorldProgressController;
+  private mapController!: ItemWorldMapController;
+  private spawnController!: ItemWorldSpawnController;
   private controlsOverlay!: ControlsOverlay;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
@@ -171,23 +169,10 @@ export class ItemWorldScene extends Scene {
   private itemPickupGlow!: ItemPickupGlowManager;
   private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
-  private returnResult: ReturnResult | null = null;
   private hudSkin: UISkin | null = null;
   private toast!: ToastManager;
-  // A15: innocent capture seal orbs — rise from capture point, home to player
+  // A15: innocent capture seal orbs ? rise from capture point, home to player
   private captureOrbs: { gfx: Graphics; x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
-  // A16: before/after stratum-clear panel. Stays until player presses X.
-  private stratumClearPanel: { container: Container; confirmed: boolean } | null = null;
-  // A17: boss-kill choice panel (Continue deeper vs Exit safely).
-  private bossChoicePanel: Container | null = null;
-  private bossChoiceVisible = false;
-  private _pendingStratumSnapshot: {
-    a6BeforeAtk: number;
-    a6AfterAtk: number;
-    a16: { beforeAtk: number; afterAtk: number; beforeLevel: number; afterLevel: number; beforeInnocents: number; afterInnocents: number };
-  } | null = null;
-  private _pendingNextStratumIndex = -1;
-
   // Item being explored
   private item: ItemInstance;
   private inventory: Inventory;
@@ -237,7 +222,7 @@ export class ItemWorldScene extends Scene {
   /**
    * Aggregate layer containers sitting INSIDE fullMapContainer. All rooms'
    * bg/wall/shadow sub-layers are re-parented into these so the palette
-   * filter sees ONE continuous target — otherwise each per-room filter
+   * filter sees ONE continuous target ? otherwise each per-room filter
    * instance has its own filter bounds and the depth gradient visibly
    * resets at every room seam. Rebuilt alongside fullMapContainer.
    */
@@ -254,7 +239,7 @@ export class ItemWorldScene extends Scene {
   private _themeSlug = 'habitat';
   private parallaxBG!: ParallaxBackground;
 
-  // Updraft (IntGrid value 4) — particles + force handled per-frame
+  // Updraft (IntGrid value 4) ? particles + force handled per-frame
   private updraftSystem!: UpdraftSystem;
 
   // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
@@ -275,7 +260,7 @@ export class ItemWorldScene extends Scene {
   private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
   private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
   private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
-  // Breakable tile (IntGrid 9) hit tracking — 3 swings to destroy
+  // Breakable tile (IntGrid 9) hit tracking ? 3 swings to destroy
   private breakableHits: Map<string, number> = new Map(); // "tileCol,tileRow" → hits taken
   private breakableHitThisSwing: Set<string> = new Set();
   private breakableLastCombo = -1;
@@ -287,7 +272,7 @@ export class ItemWorldScene extends Scene {
     text: string;
     speaker?: string;
     portrait?: string;
-    active: boolean; // currently inside the trigger — reset on exit to allow re-read
+    active: boolean; // currently inside the trigger ? reset on exit to allow re-read
     // Visual (legendary-tier crystal, distinct from sword drops)
     anchorX: number; anchorY: number;           // visual anchor world pos
     container: Container;                        // holds glow + shard + particles
@@ -309,8 +294,6 @@ export class ItemWorldScene extends Scene {
   private altarTrigger: { x: number; y: number; width: number; height: number } | null = null;
   private altarVisual: Graphics | null = null;
   private altarHint: Container | null = null;
-  private escapeConfirmFromAltar = false;
-  private exitReason: 'escape' | 'clear' | 'death' = 'escape';
   private exitTracked = false;
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
@@ -328,8 +311,6 @@ export class ItemWorldScene extends Scene {
   private miniMapContainer!: Container;
 
   // Escape confirm dialog
-  private escapeConfirm: Container | null = null;
-  private escapeConfirmVisible = false;
 
   // Stratum picker (shown on entry when player has unlocked >1 stratum)
   private stratumPicker: Container | null = null;
@@ -338,16 +319,12 @@ export class ItemWorldScene extends Scene {
   private stratumPickerMax = 0;
 
   // Onboarding
-  private onboardingPanel: Container | null = null;
-  private onboardingStep = 0;
   private static readonly ONBOARDING_MSGS = [
     'You entered the Memory Strata!',
     'Each stratum goes deeper.\nDefeat the boss to descend.',
     'Find Escape Altars to\nleave safely with rewards.',
     'ESC to abandon. [Z] to proceed.',
   ];
-  private onboardingDone = false;
-
   // Callback when done
   onComplete: (() => void) | null = null;
 
@@ -462,7 +439,7 @@ export class ItemWorldScene extends Scene {
     this.tilemap.setTheme(this.currentStratumDef.theme);
     this.container.addChild(this.tilemap.container);
 
-    // Dead Cells-style palette swap — production default.
+    // Dead Cells-style palette swap ? production default.
     // Rarity picks BG+WALL palette pair; BG is hue-rich/warm, WALL is
     // dark/complementary. Built once; applied to aggregate containers each
     // rebuild so the gradient is continuous across all rooms.
@@ -511,7 +488,7 @@ export class ItemWorldScene extends Scene {
         tint: wallEntry.tint,
       });
 
-      // VisualSeed micro-variation — same theme, different weapon = subtly different feel
+      // VisualSeed micro-variation ? same theme, different weapon = subtly different feel
       const visualRng = new PRNG(hashString(this.item.def.id));
       const brightnessShift = visualRng.nextFloat(-0.08, 0.08);
       const depthBiasShift = visualRng.nextFloat(-0.05, 0.05);
@@ -520,7 +497,7 @@ export class ItemWorldScene extends Scene {
       this.wallPaletteFilter.setBrightness((wallEntry.brightness ?? 1.0) + brightnessShift * 0.5);
     }
 
-    // Parallax background (behind everything — index 0)
+    // Parallax background (behind everything ? index 0)
     this.parallaxBG = new ParallaxBackground();
     this.container.addChildAt(this.parallaxBG.container, 0);
     {
@@ -555,7 +532,7 @@ export class ItemWorldScene extends Scene {
     this.player.abilities.waterBreathing = this.sourcePlayer.abilities.waterBreathing;
     this.player.abilities.wallJump = this.sourcePlayer.abilities.wallJump;
     this.player.abilities.doubleJump = this.sourcePlayer.abilities.doubleJump;
-    // Flask fixed at 3 — rarity scaling is a future upgrade element
+    // Flask fixed at 3 ? rarity scaling is a future upgrade element
     this.player.flaskCharges = 3;
     // Flask/combo heal toast
     this.player.onFlaskHeal = (amount) => {
@@ -607,7 +584,7 @@ export class ItemWorldScene extends Scene {
     this.fadeOverlay.alpha = 0;
     this.container.addChild(this.fadeOverlay);
 
-    // Minimap — disabled (Spelunky-style blind exploration).
+    // Minimap ? disabled (Spelunky-style blind exploration).
     // Container still exists for legacy code paths but is never rendered.
     this.miniMapContainer = new Container();
     this.miniMapContainer.visible = false;
@@ -615,6 +592,19 @@ export class ItemWorldScene extends Scene {
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.game.uiContainer.addChild(this.hud.container);
+    this.uiController = new ItemWorldUiController(this.game);
+    this.mapController = new ItemWorldMapController();
+    this.spawnController = new ItemWorldSpawnController();
+    this.progressController = new ItemWorldProgressController({
+      jumpToStratum: (stratumIndex) => this.jumpToStratum(stratumIndex),
+      persistRoomState: () => this.persistRoomState(),
+      showBossChoice: (nextStratumIndex) => this.showBossChoice(nextStratumIndex),
+      showA6DmgToast: (beforeAtk, afterAtk) => this._showA6DmgToast(beforeAtk, afterAtk),
+      showStratumClearPanel: (snapshot, isFinal) => this._showStratumClearPanel(snapshot, isFinal),
+      startPostClearHold: () => this.startPostClearHold(),
+      startExitFade: () => this.startExitFade(),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
 
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
@@ -622,12 +612,9 @@ export class ItemWorldScene extends Scene {
     hudSkin.load().then(() => this.hud.applySkin(hudSkin));
 
     // Return result screen (9-slice from UISkin)
-    this.returnResult = new ReturnResult(hudSkin);
-    this.returnResult.onDismiss = () => {
-      // Pop back to world scene
+    this.uiController.createReturnResult(hudSkin, () => {
       this.game.sceneManager.pop();
-    };
-    this.game.legacyUIContainer.addChild(this.returnResult.container);
+    });
 
     // Controls overlay (disabled)
     this.controlsOverlay = new ControlsOverlay();
@@ -657,7 +644,7 @@ export class ItemWorldScene extends Scene {
     );
     this.updateHudText();
 
-    // Spawn player at start cell — find first air-above-solid in the center
+    // Spawn player at start cell ? find first air-above-solid in the center
     // column (template's natural floor).
     const startCol = this.currentCol;
     const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
@@ -685,19 +672,17 @@ export class ItemWorldScene extends Scene {
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
-    // LoreDisplay for Memory Rooms — displays item memory fragments
+    // LoreDisplay for Memory Rooms ? displays item memory fragments
     this.loreDisplay = new LoreDisplay(this.game.input);
     this.game.legacyUIContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
 
-    // Sacred Pickup T6 — Return hint HUD. First-ever landing: big-to-small
+    // Sacred Pickup T6 ? Return hint HUD. First-ever landing: big-to-small
     // shrink tween. Subsequent landings: small icon straight away.
-    this.returnHint = new ReturnHint();
-    this.game.uiContainer.addChild(this.returnHint.container);
-    this.returnHint.show();
+    this.uiController.createReturnHint();
 
-    // Entry banner — announce item name + stratum
+    // Entry banner ? announce item name + stratum
     const rarityColor = RARITY_COLOR[this.item.rarity];
     const stratumLabel = `Memory Stratum ${this.currentStratumIndex + 1}`;
     this.toast.showBig(this.item.def.name, rarityColor, 3000);
@@ -712,66 +697,24 @@ export class ItemWorldScene extends Scene {
   }
 
   private countTotalRooms(): void {
-    this.totalRooms = 0;
-    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
-      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-        const cell = this.unifiedGrid.cells[r][c];
-        if (cell && cell.type !== 0) this.totalRooms++;
-      }
-    }
+    this.totalRooms = this.mapController.countTotalRooms(this.unifiedGrid);
   }
 
   private getCell(col: number, row: number): UnifiedRoomCell | null {
-    if (row < 0 || row >= this.unifiedGrid.totalHeight) return null;
-    if (col < 0 || col >= this.unifiedGrid.totalWidth) return null;
-    return this.unifiedGrid.cells[row][col];
+    return this.mapController.getCell(this.unifiedGrid, col, row);
   }
 
   private getCurrentCell(): UnifiedRoomCell {
-    const row = this.unifiedGrid.cells[this.currentRow];
-    if (!row) return this.unifiedGrid.cells[0][0]!; // fallback
-    return row[this.currentCol] ?? this.unifiedGrid.cells[0][0]!;
+    return this.mapController.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
   }
 
   private restoreRoomState(): void {
-    const visited = new Set(this.progress.visitedRooms);
-    const cleared = new Set(this.progress.clearedRooms);
-
-    this.roomsCleared = 0;
-    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
-      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-        const cell = this.unifiedGrid.cells[r][c];
-        if (!cell) continue;
-        const key = `${c},${r}`;
-        cell.visited = visited.has(key);
-        cell.cleared = cleared.has(key);
-        if (cell.cleared) this.roomsCleared++;
-      }
-    }
-
-    // Restore spawned rooms set so previously-entered rooms don't re-spawn enemies.
-    // Also use roomKey format "playerRoomCol,playerRoomRow" used by lazy spawn check.
-    this.spawnedRooms.clear();
-    for (const key of this.progress.spawnedRooms ?? []) {
-      this.spawnedRooms.add(key);
-    }
+    const restored = this.mapController.restoreRoomState(this.unifiedGrid, this.progress, this.spawnedRooms);
+    this.roomsCleared = restored.roomsCleared;
   }
 
   private persistRoomState(): void {
-    const visited: string[] = [];
-    const cleared: string[] = [];
-    for (let r = 0; r < this.unifiedGrid.totalHeight; r++) {
-      for (let c = 0; c < this.unifiedGrid.totalWidth; c++) {
-        const cell = this.unifiedGrid.cells[r][c];
-        if (!cell) continue;
-        const key = `${c},${r}`;
-        if (cell.visited) visited.push(key);
-        if (cell.cleared) cleared.push(key);
-      }
-    }
-    this.progress.visitedRooms = visited;
-    this.progress.clearedRooms = cleared;
-    this.progress.spawnedRooms = Array.from(this.spawnedRooms);
+    this.mapController.persistRoomState(this.unifiedGrid, this.progress, this.spawnedRooms);
   }
 
   /** Check if a cell is a stratum end room (boss room) */
@@ -791,7 +734,7 @@ export class ItemWorldScene extends Scene {
    * Build the full map for the current stratum state.
    * Renders all room templates into a single continuous 2048×2048px grid.
    * Called from init() and on stratum transitions (replaces loadRoom).
-   * Implements: System_ItemWorld_Core — full-map rendering spec.
+   * Implements: System_ItemWorld_Core ? full-map rendering spec.
    */
   private buildFullMap(): void {
     // Clear previous full map
@@ -808,9 +751,9 @@ export class ItemWorldScene extends Scene {
     this.shadowAggregate = new Container();
     this.sealAggregate = new Container();
     // Render order: bg -> structDeco -> walls -> special(hazards) -> naturalDeco -> artificialDeco -> shadows -> seal
-    this.decoAggregate = new Container();         // natural detail (grass/roots) — above walls
-    this.artificialDecoAggregate = new Container(); // artificial detail (wiring/sensors) — above walls
-    this.structAggregate = new Container();        // structure (beams/concrete) — behind walls
+    this.decoAggregate = new Container();         // natural detail (grass/roots) ? above walls
+    this.artificialDecoAggregate = new Container(); // artificial detail (wiring/sensors) ? above walls
+    this.structAggregate = new Container();        // structure (beams/concrete) ? behind walls
     this.fullMapContainer.addChild(this.bgAggregate);
     this.fullMapContainer.addChild(this.structAggregate);
     this.fullMapContainer.addChild(this.wallAggregate);
@@ -822,9 +765,9 @@ export class ItemWorldScene extends Scene {
     this.bgAggregate.filters = [this.bgPaletteFilter];
     const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
     this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
-    // specialAggregate: NO filter — hazard color cues (water/spike/updraft)
+    // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
-    // Decoration filter — reduced strength so natural colors show through
+    // Decoration filter ? reduced strength so natural colors show through
     const wallEntry = getAreaPalette(`iw_${this._themeSlug}_wall`);
     const baseOpts = {
       paletteTex: getAreaPaletteAtlas().texture,
@@ -835,12 +778,12 @@ export class ItemWorldScene extends Scene {
       brightness: wallEntry.brightness,
       tint: wallEntry.tint,
     };
-    // Same palette filter as walls — decorations get full depth gradient
+    // Same palette filter as walls ? decorations get full depth gradient
     this.decoAggregate.filters = [this.naturalPaletteFilter];
     this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
     this.structAggregate.filters = [this.wallPaletteFilter];
 
-    // Strata depth auto-transformation — deeper = darker, more corroded
+    // Strata depth auto-transformation ? deeper = darker, more corroded
     const totalStrata = this.strataConfig.strata.length;
     const depthRatio = totalStrata > 1 ? this.currentStratumIndex / (totalStrata - 1) : 0;
     // Darken palette as depth increases
@@ -869,12 +812,8 @@ export class ItemWorldScene extends Scene {
     console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${this.unifiedGrid.totalWidth}x${_dbgHeight} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
-    // fullGrid is IW_FULL_H_TILES rows × IW_FULL_W_TILES cols (128 wide × 64 tall)
-    this.fullGrid = [];
+    this.fullGrid = this.mapController.initFullGrid();
     this.sealedCells.clear();
-    for (let r = 0; r < IW_FULL_H_TILES; r++) {
-      this.fullGrid[r] = new Array(IW_FULL_W_TILES).fill(1);
-    }
 
     // Clear any previously spawned static entities (rebuild = fresh world)
     this.clearStaticEntities();
@@ -916,7 +855,7 @@ export class ItemWorldScene extends Scene {
         const mask = this.computeDoorMask(cell ?? null, ldtkLevel);
         this.applyDoorMaskToFullGrid(mask, offR, offC);
 
-        // Render room tiles — ALL layers including wallTiles so that LDtk
+        // Render room tiles ? ALL layers including wallTiles so that LDtk
         // auto-tile rules for platform(3), updraft(4), etc. render properly.
         // Each room's layers are re-parented into the aggregate containers
         // so the palette filter runs ONCE over the full map (continuous
@@ -930,7 +869,7 @@ export class ItemWorldScene extends Scene {
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
-        // CSV Tileset is authoritative — retag tiles to the CSV-derived atlas
+        // CSV Tileset is authoritative ? retag tiles to the CSV-derived atlas
         // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
@@ -972,7 +911,7 @@ export class ItemWorldScene extends Scene {
     // Explicit visual pass handles remaining details.
     this.addFullMapSealVisuals();
 
-    // Procedural decorations — generated from the final fullGrid (after door masks)
+    // Procedural decorations ? generated from the final fullGrid (after door masks)
     // so decorations respect carved doors and spread evenly across all rooms.
     if (this._procDecoEnabled) {
       const decorator = new ProceduralDecorator({
@@ -1010,7 +949,7 @@ export class ItemWorldScene extends Scene {
     this.persistRoomState();
     this.drawMiniMap();
 
-    // Entry portal — always at start room for escape back to world
+    // Entry portal ? always at start room for escape back to world
     if (this.entryPortal) {
       if (this.entryPortal.container.parent) this.entryPortal.container.parent.removeChild(this.entryPortal.container);
     }
@@ -1035,34 +974,33 @@ export class ItemWorldScene extends Scene {
     this.restorePortalIfStratumCleared();
   }
 
-  /**
-   * Seal passages in fullGrid at the edges of a room cell that have no neighbor.
-   * Writes solid tiles (1) over the passage area (SEAL_DEPTH tiles deep).
-   */
-  private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, size: number): void {
-    const SEAL = ItemWorldScene.SEAL_DEPTH;
-    const FULL_H = this.fullGrid.length;
-    const FULL_W = this.fullGrid[0]?.length ?? 0;
+  private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, _size: number): void {
+    // Delegate to mapController — uses SEAL_DEPTH internally
+    const grid = this.fullGrid;
+    const SEAL = SEAL_DEPTH;
+    const FULL_H = grid.length;
+    const FULL_W = grid[0]?.length ?? 0;
+    const size = _size;
 
     if (!cell.exits.left) {
       for (let r = offR; r < offR + size && r < FULL_H; r++)
         for (let c = offC; c < offC + SEAL && c < FULL_W; c++)
-          this.fullGrid[r][c] = 1;
+          grid[r][c] = 1;
     }
     if (!cell.exits.right) {
       for (let r = offR; r < offR + size && r < FULL_H; r++)
         for (let c = offC + size - SEAL; c < offC + size && c < FULL_W; c++)
-          this.fullGrid[r][c] = 1;
+          grid[r][c] = 1;
     }
     if (!cell.exits.up) {
       for (let r = offR; r < offR + SEAL && r < FULL_H; r++)
         for (let c = offC; c < offC + size && c < FULL_W; c++)
-          this.fullGrid[r][c] = 1;
+          grid[r][c] = 1;
     }
     if (!cell.exits.down) {
       for (let r = offR + size - SEAL; r < offR + size && r < FULL_H; r++)
         for (let c = offC; c < offC + size && c < FULL_W; c++)
-          this.fullGrid[r][c] = 1;
+          grid[r][c] = 1;
     }
   }
 
@@ -1078,14 +1016,14 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Spawn enemies in the given room cell (lazy — triggered on first player entry).
+   * Spawn enemies in the given room cell (lazy ? triggered on first player entry).
    * Replaces the per-room spawnEnemies() used in loadRoom().
    */
   private spawnEnemiesInRoom(col: number, row: number): void {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell || cell.cleared) return;
 
-    // Stratum start room — safe zone, no monsters. Mark cleared so re-entry
+    // Stratum start room ? safe zone, no monsters. Mark cleared so re-entry
     // skips the spawn path entirely.
     const si = cell.stratumIndex ?? 0;
     const stratumStartCell = this.unifiedGrid.stratumStartRooms?.[si];
@@ -1100,7 +1038,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Memory Room — lore pause, no enemies. Mark as cleared to keep it empty,
+    // Memory Room ? lore pause, no enemies. Mark as cleared to keep it empty,
     // mirroring the normal clear path (counter bump + persist). HUD refreshes
     // automatically every frame via update()'s updateHudText() call.
     if (this.memoryRoomPlacements.has(`${col}:${row}`)) {
@@ -1129,22 +1067,9 @@ export class ItemWorldScene extends Scene {
                + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
     const distScale = 1 + dist * 0.1;
 
-    // Pre-compute all valid spawn positions: air tile with solid tile below.
-    // Scan the room's tile range (32 cols × 16 rows), leaving a 2-tile margin.
     const roomTopRow = Math.floor(offY / TILE_SIZE);
     const roomTopCol = Math.floor(offX / TILE_SIZE);
-    const spawnPoints: Array<{ x: number; y: number }> = [];
-
-    for (let tc = roomTopCol + 2; tc < roomTopCol + IW_ROOM_W_TILES - 2; tc++) {
-      for (let tr = roomTopRow + 2; tr < roomTopRow + IW_ROOM_H_TILES - 2; tr++) {
-        const here = this.fullGrid[tr]?.[tc] ?? 1;
-        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
-        // Air tile with solid floor below = valid spawn
-        if (here === 0 && below >= 1) {
-          spawnPoints.push({ x: tc * TILE_SIZE, y: (tr + 1) * TILE_SIZE });
-        }
-      }
-    }
+    const spawnPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopCol, roomTopRow);
 
     if (spawnPoints.length === 0) return;
 
@@ -1158,12 +1083,12 @@ export class ItemWorldScene extends Scene {
     const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
     const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
 
-    // Cycle scaling — bump CSV level by +cycle so each replay uses the next
+    // Cycle scaling ? bump CSV level by +cycle so each replay uses the next
     // row in Content_Stats_Enemy.csv (CSV jump is the "1 level stronger" feel).
     const cycle = this.progress?.cycle ?? 0;
 
     // ─── RoomType-specific branching ────────────────────────────────────────
-    // Rest / Puzzle rooms carry zero enemies — they break the combat rhythm.
+    // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
     // Rest also drops 1-2 HealingPickups. Mark cleared so HUD counters update.
     if (roomType === 'Rest') {
       const restRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 42);
@@ -1184,11 +1109,11 @@ export class ItemWorldScene extends Scene {
 
     if (roomType === 'Puzzle') {
       // Puzzle content (switches / locked doors) lives in the LDtk template.
-      // Spawn nothing; do NOT auto-clear — solving the puzzle clears it.
+      // Spawn nothing; do NOT auto-clear ? solving the puzzle clears it.
       return;
     }
 
-    // Treasure room — 1 GoldenMonster as an elite encounter.
+    // Treasure room ? 1 GoldenMonster as an elite encounter.
     if (roomType === 'Treasure') {
       const gold = this.createEnemyFromType('GoldenMonster', 1 + cycle);
       gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul));
@@ -1206,7 +1131,7 @@ export class ItemWorldScene extends Scene {
     }
     // ────────────────────────────────────────────────────────────────────────
 
-    // Boss room — only spawn boss when LDtk template is 'Boss' type
+    // Boss room ? only spawn boss when LDtk template is 'Boss' type
     if (isBossRoom && spawnTable.boss) {
       const bossEntry = spawnTable.boss;
       const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
@@ -1240,7 +1165,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Normal room — spawn from weighted table.
+    // Normal room ? spawn from weighted table.
     // Single-entry weighted pick per room: CSV weights sum to 100 per
     // (rarity,stratum) group with per-entry deltas (10..70), which matches
     // pickWeightedEnemy's "pick one" semantics. GoldenMonster's 10% weight
@@ -1385,7 +1310,7 @@ export class ItemWorldScene extends Scene {
     const portalX = roomCenterX;
     const portalY = (portalTileY + 1) * TILE_SIZE;
     this.spawnBossPortal(portalX, portalY);
-    this.toast.show('Boss room cleared — red portal ready.', 0xff8844);
+    this.toast.show('Boss room cleared ? red portal ready.', 0xff8844);
   }
 
   /**
@@ -1473,7 +1398,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Memory Room placement — for each stratum that has a memory room configured
+   * Memory Room placement ? for each stratum that has a memory room configured
    * for the current weapon (Sheets/Content_ItemWorld_MemoryRooms.csv), reserve
    * a branch cell in that stratum so the template is inserted deterministically
    * into the procedural grid.
@@ -1530,7 +1455,7 @@ export class ItemWorldScene extends Scene {
   }
 
   // ---------------------------------------------------------------------------
-  // Door mask — auto-carve exits + auto-seal unused edges, driven by cell.exits
+  // Door mask ? auto-carve exits + auto-seal unused edges, driven by cell.exits
   // ---------------------------------------------------------------------------
 
   /**
@@ -1542,167 +1467,31 @@ export class ItemWorldScene extends Scene {
    *   the direction has no exit, blocking any natural template openings.
    * Rectangles are `{c0, r0, cN, rN}` in room-local tile units.
    */
-  private computeDoorMask(
-    cell: UnifiedRoomCell | null,
-    ldtkLevel: LdtkLevel,
-  ): {
-    carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
-    sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
-  } {
-    const carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }> = [];
-    const sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }> = [];
-
-    if (!cell) return { carveRectsLocal, sealRectsLocal };
-
-    // Suppress ldtkLevel unused-warning — the loader-computed doorAnchors
-    // are retained for future per-template tuning but door row is now fixed
-    // across all templates so adjacent rooms align perfectly.
-    void ldtkLevel;
-
-    const W = IW_ROOM_W_TILES;
-    const H = IW_ROOM_H_TILES;
-    const D = IW_DOOR_DEPTH;
-    const DH = IW_DOOR_H_HEIGHT;
-    const DV = IW_DOOR_V_WIDTH;
-
-    // Fixed horizontal door position — door sits ABOVE the floor row.
-    // For DH=3 and IW_DOOR_FLOOR_ROW=13 → door rows 10..12, floor row 13
-    // stays solid so the player has something to walk on through the door.
-    const hDoorR0 = Math.max(0, IW_DOOR_FLOOR_ROW - DH);
-    // Vertical door horizontal span (centered on midpoint)
-    const midC = Math.floor(W / 2);
-    const vDoorC0 = Math.max(0, midC - Math.floor(DV / 2));
-
-    // LEFT
-    if (cell.exits.left) {
-      carveRectsLocal.push({ c0: 0, r0: hDoorR0, cN: D, rN: hDoorR0 + DH });
-    } else {
-      sealRectsLocal.push({ c0: 0, r0: 0, cN: D, rN: H });
-    }
-    // RIGHT
-    if (cell.exits.right) {
-      carveRectsLocal.push({ c0: W - D, r0: hDoorR0, cN: W, rN: hDoorR0 + DH });
-    } else {
-      sealRectsLocal.push({ c0: W - D, r0: 0, cN: W, rN: H });
-    }
-    // UP
-    if (cell.exits.up) {
-      carveRectsLocal.push({ c0: vDoorC0, r0: 0, cN: vDoorC0 + DV, rN: D });
-    } else {
-      // Seal the ceiling edge strip — templates have open U doorways that
-      // need to be physically closed when there's no logical up connection.
-      sealRectsLocal.push({ c0: 0, r0: 0, cN: W, rN: D });
-    }
-    // DOWN
-    if (cell.exits.down) {
-      carveRectsLocal.push({ c0: vDoorC0, r0: H - D, cN: vDoorC0 + DV, rN: H });
-    } else {
-      // Same rationale as UP: close any floor pit the template left open.
-      sealRectsLocal.push({ c0: 0, r0: H - D, cN: W, rN: H });
-    }
-
-    return { carveRectsLocal, sealRectsLocal };
+  private computeDoorMask(cell: UnifiedRoomCell | null, ldtkLevel: LdtkLevel): DoorMask {
+    return this.mapController.computeDoorMask(cell, ldtkLevel);
   }
 
-  /** Write the door mask into fullGrid at a given room offset. */
-  private applyDoorMaskToFullGrid(
-    mask: {
-      carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
-      sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>;
-    },
-    offR: number,
-    offC: number,
-  ): void {
-    const H = this.fullGrid.length;
-    const W = this.fullGrid[0]?.length ?? 0;
-    // Seals first (solid), then carves (passable) — carves win on overlap
-    for (const rect of mask.sealRectsLocal) {
-      for (let r = rect.r0; r < rect.rN; r++) {
-        for (let c = rect.c0; c < rect.cN; c++) {
-          const gr = offR + r, gc = offC + c;
-          if (gr >= 0 && gr < H && gc >= 0 && gc < W) {
-            this.fullGrid[gr][gc] = 1;
-            this.sealedCells.add(`${gr},${gc}`);
-          }
-        }
-      }
-    }
-    // Carves: only overwrite SOLID tiles (wall/ice/breakable) to air.
-    // Non-solid tiles (platform, water, updraft, spike, air) are preserved
-    // so template-placed platforms near door edges don't get destroyed.
-    for (const rect of mask.carveRectsLocal) {
-      for (let r = rect.r0; r < rect.rN; r++) {
-        for (let c = rect.c0; c < rect.cN; c++) {
-          const gr = offR + r, gc = offC + c;
-          if (gr >= 0 && gr < H && gc >= 0 && gc < W) {
-            const v = this.fullGrid[gr][gc];
-            if (v === 1 || v === 7 || v === 9) this.fullGrid[gr][gc] = 0;
-          }
-        }
-      }
-    }
+  private applyDoorMaskToFullGrid(mask: DoorMask, offR: number, offC: number): void {
+    this.mapController.applyDoorMaskToFullGrid(mask, this.fullGrid, this.sealedCells, offR, offC);
   }
 
-  /** Remove wall tiles whose pixel position falls inside any carve rect. */
   private filterWallTilesByCarves<T extends { px: [number, number] }>(
     wallTiles: T[],
-    carveRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>,
+    carveRectsLocal: DoorMask['carveRectsLocal'],
   ): T[] {
-    if (carveRectsLocal.length === 0) return wallTiles;
-    return wallTiles.filter(t => {
-      const tc = Math.floor(t.px[0] / TILE_SIZE);
-      const tr = Math.floor(t.px[1] / TILE_SIZE);
-      for (const rect of carveRectsLocal) {
-        if (tr >= rect.r0 && tr < rect.rN && tc >= rect.c0 && tc < rect.cN) return false;
-      }
-      return true;
-    });
+    return this.mapController.filterWallTilesByCarves(wallTiles, carveRectsLocal);
   }
 
   /**
    * Paint code-generated seal walls with a mortar + 4×4 brick pattern per
-   * sealed cell. The luma variation (mortar ~0.21, bricks ~0.37–0.45) feeds
+   * sealed cell. The luma variation (mortar ~0.21, bricks ~0.37?0.45) feeds
    * the palette filter so each brick maps to a different palette position,
    * producing a natural wall silhouette instead of a flat black hole.
    * When the palette filter is off, the pattern still reads as a stone wall.
    * LDtk template tiles render as-is.
    */
   private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
-    const gfx = new Graphics();
-    const T = TILE_SIZE;
-    const BRICK_W = 4;
-    const BRICK_H = 4;
-    // Palette-friendly mid-luma stone tones. Chosen so filter output spans
-    // the wall palette's dark-to-mid range for brick texture readability.
-    const brickColors = [0x6a6a80, 0x5c5c74, 0x727288, 0x64647c];
-    const mortar = 0x33334a;
-
-    for (let lr = 0; lr < IW_ROOM_H_TILES; lr++) {
-      for (let lc = 0; lc < IW_ROOM_W_TILES; lc++) {
-        const gr = offR + lr;
-        const gc = offC + lc;
-        if (!this.sealedCells.has(`${gr},${gc}`)) continue;
-
-        const x = lc * T;
-        const y = lr * T;
-        // Mortar base
-        gfx.rect(x, y, T, T).fill(mortar);
-        // 4×4 brick grid with row-offset stagger for masonry look
-        for (let by = 0; by < 4; by++) {
-          const offset = (by + lr) % 2 === 0 ? 0 : 2;
-          for (let bx = 0; bx < 4; bx++) {
-            const bxPos = x + ((bx * BRICK_W + offset) % T);
-            const byPos = y + by * BRICK_H;
-            // Deterministic color pick per brick so the pattern is stable
-            // across rebuilds (breakable tile destruction re-invokes this).
-            const colorIdx = (lc * 7 + lr * 13 + bx * 3 + by) % brickColors.length;
-            gfx.rect(bxPos + 1, byPos + 1, BRICK_W - 1, BRICK_H - 1)
-               .fill(brickColors[colorIdx]);
-          }
-        }
-      }
-    }
-    roomContainer.addChild(gfx);
+    this.mapController.drawUniformWalls(roomContainer, this.sealedCells, offR, offC);
   }
 
   /**
@@ -1712,37 +1501,9 @@ export class ItemWorldScene extends Scene {
    */
   private drawSealOverlays(
     roomContainer: Container,
-    sealRectsLocal: Array<{ c0: number; r0: number; cN: number; rN: number }>,
+    sealRectsLocal: DoorMask['sealRectsLocal'],
   ): void {
-    if (sealRectsLocal.length === 0) return;
-    const gfx = new Graphics();
-    const T = TILE_SIZE;
-    const BRICK_W = 4;
-    const BRICK_H = 4;
-    const colors = [0x6a6a80, 0x5c5c74, 0x727288, 0x64647c];
-    const mortar = 0x33334a;
-
-    for (const rect of sealRectsLocal) {
-      for (let r = rect.r0; r < rect.rN; r++) {
-        for (let c = rect.c0; c < rect.cN; c++) {
-          const x = c * T;
-          const y = r * T;
-          // Mortar base
-          gfx.rect(x, y, T, T).fill(mortar);
-          // 4×4 brick grid with row-offset stagger
-          for (let by = 0; by < 4; by++) {
-            const offset = (by + r) % 2 === 0 ? 0 : 2;
-            for (let bx = 0; bx < 4; bx++) {
-              const brickX = x + ((bx * BRICK_W + offset * (BRICK_W / 2)) % T);
-              const brickY = y + by * BRICK_H;
-              const color = colors[(bx + by + c + r) % colors.length];
-              gfx.rect(brickX, brickY, BRICK_W - 1, BRICK_H - 1).fill(color);
-            }
-          }
-        }
-      }
-    }
-    roomContainer.addChild(gfx);
+    this.mapController.drawSealOverlays(roomContainer, sealRectsLocal);
   }
 
   /**
@@ -1812,48 +1573,11 @@ export class ItemWorldScene extends Scene {
     roomTopRow: number,
     minLen: number,
   ): { x: number; y: number } | null {
-    let best: { row: number; startCol: number; length: number } | null = null;
-
-    // Scan each row (from bottom to top so ties prefer lower rows)
-    for (let localRow = IW_ROOM_H_TILES - 1; localRow >= 0; localRow--) {
-      const tr = roomTopRow + localRow;
-      if (tr < 0 || tr + 1 >= this.fullGrid.length) continue;
-
-      let runStart = -1;
-      let runLen = 0;
-      for (let localCol = 0; localCol < IW_ROOM_W_TILES; localCol++) {
-        const tc = roomTopCol + localCol;
-        const here = this.fullGrid[tr]?.[tc] ?? 1;
-        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
-        const isFloor = here === 0 && below >= 1;
-
-        if (isFloor) {
-          if (runStart < 0) runStart = tc;
-          runLen++;
-          // Check and update best on extension
-          if (runLen >= minLen) {
-            if (!best || runLen > best.length) {
-              best = { row: tr, startCol: runStart, length: runLen };
-            }
-          }
-        } else {
-          runStart = -1;
-          runLen = 0;
-        }
-      }
-    }
-
-    if (!best) return null;
-    const centerTile = best.startCol + Math.floor(best.length / 2);
-    return {
-      x: centerTile * TILE_SIZE + TILE_SIZE / 2,
-      y: best.row * TILE_SIZE + TILE_SIZE, // top of the air row + one tile = floor line
-    };
+    return this.spawnController.findFlatFloorCenter(this.fullGrid, roomTopCol, roomTopRow, minLen);
   }
 
-  /** Create an enemy instance by type name and level. */
   private createEnemyFromType(type: string, level: number): Enemy<string> {
-    const enemy = createEnemy(type, level);
+    const enemy = this.spawnController.createEnemyFromType(type, level);
     this.applyCycleScaling(enemy);
     return enemy;
   }
@@ -1863,7 +1587,7 @@ export class ItemWorldScene extends Scene {
    * Kept as a no-op so existing call sites in createEnemyFromType remain intact.
    */
   private applyCycleScaling(_enemy: Enemy<string>): void {
-    // No-op — cycle scaling now happens via level bump at spawn time.
+    // No-op ? cycle scaling now happens via level bump at spawn time.
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
@@ -1921,7 +1645,7 @@ export class ItemWorldScene extends Scene {
 
     // Stratum change toast
     if (prevStratumIndex !== this.currentStratumIndex) {
-      this.toast.show(`Stratum ${this.currentStratumIndex + 1} — Deeper...`, 0xff4488);
+      this.toast.show(`Stratum ${this.currentStratumIndex + 1} ? Deeper...`, 0xff4488);
 
       // Update progress on stratum descent
       if (this.currentStratumIndex > prevStratumIndex) {
@@ -1960,10 +1684,10 @@ export class ItemWorldScene extends Scene {
       this.spawnEnemies();
     }
 
-    // Door markers disabled — LDtk passages are visible in the tilemap
+    // Door markers disabled ? LDtk passages are visible in the tilemap
     // this.drawDoorMarkers(cell);
 
-    // Boss room — check LDtk roomType, fallback to stratum end room
+    // Boss room ? check LDtk roomType, fallback to stratum end room
     const ldtkRoomType = this.currentLdtkLevel?.roomType ?? '';
     const isEndRoom = ldtkRoomType === 'Boss' || this.isStratumEndRoom(this.currentCol, this.currentRow);
 
@@ -1995,7 +1719,7 @@ export class ItemWorldScene extends Scene {
       this.entityLayer.addChild(this.exitVisual);
     } else {
       this.exitTrigger = null;
-      // Escape altar — spawn in non-start, non-end, critical path rooms
+      // Escape altar ? spawn in non-start, non-end, critical path rooms
       this.trySpawnEscapeAltar(cell);
     }
 
@@ -2034,123 +1758,23 @@ export class ItemWorldScene extends Scene {
     return triggers;
   }
 
-  /** Seal depth for blocked passages (4 tiles thick) */
-  private static readonly SEAL_DEPTH = 2;
   private sealGfx: Container | Graphics | null = null;
   private currentLdtkLevel: LdtkLevel | null = null;
 
-  /**
-   * Seal passages on edges that don't connect to a neighbor cell.
-   * Fills 4 tiles deep with walls (1) in collision grid + renders auto-tiled sprites.
-   */
   private sealUnusedExits(cell: UnifiedRoomCell): void {
-    const grid = this.roomData;
-    const h = grid.length;
-    const w = grid[0]?.length ?? 0;
-    const D = ItemWorldScene.SEAL_DEPTH;
-
-
-    // Track which tiles change from open(0) to wall(1)
-    const changed: Array<[number, number]> = []; // [col, row]
-
-    const seal = (r: number, c: number) => {
-      if (r >= 0 && r < h && c >= 0 && c < w && grid[r][c] === 0) {
-        grid[r][c] = 1;
-        changed.push([c, r]);
-      }
-    };
-
-    if (!cell.exits.left) {
-      for (let r = 0; r < h; r++) for (let c = 0; c < D; c++) seal(r, c);
-    }
-    if (!cell.exits.right) {
-      for (let r = 0; r < h; r++) for (let c = w - D; c < w; c++) seal(r, c);
-    }
-    if (!cell.exits.up) {
-      for (let r = 0; r < D; r++) for (let c = 0; c < w; c++) seal(r, c);
-    }
-    if (!cell.exits.down) {
-      for (let r = h - D; r < h; r++) for (let c = 0; c < w; c++) seal(r, c);
-    }
-
-
+    const changed = this.mapController.sealUnusedExits(cell, this.roomData);
     if (changed.length > 0) {
-      this.addSealSprites(changed);
-    }
-  }
-
-  /** Render seal visuals */
-  private addSealSprites(changed: Array<[number, number]>): void {
-    if (changed.length === 0) return;
-    const T = TILE_SIZE;
-
-    const sealContainer = new Container();
-    const gfx = new Graphics();
-    // 4×4 pixel brick pattern (each cell = 4×4 px, tile = 16×16 px = 4×4 cells)
-    const BRICK_W = 4;
-    const BRICK_H = 4;
-    const colors = [0x3a3a4a, 0x33334a, 0x404050, 0x383848]; // stone variations
-    const mortar = 0x222233;
-
-    for (const [c, r] of changed) {
-      const x = c * T;
-      const y = r * T;
-
-      // Fill mortar background
-      gfx.rect(x, y, T, T).fill(mortar);
-
-      // Draw 4×4 brick grid (4 bricks per row, 4 rows)
-      for (let by = 0; by < 4; by++) {
-        const offset = (by + r) % 2 === 0 ? 0 : 2; // offset every other row
-        for (let bx = 0; bx < 4; bx++) {
-          const brickX = x + ((bx * BRICK_W + offset * (BRICK_W / 2)) % T);
-          const brickY = y + by * BRICK_H;
-          const color = colors[(bx + by + c + r) % colors.length];
-          gfx.rect(brickX, brickY, BRICK_W - 1, BRICK_H - 1).fill(color);
-        }
+      const sealContainer = this.mapController.addSealSprites(changed);
+      if (sealContainer) {
+        this.sealGfx = sealContainer;
+        this.container.addChild(sealContainer);
       }
     }
-    sealContainer.addChild(gfx);
-
-    this.sealGfx = sealContainer;
-    this.container.addChild(sealContainer);
   }
 
   /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
   private findEdgeOpen(grid: number[][], edge: 'left'|'right'|'up'|'down', hint = -1): number {
-    const h = grid.length;
-    const w = grid[0]?.length ?? 0;
-    const openTiles: number[] = [];
-
-    switch (edge) {
-      case 'left':
-        for (let r = 0; r < h; r++) if (grid[r][0] === 0) openTiles.push(r);
-        break;
-      case 'right':
-        for (let r = 0; r < h; r++) if (grid[r][w - 1] === 0) openTiles.push(r);
-        break;
-      case 'up':
-        for (let c = 0; c < w; c++) if (grid[0][c] === 0) openTiles.push(c);
-        break;
-      case 'down':
-        for (let c = 0; c < w; c++) if (grid[h - 1][c] === 0) openTiles.push(c);
-        break;
-    }
-
-    if (openTiles.length === 0) {
-      const len = (edge === 'left' || edge === 'right') ? h : w;
-      return Math.floor(len / 2);
-    }
-
-    // Pick closest to hint (player's previous position)
-    if (hint >= 0) {
-      let best = openTiles[0];
-      for (const t of openTiles) if (Math.abs(t - hint) < Math.abs(best - hint)) best = t;
-      return best;
-    }
-
-    // No hint: pick middle of open range
-    return openTiles[Math.floor(openTiles.length / 2)];
+    return this.mapController.findEdgeOpen(grid, edge, hint);
   }
 
   /** Find floor Y in current room at given tile column */
@@ -2175,7 +1799,7 @@ export class ItemWorldScene extends Scene {
   private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
     if (this.ldtkTemplates.length === 0) return null;
 
-    // Memory Room placement overrides procedural selection — deterministic.
+    // Memory Room placement overrides procedural selection ? deterministic.
     if (cell) {
       const placed = this.memoryRoomPlacements.get(`${cell.col}:${cell.absoluteRow}`);
       if (placed) return placed;
@@ -2183,7 +1807,7 @@ export class ItemWorldScene extends Scene {
 
     // Exclude memory room templates from the random pool so they only appear
     // where explicitly placed above. LDtk editor may capitalize the prefix
-    // ("Memory_*") — match case-insensitively.
+    // ("Memory_*") ? match case-insensitively.
     const pool = this.ldtkTemplates.filter(t => !/^memory_/i.test(t.identifier));
 
     // Determine desired RoomType based on cell role
@@ -2358,7 +1982,7 @@ export class ItemWorldScene extends Scene {
 
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
   private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
-    // Per-room iid prefix — when the same template is reused in multiple rooms,
+    // Per-room iid prefix ? when the same template is reused in multiple rooms,
     // we must keep entity iids unique so Switch→LockedDoor matching is room-scoped.
     const roomPrefix = `r${offX}_${offY}:`;
 
@@ -2437,9 +2061,9 @@ export class ItemWorldScene extends Scene {
           const anchorX = offX + ent.px[0] + ent.width / 2;
           const anchorY = offY + ent.px[1] - ent.height / 2;
 
-          // Build the Memory Shard visual — legendary-tier but distinct:
-          //   - Larger than item drops (shard ≈ 16×16 vs item 8×8)
-          //   - Rotated diamond shape (45°) — clear visual contrast vs sword's square
+          // Build the Memory Shard visual ? legendary-tier but distinct:
+          //   - Larger than item drops (shard ? 16×16 vs item 8×8)
+          //   - Rotated diamond shape (45°) ? clear visual contrast vs sword's square
           //   - Double outline (bright orange → pale gold)
           //   - Wide radial glow
           //   - Orange particles that drift UP with horizontal sway
@@ -2536,7 +2160,7 @@ export class ItemWorldScene extends Scene {
 
   /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
   private updateStaticEntities(dt: number): void {
-    // IntGrid spike (value 5) — contact damage + safe-ground respawn.
+    // IntGrid spike (value 5) ? contact damage + safe-ground respawn.
     // Replaces the old Entity-based Spike AABB check with fullGrid tile scan.
     if (!this.player.invincible && this.player.hp > 0) {
       if (isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid)) {
@@ -2566,7 +2190,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Collapsing platforms — shake when stood on, may collapse + respawn
+    // Collapsing platforms ? shake when stood on, may collapse + respawn
     for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
       const cp = this.collapsingPlatforms[i];
       cp.update(dt);
@@ -2575,7 +2199,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Growing walls — pulse, grow/shrink cycle, slime/dust spawn
+    // Growing walls ? pulse, grow/shrink cycle, slime/dust spawn
     for (const wall of this.growingWalls) {
       wall.update(dt);
       // Promote any pending slimes spawned by the wall into the enemy list
@@ -2590,7 +2214,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Locked doors — reject animation timer
+    // Locked doors ? reject animation timer
     for (const door of this.lockedDoors) {
       door.update(dt);
     }
@@ -2630,11 +2254,11 @@ export class ItemWorldScene extends Scene {
             this.unlockDoorByIidLocal(sw.targetDoorIid);
           }
         }
-        // Breakable tiles (IntGrid 9) — 3 hits to destroy → air(0)
+        // Breakable tiles (IntGrid 9) ? 3 hits to destroy → air(0)
         this.checkAttackOnBreakables(hitbox);
       }
     } else {
-      // Attack ended — reset breakable swing tracking
+      // Attack ended ? reset breakable swing tracking
       if (this.breakableHitThisSwing.size > 0) {
         this.breakableHitThisSwing.clear();
         this.breakableLastCombo = -1;
@@ -2800,7 +2424,6 @@ export class ItemWorldScene extends Scene {
 
   enter(): void {
     // Onboarding disabled
-    this.onboardingDone = true;
   }
 
   private initialized = false;
@@ -2809,9 +2432,9 @@ export class ItemWorldScene extends Scene {
     if (!this.initialized) return;
 
     // Return result modal (blocks all input while visible)
-    if (this.returnResult?.visible) {
-      this.returnResult.update(dt);
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) this.returnResult.confirm();
+    if (this.uiController.isReturnResultVisible()) {
+      this.uiController.updateReturnResult(dt);
+      if (this.game.input.isJustPressed(GameAction.ATTACK)) this.uiController.confirmReturnResult();
       return;
     }
 
@@ -2819,10 +2442,10 @@ export class ItemWorldScene extends Scene {
     this.toast.update(dt);
 
     // Return hint shrink tween (first-entry only).
-    this.returnHint?.update(dt);
+    this.uiController.updateReturnHint(dt);
 
     // Onboarding blocks gameplay
-    if (!this.onboardingDone) {
+    if (!this.uiController.isOnboardingDone()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.advanceOnboarding();
       }
@@ -2835,7 +2458,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // LoreDisplay (Memory Room lore) — when active, pause gameplay
+    // LoreDisplay (Memory Room lore) ? when active, pause gameplay
     if (this.loreDisplay?.isActive) {
       this.loreDisplay.update(dt);
       // Sync prev position so render interpolation doesn't cause jitter
@@ -2843,8 +2466,8 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Entry portal interaction — C key near portal shows escape confirm
-    if (this.entryPortal && !this.escapeConfirmVisible && !this.bossChoiceVisible) {
+    // Entry portal interaction ? C key near portal shows escape confirm
+    if (this.entryPortal && !this.uiController.isEscapeConfirmVisible() && !this.uiController.isBossChoiceVisible()) {
       this.entryPortal.update(dt);
       const px = this.player.x + this.player.width / 2;
       const py = this.player.y + this.player.height / 2;
@@ -2859,9 +2482,9 @@ export class ItemWorldScene extends Scene {
 
     // ESC to toggle escape confirm. bossChoice 패널이 열려 있을 땐 여기서
     // 가로채지 않고 아래 bossChoice 핸들러가 ESC 를 Exit Safely 로 처리하도록
-    // 양보한다 (Pattern A — 해당 모달의 취소 키).
-    if (!this.bossChoiceVisible && this.game.input.isJustPressed(GameAction.MENU)) {
-      if (this.escapeConfirmVisible) {
+    // 양보한다 (Pattern A ? 해당 모달의 취소 키).
+    if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
+      if (this.uiController.isEscapeConfirmVisible()) {
         this.hideEscapeConfirm();
       } else {
         this.showEscapeConfirm();
@@ -2869,9 +2492,9 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    if (this.escapeConfirmVisible) {
+    if (this.uiController.isEscapeConfirmVisible()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        const fromAltar = this.escapeConfirmFromAltar;
+        const fromAltar = this.uiController.isEscapeConfirmFromAltar();
         this.hideEscapeConfirm();
         if (fromAltar) {
           this.useEscapeAltar();
@@ -2897,9 +2520,9 @@ export class ItemWorldScene extends Scene {
     // stratum boss, the portal would auto-advance; now the player explicitly
     // chooses CONTINUE (deeper) or EXIT (bank progress and leave).
     // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=확인(Continue
-    // Deeper), ESC(MENU)=취소(Exit Safely). Z/X 는 UI 에서 사용 금지 — 점프/
+    // Deeper), ESC(MENU)=취소(Exit Safely). Z/X 는 UI 에서 사용 금지 ? 점프/
     // 대시 액션과 근육 기억 충돌을 막기 위함.
-    if (this.bossChoiceVisible) {
+    if (this.uiController.isBossChoiceVisible()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.hideBossChoice();
         this._continueToNextStratum();
@@ -2918,7 +2541,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // World Map / Inventory are unavailable inside Item World — surface a
+    // World Map / Inventory are unavailable inside Item World ? surface a
     // short English toast so the player understands the key was recognised
     // but intentionally disabled here.
     if (this.game.input.isJustPressed(GameAction.MAP)) {
@@ -2938,7 +2561,7 @@ export class ItemWorldScene extends Scene {
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
     this.updateStaticEntities(dt);
 
-    // Memory Room triggers — animate shards + show dialogue on entry
+    // Memory Room triggers ? animate shards + show dialogue on entry
     this.checkMemoryTriggers(dt);
 
     if (this.player.isDead) {
@@ -2951,7 +2574,7 @@ export class ItemWorldScene extends Scene {
         room_row: cell?.row ?? 0,
         enemy_type: this.player.lastDamageSource,
       });
-      this.exitReason = 'death';
+      this.progressController.setExitReason('death');
       trackItemWorldExit('death', this.currentStratumIndex);
       this.exitTracked = true;
 
@@ -2970,22 +2593,19 @@ export class ItemWorldScene extends Scene {
       this.player.respawn();
 
       // Show death result modal before exiting
-      if (this.returnResult) {
-        this.returnResult.show({
-          item: this.item,
-          prevLevel: this.stratumStartLevel,
-          prevAtk: this.stratumStartAtk,
-          goldEarned: 0,
-          enemiesDefeated: this.enemies.filter(e => !e.alive).length,
-          innocentsCaptured: this.item.innocents.length - this.stratumStartInnocentCount,
-          strataCleared: this.currentStratumIndex,
-          totalStrata: this.strataConfig.strata.length,
-          isDeath: true,
-        });
-        this.returnResult.onDismiss = () => {
-          this.startExitFade();
-        };
-      } else {
+      if (!this.uiController.showReturnResult({
+        item: this.item,
+        prevLevel: this.stratumStartLevel,
+        prevAtk: this.stratumStartAtk,
+        goldEarned: 0,
+        enemiesDefeated: this.enemies.filter(e => !e.alive).length,
+        innocentsCaptured: this.item.innocents.length - this.stratumStartInnocentCount,
+        strataCleared: this.currentStratumIndex,
+        totalStrata: this.strataConfig.strata.length,
+        isDeath: true,
+      }, () => {
+        this.startExitFade();
+      })) {
         this.startExitFade();
       }
       return;
@@ -2994,7 +2614,7 @@ export class ItemWorldScene extends Scene {
     // Update enemies
     for (const enemy of this.enemies) enemy.update(dt);
 
-    // Player attacks — Sakurai full feedback chain
+    // Player attacks ? Sakurai full feedback chain
     if (this.player.isAttackActive()) {
       const targets = this.enemies.filter(e => e.alive) as CombatEntity[];
       const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
@@ -3019,7 +2639,7 @@ export class ItemWorldScene extends Scene {
       if (!enemy.alive && !(enemy as any)._expGranted) {
         (enemy as any)._expGranted = true;
 
-        // Analytics: enemy kill distribution (excludes Innocents — capture, not kill)
+        // Analytics: enemy kill distribution (excludes Innocents ? capture, not kill)
         if (!(enemy instanceof InnocentNPC)) {
           trackEnemyKill({
             area: 'itemworld',
@@ -3115,7 +2735,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Healing pickups — collect on overlap
+    // Healing pickups ? collect on overlap
     for (let i = this.healingPickups.length - 1; i >= 0; i--) {
       const hp = this.healingPickups[i];
       if (hp.collected) {
@@ -3138,7 +2758,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Gold pickups — collect on overlap
+    // Gold pickups ? collect on overlap
     for (let i = this.goldPickups.length - 1; i >= 0; i--) {
       const gp = this.goldPickups[i];
       if (gp.collected) continue;
@@ -3166,7 +2786,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Update projectiles — player attack can destroy them
+    // Update projectiles ? player attack can destroy them
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.update(dt);
@@ -3226,7 +2846,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Enemy contact damage — all enemies deal damage on body overlap
+    // Enemy contact damage ? all enemies deal damage on body overlap
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       if (this.player.invincible || this.player.hp <= 0) continue;
@@ -3266,7 +2886,7 @@ export class ItemWorldScene extends Scene {
       break;
     }
 
-    // Boss killed check — spawn exit portal at boss death location
+    // Boss killed check ? spawn exit portal at boss death location
     // Check ALL dead bosses regardless of exitTrigger state
     for (const enemy of this.enemies) {
       if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
@@ -3284,7 +2904,7 @@ export class ItemWorldScene extends Scene {
         trackItemWorldFloorClear(this.currentStratumIndex, this.item.rarity);
 
         // Boss EXP is granted via normal kill EXP path (CSV Exp column = 1200).
-        // No forced itemLevelUp() — SSoT: Content_Stats_Enemy.csv
+        // No forced itemLevelUp() ? SSoT: Content_Stats_Enemy.csv
 
         // Boss clear heal: 30% maxHP (GDD HEL-03)
         const bossHeal = Math.floor(this.player.maxHp * 0.30);
@@ -3320,7 +2940,7 @@ export class ItemWorldScene extends Scene {
         this.game.camera.shake(9);
         this.screenFlash.flash(0xffffff, 0.55, 180);
         this.toast.showBig('BOSS DEFEATED', 0xffd35a, 2200);
-        this.toast.show('Red portal opened — press C', 0xff7744);
+        this.toast.show('Red portal opened ? press C', 0xff7744);
         // Follow-up burst: ember-gold flash + second particle layer
         setTimeout(() => {
           this.screenFlash.flash(0xffaa22, 0.35, 220);
@@ -3331,7 +2951,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Exit trigger — walk into boss portal
+    // Exit trigger ? walk into boss portal
     if (this.exitTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       const nearPortal = aabbOverlap(pb, this.exitTrigger);
@@ -3356,7 +2976,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Escape altar interaction — UP to open confirmation dialog
+    // Escape altar interaction ? UP to open confirmation dialog
     if (this.altarTrigger) {
       const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
       const overlapping = aabbOverlap(pb, this.altarTrigger);
@@ -3428,9 +3048,9 @@ export class ItemWorldScene extends Scene {
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
-    // Boss HP bar — 교전 감지 2중 트리거.
+    // Boss HP bar ? 교전 감지 2중 트리거.
     //  1) FSM 상태 ≠ idle/death
-    //  2) hp < maxHp — superArmor 보스는 타격해도 FSM 이 hit 으로 전이되지 않으므로
+    //  2) hp < maxHp ? superArmor 보스는 타격해도 FSM 이 hit 으로 전이되지 않으므로
     //     데미지 기록을 직접 본다.
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
     if (activeBoss) {
@@ -3619,69 +3239,30 @@ export class ItemWorldScene extends Scene {
   }
 
   private showEscapeConfirm(fromAltar = false): void {
-    this.escapeConfirmVisible = true;
-    this.escapeConfirmFromAltar = fromAltar;
-    this.hideWorldPrompts();
-
-    const panelW = 260;
-    const panelH = 72;
-    const panel = new Container();
-    // 9-slice or fallback
-    const frame = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, panelW, panelH) : null;
-    if (frame) {
-      panel.addChild(frame);
-    } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
-      panel.addChild(bg);
-    }
-
-    const titleText = fromAltar ? 'Use Escape Altar?' : 'Leave Item World?';
-    const title = new BitmapText({ text: titleText, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
-    title.x = 12;
-    title.y = 6;
-    panel.addChild(title);
-
-    const expInfo = new BitmapText({
-      text: `${this.item.def.name} Lv${this.item.level}  EXP: ${this.item.exp}/${EXP_PER_LEVEL}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
+    this.uiController.showEscapeConfirm({
+      hudSkin: this.hudSkin,
+      fromAltar,
+      itemName: this.item.def.name,
+      itemLevel: this.item.level,
+      itemExp: this.item.exp,
+      expPerLevel: EXP_PER_LEVEL,
+      roomsCleared: this.roomsCleared,
+      totalRooms: this.totalRooms,
+      earnedExp: this.earnedExp,
+      earnedGold: this.earnedGold,
+      prompts: {
+        exitPrompt: this.exitPrompt,
+        altarHint: this.altarHint,
+      },
     });
-    expInfo.x = 12;
-    expInfo.y = 20;
-    panel.addChild(expInfo);
-
-    const floorInfo = new BitmapText({
-      text: `Rooms ${this.roomsCleared}/${this.totalRooms}  +${this.earnedExp} EXP  +${this.earnedGold} G`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
-    floorInfo.x = 12;
-    floorInfo.y = 33;
-    panel.addChild(floorInfo);
-
-    const controls = new BitmapText({ text: '[C] Yes   [Z/X] No', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
-    controls.x = 12;
-    controls.y = 48;
-    panel.addChild(controls);
-
-    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
-
-    this.escapeConfirm = panel;
-    this.game.legacyUIContainer.addChild(panel);
   }
 
   private hideEscapeConfirm(): void {
-    this.escapeConfirmVisible = false;
-    this.escapeConfirmFromAltar = false;
-    if (this.escapeConfirm?.parent) {
-      this.escapeConfirm.parent.removeChild(this.escapeConfirm);
-    }
-    this.escapeConfirm = null;
+    this.uiController.hideEscapeConfirm();
   }
 
   // ---------------------------------------------------------------------------
-  // Stratum picker — choose starting stratum on re-entry (after first clear)
+  // Stratum picker ? choose starting stratum on re-entry (after first clear)
   // ---------------------------------------------------------------------------
 
   private showStratumPicker(maxSelectable: number): void {
@@ -3793,7 +3374,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
     if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
-      // Cancel — keep default starting stratum
+      // Cancel ? keep default starting stratum
       this.hideStratumPicker();
       return;
     }
@@ -3814,76 +3395,23 @@ export class ItemWorldScene extends Scene {
     const startRow = stratumStart?.absoluteRow ?? offset.rowOffset;
     const startCol = stratumStart?.col ?? 0;
 
-    this.toast.show(`Stratum ${stratumIndex + 1} — Beginning...`, 0x88ccff);
+    this.toast.show(`Stratum ${stratumIndex + 1} ? Beginning...`, 0x88ccff);
     this.startTransition('down', startCol, startRow);
   }
 
   // --- Onboarding ---
   private showOnboarding(): void {
-    this.onboardingStep = 0;
-    this.onboardingDone = false;
-    this.showOnboardingStep();
-  }
-
-  private showOnboardingStep(): void {
-    if (this.onboardingPanel?.parent) {
-      this.onboardingPanel.parent.removeChild(this.onboardingPanel);
-    }
-
-    const msgs = ItemWorldScene.ONBOARDING_MSGS;
-    if (this.onboardingStep >= msgs.length) {
-      this.onboardingPanel = null;
-      this.onboardingDone = true;
-      return;
-    }
-
-    const msg = msgs[this.onboardingStep];
-    const lines = msg.split('\n');
-
-    const panelW = 280;
-    const lineH = 12;
-    const padY = 10;
-    const padX = 14;
-    const panelH = padY * 2 + lines.length * lineH + 16; // +16 for prompt line
-
-    const panel = new Container();
-    const frame2 = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, panelW, panelH) : null;
-    if (frame2) { panel.addChild(frame2); } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
-      panel.addChild(bg);
-    }
-
-    for (let i = 0; i < lines.length; i++) {
-      const t = new BitmapText({
-        text: lines[i],
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-      });
-      t.x = padX;
-      t.y = padY + i * lineH;
-      panel.addChild(t);
-    }
-
-    const step = `${this.onboardingStep + 1}/${msgs.length}`;
-    const prompt = new BitmapText({
-      text: `[C] Next  ${step}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+    this.uiController.startOnboarding({
+      hudSkin: this.hudSkin,
+      messages: ItemWorldScene.ONBOARDING_MSGS,
     });
-    prompt.x = padX;
-    prompt.y = panelH - padY - 8;
-    panel.addChild(prompt);
-
-    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2) - 20;
-
-    this.onboardingPanel = panel;
-    this.game.legacyUIContainer.addChild(panel);
   }
 
   private advanceOnboarding(): void {
-    this.onboardingStep++;
-    this.showOnboardingStep();
+    this.uiController.advanceOnboarding({
+      hudSkin: this.hudSkin,
+      messages: ItemWorldScene.ONBOARDING_MSGS,
+    });
   }
 
   /**
@@ -3894,18 +3422,18 @@ export class ItemWorldScene extends Scene {
    * 잔존한다. 모달 진입 시점과 update 선두에서 이 함수를 호출해 방지.
    */
   private hideWorldPrompts(): void {
-    if (this.exitPrompt) this.exitPrompt.visible = false;
-    if (this.altarHint) this.altarHint.visible = false;
+    this.uiController.hideWorldPrompts({
+      exitPrompt: this.exitPrompt,
+      altarHint: this.altarHint,
+    });
   }
 
   /** 현재 프레임에서 world-space 프롬프트가 숨겨져 있어야 하는지 판정. */
   private shouldSuppressWorldPrompts(): boolean {
-    return (
-      this.bossChoiceVisible ||
-      this.escapeConfirmVisible ||
-      this.stratumClearPanel !== null ||
-      this.transitionState !== 'none'
-    );
+    return this.uiController.shouldSuppressWorldPrompts({
+      hasStratumClearPanel: this.uiController.hasStratumClearPanel(),
+      transitionState: this.transitionState,
+    });
   }
 
   private handleStratumExit(): void {
@@ -3913,7 +3441,7 @@ export class ItemWorldScene extends Scene {
     const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
 
     // A6 + A16: capture before/after snapshot (we're still on the stratum
-    // that just ended — no state changes yet). A6 renders a one-line toast;
+    // that just ended ? no state changes yet). A6 renders a one-line toast;
     // A16 shows a structured before/after panel that auto-dismisses.
     const _a6BeforeAtk = this.stratumStartAtk;
     const _a6AfterAtk = this.item.finalAtk;
@@ -3929,33 +3457,25 @@ export class ItemWorldScene extends Scene {
     if (!isFinal) {
       const nextStratumIndex = this.currentStratumIndex + 1;
       const hasNextStratum = !!this.unifiedGrid.strataOffsets[nextStratumIndex];
-
-      if (!hasNextStratum) {
-        // No more strata — auto-exit (no choice offered; there's nothing to descend into)
-        this.progress.lastSafeStratum = this.currentStratumIndex;
-        this.persistRoomState();
-        this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
-        this._showA6DmgToast(_a6BeforeAtk, _a6AfterAtk);
-        this._showStratumClearPanel(_a16Snapshot, true);
-        this.startPostClearHold();
-        return;
-      }
-
-      // A17: offer a choice instead of auto-descending. Stash the snapshot so
-      // the chosen branch can surface it in toasts/panels. Also pre-compute
-      // the "peek" at next stratum difficulty so the player can make an
-      // informed call.
-      this._pendingStratumSnapshot = { a6BeforeAtk: _a6BeforeAtk, a6AfterAtk: _a6AfterAtk, a16: _a16Snapshot };
-      this.showBossChoice(nextStratumIndex);
+      this.progress.lastSafeStratum = this.currentStratumIndex;
+      this.progressController.handleStratumExit({
+        currentStratumIndex: this.currentStratumIndex,
+        hasNextStratum,
+        itemName: this.item.def.name,
+        itemLevel: this.item.level,
+        a6BeforeAtk: _a6BeforeAtk,
+        a6AfterAtk: _a6AfterAtk,
+        a16Snapshot: _a16Snapshot,
+      });
       return;
     } else {
-      // Deepest stratum cleared — exit item world
-      this.exitReason = 'clear';
+      // Deepest stratum cleared ? exit item world
+      this.progressController.setExitReason('clear');
       this.progress.lastSafeStratum = this.currentStratumIndex;
       markItemCleared(this.item);
       this.persistRoomState();
-      // Level up already happened on boss kill — just show result
-      this.toast.show(`${this.item.def.name} Lv${this.item.level} — Strata Complete!`, 0xffaa00);
+      // Level up already happened on boss kill ? just show result
+      this.toast.show(`${this.item.def.name} Lv${this.item.level} ? Strata Complete!`, 0xffaa00);
       this._showA6DmgToast(_a6BeforeAtk, _a6AfterAtk);
       this._showStratumClearPanel(_a16Snapshot, true);
       this.startPostClearHold();
@@ -3980,119 +3500,28 @@ export class ItemWorldScene extends Scene {
     snap: { beforeAtk: number; afterAtk: number; beforeLevel: number; afterLevel: number; beforeInnocents: number; afterInnocents: number },
     isFinal: boolean,
   ): void {
-    // Replace any existing panel (e.g. rapid back-to-back clears)
-    if (this.stratumClearPanel) {
-      const p = this.stratumClearPanel;
-      if (p.container.parent) p.container.parent.removeChild(p.container);
-      p.container.destroy({ children: true });
-      this.stratumClearPanel = null;
-    }
-
-    const container = new Container();
-
-    // Panel geometry — doubled for readability
-    const W = 400;
-    const H = 172;
-    const x = Math.floor((GAME_WIDTH - W) / 2);
-    const y = Math.floor((GAME_HEIGHT - H) / 2);
-    const frame3 = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, W, H) : null;
-    if (frame3) { container.addChild(frame3); } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, W, H).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, W, H).stroke({ color: 0x4a4a6a, width: 1 });
-      container.addChild(bg);
-    }
-
-    const title = new BitmapText({
-      text: isFinal ? 'ITEM CLEARED' : `STRATUM ${this.currentStratumIndex + 1} CLEAR`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xffd35a },
-    });
-    title.x = Math.floor(W / 2 - title.width / 2);
-    title.y = 12;
-    container.addChild(title);
-
-    const rowY = 44;
-    const rowH = 24;
-    const labelX = 20;
-    const valueX = 148;
-    const arrowX = 240;
-    const afterX = 280;
-    const deltaX = 352;
-
-    const rows: [string, number, number][] = [
-      ['ATK',       snap.beforeAtk,       snap.afterAtk],
-      ['Lv',        snap.beforeLevel,     snap.afterLevel],
-      ['Innocents', snap.beforeInnocents, snap.afterInnocents],
-    ];
-
-    for (let i = 0; i < rows.length; i++) {
-      const [label, before, after] = rows[i];
-      const ry = rowY + i * rowH;
-      const delta = after - before;
-      const hasDelta = delta !== 0;
-      const deltaColor = delta > 0 ? 0x88ff88 : (delta < 0 ? 0xff8888 : 0x666677);
-
-      const lbl = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xbbbbcc } });
-      lbl.x = labelX; lbl.y = ry;
-      container.addChild(lbl);
-
-      const bef = new BitmapText({ text: String(before), style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
-      bef.x = valueX; bef.y = ry;
-      container.addChild(bef);
-
-      const arrow = new BitmapText({ text: '\u2192', style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
-      arrow.x = arrowX; arrow.y = ry;
-      container.addChild(arrow);
-
-      const aft = new BitmapText({
-        text: String(after),
-        style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? 0xffffff : 0x888899 },
-      });
-      aft.x = afterX; aft.y = ry;
-      container.addChild(aft);
-
-      if (hasDelta) {
-        const sign = delta > 0 ? '+' : '';
-        const d = new BitmapText({
-          text: `${sign}${delta}`,
-          style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: deltaColor },
-        });
-        d.x = deltaX; d.y = ry;
-        container.addChild(d);
-      }
-    }
-
-    // [C] confirm hint at bottom center
-    const hint = new BitmapText({
-      text: '[C] OK',
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
-    });
-    hint.x = Math.floor(W / 2 - hint.width / 2);
-    hint.y = H - 30;
-    container.addChild(hint);
-
-    container.x = x;
-    container.y = y;
-    this.game.legacyUIContainer.addChild(container);
-    this.stratumClearPanel = { container, confirmed: false };
+    this.uiController.showStratumClearPanel({
+      beforeAtk: snap.beforeAtk,
+      afterAtk: snap.afterAtk,
+      beforeLevel: snap.beforeLevel,
+      afterLevel: snap.afterLevel,
+      beforeInnocents: snap.beforeInnocents,
+      afterInnocents: snap.afterInnocents,
+    }, this.hudSkin, isFinal);
   }
 
   private _updateStratumClearPanel(_dt: number): void {
-    const p = this.stratumClearPanel;
-    if (!p) return;
-    // Wait for X key confirmation
-    if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+    const confirmPressed = this.game.input.isJustPressed(GameAction.ATTACK);
+    this.uiController.updateStratumClearPanel(confirmPressed);
+    if (confirmPressed && !this.uiController.hasStratumClearPanel()) {
       this.game.input.consumeJustPressed(GameAction.ATTACK);
-      p.confirmed = true;
-      if (p.container.parent) p.container.parent.removeChild(p.container);
-      p.container.destroy({ children: true });
-      this.stratumClearPanel = null;
     }
   }
 
+
   /**
    * A15: Spawn a seal orb at the capture position. The orb briefly rises, then
-   * homes toward the player while shrinking — reads as "sealed into the weapon".
+   * homes toward the player while shrinking ? reads as "sealed into the weapon".
    * Pure VFX, no hit logic. Parented under entityLayer so world-space transform
    * matches the player, making the homing motion accurate under camera moves.
    */
@@ -4149,110 +3578,39 @@ export class ItemWorldScene extends Scene {
 
   /**
    * A17 (playtest 2026-04-17): after a non-final stratum boss, offer the
-   * player a choice — Continue deeper, or Exit safely with progress banked.
+   * player a choice ? Continue deeper, or Exit safely with progress banked.
    * Previously the portal auto-advanced, which felt like the player had no
    * agency over their run length.
    */
   private showBossChoice(nextStratumIndex: number): void {
-    this._pendingNextStratumIndex = nextStratumIndex;
-    this.hideBossChoice();
-
-    const panelW = 220;
-    const panelH = 84;
-    const panel = new Container();
-
-    const frame4 = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, panelW, panelH) : null;
-    if (frame4) { panel.addChild(frame4); } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
-      panel.addChild(bg);
-    }
-
-    const title = new BitmapText({
-      text: 'BOSS DEFEATED',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc66 },
+    this.uiController.showBossChoice({
+      hudSkin: this.hudSkin,
+      nextStratumIndex,
     });
-    title.x = Math.floor((panelW - title.width) / 2);
-    title.y = 8;
-    panel.addChild(title);
-
-    const info = new BitmapText({
-      text: `Next: Stratum ${nextStratumIndex + 1}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
-    });
-    info.x = Math.floor((panelW - info.width) / 2);
-    info.y = 24;
-    panel.addChild(info);
-
-    const goPrompt = new BitmapText({
-      text: '[C] Continue Deeper',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
-    });
-    goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
-    goPrompt.y = 44;
-    panel.addChild(goPrompt);
-
-    const exitPrompt = new BitmapText({
-      text: '[ESC] Exit Safely',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
-    });
-    exitPrompt.x = Math.floor((panelW - exitPrompt.width) / 2);
-    exitPrompt.y = 60;
-    panel.addChild(exitPrompt);
-
-    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2) - 20;
-
-    this.bossChoicePanel = panel;
-    this.bossChoiceVisible = true;
-    this.game.legacyUIContainer.addChild(panel);
   }
 
   private hideBossChoice(): void {
-    if (this.bossChoicePanel) {
-      if (this.bossChoicePanel.parent) this.bossChoicePanel.parent.removeChild(this.bossChoicePanel);
-      this.bossChoicePanel.destroy({ children: true });
-      this.bossChoicePanel = null;
-    }
-    this.bossChoiceVisible = false;
+    this.uiController.hideBossChoice();
   }
 
-  /** A17: player chose to continue — descend into the next stratum. */
+  /** A17: player chose to continue ? descend into the next stratum. */
   private _continueToNextStratum(): void {
-    const snap = this._pendingStratumSnapshot;
-    const next = this._pendingNextStratumIndex;
-    this._pendingStratumSnapshot = null;
-    this._pendingNextStratumIndex = -1;
-    if (snap) {
-      this._showA6DmgToast(snap.a6BeforeAtk, snap.a6AfterAtk);
-      this._showStratumClearPanel(snap.a16, false);
-    }
-    if (next >= 0) {
-      this.jumpToStratum(next);
-    }
+    this.progressController.continueToNextStratum();
   }
 
-  /** A17: player chose to exit — bank progress, leave the item world. */
+  /** A17: player chose to exit ? bank progress, leave the item world. */
   private _exitAfterBoss(): void {
-    const snap = this._pendingStratumSnapshot;
-    this._pendingStratumSnapshot = null;
-    this._pendingNextStratumIndex = -1;
     this.progress.lastSafeStratum = this.currentStratumIndex;
-    this.persistRoomState();
-    this.toast.show(`${this.item.def.name} Lv${this.item.level} — Returning with progress...`, 0xffaa00);
-    if (snap) {
-      this._showA6DmgToast(snap.a6BeforeAtk, snap.a6AfterAtk);
-      this._showStratumClearPanel(snap.a16, false);
-    }
-    this.startPostClearHold();
+    this.progressController.exitAfterBoss({
+      currentStratumIndex: this.currentStratumIndex,
+      itemName: this.item.def.name,
+      itemLevel: this.item.level,
+    });
   }
 
   private useEscapeAltar(): void {
     this.progress.lastSafeStratum = this.currentStratumIndex;
-    this.persistRoomState();
-    this.toast.show('Escape Altar — Returning safely...', 0xaaaaff);
-    this.startExitFade();
+    this.progressController.useEscapeAltar();
   }
 
   private trySpawnEscapeAltar(cell: RoomCell): void {
@@ -4291,7 +3649,7 @@ export class ItemWorldScene extends Scene {
     this.altarVisual.y = altarY;
     this.entityLayer.addChild(this.altarVisual);
 
-    // Context prompt — rendered in uiContainer for crisp text
+    // Context prompt ? rendered in uiContainer for crisp text
     const hint = KeyPrompt.createPrompt('\u2191', 'Exit', this.game.uiScale);
     hint.visible = false;
     this.altarHint = hint;
@@ -4323,7 +3681,7 @@ export class ItemWorldScene extends Scene {
   private exitItemWorld(): void {
     // Analytics: guard against double-fire (death path tracks exit earlier)
     if (!this.exitTracked) {
-      trackItemWorldExit(this.exitReason, this.currentStratumIndex);
+      trackItemWorldExit(this.progressController.getExitReason(), this.currentStratumIndex);
     }
 
     this.sourcePlayer.hp = this.player.hp;
@@ -4334,11 +3692,9 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
     if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.returnHint) { this.returnHint.destroy(); this.returnHint = null; }
-    if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
     if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
     // Remove any lingering damage numbers / prompts from uiContainer
-    // (keep only persistent items — world scene re-adds its own in enter())
+    // (keep only persistent items ? world scene re-adds its own in enter())
     this.game.uiContainer.removeChildren();
 
     this.onComplete?.();
@@ -4363,7 +3719,7 @@ export class ItemWorldScene extends Scene {
     // Grant pass-through EXP if room wasn't cleared (skipping enemies)
     const cell = this.getCurrentCell();
     if (!cell.cleared) {
-      // Room pass EXP removed — only monster kills grant EXP
+      // Room pass EXP removed ? only monster kills grant EXP
     }
 
     this.transitionState = 'fade_out';
@@ -4417,12 +3773,12 @@ export class ItemWorldScene extends Scene {
       }
     } else if (this.transitionState === 'post_clear_hold') {
       // Wait for the player to confirm the StratumClearPanel with X key.
-      // _updateStratumClearPanel handles input and sets confirmed + destroys panel.
+      // _updateStratumClearPanel handles input and clears the modal when confirmed.
       this._updateStratumClearPanel(dt);
-      if (!this.stratumClearPanel) {
+      if (!this.uiController.hasStratumClearPanel()) {
         // Show return result modal on full clear before exiting
-        if (this.exitReason === 'clear' && this.returnResult && !this.returnResult.visible) {
-          this.returnResult.show({
+        if (this.progressController.getExitReason() === 'clear' && !this.uiController.isReturnResultVisible()) {
+          const shown = this.uiController.showReturnResult({
             item: this.item,
             prevLevel: this.stratumStartLevel,
             prevAtk: this.stratumStartAtk,
@@ -4432,9 +3788,9 @@ export class ItemWorldScene extends Scene {
             strataCleared: this.currentStratumIndex + 1,
             totalStrata: this.strataConfig.strata.length,
             isDeath: false,
-          });
-          this.returnResult.onDismiss = () => { this.startExitFade(); };
-        } else if (!this.returnResult?.visible) {
+          }, () => { this.startExitFade(); });
+          if (!shown) this.startExitFade();
+        } else if (!this.uiController.isReturnResultVisible()) {
           this.startExitFade();
         }
       }
@@ -4451,7 +3807,7 @@ export class ItemWorldScene extends Scene {
 
   exit(): void {
     this.toast.clear();
-    this.hideEscapeConfirm();
+    this.uiController.destroy();
     this.clearStaticEntities();
     if (this.loreDisplay) {
       this.loreDisplay.close();
@@ -4460,7 +3816,6 @@ export class ItemWorldScene extends Scene {
       }
       this.loreDisplay = null;
     }
-    if (this.onboardingPanel?.parent) this.onboardingPanel.parent.removeChild(this.onboardingPanel);
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
@@ -4470,16 +3825,10 @@ export class ItemWorldScene extends Scene {
     if (this.lowHpVignette) {
       this.lowHpVignette.destroy();
     }
-    if (this.stratumClearPanel) {
-      const p = this.stratumClearPanel;
-      if (p.container.parent) p.container.parent.removeChild(p.container);
-      p.container.destroy({ children: true });
-      this.stratumClearPanel = null;
-    }
   }
 
   /**
-   * Minimap rendering — disabled for Spelunky-style blind exploration.
+   * Minimap rendering ? disabled for Spelunky-style blind exploration.
    * Kept as a no-op so existing call sites (buildFullMap, room transition,
    * lazy spawn) remain valid without branching.
    */

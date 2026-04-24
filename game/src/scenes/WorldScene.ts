@@ -456,7 +456,10 @@ export class WorldScene extends Scene {
   enter(): void {
     // Re-show everything when returning from item world
     this.container.visible = true;
-    if (this.miniMapContainer) this.miniMapContainer.visible = true;
+    if (this.miniMapContainer) {
+      if (!this.miniMapContainer.parent) this.game.legacyUIContainer.addChild(this.miniMapContainer);
+      this.miniMapContainer.visible = true;
+    }
     if (this.hud) {
       if (!this.hud.container.parent) this.game.uiContainer.addChild(this.hud.container);
       this.hud.container.visible = true;
@@ -467,6 +470,24 @@ export class WorldScene extends Scene {
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
+  }
+
+  private detachSharedUiForItemWorld(): void {
+    if (this.inventoryUI) {
+      if (this.inventoryUI.visible) this.inventoryUI.close();
+      if (this.inventoryUI.container.parent) {
+        this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
+      }
+    }
+    if (this.altarUI?.parent) {
+      this.altarUI.parent.removeChild(this.altarUI);
+    }
+    if (this.miniMapContainer?.parent) {
+      this.miniMapContainer.parent.removeChild(this.miniMapContainer);
+    }
+    if (this.hud?.container.parent) {
+      this.hud.container.parent.removeChild(this.hud.container);
+    }
   }
 
   update(dt: number): void {
@@ -943,10 +964,9 @@ export class WorldScene extends Scene {
       this.portalTransition = null;
     }
 
-    // Hide world
+    // Hide world and detach any shared UI owned by this scene.
     this.container.visible = false;
-    this.miniMapContainer.visible = false;
-    this.hud.container.visible = false;
+    this.detachSharedUiForItemWorld();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.onComplete = () => {

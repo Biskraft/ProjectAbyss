@@ -189,9 +189,12 @@ export class TitleScene extends Scene {
   render(_alpha: number): void {}
 
   exit(): void {
-    // Remove from uiContainer when leaving
-    if (this.uiRoot?.parent) {
-      this.uiRoot.parent.removeChild(this.uiRoot);
+    // uiRoot lives outside scene.container, so it must be explicitly destroyed here.
+    if (this.uiRoot) {
+      if (this.uiRoot.parent) {
+        this.uiRoot.parent.removeChild(this.uiRoot);
+      }
+      this.uiRoot.destroy({ children: true });
     }
   }
 }
