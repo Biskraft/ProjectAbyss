@@ -74,6 +74,7 @@ import { WeaponPulse } from '@effects/WeaponPulse';
 import { AnvilTether } from '@effects/AnvilTether';
 import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
+import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave } from '@save/PlayerSave';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -170,6 +171,10 @@ export class LdtkWorldScene extends Scene {
   private loader!: LdtkLoader;
   private builderLoader!: LdtkLoader;
   private activeBuilder: GiantBuilder | null = null;
+  /** Cells in host collisionGrid currently overwritten by builder (row, col). Only cells that were 0 are stamped. */
+  private builderStamps: Array<{ r: number; c: number }> = [];
+  /** True if, after last physics step, the player was grounded on a builder-stamped tile. Used to carry the player vertically with the builder. */
+  private playerOnBuilder = false;
   private renderer!: LdtkRenderer;
   private procDecorator: ProceduralDecorator | null = null;
   private _extraDecorators: ProceduralDecorator[] = [];
@@ -360,6 +365,21 @@ export class LdtkWorldScene extends Scene {
   private exitGlows: ExitGlow[] = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
+
+  // Dialogue / Lore triggers from LDtk entities
+  private loreDisplay: LoreDisplay | null = null;
+  private dialogueTriggers: Array<{
+    x: number; y: number; w: number; h: number;
+    lines: LoreLine[];
+    triggerType: 'area' | 'interact';
+    once: boolean;
+    freezePlayer: boolean;
+    eventName: string | null;
+    active: boolean;    // player currently inside trigger zone
+    fired: boolean;     // for once-only triggers
+    cooldown: number;   // ms remaining before re-trigger (once=false only)
+    prompt: Container | null;
+  }> = [];
 
   /** Pattern D (proximity-interaction) ?�우?????�이�??�빌/?�단 ?�합 관�? */
   private proximity: ProximityRouter = new ProximityRouter();
@@ -653,6 +673,8 @@ export class LdtkWorldScene extends Scene {
     // they render above gameplay but under debug overlays.
     this.lorePopup = new LorePopup(this.uiSkin);
     this.game.legacyUIContainer.addChild(this.lorePopup.container);
+    this.loreDisplay = new LoreDisplay(this.game.input);
+    this.game.legacyUIContainer.addChild(this.loreDisplay.container);
     this.divePreview = new DivePreview(this.uiSkin);
     this.game.legacyUIContainer.addChild(this.divePreview.container);
 
@@ -785,8 +807,14 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Dialogue box active ??block game input (NPC dialogue blocks movement)
-    // Check dialogue FIRST, before UI consumes input
+    // Dialogue / Lore display — blocks gameplay while active
+    if (this.loreDisplay?.isActive) {
+      this.loreDisplay.update(dt);
+      this.player.savePrevPosition();
+      this.game.camera.update(dt);
+      return;
+    }
+
     // Toast & tutorial hints update after gameplay input is processed
     this.uiController.updatePersistent(dt);
 
@@ -943,29 +971,39 @@ export class LdtkWorldScene extends Scene {
     // ?�들???�록?� registerProximityHandlers() 참조.
     if (this.proximity.tryInteract(this.game.input)) return;
 
-    // Giant Builder — update visual position
+    // Giant Builder — moving platform pattern.
+    //   Builder container.y moves sub-pixel smooth (visual continuity).
+    //   Stamp position is tile-aligned (physics stability) and only changes
+    //   when the builder crosses a tile boundary. The player is carried
+    //   only on tile crossings, by a whole TILE amount (prevents jitter).
+    //   The visual sub-pixel remainder is applied to the player as a render
+    //   offset so they appear glued to the builder smoothly.
     if (this.activeBuilder) {
+      const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
+      const newStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
+      const stampDelta = newStampY - prevStampY;
+      if (this.playerOnBuilder && stampDelta !== 0) {
+        this.player.y += stampDelta;
+        // Keep interpolation consistent so the carry doesn't flicker.
+        this.player.prevY += stampDelta;
+      }
+      this.unstampBuilder();
+      this.stampBuilder();
     }
 
     // Player
     this.player.update(dt);
 
-    // Giant Builder — post-physics: snap player to builder surface
-    if (this.activeBuilder && this.activeBuilder.lastDeltaY !== 0) {
-      const b = this.activeBuilder;
-      const pcx = this.player.x + this.player.width / 2;
-      const feetY = this.player.y + this.player.height;
+    // After physics: is the player now grounded on a builder-stamped tile?
+    this.playerOnBuilder = this.activeBuilder ? this.isPlayerOnBuilderStamp() : false;
 
-      const surfaceY = b.getSurfaceYBelow(pcx, feetY);
-      if (surfaceY !== null) {
-        const dist = surfaceY - feetY;
-        // Player feet within 8px of builder surface → snap to it
-        if (dist >= -4 && dist <= 12) {
-          this.player.y = surfaceY - this.player.height;
-          this.player.vy = 0;
-        }
-      }
+    // Visual sync: while riding, mirror the builder's sub-pixel fraction.
+    if (this.playerOnBuilder && this.activeBuilder) {
+      const by = this.activeBuilder.container.y;
+      this.player.visualYOffset = by - Math.round(by / 16) * 16;
+    } else {
+      this.player.visualYOffset = 0;
     }
 
     // Check drowning
@@ -1302,6 +1340,9 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
+    // Dialogue / Lore triggers
+    this.updateDialogueTriggers(dt);
+
     // Anvil interaction + attack hit detection
     this.updateAnvil(dt);
 
@@ -1515,10 +1556,10 @@ export class LdtkWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // Camera — deadzone follow + zoom lerp
+    // Camera — deadzone follow + zoom lerp. Player is always in world coords.
+    const cam = this.game.camera;
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
-    const cam = this.game.camera;
 
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
@@ -2025,9 +2066,9 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
 
-    // Giant Builder — spawn in WorldEntrance5, attached to right wall
+    // Giant Builder — spawn in Debug_Shaft_01, attached to right wall
     this.clearBuilder();
-    if (level.identifier === 'WorldEntrance5') {
+    if (level.identifier === 'Debug_Shaft_01') {
       this.spawnBuilder(level);
     }
 
@@ -2069,6 +2110,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnSecretWalls(level);
     this.spawnSpikes(level);
     this.spawnCollapsingPlatforms(level);
+    this.spawnDialogueTriggers(level);
 
     // Camera: reset zones and defaults before entity processing
     const cam = this.game.camera;
@@ -2498,7 +2540,151 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * �?가?�자리에??"?�웃???�으�??�과 가?�한 ?�??구간"??찾아 ExitGlow �??�운??
+   * Spawn Dialogue and Memory triggers from LDtk entities.
+   */
+  private spawnDialogueTriggers(level: LdtkLevel): void {
+    for (const t of this.dialogueTriggers) {
+      if (t.prompt?.parent) t.prompt.parent.removeChild(t.prompt);
+    }
+    this.dialogueTriggers = [];
+
+    const TRIGGER_W = 48;
+    const TRIGGER_H = 48;
+
+    for (const ent of level.entities.filter(e => e.type === 'Dialogue')) {
+      const text = (ent.fields['text'] ?? '') as string;
+      if (!text) continue;
+      const speaker = (ent.fields['speaker'] ?? undefined) as string | undefined;
+      const portrait = (ent.fields['portrait'] ?? undefined) as string | undefined;
+      const speakerColor = (ent.fields['speakerColor'] ?? undefined) as number | undefined;
+      const triggerType = ((ent.fields['triggerType'] ?? 'area') as string) === 'interact' ? 'interact' as const : 'area' as const;
+      const once = (ent.fields['once'] ?? true) as boolean;
+      const autoCloseMs = (ent.fields['autoCloseMs'] ?? 0) as number;
+      const eventName = (ent.fields['eventName'] ?? null) as string | null;
+      const freezePlayer = (ent.fields['freezePlayer'] ?? true) as boolean;
+
+      const eventKey = eventName ?? `dialogue_${level.identifier}_${ent.iid}`;
+      if (once && this.unlockedEvents.has(eventKey)) continue;
+
+      const line: LoreLine = {
+        text,
+        speaker,
+        portrait,
+        speakerColor,
+        autoCloseMs: autoCloseMs > 0 ? autoCloseMs : undefined,
+      };
+
+      const trigger = {
+        x: ent.px[0] - TRIGGER_W / 2,
+        y: ent.px[1] - TRIGGER_H,
+        w: TRIGGER_W,
+        h: TRIGGER_H,
+        lines: [line],
+        triggerType,
+        once,
+        freezePlayer,
+        eventName: eventKey,
+        active: false,
+        fired: false,
+        cooldown: 0,
+        prompt: null as Container | null,
+      };
+
+      if (triggerType === 'interact') {
+        const prompt = KeyPrompt.createPrompt('C', 'Talk', this.game.uiScale);
+        prompt.visible = false;
+        this.game.uiContainer.addChild(prompt);
+        trigger.prompt = prompt;
+      }
+
+      this.dialogueTriggers.push(trigger);
+    }
+
+    for (const ent of level.entities.filter(e => e.type === 'Memory')) {
+      const text = (ent.fields['text'] ?? '') as string;
+      if (!text) continue;
+      const speaker = (ent.fields['speaker'] ?? undefined) as string | undefined;
+      const portrait = (ent.fields['portrait'] ?? undefined) as string | undefined;
+
+      const eventKey = `memory_${level.identifier}_${ent.iid}`;
+      if (this.unlockedEvents.has(eventKey)) continue;
+
+      this.dialogueTriggers.push({
+        x: ent.px[0] - TRIGGER_W / 2,
+        y: ent.px[1] - TRIGGER_H,
+        w: TRIGGER_W,
+        h: TRIGGER_H,
+        lines: [{ text, speaker, portrait }],
+        triggerType: 'area',
+        once: true,
+        freezePlayer: true,
+        eventName: eventKey,
+        active: false,
+        fired: false,
+        cooldown: 0,
+        prompt: null,
+      });
+    }
+  }
+
+  /** Check dialogue triggers each frame. */
+  private updateDialogueTriggers(dt: number): void {
+    if (!this.loreDisplay) return;
+    if (this.loreDisplay.isActive) {
+      this.loreDisplay.update(dt);
+      return;
+    }
+
+    const pcx = this.player.x + this.player.width / 2;
+    const pcy = this.player.y + this.player.height / 2;
+
+    for (const t of this.dialogueTriggers) {
+      if (t.fired) continue;
+      if (t.cooldown > 0) { t.cooldown -= dt; continue; }
+      const inside = pcx >= t.x && pcx < t.x + t.w && pcy >= t.y && pcy < t.y + t.h;
+
+      if (t.triggerType === 'area') {
+        if (inside && !t.active) {
+          t.active = true;
+          this.loreDisplay.showDialogue(t.lines, t.freezePlayer);
+          if (t.once) {
+            t.fired = true;
+            if (t.eventName) this.unlockedEvents.add(t.eventName);
+          } else {
+            t.cooldown = 1000;
+          }
+          break;
+        }
+        if (!inside && t.active) t.active = false;
+      } else {
+        if (t.prompt) {
+          t.prompt.visible = inside;
+          if (inside) {
+            const us = this.game.uiScale;
+            const cam = this.game.camera;
+            const sx = (t.x + t.w / 2 - cam.renderX + GAME_WIDTH / 2) * us - t.prompt.width / 2;
+            const sy = (t.y - cam.renderY + GAME_HEIGHT / 2 - 16) * us;
+            t.prompt.x = Math.round(sx);
+            t.prompt.y = Math.round(sy);
+          }
+        }
+        if (inside && this.game.input.isJustPressed(GameAction.ATTACK)) {
+          this.game.input.consumeJustPressed(GameAction.ATTACK);
+          this.loreDisplay.showDialogue(t.lines, t.freezePlayer);
+          if (t.once) {
+            t.fired = true;
+            if (t.eventName) this.unlockedEvents.add(t.eventName);
+            if (t.prompt?.parent) { t.prompt.parent.removeChild(t.prompt); t.prompt = null; }
+          } else {
+            t.cooldown = 1000;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  /**
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    *
    * ?�평 ?��?(w/e): ??0 ?�는 gridW-1???�로�??�캔 ???�속 passable run 마다 글로우 1�?
@@ -2593,7 +2779,8 @@ export class LdtkWorldScene extends Scene {
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
   private applyUpdrafts(dt: number): void {
-    this.updraftSystem.update(dt, this.player, this.collisionGrid, this.game.camera);
+    // Use player's active roomData (builder grid when riding, host grid otherwise)
+    this.updraftSystem.update(dt, this.player, this.player.roomData, this.game.camera);
   }
 
   /** Check player overlap with spikes ??damage + teleport to last safe ground. */
@@ -2601,7 +2788,7 @@ export class LdtkWorldScene extends Scene {
   private checkSpikeContact(): void {
     if (this.player.invincible || this.player.hp <= 0) return;
 
-    if (!isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.collisionGrid)) return;
+    if (!isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData)) return;
 
     // 20% max HP damage
     const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
@@ -3503,6 +3690,67 @@ export class LdtkWorldScene extends Scene {
   // Giant Builder
   // ---------------------------------------------------------------------------
 
+  /**
+   * Stamp the active builder's solid tiles into the host collisionGrid.
+   *
+   * Only cells where the host grid is EMPTY (0) get stamped, so runtime
+   * terrain changes (broken walls, open doors) and special tiles (updraft,
+   * spikes) are preserved. Stamped cells are recorded so they can be
+   * restored next frame by unstampBuilder().
+   */
+  private stampBuilder(): void {
+    const b = this.activeBuilder;
+    if (!b) return;
+    const tileOriginX = Math.round(b.container.x / 16);
+    const tileOriginY = Math.round(b.container.y / 16);
+    const gridH = this.collisionGrid.length;
+    const gridW = gridH > 0 ? this.collisionGrid[0].length : 0;
+    for (let br = 0; br < b.heightTiles; br++) {
+      const r = tileOriginY + br;
+      if (r < 0 || r >= gridH) continue;
+      const bRow = b.collisionGrid[br];
+      const hostRow = this.collisionGrid[r];
+      if (!bRow || !hostRow) continue;
+      for (let bc = 0; bc < b.widthTiles; bc++) {
+        const v = bRow[bc];
+        if (!v) continue;
+        const c = tileOriginX + bc;
+        if (c < 0 || c >= gridW) continue;
+        if (hostRow[c] === 0) {
+          hostRow[c] = v;
+          this.builderStamps.push({ r, c });
+        }
+      }
+    }
+  }
+
+  /** Restore cells previously stamped by the builder back to empty (0). */
+  private unstampBuilder(): void {
+    for (const s of this.builderStamps) {
+      const row = this.collisionGrid[s.r];
+      if (row) row[s.c] = 0;
+    }
+    this.builderStamps.length = 0;
+  }
+
+  /**
+   * After physics: is the player standing on a tile that the builder
+   * currently stamps? Used to carry them with the builder on the next
+   * frame's vertical movement.
+   */
+  private isPlayerOnBuilderStamp(): boolean {
+    if (this.builderStamps.length === 0) return false;
+    if (!this.player.isGrounded()) return false;
+    const feetY = this.player.y + this.player.height;
+    const footRow = Math.floor((feetY + 1) / 16);
+    const leftCol = Math.floor(this.player.x / 16);
+    const rightCol = Math.floor((this.player.x + this.player.width - 1) / 16);
+    for (const s of this.builderStamps) {
+      if (s.r === footRow && s.c >= leftCol && s.c <= rightCol) return true;
+    }
+    return false;
+  }
+
   private spawnBuilder(hostLevel: LdtkLevel): void {
     const builderLevel = this.builderLoader.getLevel('Builder_Level_0');
     if (!builderLevel) return;
@@ -3519,7 +3767,7 @@ export class LdtkWorldScene extends Scene {
     // Vertically centered (adjust as needed)
     const py = Math.floor((hostLevel.pxHei - builder.heightPx) / 2);
 
-    builder.placeInLevel(this.collisionGrid, px, py);
+    builder.placeInLevel(px, py);
     this.renderer.container.addChild(builder.container);
 
     // Vertical route: patrol between top and bottom of the level
@@ -3535,6 +3783,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   private clearBuilder(): void {
+    this.unstampBuilder();
+    this.playerOnBuilder = false;
     if (this.activeBuilder) {
       if (this.activeBuilder.container.parent) {
         this.activeBuilder.container.parent.removeChild(this.activeBuilder.container);

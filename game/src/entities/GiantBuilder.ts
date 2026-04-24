@@ -1,9 +1,9 @@
 /**
  * GiantBuilder — A massive Builder entity rendered from a separate LDtk level.
  *
- * Collision tiles are stamped ONCE at placement. During movement, only the
- * visual container moves. Player riding is handled by the scene via
- * post-physics surface snapping.
+ * Moves sub-pixel smooth along a vertical route. The scene is responsible
+ * for stamping this builder's collisionGrid into the host grid each frame
+ * (tile-aligned) so the player walks on it via standard tile physics.
  */
 
 import { Container } from 'pixi.js';
@@ -29,7 +29,6 @@ export class GiantBuilder {
   readonly widthTiles: number;
   readonly heightTiles: number;
 
-  /** Smooth Y delta applied this frame. */
   lastDeltaY = 0;
 
   private route: BuilderRoutePoint[] = [];
@@ -37,7 +36,6 @@ export class GiantBuilder {
   private state: BuilderState = 'dormant';
   private waitTimer = 0;
   private speed = 0;
-  private hostGrid: number[][] | null = null;
 
   private renderer: LdtkRenderer;
 
@@ -65,28 +63,9 @@ export class GiantBuilder {
     this.container = this.renderer.container;
   }
 
-  /** Place builder and stamp collision into host grid ONCE. */
-  placeInLevel(hostGrid: number[][], pixelX: number, pixelY: number): void {
-    this.hostGrid = hostGrid;
+  placeInLevel(pixelX: number, pixelY: number): void {
     this.container.x = pixelX;
     this.container.y = pixelY;
-
-    // Static stamp — never updated during movement
-    const tileOffX = Math.floor(pixelX / TILE);
-    const tileOffY = Math.floor(pixelY / TILE);
-    const hostH = hostGrid.length;
-    const hostW = hostGrid[0]?.length ?? 0;
-    for (let r = 0; r < this.heightTiles; r++) {
-      for (let c = 0; c < this.widthTiles; c++) {
-        const v = this.collisionGrid[r]?.[c] ?? 0;
-        if (v === 0) continue;
-        const hr = tileOffY + r;
-        const hc = tileOffX + c;
-        if (hr >= 0 && hr < hostH && hc >= 0 && hc < hostW) {
-          hostGrid[hr][hc] = v;
-        }
-      }
-    }
   }
 
   setRoute(route: BuilderRoutePoint[], speed: number): void {
@@ -103,48 +82,6 @@ export class GiantBuilder {
     }
   }
 
-  /**
-   * Find the builder surface Y in WORLD coordinates at a given world X.
-   * Scans the builder's collision grid from top down to find the first
-   * solid tile at the given column.
-   * Returns null if the X is outside the builder or no surface found.
-   */
-  getSurfaceY(worldX: number): number | null {
-    const localX = worldX - this.container.x;
-    const col = Math.floor(localX / TILE);
-    if (col < 0 || col >= this.widthTiles) return null;
-
-    for (let r = 0; r < this.heightTiles; r++) {
-      if ((this.collisionGrid[r]?.[col] ?? 0) >= 1) {
-        return this.container.y + r * TILE;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Find the nearest surface at or below a given local Y for a world X.
-   */
-  getSurfaceYBelow(worldX: number, worldFeetY: number): number | null {
-    const localX = worldX - this.container.x;
-    const col = Math.floor(localX / TILE);
-    if (col < 0 || col >= this.widthTiles) return null;
-
-    const localFeetY = worldFeetY - this.container.y;
-    const startRow = Math.max(0, Math.floor(localFeetY / TILE) - 1);
-
-    for (let r = startRow; r < this.heightTiles; r++) {
-      if ((this.collisionGrid[r]?.[col] ?? 0) >= 1) {
-        // Check tile above is air (this is a surface, not interior)
-        const above = r > 0 ? (this.collisionGrid[r - 1]?.[col] ?? 0) : 0;
-        if (above === 0) {
-          return this.container.y + r * TILE;
-        }
-      }
-    }
-    return null;
-  }
-
   update(dt: number): void {
     this.lastDeltaY = 0;
     if (this.state === 'dormant' || this.route.length === 0) return;
@@ -159,16 +96,26 @@ export class GiantBuilder {
     }
 
     const target = this.route[this.routeIndex];
-    const currentY = this.container.y;
-    const dir = Math.sign(target.y - currentY);
-    const rawStep = dir * this.speed * (dt / 1000);
-    const remaining = Math.abs(target.y - currentY);
-    const clampedStep = Math.abs(rawStep) > remaining ? dir * remaining : rawStep;
+    const dirSign = Math.sign(target.y - this.container.y);
+    if (dirSign === 0) {
+      this.state = 'waiting';
+      this.waitTimer = target.waitMs;
+      return;
+    }
 
-    this.container.y += clampedStep;
-    this.lastDeltaY = clampedStep;
+    // Sub-pixel smooth motion. Container.y is continuous; physics stamp
+    // quantization to whole tiles is handled by the scene.
+    let step = dirSign * this.speed * (dt / 1000);
 
-    if (Math.abs(this.container.y - target.y) < 0.5) {
+    // Do not overshoot the target.
+    const remaining = target.y - this.container.y;
+    if (dirSign > 0 && step > remaining) step = remaining;
+    else if (dirSign < 0 && step < remaining) step = remaining;
+
+    this.container.y += step;
+    this.lastDeltaY = step;
+
+    if (Math.abs(target.y - this.container.y) < 0.01) {
       this.container.y = target.y;
       this.state = 'waiting';
       this.waitTimer = target.waitMs;

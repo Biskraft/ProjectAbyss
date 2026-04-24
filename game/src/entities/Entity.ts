@@ -36,6 +36,10 @@ export abstract class Entity {
   flashTimer = 0;           // ms remaining
   private readonly FLASH_DURATION = 80; // ms
 
+  /** Sub-pixel render offset (used e.g. when riding a moving platform that
+   *  updates its visual position sub-pixel while physics stays tile-aligned). */
+  visualYOffset = 0;
+
   constructor() {
     this.container = new Container();
   }
@@ -109,7 +113,7 @@ export abstract class Entity {
     }
 
     this.container.x = rx;
-    this.container.y = ry;
+    this.container.y = ry + this.visualYOffset;
   }
 
   savePrevPosition(): void {
