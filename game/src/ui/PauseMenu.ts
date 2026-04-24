@@ -31,7 +31,7 @@ type MenuItem = { label: string; action: string; color?: number };
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'CONTINUE', action: 'continue' },
-  { label: 'SETTINGS', action: 'settings' },
+  { label: 'STATUS', action: 'status' },
   { label: 'QUIT TO TITLE', action: 'quit', color: COL_DANGER },
 ];
 

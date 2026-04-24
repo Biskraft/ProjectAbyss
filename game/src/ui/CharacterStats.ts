@@ -1,8 +1,10 @@
 /**
- * CharacterStats — STATUS tab in pause menu.
+ * CharacterStats — Full-screen STATUS overlay (TAB key).
  *
- * 3-column layout: Equipment | Character | Stats
- * Shows stat decomposition: Base + Equip + Innocent = Final
+ * Visual style unified with InventoryUI:
+ * - Same overlay alpha, panel colors, slot sizes, font sizes, padding
+ * - 3-column layout: Equipment | Character | Stats
+ * - Bottom: Relic bar + close hint
  */
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
@@ -11,34 +13,40 @@ import { PIXEL_FONT } from './fonts';
 import type { Inventory } from '@items/Inventory';
 import { RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
-import { createModalPanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
 
-const PANEL_W = 500;
-const PANEL_H = 280;
-const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
-const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
-
-const COL_BG = 0x1a1a2e;
+// ---- Match InventoryUI style constants ----
+const SLOT_SIZE = 32;
+const PADDING = 12;
+const COL_PANEL_BG = 0x1a1a2e;
 const COL_BORDER = 0x4a4a6a;
-const COL_TEXT = 0xffffff;
+const COL_SLOT_BG = 0x2a2a3e;
+const COL_TEXT = 0xcccccc;
 const COL_DIM = 0xaaaaaa;
+const COL_MUTED = 0x555566;
 const COL_POSITIVE = 0x44ff44;
 const COL_NEGATIVE = 0xff4444;
 const COL_GOLD = 0xffd700;
-const COL_ACTIVE_TAB = 0x4a4a8a;
-const COL_INACTIVE_TAB = 0x2a2a3e;
+const COL_ACCENT = 0xff8833;
+const COL_WHITE = 0xffffff;
 
-// Column positions
-const COL1_X = 8;      // Equipment (152px)
-const COL2_X = 162;    // Character (158px)
-const COL3_X = 322;    // Stats (172px)
+const F_TITLE = 16;   // title (same as base BitmapFont)
+const F_LABEL = 8;    // body / labels (0.5x base — clean scaling)
+
+// Panel sizing — nearly full-screen like InventoryUI
+const PANEL_W = 560;
+const PANEL_H = 300;
+const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
+const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
+
+// 3-column widths
+const COL1_W = 170;   // Equipment
+const COL2_W = 180;   // Character
+// COL3 fills remainder
 
 export class CharacterStats {
   readonly container: Container;
   visible = false;
-  private panel: Container;
-  private contentContainer: Container;
   private inventory: Inventory | null = null;
   private playerLevel = 1;
   private playerExp = 0;
@@ -48,16 +56,12 @@ export class CharacterStats {
   private relics: boolean[] = [false, false, false, false, false, false];
   private skin: UISkin | null = null;
 
+  onVisibilityChanged: ((visible: boolean) => void) | null = null;
+
   constructor(skin?: UISkin | null) {
     this.skin = skin ?? null;
     this.container = new Container();
     this.container.visible = false;
-
-    this.panel = new Container();
-    this.container.addChild(this.panel);
-
-    this.contentContainer = new Container();
-    this.panel.addChild(this.contentContainer);
   }
 
   setData(inventory: Inventory, level: number, exp: number, maxExp: number, hp: number, maxHp: number, relics: boolean[]): void {
@@ -74,144 +78,209 @@ export class CharacterStats {
     this.visible = true;
     this.container.visible = true;
     this.draw();
+    this.onVisibilityChanged?.(true);
   }
 
   hide(): void {
     this.visible = false;
     this.container.visible = false;
+    this.onVisibilityChanged?.(false);
   }
 
+  // =========================================================================
+
   private draw(): void {
-    // Clear everything and rebuild with overlay + 9-slice panel
     this.container.removeChildren();
 
-    const { overlay, panel } = createModalPanel(this.skin, PANEL_W, PANEL_H);
+    // Overlay (same as InventoryUI: 0x000000 alpha 0.5)
+    const overlay = new Graphics();
+    overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.5 });
     this.container.addChild(overlay);
-    this.panel = panel;
-    this.container.addChild(this.panel);
 
-    this.contentContainer = new Container();
-    this.panel.addChild(this.contentContainer);
+    // Panel background
+    const panel = new Container();
+    panel.x = PANEL_X;
+    panel.y = PANEL_Y;
+    this.container.addChild(panel);
 
-    // Tab bar
-    const tabBg = new Graphics();
-    tabBg.rect(0, 0, PANEL_W, 14).fill(COL_ACTIVE_TAB);
-    this.contentContainer.addChild(tabBg);
-    const tabLabel = new BitmapText({ text: 'STATUS', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_TEXT } });
-    tabLabel.x = 8; tabLabel.y = 3;
-    this.contentContainer.addChild(tabLabel);
+    const bg = new Graphics();
+    bg.rect(0, 0, PANEL_W, PANEL_H).fill({ color: COL_PANEL_BG, alpha: 0.97 });
+    bg.rect(0, 0, PANEL_W, PANEL_H).stroke({ color: COL_BORDER, width: 1 });
+    panel.addChild(bg);
+
+    // Title (same fontSize 12 as InventoryUI "INVENTORY")
+    const title = new BitmapText({ text: 'STATUS', style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: COL_WHITE } });
+    title.x = PADDING;
+    title.y = 8;
+    panel.addChild(title);
+
+    // Close hint
+    const hint = new BitmapText({ text: '[TAB] Close', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM } });
+    hint.x = PANEL_W - PADDING - hint.width;
+    hint.y = 12;
+    panel.addChild(hint);
+
+    // Divider below title
+    const titleDiv = new Graphics();
+    titleDiv.moveTo(PADDING, 28).lineTo(PANEL_W - PADDING, 28);
+    titleDiv.stroke({ width: 1, color: COL_BORDER });
+    panel.addChild(titleDiv);
+
+    // Content area
+    const content = new Container();
+    content.x = PADDING;
+    content.y = 36;
+    panel.addChild(content);
 
     // Column dividers
     const divs = new Graphics();
-    divs.moveTo(COL2_X - 2, 16); divs.lineTo(COL2_X - 2, PANEL_H - 44);
-    divs.moveTo(COL3_X - 2, 16); divs.lineTo(COL3_X - 2, PANEL_H - 44);
-    divs.stroke({ width: 1, color: COL_BORDER });
-    this.contentContainer.addChild(divs);
+    divs.moveTo(COL1_W, 0).lineTo(COL1_W, PANEL_H - 100);
+    divs.moveTo(COL1_W + COL2_W, 0).lineTo(COL1_W + COL2_W, PANEL_H - 100);
+    divs.stroke({ width: 1, color: COL_BORDER, alpha: 0.4 });
+    content.addChild(divs);
 
-    this.drawEquipmentColumn();
-    this.drawCharacterColumn();
-    this.drawStatsColumn();
-    this.drawRelicBar();
+    this.drawEquipment(content);
+    this.drawCharacter(content);
+    this.drawStats(content);
+    this.drawRelics(content);
   }
 
-  private drawEquipmentColumn(): void {
-    const x = COL1_X, startY = 20;
-    const header = new BitmapText({ text: 'EQUIPMENT', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM } });
-    header.x = x; header.y = startY;
-    this.contentContainer.addChild(header);
+  // ---- Column 1: Equipment ----
+  private drawEquipment(parent: Container): void {
+    const x = 0;
+    let y = 0;
+
+    const header = new BitmapText({ text: 'EQUIPMENT', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM } });
+    header.x = x;
+    header.y = y;
+    parent.addChild(header);
+    y += 18;
 
     const slotNames = ['Blade', 'Visor', 'Plate', 'Gauntlet', 'Greaves', 'Rig'];
-    let y = startY + 14;
-
     for (let i = 0; i < slotNames.length; i++) {
       const name = slotNames[i];
-      const isActive = i === 0; // Phase 1: only Blade
+      const isActive = i === 0;
 
-      // Slot icon placeholder
+      // Slot icon (32x32 same as InventoryUI)
       const icon = new Graphics();
-      icon.rect(x, y, 16, 16).fill(isActive ? 0x2a2a3e : 0x1a1a1a);
-      icon.rect(x, y, 16, 16).stroke({ color: isActive ? COL_BORDER : 0x222222, width: 1 });
-      this.contentContainer.addChild(icon);
+      icon.rect(x, y, SLOT_SIZE, SLOT_SIZE).fill(isActive ? COL_SLOT_BG : 0x1a1a22);
+      icon.rect(x, y, SLOT_SIZE, SLOT_SIZE).stroke({ color: isActive ? COL_BORDER : 0x222233, width: 1 });
+      parent.addChild(icon);
 
       // Slot label
       const label = new BitmapText({
         text: name,
-        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: isActive ? COL_DIM : 0x444444 },
+        style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: isActive ? COL_TEXT : COL_MUTED },
       });
-      label.x = x + 20; label.y = y + 1;
-      this.contentContainer.addChild(label);
+      label.x = x + SLOT_SIZE + 6;
+      label.y = y + 4;
+      parent.addChild(label);
 
       // Item name or LOCKED
       if (isActive && this.inventory?.equipped) {
         const eq = this.inventory.equipped;
         const itemLabel = new BitmapText({
           text: eq.def.name,
-          style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: RARITY_COLOR[eq.rarity] ?? COL_TEXT },
+          style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: RARITY_COLOR[eq.rarity] ?? COL_WHITE },
         });
-        itemLabel.x = x + 20; itemLabel.y = y + 9;
-        this.contentContainer.addChild(itemLabel);
+        itemLabel.x = x + SLOT_SIZE + 6;
+        itemLabel.y = y + 18;
+        parent.addChild(itemLabel);
       } else if (!isActive) {
         const locked = new BitmapText({
           text: 'LOCKED',
-          style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: 0x444444 },
+          style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_MUTED },
         });
-        locked.x = x + 20; locked.y = y + 5;
-        this.contentContainer.addChild(locked);
+        locked.x = x + SLOT_SIZE + 6;
+        locked.y = y + 12;
+        parent.addChild(locked);
       }
 
-      y += 20;
+      y += SLOT_SIZE + 4;
     }
   }
 
-  private drawCharacterColumn(): void {
-    const x = COL2_X + 4, startY = 20;
+  // ---- Column 2: Character ----
+  private drawCharacter(parent: Container): void {
+    const x = COL1_W + 12;
+    const colW = COL2_W - 24;
+    let y = 0;
 
-    // Character name
-    const name = new BitmapText({ text: 'Erda', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_TEXT } });
-    name.x = x; name.y = startY;
-    this.contentContainer.addChild(name);
+    // Name
+    const name = new BitmapText({ text: 'Erda', style: { fontFamily: PIXEL_FONT, fontSize: F_TITLE, fill: COL_WHITE } });
+    name.x = x + Math.floor((colW - name.width) / 2);
+    name.y = y;
+    parent.addChild(name);
+    y += 26;
 
-    // Character silhouette placeholder
-    const silhouette = new Graphics();
-    silhouette.rect(x + 40, startY + 20, 48, 72).fill(0x2a2a3e);
-    silhouette.rect(x + 40, startY + 20, 48, 72).stroke({ color: COL_BORDER, width: 1 });
-    this.contentContainer.addChild(silhouette);
-    const silLabel = new BitmapText({ text: '?', style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0x444444 } });
-    silLabel.x = x + 56; silLabel.y = startY + 42;
-    this.contentContainer.addChild(silLabel);
+    // Silhouette (same 32px grid alignment)
+    const silW = 48, silH = 64;
+    const silX = x + Math.floor((colW - silW) / 2);
+    const sil = new Graphics();
+    sil.rect(silX, y, silW, silH).fill(COL_SLOT_BG);
+    sil.rect(silX, y, silW, silH).stroke({ color: COL_BORDER, width: 1 });
+    parent.addChild(sil);
+    const qMark = new BitmapText({ text: '?', style: { fontFamily: PIXEL_FONT, fontSize: F_TITLE, fill: COL_MUTED } });
+    qMark.x = silX + Math.floor((silW - qMark.width) / 2);
+    qMark.y = y + Math.floor((silH - 16) / 2);
+    parent.addChild(qMark);
+    y += silH + 12;
 
     // Level
-    const level = new BitmapText({
-      text: `Lv.${this.playerLevel}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_TEXT },
-    });
-    level.x = x; level.y = startY + 100;
-    this.contentContainer.addChild(level);
+    const lvText = `Lv.${this.playerLevel}`;
+    const lv = new BitmapText({ text: lvText, style: { fontFamily: PIXEL_FONT, fontSize: F_TITLE, fill: COL_WHITE } });
+    lv.x = x + Math.floor((colW - lv.width) / 2);
+    lv.y = y;
+    parent.addChild(lv);
+    y += 24;
 
     // EXP bar
-    const barX = x, barY = startY + 112;
-    const barW = 100, barH = 4;
-    const expRatio = this.playerMaxExp > 0 ? this.playerExp / this.playerMaxExp : 0;
+    const barW = 100, barH = 6;
+    const barX = x + Math.floor((colW - barW) / 2);
+    const expRatio = this.playerMaxExp > 0 ? Math.min(1, this.playerExp / this.playerMaxExp) : 0;
     const expBar = new Graphics();
-    expBar.rect(barX, barY, barW, barH).fill(0x222222);
-    expBar.rect(barX, barY, barW * expRatio, barH).fill(COL_GOLD);
-    expBar.rect(barX, barY, barW, barH).stroke({ color: COL_BORDER, width: 1 });
-    this.contentContainer.addChild(expBar);
+    expBar.rect(barX, y, barW, barH).fill(0x222233);
+    if (expRatio > 0) expBar.rect(barX, y, barW * expRatio, barH).fill(COL_GOLD);
+    expBar.rect(barX, y, barW, barH).stroke({ color: COL_BORDER, width: 1 });
+    parent.addChild(expBar);
+    y += barH + 8;
 
-    const expText = new BitmapText({
-      text: `${this.playerExp} / ${this.playerMaxExp}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
-    });
-    expText.x = barX; expText.y = barY + 6;
-    this.contentContainer.addChild(expText);
+    const expStr = `${this.playerExp} / ${this.playerMaxExp}`;
+    const expText = new BitmapText({ text: expStr, style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM } });
+    expText.x = x + Math.floor((colW - expText.width) / 2);
+    expText.y = y;
+    parent.addChild(expText);
+    y += 20;
+
+    // HP
+    const hpStr = `HP  ${this.playerHp} / ${this.playerMaxHp}`;
+    const hpLabel = new BitmapText({ text: hpStr, style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_TEXT } });
+    hpLabel.x = x + Math.floor((colW - hpLabel.width) / 2);
+    hpLabel.y = y;
+    parent.addChild(hpLabel);
+    y += 16;
+
+    const hpBarW = 100, hpBarH = 5;
+    const hpBarX = x + Math.floor((colW - hpBarW) / 2);
+    const hpRatio = this.playerMaxHp > 0 ? Math.min(1, this.playerHp / this.playerMaxHp) : 0;
+    const hpColor = hpRatio > 0.5 ? 0x22aa22 : hpRatio > 0.25 ? 0xaaaa22 : 0xaa2222;
+    const hpBar = new Graphics();
+    hpBar.rect(hpBarX, y, hpBarW, hpBarH).fill(0x222233);
+    if (hpRatio > 0) hpBar.rect(hpBarX, y, hpBarW * hpRatio, hpBarH).fill(hpColor);
+    hpBar.rect(hpBarX, y, hpBarW, hpBarH).stroke({ color: COL_BORDER, width: 1 });
+    parent.addChild(hpBar);
   }
 
-  private drawStatsColumn(): void {
-    const x = COL3_X + 4, startY = 20;
+  // ---- Column 3: Stats ----
+  private drawStats(parent: Container): void {
+    const x = COL1_W + COL2_W + 12;
+    let y = 0;
 
-    const header = new BitmapText({ text: 'STATS', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM } });
-    header.x = x; header.y = startY;
-    this.contentContainer.addChild(header);
+    const header = new BitmapText({ text: 'STATS', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM } });
+    header.x = x;
+    header.y = y;
+    parent.addChild(header);
+    y += 18;
 
     const base = getPlayerBaseStats(this.playerLevel);
     const eq = this.inventory?.equipped;
@@ -219,132 +288,140 @@ export class CharacterStats {
     const eqBonus = eq ? calcInnocentBonus(eq, 'atk' as InnocentStatKey) : 0;
 
     const stats = [
-      { label: 'ATK', base: base.atk, equip: eqAtk, innocent: eqBonus, isPrimary: true },
-      { label: 'HP', base: base.hp, equip: 0, innocent: eq ? calcInnocentBonus(eq, 'hp' as InnocentStatKey) : 0, isPrimary: true },
+      { label: 'ATK', base: base.atk, equip: eqAtk, innocent: eqBonus },
+      { label: 'HP', base: base.hp, equip: 0, innocent: eq ? calcInnocentBonus(eq, 'hp' as InnocentStatKey) : 0 },
     ];
 
-    let y = startY + 14;
     for (const stat of stats) {
       const final = stat.base + stat.equip + stat.innocent;
-      const line = `${stat.label}: ${final}`;
+
+      // Main stat line
       const t = new BitmapText({
-        text: line,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_TEXT },
+        text: `${stat.label}: ${final}`,
+        style: { fontFamily: PIXEL_FONT, fontSize: F_TITLE, fill: COL_WHITE },
       });
-      t.x = x; t.y = y;
-      this.contentContainer.addChild(t);
+      t.x = x;
+      t.y = y;
+      parent.addChild(t);
+      y += 22;
 
       // Decomposition
-      const decomp = `  ${stat.base} + ${stat.equip} + ${stat.innocent}`;
-      const d = new BitmapText({
-        text: decomp,
-        style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: COL_DIM },
+      const decomp = new BitmapText({
+        text: `${stat.base} + ${stat.equip} + ${stat.innocent}`,
+        style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM },
       });
-      d.x = x; d.y = y + 10;
-      this.contentContainer.addChild(d);
+      decomp.x = x;
+      decomp.y = y;
+      parent.addChild(decomp);
+      y += 14;
 
-      y += 24;
+      const decompLabel = new BitmapText({
+        text: 'base   equip   innocent',
+        style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_MUTED },
+      });
+      decompLabel.x = x;
+      decompLabel.y = y;
+      parent.addChild(decompLabel);
+      y += 20;
     }
 
-    // Derived stats
+    // Divider
     const finalAtk = base.atk + eqAtk + eqBonus;
     const def = Math.floor(finalAtk * 0.3);
-    y += 4;
-    const divider = new Graphics();
-    divider.moveTo(x, y); divider.lineTo(x + 160, y);
-    divider.stroke({ width: 1, color: COL_BORDER });
-    this.contentContainer.addChild(divider);
-    y += 6;
+    const div1 = new Graphics();
+    div1.moveTo(x, y).lineTo(x + 160, y);
+    div1.stroke({ width: 1, color: COL_BORDER, alpha: 0.4 });
+    parent.addChild(div1);
+    y += 10;
 
     const derived = new BitmapText({
       text: `DEF: ${def}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
+      style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM },
     });
-    derived.x = x; derived.y = y;
-    this.contentContainer.addChild(derived);
+    derived.x = x;
+    derived.y = y;
+    parent.addChild(derived);
+    y += 22;
 
-    // Gate status
-    y += 20;
-    const gateDiv = new Graphics();
-    gateDiv.moveTo(x, y); gateDiv.lineTo(x + 160, y);
-    gateDiv.stroke({ width: 1, color: COL_BORDER });
-    this.contentContainer.addChild(gateDiv);
-    y += 6;
+    // Gate section
+    const div2 = new Graphics();
+    div2.moveTo(x, y).lineTo(x + 160, y);
+    div2.stroke({ width: 1, color: COL_BORDER, alpha: 0.4 });
+    parent.addChild(div2);
+    y += 10;
 
     const gateHeader = new BitmapText({
       text: 'STAT GATE',
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
+      style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM },
     });
-    gateHeader.x = x; gateHeader.y = y;
-    this.contentContainer.addChild(gateHeader);
-    y += 12;
+    gateHeader.x = x;
+    gateHeader.y = y;
+    parent.addChild(gateHeader);
+    y += 16;
 
-    // Example gate check (ATK >= 100)
-    const gates = [
-      { label: 'ATK Gate', current: finalAtk, required: 100 },
-    ];
+    const gates = [{ label: 'ATK Gate', current: finalAtk, required: 100 }];
     for (const gate of gates) {
       const ok = gate.current >= gate.required;
       const status = ok ? '[OK]' : `[!!] need +${gate.required - gate.current}`;
-      const color = ok ? COL_POSITIVE : COL_NEGATIVE;
       const gt = new BitmapText({
         text: `${gate.label}: ${status}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: color },
+        style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: ok ? COL_POSITIVE : COL_NEGATIVE },
       });
-      gt.x = x; gt.y = y;
-      this.contentContainer.addChild(gt);
-      y += 12;
+      gt.x = x;
+      gt.y = y;
+      parent.addChild(gt);
+      y += 16;
     }
   }
 
-  private drawRelicBar(): void {
-    const barY = PANEL_H - 42;
-    const divider = new Graphics();
-    divider.moveTo(8, barY); divider.lineTo(PANEL_W - 8, barY);
-    divider.stroke({ width: 1, color: COL_BORDER });
-    this.contentContainer.addChild(divider);
+  // ---- Bottom: Relics ----
+  private drawRelics(parent: Container): void {
+    const barY = PANEL_H - 36 - 44;  // above bottom padding
 
-    const relicHeader = new BitmapText({
-      text: 'RELICS',
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
-    });
-    relicHeader.x = 8; relicHeader.y = barY + 4;
-    this.contentContainer.addChild(relicHeader);
+    const div = new Graphics();
+    div.moveTo(0, barY).lineTo(PANEL_W - PADDING * 2, barY);
+    div.stroke({ width: 1, color: COL_BORDER, alpha: 0.4 });
+    parent.addChild(div);
 
-    const relicNames = ['Dash', 'Wall Climb', 'Double Jump', 'Fog Form', 'Water Breath', 'Anti-Gravity'];
-    const blockW = 76;
-    const startX = 8;
-    const relicY = barY + 14;
+    const header = new BitmapText({ text: 'RELICS', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_DIM } });
+    header.x = 0;
+    header.y = barY + 8;
+    parent.addChild(header);
+
+    const relicNames = ['Dash', 'Wall Climb', 'Double Jump', 'Mist Form', 'Water Breath', 'Rev. Gravity'];
+    const totalW = PANEL_W - PADDING * 2;
+    const blockW = Math.floor(totalW / 6);
+    const relicY = barY + 24;
 
     for (let i = 0; i < 6; i++) {
-      const rx = startX + (i % 6) * blockW;
+      const rx = i * blockW;
       const acquired = this.relics[i] ?? false;
 
-      // Icon box
+      // Icon (same 32x size family — use 16x16 for compactness)
       const icon = new Graphics();
-      icon.rect(rx, relicY, 12, 12).fill(acquired ? 0x2a2a3e : 0x1a1a1a);
-      icon.rect(rx, relicY, 12, 12).stroke({ color: acquired ? COL_BORDER : 0x222222, width: 1 });
-      this.contentContainer.addChild(icon);
+      icon.rect(rx, relicY, 16, 16).fill(acquired ? COL_SLOT_BG : 0x1a1a22);
+      icon.rect(rx, relicY, 16, 16).stroke({ color: acquired ? COL_ACCENT : 0x222233, width: 1 });
+      parent.addChild(icon);
 
-      if (!acquired) {
-        const q = new BitmapText({ text: '?', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x444444 } });
-        q.x = rx + 3; q.y = relicY + 2;
-        this.contentContainer.addChild(q);
+      if (acquired) {
+        const v = new BitmapText({ text: 'V', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_POSITIVE } });
+        v.x = rx + 4;
+        v.y = relicY + 4;
+        parent.addChild(v);
       } else {
-        const v = new BitmapText({ text: 'V', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_POSITIVE } });
-        v.x = rx + 3; v.y = relicY + 2;
-        this.contentContainer.addChild(v);
+        const q = new BitmapText({ text: '?', style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: COL_MUTED } });
+        q.x = rx + 4;
+        q.y = relicY + 4;
+        parent.addChild(q);
       }
 
-      // Name (truncated)
-      const name = relicNames[i];
-      const displayName = name.length > 8 ? name.substring(0, 7) + '.' : name;
       const label = new BitmapText({
-        text: displayName,
-        style: { fontFamily: PIXEL_FONT, fontSize: 5, fill: acquired ? COL_TEXT : 0x444444 },
+        text: relicNames[i],
+        style: { fontFamily: PIXEL_FONT, fontSize: F_LABEL, fill: acquired ? COL_TEXT : COL_MUTED },
       });
-      label.x = rx + 14; label.y = relicY + 3;
-      this.contentContainer.addChild(label);
+      label.x = rx + 20;
+      label.y = relicY + 4;
+      parent.addChild(label);
     }
   }
 }

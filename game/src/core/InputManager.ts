@@ -9,6 +9,7 @@ export enum GameAction {
   INVENTORY = 'INVENTORY',
   MAP = 'MAP',
   MENU = 'MENU',
+  STATUS = 'STATUS',
   FLASK = 'FLASK',
   DEBUG_RESET = 'DEBUG_RESET',
   DEBUG_CHEAT = 'DEBUG_CHEAT',
@@ -25,6 +26,7 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.ATTACK]: ['KeyC'],
   [GameAction.INVENTORY]: ['KeyI'],
   [GameAction.MAP]: ['KeyM'],
+  [GameAction.STATUS]: ['Tab'],
   [GameAction.MENU]: ['Escape'],
   [GameAction.FLASK]: ['KeyR'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
@@ -108,7 +110,7 @@ export class InputManager {
     // P0 CK-12: Block Tab from moving focus away from canvas
     if (e.key === 'Tab') {
       e.preventDefault();
-      return;
+      // Fall through so Tab is registered as a game key (STATUS action)
     }
 
     // IME produces keydown with key='Process' and sometimes empty code.

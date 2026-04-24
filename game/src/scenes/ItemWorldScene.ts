@@ -2594,6 +2594,7 @@ export class ItemWorldScene extends Scene {
       this.player.respawn();
 
       // Show death result modal before exiting
+      this.cleanupForReturnResult();
       if (!this.uiController.showReturnResult({
         item: this.item,
         prevLevel: this.stratumStartLevel,
@@ -3679,6 +3680,30 @@ export class ItemWorldScene extends Scene {
     this.altarHint = null;
   }
 
+  /** Hide all gameplay UI before showing the return result modal. */
+  private cleanupForReturnResult(): void {
+    this.hud.container.visible = false;
+    this.hud.hideBossHP();
+    this.hud.hideDepthGauge();
+    this.hud.hideItemExp();
+    this.toast.clear();
+    if (this.exitPrompt?.parent) this.exitPrompt.visible = false;
+    if (this.altarHint?.parent) this.altarHint.visible = false;
+    this.uiController.hideWorldPrompts({ exitPrompt: this.exitPrompt, altarHint: this.altarHint });
+    // Hide stratum clear panel if still showing
+    if (this.uiController.hasStratumClearPanel()) {
+      this.uiController.updateStratumClearPanel(true);
+    }
+    // Hide boss choice if showing
+    if (this.uiController.isBossChoiceVisible()) {
+      this.uiController.hideBossChoice();
+    }
+    // Hide escape confirm if showing
+    if (this.uiController.isEscapeConfirmVisible()) {
+      this.uiController.hideEscapeConfirm();
+    }
+  }
+
   private startExitFade(): void {
     this.transitionState = 'exit_fade';
     this.transitionTimer = FADE_DURATION * 2;
@@ -3793,6 +3818,7 @@ export class ItemWorldScene extends Scene {
       if (!this.uiController.hasStratumClearPanel()) {
         // Show return result modal on full clear before exiting
         if (this.progressController.getExitReason() === 'clear' && !this.uiController.isReturnResultVisible()) {
+          this.cleanupForReturnResult();
           const shown = this.uiController.showReturnResult({
             item: this.item,
             prevLevel: this.stratumStartLevel,

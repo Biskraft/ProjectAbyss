@@ -56,6 +56,7 @@ import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { PauseMenu } from '@ui/PauseMenu';
+import { CharacterStats } from '@ui/CharacterStats';
 import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
@@ -123,6 +124,7 @@ import { TutorialHint } from '@ui/TutorialHint';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
+import { GiantBuilder } from '@entities/GiantBuilder';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
@@ -151,6 +153,7 @@ const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // tunnel flow (floor collapse ??loadLevel('ItemTunnel_*') ??enter item world)
 // keeps working after tunnels were moved out of the Overworld world.
 const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
+const BUILDER_WORLD_ID = 'Builder';
 // AreaIDs used by the overworld ??Content_System_Area_Palette.csv's Tileset
 // column drives which atlases get loaded for this scene.
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
@@ -165,6 +168,8 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in';
 export class LdtkWorldScene extends Scene {
   // LDtk level data
   private loader!: LdtkLoader;
+  private builderLoader!: LdtkLoader;
+  private activeBuilder: GiantBuilder | null = null;
   private renderer!: LdtkRenderer;
   private procDecorator: ProceduralDecorator | null = null;
   private _extraDecorators: ProceduralDecorator[] = [];
@@ -203,6 +208,7 @@ export class LdtkWorldScene extends Scene {
   private uiSkin: UISkin | null = null;
   private controlsOverlay!: ControlsOverlay;
   private pauseMenu!: PauseMenu;
+  private characterStats!: CharacterStats;
   private deathScreen!: DeathScreen;
   private isPaused = false;
 
@@ -410,6 +416,10 @@ export class LdtkWorldScene extends Scene {
     this.loader = new LdtkLoader();
     this.loader.load(json, LDTK_WORLD_IDS);
 
+    // Builder world — separate loader so builder levels don't mix with navigation
+    this.builderLoader = new LdtkLoader();
+    this.builderLoader.load(json, BUILDER_WORLD_ID);
+
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
     if (saveData) {
@@ -597,6 +607,7 @@ export class LdtkWorldScene extends Scene {
     this.pauseMenu = new PauseMenu(this.uiSkin);
     this.pauseMenu.onAction = (action) => {
       if (action === 'continue') { this.isPaused = false; }
+      else if (action === 'status') { this.openCharacterStats(); }
       else if (action === 'quit_confirmed') {
         this.isPaused = false;
         import('./TitleScene').then(({ TitleScene }) => {
@@ -605,6 +616,14 @@ export class LdtkWorldScene extends Scene {
       }
     };
     this.game.legacyUIContainer.addChild(this.pauseMenu.container);
+
+    // Character stats overlay (opened from pause menu STATUS)
+    this.characterStats = new CharacterStats(this.uiSkin);
+    this.characterStats.onVisibilityChanged = (vis) => {
+      this.hud.container.visible = !vis;
+      if (this.minimap) this.minimap.visible = !vis;
+    };
+    this.game.legacyUIContainer.addChild(this.characterStats.container);
 
     // Death screen
     this.deathScreen = new DeathScreen(this.uiSkin);
@@ -735,6 +754,24 @@ export class LdtkWorldScene extends Scene {
           this.game.sceneManager.replace(new TitleScene(this.game));
         });
       }
+      return;
+    }
+
+    // Character stats overlay (blocks all input while open)
+    if (this.characterStats.visible) {
+      if (this.game.input.isJustPressed(GameAction.STATUS) ||
+          this.game.input.isJustPressed(GameAction.MENU) ||
+          this.game.input.isJustPressed(GameAction.JUMP) ||
+          this.game.input.isJustPressed(GameAction.DASH)) {
+        this.characterStats.hide();
+      }
+      return;
+    }
+
+    // TAB key → open character stats (same pattern as I=inventory, M=map)
+    if (this.game.input.isJustPressed(GameAction.STATUS)) {
+      this.game.input.consumeJustPressed(GameAction.STATUS);
+      this.openCharacterStats();
       return;
     }
 
@@ -906,8 +943,30 @@ export class LdtkWorldScene extends Scene {
     // ?�들???�록?� registerProximityHandlers() 참조.
     if (this.proximity.tryInteract(this.game.input)) return;
 
+    // Giant Builder — update visual position
+    if (this.activeBuilder) {
+      this.activeBuilder.update(dt);
+    }
+
     // Player
     this.player.update(dt);
+
+    // Giant Builder — post-physics: snap player to builder surface
+    if (this.activeBuilder && this.activeBuilder.lastDeltaY !== 0) {
+      const b = this.activeBuilder;
+      const pcx = this.player.x + this.player.width / 2;
+      const feetY = this.player.y + this.player.height;
+
+      const surfaceY = b.getSurfaceYBelow(pcx, feetY);
+      if (surfaceY !== null) {
+        const dist = surfaceY - feetY;
+        // Player feet within 8px of builder surface → snap to it
+        if (dist >= -4 && dist <= 12) {
+          this.player.y = surfaceY - this.player.height;
+          this.player.vy = 0;
+        }
+      }
+    }
 
     // Check drowning
     if (this.player.drowned && !this.gameOverActive) {
@@ -1965,6 +2024,12 @@ export class LdtkWorldScene extends Scene {
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
+
+    // Giant Builder — spawn in WorldEntrance5, attached to right wall
+    this.clearBuilder();
+    if (level.identifier === 'WorldEntrance5') {
+      this.spawnBuilder(level);
+    }
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -3433,6 +3498,63 @@ export class LdtkWorldScene extends Scene {
   // ---------------------------------------------------------------------------
   // Game Over
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Giant Builder
+  // ---------------------------------------------------------------------------
+
+  private spawnBuilder(hostLevel: LdtkLevel): void {
+    const builderLevel = this.builderLoader.getLevel('Builder_Level_0');
+    if (!builderLevel) return;
+
+    const builder = new GiantBuilder(
+      builderLevel,
+      this.atlases,
+      'world_shaft_bg',
+      'world_shaft_wall',
+    );
+
+    // Place on the right wall: x = hostLevel width - builder width - 8 tiles
+    const px = hostLevel.pxWid - builder.widthPx - 16 * 16;
+    // Vertically centered (adjust as needed)
+    const py = Math.floor((hostLevel.pxHei - builder.heightPx) / 2);
+
+    builder.placeInLevel(this.collisionGrid, px, py);
+    this.renderer.container.addChild(builder.container);
+
+    // Vertical route: patrol between top and bottom of the level
+    const topY = 64;                                    // 4 tiles from top
+    const bottomY = hostLevel.pxHei - builder.heightPx - 64; // 4 tiles from bottom
+    builder.setRoute([
+      { y: py, waitMs: 3000 },
+      { y: bottomY, waitMs: 3000 },
+      { y: topY, waitMs: 3000 },
+    ], 30); // 30 px/s
+
+    this.activeBuilder = builder;
+  }
+
+  private clearBuilder(): void {
+    if (this.activeBuilder) {
+      if (this.activeBuilder.container.parent) {
+        this.activeBuilder.container.parent.removeChild(this.activeBuilder.container);
+      }
+      this.activeBuilder = null;
+    }
+  }
+
+  private openCharacterStats(): void {
+    const a = this.player.abilities;
+    this.characterStats.setData(
+      this.inventory,
+      1, 0, 100,  // playerLevel, exp, maxExp — placeholder until growth system
+      this.player.hp, this.player.maxHp,
+      [a.dash, a.wallJump, a.doubleJump, false /* mist */, a.waterBreathing, false /* gravity */],
+    );
+    this.characterStats.show();
+    this.pauseMenu.close();
+    this.isPaused = false;
+  }
 
   private showGameOver(): void {
     this.gameOverActive = true;
