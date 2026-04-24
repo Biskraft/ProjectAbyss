@@ -41,7 +41,7 @@ export function scaleComboStep(base: ComboStep, mul: number): ComboStep {
 /**
  * Baseline HitboxW used as the "1.0x" reference for computing
  * WeaponDef.hitboxW → attackHitboxMul. Matches Content_Stats_Weapon_List.csv
- * `sword_normal` (the starter full-size blade) and Content_Combat_Combo.csv
+ * `sword_rustborn` (Rustborn, the starter full-size blade) and Content_Combat_Combo.csv
  * step 1 (HitboxW=45, bare-hand baseline).
  */
 export const BASE_HITBOX_W = 45;

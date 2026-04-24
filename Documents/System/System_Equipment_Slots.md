@@ -57,7 +57,7 @@ ECHORIS의 장비 슬롯 시스템은 다음 한 문장으로 정의한다:
 | 타입 제한 착용 규칙         | 무기 슬롯에 갑옷을 착용하는 오류 방지. 직관적 규칙이 학습 곡선을 줄임                 |
 | 이노센트 보너스를 합산에 포함 | 이노센트가 장비에 귀속되므로, 장비를 착용해야 이노센트 효과도 활성화. 착용의 가치 강화 |
 | 세트 효과를 Phase 2로 연기  | MVP에서 세트 조합 가짓수가 없음. 콘텐츠 볼륨 확보 후 도입이 적절                      |
-| Cloak → Rig, Ring/Amulet → Sigil/Seal 리네이밍 (DEC-026) | 메가스트럭처 sci-fi 세계관에 판타지 용어(Cloak/Ring/Amulet) 충돌. Rig=배면 장착 모듈, Sigil=빌더 문양 인장, Seal=상위 빌더 권한 봉인체 |
+| Cloak → Rig, Ring/Amulet → Sigil/Seal 리네이밍 (DEC-026) | 메가스트럭처 sci-fi 세계관에 판타지 용어(Cloak/Ring/Amulet) 충돌. Rig=배면 장착 모듈, Sigil=거대 빌더 문양 인장, Seal=상위 거대 빌더 권한 봉인체 |
 
 ### 1.3. 3대 기둥 정렬 (Pillar Alignment)
 
@@ -104,8 +104,8 @@ graph TD
         GNT[Gauntlet - 단조 건틀릿]
         GRV[Greaves - 등반 각반]
         RIG[Rig - 배면 모듈]
-        SGL1[Sigil 1 - 빌더 인장]
-        SGL2[Sigil 2 - 빌더 인장]
+        SGL1[Sigil 1 - 거대 빌더 인장]
+        SGL2[Sigil 2 - 거대 빌더 인장]
         SEAL[Seal - 권한 봉인체]
     end
 

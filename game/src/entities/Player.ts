@@ -514,8 +514,11 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Attack input
+    // Air-dash can be cancelled into attack (jump+dash → attack).
+    // Ground dash still blocks attack so the dash keeps its evasion feel.
     if (this.game.input.isJustPressed(GameAction.ATTACK) &&
-        state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
+        state !== 'dive' && state !== 'hit' && state !== 'death' &&
+        !(state === 'dash' && this.grounded)) {
       if (state === 'attack') {
         // Queue next combo hit
         this.attackQueued = true;

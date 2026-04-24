@@ -29,6 +29,13 @@ export class GiantBuilder {
   readonly widthTiles: number;
   readonly heightTiles: number;
 
+  /**
+   * Sub-pixel internal position (float). container.y is always rounded to
+   * integer for pixel-perfect rendering; posY retains the fractional
+   * accumulator so motion speed is preserved across integer snaps.
+   */
+  posY = 0;
+
   lastDeltaY = 0;
 
   private route: BuilderRoutePoint[] = [];
@@ -36,6 +43,7 @@ export class GiantBuilder {
   private state: BuilderState = 'dormant';
   private waitTimer = 0;
   private speed = 0;
+  private loop = true;
 
   private renderer: LdtkRenderer;
 
@@ -65,12 +73,14 @@ export class GiantBuilder {
 
   placeInLevel(pixelX: number, pixelY: number): void {
     this.container.x = pixelX;
-    this.container.y = pixelY;
+    this.posY = pixelY;
+    this.container.y = Math.round(pixelY);
   }
 
-  setRoute(route: BuilderRoutePoint[], speed: number): void {
+  setRoute(route: BuilderRoutePoint[], speed: number, loop = true): void {
     this.route = route;
     this.speed = speed;
+    this.loop = loop;
     this.routeIndex = 0;
     this.state = 'waiting';
     this.waitTimer = route[0]?.waitMs ?? 0;
@@ -82,6 +92,11 @@ export class GiantBuilder {
     }
   }
 
+  /** True while the builder is actively traveling between route points. */
+  get isMoving(): boolean {
+    return this.state === 'moving';
+  }
+
   update(dt: number): void {
     this.lastDeltaY = 0;
     if (this.state === 'dormant' || this.route.length === 0) return;
@@ -89,34 +104,49 @@ export class GiantBuilder {
     if (this.state === 'waiting') {
       this.waitTimer -= dt;
       if (this.waitTimer <= 0) {
-        this.routeIndex = (this.routeIndex + 1) % this.route.length;
-        this.state = 'moving';
+        const next = this.routeIndex + 1;
+        if (next >= this.route.length) {
+          if (this.loop) {
+            this.routeIndex = 0;
+            this.state = 'moving';
+          } else {
+            // One-shot: end of route, go permanently dormant.
+            this.state = 'dormant';
+          }
+        } else {
+          this.routeIndex = next;
+          this.state = 'moving';
+        }
       }
       return;
     }
 
     const target = this.route[this.routeIndex];
-    const dirSign = Math.sign(target.y - this.container.y);
+    const dirSign = Math.sign(target.y - this.posY);
     if (dirSign === 0) {
       this.state = 'waiting';
       this.waitTimer = target.waitMs;
       return;
     }
 
-    // Sub-pixel smooth motion. Container.y is continuous; physics stamp
-    // quantization to whole tiles is handled by the scene.
+    // Sub-pixel smooth motion in posY (float). container.y snaps to integer
+    // each frame to avoid nearest-filter shimmer at X.5 positions. Physics
+    // stamp quantization to whole tiles is handled by the scene.
     let step = dirSign * this.speed * (dt / 1000);
 
     // Do not overshoot the target.
-    const remaining = target.y - this.container.y;
+    const remaining = target.y - this.posY;
     if (dirSign > 0 && step > remaining) step = remaining;
     else if (dirSign < 0 && step < remaining) step = remaining;
 
-    this.container.y += step;
-    this.lastDeltaY = step;
+    const prevRenderY = this.container.y;
+    this.posY += step;
+    this.container.y = Math.round(this.posY);
+    this.lastDeltaY = this.container.y - prevRenderY;
 
-    if (Math.abs(target.y - this.container.y) < 0.01) {
-      this.container.y = target.y;
+    if (Math.abs(target.y - this.posY) < 0.01) {
+      this.posY = target.y;
+      this.container.y = Math.round(target.y);
       this.state = 'waiting';
       this.waitTimer = target.waitMs;
     }

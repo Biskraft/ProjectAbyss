@@ -5,7 +5,7 @@
  * factor relative to the camera. Gradient is baked from CSV palette stops.
  */
 
-import { Container, Sprite, Texture, Assets } from 'pixi.js';
+import { Container, Sprite, TilingSprite, Texture, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { sampleRow, unpack } from '@effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
@@ -155,29 +155,24 @@ export class ParallaxBackground {
       tex.source.addressMode = 'repeat';
 
       const fitScale = (360 / tex.height) * 1.5;
-      const scaledW = tex.width * fitScale;
-      const scaledH = tex.height * fitScale;
+      const tileW = Math.ceil(tex.width * fitScale);
+      const tileH = Math.ceil(tex.height * fitScale);
 
-      // Oversized coverage to survive accumulated offsets across room transitions
-      const totalCoverW = Math.max(levelW * 5, 4000);
-      const copiesX = Math.ceil(totalCoverW / scaledW) + 1;
-      const totalCoverH = Math.max(levelH * 5, 4000);
-      const copiesY = Math.ceil(totalCoverH / scaledH) + 1;
+      // TilingSprite handles infinite repeating — large enough to never show edges
+      const coverW = Math.max(levelW * 6, 8000);
+      const coverH = Math.max(levelH * 6, 8000);
+
+      const ts = new TilingSprite({
+        texture: tex,
+        width: coverW,
+        height: coverH,
+      });
+      ts.tileScale.set(fitScale, fitScale);
+      ts.x = -coverW / 2;
+      ts.y = -coverH / 2;
 
       const layerContainer = new Container();
-      // Tile grid: extend left/up from origin so camera at (0,0) sees coverage
-      const startX = -totalCoverW * 0.3;
-      const startY = -totalCoverH * 0.3;
-      for (let iy = 0; iy < copiesY; iy++) {
-        for (let ix = 0; ix < copiesX; ix++) {
-          const s = new Sprite(tex);
-          s.width = scaledW;
-          s.height = scaledH;
-          s.x = startX + ix * scaledW;
-          s.y = startY + iy * scaledH;
-          layerContainer.addChild(s);
-        }
-      }
+      layerContainer.addChild(ts);
 
       if (paletteAtlas) {
         layerContainer.filters = [

@@ -17,11 +17,11 @@ import { RARITY_COLOR } from '@items/ItemInstance';
 
 export type PulseMode = 'T2_FULL_CUTSCENE' | 'S4_IN_PLACE';
 
-// T2 timing (1500ms total) ---------------------------------------------------
-const T2_ZOOM_IN = 300;
-const T2_PULSE = 500;   // 2 rings over this window
-const T2_HOLD = 100;    // small hold before zoom-out to sell the impact
-const T2_ZOOM_OUT = 300;
+// T2 timing (4800ms total — 4x slower for dramatic first pickup) -------------
+const T2_ZOOM_IN = 1200;
+const T2_PULSE = 2000;  // 2 rings over this window
+const T2_HOLD = 400;    // hold before zoom-out to sell the impact
+const T2_ZOOM_OUT = 1200;
 const T2_TOTAL = T2_ZOOM_IN + T2_PULSE + T2_HOLD + T2_ZOOM_OUT;
 const T2_MAX_ZOOM = 1.5;
 

@@ -51,6 +51,8 @@ import { GoldPickup } from '@entities/GoldPickup';
 import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
+import { AreaTitle } from '@ui/AreaTitle';
+import { TITLE_FADE_OVERLAY_LABEL } from './TitleScene';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
@@ -77,6 +79,10 @@ import { LorePopup } from '@ui/LorePopup';
 import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave } from '@save/PlayerSave';
+import {
+  EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
+  EGO_WORLD_RETURN, EGO_EVENT, hasEgo,
+} from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
 import { LandingDustManager } from '@effects/LandingDust';
 import { DashAfterimageManager } from '@effects/DashAfterimage';
@@ -150,10 +156,9 @@ const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
-// Load Overworld + ItemTunnel worlds into the same loader so the existing
-// tunnel flow (floor collapse ??loadLevel('ItemTunnel_*') ??enter item world)
-// keeps working after tunnels were moved out of the Overworld world.
-const LDTK_WORLD_IDS: string[] = ['Overworld', 'ItemTunnel'];
+// ItemTunnel world was removed from the LDtk project; tunnel descent flow
+// is archived (enterItemWorldFromTunnel() is called directly after anvil FX).
+const LDTK_WORLD_IDS: string[] = ['Overworld'];
 const BUILDER_WORLD_ID = 'Builder';
 // AreaIDs used by the overworld ??Content_System_Area_Palette.csv's Tileset
 // column drives which atlases get loaded for this scene.
@@ -171,10 +176,19 @@ export class LdtkWorldScene extends Scene {
   private loader!: LdtkLoader;
   private builderLoader!: LdtkLoader;
   private activeBuilder: GiantBuilder | null = null;
+  private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
+  // Tracks the builder's moving state across frames so we can emit a single
+  // heavy "landing" shake on the exact frame it transitions to idle.
+  private builderWasMoving = false;
+  // Counts tile crossings so we can emit shakes on every other crossing
+  // (half the cadence of raw 16-px steps — slower, weightier rhythm).
+  private builderStepCounter = 0;
   /** Cells in host collisionGrid currently overwritten by builder (row, col). Only cells that were 0 are stamped. */
   private builderStamps: Array<{ r: number; c: number }> = [];
   /** True if, after last physics step, the player was grounded on a builder-stamped tile. Used to carry the player vertically with the builder. */
   private playerOnBuilder = false;
+  /** True if the player's AABB overlaps the builder's world-space rectangle (airborne too). Used for camera override. */
+  private playerInBuilder = false;
   private renderer!: LdtkRenderer;
   private procDecorator: ProceduralDecorator | null = null;
   private _extraDecorators: ProceduralDecorator[] = [];
@@ -210,6 +224,19 @@ export class LdtkWorldScene extends Scene {
   private drops: ItemDropEntity[] = [];
   private inventoryUI!: InventoryUI;
   private hud!: HUD;
+  private areaTitle!: AreaTitle;
+  // Title→game fade-in overlay (handed off from TitleScene via game.uiContainer).
+  private titleFadeInOverlay: Graphics | null = null;
+  private titleFadeInTimer = 0;
+  private readonly TITLE_FADE_IN_MS = 1400;
+  // Game-start intro sequence: fade-in → area title → reveal HUD.
+  // 'none' = skip sequence (e.g. pop return from sub-scenes).
+  private introPhase: 'none' | 'fadeIn' | 'title' | 'done' = 'none';
+  // Area title queued during intro fade-in; shown once the fade completes.
+  private pendingAreaTitle: string | null = null;
+  // Edge detector: when areaTitle transitions active→inactive while HUD is
+  // still hidden (intro), that's the signal to reveal HUD.
+  private wasAreaTitleActive = false;
   private uiSkin: UISkin | null = null;
   private controlsOverlay!: ControlsOverlay;
   private pauseMenu!: PauseMenu;
@@ -295,7 +322,8 @@ export class LdtkWorldScene extends Scene {
   private anvilPrompt: Container | null = null;
   private floorCollapse: FloorCollapse | null = null;
   private screenCrack: ScreenCrack | null = null;
-  private memoryDive: MemoryDive | null = null;
+  private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
+  private diveTransitionActive = false;
   private collapseItem: ItemInstance | null = null;
 
   // Sacred Pickup ??weapon pickup cutscene + lore popup + dive preview.
@@ -430,6 +458,16 @@ export class LdtkWorldScene extends Scene {
   async init(): Promise<void> {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
+
+    // Detect the title→game fade handoff overlay BEFORE any UI is created.
+    // When present, every HUD/minimap will be created hidden so nothing
+    // leaks above the black fade during async init frames. The overlay
+    // itself is picked up below for fade-out in update().
+    const introHandoff = this.game.uiContainer.getChildByLabel(TITLE_FADE_OVERLAY_LABEL);
+    const startHidden = introHandoff instanceof Graphics;
+    if (startHidden) {
+      this.introPhase = 'fadeIn';
+    }
 
     // Fetch and parse LDtk project (multi-world ??pick Overworld)
     const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
@@ -583,6 +621,15 @@ export class LdtkWorldScene extends Scene {
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.game.uiContainer.addChild(this.hud.container);
+    // Hide HUD immediately during the intro sequence so it can't flash above
+    // the fade overlay while async init is still running. Revealed after
+    // the area title completes.
+    if (startHidden) this.hud.container.visible = false;
+
+    // Area title banner — Elden Ring style. Rides on legacyUIContainer so it
+    // inherits uiScale with the rest of the overlay UI.
+    this.areaTitle = new AreaTitle();
+    this.game.legacyUIContainer.addChild(this.areaTitle.container);
 
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
@@ -697,6 +744,13 @@ export class LdtkWorldScene extends Scene {
       fadeOverlay: this.fadeOverlay,
     });
 
+    // Stash the handoff overlay for the fade-out tween in update().
+    // (introPhase was already set at the top of init() via startHidden.)
+    if (introHandoff instanceof Graphics) {
+      this.titleFadeInOverlay = introHandoff;
+      this.titleFadeInTimer = 0;
+    }
+
     // Spawn level ??saved level or default Player entity level
     if (saveData && saveData.levelId) {
       this.playerSpawnLevelId = saveData.levelId;
@@ -718,6 +772,9 @@ export class LdtkWorldScene extends Scene {
 
   enter(): void {
     this.container.visible = true;
+    // Area banner is triggered from loadLevel on Shaft_01 entry (not here).
+    // On pop return from sub-scenes (ItemWorld) the current level is still
+    // the one the player left from, so no banner replay is needed.
     this.uiController.enter({
       showMinimap: !this.inItemTunnel,
       goldBelowMinimap: !this.inItemTunnel,
@@ -727,6 +784,13 @@ export class LdtkWorldScene extends Scene {
         this.unlockedEvents.has('__itemWorldTutorialDone')
         && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld'),
     });
+    // Hide HUD + minimap until the Shaft_01 area title completes. Covers
+    // both the initial intro ('fadeIn') and the post-fade 'title' waiting
+    // state (player may roam non-Shaft rooms before first entering Shaft_01).
+    if (this.introPhase === 'fadeIn' || this.introPhase === 'title') {
+      this.hud.container.visible = false;
+      if (this.minimap) this.minimap.visible = false;
+    }
     if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
     // Clean up dive/collapse effect
@@ -763,6 +827,45 @@ export class LdtkWorldScene extends Scene {
   update(dt: number): void {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
+
+    // Title→game fade-in handoff overlay.
+    if (this.titleFadeInOverlay) {
+      this.titleFadeInTimer += dt;
+      const t = Math.min(1, this.titleFadeInTimer / this.TITLE_FADE_IN_MS);
+      this.titleFadeInOverlay.alpha = 1 - t;
+      if (t >= 1) {
+        this.titleFadeInOverlay.parent?.removeChild(this.titleFadeInOverlay);
+        this.titleFadeInOverlay.destroy();
+        this.titleFadeInOverlay = null;
+        // Screen is now visible. Flush any queued area title and advance to
+        // the waiting-for-title phase. HUD stays hidden until the Shaft_01
+        // title actually completes (see edge detector below).
+        if (this.introPhase === 'fadeIn') {
+          this.introPhase = 'title';
+          if (this.pendingAreaTitle) {
+            this.areaTitle.show(this.pendingAreaTitle);
+            this.pendingAreaTitle = null;
+          }
+        }
+      }
+    }
+
+    // HUD reveal: fires the frame an area title transitions active→inactive
+    // while HUD is still hidden. This is the moment the player finishes
+    // watching "THE SHAFT" (or any future intro banner) and gameplay UI
+    // should appear. If the player spawns outside Shaft_01, HUD stays
+    // hidden until they walk in and trigger the banner via loadLevel.
+    const areaTitleActive = this.areaTitle.isActive;
+    if (
+      this.wasAreaTitleActive &&
+      !areaTitleActive &&
+      this.introPhase === 'title'
+    ) {
+      this.hud.container.visible = true;
+      if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
+      this.introPhase = 'done';
+    }
+    this.wasAreaTitleActive = areaTitleActive;
 
     // Ending sequence active ??block everything
     if (this.ending.isActive) {
@@ -830,6 +933,10 @@ export class LdtkWorldScene extends Scene {
       this.game.camera.update(dt);
       this.hitSparks.update(dt);
       this.screenFlash.update(dt);
+      // Keep LoreDisplay alive during sacred pickup blocking (Ego T01 dialogue)
+      if (this.loreDisplay?.isActive) {
+        this.loreDisplay.update(dt);
+      }
       return;
     }
 
@@ -848,15 +955,8 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Memory Dive in progress ??all input blocked
-    if (this.memoryDive && this.memoryDive.phase !== 'idle') {
-      this.memoryDive.update(dt);
-
-      if (this.memoryDive.shouldTransition) {
-        this.completeFloorCollapseEntry();
-        return;
-      }
-
+    // Dive transition in progress — all input blocked
+    if (this.diveTransitionActive) {
       this.hitSparks.update(dt);
       this.screenFlash.update(dt);
       return;
@@ -979,6 +1079,10 @@ export class LdtkWorldScene extends Scene {
     //   The visual sub-pixel remainder is applied to the player as a render
     //   offset so they appear glued to the builder smoothly.
     if (this.activeBuilder) {
+      // Stamp math MUST mirror stampBuilder(), which reads container.y
+      // (integer). Using posY (float) here would disagree at the half-pixel
+      // boundary where Math.round flips, producing a "stamp jumped but
+      // player wasn't carried" frame that looks like a jump in place.
       const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
       const newStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
@@ -990,6 +1094,24 @@ export class LdtkWorldScene extends Scene {
       }
       this.unstampBuilder();
       this.stampBuilder();
+
+      // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
+      // of the descent. Rhythmic "쿵" every two tile crossings while moving,
+      // then a single heavy "쿠웅" on the frame the builder comes to rest.
+      if (this.activeBuilderMode === 'cinematic') {
+        const nowMoving = this.activeBuilder.isMoving;
+        if (nowMoving && stampDelta !== 0) {
+          this.builderStepCounter++;
+          if (this.builderStepCounter % 2 === 0) {
+            this.game.camera.shake(3);
+          }
+        }
+        if (this.builderWasMoving && !nowMoving) {
+          this.game.camera.shake(9);
+          this.builderStepCounter = 0;
+        }
+        this.builderWasMoving = nowMoving;
+      }
     }
 
     // Player
@@ -998,7 +1120,14 @@ export class LdtkWorldScene extends Scene {
     // After physics: is the player now grounded on a builder-stamped tile?
     this.playerOnBuilder = this.activeBuilder ? this.isPlayerOnBuilderStamp() : false;
 
-    // Visual sync: while riding, mirror the builder's sub-pixel fraction.
+    // Volume check: is the player's AABB inside the builder's rectangle?
+    // (includes airborne — used for camera override that must persist on jump.)
+    this.playerInBuilder = this.activeBuilder ? this.isPlayerInBuilderVolume() : false;
+
+    // Visual sync: while riding, mirror the builder's render offset from its
+    // tile-aligned stamp. Use container.y (integer) so the offset matches
+    // exactly what stampBuilder() sees — the player visual steps in lockstep
+    // with the builder visual, no subpixel disagreement.
     if (this.playerOnBuilder && this.activeBuilder) {
       const by = this.activeBuilder.container.y;
       this.player.visualYOffset = by - Math.round(by / 16) * 16;
@@ -1343,6 +1472,9 @@ export class LdtkWorldScene extends Scene {
     // Dialogue / Lore triggers
     this.updateDialogueTriggers(dt);
 
+    // ── Ego dialogue triggers (code-driven, not LDtk) ──
+    this.updateEgoTriggers(dt);
+
     // Anvil interaction + attack hit detection
     this.updateAnvil(dt);
 
@@ -1412,12 +1544,15 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
+    // Shift+P: reset save & reload. Always available so playtesters can
+    // recover from stuck states without needing a debug URL flag.
+    if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
+      SaveManager.deleteSave();
+      window.location.reload();
+    }
+
     // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
-        SaveManager.deleteSave();
-        window.location.reload();
-      }
       // Shift+U: toggle all UI off and show HUD mockup image
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
         this.game.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
@@ -1528,6 +1663,7 @@ export class LdtkWorldScene extends Scene {
 
     this.hud.update(dt);
     this.hud.setFloorText(this.currentLevel?.identifier ?? '');
+    this.areaTitle.update(dt);
 
     // Hide minimap + adjust gold in item tunnel
     if (this.inItemTunnel && this.minimap) this.minimap.visible = false;
@@ -1557,9 +1693,18 @@ export class LdtkWorldScene extends Scene {
     this.updateMovementVfx(dt);
 
     // Camera — deadzone follow + zoom lerp. Player is always in world coords.
+    // While riding the builder, include visualYOffset so the camera tracks the
+    // player's *visual* position. Without this, the physics +16 tile crossing
+    // jump (see builder update above) propagates to the camera target and
+    // causes a "툭 툭" rocking as the camera snaps to each crossing.
+    //
+    // The offset is rounded to an integer pixel: a fractional target would
+    // make the rounded camera renderY oscillate near .5 boundaries every
+    // frame, producing a rapid 1px "덜덜덜" shake. Tile-crossing cancellation
+    // still works because the offset is symmetric (~+8 → ~-8 at crossing).
     const cam = this.game.camera;
     const cx = this.player.x + this.player.width / 2;
-    const cy = this.player.y + this.player.height / 2;
+    const cy = this.player.y + this.player.height / 2 + Math.round(this.player.visualYOffset);
 
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
@@ -2066,11 +2211,36 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
 
-    // Giant Builder — spawn in Debug_Shaft_01, attached to right wall
+    // Giant Builder:
+    //   Shaft_01       — cinematic one-shot descent (right wall, top→bottom once)
+    //   Debug_Shaft_01 — Builder_Level_0 infinite patrol (gameplay/testing)
+    //   Debug_Shaft_2  — Builder_Level_1 infinite patrol (gameplay/testing)
     this.clearBuilder();
-    if (level.identifier === 'Debug_Shaft_01') {
-      this.spawnBuilder(level);
+    if (level.identifier === 'Shaft_01') {
+      this.spawnBuilder(level, 'cinematic', 'Builder_Level_0');
+    } else if (level.identifier === 'Debug_Shaft_01') {
+      this.spawnBuilder(level, 'patrol', 'Builder_Level_0');
+    } else if (level.identifier === 'Debug_Shaft_2') {
+      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
     }
+
+    // Area title on entry. During the intro fade-in we must defer the banner
+    // until the screen is actually visible, otherwise it plays behind black.
+    if (level.identifier === 'Shaft_01') {
+      if (this.introPhase === 'fadeIn') {
+        this.pendingAreaTitle = 'The Shaft';
+      } else {
+        this.areaTitle.show('The Shaft');
+      }
+    }
+
+    // Patch collisionGrid for already-unlocked SecretWalls/CrackedFloors
+    // BEFORE placing the player. findEdgePassage scans collisionGrid to pick
+    // an entry passage, so any wall the player already broke (e.g. re-entering
+    // via a SecretWall passage) must be cleared first or the player spawns on
+    // the wrong edge and floats in empty space.
+    this.spawnCrackedFloors(level);
+    this.spawnSecretWalls(level);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -2106,8 +2276,6 @@ export class LdtkWorldScene extends Scene {
     this.spawnLockedDoors(level);
     this.spawnSwitches(level);
     this.spawnGrowingWalls(level);
-    this.spawnCrackedFloors(level);
-    this.spawnSecretWalls(level);
     this.spawnSpikes(level);
     this.spawnCollapsingPlatforms(level);
     this.spawnDialogueTriggers(level);
@@ -2172,7 +2340,12 @@ export class LdtkWorldScene extends Scene {
   private placePlayer(level: LdtkLevel, enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const pw = this.player.width;
     const ph = this.player.height;
-    const grid = level.collisionGrid;
+    // Use the RUNTIME collisionGrid (this.collisionGrid), not the LDtk master
+    // (level.collisionGrid). The runtime grid has been patched for already-
+    // broken SecretWalls / CrackedFloors by spawnSecretWalls/spawnCrackedFloors
+    // above; using the master would treat broken passages as solid and spawn
+    // the player inside a wall on re-entry.
+    const grid = this.collisionGrid;
 
     let spawnX: number;
     let spawnY: number;
@@ -2848,12 +3021,38 @@ export class LdtkWorldScene extends Scene {
     const entities = level.entities.filter(e => e.type === 'SecretWall');
     for (const ent of entities) {
       const key = `secret_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      // Already destroyed in a previous session
-      if (this.unlockedEvents.has(key)) continue;
+      // Already destroyed in a previous session — re-apply the break side
+      // effects to the freshly-cloned level state (collisionGrid was restored
+      // from LDtk's master IntGrid in loadLevel, and AutoTile sprites were
+      // re-rendered). Without this, the invisible wall tile still blocks
+      // the player and traps them on re-entry.
+      if (this.unlockedEvents.has(key)) {
+        // LDtk SecretWall pivot = [0,1] (bottom-left). Convert to top-left
+        // to match SecretWall constructor / recordCollision math.
+        const topLeftX = ent.px[0];
+        const topLeftY = ent.px[1] - ent.height;
+        const startCol = Math.floor(topLeftX / 16);
+        const startRow = Math.floor(topLeftY / 16);
+        const cols = Math.ceil(ent.width / 16);
+        const rows = Math.ceil(ent.height / 16);
+        const gridH = this.collisionGrid.length;
+        const gridW = gridH > 0 ? this.collisionGrid[0].length : 0;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const gr = startRow + r;
+            const gc = startCol + c;
+            if (gr >= 0 && gr < gridH && gc >= 0 && gc < gridW) {
+              this.collisionGrid[gr][gc] = 0;
+            }
+          }
+        }
+        this.renderer.clearTilesInRect(topLeftX, topLeftY, ent.width, ent.height);
+        continue;
+      }
 
       const mode = ((ent.fields['Mode'] ?? 'Item') as string).toLowerCase() as 'item' | 'passage';
       const hintAlpha = (ent.fields['HintAlpha'] as number) ?? 0.08;
-      // LDtk enum uses PascalCase (Sword_normal), master sheet uses lowercase (sword_normal)
+      // LDtk enum uses PascalCase (Sword_rustborn), master sheet uses lowercase (sword_rustborn)
       const rawItemId = (ent.fields['ItemId'] as string) ?? null;
       const itemId = rawItemId ? rawItemId.toLowerCase() : null;
 
@@ -3524,13 +3723,18 @@ export class LdtkWorldScene extends Scene {
     const pcy = this.player.y + this.player.height / 2;
     const cam = this.game.camera;
 
+    // Being inside the Giant Builder's volume forces zoom 1.0 (ignore level
+    // camera zones). Uses AABB overlap so the override persists while the
+    // player is airborne (jumping) inside the builder.
     let insideZone: typeof this.cameraZones[number] | null = null;
-    for (const zone of this.cameraZones) {
-      if (zone.entireLevel ||
-          (pcx >= zone.x && pcx <= zone.x + zone.w &&
-           pcy >= zone.y && pcy <= zone.y + zone.h)) {
-        insideZone = zone;
-        break;
+    if (!this.playerInBuilder) {
+      for (const zone of this.cameraZones) {
+        if (zone.entireLevel ||
+            (pcx >= zone.x && pcx <= zone.x + zone.w &&
+             pcy >= zone.y && pcy <= zone.y + zone.h)) {
+          insideZone = zone;
+          break;
+        }
       }
     }
 
@@ -3751,8 +3955,28 @@ export class LdtkWorldScene extends Scene {
     return false;
   }
 
-  private spawnBuilder(hostLevel: LdtkLevel): void {
-    const builderLevel = this.builderLoader.getLevel('Builder_Level_0');
+  /**
+   * AABB overlap between the player and the builder's world-space rectangle.
+   * Used for the camera override so it persists while the player is airborne
+   * inside the builder (jumping, double-jumping, etc.).
+   */
+  private isPlayerInBuilderVolume(): boolean {
+    const b = this.activeBuilder;
+    if (!b) return false;
+    const bx = b.container.x;
+    const by = b.container.y;
+    const px = this.player.x;
+    const py = this.player.y;
+    return (
+      px + this.player.width  > bx &&
+      px                      < bx + b.widthPx &&
+      py + this.player.height > by &&
+      py                      < by + b.heightPx
+    );
+  }
+
+  private spawnBuilder(hostLevel: LdtkLevel, mode: 'cinematic' | 'patrol', builderLevelId: string): void {
+    const builderLevel = this.builderLoader.getLevel(builderLevelId);
     if (!builderLevel) return;
 
     const builder = new GiantBuilder(
@@ -3762,35 +3986,50 @@ export class LdtkWorldScene extends Scene {
       'world_shaft_wall',
     );
 
-    // Place on the right wall: x = hostLevel width - builder width - 8 tiles
-    const px = hostLevel.pxWid - builder.widthPx - 16 * 16;
-    // Vertically centered (adjust as needed)
-    const py = Math.floor((hostLevel.pxHei - builder.heightPx) / 2);
+    const topY = 64;                                          // 4 tiles from top
+    const bottomY = hostLevel.pxHei - builder.heightPx - 64;  // 4 tiles from bottom
 
-    builder.placeInLevel(px, py);
-    this.renderer.container.addChild(builder.container);
-
-    // Vertical route: patrol between top and bottom of the level
-    const topY = 64;                                    // 4 tiles from top
-    const bottomY = hostLevel.pxHei - builder.heightPx - 64; // 4 tiles from bottom
-    builder.setRoute([
-      { y: py, waitMs: 3000 },
-      { y: bottomY, waitMs: 3000 },
-      { y: topY, waitMs: 3000 },
-    ], 30); // 30 px/s
+    if (mode === 'cinematic') {
+      // Shaft_01 — right wall minus 7 tiles, one-shot top→bottom descent
+      // triggered by player entry (spawnBuilder runs on room entry).
+      const px = hostLevel.pxWid - builder.widthPx - 7 * 16;
+      builder.placeInLevel(px, topY);
+      this.renderer.container.addChild(builder.container);
+      builder.setRoute([
+        { y: topY,    waitMs: 0 },
+        { y: bottomY, waitMs: 0 },
+      ], 60, false); // 60 px/s (2× cinematic), no loop
+    } else {
+      // Debug_Shaft_01 — infinite patrol between top and bottom.
+      const px = hostLevel.pxWid - builder.widthPx - 16 * 16;
+      const py = Math.floor((hostLevel.pxHei - builder.heightPx) / 2);
+      builder.placeInLevel(px, py);
+      this.renderer.container.addChild(builder.container);
+      builder.setRoute([
+        { y: py,      waitMs: 3000 },
+        { y: bottomY, waitMs: 3000 },
+        { y: topY,    waitMs: 3000 },
+      ], 30, true); // 30 px/s, loop
+    }
 
     this.activeBuilder = builder;
+    this.activeBuilderMode = mode;
+    this.builderWasMoving = false;
+    this.builderStepCounter = 0;
   }
 
   private clearBuilder(): void {
     this.unstampBuilder();
     this.playerOnBuilder = false;
+    this.playerInBuilder = false;
     if (this.activeBuilder) {
       if (this.activeBuilder.container.parent) {
         this.activeBuilder.container.parent.removeChild(this.activeBuilder.container);
       }
       this.activeBuilder = null;
     }
+    this.activeBuilderMode = null;
+    this.builderWasMoving = false;
   }
 
   private openCharacterStats(): void {
@@ -4021,6 +4260,7 @@ export class LdtkWorldScene extends Scene {
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
+    itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
@@ -4035,6 +4275,19 @@ export class LdtkWorldScene extends Scene {
       if (itemWorldScene.earnedGold > 0) {
         this.gold += itemWorldScene.earnedGold;
         this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+      }
+
+      // ── Ego T14: "또 올 거야?" after first item world return ──
+      if (
+        hasEgo(targetItem.def.id)
+        && !this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)
+      ) {
+        this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+        setTimeout(() => {
+          if (!this.loreDisplay?.isActive) {
+            this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
+          }
+        }, 1000);
       }
 
       if (isAltar) {
@@ -4071,6 +4324,29 @@ export class LdtkWorldScene extends Scene {
    * Starter-only items are silently marked seen without VFX.
    */
   private sacredPickupFlow(item: ItemInstance, wx: number, wy: number): void {
+    // ── Ego wake dialogue (T01) — fires after pickup cutscene completes ──
+    if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
+      this.unlockedEvents.add(EGO_EVENT.WAKE);
+      console.log('[Ego] T01 queued for', item.def.id);
+      // Wait for WeaponPulse + LorePopup to finish, then show Ego wake
+      const waitForPickupDone = () => {
+        if (this.activeWeaponPulse?.isBlocking || this.lorePopup?.isBlocking()) {
+          setTimeout(waitForPickupDone, 100);
+          return;
+        }
+        // Wait until loreDisplay is free (no other dialogue active)
+        const waitForFree = () => {
+          if (this.loreDisplay?.isActive) {
+            setTimeout(waitForFree, 100);
+            return;
+          }
+          this.loreDisplay?.showDialogue(EGO_WAKE, true);
+        };
+        setTimeout(waitForFree, 300);
+      };
+      waitForPickupDone();
+    }
+
     // Starter-only items never trigger the cutscene or LorePopup.
     if (STARTER_ONLY_IDS.has(item.def.id)) {
       sacredSave.markItemSeen(item.def.id);
@@ -4097,11 +4373,13 @@ export class LdtkWorldScene extends Scene {
       this.activeWeaponPulse = pulse;
     }
 
-    // Lore popup ??open on first-seen items (or always-on setting).
+    // Lore popup — open on first-seen items (or always-on setting).
     // Deferred behind the pulse (if any) so the cutscene completes first.
     // For already-seen items without the alwaysShowLore option this resolves
     // to a no-op in LorePopup.showIfNew().
     this.lorePopupItem = item;
+
+    // (T01 Ego wake moved to top of sacredPickupFlow — fires before starter-only check)
   }
 
   /**
@@ -4728,10 +5006,10 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.zoomTo(2, 0.03);
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    // Warp when FX019 animation completes (icon scales up ??screen transition)
+    // Warp when FX019 animation completes: custom screen transition
+    // Keep zoom-in during transition — reset only after full blackout
     this.anvil.onFxComplete = () => {
-      this.game.camera.setZoom(1.0);
-      this.completeFloorCollapseEntry();
+      this.runDiveTransition();
     };
   }
 
@@ -4744,7 +5022,12 @@ export class LdtkWorldScene extends Scene {
     ancient: 'ItemTunnel_05',
   };
 
-  /** After floor collapse fade-out, load the tunnel level. */
+  /** After floor collapse fade-out, proceed to Item World.
+   *
+   * Currently skips the tunnel descent and jumps straight into Item World
+   * after the anvil FX. The tunnel flow is preserved in
+   * `completeFloorCollapseEntryViaTunnel()` (archived) for future restoration.
+   */
   private completeFloorCollapseEntry(): void {
     if (!this.collapseItem) return;
 
@@ -4762,8 +5045,26 @@ export class LdtkWorldScene extends Scene {
       this.floorCollapse = null;
     }
 
-    // Remember where we came from so we can return
+    // Remember where we came from so we can return after exiting Item World.
     this.preTunnelLevelId = this.currentLevel.identifier;
+
+    // ARCHIVED — tunnel descent disabled. Player enters Item World directly
+    // after the anvil FX. To restore the tunnel flow, call
+    // `this.completeFloorCollapseEntryViaTunnel()` instead of the line below.
+    // this.completeFloorCollapseEntryViaTunnel();
+    this.enterItemWorldFromTunnel();
+  }
+
+  /**
+   * ARCHIVED — original tunnel descent entry.
+   *
+   * Loads an `ItemTunnel_*` level (rarity-mapped) where the player walks down
+   * to the bottom edge, which then triggers `enterItemWorldFromTunnel()`.
+   * Kept intact so the tunnel presentation can be re-enabled by swapping the
+   * call site in `completeFloorCollapseEntry()`.
+   */
+  private completeFloorCollapseEntryViaTunnel(): void {
+    if (!this.collapseItem) return;
     this.inItemTunnel = true;
     if (this.minimap) this.minimap.visible = false;
 
@@ -4804,11 +5105,11 @@ export class LdtkWorldScene extends Scene {
     const prevAtk = this.player.atk;
 
     this.container.visible = false;
-    this.hud.container.visible = false;
-    if (this.minimap) this.minimap.visible = false;
+    this.detachSharedUiForItemWorld();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
+    itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
@@ -4829,6 +5130,19 @@ export class LdtkWorldScene extends Scene {
       }
       if (this.player.atk !== prevAtk) {
         this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+      }
+
+      // ── Ego T14: "또 올 거야?" after first item world return ──
+      if (
+        hasEgo(targetItem.def.id)
+        && !this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)
+      ) {
+        this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+        setTimeout(() => {
+          if (!this.loreDisplay?.isActive) {
+            this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
+          }
+        }, 1000);
       }
 
       // Return to the forge room (not the tunnel)
@@ -4884,6 +5198,7 @@ export class LdtkWorldScene extends Scene {
       this.collapseItem = item;
       const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player);
       itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
+      itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
       itemWorldScene.onComplete = () => {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
@@ -5246,6 +5561,12 @@ export class LdtkWorldScene extends Scene {
     const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
     this.minimap.alpha = inCombat ? 0.4 : 0.7;
 
+    // Keep minimap hidden during the intro fade-in/title sequence. Revealed
+    // together with the HUD once the area title completes.
+    if (this.introPhase === 'fadeIn' || this.introPhase === 'title') {
+      this.minimap.visible = false;
+    }
+
     this.game.uiContainer.addChild(this.minimap);
   }
 
@@ -5300,5 +5621,164 @@ export class LdtkWorldScene extends Scene {
   private clearDrops(): void {
     for (const d of this.drops) d.destroy();
     this.drops = [];
+  }
+
+  // ── Ego dialogue triggers ───────────────────────────────────────
+  // Code-driven triggers for Rustborn Ego that can't be placed as LDtk entities.
+
+  /**
+   * T02: First movement after Ego wake — non-blocking auto-close dialogue.
+   * T03: Anvil proximity hint — non-blocking.
+   * S01: Weapon swap — Rustborn unequipped.
+   */
+  private updateEgoTriggers(_dt: number): void {
+    if (!this.loreDisplay || this.loreDisplay.isActive) return;
+
+    // T02: First walk after Ego wake
+    if (
+      this.unlockedEvents.has(EGO_EVENT.WAKE)
+      && !this.unlockedEvents.has(EGO_EVENT.FIRST_WALK)
+      && (this.player.vx !== 0 || this.player.vy !== 0)
+    ) {
+      this.unlockedEvents.add(EGO_EVENT.FIRST_WALK);
+      this.loreDisplay.showDialogue(EGO_FIRST_WALK, true);
+      return;
+    }
+
+    // T03: Anvil proximity (first time after Ego wake)
+    if (
+      this.anvil
+      && this.unlockedEvents.has(EGO_EVENT.WAKE)
+      && !this.unlockedEvents.has(EGO_EVENT.ANVIL_HINT)
+    ) {
+      const dx = (this.player.x + this.player.width / 2) - this.anvil.x;
+      const dy = (this.player.y + this.player.height / 2) - (this.anvil.y - this.anvil.height / 2);
+      if (dx * dx + dy * dy < 60 * 60) {
+        this.unlockedEvents.add(EGO_EVENT.ANVIL_HINT);
+        this.loreDisplay.showDialogue(EGO_ANVIL, false);
+        return;
+      }
+    }
+  }
+
+  /**
+   * S01: Call when player equips a weapon that is NOT an Ego weapon,
+   * while previously having an Ego weapon equipped.
+   * Should be called from equipWeapon() or inventory UI confirm.
+   */
+  fireEgoWeaponSwap(): void {
+    if (
+      this.loreDisplay
+      && !this.unlockedEvents.has(EGO_EVENT.WEAPON_SWAP)
+    ) {
+      this.unlockedEvents.add(EGO_EVENT.WEAPON_SWAP);
+      this.loreDisplay.showDialogue(EGO_WEAPON_SWAP, false);
+    }
+  }
+
+  // ── Dive transition (replaces MemoryDive) ─────────────────────────
+  // step 1: hitstop 10f + screen flash (공명)
+  // step 2: color drain + iris shrink toward anvil center (800ms)
+  // step 3: black screen 500ms → scene switch
+
+  private diveOverlay: Graphics | null = null;
+  private diveIris: Graphics | null = null;
+
+  private runDiveTransition(): void {
+    this.diveTransitionActive = true;
+    const anvilCx = this.anvil!.x;
+    const anvilCy = this.anvil!.y - this.anvil!.height / 2;
+    const cam = this.game.camera;
+
+    // ── Step 1: 공명 (hitstop + flash) ──
+    this.game.hitstopFrames = 10;
+    this.screenFlash.flash(0xffffff, 0.6, 200);
+    this.game.camera.shake(4);
+
+    // ── Step 2: 색상 드레인 + 아이리스 축소 (800ms) ──
+    setTimeout(() => {
+      // Desaturation overlay
+      this.diveOverlay = new Graphics();
+      this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+        .fill({ color: 0x000000, alpha: 0 });
+      this.game.legacyUIContainer.addChild(this.diveOverlay);
+
+      // Iris circle mask effect (shrinking circle toward anvil)
+      this.diveIris = new Graphics();
+      this.game.legacyUIContainer.addChild(this.diveIris);
+
+      const IRIS_DURATION = 800;
+      const startTime = performance.now();
+      const maxRadius = Math.max(GAME_WIDTH, GAME_HEIGHT);
+
+      // Convert anvil world coords to screen coords
+      const screenCx = anvilCx - cam.renderX + GAME_WIDTH / 2;
+      const screenCy = anvilCy - cam.renderY + GAME_HEIGHT / 2;
+
+      const animateIris = () => {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(1, elapsed / IRIS_DURATION);
+        const eased = t * t; // ease-in
+
+        // Darken overlay (desaturation effect)
+        if (this.diveOverlay) {
+          this.diveOverlay.clear();
+          this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+            .fill({ color: 0x000000, alpha: eased * 0.6 });
+        }
+
+        // Iris: black screen with shrinking transparent circle
+        if (this.diveIris) {
+          const radius = maxRadius * (1 - eased);
+          this.diveIris.clear();
+          // Full black rect
+          this.diveIris.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+            .fill({ color: 0x000000, alpha: eased * 0.8 });
+          // Cut transparent circle
+          if (radius > 2) {
+            this.diveIris.circle(screenCx, screenCy, radius)
+              .cut();
+          }
+        }
+
+        if (t < 1) {
+          requestAnimationFrame(animateIris);
+        } else {
+          // ── Step 3: 검은 화면 500ms → 씬 전환 ──
+          this.stepDiveBlackout();
+        }
+      };
+      requestAnimationFrame(animateIris);
+    }, 200); // wait for hitstop to finish
+  }
+
+  private stepDiveBlackout(): void {
+    // Full black screen
+    if (this.diveOverlay) {
+      this.diveOverlay.clear();
+      this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+        .fill({ color: 0x000000, alpha: 1 });
+    }
+    if (this.diveIris) {
+      this.diveIris.clear();
+      this.diveIris.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+        .fill({ color: 0x000000, alpha: 1 });
+    }
+
+    // Hold black for 500ms, then transition
+    setTimeout(() => {
+      // Cleanup overlays
+      if (this.diveOverlay?.parent) this.diveOverlay.parent.removeChild(this.diveOverlay);
+      if (this.diveIris?.parent) this.diveIris.parent.removeChild(this.diveIris);
+      this.diveOverlay = null;
+      this.diveIris = null;
+      this.diveTransitionActive = false;
+
+      // Reset zoom now — screen is fully black so player won't see the snap
+      this.game.camera.setZoom(1.0);
+
+      // Enter item world
+      this.completeFloorCollapseEntry();
+    }, 500);
   }
 }

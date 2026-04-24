@@ -444,7 +444,7 @@ export class ProceduralDecorator {
       case 0: this.drawSteelBeam(gfx, edge, rng); break;
       case 1: this.drawConcreteChunk(gfx, edge, rng); break;
       case 2: this.drawRebar(gfx, edge, rng); break;
-      case 3: if (rng.next() < 0.5) this.drawPipeSegment(gfx, edge, rng); break;
+      case 3: /* pipes disabled — use Pass 4 embedded only */ break;
       case 4: this.drawGirderOutline(gfx, edge, rng, grid); break;
       case 5: this.drawChain(gfx, edge, rng); break;
       case 6: this.drawBranchingVine(gfx, edge, rng); break;
@@ -898,10 +898,10 @@ export class ProceduralDecorator {
         gfx.moveTo(wallX, wy); gfx.lineTo(wallX + rng.nextFloat(8, 20) * dir, wy + rng.nextFloat(-2, 2));
         gfx.stroke({ width: 1, color: this.cSteel });
       }
-      // Pipe bracket
-      const py = by + rng.nextFloat(8, T - 2);
-      gfx.moveTo(wallX, py); gfx.lineTo(wallX + 8 * dir, py); gfx.lineTo(wallX + 8 * dir, py + 8);
-      gfx.stroke({ width: 2, color: c2 });
+      // Pipe bracket — DISABLED (pipes spawn rate 0)
+      // const py = by + rng.nextFloat(8, T - 2);
+      // gfx.moveTo(wallX, py); gfx.lineTo(wallX + 8 * dir, py); gfx.lineTo(wallX + 8 * dir, py + 8);
+      // gfx.stroke({ width: 2, color: c2 });
     }
   }
 
@@ -1265,11 +1265,11 @@ export class ProceduralDecorator {
       gfx.rect(wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1, color: c });
       gfx.circle(wallX + (w / 2 + 1) * dir, by + oy, 3); gfx.fill(c);
     } else if (edge.type === 'ceiling') {
-      // bio_irrigation: thin round pipe
-      const len = rng.nextFloat(20, 40);
-      const ox = rng.nextFloat(0, T);
-      gfx.roundRect(bx + ox, cy, len, 4, 2); gfx.fill(c);
-      gfx.rect(bx + ox + len * 0.5, cy, 2, 4); gfx.fill(this.cConcrete); // joint
+      // bio_irrigation: thin round pipe — DISABLED (pipes spawn rate 0)
+      // const len = rng.nextFloat(20, 40);
+      // const ox = rng.nextFloat(0, T);
+      // gfx.roundRect(bx + ox, cy, len, 4, 2); gfx.fill(c);
+      // gfx.rect(bx + ox + len * 0.5, cy, 2, 4); gfx.fill(this.cConcrete); // joint
     }
   }
 
@@ -1710,10 +1710,10 @@ export class ProceduralDecorator {
       const w = rng.nextFloat(10, 18), h = rng.nextFloat(6, 12);
       gfx.roundRect(bx + rng.nextFloat(0, T), by - h, w, h, 3); gfx.stroke({ width: 1.5, color: c });
     } else if (edge.type === 'ceiling') {
-      // ceiling coolant pipe
-      const cy = (edge.row + 1) * T;
-      const len = rng.nextFloat(16, 32);
-      gfx.roundRect(bx + rng.nextFloat(0, T), cy, len, 4, 2); gfx.fill(c);
+      // ceiling coolant pipe — DISABLED (spawn rate 0)
+      // const cy = (edge.row + 1) * T;
+      // const len = rng.nextFloat(16, 32);
+      // gfx.roundRect(bx + rng.nextFloat(0, T), cy, len, 4, 2); gfx.fill(c);
     }
   }
 
@@ -1934,16 +1934,16 @@ export class ProceduralDecorator {
 
   // --- HABITAT: cables and pipes spanning spaces ---
 
-  private spanHabitatVert(gfx: Graphics, x: number, y0: number, y1: number, len: number, rng: PRNG): void {
-    // Vertical pipe run with brackets
-    const px = x + rng.nextFloat(-4, 4);
-    gfx.moveTo(px, y0); gfx.lineTo(px, y1);
-    gfx.stroke({ width: 3, color: this.cSteel });
-    // Brackets every ~24px
-    for (let b = y0 + 16; b < y1 - 8; b += rng.nextFloat(16, 28)) {
-      gfx.moveTo(px - 6, b); gfx.lineTo(px, b); gfx.lineTo(px, b + 4); gfx.lineTo(px - 6, b + 4);
-      gfx.stroke({ width: 1.5, color: this.cConcrete });
-    }
+  private spanHabitatVert(_gfx: Graphics, _x: number, _y0: number, _y1: number, _len: number, _rng: PRNG): void {
+    // Vertical pipe run with brackets — DISABLED (pipes spawn rate 0)
+    // const px = x + rng.nextFloat(-4, 4);
+    // gfx.moveTo(px, y0); gfx.lineTo(px, y1);
+    // gfx.stroke({ width: 3, color: this.cSteel });
+    // // Brackets every ~24px
+    // for (let b = y0 + 16; b < y1 - 8; b += rng.nextFloat(16, 28)) {
+    //   gfx.moveTo(px - 6, b); gfx.lineTo(px, b); gfx.lineTo(px, b + 4); gfx.lineTo(px - 6, b + 4);
+    //   gfx.stroke({ width: 1.5, color: this.cConcrete });
+    // }
   }
 
   private spanHabitatHoriz(gfx: Graphics, x0: number, x1: number, y: number, len: number, rng: PRNG): void {
@@ -2118,21 +2118,20 @@ export class ProceduralDecorator {
 
   // --- COOLANT: drip lines / condensation streaks ---
 
-  private spanCoolantVert(gfx: Graphics, x: number, y0: number, y1: number, _len: number, rng: PRNG): void {
-    // Vertical pipe with condensation drips
-    gfx.moveTo(x, y0); gfx.lineTo(x, y1); gfx.stroke({ width: 3, color: this.cSteel });
-    // Drip drops alongside
-    for (let d = y0 + 8; d < y1; d += rng.nextFloat(10, 20)) {
-      gfx.circle(x + rng.nextFloat(-4, 4), d, 1.5); gfx.fill(this.cHangerDrip);
-    }
+  private spanCoolantVert(_gfx: Graphics, _x: number, _y0: number, _y1: number, _len: number, _rng: PRNG): void {
+    // Vertical pipe with condensation drips — DISABLED (pipes spawn rate 0)
+    // gfx.moveTo(x, y0); gfx.lineTo(x, y1); gfx.stroke({ width: 3, color: this.cSteel });
+    // for (let d = y0 + 8; d < y1; d += rng.nextFloat(10, 20)) {
+    //   gfx.circle(x + rng.nextFloat(-4, 4), d, 1.5); gfx.fill(this.cHangerDrip);
+    // }
   }
 
-  private spanCoolantHoriz(gfx: Graphics, x0: number, x1: number, y: number, len: number, rng: PRNG): void {
-    // Horizontal pipe with joints
-    gfx.moveTo(x0, y); gfx.lineTo(x1, y); gfx.stroke({ width: 3, color: this.cSteel });
-    for (let j = x0 + 20; j < x1 - 10; j += rng.nextFloat(20, 36)) {
-      gfx.rect(j - 1, y - 4, 3, 8); gfx.fill(this.cSteel);
-    }
+  private spanCoolantHoriz(_gfx: Graphics, _x0: number, _x1: number, _y: number, _len: number, _rng: PRNG): void {
+    // Horizontal pipe with joints — DISABLED (pipes spawn rate 0)
+    // gfx.moveTo(x0, y); gfx.lineTo(x1, y); gfx.stroke({ width: 3, color: this.cSteel });
+    // for (let j = x0 + 20; j < x1 - 10; j += rng.nextFloat(20, 36)) {
+    //   gfx.rect(j - 1, y - 4, 3, 8); gfx.fill(this.cSteel);
+    // }
   }
 
   // --- ECHO: void tendrils / resonance lines ---
@@ -2318,7 +2317,7 @@ export class ProceduralDecorator {
           (isSolid(gridAt(grid, row, col - 1)) ? 1 : 0) +
           (isSolid(gridAt(grid, row, col + 1)) ? 1 : 0);
         if (solidNeighbors < 2) continue;
-        if (rng.next() > 0.04) continue; // Very sparse
+        if (rng.next() > 0.12) continue; // Moderate density
 
         const cx = col * T + T / 2;
         const cy = row * T + T / 2;

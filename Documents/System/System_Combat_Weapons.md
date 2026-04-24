@@ -62,7 +62,7 @@ ECHORIS 무기 시스템은 다음 한 문장으로 정의한다:
 | 결정 | 근거 |
 | :--- | :--- |
 | 무기 카테고리 7종 확정 | 18게임 리서치(ItemTypes_FullSurvey) 결과 "무브셋 차별성이 확보되는 상한은 7-9종". 근접 5(사거리×속도 5분할) + 원거리 2(물리/파동)로 Bloodstained 11종의 과도함 회피 |
-| Harpoon 신규 추가 | 긴 직선 리치 포지션 공백. Castlevania DoS/Bloodstained/Disgaea 표준 카테고리. 세계관 상 빌더 리바(rebar) 장창과 시각 연속성 |
+| Harpoon 신규 추가 | 긴 직선 리치 포지션 공백. Castlevania DoS/Bloodstained/Disgaea 표준 카테고리. 세계관 상 거대 빌더 리바(rebar) 장창과 시각 연속성 |
 | Chain 신규 추가 | 가변 리치 포지션 공백. Castlevania 뱀파이어 헌터 계보 + BLAME! 수직 메가스트럭처 리깅 체인과 직접 연결 |
 | Fist 제외 | 맨손 격투는 메가스트럭처 전투 스케일과 어긋남. sci-fi 세계관 부적합 (DEC-026) |
 | sci-fi 리네이밍 | Sword/Bow/Staff 등 판타지 용어는 세계관(BLAME!/Megastructure)과 톤 충돌. Blade/Railbow/Emitter로 재명명 (DEC-026) |

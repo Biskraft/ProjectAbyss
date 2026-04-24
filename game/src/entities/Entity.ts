@@ -113,7 +113,7 @@ export abstract class Entity {
     }
 
     this.container.x = rx;
-    this.container.y = ry + this.visualYOffset;
+    this.container.y = ry + Math.round(this.visualYOffset);
   }
 
   savePrevPosition(): void {

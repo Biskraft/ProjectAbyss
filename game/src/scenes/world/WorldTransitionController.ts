@@ -24,7 +24,10 @@ export class WorldTransitionController {
 
   /**
    * Snap an entity to the floor below a passage row.
-   * Scans downward from passageRow to find the first solid tile.
+   * Scans downward from passageRow to find the first solid tile that has
+   * enough open space above it to fit the entity. This prevents the player
+   * from spawning embedded in a wall when the passage is narrow (e.g. a
+   * SecretWall opening that is only 1-2 tiles tall with solid wall above).
    */
   snapToFloor(
     grid: number[][],
@@ -33,10 +36,16 @@ export class WorldTransitionController {
     entityHeight: number,
   ): number {
     const clampedX = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
+    const entityTileH = Math.max(1, Math.ceil(entityHeight / TILE_SIZE));
     for (let row = passageRow; row < grid.length; row++) {
-      if (grid[row][clampedX] === 1) {
-        return row * TILE_SIZE - entityHeight;
+      if (grid[row][clampedX] !== 1) continue;
+      // Check that the entityTileH cells directly above this floor are open.
+      let fits = true;
+      for (let r = row - 1; r >= row - entityTileH; r--) {
+        if (r < 0) { fits = false; break; }
+        if (grid[r][clampedX] === 1) { fits = false; break; }
       }
+      if (fits) return row * TILE_SIZE - entityHeight;
     }
     return passageRow * TILE_SIZE;
   }

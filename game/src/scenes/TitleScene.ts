@@ -27,6 +27,9 @@ const COL_TEAL = 0x4a8a8a;
 const COL_WHITE = 0xf0f0f0;
 const COL_DIM = 0x3a3a48;
 
+const FADE_OUT_MS = 1000;
+export const TITLE_FADE_OVERLAY_LABEL = '__title_fade_overlay__';
+
 export class TitleScene extends Scene {
   private canProceed = false;
   private transitioning = false;
@@ -35,6 +38,8 @@ export class TitleScene extends Scene {
   private pulseGfx!: Graphics;
   private accentLine!: Graphics;
   private uiRoot!: Container; // rendered at native res
+  private fadeOverlay!: Graphics; // lives on game.uiContainer so it persists across scene replace
+  private fadeTimer = 0;
 
   constructor(game: Game) {
     super(game);
@@ -140,6 +145,15 @@ export class TitleScene extends Scene {
     hintText.visible = false;
     this.hint = hintText;
     this.uiRoot.addChild(hintText);
+
+    // Fade overlay — attached to game.uiContainer (NOT uiRoot) so it persists
+    // after this scene is replaced. LdtkWorldScene.init() picks it up by label
+    // and fades it back out to complete the title→game transition.
+    this.fadeOverlay = new Graphics();
+    this.fadeOverlay.rect(0, 0, sw, sh).fill(COL_VOID);
+    this.fadeOverlay.alpha = 0;
+    this.fadeOverlay.label = TITLE_FADE_OVERLAY_LABEL;
+    this.game.uiContainer.addChild(this.fadeOverlay);
   }
 
   enter(): void {
@@ -182,7 +196,17 @@ export class TitleScene extends Scene {
 
     if (this.canProceed && !this.transitioning && this.game.input.anyKeyJustPressed()) {
       this.transitioning = true;
-      this.game.sceneManager.replace(new LdtkWorldScene(this.game));
+      this.fadeTimer = 0;
+    }
+
+    if (this.transitioning) {
+      this.fadeTimer += dt;
+      const t = Math.min(1, this.fadeTimer / FADE_OUT_MS);
+      this.fadeOverlay.alpha = t;
+      if (t >= 1) {
+        // Overlay remains on game.uiContainer; LdtkWorldScene fades it out.
+        this.game.sceneManager.replace(new LdtkWorldScene(this.game));
+      }
     }
   }
 

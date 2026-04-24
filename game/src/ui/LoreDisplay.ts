@@ -86,6 +86,8 @@ export class LoreDisplay {
   private blinkTimer = 0;
   private slideTimer = 0;
   private currentPortraitKey = '';
+  /** Grace period (ms) after showDialogue / startLine — ignore advance input. */
+  private advanceGuard = 0;
 
   private resolveFn: (() => void) | null = null;
   private input: InputManager;
@@ -174,6 +176,11 @@ export class LoreDisplay {
     this.blocksMovement = freezePlayer ?? lines.some(l => l.speaker !== undefined);
     this.container.visible = true;
 
+    // Consume any lingering ATTACK press so it doesn't immediately advance
+    // the first line (e.g. player pressed C to pick up an item, then dialogue opens).
+    this.input.consumeJustPressed(GameAction.ATTACK);
+    this.advanceGuard = 300; // 300ms grace — ignore input while box slides in + first typing
+
     // Start slide-in
     this.state = 'slide_in';
     this.slideTimer = SLIDE_DURATION;
@@ -202,9 +209,17 @@ export class LoreDisplay {
   update(dt: number): void {
     if (this.state === 'hidden') return;
 
+    // Grace period — ignore advance input briefly after dialogue opens / line starts
+    if (this.advanceGuard > 0) {
+      this.advanceGuard -= dt;
+      // Consume any presses during guard so they don't queue up
+      if (this.input.isJustPressed(GameAction.ATTACK)) {
+        this.input.consumeJustPressed(GameAction.ATTACK);
+      }
+    }
+
     // Pattern B(Prompt): C(ATTACK) = 진행/스킵. Z/X 는 UI 에서 사용 금지
-    // (UI_Interaction_Patterns.md).
-    const advance = this.input.isJustPressed(GameAction.ATTACK);
+    const advance = this.advanceGuard <= 0 && this.input.isJustPressed(GameAction.ATTACK);
     if (advance) this.input.consumeJustPressed(GameAction.ATTACK);
 
     // --- Slide In ---

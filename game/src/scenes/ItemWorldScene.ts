@@ -29,10 +29,19 @@ import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorl
 import { getEnemyStats } from '@data/enemyStats';
 import { getMemoryRoom } from '@data/memoryRoomTable';
 import { LoreDisplay } from '@ui/LoreDisplay';
+import {
+  EGO_IW_ENTER, EGO_MONSTER_FIRST, EGO_FIRST_KILL, EGO_ROOM_CLEAR,
+  EGO_INNOCENT_FOUND, EGO_INNOCENT_STABLE,
+  EGO_PLAYER_DEATH, EGO_BOSS_KILLED, EGO_EXIT_ALTAR,
+  EGO_REENTRY_2, EGO_REENTRY_2_BOSS, EGO_REENTRY_3,
+  EGO_SWAP_RETURN, EGO_AFFINITY_MAX,
+  EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
+} from '@data/EgoDialogue';
 import { InnocentNPC } from '@entities/InnocentNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
+import { AreaTitle } from '@ui/AreaTitle';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
@@ -140,6 +149,7 @@ export class ItemWorldScene extends Scene {
   private hitManager!: HitManager;
   private entityLayer!: Container;
   private hud!: HUD;
+  private areaTitle!: AreaTitle;
   private uiController!: ItemWorldUiController;
   private progressController!: ItemWorldProgressController;
   private mapController!: ItemWorldMapController;
@@ -332,6 +342,13 @@ export class ItemWorldScene extends Scene {
   /** Set to true if the global Item World tutorial has already been completed. */
   itemWorldTutorialDone = false;
 
+  // ── Ego dialogue state (per-entry, not saved) ──
+  private egoActive = false;          // true if current item has Ego
+  private egoEntryCount = 0;          // how many times player entered this item's world
+  private egoFlags = new Set<string>(); // fired triggers this entry (reset each entry)
+  /** Passed from LdtkWorldScene — shared unlockedEvents for persistence. */
+  egoUnlockedEvents: Set<string> = new Set();
+
   constructor(game: Game, item: ItemInstance, inventory: Inventory, sourcePlayer: Player) {
     super(game);
     this.item = item;
@@ -385,6 +402,14 @@ export class ItemWorldScene extends Scene {
       && this.progress.cycle === 0
       && this.progress.deepestUnlocked === 0
       && this.progress.clearedRooms.length === 0;
+
+    // ── Ego init ──
+    this.egoActive = hasEgo(this.item.def.id);
+    if (this.egoActive) {
+      // Increment entry count
+      this.egoEntryCount = getEgoEntryCount(this.egoUnlockedEvents) + 1;
+      this.egoUnlockedEvents.add(egoEntryKey(this.egoEntryCount));
+    }
     if (this.isFirstNormalEntry) {
       // Override: 1 stratum only, 2x2 grid, boss HP x0.7
       const first = this.strataConfig.strata[0];
@@ -593,6 +618,11 @@ export class ItemWorldScene extends Scene {
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.game.uiContainer.addChild(this.hud.container);
+
+    // Area title banner — shows item name on entry.
+    this.areaTitle = new AreaTitle();
+    this.game.legacyUIContainer.addChild(this.areaTitle.container);
+    this.areaTitle.show(this.item.def.name);
     this.uiController = new ItemWorldUiController(this.game);
     this.mapController = new ItemWorldMapController();
     this.spawnController = new ItemWorldSpawnController();
@@ -679,14 +709,16 @@ export class ItemWorldScene extends Scene {
 
     this.initialized = true;
 
+    // ── Ego T04: landing dialogue ──
+    setTimeout(() => this.fireEgoEnter(), 500);
+
     // Sacred Pickup T6 ? Return hint HUD. First-ever landing: big-to-small
     // shrink tween. Subsequent landings: small icon straight away.
     this.uiController.createReturnHint();
 
-    // Entry banner ? announce item name + stratum
+    // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
     const stratumLabel = `Memory Stratum ${this.currentStratumIndex + 1}`;
-    this.toast.showBig(this.item.def.name, rarityColor, 3000);
     this.toast.show(stratumLabel, rarityColor);
 
     // Show stratum picker if player has unlocked more than one stratum on this item
@@ -2579,6 +2611,9 @@ export class ItemWorldScene extends Scene {
       trackItemWorldExit('death', this.currentStratumIndex);
       this.exitTracked = true;
 
+      // ── Ego T11: player death ──
+      this.fireEgoPlayerDeath();
+
       // Clear all UI overlays on death
       this.hud.hideBossHP();
       this.game.uiContainer.removeChildren();
@@ -2640,6 +2675,11 @@ export class ItemWorldScene extends Scene {
       const enemy = this.enemies[i];
       if (!enemy.alive && !(enemy as any)._expGranted) {
         (enemy as any)._expGranted = true;
+
+        // ── Ego T06: first enemy kill ──
+        if (!(enemy instanceof InnocentNPC) && !(enemy as any)._isBoss) {
+          this.fireEgoFirstKill();
+        }
 
         // Analytics: enemy kill distribution (excludes Innocents ? capture, not kill)
         if (!(enemy instanceof InnocentNPC)) {
@@ -2928,7 +2968,6 @@ export class ItemWorldScene extends Scene {
 
         const px = enemy.x + enemy.width / 2;
         const py = enemy.y + enemy.height;
-        this.spawnBossPortal(px, py);
 
         // A12 (playtest 2026-04-17): boss kills previously used the same
         // feedback as regular kills (hitstop 12, shake 4, small toast). Upgrade
@@ -2942,13 +2981,29 @@ export class ItemWorldScene extends Scene {
         this.game.camera.shake(9);
         this.screenFlash.flash(0xffffff, 0.55, 180);
         this.toast.showBig('BOSS DEFEATED', 0xffd35a, 2200);
-        this.toast.show('Red portal opened ? press C', 0xff7744);
         // Follow-up burst: ember-gold flash + second particle layer
         setTimeout(() => {
           this.screenFlash.flash(0xffaa22, 0.35, 220);
           this.deathParticles.spawn(bossCx, bossCy, true);
           this.game.camera.shake(5);
         }, 160);
+
+        // ── Ego T12: boss killed dialogue → then portal ──
+        // First entry: clear FX → Ego dialogue (freeze) → dialogue done → portal opens
+        // Subsequent entries: portal opens immediately + non-blocking dialogue
+        if (this.egoActive && this.egoEntryCount === 1) {
+          // Delay for clear FX to settle, then show dialogue
+          setTimeout(async () => {
+            await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
+            this.spawnBossPortal(px, py);
+            this.toast.show('Red portal opened — press C', 0xff7744);
+          }, 2500);
+        } else {
+          this.spawnBossPortal(px, py);
+          this.toast.show('Red portal opened — press C', 0xff7744);
+          // Non-first entries: fire dialogue if applicable
+          setTimeout(() => this.fireEgoBossKilled(), 2500);
+        }
         break;
       }
     }
@@ -2970,6 +3025,11 @@ export class ItemWorldScene extends Scene {
           this.exitPrompt.x = Math.round(sx);
           this.exitPrompt.y = Math.round(sy);
         }
+      }
+
+      // ── Ego T13: exit altar proximity ──
+      if (nearPortal) {
+        this.fireEgoExitAltar();
       }
 
       if (nearPortal && this.game.input.isJustPressed(GameAction.ATTACK)) {
@@ -3035,6 +3095,11 @@ export class ItemWorldScene extends Scene {
         }
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
+
+      // ── Ego T05: first monster visible (fire on first room with enemies) ──
+      if (this.enemies.length > 0) {
+        this.fireEgoMonsterVisible();
+      }
     }
 
     // Pre-spawn neighbors whenever player enters a DIFFERENT room (first time
@@ -3070,6 +3135,7 @@ export class ItemWorldScene extends Scene {
     }
     this.hud.update(dt);
     this.updateHudText();
+    this.areaTitle.update(dt);
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.deathParticles.update(dt);
@@ -3875,5 +3941,104 @@ export class ItemWorldScene extends Scene {
    */
   private drawMiniMap(): void {
     // intentionally empty
+  }
+
+  // ── Ego dialogue helpers ──────────────────────────────────────
+
+  /** Fire an Ego dialogue line if conditions are met. Returns true if fired. */
+  private fireEgo(key: string, lines: import('@ui/LoreDisplay').LoreLine[], freeze = false): boolean {
+    if (!this.egoActive) return false;
+    if (this.egoFlags.has(key)) return false;
+    if (this.loreDisplay?.isActive) return false;
+    this.egoFlags.add(key);
+    this.loreDisplay?.showDialogue(lines, freeze);
+    return true;
+  }
+
+  /** T04: Called after floor start / landing. */
+  fireEgoEnter(): void {
+    if (this.egoEntryCount === 1) {
+      this.fireEgo('iw_enter', EGO_IW_ENTER, true);
+    } else if (this.egoEntryCount === 2) {
+      // Check S02: weapon swap return
+      if (this.egoUnlockedEvents.has(EGO_EVENT.WEAPON_SWAP)
+        && !this.egoUnlockedEvents.has(EGO_EVENT.SWAP_RETURN)) {
+        this.egoUnlockedEvents.add(EGO_EVENT.SWAP_RETURN);
+        this.fireEgo('swap_return', EGO_SWAP_RETURN, false);
+      } else {
+        this.fireEgo('reentry_2', EGO_REENTRY_2, false);
+      }
+    } else if (this.egoEntryCount === 3) {
+      this.fireEgo('reentry_3', EGO_REENTRY_3, false);
+    }
+    // 4+ : silence
+  }
+
+  /** T05: First distortion monster visible on camera. */
+  fireEgoMonsterVisible(): void {
+    if (this.egoEntryCount !== 1) return;
+    this.fireEgo('monster_first', EGO_MONSTER_FIRST, false);
+  }
+
+  /** T06: First enemy killed this entry (1s delay). */
+  fireEgoFirstKill(): void {
+    if (this.egoEntryCount !== 1) return;
+    if (this.egoFlags.has('first_kill')) return;
+    this.egoFlags.add('first_kill');
+    setTimeout(() => {
+      if (!this.loreDisplay?.isActive) {
+        this.loreDisplay?.showDialogue(EGO_FIRST_KILL, false);
+      }
+    }, 1000);
+  }
+
+  /** T07: Room clear (3rd room in first entry). */
+  fireEgoRoomClear(roomIndex: number): void {
+    if (this.egoEntryCount !== 1) return;
+    if (roomIndex >= 2) { // 0-indexed, room 3 = index 2
+      this.fireEgo('room_clear', EGO_ROOM_CLEAR, false);
+    }
+  }
+
+  /** T08: Innocent NPC visible on camera for the first time. */
+  fireEgoInnocentFound(): void {
+    if (this.egoEntryCount !== 1) return;
+    this.fireEgo('innocent_found', EGO_INNOCENT_FOUND, false);
+  }
+
+  /** T09: Innocent stabilized. */
+  fireEgoInnocentStable(): void {
+    if (this.egoEntryCount !== 1) return;
+    this.fireEgo('innocent_stable', EGO_INNOCENT_STABLE, false);
+  }
+
+  // T10: Boss appear — removed
+
+  /** T11: Player died and respawned. */
+  fireEgoPlayerDeath(): void {
+    if (this.egoEntryCount !== 1) return;
+    this.fireEgo('player_death', EGO_PLAYER_DEATH, false);
+  }
+
+  /** T12: Boss killed — call AFTER reward UI is shown. */
+  fireEgoBossKilled(): void {
+    if (this.egoEntryCount === 1) {
+      this.fireEgo('boss_killed', EGO_BOSS_KILLED, true);
+    } else if (this.egoEntryCount === 2) {
+      this.fireEgo('reentry_2_boss', EGO_REENTRY_2_BOSS, false);
+    }
+  }
+
+  /** T13: Exit altar proximity. */
+  fireEgoExitAltar(): void {
+    this.fireEgo('exit_altar', EGO_EXIT_ALTAR, false);
+  }
+
+  /** S03: Stratum 2 clear — affinity max. */
+  fireEgoAffinityMax(): void {
+    if (!this.egoUnlockedEvents.has(EGO_EVENT.AFFINITY_MAX)) {
+      this.egoUnlockedEvents.add(EGO_EVENT.AFFINITY_MAX);
+      this.fireEgo('affinity_max', EGO_AFFINITY_MAX, true);
+    }
   }
 }
