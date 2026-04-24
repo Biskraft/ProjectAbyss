@@ -215,6 +215,7 @@ export class LdtkWorldScene extends Scene {
   private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
   private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
+  private lookHoldTimer = 0; // ms holding UP/DOWN while idle
 
   // Boss lock
   private bossActive = false;
@@ -1391,10 +1392,10 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Room transition detection ??edge-based
+    // Room transition detection — edge-based
     this.checkLevelEdges();
 
-    // Camera zone detection ??check if player entered/exited a camera area
+    // Camera zone detection — check if player entered/exited a camera area
     this.updateCameraZones();
 
     // HUD
@@ -1455,13 +1456,29 @@ export class LdtkWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // Camera ??deadzone follow + zoom lerp
+    // Camera — deadzone follow + zoom lerp
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2;
     const cam = this.game.camera;
 
     cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
     cam.target = { x: cx, y: cy };
+
+    // Vertical look: hold UP/DOWN while idle to peek after a delay
+    const playerIdle = this.player.fsm.currentState === 'idle'
+      && Math.abs(this.player.vx) < 1 && this.player.hp > 0;
+    const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
+    const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
+    const wantLook = playerIdle && (lookUp || lookDown);
+    if (wantLook) {
+      this.lookHoldTimer += dt;
+    } else {
+      this.lookHoldTimer = 0;
+    }
+    const LOOK_HOLD_THRESHOLD = 400; // ms before peek activates
+    cam.lookDirection = (wantLook && this.lookHoldTimer >= LOOK_HOLD_THRESHOLD)
+      ? (lookUp ? -1 : 1)
+      : 0;
 
     cam.update(dt);
 

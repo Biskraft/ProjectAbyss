@@ -287,6 +287,7 @@ export class ItemWorldScene extends Scene {
 
   // Room transition
   private transitionState: TransitionState = 'none';
+  private lookHoldTimer = 0;
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
 
@@ -3092,6 +3093,20 @@ export class ItemWorldScene extends Scene {
       x: this.player.x + this.player.width / 2,
       y: this.player.y + this.player.height / 2,
     };
+    const playerIdle = this.player.fsm.currentState === 'idle'
+      && Math.abs(this.player.vx) < 1 && this.player.hp > 0;
+    const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
+    const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
+    const wantLook = playerIdle && (lookUp || lookDown);
+    if (wantLook) {
+      this.lookHoldTimer += dt;
+    } else {
+      this.lookHoldTimer = 0;
+    }
+    const LOOK_HOLD_THRESHOLD = 400;
+    this.game.camera.lookDirection = (wantLook && this.lookHoldTimer >= LOOK_HOLD_THRESHOLD)
+      ? (lookUp ? -1 : 1)
+      : 0;
     this.game.camera.update(dt);
   }
 

@@ -15,11 +15,19 @@ export class Camera {
   private targetZoom = 1.0;
   private zoomSpeed = 0.05;
 
-  // Look Ahead
+  // Look Ahead (horizontal — facing direction)
   lookAheadDistance = 0;
   lookAheadLerp = 0.05;
   private currentLookAheadX = 0;
   private targetLookAheadX = 0;
+
+  // Look Ahead (vertical — up/down input hold)
+  lookAheadYDistance = 64;
+  lookAheadYLerp = 0.04;
+  private currentLookAheadY = 0;
+  private targetLookAheadY = 0;
+  /** Set to -1 (up), 0 (none), or 1 (down) by the scene each frame. */
+  lookDirection = 0;
 
   // Bounds
   bounds: { left: number; top: number; right: number; bottom: number } | null = null;
@@ -79,7 +87,10 @@ export class Camera {
     this.zoom = this.targetZoom;
     this.currentLookAheadX = 0;
     this.targetLookAheadX = 0;
+    this.currentLookAheadY = 0;
+    this.targetLookAheadY = 0;
     this.facingDirection = 0;
+    this.lookDirection = 0;
     this.shakeIntensity = 0;
     this.shakeOffsetX = 0;
     this.shakeOffsetY = 0;
@@ -144,11 +155,18 @@ export class Camera {
       this.y += (dy - Math.sign(dy) * this.deadZoneY) * this.followLerp * dtFactor;
     }
 
-    // Look Ahead
+    // Look Ahead (horizontal)
     this.targetLookAheadX = this.facingDirection * this.lookAheadDistance;
     this.currentLookAheadX += (this.targetLookAheadX - this.currentLookAheadX) * this.lookAheadLerp * dtFactor;
 
+    // Look Ahead (vertical — up/down hold)
+    this.targetLookAheadY = this.lookDirection * this.lookAheadYDistance;
+    this.currentLookAheadY += (this.targetLookAheadY - this.currentLookAheadY) * this.lookAheadYLerp * dtFactor;
+
     // Bounds clamping (zoom-aware)
+    // IMPORTANT: clamp this.x FIRST, then adjust look-ahead based on the
+    // clamped position. Otherwise the dead-zone overshoot leaks into
+    // currentLookAheadX and causes the camera to drift away from walls.
     if (this.bounds) {
       const halfW = (this.viewportW / 2) / this.zoom;
       const halfH = (this.viewportH / 2) / this.zoom;
@@ -161,18 +179,25 @@ export class Camera {
         this.x = (this.bounds.left + this.bounds.right) / 2;
         this.currentLookAheadX = 0;
       } else {
+        this.x = Math.max(minX, Math.min(maxX, this.x));
         const effectiveX = this.x + this.currentLookAheadX;
         if (effectiveX < minX) {
           this.currentLookAheadX = minX - this.x;
         } else if (effectiveX > maxX) {
           this.currentLookAheadX = maxX - this.x;
         }
-        this.x = Math.max(minX, Math.min(maxX, this.x));
       }
       if (minY >= maxY) {
         this.y = (this.bounds.top + this.bounds.bottom) / 2;
+        this.currentLookAheadY = 0;
       } else {
         this.y = Math.max(minY, Math.min(maxY, this.y));
+        const effectiveY = this.y + this.currentLookAheadY;
+        if (effectiveY < minY) {
+          this.currentLookAheadY = minY - this.y;
+        } else if (effectiveY > maxY) {
+          this.currentLookAheadY = maxY - this.y;
+        }
       }
     }
 
@@ -201,6 +226,6 @@ export class Camera {
   }
 
   get renderY(): number {
-    return this.y + this.shakeOffsetY;
+    return this.y + this.currentLookAheadY + this.shakeOffsetY;
   }
 }
