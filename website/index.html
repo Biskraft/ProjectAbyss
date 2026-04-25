@@ -96,7 +96,7 @@ body::before {
 
 /* ═══ DEPTH SHAFT ═══ */
 #depth-shaft {
-  position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+  position: fixed; right: 48px; top: 50%; transform: translateY(-50%);
   z-index: 200; display: flex; flex-direction: column; align-items: center;
   opacity: 0; transition: opacity 1.2s ease; height: 60vh; max-height: 500px;
 }
@@ -286,10 +286,32 @@ footer {
 }
 .links-row a:hover { color: var(--text-1); border-color: var(--pulse); }
 
+/* ═══ BUILDER CRAWLER ═══ */
+#builder-crawler {
+  position: fixed;
+  right: -45px;
+  z-index: 180;
+  width: 140px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 20px rgba(232,120,48,0.12));
+  transform-origin: center center;
+  will-change: transform, top;
+}
+body.scrolled #builder-crawler { opacity: 0.45; }
+/* When entering Item World section, builder glows warmer */
+body.builder-warm #builder-crawler {
+  filter: drop-shadow(0 0 30px rgba(232,120,48,0.3));
+  opacity: 0.6;
+}
+
 /* ═══ Mobile ═══ */
 @media (max-width: 768px) {
   .hero-title { font-size: clamp(2.2rem, 11vw, 4rem); letter-spacing: 0.08em; }
   #depth-shaft { display: none; }
+  #builder-crawler { display: none; }
   section { padding: 60px 0; }
   .content { padding: 0 16px; }
   .erda-row { flex-direction: column; }
@@ -310,6 +332,8 @@ footer {
   <div class="shaft-rail"><div class="shaft-fill" id="shaftFill"></div></div>
   <div class="shaft-value" id="depthValue">0m</div>
 </nav>
+
+<img id="builder-crawler" src="assets/builder_01.png" alt="" aria-hidden="true">
 
 <!-- ═══ HERO ═══ -->
 <section id="hero">
@@ -465,6 +489,11 @@ const reveals = document.querySelectorAll('.reveal');
 const pulsed = new Set();
 let breached = false;
 
+// Builder Crawler
+const builderEl = document.getElementById('builder-crawler');
+let prevScrollY = 0;
+let builderGait = 0;
+
 const revealObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.1 });
@@ -511,6 +540,24 @@ function update() {
 
   // Grid overlay fades with depth
   document.body.style.setProperty('--grid-fade', Math.max(0.05, 1 - pct * 1.5));
+
+  // Builder crawler — crawls down the right wall with scroll
+  const scrollDelta = Math.abs(window.scrollY - prevScrollY);
+  builderGait += scrollDelta;
+  prevScrollY = window.scrollY;
+
+  const bH = builderEl.offsetHeight || 90;
+  const margin = 40;
+  const builderY = margin + pct * (window.innerHeight - bH - margin * 2);
+  // Walking wobble: body rocks side-to-side and bobs slightly
+  const wobble = Math.sin(builderGait * 0.06) * 2.5;
+  const bob = Math.sin(builderGait * 0.06 + 1.2) * 1.5;
+  builderEl.style.top = builderY + 'px';
+  builderEl.style.transform = 'translateX(' + bob + 'px) rotate(' + (wobble - 90) + 'deg)';
+
+  // Warm glow when in item-world zone
+  if (pct > 0.55) { document.body.classList.add('builder-warm'); }
+  else { document.body.classList.remove('builder-warm'); }
 }
 
 let ticking = false;

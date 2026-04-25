@@ -181,7 +181,6 @@ export class ProceduralDecorator {
     // --- Detail layer ---
     const detailEdges = [...edges];
     rng.shuffle(detailEdges);
-    const detailBudget = Math.min(this.cfg.maxDecorations, detailEdges.length);
 
     const detailGfx = new Graphics();   // theme detail drawings
     const growerGfx = new Graphics();   // natural: grass/roots
@@ -191,9 +190,19 @@ export class ProceduralDecorator {
     const hasTheme = !!this.preset;
     const isNatural = this.isNaturalTheme;
 
+    // Natural details (organic themes + common no-theme) get 2× spawn rate
+    // and 2× budget vs artificial themes — the natural world feels lush,
+    // the industrial world feels sparse.
+    const naturalMul = (isNatural || !hasTheme) ? 2 : 1;
+    const detailBudget = Math.min(
+      this.cfg.maxDecorations * naturalMul,
+      detailEdges.length,
+    );
+    const effectiveDensity = Math.min(1, this.cfg.density * naturalMul);
+
     let count = 0;
     for (let i = 0; i < detailEdges.length && count < detailBudget; i++) {
-      if (rng.next() > this.cfg.density) continue;
+      if (rng.next() > effectiveDensity) continue;
       const edge = detailEdges[i];
       if (hasTheme) {
         // Theme mode: only theme-specific decorations

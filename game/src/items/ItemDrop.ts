@@ -101,7 +101,10 @@ export class ItemDropEntity {
   item: ItemInstance;
   container: Container;
   private bobTimer = 0;
-  private baseY: number;
+  /** Bob center Y in world coords. Kept public so entities riding a moving
+   *  platform (e.g. drops attached to GiantBuilder) can keep the bob
+   *  centered as the carrier moves. */
+  baseY: number;
   collected = false;
 
   // VFX

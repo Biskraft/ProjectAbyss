@@ -11,6 +11,8 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Texture } from 'pixi.js';
 import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
+import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
+import { LegRig, type LegMount } from './LegRig';
 
 const TILE = 16;
 
@@ -46,6 +48,24 @@ export class GiantBuilder {
   private loop = true;
 
   private renderer: LdtkRenderer;
+  private legRig: LegRig;
+
+  /** Procedural decoration layers, exposed so the host scene can apply
+   *  the same area-palette filters used on the level body. */
+  readonly decorator: ProceduralDecorator;
+
+  /** Body tile layers (bg / wall / interior / shadow) exposed so the host
+   *  scene can attach the same PaletteSwap + RimLight filters that it
+   *  applies to its own renderer layers. Keeps LdtkRenderer encapsulated
+   *  while still letting the scene wire shared filter instances. */
+  get bodyLayers(): { bg: Container; wall: Container; interior: Container; shadow: Container } {
+    return {
+      bg: this.renderer.bgLayer,
+      wall: this.renderer.wallLayer,
+      interior: this.renderer.interiorLayer,
+      shadow: this.renderer.shadowLayer,
+    };
+  }
 
   constructor(
     level: LdtkLevel,
@@ -62,13 +82,90 @@ export class GiantBuilder {
     const bgTiles = [...level.backgroundTiles];
     const wallTiles = [...level.wallTiles];
     const shadowTiles = [...level.shadowTiles];
-    applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-    applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
-    applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+    const defaultWallTileset = 'atlas/world_01.png';
+    const defaultBgTileset = 'atlas/SunnyLand_by_Ansimuz-extended.png';
+    applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
+    applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles.filter(t => t.tilesetPath === defaultWallTileset));
+    applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles.filter(t => t.tilesetPath === defaultWallTileset));
+
+    const interiorTiles = [...level.interiorTiles, ...Object.values(level.extraTileLayers).flat()];
 
     this.renderer = new LdtkRenderer();
-    this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases);
+    this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases, undefined, undefined, interiorTiles);
     this.container = this.renderer.container;
+
+    // Procedural legs are author-driven via LDtk "LegMount" entities placed
+    // in the builder level. Back-layer legs render behind the body tilemap
+    // (peek out around the body); legs with ForwardRender=true render in the
+    // front layer to show the full leg silhouette in front of the body.
+    const mounts = GiantBuilder.extractLegMounts(level);
+    this.legRig = new LegRig(mounts);
+    this.container.addChildAt(this.legRig.container, 0);
+    this.container.addChild(this.legRig.frontContainer);
+    this.legRig.update(0); // initial pose (gait phase 0, no advance)
+
+    // Procedural decorations on the builder body — same Z layout as the host
+    // level: structureLayer behind walls, naturalLayer / artificialLayer
+    // between walls and shadows. Seeded by the LDtk level identifier so the
+    // builder always looks the same.
+    this.decorator = new ProceduralDecorator();
+    this.decorator.generate(this.collisionGrid, hashString(level.identifier));
+    const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
+    this.container.addChildAt(this.decorator.structureLayer, wallIdx);
+    const shadowIdx = this.container.getChildIndex(this.renderer.shadowLayer);
+    this.container.addChildAt(this.decorator.naturalLayer, shadowIdx);
+    this.container.addChildAt(this.decorator.artificialLayer, shadowIdx + 1);
+  }
+
+  /**
+   * Read leg mount points from LDtk entities in the builder level.
+   * LegMount entity contract:
+   *   Pivot:  (0.5, 0.5) center
+   *   Fields:
+   *     - Angle  (Float, degrees) — direction from shoulder to foot.
+   *                0 = right, 90 = down, 180 = left, -90 = up.
+   *     - Phase  (Float, optional, 0..1) — gait offset; auto-distributed if null.
+   *     - Mirror        (Bool, optional) — flip stride direction.
+   *     - ForwardRender (Bool, optional) — render this leg in front of the
+   *                       body tilemap (default: behind).
+   *     - Length (Float, optional, cells) — planted-foot reach (×16 → px).
+   *                Scales the whole leg so the foot can rest on a specific
+   *                surface without tilting the mount via Angle.
+   *     - FootX  (Float, optional, body-local cells) — lock foot to this
+   *                column (×16 → px). Use to snap feet to a vertical wall.
+   *                Overrides Angle/Length when set.
+   *     - FootY  (Float, optional, body-local cells) — lock foot to this
+   *                row (×16 → px). Use to snap feet to a horizontal floor.
+   *                Overrides Angle/Length when set.
+   */
+  private static extractLegMounts(level: LdtkLevel): LegMount[] {
+    return level.entities
+      .filter((e) => e.type === 'LegMount')
+      .map((e) => {
+        const angleDeg = typeof e.fields.Angle === 'number' ? e.fields.Angle : 90;
+        const phase = typeof e.fields.Phase === 'number' ? e.fields.Phase : undefined;
+        const mirror = typeof e.fields.Mirror === 'boolean' ? e.fields.Mirror : false;
+        const forwardRender = typeof e.fields.ForwardRender === 'boolean' ? e.fields.ForwardRender : false;
+        // Length is authored in cells (×16 → px) for editor-friendly sizing.
+        const length = typeof e.fields.Length === 'number' && e.fields.Length > 0
+          ? e.fields.Length * TILE
+          : undefined;
+        // FootX / FootY are authored in cells for editor-friendly snapping;
+        // convert to body-local pixels for the IK anchor.
+        const footAnchorX = typeof e.fields.FootX === 'number' ? e.fields.FootX * TILE : undefined;
+        const footAnchorY = typeof e.fields.FootY === 'number' ? e.fields.FootY * TILE : undefined;
+        return {
+          x: e.px[0],
+          y: e.px[1],
+          angle: (angleDeg * Math.PI) / 180,
+          phase,
+          mirror,
+          forwardRender,
+          length,
+          footAnchorX,
+          footAnchorY,
+        };
+      });
   }
 
   placeInLevel(pixelX: number, pixelY: number): void {
@@ -150,5 +247,8 @@ export class GiantBuilder {
       this.state = 'waiting';
       this.waitTimer = target.waitMs;
     }
+
+    // Advance procedural leg gait by the body movement this frame.
+    this.legRig.update(this.lastDeltaY);
   }
 }

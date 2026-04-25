@@ -297,16 +297,24 @@ export class Anvil {
     this.fxFrameIndex = 0;
     this.fxPlaying = true;
 
-    // Drive animation via requestAnimationFrame (works during hitstop)
-    // Start icon scale-up when FX reaches 80% progress
+    // Drive animation via requestAnimationFrame (works during hitstop).
+    // Use real elapsed time (performance.now delta) so playback speed is
+    // independent of monitor refresh rate — a fixed +16.67/rAF would play
+    // 2-4× too fast on 144Hz / 240Hz displays.
+    // Start icon scale-up when FX reaches 70% progress.
     const totalFrames = this.fxFrames.length;
     const scaleUpStart = Math.floor(totalFrames * 0.7);
     let iconScaling = false;
     let iconScale = 1.0;
+    let lastTime = performance.now();
 
     const animate = () => {
       if (!this.fxPlaying || !this.fxSprite) return;
-      this.fxTimer += 16.67;
+      const now = performance.now();
+      const dt = Math.min(100, now - lastTime); // clamp to avoid huge jumps after tab-switch
+      lastTime = now;
+
+      this.fxTimer += dt;
       const fps = 15;
       const frameInterval = 1000 / fps;
       if (this.fxTimer >= frameInterval) {
@@ -331,9 +339,10 @@ export class Anvil {
         this.fxSprite.texture = this.fxFrames[this.fxFrameIndex];
       }
 
-      // Icon scale-up animation (accelerating growth)
+      // Icon scale-up animation (accelerating growth) — frame-rate independent.
+      // 0.15 per 16.67ms ≈ 9.0/sec, matching the original 60Hz tuning.
       if (iconScaling && this.itemIcon) {
-        iconScale += 0.15; // ~10x over remaining 30% of frames
+        iconScale += 0.15 * (dt / 16.67);
         this.itemIcon.width = 64 * iconScale;
         this.itemIcon.height = 64 * iconScale;
         this.itemIcon.alpha = 0.9;

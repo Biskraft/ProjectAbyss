@@ -78,6 +78,12 @@ export interface LdtkLevel {
   wallTiles: LdtkTile[];
   /** Interior decoration tiles (no collision). */
   interiorTiles: LdtkTile[];
+  /**
+   * Auto-collected tile layers beyond the known set (Collisions/Background/
+   * Wall_shadows/Interior/Entities). Any new IntGrid or AutoLayer added in
+   * LDtk appears here automatically, keyed by layer __identifier.
+   */
+  extraTileLayers: Record<string, LdtkTile[]>;
   /** Visual tiles from the Wall_shadows AutoLayer (reduced opacity overlay). */
   shadowTiles: LdtkTile[];
   /** Entities placed in the Entities layer. */
@@ -392,6 +398,7 @@ export class LdtkLoader {
     let interiorTiles: LdtkTile[] = [];
     let shadowTiles: LdtkTile[] = [];
     let entities: LdtkEntity[] = [];
+    const extraTileLayers: Record<string, LdtkTile[]> = {};
 
     const layers = raw.layerInstances ?? [];
 
@@ -433,7 +440,10 @@ export class LdtkLoader {
           break;
 
         default:
-          // Unknown layer — silently skip so future LDtk layers don't break loading.
+          // Auto-collect any other tile layer (IntGrid or AutoLayer with tiles).
+          if (layer.autoLayerTiles.length > 0) {
+            extraTileLayers[layer.__identifier] = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
+          }
           break;
       }
     }
@@ -455,6 +465,7 @@ export class LdtkLoader {
       interiorTiles,
       shadowTiles,
       entities,
+      extraTileLayers,
       neighbors: [], // populated later from __neighbours + computeNeighbors()
       dirNeighbors: {}, // populated later from __neighbours
       doorAnchors,

@@ -20,7 +20,13 @@ export class AreaTitle {
   readonly container: Container;
 
   private title: BitmapText;
+  private titleShadow: BitmapText;
   private divider: Graphics;
+  private dividerShadow: Graphics;
+
+  // Sharp drop-shadow offset (px). Kept small + opaque so it reads as a crisp
+  // outline rather than a soft glow — survives bright backdrops.
+  private readonly SHADOW_OFFSET = 2;
 
   private phase: Phase = 'idle';
   private timer = 0;
@@ -35,27 +41,38 @@ export class AreaTitle {
     this.container.alpha = 0;
     this.container.visible = false;
 
-    this.title = new BitmapText({
+    const titleStyle = {
+      fontFamily: TITLE_FONT,
+      fontSize: 36,
+      fill: 0xf2e8c6, // warm crisp parchment
+      letterSpacing: 6,
+      align: 'center' as const,
+    };
+
+    // Shadow rendered first (behind), full-opacity black, offset down-right.
+    this.titleShadow = new BitmapText({
       text: '',
-      style: {
-        fontFamily: TITLE_FONT,
-        fontSize: 36,
-        fill: 0xf2e8c6, // warm crisp parchment
-        letterSpacing: 6,
-        align: 'center',
-      },
+      style: { ...titleStyle, fill: 0x000000 },
     });
+    this.titleShadow.anchor.set(0.5, 0.5);
+
+    this.title = new BitmapText({ text: '', style: titleStyle });
     this.title.anchor.set(0.5, 0.5);
 
+    this.dividerShadow = new Graphics();
     this.divider = new Graphics();
 
-    this.container.addChild(this.title);
+    // Order: shadows behind, foreground in front.
+    this.container.addChild(this.dividerShadow);
+    this.container.addChild(this.titleShadow);
     this.container.addChild(this.divider);
+    this.container.addChild(this.title);
   }
 
   /** Trigger the banner with the given text. Any in-progress banner is replaced. */
   show(text: string): void {
     this.title.text = text;
+    this.titleShadow.text = text;
     this.layout();
     this.phase = 'fadeIn';
     this.timer = 0;
@@ -127,6 +144,8 @@ export class AreaTitle {
 
     this.title.x = cx;
     this.title.y = cy;
+    this.titleShadow.x = cx + this.SHADOW_OFFSET;
+    this.titleShadow.y = cy + this.SHADOW_OFFSET;
 
     // Divider width scales with title so short names don't get a giant line.
     const textW = Math.ceil(this.title.width);
@@ -138,6 +157,12 @@ export class AreaTitle {
       .moveTo(cx - lineW / 2, lineY)
       .lineTo(cx + lineW / 2, lineY)
       .stroke({ width: 1, color: 0xf2e8c6, alpha: 1 });
+
+    this.dividerShadow.clear();
+    this.dividerShadow
+      .moveTo(cx - lineW / 2 + this.SHADOW_OFFSET, lineY + this.SHADOW_OFFSET)
+      .lineTo(cx + lineW / 2 + this.SHADOW_OFFSET, lineY + this.SHADOW_OFFSET)
+      .stroke({ width: 1, color: 0x000000, alpha: 1 });
   }
 }
 

@@ -167,6 +167,24 @@ const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
+/** Anything that can be attached to a moving GiantBuilder. The entity's
+ *  visual `container` is reparented under builder.container at spawn time
+ *  so the builder's transform carries it. World coords (x/y) — used by
+ *  pickup/interaction hitbox tests — are recomputed each frame from
+ *  builder.container + (localX, localY). `isAlive` lets the sync loop
+ *  drop dead refs (e.g. picked-up drops). */
+interface BuilderAttachable {
+  x: number;
+  y: number;
+  container: Container;
+}
+interface BuilderAttachment {
+  entity: BuilderAttachable;
+  localX: number;
+  localY: number;
+  isAlive: () => boolean;
+}
+
 // ---------------------------------------------------------------------------
 // LdtkWorldScene
 // ---------------------------------------------------------------------------
@@ -177,6 +195,9 @@ export class LdtkWorldScene extends Scene {
   private builderLoader!: LdtkLoader;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
+  // Shaft_01 cinematic builder is a one-shot — the ascent plays only on the
+  // first time the player enters the room this session. Re-entries skip it.
+  private shaft01CinematicPlayed = false;
   // Tracks the builder's moving state across frames so we can emit a single
   // heavy "landing" shake on the exact frame it transitions to idle.
   private builderWasMoving = false;
@@ -195,6 +216,14 @@ export class LdtkWorldScene extends Scene {
   private wallPaletteFilter: PaletteSwapFilter | null = null;
   private naturalPaletteFilter: PaletteSwapFilter | null = null;
   private wallRimFilter: RimLightFilter | null = null;
+  private bgPaletteFilter: PaletteSwapFilter | null = null;
+  private interiorPaletteFilter: PaletteSwapFilter | null = null;
+  // Builder-specific palette filters (cool steel tone, contrasts the host's
+  // crimson shaft). Built alongside the host filters in init().
+  private builderBgPaletteFilter: PaletteSwapFilter | null = null;
+  private builderWallPaletteFilter: PaletteSwapFilter | null = null;
+  private builderInteriorPaletteFilter: PaletteSwapFilter | null = null;
+  private builderNaturalPaletteFilter: PaletteSwapFilter | null = null;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
@@ -222,6 +251,12 @@ export class LdtkWorldScene extends Scene {
   // Items
   private inventory!: Inventory;
   private drops: ItemDropEntity[] = [];
+  /** Entities that ride the active GiantBuilder. Each frame their world
+   *  coords are recomputed from the builder's current position so pickup /
+   *  interaction hitboxes (which use world coords) stay in sync with the
+   *  visual. Anything with `x`, `y`, `container` and an optional `baseY`
+   *  (for bob-animated entities) can be attached. */
+  private builderAttachments: BuilderAttachment[] = [];
   private inventoryUI!: InventoryUI;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
@@ -490,19 +525,50 @@ export class LdtkWorldScene extends Scene {
       this.gold = saveData.gold ?? 0;
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
+      // Empty start — the player begins unarmed. The Broken Sword is now
+      // discovered as an ItemDrop inside the Giant Builder, which is what
+      // triggers the first pickup cutscene and the [I] inventory pulse.
       this.inventory = new Inventory();
-      const starterSword = createItem(SWORD_DEFS[0]);
-      this.inventory.add(starterSword);
-      this.inventory.equip(starterSword.uid, true);
-      // Starter sword: mark seen so the broken blade never triggers a
-      // LorePopup / pickup cutscene on fresh start.
-      sacredSave.markItemSeen(starterSword.def.id);
     }
 
     // Lazy-load only the tilesets this area needs. Driven by the Tileset
     // column of Content_System_Area_Palette.csv.  Additional tilesets are
     // loaded on demand when the player enters a new area.
     await ensureAreaTilesetsLoaded(WORLD_AREA_IDS as unknown as string[], this.atlases);
+
+    // Pre-load ALL tilesets referenced by any layer in any level.
+    // CSV-managed tilesets are already loaded above; this catches level-
+    // specific overrides (builder_01, world_interior_01, etc.) so adding
+    // a new tileset in LDtk never requires a code change.
+    {
+      const allTilesets = new Set<string>();
+      const allLoaderIds = [
+        ...this.loader.getLevelIds(),
+        ...this.builderLoader.getLevelIds(),
+      ];
+      for (const id of allLoaderIds) {
+        const level = this.loader.getLevel(id) ?? this.builderLoader.getLevel(id);
+        if (!level) continue;
+        const allTiles = [
+          ...level.backgroundTiles,
+          ...level.wallTiles,
+          ...level.interiorTiles,
+          ...level.shadowTiles,
+          ...Object.values(level.extraTileLayers).flat(),
+        ];
+        for (const t of allTiles) {
+          if (t.tilesetPath) allTilesets.add(t.tilesetPath);
+        }
+      }
+      await Promise.all([...allTilesets]
+        .filter((rel) => !this.atlases[rel])
+        .map(async (rel) => {
+          try {
+            this.atlases[rel] = await Assets.load(`assets/${rel}`) as Texture;
+          } catch { /* silently skip */ }
+        }));
+    }
+
     // Primary atlas kept for any legacy single-atlas paths.
     this.atlas =
       this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
@@ -535,6 +601,7 @@ export class LdtkWorldScene extends Scene {
         brightness: bgEntry.brightness,
         tint: bgEntry.tint,
       });
+      this.bgPaletteFilter = bgFilter;
       const wallFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
         rowCount: atlas.rowCount,
@@ -556,7 +623,7 @@ export class LdtkWorldScene extends Scene {
         brightness: wallEntry.brightness,
         tint: wallEntry.tint,
       });
-      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
+      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 1.0, thickness: 3 });
       this.wallRimFilter = rimFilter;
       const interiorFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
@@ -568,10 +635,61 @@ export class LdtkWorldScene extends Scene {
         brightness: (bgEntry.brightness ?? 1.0) * 0.65,
         tint: bgEntry.tint,
       });
+      this.interiorPaletteFilter = interiorFilter;
       this.renderer.bgLayer.filters = [bgFilter];
       this.renderer.wallLayer.filters = [wallFilter, rimFilter];
       this.renderer.interiorLayer.filters = [interiorFilter];
       this.renderer.shadowLayer.filters = [wallFilter];
+
+      // Builder-specific palette filters — same atlas, different rows.
+      // Lets the giant builder body read as cool steel against the warm
+      // crimson shaft. Rim filter stays shared so the orange forge glow
+      // still highlights the builder's silhouette.
+      const builderBgEntry = getAreaPalette('world_shaft_builder_bg');
+      const builderWallEntry = getAreaPalette('world_shaft_builder_wall');
+      this.builderBgPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(builderBgEntry.id),
+        strength: 1.0,
+        depthBias: builderBgEntry.depthBias,
+        depthCenter: builderBgEntry.depthCenter,
+        brightness: builderBgEntry.brightness,
+        tint: builderBgEntry.tint,
+      });
+      this.builderWallPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(builderWallEntry.id),
+        strength: 1.0,
+        depthBias: builderWallEntry.depthBias,
+        depthCenter: builderWallEntry.depthCenter,
+        brightness: builderWallEntry.brightness,
+        tint: builderWallEntry.tint,
+      });
+      // Builder interior intentionally keeps the full BG brightness (no
+      // dampening multiplier the host uses) so the forge-orange interior
+      // reads as a hot core rather than a recessed shadow.
+      this.builderInteriorPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(builderBgEntry.id),
+        strength: 1.0,
+        depthBias: builderBgEntry.depthBias,
+        depthCenter: builderBgEntry.depthCenter,
+        brightness: builderBgEntry.brightness,
+        tint: builderBgEntry.tint,
+      });
+      this.builderNaturalPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(builderWallEntry.id),
+        strength: 0.5,
+        depthBias: builderWallEntry.depthBias,
+        depthCenter: builderWallEntry.depthCenter,
+        brightness: builderWallEntry.brightness,
+        tint: builderWallEntry.tint,
+      });
     }
 
     // Entity layer (enemies, drops, portals, altars)
@@ -1032,8 +1150,11 @@ export class LdtkWorldScene extends Scene {
     this.uiController.handleInventoryToggle({
       canToggle: !this.inItemTunnel && !this.game.input.shiftDown,
       onToggled: () => {
-        if (this.unlockedEvents.has('__itemWorldTutorialDone')
-          && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+        // Clear the [I] pulse on first inventory open. The pulse can be
+        // raised by either the first pickup (Broken Sword) or returning
+        // from an Item World, so the original __itemWorldTutorialDone
+        // gate is no longer required here.
+        if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
           this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
           this.hud.setItemKeyHighlight(false);
         }
@@ -1094,6 +1215,7 @@ export class LdtkWorldScene extends Scene {
       }
       this.unstampBuilder();
       this.stampBuilder();
+      this.syncBuilderAttachments();
 
       // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
       // of the descent. Rhythmic "쿵" every two tile crossings while moving,
@@ -2153,14 +2275,20 @@ export class LdtkWorldScene extends Scene {
       const row = Math.floor(t.px[1] / TILE_SIZE);
       return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
     });
-    // CSV `Tileset` column is authoritative ??retag tiles to point at the
-    // CSV-derived atlas key so BG and WALL never collide on LDtk's shared
-    // __tilesetRelPath.
-    applyAreaTilesetToLdtkTiles('world_shaft_bg', level.backgroundTiles);
-    applyAreaTilesetToLdtkTiles('world_shaft_wall', filteredWalls);
-    // shadowTiles: keep original LDtk tileset (SunnyLand) ??do NOT retag
-    applyAreaTilesetToLdtkTiles('world_shaft_wall', level.interiorTiles);
-    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, level.interiorTiles);
+    // Retag BG/WALL tiles to CSV-derived atlas — but ONLY if the tile's
+    // current tilesetPath matches the LDtk default for that layer. Levels
+    // that override the tileset (e.g. Builder with builder_01) keep theirs.
+    const defaultWallTileset = 'atlas/world_01.png';
+    const defaultBgTileset = 'atlas/SunnyLand_by_Ansimuz-extended.png';
+    const bgToRetag = level.backgroundTiles.filter(t => t.tilesetPath === defaultBgTileset);
+    const wallToRetag = filteredWalls.filter(t => t.tilesetPath === defaultWallTileset);
+    applyAreaTilesetToLdtkTiles('world_shaft_bg', bgToRetag);
+    applyAreaTilesetToLdtkTiles('world_shaft_wall', wallToRetag);
+    // All other tiles (Interior, extras, overridden tilesets) keep their
+    // original LDtk tilesetPath. Tilesets are pre-loaded in init().
+    const allExtraTiles = Object.values(level.extraTileLayers).flat();
+    const combinedInterior = level.interiorTiles.concat(allExtraTiles);
+    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, combinedInterior);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
     if (!new URLSearchParams(window.location.search).has('noproc')) {
@@ -2211,18 +2339,11 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
 
-    // Giant Builder:
-    //   Shaft_01       — cinematic one-shot descent (right wall, top→bottom once)
-    //   Debug_Shaft_01 — Builder_Level_0 infinite patrol (gameplay/testing)
-    //   Debug_Shaft_2  — Builder_Level_1 infinite patrol (gameplay/testing)
+    // Drop the previous builder before entity collections are cleared below.
+    // The new builder is spawned after clearDrops()/processLdtkEntities() so
+    // builder-owned item drops are not immediately destroyed by level reload
+    // cleanup.
     this.clearBuilder();
-    if (level.identifier === 'Shaft_01') {
-      this.spawnBuilder(level, 'cinematic', 'Builder_Level_0');
-    } else if (level.identifier === 'Debug_Shaft_01') {
-      this.spawnBuilder(level, 'patrol', 'Builder_Level_0');
-    } else if (level.identifier === 'Debug_Shaft_2') {
-      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
-    }
 
     // Area title on entry. During the intro fade-in we must defer the banner
     // until the screen is actually visible, otherwise it plays behind black.
@@ -2292,6 +2413,22 @@ export class LdtkWorldScene extends Scene {
 
     // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
     this.processLdtkEntities(level);
+
+    // Giant Builder:
+    //   Shaft_01       — Builder_Level_0 cinematic one-shot descent
+    //   Debug_Shaft_01 — Builder_Level_1 infinite patrol (gameplay/testing)
+    //   Debug_Shaft_2  — Builder_Level_1 infinite patrol (gameplay/testing)
+    if (level.identifier === 'Shaft_01') {
+      // Always spawn — first visit plays the ascent cinematic, subsequent
+      // visits place the builder at its final dormant pose at the top.
+      // (clearBuilder() runs on level unload, so the instance must be
+      // recreated on every entry.)
+      this.spawnBuilder(level, 'cinematic', 'Builder_Level_0');
+    } else if (level.identifier === 'Debug_Shaft_01') {
+      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
+    } else if (level.identifier === 'Debug_Shaft_2') {
+      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
+    }
 
     // Exit Light Bleed ???�웃 방이 ?�는 방향???�린 ?�??구간??주황 글로우.
     this.spawnExitGlows(level);
@@ -3982,40 +4119,144 @@ export class LdtkWorldScene extends Scene {
     const builder = new GiantBuilder(
       builderLevel,
       this.atlases,
-      'world_shaft_bg',
-      'world_shaft_wall',
+      'world_shaft_builder_bg',
+      'world_shaft_builder_wall',
     );
+
+    // Builder decorations use the builder-specific palette so the structure
+    // reads as a cool steel mass against the warm crimson shaft.
+    if (this.builderWallPaletteFilter) {
+      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
+      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
+      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
+    }
+
+    // Builder body layers receive a parallel filter stack to the host level,
+    // but with builder-specific palette rows. Rim filter is shared so the
+    // forge-orange highlight still glows along the builder's top edge.
+    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
+      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
+      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
+      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
+      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+    }
 
     const topY = 64;                                          // 4 tiles from top
     const bottomY = hostLevel.pxHei - builder.heightPx - 64;  // 4 tiles from bottom
 
     if (mode === 'cinematic') {
-      // Shaft_01 — right wall minus 7 tiles, one-shot top→bottom descent
-      // triggered by player entry (spawnBuilder runs on room entry).
+      // Shaft_01 — right wall minus 7 tiles. First entry: one-shot
+      // bottom→top ascent. Re-entries: spawn at the dormant top pose
+      // with no route so the builder stays parked where the cinematic
+      // left it.
       const px = hostLevel.pxWid - builder.widthPx - 7 * 16;
-      builder.placeInLevel(px, topY);
-      this.renderer.container.addChild(builder.container);
-      builder.setRoute([
-        { y: topY,    waitMs: 0 },
-        { y: bottomY, waitMs: 0 },
-      ], 60, false); // 60 px/s (2× cinematic), no loop
+      if (this.shaft01CinematicPlayed) {
+        builder.placeInLevel(px, topY);
+        this.renderer.container.addChild(builder.container);
+        // No setRoute → state remains 'dormant', builder visible & still.
+      } else {
+        builder.placeInLevel(px, bottomY);
+        this.renderer.container.addChild(builder.container);
+        builder.setRoute([
+          { y: bottomY, waitMs: 0 },
+          { y: topY,    waitMs: 0 },
+        ], 45, false); // 45 px/s, no loop
+        this.shaft01CinematicPlayed = true;
+      }
     } else {
-      // Debug_Shaft_01 — infinite patrol between top and bottom.
+      // Debug_Shaft_01 — infinite patrol; spawn at bottom, climb up first.
       const px = hostLevel.pxWid - builder.widthPx - 16 * 16;
-      const py = Math.floor((hostLevel.pxHei - builder.heightPx) / 2);
-      builder.placeInLevel(px, py);
+      builder.placeInLevel(px, bottomY);
       this.renderer.container.addChild(builder.container);
       builder.setRoute([
-        { y: py,      waitMs: 3000 },
         { y: bottomY, waitMs: 3000 },
         { y: topY,    waitMs: 3000 },
-      ], 30, true); // 30 px/s, loop
+        { y: bottomY, waitMs: 3000 },
+      ], 22, true); // 22 px/s, loop
     }
 
     this.activeBuilder = builder;
     this.activeBuilderMode = mode;
     this.builderWasMoving = false;
     this.builderStepCounter = 0;
+
+    // Spawn entities placed inside the builder level so they ride the
+    // builder. Each spawn registers a BuilderAttachment whose world coords
+    // are recomputed every frame in syncBuilderAttachments().
+    this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
+  }
+
+  /** Walk a builder level's LDtk entities and spawn the gameplay objects
+   *  that make sense inside a moving builder. Add new cases here for any
+   *  entity type that needs to be supported (Anvil, GoldPickup, etc.). */
+  private spawnBuilderEntities(
+    builderLevel: LdtkLevel,
+    builderLevelId: string,
+    builder: GiantBuilder,
+  ): void {
+    const bx0 = builder.container.x;
+    const by0 = builder.container.y;
+    for (const ent of builderLevel.entities) {
+      const localX = ent.px[0];
+      const localY = ent.px[1];
+      const wx = bx0 + localX;
+      const wy = by0 + localY;
+
+      switch (ent.type) {
+        case 'Item': {
+          const itemKey = `${builderLevelId}:${localX},${localY}`;
+          if (this.collectedItems.has(itemKey)) break;
+          const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
+          const itemId = rawItemId.toLowerCase();
+          if (!itemId) break;
+          const before = this.drops.length;
+          this.spawnFixedItemAt(wx, wy, itemId, itemKey);
+          if (this.drops.length > before) {
+            const drop = this.drops[this.drops.length - 1];
+            // Reparent the drop's visual under builder.container so the
+            // builder's transform carries it. Container coords become
+            // builder-local; world coords on drop.x/y are still updated
+            // each frame by syncBuilderAttachments() for pickup hitbox.
+            this.entityLayer.removeChild(drop.container);
+            builder.container.addChild(drop.container);
+            drop.container.x = localX;
+            drop.container.y = localY;
+            drop.baseY = localY;
+            this.builderAttachments.push({
+              entity: drop,
+              localX,
+              localY,
+              isAlive: () => this.drops.includes(drop),
+            });
+          }
+          break;
+        }
+        // Future entity types: Anvil, GoldPickup, HealingPickup, ...
+        // Each case spawns the entity at (wx, wy) and pushes a
+        // BuilderAttachment with isAlive pointing at the owning collection.
+        default:
+          break;
+      }
+    }
+  }
+
+  /** Sync world coords (entity.x/y) of builder-attached entities so
+   *  interaction hitboxes track the moving builder. The visual position is
+   *  handled by the parent builder.container transform — we only update
+   *  the world-coord fields used by pickup/interaction logic. */
+  private syncBuilderAttachments(): void {
+    if (!this.activeBuilder || this.builderAttachments.length === 0) return;
+    const bx = this.activeBuilder.container.x;
+    const by = this.activeBuilder.container.y;
+    for (let i = this.builderAttachments.length - 1; i >= 0; i--) {
+      const a = this.builderAttachments[i];
+      if (!a.isAlive()) {
+        this.builderAttachments.splice(i, 1);
+        continue;
+      }
+      a.entity.x = bx + a.localX;
+      a.entity.y = by + a.localY;
+    }
   }
 
   private clearBuilder(): void {
@@ -4030,6 +4271,9 @@ export class LdtkWorldScene extends Scene {
     }
     this.activeBuilderMode = null;
     this.builderWasMoving = false;
+    // Attached entities themselves are cleared with the level via their
+    // owning collections (this.drops, etc.); just drop our tracking refs.
+    this.builderAttachments = [];
   }
 
   private openCharacterStats(): void {
@@ -4347,25 +4591,30 @@ export class LdtkWorldScene extends Scene {
       waitForPickupDone();
     }
 
-    // Starter-only items never trigger the cutscene or LorePopup.
-    if (STARTER_ONLY_IDS.has(item.def.id)) {
-      sacredSave.markItemSeen(item.def.id);
-      return;
-    }
-
     // "처음 보는 ?�이?? ??�??�이?�과 ?�일?�게 T2 컷신(줌인 + ?�력 차단 +
     // LorePopup ?��??�로 처리. ?��? �?def �??�시 주울 ?�는 ?�스/컷신 ?�이
     // 조용???�벤?�리???�어간다 ??반복 ?�득?�서 리듬???��? ?�도�?
     const firstEver = !sacredSave.isFirstPickupDone();
     const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
-    if (firstEver) sacredSave.markFirstPickupDone();
+    if (firstEver) {
+      sacredSave.markFirstPickupDone();
+      // The very first pickup (Broken Sword inside the Builder) advertises
+      // the [I] inventory key. The pulse stays ON until the player presses
+      // I, at which point the toggle handler clears it (see updateInput).
+      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
+        this.hud.setItemKeyHighlight(true);
+      }
+    }
 
     // Tear down any lingering pulse / tether so rapid pickups don't stack.
     if (this.activeWeaponPulse) { this.activeWeaponPulse.destroy(); this.activeWeaponPulse = null; }
     if (this.activeAnvilTether) { this.activeAnvilTether.destroy(); this.activeAnvilTether = null; }
 
     if (isFirstSeen) {
-      const pulse = new WeaponPulse(wx, wy, item.rarity, 'T2_FULL_CUTSCENE');
+      // Rustborn?��? ?�체 4.8s 컷신, ?�머지 ?�규 ?�이?��? ?�일 ?�로?��? 2s�?���?
+      const isRustborn = item.def.id === 'sword_rustborn';
+      const mode = isRustborn ? 'T2_FULL_CUTSCENE' : 'T2_QUICK_CUTSCENE';
+      const pulse = new WeaponPulse(wx, wy, item.rarity, mode);
       this.entityLayer.addChild(pulse.container);
       pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
       // Tether??LorePopup ?�힘 ?�후 지??모드�??�성?��?�??�스 중엔 발동?��? ?�음.

@@ -27,6 +27,7 @@ body::after {
 .toolbar {
   display: flex; gap: 12px; padding: 8px 12px; background: #101014;
   border-bottom: 1px solid #1A3A3A; align-items: center; flex-shrink: 0;
+  flex-wrap: wrap;
 }
 .toolbar label { font-family: 'Rajdhani', sans-serif; font-weight: 600; color: #4A8A8A; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
 .toolbar input[type="file"] { display: none; }
@@ -106,10 +107,38 @@ body::after {
   color: #4A8A8A; width: 90px; text-transform: uppercase;
 }
 .param-row input[type="range"] { flex: 1; max-width: 200px; accent-color: #E87830; }
-.param-row .param-val {
-  font-family: 'Rajdhani', sans-serif; font-size: 12px; color: #C0C0C0; width: 40px;
+.param-row input[type="color"] {
+  width: 28px; height: 22px; border: 1px solid #1A3A3A; background: #0A0A0A;
+  cursor: pointer; padding: 0;
 }
-/* ── Stacked controls (no more side-by-side pair columns) ── */
+.param-row .param-val {
+  font-family: 'Rajdhani', sans-serif; font-size: 12px; color: #C0C0C0; width: 60px;
+}
+.param-row input[type="text"].param-text {
+  font-family: 'Rajdhani', sans-serif; font-size: 12px; color: #C0C0C0;
+  background: #0A0A0A; border: 1px solid #1A3A3A; padding: 2px 6px;
+  width: 140px;
+}
+.param-row input[type="text"].param-text:focus { border-color: #E87830; outline: none; }
+/* ── Collapsible parallax ── */
+.parallax-section { background: #101014; border: 1px solid #1A3A3A; padding: 0; }
+.parallax-header {
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer;
+  user-select: none;
+}
+.parallax-header:hover { background: #14141a; }
+.parallax-header .chevron {
+  font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #3A3A48;
+  transition: transform .15s;
+}
+.parallax-header.open .chevron { transform: rotate(90deg); }
+.parallax-body { padding: 0 12px 12px; display: none; }
+.parallax-body.open { display: block; }
+/* ── Tint swatch inline ── */
+.tint-swatch {
+  display: inline-block; width: 12px; height: 12px; border: 1px solid #1A3A3A;
+  vertical-align: middle; margin-left: 4px;
+}
 /* ── Drop overlay ── */
 .drop-overlay {
   position: fixed; inset: 0; background: rgba(10,10,10,.9);
@@ -121,6 +150,11 @@ body::after {
 /* ── Status ── */
 .status { font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #3A3A48; padding: 0 12px; }
 .status.ok { color: #4A8A8A; }
+/* ── Scrollbar ── */
+.controls-pane::-webkit-scrollbar { width: 6px; }
+.controls-pane::-webkit-scrollbar-track { background: #0A0A0A; }
+.controls-pane::-webkit-scrollbar-thumb { background: #1A3A3A; border-radius: 3px; }
+.controls-pane::-webkit-scrollbar-thumb:hover { background: #2A4A4A; }
 </style>
 </head>
 <body>
@@ -162,9 +196,10 @@ const BG_TILES = [{"px":[240,0],"src":[320,272],"f":0},{"px":[256,0],"src":[320,
 const WALL_TILES = [{"px":[224,16],"src":[80,16],"f":0},{"px":[240,16],"src":[80,16],"f":0},{"px":[256,16],"src":[80,16],"f":0},{"px":[272,16],"src":[80,16],"f":0},{"px":[224,80],"src":[80,16],"f":0},{"px":[240,80],"src":[80,16],"f":0},{"px":[256,80],"src":[80,16],"f":0},{"px":[272,80],"src":[80,16],"f":0},{"px":[0,0],"src":[16,16],"f":0},{"px":[16,0],"src":[16,16],"f":0},{"px":[32,0],"src":[16,16],"f":0},{"px":[48,0],"src":[16,16],"f":0},{"px":[64,0],"src":[16,16],"f":0},{"px":[80,0],"src":[16,16],"f":0},{"px":[96,0],"src":[16,16],"f":0},{"px":[112,0],"src":[16,16],"f":0},{"px":[128,0],"src":[16,16],"f":0},{"px":[144,0],"src":[16,16],"f":0},{"px":[160,0],"src":[16,16],"f":0},{"px":[176,0],"src":[16,16],"f":0},{"px":[192,0],"src":[16,16],"f":0},{"px":[304,0],"src":[16,16],"f":0},{"px":[320,0],"src":[16,16],"f":0},{"px":[336,0],"src":[16,16],"f":0},{"px":[352,0],"src":[16,16],"f":0},{"px":[368,0],"src":[16,16],"f":0},{"px":[384,0],"src":[16,16],"f":0},{"px":[400,0],"src":[16,16],"f":0},{"px":[416,0],"src":[16,16],"f":0},{"px":[432,0],"src":[16,16],"f":0},{"px":[448,0],"src":[16,16],"f":0},{"px":[464,0],"src":[16,16],"f":0},{"px":[480,0],"src":[16,16],"f":0},{"px":[496,0],"src":[16,16],"f":0},{"px":[0,16],"src":[16,16],"f":0},{"px":[16,16],"src":[16,16],"f":0},{"px":[32,16],"src":[16,16],"f":0},{"px":[48,16],"src":[16,16],"f":0},{"px":[448,16],"src":[16,16],"f":0},{"px":[464,16],"src":[16,16],"f":0},{"px":[480,16],"src":[16,16],"f":0},{"px":[496,16],"src":[16,16],"f":0},{"px":[0,32],"src":[16,16],"f":0},{"px":[16,32],"src":[16,16],"f":0},{"px":[32,32],"src":[16,16],"f":0},{"px":[464,32],"src":[16,16],"f":0},{"px":[480,32],"src":[16,16],"f":0},{"px":[496,32],"src":[16,16],"f":0},{"px":[0,48],"src":[16,16],"f":0},{"px":[16,48],"src":[16,16],"f":0},{"px":[480,48],"src":[16,16],"f":0},{"px":[496,48],"src":[16,16],"f":0},{"px":[0,64],"src":[16,16],"f":0},{"px":[496,64],"src":[16,16],"f":0},{"px":[0,80],"src":[16,16],"f":0},{"px":[496,80],"src":[16,16],"f":0},{"px":[0,96],"src":[16,16],"f":0},{"px":[496,96],"src":[16,16],"f":0},{"px":[0,112],"src":[16,16],"f":0},{"px":[496,112],"src":[16,16],"f":0},{"px":[0,128],"src":[16,16],"f":0},{"px":[496,128],"src":[16,16],"f":0},{"px":[0,144],"src":[16,16],"f":0},{"px":[496,144],"src":[16,16],"f":0},{"px":[0,160],"src":[16,16],"f":0},{"px":[496,160],"src":[16,16],"f":0},{"px":[0,240],"src":[16,16],"f":0},{"px":[16,240],"src":[16,16],"f":0},{"px":[32,240],"src":[16,16],"f":0},{"px":[48,240],"src":[16,16],"f":0},{"px":[64,240],"src":[16,16],"f":0},{"px":[80,240],"src":[16,16],"f":0},{"px":[96,240],"src":[16,16],"f":0},{"px":[112,240],"src":[16,16],"f":0},{"px":[128,240],"src":[16,16],"f":0},{"px":[144,240],"src":[16,16],"f":0},{"px":[160,240],"src":[16,16],"f":0},{"px":[176,240],"src":[16,16],"f":0},{"px":[192,240],"src":[16,16],"f":0},{"px":[304,240],"src":[16,16],"f":0},{"px":[320,240],"src":[16,16],"f":0},{"px":[336,240],"src":[16,16],"f":0},{"px":[352,240],"src":[16,16],"f":0},{"px":[368,240],"src":[16,16],"f":0},{"px":[384,240],"src":[16,16],"f":0},{"px":[400,240],"src":[16,16],"f":0},{"px":[416,240],"src":[16,16],"f":0},{"px":[432,240],"src":[16,16],"f":0},{"px":[448,240],"src":[16,16],"f":0},{"px":[464,240],"src":[16,16],"f":0},{"px":[480,240],"src":[16,16],"f":0},{"px":[496,240],"src":[16,16],"f":0},{"px":[288,0],"src":[0,16],"f":0},{"px":[448,32],"src":[0,16],"f":0},{"px":[480,64],"src":[0,16],"f":0},{"px":[480,80],"src":[0,16],"f":0},{"px":[480,96],"src":[0,16],"f":0},{"px":[480,112],"src":[0,16],"f":0},{"px":[480,128],"src":[0,16],"f":0},{"px":[480,144],"src":[0,16],"f":0},{"px":[480,160],"src":[0,16],"f":0},{"px":[288,240],"src":[0,16],"f":0},{"px":[64,16],"src":[16,32],"f":0},{"px":[80,16],"src":[16,32],"f":0},{"px":[96,16],"src":[16,32],"f":0},{"px":[112,16],"src":[16,32],"f":0},{"px":[128,16],"src":[16,32],"f":0},{"px":[144,16],"src":[16,32],"f":0},{"px":[160,16],"src":[16,32],"f":0},{"px":[176,16],"src":[16,32],"f":0},{"px":[192,16],"src":[16,32],"f":0},{"px":[304,16],"src":[16,32],"f":0},{"px":[320,16],"src":[16,32],"f":0},{"px":[336,16],"src":[16,32],"f":0},{"px":[352,16],"src":[16,32],"f":0},{"px":[368,16],"src":[16,32],"f":0},{"px":[384,16],"src":[16,32],"f":0},{"px":[400,16],"src":[16,32],"f":0},{"px":[416,16],"src":[16,32],"f":0},{"px":[432,16],"src":[16,32],"f":0},{"px":[32,48],"src":[16,32],"f":0},{"px":[464,48],"src":[16,32],"f":0},{"px":[192,160],"src":[16,32],"f":0},{"px":[208,160],"src":[16,32],"f":0},{"px":[224,160],"src":[16,32],"f":0},{"px":[240,160],"src":[16,32],"f":0},{"px":[256,160],"src":[16,32],"f":0},{"px":[272,160],"src":[16,32],"f":0},{"px":[288,160],"src":[16,32],"f":0},{"px":[304,160],"src":[16,32],"f":0},{"px":[0,176],"src":[16,32],"f":0},{"px":[496,176],"src":[16,32],"f":0},{"px":[208,0],"src":[32,16],"f":0},{"px":[48,32],"src":[32,16],"f":0},{"px":[16,64],"src":[32,16],"f":0},{"px":[16,80],"src":[32,16],"f":0},{"px":[16,96],"src":[32,16],"f":0},{"px":[16,112],"src":[32,16],"f":0},{"px":[16,128],"src":[32,16],"f":0},{"px":[16,144],"src":[32,16],"f":0},{"px":[16,160],"src":[32,16],"f":0},{"px":[208,240],"src":[32,16],"f":0},{"px":[208,144],"src":[16,0],"f":0},{"px":[224,144],"src":[16,0],"f":0},{"px":[240,144],"src":[16,0],"f":0},{"px":[256,144],"src":[16,0],"f":0},{"px":[272,144],"src":[16,0],"f":0},{"px":[288,144],"src":[16,0],"f":0},{"px":[0,224],"src":[16,0],"f":0},{"px":[16,224],"src":[16,0],"f":0},{"px":[32,224],"src":[16,0],"f":0},{"px":[48,224],"src":[16,0],"f":0},{"px":[64,224],"src":[16,0],"f":0},{"px":[80,224],"src":[16,0],"f":0},{"px":[96,224],"src":[16,0],"f":0},{"px":[112,224],"src":[16,0],"f":0},{"px":[128,224],"src":[16,0],"f":0},{"px":[144,224],"src":[16,0],"f":0},{"px":[160,224],"src":[16,0],"f":0},{"px":[176,224],"src":[16,0],"f":0},{"px":[192,224],"src":[16,0],"f":0},{"px":[304,224],"src":[16,0],"f":0},{"px":[320,224],"src":[16,0],"f":0},{"px":[336,224],"src":[16,0],"f":0},{"px":[352,224],"src":[16,0],"f":0},{"px":[368,224],"src":[16,0],"f":0},{"px":[384,224],"src":[16,0],"f":0},{"px":[400,224],"src":[16,0],"f":0},{"px":[416,224],"src":[16,0],"f":0},{"px":[432,224],"src":[16,0],"f":0},{"px":[448,224],"src":[16,0],"f":0},{"px":[464,224],"src":[16,0],"f":0},{"px":[480,224],"src":[16,0],"f":0},{"px":[496,224],"src":[16,0],"f":0},{"px":[288,16],"src":[0,32],"f":0},{"px":[448,48],"src":[0,32],"f":0},{"px":[480,176],"src":[0,32],"f":0},{"px":[208,16],"src":[32,32],"f":0},{"px":[48,48],"src":[32,32],"f":0},{"px":[16,176],"src":[32,32],"f":0},{"px":[304,144],"src":[32,0],"f":0},{"px":[208,224],"src":[32,0],"f":0},{"px":[192,144],"src":[0,0],"f":0},{"px":[288,224],"src":[0,0],"f":0},{"px":[176,160],"src":[64,0],"f":0},{"px":[320,160],"src":[64,0],"f":0},{"px":[336,160],"src":[80,0],"f":0},{"px":[160,160],"src":[48,0],"f":0}];
 
 // ── State ──
-let csvEntries = [];   // [{id, name, layer, brightness, tint, depthBias, depthCenter, stops:[{t,color}], description, tileset}]
+// Full 16-column CSV model
+let csvEntries = [];
 let csvHeader = '';
-let selectedPairId = null; // base name without _bg/_wall suffix
+let selectedPairId = null;
 let wallTilesetImg = null;
 let bgTilesetImg = null;
 
@@ -174,6 +209,7 @@ function unpack(rgb) { return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff
 function packHex(r, g, b) {
   return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
 }
+function hexToInput(n) { return '#' + (n & 0xffffff).toString(16).padStart(6, '0'); }
 function sampleRow(stops, t) {
   const s = [...stops].sort((a, b) => a.t - b.t);
   if (s.length === 0) return [0, 0, 0];
@@ -190,7 +226,6 @@ function sampleRow(stops, t) {
   return unpack(s[s.length - 1].color);
 }
 
-// Build 256-wide LUT from stops
 function buildLUT(stops) {
   const lut = new Uint8Array(256 * 3);
   for (let x = 0; x < 256; x++) {
@@ -203,7 +238,7 @@ function buildLUT(stops) {
   return lut;
 }
 
-// ── CSV parsing ──
+// ── CSV parsing (all 16 columns) ──
 function splitCsvLine(line) {
   const cols = []; let cur = '', inQ = false;
   for (let i = 0; i < line.length; i++) {
@@ -215,10 +250,10 @@ function splitCsvLine(line) {
   cols.push(cur);
   return cols;
 }
-function parseHex(s) { return parseInt(s.trim().replace(/^0x/i, ''), 16); }
+function parseHex(s) { return parseInt((s || '').trim().replace(/^0x/i, ''), 16) || 0; }
 function parseStops(raw) {
   const stops = [];
-  for (const pair of raw.split('|')) {
+  for (const pair of (raw || '').split('|')) {
     const [tStr, hexStr] = pair.split(':');
     if (!tStr || !hexStr) continue;
     stops.push({ t: parseFloat(tStr), color: parseHex(hexStr) });
@@ -234,23 +269,29 @@ function loadCSV(text) {
     const cols = splitCsvLine(lines[i]);
     if (cols.length < 9) continue;
     csvEntries.push({
-      id: cols[0].trim(),
-      name: cols[1].trim(),
-      layer: cols[2].trim().toUpperCase(),
-      brightness: parseFloat(cols[3]) || 1.0,
-      tint: parseHex(cols[4]) || 0xffffff,
-      depthBias: parseFloat(cols[5]) || 0,
-      depthCenter: parseFloat(cols[6]) || 0.5,
-      stops: parseStops(cols[7]),
-      description: cols[8].trim(),
-      tileset: (cols[9] ?? '').trim(),
+      id:              cols[0].trim(),
+      name:            cols[1].trim(),
+      layer:           cols[2].trim().toUpperCase(),
+      brightness:      parseFloat(cols[3]) || 1.0,
+      tint:            parseHex(cols[4]) || 0xffffff,
+      depthBias:       parseFloat(cols[5]) || 0,
+      depthCenter:     parseFloat(cols[6]) || 0.5,
+      stops:           parseStops(cols[7]),
+      description:     (cols[8] ?? '').trim(),
+      tileset:         (cols[9] ?? '').trim(),
+      parallaxImage:   (cols[10] ?? '').trim(),
+      parallaxFactor:  (cols[11] ?? '').trim(),
+      parallaxImageMid:(cols[12] ?? '').trim(),
+      parallaxFactorMid:(cols[13] ?? '').trim(),
+      parallaxImageNear:(cols[14] ?? '').trim(),
+      parallaxFactorNear:(cols[15] ?? '').trim(),
     });
   }
   buildSidebar();
   status('CSV loaded: ' + csvEntries.length + ' entries', true);
 }
 
-// ── CSV export ──
+// ── CSV export (all 16 columns) ──
 function stopsToString(stops) {
   return [...stops].sort((a, b) => a.t - b.t)
     .map(s => s.t.toFixed(2) + ':' + (s.color & 0xffffff).toString(16).padStart(6, '0'))
@@ -259,10 +300,15 @@ function stopsToString(stops) {
 function entriesToCSV() {
   let out = csvHeader + '\n';
   for (const e of csvEntries) {
-    out += [e.id, e.name, e.layer, e.brightness.toFixed(2),
+    out += [
+      e.id, e.name, e.layer, e.brightness.toFixed(2),
       '0x' + (e.tint & 0xffffff).toString(16).padStart(6, '0').toUpperCase(),
       e.depthBias.toFixed(2), e.depthCenter.toFixed(2),
-      stopsToString(e.stops), e.description, e.tileset].join(',') + '\n';
+      stopsToString(e.stops), e.description, e.tileset,
+      e.parallaxImage, e.parallaxFactor,
+      e.parallaxImageMid, e.parallaxFactorMid,
+      e.parallaxImageNear, e.parallaxFactorNear,
+    ].join(',') + '\n';
   }
   return out;
 }
@@ -276,10 +322,8 @@ function downloadCSV() {
   status('CSV downloaded', true);
 }
 
-// ── Area selector (toolbar dropdown) ──
-function getPairBase(id) {
-  return id.replace(/_(bg|wall)$/i, '');
-}
+// ── Area selector ──
+function getPairBase(id) { return id.replace(/_(bg|wall)$/i, ''); }
 function buildSidebar() {
   const sel = document.getElementById('areaSelect');
   const seen = new Set();
@@ -290,7 +334,7 @@ function buildSidebar() {
     seen.add(base);
     const opt = document.createElement('option');
     opt.value = base;
-    opt.textContent = base;
+    opt.textContent = e.name ? base + ' (' + e.name + ')' : base;
     sel.appendChild(opt);
   }
   if (csvEntries.length > 0) selectPair(getPairBase(csvEntries[0].id));
@@ -313,17 +357,14 @@ function renderEditor() {
   const bgEntry = findEntry(selectedPairId, 'BG');
   const wallEntry = findEntry(selectedPairId, 'WALL');
 
-  // Left: preview canvas (scales to fit pane)
   previewPane.innerHTML =
     '<div class="preview-wrap"><canvas id="previewCanvas" width="' + MAP_W + '" height="' + MAP_H + '" style="width:' + (MAP_W * 3) + 'px;height:' + (MAP_H * 3) + 'px"></canvas></div>';
 
-  // Right: BG + WALL controls stacked
   let ctrl = '';
   if (bgEntry) ctrl += renderGradientSection(bgEntry, 'BG');
   if (wallEntry) ctrl += renderGradientSection(wallEntry, 'WALL');
   controlsPane.innerHTML = ctrl;
 
-  // Bind events
   bindStopEvents();
   renderPreview();
 }
@@ -346,15 +387,67 @@ function renderGradientSection(entry, label) {
   html += '</div>';
   html += '<button class="btn-add-stop" data-layer="' + label + '">+ Add Stop</button>';
 
-  // Params
+  // Params section with Tint picker
   html += '<div class="params-section" style="margin-top:8px">';
   html += paramRow(label, 'Brightness', 'brightness', entry.brightness, 0.5, 2.0, 0.01);
   html += paramRow(label, 'DepthBias', 'depthBias', entry.depthBias, 0, 1.0, 0.01);
   html += paramRow(label, 'DepthCenter', 'depthCenter', entry.depthCenter, 0, 1.0, 0.01);
+  // Tint color picker
+  html += '<div class="param-row">';
+  html += '<label>Tint</label>';
+  html += '<input type="color" value="' + hexToInput(entry.tint) + '" data-layer="' + label + '" data-tint="color">';
+  html += '<input type="text" class="param-text" value="' + hexToInput(entry.tint).slice(1).toUpperCase() + '" data-layer="' + label + '" data-tint="hex">';
   html += '</div>';
+  // Tileset (read-only display)
+  if (entry.tileset) {
+    html += '<div class="param-row">';
+    html += '<label>Tileset</label>';
+    html += '<span class="param-val" style="width:auto;color:#E87830">' + entry.tileset + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Parallax section (collapsible, BG only typically)
+  if (entry.parallaxImage || entry.parallaxImageMid || entry.parallaxImageNear) {
+    html += renderParallaxSection(entry, label);
+  }
 
   html += '</div>';
   return html;
+}
+
+function renderParallaxSection(entry, label) {
+  const uid = 'plx_' + label;
+  let html = '<div class="parallax-section" style="margin-top:8px">';
+  html += '<div class="parallax-header" id="' + uid + '_hdr" onclick="toggleParallax(\'' + uid + '\')">';
+  html += '<span class="chevron">&#9654;</span>';
+  html += '<span class="section-label" style="margin:0">PARALLAX</span>';
+  html += '</div>';
+  html += '<div class="parallax-body" id="' + uid + '_body">';
+
+  const layers = [
+    { lbl: 'Far',  imgField: 'parallaxImage',     factField: 'parallaxFactor' },
+    { lbl: 'Mid',  imgField: 'parallaxImageMid',  factField: 'parallaxFactorMid' },
+    { lbl: 'Near', imgField: 'parallaxImageNear', factField: 'parallaxFactorNear' },
+  ];
+  for (const pl of layers) {
+    const img = entry[pl.imgField] || '';
+    const fac = entry[pl.factField] || '';
+    html += '<div class="param-row">';
+    html += '<label>' + pl.lbl + '</label>';
+    html += '<input type="text" class="param-text" value="' + img + '" data-layer="' + label + '" data-plx-field="' + pl.imgField + '" placeholder="image">';
+    html += '<input type="text" class="param-text" style="width:50px" value="' + fac + '" data-layer="' + label + '" data-plx-field="' + pl.factField + '" placeholder="0.1">';
+    html += '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function toggleParallax(uid) {
+  const hdr = document.getElementById(uid + '_hdr');
+  const body = document.getElementById(uid + '_body');
+  hdr.classList.toggle('open');
+  body.classList.toggle('open');
 }
 
 function paramRow(layer, label, field, value, min, max, step) {
@@ -366,7 +459,7 @@ function paramRow(layer, label, field, value, min, max, step) {
 }
 
 function bindStopEvents() {
-  // Color/t changes
+  // Gradient stop color/t changes
   document.querySelectorAll('.stop-row').forEach(row => {
     const layer = row.dataset.layer;
     const idx = parseInt(row.dataset.idx);
@@ -424,7 +517,43 @@ function bindStopEvents() {
     });
   });
 
-  // Render gradient bars
+  // Tint color pickers
+  document.querySelectorAll('[data-tint="color"]').forEach(picker => {
+    picker.addEventListener('input', e => {
+      const layer = e.target.dataset.layer;
+      const entry = findEntry(selectedPairId, layer);
+      if (!entry) return;
+      entry.tint = parseInt(e.target.value.slice(1), 16);
+      const hexInput = e.target.parentElement.querySelector('[data-tint="hex"]');
+      if (hexInput) hexInput.value = e.target.value.slice(1).toUpperCase();
+      scheduleUpdate();
+    });
+  });
+  document.querySelectorAll('[data-tint="hex"]').forEach(input => {
+    input.addEventListener('change', e => {
+      const val = e.target.value.replace(/^#/, '');
+      if (!/^[0-9a-f]{6}$/i.test(val)) return;
+      const layer = e.target.dataset.layer;
+      const entry = findEntry(selectedPairId, layer);
+      if (!entry) return;
+      entry.tint = parseInt(val, 16);
+      const picker = e.target.parentElement.querySelector('[data-tint="color"]');
+      if (picker) picker.value = '#' + val.toLowerCase();
+      scheduleUpdate();
+    });
+  });
+
+  // Parallax text fields
+  document.querySelectorAll('[data-plx-field]').forEach(input => {
+    input.addEventListener('change', e => {
+      const layer = e.target.dataset.layer;
+      const field = e.target.dataset.plxField;
+      const entry = findEntry(selectedPairId, layer);
+      if (!entry) return;
+      entry[field] = e.target.value.trim();
+    });
+  });
+
   renderGradientBars();
 }
 
@@ -466,21 +595,15 @@ function renderPreview() {
   const canvas = document.getElementById('previewCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-
-  // Black stage background (same as game)
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, MAP_W, MAP_H);
 
   const bgEntry = findEntry(selectedPairId, 'BG');
   const wallEntry = findEntry(selectedPairId, 'WALL');
 
-  // 1) BG: always render palette-colored base first
   if (bgEntry) renderPaletteLayer(ctx, BG_TILES, bgTilesetImg, bgEntry);
-
-  // 2) WALL on top
   if (wallEntry) renderPaletteLayer(ctx, WALL_TILES, wallTilesetImg, wallEntry);
 
-  // Debug: show load status on canvas
   ctx.font = '10px Rajdhani, sans-serif';
   ctx.fillStyle = '#4A8A8A';
   ctx.fillText('BG:' + (bgEntry ? 'OK' : 'NONE') + (bgTilesetImg ? '+TEX' : '') +
@@ -496,7 +619,6 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
   const tintG = ((entry.tint >> 8) & 0xff) / 255;
   const tintB = (entry.tint & 0xff) / 255;
 
-  // Helper: sample palette at given luma + screen Y
   function samplePalette(luma, screenY) {
     const depthShift = (screenY - depthCenter) * depthBias;
     const biased = Math.max(0, Math.min(1, luma + depthShift));
@@ -509,7 +631,6 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
   }
 
   if (!tilesetImg) {
-    // No tileset: draw solid palette-colored blocks per tile
     for (const tile of tiles) {
       const screenY = (tile.px[1] + TILE / 2) / MAP_H;
       const [r, g, b] = samplePalette(0.5, screenY);
@@ -519,20 +640,12 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
     return;
   }
 
-  // With tileset: draw tiles to offscreen, apply palette per-pixel
   try {
     const off = document.createElement('canvas');
-    off.width = MAP_W;
-    off.height = MAP_H;
+    off.width = MAP_W; off.height = MAP_H;
     const offCtx = off.getContext('2d');
-
-    // Fill tile positions with mid-gray base (handles transparent tileset pixels)
     offCtx.fillStyle = '#808080';
-    for (const tile of tiles) {
-      offCtx.fillRect(tile.px[0], tile.px[1], TILE, TILE);
-    }
-
-    // Draw actual tileset tiles over the gray base
+    for (const tile of tiles) offCtx.fillRect(tile.px[0], tile.px[1], TILE, TILE);
     for (const tile of tiles) {
       offCtx.save();
       const fx = (tile.f & 1) ? -1 : 1;
@@ -542,8 +655,6 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
       offCtx.drawImage(tilesetImg, tile.src[0], tile.src[1], TILE, TILE, 0, 0, TILE, TILE);
       offCtx.restore();
     }
-
-    // Per-pixel palette remap
     const imgData = offCtx.getImageData(0, 0, MAP_W, MAP_H);
     const d = imgData.data;
     for (let y = 0; y < MAP_H; y++) {
@@ -560,7 +671,6 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
     ctx.drawImage(off, 0, 0);
   } catch (e) {
     console.error('[palette-editor] renderPaletteLayer failed:', e);
-    // Fallback: solid blocks
     for (const tile of tiles) {
       const screenY = (tile.px[1] + TILE / 2) / MAP_H;
       const [r, g, b] = samplePalette(0.5, screenY);

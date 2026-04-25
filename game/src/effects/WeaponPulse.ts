@@ -15,14 +15,25 @@ import { Container, Graphics } from 'pixi.js';
 import type { Rarity } from '@data/weapons';
 import { RARITY_COLOR } from '@items/ItemInstance';
 
-export type PulseMode = 'T2_FULL_CUTSCENE' | 'S4_IN_PLACE';
+export type PulseMode = 'T2_FULL_CUTSCENE' | 'T2_QUICK_CUTSCENE' | 'S4_IN_PLACE';
 
-// T2 timing (4800ms total — 4x slower for dramatic first pickup) -------------
-const T2_ZOOM_IN = 1200;
-const T2_PULSE = 2000;  // 2 rings over this window
-const T2_HOLD = 400;    // hold before zoom-out to sell the impact
-const T2_ZOOM_OUT = 1200;
-const T2_TOTAL = T2_ZOOM_IN + T2_PULSE + T2_HOLD + T2_ZOOM_OUT;
+interface T2Timings {
+  zoomIn: number;
+  pulse: number;   // window for the 2 ring pulses
+  hold: number;    // hold before zoom-out to sell the impact
+  zoomOut: number;
+  total: number;
+}
+
+const makeT2 = (zoomIn: number, pulse: number, hold: number, zoomOut: number): T2Timings => ({
+  zoomIn, pulse, hold, zoomOut,
+  total: zoomIn + pulse + hold + zoomOut,
+});
+
+// T2_FULL — 4800ms total, dramatic first-of-its-kind pickup (Rustborn).
+const T2_FULL_TIMINGS = makeT2(1200, 2000, 400, 1200);
+// T2_QUICK — 2000ms total, every other new item. Same flow, compressed timing.
+const T2_QUICK_TIMINGS = makeT2(500, 800, 200, 500);
 const T2_MAX_ZOOM = 1.5;
 
 // S4 timing (400ms total) ----------------------------------------------------
@@ -61,15 +72,23 @@ export class WeaponPulse {
 
   get isDone(): boolean { return this.done; }
   get isBlocking(): boolean {
-    // Only T2 blocks input; S4 is a subtle in-place pulse.
-    return this.mode === 'T2_FULL_CUTSCENE' && !this.done;
+    // T2 variants block input; S4 is a subtle in-place pulse.
+    return this.isT2() && !this.done;
+  }
+
+  private isT2(): boolean {
+    return this.mode === 'T2_FULL_CUTSCENE' || this.mode === 'T2_QUICK_CUTSCENE';
+  }
+
+  private getT2Timings(): T2Timings {
+    return this.mode === 'T2_QUICK_CUTSCENE' ? T2_QUICK_TIMINGS : T2_FULL_TIMINGS;
   }
 
   start(): void {
     this.timer = 0;
     this.done = false;
     this.tetherFired = false;
-    if (this.mode === 'T2_FULL_CUTSCENE' && this.onZoom) {
+    if (this.isT2() && this.onZoom) {
       this.onZoom(1.0);
     }
   }
@@ -78,7 +97,7 @@ export class WeaponPulse {
     if (this.done) return;
     this.timer += dt;
 
-    if (this.mode === 'T2_FULL_CUTSCENE') {
+    if (this.isT2()) {
       this.updateT2();
     } else {
       this.updateS4();
@@ -87,26 +106,27 @@ export class WeaponPulse {
 
   private updateT2(): void {
     const t = this.timer;
+    const T = this.getT2Timings();
     // Phase progression.
     let zoom = 1.0;
-    if (t < T2_ZOOM_IN) {
-      const p = t / T2_ZOOM_IN;
+    if (t < T.zoomIn) {
+      const p = t / T.zoomIn;
       zoom = 1.0 + (T2_MAX_ZOOM - 1.0) * this.easeOut(p);
       this.drawRings(0);
-    } else if (t < T2_ZOOM_IN + T2_PULSE) {
+    } else if (t < T.zoomIn + T.pulse) {
       zoom = T2_MAX_ZOOM;
-      const pulseT = t - T2_ZOOM_IN;
-      this.drawRings(pulseT / T2_PULSE);
+      const pulseT = t - T.zoomIn;
+      this.drawRings(pulseT / T.pulse);
       // Fire tether trigger once as the first ring peaks.
-      if (!this.tetherFired && pulseT >= T2_PULSE * 0.35) {
+      if (!this.tetherFired && pulseT >= T.pulse * 0.35) {
         this.tetherFired = true;
         this.onTetherTrigger?.();
       }
-    } else if (t < T2_ZOOM_IN + T2_PULSE + T2_HOLD) {
+    } else if (t < T.zoomIn + T.pulse + T.hold) {
       zoom = T2_MAX_ZOOM;
       this.gfx.clear();
-    } else if (t < T2_TOTAL) {
-      const outP = (t - (T2_ZOOM_IN + T2_PULSE + T2_HOLD)) / T2_ZOOM_OUT;
+    } else if (t < T.total) {
+      const outP = (t - (T.zoomIn + T.pulse + T.hold)) / T.zoomOut;
       zoom = T2_MAX_ZOOM + (1.0 - T2_MAX_ZOOM) * this.easeInOut(outP);
       this.gfx.clear();
     } else {
