@@ -11,6 +11,10 @@
 import { Container, Graphics } from 'pixi.js';
 import { PRNG } from '@utils/PRNG';
 import { getDecoPreset, type DecoPreset } from '@data/decoPresets';
+import {
+  catenary, chainLinks, vine, crack, mossCluster,
+  dripTrail, rivetLine, rustBloom,
+} from './ProceduralPrimitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,21 +38,24 @@ interface DecoConfig {
 
 const DEFAULTS: DecoConfig = {
   tileSize: 16,
-  maxDecorations: 200,
-  density: 0.3,
+  maxDecorations: 400,
+  density: 0.6,
   maxStructures: 60,
   structureDensity: 0.15,
 };
 
 // Scale multiplier for all detail decorations
-const SCALE = 1;
+const SCALE = 1.5;
 
 // Natural colors — tinted through PaletteSwapFilter at reduced strength
 const COLOR_GROWER = 0x3a7a2a;       // green grass
 const COLOR_GROWER_TIP = 0x5a9a3a;   // lighter green tip
+const COLOR_GROWER_DARK = 0x2a5a1a;  // dark base / shadow
 const COLOR_HANGER = 0x5a4030;       // dark brown roots
+const COLOR_HANGER_LIGHT = 0x7a5840; // root highlight edge
 const COLOR_HANGER_DRIP = 0x607888;  // blue-gray water drip
 const COLOR_CLINGER = 0x4a6a3a;      // moss green
+const COLOR_CLINGER_DARK = 0x304a24; // moss shadow
 const COLOR_CLINGER_VINE = 0x3a5a2a; // dark vine green
 
 // Scale multiplier for structure decorations
@@ -294,6 +301,12 @@ export class ProceduralDecorator {
       (isNatural ? this.naturalLayer : this.artificialLayer).addChild(microGfx);
     }
 
+    // Pass 8 (Edge Weathering) disabled — crack/drip primitives produced
+    // diagonal line artifacts across the map.
+
+    // Pass 9 (Ambient Fill) disabled — particles near walls produced
+    // undesirable visual artifacts resembling sun shafts.
+
     return this.container;
   }
 
@@ -358,13 +371,41 @@ export class ProceduralDecorator {
       const height = rng.nextFloat(this.growerHMin, this.growerHMax) * S;
       const halfW = rng.nextFloat(0.5, 1.5) * S;
       const lean = rng.nextFloat(-1.5, 1.5) * S;
+      const tipX = baseX + ox + lean;
+      const tipY = baseY - height;
 
+      // Shadow layer (wider, darker, offset)
+      gfx.poly([
+        baseX + ox - halfW * 1.3, baseY,
+        baseX + ox + halfW * 1.3, baseY,
+        tipX + 0.5, tipY + height * 0.1,
+      ]);
+      gfx.fill({ color: COLOR_GROWER_DARK, alpha: 0.6 });
+
+      // Main blade
       gfx.poly([
         baseX + ox - halfW, baseY,
         baseX + ox + halfW, baseY,
-        baseX + ox + lean, baseY - height,
+        tipX, tipY,
       ]);
       gfx.fill(this.cGrowerColor);
+
+      // Highlight spine (thin bright line down center)
+      const midH = height * 0.6;
+      gfx.moveTo(baseX + ox, baseY);
+      gfx.lineTo(tipX * 0.5 + (baseX + ox) * 0.5, baseY - midH);
+      gfx.stroke({ width: 0.5 * S, color: this.cGrowerTip });
+
+      // Bright tip dot
+      gfx.circle(tipX, tipY, 0.6 * S);
+      gfx.fill({ color: this.cGrowerTip, alpha: 0.7 });
+    }
+
+    // Dark soil cluster at base
+    for (let d = 0; d < rng.nextInt(1, 3); d++) {
+      const dx = rng.nextFloat(0, T);
+      gfx.circle(baseX + dx, baseY + rng.nextFloat(0, 1), rng.nextFloat(0.8, 1.5) * S);
+      gfx.fill({ color: COLOR_GROWER_DARK, alpha: 0.4 });
     }
 
     if (rng.next() < 0.10) {
@@ -373,8 +414,15 @@ export class ProceduralDecorator {
       gfx.moveTo(baseX + ox, baseY);
       gfx.lineTo(baseX + ox, baseY - stemH);
       gfx.stroke({ width: 1 * S, color: this.cGrowerColor });
+      // Stem highlight
+      gfx.moveTo(baseX + ox + 0.5, baseY);
+      gfx.lineTo(baseX + ox + 0.5, baseY - stemH * 0.7);
+      gfx.stroke({ width: 0.4 * S, color: this.cGrowerTip });
       gfx.circle(baseX + ox, baseY - stemH, 1.5 * S);
       gfx.fill(this.cGrowerTip);
+      // Glow halo around flower
+      gfx.circle(baseX + ox, baseY - stemH, 2.5 * S);
+      gfx.fill({ color: this.cGrowerTip, alpha: 0.15 });
     }
   }
 
@@ -389,18 +437,33 @@ export class ProceduralDecorator {
       const ox = rng.nextFloat(2, T - 2);
       const length = rng.nextFloat(this.hangerLMin, this.hangerLMax) * S;
       const drift = rng.nextFloat(-2, 2) * S;
-
+      // Main root stroke (bezier curve)
       gfx.moveTo(baseX + ox, baseY);
-      gfx.lineTo(baseX + ox + drift * 0.5, baseY + length * 0.5);
-      gfx.lineTo(baseX + ox + drift, baseY + length);
+      gfx.bezierCurveTo(
+        baseX + ox + drift * 0.3, baseY + length * 0.3,
+        baseX + ox + drift * 0.7, baseY + length * 0.7,
+        baseX + ox + drift, baseY + length,
+      );
       gfx.stroke({ width: 1 * S, color: this.cHangerColor });
+
+      // Highlight edge (thinner, lighter, offset)
+      gfx.moveTo(baseX + ox + 0.3, baseY);
+      gfx.bezierCurveTo(
+        baseX + ox + drift * 0.3 + 0.3, baseY + length * 0.3,
+        baseX + ox + drift * 0.7 + 0.3, baseY + length * 0.7,
+        baseX + ox + drift + 0.2, baseY + length,
+      );
+      gfx.stroke({ width: 0.3 * S, color: COLOR_HANGER_LIGHT });
     }
 
     if (rng.next() < 0.05) {
       const ox = rng.nextFloat(3, T - 3);
       const dropLen = rng.nextFloat(4, 7) * S;
+      // Drip with highlight
       gfx.circle(baseX + ox, baseY + dropLen, 1.2 * S);
       gfx.fill(this.cHangerDrip);
+      gfx.circle(baseX + ox - 0.3, baseY + dropLen - 0.3, 0.4 * S);
+      gfx.fill({ color: 0x90a8b8, alpha: 0.5 });
     }
   }
 
@@ -414,32 +477,32 @@ export class ProceduralDecorator {
     const wallX = isLeft ? baseX : baseX + T;
     const dir = isLeft ? -1 : 1;
 
-    const patchCount = rng.nextInt(2, 5);
-    for (let p = 0; p < patchCount; p++) {
-      const oy = rng.nextFloat(1, T - 1);
-      const r = rng.nextFloat(1, 3) * S;
-      const offsetH = rng.nextFloat(0, 3) * S * dir;
+    // Shadow layer (larger, darker, behind)
+    const cy = baseY + T / 2;
+    const cx = wallX + rng.nextFloat(1, 4) * S * dir;
+    const clusterR = rng.nextFloat(3, 7) * S;
+    mossCluster(gfx, cx + 0.5 * dir, cy + 0.5, clusterR * 1.2, rng.nextInt(3, 6),
+      COLOR_CLINGER_DARK, 0.9, rng);
 
-      gfx.circle(wallX + offsetH, baseY + oy, r);
-      gfx.fill(this.cClingerColor);
+    // Main moss cluster
+    mossCluster(gfx, cx, cy, clusterR, rng.nextInt(5, 12),
+      this.cClingerColor, 0.8, rng);
+
+    // Highlight specks (bright dots scattered on top)
+    for (let h = 0; h < rng.nextInt(1, 4); h++) {
+      const angle = rng.nextFloat(0, Math.PI * 2);
+      const dist = clusterR * rng.nextFloat(0.1, 0.6);
+      gfx.circle(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, rng.nextFloat(0.4, 1) * S);
+      gfx.fill({ color: this.cGrowerTip, alpha: rng.nextFloat(0.2, 0.45) });
     }
 
-    if (rng.next() < 0.08) {
+    // Occasional short vine
+    if (rng.next() < 0.12) {
       const oy = rng.nextFloat(3, T - 3);
-      const vineLen = rng.nextFloat(3, 6) * S * dir;
-
-      gfx.moveTo(wallX, baseY + oy);
-      gfx.lineTo(wallX + vineLen, baseY + oy + rng.nextFloat(-2, 2) * S);
-      gfx.stroke({ width: 1 * S, color: this.cClingerVine });
-
-      const leafX = wallX + vineLen;
-      const leafY = baseY + oy + rng.nextFloat(-2, 2) * S;
-      gfx.poly([
-        leafX, leafY - 1 * S,
-        leafX + 2 * S * dir, leafY,
-        leafX, leafY + 1 * S,
-      ]);
-      gfx.fill(this.cClingerVine);
+      const vineLen = rng.nextFloat(5, 10) * S;
+      vine(gfx, wallX, baseY + oy, wallX + vineLen * dir, baseY + oy + rng.nextFloat(-4, 4),
+        this.cClingerVine, this.cClingerColor,
+        1, 1, 0.4, 1.5, rng);
     }
   }
 
@@ -629,6 +692,12 @@ export class ProceduralDecorator {
         gfx.stroke({ width: strokeW, color: this.cRebar });
       }
     }
+    // Rivet line along rebar base
+    if (edge.type === 'floor' || edge.type === 'ceiling') {
+      const ry = edge.type === 'floor' ? baseY : (edge.row + 1) * T;
+      rivetLine(gfx, baseX, ry, baseX + T, ry,
+        T / 4, 1.2 * SS, this.cRebar, this.cSteel, 0.3, 0.5, rng);
+    }
   }
 
   /** Pipe segment — cylindrical pipe crossing along edge. */
@@ -759,25 +828,9 @@ export class ProceduralDecorator {
     const x1 = x0 + rng.nextFloat(2, 5) * T;
     const y0 = (edge.row + 1) * T;
     const sag = rng.nextFloat(8, 20) * SS;
-    const segments = 8;
-    const linkW = rng.nextFloat(1.5, 2.5);
-    gfx.moveTo(x0, y0);
-    for (let i = 1; i <= segments; i++) {
-      const t = i / segments;
-      const x = x0 + (x1 - x0) * t;
-      const parabola = 4 * sag * t * (1 - t);
-      const y = y0 + parabola;
-      gfx.lineTo(x, y);
-    }
-    gfx.stroke({ width: linkW, color: this.cSteel });
-    // Chain links (small rects at intervals)
-    for (let i = 0; i < segments; i += 2) {
-      const t = (i + 0.5) / segments;
-      const x = x0 + (x1 - x0) * t;
-      const y = y0 + 4 * sag * t * (1 - t);
-      gfx.rect(x - 1.5, y - 1, 3, 2);
-      gfx.fill(this.cSteel);
-    }
+    // Catenary curve + chain link overlay
+    catenary(gfx, x0, y0, x1, y0, sag, this.cSteel, 1);
+    chainLinks(gfx, x0, y0, x1, y0, sag, 3, 4, this.cSteel, 1);
   }
 
   /** Branching vine — recursive 2-3 level branching from wall. */
@@ -788,28 +841,12 @@ export class ProceduralDecorator {
     const wallX = isLeft ? edge.col * T : edge.col * T + T;
     const dir = isLeft ? -1 : 1;
     const baseY = edge.row * T + rng.nextFloat(2, T - 2);
-    this.drawVineBranch(gfx, wallX, baseY, dir, rng, 0);
-  }
-
-  private drawVineBranch(gfx: Graphics, x: number, y: number, dir: number, rng: PRNG, depth: number): void {
-    if (depth > 2) return;
-    const len = rng.nextFloat(6, 14) * (1 - depth * 0.3);
-    const angle = rng.nextFloat(-0.5, 0.5);
-    const endX = x + len * dir;
-    const endY = y + Math.sin(angle) * len;
-    gfx.moveTo(x, y);
-    gfx.lineTo(endX, endY);
-    gfx.stroke({ width: 2 - depth * 0.5, color: this.cClingerVine });
-    // Leaf at end
-    if (depth >= 1) {
-      gfx.poly([endX, endY - 2, endX + 3 * dir, endY, endX, endY + 2]);
-      gfx.fill(this.cClingerColor);
-    }
-    // Branch
-    const branches = rng.nextInt(1, 2);
-    for (let b = 0; b < branches; b++) {
-      if (rng.next() < 0.7) this.drawVineBranch(gfx, endX, endY, dir, rng, depth + 1);
-    }
+    const len = rng.nextFloat(12, 28);
+    const endX = wallX + len * dir;
+    const endY = baseY + rng.nextFloat(-8, 8);
+    vine(gfx, wallX, baseY, endX, endY,
+      this.cClingerVine, this.cClingerColor,
+      2, 2, 0.6, 2.5, rng);
   }
 
   // =========================================================================
@@ -1249,7 +1286,10 @@ export class ProceduralDecorator {
     } else {
       // Wall: massive branching vines (2 starting points, deeper recursion)
       for (let v = 0; v < 2; v++) {
-        this.drawVineBranch(gfx, wallX, by + rng.nextFloat(1, T - 1), dir, rng, 0);
+        const vy = by + rng.nextFloat(1, T - 1);
+        const vLen = rng.nextFloat(14, 30);
+        vine(gfx, wallX, vy, wallX + vLen * dir, vy + rng.nextFloat(-10, 10),
+          this.cClingerVine, this.cClingerColor, 2, 2, 0.6, 2.5, rng);
       }
       // Wall moss patches (large)
       const n = rng.nextInt(3, 6);
@@ -1996,6 +2036,8 @@ export class ProceduralDecorator {
   // --- FOUNDRY: chains and hooks ---
 
   private spanFoundryVert(gfx: Graphics, x: number, y0: number, y1: number, len: number, rng: PRNG): void {
+    // 3/4 chance to skip — reduce wire density
+    if (rng.next() < 0.75) return;
     // Heavy chain with hook at bottom
     const segs = Math.max(4, Math.floor(len / 8));
     for (let i = 0; i < segs; i++) {
@@ -2008,6 +2050,7 @@ export class ProceduralDecorator {
   }
 
   private spanFoundryHoriz(gfx: Graphics, x0: number, x1: number, y: number, len: number, rng: PRNG): void {
+    if (rng.next() < 0.75) return;
     // Catenary chain
     const sag = rng.nextFloat(10, len * 0.25);
     const segs = 10;
@@ -2097,32 +2140,12 @@ export class ProceduralDecorator {
   // --- BREACH: structural crack lines ---
 
   private spanBreachVert(gfx: Graphics, x: number, y0: number, y1: number, len: number, rng: PRNG): void {
-    // Jagged crack from ceiling to floor
-    let cy = y0, cx = x;
-    gfx.moveTo(cx, cy);
-    while (cy < y1) {
-      cx += rng.nextFloat(-8, 8);
-      cy += rng.nextFloat(4, 10);
-      gfx.lineTo(cx, Math.min(cy, y1));
-      // Fork
-      if (rng.next() < 0.3) {
-        const fx = cx + rng.nextFloat(-12, 12), fy = cy + rng.nextFloat(4, 10);
-        gfx.moveTo(cx, cy); gfx.lineTo(fx, fy);
-        gfx.moveTo(cx, cy);
-      }
-    }
-    gfx.stroke({ width: 2.5, color: this.cRebar });
+    // DLA-style branching crack from ceiling to floor
+    crack(gfx, x, y0, Math.PI / 2, len, this.cRebar, 2.5, 3, rng);
   }
 
   private spanBreachHoriz(gfx: Graphics, x0: number, x1: number, y: number, _len: number, rng: PRNG): void {
-    let cx = x0, cy = y;
-    gfx.moveTo(cx, cy);
-    while (cx < x1) {
-      cy += rng.nextFloat(-6, 6);
-      cx += rng.nextFloat(4, 10);
-      gfx.lineTo(Math.min(cx, x1), cy);
-    }
-    gfx.stroke({ width: 2.5, color: this.cRebar });
+    crack(gfx, x0, y, 0, x1 - x0, this.cRebar, 2.5, 2, rng);
   }
 
   // --- COOLANT: drip lines / condensation streaks ---
@@ -2183,46 +2206,35 @@ export class ProceduralDecorator {
       const w = rng.nextFloat(8, 24), ox = rng.nextFloat(0, T);
 
       switch (theme) {
-        case 'T-FOUNDRY': // Rust drip streaks
+        case 'T-FOUNDRY': // Rust bloom + drip streaks
           if (edge.type === 'floor') {
-            gfx.poly([bx + ox, by, bx + ox + w, by, bx + ox + w - 2, by - rng.nextFloat(2, 5), bx + ox + 2, by - rng.nextFloat(1, 4)]);
-            gfx.fill({ color: this.cRebar, alpha: 0.35 });
+            rustBloom(gfx, bx + ox + w / 2, by - 2, rng.nextFloat(4, 8), 3, this.cRebar, rng);
           } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-            // Vertical rust drip with widening
-            const h = rng.nextFloat(10, 24);
-            gfx.poly([wallX, by + ox, wallX + 2 * dir, by + ox + h * 0.3, wallX + 4 * dir, by + ox + h, wallX, by + ox + h]);
-            gfx.fill({ color: this.cRebar, alpha: 0.3 });
+            dripTrail(gfx, wallX + 2 * dir, by + ox, by + ox + rng.nextFloat(10, 24),
+              this.cRebar, 3, 1.5, 0.3, rng);
           } else {
-            gfx.moveTo(bx + ox, cy); gfx.lineTo(bx + ox, cy + rng.nextFloat(4, 10)); gfx.stroke({ width: 1.5, color: this.cRebar });
+            dripTrail(gfx, bx + ox, cy, cy + rng.nextFloat(4, 10),
+              this.cRebar, 2, 1, 0.25, rng);
           } break;
-        case 'T-BREACH': // Crack network
+        case 'T-BREACH': // DLA crack network
           if (edge.type === 'floor' || edge.type === 'ceiling') {
-            const sy = edge.type === 'floor' ? by : cy;
-            let cx2 = bx + ox, cy2 = sy;
-            gfx.moveTo(cx2, cy2);
-            for (let s = 0; s < rng.nextInt(3, 6); s++) {
-              cx2 += rng.nextFloat(-4, 4); cy2 += (edge.type === 'floor' ? -1 : 1) * rng.nextFloat(2, 5);
-              gfx.lineTo(cx2, cy2);
-            }
-            gfx.stroke({ width: 1.5, color: this.cRebar });
+            const sy2 = edge.type === 'floor' ? by : cy;
+            const crackDir = edge.type === 'floor' ? -Math.PI / 2 : Math.PI / 2;
+            crack(gfx, bx + ox, sy2, crackDir, rng.nextFloat(8, 18), this.cRebar, 1.5, 2, rng);
           } else {
-            gfx.moveTo(wallX, by + ox); let cx2 = wallX, cy2 = by + ox;
-            for (let s = 0; s < 4; s++) { cx2 += rng.nextFloat(2, 5) * dir; cy2 += rng.nextFloat(-3, 3); gfx.lineTo(cx2, cy2); }
-            gfx.stroke({ width: 1.5, color: this.cRebar });
+            crack(gfx, wallX, by + ox, dir > 0 ? 0 : Math.PI, rng.nextFloat(6, 14), this.cRebar, 1.5, 1, rng);
           } break;
         case 'T-COOLANT': // Condensation drip trails
           if (edge.type === 'ceiling') {
-            for (let d = 0; d < rng.nextInt(2, 5); d++) {
+            for (let d = 0; d < rng.nextInt(2, 4); d++) {
               const dx = bx + rng.nextFloat(0, T);
-              gfx.moveTo(dx, cy); gfx.lineTo(dx + rng.nextFloat(-1, 1), cy + rng.nextFloat(6, 18));
-              gfx.stroke({ width: 1, color: this.cHangerDrip });
-              gfx.circle(dx + rng.nextFloat(-1, 1), cy + rng.nextFloat(6, 18), 1.5); gfx.fill(this.cHangerDrip);
+              dripTrail(gfx, dx, cy, cy + rng.nextFloat(8, 20), this.cHangerDrip, 1.5, 1.5, 0.3, rng);
             }
           } else if (edge.type === 'floor') {
-            gfx.circle(bx + ox, by - 1, rng.nextFloat(4, 10)); gfx.fill({ color: this.cHangerDrip, alpha: 0.15 });
+            mossCluster(gfx, bx + ox, by - 1, rng.nextFloat(4, 10), 6, this.cHangerDrip, 0.7, rng);
           } else {
-            gfx.moveTo(wallX + 1 * dir, by + ox); gfx.lineTo(wallX + 1 * dir, by + ox + rng.nextFloat(8, 20));
-            gfx.stroke({ width: 1, color: this.cHangerDrip });
+            dripTrail(gfx, wallX + 1 * dir, by + ox, by + ox + rng.nextFloat(8, 20),
+              this.cHangerDrip, 1, 1, 0.25, rng);
           } break;
         case 'T-MALFUNCTION': // Horizontal glitch stripes
           for (let s = 0; s < rng.nextInt(2, 5); s++) {
@@ -2730,6 +2742,141 @@ export class ProceduralDecorator {
         }
       }
       count++;
+    }
+  }
+
+  // =========================================================================
+  // PASS 8: Edge Weathering — erosion, rivets, drip stains along edges
+  // =========================================================================
+
+  private passEdgeWeathering(gfx: Graphics, edges: EdgeTile[], rng: PRNG): void {
+    const T = this.cfg.tileSize;
+    // Process ~30% of edges
+    for (const edge of edges) {
+      if (rng.next() > 0.30) continue;
+
+      const bx = edge.col * T;
+      const by = edge.row * T;
+
+      switch (edge.type) {
+        case 'floor': {
+          // Top-edge erosion: micro cracks + chipped fragments
+          const cx = bx + rng.nextFloat(2, T - 2);
+          crack(gfx, cx, by, -Math.PI / 2 + rng.nextFloat(-0.3, 0.3),
+            rng.nextFloat(3, 8), this.cConcrete, 0.8, 1, rng);
+          // Tiny debris fragments
+          if (rng.next() < 0.4) {
+            for (let d = 0; d < rng.nextInt(1, 3); d++) {
+              const fx = bx + rng.nextFloat(0, T);
+              const fy = by - rng.nextFloat(1, 4);
+              gfx.rect(fx, fy, rng.nextFloat(1, 2.5), rng.nextFloat(1, 2));
+              gfx.fill({ color: this.cConcrete, alpha: rng.nextFloat(0.2, 0.4) });
+            }
+          }
+          break;
+        }
+        case 'ceiling': {
+          // Drip stains from ceiling
+          const dx = bx + rng.nextFloat(2, T - 2);
+          const dLen = rng.nextFloat(6, 18);
+          dripTrail(gfx, dx, (edge.row + 1) * T, (edge.row + 1) * T + dLen,
+            this.cHangerColor, rng.nextFloat(1, 2.5), rng.nextFloat(0.8, 1.5),
+            rng.nextFloat(0.12, 0.25), rng);
+          break;
+        }
+        case 'wall_left':
+        case 'wall_right': {
+          const isLeft = edge.type === 'wall_left';
+          const wallX = isLeft ? bx : bx + T;
+          // Vertical rust/water drip
+          if (rng.next() < 0.5) {
+            dripTrail(gfx, wallX + (isLeft ? -1 : 1), by, by + rng.nextFloat(8, 22),
+              this.cRebar, rng.nextFloat(1, 2), 1, rng.nextFloat(0.1, 0.2), rng);
+          }
+          // Rivet line along wall seam
+          if (rng.next() < 0.25) {
+            rivetLine(gfx, wallX, by, wallX, by + T,
+              T / 3, 1, this.cSteel, this.cConcrete, 0.3, 0.5, rng);
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // PASS 9: Ambient Fill — atmospheric micro-particles near wall surfaces
+  // =========================================================================
+
+  private passAmbientFill(gfx: Graphics, grid: number[][], edges: EdgeTile[], rng: PRNG): void {
+    const T = this.cfg.tileSize;
+    const theme = this.preset?.themeId ?? '';
+
+    // Pick particle color based on theme
+    let particleColor: number;
+    let particleAlpha: number;
+    switch (theme) {
+      case 'T-FOUNDRY':     particleColor = 0xee6622; particleAlpha = 0.2; break;
+      case 'T-COOLANT':     particleColor = this.cHangerDrip; particleAlpha = 0.15; break;
+      case 'T-BIOZONE':     particleColor = this.cGrowerColor; particleAlpha = 0.15; break;
+      case 'T-MALFUNCTION': particleColor = 0xffaa44; particleAlpha = 0.18; break;
+      case 'T-ECHO':        particleColor = this.cGrowerColor; particleAlpha = 0.12; break;
+      default:              particleColor = this.cConcrete; particleAlpha = 0.1; break;
+    }
+
+    // Scatter particles near edges (within 2-4 tiles of walls)
+    const maxDist = 4 * T;
+    const budget = Math.min(80, Math.floor(edges.length * 0.15));
+    let placed = 0;
+
+    for (let i = 0; i < edges.length && placed < budget; i++) {
+      if (rng.next() > 0.12) continue;
+
+      const edge = edges[i];
+      const bx = edge.col * T;
+      const by = edge.row * T;
+
+      // Offset away from the wall surface
+      let ox: number, oy: number;
+      switch (edge.type) {
+        case 'floor':
+          ox = rng.nextFloat(0, T);
+          oy = -rng.nextFloat(T, maxDist);
+          break;
+        case 'ceiling':
+          ox = rng.nextFloat(0, T);
+          oy = T + rng.nextFloat(0, maxDist);
+          break;
+        case 'wall_left':
+          ox = -rng.nextFloat(T, maxDist);
+          oy = rng.nextFloat(0, T);
+          break;
+        case 'wall_right':
+          ox = T + rng.nextFloat(0, maxDist);
+          oy = rng.nextFloat(0, T);
+          break;
+        default: continue;
+      }
+
+      const px = bx + ox;
+      const py = by + oy;
+
+      // Skip if inside solid
+      const gc = Math.floor(px / T);
+      const gr = Math.floor(py / T);
+      if (gr >= 0 && gr < grid.length && gc >= 0 && gc < (grid[0]?.length ?? 0)) {
+        if (isSolid(grid[gr][gc])) continue;
+      }
+
+      // Distance falloff
+      const dist = Math.hypot(ox - (edge.type === 'wall_right' ? T : 0),
+                               oy - (edge.type === 'ceiling' ? T : 0));
+      const falloff = Math.max(0.02, 1 - dist / maxDist);
+
+      const r = rng.nextFloat(0.3, 1.2);
+      gfx.circle(px, py, r);
+      gfx.fill({ color: particleColor, alpha: particleAlpha * falloff });
+      placed++;
     }
   }
 }

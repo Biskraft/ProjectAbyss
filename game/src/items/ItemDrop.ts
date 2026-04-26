@@ -94,6 +94,10 @@ interface Particle {
   gfx: Graphics;
 }
 
+// Visual size of the dropped-item icon in world pixels (1.5x the original
+// 24px to make floor drops more readable at typical play camera zoom).
+const ICON_SIZE = 36;
+
 /** Visual representation of a dropped item on the ground */
 export class ItemDropEntity {
   x: number;
@@ -116,9 +120,14 @@ export class ItemDropEntity {
   private itemGfx: Graphics;
 
   constructor(x: number, y: number, item: ItemInstance) {
+    // LDtk Item entities are authored with a bottom-center pivot, so the
+    // incoming y is the floor line. Lift the visual 8px so the sprite
+    // hovers above the ground instead of being half-buried by the
+    // 0.5/0.5-anchored sprite. Pickup hitbox follows the visual.
+    const FLOOR_LIFT = 8;
     this.x = x;
-    this.y = y;
-    this.baseY = y;
+    this.y = y - FLOOR_LIFT;
+    this.baseY = this.y;
     this.item = item;
     this.vfx = DROP_VFX[item.rarity];
 
@@ -134,10 +143,12 @@ export class ItemDropEntity {
       this.container.addChild(this.glowGfx);
     }
 
-    // Item square (placeholder until icon loads)
+    // Item square (placeholder until icon loads). Scaled 1.5x along with
+    // the loaded icon so placeholder and final sprite occupy the same
+    // footprint.
     this.itemGfx = new Graphics();
-    this.itemGfx.rect(-4, -4, 8, 8).fill(RARITY_COLOR[item.rarity]);
-    this.itemGfx.rect(-3, -3, 6, 6).fill({ color: 0xffffff, alpha: 0.4 });
+    this.itemGfx.rect(-6, -6, 12, 12).fill(RARITY_COLOR[item.rarity]);
+    this.itemGfx.rect(-4, -4, 9, 9).fill({ color: 0xffffff, alpha: 0.4 });
     this.container.addChild(this.itemGfx);
 
     // Try to load item icon sprite
@@ -156,8 +167,8 @@ export class ItemDropEntity {
       tex.source.scaleMode = 'nearest';
       const sprite = new Sprite(tex);
       sprite.anchor.set(0.5, 0.5);
-      sprite.width = 24;
-      sprite.height = 24;
+      sprite.width = ICON_SIZE;
+      sprite.height = ICON_SIZE;
       this.itemSprite = sprite;
       // Hide placeholder, show icon
       this.itemGfx.visible = false;
@@ -180,7 +191,7 @@ export class ItemDropEntity {
       const scale = 1.0 + Math.sin(this.pulseTimer * this.vfx.pulseSpeed) * 0.15;
       this.itemGfx.scale.set(scale);
       if (this.itemSprite) {
-        const base = 24 / this.itemSprite.texture.width;
+        const base = ICON_SIZE / this.itemSprite.texture.width;
         this.itemSprite.scale.set(base * scale);
       }
       if (this.glowGfx) {

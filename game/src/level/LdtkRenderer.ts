@@ -182,12 +182,16 @@ export class LdtkRenderer {
    * Used by SecretWall to erase the AutoTile visuals when broken.
    */
   clearTilesInRect(x: number, y: number, w: number, h: number): void {
+    // Tile children are anchored at top-left, so a child whose top-left lies
+    // within [x, x+w) × [y, y+h) is inside the rect. No margin: extending the
+    // bounds upward/leftward would erase neighbouring cells (e.g. the cell
+    // above a SecretWall when it's broken).
     const remove = (layer: Container) => {
       for (let i = layer.children.length - 1; i >= 0; i--) {
         const child = layer.children[i];
         if (
-          child.x >= x - TILE_SIZE && child.x < x + w &&
-          child.y >= y - TILE_SIZE && child.y < y + h
+          child.x >= x && child.x < x + w &&
+          child.y >= y && child.y < y + h
         ) {
           layer.removeChildAt(i);
         }

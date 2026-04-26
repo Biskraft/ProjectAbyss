@@ -17,6 +17,9 @@ export class GoldPickup {
   width = 16;
   height = 16;
   amount: number;
+  /** Bob center Y. World-space for normal pickups, builder-local for pickups
+   *  reparented under GiantBuilder. */
+  baseY: number;
   collected = false;
 
   private gfx: Graphics;
@@ -25,6 +28,7 @@ export class GoldPickup {
   constructor(x: number, y: number, amount: number) {
     this.x = x;
     this.y = y - this.height;
+    this.baseY = this.y;
     this.amount = amount;
 
     this.container = new Container();
@@ -49,7 +53,7 @@ export class GoldPickup {
   update(dt: number): void {
     if (this.collected) return;
     this.timer += dt;
-    this.container.y = this.y + Math.sin(this.timer * 0.003) * 2;
+    this.container.y = this.baseY + Math.sin(this.timer * 0.003) * 2;
     this.gfx.alpha = 0.7 + Math.sin(this.timer * 0.005) * 0.3;
   }
 

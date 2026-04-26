@@ -516,9 +516,10 @@ export class Player extends Entity implements CombatEntity {
     // Attack input
     // Air-dash can be cancelled into attack (jump+dash → attack).
     // Ground dash still blocks attack so the dash keeps its evasion feel.
-    // No weapon equipped → attack disabled entirely.
+    // No weapon equipped → attack disabled entirely, except when cheat is on
+    // (cheat already grants +99999 ATK so C should always swing for testing).
     if (this.game.input.isJustPressed(GameAction.ATTACK) &&
-        this.equippedWeaponType !== null &&
+        (this.equippedWeaponType !== null || this.abilities.cheat) &&
         state !== 'dive' && state !== 'hit' && state !== 'death' &&
         !(state === 'dash' && this.grounded)) {
       if (state === 'attack') {

@@ -177,6 +177,7 @@ interface BuilderAttachable {
   x: number;
   y: number;
   container: Container;
+  baseY?: number;
 }
 interface BuilderAttachment {
   entity: BuilderAttachable;
@@ -4209,35 +4210,62 @@ export class LdtkWorldScene extends Scene {
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
           if (!itemId) break;
-          const before = this.drops.length;
+
+          // Snapshot all collections that spawnFixedItemAt may push into;
+          // any collection that grew owns the new entity for attachment.
+          // Consumables don't spawn an entity (toast only) — those leave
+          // every length unchanged and are silently skipped.
+          const beforeDrops = this.drops.length;
+          const beforeGold = this.goldPickups.length;
+          const beforeHeal = this.healingPickups.length;
           this.spawnFixedItemAt(wx, wy, itemId, itemKey);
-          if (this.drops.length > before) {
+
+          if (this.drops.length > beforeDrops) {
             const drop = this.drops[this.drops.length - 1];
-            // Reparent the drop's visual under builder.container so the
-            // builder's transform carries it. Container coords become
-            // builder-local; world coords on drop.x/y are still updated
-            // each frame by syncBuilderAttachments() for pickup hitbox.
-            this.entityLayer.removeChild(drop.container);
-            builder.container.addChild(drop.container);
-            drop.container.x = localX;
-            drop.container.y = localY;
-            drop.baseY = localY;
-            this.builderAttachments.push({
-              entity: drop,
-              localX,
-              localY,
-              isAlive: () => this.drops.includes(drop),
-            });
+            // ItemDropEntity lifts visuals 8px above the bottom-center
+            // pivot in its constructor; mirror that here so builder-
+            // attached drops aren't half-buried after re-anchoring.
+            const liftedLocalY = localY - 8;
+            this.attachToBuilder(builder, drop, localX, liftedLocalY, () => this.drops.includes(drop));
+            drop.baseY = liftedLocalY;
+          } else if (this.goldPickups.length > beforeGold) {
+            const gp = this.goldPickups[this.goldPickups.length - 1];
+            this.attachToBuilder(builder, gp, gp.x - bx0, gp.y - by0, () => this.goldPickups.includes(gp));
+          } else if (this.healingPickups.length > beforeHeal) {
+            const hp = this.healingPickups[this.healingPickups.length - 1];
+            this.attachToBuilder(builder, hp, hp.x - bx0, hp.y - by0, () => this.healingPickups.includes(hp));
           }
           break;
         }
-        // Future entity types: Anvil, GoldPickup, HealingPickup, ...
+        // Future entity types: Anvil, ...
         // Each case spawns the entity at (wx, wy) and pushes a
         // BuilderAttachment with isAlive pointing at the owning collection.
         default:
           break;
       }
     }
+  }
+
+  /** Reparent a freshly-spawned entity under the builder's container and
+   *  register a BuilderAttachment so its world coords (x/y) follow the
+   *  builder each frame via syncBuilderAttachments(). */
+  private attachToBuilder(
+    builder: GiantBuilder,
+    entity: BuilderAttachable,
+    localX: number,
+    localY: number,
+    isAlive: () => boolean,
+  ): void {
+    if (entity.container.parent) {
+      entity.container.parent.removeChild(entity.container);
+    }
+    builder.container.addChild(entity.container);
+    entity.container.x = localX;
+    entity.container.y = localY;
+    if (typeof entity.baseY === 'number') {
+      entity.baseY = localY;
+    }
+    this.builderAttachments.push({ entity, localX, localY, isAlive });
   }
 
   /** Sync world coords (entity.x/y) of builder-attached entities so
@@ -4568,28 +4596,10 @@ export class LdtkWorldScene extends Scene {
    * Starter-only items are silently marked seen without VFX.
    */
   private sacredPickupFlow(item: ItemInstance, wx: number, wy: number): void {
-    // ── Ego wake dialogue (T01) — fires after pickup cutscene completes ──
-    if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
-      this.unlockedEvents.add(EGO_EVENT.WAKE);
-      console.log('[Ego] T01 queued for', item.def.id);
-      // Wait for WeaponPulse + LorePopup to finish, then show Ego wake
-      const waitForPickupDone = () => {
-        if (this.activeWeaponPulse?.isBlocking || this.lorePopup?.isBlocking()) {
-          setTimeout(waitForPickupDone, 100);
-          return;
-        }
-        // Wait until loreDisplay is free (no other dialogue active)
-        const waitForFree = () => {
-          if (this.loreDisplay?.isActive) {
-            setTimeout(waitForFree, 100);
-            return;
-          }
-          this.loreDisplay?.showDialogue(EGO_WAKE, true);
-        };
-        setTimeout(waitForFree, 300);
-      };
-      waitForPickupDone();
-    }
+    // Ego wake (T01) is dispatched at the *end* of this function so the
+    // wait loop sees the fully-populated activeWeaponPulse / lorePopupItem
+    // state — otherwise it can pass the gate before the cutscene starts
+    // and fire dialogue on top of the pulse/popup.
 
     // "처음 보는 ?�이?? ??�??�이?�과 ?�일?�게 T2 컷신(줌인 + ?�력 차단 +
     // LorePopup ?��??�로 처리. ?��? �?def �??�시 주울 ?�는 ?�스/컷신 ?�이
@@ -4628,7 +4638,35 @@ export class LdtkWorldScene extends Scene {
     // to a no-op in LorePopup.showIfNew().
     this.lorePopupItem = item;
 
-    // (T01 Ego wake moved to top of sacredPickupFlow — fires before starter-only check)
+    // ── Ego wake dialogue (T01) — fires after pickup cutscene completes ──
+    // Dispatched here at function tail so the wait loop sees the freshly
+    // assigned activeWeaponPulse (T2 cutscene) and lorePopupItem before
+    // its first poll.
+    if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
+      this.unlockedEvents.add(EGO_EVENT.WAKE);
+      console.log('[Ego] T01 queued for', item.def.id);
+      const waitForPickupDone = () => {
+        // Block on: active T2 pulse, an open lore popup, OR a queued
+        // lorePopupItem that has not yet been opened by the popup loop.
+        if (
+          this.activeWeaponPulse?.isBlocking ||
+          this.lorePopup?.isBlocking() ||
+          this.lorePopupItem !== null
+        ) {
+          setTimeout(waitForPickupDone, 100);
+          return;
+        }
+        const waitForFree = () => {
+          if (this.loreDisplay?.isActive) {
+            setTimeout(waitForFree, 100);
+            return;
+          }
+          this.loreDisplay?.showDialogue(EGO_WAKE, true);
+        };
+        setTimeout(waitForFree, 300);
+      };
+      waitForPickupDone();
+    }
   }
 
   /**
