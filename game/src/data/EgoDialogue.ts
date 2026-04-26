@@ -138,6 +138,12 @@ export const EGO_AFFINITY_MAX: LoreLine[] = [
   ego('느끼고 있어, 조금. 너 때문인 것 같아.'),
 ];
 
+/** S04: First ItemDrop pickup after first IW boss clear — anvil retired + inventory hint */
+export const EGO_ANVIL_RETIRED: LoreLine[] = [
+  ego('이 모루는 끝이야. 낡은 거라 그래.'),
+  ego('주운 건 인벤토리에 있어. [I] 누르면 보여.'),
+];
+
 // ── Ego weapon IDs ───────────────────────────────────────────────
 
 /** Weapon def IDs that have an Ego. Only handcrafted weapons. */
@@ -172,6 +178,7 @@ export const EGO_EVENT = {
   WEAPON_SWAP: '__ego_weapon_swap',
   SWAP_RETURN: '__ego_swap_return',
   AFFINITY_MAX: '__ego_affinity_max',
+  ANVIL_RETIRED: '__ego_anvil_retired',
 } as const;
 
 /**

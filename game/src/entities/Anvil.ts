@@ -78,6 +78,9 @@ export class Anvil {
   /** True once the floor collapse has been triggered (prevents re-use). */
   used = false;
 
+  /** True after the first IW boss clear — anvil retired (Playtest 2026-04-26). */
+  disabled = false;
+
   private hintContainer: Container;
   private showHint = false;
   private timer = 0;
@@ -104,9 +107,10 @@ export class Anvil {
 
   private anvilSprite: Sprite | null = null;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, disabled = false) {
     this.x = x;
     this.y = y;
+    this.disabled = disabled;
 
     this.container = new Container();
     this.container.x = x;
@@ -156,7 +160,10 @@ export class Anvil {
 
   private async loadAnvilSprite(): Promise<void> {
     try {
-      const tex = await Assets.load<Texture>(assetPath('assets/sprites/anvil_gate_01.png'));
+      const path = this.disabled
+        ? 'assets/sprites/anvil_gate_01_disable.png'
+        : 'assets/sprites/anvil_gate_01.png';
+      const tex = await Assets.load<Texture>(assetPath(path));
       tex.source.scaleMode = 'nearest';
       const sprite = new Sprite(tex);
       sprite.anchor.set(0.5, 1); // bottom-center pivot
@@ -165,6 +172,33 @@ export class Anvil {
       this.container.addChildAt(sprite, this.container.getChildIndex(this.gfx));
     } catch {
       // Sprite not found — keep placeholder Graphics
+    }
+  }
+
+  /**
+   * Mark this anvil as retired (Playtest 2026-04-26 fix #1).
+   * Swaps to the disabled sprite and hides all approach affordances.
+   * Idempotent — safe to call repeatedly.
+   */
+  async setDisabled(disabled: boolean): Promise<void> {
+    if (this.disabled === disabled) return;
+    this.disabled = disabled;
+    // Reload sprite for the new state
+    if (this.anvilSprite) {
+      this.container.removeChild(this.anvilSprite);
+      this.anvilSprite.destroy();
+      this.anvilSprite = null;
+    }
+    await this.loadAnvilSprite();
+    if (disabled) {
+      this.halo.clear();
+      this.hintContainer.visible = false;
+      // Drop existing sparks
+      for (const s of this.sparks) {
+        this.particleLayer.removeChild(s.gfx);
+        s.gfx.destroy();
+      }
+      this.sparks = [];
     }
   }
 
@@ -231,6 +265,7 @@ export class Anvil {
 
   /** Place a weapon on the anvil. Shows a small colored rect on top. */
   placeItem(item: ItemInstance): void {
+    if (this.disabled) return;
     this.item = item;
 
     if (this.itemGfx) {
@@ -360,7 +395,7 @@ export class Anvil {
   setShowHint(show: boolean): void {
     if (this.showHint !== show) {
       this.showHint = show;
-      this.hintContainer.visible = show && !this.used;
+      this.hintContainer.visible = show && !this.used && !this.disabled;
       if (this.hintContainer.visible) this.refreshSymbolPrompt();
     }
   }
@@ -390,7 +425,7 @@ export class Anvil {
     // Slow outer ring + faster inner shimmer. Strengthens on approach.
     // Anchored to the anvil top surface (y = -this.height - 1).
     this.halo.clear();
-    if (!this.used) {
+    if (!this.used && !this.disabled) {
       const strongMul = this.showHint ? 1.6 : 1.0;
       const outerR = 13 + Math.sin(t * 1.5) * 3;
       const outerA = (0.15 + Math.sin(t * 1.5) * 0.1) * strongMul;
@@ -406,7 +441,7 @@ export class Anvil {
     }
 
     // --- Spark emitter ---------------------------------------------------
-    if (!this.used) {
+    if (!this.used && !this.disabled) {
       this.sparkCooldown -= dt;
       const interval = this.showHint ? SPARK_SPAWN_INTERVAL * 0.4 : SPARK_SPAWN_INTERVAL;
       if (this.sparkCooldown <= 0 && this.sparks.length < MAX_SPARKS) {

@@ -151,7 +151,7 @@ export class GiantBuilder {
     // Bloom shader on all lights — makes them glow like real indicators
     if (this.lights.length > 0) {
       this.lightContainer.filters = [new GlowFilter({
-        color: 0xE87830,
+        color: this.lights[0].color,
         radius: 10,
         intensity: 1.5,
         coreBoost: 0.9,

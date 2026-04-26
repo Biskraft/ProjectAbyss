@@ -51,6 +51,7 @@ import { ToastManager } from '@ui/Toast';
 import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { sacredSave } from '@save/PlayerSave';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
@@ -2984,6 +2985,12 @@ export class ItemWorldScene extends Scene {
         // First entry privilege ends on first boss kill
         if (this.isFirstNormalEntry) {
           this.isFirstNormalEntry = false;
+        }
+
+        // Playtest 2026-04-26 #1: anvil retires after first IW boss clear
+        // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
+        if (!sacredSave.isFirstItemWorldBossDefeated()) {
+          sacredSave.markFirstItemWorldBossDefeated();
         }
 
         // Analytics: stratum boss defeated

@@ -81,7 +81,7 @@ import { DivePreview } from '@ui/DivePreview';
 import { sacredSave } from '@save/PlayerSave';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_WORLD_RETURN, EGO_EVENT, hasEgo,
+  EGO_WORLD_RETURN, EGO_ANVIL_RETIRED, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
 import { LandingDustManager } from '@effects/LandingDust';
@@ -477,7 +477,7 @@ export class LdtkWorldScene extends Scene {
       label: 'Anvil',
       priority: 20,
       canInteract: () =>
-        !!this.anvil && !this.anvil.used && !this.anvil.hasItem() &&
+        !!this.anvil && !this.anvil.used && !this.anvil.disabled && !this.anvil.hasItem() &&
         !this.altarSelectActive &&
         this.isPlayerNearAnvil(),
       onInteract: () => this.openAnvilUI(),
@@ -954,7 +954,10 @@ export class LdtkWorldScene extends Scene {
     this.uiController.detachForItemWorld();
     // 명시적 hide. detachForItemWorld가 부모에서 제거하지만, 일부 전환 프레임에서
     // 잠깐 visible=true 상태로 다시 attach되는 경로를 대비한 방어적 처리.
-    if (this.minimap) this.minimap.visible = false;
+    if (this.minimap) {
+      if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
+      this.minimap.visible = false;
+    }
     if (this.altarUI?.parent) {
       this.altarUI.parent.removeChild(this.altarUI);
     }
@@ -3049,25 +3052,11 @@ export class LdtkWorldScene extends Scene {
     const hasNeighbor = (dir: 'n' | 's' | 'e' | 'w') =>
       (level.dirNeighbors[dir]?.length ?? 0) > 0;
 
-    // Check if any neighbor in a direction has a save point
-    const neighborHasSave = (dir: 'n' | 's' | 'e' | 'w'): boolean => {
-      const neighbors = level.dirNeighbors[dir] ?? [];
-      for (const nId of neighbors) {
-        const nLevel = this.loader.getLevel(nId);
-        if (!nLevel) continue;
-        if (nLevel.roomType === 'Save') return true;
-        if (nLevel.identifier.toLowerCase().includes('saveroom')) return true;
-        if (nLevel.entities.some(e => e.type === 'SavePoint')) return true;
-      }
-      return false;
-    };
-
     const addRuns = (
       dir: ExitGlowDir,
       count: number,
       isPassableAt: (i: number) => boolean,
       toWorld: (runStart: number, runLen: number) => { x: number; y: number; span: number },
-      isSaveRoom: boolean,
     ) => {
       let i = 0;
       while (i < count) {
@@ -3075,7 +3064,7 @@ export class LdtkWorldScene extends Scene {
         let j = i;
         while (j < count && isPassableAt(j)) j++;
         const { x, y, span } = toWorld(i, j - i);
-        const glow = new ExitGlow(dir, x, y, span, isSaveRoom);
+        const glow = new ExitGlow(dir, x, y, span);
         this.entityLayer.addChild(glow.container);
         this.exitGlows.push(glow);
         i = j;
@@ -3087,7 +3076,6 @@ export class LdtkWorldScene extends Scene {
       addRuns('right', H,
         (r) => passable(grid[r]?.[W - 1]),
         (rs, rl) => ({ x: W * TS, y: rs * TS, span: rl * TS }),
-        neighborHasSave('e'),
       );
     }
     // Left edge: column 0
@@ -3095,7 +3083,6 @@ export class LdtkWorldScene extends Scene {
       addRuns('left', H,
         (r) => passable(grid[r]?.[0]),
         (rs, rl) => ({ x: 0, y: rs * TS, span: rl * TS }),
-        neighborHasSave('w'),
       );
     }
     // Bottom edge: row H-1
@@ -3103,7 +3090,6 @@ export class LdtkWorldScene extends Scene {
       addRuns('down', W,
         (c) => passable(grid[H - 1]?.[c]),
         (cs, cl) => ({ x: cs * TS, y: H * TS, span: cl * TS }),
-        neighborHasSave('s'),
       );
     }
     // Top edge: row 0
@@ -3111,7 +3097,6 @@ export class LdtkWorldScene extends Scene {
       addRuns('up', W,
         (c) => passable(grid[0]?.[c]),
         (cs, cl) => ({ x: cs * TS, y: 0, span: cl * TS }),
-        neighborHasSave('n'),
       );
     }
   }
@@ -4635,10 +4620,10 @@ export class LdtkWorldScene extends Scene {
       this.updatePlayerAtk();
       // Mark global Item World tutorial as done
       this.unlockedEvents.add('__itemWorldTutorialDone');
-      // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
-      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-        this.hud.setItemKeyHighlight(true);
-      }
+      // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화. 이전에 I 를
+      // 눌러 펄스가 꺼졌더라도 IW 복귀 시 다시 강조해 인벤토리 사용을 환기.
+      this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
+      this.hud.setItemKeyHighlight(true);
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -4646,18 +4631,12 @@ export class LdtkWorldScene extends Scene {
         this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
       }
 
-      // ── Ego T14: "또 올 거야?" after first item world return ──
-      if (
-        hasEgo(targetItem.def.id)
-        && !this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)
-      ) {
-        this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-        setTimeout(() => {
-          if (!this.loreDisplay?.isActive) {
-            this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
-          }
-        }, 1000);
-      }
+      // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
+      // After the first IW boss clear, replace the standard "또 올 거야?"
+      // line with the anvil-retired + inventory tutorial dialogue, then
+      // disable the current anvil once the dialogue finishes. Otherwise the
+      // T14 line plays once as before.
+      this.fireWorldReturnDialogue(targetItem.def.id);
 
       if (isAltar) {
         if (targetItem.level > prevLevel) {
@@ -5168,9 +5147,14 @@ export class LdtkWorldScene extends Scene {
     const anvilEnts = level.entities.filter(
       e => e.type === 'Anvil',
     );
+    // Anvil retires after the EGO_ANVIL_RETIRED dialogue plays once
+    // (which itself fires on the first world-return after first IW boss clear).
+    // Until that dialogue plays, the anvil stays active even if the boss has
+    // been defeated — Rustborn explains the retirement before the visual changes.
+    const anvilDisabled = this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED);
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
-      this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.anvil = new Anvil(ent.px[0], ent.px[1], anvilDisabled);
       this.currentAnvilIid = ent.iid;
       this.entityLayer.addChildAt(this.anvil.container, 0);
       return;
@@ -5181,7 +5165,7 @@ export class LdtkWorldScene extends Scene {
     if (altarEnts.length > 0) {
       console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" ??using first Altar position as fallback`);
       const ent = altarEnts[0];
-      this.anvil = new Anvil(ent.px[0], ent.px[1]);
+      this.anvil = new Anvil(ent.px[0], ent.px[1], anvilDisabled);
       this.currentAnvilIid = ent.iid;
       this.entityLayer.addChildAt(this.anvil.container, 0);
     }
@@ -5203,7 +5187,7 @@ export class LdtkWorldScene extends Scene {
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
       return;
     }
-    if (this.anvil.used) {
+    if (this.anvil.used || this.anvil.disabled) {
       this.anvil.update(dt);
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
       return;
@@ -5260,6 +5244,8 @@ export class LdtkWorldScene extends Scene {
    * it on the anvil instead of equipping.
    */
   private openAnvilUI(): void {
+    // Playtest 2026-04-26: retired anvil ignores all approach interaction.
+    if (!this.anvil || this.anvil.disabled) return;
     if (this.inventory.items.length === 0) {
       this.toast.show('No items to place', 0xff4444);
       return;
@@ -5571,10 +5557,10 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
       this.unlockedEvents.add('__itemWorldTutorialDone');
-      // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
-      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-        this.hud.setItemKeyHighlight(true);
-      }
+      // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화. 이전에 I 를
+      // 눌러 펄스가 꺼졌더라도 IW 복귀 시 다시 강조해 인벤토리 사용을 환기.
+      this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
+      this.hud.setItemKeyHighlight(true);
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -5589,18 +5575,8 @@ export class LdtkWorldScene extends Scene {
         this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
       }
 
-      // ── Ego T14: "또 올 거야?" after first item world return ──
-      if (
-        hasEgo(targetItem.def.id)
-        && !this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)
-      ) {
-        this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-        setTimeout(() => {
-          if (!this.loreDisplay?.isActive) {
-            this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
-          }
-        }, 1000);
-      }
+      // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
+      this.fireWorldReturnDialogue(targetItem.def.id);
 
       // Return to the forge room (not the tunnel)
       this.inItemTunnel = false;
@@ -5660,10 +5636,9 @@ export class LdtkWorldScene extends Scene {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
         this.unlockedEvents.add('__itemWorldTutorialDone');
-        // �??�이?�계 ?�리?????�직 I �????��??�면 HUD [I] ???�스 강조 ON.
-        if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-          this.hud.setItemKeyHighlight(true);
-        }
+        // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화.
+        this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
+        this.hud.setItemKeyHighlight(true);
         // Collect earned gold from Item World
         if (itemWorldScene.earnedGold > 0) {
           this.gold += itemWorldScene.earnedGold;
@@ -6108,6 +6083,48 @@ export class LdtkWorldScene extends Scene {
         this.loreDisplay.showDialogue(EGO_ANVIL, false);
         return;
       }
+    }
+  }
+
+  /**
+   * Fire the appropriate dialogue on world return after exiting Item World.
+   *
+   * Branches:
+   *  - First IW boss already cleared & anvil-retired dialogue not yet shown
+   *      → EGO_ANVIL_RETIRED (replaces T14), then disables current anvil
+   *  - Otherwise, the standard T14 "또 올 거야?" line plays once
+   *
+   * Both branches are gated to Ego-bearing weapons (currently Rustborn only).
+   */
+  private fireWorldReturnDialogue(weaponDefId: string): void {
+    if (!hasEgo(weaponDefId)) return;
+
+    const anvilRetiring = (
+      sacredSave.isFirstItemWorldBossDefeated()
+      && !this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
+    );
+
+    if (anvilRetiring) {
+      this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
+      // Suppress the T14 line permanently — anvil-retired replaces it.
+      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+      setTimeout(async () => {
+        if (this.loreDisplay && !this.loreDisplay.isActive) {
+          await this.loreDisplay.showDialogue(EGO_ANVIL_RETIRED, false);
+        }
+        // Disable the current anvil only after Rustborn explains it.
+        await this.anvil?.setDisabled(true);
+      }, 1000);
+      return;
+    }
+
+    if (!this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)) {
+      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+      setTimeout(() => {
+        if (!this.loreDisplay?.isActive) {
+          this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
+        }
+      }, 1000);
     }
   }
 

@@ -29,6 +29,8 @@ export interface SacredSaveState {
   firstPickupDone: boolean;
   firstDiveDone: boolean;
   firstReturnShown: boolean;
+  /** 첫 아이템계 보스 처치 — 이후 anvil 비활성화. */
+  firstItemWorldBossDefeated: boolean;
   /** itemDefId → 누적 DIVE 횟수. */
   diveCount: Record<string, number>;
   settings: SacredSettings;
@@ -43,6 +45,7 @@ function makeEmptyState(): SacredSaveState {
     firstPickupDone: false,
     firstDiveDone: false,
     firstReturnShown: false,
+    firstItemWorldBossDefeated: false,
     diveCount: {},
     settings: {
       alwaysShowLore: false,
@@ -63,6 +66,7 @@ class SacredSaveImpl {
       if (typeof data.firstPickupDone === 'boolean') next.firstPickupDone = data.firstPickupDone;
       if (typeof data.firstDiveDone === 'boolean') next.firstDiveDone = data.firstDiveDone;
       if (typeof data.firstReturnShown === 'boolean') next.firstReturnShown = data.firstReturnShown;
+      if (typeof data.firstItemWorldBossDefeated === 'boolean') next.firstItemWorldBossDefeated = data.firstItemWorldBossDefeated;
       if (data.diveCount && typeof data.diveCount === 'object') {
         next.diveCount = { ...data.diveCount };
       }
@@ -85,6 +89,7 @@ class SacredSaveImpl {
       firstPickupDone: this.state.firstPickupDone,
       firstDiveDone: this.state.firstDiveDone,
       firstReturnShown: this.state.firstReturnShown,
+      firstItemWorldBossDefeated: this.state.firstItemWorldBossDefeated,
       diveCount: { ...this.state.diveCount },
       settings: { ...this.state.settings },
     };
@@ -121,6 +126,9 @@ class SacredSaveImpl {
 
   isFirstReturnShown(): boolean { return this.state.firstReturnShown; }
   markFirstReturnShown(): void { this.state.firstReturnShown = true; }
+
+  isFirstItemWorldBossDefeated(): boolean { return this.state.firstItemWorldBossDefeated; }
+  markFirstItemWorldBossDefeated(): void { this.state.firstItemWorldBossDefeated = true; }
 
   // ---------------------------------------------------------------------------
   // Dive counter
