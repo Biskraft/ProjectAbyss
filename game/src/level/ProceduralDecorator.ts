@@ -1144,35 +1144,44 @@ export class ProceduralDecorator {
   private dtFoundry(gfx: Graphics, edge: EdgeTile, rng: PRNG): void {
     const { T, bx, by, wallX, dir } = this.ex(edge);
     if (edge.type === 'ceiling') {
-      // Molten drip trail (1/4 density)
-      if (rng.next() < 0.25) {
-        const ox = rng.nextFloat(2, T - 2), cy = (edge.row + 1) * T;
-        dripTrail(gfx, bx + ox, cy, cy + rng.nextFloat(8, 20),
-          0xee6622, 2, 1.5, 0.5, rng);
+      // Molten drip trail: elongated teardrop + trail dots descending
+      const ox = rng.nextFloat(2, T - 2), cy = (edge.row + 1) * T;
+      const dropLen = rng.nextFloat(8, 20);
+      // Trail of diminishing drops
+      for (let d = 0; d < 4; d++) {
+        const dy = cy + d * dropLen / 4;
+        const r = rng.nextFloat(1.5, 3) * (1 - d * 0.2);
+        gfx.circle(bx + ox + rng.nextFloat(-1, 1), dy, r);
+        gfx.fill({ color: 0xee6622, alpha: 0.7 - d * 0.12 });
       }
+      // Hot glow halo at top
+      gfx.circle(bx + ox, cy + 2, 5);
+      gfx.fill({ color: 0xffaa44, alpha: 0.15 });
     } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-      // Scorch mark (1/4 density)
-      if (rng.next() < 0.25) {
-        const oy = rng.nextFloat(2, T - 4);
-        const cx2 = wallX + 4 * dir, cy2 = by + oy;
-        gfx.circle(cx2, cy2, rng.nextFloat(2, 4));
-        gfx.fill({ color: 0x1a0a08, alpha: 0.6 });
-        // Fewer, shorter radial lines
-        for (let r = 0; r < rng.nextInt(2, 4); r++) {
-          const a = rng.nextFloat(0, Math.PI * 2);
-          const len = rng.nextFloat(2, 5);
-          gfx.moveTo(cx2, cy2);
-          gfx.lineTo(cx2 + Math.cos(a) * len, cy2 + Math.sin(a) * len);
-          gfx.stroke({ width: rng.nextFloat(0.5, 1), color: 0x3a1808 });
-        }
+      // Scorch mark: char spot + scattered burn dots (no diagonal lines)
+      const oy = rng.nextFloat(2, T - 4);
+      const cx2 = wallX + 4 * dir, cy2 = by + oy;
+      gfx.circle(cx2, cy2, rng.nextFloat(2, 4));
+      gfx.fill({ color: 0x1a0a08, alpha: 0.6 });
+      // Scattered burn dots instead of radial lines
+      for (let r = 0; r < rng.nextInt(3, 6); r++) {
+        const a = rng.nextFloat(0, Math.PI * 2);
+        const dist = rng.nextFloat(3, 8);
+        gfx.circle(cx2 + Math.cos(a) * dist, cy2 + Math.sin(a) * dist, rng.nextFloat(0.5, 1.5));
+        gfx.fill({ color: 0x3a1808, alpha: rng.nextFloat(0.3, 0.6) });
       }
     } else {
-      // Floor: hammer strike (1/4 density)
-      if (rng.next() < 0.25) {
-        const ox = rng.nextFloat(2, T - 4);
-        const r = rng.nextFloat(3, 7);
-        gfx.circle(bx + ox, by - 1, r); gfx.stroke({ width: 1.5, color: this.cRebar });
-        gfx.circle(bx + ox, by - 1, r * 0.5); gfx.fill({ color: 0xee6622, alpha: 0.3 });
+      // Floor: hammer strike mark (impact crater, no radial lines)
+      const ox = rng.nextFloat(2, T - 4);
+      const r = rng.nextFloat(3, 7);
+      gfx.circle(bx + ox, by - 1, r); gfx.stroke({ width: 1.5, color: this.cRebar });
+      gfx.circle(bx + ox, by - 1, r * 0.5); gfx.fill({ color: 0xee6622, alpha: 0.3 });
+      // Scattered impact debris dots
+      for (let s = 0; s < 5; s++) {
+        const a = rng.nextFloat(0, Math.PI * 2);
+        const dist = r + rng.nextFloat(1, 4);
+        gfx.circle(bx + ox + Math.cos(a) * dist, by - 1 + Math.sin(a) * dist, rng.nextFloat(0.5, 1.2));
+        gfx.fill({ color: this.cRebar, alpha: rng.nextFloat(0.3, 0.5) });
       }
     }
   }

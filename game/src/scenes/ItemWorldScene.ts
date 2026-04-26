@@ -7,7 +7,7 @@ import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel } from '@level/LdtkLoader';
+import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
 import { GameAction } from '@core/InputManager';
@@ -82,7 +82,6 @@ import { ScreenFlash } from '@effects/ScreenFlash';
 import { create9SlicePanel } from '@ui/ModalPanel';
 import { Portal } from '@entities/Portal';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
-import { GlowFilter } from '@effects/GlowFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
 import {
   getAreaPalette,
@@ -127,6 +126,14 @@ const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
 const BASE_EXP_PER_KILL = 60;
 const BASE_EXP_ROOM_PASS = 60;
+
+const FOUNDRY_BG_HATCH_TILES = new Set([
+  '6,0', '7,0', '8,0', '9,0', '10,0',
+  '6,1', '7,1', '8,1', '9,1', '10,1',
+  '3,2', '6,2', '8,2', '9,2', '10,2',
+  '2,3', '3,3', '8,3', '9,3', '10,3',
+  '2,4', '3,4',
+]);
 
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold';
@@ -814,16 +821,7 @@ export class ItemWorldScene extends Scene {
     };
     // Same palette filter as walls ? decorations get full depth gradient
     this.decoAggregate.filters = [this.naturalPaletteFilter];
-    // Foundry theme: add glow shader so molten/ember decorations emit light
-    const themeId = this.item.def.themeId ?? 'T-HABITAT';
-    if (themeId === 'T-FOUNDRY') {
-      this.artificialDecoAggregate.filters = [
-        this.wallPaletteFilter,
-        new GlowFilter({ color: 0xee6622, radius: 6, intensity: 0.8, coreBoost: 0.6 }),
-      ];
-    } else {
-      this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
-    }
+    this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
     this.structAggregate.filters = [this.wallPaletteFilter];
 
     // Strata depth auto-transformation ? deeper = darker, more corroded
@@ -908,7 +906,7 @@ export class ItemWorldScene extends Scene {
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
@@ -1002,9 +1000,9 @@ export class ItemWorldScene extends Scene {
       const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
       const localRow = startAbsRow - stratumOffset;
       const portalX = startCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-      // 천장에서 6셀 (이전 +32 = 2셀, +64 = 4셀 더 하향). 플레이어가 입장 직후
+      // 천장에서 4셀 (+32 = 2셀, +32 = 2셀 더 하향). 플레이어가 입장 직후
       // 시야에 즉시 들어오지 않도록 약간 아래에 배치.
-      const portalY = localRow * IW_ROOM_H_PX + 32 + 64;
+      const portalY = localRow * IW_ROOM_H_PX + 32 + 32;
       this.entryPortal = new Portal(portalX, portalY, this.item.rarity, 'altar');
       this.entityLayer.addChild(this.entryPortal.container);
     }
@@ -1659,6 +1657,15 @@ export class ItemWorldScene extends Scene {
     // No-op ? cycle scaling now happens via level bump at spawn time.
   }
 
+  private filterFoundryBackgroundDecorations(tiles: LdtkTile[]): LdtkTile[] {
+    if (this.item.def.themeId !== 'T-FOUNDRY') return tiles;
+    return tiles.filter((tile) => {
+      const col = Math.floor(tile.src[0] / TILE_SIZE);
+      const row = Math.floor(tile.src[1] / TILE_SIZE);
+      return !FOUNDRY_BG_HATCH_TILES.has(`${col},${row}`);
+    });
+  }
+
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
@@ -1678,11 +1685,12 @@ export class ItemWorldScene extends Scene {
       {
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
-        applyAreaTilesetToLdtkTiles(bgAreaId, ldtkLevel.backgroundTiles);
+        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles);
+        applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.shadowTiles);
+        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
       }
-      this.ldtkRenderer.renderLevel(ldtkLevel.backgroundTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
       }
@@ -2405,7 +2413,7 @@ export class ItemWorldScene extends Scene {
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const renderer = new LdtkRenderer();
         {
