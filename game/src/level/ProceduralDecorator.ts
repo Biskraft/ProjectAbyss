@@ -95,6 +95,10 @@ function gridAt(grid: number[][], row: number, col: number): number {
   return r[col];
 }
 
+function gridInBounds(grid: number[][], row: number, col: number): boolean {
+  return row >= 0 && row < grid.length && col >= 0 && col < (grid[row]?.length ?? 0);
+}
+
 // ---------------------------------------------------------------------------
 // ProceduralDecorator
 // ---------------------------------------------------------------------------
@@ -330,21 +334,29 @@ export class ProceduralDecorator {
    */
   private hasLargeStructureSurface(edge: EdgeTile, grid: number[][]): boolean {
     const { col, row } = edge;
-    const margin = 3;
+    const clearance = 5;
 
     if (edge.type === 'floor' || edge.type === 'ceiling') {
       const backingRow = edge.type === 'floor' ? row + 1 : row - 1;
-      for (let dc = -margin; dc <= margin; dc++) {
-        if (!isSolid(gridAt(grid, row, col + dc))) return false;
-        if (!isSolid(gridAt(grid, backingRow, col + dc))) return false;
+      const openRow = edge.type === 'floor' ? row - 1 : row + 1;
+      for (let dc = -clearance; dc <= clearance; dc++) {
+        const c = col + dc;
+        if (!gridInBounds(grid, row, c) || !gridInBounds(grid, backingRow, c) || !gridInBounds(grid, openRow, c)) return false;
+        if (!isSolid(gridAt(grid, row, c))) return false;
+        if (!isSolid(gridAt(grid, backingRow, c))) return false;
+        if (!isEmpty(gridAt(grid, openRow, c))) return false;
       }
       return true;
     }
 
     const backingCol = edge.type === 'wall_left' ? col + 1 : col - 1;
-    for (let dr = -margin; dr <= margin; dr++) {
-      if (!isSolid(gridAt(grid, row + dr, col))) return false;
-      if (!isSolid(gridAt(grid, row + dr, backingCol))) return false;
+    const openCol = edge.type === 'wall_left' ? col - 1 : col + 1;
+    for (let dr = -clearance; dr <= clearance; dr++) {
+      const r = row + dr;
+      if (!gridInBounds(grid, r, col) || !gridInBounds(grid, r, backingCol) || !gridInBounds(grid, r, openCol)) return false;
+      if (!isSolid(gridAt(grid, r, col))) return false;
+      if (!isSolid(gridAt(grid, r, backingCol))) return false;
+      if (!isEmpty(gridAt(grid, r, openCol))) return false;
     }
     return true;
   }

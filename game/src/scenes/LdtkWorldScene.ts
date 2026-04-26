@@ -469,7 +469,7 @@ export class LdtkWorldScene extends Scene {
       canInteract: () =>
         !!this.anvil && !this.anvil.used && !this.anvil.hasItem() &&
         !this.altarSelectActive &&
-        this.anvil.overlaps(this.player.x, this.player.y, this.player.width, this.player.height),
+        this.isPlayerNearAnvil(),
       onInteract: () => this.openAnvilUI(),
     };
     const savePoint: ProximityInteraction = {
@@ -5097,31 +5097,48 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private isPlayerNearAnvil(): boolean {
+    if (!this.anvil) return false;
+    const promptRange = 16;
+    return this.anvil.overlaps(
+      this.player.x - promptRange,
+      this.player.y - promptRange,
+      this.player.width + promptRange * 2,
+      this.player.height + promptRange * 2,
+    );
+  }
+
   private updateAnvil(dt: number): void {
-    if (!this.anvil || this.anvil.used) return;
+    if (!this.anvil) {
+      if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      return;
+    }
+    if (this.anvil.used) {
+      this.anvil.update(dt);
+      if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      return;
+    }
 
     this.anvil.update(dt);
 
-    // Proximity check
-    const near = this.anvil.overlaps(
-      this.player.x - 8, this.player.y - 8,
-      this.player.width + 16, this.player.height + 16,
-    );
+    const near = this.isPlayerNearAnvil();
     this.anvil.setShowHint(false); // disable built-in hint ??use KeyPrompt instead
 
-    // KeyPrompt ??create lazily, show/hide + position in uiContainer.
-    // Pattern A(Modal): C(ATTACK) �??�벤?�리(Anvil 모드) ?�기. ??LOOK_UP)?�
-    // 방향 ?�력?�라 ?�인 ?�로 부?�합(UI_Interaction_Patterns.md).
-    if (near && !this.anvil.hasItem()) {
+    // KeyPrompt — create lazily, show/hide + position in uiContainer.
+    // Pattern A(Modal): C(ATTACK) 키로 인벤토리(Anvil 모드) 열기 → 아이템
+    // 선택 즉시 Item World 진입 (strike 단계 없음). 무기 장착 여부와 무관하게
+    // 다가가면 항상 prompt 를 띄워 "C 로 진행 가능"을 일관되게 알린다.
+    if (near) {
       if (!this.anvilPrompt) {
         this.anvilPrompt = KeyPrompt.createPrompt('C', 'Place Weapon', this.game.uiScale);
-        this.anvilPrompt.visible = false;
+      }
+      if (!this.anvilPrompt.parent) {
         this.game.uiContainer.addChild(this.anvilPrompt);
       }
       this.anvilPrompt.visible = true;
       const us = this.game.uiScale;
       const cam = this.game.camera;
-      const ax = this.anvil.container.x + 16;
+      const ax = this.anvil.container.x;
       const ay = this.anvil.container.y;
       const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilPrompt.width / 2;
       const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
