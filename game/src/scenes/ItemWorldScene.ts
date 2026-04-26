@@ -1999,11 +1999,11 @@ export class ItemWorldScene extends Scene {
     } else if (isBoss) {
       desiredType = 'Boss';
     } else if (!cell.onCriticalPath) {
-      // Off-path rooms: equal 25% for Treasure / Rest / Puzzle / Combat
+      // Off-path rooms: Combat-weighted (55% Combat / 15% Treasure / 15% Rest / 15% Puzzle)
       const roll = rng.next();
-      if (roll < 0.25) desiredType = 'Treasure';
-      else if (roll < 0.50) desiredType = 'Rest';
-      else if (roll < 0.75) desiredType = 'Puzzle';
+      if (roll < 0.15) desiredType = 'Treasure';
+      else if (roll < 0.30) desiredType = 'Rest';
+      else if (roll < 0.45) desiredType = 'Puzzle';
       else desiredType = 'Combat';
     } else {
       desiredType = 'Combat';
