@@ -43,7 +43,7 @@ import { CrackedFloor } from '@entities/CrackedFloor';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -126,6 +126,7 @@ import { WorldMapOverlay } from '@ui/WorldMapOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
+import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { PRNG } from '@utils/PRNG';
@@ -154,6 +155,7 @@ import { assetPath } from '@core/AssetLoader';
 
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
+const VOID_FADE_DURATION = 180;
 
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // ItemTunnel world was removed from the LDtk project; tunnel descent flow
@@ -410,6 +412,14 @@ export class LdtkWorldScene extends Scene {
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
   private updraftSystem!: UpdraftSystem;
+  // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
+  private voidDropActive = false;
+  private voidFadePhase: 'none' | 'out' | 'in' = 'none';
+  private voidFadeTimer = 0;
+  private voidReturnLevelId = '';
+  private voidReturnX = 0;
+  private voidReturnY = 0;
+  private voidFogSystem!: VoidFogSystem;
   // Breakable tile (IntGrid 9) hit tracking ??3 hits to destroy
   private breakableHits: Map<string, number> = new Map();
   private breakableHitThisSwing: Set<string> = new Set();
@@ -703,6 +713,8 @@ export class LdtkWorldScene extends Scene {
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
+    // Void fog particles (black mist rising from void tiles)
+    this.voidFogSystem = new VoidFogSystem(this.entityLayer);
 
     // Player
     this.player = new Player(this.game);
@@ -851,7 +863,7 @@ export class LdtkWorldScene extends Scene {
     // World Map overlay
     this.worldMap = new WorldMapOverlay(this.uiSkin);
     this.worldMap.setLoader(this.loader);
-    this.worldMap.setRooms(this.loader.getWorldMap().filter(r => !r.id.startsWith('Debug_')));
+    this.worldMap.setRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic'));
     this.game.legacyUIContainer.addChild(this.worldMap.container);
 
     this.transitionController = new WorldTransitionController();
@@ -1093,6 +1105,13 @@ export class LdtkWorldScene extends Scene {
       this.screenCrack.update(dt);
     }
 
+    // Void fade in progress -- all input blocked
+    if (this.voidDropActive) {
+      this.updateVoidFade(dt);
+      this.screenFlash.update(dt);
+      return;
+    }
+
     // Floor collapse in progress ??all input blocked, camera frozen
     if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
       this.floorCollapse.update(dt);
@@ -1245,6 +1264,10 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Player
+    // 직전 프레임의 playerOnBuilder 값을 onCarrier 로 전달해, 빌더 위
+    // grounding 이 lastSafeX/Y 갱신을 건너뛰도록 한다. 빌더에서 내려선
+    // 다음 프레임에 1틱 늦게 safe ground 가 잡히는데 시각적으로 무시 가능.
+    this.player.onCarrier = this.playerOnBuilder;
     this.player.update(dt);
 
     // After physics: is the player now grounded on a builder-stamped tile?
@@ -1658,8 +1681,15 @@ export class LdtkWorldScene extends Scene {
     // Spike hazard contact
     this.checkSpikeContact();
 
+    // Void contact check (sequence handled by early-return above)
+    if (this.voidCooldown > 0) this.voidCooldown -= dt;
+    this.checkVoidContact();
+
     // Updraft wind zones
     this.applyUpdrafts(dt);
+
+    // Void fog particles (visual only)
+    this.voidFogSystem.update(dt, this.collisionGrid, this.game.camera);
 
     // Exit Light Bleed pulse + ?�레?�어 거리 기반 ?�께 ?�장.
     if (this.exitGlows.length > 0) {
@@ -2256,8 +2286,8 @@ export class LdtkWorldScene extends Scene {
   private static readonly debugMode = new URLSearchParams(window.location.search).has('debug');
 
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
-    // Debug_ rooms only accessible with ?debug in URL
-    if (levelId.startsWith('Debug_') && !LdtkWorldScene.debugMode) {
+    // Debug rooms (RoomType=Debug) only accessible with ?debug in URL
+    if (this.loader.getLevel(levelId)?.roomType === 'Debug' && !LdtkWorldScene.debugMode) {
       return;
     }
     const level = this.loader.getLevel(levelId);
@@ -3024,7 +3054,10 @@ export class LdtkWorldScene extends Scene {
       const neighbors = level.dirNeighbors[dir] ?? [];
       for (const nId of neighbors) {
         const nLevel = this.loader.getLevel(nId);
-        if (nLevel?.entities.some(e => e.type === 'SavePoint')) return true;
+        if (!nLevel) continue;
+        if (nLevel.roomType === 'Save') return true;
+        if (nLevel.identifier.toLowerCase().includes('saveroom')) return true;
+        if (nLevel.entities.some(e => e.type === 'SavePoint')) return true;
       }
       return false;
     };
@@ -3138,6 +3171,63 @@ export class LdtkWorldScene extends Scene {
       this.player.onDeath();
       this.game.hitstopFrames = 8;
       this.screenFlash.flashDamage(true);
+    }
+  }
+
+  /** IntGrid void (value 10) -- fade out/in, return to last safe ground. */
+  private voidCooldown = 0;
+
+  private checkVoidContact(): void {
+    if (this.voidDropActive || this.voidCooldown > 0 || this.player.hp <= 0) return;
+    if (!isInVoid(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData)) return;
+
+    this.voidDropActive = true;
+    this.voidReturnLevelId = this.currentLevel?.identifier ?? this.playerSpawnLevelId;
+    this.voidReturnX = this.player.lastSafeX;
+    this.voidReturnY = this.player.lastSafeY;
+    this.voidFadePhase = 'out';
+    this.voidFadeTimer = 0;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.fadeOverlay.alpha = 0;
+  }
+
+  private updateVoidFade(dt: number): void {
+    this.voidFadeTimer += dt;
+    const t = Math.min(1, this.voidFadeTimer / VOID_FADE_DURATION);
+
+    if (this.voidFadePhase === 'out') {
+      this.fadeOverlay.alpha = t;
+      if (t < 1) return;
+
+      this.loadLevel(this.voidReturnLevelId, 'down');
+      this.player.x = this.voidReturnX;
+      this.player.y = this.voidReturnY;
+      this.player.lastSafeX = this.voidReturnX;
+      this.player.lastSafeY = this.voidReturnY;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.roomData = this.collisionGrid;
+      this.player.savePrevPosition();
+      this.game.camera.snap(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height / 2,
+      );
+
+      this.voidFadePhase = 'in';
+      this.voidFadeTimer = 0;
+      this.fadeOverlay.alpha = 1;
+      return;
+    }
+
+    if (this.voidFadePhase === 'in') {
+      this.fadeOverlay.alpha = 1 - t;
+      if (t < 1) return;
+
+      this.fadeOverlay.alpha = 0;
+      this.voidFadePhase = 'none';
+      this.voidCooldown = 500;
+      this.voidDropActive = false;
     }
   }
 
@@ -5726,7 +5816,7 @@ export class LdtkWorldScene extends Scene {
     if (!this.currentLevel) return;
 
     const worldMap = this.loader.getWorldMap()
-      .filter(r => !r.id.startsWith('ItemTunnel') && !r.id.startsWith('ItemWorld') && !r.id.startsWith('Debug_'));
+      .filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic');
     if (worldMap.length === 0) return;
 
     // Panel size matches skin hud_map_frame inner area (center: 112x60 at 640x360)

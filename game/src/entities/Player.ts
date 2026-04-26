@@ -208,6 +208,11 @@ export class Player extends Entity implements CombatEntity {
   // Last safe ground position (for spike hazard respawn)
   lastSafeX = 0;
   lastSafeY = 0;
+  /** True 면 현재 grounded 상태가 carrier(GiantBuilder 등 이동 표면) 위에 서 있음을
+   *  의미한다. 이 경우 lastSafeX/Y 를 갱신하지 않아 spike teleport 시
+   *  carrier 가 떠나버린 위치로 복귀하지 않게 한다. Scene 이 매 프레임
+   *  playerOnBuilder 결과로 갱신한다. */
+  onCarrier = false;
 
   // Double jump
   private doubleJumpAvailable = false;
@@ -427,7 +432,9 @@ export class Player extends Entity implements CombatEntity {
     if (!this.grounded && this.vy > this.peakFallSpeed) {
       this.peakFallSpeed = this.vy;
     }
-    if (this.grounded && this.hp > 0) {
+    // Carrier(GiantBuilder) 위 grounding 은 safe ground 로 기록하지 않는다.
+    // 빌더가 이동/소실된 후 spike teleport 가 빈 공간을 가리키면 안 됨.
+    if (this.grounded && this.hp > 0 && !this.onCarrier) {
       this.lastSafeX = this.x;
       this.lastSafeY = this.y;
     }

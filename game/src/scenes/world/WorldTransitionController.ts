@@ -9,11 +9,9 @@ const TILE_SIZE = 16;
 export class WorldTransitionController {
   /**
    * Find the LDtk level that contains a Player entity.
-   * Skips ItemTunnel / ItemWorld prefixed levels.
    */
   findPlayerSpawnLevel(loader: LdtkLoader, fallback: string): string {
     for (const id of loader.getLevelIds()) {
-      if (id.startsWith('ItemTunnel') || id.startsWith('ItemWorld')) continue;
       const level = loader.getLevel(id);
       if (level?.entities.some((e) => e.type === 'Player')) {
         return id;
@@ -130,7 +128,8 @@ export class WorldTransitionController {
     const ldtkDir = dirMap[direction];
     let candidates: string[] = cur.dirNeighbors[ldtkDir] ?? [];
     if (!debugMode) {
-      candidates = candidates.filter(id => !id.startsWith('Debug_'));
+      // RoomType=Debug 레벨은 ?debug URL 파라미터가 있을 때만 이웃 후보에 포함.
+      candidates = candidates.filter(id => loader.getLevel(id)?.roomType !== 'Debug');
     }
 
     if (candidates.length === 1) return candidates[0];

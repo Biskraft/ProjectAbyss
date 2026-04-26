@@ -126,14 +126,11 @@ export class WorldMapOverlay {
     this.loader = loader;
   }
 
-  /** Set world map data from LdtkLoader.getWorldMap() */
+  /** Set world map data from LdtkLoader.getWorldMap().
+   *  Caller is responsible for filtering — Debug_/Cinematic exclusion happens
+   *  upstream in LdtkWorldScene so minimap and worldmap stay in sync. */
   setRooms(rooms: WorldMapRoom[]): void {
-    // Filter out item world and tunnel levels
-    this.rooms = rooms.filter(r =>
-      !r.id.startsWith('ItemTunnel') &&
-      !r.id.startsWith('ItemWorld') &&
-      !r.id.startsWith('World_Level_35') // debug level
-    );
+    this.rooms = rooms;
     this.totalRooms = this.rooms.length;
   }
 

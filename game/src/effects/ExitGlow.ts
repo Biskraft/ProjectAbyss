@@ -27,14 +27,15 @@ import { Container, Graphics } from 'pixi.js';
 
 const GLOW_COLOR_DEFAULT = 0xe07028;
 const GLOW_COLOR_SAVE = 0x2888ee;  // blue for save point rooms
+const SAVE_EFFECT_MULT = 2;
 const GLOW_REACH = 40;
-const GLOW_REACH_SAVE = 60;       // larger reach for save point rooms
+const GLOW_REACH_SAVE = GLOW_REACH * SAVE_EFFECT_MULT;
 const GLOW_BANDS = 5;
 const PULSE_PERIOD_MS = 1000;
 const PULSE_BASE = 0.6;
 const PULSE_AMP = 0.2;
-const PULSE_BASE_SAVE = 0.8;     // brighter for save rooms
-const PULSE_AMP_SAVE = 0.3;
+const PULSE_BASE_SAVE = PULSE_BASE * SAVE_EFFECT_MULT;
+const PULSE_AMP_SAVE = PULSE_AMP * SAVE_EFFECT_MULT;
 
 // --- Dust particles ---------------------------------------------------------
 /** 먼지가 퍼지는 방 안쪽 깊이 (10 타일 = 원본 4타일의 2.5배). */
@@ -45,6 +46,7 @@ const DUST_PER_TILE = 2.2;
 const DUST_MIN_COUNT = 8;
 const DUST_MAX_COUNT = 56;
 const DUST_COLOR = 0xffd8a8;
+const DUST_COLOR_SAVE = 0x9ed8ff;
 /** 거리 반응: 이 거리 이하 → 최대 알파. */
 const DUST_CLOSE_DIST = 48;
 /** 이 거리 이상 → 알파 0. */
@@ -119,6 +121,9 @@ export class ExitGlow {
   private glowReach: number;
   private pulseBase: number;
   private pulseAmp: number;
+  private dustColor: number;
+  private dustMaxAlpha: number;
+  private dustDensityBoost: number;
 
   constructor(dir: ExitGlowDir, x: number, y: number, span: number, isSaveRoom = false) {
     this.dir = dir;
@@ -127,6 +132,9 @@ export class ExitGlow {
     this.glowReach = isSaveRoom ? GLOW_REACH_SAVE : GLOW_REACH;
     this.pulseBase = isSaveRoom ? PULSE_BASE_SAVE : PULSE_BASE;
     this.pulseAmp = isSaveRoom ? PULSE_AMP_SAVE : PULSE_AMP;
+    this.dustColor = isSaveRoom ? DUST_COLOR_SAVE : DUST_COLOR;
+    this.dustMaxAlpha = DUST_MAX_ALPHA * (isSaveRoom ? SAVE_EFFECT_MULT : 1);
+    this.dustDensityBoost = DUST_DENSITY_BOOST * (isSaveRoom ? SAVE_EFFECT_MULT : 1);
     this.container = new Container();
     this.container.x = x;
     this.container.y = y;
@@ -163,7 +171,7 @@ export class ExitGlow {
   setPlayer(playerX: number, playerY: number): void {
     const dist = this.pointToSegmentDist(playerX, playerY);
     const t = clamp01((DUST_FAR_DIST - dist) / (DUST_FAR_DIST - DUST_CLOSE_DIST));
-    this.dustTargetAlpha = DUST_MAX_ALPHA * t;
+    this.dustTargetAlpha = this.dustMaxAlpha * t;
     this.proximityFactor = t;
   }
 
@@ -193,7 +201,7 @@ export class ExitGlow {
 
   private spawnInitialParticles(): void {
     this.baseCount = this.particleCount();
-    const total = Math.round(this.baseCount * DUST_DENSITY_BOOST);
+    const total = Math.round(this.baseCount * this.dustDensityBoost);
     for (let i = 0; i < total; i++) {
       this.particles.push(this.makeParticle(true));
     }
@@ -293,7 +301,7 @@ export class ExitGlow {
       // baseCount 이후의 예비 파티클은 proximity 에 비례해 페이드인 →
       // 멀리 있을 땐 기본 밀도, 가까워지면 DUST_DENSITY_BOOST 배까지 증가.
       const densityMask = i < this.baseCount ? 1 : this.proximityFactor;
-      g.circle(p.x, p.y, p.r).fill({ color: DUST_COLOR, alpha: lifeAlpha * densityMask });
+      g.circle(p.x, p.y, p.r).fill({ color: this.dustColor, alpha: lifeAlpha * densityMask });
     }
   }
 
@@ -320,7 +328,7 @@ export class ExitGlow {
       // Band 0 sits closest to the edge (brightest); band N-1 is the furthest
       // inward band (dimmest). Quadratic falloff reads as a soft gradient.
       const t = i / (GLOW_BANDS - 1 || 1);
-      const bandAlpha = baseAlpha * (1 - t) * (1 - t);
+      const bandAlpha = clamp01(baseAlpha * (1 - t) * (1 - t));
       let rx = 0, ry = 0, rw = 0, rh = 0;
       if (this.dir === 'right') {
         rx = -step * (i + 1);

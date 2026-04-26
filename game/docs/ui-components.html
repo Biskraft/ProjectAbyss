@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ECHORIS — UI Component Catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     SSoT — sourced from game/src/ui/ModalPanel.ts + KeyPrompt.ts + Toast.ts
+     This page must STAY IN SYNC with those tokens.
+     ========================================================= */
+  :root{
+    /* Modal palette (ModalPanel.ts) */
+    --modal-bg:           #1a1a2e;
+    --modal-bg-alpha:     0.95;
+    --modal-overlay:      #000000;
+    --modal-overlay-a:    0.6;
+    --modal-border:       #4a4a6a;
+    --modal-border-danger:#ff4444;
+    --modal-border-w:     1px;
+    --modal-divider:      #4a4a6a;
+
+    /* Text tokens */
+    --text-primary:  #ffffff;
+    --text-secondary:#aaaaaa;
+    --text-positive: #44ff44;
+    --text-negative: #ff4444;
+    --text-accent:   #00ced1;
+    --text-gold:     #ffd700;
+    --text-warning:  #ffcc44;
+
+    /* Typography (3 sizes only) */
+    --font-title: 12px;
+    --font-body:  10px;
+    --font-hint:  8px;
+    --font-ui:    'Rajdhani', system-ui, sans-serif;
+    --font-title-display: 'Cinzel', serif;
+
+    /* Slot/selection */
+    --slot-bg:        #2a2a3e;
+    --slot-selected:  #4a4a8a;
+    --slot-equipped-border: #ffffff;
+
+    /* Rarity (ItemInstance.RARITY_COLOR) */
+    --r-normal:    #ffffff;
+    --r-magic:     #6969ff;
+    --r-rare:      #ffff00;
+    --r-legendary: #ff8000;
+    --r-ancient:   #00ff00;
+
+    /* KeyPrompt context */
+    --kp-bg: rgba(0,0,0,0.7);
+    --kp-key-bg: rgba(26,26,26,0.85);
+    --kp-key-border: #666666;
+
+    /* Page chrome */
+    --bg: #0d0d18;
+    --panel-bg: #14141f;
+    --line: #232336;
+    --muted: #7c7c95;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-ui);font-weight:500}
+  body{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  /* Sidebar */
+  aside{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line);padding:24px 18px;background:#0a0a14;
+  }
+  aside h1{font-family:var(--font-title-display);font-size:18px;letter-spacing:3px;margin:0 0 4px}
+  aside .sub{color:var(--muted);font-size:10px;margin-bottom:18px;letter-spacing:1px}
+  aside nav a{display:block;color:var(--text-secondary);text-decoration:none;font-size:11px;padding:4px 0;letter-spacing:0.5px}
+  aside nav a:hover{color:var(--text-accent)}
+  aside nav .group{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-top:14px;margin-bottom:4px}
+
+  /* Main */
+  main{padding:32px 40px;max-width:1080px}
+  header.page{margin-bottom:32px;border-bottom:1px solid var(--line);padding-bottom:18px}
+  header.page h1{font-family:var(--font-title-display);font-size:32px;margin:0 0 6px;letter-spacing:4px}
+  header.page p{color:var(--text-secondary);margin:0;font-size:13px;line-height:1.5}
+  header.page .rules{margin-top:14px;padding:12px 14px;background:var(--panel-bg);border-left:3px solid var(--text-warning);font-size:12px;color:#ddd;line-height:1.6}
+  header.page .rules b{color:var(--text-warning)}
+
+  section{margin:38px 0;padding-top:8px}
+  section > h2{font-family:var(--font-title-display);font-size:20px;margin:0 0 4px;letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  section > .src{color:var(--muted);font-size:10px;margin-bottom:14px;font-family:ui-monospace,monospace}
+  section > p{color:var(--text-secondary);font-size:12px;line-height:1.6;margin:0 0 14px}
+
+  .card{background:var(--panel-bg);border:1px solid var(--line);border-radius:2px;padding:18px;margin-bottom:14px}
+  .card h3{margin:0 0 4px;font-size:13px;letter-spacing:1px;color:var(--text-primary)}
+  .card .meta{color:var(--muted);font-size:10px;margin-bottom:10px;font-family:ui-monospace,monospace}
+  .card .desc{color:var(--text-secondary);font-size:11px;line-height:1.55;margin-bottom:12px}
+  .stage{background:#05050d;border:1px dashed #2a2a40;padding:18px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;border-radius:2px}
+  .stage.dark{background:#000}
+  .stage.center{justify-content:center}
+  .stage.col{flex-direction:column;align-items:flex-start}
+
+  /* ===================================================
+     TOKEN swatches
+     =================================================== */
+  .token-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .swatch{display:flex;align-items:center;gap:10px;background:#000;padding:8px 10px;border:1px solid var(--line);font-size:10px;font-family:ui-monospace,monospace}
+  .swatch .chip{width:22px;height:22px;border:1px solid #000;flex:none}
+  .swatch .name{color:var(--text-secondary)}
+  .swatch .hex{color:var(--text-primary)}
+
+  /* ===================================================
+     In-game replicas (ModalPanel tokens)
+     =================================================== */
+  .modal-overlay{
+    position:relative;background:rgba(0,0,0,var(--modal-overlay-a));
+    padding:20px;width:100%;border-radius:2px;
+  }
+  .modal-panel{
+    background:rgba(26,26,46,var(--modal-bg-alpha));
+    border:var(--modal-border-w) solid var(--modal-border);
+    color:var(--text-primary);padding:14px;
+  }
+  .modal-panel.danger{border-color:var(--modal-border-danger)}
+
+  .t-title{font-size:var(--font-title);letter-spacing:1px;font-weight:700}
+  .t-body{font-size:var(--font-body);font-weight:500}
+  .t-hint{font-size:var(--font-hint);color:var(--text-secondary)}
+  .divider{height:1px;background:var(--modal-divider);margin:8px 0}
+
+  /* ===================================================
+     KeyPrompt
+     =================================================== */
+  .key-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--kp-key-bg);border:1px solid var(--kp-key-border);
+    color:#fff;font-weight:700;
+  }
+  .key-icon.s7  {width:7px;height:7px;font-size:5px;border-radius:1px}
+  .key-icon.s14 {width:14px;height:14px;font-size:8px;border-radius:2px}
+  .key-icon.s28 {width:28px;height:28px;font-size:16px;border-radius:3px}
+
+  .ctx-prompt{
+    display:inline-flex;align-items:center;gap:3px;padding:4px;
+    background:var(--kp-bg);border-radius:2px;color:#fff;font-size:8px;
+  }
+  .ctx-prompt .key-icon{margin-right:3px}
+
+  /* ===================================================
+     Slot
+     =================================================== */
+  .slot{
+    width:36px;height:36px;background:var(--slot-bg);border:1px solid #000;
+    display:inline-flex;align-items:center;justify-content:center;
+    color:var(--text-secondary);font-size:9px;font-family:ui-monospace,monospace;
+  }
+  .slot.selected{background:var(--slot-selected);outline:1px solid var(--text-accent)}
+  .slot.equipped{border:2px solid var(--slot-equipped-border)}
+  .slot[data-r="normal"]   { box-shadow: inset 0 0 0 2px var(--r-normal) }
+  .slot[data-r="magic"]    { box-shadow: inset 0 0 0 2px var(--r-magic) }
+  .slot[data-r="rare"]     { box-shadow: inset 0 0 0 2px var(--r-rare) }
+  .slot[data-r="legendary"]{ box-shadow: inset 0 0 0 2px var(--r-legendary) }
+  .slot[data-r="ancient"]  { box-shadow: inset 0 0 0 2px var(--r-ancient) }
+
+  /* ===================================================
+     Toast
+     =================================================== */
+  .toast-stage{position:relative;background:#000;height:90px;width:100%;border:1px solid var(--line)}
+  .toast-small{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:8px;color:#fff}
+  .toast-big{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:16px;color:var(--text-gold);letter-spacing:1px}
+
+  /* ===================================================
+     Damage number (floating)
+     =================================================== */
+  .dmg{
+    display:inline-block;font-size:10px;font-weight:700;color:#ffeb6e;
+    text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;
+  }
+  .dmg.crit{color:#ff5252;font-size:14px}
+  .dmg.heal{color:#7dff7d}
+
+  /* ===================================================
+     Generic meta line
+     =================================================== */
+  code,.mono{font-family:ui-monospace,monospace;font-size:10px;color:var(--text-accent);background:#000;padding:1px 5px;border-radius:2px}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width: 900px){
+    body{grid-template-columns:1fr}
+    aside{position:relative;height:auto}
+    .grid-2{grid-template-columns:1fr}
+  }
+
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:8px;font-size:9px;color:var(--muted);margin-left:6px;font-family:ui-monospace,monospace;letter-spacing:1px}
+  .pill.atom     { color:#9ad9ff; border-color:#1a3a55 }
+  .pill.molecule { color:#ffe39a; border-color:#553f1a }
+  .pill.organism { color:#c5a3ff; border-color:#3a1a55 }
+  .pill.float    { color:#9affb1; border-color:#1a553a }
+  .pill.token    { color:#ffffff; border-color:#444 }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>ECHORIS</h1>
+  <div class="sub">UI · Component Catalog</div>
+  <nav>
+    <div class="group">Foundation</div>
+    <a href="#tokens">Design Tokens</a>
+    <a href="#typography">Typography</a>
+
+    <div class="group">Atoms</div>
+    <a href="#text">Text</a>
+    <a href="#divider">Divider</a>
+    <a href="#key-icon">KeyIcon</a>
+    <a href="#slot">Slot</a>
+
+    <div class="group">Molecules</div>
+    <a href="#key-prompt">KeyPrompt (context)</a>
+    <a href="#item-slot">Item Slot (rarity)</a>
+    <a href="#stat-row">Stat Row</a>
+
+    <div class="group">Panels</div>
+    <a href="#modal-panel">ModalPanel</a>
+    <a href="#hud">HUD</a>
+    <a href="#inventory">InventoryUI</a>
+    <a href="#item-detail">ItemDetailView</a>
+    <a href="#character-stats">CharacterStats</a>
+    <a href="#save-load">SaveLoadUI</a>
+    <a href="#pause-menu">PauseMenu</a>
+    <a href="#lore-popup">LorePopup</a>
+    <a href="#lore-display">LoreDisplay</a>
+    <a href="#dive-preview">DivePreview</a>
+    <a href="#controls-overlay">ControlsOverlay</a>
+    <a href="#world-map">WorldMapOverlay</a>
+    <a href="#death-screen">DeathScreen</a>
+    <a href="#return-result">ReturnResult</a>
+
+    <div class="group">Floating / Notification</div>
+    <a href="#toast">Toast</a>
+    <a href="#damage-number">DamageNumber</a>
+    <a href="#area-title">AreaTitle</a>
+    <a href="#tutorial-hint">TutorialHint</a>
+    <a href="#return-hint">ReturnHint</a>
+  </nav>
+</aside>
+
+<main>
+  <header class="page">
+    <h1>UI COMPONENT CATALOG</h1>
+    <p>이 페이지는 ECHORIS 게임의 모든 UI 컴포넌트와 디자인 토큰의 단일 진실 공급원(SSoT)이다.<br>
+       소스 파일: <code>game/src/ui/</code> · 토큰 정의: <code>ModalPanel.ts</code></p>
+    <div class="rules">
+      <b>사용 규칙</b><br>
+      ① 새 UI 작업은 반드시 이 페이지의 컴포넌트 목록을 참고한다.<br>
+      ② 목록에 없는 컴포넌트/토큰은 사용 금지. 필요하면 먼저 <code>src/ui/</code> 와 이 페이지에 추가하라.<br>
+      ③ 색상·폰트 사이즈·여백은 모두 <code>ModalPanel.ts</code> 의 토큰만 사용. 하드코딩 금지.<br>
+      ④ 새 색/사이즈가 정말 필요하면 <code>ModalPanel.ts</code> 에 토큰을 추가한 뒤 이 페이지의 토큰 섹션도 동기화한다.
+    </div>
+  </header>
+
+  <!-- ============================================================
+       TOKENS
+       ============================================================ -->
+  <section id="tokens">
+    <h2>Design Tokens <span class="pill token">FOUNDATION</span></h2>
+    <div class="src">SSoT: game/src/ui/ModalPanel.ts</div>
+    <p>모든 모달과 패널은 이 토큰만 사용한다. 개별 파일에서 색·사이즈를 하드코딩하지 않는다.</p>
+
+    <div class="card">
+      <h3>Modal Surface</h3>
+      <div class="token-grid">
+        <div class="swatch"><div class="chip" style="background:#1a1a2e"></div><div><div class="name">MODAL_BG</div><div class="hex">#1a1a2e · α 0.95</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#000"></div><div><div class="name">MODAL_OVERLAY</div><div class="hex">#000000 · α 0.6</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#4a4a6a"></div><div><div class="name">MODAL_BORDER</div><div class="hex">#4a4a6a · 1px</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff4444"></div><div><div class="name">MODAL_BORDER_DANGER</div><div class="hex">#ff4444</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#4a4a6a"></div><div><div class="name">MODAL_DIVIDER</div><div class="hex">#4a4a6a</div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Text</h3>
+      <div class="token-grid">
+        <div class="swatch"><div class="chip" style="background:#ffffff"></div><div><div class="name">TEXT_PRIMARY</div><div class="hex">#ffffff</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#aaaaaa"></div><div><div class="name">TEXT_SECONDARY</div><div class="hex">#aaaaaa</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#44ff44"></div><div><div class="name">TEXT_POSITIVE</div><div class="hex">#44ff44</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff4444"></div><div><div class="name">TEXT_NEGATIVE</div><div class="hex">#ff4444</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#00ced1"></div><div><div class="name">TEXT_ACCENT</div><div class="hex">#00ced1</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffd700"></div><div><div class="name">TEXT_GOLD</div><div class="hex">#ffd700</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffcc44"></div><div><div class="name">TEXT_WARNING</div><div class="hex">#ffcc44</div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Slot · Selection</h3>
+      <div class="token-grid">
+        <div class="swatch"><div class="chip" style="background:#2a2a3e"></div><div><div class="name">SLOT_BG</div><div class="hex">#2a2a3e</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#4a4a8a"></div><div><div class="name">SLOT_SELECTED</div><div class="hex">#4a4a8a</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#fff"></div><div><div class="name">SLOT_EQUIPPED_BORDER</div><div class="hex">#ffffff</div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Rarity (items / drops)</h3>
+      <div class="src">SSoT: game/src/items/ItemInstance.ts · RARITY_COLOR</div>
+      <div class="token-grid">
+        <div class="swatch"><div class="chip" style="background:#ffffff"></div><div><div class="name">normal</div><div class="hex">#ffffff</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#6969ff"></div><div><div class="name">magic</div><div class="hex">#6969ff</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffff00"></div><div><div class="name">rare</div><div class="hex">#ffff00</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff8000"></div><div><div class="name">legendary</div><div class="hex">#ff8000</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#00ff00"></div><div><div class="name">ancient</div><div class="hex">#00ff00</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TYPOGRAPHY
+       ============================================================ -->
+  <section id="typography">
+    <h2>Typography <span class="pill token">FOUNDATION</span></h2>
+    <div class="src">SSoT: game/src/ui/fonts.ts · ModalPanel.ts</div>
+    <p>3-tier 사이즈만 허용. 다른 사이즈를 쓰지 말 것.<br>
+       In-game UI: <b>Rajdhani 700</b> (BitmapFont 'GameUI'). 타이틀: <b>Cinzel 900</b> (BitmapFont 'CinzelTitle').</p>
+    <div class="stage col">
+      <div class="t-title">FONT_TITLE — 12px · createTitle()</div>
+      <div class="t-body">FONT_BODY — 10px · createBody()</div>
+      <div class="t-hint">FONT_HINT — 8px · createHint()</div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ATOMS
+       ============================================================ -->
+  <section id="text">
+    <h2>Text <span class="pill atom">ATOM</span></h2>
+    <div class="src">ModalPanel.ts · createTitle / createBody / createHint</div>
+    <p>BitmapText 래퍼. 모든 텍스트는 이 3개 헬퍼 중 하나로 생성한다. <code>fill</code> 인자에 위 텍스트 토큰을 넘긴다.</p>
+    <div class="stage col">
+      <div class="t-title" style="color:var(--text-primary)">TITLE / PRIMARY</div>
+      <div class="t-body"  style="color:var(--text-accent)">BODY / ACCENT</div>
+      <div class="t-hint"  style="color:var(--text-secondary)">HINT / SECONDARY</div>
+      <div class="t-body"  style="color:var(--text-positive)">+12 STR (positive)</div>
+      <div class="t-body"  style="color:var(--text-negative)">−5 HP (negative)</div>
+      <div class="t-body"  style="color:var(--text-gold)">2,400 G (gold)</div>
+      <div class="t-body"  style="color:var(--text-warning)">Stamina low (warning)</div>
+    </div>
+  </section>
+
+  <section id="divider">
+    <h2>Divider <span class="pill atom">ATOM</span></h2>
+    <div class="src">ModalPanel.ts · createDivider(x, y, w)</div>
+    <p>1px 수평선. 모달 섹션 분리 전용.</p>
+    <div class="stage col" style="width:100%">
+      <div style="width:100%"><div class="divider"></div></div>
+    </div>
+  </section>
+
+  <section id="key-icon">
+    <h2>KeyIcon <span class="pill atom">ATOM</span></h2>
+    <div class="src">KeyPrompt.ts · KeyPrompt.createKeyIcon(key, size)</div>
+    <p>다크 박스 + 글자. 사이즈는 7(HUD/심볼) / 14(컨텍스트 prompt) / 임의 정수만 사용. 폰트는 박스의 65%.</p>
+    <div class="stage" style="gap:24px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div class="key-icon s7">C</div><span class="t-hint">size 7 (HUD)</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div class="key-icon s14">C</div><span class="t-hint">size 14 (context)</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div class="key-icon s28">C</div><span class="t-hint">size 28 (display)</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="slot">
+    <h2>Slot <span class="pill atom">ATOM</span></h2>
+    <div class="src">ModalPanel.ts · SLOT_BG / SLOT_SELECTED / SLOT_EQUIPPED_BORDER</div>
+    <p>인벤토리·장비 슬롯의 기본 셀. <b>장착</b>은 흰 테두리, <b>선택</b>은 selected 색.</p>
+    <div class="stage">
+      <div class="slot">—</div>
+      <div class="slot selected">SEL</div>
+      <div class="slot equipped">EQ</div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MOLECULES
+       ============================================================ -->
+  <section id="key-prompt">
+    <h2>KeyPrompt (context) <span class="pill molecule">MOLECULE</span></h2>
+    <div class="src">KeyPrompt.ts · KeyPrompt.createPrompt(key, action, scale)</div>
+    <p>월드 오브젝트 위에 떠 있는 상호작용 안내. <b>[KEY] LABEL</b> 형식. anvil/portal/altar 등 모든 prompt가 이걸 사용한다.</p>
+    <div class="stage">
+      <div class="ctx-prompt"><span class="key-icon s14">C</span> Place Weapon</div>
+      <div class="ctx-prompt"><span class="key-icon s14">↑</span> Enter</div>
+      <div class="ctx-prompt"><span class="key-icon s14">Z</span> Save</div>
+    </div>
+  </section>
+
+  <section id="item-slot">
+    <h2>Item Slot (rarity) <span class="pill molecule">MOLECULE</span></h2>
+    <div class="src">InventoryUI.ts + ItemInstance.RARITY_COLOR</div>
+    <p>Slot 위에 rarity 컬러 inset 보더 + (장착 시) 흰 외곽선.</p>
+    <div class="stage">
+      <div class="slot" data-r="normal">N</div>
+      <div class="slot" data-r="magic">M</div>
+      <div class="slot" data-r="rare">R</div>
+      <div class="slot" data-r="legendary">L</div>
+      <div class="slot" data-r="ancient">A</div>
+      <div class="slot equipped" data-r="legendary">EQ</div>
+    </div>
+  </section>
+
+  <section id="stat-row">
+    <h2>Stat Row <span class="pill molecule">MOLECULE</span></h2>
+    <div class="src">CharacterStats.ts · ItemDetailView.ts</div>
+    <p><code>label</code> (secondary) + <code>value</code> (primary). 증감은 ±positive/negative 토큰.</p>
+    <div class="stage col" style="gap:4px">
+      <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;<span>142</span> &nbsp;<span style="color:var(--text-positive)">+18</span></div>
+      <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;&nbsp;<span>87</span> &nbsp;<span style="color:var(--text-negative)">−4</span></div>
+      <div class="t-body"><span style="color:var(--text-secondary)">HP</span> &nbsp;&nbsp;<span>520 / 520</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANELS / ORGANISMS
+       ============================================================ -->
+  <section id="modal-panel">
+    <h2>ModalPanel <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">ModalPanel.ts · createModalPanel(skin, w, h)</div>
+    <p>모든 모달의 베이스. Aseprite UISkin 의 <code>ui_modal_9slice</code> 가 있으면 9-슬라이스, 없으면 Graphics fallback. <code>contentY</code> 부터 컨텐츠를 배치.</p>
+    <div class="stage center">
+      <div class="modal-overlay" style="max-width:520px">
+        <div class="modal-panel" style="width:100%">
+          <div class="t-title">PANEL TITLE</div>
+          <div class="divider"></div>
+          <div class="t-body">Body content goes here. Use createBody().</div>
+          <div class="t-hint" style="margin-top:8px">[ESC] Close</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <h3>Variant — Default</h3>
+        <div class="modal-panel">
+          <div class="t-title">DIVE READY</div>
+          <div class="divider"></div>
+          <div class="t-body">Strike the anvil to enter.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Variant — Danger</h3>
+        <div class="modal-panel danger">
+          <div class="t-title" style="color:var(--text-negative)">DELETE SAVE</div>
+          <div class="divider"></div>
+          <div class="t-body">This cannot be undone.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="hud">
+    <h2>HUD <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">HUD.ts</div>
+    <p>화면 좌상단 상태 프레임. HP / 스태미나 / 리소스 + 작은 KeyIcon 들.</p>
+    <div class="stage">
+      <div style="background:rgba(0,0,0,0.7);padding:8px 10px;display:flex;flex-direction:column;gap:4px;min-width:200px;border:1px solid var(--line)">
+        <div class="t-body"><span style="color:var(--text-secondary)">HP</span>&nbsp;&nbsp;420 / 520</div>
+        <div style="height:4px;background:#330000;border:1px solid #000"><div style="width:80%;height:100%;background:var(--text-negative)"></div></div>
+        <div class="t-body" style="margin-top:4px"><span style="color:var(--text-secondary)">STM</span>&nbsp;100%</div>
+        <div style="height:3px;background:#003344;border:1px solid #000"><div style="width:100%;height:100%;background:var(--text-accent)"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="inventory">
+    <h2>InventoryUI <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">InventoryUI.ts</div>
+    <p>그리드 인벤토리 모달. ItemSlot(rarity) 의 그리드. 선택 셀은 이미지 프리뷰 + 우측에 ItemDetailView 가 함께 표시된다.</p>
+    <div class="stage center">
+      <div class="modal-overlay" style="max-width:600px">
+        <div class="modal-panel">
+          <div class="t-title">INVENTORY</div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:14px">
+            <div style="display:grid;grid-template-columns:repeat(6,36px);gap:3px">
+              <div class="slot equipped" data-r="legendary">⚔</div>
+              <div class="slot" data-r="magic">⚔</div>
+              <div class="slot selected" data-r="rare">⚔</div>
+              <div class="slot" data-r="normal">⚔</div>
+              <div class="slot" data-r="ancient">⚔</div>
+              <div class="slot">—</div>
+              <div class="slot">—</div><div class="slot">—</div><div class="slot">—</div>
+              <div class="slot">—</div><div class="slot">—</div><div class="slot">—</div>
+            </div>
+            <div style="flex:1;border-left:1px solid var(--modal-divider);padding-left:14px">
+              <div class="t-title" style="color:var(--r-rare)">RIVER'S EDGE</div>
+              <div class="t-hint">Rare · Sword</div>
+              <div class="divider"></div>
+              <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;142 <span style="color:var(--text-positive)">+18</span></div>
+              <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;&nbsp;87</div>
+            </div>
+          </div>
+          <div class="divider" style="margin-top:10px"></div>
+          <div class="t-hint">[Z] Equip&nbsp;&nbsp;[ESC] Close</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="item-detail">
+    <h2>ItemDetailView <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">ItemDetailView.ts</div>
+    <p>인벤토리 우측 패널 또는 단독 모달. 이름(rarity color) + 타입 + 스탯 행 + 인노센트 슬롯 + 액션 힌트.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:300px">
+        <div class="t-title" style="color:var(--r-legendary)">EMBER FANG</div>
+        <div class="t-hint">Legendary · Sword</div>
+        <div class="divider"></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;312</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;&nbsp;0</div>
+        <div class="divider"></div>
+        <div class="t-hint">Innocents (4/6)</div>
+        <div style="display:flex;gap:3px;margin-top:4px">
+          <div class="slot" style="width:18px;height:18px">●</div>
+          <div class="slot" style="width:18px;height:18px">●</div>
+          <div class="slot" style="width:18px;height:18px">●</div>
+          <div class="slot" style="width:18px;height:18px">●</div>
+          <div class="slot" style="width:18px;height:18px">○</div>
+          <div class="slot" style="width:18px;height:18px">○</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="character-stats">
+    <h2>CharacterStats <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">CharacterStats.ts</div>
+    <p>플레이어 스탯 패널. 베이스 / 장비 합산 / 인노센트 보너스 분해 표시.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:340px">
+        <div class="t-title">CHARACTER</div>
+        <div class="divider"></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;142&nbsp;&nbsp;<span class="t-hint">(base 80 +equip 50 +inn 12)</span></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;&nbsp;87&nbsp;&nbsp;<span class="t-hint">(base 40 +equip 47)</span></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">HP</span>&nbsp;&nbsp;520 / 520</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">STM</span>&nbsp;100</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="save-load">
+    <h2>SaveLoadUI <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">SaveLoadUI.ts</div>
+    <p>세이브 슬롯 리스트. 슬롯당 시간/플레이타임/위치. 삭제는 danger 보더.</p>
+    <div class="stage">
+      <div class="modal-panel" style="width:100%;max-width:480px">
+        <div class="t-title">SAVE</div>
+        <div class="divider"></div>
+        <div class="t-body" style="padding:6px 0;border-bottom:1px solid var(--modal-divider)">Slot 1 · 2026-04-25 18:42 · 04:12:33 · The Shaft</div>
+        <div class="t-body" style="padding:6px 0;border-bottom:1px solid var(--modal-divider)">Slot 2 · — empty —</div>
+        <div class="t-body" style="padding:6px 0">Slot 3 · — empty —</div>
+        <div class="divider"></div>
+        <div class="t-hint">[Z] Save&nbsp;&nbsp;[X] Delete&nbsp;&nbsp;[ESC] Close</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pause-menu">
+    <h2>PauseMenu <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">PauseMenu.ts</div>
+    <p>ESC 일시정지. 메뉴 항목은 createBody, 선택 행은 SLOT_SELECTED 배경.</p>
+    <div class="stage center">
+      <div class="modal-panel" style="width:240px">
+        <div class="t-title" style="text-align:center">PAUSED</div>
+        <div class="divider"></div>
+        <div class="t-body" style="padding:5px 8px;background:var(--slot-selected)">Resume</div>
+        <div class="t-body" style="padding:5px 8px">Save</div>
+        <div class="t-body" style="padding:5px 8px">Controls</div>
+        <div class="t-body" style="padding:5px 8px">Quit to Title</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="lore-popup">
+    <h2>LorePopup <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">LorePopup.ts</div>
+    <p>새 아이템 첫 획득 시 1회성 lore 카드. 제목(rarity color) + 본문.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:380px">
+        <div class="t-title" style="color:var(--r-legendary)">EMBER FANG</div>
+        <div class="t-hint">"Forged in the third furnace, before the city forgot fire."</div>
+        <div class="divider"></div>
+        <div class="t-body" style="color:var(--text-secondary);font-style:italic">Once carried by a Builder who could no longer remember why she walked.</div>
+        <div class="t-hint" style="margin-top:8px">[Z] Close</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="lore-display">
+    <h2>LoreDisplay <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">LoreDisplay.ts</div>
+    <p>화자(검 Ego) 대사 박스. 화면 하단. 한 줄씩 페이드인. 키 입력으로 다음 줄.</p>
+    <div class="stage" style="background:#000">
+      <div style="background:rgba(0,0,0,0.85);border-top:1px solid var(--modal-border);padding:10px 14px;width:100%;max-width:560px">
+        <div class="t-hint" style="color:var(--text-accent)">RUSTBORN</div>
+        <div class="t-body" style="margin-top:4px">기억이 이상해. 뭔가 뒤틀려 있어.</div>
+        <div class="t-hint" style="margin-top:8px;color:var(--text-secondary)">[Z] ▶</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dive-preview">
+    <h2>DivePreview <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">DivePreview.ts</div>
+    <p>아이템계 진입 직전 미리보기 모달. 아이템 카드 + 지층 수 + 추정 보상.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:340px">
+        <div class="t-title">DIVE</div>
+        <div class="divider"></div>
+        <div class="t-body" style="color:var(--r-rare)">River's Edge · Rare</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Strata</span>&nbsp;3</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Cleared</span>&nbsp;1 / 3</div>
+        <div class="divider"></div>
+        <div class="t-hint">[C] Confirm&nbsp;&nbsp;[ESC] Cancel</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="controls-overlay">
+    <h2>ControlsOverlay <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">ControlsOverlay.ts</div>
+    <p>키바인딩 안내. KeyIcon + 액션 라벨 페어의 그리드.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:380px">
+        <div class="t-title">CONTROLS</div>
+        <div class="divider"></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center">
+          <div class="key-icon s14">←→</div><div class="t-body">Move</div>
+          <div class="key-icon s14">Z</div><div class="t-body">Jump</div>
+          <div class="key-icon s14">C</div><div class="t-body">Attack / Confirm</div>
+          <div class="key-icon s14">X</div><div class="t-body">Dash</div>
+          <div class="key-icon s14">↑</div><div class="t-body">Interact</div>
+          <div class="key-icon s14">I</div><div class="t-body">Inventory</div>
+          <div class="key-icon s14">M</div><div class="t-body">Map</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="world-map">
+    <h2>WorldMapOverlay <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">WorldMapOverlay.ts</div>
+    <p>풀스크린 월드맵. 격자 룸 셀(방문/미방문/현재). 미니맵과 색 코드 통일.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:380px">
+        <div class="t-title">MAP — THE SHAFT</div>
+        <div class="divider"></div>
+        <div style="display:grid;grid-template-columns:repeat(8,18px);gap:2px">
+          <div style="width:18px;height:18px;background:#444"></div>
+          <div style="width:18px;height:18px;background:#444"></div>
+          <div style="width:18px;height:18px;background:#aaa"></div>
+          <div style="width:18px;height:18px;background:var(--text-accent)"></div>
+          <div style="width:18px;height:18px;background:#aaa"></div>
+          <div style="width:18px;height:18px;background:#222"></div>
+          <div style="width:18px;height:18px;background:#222"></div>
+          <div style="width:18px;height:18px;background:#222"></div>
+        </div>
+        <div class="t-hint" style="margin-top:8px">accent = 현재, gray = 방문, dark = 미방문</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="death-screen">
+    <h2>DeathScreen <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">DeathScreen.ts</div>
+    <p>사망 시 풀스크린. 빨간 디바이더 + 큰 타이틀(Cinzel) + 액션 prompt.</p>
+    <div class="stage center" style="background:rgba(40,0,0,0.85)">
+      <div style="text-align:center">
+        <div style="font-family:var(--font-title-display);font-size:32px;letter-spacing:6px;color:var(--text-negative)">YOU DIED</div>
+        <div class="t-hint" style="margin-top:18px">[Z] Restart from last save</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="return-result">
+    <h2>ReturnResult <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">ReturnResult.ts</div>
+    <p>아이템계 클리어 후 결과 모달. 획득 인노센트 / 아이템 / 클리어 시간.</p>
+    <div class="stage">
+      <div class="modal-panel" style="max-width:380px">
+        <div class="t-title" style="color:var(--text-gold)">DIVE COMPLETE</div>
+        <div class="divider"></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Time</span>&nbsp;02:14</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Innocents</span>&nbsp;3</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Strata</span>&nbsp;3 / 3</div>
+        <div class="divider"></div>
+        <div class="t-hint">[Z] Continue</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FLOATING / NOTIFICATION
+       ============================================================ -->
+  <section id="toast">
+    <h2>Toast <span class="pill float">FLOATING</span></h2>
+    <div class="src">Toast.ts · ToastManager.show / showBig</div>
+    <p><b>show()</b> = 8px 작은 배너, 화면 상단에 stack(2초, 1.5초 후 페이드).<br><b>showBig()</b> = 16px 중앙 큰 배너(보스 클리어/레벨업 등).</p>
+    <div class="toast-stage">
+      <div class="toast-small">+1 Innocent · River's Edge</div>
+      <div class="toast-big">BOSS CLEARED</div>
+    </div>
+  </section>
+
+  <section id="damage-number">
+    <h2>DamageNumber <span class="pill float">FLOATING</span></h2>
+    <div class="src">DamageNumber.ts</div>
+    <p>월드 좌표에 floating. 일반/크리/힐 3가지. 검은 4방향 외곽선 필수.</p>
+    <div class="stage" style="background:#1a2a1a">
+      <span class="dmg">42</span>
+      <span class="dmg crit">128!</span>
+      <span class="dmg heal">+18</span>
+    </div>
+  </section>
+
+  <section id="area-title">
+    <h2>AreaTitle <span class="pill float">FLOATING</span></h2>
+    <div class="src">AreaTitle.ts</div>
+    <p>지역 진입 시 화면 상단 페이드인 라벨. Cinzel 타이틀 폰트 사용.</p>
+    <div class="stage center" style="background:#000">
+      <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:5px;color:#fff;opacity:0.95">THE FORGE</div>
+    </div>
+  </section>
+
+  <section id="tutorial-hint">
+    <h2>TutorialHint <span class="pill float">FLOATING</span></h2>
+    <div class="src">TutorialHint.ts</div>
+    <p>첫 등장 메커닉 안내. KeyPrompt + 짧은 라벨. 한 번 본 hint는 sacredSave 가 기억.</p>
+    <div class="stage">
+      <div class="ctx-prompt"><span class="key-icon s14">X</span> Hold to dash</div>
+    </div>
+  </section>
+
+  <section id="return-hint">
+    <h2>ReturnHint <span class="pill float">FLOATING</span></h2>
+    <div class="src">ReturnHint.ts</div>
+    <p>아이템계 → 월드 복귀 가능 시점에 portal 위에 표시.</p>
+    <div class="stage">
+      <div class="ctx-prompt"><span class="key-icon s14">↑</span> Return to World</div>
+    </div>
+  </section>
+
+  <footer style="margin:48px 0 24px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:10px">
+    이 페이지가 컴포넌트의 SSoT다. 수정 시 <code>game/src/ui/ModalPanel.ts</code> 와 동기화하라.
+  </footer>
+</main>
+
+</body>
+</html>

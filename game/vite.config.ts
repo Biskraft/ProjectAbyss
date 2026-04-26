@@ -1,7 +1,41 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import path from 'path';
+import fs from 'fs';
+
+/**
+ * Serve docs/ui-components.html at /docs/ui-components (and /docs/ui-components.html)
+ * during dev so the catalog renders with the same fonts/headers as the game.
+ * Prod build (gh-pages) does not include this — catalog is dev-only.
+ */
+function uiCatalogPlugin(): Plugin {
+  const uiCatalogPath = path.resolve(__dirname, 'docs/ui-components.html');
+  return {
+    name: 'echoris-ui-catalog',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? '';
+        // Match both /docs/ui-components and /docs/ui-components.html, with or without /play/ base prefix.
+        const stripped = url.replace(/^\/play/, '');
+        if (stripped === '/docs/ui-components' || stripped === '/docs/ui-components.html') {
+          fs.readFile(uiCatalogPath, (err, data) => {
+            if (err) {
+              res.statusCode = 404;
+              res.end('ui-components.html not found');
+              return;
+            }
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.end(data);
+          });
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [uiCatalogPlugin()],
   resolve: {
     alias: {
       '@core': path.resolve(__dirname, 'src/core'),
@@ -21,6 +55,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    fs: {
+      // Allow serving files from the docs/ folder (one level above src/).
+      allow: [path.resolve(__dirname)],
+    },
   },
   base: '/play/',
   build: {

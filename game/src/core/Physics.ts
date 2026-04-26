@@ -28,6 +28,7 @@ const TILE_SIZE = 16;
  *   7 = ice (solid, zero friction surface) [Phase 1]
  *   8 = charged (passable, contact = shock DoT) [Phase 1]
  *   9 = breakable (solid, 1-hit destroy → air) [Phase 0]
+ *  10 = void (passable, contact = void drop sequence, no damage)
  */
 export function isSolid(tileId: number): boolean {
   return tileId === 1 || tileId === 7 || tileId === 9;
@@ -57,6 +58,10 @@ export function isIce(tileId: number): boolean {
   return tileId === 7;
 }
 
+export function isVoid(tileId: number): boolean {
+  return tileId === 10;
+}
+
 /**
  * Hazard/signal tiles whose original tileset color is load-bearing for
  * player communication (water blue, spike red/white, updraft upward wind,
@@ -66,7 +71,7 @@ export function isIce(tileId: number): boolean {
  * the filtered wall layer.
  */
 export function isSpecialVisualTile(tileId: number): boolean {
-  return tileId === 2 || tileId === 4 || tileId === 5 || tileId === 6 || tileId === 8;
+  return tileId === 2 || tileId === 4 || tileId === 5 || tileId === 6 || tileId === 8 || tileId === 10;
 }
 
 /** Check if an entity is standing ON an ice tile (feet on ice surface). */
@@ -106,6 +111,17 @@ export function isInWater(x: number, y: number, width: number, height: number, r
   const midCol = Math.floor((x + width / 2) / TILE_SIZE);
   const midRow = Math.floor((y + height / 2) / TILE_SIZE);
   return isWater(getTile(roomData, midCol, midRow));
+}
+
+/** Check if an entity overlaps any void tile (feet entering void = trigger) */
+export function isInVoid(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const feetRow = Math.floor((y + height - 1) / TILE_SIZE);
+  const leftCol = Math.floor(x / TILE_SIZE);
+  const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
+  for (let col = leftCol; col <= rightCol; col++) {
+    if (isVoid(getTile(roomData, col, feetRow))) return true;
+  }
+  return false;
 }
 
 /**

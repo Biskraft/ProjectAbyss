@@ -80,12 +80,18 @@ export function hashString(s: string): number {
   return h >>> 0;
 }
 
+// Decoration anchor classification (Physics IntGrid 값 기준):
+//   0 = empty, 2 = water, 5 = spike, 10 = void → decoration 미배치
+//   (passable + 해저드/시그널/시네마틱)
+//   그 외(1 wall, 3 platform, 4 updraft, 6 magma, 7 ice, 8 charged, 9 breakable)
+//   → 기존대로 solid 로 취급. spike/void 는 플레이어 시그널 또는 cinematic
+//   드롭 트리거이므로 장식이 덮이지 않도록 명시적으로 제외한다.
 function isSolid(val: number): boolean {
-  return val !== 0 && val !== 2;
+  return val !== 0 && val !== 2 && val !== 5 && val !== 10;
 }
 
 function isEmpty(val: number): boolean {
-  return val === 0 || val === 2;
+  return val === 0 || val === 2 || val === 5 || val === 10;
 }
 
 function gridAt(grid: number[][], row: number, col: number): number {

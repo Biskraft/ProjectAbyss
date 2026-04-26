@@ -18,6 +18,7 @@
  *   2 = water
  *   3 = one-way platform
  *   4 = updraft (strong upward wind)
+ *  10 = void (passable, triggers void drop sequence)
  *
  * No external dependencies beyond the TypeScript standard library.
  */
@@ -366,13 +367,14 @@ export class LdtkLoader {
    * spatial queries. Each entry contains the level id and its world-space
    * bounding rectangle.
    */
-  getWorldMap(): { id: string; x: number; y: number; w: number; h: number }[] {
+  getWorldMap(): { id: string; x: number; y: number; w: number; h: number; roomType: string | null }[] {
     return Array.from(this.levels.values()).map((lvl) => ({
       id: lvl.identifier,
       x: lvl.worldX,
       y: lvl.worldY,
       w: lvl.pxWid,
       h: lvl.pxHei,
+      roomType: lvl.roomType,
     }));
   }
 
