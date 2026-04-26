@@ -31,16 +31,24 @@ export interface StrataConfig {
 
 // Parse CSV into STRATA_BY_RARITY
 const _build: Record<string, StratumDef[]> = {};
+const GRID_SIZE_BY_RARITY: Record<Rarity, number> = {
+  normal: 2,
+  magic: 2,
+  rare: 3,
+  legendary: 4,
+  ancient: 4,
+};
 
 const lines = csvText.trim().split('\n');
 for (let i = 1; i < lines.length; i++) {
   const cols = lines[i].split(',');
   if (cols.length < 8) continue;
-  const rarity = cols[0].trim().toLowerCase();
+  const rarity = cols[0].trim().toLowerCase() as Rarity;
   if (!_build[rarity]) _build[rarity] = [];
+  const gridSize = GRID_SIZE_BY_RARITY[rarity] ?? 4;
   _build[rarity].push({
-    gridWidth: 4,
-    gridHeight: 4,
+    gridWidth: gridSize,
+    gridHeight: gridSize,
     hpMul: parseFloat(cols[2]),
     atkMul: parseFloat(cols[3]),
     enemyCountBonus: parseInt(cols[4]),

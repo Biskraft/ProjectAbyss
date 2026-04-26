@@ -119,7 +119,9 @@ export function generateItemWorldGrid(
     } else if (cell.isStart) {
       cell.template = ALL_TEMPLATES.find(t => t.name === 'start_D')!;
     } else {
-      cell.template = pickTemplate(required, rng);
+      // Critical-path cells use exact tag matching: the template's door set
+      // must equal the cell's required exits so no extra doors appear.
+      cell.template = pickTemplate(required, rng, true);
     }
   }
 

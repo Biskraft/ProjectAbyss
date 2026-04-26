@@ -190,9 +190,11 @@ export class Anvil {
       this.anvilSprite = null;
     }
     await this.loadAnvilSprite();
+    // Container may have been destroyed during await
+    if (this.container.destroyed) return;
     if (disabled) {
-      this.halo.clear();
-      this.hintContainer.visible = false;
+      if (this.halo && !this.halo.destroyed) this.halo.clear();
+      if (this.hintContainer) this.hintContainer.visible = false;
       // Drop existing sparks
       for (const s of this.sparks) {
         this.particleLayer.removeChild(s.gfx);
@@ -424,6 +426,7 @@ export class Anvil {
     // --- Halo pulse (A3 affordance) --------------------------------------
     // Slow outer ring + faster inner shimmer. Strengthens on approach.
     // Anchored to the anvil top surface (y = -this.height - 1).
+    if (!this.halo || this.halo.destroyed) return;
     this.halo.clear();
     if (!this.used && !this.disabled) {
       const strongMul = this.showHint ? 1.6 : 1.0;

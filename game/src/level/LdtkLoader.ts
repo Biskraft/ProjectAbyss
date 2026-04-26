@@ -112,7 +112,19 @@ export interface LdtkLevel {
     /** Middle column for vertical doors (up/down). */
     midCol: number;
   };
+  /**
+   * Inferred exit directions for this level (e.g. ['L','R'], ['L','R','U','D']).
+   * Auto-derived from the collision grid's outer borders at load time:
+   * a side that has any contiguous air opening of sufficient length is
+   * considered an exit. Used by ItemWorldScene.pickLdtkTemplate for
+   * tag-based room matching so the chosen template's open faces equal
+   * the cell's logical exits (no ghost-door brick walls).
+   */
+  exits: ExitDir[];
 }
+
+/** Exit direction for tag-based template matching. */
+export type ExitDir = 'L' | 'R' | 'U' | 'D';
 
 /**
  * A single visual tile from an AutoLayer.
@@ -451,6 +463,7 @@ export class LdtkLoader {
     }
 
     const doorAnchors = this.computeDoorAnchors(collisionGrid, gridW, gridH);
+    const exits = this.computeExits(collisionGrid, gridW, gridH);
 
     return {
       identifier: raw.identifier,
@@ -471,7 +484,56 @@ export class LdtkLoader {
       neighbors: [], // populated later from __neighbours + computeNeighbors()
       dirNeighbors: {}, // populated later from __neighbours
       doorAnchors,
+      exits,
     };
+  }
+
+  /**
+   * Infer which sides of this level have a real opening by scanning the
+   * outer border rows/cols of the collision grid. A side counts as an exit
+   * when it contains a contiguous run of air tiles (value 0) at least
+   * EXIT_MIN_OPENING long — single-tile gaps are treated as autotile
+   * artifacts rather than intentional doorways.
+   *
+   * Result is used for tag-based template matching so that a cell wanting
+   * exits LR is paired with a level whose openings are exactly LR — no
+   * extra openings to be sealed at runtime as visible brick walls.
+   */
+  private computeExits(grid: number[][], gridW: number, gridH: number): ExitDir[] {
+    const EXIT_MIN_OPENING = 2;
+
+    const hasOpening = (cells: number[]): boolean => {
+      let run = 0;
+      for (const v of cells) {
+        // For template exits, only IntGrid value 1 ("walls") is a boundary wall.
+        // Platform/updraft/water/etc. can exist in a doorway and must not hide it.
+        if (v !== 1) {
+          run++;
+          if (run >= EXIT_MIN_OPENING) return true;
+        } else {
+          run = 0;
+        }
+      }
+      return false;
+    };
+
+    const colCells = (col: number): number[] => {
+      const arr: number[] = [];
+      for (let r = 0; r < gridH; r++) arr.push(grid[r]?.[col] ?? 1);
+      return arr;
+    };
+    const rowCells = (row: number): number[] => {
+      const arr: number[] = [];
+      for (let c = 0; c < gridW; c++) arr.push(grid[row]?.[c] ?? 1);
+      return arr;
+    };
+
+    const exits: ExitDir[] = [];
+    if (hasOpening(colCells(0))) exits.push('L');
+    if (hasOpening(colCells(gridW - 1))) exits.push('R');
+    if (hasOpening(rowCells(0))) exits.push('U');
+    if (hasOpening(rowCells(gridH - 1))) exits.push('D');
+    return exits;
   }
 
   /**

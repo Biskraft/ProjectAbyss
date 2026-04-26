@@ -836,6 +836,10 @@ export function mirrorTemplate(t: RoomTemplate): RoomTemplate {
  * Return all templates whose exit list contains every direction in `required`.
  * A template with exits ['L','R','U','D'] matches required=['L','R'] because
  * it has at least those exits (superset match).
+ *
+ * Use this for branch/filler rooms where extra doors are tolerable.
+ * For critical-path rooms, prefer getExactTemplates() so the room's visible
+ * door set matches its logical exits 1:1 (no "ghost doors").
  */
 export function getMatchingTemplates(required: ExitDir[]): RoomTemplate[] {
   return ALL_TEMPLATES.filter(t =>
@@ -844,12 +848,48 @@ export function getMatchingTemplates(required: ExitDir[]): RoomTemplate[] {
 }
 
 /**
- * Pick a random template that contains all required exits.
- * 50% chance to mirror the result (Spelunky-style variation doubling).
- * Falls back to combat_LRUD if no exact match is found.
+ * Return templates whose exit set is EXACTLY equal to `required`
+ * (same size, same directions). A cell tagged LR will only match templates
+ * tagged exactly LR — not LRD, not LRUD.
+ *
+ * This is the tag-based matching the design wants: every room's visible
+ * doors equal its logical exits, so the player never sees a door that
+ * leads nowhere.
  */
-export function pickTemplate(required: ExitDir[], rng: PRNG): RoomTemplate {
-  const matches = getMatchingTemplates(required);
+export function getExactTemplates(required: ExitDir[]): RoomTemplate[] {
+  const reqSet = new Set(required);
+  return ALL_TEMPLATES.filter(t =>
+    t.exits.length === reqSet.size &&
+    t.exits.every(d => reqSet.has(d)),
+  );
+}
+
+/**
+ * Pick a random template matching the required exits.
+ *
+ * @param required  The exit directions the cell must support.
+ * @param rng       Deterministic RNG.
+ * @param exact     If true, only templates whose exit set equals `required`
+ *                  are eligible (tag match). If no exact match exists,
+ *                  falls back to superset matching to avoid generation failure.
+ *                  Default false preserves the legacy superset behavior.
+ *
+ * 50% chance to mirror the result (Spelunky-style variation doubling).
+ * Mirror is only kept if it still satisfies the matching mode.
+ */
+export function pickTemplate(
+  required: ExitDir[],
+  rng: PRNG,
+  exact: boolean = false,
+): RoomTemplate {
+  let matches = exact ? getExactTemplates(required) : getMatchingTemplates(required);
+  if (exact && matches.length === 0) {
+    // Coverage gap: no exact-tag template exists for this combination yet.
+    // Fall back to superset so the level still generates; sealCellExits()
+    // will close any extra doors and emit a warning so the gap is visible.
+    matches = getMatchingTemplates(required);
+  }
+
   let template: RoomTemplate;
   if (matches.length === 0) {
     template = ALL_TEMPLATES.find(t => t.name === 'combat_LRUD')!;
@@ -857,12 +897,15 @@ export function pickTemplate(required: ExitDir[], rng: PRNG): RoomTemplate {
     template = matches[rng.nextInt(0, matches.length - 1)];
   }
 
-  // 50% mirror — only if the mirrored exits still satisfy requirements
+  // 50% mirror — only kept if the mirrored exits still satisfy the mode.
   if (rng.next() < 0.5) {
     const mirrored = mirrorTemplate(template);
-    if (required.every(d => mirrored.exits.includes(d))) {
-      return mirrored;
-    }
+    const reqSet = new Set(required);
+    const mirroredOk = exact
+      ? (mirrored.exits.length === reqSet.size &&
+         mirrored.exits.every(d => reqSet.has(d)))
+      : required.every(d => mirrored.exits.includes(d));
+    if (mirroredOk) return mirrored;
   }
 
   return template;

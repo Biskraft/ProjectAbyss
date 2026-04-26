@@ -202,6 +202,14 @@ export function generateRoomGrid(
     }
   }
 
+  ensureNoDeadEndRooms(cells, gridW, gridH, startRoom, endRoom);
+
+  for (let row = 0; row < gridH; row++) {
+    for (let col = 0; col < gridW; col++) {
+      cells[row][col].type = determineRoomType(cells[row][col]);
+    }
+  }
+
   return { width: gridW, height: gridH, cells, criticalPath: path, startRoom, endRoom };
 }
 
@@ -332,4 +340,79 @@ function determineRoomType(cell: RoomCell): RoomType {
   if (cell.exits.up && !cell.exits.down) return 3; // LRU
   if (cell.exits.left || cell.exits.right) return 1; // LR
   return 0;
+}
+
+function ensureNoDeadEndRooms(
+  cells: RoomCell[][],
+  gridW: number,
+  gridH: number,
+  startRoom: { col: number; row: number },
+  endRoom: { col: number; row: number },
+): void {
+  for (let pass = 0; pass < 2; pass++) {
+    for (let row = 0; row < gridH; row++) {
+      for (let col = 0; col < gridW; col++) {
+        if (col === startRoom.col && row === startRoom.row) continue;
+        if (col === endRoom.col && row === endRoom.row) continue;
+
+        const cell = cells[row][col];
+        while (countExits(cell) < 2) {
+          const target = pickBestDeadEndRepairTarget(cells, col, row, gridW, gridH, startRoom, endRoom);
+          if (!target) break;
+          connectCells(cells, col, row, target.col, target.row);
+        }
+      }
+    }
+  }
+}
+
+function pickBestDeadEndRepairTarget(
+  cells: RoomCell[][],
+  col: number,
+  row: number,
+  gridW: number,
+  gridH: number,
+  startRoom: { col: number; row: number },
+  endRoom: { col: number; row: number },
+): { col: number; row: number } | null {
+  const dirs = [
+    { dc: -1, dr: 0 },
+    { dc: 1, dr: 0 },
+    { dc: 0, dr: -1 },
+    { dc: 0, dr: 1 },
+  ];
+  const candidates: Array<{ col: number; row: number; score: number }> = [];
+  const cell = cells[row][col];
+  for (const { dc, dr } of dirs) {
+    const nc = col + dc;
+    const nr = row + dr;
+    if (nc < 0 || nc >= gridW || nr < 0 || nr >= gridH) continue;
+    if (hasExitTo(cell, dc, dr)) continue;
+
+    const neighbor = cells[nr][nc];
+    const neighborIsTerminal =
+      (nc === startRoom.col && nr === startRoom.row) ||
+      (nc === endRoom.col && nr === endRoom.row);
+    const score = (neighborIsTerminal ? -20 : 0)
+      + (neighbor.onCriticalPath ? 4 : 0)
+      - countExits(neighbor);
+    candidates.push({ col: nc, row: nr, score });
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0] ?? null;
+}
+
+function countExits(cell: RoomCell): number {
+  return Number(cell.exits.left)
+    + Number(cell.exits.right)
+    + Number(cell.exits.up)
+    + Number(cell.exits.down);
+}
+
+function hasExitTo(cell: RoomCell, dc: number, dr: number): boolean {
+  if (dc < 0) return cell.exits.left;
+  if (dc > 0) return cell.exits.right;
+  if (dr < 0) return cell.exits.up;
+  if (dr > 0) return cell.exits.down;
+  return false;
 }

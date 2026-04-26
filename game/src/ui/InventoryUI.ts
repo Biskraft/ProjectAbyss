@@ -8,6 +8,7 @@ import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { create9SlicePanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
+import { sacredSave } from '@save/PlayerSave';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const PADDING = 12;
@@ -185,8 +186,18 @@ export class InventoryUI {
       if (this.anvilState === 'selecting') {
         const item = this.inventory.items[this.selectedIndex];
         if (!item) return;
-        if (this.inventory.equipped?.uid === item.uid) return;
         if (STARTER_ONLY_IDS.has(item.def.id)) return;
+
+        // If equipped: only allow auto-unequip on FIRST dive (tutorial)
+        if (this.inventory.equipped?.uid === item.uid) {
+          if (sacredSave.isFirstDiveDone()) return; // 2회차부터는 장착 무기 배치 차단
+          const fallback = this.inventory.items.find(
+            i => i.uid !== item.uid
+          );
+          if (fallback) this.inventory.equip(fallback.uid, true);
+          else this.inventory.unequip();
+        }
+
         this.placeOnAnvil(item);
       } else if (this.anvilState === 'placed') {
         this.confirmDive();
@@ -417,7 +428,7 @@ export class InventoryUI {
     g.y = y;
 
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
-    const isStarterOnly = this.mode === 'anvil' && STARTER_ONLY_IDS.has(item.def.id);
+    const isStarterOnly = STARTER_ONLY_IDS.has(item.def.id);
 
     // Row background
     if (isSelected && isEquipped) {
@@ -453,7 +464,7 @@ export class InventoryUI {
     cx += 14;
 
     // [E] badge
-    if (isEquipped || isStarterOnly) {
+    if (isEquipped) {
       const badge = new Graphics();
       badge.roundRect(cx, y + 3, 12, 12, 2).fill(COL_ROW_EQUIPPED_BAR);
       this.listArea.addChild(badge);
@@ -485,18 +496,18 @@ export class InventoryUI {
     // ATK stat
     const atkText = new BitmapText({
       text: `ATK ${item.finalAtk}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isStarterOnly) ? COL_LOCKED : COL_TEXT }
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isStarterOnly || isEquipped) ? COL_LOCKED : COL_TEXT }
     });
     atkText.x = PADDING + rowW - 68;
     atkText.y = y + 4;
     if (isOnAnvil) atkText.text = 'ON ANVIL';
-    if (isStarterOnly) atkText.text = 'LOCKED';
+    if (isEquipped || isStarterOnly) atkText.text = 'LOCKED';
     this.listArea.addChild(atkText);
 
-    // DIVE / CLR / 🔒 badge (right end)
+    // DIVE / CLR / LOCKED badge (right end)
     const badgeX = PADDING + rowW - 28;
-    if (isEquipped) {
-      // Locked — can't dive equipped weapon
+    if (isStarterOnly || isEquipped) {
+      // Starter-only item — can't dive
       const lockBadge = new Graphics();
       lockBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).stroke({ color: COL_LOCKED, width: 1 });
       this.listArea.addChild(lockBadge);

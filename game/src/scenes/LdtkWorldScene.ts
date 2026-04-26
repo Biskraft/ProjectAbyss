@@ -360,6 +360,7 @@ export class LdtkWorldScene extends Scene {
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
   private anvilPrompt: Container | null = null;
+  private anvilDisabledPrompt: Container | null = null;
   private floorCollapse: FloorCollapse | null = null;
   private screenCrack: ScreenCrack | null = null;
   private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
@@ -1105,6 +1106,10 @@ export class LdtkWorldScene extends Scene {
 
     // Dive transition in progress — all input blocked
     if (this.diveTransitionActive) {
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+      this.game.camera.update(dt);
       this.hitSparks.update(dt);
       this.screenFlash.update(dt);
       return;
@@ -4627,6 +4632,7 @@ export class LdtkWorldScene extends Scene {
     const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;
+    const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
 
     if (this.portalTransition) {
       this.portalTransition.destroy();
@@ -4662,6 +4668,7 @@ export class LdtkWorldScene extends Scene {
       // disable the current anvil once the dialogue finishes. Otherwise the
       // T14 line plays once as before.
       this.fireWorldReturnDialogue(targetItem.def.id);
+      this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
 
       if (isAltar) {
         if (targetItem.level > prevLevel) {
@@ -5167,6 +5174,10 @@ export class LdtkWorldScene extends Scene {
       this.anvilPrompt.parent.removeChild(this.anvilPrompt);
       this.anvilPrompt = null;
     }
+    if (this.anvilDisabledPrompt?.parent) {
+      this.anvilDisabledPrompt.parent.removeChild(this.anvilDisabledPrompt);
+      this.anvilDisabledPrompt = null;
+    }
     this.currentAnvilIid = null;
 
     const anvilEnts = level.entities.filter(
@@ -5178,7 +5189,7 @@ export class LdtkWorldScene extends Scene {
     // been defeated — Rustborn explains the retirement before the visual changes.
     const anvilDisabled = (
       level.identifier === FIRST_ANVIL_LEVEL_ID &&
-      this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
+      (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED) || sacredSave.isFirstItemWorldBossDefeated())
     );
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
@@ -5213,15 +5224,22 @@ export class LdtkWorldScene extends Scene {
   private updateAnvil(dt: number): void {
     if (!this.anvil) {
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
       return;
     }
     if (this.anvil.used || this.anvil.disabled) {
       this.anvil.update(dt);
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      if (this.anvil.disabled && this.isPlayerNearAnvil()) {
+        this.showAnvilDisabledPrompt();
+      } else if (this.anvilDisabledPrompt) {
+        this.anvilDisabledPrompt.visible = false;
+      }
       return;
     }
 
     this.anvil.update(dt);
+    if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
 
     const near = this.isPlayerNearAnvil();
     this.anvil.setShowHint(false); // disable built-in hint ??use KeyPrompt instead
@@ -5264,6 +5282,39 @@ export class LdtkWorldScene extends Scene {
         }
       }
     }
+  }
+
+  private showAnvilDisabledPrompt(): void {
+    if (!this.anvil) return;
+    if (!this.anvilDisabledPrompt) {
+      const us = this.game.uiScale;
+      const prompt = new Container();
+      const bg = new Graphics();
+      bg.roundRect(0, 0, 72 * us, 18 * us, 3 * us)
+        .fill({ color: 0x151515, alpha: 0.82 })
+        .stroke({ color: 0x777777, width: Math.max(1, us), alpha: 0.9 });
+      const label = new BitmapText({
+        text: 'DISABLED',
+        style: { fontFamily: PIXEL_FONT, fontSize: 7 * us, fill: 0xb8b8b8 },
+      });
+      label.x = Math.round((72 * us - label.width) / 2);
+      label.y = Math.round((18 * us - label.height) / 2);
+      prompt.addChild(bg, label);
+      this.anvilDisabledPrompt = prompt;
+    }
+    if (!this.anvilDisabledPrompt.parent) {
+      this.game.uiContainer.addChild(this.anvilDisabledPrompt);
+    }
+    this.anvilDisabledPrompt.visible = true;
+
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const ax = this.anvil.container.x;
+    const ay = this.anvil.container.y;
+    const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilDisabledPrompt.width / 2;
+    const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
+    this.anvilDisabledPrompt.x = Math.round(sx);
+    this.anvilDisabledPrompt.y = Math.round(sy);
   }
 
   /**
@@ -5453,6 +5504,10 @@ export class LdtkWorldScene extends Scene {
   private triggerFloorCollapse(): void {
     if (!this.anvil || !this.collapseItem) return;
 
+    this.diveTransitionActive = true;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
@@ -5575,6 +5630,7 @@ export class LdtkWorldScene extends Scene {
 
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;
+    const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
 
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
@@ -5606,6 +5662,7 @@ export class LdtkWorldScene extends Scene {
 
       // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
       this.fireWorldReturnDialogue(targetItem.def.id);
+      this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
 
       // Return to the forge room (not the tunnel)
       this.inItemTunnel = false;
@@ -6112,6 +6169,25 @@ export class LdtkWorldScene extends Scene {
         this.loreDisplay.showDialogue(EGO_ANVIL, false);
         return;
       }
+    }
+  }
+
+  private retireFirstAnvilAfterBossClear(hadFirstBossClear: boolean): void {
+    if (hadFirstBossClear) return;
+    if (!sacredSave.isFirstItemWorldBossDefeated()) return;
+    if (this.lastUsedAnvilLevelId !== FIRST_ANVIL_LEVEL_ID) return;
+
+    this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
+    this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+
+    if (this.anvil) {
+      this.anvil.used = false;
+      this.anvil.item = null;
+      void this.anvil.setDisabled(true);
+    }
+    if (this.anvilPrompt) this.anvilPrompt.visible = false;
+    if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
+      this.inventoryUI.close();
     }
   }
 

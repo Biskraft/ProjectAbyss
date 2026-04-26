@@ -100,11 +100,13 @@ export class ItemWorldMapController {
   // Full grid initialization
   // ---------------------------------------------------------------------------
 
-  /** Create a solid (all 1) collision grid. */
-  initFullGrid(): number[][] {
+  /** Create a solid (all 1) collision grid sized to the active stratum. */
+  initFullGrid(widthRooms: number = IW_GRID_W, heightRooms: number = IW_GRID_H): number[][] {
     const grid: number[][] = [];
-    for (let r = 0; r < IW_FULL_H_TILES; r++) {
-      grid[r] = new Array(IW_FULL_W_TILES).fill(1);
+    const widthTiles = Math.max(1, widthRooms) * IW_ROOM_W_TILES;
+    const heightTiles = Math.max(1, heightRooms) * IW_ROOM_H_TILES;
+    for (let r = 0; r < heightTiles; r++) {
+      grid[r] = new Array(widthTiles).fill(1);
     }
     return grid;
   }
@@ -181,14 +183,22 @@ export class ItemWorldMapController {
   ): void {
     const H = fullGrid.length;
     const W = fullGrid[0]?.length ?? 0;
-    // Seals first (solid), then carves (passable) — carves win on overlap
+    // Seals first (solid), then carves (passable) — carves win on overlap.
+    //
+    // Tag-match invariant (pickTemplate exact=true): the template's outer
+    // border is already solid on faces the cell doesn't expose, so writing
+    // 1 there is a no-op and we should NOT mark sealedCells. Visual brick
+    // overlay is reserved for genuinely sealed ghost doors (coverage gap
+    // fallback or mistagged template).
     for (const rect of mask.sealRectsLocal) {
       for (let r = rect.r0; r < rect.rN; r++) {
         for (let c = rect.c0; c < rect.cN; c++) {
           const gr = offR + r, gc = offC + c;
           if (gr >= 0 && gr < H && gc >= 0 && gc < W) {
-            fullGrid[gr][gc] = 1;
-            sealedCells.add(`${gr},${gc}`);
+            if (fullGrid[gr][gc] !== 1) {
+              fullGrid[gr][gc] = 1;
+              sealedCells.add(`${gr},${gc}`);
+            }
           }
         }
       }

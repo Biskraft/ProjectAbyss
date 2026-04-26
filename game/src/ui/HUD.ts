@@ -8,11 +8,13 @@ import type { UISkin } from './UISkin';
 const BASE_W = 640;
 const BASE_H = 360;
 const BASE_MARGIN = 8;
-const BASE_HP_W = 120;
-const BASE_HP_H = 10;
+const BASE_HP_W = 180;
+const BASE_HP_H = 16;
 const BASE_FLASK_SIZE = 20;
 const BASE_FLASK_GAP = 3;
 const BASE_FONT = 8;
+// HP text uses its own larger font (Playtest 2026-04-27: max HP visibility).
+const BASE_HP_FONT = 16;
 const BASE_BOSS_W = 140;
 const BASE_BOSS_H = 8;
 
@@ -56,6 +58,7 @@ export class HUD {
   private FLASK_SIZE: number; private FLASK_GAP: number;
   private FLASK_Y: number;
   private FONT: number;
+  private HP_FONT: number;
   private BOSS_W: number; private BOSS_H: number;
   private BOSS_X: number; private BOSS_Y: number;
 
@@ -141,6 +144,8 @@ export class HUD {
 
   // Skin sprites — populated by applySkin()
   private skinLayer: Container | null = null;
+  private skinMapFrame: Sprite | null = null;
+  private minimapFrameVisible = true;
   private skinHpFill: Sprite | null = null;
   private skinHpFillMaxW = 0;
   private skinFloorFill: Sprite | null = null;
@@ -190,6 +195,7 @@ export class HUD {
     this.FLASK_GAP = BASE_FLASK_GAP * s;
     this.FLASK_Y = this.HP_Y + this.HP_H + 2 * s;
     this.FONT = BASE_FONT * s;
+    this.HP_FONT = BASE_HP_FONT * s;
     this.BOSS_W = BASE_BOSS_W * s;
     this.BOSS_H = BASE_BOSS_H * s;
     this.BOSS_X = (this.SW - this.BOSS_W) / 2;
@@ -210,8 +216,8 @@ export class HUD {
     this.container.addChild(this.flaskGfx);
 
     // --- HP text with shadow ---
-    this.hpTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.hpTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: 0x000000 } });
+    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: 0xffffff } });
     this.hpTextShadow.x = this.HP_X + 44 * s + s;
     this.hpTextShadow.y = this.FLASK_Y + s;
     this.hpText.x = this.HP_X + 44 * s;
@@ -470,7 +476,7 @@ export class HUD {
     // HP text follows after the [R] label — skip if skin controls position
     if (!this.hasSkin) {
       this.hpText.x = flaskKeyLeft + this.FLASK_SIZE + 4 * this.s;
-      this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.FONT) / 2;
+      this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.HP_FONT) / 2;
       this.hpTextShadow.x = this.hpText.x + this.s;
       this.hpTextShadow.y = this.hpText.y + this.s;
     }
@@ -527,6 +533,11 @@ export class HUD {
     const y = below ? (this.MARGIN + 72 * this.s + 6 * this.s + 10 * this.s + 4 * this.s) : this.MARGIN;
     this.goldText.y = y;
     this.goldTextShadow.y = y + this.s;
+  }
+
+  setMinimapFrameVisible(visible: boolean): void {
+    this.minimapFrameVisible = visible;
+    if (this.skinMapFrame) this.skinMapFrame.visible = visible;
   }
 
   // --- Boss HP bar ---
@@ -1097,7 +1108,8 @@ export class HUD {
 
     place('hud_status_atk_frame');
     place('hud_floor_indicator');
-    place('hud_map_frame');
+    this.skinMapFrame = place('hud_map_frame');
+    if (this.skinMapFrame) this.skinMapFrame.visible = this.minimapFrameVisible;
 
     // --- Depth indicator (item world only, hidden by default) ---
     {
@@ -1274,7 +1286,7 @@ export class HUD {
       // HP text: right of HP bar
       const hpRight = (hpFrameBounds.x + hpFrameBounds.w + 2) * s;
       this.hpText.x = hpRight;
-      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - this.FONT) / 2;
+      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - this.HP_FONT) / 2;
       this.hpTextShadow.x = this.hpText.x + s;
       this.hpTextShadow.y = this.hpText.y + s;
     }

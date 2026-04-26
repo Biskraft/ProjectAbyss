@@ -112,7 +112,6 @@ import {
   IW_GRID_W, IW_GRID_H,
   IW_ROOM_W_TILES, IW_ROOM_H_TILES,
   IW_ROOM_W_PX, IW_ROOM_H_PX,
-  IW_FULL_W_TILES, IW_FULL_H_TILES,
   IW_DOOR_DEPTH, IW_DOOR_H_HEIGHT, IW_DOOR_V_WIDTH, IW_DOOR_FLOOR_ROW,
   SEAL_DEPTH,
   type DoorMask,
@@ -123,6 +122,7 @@ const TILE_SIZE = IW_TILE_SIZE;
 const ROOM_W = 60;
 const ROOM_H = 34;
 const FADE_DURATION = 200;
+const ENTRY_FREEZE_MS = 700;
 const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
 const BASE_EXP_PER_KILL = 60;
@@ -226,6 +226,7 @@ export class ItemWorldScene extends Scene {
   private currentRow = 0; // absolute row in unified grid
   private roomData: number[][] = [];
   private rng!: PRNG;
+  private entryFreezeTimer = ENTRY_FREEZE_MS;
 
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
@@ -538,7 +539,9 @@ export class ItemWorldScene extends Scene {
     {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
-      this.parallaxBG.setup(bgEntry, IW_FULL_W_TILES * TILE_SIZE, IW_FULL_H_TILES * TILE_SIZE, {
+      const gridW = this.currentStratumDef?.gridWidth ?? IW_GRID_W;
+      const gridH = this.currentStratumDef?.gridHeight ?? IW_GRID_H;
+      this.parallaxBG.setup(bgEntry, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX, {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
@@ -626,6 +629,7 @@ export class ItemWorldScene extends Scene {
 
     // HUD
     this.hud = new HUD(this.game.uiScale);
+    this.hud.setMinimapFrameVisible(false);
     this.game.uiContainer.addChild(this.hud.container);
 
     // Area title banner — shows item name on entry.
@@ -850,11 +854,13 @@ export class ItemWorldScene extends Scene {
     this.exitTrigger = null;
 
     const _dbgRowStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const _dbgHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
-    console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${this.unifiedGrid.totalWidth}x${_dbgHeight} templates=${this.ldtkTemplates.length}`);
+    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
+    const gridW = stratumDef?.gridWidth ?? IW_GRID_W;
+    const gridH = stratumDef?.gridHeight ?? IW_GRID_H;
+    console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${gridW}x${gridH} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
-    this.fullGrid = this.mapController.initFullGrid();
+    this.fullGrid = this.mapController.initFullGrid(gridW, gridH);
     this.sealedCells.clear();
 
     // Clear any previously spawned static entities (rebuild = fresh world)
@@ -863,19 +869,27 @@ export class ItemWorldScene extends Scene {
     // Place each room template into the full grid (current stratum only)
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const boundarySeals: Array<{ localRow: number; col: number; exits: ExitDir[]; cell: UnifiedRoomCell }> = [];
 
     let roomCount = 0;
-    for (let localRow = 0; localRow < IW_GRID_H; localRow++) {
+    for (let localRow = 0; localRow < gridH; localRow++) {
       const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < IW_GRID_W; col++) {
+      for (let col = 0; col < gridW; col++) {
         const cell = grid.cells[absRow]?.[col];
-        // Fill ALL 16 cells with rooms (critical path + filler rooms)
+        if (!cell) continue;
+
         const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
-        const ldtkLevel = this.pickLdtkTemplate(cell ?? null as any, rng);
+        const ldtkLevel = this.pickLdtkTemplate(cell, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
-        // Store roomType for spawn logic
-        this.roomTypeMap.set(`${col}:${absRow}`, ldtkLevel.roomType ?? 'Combat');
+        // Boss/start are logical roles from RoomGrid. The LDtk template may be
+        // a visual fallback for the same exit mask, so do not let its RoomType
+        // erase required gameplay roles like boss spawning.
+        const logicalRoomType = this.isStratumEndRoom(col, absRow)
+          ? 'Boss'
+          : ldtkLevel.roomType ?? 'Combat';
+        this.roomTypeMap.set(`${col}:${absRow}`, logicalRoomType);
+        boundarySeals.push({ localRow, col, exits: ldtkLevel.exits, cell });
 
         const roomGrid = ldtkLevel.collisionGrid;
         const roomH = roomGrid.length;
@@ -889,13 +903,6 @@ export class ItemWorldScene extends Scene {
             this.fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
           }
         }
-
-        // Door mask: carve openings where the cell has a logical exit,
-        // seal the full edge strip where it doesn't. Without this, every
-        // template's 4-way doors stay open and the critical path collapses
-        // into a direct shortcut to the boss.
-        const mask = this.computeDoorMask(cell ?? null, ldtkLevel);
-        this.applyDoorMaskToFullGrid(mask, offR, offC);
 
         // Render room tiles ? ALL layers including wallTiles so that LDtk
         // auto-tile rules for platform(3), updraft(4), etc. render properly.
@@ -928,14 +935,6 @@ export class ItemWorldScene extends Scene {
         this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
 
-        // Seal-wall overlays (code-generated 0x101010 fills on door-mask cells).
-        // Drawn on the seal aggregate so they render above tiles and are
-        // NOT swept by the wall palette (flat black seam look intentional).
-        const sealContainer = new Container();
-        sealContainer.position.set(roomX, roomY);
-        this.drawUniformWalls(sealContainer, offR, offC);
-        this.sealAggregate!.addChild(sealContainer);
-
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX);
 
@@ -949,12 +948,10 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Seal visuals: dark background = already black where no tiles rendered.
-    // Explicit visual pass handles remaining details.
-    this.addFullMapSealVisuals();
+    this.addFullMapBoundaryCollision(gridW, gridH);
+    this.addFullMapBoundaryVisuals(boundarySeals, gridW, gridH);
 
-    // Procedural decorations ? generated from the final fullGrid (after door masks)
-    // so decorations respect carved doors and spread evenly across all rooms.
+    // Procedural decorations generated from the final LDtk-authored fullGrid.
     if (this._procDecoEnabled) {
       const decorator = new ProceduralDecorator({
         // Item world: 1/4 density of world decorations
@@ -983,10 +980,10 @@ export class ItemWorldScene extends Scene {
     }
     this.container.addChildAt(this.parallaxBG.container, 0);
 
-    // Set collision and camera to full map (128w × 64h tiles)
+    // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
-    this.game.camera.setBounds(0, 0, IW_FULL_W_TILES * TILE_SIZE, IW_FULL_H_TILES * TILE_SIZE);
+    this.game.camera.setBounds(0, 0, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX);
 
     this.persistRoomState();
     this.drawMiniMap();
@@ -1019,44 +1016,132 @@ export class ItemWorldScene extends Scene {
   }
 
   private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, _size: number): void {
-    // Delegate to mapController — uses SEAL_DEPTH internally
+    // Safety net for tag-based template matching.
+    //
+    // With pickTemplate(exact=true), the chosen template's door set should equal
+    // cell.exits, so every cell is sealed only on directions where the template
+    // already has solid wall — making this a no-op in the happy path.
+    //
+    // If sealing actually flips any tile from non-solid to solid, that means
+    // the template had a door the cell doesn't want (a coverage gap or a
+    // mistagged template). We log it once per direction so missing tag
+    // categories surface during playtest.
     const grid = this.fullGrid;
     const SEAL = SEAL_DEPTH;
     const FULL_H = grid.length;
     const FULL_W = grid[0]?.length ?? 0;
     const size = _size;
 
-    if (!cell.exits.left) {
-      for (let r = offR; r < offR + size && r < FULL_H; r++)
-        for (let c = offC; c < offC + SEAL && c < FULL_W; c++)
+    const sealRect = (r0: number, r1: number, c0: number, c1: number): boolean => {
+      let touched = false;
+      for (let r = r0; r < r1 && r < FULL_H; r++) {
+        for (let c = c0; c < c1 && c < FULL_W; c++) {
+          if (grid[r][c] !== 1) touched = true;
           grid[r][c] = 1;
+        }
+      }
+      return touched;
+    };
+
+    const warnGhost = (dir: 'L' | 'R' | 'U' | 'D'): void => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ItemWorld] sealing ghost door ${dir} at cell (col=${cell.col}, row=${cell.absoluteRow}) — `
+        + `template tag mismatch, no exact-match room available for this exit set.`,
+      );
+    };
+
+    if (!cell.exits.left) {
+      if (sealRect(offR, offR + size, offC, offC + SEAL)) warnGhost('L');
     }
     if (!cell.exits.right) {
-      for (let r = offR; r < offR + size && r < FULL_H; r++)
-        for (let c = offC + size - SEAL; c < offC + size && c < FULL_W; c++)
-          grid[r][c] = 1;
+      if (sealRect(offR, offR + size, offC + size - SEAL, offC + size)) warnGhost('R');
     }
     if (!cell.exits.up) {
-      for (let r = offR; r < offR + SEAL && r < FULL_H; r++)
-        for (let c = offC; c < offC + size && c < FULL_W; c++)
-          grid[r][c] = 1;
+      if (sealRect(offR, offR + SEAL, offC, offC + size)) warnGhost('U');
     }
     if (!cell.exits.down) {
-      for (let r = offR + size - SEAL; r < offR + size && r < FULL_H; r++)
-        for (let c = offC; c < offC + size && c < FULL_W; c++)
-          grid[r][c] = 1;
+      if (sealRect(offR + size - SEAL, offR + size, offC, offC + size)) warnGhost('D');
     }
   }
 
   /**
-   * Add seal visuals over passages that have no neighbor.
-   * Unrendered cells are already dark (scene background). This is a no-op for now
-   * because the dark background naturally covers solid regions.
+   * Cover authored/fallback LDtk openings that point to no logical neighbor.
+   * This keeps map boundaries from reading as valid paths while templates are
+   * still being filled out in LDtk.
    */
-  private addFullMapSealVisuals(): void {
-    if (!this.fullMapContainer) return;
-    // No explicit graphics needed: solid tiles in fullGrid have no tile sprites rendered,
-    // so they show as the dark scene background color. This keeps them visually sealed.
+  private addFullMapBoundaryVisuals(
+    rooms: Array<{ localRow: number; col: number; exits: ExitDir[]; cell: UnifiedRoomCell }>,
+    gridW: number,
+    gridH: number,
+  ): void {
+    if (!this.sealAggregate) return;
+
+    const layer = new Container();
+    const fullW = gridW * IW_ROOM_W_PX;
+    const fullH = gridH * IW_ROOM_H_PX;
+    const thickness = IW_DOOR_DEPTH * TILE_SIZE;
+    const frame = new Graphics();
+    this.drawBoundaryWall(frame, 0, 0, fullW, thickness);
+    this.drawBoundaryWall(frame, 0, fullH - thickness, fullW, thickness);
+    this.drawBoundaryWall(frame, 0, 0, thickness, fullH);
+    this.drawBoundaryWall(frame, fullW - thickness, 0, thickness, fullH);
+    layer.addChild(frame);
+
+    for (const room of rooms) {
+      const exitSet = new Set(room.exits);
+      const sealLeft = exitSet.has('L') && !room.cell.exits.left;
+      const sealRight = exitSet.has('R') && !room.cell.exits.right;
+      const sealUp = exitSet.has('U') && !room.cell.exits.up;
+      const sealDown = exitSet.has('D') && !room.cell.exits.down;
+      if (!sealLeft && !sealRight && !sealUp && !sealDown) continue;
+
+      const x = room.col * IW_ROOM_W_PX;
+      const y = room.localRow * IW_ROOM_H_PX;
+      const gfx = new Graphics();
+      if (sealLeft) this.drawBoundaryWall(gfx, 0, 0, IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_H_PX);
+      if (sealRight) this.drawBoundaryWall(gfx, IW_ROOM_W_PX - IW_DOOR_DEPTH * TILE_SIZE, 0, IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_H_PX);
+      if (sealUp) this.drawBoundaryWall(gfx, 0, 0, IW_ROOM_W_PX, IW_DOOR_DEPTH * TILE_SIZE);
+      if (sealDown) this.drawBoundaryWall(gfx, 0, IW_ROOM_H_PX - IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_W_PX, IW_DOOR_DEPTH * TILE_SIZE);
+      gfx.position.set(x, y);
+      layer.addChild(gfx);
+    }
+
+    this.sealAggregate.addChild(layer);
+  }
+
+  private addFullMapBoundaryCollision(gridW: number, gridH: number): void {
+    const widthTiles = gridW * IW_ROOM_W_TILES;
+    const heightTiles = gridH * IW_ROOM_H_TILES;
+    const thickness = IW_DOOR_DEPTH;
+    for (let r = 0; r < heightTiles; r++) {
+      for (let c = 0; c < widthTiles; c++) {
+        const onBoundary = r < thickness
+          || r >= heightTiles - thickness
+          || c < thickness
+          || c >= widthTiles - thickness;
+        if (onBoundary && this.fullGrid[r]?.[c] !== undefined) {
+          this.fullGrid[r][c] = 1;
+        }
+      }
+    }
+  }
+
+  private drawBoundaryWall(gfx: Graphics, x: number, y: number, w: number, h: number): void {
+    const mortar = 0x3f4148;
+    const colors = [0x5c6068, 0x686c74, 0x52565f, 0x747881];
+    gfx.rect(x, y, w, h).fill(mortar);
+    for (let py = y; py < y + h; py += 8) {
+      const row = Math.floor((py - y) / 8);
+      const offset = row % 2 === 0 ? 0 : 8;
+      for (let px = x - offset; px < x + w; px += 16) {
+        const bx = Math.max(x, px + 1);
+        const bw = Math.min(px + 15, x + w) - bx;
+        if (bw <= 0) continue;
+        const color = colors[(row * 5 + Math.floor(px / 16)) % colors.length];
+        gfx.rect(bx, py + 1, bw, 6).fill(color);
+      }
+    }
   }
 
   /**
@@ -1115,21 +1200,21 @@ export class ItemWorldScene extends Scene {
     const roomTopCol = Math.floor(offX / TILE_SIZE);
     const spawnPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopCol, roomTopRow);
 
-    if (spawnPoints.length === 0) return;
-
     const pickSpawn = (rng: PRNG, entityH: number) => {
       const pt = spawnPoints[rng.nextInt(0, spawnPoints.length - 1)];
       return { x: pt.x, y: pt.y - entityH };
     };
 
     const roomType = this.roomTypeMap.get(`${col}:${row}`) ?? 'Combat';
-    const isBossRoom = roomType === 'Boss';
+    const isBossRoom = roomType === 'Boss' || this.isStratumEndRoom(col, row);
     const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
     const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
 
     // Cycle scaling ? bump CSV level by +cycle so each replay uses the next
     // row in Content_Stats_Enemy.csv (CSV jump is the "1 level stronger" feel).
     const cycle = this.progress?.cycle ?? 0;
+
+    if (spawnPoints.length === 0 && !isBossRoom) return;
 
     // ─── RoomType-specific branching ────────────────────────────────────────
     // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
@@ -1175,7 +1260,7 @@ export class ItemWorldScene extends Scene {
     }
     // ────────────────────────────────────────────────────────────────────────
 
-    // Boss room ? only spawn boss when LDtk template is 'Boss' type
+    // Boss room is a logical stratum-end role and must always spawn a boss.
     if (isBossRoom && spawnTable.boss) {
       const bossEntry = spawnTable.boss;
       const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
@@ -1196,8 +1281,13 @@ export class ItemWorldScene extends Scene {
       let sp: { x: number; y: number };
       if (flat) {
         sp = { x: flat.x - boss.width / 2, y: flat.y - boss.height };
-      } else {
+      } else if (spawnPoints.length > 0) {
         sp = pickSpawn(bossRng, boss.height);
+      } else {
+        sp = {
+          x: offX + IW_ROOM_W_PX / 2 - boss.width / 2,
+          y: offY + IW_ROOM_H_PX / 2 - boss.height,
+        };
       }
       boss.x = sp.x;
       boss.y = sp.y;
@@ -1581,14 +1671,16 @@ export class ItemWorldScene extends Scene {
    */
   private preSpawnNeighborRooms(localCol: number, localRow: number): void {
     const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const stratumHeight = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? 4;
+    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
+    const stratumWidth = stratumDef?.gridWidth ?? IW_GRID_W;
+    const stratumHeight = stratumDef?.gridHeight ?? IW_GRID_H;
     const directions = [
       { dc: -1, dr: 0, name: 'W' },
       { dc: 1, dr: 0, name: 'E' },
       { dc: 0, dr: -1, name: 'N' },
       { dc: 0, dr: 1, name: 'S' },
     ];
-    console.log(`[ItemWorld] preSpawnNeighborRooms from (${localCol},${localRow}) stratumOffset=${stratumOffset} stratumHeight=${stratumHeight}`);
+    console.log(`[ItemWorld] preSpawnNeighborRooms from (${localCol},${localRow}) stratumOffset=${stratumOffset} gridSize=${stratumWidth}x${stratumHeight}`);
     let spawnedCount = 0;
     let skippedBounds = 0;
     let skippedSpawned = 0;
@@ -1596,7 +1688,7 @@ export class ItemWorldScene extends Scene {
     for (const { dc, dr, name } of directions) {
       const ncLocal = localCol + dc;
       const nrLocal = localRow + dr;
-      if (ncLocal < 0 || ncLocal > 3 || nrLocal < 0 || nrLocal >= stratumHeight) {
+      if (ncLocal < 0 || ncLocal >= stratumWidth || nrLocal < 0 || nrLocal >= stratumHeight) {
         console.log(`  [${name}] skip: out of bounds (${ncLocal},${nrLocal})`);
         skippedBounds++;
         continue;
@@ -1876,11 +1968,19 @@ export class ItemWorldScene extends Scene {
    */
   private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
     if (this.ldtkTemplates.length === 0) return null;
+    if (!cell) return null;
 
-    // Memory Room placement overrides procedural selection ? deterministic.
-    if (cell) {
-      const placed = this.memoryRoomPlacements.get(`${cell.col}:${cell.absoluteRow}`);
-      if (placed) return placed;
+    const required = this.getRequiredExits(cell);
+
+    // Memory Room placement overrides procedural selection only when its
+    // authored LDtk openings already match the logical room exits.
+    const placed = this.memoryRoomPlacements.get(`${cell.col}:${cell.absoluteRow}`);
+    if (placed) {
+      if (this.sameExitSet(placed.exits, required)) return placed;
+      console.warn(
+        `[ItemWorld] memory room ${placed.identifier} exits=${this.formatExits(placed.exits)} `
+        + `does not match cell exits=${this.formatExits(required)} at (${cell.col},${cell.absoluteRow}); using normal template.`,
+      );
     }
 
     // Exclude memory room templates from the random pool so they only appear
@@ -1890,38 +1990,103 @@ export class ItemWorldScene extends Scene {
 
     // Determine desired RoomType based on cell role
     let desiredType: string;
-    if (!cell) {
-      desiredType = 'Combat';
-    } else {
-      const isStart = cell.col === this.unifiedGrid.startRoom.col
-        && cell.absoluteRow === this.unifiedGrid.startRoom.absoluteRow;
-      const isBoss = this.isStratumEndRoom(cell.col, cell.absoluteRow);
+    const isStart = cell.col === this.unifiedGrid.startRoom.col
+      && cell.absoluteRow === this.unifiedGrid.startRoom.absoluteRow;
+    const isBoss = this.isStratumEndRoom(cell.col, cell.absoluteRow);
 
-      if (isStart) {
-        desiredType = 'Start';
-      } else if (isBoss) {
-        desiredType = 'Boss';
-      } else if (!cell.onCriticalPath) {
-        // Off-path rooms: equal 25% for Treasure / Rest / Puzzle / Combat
-        const roll = rng.next();
-        if (roll < 0.25) desiredType = 'Treasure';
-        else if (roll < 0.50) desiredType = 'Rest';
-        else if (roll < 0.75) desiredType = 'Puzzle';
-        else desiredType = 'Combat';
-      } else {
-        desiredType = 'Combat';
+    if (isStart) {
+      desiredType = 'Start';
+    } else if (isBoss) {
+      desiredType = 'Boss';
+    } else if (!cell.onCriticalPath) {
+      // Off-path rooms: equal 25% for Treasure / Rest / Puzzle / Combat
+      const roll = rng.next();
+      if (roll < 0.25) desiredType = 'Treasure';
+      else if (roll < 0.50) desiredType = 'Rest';
+      else if (roll < 0.75) desiredType = 'Puzzle';
+      else desiredType = 'Combat';
+    } else {
+      desiredType = 'Combat';
+    }
+
+    const exactByType = pool.filter(t => t.roomType === desiredType && this.sameExitSet(t.exits, required));
+    if (exactByType.length > 0) {
+      return exactByType[rng.nextInt(0, exactByType.length - 1)];
+    }
+
+    if (desiredType === 'Boss' || desiredType === 'Start') {
+      const roleTemplates = pool.filter(t => t.roomType === desiredType);
+      if (roleTemplates.length > 0) {
+        const rankedRoleTemplates = [...roleTemplates].sort((a, b) =>
+          this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required),
+        );
+        const fallback = rankedRoleTemplates[0];
+        console.warn(
+          `[ItemWorld] no exact LDtk template for required role=${desiredType} exits=${this.formatExits(required)} `
+          + `at (${cell.col},${cell.absoluteRow}); using ${fallback.identifier} exits=${this.formatExits(fallback.exits)}.`,
+        );
+        return fallback;
       }
     }
 
-    // Filter templates by roomType
-    const matching = pool.filter(t => t.roomType === desiredType);
-    if (matching.length > 0) {
-      return matching[rng.nextInt(0, matching.length - 1)];
+    const exactAnyType = pool.filter(t => this.sameExitSet(t.exits, required));
+    if (exactAnyType.length > 0) {
+      console.warn(
+        `[ItemWorld] no exact LDtk template for type=${desiredType} exits=${this.formatExits(required)} `
+        + `at (${cell.col},${cell.absoluteRow}); using another room type.`,
+      );
+      return exactAnyType[rng.nextInt(0, exactAnyType.length - 1)];
     }
 
-    // Fallback: any non-memory template
-    if (pool.length === 0) return null;
-    return pool[rng.nextInt(0, pool.length - 1)];
+    const fallbackPool = pool.length > 0 ? pool : this.ldtkTemplates;
+    const ranked = [...fallbackPool].sort((a, b) =>
+      this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required),
+    );
+    const fallback = ranked[0] ?? null;
+    if (!fallback) return null;
+
+    console.warn(
+      `[ItemWorld] Missing LDtk ItemStratum template exits=${this.formatExits(required)} `
+      + `type=${desiredType} at (${cell.col},${cell.absoluteRow}); `
+      + `fallback=${fallback.identifier} exits=${this.formatExits(fallback.exits)}. `
+      + `Author this exit combination in LDtk to remove the fallback.`,
+    );
+    return fallback;
+  }
+
+  private getRequiredExits(cell: UnifiedRoomCell): ExitDir[] {
+    const exits: ExitDir[] = [];
+    if (cell.exits.left) exits.push('L');
+    if (cell.exits.right) exits.push('R');
+    if (cell.exits.up) exits.push('U');
+    if (cell.exits.down) exits.push('D');
+    return exits;
+  }
+
+  private sameExitSet(a: readonly ExitDir[], b: readonly ExitDir[]): boolean {
+    if (a.length !== b.length) return false;
+    const bSet = new Set(b);
+    return a.every(d => bSet.has(d));
+  }
+
+  private exitMatchScore(candidate: readonly ExitDir[], required: readonly ExitDir[]): number {
+    const candSet = new Set(candidate);
+    const reqSet = new Set(required);
+    let matches = 0;
+    let extras = 0;
+    let missing = 0;
+    for (const d of reqSet) {
+      if (candSet.has(d)) matches++;
+      else missing++;
+    }
+    for (const d of candSet) {
+      if (!reqSet.has(d)) extras++;
+    }
+    return matches * 10 - missing * 6 - extras * 2;
+  }
+
+  private formatExits(exits: readonly ExitDir[]): string {
+    return exits.length > 0 ? exits.join('') : 'none';
   }
 
   /** Map cell exits to template exits and pick a matching template */
@@ -1932,7 +2097,10 @@ export class ItemWorldScene extends Scene {
     if (cell.exits.up) exits.push('U');
     if (cell.exits.down) exits.push('D');
     if (exits.length === 0) return null;
-    return pickTemplate(exits, rng);
+    // exact=true: tag-based matching — template's door set must equal cell's
+    // exit set, so no "ghost doors" appear that lead to non-existent neighbors.
+    // Falls back to superset internally if no exact-tag template exists.
+    return pickTemplate(exits, rng, true);
   }
 
   private spawnEnemies(): void {
@@ -2397,17 +2565,20 @@ export class ItemWorldScene extends Scene {
 
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
+    const gridW = stratumDef?.gridWidth ?? IW_GRID_W;
+    const gridH = stratumDef?.gridHeight ?? IW_GRID_H;
 
-    for (let localRow = 0; localRow < IW_GRID_H; localRow++) {
+    for (let localRow = 0; localRow < gridH; localRow++) {
       const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < IW_GRID_W; col++) {
+      for (let col = 0; col < gridW; col++) {
         const cell = grid.cells[absRow]?.[col];
+        if (!cell) continue;
+
         const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
-        const ldtkLevel = this.pickLdtkTemplate(cell ?? null as any, rng);
+        const ldtkLevel = this.pickLdtkTemplate(cell, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
-        const offR = localRow * IW_ROOM_H_TILES;
-        const offC = col * IW_ROOM_W_TILES;
         const roomX = col * IW_ROOM_W_PX;
         const roomY = localRow * IW_ROOM_H_PX;
 
@@ -2432,11 +2603,6 @@ export class ItemWorldScene extends Scene {
         this.wallAggregate.addChild(renderer.wallLayer);
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
-
-        const sealContainer = new Container();
-        sealContainer.position.set(roomX, roomY);
-        this.drawUniformWalls(sealContainer, offR, offC);
-        this.sealAggregate.addChild(sealContainer);
       }
     }
   }
@@ -2501,13 +2667,15 @@ export class ItemWorldScene extends Scene {
   }
 
   enter(): void {
-    // Onboarding disabled
+    this.entryFreezeTimer = ENTRY_FREEZE_MS;
   }
 
   private initialized = false;
 
   update(dt: number): void {
     if (!this.initialized) return;
+
+    this.areaTitle.update(dt);
 
     // Return result modal (blocks all input while visible)
     if (this.uiController.isReturnResultVisible()) {
@@ -2541,6 +2709,23 @@ export class ItemWorldScene extends Scene {
       this.loreDisplay.update(dt);
       // Sync prev position so render interpolation doesn't cause jitter
       this.player.savePrevPosition();
+      return;
+    }
+
+    if (this.entryFreezeTimer > 0) {
+      this.entryFreezeTimer = Math.max(0, this.entryFreezeTimer - dt);
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+      this.hud.update(dt);
+      this.updateHudText();
+      this.dmgNumbers.update(dt);
+      this.screenFlash.update(dt);
+      this.game.camera.target = {
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+      };
+      this.game.camera.update(dt);
       return;
     }
 
@@ -3186,7 +3371,6 @@ export class ItemWorldScene extends Scene {
     }
     this.hud.update(dt);
     this.updateHudText();
-    this.areaTitle.update(dt);
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.deathParticles.update(dt);
@@ -3976,6 +4160,8 @@ export class ItemWorldScene extends Scene {
     }
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    if (this.areaTitle?.container.parent) this.areaTitle.container.parent.removeChild(this.areaTitle.container);
+    this.areaTitle?.destroy();
     if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
     // LowHpVignette 는 legacyUIContainer 에 attach 되므로 scene exit 시 반드시 destroy.
