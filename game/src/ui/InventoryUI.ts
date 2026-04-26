@@ -4,7 +4,7 @@ import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { ItemImage } from './ItemImage';
 import { PIXEL_FONT } from './fonts';
-import { RARITY_DISPLAY_NAME } from '@data/weapons';
+import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { create9SlicePanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
@@ -186,6 +186,7 @@ export class InventoryUI {
         const item = this.inventory.items[this.selectedIndex];
         if (!item) return;
         if (this.inventory.equipped?.uid === item.uid) return;
+        if (STARTER_ONLY_IDS.has(item.def.id)) return;
         this.placeOnAnvil(item);
       } else if (this.anvilState === 'placed') {
         this.confirmDive();
@@ -416,6 +417,7 @@ export class InventoryUI {
     g.y = y;
 
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
+    const isStarterOnly = this.mode === 'anvil' && STARTER_ONLY_IDS.has(item.def.id);
 
     // Row background
     if (isSelected && isEquipped) {
@@ -433,7 +435,7 @@ export class InventoryUI {
     }
 
     // Dim if on anvil
-    if (isOnAnvil) {
+    if (isOnAnvil || isStarterOnly) {
       g.alpha = 0.3;
     }
 
@@ -451,7 +453,7 @@ export class InventoryUI {
     cx += 14;
 
     // [E] badge
-    if (isEquipped) {
+    if (isEquipped || isStarterOnly) {
       const badge = new Graphics();
       badge.roundRect(cx, y + 3, 12, 12, 2).fill(COL_ROW_EQUIPPED_BAR);
       this.listArea.addChild(badge);
@@ -463,7 +465,7 @@ export class InventoryUI {
     cx += 16;
 
     // Item name (rarity color, brighter if selected)
-    const nameColor = isSelected ? COL_TEXT_WHITE : (isEquipped ? rarityColor : COL_DIM);
+    const nameColor = isStarterOnly ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : (isEquipped ? rarityColor : COL_DIM));
     const name = item.def.name.length > 14 ? item.def.name.substring(0, 13) + '..' : item.def.name;
     const nameText = new BitmapText({ text: name, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: nameColor } });
     nameText.x = cx;
@@ -483,11 +485,12 @@ export class InventoryUI {
     // ATK stat
     const atkText = new BitmapText({
       text: `ATK ${item.finalAtk}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isOnAnvil ? COL_LOCKED : COL_TEXT }
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isStarterOnly) ? COL_LOCKED : COL_TEXT }
     });
     atkText.x = PADDING + rowW - 68;
     atkText.y = y + 4;
     if (isOnAnvil) atkText.text = 'ON ANVIL';
+    if (isStarterOnly) atkText.text = 'LOCKED';
     this.listArea.addChild(atkText);
 
     // DIVE / CLR / 🔒 badge (right end)

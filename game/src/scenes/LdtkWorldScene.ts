@@ -156,6 +156,8 @@ import { assetPath } from '@core/AssetLoader';
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 const VOID_FADE_DURATION = 180;
+const SAVE_INTERACT_DELAY_MS = 500;
+const FIRST_ANVIL_LEVEL_ID = 'FirstAnvil';
 
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // ItemTunnel world was removed from the LDtk project; tunnel descent flow
@@ -386,6 +388,7 @@ export class LdtkWorldScene extends Scene {
    * gone by then.
    */
   private lastUsedAnvilPos: { x: number; y: number; width: number; height: number } | null = null;
+  private lastUsedAnvilLevelId: string | null = null;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
   private inItemTunnel = false;
   /** The level to return to after exiting Item World via tunnel. */
@@ -435,6 +438,8 @@ export class LdtkWorldScene extends Scene {
   private endingTriggers: EndingTrigger[] = [];
   private ending!: EndingSequence;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
+  private saveDelayTimer = 0;
+  private saveQueued = false;
   /**
    * Exit Light Bleed ??�?가?�자리의 ?�린 구간(?�웃 방이 ?�는 �???주황 글로우�?
    * ?�워 "?�곳??출구"?�는 공통 ?�각 ?�어�??�공?�다.
@@ -486,6 +491,7 @@ export class LdtkWorldScene extends Scene {
       label: 'SavePoint',
       priority: 10,
       canInteract: () => {
+        if (this.saveQueued) return false;
         if (this.altarSelectActive) return false;
         const pcx = this.player.x + this.player.width / 2;
         const pcy = this.player.y + this.player.height / 2;
@@ -495,7 +501,7 @@ export class LdtkWorldScene extends Scene {
         }
         return false;
       },
-      onInteract: () => this.performSave(),
+      onInteract: () => this.queueSave(),
     };
     this.proximity.register(anvil);
     this.proximity.register(savePoint);
@@ -531,6 +537,7 @@ export class LdtkWorldScene extends Scene {
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
     if (saveData) {
+      if (this.introPhase === 'fadeIn') this.introPhase = 'none';
       this.inventory = SaveManager.loadInventory(saveData);
       this.unlockedEvents = new Set(saveData.unlockedEvents);
       this.collectedRelics = new Set(saveData.collectedRelics);
@@ -759,7 +766,7 @@ export class LdtkWorldScene extends Scene {
     // Hide HUD immediately during the intro sequence so it can't flash above
     // the fade overlay while async init is still running. Revealed after
     // the area title completes.
-    if (startHidden) this.hud.container.visible = false;
+    if (startHidden && !saveData) this.hud.container.visible = false;
 
     // Area title banner — Elden Ring style. Rides on legacyUIContainer so it
     // inherits uiScale with the rest of the overlay UI.
@@ -1220,6 +1227,8 @@ export class LdtkWorldScene extends Scene {
     // Pattern D (proximity-interaction): ?�이�??�빌/?�단 ?�력 ?�점.
     // 반드??player.update() ?�에 ?�행?�어??같�? ?�레???�스??방�???
     // ?�들???�록?� registerProximityHandlers() 참조.
+    this.updateQueuedSave(dt);
+
     if (this.proximity.tryInteract(this.game.input)) return;
 
     // Giant Builder — moving platform pattern.
@@ -2813,6 +2822,22 @@ export class LdtkWorldScene extends Scene {
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
+  }
+
+  private queueSave(): void {
+    if (this.saveQueued) return;
+    this.saveQueued = true;
+    this.saveDelayTimer = SAVE_INTERACT_DELAY_MS;
+  }
+
+  private updateQueuedSave(dt: number): void {
+    if (!this.saveQueued) return;
+    this.saveDelayTimer -= dt;
+    if (this.saveDelayTimer > 0) return;
+
+    this.saveQueued = false;
+    this.saveDelayTimer = 0;
+    this.performSave();
   }
 
   private performSave(): void {
@@ -5151,7 +5176,10 @@ export class LdtkWorldScene extends Scene {
     // (which itself fires on the first world-return after first IW boss clear).
     // Until that dialogue plays, the anvil stays active even if the boss has
     // been defeated — Rustborn explains the retirement before the visual changes.
-    const anvilDisabled = this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED);
+    const anvilDisabled = (
+      level.identifier === FIRST_ANVIL_LEVEL_ID &&
+      this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
+    );
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
       this.anvil = new Anvil(ent.px[0], ent.px[1], anvilDisabled);
@@ -5435,6 +5463,7 @@ export class LdtkWorldScene extends Scene {
       width: this.anvil.width,
       height: this.anvil.height,
     };
+    this.lastUsedAnvilLevelId = this.currentLevel?.identifier ?? null;
 
     // ARCHIVED: MemoryDive sequence ??replaced by anvil gate FX019 activation
     // The anvil's placeItem() already triggers FX019 + item icon display.
@@ -6101,6 +6130,7 @@ export class LdtkWorldScene extends Scene {
 
     const anvilRetiring = (
       sacredSave.isFirstItemWorldBossDefeated()
+      && this.lastUsedAnvilLevelId === FIRST_ANVIL_LEVEL_ID
       && !this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
     );
 
