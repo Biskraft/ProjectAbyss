@@ -82,6 +82,7 @@ import { ScreenFlash } from '@effects/ScreenFlash';
 import { create9SlicePanel } from '@ui/ModalPanel';
 import { Portal } from '@entities/Portal';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import { GlowFilter } from '@effects/GlowFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
 import {
   getAreaPalette,
@@ -813,7 +814,16 @@ export class ItemWorldScene extends Scene {
     };
     // Same palette filter as walls ? decorations get full depth gradient
     this.decoAggregate.filters = [this.naturalPaletteFilter];
-    this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
+    // Foundry theme: add glow shader so molten/ember decorations emit light
+    const themeId = this.item.def.themeId ?? 'T-HABITAT';
+    if (themeId === 'T-FOUNDRY') {
+      this.artificialDecoAggregate.filters = [
+        this.wallPaletteFilter,
+        new GlowFilter({ color: 0xee6622, radius: 6, intensity: 0.8, coreBoost: 0.6 }),
+      ];
+    } else {
+      this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
+    }
     this.structAggregate.filters = [this.wallPaletteFilter];
 
     // Strata depth auto-transformation ? deeper = darker, more corroded
@@ -992,7 +1002,9 @@ export class ItemWorldScene extends Scene {
       const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
       const localRow = startAbsRow - stratumOffset;
       const portalX = startCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-      const portalY = localRow * IW_ROOM_H_PX + 32; // near ceiling
+      // 천장에서 6셀 (이전 +32 = 2셀, +64 = 4셀 더 하향). 플레이어가 입장 직후
+      // 시야에 즉시 들어오지 않도록 약간 아래에 배치.
+      const portalY = localRow * IW_ROOM_H_PX + 32 + 64;
       this.entryPortal = new Portal(portalX, portalY, this.item.rarity, 'altar');
       this.entityLayer.addChild(this.entryPortal.container);
     }
@@ -1195,6 +1207,30 @@ export class ItemWorldScene extends Scene {
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
       trackEnemy(boss);
+      return;
+    }
+
+    // First Normal entry (tutorial dive) ? deterministic 3 Slimes per Combat
+    // room. CSV-driven weighted spawn is bypassed entirely so the very first
+    // item-world combat is predictable for onboarding (no Skeletons/Ghosts/
+    // GoldenMonsters mixed in, no random count). Subsequent dives fall back
+    // to the normal weighted table below.
+    if (this.isFirstNormalEntry) {
+      const tutSeed = this.item.uid * 999 + col * 77 + row * 33 + 7;
+      for (let i = 0; i < 3; i++) {
+        const spawnRng = new PRNG(tutSeed + i);
+        const slime = this.createEnemyFromType('Slime', 1 + cycle);
+        slime.hp = slime.maxHp = Math.max(1, Math.floor(slime.hp * stratumDef.hpMul * distScale));
+        slime.atk = Math.max(1, Math.floor(slime.atk * stratumDef.atkMul * distScale));
+        const sp = pickSpawn(spawnRng, slime.height);
+        slime.x = sp.x;
+        slime.y = sp.y;
+        slime.roomData = this.fullGrid;
+        slime.target = this.player;
+        this.enemies.push(slime);
+        this.entityLayer.addChild(slime.container);
+        trackEnemy(slime);
+      }
       return;
     }
 

@@ -372,6 +372,10 @@ export class LdtkWorldScene extends Scene {
   private activeWeaponPulse: WeaponPulse | null = null;
   private activeAnvilTether: AnvilTether | null = null;
   private pickupZoomOverride = 1.0;
+  /** Rustborn pre-pickup discovery — true while the proximity cutscene + dialogue is playing. Blocks pickup. */
+  private discoveryActive = false;
+  /** Set once the discovery pulse starts; cleared after EGO_FIRST_WALK is dispatched. */
+  private discoveryDialoguePending = false;
   /** LDtk iid of the currently-spawned anvil (null when no anvil exists). */
   private currentAnvilIid: string | null = null;
   /**
@@ -936,6 +940,9 @@ export class LdtkWorldScene extends Scene {
 
   private detachSharedUiForItemWorld(): void {
     this.uiController.detachForItemWorld();
+    // 명시적 hide. detachForItemWorld가 부모에서 제거하지만, 일부 전환 프레임에서
+    // 잠깐 visible=true 상태로 다시 attach되는 경로를 대비한 방어적 처리.
+    if (this.minimap) this.minimap.visible = false;
     if (this.altarUI?.parent) {
       this.altarUI.parent.removeChild(this.altarUI);
     }
@@ -4621,15 +4628,20 @@ export class LdtkWorldScene extends Scene {
     if (this.activeAnvilTether) { this.activeAnvilTether.destroy(); this.activeAnvilTether = null; }
 
     if (isFirstSeen) {
-      // Rustborn?��? ?�체 4.8s 컷신, ?�머지 ?�규 ?�이?��? ?�일 ?�로?��? 2s�?���?
+      // Rustborn은 사전 발견(discovery) 컷신에서 이미 T2_QUICK 펄스를 재생했으므로
+      // 픽업 시점의 T2 펄스는 생략하고 곧바로 LorePopup → EGO_WAKE 로 진입한다.
+      // 그 외 신규 아이템은 기존대로 2s T2_QUICK 펄스를 보여 준다.
       const isRustborn = item.def.id === 'sword_rustborn';
-      const mode = isRustborn ? 'T2_FULL_CUTSCENE' : 'T2_QUICK_CUTSCENE';
-      const pulse = new WeaponPulse(wx, wy, item.rarity, mode);
-      this.entityLayer.addChild(pulse.container);
-      pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
-      // Tether??LorePopup ?�힘 ?�후 지??모드�??�성?��?�??�스 중엔 발동?��? ?�음.
-      pulse.start();
-      this.activeWeaponPulse = pulse;
+      const skipPulse = isRustborn && this.unlockedEvents.has(EGO_EVENT.FIRST_WALK);
+      if (!skipPulse) {
+        const mode = isRustborn ? 'T2_FULL_CUTSCENE' : 'T2_QUICK_CUTSCENE';
+        const pulse = new WeaponPulse(wx, wy, item.rarity, mode);
+        this.entityLayer.addChild(pulse.container);
+        pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
+        // Tether??LorePopup ?�힘 ?�후 지??모드�??�성?��?�??�스 중엔 발동?��? ?�음.
+        pulse.start();
+        this.activeWeaponPulse = pulse;
+      }
     }
 
     // Lore popup — open on first-seen items (or always-on setting).
@@ -4729,6 +4741,41 @@ export class LdtkWorldScene extends Scene {
   private updateSacredPickup(dt: number): boolean {
     let blocking = false;
 
+    // ── Rustborn pre-pickup discovery ───────────────────────────────
+    // When the player walks within 5 tiles of an un-encountered Rustborn drop,
+    // freeze input, run a 2 s discovery pulse, then dispatch EGO_FIRST_WALK
+    // (3 lines). Pickup itself is blocked until this completes; the existing
+    // pickup flow then runs without the on-pickup T2 pulse and only fires
+    // EGO_WAKE (2 lines), matching the "approach → pulse → 3 lines → pickup
+    // → 2 lines" beat structure.
+    if (
+      !this.discoveryActive
+      && !this.unlockedEvents.has(EGO_EVENT.FIRST_WALK)
+      && this.loreDisplay && !this.loreDisplay.isActive
+      && !this.activeWeaponPulse
+    ) {
+      const PROXIMITY_PX = 80; // 5 tiles × 16
+      const proxSq = PROXIMITY_PX * PROXIMITY_PX;
+      const px = this.player.x + this.player.width / 2;
+      const py = this.player.y + this.player.height / 2;
+      for (const drop of this.drops) {
+        if (drop.item.def.id !== 'sword_rustborn') continue;
+        const dx = px - drop.x;
+        const dy = py - drop.y;
+        if (dx * dx + dy * dy > proxSq) continue;
+
+        this.discoveryActive = true;
+        this.discoveryDialoguePending = true;
+        this.unlockedEvents.add(EGO_EVENT.FIRST_WALK);
+        const pulse = new WeaponPulse(drop.x, drop.y, drop.item.rarity, 'T2_QUICK_CUTSCENE');
+        this.entityLayer.addChild(pulse.container);
+        pulse.onZoom = (s) => { this.pickupZoomOverride = s; };
+        pulse.start();
+        this.activeWeaponPulse = pulse;
+        break;
+      }
+    }
+
     if (this.activeWeaponPulse) {
       this.activeWeaponPulse.update(dt);
       if (this.activeWeaponPulse.isBlocking) blocking = true;
@@ -4760,11 +4807,11 @@ export class LdtkWorldScene extends Scene {
       const item = this.lorePopupItem;
       const shown = this.lorePopup.showIfNew(item, () => {
         this.activeLorePopupItem = null;
-        // LorePopup ?�힘 ???�직 �??�이�??�이�?persistent tether�??�워
-        // ?�빌까�???경로�??��?. ?��? ?�이�??�봤?�면 건너?�다.
-        if (!sacredSave.isFirstDiveDone()) {
-          this.spawnPersistentAnvilTether(item.rarity);
-        }
+        // 첫 Anvil 조우 시의 가이드 라인(persistent tether) 비활성화.
+        // 검 Ego 내러티브가 온보딩을 전달하므로 시각 가이드가 중복.
+        // if (!sacredSave.isFirstDiveDone()) {
+        //   this.spawnPersistentAnvilTether(item.rarity);
+        // }
       });
       if (shown) {
         this.activeLorePopupItem = item;
@@ -4801,6 +4848,22 @@ export class LdtkWorldScene extends Scene {
         this.divePreview.confirm();
       } else if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
         this.divePreview.cancel();
+      }
+    }
+
+    // Discovery — once the pulse finishes, dispatch the 3-line dialogue.
+    if (this.discoveryDialoguePending && !this.activeWeaponPulse) {
+      this.discoveryDialoguePending = false;
+      this.loreDisplay?.showDialogue(EGO_FIRST_WALK, true);
+    }
+
+    // Discovery stays "active" (blocks pickup) until both pulse + dialogue end.
+    if (this.discoveryActive) {
+      const dialogueDone = !this.discoveryDialoguePending && !this.loreDisplay?.isActive;
+      if (this.activeWeaponPulse || !dialogueDone) {
+        blocking = true;
+      } else {
+        this.discoveryActive = false;
       }
     }
 
@@ -5921,16 +5984,9 @@ export class LdtkWorldScene extends Scene {
   private updateEgoTriggers(_dt: number): void {
     if (!this.loreDisplay || this.loreDisplay.isActive) return;
 
-    // T02: First walk after Ego wake
-    if (
-      this.unlockedEvents.has(EGO_EVENT.WAKE)
-      && !this.unlockedEvents.has(EGO_EVENT.FIRST_WALK)
-      && (this.player.vx !== 0 || this.player.vy !== 0)
-    ) {
-      this.unlockedEvents.add(EGO_EVENT.FIRST_WALK);
-      this.loreDisplay.showDialogue(EGO_FIRST_WALK, true);
-      return;
-    }
+    // T02 (FIRST_WALK) — 이전에는 픽업 후 첫 이동 시 발화했으나, 신규 흐름에서는
+    // 픽업 직전 discovery 컷신(updateSacredPickup)이 EGO_FIRST_WALK 를 사용한다.
+    // 따라서 walk-trigger 는 제거됨. FIRST_WALK 키는 discovery 발화 표식으로 재사용.
 
     // T03: Anvil proximity (first time after Ego wake)
     if (

@@ -6,13 +6,31 @@
  * (tile-aligned) so the player walks on it via standard tile physics.
  */
 
-import { Container } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Texture } from 'pixi.js';
 import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { LegRig, type LegMount } from './LegRig';
+import { GlowFilter } from '@effects/GlowFilter';
+
+// ---------------------------------------------------------------------------
+// BuilderLight — blinking indicator on the builder body
+// ---------------------------------------------------------------------------
+
+interface BuilderLightDef {
+  x: number;
+  y: number;
+  shape: 'Circle' | 'Rect';
+  color: number;
+  rate: number;
+  size: number;
+  glowRadius: number;
+  onlyWhileMoving: boolean;
+  gfx: Graphics;
+  glowGfx: Graphics;
+}
 
 const TILE = 16;
 
@@ -49,6 +67,11 @@ export class GiantBuilder {
 
   private renderer: LdtkRenderer;
   private legRig: LegRig;
+  private lights: BuilderLightDef[] = [];
+  private lightTime = 0;
+  /** Unfiltered container for light graphics — sits above palette-filtered layers
+   *  so glow colors are not crushed by the dark palette swap. */
+  readonly lightContainer: Container;
 
   /** Procedural decoration layers, exposed so the host scene can apply
    *  the same area-palette filters used on the level body. */
@@ -115,6 +138,26 @@ export class GiantBuilder {
     const shadowIdx = this.container.getChildIndex(this.renderer.shadowLayer);
     this.container.addChildAt(this.decorator.naturalLayer, shadowIdx);
     this.container.addChildAt(this.decorator.artificialLayer, shadowIdx + 1);
+
+    // Blinking indicator lights from BuilderLight entities.
+    // Placed in a separate unfiltered container so palette swap
+    // doesn't crush the glow into darkness.
+    this.lightContainer = new Container();
+    this.lights = GiantBuilder.extractLights(level);
+    for (const light of this.lights) {
+      this.lightContainer.addChild(light.glowGfx);
+      this.lightContainer.addChild(light.gfx);
+    }
+    // Bloom shader on all lights — makes them glow like real indicators
+    if (this.lights.length > 0) {
+      this.lightContainer.filters = [new GlowFilter({
+        color: 0xE87830,
+        radius: 10,
+        intensity: 1.5,
+        coreBoost: 0.9,
+      })];
+    }
+    this.container.addChild(this.lightContainer);
   }
 
   /**
@@ -168,6 +211,68 @@ export class GiantBuilder {
       });
   }
 
+  private static extractLights(level: LdtkLevel): BuilderLightDef[] {
+    return level.entities
+      .filter((e) => e.type === 'BuilderLight')
+      .map((e) => {
+        const shape = (e.fields.Shape === 'Rect' ? 'Rect' : 'Circle') as 'Circle' | 'Rect';
+        const colorRaw = e.fields.LightColor;
+        const color = typeof colorRaw === 'string'
+          ? parseInt(colorRaw.replace(/^#/, ''), 16)
+          : (typeof colorRaw === 'number' ? colorRaw : 0xE87830);
+        const rate = typeof e.fields.Rate === 'number' ? e.fields.Rate : 2.0;
+        const glowRadius = typeof e.fields.GlowRadius === 'number' ? e.fields.GlowRadius : 6;
+        const onlyWhileMoving = e.fields.OnlyWhileMoving === true;
+
+        // Entity width/height from LDtk resize (px)
+        const w = e.width;
+        const h = e.height;
+        const hw = w / 2;
+        const hh = h / 2;
+        const size = Math.max(hw, hh);
+
+        // Core light: colored body + white-hot center
+        const gfx = new Graphics();
+        if (shape === 'Circle') {
+          gfx.circle(0, 0, Math.min(hw, hh));
+          gfx.fill(color);
+          gfx.circle(0, 0, Math.min(hw, hh) * 0.5);
+          gfx.fill({ color: 0xffffff, alpha: 0.8 });
+        } else {
+          gfx.rect(-hw, -hh, w, h);
+          gfx.fill(color);
+          const ihw = hw * 0.4, ihh = hh * 0.4;
+          gfx.rect(-ihw, -ihh, ihw * 2, ihh * 2);
+          gfx.fill({ color: 0xffffff, alpha: 0.8 });
+        }
+        gfx.x = e.px[0];
+        gfx.y = e.px[1];
+
+        // Multi-layer glow halo
+        const glowGfx = new Graphics();
+        if (glowRadius > 0) {
+          const grW = hw + glowRadius;
+          const grH = hh + glowRadius;
+          if (shape === 'Circle') {
+            glowGfx.circle(0, 0, Math.min(grW, grH));
+            glowGfx.fill({ color, alpha: 0.35 });
+            glowGfx.circle(0, 0, Math.min(grW, grH) * 0.6);
+            glowGfx.fill({ color, alpha: 0.25 });
+          } else {
+            glowGfx.rect(-grW, -grH, grW * 2, grH * 2);
+            glowGfx.fill({ color, alpha: 0.3 });
+            const mrW = grW * 0.6, mrH = grH * 0.6;
+            glowGfx.rect(-mrW, -mrH, mrW * 2, mrH * 2);
+            glowGfx.fill({ color, alpha: 0.2 });
+          }
+        }
+        glowGfx.x = e.px[0];
+        glowGfx.y = e.px[1];
+
+        return { x: e.px[0], y: e.px[1], shape, color, rate, size, glowRadius, onlyWhileMoving, gfx, glowGfx };
+      });
+  }
+
   placeInLevel(pixelX: number, pixelY: number): void {
     this.container.x = pixelX;
     this.posY = pixelY;
@@ -196,6 +301,22 @@ export class GiantBuilder {
 
   update(dt: number): void {
     this.lastDeltaY = 0;
+
+    // Animate lights regardless of movement state
+    this.lightTime += dt / 1000;
+    const moving = this.state === 'moving';
+    for (const light of this.lights) {
+      if (light.onlyWhileMoving && !moving) {
+        light.gfx.alpha = 0;
+        light.glowGfx.alpha = 0;
+        continue;
+      }
+      const phase = (this.lightTime / light.rate) % 1;
+      const pulse = Math.sin(phase * Math.PI * 2) * 0.5 + 0.5;
+      light.gfx.alpha = 0.3 + pulse * 0.7;
+      light.glowGfx.alpha = pulse * 0.6;
+    }
+
     if (this.state === 'dormant' || this.route.length === 0) return;
 
     if (this.state === 'waiting') {
@@ -250,5 +371,7 @@ export class GiantBuilder {
 
     // Advance procedural leg gait by the body movement this frame.
     this.legRig.update(this.lastDeltaY);
+
+    // (Light animation handled above, before dormant early-return)
   }
 }

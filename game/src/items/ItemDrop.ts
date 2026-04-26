@@ -62,37 +62,27 @@ export function rollGoldenDrop(rng: PRNG): ItemInstance {
 }
 
 // --- Drop VFX config per rarity ---
+//
+// 각 드랍 아이템은 WeaponPulse 와 동일한 확장 링 펄스를 무한 반복한다.
+// 주기는 전 레어리티 동일(PULSE_PERIOD); 레어리티 차이는 최대 반경과 링 개수로
+// 표현한다. 색상은 RARITY_COLOR 를 그대로 사용해 인벤토리/UI 와 일관된다.
+
+const PULSE_PERIOD = 1200; // ms — 모든 레어리티 공통
 
 interface DropVFX {
-  particleColor: number;
-  particleCount: number;       // particles per spawn cycle
-  spawnInterval: number;       // ms between spawns
-  pulseSpeed: number;          // 0 = no pulse
-  glowAlpha: number;           // 0 = no glow
-  glowRadius: number;
+  color: number;
+  startRadius: number;
+  endRadius: number;
+  ringCount: 1 | 2;      // 2 → second ring offset by 0.5 phase (double pulse)
 }
 
-// Sacred Pickup §3.2 / §3.11 — per-rarity halo + particle spawn rates.
-// Normal keeps a minimal static halo only (no particles); spawnInterval=0 and
-// particleCount=0 ensure the particle code path is skipped at runtime while
-// the object itself remains non-null so the existing `if (!this.vfx) return;`
-// guard still short-circuits only when a rarity has truly no config.
 const DROP_VFX: Record<Rarity, DropVFX | null> = {
-  normal:    { particleColor: 0xffffff, particleCount: 0, spawnInterval: 0,   pulseSpeed: 0,      glowAlpha: 0.10, glowRadius: 8 },
-  magic:     { particleColor: 0x6969ff, particleCount: 1, spawnInterval: 500, pulseSpeed: 0.003,  glowAlpha: 0.20, glowRadius: 12 },
-  rare:      { particleColor: 0xffff00, particleCount: 1, spawnInterval: 333, pulseSpeed: 0.003,  glowAlpha: 0.25, glowRadius: 16 },
-  legendary: { particleColor: 0xff8000, particleCount: 1, spawnInterval: 250, pulseSpeed: 0.004,  glowAlpha: 0.30, glowRadius: 20 },
-  ancient:   { particleColor: 0x00ff00, particleCount: 1, spawnInterval: 166, pulseSpeed: 0.005,  glowAlpha: 0.35, glowRadius: 24 },
+  normal:    { color: RARITY_COLOR.normal,    startRadius: 6, endRadius: 20, ringCount: 1 },
+  magic:     { color: RARITY_COLOR.magic,     startRadius: 6, endRadius: 26, ringCount: 1 },
+  rare:      { color: RARITY_COLOR.rare,      startRadius: 8, endRadius: 32, ringCount: 1 },
+  legendary: { color: RARITY_COLOR.legendary, startRadius: 8, endRadius: 40, ringCount: 2 },
+  ancient:   { color: RARITY_COLOR.ancient,   startRadius: 8, endRadius: 48, ringCount: 2 },
 };
-
-interface Particle {
-  x: number;
-  y: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  gfx: Graphics;
-}
 
 // Visual size of the dropped-item icon in world pixels (1.5x the original
 // 24px to make floor drops more readable at typical play camera zoom).
@@ -113,10 +103,8 @@ export class ItemDropEntity {
 
   // VFX
   private vfx: DropVFX | null;
-  private particles: Particle[] = [];
-  private spawnTimer = 0;
-  private pulseTimer = 0;
-  private glowGfx: Graphics | null = null;
+  private ringTimer = 0;
+  private ringGfx: Graphics | null = null;
   private itemGfx: Graphics;
 
   constructor(x: number, y: number, item: ItemInstance) {
@@ -135,17 +123,13 @@ export class ItemDropEntity {
     this.container.x = x;
     this.container.y = y;
 
-    // Glow circle (behind item)
-    if (this.vfx && this.vfx.glowAlpha > 0) {
-      this.glowGfx = new Graphics();
-      this.glowGfx.circle(0, 0, this.vfx.glowRadius)
-        .fill({ color: this.vfx.particleColor, alpha: this.vfx.glowAlpha });
-      this.container.addChild(this.glowGfx);
+    // Expanding ring pulse (behind item) — drawn each frame in update().
+    if (this.vfx) {
+      this.ringGfx = new Graphics();
+      this.container.addChild(this.ringGfx);
     }
 
-    // Item square (placeholder until icon loads). Scaled 1.5x along with
-    // the loaded icon so placeholder and final sprite occupy the same
-    // footprint.
+    // Item square (placeholder until icon loads).
     this.itemGfx = new Graphics();
     this.itemGfx.rect(-6, -6, 12, 12).fill(RARITY_COLOR[item.rarity]);
     this.itemGfx.rect(-4, -4, 9, 9).fill({ color: 0xffffff, alpha: 0.4 });
@@ -154,9 +138,8 @@ export class ItemDropEntity {
     // Try to load item icon sprite
     this.loadItemIcon(item);
 
-    // Randomize timers
-    this.spawnTimer = Math.random() * (this.vfx?.spawnInterval ?? 1000);
-    this.pulseTimer = Math.random() * 2000;
+    // Randomize the ring phase so a cluster of drops doesn't pulse in lockstep.
+    this.ringTimer = Math.random() * PULSE_PERIOD;
   }
 
   private itemSprite: Sprite | null = null;
@@ -183,71 +166,37 @@ export class ItemDropEntity {
     this.bobTimer += dt * 0.003;
     this.container.y = this.baseY + Math.sin(this.bobTimer) * 3;
 
-    if (!this.vfx) return;
+    if (!this.vfx || !this.ringGfx) return;
 
-    // Pulse scale
-    if (this.vfx.pulseSpeed > 0) {
-      this.pulseTimer += dt;
-      const scale = 1.0 + Math.sin(this.pulseTimer * this.vfx.pulseSpeed) * 0.15;
-      this.itemGfx.scale.set(scale);
-      if (this.itemSprite) {
-        const base = ICON_SIZE / this.itemSprite.texture.width;
-        this.itemSprite.scale.set(base * scale);
-      }
-      if (this.glowGfx) {
-        this.glowGfx.alpha = this.vfx.glowAlpha * (0.6 + Math.sin(this.pulseTimer * this.vfx.pulseSpeed * 1.5) * 0.4);
-      }
-    }
+    // Loop the ring phase. Modulo on PULSE_PERIOD so the ring restarts cleanly.
+    this.ringTimer = (this.ringTimer + dt) % PULSE_PERIOD;
+    const phase = this.ringTimer / PULSE_PERIOD;
+    this.drawRings(phase);
+  }
 
-    // Spawn particles — skip entirely when particleCount or spawnInterval is 0
-    // (normal rarity: static halo only, no particles).
-    if (this.vfx.particleCount > 0 && this.vfx.spawnInterval > 0) {
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        this.spawnTimer = this.vfx.spawnInterval;
-        for (let i = 0; i < this.vfx.particleCount; i++) {
-          this.spawnParticle();
-        }
-      }
-    }
-
-    // Update particles
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
-      p.life -= dt;
-      p.y += p.vy * (dt / 1000);
-      p.gfx.x = p.x;
-      p.gfx.y = p.y;
-      p.gfx.alpha = Math.max(0, p.life / p.maxLife) * 0.7;
-
-      if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        this.particles.splice(i, 1);
-      }
+  /**
+   * Draw 1 or 2 expanding rings. WeaponPulse-style: radius grows linearly,
+   * alpha fades to 0, stroke width thins slightly. With ringCount=2, the
+   * second ring lags by 0.5 phase so the pair feels like a "double pulse".
+   */
+  private drawRings(phase: number): void {
+    if (!this.vfx || !this.ringGfx) return;
+    const g = this.ringGfx;
+    g.clear();
+    this.drawRing(g, phase);
+    if (this.vfx.ringCount === 2) {
+      const phase2 = (phase + 0.5) % 1;
+      this.drawRing(g, phase2);
     }
   }
 
-  private spawnParticle(): void {
+  private drawRing(g: Graphics, phase: number): void {
     if (!this.vfx) return;
-    const gfx = new Graphics();
-    const size = 1 + Math.random();
-    gfx.rect(-size / 2, -size / 2, size, size).fill(this.vfx.particleColor);
-
-    const px = (Math.random() - 0.5) * 10;
-    const py = (Math.random() - 0.5) * 4;
-    gfx.x = px;
-    gfx.y = py;
-    this.container.addChild(gfx);
-
-    const maxLife = 800 + Math.random() * 600;
-    this.particles.push({
-      x: px,
-      y: py,
-      vy: -(10 + Math.random() * 15),
-      life: maxLife,
-      maxLife,
-      gfx,
-    });
+    const p = Math.max(0, Math.min(1, phase));
+    const radius = this.vfx.startRadius + (this.vfx.endRadius - this.vfx.startRadius) * p;
+    const alpha = 0.85 * (1 - p);
+    const width = 2 * (1 - p * 0.5);
+    g.circle(0, 0, radius).stroke({ color: this.vfx.color, width, alpha });
   }
 
   /** Check if player overlaps this drop */
@@ -261,10 +210,6 @@ export class ItemDropEntity {
   }
 
   destroy(): void {
-    for (const p of this.particles) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-    }
-    this.particles = [];
     if (this.container.parent) {
       this.container.parent.removeChild(this.container);
     }

@@ -221,6 +221,14 @@ VibeCoding/
 
 ---
 
+## 마크다운 작성 규칙
+
+- **링크 뒤 띄어쓰기 필수:** 모든 마크다운 링크(`[텍스트](URL)`, `` `경로` ``) 뒤에 반드시 공백(스페이스)을 추가한다. 한글 텍스트가 링크 바로 뒤에 붙으면 링크가 깨진다.
+  - ✅ `[문서](path.md) 참조` / `` `Documents/UI/UI_Inventory.md` 참조``
+  - ❌ `[문서](path.md)참조` / `` `Documents/UI/UI_Inventory.md`참조``
+
+---
+
 ## 톤 & 매너
 
 > **상세 아트 디렉션:** `Documents/Design/Design_Art_Direction.md`

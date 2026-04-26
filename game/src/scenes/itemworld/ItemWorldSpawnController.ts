@@ -64,6 +64,11 @@ export class ItemWorldSpawnController {
 
   /**
    * Compute valid spawn positions (air tile with solid below) in a room region.
+   *
+   * Spawns are restricted to flat floor runs of MIN_FLAT_LEN tiles or longer
+   * — short ledges and uneven terrain are skipped so enemies always have room
+   * to maneuver and don't get stranded on 1-2 tile islands.
+   *
    * Returns array of world-space positions.
    */
   computeSpawnPoints(
@@ -71,16 +76,46 @@ export class ItemWorldSpawnController {
     roomTopCol: number,
     roomTopRow: number,
   ): Array<{ x: number; y: number }> {
+    const MIN_FLAT_LEN = 6;
     const spawnPoints: Array<{ x: number; y: number }> = [];
 
-    for (let tc = roomTopCol + 2; tc < roomTopCol + IW_ROOM_W_TILES - 2; tc++) {
-      for (let tr = roomTopRow + 2; tr < roomTopRow + IW_ROOM_H_TILES - 2; tr++) {
+    // Inset 2 tiles from room edges so enemies don't spawn flush against walls.
+    const colStart = roomTopCol + 2;
+    const colEnd = roomTopCol + IW_ROOM_W_TILES - 2;       // exclusive
+    const rowStart = roomTopRow + 2;
+    const rowEnd = roomTopRow + IW_ROOM_H_TILES - 2;       // exclusive
+
+    for (let tr = rowStart; tr < rowEnd; tr++) {
+      // Scan the row left-to-right, tracking contiguous flat-floor runs.
+      // Detection uses the full row width (not the inset) so a run that
+      // starts under the wall still counts as flat — but only spawn points
+      // inside the inset are emitted.
+      let runStart = -1;
+      let runLen = 0;
+      const flush = () => {
+        if (runLen >= MIN_FLAT_LEN) {
+          for (let c = runStart; c < runStart + runLen; c++) {
+            if (c >= colStart && c < colEnd) {
+              spawnPoints.push({ x: c * TILE_SIZE, y: (tr + 1) * TILE_SIZE });
+            }
+          }
+        }
+        runStart = -1;
+        runLen = 0;
+      };
+
+      for (let tc = roomTopCol; tc < roomTopCol + IW_ROOM_W_TILES; tc++) {
         const here = fullGrid[tr]?.[tc] ?? 1;
         const below = fullGrid[tr + 1]?.[tc] ?? 1;
-        if (here === 0 && below >= 1) {
-          spawnPoints.push({ x: tc * TILE_SIZE, y: (tr + 1) * TILE_SIZE });
+        const isFloor = here === 0 && below >= 1;
+        if (isFloor) {
+          if (runStart < 0) runStart = tc;
+          runLen++;
+        } else {
+          flush();
         }
       }
+      flush();
     }
 
     return spawnPoints;

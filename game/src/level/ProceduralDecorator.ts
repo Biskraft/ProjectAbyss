@@ -247,6 +247,7 @@ export class ProceduralDecorator {
       const edge = structEdges[i];
       if (hasTheme) {
         // Theme mode: only theme-specific structures
+        if (!this.hasLargeStructureSurface(edge, grid)) continue;
         this.drawThemeStructure(structGfx, edge, structRng);
       } else {
         // No theme: common structures only
@@ -319,6 +320,34 @@ export class ProceduralDecorator {
   // -------------------------------------------------------------------------
   // Edge scanning
   // -------------------------------------------------------------------------
+
+  /**
+   * Large decorations (concrete chunks, beams, machinery silhouettes) need a
+   * broad, continuous anchor. A one-tile neighbor check still permits bulky
+   * shapes to spawn right beside ledge ends, where they overhang the playable
+   * silhouette. Require several continuous solid tiles along the surface and
+   * backing depth behind it so structures stay away from edges/corners.
+   */
+  private hasLargeStructureSurface(edge: EdgeTile, grid: number[][]): boolean {
+    const { col, row } = edge;
+    const margin = 3;
+
+    if (edge.type === 'floor' || edge.type === 'ceiling') {
+      const backingRow = edge.type === 'floor' ? row + 1 : row - 1;
+      for (let dc = -margin; dc <= margin; dc++) {
+        if (!isSolid(gridAt(grid, row, col + dc))) return false;
+        if (!isSolid(gridAt(grid, backingRow, col + dc))) return false;
+      }
+      return true;
+    }
+
+    const backingCol = edge.type === 'wall_left' ? col + 1 : col - 1;
+    for (let dr = -margin; dr <= margin; dr++) {
+      if (!isSolid(gridAt(grid, row + dr, col))) return false;
+      if (!isSolid(gridAt(grid, row + dr, backingCol))) return false;
+    }
+    return true;
+  }
 
   private scanEdges(grid: number[][]): EdgeTile[] {
     const edges: EdgeTile[] = [];
@@ -513,8 +542,16 @@ export class ProceduralDecorator {
   private drawStructure(gfx: Graphics, edge: EdgeTile, rng: PRNG, grid: number[][]): void {
     const type = rng.nextInt(0, 6);
     switch (type) {
-      case 0: this.drawSteelBeam(gfx, edge, rng); break;
-      case 1: this.drawConcreteChunk(gfx, edge, rng); break;
+      case 0: {
+        if (!this.hasLargeStructureSurface(edge, grid)) break;
+        this.drawSteelBeam(gfx, edge, rng);
+        break;
+      }
+      case 1: {
+        if (!this.hasLargeStructureSurface(edge, grid)) break;
+        this.drawConcreteChunk(gfx, edge, rng);
+        break;
+      }
       case 2: this.drawRebar(gfx, edge, rng); break;
       case 3: /* pipes disabled — use Pass 4 embedded only */ break;
       case 4: this.drawGirderOutline(gfx, edge, rng, grid); break;
@@ -1107,47 +1144,35 @@ export class ProceduralDecorator {
   private dtFoundry(gfx: Graphics, edge: EdgeTile, rng: PRNG): void {
     const { T, bx, by, wallX, dir } = this.ex(edge);
     if (edge.type === 'ceiling') {
-      // Molten drip trail: elongated teardrop + trail dots descending
-      const ox = rng.nextFloat(2, T - 2), cy = (edge.row + 1) * T;
-      const dropLen = rng.nextFloat(8, 20);
-      // Trail of diminishing drops
-      for (let d = 0; d < 4; d++) {
-        const dy = cy + d * dropLen / 4;
-        const r = rng.nextFloat(1.5, 3) * (1 - d * 0.2);
-        gfx.circle(bx + ox + rng.nextFloat(-1, 1), dy, r);
-        gfx.fill({ color: 0xee6622, alpha: 0.7 - d * 0.12 });
+      // Molten drip trail (1/4 density)
+      if (rng.next() < 0.25) {
+        const ox = rng.nextFloat(2, T - 2), cy = (edge.row + 1) * T;
+        dripTrail(gfx, bx + ox, cy, cy + rng.nextFloat(8, 20),
+          0xee6622, 2, 1.5, 0.5, rng);
       }
-      // Hot glow halo at top
-      gfx.circle(bx + ox, cy + 2, 5);
-      gfx.fill({ color: 0xffaa44, alpha: 0.15 });
     } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-      // Scorch mark: radial burn pattern from center point
-      const oy = rng.nextFloat(2, T - 4);
-      const cx2 = wallX + 4 * dir, cy2 = by + oy;
-      // Central char
-      gfx.circle(cx2, cy2, rng.nextFloat(2, 4));
-      gfx.fill({ color: 0x1a0a08, alpha: 0.6 });
-      // Radial scorch lines
-      for (let r = 0; r < rng.nextInt(4, 7); r++) {
-        const a = rng.nextFloat(0, Math.PI * 2);
-        const len = rng.nextFloat(4, 10);
-        gfx.moveTo(cx2, cy2);
-        gfx.lineTo(cx2 + Math.cos(a) * len, cy2 + Math.sin(a) * len);
-        gfx.stroke({ width: rng.nextFloat(0.5, 1.5), color: 0x3a1808 });
+      // Scorch mark (1/4 density)
+      if (rng.next() < 0.25) {
+        const oy = rng.nextFloat(2, T - 4);
+        const cx2 = wallX + 4 * dir, cy2 = by + oy;
+        gfx.circle(cx2, cy2, rng.nextFloat(2, 4));
+        gfx.fill({ color: 0x1a0a08, alpha: 0.6 });
+        // Fewer, shorter radial lines
+        for (let r = 0; r < rng.nextInt(2, 4); r++) {
+          const a = rng.nextFloat(0, Math.PI * 2);
+          const len = rng.nextFloat(2, 5);
+          gfx.moveTo(cx2, cy2);
+          gfx.lineTo(cx2 + Math.cos(a) * len, cy2 + Math.sin(a) * len);
+          gfx.stroke({ width: rng.nextFloat(0.5, 1), color: 0x3a1808 });
+        }
       }
     } else {
-      // Floor: hammer strike mark (impact crater shape)
-      const ox = rng.nextFloat(2, T - 4);
-      const r = rng.nextFloat(3, 7);
-      // Concentric impact rings
-      gfx.circle(bx + ox, by - 1, r); gfx.stroke({ width: 1.5, color: this.cRebar });
-      gfx.circle(bx + ox, by - 1, r * 0.5); gfx.fill({ color: 0xee6622, alpha: 0.3 });
-      // Radial splash lines
-      for (let s = 0; s < 5; s++) {
-        const a = s * Math.PI * 2 / 5 + rng.nextFloat(-0.3, 0.3);
-        gfx.moveTo(bx + ox + Math.cos(a) * r, by - 1 + Math.sin(a) * r);
-        gfx.lineTo(bx + ox + Math.cos(a) * (r + rng.nextFloat(3, 6)), by - 1 + Math.sin(a) * (r + rng.nextFloat(3, 6)));
-        gfx.stroke({ width: 1, color: this.cRebar });
+      // Floor: hammer strike (1/4 density)
+      if (rng.next() < 0.25) {
+        const ox = rng.nextFloat(2, T - 4);
+        const r = rng.nextFloat(3, 7);
+        gfx.circle(bx + ox, by - 1, r); gfx.stroke({ width: 1.5, color: this.cRebar });
+        gfx.circle(bx + ox, by - 1, r * 0.5); gfx.fill({ color: 0xee6622, alpha: 0.3 });
       }
     }
   }
