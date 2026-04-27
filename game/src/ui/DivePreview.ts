@@ -12,6 +12,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
+import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
@@ -201,7 +202,7 @@ export class DivePreview {
 
     // Prompts row.
     const promptY = H - 18;
-    const dIcon = KeyPrompt.createKeyIcon('C', 10);
+    const dIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), 10);
     dIcon.x = 12;
     dIcon.y = promptY;
     this.panel.addChild(dIcon);
@@ -213,7 +214,7 @@ export class DivePreview {
     dLabel.y = promptY + 1;
     this.panel.addChild(dLabel);
 
-    const cIcon = KeyPrompt.createKeyIcon('ESC', 10);
+    const cIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.MENU), 10);
     cIcon.x = W - 78;
     cIcon.y = promptY;
     this.panel.addChild(cIcon);
@@ -255,7 +256,7 @@ export class DivePreview {
     text.y = y + Math.floor((H - text.height) / 2);
     this.panel.addChild(text);
 
-    const okIcon = KeyPrompt.createKeyIcon('C', 10);
+    const okIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), 10);
     okIcon.x = GAME_WIDTH - 90;
     okIcon.y = y + 4;
     this.panel.addChild(okIcon);
@@ -267,7 +268,7 @@ export class DivePreview {
     okLabel.y = y + 5;
     this.panel.addChild(okLabel);
 
-    const cIcon = KeyPrompt.createKeyIcon('ESC', 10);
+    const cIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.MENU), 10);
     cIcon.x = GAME_WIDTH - 58;
     cIcon.y = y + 4;
     this.panel.addChild(cIcon);

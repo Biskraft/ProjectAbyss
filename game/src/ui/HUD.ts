@@ -2,6 +2,7 @@ import { Container, Graphics, BitmapText, Sprite, Assets, Texture } from 'pixi.j
 import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
 // Base values at 640x360. Multiplied by uiScale for native resolution.
@@ -258,9 +259,9 @@ export class HUD {
     this.actionKeyBar = new Container();
     const ACTION_BAR_Y = this.SH - this.MARGIN - this.FONT - 4 * s - KEY_ICON;
     const actions: Array<{ key: string; label: string }> = [
-      { key: 'Z', label: 'Jump' },
-      { key: 'X', label: 'Dash' },
-      { key: 'C', label: 'Atk' },
+      { key: actionKey(GameAction.JUMP),   label: 'Jump' },
+      { key: actionKey(GameAction.DASH),   label: 'Dash' },
+      { key: actionKey(GameAction.ATTACK), label: 'Atk' },
     ];
     let actionX = this.MARGIN;
     for (const a of actions) {
@@ -304,7 +305,7 @@ export class HUD {
     this.flaskPulseGlow.alpha = 0;
     this.container.addChild(this.flaskPulseGlow);
 
-    this.flaskKeyLabel = KeyPrompt.createKeyIcon('R', this.FLASK_SIZE);
+    this.flaskKeyLabel = KeyPrompt.createKeyIcon(actionKey(GameAction.FLASK), this.FLASK_SIZE);
     // Center pivot so pulse scales in place (position stays anchored to HP_X,FLASK_Y).
     this.flaskKeyLabel.pivot.set(this.FLASK_SIZE / 2, this.FLASK_SIZE / 2);
     this.flaskKeyLabel.x = this.HP_X + this.FLASK_SIZE / 2;
@@ -314,9 +315,9 @@ export class HUD {
     // --- [I]Item [M]Map — top-right, below minimap ---
     this.sideKeyBar = new Container();
     const sideKeyY = this.MARGIN + 72 * s + 6 * s; // below minimap
-    const sideActions: Array<{ key: string; label: string }> = [
-      { key: 'I', label: 'Item' },
-      { key: 'M', label: 'Map' },
+    const sideActions: Array<{ key: string; label: string; action: GameAction }> = [
+      { key: actionKey(GameAction.INVENTORY), label: 'Item', action: GameAction.INVENTORY },
+      { key: actionKey(GameAction.MAP),       label: 'Map',  action: GameAction.MAP },
     ];
     // [I] 키 펄스 glow 는 아이콘 뒤에 그려야 하므로 루프보다 먼저 추가.
     this.itemKeyPulseGlow = new Graphics();
@@ -339,7 +340,7 @@ export class HUD {
       icon.x = sideX;
       icon.y = sideKeyY;
       // Flask 키처럼 in-place 스케일을 위해 center pivot 으로 재배치.
-      if (a.key === 'I') {
+      if (a.action === GameAction.INVENTORY) {
         icon.pivot.set(KEY_ICON / 2, KEY_ICON / 2);
         icon.x = sideX + KEY_ICON / 2;
         icon.y = sideKeyY + KEY_ICON / 2;
@@ -503,7 +504,10 @@ export class HUD {
 
   /** Toggle debug info (floor text) visibility. */
   toggleDebugInfo(): void {
-    const show = !this.floorText.visible;
+    this.setDebugInfoVisible(!this.floorText.visible);
+  }
+
+  setDebugInfoVisible(show: boolean): void {
     this.floorText.visible = show;
     this.floorTextShadow.visible = show;
   }
@@ -1221,7 +1225,7 @@ export class HUD {
       const bounds = skin.getBounds('hud_status_key_flask');
       if (sprite && bounds) {
         const txt = new BitmapText({
-          text: 'R',
+          text: actionKey(GameAction.FLASK),
           style: { fontFamily: PIXEL_FONT, fontSize: 10 * s, fill: 0xffffff },
         });
         txt.anchor.set(0.5, 0.5);
@@ -1252,7 +1256,7 @@ export class HUD {
     }
     // I key — store position for pulse glow
     {
-      placeKey('hud_map_key_item_normal', 'I');
+      placeKey('hud_map_key_item_normal', actionKey(GameAction.INVENTORY));
       const iBounds = skin.getBounds('hud_map_key_item_normal');
       if (iBounds) {
         this.skinItemKeyCx = (iBounds.x + iBounds.w / 2) * s;
@@ -1260,10 +1264,10 @@ export class HUD {
         this.skinItemKeyR = Math.max(iBounds.w, iBounds.h) / 2 * s;
       }
     }
-    placeKey('hud_map_key_inv_normal', 'M');
-    placeActionKey('hud_action_key_jump', 'Z', 'JUMP');
-    placeActionKey('hud_action_key_dash', 'X', 'DASH');
-    placeActionKey('hud_action_key_attack', 'C', 'ATK');
+    placeKey('hud_map_key_inv_normal', actionKey(GameAction.MAP));
+    placeActionKey('hud_action_key_jump',   actionKey(GameAction.JUMP),   'JUMP');
+    placeActionKey('hud_action_key_dash',   actionKey(GameAction.DASH),   'DASH');
+    placeActionKey('hud_action_key_attack', actionKey(GameAction.ATTACK), 'ATK');
 
     // Hide old Graphics-based elements that the skin replaces
     this.hpBar.visible = false;

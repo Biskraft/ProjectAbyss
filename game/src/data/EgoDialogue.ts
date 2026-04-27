@@ -15,6 +15,7 @@
  */
 
 import type { LoreLine } from '@ui/LoreDisplay';
+import { GameAction, actionKey } from '@core/InputManager';
 
 // ── Visual constants ──────────────────────────────────────────────
 const ERDA_SPEAKER = 'Erda';
@@ -177,10 +178,12 @@ export const EGO_AFFINITY_MAX: LoreLine[] = [
 ];
 
 /** S04: First ItemDrop pickup after first IW boss clear — anvil retired + inventory hint */
-export const EGO_ANVIL_RETIRED: LoreLine[] = [
-  rust('이 모루는 끝이야. 낡은 거라 그래.'),
-  rust('주운 건 인벤토리에 있어. [I] 누르면 보여.'),
-];
+export function getEgoAnvilRetired(): LoreLine[] {
+  return [
+    rust('이 모루는 끝이야. 낡은 거라 그래.'),
+    rust(`주운 건 인벤토리에 있어. [${actionKey(GameAction.INVENTORY)}] 누르면 보여.`),
+  ];
+}
 
 // ── Ego weapon IDs ───────────────────────────────────────────────
 

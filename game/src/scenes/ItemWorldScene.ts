@@ -1,5 +1,6 @@
 ﻿import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
+import { Debug } from '@core/Debug';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
@@ -10,7 +11,7 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
-import { GameAction } from '@core/InputManager';
+import { GameAction, actionKey } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
 import { Guardian } from '@entities/Guardian';
@@ -52,6 +53,7 @@ import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { sacredSave } from '@save/PlayerSave';
+import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
@@ -339,13 +341,18 @@ export class ItemWorldScene extends Scene {
   private stratumPickerSelection = 0;
   private stratumPickerMax = 0;
 
-  // Onboarding
-  private static readonly ONBOARDING_MSGS = [
+  // Onboarding — last line uses live keybindings via getter (preset-aware).
+  private static readonly ONBOARDING_BASE_MSGS = [
     'You entered the Memory Strata!',
     'Each stratum goes deeper.\nDefeat the boss to descend.',
     'Find Escape Altars to\nleave safely with rewards.',
-    'ESC to abandon. [Z] to proceed.',
   ];
+  private static getOnboardingMsgs(): string[] {
+    return [
+      ...ItemWorldScene.ONBOARDING_BASE_MSGS,
+      `${actionKey(GameAction.MENU)} to abandon. [${actionKey(GameAction.JUMP)}] to proceed.`,
+    ];
+  }
   // Callback when done
   onComplete: (() => void) | null = null;
 
@@ -405,7 +412,8 @@ export class ItemWorldScene extends Scene {
       console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
-    // First Normal entry special: 2x2 grid, boss HP x0.7, no enrage
+    // First item-world entry still uses one short 2x2 stratum. Combat leniency
+    // is handled by beginner_grace in PlayerBuffSystem, not by enemy exceptions.
     // Condition: global tutorial not yet done + Normal rarity + cycle 0 + no strata cleared
     this.isFirstNormalEntry = !this.itemWorldTutorialDone
       && this.item.rarity === 'normal'
@@ -421,7 +429,7 @@ export class ItemWorldScene extends Scene {
       this.egoUnlockedEvents.add(egoEntryKey(this.egoEntryCount));
     }
     if (this.isFirstNormalEntry) {
-      // Override: 1 stratum, 2x2 grid, boss HP x0.7.
+      // Override: 1 stratum, 2x2 grid.
       // Grid is post-processed below (after generateUnifiedGrid) to snake all
       // 4 cells onto the critical path: (0,0) Start → (1,0) → (1,1) → (0,1) Boss.
       const first = this.strataConfig.strata[0];
@@ -430,10 +438,9 @@ export class ItemWorldScene extends Scene {
           ...first,
           gridWidth: 2,
           gridHeight: 2,
-          bossHpMul: first.bossHpMul * 0.7,
         }],
       };
-      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid (snake start/combat/combat/boss), boss HP x0.7, no enrage');
+      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid (snake start/combat/combat/boss)');
     }
     this.rng = new PRNG(this.item.uid * 1000);
 
@@ -638,6 +645,7 @@ export class ItemWorldScene extends Scene {
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.hud.setMinimapFrameVisible(false);
+    this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
 
     // Area title banner — shows item name on entry.
@@ -930,6 +938,8 @@ export class ItemWorldScene extends Scene {
         // erase required gameplay roles like boss spawning.
         const logicalRoomType = this.isStratumEndRoom(col, absRow)
           ? 'Boss'
+          : cell.onCriticalPath
+            ? 'Combat'
           : ldtkLevel.roomType ?? 'Combat';
         this.roomTypeMap.set(`${col}:${absRow}`, logicalRoomType);
         const roomGrid = ldtkLevel.collisionGrid;
@@ -1282,12 +1292,6 @@ export class ItemWorldScene extends Scene {
       // Multiply CSV-based stats by stratum boss multipliers + distance scaling
       boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
       boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul * distScale));
-      // First Normal entry special: charge only, no enrage, ATK halved
-      if (this.isFirstNormalEntry && boss instanceof Guardian) {
-        boss.noEnrage = true;
-        boss.chargeOnly = true;
-        boss.atk = Math.max(1, Math.floor(boss.atk * 0.5));
-      }
       const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
       // Prefer the center of a 16-tile continuous flat floor; fall back to
       // a random valid spawn point if no such run exists.
@@ -1310,30 +1314,6 @@ export class ItemWorldScene extends Scene {
       this.enemies.push(boss);
       this.entityLayer.addChild(boss.container);
       trackEnemy(boss);
-      return;
-    }
-
-    // First Normal entry (tutorial dive) ? deterministic 3 Slimes per Combat
-    // room. CSV-driven weighted spawn is bypassed entirely so the very first
-    // item-world combat is predictable for onboarding (no Skeletons/Ghosts/
-    // GoldenMonsters mixed in, no random count). Subsequent dives fall back
-    // to the normal weighted table below.
-    if (this.isFirstNormalEntry) {
-      const tutSeed = this.item.uid * 999 + col * 77 + row * 33 + 7;
-      for (let i = 0; i < 3; i++) {
-        const spawnRng = new PRNG(tutSeed + i);
-        const slime = this.createEnemyFromType('Slime', 1 + cycle);
-        slime.hp = slime.maxHp = Math.max(1, Math.floor(slime.hp * stratumDef.hpMul * distScale));
-        slime.atk = Math.max(1, Math.floor(slime.atk * stratumDef.atkMul * distScale));
-        const sp = pickSpawn(spawnRng, slime.height);
-        slime.x = sp.x;
-        slime.y = sp.y;
-        slime.roomData = this.fullGrid;
-        slime.target = this.player;
-        this.enemies.push(slime);
-        this.entityLayer.addChild(slime.container);
-        trackEnemy(slime);
-      }
       return;
     }
 
@@ -1447,7 +1427,7 @@ export class ItemWorldScene extends Scene {
 
     // Context prompt for portal
     if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
-    this.exitPrompt = KeyPrompt.createPrompt('C', 'Descend', this.game.uiScale);
+    this.exitPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Descend', this.game.uiScale);
     this.exitPrompt.visible = false;
     this.game.uiContainer.addChild(this.exitPrompt);
   }
@@ -2028,13 +2008,9 @@ export class ItemWorldScene extends Scene {
       return exactByType[rng.nextInt(0, exactByType.length - 1)];
     }
 
-    // Role fidelity: critical-path cells (Start/Combat/Boss) MUST keep their
-    // gameplay role even when the exit pattern lacks an exact template.
-    // Falling through to exit-matching here would silently swap a Combat
-    // room for a Rest/Puzzle/Treasure layout that happens to share the exits.
-    const roleIsMandatory = desiredType === 'Boss'
-      || desiredType === 'Start'
-      || cell.onCriticalPath;
+    // Boss cells must remain visually distinct. Other cells prefer exit
+    // correctness so the authored openings match the generated route.
+    const roleIsMandatory = desiredType === 'Boss';
     if (roleIsMandatory) {
       const roleTemplates = pool.filter(t => t.roomType === desiredType);
       if (roleTemplates.length > 0) {
@@ -2157,12 +2133,6 @@ export class ItemWorldScene extends Scene {
     const boss = createEnemy('Guardian') as Guardian;
     boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
     boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
-    // First Normal entry special: charge only, no enrage, ATK halved
-    if (this.isFirstNormalEntry) {
-      boss.noEnrage = true;
-      boss.chargeOnly = true;
-      boss.atk = Math.max(1, Math.floor(boss.atk * 0.5));
-    }
     boss.x = (this.roomW / 2) * TILE_SIZE;
     boss.y = floorY - boss.height;
     boss.roomData = this.roomData;
@@ -2711,6 +2681,8 @@ export class ItemWorldScene extends Scene {
     // Return hint shrink tween (first-entry only).
     this.uiController.updateReturnHint(dt);
 
+    this.hud.setDebugInfoVisible(Debug.infoVisible);
+
     // Onboarding blocks gameplay
     if (!this.uiController.isOnboardingDone()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
@@ -3197,6 +3169,12 @@ export class ItemWorldScene extends Scene {
         // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
         if (!sacredSave.isFirstItemWorldBossDefeated()) {
           sacredSave.markFirstItemWorldBossDefeated();
+          const unbuffed = removeBeginnerGraceFromStats({
+            atk: this.player.atk,
+            def: this.player.def,
+          });
+          this.player.atk = unbuffed.atk;
+          this.player.def = unbuffed.def;
         }
 
         // Analytics: stratum boss defeated
@@ -3253,11 +3231,11 @@ export class ItemWorldScene extends Scene {
           setTimeout(async () => {
             await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
             this.spawnBossPortal(px, py);
-            this.toast.show('Red portal opened — press C', 0xff7744);
+            this.toast.show(`Red portal opened — press ${actionKey(GameAction.ATTACK)}`, 0xff7744);
           }, 2500);
         } else {
           this.spawnBossPortal(px, py);
-          this.toast.show('Red portal opened — press C', 0xff7744);
+          this.toast.show(`Red portal opened — press ${actionKey(GameAction.ATTACK)}`, 0xff7744);
           // Non-first entries: fire dialogue if applicable
           setTimeout(() => this.fireEgoBossKilled(), 2500);
         }
@@ -3558,8 +3536,11 @@ export class ItemWorldScene extends Scene {
     const cycleTag = this.progress.cycle > 0 ? `C${this.progress.cycle} ` : '';
     // DEBUG: first entry special conditions
     const dbg = `[1st:${this.isFirstNormalEntry ? 'Y' : 'N'} r=${this.item.rarity} cy=${this.progress.cycle} deep=${this.progress.deepestUnlocked} clr=${this.progress.clearedRooms.length}]`;
+    const buffDbg = new URLSearchParams(window.location.search).get('debug') === '1'
+      ? ` ${formatActivePlayerBuffsDebug()}`
+      : '';
     this.hud.setFloorText(
-      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}`
+      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}${buffDbg}`
     );
 
     // Update depth gauge
@@ -3661,7 +3642,7 @@ export class ItemWorldScene extends Scene {
     }
 
     const controls = new BitmapText({
-      text: '[<-/->] Change   [C] Confirm   [ESC] Cancel',
+      text: `[${actionKey(GameAction.MOVE_LEFT)}/${actionKey(GameAction.MOVE_RIGHT)}] Change   [${actionKey(GameAction.ATTACK)}] Confirm   [${actionKey(GameAction.MENU)}] Cancel`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88aacc },
     });
     controls.x = 12;
@@ -3742,14 +3723,14 @@ export class ItemWorldScene extends Scene {
   private showOnboarding(): void {
     this.uiController.startOnboarding({
       hudSkin: this.hudSkin,
-      messages: ItemWorldScene.ONBOARDING_MSGS,
+      messages: ItemWorldScene.getOnboardingMsgs(),
     });
   }
 
   private advanceOnboarding(): void {
     this.uiController.advanceOnboarding({
       hudSkin: this.hudSkin,
-      messages: ItemWorldScene.ONBOARDING_MSGS,
+      messages: ItemWorldScene.getOnboardingMsgs(),
     });
   }
 
@@ -3989,7 +3970,7 @@ export class ItemWorldScene extends Scene {
     this.entityLayer.addChild(this.altarVisual);
 
     // Context prompt ? rendered in uiContainer for crisp text
-    const hint = KeyPrompt.createPrompt('\u2191', 'Exit', this.game.uiScale);
+    const hint = KeyPrompt.createPrompt(actionKey(GameAction.LOOK_UP), 'Exit', this.game.uiScale);
     hint.visible = false;
     this.altarHint = hint;
     this.game.uiContainer.addChild(hint);

@@ -101,6 +101,21 @@ function rebuildKeyMaps(bindings: Record<GameAction, string[]>): void {
 // Virtual key prefix to avoid collisions with real key codes
 const VIRTUAL_PREFIX = 'Virtual_';
 
+// ── Module-level active instance ──────────────────────────────────────────────
+// UI components (HUD, ControlsOverlay, KeyPrompt callers) read the current
+// preset's display label via actionKey(). Set in InputManager constructor.
+
+let _activeInput: InputManager | null = null;
+
+export function getActiveInput(): InputManager | null {
+  return _activeInput;
+}
+
+/** Display label for the first key bound to an action under the active preset. */
+export function actionKey(action: GameAction): string {
+  return _activeInput?.getKeyDisplay(action) ?? '?';
+}
+
 export class InputManager {
   private keyState = new Map<string, boolean>();
   private prevKeyState = new Map<string, boolean>();
@@ -122,6 +137,7 @@ export class InputManager {
       this.bindings = { ...DEFAULT_BINDINGS };
     }
     rebuildKeyMaps(this.bindings);
+    _activeInput = this;
 
     // Use capture phase + highest priority to beat IME interception
     window.addEventListener('keydown', (e) => this.onKeyDown(e), true);
@@ -156,10 +172,12 @@ export class InputManager {
       const dir = code.slice(5);
       return { Left: '←', Right: '→', Up: '↑', Down: '↓' }[dir] ?? dir;
     }
-    if (code === 'Space') return 'Space';
-    if (code === 'ShiftLeft' || code === 'ShiftRight') return 'Shift';
+    if (code === 'Space') return 'SPC';
+    if (code === 'ShiftLeft' || code === 'ShiftRight') return 'SH';
+    if (code === 'ControlLeft' || code === 'ControlRight') return 'CT';
     if (code === 'Escape') return 'ESC';
-    if (code === 'Tab') return 'Tab';
+    if (code === 'Tab') return 'TAB';
+    if (code === 'Enter') return 'ENT';
     return code;
   }
 

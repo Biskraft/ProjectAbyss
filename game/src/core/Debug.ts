@@ -8,4 +8,7 @@
 export const Debug = {
   /** True = show hitbox rects, grids, markers, etc. */
   visible: false,
+  /** True = show HUD debug text such as item-world buff diagnostics. */
+  infoVisible: typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).has('debug'),
 };

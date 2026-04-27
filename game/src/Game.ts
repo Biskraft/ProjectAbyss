@@ -140,7 +140,8 @@ export class Game {
           // Shift+I — 전역 디버그 오버레이 토글. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
           if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
             this.input.consumeJustPressed(GameAction.INVENTORY);
-            Debug.visible = !Debug.visible;
+            Debug.infoVisible = !Debug.infoVisible;
+            Debug.visible = Debug.infoVisible;
           }
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);

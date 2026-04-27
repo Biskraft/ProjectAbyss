@@ -2,6 +2,7 @@ import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
 import { GAME_WIDTH } from '../Game';
+import { GameAction, actionKey } from '@core/InputManager';
 
 /**
  * Dead Cells style dark-box key guide overlay.
@@ -16,14 +17,20 @@ export class ControlsOverlay {
   private static readonly BG_ALPHA = 0.5;
   private static readonly KEY_SIZE = 8;
 
-  private static readonly CONTROLS: [string, string][] = [
-    ['\u2190\u2192', 'Move'],
-    ['Z', 'Jump'],
-    ['X', 'Dash'],
-    ['C', 'Attack'],
-    ['R', 'Flask'],
-    ['I', 'Item'],
-  ];
+  /**
+   * Each row is (keys[], label). A row with 2 keys renders both icons side-by-side
+   * (used for the Move row showing left+right keys).
+   */
+  private getControls(): { keys: string[]; label: string }[] {
+    return [
+      { keys: [actionKey(GameAction.MOVE_LEFT), actionKey(GameAction.MOVE_RIGHT)], label: 'Move' },
+      { keys: [actionKey(GameAction.JUMP)],     label: 'Jump' },
+      { keys: [actionKey(GameAction.DASH)],     label: 'Dash' },
+      { keys: [actionKey(GameAction.ATTACK)],   label: 'Attack' },
+      { keys: [actionKey(GameAction.FLASK)],    label: 'Flask' },
+      { keys: [actionKey(GameAction.INVENTORY)], label: 'Item' },
+    ];
+  }
 
   constructor() {
     this.container = new Container();
@@ -31,7 +38,8 @@ export class ControlsOverlay {
   }
 
   private build(): void {
-    const { CONTROLS, LINE_H, PAD_X, PAD_Y, BG_ALPHA, KEY_SIZE } = ControlsOverlay;
+    const { LINE_H, PAD_X, PAD_Y, BG_ALPHA, KEY_SIZE } = ControlsOverlay;
+    const CONTROLS = this.getControls();
 
     const panelW = 80;
     const panelH = PAD_Y * 2 + CONTROLS.length * LINE_H;
@@ -49,30 +57,22 @@ export class ControlsOverlay {
 
     // Key-action pairs with dark-box key icons
     for (let i = 0; i < CONTROLS.length; i++) {
-      const [key, action] = CONTROLS[i];
+      const { keys, label } = CONTROLS[i];
       const rowY = oy + PAD_Y + i * LINE_H;
 
-      // Key icon(s) — handle multi-char keys like arrows
-      if (key.length > 1 && !key.startsWith('Key')) {
-        // Multiple single-char keys (e.g., ←→)
-        let kx = ox + PAD_X;
-        for (const ch of key) {
-          const icon = KeyPrompt.createKeyIcon(ch, KEY_SIZE);
-          icon.x = kx;
-          icon.y = rowY;
-          this.container.addChild(icon);
-          kx += KEY_SIZE + 1;
-        }
-      } else {
-        const icon = KeyPrompt.createKeyIcon(key, KEY_SIZE);
-        icon.x = ox + PAD_X;
+      // One icon per key (handles ←→ for arrows or A/D for WASD).
+      let kx = ox + PAD_X;
+      for (const k of keys) {
+        const icon = KeyPrompt.createKeyIcon(k, KEY_SIZE);
+        icon.x = kx;
         icon.y = rowY;
         this.container.addChild(icon);
+        kx += KEY_SIZE + 1;
       }
 
       // Action label (right-aligned)
       const actionText = new BitmapText({
-        text: action,
+        text: label,
         style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: 0xcccccc },
       });
       actionText.anchor = { x: 1, y: 0 };

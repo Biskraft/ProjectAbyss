@@ -9,6 +9,7 @@ import { Container, Graphics, BitmapText } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { MODAL_BG, MODAL_BORDER, MODAL_BORDER_W, TEXT_NEGATIVE, TEXT_SECONDARY, TEXT_ACCENT, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
 const PANEL_W = 280;
@@ -121,7 +122,7 @@ export class DeathScreen {
 
     // [C] RETURN
     const action = new BitmapText({
-      text: '[C] RETURN TO SAVE POINT',
+      text: `[${actionKey(GameAction.ATTACK)}] RETURN TO SAVE POINT`,
       style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_ACCENT },
     });
     action.x = Math.floor((PANEL_W - 180) / 2);

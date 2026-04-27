@@ -1,6 +1,6 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
-import { GameAction } from '@core/InputManager';
+import { GameAction, actionKey } from '@core/InputManager';
 import { trackItemDrop } from '@utils/Analytics';
 import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
@@ -22,6 +22,7 @@ import { SWORD_DEFS, STARTER_ONLY_IDS } from '@data/weapons';
 import { createItem } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
+import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import { PortalTransition } from '@effects/PortalTransition';
 import { HitSparkManager } from '@effects/HitSpark';
 import { DeathParticleManager } from '@effects/DeathParticles';
@@ -242,7 +243,12 @@ export class WorldScene extends Scene {
 
   private updatePlayerAtk(): void {
     const baseStr = 10; // Lv1 STR
-    this.player.atk = baseStr + this.inventory.getWeaponAtk();
+    const buffedStats = applyPlayerStatBuffs({
+      atk: baseStr + this.inventory.getWeaponAtk(),
+      def: 5,
+    });
+    this.player.atk = buffedStats.atk;
+    this.player.def = buffedStats.def;
     const eq = this.inventory.equipped;
     this.player.equippedWeaponType = eq ? eq.def.type : null;
     this.player.equippedRarity = eq ? eq.rarity : null;
@@ -314,7 +320,7 @@ export class WorldScene extends Scene {
     title.y = 120;
     overlay.addChild(title);
 
-    const hint = new BitmapText({ text: 'Press Z or X to respawn', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
+    const hint = new BitmapText({ text: `Press ${actionKey(GameAction.JUMP)} or ${actionKey(GameAction.DASH)} to respawn`, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
     hint.anchor.set(0.5);
     hint.x = 240;
     hint.y = 150;

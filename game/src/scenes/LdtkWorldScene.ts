@@ -19,7 +19,8 @@
 
 import { Container, Graphics, BitmapText, Assets, Texture, Sprite } from 'pixi.js';
 import { Scene } from '@core/Scene';
-import { GameAction } from '@core/InputManager';
+import { Debug } from '@core/Debug';
+import { GameAction, actionKey } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
 import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
@@ -79,9 +80,10 @@ import { LorePopup } from '@ui/LorePopup';
 import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave } from '@save/PlayerSave';
+import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_WORLD_RETURN, EGO_ANVIL_RETIRED, EGO_EVENT, hasEgo,
+  EGO_WORLD_RETURN, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
 import { LandingDustManager } from '@effects/LandingDust';
@@ -763,6 +765,7 @@ export class LdtkWorldScene extends Scene {
 
     // HUD
     this.hud = new HUD(this.game.uiScale);
+    this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
     // Hide HUD immediately during the intro sequence so it can't flash above
     // the fade overlay while async init is still running. Revealed after
@@ -1843,6 +1846,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.hud.update(dt);
+    this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.hud.setFloorText(this.currentLevel?.identifier ?? '');
     this.areaTitle.update(dt);
 
@@ -2976,7 +2980,7 @@ export class LdtkWorldScene extends Scene {
       };
 
       if (triggerType === 'interact') {
-        const prompt = KeyPrompt.createPrompt('C', 'Talk', this.game.uiScale);
+        const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Talk', this.game.uiScale);
         prompt.visible = false;
         this.game.uiContainer.addChild(prompt);
         trigger.prompt = prompt;
@@ -3853,7 +3857,7 @@ export class LdtkWorldScene extends Scene {
           this.entityLayer.addChild(marker);
           // Context prompt ??rendered in uiContainer for crisp text
           const us = this.game.uiScale;
-          const prompt = KeyPrompt.createPrompt('C', 'Save', us);
+          const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Save', us);
           prompt.visible = false;
           this.game.uiContainer.addChild(prompt);
           this.savePoints.push({ x: spx, y: spy, gfx: marker, prompt });
@@ -4461,7 +4465,7 @@ export class LdtkWorldScene extends Scene {
     overlay.addChild(title);
 
     const hint = new BitmapText({
-      text: 'Press Z or X to return to save point',
+      text: `Press ${actionKey(GameAction.JUMP)} or ${actionKey(GameAction.DASH)} to return to save point`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
     });
     hint.anchor.set(0.5);
@@ -4537,7 +4541,11 @@ export class LdtkWorldScene extends Scene {
     // DEBUG cheat relic ??flat +99999 on top of everything
     const cheatBonus = this.player.abilities.cheat ? 99999 : 0;
 
-    this.player.atk = base.atk + weaponAtk + innocentAtk + cheatBonus;
+    const buffedStats = applyPlayerStatBuffs({
+      atk: base.atk + weaponAtk + innocentAtk + cheatBonus,
+      def: base.def + (equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0),
+    });
+    this.player.atk = buffedStats.atk;
 
     // Sync equipped weapon properties for FX + attack hitbox scaling.
     this.player.equippedWeaponType = equippedItem ? equippedItem.def.type : null;
@@ -4547,8 +4555,7 @@ export class LdtkWorldScene extends Scene {
       : 1;
 
     // DEF: base from CSV + innocent bonus
-    const innocentDef = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0;
-    this.player.def = base.def + innocentDef;
+    this.player.def = buffedStats.def;
 
     // MaxHP: base from CSV + HealthShard bonus + innocent bonus + cheat
     const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
@@ -5254,7 +5261,7 @@ export class LdtkWorldScene extends Scene {
     // 다가가면 항상 prompt 를 띄워 "C 로 진행 가능"을 일관되게 알린다.
     if (near) {
       if (!this.anvilPrompt) {
-        this.anvilPrompt = KeyPrompt.createPrompt('C', 'Place Weapon', this.game.uiScale);
+        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Place Weapon', this.game.uiScale);
       }
       if (!this.anvilPrompt.parent) {
         this.game.uiContainer.addChild(this.anvilPrompt);
@@ -5439,7 +5446,7 @@ export class LdtkWorldScene extends Scene {
       '',
       `Cycle ${nextCycle}`,
       '',
-      '[C] Dive Again   [ESC] Cancel',
+      `[${actionKey(GameAction.ATTACK)}] Dive Again   [${actionKey(GameAction.MENU)}] Cancel`,
     ];
     for (let i = 0; i < lines.length; i++) {
       const fill = i === 0 ? 0xffcc44 : i === lines.length - 1 ? 0xaaaaaa : 0xffffff;
@@ -6225,7 +6232,7 @@ export class LdtkWorldScene extends Scene {
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
       setTimeout(async () => {
         if (this.loreDisplay && !this.loreDisplay.isActive) {
-          await this.loreDisplay.showDialogue(EGO_ANVIL_RETIRED, false);
+          await this.loreDisplay.showDialogue(getEgoAnvilRetired(), false);
         }
         // Disable the current anvil only after Rustborn explains it.
         await this.anvil?.setDisabled(true);

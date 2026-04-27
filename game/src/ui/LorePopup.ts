@@ -19,6 +19,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
+import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
@@ -267,7 +268,7 @@ export class LorePopup {
 
     // [C] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).
     const iconSize = 10;
-    const closePrompt = KeyPrompt.createKeyIcon('C', iconSize);
+    const closePrompt = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), iconSize);
     closePrompt.x = W - 72;
     closePrompt.y = H - 18;
     this.panel.addChild(closePrompt);

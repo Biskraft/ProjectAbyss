@@ -4,6 +4,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import type { UISkin } from '@ui/UISkin';
 import { ReturnHint } from '@ui/ReturnHint';
 import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { Game } from '../../Game';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../Game';
 
@@ -214,7 +215,7 @@ export class ItemWorldUiController {
     }
 
     const hint = new BitmapText({
-      text: '[C] CONTINUE',
+      text: `[${actionKey(GameAction.ATTACK)}] CONTINUE`,
       style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
     });
     hint.x = Math.floor((W - hint.width) / 2);
@@ -293,7 +294,7 @@ export class ItemWorldUiController {
     panel.addChild(floorInfo);
 
     const controls = new BitmapText({
-      text: '[C] Yes   [Z/X] No',
+      text: `[${actionKey(GameAction.ATTACK)}] Yes   [${actionKey(GameAction.JUMP)}/${actionKey(GameAction.DASH)}] No`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
     });
     controls.x = 12;
@@ -350,7 +351,7 @@ export class ItemWorldUiController {
     panel.addChild(info);
 
     const goPrompt = new BitmapText({
-      text: '[C] Continue Deeper',
+      text: `[${actionKey(GameAction.ATTACK)}] Continue Deeper`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
     });
     goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
@@ -358,7 +359,7 @@ export class ItemWorldUiController {
     panel.addChild(goPrompt);
 
     const exitPrompt = new BitmapText({
-      text: '[ESC] Exit Safely',
+      text: `[${actionKey(GameAction.MENU)}] Exit Safely`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
     });
     exitPrompt.x = Math.floor((panelW - exitPrompt.width) / 2);
@@ -434,7 +435,7 @@ export class ItemWorldUiController {
 
     const step = `${this.onboardingStep + 1}/${options.messages.length}`;
     const prompt = new BitmapText({
-      text: `[C] Next  ${step}`,
+      text: `[${actionKey(GameAction.ATTACK)}] Next  ${step}`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
     });
     prompt.x = padX;

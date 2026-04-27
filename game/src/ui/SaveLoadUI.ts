@@ -9,6 +9,7 @@ import { Container, Graphics, BitmapText } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { createModalPanel } from './ModalPanel';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
 const PANEL_W = 320;
@@ -177,7 +178,7 @@ export class SaveLoadUI {
 
     // Hints
     const hint = new BitmapText({
-      text: '[C]Select  [X]Delete  [ESC]Back',
+      text: `[${actionKey(GameAction.ATTACK)}]Select  [${actionKey(GameAction.DASH)}]Delete  [${actionKey(GameAction.MENU)}]Back`,
       style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: COL_DIM },
     });
     hint.x = 12; hint.y = PANEL_H - 16;

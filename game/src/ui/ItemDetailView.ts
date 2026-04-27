@@ -13,6 +13,7 @@ import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { getPlayerBaseStats } from '@data/playerStats';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE, FONT_TITLE, FONT_HINT, TEXT_ACCENT, createModalPanel } from './ModalPanel';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
 const PANEL_W = 400;
@@ -135,7 +136,7 @@ export class ItemDetailView {
     addDiv();
 
     // Action hint
-    add('[C] Close', Math.floor(PANEL_W / 2) - 30, 0x00ced1, 8);
+    add(`[${actionKey(GameAction.ATTACK)}] Close`, Math.floor(PANEL_W / 2) - 30, 0x00ced1, 8);
 
     // Calculate panel height, then build overlay + 9-slice panel
     const panelH = Math.max(PANEL_MIN_H, y + 12);

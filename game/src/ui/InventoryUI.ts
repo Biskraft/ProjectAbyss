@@ -7,6 +7,7 @@ import { PIXEL_FONT } from './fonts';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { create9SlicePanel, drawSelectionRow, drawSelectionPulse, ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA } from './ModalPanel';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 import { sacredSave } from '@save/PlayerSave';
 
@@ -676,10 +677,13 @@ export class InventoryUI {
 
     // Action hints
     let hintText: string;
+    const ATK = actionKey(GameAction.ATTACK);
+    const ESC = actionKey(GameAction.MENU);
+    const JMP = actionKey(GameAction.JUMP);
     if (this.mode === 'anvil') {
-      hintText = this.anvilState === 'placed' ? '[C]DIVE  [ESC]Remove' : '[C]Place  [ESC]Back';
+      hintText = this.anvilState === 'placed' ? `[${ATK}]DIVE  [${ESC}]Remove` : `[${ATK}]Place  [${ESC}]Back`;
     } else {
-      hintText = isEquipped ? '[ESC]Close' : '[C]Equip  [Z]Compare  [ESC]Close';
+      hintText = isEquipped ? `[${ESC}]Close` : `[${ATK}]Equip  [${JMP}]Compare  [${ESC}]Close`;
     }
     const hint = new BitmapText({
       text: hintText,

@@ -10,6 +10,7 @@
 import { Container } from 'pixi.js';
 import { KeyPrompt } from './KeyPrompt';
 import { sacredSave } from '@save/PlayerSave';
+import { GameAction, actionKey } from '@core/InputManager';
 
 // Visual scale references KeyPrompt's CONTEXT_KEY_SIZE (14) so size/14 = scale.
 const KEY_BASE_SIZE = 14;
@@ -18,7 +19,6 @@ const FINAL_SIZE = 12;
 const SHRINK_DURATION = 1500;
 const HUD_X = 8;
 const HUD_Y = 8;
-const PROMPT_KEY = 'ESC';
 const PROMPT_LABEL = 'Return to Surface';
 
 export class ReturnHint {
@@ -81,7 +81,7 @@ export class ReturnHint {
     }
 
     const scale = Math.max(0.1, this.currentSize / KEY_BASE_SIZE);
-    const prompt = KeyPrompt.createPrompt(PROMPT_KEY, PROMPT_LABEL, scale);
+    const prompt = KeyPrompt.createPrompt(actionKey(GameAction.MENU), PROMPT_LABEL, scale);
     this.container.addChild(prompt);
   }
 

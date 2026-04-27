@@ -13,6 +13,7 @@
 
 import { Container, Graphics } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
+import { GameAction, actionKey } from '@core/InputManager';
 
 interface Spark {
   gfx: Graphics;
@@ -86,7 +87,7 @@ export class Altar {
     const c = new Container();
 
     // Up-arrow key icon (UP key). Using KeyPrompt helper for consistency.
-    const keyIcon = KeyPrompt.createKeyIcon('\u2191', 9);
+    const keyIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.LOOK_UP), 9);
     c.addChild(keyIcon);
 
     // Hammer pictogram (handle + head), drawn at world scale to match key icon

@@ -17,6 +17,7 @@
 
 import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
@@ -227,7 +228,7 @@ export class Anvil {
     const c = new Container();
 
     // Empty state: UP key + sword icon
-    this.keyUp = KeyPrompt.createKeyIcon('\u2191', 9);
+    this.keyUp = KeyPrompt.createKeyIcon(actionKey(GameAction.LOOK_UP), 9);
     this.keyUp.x = 0;
     this.keyUp.y = 0;
     c.addChild(this.keyUp);
@@ -238,7 +239,7 @@ export class Anvil {
     c.addChild(this.swordIcon);
 
     // Placed state: C key + hammer icon (stacked on top — hidden by default)
-    this.keyStrike = KeyPrompt.createKeyIcon('C', 9);
+    this.keyStrike = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), 9);
     this.keyStrike.x = 0;
     this.keyStrike.y = 0;
     this.keyStrike.visible = false;

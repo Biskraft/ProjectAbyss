@@ -15,7 +15,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
 import { assetPath } from '@core/AssetLoader';
-import { PRESET_INFOS, PRESET_NAMES, type PresetName } from '@core/InputManager';
+import { PRESET_INFOS, PRESET_NAMES, type PresetName, GameAction, actionKey } from '@core/InputManager';
 import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA } from '@ui/ModalPanel';
 
 const LOGO_PATH = assetPath('assets/ui/title_logo.png');
@@ -316,7 +316,7 @@ export class TitleScene extends Scene {
     this.confirmModal.addChild(modalKeys);
 
     const modalHint = new Text({
-      text: '[Enter] Start    [ESC] Back',
+      text: `[Enter] Start    [${actionKey(GameAction.MENU)}] Back`,
       style: new TextStyle({ fontFamily: '"Rajdhani", sans-serif', fontSize: 8 * s, fontWeight: '500', fill: 0x00ced1, letterSpacing: 1 * s }),
     });
     modalHint.label = 'modal-hint';
@@ -496,7 +496,7 @@ export class TitleScene extends Scene {
     // Hint
     const hint = this.confirmModal.getChildByLabel('modal-hint') as Text;
     if (hint) {
-      hint.text = '[Enter] Start    [ESC] Back';
+      hint.text = `[Enter] Start    [${actionKey(GameAction.MENU)}] Back`;
       hint.x = cx;
       hint.y = my + 62 * s;
     }

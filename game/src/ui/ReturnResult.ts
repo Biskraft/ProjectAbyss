@@ -11,6 +11,7 @@ import { PIXEL_FONT } from './fonts';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE, TEXT_ACCENT, TEXT_GOLD, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
+import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
 const PANEL_W = 400;
@@ -176,7 +177,7 @@ export class ReturnResult {
     }
 
     // Action
-    this.addText('[C] CONTINUE', Math.floor((PANEL_W - 100) / 2), PANEL_H - 20, TEXT_ACCENT, FONT_HINT);
+    this.addText(`[${actionKey(GameAction.ATTACK)}] CONTINUE`, Math.floor((PANEL_W - 100) / 2), PANEL_H - 20, TEXT_ACCENT, FONT_HINT);
   }
 
   private addText(text: string, x: number, y: number, color: number, fontSize: number): BitmapText {
