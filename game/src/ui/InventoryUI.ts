@@ -479,8 +479,10 @@ export class InventoryUI {
       // Normal — transparent (panel bg shows through)
     }
 
-    // Dim if on anvil
-    if (isOnAnvil || isStarterOnly) {
+    // Dim only if placed on anvil (starter-only state is signalled by the
+    // 🔒 lock badge on the right; dimming the row also dims the selection
+    // halo and makes Broken Sword look "darker than the others" when picked).
+    if (isOnAnvil) {
       g.alpha = 0.3;
     }
 
@@ -515,8 +517,12 @@ export class InventoryUI {
     }
     cx += 16;
 
-    // Item name (rarity color, brighter if selected)
-    const nameColor = isStarterOnly ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : (isEquipped ? rarityColor : COL_DIM));
+    // Item name (rarity color, brighter if selected). Selection always
+    // wins — even starter-only items light up white when picked, so the
+    // selection signal stays uniform across the list.
+    const nameColor = isSelected
+      ? COL_TEXT_WHITE
+      : (isStarterOnly ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
     const name = item.def.name.length > 14 ? item.def.name.substring(0, 13) + '..' : item.def.name;
     const nameText = new BitmapText({ text: name, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: nameColor } });
     nameText.x = cx;

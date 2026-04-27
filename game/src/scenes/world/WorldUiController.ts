@@ -203,6 +203,7 @@ export class WorldUiController {
       } else if (input.isJustPressed(GameAction.ATTACK)) {
         pauseMenu.confirm();
       }
+      pauseMenu.update(options.dt); // selection halo pulse
       return 'pause';
     }
 

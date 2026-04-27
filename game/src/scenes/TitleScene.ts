@@ -525,7 +525,7 @@ export class TitleScene extends Scene {
       if (bg) {
         bg.clear();
         if (isSelected) {
-          drawSelectionRow(bg, cardW, cardH);
+          drawSelectionRow(bg, cardW, cardH, 'soft');
         } else {
           bg.roundRect(0, 0, cardW, cardH, 3 * s)
             .fill({ color: 0x000000, alpha: 0 });
@@ -552,14 +552,14 @@ export class TitleScene extends Scene {
     const cardW = 100 * s;
     const cardH = 80 * s;
     const t = this.elapsed / 1000;
-    // Always-bright pulse: 0.30..1.00 of base alpha at 1.4 Hz
-    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
+    // Soft tier: slow 0.8 Hz breathing, 0.50..1.00 of base alpha
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.75 + 0.25 * Math.sin(t * Math.PI * 2 * 0.8));
     const card = this.presetCards[this.presetIndex];
     if (!card) return;
     const pulse = card.getChildByLabel('pulse') as Graphics | null;
     if (!pulse) return;
     pulse.clear();
-    drawSelectionPulse(pulse, cardW, cardH, a);
+    drawSelectionPulse(pulse, cardW, cardH, a, 'soft');
   }
 
   render(_alpha: number): void {}

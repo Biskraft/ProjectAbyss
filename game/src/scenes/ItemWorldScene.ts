@@ -705,9 +705,8 @@ export class ItemWorldScene extends Scene {
     const spawnTileCol = Math.floor(spawnCenterX / TILE_SIZE);
     const roomTopTile = localStartRow * IW_ROOM_H_TILES;
 
-    // Fallback: just below the top of the room
     let spawnY = roomTopTile * TILE_SIZE + 2;
-    for (let tr = roomTopTile + 1; tr < roomTopTile + IW_ROOM_H_TILES - 1; tr++) {
+    for (let tr = roomTopTile + IW_ROOM_H_TILES - IW_DOOR_DEPTH - 2; tr >= roomTopTile + IW_DOOR_DEPTH; tr--) {
       const here = this.fullGrid[tr]?.[spawnTileCol] ?? 1;
       const below = this.fullGrid[tr + 1]?.[spawnTileCol] ?? 1;
       if (here === 0 && below >= 1) {
@@ -915,8 +914,6 @@ export class ItemWorldScene extends Scene {
     // Place each room template into the full grid (current stratum only)
     const grid = this.unifiedGrid;
     const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const boundarySeals: Array<{ localRow: number; col: number; exits: ExitDir[]; cell: UnifiedRoomCell }> = [];
-
     let roomCount = 0;
     for (let localRow = 0; localRow < gridH; localRow++) {
       const absRow = stratumRowStart + localRow;
@@ -935,8 +932,6 @@ export class ItemWorldScene extends Scene {
           ? 'Boss'
           : ldtkLevel.roomType ?? 'Combat';
         this.roomTypeMap.set(`${col}:${absRow}`, logicalRoomType);
-        boundarySeals.push({ localRow, col, exits: ldtkLevel.exits, cell });
-
         const roomGrid = ldtkLevel.collisionGrid;
         const roomH = roomGrid.length;
         const roomW = roomGrid[0]?.length ?? 0;
@@ -995,7 +990,7 @@ export class ItemWorldScene extends Scene {
     }
 
     this.addFullMapBoundaryCollision(gridW, gridH);
-    this.addFullMapBoundaryVisuals(boundarySeals, gridW, gridH);
+    this.addFullMapBoundaryVisuals(gridW, gridH);
 
     // Procedural decorations generated from the final LDtk-authored fullGrid.
     if (this._procDecoEnabled) {
@@ -1111,16 +1106,8 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /**
-   * Cover authored/fallback LDtk openings that point to no logical neighbor.
-   * This keeps map boundaries from reading as valid paths while templates are
-   * still being filled out in LDtk.
-   */
-  private addFullMapBoundaryVisuals(
-    rooms: Array<{ localRow: number; col: number; exits: ExitDir[]; cell: UnifiedRoomCell }>,
-    gridW: number,
-    gridH: number,
-  ): void {
+  /** Draw the outer frame of the active stratum so boundaries read as walls. */
+  private addFullMapBoundaryVisuals(gridW: number, gridH: number): void {
     if (!this.sealAggregate) return;
 
     const layer = new Container();
@@ -1133,25 +1120,6 @@ export class ItemWorldScene extends Scene {
     this.drawBoundaryWall(frame, 0, 0, thickness, fullH);
     this.drawBoundaryWall(frame, fullW - thickness, 0, thickness, fullH);
     layer.addChild(frame);
-
-    for (const room of rooms) {
-      const exitSet = new Set(room.exits);
-      const sealLeft = exitSet.has('L') && !room.cell.exits.left;
-      const sealRight = exitSet.has('R') && !room.cell.exits.right;
-      const sealUp = exitSet.has('U') && !room.cell.exits.up;
-      const sealDown = exitSet.has('D') && !room.cell.exits.down;
-      if (!sealLeft && !sealRight && !sealUp && !sealDown) continue;
-
-      const x = room.col * IW_ROOM_W_PX;
-      const y = room.localRow * IW_ROOM_H_PX;
-      const gfx = new Graphics();
-      if (sealLeft) this.drawBoundaryWall(gfx, 0, 0, IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_H_PX);
-      if (sealRight) this.drawBoundaryWall(gfx, IW_ROOM_W_PX - IW_DOOR_DEPTH * TILE_SIZE, 0, IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_H_PX);
-      if (sealUp) this.drawBoundaryWall(gfx, 0, 0, IW_ROOM_W_PX, IW_DOOR_DEPTH * TILE_SIZE);
-      if (sealDown) this.drawBoundaryWall(gfx, 0, IW_ROOM_H_PX - IW_DOOR_DEPTH * TILE_SIZE, IW_ROOM_W_PX, IW_DOOR_DEPTH * TILE_SIZE);
-      gfx.position.set(x, y);
-      layer.addChild(gfx);
-    }
 
     this.sealAggregate.addChild(layer);
   }
@@ -3434,14 +3402,15 @@ export class ItemWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // Clamp player to map bounds (gridW rooms × 512px)
+    // Clamp player to the active stratum bounds.
     const gridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
     const gridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
-    const MAP_SIZE = Math.max(gridW, gridH) * IW_ROOM_W_PX;
+    const mapW = gridW * IW_ROOM_W_PX;
+    const mapH = gridH * IW_ROOM_H_PX;
     if (this.player.x < 0) this.player.x = 0;
     if (this.player.y < 0) this.player.y = 0;
-    if (this.player.x > MAP_SIZE - this.player.width) this.player.x = MAP_SIZE - this.player.width;
-    if (this.player.y > MAP_SIZE - this.player.height) this.player.y = MAP_SIZE - this.player.height;
+    if (this.player.x > mapW - this.player.width) this.player.x = mapW - this.player.width;
+    if (this.player.y > mapH - this.player.height) this.player.y = mapH - this.player.height;
 
     // Camera
     this.game.camera.target = {

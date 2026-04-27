@@ -1162,6 +1162,7 @@ export class LdtkWorldScene extends Scene {
 
     // Altar selection UI (anvil now uses the unified InventoryUI in anvil mode)
     if (this.altarSelectActive) {
+      this.hideAnvilPrompts();
       this.updateAltarInput();
       return;
     }
@@ -1181,6 +1182,7 @@ export class LdtkWorldScene extends Scene {
       },
     });
     if (this.worldMap.visible && this.currentLevel) {
+      this.hideAnvilPrompts();
       this.uiController.updateWorldMap({
         dt,
         playerWorldX: this.player.x + this.currentLevel.worldX,
@@ -1204,6 +1206,7 @@ export class LdtkWorldScene extends Scene {
     });
 
     if (this.inventoryUI.visible) {
+      this.hideAnvilPrompts();
       this.inventoryUI.update(dt); // selection pulse animation (runs even behind cycle prompt)
       // Re-dive confirmation prompt overlays the inventory (anvil mode only)
       if (this.cyclePromptItem) {
@@ -5318,6 +5321,11 @@ export class LdtkWorldScene extends Scene {
     this.anvilDisabledPrompt.y = Math.round(sy);
   }
 
+  private hideAnvilPrompts(): void {
+    if (this.anvilPrompt) this.anvilPrompt.visible = false;
+    if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+  }
+
   /**
    * Open the unified inventory UI in "anvil" mode. The player sees the same
    * grid inventory as the regular INVENTORY key but confirming an item places
@@ -5335,7 +5343,7 @@ export class LdtkWorldScene extends Scene {
     // Hide the approach prompt while the inventory is open ??it would
     // otherwise bleed through the translucent inventory overlay. If the
     // player cancels, updateAnvil re-shows it on the next frame.
-    if (this.anvilPrompt) this.anvilPrompt.visible = false;
+    this.hideAnvilPrompts();
     this.inventoryUI.openForAnvil((item) => {
       // Cannot place equipped weapon on anvil
       if (this.inventory.equipped?.uid === item.uid) {

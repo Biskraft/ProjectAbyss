@@ -118,11 +118,16 @@ export function createHint(text: string, color = TEXT_SECONDARY): BitmapText {
 // Selection highlight (Bloodstained-tier focus clarity)
 // ---------------------------------------------------------------------------
 
+/** Selection intensity tier. `full` = inventory-grade molten halo (4 layers,
+ *  thick edge). `soft` = gentle accent for ambient menus where the focus
+ *  signal shouldn't dominate (1 layer, thin edge, tighter halo). */
+export type SelectionIntensity = 'full' | 'soft';
+
 /**
  * Draw the canonical row selection BASE on `g` (static, drawn once per
  * selection change):
  *   ① saturated fill + right-side darker overlay (gradient approximation)
- *   ② full-alpha accent edge (2px outer stroke)
+ *   ② accent edge stroke (thickness/alpha varies by intensity)
  *
  * The outer halo glow is drawn separately by drawSelectionPulse() each frame
  * so it can pulse. Chevrons (▶ / ◀) are caller responsibility.
@@ -130,27 +135,53 @@ export function createHint(text: string, color = TEXT_SECONDARY): BitmapText {
  * Use this for every list/menu row selected state. Do not invent custom
  * selection styles. SSoT: docs/ui-components.html#selection-state.
  */
-export function drawSelectionRow(g: Graphics, w: number, h: number): void {
+export function drawSelectionRow(
+  g: Graphics,
+  w: number,
+  h: number,
+  intensity: SelectionIntensity = 'full',
+): void {
+  const soft = intensity === 'soft';
   // Fill
-  g.rect(0, 0, w, h).fill({ color: ROW_SELECTED, alpha: 0.95 });
+  g.rect(0, 0, w, h).fill({ color: ROW_SELECTED, alpha: soft ? 0.65 : 0.95 });
   // Right-half darker overlay → gradient feel
   const halfW = Math.floor(w * 0.5);
-  g.rect(halfW, 0, w - halfW, h).fill({ color: ROW_SELECTED_2, alpha: 0.5 });
-  // Full-alpha accent edge
-  g.rect(0, 0, w, h)
-    .stroke({ color: ROW_SELECTED_EDGE, width: 2, alpha: ROW_SELECTED_EDGE_ALPHA });
+  g.rect(halfW, 0, w - halfW, h).fill({ color: ROW_SELECTED_2, alpha: soft ? 0.30 : 0.5 });
+  // Accent edge — soft is 1px @ 0.7, full is 2px @ 1.0
+  g.rect(0, 0, w, h).stroke({
+    color: ROW_SELECTED_EDGE,
+    width: soft ? 1 : 2,
+    alpha: soft ? 0.7 : ROW_SELECTED_EDGE_ALPHA,
+  });
 }
 
 /**
  * Draw the animated outer halo (pulse) on its own Graphics. Caller is
  * expected to clear `g` and call this every frame with the current pulse
- * alpha. Layered bloom: bright cream-orange tight ring + intense orange
- * mid-halo + soft far falloff for a "molten metal" feel.
+ * alpha.
  *
- * Recommended drive (caller):
- *   const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
+ * `full`  — 4-layer molten bloom (far falloff + mid + tight ring + inner cream).
+ *           Use for the primary action surface (inventory).
+ * `soft`  — single 1px tight halo. Use for ambient/secondary menus
+ *           (pause, title preset cards, dialog buttons).
+ *
+ * Recommended drive:
+ *   full: const a = GLOW_ALPHA * (0.65 + 0.35 * sin(t·2π·1.4))
+ *   soft: const a = GLOW_ALPHA * (0.75 + 0.25 * sin(t·2π·0.8))
  */
-export function drawSelectionPulse(g: Graphics, w: number, h: number, alpha: number): void {
+export function drawSelectionPulse(
+  g: Graphics,
+  w: number,
+  h: number,
+  alpha: number,
+  intensity: SelectionIntensity = 'full',
+): void {
+  if (intensity === 'soft') {
+    // Single subtle halo — no bloom, no far reach
+    g.rect(-2, -2, w + 4, h + 4)
+      .stroke({ color: ROW_SELECTED_GLOW, width: 1, alpha: alpha * 0.55 });
+    return;
+  }
   // Far soft falloff — wide reach, low opacity
   g.rect(-7, -7, w + 14, h + 14)
     .stroke({ color: ROW_SELECTED_GLOW, width: 1, alpha: alpha * 0.30 });

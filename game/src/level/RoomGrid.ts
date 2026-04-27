@@ -218,6 +218,23 @@ function generateCriticalPath(
   gridH: number,
   rng: PRNG,
 ): { col: number; row: number }[] {
+  if (gridW === 2 && gridH === 2) {
+    const reverse = rng.next() < 0.5;
+    return reverse
+      ? [
+          { col: 1, row: 0 },
+          { col: 0, row: 0 },
+          { col: 0, row: 1 },
+          { col: 1, row: 1 },
+        ]
+      : [
+          { col: 0, row: 0 },
+          { col: 1, row: 0 },
+          { col: 1, row: 1 },
+          { col: 0, row: 1 },
+        ];
+  }
+
   const minLength = Math.ceil(gridW * gridH * MIN_PATH_RATIO);
 
   for (let attempt = 0; attempt < 10; attempt++) {
