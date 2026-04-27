@@ -421,7 +421,9 @@ export class ItemWorldScene extends Scene {
       this.egoUnlockedEvents.add(egoEntryKey(this.egoEntryCount));
     }
     if (this.isFirstNormalEntry) {
-      // Override: 1 stratum only, 2x2 grid, boss HP x0.7
+      // Override: 1 stratum, 2x2 grid, boss HP x0.7.
+      // Grid is post-processed below (after generateUnifiedGrid) to snake all
+      // 4 cells onto the critical path: (0,0) Start → (1,0) → (1,1) → (0,1) Boss.
       const first = this.strataConfig.strata[0];
       this.strataConfig = {
         strata: [{
@@ -431,7 +433,7 @@ export class ItemWorldScene extends Scene {
           bossHpMul: first.bossHpMul * 0.7,
         }],
       };
-      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid, boss HP x0.7, no enrage');
+      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid (snake start/combat/combat/boss), boss HP x0.7, no enrage');
     }
     this.rng = new PRNG(this.item.uid * 1000);
 
@@ -442,6 +444,12 @@ export class ItemWorldScene extends Scene {
 
     // Generate unified grid (all strata at once)
     this.unifiedGrid = generateUnifiedGrid(this.strataConfig.strata, this.item.uid);
+
+    // First-dive override: snake the critical path through all 4 cells of the
+    // 2x2 grid so the player sees exactly Start → Combat → Combat → Boss.
+    if (this.isFirstNormalEntry) {
+      this.applyFirstDiveSnakeLayout();
+    }
 
     // Pre-compute Memory Room placements per stratum (from CSV lookup)
     this.computeMemoryRoomPlacements();
@@ -768,6 +776,44 @@ export class ItemWorldScene extends Scene {
     return this.unifiedGrid.stratumEndRooms.some(
       e => e.col === col && e.absoluteRow === row,
     );
+  }
+
+  /**
+   * First-dive override: rewrite the 2x2 unifiedGrid so the critical path
+   * snakes through every cell as Start → Combat → Combat → Boss.
+   *
+   * Path: (0,0) → (1,0) → (1,1) → (0,1)
+   *  - (0,0) Start: right exit
+   *  - (1,0) Combat: left + down exits
+   *  - (1,1) Combat: up + left exits
+   *  - (0,1) Boss: right exit
+   */
+  private applyFirstDiveSnakeLayout(): void {
+    const g = this.unifiedGrid;
+    const c00 = g.cells[0]?.[0];
+    const c10 = g.cells[0]?.[1];
+    const c11 = g.cells[1]?.[1];
+    const c01 = g.cells[1]?.[0];
+    if (!c00 || !c10 || !c11 || !c01) {
+      console.warn('[ItemWorld] applyFirstDiveSnakeLayout: expected 2x2 grid; skipping override.');
+      return;
+    }
+
+    for (const c of [c00, c10, c11, c01]) {
+      c.onCriticalPath = true;
+      c.exits = { left: false, right: false, up: false, down: false };
+    }
+    c00.exits.right = true;
+    c10.exits.left = true;
+    c10.exits.down = true;
+    c11.exits.up = true;
+    c11.exits.left = true;
+    c01.exits.right = true;
+
+    g.startRoom = { col: 0, absoluteRow: 0 };
+    g.endRoom = { col: 0, absoluteRow: 1 };
+    g.stratumStartRooms = [{ col: 0, absoluteRow: 0, stratumIndex: 0 }];
+    g.stratumEndRooms = [{ col: 0, absoluteRow: 1, stratumIndex: 0 }];
   }
 
   /** Check if this is the final end room (deepest stratum boss) */
@@ -2014,7 +2060,14 @@ export class ItemWorldScene extends Scene {
       return exactByType[rng.nextInt(0, exactByType.length - 1)];
     }
 
-    if (desiredType === 'Boss' || desiredType === 'Start') {
+    // Role fidelity: critical-path cells (Start/Combat/Boss) MUST keep their
+    // gameplay role even when the exit pattern lacks an exact template.
+    // Falling through to exit-matching here would silently swap a Combat
+    // room for a Rest/Puzzle/Treasure layout that happens to share the exits.
+    const roleIsMandatory = desiredType === 'Boss'
+      || desiredType === 'Start'
+      || cell.onCriticalPath;
+    if (roleIsMandatory) {
       const roleTemplates = pool.filter(t => t.roomType === desiredType);
       if (roleTemplates.length > 0) {
         const rankedRoleTemplates = [...roleTemplates].sort((a, b) =>

@@ -44,12 +44,25 @@ export const FONT_BODY = 10;
 export const FONT_HINT = 8;
 
 // ---------------------------------------------------------------------------
-// Slot/selection tokens
+// Slot/selection tokens (Bloodstained-tier — see docs/ui-components.html#selection-state)
 // ---------------------------------------------------------------------------
 
 export const SLOT_BG = 0x2a2a3e;
-export const SLOT_SELECTED = 0x4a4a8a;
+export const SLOT_SELECTED = 0x6e3a1a;          // warm orange-tinted slot fill
 export const SLOT_EQUIPPED_BORDER = 0xffffff;
+
+// 4-layer row selection palette — ORANGE key color (project tone & manner)
+// Cyan was invisible against the dark navy modal background; orange reads
+// instantly and matches the brand's warm metallurgy palette. The pulse layer
+// (drawSelectionPulse) is animated by the caller each frame.
+export const ROW_SELECTED       = 0x4a2810;     // warm dark fill
+export const ROW_SELECTED_2     = 0x2a1808;     // gradient end (right side vignette)
+export const ROW_SELECTED_EDGE  = 0xff9933;     // vibrant orange border
+export const ROW_SELECTED_GLOW  = 0xff9933;     // outer halo color (intense orange)
+export const ROW_SELECTED_GLOW_INNER = 0xffcc66; // inner bloom (brighter orange)
+export const ROW_SELECTED_GLOW_ALPHA = 0.95;   // base — pulses 0.30..1.00 of base
+export const ROW_SELECTED_EDGE_ALPHA = 1.0;
+export const ROW_CHEVRON_COLOR  = 0xffd699;     // bright cream-orange chevron pop
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,6 +112,76 @@ export function createBody(text: string, color = TEXT_PRIMARY): BitmapText {
 /** Create a hint BitmapText. */
 export function createHint(text: string, color = TEXT_SECONDARY): BitmapText {
   return new BitmapText({ text, style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: color } });
+}
+
+// ---------------------------------------------------------------------------
+// Selection highlight (Bloodstained-tier focus clarity)
+// ---------------------------------------------------------------------------
+
+/**
+ * Draw the canonical row selection BASE on `g` (static, drawn once per
+ * selection change):
+ *   ① saturated fill + right-side darker overlay (gradient approximation)
+ *   ② full-alpha accent edge (2px outer stroke)
+ *
+ * The outer halo glow is drawn separately by drawSelectionPulse() each frame
+ * so it can pulse. Chevrons (▶ / ◀) are caller responsibility.
+ *
+ * Use this for every list/menu row selected state. Do not invent custom
+ * selection styles. SSoT: docs/ui-components.html#selection-state.
+ */
+export function drawSelectionRow(g: Graphics, w: number, h: number): void {
+  // Fill
+  g.rect(0, 0, w, h).fill({ color: ROW_SELECTED, alpha: 0.95 });
+  // Right-half darker overlay → gradient feel
+  const halfW = Math.floor(w * 0.5);
+  g.rect(halfW, 0, w - halfW, h).fill({ color: ROW_SELECTED_2, alpha: 0.5 });
+  // Full-alpha accent edge
+  g.rect(0, 0, w, h)
+    .stroke({ color: ROW_SELECTED_EDGE, width: 2, alpha: ROW_SELECTED_EDGE_ALPHA });
+}
+
+/**
+ * Draw the animated outer halo (pulse) on its own Graphics. Caller is
+ * expected to clear `g` and call this every frame with the current pulse
+ * alpha. Layered bloom: bright cream-orange tight ring + intense orange
+ * mid-halo + soft far falloff for a "molten metal" feel.
+ *
+ * Recommended drive (caller):
+ *   const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
+ */
+export function drawSelectionPulse(g: Graphics, w: number, h: number, alpha: number): void {
+  // Far soft falloff — wide reach, low opacity
+  g.rect(-7, -7, w + 14, h + 14)
+    .stroke({ color: ROW_SELECTED_GLOW, width: 1, alpha: alpha * 0.30 });
+  // Mid halo — intense orange
+  g.rect(-4, -4, w + 8, h + 8)
+    .stroke({ color: ROW_SELECTED_GLOW, width: 2, alpha: alpha * 0.65 });
+  // Tight bright ring against the edge
+  g.rect(-2, -2, w + 4, h + 4)
+    .stroke({ color: ROW_SELECTED_GLOW, width: 2, alpha: Math.min(1, alpha) });
+  // Inner cream-orange bloom hugging the edge — gives the "hot" highlight
+  g.rect(-1, -1, w + 2, h + 2)
+    .stroke({ color: ROW_SELECTED_GLOW_INNER, width: 1, alpha: Math.min(1, alpha * 0.85) });
+}
+
+/**
+ * Create the symmetric ▶ ◀ chevron pair as BitmapText nodes positioned at
+ * (leftX, y) and (rightX, y). The caller adds them to its container and is
+ * responsible for vertical centering against the row baseline.
+ */
+export function createSelectionChevrons(
+  leftX: number,
+  rightX: number,
+  y: number,
+  fontSize = 10,
+): { left: BitmapText; right: BitmapText } {
+  const style = { fontFamily: PIXEL_FONT, fontSize, fill: ROW_CHEVRON_COLOR };
+  const left = new BitmapText({ text: '\u25B6', style });   // ▶
+  left.x = leftX;  left.y = y;
+  const right = new BitmapText({ text: '\u25C0', style });  // ◀
+  right.x = rightX; right.y = y;
+  return { left, right };
 }
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,9 @@ export enum GameAction {
   DEBUG_UI_TOGGLE = 'DEBUG_UI_TOGGLE',
 }
 
-const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
+// ── Preset definitions ────────────────────────────────────────────────────────
+
+const PRESET_CLASSIC: Record<GameAction, string[]> = {
   [GameAction.MOVE_LEFT]: ['ArrowLeft'],
   [GameAction.MOVE_RIGHT]: ['ArrowRight'],
   [GameAction.LOOK_UP]: ['ArrowUp'],
@@ -34,15 +36,65 @@ const DEFAULT_BINDINGS: Record<GameAction, string[]> = {
   [GameAction.DEBUG_UI_TOGGLE]: ['KeyU'],
 };
 
-const GAME_KEYS = new Set(
-  Object.values(DEFAULT_BINDINGS).flat()
-);
+const PRESET_MODERN: Record<GameAction, string[]> = {
+  ...PRESET_CLASSIC,
+  [GameAction.JUMP]: ['Space'],
+  [GameAction.DASH]: ['ShiftLeft', 'ShiftRight'],
+  [GameAction.ATTACK]: ['KeyZ'],
+};
+
+const PRESET_WASD: Record<GameAction, string[]> = {
+  ...PRESET_CLASSIC,
+  [GameAction.MOVE_LEFT]: ['KeyA'],
+  [GameAction.MOVE_RIGHT]: ['KeyD'],
+  [GameAction.LOOK_UP]: ['KeyW'],
+  [GameAction.LOOK_DOWN]: ['KeyS'],
+  [GameAction.JUMP]: ['Space'],
+  [GameAction.DASH]: ['ShiftLeft', 'ShiftRight'],
+  [GameAction.ATTACK]: ['KeyJ'],
+  [GameAction.FLASK]: ['KeyK'],
+};
+
+export const PRESETS: Record<string, Record<GameAction, string[]>> = {
+  classic: PRESET_CLASSIC,
+  modern: PRESET_MODERN,
+  wasd: PRESET_WASD,
+};
+
+export const PRESET_NAMES = ['classic', 'modern', 'wasd'] as const;
+export type PresetName = typeof PRESET_NAMES[number];
+
+export interface PresetInfo {
+  name: PresetName;
+  label: string;
+  move: string;
+  jump: string;
+  dash: string;
+  attack: string;
+}
+
+export const PRESET_INFOS: PresetInfo[] = [
+  { name: 'classic', label: 'CLASSIC', move: 'Arrow', jump: 'Z', dash: 'X', attack: 'C' },
+  { name: 'modern', label: 'MODERN', move: 'Arrow', jump: 'Space', dash: 'Shift', attack: 'Z' },
+  { name: 'wasd', label: 'WASD', move: 'WASD', jump: 'Space', dash: 'Shift', attack: 'J' },
+];
+
+const DEFAULT_BINDINGS = PRESET_CLASSIC;
+const STORAGE_KEY = 'echoris-keybindings';
+
+// ── GAME_KEYS set (rebuilt on preset change) ──────────────────────────────────
+
+let GAME_KEYS = new Set(Object.values(DEFAULT_BINDINGS).flat());
 
 // Fallback: map key characters to e.code for IME situations where e.code is empty
-const KEY_CHAR_TO_CODE = new Map<string, string>();
-for (const codes of Object.values(DEFAULT_BINDINGS)) {
-  for (const code of codes) {
-    if (code.startsWith('Key')) KEY_CHAR_TO_CODE.set(code.slice(3).toLowerCase(), code);
+let KEY_CHAR_TO_CODE = new Map<string, string>();
+function rebuildKeyMaps(bindings: Record<GameAction, string[]>): void {
+  GAME_KEYS = new Set(Object.values(bindings).flat());
+  KEY_CHAR_TO_CODE = new Map();
+  for (const codes of Object.values(bindings)) {
+    for (const code of codes) {
+      if (code.startsWith('Key')) KEY_CHAR_TO_CODE.set(code.slice(3).toLowerCase(), code);
+    }
   }
 }
 
@@ -57,8 +109,19 @@ export class InputManager {
   /** True while Shift is held. Used for debug key combos (Shift+O, Shift+P). */
   shiftDown = false;
 
+  /** Currently active preset name */
+  currentPreset: PresetName = 'classic';
+
   constructor() {
-    this.bindings = { ...DEFAULT_BINDINGS };
+    // Load saved preset or use default
+    const saved = this.loadSaved();
+    if (saved) {
+      this.currentPreset = saved.preset;
+      this.bindings = saved.bindings;
+    } else {
+      this.bindings = { ...DEFAULT_BINDINGS };
+    }
+    rebuildKeyMaps(this.bindings);
 
     // Use capture phase + highest priority to beat IME interception
     window.addEventListener('keydown', (e) => this.onKeyDown(e), true);
@@ -71,6 +134,62 @@ export class InputManager {
     // Prevent IME from stealing game keys by intercepting at the document level.
     this.setupIMEBlock();
   }
+
+  // ── Preset management ───────────────────────────────────────────────────────
+
+  applyPreset(name: PresetName): void {
+    const preset = PRESETS[name];
+    if (!preset) return;
+    this.currentPreset = name;
+    this.bindings = structuredClone(preset);
+    rebuildKeyMaps(this.bindings);
+    this.save();
+  }
+
+  /** Get display string for a key (e.g. 'KeyZ' → 'Z', 'Space' → 'Space', 'ArrowLeft' → '←') */
+  getKeyDisplay(action: GameAction): string {
+    const keys = this.bindings[action];
+    if (!keys?.length) return '?';
+    const code = keys[0];
+    if (code.startsWith('Key')) return code.slice(3);
+    if (code.startsWith('Arrow')) {
+      const dir = code.slice(5);
+      return { Left: '←', Right: '→', Up: '↑', Down: '↓' }[dir] ?? dir;
+    }
+    if (code === 'Space') return 'Space';
+    if (code === 'ShiftLeft' || code === 'ShiftRight') return 'Shift';
+    if (code === 'Escape') return 'ESC';
+    if (code === 'Tab') return 'Tab';
+    return code;
+  }
+
+  /** Check if a saved preset exists (used by TitleScene to skip preset selection) */
+  hasSavedPreset(): boolean {
+    return !!localStorage.getItem(STORAGE_KEY);
+  }
+
+  private save(): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      preset: this.currentPreset,
+      bindings: this.bindings,
+    }));
+  }
+
+  private loadSaved(): { preset: PresetName; bindings: Record<GameAction, string[]> } | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data.preset || !data.bindings) return null;
+      // Validate preset name
+      if (!PRESET_NAMES.includes(data.preset)) return null;
+      return { preset: data.preset, bindings: data.bindings };
+    } catch {
+      return null;
+    }
+  }
+
+  // ── IME block ───────────────────────────────────────────────────────────────
 
   /**
    * Prevent IME composition from interfering with game keys.
@@ -99,6 +218,8 @@ export class InputManager {
     // Re-focus when window regains focus
     window.addEventListener('focus', refocus);
   }
+
+  // ── Key event handling ──────────────────────────────────────────────────────
 
   private onKeyDown(e: KeyboardEvent): void {
     // Never intercept browser shortcuts (Ctrl/Meta combos like Ctrl+R, Ctrl+Shift+R)
@@ -201,5 +322,12 @@ export class InputManager {
     return keys.some(
       (k) => this.keyState.get(k) !== true && this.prevKeyState.get(k) === true
     );
+  }
+
+  /** Check if a raw key code was just pressed (for preset selection before bindings are set) */
+  isRawKeyJustPressed(code: string): boolean {
+    return this.keyState.get(code) === true
+      && this.prevKeyState.get(code) !== true
+      && !this.consumed.has(code);
   }
 }

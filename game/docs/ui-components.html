@@ -41,12 +41,17 @@
 
     /* Slot/selection (LEGACY grid — kept for non-inventory uses) */
     --slot-bg:        #2a2a3e;
-    --slot-selected:  #4a4a8a;
+    --slot-selected:  #6e3a1a;            /* warm orange-tinted slot fill */
     --slot-equipped-border: #ffffff;
 
-    /* List row (NEW — inventory list layout) */
+    /* List row — ORANGE key color (Bloodstained-tier base + animated halo) */
     --row-bg:         transparent;
-    --row-selected:   #2a3a5e;
+    --row-selected:   #4a2810;            /* warm dark fill */
+    --row-selected-2: #2a1808;            /* gradient end (subtle vignette) */
+    --row-selected-edge: rgba(255,153,51,1.0); /* full-alpha vibrant orange border */
+    --row-selected-glow: rgba(255,153,51,0.95); /* outer halo (pulses, intense) */
+    --row-selected-glow-inner: rgba(255,204,102,0.85); /* inner cream-orange bloom */
+    --row-chevron:    #ffd699;            /* bright cream-orange chevron pop */
     --row-equipped-bg:#2a1a10;
     --row-equipped-bar:#ff8c00;
     --row-dive:       #00ced1;
@@ -163,7 +168,13 @@
     display:inline-flex;align-items:center;justify-content:center;
     color:var(--text-secondary);font-size:9px;font-family:ui-monospace,monospace;
   }
-  .slot.selected{background:var(--slot-selected);outline:1px solid var(--text-accent)}
+  .slot.selected{
+    background:var(--slot-selected);
+    outline:2px solid var(--text-accent);outline-offset:-2px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.18),
+      0 0 10px var(--row-selected-glow);
+  }
   .slot.equipped{border:2px solid var(--slot-equipped-border)}
   .slot[data-r="normal"]   { box-shadow: inset 0 0 0 2px var(--r-normal) }
   .slot[data-r="magic"]    { box-shadow: inset 0 0 0 2px var(--r-magic) }
@@ -215,13 +226,64 @@
     display:flex;align-items:center;gap:6px;
     padding:5px 8px;border-bottom:1px solid #1f1f30;
     background:var(--row-bg);font-size:10px;
-    cursor:default;transition:background 0.1s;
+    cursor:default;transition:background 0.1s, box-shadow 0.1s;
+    position:relative;                /* chevron anchor */
   }
   .inv-row:last-child{border-bottom:none}
-  .inv-row.selected{background:var(--row-selected);outline:2px solid rgba(255,255,255,0.35);outline-offset:-2px}
-  .inv-row.selected .row-cursor{opacity:1;color:var(--text-accent)}
-  .inv-row.selected .row-name{color:#fff !important;text-shadow:0 0 6px rgba(0,206,209,0.4)}
+
+  /* ── Bloodstained-tier selection ─────────────────────────────
+     - Saturated background gradient (left → right vignette)
+     - Full-alpha accent outline + outer halo glow
+     - Symmetric chevrons (▶ left / ◀ right) in pure accent
+     - Subtle 1.5s pulse on the halo so the focus is unmistakable
+  */
+  .inv-row.selected{
+    background:linear-gradient(90deg,var(--row-selected) 0%,var(--row-selected-2) 100%);
+    outline:2px solid var(--row-selected-edge);outline-offset:-2px;
+    box-shadow:
+      inset 0 0 0 1px var(--row-selected-glow-inner),
+      0 0 8px var(--row-selected-glow-inner),
+      0 0 22px var(--row-selected-glow),
+      0 0 36px rgba(255,153,51,0.45);
+    animation:row-pulse 1.4s ease-in-out infinite;
+  }
+  .inv-row.selected::after{
+    content:'\25C0';                  /* ◀ right-side mirror chevron */
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    color:var(--row-chevron);font-size:11px;font-weight:700;
+    text-shadow:0 0 6px rgba(255,153,51,0.9);
+    pointer-events:none;
+  }
+  .inv-row.selected .row-cursor{
+    opacity:1;color:var(--row-chevron);font-size:11px;
+    text-shadow:0 0 6px rgba(255,153,51,0.9);
+  }
+  .inv-row.selected .row-name{
+    color:#fff !important;
+    text-shadow:0 0 6px rgba(255,153,51,0.6);
+  }
+  @keyframes row-pulse{
+    0%,100%{box-shadow:
+      inset 0 0 0 1px rgba(255,204,102,0.55),
+      0 0 6px rgba(255,204,102,0.55),
+      0 0 16px rgba(255,153,51,0.55),
+      0 0 28px rgba(255,153,51,0.30)}
+    50%   {box-shadow:
+      inset 0 0 0 1px rgba(255,204,102,0.95),
+      0 0 12px rgba(255,204,102,0.90),
+      0 0 28px rgba(255,153,51,0.95),
+      0 0 48px rgba(255,153,51,0.55)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .inv-row.selected{animation:none}
+  }
   .inv-row.equipped{background:var(--row-equipped-bg);border-left:3px solid var(--row-equipped-bar)}
+  .inv-row.equipped.selected{
+    /* Selected + equipped — selection palette wins (both are warm).
+       The [E] badge keeps the equipped state legible. */
+    background:linear-gradient(90deg,var(--row-selected) 0%,var(--row-selected-2) 100%);
+    border-left:none;
+  }
   .inv-row .row-cursor{width:10px;color:#fff;font-weight:700;font-size:10px;opacity:0;flex:none}
   .inv-row .row-icon{width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
   .inv-row .row-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px;flex:none}
@@ -244,6 +306,7 @@
     <div class="group">Foundation</div>
     <a href="#tokens">Design Tokens</a>
     <a href="#typography">Typography</a>
+    <a href="#selection-state">Selection State</a>
 
     <div class="group">Atoms</div>
     <a href="#text">Text</a>
@@ -268,6 +331,8 @@
     <a href="#lore-display">LoreDisplay</a>
     <a href="#dive-preview">DivePreview</a>
     <a href="#controls-overlay">ControlsOverlay</a>
+    <a href="#title-screen">TitleScreen</a>
+    <a href="#key-config">KeyConfig (remap)</a>
     <a href="#world-map">WorldMapOverlay</a>
     <a href="#death-screen">DeathScreen</a>
     <a href="#return-result">ReturnResult</a>
@@ -277,7 +342,6 @@
     <a href="#damage-number">DamageNumber</a>
     <a href="#area-title">AreaTitle</a>
     <a href="#tutorial-hint">TutorialHint</a>
-    <a href="#return-hint">ReturnHint</a>
   </nav>
 </aside>
 
@@ -331,7 +395,7 @@
       <h3>Slot · Selection (legacy grid)</h3>
       <div class="token-grid">
         <div class="swatch"><div class="chip" style="background:#2a2a3e"></div><div><div class="name">SLOT_BG</div><div class="hex">#2a2a3e</div></div></div>
-        <div class="swatch"><div class="chip" style="background:#4a4a8a"></div><div><div class="name">SLOT_SELECTED</div><div class="hex">#4a4a8a</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#1f6a78"></div><div><div class="name">SLOT_SELECTED</div><div class="hex">#1f6a78 (saturated cyan)</div></div></div>
         <div class="swatch"><div class="chip" style="background:#fff"></div><div><div class="name">SLOT_EQUIPPED_BORDER</div><div class="hex">#ffffff</div></div></div>
       </div>
     </div>
@@ -340,7 +404,12 @@
       <h3>List Row (inventory list layout)</h3>
       <div class="token-grid">
         <div class="swatch"><div class="chip" style="background:#1a1a2e"></div><div><div class="name">ROW_BG</div><div class="hex">#1a1a2e</div></div></div>
-        <div class="swatch"><div class="chip" style="background:#3a3a6e"></div><div><div class="name">ROW_SELECTED</div><div class="hex">#3a3a6e (+40%)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#4a2810"></div><div><div class="name">ROW_SELECTED</div><div class="hex">#4a2810 (orange-warm 기반 fill)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#2a1808"></div><div><div class="name">ROW_SELECTED_2</div><div class="hex">#2a1808 (gradient end)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff9933"></div><div><div class="name">ROW_SELECTED_EDGE</div><div class="hex">#ff9933 · α 1.0 (vibrant border)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ff9933"></div><div><div class="name">ROW_SELECTED_GLOW</div><div class="hex">#ff9933 · α 0.95 base (intense halo · pulses 0.30..1.00)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffcc66"></div><div><div class="name">ROW_SELECTED_GLOW_INNER</div><div class="hex">#ffcc66 (cream-orange inner bloom)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ffd699"></div><div><div class="name">ROW_CHEVRON</div><div class="hex">#ffd699 (▶ ◀ accent)</div></div></div>
         <div class="swatch"><div class="chip" style="background:#2a1a10"></div><div><div class="name">ROW_EQUIPPED_BG</div><div class="hex">#2a1a10 (주황 틴트)</div></div></div>
         <div class="swatch"><div class="chip" style="background:#ff8c00"></div><div><div class="name">ROW_EQUIPPED_BAR</div><div class="hex">#ff8c00 (주황 3px)</div></div></div>
         <div class="swatch"><div class="chip" style="background:#00ced1"></div><div><div class="name">ROW_DIVE</div><div class="hex">#00ced1 (다이브 가능)</div></div></div>
@@ -374,6 +443,139 @@
       <div class="t-title">FONT_TITLE — 12px · createTitle()</div>
       <div class="t-body">FONT_BODY — 10px · createBody()</div>
       <div class="t-hint">FONT_HINT — 8px · createHint()</div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SELECTION STATE  (Bloodstained-tier focus clarity)
+       ============================================================ -->
+  <section id="selection-state">
+    <h2>Selection State <span class="pill token">FOUNDATION</span></h2>
+    <div class="src">SSoT: ROW_SELECTED / SLOT_SELECTED tokens · 모든 리스트·메뉴 컴포넌트가 이 패턴을 따른다</div>
+    <p>플레이어가 "지금 어디에 커서가 있는가" 를 한 번에 인식하지 못하면 메뉴 UI는 실패한다.
+       Bloodstained: Ritual of the Night 의 메뉴를 기준으로, 선택 상태는 다음 <b>4 레이어</b>를 동시에 적용한다.
+       어느 한 레이어도 단독으로는 충분하지 않다.</p>
+    <p style="background:var(--panel-bg);border-left:3px solid var(--row-selected-edge);padding:10px 14px;font-size:12px;line-height:1.6">
+       <b style="color:var(--row-selected-edge)">Key Color · Orange (#ff9933)</b><br>
+       청록 액센트는 다크 네이비 모달 패널에서 묻힌다. 선택 상태는 프로젝트의 워밍 톤(주황 단조 팔레트)과 일치하는
+       오렌지 키컬러로 통일한다. 장착 상태(#ff8c00 bar)와 색상이 겹칠 때는 펄스 + 챠브론 + [E] 배지로 구분한다.</p>
+
+    <div class="card">
+      <h3>4-Layer Recipe</h3>
+      <p>① <b>Saturated Fill</b> — 비선택과 채도 차이가 충분한 배경 (단색 아님, 좌→우 그라디언트로 깊이 부여)<br>
+         ② <b>Full-Alpha Edge</b> — 2px 액센트 보더, alpha 0.95+ (희미한 outline 금지)<br>
+         ③ <b>Symmetric Chevrons</b> — ▶ (좌) + ◀ (우) 양쪽에 액센트 색상 표시<br>
+         ④ <b>Outer Halo + Pulse</b> — 외부 box-shadow 글로우 + 1.6s 펄스 애니메이션 (정적 UI에서도 살아있는 느낌)</p>
+
+      <div class="stage col">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:4px">SELECTED — 4-layer 적용</div>
+        <div class="inv-list" style="width:340px;background:var(--panel-bg);border:1px solid var(--line)">
+          <div class="inv-row">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name" style="color:var(--r-normal)">Iron Sword</span>
+            <span class="row-stat">ATK 12</span>
+          </div>
+          <div class="inv-row selected">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name">Steel Blade</span>
+            <span class="row-stat">ATK 28</span>
+          </div>
+          <div class="inv-row">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name" style="color:var(--r-magic)">Frost Edge</span>
+            <span class="row-stat">ATK 34</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Anti-Pattern (이전 버전, 사용 금지)</h3>
+      <p>다음 예시는 <b>실제 플레이테스트에서 "선택이 명확하지 않다"</b> 피드백을 받은 구버전이다.
+         단일 outline 35% alpha + ▶ 1개로는 화면 활동량이 많을 때 묻혀버린다.</p>
+      <div class="stage col">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:4px">DEPRECATED — 단일 outline 35% alpha</div>
+        <div class="inv-list" style="width:340px;background:var(--panel-bg);border:1px solid var(--line)">
+          <div class="inv-row">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name" style="color:var(--r-normal)">Iron Sword</span>
+            <span class="row-stat">ATK 12</span>
+          </div>
+          <div class="inv-row" style="background:#2a3a5e;outline:2px solid rgba(255,255,255,0.35);outline-offset:-2px;animation:none">
+            <span class="row-cursor" style="opacity:1">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name" style="color:#fff">Steel Blade</span>
+            <span class="row-stat">ATK 28</span>
+          </div>
+          <div class="inv-row">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name" style="color:var(--r-magic)">Frost Edge</span>
+            <span class="row-stat">ATK 34</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>State Combinatorics</h3>
+      <p>Selected는 모든 다른 상태(Equipped, On Anvil, Locked, Cleared)와 동시에 표현 가능해야 한다.
+         배경/보더는 selection 이 잡고, 다른 상태는 좌측 바·우측 뱃지·텍스트 색으로 분리한다.</p>
+      <div class="stage col">
+        <div class="inv-list" style="width:380px;background:var(--panel-bg);border:1px solid var(--line)">
+          <div class="inv-row equipped selected">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name">Selected + Equipped</span>
+            <span class="row-stat">ATK 28</span>
+            <span class="row-badge eq">E</span>
+          </div>
+          <div class="inv-row selected">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name">Selected + Dive Ready</span>
+            <span class="row-stat">ATK 34</span>
+            <span class="row-badge dive">DIVE</span>
+          </div>
+          <div class="inv-row selected">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name">Selected + Cleared</span>
+            <span class="row-stat">ATK 41</span>
+            <span class="row-badge clr">CLR</span>
+          </div>
+          <div class="inv-row selected">
+            <span class="row-cursor">▶</span>
+            <span class="row-icon">⚔</span>
+            <span class="row-name">Selected + Locked</span>
+            <span class="row-stat">ATK 12</span>
+            <span class="row-badge lock">🔒</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Slot Variant (Grid 레이아웃)</h3>
+      <p>그리드 슬롯에서도 동일한 4-layer 원칙을 적용 (chevron은 대신 inset 글로우로 대체).</p>
+      <div class="stage">
+        <div class="slot">A</div>
+        <div class="slot selected">B</div>
+        <div class="slot">C</div>
+        <div class="slot">D</div>
+      </div>
+    </div>
+
+    <div class="rules" style="margin-top:14px;padding:12px 14px;background:var(--panel-bg);border-left:3px solid var(--text-accent);font-size:11px;line-height:1.6">
+      <b style="color:var(--text-accent)">구현 체크리스트</b><br>
+      ☐ 새 리스트/메뉴를 추가할 때 <code>.inv-row.selected</code> 또는 <code>.slot.selected</code> 패턴을 그대로 사용<br>
+      ☐ 자체 selection 스타일을 정의하지 말 것 (토큰 분기 금지)<br>
+      ☐ 펄스 애니메이션은 <code>prefers-reduced-motion</code> 시 비활성화 (접근성)<br>
+      ☐ Selected + 다른 상태 조합을 항상 시각적으로 검증
     </div>
   </section>
 
@@ -479,10 +681,13 @@
   <section id="key-prompt">
     <h2>KeyPrompt (context) <span class="pill molecule">MOLECULE</span></h2>
     <div class="src">KeyPrompt.ts · KeyPrompt.createPrompt(key, action, scale)</div>
-    <p>월드 오브젝트 위에 떠 있는 상호작용 안내. <b>[KEY] LABEL</b> 형식. anvil/portal/altar 등 모든 prompt가 이걸 사용한다.</p>
+    <p>월드 오브젝트 위에 떠 있는 상호작용 안내. <b>[KEY] LABEL</b> 형식.
+       anvil / portal / altar / 아이템계 복귀 포털 등 모든 prompt가 이 컴포넌트를 사용한다.
+       (구 ReturnHint 통합)</p>
     <div class="stage">
       <div class="ctx-prompt"><span class="key-icon s14">C</span> Place Weapon</div>
       <div class="ctx-prompt"><span class="key-icon s14">↑</span> Enter</div>
+      <div class="ctx-prompt"><span class="key-icon s14">ESC</span> Return to Surface</div>
       <div class="ctx-prompt"><span class="key-icon s14">Z</span> Save</div>
     </div>
   </section>
@@ -980,6 +1185,304 @@
     </div>
   </section>
 
+  <section id="title-screen">
+    <h2>TitleScreen <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">TitleScene.ts</div>
+    <p>게임 시작 전 어두운 화면. 로고 → 컨트롤 프리셋 선택 → fade-out → 게임 시작.<br>
+       <b>규칙:</b> 이 화면은 게임의 첫인상이다. 최소한의 요소만 표시. 배경은 순수 검정.</p>
+
+    <!-- ── 전체 플로우 ── -->
+    <div class="card">
+      <h3>플로우 (3단계)</h3>
+      <div class="desc">
+        ① 로고 페이드인 (1초) → ② 프리셋 선택 → ③ fade-out (0.5초) → 게임 시작
+      </div>
+      <div class="stage col" style="gap:18px;width:100%">
+
+        <!-- Step 1: 로고 -->
+        <div>
+          <div class="meta">Step 1 — Logo (1초 페이드인)</div>
+          <div style="background:#000;padding:40px 20px;text-align:center;border:1px solid var(--line);width:100%">
+            <div style="font-family:var(--font-title-display);font-size:28px;letter-spacing:8px;color:#fff;opacity:0.95">ECHORIS</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:8px;letter-spacing:3px">A WORLD INSIDE EVERY BLADE</div>
+          </div>
+        </div>
+
+        <!-- Step 2: 컨트롤 프리셋 -->
+        <div>
+          <div class="meta">Step 2 — Control Preset (로고 아래에 나타남)</div>
+          <div style="background:#000;padding:30px 20px;text-align:center;border:1px solid var(--line);width:100%">
+            <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:6px;color:#fff;opacity:0.85;margin-bottom:20px">ECHORIS</div>
+            <div style="font-size:8px;color:var(--muted);margin-bottom:16px;letter-spacing:2px">SELECT CONTROLS</div>
+
+            <!-- 프리셋 3종 (가로 배치) -->
+            <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
+
+              <!-- Classic (선택됨) -->
+              <div style="width:130px;padding:10px 8px;background:var(--row-selected);outline:2px solid rgba(255,255,255,0.35);outline-offset:-2px;border-radius:2px;text-align:center">
+                <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:1px;margin-bottom:6px">CLASSIC</div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
+                  <span class="key-icon" style="width:18px;height:14px;font-size:7px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">←→</span><span style="color:var(--text-secondary)">Move</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">Z</span><span style="color:var(--text-secondary)">Jump</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">X</span><span style="color:var(--text-secondary)">Dash</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">C</span><span style="color:var(--text-secondary)">Attack</span>
+                </div>
+                <div style="margin-top:6px"><span class="row-badge eq" style="font-size:7px">▶ SELECTED</span></div>
+              </div>
+
+              <!-- Modern -->
+              <div style="width:130px;padding:10px 8px;border:1px solid #2a2a3e;border-radius:2px;text-align:center">
+                <div style="font-size:11px;color:var(--text-secondary);font-weight:700;letter-spacing:1px;margin-bottom:6px">MODERN</div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
+                  <span class="key-icon" style="width:18px;height:14px;font-size:7px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">←→</span><span style="color:#666">Move</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SPC</span><span style="color:#666">Jump</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SHF</span><span style="color:#666">Dash</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">Z</span><span style="color:#666">Attack</span>
+                </div>
+              </div>
+
+              <!-- WASD -->
+              <div style="width:130px;padding:10px 8px;border:1px solid #2a2a3e;border-radius:2px;text-align:center">
+                <div style="font-size:11px;color:var(--text-secondary);font-weight:700;letter-spacing:1px;margin-bottom:6px">WASD</div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
+                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">AD</span><span style="color:#666">Move</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SPC</span><span style="color:#666">Jump</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SHF</span><span style="color:#666">Dash</span>
+                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">J</span><span style="color:#666">Attack</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size:8px;color:var(--muted)">[←→] Select&nbsp;&nbsp;&nbsp;[C] or [Enter] Confirm</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Fade-out -->
+        <div>
+          <div class="meta">Step 3 — Fade-out (0.5초) → 게임 시작</div>
+          <div style="background:#000;padding:40px 20px;text-align:center;border:1px solid var(--line);width:100%;position:relative;overflow:hidden">
+            <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:6px;color:#fff;opacity:0.15">ECHORIS</div>
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,1))"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 타이밍 사양 ── -->
+    <div class="card">
+      <h3>타이밍 사양</h3>
+      <div class="stage col" style="gap:4px">
+        <div class="t-body"><span style="color:var(--text-secondary)">Logo fade-in:</span>&nbsp;&nbsp;1000ms ease-out</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Subtitle appear:</span>&nbsp;&nbsp;1500ms (로고 후 500ms 딜레이)</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Preset cards appear:</span>&nbsp;&nbsp;2000ms (자막 후 500ms 딜레이)</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Confirm → fade-out:</span>&nbsp;&nbsp;500ms ease-in (검정으로)</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Fade-out → game start:</span>&nbsp;&nbsp;즉시 (씬 전환)</div>
+      </div>
+    </div>
+
+    <!-- ── 설계 규칙 ── -->
+    <div class="card">
+      <h3>설계 규칙</h3>
+      <div class="stage col" style="gap:6px">
+        <div class="t-body">① <b>배경 순수 검정:</b> 게임 아트 미로드 상태. 타이틀만으로 분위기 전달</div>
+        <div class="t-body">② <b>최소 요소:</b> 로고 + 자막 + 프리셋 카드 3개 + 하단 힌트. 그 외 없음</div>
+        <div class="t-body">③ <b>기존 세이브 존재 시:</b> 프리셋 선택 스킵 (저장된 바인딩 자동 로드) → 바로 게임 시작</div>
+        <div class="t-body">④ <b>입력:</b> ←→ 또는 A/D로 프리셋 탐색 + C 또는 Enter로 확인 (아직 어떤 키가 확인인지 모르므로 Enter도 허용)</div>
+        <div class="t-body">⑤ <b>재접근:</b> Pause > Options > Controls에서 언제든 변경 가능</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="key-config">
+    <h2>KeyConfig (remap) <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">KeyConfig.ts · InputManager.ts</div>
+    <p>Pause 메뉴 / 타이틀 Options 에서 진입. <b>Phase 1:</b> 프리셋 3종 선택. <b>Phase 2:</b> 개별 액션 리매핑.<br>
+       접근 위치: Title > Options > Controls / Pause > Options > Controls</p>
+
+    <!-- ── 프리셋 선택 (Phase 1) ── -->
+    <div class="card">
+      <h3>Preset Selection (Phase 1)</h3>
+      <div class="desc">프리셋 3종 중 하나를 선택. 선택 즉시 적용 + localStorage 저장. 모든 프롬프트가 동적 반영.</div>
+      <div class="stage center">
+        <div class="modal-panel" style="width:100%;max-width:480px">
+          <div class="t-title">CONTROLS</div>
+          <div class="divider"></div>
+
+          <div class="t-hint" style="margin-bottom:8px;color:var(--muted)">SELECT PRESET</div>
+
+          <!-- Preset Classic -->
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--row-selected);outline:2px solid rgba(255,255,255,0.35);outline-offset:-2px;margin-bottom:4px;border-radius:2px">
+            <span style="color:var(--text-accent);font-size:12px;width:14px">▶</span>
+            <div style="flex:1">
+              <div class="t-body" style="color:#fff;font-weight:700">CLASSIC</div>
+              <div class="t-hint">Arrow=Move  Z=Jump  X=Dash  C=Attack</div>
+            </div>
+            <span class="row-badge eq" style="font-size:8px">ACTIVE</span>
+          </div>
+
+          <!-- Preset Modern -->
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;border-radius:2px">
+            <span style="width:14px">&nbsp;</span>
+            <div style="flex:1">
+              <div class="t-body" style="color:var(--text-secondary)">MODERN</div>
+              <div class="t-hint">Arrow=Move  Space=Jump  Shift=Dash  Z=Attack</div>
+            </div>
+          </div>
+
+          <!-- Preset WASD -->
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:4px;border-radius:2px">
+            <span style="width:14px">&nbsp;</span>
+            <div style="flex:1">
+              <div class="t-body" style="color:var(--text-secondary)">WASD</div>
+              <div class="t-hint">WASD=Move  Space=Jump  Shift=Dash  J=Attack</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <div class="t-hint">[↑↓] Navigate&nbsp;&nbsp;[C] Apply&nbsp;&nbsp;[ESC] Back</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 풀 리매핑 (Phase 2) ── -->
+    <div class="card">
+      <h3>Full Remapping (Phase 2)</h3>
+      <div class="desc">각 액션을 개별 키로 리매핑. 액션 선택 → "Press a key" 모달 → 키 입력 → 적용. 충돌 시 경고.</div>
+      <div class="stage center">
+        <div class="modal-panel" style="width:100%;max-width:480px">
+          <div class="t-title">CONTROLS — CUSTOM</div>
+          <div class="divider"></div>
+
+          <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;align-items:center">
+            <!-- Header -->
+            <div class="t-hint" style="color:var(--muted)">ACTION</div>
+            <div class="t-hint" style="color:var(--muted)">PRIMARY</div>
+            <div class="t-hint" style="color:var(--muted)">ALT</div>
+
+            <!-- Move Left -->
+            <div class="t-body" style="color:var(--text-secondary)">Move Left</div>
+            <div class="key-icon s14">←</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Move Right -->
+            <div class="t-body" style="color:var(--text-secondary)">Move Right</div>
+            <div class="key-icon s14">→</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Jump (selected for remap) -->
+            <div class="t-body" style="color:#fff;font-weight:700">Jump</div>
+            <div class="key-icon s14" style="outline:2px solid var(--text-accent);outline-offset:2px">Z</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Dash -->
+            <div class="t-body" style="color:var(--text-secondary)">Dash</div>
+            <div class="key-icon s14">X</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Attack -->
+            <div class="t-body" style="color:var(--text-secondary)">Attack</div>
+            <div class="key-icon s14">C</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Flask -->
+            <div class="t-body" style="color:var(--text-secondary)">Flask</div>
+            <div class="key-icon s14">R</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Inventory -->
+            <div class="t-body" style="color:var(--text-secondary)">Inventory</div>
+            <div class="key-icon s14">I</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+
+            <!-- Map -->
+            <div class="t-body" style="color:var(--text-secondary)">Map</div>
+            <div class="key-icon s14">M</div>
+            <div class="t-hint" style="color:var(--muted)">—</div>
+          </div>
+
+          <div class="divider" style="margin-top:8px"></div>
+          <div class="t-hint">[↑↓] Navigate&nbsp;&nbsp;[C] Rebind&nbsp;&nbsp;[ESC] Back&nbsp;&nbsp;[R] Reset</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── "Press a key" 모달 ── -->
+    <div class="card">
+      <h3>"Press a key" Modal</h3>
+      <div class="desc">풀 리매핑에서 액션 선택 후 키 입력 대기 상태. ESC로 취소. 충돌 시 경고 표시.</div>
+      <div class="grid-2">
+        <div>
+          <div class="meta">대기 상태</div>
+          <div class="stage center" style="background:#000">
+            <div class="modal-panel" style="max-width:280px;text-align:center">
+              <div class="t-title">JUMP</div>
+              <div class="divider"></div>
+              <div class="t-body" style="color:var(--text-accent);margin:12px 0">Press a key...</div>
+              <div class="t-hint">[ESC] Cancel</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="meta">충돌 경고</div>
+          <div class="stage center" style="background:#000">
+            <div class="modal-panel" style="max-width:280px;text-align:center;border-color:var(--text-warning)">
+              <div class="t-title">JUMP</div>
+              <div class="divider"></div>
+              <div style="margin:8px 0">
+                <div class="key-icon s28">C</div>
+              </div>
+              <div class="t-body" style="color:var(--text-warning);margin:4px 0">⚠ Also used by: Attack</div>
+              <div class="divider"></div>
+              <div class="t-hint">[C] Confirm anyway&nbsp;&nbsp;[ESC] Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 프리셋 비교표 ── -->
+    <div class="card">
+      <h3>Preset Comparison</h3>
+      <div class="desc">3종 프리셋의 전체 키 매핑 비교.</div>
+      <div class="stage">
+        <table style="border-collapse:collapse;font-size:10px;width:100%;max-width:440px;color:var(--text-secondary)">
+          <thead>
+            <tr style="border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:4px 8px;color:var(--text-primary)">Action</th>
+              <th style="text-align:center;padding:4px 8px;color:var(--text-accent)">Classic</th>
+              <th style="text-align:center;padding:4px 8px;color:var(--text-accent)">Modern</th>
+              <th style="text-align:center;padding:4px 8px;color:var(--text-accent)">WASD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:3px 8px">Move</td><td style="text-align:center">Arrow</td><td style="text-align:center">Arrow</td><td style="text-align:center">WASD</td></tr>
+            <tr style="background:rgba(255,255,255,0.03)"><td style="padding:3px 8px">Jump</td><td style="text-align:center"><span class="key-icon s14">Z</span></td><td style="text-align:center"><span class="key-icon s14" style="width:40px">Space</span></td><td style="text-align:center"><span class="key-icon s14" style="width:40px">Space</span></td></tr>
+            <tr><td style="padding:3px 8px">Dash</td><td style="text-align:center"><span class="key-icon s14">X</span></td><td style="text-align:center"><span class="key-icon s14" style="width:34px">Shift</span></td><td style="text-align:center"><span class="key-icon s14" style="width:34px">Shift</span></td></tr>
+            <tr style="background:rgba(255,255,255,0.03)"><td style="padding:3px 8px">Attack</td><td style="text-align:center"><span class="key-icon s14">C</span></td><td style="text-align:center"><span class="key-icon s14">Z</span></td><td style="text-align:center"><span class="key-icon s14">J</span></td></tr>
+            <tr><td style="padding:3px 8px">Flask</td><td style="text-align:center"><span class="key-icon s14">R</span></td><td style="text-align:center"><span class="key-icon s14">R</span></td><td style="text-align:center"><span class="key-icon s14">K</span></td></tr>
+            <tr style="background:rgba(255,255,255,0.03)"><td style="padding:3px 8px">Inventory</td><td style="text-align:center"><span class="key-icon s14">I</span></td><td style="text-align:center"><span class="key-icon s14">I</span></td><td style="text-align:center"><span class="key-icon s14">I</span></td></tr>
+            <tr><td style="padding:3px 8px">Map</td><td style="text-align:center"><span class="key-icon s14">M</span></td><td style="text-align:center"><span class="key-icon s14">M</span></td><td style="text-align:center"><span class="key-icon s14">M</span></td></tr>
+            <tr style="background:rgba(255,255,255,0.03)"><td style="padding:3px 8px">Menu</td><td style="text-align:center" colspan="3"><span class="key-icon s14" style="width:28px">ESC</span> (고정, 리매핑 불가)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 설계 규칙 ── -->
+    <div class="card">
+      <h3>설계 규칙</h3>
+      <div class="stage col" style="gap:6px">
+        <div class="t-body">① <b>프리셋 우선:</b> Phase 1은 프리셋 3종. 풀 리매핑은 Phase 2</div>
+        <div class="t-body">② <b>ESC 고정:</b> Menu/Cancel 키는 리매핑 대상 제외 (업계 관례)</div>
+        <div class="t-body">③ <b>프롬프트 동적 반영:</b> 키 변경 시 HUD/TutorialHint/KeyPrompt가 새 키를 표시</div>
+        <div class="t-body">④ <b>localStorage 저장:</b> <code>echoris-keybindings</code> 키. 브라우저 초기화 시 기본값 복원</div>
+        <div class="t-body">⑤ <b>충돌 허용:</b> 같은 키 2개 액션에 할당 시 경고만. 강제 금지 안 함 (Celeste 방식)</div>
+        <div class="t-body">⑥ <b>웹 제약:</b> F5/F11/F12/Ctrl+*/Alt+* 는 리매핑 대상 제외 (브라우저 예약)</div>
+      </div>
+    </div>
+  </section>
+
   <section id="world-map">
     <h2>WorldMapOverlay <span class="pill organism">ORGANISM</span></h2>
     <div class="src">WorldMapOverlay.ts</div>
@@ -1071,15 +1574,6 @@
     <p>첫 등장 메커닉 안내. KeyPrompt + 짧은 라벨. 한 번 본 hint는 sacredSave 가 기억.</p>
     <div class="stage">
       <div class="ctx-prompt"><span class="key-icon s14">X</span> Hold to dash</div>
-    </div>
-  </section>
-
-  <section id="return-hint">
-    <h2>ReturnHint <span class="pill float">FLOATING</span></h2>
-    <div class="src">ReturnHint.ts</div>
-    <p>아이템계 → 월드 복귀 가능 시점에 portal 위에 표시.</p>
-    <div class="stage">
-      <div class="ctx-prompt"><span class="key-icon s14">↑</span> Return to World</div>
     </div>
   </section>
 

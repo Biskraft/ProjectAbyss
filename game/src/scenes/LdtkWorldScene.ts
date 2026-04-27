@@ -1204,6 +1204,7 @@ export class LdtkWorldScene extends Scene {
     });
 
     if (this.inventoryUI.visible) {
+      this.inventoryUI.update(dt); // selection pulse animation (runs even behind cycle prompt)
       // Re-dive confirmation prompt overlays the inventory (anvil mode only)
       if (this.cyclePromptItem) {
         this.updateCyclePromptInput();

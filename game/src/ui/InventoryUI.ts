@@ -6,7 +6,7 @@ import { ItemImage } from './ItemImage';
 import { PIXEL_FONT } from './fonts';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
-import { create9SlicePanel } from './ModalPanel';
+import { create9SlicePanel, drawSelectionRow, drawSelectionPulse, ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import { sacredSave } from '@save/PlayerSave';
 
@@ -37,12 +37,11 @@ const ANVIL_EQUIPPED_DIM_ALPHA = 0.15;
 const COL_PANEL_BG = 0x1a1a2e;
 const COL_BORDER = 0x4a4a6a;
 
-// Row states
+// Row states (selection palette → ModalPanel.ts ROW_SELECTED tokens)
 const COL_ROW_BG = 0x000000;       // transparent (alpha 0)
-const COL_ROW_SELECTED = 0x2a3a5e;
 const COL_ROW_EQUIPPED_BG = 0x2a1a10;
 const COL_ROW_EQUIPPED_BAR = 0xff8c00;
-const COL_ROW_CURSOR = 0x00ced1;    // accent cyan
+const COL_ROW_CURSOR = ROW_CHEVRON_COLOR;
 
 // Text
 const COL_TEXT = 0xcccccc;
@@ -99,6 +98,11 @@ export class InventoryUI {
   private anvilItem: ItemInstance | null = null;
   private anvilSlotContainer: Container | null = null;
   private anvilPulseTimer = 0;
+
+  // Selection pulse (drawn each frame in update over the selected row)
+  private selectionOverlay: Graphics | null = null;
+  private selectionRect: { x: number; y: number; w: number; h: number } | null = null;
+  private selectionPulseTimer = 0;
 
   setInventory(inventory: Inventory): void {
     this.inventory = inventory;
@@ -382,6 +386,10 @@ export class InventoryUI {
       this.listArea.removeChild(c);
       c.destroy?.({ children: true });
     }
+    // Overlay was destroyed with listArea children above; clear handle so
+    // update() doesn't reuse a destroyed Graphics.
+    this.selectionOverlay = null;
+    this.selectionRect = null;
 
     const items = this.inventory.items;
     const count = items.length;
@@ -419,6 +427,31 @@ export class InventoryUI {
       scrollG.rect(PANEL_W - PADDING - 3, thumbY, 2, thumbH).fill({ color: COL_DIM, alpha: 0.6 });
       this.listArea.addChild(scrollG);
     }
+
+    // Selection pulse overlay — sits on top of all rows; redrawn each frame
+    // in update(dt) with a sin-driven alpha. Sized to the selected row.
+    if (this.selectedIndex >= this.scrollOffset && this.selectedIndex < this.scrollOffset + MAX_VISIBLE_ROWS) {
+      const rowIdx = this.selectedIndex - this.scrollOffset;
+      const ry = listStartY + rowIdx * (ROW_H + ROW_GAP);
+      const rowW = PANEL_W - PADDING * 2;
+      const overlay = new Graphics();
+      overlay.x = PADDING;
+      overlay.y = ry;
+      this.listArea.addChild(overlay);
+      this.selectionOverlay = overlay;
+      this.selectionRect = { x: PADDING, y: ry, w: rowW, h: ROW_H };
+      this.redrawSelectionPulse();
+    }
+  }
+
+  private redrawSelectionPulse(): void {
+    if (!this.selectionOverlay || !this.selectionRect) return;
+    const t = this.selectionPulseTimer / 1000; // ms → s
+    // 1.4 Hz pulse, 0.65 ± 0.35 of base alpha → range 0.30..1.00 of base
+    // (always-bright orange glow that breathes, never fully fades)
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
+    this.selectionOverlay.clear();
+    drawSelectionPulse(this.selectionOverlay, this.selectionRect.w, this.selectionRect.h, a);
   }
 
   private drawRow(item: ItemInstance, y: number, isSelected: boolean, isEquipped: boolean, isOnAnvil: boolean): void {
@@ -430,14 +463,15 @@ export class InventoryUI {
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
     const isStarterOnly = STARTER_ONLY_IDS.has(item.def.id);
 
-    // Row background
-    if (isSelected && isEquipped) {
-      g.rect(0, 0, rowW, ROW_H).fill({ color: COL_ROW_SELECTED, alpha: 0.8 });
-      g.rect(0, 0, 3, ROW_H).fill(COL_ROW_EQUIPPED_BAR); // orange left bar
-      g.rect(0, 0, rowW, ROW_H).stroke({ color: COL_TEXT_WHITE, width: 1, alpha: 0.35 });
-    } else if (isSelected) {
-      g.rect(0, 0, rowW, ROW_H).fill({ color: COL_ROW_SELECTED, alpha: 0.8 });
-      g.rect(0, 0, rowW, ROW_H).stroke({ color: COL_TEXT_WHITE, width: 1, alpha: 0.35 });
+    // Row background — Bloodstained-tier 4-layer for selected,
+    // simple equipped tint otherwise. SSoT: docs/ui-components.html#selection-state
+    if (isSelected) {
+      drawSelectionRow(g, rowW, ROW_H);
+      if (isEquipped) {
+        // Selected + equipped — both states are orange. The pulse + chevrons
+        // already signal selection; the [E] badge below signals equipped.
+        // Drop the redundant left bar to avoid double-orange clutter.
+      }
     } else if (isEquipped) {
       g.rect(0, 0, rowW, ROW_H).fill({ color: COL_ROW_EQUIPPED_BG, alpha: 0.6 });
       g.rect(0, 0, 3, ROW_H).fill(COL_ROW_EQUIPPED_BAR); // orange left bar
@@ -454,12 +488,18 @@ export class InventoryUI {
 
     let cx = PADDING + 4;
 
-    // Cursor (▶)
+    // Symmetric chevrons (▶ left + ◀ right) — Bloodstained pattern.
+    // Right chevron sits inside the row's right padding so it doesn't collide
+    // with the dive-status column.
     if (isSelected) {
-      const cursor = new BitmapText({ text: '▶', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ROW_CURSOR } });
-      cursor.x = cx;
-      cursor.y = y + 3;
-      this.listArea.addChild(cursor);
+      const cursorL = new BitmapText({ text: '\u25B6', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ROW_CURSOR } });
+      cursorL.x = cx;
+      cursorL.y = y + 3;
+      this.listArea.addChild(cursorL);
+      const cursorR = new BitmapText({ text: '\u25C0', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ROW_CURSOR } });
+      cursorR.x = PADDING + rowW - 10;
+      cursorR.y = y + 3;
+      this.listArea.addChild(cursorR);
     }
     cx += 14;
 
@@ -501,7 +541,6 @@ export class InventoryUI {
     atkText.x = PADDING + rowW - 68;
     atkText.y = y + 4;
     if (isOnAnvil) atkText.text = 'ON ANVIL';
-    if (isEquipped || isStarterOnly) atkText.text = 'LOCKED';
     this.listArea.addChild(atkText);
 
     // DIVE / CLR / LOCKED badge (right end)
@@ -733,7 +772,14 @@ export class InventoryUI {
   }
 
   update(dt: number): void {
-    if (!this.visible || this.anvilState !== 'placed' || !this.anvilSlotContainer) return;
-    this.anvilPulseTimer += dt;
+    if (!this.visible) return;
+    // Selection halo pulse (always animates while a row is selected)
+    if (this.selectionOverlay) {
+      this.selectionPulseTimer += dt;
+      this.redrawSelectionPulse();
+    }
+    if (this.anvilState === 'placed' && this.anvilSlotContainer) {
+      this.anvilPulseTimer += dt;
+    }
   }
 }

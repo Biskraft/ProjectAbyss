@@ -7,21 +7,22 @@
  * 2회차 이후는 축소 크기로 즉시 표시.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
-import { PIXEL_FONT } from './fonts';
+import { Container } from 'pixi.js';
 import { KeyPrompt } from './KeyPrompt';
 import { sacredSave } from '@save/PlayerSave';
 
+// Visual scale references KeyPrompt's CONTEXT_KEY_SIZE (14) so size/14 = scale.
+const KEY_BASE_SIZE = 14;
 const START_SIZE = 24;
 const FINAL_SIZE = 12;
 const SHRINK_DURATION = 1500;
 const HUD_X = 8;
 const HUD_Y = 8;
+const PROMPT_KEY = 'ESC';
+const PROMPT_LABEL = 'Return to Surface';
 
 export class ReturnHint {
   readonly container: Container;
-  private iconContainer: Container | null = null;
-  private label: BitmapText | null = null;
   private shrinkTimer = 0;
   private shrinking = false;
   private currentSize = FINAL_SIZE;
@@ -78,35 +79,10 @@ export class ReturnHint {
       this.container.removeChild(child);
       child.destroy?.({ children: true });
     }
-    this.iconContainer = null;
-    this.label = null;
 
-    const size = Math.max(1, Math.round(this.currentSize));
-    // Dark background panel for legibility.
-    const bg = new Graphics();
-    const labelText = 'Return to Surface';
-    const fontSize = 8;
-    const label = new BitmapText({
-      text: labelText,
-      style: { fontFamily: PIXEL_FONT, fontSize, fill: 0xffffff },
-    });
-    const padding = 3;
-    const gap = 3;
-    const panelW = size + gap + label.width + padding * 2;
-    const panelH = Math.max(size, label.height) + padding * 2;
-    bg.roundRect(0, 0, panelW, panelH, 2).fill({ color: 0x000000, alpha: 0.55 });
-    this.container.addChild(bg);
-
-    const icon = KeyPrompt.createKeyIcon('ESC', size);
-    icon.x = padding;
-    icon.y = Math.floor((panelH - size) / 2);
-    this.iconContainer = icon;
-    this.container.addChild(icon);
-
-    label.x = padding + size + gap;
-    label.y = Math.floor((panelH - label.height) / 2);
-    this.label = label;
-    this.container.addChild(label);
+    const scale = Math.max(0.1, this.currentSize / KEY_BASE_SIZE);
+    const prompt = KeyPrompt.createPrompt(PROMPT_KEY, PROMPT_LABEL, scale);
+    this.container.addChild(prompt);
   }
 
   destroy(): void {

@@ -529,6 +529,7 @@ export class WorldScene extends Scene {
 
     if (this.inventoryUI.visible) {
       this.updateInventoryInput();
+      this.inventoryUI.update(dt); // selection pulse animation
       return; // Pause game while inventory open
     }
 
