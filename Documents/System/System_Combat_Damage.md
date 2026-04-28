@@ -12,7 +12,7 @@
 | DMG-01-A   | 공식       | 기본 데미지 공식                     |    P1    | 📅 대기      | ATK - DEF 감산 방식            |
 | DMG-01-B   | 공식       | 스킬 데미지 공식                     |    P1    | 📅 대기      | 스킬 배율 적용                 |
 | DMG-01-C   | 공식       | 원소 데미지 공식                     |    P1    | 📅 대기      | INT × ElementMultiplier - EnemyRES  |
-| DMG-02-A   | 크리티컬   | 크리티컬 확률 시스템                 |    P1    | 📅 대기      | 기본 5% + 이노센트 보정        |
+| DMG-02-A   | 크리티컬   | 크리티컬 확률 시스템                 |    P1    | 📅 대기      | 기본 5% + 기억 단편 보정        |
 | DMG-02-B   | 크리티컬   | 크리티컬 배율 시스템                 |    P1    | 📅 대기      | 고정 1.5x                      |
 | DMG-03-A   | 원소       | 원소 상성 배율                       |    P1    | 📅 대기      | 3원소 상성표 (화/빙/뇌)        |
 | DMG-03-B   | 원소       | 원소 상태이상 적용                   |    P2    | 📅 대기      | 원소별 고유 디버프             |
@@ -38,7 +38,7 @@
 * 스탯 시스템: `Documents/System/System_Growth_Stats.md`
 * 장비 시스템: `Documents/System/System_Equipment_Slots.md`
 * 원소 상성: 본 문서 §3 원소 섹션 참조 <!-- System_Combat_Elements.md는 Phase 2 제작 예정 -->
-* 이노센트 시스템: `Documents/System/System_Innocent_Core.md`
+* 기억 단편 시스템: `Documents/System/System_Memory Shard_Core.md`
 * 데미지 공식 데이터: `Sheets/Content_System_Damage_Formula.csv`
 * Game Overview: `Reference/게임 기획 개요.md`
 
@@ -52,7 +52,7 @@ ECHORIS의 데미지 시스템은 다음 한 문장으로 정의한다:
 
 > "눈에 보이는 성장이 수치로 증명되고, 아이템계 한 지층 한 지층이 체감되는 데미지"
 
-데미지 공식은 캐릭터 성장(레벨, 장비, 이노센트)의 결과를 전투에서 직접 확인할 수 있어야 한다. 아이템계에서 장비를 한 지층 더 강화한 결과가 데미지 숫자로 즉시 체감되는 것이 핵심 설계 목표이다.
+데미지 공식은 캐릭터 성장(레벨, 장비, 기억 단편)의 결과를 전투에서 직접 확인할 수 있어야 한다. 아이템계에서 장비를 한 지층 더 강화한 결과가 데미지 숫자로 즉시 체감되는 것이 핵심 설계 목표이다.
 
 ### 1.2. 설계 근거 (Reasoning)
 
@@ -61,7 +61,7 @@ ECHORIS의 데미지 시스템은 다음 한 문장으로 정의한다:
 | ATK - DEF 감산 방식            | 직관적. 공격력 100, 방어력 30이면 70이라는 예측 가능한 결과. 성장 체감이 명확            |
 | 최소 데미지 1 보장             | 0 데미지는 플레이어의 무력감을 유발. 1이라도 피해를 주면 "느리지만 가능"이라는 희망 유지 |
 | 원소 상성 배율                 | 전략적 장비/스킬 선택을 유도. 아이템계 진입 전 원소를 고려한 빌드 선택이 깊이를 제공     |
-| 크리티컬 고정 5% + 이노센트 보정 | 기본 크리티컬은 고정값으로 단순화. 이노센트로 크리티컬 확률을 올리는 것이 야리코미 목표   |
+| 크리티컬 고정 5% + 기억 단편 보정 | 기본 크리티컬은 고정값으로 단순화. 기억 단편로 크리티컬 확률을 올리는 것이 야리코미 목표   |
 | 랜덤 분산 0.9-1.1              | 완전 고정 데미지는 기계적. 10% 분산으로 타격마다 미세한 변화를 주되 예측 가능성은 유지   |
 
 ### 1.3. 3대 기둥 정렬 (Pillar Alignment)
@@ -77,7 +77,7 @@ ECHORIS의 데미지 시스템은 다음 한 문장으로 정의한다:
 | 문제                                                    | 해결 방향                                                                  |
 | :------------------------------------------------------ | :------------------------------------------------------------------------- |
 | 레벨/장비 격차로 콘텐츠가 무의미해지지 않는가            | 아이템계 지층별 적 스케일링 + 레벨 차이 보정으로 항상 도전적인 전투 유지   |
-| 이노센트 스태킹으로 데미지가 폭주하지 않는가             | 이노센트 레벨 상한 + 최종 데미지 캡으로 무한 성장을 제어                   |
+| 기억 단편 스태킹으로 데미지가 폭주하지 않는가             | 기억 단편 레벨 상한 + 최종 데미지 캡으로 무한 성장을 제어                   |
 | DEF가 너무 높으면 전투가 무한히 느려지지 않는가          | 방어 관통(Penetration) 스탯 + 최소 데미지 1 + 고정 피해 스킬로 해결       |
 | 크리티컬이 너무 강하면 비크리티컬이 무의미해지지 않는가  | 크리티컬 배율 상한(3.0x) + 크리티컬 확률 상한(50%)으로 안정 딜의 가치 유지 |
 
@@ -184,11 +184,11 @@ True_Damage = floor(Fixed_Value * Level_Correction * Random(0.9, 1.1))
 전투에서 사용되는 최종 스탯의 산출 과정. ATK/INT/HP 3스탯 체계에 따라 물리 공격력, 원소 공격력, 방어력을 계산한다.
 
 ```
-Final_ATK = Base_ATK + Equipment_ATK + Innocent_ATK_Bonus + Buff_ATK
-Final_INT = Base_INT + Equipment_INT + Innocent_INT_Bonus + Buff_INT
+Final_ATK = Base_ATK + Equipment_ATK + Memory Shard_ATK_Bonus + Buff_ATK
+Final_INT = Base_INT + Equipment_INT + Memory Shard_INT_Bonus + Buff_INT
 Final_DEF = Equipment_DEF + Buff_DEF
 Final_RES = Equipment_RES + Buff_RES
-Final_MaxHP = Base_HP + Level_Bonus_HP + Innocent_HP_Bonus
+Final_MaxHP = Base_HP + Level_Bonus_HP + Memory Shard_HP_Bonus
 ```
 
 > **설계 변경:** 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK) → ATK/INT/HP 3스탯으로 단순화. ATK는 물리 데미지, INT는 원소/인챈트 데미지. DEF/RES는 장비에서 직접 제공. MP 시스템 삭제 (스킬은 쿨다운 사용).
@@ -197,11 +197,11 @@ Final_MaxHP = Base_HP + Level_Bonus_HP + Innocent_HP_Bonus
 | :--------------------- | :------------------------------------- | :------------------------------ |
 | Base_ATK               | 캐릭터 기본값 (고정)                   | Content_Stats_Character_Base.csv|
 | Equipment_ATK          | 장비 ATK * 레어리티 배율              | Content_Stats_Weapon_List.csv   |
-| Innocent_ATK_Bonus     | 장착된 Gladiator 이노센트 합산        | Content_System_Innocent_Pool.csv|
+| Memory Shard_ATK_Bonus     | 장착된 Gladiator 기억 단편 합산        | Content_System_Memory Shard_Pool.csv|
 | Buff_ATK               | 활성 버프 효과 합산                    | 런타임 계산                     |
 | Base_INT               | 캐릭터 기본값 (고정)                   | Content_Stats_Character_Base.csv|
 | Equipment_INT          | 장비 INT * 레어리티 배율              | Content_Stats_Weapon_List.csv   |
-| Innocent_INT_Bonus     | 장착된 Tutor 이노센트 합산            | Content_System_Innocent_Pool.csv|
+| Memory Shard_INT_Bonus     | 장착된 Tutor 기억 단편 합산            | Content_System_Memory Shard_Pool.csv|
 | Buff_INT               | 활성 버프 효과 합산                    | 런타임 계산                     |
 | Equipment_DEF          | 방어구 DEF * 레어리티 배율            | Content_Stats_Armor_List.csv    |
 | Equipment_RES          | 장비 RES * 레어리티 배율              | Content_Stats_Armor_List.csv    |
@@ -213,16 +213,16 @@ Final_MaxHP = Base_HP + Level_Bonus_HP + Innocent_HP_Bonus
 #### 크리티컬 확률 (Critical Chance)
 
 ```
-Critical_Chance = min(Crit_Chance_Cap, Base_Crit_Rate + Innocent_Crit_Bonus)
+Critical_Chance = min(Crit_Chance_Cap, Base_Crit_Rate + Memory Shard_Crit_Bonus)
 ```
 
 | 파라미터              | 값       | 설명                    |
 | :-------------------- | :------- | :---------------------- |
 | Base_Crit_Rate        | 5%       | 고정 기본 크리티컬 확률 |
-| Innocent_Crit_Bonus   | 가변     | 크리티컬 이노센트에 의한 보정 (Phase 2) |
+| Memory Shard_Crit_Bonus   | 가변     | 크리티컬 기억 단편에 의한 보정 (Phase 2) |
 | Crit_Chance_Cap       | 50%      | 크리티컬 확률 상한      |
 
-> **설계 변경:** 기존 LCK 스탯 기반 크리티컬이 고정 5% + 이노센트 보정으로 변경. LCK 스탯 삭제.
+> **설계 변경:** 기존 LCK 스탯 기반 크리티컬이 고정 5% + 기억 단편 보정으로 변경. LCK 스탯 삭제.
 
 #### 크리티컬 배율 (Critical Multiplier)
 
@@ -240,11 +240,11 @@ Critical_Multiplier = 1.5    # 고정값
 
 3가지 원소(화/빙/뇌) + 무속성이 존재하며, 상성 관계에 따라 데미지 배율이 변동한다.
 
-> **원소 공격 조건:** 에코(Echo)로 장착 무기에 인챈트를 적용해야 한다 (`System_Combat_Action.md` §2.2-A 참조). 인챈트 미적용(무 속성) 상태에서는 모든 공격이 물리 데미지만 발생한다. **에코의 원소 획득 경로:** 화(Fire)는 에코 기본 내장. 나머지 2원소(빙/뇌)는 월드 보스 처치 시 에코가 영구 흡수. 원소 이노센트(Burner 등)는 인챈트 효과를 강화하는 보조 수단이지 원소 활성화 수단이 아니다.
+> **원소 공격 조건:** 에코(Echo)로 장착 무기에 인챈트를 적용해야 한다 (`System_Combat_Action.md` §2.2-A 참조). 인챈트 미적용(무 속성) 상태에서는 모든 공격이 물리 데미지만 발생한다. **에코의 원소 획득 경로:** 화(Fire)는 에코 기본 내장. 나머지 2원소(빙/뇌)는 월드 보스 처치 시 에코가 영구 흡수. 원소 기억 단편(Burner 등)는 인챈트 효과를 강화하는 보조 수단이지 원소 활성화 수단이 아니다.
 >
-> **원소 해금:** 화(Fire)는 게임 시작부터 사용 가능. 나머지 2원소(빙/뇌)는 월드 보스 처치 시 순서대로 해금된다 (`System_Innocent_Core.md` §2.2 원소 해금 순서 참조).
+> **원소 해금:** 화(Fire)는 게임 시작부터 사용 가능. 나머지 2원소(빙/뇌)는 월드 보스 처치 시 순서대로 해금된다 (`System_Memory Shard_Core.md` §2.2 원소 해금 순서 참조).
 >
-> **원소 이노센트의 역할:** 원소 이노센트(Burner/Freezer/Shocker)는 원소 공격의 조건이 아니라, **인챈트 효과를 강화**하는 역할이다. 이노센트 장착 시 해당 원소의 데미지 배율 상승, 상태이상 적용 확률 상승, 지형 반응 효과 지속시간 증가가 적용된다. 상세 수치는 `System_Innocent_Core.md` §2.2 원소 이노센트 규칙 참조.
+> **원소 기억 단편의 역할:** 원소 기억 단편(Burner/Freezer/Shocker)는 원소 공격의 조건이 아니라, **인챈트 효과를 강화**하는 역할이다. 기억 단편 장착 시 해당 원소의 데미지 배율 상승, 상태이상 적용 확률 상승, 지형 반응 효과 지속시간 증가가 적용된다. 상세 수치는 `System_Memory Shard_Core.md` §2.2 원소 기억 단편 규칙 참조.
 
 #### 원소 종류
 
@@ -386,7 +386,7 @@ HP_Regen_Tick = Max_HP * hp_regen_rate_per_sec   (초당 1회 적용)
 | 회복 트리거              | 회복량 (월드)      | 회복량 (아이템계)  | 시각 피드백                         |
 | :----------------------- | :----------------- | :----------------- | :---------------------------------- |
 | 일반 적 처치             | 최대HP × 3%        | 최대HP × 2%        | 킬 히트스탑 중 녹색 파티클          |
-| 이노센트 복종 성공       | 최대HP × 15%       | 최대HP × 15%       | 골드 파티클 + 회복 숫자 팝업        |
+| 기억 단편 복종 성공       | 최대HP × 15%       | 최대HP × 15%       | 골드 파티클 + 회복 숫자 팝업        |
 | 포션 사용 (일반)         | 최대HP × 30%       | 최대HP × 30%       | 초록 광역 이펙트                    |
 | 미스터리 룸 병원 (아이템계) | —               | 전회복             | 흰색 힐링 이펙트 + 종소리 SFX       |
 | 세이브 포인트 (월드)     | 전회복             | —                  | 세이브 포인트 발광 이펙트           |
@@ -619,7 +619,7 @@ damage_formula:
 
   # --- 크리티컬 (Critical) ---
   base_crit_rate: 0.05                 # 고정 기본 크리티컬 확률 (5%)
-  # crit_per_lck: DEPRECATED (LCK 삭제, 이노센트로 보정)
+  # crit_per_lck: DEPRECATED (LCK 삭제, 기억 단편로 보정)
   crit_chance_cap: 0.50                # 크리티컬 확률 상한 (50%)
   base_crit_multiplier: 1.5            # 고정 크리티컬 배율
   # crit_multi_per_lck: DEPRECATED (LCK 삭제)
@@ -724,7 +724,7 @@ recovery:
   # --- HP 전투 중 회복 (HP In-Combat Recovery) ---
   hp_kill_regen_world: 0.03            # 월드 적 처치 HP 회복 (최대HP 3%)
   hp_kill_regen_item_world: 0.02       # 아이템계 적 처치 HP 회복 (최대HP 2%)
-  hp_innocent_tame_regen: 0.15         # 이노센트 복종 HP 회복 (최대HP 15%)
+  hp_memory shard_tame_regen: 0.15         # 기억 단편 복종 HP 회복 (최대HP 15%)
   hp_potion_regen: 0.30                # 포션 사용 HP 회복 (최대HP 30%)
   potion_cooldown_ms: 3000             # 포션 사용 쿨다운
 
@@ -786,7 +786,7 @@ buff_debuff:
 | 계산 중간값이 JavaScript Number 범위 초과| `Number.MAX_SAFE_INTEGER` 이내로 제한. 사실상 발생하지 않음       |
 | 최종 데미지가 캡(9,999,999)을 초과      | 캡으로 고정. 초과분은 손실                                        |
 | 버프/디버프 중첩으로 배율이 비정상       | 최종 배율을 0.1x - 10.0x 범위로 클램핑                           |
-| 이노센트 보너스 합산이 비정상적으로 큰 경우| 이노센트 레벨 상한으로 제어. 최종 스탯 캡은 별도 설정하지 않음   |
+| 기억 단편 보너스 합산이 비정상적으로 큰 경우| 기억 단편 레벨 상한으로 제어. 최종 스탯 캡은 별도 설정하지 않음   |
 
 ### 5.2. 원소 상호작용 예외 (Elemental Interaction Edge Cases)
 
@@ -836,7 +836,7 @@ buff_debuff:
 | 아이템계 4지층에서 오브 드랍률 계산 (-20%)      | `orb_drop_rate_stratum_penalty * 4 = 20%` 감소. `max(0.30, 기본률 - 0.20)` |
 | 포션 쿨다운(3초) 중 포션 사용 시도              | 입력 무시 + "포션 쿨다운 중" UI 표시. 포션 소모 없음                        |
 | 멀티플레이에서 파티원 동시 적 처치              | 처치자 1인만 처치 회복 수령. 서버에서 killing blow 판정자 확정               |
-| 이노센트 복종과 동시에 피격당함                  | 복종 회복(15%)과 피격 피해를 독립 계산 후 순차 적용. 피격이 후순위           |
+| 기억 단편 복종과 동시에 피격당함                  | 복종 회복(15%)과 피격 피해를 독립 계산 후 순차 적용. 피격이 후순위           |
 
 ---
 
@@ -846,7 +846,7 @@ buff_debuff:
 * [ ] 원소 데미지 공식이 INT * ElementMultiplier - RES * 0.5으로 정확히 계산되는가
 * [ ] 최소 데미지가 항상 1 이상인가 (0 데미지 방지)
 * [ ] 데미지 캡(9,999,999)이 적용되는가
-* [ ] 크리티컬 확률이 고정 5% + 이노센트 보정으로 계산되고 50% 상한이 적용되는가
+* [ ] 크리티컬 확률이 고정 5% + 기억 단편 보정으로 계산되고 50% 상한이 적용되는가
 * [ ] 크리티컬 배율이 고정 1.5x로 적용되는가
 * [ ] 원소 상성표에 따라 약점(2.0x), 저항(0.5x), 동원소(0.5x)가 적용되는가
 * [ ] 상태이상이 원소 공격 시 항상 적용(100%)되고, 지속시간이 INT에 비례하는가
@@ -867,7 +867,7 @@ buff_debuff:
 * [ ] HP 자동 회복이 Out-of-Combat 상태에서 70% 이하일 때만 발동하는가
 * [ ] 월드 HP 자동 회복 2%/초, 아이템계 1%/초가 공간에 따라 정확히 차등 적용되는가
 * [ ] 적 처치 시 HP가 월드 3%, 아이템계 2% 즉시 회복되는가
-* [ ] 이노센트 복종 성공 시 HP 15% 회복 파티클과 함께 발동하는가
+* [ ] 기억 단편 복종 성공 시 HP 15% 회복 파티클과 함께 발동하는가
 * [ ] 포션 사용 쿨다운(3초)이 연속 사용을 차단하는가
 * [ ] 포션 월드 소지 상한(3개)이 적용되는가
 * [ ] MP 자동 회복이 Out-of-Combat 상태에서 50% 이하일 때만 발동하는가

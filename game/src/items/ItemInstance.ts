@@ -4,7 +4,7 @@ import {
   type InnocentStatKey,
   INNOCENT_SLOTS_BY_RARITY,
   getInnocentEffectiveValue,
-} from '@data/innocents';
+} from '@data/memoryShards';
 import { getItemGrowth, EXP_PER_LEVEL as _CSV_EXP, MAX_ITEM_LEVEL as _CSV_MAX } from '@data/itemGrowth';
 import { getRarityConfig } from '@data/rarityConfig';
 
@@ -26,6 +26,8 @@ export interface ItemWorldProgress {
   clearedRooms: string[];
   /** Rooms whose enemies have been spawned at least once (kill persistence) */
   spawnedRooms: string[];
+  /** Boss-exit portal positions keyed by stratum index. */
+  bossPortals: Record<string, { x: number; y: number }>;
   /** Last stratum the player safely exited from */
   lastSafeStratum: number;
   /** All strata beaten at least once. Enables re-dive prompt. */
@@ -64,6 +66,7 @@ export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress 
       visitedRooms: [],
       clearedRooms: [],
       spawnedRooms: [],
+      bossPortals: {},
       lastSafeStratum: 0,
       cleared: false,
       cycle: 0,
@@ -73,6 +76,7 @@ export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress 
     if (item.worldProgress.cleared === undefined) item.worldProgress.cleared = false;
     if (item.worldProgress.cycle === undefined) item.worldProgress.cycle = 0;
     if (item.worldProgress.spawnedRooms === undefined) item.worldProgress.spawnedRooms = [];
+    if (item.worldProgress.bossPortals === undefined) item.worldProgress.bossPortals = {};
   }
   return item.worldProgress;
 }
@@ -97,6 +101,7 @@ export function resetItemForNextCycle(item: ItemInstance): void {
   wp.visitedRooms = [];
   wp.clearedRooms = [];
   wp.spawnedRooms = [];
+  wp.bossPortals = {};
   wp.lastSafeStratum = 0;
   // deepestUnlocked is PRESERVED across deaths — it represents permanent progress.
   // Only reset to 0 when the item is fully cleared and starting a new cycle.

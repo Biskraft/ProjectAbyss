@@ -17,7 +17,7 @@
 
 ### 레퍼런스 자료
 
-* 디스가이아 시스템 분석: `Reference/디스가이아 시스템 분석.md` (아이템계, 이노센트, 야리코미)
+* 디스가이아 시스템 분석: `Reference/디스가이아 시스템 분석.md` (아이템계, 기억 단편, 야리코미)
 * 캐슬바니아 시스템 분석: `Reference/캐슬바니아 시스템 분석.md` (탐험, 맵 구조, 능력 게이트)
 * 아이템계 역기획서: `Reference/Disgaea_ItemWorld_Reverse_GDD.md`
 * 스펠렁키 레벨 생성 역기획서: `Reference/Spelunky-LevelGeneration-ReverseGDD.md`
@@ -57,7 +57,7 @@ spike_validation:
 
 다음 항목은 스파이크 축소 과정에서 삭제되었으며, 재도입이 금지된다:
 
-자동사냥, 거래소, 모바일 동시 지원, 시즌 리셋, 스킬 트리, 이노센트 팜, 아이템 전생, 패링, 허브(독립 공간), NPC 퀘스트 시스템, 대화 시스템, 풍/광 원소, 도끼/창/채찍, 재귀 진입(중첩), No.1(빛 구체)
+자동사냥, 거래소, 모바일 동시 지원, 시즌 리셋, 스킬 트리, 기억 단편 팜, 아이템 전생, 패링, 허브(독립 공간), NPC 퀘스트 시스템, 대화 시스템, 풍/광 원소, 도끼/창/채찍, 재귀 진입(중첩), No.1(빛 구체)
 
 ### 레드오션 경고
 
@@ -101,7 +101,7 @@ risk_reward_analysis:
 ECHORIS 적용 예시:
 
 * 월드 탐험: 미지의 층위 진입(리스크: 사망 시 세이브 포인트 복귀) -> 새 능력 발견(리턴)
-* 아이템계: 깊은 지층 도전(리스크: 탈출 실패 시 진행 손실) -> 이노센트/레어리티 승급(리턴)
+* 아이템계: 깊은 지층 도전(리스크: 탈출 실패 시 진행 손실) -> 기억 단편/레어리티 승급(리턴)
 * 순환 진입: 아이템계에서 획득한 더 좋은 아이템을 월드에서 다시 진입(리스크: 더 높은 레어리티 = 더 높은 난이도) -> 무한 성장 루프(리턴)
 
 ### 0.5.2. 독창성 창출: 분해-분석-재구축 (Deconstruct-Analyze-Rebuild)
@@ -154,7 +154,7 @@ reward_types:
 
   yarikomi:  # 야리코미 보상
     - item_growth: "레어리티 승급, 아이템 레벨 상승"
-    - innocent_capture: "이노센트 포획/복종"
+    - memory shard_capture: "기억 단편 포획/복종"
     - sequential_entry: "순환 진입으로 무한 성장 루프"
 
   multiplayer:  # 멀티플레이 보상
@@ -185,7 +185,7 @@ ECHORIS 적용 예시:
 
 * 단순 합산(Bad): "불 속성 무기로 얼음 적을 치면 데미지 10% 증가"
 * 상태 변화(Good): "불 속성 무기로 얼음 적을 치면 녹아서 물 웅덩이 생성 -> 번개 스킬이 감전 범위 확대"
-* 2-Space 연계: "월드에서 습득한 안개 변신 -> 아이템계의 좁은 틈새를 통과 -> 숨겨진 이노센트 방 발견"
+* 2-Space 연계: "월드에서 습득한 안개 변신 -> 아이템계의 좁은 틈새를 통과 -> 숨겨진 기억 단편 방 발견"
 
 ### 0.5.6. 파라미터 설계 철학
 
@@ -218,8 +218,8 @@ GDD 작성 시:
 
 * 원칙: 모든 데이터와 규칙은 단 한 곳에만 정의되어야 한다.
 * 적용: 다른 문서에서 해당 정보가 필요할 경우, 내용을 복사하지 말고 반드시 링크(Link)를 통해 참조한다.
-  * Bad: "이노센트 슬롯은 Normal 2개, Rare 4개이다." (여러 문서에 반복 기술)
-  * Good: "이노센트 슬롯 수는 `System/System_Equipment_Rarity.md`의 [Slot Rules] 섹션을 따른다."
+  * Bad: "기억 단편 슬롯은 Normal 2개, Rare 4개이다." (여러 문서에 반복 기술)
+  * Good: "기억 단편 슬롯 수는 `System/System_Equipment_Rarity.md`의 [Slot Rules] 섹션을 따른다."
 * 수치 데이터는 `Sheets/` CSV가 SSoT이다. GDD 본문에는 규칙과 로직만 기술하고, 구체적 수치는 CSV를 참조한다.
 
 ### 1.2. 계층 평탄화 (Flattened Hierarchy)
@@ -470,7 +470,7 @@ System 중분류:
 | Equipment | 장비 시스템 | Slots, Rarity, Growth |
 | World | 월드 시스템 | MapStructure, TierDesign, AbilityGating, StatGating, ProcGen, SaveWarp, Secrets |
 | ItemWorld | 아이템계 시스템 | Core, FloorGen, Boss, Recursion, Events, GeoEffects |
-| Innocent | 이노센트 시스템 | Core, Farm, Dual |
+| Memory Shard | 기억 단편 시스템 | Core, Farm, Dual |
 | Enemy | 적/AI 시스템 | AI, BossDesign, Spawning |
 | Multi | 멀티플레이 | Architecture, Party, NetworkSync, GhostMessage |
 | Economy | 경제 시스템 | Resources, Trade |
@@ -496,7 +496,7 @@ UI 중분류:
 | Inventory | 인벤토리 | (단일 문서) |
 | Map | 맵 UI | (단일 문서) |
 | ItemWorld | 아이템계 UI | (단일 문서) |
-| ~~InnocentFarm~~ | ~~이노��트 목장 UI~~ | ~~(단일 문서) — DEPRECATED~~ |
+| ~~Memory ShardFarm~~ | ~~이노��트 목장 UI~~ | ~~(단일 문서) — DEPRECATED~~ |
 | PartyMatching | 파티/매칭 UI | (단일 문서) |
 
 Content 중분류:
@@ -505,7 +505,7 @@ Content 중분류:
 | :--- | :--- | :--- |
 | Weapons | 무기 목록 | List |
 | Armor | 방어구/악세서리 | List |
-| Innocent | 이노센트 카탈로그 | Catalog |
+| Memory Shard | 기억 단편 카탈로그 | Catalog |
 | Monster | 몬스터 도감 | Bestiary |
 | Tier | 층위/바이옴 | List |
 | Skill | 스킬 목록 | List |

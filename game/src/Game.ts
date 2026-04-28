@@ -26,6 +26,7 @@ export class Game {
   assetLoader!: AssetLoader;
   camera!: Camera;
   gameContainer!: Container;
+  backgroundContainer!: Container;
 
   /**
    * UI layer rendered at native resolution (Celeste-style dual-res).
@@ -51,6 +52,8 @@ export class Game {
   };
   private accumulated = 0;
   private renderer!: WebGLRenderer;
+  private backgroundRT!: RenderTexture;
+  private backgroundSprite!: Sprite;
   private worldRT!: RenderTexture;
   private worldSprite!: Sprite;
   private prevRTW = 0;
@@ -95,6 +98,19 @@ export class Game {
     window.addEventListener('resize', () => this.handleResize());
 
     // Game world container — rendered to RT at 640x360
+    this.backgroundContainer = new Container();
+
+    this.backgroundRT = RenderTexture.create({
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      resolution: 1,
+      antialias: false,
+    });
+    this.backgroundSprite = new Sprite(this.backgroundRT);
+    this.backgroundSprite.texture.source.scaleMode = 'nearest';
+    this.backgroundSprite.scale.set(this.uiScale);
+    this.app.stage.addChild(this.backgroundSprite);
+
     this.gameContainer = new Container();
 
     // Initial RT at base resolution
@@ -180,11 +196,20 @@ export class Game {
       this.gameContainer.x = gcx;
       this.gameContainer.y = gcy;
 
-      // Render world to offscreen texture at base resolution
+      this.renderer.render({
+        container: this.backgroundContainer,
+        target: this.backgroundRT,
+        clear: true,
+        clearColor: [0, 0, 0, 0],
+      });
+
+      // Render world to offscreen texture. The world RT is transparent so the
+      // fixed background RT behind it remains visible through empty space.
       this.renderer.render({
         container: this.gameContainer,
         target: this.worldRT,
         clear: true,
+        clearColor: [0, 0, 0, 0],
       });
 
       // Scale RT sprite to fill native resolution

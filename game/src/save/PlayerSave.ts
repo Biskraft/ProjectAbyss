@@ -7,7 +7,6 @@
  *   seenItems         — 아이템별 Lore Popup 노출 여부 (itemDefId → bool)
  *   firstPickupDone   — 첫 아이템 획득 컷씬 완료
  *   firstDiveDone     — 첫 앵빌 DIVE 완료 (풀 프리뷰 패널)
- *   firstReturnShown  — 첫 아이템계 착지 Return 아이콘 노출 완료
  *   diveCount         — 아이템별 누적 DIVE 횟수 (1회차 풀, 2-5 단축, 6+ 초단축)
  *   settings          — 접근성 옵션 (Always show lore / Skip dive)
  *
@@ -28,7 +27,6 @@ export interface SacredSaveState {
   seenItems: string[];
   firstPickupDone: boolean;
   firstDiveDone: boolean;
-  firstReturnShown: boolean;
   /** 첫 아이템계 보스 처치 — 이후 anvil 비활성화. */
   firstItemWorldBossDefeated: boolean;
   /** itemDefId → 누적 DIVE 횟수. */
@@ -44,7 +42,6 @@ function makeEmptyState(): SacredSaveState {
     seenItems: [],
     firstPickupDone: false,
     firstDiveDone: false,
-    firstReturnShown: false,
     firstItemWorldBossDefeated: false,
     diveCount: {},
     settings: {
@@ -65,7 +62,6 @@ class SacredSaveImpl {
       if (Array.isArray(data.seenItems)) next.seenItems = [...data.seenItems];
       if (typeof data.firstPickupDone === 'boolean') next.firstPickupDone = data.firstPickupDone;
       if (typeof data.firstDiveDone === 'boolean') next.firstDiveDone = data.firstDiveDone;
-      if (typeof data.firstReturnShown === 'boolean') next.firstReturnShown = data.firstReturnShown;
       if (typeof data.firstItemWorldBossDefeated === 'boolean') next.firstItemWorldBossDefeated = data.firstItemWorldBossDefeated;
       if (data.diveCount && typeof data.diveCount === 'object') {
         next.diveCount = { ...data.diveCount };
@@ -88,7 +84,6 @@ class SacredSaveImpl {
       seenItems: [...this.state.seenItems],
       firstPickupDone: this.state.firstPickupDone,
       firstDiveDone: this.state.firstDiveDone,
-      firstReturnShown: this.state.firstReturnShown,
       firstItemWorldBossDefeated: this.state.firstItemWorldBossDefeated,
       diveCount: { ...this.state.diveCount },
       settings: { ...this.state.settings },
@@ -123,9 +118,6 @@ class SacredSaveImpl {
 
   isFirstDiveDone(): boolean { return this.state.firstDiveDone; }
   markFirstDiveDone(): void { this.state.firstDiveDone = true; }
-
-  isFirstReturnShown(): boolean { return this.state.firstReturnShown; }
-  markFirstReturnShown(): void { this.state.firstReturnShown = true; }
 
   isFirstItemWorldBossDefeated(): boolean { return this.state.firstItemWorldBossDefeated; }
   markFirstItemWorldBossDefeated(): void { this.state.firstItemWorldBossDefeated = true; }

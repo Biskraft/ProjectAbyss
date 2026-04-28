@@ -64,19 +64,19 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 
 ## 3. System/ItemWorld/ - 아이템계
 
-> 참조: 디스가이아 Item World, Innocent, Mystery Gate, Pirates
+> 참조: 디스가이아 Item World, Memory Shard, Mystery Gate, Pirates
 
 | # | 파일명 | 설명 | 위키 참조 | 상태 |
 | :--- | :--- | :--- | :--- | :--- |
 | SI-01 | SYS_ItemWorld_Core.md | 아이템계 핵심 구조 (100층, 시드, 진입/탈출) | DG: Item World, Mr. Gency's Exit | 신규 |
 | SI-02 | SYS_ItemWorld_FloorGen.md | 층 생성 파이프라인 (시드 결정, 레이아웃, 지형, 오브젝트, 이벤트) | DG: Item World / Spelunky ReverseGDD | 신규 |
 | SI-03 | SYS_ItemWorld_Boss.md | 아이템계 보스 (장군/왕/신/대신, 패턴, 보상) | DG: Item Bosses | 신규 |
-| SI-04 | SYS_ItemWorld_Event.md | 특수 이벤트 (미스터리 게이트, 이노센트 타운, 해적 조우) | DG: Mystery Gate, Innocent Town, Pirates | 신규 |
+| SI-04 | SYS_ItemWorld_Event.md | 특수 이벤트 (미스터리 게이트, 기억 단편 타운, 해적 조우) | DG: Mystery Gate, Memory Shard Town, Pirates | 신규 |
 | SI-05 | SYS_ItemWorld_Recursive.md | 재귀적 진입 (최대 깊이 3, 깊이 보너스, 제한) | DG: Item World (D3) | 신규 |
 | SI-06 | SYS_ItemWorld_GeoEffect.md | 지오 이펙트 패널 (필드 변형, 보너스/패널티) | DG: Geo Effects, Living Geo Symbol | 신규 |
-| SI-07 | SYS_Innocent_Core.md | 이노센트 핵심 (Wild/Tamed, 종류, 레벨, 효과) | DG: Specialist, List of Innocents (D1~D6) | 신규 |
-| SI-08 | SYS_Innocent_Farm.md | 이노센트 팜 (합성, 번식, 듀얼, 이동) | DG: Specialist 합성 | 신규 |
-| SI-09 | SYS_Innocent_Capture.md | 이노센트 포획 메카닉 (아이템계 내 Wild 이노센트 전투) | DG: Capturing | 신규 |
+| SI-07 | SYS_Memory Shard_Core.md | 기억 단편 핵심 (Wild/Tamed, 종류, 레벨, 효과) | DG: Specialist, List of Memory Shards (D1~D6) | 신규 |
+| SI-08 | SYS_Memory Shard_Farm.md | 기억 단편 팜 (합성, 번식, 듀얼, 이동) | DG: Specialist 합성 | 신규 |
+| SI-09 | SYS_Memory Shard_Capture.md | 기억 단편 포획 메카닉 (아이템계 내 Wild 기억 단편 전투) | DG: Capturing | 신규 |
 
 ---
 
@@ -89,8 +89,8 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | SP-01 | SYS_Stat_Core.md | 6대 스탯 시스템 (STR, INT, DEX, VIT, SPD, LCK) | DG: Statistics, Attack, Defense, Speed 등 | 신규 |
 | SP-02 | SYS_Stat_Growth.md | 레벨업/성장곡선 (EXP 공식, Soft/Hard Cap, Diminishing) | DG: Level, Experience, Level grinding | 신규 |
 | SP-03 | SYS_Equipment_Core.md | 장비 시스템 (무기, 방어구, 악세서리, 슬롯) | DG: Weapon, Items, Accessories | 신규 |
-| SP-04 | SYS_Equipment_Rarity.md | 레어리티 시스템 (Common~Mythic, 스탯 배율, 이노센트 슬롯) | DG: Rarity, Rank | 신규 |
-| SP-05 | SYS_Equipment_Enhancement.md | 장비 강화 (아이템계 클리어, 이노센트, 합성) | DG: Item World 보상, Item Assembly | 신규 |
+| SP-04 | SYS_Equipment_Rarity.md | 레어리티 시스템 (Common~Mythic, 스탯 배율, 기억 단편 슬롯) | DG: Rarity, Rank | 신규 |
+| SP-05 | SYS_Equipment_Enhancement.md | 장비 강화 (아이템계 클리어, 기억 단편, 합성) | DG: Item World 보상, Item Assembly | 신규 |
 | SP-06 | SYS_Weapon_Type.md | 무기 종류별 특성 (검, 창, 도끼, 활, 지팡이, 권갑 등) | DG: Sword, Spear, Axe, Bow, Gun, Fist, Staff | 신규 |
 | SP-07 | SYS_Weapon_Mastery.md | 무기 숙련도 (사용 시 숙련, 히든 스킬 해금) | DG: Weapon Mastery, Armsmaster | 신규 |
 | SP-08 | SYS_Class_Core.md | 클래스/직업 시스템 (역할, 해금 조건, 스탯 적성) | DG: Class, Aptitude | 신규 |
@@ -167,7 +167,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 
 ## 9. Content/ - 콘텐츠 목록
 
-> 참조: 디스가이아 무기/클래스/이노센트 목록, 캐슬바니아 적/장비 목록
+> 참조: 디스가이아 무기/클래스/기억 단편 목록, 캐슬바니아 적/장비 목록
 
 | # | 파일명 | 설명 | 위키 참조 | 상태 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -176,7 +176,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | C-03 | CNT_Weapon_List.md | 무기 목록 (종류별, 등급별) | DG: List of Weapons (D1~D6) | 신규 |
 | C-04 | CNT_Armor_List.md | 방어구 목록 | DG: List of Armor / CV: Alucard Mail | 신규 |
 | C-05 | CNT_Accessory_List.md | 악세서리 목록 | DG: List of Accessories (D2~D5) | 신규 |
-| C-06 | CNT_Innocent_List.md | 이노센트 전체 도감 | DG: List of Innocents (D1~D6) | 신규 |
+| C-06 | CNT_Memory Shard_List.md | 기억 단편 전체 도감 | DG: List of Memory Shards (D1~D6) | 신규 |
 | C-07 | CNT_Skill_List.md | 스킬 전체 목록 (클래스별, 무기별) | DG: List of Skills/Spells | 신규 |
 | C-08 | CNT_Evility_List.md | 패시브(에빌리티) 전체 목록 | DG: List of Evilities (D3~D6) | 신규 |
 | C-09 | CNT_Class_List.md | 클래스/직업 전체 목록 | DG: List of All Classes | 신규 |
@@ -194,11 +194,11 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | # | 파일명 | 설명 | 상태 |
 | :--- | :--- | :--- | :--- |
 | U-01 | UI_HUD_InGame.md | 인게임 HUD (HP, MP, 미니맵, 스킬바, 버프) | 신규 |
-| U-02 | UI_Inventory.md | 인벤토리 화면 (장비, 소모품, 이노센트) | 신규 |
+| U-02 | UI_Inventory.md | 인벤토리 화면 (장비, 소모품, 기억 단편) | 신규 |
 | U-03 | UI_Equipment.md | 장비 장착/비교 화면 | 신규 |
 | U-04 | UI_ItemWorld_Entry.md | 아이템계 진입 화면 (아이템 선택, 파티 구성) | 신규 |
 | U-05 | UI_Map.md | 월드 맵 화면 (탐험율, 게이트 표시, 워프) | 신규 |
-| U-06 | UI_InnocentFarm.md | 이노센트 팜 화면 (합성, 번식, 이동) | 신규 |
+| U-06 | UI_Memory ShardFarm.md | 기억 단편 팜 화면 (합성, 번식, 이동) | 신규 |
 | U-07 | UI_Shop.md | 상점 화면 | 신규 |
 | U-08 | UI_Party.md | 파티 화면 (초대, 상태, 킥) | 신규 |
 | U-09 | UI_AutoHunt.md | 자동사냥 설정 화면 | 신규 |
@@ -216,7 +216,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | B-01 | BAL_Damage_Formula.md | 데미지 공식 상세 (물리, 마법, 원소, 크리티컬) | 신규 |
 | B-02 | BAL_Growth_Curve.md | 성장곡선 (EXP, 스탯, 장비 스케일링) | 신규 |
 | B-03 | BAL_ItemWorld_Scaling.md | 아이템계 층별 난이도/보상 스케일링 | 신규 |
-| B-04 | BAL_Innocent_Effect.md | 이노센트 효과 수치 (레벨, 합성, Wild/Tamed) | 신규 |
+| B-04 | BAL_Memory Shard_Effect.md | 기억 단편 효과 수치 (레벨, 합성, Wild/Tamed) | 신규 |
 | B-05 | BAL_Party_Scaling.md | 파티 인원별 밸런스 배율 | 신규 |
 | B-06 | BAL_Economy_Flow.md | 재화 유입/유출 시뮬레이션 | 신규 |
 | B-07 | BAL_TTK_Benchmark.md | TTK/TTD 기준표 (상황별 목표 시간) | 신규 |
@@ -263,7 +263,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | S-04 | Content_Stats_Accessory_List.csv | C-05 | 신규 |
 | S-05 | Content_Stats_Monster_List.csv | C-01 | 신규 |
 | S-06 | Content_Stats_Boss_List.csv | C-02, SC-05, SI-03 | 신규 |
-| S-07 | Content_Stats_Innocent_List.csv | SI-07, C-06 | 신규 |
+| S-07 | Content_Stats_Memory Shard_List.csv | SI-07, C-06 | 신규 |
 | S-08 | Content_Stats_Skill_List.csv | SC-03, C-07 | 신규 |
 | S-09 | Content_Stats_Evility_List.csv | SP-09, C-08 | 신규 |
 | S-10 | Content_Stats_Class_List.csv | SP-08, C-09 | 신규 |

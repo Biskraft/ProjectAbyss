@@ -10,37 +10,36 @@ import { resolveComboFx, FX_SLASH_FRAMES } from '@combat/WeaponFx';
 import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
 import type { Rarity, WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
-
-// GDD System_3C_Character.md (SSoT) — 2026-04-08 레퍼런스 전수조사 기반 재조정
-const MOVE_SPEED = 128;           // px/s (8 tiles/s, SotN~HK 범위)
-const ACCEL_FRAMES = 4;           // frames to reach max speed
-const GRAVITY = 980;              // px/s²
-const MAX_FALL_SPEED = 480;       // px/s (30 tiles/s, 공중 제어감 확보)
-const JUMP_HEIGHT = 80;           // px (5 tiles, HK/MMX/DeadCells 평균)
-const COYOTE_TIME = 150;          // ms
-const JUMP_BUFFER = 250;          // ms
-const DASH_DISTANCE = 64;         // px (4 tiles, Celeste/SotN 범위)
-const DASH_DURATION = 150;        // ms
-const DASH_GROUND_DELAY = 400;    // ms (ground dash recharge, DeadCells 370ms 참고)
-const ATTACK_MOVE_MULT = 0.8;     // 80% speed during attack
+import { PlayerConst } from '@data/constData';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
 
-// Wall Jump / Wall Slide (GDD System_3C_Character.md)
-const WALL_SLIDE_SPEED = 50;         // px/s (벽에서 더 오래 머무름)
-const WALL_JUMP_VX = 140;            // px/s horizontal kick-off (Celeste 130 참고)
-const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 56); // ~70% of normal jump (3.5 tiles)
-const WALL_JUMP_COOLDOWN = 200;      // ms before next wall interaction
-const WALL_CHECK_DIST = 2;           // px to check for wall adjacency
-const LEDGE_TOLERANCE = 8;           // px — ledge grab / corner correction 허용 오프셋 (0.5 tile)
+// SSoT: Sheets/Content_Player.csv (loaded via @data/constData)
+const MOVE_SPEED = PlayerConst.MoveSpeed;
+const ACCEL_FRAMES = PlayerConst.AccelFrames;
+const GRAVITY = PlayerConst.Gravity;
+const MAX_FALL_SPEED = PlayerConst.MaxFallSpeed;
+const JUMP_HEIGHT = PlayerConst.JumpHeight;
+const COYOTE_TIME = PlayerConst.CoyoteTimeMs;
+const JUMP_BUFFER = PlayerConst.JumpBufferMs;
+const DASH_DISTANCE = PlayerConst.DashDistance;
+const DASH_DURATION = PlayerConst.DashDurationMs;
+const DASH_GROUND_DELAY = PlayerConst.DashGroundDelayMs;
+const ATTACK_MOVE_MULT = PlayerConst.AttackMoveMult;
 
-// Platformer feel (Celeste/Maddy Thorson 계열)
-const VAR_JUMP_TIME = 200;           // ms — 이 안에 JUMP 떼면 상승속도 절반 컷 (tap=short hop)
-const VAR_JUMP_CUT_MULT = 0.85;      // release-cut 시 vy 배율 (짧게 눌러도 높이 뜀)
-const APEX_THRESHOLD = 40;           // px/s — |vy| 이 이하면 점프 정점 구간으로 간주
-const APEX_GRAVITY_MULT = 0.5;       // 정점 체공감 — 중력 절반 적용
-const AIR_ACCEL_MULT = 0.75;         // 공중 가·감속 배율 — 공중 제어 살짝 무겁게
-const DASH_FREEZE_MS = 50;           // 대시 선딜 동결 — 방향 확정 윈도 + 타격감 (3프레임)
-const DASH_CORNER_TOLERANCE = 8;     // px — 대시 중 세로 코너 보정 허용 오프셋
+const WALL_SLIDE_SPEED = PlayerConst.WallSlideSpeed;
+const WALL_JUMP_VX = PlayerConst.WallJumpVx;
+const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 56); // derived: ~70% of normal jump (3.5 tiles)
+const WALL_JUMP_COOLDOWN = PlayerConst.WallJumpCooldownMs;
+const WALL_CHECK_DIST = PlayerConst.WallCheckDist;
+const LEDGE_TOLERANCE = PlayerConst.LedgeTolerance;
+
+const VAR_JUMP_TIME = PlayerConst.VarJumpTimeMs;
+const VAR_JUMP_CUT_MULT = PlayerConst.VarJumpCutMult;
+const APEX_THRESHOLD = PlayerConst.ApexThreshold;
+const APEX_GRAVITY_MULT = PlayerConst.ApexGravityMult;
+const AIR_ACCEL_MULT = PlayerConst.AirAccelMult;
+const DASH_FREEZE_MS = PlayerConst.DashFreezeMs;
+const DASH_CORNER_TOLERANCE = PlayerConst.DashCornerToleranceY;
 
 // Derived: jump velocity from v² = 2*g*h => v = sqrt(2*g*h)
 const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upward
@@ -111,10 +110,10 @@ export class Player extends Entity implements CombatEntity {
   fsm: StateMachine<PlayerState>;
 
   // Stats
-  hp = 100;
-  maxHp = 100;
-  atk = 10 + BARE_HAND_ATK; // STR(Lv1) + bare hand
-  def = 5;                   // Lv1 base DEF (from Content_Stats_Character_Base.csv)
+  hp = PlayerConst.BaseHp;
+  maxHp = PlayerConst.BaseHp;
+  atk = PlayerConst.BaseAtk + BARE_HAND_ATK; // STR(Lv1) + bare hand
+  def = PlayerConst.BaseDef;
   facingRight = true;
 
   /**
@@ -138,8 +137,8 @@ export class Player extends Entity implements CombatEntity {
   attackHitboxMul = 1;
 
   // Collision box (70% of visual size)
-  collisionW = 9;
-  collisionH = 16;
+  collisionW = PlayerConst.CollisionW;
+  collisionH = PlayerConst.CollisionH;
 
   // Water
   inWater = false;
@@ -154,7 +153,7 @@ export class Player extends Entity implements CombatEntity {
   private _waterTransition: 0 | 1 | -1 = 0;
 
   // Oxygen system
-  private static readonly OXYGEN_MAX = 20000; // 20 seconds in ms
+  private static readonly OXYGEN_MAX = PlayerConst.OxygenMaxMs;
   /** Current oxygen remaining (ms). Scene reads this for HUD. */
   oxygen = Player.OXYGEN_MAX;
   /** True when oxygen has run out → scene triggers death. */
@@ -162,14 +161,14 @@ export class Player extends Entity implements CombatEntity {
 
   // Drop-through one-way platforms (down + jump)
   dropThroughTimer = 0;
-  private static readonly DROP_THROUGH_MS = 150;
+  private static readonly DROP_THROUGH_MS = PlayerConst.DropThroughMs;
 
   // Echo Flask (GDD System_Healing_Recovery.md)
-  flaskCharges = 3;
-  flaskMaxCharges = 3;
-  private static readonly FLASK_HEAL_PERCENT = 0.40;
-  private static readonly FLASK_CAST_MS = 600;
-  private static readonly FLASK_BUFFER_MS = 200;
+  flaskCharges = PlayerConst.FlaskInitialCharges;
+  flaskMaxCharges = PlayerConst.FlaskInitialCharges;
+  private static readonly FLASK_HEAL_PERCENT = PlayerConst.FlaskHealPercent;
+  private static readonly FLASK_CAST_MS = PlayerConst.FlaskCastMs;
+  private static readonly FLASK_BUFFER_MS = PlayerConst.FlaskBufferMs;
   private flaskCastTimer = 0;
   private flaskCasting = false;
   private flaskBufferTimer = 0;
@@ -189,9 +188,9 @@ export class Player extends Entity implements CombatEntity {
   };
 
   // Surge (Counter-Current Surge)
-  private static readonly SURGE_CHARGE_MS = 1500; // 1.5s charge
-  private static readonly SURGE_SPEED = 800;       // px/s upward
-  private static readonly SURGE_DURATION = 500;    // ms of upward flight
+  private static readonly SURGE_CHARGE_MS = PlayerConst.SurgeChargeMs;
+  private static readonly SURGE_SPEED = PlayerConst.SurgeSpeed;
+  private static readonly SURGE_DURATION = PlayerConst.SurgeDurationMs;
   private surgeChargeTimer = 0;
   private surgeFlyTimer = 0;
   private surgeDirX = 0; // 0 = straight up, ±1 = diagonal off wall
@@ -605,7 +604,7 @@ export class Player extends Entity implements CombatEntity {
     if (this.inWater && !this.prevInWater) this._waterTransition = 1;
     else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
     this.prevInWater = this.inWater;
-    const waterMult = this.inWater ? 0.5 : 1.0; // slow everything in water
+    const waterMult = this.inWater ? PlayerConst.WaterMoveMult : 1.0; // slow everything in water
 
     // Submersion check — head (top of sprite) is in water = 2+ tiles deep
     const headRow = Math.floor(this.y / 16);
@@ -623,7 +622,7 @@ export class Player extends Entity implements CombatEntity {
       }
     } else {
       // Recover oxygen when not submerged (fast recovery)
-      this.oxygen = Math.min(Player.OXYGEN_MAX, this.oxygen + dt * 3);
+      this.oxygen = Math.min(Player.OXYGEN_MAX, this.oxygen + dt * PlayerConst.WaterOxygenRecoverMult);
     }
 
     // Apply gravity (except during dash/dive/surge) — reduced in water.
@@ -631,7 +630,7 @@ export class Player extends Entity implements CombatEntity {
     if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
       const apexMult = Math.abs(this.vy) < APEX_THRESHOLD ? APEX_GRAVITY_MULT : 1.0;
       this.vy += GRAVITY * waterMult * apexMult * dtSec;
-      const maxFall = this.inWater ? MAX_FALL_SPEED * 0.4 : MAX_FALL_SPEED;
+      const maxFall = this.inWater ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
       if (this.vy > maxFall) this.vy = maxFall;
     }
 

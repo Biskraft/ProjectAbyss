@@ -15,7 +15,7 @@
 | :--- | :--- |
 | Narrative & Worldbuilding | `Documents/Design/Design_Narrative_Worldbuilding.md` |
 | 몬스터 풀 | `Documents/System/System_ItemNarrative_MonsterPool.md` |
-| 이노센트 타입 | `Documents/System/System_Innocent_Core.md` §3 |
+| 기억 단편 타입 | `Documents/System/System_Memory Shard_Core.md` §3 |
 | 아이템 서사 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
 | Item World Core | `Documents/System/System_ItemWorld_Core.md` |
 
@@ -78,7 +78,7 @@
 | 2 | **냄비 뚜껑 날아감** | 일정 시간 경과 | 뚜껑이 천장에 부딪히고 떨어짐 | 코믹. 몬스터 공황 유발 | 예 |
 | 3 | **쥐 무리 출현** | 선반 근처 통과 | 선반 구멍에서 쥐 출현. 전투 방해 안 함 | 살림집의 일상 | 아니오 |
 | 4 | **허브 선반 붕괴** | 전투 충격 발생 | 선반 붕괴, 시야 흐림 1초 | 전투 파급 효과 | 아니오 |
-| 5 | **레시피 메모 날림** | 화덕 폭발 후 | 메모 한 장이 바닥으로 | 이노센트 접촉 계기 | 예 |
+| 5 | **레시피 메모 날림** | 화덕 폭발 후 | 메모 한 장이 바닥으로 | 기억 단편 접촉 계기 | 예 |
 | 6 | **가족 목소리 잔향** | 방 진입 시 | 희미한 웃음소리, 곧 사라짐 | 감정 환기. Fire 씨앗 | 예 |
 | 7 | **도구 저절로 움직임** | 조리대 근처 | 칼이나 국자가 짧게 움직이다 멈춤 | 기억이 살아있다는 암시 | 아니오 |
 | 8 | **창문 너머 뜰** | 창문 오브젝트 근처 | 창문 너머 정원이나 마당 시야 | 외부 공간 암시. 공간 확장감 | 아니오 |

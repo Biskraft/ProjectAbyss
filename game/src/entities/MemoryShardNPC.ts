@@ -1,19 +1,19 @@
 /**
- * InnocentNPC.ts
+ * MemoryShardNPC.ts
  *
- * An Innocent resident that has escaped into the dungeon corridors and must be
- * subdued (defeated) by the player to convert it from wild (50% effectiveness)
- * to subdued (100% effectiveness).
+ * A Forgotten Memory Shard that wanders the dungeon corridors and must be
+ * recalled (defeated) by the player to convert it from forgotten (50% effect)
+ * to recalled (100% effect).
  *
  * AI behaviour: flee from the player. Jumps on a random 2–3 s timer when
  * grounded. Never attacks.
  *
- * Design ref: System_ItemWorld_Core.md — Innocent System
- *             System_ItemNarrative_MonsterPool.md — InnocentNPC
+ * Design ref: System_ItemWorld_Core.md — Memory Shard System
+ *             System_ItemNarrative_MonsterPool.md — MemoryShardNPC
  */
 
 import { Enemy } from './Enemy';
-import type { Innocent } from '@data/innocents';
+import type { Innocent } from '@data/memoryShards';
 
 /** Jump velocity applied when flee-jumping (px/s). */
 const FLEE_JUMP_VY = -320;
@@ -24,7 +24,7 @@ const JUMP_TIMER_MIN = 2000;
 /** Maximum ms between jump attempts. */
 const JUMP_TIMER_MAX = 3000;
 
-export class InnocentNPC extends Enemy {
+export class MemoryShardNPC extends Enemy {
   /**
    * The innocent data this NPC represents.
    * Set by the scene before the NPC is added to the world.

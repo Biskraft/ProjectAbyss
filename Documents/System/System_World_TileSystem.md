@@ -328,7 +328,7 @@ Collisions 레이어에 새 값 추가:
 
 - `System_Combat_Damage.md` - 원소 시스템 (화/빙/뇌 + 무속성, 상태이상 규칙)
 - `System_Combat_Weapons.md` - 무기별 속성
-- `System_Innocent_Core.md` - 이노센트 원소 강화
+- `System_Memory Shard_Core.md` - 기억 단편 원소 강화
 - `game/src/core/Physics.ts` - 현재 IntGrid 물리 구현
 - `game/src/level/ItemWorldTemplates.ts` - 확률 타일 (50-52)
 - `Reference/Spelunky-LevelGeneration-ReverseGDD.md` - 스펠렁키 타일 체계

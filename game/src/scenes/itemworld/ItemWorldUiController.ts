@@ -2,20 +2,18 @@ import { BitmapText, Container, Graphics } from 'pixi.js';
 import { create9SlicePanel } from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
 import type { UISkin } from '@ui/UISkin';
-import { ReturnHint } from '@ui/ReturnHint';
 import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
+import { StratumClearOverlay, type StratumClearData } from '@ui/StratumClearOverlay';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { Game } from '../../Game';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../Game';
 
 interface PromptRefs {
   exitPrompt: Container | null;
-  altarHint: Container | null;
 }
 
 interface EscapeConfirmOptions {
   hudSkin: UISkin | null;
-  fromAltar: boolean;
   itemName: string;
   itemLevel: number;
   itemExp: number;
@@ -54,24 +52,19 @@ interface PromptSuppressionOptions {
 export class ItemWorldUiController {
   private escapeConfirm: Container | null = null;
   private escapeConfirmVisible = false;
-  private escapeConfirmFromAltar = false;
   private bossChoicePanel: Container | null = null;
   private bossChoiceVisible = false;
-  private returnHint: ReturnHint | null = null;
   private onboardingPanel: Container | null = null;
   private onboardingStep = 0;
   private onboardingDone = true;
   private returnResult: ReturnResult | null = null;
   private stratumClearPanel: { container: Container; confirmed: boolean } | null = null;
+  private stratumClearOverlay: StratumClearOverlay | null = null;
 
   constructor(private readonly game: Game) {}
 
   isEscapeConfirmVisible(): boolean {
     return this.escapeConfirmVisible;
-  }
-
-  isEscapeConfirmFromAltar(): boolean {
-    return this.escapeConfirmFromAltar;
   }
 
   isBossChoiceVisible(): boolean {
@@ -95,17 +88,6 @@ export class ItemWorldUiController {
     this.returnResult = new ReturnResult(hudSkin);
     this.returnResult.onDismiss = onDismiss;
     this.game.legacyUIContainer.addChild(this.returnResult.container);
-  }
-
-  createReturnHint(): void {
-    this.destroyReturnHint();
-    this.returnHint = new ReturnHint();
-    this.game.uiContainer.addChild(this.returnHint.container);
-    this.returnHint.show();
-  }
-
-  updateReturnHint(dt: number): void {
-    this.returnHint?.update(dt);
   }
 
   updateReturnResult(dt: number): void {
@@ -241,7 +223,6 @@ export class ItemWorldUiController {
 
   hideWorldPrompts(prompts: PromptRefs): void {
     if (prompts.exitPrompt) prompts.exitPrompt.visible = false;
-    if (prompts.altarHint) prompts.altarHint.visible = false;
   }
 
   shouldSuppressWorldPrompts(options: PromptSuppressionOptions): boolean {
@@ -255,7 +236,6 @@ export class ItemWorldUiController {
 
   showEscapeConfirm(options: EscapeConfirmOptions): void {
     this.escapeConfirmVisible = true;
-    this.escapeConfirmFromAltar = options.fromAltar;
     this.hideWorldPrompts(options.prompts);
 
     const panelW = 260;
@@ -271,8 +251,7 @@ export class ItemWorldUiController {
       panel.addChild(bg);
     }
 
-    const titleText = options.fromAltar ? 'Use Escape Altar?' : 'Leave Item World?';
-    const title = new BitmapText({ text: titleText, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
+    const title = new BitmapText({ text: 'Leave Item World?', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
     title.x = 12;
     title.y = 6;
     panel.addChild(title);
@@ -310,7 +289,6 @@ export class ItemWorldUiController {
 
   hideEscapeConfirm(): void {
     this.escapeConfirmVisible = false;
-    this.escapeConfirmFromAltar = false;
     if (this.escapeConfirm?.parent) {
       this.escapeConfirm.parent.removeChild(this.escapeConfirm);
     }
@@ -383,13 +361,49 @@ export class ItemWorldUiController {
     this.bossChoiceVisible = false;
   }
 
+  // ── Unified Stratum Clear Overlay ────────────────────────────────
+
+  showStratumClearOverlay(data: StratumClearData): void {
+    this.destroyStratumClearOverlay();
+    this.stratumClearOverlay = new StratumClearOverlay(data);
+    this.game.legacyUIContainer.addChild(this.stratumClearOverlay.container);
+  }
+
+  updateStratumClearOverlay(dt: number, attackPressed: boolean, menuPressed: boolean): void {
+    if (!this.stratumClearOverlay) return;
+    this.stratumClearOverlay.update(dt);
+    this.stratumClearOverlay.handleInput(attackPressed, menuPressed);
+  }
+
+  getStratumClearChoice(): 'continue' | 'exit' | null {
+    return this.stratumClearOverlay?.choice ?? null;
+  }
+
+  hasStratumClearOverlay(): boolean {
+    return this.stratumClearOverlay !== null;
+  }
+
+  destroyStratumClearOverlayPublic(): void {
+    this.destroyStratumClearOverlay();
+  }
+
+  private destroyStratumClearOverlay(): void {
+    if (this.stratumClearOverlay) {
+      if (this.stratumClearOverlay.container.parent) {
+        this.stratumClearOverlay.container.parent.removeChild(this.stratumClearOverlay.container);
+      }
+      this.stratumClearOverlay.destroy();
+      this.stratumClearOverlay = null;
+    }
+  }
+
   destroy(): void {
     this.hideEscapeConfirm();
     this.hideBossChoice();
-    this.destroyReturnHint();
     this.destroyOnboarding();
     this.destroyReturnResult();
     this.destroyStratumClearPanel();
+    this.destroyStratumClearOverlay();
   }
 
   private showOnboardingStep(options: OnboardingOptions): void {
@@ -447,13 +461,6 @@ export class ItemWorldUiController {
 
     this.onboardingPanel = panel;
     this.game.legacyUIContainer.addChild(panel);
-  }
-
-  private destroyReturnHint(): void {
-    if (this.returnHint) {
-      this.returnHint.destroy();
-      this.returnHint = null;
-    }
   }
 
   private destroyOnboarding(): void {

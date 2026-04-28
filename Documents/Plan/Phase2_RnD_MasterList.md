@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-04-21
 > **목표:** "성장/탐험 쾌감이 있는가?"
-> **범위:** 7개 층위 + 능력/스탯 이중 게이트 + 아이템계 전체 지층 + 이노센트 기초
+> **범위:** 7개 층위 + 능력/스탯 이중 게이트 + 아이템계 전체 지층 + 기억 단편 기초
 > **추정 기간:** ~12주
 > **근거:** `Development_Roadmap.md`, `Roadmap_GDD_MasterPlan.md`, 시스템 문서 47개, 리서치 70개, UI 전수조사 201개
 
@@ -52,12 +52,12 @@
 | M2.5 | `Disgaea_ItemWorld_Research_Summary.md` | OK |
 | M2.5 | `ItemWorld_DepthReward_RiskBalance_Research.md` | OK |
 | M2.5 | `ItemWorld_EntryTransition_Research.md` | OK |
-| M2.6 이노센트 | `Disgaea_ItemWorld_InnocentSystem.md` | OK |
-| M2.6 | `Innocent_Combat_Behavior_Research.md` | OK |
-| M2.6 | `Innocent_Growth_Economy_Research.md` | OK |
-| M2.6 | `Innocent_Classification_Balance_Research.md` | OK |
-| M2.6 | `Innocent_Narrative_Worldbuilding_Research.md` | OK |
-| M2.6 | `InnocentBalance_BehavioralModifier_Research.md` | OK |
+| M2.6 기억 단편 | `Disgaea_ItemWorld_Memory ShardSystem.md` | OK |
+| M2.6 | `Memory Shard_Combat_Behavior_Research.md` | OK |
+| M2.6 | `Memory Shard_Growth_Economy_Research.md` | OK |
+| M2.6 | `Memory Shard_Classification_Balance_Research.md` | OK |
+| M2.6 | `Memory Shard_Narrative_Worldbuilding_Research.md` | OK |
+| M2.6 | `Memory ShardBalance_BehavioralModifier_Research.md` | OK |
 | M2.7 스킬 | `SkillSystem_ActionRPG_Research.md` | OK |
 | M2.8 밸런스 | `EndgameLoop_Economy_Research.md` | OK |
 | 전투 | `SideScrolling_Combat_System_Research.md` | OK |
@@ -162,7 +162,7 @@
 | G-18 | **UI/UI_PauseMenu.md** | 일시정지 메뉴 레이아웃 (계속/스탯/장비/렐릭/설정/종료) | M2.8 | **R-02 선행 필요** |
 | G-19 | **UI/UI_StatSheet.md** | 캐릭터 스탯 시트 (ATK/INT/HP/DEF/RES + 장비 합산 표시) | M2.8 | **R-03 선행 필요** |
 | G-20 | **UI/UI_EquipmentScreen.md** | 8슬롯 캐릭터 인형 + 장착/해제 UI | M2.4 | OK (Inventory_ItemInfo_UI) |
-| G-21 | **UI/UI_ItemWorldResult.md** | 아이템계 귀환 결과 화면 (레벨업/이노센트/스탯 변화 요약) | M2.5 | **R-04 선행 필요** |
+| G-21 | **UI/UI_ItemWorldResult.md** | 아이템계 귀환 결과 화면 (레벨업/기억 단편/스탯 변화 요약) | M2.5 | **R-04 선행 필요** |
 | G-22 | **UI/UI_Shop.md** | 세이브 포인트 상점 UI (구매/판매/확인 다이얼로그) | M2.4 | **R-05 선행 필요** |
 | G-23 | **UI/UI_TitleScreen.md** | 타이틀 화면 + 메인 메뉴 + 세이브 슬롯 선택 | M2.8 | **R-02 선행 필요** |
 
@@ -182,7 +182,7 @@
 
 | # | 파일 | 내용 | 마일스톤 |
 |:--|:-----|:-----|:---------|
-| C-04 | **Content_System_Innocent_Pool.csv** | 12종 이노센트 타입/레벨/스탯/드랍 가중치 | M2.6 |
+| C-04 | **Content_System_Memory Shard_Pool.csv** | 12종 기억 단편 타입/레벨/스탯/드랍 가중치 | M2.6 |
 | C-05 | **Content_System_Monster_Roster.csv** | 적 10종+ 스탯/AI/드랍/층위 배치 | M2.1 |
 | C-06 | **Content_Level_Zone_Config.csv** | 7개 층위 설정 (난이도/팔레트/적 풀/게이트) | M2.1 |
 | C-07 | **Content_System_Skill_List.csv** | 스킬 10종 (이름/쿨다운/데미지/무기 제한) | M2.7 |
@@ -265,23 +265,23 @@
 | I-42 | 고급 지형 타일 | 얼음/가시/부서지는 바닥/거미줄/상승 기류/어둠 | OK (System_ItemWorld_FloorGen.md) |
 | I-43 | 아이템 레벨 전체 곡선 | Lv 0-99 경험치 수급 | G-05, C-10 |
 | I-44 | 레어리티 승급 | 아이템계 전 지층 클리어 보상 | G-04 |
-| I-45 | 귀환 결과 화면 | 아이템계 종료 후 레벨업/이노센트/스탯 요약 | G-21, R-04 |
+| I-45 | 귀환 결과 화면 | 아이템계 종료 후 레벨업/기억 단편/스탯 요약 | G-21, R-04 |
 | I-46 | 다이브 프리뷰 구현 | T5 풀 프리뷰 패널 (지층/적/보상) | OK (UI_SacredPickup.md) |
 | I-47 | Lore Popup 구현 | Sacred Pickup S3 아이템 최초 획득 모달 | OK (UI_SacredPickup.md) |
 
-### M2.6 이노센트 기초 (9건)
+### M2.6 기억 단편 기초 (9건)
 
 | # | 작업 | 상세 | 선행 |
 |:--|:-----|:-----|:-----|
-| I-48 | Wild/Tamed 상태 관리 | 이분법 상태 전환 로직 | OK (System_Innocent_Core.md) |
-| I-49 | 이노센트 12종 데이터 | 4분류(스탯/파밍/상태이상/행동) 12종 정의 | C-04 |
-| I-50 | 이노센트 아이템계 조우 | Wild 이노센트 스폰 + 전투 AI | I-48 |
-| I-51 | 이노센트 복종 전투 | 도주 속도 70-80%, 복종 완료 이펙트 | I-50 |
-| I-52 | 이노센트 합성 | 동종 이노센트 2개 합산 | I-49 |
-| I-53 | 이노센트 UI (인벤토리 Level 3) | Detail View Innocent 리스트 | OK (UI_Inventory.md) |
-| I-54 | 이노센트 발견/복종 알림 | 토스트 + 특수 아이콘 | I-50 |
-| I-55 | 이노센트 슬롯 표시 | 인벤토리 Level 1 좌하단 점 | OK (UI_Inventory.md) |
-| I-56 | 세이브 데이터 확장 | Item { innocents: [] } 스키마 마이그레이션 | I-48 |
+| I-48 | Wild/Tamed 상태 관리 | 이분법 상태 전환 로직 | OK (System_Memory Shard_Core.md) |
+| I-49 | 기억 단편 12종 데이터 | 4분류(스탯/파밍/상태이상/행동) 12종 정의 | C-04 |
+| I-50 | 기억 단편 아이템계 조우 | Wild 기억 단편 스폰 + 전투 AI | I-48 |
+| I-51 | 기억 단편 복종 전투 | 도주 속도 70-80%, 복종 완료 이펙트 | I-50 |
+| I-52 | 기억 단편 합성 | 동종 기억 단편 2개 합산 | I-49 |
+| I-53 | 기억 단편 UI (인벤토리 Level 3) | Detail View Memory Shard 리스트 | OK (UI_Inventory.md) |
+| I-54 | 기억 단편 발견/복종 알림 | 토스트 + 특수 아이콘 | I-50 |
+| I-55 | 기억 단편 슬롯 표시 | 인벤토리 Level 1 좌하단 점 | OK (UI_Inventory.md) |
+| I-56 | 세이브 데이터 확장 | Item { memory shards: [] } 스키마 마이그레이션 | I-48 |
 
 ### M2.7 스킬 시스템 (6건)
 
@@ -341,7 +341,7 @@
 | A-05 | 무기 스프라이트 6종 | Cleaver/Shiv/Harpoon/Chain/Railbow/Emitter | M2.4 |
 | A-06 | 무기 아이콘 6종 | 인벤토리 그리드용 16x16 | M2.4 |
 | A-07 | 방어구/장신구 아이콘 8종 | 슬롯별 아이콘 | M2.4 |
-| A-08 | 이노센트 스프라이트 12종 | Wild/Tamed 각각 | M2.6 |
+| A-08 | 기억 단편 스프라이트 12종 | Wild/Tamed 각각 | M2.6 |
 | A-09 | 렐릭 아이콘 6종 | 대시/이단점프/벽타기/안개/수중/역중력 | M2.2 |
 | A-10 | 스킬 이펙트 10종 | 스킬별 VFX | M2.7 |
 | A-11 | 원소 이펙트 3종 | Fire/Ice/Thunder 히트/상태이상 | M2.4 |
@@ -357,7 +357,7 @@
 | S-03 | 무기 SFX 6종 | 무기별 타격/스윙 사운드 | M2.4 |
 | S-04 | 스킬 SFX 10종 | 스킬별 발동/히트 사운드 | M2.7 |
 | S-05 | 원소 SFX 3종 | Fire/Ice/Thunder 히트/상태이상 | M2.4 |
-| S-06 | 이노센트 SFX | 조우/복종/합성 사운드 | M2.6 |
+| S-06 | 기억 단편 SFX | 조우/복종/합성 사운드 | M2.6 |
 | S-07 | UI SFX 세트 | 메뉴 선택/확인/취소/장착/해제 | M2.8 |
 
 ---
@@ -397,9 +397,9 @@ Week 5-6: 보스 + 장비
 ├── G-06 무기 상세 → I-28~33 무기 6종
 └── G-13 원소 상세 → I-37 원소 시스템
 
-Week 7-8: 아이템계 + 이노센트
+Week 7-8: 아이템계 + 기억 단편
 ├── I-38~44 아이템계 전체 지층
-├── C-04 이노센트 풀 → I-48~56 이노센트 기초
+├── C-04 기억 단편 풀 → I-48~56 기억 단편 기초
 └── G-21 귀환 결과 → I-45 결과 화면
 
 Week 9-10: 스킬 + UI

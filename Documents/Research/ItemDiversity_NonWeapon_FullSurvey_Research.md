@@ -4,7 +4,7 @@
 > **리서치 목적:** ECHORIS의 무기 외 전 아이템 카테고리에 대한 다양성 프레임워크 도출. DEC-026 sci-fi 리네이밍(Visor/Plate/Gauntlet/Greaves/Rig/Sigil/Seal) 기반.
 > **핵심 레퍼런스:** Diablo 2/3/4, Path of Exile, Elden Ring, Dark Souls 3, Monster Hunter, Castlevania SotN, Hollow Knight, Dead Cells, Hades, Terraria, Nioh 2, Vagrant Story, Disgaea, Blasphemous
 > **원시 데이터:** `Reference/방어구_다양성_분석.md`, `Reference/악세서리_시스템_리서치.md`, `Reference/소모품_재화_리서치.md`, `Reference/특수아이템_빌드시스템_리서치.md`
-> **관련 문서:** `System_Equipment_Slots.md`, `System_Innocent_Core.md`, `System_Healing_Recovery.md`, `DEC-026`
+> **관련 문서:** `System_Equipment_Slots.md`, `System_Memory Shard_Core.md`, `System_Healing_Recovery.md`, `DEC-026`
 > **무기 리서치:** `WeaponDiversity_300Weapons_Research.md` (별도)
 
 ---
@@ -18,7 +18,7 @@
 | 방어구 (Visor/Plate/Gauntlet/Greaves/Rig) | 12 | 차별화 9축 발견. Rig=유니크 효과 전용 슬롯으로 Hollow Knight Charm급 역할 부여 권장 |
 | 장신구 (Sigil/Seal) | 12 | Sigil=소형 조건부 조합, Seal=Build-Enabling 대형 효과. 8대 효과 카테고리, 6대 빌드 다양성 패턴 |
 | 소모품 (Flask/투척/버프) | 11 | "충전식 Flask + 즉시 소비 음식" 듀얼 모델이 현대적 표준. PoE Flask=장비의 연장 |
-| 소재/재화 | 7 | PoE "화폐=크래프팅 도구" 이중 역할이 이노센트 강화에 적용 가능. 3-4 티어 소재 계층 |
+| 소재/재화 | 7 | PoE "화폐=크래프팅 도구" 이중 역할이 기억 단편 강화에 적용 가능. 3-4 티어 소재 계층 |
 | 특수 아이템 (렐릭/세트/영구 진행) | 12 | 렐릭 6개는 업계 표준(HK 7/DC 5)과 정합. D3 세트 배율 폭증은 안티패턴 |
 
 ### 1.2 ECHORIS 전체 아이템 체계 권장안 (DEC-026 반영)
@@ -30,10 +30,10 @@
 | **방어구 5종** | Visor/Plate/Gauntlet/Greaves/Rig | 각각 아이템계 보유. Rig=유니크 효과 전용 | P2 |
 | **장신구 3종** | Sigil x2 + Seal x1 | 각각 아이템계 보유 | P2 |
 | **소모품** | Flask 3회(아이템계 고정) + 즉시 소비 음식 | Flask=월드 충전 / 음식=아이템계 내 드랍 | P1 |
-| **소재 3티어** | Ember Shard / Forge Ember / Anvil Flame | 이노센트 강화, 레어리티 승급 재료 | P2 |
+| **소재 3티어** | Ember Shard / Forge Ember / Anvil Flame | 기억 단편 강화, 레어리티 승급 재료 | P2 |
 | **렐릭 6종** | 영구 능력 (대시/벽타기/이단점프/안개변신/수중호흡/역중력) | 월드 전용. 아이템계 미적용 | P2 |
 | **탈출 아이템** | Emergency Exit (Mr. Gency 계승) | 아이템계 전용. 25% 확률 드랍 또는 소지 | P1 |
-| **Blueprint** | 신규 장비/이노센트 해금 설계도 | 아이템계 발견 -> 월드 귀환 -> 대장간 해금 | P3 |
+| **Blueprint** | 신규 장비/기억 단편 해금 설계도 | 아이템계 발견 -> 월드 귀환 -> 대장간 해금 | P3 |
 
 ---
 
@@ -48,11 +48,11 @@
 | A. 수치 방어 (DEF/HP) | 기본 스탯 차이 | 모든 게임 | 필수 |
 | B. 무게/이동 트레이드오프 | 무거운 방어구=높은 방어+느린 이동 | Elden Ring, DS3 | 보류 (무게 시스템 미도입) |
 | C. 세트 보너스 | N피스 착용 시 추가 효과 | Diablo, MH, Nioh, Terraria | P2 (2피스 보너스만. D3식 6피스 폭증 금지) |
-| D. 스킬 포인트 누적 | 방어구가 스킬 레벨을 부여 | Monster Hunter | 부분 적용 (이노센트 슬롯으로 대체) |
+| D. 스킬 포인트 누적 | 방어구가 스킬 레벨을 부여 | Monster Hunter | 부분 적용 (기억 단편 슬롯으로 대체) |
 | E. 고유 패시브 | 특정 방어구만의 조건부 효과 | PoE, Elden Ring, SotN | 핵심 (특히 Rig) |
 | F. 속성/종족 저항 | 원소/상태이상 저항 특화 | Vagrant Story, PoE, Elden Ring | P2 (화/빙/뇌 저항) |
 | G. 비용 기반 제한 | Notch/무게로 장착 제한 | Hollow Knight | 미적용 (슬롯 고정) |
-| H. Aspect/모디파이어 슬롯 | 방어구에 효과를 각인 | Diablo 4, PoE | 이노센트로 대체 |
+| H. Aspect/모디파이어 슬롯 | 방어구에 효과를 각인 | Diablo 4, PoE | 기억 단편로 대체 |
 | I. 소재/합성 | 방어구 간 합성/강화 | Vagrant Story | 미적용 (아이템계 강화로 대체) |
 
 ### 2.2 슬롯별 역할 설계 (ECHORIS 권장)
@@ -82,7 +82,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 | 이동 변형 | 대시 거리 +50% / 공중 대시 1회 추가 | Dashmaster |
 | 전투 변형 | 3타 피니셔에 넉백 면역 / 배후 판정 각도 확대 | Quick Slash, Steady Body |
 | 회복 변형 | 처치 시 HP 1% 회복 / 피격 후 3초 내 반격 시 HP 회복 | Soul Eater, Hiveblood |
-| 탐지 변형 | 숨겨진 방 진동 표시 / 이노센트 위치 감지 | Wayward Compass |
+| 탐지 변형 | 숨겨진 방 진동 표시 / 기억 단편 위치 감지 | Wayward Compass |
 | 아이템계 전용 | 탈출 제단 스폰율 +10% / 지층 보스 패턴 1개 공개 | Dream Wielder |
 
 ### 2.4 방어구 수량 목표
@@ -129,7 +129,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 | Seal 이름 (초안) | 효과 | 핵심 판타지 |
 |:---|:---|:---|
 | Seal of the Surveyor | 아이템계 진입 시 전 방 구조 미리보기 (5초) | 탐험가 |
-| Seal of the Forgemaster | 이노센트 복종 확률 +30%, 야생 이노센트 감지 | 장인 |
+| Seal of the Forgemaster | 기억 단편 복종 확률 +30%, 야생 기억 단편 감지 | 장인 |
 | Seal of the Vanguard | 파티원 존재 시 ATK/DEF +15% 상호 부여 | 모험가 |
 
 ### 3.4 Sigil 조합 시너지 원칙
@@ -202,7 +202,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 
 | 티어 | 이름 | 획득처 | 용도 | Phase |
 |:---|:---|:---|:---|:---|
-| T1 | **Ember Shard** | 아이템계 일반 적 드랍, 월드 광맥 | 이노센트 복종 촉매, 기본 강화 | P1 |
+| T1 | **Ember Shard** | 아이템계 일반 적 드랍, 월드 광맥 | 기억 단편 복종 촉매, 기본 강화 | P1 |
 | T2 | **Forge Ember** | 아이템계 보스 드랍, 보물방 | Flask 업그레이드, 레어리티 승급 재료 | P2 |
 | T3 | **Anvil Flame** | 아이템계 심연(Ancient), 월드보스 | 최종 강화, Mythic 크래프팅 | P3 |
 
@@ -217,7 +217,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 |:---|:---|
 | 이름 | **Ration** (배급 토큰. 메가스트럭처 경제 세계관) |
 | 획득 | 적 처치, 아이템 판매, 아이템계 보물방 |
-| 소비처 | 상점 구매, Flask 업그레이드, 이노센트 이식 비용 (P2) |
+| 소비처 | 상점 구매, Flask 업그레이드, 기억 단편 이식 비용 (P2) |
 | 인플레이션 방지 | 레어리티 승급 비용이 기하급수적 증가 (Gold Sink) |
 
 ---
@@ -247,7 +247,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 ### 6.2 세트 보너스 설계 원칙
 
 **채택:** 2피스 보너스만. 풀세트(5피스+) 보너스 금지.
-**근거:** D3의 6피스 1000%+ 폭증은 "세트=빌드" 강제. ECHORIS는 이노센트+아이템계 강화가 빌드를 정의해야 함.
+**근거:** D3의 6피스 1000%+ 폭증은 "세트=빌드" 강제. ECHORIS는 기억 단편+아이템계 강화가 빌드를 정의해야 함.
 
 | 원칙 | 내용 | 레퍼런스 |
 |:---|:---|:---|
@@ -258,7 +258,7 @@ Rig는 다른 4슬롯과 완전히 다른 역할을 합니다. SotN의 Cloak + H
 
 ### 6.3 Blueprint (설계도) 시스템 -- Phase 3
 
-Dead Cells의 Blueprint 시스템을 계승. 아이템계에서 발견한 설계도를 월드로 가져오면 대장간에서 새 장비/이노센트를 해금합니다.
+Dead Cells의 Blueprint 시스템을 계승. 아이템계에서 발견한 설계도를 월드로 가져오면 대장간에서 새 장비/기억 단편를 해금합니다.
 
 | 항목 | 설계 |
 |:---|:---|
@@ -266,7 +266,7 @@ Dead Cells의 Blueprint 시스템을 계승. 아이템계에서 발견한 설계
 | 귀환 조건 | 설계도를 소지한 채 생존 귀환 (사망 시 소실) |
 | 해금 장소 | 월드 세이브 포인트 (대장간) |
 | 해금 비용 | Forge Ember / Anvil Flame + Gold |
-| 콘텐츠 | 신규 무기 변형, Rig 효과, Seal 효과, 이노센트 종류 |
+| 콘텐츠 | 신규 무기 변형, Rig 효과, Seal 효과, 기억 단편 종류 |
 
 **사망 시 설계도 소실:** 야리코미 긴장감의 핵심. 단, **첫 발견 설계도는 소실 면제** (Dead Cells First Kill Reward 패턴). 재도전 동기를 보존하면서 최초 발견의 보상은 보장.
 
@@ -287,12 +287,12 @@ Dead Cells의 Blueprint 시스템을 계승. 아이템계에서 발견한 설계
 | 탭 | 내용 | 상한 | 근거 |
 |:---|:---|:---|:---|
 | **장비** | 무기/방어구/장신구 | 40칸 | 개별 가치 높음. 제한적 |
-| **이노센트** | 이노센트 목록 | 60칸 | PoE Currency Tab 참조. 분류 필터 |
+| **기억 단편** | 기억 단편 목록 | 60칸 | PoE Currency Tab 참조. 분류 필터 |
 | **소재/소모품** | Ember/Gold/Blueprint/소모품 | 자동 스택 | 스택형. 관리 부담 최소화 |
 
 ### 7.2 정비 장소 제한
 
-- **장비 교체/이노센트 이식:** 세이브 포인트(대장간)에서만 (Disgaea Warehouse 원칙)
+- **장비 교체/기억 단편 이식:** 세이브 포인트(대장간)에서만 (Disgaea Warehouse 원칙)
 - **아이템계 내부:** 소모품 사용만 가능. 장비 교체 불가 (긴장감 유지)
 - **예외:** 아이템 획득 시 즉석 비교 UI는 표시 (착용은 불가)
 
@@ -336,7 +336,7 @@ Dead Cells의 Blueprint 시스템을 계승. 아이템계에서 발견한 설계
 | 아이템 | 아이템계 연동 | 야리코미 깊이 |
 |:---|:---|:---|
 | Blade (무기) | 진입 대상. 기억의 지층 탐험 | 보스 처치 = ATK 영구 증가 |
-| Plate (방어구) | 진입 대상. DEF 영구 증가 | 이노센트 드랍 |
+| Plate (방어구) | 진입 대상. DEF 영구 증가 | 기억 단편 드랍 |
 | Rig | 진입 대상. 효과 레벨 업 | 아이템계 난이도에 따라 더 강한 Rig 효과 |
 | Sigil | 진입 대상. 소형이므로 지층 수 적음 | 빠른 파밍 순환 |
 | Seal | 진입 대상. 대형이므로 지층 수 많음 | 장기 프로젝트 |

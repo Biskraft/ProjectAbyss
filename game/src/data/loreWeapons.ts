@@ -11,7 +11,7 @@
  * LorePath. Vite `import.meta.glob('?raw')` bundles them at build time.
  *
  * CSV columns:
- *   WeaponID,Name,Type,Rarity,BaseATK,AreaID,InnocentSeed,LorePath,Description
+ *   WeaponID,Name,Type,Rarity,BaseATK,AreaID,MemoryShardSeed,LorePath,Description
  */
 
 import csvText from '../../../Sheets/Content_Stats_Weapon_Lore.csv?raw';

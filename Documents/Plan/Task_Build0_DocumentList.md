@@ -35,7 +35,7 @@
 |:--|:-----|:-------------|:----------|:----------|
 | 07 | A-역기획 | **System_Save_DataSchema.md** | `utils/SaveManager.ts` | v3 세이브 포맷, localStorage, 마이그레이션 전략, 필드 목록 |
 | 08 | A-역기획 | **UI_HUD_Layout.md** | `ui/HUD.ts` | HP바, Gold 카운터, 지층 표시기, 위치/크기/색상 |
-| 09 | A-역기획 | **UI_Inventory.md** | `ui/InventoryUI.ts` | 20슬롯(5x4), 장비 비교, 레어리티 색상, 이노센트 표시 |
+| 09 | A-역기획 | **UI_Inventory.md** | `ui/InventoryUI.ts` | 20슬롯(5x4), 장비 비교, 레어리티 색상, 기억 단편 표시 |
 | 10 | A-역기획 | **System_Enemy_Spawning.md** | `data/itemWorldSpawnTable.ts`, `data/enemyStats.ts`, `ItemWorldScene.ts` | weight 기반 스폰, 리스폰 규칙, GoldenMonster 희귀도, CSV SSoT |
 | 11 | A-역기획 | **System_World_Hazards.md** | `entities/Spike.ts`, `GrowingWall.ts`, `CrackedFloor.ts`, `CollapsingPlatform.ts`, `Updraft.ts` | 가시(20%HP), 증식벽, 붕괴바닥, 붕괴플랫폼, 상승기류 - 5종 환경 위험요소 |
 | 12 | A-역기획 | **System_World_Interactables.md** | `entities/Anvil.ts`, `Altar.ts`, `Portal.ts`, `Switch.ts`, `LockedDoor.ts` | 모루(아이템계 진입), 제단, 포탈, 스위치, 잠긴 문 - 5종 상호작용 오브젝트 |
@@ -127,7 +127,7 @@ Phase D: 신규 기획 (Tier 4: #21-23)
 | `entities/Slime.ts` | System_Enemy_AI.md | Done |
 | `entities/Guardian.ts` | System_ItemWorld_Boss.md | Done |
 | `entities/GoldenMonster.ts` | System_Enemy_AI.md | Done |
-| `entities/InnocentNPC.ts` | System_Innocent_Core.md | Done |
+| `entities/Memory ShardNPC.ts` | System_Memory Shard_Core.md | Done |
 | `entities/Projectile.ts` | System_Enemy_AI.md | Done |
 | `entities/Spike.ts` | 없음 | **#11 역기획** |
 | `entities/GrowingWall.ts` | 없음 | **#11 역기획** |
@@ -172,7 +172,7 @@ Phase D: 신규 기획 (Tier 4: #21-23)
 | `effects/HitSpark.ts` | System_Combat_HitFeedback.md | Done |
 | `data/weapons.ts` | System_Combat_Weapons.md | Done |
 | `data/enemyStats.ts` | System_Enemy_AI.md | Done |
-| `data/innocents.ts` | System_Innocent_Core.md | Done |
+| `data/memory shards.ts` | System_Memory Shard_Core.md | Done |
 | `data/damage.ts` | System_Combat_Damage.md | **#02 정합성** |
 | `data/stats.ts` | System_Growth_Stats.md | **#01 정합성 + #18 삭제** |
 | `data/dialogues.ts` | DEPRECATED | **#17 삭제** |

@@ -14,8 +14,8 @@
 | EQP-01-B | 슬롯     | 전체 8슬롯 (무기/보조/Visor/Plate/Gauntlet/Greaves/Rig/Sigil x2/Seal) | P2 | 대기 | Phase 2 추가 (DEC-026 리네이밍 반영) |
 | EQP-02-A | 착용     | 아이템 착용 규칙                    |    P1    | 대기      | 타입 일치 검증                      |
 | EQP-02-B | 착용     | 아이템 해제 규칙                    |    P1    | 대기      | 빈 슬롯 복귀                        |
-| EQP-03-A | 스탯합산 | 장비 스탯 → 캐릭터 스탯 합산        |    P1    | 대기      | FinalStat = Base + Equip + Innocent |
-| EQP-03-B | 스탯합산 | 이노센트 보너스 합산                |    P2    | 대기      | Phase 2 이노센트 시스템 연동        |
+| EQP-03-A | 스탯합산 | 장비 스탯 → 캐릭터 스탯 합산        |    P1    | 대기      | FinalStat = Base + Equip + Memory Shard |
+| EQP-03-B | 스탯합산 | 기억 단편 보너스 합산                |    P2    | 대기      | Phase 2 기억 단편 시스템 연동        |
 | EQP-04-A | 데이터   | 아이템 데이터 구조 정의             |    P1    | 대기      | id/name/type/rarity/level/stats     |
 | EQP-05-A | 세트효과 | 세트 장비 착용 보너스               |    P2    | 대기      | Phase 2 추가                        |
 | EQP-07-A | UI       | 장비창 HUD                          |    P1    | 대기      | 슬롯 UI 표시                        |
@@ -29,7 +29,7 @@
 * Glossary: `Documents/Terms/Glossary.md`
 * 레어리티 시스템: `Documents/System/System_Equipment_Rarity.md`
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`
-* 이노센트 시스템: `Documents/System/System_Innocent_Core.md`
+* 기억 단편 시스템: `Documents/System/System_Memory Shard_Core.md`
 * 스탯 성장 시스템: `Documents/System/System_Growth_Stats.md`
 * 아이템계 코어: `Documents/System/System_ItemWorld_Core.md`
 * 장비 목록 데이터: `Sheets/Content_Stats_Weapon_List.csv`
@@ -55,7 +55,7 @@ ECHORIS의 장비 슬롯 시스템은 다음 한 문장으로 정의한다:
 | :-------------------------- | :------------------------------------------------------------------------------------- |
 | MVP는 무기 슬롯 1개만       | 핵심 루프(전투 - 아이템계 - 강화)가 작동하는지 검증이 우선. 슬롯 수는 나중에 확장     |
 | 타입 제한 착용 규칙         | 무기 슬롯에 갑옷을 착용하는 오류 방지. 직관적 규칙이 학습 곡선을 줄임                 |
-| 이노센트 보너스를 합산에 포함 | 이노센트가 장비에 귀속되므로, 장비를 착용해야 이노센트 효과도 활성화. 착용의 가치 강화 |
+| 기억 단편 보너스를 합산에 포함 | 기억 단편가 장비에 귀속되므로, 장비를 착용해야 기억 단편 효과도 활성화. 착용의 가치 강화 |
 | 세트 효과를 Phase 2로 연기  | MVP에서 세트 조합 가짓수가 없음. 콘텐츠 볼륨 확보 후 도입이 적절                      |
 | Cloak → Rig, Ring/Amulet → Sigil/Seal 리네이밍 (DEC-026) | 메가스트럭처 sci-fi 세계관에 판타지 용어(Cloak/Ring/Amulet) 충돌. Rig=배면 장착 모듈, Sigil=거대 빌더 문양 인장, Seal=상위 거대 빌더 권한 봉인체 |
 
@@ -64,23 +64,23 @@ ECHORIS의 장비 슬롯 시스템은 다음 한 문장으로 정의한다:
 | 기둥                  | 장비 슬롯 시스템에서의 구현                                                              |
 | :-------------------- | :--------------------------------------------------------------------------------------- |
 | Metroidvania 탐험     | 장비 ATK/INT가 스탯 게이트 해금 조건. ATK 게이트(물리 장벽) + INT 게이트(마법 봉인). 더 강한 장비 = 새 구역 접근 가능 |
-| Item World 야리코미   | 착용 중인 장비의 아이템계 진입 가능. 장비 강화 = 이노센트 보너스 증가 = 더 높은 스탯    |
+| Item World 야리코미   | 착용 중인 장비의 아이템계 진입 가능. 장비 강화 = 기억 단편 보너스 증가 = 더 높은 스탯    |
 | Online 멀티플레이     | 파티원의 장비 슬롯 구성이 역할을 결정 (탱커: 갑옷 특화, DPS: 무기 특화)                 |
 
 ### 1.4. 저주받은 문제 검증 (Cursed Problem Check)
 
 | 문제                                               | 해결 방향                                                                               |
 | :------------------------------------------------- | :-------------------------------------------------------------------------------------- |
-| 장비 교체 시 이노센트 보너스가 사라지는 것이 억울하지 않은가? | 이노센트는 아이템에 귀속(아이템 전용 데이터). 교체 시 명확히 안내. Phase 2에서 이노센트 이식 비용 시스템 도입 |
+| 장비 교체 시 기억 단편 보너스가 사라지는 것이 억울하지 않은가? | 기억 단편는 아이템에 귀속(아이템 전용 데이터). 교체 시 명확히 안내. Phase 2에서 기억 단편 이식 비용 시스템 도입 |
 | 착용 슬롯이 너무 많으면 관리 부담이 커지지 않는가?  | MVP 1슬롯, Phase 2 6슬롯으로 단계적 확장. UI는 착용 전 스탯 비교 지원                   |
-| 저레어리티 장비는 고레어리티로 교체하면 버려지지 않는가? | 저레어리티도 아이템계 진입 후 이노센트를 고레어리티 아이템에 이식 가능 (Phase 2). 수집 가치 유지 |
+| 저레어리티 장비는 고레어리티로 교체하면 버려지지 않는가? | 저레어리티도 아이템계 진입 후 기억 단편를 고레어리티 아이템에 이식 가능 (Phase 2). 수집 가치 유지 |
 
 ### 1.5. 위험과 보상 (Risk & Reward)
 
 | 전략                     | 위험 (Risk)                              | 보상 (Reward)                                  |
 | :----------------------- | :--------------------------------------- | :--------------------------------------------- |
-| 고레어리티 장비 착용     | 아이템계 전 지층 클리어 부담             | 최대 스탯 배율 + 이노센트 슬롯 8개             |
-| 저레어리티 장비 강화 유지 | 고레어리티 대비 스탯 열세               | 이미 키운 이노센트 활용 가능, 아이템계 지층 부담 감소 |
+| 고레어리티 장비 착용     | 아이템계 전 지층 클리어 부담             | 최대 스탯 배율 + 기억 단편 슬롯 8개             |
+| 저레어리티 장비 강화 유지 | 고레어리티 대비 스탯 열세               | 이미 키운 기억 단편 활용 가능, 아이템계 지층 부담 감소 |
 | 여러 슬롯 고르게 강화    | 각 아이템계에 드는 시간 분산             | 균형 잡힌 스탯, 세트 효과 활성화 가능           |
 | 한 슬롯(무기)에 집중     | 방어 스탯 부족                           | 최고 공격 스탯, 빠른 지층 클리어                |
 
@@ -110,7 +110,7 @@ graph TD
     end
 
     subgraph "스탯 합산"
-        FINAL[FinalStat = BaseStat + EquipStat + InnocentBonus]
+        FINAL[FinalStat = BaseStat + EquipStat + Memory ShardBonus]
     end
 
     WPN --> FINAL
@@ -131,19 +131,19 @@ graph TD
 장비 착용 시 캐릭터의 최종 스탯은 다음 공식으로 산출된다:
 
 ```
-FinalStat = BaseStat + EquipStat + InnocentBonus
+FinalStat = BaseStat + EquipStat + Memory ShardBonus
 ```
 
 | 항목          | 정의                                             | 산출 방식                              |
 | :------------ | :----------------------------------------------- | :------------------------------------- |
 | BaseStat      | 캐릭터 고유 기본 스탯 (레벨 보정 포함)           | `System_Growth_Stats.md` 참조          |
 | EquipStat     | 착용한 모든 장비의 해당 스탯 합산                | 장비 baseStats 합산 * 레어리티 배율    |
-| InnocentBonus | 착용 장비에 귀속된 이노센트들의 보너스 스탯 합산 | `System_Innocent_Core.md` 참조         |
+| Memory ShardBonus | 착용 장비에 귀속된 기억 단편들의 보너스 스탯 합산 | `System_Memory Shard_Core.md` 참조         |
 
 세부 확장 공식 (Phase 2, 버프 포함):
 
 ```
-FinalStat = (BaseStat + LevelBonus) + sum(EquipStat_i * Rarity_Multiplier_i) + sum(InnocentBonus_i) + BuffBonus
+FinalStat = (BaseStat + LevelBonus) + sum(EquipStat_i * Rarity_Multiplier_i) + sum(Memory ShardBonus_i) + BuffBonus
 ```
 
 ### 2.3. 착용 흐름 (Equip Flow)
@@ -163,7 +163,7 @@ graph LR
 ### 2.4. 해제 흐름 (Unequip Flow)
 
 - 인벤토리가 가득 찬 경우 해제 불가 (인벤토리 공간 확보 요청)
-- 해제 즉시 해당 장비의 EquipStat 및 InnocentBonus 제거
+- 해제 즉시 해당 장비의 EquipStat 및 Memory ShardBonus 제거
 - 스탯 재계산 후 UI 갱신
 
 ### 2.5. 아이템계 진입 규칙 (Item World Entry)
@@ -193,7 +193,7 @@ graph LR
 | 규칙 ID | 규칙                                            | 예외                         |
 | :------ | :---------------------------------------------- | :--------------------------- |
 | EQP-R10 | 해제 시 인벤토리에 빈 공간이 1 이상 필요        | 없음                         |
-| EQP-R11 | 해제 즉시 EquipStat 및 InnocentBonus 제거       | 없음                         |
+| EQP-R11 | 해제 즉시 EquipStat 및 Memory ShardBonus 제거       | 없음                         |
 | EQP-R12 | 해제 후 스탯이 스탯 게이트 기준치 미달이 되어도 현재 위치에서 강제 이동 없음 | 월드 이동 시 게이트 재검증   |
 
 ### 3.3. Phase별 슬롯 개방 규칙 (Phase Slot Unlock)
@@ -233,7 +233,7 @@ item_data_structure:
     dex: 0
     spd: 0
     lck: 0
-  innocents: []                    # 귀속된 이노센트 배열 (System_Innocent_Core.md 참조)
+  memory shards: []                    # 귀속된 기억 단편 배열 (System_Memory Shard_Core.md 참조)
   itemWorldStrata: 2               # 아이템계 최대 지층 수 (레어리티에 따라 결정)
   currentItemWorldStratum: 0       # 현재 클리어된 아이템계 지층 수
   setId: null                      # 세트 ID (Phase 2, 미사용 시 null)
@@ -348,24 +348,24 @@ mvp_base_values:
 | :------------------------------------------ | :--------------------------------------------------------------------- |
 | 장비 해제 후 스탯 게이트 기준치 미달         | 현재 위치 유지. 해당 게이트 구역 재진입 시 통과 불가 안내             |
 | 게이트 통과 중 장비 해제 (연출 도중)         | 게이트 통과 완료 처리 후 해제 반영. 연출 중단 없음                    |
-| 이노센트 제거 후 InnocentBonus 하락으로 미달 | 장비 해제 규칙 동일 적용. 재진입 시 게이트 재검증                     |
+| 기억 단편 제거 후 Memory ShardBonus 하락으로 미달 | 장비 해제 규칙 동일 적용. 재진입 시 게이트 재검증                     |
 
 ### 5.3. 데이터 무결성 예외
 
 | 케이스                          | 처리 방식                                                              |
 | :------------------------------ | :--------------------------------------------------------------------- |
 | 알 수 없는 아이템 타입           | 서버 로드 시 타입 검증. 알 수 없는 타입은 착용 불가 처리               |
-| 아이템 데이터 손상 (innocents 배열 null) | null 안전 처리. InnocentBonus = 0으로 폴백                      |
+| 아이템 데이터 손상 (memory shards 배열 null) | null 안전 처리. Memory ShardBonus = 0으로 폴백                      |
 | 레어리티 없는 아이템 데이터      | Normal으로 폴백 처리. 개발 로그에 경고 기록                           |
 
 ---
 
 ## 검증 기준 (Verification Checklist)
 
-- [ ] FinalStat = BaseStat + EquipStat + InnocentBonus 공식이 모든 슬롯에 일관되게 적용되는가?
+- [ ] FinalStat = BaseStat + EquipStat + Memory ShardBonus 공식이 모든 슬롯에 일관되게 적용되는가?
 - [ ] 타입 불일치 착용 시도가 명확한 오류 메시지와 함께 거부되는가?
 - [ ] 장비 착용/해제 시 스탯 UI가 즉시 갱신되는가?
-- [ ] 아이템 데이터 구조(id, name, type, rarity, level, baseStats, innocents[])가 모든 아이템에 완전하게 정의되어 있는가?
+- [ ] 아이템 데이터 구조(id, name, type, rarity, level, baseStats, memory shards[])가 모든 아이템에 완전하게 정의되어 있는가?
 - [ ] MVP Blade Normal Lv1의 ATK 15가 전투 데미지 공식에 정확히 반영되는가? (`System_Combat_Damage.md` 연동)
 - [ ] Phase 2 슬롯 10종(무기 2 + Visor/Plate/Gauntlet/Greaves/Rig + Sigil×2/Seal)이 DEC-026 리네이밍을 따르는가?
 - [ ] 장비 해제 후 스탯 게이트 미달 상태에서 게이트 구역 재진입 시 차단이 동작하는가?

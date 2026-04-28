@@ -1,6 +1,6 @@
 # ECHORIS 용어집 (Glossary)
 
-> 최근 업데이트: 2026-04-03 (수직 구조 용어 추가: Bulkhead, Bulkhead Surveyor, The Shaft, Tier)
+> 최근 업데이트: 2026-04-28 (DEC-036: Memory Shard → Memory Shard 통합. 5색 기질, 핵심 기억, 정체성 결, 회상/잊혀진 상태 추가)
 > 문서 상태: `작성 중 (Draft)`
 
 ---
@@ -65,7 +65,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Geo Effect | 지오 이펙트 | 디스가이아의 지오 이펙트를 차용한 개념. 아이템계 특정 지층에 배치되는 패널로, 해당 타일 위에 있을 때 데미지 증가·감소, 이동 제한 등 전략적 변수를 추가한다. | `Documents/System/System_ItemWorld_FloorGen.md` |
-| HL | HL | ECHORIS의 기본 화폐 단위. 몹 처치, 아이템계 보상으로 획득하며, NPC 상점/장비 강화/이노센트 합성 등에 소비된다. | `Documents/Design/Design_Economy_FaucetSink.md`, `Documents/Design/Design_Yarikomi_Philosophy.md` |
+| HL | HL | ECHORIS의 기본 화폐 단위. 몹 처치, 아이템계 보상으로 획득하며, NPC 상점/장비 강화/기억 단편 합성(Bond) 등에 소비된다. | `Documents/Design/Design_Economy_FaucetSink.md`, `Documents/Design/Design_Yarikomi_Philosophy.md` |
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2-4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
 | Hitstun | 피격 경직 | 피격 시 피격자의 행동이 일정 시간 강제 중단되는 상태. 경직 지속 시간은 공격의 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md` |
@@ -78,14 +78,16 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). Ghost 이노센트 등으로 대시 i-frame을 추가할 수 있다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md`, `Documents/System/System_Innocent_Core.md` |
+| i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). Shadow 기질 단편(Ghost 등)으로 대시 i-frame을 추가할 수 있다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md`, `Documents/System/System_Memory_Core.md` |
+| Identity Slot | 정체성 슬롯 | 핵심 기억(Core Memory) 전용 슬롯. 무기의 지층 수와 동일한 개수를 가지며, 보스 처치 핵심 기억과 1대1 매칭된다. 일반 단편은 장착 불가. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Identity Trait | 정체성 결 | 핵심 기억이 가동시키는 무기의 본질적 성격 한 면. 무기의 코어 인격은 결의 합으로 정의된다. 결을 붕괴(전이)시키면 그 무기다움이 사라진다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
-| Innocent | 이노센트 | 아이템 안에 살아있는 세계의 주민. 해당 아이템에 보너스 스탯을 부여하는 존재. 야생(Wild) 상태에서는 적으로 등장하며 격파 시 복종(Tamed) 상태로 전환된다. 복종 상태에서 효과가 2배가 되고 다른 아이템으로 이동 가능하다. | `Reference/게임 기획 개요.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
-| Innocent Slot | 이노센트 슬롯 | 장비 아이템이 보유할 수 있는 이노센트의 최대 수량. 레어리티에 따라 Normal 2슬롯부터 Ancient 8슬롯까지 증가한다. 아이템계 보스 처치로 슬롯을 추가할 수 있다. | `Reference/게임 기획 개요.md` |
+| ~~Memory Shard~~ | ~~기억 단편~~ | ~~DEPRECATED. DEC-036에서 검 Ego(DEC-033)와 통합되어 Memory Shard(기억 단편) 시스템으로 흡수. 재도입 금지. 원전(Disgaea) 인용 시에만 영문 Memory Shard 표기 허용.~~ | `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` |
+| ~~Memory Shard Slot~~ | ~~기억 단편 슬롯~~ | ~~DEPRECATED. Identity Slot(정체성 슬롯) + Memory Slot(기억 슬롯) 분할 모델로 대체. (DEC-036)~~ | — |
 | INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
 | Item General | 아이템 장군 | 아이템계 초기 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +5% 보너스를 획득한다. | `Reference/게임 기획 개요.md` |
-| Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 이노센트 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
-| Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 이노센트 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
+| Item God | 아이템 신 | 아이템계 후반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +15%와 특수 기억 단편 드랍 보상을 획득한다. | `Reference/게임 기획 개요.md` |
+| Item King | 아이템 왕 | 아이템계 중반 지층에 출현하는 보스 등급. 처치 시 아이템 스탯 +10%와 기억 단편 슬롯 +1 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item Overlord | 아이템 대신 | 아이템계 최심층 지층에 출현하는 최상위 보스. 처치 시 아이템 레어리티 승급 기회와 대량 보상을 획득한다. | `Reference/게임 기획 개요.md` |
 | Item World | 아이템계 | 모든 장비 아이템 안에 살아있는 세계. 기억의 지층(Memory Strata) 절차적 던전. 레어리티별 2-4개 지층으로 구성되며, 1-2인이 협동하여 (Phase 4+에서 최대 4인) 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
@@ -96,9 +98,11 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Knockback | 넉백 | 피격 시 캐릭터가 공격 반대 방향으로 밀려나는 물리적 반응. 넉백 거리는 공격 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Character.md` |
+| Memory Shard | 기억 단편 | 무기 Ego의 잊혀진 기억 조각. 단일 효과(스탯·행동·원소)를 가지며 자유롭게 다른 무기로 전이 가능. 5색 기질(Forge/Iron/Rust/Spark/Shadow)로 분류. 일반 단편은 기억 슬롯에 Active 또는 Passive 역할로 장착. (DEC-036) | `Documents/System/System_Memory_Core.md`, `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` |
+| Memory Slot | 기억 슬롯 | 일반 기억 단편을 자유롭게 장착하는 슬롯. Active(전투 중 발현) 또는 Passive(상시) 두 역할 중 하나로 끼움. 같은 단편이라도 역할에 따라 다른 효과가 발현. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | Memory Wanderer | 기억의 방랑자 | 월드 필드에 랜덤 출현하는 유령형 존재. 과거에 아이템 속으로 들어갔다 돌아오지 못한 자들의 잔상. 접촉하면 임시 균열 제단이 생성되며, 이를 통해 보상 강화 아이템계로 진입 가능. 평균 30-45분에 1회 출현. | `Documents/System/System_ItemWorld_Core.md` |
 | Marta ven-Nacht | 마르타 벤-나흐트 | 에르다의 스승. 중년 여성 장인. 10년 전 Ancient 아이템 내부로 들어가 자발적으로 남아 기억을 지키고 있다. 카엘 오르스와 마찬가지로 기억을 지키기 위한 자발적 유배를 선택한 인물. | `Documents/Content/Content_World_Bible.md` |
-| ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5% + 이노센트 보정, 드랍률은 적 테이블 + 이노센트 보정.~~ | — |
+| ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5% + 기억 단편 보정, 드랍률은 적 테이블 + 기억 단편 보정.~~ | — |
 | Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. ECHORIS의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
 | ~~MP~~ | ~~마력~~ | ~~DEPRECATED. 기존 스킬 소비 자원. MP 시스템 삭제, 스킬은 쿨다운 기반으로 전환.~~ | — |
 | Mystery Room | 미스터리 룸 | 아이템계 특정 지층에 확률적으로 출현하는 특수 이벤트 룸. 상점·점술사·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
@@ -109,7 +113,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| No.1 | 넘버 원 | 에르다의 첫 이노센트. 말을 못하는 빛나는 구체. 정체는 스승 마르타가 남긴 이노센트로, 10년간 에르다와 마르타를 연결하는 매개체였다. Act 1에서 개그 마스코트, Act 3에서 서사적 핵심. | `Documents/Content/Content_World_Bible.md` |
+| No.1 | 넘버 원 | 에르다의 첫 기억 단편(서사 단편). 말을 못하는 빛나는 구체. 색 무관·에코 부착·슬롯 비용 없음. 정체는 스승 마르타가 남긴 단편으로, 10년간 에르다와 마르타를 연결하는 매개체였다. Act 1에서 개그 마스코트, Act 3에서 서사적 핵심. | `Documents/Content/Content_World_Bible.md` |
 
 ---
 
@@ -134,8 +138,10 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Remnant Fragment | 잔재 파편 | 복종(Tamed) 이노센트를 분해하여 획득하는 레어리티 승급 재료. floor(이노센트_레벨 / FRAGMENT_DIVISOR) 개 획득. System_Innocent_Core.md §2.7 참조. | `Documents/System/System_Innocent_Core.md` |
-| Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·이노센트 슬롯 수·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
+| Recall / Recalled | 회상 / 회상된 | Forgotten 단편을 격파하여 Ego가 받아들이는 행위·상태. 100% 효과, 다른 무기로 전이 가능. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Forgotten | 잊혀진 | 기억 단편이 지층 내 적 NPC로 출현한 상태. 효과 50%. 격파(회상) 시 Recalled 상태로 전환. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Remnant Fragment | 잔재 파편 | 회상된(Recalled) 기억 단편을 분해하여 획득하는 레어리티 승급 재료. floor(단편_레벨 / FRAGMENT_DIVISOR) 개 획득. System_Memory_Core.md 참조. | `Documents/System/System_Memory_Core.md` |
+| Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·정체성 슬롯 수·기억 슬롯 수·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 아이템계는 4×4 고정, 월드 구역은 난이도에 따라 3×3-5×5. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
@@ -149,7 +155,9 @@
 | :--- | :--- | :--- | :--- |
 | Skill Slot | 스킬 슬롯 | 캐릭터가 전투에 장착할 수 있는 스킬 칸. 총 4개 슬롯이 존재하며, 각 슬롯에 하나의 스킬을 장착한다. 장착 변경은 세이브 포인트에서만 가능하다. 슬롯 제한이 빌드 선택의 전략성을 만든다. | `Documents/System/System_3C_Control.md`, `Documents/System/System_3C_Character.md` |
 | SkillCast | 스킬 시전 | 스킬 슬롯에 장착된 스킬을 발동하는 행동. 쿨다운 기반으로 발동되며, 스킬 카테고리(근접·원거리·범위·버프·소환)에 따라 발동 중 이동 가능 여부가 다르다. 자동 조준이 적용된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
-| ~~SPD~~ | ~~속도 스탯~~ | ~~DEPRECATED. 기존 이동/공격 속도 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 이동/공격 속도는 무기 유형별 고정값 + 이노센트 보정.~~ | — |
+| ~~SPD~~ | ~~속도 스탯~~ | ~~DEPRECATED. 기존 이동/공격 속도 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 이동/공격 속도는 무기 유형별 고정값 + 기억 단편 보정.~~ | — |
+| Spark | 섬광 | 5색 기질 중 하나. 흰빛, 호기심·경이. Tutor/Sprinter/Shocker 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Shadow | 그림자 | 5색 기질 중 하나. 자주, 의심·교활·은밀. Ghost 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | SSoT | 단일 진실 공급원 | Single Source of Truth. 수치 데이터는 `Sheets/` CSV 파일에서만 정의하고, 기획 문서는 해당 파일을 참조하는 방식. 데이터의 중복 정의와 불일치를 방지하는 데이터 관리 원칙. | `Documents/Terms/GDD_Writing_Rules.md`, `Documents/Terms/Sheets_Writing_Rules.md` |
 | Stat Gate | 스탯 게이트 | 장비 ATK 또는 INT가 특정 수치 이상일 때 열리는 월드 진행 장벽. ATK 게이트(물리 장벽: 파괴 가능한 벽, 바리케이드)와 INT 게이트(마법 봉인: 룬 장벽, 마법 잠금)로 구분된다. 아이템계에서 장비를 강화하여 ATK/INT를 올리고 게이트를 해금하는 것이 핵심 순환의 동력이다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_2Space.md` |
 | ~~STR~~ | ~~근력 스탯~~ | ~~DEPRECATED. 기존 물리 공격력 스탯. ATK/INT/HP 3스탯 체계 전환으로 ATK에 통합.~~ | — |
@@ -163,7 +171,11 @@
 | :--- | :--- | :--- | :--- |
 | The Shaft | 대공동 | 세계수 Yggveil이 하늘에서 뿌리를 내리며 수직으로 관통한 거대 공동. 세계의 물리적 골격. 7개 층위(Tier 1-7)가 격벽으로 분리되어 수직으로 쌓여 있다. | `Documents/Content/Content_World_Bible.md` |
 | Tier | 층위 | 수직 대공동(The Shaft)을 구성하는 대구역 단위. Tier 1 천공의 정원 - Tier 7 심연의 구까지 7개. 각 층위는 격벽(Bulkhead)으로 분리된다. | `Documents/Content/Content_World_Bible.md` |
-| Tutor | 튜터 | INT +X 효과를 부여하는 기본형 이노센트. 원소/인챈트 빌드의 핵심이며 INT 게이트(마법 봉인) 해금에 기여한다. 레벨당 INT +1. 야생 50%, 복종 100%. | `Documents/System/System_Innocent_Core.md` |
+| Tutor | 튜터 | INT +X 효과를 부여하는 기본형 기억 단편(Spark 기질). 원소/인챈트 빌드의 핵심이며 INT 게이트(마법 봉인) 해금에 기여한다. 레벨당 INT +1. 잊혀진(Forgotten) 50%, 회상된(Recalled) 100%. | `Documents/System/System_Memory_Core.md` |
+| Temperament | 기질 (5색) | 단편과 Ego의 색 분류. Forge(주황·분노)/Iron(청록·결연)/Rust(회색·체념)/Spark(흰빛·호기심)/Shadow(자주·은밀). 각 무기 Ego는 주색 1 + 부색 1을 가지며, 전이 시 수신 Ego의 기질색에 따라 단편이 변이한다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Forge | 단조 | 5색 기질 중 하나. 주황, 분노·열정·공격성. Gladiator/Berserker/Burner 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Iron | 강철 | 5색 기질 중 하나. 청록, 결연함·냉정. Ironclad/Freezer 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| Rust | 부식 | 5색 기질 중 하나. 회색, 비통·체념·세월. Vampire/Leech/Dietician 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | Unified Grid | 통합 그리드 | 아이템계의 모든 지층을 수직으로 이어붙인 단일 2D 배열 구조. 지층 간 씬 전환 없이 연속적 탐험이 가능하다. `UnifiedGridData` 타입으로 구현. | `game/src/level/RoomGrid.ts` |
 
 ---
@@ -173,7 +185,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Tell | 예고 동작 | 적 또는 보스가 강력한 공격을 시전하기 직전 재생하는 예고 모션·이펙트. 플레이어가 회피를 준비할 수 있는 공정성 장치. | `Documents/System/System_Combat_Action.md` |
-| ~~VIT~~ | ~~생명력 스탯~~ | ~~DEPRECATED. 기존 최대 HP/환경 저항 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. MaxHP는 레벨 + Dietician 이노센트로 성장.~~ | — |
+| ~~VIT~~ | ~~생명력 스탯~~ | ~~DEPRECATED. 기존 최대 HP/환경 저항 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. MaxHP는 레벨 + Dietician 기억 단편(Rust 기질)으로 성장.~~ | — |
 | World | 월드 | 2-Space 모델의 첫 번째 공간. 솔로(1인) 탐험을 중심으로 한 핸드크래프트+절차적 혼합 맵. 능력 게이트와 스탯 게이트로 비선형 진행이 설계되며, 아이템 획득과 능력 해금이 주요 보상이다. | `Documents/Design/Design_Architecture_2Space.md`, `Reference/게임 기획 개요.md` |
 
 ---
@@ -188,19 +200,24 @@
 | 심연 전쟁 | Abyss War | 약 150-100년 전 발생한 세계적 전쟁. 심연의 기억을 해방하려는 해방파(기억 연구원)와 현재 세계를 수호하려는 수호파(성채 의회+수호단)가 대립. 영웅 카엘 오르스가 심연과 협약을 맺어 종결했다. | `Documents/Content/Content_World_Bible.md` |
 | 카엘 오르스 | Kael Ors | 심연 전쟁의 영웅. 심연의 검을 들고 심연 속으로 뛰어들어 심연과 협약을 맺었다. 협약의 닻으로서 100년간 심연 속에 머물고 있다. 심연의 검 최심층에서 기억으로서 대면 가능. | `Documents/Content/Content_World_Bible.md` |
 | 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
-| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·이노센트 시스템이 대표적 야리코미 콘텐츠. ECHORIS에서는 아이템계 모든 지층 클리어·이노센트 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
+| 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·Memory Shard 시스템이 대표적 야리코미 콘텐츠. ECHORIS에서는 아이템계 모든 지층 클리어·기억 단편 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
+| 회상 | Recall | 잊혀진(Forgotten) 단편을 격파하여 Ego가 되찾는 행위. = 격파. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| 핵심 기억 | Core Memory | 지층 보스 처치 시 100% 드롭하는 영혼 단편. 무기의 정체성 결을 가동. 정체성 슬롯 전용. 전이 시 정체성 결 붕괴. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| 기억 단편 | Memory Shard | (Memory Shard 항목 참조) | `Documents/System/System_Memory_Core.md` |
 
 ---
 
 ## 레어리티 등급 빠른 참조
 
-| 등급 | 색상 | 스탯 배율 | 이노센트 슬롯 | 아이템계 지층 수 | 드랍 확률 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Normal | 흰색 #FFFFFF | x1.0 | 2 | 2 지층 (4×4 고정) | 60% |
-| Magic | 파란 #6969FF | x1.3 | 3 | 3 지층 (4×4 고정) | 25% |
-| Rare | 노란 #FFFF00 | x1.7 | 4 | 3 지층 (4×4 고정) | 10% |
-| Legendary | 주황 #FF8000 | x2.2 | 6 | 4 지층 (4×4 고정) | 4% |
-| Ancient | 초록 #00FF00 | x3.0 | 8 | 4 지층 + 심연 (4×4 고정) | 1% |
+| 등급 | 색상 | 스탯 배율 | 정체성 슬롯 | 기억 슬롯 | 합계 | 아이템계 지층 수 | 드랍 확률 |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| Normal | 흰색 #FFFFFF | x1.0 | 2 | 0 | 2 | 2 지층 (4×4 고정) | 60% |
+| Magic | 파란 #6969FF | x1.3 | 3 | 0 | 3 | 3 지층 (4×4 고정) | 25% |
+| Rare | 노란 #FFFF00 | x1.7 | 3 | 1 | 4 | 3 지층 (4×4 고정) | 10% |
+| Legendary | 주황 #FF8000 | x2.2 | 4 | 2 | 6 | 4 지층 (4×4 고정) | 4% |
+| Ancient | 초록 #00FF00 | x3.0 | 5 (4 + 심연) | 3 | 8 | 4 지층 + 심연 (4×4 고정) | 1% |
+
+> 정체성 슬롯에는 핵심 기억(Core Memory)만 장착. 기억 슬롯은 일반 단편을 Active/Passive 역할로 장착. (DEC-036)
 
 ---
 
@@ -220,6 +237,6 @@
 | 보스 등급 | 출현 지층 | 처치 보상 |
 | :--- | :--- | :--- |
 | 아이템 장군 (Item General) | 각 지층의 보스 (초기 지층) | 아이템 스탯 +5% |
-| 아이템 왕 (Item King) | 각 지층의 보스 (중반 지층) | 아이템 스탯 +10%, 이노센트 슬롯 +1 |
-| 아이템 신 (Item God) | 각 지층의 보스 (후반 지층) | 아이템 스탯 +15%, 특수 이노센트 드랍 |
+| 아이템 왕 (Item King) | 각 지층의 보스 (중반 지층) | 아이템 스탯 +10%, 기억 슬롯 +1 |
+| 아이템 신 (Item God) | 각 지층의 보스 (후반 지층) | 아이템 스탯 +15%, 특수 핵심 기억 드랍 |
 | 아이템 대신 (Item Overlord) | 최심층 지층의 보스 | 레어리티 승급 기회, 대량 보상 |

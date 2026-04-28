@@ -2,7 +2,8 @@
  * rarityConfig.ts — Rarity-level constants loaded from CSV.
  *
  * SSoT: Sheets/Content_Rarity.csv
- * Centralizes: multiplier, innocent slots, color, bare-hand ATK, spawn/drop chances.
+ * Centralizes: multiplier, slot split (identity + memory), color, bare-hand ATK, spawn/drop chances.
+ * Slot model per DEC-036 (2026-04-28): identity slots (Core Memory only) + memory slots (free Active/Passive).
  */
 
 import csvText from '../../../Sheets/Content_Rarity.csv?raw';
@@ -10,10 +11,16 @@ import type { Rarity } from './weapons';
 
 export interface RarityEntry {
   multiplier: number;
-  innocentSlots: number;
+  /** Identity slots — Core Memory (boss drop) only. = number of strata in the weapon. */
+  identitySlots: number;
+  /** Memory slots — free Active/Passive shards. */
+  memorySlots: number;
+  /** Total slots = identitySlots + memorySlots. Preserves legacy total count. */
+  totalSlots: number;
   color: number;
   bareHandAtk: number;
-  innocentSpawnChance: number;
+  /** Per-floor chance that a Forgotten Memory Shard NPC spawns. */
+  shardSpawnChance: number;
   dropChance: number;
   /** Slash FX tint (0xRRGGBB). Multiplied with the weapon-type base color. */
   fxTint: number;
@@ -33,23 +40,25 @@ function parseHex(s: string): number {
 const lines = csvText.trim().split('\n');
 for (let i = 1; i < lines.length; i++) {
   const cols = lines[i].split(',');
-  if (cols.length < 8) continue;
+  if (cols.length < 10) continue;
   const rarity = cols[0].trim().toLowerCase();
   RARITY_MAP.set(rarity, {
     multiplier: parseFloat(cols[1]),
-    innocentSlots: parseInt(cols[2]),
-    color: parseHex(cols[3]),
-    bareHandAtk: parseInt(cols[4]),
-    innocentSpawnChance: parseFloat(cols[5]),
-    dropChance: parseFloat(cols[6]),
-    fxTint: parseHex(cols[7]),
+    identitySlots: parseInt(cols[2]),
+    memorySlots: parseInt(cols[3]),
+    totalSlots: parseInt(cols[4]),
+    color: parseHex(cols[5]),
+    bareHandAtk: parseInt(cols[6]),
+    shardSpawnChance: parseFloat(cols[7]),
+    dropChance: parseFloat(cols[8]),
+    fxTint: parseHex(cols[9]),
   });
 }
 
 export function getRarityConfig(rarity: Rarity): RarityEntry {
   return RARITY_MAP.get(rarity) ?? {
-    multiplier: 1, innocentSlots: 2, color: 0xffffff,
-    bareHandAtk: 5, innocentSpawnChance: 0.15, dropChance: 0.30,
+    multiplier: 1, identitySlots: 2, memorySlots: 0, totalSlots: 2, color: 0xffffff,
+    bareHandAtk: 5, shardSpawnChance: 0.15, dropChance: 0.30,
     fxTint: 0xffffff,
   };
 }

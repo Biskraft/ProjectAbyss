@@ -10,12 +10,19 @@ import { assetPath } from '@core/AssetLoader';
 import { sampleRow, unpack } from '@effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import type { AreaPaletteEntry } from '@data/areaPalettes';
+import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
 interface ImageLayerState {
   container: Container;
+  sprite: TilingSprite;
   factor: number;
+  baseScale: number;
+  tileW: number;
+  tileH: number;
 }
 
+// Margin around viewport so the TilingSprite fully covers all subpixel positions.
+const VIEW_MARGIN = 64;
 export class ParallaxBackground {
   readonly container: Container;
   /** True after setup() has been called at least once. */
@@ -55,14 +62,14 @@ export class ParallaxBackground {
 
     // L0: Vertical gradient — oversized to survive room transitions.
     // Width covers viewport (repositioned each frame), height covers max world.
-    const gradW = 640 + 320 * 2;
-    const gradH = Math.max(levelH * 5, 4000);
+    const gradW = GAME_WIDTH;
+    const gradH = GAME_HEIGHT;
     const gradTex = this.buildGradientTexture(entry, gradH);
     this.gradientSprite = new Sprite(gradTex);
     this.gradientSprite.width = gradW;
     this.gradientSprite.height = gradH;
-    this.gradientSprite.x = -320;
-    this.gradientSprite.y = -gradH / 2;
+    this.gradientSprite.x = 0;
+    this.gradientSprite.y = 0;
     this.gradientLayer.addChild(this.gradientSprite);
 
     // L1: Far image
@@ -109,14 +116,26 @@ export class ParallaxBackground {
     this.lastCamX = cameraX;
     this.lastCamY = cameraY;
 
-    // Gradient follows camera horizontally, stays vertically centered
+    // Gradient is fixed in screen space.
     if (this.gradientSprite) {
-      this.gradientSprite.x = cameraX - 320;
+      this.gradientSprite.x = 0;
+      this.gradientSprite.y = 0;
     }
 
+    // Layers live in a fixed screen-space background render target. Only the
+    // texture pattern scrolls, so camera zoom cannot change the parallax scale.
     for (const layer of this.imageLayers) {
-      layer.container.x = (cameraX + this.offsetX) * (1 - layer.factor);
-      layer.container.y = (cameraY + this.offsetY) * (1 - layer.factor);
+      const px = cameraX + this.offsetX;
+      const py = cameraY + this.offsetY;
+      if (layer.sprite.tileScale.x !== layer.baseScale || layer.sprite.tileScale.y !== layer.baseScale) {
+        layer.sprite.tileScale.set(layer.baseScale, layer.baseScale);
+      }
+      layer.sprite.x = -VIEW_MARGIN;
+      layer.sprite.y = -VIEW_MARGIN;
+      const tx = -px * layer.factor;
+      const ty = -py * layer.factor;
+      layer.sprite.tilePosition.x = ((tx % layer.tileW) + layer.tileW) % layer.tileW;
+      layer.sprite.tilePosition.y = ((ty % layer.tileH) + layer.tileH) % layer.tileH;
     }
   }
 
@@ -153,23 +172,26 @@ export class ParallaxBackground {
       const tex = await Assets.load<Texture>(assetPath(`assets/parallax/${imageName}.png`));
       tex.source.scaleMode = 'nearest';
       tex.source.addressMode = 'repeat';
+      tex.source.style.update();
 
       const fitScale = (360 / tex.height) * 1.5;
-      const tileW = Math.ceil(tex.width * fitScale);
-      const tileH = Math.ceil(tex.height * fitScale);
+      const tileW = Math.max(1, tex.width * fitScale);
+      const tileH = Math.max(1, tex.height * fitScale);
 
-      // TilingSprite handles infinite repeating — large enough to never show edges
-      const coverW = Math.max(levelW * 6, 8000);
-      const coverH = Math.max(levelH * 6, 8000);
+      // Viewport-sized TilingSprite. Scrolling is done via tilePosition so the
+      // filter framebuffer stays small (avoids GPU max-texture clamping that
+      // caused tearing on large maps).
+      const spriteW = GAME_WIDTH + VIEW_MARGIN * 2;
+      const spriteH = GAME_HEIGHT + VIEW_MARGIN * 2;
 
       const ts = new TilingSprite({
         texture: tex,
-        width: coverW,
-        height: coverH,
+        width: spriteW,
+        height: spriteH,
       });
       ts.tileScale.set(fitScale, fitScale);
-      ts.x = -coverW / 2;
-      ts.y = -coverH / 2;
+      ts.x = -VIEW_MARGIN;
+      ts.y = -VIEW_MARGIN;
 
       const layerContainer = new Container();
       layerContainer.addChild(ts);
@@ -190,7 +212,14 @@ export class ParallaxBackground {
       }
 
       this.container.addChild(layerContainer);
-      this.imageLayers.push({ container: layerContainer, factor });
+      this.imageLayers.push({
+        container: layerContainer,
+        sprite: ts,
+        factor,
+        baseScale: fitScale,
+        tileW,
+        tileH,
+      });
     } catch {
       // Image not found — skip this layer
     }

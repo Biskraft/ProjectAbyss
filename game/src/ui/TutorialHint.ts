@@ -12,8 +12,10 @@ import { trackTutorialStep } from '@utils/Analytics';
 
 const DISPLAY_DURATION = 4000;
 const FADE_DURATION = 500;
-const BOX_Y = 16;
-import { GAME_WIDTH } from '../Game';
+import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+// Lower-center placement so the hint is closer to the player and easier to
+// notice without obstructing the top HUD.
+const BOX_Y = GAME_HEIGHT - 64;
 
 export class TutorialHint {
   readonly container: Container;
@@ -21,6 +23,8 @@ export class TutorialHint {
   private input: InputManager;
 
   private panel: Container | null = null;
+  private panelId: string | null = null;
+  private panelPersistent = false;
   private timer = 0;
   private fading = false;
 
@@ -30,7 +34,13 @@ export class TutorialHint {
     parent.addChild(this.container);
   }
 
-  tryShow(id: string, text: string): void {
+  /**
+   * Show a hint by id. Each id fires at most once per session unless dismissed.
+   * If `persistent: true`, the panel stays visible until `dismiss(id)` is called
+   * (no auto-fade). Useful for "press [I] to open inventory" cues that should
+   * remain until the player actually performs the taught action.
+   */
+  tryShow(id: string, text: string, opts: { persistent?: boolean } = {}): void {
     if (this.shown.has(id)) return;
     if (this.panel) return; // one at a time
     this.shown.add(id);
@@ -62,12 +72,31 @@ export class TutorialHint {
 
     this.container.addChild(panel);
     this.panel = panel;
+    this.panelId = id;
+    this.panelPersistent = !!opts.persistent;
     this.timer = DISPLAY_DURATION;
     this.fading = false;
   }
 
+  /**
+   * Remove a persistent hint matching `id`. No-op for non-matching ids.
+   *
+   * The `shown` set is preserved so dismissed hints do not re-fire — gating
+   * for re-fires (e.g. inventory cue on every IW return) lives at the call
+   * sites via save-state flags, not here.
+   */
+  dismiss(id: string): void {
+    if (this.panel && this.panelId === id) {
+      this.container.removeChild(this.panel);
+      this.panel = null;
+      this.panelId = null;
+      this.panelPersistent = false;
+    }
+  }
+
   update(dt: number): void {
     if (!this.panel) return;
+    if (this.panelPersistent) return; // stays until dismiss()
 
     this.timer -= dt;
 
@@ -79,6 +108,7 @@ export class TutorialHint {
     if (this.timer <= 0) {
       this.container.removeChild(this.panel);
       this.panel = null;
+      this.panelId = null;
     }
   }
 
@@ -86,6 +116,7 @@ export class TutorialHint {
     if (this.panel) {
       this.container.removeChild(this.panel);
       this.panel = null;
+      this.panelId = null;
     }
     if (this.container.parent) {
       this.container.parent.removeChild(this.container);

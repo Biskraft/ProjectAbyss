@@ -41,6 +41,8 @@ import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
+import { BreakableProp, type PropDrop } from '@entities/BreakableProp';
+import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
@@ -160,6 +162,9 @@ const FADE_DURATION = 200;
 const VOID_FADE_DURATION = 180;
 const SAVE_INTERACT_DELAY_MS = 500;
 const FIRST_ANVIL_LEVEL_ID = 'FirstAnvil';
+const INVENTORY_KEY_HINT_ID = 'inventory_key';
+const INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID = 'inventory_key_after_first_item_world';
+const INVENTORY_KEY_AFTER_FIRST_IW_EVENT = '__inventoryKeyAfterFirstItemWorldShown';
 
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // ItemTunnel world was removed from the LDtk project; tunnel descent flow
@@ -414,6 +419,7 @@ export class LdtkWorldScene extends Scene {
   private switches: Switch[] = [];
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
+  private breakableProps: BreakableProp[] = [];
   private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
@@ -601,7 +607,7 @@ export class LdtkWorldScene extends Scene {
 
     // Parallax background ??behind everything
     this.parallaxBG = new ParallaxBackground();
-    this.container.addChild(this.parallaxBG.container);
+    this.game.backgroundContainer.addChild(this.parallaxBG.container);
 
     // LDtk renderer ??tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
@@ -918,6 +924,7 @@ export class LdtkWorldScene extends Scene {
 
   enter(): void {
     this.container.visible = true;
+    if (this.parallaxBG) this.parallaxBG.container.visible = true;
     // Area banner is triggered from loadLevel on Shaft_01 entry (not here).
     // On pop return from sub-scenes (ItemWorld) the current level is still
     // the one the player left from, so no banner replay is needed.
@@ -1197,14 +1204,10 @@ export class LdtkWorldScene extends Scene {
     this.uiController.handleInventoryToggle({
       canToggle: !this.inItemTunnel && !this.game.input.shiftDown,
       onToggled: () => {
-        // Clear the [I] pulse on first inventory open. The pulse can be
-        // raised by either the first pickup (Broken Sword) or returning
-        // from an Item World, so the original __itemWorldTutorialDone
-        // gate is no longer required here.
-        if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-          this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
-          this.hud.setItemKeyHighlight(false);
-        }
+        this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
+        this.hud.setItemKeyHighlight(false);
+        this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
+        this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
       },
     });
 
@@ -1220,6 +1223,9 @@ export class LdtkWorldScene extends Scene {
       if (inventoryResult === 'confirmed_equipment_change') {
         this.updatePlayerAtk();
         this.hud.updateATK(this.player.atk);
+        // Player completed the inventory tutorial action (weapon swap).
+        this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
+        this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
       }
       return; // Pause game while inventory open
     }
@@ -1276,11 +1282,11 @@ export class LdtkWorldScene extends Scene {
         if (nowMoving && stampDelta !== 0) {
           this.builderStepCounter++;
           if (this.builderStepCounter % 2 === 0) {
-            this.game.camera.shake(3);
+            this.game.camera.shake(6);
           }
         }
         if (this.builderWasMoving && !nowMoving) {
-          this.game.camera.shake(9);
+          this.game.camera.shake(18);
           this.builderStepCounter = 0;
         }
         this.builderWasMoving = nowMoving;
@@ -1506,6 +1512,11 @@ export class LdtkWorldScene extends Scene {
       break; // one hit per frame
     }
 
+    // Breakable props (sway animation)
+    for (const bp of this.breakableProps) bp.update(dt);
+    // Decorative grass sway
+    this.procDecorator?.update(dt);
+
     // Gold pickups
     for (let i = this.goldPickups.length - 1; i >= 0; i--) {
       const gp = this.goldPickups[i];
@@ -1659,6 +1670,7 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnDoors();
     this.checkAttackOnSwitches();
     this.checkAttackOnCrackedFloors();
+    this.checkAttackOnBreakableProps();
     this.checkAttackOnSecretWalls();
     this.checkAttackOnBreakables();
     for (const door of this.lockedDoors) door.update(dt);
@@ -2136,6 +2148,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   exit(): void {
+    if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
     // if (this.controlsOverlay?.container.parent) {
@@ -2146,6 +2159,11 @@ export class LdtkWorldScene extends Scene {
     //  ??그�?�??�아 ItemWorldScene ?�서 ?�을 ???�는 "stuck" ?�태가 ??)
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
+  }
+
+  override destroy(): void {
+    this.parallaxBG?.destroy();
+    super.destroy();
   }
 
   // ---------------------------------------------------------------------------
@@ -2308,7 +2326,10 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  private static readonly debugMode = new URLSearchParams(window.location.search).has('debug');
+  private static readonly debugMode = (() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.has('debug');
+  })();
 
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
     // Debug rooms (RoomType=Debug) only accessible with ?debug in URL
@@ -2425,6 +2446,7 @@ export class LdtkWorldScene extends Scene {
     // the wrong edge and floats in empty space.
     this.spawnCrackedFloors(level);
     this.spawnSecretWalls(level);
+    this.spawnBreakablePropsForLevel(level);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -3223,7 +3245,15 @@ export class LdtkWorldScene extends Scene {
       this.fadeOverlay.alpha = t;
       if (t < 1) return;
 
-      this.loadLevel(this.voidReturnLevelId, 'down');
+      // If the void return target is the level we're already in, do an
+      // in-place teleport instead of a full loadLevel. A reload would tear
+      // down and re-spawn level entities (e.g. the GiantBuilder cinematic),
+      // killing any in-progress cutscene. The void fall always originates
+      // inside the current level, so this branch is the common path.
+      const sameLevel = this.currentLevel?.identifier === this.voidReturnLevelId;
+      if (!sameLevel) {
+        this.loadLevel(this.voidReturnLevelId, 'down');
+      }
       this.player.x = this.voidReturnX;
       this.player.y = this.voidReturnY;
       this.player.lastSafeX = this.voidReturnX;
@@ -3648,6 +3678,57 @@ export class LdtkWorldScene extends Scene {
       this.toast.show('Wall Destroyed!', 0xffaa44);
       cf.destroy();
       this.crackedFloors.splice(i, 1);
+    }
+  }
+
+  private spawnBreakablePropsForLevel(level: LdtkLevel): void {
+    for (const bp of this.breakableProps) bp.destroy();
+    this.breakableProps = [];
+
+    const seed = hashString(level.identifier + '_props');
+    const props = spawnBreakableProps(this.collisionGrid, seed, false);
+    for (const prop of props) {
+      this.breakableProps.push(prop);
+      this.entityLayer.addChild(prop.container);
+    }
+  }
+
+  private checkAttackOnBreakableProps(): void {
+    if (!this.player.isAttackActive()) return;
+    const step = this.player.getAttackStep(this.player.comboIndex);
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    for (let i = this.breakableProps.length - 1; i >= 0; i--) {
+      const bp = this.breakableProps[i];
+      if (bp.destroyed) continue;
+      if (!aabbOverlap(hitbox, bp.getAABB())) continue;
+
+      const drop = bp.break();
+      this.game.hitstopFrames += 2;
+      this.game.camera.shake(2);
+
+      // Shatter sparks
+      this.hitSparks.spawn(
+        bp.x + bp.width / 2, bp.y + bp.height / 2,
+        false, this.player.facingRight ? 1 : -1,
+      );
+
+      // Handle drops
+      if (drop.type === 'gold' && drop.amount > 0) {
+        const gp = new GoldPickup(bp.x + bp.width / 2, bp.y + bp.height, drop.amount);
+        this.goldPickups.push(gp);
+        this.entityLayer.addChild(gp.container);
+      } else if (drop.type === 'flask') {
+        this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
+      }
+
+      bp.destroy();
+      this.breakableProps.splice(i, 1);
     }
   }
 
@@ -4620,6 +4701,20 @@ export class LdtkWorldScene extends Scene {
     };
   }
 
+  private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean): void {
+    const firstBossClearedThisRun = !hadFirstBossClear && sacredSave.isFirstItemWorldBossDefeated();
+    if (!firstBossClearedThisRun) return;
+    if (this.unlockedEvents.has(INVENTORY_KEY_AFTER_FIRST_IW_EVENT)) return;
+
+    this.unlockedEvents.add(INVENTORY_KEY_AFTER_FIRST_IW_EVENT);
+    this.hud.setItemKeyHighlight(true);
+    this.tutorialHint.tryShow(
+      INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID,
+      `Press [${actionKey(GameAction.INVENTORY)}] to Open Inventory`,
+      { persistent: true },
+    );
+  }
+
   private completePendingPortalEntry(): void {
     const data = this.pendingPortalData;
     if (!data) return;
@@ -4660,12 +4755,15 @@ export class LdtkWorldScene extends Scene {
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
-      // Mark global Item World tutorial as done
-      this.unlockedEvents.add('__itemWorldTutorialDone');
-      // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화. 이전에 I 를
-      // 눌러 펄스가 꺼졌더라도 IW 복귀 시 다시 강조해 인벤토리 사용을 환기.
-      this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
-      this.hud.setItemKeyHighlight(true);
+      // Mark global Item World tutorial as done — ONLY after the player
+      // actually defeated the first IW boss. ESC / escape-altar exits before
+      // the boss kill must keep the tutorial flag off so the 1-stratum 2x2
+      // override and onboarding dialogue persist on re-entry.
+      if (sacredSave.isFirstItemWorldBossDefeated()) {
+        this.unlockedEvents.add('__itemWorldTutorialDone');
+      }
+      // Second and final inventory cue: only after the first IW boss clear.
+      this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -4732,6 +4830,11 @@ export class LdtkWorldScene extends Scene {
       // I, at which point the toggle handler clears it (see updateInput).
       if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
         this.hud.setItemKeyHighlight(true);
+        this.tutorialHint.tryShow(
+          INVENTORY_KEY_HINT_ID,
+          `Press [${actionKey(GameAction.INVENTORY)}] to Open Inventory`,
+          { persistent: true },
+        );
       }
     }
 
@@ -5657,11 +5760,12 @@ export class LdtkWorldScene extends Scene {
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();
-      this.unlockedEvents.add('__itemWorldTutorialDone');
-      // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화. 이전에 I 를
-      // 눌러 펄스가 꺼졌더라도 IW 복귀 시 다시 강조해 인벤토리 사용을 환기.
-      this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
-      this.hud.setItemKeyHighlight(true);
+      // Only set after first IW boss kill — see other onComplete site for rationale.
+      if (sacredSave.isFirstItemWorldBossDefeated()) {
+        this.unlockedEvents.add('__itemWorldTutorialDone');
+      }
+      // Second and final inventory cue: only after the first IW boss clear.
+      this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
 
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
@@ -5731,16 +5835,19 @@ export class LdtkWorldScene extends Scene {
       console.error(`[LdtkWorldScene] Fixed item world level not found: "${levelId}"`);
       // Fallback to procedural
       this.collapseItem = item;
+      const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
       const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player);
       itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
       itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
       itemWorldScene.onComplete = () => {
         this.game.sceneManager.pop();
         this.updatePlayerAtk();
-        this.unlockedEvents.add('__itemWorldTutorialDone');
-        // Playtest 2026-04-26: 매 월드 복귀마다 [I] 펄스 재활성화.
-        this.unlockedEvents.delete('__itemKeyPressedAfterItemWorld');
-        this.hud.setItemKeyHighlight(true);
+        // Only set after first IW boss kill — see other onComplete site for rationale.
+        if (sacredSave.isFirstItemWorldBossDefeated()) {
+          this.unlockedEvents.add('__itemWorldTutorialDone');
+        }
+        // Second and final inventory cue: only after the first IW boss clear.
+        this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
         // Collect earned gold from Item World
         if (itemWorldScene.earnedGold > 0) {
           this.gold += itemWorldScene.earnedGold;

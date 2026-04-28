@@ -18,7 +18,7 @@
 | Quest Narrative Framework | `Documents/System/System_ItemNarrative_Template.md` |
 | 아이템 서사 예시 (기준 문서) | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
 | 환경 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` |
-| 이노센트 타입 | `Documents/System/System_Innocent_Core.md` §3 |
+| 기억 단편 타입 | `Documents/System/System_Memory Shard_Core.md` §3 |
 
 ---
 
@@ -255,7 +255,7 @@
 | :--- | :--- |
 | 기본 HP, ATK, DEF | `System_Enemy_AI.md` |
 | 지층별 스케일링 계수 | `System_Enemy_AI.md` ENM-06-A |
-| 이노센트 드랍률 | `System_Innocent_Core.md` §3 |
+| 기억 단편 드랍률 | `System_Memory Shard_Core.md` §3 |
 | 환경 이벤트 연동 | `System_ItemNarrative_EnvironmentPool.md` |
 
 ---

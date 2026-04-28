@@ -18,27 +18,27 @@
 - [Item Assembly](disgaea-wiki-md/Item%20Assembly.md) — 아이템 의회
 - [Item Duplication](disgaea-wiki-md/Item%20Duplication.md) — 아이템 복제
 - [Mystery Gate](disgaea-wiki-md/Mystery%20Gate.md) — 미스터리 게이트
-- [Innocent Town](disgaea-wiki-md/Innocent%20Town.md) — 이노센트 마을
+- [Memory Shard Town](disgaea-wiki-md/Memory Shard%20Town.md) — 기억 단편 마을
 - [Pirates](disgaea-wiki-md/Pirates.md) — 아이템계 해적 조우
 - [Mr. Gency's Exit](disgaea-wiki-md/Mr.%20Gency's%20Exit.md) — 긴급 탈출 아이템
 - [Land of Carnage](disgaea-wiki-md/Land%20of%20Carnage.md) — 수라계 (고난이도)
 
 ---
 
-## 2. 이노센트 / Specialist 시스템
+## 2. 기억 단편 / Specialist 시스템
 
 ### Disgaea
-- [Specialist](disgaea-wiki-md/Specialist.md) — 이노센트/스페셜리스트 핵심 시스템
-- [Statistician](disgaea-wiki-md/Statistician.md) — EXP 보너스 이노센트
+- [Specialist](disgaea-wiki-md/Specialist.md) — 기억 단편/스페셜리스트 핵심 시스템
+- [Statistician](disgaea-wiki-md/Statistician.md) — EXP 보너스 기억 단편
 - [Gladiator (Tier)](disgaea-wiki-md/Gladiator%20(Tier).md) — ATK 보너스
 - [Armsmaster](disgaea-wiki-md/Armsmaster.md) — 무기 숙련도 보너스
 - [Physician](disgaea-wiki-md/Physician.md) — RES 보너스
 - [List of Disgaea Specialists](disgaea-wiki-md/List%20of%20Disgaea%20Specialists.md) — D1 전체 목록
 - [List of Disgaea 2 Specialists](disgaea-wiki-md/List%20of%20Disgaea%202%20Specialists.md) — D2 전체 목록
 - [List of Disgaea 3 Specialists](disgaea-wiki-md/List%20of%20Disgaea%203%20Specialists.md) — D3 전체 목록
-- [List of Disgaea 4 Innocents](disgaea-wiki-md/List%20of%20Disgaea%204%20Innocents.md) — D4 전체 목록
-- [List of Disgaea 5 Innocents](disgaea-wiki-md/List%20of%20Disgaea%205%20Innocents.md) — D5 전체 목록
-- [List of Disgaea D2 Innocents](disgaea-wiki-md/List%20of%20Disgaea%20D2%20Innocents.md) — DD2 전체 목록
+- [List of Disgaea 4 Memory Shards](disgaea-wiki-md/List%20of%20Disgaea%204%20Memory Shards.md) — D4 전체 목록
+- [List of Disgaea 5 Memory Shards](disgaea-wiki-md/List%20of%20Disgaea%205%20Memory Shards.md) — D5 전체 목록
+- [List of Disgaea D2 Memory Shards](disgaea-wiki-md/List%20of%20Disgaea%20D2%20Memory Shards.md) — DD2 전체 목록
 
 ---
 
@@ -277,7 +277,7 @@
 | 순위 | 문서 | 참조 이유 |
 |------|------|----------|
 | 1 | [Item World](disgaea-wiki-md/Item%20World.md) | 아이템계 핵심 설계 |
-| 2 | [Specialist](disgaea-wiki-md/Specialist.md) | 이노센트 시스템 |
+| 2 | [Specialist](disgaea-wiki-md/Specialist.md) | 기억 단편 시스템 |
 | 3 | [Rarity](disgaea-wiki-md/Rarity.md) | 레어리티 밸런스 |
 | 4 | [Reincarnation (Term)](disgaea-wiki-md/Reincarnation%20(Term).md) | 전생/성장 루프 |
 | 5 | [Weapon Mastery](disgaea-wiki-md/Weapon%20Mastery.md) | 무기 숙련도 |
@@ -285,7 +285,7 @@
 | 7 | [Statistics](disgaea-wiki-md/Statistics.md) | 스탯 설계 |
 | 8 | [Geo Effects](disgaea-wiki-md/Geo%20Effects.md) | 전장 기믹 아이디어 |
 | 9 | [Dark Assembly](disgaea-wiki-md/Dark%20Assembly.md) | 의회/시설 참조 |
-| 10 | [List of Disgaea 5 Innocents](disgaea-wiki-md/List%20of%20Disgaea%205%20Innocents.md) | 이노센트 종류 밸런스 |
+| 10 | [List of Disgaea 5 Memory Shards](disgaea-wiki-md/List%20of%20Disgaea%205%20Memory Shards.md) | 기억 단편 종류 밸런스 |
 | 11 | [Item Bosses](disgaea-wiki-md/Item%20Bosses.md) | 아이템계 보스 설계 |
 | 12 | [Chara World (Disgaea 5)](disgaea-wiki-md/Chara%20World%20(Disgaea%205).md) | 캐릭터 성장 시스템 |
 | 13 | [Auto Battle](disgaea-wiki-md/Auto%20Battle.md) | 자동 전투 참조 (D6) |

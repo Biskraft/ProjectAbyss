@@ -17,7 +17,7 @@
 | INS-05-A   | 검증         | 서사 완성도 체크리스트                   |    P1    | 대기         | 필수 항목 / 권장 항목 분리               |
 | INS-06-A   | 모듈         | 몬스터 풀 시스템 (외부 문서 연결)        |    P2    | 대기         | `System_ItemNarrative_MonsterPool.md`    |
 | INS-06-B   | 모듈         | 환경 팔레트 풀 시스템 (외부 문서 연결)   |    P2    | 대기         | `System_ItemNarrative_EnvironmentPool.md`|
-| INS-06-C   | 모듈         | 이노센트 타입 풀 (외부 문서 연결)        |    P2    | 대기         | `System_Innocent_Core.md` §3             |
+| INS-06-C   | 모듈         | 기억 단편 타입 풀 (외부 문서 연결)        |    P2    | 대기         | `System_Memory Shard_Core.md` §3             |
 
 ---
 
@@ -83,7 +83,7 @@
 | **서사 곡선** | 3막 구조 (감정 기조 + 핵심 질문), Fire & Ember 구조 | 지층1 따뜻함→지층2 의무→지층3 선택 |
 | **정보 공개 타임라인** | 지층 진입 시점별 공개 정보/미공개 정보 | 지층1: 기름때·'충성' 글자 → 지층2: 경비병 신분 드러남 |
 | **NPC 유령 대사** | 상태별 조건 대사 (첫 진입 / 재방문 / 지층별) | "이 복도를 수천 번은 걸었지. 부엌으로 가는 길이 더 길었어." |
-| **이노센트 고유 대사** | 야생 상태 / 복종 상태 각 3줄 이상 | 맛의 정령: "이 칼에 내 레시피를 건드리지 마. 아직 안 됐어." |
+| **기억 단편 고유 대사** | 야생 상태 / 복종 상태 각 3줄 이상 | 맛의 정령: "이 칼에 내 레시피를 건드리지 마. 아직 안 됐어." |
 | **Fire 모멘트** | 지층 3 클라이맥스 한 마디. 이 아이템 전체의 감정적 정점 | "사람을 베는 칼이 아니라 먹이는 칼을 쥐고 싶었다. 그게 전부야." |
 | **보스 서사 오버라이드** | 지층별 보스 고유 처치 연출 텍스트, 드랍 오브젝트 이름 | 지층2 보스 드랍: "은퇴 축하 메달" |
 | **환경 핵심 오브젝트** | 지층별 핵심 오브젝트 최대 3개 (나머지는 풀에서 자동 로드) | 지층3: 검과 방패(왼벽), 부엌칼(오른벽), 석양 창문 |
@@ -98,10 +98,10 @@
 | **보스 기본 템플릿** | `System_ItemNarrative_MonsterPool.md` (보스 섹션) | 테마 ID별 기본 보스 + 서사 오버라이드 3줄로 커스텀 |
 | **환경 팔레트** | `System_ItemNarrative_EnvironmentPool.md` | 테마 ID별 배경/조명/지형 타입 자동 배정 |
 | **40초 이벤트 풀** | `System_ItemNarrative_EnvironmentPool.md` (이벤트 섹션) | 테마별 20개 풀에서 지층당 5개 랜덤 선택 |
-| **이노센트 기본 타입** | `System_Innocent_Core.md` §3 | 6개 기본 타입 중 선택. 이름/대사만 고유 |
+| **기억 단편 기본 타입** | `System_Memory Shard_Core.md` §3 | 6개 기본 타입 중 선택. 이름/대사만 고유 |
 | **배경 음악 태그** | `System_ItemNarrative_EnvironmentPool.md` (사운드 섹션) | 테마별 BGM 태그 자동 배정 |
 
-> **주의:** 모듈 문서 3개(`MonsterPool`, `EnvironmentPool`, `InnocentTypes`)는 본 시스템 문서가 완성된 이후 별도 작성한다. 현재는 테마 정의와 인터페이스 명세만 확립한다.
+> **주의:** 모듈 문서 3개(`MonsterPool`, `EnvironmentPool`, `Memory ShardTypes`)는 본 시스템 문서가 완성된 이후 별도 작성한다. 현재는 테마 정의와 인터페이스 명세만 확립한다.
 
 ---
 
@@ -228,10 +228,10 @@ npc_ghost:
     stratum_3_revisit: "[지층 3 재방문 시 대사 — 짧고 조용하게]"
 
 # -----------------------------------------------------------
-# 5. 이노센트 (Innocents) — 타입 선택 + 이름/대사만 수작업
+# 5. 기억 단편 (Memory Shards) — 타입 선택 + 이름/대사만 수작업
 # -----------------------------------------------------------
-innocents:
-  - type: "[System_Innocent_Core.md §3의 6개 타입 중 선택]"
+memory shards:
+  - type: "[System_Memory Shard_Core.md §3의 6개 타입 중 선택]"
     name: "[이 아이템에서의 고유 이름]"
     bonus_stat: "[ATK / DEF / HP 등]"
     personality: "[한 줄 성격 설명 — 대사 톤 기준]"
@@ -306,7 +306,7 @@ source: "[이 서사를 확립한 작성자/세션]"
 | **3단계** | 테마 배정 (기원에서 유추, 지층별 주/보조/혼합) | M — world-builder | 5% |
 | **4단계** | 서사 곡선 작성 (3막 감정 기조 + 핵심 질문 + Fire 모멘트) | M — world-builder + writer | 25% |
 | **5단계** | NPC 유령 대사 작성 (상태 × 지층 조합) | M — writer | 20% |
-| **6단계** | 이노센트 타입 선택 + 이름/대사 작성 | M — writer (타입은 A 참조) | 10% |
+| **6단계** | 기억 단편 타입 선택 + 이름/대사 작성 | M — writer (타입은 A 참조) | 10% |
 | **7단계** | 보스 오버라이드 + 환경 핵심 오브젝트 + 검증 체크리스트 실행 | M — world-builder (템플릿은 A 참조) | 5% |
 
 **총 수작업 비중:** 전체의 약 20%가 창작적 의사결정. 나머지 80%는 템플릿 채우기와 모듈 참조.
@@ -319,7 +319,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 | :--- | :--- | :--- |
 | 1-3단계 (기원 + 테마) | **선행 필수** — 순차 실행 | 4-7단계의 입력값이 됨 |
 | 4단계 (서사 곡선) | 1-3단계 완료 후 즉시 병렬 가능 | 다른 아이템과 독립 |
-| 5-6단계 (대사 + 이노센트) | 4단계와 동시 병렬 가능 | 감정 기조가 확정되면 즉시 작성 가능 |
+| 5-6단계 (대사 + 기억 단편) | 4단계와 동시 병렬 가능 | 감정 기조가 확정되면 즉시 작성 가능 |
 | 7단계 (검증) | 5-6단계 완료 후 | 전체 완성 후 실행 |
 
 **10개 동시 생산 시나리오:** 5개 에이전트 쌍(world-builder + writer) × 각 2개 아이템 = 10개 병렬 생산. 테마 시스템과 모듈 풀이 확립된 이후 가능.
@@ -366,7 +366,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 | F-05 | Fire 모멘트가 구체적인 한 문장인가? (추상적 키워드 금지) | "자유", "사랑" 같은 단어 자체는 Fire 모멘트가 될 수 없음 |
 | F-06 | NPC 유령 대사가 지층별, 방문 회차별로 다른가? | 최소 4가지 상태(지층1초방/재방, 지층2초방/재방 이상)의 대사 존재 |
 | F-07 | 지층 3 대사가 Fire 모멘트와 연결되는가? | `stratum_3_first` 대사에 Fire 모멘트의 내용이 포함되거나 직결 |
-| F-08 | 이노센트 수가 레어리티 슬롯 수와 일치하는가? | Normal=2, Magic=3, Rare=4, Legendary=6, Ancient=8 |
+| F-08 | 기억 단편 수가 레어리티 슬롯 수와 일치하는가? | Normal=2, Magic=3, Rare=4, Legendary=6, Ancient=8 |
 | F-09 | 보스 오버라이드의 `kill_drop`이 서사적 의미가 있는 오브젝트 이름인가? | "일반 아이템 드랍" 같은 무의미 명칭 금지 |
 | F-10 | 세계관 정합성 확인 (`contradictions_check`)이 작성되었는가? | World Bible Era 기준과 충돌 없음을 명시 |
 
@@ -376,7 +376,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 | :--- | :--- | :--- |
 | R-01 | 플레이버 텍스트에 모순되거나 의아한 요소가 포함되어 있는가? | 플레이어의 "왜?"를 유발하는 장치 존재 여부 |
 | R-02 | 지층 3 환경 핵심 오브젝트가 지층 1과 지층 2의 것을 함께 포함하는가? | 두 기억의 충돌을 시각적으로 표현 |
-| R-03 | 이노센트 3개(이상)의 개성이 서로 대비되는가? | 동일 계열 성격 3개 나열 지양 |
+| R-03 | 기억 단편 3개(이상)의 개성이 서로 대비되는가? | 동일 계열 성격 3개 나열 지양 |
 | R-04 | 동일 서사 아키타입이 현재 게임 내 5개 이상 존재하지 않는가? | 아키타입 사용 빈도 추적표 확인 |
 | R-05 | Legendary 이상 아이템의 경우, World Bible의 역사적 사건(Era)와 연결점이 있는가? | `cross_references`에 World Bible 항목 존재 |
 | R-06 | 재방문 대사(`revisit`)가 초방문 대사보다 짧고 조용한가? | 재방문 시 정보 과잉 주입 방지 |
@@ -410,12 +410,12 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 | 아이템 서사 기준 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | 완성 | — |
 | 몬스터 풀 시스템 | `Documents/System/System_ItemNarrative_MonsterPool.md` | 미작성 | P2 |
 | 환경 팔레트 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` | 미작성 | P2 |
-| 이노센트 타입 정의 | `Documents/System/System_Innocent_Core.md` §3 | Draft | — |
+| 기억 단편 타입 정의 | `Documents/System/System_Memory Shard_Core.md` §3 | Draft | — |
 | 내러티브 & 월드빌딩 | `Documents/Design/Design_Narrative_Worldbuilding.md` | 완성 | — |
 | 아이템계 코어 | `Documents/System/System_ItemWorld_Core.md` | Draft | — |
 | 장비 레어리티 | `Documents/System/System_Equipment_Rarity.md` | Draft | — |
 
-> 본 문서(SYS-INS-01)는 MonsterPool, EnvironmentPool, InnocentTypes 세 모듈 문서의 **인터페이스 명세**를 확립한다. 세 모듈이 완성되기 전까지, 새로운 아이템 서사 정의서는 모듈 참조 부분을 플레이스홀더로 남기고 작성한다.
+> 본 문서(SYS-INS-01)는 MonsterPool, EnvironmentPool, Memory ShardTypes 세 모듈 문서의 **인터페이스 명세**를 확립한다. 세 모듈이 완성되기 전까지, 새로운 아이템 서사 정의서는 모듈 참조 부분을 플레이스홀더로 남기고 작성한다.
 
 ---
 

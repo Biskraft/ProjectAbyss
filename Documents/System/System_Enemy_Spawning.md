@@ -68,7 +68,7 @@ Rarity, Stratum, EnemyType, Weight, Level, MinCount, MaxCount, IsBoss
 2. pickWeightedEnemy(normalEntries, rng.next()) → SpawnEntry 1종 선택
 3. countRng(seed + enemyType.charCodeAt(0) * 17) → [minCount, maxCount] 범위에서 정수 롤
 4. 각 적마다:
-   a. innocentRoll < INNOCENT_SPAWN_CHANCE(15%)이면 InnocentNPC 스폰
+   a. memory shardRoll < MEMORY_SHARD_SPAWN_CHANCE(15%)이면 Memory ShardNPC 스폰
    b. 아니면 picked.enemyType 적 스폰
 5. 스폰 위치: 공기 타일 + 아래 1칸 솔리드 타일 조건의 유효 위치에서 무작위 선택
    (룸 경계 2타일 마진 유지)
@@ -167,7 +167,7 @@ getEnemyStats(type, effectiveLevel)
 | Cycle 레벨이 CSV 최대 레벨 초과 | getEnemyStats가 level 1 폴백 (레벨 상한 없이 계속 강해지지 않음) |
 | 보스 방인데 spawnTable.boss = null | 보스 스폰 스킵 (방은 미클리어 상태로 남음) |
 | Treasure 방 + 스폰 위치 없음 | gold 스폰 후 addChild 시도 — spawnPoints는 이미 계산됨, 0개면 y좌표 오류 가능 (미처리 엣지 케이스) |
-| InnocentNPC 스폰 후 item.innocentSlots 초과 | `canAddInnocent()` 체크로 사전 차단 |
+| Memory ShardNPC 스폰 후 item.memory shardSlots 초과 | `canAddMemory Shard()` 체크로 사전 차단 |
 | 동일 씨드로 다른 아이템 UID | UID 기반 씨드로 아이템별 고유 방 배치 보장 |
 
 ---
@@ -184,7 +184,7 @@ getEnemyStats(type, effectiveLevel)
 | 쓰기 | `roomEnemyCount` | 방별 생존 적 카운터 |
 | 제공 | Enemy 인스턴스 배열 | `enemies[]`, `entityLayer` 에 추가 |
 | 호출 | `ItemDrop.rollGoldenDrop()` | GoldenMonster 처치 시 아이템 드롭 |
-| 호출 | `InnocentNPC` 생성자 | INNOCENT_SPAWN_CHANCE 조건부 대체 스폰 |
+| 호출 | `Memory ShardNPC` 생성자 | MEMORY_SHARD_SPAWN_CHANCE 조건부 대체 스폰 |
 
 ---
 
@@ -195,7 +195,7 @@ getEnemyStats(type, effectiveLevel)
 | Weight (각 EnemyType) | CSV col 4 | 0-100 | Feel | 가변 | 방당 등장 빈도 |
 | MinCount / MaxCount | CSV col 6-7 | 1-5 | Gate | 가변 | 방당 적 수 |
 | Level (CSV) | CSV col 5 | 1-3 | Curve | 가변 | 기준 스탯 레벨 |
-| INNOCENT_SPAWN_CHANCE | `ItemWorldScene.ts` | 0-0.5 | Gate | 0.15 (15%) | 이노센트 NPC 대체 확률 |
+| MEMORY_SHARD_SPAWN_CHANCE | `ItemWorldScene.ts` | 0-0.5 | Gate | 0.15 (15%) | 기억 단편 NPC 대체 확률 |
 | distScale coefficient | `ItemWorldScene.ts` | 0-0.5 | Curve | 0.1 | 거리당 스탯 증가율 |
 | RING_DELAY (보스 스폰 전 평탄 바닥 탐색 타일) | `ItemWorldScene.ts` | 8-32 | Feel | 16 | 보스 배치 선호 바닥 길이 |
 
@@ -230,6 +230,6 @@ getEnemyStats(type, effectiveLevel)
 | 가중치 선택 알고리즘 | 구현 완료 | `pickWeightedEnemy()` |
 | Cycle 레벨 스케일링 | 구현 완료 | `cycle = progress?.cycle ?? 0` |
 | distScale 거리 보정 | 구현 완료 | 맨해튼 거리 * 0.1 |
-| InnocentNPC 15% 대체 스폰 | 구현 완료 | |
+| Memory ShardNPC 15% 대체 스폰 | 구현 완료 | |
 | Treasure 방 스폰 위치 0개 엣지 케이스 | 미처리 | 버그 가능성 있음 |
 | GoldenMonster 드롭 보장 | 구현 완료 | `rollGoldenDrop()` |

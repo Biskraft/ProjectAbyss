@@ -41,7 +41,7 @@
 | IWB-08-A   | 멀티       | 솔로/파티 HP 스케일링                                          |    P2    | 대기      | SYS-IW-01 멀티플레이 규칙 통합                        |
 | IWB-08-B   | 멀티       | 파티 협동 기믹 패턴 (3인+ 전용)                                |    P2    | 대기      | Phase 3                                               |
 | IWB-09-A   | 보상       | 보스 처치 영구 스탯 증가                                       |    P1    | 대기      | SYS-IW-01 permanentBonus 공식 적용                    |
-| IWB-09-B   | 보상       | 이노센트 드랍 (등급별 확률)                                    |    P2    | 대기      | Phase 2 이노센트 시스템 연동                          |
+| IWB-09-B   | 보상       | 기억 단편 드랍 (등급별 확률)                                    |    P2    | 대기      | Phase 2 기억 단편 시스템 연동                          |
 | IWB-09-C   | 보상       | 최종 지층 클리어 → 레어리티 승급 기회                          |    P2    | 대기      | 대신 처치 전용                                        |
 | IWB-10-A   | 내러티브   | 보스 외형 → 무기 유형 반영 시스템                              |    P2    | 대기      | 5개 무기 카테고리 × 4등급 = 20 템플릿                |
 | IWB-11-A   | 내러티브   | 보스 처치 후 기억 단편 연출                                    |    P3    | 대기      | Phase 2 이후                                          |
@@ -96,7 +96,7 @@
 | 전략 | 위험 | 보상 |
 | :--- | :--- | :--- |
 | 보스 직행 (탐험 최소화) | 적 처치 아이템 EXP 부족, 회복 오브 미획득으로 보스전 열세 | 세션 시간 단축, 보스 EXP 집중 |
-| 완전 탐색 후 보스 | 시간 소모, 탈출 제단 미발견 시 귀환 불가 | 풍부한 HP/MP 오브, 이노센트 선조우, 아이템 EXP 최대화 |
+| 완전 탐색 후 보스 | 시간 소모, 탈출 제단 미발견 시 귀환 불가 | 풍부한 HP/MP 오브, 기억 단편 선조우, 아이템 EXP 최대화 |
 | 솔로 도전 | 보스 페이즈 혼자 처리, 사망 시 지층 롤백 | 개인 파밍 집중, 대기 없는 진행 |
 | 파티 도전 | HP 스케일링으로 보스 HP 증가, 협조 필요 | 빠른 딜, 역할 분담으로 생존성 증가, 파티 클리어 보상 보너스 |
 | 레어리티 업그레이드 직후 보스 도전 | 높아진 레어리티의 강화된 보스와 대면 | 더 강한 아이템 스탯 성장, 더 빠른 스탯 게이트 해금 |
@@ -765,15 +765,15 @@ boss_rewards:
     god:      3    # ×3.0
     overlord: 4    # ×4.0
 
-  # 이노센트 드랍 확률 (Phase 2)
-  innocent_drop_chance:
+  # 기억 단편 드랍 확률 (Phase 2)
+  memory shard_drop_chance:
     general:  0.20  # 20%
     king:     0.35  # 35%
     god:      0.50  # 50%
     overlord: 0.70  # 70%
 
-  # 이노센트 드랍 레벨 범위 (이노센트에는 레어리티 없음, 레벨만 존재)
-  innocent_drop_level_range:
+  # 기억 단편 드랍 레벨 범위 (기억 단편에는 레어리티 없음, 레벨만 존재)
+  memory shard_drop_level_range:
     general:  [1, 15]      # Lv.1~15
     king:     [10, 30]     # Lv.10~30
     god:      [25, 60]     # Lv.25~60
@@ -999,7 +999,7 @@ SYS-IW-01 permanentBonus 계산
 | 아이템 레벨 연동 수평 스케일링 공식 (level_factor) | **본 문서** 섹션 4.1 수평 스케일링 공식 블록 |
 | 레어리티별 추가 배율 | `Documents/Research/BossDesign_SideScrolling_Research.md` 섹션 4.4 |
 | 영구 스탯 증가 공식 | `Documents/System/System_ItemWorld_Core.md` 섹션 3.2 |
-| 이노센트 드랍 확률/레어리티 | `Documents/System/System_ItemWorld_Core.md` 섹션 3.2 |
+| 기억 단편 드랍 확률/레어리티 | `Documents/System/System_ItemWorld_Core.md` 섹션 3.2 |
 | 멀티플레이 HP 스케일링 | `Documents/System/System_ItemWorld_Core.md` 섹션 2.5 |
 | AI 타이밍 파라미터 | **본 문서** 섹션 4.2 |
 | 텔레그래프 타이밍 파라미터 | **본 문서** 섹션 4.3 |

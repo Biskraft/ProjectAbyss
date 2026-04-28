@@ -100,7 +100,7 @@
 | DMG-01-B | 공식 | 스킬 데미지 공식 | P2 | ⬜ P2+ | MVP OUT: 스킬 시스템 없음 |
 | ~~DMG-01-C~~ | ~~공식~~ | ~~마법 데미지 공식~~ DEPRECATED | — | ❌ DEPRECATED | ATK 통합으로 별도 마법 공식 삭제 |
 | DMG-02-A | 크리티컬 | 크리티컬 확률 시스템 | P1 | 🔧 부분 구현 | Damage.ts: criticalMultiplier 파라미터 존재, 실제 확률 계산 미구현 |
-| DMG-02-B | 크리티컬 | 크리티컬 배율 시스템 | P1 | 🔧 부분 구현 | 고정 1.5x 배율 (LCK 삭제, 이노센트 보정 Phase 2) |
+| DMG-02-B | 크리티컬 | 크리티컬 배율 시스템 | P1 | 🔧 부분 구현 | 고정 1.5x 배율 (LCK 삭제, 기억 단편 보정 Phase 2) |
 | DMG-03-A | 원소 | 원소 상성 배율 | P2 | ⬜ P2+ | MVP OUT: "원소" 제외 |
 | DMG-04-A | 방어 | 물리 방어력 감산 공식 | P1 | ✅ 구현 완료 | Damage.ts: def * defFactor 감산 |
 | ~~DMG-04-B~~ | ~~방어~~ | ~~마법 저항력 감산 공식~~ DEPRECATED | — | ❌ DEPRECATED | RES 삭제, DEF로 통합 |
@@ -140,7 +140,7 @@
 | RAR-01-B | 등급 | 레어리티별 스탯 배율 적용 | P1 | ✅ 구현 완료 | Weapons.ts: RARITY_MULTIPLIER (x1.0-x3.0) |
 | RAR-02-A | 아이템계 | 레어리티별 아이템계 지층 수 정의 | P1 | ✅ 구현 완료 | StrataConfig.ts: Normal=2, Magic=3, ... Ancient=4+심연 |
 | RAR-02-B | 아이템계 | 아이템계 진입 규칙 (레어리티 연동) | P1 | ✅ 구현 완료 | ItemWorldScene.ts: 아이템별 지층 구성 로드 |
-| RAR-03-A | 이노센트 | 레어리티별 이노센트 슬롯 수 정의 | P2 | ⬜ P2+ | MVP OUT: "이노센트" 제외 |
+| RAR-03-A | 기억 단편 | 레어리티별 기억 단편 슬롯 수 정의 | P2 | ⬜ P2+ | MVP OUT: "기억 단편" 제외 |
 | RAR-04-A | 드랍 | 레어리티별 드랍 확률 가중치 정의 | P1 | ✅ 구현 완료 | ItemDrop.ts: rollDrop/rollGoldenDrop, 난이도별 가중치 |
 | RAR-04-B | 드랍 | 드랍 이펙트 (레어리티별 시각 효과) | P1 | 🔧 부분 구현 | 레어리티별 색상 차이 있으나 파티클 미구현 |
 | RAR-05-A | 시각 | 아이템 이름 색상 (레어리티별) | P1 | ✅ 구현 완료 | ItemInstance.ts: RARITY_COLOR 디아블로 스타일 |
@@ -162,7 +162,7 @@
 | :--- | :--- | :--- | :---: | :--- | :--- |
 | STAT-01-A | 스탯 정의 | ATK/INT/HP 3스탯 시스템 | P1 | 🔧 부분 구현 | Stats.ts: CharacterStats에 INT 추가 필요 |
 | STAT-01-B | 스탯 정의 | ~~2차 파생 스탯~~ DEPRECATED | — | ❌ DEPRECATED | ATK/INT/HP 3스탯으로 단순화, 파생 스탯 불필요 |
-| STAT-02-A | 공식 | FinalStat 합산 공식 | P1 | 🔧 부분 구현 | Base + Equip 합산 동작, Innocent 항 없음 (P2) |
+| STAT-02-A | 공식 | FinalStat 합산 공식 | P1 | 🔧 부분 구현 | Base + Equip 합산 동작, Memory Shard 항 없음 (P2) |
 | STAT-02-B | 공식 | MaxHP 산출 공식 | P1 | ✅ 구현 완료 | Player 고정 HP 존재 + 지층별 스케일링 |
 | STAT-02-C | 공식 | ~~MaxMP 산출 공식~~ DEPRECATED | — | ❌ DEPRECATED | MP 시스템 삭제, 스킬은 쿨다운 기반 |
 | STAT-03-A | 성장 테이블 | Lv 1-10 기본 스탯 성장 곡선 | P1 | ✅ 구현 완료 | Stats.ts: BASE_STATS[Lv1-Lv10], CSV 데이터 연동 |
@@ -171,9 +171,9 @@
 | ~~STAT-04-B~~ | ~~전투 연동~~ | ~~INT → 마법 ATK~~ DEPRECATED | — | ❌ DEPRECATED | INT 삭제, 모든 공격은 ATK 기반 |
 | ~~STAT-04-C~~ | ~~전투 연동~~ | ~~DEX → 명중/회피~~ DEPRECATED | — | ❌ DEPRECATED | DEX 삭제, 회피는 대시 위치 이탈 |
 | ~~STAT-04-D~~ | ~~전투 연동~~ | ~~VIT → MaxHP/DEF~~ DEPRECATED | — | ❌ DEPRECATED | VIT 삭제, HP는 레벨 기반, DEF는 장비 제공 |
-| ~~STAT-04-E~~ | ~~전투 연동~~ | ~~SPD → 이동/공격 속도~~ DEPRECATED | — | ❌ DEPRECATED | SPD 삭제, 속도는 무기별 고정 + 이노센트 |
-| ~~STAT-04-F~~ | ~~전투 연동~~ | ~~LCK → 드랍률/크리티컬~~ DEPRECATED | — | ❌ DEPRECATED | LCK 삭제, 크리티컬 5% 고정 + 이노센트 |
-| STAT-05-A | 이노센트 | 이노센트 보너스 합산 처리 | P2 | ⬜ P2+ | MVP OUT: "이노센트" 제외 |
+| ~~STAT-04-E~~ | ~~전투 연동~~ | ~~SPD → 이동/공격 속도~~ DEPRECATED | — | ❌ DEPRECATED | SPD 삭제, 속도는 무기별 고정 + 기억 단편 |
+| ~~STAT-04-F~~ | ~~전투 연동~~ | ~~LCK → 드랍률/크리티컬~~ DEPRECATED | — | ❌ DEPRECATED | LCK 삭제, 크리티컬 5% 고정 + 기억 단편 |
+| STAT-05-A | 기억 단편 | 기억 단편 보너스 합산 처리 | P2 | ⬜ P2+ | MVP OUT: "기억 단편" 제외 |
 | STAT-06-A | UI | 스탯 패널 표시 | P2 | ⬜ P2+ | MVP: HUD HP바로 충분, 풀 패널은 P2 |
 
 ### [System_ItemWorld_FloorGen.md](../System/System_ItemWorld_FloorGen.md)
@@ -244,11 +244,11 @@
 
 | ID | 기능 | 남은 작업 |
 | :--- | :--- | :--- |
-| DMG-02-A | 크리티컬 확률 | 고��� 5% + 이노센트 보정 (Phase 2) |
+| DMG-02-A | 크리티컬 확률 | 고��� 5% + 기억 단편 보정 (Phase 2) |
 | DMG-02-B | 크리티컬 배율 | 고정 1.5x 배율 적용 |
 | ENM-01-B | 화면 밖 비활성화 | 틱 최적화 확인/구현 |
 | ENM-02-C | Line of Sight | 장애물 차단 판정 추가 |
 | IWF-07-A | 보스 지층 | 보스 전용 AI/패턴 구현 |
 | RAR-04-B | 드랍 이펙트 | 레어리티별 파티클 추가 |
 | STAT-01-B | 파생 스탯 | RES/회피/명중 산출 |
-| STAT-02-A | FinalStat 합산 | Innocent 항 준비 (P2 연동) |
+| STAT-02-A | FinalStat 합산 | Memory Shard 항 준비 (P2 연동) |

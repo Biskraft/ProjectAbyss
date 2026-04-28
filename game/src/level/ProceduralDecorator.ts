@@ -125,6 +125,9 @@ export class ProceduralDecorator {
   readonly artificialLayer: Container;
   /** Large structural decorations (steel beams/concrete/rebar) — palette strength 1.0. */
   readonly structureLayer: Container;
+  /** Grass clump containers — each pivoted at root for natural sway. */
+  private grassClumps: Container[] = [];
+  private swayTimer = 0;
 
   /** @deprecated Use naturalLayer / artificialLayer instead. Alias for naturalLayer. */
   get detailLayer(): Container { return this.naturalLayer; }
@@ -200,7 +203,6 @@ export class ProceduralDecorator {
     rng.shuffle(detailEdges);
 
     const detailGfx = new Graphics();   // theme detail drawings
-    const growerGfx = new Graphics();   // natural: grass/roots
     const hangerGfx = new Graphics();   // natural: hanging roots
     const clingerGfx = new Graphics();  // natural: moss/vines
 
@@ -227,7 +229,7 @@ export class ProceduralDecorator {
       } else {
         // No theme: common decorations only (always natural)
         switch (edge.type) {
-          case 'floor': this.drawGrower(growerGfx, edge, rng); break;
+          case 'floor': this.spawnGrassClump(edge, rng); break;
           case 'ceiling': this.drawHanger(hangerGfx, edge, rng); break;
           case 'wall_left':
           case 'wall_right': this.drawClinger(clingerGfx, edge, rng); break;
@@ -236,7 +238,8 @@ export class ProceduralDecorator {
       count++;
     }
     // Common (no-theme) details are always natural
-    this.naturalLayer.addChild(growerGfx, hangerGfx, clingerGfx);
+    // Grass clumps already added in spawnGrassClump()
+    this.naturalLayer.addChild(hangerGfx, clingerGfx);
     // Theme details go to natural or artificial based on theme classification
     if (isNatural) {
       this.naturalLayer.addChild(detailGfx);
@@ -325,6 +328,19 @@ export class ProceduralDecorator {
     this.naturalLayer.removeChildren();
     this.artificialLayer.removeChildren();
     this.structureLayer.removeChildren();
+    this.grassClumps = [];
+  }
+
+  /** Animate grass sway — root fixed, tips sway. Call each frame. */
+  update(dt: number): void {
+    if (this.grassClumps.length === 0) return;
+    this.swayTimer += dt;
+    const t = this.swayTimer * 0.001;
+    for (let i = 0; i < this.grassClumps.length; i++) {
+      // Each clump gets a unique phase from its index
+      const phase = (i * 2.39996) % (Math.PI * 2); // golden angle spacing
+      this.grassClumps[i].rotation = Math.sin(t * 1.8 + phase) * 0.06;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -405,6 +421,30 @@ export class ProceduralDecorator {
   // -------------------------------------------------------------------------
   // Detail decoration drawing (2x scaled)
   // -------------------------------------------------------------------------
+
+  /**
+   * Spawn a grass clump as a pivot-anchored Container so it sways from the root.
+   * Pivot is set to the base (floor) Y so rotation rotates around the root.
+   */
+  private spawnGrassClump(edge: EdgeTile, rng: PRNG): void {
+    const T = this.cfg.tileSize;
+    const baseX = edge.col * T;
+    const baseY = edge.row * T;
+
+    const clump = new Container();
+    const gfx = new Graphics();
+    clump.addChild(gfx);
+
+    // Draw grass into gfx (world coords)
+    this.drawGrower(gfx, edge, rng);
+
+    // Pivot at the root (bottom center of the clump) so rotation = root-anchored sway
+    clump.pivot.set(baseX + T / 2, baseY);
+    clump.position.set(baseX + T / 2, baseY);
+
+    this.naturalLayer.addChild(clump);
+    this.grassClumps.push(clump);
+  }
 
   private drawGrower(gfx: Graphics, edge: EdgeTile, rng: PRNG): void {
     const T = this.cfg.tileSize;

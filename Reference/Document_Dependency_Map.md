@@ -96,9 +96,9 @@ flowchart LR
         SI04[SI-04 Event]:::iw
         SI05[SI-05 Recursive]:::iw
         SI06[SI-06 GeoEffect]:::iw
-        SI07[SI-07 Innocent Core]:::iw
-        SI08[SI-08 Innocent Farm]:::iw
-        SI09[SI-09 Innocent Capture]:::iw
+        SI07[SI-07 Memory Shard Core]:::iw
+        SI08[SI-08 Memory Shard Farm]:::iw
+        SI09[SI-09 Memory Shard Capture]:::iw
     end
 
     subgraph Progression [System/Progression]
@@ -212,15 +212,15 @@ flowchart TD
         SI01[SI-01 IW Core]:::iw
         SI02[SI-02 FloorGen]:::iw
         SI03[SI-03 IW Boss]:::iw
-        SI07[SI-07 Innocent Core]:::iw
-        SI09[SI-09 Innocent Capture]:::iw
+        SI07[SI-07 Memory Shard Core]:::iw
+        SI09[SI-09 Memory Shard Capture]:::iw
     end
 
     subgraph HUB [Hub Space]
         direction TB
         SE03[SE-03 Shop]:::hub
         SE04[SE-04 Trade]:::hub
-        SI08[SI-08 Innocent Farm]:::hub
+        SI08[SI-08 Memory Shard Farm]:::hub
         SM07[SM-07 Hub Social]:::hub
         SM04[SM-04 Matchmaking]:::hub
     end
@@ -231,11 +231,11 @@ flowchart TD
     ITEMWORLD -->|"장비 강화 완료"| WORLD
     WORLD -->|"소재/골드"| HUB
     HUB -->|"장비 구매/제작"| WORLD
-    ITEMWORLD -->|"이노센트/드롭"| HUB
+    ITEMWORLD -->|"기억 단편/드롭"| HUB
     HUB -->|"합성/파티 구성"| ITEMWORLD
 
     SW02 -->|"스탯 게이트 해제를 위해\n장비 강화 필요"| SI01
-    SI07 -->|"이노센트 효과로\n스탯 상승"| SW02
+    SI07 -->|"기억 단편 효과로\n스탯 상승"| SW02
 
     DSG01 --> WORLD & ITEMWORLD & HUB
 ```
@@ -259,7 +259,7 @@ flowchart LR
         SP02[SP-02 Growth]:::gdd
         SP04[SP-04 Rarity]:::gdd
         SI01[SI-01 IW Core]:::gdd
-        SI07[SI-07 Innocent]:::gdd
+        SI07[SI-07 Memory Shard]:::gdd
         SM03[SM-03 Party Scaling]:::gdd
         SE01[SE-01 Economy]:::gdd
     end
@@ -268,7 +268,7 @@ flowchart LR
         S01[S-01 Character Base]:::csv
         S02[S-02 Weapon List]:::csv
         S05[S-05 Monster List]:::csv
-        S07[S-07 Innocent List]:::csv
+        S07[S-07 Memory Shard List]:::csv
         S12[S-12 Damage Formula]:::csv
         S13[S-13 Growth Curve]:::csv
         S14[S-14 IW Scaling]:::csv
@@ -325,7 +325,7 @@ flowchart TD
     SC05[SC-05 Boss]:::sys
     SI01[SI-01 IW Core]:::sys
     SI06[SI-06 GeoEffect]:::sys
-    SI07[SI-07 Innocent]:::sys
+    SI07[SI-07 Memory Shard]:::sys
     SP03[SP-03 Equipment]:::sys
     SP06[SP-06 Weapon Type]:::sys
     SP08[SP-08 Class]:::sys
@@ -338,7 +338,7 @@ flowchart TD
     C03[C-03 Weapon List]:::cnt
     C04[C-04 Armor List]:::cnt
     C05[C-05 Accessory List]:::cnt
-    C06[C-06 Innocent List]:::cnt
+    C06[C-06 Memory Shard List]:::cnt
     C07[C-07 Skill List]:::cnt
     C08[C-08 Evility List]:::cnt
     C09[C-09 Class List]:::cnt
@@ -380,7 +380,7 @@ flowchart LR
     SP03[SP-03 Equipment]:::sys
     SP08[SP-08 Class]:::sys
     SI01[SI-01 IW Core]:::sys
-    SI07[SI-07 Innocent]:::sys
+    SI07[SI-07 Memory Shard]:::sys
     SI08[SI-08 Inn Farm]:::sys
     SM02[SM-02 Party]:::sys
     SM05[SM-05 AutoHunt]:::sys
@@ -485,7 +485,7 @@ flowchart TD
     subgraph Phase2 [Phase 2: 핵심 확장 12개]
         SC05[SC-05 Boss]:::p2
         SC08[SC-08 Ability]:::p2
-        SI07[SI-07 Innocent]:::p2
+        SI07[SI-07 Memory Shard]:::p2
         SI08[SI-08 Inn Farm]:::p2
         SP02[SP-02 Growth]:::p2
         SP04[SP-04 Rarity]:::p2

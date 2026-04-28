@@ -479,20 +479,20 @@ Top Area: INT 노드 밀집
 | SPD | Speed (속도) | 행동 순서, 회피 |
 | LCK | Luck (행운) | 크리티컬, 회피 |
 
-레벨 업 + **장비 적성(Aptitude)** + **무기 마스터리(Weapon Mastery)** + **아이템계 이노센트(Innocent)**의 3중 배율 시스템.
+레벨 업 + **장비 적성(Aptitude)** + **무기 마스터리(Weapon Mastery)** + **아이템계 기억 단편(Memory Shard)**의 3중 배율 시스템.
 
-#### Innocent 시스템과 스탯 연동
+#### Memory Shard 시스템과 스탯 연동
 
 ```
 // 최종 스탯 계산 (단순화)
-FinalStat = BaseStat * LevelMultiplier * AptitudeMultiplier * WeaponMasteryMultiplier + InnocentBonus
+FinalStat = BaseStat * LevelMultiplier * AptitudeMultiplier * WeaponMasteryMultiplier + Memory ShardBonus
 
-// InnocentBonus 예시
-각 이노센트: ATK +2% (기본값)
-이노센트 복종 완료 후 스택: ATK +20%~수백%
+// Memory ShardBonus 예시
+각 기억 단편: ATK +2% (기본값)
+기억 단편 복종 완료 후 스택: ATK +20%~수백%
 ```
 
-이노센트 개별 보너스는 작게 시작하지만 스택이 쌓이면 수백 배 차이로 귀결된다. 이것이 아이템계 야리코미의 수학적 기반이다.
+기억 단편 개별 보너스는 작게 시작하지만 스택이 쌓이면 수백 배 차이로 귀결된다. 이것이 아이템계 야리코미의 수학적 기반이다.
 
 #### Disgaea 스탯 규모
 
@@ -501,23 +501,23 @@ Disgaea에서 스탯은 **레벨 1~9999**에 걸쳐 지수 성장한다. 최고 
 | 단계 | 스탯 규모 | 게임플레이 단계 |
 | :--- | :--- | :--- |
 | Lv 1~100 | 수백~수천 | 일반 스토리 진행 |
-| Lv 100~1000 | 수만 | 아이템계 진입, 이노센트 수집 |
-| Lv 1000~9999 | 수십만~수백만 | 극한 야리코미, 모든 이노센트 복종 |
+| Lv 100~1000 | 수만 | 아이템계 진입, 기억 단편 수집 |
+| Lv 1000~9999 | 수십만~수백만 | 극한 야리코미, 모든 기억 단편 복종 |
 
-#### Innocent 유형 (Disgaea 7 기준)
+#### Memory Shard 유형 (Disgaea 7 기준)
 
 | 유형 | 강화 스탯 |
 | :--- | :--- |
-| Foundation Innocents | HP or SPD |
-| Physical Innocents | ATK or DEF |
-| Brain Innocents | INT or RES |
-| Ambition Innocents | 전체 스탯 조합 보너스 |
+| Foundation Memory Shards | HP or SPD |
+| Physical Memory Shards | ATK or DEF |
+| Brain Memory Shards | INT or RES |
+| Ambition Memory Shards | 전체 스탯 조합 보너스 |
 
 #### 작동 이유
 
 1. **수치 극대화 자체가 목표**: 디스가이아에서 플레이어는 "더 강해지는 것"이 목적이 됨. 야리코미의 정수.
-2. **이노센트 = 복잡한 최적화 퍼즐**: 어떤 이노센트를 어떤 슬롯에 넣느냐가 전략적 깊이 생성
-3. **레어리티가 이노센트 슬롯 수를 결정**: 고레어리티 = 더 많은 이노센트 슬롯 = 더 큰 성장 잠재력 → ECHORIS에 직접 채택된 구조
+2. **기억 단편 = 복잡한 최적화 퍼즐**: 어떤 기억 단편를 어떤 슬롯에 넣느냐가 전략적 깊이 생성
+3. **레어리티가 기억 단편 슬롯 수를 결정**: 고레어리티 = 더 많은 기억 단편 슬롯 = 더 큰 성장 잠재력 → ECHORIS에 직접 채택된 구조
 
 ---
 
@@ -580,7 +580,7 @@ Hades는 전통적 STR/DEX/INT 스탯이 없다. 대신:
 | Bloodstained | 9개 | 중상 | 없음 (자동) | 없음 |
 | Diablo 2 | 4개 | 중간 | 레벨업 5포인트 | O (장비 요구치) |
 | Diablo 4 | 4개 | 중간 | 없음 (자동+장비) | 없음 |
-| Disgaea | 6개 | 높음 | 자동+이노센트 | 없음 (스탯 자체가 목표) |
+| Disgaea | 6개 | 높음 | 자동+기억 단편 | 없음 (스탯 자체가 목표) |
 | Path of Exile | 3개 속성 | 매우 높음 | 패시브 트리 | O (간접적 장비/젬 요건) |
 
 ### 7-2. 스탯 × 장비 관계 유형
@@ -602,7 +602,7 @@ Hades는 전통적 STR/DEX/INT 스탯이 없다. 대신:
 | Ender Lilies | O (Spirit) | X | X |
 | Blasphemous | O (핵심) | X | X |
 | Diablo 2 | X | O (장비 요구치) | X |
-| Disgaea | X | X | O (이노센트 최적화) |
+| Disgaea | X | X | O (기억 단편 최적화) |
 | **ECHORIS 목표** | **O** | **O (비-크리티컬)** | **부분적** |
 
 ---
@@ -666,9 +666,9 @@ ECHORIS 스탯 게이팅과의 차이:
 | 설계 결정 | 근거 게임 | 유효성 |
 | :--- | :--- | :---: |
 | STR/INT/DEX/VIT/SPD/LCK 6개 스탯 | SotN의 4코어 + 확장, Disgaea의 6코어와 일치 | 검증됨 |
-| FinalStat = Base + Equip + Innocent 공식 | Disgaea의 3중 배율 구조 단순화 버전 | 검증됨 |
+| FinalStat = Base + Equip + Memory Shard 공식 | Disgaea의 3중 배율 구조 단순화 버전 | 검증됨 |
 | 비-크리티컬 경로에만 스탯 게이팅 배치 | D2 장비 요건과 SotN 능력 게이팅의 하이브리드 | 검증됨 |
-| 레어리티가 이노센트 슬롯 수 결정 | Disgaea 고레어리티 무기 = 더 많은 이노센트 슬롯 | 직접 채택 |
+| 레어리티가 기억 단편 슬롯 수 결정 | Disgaea 고레어리티 무기 = 더 많은 기억 단편 슬롯 | 직접 채택 |
 | 스탯 게이트에 숫자 명시 ("STR 120 필요") | D2 장비 요구치의 투명성 원칙 | 검증됨 |
 
 ### 9-2. 주의해야 할 위험 요소
@@ -687,9 +687,9 @@ SotN과 Bloodstained에서 SPD와 무브먼트 스피드는 직접 연결되지 
 
 D2에서 Energy 스탯이 사실상 버려진 것처럼, 6개 스탯 중 일부가 특정 빌드에서 완전히 무관할 경우 시스템 신뢰도 저하. **각 스탯이 최소 2개 이상의 탐험 게이팅에 연결되어야 한다.**
 
-**위험 4: 이노센트 복잡도 조기 노출**
+**위험 4: 기억 단편 복잡도 조기 노출**
 
-Disgaea의 이노센트 시스템은 수십~수백 시간 플레이어를 대상으로 한다. ECHORIS에서 이노센트 최적화가 초반 30분 내에 요구될 경우 온보딩 장벽이 됨. **이노센트는 심화 콘텐츠로 도입 시점을 Phase 2 이후로 설계함이 타당.**
+Disgaea의 기억 단편 시스템은 수십~수백 시간 플레이어를 대상으로 한다. ECHORIS에서 기억 단편 최적화가 초반 30분 내에 요구될 경우 온보딩 장벽이 됨. **기억 단편는 심화 콘텐츠로 도입 시점을 Phase 2 이후로 설계함이 타당.**
 
 ### 9-3. 채택 권장 요소
 

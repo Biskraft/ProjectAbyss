@@ -1,4 +1,5 @@
 import { sacredSave } from '@save/PlayerSave';
+import { BuffConst } from '@data/constData';
 
 export interface PlayerStatBlock {
   atk: number;
@@ -15,8 +16,8 @@ export interface PlayerStatBuff {
 
 export const BEGINNER_GRACE_BUFF: PlayerStatBuff = {
   id: 'beginner_grace',
-  atkFlat: 8,
-  defFlat: 10,
+  atkFlat: BuffConst.BeginnerGraceAtkFlat,
+  defFlat: BuffConst.BeginnerGraceDefFlat,
 };
 
 export function isBeginnerGraceActive(): boolean {

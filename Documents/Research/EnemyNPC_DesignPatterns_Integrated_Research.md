@@ -295,9 +295,9 @@ Halo Reach의 Winter Contingency 레벨 분석에서, Grunt(약한 적) + Shield
 | **Passive** | 고정 위치 + 사거리 내 사격 | A-10(고정 포대형) |
 | **Slow Push** | 직선 전진, 방패 유지 | A-04(방패형), A-01(돌격형) |
 | **Rush** | 고속 직선 돌진 | A-01 + MOD-06(광분) |
-| **Cautious** | 플레이어와 일정 거리 유지, 도주 포함 | A-03a(사격형), 야생 이노센트 |
+| **Cautious** | 플레이어와 일정 거리 유지, 도주 포함 | A-03a(사격형), 야생 기억 단편 |
 
-**핵심 인사이트:** 논문의 Cautious 이동 유형은 ECHORIS의 **야생 이노센트 도주 AI**와 구조적으로 동일하다. 이노센트가 "플레이어와 거리를 유지하며 도주하는 것"은 Cautious movement의 극단적 형태다.
+**핵심 인사이트:** 논문의 Cautious 이동 유형은 ECHORIS의 **야생 기억 단편 도주 AI**와 구조적으로 동일하다. 기억 단편가 "플레이어와 거리를 유지하며 도주하는 것"은 Cautious movement의 극단적 형태다.
 
 ### 4.3 NPC Relationships — 패턴 전환 시스템
 
@@ -395,7 +395,7 @@ Halo Reach의 Winter Contingency 레벨 분석에서, Grunt(약한 적) + Shield
 
 | Phase | 추가 아키타입 | 추가 모디파이어 |
 |:------|:-----------|:-------------|
-| Phase 1 | A-01, A-02, A-03a, A-05, A-06, A-09 + 이노센트 | MOD-01, MOD-06 |
+| Phase 1 | A-01, A-02, A-03a, A-05, A-06, A-09 + 기억 단편 | MOD-01, MOD-06 |
 | **Phase 2** | **A-03b(범위 포격), A-04, A-07, A-10(고정 포대)** | **MOD-02b(자폭), MOD-03a/b(소환 분리), MOD-09(전환)** |
 | Phase 3 | A-08(지원/소환 통합) + 멀티 특화 조합 | MOD-04, MOD-05, MOD-07, MOD-08 |
 

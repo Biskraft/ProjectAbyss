@@ -19,7 +19,7 @@
 | ENM-04-B | 적 개체 | Ghost (원거리형) AI | P1 | 대기 | 감지-거리유지-사격-회피 |
 | ENM-04-C | 적 개체 | Spark Bat (비행형 A-05) AI | P1 | 대기 | 전방위 감지-공중 순찰-하강 급습-재상승 |
 | ENM-04-D | 적 개체 | Cinder Imp (군집형 A-06) AI | P1 | 대기 | 군집 이동-약근접-빠른 쿨다운 반복 |
-| ENM-04-E | 이노센트 | Gladiator 야생 이노센트 AI | P1 | 대기 | IDLE-ALERTED-FLEE-CORNERED-CAPTURED |
+| ENM-04-E | 기억 단편 | Gladiator 야생 기억 단편 AI | P1 | 대기 | IDLE-ALERTED-FLEE-CORNERED-CAPTURED |
 | ENM-05-A | 스폰 | 방 진입 시 스폰 포인트 활성화 | P1 | 대기 | 방 진입 트리거 |
 | ENM-05-B | 사망 | 사망 이펙트-드랍-경험치 순서 처리 | P1 | 대기 | 소멸 이펙트 포함 |
 | ENM-06-A | 스케일링 | 아이템계 지층별 스탯 스케일링 | P1 | 대기 | HP/ATK/DEF 각각 계수 |
@@ -756,14 +756,14 @@ enemy_cinder_imp:
     drop_table_ref: "Sheets/Content_Enemy_Drop_Table.csv#ENM_CINDER_IMP"
 ```
 
-### 4.5. Gladiator 이노센트 파라미터 (야생 이노센트, Phase 1 신규)
+### 4.5. Gladiator 기억 단편 파라미터 (야생 기억 단편, Phase 1 신규)
 
 ```yaml
-innocent_gladiator:
+memory shard_gladiator:
   id: INN_GLADIATOR
-  type: innocent_wild
+  type: memory shard_wild
   display_name: "Gladiator"
-  innocent_type: stat_boost     # 스탯형 이노센트 (기본형)
+  memory shard_type: stat_boost     # 스탯형 기억 단편 (기본형)
   effect_when_tamed: "STR +X (레벨에 따라 결정)"
 
   # 기본 스탯
@@ -773,7 +773,7 @@ innocent_gladiator:
     def: 0
     spd: 3.75           # 플레이어 기본 속도 × 0.75 = 도주 속도 기준
 
-  # 이노센트 AI — 일반 적 상태 머신과 다름
+  # 기억 단편 AI — 일반 적 상태 머신과 다름
   ai_states:
     IDLE:
       description: "방 내 배회 또는 구조물에 잠든 상태"
@@ -796,7 +796,7 @@ innocent_gladiator:
     CAPTURED:
       description: "HP 0 도달 시 격파 대신 Tamed 전환"
       result: "Tamed Gladiator 아이템 획득. 경험치 미지급"
-      vfx: "innocent_tamed_sparkle"
+      vfx: "memory shard_tamed_sparkle"
 
   # 등장 연출 3단계
   spawn_presentation:

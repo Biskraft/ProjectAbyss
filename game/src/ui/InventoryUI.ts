@@ -365,9 +365,16 @@ export class InventoryUI {
       const itemNameText = hasItem ? equippedItem!.def.name : 'empty';
       const itemNameColor = hasItem ? (RARITY_COLOR[equippedItem!.rarity] ?? COL_TEXT_WHITE) : COL_EQUIP_EMPTY_BORDER;
       const itemLabel = new BitmapText({
-        text: itemNameText.length > 7 ? itemNameText.substring(0, 6) + '..' : itemNameText,
+        text: itemNameText,
         style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: itemNameColor }
       });
+      // Scale down if the full name exceeds the slot width so long names
+      // (e.g. "Steel Longblade") stay fully visible without truncation.
+      const maxW = EQUIP_SLOT_W - 2;
+      if (itemLabel.width > maxW) {
+        const s = maxW / itemLabel.width;
+        itemLabel.scale.set(s, s);
+      }
       itemLabel.x = x + Math.floor((EQUIP_SLOT_W - itemLabel.width) / 2);
       itemLabel.y = 37;
       this.equipArea.addChild(itemLabel);
@@ -524,7 +531,7 @@ export class InventoryUI {
     const nameColor = isSelected
       ? COL_TEXT_WHITE
       : (isStarterOnly ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
-    const name = item.def.name.length > 14 ? item.def.name.substring(0, 13) + '..' : item.def.name;
+    const name = item.def.name;
     const nameText = new BitmapText({ text: name, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: nameColor } });
     nameText.x = cx;
     nameText.y = y + 3;

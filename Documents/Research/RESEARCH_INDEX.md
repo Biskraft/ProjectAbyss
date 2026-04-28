@@ -21,12 +21,12 @@
 |:-----|:-----|
 | **Research_Summary** | 20년간 미충족된 실시간 협동 아이템계는 PA가 디스가이아를 초월할 수 있는 최대 기회 |
 | **CoreMechanics** | 10층 단위 체크포인트 + 보스층 후 선택적 탈출이 명확한 세션 리듬을 만든다 |
-| **InnocentSystem** | 야생/복종 이분법의 즉시 2배 효과가 아이템계 진입 동기 핵심. 슬롯 제약이 빌드 정체성 강제 |
+| **Memory ShardSystem** | 야생/복종 이분법의 즉시 2배 효과가 아이템계 진입 동기 핵심. 슬롯 제약이 빌드 정체성 강제 |
 | **GrowthEconomy** | 순수 선형 성장 + 보스 영구 보너스 + 다중 축적층 = 수백 시간 리텐션 |
 | **ProceduralGen** | 데드셀 Concept Graph + 스펠렁키 Critical Path 하이브리드가 횡스크롤 아이템계 최적 |
 | **UXPatterns** | 세션 종료 신호(레어리티별 층수) 부재는 D5 최대 실패. 멀티 협동이 모든 Bartle 유형 충족 가능 |
 
-## Innocent System Series (5)
+## Memory Shard System Series (5)
 
 | 문서 | 핵심 인사이트 |
 |:-----|:-----|
@@ -34,7 +34,7 @@
 | **Growth_Economy** | 선형 합산 + 자동 팜 성장 하이브리드 → 아이템계(수집) + 허브(수확) 동기 동시 충족 |
 | **Classification_Balance** | 스탯형/파밍형/상태이상형 역할 분담 + 슬롯 제약 → 단일 최적 빌드 방지 |
 | **Multiplayer_Social** | 아이템 오너 귀속 + 동행자 보상 → 역할 분담과 공정성 동시 달성 |
-| **Narrative_Worldbuilding** | 이노센트 = "아이템의 기억이 응결된 의지". 디스가이아 경쾌함 → PA 고딕 톤 재해석 |
+| **Narrative_Worldbuilding** | 기억 단편 = "아이템의 기억이 응결된 의지". 디스가이아 경쾌함 → PA 고딕 톤 재해석 |
 
 ## Game Systems Research (15)
 
@@ -57,7 +57,7 @@
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
 | **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0~2 우선순위) |
 | **PixelArt_Animation_Principles** | 키프레임 우선 4~8f 원칙 + 예비동작 프레임표 + 스프라이트 크기 규격 + Phase 1 최소 세트 |
-| **HealingSystem_Recovery** | Flask+전투연동+이노센트 복합 모델 권장. 레어리티별 Flask 차등(5→1), SotN Dark Metamorphosis→단조열 봉합, 디스가이아 층간 무회복 채택 |
+| **HealingSystem_Recovery** | Flask+전투연동+기억 단편 복합 모델 권장. 레어리티별 Flask 차등(5→1), SotN Dark Metamorphosis→단조열 봉합, 디스가이아 층간 무회복 채택 |
 | **ReferenceGame_UI_UX** | 6종 레퍼런스 전수조사. 2-Space별 HUD 전략, Rally HP→단조열 봉합, 맵 색상 코딩, God Mode→기억의 보호, 핵심 차용 패턴 TOP 10 |
 | **UX_Layout_Sizing** | HUD 크기/배치/간격 정량 기준. 세이프존, 시선추적, 피츠법칙, 해상도 스케일링, 레퍼런스 실측(HP 너비 8-25%), 웹 제약(정수배율/ESC충돌) |
 | **CoopSynergy_ItemWorld** | 15개 게임 분석. 자동/근접/의도 3계층 시너지, 원소 퓨전, 저주 부활, 인원별 스케일링, 루트 인스턴스, 스파이크 검증 통과 8건 |
@@ -98,7 +98,7 @@
 |:------|:----------|:---|
 | ~~스킬트리~~ | SkillSystem_ActionRPG | 스파이크 축소 17건 (2026-04-05) |
 | ~~재귀적 진입~~ | ItemWorld_RecursiveEntry | 스파이크 축소 17건 |
-| ~~이노센트 팜~~ | Innocent_Growth_Economy (팜 부분) | 스파이크 축소 17건 |
+| ~~기억 단편 팜~~ | Memory Shard_Growth_Economy (팜 부분) | 스파이크 축소 17건 |
 
 ### 리서치 부족 → 추가 리서치 필요
 

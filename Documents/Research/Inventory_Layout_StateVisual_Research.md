@@ -95,7 +95,7 @@
 │  ─────────────────────────────────────────────────── │
 │  Galaxy Sword                  vs Equipped:            │
 │  RARE (노란색)  Lv.35          ATK: 120 → 100 (▼-20) │
-│  Innocents: 2/3                                        │
+│  Memory Shards: 2/3                                        │
 │  Strata: 3 layers  [DIVE ▶]                           │
 │  ─────────────────────────────────────────────────── │
 │  [C] Equip   [Z] Detail   [ESC] Close                 │

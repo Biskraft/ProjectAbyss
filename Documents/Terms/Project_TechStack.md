@@ -39,7 +39,7 @@ game/
 │   ├── scenes/        # LdtkWorldScene, ItemWorldScene, BootScene
 │   ├── effects/       # PaletteSwapFilter, HitStop, ScreenShake
 │   ├── data/          # CSV 로더 (areaPalettes, weaponLore, ...)
-│   ├── entities/      # Player, Enemy, Innocent
+│   ├── entities/      # Player, Enemy, Memory Shard
 │   └── ui/            # HUD, DepthGauge, LoreDisplay
 ├── public/assets/     # 정적 에셋 (atlas/, ldtk 없이 public 직속)
 └── dist/              # `npx vite build` 출력
@@ -82,9 +82,9 @@ game/
 | `Content_Stats_Enemy.csv`                  | 적 스탯 테이블                            |
 | `Content_Stats_Weapon_List.csv`            | 무기 목록 (100종 목표)                    |
 | `Content_Stats_Weapon_Lore.csv`            | 무기 로어 메타 (하이브리드, 본문은 MD)    |
-| `Content_Rarity.csv`                       | 레어리티 배율 / 이노센트 슬롯 / 지층 수   |
+| `Content_Rarity.csv`                       | 레어리티 배율 / 기억 단편 슬롯 / 지층 수   |
 | `Content_Combat_Combo.csv`                 | 콤보 라우팅                               |
-| `Content_Innocents.csv`                    | 이노센트 종류/효과                        |
+| `Content_Memory Shards.csv`                    | 기억 단편 종류/효과                        |
 | `Content_Item_DropRate.csv`                | 드롭 확률 테이블                          |
 | `Content_Item_Growth.csv`                  | 아이템 EXP 성장 곡선                      |
 | `Content_ItemWorld_MemoryRooms.csv`        | 기억의 방 템플릿                          |

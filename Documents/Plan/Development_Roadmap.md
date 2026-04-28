@@ -62,7 +62,7 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 | :--- | :--- | :--- | :---: | :--- |
 | 0-1 | **스탯 시스템 GDD** | `System/System_Growth_Stats.md` | ✅ | ATK/INT/HP 3스탯 정의, Lv 1-10 성장 공식 |
 | 0-2 | **장비 슬롯 GDD** | `System/System_Equipment_Slots.md` | ✅ | MVP 무기 1슬롯, 착용 규칙, 스탯 합산 공식 |
-| 0-3 | **레어리티 GDD** | `System/System_Equipment_Rarity.md` | ✅ | 5등급 배율(x1.0-x3.0), 이노센트 슬롯, 지층 수, 드랍 연출 |
+| 0-3 | **레어리티 GDD** | `System/System_Equipment_Rarity.md` | ✅ | 5등급 배율(x1.0-x3.0), 기억 단편 슬롯, 지층 수, 드랍 연출 |
 | 0-4 | **무기 시스템 GDD** | `System/System_Combat_Weapons.md` | ✅ | 검 1종 3타 콤보, 히트박스, 5무기 카테고리 정의 (검/대검/단검/활/지팡이) |
 | 0-5 | **적 AI GDD** | `System/System_Enemy_AI.md` | ✅ | Skeleton(근접)/Ghost(원거리) 7-state FSM |
 | 0-6 | **캐릭터 기본 스탯 CSV** | `Sheets/Content_Stats_Character_Base.csv` | ✅ | Lv 1-10 기본 스탯 테이블 |
@@ -88,7 +88,7 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 | 적 2종 (근접/원거리) | 보스, 상태이상, 원소 |
 | 1개 층위 (4×4 Room Grid) | 7개 층위, 층위 간 이동 |
 | 아이템 드랍 (검 1종, 5레어리티) | 전체 장비 슬롯, 방어구 |
-| 미니 아이템계 (1지층 + 보스 1개) | 전체 지층, 이노센트, 지오 이펙트 |
+| 미니 아이템계 (1지층 + 보스 1개) | 전체 지층, 기억 단편, 지오 이펙트 |
 | 데미지 숫자 표시 | DPS 미터, 전투 로그 |
 | 키보드 조작 | 게임패드 |
 | 싱글 플레이 | 멀티플레이 (URL 링크 파티 합류) |
@@ -185,7 +185,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 ## Phase 2: 알파 — "성장과 탐험의 쾌감"
 
 ### 목표
-> 7개 층위 연결 + 능력/스탯 게이트 + 아이템계 전체 지층 + 이노센트 기초
+> 7개 층위 연결 + 능력/스탯 게이트 + 아이템계 전체 지층 + 기억 단편 기초
 
 ### 추가 기획 필요 (Phase 0 이후)
 
@@ -195,7 +195,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | SYS-WLD-03 Ability Gating | 능력 게이트 (이단점프, 벽점프, 안개 변신) |
 | SYS-WLD-04 Stat Gating | 스탯 게이트 (ATK/INT 이중 게이트) |
 | SYS-IW-01 IW Core | 아이템계 전체 규칙 |
-| SYS-INC-01 Innocent Core | 이노센트 기본 시스템 |
+| SYS-INC-01 Memory Shard Core | 기억 단편 기본 시스템 |
 | SYS-LVL-02 Level & Experience | 레벨/경험치 곡선 |
 | ~~SYS-LVL-03 Skill Tree~~ | ~~DEPRECATED — 스킬은 무기 내장 스킬로 대체~~ |
 | SYS-MON-02 Boss Design | 보스 5종 설계 |
@@ -211,7 +211,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | M2.3 보스 시스템 | 층위 보스 3종 + 아이템계 보스 3등급 |
 | M2.4 장비 확장 | 무기 4종 + 방어구 3부위 + 장신구 |
 | M2.5 아이템계 전체 지층 | 지층별 보스, 레어리티별 지층 수 제한 |
-| M2.6 이노센트 기초 | 이노센트 5종, 야생/복종, 장비 이동 |
+| M2.6 기억 단편 기초 | 기억 단편 5종, 야생/복종, 장비 이동 |
 | M2.7 스킬 시스템 | 스킬 슬롯 4개, 스킬 10종, 쿨다운 |
 | M2.8 밸런스 & QA | 성장 곡선, 난이도 곡선, 플레이테스트 |
 
@@ -232,7 +232,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | SYS-ECO-01 Resources | 자원 순환 밸런스 |
 | ~~SYS-HUB-01 Facilities~~ | ~~허브 시설 — DEPRECATED. 대장간/상점은 월드 세이브 포인트로 통합~~ |
 | SYS-IW-03-06 | 아이템계 고급 (보스, ~~재귀 DEPRECATED~~, 이벤트, 지오) |
-| SYS-INC-03 | 듀얼 이노센트 |
+| SYS-INC-03 | 듀얼 기억 단편 |
 | 전체 UI 문서 (UI-01-06) | HUD, 인벤토리, 맵, 파티 UI |
 
 ### 주요 마일스톤
@@ -243,7 +243,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 | M3.2 네트워크 동기화 | 서버 권위 모델 + 클라이언트 예측 + 롤백 |
 | M3.3 파티 시스템 | 파티 생성/초대/매칭 + 역할 분담 |
 | M3.4 아이템계 전 지층 | 전체 지층 + 4등급 보스 + 미스터리 룸 |
-| M3.5 이노센트 완성 | 전체 이노센트 + 합성 + 듀얼 |
+| M3.5 기억 단편 완성 | 전체 기억 단편 + 합성 + 듀얼 |
 | ~~M3.6 허브~~ | ~~DEPRECATED. 대장간/상점은 월드 세이브 포인트로 통합~~ |
 
 ---
@@ -258,7 +258,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 
 **MVP에 필요한 범위만:**
 - ATK/INT/HP 3스탯 정의 (ATK, INT, HP. DEF/RES는 장비 제공)
-- 기본 스탯 공식: `Final_ATK = Base_ATK + Equipment_ATK + Innocent_ATK_Bonus`
+- 기본 스탯 공식: `Final_ATK = Base_ATK + Equipment_ATK + Memory Shard_ATK_Bonus`
 - Lv 1-10 성장 테이블 (MVP 레벨 캡 = 10)
 - 스탯이 데미지 공식에 반영되는 방식 (SYS-CMB-02 연동)
 
@@ -273,7 +273,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 - 슬롯 1개: 무기 (검)
 - 착용/해제 규칙
 - 장비 스탯 → 캐릭터 스탯 합산 공식
-- 아이템 데이터 구조: `{id, name, type, rarity, level, baseStats, innocents[]}`
+- 아이템 데이터 구조: `{id, name, type, rarity, level, baseStats, memory shards[]}`
 
 **Phase 2에서 추가할 것:**
 - 전체 6슬롯 (무기, 보조무기, 머리, 갑옷, 망토, 장신구x2)
@@ -417,13 +417,13 @@ graph TD
 | 12 | GDD | `System/System_World_AbilityGating.md` | 신규 |
 | 13 | GDD | `System/System_World_StatGating.md` | 신규 |
 | 14 | GDD | `System/System_ItemWorld_Core.md` | 신규 |
-| 15 | GDD | `System/System_Innocent_Core.md` | 신규 |
+| 15 | GDD | `System/System_Memory Shard_Core.md` | 신규 |
 | 16 | GDD | `System/System_Growth_LevelExp.md` | 신규 |
 | 17 | GDD | ~~`System/System_Growth_SkillTree.md`~~ | ~~DEPRECATED~~ |
 | 18 | GDD | `System/System_Enemy_BossDesign.md` | 신규 |
 | 19 | GDD | `System/System_Combat_SubWeapon.md` | 신규 |
 | 20 | GDD | `System/System_Combat_Elements.md` | 신규 |
-| 21 | CSV | `Sheets/Content_System_Innocent_Pool.csv` | 신규 |
+| 21 | CSV | `Sheets/Content_System_Memory Shard_Pool.csv` | 신규 |
 | 22 | CSV | `Sheets/Content_System_Monster_Pool.csv` | 신규 |
 | 23 | CSV | `Sheets/Content_Level_Zone_Config.csv` | 신규 |
 | 24 | CSV | `Sheets/Content_System_Skill_List.csv` | 신규 |
@@ -447,8 +447,8 @@ graph TD
 | 37 | GDD | `System/System_ItemWorld_Recursion.md` | 신규 | (REMOVED - 재귀 진입 폐기, DEC-001)
 | 38 | GDD | `System/System_ItemWorld_Events.md` | 신규 |
 | 39 | GDD | `System/System_ItemWorld_GeoEffects.md` | 신규 |
-| 40 | GDD | `System/System_Innocent_Farm.md` | ❌ DEPRECATED |
-| 41 | GDD | `System/System_Innocent_Dual.md` | 신규 |
+| 40 | GDD | `System/System_Memory Shard_Farm.md` | ❌ DEPRECATED |
+| 41 | GDD | `System/System_Memory Shard_Dual.md` | 신규 |
 | 42-47 | UI | `UI/UI_HUD_Layout.md` 외 5건 | 신규 |
 
 ### Design 문서 (Phase별 배정) — 12건

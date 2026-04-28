@@ -11,6 +11,10 @@ export interface RoomCell {
   exits: { left: boolean; right: boolean; up: boolean; down: boolean };
   visited: boolean;   // for runtime tracking
   cleared: boolean;   // all enemies defeated
+  /** Boss death pixel position — recorded when a boss dies in this cell so
+   *  the exit portal re-appears at the same spot on re-entry. */
+  bossPortalX?: number;
+  bossPortalY?: number;
 }
 
 export interface RoomGridData {
@@ -22,7 +26,10 @@ export interface RoomGridData {
   endRoom: { col: number; row: number };
 }
 
-/* ── Unified Grid: all strata stitched vertically ── */
+/* ── Unified Grid types: all strata stitched vertically ──
+ * 생성은 RoomGraphAdapter.generateUnifiedGridFromGraph 가 담당 (DEC-037).
+ * 타입만 여기 정의 — 어댑터/씬/컨트롤러가 공유.
+ */
 
 export interface UnifiedRoomCell extends RoomCell {
   stratumIndex: number;
@@ -46,99 +53,6 @@ export interface UnifiedGridData {
   stratumStartRooms: { col: number; absoluteRow: number; stratumIndex: number }[];
   startRoom: { col: number; absoluteRow: number };
   endRoom: { col: number; absoluteRow: number };
-}
-
-export function generateUnifiedGrid(
-  strataDefs: { gridWidth: number; gridHeight: number }[],
-  itemUid: number,
-): UnifiedGridData {
-  const totalWidth = Math.max(...strataDefs.map(d => d.gridWidth));
-
-  // Generate each stratum grid independently
-  const perStratum: RoomGridData[] = [];
-  for (let si = 0; si < strataDefs.length; si++) {
-    const def = strataDefs[si];
-    const stratumRng = new PRNG(itemUid * 1000 + si * 7919);
-    perStratum.push(generateRoomGrid(def.gridWidth, def.gridHeight, stratumRng));
-  }
-
-  // Calculate row offsets
-  const strataOffsets: StratumBound[] = [];
-  let rowOffset = 0;
-  for (let si = 0; si < strataDefs.length; si++) {
-    strataOffsets.push({ rowOffset, width: strataDefs[si].gridWidth, height: strataDefs[si].gridHeight });
-    rowOffset += strataDefs[si].gridHeight;
-  }
-  const totalHeight = rowOffset;
-
-  // Build unified cells array
-  const cells: (UnifiedRoomCell | null)[][] = [];
-  for (let absRow = 0; absRow < totalHeight; absRow++) {
-    const row: (UnifiedRoomCell | null)[] = [];
-    for (let col = 0; col < totalWidth; col++) {
-      row.push(null);
-    }
-    cells.push(row);
-  }
-
-  const stratumEndRooms: UnifiedGridData['stratumEndRooms'] = [];
-  const stratumStartRooms: UnifiedGridData['stratumStartRooms'] = [];
-
-  for (let si = 0; si < perStratum.length; si++) {
-    const grid = perStratum[si];
-    const offset = strataOffsets[si];
-
-    for (let localRow = 0; localRow < grid.height; localRow++) {
-      for (let col = 0; col < grid.width; col++) {
-        const src = grid.cells[localRow][col];
-        const absRow = offset.rowOffset + localRow;
-        cells[absRow][col] = {
-          ...src,
-          row: absRow,
-          absoluteRow: absRow,
-          stratumIndex: si,
-        };
-      }
-    }
-
-    stratumStartRooms.push({
-      col: grid.startRoom.col,
-      absoluteRow: offset.rowOffset + grid.startRoom.row,
-      stratumIndex: si,
-    });
-    stratumEndRooms.push({
-      col: grid.endRoom.col,
-      absoluteRow: offset.rowOffset + grid.endRoom.row,
-      stratumIndex: si,
-    });
-  }
-
-  // Stratum boundaries are NOT connected via physical tile holes.
-  // The stratum N → N+1 descent is handled by the boss-death portal flow
-  // (spawnBossPortal / restorePortalIfStratumCleared). Setting exits.down
-  // on the boss cell here would cause the door mask to carve a floor hole,
-  // letting players bypass the boss entirely. Keep boss/start rooms sealed.
-
-  const firstGrid = perStratum[0];
-  const lastGrid = perStratum[perStratum.length - 1];
-  const lastOffset = strataOffsets[strataOffsets.length - 1];
-
-  return {
-    totalWidth,
-    totalHeight,
-    cells,
-    strataOffsets,
-    stratumEndRooms,
-    stratumStartRooms,
-    startRoom: {
-      col: firstGrid.startRoom.col,
-      absoluteRow: firstGrid.startRoom.row, // offset 0
-    },
-    endRoom: {
-      col: lastGrid.endRoom.col,
-      absoluteRow: lastOffset.rowOffset + lastGrid.endRoom.row,
-    },
-  };
 }
 
 // Critical Path direction weights

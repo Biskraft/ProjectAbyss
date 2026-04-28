@@ -37,7 +37,7 @@
 - 텔레그래프 시스템: 다중 감각 레이어링, 등급별 배율 (장군 ×1.2 - 대신 ×0.7)
 - 아레나 규격: 장군 640×360 - 대신 1600×800
 - 멀티플레이 보스: 솔로/파티 HP 스케일링, 협동 기믹
-- 보스 보상: 영구 스탯 증가, 이노센트 드랍, 레어리티 승급 기회
+- 보스 보상: 영구 스탯 증가, 기억 단편 드랍, 레어리티 승급 기회
 
 **필수 참조:**
 | 문서 | 경로 | 읽어야 할 이유 |
@@ -57,7 +57,7 @@
 
 ---
 
-### ~~A-4. SYS-INC-02 — 이노센트 팜 시스템~~ (DEPRECATED — 스코프 축소로 삭제)
+### ~~A-4. SYS-INC-02 — 기억 단편 팜 시스템~~ (DEPRECATED — 스코프 축소로 삭제)
 
 ---
 
@@ -71,7 +71,7 @@
 
 **설계할 내용:**
 - 자원 Faucet(생성원)/Sink(소멸원) 매핑: 2-Space별 자원 흐름
-- 핵심 통화: HL, 제작 소재, 이노센트, 경험치
+- 핵심 통화: HL, 제작 소재, 기억 단편, 경험치
 - 인플레이션 방지: HL 싱크 설계 (장비 강화, NPC 상점)
 - 드롭 경제: 레어리티별 기대 드롭률, 보스 드롭 보너스
 - 거래 제한: 최상위 장비 거래 제한 (파밍 동기 보존)
@@ -83,7 +83,7 @@
 |:-----|:-----|:-------------|
 | 엔드게임/경제 리서치 | `Research/EndgameLoop_Economy_Research.md` | 짧은 루프 + 명확 종료 신호 |
 | 장비 드롭률 리서치 | `Research/Equipment_DropRate_Economy_Research.md` | 거래 제한과 파밍 동기 |
-| 이노센트 성장/경제 | `Research/Innocent_Growth_Economy_Research.md` | 이노센트 경제 순환 |
+| 기억 단편 성장/경제 | `Research/Memory Shard_Growth_Economy_Research.md` | 기억 단편 경제 순환 |
 | 깊이/보상 밸런스 | `Research/ItemWorld_DepthReward_RiskBalance_Research.md` | 보상 스케일링 수학 모델 |
 | 성장/보상 철학 | `Design/Design_Progression_Reward.md` | 성장 곡선, 보상 심리 |
 | 야리코미 철학 | `Design/Design_Yarikomi_Philosophy.md` | 무한 파밍 동기 구조 |
@@ -106,7 +106,7 @@
 
 ### ~~B-2. SYS-LVL-04 — 전��� 시스템~~ (스코프 축소로 삭제)
 
-> 아이템 성장은 아이템계 지층 클리어(`System_ItemWorld_Core.md`)와 이노센트(`System_Innocent_Core.md`)로 관리합니다.
+> 아이템 성장은 아이템계 지층 클리어(`System_ItemWorld_Core.md`)와 기억 단편(`System_Memory Shard_Core.md`)로 관리합니다.
 
 ### B-3. SYS-MON-02 — 보스 디자인 (월드 보스)
 
@@ -118,14 +118,14 @@
 | **범위** | 월드 보스 목록, 층위별 보스 배치, 능력 게이트 보스, 보스 패턴 상세 |
 | **주의** | SYS-IW-03(아이템계 보스)과 범위 구분 필수. 이 문서는 월드 보스만 |
 
-### B-4. SYS-INC-03 — 이중 이노센트
+### B-4. SYS-INC-03 — 이중 기억 단편
 
 | 항목 | 내용 |
 |:-----|:-----|
-| **파일 경로** | `Documents/System/System_Innocent_Dual.md` |
-| **리서치 기반** | `Research/Innocent_Classification_Balance_Research.md` |
-| **추가 참조** | `System/System_Innocent_Core.md` |
-| **범위** | 이중 속성 이노센트 조합 규칙, 합성 레시피, 밸런스 |
+| **파일 경로** | `Documents/System/System_Memory Shard_Dual.md` |
+| **리서치 기반** | `Research/Memory Shard_Classification_Balance_Research.md` |
+| **추가 참조** | `System/System_Memory Shard_Core.md` |
+| **범위** | 이중 속성 기억 단편 조합 규칙, 합성 레시피, 밸런스 |
 
 ### B-5. SYS-EQP-03 — 아이템 성장 경로
 
@@ -180,7 +180,7 @@
 2. A-2 (아이템계 보스) — 아이템계 진행의 핵심 빈칸
 3. A-5 (경제 철학) — 모든 보상/드롭의 기초
 4. ~~A-3 (재귀적 진입) — DEPRECATED. 재귀적 중첩 진입 삭제~~
-5. ~~A-4 (이노센트 팜) — DEPRECATED~~
+5. ~~A-4 (기억 단편 팜) — DEPRECATED~~
 ```
 
 ### 의존 관계
@@ -190,6 +190,6 @@
 A-2 (보스) ← 독립 (즉시 시작 가능)
 A-5 (경제) ← 독립 (즉시 시작 가능)
 ~~A-3 (재귀) — DEPRECATED~~
-~~A-4 (이노센트 팜) — DEPRECATED~~
+~~A-4 (기억 단편 팜) — DEPRECATED~~
 B-1~6 ← A 시리즈 완료 후
 ```

@@ -2,7 +2,10 @@
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { TilemapRenderer } from '@level/TilemapRenderer';
-import { generateUnifiedGrid, type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
+import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
+import { generateRoomGraph, type RoomGraphData } from '@level/RoomGraph';
+import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
+import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
@@ -21,6 +24,8 @@ import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } f
 import { GoldPickup } from '@entities/GoldPickup';
 import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
+import { BreakableProp } from '@entities/BreakableProp';
+import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { GrowingWall } from '@entities/GrowingWall';
 import { Switch } from '@entities/Switch';
@@ -33,12 +38,12 @@ import { LoreDisplay } from '@ui/LoreDisplay';
 import {
   EGO_IW_ENTER, EGO_MONSTER_FIRST, EGO_FIRST_KILL, EGO_ROOM_CLEAR,
   EGO_INNOCENT_FOUND, EGO_INNOCENT_STABLE,
-  EGO_PLAYER_DEATH, EGO_BOSS_KILLED, EGO_EXIT_ALTAR,
+  EGO_PLAYER_DEATH, EGO_BOSS_KILLED,
   EGO_REENTRY_2, EGO_REENTRY_2_BOSS, EGO_REENTRY_3,
   EGO_SWAP_RETURN, EGO_AFFINITY_MAX,
   EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
 } from '@data/EgoDialogue';
-import { InnocentNPC } from '@entities/InnocentNPC';
+import { MemoryShardNPC } from '@entities/MemoryShardNPC';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
@@ -54,7 +59,7 @@ import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { sacredSave } from '@save/PlayerSave';
 import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
-import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/innocents';
+import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/memoryShards';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
@@ -82,8 +87,13 @@ import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { ScreenFlash } from '@effects/ScreenFlash';
-import { create9SlicePanel } from '@ui/ModalPanel';
-import { Portal } from '@entities/Portal';
+import {
+  create9SlicePanel,
+  drawSelectionPulse,
+  drawSelectionRow,
+  ROW_CHEVRON_COLOR,
+  ROW_SELECTED_GLOW_ALPHA,
+} from '@ui/ModalPanel';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
 import {
@@ -129,6 +139,25 @@ const BASE_EXP_PER_ROOM = 120;
 const BASE_BOSS_BONUS_EXP = 600;
 const BASE_EXP_PER_KILL = 60;
 const BASE_EXP_ROOM_PASS = 60;
+
+const STRATUM_PICKER_W = 560;
+const STRATUM_PICKER_PAD = 12;
+const STRATUM_PICKER_ROW_H = 18;
+const STRATUM_PICKER_ROW_GAP = 2;
+const STRATUM_PICKER_LIST_W = 342;
+const STRATUM_PICKER_DETAIL_W = 174;
+const STRATUM_PICKER_HEADER_H = 32;
+const STRATUM_PICKER_FOOTER_H = 24;
+const STRATUM_PICKER_BADGE_W = 34;
+const STRATUM_PICKER_RIGHT_BADGE_W = 34;
+const STRATUM_PICKER_COL_TEXT = 0xcccccc;
+const STRATUM_PICKER_COL_DIM = 0xaaaaaa;
+const STRATUM_PICKER_COL_MUTED = 0x777777;
+const STRATUM_PICKER_COL_BORDER = 0x4a4a6a;
+const STRATUM_PICKER_COL_ACCENT = 0x00ced1;
+const STRATUM_PICKER_COL_POSITIVE = 0x44ff44;
+const STRATUM_PICKER_COL_LOCKED = 0x666666;
+const STRATUM_PICKER_COL_GOLD = 0xffd700;
 
 const FOUNDRY_BG_HATCH_TILES = new Set([
   '6,0', '7,0', '8,0', '9,0', '10,0',
@@ -212,8 +241,6 @@ export class ItemWorldScene extends Scene {
   private stratumStartLevel = 0;
   private stratumStartInnocentCount = 0;
 
-  // First Normal entry special (tutorial): 3x3 grid, boss HP x0.7, no enrage
-  private isFirstNormalEntry = false;
   // Last non-boss room coords for first-entry respawn
   private lastSafeRoomCol = 0;
   private lastSafeRoomRow = 0;
@@ -224,6 +251,10 @@ export class ItemWorldScene extends Scene {
   private roomsCleared = 0;
   private totalRooms = 0;
   private unifiedGrid!: UnifiedGridData;
+  // DEC-037 PR-B debug overlay (?debug=graph + F2 toggle). Untouched by gameplay.
+  private roomGraphDebugContainer: Container | null = null;
+  private roomGraphDebugVisible = false;
+  private roomGraphDebugKeyHandler: ((e: KeyboardEvent) => void) | null = null;
   private currentCol = 0;
   private currentRow = 0; // absolute row in unified grid
   private roomData: number[][] = [];
@@ -267,6 +298,7 @@ export class ItemWorldScene extends Scene {
   // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
   private spikes: Spike[] = [];
   private crackedFloors: CrackedFloor[] = [];
+  private breakableProps: BreakableProp[] = [];
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private growingWalls: GrowingWall[] = [];
   private switches: Switch[] = [];
@@ -313,17 +345,12 @@ export class ItemWorldScene extends Scene {
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
 
-  // Escape altar
-  private altarTrigger: { x: number; y: number; width: number; height: number } | null = null;
-  private altarVisual: Graphics | null = null;
-  private altarHint: Container | null = null;
   private exitTracked = false;
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
   // Exit trigger (at stratum end rooms)
   private exitTrigger: { x: number; y: number; width: number; height: number } | null = null;
-  private entryPortal: Portal | null = null;
   private exitVisual: Graphics | null = null;
   private exitPrompt: Container | null = null;
 
@@ -340,12 +367,14 @@ export class ItemWorldScene extends Scene {
   private stratumPickerVisible = false;
   private stratumPickerSelection = 0;
   private stratumPickerMax = 0;
+  private stratumPickerPulseTimer = 0;
+  private stratumPickerPulseG: Graphics | null = null;
+  private stratumPickerPulseRect: { x: number; y: number; w: number; h: number } | null = null;
 
   // Onboarding — last line uses live keybindings via getter (preset-aware).
   private static readonly ONBOARDING_BASE_MSGS = [
     'You entered the Memory Strata!',
     'Each stratum goes deeper.\nDefeat the boss to descend.',
-    'Find Escape Altars to\nleave safely with rewards.',
   ];
   private static getOnboardingMsgs(): string[] {
     return [
@@ -412,35 +441,12 @@ export class ItemWorldScene extends Scene {
       console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
-    // First item-world entry still uses one short 2x2 stratum. Combat leniency
-    // is handled by beginner_grace in PlayerBuffSystem, not by enemy exceptions.
-    // Condition: global tutorial not yet done + Normal rarity + cycle 0 + no strata cleared
-    this.isFirstNormalEntry = !this.itemWorldTutorialDone
-      && this.item.rarity === 'normal'
-      && this.progress.cycle === 0
-      && this.progress.deepestUnlocked === 0
-      && this.progress.clearedRooms.length === 0;
-
     // ── Ego init ──
     this.egoActive = hasEgo(this.item.def.id);
     if (this.egoActive) {
       // Increment entry count
       this.egoEntryCount = getEgoEntryCount(this.egoUnlockedEvents) + 1;
       this.egoUnlockedEvents.add(egoEntryKey(this.egoEntryCount));
-    }
-    if (this.isFirstNormalEntry) {
-      // Override: 1 stratum, 2x2 grid.
-      // Grid is post-processed below (after generateUnifiedGrid) to snake all
-      // 4 cells onto the critical path: (0,0) Start → (1,0) → (1,1) → (0,1) Boss.
-      const first = this.strataConfig.strata[0];
-      this.strataConfig = {
-        strata: [{
-          ...first,
-          gridWidth: 2,
-          gridHeight: 2,
-        }],
-      };
-      console.log('[ItemWorld] First Normal entry special: 1 stratum, 2x2 grid (snake start/combat/combat/boss)');
     }
     this.rng = new PRNG(this.item.uid * 1000);
 
@@ -449,14 +455,18 @@ export class ItemWorldScene extends Scene {
 
     this.hitManager = new HitManager(this.game);
 
-    // Generate unified grid (all strata at once)
-    this.unifiedGrid = generateUnifiedGrid(this.strataConfig.strata, this.item.uid);
-
-    // First-dive override: snake the critical path through all 4 cells of the
-    // 2x2 grid so the player sees exactly Start → Combat → Combat → Boss.
-    if (this.isFirstNormalEntry) {
-      this.applyFirstDiveSnakeLayout();
+    // First-dive 온보딩: 첫 아이템계 보스를 처치하기 전에는 모든 아이템이 1지층만 갖는다.
+    // 레어리티 무관 (Normal/Magic/Rare/...) 의 글로벌 게이트.
+    if (!sacredSave.isFirstItemWorldBossDefeated() && this.strataConfig.strata.length > 1) {
+      this.strataConfig = { strata: [this.strataConfig.strata[0]] };
+      console.log('[ItemWorld] First-boss onboarding: strata truncated to 1.');
     }
+
+    // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
+    this.unifiedGrid = generateUnifiedGridFromGraph(this.strataConfig.strata, this.item.uid);
+
+    // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). F2 토글.
+    this.maybeInitRoomGraphDebug();
 
     // Pre-compute Memory Room placements per stratum (from CSV lookup)
     this.computeMemoryRoomPlacements();
@@ -550,12 +560,13 @@ export class ItemWorldScene extends Scene {
 
     // Parallax background (behind everything ? index 0)
     this.parallaxBG = new ParallaxBackground();
-    this.container.addChildAt(this.parallaxBG.container, 0);
+    this.game.backgroundContainer.addChild(this.parallaxBG.container);
     {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
-      const gridW = this.currentStratumDef?.gridWidth ?? IW_GRID_W;
-      const gridH = this.currentStratumDef?.gridHeight ?? IW_GRID_H;
+      const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+      const gridW = _bound?.width ?? this.currentStratumDef?.gridWidth ?? IW_GRID_W;
+      const gridH = _bound?.height ?? this.currentStratumDef?.gridHeight ?? IW_GRID_H;
       this.parallaxBG.setup(bgEntry, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX, {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
@@ -704,26 +715,10 @@ export class ItemWorldScene extends Scene {
     );
     this.updateHudText();
 
-    // Spawn player at start cell ? find first air-above-solid in the center
-    // column (template's natural floor).
-    const startCol = this.currentCol;
-    const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localStartRow = this.currentRow - stratumStart;
-    const spawnCenterX = startCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-    const spawnTileCol = Math.floor(spawnCenterX / TILE_SIZE);
-    const roomTopTile = localStartRow * IW_ROOM_H_TILES;
-
-    let spawnY = roomTopTile * TILE_SIZE + 2;
-    for (let tr = roomTopTile + IW_ROOM_H_TILES - IW_DOOR_DEPTH - 2; tr >= roomTopTile + IW_DOOR_DEPTH; tr--) {
-      const here = this.fullGrid[tr]?.[spawnTileCol] ?? 1;
-      const below = this.fullGrid[tr + 1]?.[spawnTileCol] ?? 1;
-      if (here === 0 && below >= 1) {
-        spawnY = (tr + 1) * TILE_SIZE - this.player.height;
-        break;
-      }
-    }
-    this.player.x = spawnCenterX;
-    this.player.y = spawnY;
+    // Spawn player on a verified floor in the start room.
+    const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
@@ -739,10 +734,6 @@ export class ItemWorldScene extends Scene {
 
     // ── Ego T04: landing dialogue ──
     setTimeout(() => this.fireEgoEnter(), 500);
-
-    // Sacred Pickup T6 ? Return hint HUD. First-ever landing: big-to-small
-    // shrink tween. Subsequent landings: small icon straight away.
-    this.uiController.createReturnHint();
 
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
@@ -783,44 +774,6 @@ export class ItemWorldScene extends Scene {
     return this.unifiedGrid.stratumEndRooms.some(
       e => e.col === col && e.absoluteRow === row,
     );
-  }
-
-  /**
-   * First-dive override: rewrite the 2x2 unifiedGrid so the critical path
-   * snakes through every cell as Start → Combat → Combat → Boss.
-   *
-   * Path: (0,0) → (1,0) → (1,1) → (0,1)
-   *  - (0,0) Start: right exit
-   *  - (1,0) Combat: left + down exits
-   *  - (1,1) Combat: up + left exits
-   *  - (0,1) Boss: right exit
-   */
-  private applyFirstDiveSnakeLayout(): void {
-    const g = this.unifiedGrid;
-    const c00 = g.cells[0]?.[0];
-    const c10 = g.cells[0]?.[1];
-    const c11 = g.cells[1]?.[1];
-    const c01 = g.cells[1]?.[0];
-    if (!c00 || !c10 || !c11 || !c01) {
-      console.warn('[ItemWorld] applyFirstDiveSnakeLayout: expected 2x2 grid; skipping override.');
-      return;
-    }
-
-    for (const c of [c00, c10, c11, c01]) {
-      c.onCriticalPath = true;
-      c.exits = { left: false, right: false, up: false, down: false };
-    }
-    c00.exits.right = true;
-    c10.exits.left = true;
-    c10.exits.down = true;
-    c11.exits.up = true;
-    c11.exits.left = true;
-    c01.exits.right = true;
-
-    g.startRoom = { col: 0, absoluteRow: 0 };
-    g.endRoom = { col: 0, absoluteRow: 1 };
-    g.stratumStartRooms = [{ col: 0, absoluteRow: 0, stratumIndex: 0 }];
-    g.stratumEndRooms = [{ col: 0, absoluteRow: 1, stratumIndex: 0 }];
   }
 
   /** Check if this is the final end room (deepest stratum boss) */
@@ -903,13 +856,15 @@ export class ItemWorldScene extends Scene {
     this.spawnedRooms.clear();
     this.roomTypeMap.clear();
     this.clearEnemies();
-    this.clearEscapeAltar();
     this.exitTrigger = null;
 
-    const _dbgRowStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const stratumBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+    const _dbgRowStart = stratumBound?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const gridW = stratumDef?.gridWidth ?? IW_GRID_W;
-    const gridH = stratumDef?.gridHeight ?? IW_GRID_H;
+    // strataOffsets[].width/height 가 실제 임베딩 크기 (radial 9×9, legacy 2×2~4×4).
+    // CSV 의 stratumDef.gridWidth/Height 는 legacy 4×4 모델 전용 폴백.
+    const gridW = stratumBound?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
+    const gridH = stratumBound?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
     console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${gridW}x${gridH} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
@@ -999,6 +954,9 @@ export class ItemWorldScene extends Scene {
       }
     }
 
+    // Radial layout 은 null 셀이 다수 — parallax BG 가 그대로 보이므로 dark seal 로 메움.
+    this.fillNullCellSeal(grid, stratumRowStart, gridW, gridH);
+
     this.addFullMapBoundaryCollision(gridW, gridH);
     this.addFullMapBoundaryVisuals(gridW, gridH);
 
@@ -1025,12 +983,6 @@ export class ItemWorldScene extends Scene {
 
     // Insert map container into scene, then ensure parallax stays behind everything
     this.container.addChildAt(this.fullMapContainer, 0);
-    // Re-insert parallax at index 0 (behind fullMap)
-    if (this.parallaxBG?.container.parent) {
-      this.container.removeChild(this.parallaxBG.container);
-    }
-    this.container.addChildAt(this.parallaxBG.container, 0);
-
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
@@ -1039,21 +991,14 @@ export class ItemWorldScene extends Scene {
     this.persistRoomState();
     this.drawMiniMap();
 
-    // Entry portal ? always at start room for escape back to world
-    if (this.entryPortal) {
-      if (this.entryPortal.container.parent) this.entryPortal.container.parent.removeChild(this.entryPortal.container);
-    }
-    {
-      const startCol = this.unifiedGrid.startRoom.col;
-      const startAbsRow = this.unifiedGrid.startRoom.absoluteRow;
-      const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-      const localRow = startAbsRow - stratumOffset;
-      const portalX = startCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-      // 천장에서 4셀 (+32 = 2셀, +32 = 2셀 더 하향). 플레이어가 입장 직후
-      // 시야에 즉시 들어오지 않도록 약간 아래에 배치.
-      const portalY = localRow * IW_ROOM_H_PX + 32 + 32;
-      this.entryPortal = new Portal(portalX, portalY, this.item.rarity, 'altar');
-      this.entityLayer.addChild(this.entryPortal.container);
+    // Breakable props (procedural, item world variants)
+    for (const bp of this.breakableProps) bp.destroy();
+    this.breakableProps = [];
+    const bpSeed = (this.currentStratumIndex + 1) * 0x1337 + (this.item.def.id.length * 7);
+    const bpList = spawnBreakableProps(this.fullGrid, bpSeed, true);
+    for (const bp of bpList) {
+      this.breakableProps.push(bp);
+      this.entityLayer.addChild(bp.container);
     }
 
     // Restore boss portal if the current stratum's boss was previously killed.
@@ -1343,13 +1288,13 @@ export class ItemWorldScene extends Scene {
       const spawnRng = new PRNG(pickSeed + spawnIndex);
       spawnIndex++;
 
-      // 15% chance to spawn an InnocentNPC instead of a regular enemy
+      // 15% chance to spawn an MemoryShardNPC instead of a regular enemy
       const innocentRoll = spawnRng.next();
       if (innocentRoll < INNOCENT_SPAWN_CHANCE && canAddInnocent(this.item)) {
         const seedForArchetype = this.item.uid + col * 13 + row * 7 + spawnIndex;
         const innocent = createRandomInnocent(seedForArchetype, cell.stratumIndex ?? 0);
 
-        const npc = new InnocentNPC();
+        const npc = new MemoryShardNPC();
         npc.innocent = innocent;
         npc.onSubdued = () => {
           innocent.isSubdued = true;
@@ -1443,26 +1388,124 @@ export class ItemWorldScene extends Scene {
     );
     if (!endRoom) return;
     const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
-    if (!cell || !cell.cleared) return;
+    if (!cell) return;
 
-    // Compute portal anchor at boss room's center-bottom in fullGrid space
-    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localRow = endRoom.absoluteRow - stratumOffset;
-    const roomCenterX = endRoom.col * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-    // Find a solid floor tile in the boss room to place the portal just above
-    const roomTopTile = localRow * IW_ROOM_H_TILES;
-    const centerTileCol = Math.floor(roomCenterX / TILE_SIZE);
-    let portalTileY = roomTopTile + IW_ROOM_H_TILES - 4;
-    for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
-      if ((this.fullGrid[tr]?.[centerTileCol] ?? 1) === 0 &&
-          (this.fullGrid[tr + 1]?.[centerTileCol] ?? 1) >= 1) {
-        portalTileY = tr; break;
-      }
-    }
-    const portalX = roomCenterX;
-    const portalY = (portalTileY + 1) * TILE_SIZE;
+    const savedPortal = this.progress.bossPortals?.[String(this.currentStratumIndex)];
+    const stratumAlreadyCleared =
+      cell.cleared ||
+      !!savedPortal ||
+      this.progress.deepestUnlocked > this.currentStratumIndex;
+    if (!stratumAlreadyCleared) return;
+
+    // Prefer the persisted boss death position so the portal sits exactly
+    // where the boss fell. If the current grid no longer matches the saved
+    // room coordinates, put the portal at this stratum's current boss spawn.
+    const canUseCellPosition = cell.cleared && cell.bossPortalX != null && cell.bossPortalY != null;
+    const canUseSavedPosition = cell.cleared && savedPortal;
+    const fallback = this.getBossPortalFallbackPosition(endRoom.col, endRoom.absoluteRow);
+    const portalX = canUseCellPosition
+      ? cell.bossPortalX!
+      : canUseSavedPosition
+        ? savedPortal.x
+        : fallback.x;
+    const portalY = canUseCellPosition
+      ? cell.bossPortalY!
+      : canUseSavedPosition
+        ? savedPortal.y
+        : fallback.y;
+
+    cell.cleared = true;
+    cell.bossPortalX = portalX;
+    cell.bossPortalY = portalY;
+    this.progress.bossPortals[String(this.currentStratumIndex)] = { x: portalX, y: portalY };
+    this.persistRoomState();
     this.spawnBossPortal(portalX, portalY);
     this.toast.show('Boss room cleared ? red portal ready.', 0xff8844);
+  }
+
+  private getBossPortalFallbackPosition(col: number, absoluteRow: number): { x: number; y: number } {
+    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localRow = absoluteRow - stratumOffset;
+    const roomTopTile = localRow * IW_ROOM_H_TILES;
+    const roomLeftTile = col * IW_ROOM_W_TILES;
+    const flat = this.findFlatFloorCenter(roomLeftTile, roomTopTile, 16);
+    if (flat) return flat;
+
+    const spawnPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomLeftTile, roomTopTile);
+    if (spawnPoints.length > 0) {
+      const bossRng = new PRNG(this.item.uid * 999 + col * 77 + absoluteRow * 33);
+      return spawnPoints[bossRng.nextInt(0, spawnPoints.length - 1)];
+    }
+
+    return {
+      x: col * IW_ROOM_W_PX + IW_ROOM_W_PX / 2,
+      y: localRow * IW_ROOM_H_PX + IW_ROOM_H_PX / 2,
+    };
+  }
+
+  private getPlayerFloorSpawnPosition(col: number, absoluteRow: number): { x: number; y: number } {
+    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const localRow = absoluteRow - stratumOffset;
+    const roomLeftTile = col * IW_ROOM_W_TILES;
+    const roomTopTile = localRow * IW_ROOM_H_TILES;
+    const roomLeftPx = col * IW_ROOM_W_PX;
+    const roomRightPx = roomLeftPx + IW_ROOM_W_PX;
+    const roomTopPx = localRow * IW_ROOM_H_PX;
+    const roomBottomPx = roomTopPx + IW_ROOM_H_PX;
+    const targetCenterX = roomLeftPx + IW_ROOM_W_PX / 2;
+
+    const floor = this.findPlayerSpawnFloor(roomLeftTile, roomTopTile, targetCenterX, roomBottomPx);
+    const spawnCenterX = floor?.x ?? targetCenterX;
+    const floorY = floor?.y ?? (roomTopPx + IW_ROOM_H_PX / 2);
+    const minX = roomLeftPx + TILE_SIZE;
+    const maxX = roomRightPx - TILE_SIZE - this.player.width;
+
+    return {
+      x: Math.round(Math.max(minX, Math.min(maxX, spawnCenterX - this.player.width / 2))),
+      y: Math.round(Math.max(roomTopPx + TILE_SIZE, floorY - this.player.height)),
+    };
+  }
+
+  private findPlayerSpawnFloor(
+    roomLeftTile: number,
+    roomTopTile: number,
+    targetCenterX: number,
+    roomBottomPx: number,
+  ): { x: number; y: number } | null {
+    let best: { x: number; y: number; score: number } | null = null;
+    const chooseBetter = (
+      current: { x: number; y: number; score: number } | null,
+      centerX: number,
+      floorY: number,
+    ): { x: number; y: number; score: number } => {
+      const horizontal = Math.abs(centerX - targetCenterX);
+      const verticalPenalty = Math.max(0, roomBottomPx - floorY) * 0.25;
+      const score = horizontal + verticalPenalty;
+      if (!current || score < current.score) return { x: centerX, y: floorY, score };
+      return current;
+    };
+
+    // Prefer established enemy-spawn floors: flat enough and inset from walls.
+    for (const pt of this.spawnController.computeSpawnPoints(this.fullGrid, roomLeftTile, roomTopTile)) {
+      best = chooseBetter(best, pt.x + TILE_SIZE / 2, pt.y);
+    }
+    if (best) return { x: best.x, y: best.y };
+
+    // Fallback for unusual templates: any air tile with solid below.
+    const colStart = roomLeftTile + 1;
+    const colEnd = roomLeftTile + IW_ROOM_W_TILES - 1;
+    const rowStart = roomTopTile + 1;
+    const rowEnd = roomTopTile + IW_ROOM_H_TILES - 1;
+    for (let tr = rowStart; tr < rowEnd; tr++) {
+      for (let tc = colStart; tc < colEnd; tc++) {
+        const here = this.fullGrid[tr]?.[tc] ?? 1;
+        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
+        if (here === 0 && below >= 1) {
+          best = chooseBetter(best, tc * TILE_SIZE + TILE_SIZE / 2, (tr + 1) * TILE_SIZE);
+        }
+      }
+    }
+    return best ? { x: best.x, y: best.y } : null;
   }
 
   /**
@@ -1573,7 +1616,7 @@ export class ItemWorldScene extends Scene {
 
       const offset = this.unifiedGrid.strataOffsets[si];
       if (!offset) continue;
-      const height = this.strataConfig.strata[si].gridHeight;
+      const height = offset.height;
 
       const startCol = this.unifiedGrid.startRoom.col;
       const startAbsRow = this.unifiedGrid.startRoom.absoluteRow;
@@ -1664,10 +1707,11 @@ export class ItemWorldScene extends Scene {
    * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
    */
   private preSpawnNeighborRooms(localCol: number, localRow: number): void {
-    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+    const stratumOffset = _bound?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const stratumWidth = stratumDef?.gridWidth ?? IW_GRID_W;
-    const stratumHeight = stratumDef?.gridHeight ?? IW_GRID_H;
+    const stratumWidth = _bound?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
+    const stratumHeight = _bound?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
     const directions = [
       { dc: -1, dr: 0, name: 'W' },
       { dc: 1, dr: 0, name: 'E' },
@@ -1832,6 +1876,25 @@ export class ItemWorldScene extends Scene {
       case 'up':    spawnX = DOOR_POS * TILE_SIZE;    spawnY = 2 * TILE_SIZE;        break;
       case 'down': default: spawnX = DOOR_POS * TILE_SIZE; spawnY = (rH - 3) * TILE_SIZE; break;
     }
+
+    // Snap spawnY to the nearest air-above-solid tile in the spawn column so
+    // the player never lands inside a wall or in a void hole when an LDtk
+    // template doesn't have a floor at the canonical door height. Searches
+    // outward from the candidate row.
+    const spawnCol = Math.floor((spawnX + this.player.width / 2) / TILE_SIZE);
+    const candidateRow = Math.floor((spawnY + this.player.height) / TILE_SIZE);
+    for (let d = 0; d < rH; d++) {
+      const rows = d === 0 ? [candidateRow] : [candidateRow + d, candidateRow - d];
+      let found = -1;
+      for (const tr of rows) {
+        if (tr < 1 || tr >= rH - 1) continue;
+        const here = this.roomData[tr]?.[spawnCol] ?? 1;
+        const below = this.roomData[tr + 1]?.[spawnCol] ?? 1;
+        if (here === 0 && below >= 1) { found = tr; break; }
+      }
+      if (found >= 0) { spawnY = (found + 1) * TILE_SIZE - this.player.height; break; }
+    }
+
     this.player.x = spawnX;
     this.player.y = spawnY;
     this.player.vx = 0;
@@ -1841,7 +1904,6 @@ export class ItemWorldScene extends Scene {
     // Generate door triggers based on actual room dimensions
     this.doorTriggers = this.buildDoorTriggers(cell);
     this.clearEnemies();
-    this.clearEscapeAltar();
     // Note: sealGfx is cleared at TOP of loadRoom before sealUnusedExits creates new one
 
     if (!cell.cleared) {
@@ -1861,30 +1923,34 @@ export class ItemWorldScene extends Scene {
     if (isEndRoom) {
       if (!cell.cleared) {
         this.spawnBoss();
+        // Boss is alive — portal opens on death (handled in update loop).
+        this.exitTrigger = null;
+      } else {
+        // Boss already cleared (re-entry). Restore portal at stored death
+        // position; fall back to a floor-aware center placement for legacy
+        // saves that pre-date bossPortalX/Y persistence.
+        let portalX = cell.bossPortalX;
+        let portalY = cell.bossPortalY;
+        if (portalX == null || portalY == null) {
+          const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+          const localRow = this.currentRow - stratumOffset;
+          const roomTopTile = localRow * IW_ROOM_H_TILES;
+          const roomCenterX = this.currentCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
+          const centerTileCol = Math.floor(roomCenterX / TILE_SIZE);
+          let portalTileY = roomTopTile + IW_ROOM_H_TILES - 4;
+          for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
+            if ((this.fullGrid[tr]?.[centerTileCol] ?? 1) === 0 &&
+                (this.fullGrid[tr + 1]?.[centerTileCol] ?? 1) >= 1) {
+              portalTileY = tr; break;
+            }
+          }
+          portalX = roomCenterX;
+          portalY = (portalTileY + 1) * TILE_SIZE;
+        }
+        this.spawnBossPortal(portalX, portalY);
       }
-      const exitX = (this.roomW / 2 - 1) * TILE_SIZE;
-      const exitY = (this.roomH - 4) * TILE_SIZE;
-      this.exitTrigger = { x: exitX, y: exitY, width: 3 * TILE_SIZE, height: 3 * TILE_SIZE };
-
-      // Visual: blue for descent, gold for final exit
-      const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
-      const baseColor = isFinal ? 0xcc8844 : 0x4444cc;
-      const midColor = isFinal ? 0xddaa55 : 0x5555dd;
-      const topColor = isFinal ? 0xeebb66 : 0x6666ff;
-
-      this.exitVisual = new Graphics();
-      this.exitVisual.rect(0, 24, 48, 16).fill(baseColor);
-      this.exitVisual.rect(8, 16, 32, 8).fill(midColor);
-      this.exitVisual.rect(16, 8, 16, 8).fill(topColor);
-      this.exitVisual.rect(18, -4, 12, 10).fill(0xffff44);
-      this.exitVisual.rect(22, -10, 4, 6).fill(0xffff88);
-      this.exitVisual.x = exitX;
-      this.exitVisual.y = exitY;
-      this.entityLayer.addChild(this.exitVisual);
     } else {
       this.exitTrigger = null;
-      // Escape altar ? spawn in non-start, non-end, critical path rooms
-      this.trySpawnEscapeAltar(cell);
     }
 
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
@@ -2374,6 +2440,8 @@ export class ItemWorldScene extends Scene {
     this.spikes = [];
     for (const e of this.crackedFloors) e.destroy();
     this.crackedFloors = [];
+    for (const e of this.breakableProps) e.destroy();
+    this.breakableProps = [];
     for (const e of this.collapsingPlatforms) e.destroy();
     this.collapsingPlatforms = [];
     for (const e of this.growingWalls) e.destroy();
@@ -2481,6 +2549,28 @@ export class ItemWorldScene extends Scene {
           cf.destroy();
           this.crackedFloors.splice(i, 1);
         }
+        // Breakable props
+        for (let i = this.breakableProps.length - 1; i >= 0; i--) {
+          const bp = this.breakableProps[i];
+          if (bp.destroyed) continue;
+          if (!aabbOverlap(hitbox, bp.getAABB())) continue;
+          const drop = bp.break();
+          this.game.hitstopFrames += 2;
+          this.game.camera.shake(2);
+          this.hitSparks.spawn(
+            bp.x + bp.width / 2, bp.y + bp.height / 2,
+            false, this.player.facingRight ? 1 : -1,
+          );
+          if (drop.type === 'gold' && drop.amount > 0) {
+            const gp = new GoldPickup(bp.x + bp.width / 2, bp.y + bp.height, drop.amount);
+            this.goldPickups.push(gp);
+            this.entityLayer.addChild(gp.container);
+          } else if (drop.type === 'flask') {
+            this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
+          }
+          bp.destroy();
+          this.breakableProps.splice(i, 1);
+        }
         // Switches
         for (const sw of this.switches) {
           if (sw.activated) continue;
@@ -2555,10 +2645,11 @@ export class ItemWorldScene extends Scene {
     this.sealAggregate.removeChildren();
 
     const grid = this.unifiedGrid;
-    const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
+    const _bound2 = grid.strataOffsets[this.currentStratumIndex];
+    const stratumRowStart = _bound2?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const gridW = stratumDef?.gridWidth ?? IW_GRID_W;
-    const gridH = stratumDef?.gridHeight ?? IW_GRID_H;
+    const gridW = _bound2?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
+    const gridH = _bound2?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
 
     for (let localRow = 0; localRow < gridH; localRow++) {
       const absRow = stratumRowStart + localRow;
@@ -2595,6 +2686,37 @@ export class ItemWorldScene extends Scene {
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
       }
+    }
+
+    this.fillNullCellSeal(grid, stratumRowStart, gridW, gridH);
+  }
+
+  /**
+   * Fill non-placed (null) cells in the radial layout with a dark seal block so the
+   * parallax background does not bleed through. Drawn into sealAggregate (wallPaletteFilter).
+   */
+  private fillNullCellSeal(
+    grid: UnifiedGridData,
+    stratumRowStart: number,
+    gridW: number,
+    gridH: number,
+  ): void {
+    if (!this.sealAggregate) return;
+    const gfx = new Graphics();
+    let count = 0;
+    for (let localRow = 0; localRow < gridH; localRow++) {
+      const absRow = stratumRowStart + localRow;
+      for (let col = 0; col < gridW; col++) {
+        if (grid.cells[absRow]?.[col]) continue;
+        gfx.rect(col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX, IW_ROOM_W_PX, IW_ROOM_H_PX);
+        count++;
+      }
+    }
+    if (count > 0) {
+      gfx.fill(0x101010);
+      this.sealAggregate.addChild(gfx);
+    } else {
+      gfx.destroy();
     }
   }
 
@@ -2658,6 +2780,7 @@ export class ItemWorldScene extends Scene {
   }
 
   enter(): void {
+    if (this.parallaxBG) this.parallaxBG.container.visible = true;
     this.entryFreezeTimer = ENTRY_FREEZE_MS;
   }
 
@@ -2678,9 +2801,6 @@ export class ItemWorldScene extends Scene {
     // Toast always updates
     this.toast.update(dt);
 
-    // Return hint shrink tween (first-entry only).
-    this.uiController.updateReturnHint(dt);
-
     this.hud.setDebugInfoVisible(Debug.infoVisible);
 
     // Onboarding blocks gameplay
@@ -2693,6 +2813,8 @@ export class ItemWorldScene extends Scene {
 
     // Stratum picker blocks gameplay
     if (this.stratumPickerVisible) {
+      this.stratumPickerPulseTimer += dt;
+      this.redrawStratumPickerPulse();
       this.handleStratumPickerInput();
       return;
     }
@@ -2722,20 +2844,6 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Entry portal interaction ? C key near portal shows escape confirm
-    if (this.entryPortal && !this.uiController.isEscapeConfirmVisible() && !this.uiController.isBossChoiceVisible()) {
-      this.entryPortal.update(dt);
-      const px = this.player.x + this.player.width / 2;
-      const py = this.player.y + this.player.height / 2;
-      const dist = Math.hypot(px - this.entryPortal.x, py - this.entryPortal.y);
-      const inRange = dist < 40;
-      this.entryPortal.setShowHint(inRange);
-      if (inRange && this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.showEscapeConfirm();
-        return;
-      }
-    }
-
     // ESC to toggle escape confirm. bossChoice 패널이 열려 있을 땐 여기서
     // 가로채지 않고 아래 bossChoice 핸들러가 ESC 를 Exit Safely 로 처리하도록
     // 양보한다 (Pattern A ? 해당 모달의 취소 키).
@@ -2750,13 +2858,8 @@ export class ItemWorldScene extends Scene {
 
     if (this.uiController.isEscapeConfirmVisible()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        const fromAltar = this.uiController.isEscapeConfirmFromAltar();
         this.hideEscapeConfirm();
-        if (fromAltar) {
-          this.useEscapeAltar();
-        } else {
-          this.startExitFade();
-        }
+        this.startExitFade();
         return;
       }
       if (this.game.input.isJustPressed(GameAction.DASH) ||
@@ -2900,12 +3003,12 @@ export class ItemWorldScene extends Scene {
         (enemy as any)._expGranted = true;
 
         // ── Ego T06: first enemy kill ──
-        if (!(enemy instanceof InnocentNPC) && !(enemy as any)._isBoss) {
+        if (!(enemy instanceof MemoryShardNPC) && !(enemy as any)._isBoss) {
           this.fireEgoFirstKill();
         }
 
         // Analytics: enemy kill distribution (excludes Innocents ? capture, not kill)
-        if (!(enemy instanceof InnocentNPC)) {
+        if (!(enemy instanceof MemoryShardNPC)) {
           trackEnemyKill({
             area: 'itemworld',
             enemy_type: enemy.constructor.name.toLowerCase(),
@@ -2916,7 +3019,7 @@ export class ItemWorldScene extends Scene {
 
         // A11: enhanced death burst. Innocents are "captured" (A15 handles
         // them separately) so skip the burst for them to avoid double-fx.
-        if (!(enemy instanceof InnocentNPC)) {
+        if (!(enemy instanceof MemoryShardNPC)) {
           const heavy = !!(enemy as any)._isBoss;
           this.deathParticles.spawn(
             enemy.x + enemy.width / 2,
@@ -2945,7 +3048,7 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        if (!(enemy instanceof InnocentNPC)) {
+        if (!(enemy instanceof MemoryShardNPC)) {
           // CSV-driven kill EXP (Sheets/Content_Stats_Enemy.csv -> Exp column).
           // Falls back to BASE_EXP_PER_KILL if the enemy lacks an exp value.
           const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
@@ -3022,6 +3125,9 @@ export class ItemWorldScene extends Scene {
         this.healingPickups.splice(i, 1);
       }
     }
+
+    // Breakable props (sway animation)
+    for (const bp of this.breakableProps) bp.update(dt);
 
     // Gold pickups ? collect on overlap
     for (let i = this.goldPickups.length - 1; i >= 0; i--) {
@@ -3160,11 +3266,6 @@ export class ItemWorldScene extends Scene {
         const cell = this.getCurrentCell();
         cell.cleared = true;
 
-        // First entry privilege ends on first boss kill
-        if (this.isFirstNormalEntry) {
-          this.isFirstNormalEntry = false;
-        }
-
         // Playtest 2026-04-26 #1: anvil retires after first IW boss clear
         // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
         if (!sacredSave.isFirstItemWorldBossDefeated()) {
@@ -3198,11 +3299,14 @@ export class ItemWorldScene extends Scene {
         this.healingPickups.push(anvil);
         this.entityLayer.addChild(anvil.container);
 
-        // Remove any existing escape altar so portal is the only interactable
-        this.clearEscapeAltar();
-
         const px = enemy.x + enemy.width / 2;
         const py = enemy.y + enemy.height;
+        // Pin portal to boss death position so re-entry never strands the
+        // portal in mid-air on LDtk templates with sparse floors.
+        cell.bossPortalX = px;
+        cell.bossPortalY = py;
+        this.progress.bossPortals[String(this.currentStratumIndex)] = { x: px, y: py };
+        this.persistRoomState();
 
         // A12 (playtest 2026-04-17): boss kills previously used the same
         // feedback as regular kills (hitstop 12, shake 4, small toast). Upgrade
@@ -3224,9 +3328,13 @@ export class ItemWorldScene extends Scene {
         }, 160);
 
         // ── Ego T12: boss killed dialogue → then portal ──
-        // First entry: clear FX → Ego dialogue (freeze) → dialogue done → portal opens
-        // Subsequent entries: portal opens immediately + non-blocking dialogue
-        if (this.egoActive && this.egoEntryCount === 1) {
+        // First-clear (boss never killed before): clear FX → Ego dialogue
+        //   (freeze) → dialogue done → portal opens. Persist BOSS_KILLED so
+        //   the onboarding window closes for subsequent entries.
+        // Post-clear re-entries: portal opens immediately + non-blocking dialogue.
+        const wasOnboarding = this.isFirstBossOnboarding();
+        if (this.egoActive && wasOnboarding) {
+          this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
           // Delay for clear FX to settle, then show dialogue
           setTimeout(async () => {
             await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
@@ -3262,42 +3370,17 @@ export class ItemWorldScene extends Scene {
         }
       }
 
-      // ── Ego T13: exit altar proximity ──
-      if (nearPortal) {
-        this.fireEgoExitAltar();
-      }
-
       if (nearPortal && this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.handleStratumExit();
         return;
       }
     }
 
-    // Escape altar interaction ? UP to open confirmation dialog
-    if (this.altarTrigger) {
-      const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-      const overlapping = aabbOverlap(pb, this.altarTrigger);
-      if (this.altarHint) {
-        this.altarHint.visible = overlapping;
-        if (overlapping) {
-          const us = this.game.uiScale;
-          const cam = this.game.camera;
-          const sx = (this.altarTrigger.x + 16 - cam.renderX + GAME_WIDTH / 2) * us - this.altarHint.width / 2;
-          const sy = (this.altarTrigger.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
-          this.altarHint.x = Math.round(sx);
-          this.altarHint.y = Math.round(sy);
-        }
-      }
-      if (overlapping && this.game.input.isJustPressed(GameAction.LOOK_UP)) {
-        this.showEscapeConfirm(true);
-        return;
-      }
-    }
-
     // Track which room the player is in and lazy-spawn enemies on first entry
     // Clamp to grid bounds to prevent out-of-range access
-    const curGridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
-    const curGridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const _curBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+    const curGridW = _curBound?.width ?? this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
+    const curGridH = _curBound?.height ?? this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
     const playerRoomCol = Math.max(0, Math.min(curGridW - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
     const playerRoomRow = Math.max(0, Math.min(curGridH - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     // Convert local row (0-3) to absolute row so room keys are globally unique
@@ -3318,13 +3401,11 @@ export class ItemWorldScene extends Scene {
         this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
         this.persistRoomState();
         this.drawMiniMap();
-        // Escape altar chance: skip start rooms (per stratum) and boss rooms
+        // Track last non-boss room (per stratum, excluding start) for first-entry respawn
         const absRow = this.currentRow;
         const sOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
         const isStratumStart = sOff && playerRoomRow === 0 && enteredCell.onCriticalPath;
         if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, absRow)) {
-          this.trySpawnEscapeAltar(enteredCell);
-          // Remember last non-boss room for first-entry respawn
           this.lastSafeRoomCol = this.currentCol;
           this.lastSafeRoomRow = this.currentRow;
         }
@@ -3381,8 +3462,9 @@ export class ItemWorldScene extends Scene {
     this.updateMovementVfx(dt);
 
     // Clamp player to the active stratum bounds.
-    const gridW = this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
-    const gridH = this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const _clampBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
+    const gridW = _clampBound?.width ?? this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
+    const gridH = _clampBound?.height ?? this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
     const mapW = gridW * IW_ROOM_W_PX;
     const mapH = gridH * IW_ROOM_H_PX;
     if (this.player.x < 0) this.player.x = 0;
@@ -3532,10 +3614,46 @@ export class ItemWorldScene extends Scene {
     this.lowHpVignette.update(dt, hpRatio);
   }
 
+  private getClearedStrataFlags(): boolean[] {
+    const totalStrata = this.strataConfig.strata.length;
+    const cleared: boolean[] = [];
+    for (let i = 0; i < totalStrata; i++) {
+      const endRoom = this.unifiedGrid.stratumEndRooms.find(e => e.stratumIndex === i);
+      if (endRoom) {
+        const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
+        cleared.push(
+          (cell?.cleared ?? false) ||
+          !!this.progress.bossPortals?.[String(i)] ||
+          this.progress.deepestUnlocked > i,
+        );
+      } else {
+        cleared.push(false);
+      }
+    }
+    return cleared;
+  }
+
+  private restoreGameplayHud(): void {
+    this.hud.container.visible = true;
+    this.hud.hideBossHP();
+    this.hud.showDepthGauge(
+      this.strataConfig.strata.length,
+      this.currentStratumIndex,
+      this.getClearedStrataFlags(),
+    );
+    this.hud.showItemExp(
+      this.item.def.name,
+      RARITY_COLOR[this.item.rarity],
+      this.item.level,
+      this.item.exp,
+      EXP_PER_LEVEL,
+    );
+    this.updateHudText();
+  }
+
   private updateHudText(): void {
     const cycleTag = this.progress.cycle > 0 ? `C${this.progress.cycle} ` : '';
-    // DEBUG: first entry special conditions
-    const dbg = `[1st:${this.isFirstNormalEntry ? 'Y' : 'N'} r=${this.item.rarity} cy=${this.progress.cycle} deep=${this.progress.deepestUnlocked} clr=${this.progress.clearedRooms.length}]`;
+    const dbg = `[r=${this.item.rarity} cy=${this.progress.cycle} deep=${this.progress.deepestUnlocked} clr=${this.progress.clearedRooms.length}]`;
     const buffDbg = new URLSearchParams(window.location.search).get('debug') === '1'
       ? ` ${formatActivePlayerBuffsDebug()}`
       : '';
@@ -3544,24 +3662,13 @@ export class ItemWorldScene extends Scene {
     );
 
     // Update depth gauge
-    const totalStrata = this.strataConfig.strata.length;
-    const cleared: boolean[] = [];
-    for (let i = 0; i < totalStrata; i++) {
-      const endRoom = this.unifiedGrid.stratumEndRooms.find(e => e.stratumIndex === i);
-      if (endRoom) {
-        const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
-        cleared.push(cell?.cleared ?? false);
-      } else {
-        cleared.push(false);
-      }
-    }
+    const cleared = this.getClearedStrataFlags();
     this.hud.updateDepthGauge(this.currentStratumIndex, cleared);
   }
 
-  private showEscapeConfirm(fromAltar = false): void {
+  private showEscapeConfirm(): void {
     this.uiController.showEscapeConfirm({
       hudSkin: this.hudSkin,
-      fromAltar,
       itemName: this.item.def.name,
       itemLevel: this.item.level,
       itemExp: this.item.exp,
@@ -3572,7 +3679,6 @@ export class ItemWorldScene extends Scene {
       earnedGold: this.earnedGold,
       prompts: {
         exitPrompt: this.exitPrompt,
-        altarHint: this.altarHint,
       },
     });
   }
@@ -3587,9 +3693,10 @@ export class ItemWorldScene extends Scene {
 
   private showStratumPicker(maxSelectable: number): void {
     this.stratumPickerVisible = true;
-    this.stratumPickerMax = maxSelectable;
-    // Default selection = lowest cleared (or current default behavior)
-    this.stratumPickerSelection = Math.min(this.currentStratumIndex, maxSelectable - 1);
+    this.stratumPickerMax = Math.max(1, Math.min(maxSelectable, this.strataConfig.strata.length));
+    // Default selection = current safe stratum.
+    this.stratumPickerSelection = Math.min(this.currentStratumIndex, this.stratumPickerMax - 1);
+    this.stratumPickerPulseTimer = 0;
     this.drawStratumPicker();
   }
 
@@ -3597,63 +3704,280 @@ export class ItemWorldScene extends Scene {
     if (this.stratumPicker?.parent) {
       this.stratumPicker.parent.removeChild(this.stratumPicker);
     }
+    this.stratumPicker?.destroy({ children: true });
+    this.stratumPickerPulseG = null;
+    this.stratumPickerPulseRect = null;
 
-    const panelW = 300;
-    const rowH = 14;
-    const headerH = 28;
-    const footerH = 18;
-    const panelH = headerH + rowH * this.stratumPickerMax + footerH + 12;
+    const totalStrata = this.strataConfig.strata.length;
+    const rowHeaderH = 12;
+    const rowsH = totalStrata * STRATUM_PICKER_ROW_H + Math.max(0, totalStrata - 1) * STRATUM_PICKER_ROW_GAP;
+    const contentH = Math.max(104, rowHeaderH + rowsH);
+    const panelH = STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H + 6 + contentH + 8 + STRATUM_PICKER_FOOTER_H + STRATUM_PICKER_PAD;
+
+    const root = new Container();
+    const dim = new Graphics();
+    dim.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.5 });
+    root.addChild(dim);
 
     const panel = new Container();
-    const frame = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, panelW, panelH) : null;
+    panel.x = Math.floor((GAME_WIDTH - STRATUM_PICKER_W) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
+    root.addChild(panel);
+
+    const frame = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, STRATUM_PICKER_W, panelH) : null;
     if (frame) { panel.addChild(frame); } else {
       const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+      bg.rect(0, 0, STRATUM_PICKER_W, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
+      bg.rect(0, 0, STRATUM_PICKER_W, panelH).stroke({ color: STRATUM_PICKER_COL_BORDER, width: 1 });
       panel.addChild(bg);
     }
 
-    const title = new BitmapText({
-      text: 'Select Starting Stratum',
-      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: 0xffffff },
-    });
-    title.x = 12;
-    title.y = 8;
-    panel.addChild(title);
+    const rarityColor = RARITY_COLOR[this.item.rarity] ?? 0xffffff;
+    this.addStratumPickerText(panel, 'SELECT ITEM WORLD START', STRATUM_PICKER_PAD, 8, 10, 0xffffff);
+    const cycleTag = this.progress.cycle > 0 ? ` / CYCLE ${this.progress.cycle}` : '';
+    this.addStratumPickerText(
+      panel,
+      `${this.item.def.name} / ${this.item.rarity.toUpperCase()} / Lv.${this.item.level}${cycleTag}`,
+      STRATUM_PICKER_PAD,
+      23,
+      7,
+      rarityColor,
+      360,
+    );
+    const depthText = this.addStratumPickerText(
+      panel,
+      `${this.stratumPickerMax} / ${totalStrata} STRATA`,
+      0,
+      23,
+      7,
+      STRATUM_PICKER_COL_ACCENT,
+    );
+    depthText.x = STRATUM_PICKER_W - STRATUM_PICKER_PAD - depthText.width;
 
-    for (let i = 0; i < this.stratumPickerMax; i++) {
-      const isSel = i === this.stratumPickerSelection;
-      const y = headerH + i * rowH;
+    const headerLine = new Graphics();
+    headerLine.moveTo(STRATUM_PICKER_PAD, STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H - 1);
+    headerLine.lineTo(STRATUM_PICKER_W - STRATUM_PICKER_PAD, STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H - 1);
+    headerLine.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
+    panel.addChild(headerLine);
 
-      if (isSel) {
-        const hl = new Graphics();
-        hl.rect(6, y - 2, panelW - 12, rowH).fill({ color: 0x4444aa, alpha: 0.6 });
-        panel.addChild(hl);
-      }
+    const contentY = STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H + 6;
+    const listX = STRATUM_PICKER_PAD;
+    const listY = contentY + rowHeaderH;
+    const detailX = listX + STRATUM_PICKER_LIST_W + 14;
 
-      const stratumDef = this.strataConfig.strata[i];
-      const label = new BitmapText({
-        text: `${isSel ? '> ' : '  '}Stratum ${i + 1}  HP x${stratumDef.hpMul.toFixed(1)} ATK x${stratumDef.atkMul.toFixed(1)}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? 0xffff88 : 0xaaaaaa },
-      });
-      label.x = 14;
-      label.y = y;
-      panel.addChild(label);
+    this.addStratumPickerText(panel, 'MEMORY STRATA', listX, contentY, 7, STRATUM_PICKER_COL_MUTED);
+
+    for (let i = 0; i < totalStrata; i++) {
+      const y = listY + i * (STRATUM_PICKER_ROW_H + STRATUM_PICKER_ROW_GAP);
+      this.drawStratumPickerRow(panel, i, listX, y, STRATUM_PICKER_LIST_W);
     }
 
-    const controls = new BitmapText({
-      text: `[${actionKey(GameAction.MOVE_LEFT)}/${actionKey(GameAction.MOVE_RIGHT)}] Change   [${actionKey(GameAction.ATTACK)}] Confirm   [${actionKey(GameAction.MENU)}] Cancel`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88aacc },
+    const selectedY = listY + this.stratumPickerSelection * (STRATUM_PICKER_ROW_H + STRATUM_PICKER_ROW_GAP);
+    this.stratumPickerPulseG = new Graphics();
+    this.stratumPickerPulseG.x = listX;
+    this.stratumPickerPulseG.y = selectedY;
+    panel.addChild(this.stratumPickerPulseG);
+    this.stratumPickerPulseRect = { x: listX, y: selectedY, w: STRATUM_PICKER_LIST_W, h: STRATUM_PICKER_ROW_H };
+    this.redrawStratumPickerPulse();
+
+    const detailDivider = new Graphics();
+    detailDivider.moveTo(detailX - 9, contentY);
+    detailDivider.lineTo(detailX - 9, contentY + contentH - 2);
+    detailDivider.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
+    panel.addChild(detailDivider);
+
+    this.drawStratumPickerDetail(panel, detailX, contentY, STRATUM_PICKER_DETAIL_W, contentH);
+
+    const footerLine = new Graphics();
+    const footerY = panelH - STRATUM_PICKER_PAD - STRATUM_PICKER_FOOTER_H - 2;
+    footerLine.moveTo(STRATUM_PICKER_PAD, footerY);
+    footerLine.lineTo(STRATUM_PICKER_W - STRATUM_PICKER_PAD, footerY);
+    footerLine.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
+    panel.addChild(footerLine);
+    this.drawStratumPickerControls(panel, STRATUM_PICKER_PAD, footerY + 8);
+
+    this.stratumPicker = root;
+    this.game.legacyUIContainer.addChild(root);
+  }
+
+  private drawStratumPickerRow(parent: Container, index: number, x: number, y: number, w: number): void {
+    const isSelected = index === this.stratumPickerSelection;
+    const isLocked = index >= this.stratumPickerMax;
+    const cleared = this.getClearedStrataFlags()[index] ?? false;
+    const stratumDef = this.strataConfig.strata[index];
+    const row = new Graphics();
+    row.x = x;
+    row.y = y;
+
+    if (isSelected) {
+      drawSelectionRow(row, w, STRATUM_PICKER_ROW_H);
+    } else if (isLocked) {
+      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).fill({ color: 0x000000, alpha: 0.18 });
+      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).stroke({ color: 0x2a2a3e, width: 1, alpha: 0.7 });
+    } else if (cleared) {
+      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).fill({ color: STRATUM_PICKER_COL_POSITIVE, alpha: 0.05 });
+    }
+    parent.addChild(row);
+
+    if (isSelected) {
+      const left = new BitmapText({ text: '\u25B6', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR } });
+      left.x = x + 4;
+      left.y = y + 4;
+      parent.addChild(left);
+      const right = new BitmapText({ text: '\u25C0', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR } });
+      right.x = x + w - 11;
+      right.y = y + 4;
+      parent.addChild(right);
+    }
+
+    const leftBadge = isLocked ? 'LOCK' : (isSelected ? 'START' : (cleared ? 'CLR' : 'OPEN'));
+    const leftBadgeColor = isLocked ? STRATUM_PICKER_COL_LOCKED : (cleared && !isSelected ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_ACCENT);
+    this.drawStratumPickerBadge(parent, x + 20, y + 3, STRATUM_PICKER_BADGE_W, leftBadge, leftBadgeColor, isLocked);
+
+    const nameColor = isLocked
+      ? STRATUM_PICKER_COL_MUTED
+      : isSelected
+        ? 0xffffff
+        : cleared
+          ? STRATUM_PICKER_COL_POSITIVE
+          : STRATUM_PICKER_COL_DIM;
+    const suffix = isLocked ? 'Locked' : cleared ? 'Gate Restored' : 'Open';
+    this.addStratumPickerText(parent, `Stratum ${index + 1} - ${suffix}`, x + 60, y + 5, 8, nameColor, 150);
+
+    this.addStratumPickerText(
+      parent,
+      `HP x${stratumDef.hpMul.toFixed(1)}`,
+      x + w - 98,
+      y + 5,
+      7,
+      isLocked ? STRATUM_PICKER_COL_MUTED : STRATUM_PICKER_COL_TEXT,
+      54,
+    );
+
+    const rightBadge = isLocked ? 'LOCK' : (cleared ? 'GATE' : 'OPEN');
+    const rightBadgeColor = isLocked ? STRATUM_PICKER_COL_LOCKED : (cleared ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_ACCENT);
+    this.drawStratumPickerBadge(parent, x + w - 42, y + 3, STRATUM_PICKER_RIGHT_BADGE_W, rightBadge, rightBadgeColor, isLocked);
+  }
+
+  private drawStratumPickerDetail(parent: Container, x: number, y: number, w: number, h: number): void {
+    const index = this.stratumPickerSelection;
+    const def = this.strataConfig.strata[index];
+    const cleared = this.getClearedStrataFlags()[index] ?? false;
+    const gateReady = cleared || !!this.progress.bossPortals?.[String(index)];
+    const title = this.addStratumPickerText(parent, `STRATUM ${index + 1}`, x, y, 10, STRATUM_PICKER_COL_ACCENT);
+    title.x = x;
+    this.addStratumPickerText(parent, 'Current re-entry point', x, y + 13, 7, STRATUM_PICKER_COL_MUTED, w);
+
+    const line = new Graphics();
+    line.moveTo(x, y + 28);
+    line.lineTo(x + w, y + 28);
+    line.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
+    parent.addChild(line);
+
+    let sy = y + 36;
+    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Boss gate', gateReady ? 'Ready' : 'Uncleared', gateReady ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_MUTED);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Enemy HP', `x${def.hpMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Enemy ATK', `x${def.atkMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, 'EXP', `x${def.expMultiplier.toFixed(1)}`, STRATUM_PICKER_COL_GOLD);
+
+    this.drawStratumPickerDepthGauge(parent, x, y + h - 18, w);
+  }
+
+  private drawStratumPickerStat(parent: Container, x: number, y: number, w: number, label: string, value: string, valueColor: number): number {
+    this.addStratumPickerText(parent, label, x, y, 8, STRATUM_PICKER_COL_DIM, Math.floor(w * 0.58));
+    const valueText = this.addStratumPickerText(parent, value, 0, y, 8, valueColor, Math.floor(w * 0.42));
+    valueText.x = x + w - valueText.width;
+    return y + 13;
+  }
+
+  private drawStratumPickerDepthGauge(parent: Container, x: number, y: number, w: number): void {
+    const total = this.strataConfig.strata.length;
+    if (total <= 0) return;
+    const gap = 3;
+    const segW = Math.max(10, Math.floor((w - gap * (total - 1)) / total));
+    const cleared = this.getClearedStrataFlags();
+    const gauge = new Graphics();
+    for (let i = 0; i < total; i++) {
+      const sx = x + i * (segW + gap);
+      const locked = i >= this.stratumPickerMax;
+      const selected = i === this.stratumPickerSelection;
+      const color = selected
+        ? STRATUM_PICKER_COL_ACCENT
+        : cleared[i]
+          ? STRATUM_PICKER_COL_POSITIVE
+          : locked
+            ? STRATUM_PICKER_COL_LOCKED
+            : STRATUM_PICKER_COL_DIM;
+      gauge.rect(sx, y, segW, 7).fill({ color, alpha: locked ? 0.42 : 0.85 });
+      if (selected) {
+        gauge.rect(sx - 1, y - 1, segW + 2, 9).stroke({ color: 0xffffff, width: 1, alpha: 0.75 });
+      }
+    }
+    parent.addChild(gauge);
+  }
+
+  private drawStratumPickerControls(parent: Container, x: number, y: number): void {
+    let cx = x;
+    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_LEFT));
+    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_RIGHT));
+    cx = this.addStratumPickerControlText(parent, 'Change', cx + 2, y + 3) + 12;
+    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.ATTACK));
+    cx = this.addStratumPickerControlText(parent, 'Enter', cx + 2, y + 3) + 12;
+    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MENU));
+    this.addStratumPickerControlText(parent, 'Cancel', cx + 2, y + 3);
+  }
+
+  private drawStratumPickerKey(parent: Container, x: number, y: number, label: string): number {
+    const w = Math.max(14, label.length * 6 + 8);
+    const keyBg = new Graphics();
+    keyBg.roundRect(x, y, w, 14, 2)
+      .fill({ color: 0x1a1a1a, alpha: 0.85 })
+      .stroke({ color: STRATUM_PICKER_COL_LOCKED, width: 1 });
+    parent.addChild(keyBg);
+    const text = this.addStratumPickerText(parent, label, x, y + 3, 8, 0xffffff, w - 4);
+    text.x = x + Math.floor((w - text.width) / 2);
+    return x + w + 4;
+  }
+
+  private addStratumPickerControlText(parent: Container, text: string, x: number, y: number): number {
+    const label = this.addStratumPickerText(parent, text, x, y, 8, STRATUM_PICKER_COL_DIM);
+    return x + label.width;
+  }
+
+  private drawStratumPickerBadge(parent: Container, x: number, y: number, w: number, text: string, color: number, outlineOnly = false): void {
+    const badge = new Graphics();
+    if (outlineOnly) {
+      badge.roundRect(x, y, w, 12, 2).stroke({ color, width: 1 });
+    } else {
+      badge.roundRect(x, y, w, 12, 2).fill(color);
+    }
+    parent.addChild(badge);
+
+    const label = this.addStratumPickerText(parent, text, x, y + 2, 7, outlineOnly ? color : 0x000000, w - 4);
+    label.x = x + Math.floor((w - label.width) / 2);
+  }
+
+  private addStratumPickerText(parent: Container, text: string, x: number, y: number, size: number, fill: number, maxW?: number): BitmapText {
+    const label = new BitmapText({
+      text,
+      style: { fontFamily: PIXEL_FONT, fontSize: size, fill },
     });
-    controls.x = 12;
-    controls.y = panelH - footerH;
-    panel.addChild(controls);
+    label.x = x;
+    label.y = y;
+    if (maxW && label.width > maxW) {
+      const scale = Math.max(0.55, maxW / label.width);
+      label.scale.set(scale, scale);
+    }
+    parent.addChild(label);
+    return label;
+  }
 
-    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
-
-    this.stratumPicker = panel;
-    this.game.legacyUIContainer.addChild(panel);
+  private redrawStratumPickerPulse(): void {
+    if (!this.stratumPickerPulseG || !this.stratumPickerPulseRect) return;
+    const t = this.stratumPickerPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
+    this.stratumPickerPulseG.clear();
+    drawSelectionPulse(this.stratumPickerPulseG, this.stratumPickerPulseRect.w, this.stratumPickerPulseRect.h, a);
   }
 
   private hideStratumPicker(): void {
@@ -3661,7 +3985,10 @@ export class ItemWorldScene extends Scene {
     if (this.stratumPicker?.parent) {
       this.stratumPicker.parent.removeChild(this.stratumPicker);
     }
+    this.stratumPicker?.destroy({ children: true });
     this.stratumPicker = null;
+    this.stratumPickerPulseG = null;
+    this.stratumPickerPulseRect = null;
   }
 
   private handleStratumPickerInput(): void {
@@ -3716,6 +4043,7 @@ export class ItemWorldScene extends Scene {
     const startCol = stratumStart?.col ?? 0;
 
     this.toast.show(`Stratum ${stratumIndex + 1} ? Beginning...`, 0x88ccff);
+    this.restoreGameplayHud();
     this.startTransition('down', startCol, startRow);
   }
 
@@ -3744,7 +4072,6 @@ export class ItemWorldScene extends Scene {
   private hideWorldPrompts(): void {
     this.uiController.hideWorldPrompts({
       exitPrompt: this.exitPrompt,
-      altarHint: this.altarHint,
     });
   }
 
@@ -3759,47 +4086,39 @@ export class ItemWorldScene extends Scene {
   private handleStratumExit(): void {
     this.hideWorldPrompts();
     const isFinal = this.isFinalEndRoom(this.currentCol, this.currentRow);
+    const nextStratumIndex = this.currentStratumIndex + 1;
+    const hasNextStratum = !isFinal && !!this.unifiedGrid.strataOffsets[nextStratumIndex];
 
-    // A6 + A16: capture before/after snapshot (we're still on the stratum
-    // that just ended ? no state changes yet). A6 renders a one-line toast;
-    // A16 shows a structured before/after panel that auto-dismisses.
-    const _a6BeforeAtk = this.stratumStartAtk;
-    const _a6AfterAtk = this.item.finalAtk;
-    const _a16Snapshot = {
-      beforeAtk: this.stratumStartAtk,
-      afterAtk: this.item.finalAtk,
-      beforeLevel: this.stratumStartLevel,
-      afterLevel: this.item.level,
-      beforeInnocents: this.stratumStartInnocentCount,
-      afterInnocents: this.item.innocents.length,
-    };
+    this.progress.lastSafeStratum = this.currentStratumIndex;
+    if (hasNextStratum) {
+      this.progress.deepestUnlocked = Math.max(this.progress.deepestUnlocked, nextStratumIndex);
+    }
+    this.persistRoomState();
 
-    if (!isFinal) {
-      const nextStratumIndex = this.currentStratumIndex + 1;
-      const hasNextStratum = !!this.unifiedGrid.strataOffsets[nextStratumIndex];
-      this.progress.lastSafeStratum = this.currentStratumIndex;
-      this.progressController.handleStratumExit({
-        currentStratumIndex: this.currentStratumIndex,
-        hasNextStratum,
-        itemName: this.item.def.name,
-        itemLevel: this.item.level,
-        a6BeforeAtk: _a6BeforeAtk,
-        a6AfterAtk: _a6AfterAtk,
-        a16Snapshot: _a16Snapshot,
-      });
-      return;
-    } else {
-      // Deepest stratum cleared ? exit item world
+    if (isFinal) {
       this.progressController.setExitReason('clear');
-      this.progress.lastSafeStratum = this.currentStratumIndex;
       markItemCleared(this.item);
       this.persistRoomState();
-      // Level up already happened on boss kill ? just show result
-      this.toast.show(`${this.item.def.name} Lv${this.item.level} ? Strata Complete!`, 0xffaa00);
-      this._showA6DmgToast(_a6BeforeAtk, _a6AfterAtk);
-      this._showStratumClearPanel(_a16Snapshot, true);
-      this.startPostClearHold();
     }
+
+    // Hide HUD during cinematic
+    this.hud.container.visible = false;
+    this.hud.hideBossHP();
+    this.hud.hideDepthGauge();
+    this.hud.hideItemExp();
+    if (this.exitPrompt?.parent) this.exitPrompt.visible = false;
+
+    // Show unified stratum clear overlay (replaces BossChoice + StratumClearPanel + ReturnResult)
+    this.uiController.showStratumClearOverlay({
+      item: this.item,
+      beforeAtk: this.stratumStartAtk,
+      afterAtk: this.item.finalAtk,
+      beforeInnocents: this.stratumStartInnocentCount,
+      afterInnocents: this.item.innocents.length,
+      isFinal,
+      hasNextStratum,
+    });
+    this.startPostClearHold();
   }
 
   /** A6: show "+X% DMG (before → after)" when a stratum completes. Silent when atk did not change. */
@@ -3915,7 +4234,11 @@ export class ItemWorldScene extends Scene {
 
   /** A17: player chose to continue ? descend into the next stratum. */
   private _continueToNextStratum(): void {
-    this.progressController.continueToNextStratum();
+    // New flow: overlay already showed stats, just jump to next stratum
+    const next = this.currentStratumIndex + 1;
+    if (this.unifiedGrid.strataOffsets[next]) {
+      this.jumpToStratum(next);
+    }
   }
 
   /** A17: player chose to exit ? bank progress, leave the item world. */
@@ -3928,62 +4251,6 @@ export class ItemWorldScene extends Scene {
     });
   }
 
-  private useEscapeAltar(): void {
-    this.progress.lastSafeStratum = this.currentStratumIndex;
-    this.progressController.useEscapeAltar();
-  }
-
-  private trySpawnEscapeAltar(cell: RoomCell): void {
-    const isStartRoom = this.currentCol === this.unifiedGrid.startRoom.col &&
-                        this.currentRow === this.unifiedGrid.startRoom.absoluteRow;
-    if (isStartRoom) return;
-    if (!cell.onCriticalPath) return;
-
-    const altarRng = new PRNG(this.item.uid * 50000 + this.currentRow * 100 + this.currentCol * 10);
-    if (altarRng.next() >= 0.25) return; // 25% chance
-
-    // Local row within current stratum (full-map renders stratum locally at 0-3)
-    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localRow = this.currentRow - stratumOffset;
-
-    // Find a valid floor position inside the room for altar placement (randomized X)
-    const roomTopTile = localRow * IW_ROOM_H_TILES;
-    const roomLeftTile = this.currentCol * IW_ROOM_W_TILES;
-    // Random X column within room (avoid edges: +4 to +(W-4))
-    const altarTC = roomLeftTile + 4 + altarRng.nextInt(0, IW_ROOM_W_TILES - 8);
-    let altarTileY = roomTopTile + IW_ROOM_H_TILES - 4; // default near bottom
-    for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
-      if ((this.fullGrid[tr]?.[altarTC] ?? 1) === 0 && (this.fullGrid[tr + 1]?.[altarTC] ?? 1) >= 1) {
-        altarTileY = tr; break;
-      }
-    }
-    const altarX = altarTC * TILE_SIZE;
-    const altarY = (altarTileY + 1) * TILE_SIZE - 40;
-    this.altarTrigger = { x: altarX, y: altarY, width: 2 * TILE_SIZE, height: 3 * TILE_SIZE };
-
-    this.altarVisual = new Graphics();
-    this.altarVisual.rect(0, 24, 32, 16).fill(0x666688);
-    this.altarVisual.rect(4, 16, 24, 8).fill(0x7777aa);
-    this.altarVisual.rect(10, 8, 12, 8).fill(0xaaaaff);
-    this.altarVisual.x = altarX;
-    this.altarVisual.y = altarY;
-    this.entityLayer.addChild(this.altarVisual);
-
-    // Context prompt ? rendered in uiContainer for crisp text
-    const hint = KeyPrompt.createPrompt(actionKey(GameAction.LOOK_UP), 'Exit', this.game.uiScale);
-    hint.visible = false;
-    this.altarHint = hint;
-    this.game.uiContainer.addChild(hint);
-  }
-
-  private clearEscapeAltar(): void {
-    if (this.altarVisual?.parent) this.altarVisual.parent.removeChild(this.altarVisual);
-    this.altarVisual = null;
-    this.altarTrigger = null;
-    if (this.altarHint?.parent) this.altarHint.parent.removeChild(this.altarHint);
-    this.altarHint = null;
-  }
-
   /** Hide all gameplay UI before showing the return result modal. */
   private cleanupForReturnResult(): void {
     this.hud.container.visible = false;
@@ -3992,8 +4259,7 @@ export class ItemWorldScene extends Scene {
     this.hud.hideItemExp();
     this.toast.clear();
     if (this.exitPrompt?.parent) this.exitPrompt.visible = false;
-    if (this.altarHint?.parent) this.altarHint.visible = false;
-    this.uiController.hideWorldPrompts({ exitPrompt: this.exitPrompt, altarHint: this.altarHint });
+    this.uiController.hideWorldPrompts({ exitPrompt: this.exitPrompt });
     // Hide stratum clear panel if still showing
     if (this.uiController.hasStratumClearPanel()) {
       this.uiController.updateStratumClearPanel(true);
@@ -4080,20 +4346,9 @@ export class ItemWorldScene extends Scene {
       if (this.transitionTimer <= 0) {
         // Rebuild full map for the new stratum
         this.buildFullMap();
-        // Spawn at start cell using floor scan (same as init)
-        const stOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-        const localRow = this.currentRow - stOff;
-        const spawnCX = this.currentCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-        const spawnTileC = Math.floor(spawnCX / TILE_SIZE);
-        const roomTopT = localRow * IW_ROOM_H_TILES;
-        let spawnY = localRow * IW_ROOM_H_PX + IW_ROOM_H_PX / 2;
-        for (let tr = roomTopT + 2; tr < roomTopT + IW_ROOM_H_TILES - 2; tr++) {
-          if ((this.fullGrid[tr]?.[spawnTileC] ?? 1) === 0 && (this.fullGrid[tr+1]?.[spawnTileC] ?? 1) >= 1) {
-            spawnY = (tr + 1) * TILE_SIZE - this.player.height; break;
-          }
-        }
-        this.player.x = spawnCX;
-        this.player.y = spawnY;
+        const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
+        this.player.x = spawn.x;
+        this.player.y = spawn.y;
         this.player.vx = 0;
         this.player.vy = 0;
         this.player.savePrevPosition();
@@ -4116,28 +4371,22 @@ export class ItemWorldScene extends Scene {
         this.exitItemWorld();
       }
     } else if (this.transitionState === 'post_clear_hold') {
-      // Wait for the player to confirm the StratumClearPanel with X key.
-      // _updateStratumClearPanel handles input and clears the modal when confirmed.
-      this._updateStratumClearPanel(dt);
-      if (!this.uiController.hasStratumClearPanel()) {
-        // Show return result modal on full clear before exiting
-        if (this.progressController.getExitReason() === 'clear' && !this.uiController.isReturnResultVisible()) {
-          this.cleanupForReturnResult();
-          const shown = this.uiController.showReturnResult({
-            item: this.item,
-            prevLevel: this.stratumStartLevel,
-            prevAtk: this.stratumStartAtk,
-            goldEarned: 0,
-            enemiesDefeated: this.enemies.filter(e => !e.alive).length,
-            innocentsCaptured: this.item.innocents.length - this.stratumStartInnocentCount,
-            strataCleared: this.currentStratumIndex + 1,
-            totalStrata: this.strataConfig.strata.length,
-            isDeath: false,
-          }, () => { this.startExitFade(); });
-          if (!shown) this.startExitFade();
-        } else if (!this.uiController.isReturnResultVisible()) {
-          this.startExitFade();
-        }
+      // Unified overlay handles animation + input.
+      const atkPressed = this.game.input.isJustPressed(GameAction.ATTACK);
+      const menuPressed = this.game.input.isJustPressed(GameAction.MENU);
+      this.uiController.updateStratumClearOverlay(dt, atkPressed, menuPressed);
+
+      const choice = this.uiController.getStratumClearChoice();
+      if (choice === 'continue') {
+        if (atkPressed) this.game.input.consumeJustPressed(GameAction.ATTACK);
+        this.uiController.destroyStratumClearOverlayPublic();
+        this._continueToNextStratum();
+      } else if (choice === 'exit') {
+        if (menuPressed) this.game.input.consumeJustPressed(GameAction.MENU);
+        if (atkPressed) this.game.input.consumeJustPressed(GameAction.ATTACK);
+        this.uiController.destroyStratumClearOverlayPublic();
+        this.cleanupForReturnResult();
+        this.startExitFade();
       }
     }
   }
@@ -4151,6 +4400,7 @@ export class ItemWorldScene extends Scene {
   }
 
   exit(): void {
+    if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
     this.clearStaticEntities();
@@ -4172,6 +4422,12 @@ export class ItemWorldScene extends Scene {
     if (this.lowHpVignette) {
       this.lowHpVignette.destroy();
     }
+    this.destroyRoomGraphDebug();
+  }
+
+  override destroy(): void {
+    this.parallaxBG?.destroy();
+    super.destroy();
   }
 
   /**
@@ -4181,6 +4437,66 @@ export class ItemWorldScene extends Scene {
    */
   private drawMiniMap(): void {
     // intentionally empty
+  }
+
+  // ── DEC-037 PR-B: RoomGraph debug overlay ─────────────────────
+  /**
+   * If ?debug=graph is in the URL, generate a RoomGraph for every stratum
+   * and build the debug overlay container. Hidden by default; F2 toggles.
+   */
+  private maybeInitRoomGraphDebug(): void {
+    const params = new URLSearchParams(window.location.search);
+    const dbg = params.get('debug');
+    // Enabled by ?debug=1 또는 ?debug=graph. F2 토글.
+    const enabled = dbg === '1' || (dbg?.includes('graph') ?? false);
+    if (!enabled) return;
+
+    const graphs: RoomGraphData[] = [];
+    for (let si = 0; si < this.strataConfig.strata.length; si++) {
+      try {
+        graphs.push(generateRoomGraph(this.strataConfig.strata[si], this.item.uid, si));
+      } catch (err) {
+        console.warn(`[RoomGraph debug] stratum ${si} generation failed`, err);
+      }
+    }
+    if (graphs.length === 0) return;
+
+    const canvas = this.game.app.canvas;
+    this.roomGraphDebugContainer = createRoomGraphDebugOverlay(
+      graphs,
+      this.item.rarity,
+      this.item.uid,
+      canvas.width,
+      canvas.height,
+    );
+    this.roomGraphDebugContainer.visible = false;
+    // Attach to uiContainer (unscaled native) so the debug overlay covers the
+    // full screen rather than the virtual 640x360 viewport.
+    this.game.uiContainer.addChild(this.roomGraphDebugContainer);
+
+    this.roomGraphDebugKeyHandler = (e: KeyboardEvent) => {
+      if (e.code !== 'F2') return;
+      e.preventDefault();
+      this.roomGraphDebugVisible = !this.roomGraphDebugVisible;
+      if (this.roomGraphDebugContainer) {
+        this.roomGraphDebugContainer.visible = this.roomGraphDebugVisible;
+      }
+    };
+    window.addEventListener('keydown', this.roomGraphDebugKeyHandler, true);
+    console.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press F2 to toggle.`);
+  }
+
+  private destroyRoomGraphDebug(): void {
+    if (this.roomGraphDebugKeyHandler) {
+      window.removeEventListener('keydown', this.roomGraphDebugKeyHandler, true);
+      this.roomGraphDebugKeyHandler = null;
+    }
+    if (this.roomGraphDebugContainer?.parent) {
+      this.roomGraphDebugContainer.parent.removeChild(this.roomGraphDebugContainer);
+    }
+    this.roomGraphDebugContainer?.destroy({ children: true });
+    this.roomGraphDebugContainer = null;
+    this.roomGraphDebugVisible = false;
   }
 
   // ── Ego dialogue helpers ──────────────────────────────────────
@@ -4195,9 +4511,19 @@ export class ItemWorldScene extends Scene {
     return true;
   }
 
+  /**
+   * True while the player is still in the first-clear onboarding window for
+   * this Ego item (boss not yet killed). Once BOSS_KILLED is persisted, this
+   * flips to false and subsequent re-entries use decay dialogue instead.
+   * Used so ESC-exit + re-entry doesn't drop onboarding mid-tutorial.
+   */
+  private isFirstBossOnboarding(): boolean {
+    return this.egoActive && !this.egoUnlockedEvents.has(EGO_EVENT.BOSS_KILLED);
+  }
+
   /** T04: Called after floor start / landing. */
   fireEgoEnter(): void {
-    if (this.egoEntryCount === 1) {
+    if (this.isFirstBossOnboarding()) {
       this.fireEgo('iw_enter', EGO_IW_ENTER, true);
     } else if (this.egoEntryCount === 2) {
       // Check S02: weapon swap return
@@ -4216,13 +4542,13 @@ export class ItemWorldScene extends Scene {
 
   /** T05: First distortion monster visible on camera. */
   fireEgoMonsterVisible(): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     this.fireEgo('monster_first', EGO_MONSTER_FIRST, false);
   }
 
   /** T06: First enemy killed this entry (1s delay). */
   fireEgoFirstKill(): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     if (this.egoFlags.has('first_kill')) return;
     this.egoFlags.add('first_kill');
     setTimeout(() => {
@@ -4234,7 +4560,7 @@ export class ItemWorldScene extends Scene {
 
   /** T07: Room clear (3rd room in first entry). */
   fireEgoRoomClear(roomIndex: number): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     if (roomIndex >= 2) { // 0-indexed, room 3 = index 2
       this.fireEgo('room_clear', EGO_ROOM_CLEAR, false);
     }
@@ -4242,13 +4568,13 @@ export class ItemWorldScene extends Scene {
 
   /** T08: Innocent NPC visible on camera for the first time. */
   fireEgoInnocentFound(): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     this.fireEgo('innocent_found', EGO_INNOCENT_FOUND, false);
   }
 
   /** T09: Innocent stabilized. */
   fireEgoInnocentStable(): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     this.fireEgo('innocent_stable', EGO_INNOCENT_STABLE, false);
   }
 
@@ -4256,22 +4582,17 @@ export class ItemWorldScene extends Scene {
 
   /** T11: Player died and respawned. */
   fireEgoPlayerDeath(): void {
-    if (this.egoEntryCount !== 1) return;
+    if (!this.isFirstBossOnboarding()) return;
     this.fireEgo('player_death', EGO_PLAYER_DEATH, false);
   }
 
   /** T12: Boss killed — call AFTER reward UI is shown. */
   fireEgoBossKilled(): void {
-    if (this.egoEntryCount === 1) {
+    if (this.isFirstBossOnboarding()) {
       this.fireEgo('boss_killed', EGO_BOSS_KILLED, true);
     } else if (this.egoEntryCount === 2) {
       this.fireEgo('reentry_2_boss', EGO_REENTRY_2_BOSS, false);
     }
-  }
-
-  /** T13: Exit altar proximity. */
-  fireEgoExitAltar(): void {
-    this.fireEgo('exit_altar', EGO_EXIT_ALTAR, false);
   }
 
   /** S03: Stratum 2 clear — affinity max. */

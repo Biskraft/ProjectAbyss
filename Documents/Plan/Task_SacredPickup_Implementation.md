@@ -151,7 +151,7 @@ function getDiveDuration(count: number, skipOption: boolean): number {
 **파일:** `game/src/ui/DivePreview.ts` (신규) 또는 InventoryUI 확장
 
 - 앵빌 모드에서 아이템 선택 + [E] 입력 시
-- `firstDiveDone===false`: 중앙 모달 **풀 프리뷰 패널** — 무기 이름 + 레어리티 배지 / "Memory Stratum Lv.1" / "Floors: N" / "Enemies: Lv.A–B" / "Rewards: XP, Innocents, Fragments" / 구분선 / "[E] DIVE  [ESC] BACK". 종료 시 `save.markFirstDiveDone()`
+- `firstDiveDone===false`: 중앙 모달 **풀 프리뷰 패널** — 무기 이름 + 레어리티 배지 / "Memory Stratum Lv.1" / "Floors: N" / "Enemies: Lv.A–B" / "Rewards: XP, Memory Shards, Fragments" / 구분선 / "[E] DIVE  [ESC] BACK". 종료 시 `save.markFirstDiveDone()`
 - `firstDiveDone===true`: 대장간 UI 하단 정보에 1줄 요약만 — "DIVE → Mem.Lv.1  Floors:N  Enemies:Lv.A-B   [E]OK [ESC]BACK"
 
 ---

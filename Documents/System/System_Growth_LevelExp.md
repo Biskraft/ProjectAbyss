@@ -11,12 +11,12 @@
 | :-------- | :--------- | :------------------------------- | :------: | :----------- | :------------------------------- |
 | LVL-01-A  | 레벨 시스템 | 캐릭터 레벨 1-10 (MVP)          |    P1    | ✅ 완성      | Phase 2에서 Lv 60까지 확장      |
 | LVL-01-B  | 레벨 시스템 | 캐릭터 레벨 1-60 (Phase 2)      |    P2    | 📅 계획      | 3단계 곡선 적용                  |
-| LVL-01-C  | 레벨 시스템 | 야리코미 레벨 60+ (끝없는 성장) |    P2+   | 📅 계획      | 아이템계 클리어 + 이노센트 연동  |
+| LVL-01-C  | 레벨 시스템 | 야리코미 레벨 60+ (끝없는 성장) |    P2+   | 📅 계획      | 아이템계 클리어 + 기억 단편 연동  |
 | EXP-01-A  | 경험치      | EXP 수집 공식                   |    P1    | ✅ 완성      | 4개 EXP 수급원                   |
 | EXP-02-A  | 경험치      | 2-Space 배율 체계               |    P1    | ✅ 완성      | World/ItemWorld                 |
 | EXP-03-A  | 경험치      | EXP 곡선 테이블 (Lv1-100)       |    P1    | ✅ 완성      | MVP Lv1-10 구현, 이후 확장      |
 | STAT-01-A | 성장 테이블 | BaseStat 레벨별 성장            |    P1    | ✅ 완성      | System_Growth_Stats.md 참조      |
-| STAT-02-A | 성장 테이블 | FinalStat 합산 (Base+Equip+Innocent) |    P1 | ✅ 완성 | System_Growth_Stats.md 연동 |
+| STAT-02-A | 성장 테이블 | FinalStat 합산 (Base+Equip+Memory Shard) |    P1 | ✅ 완성 | System_Growth_Stats.md 연동 |
 | GATE-01-A | 진행 게이트 | 스탯 게이트 해금                |    P2    | 📅 계획      | Phase 2 설계                     |
 
 ---
@@ -43,9 +43,9 @@ ECHORIS의 레벨과 경험치 시스템은 다음 한 문장으로 정의한다
 
 > "레벨업은 월드 탐험의 자연스러운 보상이며, 스탯 게이트는 강화된 스탯으로 새 층위(Tier)를 열게 한다. 야리코미 플레이는 스탯 천장에 도달한 후를 위한 설계다."
 
-- **MVP (Lv1-10):** 스토리 중심 진행. 매 레벨업이 명확히 느껴지는 급성장기. 장비와 이노센트 강화의 상호작용 검증.
+- **MVP (Lv1-10):** 스토리 중심 진행. 매 레벨업이 명확히 느껴지는 급성장기. 장비와 기억 단편 강화의 상호작용 검증.
 - **Phase 2 (Lv1-60):** 3단계 곡선 적용. 급성장(1-30) → 안정기(30-60). 스탯 게이트 메커닉 도입.
-- **야리코미 (Lv60+):** 레벨업 대신 장비/이노센트 성장이 주축. 캐릭터 레벨은 상한선으로 역할 변화.
+- **야리코미 (Lv60+):** 레벨업 대신 장비/기억 단편 성장이 주축. 캐릭터 레벨은 상한선으로 역할 변화.
 
 ### 1.2. 설계 근거 (Reasoning)
 
@@ -120,14 +120,14 @@ BaseStat(Level) = BaseStat(Level-1) + StatGrowth(Level)
 System_Growth_Stats.md §2.2에 정의된 합산 공식:
 
 ```
-FinalStat = BaseStat + EquipStat + InnocentBonus
+FinalStat = BaseStat + EquipStat + Memory ShardBonus
 ```
 
 - **BaseStat:** 캐릭터 레벨에 의존
 - **EquipStat:** 장착한 장비의 스탯 × 레어리티 배율
-- **InnocentBonus:** 복종 이노센트의 추가 스탯 (Phase 2)
+- **Memory ShardBonus:** 복종 기억 단편의 추가 스탯 (Phase 2)
 
-**예시 (Lv1, Normal 검, 이노센트 없음):**
+**예시 (Lv1, Normal 검, 기억 단편 없음):**
 ```
 FinalSTR = 10 + (10 × 1.0) + 0 = 20
 ```
@@ -277,7 +277,7 @@ System_ItemWorld_Core.md §3.1 정의:
            ↓
     [BaseStat 갱신] (System_Growth_Stats.md 공식)
            ↓
-    [FinalStat 재계산] (BaseStat + EquipStat + InnocentBonus)
+    [FinalStat 재계산] (BaseStat + EquipStat + Memory ShardBonus)
            ↓
     [레벨업 UI 표시] (레벨, 스탯 변화량, 이펙트)
            ↓
@@ -309,7 +309,7 @@ System_ItemWorld_Core.md §3.1 정의:
            ↓
 [EquipStat 재계산] (ItemStat 공식 적용)
            ↓
-[FinalStat 재계산] (BaseStat + EquipStat + InnocentBonus)
+[FinalStat 재계산] (BaseStat + EquipStat + Memory ShardBonus)
            ↓
 [전투력 변화 UI 표시]
            ↓
@@ -338,7 +338,7 @@ System_ItemWorld_Core.md §3.1 정의:
 
 - **캐릭터 레벨 캡:** Lv60에서 더 이상 올라가지 않음. 이후 성장은 아이템 EXP가 담당.
 - **무한 성장 동기:** 캐릭터 레벨은 천장이지만, 아이템 레벨(특히 Ancient)은 무한 상승. 이것이 야리코미 지속 동력.
-- **아이템 성장:** 캐릭터 Lv는 Lv60 천장 이후 고정. 아이템 성장은 아이템계 지층 클리어와 이노센트로 진행.
+- **아이템 성장:** 캐릭터 Lv는 Lv60 천장 이후 고정. 아이템 성장은 아이템계 지층 클리어와 기억 단편로 진행.
 
 ### 5.4. System_ItemWorld_Core.md와의 연동
 
@@ -404,8 +404,8 @@ System_ItemWorld_Core.md §3.1 정의:
 
 | 용어 | 정의 |
 | :--- | :--- |
-| **BaseStat** | 캐릭터 레벨에만 의존하는 기본 스탯. 장비/이노센트 불변 |
-| **FinalStat** | 실제 전투에 쓰이는 스탯 = BaseStat + EquipStat + InnocentBonus |
+| **BaseStat** | 캐릭터 레벨에만 의존하는 기본 스탯. 장비/기억 단편 불변 |
+| **FinalStat** | 실제 전투에 쓰이는 스탯 = BaseStat + EquipStat + Memory ShardBonus |
 | **ExpToNext** | 다음 레벨에 필요한 EXP. 누적이 아닌 "이번 레벨에서 필요한 추가 EXP" |
 | **Item EXP** | 캐릭터 EXP와 별도. 장비 속 지층 클리어로 수집하며 아이템 레벨 상승에 쓰임 |
 | **스탯 게이트** | FinalStat이 특정 임계값에 도달해야 진행 가능한 진행 장벽 (Phase 2) |

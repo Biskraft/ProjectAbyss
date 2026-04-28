@@ -136,11 +136,11 @@
 | SYS-INR-02 | Environment Pool | Done | - | 환경 서사 풀 |
 | SYS-INR-03 | Monster Pool | Done | - | 몬스터 서사 풀 |
 
-### 2.9 이노센트 시스템 (Innocent) - 1개
+### 2.9 기억 단편 시스템 (Memory Shard) - 1개
 
 | ID | 문서명 | 상태 | 빌드 | 비고 |
 |:---|:-------|:-----|:-----|:-----|
-| SYS-INC-01 | Innocent Core | Done | - | 4분류 12종, 야생/복종. 디스가이아 `Specialist.md`, `Innocent Town.md` 참고 |
+| SYS-INC-01 | Memory Shard Core | Done | - | 4분류 12종, 야생/복종. 디스가이아 `Specialist.md`, `Memory Shard Town.md` 참고 |
 
 ### 2.10 적 & AI (Enemy) - 3개 (2 Done + 1 NEW)
 
@@ -172,7 +172,7 @@
 |:---|:-------|:-----|:-----|:-----|
 | SYS-UI-01 | Minimap | Done | - | Fog of War, 방 표시 |
 | UI-01 | **HUD Layout** | **NEW** | **B0** | HP바, ATK/INT 표시, 아이템계 진행률, 미니맵 위치 |
-| UI-02 | **Inventory UI** | **NEW** | **B0** | 장비 비교, 이노센트 슬롯, 레어리티 색상. 현재 코드(`InventoryUI.ts`) 설계 문서화 |
+| UI-02 | **Inventory UI** | **NEW** | **B0** | 장비 비교, 기억 단편 슬롯, 레어리티 색상. 현재 코드(`InventoryUI.ts`) 설계 문서화 |
 | UI-03 | **Map UI** | **NEW** | **B1** | 전체 맵, 게이트 마커, 미탐색 영역 |
 | UI-04 | **Item World UI** | **NEW** | **B1** | 지층 진행, 보스 체력, 클리어 배지, 재사이클 프롬프트 |
 
@@ -219,7 +219,7 @@
 | CNT-ITM-002 | Item Narrative: First Sword | Done | - | 첫 검 서사 |
 | CNT-01 | **Weapon List** | **NEW** | **B0** | 5종(검/대검/단검/활/지팡이) x 5레어리티 = 25개 무기 상세. CSV 연동 |
 | CNT-02 | **Armor & Accessory List** | **NEW** | **B1** | 방어구/악세서리 목록, 세트 효과 |
-| CNT-03 | **Innocent Catalog** | **NEW** | **B1** | 12종 이노센트 상세 (행동 패턴, 스탯 보너스, 출현 조건) |
+| CNT-03 | **Memory Shard Catalog** | **NEW** | **B1** | 12종 기억 단편 상세 (행동 패턴, 스탯 보너스, 출현 조건) |
 | CNT-04 | **Monster Bestiary** | **NEW** | **B0** | 적 전체 목록 (아키타입, 스탯, 행동, 드롭). CSV SSoT 기반 |
 | CNT-05 | **Zone & Biome List** | **NEW** | **B1** | 7 Tier 구역 상세 (환경, 적 분포, 게이트 조건, 팔레트) |
 | CNT-06 | **Relic List** | **NEW** | **B1** | 렐릭 전체 목록 (대시/이단점프/벽점프/다이브/역류/수중호흡 등). 캐슬바니아 `Relic.md`, `Ability Soul.md` 참고 |
@@ -241,7 +241,7 @@
 | Content_StrataConfig.csv | Done | - | SYS-IW-02 |
 | Content_Item_Growth.csv | Done | - | SYS-EQP-03 |
 | Content_Item_DropRate.csv | Done | - | SYS-ECO-02 |
-| Content_Innocents.csv | Done | - | SYS-INC-01 |
+| Content_Memory Shards.csv | Done | - | SYS-INC-01 |
 | Content_Rarity.csv | Done | - | SYS-EQP-02 |
 | Content_Combat_Combo.csv | Done | - | SYS-CMB-01 |
 | **Content_Stats_Armor_List.csv** | **NEW** | **B1** | SYS-EQP-01, CNT-02 |
@@ -255,8 +255,8 @@
 
 | 상태 | 영역 | 필요 리서치 | 빌드 |
 |:-----|:-----|:-----------|:-----|
-| Done | 아이템계 | 6개 (Core, Innocent, Growth, ProcGen, UX, Summary) | - |
-| Done | 이노센트 | 5개 (Combat, Growth, Classification, Multiplayer, Narrative) | - |
+| Done | 아이템계 | 6개 (Core, Memory Shard, Growth, ProcGen, UX, Summary) | - |
+| Done | 기억 단편 | 5개 (Combat, Growth, Classification, Multiplayer, Narrative) | - |
 | Done | 게임 시스템 | 16개 (Combat, Boss, Level, Enemy, Vertical 등) | - |
 | Done | 내러티브/월드 | 5개 (BLAME!, Biomega, ProceduralNarrative, Killy 등) | - |
 | Done | 마케팅/경제 | 4개 (WebMarketing, Retention, Monetization, KPI) | - |
@@ -284,7 +284,7 @@
 1. `SYS-MON-03` Enemy Spawning - 스폰 규칙/weight 분포/리스폰
 2. `SYS-SAV-01` Save Data Schema - 세이브 포맷/마이그레이션
 3. `UI-01` HUD Layout - 최소 HUD 배치
-4. `UI-02` Inventory UI - 장비 비교/이노센트 표시
+4. `UI-02` Inventory UI - 장비 비교/기억 단편 표시
 5. `D-17` Art Animation Spec - 스프라이트 규격/프레임 표
 6. `CNT-01` Weapon List - MVP 검 1종 5레어리티 상세
 7. `CNT-04` Monster Bestiary - 현재 적 4종 + 보스 1종 문서화
@@ -309,7 +309,7 @@
 11. `SYS-PRF-01` Performance Budget
 12. `SYS-WLD-06` Save & Warp (B0에서 시작, B1에서 완성)
 13. `CNT-02` Armor & Accessory List
-14. `CNT-03` Innocent Catalog
+14. `CNT-03` Memory Shard Catalog
 15. `CNT-05` Zone & Biome List
 16. `CNT-06` Relic List
 17. `CNT-07` Boss List
@@ -373,7 +373,7 @@
 | 위키 문서 | 참고 대상 기획서 |
 |:----------|:----------------|
 | Item World.md | SYS-IW-01, SYS-IW-02 |
-| Specialist.md / Innocent Town.md | SYS-INC-01, CNT-03 |
+| Specialist.md / Memory Shard Town.md | SYS-INC-01, CNT-03 |
 | Statistics.md | SYS-LVL-01 (3스탯 재작성) |
 | Experience.md / Rank.md | SYS-LVL-02, SYS-EQP-02 |
 | Weapon.md / Equipment.md | SYS-CMB-03, CNT-01 |

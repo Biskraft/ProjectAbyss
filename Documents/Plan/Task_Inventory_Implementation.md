@@ -51,7 +51,7 @@
 
 ---
 
-## P1: Level 2 Info Box + Level 1 Innocent 인디케이터
+## P1: Level 2 Info Box + Level 1 Memory Shard 인디케이터
 
 ### Task 4: Level 2 Info Box 렌더링 (다줄 정보)
 
@@ -67,7 +67,7 @@ Line 3: ─────────
 Line 4: ATK:{final}  INT:{final}
 Line 5: HP:+{hpBonus}                       (hpBonus > 0 일 때만)
 Line 6: ─────────
-Line 7: Innocents: {filled}/{slots}
+Line 7: Memory Shards: {filled}/{slots}
 Line 8: Strata: {cleared}/{total} CLR
 Line 9: ─────────
 Line 10: [Z]Detail [X]{Equip|Dive}
@@ -82,34 +82,34 @@ Line 11: [C]Compare                         (조건부)
 - Cycle 0 / 미클리어는 해당 필드 생략
 - 조작 힌트에서 anvil 모드면 `[X]Equip` → `[X]Dive` 로 치환
 
-### Task 5: Level 1 Innocent 인디케이터 (좌하단 점)
+### Task 5: Level 1 Memory Shard 인디케이터 (좌하단 점)
 
 **파일:** `game/src/ui/InventoryUI.ts` (slot drawing loop 내부)
 
 **스펙 §3.2 / §3.9:**
-- 조건: `item.innocents && item.innocents.filter(Boolean).length > 0`
+- 조건: `item.memory shards && item.memory shards.filter(Boolean).length > 0`
 - 위치: 슬롯 내부 `(1, 15)` 에서 4×4 사각형
 - 색상:
   - Subdued 1개 이상 → 흰색 `0xFFFFFF`
   - Wild만 존재 → 빨강 `0xFF4444`
-- **전제:** `ItemInstance` 에 `innocents: InnocentSlot[]` 가 아직 없으면 본 Task는 P1 후반으로 미룬다. 스키마 확장은 Task 6 선행.
+- **전제:** `ItemInstance` 에 `memory shards: Memory ShardSlot[]` 가 아직 없으면 본 Task는 P1 후반으로 미룬다. 스키마 확장은 Task 6 선행.
 
-### Task 6: ItemInstance 스키마 확장 (Innocent + Strata)
+### Task 6: ItemInstance 스키마 확장 (Memory Shard + Strata)
 
 **파일:** `game/src/items/ItemInstance.ts`
 
 ```typescript
-export type InnocentState = 'empty' | 'wild' | 'subdued';
+export type Memory ShardState = 'empty' | 'wild' | 'subdued';
 
-export interface InnocentSlot {
-  state: InnocentState;
+export interface Memory ShardSlot {
+  state: Memory ShardState;
   defId?: string;          // 'atk_boost', 'hp_boost', …
   level?: number;           // 1~9
   bonus?: { atk?: number; int?: number; hp?: number };
 }
 
 // ItemInstance 확장:
-innocents: InnocentSlot[];       // 길이 = rarity별 슬롯 수 (2/3/4/6/8)
+memory shards: Memory ShardSlot[];       // 길이 = rarity별 슬롯 수 (2/3/4/6/8)
 strataProgress: {
   total: number;                 // 총 지층 수 (2/3/3/4/4)
   cleared: number;               // 클리어한 지층 수
@@ -118,7 +118,7 @@ strataProgress: {
 };
 ```
 
-**초기값:** 아이템 생성 시 `innocents = Array(slots).fill({state:'empty'})`, `strataProgress = {total, cleared:0, current:0}`.
+**초기값:** 아이템 생성 시 `memory shards = Array(slots).fill({state:'empty'})`, `strataProgress = {total, cleared:0, current:0}`.
 
 **기존 `worldProgress.cleared: boolean` 호환:** `cleared === total` 일 때 true로 derive — 기존 코드는 그대로 유지.
 
@@ -156,7 +156,7 @@ strataProgress: {
   2. 메타 — `{RARITY} Lv.{n} Cycle:{c} CLR`
   3. 타입 — `"{ItemType} (Weapon)"`
   4. Base Stats vs Final Stats 2열 테이블 (차이 우측 하이라이트)
-  5. Innocents 리스트 — 전체 슬롯 라인별 표시 (§3.9)
+  5. Memory Shards 리스트 — 전체 슬롯 라인별 표시 (§3.9)
   6. Memory Strata 리스트 — 지층별 (§3.10)
   7. Flavor Text — 이탤릭 `0xAAAAAA` 2줄 (`item.def.flavor`)
   8. 조작 힌트 — `[X] Close  [C] Compare  [W] Dive` (조건부)
@@ -167,9 +167,9 @@ strataProgress: {
 
 ---
 
-## P3: Innocent/Strata 상태 리스트 (Level 3 종속)
+## P3: Memory Shard/Strata 상태 리스트 (Level 3 종속)
 
-### Task 9: Innocent 리스트 렌더링
+### Task 9: Memory Shard 리스트 렌더링
 
 **파일:** `game/src/ui/ItemDetailView.ts`
 
@@ -181,7 +181,7 @@ strataProgress: {
 ```
 
 - 전체 슬롯 수만큼 라인 생성 (빈 슬롯 포함)
-- Innocent 슬롯 수가 0인 아이템 (Broken Blade 등 튜토리얼 특례)은 섹션 전체 생략
+- Memory Shard 슬롯 수가 0인 아이템 (Broken Blade 등 튜토리얼 특례)은 섹션 전체 생략
 
 ### Task 10: Memory Strata 리스트 렌더링
 
@@ -227,11 +227,11 @@ const STRATUM_BOSS = ['Item General', 'Item King', 'Item God', 'Item Great God']
 - [ ] Cycle 0 / 미클리어 시 해당 필드 생략
 - [ ] Anvil 모드 진입 시 타이틀 `"FORGE — SELECT WEAPON"` / `[X]Dive` 힌트
 - [ ] 장착 중 아이템을 앵빌에서 선택 + X → `"Unequip first"` 토스트, 다이브 미진행
-- [ ] Innocent 1개 이상 아이템은 Level 1 좌하단 점 (Subdued 흰 / Wild만 빨강)
+- [ ] Memory Shard 1개 이상 아이템은 Level 1 좌하단 점 (Subdued 흰 / Wild만 빨강)
 - [ ] C 키 → Compare Mode 진입 → 스탯 델타 초록/빨강 병기
 - [ ] Z 키 → Level 3 Detail View 오버레이
 - [ ] Detail View 테두리가 레어리티 색 2px
-- [ ] Innocent 리스트 `[!] [O] [ ]` 심볼 및 색상 구분
+- [ ] Memory Shard 리스트 `[!] [O] [ ]` 심볼 및 색상 구분
 - [ ] Strata 리스트 `[V] [>] [ ]` 심볼 및 보스 이름
 - [ ] Flavor Text 이탤릭 2줄
 - [ ] 계단식 닫기: Level 3 열림 상태에서 I/ESC → Level 3만 먼저 닫힘
@@ -239,7 +239,7 @@ const STRATUM_BOSS = ['Item General', 'Item King', 'Item God', 'Item Great God']
 
 ### 경험
 - [ ] 레어리티 색상만으로 강력 아이템 즉시 식별
-- [ ] Level 1 배지만 보고 Dive 가능성 + Innocent 유무 + 클리어 여부 파악
+- [ ] Level 1 배지만 보고 Dive 가능성 + Memory Shard 유무 + 클리어 여부 파악
 - [ ] Level 2 Info Box 만으로 장착 결정 가능
 - [ ] Compare Mode 로 교체 여부 3초 이내 결정
 - [ ] 인벤토리와 앵빌이 동일 UI — 학습 비용 없음
@@ -254,11 +254,11 @@ const STRATUM_BOSS = ['Item General', 'Item King', 'Item God', 'Item Great God']
 | 패널 248px 확장 | P0 Task 2 | §3.1 |
 | Anvil 경로 단일화 | P0 Task 3 | §3.8 / SacredPickup §3.8.1 |
 | Level 2 Info Box | P1 Task 4 | §3.5 |
-| Level 1 Innocent 점 | P1 Task 5 | §3.2 / §3.9 |
+| Level 1 Memory Shard 점 | P1 Task 5 | §3.2 / §3.9 |
 | ItemInstance 스키마 | P1 Task 6 | §3.11 / §4 |
 | Compare Mode | P2 Task 7 | §3.7 |
 | Level 3 Detail View | P2 Task 8 | §3.6 |
-| Innocent 리스트 | P3 Task 9 | §3.9 |
+| Memory Shard 리스트 | P3 Task 9 | §3.9 |
 | Strata 리스트 | P3 Task 10 | §3.10 |
 
 **원본 스펙(공식/엣지 케이스/수식):** 반드시 `UI_Inventory.md` 를 우선 참조한다. 본 지시서는 해당 문서의 구현 요약이다.

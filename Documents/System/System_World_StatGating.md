@@ -170,7 +170,7 @@
 게이트 옆에 항상 텍스트 표시:
 - ATK 게이트: "이 벽은 강한 공격력(ATK)으로만 부술 수 있다." / "필요: ATK 120, 보유: ATK 85"
 - INT 게이트: "이 봉인은 강한 마력(INT)으로만 해제할 수 있다." / "필요: INT 80, 보유: INT 45"
-- 방법: "장비를 강화하거나 이노센트(Gladiator/Tutor)를 수집하면 스탯이 올라간다."
+- 방법: "장비를 강화하거나 기억 단편(Gladiator/Tutor)를 수집하면 스탯이 올라간다."
 
 ### 2.4. 해금 연출 (Phase 2 예정)
 
@@ -263,8 +263,8 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 
 ### 5.1. System_Growth_Stats.md와의 연동
 
-- **ATK 합산 공식**: `Final_ATK = Base_ATK + Equipment_ATK + Innocent_ATK_Bonus`
-- **INT 합산 공식**: `Final_INT = Base_INT + Equipment_INT + Innocent_INT_Bonus`
+- **ATK 합산 공식**: `Final_ATK = Base_ATK + Equipment_ATK + Memory Shard_ATK_Bonus`
+- **INT 합산 공식**: `Final_INT = Base_INT + Equipment_INT + Memory Shard_INT_Bonus`
 - **게이트 판정**: ATK 게이트: `Final_ATK ≥ Gate_Threshold ? Success : Blocked` / INT 게이트: `Final_INT ≥ Gate_Threshold ? Success : Blocked`
 - **임계값 설정 기준**: 장비 레어리티와 아이템계 강화 수준에 따른 ATK/INT 성장 곡선과 일치
 
@@ -296,7 +296,7 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 
 - **층위 난이도와 게이트 임계값 연동**: 난이도 1-5 층위에 맞춘 스탯 게이트 분포
 - **Room Template 생성**: 스탯 게이트 오브젝트 배치 데이터 포함
-- **절차적 생성 보상**: 게이트 클리어 보상(아이템, 금화, 이노센트)도 Room Template에 연동
+- **절차적 생성 보상**: 게이트 클리어 보상(아이템, 금화, 기억 단편)도 Room Template에 연동
 
 ---
 
@@ -304,10 +304,10 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 
 | 상황 | 처리 |
 |:-----|:-----|
-| 이노센트 해제/제거로 스탯 하락 → 이미 해금한 게이트 역전 | 게이트 해금은 1회 판정(일회성)이다. 한 번 해금된 게이트는 이후 스탯이 하락해도 다시 잠기지 않는다. 해금 상태는 서버에 영구 기록 |
+| 기억 단편 해제/제거로 스탯 하락 → 이미 해금한 게이트 역전 | 게이트 해금은 1회 판정(일회성)이다. 한 번 해금된 게이트는 이후 스탯이 하락해도 다시 잠기지 않는다. 해금 상태는 서버에 영구 기록 |
 | 장비 교체로 ATK/INT 하락 시 미해금 게이트 접근 | 장비 교체 후 스탯이 임계값 미만이면 게이트는 잠긴 상태를 유지한다. 교체 직전 HUD에 경고("이 장비로 교체하면 ATK가 120 → 85로 하락합니다")를 표시 |
 | 멀티플레이에서 파티원 스탯 불일치 | 스탯 게이트는 각 플레이어 개별 판정이다. 파티 리더가 해금해도 다른 파티원의 Final_ATK/INT가 부족하면 통과 불가. 부족 파티원에게 "ATK 부족" UI를 표시하고 대기 |
-| 버프/디버프로 일시적 스탯 변동 | 스탯 게이트 판정은 버프/디버프를 제외한 기본 스탯(Base + Equipment + Innocent)만 사용한다. 임시 버프로 게이트를 우회하는 것을 방지 |
+| 버프/디버프로 일시적 스탯 변동 | 스탯 게이트 판정은 버프/디버프를 제외한 기본 스탯(Base + Equipment + Memory Shard)만 사용한다. 임시 버프로 게이트를 우회하는 것을 방지 |
 | 게이트 임계값이 현재 레어리티 한계 초과 | 게이트 앞에 "권장 장비 레어리티: Rare 이상" 힌트를 추가 표시한다. 해당 층위에서 획득 가능한 최고 레어리티 장비 + IW 2회 클리어로 반드시 도달 가능하도록 임계값 검증 |
 
 ---
@@ -334,7 +334,7 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 ### Phase 2
 
 - [ ] **해금 연출 설계**: 게이트 파괴 시 시각/음성/배경 이펙트 정의
-- [ ] **이노센트 시스템 연동**: 특정 이노센트 조합이 ATK 게이트 임계값 낮춤
+- [ ] **기억 단편 시스템 연동**: 특정 기억 단편 조합이 ATK 게이트 임계값 낮춤
 - [x] **능력 게이트 정의**: 6종 렐릭(대시/벽타기/이단점프/안개변신/수중호흡/역중력) 및 Tier별 배치 확정 (§2.1.1)
 - [ ] **ATK 게이트 난이도 곡선**: Phase 2 확장 레벨(Lv 11-100)에 따른 임계값 재조정
 
@@ -355,6 +355,6 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 | **비-크리티컬 경로** | 플레이어가 선택적으로 탐험할 수 있는 경로, 주요 진행에 영향 없음 |
 | **크리티컬 경로** | 게임을 완료하기 위해 반드시 통과해야 하는 경로 |
 | **아이템계 클리어 사이클** | 월드 → 아이템계 진입 → 지층 클리어 → 강화 → 월드 복귀의 1회 반복 |
-| **Final_ATK** | 캐릭터의 최종 ATK 수치 (Base_ATK + Equipment_ATK + Innocent_ATK_Bonus 합산) |
-| **Final_INT** | 캐릭터의 최종 INT 수치 (Base_INT + Equipment_INT + Innocent_INT_Bonus 합산) |
+| **Final_ATK** | 캐릭터의 최종 ATK 수치 (Base_ATK + Equipment_ATK + Memory Shard_ATK_Bonus 합산) |
+| **Final_INT** | 캐릭터의 최종 INT 수치 (Base_INT + Equipment_INT + Memory Shard_INT_Bonus 합산) |
 

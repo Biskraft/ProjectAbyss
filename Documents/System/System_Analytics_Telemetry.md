@@ -18,7 +18,7 @@
 | TEL-06 | 전투 | player_death | P0 | 구현 완료 | **World=level_id+tile pos, ItemWorld=room col/row. enemy_type=Player.lastDamageSource** |
 | TEL-07 | 세이브 | player_save | P0 | 구현 완료 | 세이브 포인트 발견/사용 추적 |
 | TEL-08 | 세션 | game_loaded | P1 | 구현 완료 | main.ts 부팅 시간 측정 (`load_time_ms`) |
-| TEL-09 | 전투 | enemy_kill | P1 | 구현 완료 | handleEnemyKill + ItemWorld kill loop. Innocent 제외 |
+| TEL-09 | 전투 | enemy_kill | P1 | 구현 완료 | handleEnemyKill + ItemWorld kill loop. Memory Shard 제외 |
 | TEL-10 | 전투 | boss_fight | P1 | 구현 완료 | start/clear 2-phase. activateBossLock + deactivateBossLock 훅 |
 | TEL-11 | 진행 | item_drop | P1 | 구현 완료 | source=enemy/golden/hand_placed. WorldScene 드랍 + LDtk Item 엔티티 |
 | TEL-12 | 진행 | item_equip | P1 | 구현 완료 | Inventory.equip silent 플래그로 starter/load 제외, 유저 액션만 추적 |
@@ -39,7 +39,7 @@
 | TEL-26 | 멀티 | party_join | P3-Phase | 대기 | 멀티플레이 참여율 |
 | TEL-27 | 멀티 | party_complete | P3-Phase | 대기 | 파티 클리어율 |
 | TEL-28 | 리텐션 | d1/d7/d30_return | P3-Phase | 대기 | 리텐션 곡선 |
-| TEL-29 | 시스템 | innocent_tame | P3-Phase | 대기 | 이노센트 시스템 사용률 |
+| TEL-29 | 시스템 | memory shard_tame | P3-Phase | 대기 | 기억 단편 시스템 사용률 |
 | TEL-30 | 경제 | trade_complete | P3-Phase | 대기 | 거래 활성도 |
 
 ---

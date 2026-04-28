@@ -65,7 +65,7 @@
 - 웹 게임이었기에 링크 하나로 모든 사람이 즉시 접근 가능
 
 **PA 적용:**
-- "이 검의 Innocent를 모두 길들였어!" 같은 자랑 콘텐츠
+- "이 검의 Memory Shard를 모두 길들였어!" 같은 자랑 콘텐츠
 - 강화 수치를 시각적으로 보여주는 UI (ATK: 8 → 27) 같은 만족감 극대화 UI
 
 ---
@@ -358,7 +358,7 @@ a colossal structure left behind by the Builders.
 
 Explore layered worlds. Defeat enemies. Find gear.
 Enter your items as dungeons. Their memories become your battles.
-Capture Innocents. Strengthen your equipment endlessly.
+Capture Memory Shards. Strengthen your equipment endlessly.
 
 Alone or together with friends.
 Descend until you reach the bottom.

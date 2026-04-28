@@ -36,7 +36,7 @@ graph TD
     WORLD --> SAVEPOINT[Save Point: Forge/Shop]
 
     IW --> IW_DUNGEON[Item World Dungeon]
-    IW --> INNOCENT[Innocent System]
+    IW --> MEMORY_SHARD[Memory Shard System]
     IW --> PROCGEN_IW[IW Procedural Generation]
 
     COMBAT --> ACTION[Action System]
@@ -118,7 +118,7 @@ graph TD
 - 테마 풀 시스템: 무기 카테고리 × 기원 테마 × 레어리티로 절차적 서사 생성
 - 환경 서사 7대 원칙: 씬>플롯, 정보 제거, 묵시적 서사, 40초 법칙, 환경 일관성, 시선 차단, Fire/Ember
 - 서사 전달: 환경 서사(지형/분위기) 최우선, 유령 NPC 대사(3문장 이하), 플레이버 텍스트
-- NPC 대사 설계: 신호/잡음 이론, 이노센트 어투 차별화, "빈 시간" 설계
+- NPC 대사 설계: 신호/잡음 이론, 기억 단편 어투 차별화, "빈 시간" 설계
 - 세계관 톤: 고딕 비극(고등급) + 경쾌한 야리코미(저등급) 이중 톤
 - 월드-아이템계 수직 서사: 월드(현재) → 아이템계(과거) → 월드 복귀(이해)
 - "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층 지층이 같은 곳을 가리킨다
@@ -239,7 +239,7 @@ graph TD
 - Room Grid 크기 (아이템계 4×4 고정)
 - Critical Path 생성 알고리즘
 - Chunk 삽입 (레어리티별 복잡도)
-- 오브젝트 배치 (적, 이노센트, 보상)
+- 오브젝트 배치 (적, 기억 단편, 보상)
 - 월드 ProcGen과의 차이점 명시
 
 ### 3.7 아이템 서사 시스템 (Item Narrative)
@@ -264,13 +264,13 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | SYS-DLG-01 | ~~Dialogue System~~ | `System/System_Dialogue.md` | ❌ DEPRECATED | — | — |
 
-### 3.10 이노센트 시스템 (Innocent)
+### 3.10 기억 단편 시스템 (Memory Shard)
 
 | ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-INC-01 | Innocent Core | `System/System_Innocent_Core.md` | ✅ 완료 | IW | 야리코미 |
-| SYS-INC-02 | ~~Innocent Farm~~ | `System/System_Innocent_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
-| ~~SYS-INC-03~~ | ~~Dual Innocent~~ | ~~`System/System_Innocent_Dual.md`~~ | ❌ DEPRECATED | — | — |
+| SYS-INC-01 | Memory Shard Core | `System/System_Memory Shard_Core.md` | ✅ 완료 | IW | 야리코미 |
+| SYS-INC-02 | ~~Memory Shard Farm~~ | `System/System_Memory Shard_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
+| ~~SYS-INC-03~~ | ~~Dual Memory Shard~~ | ~~`System/System_Memory Shard_Dual.md`~~ | ❌ DEPRECATED | — | — |
 
 ### 3.11 적 & AI 시스템 (Enemy)
 
@@ -345,7 +345,7 @@ graph TD
 | UI-02 | Inventory UI | `UI/UI_Inventory.md` | ✅ 완료 | 전체 |
 | UI-03 | Map UI | `UI/UI_Map.md` | ⬜ 제작 필요 | World |
 | UI-04 | Item World UI | `UI/UI_ItemWorld.md` | ⬜ 제작 필요 | IW |
-| UI-05 | ~~Innocent Farm UI~~ | `UI/UI_InnocentFarm.md` | ❌ DEPRECATED | — |
+| UI-05 | ~~Memory Shard Farm UI~~ | `UI/UI_Memory ShardFarm.md` | ❌ DEPRECATED | — |
 | UI-06 | ~~Party & Matching UI~~ | ~~`UI/UI_PartyMatching.md`~~ | ❌ DEPRECATED | — |
 | UI-07 | Minimap | `UI/UI_Minimap.md` | ✅ 완료 | World |
 | UI-08 | Notifications | `UI/UI_Notifications.md` | ✅ 완료 | 전체 |
@@ -366,7 +366,7 @@ graph TD
 | CNT-ITM-002 | Item Narrative: First Sword | `Content/Content_Item_Narrative_FirstSword.md` | ✅ 완료 |
 | CNT-01 | Weapon List | `Content/Content_Weapon_List.md` | ✅ 완료 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
-| CNT-03 | Innocent Catalog | `Content/Content_Innocent_Catalog.md` | ⬜ 제작 필요 |
+| CNT-03 | Memory Shard Catalog | `Content/Content_Memory Shard_Catalog.md` | ⬜ 제작 필요 |
 | CNT-04 | Monster Bestiary | `Content/Content_Monster_Bestiary.md` | ✅ 완료 |
 | CNT-05 | Zone & Biome List | `Content/Content_Zone_List.md` | ⬜ 제작 필요 |
 | CNT-06 | Skill List | `Content/Content_Skill_List.md` | ⬜ 제작 필요 |
@@ -383,7 +383,7 @@ graph TD
 | Content_Stats_Character_Base.csv | `Sheets/` | SYS-LVL-01 | ✅ 완료 |
 | Content_Stats_Weapon_List.csv | `Sheets/` | SYS-CMB-03, CNT-01 | ✅ 완료 |
 | Content_Stats_Armor_List.csv | `Sheets/` | SYS-EQP-01, CNT-02 | ⬜ 제작 필요 |
-| Content_System_Innocent_Pool.csv | `Sheets/` | SYS-INC-01, CNT-03 | ⬜ 제작 필요 |
+| Content_System_Memory Shard_Pool.csv | `Sheets/` | SYS-INC-01, CNT-03 | ⬜ 제작 필요 |
 | Content_System_Monster_Pool.csv | `Sheets/` | SYS-MON-03, CNT-04 | ⬜ 제작 필요 |
 | Content_Level_Zone_Config.csv | `Sheets/` | SYS-WLD-02, CNT-05 | ⬜ 제작 필요 |
 | Content_System_Skill_List.csv | `Sheets/` | SYS-LVL-03, CNT-06 | ⬜ 제작 필요 |
@@ -400,7 +400,7 @@ graph TD
 | RES-IDX | Research Index | `Research/RESEARCH_INDEX.md` | 20개 리서치 1줄 요약 |
 | RES-DG-00 | Disgaea IW Research Summary | `Research/Disgaea_ItemWorld_Research_Summary.md` | 메타 인덱스 |
 | RES-DG-01 | Disgaea IW Core Mechanics | `Research/Disgaea_ItemWorld_CoreMechanics.md` | 아이템계 기본 구조 |
-| RES-DG-02 | Disgaea IW Innocent System | `Research/Disgaea_ItemWorld_InnocentSystem.md` | 이노센트 시스템 |
+| RES-DG-02 | Disgaea IW Memory Shard System | `Research/Disgaea_ItemWorld_Memory ShardSystem.md` | 기억 단편 시스템 |
 | RES-DG-03 | Disgaea IW Growth Economy | `Research/Disgaea_ItemWorld_GrowthEconomy.md` | 성장/경제 곡선 |
 | RES-DG-04 | Disgaea IW Procedural Gen | `Research/Disgaea_ItemWorld_ProceduralGeneration.md` | 절차적 생성 |
 | RES-DG-05 | Disgaea IW UX Patterns | `Research/Disgaea_ItemWorld_UXPatterns.md` | UX 설계 패턴 |
@@ -412,11 +412,11 @@ graph TD
 | ~~RES-HUB-01~~ | ~~Hub & Social Design~~ | ~~`Research/HubSpace_Social_Design_Research.md`~~ | ~~허브/소셜 — DEPRECATED~~ |
 | RES-EQP-01 | Equipment Drop Economy | `Research/Equipment_DropRate_Economy_Research.md` | 장비 드랍 |
 | RES-BSS-01 | Boss Design SideScrolling | `Research/BossDesign_SideScrolling_Research.md` | 보스 설계 |
-| RES-INC-01 | Innocent Combat Behavior | `Research/Innocent_Combat_Behavior_Research.md` | 이노센트 전투 행동 |
-| RES-INC-02 | Innocent Growth Economy | `Research/Innocent_Growth_Economy_Research.md` | 이노센트 경제 |
-| RES-INC-03 | Innocent Classification | `Research/Innocent_Classification_Balance_Research.md` | 이노센트 분류 |
-| RES-INC-04 | Innocent Multiplayer Social | `Research/Innocent_Multiplayer_Social_Research.md` | 이노센트 멀티 |
-| RES-INC-05 | Innocent Narrative | `Research/Innocent_Narrative_Worldbuilding_Research.md` | 이노센트 서사 |
+| RES-INC-01 | Memory Shard Combat Behavior | `Research/Memory Shard_Combat_Behavior_Research.md` | 기억 단편 전투 행동 |
+| RES-INC-02 | Memory Shard Growth Economy | `Research/Memory Shard_Growth_Economy_Research.md` | 기억 단편 경제 |
+| RES-INC-03 | Memory Shard Classification | `Research/Memory Shard_Classification_Balance_Research.md` | 기억 단편 분류 |
+| RES-INC-04 | Memory Shard Multiplayer Social | `Research/Memory Shard_Multiplayer_Social_Research.md` | 기억 단편 멀티 |
+| RES-INC-05 | Memory Shard Narrative | `Research/Memory Shard_Narrative_Worldbuilding_Research.md` | 기억 단편 서사 |
 | RES-LVL-01 | Level Progression Shape | `Research/LevelDesign_ProgressionShape_Research.md` | 레벨 진행 형태 |
 | RES-BLM-01 | BLAME Biomega WorldDesign | `Research/BLAME_Biomega_WorldDesign_Research.md` | BLAME!/바이오메가 월드 디자인 |
 | RES-BLM-02 | BLAME Killy Character | `Research/BLAME_Killy.md` | 킬리 캐릭터 분석 |
@@ -432,7 +432,7 @@ graph TD
 | RES-DLG-01 | Dialogue UI Systems | `Research/Research_Dialogue_UI_Systems.md` | 대화 UI 시스템 |
 | RES-DST-01 | Dual Stat ATK/INT Balance | `Research/DualStat_ATK_INT_Balance_Research.md` | ATK/INT 이중 스탯 밸런스 |
 | RES-ENM-01 | Enemy Mob Archetype | `Research/EnemyDesign_MobArchetype_Research.md` | 적 몹 아키타입 |
-| RES-INC-06 | Innocent Behavioral Modifier | `Research/InnocentBalance_BehavioralModifier_Research.md` | 이노센트 행동 수정자 밸런스 |
+| RES-INC-06 | Memory Shard Behavioral Modifier | `Research/Memory ShardBalance_BehavioralModifier_Research.md` | 기억 단편 행동 수정자 밸런스 |
 | RES-IW-BS-01 | IW Boss Pattern Design | `Research/ItemWorldBoss_PatternDesign_Research.md` | 아이템계 보스 패턴 설계 |
 | RES-IW-ET-02 | IW Entry Tech Implementation | `Research/ItemWorldEntry_TechImplementation_Research.md` | 아이템계 진입 기술 구현 |
 | RES-IW-VS-01 | IW Visual Memory Theme | `Research/ItemWorldVisual_MemoryTheme_Research.md` | 아이템계 비주얼/기억 테마 |
@@ -520,7 +520,7 @@ graph LR
     subgraph "Item World"
         IW1[SYS-IW-01 Core]
         IW2[SYS-IW-02 FloorGen]
-        INC1[SYS-INC-01 Innocent]
+        INC1[SYS-INC-01 Memory Shard]
     end
 
     VISION --> D01
@@ -593,7 +593,7 @@ graph LR
 | 20 | SYS-WLD-06 Save & Warp | ⬜ | 세이브/워프 규칙 |
 | 21 | SYS-WLD-07 Secrets & Rewards | ⬜ | 비밀 구역/보상 |
 | 22 | SYS-IW-01 IW Core | ✅ | 아이템계 전체 규칙 (진입/진행/탈출/보상/보스/보너스게이지/멀티) |
-| 23 | SYS-INC-01 Innocent Core | ⬜ | 이노센트 기본 시스템 |
+| 23 | SYS-INC-01 Memory Shard Core | ⬜ | 기억 단편 기본 시스템 |
 | 24 | SYS-CMB-04 SubWeapon | ⬜ | 서브웨폰 시스템 |
 | 25 | SYS-CMB-05 Elements | ⬜ | 원소 상성 |
 | 26 | SYS-CMB-06 Status Effects | ⬜ | 상태이상 |
@@ -602,7 +602,7 @@ graph LR
 | 29 | SYS-EQP-03 Item Growth Path | ⬜ | 장비 성장 경로 |
 | 30 | SYS-MON-02 Boss Design | ⬜ | 보스 설계 |
 | 31 | SYS-MON-03 Monster Spawning | ⬜ | 몬스터 스폰 |
-| 32-37 | CSV-05-10 | ⬜ | Innocent/Monster/Zone/Skill/IWBoss/LevelExp CSV |
+| 32-37 | CSV-05-10 | ⬜ | Memory Shard/Monster/Zone/Skill/IWBoss/LevelExp CSV |
 | 38-41 | CNT-01,02,05,06 | ⬜ | Weapon/Armor/Zone/Skill 목록 |
 
 ### Phase 3: 베타 (멀티+야리코미) — 27건
@@ -614,10 +614,10 @@ graph LR
 | 48-49 | SYS-ECO-01-02 | ⬜ | 자원순환/거래 |
 | 51-52 | ~~SYS-HUB-01-02~~ | ❌ DEPRECATED | ~~허브 시설/NPC 상점~~ |
 | 53-56 | SYS-IW-03-06 | ⬜ (SYS-IW-04 DEPRECATED) | 아이템계 보스/~~재귀~~(삭제)/이벤트/지오 |
-| 57-58 | SYS-INC-03 | ⬜ | 듀얼 이노센트 |
+| 57-58 | SYS-INC-03 | ⬜ | 듀얼 기억 단편 |
 | 59 | SYS-LVL-04 Reincarnation | ~~삭제~~ | ~~전생 시스템~~ (스코프 축소로 삭제) |
 | 60-65 | UI-01-06 | ⬜ | HUD/인벤토리/맵/아이템계/팜/파티 UI |
-| 66-69 | CNT-03,04,07,08 | ⬜ | Innocent/Monster/Boss/RoomTemplate 카탈로그 |
+| 66-69 | CNT-03,04,07,08 | ⬜ | Memory Shard/Monster/Boss/RoomTemplate 카탈로그 |
 
 ---
 

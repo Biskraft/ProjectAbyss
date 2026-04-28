@@ -342,6 +342,9 @@
     <a href="#damage-number">DamageNumber</a>
     <a href="#area-title">AreaTitle</a>
     <a href="#tutorial-hint">TutorialHint</a>
+    <div class="group">Item World</div>
+    <a href="#item-world-select">ItemWorldSelect</a>
+    <a href="#stratum-clear">StratumClear</a>
   </nav>
 </aside>
 
@@ -1574,6 +1577,376 @@
     <p>첫 등장 메커닉 안내. KeyPrompt + 짧은 라벨. 한 번 본 hint는 sacredSave 가 기억.</p>
     <div class="stage">
       <div class="ctx-prompt"><span class="key-icon s14">X</span> Hold to dash</div>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       Item World Select
+       =================================================== -->
+  <section id="item-world-select">
+    <h2>ItemWorldSelect <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">ItemWorldScene.ts + InventoryUI row recipe</div>
+    <p>아이템 계 진입 시 시작 층을 고르는 선택 UI. InventoryUI와 같은 list-row selection, DIVE/CLR/LOCK badge, detail panel 구성을 사용한다.</p>
+
+    <div class="card">
+      <h3>Starting Stratum Picker</h3>
+      <div class="meta">inventory-style list / C confirm / ESC cancel</div>
+      <div class="stage center">
+        <div class="modal-overlay" style="max-width:640px">
+          <div class="modal-panel" style="width:100%">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+              <div>
+                <div class="t-title">SELECT ITEM WORLD START</div>
+                <div class="t-hint">Galaxy Sword · Rare · Lv.35</div>
+              </div>
+              <div class="t-hint" style="text-align:right;color:var(--text-accent)">2 / 3 STRATA</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="display:flex;gap:14px;align-items:stretch;flex-wrap:wrap">
+              <div style="flex:1 1 330px;min-width:280px">
+                <div class="t-hint" style="margin-bottom:6px;letter-spacing:1px">MEMORY STRATA</div>
+                <div class="inv-list" style="width:100%">
+                  <div class="inv-row">
+                    <span class="row-cursor">&gt;</span>
+                    <span class="row-icon">1</span>
+                    <span class="row-badge clr">CLR</span>
+                    <span class="row-name" style="color:var(--text-positive)">Stratum 1 · Gate Restored</span>
+                    <span class="row-stat">HP x1.0</span>
+                    <span class="row-dive-status"><span class="row-badge clr">GATE</span></span>
+                  </div>
+                  <div class="inv-row selected">
+                    <span class="row-cursor">&gt;</span>
+                    <span class="row-icon">2</span>
+                    <span class="row-badge dive">START</span>
+                    <span class="row-name" style="color:var(--text-accent)">Stratum 2 · Echo Furnace</span>
+                    <span class="row-stat">HP x1.4</span>
+                    <span class="row-dive-status"><span class="row-badge dive">OPEN</span></span>
+                  </div>
+                  <div class="inv-row">
+                    <span class="row-cursor">&gt;</span>
+                    <span class="row-icon">3</span>
+                    <span class="row-badge lock">LOCK</span>
+                    <span class="row-name">Stratum 3 · Sealed Core</span>
+                    <span class="row-stat">???</span>
+                    <span class="row-dive-status"><span class="row-badge lock">LOCK</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="flex:0 1 210px;min-width:190px;border-left:1px solid var(--modal-divider);padding-left:12px">
+                <div class="t-title" style="color:var(--text-accent)">STRATUM 2</div>
+                <div class="t-hint" style="margin-top:3px">Current re-entry point</div>
+                <div class="divider"></div>
+                <div class="t-body" style="display:flex;justify-content:space-between;gap:10px"><span>Boss gate</span><span style="color:var(--text-positive)">Ready</span></div>
+                <div class="t-body" style="display:flex;justify-content:space-between;gap:10px;margin-top:4px"><span>Enemy level</span><span>+12</span></div>
+                <div class="t-body" style="display:flex;justify-content:space-between;gap:10px;margin-top:4px"><span>Reward seed</span><span style="color:var(--text-gold)">Rare</span></div>
+                <div style="display:flex;gap:4px;margin-top:10px">
+                  <div style="height:7px;flex:1;background:var(--text-positive)"></div>
+                  <div style="height:7px;flex:1;background:var(--text-accent)"></div>
+                  <div style="height:7px;flex:1;background:var(--row-locked)"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span class="key-icon s14">L</span><span class="key-icon s14">R</span>
+              <span class="t-hint">Change</span>
+              <span class="key-icon s14" style="margin-left:8px">C</span>
+              <span class="t-hint">Enter</span>
+              <span class="key-icon s14" style="width:28px;margin-left:8px">ESC</span>
+              <span class="t-hint">Cancel</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>State Rules</h3>
+      <div class="desc">
+        Selected state must match <code>.inv-row.selected</code>. Cleared floors use <span class="row-badge clr">CLR</span>, available entry floors use <span class="row-badge dive">START</span>, and blocked floors use <span class="row-badge lock">LOCK</span>. The right panel is for selected-floor metadata only, not another menu.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       Stratum Clear — unified post-boss UI
+       =================================================== -->
+  <section id="stratum-clear">
+    <h2>StratumClear <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">StratumClearPanel.ts (proposed redesign)</div>
+    <p>보스 처치 후 단일 화면. 무기 실루엣 중앙 → 녹 벗겨짐 연출 → ATK 표시 → Innocents 표시 → 선택지. 기존 5개 모달을 1개로 통합.</p>
+
+    <div class="card">
+      <h3>Stratum Clear — Live Demo</h3>
+      <div class="meta">click "REPLAY" to re-run the sequence</div>
+
+      <style>
+        .sc-stage{
+          position:relative;width:100%;height:360px;
+          background:#000;border:1px solid var(--line);
+          overflow:hidden;display:flex;align-items:center;justify-content:center;
+          user-select:none;
+        }
+
+        /* Weapon silhouette */
+        .sc-weapon{
+          position:absolute;width:64px;height:160px;
+          left:50%;top:42%;transform:translate(-50%,-50%);
+          z-index:10;
+        }
+        .sc-weapon-body{
+          width:100%;height:100%;
+          background:linear-gradient(180deg,#3a3a3a 0%,#1a1a1a 100%);
+          clip-path:polygon(35% 0%,65% 0%,72% 15%,60% 85%,70% 90%,65% 100%,35% 100%,30% 90%,40% 85%,28% 15%);
+          position:relative;overflow:hidden;
+        }
+
+        /* Rust overlay (cracks/corrosion) */
+        .sc-rust{
+          position:absolute;inset:0;
+          background:
+            radial-gradient(ellipse at 30% 20%, rgba(139,69,19,0.8) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 40%, rgba(139,69,19,0.7) 0%, transparent 45%),
+            radial-gradient(ellipse at 40% 70%, rgba(139,69,19,0.9) 0%, transparent 55%),
+            radial-gradient(ellipse at 60% 85%, rgba(100,50,10,0.6) 0%, transparent 40%);
+          transition:opacity 1.5s ease-out;
+          z-index:2;
+        }
+        .sc-rust.cleared{opacity:0}
+
+        /* Light bleed through cracks */
+        .sc-light{
+          position:absolute;inset:0;
+          background:
+            radial-gradient(ellipse at 35% 25%, rgba(0,206,209,0.0) 0%, transparent 40%),
+            radial-gradient(ellipse at 65% 50%, rgba(0,206,209,0.0) 0%, transparent 35%),
+            radial-gradient(ellipse at 45% 75%, rgba(0,206,209,0.0) 0%, transparent 45%);
+          z-index:3;
+          transition:all 1.5s ease-in;
+        }
+        .sc-light.active{
+          background:
+            radial-gradient(ellipse at 35% 25%, rgba(0,206,209,0.6) 0%, transparent 40%),
+            radial-gradient(ellipse at 65% 50%, rgba(0,206,209,0.5) 0%, transparent 35%),
+            radial-gradient(ellipse at 45% 75%, rgba(0,206,209,0.7) 0%, transparent 45%);
+        }
+
+        /* Outer glow pulse */
+        .sc-glow{
+          position:absolute;width:120px;height:220px;
+          left:50%;top:42%;transform:translate(-50%,-50%);
+          border-radius:50%;
+          background:radial-gradient(ellipse,rgba(0,206,209,0.0) 0%,transparent 70%);
+          z-index:5;
+          transition:all 1.2s ease-in;
+        }
+        .sc-glow.active{
+          background:radial-gradient(ellipse,rgba(0,206,209,0.25) 0%,transparent 70%);
+          animation:sc-pulse 2s ease-in-out infinite;
+        }
+        @keyframes sc-pulse{
+          0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1}
+          50%{transform:translate(-50%,-50%) scale(1.08);opacity:0.7}
+        }
+
+        /* Particles (rust flakes falling off) */
+        .sc-particle{
+          position:absolute;border-radius:1px;z-index:4;
+          background:#8b4513;opacity:0;
+        }
+        .sc-particle.fly{
+          opacity:1;
+          animation:sc-flake 1.5s ease-out forwards;
+        }
+        @keyframes sc-flake{
+          0%{transform:translate(0,0) rotate(0deg);opacity:0.9}
+          100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}
+        }
+
+        /* Stats area */
+        .sc-stats{
+          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+          text-align:center;z-index:20;
+        }
+        .sc-atk{
+          font-size:14px;font-weight:700;letter-spacing:2px;
+          color:var(--text-primary);opacity:0;
+          transition:opacity 0.6s ease-in;
+        }
+        .sc-atk.show{opacity:1}
+        .sc-atk .old{color:var(--text-secondary)}
+        .sc-atk .arrow{color:var(--text-secondary);margin:0 8px}
+        .sc-atk .new{color:var(--text-positive);text-shadow:0 0 8px rgba(68,255,68,0.4)}
+        .sc-atk .diff{color:var(--text-positive);font-size:11px;margin-left:6px}
+
+        .sc-innocents{
+          margin-top:10px;font-size:11px;color:var(--text-accent);
+          letter-spacing:1px;opacity:0;
+          transition:opacity 0.6s ease-in;
+        }
+        .sc-innocents.show{opacity:1}
+
+        /* Bottom prompt */
+        .sc-prompt{
+          position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+          z-index:20;opacity:0;transition:opacity 0.5s ease-in;
+          display:flex;gap:24px;font-size:10px;color:var(--text-secondary);
+        }
+        .sc-prompt.show{opacity:1}
+        .sc-prompt .key-icon{margin-right:4px;vertical-align:middle}
+
+        /* Title */
+        .sc-title{
+          position:absolute;top:28px;left:50%;transform:translateX(-50%);
+          font-family:var(--font-title-display);font-size:16px;letter-spacing:5px;
+          color:var(--text-primary);z-index:20;opacity:0;
+          transition:opacity 0.8s ease-in;
+        }
+        .sc-title.show{opacity:1}
+
+        /* Replay button */
+        .sc-replay{
+          position:absolute;top:8px;right:8px;z-index:30;
+          background:var(--panel-bg);border:1px solid var(--line);
+          color:var(--text-secondary);font-size:9px;padding:4px 10px;
+          cursor:pointer;letter-spacing:1px;
+        }
+        .sc-replay:hover{color:var(--text-accent);border-color:var(--text-accent)}
+      </style>
+
+      <div class="sc-stage" id="scStage">
+        <button class="sc-replay" id="scReplayMid" style="right:80px">MID FLOOR</button>
+        <button class="sc-replay" id="scReplayFinal">FINAL FLOOR</button>
+
+        <!-- Title -->
+        <div class="sc-title" id="scTitle">STRATUM CLEARED</div>
+
+        <!-- Weapon -->
+        <div class="sc-weapon">
+          <div class="sc-weapon-body">
+            <div class="sc-rust" id="scRust"></div>
+            <div class="sc-light" id="scLight"></div>
+          </div>
+        </div>
+        <div class="sc-glow" id="scGlow"></div>
+
+        <!-- Stats -->
+        <div class="sc-stats">
+          <div class="sc-atk" id="scAtk">
+            <span>ATK</span>
+            <span class="old">12</span>
+            <span class="arrow">&rarr;</span>
+            <span class="new">15</span>
+            <span class="diff">(+3)</span>
+          </div>
+          <div class="sc-innocents" id="scInnocents">INNOCENTS 1 stabilized</div>
+        </div>
+
+        <!-- Prompt -->
+        <div class="sc-prompt" id="scPrompt">
+          <span><span class="key-icon s14">C</span> Continue Deeper</span>
+          <span><span class="key-icon s14">ESC</span> Return</span>
+        </div>
+      </div>
+
+      <script>
+      (function(){
+        const stage = document.getElementById('scStage');
+        const title = document.getElementById('scTitle');
+        const rust  = document.getElementById('scRust');
+        const light = document.getElementById('scLight');
+        const glow  = document.getElementById('scGlow');
+        const atk   = document.getElementById('scAtk');
+        const inno  = document.getElementById('scInnocents');
+        const prompt= document.getElementById('scPrompt');
+        const btnMid  = document.getElementById('scReplayMid');
+        const btnFinal= document.getElementById('scReplayFinal');
+
+        function spawnParticles(){
+          const weapon = stage.querySelector('.sc-weapon');
+          const rect = weapon.getBoundingClientRect();
+          const stageRect = stage.getBoundingClientRect();
+          const cx = rect.left - stageRect.left + rect.width/2;
+          const cy = rect.top - stageRect.top + rect.height/2;
+
+          for(let i=0;i<24;i++){
+            const p = document.createElement('div');
+            p.className = 'sc-particle';
+            const size = 2+Math.random()*4;
+            p.style.width = size+'px';
+            p.style.height = size+'px';
+            const angle = Math.random()*Math.PI*2;
+            const dist = 40+Math.random()*80;
+            p.style.setProperty('--dx',(Math.cos(angle)*dist)+'px');
+            p.style.setProperty('--dy',(Math.sin(angle)*dist-20)+'px');
+            p.style.setProperty('--rot',(Math.random()*360)+'deg');
+            p.style.left = (cx-size/2+Math.random()*30-15)+'px';
+            p.style.top = (cy-size/2+Math.random()*60-30)+'px';
+            stage.appendChild(p);
+            setTimeout(()=>p.classList.add('fly'), 50+Math.random()*400);
+            setTimeout(()=>p.remove(), 2200);
+          }
+        }
+
+        function reset(){
+          title.classList.remove('show');
+          rust.classList.remove('cleared');
+          light.classList.remove('active');
+          glow.classList.remove('active');
+          atk.classList.remove('show');
+          inno.classList.remove('show');
+          prompt.classList.remove('show');
+          stage.querySelectorAll('.sc-particle').forEach(p=>p.remove());
+        }
+
+        function run(isFinal){
+          reset();
+
+          // Title text
+          title.textContent = isFinal ? 'MEMORY ECHOED' : 'STRATUM CLEARED';
+
+          // Prompt text
+          prompt.innerHTML = isFinal
+            ? '<span><span class="key-icon s14">C</span> Return</span>'
+            : '<span><span class="key-icon s14">C</span> Continue Deeper</span><span><span class="key-icon s14">ESC</span> Return</span>';
+
+          // T=0: Title fade in
+          setTimeout(()=>title.classList.add('show'), 300);
+
+          // T=1000ms: Rust cracks, light bleeds, particles
+          setTimeout(()=>{
+            rust.classList.add('cleared');
+            light.classList.add('active');
+            glow.classList.add('active');
+            spawnParticles();
+          }, 1000);
+
+          // T=2600ms: ATK shows
+          setTimeout(()=>atk.classList.add('show'), 2600);
+
+          // T=3400ms: Innocents shows
+          setTimeout(()=>inno.classList.add('show'), 3400);
+
+          // T=4200ms: Prompt shows
+          setTimeout(()=>prompt.classList.add('show'), 4200);
+        }
+
+        btnMid.addEventListener('click', ()=>run(false));
+        btnFinal.addEventListener('click', ()=>run(true));
+        // Auto-run mid floor on load
+        setTimeout(()=>run(false), 600);
+      })();
+      </script>
+    </div>
+
+    <div class="desc" style="margin-top:12px">
+      <b>Timeline:</b> Title (0.3s) &rarr; Rust dissolve + particles (1.0s) &rarr; ATK (2.6s) &rarr; Innocents (3.4s) &rarr; Prompt (4.2s)<br>
+      <b>Replaces:</b> StratumClearPanel + BossChoice + EscapeConfirm + ReturnResult (5 modals &rarr; 1)
     </div>
   </section>
 

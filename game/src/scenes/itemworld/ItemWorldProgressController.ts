@@ -106,10 +106,4 @@ export class ItemWorldProgressController {
     }
     this.callbacks.startPostClearHold();
   }
-
-  useEscapeAltar(): void {
-    this.callbacks.persistRoomState();
-    this.callbacks.showToast('Escape Altar Returning safely...', 0xaaaaff);
-    this.callbacks.startExitFade();
-  }
 }

@@ -19,7 +19,7 @@
 - **CSV:** `Sheets/Content_Stats_Weapon_Lore.csv`
 - **GDD 주 문서:** `Documents/Content/Content_Weapon_List.md`
 - **GDD 부 문서:** `Documents/Content/Content_Item_Narrative_*.md`, `Documents/System/System_ItemNarrative_Template.md`
-- **검증 컬럼:** `WeaponID`, `Name`, `Type`, `Rarity`, `BaseATK`, `AreaID`, `InnocentSeed`, `LorePath`, `Description`
+- **검증 컬럼:** `WeaponID`, `Name`, `Type`, `Rarity`, `BaseATK`, `AreaID`, `MemoryShardSeed`, `LorePath`, `Description`
 - **검증 포인트:**
   - `LorePath`가 가리키는 `Sheets/LoreTexts/*.md` 파일 실존 여부
   - `AreaID`가 `Content_System_Area_Palette.csv`에 존재하는지 확인
