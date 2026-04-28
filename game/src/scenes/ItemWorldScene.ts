@@ -3,7 +3,7 @@ import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
-import { generateRoomGraph, type RoomGraphData } from '@level/RoomGraph';
+import type { RoomGraphData } from '@level/RoomGraph';
 import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
 import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
@@ -65,6 +65,7 @@ import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/Stra
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
+import { PropShatterManager } from '@effects/PropShatter';
 import { DeathParticleManager } from '@effects/DeathParticles';
 import { LandingDustManager } from '@effects/LandingDust';
 import { DashAfterimageManager } from '@effects/DashAfterimage';
@@ -199,6 +200,7 @@ export class ItemWorldScene extends Scene {
   private controlsOverlay!: ControlsOverlay;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
+  private propShatter!: PropShatterManager;
   private deathParticles!: DeathParticleManager;
   private landingDust!: LandingDustManager;
   private dashAfterimage!: DashAfterimageManager;
@@ -253,6 +255,8 @@ export class ItemWorldScene extends Scene {
   private roomsCleared = 0;
   private totalRooms = 0;
   private unifiedGrid!: UnifiedGridData;
+  /** Per-stratum graphs from the adapter — node.layout.x/y carry grid (col,row). */
+  private roomGraphs: RoomGraphData[] = [];
   // DEC-037 PR-B debug overlay (?debug=graph + F2 toggle). Untouched by gameplay.
   private roomGraphDebugContainer: Container | null = null;
   private roomGraphDebugVisible = false;
@@ -465,7 +469,9 @@ export class ItemWorldScene extends Scene {
     }
 
     // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
-    this.unifiedGrid = generateUnifiedGridFromGraph(this.strataConfig.strata, this.item.uid);
+    const adapterResult = generateUnifiedGridFromGraph(this.strataConfig.strata, this.item.uid);
+    this.unifiedGrid = adapterResult.unifiedGrid;
+    this.roomGraphs = adapterResult.graphs;
 
     // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). F2 토글.
     this.maybeInitRoomGraphDebug();
@@ -567,8 +573,8 @@ export class ItemWorldScene extends Scene {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
       const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-      const gridW = _bound?.width ?? this.currentStratumDef?.gridWidth ?? IW_GRID_W;
-      const gridH = _bound?.height ?? this.currentStratumDef?.gridHeight ?? IW_GRID_H;
+      const gridW = _bound?.width ?? IW_GRID_W;
+      const gridH = _bound?.height ?? IW_GRID_H;
       this.parallaxBG.setup(bgEntry, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX, {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
@@ -619,6 +625,7 @@ export class ItemWorldScene extends Scene {
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.propShatter = new PropShatterManager(this.entityLayer);
     this.deathParticles = new DeathParticleManager(this.entityLayer);
     this.landingDust = new LandingDustManager(this.entityLayer);
     this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
@@ -863,10 +870,10 @@ export class ItemWorldScene extends Scene {
     const stratumBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
     const _dbgRowStart = stratumBound?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    // strataOffsets[].width/height 가 실제 임베딩 크기 (radial 9×9, legacy 2×2~4×4).
-    // CSV 의 stratumDef.gridWidth/Height 는 legacy 4×4 모델 전용 폴백.
-    const gridW = stratumBound?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
-    const gridH = stratumBound?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
+    // strataOffsets[].width/height = SSoT (DEC-037 radial 임베딩 크기).
+    // IW_GRID_W/H 는 stratumBound 누락 시 last-resort 폴백.
+    const gridW = stratumBound?.width ?? IW_GRID_W;
+    const gridH = stratumBound?.height ?? IW_GRID_H;
     console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${gridW}x${gridH} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
@@ -1712,8 +1719,8 @@ export class ItemWorldScene extends Scene {
     const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
     const stratumOffset = _bound?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const stratumWidth = _bound?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
-    const stratumHeight = _bound?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
+    const stratumWidth = _bound?.width ?? IW_GRID_W;
+    const stratumHeight = _bound?.height ?? IW_GRID_H;
     const directions = [
       { dc: -1, dr: 0, name: 'W' },
       { dc: 1, dr: 0, name: 'E' },
@@ -2557,8 +2564,13 @@ export class ItemWorldScene extends Scene {
           if (bp.destroyed) continue;
           if (!aabbOverlap(hitbox, bp.getAABB())) continue;
           const drop = bp.break();
-          this.game.hitstopFrames += 2;
-          this.game.camera.shake(2);
+          this.game.hitstopFrames += 4;
+          this.game.camera.shake(4);
+          this.propShatter.spawn(
+            bp.x, bp.y, bp.width, bp.height,
+            bp.getParticleColor(), bp.getAccentColor(),
+            bp.getArtifactTexture(),
+          );
           this.hitSparks.spawn(
             bp.x + bp.width / 2, bp.y + bp.height / 2,
             false, this.player.facingRight ? 1 : -1,
@@ -2650,8 +2662,8 @@ export class ItemWorldScene extends Scene {
     const _bound2 = grid.strataOffsets[this.currentStratumIndex];
     const stratumRowStart = _bound2?.rowOffset ?? 0;
     const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const gridW = _bound2?.width ?? stratumDef?.gridWidth ?? IW_GRID_W;
-    const gridH = _bound2?.height ?? stratumDef?.gridHeight ?? IW_GRID_H;
+    const gridW = _bound2?.width ?? IW_GRID_W;
+    const gridH = _bound2?.height ?? IW_GRID_H;
 
     for (let localRow = 0; localRow < gridH; localRow++) {
       const absRow = stratumRowStart + localRow;
@@ -2849,7 +2861,11 @@ export class ItemWorldScene extends Scene {
     // ESC to toggle escape confirm. bossChoice 패널이 열려 있을 땐 여기서
     // 가로채지 않고 아래 bossChoice 핸들러가 ESC 를 Exit Safely 로 처리하도록
     // 양보한다 (Pattern A ? 해당 모달의 취소 키).
-    if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
+    // post_clear_hold 동안 StratumClearOverlay 가 단일 키(C) 흐름을 책임지므로
+    // ESC 가 EscapeConfirm 팝업을 띄우지 않도록 가로챈다.
+    if (this.transitionState === 'post_clear_hold') {
+      // fall through to the post_clear_hold handler below; do nothing here.
+    } else if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.uiController.isEscapeConfirmVisible()) {
         this.hideEscapeConfirm();
       } else {
@@ -3381,8 +3397,8 @@ export class ItemWorldScene extends Scene {
     // Track which room the player is in and lazy-spawn enemies on first entry
     // Clamp to grid bounds to prevent out-of-range access
     const _curBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const curGridW = _curBound?.width ?? this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
-    const curGridH = _curBound?.height ?? this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const curGridW = _curBound?.width ?? IW_GRID_W;
+    const curGridH = _curBound?.height ?? IW_GRID_H;
     const playerRoomCol = Math.max(0, Math.min(curGridW - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
     const playerRoomRow = Math.max(0, Math.min(curGridH - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     // Convert local row (0-3) to absolute row so room keys are globally unique
@@ -3455,6 +3471,7 @@ export class ItemWorldScene extends Scene {
     this.updateHudText();
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
+    this.propShatter.update(dt);
     this.deathParticles.update(dt);
     this.updateCaptureOrbs(dt);
     this._updateStratumClearPanel(dt);
@@ -3465,8 +3482,8 @@ export class ItemWorldScene extends Scene {
 
     // Clamp player to the active stratum bounds.
     const _clampBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const gridW = _clampBound?.width ?? this.strataConfig.strata[this.currentStratumIndex]?.gridWidth ?? IW_GRID_W;
-    const gridH = _clampBound?.height ?? this.strataConfig.strata[this.currentStratumIndex]?.gridHeight ?? IW_GRID_H;
+    const gridW = _clampBound?.width ?? IW_GRID_W;
+    const gridH = _clampBound?.height ?? IW_GRID_H;
     const mapW = gridW * IW_ROOM_W_PX;
     const mapH = gridH * IW_ROOM_H_PX;
     if (this.player.x < 0) this.player.x = 0;
@@ -4453,14 +4470,8 @@ export class ItemWorldScene extends Scene {
     const enabled = dbg === '1' || (dbg?.includes('graph') ?? false);
     if (!enabled) return;
 
-    const graphs: RoomGraphData[] = [];
-    for (let si = 0; si < this.strataConfig.strata.length; si++) {
-      try {
-        graphs.push(generateRoomGraph(this.strataConfig.strata[si], this.item.uid, si));
-      } catch (err) {
-        console.warn(`[RoomGraph debug] stratum ${si} generation failed`, err);
-      }
-    }
+    // Reuse adapter-built graphs so layout.x/y reflects actual grid placements.
+    const graphs = this.roomGraphs;
     if (graphs.length === 0) return;
 
     const canvas = this.game.app.canvas;

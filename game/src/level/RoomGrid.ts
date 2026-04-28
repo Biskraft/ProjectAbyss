@@ -1,8 +1,8 @@
 import { PRNG } from '@utils/PRNG';
 import { WorldGridConst } from '@data/constData';
 
-/** Room types: 0=dead-end, 1=LR(left-right), 2=LRD(left-right-down), 3=LRU(left-right-up) */
-export type RoomType = 0 | 1 | 2 | 3;
+/** Room types: 0=dead-end, 1=LR, 2=LRD(down hole), 3=LRU(up ladder), 4=LRUD(all-door arena, e.g. boss room or up+down passage) */
+export type RoomType = 0 | 1 | 2 | 3 | 4;
 
 export interface RoomCell {
   col: number;
@@ -268,6 +268,7 @@ function connectBranchRoom(
 }
 
 function determineRoomType(cell: RoomCell): RoomType {
+  if (cell.exits.up && cell.exits.down) return 4; // LRUD (both vertical exits)
   if (cell.exits.down) return 2;  // LRD
   if (cell.exits.up && !cell.exits.down) return 3; // LRU
   if (cell.exits.left || cell.exits.right) return 1; // LR

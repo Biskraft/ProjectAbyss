@@ -88,6 +88,7 @@ import {
   EGO_WORLD_RETURN, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
+import { PropShatterManager } from '@effects/PropShatter';
 import { LandingDustManager } from '@effects/LandingDust';
 import { DashAfterimageManager } from '@effects/DashAfterimage';
 import { DashBoostPuffManager } from '@effects/DashBoostPuff';
@@ -319,6 +320,7 @@ export class LdtkWorldScene extends Scene {
   private toast!: ToastManager;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
+  private propShatter!: PropShatterManager;
   private landingDust!: LandingDustManager;
   private dashAfterimage!: DashAfterimageManager;
   private dashBoostPuff!: DashBoostPuffManager;
@@ -796,6 +798,7 @@ export class LdtkWorldScene extends Scene {
     this.toast = new ToastManager(this.game.legacyUIContainer);
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
+    this.propShatter = new PropShatterManager(this.entityLayer);
     this.landingDust = new LandingDustManager(this.entityLayer);
     this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
     this.dashBoostPuff = new DashBoostPuffManager(this.entityLayer);
@@ -1091,6 +1094,7 @@ export class LdtkWorldScene extends Scene {
       }
       this.game.camera.update(dt);
       this.hitSparks.update(dt);
+      this.propShatter.update(dt);
       this.screenFlash.update(dt);
       // Keep LoreDisplay alive during sacred pickup blocking (Ego T01 dialogue)
       if (this.loreDisplay?.isActive) {
@@ -1121,6 +1125,7 @@ export class LdtkWorldScene extends Scene {
       this.player.savePrevPosition();
       this.game.camera.update(dt);
       this.hitSparks.update(dt);
+      this.propShatter.update(dt);
       this.screenFlash.update(dt);
       return;
     }
@@ -1155,6 +1160,7 @@ export class LdtkWorldScene extends Scene {
       }
 
       this.hitSparks.update(dt);
+      this.propShatter.update(dt);
       this.screenFlash.update(dt);
       return;
     }
@@ -1884,6 +1890,7 @@ export class LdtkWorldScene extends Scene {
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
+    this.propShatter.update(dt);
     this.screenFlash.update(dt);
 
     // Movement VFX (consume player one-shot events + trail updates)
@@ -3709,10 +3716,16 @@ export class LdtkWorldScene extends Scene {
       if (!aabbOverlap(hitbox, bp.getAABB())) continue;
 
       const drop = bp.break();
-      this.game.hitstopFrames += 2;
-      this.game.camera.shake(2);
+      this.game.hitstopFrames += 4;
+      this.game.camera.shake(4);
 
-      // Shatter sparks
+      // Destruction burst (sprite-quadrant chunks + flecks + dust)
+      this.propShatter.spawn(
+        bp.x, bp.y, bp.width, bp.height,
+        bp.getParticleColor(), bp.getAccentColor(),
+        bp.getArtifactTexture(),
+      );
+      // Subtle hit spark for impact emphasis
       this.hitSparks.spawn(
         bp.x + bp.width / 2, bp.y + bp.height / 2,
         false, this.player.facingRight ? 1 : -1,

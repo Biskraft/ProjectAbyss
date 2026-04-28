@@ -120,15 +120,19 @@ export function generateRoomGraph(
   const reservedSpecial = 1 /* boss */ + 1 /* shrine */;
   const spokeBudget = Math.max(0, def.nodeCount - def.hubCount - reservedSpecial);
 
-  // 가지별 spoke 길이 분배 (앞 가지부터 +1)
+  // 가지별 spoke 길이 분배 — 지층마다 어떤 가지가 길어질지 셔플 (다양화 A).
   const spokeLenByBranch: number[] = new Array(def.branchCount).fill(0);
   if (def.branchCount > 0) {
     const base = Math.floor(spokeBudget / def.branchCount);
-    let leftover = spokeBudget - base * def.branchCount;
-    for (let b = 0; b < def.branchCount; b++) {
-      spokeLenByBranch[b] = base + (leftover > 0 ? 1 : 0);
-      if (leftover > 0) leftover--;
+    const leftover = spokeBudget - base * def.branchCount;
+    for (let b = 0; b < def.branchCount; b++) spokeLenByBranch[b] = base;
+    const order: number[] = [];
+    for (let b = 0; b < def.branchCount; b++) order.push(b);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = rng.nextInt(0, i);
+      [order[i], order[j]] = [order[j], order[i]];
     }
+    for (let i = 0; i < leftover; i++) spokeLenByBranch[order[i]] += 1;
   }
 
   // -------------------------------------------------------------------------
@@ -168,21 +172,93 @@ export function generateRoomGraph(
   }
 
   // -------------------------------------------------------------------------
-  // 4) 가지 노드 생성 (spoke 사슬) — single-hub 기준 hub[0]에서만 가지
-  //    multi_hub 의 경우에도 본 PR 에서는 hub[0]에서만 가지를 뻗는 모델로
-  //    단순화한다 (Phase 2 에서 hub[1]가지 분배 도입).
+  // 4) 가지 노드 생성 (spoke 사슬) — multi-hub aware 분배
+  //
+  //    다양화 B: 각 hub 의 4개 cardinal 슬롯(E/S/W/N) 중 multi_hub 인접 방향은
+  //    제외하고 셔플. 가지를 round-robin 으로 hub 에 분배한다.
+  //    - hubCount=1: 가지 0..3 main, 4+ sub-branch (host = b mod 4 의 첫 spoke)
+  //    - hubCount=2: hub[0] 은 E 제외(3 슬롯), hub[1] 은 W 제외(3 슬롯). 각 hub
+  //      의 가지가 슬롯 초과 시 sub-branch 로 강등.
   // -------------------------------------------------------------------------
   const sourceHubId = hubIds[0];
+
+  // Per-hub cardinal pool (multi_hub 방향 제외 후 셔플)
+  const cardinalPoolByHub: number[][] = [];
+  for (let h = 0; h < def.hubCount; h++) {
+    const pool = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+    if (def.hubCount === 2) {
+      const reservedAngle = h === 0 ? 0 : Math.PI; // hub[0]→E, hub[1]→W
+      const idx = pool.indexOf(reservedAngle);
+      if (idx >= 0) pool.splice(idx, 1);
+    }
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = rng.nextInt(0, i);
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    cardinalPoolByHub.push(pool);
+  }
+
+  // 가지 → hub round-robin
+  const branchHub: number[] = new Array(def.branchCount);
   for (let b = 0; b < def.branchCount; b++) {
-    const angle = (b / def.branchCount) * 2 * Math.PI + jitter(rng, def.branchCount);
+    branchHub[b] = b % def.hubCount;
+  }
+  // 같은 hub 내 가지 순서 (main 슬롯 매핑용)
+  const branchOrderInHub: number[] = new Array(def.branchCount);
+  const seenOnHub: number[] = new Array(def.hubCount).fill(0);
+  for (let b = 0; b < def.branchCount; b++) {
+    branchOrderInHub[b] = seenOnHub[branchHub[b]]++;
+  }
+
+  // 각 가지의 angle 결정 — main 은 풀에서 순서대로, sub 는 hub 첫 main 의 perpendicular
+  const branchAngles: number[] = new Array(def.branchCount);
+  for (let b = 0; b < def.branchCount; b++) {
+    const h = branchHub[b];
+    const order = branchOrderInHub[b];
+    const pool = cardinalPoolByHub[h];
+    if (order < pool.length) {
+      branchAngles[b] = pool[order];
+    } else {
+      // Sub-branch: host = 같은 hub 의 첫 main (order=0)
+      let hostB = -1;
+      for (let bb = 0; bb < def.branchCount; bb++) {
+        if (branchHub[bb] === h && branchOrderInHub[bb] === 0) { hostB = bb; break; }
+      }
+      const baseAngle = hostB >= 0 ? branchAngles[hostB] : 0;
+      const perpSign = rng.next() < 0.5 ? 1 : -1;
+      let perp = baseAngle + perpSign * (Math.PI / 2);
+      while (perp > Math.PI) perp -= 2 * Math.PI;
+      while (perp < -Math.PI) perp += 2 * Math.PI;
+      branchAngles[b] = perp;
+    }
+  }
+
+  // Shrine 후보 슬롯: hub[0] 의 남은 cardinal
+  const usedOnHub0 = Math.min(seenOnHub[0], cardinalPoolByHub[0].length);
+  const remainingCardinals = cardinalPoolByHub[0].slice(usedOnHub0);
+
+  for (let b = 0; b < def.branchCount; b++) {
+    const angle = branchAngles[b];
     const len = spokeLenByBranch[b];
-    let prevId = sourceHubId;
+    const h = branchHub[b];
+    const order = branchOrderInHub[b];
+    const isSub = order >= cardinalPoolByHub[h].length;
+    let prevId: string;
+    if (!isSub) {
+      prevId = hubIds[h];
+    } else {
+      let host = -1;
+      for (let bb = 0; bb < def.branchCount; bb++) {
+        if (branchHub[bb] === h && branchOrderInHub[bb] === 0) { host = bb; break; }
+      }
+      prevId = host >= 0 && nodes.has(`b${host}.1`) ? `b${host}.1` : hubIds[h];
+    }
     for (let d = 1; d <= len; d++) {
       const id = `b${b}.${d}`;
       const node = makeNode({
-        id, role: 'spoke', hubIndex: 0, branchIndex: b, depth: d,
+        id, role: 'spoke', hubIndex: h, branchIndex: b, depth: d,
         stratumIndex, angleRad: angle, ring: d * RING_UNIT,
-        tags: ['spoke_corridor'],
+        tags: isSub && d === 1 ? ['spoke_corridor', 'sub_root'] : ['spoke_corridor'],
       });
       nodes.set(id, node);
       const sides = sidesByAngle(angle);
@@ -194,12 +270,13 @@ export function generateRoomGraph(
   // -------------------------------------------------------------------------
   // 5) 보스 노드 (별도 노드, IWF-R17). 보스 가지 끝에 부착.
   // -------------------------------------------------------------------------
-  const bossPrevId = lastNodeIdOfBranch(nodes, bossBranchIndex) ?? sourceHubId;
+  const bossHub = branchHub[bossBranchIndex] ?? 0;
+  const bossPrevId = lastNodeIdOfBranch(nodes, bossBranchIndex) ?? hubIds[bossHub];
   const bossDepth = (nodes.get(bossPrevId)?.depth ?? 0) + 1;
-  const bossAngle = (bossBranchIndex / def.branchCount) * 2 * Math.PI;
+  const bossAngle = branchAngles[bossBranchIndex] ?? (bossBranchIndex / def.branchCount) * 2 * Math.PI;
   const bossId = `boss${bossBranchIndex}`;
   nodes.set(bossId, makeNode({
-    id: bossId, role: 'boss', hubIndex: 0, branchIndex: bossBranchIndex, depth: bossDepth,
+    id: bossId, role: 'boss', hubIndex: bossHub, branchIndex: bossBranchIndex, depth: bossDepth,
     stratumIndex, angleRad: bossAngle, ring: bossDepth * RING_UNIT,
     tags: ['boss_chamber'],
   }));
@@ -211,20 +288,52 @@ export function generateRoomGraph(
   //    hub 와 보스 가지 첫 spoke 사이 동선에서 살짝 비켜서 부착한다.
   // -------------------------------------------------------------------------
   const shrineId = makeShrineId();
-  const shrineAngle = (bossBranchIndex / def.branchCount) * 2 * Math.PI + Math.PI / 12;
+  // Shrine 부착 우선순위:
+  //   1) hub[0] 의 남은 cardinal (single-hub 일반 케이스)
+  //   2) hubCount=2 이고 hub[0] 풀이 가득이면 hub[1] 의 남은 cardinal
+  //   3) 양쪽 hub 모두 가득이면 보스 가지 첫 spoke 의 perpendicular alcove
+  //   4) 위 모두 실패 시 보스 옆 fallback (그리드 임베딩에서 누락 가능)
+  let shrineParentId = sourceHubId;
+  let shrineHubIndex = 0;
+  let shrineAngle: number;
+  if (remainingCardinals.length > 0) {
+    shrineAngle = remainingCardinals[rng.nextInt(0, remainingCardinals.length - 1)];
+  } else if (def.hubCount === 2) {
+    const usedOnHub1 = Math.min(seenOnHub[1], cardinalPoolByHub[1].length);
+    const remainingHub1 = cardinalPoolByHub[1].slice(usedOnHub1);
+    if (remainingHub1.length > 0) {
+      shrineHubIndex = 1;
+      shrineParentId = hubIds[1];
+      shrineAngle = remainingHub1[rng.nextInt(0, remainingHub1.length - 1)];
+    } else if (nodes.has(`b${bossBranchIndex}.1`)) {
+      shrineParentId = `b${bossBranchIndex}.1`;
+      shrineHubIndex = bossHub;
+      const perpSign = rng.next() < 0.5 ? 1 : -1;
+      let perp = bossAngle + perpSign * (Math.PI / 2);
+      while (perp > Math.PI) perp -= 2 * Math.PI;
+      while (perp < -Math.PI) perp += 2 * Math.PI;
+      shrineAngle = perp;
+    } else {
+      shrineAngle = bossAngle + Math.PI / 12;
+    }
+  } else {
+    shrineAngle = bossAngle + Math.PI / 12;
+  }
   nodes.set(shrineId, makeNode({
-    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 1,
+    id: shrineId, role: 'shrine', hubIndex: shrineHubIndex, branchIndex: -1, depth: 1,
     stratumIndex, angleRad: shrineAngle, ring: 0.5,
     tags: ['shrine_alcove', 'safe'],
   }));
   const shrineSides = sidesByAngle(shrineAngle);
-  edges.push(makeEdge(sourceHubId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+  edges.push(makeEdge(shrineParentId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
 
   // -------------------------------------------------------------------------
   // 7) Critical Path 집합 (IWF-R30 후속)
   // -------------------------------------------------------------------------
   const criticalPathIds = new Set<string>();
   criticalPathIds.add(sourceHubId);
+  // multi_hub: 보스가 hub[1] 측 가지면 hub[1] 도 CP 포함 (entry → hub[1] → 보스 가지)
+  if (bossHub !== 0 && hubIds[bossHub]) criticalPathIds.add(hubIds[bossHub]);
   for (const node of nodes.values()) {
     if (node.role === 'spoke' && node.branchIndex === bossBranchIndex) {
       criticalPathIds.add(node.id);

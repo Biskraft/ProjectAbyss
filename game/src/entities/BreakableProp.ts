@@ -15,12 +15,54 @@
  *   tallgrass  — tall industrial moss/weed, sways gently
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import type { AABB } from '@core/Physics';
+import { assetPath } from '@core/AssetLoader';
 
 export type PropVariant = 'pipe' | 'panel' | 'crate' | 'debris' | 'crystal' | 'tallgrass';
 
 const S = 32; // prop size (2x2 tiles)
+
+/**
+ * Artifact sprite sheet (breakable_01.png) — 256×256, 8 cols × 8 rows of 32×32.
+ * Only 24 cells contain real artwork; the rest of the sheet is empty. The
+ * coords below enumerate the populated cells so we never sample a blank tile.
+ *   Row 0 (cols 0..7): assorted crates / containers          — 8 frames
+ *   Row 1 (cols 0..7): barrels, debris pile, kiosks, etc.    — 8 frames
+ *   Row 2 (cols 0..6): smaller barrels, bowls, sacks         — 7 frames
+ *   Row 3 (col  0   ): industrial arm                        — 1 frame
+ */
+const ARTIFACT_SHEET = 'assets/sprites/breakable_01.png';
+const ARTIFACT_FRAME_COORDS: ReadonlyArray<readonly [number, number]> = [
+  [0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
+  [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1],
+  [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2],
+  [0, 3],
+];
+const ARTIFACT_FRAME_COUNT = ARTIFACT_FRAME_COORDS.length; // 24
+const ARTIFACT_VARIANTS: ReadonlySet<PropVariant> = new Set<PropVariant>([
+  'pipe', 'panel', 'crate', 'debris',
+]);
+let artifactFrames: Texture[] | null = null;
+let artifactLoadPromise: Promise<Texture[]> | null = null;
+
+function loadArtifactFrames(): Promise<Texture[]> {
+  if (artifactLoadPromise) return artifactLoadPromise;
+  artifactLoadPromise = (async () => {
+    const sheetTex = await Assets.load<Texture>(assetPath(ARTIFACT_SHEET));
+    sheetTex.source.scaleMode = 'nearest';
+    const out: Texture[] = [];
+    for (const [col, row] of ARTIFACT_FRAME_COORDS) {
+      out.push(new Texture({
+        source: sheetTex.source,
+        frame: new Rectangle(col * S, row * S, S, S),
+      }));
+    }
+    artifactFrames = out;
+    return out;
+  })();
+  return artifactLoadPromise;
+}
 
 // Visual palette per variant
 const VARIANT_COLORS: Record<PropVariant, { base: number; accent: number; detail: number }> = {
@@ -101,6 +143,19 @@ export class BreakableProp {
     return VARIANT_COLORS[this.variant].accent;
   }
 
+  /**
+   * For artifact variants whose sprite has finished loading, returns the
+   * Texture so the shatter effect can slice it into sprite-chunk debris.
+   * Returns null for procedural variants (crystal/tallgrass) or while the
+   * sheet is still loading.
+   */
+  getArtifactTexture(): Texture | null {
+    if (!ARTIFACT_VARIANTS.has(this.variant)) return null;
+    if (!artifactFrames) return null;
+    const frameIdx = (this.seed >>> 0) % ARTIFACT_FRAME_COUNT;
+    return artifactFrames[frameIdx];
+  }
+
   update(dt: number): void {
     if (this.destroyed) return;
     if (this.variant === 'tallgrass') {
@@ -120,66 +175,43 @@ export class BreakableProp {
     return { type: 'gold', amount: 3 + Math.floor(rand() * 5) };
   }
 
+  /**
+   * Render artifact variants (pipe/panel/crate/debris) using one of the 8
+   * top-row frames from breakable_01.png. Frame index is seed-derived so the
+   * same prop always picks the same sprite. Falls back to a placeholder
+   * Graphics rect while the sheet is still loading.
+   */
+  private drawArtifactSprite(): void {
+    const frameIdx = (this.seed >>> 0) % ARTIFACT_FRAME_COUNT;
+    if (artifactFrames) {
+      this.gfx.visible = false;
+      const sp = new Sprite(artifactFrames[frameIdx]);
+      this.container.addChild(sp);
+      return;
+    }
+    // Placeholder until sheet is ready — neutral metal block.
+    const g = this.gfx;
+    g.rect(4, 4, S - 8, S - 8).fill(0x6a6a6a);
+    g.rect(4, 4, S - 8, S - 8).stroke({ color: 0x4a4a4a, width: 1 });
+    loadArtifactFrames().then(frames => {
+      if (this.destroyed) return;
+      g.clear();
+      g.visible = false;
+      const sp = new Sprite(frames[frameIdx]);
+      this.container.addChild(sp);
+    }).catch(() => { /* sheet missing — keep placeholder */ });
+  }
+
   private draw(): void {
+    if (ARTIFACT_VARIANTS.has(this.variant)) {
+      this.drawArtifactSprite();
+      return;
+    }
     const g = this.gfx;
     const c = VARIANT_COLORS[this.variant];
     const rng = seededRandom(this.seed);
 
     switch (this.variant) {
-      case 'pipe': {
-        // Vertical pipe — 2 tiles tall
-        const pw = 6 + Math.floor(rng() * 4);
-        const px = (S - pw) / 2;
-        g.rect(px, 0, pw, S).fill(c.base);
-        // Rust patches
-        g.rect(px + 1, 5, 3, 4).fill({ color: c.accent, alpha: 0.7 });
-        g.rect(px + 2, 18, 4, 3).fill({ color: c.accent, alpha: 0.5 });
-        // Joint ring
-        g.rect(px - 1, S / 2 - 1, pw + 2, 3).fill(c.detail);
-        // Highlight
-        g.rect(px, 0, 1, S).fill({ color: 0xffffff, alpha: 0.08 });
-        break;
-      }
-      case 'panel': {
-        // Fallen panel leaning on ground — flush with floor
-        const pw = S - 4;
-        const ph = 10;
-        g.rect(2, S - ph, pw, ph).fill(c.base);
-        g.rect(2, S - ph, pw, ph).stroke({ color: c.detail, width: 1 });
-        // Crack lines
-        g.moveTo(6, S - ph).lineTo(S - 8, S).stroke({ color: c.accent, width: 1 });
-        g.moveTo(S / 2, S - ph).lineTo(S / 2 + 4, S - 1).stroke({ color: c.accent, width: 1, alpha: 0.6 });
-        // Bolts
-        g.circle(5, S - ph + 3, 1).fill(c.detail);
-        g.circle(S - 7, S - ph + 3, 1).fill(c.detail);
-        break;
-      }
-      case 'crate': {
-        // Metal container — sits flush on floor
-        const cs = 20;
-        const ox = (S - cs) / 2;
-        const oy = S - cs;
-        g.rect(ox, oy, cs, cs).fill(c.base);
-        g.rect(ox, oy, cs, cs).stroke({ color: c.accent, width: 1 });
-        // Cross straps
-        g.moveTo(ox + 3, oy + 3).lineTo(ox + cs - 3, oy + cs - 3).stroke({ color: c.detail, width: 1 });
-        g.moveTo(ox + cs - 3, oy + 3).lineTo(ox + 3, oy + cs - 3).stroke({ color: c.detail, width: 1 });
-        // Handle
-        g.rect(ox + cs / 2 - 3, oy - 2, 6, 3).fill(c.accent);
-        break;
-      }
-      case 'debris': {
-        // Rubble pile — flush with floor
-        g.rect(2, S - 10, 12, 10).fill(c.base);
-        g.rect(10, S - 14, 14, 14).fill(c.detail);
-        g.rect(6, S - 4, 18, 4).fill(c.accent);
-        // Rebar sticking up
-        g.rect(18, S - 22, 2, 22).fill({ color: 0x8b4513, alpha: 0.8 });
-        g.rect(8, S - 18, 2, 18).fill({ color: 0x8b4513, alpha: 0.6 });
-        // Small fragment
-        g.rect(24, S - 4, 4, 4).fill({ color: c.base, alpha: 0.5 });
-        break;
-      }
       case 'crystal': {
         // Rust crystal cluster — multiple shards
         const cx = S / 2;

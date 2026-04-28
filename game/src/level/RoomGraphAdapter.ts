@@ -20,13 +20,12 @@
  * cardinal 1-step adjacency 를 만족하도록 보장.
  *
  * Diagonal/8-cardinal 확장 노트: 진짜 대각선 분기는 브리지 셀을 통한 L-bend
- * 가 필요하며, 현재 deriveRoomType 이 4-way (LRUD) 를 지원하지 않아 미구현.
- * Legendary/Ancient 는 차후 PR 에서 다룬다.
+ * 가 필요. Legendary/Ancient 는 차후 PR 에서 다룬다.
  */
 
 import type { RoomCell, RoomType, UnifiedGridData, UnifiedRoomCell, StratumBound } from '@level/RoomGrid';
 import type { StratumDef } from '@data/StrataConfig';
-import type { ExitSide, RoomEdge, RoomGraphData, RoomNode } from '@level/RoomGraph';
+import type { ExitSide, NodeRole, RoomEdge, RoomGraphData, RoomNode } from '@level/RoomGraph';
 import { generateRoomGraph, validateRoomGraph } from '@level/RoomGraph';
 
 interface Placement {
@@ -53,15 +52,28 @@ interface StratumLayout {
 export function generateUnifiedGridFromGraph(
   strataDefs: StratumDef[],
   itemUid: number,
-): UnifiedGridData {
+): { unifiedGrid: UnifiedGridData; graphs: RoomGraphData[] } {
   const layouts: StratumLayout[] = strataDefs.map((def, si) => {
     const graph = generateRoomGraph(def, itemUid, si);
     try { validateRoomGraph(graph, def); }
     catch (err) { console.warn(`[RoomGraphAdapter] stratum ${si} validation failed`, err); }
 
     const radial = tryGridEmbedRadial(graph);
-    return radial ?? linearEmbed(graph);
+    const layout = radial ?? linearEmbed(graph);
+
+    // Overwrite each node's polar layout with grid placements so the F2 debug
+    // overlay (which reads layout.x/y) renders the actual cardinal grid the
+    // gameplay uses. angleRad/ring are preserved for sidesByAngle.
+    for (const [nodeId, p] of layout.placements) {
+      const node = graph.nodes.get(nodeId);
+      if (node) {
+        node.layout.x = p.col;
+        node.layout.y = p.row;
+      }
+    }
+    return layout;
   });
+  const graphs = layouts.map(l => l.graph);
 
   // 2) Stack strata vertically; total width = max stratum width.
   const totalWidth = Math.max(1, ...layouts.map(l => l.width));
@@ -100,7 +112,7 @@ export function generateUnifiedGridFromGraph(
       const base: RoomCell = {
         col: p.col,
         row: absRow,
-        type: deriveRoomType(exits) as RoomType,
+        type: deriveRoomType(exits, node.role) as RoomType,
         onCriticalPath: onCp,
         exits,
         visited: false,
@@ -137,7 +149,7 @@ export function generateUnifiedGridFromGraph(
       }
     : { col: 0, absoluteRow: 0 };
 
-  return {
+  const unifiedGrid: UnifiedGridData = {
     totalWidth,
     totalHeight,
     cells,
@@ -147,6 +159,7 @@ export function generateUnifiedGridFromGraph(
     startRoom,
     endRoom,
   };
+  return { unifiedGrid, graphs };
 }
 
 // ---------------------------------------------------------------------------
@@ -168,80 +181,93 @@ const ALL_CARDINALS: Cardinal[] = [
   { dx: 0, dy: -1, key: 'N', targetAngle: 3 * Math.PI / 2 },
 ];
 
+/**
+ * BFS 트리 임베딩 — hub 에서 시작해 모든 노드를 cardinal 격자에 배치한다.
+ *
+ * 각 노드의 layout.angleRad 를 방향 힌트로 사용하여 부모 셀 기준 가장 가까운
+ * 자유 카디널을 선택. branchCount ≤ 4 (main 만) 와 5+ (sub-branch 포함) 모두
+ * 동일 알고리즘으로 처리. 셀 충돌 시 다음 자유 카디널로 fallback. 모든 노드를
+ * 배치하지 못하면 null 반환 → 호출부가 linearEmbed 로 fallback.
+ */
 function tryGridEmbedRadial(graph: RoomGraphData): StratumLayout | null {
-  if (graph.hubIds.length !== 1) return null;
+  if (graph.hubIds.length < 1 || graph.hubIds.length > 2) return null;
 
-  // Group spokes/boss by branch
-  const branchNodes = new Map<number, RoomNode[]>();
-  for (const node of graph.nodes.values()) {
-    if (node.role === 'spoke' || node.role === 'boss') {
-      if (node.branchIndex < 0) continue;
-      if (!branchNodes.has(node.branchIndex)) branchNodes.set(node.branchIndex, []);
-      branchNodes.get(node.branchIndex)!.push(node);
-    }
-  }
-  for (const arr of branchNodes.values()) {
-    arr.sort((a, b) => a.depth - b.depth);
-  }
-
-  const branchCount = branchNodes.size;
-  // 4 cardinals available. branchCount=4 이면 shrine 자리 없음 → shrine 생략하고 진행.
-  if (branchCount > 4) return null;
-
-  // Determine max branch length to size the grid
-  let maxLen = 0;
-  for (const arr of branchNodes.values()) {
-    if (arr.length > maxLen) maxLen = arr.length;
-  }
-
-  // Hub at center; grid size = (2*maxLen + 1) per axis (allows extension in both dirs)
-  const gridRadius = maxLen;
-  const cx = gridRadius;
-  const cy = gridRadius;
-  const width = 2 * gridRadius + 1;
-  const height = 2 * gridRadius + 1;
-
+  const hubId = graph.hubIds[0];
+  const hubId2 = graph.hubIds[1] ?? null;
+  const adj = buildUndirectedAdjacency(graph);
   const placements = new Map<string, Placement>();
-  placements.set(graph.hubIds[0], { col: cx, row: cy });
+  const occupied = new Set<string>();
+  const occupy = (id: string, c: number, r: number): void => {
+    placements.set(id, { col: c, row: r });
+    occupied.add(`${c},${r}`);
+  };
 
-  // Assign each branch to a cardinal direction (closest by angle, no collision)
-  const usedCardinals = new Set<string>();
-  const sortedBranches = Array.from(branchNodes.keys()).sort((a, b) => a - b);
-  for (const bi of sortedBranches) {
-    const nodes = branchNodes.get(bi)!;
-    if (nodes.length === 0) continue;
-    const repAngle = nodes[0].layout.angleRad;
-    const card = pickFreeCardinal(repAngle, usedCardinals);
-    if (!card) return null; // shouldn't happen since branchCount ≤ 3
-    usedCardinals.add(card.key);
-    for (const node of nodes) {
-      placements.set(node.id, {
-        col: cx + card.dx * node.depth,
-        row: cy + card.dy * node.depth,
-      });
+  occupy(hubId, 0, 0);
+  const queue: string[] = [hubId];
+  const visited = new Set<string>([hubId]);
+  if (hubId2) {
+    // multi_hub: hub[1] 을 hub[0] 동쪽에 직접 배치. 두 hub 사이 multi_hub edge 가
+    // 그대로 cardinal-인접 도어로 매핑된다.
+    occupy(hubId2, 1, 0);
+    visited.add(hubId2);
+    queue.push(hubId2);
+  }
+
+  while (queue.length > 0) {
+    const curId = queue.shift()!;
+    const cur = placements.get(curId)!;
+    const neighbors = adj.get(curId) ?? [];
+    for (const nbId of neighbors) {
+      if (visited.has(nbId)) continue;
+      const nb = graph.nodes.get(nbId);
+      if (!nb) continue;
+      const card = pickFreeCardinalAt(cur.col, cur.row, nb.layout.angleRad, occupied);
+      if (!card) continue; // 자리 없으면 이 노드는 이번 임베딩에서 누락 → null 반환됨
+      occupy(nbId, cur.col + card.dx, cur.row + card.dy);
+      visited.add(nbId);
+      queue.push(nbId);
     }
   }
 
-  // Shrine: 빈 카디널이 있으면 hub-adjacent 에 배치, 없으면 그리드에서 생략.
-  // 그래프에서는 여전히 존재하지만 이 지층에서는 미방문 셀로 처리.
-  if (graph.shrineId) {
-    const shrineNode = graph.nodes.get(graph.shrineId);
-    const angle = shrineNode?.layout.angleRad ?? 0;
-    const card = pickFreeCardinal(angle, usedCardinals);
-    if (card) {
-      placements.set(graph.shrineId, { col: cx + card.dx, row: cy + card.dy });
+  // 모든 핵심 노드(hub/spoke/boss) 가 배치돼야 한다. shrine 만 누락 허용 — hub 4
+  // cardinal 이 다 차서 자리 없으면 그래프에서는 유지하되 그리드 셀은 생성 안 함.
+  if (placements.size !== graph.nodes.size) {
+    for (const id of graph.nodes.keys()) {
+      if (placements.has(id)) continue;
+      if (id === graph.shrineId) continue;
+      return null;
     }
   }
 
-  // Hub local + boss local
-  const hubLocal = { col: cx, row: cy };
+  // Bbox 계산 후 좌표 평행이동 (min → 0)
+  let minCol = Infinity, maxCol = -Infinity, minRow = Infinity, maxRow = -Infinity;
+  for (const p of placements.values()) {
+    if (p.col < minCol) minCol = p.col;
+    if (p.col > maxCol) maxCol = p.col;
+    if (p.row < minRow) minRow = p.row;
+    if (p.row > maxRow) maxRow = p.row;
+  }
+  const tx = -minCol;
+  const ty = -minRow;
+  for (const [id, p] of placements) {
+    placements.set(id, { col: p.col + tx, row: p.row + ty });
+  }
+  const width = maxCol - minCol + 1;
+  const height = maxRow - minRow + 1;
+
+  const hubLocal = placements.get(hubId)!;
   const bossNode = graph.nodes.get(graph.bossId);
   const bossLocal = bossNode ? placements.get(bossNode.id) ?? hubLocal : hubLocal;
 
   return { graph, placements, width, height, hubLocal, bossLocal };
 }
 
-function pickFreeCardinal(angle: number, used: Set<string>): Cardinal | null {
+function pickFreeCardinalAt(
+  col: number,
+  row: number,
+  angle: number,
+  occupied: Set<string>,
+): Cardinal | null {
   const a = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
   const ranked = ALL_CARDINALS
     .map(c => {
@@ -252,7 +278,11 @@ function pickFreeCardinal(angle: number, used: Set<string>): Cardinal | null {
       return { card: c, dist: Math.min(d1, d2, d3) };
     })
     .sort((x, y) => x.dist - y.dist);
-  for (const r of ranked) if (!used.has(r.card.key)) return r.card;
+  for (const r of ranked) {
+    const nc = col + r.card.dx;
+    const nr = row + r.card.dy;
+    if (!occupied.has(`${nc},${nr}`)) return r.card;
+  }
   return null;
 }
 
@@ -374,8 +404,15 @@ function buildUndirectedAdjacency(g: RoomGraphData): Map<string, string[]> {
 // Room type
 // ---------------------------------------------------------------------------
 
-/** Match RoomGrid.determineRoomType: 0=dead-end, 1=LR, 2=LRD(down), 3=LRU(up). */
-function deriveRoomType(exits: { left: boolean; right: boolean; up: boolean; down: boolean }): number {
+/** Match RoomGrid.determineRoomType: 0=dead-end, 1=LR, 2=LRD(down), 3=LRU(up), 4=LRUD.
+ *  R1: cells with both up & down → LRUD (passage between hub and boss).
+ *  R2: boss rooms → always LRUD arena (no fall-through hole). */
+function deriveRoomType(
+  exits: { left: boolean; right: boolean; up: boolean; down: boolean },
+  role?: NodeRole,
+): number {
+  if (role === 'boss') return 4;
+  if (exits.up && exits.down) return 4;
   if (exits.down) return 2;
   if (exits.up && !exits.down) return 3;
   if (exits.left || exits.right) return 1;
