@@ -1,3 +1,5 @@
+import { CameraConst } from '@data/constData';
+
 export class Camera {
   x = 0;
   y = 0;
@@ -6,24 +8,24 @@ export class Camera {
   readonly viewportH: number;
 
   // Follow
-  followLerp = 0.08;
-  deadZoneX = 32;
-  deadZoneY = 24;
+  followLerp = CameraConst.FollowLerp;
+  deadZoneX = CameraConst.DeadZoneX;
+  deadZoneY = CameraConst.DeadZoneY;
 
   // Zoom (1.0 = default, 0.5 = 2x wider view, 0.01 = extreme zoom-out)
   zoom = 1.0;
   private targetZoom = 1.0;
-  private zoomSpeed = 0.05;
+  private zoomSpeed = CameraConst.ZoomSpeed;
 
   // Look Ahead (horizontal — facing direction)
-  lookAheadDistance = 0;
-  lookAheadLerp = 0.05;
+  lookAheadDistance = CameraConst.LookAheadDistance;
+  lookAheadLerp = CameraConst.LookAheadLerp;
   private currentLookAheadX = 0;
   private targetLookAheadX = 0;
 
   // Look Ahead (vertical — up/down input hold)
-  lookAheadYDistance = 64;
-  lookAheadYLerp = 0.04;
+  lookAheadYDistance = CameraConst.LookAheadYDistance;
+  lookAheadYLerp = CameraConst.LookAheadYLerp;
   private currentLookAheadY = 0;
   private targetLookAheadY = 0;
   /** Set to -1 (up), 0 (none), or 1 (down) by the scene each frame. */
@@ -34,8 +36,8 @@ export class Camera {
 
   // Shake (Sakurai: directional shake sells impact direction)
   private shakeIntensity = 0;
-  private shakeDecayRate = 0.88;
-  private shakeMinThreshold = 0.5;
+  private shakeDecayRate = CameraConst.ShakeDecayRate;
+  private shakeMinThreshold = CameraConst.ShakeMinThreshold;
   private shakeOffsetX = 0;
   private shakeOffsetY = 0;
   private shakeBiasX = 0; // directional bias [-1, 1]
@@ -127,8 +129,8 @@ export class Camera {
     if (intensity > this.shakeIntensity) {
       this.shakeIntensity = intensity;
       const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
-      this.shakeBiasX = (dirX / len) * 0.6;
-      this.shakeBiasY = (dirY / len) * 0.6;
+      this.shakeBiasX = (dirX / len) * CameraConst.ShakeBiasScale;
+      this.shakeBiasY = (dirY / len) * CameraConst.ShakeBiasScale;
     }
   }
 
@@ -210,8 +212,8 @@ export class Camera {
       this.shakeOffsetY = (randY + this.shakeBiasY * 2) * this.shakeIntensity;
       this.shakeIntensity *= this.shakeDecayRate;
       // Decay bias
-      this.shakeBiasX *= 0.85;
-      this.shakeBiasY *= 0.85;
+      this.shakeBiasX *= CameraConst.ShakeBiasDecay;
+      this.shakeBiasY *= CameraConst.ShakeBiasDecay;
     } else {
       this.shakeIntensity = 0;
       this.shakeOffsetX = 0;

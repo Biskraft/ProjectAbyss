@@ -1,8 +1,9 @@
 import type { ItemInstance } from './ItemInstance';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
 import { trackItemEquip } from '@utils/Analytics';
+import { ItemConst } from '@data/constData';
 
-const MAX_SLOTS = 20;
+const MAX_SLOTS = ItemConst.MaxSlots;
 
 export class Inventory {
   items: ItemInstance[] = [];

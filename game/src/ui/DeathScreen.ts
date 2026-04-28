@@ -11,6 +11,7 @@ import { PIXEL_FONT } from './fonts';
 import { MODAL_BG, MODAL_BORDER, MODAL_BORDER_W, TEXT_NEGATIVE, TEXT_SECONDARY, TEXT_ACCENT, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
+import { HudConst } from '@data/constData';
 
 const PANEL_W = 280;
 const PANEL_H = 160;
@@ -60,7 +61,7 @@ export class DeathScreen {
     if (!this.visible) return;
     if (!this.inputReady) {
       this.inputTimer += dt;
-      if (this.inputTimer > 1500) this.inputReady = true;
+      if (this.inputTimer > HudConst.Death.InputDelayMs) this.inputReady = true;
     }
   }
 

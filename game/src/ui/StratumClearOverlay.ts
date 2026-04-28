@@ -28,6 +28,7 @@ import {
   FONT_TITLE, FONT_BODY, FONT_HINT,
 } from './ModalPanel';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { HudConst } from '@data/constData';
 
 export interface StratumClearData {
   item: ItemInstance;
@@ -41,13 +42,13 @@ export interface StratumClearData {
 
 type Phase = 'dark' | 'pump' | 'flash' | 'title' | 'stats' | 'prompt' | 'input';
 
-// Timings (ms)
-const T_DARK = 400;
-const T_PUMP = 1200;
-const T_FLASH = 300;
-const T_TITLE = 600;
-const T_STATS = 900;
-const T_PROMPT = 400;
+// Timings (ms) — SSoT: Sheets/Content_ConstData.csv (HUD.StratumClear.*)
+const T_DARK = HudConst.StratumClear.DarkPhaseMs;
+const T_PUMP = HudConst.StratumClear.PumpPhaseMs;
+const T_FLASH = HudConst.StratumClear.FlashPhaseMs;
+const T_TITLE = HudConst.StratumClear.TitlePhaseMs;
+const T_STATS = HudConst.StratumClear.StatsPhaseMs;
+const T_PROMPT = HudConst.StratumClear.PromptPhaseMs;
 
 // Overlay dim
 const DIM_ALPHA = 0.9;
@@ -58,7 +59,7 @@ const PUMP_FREQ = 3.5;
 
 // Flash + shatter
 const FLASH_PEAK = 0.85;
-const SHATTER_COUNT = 40;
+const SHATTER_COUNT = HudConst.StratumClear.ShatterCount;
 
 const CX = Math.floor(GAME_WIDTH / 2);
 const CY = Math.floor(GAME_HEIGHT / 2) - 30;

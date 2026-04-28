@@ -1,4 +1,5 @@
 import { PRNG } from '@utils/PRNG';
+import { WorldGridConst } from '@data/constData';
 
 /** Room types: 0=dead-end, 1=LR(left-right), 2=LRD(left-right-down), 3=LRU(left-right-up) */
 export type RoomType = 0 | 1 | 2 | 3;
@@ -56,10 +57,10 @@ export interface UnifiedGridData {
 }
 
 // Critical Path direction weights
-const WEIGHT_LEFT = 0.3;
-const WEIGHT_RIGHT = 0.3;
-// DOWN = 1 - LEFT - RIGHT = 0.4
-const MIN_PATH_RATIO = 0.4;
+const WEIGHT_LEFT = WorldGridConst.WeightLeft;
+const WEIGHT_RIGHT = WorldGridConst.WeightRight;
+// DOWN = 1 - LEFT - RIGHT
+const MIN_PATH_RATIO = WorldGridConst.MinPathRatio;
 
 export function generateRoomGrid(
   gridW: number,
@@ -151,7 +152,7 @@ function generateCriticalPath(
 
   const minLength = Math.ceil(gridW * gridH * MIN_PATH_RATIO);
 
-  for (let attempt = 0; attempt < 10; attempt++) {
+  for (let attempt = 0; attempt < WorldGridConst.PathfindingAttempts; attempt++) {
     const path: { col: number; row: number }[] = [];
     const visited = new Set<string>();
 

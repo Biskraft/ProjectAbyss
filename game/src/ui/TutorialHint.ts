@@ -9,9 +9,10 @@ import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import type { InputManager } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
+import { HudConst } from '@data/constData';
 
-const DISPLAY_DURATION = 4000;
-const FADE_DURATION = 500;
+const DISPLAY_DURATION = HudConst.Tutorial.DisplayDurationMs;
+const FADE_DURATION = HudConst.Tutorial.FadeDurationMs;
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 // Lower-center placement so the hint is closer to the player and easier to
 // notice without obstructing the top HUD.

@@ -8,12 +8,13 @@ import { InputManager, GameAction } from '@core/InputManager';
 import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
 import { Debug } from '@core/Debug';
+import { GameRenderConst } from '@data/constData';
 
-export const GAME_WIDTH = 640;
-export const GAME_HEIGHT = 360;
-const FIXED_STEP = 1000 / 60; // 16.6667ms
-const MAX_ACCUMULATED = FIXED_STEP * 5;
-const MAX_RT_SIZE = 4096;
+export const GAME_WIDTH = GameRenderConst.GameWidth;
+export const GAME_HEIGHT = GameRenderConst.GameHeight;
+const FIXED_STEP = GameRenderConst.FixedStepMs;
+const MAX_ACCUMULATED = FIXED_STEP * GameRenderConst.MaxAccumulatedFrames;
+const MAX_RT_SIZE = GameRenderConst.MaxRTSize;
 
 export class Game {
   app!: {

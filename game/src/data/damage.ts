@@ -1,10 +1,12 @@
+import { CombatConst } from '@data/constData';
+
 export type DamageType = 'physical' | 'magical' | 'true';
 
 export interface DamageParams {
   atk: number;
   def: number;
   skillMultiplier?: number;    // default 1.0
-  defFactor?: number;          // default 0.5
+  defFactor?: number;          // default from CombatConst.DefFactor
   elementMultiplier?: number;  // default 1.0 (Phase 2)
   criticalMultiplier?: number; // default 1.0 (Phase 2)
   levelCorrection?: number;    // default 1.0 (Phase 2)
@@ -16,18 +18,18 @@ export function calculateDamage(params: DamageParams): number {
     atk,
     def,
     skillMultiplier = 1.0,
-    defFactor = 0.5,
+    defFactor = CombatConst.DefFactor,
     elementMultiplier = 1.0,
     criticalMultiplier = 1.0,
     levelCorrection = 1.0,
   } = params;
 
-  const randomFactor = 0.9 + Math.random() * 0.2; // [0.9, 1.1)
+  const randomFactor = CombatConst.DamageRandomMin + Math.random() * (CombatConst.DamageRandomMax - CombatConst.DamageRandomMin);
   const raw = (atk * skillMultiplier - def * defFactor)
     * elementMultiplier
     * criticalMultiplier
     * levelCorrection
     * randomFactor;
 
-  return Math.max(1, Math.floor(raw));
+  return Math.max(CombatConst.MinDamage, Math.floor(raw));
 }

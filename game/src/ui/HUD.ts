@@ -4,6 +4,7 @@ import { PIXEL_FONT } from './fonts';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
+import { HudConst } from '@data/constData';
 
 // Base values at 640x360. Multiplied by uiScale for native resolution.
 const BASE_W = 640;
@@ -28,15 +29,16 @@ const FLASK_FULL_COLOR = 0xff8833;
 const FLASK_EMPTY_COLOR = 0x444444;
 const FLASK_MAX_DISPLAY = 8;
 
-const GHOST_BAR_DURATION = 200;
-const HEAL_FLASH_DURATION = 300;
-const BOSS_HEAL_FLASH_DURATION = 400;
-const LOW_HP_PULSE_PERIOD = 1000;
-const HP_TEXT_FLASH_DURATION = 200;
+// SSoT: Sheets/Content_ConstData.csv (HUD.Timing.*)
+const GHOST_BAR_DURATION = HudConst.Timing.GhostBarFadeMs;
+const HEAL_FLASH_DURATION = HudConst.Timing.HealFlashMs;
+const BOSS_HEAL_FLASH_DURATION = HudConst.Timing.BossHealFlashMs;
+const LOW_HP_PULSE_PERIOD = HudConst.Timing.LowHpPulsePeriodMs;
+const HP_TEXT_FLASH_DURATION = HudConst.Timing.HpTextFlashMs;
 /** HP 비율이 이 값 이하로 떨어지면 [R] Flask 키가 pulse 하여 사용을 유도. */
-const FLASK_LOW_HP_THRESHOLD = 0.4;
+const FLASK_LOW_HP_THRESHOLD = HudConst.Timing.FlaskLowHpThreshold;
 /** Flask 키 pulse 1 사이클(scale 저점→고점→저점) 길이. */
-const FLASK_PULSE_PERIOD = 600;
+const FLASK_PULSE_PERIOD = HudConst.Timing.FlaskPulsePeriodMs;
 
 // Item EXP bar
 const BASE_EXP_W = 60;
@@ -44,8 +46,8 @@ const BASE_EXP_H = 4;
 const EXP_BG_COLOR = 0x222222;
 const EXP_BAR_COLOR = 0xffd700;
 const EXP_BAR_MAX_COLOR = 0xff8833;
-const EXP_LERP_DURATION = 300;
-const EXP_LEVELUP_FLASH_DURATION = 400;
+const EXP_LERP_DURATION = HudConst.Timing.ExpLerpMs;
+const EXP_LEVELUP_FLASH_DURATION = HudConst.Timing.ExpLevelupFlashMs;
 
 export class HUD {
   container: Container;

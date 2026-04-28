@@ -8,6 +8,7 @@
 
 import csvText from '../../../Sheets/Content_Rarity.csv?raw';
 import type { Rarity } from './weapons';
+import { ItemConst } from '@data/constData';
 
 export interface RarityEntry {
   multiplier: number;
@@ -58,7 +59,9 @@ for (let i = 1; i < lines.length; i++) {
 export function getRarityConfig(rarity: Rarity): RarityEntry {
   return RARITY_MAP.get(rarity) ?? {
     multiplier: 1, identitySlots: 2, memorySlots: 0, totalSlots: 2, color: 0xffffff,
-    bareHandAtk: 5, shardSpawnChance: 0.15, dropChance: 0.30,
+    bareHandAtk: ItemConst.BareHandAtk,
+    shardSpawnChance: ItemConst.DefaultShardSpawnChance,
+    dropChance: ItemConst.DefaultDropChance,
     fxTint: 0xffffff,
   };
 }

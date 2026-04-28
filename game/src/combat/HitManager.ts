@@ -1,6 +1,7 @@
 import { aabbOverlap, type AABB } from '@core/Physics';
 import { calculateDamage } from '@data/damage';
 import { COMBO_STEPS, getAttackHitbox, type ComboStep } from './CombatData';
+import { CombatConst } from '@data/constData';
 import type { Entity } from '@entities/Entity';
 import type { Game } from '../Game';
 
@@ -44,7 +45,7 @@ export function scaleComboStep(base: ComboStep, mul: number): ComboStep {
  * `sword_rustborn` (Rustborn, the starter full-size blade) and Content_Combat_Combo.csv
  * step 1 (HitboxW=45, bare-hand baseline).
  */
-export const BASE_HITBOX_W = 45;
+export const BASE_HITBOX_W = CombatConst.BaseHitboxW;
 
 export interface HitResult {
   target: CombatEntity;
@@ -112,13 +113,13 @@ export class HitManager {
       if (aabbOverlap(hitbox, targetBox)) {
         hitList.add(target);
 
-        const critical = Math.random() < 0.05; // 5% crit chance
-        const isFinisher = comboIndex >= 2; // 3타 finisher bonus
+        const critical = Math.random() < CombatConst.CritChance;
+        const isFinisher = comboIndex >= CombatConst.ComboFinisherIndex;
         const damage = calculateDamage({
           atk: attacker.atk,
           def: target.def,
-          skillMultiplier: isFinisher ? 1.5 : 1.0,
-          criticalMultiplier: critical ? 1.5 : 1.0,
+          skillMultiplier: isFinisher ? CombatConst.ComboFinisherDamageMult : 1.0,
+          criticalMultiplier: critical ? CombatConst.CritMultiplier : 1.0,
         });
 
         target.hp -= damage;
@@ -140,7 +141,7 @@ export class HitManager {
           target.onDeath?.();
         }
 
-        const heavy = comboIndex >= 2 || isKill || critical;
+        const heavy = comboIndex >= CombatConst.ComboFinisherIndex || isKill || critical;
 
         // --- Sakurai Feedback System ---
         const attackerEntity = attacker as unknown as Entity;
@@ -149,7 +150,7 @@ export class HitManager {
         // Technique 5: hitstop proportional to combo step
         // 1타=3f, 2타=4f, 3타=6f, kill=8f
         const hitstopBase = step.hitstopFrames;
-        const hitstopBonus = isKill ? 5 : heavy ? 2 : 0;
+        const hitstopBonus = isKill ? CombatConst.HitstopKillBonusFrames : heavy ? CombatConst.HitstopHeavyBonusFrames : 0;
         this.game.hitstopFrames = hitstopBase + hitstopBonus;
 
         // Technique 1 & 4: vibration (victim large, attacker small)
@@ -170,18 +171,18 @@ export class HitManager {
         }
 
         // Technique 8: directional camera shake, proportional to combo
-        const shakeIntensity = step.shakeIntensity * (heavy ? 1.8 : 1.0) + (isKill ? 2 : 0);
+        const shakeIntensity = step.shakeIntensity * (heavy ? CombatConst.HeavyShakeMult : 1.0) + (isKill ? CombatConst.KillShakeBonus : 0);
         this.game.camera.shakeDirectional(
           shakeIntensity,
           dirX,
-          step.knockbackY < -40 ? -0.3 : 0,
+          step.knockbackY < CombatConst.KnockbackVerticalBiasThresholdY ? CombatConst.KnockbackVerticalBiasFactor : 0,
         );
 
         // Hit point (center of overlap region)
         const hitX = facingRight
-          ? Math.min(attacker.x + attacker.width + step.hitboxW * 0.3, target.x + target.width / 2)
-          : Math.max(attacker.x - step.hitboxW * 0.3, target.x + target.width / 2);
-        const hitY = target.y + target.height * 0.4;
+          ? Math.min(attacker.x + attacker.width + step.hitboxW * CombatConst.HitPointForwardOffsetX, target.x + target.width / 2)
+          : Math.max(attacker.x - step.hitboxW * CombatConst.HitPointForwardOffsetX, target.x + target.width / 2);
+        const hitY = target.y + target.height * CombatConst.HitPointVerticalOffsetY;
 
         results.push({
           target, damage, comboStep: step,

@@ -7,6 +7,7 @@ import {
 } from '@data/memoryShards';
 import { getItemGrowth, EXP_PER_LEVEL as _CSV_EXP, MAX_ITEM_LEVEL as _CSV_MAX } from '@data/itemGrowth';
 import { getRarityConfig } from '@data/rarityConfig';
+import { ItemWorldConst } from '@data/constData';
 
 export type { Innocent, InnocentStatKey };
 
@@ -114,7 +115,7 @@ export function resetItemForNextCycle(item: ItemInstance): void {
 
 // SSoT: Sheets/Content_Item_Growth.csv via itemGrowth.ts
 export const EXP_PER_LEVEL = _CSV_EXP;
-export const EXP_PER_FLOOR = 100;
+export const EXP_PER_FLOOR = ItemWorldConst.ItemExpPerFloor;
 export const MAX_ITEM_LEVEL = _CSV_MAX;
 
 export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {

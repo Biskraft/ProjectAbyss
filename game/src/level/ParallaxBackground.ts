@@ -11,6 +11,7 @@ import { sampleRow, unpack } from '@effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import type { AreaPaletteEntry } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { ParallaxConst } from '@data/constData';
 
 interface ImageLayerState {
   container: Container;
@@ -76,7 +77,7 @@ export class ParallaxBackground {
     if (entry.parallaxImage) {
       await this.addImageLayer(
         entry.parallaxImage,
-        entry.parallaxFactor || 0.1,
+        entry.parallaxFactor || ParallaxConst.FactorFar,
         levelW, levelH, entry, paletteAtlas,
       );
     }
@@ -85,7 +86,7 @@ export class ParallaxBackground {
     if (entry.parallaxImageMid) {
       await this.addImageLayer(
         entry.parallaxImageMid,
-        entry.parallaxFactorMid || 0.25,
+        entry.parallaxFactorMid || ParallaxConst.FactorMid,
         levelW, levelH, entry, paletteAtlas,
       );
     }
@@ -94,7 +95,7 @@ export class ParallaxBackground {
     if (entry.parallaxImageNear) {
       await this.addImageLayer(
         entry.parallaxImageNear,
-        entry.parallaxFactorNear || 0.45,
+        entry.parallaxFactorNear || ParallaxConst.FactorNear,
         levelW, levelH, entry, paletteAtlas,
       );
     }

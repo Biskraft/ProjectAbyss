@@ -4,9 +4,10 @@ import { resolveX, resolveY, isInWater, isOnIce } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
+import { EnemyConst } from '@data/constData';
 
 const GRAVITY = 980;
-const MAX_FALL_SPEED = 576;
+const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
 const TILE_SIZE = 16;
 
 export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'hit' | 'death';
@@ -62,8 +63,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   /** Max jump height in tiles (0 = no jumping). Override in subclass. */
   protected jumpTiles = 0;
   private wallBlockedTimer = 0;
-  private static readonly WALL_BLOCK_THRESHOLD = 150; // ms blocked before jumping
-  private static readonly JUMP_COOLDOWN = 500; // ms between jumps
+  private static readonly WALL_BLOCK_THRESHOLD = EnemyConst.WallBlockThresholdMs;
+  private static readonly JUMP_COOLDOWN = EnemyConst.JumpCooldownMs;
   private jumpCooldownTimer = 0;
 
   // Target reference
@@ -77,11 +78,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private hpBarContainer: Graphics;
   private hpBarVisible = false;
   private hpBarTimer = 0;
-  private readonly HP_BAR_SHOW_DURATION = 3000; // 3s
+  private readonly HP_BAR_SHOW_DURATION = EnemyConst.HpBarShowMs;
 
   // Death
   private deathTimer = 0;
-  private readonly DEATH_FADE = 500;
+  private readonly DEATH_FADE = EnemyConst.DeathFadeMs;
 
   // Sakurai: Flash overlay for hit feedback
   private flashOverlay: Graphics | null = null;

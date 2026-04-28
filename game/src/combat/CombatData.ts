@@ -11,6 +11,7 @@
  */
 
 import csvText from '../../../Sheets/Content_Combat_Combo.csv?raw';
+import { CombatConst } from '@data/constData';
 
 export interface ComboStep {
   hitboxW: number;
@@ -66,4 +67,4 @@ export function getAttackHitbox(
 
 export const COMBO_WINDOW = _comboWindow;
 export const COMBO3_END_LAG = _endLag;
-export const INVINCIBILITY_ON_HIT = 500;
+export const INVINCIBILITY_ON_HIT = CombatConst.InvincibilityOnHitMs;

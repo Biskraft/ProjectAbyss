@@ -1,8 +1,9 @@
 import { Container, BitmapText, Graphics } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { HudConst } from '@data/constData';
 
-const TOAST_DURATION = 2000;
-const FADE_START = 1500;
+const TOAST_DURATION = HudConst.Toast.DurationMs;
+const FADE_START = HudConst.Toast.FadeStartMs;
 
 interface ToastEntry {
   container: Container;
@@ -33,7 +34,7 @@ export class ToastManager {
   }
 
   /** Large centered text for boss clear rewards, level ups, etc. */
-  showBig(message: string, color = 0xffd700, durationMs = 3000): void {
+  showBig(message: string, color = 0xffd700, durationMs = HudConst.Toast.BigDurationMs): void {
     const container = new Container();
 
     const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: color } });

@@ -116,6 +116,7 @@ import { assetPath } from '@core/AssetLoader';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { ParallaxBackground } from '@level/ParallaxBackground';
+import { ItemWorldConst } from '@data/constData';
 import { ItemWorldUiController } from './itemworld/ItemWorldUiController';
 import { ItemWorldProgressController } from './itemworld/ItemWorldProgressController';
 import {
@@ -134,11 +135,12 @@ const TILE_SIZE = IW_TILE_SIZE;
 const ROOM_W = 60;
 const ROOM_H = 34;
 const FADE_DURATION = 200;
-const ENTRY_FREEZE_MS = 700;
-const BASE_EXP_PER_ROOM = 120;
-const BASE_BOSS_BONUS_EXP = 600;
-const BASE_EXP_PER_KILL = 60;
-const BASE_EXP_ROOM_PASS = 60;
+// SSoT: Sheets/Content_ConstData.csv (ItemWorld.Entry.*, ItemWorld.Exp.*)
+const ENTRY_FREEZE_MS = ItemWorldConst.EntryFreezeMs;
+const BASE_EXP_PER_ROOM = ItemWorldConst.BaseExpPerRoom;
+const BASE_BOSS_BONUS_EXP = ItemWorldConst.BossBonusExp;
+const BASE_EXP_PER_KILL = ItemWorldConst.BaseExpPerKill;
+const BASE_EXP_ROOM_PASS = ItemWorldConst.BaseExpRoomPass;
 
 const STRATUM_PICKER_W = 560;
 const STRATUM_PICKER_PAD = 12;

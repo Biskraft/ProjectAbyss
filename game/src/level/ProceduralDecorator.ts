@@ -15,6 +15,7 @@ import {
   catenary, chainLinks, vine, crack, mossCluster,
   dripTrail, rivetLine, rustBloom,
 } from './ProceduralPrimitives';
+import { DecoratorConst } from '@data/constData';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,10 +39,10 @@ interface DecoConfig {
 
 const DEFAULTS: DecoConfig = {
   tileSize: 16,
-  maxDecorations: 400,
-  density: 0.6,
-  maxStructures: 60,
-  structureDensity: 0.15,
+  maxDecorations: DecoratorConst.DefaultMaxDecorations,
+  density: DecoratorConst.DefaultDensity,
+  maxStructures: DecoratorConst.DefaultMaxStructures,
+  structureDensity: DecoratorConst.DefaultStructureDensity,
 };
 
 // Scale multiplier for all detail decorations
@@ -164,7 +165,7 @@ export class ProceduralDecorator {
   /** Boost density by an additive amount (e.g. strata depth increase). */
   boostDensity(amount: number): void {
     this.cfg.density = Math.min(1.0, this.cfg.density + amount);
-    this.cfg.structureDensity = Math.min(1.0, this.cfg.structureDensity + amount * 0.5);
+    this.cfg.structureDensity = Math.min(1.0, this.cfg.structureDensity + amount * DecoratorConst.StructDensityBoostMult);
   }
 
   // Color accessors — prefer preset, fall back to hardcoded defaults
