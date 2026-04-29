@@ -2,10 +2,20 @@
  * weapons.ts — Weapon definitions loaded from CSV at build time.
  *
  * SSoT: Sheets/Content_Stats_Weapon_List.csv
- * CSV columns: WeaponID,Name,Type,Rarity,BaseATK,AtkSpeed,Range,HitboxW,HitboxH
+ * CSV columns: WeaponID,Name,Type,Rarity,BaseATK,AtkSpeed,Range,HitboxW,HitboxH,ThemeID,Topology
+ *
+ * Topology 칼럼(빈값 가능): Phase 4 매핑 — 무기별 Item World 그래프 토폴로지 강제.
+ * 빈값이면 stratum 기본값(StratumDef.topology)을 사용한다.
  */
 
 import csvText from '../../../Sheets/Content_Stats_Weapon_List.csv?raw';
+import type { TopologyKind } from '@data/StrataConfig';
+
+const TOPOLOGY_VALUES: ReadonlySet<string> = new Set<TopologyKind>([
+  'hub_spoke', 'multi_hub',
+  'linear_right',
+  'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
+]);
 
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';
 
@@ -69,6 +79,12 @@ export interface WeaponDef {
   hitboxH: number;
   /** Item World visual theme. e.g. "T-HABITAT", "T-FOUNDRY" */
   themeId: string;
+  /**
+   * 무기별 Room Graph 토폴로지 강제 (Phase 4). 지정 시 모든 stratum 의
+   * StratumDef.topology 를 오버라이드한다. 미지정 = stratum 기본값.
+   * CSV 의 Topology 칼럼이 빈값일 때 undefined.
+   */
+  topologyOverride?: TopologyKind;
 }
 
 /**
@@ -84,6 +100,10 @@ const lines = csvText.trim().split('\n');
 for (let i = 1; i < lines.length; i++) {
   const cols = lines[i].split(',');
   if (cols.length < 9) continue;
+  const topoRaw = (cols[10] ?? '').trim().toLowerCase();
+  const topologyOverride = TOPOLOGY_VALUES.has(topoRaw)
+    ? (topoRaw as TopologyKind)
+    : undefined;
   SWORD_DEFS.push({
     id: cols[0].trim(),
     name: cols[1].trim(),
@@ -95,5 +115,6 @@ for (let i = 1; i < lines.length; i++) {
     hitboxW: parseInt(cols[7]),
     hitboxH: parseInt(cols[8]),
     themeId: (cols[9] ?? 'T-HABITAT').trim(),
+    topologyOverride,
   });
 }

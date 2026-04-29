@@ -18,7 +18,7 @@
  */
 
 import { PRNG } from '@utils/PRNG';
-import type { StratumDef, BossPlacement } from '@data/StrataConfig';
+import type { StratumDef, BossPlacement, TopologyKind } from '@data/StrataConfig';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,8 +48,13 @@ export interface RoomNode {
 export interface RoomEdge {
   a: string;
   b: string;
-  /** 'tree' = hub→spoke 사슬 / 'multi_hub' = Ancient hub-hub 한정 (IWF-R16) */
-  kind: 'tree' | 'multi_hub';
+  /**
+   * 'tree'         — hub→spoke 사슬 (DAG)
+   * 'multi_hub'    — Ancient hub-hub 한정 (IWF-R16)
+   * 'ring_closure' — Ring 토폴로지 폐곡선 닫는 엣지. 그리드 임베더 BFS 에는
+   *                  참여하지 않고 (포지션 결정 X), exit 도출에만 참여한다.
+   */
+  kind: 'tree' | 'multi_hub' | 'ring_closure';
   sideA: ExitSide;
   sideB: ExitSide;
 }
@@ -78,12 +83,52 @@ const RING_UNIT = 1; // 추후 IW_ROOM_W_PX + GUTTER 로 곱해 픽셀 좌표화
 // ---------------------------------------------------------------------------
 
 /**
- * 방사형 RoomGraph 생성.
+ * RoomGraph 진입점 — topology dispatch.
+ *
+ * Phase 1: hub_spoke / multi_hub 만 구현. 나머지(Tier 1/2)는 Phase 2/3 빌더
+ * 추가 시 case 를 채운다.
+ *
  * @param def      StratumDef (CSV → StrataConfig.ts 로 로드)
  * @param itemUid  결정적 시드용 아이템 식별자
  * @param stratumIndex 0-based
+ * @param topologyOverride 무기별 강제 토폴로지 (지정 시 def.topology 무시)
  */
 export function generateRoomGraph(
+  def: StratumDef,
+  itemUid: number,
+  stratumIndex: number,
+  topologyOverride?: TopologyKind,
+): RoomGraphData {
+  const topology = topologyOverride ?? def.topology;
+  switch (topology) {
+    case 'hub_spoke':
+    case 'multi_hub':
+      return buildHubSpoke(def, itemUid, stratumIndex);
+    case 'linear_right':
+      return buildLinear(def, itemUid, stratumIndex, 0);
+    case 'y_fork':
+      return buildYFork(def, itemUid, stratumIndex);
+    case 't_junction':
+      return buildTJunction(def, itemUid, stratumIndex);
+    case 'layer_cake':
+      return buildLayerCake(def, itemUid, stratumIndex);
+    case 'ring':
+      return buildRing(def, itemUid, stratumIndex);
+    case 'spine_pockets':
+      return buildSpinePockets(def, itemUid, stratumIndex);
+    default: {
+      // exhaustiveness guard
+      const _exhaustive: never = topology;
+      throw new Error(`RoomGraph: unknown topology "${_exhaustive}"`);
+    }
+  }
+}
+
+/**
+ * Hub-and-spoke 빌더 (Tier 0). 단일 hub + 방사형 spoke 가지 또는
+ * Ancient 의 multi_hub (2 허브 + multi_hub 엣지) 구현.
+ */
+function buildHubSpoke(
   def: StratumDef,
   itemUid: number,
   stratumIndex: number,
@@ -351,6 +396,694 @@ export function generateRoomGraph(
     stratumIndex,
     hubIds,
     bossBranchIndex,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tier 1 — Linear topology builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Linear 토폴로지 빌더 (Tier 1, Phase 2).
+ *
+ * 단일 hub → 일자 사슬 → boss. shrine 은 hub 의 perpendicular 슬롯.
+ * branchCount/hubCount CSV 값은 무시되고 항상 1/1 로 강제된다 (linear 의 정의).
+ *
+ *   linear_right  chainAngle =  0          (hub 좌단, boss 우단)
+ *   (수직형 linear_down/up 은 횡스크롤 경험 저하로 폐기)
+ *
+ * 노드 수: hub(1) + chain(nodeCount - 3) + boss(1) + shrine(1) = nodeCount.
+ * chain 길이 ≥ 2 보장(보스 가지 min length=2 와 동일 동기). CSV nodeCount ≥ 6
+ * 이므로 항상 충족.
+ *
+ * Critical Path = hub + 모든 chain spoke (boss 가지 = 0).
+ */
+function buildLinear(
+  def: StratumDef,
+  itemUid: number,
+  stratumIndex: number,
+  chainAngle: number,
+): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng; // 시드는 향후 chain 내 변주(통로 vs 방 비율 등)에 사용 예정
+
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  // Hub
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  // Chain length (= spoke 수). 최소 2 — corridor → room → boss 진입 동선 보장.
+  const chainLen = Math.max(2, def.nodeCount - 3);
+
+  let prevId = hubId;
+  for (let d = 1; d <= chainLen; d++) {
+    const id = `b0.${d}`;
+    // chain-length 교번: 홀수 depth = corridor, 짝수 depth = room.
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    const tags: string[] = [kind];
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: d,
+      stratumIndex, angleRad: chainAngle, ring: d * RING_UNIT,
+      tags,
+    }));
+    const sides = sidesByAngle(chainAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+
+  // Boss at chain end
+  const bossDepth = chainLen + 1;
+  const bossId = 'boss0';
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: bossDepth,
+    stratumIndex, angleRad: chainAngle, ring: bossDepth * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  const bossSides = sidesByAngle(chainAngle);
+  edges.push(makeEdge(prevId, bossId, 'tree', bossSides.outFromHub, bossSides.inToSpoke));
+
+  // Shrine: hub 의 perpendicular alcove (자리 1슬롯만 사용 — chain 방해 없음)
+  let shrineAngle = chainAngle + Math.PI / 2;
+  while (shrineAngle > Math.PI) shrineAngle -= 2 * Math.PI;
+  while (shrineAngle < -Math.PI) shrineAngle += 2 * Math.PI;
+  const shrineId = makeShrineId();
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 1,
+    stratumIndex, angleRad: shrineAngle, ring: 0.5,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(hubId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + 모든 chain spoke
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (const node of nodes.values()) {
+    if (node.role === 'spoke' && node.branchIndex === 0) criticalPathIds.add(node.id);
+  }
+
+  // Pixel coords
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tier 2 — Branching/ring/spine builders (Phase 3)
+//
+// 공통 패턴:
+//   1) hub 생성 → 토폴로지 별 spoke 사슬 → boss → shrine 순서로 추가
+//   2) 각 spoke 의 layout.angleRad = "이 노드를 부모로부터 어느 cardinal 에
+//      배치할지" 의 힌트. tryGridEmbedRadial 의 BFS 가 이 값을 사용.
+//   3) corridor/room 교번: 홀수 depth = corridor, 짝수 = room (chain-length pattern)
+//   4) Critical Path = hub + 보스로 이어지는 spoke 사슬
+//
+// nodeCount 정확성: branching 토폴로지는 분할 산식이 nodeCount-3 의 인수 분해에
+// 의존한다. CSV 의 nodeCount 가 작은 경우(Normal 1=6) 산식이 degenerate 해
+// shrine/pocket 이 0 이 될 수 있다. 노드 수 불일치는 validateRoomGraph 가
+// console.warn 으로 알리며, 게임플레이는 진행 가능.
+// ---------------------------------------------------------------------------
+
+/**
+ * Y-fork 토폴로지.
+ *
+ *   hub → stem(1) → fork → boss arm (M spokes) → boss
+ *                       ↘ side arm (N spokes) → shrine
+ *
+ * 자원 분배: M = ceil((nodeCount-4) * 0.6), N = (nodeCount-4) - M.
+ * stem 은 항상 1. boss arm M ≥ 1 (boss 도달 전 spoke 1개 이상).
+ */
+function buildYFork(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const stemAngle = Math.PI / 2;
+  const bossArmAngle = 0;
+  const sideArmAngle = Math.PI;
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  const remaining = Math.max(2, def.nodeCount - 4);
+  const M = Math.max(1, Math.ceil(remaining * 0.6));
+  const N = Math.max(0, remaining - M);
+
+  // Stem (branch 0): single spoke (the fork point)
+  const stemId = 'b0.1';
+  nodes.set(stemId, makeNode({
+    id: stemId, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: 1,
+    stratumIndex, angleRad: stemAngle, ring: RING_UNIT,
+    tags: ['corridor'],
+  }));
+  const stemSides = sidesByAngle(stemAngle);
+  edges.push(makeEdge(hubId, stemId, 'tree', stemSides.outFromHub, stemSides.inToSpoke));
+
+  // Boss arm (branch 1, boss-bearing)
+  let prevId = stemId;
+  for (let d = 1; d <= M; d++) {
+    const id = `b1.${d}`;
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 1, depth: d + 1,
+      stratumIndex, angleRad: bossArmAngle, ring: (d + 1) * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(bossArmAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+  const bossId = 'boss1';
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 1, depth: M + 2,
+    stratumIndex, angleRad: bossArmAngle, ring: (M + 2) * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  const bossSides = sidesByAngle(bossArmAngle);
+  edges.push(makeEdge(prevId, bossId, 'tree', bossSides.outFromHub, bossSides.inToSpoke));
+
+  // Side arm (branch 2)
+  prevId = stemId;
+  for (let d = 1; d <= N; d++) {
+    const id = `b2.${d}`;
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 2, depth: d + 1,
+      stratumIndex, angleRad: sideArmAngle, ring: (d + 1) * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(sideArmAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+
+  // Shrine: side arm 끝 (또는 N=0 이면 stem 의 perpendicular alcove)
+  const shrineId = makeShrineId();
+  let shrineParent: string;
+  let shrineAngle: number;
+  if (N > 0) {
+    shrineParent = `b2.${N}`;
+    shrineAngle = sideArmAngle;
+  } else {
+    shrineParent = stemId;
+    shrineAngle = sideArmAngle; // stem 의 서쪽 = (-1, 1) 방향
+  }
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: N + 2,
+    stratumIndex, angleRad: shrineAngle, ring: (N + 2) * RING_UNIT,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(shrineParent, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + stem + boss arm
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  criticalPathIds.add(stemId);
+  for (const node of nodes.values()) {
+    if (node.role === 'spoke' && node.branchIndex === 1) criticalPathIds.add(node.id);
+  }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 1,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+/**
+ * T-junction 토폴로지.
+ *
+ *   hub → b0.1 → ... → b0.mid → ... → b0.H → boss
+ *                         ↓
+ *                       b1.1 → ... → b1.P → shrine
+ *
+ * H + P = nodeCount - 3. mid = ceil(H/2).
+ */
+function buildTJunction(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const horizAngle = 0;     // east
+  const perpAngle = Math.PI / 2; // south
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  const total = Math.max(2, def.nodeCount - 3);
+  const H = Math.max(2, Math.ceil(total * 2 / 3));
+  const P = Math.max(0, total - H);
+  const mid = Math.max(1, Math.ceil(H / 2));
+
+  // Horizontal branch 0
+  let prevId = hubId;
+  for (let d = 1; d <= H; d++) {
+    const id = `b0.${d}`;
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: d,
+      stratumIndex, angleRad: horizAngle, ring: d * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(horizAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+  const bossId = 'boss0';
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: H + 1,
+    stratumIndex, angleRad: horizAngle, ring: (H + 1) * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  const bossSides = sidesByAngle(horizAngle);
+  edges.push(makeEdge(prevId, bossId, 'tree', bossSides.outFromHub, bossSides.inToSpoke));
+
+  // Perpendicular branch 1 from b0.mid
+  prevId = `b0.${mid}`;
+  for (let d = 1; d <= P; d++) {
+    const id = `b1.${d}`;
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 1, depth: mid + d,
+      stratumIndex, angleRad: perpAngle, ring: (mid + d) * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(perpAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+
+  // Shrine: 끝부분 (P>0 → b1.P 의 남쪽, P=0 → b0.mid 의 남쪽)
+  const shrineId = makeShrineId();
+  const shrineParent = P > 0 ? `b1.${P}` : `b0.${mid}`;
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: mid + P + 1,
+    stratumIndex, angleRad: perpAngle, ring: (mid + P + 1) * RING_UNIT,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(perpAngle);
+  edges.push(makeEdge(shrineParent, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + 가로 가지(boss arm)
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (const node of nodes.values()) {
+    if (node.role === 'spoke' && node.branchIndex === 0) criticalPathIds.add(node.id);
+  }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+/**
+ * Layer-cake 토폴로지 — 사문(蛇紋) snake.
+ *
+ *   hub → 동(東) W개 → 남(南) 1개 → 서(西) W개 → 남 1개 → 동 W개 → ... → boss
+ *
+ * 모든 spoke 가 단일 branch (branchIndex=0). chain 자체가 길어 "긴 던전" 느낌.
+ * shrine 은 hub 의 perpendicular(북쪽) alcove.
+ *
+ * S = nodeCount - 3 spokes. nodeCount 가 작으면(=linear_right 와 동치) 자연 degenerate.
+ */
+function buildLayerCake(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const LAYER_WIDTH = 3;
+  const dirAngle = { E: 0, W: Math.PI, S: Math.PI / 2 } as const;
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  const S = Math.max(2, def.nodeCount - 3);
+
+  // 사문 패턴: lateralDir 은 E 또는 W. countInLayer 가 LAYER_WIDTH 도달하면
+  // 다음 spoke 는 S(남) 로 내려가고 lateralDir 을 반전한다.
+  let lateralDir: 'E' | 'W' = 'E';
+  let countInLayer = 0;
+  let prevId = hubId;
+  let prevDepth = 0;
+
+  const spokeAngles: number[] = [];
+  for (let i = 0; i < S; i++) {
+    let angle: number;
+    if (countInLayer < LAYER_WIDTH) {
+      angle = dirAngle[lateralDir];
+      countInLayer++;
+    } else {
+      angle = dirAngle.S;
+      lateralDir = lateralDir === 'E' ? 'W' : 'E';
+      countInLayer = 0;
+    }
+    spokeAngles.push(angle);
+  }
+
+  for (let i = 0; i < S; i++) {
+    const d = i + 1;
+    const id = `b0.${d}`;
+    const angle = spokeAngles[i];
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: d,
+      stratumIndex, angleRad: angle, ring: d * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(angle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+    prevDepth = d;
+  }
+
+  // Boss: 마지막 spoke 의 lateral 방향 그대로 한 칸 더
+  const bossAngle = dirAngle[lateralDir];
+  const bossId = 'boss0';
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: prevDepth + 1,
+    stratumIndex, angleRad: bossAngle, ring: (prevDepth + 1) * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  const bossSides = sidesByAngle(bossAngle);
+  edges.push(makeEdge(prevId, bossId, 'tree', bossSides.outFromHub, bossSides.inToSpoke));
+
+  // Shrine: hub 의 북쪽 alcove
+  const shrineAngle = -Math.PI / 2;
+  const shrineId = makeShrineId();
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 1,
+    stratumIndex, angleRad: shrineAngle, ring: 0.5,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(hubId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (const node of nodes.values()) {
+    if (node.role === 'spoke' && node.branchIndex === 0) criticalPathIds.add(node.id);
+  }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+/**
+ * Ring 토폴로지 — 사각 perimeter 폐곡선.
+ *
+ *   (0,0)hub ─→─ ─→─ ─→─ ─→─
+ *      ↑                     ↓
+ *      ↑                     ↓
+ *      ←─ ─←─ ─←─ ─←─ ─←─ boss
+ *
+ * 시계방향 perimeter 를 따라 spoke 사슬을 깔고, 마지막 spoke 가 hub 와 cardinal
+ * 인접한 위치에 도달하면 'ring_closure' 엣지로 hub 와 잇는다 (BFS 임베딩에서
+ * 제외됨, exit 도출에만 참여). boss 는 hub 와 대각 코너에 배치.
+ *
+ * 직사각형 W,H 는 perimeter ≈ nodeCount-1 이 되도록 산정. 짝수 nodeCount 의
+ * 경우 1개 노드만큼 over-allocate 될 수 있고 validate 에서 warn 만 한다.
+ */
+function buildRing(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const dirAngle = { E: 0, W: Math.PI, S: Math.PI / 2, N: -Math.PI / 2 } as const;
+
+  // perimeter target = nodeCount - 1 (shrine 제외)
+  const targetPerim = Math.max(6, def.nodeCount - 1);
+  const wPlusH = Math.max(4, Math.round((targetPerim + 4) / 2));
+  const W = Math.max(2, Math.floor(wPlusH / 2) + 1); // 가로 약간 길게
+  const H = Math.max(2, wPlusH - W);
+
+  // 시계방향 perimeter 좌표 sequence (hub 제외, hub 다음 위치부터)
+  type Step = { col: number; row: number; dir: 'E' | 'S' | 'W' | 'N' };
+  const steps: Step[] = [];
+  for (let c = 1; c <= W - 1; c++) steps.push({ col: c, row: 0, dir: 'E' });
+  for (let r = 1; r <= H - 1; r++) steps.push({ col: W - 1, row: r, dir: 'S' });
+  for (let c = W - 2; c >= 0; c--) steps.push({ col: c, row: H - 1, dir: 'W' });
+  for (let r = H - 2; r >= 1; r--) steps.push({ col: 0, row: r, dir: 'N' });
+  // steps.length = perimeter - 1
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  // boss 위치 = hub 와 대각인 (W-1, H-1). 해당 step 인덱스 찾기.
+  const bossStepIdx = steps.findIndex(s => s.col === W - 1 && s.row === H - 1);
+
+  let prevId = hubId;
+  const bossId = 'boss0';
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const angle = dirAngle[s.dir];
+    if (i === bossStepIdx) {
+      nodes.set(bossId, makeNode({
+        id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: i + 1,
+        stratumIndex, angleRad: angle, ring: (i + 1) * RING_UNIT,
+        tags: ['boss_chamber'],
+      }));
+      const sides = sidesByAngle(angle);
+      edges.push(makeEdge(prevId, bossId, 'tree', sides.outFromHub, sides.inToSpoke));
+      prevId = bossId;
+    } else {
+      const id = `b0.${i + 1}`;
+      const kind: 'corridor' | 'room' = ((i + 1) % 2 === 1) ? 'corridor' : 'room';
+      nodes.set(id, makeNode({
+        id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: i + 1,
+        stratumIndex, angleRad: angle, ring: (i + 1) * RING_UNIT,
+        tags: [kind],
+      }));
+      const sides = sidesByAngle(angle);
+      edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+      prevId = id;
+    }
+  }
+
+  // Closure edge: 마지막 spoke (= (0,1) 좌표) 가 hub (0,0) 의 남쪽으로 cardinal
+  // 인접. ring_closure 로 표시 → BFS 무시, exit 만 도출.
+  edges.push(makeEdge(prevId, hubId, 'ring_closure', 'up', 'down'));
+
+  // Shrine: 외부에 부착 (hub 의 서쪽 alcove)
+  const shrineAngle = dirAngle.W;
+  const shrineId = makeShrineId();
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 1,
+    stratumIndex, angleRad: shrineAngle, ring: 0.5,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(hubId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + 시계방향 절반 (boss 까지의 perimeter)
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (let i = 0; i <= bossStepIdx; i++) {
+    const id = (i === bossStepIdx) ? bossId : `b0.${i + 1}`;
+    if (nodes.has(id)) criticalPathIds.add(id);
+  }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+/**
+ * Spine-pockets 토폴로지.
+ *
+ *   hub → b0.1 → b0.2 → ... → b0.S → boss
+ *           ↑               ↓
+ *         shrine         pocket(s)
+ *
+ * 가로 spine + 측면 단일-방 포켓. shrine 은 spine[0] 의 북쪽,
+ * pockets 는 spine 사이로 spread (남/북 교번).
+ *
+ * S + P = nodeCount - 3. P = floor((nodeCount-3)/4).
+ */
+function buildSpinePockets(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const spineAngle = 0;
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  let P = Math.max(0, Math.floor((def.nodeCount - 3) / 4));
+  let S = Math.max(2, def.nodeCount - 3 - P);
+  // shrine 은 spine[0] 북쪽을 차지 → 포켓 위치는 idx ≥ 2 부터 spread
+  if (S < 3) { P = 0; S = Math.max(2, def.nodeCount - 3); }
+
+  // Spine
+  let prevId = hubId;
+  for (let d = 1; d <= S; d++) {
+    const id = `b0.${d}`;
+    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: d,
+      stratumIndex, angleRad: spineAngle, ring: d * RING_UNIT,
+      tags: [kind],
+    }));
+    const sides = sidesByAngle(spineAngle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+  const bossId = 'boss0';
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: S + 1,
+    stratumIndex, angleRad: spineAngle, ring: (S + 1) * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  const bossSides = sidesByAngle(spineAngle);
+  edges.push(makeEdge(prevId, bossId, 'tree', bossSides.outFromHub, bossSides.inToSpoke));
+
+  // Pockets: 가용 spine 인덱스 [2..S] 에 P 개를 spread
+  const pocketSpineIndices: number[] = [];
+  if (P > 0 && S >= 3) {
+    const usable = S - 1; // index 2..S inclusive count
+    for (let k = 0; k < P; k++) {
+      const idx = Math.min(S, 2 + Math.floor((k * usable) / Math.max(1, P)));
+      if (!pocketSpineIndices.includes(idx)) pocketSpineIndices.push(idx);
+    }
+  }
+  for (let k = 0; k < pocketSpineIndices.length; k++) {
+    const spineIdx = pocketSpineIndices[k];
+    const parentId = `b0.${spineIdx}`;
+    const id = `b${k + 1}.1`;
+    const pocketAngle = (k % 2 === 0) ? Math.PI / 2 : -Math.PI / 2; // 남/북 교번
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: k + 1, depth: spineIdx + 1,
+      stratumIndex, angleRad: pocketAngle, ring: (spineIdx + 1) * RING_UNIT,
+      tags: ['room'],
+    }));
+    const sides = sidesByAngle(pocketAngle);
+    edges.push(makeEdge(parentId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+  }
+
+  // Shrine: spine[0] 북쪽
+  const shrineAngle = -Math.PI / 2;
+  const shrineId = makeShrineId();
+  const shrineParent = S >= 1 ? 'b0.1' : hubId;
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 2,
+    stratumIndex, angleRad: shrineAngle, ring: RING_UNIT,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(shrineParent, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + 모든 spine spoke (boss arm)
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (const node of nodes.values()) {
+    if (node.role === 'spoke' && node.branchIndex === 0) criticalPathIds.add(node.id);
+  }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
     bossId,
     shrineId,
     criticalPathIds,

@@ -24,7 +24,7 @@
  */
 
 import type { RoomCell, RoomType, UnifiedGridData, UnifiedRoomCell, StratumBound } from '@level/RoomGrid';
-import type { StratumDef } from '@data/StrataConfig';
+import type { StratumDef, TopologyKind } from '@data/StrataConfig';
 import type { ExitSide, NodeRole, RoomEdge, RoomGraphData, RoomNode } from '@level/RoomGraph';
 import { generateRoomGraph, validateRoomGraph } from '@level/RoomGraph';
 
@@ -52,9 +52,10 @@ interface StratumLayout {
 export function generateUnifiedGridFromGraph(
   strataDefs: StratumDef[],
   itemUid: number,
+  topologyOverride?: TopologyKind,
 ): { unifiedGrid: UnifiedGridData; graphs: RoomGraphData[] } {
   const layouts: StratumLayout[] = strataDefs.map((def, si) => {
-    const graph = generateRoomGraph(def, itemUid, si);
+    const graph = generateRoomGraph(def, itemUid, si, topologyOverride);
     try { validateRoomGraph(graph, def); }
     catch (err) { console.warn(`[RoomGraphAdapter] stratum ${si} validation failed`, err); }
 
@@ -399,6 +400,10 @@ function buildUndirectedAdjacency(g: RoomGraphData): Map<string, string[]> {
   const map = new Map<string, string[]>();
   for (const id of g.nodes.keys()) map.set(id, []);
   for (const e of g.edges) {
+    // ring_closure 엣지는 BFS 임베딩 흐름에 참여하지 않는다. 폐곡선의 닫는
+    // 엣지가 BFS 에 들어가면 hub 의 cardinal 슬롯이 잘못 배치된다. exit 도출
+    // (deriveExitsFromEdges) 은 별도 buildEdgeMap 으로 모든 엣지를 본다.
+    if (e.kind === 'ring_closure') continue;
     map.get(e.a)?.push(e.b);
     map.get(e.b)?.push(e.a);
   }

@@ -61,7 +61,7 @@ import { sacredSave } from '@save/PlayerSave';
 import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/memoryShards';
 import type { Inventory } from '@items/Inventory';
-import { STRATA_BY_RARITY, type StrataConfig, type StratumDef } from '@data/StrataConfig';
+import { STRATA_BY_RARITY, TOPOLOGY_VALUES, type StrataConfig, type StratumDef, type TopologyKind } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -257,10 +257,14 @@ export class ItemWorldScene extends Scene {
   private unifiedGrid!: UnifiedGridData;
   /** Per-stratum graphs from the adapter — node.layout.x/y carry grid (col,row). */
   private roomGraphs: RoomGraphData[] = [];
-  // DEC-037 PR-B debug overlay (?debug=graph + F2 toggle). Untouched by gameplay.
+  // DEC-037 PR-B debug overlay (?debug=graph + Shift+2 toggle). Untouched by gameplay.
   private roomGraphDebugContainer: Container | null = null;
   private roomGraphDebugVisible = false;
   private roomGraphDebugKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+  // Dev: Shift+L cycles ?topology= and reloads. Validation aid for 10 topologies on a single weapon.
+  private topologyCycleKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+  // Dev: persistent label showing the active topology source + name (always visible).
+  private topologyLabel: BitmapText | null = null;
   private currentCol = 0;
   private currentRow = 0; // absolute row in unified grid
   private roomData: number[][] = [];
@@ -469,12 +473,30 @@ export class ItemWorldScene extends Scene {
     }
 
     // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
-    const adapterResult = generateUnifiedGridFromGraph(this.strataConfig.strata, this.item.uid);
+    // Phase 1: 무기별 topologyOverride 가 있으면 stratum 의 토폴로지를 강제 교체.
+    // Dev: ?topology=ring 같은 쿼리스트링이 있으면 그것이 최우선 (검증용).
+    const urlTopologyRaw = new URLSearchParams(window.location.search)
+      .get('topology')?.trim().toLowerCase() ?? '';
+    const urlTopology: TopologyKind | undefined = TOPOLOGY_VALUES.has(urlTopologyRaw as TopologyKind)
+      ? (urlTopologyRaw as TopologyKind)
+      : undefined;
+    if (urlTopology) console.log(`[ItemWorld] URL topology override: ${urlTopology}`);
+    const adapterResult = generateUnifiedGridFromGraph(
+      this.strataConfig.strata,
+      this.item.uid,
+      urlTopology ?? this.item.def.topologyOverride,
+    );
+
+    // Dev: persistent topology label (top-left). Shows which source picked the topology.
+    this.initTopologyLabel(urlTopology);
     this.unifiedGrid = adapterResult.unifiedGrid;
     this.roomGraphs = adapterResult.graphs;
 
-    // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). F2 토글.
+    // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). Shift+2 토글.
     this.maybeInitRoomGraphDebug();
+
+    // Dev: Shift+L = cycle ?topology= and reload (검증용 핫키).
+    this.initTopologyCycleKey();
 
     // Pre-compute Memory Room placements per stratum (from CSV lookup)
     this.computeMemoryRoomPlacements();
@@ -4480,6 +4502,8 @@ export class ItemWorldScene extends Scene {
       this.lowHpVignette.destroy();
     }
     this.destroyRoomGraphDebug();
+    this.destroyTopologyCycleKey();
+    this.destroyTopologyLabel();
   }
 
   override destroy(): void {
@@ -4504,7 +4528,7 @@ export class ItemWorldScene extends Scene {
   private maybeInitRoomGraphDebug(): void {
     const params = new URLSearchParams(window.location.search);
     const dbg = params.get('debug');
-    // Enabled by ?debug=1 또는 ?debug=graph. F2 토글.
+    // Enabled by ?debug=1 또는 ?debug=graph. Shift+2 토글.
     const enabled = dbg === '1' || (dbg?.includes('graph') ?? false);
     if (!enabled) return;
 
@@ -4526,7 +4550,8 @@ export class ItemWorldScene extends Scene {
     this.game.uiContainer.addChild(this.roomGraphDebugContainer);
 
     this.roomGraphDebugKeyHandler = (e: KeyboardEvent) => {
-      if (e.code !== 'F2') return;
+      // Shift+2 (Digit2 key with shift). Code 'Digit2' is keyboard-layout independent.
+      if (e.code !== 'Digit2' || !e.shiftKey) return;
       e.preventDefault();
       this.roomGraphDebugVisible = !this.roomGraphDebugVisible;
       if (this.roomGraphDebugContainer) {
@@ -4534,7 +4559,7 @@ export class ItemWorldScene extends Scene {
       }
     };
     window.addEventListener('keydown', this.roomGraphDebugKeyHandler, true);
-    console.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press F2 to toggle.`);
+    console.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press Shift+2 to toggle.`);
   }
 
   private destroyRoomGraphDebug(): void {
@@ -4548,6 +4573,74 @@ export class ItemWorldScene extends Scene {
     this.roomGraphDebugContainer?.destroy({ children: true });
     this.roomGraphDebugContainer = null;
     this.roomGraphDebugVisible = false;
+  }
+
+  // ── Dev: Shift+L topology cycle ───────────────────────────────
+  /**
+   * Press Shift+L to cycle ?topology= through all 10 kinds and reload the page.
+   * Lets a single weapon validate every topology builder without CSV edits.
+   * After reload the player must re-enter the item world manually.
+   */
+  private initTopologyCycleKey(): void {
+    const TOPOLOGIES: TopologyKind[] = [
+      'hub_spoke', 'multi_hub',
+      'linear_right',
+      'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
+    ];
+    this.topologyCycleKeyHandler = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyL' || !e.shiftKey) return;
+      e.preventDefault();
+      const params = new URLSearchParams(window.location.search);
+      const cur = (params.get('topology') ?? '').trim().toLowerCase();
+      const idx = TOPOLOGIES.indexOf(cur as TopologyKind);
+      const next = TOPOLOGIES[(idx + 1) % TOPOLOGIES.length];
+      params.set('topology', next);
+      const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      console.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} → ${next}. Reloading...`);
+      window.history.replaceState(null, '', url);
+      window.location.reload();
+    };
+    window.addEventListener('keydown', this.topologyCycleKeyHandler, true);
+    console.log('[ItemWorld] Shift+L ready: cycle ?topology= through 10 kinds (page reload).');
+  }
+
+  private destroyTopologyCycleKey(): void {
+    if (this.topologyCycleKeyHandler) {
+      window.removeEventListener('keydown', this.topologyCycleKeyHandler, true);
+      this.topologyCycleKeyHandler = null;
+    }
+  }
+
+  /**
+   * Dev: Always-visible label at top-left showing which topology is active and
+   * where it came from (URL > weapon override > stratum default).
+   */
+  private initTopologyLabel(urlTopology: TopologyKind | undefined): void {
+    let source: 'URL' | 'WEAPON' | 'STRATUM';
+    let text: string;
+    if (urlTopology) {
+      source = 'URL';
+      text = urlTopology;
+    } else if (this.item.def.topologyOverride) {
+      source = 'WEAPON';
+      text = this.item.def.topologyOverride;
+    } else {
+      source = 'STRATUM';
+      text = this.strataConfig.strata.map(s => s.topology).join('/');
+    }
+    this.topologyLabel = new BitmapText({
+      text: `TOPO[${source}]: ${text}`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xFF8000 },
+    });
+    this.topologyLabel.x = 4;
+    this.topologyLabel.y = 4;
+    this.game.uiContainer.addChild(this.topologyLabel);
+  }
+
+  private destroyTopologyLabel(): void {
+    if (this.topologyLabel?.parent) this.topologyLabel.parent.removeChild(this.topologyLabel);
+    this.topologyLabel?.destroy();
+    this.topologyLabel = null;
   }
 
   // ── Ego dialogue helpers ──────────────────────────────────────
