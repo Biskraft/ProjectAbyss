@@ -13,6 +13,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { isSolid } from '@core/Physics';
 
 const GRAVITY = 720;        // px/s^2 — confetti fall rate
 const AIR_FRICTION = 0.965; // per ~16ms tick
@@ -167,14 +168,14 @@ export class GoldPickup {
         if (this.vx > 0) {
           const rightX = this.x + halfW + r;
           const cxR = Math.floor(rightX / TILE_SIZE);
-          if ((this.roomData[cyMid]?.[cxR] ?? 0) !== 0) {
+          if (isSolid(this.roomData[cyMid]?.[cxR] ?? 0)) {
             this.x = cxR * TILE_SIZE - r - halfW;
             this.vx = -this.vx * 0.45;
           }
         } else if (this.vx < 0) {
           const leftX = this.x + halfW - r;
           const cxL = Math.floor(leftX / TILE_SIZE);
-          if ((this.roomData[cyMid]?.[cxL] ?? 0) !== 0) {
+          if (isSolid(this.roomData[cyMid]?.[cxL] ?? 0)) {
             this.x = (cxL + 1) * TILE_SIZE + r - halfW;
             this.vx = -this.vx * 0.45;
           }
@@ -187,7 +188,7 @@ export class GoldPickup {
         const cxMid = Math.floor((this.x + halfW) / TILE_SIZE);
         const visualBottom = this.y + halfH + r;
         const cyB = Math.floor(visualBottom / TILE_SIZE);
-        if ((this.roomData[cyB]?.[cxMid] ?? 0) !== 0) {
+        if (isSolid(this.roomData[cyB]?.[cxMid] ?? 0)) {
           // Snap so the visual bottom sits exactly on the tile top.
           this.y = cyB * TILE_SIZE - halfH - r;
           this.vy = -this.vy * 0.42;

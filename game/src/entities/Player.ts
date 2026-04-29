@@ -124,6 +124,13 @@ export class Player extends Entity implements CombatEntity {
   equippedWeaponType: WeaponType | null = null;
 
   /**
+   * One-shot pulse: ATTACK was pressed in a state that *would* attack, but
+   * no weapon is equipped (and cheat off). Scene reads + clears this each
+   * frame to surface a "No Weapon Equipped" toast with cooldown.
+   */
+  attackBlockedNoWeaponPulse = false;
+
+  /**
    * Currently equipped weapon rarity — used for rarity-tinted slash FX.
    * `null` = bare hand.
    */
@@ -520,14 +527,22 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Attack input
-    // Air-dash can be cancelled into attack (jump+dash → attack).
-    // Ground dash still blocks attack so the dash keeps its evasion feel.
+    // Dash (ground or air) can be cancelled into attack — chaining
+    // dash → attack tightens the combat rhythm and matches what muscle
+    // memory expects from action games.
     // No weapon equipped → attack disabled entirely, except when cheat is on
     // (cheat already grants +99999 ATK so C should always swing for testing).
-    if (this.game.input.isJustPressed(GameAction.ATTACK) &&
+    const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK);
+    const attackStateAllowed =
+      state !== 'dive' && state !== 'hit' && state !== 'death';
+    if (attackPressedThisFrame && attackStateAllowed &&
+        this.equippedWeaponType === null && !this.abilities.cheat) {
+      // Bare-hand swing attempt → surface toast via scene, no state change.
+      this.attackBlockedNoWeaponPulse = true;
+    }
+    if (attackPressedThisFrame &&
         (this.equippedWeaponType !== null || this.abilities.cheat) &&
-        state !== 'dive' && state !== 'hit' && state !== 'death' &&
-        !(state === 'dash' && this.grounded)) {
+        attackStateAllowed) {
       if (state === 'attack') {
         // Queue next combo hit
         this.attackQueued = true;

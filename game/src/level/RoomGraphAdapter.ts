@@ -123,6 +123,7 @@ export function generateUnifiedGridFromGraph(
         visited: false,
         cleared: false,
         kind,
+        role: node.role,
       };
       cells[absRow][p.col] = {
         ...base,

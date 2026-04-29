@@ -116,6 +116,8 @@ export function generateRoomGraph(
       return buildRing(def, itemUid, stratumIndex);
     case 'spine_pockets':
       return buildSpinePockets(def, itemUid, stratumIndex);
+    case 'two_arc_pocketed':
+      return buildTwoArcPocketed(def, itemUid, stratumIndex);
     default: {
       // exhaustiveness guard
       const _exhaustive: never = topology;
@@ -1074,6 +1076,163 @@ function buildSpinePockets(def: StratumDef, itemUid: number, stratumIndex: numbe
   for (const node of nodes.values()) {
     if (node.role === 'spoke' && node.branchIndex === 0) criticalPathIds.add(node.id);
   }
+
+  for (const node of nodes.values()) {
+    node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;
+    node.layout.y = Math.sin(node.layout.angleRad) * node.layout.ring;
+  }
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: 0,
+    bossId,
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+
+/**
+ * Two-Arc Pocketed 토폴로지 (Tier C cycle, Phase A).
+ *
+ * hub→boss 사이 평행한 두 arc(upper/lower)로 폐곡선을 만들고, 각 arc 노드별
+ * 측면 알코브 pocket 을 부착하여 "전체에 분기" 시각을 달성한다. pocket 은
+ * 단실(1 노드) 알코브 — upper arc 는 N, lower arc 는 S 방향.
+ *
+ * Edges:
+ *   hub → u0 (N) → u1..u(W-1) (E) → boss (S)               -- tree, canonical critical path
+ *   hub → l0 (S) → l1..l(W-1) (E)                          -- tree
+ *   l(W-1) → boss (ring_closure, N)                        -- 폐곡선 닫는 엣지
+ *   hub → shrine (W)                                        -- alcove
+ *   pocket: arc 노드 → pkt (N or S)                         -- 1 노드 알코브 (round-robin)
+ *
+ * BFS 임베딩 시 ring_closure 는 무시되어 hub→upper→boss 가 canonical path.
+ * 그러나 deriveExitsFromEdges 가 closure 의 cardinal 인접 (last_lower N ↔ boss)을
+ * exit 으로 인식하여 실제 게임 내에서도 양 arc 가 양방향 통로가 된다.
+ *
+ *   row -1 :  pkt_N (선택적)                 ← upper pockets
+ *   row  0 :  u0 - u1 - ... - u(W-1)         ← upper arc
+ *   row  1 :  hub  ─ ─ ─ ─ ─ ─ ─  boss      ← mid pole
+ *   row  2 :  l0 - l1 - ... - l(W-1)         ← lower arc
+ *   row  3 :  pkt_S (선택적)                 ← lower pockets
+ *
+ * 노드 회계:
+ *   arcBudget = nodeCount - 3
+ *   W = max(2, ceil(arcBudget/4))     -- 1:1 arc:pocket 비율
+ *   pocketBudget = arcBudget - 2W      -- 항상 ≤ 2W (sparse 허용)
+ *   pocket 분배 = round-robin (u0,l0,u1,l1,...) 으로 pocketBudget 개
+ */
+function buildTwoArcPocketed(def: StratumDef, itemUid: number, stratumIndex: number): RoomGraphData {
+  const _rng = new PRNG(itemUid * 1000 + stratumIndex * 7919);
+  void _rng;
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+
+  const dirAngle = { E: 0, W: Math.PI, S: Math.PI / 2, N: -Math.PI / 2 } as const;
+
+  if (def.nodeCount < 7) {
+    throw new Error(`two_arc_pocketed: requires nodeCount >= 7 (got ${def.nodeCount}).`);
+  }
+
+  const arcBudget = def.nodeCount - 3;
+  const W = Math.max(2, Math.ceil(arcBudget / 4));
+  const pocketBudget = arcBudget - 2 * W;
+  if (pocketBudget < 0) {
+    throw new Error(`two_arc_pocketed: invariant broken — pocketBudget=${pocketBudget} (arcBudget=${arcBudget}, W=${W})`);
+  }
+
+  const hubId = 'h0';
+  nodes.set(hubId, makeNode({
+    id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
+    stratumIndex, angleRad: 0, ring: 0,
+    tags: ['hub_plaza', 'safe', 'large'],
+  }));
+
+  const bossId = 'boss0';
+
+  // Upper arc: hub --N--> u0 --E--> ... --E--> u(W-1) --S--> boss
+  let prevId = hubId;
+  for (let c = 0; c < W; c++) {
+    const id = `u${c}`;
+    const isCorridor = (c % 2 === 0);
+    const angle = c === 0 ? dirAngle.N : dirAngle.E;
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 0, depth: c + 1,
+      stratumIndex, angleRad: angle, ring: (c + 1) * RING_UNIT,
+      tags: [isCorridor ? 'corridor' : 'room'],
+    }));
+    const sides = sidesByAngle(angle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+  nodes.set(bossId, makeNode({
+    id: bossId, role: 'boss', hubIndex: 0, branchIndex: 0, depth: W + 1,
+    stratumIndex, angleRad: dirAngle.S, ring: (W + 1) * RING_UNIT,
+    tags: ['boss_chamber'],
+  }));
+  {
+    const sides = sidesByAngle(dirAngle.S);
+    edges.push(makeEdge(prevId, bossId, 'tree', sides.outFromHub, sides.inToSpoke));
+  }
+
+  // Lower arc: hub --S--> l0 --E--> ... --E--> l(W-1)
+  prevId = hubId;
+  for (let c = 0; c < W; c++) {
+    const id = `l${c}`;
+    const isCorridor = (c % 2 === 0);
+    const angle = c === 0 ? dirAngle.S : dirAngle.E;
+    nodes.set(id, makeNode({
+      id, role: 'spoke', hubIndex: 0, branchIndex: 1, depth: c + 1,
+      stratumIndex, angleRad: angle, ring: (c + 1) * RING_UNIT,
+      tags: [isCorridor ? 'corridor' : 'room'],
+    }));
+    const sides = sidesByAngle(angle);
+    edges.push(makeEdge(prevId, id, 'tree', sides.outFromHub, sides.inToSpoke));
+    prevId = id;
+  }
+  // closure: last lower → boss (cardinal-N)
+  edges.push(makeEdge(prevId, bossId, 'ring_closure', 'up', 'down'));
+
+  // Pockets: round-robin distribution (u0, l0, u1, l1, ...) for pocketBudget items
+  for (let i = 0; i < pocketBudget; i++) {
+    const arcCol = Math.floor(i / 2);
+    const isUpper = (i % 2 === 0);
+    const parentId = isUpper ? `u${arcCol}` : `l${arcCol}`;
+    const angle = isUpper ? dirAngle.N : dirAngle.S;
+    const pocketId = isUpper ? `pu${arcCol}` : `pl${arcCol}`;
+    nodes.set(pocketId, makeNode({
+      id: pocketId,
+      role: 'spoke',
+      hubIndex: 0,
+      branchIndex: isUpper ? 2 : 3,
+      depth: arcCol + 2,
+      stratumIndex,
+      angleRad: angle,
+      ring: (arcCol + 2) * RING_UNIT,
+      tags: ['room', 'pocket'],
+    }));
+    const sides = sidesByAngle(angle);
+    edges.push(makeEdge(parentId, pocketId, 'tree', sides.outFromHub, sides.inToSpoke));
+  }
+
+  // Shrine: hub W alcove
+  const shrineAngle = dirAngle.W;
+  const shrineId = makeShrineId();
+  nodes.set(shrineId, makeNode({
+    id: shrineId, role: 'shrine', hubIndex: 0, branchIndex: -1, depth: 1,
+    stratumIndex, angleRad: shrineAngle, ring: 0.5,
+    tags: ['shrine_alcove', 'safe'],
+  }));
+  const shrineSides = sidesByAngle(shrineAngle);
+  edges.push(makeEdge(hubId, shrineId, 'tree', shrineSides.outFromHub, shrineSides.inToSpoke));
+
+  // Critical path = hub + upper arc + boss
+  const criticalPathIds = new Set<string>();
+  criticalPathIds.add(hubId);
+  for (let c = 0; c < W; c++) criticalPathIds.add(`u${c}`);
+  criticalPathIds.add(bossId);
 
   for (const node of nodes.values()) {
     node.layout.x = Math.cos(node.layout.angleRad) * node.layout.ring;

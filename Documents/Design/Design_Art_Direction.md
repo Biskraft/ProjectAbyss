@@ -532,3 +532,98 @@ ECHORIS 통합 팔레트:
 | KPI 분석 | `presentation/ECHORIS_KPI_Presentation.html` | 스크롤 스냅 + 데이터 패널 |
 | 개발 과정 | `presentation/ProjectAbyss_DevProcess.html` | 스크롤 스냅 + 타임라인 |
 | 투자/피치 자료 | 미정 | 동일 시스템 |
+
+---
+
+## 12. 게임 자산 출하 스타일 SSoT — Breakable Prop 기준 (2026-04-30)
+
+> **본 섹션은 실제 출하 픽셀아트의 캐논 SSoT다. 신규 프랍/오브젝트 작업 시 이 섹션을 우선 참조한다.**
+> **§2.3, §3.4 의 고채도 청록/주황 팔레트는 컨셉아트·웹·프레젠테이션의 브랜드 톤이며, 인게임 도트 자산은 본 절제 톤을 따른다.**
+
+### 12.1. 캐논 자산
+
+| 항목 | 값 |
+|:-----|:-----|
+| SSoT 파일 | `game/public/assets/sprites/breakable_01.png` |
+| 시트 구성 | 8×8 = 64 프랍, 셀당 ~32px |
+| 용도 | BreakableProp 카탈로그 (PropShatter FX 입력) |
+| 사용자 확정 | 2026-04-30 — "이게 우리 게임 아트 스타일" |
+
+### 12.2. 절제 팔레트 (Implemented Tier)
+
+```
+지배색 (Dominant):
+  파치먼트/본       — #C8B89A ~ #B5A580   (배경 톤, 전체 면적 60%+)
+
+미드 톤 (Mid):
+  세피아 엄버       — #5A3E28 ~ #3A2818   (그림자, 풍화, 천)
+
+윤곽 (Outline):
+  잉크 흑           — #1A1410 ~ #0E0A08   (부분적 아웃라인, 풀 실루엣 강제 X)
+
+희소 강조 (Rare Accent):
+  가일트/오커       — #A88A48              (금속 가장자리, 인장 도금)
+  적/버건디         — #6E2C20              (배너 인장, 의례 적색)
+  산화 청회색       — #4A5660              (부식 금속, 단검 날)
+```
+
+#### 채도 규칙
+
+- 셀당 사용 색상 **8~12색 이내** (§8 팔레트 제한과 정합)
+- 채도(Saturation): 컨셉아트 §2.3 대비 **약 1/3 수준**으로 강제 감산
+- 강조색은 셀 면적의 **5% 이하**로만 사용 — 톤이 살아남도록 절제
+
+### 12.3. 주제 어휘 (Iconography Vocabulary)
+
+신규 프랍은 다음 카테고리 안에서만 작업한다 — 톤 혼탁 방지:
+
+| 카테고리 | 예시 |
+|:---------|:-----|
+| 장례 | 묘비(십자 포함), 항아리, 관, 화환 |
+| 의례 | 사당, 인장 배너, 촛대, 향로, 봉인 두루마리 |
+| 건축 파편 | 풍화 문/게이트, 사슬 감긴 기둥, 비석(텍스트 새김) |
+| 이펙기 | 두건 형상, 두개골 가면, 우상 머리 |
+| 잔존물 | 거울·아이콘 액자, 돌에 박힌 단검, 매달린 검 |
+
+### 12.4. 화법 표준
+
+- **잉크 흑 아웃라인** — 부분적·끊김 허용. 풀 실루엣을 강제하지 않는다
+- **내부 디더링** — 부드러운 디더링으로 천·돌·금속 풍화를 표현
+- **톤 위계 4~5단** — 본 하이라이트 → 탠 미드 → 엄버 섀도 → 잉크 코어
+- **광원** — 미세한 상단-좌측 키, 거의 평면적. 강한 캐스트 섀도 금지
+- **셀 점유** — 폭 24~30px, Shatter FX 여백으로 좌우 1~3px 패딩 보존
+
+### 12.5. 무드 키워드 (생성·검수용)
+
+- silent reverence
+- weathered with patience (격렬한 풍화 X, 시간이 천천히 깎은 흔적)
+- ancestral / ceremonial
+- "이 물건이 누군가보다 오래 살아남았다"
+- funerary museum (전쟁터의 전리품 X)
+
+### 12.6. 레퍼런스 — 가까움 / 먼
+
+| 거리 | 작품 | 차용 부분 |
+|:-----|:-----|:---------|
+| 가까움 | Salt & Sanctuary 트링켓 | 절제 본 톤·의례 모티프 |
+| 가까움 | Hollow Knight 의례 잔존물 | 잉크 아웃라인·디더링 |
+| 가까움 | Blasphemous 잔재 | **톤만** — 고딕 다크 판타지 모티프는 §1.3 금기 유지 |
+| 멈 | BLAME!/Biomega 메가스트럭처 | 컨셉/웹 브랜드 톤(§11)에서만 사용 |
+
+### 12.7. PixelLab 프롬프트 골격 (이 스타일 재현용)
+
+```
+32px pixel art prop, side view, transparent background, single object centered,
+weathered ceremonial relic, ECHORIS implemented palette: bone parchment dominant
+(#C8B89A), sepia umber shadows (#3A2818), ink-black outlines (#1A1410), rare
+gilt accent (#A88A48), very rare burgundy seal (#6E2C20), no vibrant cyan no
+vibrant orange, soft inner dithering, partial broken outlines allowed, 4-tone
+hierarchy, silent funerary museum mood, Salt-and-Sanctuary / Hollow Knight
+relic aesthetic, NOT BLAME! megastructure, NOT high-saturation
+```
+
+### 12.8. 디버전스 해소 보류 (의사결정 필요 항목)
+
+- 캐릭터(에르다 v3, §4.2)와 배경 타일이 본 절제 톤으로 통일될지, §2.3 고채도가 유지될지 미확정
+- 결정되기 전까지: **프랍·오브젝트는 §12, 캐릭터/배경/이펙트는 §2.3·§3.4 유지**
+- 통일 결정 시 §2.3·§3.4 채도를 §12 기준으로 재조정해야 함

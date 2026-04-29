@@ -1,12 +1,14 @@
 /**
  * TutorialHint.ts — One-time tutorial popups.
  *
- * Shows a semi-transparent panel at top-center, auto-dismisses after 4s or on X key.
- * Each hint ID fires at most once per session.
+ * Floating bottom-center panel: [s28 KEY CAP] + 14px label, orange soft pulse.
+ * SSoT: game/docs/ui-components.html `.tutorial-hint`. DEC-035 키컬러 orange.
+ * Each hint ID fires at most once per session; persistent hints stay until dismiss().
  */
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { KeyPrompt } from './KeyPrompt';
 import type { InputManager } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
 import { HudConst } from '@data/constData';
@@ -14,9 +16,30 @@ import { HudConst } from '@data/constData';
 const DISPLAY_DURATION = HudConst.Tutorial.DisplayDurationMs;
 const FADE_DURATION = HudConst.Tutorial.FadeDurationMs;
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
-// Lower-center placement so the hint is closer to the player and easier to
-// notice without obstructing the top HUD.
-const BOX_Y = GAME_HEIGHT - 64;
+
+// Layout (mirrors `.tutorial-hint` token in ui-components.html, 0.75 scale)
+const KEY_SIZE = 21;
+const LABEL_FONT = 11;
+const PAD_X = 14;
+const PAD_Y = 9;
+const GAP = 8;
+const BG_COLOR = 0x000000;
+const BG_ALPHA = 0.7;
+const ACCENT_COLOR = 0xFF8000;     // DEC-035 키컬러 orange
+const BORDER_W = 1;
+const BORDER_ALPHA = 0.55;
+const HALO_OFFSET = 3;             // halo extends past panel
+const HALO_ALPHA_MIN = 0.20;
+const HALO_ALPHA_MAX = 0.55;
+const PULSE_PERIOD_MS = 1600;      // soft tier (matches ui-components.html)
+
+const BOX_Y = GAME_HEIGHT - 48;    // bottom-center anchor
+
+export interface TutorialHintOpts {
+  keyLabel?: string;
+  text: string;
+  persistent?: boolean;
+}
 
 export class TutorialHint {
   readonly container: Container;
@@ -24,9 +47,11 @@ export class TutorialHint {
   private input: InputManager;
 
   private panel: Container | null = null;
+  private panelHalo: Graphics | null = null;
   private panelId: string | null = null;
   private panelPersistent = false;
   private timer = 0;
+  private pulseTimer = 0;
   private fading = false;
 
   constructor(input: InputManager, parent: Container) {
@@ -41,7 +66,7 @@ export class TutorialHint {
    * (no auto-fade). Useful for "press [I] to open inventory" cues that should
    * remain until the player actually performs the taught action.
    */
-  tryShow(id: string, text: string, opts: { persistent?: boolean } = {}): void {
+  tryShow(id: string, opts: TutorialHintOpts): void {
     if (this.shown.has(id)) return;
     if (this.panel) return; // one at a time
     this.shown.add(id);
@@ -49,33 +74,55 @@ export class TutorialHint {
 
     const panel = new Container();
 
+    const keyIcon = opts.keyLabel ? KeyPrompt.createKeyIcon(opts.keyLabel, KEY_SIZE) : null;
     const label = new BitmapText({
-      text,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
+      text: opts.text,
+      style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0xffffff },
     });
-    label.anchor.set(0.5, 0);
-    label.x = 0;
-    label.y = 6;
 
-    const padX = 12;
-    const padY = 6;
-    const boxW = label.width + padX * 2;
-    const boxH = label.height + padY * 2;
+    const keyW = keyIcon ? KEY_SIZE : 0;
+    const innerGap = keyIcon ? GAP : 0;
+    const contentW = keyW + innerGap + label.width;
+    const totalW = contentW + PAD_X * 2;
+    const totalH = Math.max(KEY_SIZE, label.height) + PAD_Y * 2;
+    const startX = -Math.floor(totalW / 2);
 
+    // Halo (orange soft glow, pulsed)
+    const halo = new Graphics();
+    halo.roundRect(
+      startX - HALO_OFFSET, -HALO_OFFSET,
+      totalW + HALO_OFFSET * 2, totalH + HALO_OFFSET * 2, 6,
+    ).fill({ color: ACCENT_COLOR, alpha: 1 });
+    halo.alpha = HALO_ALPHA_MIN;
+    panel.addChild(halo);
+
+    // Background panel
     const bg = new Graphics();
-    bg.roundRect(-boxW / 2, 0, boxW, boxH, 3).fill({ color: 0x000000, alpha: 0.7 });
-    bg.roundRect(-boxW / 2, 0, boxW, boxH, 3).stroke({ color: 0xffffff, width: 1, alpha: 0.3 });
-
+    bg.roundRect(startX, 0, totalW, totalH, 4).fill({ color: BG_COLOR, alpha: BG_ALPHA });
+    bg.roundRect(startX, 0, totalW, totalH, 4)
+      .stroke({ color: ACCENT_COLOR, width: BORDER_W, alpha: BORDER_ALPHA });
     panel.addChild(bg);
+
+    if (keyIcon) {
+      keyIcon.x = startX + PAD_X;
+      keyIcon.y = PAD_Y;
+      panel.addChild(keyIcon);
+    }
+
+    label.x = startX + PAD_X + keyW + innerGap;
+    label.y = PAD_Y + Math.floor((KEY_SIZE - label.height) / 2);
     panel.addChild(label);
-    panel.x = GAME_WIDTH / 2;
-    panel.y = BOX_Y;
+
+    panel.x = Math.floor(GAME_WIDTH / 2);
+    panel.y = BOX_Y - totalH;
 
     this.container.addChild(panel);
     this.panel = panel;
+    this.panelHalo = halo;
     this.panelId = id;
     this.panelPersistent = !!opts.persistent;
     this.timer = DISPLAY_DURATION;
+    this.pulseTimer = 0;
     this.fading = false;
   }
 
@@ -90,6 +137,7 @@ export class TutorialHint {
     if (this.panel && this.panelId === id) {
       this.container.removeChild(this.panel);
       this.panel = null;
+      this.panelHalo = null;
       this.panelId = null;
       this.panelPersistent = false;
     }
@@ -97,6 +145,15 @@ export class TutorialHint {
 
   update(dt: number): void {
     if (!this.panel) return;
+
+    // Pulse halo regardless of persistent/fade state — keeps the eye drawn.
+    this.pulseTimer = (this.pulseTimer + dt) % PULSE_PERIOD_MS;
+    if (this.panelHalo) {
+      const phase = (this.pulseTimer / PULSE_PERIOD_MS) * Math.PI * 2;
+      const v = (Math.sin(phase) + 1) * 0.5; // 0..1
+      this.panelHalo.alpha = HALO_ALPHA_MIN + v * (HALO_ALPHA_MAX - HALO_ALPHA_MIN);
+    }
+
     if (this.panelPersistent) return; // stays until dismiss()
 
     this.timer -= dt;
@@ -109,6 +166,7 @@ export class TutorialHint {
     if (this.timer <= 0) {
       this.container.removeChild(this.panel);
       this.panel = null;
+      this.panelHalo = null;
       this.panelId = null;
     }
   }
@@ -117,6 +175,7 @@ export class TutorialHint {
     if (this.panel) {
       this.container.removeChild(this.panel);
       this.panel = null;
+      this.panelHalo = null;
       this.panelId = null;
     }
     if (this.container.parent) {

@@ -15,6 +15,7 @@ const TOPOLOGY_VALUES: ReadonlySet<string> = new Set<TopologyKind>([
   'hub_spoke', 'multi_hub',
   'linear_right',
   'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
+  'two_arc_pocketed',
 ]);
 
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';

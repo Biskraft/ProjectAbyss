@@ -54,10 +54,11 @@ import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
+import { TutorialHint } from '@ui/TutorialHint';
 import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
-import { sacredSave } from '@save/PlayerSave';
+import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
 import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/memoryShards';
 import type { Inventory } from '@items/Inventory';
@@ -225,6 +226,7 @@ export class ItemWorldScene extends Scene {
   private screenFlash!: ScreenFlash;
   private hudSkin: UISkin | null = null;
   private toast!: ToastManager;
+  private tutorialHint!: TutorialHint;
   // A15: innocent capture seal orbs ? rise from capture point, home to player
   private captureOrbs: { gfx: Graphics; x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
   // Item being explored
@@ -331,6 +333,14 @@ export class ItemWorldScene extends Scene {
 
   // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
   private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" → memory template
+
+  /**
+   * Player entity spawn (DEC-038): LDtk Start 템플릿의 Player entity 가 권위.
+   * buildFullMap 가 hub 셀의 ldtkLevel 에서 entity.type === 'Player' 를 찾아 채운다.
+   * init() 의 첫 스폰에서 우선 사용. 나중에 Start 템플릿이 여러 개로 늘어나도
+   * 각 템플릿의 Player entity 가 그대로 권위가 된다.
+   */
+  private playerSpawnFromLdtk: { x: number; y: number } | null = null;
   private memoryTriggers: Array<{
     x: number; y: number; w: number; h: number;
     text: string;
@@ -725,6 +735,9 @@ export class ItemWorldScene extends Scene {
     // Toast
     this.toast = new ToastManager(this.game.legacyUIContainer);
 
+    // Tutorial hint (used for low-HP heal cue, etc. — same UX as world scene)
+    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
+
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
     this.countTotalRooms();
@@ -746,10 +759,21 @@ export class ItemWorldScene extends Scene {
     );
     this.updateHudText();
 
-    // Spawn player on a verified floor in the start room.
-    const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
-    this.player.x = spawn.x;
-    this.player.y = spawn.y;
+    // Spawn player. DEC-038: LDtk Start 템플릿의 Player entity 가 권위 — 있으면
+    // 그 위치(엔티티 pivot 은 LDtk 에서 bottom-center 가 표준)에 좌상단 정렬로
+    // 배치한다. 없으면 절차적 floor 탐색으로 폴백.
+    let spawnX: number;
+    let spawnY: number;
+    if (this.playerSpawnFromLdtk) {
+      spawnX = Math.round(this.playerSpawnFromLdtk.x - this.player.width / 2);
+      spawnY = Math.round(this.playerSpawnFromLdtk.y - this.player.height);
+    } else {
+      const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
+      spawnX = spawn.x;
+      spawnY = spawn.y;
+    }
+    this.player.x = spawnX;
+    this.player.y = spawnY;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
@@ -975,6 +999,21 @@ export class ItemWorldScene extends Scene {
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX);
 
+        // DEC-038: 아이템계 진입 스폰은 LDtk Start 템플릿의 Player entity 가 권위.
+        // hub 셀(=unifiedGrid.startRoom)의 ldtkLevel 에서 type='Player' entity 의
+        // 픽셀 좌표를 절대 좌표로 변환해 보관. init() 의 첫 스폰 직전에 사용된다.
+        const isUnifiedStart = col === this.unifiedGrid.startRoom.col
+          && absRow === this.unifiedGrid.startRoom.absoluteRow;
+        if (isUnifiedStart) {
+          const playerEnt = ldtkLevel.entities.find(e => e.type === 'Player');
+          if (playerEnt) {
+            this.playerSpawnFromLdtk = {
+              x: playerEnt.px[0] + col * IW_ROOM_W_PX,
+              y: playerEnt.px[1] + localRow * IW_ROOM_H_PX,
+            };
+          }
+        }
+
         roomCount++;
         // Mark start room as visited
         if (cell && col === this.currentCol && absRow === this.currentRow) {
@@ -1022,11 +1061,22 @@ export class ItemWorldScene extends Scene {
     this.persistRoomState();
     this.drawMiniMap();
 
-    // Breakable props (procedural, item world variants)
+    // Breakable props (procedural, item world variants).
+    // Reserve an 8-tile radius around the player's start room center so
+    // entry/landing isn't cluttered by destructibles.
     for (const bp of this.breakableProps) bp.destroy();
     this.breakableProps = [];
     const bpSeed = (this.currentStratumIndex + 1) * 0x1337 + (this.item.def.id.length * 7);
-    const bpList = spawnBreakableProps(this.fullGrid, bpSeed, true);
+    const bpExclude = new Set<string>();
+    const RADIUS = 8;
+    const startCol = this.currentCol * IW_ROOM_W_TILES + Math.floor(IW_ROOM_W_TILES / 2);
+    const startRow = this.currentRow * IW_ROOM_H_TILES + IW_DOOR_FLOOR_ROW;
+    for (let dr = -RADIUS; dr <= RADIUS; dr++) {
+      for (let dc = -RADIUS; dc <= RADIUS; dc++) {
+        bpExclude.add(`${startCol + dc},${startRow + dr}`);
+      }
+    }
+    const bpList = spawnBreakableProps(this.fullGrid, bpSeed, true, bpExclude);
     for (const bp of bpList) {
       this.breakableProps.push(bp);
       this.entityLayer.addChild(bp.container);
@@ -1151,6 +1201,16 @@ export class ItemWorldScene extends Scene {
   private spawnEnemiesInRoom(col: number, row: number): void {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell || cell.cleared) return;
+
+    // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) 은 안전
+    // 지대다. 적 스폰을 차단하고 즉시 cleared 처리해 HUD 카운터/재진입 흐름을
+    // 일반 클리어와 동일하게 유지한다. P0 invariant — 절대 적 1마리도 안 됨.
+    if (cell.role === 'hub' || cell.role === 'shrine') {
+      cell.cleared = true;
+      this.roomsCleared++;
+      this.persistRoomState();
+      return;
+    }
 
     // Stratum start room ? safe zone, no monsters. Mark cleared so re-entry
     // skips the spawn path entirely.
@@ -2122,16 +2182,25 @@ export class ItemWorldScene extends Scene {
       desiredType = 'Start';
     } else if (isBoss) {
       desiredType = 'Boss';
+    } else if (cell.role === 'hub') {
+      // DEC-038 Town of Orphaned Shadows: hub = Plaza (광장). Start 템플릿
+      // 재사용 — Gatekeeper 가 머무는 안전 광장. 적 스폰 0 (spawnEnemiesInRoom).
+      desiredType = 'Start';
+    } else if (cell.role === 'shrine') {
+      // DEC-038: shrine = Memorial (기념탑). Rest 템플릿 재사용 — Librarian 의
+      // 추모 공간. 적 스폰 0.
+      desiredType = 'Rest';
     } else if (cell.kind === 'corridor') {
       // DEC-037 chain-length variable pattern: 통로 셀은 Corridor 템플릿 강제.
       // 매치 없으면 아래 fallback 단계에서 type 무시하고 exits 만 매치한다.
       desiredType = 'Corridor';
     } else if (!cell.onCriticalPath) {
-      // Off-path rooms: Combat-weighted (55% Combat / 15% Treasure / 15% Rest / 15% Puzzle)
+      // Off-path spoke: Combat-weighted (70% Combat / 15% Treasure / 15% Puzzle).
+      // DEC-038: Rest 15% 분기 제거 — Memorial(shrine)이 휴식 공간을 전담하므로
+      // off-path 에서 추가 Rest 가 나오면 휴식 분포가 두꺼워져 전투 리듬이 깨진다.
       const roll = rng.next();
       if (roll < 0.15) desiredType = 'Treasure';
-      else if (roll < 0.30) desiredType = 'Rest';
-      else if (roll < 0.45) desiredType = 'Puzzle';
+      else if (roll < 0.30) desiredType = 'Puzzle';
       else desiredType = 'Combat';
     } else {
       desiredType = 'Combat';
@@ -2995,6 +3064,23 @@ export class ItemWorldScene extends Scene {
     }
 
     this.player.update(dt);
+
+    // First time HP drops to/under 40% — surface a tutorial hint pointing at
+    // the heal key. Shared one-shot flag with LdtkWorldScene; survives scene
+    // swaps in-session.
+    if (
+      !isLowHpHealToastFired() &&
+      this.player.maxHp > 0 &&
+      this.player.hp > 0 &&
+      this.player.hp / this.player.maxHp <= 0.4
+    ) {
+      markLowHpHealToastFired();
+      this.tutorialHint.tryShow('low_hp_heal', {
+        keyLabel: actionKey(GameAction.FLASK),
+        text: 'Heal',
+      });
+    }
+    this.tutorialHint.update(dt);
 
     // Updraft wind zones (IntGrid value 4 in fullGrid)
     this.applyUpdrafts(dt);
@@ -4507,6 +4593,9 @@ export class ItemWorldScene extends Scene {
     if (this.lowHpVignette) {
       this.lowHpVignette.destroy();
     }
+    if (this.tutorialHint) {
+      this.tutorialHint.destroy();
+    }
     this.destroyRoomGraphDebug();
     this.destroyTopologyCycleKey();
     this.destroyTopologyLabel();
@@ -4583,7 +4672,7 @@ export class ItemWorldScene extends Scene {
 
   // ── Dev: Shift+L topology cycle ───────────────────────────────
   /**
-   * Press Shift+L to cycle ?topology= through all 10 kinds and reload the page.
+   * Press Shift+L to cycle ?topology= through all kinds and reload the page.
    * Lets a single weapon validate every topology builder without CSV edits.
    * After reload the player must re-enter the item world manually.
    */
@@ -4592,10 +4681,16 @@ export class ItemWorldScene extends Scene {
       'hub_spoke', 'multi_hub',
       'linear_right',
       'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
+      'two_arc_pocketed',
     ];
     this.topologyCycleKeyHandler = (e: KeyboardEvent) => {
+      // Diagnostic: log every Shift-modified L press to verify reachability.
+      if (e.code === 'KeyL' && e.shiftKey) {
+        console.log('[ItemWorld] Shift+L caught.');
+      }
       if (e.code !== 'KeyL' || !e.shiftKey) return;
       e.preventDefault();
+      e.stopImmediatePropagation();
       const params = new URLSearchParams(window.location.search);
       const cur = (params.get('topology') ?? '').trim().toLowerCase();
       const idx = TOPOLOGIES.indexOf(cur as TopologyKind);
@@ -4607,7 +4702,7 @@ export class ItemWorldScene extends Scene {
       window.location.reload();
     };
     window.addEventListener('keydown', this.topologyCycleKeyHandler, true);
-    console.log('[ItemWorld] Shift+L ready: cycle ?topology= through 10 kinds (page reload).');
+    console.log('[ItemWorld] Shift+L ready: cycle ?topology= through 8 kinds (page reload).');
   }
 
   private destroyTopologyCycleKey(): void {

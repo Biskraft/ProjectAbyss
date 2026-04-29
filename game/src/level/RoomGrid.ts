@@ -16,6 +16,9 @@ export interface RoomCell {
    *  'room' = 전투/보물형 LDtk. RoomGraphAdapter 가 노드 태그에서 채운다.
    *  hub/boss/shrine 등 spoke 가 아닌 셀은 undefined. */
   kind?: 'corridor' | 'room';
+  /** Graph node role (DEC-038): hub/spoke/boss/shrine. RoomGraphAdapter 가 전파.
+   *  ItemWorldScene 의 LDtk 룸 타입 매핑과 적 스폰 차단에 사용. */
+  role?: 'hub' | 'spoke' | 'boss' | 'shrine';
   /** Boss death pixel position — recorded when a boss dies in this cell so
    *  the exit portal re-appears at the same spot on re-entry. */
   bossPortalX?: number;

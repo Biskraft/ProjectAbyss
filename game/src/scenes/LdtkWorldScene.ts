@@ -81,7 +81,7 @@ import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
 import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
-import { sacredSave } from '@save/PlayerSave';
+import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
@@ -318,6 +318,8 @@ export class LdtkWorldScene extends Scene {
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
+  /** Cooldown (ms) before another "No Weapon Equipped" toast can fire. */
+  private noWeaponToastCooldown = 0;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private propShatter!: PropShatterManager;
@@ -448,7 +450,7 @@ export class LdtkWorldScene extends Scene {
   // Ending sequence
   private endingTriggers: EndingTrigger[] = [];
   private ending!: EndingSequence;
-  private savePoints: Array<{ x: number; y: number; gfx: Graphics; prompt?: Container }> = [];
+  private savePoints: Array<{ x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container }> = [];
   private saveDelayTimer = 0;
   private saveQueued = false;
   /**
@@ -1210,6 +1212,10 @@ export class LdtkWorldScene extends Scene {
     this.uiController.handleInventoryToggle({
       canToggle: !this.inItemTunnel && !this.game.input.shiftDown,
       onToggled: () => {
+        // Broken Sword 픽업 전엔 인벤토리 토글을 "가이드 학습 완료"로 인정하지 않는다.
+        // 인벤토리에 줄 게 없는 시점에 I 를 누르는 건 대개 우발적 입력이고,
+        // 진짜 가이드는 첫 무기 픽업 직후에 처음 띄워야 의미가 있다.
+        if (!sacredSave.isFirstPickupDone()) return;
         this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
         this.hud.setItemKeyHighlight(false);
         this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
@@ -1305,6 +1311,34 @@ export class LdtkWorldScene extends Scene {
     // 다음 프레임에 1틱 늦게 safe ground 가 잡히는데 시각적으로 무시 가능.
     this.player.onCarrier = this.playerOnBuilder;
     this.player.update(dt);
+
+    // No-weapon attack feedback — Player flags the pulse, scene shows toast
+    // with cooldown so spamming C doesn't spam toasts.
+    if (this.player.attackBlockedNoWeaponPulse) {
+      this.player.attackBlockedNoWeaponPulse = false;
+      if (this.noWeaponToastCooldown <= 0) {
+        this.toast.show('No Weapon Equipped', 0xFF8000);
+        this.noWeaponToastCooldown = 1500;
+      }
+    }
+    if (this.noWeaponToastCooldown > 0) {
+      this.noWeaponToastCooldown = Math.max(0, this.noWeaponToastCooldown - dt);
+    }
+
+    // First time HP drops to/under 40% — surface a tutorial hint pointing at
+    // the heal key. Shared one-shot flag with ItemWorldScene.
+    if (
+      !isLowHpHealToastFired() &&
+      this.player.maxHp > 0 &&
+      this.player.hp > 0 &&
+      this.player.hp / this.player.maxHp <= 0.4
+    ) {
+      markLowHpHealToastFired();
+      this.tutorialHint.tryShow('low_hp_heal', {
+        keyLabel: actionKey(GameAction.FLASK),
+        text: 'Heal',
+      });
+    }
 
     // After physics: is the player now grounded on a builder-stamped tile?
     this.playerOnBuilder = this.activeBuilder ? this.isPlayerOnBuilderStamp() : false;
@@ -2466,6 +2500,7 @@ export class LdtkWorldScene extends Scene {
     this.relicMarkers = [];
     for (const sp of this.savePoints) {
       if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx);
+      if (sp.sprite?.parent) sp.sprite.parent.removeChild(sp.sprite);
       if (sp.prompt?.parent) sp.prompt.parent.removeChild(sp.prompt);
     }
     this.savePoints = [];
@@ -2811,7 +2846,9 @@ export class LdtkWorldScene extends Scene {
       if (dx < RANGE && dy < RANGE) {
         nearSave = true;
         nearSavePt = { x: sp.x, y: sp.y };
-        sp.gfx.alpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+        const a = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+        sp.gfx.alpha = a;
+        if (sp.sprite) sp.sprite.alpha = a;
         // Show context prompt ??convert world pos to native screen pos
         if (sp.prompt) {
           sp.prompt.visible = true;
@@ -2826,6 +2863,7 @@ export class LdtkWorldScene extends Scene {
         // ?�력 처리??update() ??save point ?�점 블록?�서 ?�행 (C/ATTACK, pre-player.update).
       } else {
         sp.gfx.alpha = 0.6;
+        if (sp.sprite) sp.sprite.alpha = 1.0;
         if (sp.prompt) sp.prompt.visible = false;
       }
     }
@@ -3692,8 +3730,34 @@ export class LdtkWorldScene extends Scene {
     for (const bp of this.breakableProps) bp.destroy();
     this.breakableProps = [];
 
+    // Reserve an 8-tile radius around save points and room entries so the
+    // player has clean ground to land/save without props blocking the read.
+    const exclude = new Set<string>();
+    const RADIUS = 8;
+    const addRadius = (col: number, row: number) => {
+      for (let dr = -RADIUS; dr <= RADIUS; dr++) {
+        for (let dc = -RADIUS; dc <= RADIUS; dc++) {
+          exclude.add(`${col + dc},${row + dr}`);
+        }
+      }
+    };
+    for (const ent of level.entities) {
+      if (ent.type === 'GameSaver' || ent.type === 'Player') {
+        const col = Math.floor(ent.px[0] / TILE_SIZE);
+        const row = Math.floor(ent.px[1] / TILE_SIZE);
+        addRadius(col, row);
+      }
+    }
+    const grid = this.collisionGrid;
+    const cols = grid[0]?.length ?? 0;
+    const rows = grid.length;
+    const lp = this.findEdgePassage(grid, 'left',  -1); if (lp >= 0) addRadius(0,        lp);
+    const rp = this.findEdgePassage(grid, 'right', -1); if (rp >= 0) addRadius(cols - 1, rp);
+    const up = this.findEdgePassage(grid, 'up',    -1); if (up >= 0) addRadius(up, 0);
+    const dp = this.findEdgePassage(grid, 'down',  -1); if (dp >= 0) addRadius(dp, rows - 1);
+
     const seed = hashString(level.identifier + '_props');
-    const props = spawnBreakableProps(this.collisionGrid, seed, false);
+    const props = spawnBreakableProps(this.collisionGrid, seed, false, exclude);
     for (const prop of props) {
       this.breakableProps.push(prop);
       this.entityLayer.addChild(prop.container);
@@ -3941,9 +4005,10 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'GameSaver': {
-          // Save point ??pivot bottom-left, center the marker on entity
+          // Save point — pivot bottom-left, center the marker on entity
           const spx = ent.px[0] + ent.width / 2;
           const spy = ent.px[1] - ent.height / 2;
+          const floorY = ent.px[1]; // LDtk entity bottom = floor surface
           const marker = new Graphics();
           marker.rect(-12, -12, 24, 24).fill({ color: 0x2244cc, alpha: 0.85 });
           marker.rect(-12, -12, 24, 24).stroke({ color: 0x3366ff, width: 2 });
@@ -3953,12 +4018,37 @@ export class LdtkWorldScene extends Scene {
           marker.x = spx;
           marker.y = spy;
           this.entityLayer.addChild(marker);
-          // Context prompt ??rendered in uiContainer for crisp text
+          // Context prompt — rendered in uiContainer for crisp text
           const us = this.game.uiScale;
           const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Save', us);
           prompt.visible = false;
           this.game.uiContainer.addChild(prompt);
-          this.savePoints.push({ x: spx, y: spy, gfx: marker, prompt });
+          const entry: { x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container } =
+            { x: spx, y: spy, gfx: marker, prompt };
+          this.savePoints.push(entry);
+          // Attach the totem sprite (save_point_01.png). Async load — until it
+          // resolves, the placeholder marker stays visible. Once loaded, hide
+          // the marker so only the sprite is shown.
+          //
+          // Guard: if the entry was already cleared by a level transition (or
+          // the marker was detached), drop the load result. Without this, late-
+          // arriving textures attach orphan sprites to entityLayer and pile up
+          // across levels.
+          Assets.load<Texture>(assetPath('assets/sprites/save_point_01.png'))
+            .then((tex) => {
+              if (!tex) return;
+              if (!this.savePoints.includes(entry)) return; // stale — entry cleared
+              if (!marker.parent) return;                   // marker already removed
+              tex.source.scaleMode = 'nearest';
+              const sp = new Sprite(tex);
+              sp.anchor.set(0.5, 1); // bottom-center: totem base sits on floor
+              sp.x = spx;
+              sp.y = floorY;
+              this.entityLayer.addChild(sp);
+              entry.sprite = sp;
+              marker.visible = false;
+            })
+            .catch(() => { /* sprite missing — keep placeholder marker */ });
           break;
         }
         case 'GoldPickup': {
@@ -4727,8 +4817,7 @@ export class LdtkWorldScene extends Scene {
     this.hud.setItemKeyHighlight(true);
     this.tutorialHint.tryShow(
       INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID,
-      `Press [${actionKey(GameAction.INVENTORY)}] to Open Inventory`,
-      { persistent: true },
+      { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
     );
   }
 
@@ -4849,8 +4938,7 @@ export class LdtkWorldScene extends Scene {
         this.hud.setItemKeyHighlight(true);
         this.tutorialHint.tryShow(
           INVENTORY_KEY_HINT_ID,
-          `Press [${actionKey(GameAction.INVENTORY)}] to Open Inventory`,
-          { persistent: true },
+          { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
         );
       }
     }

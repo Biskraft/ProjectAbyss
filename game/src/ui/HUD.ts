@@ -62,6 +62,9 @@ export class HUD {
   private FLASK_Y: number;
   private FONT: number;
   private HP_FONT: number;
+  /** EXP/level label font — larger than base FONT so weapon name + Lv.X
+   *  remain legible at 640x360 inside the Item World. */
+  private EXP_FONT: number;
   private BOSS_W: number; private BOSS_H: number;
   private BOSS_X: number; private BOSS_Y: number;
 
@@ -123,6 +126,9 @@ export class HUD {
   private depthCurrent = 0;
   private depthCleared: boolean[] = [];
   private depthPulseTimer = 0;
+
+  // Item world exit hint (top-right [ESC] Exit, item world only)
+  private itemExitHintContainer: Container;
 
   // Item EXP bar (item world only)
   private expBarContainer: Container;
@@ -199,6 +205,7 @@ export class HUD {
     this.FLASK_Y = this.HP_Y + this.HP_H + 2 * s;
     this.FONT = BASE_FONT * s;
     this.HP_FONT = BASE_HP_FONT * s;
+    this.EXP_FONT = 14 * s;
     this.BOSS_W = BASE_BOSS_W * s;
     this.BOSS_H = BASE_BOSS_H * s;
     this.BOSS_X = (this.SW - this.BOSS_W) / 2;
@@ -383,15 +390,51 @@ export class HUD {
     this.depthGauge.addChild(this.depthGaugeGfx);
     this.container.addChild(this.depthGauge);
 
+    // --- Item world exit hint ([ESC] Exit, top-right, hidden by default) ---
+    // Tied to showItemExp / hideItemExp lifecycle so it only appears while
+    // the player is inside an item world stratum.
+    this.itemExitHintContainer = new Container();
+    this.itemExitHintContainer.visible = false;
+    {
+      const KEY_SIZE = 14 * s;
+      const LABEL_FONT = 10 * s;
+      const escIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.MENU), KEY_SIZE);
+      const exitLabelShadow = new BitmapText({
+        text: 'Exit',
+        style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0x000000 },
+      });
+      const exitLabel = new BitmapText({
+        text: 'Exit',
+        style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0xffffff },
+      });
+      // Right-align the cluster: place icon, then label to its right.
+      // Gold text sits at MARGIN (y); place hint a row below.
+      const HINT_Y = this.MARGIN + this.FONT + 6 * s;
+      const GAP = 4 * s;
+      // Compute total width to right-align: icon + gap + label.width
+      const totalW = KEY_SIZE + GAP + exitLabel.width;
+      const startX = this.SW - this.MARGIN - totalW;
+      escIcon.x = startX;
+      escIcon.y = HINT_Y;
+      exitLabelShadow.x = startX + KEY_SIZE + GAP + s;
+      exitLabelShadow.y = HINT_Y + Math.floor((KEY_SIZE - exitLabel.height) / 2) + s;
+      exitLabel.x = startX + KEY_SIZE + GAP;
+      exitLabel.y = HINT_Y + Math.floor((KEY_SIZE - exitLabel.height) / 2);
+      this.itemExitHintContainer.addChild(escIcon);
+      this.itemExitHintContainer.addChild(exitLabelShadow);
+      this.itemExitHintContainer.addChild(exitLabel);
+    }
+    this.container.addChild(this.itemExitHintContainer);
+
     // --- Item EXP bar (hidden by default, shown in item world) ---
     this.expBarContainer = new Container();
     this.expBarContainer.visible = false;
     this.expBarGfx = new Graphics();
     this.expBarContainer.addChild(this.expBarGfx);
-    this.expNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
-    this.expLevelShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.expNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
+    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0xffffff } });
+    this.expLevelShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
+    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0xffffff } });
     this.expBarContainer.addChild(this.expNameShadow);
     this.expBarContainer.addChild(this.expNameText);
     this.expBarContainer.addChild(this.expLevelShadow);
@@ -610,6 +653,7 @@ export class HUD {
     this.expLerpTimer = 0;
     this.expLevelUpFlash = 0;
     this.expBarContainer.visible = true;
+    this.itemExitHintContainer.visible = true;
     this.redrawExpBar();
   }
 
@@ -636,6 +680,7 @@ export class HUD {
   /** Hide item EXP bar (call on leaving item world). */
   hideItemExp(): void {
     this.expBarContainer.visible = false;
+    this.itemExitHintContainer.visible = false;
   }
 
   /** [I]tem 키 강조 on/off — 첫 아이템계 클리어 유도 후 I 입력까지만 true. */
@@ -1029,7 +1074,7 @@ export class HUD {
     this.expLevelShadow.y = startY + s;
 
     // EXP bar background
-    const barY = startY + this.FONT + 2 * s;
+    const barY = startY + this.EXP_FONT + 2 * s;
     g.rect(startX - s, barY - s, barW + 2 * s, barH + 2 * s).fill(0x444444);
     g.rect(startX, barY, barW, barH).fill(EXP_BG_COLOR);
 

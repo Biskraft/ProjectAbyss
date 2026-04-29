@@ -153,6 +153,17 @@ class SacredSaveImpl {
 /** 전역 싱글턴 — 어디서든 import해 동일 인스턴스 사용. */
 export const sacredSave = new SacredSaveImpl();
 
+// ---------------------------------------------------------------------------
+// Session-only tutorial flags (not persisted to save)
+//
+// 한 번만 띄우는 토스트류는 세이브에 굳이 박을 필요가 없다. 세션 내에서만
+// 중복 발화를 막으면 충분하고, 세이브 포맷 변경도 피할 수 있다.
+// ---------------------------------------------------------------------------
+
+let _lowHpHealToastFired = false;
+export function isLowHpHealToastFired(): boolean { return _lowHpHealToastFired; }
+export function markLowHpHealToastFired(): void { _lowHpHealToastFired = true; }
+
 /**
  * 무기 정의에 따라 간단한 Lore 2줄을 반환. CSV에 lore가 추가되기 전까지의
  * 임시 폴백 — 각 줄은 영문, "memory/echo/stratum/grain/forge" 중 1단어 이상 포함.

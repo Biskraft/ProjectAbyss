@@ -9,9 +9,25 @@
  * removed, the visual disappears, and the linked door opens.
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 
 const TILE_SIZE = 16;
+
+/** Switch sprite — 32x32 placeholder PNG. Loaded once and shared across instances. */
+const SWITCH_SPRITE_PATH = 'assets/sprites/breakable_switch_01.png';
+let switchTexture: Texture | null = null;
+let switchTexturePromise: Promise<Texture> | null = null;
+function loadSwitchTexture(): Promise<Texture> {
+  if (switchTexturePromise) return switchTexturePromise;
+  switchTexturePromise = (async () => {
+    const tex = await Assets.load<Texture>(assetPath(SWITCH_SPRITE_PATH));
+    tex.source.scaleMode = 'nearest';
+    switchTexture = tex;
+    return tex;
+  })();
+  return switchTexturePromise;
+}
 
 export class Switch {
   container: Container;
@@ -24,6 +40,7 @@ export class Switch {
   activated = false;
 
   private gfx: Graphics;
+  private sprite: Sprite | null = null;
   /** Collision grid cells this switch occupies. */
   private gridCells: { col: number; row: number }[] = [];
 
@@ -39,9 +56,12 @@ export class Switch {
     this.container.x = this.x;
     this.container.y = this.y;
 
+    // Placeholder Graphics until the sprite finishes loading. Drawn once;
+    // when the texture is ready, Graphics is hidden and Sprite added.
     this.gfx = new Graphics();
     this.drawIdle();
     this.container.addChild(this.gfx);
+    this.attachSprite();
   }
 
   private drawIdle(): void {
@@ -58,6 +78,20 @@ export class Switch {
       .lineTo(this.width * 0.5, this.height * 0.45)
       .lineTo(this.width - 4, this.height * 0.7)
       .stroke({ color: 0xffaa44, width: 1 });
+  }
+
+  private attachSprite(): void {
+    const apply = (tex: Texture) => {
+      if (this.activated) return;
+      const sp = new Sprite(tex);
+      sp.width = this.width;
+      sp.height = this.height;
+      this.gfx.visible = false;
+      this.container.addChild(sp);
+      this.sprite = sp;
+    };
+    if (switchTexture) { apply(switchTexture); return; }
+    loadSwitchTexture().then(apply).catch(() => { /* keep Graphics fallback */ });
   }
 
   /** Inject solid collision tiles into the grid. */

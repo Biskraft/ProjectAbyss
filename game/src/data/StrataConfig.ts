@@ -42,6 +42,9 @@ export type BossPlacement = 'branch_end' | 'multi_hub';
  *   layer_cake    — 층 단위로 좌우가 갈리는 케이크형
  *   ring          — 환형 (시작=끝 인접)
  *   spine_pockets — 척추 라인 + 측면 포켓
+ *
+ * Tier C cycle (Phase A, Joris Dormans Unexplored 모델):
+ *   two_arc_pocketed — hub→boss 사이 평행한 두 arc + 각 arc 노드에 측면 알코브 pocket. 폐곡선 1개 + 분기 고밀도.
  */
 export type TopologyKind =
   | 'hub_spoke'
@@ -51,12 +54,14 @@ export type TopologyKind =
   | 't_junction'
   | 'layer_cake'
   | 'ring'
-  | 'spine_pockets';
+  | 'spine_pockets'
+  | 'two_arc_pocketed';
 
 export const TOPOLOGY_VALUES: ReadonlySet<TopologyKind> = new Set<TopologyKind>([
   'hub_spoke', 'multi_hub',
   'linear_right',
   'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
+  'two_arc_pocketed',
 ]);
 
 export interface StratumDef {

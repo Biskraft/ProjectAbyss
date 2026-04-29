@@ -537,6 +537,16 @@ export class InventoryUI {
     nameText.y = y + 3;
     this.listArea.addChild(nameText);
 
+    // Level (between name and stars)
+    const lvColor = (isOnAnvil || isStarterOnly) ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : COL_TEXT);
+    const lvText = new BitmapText({
+      text: `Lv.${item.level}`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: lvColor }
+    });
+    lvText.x = PADDING + rowW - 150;
+    lvText.y = y + 4;
+    this.listArea.addChild(lvText);
+
     // Stars (rarity)
     const starCount = { normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 5 }[item.rarity] ?? 1;
     const starsText = new BitmapText({
@@ -630,13 +640,13 @@ export class InventoryUI {
     this.detailArea.addChild(nameText);
     y += 14;
 
-    // Rarity + Level
+    // Rarity (level is shown in the row, not here)
     const rarityName = RARITY_DISPLAY_NAME[item.rarity] ?? item.rarity;
     const cycle = item.worldProgress?.cycle ?? 0;
     const cycleTag = cycle > 0 ? ` C${cycle}` : '';
     const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
     const metaText = new BitmapText({
-      text: `${rarityName} · Lv.${item.level}${cycleTag}${clearTag}`,
+      text: `${rarityName}${cycleTag}${clearTag}`,
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM }
     });
     metaText.x = PADDING;

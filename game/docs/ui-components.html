@@ -152,6 +152,7 @@
   }
   .key-icon.s7  {width:7px;height:7px;font-size:5px;border-radius:1px}
   .key-icon.s14 {width:14px;height:14px;font-size:8px;border-radius:2px}
+  .key-icon.s21 {width:21px;height:21px;font-size:13px;border-radius:3px}
   .key-icon.s28 {width:28px;height:28px;font-size:16px;border-radius:3px}
 
   /* Progress gauge — input lock / hold-to-confirm 등 진행률 표기.
@@ -168,6 +169,38 @@
     background:var(--kp-bg);border-radius:2px;color:#fff;font-size:8px;
   }
   .ctx-prompt .key-icon{margin-right:3px}
+
+  /* TutorialHint — first-time mechanic teaching popup.
+     Larger than ctx-prompt: emphasises the key cap (s28) so a new player
+     reads the input first, label second. Floating bottom-center in-game.
+     DEC-035 키컬러 orange soft pulse — halo만 펄스하여 시선 유도, 텍스트 가독성 유지. */
+  .tutorial-hint{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 14px;
+    background:var(--kp-bg);
+    border:1px solid rgba(255,128,0,0.55);
+    border-radius:3px;
+    color:#fff;font-size:11px;font-weight:600;letter-spacing:0.5px;
+    animation:tutorial-hint-pulse 1.6s ease-in-out infinite;
+  }
+  .tutorial-hint .key-icon{margin-right:0}
+  @keyframes tutorial-hint-pulse{
+    0%,100%{
+      box-shadow:
+        0 0 6px rgba(255,128,0,0.30),
+        0 0 14px rgba(255,128,0,0.15);
+      border-color:rgba(255,128,0,0.45);
+    }
+    50%{
+      box-shadow:
+        0 0 12px rgba(255,128,0,0.70),
+        0 0 28px rgba(255,128,0,0.35);
+      border-color:rgba(255,128,0,0.95);
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .tutorial-hint{animation:none}
+  }
 
   /* ===================================================
      Slot
@@ -1621,9 +1654,15 @@
   <section id="tutorial-hint">
     <h2>TutorialHint <span class="pill float">FLOATING</span></h2>
     <div class="src">TutorialHint.ts</div>
-    <p>첫 등장 메커닉 안내. KeyPrompt + 짧은 라벨. 한 번 본 hint는 sacredSave 가 기억.</p>
-    <div class="stage">
-      <div class="ctx-prompt"><span class="key-icon s14">X</span> Hold to dash</div>
+    <p>첫 등장 메커닉 안내. <code>s28</code> 키 캡 + 14px 라벨로 키 버튼이 라벨보다 우선해서 읽힌다. 한 번 본 hint는 sacredSave 가 기억. 화면 하단 중앙 부유 표시.</p>
+    <div class="stage center" style="background:#000">
+      <div class="tutorial-hint"><span class="key-icon s21">X</span> Hold to dash</div>
+    </div>
+    <div class="stage center" style="background:#000">
+      <div class="tutorial-hint"><span class="key-icon s21">I</span> Open inventory</div>
+    </div>
+    <div class="stage center" style="background:#000">
+      <div class="tutorial-hint"><span class="key-icon s21" style="width:33px">ESC</span> Pause</div>
     </div>
   </section>
 
