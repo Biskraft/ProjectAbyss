@@ -17,6 +17,9 @@ import { Container, Graphics } from 'pixi.js';
 const GRAVITY = 720;        // px/s^2 — confetti fall rate
 const AIR_FRICTION = 0.965; // per ~16ms tick
 const BOB_AMPLITUDE = 2;
+const TILE_SIZE = 16;
+const SETTLE_VY = 55;       // |vy| below this on a bounce → consider stopping
+const SETTLE_VX = 18;       // |vx| below this with floor contact → settle
 
 interface TierVisual {
   size: number;   // outer circle radius (px)
@@ -25,13 +28,13 @@ interface TierVisual {
   rim: number;    // stroke color
 }
 
-/** Visual treatment per denomination. Higher tier = bigger + rarer-feeling. */
+/** Visual treatment per denomination. Color unified to gold; size differs per tier. */
 const TIER_VISUALS: ReadonlyArray<readonly [number, TierVisual]> = [
-  [100, { size: 7, outer: 0xFFFFFF, inner: 0xCCEEFF, rim: 0xAACCDD }],
-  [50,  { size: 6, outer: 0xFF8030, inner: 0xFFAA60, rim: 0x804010 }],
+  [100, { size: 7, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
+  [50,  { size: 6, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
   [10,  { size: 5, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
   [5,   { size: 4, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
-  [1,   { size: 3, outer: 0xC0A040, inner: 0xE0C060, rim: 0x806020 }],
+  [1,   { size: 3, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
 ];
 
 function tierFor(amount: number): TierVisual {
@@ -97,11 +100,17 @@ export class GoldPickup {
   baseY: number;
   collected = false;
 
-  // Confetti physics — non-zero physicsTimer makes update() do ballistic motion
-  // until time runs out, then settle into bob at the resting position.
+  // Confetti physics — non-zero physicsTimer puts update() in ballistic mode.
+  // Settle happens when the coin lands on a solid tile (via roomData), not
+  // when the timer expires — otherwise airborne coins freeze mid-air.
   vx = 0;
   vy = 0;
   physicsTimer = 0;
+  /** Solid grid for floor + side-wall collision during burst flight. */
+  roomData: number[][] | null = null;
+  /** True when the coin has come to rest on a tile via burst physics.
+   *  Floored coins skip the bob animation (idle hover is for fixed pickups). */
+  private floored = false;
 
   private gfx: Graphics;
   private timer = 0;
@@ -128,8 +137,9 @@ export class GoldPickup {
     const cx = this.width / 2;
     const cy = this.height / 2;
     const t = this.tier;
-    // Pivot the spinning sprite around its center for clean rotation.
-    this.gfx.pivot.set(cx, cy);
+    // Spin around the circle's own center. Default pivot (0,0) coincides
+    // with where the circles are drawn, so gfx.x/y simply offsets the
+    // visual to the container's center.
     this.gfx.x = cx;
     this.gfx.y = cy;
     this.gfx.circle(0, 0, t.size).fill({ color: t.outer, alpha: 0.9 });
@@ -141,21 +151,73 @@ export class GoldPickup {
     if (this.collected) return;
     if (this.physicsTimer > 0) {
       const sec = dt / 1000;
-      this.x += this.vx * sec;
-      this.y += this.vy * sec;
+      const halfW = this.width / 2;
+      const halfH = this.height / 2;
+      const r = this.tier.size;  // visual radius — used so coins rest *on* the tile
+
       this.vy += GRAVITY * sec;
       this.vx *= Math.pow(AIR_FRICTION, dt / 16);
       this.physicsTimer -= dt;
-      this.container.x = this.x;
-      this.container.y = this.y;
       this.gfx.rotation += dt * 0.014;
+
+      // ---- X axis: move + side-wall collision (split-axis avoids tunneling). ----
+      this.x += this.vx * sec;
+      if (this.roomData) {
+        const cyMid = Math.floor((this.y + halfH) / TILE_SIZE);
+        if (this.vx > 0) {
+          const rightX = this.x + halfW + r;
+          const cxR = Math.floor(rightX / TILE_SIZE);
+          if ((this.roomData[cyMid]?.[cxR] ?? 0) !== 0) {
+            this.x = cxR * TILE_SIZE - r - halfW;
+            this.vx = -this.vx * 0.45;
+          }
+        } else if (this.vx < 0) {
+          const leftX = this.x + halfW - r;
+          const cxL = Math.floor(leftX / TILE_SIZE);
+          if ((this.roomData[cyMid]?.[cxL] ?? 0) !== 0) {
+            this.x = (cxL + 1) * TILE_SIZE + r - halfW;
+            this.vx = -this.vx * 0.45;
+          }
+        }
+      }
+
+      // ---- Y axis: move + floor collision using the visual bottom (center+r). ----
+      this.y += this.vy * sec;
+      if (this.roomData && this.vy > 0) {
+        const cxMid = Math.floor((this.x + halfW) / TILE_SIZE);
+        const visualBottom = this.y + halfH + r;
+        const cyB = Math.floor(visualBottom / TILE_SIZE);
+        if ((this.roomData[cyB]?.[cxMid] ?? 0) !== 0) {
+          // Snap so the visual bottom sits exactly on the tile top.
+          this.y = cyB * TILE_SIZE - halfH - r;
+          this.vy = -this.vy * 0.42;
+          this.vx *= 0.78;
+          if (Math.abs(this.vy) < SETTLE_VY && Math.abs(this.vx) < SETTLE_VX) {
+            this.physicsTimer = 0;
+            this.floored = true;
+          }
+        }
+      }
+
+      // Burst window expired without contact — settle in place (no warp).
       if (this.physicsTimer <= 0) {
-        this.baseY = this.y;
+        this.physicsTimer = 0;
         this.vx = 0;
         this.vy = 0;
+        this.baseY = this.y;
         this.gfx.rotation = 0;
         this.timer = 0;
       }
+
+      this.container.x = this.x;
+      this.container.y = this.y;
+      return;
+    }
+    // Floored burst coins stay perfectly still (no idle bob).
+    if (this.floored) {
+      this.container.x = this.x;
+      this.container.y = this.y;
+      this.gfx.alpha = 1;
       return;
     }
     this.timer += dt;

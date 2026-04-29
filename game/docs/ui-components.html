@@ -354,6 +354,7 @@
     <div class="group">Item World</div>
     <a href="#item-world-select">ItemWorldSelect</a>
     <a href="#stratum-clear">StratumClear</a>
+    <a href="#gold-drop">GoldDrop</a>
   </nav>
 </aside>
 
@@ -2171,6 +2172,288 @@
       <b>Rarity scaling:</b> Normal (180p / 5rings / pillarW=50, tint α=0.34) &rarr; Ancient (520p / 9rings / pillarW=116, tint α=0.66)<br>
       <b>SSoT:</b> RARITY_BURST in <code>game/src/ui/StratumClearOverlay.ts</code><br>
       <b>Replaces:</b> StratumClearPanel + BossChoice + EscapeConfirm + ReturnResult (5 modals &rarr; 1)
+    </div>
+  </section>
+
+  <section id="gold-drop">
+    <h2>GoldDrop <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">GoldPickup.ts (spawnBurst + denomination tiers)</div>
+    <p>적 처치 / 오브젝트 파괴 시 골드가 1·5·10·50·100 액면으로 분리되어 confetti 처럼 흩뿌려진다. 액면별 시각이 다르고, 위쪽 콘으로 발사된 후 중력·공기마찰·회전을 거쳐 정착하면 기존 bob 상태로 전환된다.</p>
+
+    <div class="card">
+      <h3>Gold Drop — Live Demo (Confetti Burst)</h3>
+      <div class="meta">amount 입력 후 BURST 누르거나 미리 정의된 금액 버튼 클릭. 무대를 클릭해도 그 위치에서 터진다.</div>
+
+      <style>
+        .gd-stage{
+          position:relative;width:100%;height:320px;
+          background:linear-gradient(180deg,#0a0a0a 0%,#1a1a1a 100%);
+          border:1px solid var(--line);overflow:hidden;cursor:crosshair;
+          user-select:none;
+        }
+        .gd-ground{
+          position:absolute;left:0;right:0;bottom:0;height:48px;
+          background:repeating-linear-gradient(90deg,#222 0 16px,#1a1a1a 16px 32px);
+          border-top:1px solid #333;
+        }
+        .gd-coin{position:absolute;border-radius:50%;pointer-events:none;}
+        .gd-readout{
+          position:absolute;top:8px;left:8px;font-size:9px;
+          color:var(--text-secondary);letter-spacing:1px;line-height:1.6;
+          background:rgba(0,0,0,0.5);padding:6px 10px;border:1px solid var(--line);
+        }
+        .gd-readout .acc{color:var(--text-accent)}
+        .gd-readout .pos{color:var(--text-positive)}
+
+        .gd-controls{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
+        .gd-controls input{
+          background:var(--panel-bg);border:1px solid var(--line);
+          color:var(--text-primary);font-family:inherit;font-size:11px;
+          padding:6px 8px;width:80px;
+        }
+        .gd-controls button{
+          background:var(--panel-bg);border:1px solid var(--line);
+          color:var(--text-secondary);font-size:9px;padding:6px 12px;
+          cursor:pointer;letter-spacing:1px;font-family:inherit;
+        }
+        .gd-controls button.primary{
+          border-color:var(--accent);color:var(--accent);
+        }
+        .gd-controls button.primary:hover{
+          background:var(--accent);color:#000;
+        }
+        .gd-controls button:hover{border-color:var(--text-primary);color:var(--text-primary)}
+        .gd-tier-row{display:flex;gap:12px;margin-top:8px;font-size:9px;
+          color:var(--text-secondary);letter-spacing:1px}
+        .gd-tier-row .swatch{display:inline-block;border-radius:50%;margin-right:4px;
+          vertical-align:middle;border:1px solid #000}
+      </style>
+
+      <div class="gd-stage" id="gdStage">
+        <div class="gd-ground"></div>
+        <div class="gd-readout" id="gdReadout">
+          AMOUNT &rarr; <span class="acc" id="gdAmount">0</span><br>
+          COINS &rarr; <span class="pos" id="gdCoins">0</span>
+        </div>
+      </div>
+
+      <div class="gd-controls">
+        <input type="number" id="gdInput" value="237" min="1" max="9999"/>
+        <button class="primary" id="gdBurst">BURST</button>
+        <button data-amt="1">1</button>
+        <button data-amt="13">13</button>
+        <button data-amt="47">47</button>
+        <button data-amt="120">120</button>
+        <button data-amt="537">537</button>
+        <button data-amt="1234">1234</button>
+        <button data-amt="9999">9999</button>
+      </div>
+
+      <div class="gd-tier-row">
+        <span><span class="swatch" style="background:#FFD700;width:6px;height:6px"></span>1</span>
+        <span><span class="swatch" style="background:#FFD700;width:8px;height:8px"></span>5</span>
+        <span><span class="swatch" style="background:#FFD700;width:10px;height:10px"></span>10</span>
+        <span><span class="swatch" style="background:#FFD700;width:12px;height:12px"></span>50</span>
+        <span><span class="swatch" style="background:#FFD700;width:14px;height:14px"></span>100</span>
+      </div>
+
+      <script>
+      (function(){
+        // SSoT mirror: game/src/entities/GoldPickup.ts
+        const TIERS = {
+          1:   { size:3, outer:'#FFD700', inner:'#FFEE88', rim:'#CC9900' },
+          5:   { size:4, outer:'#FFD700', inner:'#FFEE88', rim:'#CC9900' },
+          10:  { size:5, outer:'#FFD700', inner:'#FFEE88', rim:'#CC9900' },
+          50:  { size:6, outer:'#FFD700', inner:'#FFEE88', rim:'#CC9900' },
+          100: { size:7, outer:'#FFD700', inner:'#FFEE88', rim:'#CC9900' },
+        };
+        const DENOMS = [100, 50, 10, 5, 1];
+        const MAX_COINS = 22;
+        const GRAVITY = 720;
+        const AIR_FRICTION = 0.965;
+
+        function splitDenominations(amount){
+          const counts = new Map();
+          let remain = amount;
+          for (const d of DENOMS){
+            if (remain <= 0) break;
+            const n = Math.floor(remain / d);
+            if (n > 0){ counts.set(d, n); remain -= n*d; }
+          }
+          let total = 0;
+          for (const c of counts.values()) total += c;
+          while (total > MAX_COINS){
+            let merged = false;
+            for (let i=DENOMS.length-1;i>0;i--){
+              const small = DENOMS[i];
+              const big   = DENOMS[i-1];
+              const ratio = big / small;
+              const cnt = counts.get(small) ?? 0;
+              if (cnt >= ratio){
+                const groups = Math.floor(cnt/ratio);
+                counts.set(small, cnt - groups*ratio);
+                counts.set(big, (counts.get(big) ?? 0) + groups);
+                total = total - groups*ratio + groups;
+                merged = true;
+                break;
+              }
+            }
+            if (!merged) break;
+          }
+          const out = [];
+          for (const d of DENOMS){
+            const c = counts.get(d) ?? 0;
+            if (c > 0) out.push([d, c]);
+          }
+          return out;
+        }
+
+        const stage    = document.getElementById('gdStage');
+        const amountEl = document.getElementById('gdAmount');
+        const coinsEl  = document.getElementById('gdCoins');
+        const input    = document.getElementById('gdInput');
+        let coins = [];
+        let rafId = null;
+        let lastT = 0;
+
+        function makeCoinEl(tier){
+          const t = TIERS[tier];
+          const px = t.size * 2;
+          const inner = Math.max(2, (t.size - 2) * 2);
+          const el = document.createElement('div');
+          el.className = 'gd-coin';
+          el.style.width  = px + 'px';
+          el.style.height = px + 'px';
+          el.style.background =
+            'radial-gradient('+t.inner+' 0%,'+t.inner+' '+
+            Math.floor((inner/px)*40)+'%,'+t.outer+' '+
+            Math.floor((inner/px)*60)+'%,'+t.outer+' 100%)';
+          el.style.boxShadow = '0 0 4px '+t.outer+', 0 0 1px '+t.rim+' inset';
+          return el;
+        }
+
+        function spawnBurst(cx, cy, totalAmount){
+          if (totalAmount <= 0) return;
+          const breakdown = splitDenominations(totalAmount);
+          let totalCoins = 0;
+          for (const [denom, count] of breakdown){
+            for (let i=0;i<count;i++){
+              const el = makeCoinEl(denom);
+              stage.appendChild(el);
+              const angle = -Math.PI/2 + (Math.random()-0.5) * Math.PI * 0.95;
+              const speed = 160 + Math.random()*160;
+              coins.push({
+                el, denom,
+                x: cx, y: cy,
+                vx: Math.cos(angle)*speed,
+                vy: Math.sin(angle)*speed,
+                physics: 700 + Math.random()*350,
+                baseY: 0, settled: false,
+                rot: 0, rotSpeed: 0.014,
+                timer: 0,
+              });
+              totalCoins++;
+            }
+          }
+          amountEl.textContent = totalAmount;
+          coinsEl.textContent  = totalCoins + ' (' +
+            breakdown.map(([d,c])=>c+'×'+d).join(' + ') + ')';
+          if (!rafId){ lastT = 0; rafId = requestAnimationFrame(tick); }
+        }
+
+        function tick(now){
+          const dt  = lastT ? Math.min(40, now - lastT) : 16;
+          lastT = now;
+          const sec = dt/1000;
+          // Top edge of the floor band — coins should bounce when their
+          // BOTTOM (y + radius) crosses this line, not their center.
+          const groundY = stage.clientHeight - 48;
+          const stageW  = stage.clientWidth;
+          for (let i=coins.length-1;i>=0;i--){
+            const c = coins[i];
+            const w = parseFloat(c.el.style.width);
+            const r = w / 2;
+            if (c.settled){
+              c.timer += dt;
+              const py = c.baseY + Math.sin(c.timer*0.003)*2;
+              c.el.style.transform =
+                'translate('+(c.x - r)+'px,'+(py - r)+'px)';
+              c.el.style.opacity = 0.7 + Math.sin(c.timer*0.005)*0.3;
+              continue;
+            }
+            c.x += c.vx * sec;
+            c.y += c.vy * sec;
+            c.vy += GRAVITY * sec;
+            c.vx *= Math.pow(AIR_FRICTION, dt/16);
+            c.rot += c.rotSpeed * dt;
+            // Floor collision (account for coin radius so it sits on top).
+            // Settle ONLY here — never via timer — so airborne coins can't
+            // freeze mid-air when their physics window runs out.
+            if (c.y + r >= groundY){
+              c.y = groundY - r;
+              c.vy = -c.vy * 0.42;        // bounce energy retention
+              c.vx *= 0.78;                // floor friction
+              c.rotSpeed *= 0.6;
+              if (Math.abs(c.vy) < 55 && Math.abs(c.vx) < 18){
+                c.settled = true;
+                c.baseY = c.y;             // = groundY - r → bottom rests on ground
+                c.timer = 0;
+                c.vx = 0; c.vy = 0;
+              }
+            }
+            // Side walls — bounce off left/right of the stage.
+            if (c.x - r < 0){            c.x = r;            c.vx = Math.abs(c.vx) * 0.6; }
+            else if (c.x + r > stageW){  c.x = stageW - r;   c.vx = -Math.abs(c.vx) * 0.6; }
+            c.el.style.transform =
+              'translate('+(c.x - r)+'px,'+(c.y - r)+'px) rotate('+c.rot+'rad)';
+          }
+          // Cap age — drop the oldest if we exceed 200 onstage.
+          if (coins.length > 200){
+            const drop = coins.length - 200;
+            for (let i=0;i<drop;i++){ coins[i].el.remove(); }
+            coins.splice(0, drop);
+          }
+          rafId = requestAnimationFrame(tick);
+        }
+
+        function clearStage(){
+          for (const c of coins) c.el.remove();
+          coins = [];
+          amountEl.textContent = 0;
+          coinsEl.textContent  = 0;
+        }
+
+        document.getElementById('gdBurst').addEventListener('click', ()=>{
+          clearStage();
+          const v = Math.max(1, parseInt(input.value || '0', 10) || 0);
+          spawnBurst(stage.clientWidth/2, stage.clientHeight*0.55, v);
+        });
+        document.querySelectorAll('.gd-controls button[data-amt]').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const v = parseInt(btn.dataset.amt, 10);
+            input.value = v;
+            clearStage();
+            spawnBurst(stage.clientWidth/2, stage.clientHeight*0.55, v);
+          });
+        });
+        stage.addEventListener('click', (ev)=>{
+          const r = stage.getBoundingClientRect();
+          const v = Math.max(1, parseInt(input.value || '0', 10) || 0);
+          spawnBurst(ev.clientX - r.left, ev.clientY - r.top, v);
+        });
+        // Auto-run on load
+        setTimeout(()=>{
+          spawnBurst(stage.clientWidth/2, stage.clientHeight*0.55, 237);
+        }, 400);
+      })();
+      </script>
+    </div>
+
+    <div class="desc" style="margin-top:12px">
+      <b>Tiers:</b> 1 (3px) / 5 (4px) / 10 (5px) / 50 (6px) / 100 (7px) — 색은 금색 통일, 크기로 액면 구분<br>
+      <b>Split:</b> 그리디 largest-first &rarr; 22개 초과 시 작은 단위를 큰 단위로 자동 머지<br>
+      <b>Physics:</b> 위쪽 95° 콘 burst (speed 160-320) &rarr; 중력 720 / friction 0.965 &rarr; 바닥 접촉 시 정착 + bob<br>
+      <b>SSoT:</b> <code>splitDenominations / spawnBurst / TIER_VISUALS</code> in <code>game/src/entities/GoldPickup.ts</code>
     </div>
   </section>
 

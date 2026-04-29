@@ -2639,6 +2639,7 @@ export class ItemWorldScene extends Scene {
             const burstX = bp.x + bp.width / 2 - 8;
             const burstY = bp.y + bp.height;
             for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+              gp.roomData = this.roomData;
               this.goldPickups.push(gp);
               this.entityLayer.addChild(gp.container);
             }
@@ -3173,6 +3174,7 @@ export class ItemWorldScene extends Scene {
           const goldAmount = isGolden ? baseGold * 3 : baseGold;
           if (goldAmount > 0) {
             for (const gp of GoldPickup.spawnBurst(dropX, dropY, goldAmount)) {
+              gp.roomData = this.roomData;
               this.goldPickups.push(gp);
               this.entityLayer.addChild(gp.container);
             }

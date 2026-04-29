@@ -2313,6 +2313,7 @@ export class LdtkWorldScene extends Scene {
       const burstX = enemy.x + enemy.width / 2 - 8;
       const burstY = enemy.y + enemy.height;
       for (const gp of GoldPickup.spawnBurst(burstX, burstY, goldAmount)) {
+        gp.roomData = this.collisionGrid;
         this.goldPickups.push(gp);
         this.entityLayer.addChild(gp.container);
       }
@@ -3735,6 +3736,7 @@ export class LdtkWorldScene extends Scene {
         const burstX = bp.x + bp.width / 2 - 8;
         const burstY = bp.y + bp.height;
         for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+          gp.roomData = this.collisionGrid;
           this.goldPickups.push(gp);
           this.entityLayer.addChild(gp.container);
         }
