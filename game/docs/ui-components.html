@@ -154,6 +154,15 @@
   .key-icon.s14 {width:14px;height:14px;font-size:8px;border-radius:2px}
   .key-icon.s28 {width:28px;height:28px;font-size:16px;border-radius:3px}
 
+  /* Progress gauge — input lock / hold-to-confirm 등 진행률 표기.
+     DEC-035 키컬러 orange (#FF8000) alpha 0.85. 아래→위로 차오름. */
+  .key-icon.gauge{position:relative;overflow:hidden;isolation:isolate}
+  .key-icon.gauge::before{
+    content:"";position:absolute;left:0;right:0;bottom:0;
+    height:calc(var(--p,0) * 100%);
+    background:#FF8000;opacity:.85;z-index:-1;
+  }
+
   .ctx-prompt{
     display:inline-flex;align-items:center;gap:3px;padding:4px;
     background:var(--kp-bg);border-radius:2px;color:#fff;font-size:8px;
@@ -622,6 +631,43 @@
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
         <div class="key-icon s28">C</div><span class="t-hint">size 28 (display)</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>Progress Gauge — input lock / hold-to-confirm</h3>
+      <div class="src">KeyPrompt.setKeyIconProgress(icon, progress)</div>
+      <p>키 박스 안에서 아래→위로 차오르는 <b>orange (#FF8000) alpha 0.85</b> 게이지.
+         DEC-035 키컬러 통일. 사용처:
+         <b>① 입력 잠금</b>(예: LorePopup 의 [C] CLOSE — 팝업이 떠 있는 동안 X 연타로 즉시
+         스킵되지 않도록 1초 잠금) /
+         <b>② Hold-to-confirm</b>(예: 아이템 폐기). 부모 컨테이너 dim 시에도 게이지가
+         시인성을 유지하도록 alpha 가 강하게 잡혀 있다.</p>
+      <div class="stage" style="gap:24px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="key-icon s28 gauge" style="--p:0">C</div>
+          <span class="t-hint">progress 0.0 (idle)</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="key-icon s28 gauge" style="--p:.25">C</div>
+          <span class="t-hint">0.25</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="key-icon s28 gauge" style="--p:.5">C</div>
+          <span class="t-hint">0.50</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="key-icon s28 gauge" style="--p:.75">C</div>
+          <span class="t-hint">0.75</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="key-icon s28 gauge" style="--p:1">C</div>
+          <span class="t-hint">1.0 (ready)</span>
+        </div>
+      </div>
+      <div class="t-body" style="margin-top:8px">
+        ※ 부모를 dim 시키지 말 것. 키 박스 자체는 풀 알파 유지하고 외부 라벨(예: CLOSE
+        텍스트)만 dim 한다 — PixiJS alpha 가 자식 게이지에 곱해져 시인성이 깨짐.
       </div>
     </div>
   </section>
@@ -1695,7 +1741,9 @@
         .sc-tint   { z-index:1; opacity:0; }
         .sc-pillar { z-index:3; }
         .sc-halo   { z-index:4; }
-        .sc-rings  { z-index:5; }
+        .sc-idle   { z-index:5; }    /* idle heartbeat waves, behind rings/icon */
+        .sc-rings  { z-index:6; }
+        .sc-flare  { z-index:15; }   /* lens-flare from item, above icon */
         .sc-flash  { z-index:20; background:#fff; opacity:0; }
 
         /* Weapon icon at center */
@@ -1754,8 +1802,10 @@
         <div class="sc-layer sc-tint"   id="scTint"></div>
         <div class="sc-layer sc-pillar" id="scPillar"></div>
         <div class="sc-layer sc-halo"   id="scHalo"></div>
+        <div class="sc-layer sc-idle"   id="scIdle"></div>
         <div class="sc-layer sc-rings"  id="scRings"></div>
         <div class="sc-icon"            id="scIcon"></div>
+        <svg class="sc-layer sc-flare"  id="scFlare" preserveAspectRatio="none"></svg>
         <div class="sc-layer sc-flash"  id="scFlash"></div>
 
         <div class="sc-title" id="scTitle">STRATUM CLEARED</div>
@@ -1789,11 +1839,11 @@
         // SSoT mirror: game/src/ui/StratumClearOverlay.ts → RARITY_BURST
         // Re-baselined: Normal = previous Ancient. Each tier scales up from there.
         const RARITY = {
-          normal:    { hex:'#FFFFFF', particleCount:180, particleSpeed:340, pillarW:50,  pillarH:460, rings:5, ringMaxR:240, flash:1.0, tint:0.34 },
-          magic:     { hex:'#6969FF', particleCount:250, particleSpeed:400, pillarW:64,  pillarH:540, rings:6, ringMaxR:290, flash:1.0, tint:0.42 },
-          rare:      { hex:'#FFFF00', particleCount:330, particleSpeed:460, pillarW:80,  pillarH:620, rings:7, ringMaxR:340, flash:1.0, tint:0.50 },
-          legendary: { hex:'#FF8000', particleCount:420, particleSpeed:530, pillarW:96,  pillarH:700, rings:8, ringMaxR:400, flash:1.0, tint:0.58 },
-          ancient:   { hex:'#00FF00', particleCount:520, particleSpeed:600, pillarW:116, pillarH:780, rings:9, ringMaxR:460, flash:1.0, tint:0.66 },
+          normal:    { hex:'#FFFFFF', particleCount:180, particleSpeed:340, pillarW:50,  pillarH:460, rings:5, ringMaxR:240, flash:1.0, tint:0.34, flareLen:80  },
+          magic:     { hex:'#6969FF', particleCount:250, particleSpeed:400, pillarW:64,  pillarH:540, rings:6, ringMaxR:290, flash:1.0, tint:0.42, flareLen:120 },
+          rare:      { hex:'#FFFF00', particleCount:330, particleSpeed:460, pillarW:80,  pillarH:620, rings:7, ringMaxR:340, flash:1.0, tint:0.50, flareLen:165 },
+          legendary: { hex:'#FF8000', particleCount:420, particleSpeed:530, pillarW:96,  pillarH:700, rings:8, ringMaxR:400, flash:1.0, tint:0.58, flareLen:215 },
+          ancient:   { hex:'#00FF00', particleCount:520, particleSpeed:600, pillarW:116, pillarH:780, rings:9, ringMaxR:460, flash:1.0, tint:0.66, flareLen:270 },
         };
         const T_FLASH = 300;
 
@@ -1801,9 +1851,12 @@
         const tint   = document.getElementById('scTint');
         const pillar = document.getElementById('scPillar');
         const halo   = document.getElementById('scHalo');
+        const idle   = document.getElementById('scIdle');
         const ringsL = document.getElementById('scRings');
         const icon   = document.getElementById('scIcon');
+        const flare  = document.getElementById('scFlare');
         const flash  = document.getElementById('scFlash');
+        const SVG_NS = 'http://www.w3.org/2000/svg';
         const title  = document.getElementById('scTitle');
         const atk    = document.getElementById('scAtk');
         const inno   = document.getElementById('scInnocents');
@@ -1830,7 +1883,9 @@
           tint.style.opacity = 0;
           pillar.innerHTML = ''; pillar.style.opacity = 0;
           halo.innerHTML = '';   halo.style.opacity = 0;
+          idle.innerHTML = '';
           ringsL.innerHTML = '';
+          while (flare.firstChild) flare.removeChild(flare.firstChild);
           icon.style.opacity = 0;
           icon.style.transform = 'translate(-50%,-50%) scale(1)';
           flash.style.opacity = 0;
@@ -1887,6 +1942,66 @@
             pillar.appendChild(d);
           }
           pillar.style.opacity = alpha;
+        }
+
+        /** Lens-flare burst from the item itself.
+         *  Mirrors drawIconFlare in StratumClearOverlay.ts.
+         *  Cross rays (H/V/2 diag) + 3-layer nucleus, slow rotation. */
+        function drawIconFlare(t, progress){
+          while (flare.firstChild) flare.removeChild(flare.firstChild);
+          if (progress<=0 || progress>=1) return;
+          const rise  = Math.min(1, progress/0.15);
+          const decay = Math.max(0, 1 - (progress-0.15)/0.85);
+          const k = rise * decay;
+          const rotDeg = progress * 0.6 * 180 / Math.PI;
+          const cx = stage.clientWidth/2;
+          const cy = stage.clientHeight/2;
+          const len = t.flareLen + (1-decay)*60;
+          const baseW = 14 * k;
+          const coreW = 4 * k;
+          flare.setAttribute('viewBox','0 0 '+stage.clientWidth+' '+stage.clientHeight);
+          flare.setAttribute('width',  stage.clientWidth);
+          flare.setAttribute('height', stage.clientHeight);
+          const g = document.createElementNS(SVG_NS,'g');
+          g.setAttribute('transform','translate('+cx+','+cy+') rotate('+rotDeg+')');
+          const rays = [0, 90, 45, -45];
+          for (const a of rays){
+            const isDiag = a%90 !== 0;
+            const aLen = isDiag ? len*0.7   : len;
+            const aW   = isDiag ? baseW*0.7 : baseW;
+            const aC   = isDiag ? coreW*0.7 : coreW;
+            // Diamond points: (-aLen,0) tip, (0,-w) top, (aLen,0) tip, (0,w) bot
+            const outerPts = (-aLen)+',0 0,'+(-aW)+' '+aLen+',0 0,'+aW;
+            const corePts  = (-aLen)+',0 0,'+(-aC)+' '+aLen+',0 0,'+aC;
+            // Outer rarity-color diamond
+            const p1 = document.createElementNS(SVG_NS,'polygon');
+            p1.setAttribute('points', outerPts);
+            p1.setAttribute('fill', t.hex);
+            p1.setAttribute('opacity', 0.55*k);
+            p1.setAttribute('transform','rotate('+a+')');
+            g.appendChild(p1);
+            // Bright white core diamond
+            const p2 = document.createElementNS(SVG_NS,'polygon');
+            p2.setAttribute('points', corePts);
+            p2.setAttribute('fill', '#ffffff');
+            p2.setAttribute('opacity', 0.85*k);
+            p2.setAttribute('transform','rotate('+a+')');
+            g.appendChild(p2);
+          }
+          // Nucleus (item is the light source)
+          const nuclei = [
+            { r:26*k, fill:t.hex,     a:0.55*k },
+            { r:16*k, fill:'#ffffff', a:0.85*k },
+            { r: 6*k, fill:'#ffffff', a:k       },
+          ];
+          for (const n of nuclei){
+            const c = document.createElementNS(SVG_NS,'circle');
+            c.setAttribute('r', n.r);
+            c.setAttribute('fill', n.fill);
+            c.setAttribute('opacity', n.a);
+            g.appendChild(c);
+          }
+          flare.appendChild(g);
         }
 
         function spawnParticles(t){
@@ -1959,6 +2074,8 @@
             ringsL.appendChild(makeRingCircle(r*2, t.hex, 3, a));
             ringsL.appendChild(makeRingCircle((r-1)*2, '#ffffff', 2, a*0.7));
           }
+          // Icon flare — lens-flare burst from item itself, ~700ms life
+          drawIconFlare(t, Math.min(1, burstMs/700));
           // Tint decay
           if (t.tint>0){
             const p = Math.min(1, burstMs/T_FLASH);
@@ -1986,16 +2103,32 @@
           rafId = requestAnimationFrame(tick);
         }
 
+        function drawIdleWave(rc, cycles){
+          idle.innerHTML = '';
+          const phases = [
+            cycles - Math.floor(cycles),
+            (cycles + 0.5) - Math.floor(cycles + 0.5),
+          ];
+          for (const phase of phases){
+            const radius = 30 + phase * 90;
+            const a = (1 - phase) * 0.5;
+            idle.appendChild(makeRingCircle(radius*2, rc, 2, a));
+            idle.appendChild(makeRingCircle((radius-1)*2, '#ffffff', 1, a*0.6));
+          }
+        }
+
         function startIdlePulse(){
           idleStartT = performance.now();
           const t = activeTier;
+          const freq = 0.6;
           const idleTick = (now)=>{
             const ms = now - idleStartT;
             const sec = ms/1000;
-            const pulse = Math.sin(sec * Math.PI * 2 * 1.2);
-            const s = 1.0 + pulse * 0.07;
-            icon.style.transform = 'translate(-50%,-50%) scale('+s+')';
-            drawHalo(t.hex, 0.6 + pulse*0.18);
+            const pulse = Math.sin(sec * Math.PI * 2 * freq);
+            // Icon stays still — only halo glow + emanating waves pulse.
+            icon.style.transform = 'translate(-50%,-50%) scale(1)';
+            drawHalo(t.hex, 0.55 + pulse*0.30);
+            drawIdleWave(t.hex, sec * freq);
             idlePulseRaf = requestAnimationFrame(idleTick);
           };
           idlePulseRaf = requestAnimationFrame(idleTick);

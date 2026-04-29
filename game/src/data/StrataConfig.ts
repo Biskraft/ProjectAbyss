@@ -11,14 +11,15 @@
  * - 그리드 크기 SSoT 는 UnifiedGridData.strataOffsets[].width/height 단일.
  *   StratumDef 에는 더 이상 gridWidth/gridHeight 가 없다.
  * - hubCount=2 는 Ancient 다중 허브, 그 외 1.
- * - bossPlacement: hub_adjacent (Normal) | branch_end (Magic~Legendary) | multi_hub (Ancient)
+ * - bossPlacement: branch_end (Normal~Legendary) | multi_hub (Ancient)
+ *   ※ hub_adjacent 은 보스 가지 최소 length=2 강제 도입으로 의미를 잃어 폐기됨.
  */
 
 import csvText from '../../../Sheets/Content_StrataConfig.csv?raw';
 import type { Rarity } from '@data/weapons';
 import type { TilemapTheme } from '@level/TilemapRenderer';
 
-export type BossPlacement = 'hub_adjacent' | 'branch_end' | 'multi_hub';
+export type BossPlacement = 'branch_end' | 'multi_hub';
 
 export interface StratumDef {
   // --- DEC-037 graph topology ---
@@ -43,7 +44,7 @@ export interface StrataConfig {
 
 function parseBossPlacement(s: string): BossPlacement {
   const v = s.trim().toLowerCase();
-  if (v === 'hub_adjacent' || v === 'branch_end' || v === 'multi_hub') return v;
+  if (v === 'branch_end' || v === 'multi_hub') return v;
   throw new Error(`Content_StrataConfig.csv: unknown BossPlacement "${s}"`);
 }
 

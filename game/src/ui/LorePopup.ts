@@ -66,13 +66,9 @@ export class LorePopup {
   private totalLockMs = INPUT_LOCK_FIRST_MS;
   private skin: UISkin | null = null;
 
-  // [C] CLOSE 프롬프트 — dim/arc 갱신을 위해 참조를 저장.
+  // [C] CLOSE 프롬프트 — dim 갱신용 참조. 게이지는 KeyPrompt.setKeyIconProgress 가 관리.
   private closePrompt: Container | null = null;
   private closeLabel: BitmapText | null = null;
-  /** 프롬프트 주변에 그려지는 잠금 프로그레스 아크 (wipe ring). */
-  private closeRing: Graphics | null = null;
-  /** closePrompt 아이콘 크기 — 링 반경 산출에 사용. */
-  private closePromptSize = 10;
 
   constructor(skin?: UISkin | null) {
     this.skin = skin ?? null;
@@ -107,32 +103,25 @@ export class LorePopup {
   }
 
   /**
-   * 잠금 상태에 따라 [C] CLOSE 프롬프트 dim + wipe-ring 갱신.
-   * 잠금 중: alpha 0.3 + 시계 방향으로 차오르는 원형 링.
-   * 해제 시: alpha 1.0 + 링 clear.
+   * 잠금 상태에 따라 [C] CLOSE 프롬프트 갱신.
+   * 잠금 중: CLOSE 레이블만 dim, [C] 버튼은 풀 알파 유지하고 내부에 orange
+   *   게이지가 차오름 (버튼 자체가 포컬 포인트).
+   * 해제 시: 레이블 풀 알파 + 게이지 clear.
+   *
+   * NOTE: closePrompt 자체에 dim 알파를 걸면 PixiJS 가 자식 게이지에도
+   *   곱해 실효 알파가 너무 낮아 게이지가 안 보였던 이슈를 회피.
    */
   private refreshPromptVisuals(): void {
     const locked = this.inputLockMs > 0;
-    const alpha = locked ? PROMPT_DIM_ALPHA : PROMPT_NORMAL_ALPHA;
-    if (this.closePrompt) this.closePrompt.alpha = alpha;
-    if (this.closeLabel) this.closeLabel.alpha = alpha;
+    const labelAlpha = locked ? PROMPT_DIM_ALPHA : PROMPT_NORMAL_ALPHA;
+    if (this.closeLabel) this.closeLabel.alpha = labelAlpha;
+    if (this.closePrompt) this.closePrompt.alpha = PROMPT_NORMAL_ALPHA;
 
-    const ring = this.closeRing;
-    if (!ring) return;
-    ring.clear();
-    if (!locked || this.totalLockMs <= 0) return;
-
-    // 아이콘 중심에 외접 링. 반경은 아이콘 크기의 0.85배 (약간 여유).
-    const size = this.closePromptSize;
-    const cx = size / 2;
-    const cy = size / 2;
-    const radius = size * 0.85;
-    // progress 0 → 1 로 증가 (시간이 지날수록 링이 차오름).
-    const progress = 1 - this.inputLockMs / this.totalLockMs;
-    const start = -Math.PI / 2;
-    const end = start + progress * Math.PI * 2;
-    ring.arc(cx, cy, radius, start, end)
-      .stroke({ color: 0xffcc44, width: 1, alpha: 0.8 });
+    if (!this.closePrompt) return;
+    const progress = (locked && this.totalLockMs > 0)
+      ? 1 - this.inputLockMs / this.totalLockMs
+      : 0;
+    KeyPrompt.setKeyIconProgress(this.closePrompt, progress);
   }
 
   /**
@@ -266,16 +255,12 @@ export class LorePopup {
     strataText.y = 112;
     this.panel.addChild(strataText);
 
-    // [C] CLOSE 프롬프트 (+ 입력 잠금 프로그레스 링).
+    // [C] CLOSE 프롬프트 — 입력 잠금 게이지는 KeyPrompt 가 내부 관리.
     const iconSize = 10;
     const closePrompt = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), iconSize);
     closePrompt.x = W - 72;
     closePrompt.y = H - 18;
     this.panel.addChild(closePrompt);
-
-    // 잠금 wipe-ring — closePrompt 위에 자식으로 얹어 좌표를 공유.
-    const closeRing = new Graphics();
-    closePrompt.addChild(closeRing);
 
     const closeLabel = new BitmapText({
       text: 'CLOSE',
@@ -285,11 +270,9 @@ export class LorePopup {
     closeLabel.y = H - 16;
     this.panel.addChild(closeLabel);
 
-    // update() 가 dim/arc 을 갱신할 수 있도록 참조 캐시.
+    // update() 가 dim/게이지를 갱신할 수 있도록 참조 캐시.
     this.closePrompt = closePrompt;
     this.closeLabel = closeLabel;
-    this.closeRing = closeRing;
-    this.closePromptSize = iconSize;
   }
 
   destroy(): void {

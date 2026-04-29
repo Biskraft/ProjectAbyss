@@ -256,21 +256,23 @@ export class BreakableProp {
   }
 }
 
-/** Pick a random variant appropriate for the context */
+/** Pick a random variant appropriate for the context.
+ *  Natural variants (crystal/tallgrass) are tuned to ~40% of the pool. */
 export function pickVariant(isItemWorld: boolean, rng: () => number): PropVariant {
   if (isItemWorld) {
+    // Natural 40% (crystal 25 + tallgrass 15) / Artifacts 60% (pipe/crate/debris 20 each)
     const r = rng();
-    if (r < 0.35) return 'crystal';
-    if (r < 0.55) return 'crate';
-    if (r < 0.70) return 'debris';
-    if (r < 0.85) return 'pipe';
-    return 'tallgrass';
+    if (r < 0.25) return 'crystal';
+    if (r < 0.40) return 'tallgrass';
+    if (r < 0.60) return 'pipe';
+    if (r < 0.80) return 'crate';
+    return 'debris';
   }
+  // World: Natural 40% (tallgrass) / Artifacts 60% (pipe/crate/debris/panel 15 each)
   const r = rng();
-  if (r < 0.25) return 'tallgrass';
-  if (r < 0.45) return 'pipe';
-  if (r < 0.60) return 'crate';
-  if (r < 0.75) return 'debris';
-  if (r < 0.90) return 'panel';
-  return 'tallgrass';
+  if (r < 0.40) return 'tallgrass';
+  if (r < 0.55) return 'pipe';
+  if (r < 0.70) return 'crate';
+  if (r < 0.85) return 'debris';
+  return 'panel';
 }

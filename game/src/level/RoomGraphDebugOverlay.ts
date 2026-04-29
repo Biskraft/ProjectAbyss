@@ -18,6 +18,7 @@
 
 import { Container, Graphics, Text } from 'pixi.js';
 import type { RoomGraphData, RoomNode } from '@level/RoomGraph';
+import { districtLabel } from '@data/itemWorldDistricts';
 
 // ---------------------------------------------------------------------------
 // Layout constants
@@ -103,7 +104,7 @@ export function createRoomGraphDebugOverlay(
 
   // Legend
   const legend = new Text({
-    text: 'hub=orange  spoke=cyan  boss=red  shrine=green   edge tree=white  multi_hub=yellow   CP=orange ring',
+    text: 'Plaza=orange  Lane=cyan  Sanctum=red  Memorial=green   edge tree=white  multi_hub=yellow   CP=orange ring',
     style: { fill: 0x999999, fontFamily: 'monospace', fontSize: 11 },
   });
   legend.x = PANEL_PADDING;
@@ -199,7 +200,7 @@ function renderStratumPanel(g: RoomGraphData, panelWidth: number): Container & {
     const x = ox + n.layout.x * RING_PIXELS;
     const y = oy + n.layout.y * RING_PIXELS;
     const txt = new Text({
-      text: n.id,
+      text: districtLabel(n),
       style: { fill: 0x111111, fontFamily: 'monospace', fontSize: 9 },
     });
     txt.anchor.set(0.5, 0.5);

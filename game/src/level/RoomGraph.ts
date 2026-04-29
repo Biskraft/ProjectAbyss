@@ -137,37 +137,29 @@ export function generateRoomGraph(
 
   // -------------------------------------------------------------------------
   // 3) 보스 가지 결정
-  //    hub_adjacent: 가지[0]을 보스 가지로 강제 (가지 깊이 1 spoke + boss)
   //    branch_end:   가장 긴 가지를 보스 가지로 (동률은 시드로)
   //    multi_hub:    가장 긴 가지를 보스 가지로 (Ancient)
   // -------------------------------------------------------------------------
   let bossBranchIndex = pickBossBranch(def.bossPlacement, spokeLenByBranch, rng);
 
-  // hub_adjacent 정합: 보스 가지 spoke 길이 = 1 강제 (Mantis Village 신전 비유)
-  if (def.bossPlacement === 'hub_adjacent') {
-    const shortage = 1 - spokeLenByBranch[bossBranchIndex];
-    spokeLenByBranch[bossBranchIndex] = 1;
-    if (shortage > 0) {
-      // spoke 부족분을 다른 가지에서 차감
-      let need = shortage;
-      for (let b = 0; b < def.branchCount && need > 0; b++) {
+  // 보스 가지 최소 length = 2 강제 — chain-length 교번에서 'corridor → boss'
+  // 직결(len=1) 패턴을 막아 항상 'corridor → room → boss' 이상의 진입 동선을
+  // 보장한다. 부족분은 가장 긴 다른 가지에서 차감.
+  if (def.branchCount > 0 && spokeLenByBranch[bossBranchIndex] < 2) {
+    let need = 2 - spokeLenByBranch[bossBranchIndex];
+    spokeLenByBranch[bossBranchIndex] = 2;
+    while (need > 0) {
+      let donorIdx = -1;
+      for (let b = 0; b < def.branchCount; b++) {
         if (b === bossBranchIndex) continue;
-        if (spokeLenByBranch[b] > 1) {
-          spokeLenByBranch[b]--;
-          need--;
+        if (spokeLenByBranch[b] > 1
+          && (donorIdx < 0 || spokeLenByBranch[b] > spokeLenByBranch[donorIdx])) {
+          donorIdx = b;
         }
       }
-    } else if (shortage < 0) {
-      // 보스 가지가 너무 길었던 경우 잉여를 가장 짧은 가지에 부여
-      let surplus = -shortage;
-      while (surplus > 0) {
-        let minIdx = 0;
-        for (let b = 1; b < def.branchCount; b++) {
-          if (b !== bossBranchIndex && spokeLenByBranch[b] < spokeLenByBranch[minIdx]) minIdx = b;
-        }
-        spokeLenByBranch[minIdx]++;
-        surplus--;
-      }
+      if (donorIdx < 0) break; // 차감할 가지 없음 — 보스 가지는 2 유지(노드 수 증가 허용)
+      spokeLenByBranch[donorIdx]--;
+      need--;
     }
   }
 
@@ -255,10 +247,17 @@ export function generateRoomGraph(
     }
     for (let d = 1; d <= len; d++) {
       const id = `b${b}.${d}`;
+      // Chain-length variable pattern: 광장(hub) → 통로 → 방 → 통로 → ...
+      //   - 홀수 depth = corridor, 짝수 depth = room (단순 교번)
+      //   - 보스 가지 마지막 spoke 강제 규칙은 제거됨 — 짝수 길이일 때
+      //     corridor 가 2회 연속되는 버그를 유발했음.
+      const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+      const tags: string[] = [kind];
+      if (isSub && d === 1) tags.push('sub_root');
       const node = makeNode({
         id, role: 'spoke', hubIndex: h, branchIndex: b, depth: d,
         stratumIndex, angleRad: angle, ring: d * RING_UNIT,
-        tags: isSub && d === 1 ? ['spoke_corridor', 'sub_root'] : ['spoke_corridor'],
+        tags,
       });
       nodes.set(id, node);
       const sides = sidesByAngle(angle);
@@ -460,9 +459,9 @@ function jitter(rng: PRNG, branches: number): number {
   return rng.nextFloat(-span * 0.25, span * 0.25);
 }
 
-function pickBossBranch(placement: BossPlacement, lens: number[], rng: PRNG): number {
-  if (placement === 'hub_adjacent') return 0;
+function pickBossBranch(_placement: BossPlacement, lens: number[], rng: PRNG): number {
   // 가장 긴 가지를 선택. 동률은 시드로 결정
+  // (placement 는 향후 분기 추가 여지를 위해 유지하지만 현재는 분기 없음)
   let maxLen = -1;
   const candidates: number[] = [];
   for (let b = 0; b < lens.length; b++) {

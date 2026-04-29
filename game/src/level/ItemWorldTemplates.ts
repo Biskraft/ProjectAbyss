@@ -873,6 +873,10 @@ export function getExactTemplates(required: ExitDir[]): RoomTemplate[] {
  *                  are eligible (tag match). If no exact match exists,
  *                  falls back to superset matching to avoid generation failure.
  *                  Default false preserves the legacy superset behavior.
+ * @param kind      DEC-037 chain-length variable pattern hint:
+ *                  'corridor' = 통로형 (template name `corridor_*` 또는 type='corridor').
+ *                  'room'     = 전투/보물형 (type='combat' | 'treasure').
+ *                  매칭이 비어 있으면 kind 필터를 무시하고 fallback. 미지정 시 기존 동작.
  *
  * 50% chance to mirror the result (Spelunky-style variation doubling).
  * Mirror is only kept if it still satisfies the matching mode.
@@ -881,6 +885,7 @@ export function pickTemplate(
   required: ExitDir[],
   rng: PRNG,
   exact: boolean = false,
+  kind?: 'corridor' | 'room',
 ): RoomTemplate {
   let matches = exact ? getExactTemplates(required) : getMatchingTemplates(required);
   if (exact && matches.length === 0) {
@@ -888,6 +893,18 @@ export function pickTemplate(
     // Fall back to superset so the level still generates; sealCellExits()
     // will close any extra doors and emit a warning so the gap is visible.
     matches = getMatchingTemplates(required);
+  }
+
+  // kind 필터 — 비어 있으면 해제하고 원래 후보 유지
+  if (kind && matches.length > 0) {
+    const isCorridor = (t: RoomTemplate): boolean =>
+      t.type === 'corridor' || t.name.startsWith('corridor_');
+    const filter = kind === 'corridor'
+      ? isCorridor
+      : (t: RoomTemplate) => !isCorridor(t)
+          && (t.type === 'combat' || t.type === 'treasure');
+    const filtered = matches.filter(filter);
+    if (filtered.length > 0) matches = filtered;
   }
 
   let template: RoomTemplate;

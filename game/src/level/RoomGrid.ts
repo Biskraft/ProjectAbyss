@@ -12,6 +12,10 @@ export interface RoomCell {
   exits: { left: boolean; right: boolean; up: boolean; down: boolean };
   visited: boolean;   // for runtime tracking
   cleared: boolean;   // all enemies defeated
+  /** Chain-length variable pattern hint (DEC-037): 'corridor' = 통로형 LDtk,
+   *  'room' = 전투/보물형 LDtk. RoomGraphAdapter 가 노드 태그에서 채운다.
+   *  hub/boss/shrine 등 spoke 가 아닌 셀은 undefined. */
+  kind?: 'corridor' | 'room';
   /** Boss death pixel position — recorded when a boss dies in this cell so
    *  the exit portal re-appears at the same spot on re-entry. */
   bossPortalX?: number;

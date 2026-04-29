@@ -46,14 +46,15 @@ interface BurstTier {
   ringMaxRadius: number;
   flashPeak: number;
   tintAlpha: number;     // full-screen rarity tint during flash; 0 disables
+  flareLen: number;      // base length of icon-flare cross rays
 }
 
 const RARITY_BURST: Record<Rarity, BurstTier> = {
-  normal:    { particleCount: 180, particleSpeed: 340, pillarWidth: 50,  pillarHeight: 460, ringCount: 5, ringMaxRadius: 240, flashPeak: 1.0, tintAlpha: 0.34 },
-  magic:     { particleCount: 250, particleSpeed: 400, pillarWidth: 64,  pillarHeight: 540, ringCount: 6, ringMaxRadius: 290, flashPeak: 1.0, tintAlpha: 0.42 },
-  rare:      { particleCount: 330, particleSpeed: 460, pillarWidth: 80,  pillarHeight: 620, ringCount: 7, ringMaxRadius: 340, flashPeak: 1.0, tintAlpha: 0.50 },
-  legendary: { particleCount: 420, particleSpeed: 530, pillarWidth: 96,  pillarHeight: 700, ringCount: 8, ringMaxRadius: 400, flashPeak: 1.0, tintAlpha: 0.58 },
-  ancient:   { particleCount: 520, particleSpeed: 600, pillarWidth: 116, pillarHeight: 780, ringCount: 9, ringMaxRadius: 460, flashPeak: 1.0, tintAlpha: 0.66 },
+  normal:    { particleCount: 180, particleSpeed: 340, pillarWidth: 50,  pillarHeight: 460, ringCount: 5, ringMaxRadius: 240, flashPeak: 1.0, tintAlpha: 0.34, flareLen: 80  },
+  magic:     { particleCount: 250, particleSpeed: 400, pillarWidth: 64,  pillarHeight: 540, ringCount: 6, ringMaxRadius: 290, flashPeak: 1.0, tintAlpha: 0.42, flareLen: 120 },
+  rare:      { particleCount: 330, particleSpeed: 460, pillarWidth: 80,  pillarHeight: 620, ringCount: 7, ringMaxRadius: 340, flashPeak: 1.0, tintAlpha: 0.50, flareLen: 165 },
+  legendary: { particleCount: 420, particleSpeed: 530, pillarWidth: 96,  pillarHeight: 700, ringCount: 8, ringMaxRadius: 400, flashPeak: 1.0, tintAlpha: 0.58, flareLen: 215 },
+  ancient:   { particleCount: 520, particleSpeed: 600, pillarWidth: 116, pillarHeight: 780, ringCount: 9, ringMaxRadius: 460, flashPeak: 1.0, tintAlpha: 0.66, flareLen: 270 },
 };
 
 export interface StratumClearData {
@@ -133,6 +134,8 @@ export class StratumClearOverlay {
   private tintOverlay: Graphics;   // full-screen rarity tint (Legendary+)
   private pillarGfx: Graphics;     // vertical light beam (Magic+)
   private ringsGfx: Graphics;      // expanding halo rings (Rare+)
+  private iconFlareGfx: Graphics;  // lens-flare burst from item itself (all rarities)
+  private idleWaveGfx: Graphics;   // continuous heartbeat waves during idle pulse
   private burstTimer = 0;          // independent of phase timer; ms since flash trigger
   private burstActive = false;
 
@@ -177,6 +180,11 @@ export class StratumClearOverlay {
     this.haloGfx.alpha = 0;
     this.container.addChild(this.haloGfx);
 
+    // ── Idle wave (continuous heartbeat rings, behind icon, drawn during idle) ──
+    this.idleWaveGfx = new Graphics();
+    this.idleWaveGfx.alpha = 0;
+    this.container.addChild(this.idleWaveGfx);
+
     // ── Expanding rings (Rare+ only, drawn above halo, below icon) ──
     this.ringsGfx = new Graphics();
     this.ringsGfx.alpha = 0;
@@ -196,6 +204,11 @@ export class StratumClearOverlay {
     this.itemImage.container.x = -ICON_SIZE / 2;
     this.itemImage.container.y = -ICON_SIZE / 2;
     this.iconContainer.addChild(this.itemImage.container);
+
+    // ── Icon flare (lens-flare burst from item, drawn above icon) ──
+    this.iconFlareGfx = new Graphics();
+    this.iconFlareGfx.alpha = 0;
+    this.container.addChild(this.iconFlareGfx);
 
     // ── White flash ──
     this.flashOverlay = new Graphics();
@@ -369,6 +382,89 @@ export class StratumClearOverlay {
     this.pillarGfx.alpha = alpha;
   }
 
+  /** Lens-flare burst that emanates FROM the item itself.
+   *  Punches hard at burst start, fades out over ~600ms with a slow spin so
+   *  the rays sparkle. Distinct from the fullscreen white flash — this stays
+   *  localized to the icon and is what reads as "the item is glowing". */
+  private drawIconFlare(progress: number): void {
+    this.iconFlareGfx.clear();
+    if (progress <= 0 || progress >= 1) {
+      this.iconFlareGfx.alpha = 0;
+      return;
+    }
+    // Punchy rise (0-15%) then long decay (15-100%).
+    const rise = Math.min(1, progress / 0.15);
+    const decay = Math.max(0, 1 - (progress - 0.15) / 0.85);
+    const k = rise * decay;
+    const rc = this.rarityColor;
+
+    // Slow rotation gives the rays a sparkle.
+    const rot = progress * Math.PI * 0.6;
+    this.iconFlareGfx.x = CX;
+    this.iconFlareGfx.y = CY;
+    this.iconFlareGfx.rotation = rot;
+
+    // 4 cross rays (horizontal, vertical, two diagonals). Each ray is a
+    // pointed diamond — widest at center, tapering to sharp tips at both
+    // outer ends. Outer diamond in rarity color + narrow bright core.
+    // Length is rarity-driven, plus a small grow-as-it-fades term.
+    const len = this.tier.flareLen + (1 - decay) * 60;
+    const baseW = 14 * k;                    // outer width pulses with k
+    const coreW = 4 * k;
+    const rays: number[] = [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4];
+    for (const a of rays) {
+      const isDiag = a % (Math.PI / 2) !== 0;
+      const aLen = isDiag ? len * 0.7 : len;
+      const aW = isDiag ? baseW * 0.7 : baseW;
+      const aC = isDiag ? coreW * 0.7 : coreW;
+      // Local diamond points: (-aLen,0)=tip, (0,-w)=top, (+aLen,0)=tip, (0,+w)=bot
+      // Rotated by `da` for the world-space ray direction.
+      const da = a - rot;
+      const cosA = Math.cos(da);
+      const sinA = Math.sin(da);
+      // Outer diamond (rarity color)
+      this.iconFlareGfx
+        .moveTo(-aLen * cosA, -aLen * sinA)
+        .lineTo(aW * sinA, -aW * cosA)
+        .lineTo(aLen * cosA, aLen * sinA)
+        .lineTo(-aW * sinA, aW * cosA)
+        .closePath()
+        .fill({ color: rc, alpha: 0.55 * k });
+      // Bright white core diamond
+      this.iconFlareGfx
+        .moveTo(-aLen * cosA, -aLen * sinA)
+        .lineTo(aC * sinA, -aC * cosA)
+        .lineTo(aLen * cosA, aLen * sinA)
+        .lineTo(-aC * sinA, aC * cosA)
+        .closePath()
+        .fill({ color: 0xffffff, alpha: 0.85 * k });
+    }
+
+    // Bright nucleus (the item is the source of light).
+    this.iconFlareGfx.circle(0, 0, 26 * k).fill({ color: rc, alpha: 0.55 * k });
+    this.iconFlareGfx.circle(0, 0, 16 * k).fill({ color: 0xffffff, alpha: 0.85 * k });
+    this.iconFlareGfx.circle(0, 0, 6 * k).fill({ color: 0xffffff, alpha: k });
+
+    this.iconFlareGfx.alpha = 1;
+  }
+
+  /** Continuous heartbeat waves emanating from behind the icon during idle.
+   *  Two staggered rings (offset by 0.5 cycle) cycle radius 30→120 and fade. */
+  private drawIdleWave(cycles: number): void {
+    this.idleWaveGfx.clear();
+    const phases = [
+      cycles - Math.floor(cycles),
+      (cycles + 0.5) - Math.floor(cycles + 0.5),
+    ];
+    for (const phase of phases) {
+      const radius = 30 + phase * 90;
+      const a = (1 - phase) * 0.5;
+      this.idleWaveGfx.circle(CX, CY, radius).stroke({ color: this.rarityColor, width: 2, alpha: a });
+      this.idleWaveGfx.circle(CX, CY, radius - 1).stroke({ color: 0xffffff, width: 1, alpha: a * 0.6 });
+    }
+    this.idleWaveGfx.alpha = 1;
+  }
+
   /** Expanding halo rings emanating from icon. Each ring staggered by burst progress. */
   private drawRings(burstMs: number): void {
     this.ringsGfx.clear();
@@ -445,6 +541,9 @@ export class StratumClearOverlay {
       }
       // Rings: staggered expansions, all wrap up within ~1200ms.
       this.drawRings(this.burstTimer);
+      // Icon flare: lens-flare burst from the item itself, ~700ms life.
+      const flareLife = 700;
+      this.drawIconFlare(Math.min(1, this.burstTimer / flareLife));
       // Tint: matches flash decay but with ceiling = tier.tintAlpha.
       if (tier.tintAlpha > 0) {
         const p = Math.min(1, this.burstTimer / T_FLASH);
@@ -543,15 +642,16 @@ export class StratumClearOverlay {
     }
 
     // Idle pulse — runs from end of flash until C is pressed.
-    // Gentle sin breath on icon scale + halo brightness so the screen doesn't
-    // feel frozen while the player reads stats / waits to confirm.
+    // Icon stays still. Halo brightness breathes + heartbeat waves emanate
+    // from behind the icon so the screen feels "powered" while waiting.
     if (this.phase === 'title' || this.phase === 'stats' ||
         this.phase === 'prompt' || this.phase === 'input') {
       this.idleTimer += dt;
       const t = this.idleTimer / 1000;
-      const pulse = Math.sin(t * Math.PI * 2 * 1.2); // 1.2 Hz
-      this.iconContainer.scale.set(1.0 + pulse * 0.07);
-      this.drawHalo(0.6 + pulse * 0.18);
+      const freq = 0.6; // Hz
+      const pulse = Math.sin(t * Math.PI * 2 * freq);
+      this.drawHalo(0.55 + pulse * 0.30);
+      this.drawIdleWave(t * freq);
     }
   }
 

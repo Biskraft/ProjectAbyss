@@ -1194,6 +1194,39 @@ export class ItemWorldScene extends Scene {
 
     if (spawnPoints.length === 0 && !isBossRoom) return;
 
+    // Corridor cell (DEC-037 chain-length variable pattern) — 통로는 이동
+    // 전용. 적 스폰 없이 cleared 처리. dead-end (exit 1개) 통로는 막다른 길의
+    // 야리코미 보상감을 위해 작은 픽업(체력 또는 골드, 50/50)을 1개 드랍.
+    if (cell.kind === 'corridor') {
+      const exitCount = (cell.exits.left ? 1 : 0)
+        + (cell.exits.right ? 1 : 0)
+        + (cell.exits.up ? 1 : 0)
+        + (cell.exits.down ? 1 : 0);
+      const isDeadEnd = exitCount === 1;
+      if (isDeadEnd && spawnPoints.length > 0) {
+        const rewardRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 555);
+        const pt = spawnPoints[rewardRng.nextInt(0, spawnPoints.length - 1)];
+        if (rewardRng.next() < 0.5) {
+          // Gold — 5..15 (stratum 별 약간 가중)
+          const goldAmount = 5 + rewardRng.nextInt(0, 10) + (cell.stratumIndex ?? 0) * 2;
+          const gp = new GoldPickup(pt.x, pt.y, goldAmount);
+          this.goldPickups.push(gp);
+          this.entityLayer.addChild(gp.container);
+        } else {
+          // Healing
+          const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
+          this.healingPickups.push(heal);
+          this.entityLayer.addChild(heal.container);
+        }
+      }
+      if (!cell.cleared) {
+        cell.cleared = true;
+        this.roomsCleared++;
+        this.persistRoomState();
+      }
+      return;
+    }
+
     // ─── RoomType-specific branching ────────────────────────────────────────
     // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
     // Rest also drops 1-2 HealingPickups. Mark cleared so HUD counters update.
@@ -2067,6 +2100,10 @@ export class ItemWorldScene extends Scene {
       desiredType = 'Start';
     } else if (isBoss) {
       desiredType = 'Boss';
+    } else if (cell.kind === 'corridor') {
+      // DEC-037 chain-length variable pattern: 통로 셀은 Corridor 템플릿 강제.
+      // 매치 없으면 아래 fallback 단계에서 type 무시하고 exits 만 매치한다.
+      desiredType = 'Corridor';
     } else if (!cell.onCriticalPath) {
       // Off-path rooms: Combat-weighted (55% Combat / 15% Treasure / 15% Rest / 15% Puzzle)
       const roll = rng.next();
@@ -2172,7 +2209,8 @@ export class ItemWorldScene extends Scene {
     // exact=true: tag-based matching — template's door set must equal cell's
     // exit set, so no "ghost doors" appear that lead to non-existent neighbors.
     // Falls back to superset internally if no exact-tag template exists.
-    return pickTemplate(exits, rng, true);
+    // kind: DEC-037 corridor/room 교번 패턴 힌트 (RoomGraphAdapter 가 셀에 부여).
+    return pickTemplate(exits, rng, true, cell.kind);
   }
 
   private spawnEnemies(): void {

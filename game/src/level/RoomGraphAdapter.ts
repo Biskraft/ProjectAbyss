@@ -109,6 +109,10 @@ export function generateUnifiedGridFromGraph(
 
       const exits = deriveExitsFromEdges(nodeId, edgeMap, layout.placements);
       const onCp = layout.graph.criticalPathIds.has(nodeId);
+      // 노드 태그에서 corridor/room kind 추출 — spoke 만 가짐
+      let kind: 'corridor' | 'room' | undefined;
+      if (node.tags.includes('corridor')) kind = 'corridor';
+      else if (node.tags.includes('room')) kind = 'room';
       const base: RoomCell = {
         col: p.col,
         row: absRow,
@@ -117,6 +121,7 @@ export function generateUnifiedGridFromGraph(
         exits,
         visited: false,
         cleared: false,
+        kind,
       };
       cells[absRow][p.col] = {
         ...base,
