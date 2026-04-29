@@ -2310,13 +2310,12 @@ export class LdtkWorldScene extends Scene {
     const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
     const goldAmount = isGolden ? baseGold * 3 : baseGold;
     if (goldAmount > 0) {
-      const gp = new GoldPickup(
-        enemy.x + enemy.width / 2 - 8,
-        enemy.y + enemy.height,
-        goldAmount,
-      );
-      this.goldPickups.push(gp);
-      this.entityLayer.addChild(gp.container);
+      const burstX = enemy.x + enemy.width / 2 - 8;
+      const burstY = enemy.y + enemy.height;
+      for (const gp of GoldPickup.spawnBurst(burstX, burstY, goldAmount)) {
+        this.goldPickups.push(gp);
+        this.entityLayer.addChild(gp.container);
+      }
     }
 
     // HEL-05: Tiered healing drops (GDD §4.1)
@@ -3733,9 +3732,12 @@ export class LdtkWorldScene extends Scene {
 
       // Handle drops
       if (drop.type === 'gold' && drop.amount > 0) {
-        const gp = new GoldPickup(bp.x + bp.width / 2, bp.y + bp.height, drop.amount);
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
+        const burstX = bp.x + bp.width / 2 - 8;
+        const burstY = bp.y + bp.height;
+        for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+          this.goldPickups.push(gp);
+          this.entityLayer.addChild(gp.container);
+        }
       } else if (drop.type === 'flask') {
         this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
       }

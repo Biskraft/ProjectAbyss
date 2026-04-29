@@ -3,12 +3,87 @@
  *
  * Once collected, saved permanently and never respawns.
  *
+ * Denomination tiers (1 / 5 / 10 / 50 / 100) — visual size and color
+ * differ per tier so a burst of mixed coins reads like cash spilling out.
+ * Use `spawnBurst(x, y, totalAmount)` for confetti drops on kills/breaks.
+ *
  * LDtk entity: GoldPickup (16x16 fixed, pivot bottom-left)
  * Fields:
  *  - Amount (Int): gold amount (default 10)
  */
 
 import { Container, Graphics } from 'pixi.js';
+
+const GRAVITY = 720;        // px/s^2 — confetti fall rate
+const AIR_FRICTION = 0.965; // per ~16ms tick
+const BOB_AMPLITUDE = 2;
+
+interface TierVisual {
+  size: number;   // outer circle radius (px)
+  outer: number;  // outer fill color
+  inner: number;  // inner highlight color
+  rim: number;    // stroke color
+}
+
+/** Visual treatment per denomination. Higher tier = bigger + rarer-feeling. */
+const TIER_VISUALS: ReadonlyArray<readonly [number, TierVisual]> = [
+  [100, { size: 7, outer: 0xFFFFFF, inner: 0xCCEEFF, rim: 0xAACCDD }],
+  [50,  { size: 6, outer: 0xFF8030, inner: 0xFFAA60, rim: 0x804010 }],
+  [10,  { size: 5, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
+  [5,   { size: 4, outer: 0xFFD700, inner: 0xFFEE88, rim: 0xCC9900 }],
+  [1,   { size: 3, outer: 0xC0A040, inner: 0xE0C060, rim: 0x806020 }],
+];
+
+function tierFor(amount: number): TierVisual {
+  for (const [threshold, v] of TIER_VISUALS) {
+    if (amount >= threshold) return v;
+  }
+  return TIER_VISUALS[TIER_VISUALS.length - 1][1];
+}
+
+const DENOMS = [100, 50, 10, 5, 1] as const;
+/** Max total coins per burst — overflow folds smaller denoms into larger ones. */
+const MAX_BURST_COINS = 22;
+
+/** Greedy split largest-first, then upconvert if over MAX_BURST_COINS. */
+function splitDenominations(amount: number): Array<[number, number]> {
+  const counts = new Map<number, number>();
+  let remain = amount;
+  for (const d of DENOMS) {
+    if (remain <= 0) break;
+    const n = Math.floor(remain / d);
+    if (n > 0) {
+      counts.set(d, n);
+      remain -= n * d;
+    }
+  }
+  let total = 0;
+  for (const c of counts.values()) total += c;
+  while (total > MAX_BURST_COINS) {
+    let merged = false;
+    for (let i = DENOMS.length - 1; i > 0; i--) {
+      const small = DENOMS[i];
+      const big = DENOMS[i - 1];
+      const ratio = big / small;
+      const cnt = counts.get(small) ?? 0;
+      if (cnt >= ratio) {
+        const groups = Math.floor(cnt / ratio);
+        counts.set(small, cnt - groups * ratio);
+        counts.set(big, (counts.get(big) ?? 0) + groups);
+        total = total - groups * ratio + groups;
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) break;
+  }
+  const out: Array<[number, number]> = [];
+  for (const d of DENOMS) {
+    const c = counts.get(d) ?? 0;
+    if (c > 0) out.push([d, c]);
+  }
+  return out;
+}
 
 export class GoldPickup {
   container: Container;
@@ -22,14 +97,22 @@ export class GoldPickup {
   baseY: number;
   collected = false;
 
+  // Confetti physics — non-zero physicsTimer makes update() do ballistic motion
+  // until time runs out, then settle into bob at the resting position.
+  vx = 0;
+  vy = 0;
+  physicsTimer = 0;
+
   private gfx: Graphics;
   private timer = 0;
+  private tier: TierVisual;
 
   constructor(x: number, y: number, amount: number) {
     this.x = x;
     this.y = y - this.height;
     this.baseY = this.y;
     this.amount = amount;
+    this.tier = tierFor(amount);
 
     this.container = new Container();
     this.container.x = this.x;
@@ -42,18 +125,41 @@ export class GoldPickup {
 
   private draw(): void {
     this.gfx.clear();
-    // Gold coin shape
     const cx = this.width / 2;
     const cy = this.height / 2;
-    this.gfx.circle(cx, cy, 5).fill({ color: 0xffd700, alpha: 0.9 });
-    this.gfx.circle(cx, cy, 3).fill({ color: 0xffee88, alpha: 0.6 });
-    this.gfx.circle(cx, cy, 5).stroke({ color: 0xcc9900, width: 1 });
+    const t = this.tier;
+    // Pivot the spinning sprite around its center for clean rotation.
+    this.gfx.pivot.set(cx, cy);
+    this.gfx.x = cx;
+    this.gfx.y = cy;
+    this.gfx.circle(0, 0, t.size).fill({ color: t.outer, alpha: 0.9 });
+    this.gfx.circle(0, 0, Math.max(1, t.size - 2)).fill({ color: t.inner, alpha: 0.6 });
+    this.gfx.circle(0, 0, t.size).stroke({ color: t.rim, width: 1 });
   }
 
   update(dt: number): void {
     if (this.collected) return;
+    if (this.physicsTimer > 0) {
+      const sec = dt / 1000;
+      this.x += this.vx * sec;
+      this.y += this.vy * sec;
+      this.vy += GRAVITY * sec;
+      this.vx *= Math.pow(AIR_FRICTION, dt / 16);
+      this.physicsTimer -= dt;
+      this.container.x = this.x;
+      this.container.y = this.y;
+      this.gfx.rotation += dt * 0.014;
+      if (this.physicsTimer <= 0) {
+        this.baseY = this.y;
+        this.vx = 0;
+        this.vy = 0;
+        this.gfx.rotation = 0;
+        this.timer = 0;
+      }
+      return;
+    }
     this.timer += dt;
-    this.container.y = this.baseY + Math.sin(this.timer * 0.003) * 2;
+    this.container.y = this.baseY + Math.sin(this.timer * 0.003) * BOB_AMPLITUDE;
     this.gfx.alpha = 0.7 + Math.sin(this.timer * 0.005) * 0.3;
   }
 
@@ -66,5 +172,30 @@ export class GoldPickup {
     if (this.container.parent) {
       this.container.parent.removeChild(this.container);
     }
+  }
+
+  /**
+   * Splits `totalAmount` into 1/5/10/50/100 denomination coins and returns
+   * them with random upward burst velocities (confetti style). Each coin's
+   * visual matches its denomination tier. Caller adds them to the scene's
+   * gold list and entity layer.
+   */
+  static spawnBurst(x: number, y: number, totalAmount: number): GoldPickup[] {
+    if (totalAmount <= 0) return [];
+    const breakdown = splitDenominations(totalAmount);
+    const coins: GoldPickup[] = [];
+    for (const [denom, count] of breakdown) {
+      for (let i = 0; i < count; i++) {
+        const coin = new GoldPickup(x, y, denom);
+        // Upward cone: -Math.PI/2 ± ~85°, biased upward.
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.95;
+        const speed = 160 + Math.random() * 160;
+        coin.vx = Math.cos(angle) * speed;
+        coin.vy = Math.sin(angle) * speed;
+        coin.physicsTimer = 700 + Math.random() * 350;
+        coins.push(coin);
+      }
+    }
+    return coins;
   }
 }

@@ -2636,9 +2636,12 @@ export class ItemWorldScene extends Scene {
             false, this.player.facingRight ? 1 : -1,
           );
           if (drop.type === 'gold' && drop.amount > 0) {
-            const gp = new GoldPickup(bp.x + bp.width / 2, bp.y + bp.height, drop.amount);
-            this.goldPickups.push(gp);
-            this.entityLayer.addChild(gp.container);
+            const burstX = bp.x + bp.width / 2 - 8;
+            const burstY = bp.y + bp.height;
+            for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+              this.goldPickups.push(gp);
+              this.entityLayer.addChild(gp.container);
+            }
           } else if (drop.type === 'flask') {
             this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
           }
@@ -3165,13 +3168,14 @@ export class ItemWorldScene extends Scene {
             this.entityLayer.addChild(heal.container);
           }
 
-          // Gold drop on kill
+          // Gold drop on kill — confetti burst of mixed denominations.
           const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
           const goldAmount = isGolden ? baseGold * 3 : baseGold;
           if (goldAmount > 0) {
-            const gp = new GoldPickup(dropX, dropY, goldAmount);
-            this.goldPickups.push(gp);
-            this.entityLayer.addChild(gp.container);
+            for (const gp of GoldPickup.spawnBurst(dropX, dropY, goldAmount)) {
+              this.goldPickups.push(gp);
+              this.entityLayer.addChild(gp.container);
+            }
           }
         }
       }
