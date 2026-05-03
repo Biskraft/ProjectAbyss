@@ -6,6 +6,7 @@ import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
 import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
 import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
+import { archetypeFor } from '@level/RoomGraphArchetypes';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
@@ -41,9 +42,13 @@ import {
   EGO_PLAYER_DEATH, EGO_BOSS_KILLED,
   EGO_REENTRY_2, EGO_REENTRY_2_BOSS, EGO_REENTRY_3,
   EGO_SWAP_RETURN, EGO_AFFINITY_MAX,
+  EGO_GATEKEEPER_FIRST, EGO_GATEKEEPER_FAMILIAR,
+  EGO_ARCHIVIST_FIRST, EGO_ARCHIVIST_FAMILIAR,
   EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
 } from '@data/EgoDialogue';
 import { MemoryShardNPC } from '@entities/MemoryShardNPC';
+import { MemoryResident, type ResidentType } from '@entities/MemoryResident';
+import { Trapdoor } from '@entities/Trapdoor';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
@@ -172,7 +177,17 @@ const FOUNDRY_BG_HATCH_TILES = new Set([
 ]);
 
 
-type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold';
+type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall';
+
+// DEC-039 Trapdoor 침강 시퀀스 타이밍 (ms).
+//   1) descent_pan   = 카메라 다운 패닝 (페이드 알파 0 → 1)
+//   2) descent_warp  = 텔레포트 직후 페이드 유지
+//   3) descent_in    = 페이드 알파 1 → 0 (다음 Plaza 천장 등장)
+const DESCENT_PAN_MS = 800;
+const DESCENT_WARP_HOLD_MS = 200;
+const DESCENT_IN_MS = 400;
+const DESCENT_TOTAL_MS = DESCENT_PAN_MS + DESCENT_WARP_HOLD_MS + DESCENT_IN_MS;
+const DESCENT_CAMERA_DROP_PX = 96;
 
 export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
@@ -189,6 +204,32 @@ export class ItemWorldScene extends Scene {
   private projectiles: Projectile[] = [];
   private healingPickups: HealingPickup[] = [];
   private goldPickups: GoldPickup[] = [];
+  /** DEC-038 Town of Orphaned Shadows — hub Gatekeeper / shrine Librarian. */
+  private memoryResidents: MemoryResident[] = [];
+  /**
+   * 주민 전용 layer — fullMapContainer (grid) 바로 위, entityLayer (player/vfx)
+   * 바로 아래. 주민이 grid 위로는 보이지만 player/이펙트 뒤로 가도록 z 정렬.
+   * (사용자 요청 2026-05-02 — "주민 렌더링 순서를 grid 다음으로 올려")
+   */
+  private residentsLayer!: Container;
+  /**
+   * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
+   * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
+   */
+  private trapdoor: Trapdoor | null = null;
+  /** 침강 시퀀스 진행 누적 ms. transitionState='descent_fall' 동안만 갱신. */
+  private descentTimer = 0;
+  /** 텔레포트 완료 표식 — 시퀀스 중 한 번만 수행 보장. */
+  private descentWarpDone = false;
+  /** 마지막 지층 보스 처치 후 = true. 침강 시퀀스 끝에서 월드 귀환으로 분기. */
+  private descentToWorld = false;
+  /** 카메라 다운 패닝 시작 시점 cam.y. */
+  private descentStartCamY = 0;
+  /**
+   * Entry sequencing: 시작 룸의 Gatekeeper/Librarian + ambient 스폰을 입장 대사
+   * 완료까지 보류한다. true 가 되면 hub/shrine 분기가 정상 스폰을 수행.
+   */
+  private startSpawnDone = false;
   private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
@@ -336,11 +377,11 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Player entity spawn (DEC-038): LDtk Start 템플릿의 Player entity 가 권위.
-   * buildFullMap 가 hub 셀의 ldtkLevel 에서 entity.type === 'Player' 를 찾아 채운다.
-   * init() 의 첫 스폰에서 우선 사용. 나중에 Start 템플릿이 여러 개로 늘어나도
-   * 각 템플릿의 Player entity 가 그대로 권위가 된다.
+   * buildFullMap 가 각 stratum 의 startRoom ldtkLevel 에서 entity.type === 'Player'
+   * 를 찾아 stratumIndex 키로 캐시. init() 의 첫 스폰과, jumpToStratum 으로
+   * 지층을 내려갈 때(보스 처치 후 continue / stratum picker) 의 스폰 권위.
    */
-  private playerSpawnFromLdtk: { x: number; y: number } | null = null;
+  private playerSpawnByStratum: Map<number, { x: number; y: number }> = new Map();
   private memoryTriggers: Array<{
     x: number; y: number; w: number; h: number;
     text: string;
@@ -368,11 +409,6 @@ export class ItemWorldScene extends Scene {
   private exitTracked = false;
   private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
-
-  // Exit trigger (at stratum end rooms)
-  private exitTrigger: { x: number; y: number; width: number; height: number } | null = null;
-  private exitVisual: Graphics | null = null;
-  private exitPrompt: Container | null = null;
 
   // Door markers
   private doorMarkers: Graphics[] = [];
@@ -491,10 +527,22 @@ export class ItemWorldScene extends Scene {
       ? (urlTopologyRaw as TopologyKind)
       : undefined;
     if (urlTopology) console.log(`[ItemWorld] URL topology override: ${urlTopology}`);
+    // DEC-039 archetype 매핑 — 무기의 (주색, 부색) 기질 → 7 archetype 중 하나.
+    // 미지정 시 'zigzag' fallback. URL ?archetype= 으로 dev 측 강제 가능.
+    const urlArchRaw = new URLSearchParams(window.location.search)
+      .get('archetype')?.trim().toLowerCase() ?? '';
+    const validArchetypes = new Set([
+      'direct', 'zigzag', 'switchback', 'spiral', 'wide_sprawl', 'crooked', 'branchy_maze',
+    ]);
+    const archetype = validArchetypes.has(urlArchRaw)
+      ? (urlArchRaw as ReturnType<typeof archetypeFor>)
+      : archetypeFor(this.item.def.temperamentPrimary, this.item.def.temperamentSecondary);
+    console.log(`[ItemWorld] archetype: ${archetype} (primary=${this.item.def.temperamentPrimary ?? '-'} secondary=${this.item.def.temperamentSecondary ?? '-'})`);
     const adapterResult = generateUnifiedGridFromGraph(
       this.strataConfig.strata,
       this.item.uid,
       urlTopology ?? this.item.def.topologyOverride,
+      archetype,
     );
 
     // Dev: persistent topology label (top-left). Shows which source picked the topology.
@@ -604,15 +652,19 @@ export class ItemWorldScene extends Scene {
     {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
-      const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-      const gridW = _bound?.width ?? IW_GRID_W;
-      const gridH = _bound?.height ?? IW_GRID_H;
-      this.parallaxBG.setup(bgEntry, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX, {
+      // DEC-039 안 A: parallax 도 통일 좌표 전체 크기로 설정.
+      const totalCols = this.unifiedGrid.totalWidth;
+      const totalRows = this.unifiedGrid.totalHeight;
+      this.parallaxBG.setup(bgEntry, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
       });
     }
+
+    // Residents layer — grid 위, entityLayer 아래. addChild 순서가 z 결정.
+    this.residentsLayer = new Container();
+    this.container.addChild(this.residentsLayer);
 
     // Entity layer
     this.entityLayer = new Container();
@@ -764,9 +816,10 @@ export class ItemWorldScene extends Scene {
     // 배치한다. 없으면 절차적 floor 탐색으로 폴백.
     let spawnX: number;
     let spawnY: number;
-    if (this.playerSpawnFromLdtk) {
-      spawnX = Math.round(this.playerSpawnFromLdtk.x - this.player.width / 2);
-      spawnY = Math.round(this.playerSpawnFromLdtk.y - this.player.height);
+    const initialLdtkSpawn = this.playerSpawnByStratum.get(this.currentStratumIndex);
+    if (initialLdtkSpawn) {
+      spawnX = Math.round(initialLdtkSpawn.x - this.player.width / 2);
+      spawnY = Math.round(initialLdtkSpawn.y - this.player.height);
     } else {
       const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
       spawnX = spawn.x;
@@ -788,7 +841,16 @@ export class ItemWorldScene extends Scene {
     this.initialized = true;
 
     // ── Ego T04: landing dialogue ──
-    setTimeout(() => this.fireEgoEnter(), 500);
+    // 사용자 요청 (2026-05-02) — 타일 + 거주자 (Plaza Gatekeeper / ambient 20명)
+    // 가 먼저 렌더링된 후 대사가 등장해야 한다 (대사 중 빈 광장 인상 방지).
+    // 순서:
+    //   1) startSpawnDone=true 즉시 → spawnEnemiesInRoom 가 거주자 spawn
+    //   2) 한 박자 (500ms) 후 입장 대사 — player 가 광장 풍경을 인지한 후 발화
+    this.startSpawnDone = true;
+    this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
+    setTimeout(() => {
+      void this.fireEgoEnterAsync();
+    }, 500);
 
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
@@ -911,31 +973,26 @@ export class ItemWorldScene extends Scene {
     this.spawnedRooms.clear();
     this.roomTypeMap.clear();
     this.clearEnemies();
-    this.exitTrigger = null;
 
-    const stratumBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const _dbgRowStart = stratumBound?.rowOffset ?? 0;
-    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    // strataOffsets[].width/height = SSoT (DEC-037 radial 임베딩 크기).
-    // IW_GRID_W/H 는 stratumBound 누락 시 last-resort 폴백.
-    const gridW = stratumBound?.width ?? IW_GRID_W;
-    const gridH = stratumBound?.height ?? IW_GRID_H;
-    console.log(`[ItemWorld] buildFullMap stratum=${this.currentStratumIndex} rowStart=${_dbgRowStart} gridSize=${gridW}x${gridH} templates=${this.ldtkTemplates.length}`);
+    // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
+    // 한 번에 렌더링. fullGrid 도 totalWidth×totalHeight 로 확장. 플레이어는 워프
+    // 없이 unifiedGrid 전체를 자유롭게 이동.
+    const totalCols = this.unifiedGrid.totalWidth;
+    const totalRows = this.unifiedGrid.totalHeight;
+    console.log(`[ItemWorld] buildFullMap UNIFIED totalGrid=${totalCols}x${totalRows} strata=${this.unifiedGrid.strataOffsets.length} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
-    this.fullGrid = this.mapController.initFullGrid(gridW, gridH);
+    this.fullGrid = this.mapController.initFullGrid(totalCols, totalRows);
     this.sealedCells.clear();
 
     // Clear any previously spawned static entities (rebuild = fresh world)
     this.clearStaticEntities();
 
-    // Place each room template into the full grid (current stratum only)
+    // Place each room template into the full grid (entire unified space)
     const grid = this.unifiedGrid;
-    const stratumRowStart = grid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
     let roomCount = 0;
-    for (let localRow = 0; localRow < gridH; localRow++) {
-      const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < gridW; col++) {
+    for (let absRow = 0; absRow < totalRows; absRow++) {
+      for (let col = 0; col < totalCols; col++) {
         const cell = grid.cells[absRow]?.[col];
         if (!cell) continue;
 
@@ -956,8 +1013,8 @@ export class ItemWorldScene extends Scene {
         const roomH = roomGrid.length;
         const roomW = roomGrid[0]?.length ?? 0;
 
-        // Copy room collision data into fullGrid at LOCAL offset
-        const offR = localRow * IW_ROOM_H_TILES;
+        // Copy room collision data into fullGrid at ABSOLUTE offset
+        const offR = absRow * IW_ROOM_H_TILES;
         const offC = col * IW_ROOM_W_TILES;
         for (let tr = 0; tr < roomH && tr < IW_ROOM_H_TILES; tr++) {
           for (let tc = 0; tc < roomW && tc < IW_ROOM_W_TILES; tc++) {
@@ -965,13 +1022,42 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        // Render room tiles ? ALL layers including wallTiles so that LDtk
-        // auto-tile rules for platform(3), updraft(4), etc. render properly.
-        // Each room's layers are re-parented into the aggregate containers
-        // so the palette filter runs ONCE over the full map (continuous
-        // gradient, no per-room seams).
+        // DEC-039: Boss ('no_down') 셀은 LDtk 템플릿이 D opening 을 가지고
+        // 있더라도 collision 으로 강제 봉인. 자연 폴 다운 차단 — Trapdoor entity
+        // 만이 유일한 전이 수단.
+        //
+        // Plaza ('force_up' / LRUD) 는 천장이 자연 open 이므로 별도 seal 불필요.
+        // 위쪽 셀 (이전 stratum 보스) 가 'no_down' 으로 잠겨있어 양방향 통과는
+        // 차단되며, Trapdoor 가 뚫는 hole 만 일방 다이브 통로로 작동.
+        //
+        // !cell.exits.up 분기는 plaza 가 force_up 으로 cell.exits.up=true 라
+        // 자동 no-op. 일반 셀이 그래프상 위쪽 연결 없으면 여전히 작동.
+        const SEAL = 2;
+        if (!cell.exits.up) {
+          for (let r = 0; r < SEAL; r++) {
+            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
+              const gr = offR + r;
+              const gc = offC + c;
+              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
+                this.fullGrid[gr][gc] = 1;
+              }
+            }
+          }
+        }
+        if (!cell.exits.down) {
+          for (let r = IW_ROOM_H_TILES - SEAL; r < IW_ROOM_H_TILES; r++) {
+            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
+              const gr = offR + r;
+              const gc = offC + c;
+              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
+                this.fullGrid[gr][gc] = 1;
+              }
+            }
+          }
+        }
+
         const roomX = col * IW_ROOM_W_PX;
-        const roomY = localRow * IW_ROOM_H_PX;
+        const roomY = absRow * IW_ROOM_H_PX;
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
@@ -997,20 +1083,21 @@ export class ItemWorldScene extends Scene {
         this.shadowAggregate!.addChild(renderer.shadowLayer);
 
         // Spawn LDtk-placed static entities for this room (with world offset)
-        this.spawnStaticEntitiesForRoom(ldtkLevel, col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX);
+        this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
 
-        // DEC-038: 아이템계 진입 스폰은 LDtk Start 템플릿의 Player entity 가 권위.
-        // hub 셀(=unifiedGrid.startRoom)의 ldtkLevel 에서 type='Player' entity 의
-        // 픽셀 좌표를 절대 좌표로 변환해 보관. init() 의 첫 스폰 직전에 사용된다.
-        const isUnifiedStart = col === this.unifiedGrid.startRoom.col
-          && absRow === this.unifiedGrid.startRoom.absoluteRow;
-        if (isUnifiedStart) {
+        // DEC-039 안 A: stratum 0 의 startRoom Player entity 만 init() 첫 스폰에
+        // 사용. 다른 stratum 으로 워프하지 않으므로 별도 키 보관은 불필요하지만,
+        // 호환성을 위해 모든 stratum start 의 절대 좌표를 보관해 둔다.
+        const stratumStartMatch = this.unifiedGrid.stratumStartRooms?.find(
+          s => s.col === col && s.absoluteRow === absRow,
+        );
+        if (stratumStartMatch) {
           const playerEnt = ldtkLevel.entities.find(e => e.type === 'Player');
           if (playerEnt) {
-            this.playerSpawnFromLdtk = {
-              x: playerEnt.px[0] + col * IW_ROOM_W_PX,
-              y: playerEnt.px[1] + localRow * IW_ROOM_H_PX,
-            };
+            this.playerSpawnByStratum.set(stratumStartMatch.stratumIndex, {
+              x: playerEnt.px[0] + roomX,
+              y: playerEnt.px[1] + roomY,
+            });
           }
         }
 
@@ -1025,10 +1112,10 @@ export class ItemWorldScene extends Scene {
     }
 
     // Radial layout 은 null 셀이 다수 — parallax BG 가 그대로 보이므로 dark seal 로 메움.
-    this.fillNullCellSeal(grid, stratumRowStart, gridW, gridH);
+    this.fillNullCellSeal(grid, totalCols, totalRows);
 
-    this.addFullMapBoundaryCollision(gridW, gridH);
-    this.addFullMapBoundaryVisuals(gridW, gridH);
+    this.addFullMapBoundaryCollision(totalCols, totalRows);
+    this.addFullMapBoundaryVisuals(totalCols, totalRows);
 
     // Procedural decorations generated from the final LDtk-authored fullGrid.
     if (this._procDecoEnabled) {
@@ -1056,7 +1143,7 @@ export class ItemWorldScene extends Scene {
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
-    this.game.camera.setBounds(0, 0, gridW * IW_ROOM_W_PX, gridH * IW_ROOM_H_PX);
+    this.game.camera.setBounds(0, 0, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX);
 
     this.persistRoomState();
     this.drawMiniMap();
@@ -1082,14 +1169,8 @@ export class ItemWorldScene extends Scene {
       this.entityLayer.addChild(bp.container);
     }
 
-    // Restore boss portal if the current stratum's boss was previously killed.
-    // Clean up stale portal from prior stratum.
-    this.exitTrigger = null;
-    if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
-    this.exitVisual = null;
-    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
-    this.exitPrompt = null;
-    this.restorePortalIfStratumCleared();
+    // DEC-039 안 A: 포털/exitTrigger 시스템 제거됨. 보스 처치 시 down exit 가
+    // 자연스럽게 다음 stratum 으로 이어지므로 별도 복원 로직 불필요.
   }
 
   private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, _size: number): void {
@@ -1205,7 +1286,54 @@ export class ItemWorldScene extends Scene {
     // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) 은 안전
     // 지대다. 적 스폰을 차단하고 즉시 cleared 처리해 HUD 카운터/재진입 흐름을
     // 일반 클리어와 동일하게 유지한다. P0 invariant — 절대 적 1마리도 안 됨.
+    // 대신 거주자 그림자(Gatekeeper / Librarian) 1명을 결정론적으로 spawn.
     if (cell.role === 'hub' || cell.role === 'shrine') {
+      // Entry sequencing: 시작 룸은 입장 대사 완료까지 스폰 보류. cleared 마킹도
+      // 함께 보류하여 대사 후 명시 호출에서 정상 경로로 처리되도록 한다.
+      const isStartRoom = col === this.unifiedGrid.startRoom.col
+        && row === this.unifiedGrid.startRoom.absoluteRow;
+      if (isStartRoom && !this.startSpawnDone) return;
+      // DEC-039 안 A: fullGrid 가 통일 좌표라 row 그대로 사용.
+      const offXHs = col * IW_ROOM_W_PX;
+      const offYHs = row * IW_ROOM_H_PX;
+      const roomTopRowHs = Math.floor(offYHs / TILE_SIZE);
+      const roomTopColHs = Math.floor(offXHs / TILE_SIZE);
+      const pointsHs = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopColHs, roomTopRowHs);
+      if (pointsHs.length > 0) {
+        // 결정론 시드: itemUid + col + absRow → 같은 무기·같은 방이면 항상 동일 위치.
+        const rngHs = new PRNG(this.item.uid * 31337 + col * 199 + row * 73);
+        // 인덱스를 셔플해 인터랙티브 1명 + ambient N 명이 같은 점을 안 쓰게 함.
+        const idxs = pointsHs.map((_, i) => i);
+        for (let i = idxs.length - 1; i > 0; i--) {
+          const j = rngHs.nextInt(0, i);
+          [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+        }
+        // 인터랙티브 거주자 1명 (Plaza→Gatekeeper / Archive→Archivist)
+        const mainPt = pointsHs[idxs[0]];
+        const mainType: ResidentType = cell.role === 'hub' ? 'gatekeeper' : 'archivist';
+        const main = new MemoryResident(mainPt.x, mainPt.y, mainType);
+        this.memoryResidents.push(main);
+        // residentsLayer — grid 위, entityLayer(player/vfx) 아래.
+        this.residentsLayer.addChild(main.container);
+        // Plaza 한정: 배경 그림자 20명. sprite 풀(64종) 에서 RNG 로 골라
+        // 다양성 확보. spawn point 풀이 작아도 wrap + 넓은 x-jitter + 미세
+        // y-jitter 로 겹침 회피.
+        if (cell.role === 'hub') {
+          const ambientCount = 20;
+          const poolLen = idxs.length;
+          for (let i = 0; i < ambientCount; i++) {
+            const k = poolLen > 1 ? 1 + (i % (poolLen - 1)) : 0;
+            const apt = pointsHs[idxs[k]];
+            const lap = poolLen > 1 ? Math.floor(i / (poolLen - 1)) : i;
+            const jx = lap > 0 ? rngHs.nextInt(-20, 20) : rngHs.nextInt(-4, 4);
+            const jy = rngHs.nextInt(-2, 2);
+            const variant = rngHs.nextInt(0, 63);
+            const ambient = new MemoryResident(apt.x + jx, apt.y + jy, 'ambient', variant);
+            this.memoryResidents.push(ambient);
+            this.residentsLayer.addChild(ambient.container);
+          }
+        }
+      }
       cell.cleared = true;
       this.roomsCleared++;
       this.persistRoomState();
@@ -1247,10 +1375,9 @@ export class ItemWorldScene extends Scene {
     };
 
     const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
-    const stratumStart = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localRow = row - stratumStart;
+    // DEC-039 안 A: fullGrid 가 통일 좌표계 — row 그대로 사용.
     const offX = col * IW_ROOM_W_PX;
-    const offY = localRow * IW_ROOM_H_PX;
+    const offY = row * IW_ROOM_H_PX;
 
     const dist = Math.abs(col - this.unifiedGrid.startRoom.col)
                + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
@@ -1468,113 +1595,17 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /**
-   * Create the boss-exit red portal at a pixel position, register it as the
-   * exitTrigger, and add graphics to entityLayer. Shared by fresh boss kills
-   * and by re-entry into already-cleared boss rooms.
-   */
-  private spawnBossPortal(px: number, py: number): void {
-    // Clean up previous portal if any
-    if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
-    this.exitVisual = null;
-
-    const portalGfx = new Graphics();
-    portalGfx.rect(-28, -32, 56, 48).fill({ color: 0xff0000, alpha: 0.25 });
-    portalGfx.rect(-20, -28, 40, 40).fill(0xcc0000);
-    portalGfx.rect(-14, -24, 28, 32).fill(0xff2222);
-    portalGfx.rect(-8, -20, 16, 24).fill(0xff6666);
-    portalGfx.rect(-4, -16, 8, 16).fill(0xffaaaa);
-    portalGfx.x = px;
-    portalGfx.y = py;
-    this.entityLayer.addChild(portalGfx);
-    this.exitVisual = portalGfx;
-
-    this.exitTrigger = {
-      x: px - 24, y: py - 32,
-      width: 48, height: 48,
-    };
-
-    // Context prompt for portal
-    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
-    this.exitPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Descend', this.game.uiScale);
-    this.exitPrompt.visible = false;
-    this.game.uiContainer.addChild(this.exitPrompt);
-  }
-
-  /**
-   * On stratum load, if the current stratum's boss room is already cleared
-   * (player killed it in a previous session and re-entered via the stratum
-   * picker), restore the exit portal so the player can descend again.
-   */
-  private restorePortalIfStratumCleared(): void {
-    const endRoom = this.unifiedGrid.stratumEndRooms.find(
-      e => e.stratumIndex === this.currentStratumIndex,
-    );
-    if (!endRoom) return;
-    const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
-    if (!cell) return;
-
-    const savedPortal = this.progress.bossPortals?.[String(this.currentStratumIndex)];
-    const stratumAlreadyCleared =
-      cell.cleared ||
-      !!savedPortal ||
-      this.progress.deepestUnlocked > this.currentStratumIndex;
-    if (!stratumAlreadyCleared) return;
-
-    // Prefer the persisted boss death position so the portal sits exactly
-    // where the boss fell. If the current grid no longer matches the saved
-    // room coordinates, put the portal at this stratum's current boss spawn.
-    const canUseCellPosition = cell.cleared && cell.bossPortalX != null && cell.bossPortalY != null;
-    const canUseSavedPosition = cell.cleared && savedPortal;
-    const fallback = this.getBossPortalFallbackPosition(endRoom.col, endRoom.absoluteRow);
-    const portalX = canUseCellPosition
-      ? cell.bossPortalX!
-      : canUseSavedPosition
-        ? savedPortal.x
-        : fallback.x;
-    const portalY = canUseCellPosition
-      ? cell.bossPortalY!
-      : canUseSavedPosition
-        ? savedPortal.y
-        : fallback.y;
-
-    cell.cleared = true;
-    cell.bossPortalX = portalX;
-    cell.bossPortalY = portalY;
-    this.progress.bossPortals[String(this.currentStratumIndex)] = { x: portalX, y: portalY };
-    this.persistRoomState();
-    this.spawnBossPortal(portalX, portalY);
-    this.toast.show('Boss room cleared ? red portal ready.', 0xff8844);
-  }
-
-  private getBossPortalFallbackPosition(col: number, absoluteRow: number): { x: number; y: number } {
-    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localRow = absoluteRow - stratumOffset;
-    const roomTopTile = localRow * IW_ROOM_H_TILES;
-    const roomLeftTile = col * IW_ROOM_W_TILES;
-    const flat = this.findFlatFloorCenter(roomLeftTile, roomTopTile, 16);
-    if (flat) return flat;
-
-    const spawnPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomLeftTile, roomTopTile);
-    if (spawnPoints.length > 0) {
-      const bossRng = new PRNG(this.item.uid * 999 + col * 77 + absoluteRow * 33);
-      return spawnPoints[bossRng.nextInt(0, spawnPoints.length - 1)];
-    }
-
-    return {
-      x: col * IW_ROOM_W_PX + IW_ROOM_W_PX / 2,
-      y: localRow * IW_ROOM_H_PX + IW_ROOM_H_PX / 2,
-    };
-  }
+  // DEC-039 안 A: spawnBossPortal / restorePortalIfStratumCleared /
+  // getBossPortalFallbackPosition 제거됨. 보스 처치 후 down exit 가
+  // 다음 stratum 으로 자연스럽게 이어진다.
 
   private getPlayerFloorSpawnPosition(col: number, absoluteRow: number): { x: number; y: number } {
-    const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const localRow = absoluteRow - stratumOffset;
+    // DEC-039 안 A: 통일 좌표계 — absoluteRow 직접 사용.
     const roomLeftTile = col * IW_ROOM_W_TILES;
-    const roomTopTile = localRow * IW_ROOM_H_TILES;
+    const roomTopTile = absoluteRow * IW_ROOM_H_TILES;
     const roomLeftPx = col * IW_ROOM_W_PX;
     const roomRightPx = roomLeftPx + IW_ROOM_W_PX;
-    const roomTopPx = localRow * IW_ROOM_H_PX;
+    const roomTopPx = absoluteRow * IW_ROOM_H_PX;
     const roomBottomPx = roomTopPx + IW_ROOM_H_PX;
     const targetCenterX = roomLeftPx + IW_ROOM_W_PX / 2;
 
@@ -1830,32 +1861,29 @@ export class ItemWorldScene extends Scene {
    * room coordinates so the player never sees a "pop-in" when crossing a doorway.
    * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
    */
-  private preSpawnNeighborRooms(localCol: number, localRow: number): void {
-    const _bound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const stratumOffset = _bound?.rowOffset ?? 0;
-    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const stratumWidth = _bound?.width ?? IW_GRID_W;
-    const stratumHeight = _bound?.height ?? IW_GRID_H;
+  private preSpawnNeighborRooms(curCol: number, curAbsRow: number): void {
+    // DEC-039 안 A: 통일 좌표계 — stratum 경계 클램프 없이 전체 unifiedGrid 범위로 검사.
+    const totalCols = this.unifiedGrid.totalWidth;
+    const totalRows = this.unifiedGrid.totalHeight;
     const directions = [
       { dc: -1, dr: 0, name: 'W' },
       { dc: 1, dr: 0, name: 'E' },
       { dc: 0, dr: -1, name: 'N' },
       { dc: 0, dr: 1, name: 'S' },
     ];
-    console.log(`[ItemWorld] preSpawnNeighborRooms from (${localCol},${localRow}) stratumOffset=${stratumOffset} gridSize=${stratumWidth}x${stratumHeight}`);
+    console.log(`[ItemWorld] preSpawnNeighborRooms from (${curCol},${curAbsRow}) totalGrid=${totalCols}x${totalRows}`);
     let spawnedCount = 0;
     let skippedBounds = 0;
     let skippedSpawned = 0;
     let skippedNullCell = 0;
     for (const { dc, dr, name } of directions) {
-      const ncLocal = localCol + dc;
-      const nrLocal = localRow + dr;
-      if (ncLocal < 0 || ncLocal >= stratumWidth || nrLocal < 0 || nrLocal >= stratumHeight) {
-        console.log(`  [${name}] skip: out of bounds (${ncLocal},${nrLocal})`);
+      const ncLocal = curCol + dc;
+      const nrAbs = curAbsRow + dr;
+      if (ncLocal < 0 || ncLocal >= totalCols || nrAbs < 0 || nrAbs >= totalRows) {
+        console.log(`  [${name}] skip: out of bounds (${ncLocal},${nrAbs})`);
         skippedBounds++;
         continue;
       }
-      const nrAbs = stratumOffset + nrLocal;
       const nKey = `${ncLocal},${nrAbs}`;
       if (this.spawnedRooms.has(nKey)) {
         console.log(`  [${name}] skip: already spawned ${nKey}`);
@@ -2041,40 +2069,10 @@ export class ItemWorldScene extends Scene {
     const ldtkRoomType = this.currentLdtkLevel?.roomType ?? '';
     const isEndRoom = ldtkRoomType === 'Boss' || this.isStratumEndRoom(this.currentCol, this.currentRow);
 
-    if (this.exitVisual?.parent) this.exitVisual.parent.removeChild(this.exitVisual);
-    this.exitVisual = null;
-
-    if (isEndRoom) {
-      if (!cell.cleared) {
-        this.spawnBoss();
-        // Boss is alive — portal opens on death (handled in update loop).
-        this.exitTrigger = null;
-      } else {
-        // Boss already cleared (re-entry). Restore portal at stored death
-        // position; fall back to a floor-aware center placement for legacy
-        // saves that pre-date bossPortalX/Y persistence.
-        let portalX = cell.bossPortalX;
-        let portalY = cell.bossPortalY;
-        if (portalX == null || portalY == null) {
-          const stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-          const localRow = this.currentRow - stratumOffset;
-          const roomTopTile = localRow * IW_ROOM_H_TILES;
-          const roomCenterX = this.currentCol * IW_ROOM_W_PX + IW_ROOM_W_PX / 2;
-          const centerTileCol = Math.floor(roomCenterX / TILE_SIZE);
-          let portalTileY = roomTopTile + IW_ROOM_H_TILES - 4;
-          for (let tr = roomTopTile + 2; tr < roomTopTile + IW_ROOM_H_TILES - 2; tr++) {
-            if ((this.fullGrid[tr]?.[centerTileCol] ?? 1) === 0 &&
-                (this.fullGrid[tr + 1]?.[centerTileCol] ?? 1) >= 1) {
-              portalTileY = tr; break;
-            }
-          }
-          portalX = roomCenterX;
-          portalY = (portalTileY + 1) * TILE_SIZE;
-        }
-        this.spawnBossPortal(portalX, portalY);
-      }
-    } else {
-      this.exitTrigger = null;
+    // DEC-039 안 A: 포털 시스템 제거됨. dead loadRoom 함수의 잔재 — 호출되지
+    // 않으므로 추후 함수 통째로 정리 예정.
+    if (isEndRoom && !cell.cleared) {
+      this.spawnBoss();
     }
 
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
@@ -2408,8 +2406,49 @@ export class ItemWorldScene extends Scene {
     this.healingPickups = [];
     for (const gp of this.goldPickups) gp.destroy();
     this.goldPickups = [];
+    for (const r of this.memoryResidents) r.destroy();
+    this.memoryResidents = [];
     // Reset pre-spawn cascade tracker so new stratum's neighbors get pre-spawned
     this.lastPreSpawnRoomKey = null;
+  }
+
+  /**
+   * DEC-038 Town of Orphaned Shadows — 거주자 proximity 시 검 Ego 발화.
+   *
+   * 로직:
+   *   - LoreDisplay 가 활성이면 무시 (중복 호출 방지).
+   *   - 거주자별로 entry 당 최대 1회 발화 (egoFlags 키로 dedupe — entry 시 reset).
+   *   - 단계: egoUnlockedEvents 에 *_SEEN 키 없으면 First, 있으면 Familiar.
+   *   - First 발화 시 *_SEEN 키 set → 다음 entry 부터 Familiar 분기.
+   */
+  private updateResidentEgoTriggers(): void {
+    if (!this.loreDisplay || this.loreDisplay.isActive) return;
+    if (this.memoryResidents.length === 0) return;
+
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+
+    for (const r of this.memoryResidents) {
+      if (r.type === 'ambient') continue; // 배경 그림자는 trigger 없음
+      const flagKey = r.type === 'gatekeeper' ? '__town_gk_fired' : '__town_arc_fired';
+      if (this.egoFlags.has(flagKey)) continue;
+      if (!r.isPlayerNear(px, py)) continue;
+
+      const seenKey = r.type === 'gatekeeper'
+        ? EGO_EVENT.GATEKEEPER_SEEN
+        : EGO_EVENT.ARCHIVIST_SEEN;
+      const isFirst = !this.egoUnlockedEvents.has(seenKey);
+      let lines;
+      if (r.type === 'gatekeeper') {
+        lines = isFirst ? EGO_GATEKEEPER_FIRST : EGO_GATEKEEPER_FAMILIAR;
+      } else {
+        lines = isFirst ? EGO_ARCHIVIST_FIRST : EGO_ARCHIVIST_FAMILIAR;
+      }
+      if (isFirst) this.egoUnlockedEvents.add(seenKey);
+      this.egoFlags.add(flagKey);
+      this.loreDisplay.showDialogue(lines, false);
+      return; // 한 프레임에 한 명만
+    }
   }
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
@@ -2599,6 +2638,14 @@ export class ItemWorldScene extends Scene {
       if (t.container.parent) t.container.parent.removeChild(t.container);
     }
     this.memoryTriggers = [];
+    // DEC-038 Town residents
+    for (const r of this.memoryResidents) r.destroy();
+    this.memoryResidents = [];
+    // DEC-039 Trapdoor — buildFullMap 재실행 시 잔류 방지.
+    if (this.trapdoor) {
+      this.trapdoor.destroy();
+      this.trapdoor = null;
+    }
   }
 
   /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
@@ -2792,15 +2839,11 @@ export class ItemWorldScene extends Scene {
     this.sealAggregate.removeChildren();
 
     const grid = this.unifiedGrid;
-    const _bound2 = grid.strataOffsets[this.currentStratumIndex];
-    const stratumRowStart = _bound2?.rowOffset ?? 0;
-    const stratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    const gridW = _bound2?.width ?? IW_GRID_W;
-    const gridH = _bound2?.height ?? IW_GRID_H;
+    const totalCols = grid.totalWidth;
+    const totalRows = grid.totalHeight;
 
-    for (let localRow = 0; localRow < gridH; localRow++) {
-      const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < gridW; col++) {
+    for (let absRow = 0; absRow < totalRows; absRow++) {
+      for (let col = 0; col < totalCols; col++) {
         const cell = grid.cells[absRow]?.[col];
         if (!cell) continue;
 
@@ -2809,7 +2852,7 @@ export class ItemWorldScene extends Scene {
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
         const roomX = col * IW_ROOM_W_PX;
-        const roomY = localRow * IW_ROOM_H_PX;
+        const roomY = absRow * IW_ROOM_H_PX;
 
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
@@ -2835,7 +2878,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    this.fillNullCellSeal(grid, stratumRowStart, gridW, gridH);
+    this.fillNullCellSeal(grid, totalCols, totalRows);
   }
 
   /**
@@ -2844,18 +2887,16 @@ export class ItemWorldScene extends Scene {
    */
   private fillNullCellSeal(
     grid: UnifiedGridData,
-    stratumRowStart: number,
-    gridW: number,
-    gridH: number,
+    totalCols: number,
+    totalRows: number,
   ): void {
     if (!this.sealAggregate) return;
     const gfx = new Graphics();
     let count = 0;
-    for (let localRow = 0; localRow < gridH; localRow++) {
-      const absRow = stratumRowStart + localRow;
-      for (let col = 0; col < gridW; col++) {
+    for (let absRow = 0; absRow < totalRows; absRow++) {
+      for (let col = 0; col < totalCols; col++) {
         if (grid.cells[absRow]?.[col]) continue;
-        gfx.rect(col * IW_ROOM_W_PX, localRow * IW_ROOM_H_PX, IW_ROOM_W_PX, IW_ROOM_H_PX);
+        gfx.rect(col * IW_ROOM_W_PX, absRow * IW_ROOM_H_PX, IW_ROOM_W_PX, IW_ROOM_H_PX);
         count++;
       }
     }
@@ -3144,6 +3185,11 @@ export class ItemWorldScene extends Scene {
 
     // Update enemies
     for (const enemy of this.enemies) enemy.update(dt);
+    // DEC-038 Town residents — idle anim + proximity 진입 시 검 Ego 발화.
+    for (const r of this.memoryResidents) r.update(dt);
+    this.updateResidentEgoTriggers();
+    // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 인터랙트.
+    this.updateTrapdoor(dt);
 
     // Player attacks ? Sakurai full feedback chain
     if (this.player.isAttackActive()) {
@@ -3497,67 +3543,102 @@ export class ItemWorldScene extends Scene {
           this.game.camera.shake(5);
         }, 160);
 
-        // ── Ego T12: boss killed dialogue → then portal ──
+        // ── DEC-039 안 D: Trapdoor 위치 미리 계산만 ──
+        // 보스 룸 D 출구는 'no_down' 태그로 영구 잠겼으므로 (RoomGraphAdapter)
+        // 자연 폴 다운은 발생하지 않는다. 대신 보스가 죽은 자리에 능동 인터랙트
+        // 포탈(Trapdoor) 을 띄운다.
+        //
+        // 사용자 요청 (2026-05-02): Trapdoor 는 Rustborn 의 보스 처치 대사가
+        // 끝난 후 spawn. 그러므로 위치/descentToWorld 만 미리 계산하고, 실제
+        // entity 생성은 dialogue 종료 후 spawnTrapdoorEntity() 콜백에서.
+        //
+        // 위치 보정 — enemy 픽셀 좌표 → cell 도출 → enemy 발 라인 아래로
+        // fullGrid 스캔해 floor 라인을 찾는다 (currentRow stale 회피).
+        let pendingTrapX = 0;
+        let pendingTrapY = 0;
+        let pendingDescentToWorld = false;
+        if (!this.trapdoor) {
+          const enemyCx = enemy.x + enemy.width / 2;
+          const enemyFootY = enemy.y + enemy.height;
+          const bossCellCol = Math.max(0, Math.floor(enemyCx / IW_ROOM_W_PX));
+          const bossCellRow = Math.max(0, Math.floor(enemyFootY / IW_ROOM_H_PX));
+          const cellTopRow = bossCellRow * IW_ROOM_H_TILES;
+          const cellBottomRow = cellTopRow + IW_ROOM_H_TILES;
+          const probeCol = Math.floor(enemyCx / TILE_SIZE);
+          let probeRow = Math.max(cellTopRow, Math.floor(enemyFootY / TILE_SIZE));
+          let floorTileRow = cellBottomRow - 1;
+          while (probeRow < cellBottomRow) {
+            const v = this.fullGrid[probeRow]?.[probeCol];
+            if (v === 1) { floorTileRow = probeRow; break; }
+            probeRow++;
+          }
+          const cellLeftPx = bossCellCol * IW_ROOM_W_PX;
+          const cellRightPx = cellLeftPx + IW_ROOM_W_PX;
+          pendingTrapX = Math.min(cellRightPx - 16, Math.max(cellLeftPx + 16, enemyCx));
+          pendingTrapY = floorTileRow * TILE_SIZE;
+          pendingDescentToWorld = this.isFinalEndRoom(bossCellCol, bossCellRow);
+          console.log(`[Trapdoor] queued at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) cell=(${bossCellCol},${bossCellRow}) descentToWorld=${pendingDescentToWorld}`);
+        }
+
+        // Trapdoor entity 생성 콜백 — dialogue 종료 후 호출.
+        const spawnTrapdoorEntity = (): void => {
+          if (this.trapdoor) return;
+          this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
+          this.entityLayer.addChild(this.trapdoor.container);
+          this.descentToWorld = pendingDescentToWorld;
+          this.toast.show('Trapdoor opens — strike to descend.', 0xff7744);
+          console.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
+        };
+
+        // ── Ego T12: boss killed dialogue ──
         // First-clear (boss never killed before): clear FX → Ego dialogue
-        //   (freeze) → dialogue done → portal opens. Persist BOSS_KILLED so
-        //   the onboarding window closes for subsequent entries.
-        // Post-clear re-entries: portal opens immediately + non-blocking dialogue.
+        //   (freeze) → Trapdoor spawn. 사용자 요청 (2026-05-02) — Trapdoor 는
+        //   Rustborn 대사가 끝난 후 등장.
         const wasOnboarding = this.isFirstBossOnboarding();
         if (this.egoActive && wasOnboarding) {
           this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
-          // Delay for clear FX to settle, then show dialogue
           setTimeout(async () => {
             await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
-            this.spawnBossPortal(px, py);
-            this.toast.show(`Red portal opened — press ${actionKey(GameAction.ATTACK)}`, 0xff7744);
+            spawnTrapdoorEntity();
           }, 2500);
         } else {
-          this.spawnBossPortal(px, py);
-          this.toast.show(`Red portal opened — press ${actionKey(GameAction.ATTACK)}`, 0xff7744);
-          // Non-first entries: fire dialogue if applicable
-          setTimeout(() => this.fireEgoBossKilled(), 2500);
+          // Non-onboarding: ego dialogue 없음. 보스 처치 cinematic (BOSS DEFEATED
+          // 토스트 2.2초) 후 trapdoor spawn 으로 호흡 한 박자.
+          setTimeout(() => {
+            spawnTrapdoorEntity();
+          }, 2500);
         }
         break;
       }
     }
 
-    // Exit trigger ? walk into boss portal
-    if (this.exitTrigger) {
-      const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-      const nearPortal = aabbOverlap(pb, this.exitTrigger);
+    // DEC-039 안 A: 보스 처치 시 포털 워프 분기 제거됨. 플레이어는 down exit
+    // 으로 자연스럽게 다음 stratum 으로 걸어간다.
 
-      // Show/hide prompt
-      if (this.exitPrompt) {
-        this.exitPrompt.visible = nearPortal;
-        if (nearPortal) {
-          const us = this.game.uiScale;
-          const cam = this.game.camera;
-          const cx = this.exitTrigger.x + this.exitTrigger.width / 2;
-          const sx = (cx - cam.renderX + GAME_WIDTH / 2) * us - this.exitPrompt.width / 2;
-          const sy = (this.exitTrigger.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
-          this.exitPrompt.x = Math.round(sx);
-          this.exitPrompt.y = Math.round(sy);
+    // DEC-039 안 A: 통일 좌표계 — totalGrid 전체로 clamp.
+    const totalCols = this.unifiedGrid.totalWidth;
+    const totalRows = this.unifiedGrid.totalHeight;
+    const playerRoomCol = Math.max(0, Math.min(totalCols - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
+    const playerAbsRow = Math.max(0, Math.min(totalRows - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
+    const roomKey = `${playerRoomCol},${playerAbsRow}`;
+
+    // DEC-039 안 A: stratum 경계 가로지르기 감지 — 셀이 바뀔 때마다 평가하고,
+    // stratumIndex 가 변하면 DEPTH 토스트 + progress 갱신. 재방문 시에도 토스트가
+    // 떠야 하므로 spawn-once 가드 바깥에 둔다.
+    const prevStratumIndex = this.currentStratumIndex;
+    const cellAtCursor = this.unifiedGrid.cells[playerAbsRow]?.[playerRoomCol] ?? null;
+    if (cellAtCursor && cellAtCursor.stratumIndex !== prevStratumIndex) {
+      const totalStrata = this.strataConfig.strata.length;
+      this.currentStratumIndex = cellAtCursor.stratumIndex;
+      this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
+      this.toast.show(`DEPTH ${this.currentStratumIndex + 1} / ${totalStrata}`, 0xff4488);
+      if (this.currentStratumIndex > prevStratumIndex) {
+        if (this.progress.deepestUnlocked < this.currentStratumIndex) {
+          this.progress.deepestUnlocked = this.currentStratumIndex;
         }
-      }
-
-      if (nearPortal && this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.handleStratumExit();
-        return;
+        this.progress.lastSafeStratum = this.currentStratumIndex;
       }
     }
-
-    // Track which room the player is in and lazy-spawn enemies on first entry
-    // Clamp to grid bounds to prevent out-of-range access
-    const _curBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const curGridW = _curBound?.width ?? IW_GRID_W;
-    const curGridH = _curBound?.height ?? IW_GRID_H;
-    const playerRoomCol = Math.max(0, Math.min(curGridW - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
-    const playerRoomRow = Math.max(0, Math.min(curGridH - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
-    // Convert local row (0-3) to absolute row so room keys are globally unique
-    // across strata and survive exit/re-entry persistence.
-    const _stratumOffset = this.unifiedGrid.strataOffsets[this.currentStratumIndex]?.rowOffset ?? 0;
-    const playerAbsRow = _stratumOffset + playerRoomRow;
-    const roomKey = `${playerRoomCol},${playerAbsRow}`;
 
     // Spawn enemies in this room if not yet spawned (first-ever visit)
     if (!this.spawnedRooms.has(roomKey)) {
@@ -3567,15 +3648,12 @@ export class ItemWorldScene extends Scene {
       const enteredCell = this.getCurrentCell();
       if (enteredCell) {
         enteredCell.visited = true;
-        this.currentStratumIndex = enteredCell.stratumIndex ?? 0;
-        this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
         this.persistRoomState();
         this.drawMiniMap();
-        // Track last non-boss room (per stratum, excluding start) for first-entry respawn
-        const absRow = this.currentRow;
+        // Track last non-boss / non-stratum-start room for first-entry respawn
         const sOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-        const isStratumStart = sOff && playerRoomRow === 0 && enteredCell.onCriticalPath;
-        if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, absRow)) {
+        const isStratumStart = sOff && playerAbsRow === sOff.rowOffset && enteredCell.onCriticalPath;
+        if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, this.currentRow)) {
           this.lastSafeRoomCol = this.currentCol;
           this.lastSafeRoomRow = this.currentRow;
         }
@@ -3588,13 +3666,10 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Pre-spawn neighbors whenever player enters a DIFFERENT room (first time
-    // that room triggers pre-spawn this session). This must run INDEPENDENTLY
-    // of spawnedRooms so that walking into a pre-spawned room still cascades
-    // pre-spawn to its own neighbors.
+    // Pre-spawn neighbors whenever player enters a DIFFERENT room.
     if (this.lastPreSpawnRoomKey !== roomKey) {
       this.lastPreSpawnRoomKey = roomKey;
-      this.preSpawnNeighborRooms(playerRoomCol, playerRoomRow);
+      this.preSpawnNeighborRooms(playerRoomCol, playerAbsRow);
     }
 
     // HUD, damage numbers, toast & Sakurai effects
@@ -3632,12 +3707,9 @@ export class ItemWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // Clamp player to the active stratum bounds.
-    const _clampBound = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-    const gridW = _clampBound?.width ?? IW_GRID_W;
-    const gridH = _clampBound?.height ?? IW_GRID_H;
-    const mapW = gridW * IW_ROOM_W_PX;
-    const mapH = gridH * IW_ROOM_H_PX;
+    // DEC-039 안 A: 플레이어를 통일 좌표 전체로 clamp.
+    const mapW = this.unifiedGrid.totalWidth * IW_ROOM_W_PX;
+    const mapH = this.unifiedGrid.totalHeight * IW_ROOM_H_PX;
     if (this.player.x < 0) this.player.x = 0;
     if (this.player.y < 0) this.player.y = 0;
     if (this.player.x > mapW - this.player.width) this.player.x = mapW - this.player.width;
@@ -3849,7 +3921,7 @@ export class ItemWorldScene extends Scene {
       earnedExp: this.earnedExp,
       earnedGold: this.earnedGold,
       prompts: {
-        exitPrompt: this.exitPrompt,
+        exitPrompt: null,
       },
     });
   }
@@ -4198,24 +4270,70 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Jump to the specified stratum's start room and rebuild the full map. */
+  /**
+   * Stratum picker / Trapdoor 침강 시퀀스 결과를 적용해 플레이어를 해당 stratum
+   * 시작 셀(Plaza 천장 위치) 로 이동. DEC-039 안 D — Trapdoor 가 유일한 지층
+   * 전이 수단이며 본 메서드는 텔레포트만 수행 (페이드/카메라 패닝은 호출 측이
+   * 책임).
+   *
+   * 부수 효과:
+   *   - 이전 stratum 의 살아있는 적 정리 (다음 지층에 잔류 방지)
+   *   - DEPTH N / MAX 토스트 (Stratum 2+ 진입 시)
+   *   - progress.deepestUnlocked / lastSafeStratum 갱신
+   */
   private jumpToStratum(stratumIndex: number): void {
     if (stratumIndex === this.currentStratumIndex) return;
     if (stratumIndex < 0 || stratumIndex >= this.strataConfig.strata.length) return;
 
-    this.currentStratumIndex = stratumIndex;
-    this.currentStratumDef = this.strataConfig.strata[stratumIndex];
-
-    // Use the stratum's actual critical path origin
     const stratumStart = this.unifiedGrid.stratumStartRooms?.[stratumIndex];
     const offset = this.unifiedGrid.strataOffsets[stratumIndex];
     if (!offset) return;
     const startRow = stratumStart?.absoluteRow ?? offset.rowOffset;
     const startCol = stratumStart?.col ?? 0;
 
-    this.toast.show(`Stratum ${stratumIndex + 1} ? Beginning...`, 0x88ccff);
+    // 이전 지층 잔류 적 정리 (Trapdoor 침강 후 다음 Plaza 에 따라가지 않도록).
+    this.clearEnemies();
+
+    const prevStratum = this.currentStratumIndex;
+    this.currentStratumIndex = stratumIndex;
+    this.currentStratumDef = this.strataConfig.strata[stratumIndex];
+    this.currentCol = startCol;
+    this.currentRow = startRow;
+    this.lastPreSpawnRoomKey = null;
+
+    // Progress 갱신 (deepest / last safe).
+    if (stratumIndex > prevStratum) {
+      if (this.progress.deepestUnlocked < stratumIndex) {
+        this.progress.deepestUnlocked = stratumIndex;
+      }
+      this.progress.lastSafeStratum = stratumIndex;
+      this.persistRoomState();
+    }
+
+    // 새 stratum 의 보스 처치 시 다음 Trapdoor 를 spawn 할 준비 — flag 리셋.
+    this.descentToWorld = false;
+
+    // LDtk Plaza 의 Player entity 우선, 없으면 절차적 floor 탐색.
+    const ldtkSpawn = this.playerSpawnByStratum.get(stratumIndex);
+    if (ldtkSpawn) {
+      this.player.x = Math.round(ldtkSpawn.x - this.player.width / 2);
+      this.player.y = Math.round(ldtkSpawn.y - this.player.height);
+    } else {
+      const spawn = this.getPlayerFloorSpawnPosition(startCol, startRow);
+      this.player.x = spawn.x;
+      this.player.y = spawn.y;
+    }
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.restoreGameplayHud();
-    this.startTransition('down', startCol, startRow);
+
+    // Stratum 2+ 진입 시 DEPTH 표기 (ULTRAKILL 패턴).
+    if (stratumIndex > 0) {
+      const totalStrata = this.strataConfig.strata.length;
+      this.toast.show(`DEPTH ${stratumIndex + 1} / ${totalStrata}`, 0xff4488);
+    }
   }
 
   // --- Onboarding ---
@@ -4242,7 +4360,7 @@ export class ItemWorldScene extends Scene {
    */
   private hideWorldPrompts(): void {
     this.uiController.hideWorldPrompts({
-      exitPrompt: this.exitPrompt,
+      exitPrompt: null,
     });
   }
 
@@ -4277,7 +4395,10 @@ export class ItemWorldScene extends Scene {
     this.hud.hideBossHP();
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
-    if (this.exitPrompt?.parent) this.exitPrompt.visible = false;
+
+    // 보스 처치 직후 떠있는 골드/EXP 플로팅 텍스트 제거. 오버레이가 게임플레이
+    // tick 을 멈추므로 timer 가 줄지 않아 영구 잔류한다 (P0).
+    this.dmgNumbers?.clear();
 
     // Show unified stratum clear overlay (replaces BossChoice + StratumClearPanel + ReturnResult)
     this.uiController.showStratumClearOverlay({
@@ -4403,13 +4524,31 @@ export class ItemWorldScene extends Scene {
     this.uiController.hideBossChoice();
   }
 
-  /** A17: player chose to continue ? descend into the next stratum. */
+  /**
+   * Player 가 StratumClearOverlay 에서 Continue 선택 시 호출. DEC-039 안 D —
+   * 보스 룸 바닥을 물리 파괴하고 자유 낙하로 다음 plaza 천장을 통과해 도착.
+   * jumpToStratum 텔레포트는 폐기.
+   *
+   * pendingTrapX/Y 는 startTrapdoorDescent 에서 stash 한 보스 시신 위치.
+   * currentStratumIndex 는 player 가 다음 plaza 셀에 들어가는 순간 update() 의
+   * 자동 stratum 감지 분기가 갱신 + DEPTH 토스트.
+   */
   private _continueToNextStratum(): void {
-    // New flow: overlay already showed stats, just jump to next stratum
-    const next = this.currentStratumIndex + 1;
-    if (this.unifiedGrid.strataOffsets[next]) {
-      this.jumpToStratum(next);
-    }
+    // HUD 복원 (overlay 가 숨겼었음).
+    this.restoreGameplayHud();
+    this.transitionState = 'none';
+
+    this.breakBossFloor(this.pendingTrapX, this.pendingTrapY);
+
+    // 파괴 피드백.
+    this.screenFlash.flash(0xffaa22, 0.4, 200);
+    this.game.camera.shake(7);
+    this.game.hitstopFrames = 6;
+    this.dmgNumbers?.clear();
+
+    const nextStratum = this.currentStratumIndex + 1;
+    const totalStrata = this.strataConfig.strata.length;
+    this.toast.show(`Descending — DEPTH ${nextStratum + 1} / ${totalStrata}`, 0xff8000);
   }
 
   /** A17: player chose to exit ? bank progress, leave the item world. */
@@ -4429,8 +4568,7 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
     this.toast.clear();
-    if (this.exitPrompt?.parent) this.exitPrompt.visible = false;
-    this.uiController.hideWorldPrompts({ exitPrompt: this.exitPrompt });
+    this.uiController.hideWorldPrompts({ exitPrompt: null });
     // Hide stratum clear panel if still showing
     if (this.uiController.hasStratumClearPanel()) {
       this.uiController.updateStratumClearPanel(true);
@@ -4473,7 +4611,6 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
     if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.exitPrompt?.parent) this.exitPrompt.parent.removeChild(this.exitPrompt);
     // Remove any lingering damage numbers / prompts from uiContainer
     // (keep only persistent items ? world scene re-adds its own in enter())
     this.game.uiContainer.removeChildren();
@@ -4515,8 +4652,6 @@ export class ItemWorldScene extends Scene {
     if (this.transitionState === 'fade_out') {
       this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
       if (this.transitionTimer <= 0) {
-        // Rebuild full map for the new stratum
-        this.buildFullMap();
         const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
         this.player.x = spawn.x;
         this.player.y = spawn.y;
@@ -4560,6 +4695,216 @@ export class ItemWorldScene extends Scene {
         this.startExitFade();
       }
     }
+    // 'descent_fall' 분기 폐기 (DEC-039 물리 낙하 모델로 전환). transitionState
+    // 타입에는 호환을 위해 남아있지만 startTrapdoorDescent 가 더 이상 설정하지 않음.
+  }
+
+  // ---------------------------------------------------------------------------
+  // DEC-039 Trapdoor 침강 시퀀스
+  // ---------------------------------------------------------------------------
+
+  /**
+   * 매 프레임 — Trapdoor 의 idle 갱신 + KeyPrompt UI + ATTACK 입력 인터랙트.
+   *
+   * KeyPrompt 는 Anvil/Save/Talk 표준 패턴:
+   *   - lazy create (KeyPrompt.createPrompt + game.uiScale)
+   *   - game.uiContainer 에 추가 (화면 좌표, world 변환 X)
+   *   - 매 프레임 trapdoor world 좌표 → screen 좌표 변환해 위치 갱신
+   * 이로써 Anvil 의 [C] Place Weapon 과 동일한 해상도/사이즈로 렌더.
+   */
+  private trapdoorPrompt: Container | null = null;
+  private updateTrapdoor(dt: number): void {
+    const td = this.trapdoor;
+    if (!td) {
+      this.hideTrapdoorPrompt();
+      return;
+    }
+    td.update(dt);
+    if (!td.active || this.transitionState !== 'none') {
+      this.hideTrapdoorPrompt();
+      return;
+    }
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+    const near = td.isPlayerNear(px, py);
+
+    if (near) {
+      this.showTrapdoorPromptAt(td.x, td.y - td.height);
+    } else {
+      this.hideTrapdoorPrompt();
+    }
+
+    if (near && this.game.input.isJustPressed(GameAction.ATTACK)) {
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
+      td.activate();
+      this.hideTrapdoorPrompt();
+      this.startTrapdoorDescent();
+    }
+  }
+
+  /** Anvil prompt 패턴 — uiContainer 에 lazy create + world→screen 변환. */
+  private showTrapdoorPromptAt(worldX: number, worldY: number): void {
+    if (!this.trapdoorPrompt) {
+      this.trapdoorPrompt = KeyPrompt.createPrompt(
+        actionKey(GameAction.ATTACK),
+        'Descend',
+        this.game.uiScale,
+      );
+    }
+    if (!this.trapdoorPrompt.parent) {
+      this.game.uiContainer.addChild(this.trapdoorPrompt);
+    }
+    this.trapdoorPrompt.visible = true;
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.trapdoorPrompt.width / 2;
+    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 24) * us;
+    this.trapdoorPrompt.x = Math.round(sx);
+    this.trapdoorPrompt.y = Math.round(sy);
+  }
+
+  private hideTrapdoorPrompt(): void {
+    if (this.trapdoorPrompt) this.trapdoorPrompt.visible = false;
+  }
+
+  private destroyTrapdoorPrompt(): void {
+    if (!this.trapdoorPrompt) return;
+    if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
+    this.trapdoorPrompt.destroy({ children: true });
+    this.trapdoorPrompt = null;
+  }
+
+  /**
+   * Trapdoor 인터랙트 진입.
+   *
+   * StratumClearOverlay (레벨업/클리어 페이지) 를 *모든 지층에서* 표시한다.
+   *   - 중간 지층 (descentToWorld=false): isFinal=false, hasNextStratum=true.
+   *     Continue 선택 시 _continueToNextStratum 가 보스 룸 바닥을 물리 파괴 +
+   *     자유 낙하로 다음 plaza 도착.
+   *   - 마지막 지층 (descentToWorld=true): isFinal=true, hasNextStratum=false.
+   *     Continue 비활성, Exit 만 가능. Exit 선택 시 startExitFade 로 월드 귀환.
+   *
+   * 보스 시신 위치(tdX/Y) 는 Continue 시 hole 위치로 사용 — overlay 가 떠있는
+   * 동안 trapdoor entity 는 미리 dispose. pendingTrapX/Y 에 stash.
+   */
+  private pendingTrapX = 0;
+  private pendingTrapY = 0;
+  private pendingTrapBossCellRow = 0;
+  private startTrapdoorDescent(): void {
+    if (!this.trapdoor) return;
+    const td = this.trapdoor;
+    this.pendingTrapX = td.x;
+    this.pendingTrapY = td.y;
+    // 보스 셀 row — _continueToNextStratum 에서 hole rN 결정용.
+    this.pendingTrapBossCellRow = Math.max(0,
+      Math.floor((td.y - 1) / IW_ROOM_H_PX));
+
+    // overlay 떠있는 동안 trapdoor entity 는 시각 잔재 방지 위해 미리 dispose.
+    this.disposeTrapdoor();
+    this.dmgNumbers?.clear();
+    this.toast.clear();
+    this.hideWorldPrompts();
+    this.hud.container.visible = false;
+    this.hud.hideBossHP();
+    this.hud.hideDepthGauge();
+    this.hud.hideItemExp();
+
+    // 마지막 지층 처리 — markItemCleared / progress / exitReason 설정.
+    if (this.descentToWorld) {
+      this.progressController.setExitReason('clear');
+      markItemCleared(this.item);
+      this.persistRoomState();
+    }
+
+    this.uiController.showStratumClearOverlay({
+      item: this.item,
+      beforeAtk: this.stratumStartAtk,
+      afterAtk: this.item.finalAtk,
+      beforeInnocents: this.stratumStartInnocentCount,
+      afterInnocents: this.item.innocents.length,
+      isFinal: this.descentToWorld,
+      hasNextStratum: !this.descentToWorld,
+    });
+    this.startPostClearHold();
+  }
+
+  /**
+   * Trapdoor 인터랙트 시 보스 룸 바닥 → 다음 plaza 천장 사이를 뚫는다.
+   *
+   * 폭:
+   *   IW_DOOR_V_WIDTH (=4 타일) + 2 타일 여유 = 6 타일. trapdoor 의 X 가 셀
+   *   중앙(+/- 시신 오프셋) 이고 plaza 의 ceiling D-opening 위치도 mid-col 에
+   *   정렬되어 있어 player 가 자연 낙하 가능.
+   *
+   * 깊이 (보스 floor 시작 → plaza ceiling 끝, 측정 기반):
+   *   r0 = trapdoor.y / TILE_SIZE             (보스 floor 라인 = IW_DOOR_FLOOR_ROW 부근)
+   *   rN = (bossCellRow + 1) * H + IW_DOOR_DEPTH (다음 plaza 천장 strip 끝)
+   *
+   *   = 보스 floor (IW_DOOR_DEPTH ~3 타일) + 다음 plaza ceiling (IW_DOOR_DEPTH ~3 타일)
+   *   = 약 6~8 타일 깊이. 다음 plaza 의 *내부 floor* 까지는 절대 뚫지 않으므로
+   *     player 는 plaza 천장 통과 직후 plaza 의 floor 위에 안착.
+   *
+   * 시각 잔재 제거 (LDtk wall/shadow/deco/bg 타일):
+   *   각 aggregate 컨테이너에 'erase' blend mode Graphics 를 추가해 hole 영역의
+   *   픽셀을 destination-out 한다. 그 결과 hole 영역만 투명 → 그 뒤의 parallax
+   *   배경이 그대로 노출되어 "통로" 처럼 자연스럽게 보인다.
+   */
+  private breakBossFloor(tdX: number, tdY: number): void {
+    if (!this.fullGrid || this.fullGrid.length === 0) return;
+    const fullW = this.fullGrid[0]?.length ?? 0;
+    const fullH = this.fullGrid.length;
+
+    // 폭 계산 — IW_DOOR_V_WIDTH 기반 + 1 타일 여유 좌우.
+    const tdTileX = Math.floor(tdX / TILE_SIZE);
+    const halfW = Math.ceil(IW_DOOR_V_WIDTH / 2) + 1; // ±3
+    const c0 = Math.max(0, tdTileX - halfW);
+    const cN = Math.min(fullW, tdTileX + halfW);
+
+    // 깊이 계산 — 보스 floor 시작 ~ 다음 plaza 천장 strip 끝.
+    // Plaza 출구 = LRU (사용자 결정 2026-05-03, force_up 적용 후) 로 천장 자연
+    // open. 따라서 hole 은 보스 floor strip + 다음 plaza 천장 strip (~3타일) 만
+    // 뚫으면 player 가 plaza 안으로 자유 낙하 → plaza floor 위에 자연 안착.
+    const r0 = Math.max(0, Math.floor(tdY / TILE_SIZE));
+    const bossCellRow = this.pendingTrapBossCellRow;
+    const nextCellTopRow = (bossCellRow + 1) * IW_ROOM_H_TILES;
+    const rN = Math.min(fullH, nextCellTopRow + IW_DOOR_DEPTH);
+
+    for (let r = r0; r < rN; r++) {
+      for (let c = c0; c < cN; c++) {
+        this.fullGrid[r][c] = 0;
+      }
+    }
+
+    // 시각 잔재 제거 — erase blend mode 로 wall/shadow/deco/bg/struct/seal 모두
+    // hole 영역에서 destination-out. parallax 배경이 자연 노출.
+    const holePxX = c0 * TILE_SIZE;
+    const holePxY = r0 * TILE_SIZE;
+    const holePxW = (cN - c0) * TILE_SIZE;
+    const holePxH = (rN - r0) * TILE_SIZE;
+    const eraseAt = (parent: Container | null | undefined): void => {
+      if (!parent) return;
+      const g = new Graphics();
+      g.rect(holePxX, holePxY, holePxW, holePxH).fill(0xffffff);
+      g.blendMode = 'erase';
+      parent.addChild(g);
+    };
+    eraseAt(this.wallAggregate);
+    eraseAt(this.shadowAggregate);
+    eraseAt(this.decoAggregate);
+    eraseAt(this.artificialDecoAggregate);
+    eraseAt(this.structAggregate);
+    eraseAt(this.bgAggregate);
+    eraseAt(this.sealAggregate);
+
+    console.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
+  }
+
+  /** Trapdoor entity 정리 + KeyPrompt UI 숨김 (uiContainer 잔류 방지). */
+  private disposeTrapdoor(): void {
+    this.hideTrapdoorPrompt();
+    if (!this.trapdoor) return;
+    this.trapdoor.destroy();
+    this.trapdoor = null;
   }
 
   render(alpha: number): void {
@@ -4574,6 +4919,7 @@ export class ItemWorldScene extends Scene {
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
+    this.destroyTrapdoorPrompt();
     this.clearStaticEntities();
     if (this.loreDisplay) {
       this.loreDisplay.close();
@@ -4603,6 +4949,7 @@ export class ItemWorldScene extends Scene {
 
   override destroy(): void {
     this.parallaxBG?.destroy();
+    this.dmgNumbers?.clear();
     super.destroy();
   }
 
@@ -4783,6 +5130,25 @@ export class ItemWorldScene extends Scene {
       this.fireEgo('reentry_3', EGO_REENTRY_3, false);
     }
     // 4+ : silence
+  }
+
+  /**
+   * fireEgoEnter 의 await-able 변종. 발화한 대사가 있다면 그 종료까지 await.
+   * 대사 미발생(이미 발화·비활성·4 회차+) 시 즉시 resolve.
+   * 시작 룸 거주자 스폰을 대사 뒤로 미루기 위해 사용.
+   */
+  async fireEgoEnterAsync(): Promise<void> {
+    this.fireEgoEnter();
+    const ld = this.loreDisplay;
+    if (!ld?.isActive) return;
+    // showDialogue 자체 promise 를 잡지 못하므로 isActive 폴링.
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (!ld.isActive) resolve();
+        else setTimeout(check, 100);
+      };
+      check();
+    });
   }
 
   /** T05: First distortion monster visible on camera. */

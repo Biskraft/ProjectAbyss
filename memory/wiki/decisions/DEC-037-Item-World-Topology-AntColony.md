@@ -1,8 +1,9 @@
 # DEC-037: Item World Topology — Grid → Ant Colony (Radial)
 
 > 결정일: 2026-04-28
-> 상태: 확정 (Confirmed)
+> 상태: **부분 무효화 (2026-05-02, DEC-039)** — 토폴로지 위상 룰 (방사형 hub-and-spoke) 은 폐기. RoomGrid → RoomGraph 자료구조 도입은 보존.
 > 영향 범위: 절차 생성, 데이터 시트, 코드 (RoomGrid → RoomGraph), 레퍼런스 GDD, UI(미니맵)
+> **후속:** `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md` — 수직 딥 다이브 그래프 (Plaza top + Boss bottom) 로 토폴로지 재정의
 
 ---
 

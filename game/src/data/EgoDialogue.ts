@@ -72,6 +72,15 @@ export const EGO_ANVIL: LoreLine[] = [
   rust('녹이 안에 있어. 안에서 싸울 수 있어.', 3500),
 ];
 
+/**
+ * 첫 IW 보스 처치 전에 player 가 인벤토리 키를 누르면 — Rustborn 소유 시 발화.
+ * (사용자 결정 2026-05-03) 보스 처치 전엔 인벤토리 잠금 상태이며 Ego 가 모루로
+ * 유도. Rustborn 미소유 시는 Ego 발화 없이 단순 'Locked' 토스트.
+ */
+export const EGO_INVENTORY_LOCKED: LoreLine[] = [
+  rust('…지금은 됐어. 모루 앞에서 보자.', 3000),
+];
+
 /** T04: Item world landing — first entry (freeze=true) */
 export const EGO_IW_ENTER: LoreLine[] = [
   rust('여기야. 내 기억이 장소가 된 거야.'),
@@ -177,6 +186,43 @@ export const EGO_AFFINITY_MAX: LoreLine[] = [
   erda('...나도 그 단어는 몰라.'),
 ];
 
+// ── Town of Orphaned Shadows (DEC-038) ───────────────────────────
+//
+// 거대 공동 / 자동화 보존소 톤 (BLAME!). 거주자 자체는 dialogue 0줄
+// (DES-IW-TOWN-01 §3). proximity 진입 시 검 Ego(Rustborn) 가 그들에 대해
+// 회상한다. 단계:
+//   First    — 첫 proximity (어렴풋한 인지)
+//   Familiar — 동일 무기에서 2회+ 진입 (명료한 회상)
+// Recalled-Aware (50%+) 단계는 후속 폴리시에서 추가.
+
+/** TOWN-01: Gatekeeper @ Plaza (hub) — 첫 만남 */
+export const EGO_GATEKEEPER_FIRST: LoreLine[] = [
+  rust('이 자… 본 적 있어. 어디서였더라.', 3500),
+  rust('옛날엔 날 매일 갈아줬던 것 같아.', 3500),
+  rust('지금은 내 이름도 못 외워. ...괜찮아. 나도 거의 못 외워.', 4000),
+];
+
+/** TOWN-02: Gatekeeper @ Plaza — 재회 (동일 무기 2회+ 진입) */
+export const EGO_GATEKEEPER_FAMILIAR: LoreLine[] = [
+  rust('또 왔네, 이 문지기.', 2500),
+  rust('아직도 날 알아본 척은 안 해. 그래도 자리는 지키고 있어.', 4000),
+  rust('이 자가 여기 있는 동안엔, 광장은 안 무너져.', 3500),
+];
+
+/** TOWN-03: Archivist @ Archive (shrine) — 첫 만남 */
+export const EGO_ARCHIVIST_FIRST: LoreLine[] = [
+  rust('저 자… 양손에 든 거, 메모리 코어야.', 3500),
+  rust('빌더가 떠난 후에도 신호를 보관하고 있어. 누가 시킨 건지 몰라.', 4000),
+  rust('...누구였지, 저 사람.', 3000),
+];
+
+/** TOWN-04: Archivist @ Archive — 재회 */
+export const EGO_ARCHIVIST_FAMILIAR: LoreLine[] = [
+  rust('여전히 코어를 들여다보고 있어.', 3000),
+  rust('내가 단편을 모아오면 한 번씩 단자에 손가락을 갖다 대.', 4000),
+  rust('그게 이 자가 신호로 인사하는 방식인 것 같아.', 3500),
+];
+
 /** S04: First ItemDrop pickup after first IW boss clear — anvil retired + inventory hint */
 export function getEgoAnvilRetired(): LoreLine[] {
   return [
@@ -220,6 +266,9 @@ export const EGO_EVENT = {
   SWAP_RETURN: '__ego_swap_return',
   AFFINITY_MAX: '__ego_affinity_max',
   ANVIL_RETIRED: '__ego_anvil_retired',
+  // DEC-038 Town residents — 첫 만남 표식. has() = Familiar 단계.
+  GATEKEEPER_SEEN: '__ego_gatekeeper_seen',
+  ARCHIVIST_SEEN: '__ego_archivist_seen',
 } as const;
 
 /**

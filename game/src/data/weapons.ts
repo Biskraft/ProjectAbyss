@@ -86,6 +86,15 @@ export interface WeaponDef {
    * CSV 의 Topology 칼럼이 빈값일 때 undefined.
    */
   topologyOverride?: TopologyKind;
+  /**
+   * DEC-036 5색 기질 (주색). DEC-039 archetype 매핑의 첫 번째 키.
+   * 미지정 시 RoomGraph 가 'zigzag' archetype 으로 fallback.
+   */
+  temperamentPrimary?: 'forge' | 'iron' | 'rust' | 'spark' | 'shadow';
+  /**
+   * 부색 — 주색과 같으면 순수형, 다르면 혼합형. 미지정 시 주색과 동일 처리.
+   */
+  temperamentSecondary?: 'forge' | 'iron' | 'rust' | 'spark' | 'shadow';
 }
 
 /**

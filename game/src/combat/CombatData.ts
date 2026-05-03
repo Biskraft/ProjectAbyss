@@ -52,15 +52,26 @@ for (let i = 1; i < lines.length; i++) {
   if (el > 0) _endLag = el;
 }
 
-/** Build the attack hitbox AABB for a given attacker and combo step. */
+/**
+ * Build the attack hitbox AABB for a given attacker and combo step.
+ *
+ * 사용자 결정 (2026-05-03): 적이 player AABB 와 겹치면 기존 hitbox (정면 옆 strip)
+ * 가 적을 못 감싸 공격이 안 먹는 문제 해결. hitbox 를 player **몸 절반(aw/2) 만큼
+ * player 안쪽으로 확장**해 player 중심부터 시작하도록 변경. width 도 hitboxW + aw/2.
+ *
+ * 기존: facingRight → x = ax + aw, width = hitboxW              (player 옆 strip)
+ * 신규: facingRight → x = ax + aw/2, width = hitboxW + aw/2     (player 중심부터)
+ *       facingLeft  → x = ax - hitboxW, width = hitboxW + aw/2  (player 중심까지)
+ */
 export function getAttackHitbox(
   ax: number, ay: number, aw: number, ah: number,
   facingRight: boolean, step: ComboStep,
 ): { x: number; y: number; width: number; height: number } {
+  const halfBody = aw / 2;
   return {
-    x: facingRight ? ax + aw : ax - step.hitboxW,
+    x: facingRight ? ax + halfBody : ax - step.hitboxW,
     y: ay + (ah - step.hitboxH) / 2,
-    width: step.hitboxW,
+    width: step.hitboxW + halfBody,
     height: step.hitboxH,
   };
 }

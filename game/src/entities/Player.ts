@@ -306,9 +306,12 @@ export class Player extends Entity implements CombatEntity {
     this.width = 14;
     this.height = 24;
 
-    // Collision box is 70% of visual size (tighter feel in tile-based levels)
+    // Collision width: 70% (tighter feel in tile-based levels).
+    // Collision height: 1.5 cell (24px @ TILE_SIZE=16) — 사용자 결정 (2026-05-03):
+    //   기존 1 cell (16px) 은 1셀 높이 틈을 player 가 통과 가능 (= 메트로베니아
+    //   능력 게이트로 막아야 할 좁은 통로가 무력화). 1.5 cell 로 키워 차단.
     this.collisionW = Math.floor(this.width * 0.7);   // 9px
-    this.collisionH = Math.floor(this.height * 0.7);  // 16px
+    this.collisionH = 24;                             // 1.5 cell — 1셀 틈 통과 방지
 
     // Placeholder sprite — erdaSprite 로딩 전까지만 보임.
     this.sprite = new Graphics();

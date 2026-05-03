@@ -85,7 +85,7 @@ import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@sav
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_WORLD_RETURN, getEgoAnvilRetired, EGO_EVENT, hasEgo,
+  EGO_WORLD_RETURN, EGO_INVENTORY_LOCKED, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
 import { PropShatterManager } from '@effects/PropShatter';
@@ -206,6 +206,12 @@ export class LdtkWorldScene extends Scene {
   // LDtk level data
   private loader!: LdtkLoader;
   private builderLoader!: LdtkLoader;
+  /**
+   * 사용자 결정 (2026-05-03): "Open Inventory" tutorialHint 는 픽업 cutscene +
+   * EGO 대사가 모두 끝난 후 표시. firstEver 픽업 시 flag 만 set, update() 가
+   * 매 프레임 cutscene/dialogue 종료 검사 후 실제 표시.
+   */
+  private pendingInventoryHint: 'first_pickup' | 'first_iw_return' | null = null;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
   // Shaft_01 cinematic builder is a one-shot — the ascent plays only on the
@@ -560,10 +566,18 @@ export class LdtkWorldScene extends Scene {
       this.gold = saveData.gold ?? 0;
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // Empty start — the player begins unarmed. The Broken Sword is now
-      // discovered as an ItemDrop inside the Giant Builder, which is what
-      // triggers the first pickup cutscene and the [I] inventory pulse.
+      // 사용자 결정 (2026-05-03): Broken Sword 를 시작 시 자동 지급. 이전 Builder
+      // 안 ItemDrop 픽업 패턴 폐기. 첫 픽업 cutscene + "Open Inventory" hint
+      // 도 함께 폐기 (sacredSave flags 미리 set 으로 firstEver 분기 미진입).
+      // IW 보스 클리어 후 귀환 시 hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) 는
+      // 별도 플로우라 그대로 유지.
       this.inventory = new Inventory();
+      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
+      const starterSword = createItem(starterDef, 'normal');
+      this.inventory.add(starterSword);
+      this.inventory.equip(starterSword.uid, true);
+      sacredSave.markFirstPickupDone();
+      sacredSave.markItemSeen('sword_broken');
     }
 
     // Lazy-load only the tilesets this area needs. Driven by the Tileset
@@ -1110,6 +1124,27 @@ export class LdtkWorldScene extends Scene {
       // hint removed ??key prompts shown in HUD
     }
 
+    // 사용자 결정 (2026-05-03): "Open Inventory" hint 는 픽업 cutscene + EGO
+    // 대사가 모두 끝난 후 표시. pendingInventoryHint flag 가 set 되어 있으면
+    // 매 프레임 종료 조건 검사 후 표시.
+    if (this.pendingInventoryHint) {
+      const cutsceneBlocking =
+        this.activeWeaponPulse?.isBlocking ||
+        this.lorePopup?.isBlocking() ||
+        this.lorePopupItem !== null ||
+        this.loreDisplay?.isActive;
+      if (!cutsceneBlocking) {
+        const hintId = this.pendingInventoryHint === 'first_pickup'
+          ? INVENTORY_KEY_HINT_ID
+          : INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID;
+        this.tutorialHint.tryShow(
+          hintId,
+          { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
+        );
+        this.pendingInventoryHint = null;
+      }
+    }
+
     // Portal transition playing
     if (this.portalTransition) {
       this.portalTransition.update(dt);
@@ -1208,9 +1243,31 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
+    // 사용자 결정 (2026-05-03): 첫 IW 보스 처치 전엔 인벤토리 잠금. INVENTORY
+    // 키 입력 시 Rustborn 보유 여부에 따라 Ego 대사 또는 'Locked' 토스트.
+    // shiftDown / inItemTunnel 분기는 기존 통과 (debug / 진입 컷신).
+    if (
+      !sacredSave.isFirstItemWorldBossDefeated() &&
+      !this.inItemTunnel &&
+      !this.game.input.shiftDown &&
+      !this.inventoryUI.visible &&
+      this.game.input.isJustPressed(GameAction.INVENTORY)
+    ) {
+      this.game.input.consumeJustPressed(GameAction.INVENTORY);
+      const hasRustborn = this.inventory.items.some(it => it.def.id === 'sword_rustborn');
+      if (hasRustborn) {
+        if (this.loreDisplay && !this.loreDisplay.isActive) {
+          void this.loreDisplay.showDialogue(EGO_INVENTORY_LOCKED, false);
+        }
+      } else {
+        this.toast.show('Locked', 0xaaaaaa);
+      }
+      return;
+    }
+
     // Inventory UI toggle ??disabled inside item tunnels, Shift+I is debug
     this.uiController.handleInventoryToggle({
-      canToggle: !this.inItemTunnel && !this.game.input.shiftDown,
+      canToggle: !this.inItemTunnel && !this.game.input.shiftDown && sacredSave.isFirstItemWorldBossDefeated(),
       onToggled: () => {
         // Broken Sword 픽업 전엔 인벤토리 토글을 "가이드 학습 완료"로 인정하지 않는다.
         // 인벤토리에 줄 게 없는 시점에 I 를 누르는 건 대개 우발적 입력이고,
@@ -2204,6 +2261,7 @@ export class LdtkWorldScene extends Scene {
 
   override destroy(): void {
     this.parallaxBG?.destroy();
+    this.dmgNumbers?.clear();
     super.destroy();
   }
 
@@ -3993,6 +4051,12 @@ export class LdtkWorldScene extends Scene {
 
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
+          // 사용자 결정 (2026-05-03): Broken Sword 는 시작 시 자동 지급되므로
+          // LDtk 측 ItemDrop 은 중복. skip + collected 처리해 재방문 시 재spawn 방지.
+          if (itemId === 'sword_broken') {
+            this.collectedItems.add(itemKey);
+            break;
+          }
           // Use unified spawnFixedItemAt which handles weapons, currency,
           // consumables via Content_Item_Master.csv lookup.
           this.spawnFixedItemAt(ent.px[0], ent.px[1], itemId, itemKey);
@@ -4172,14 +4236,31 @@ export class LdtkWorldScene extends Scene {
     // Being inside the Giant Builder's volume forces zoom 1.0 (ignore level
     // camera zones). Uses AABB overlap so the override persists while the
     // player is airborne (jumping) inside the builder.
+    //
+    // Priority (사용자 결정 2026-05-03):
+    //   1) 에디터 zone (entireLevel=false, AABB 영역) — LDtk 에서 직접 배치한 zone.
+    //      에디터 측에서 겹치지 않게 배치하므로 first match 안전.
+    //   2) entireLevel zone — 레벨 전체 fallback.
+    // 두 단계 분리로 entireLevel 이 먼저 entity 추가되어도 에디터 zone 이 player
+    // AABB 안에 있으면 우선 채택.
     let insideZone: typeof this.cameraZones[number] | null = null;
     if (!this.playerInBuilder) {
+      // P1 — 에디터 zone (AABB 안)
       for (const zone of this.cameraZones) {
-        if (zone.entireLevel ||
-            (pcx >= zone.x && pcx <= zone.x + zone.w &&
-             pcy >= zone.y && pcy <= zone.y + zone.h)) {
+        if (zone.entireLevel) continue;
+        if (pcx >= zone.x && pcx <= zone.x + zone.w &&
+            pcy >= zone.y && pcy <= zone.y + zone.h) {
           insideZone = zone;
           break;
+        }
+      }
+      // P2 — entireLevel fallback
+      if (!insideZone) {
+        for (const zone of this.cameraZones) {
+          if (zone.entireLevel) {
+            insideZone = zone;
+            break;
+          }
         }
       }
     }
@@ -4454,11 +4535,11 @@ export class LdtkWorldScene extends Scene {
     const bottomY = hostLevel.pxHei - builder.heightPx - 64;  // 4 tiles from bottom
 
     if (mode === 'cinematic') {
-      // Shaft_01 — right wall minus 7 tiles. First entry: one-shot
-      // bottom→top ascent. Re-entries: spawn at the dormant top pose
-      // with no route so the builder stays parked where the cinematic
-      // left it.
-      const px = hostLevel.pxWid - builder.widthPx - 7 * 16;
+      // Shaft_01 — right wall minus 31 tiles (사용자 결정 2026-05-03). First
+      // entry: one-shot bottom→top ascent. Re-entries: spawn at the dormant
+      // top pose with no route so the builder stays parked where the
+      // cinematic left it.
+      const px = hostLevel.pxWid - builder.widthPx - 31 * 16;
       if (this.shaft01CinematicPlayed) {
         builder.placeInLevel(px, topY);
         this.renderer.container.addChild(builder.container);
@@ -4518,6 +4599,12 @@ export class LdtkWorldScene extends Scene {
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
           if (!itemId) break;
+          // 사용자 결정 (2026-05-03): Broken Sword 시작 시 자동 지급. Builder 안
+          // ItemDrop 도 중복 — skip + collected 처리.
+          if (itemId === 'sword_broken') {
+            this.collectedItems.add(itemKey);
+            break;
+          }
 
           // Snapshot all collections that spawnFixedItemAt may push into;
           // any collection that grew owns the new entity for attachment.
@@ -4815,10 +4902,9 @@ export class LdtkWorldScene extends Scene {
 
     this.unlockedEvents.add(INVENTORY_KEY_AFTER_FIRST_IW_EVENT);
     this.hud.setItemKeyHighlight(true);
-    this.tutorialHint.tryShow(
-      INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID,
-      { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
-    );
+    // 사용자 결정 (2026-05-03): hint 는 EGO 대사 (fireWorldReturnDialogue) 종료 후
+    // 표시. flag 만 set, update() 가 cutscene/dialogue 종료 검사 후 실제 표시.
+    this.pendingInventoryHint = 'first_iw_return';
   }
 
   private completePendingPortalEntry(): void {
@@ -4854,6 +4940,9 @@ export class LdtkWorldScene extends Scene {
     // Hide world while in Item World and detach shared UI from global containers.
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
+    // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
+    // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
+    this.dmgNumbers?.clear();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
@@ -4931,16 +5020,10 @@ export class LdtkWorldScene extends Scene {
     const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
     if (firstEver) {
       sacredSave.markFirstPickupDone();
-      // The very first pickup (Broken Sword inside the Builder) advertises
-      // the [I] inventory key. The pulse stays ON until the player presses
-      // I, at which point the toggle handler clears it (see updateInput).
-      if (!this.unlockedEvents.has('__itemKeyPressedAfterItemWorld')) {
-        this.hud.setItemKeyHighlight(true);
-        this.tutorialHint.tryShow(
-          INVENTORY_KEY_HINT_ID,
-          { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
-        );
-      }
+      // 사용자 결정 (2026-05-03): "Open Inventory" first-pickup hint 폐기.
+      // Broken Sword 가 시작 시 자동 지급되어 firstEver 분기는 일반 케이스에선
+      // 도달하지 않지만, 다른 경로 (save reset 등) 안전 위해 hint 트리거 자체
+      // 제거. IW 보스 클리어 후 'first_iw_return' hint 는 별도 플로우라 유지.
     }
 
     // Tear down any lingering pulse / tether so rapid pickups don't stack.
@@ -5858,6 +5941,9 @@ export class LdtkWorldScene extends Scene {
 
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
+    // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
+    // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
+    this.dmgNumbers?.clear();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
@@ -6442,23 +6528,27 @@ export class LdtkWorldScene extends Scene {
       this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
       // Suppress the T14 line permanently — anvil-retired replaces it.
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+      // freeze=true — dialogue 동안 player 입력 잠금 (anvil 인터랙트 차단).
+      // setTimeout 짧게 (200ms) — 화면 전환/카메라 snap 직후 발화. 1000ms 갭 동안
+      // anvil 인터랙트 가능했던 사용자 피드백 (2026-05-02) 대응.
       setTimeout(async () => {
         if (this.loreDisplay && !this.loreDisplay.isActive) {
-          await this.loreDisplay.showDialogue(getEgoAnvilRetired(), false);
+          await this.loreDisplay.showDialogue(getEgoAnvilRetired(), true);
         }
         // Disable the current anvil only after Rustborn explains it.
         await this.anvil?.setDisabled(true);
-      }, 1000);
+      }, 200);
       return;
     }
 
     if (!this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)) {
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
+      // freeze=true — dialogue 동안 anvil/이동 입력 차단.
       setTimeout(() => {
         if (!this.loreDisplay?.isActive) {
-          this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, false);
+          void this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, true);
         }
-      }, 1000);
+      }, 200);
     }
   }
 

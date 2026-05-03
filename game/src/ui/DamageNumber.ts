@@ -148,6 +148,20 @@ export class DamageNumberManager {
     });
   }
 
+  /**
+   * Remove all in-flight damage numbers immediately. Used on scene teardown
+   * because the BitmapText children live in a shared uiContainer — without
+   * this, transitioning scenes leaves orphaned floating texts that never
+   * receive update() ticks and persist forever.
+   */
+  clear(): void {
+    for (const e of this.entries) {
+      if (e.text.parent) e.text.parent.removeChild(e.text);
+      e.text.destroy();
+    }
+    this.entries.length = 0;
+  }
+
   update(dt: number): void {
     const dtSec = dt / 1000;
     for (let i = this.entries.length - 1; i >= 0; i--) {

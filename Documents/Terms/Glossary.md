@@ -101,6 +101,7 @@
 | Memory Shard | 기억 단편 | 무기 Ego의 잊혀진 기억 조각. 단일 효과(스탯·행동·원소)를 가지며 자유롭게 다른 무기로 전이 가능. 5색 기질(Forge/Iron/Rust/Spark/Shadow)로 분류. 일반 단편은 기억 슬롯에 Active 또는 Passive 역할로 장착. (DEC-036) | `Documents/System/System_Memory_Core.md`, `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` |
 | Memory Slot | 기억 슬롯 | 일반 기억 단편을 자유롭게 장착하는 슬롯. Active(전투 중 발현) 또는 Passive(상시) 두 역할 중 하나로 끼움. 같은 단편이라도 역할에 따라 다른 효과가 발현. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | Memory Wanderer | 기억의 방랑자 | 월드 필드에 랜덤 출현하는 유령형 존재. 과거에 아이템 속으로 들어갔다 돌아오지 못한 자들의 잔상. 접촉하면 임시 균열 제단이 생성되며, 이를 통해 보상 강화 아이템계로 진입 가능. 평균 30-45분에 1회 출현. | `Documents/System/System_ItemWorld_Core.md` |
+| Megastructure Shaft | 메가스트럭처 갱 | 아이템계 한 무기 안의 거대 수직 공동. 모든 지층(Stratum) 은 같은 자아의 메가스트럭처 다른 단면이며, Plaza 가 천장(top), Boss 가 바닥(bottom) 에 위치한다. BLAME! / 메이드 인 어비스 톤. (DEC-039) | `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md`, `Documents/Design/Design_ItemWorld_DeepDive.md` |
 | Marta ven-Nacht | 마르타 벤-나흐트 | 에르다의 스승. 중년 여성 장인. 10년 전 Ancient 아이템 내부로 들어가 자발적으로 남아 기억을 지키고 있다. 카엘 오르스와 마찬가지로 기억을 지키기 위한 자발적 유배를 선택한 인물. | `Documents/Content/Content_World_Bible.md` |
 | ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5% + 기억 단편 보정, 드랍률은 적 테이블 + 기억 단편 보정.~~ | — |
 | Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. ECHORIS의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md`, `Documents/Terms/Project_Vision_Abyss.md` |
@@ -171,6 +172,7 @@
 | :--- | :--- | :--- | :--- |
 | The Shaft | 대공동 | 세계수 Yggveil이 하늘에서 뿌리를 내리며 수직으로 관통한 거대 공동. 세계의 물리적 골격. 7개 층위(Tier 1-7)가 격벽으로 분리되어 수직으로 쌓여 있다. | `Documents/Content/Content_World_Bible.md` |
 | Tier | 층위 | 수직 대공동(The Shaft)을 구성하는 대구역 단위. Tier 1 천공의 정원 - Tier 7 심연의 구까지 7개. 각 층위는 격벽(Bulkhead)으로 분리된다. | `Documents/Content/Content_World_Bible.md` |
+| Trapdoor Descent | 트랩도어 침강 | 아이템계 보스 처치 후 보스 룸 바닥에 활성화되는 포탈 entity. 공격 키 인터랙트 시 1초 카메라 다운 패닝 + 페이드 후 다음 지층 Plaza 천장 위치에 플레이어 텔레포트. 마지막 지층 보스 처치 후의 Trapdoor 는 월드 세이브포인트 페이드 귀환. 자동 폴 다운 금지 — 능동 인터랙트만 (납치 느낌 회피). (DEC-039) | `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md` |
 | Tutor | 튜터 | INT +X 효과를 부여하는 기본형 기억 단편(Spark 기질). 원소/인챈트 빌드의 핵심이며 INT 게이트(마법 봉인) 해금에 기여한다. 레벨당 INT +1. 잊혀진(Forgotten) 50%, 회상된(Recalled) 100%. | `Documents/System/System_Memory_Core.md` |
 | Temperament | 기질 (5색) | 단편과 Ego의 색 분류. Forge(주황·분노)/Iron(청록·결연)/Rust(회색·체념)/Spark(흰빛·호기심)/Shadow(자주·은밀). 각 무기 Ego는 주색 1 + 부색 1을 가지며, 전이 시 수신 Ego의 기질색에 따라 단편이 변이한다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
 | Forge | 단조 | 5색 기질 중 하나. 주황, 분노·열정·공격성. Gladiator/Berserker/Burner 계열 단편이 분류된다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
@@ -186,6 +188,7 @@
 | :--- | :--- | :--- | :--- |
 | Tell | 예고 동작 | 적 또는 보스가 강력한 공격을 시전하기 직전 재생하는 예고 모션·이펙트. 플레이어가 회피를 준비할 수 있는 공정성 장치. | `Documents/System/System_Combat_Action.md` |
 | ~~VIT~~ | ~~생명력 스탯~~ | ~~DEPRECATED. 기존 최대 HP/환경 저항 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. MaxHP는 레벨 + Dietician 기억 단편(Rust 기질)으로 성장.~~ | — |
+| Vertical Dive Graph | 수직 딥 다이브 그래프 | 아이템계 한 지층의 그래프 토폴로지. Plaza(hub) = top + Boss = bottom 의 단일 수직 critical path (D 방향) + 좌우 LR 분기. shrine(Archive) 는 R 분기 가지 끝에 부착되는 옵션 안전지대. DEC-037 hub-and-spoke 방사형을 폐기하고 채택. (DEC-039) | `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md`, `game/src/level/RoomGraph.ts` |
 | World | 월드 | 2-Space 모델의 첫 번째 공간. 솔로(1인) 탐험을 중심으로 한 핸드크래프트+절차적 혼합 맵. 능력 게이트와 스탯 게이트로 비선형 진행이 설계되며, 아이템 획득과 능력 해금이 주요 보상이다. | `Documents/Design/Design_Architecture_2Space.md`, `Reference/게임 기획 개요.md` |
 
 ---
