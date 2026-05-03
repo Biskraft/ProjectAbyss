@@ -65,11 +65,20 @@ export const EGO_FIRST_WALK: LoreLine[] = [
   rust('넌 말이 없구나. 오히려 좋아, 시끄러운 것보단.'),
 ];
 
-/** T03: Anvil proximity (freeze=false, auto) */
+/**
+ * Rustborn discovery — player 가 Rustborn 근처 도달 시 발화 (사용자 결정 2026-05-03).
+ * 기존 EGO_FIRST_WALK 의 자리를 대체. discovery pulse 종료 후 dispatch.
+ */
+export const EGO_RUSTBORN_AWAKEN: LoreLine[] = [
+  rust('…에르다.'),
+  rust('…들리니?'),
+  rust('오랜만이야. 너무 오래…'),
+  rust('…내 안으로 와줘. 비어있는 결이, 너를 기다려.'),
+];
+
+/** DLG-05 / T03: Anvil 도달 (사용자 결정 2026-05-04 — 1 줄로 단순화) */
 export const EGO_ANVIL: LoreLine[] = [
-  rust('이 모루, 알아. 이게 뭔지.', 3000),
-  rust('날 여기 올려놔. 그러면 네가 안으로 들어올 수 있어.', 4000),
-  rust('녹이 안에 있어. 안에서 싸울 수 있어.', 3500),
+  rust('…모루의 냄새.', 3000),
 ];
 
 /**
@@ -81,12 +90,9 @@ export const EGO_INVENTORY_LOCKED: LoreLine[] = [
   rust('…지금은 됐어. 모루 앞에서 보자.', 3000),
 ];
 
-/** T04: Item world landing — first entry (freeze=true) */
+/** DLG-07 / T04: Plaza 첫 낙하 — Item world landing (사용자 결정 2026-05-04) */
 export const EGO_IW_ENTER: LoreLine[] = [
-  rust('여기야. 내 기억이 장소가 된 거야.'),
-  rust('녹이 전부 먹고 있어. 원래는 이렇지 않았는데.'),
-  rust('녹을 없애면 내가 강해져.'),
-  rust('아래쪽에 나가는 길이 있을 거야. 계속 내려가면 돼.'),
+  rust('여긴… 내가 처음 깨어난 자리지.'),
 ];
 
 /** T05: First distortion monster on camera (freeze=false, auto) */
@@ -126,10 +132,24 @@ export const EGO_PLAYER_DEATH: LoreLine[] = [
   rust('괜찮아? 네가 치운 녹은 그대로야. 안 돌아와.', 4000),
 ];
 
-/** T12: Boss killed — after ATK UI (freeze=true) */
+/** DLG-09 / T12: Boss 처치 직후 (사용자 결정 2026-05-04) */
 export const EGO_BOSS_KILLED: LoreLine[] = [
-  rust('큰 녹이었어. 이 층의 핵이었나 봐.'),
-  rust('많이 돌아온 느낌이야. 나 강해졌을 거야, 확인해봐.'),
+  rust('…한 조각이, 돌아왔어.'),
+];
+
+/** DLG-08: Boss 룸 첫 진입 (사용자 결정 2026-05-04) */
+export const EGO_BOSS_ROOM_ENTER: LoreLine[] = [
+  rust('이 자가… 그때, 거기 있었어.'),
+];
+
+/** DLG-10: Memory Shard 회상 (Forgotten → Recalled 전환 시, 첫 1회만) */
+export const EGO_SHARD_RECALL: LoreLine[] = [
+  rust('이 한 조각… 폭풍이 있던 시절의 거야. 기억해 둬.', 4000),
+];
+
+/** DLG-11: Trapdoor 포탈 (Trapdoor entity spawn 시점, 첫 1회만) */
+export const EGO_TRAPDOOR_THANKS: LoreLine[] = [
+  rust('…고마워. 이제 나갈 수 있어.', 3500),
 ];
 
 /** T13: Exit altar proximity (freeze=false, auto) */
@@ -204,30 +224,30 @@ export const EGO_GATEKEEPER_FIRST: LoreLine[] = [
 
 /** TOWN-02: Gatekeeper @ Plaza — 재회 (동일 무기 2회+ 진입) */
 export const EGO_GATEKEEPER_FAMILIAR: LoreLine[] = [
-  rust('또 왔네, 이 문지기.', 2500),
+  rust('…여전히 같은 자리야, 이 문지기.', 3500),
   rust('아직도 날 알아본 척은 안 해. 그래도 자리는 지키고 있어.', 4000),
   rust('이 자가 여기 있는 동안엔, 광장은 안 무너져.', 3500),
 ];
 
 /** TOWN-03: Archivist @ Archive (shrine) — 첫 만남 */
 export const EGO_ARCHIVIST_FIRST: LoreLine[] = [
-  rust('저 자… 양손에 든 거, 메모리 코어야.', 3500),
-  rust('빌더가 떠난 후에도 신호를 보관하고 있어. 누가 시킨 건지 몰라.', 4000),
+  rust('저 자… 양손에 무언가를 받쳐 들고 있어.', 3500),
+  rust('빌더가 떠난 후에도 옛 결을 보관하고 있어. 누가 시킨 건지 몰라.', 4000),
   rust('...누구였지, 저 사람.', 3000),
 ];
 
 /** TOWN-04: Archivist @ Archive — 재회 */
 export const EGO_ARCHIVIST_FAMILIAR: LoreLine[] = [
   rust('여전히 코어를 들여다보고 있어.', 3000),
-  rust('내가 단편을 모아오면 한 번씩 단자에 손가락을 갖다 대.', 4000),
-  rust('그게 이 자가 신호로 인사하는 방식인 것 같아.', 3500),
+  rust('내가 한 조각을 모아오면 한 번씩 코어에 손을 갖다 대.', 4000),
+  rust('그게 이 자의 인사인 것 같아.', 2500),
 ];
 
 /** S04: First ItemDrop pickup after first IW boss clear — anvil retired + inventory hint */
 export function getEgoAnvilRetired(): LoreLine[] {
   return [
-    rust('이 모루는 끝이야. 낡은 거라 그래.'),
-    rust(`주운 건 인벤토리에 있어. [${actionKey(GameAction.INVENTORY)}] 누르면 보여.`),
+    rust('…이 모루는 식었네. 낡았으니까.'),
+    rust(`주운 건 가방에 있어. [${actionKey(GameAction.INVENTORY)}] 누르면 보여.`),
   ];
 }
 
@@ -269,6 +289,10 @@ export const EGO_EVENT = {
   // DEC-038 Town residents — 첫 만남 표식. has() = Familiar 단계.
   GATEKEEPER_SEEN: '__ego_gatekeeper_seen',
   ARCHIVIST_SEEN: '__ego_archivist_seen',
+  // DLG-08 Boss 룸 첫 진입 / DLG-10 Memory Shard 첫 회상 / DLG-11 첫 Trapdoor 인터랙트
+  BOSS_ROOM_SEEN: '__ego_boss_room_seen',
+  SHARD_RECALL: '__ego_shard_recall',
+  TRAPDOOR_THANKS: '__ego_trapdoor_thanks',
 } as const;
 
 /**

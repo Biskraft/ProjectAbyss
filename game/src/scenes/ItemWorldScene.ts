@@ -44,6 +44,7 @@ import {
   EGO_SWAP_RETURN, EGO_AFFINITY_MAX,
   EGO_GATEKEEPER_FIRST, EGO_GATEKEEPER_FAMILIAR,
   EGO_ARCHIVIST_FIRST, EGO_ARCHIVIST_FAMILIAR,
+  EGO_SHARD_RECALL, EGO_TRAPDOOR_THANKS,
   EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
 } from '@data/EgoDialogue';
 import { MemoryShardNPC } from '@entities/MemoryShardNPC';
@@ -1566,6 +1567,16 @@ export class ItemWorldScene extends Scene {
             npc.x + npc.width / 2,
             npc.y + npc.height / 2,
           );
+          // DLG-10: Memory Shard 회상 — 첫 회상 시점에 한 번만 발화 (사용자
+          // 결정 2026-05-04). EGO_EVENT.SHARD_RECALL 표식으로 중복 차단.
+          if (
+            this.loreDisplay &&
+            !this.egoUnlockedEvents.has(EGO_EVENT.SHARD_RECALL) &&
+            !this.loreDisplay.isActive
+          ) {
+            this.egoUnlockedEvents.add(EGO_EVENT.SHARD_RECALL);
+            void this.loreDisplay.showDialogue(EGO_SHARD_RECALL, false);
+          }
         };
 
         const sp = pickSpawn(spawnRng, npc.height);
@@ -3588,6 +3599,16 @@ export class ItemWorldScene extends Scene {
           this.descentToWorld = pendingDescentToWorld;
           this.toast.show('Trapdoor opens — strike to descend.', 0xff7744);
           console.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
+          // DLG-11: Trapdoor 포탈 — 첫 spawn 시점에 한 번만 발화 (사용자
+          // 결정 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 표식으로 중복 차단.
+          if (
+            this.loreDisplay &&
+            !this.egoUnlockedEvents.has(EGO_EVENT.TRAPDOOR_THANKS) &&
+            !this.loreDisplay.isActive
+          ) {
+            this.egoUnlockedEvents.add(EGO_EVENT.TRAPDOOR_THANKS);
+            void this.loreDisplay.showDialogue(EGO_TRAPDOOR_THANKS, false);
+          }
         };
 
         // ── Ego T12: boss killed dialogue ──

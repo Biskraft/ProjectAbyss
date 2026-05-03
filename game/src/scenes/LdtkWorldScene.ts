@@ -85,6 +85,7 @@ import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@sav
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
+  EGO_RUSTBORN_AWAKEN,
   EGO_WORLD_RETURN, EGO_INVENTORY_LOCKED, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -5053,34 +5054,13 @@ export class LdtkWorldScene extends Scene {
     // to a no-op in LorePopup.showIfNew().
     this.lorePopupItem = item;
 
-    // ── Ego wake dialogue (T01) — fires after pickup cutscene completes ──
-    // Dispatched here at function tail so the wait loop sees the freshly
-    // assigned activeWeaponPulse (T2 cutscene) and lorePopupItem before
-    // its first poll.
+    // ── Ego wake dialogue (EGO_WAKE) 폐기 (사용자 결정 2026-05-03) ──
+    // 픽업 후 대사를 모두 없앤다. discovery 시점의 EGO_RUSTBORN_AWAKEN 으로
+    // Rustborn 인지·각성 메타포가 이미 봉합되었고, 픽업 후엔 게임 컨트롤로
+    // 즉시 복귀해야 호흡이 깔끔. EGO_EVENT.WAKE 표식만 한 번 set 해 다른
+    // 분기 (예: 무기 swap 시) 에서 "WAKE 이미 발생" 로 인식되도록 유지.
     if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
       this.unlockedEvents.add(EGO_EVENT.WAKE);
-      console.log('[Ego] T01 queued for', item.def.id);
-      const waitForPickupDone = () => {
-        // Block on: active T2 pulse, an open lore popup, OR a queued
-        // lorePopupItem that has not yet been opened by the popup loop.
-        if (
-          this.activeWeaponPulse?.isBlocking ||
-          this.lorePopup?.isBlocking() ||
-          this.lorePopupItem !== null
-        ) {
-          setTimeout(waitForPickupDone, 100);
-          return;
-        }
-        const waitForFree = () => {
-          if (this.loreDisplay?.isActive) {
-            setTimeout(waitForFree, 100);
-            return;
-          }
-          this.loreDisplay?.showDialogue(EGO_WAKE, true);
-        };
-        setTimeout(waitForFree, 300);
-      };
-      waitForPickupDone();
     }
   }
 
@@ -5254,10 +5234,11 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Discovery — once the pulse finishes, dispatch the 3-line dialogue.
+    // Discovery — once the pulse finishes, dispatch Rustborn awaken dialogue
+    // (사용자 결정 2026-05-03: 기존 EGO_FIRST_WALK 대체).
     if (this.discoveryDialoguePending && !this.activeWeaponPulse) {
       this.discoveryDialoguePending = false;
-      this.loreDisplay?.showDialogue(EGO_FIRST_WALK, true);
+      this.loreDisplay?.showDialogue(EGO_RUSTBORN_AWAKEN, true);
     }
 
     // Discovery stays "active" (blocks pickup) until both pulse + dialogue end.
