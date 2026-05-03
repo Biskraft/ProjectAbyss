@@ -87,6 +87,7 @@ export class Skeleton extends Enemy {
       s.y = this.height;
       this.container.addChildAt(s, 0);
       this.skeletonSprite = s;
+      this.mainSprite = s; // Enemy.render 의 hit flash 가 알파 채널 모양 따라 발광
       this.sprite.visible = false;
     } catch {
       // 로드 실패 → placeholder 유지.

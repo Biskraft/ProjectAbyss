@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import { Graphics, Sprite } from 'pixi.js';
 import { Entity } from './Entity';
 import { resolveX, resolveY, isInWater, isOnIce } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
@@ -85,7 +85,13 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private readonly DEATH_FADE = EnemyConst.DeathFadeMs;
 
   // Sakurai: Flash overlay for hit feedback
-  private flashOverlay: Graphics | null = null;
+  private flashOverlay: Sprite | Graphics | null = null;
+  /**
+   * 자식 클래스가 own PNG/Atlas Sprite 를 등록하면 hit flash 가 그 sprite 의
+   * 알파 채널 모양 그대로 흰색으로 발광 (사용자 결정 2026-05-04). 미등록이면
+   * 기존 Graphics rect fallback.
+   */
+  protected mainSprite: Sprite | null = null;
 
   constructor(config: {
     width: number; height: number; color: number;
@@ -286,16 +292,47 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.sprite.scale.x = this.facingRight ? 1 : -1;
       this.sprite.x = this.facingRight ? 0 : this.width;
 
-      // Sakurai: White flash overlay on hit (emphasize impact moment)
+      // Sakurai: White flash overlay on hit (emphasize impact moment).
+      // mainSprite 등록 시 같은 texture 의 Sprite overlay + blendMode 'add' 로
+      // 알파 채널 모양 그대로 흰색 발광. 미등록이면 기존 Graphics rect fallback.
       if (this.flashTimer > 0) {
-        if (!this.flashOverlay) {
-          this.flashOverlay = new Graphics();
-          this.container.addChild(this.flashOverlay);
+        const intensity = Math.min(0.8, this.flashTimer / 40);
+        if (this.mainSprite) {
+          // Sprite-shaped flash
+          if (!(this.flashOverlay instanceof Sprite)) {
+            if (this.flashOverlay) {
+              this.container.removeChild(this.flashOverlay);
+              this.flashOverlay.destroy();
+            }
+            const flash = new Sprite(this.mainSprite.texture);
+            flash.anchor.copyFrom(this.mainSprite.anchor);
+            flash.x = this.mainSprite.x;
+            flash.y = this.mainSprite.y;
+            flash.blendMode = 'add';
+            this.container.addChild(flash);
+            this.flashOverlay = flash;
+          }
+          // 매 프레임 갱신 — atlas frame 변경 + facing flip 추적.
+          this.flashOverlay.texture = this.mainSprite.texture;
+          this.flashOverlay.scale.x = this.mainSprite.scale.x;
+          this.flashOverlay.scale.y = this.mainSprite.scale.y;
+          this.flashOverlay.alpha = intensity;
+          this.flashOverlay.visible = true;
+        } else {
+          // Graphics rect fallback
+          if (!(this.flashOverlay instanceof Graphics)) {
+            if (this.flashOverlay) {
+              this.container.removeChild(this.flashOverlay);
+              this.flashOverlay.destroy();
+            }
+            this.flashOverlay = new Graphics();
+            this.container.addChild(this.flashOverlay);
+          }
+          this.flashOverlay.clear();
+          this.flashOverlay.rect(0, 0, this.width, this.height)
+            .fill({ color: 0xffffff, alpha: intensity });
+          this.flashOverlay.visible = true;
         }
-        this.flashOverlay.clear();
-        this.flashOverlay.rect(0, 0, this.width, this.height)
-          .fill({ color: 0xffffff, alpha: Math.min(0.8, this.flashTimer / 40) });
-        this.flashOverlay.visible = true;
       } else if (this.flashOverlay) {
         this.flashOverlay.visible = false;
       }

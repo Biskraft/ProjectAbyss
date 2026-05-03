@@ -214,6 +214,17 @@ export class ItemWorldScene extends Scene {
    */
   private residentsLayer!: Container;
   /**
+   * 셀별 LdtkRenderer 4 layer (bg/wall/special/shadow) 그룹 — 매 프레임 viewport
+   * 검사 후 visible toggle 로 화면 밖 cell 의 draw 차단 (사용자 결정 2026-05-04,
+   * Rare+ 의 sprite 수만 대응). PIXI 자동 culling 이 filter/aggregate 트리에서
+   * 기대만큼 작동 안 해 명시 visible 로 강제.
+   */
+  private cellLayerGroups: Array<{
+    col: number;
+    row: number;
+    layers: Container[];
+  }> = [];
+  /**
    * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
    * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
    */
@@ -971,9 +982,17 @@ export class ItemWorldScene extends Scene {
     // Seal walls use the wall filter so their brick pattern reads in the
     // same dark-cool silhouette family as LDtk wall tiles.
     this.sealAggregate.filters = [this.wallPaletteFilter];
+    // PIXI v8 culling 활성 — Rare+ 의 sprite 폭증 (수만) 대응 (사용자 결정 2026-05-04).
+    // 각 cell layer 에 cullable=true + cullArea 가 viewport 검사. 부모는
+    // cullableChildren=true 로 자식 cull 검사 흐름 enable.
+    this.bgAggregate.cullableChildren = true;
+    this.wallAggregate.cullableChildren = true;
+    this.specialAggregate!.cullableChildren = true;
+    this.shadowAggregate.cullableChildren = true;
     this.spawnedRooms.clear();
     this.roomTypeMap.clear();
     this.clearEnemies();
+    this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — buildFullMap 가 다시 push
 
     // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
     // 한 번에 렌더링. fullGrid 도 totalWidth×totalHeight 로 확장. 플레이어는 워프
@@ -1078,10 +1097,24 @@ export class ItemWorldScene extends Scene {
         renderer.wallLayer.position.set(roomX, roomY);
         renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
+        // PIXI v8 cell culling — viewport 밖 cell 의 모든 sprite draw skip.
+        // cullArea 는 local coords (position 적용 후 world 로 변환). 각 cell 의
+        // local box = (0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX).
+        const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
+        renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
+        renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
+        renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
+        renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
         this.bgAggregate!.addChild(renderer.bgLayer);
         this.wallAggregate!.addChild(renderer.wallLayer);
         this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
+        // 수동 visible toggle 그룹 — updateCellVisibility 가 매 프레임 viewport 검사.
+        this.cellLayerGroups.push({
+          col,
+          row: absRow,
+          layers: [renderer.bgLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
+        });
 
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
@@ -2848,6 +2881,7 @@ export class ItemWorldScene extends Scene {
     this.specialAggregate?.removeChildren();
     this.shadowAggregate.removeChildren();
     this.sealAggregate.removeChildren();
+    this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — 아래 loop 가 다시 push
 
     const grid = this.unifiedGrid;
     const totalCols = grid.totalWidth;
@@ -2882,10 +2916,21 @@ export class ItemWorldScene extends Scene {
         renderer.wallLayer.position.set(roomX, roomY);
         renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
+        // Cell culling — buildFullMap 과 동일 패턴 (사용자 결정 2026-05-04).
+        const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
+        renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
+        renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
+        renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
+        renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
         this.bgAggregate.addChild(renderer.bgLayer);
         this.wallAggregate.addChild(renderer.wallLayer);
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
+        this.cellLayerGroups.push({
+          col,
+          row: absRow,
+          layers: [renderer.bgLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
+        });
       }
     }
 
@@ -3201,6 +3246,8 @@ export class ItemWorldScene extends Scene {
     this.updateResidentEgoTriggers();
     // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 인터랙트.
     this.updateTrapdoor(dt);
+    // 수동 cell culling — viewport 밖 cell 의 4 layer 는 visible=false 로 draw skip.
+    this.updateCellVisibility();
 
     // Player attacks ? Sakurai full feedback chain
     if (this.player.isAttackActive()) {
@@ -3658,6 +3705,10 @@ export class ItemWorldScene extends Scene {
           this.progress.deepestUnlocked = this.currentStratumIndex;
         }
         this.progress.lastSafeStratum = this.currentStratumIndex;
+        // 사용자 결정 (2026-05-04): progress 영구 저장 — 사망 후 재진입 시 stratum
+        // picker 가 deepestUnlocked 까지 select 가능하게. 누락되면 picker 가 안 떠
+        // stratum 1 plaza 부터 시작 → 보스 hole 복구로 진행 막힘.
+        this.persistRoomState();
       }
     }
 
@@ -3958,8 +4009,13 @@ export class ItemWorldScene extends Scene {
   private showStratumPicker(maxSelectable: number): void {
     this.stratumPickerVisible = true;
     this.stratumPickerMax = Math.max(1, Math.min(maxSelectable, this.strataConfig.strata.length));
-    // Default selection = current safe stratum.
-    this.stratumPickerSelection = Math.min(this.currentStratumIndex, this.stratumPickerMax - 1);
+    // Default selection = deepest unlocked stratum (사용자 결정 2026-05-04).
+    // 사망 후 재진입 시 사용자가 ↓ 키 안 눌러도 가장 깊이 도달한 plaza 로 자동
+    // 가도록. stratum 1 default 였을 땐 보스 hole 복구로 진행 막혔음.
+    this.stratumPickerSelection = Math.min(
+      this.progress.deepestUnlocked,
+      this.stratumPickerMax - 1,
+    );
     this.stratumPickerPulseTimer = 0;
     this.drawStratumPicker();
   }
@@ -4349,6 +4405,15 @@ export class ItemWorldScene extends Scene {
     this.player.savePrevPosition();
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.restoreGameplayHud();
+
+    // Plaza 거주자 (Gatekeeper + ambient) 강제 spawn — jumpToStratum 직후 plaza
+    // 가 비어있는 문제 fix (사용자 결정 2026-05-04). 자동 stratum 감지 분기는 한
+    // 프레임 늦거나 spawnedRooms 캐시 때문에 trigger 안 될 수 있어 명시 호출.
+    const hubKey = `${startCol},${startRow}`;
+    if (!this.spawnedRooms.has(hubKey)) {
+      this.spawnedRooms.add(hubKey);
+      this.spawnEnemiesInRoom(startCol, startRow);
+    }
 
     // Stratum 2+ 진입 시 DEPTH 표기 (ULTRAKILL 패턴).
     if (stratumIndex > 0) {
@@ -4918,6 +4983,50 @@ export class ItemWorldScene extends Scene {
     eraseAt(this.sealAggregate);
 
     console.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
+  }
+
+  /** 매 프레임 재사용 — GC 방지. filterArea + viewport 검사 공용. */
+  private _viewportRect = new Rectangle(0, 0, 1, 1);
+
+  /**
+   * 수동 cell culling (사용자 결정 2026-05-04 — Ancient 24 FPS 문제 대응).
+   * 카메라 viewport ± 1 cell buffer 안의 cell 만 visible=true. 그 외 false.
+   * PIXI 자동 culling 이 filter 트리에서 약해 명시 visible 로 강제.
+   *
+   * 동시에 aggregate 의 filterArea 를 viewport 로 제한 (50→60 FPS 향상 목적,
+   * 사용자 결정 2026-05-04). filter 비용 = filterArea 픽셀 수에 비례. unifiedGrid
+   * 전체가 아닌 viewport 만 처리하도록 매 프레임 갱신.
+   */
+  private updateCellVisibility(): void {
+    if (this.cellLayerGroups.length === 0) return;
+    const cam = this.game.camera;
+    const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
+    const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
+    // 1 cell 여유 — cell 경계 통과 시 깜빡임 방지.
+    const viewL = cam.renderX - halfW - IW_ROOM_W_PX;
+    const viewR = cam.renderX + halfW + IW_ROOM_W_PX;
+    const viewT = cam.renderY - halfH - IW_ROOM_H_PX;
+    const viewB = cam.renderY + halfH + IW_ROOM_H_PX;
+    for (const g of this.cellLayerGroups) {
+      const x = g.col * IW_ROOM_W_PX;
+      const y = g.row * IW_ROOM_H_PX;
+      const visible =
+        x + IW_ROOM_W_PX >= viewL &&
+        x <= viewR &&
+        y + IW_ROOM_H_PX >= viewT &&
+        y <= viewB;
+      for (const layer of g.layers) layer.visible = visible;
+    }
+    // Filter area culling — aggregate 의 filter 가 viewport 만 처리하도록 제한.
+    const fa = this._viewportRect;
+    fa.x = viewL;
+    fa.y = viewT;
+    fa.width = viewR - viewL;
+    fa.height = viewB - viewT;
+    if (this.bgAggregate) this.bgAggregate.filterArea = fa;
+    if (this.wallAggregate) this.wallAggregate.filterArea = fa;
+    if (this.shadowAggregate) this.shadowAggregate.filterArea = fa;
+    if (this.sealAggregate) this.sealAggregate.filterArea = fa;
   }
 
   /** Trapdoor entity 정리 + KeyPrompt UI 숨김 (uiContainer 잔류 방지). */

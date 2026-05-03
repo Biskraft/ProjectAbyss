@@ -9,6 +9,7 @@ import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
 import { Debug } from '@core/Debug';
 import { GameRenderConst } from '@data/constData';
+import { FpsCounter } from '@ui/FpsCounter';
 
 export const GAME_WIDTH = GameRenderConst.GameWidth;
 export const GAME_HEIGHT = GameRenderConst.GameHeight;
@@ -59,6 +60,7 @@ export class Game {
   private worldSprite!: Sprite;
   private prevRTW = 0;
   private prevRTH = 0;
+  private fpsCounter!: FpsCounter;
 
   async init(): Promise<void> {
     // Compute integer pixel scale for native resolution
@@ -144,6 +146,12 @@ export class Game {
     this.camera = new Camera(GAME_WIDTH, GAME_HEIGHT);
     this.sceneManager = new SceneManager(this);
 
+    // Debug FPS / sprite count overlay — Shift+I 토글 (Debug.infoVisible).
+    // app.stage 직속 — ItemWorldScene 등 씬 전환 시 uiContainer.removeChildren()
+    // 의 영향을 받지 않도록 stage 의 가장 위 layer 로.
+    this.fpsCounter = new FpsCounter(this.uiScale);
+    this.app.stage.addChild(this.fpsCounter.container);
+
     this.app.ticker.add((ticker) => {
       this.accumulated += ticker.deltaMS;
       if (this.accumulated > MAX_ACCUMULATED) {
@@ -216,6 +224,9 @@ export class Game {
       // Scale RT sprite to fill native resolution
       this.worldSprite.scale.x = (GAME_WIDTH / rtW) * this.uiScale;
       this.worldSprite.scale.y = (GAME_HEIGHT / rtH) * this.uiScale;
+
+      // Debug FPS / sprite count update — render 직전.
+      this.fpsCounter.update(ticker.deltaMS, stage);
 
       // Render stage (worldSprite + uiContainer) to screen at native res
       this.renderer.render({ container: stage });
