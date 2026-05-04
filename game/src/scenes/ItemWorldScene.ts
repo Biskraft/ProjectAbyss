@@ -1092,8 +1092,39 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        const doorMask = this.computeDoorMask(cell, ldtkLevel);
-        this.applyDoorMaskToFullGrid(doorMask, offR, offC);
+        // DEC-039: Boss ('no_down') 셀은 LDtk 템플릿이 D opening 을 가지고
+        // 있더라도 collision 으로 강제 봉인. 자연 폴 다운 차단 — Trapdoor entity
+        // 만이 유일한 전이 수단.
+        //
+        // Plaza ('force_up' / LRUD) 는 천장이 자연 open 이므로 별도 seal 불필요.
+        // 위쪽 셀 (이전 stratum 보스) 가 'no_down' 으로 잠겨있어 양방향 통과는
+        // 차단되며, Trapdoor 가 뚫는 hole 만 일방 다이브 통로로 작동.
+        //
+        // !cell.exits.up 분기는 plaza 가 force_up 으로 cell.exits.up=true 라
+        // 자동 no-op. 일반 셀이 그래프상 위쪽 연결 없으면 여전히 작동.
+        const SEAL = 2;
+        if (!cell.exits.up) {
+          for (let r = 0; r < SEAL; r++) {
+            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
+              const gr = offR + r;
+              const gc = offC + c;
+              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
+                this.fullGrid[gr][gc] = 1;
+              }
+            }
+          }
+        }
+        if (!cell.exits.down) {
+          for (let r = IW_ROOM_H_TILES - SEAL; r < IW_ROOM_H_TILES; r++) {
+            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
+              const gr = offR + r;
+              const gc = offC + c;
+              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
+                this.fullGrid[gr][gc] = 1;
+              }
+            }
+          }
+        }
 
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
@@ -1101,13 +1132,9 @@ export class ItemWorldScene extends Scene {
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
-        const wallTiles = this.filterWallTilesByCarves(
-          ldtkLevel.wallTiles.filter(inBounds),
-          doorMask.carveRectsLocal,
-          ldtkLevel.collisionGrid,
-        );
+        const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell, inBounds);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
         const renderer = new LdtkRenderer();
         // CSV Tileset is authoritative ? retag tiles to the CSV-derived atlas
         // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
@@ -2029,39 +2056,13 @@ export class ItemWorldScene extends Scene {
 
   private getInteriorTilesForRoom(
     ldtkLevel: LdtkLevel,
-    cell: UnifiedRoomCell | null,
     filter?: (tile: LdtkTile) => boolean,
   ): LdtkTile[] {
-    const baseTiles = [
+    const tiles = [
       ...ldtkLevel.interiorTiles,
       ...Object.values(ldtkLevel.extraTileLayers).flat(),
     ];
-    const needsPlazaBuildings = this.isPlazaCell(cell)
-      && (ldtkLevel.extraTileLayers.Buildings?.length ?? 0) === 0;
-    const tiles = needsPlazaBuildings
-      ? [...baseTiles, ...this.getPlazaBuildingOverlayTiles()]
-      : baseTiles;
     return filter ? tiles.filter(filter) : tiles;
-  }
-
-  private getPlazaBuildingOverlayTiles(): LdtkTile[] {
-    let best: LdtkLevel | null = null;
-    for (const template of this.ldtkTemplates) {
-      if (template.roomType !== 'Start') continue;
-      const count = template.extraTileLayers.Buildings?.length ?? 0;
-      if (count <= 0) continue;
-      const bestCount = best?.extraTileLayers.Buildings?.length ?? 0;
-      if (count > bestCount) best = template;
-    }
-    return best?.extraTileLayers.Buildings ?? [];
-  }
-
-  private isPlazaCell(cell: UnifiedRoomCell | null): boolean {
-    if (!cell) return false;
-    if (cell.role === 'hub') return true;
-    return this.unifiedGrid.stratumStartRooms?.some(
-      start => start.col === cell.col && start.absoluteRow === cell.absoluteRow,
-    ) ?? false;
   }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
@@ -2084,7 +2085,7 @@ export class ItemWorldScene extends Scene {
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles);
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel);
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.shadowTiles);
@@ -2321,19 +2322,6 @@ export class ItemWorldScene extends Scene {
     }
 
     const exactByType = pool.filter(t => t.roomType === desiredType && this.sameExitSet(t.exits, required));
-    if (this.isPlazaCell(cell)) {
-      const buildingStarts = pool.filter(t =>
-        t.roomType === 'Start' && (t.extraTileLayers.Buildings?.length ?? 0) > 0,
-      );
-      if (buildingStarts.length > 0) {
-        const ranked = [...buildingStarts].sort((a, b) => {
-          const scoreDelta = this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required);
-          if (scoreDelta !== 0) return scoreDelta;
-          return (b.extraTileLayers.Buildings?.length ?? 0) - (a.extraTileLayers.Buildings?.length ?? 0);
-        });
-        return ranked[0];
-      }
-    }
     if (exactByType.length > 0) {
       return exactByType[rng.nextInt(0, exactByType.length - 1)];
     }
@@ -2989,16 +2977,23 @@ export class ItemWorldScene extends Scene {
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
+        const wallTiles = ldtkLevel.wallTiles.filter((t) => {
+          if (!inBounds(t)) return false;
+          const tr = Math.floor(t.px[1] / TILE_SIZE);
+          const tc = Math.floor(t.px[0] / TILE_SIZE);
+          return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? 1) !== 0;
+        });
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell, inBounds);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
         const renderer = new LdtkRenderer();
         {
           const bgAreaId = `iw_${this._themeSlug}_bg`;
           const wallAreaId = `iw_${this._themeSlug}_wall`;
           applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
+          applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
           applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
         }
-        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.interiorLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);

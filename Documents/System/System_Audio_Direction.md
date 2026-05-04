@@ -962,6 +962,8 @@ P8: UI SFX
 
 **금지:** Suno/Udio 등 학습 데이터 분쟁 진행 중인 플랫폼 사용 금지. 라이선스 안정성 우선.
 
+> **데모 테스트 작업 시트:** `Documents/Plan/Plan_Audio_Demo_AIGenerated_Assets.md` 가 *복붙 가능한 절차 SSoT*. 본 시스템 문서는 *디렉션*, Plan 문서는 *작업 절차* — 책임 분리. Victor 가 직접 ElevenLabs 에서 자산 생성 시 해당 Plan 문서의 §3 프롬프트 시트 + §4 큐레이션 가이드 + §5 변환 명령어를 따른다.
+
 ### 13-3. 오디오 레이어 구조
 
 ```
