@@ -21,6 +21,10 @@ import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
+import { GlowFilter } from '@effects/GlowFilter';
+
+/** Anvil halo glow — forge ember orange. CLAUDE.md 토큰 #FF8000 계열. */
+const ANVIL_HALO_GLOW_COLOR = 0xff8000;
 
 interface Spark {
   gfx: Graphics;
@@ -119,6 +123,14 @@ export class Anvil {
 
     // Halo (drawn first so it sits behind the anvil body)
     this.halo = new Graphics();
+    // GPU glow halo — 모루 단조열 윤곽 (pixijs-references P1, GlowFilter).
+    // disabled 상태는 setDisabled() 에서 halo.clear() 로 무효화돼 시각적으로 사라짐.
+    this.halo.filters = [new GlowFilter({
+      color: ANVIL_HALO_GLOW_COLOR,
+      radius: 14,
+      intensity: 1.2,
+      coreBoost: 0.4,
+    })];
     this.container.addChild(this.halo);
 
     this.gfx = new Graphics();

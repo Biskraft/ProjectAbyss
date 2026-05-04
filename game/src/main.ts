@@ -2,6 +2,7 @@ import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
+import { loadBundleOnce } from '@data/assetBundles';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -53,6 +54,11 @@ try {
 
   // Install BitmapFont at native resolution (must be after game.init for uiScale)
   installBitmapFont(game.uiScale);
+
+  // Prefetch core asset bundle in parallel — TitleScene 진입과 동시에 다운로드
+  // 가 진행되어 첫 게임 진입 시 hitch 가 줄어든다 (pixijs-references P1).
+  // fire-and-forget: 실패해도 entity 측 Assets.load 가 개별 fallback 처리.
+  void loadBundleOnce('core');
 
   showStatus('Loading...');
   // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)

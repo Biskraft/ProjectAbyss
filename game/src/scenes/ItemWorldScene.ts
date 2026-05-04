@@ -123,6 +123,7 @@ import {
   trackItemLevelUp,
 } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
+import { loadBundleOnce } from '@data/assetBundles';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { ParallaxBackground } from '@level/ParallaxBackground';
@@ -482,6 +483,9 @@ export class ItemWorldScene extends Scene {
     // Resolve visual theme from weapon definition (themeId: "T-HABITAT" → "habitat")
     const themeSlug = (this.item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
+    // ItemWorld 전용 적/주민/스위치 스프라이트를 entity 가 개별 Assets.load 로
+    // 부르기 전에 그룹 prefetch — 첫 진입 hitch 회피 (pixijs-references P1).
+    void loadBundleOnce('item_world');
     // Lazy-load tilesets for this theme's palette rows
     const areaIds = [`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`];
     await ensureAreaTilesetsLoaded(areaIds, this.atlases);

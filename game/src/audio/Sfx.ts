@@ -1,48 +1,59 @@
 /**
- * Sfx.ts — Minimal WebAudio synth for gameplay cues.
+ * Sfx.ts — WebAudio synth facade for legacy gameplay cues (DEC-040 phase 1).
  *
  * Playtest 2026-04-17 (A2): upgrade success + milestone (100 DMG) crossing
  * sounds are required to pair the numeric feedback with an auditory reward.
- * No external audio library (Howler) is wired yet, so cues are synthesized
- * with OscillatorNode/GainNode. When Howler lands (Phase 2), swap the impl
- * behind this same `SFX.play(name)` facade.
  *
- * Lazy-init: an AudioContext must be created in response to a user gesture.
- * We bind a one-shot pointerdown/keydown listener at module load that resumes
- * (or creates) the context on first interaction.
+ * Migration status (DEC-040):
+ *   - Phase 1 (now): cues stay synthesized via OscillatorNode/GainNode.
+ *     AudioContext is shared with @pixi/sound through AudioBus, so the
+ *     gesture-unlock and gain ceiling collapse to a single chain. Master
+ *     gain multiplies AudioBus.legacySynthGain() so Settings UI sliders
+ *     (master + sfx channel) move these cues in lockstep with asset SFX.
+ *   - Phase 2 (after demo asset generation): swap each cue body for a
+ *     `AudioBus.play('sfx_*', 'sfx')` call. `SFX.play(name)` facade and
+ *     the five call sites stay untouched (DEC-040 §보존).
+ *
+ * Non-browser build contexts (vitest/SSR) fall through to no-op via the
+ * `typeof window === 'undefined'` guards.
  */
+
+import { AudioBus } from './AudioBus';
 
 type CueName = 'upgrade' | 'milestone100' | 'capture';
 
-const MASTER_GAIN = 0.35;
+/** Static ceiling for the legacy synth chain (AudioBus channel/master applied on top). */
+const SYNTH_BASE_GAIN = 0.35;
 
 class SfxSystem {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private milestoneFired = false;
 
-  constructor() {
-    const onGesture = () => {
-      this.ensureContext();
-      window.removeEventListener('pointerdown', onGesture);
-      window.removeEventListener('keydown', onGesture);
-    };
-    // Guard for non-browser build contexts (vitest/SSR)
-    if (typeof window !== 'undefined') {
-      window.addEventListener('pointerdown', onGesture, { once: true });
-      window.addEventListener('keydown', onGesture, { once: true });
-    }
-  }
-
+  /** Shared AudioContext from @pixi/sound; falls back to a self-owned context only in legacy paths. */
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
+
+    // Prefer the shared @pixi/sound context (DEC-040). One unlock for both systems.
+    const sharedCtx = AudioBus.getContext();
+    if (sharedCtx) {
+      if (this.ctx !== sharedCtx) {
+        this.ctx = sharedCtx;
+        this.master = sharedCtx.createGain();
+        this.master.connect(sharedCtx.destination);
+      }
+      AudioBus.resume();
+      this.applyMasterGain();
+      return sharedCtx;
+    }
+
+    // Fallback: self-owned context for environments where @pixi/sound is not yet ready.
     if (!this.ctx) {
-      const Ctor = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+      const Ctor = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as typeof AudioContext | undefined;
       if (!Ctor) return null;
       try {
         this.ctx = new Ctor();
         this.master = this.ctx.createGain();
-        this.master.gain.value = MASTER_GAIN;
         this.master.connect(this.ctx.destination);
       } catch {
         return null;
@@ -51,7 +62,14 @@ class SfxSystem {
     if (this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
+    this.applyMasterGain();
     return this.ctx;
+  }
+
+  /** Combine static synth ceiling with AudioBus channel + master volumes. */
+  private applyMasterGain(): void {
+    if (!this.master) return;
+    this.master.gain.value = SYNTH_BASE_GAIN * AudioBus.legacySynthGain();
   }
 
   /** Play a named gameplay cue. No-op if audio is unavailable. */

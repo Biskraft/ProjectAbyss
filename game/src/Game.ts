@@ -2,7 +2,16 @@
 // dynamic-import hang in Vite production builds
 import 'pixi.js/browser';
 
-import { Container, RenderTexture, Sprite, Ticker, WebGLRenderer } from 'pixi.js';
+import {
+  Container,
+  RenderTexture,
+  Sprite,
+  Ticker,
+  WebGLRenderer,
+  WebGPURenderer,
+  isWebGPUSupported,
+  type Renderer,
+} from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager, GameAction } from '@core/InputManager';
 import { GamepadManager } from '@core/GamepadManager';
@@ -66,7 +75,9 @@ export class Game {
     playTimeMs: 0,
   };
   private accumulated = 0;
-  private renderer!: WebGLRenderer;
+  private renderer!: Renderer;
+  /** 현재 렌더러 백엔드. 디버그 / 추후 WGSL 포트 분기에 사용. */
+  rendererType: 'webgl' | 'webgpu' = 'webgl';
   private backgroundRT!: RenderTexture;
   private backgroundSprite!: Sprite;
   private worldRT!: RenderTexture;
@@ -84,9 +95,17 @@ export class Game {
     const nativeW = GAME_WIDTH * this.uiScale;
     const nativeH = GAME_HEIGHT * this.uiScale;
 
-    // Renderer at native resolution — UI renders crisp here
-    this.renderer = new WebGLRenderer();
-    await this.renderer.init({
+    // Renderer at native resolution — UI renders crisp here.
+    //
+    // WebGPU 옵트인: `?renderer=webgpu` 쿼리스트링으로만 활성. PaletteSwap /
+    // RimLight / GlowFilter 가 GLSL only 라 default 전환 시 시각 회귀가 발생.
+    // WGSL 포트 후 default 승격 예정 (pixijs-references.html roadmap P1).
+    //
+    // 정적 임포트로 두 클래스를 모두 번들에 포함 — `autoDetectRenderer` 의
+    // 동적 임포트는 Vite production 에서 hang 을 유발한 전례가 있어 회피.
+    const params = new URLSearchParams(window.location.search);
+    const preferWebGpu = params.get('renderer') === 'webgpu';
+    const initOpts = {
       width: nativeW,
       height: nativeH,
       backgroundColor: 0x3a1a28,
@@ -94,7 +113,21 @@ export class Game {
       autoDensity: false,
       antialias: false,
       manageImports: false,
-    });
+    };
+    if (preferWebGpu && (await isWebGPUSupported())) {
+      const r = new WebGPURenderer();
+      await r.init(initOpts);
+      this.renderer = r;
+      this.rendererType = 'webgpu';
+    } else {
+      const r = new WebGLRenderer();
+      await r.init(initOpts);
+      this.renderer = r;
+      this.rendererType = 'webgl';
+    }
+    if (import.meta.env.DEV) {
+      console.info(`[Game] renderer=${this.rendererType} (preference=${preferWebGpu ? 'webgpu' : 'webgl'})`);
+    }
 
     const stage = new Container();
     const ticker = new Ticker();

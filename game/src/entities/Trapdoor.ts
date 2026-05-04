@@ -25,6 +25,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { GlowFilter } from '@effects/GlowFilter';
 
 const FORGE_EMBER_COLOR = 0xff8000;   // CLAUDE.md 토큰 — orange #FF8000
 const EMBER_GLOW_COLOR = 0xffaa44;
@@ -76,6 +77,13 @@ export class Trapdoor {
     this.container.y = y;
 
     this.pillar = new Graphics();
+    // 빛기둥 GPU glow halo — 단조열 ember 윤곽으로 정체성 강화 (DEC-039 / pixijs-references P1).
+    this.pillar.filters = [new GlowFilter({
+      color: EMBER_GLOW_COLOR,
+      radius: 12,
+      intensity: 1.4,
+      coreBoost: 0.6,
+    })];
     this.container.addChild(this.pillar);
     this.drawIdle(0);
   }

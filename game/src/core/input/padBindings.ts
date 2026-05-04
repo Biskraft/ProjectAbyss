@@ -27,5 +27,10 @@ export const PAD_BINDINGS: Partial<Record<GameAction, readonly number[]>> = {
   [GameAction.DASH]: [GP.RT],
   [GameAction.INVENTORY]: [GP.BACK],
   [GameAction.MAP]: [GP.LT],
-  [GameAction.MENU]: [GP.START],
+  // Start (가운데) 는 잡은 상태에서 누르기 어려워 B (FACE_RIGHT) 도 cancel/close 로 추가.
+  // B = Xbox 표준 "back/cancel" — inventory · map · DivePreview 등 모달 close 일관 동작.
+  [GameAction.MENU]: [GP.START, GP.FACE_RIGHT],
+  // Y (FACE_UP) = 회복 (FLASK). 기억 단편 Active (명세 §3.1 의 Y 점유 예정) 가 아직
+  // 미구현이라 임시 점유. 추후 충돌 시 재배정.
+  [GameAction.FLASK]: [GP.FACE_UP],
 };

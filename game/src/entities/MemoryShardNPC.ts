@@ -14,6 +14,10 @@
 
 import { Enemy } from './Enemy';
 import type { Innocent } from '@data/memoryShards';
+import { GlowFilter } from '@effects/GlowFilter';
+
+/** Forgotten 단편의 노란 눈빛 — pixijs-references P1 GlowFilter 적용 후보. */
+const SHARD_GLOW_COLOR = 0xffdd44;
 
 /** Jump velocity applied when flee-jumping (px/s). */
 const FLEE_JUMP_VY = -320;
@@ -57,6 +61,15 @@ export class MemoryShardNPC extends Enemy {
 
     // Random initial jump timer so NPCs don't all jump simultaneously
     this.jumpTimer = JUMP_TIMER_MIN + Math.random() * (JUMP_TIMER_MAX - JUMP_TIMER_MIN);
+
+    // GPU glow — Forgotten Memory Shard 의 노란 발광 (DEC-036 / pixijs-references P1).
+    // Enemy.sprite 는 protected Graphics — subclass 에서 filter 를 부착해 단편을 강조.
+    this.sprite.filters = [new GlowFilter({
+      color: SHARD_GLOW_COLOR,
+      radius: 8,
+      intensity: 1.1,
+      coreBoost: 0.3,
+    })];
   }
 
   protected setupStates(): void {

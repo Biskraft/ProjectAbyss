@@ -23,6 +23,7 @@ export const CONTROL_BINDINGS: ControlBinding[] = [
   { action: 'Jump',      kb: 'Z',                   gp: 'A' },
   { action: 'Attack',    kb: 'C',                   gp: 'X' },
   { action: 'Dash',      kb: 'X',                   gp: 'RT' },
+  { action: 'Heal',      kb: 'R',                   gp: 'Y' },
   { action: 'Interact',  kb: '↑',              gp: 'B' },
   { action: 'Inventory', kb: 'I',                   gp: 'View' },
   { action: 'Map',       kb: 'M',                   gp: 'LT' },
