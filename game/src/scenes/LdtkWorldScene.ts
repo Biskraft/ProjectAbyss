@@ -1814,6 +1814,7 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnBreakableProps();
     this.checkAttackOnSecretWalls();
     this.checkAttackOnBreakables();
+    this.checkAttackOnBreakableEntities();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) {
       wall.update(dt);
@@ -2608,6 +2609,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnCrackedFloors(level);
     this.spawnSecretWalls(level);
     this.spawnBreakablePropsForLevel(level);
+    this.spawnBreakableEntitiesForLevel(level);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -3908,10 +3910,11 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * 플레이어 공격 vs 수동 배치 Breakable.
+   * 플레이어 공격 vs 수동 배치 Breakable Entity (LDtk).
+   * 기존 IntGrid 9-tile 기반 checkAttackOnBreakables 와 별개.
    * BreakableProp 와 동일한 shatter / drop / 카메라 흔들림 처리.
    */
-  private checkAttackOnBreakables(): void {
+  private checkAttackOnBreakableEntities(): void {
     if (!this.player.isAttackActive()) return;
     const step = this.player.getAttackStep(this.player.comboIndex);
     if (!step) return;
