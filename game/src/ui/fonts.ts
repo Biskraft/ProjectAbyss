@@ -33,7 +33,9 @@ export function installBitmapFont(scale = 1): void {
       ['a', 'z'],
       ['A', 'Z'],
       ['0', '9'],
-      ' .,;:!?-+=/\\@#$%^&*()[]{}\'\"<>_~`|→←↑↓…×♦★',
+      // ○□△ 는 PlayStation 패드 페이스 글리프 (System_Input_Gamepad §3.3).
+      // ▶▼ 은 LoreDisplay advance hint.
+      ' .,;:!?-+=/\\@#$%^&*()[]{}\'\"<>_~`|→←↑↓…×♦★○□△▶▼',
     ],
     // 픽셀 미학 유지 — legacyUIContainer 가 uiScale 배수로 업스케일될 때
     // linear 필터면 글리프가 뭉개짐. nearest 로 샤프 에지 강제.

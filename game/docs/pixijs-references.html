@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ECHORIS — PixiJS Reference Catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --modal-bg:#1a1a2e; --modal-overlay:#000;
+    --modal-border:#4a4a6a; --modal-divider:#4a4a6a;
+    --text-primary:#fff; --text-secondary:#aaa;
+    --text-positive:#44ff44; --text-negative:#ff4444;
+    --text-accent:#00ced1; --text-gold:#ffd700; --text-warning:#ffcc44; --text-orange:#ff8c00;
+    --font-title:12px; --font-body:10px; --font-hint:8px;
+    --font-ui:'Rajdhani',system-ui,sans-serif;
+    --font-title-display:'Cinzel',serif;
+    --bg:#0d0d18; --panel-bg:#14141f; --line:#232336; --muted:#7c7c95;
+    /* impact / cost dot colors */
+    --impact-hi:#ff4444; --impact-mid:#ffcc44; --impact-lo:#88ddff;
+    --cost-hi:#ff4444; --cost-mid:#ffcc44; --cost-lo:#44ff44;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-ui);font-weight:500}
+  body{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  aside{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line);padding:24px 18px;background:#0a0a14;
+  }
+  aside h1{font-family:var(--font-title-display);font-size:18px;letter-spacing:3px;margin:0 0 4px}
+  aside .sub{color:var(--muted);font-size:10px;margin-bottom:18px;letter-spacing:1px}
+  aside nav a{display:block;color:var(--text-secondary);text-decoration:none;font-size:11px;padding:4px 0;letter-spacing:0.5px}
+  aside nav a:hover{color:var(--text-accent)}
+  aside nav .group{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-top:14px;margin-bottom:4px}
+
+  main{padding:32px 40px;max-width:1180px}
+  header.page{margin-bottom:32px;border-bottom:1px solid var(--line);padding-bottom:18px}
+  header.page h1{font-family:var(--font-title-display);font-size:32px;margin:0 0 6px;letter-spacing:4px}
+  header.page p{color:var(--text-secondary);margin:0;font-size:13px;line-height:1.5}
+  header.page .rules{margin-top:14px;padding:12px 14px;background:var(--panel-bg);border-left:3px solid var(--text-warning);font-size:12px;color:#ddd;line-height:1.6}
+  header.page .rules b{color:var(--text-warning)}
+
+  section{margin:42px 0;padding-top:8px}
+  section > h2{font-family:var(--font-title-display);font-size:20px;margin:0 0 4px;letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  section > .src{color:var(--muted);font-size:10px;margin-bottom:14px;font-family:ui-monospace,monospace}
+  section > p{color:var(--text-secondary);font-size:12px;line-height:1.6;margin:0 0 14px}
+
+  .card{background:var(--panel-bg);border:1px solid var(--line);border-radius:2px;padding:18px;margin-bottom:12px}
+  .card h3{margin:0 0 4px;font-size:14px;letter-spacing:1px;color:var(--text-primary)}
+  .card .meta{color:var(--muted);font-size:10px;margin-bottom:10px;font-family:ui-monospace,monospace}
+  .card .meta a{color:var(--text-accent);text-decoration:none}
+  .card .meta a:hover{text-decoration:underline}
+  .card .desc{color:var(--text-secondary);font-size:11px;line-height:1.6;margin-bottom:12px}
+
+  .pill-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 8px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+  .pill.impact-hi{background:rgba(255,68,68,0.2);color:var(--impact-hi);border:1px solid var(--impact-hi)}
+  .pill.impact-mid{background:rgba(255,204,68,0.18);color:var(--impact-mid);border:1px solid var(--impact-mid)}
+  .pill.impact-lo{background:rgba(136,221,255,0.18);color:var(--impact-lo);border:1px solid var(--impact-lo)}
+  .pill.cost-hi{background:rgba(255,68,68,0.15);color:var(--impact-hi);border:1px solid var(--impact-hi)}
+  .pill.cost-mid{background:rgba(255,204,68,0.13);color:var(--impact-mid);border:1px solid var(--impact-mid)}
+  .pill.cost-lo{background:rgba(68,255,68,0.13);color:var(--cost-lo);border:1px solid var(--cost-lo)}
+  .pill.pri{background:rgba(255,140,0,0.14);color:var(--text-orange);border:1px solid var(--text-orange)}
+
+  .apply{
+    background:#0a0a14;border-left:3px solid var(--text-accent);
+    padding:10px 14px;font-size:11px;color:#cfd6dd;line-height:1.6;
+  }
+  .apply b{color:var(--text-accent)}
+
+  .lib-tag{display:inline-block;font-size:10px;color:var(--text-orange);font-family:ui-monospace,monospace;margin-right:6px}
+
+  table.matrix{
+    width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;
+  }
+  table.matrix th, table.matrix td{
+    border:1px solid var(--line);padding:8px 10px;text-align:left;
+  }
+  table.matrix th{background:#0a0a14;color:var(--text-secondary);font-weight:700;letter-spacing:0.5px}
+  table.matrix td.center{text-align:center}
+
+  code{font-family:ui-monospace,monospace;background:#0a0a14;color:var(--text-orange);padding:1px 5px;border-radius:2px;font-size:11px}
+
+  footer.page{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.6}
+
+  /* ============== DEMOS (CSS 모사 — 실제 PixiJS 결과물 근사치) ============== */
+  .demo{
+    display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap;
+    background:#070710;border:1px dashed var(--line);border-radius:2px;
+    padding:22px 18px 18px;margin:6px 0 12px;min-height:110px;position:relative;overflow:hidden;
+  }
+  .demo .lbl-tag{
+    position:absolute;top:6px;left:10px;font-size:9px;color:var(--muted);
+    font-family:ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase;
+  }
+  .demo .col{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .demo .col .lbl{font-size:9px;color:var(--muted);font-family:ui-monospace,monospace;letter-spacing:1px}
+
+  /* 32x40 픽셀 캐릭터 (Erda 풍) */
+  .spr{
+    width:32px;height:40px;flex-shrink:0;image-rendering:pixelated;position:relative;
+    background:
+      linear-gradient(180deg,
+        transparent 0 6px,
+        #ffd28a 6px 14px,
+        #aa5533 14px 22px,
+        #553311 22px 32px,
+        #221107 32px 40px);
+  }
+  .spr::before,.spr::after{content:'';position:absolute;width:3px;height:3px;background:#000;top:9px}
+  .spr::before{left:9px}
+  .spr::after{left:20px}
+
+  /* Ember (불꽃) */
+  .ember{
+    width:18px;height:26px;
+    background:radial-gradient(ellipse at 50% 70%, #ffe080 0%, #ff7733 50%, #aa2200 90%, transparent 100%);
+    border-radius:50% 50% 40% 40% / 60% 60% 40% 40%;
+    animation:demo-flick 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes demo-flick{
+    0%{transform:scaleY(1) translateY(0)}
+    100%{transform:scaleY(1.1) translateY(-1px)}
+  }
+
+  /* ---- GLOW ---- */
+  .glow-on{
+    filter:drop-shadow(0 0 6px #ffaa44) drop-shadow(0 0 14px #ff6633);
+    animation:demo-glow 1.6s ease-in-out infinite;
+  }
+  @keyframes demo-glow{
+    0%,100%{filter:drop-shadow(0 0 4px #ffaa44) drop-shadow(0 0 9px #ff6633);}
+    50%{filter:drop-shadow(0 0 12px #ffcc66) drop-shadow(0 0 24px #ff5522) drop-shadow(0 0 38px #ff2200);}
+  }
+
+  /* ---- BLOOM ---- */
+  .bloom-on{
+    filter:
+      blur(0.4px)
+      drop-shadow(0 0 9px rgba(255,210,140,0.9))
+      drop-shadow(0 0 22px rgba(255,160,80,0.7))
+      drop-shadow(0 0 40px rgba(255,120,60,0.45));
+  }
+
+  /* ---- OUTLINE ---- */
+  .outline-on{
+    filter:
+      drop-shadow(1px 0 0 #00ced1) drop-shadow(-1px 0 0 #00ced1)
+      drop-shadow(0 1px 0 #00ced1) drop-shadow(0 -1px 0 #00ced1)
+      drop-shadow(1px 1px 0 #00ced1) drop-shadow(-1px -1px 0 #00ced1);
+  }
+
+  /* ---- DROP SHADOW ---- */
+  .dropshadow-on{filter:drop-shadow(3px 5px 0 rgba(0,0,0,0.75));}
+
+  /* ---- CRT 스크린 ---- */
+  .crt-screen{
+    position:relative;width:130px;height:80px;
+    background:linear-gradient(135deg,#1a4533,#3a8866);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;border-radius:8px;
+    box-shadow:inset 0 0 24px rgba(0,0,0,0.5);
+  }
+  .crt-screen::after{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0.45) 0 1px,transparent 1px 3px);
+  }
+  .crt-screen .spr{transform:scale(0.7)}
+
+  /* ---- OLD FILM ---- */
+  .oldfilm-on{
+    filter:sepia(0.75) contrast(1.18) brightness(0.92);
+    animation:demo-flicker 0.16s steps(3) infinite;
+  }
+  @keyframes demo-flicker{
+    0%{opacity:1}33%{opacity:0.86}66%{opacity:0.96}
+  }
+
+  /* ---- GLITCH ---- */
+  .glitch-on{animation:demo-glitch 0.4s steps(3) infinite}
+  @keyframes demo-glitch{
+    0%{transform:translate(0,0)}
+    18%{transform:translate(-2px,1px)}
+    36%{transform:translate(3px,-1px)}
+    54%{transform:translate(-1px,0)}
+    72%{transform:translate(2px,1px)}
+    100%{transform:translate(0,0)}
+  }
+
+  /* ---- RGB SPLIT ---- */
+  .rgbsplit-on{
+    filter:
+      drop-shadow(-2px 0 0 rgba(255,0,0,0.85))
+      drop-shadow(2px 0 0 rgba(0,200,255,0.85));
+  }
+
+  /* ---- SHOCKWAVE ---- */
+  .shockwave-demo{position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center}
+  .shockwave-demo::before,.shockwave-demo::after{
+    content:'';position:absolute;width:14px;height:14px;border:2px solid #ffaa44;border-radius:50%;
+    animation:demo-shock 1.6s ease-out infinite;
+  }
+  .shockwave-demo::after{animation-delay:0.8s}
+  @keyframes demo-shock{
+    0%{transform:scale(0.2);opacity:1;border-width:3px}
+    100%{transform:scale(5);opacity:0;border-width:0}
+  }
+
+  /* ---- GODRAY ---- */
+  .godray-demo{
+    width:160px;height:90px;background:#0f1520;position:relative;overflow:hidden;border-radius:2px;
+  }
+  .godray-demo::before{
+    content:'';position:absolute;inset:-40%;
+    background:repeating-linear-gradient(135deg,
+      rgba(255,210,120,0) 0 18px,
+      rgba(255,210,120,0.35) 18px 22px);
+    animation:demo-godray 4s linear infinite;
+  }
+  @keyframes demo-godray{
+    0%{transform:translateX(-15%)}
+    100%{transform:translateX(0)}
+  }
+
+  /* ---- UV SCROLL (parallax mesh) ---- */
+  .uv-scroll-demo{
+    width:240px;height:64px;
+    background:repeating-linear-gradient(60deg,
+      #1a3344 0 6px,#2a5566 6px 12px,#3a7788 12px 18px);
+    animation:demo-uv 1.6s linear infinite;
+  }
+  @keyframes demo-uv{
+    0%{background-position:0 0}
+    100%{background-position:24px 0}
+  }
+
+  /* ---- CUSTOM SHADER — Forge dissolve ---- */
+  .dissolve-demo{
+    width:80px;height:80px;
+    background:linear-gradient(180deg,#ffaa44 0%,#ff6633 50%,#aa2200 100%);
+    -webkit-mask:radial-gradient(circle at 50% 50%, #000 35%, transparent 75%);
+            mask:radial-gradient(circle at 50% 50%, #000 35%, transparent 75%);
+    animation:demo-dissolve 2.6s ease-in-out infinite alternate;
+  }
+  @keyframes demo-dissolve{
+    0%{-webkit-mask-size:140% 140%;mask-size:140% 140%}
+    100%{-webkit-mask-size:55% 55%;mask-size:55% 55%}
+  }
+
+  /* ---- MESH ROPE ---- */
+  .rope-svg{width:220px;height:60px}
+  .rope-svg path{
+    stroke:#00ced1;stroke-width:3;fill:none;stroke-linecap:round;
+    stroke-dasharray:3 4;
+    animation:demo-rope 1.6s linear infinite;
+    filter:drop-shadow(0 0 4px rgba(0,206,209,0.7));
+  }
+  @keyframes demo-rope{
+    0%{stroke-dashoffset:0}
+    100%{stroke-dashoffset:-14}
+  }
+
+  /* ---- PARTICLES ---- */
+  .particle-demo{position:relative;width:160px;height:100px}
+  .particle-demo::after{content:'';position:absolute;left:74px;top:84px;width:8px;height:8px;background:radial-gradient(circle,#fff,#ffaa44);border-radius:50%;}
+  .particle-demo .p{
+    position:absolute;left:78px;top:88px;width:4px;height:4px;background:#ffaa44;border-radius:50%;
+    animation:demo-particle 1.5s ease-out infinite;
+  }
+  .particle-demo .p:nth-child(1){--dx:-46px;--dy:-58px;animation-delay:0s}
+  .particle-demo .p:nth-child(2){--dx:34px;--dy:-66px;animation-delay:0.15s;background:#ff6633}
+  .particle-demo .p:nth-child(3){--dx:54px;--dy:-32px;animation-delay:0.3s}
+  .particle-demo .p:nth-child(4){--dx:-30px;--dy:-72px;animation-delay:0.45s;background:#ffd060}
+  .particle-demo .p:nth-child(5){--dx:0;--dy:-78px;animation-delay:0.6s;background:#ffaa44}
+  .particle-demo .p:nth-child(6){--dx:-58px;--dy:-26px;animation-delay:0.75s;background:#ff4422}
+  .particle-demo .p:nth-child(7){--dx:28px;--dy:-50px;animation-delay:0.9s;background:#ffd060}
+  .particle-demo .p:nth-child(8){--dx:-18px;--dy:-60px;animation-delay:1.05s;background:#ffe080}
+  @keyframes demo-particle{
+    0%{transform:translate(0,0) scale(1.3);opacity:1}
+    100%{transform:translate(var(--dx),var(--dy)) scale(0.4);opacity:0}
+  }
+
+  /* ---- PARTICLE CONTAINER (밀집 ash) ---- */
+  .pc-demo{position:relative;width:200px;height:90px;overflow:hidden;background:linear-gradient(180deg,#0a0a14,#150a18)}
+  .pc-demo .pc-p{
+    position:absolute;width:2px;height:2px;background:#ffaa44;border-radius:50%;opacity:0.9;
+    animation:demo-pc 2.4s linear infinite;
+  }
+
+  /* ---- TILEMAP ---- */
+  .tilemap-demo{display:grid;grid-template-columns:repeat(14,12px);grid-template-rows:repeat(5,12px);gap:1px}
+  .tilemap-demo span{display:block;background:#1a3344}
+  .tilemap-demo span.b{background:#2a5566}
+  .tilemap-demo span.w{background:#553322}
+  .tilemap-demo span.s{background:#221107}
+
+  /* ---- CULLING viewport ---- */
+  .cull-demo{position:relative;width:260px;height:130px;background:#0a0a14;border:1px solid #1a1a28}
+  .cull-demo .cell{position:absolute;width:22px;height:22px;background:#1a1a26;border:1px solid #2a2a38}
+  .cull-demo .cell.in{background:#1a3344;border-color:#00ced1}
+  .cull-demo .vport{position:absolute;border:2px dashed #ffaa44;background:rgba(255,170,68,0.06);pointer-events:none}
+
+  /* ---- RT LAYERS ---- */
+  .rt-demo{display:flex;gap:8px;align-items:center}
+  .rt-layer{
+    width:64px;height:40px;border:1px solid var(--line);border-radius:2px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:9px;color:var(--text-secondary);font-family:ui-monospace,monospace;letter-spacing:1px
+  }
+  .rt-layer.rt1{background:#1a2330}
+  .rt-layer.rt2{background:#1f1a30}
+  .rt-layer.rt3{background:#301a22}
+  .rt-arrow{color:var(--muted);font-size:14px;font-family:ui-monospace,monospace}
+
+  /* ---- LAYER STACK (z-sort) ---- */
+  .layer-stack{display:flex;align-items:flex-end;position:relative;height:64px;padding-left:14px}
+  .layer-stack .spr{margin-left:-16px;filter:drop-shadow(2px 4px 0 rgba(0,0,0,0.55))}
+  .layer-stack .spr:first-child{margin-left:0}
+
+  /* ---- DISPLACEMENT ---- */
+  .disp-demo{
+    width:100px;height:54px;
+    background:linear-gradient(180deg,#3a8866 0%,#1a4533 100%);
+    animation:demo-disp 1.8s ease-in-out infinite;
+  }
+  @keyframes demo-disp{
+    0%,100%{transform:skewX(0) skewY(0);filter:blur(0)}
+    25%{transform:skewX(8deg) skewY(-2deg);filter:blur(0.5px)}
+    75%{transform:skewX(-8deg) skewY(2deg);filter:blur(0.5px)}
+  }
+
+  /* ---- BITMAP TEXT ---- */
+  .bmf-demo{
+    font-family:'Cinzel',serif;font-size:30px;font-weight:900;color:#ffd700;letter-spacing:4px;
+    text-shadow:2px 2px 0 #882200,4px 4px 0 #441100;
+  }
+  .bmf-demo.sdf{
+    color:#ffcc66;
+    text-shadow:0 0 10px rgba(255,200,80,0.7),2px 2px 0 #552200;
+  }
+
+  /* ---- HTML TEXT ---- */
+  .html-demo{font-size:13px;line-height:1.7;color:#ddd;max-width:260px;font-family:var(--font-ui)}
+  .html-demo b{color:#ffcc44}
+  .html-demo i{color:#00ced1;font-style:italic}
+  .html-demo small{color:var(--muted);font-size:10px}
+
+  /* ---- ASSET BUNDLE ---- */
+  .bundle-demo{display:flex;flex-direction:column;gap:4px;font-size:10px;font-family:ui-monospace,monospace;color:var(--text-secondary)}
+  .bundle-demo .b-row{display:flex;align-items:center;gap:6px}
+  .bundle-demo .b-name{width:90px;color:var(--text-accent)}
+  .bundle-demo .b-bar{height:8px;background:#1a1a28;border-radius:1px;overflow:hidden;position:relative;width:120px}
+  .bundle-demo .b-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#00ced1,#88ddff);animation:demo-bar 2s ease-out forwards}
+  .bundle-demo .b-row.delay1 .b-fill{animation-delay:0.4s}
+  .bundle-demo .b-row.delay2 .b-fill{animation-delay:0.8s}
+  .bundle-demo .b-pct{font-size:9px;color:var(--muted)}
+  @keyframes demo-bar{
+    0%{width:0%}
+    100%{width:100%}
+  }
+
+  /* ---- WEBGPU ---- */
+  .gpu-demo{display:flex;gap:8px;align-items:center;font-family:ui-monospace,monospace;font-size:10px}
+  .gpu-pill{padding:4px 10px;border-radius:2px;letter-spacing:1px}
+  .gpu-pill.gl{background:rgba(136,221,255,0.15);color:#88ddff;border:1px solid #4a6a8a}
+  .gpu-pill.wgpu{background:rgba(255,170,68,0.18);color:#ffaa44;border:1px solid #aa6622;animation:demo-gpu 1.4s ease-in-out infinite}
+  @keyframes demo-gpu{
+    0%,100%{box-shadow:0 0 0 rgba(255,170,68,0)}
+    50%{box-shadow:0 0 12px rgba(255,170,68,0.6)}
+  }
+  .gpu-arrow{color:var(--muted);font-size:14px}
+
+  /* ---- ASEPRITE ATLAS ---- */
+  .atlas-demo{display:flex;align-items:center;gap:10px}
+  .atlas-frame{
+    width:48px;height:48px;background:#0a0a14;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .atlas-frame .spr{transform:scale(0.9)}
+  .atlas-frame.active{border-color:#00ced1;box-shadow:0 0 8px rgba(0,206,209,0.4)}
+
+  /* ---- SOUND ---- */
+  .sound-demo{display:flex;align-items:end;gap:3px;height:50px}
+  .sound-demo .bar{
+    width:5px;background:linear-gradient(180deg,#00ced1,#1a4566);
+    animation:demo-sound 0.8s ease-in-out infinite;border-radius:1px;
+  }
+  .sound-demo .bar:nth-child(1){animation-delay:0s;height:60%}
+  .sound-demo .bar:nth-child(2){animation-delay:0.1s;height:90%}
+  .sound-demo .bar:nth-child(3){animation-delay:0.2s;height:40%}
+  .sound-demo .bar:nth-child(4){animation-delay:0.3s;height:75%}
+  .sound-demo .bar:nth-child(5){animation-delay:0.4s;height:50%}
+  .sound-demo .bar:nth-child(6){animation-delay:0.5s;height:85%}
+  .sound-demo .bar:nth-child(7){animation-delay:0.6s;height:30%}
+  @keyframes demo-sound{
+    0%,100%{transform:scaleY(1)}
+    50%{transform:scaleY(0.5)}
+  }
+
+  /* ---- SPINE skeleton (SVG) ---- */
+  .spine-svg{width:80px;height:96px}
+  .spine-svg .bone{stroke:#00ced1;stroke-width:2;stroke-linecap:round}
+  .spine-svg .joint{fill:#ffcc44}
+  .spine-svg .arm{transform-origin:40px 38px;animation:demo-arm 1.4s ease-in-out infinite alternate}
+  .spine-svg .leg{transform-origin:40px 70px;animation:demo-leg 1.4s ease-in-out infinite alternate}
+  @keyframes demo-arm{0%{transform:rotate(-12deg)}100%{transform:rotate(18deg)}}
+  @keyframes demo-leg{0%{transform:rotate(8deg)}100%{transform:rotate(-14deg)}}
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>ECHORIS</h1>
+  <div class="sub">PixiJS Reference</div>
+  <nav>
+    <div class="group">overview</div>
+    <a href="#legend">Legend</a>
+    <a href="#current">Current Stack</a>
+
+    <div class="group">graphics / vfx</div>
+    <a href="#filters">Filters</a>
+    <a href="#mesh">Mesh & Shaders</a>
+    <a href="#particles">Particles</a>
+    <a href="#spine">Spine 2D</a>
+
+    <div class="group">performance</div>
+    <a href="#tilemap">Tilemap</a>
+    <a href="#particle-container">ParticleContainer</a>
+    <a href="#culling">Culling</a>
+    <a href="#webgpu">WebGPU</a>
+
+    <div class="group">camera / scene</div>
+    <a href="#rt">RenderTexture</a>
+    <a href="#layer">Layer Plugin</a>
+    <a href="#displacement">Displacement</a>
+
+    <div class="group">ui / text</div>
+    <a href="#bitmap-text">BitmapText</a>
+    <a href="#html-text">HTMLText</a>
+
+    <div class="group">audio / asset</div>
+    <a href="#sound">Sound</a>
+    <a href="#assets">Asset Bundle</a>
+
+    <div class="group">priorities</div>
+    <a href="#roadmap">Roadmap</a>
+  </nav>
+</aside>
+
+<main>
+
+<header class="page">
+  <h1>PixiJS REFERENCE</h1>
+  <p>ECHORIS 가 활용 가능한 PixiJS v8 기능 + 보조 라이브러리 카탈로그. 각 항목은 적용 후보·임팩트·비용·우선순위로 표기.</p>
+  <div class="rules">
+    <b>분류 의도:</b> 코드 변경 비용 vs 시각/성능 임팩트로 판단. <b>먼저 검토:</b> 임팩트 HIGH × 비용 LOW. <b>차후:</b> 임팩트 HIGH × 비용 MID. <b>실험적:</b> 임팩트 MID/LOW.
+  </div>
+</header>
+
+<section id="legend">
+  <h2>Legend</h2>
+  <p>각 카드의 pill 의미.</p>
+  <div class="pill-row">
+    <span class="pill impact-hi">IMPACT HIGH</span>
+    <span class="pill impact-mid">IMPACT MID</span>
+    <span class="pill impact-lo">IMPACT LOW</span>
+  </div>
+  <div class="pill-row">
+    <span class="pill cost-hi">COST HIGH</span>
+    <span class="pill cost-mid">COST MID</span>
+    <span class="pill cost-lo">COST LOW</span>
+    <span class="pill pri">P1 / P2 / P3</span>
+  </div>
+</section>
+
+<section id="current">
+  <h2>Current Stack</h2>
+  <div class="src">CLAUDE.md · 기술 스택</div>
+  <div class="card">
+    <h3>이미 사용 중</h3>
+    <div class="desc">
+      <code>pixi.js v8</code> · <code>@pixi/tilemap</code> · <code>Howler.js</code> (audio) · <code>Vite</code> 빌드. <br>
+      이미 적용 — RenderTexture 기반 zoom 렌더, Container 기반 layer 분리, 일부 Filter (palette / rim), wallAggregate 의 cullableChildren, BitmapText 텍스트.<br>
+      미사용 — Mesh shader, Spine, ParticleContainer, pixi-filters 의 풍부한 필터, WebGPU explicit, Asset Bundle group, Layer plugin.
+    </div>
+  </div>
+</section>
+
+<!-- ============================ GRAPHICS / VFX =========================== -->
+
+<section id="filters">
+  <h2>Filters (Post-Process)</h2>
+  <div class="src">pixi-filters · github.com/pixijs/filters</div>
+  <p>각 Container 또는 Sprite 에 후처리 효과. ECHORIS 의 단조열·녹·다이브 톤을 GPU shader 로 명확히.</p>
+
+  <div class="card">
+    <h3>GlowFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/GlowFilter.html" target="_blank">docs</a> ·
+      <a href="https://pixijs.io/filters/examples/" target="_blank">examples</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      Sprite 가장자리 발광. 색·강도·거리 조절 가능. ECHORIS 의 메가스트럭처 톤에서 강한 정체성.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="spr"></div><span class="lbl">OFF</span></div>
+      <div class="col"><div class="spr glow-on"></div><span class="lbl">GLOW</span></div>
+      <div class="col"><div class="ember glow-on"></div><span class="lbl">EMBER</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Trapdoor 빛기둥 / Anvil halo / Memory Shard 노란 눈빛 / Plaza 천장 부서진 빛 / Boss 단조열 윤곽 / Ego 펄스</div>
+  </div>
+
+  <div class="card">
+    <h3>AdvancedBloomFilter / BloomFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/AdvancedBloomFilter.html" target="_blank">docs</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      장면 전체에 HDR 풍 bloom. 어두운 톤 위에 밝은 spot 이 자연스럽게 번짐. Made in Abyss / BLAME! 압박감 강화.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="spr"></div><span class="lbl">OFF</span></div>
+      <div class="col"><div class="spr bloom-on"></div><span class="lbl">BLOOM</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> ItemWorld 의 worldRT 후처리 (bloom 한 번에) / 보스방 단조열 강조 / Trapdoor 침강 시 일시 강 bloom</div>
+  </div>
+
+  <div class="card">
+    <h3>OutlineFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/OutlineFilter.html" target="_blank">docs</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      알파 채널 따라 외곽선. 정적 sprite 에 즉시 윤곽 강조 — DEC-038 의 청록 외곽선 신호 (Gatekeeper / Archivist) 를 코드 그래픽이 아닌 filter 로.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="spr"></div><span class="lbl">OFF</span></div>
+      <div class="col"><div class="spr outline-on"></div><span class="lbl">OUTLINE 1px</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> MemoryResident 의 인터랙티브 외곽선 / Boss 의 위협 외곽 / 적 강조 (player attack 직전 hint)</div>
+  </div>
+
+  <div class="card">
+    <h3>DropShadowFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/DropShadowFilter.html" target="_blank">docs</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      sprite 그림자. 단순 추가만으로 깊이감. ground enemy / NPC 가 떠 있어 보이는 문제 해결.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="spr"></div><span class="lbl">OFF</span></div>
+      <div class="col"><div class="spr dropshadow-on"></div><span class="lbl">SHADOW</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 모든 적·NPC·플레이어의 ground shadow / UI 모달 그림자 (이미 일부 적용?)</div>
+  </div>
+
+  <div class="card">
+    <h3>CRTFilter / OldFilmFilter / GlitchFilter / RGBSplitFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/CRTFilter.html" target="_blank">CRT docs</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      픽셀아트와 잘 어울리는 후처리. 일시 사용 (보스 처치 / 사망 / 회상 컷신) 으로 임팩트.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="crt-screen"><div class="spr"></div></div><span class="lbl">CRT</span></div>
+      <div class="col"><div class="spr oldfilm-on"></div><span class="lbl">OLD FILM</span></div>
+      <div class="col"><div class="spr glitch-on"></div><span class="lbl">GLITCH</span></div>
+      <div class="col"><div class="spr rgbsplit-on"></div><span class="lbl">RGB SPLIT</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 보스 처치 cinematic 일시 RGBSplit / 사망 시 OldFilm / Memory Shard 회상 시 짧은 Glitch</div>
+  </div>
+
+  <div class="card">
+    <h3>ShockwaveFilter / GodrayFilter</h3>
+    <div class="meta">
+      <span class="lib-tag">pixi-filters</span>
+      <a href="https://pixijs.io/filters/docs/ShockwaveFilter.html" target="_blank">Shockwave</a> ·
+      <a href="https://pixijs.io/filters/docs/GodrayFilter.html" target="_blank">Godray</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      Shockwave: 충격파 원형 왜곡. Godray: 빛줄기.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사</span>
+      <div class="col"><div class="shockwave-demo"><div class="spr" style="transform:scale(0.6)"></div></div><span class="lbl">SHOCKWAVE</span></div>
+      <div class="col"><div class="godray-demo"></div><span class="lbl">GODRAY</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 보스 격파 직후 Shockwave / Plaza 천장 빛줄기 (Godray) / Trapdoor 침강 빛</div>
+  </div>
+</section>
+
+<section id="mesh">
+  <h2>Mesh & Custom Shaders</h2>
+  <div class="src">pixi.js v8 · Mesh / Geometry / Shader API</div>
+  <p>Sprite 한계 넘어 정점 단위 변형. UV scroll·휨·물결 등 정적 텍스처에 동적 변화.</p>
+
+  <div class="card">
+    <h3>MeshSimple + UV Scroll</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/examples/mesh-and-shaders/textured-mesh-basic" target="_blank">example</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      텍스처를 메쉬에 입히고 UV 좌표를 매 프레임 이동 = 무한 흐르는 패턴. 단일 draw call.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS background-position</span>
+      <div class="col"><div class="uv-scroll-demo"></div><span class="lbl">UV SCROLL (parallax)</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Parallax 배경 (현재 sprite scroll → mesh UV) / 폭포·용암 흐름 / 데이터 스트림 시각 (BLAME!) / 빌더 동력 케이블</div>
+  </div>
+
+  <div class="card">
+    <h3>Custom Shader Filter</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/filters" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-hi">COST HIGH</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      WGSL/GLSL 직접 작성. ECHORIS 의 PaletteFilter 가 이미 사용 중 — 추가 effect 가능.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS mask 모사</span>
+      <div class="col"><div class="dissolve-demo"></div><span class="lbl">FORGE DISSOLVE</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Forge ember dissolve (보스 처치) / Iron 결정화 / Rust 산화 진행 (slot 잠금 해제 시) / Shadow 그림자 흔들림</div>
+  </div>
+
+  <div class="card">
+    <h3>MeshRope</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/examples/mesh-and-shaders/textured-mesh-advanced" target="_blank">example</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      points 배열 따라 휘는 sprite. 길고 탄력적인 형태에 적합.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · SVG path 모사</span>
+      <div class="col">
+        <svg class="rope-svg" viewBox="0 0 220 60">
+          <path d="M 4 30 Q 30 10 60 30 T 120 30 T 180 30 T 216 30"/>
+        </svg>
+        <span class="lbl">ROPE TETHER</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 빌더의 케이블 / 메가스트럭처 chain / Memory Shard 의 광점 줄기 / capture orb 의 tether</div>
+  </div>
+</section>
+
+<section id="particles">
+  <h2>Particles</h2>
+  <div class="src">@pixi/particle-emitter · github.com/pixijs/particle-emitter</div>
+  <p>현재 자체 spawn 로직 (HitSpark, DeathParticles, FootstepPuff 등 ~25 종 manager). emitter 라이브러리 도입 시 데이터 기반.</p>
+
+  <div class="card">
+    <h3>@pixi/particle-emitter (v8 호환 fork)</h3>
+    <div class="meta">
+      <a href="https://github.com/pixijs/particle-emitter" target="_blank">repo</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      emitter config (JSON) 기반 particle. 파라미터 풍부 (lifetime, scale curve, color tint, blend, gravity).
+      현재 25+ 자체 manager 가 emitter config 로 대체 시 코드 축소 + 디자이너 친화 (json 만 갱신).
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS keyframes</span>
+      <div class="col">
+        <div class="particle-demo">
+          <span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span>
+          <span class="p"></span><span class="p"></span><span class="p"></span><span class="p"></span>
+        </div>
+        <span class="lbl">HIT SPARK BURST</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> HitSpark / DeathParticles / Trapdoor ember / Anvil spark / 보스 처치 burst — 모두 JSON 으로 변경 가능</div>
+  </div>
+</section>
+
+<section id="spine">
+  <h2>Spine 2D Animation</h2>
+  <div class="src">spine-pixi-v8 · esotericsoftware.com</div>
+  <p>스켈레탈 애니메이션. Spine 은 유료 (라이선스 필요) 이지만 보스 / 빌더 같은 거대 캐릭터 만족도가 큼.</p>
+
+  <div class="card">
+    <h3>Spine + spine-pixi-v8</h3>
+    <div class="meta">
+      <a href="https://github.com/EsotericSoftware/spine-runtimes/tree/4.2/spine-ts/spine-pixi-v8" target="_blank">spine-pixi-v8</a> ·
+      <a href="https://esotericsoftware.com/spine-pixi" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-hi">COST HIGH</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      라이선스 비용 + 아티스트 학습 비용 큼. 거대 빌더 (Shaft_01) / 보스 / Memory Shard 5색 기질 별 변형에 적합.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · SVG bone 모사</span>
+      <div class="col">
+        <svg class="spine-svg" viewBox="0 0 80 96">
+          <line class="bone" x1="40" y1="14" x2="40" y2="38"/>
+          <line class="bone" x1="40" y1="38" x2="40" y2="70"/>
+          <g class="arm"><line class="bone" x1="40" y1="38" x2="58" y2="60"/></g>
+          <g class="arm" style="animation-delay:-0.7s"><line class="bone" x1="40" y1="38" x2="22" y2="60"/></g>
+          <g class="leg"><line class="bone" x1="40" y1="70" x2="52" y2="92"/></g>
+          <g class="leg" style="animation-delay:-0.7s"><line class="bone" x1="40" y1="70" x2="28" y2="92"/></g>
+          <circle class="joint" cx="40" cy="14" r="6"/>
+          <circle class="joint" cx="40" cy="38" r="3"/>
+          <circle class="joint" cx="40" cy="70" r="3"/>
+        </svg>
+        <span class="lbl">SKELETAL ANIM</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Giant Builder (현재 LegRig manual) / 보스 (Forge / Iron / Rust / Spark / Shadow 5종 변형) / 거대 일그러진 그림자 (DEC-038)</div>
+  </div>
+
+  <div class="card">
+    <h3>대안 — Aseprite multi-tag atlas (현재 방식 확장)</h3>
+    <div class="meta">
+      <a href="https://www.aseprite.org/docs/sprite-sheet/" target="_blank">aseprite atlas</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      Skeleton 이 이미 사용 중 (idle/walk/jump tags). 라이선스 무료 + 단순. Spine 없어도 충분.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · 프레임 시퀀스</span>
+      <div class="atlas-demo">
+        <div class="atlas-frame"><div class="spr"></div></div>
+        <div class="atlas-frame active"><div class="spr"></div></div>
+        <div class="atlas-frame"><div class="spr"></div></div>
+        <div class="atlas-frame"><div class="spr"></div></div>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 모든 enemy / NPC / Erda 추가 anim (attack/dash/hit/death tags 추가) / 보스 multi-state</div>
+  </div>
+</section>
+
+<!-- ============================ PERFORMANCE =========================== -->
+
+<section id="tilemap">
+  <h2>Tilemap (CompositeTilemap)</h2>
+  <div class="src">@pixi/tilemap · github.com/pixijs/tilemap</div>
+  <p>이미 의존성 등록 (CLAUDE.md). per-tile Sprite 대신 단일 mesh 로 수천 타일 통합.</p>
+
+  <div class="card">
+    <h3>LdtkRenderer 마이그</h3>
+    <div class="meta">
+      <a href="https://github.com/pixijs/tilemap" target="_blank">repo</a> ·
+      <a href="https://pixijs.io/tilemap/" target="_blank">demo</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-hi">COST HIGH</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      현재 <code>LdtkRenderer.renderLevel</code> 가 per-tile <code>new Sprite()</code> — Rare+ cell 당 ~500 sprite. CompositeTilemap 으로 cell 의 wall/bg 를 단일 mesh draw call. <br>
+      Cell culling 이미 적용 (수동 visible toggle) — tilemap 마이그 시 sprite 수 자체가 1/100~1/500 로 감소해 culling 부담도 감소.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · grid 시각화</span>
+      <div class="col">
+        <div class="tilemap-demo">
+          <span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span><span class="w"></span>
+          <span class="w"></span><span></span><span></span><span class="b"></span><span class="b"></span><span></span><span></span><span></span><span class="b"></span><span></span><span></span><span></span><span></span><span class="w"></span>
+          <span class="w"></span><span></span><span></span><span></span><span></span><span></span><span class="b"></span><span></span><span></span><span></span><span class="b"></span><span class="b"></span><span></span><span class="w"></span>
+          <span class="w"></span><span></span><span class="b"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="w"></span>
+          <span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span>
+        </div>
+        <span class="lbl">14×5 = 70 tiles → 1 draw call</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> ItemWorldScene 의 cell wall/bg/shadow / LdtkWorldScene 의 일반 룸. Ancient (cells 80+) 에서 가장 큰 효과</div>
+  </div>
+</section>
+
+<section id="particle-container">
+  <h2>ParticleContainer</h2>
+  <div class="src">pixi.js v8 · scene/container/particle-container</div>
+
+  <div class="card">
+    <h3>ParticleContainer</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/particle-container" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      동일 base texture 의 sprite 다수를 단일 draw call. tint·rotation·alpha 만 sprite 별. 수백~수천 particle 에 효과.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS keyframes</span>
+      <div class="col">
+        <div class="pc-demo" id="pc-demo-host"></div>
+        <span class="lbl">120 particles · 1 draw call</span>
+      </div>
+    </div>
+    <script>
+      (function(){
+        var host=document.getElementById('pc-demo-host');
+        if(!host) return;
+        var colors=['#ffaa44','#ff6633','#ffd060','#ff4422'];
+        for(var i=0;i<120;i++){
+          var p=document.createElement('span');
+          p.className='pc-p';
+          p.style.left=(Math.random()*200)+'px';
+          p.style.top=(40+Math.random()*40)+'px';
+          p.style.background=colors[i%colors.length];
+          p.style.animationDelay=(Math.random()*-2.4)+'s';
+          p.style.animationDuration=(1.6+Math.random()*1.6)+'s';
+          host.appendChild(p);
+        }
+      })();
+    </script>
+    <style>
+      @keyframes demo-pc{
+        0%{transform:translateY(0) scale(1);opacity:0.9}
+        100%{transform:translateY(-90px) scale(0.4);opacity:0}
+      }
+      .pc-p{animation-name:demo-pc !important;animation-iteration-count:infinite !important;animation-timing-function:linear !important}
+    </style>
+    <div class="apply"><b>적용 후보:</b> HitSparkManager / DeathParticleManager / FootstepPuff 등 같은 texture 사용하는 manager 들</div>
+  </div>
+</section>
+
+<section id="culling">
+  <h2>Culling</h2>
+  <div class="src">pixi.js v8 · cullable / cullArea</div>
+
+  <div class="card">
+    <h3>Container.cullable + cullArea (자동) / 수동 visible toggle</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/scene-objects" target="_blank">scene objects</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">DONE</span>
+    </div>
+    <div class="desc">
+      ECHORIS 는 PIXI 자동 culling + 수동 visible toggle 둘 다 적용 (사용자 결정 2026-05-04). Filter 트리 효과 약해 수동 toggle 이 더 확실.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · viewport 도식</span>
+      <div class="col">
+        <div class="cull-demo">
+          <div class="cell" style="left:6px;top:6px"></div>
+          <div class="cell" style="left:32px;top:6px"></div>
+          <div class="cell in" style="left:58px;top:6px"></div>
+          <div class="cell in" style="left:84px;top:6px"></div>
+          <div class="cell in" style="left:110px;top:6px"></div>
+          <div class="cell" style="left:136px;top:6px"></div>
+          <div class="cell" style="left:162px;top:6px"></div>
+          <div class="cell" style="left:188px;top:6px"></div>
+          <div class="cell" style="left:214px;top:6px"></div>
+          <div class="cell" style="left:6px;top:32px"></div>
+          <div class="cell" style="left:32px;top:32px"></div>
+          <div class="cell in" style="left:58px;top:32px"></div>
+          <div class="cell in" style="left:84px;top:32px"></div>
+          <div class="cell in" style="left:110px;top:32px"></div>
+          <div class="cell" style="left:136px;top:32px"></div>
+          <div class="cell" style="left:162px;top:32px"></div>
+          <div class="cell" style="left:188px;top:32px"></div>
+          <div class="cell" style="left:214px;top:32px"></div>
+          <div class="cell" style="left:6px;top:58px"></div>
+          <div class="cell" style="left:32px;top:58px"></div>
+          <div class="cell in" style="left:58px;top:58px"></div>
+          <div class="cell in" style="left:84px;top:58px"></div>
+          <div class="cell in" style="left:110px;top:58px"></div>
+          <div class="cell" style="left:136px;top:58px"></div>
+          <div class="cell" style="left:162px;top:58px"></div>
+          <div class="cell" style="left:188px;top:58px"></div>
+          <div class="cell" style="left:214px;top:58px"></div>
+          <div class="cell" style="left:6px;top:84px"></div>
+          <div class="cell" style="left:32px;top:84px"></div>
+          <div class="cell" style="left:58px;top:84px"></div>
+          <div class="cell" style="left:84px;top:84px"></div>
+          <div class="cell" style="left:110px;top:84px"></div>
+          <div class="cell" style="left:136px;top:84px"></div>
+          <div class="cell" style="left:162px;top:84px"></div>
+          <div class="cell" style="left:188px;top:84px"></div>
+          <div class="cell" style="left:214px;top:84px"></div>
+          <div class="vport" style="left:54px;top:2px;width:84px;height:84px"></div>
+        </div>
+        <span class="lbl">cyan = visible · 그 외 = visible=false</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 위치:</b> ItemWorldScene 의 <code>cellLayerGroups</code> + <code>updateCellVisibility()</code> + filterArea 매 프레임 viewport 제한</div>
+  </div>
+</section>
+
+<section id="webgpu">
+  <h2>WebGPU</h2>
+  <div class="src">pixi.js v8 · WebGPURenderer</div>
+
+  <div class="card">
+    <h3>WebGPU 활성화</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/migrations/v8" target="_blank">v8 migration</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      현재 <code>WebGLRenderer</code> 명시 사용. Pixi v8 의 <code>autoDetectRenderer</code> 또는 명시적 <code>WebGPURenderer</code> 로 GPU 가속. 최신 브라우저(Chromium 113+, Edge, Safari 17.5+) 에서 큰 성능 향상. <br>
+      Fallback 자동 — WebGPU 미지원 환경은 WebGL2 로.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · 도식</span>
+      <div class="gpu-demo">
+        <span class="gpu-pill gl">WebGL2</span>
+        <span class="gpu-arrow">→</span>
+        <span class="gpu-pill wgpu">WebGPU</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Game.ts 의 <code>new WebGLRenderer()</code> → <code>autoDetectRenderer({ preference: 'webgpu' })</code></div>
+  </div>
+</section>
+
+<!-- ============================ CAMERA / SCENE =========================== -->
+
+<section id="rt">
+  <h2>RenderTexture</h2>
+  <div class="src">pixi.js v8 · RenderTexture</div>
+
+  <div class="card">
+    <h3>Multi-pass / Pre-baked layer</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/textures#render-texture" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      한 번 렌더 후 재사용. 이미 worldRT/backgroundRT 사용. 추가로 변하지 않는 layer (parallax / cell wall 정적 부분) 를 RT 로 pre-bake.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · pipeline 도식</span>
+      <div class="rt-demo">
+        <div class="rt-layer rt1">parallax</div>
+        <span class="rt-arrow">+</span>
+        <div class="rt-layer rt2">world</div>
+        <span class="rt-arrow">+</span>
+        <div class="rt-layer rt3">UI</div>
+        <span class="rt-arrow">→</span>
+        <div class="rt-layer" style="background:#0a0a14">screen</div>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> stratum 별 wall/bg 통합 RT (cell 단위 sprite → 단일 RT) — tilemap 와 유사한 효과</div>
+  </div>
+</section>
+
+<section id="layer">
+  <h2>Layer / Z-Sort</h2>
+  <div class="src">pixi.js v8 · Container.sortableChildren / zIndex</div>
+
+  <div class="card">
+    <h3>Container.sortableChildren</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/scene-objects#zindex--sorting" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      현재 <code>addChildAt</code> 로 z 직접 관리 (residentsLayer / entityLayer). zIndex + sortableChildren 으로 자동 정렬 가능.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · y 기준 stack</span>
+      <div class="col">
+        <div class="layer-stack">
+          <div class="spr" style="opacity:0.7"></div>
+          <div class="spr"></div>
+          <div class="spr" style="opacity:0.85"></div>
+        </div>
+        <span class="lbl">player y → 자동 z-sort</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> ItemWorldScene 의 entity 정렬 (player y 기준 자동 sort — 거주자가 player 뒤/앞 동적 결정)</div>
+  </div>
+</section>
+
+<section id="displacement">
+  <h2>Displacement</h2>
+  <div class="src">pixi.js v8 · DisplacementFilter</div>
+
+  <div class="card">
+    <h3>DisplacementFilter</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/examples/filters-advanced/displacement-map-flag" target="_blank">example</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      texture 의 RG 채널을 변위 map 으로 사용해 picture 왜곡. 물·열기·아지랑이.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS skew 모사</span>
+      <div class="col"><div class="disp-demo"></div><span class="lbl">HEAT WAVE</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> Trapdoor 빛기둥 주변 열기 / 보스 분노 상태 / Plaza 천장 너머 그림자 흔들림</div>
+  </div>
+</section>
+
+<!-- ============================ UI / TEXT =========================== -->
+
+<section id="bitmap-text">
+  <h2>BitmapText</h2>
+  <div class="src">pixi.js v8 · BitmapText (이미 사용 중)</div>
+
+  <div class="card">
+    <h3>SDF / MSDF Font</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/text" target="_blank">guide</a> ·
+      <a href="https://github.com/soimy/msdf-bmfont-xml" target="_blank">msdf-bmfont</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      SDF (Signed Distance Field) 또는 MSDF font 로 임의 크기 sharp 렌더링. 픽셀아트와 결이 다르지만 UI 의 큰 텍스트 (boss 이름, 클리어 배너) 에 효과.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · 폰트 렌더</span>
+      <div class="col"><div class="bmf-demo">BOSS</div><span class="lbl">BITMAP (현재)</span></div>
+      <div class="col"><div class="bmf-demo sdf">BOSS</div><span class="lbl">SDF (제안)</span></div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> "BOSS DEFEATED" 큰 텍스트 / Stratum N/Max 풀스크린 / 메뉴 타이틀</div>
+  </div>
+</section>
+
+<section id="html-text">
+  <h2>HTMLText</h2>
+  <div class="src">pixi.js v8 · HTMLText</div>
+
+  <div class="card">
+    <h3>HTMLText (canvas2d)</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/examples/text/html-text" target="_blank">example</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-lo">IMPACT LOW</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      HTML/CSS 형식 inline 스타일. 픽셀아트 톤과 안 어울려 ECHORIS 에선 크게 필요 없음. 디버그 / 설정 메뉴 정도.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · inline style</span>
+      <div class="html-demo">
+        <b>FPS</b> 60 · <i>peak</i> 16.7ms<br>
+        nodes <b>1247</b><br>
+        <small>Shift+I to toggle</small>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 디버그 정보 표시 (Shift+I 기존 BitmapText 대체 후보)</div>
+  </div>
+</section>
+
+<!-- ============================ AUDIO / ASSET =========================== -->
+
+<section id="sound">
+  <h2>Sound</h2>
+  <div class="src">@pixi/sound · github.com/pixijs/sound</div>
+
+  <div class="card">
+    <h3>@pixi/sound — Howler.js 대체 검토</h3>
+    <div class="meta">
+      <a href="https://github.com/pixijs/sound" target="_blank">repo</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-lo">IMPACT LOW</span>
+      <span class="pill cost-mid">COST MID</span>
+      <span class="pill pri">P3</span>
+    </div>
+    <div class="desc">
+      Pixi 와 통합된 audio 라이브러리. Howler.js 대비 큰 차이는 없음. Asset Bundle 과 통합되는 점이 강점. 현재 Howler 안정 — 굳이 마이그할 이유 약함.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · waveform 시각</span>
+      <div class="col">
+        <div class="sound-demo">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <span class="lbl">audio playback</span>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> 신규 sound 만 점진적 도입. 기존 Howler 그대로 유지 가능</div>
+  </div>
+</section>
+
+<section id="assets">
+  <h2>Asset Bundle</h2>
+  <div class="src">pixi.js v8 · Assets.loadBundle</div>
+
+  <div class="card">
+    <h3>Assets.addBundle / loadBundle</h3>
+    <div class="meta">
+      <a href="https://pixijs.com/8.x/guides/components/assets" target="_blank">guide</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      자산을 그룹 단위로 lazy load. 첫 로딩 단축 + stratum 별 lazy load. 현재는 <code>ensureAreaTilesetsLoaded</code> 로 일부 lazy 처리 중.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · 로딩 진행</span>
+      <div class="bundle-demo">
+        <div class="b-row"><span class="b-name">core</span><div class="b-bar"><div class="b-fill"></div></div><span class="b-pct">0.4s</span></div>
+        <div class="b-row delay1"><span class="b-name">world_a</span><div class="b-bar"><div class="b-fill"></div></div><span class="b-pct">lazy</span></div>
+        <div class="b-row delay2"><span class="b-name">item_world</span><div class="b-bar"><div class="b-fill"></div></div><span class="b-pct">on enter</span></div>
+      </div>
+    </div>
+    <div class="apply"><b>적용 후보:</b> ItemWorld 진입 시 stratum 별 tileset bundle / 보스별 sprite atlas / 무기별 lore portrait</div>
+  </div>
+</section>
+
+<!-- ============================ ROADMAP =========================== -->
+
+<section id="roadmap">
+  <h2>Roadmap (권장 순서)</h2>
+  <div class="src">우선순위 P1 → P2 → P3</div>
+
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th style="width:80px">Pri</th>
+        <th>항목</th>
+        <th style="width:90px" class="center">Impact</th>
+        <th style="width:90px" class="center">Cost</th>
+        <th>이유</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center"><span class="pill pri">P1</span></td>
+        <td>WebGPU renderer</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>Game.ts 한 줄 변경. 즉각 GPU 가속 (지원 환경에서)</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P1</span></td>
+        <td>GlowFilter</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>Trapdoor / Anvil / Boss / Memory Shard 시각 정체성 즉시 강화</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P1</span></td>
+        <td>Asset Bundle</td>
+        <td class="center"><span class="pill impact-mid">MID</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>첫 로딩 단축 + stratum 별 lazy. 출시 폴리시 필수</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P1</span></td>
+        <td>Mesh + UV Scroll (parallax)</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-mid">MID</span></td>
+        <td>parallax 가 sprite scroll 이라면 mesh UV 로 단일 draw call</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P2</span></td>
+        <td>AdvancedBloom</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-mid">MID</span></td>
+        <td>BLAME!/Made in Abyss 톤 압박감 — worldRT 후처리</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P2</span></td>
+        <td>OutlineFilter (resident)</td>
+        <td class="center"><span class="pill impact-mid">MID</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>DEC-038 청록 외곽선을 코드 그래픽 → filter 로 일관</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P2</span></td>
+        <td>ParticleContainer</td>
+        <td class="center"><span class="pill impact-mid">MID</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>HitSpark 등 같은 texture manager 통합</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P2</span></td>
+        <td>Tilemap 마이그</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-hi">HIGH</span></td>
+        <td>Ancient 셀 80+ 의 sprite 자체를 1/500 로 감소. cell culling 의 다음 단계</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P2</span></td>
+        <td>@pixi/particle-emitter</td>
+        <td class="center"><span class="pill impact-mid">MID</span></td>
+        <td class="center"><span class="pill cost-mid">MID</span></td>
+        <td>25+ manager 통합 + JSON config — 디자이너 친화</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P3</span></td>
+        <td>Custom Shader Filter</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-hi">HIGH</span></td>
+        <td>5색 기질 별 dissolve / 결정화 / 산화 — 아이덴티티 완성도</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P3</span></td>
+        <td>Spine 2D</td>
+        <td class="center"><span class="pill impact-hi">HIGH</span></td>
+        <td class="center"><span class="pill cost-hi">HIGH</span></td>
+        <td>거대 빌더 / 보스 — 라이선스 + 학습 비용 큼</td>
+      </tr>
+      <tr>
+        <td class="center"><span class="pill pri">P3</span></td>
+        <td>CRT / OldFilm / Glitch</td>
+        <td class="center"><span class="pill impact-mid">MID</span></td>
+        <td class="center"><span class="pill cost-lo">LOW</span></td>
+        <td>일시 cutscene 효과 — 핵심 아님</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<footer class="page">
+  <p>본 문서는 PixiJS v8 공식 docs / pixi-filters / @pixi/tilemap / @pixi/particle-emitter / spine-pixi-v8 의 GitHub repo 와 examples 사이트에 기재된 정보만 사용. 추측 항목은 [후보] 표기. 출처별 라이선스·버전 호환성은 적용 시점에 재검증.</p>
+</footer>
+
+</main>
+</body>
+</html>

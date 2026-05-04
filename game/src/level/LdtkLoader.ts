@@ -188,6 +188,7 @@ interface RawLdtkLayer {
   __tilesetRelPath?: string | null;
   intGridCsv: number[];
   autoLayerTiles: RawLdtkAutoTile[];
+  gridTiles: RawLdtkAutoTile[];
   entityInstances: RawLdtkEntityInstance[];
 }
 
@@ -196,7 +197,7 @@ interface RawLdtkAutoTile {
   src: [number, number];
   f: number;
   t: number;
-  a: number;
+  a?: number;
   // d: [layerDefUid, coordId] — present in file but not used by loader
 }
 
@@ -254,6 +255,7 @@ interface RawLdtkWorld {
 export class LdtkLoader {
   private project!: LdtkProject;
   private levels: Map<string, LdtkLevel> = new Map();
+  private tilesetPathByUid: Map<number, string> = new Map();
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -273,6 +275,12 @@ export class LdtkLoader {
    */
   load(json: Record<string, unknown>, worldId?: string | string[]): void {
     this.levels.clear();
+    this.tilesetPathByUid.clear();
+
+    const defs = json['defs'] as { tilesets?: Array<{ uid: number; relPath?: string | null }> } | undefined;
+    for (const ts of defs?.tilesets ?? []) {
+      if (ts.relPath) this.tilesetPathByUid.set(ts.uid, ts.relPath);
+    }
 
     let rawLevels: RawLdtkLevel[];
 
@@ -417,7 +425,8 @@ export class LdtkLoader {
     const layers = raw.layerInstances ?? [];
 
     for (const layer of layers) {
-      const layerTilesetPath = layer.__tilesetRelPath ?? null;
+      const layerTilesetPath = layer.__tilesetRelPath
+        ?? (layer.__tilesetDefUid != null ? this.tilesetPathByUid.get(layer.__tilesetDefUid) ?? null : null);
       switch (layer.__identifier) {
         case 'Collisions':
           // IntGrid layer — convert 1D csv to 2D grid.
@@ -454,9 +463,13 @@ export class LdtkLoader {
           break;
 
         default:
-          // Auto-collect any other tile layer (IntGrid or AutoLayer with tiles).
-          if (layer.autoLayerTiles.length > 0) {
+          // Auto-collect any other tile layer.
+          // - AutoLayer / IntGrid auto-rule visuals → autoLayerTiles
+          // - Tiles layer (manual drag-place, no collision) → gridTiles
+          if (layer.autoLayerTiles && layer.autoLayerTiles.length > 0) {
             extraTileLayers[layer.__identifier] = this.parseAutoLayerTiles(layer.autoLayerTiles, layerTilesetPath);
+          } else if (layer.gridTiles && layer.gridTiles.length > 0) {
+            extraTileLayers[layer.__identifier] = this.parseAutoLayerTiles(layer.gridTiles, layerTilesetPath);
           }
           break;
       }
@@ -599,7 +612,7 @@ export class LdtkLoader {
       px: [t.px[0], t.px[1]],
       src: [t.src[0], t.src[1]],
       f: t.f,
-      a: t.a,
+      a: t.a ?? 1,
       tilesetPath,
     }));
   }

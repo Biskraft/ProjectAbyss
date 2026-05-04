@@ -63,14 +63,49 @@ let itemWorldEntryTime = 0;
 /** Guards session_end against double-fire (beforeunload + visibilitychange). */
 let sessionEnded = false;
 
+/** Ring buffer of last N event names. Snapshotted into feedback context. */
+const eventRing: string[] = [];
+const RING_MAX = 3;
+
+/**
+ * UTM params captured from URL on first load, persisted in sessionStorage so
+ * SPA-internal navigation doesn't lose attribution. Attached as default params
+ * to every event after capture.
+ */
+const utm: { source?: string; medium?: string; campaign?: string } = (() => {
+  if (typeof window === 'undefined') return {};
+  const lsKey = 'echoris_utm';
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl: { source?: string; medium?: string; campaign?: string } = {};
+  const s = params.get('utm_source'); if (s) fromUrl.source = s;
+  const m = params.get('utm_medium'); if (m) fromUrl.medium = m;
+  const c = params.get('utm_campaign'); if (c) fromUrl.campaign = c;
+  if (fromUrl.source || fromUrl.medium || fromUrl.campaign) {
+    try { sessionStorage.setItem(lsKey, JSON.stringify(fromUrl)); } catch {}
+    return fromUrl;
+  }
+  try {
+    const raw = sessionStorage.getItem(lsKey);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+})();
+
 // ---------------------------------------------------------------------------
 // Internal
 // ---------------------------------------------------------------------------
 
 function send(eventName: string, params?: GtagParams): void {
+  // Ring buffer for feedback context — track BEFORE enrichment.
+  eventRing.push(eventName);
+  if (eventRing.length > RING_MAX) eventRing.shift();
+
   const enriched: GtagParams = {
     run_id: runId,
     build_version: buildVersion,
+    ...(utm.source ? { utm_source: utm.source } : {}),
+    ...(utm.medium ? { utm_medium: utm.medium } : {}),
+    ...(utm.campaign ? { utm_campaign: utm.campaign } : {}),
     ...(params ?? {}),
   };
   if (isDebug) {
@@ -280,6 +315,62 @@ export function trackItemEquip(params: {
 /** TEL-19: Tutorial hint shown (first-time trigger only, one per id per session). */
 export function trackTutorialStep(stepId: string): void {
   send('tutorial_step', { step_id: stepId });
+}
+
+/** TEL-20: F-key feedback panel opened. */
+export function trackFeedbackOpened(params: {
+  area: 'world' | 'itemworld';
+  playtime_sec: number;
+}): void {
+  send('feedback_opened', params);
+}
+
+/**
+ * TEL-21: Feedback submitted via F-key panel. Body text is NOT sent to GA4
+ * (100-char param limit + GDPR). Body goes to Google Form via FeedbackSubmit.
+ */
+export function trackFeedbackSubmitted(params: {
+  area: 'world' | 'itemworld';
+  playtime_sec: number;
+  category: 'bug' | 'idea' | 'other';
+  text_length: number;
+}): void {
+  send('feedback_submitted', params);
+}
+
+// ---------------------------------------------------------------------------
+// Read accessors (for FeedbackPanel context snapshot)
+// ---------------------------------------------------------------------------
+
+/** Snapshot of last N event names sent. */
+export function getLastEvents(): string[] {
+  return [...eventRing];
+}
+
+/** Session run_id (random per page load, groups every event from one session). */
+export function getRunId(): string {
+  return runId;
+}
+
+/** Build version string (Vite MODE, e.g. "production" / "dev"). */
+export function getBuildVersion(): string {
+  return buildVersion;
+}
+
+/** Seconds since trackGameStart. 0 if game_start hasn't fired yet. */
+export function getPlaytimeSec(): number {
+  if (sessionStartTime === 0) return 0;
+  return Math.floor((Date.now() - sessionStartTime) / 1000);
+}
+
+/** UTM source captured from URL or sessionStorage. */
+export function getUtmSource(): string | undefined {
+  return utm.source;
+}
+
+/** UTM campaign captured from URL or sessionStorage. */
+export function getUtmCampaign(): string | undefined {
+  return utm.campaign;
 }
 
 // ---------------------------------------------------------------------------

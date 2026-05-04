@@ -2735,6 +2735,73 @@
     </div>
   </section>
 
+  <!-- ============================================================
+       TEXT INPUT FIELD  (F-key feedback)
+       ============================================================ -->
+  <section id="text-input-field">
+    <h2>TextInputField <span class="pill atom">ATOM</span></h2>
+    <div class="src">FeedbackPanel.ts (inline) · 다행 텍스트 입력</div>
+    <p>한글 IME 안전 텍스트 입력. <code>compositionstart</code>/<code>compositionend</code> 이벤트로 합성 상태를 추적, 합성 중 Enter는 합성 종료에만 작동(제출 안 됨).</p>
+    <h3>토큰</h3>
+    <ul>
+      <li><b>배경:</b> <code>MODAL_BG</code> · 1px 인셋 보더 <code>MODAL_BORDER</code></li>
+      <li><b>글자색:</b> <code>TEXT_PRIMARY</code> · 폰트 <code>FONT_BODY</code> (10px)</li>
+      <li><b>카운터:</b> 우하단 <code>"NNN/500"</code>. 480자 초과 시 색 <code>TEXT_WARNING</code> (#ffcc44) 로 전환</li>
+      <li><b>커서:</b> 1px 세로 막대 · orange <code>#FF8000</code> · 500ms 주기 깜빡임</li>
+    </ul>
+    <h3>제약</h3>
+    <ul>
+      <li>최대 500자 (초과 입력 차단)</li>
+      <li>8줄 가로 fill, 자동 wrap</li>
+      <li>Enter는 제출 액션이며 줄바꿈이 아님 (Shift+Enter도 비활성)</li>
+      <li>Esc는 패널 닫힘 신호</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================
+       FEEDBACK PANEL  (F-key)
+       ============================================================ -->
+  <section id="feedback-panel">
+    <h2>FeedbackPanel <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">FeedbackPanel.ts · F 키로 호출, 게임 일시정지 후 표시</div>
+    <p>익명 사용자가 30초 안에 피드백 1건을 보낼 수 있는 인게임 채널. 본문은 Google Form(저장소), 카운트·카테고리·메타는 GA4(<code>feedback_submitted</code>). 새 탭 안 뜸.</p>
+
+    <h3>구성 (위 → 아래)</h3>
+    <ul>
+      <li><b>타이틀:</b> <code>"Feedback (F)"</code> · <code>FONT_TITLE</code> · <code>TEXT_PRIMARY</code> · 좌측</li>
+      <li><b>자동 컨텍스트 1줄:</b> 예 <code>"itemworld · 12,7 · 0:14:23"</code> · <code>FONT_HINT</code> · <code>TEXT_SECONDARY</code>. <code>level_id</code>/<code>room</code>이 없으면 해당 토큰 생략</li>
+      <li><b>텍스트 입력:</b> TextInputField · 8줄 · 최대 500자</li>
+      <li><b>카테고리 라디오 (3 가로):</b> <code>Bug 버그</code> / <code>Idea 제안</code> / <code>Other 기타</code> · 기본 미선택 · 1개 필수</li>
+      <li><b>하단 힌트:</b> <code>"[Enter] Send   [Esc] Close"</code> · <code>FONT_HINT</code> · <code>TEXT_SECONDARY</code></li>
+    </ul>
+
+    <h3>토큰 / 사이즈</h3>
+    <ul>
+      <li><b>패널 배경:</b> <code>createPanelBg(480, 320)</code> · 중앙 정렬 (<code>centerPos</code>)</li>
+      <li><b>오버레이:</b> <code>createOverlay()</code> (배경 dim)</li>
+      <li><b>카테고리 선택 색:</b> orange <code>#FF8000</code> (KeyPrompt와 통일, <code>reference_keyicon_gauge.md</code>)</li>
+      <li><b>카테고리 미선택 색:</b> <code>TEXT_SECONDARY</code></li>
+    </ul>
+
+    <h3>상태 / 가드</h3>
+    <ul>
+      <li>활성 씬이 <code>LdtkWorldScene</code> 또는 <code>ItemWorldScene</code>이고, 그 씬의 <code>isPaused</code>가 false일 때만 F가 패널을 연다</li>
+      <li>패널이 열리면 <code>game.feedbackOpen = true</code> 로 씬 update 차단(<code>hitstopFrames</code> 패턴 미러)</li>
+      <li>30초 쿨다운 — 쿨다운 중 F 누름 → Toast <code>"Please wait"</code> 0.8s</li>
+      <li>제출 시 → GA4 <code>feedback_submitted</code> + Google Form POST → Toast <code>"Sent"</code> 1.2s → 패널 닫힘</li>
+      <li>Esc → 즉시 닫힘 (쿨다운 없음)</li>
+      <li>빈 본문 또는 카테고리 미선택 시 Enter 제출 비활성</li>
+      <li>네트워크 실패 → "Sent" 동일 표시 (no-cors 응답 못 읽음). localStorage 5건 보존</li>
+    </ul>
+
+    <h3>데이터 흐름</h3>
+    <ul>
+      <li><b>본문 텍스트:</b> Google Form <code>feedback_text</code> 필드. 제한 없음(GA4에는 보내지 않음 — 100자 트렁케이트 + GDPR)</li>
+      <li><b>자동 컨텍스트:</b> <code>auto_context_json</code> 필드에 JSON 직렬화. 씬의 <code>getFeedbackContext()</code> 스냅샷 + Analytics getter(run_id, build, utm, last_3_events, playtime) + window/navigator(ua_short, screen_w/h)</li>
+      <li><b>GA4:</b> <code>feedback_opened</code>(area, playtime_sec) · <code>feedback_submitted</code>(area, playtime_sec, category, text_length)</li>
+    </ul>
+  </section>
+
   <footer style="margin:48px 0 24px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:10px">
     이 페이지가 컴포넌트의 SSoT다. 수정 시 <code>game/src/ui/ModalPanel.ts</code> 와 동기화하라.
   </footer>

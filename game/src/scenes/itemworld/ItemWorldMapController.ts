@@ -13,10 +13,20 @@ export const IW_ROOM_W_PX = IW_ROOM_W_TILES * TILE_SIZE;
 export const IW_ROOM_H_PX = IW_ROOM_H_TILES * TILE_SIZE;
 export const IW_FULL_W_TILES = IW_GRID_W * IW_ROOM_W_TILES;
 export const IW_FULL_H_TILES = IW_GRID_H * IW_ROOM_H_TILES;
-export const IW_DOOR_DEPTH = 3;
+// Door geometry constants — MUST match LDtk corridor templates' paint exactly.
+// Audit (2026-05-04): all Item_corridor_* templates paint:
+//   - L/R doors at cols 0-3 / 44-47 (4 cells deep), rows 14-17 (4 rows tall)
+//   - U/D doors at cols 22-25 (4 cells wide), rows 0-3 / 28-31
+//   - Solid floor begins at row 18 (FLOOR_ROW)
+// Mismatch here produces collision holes at door seams (LDtk air not sealed,
+// or solid wall mistakenly carved).
+export const IW_DOOR_DEPTH = 4;
 export const IW_DOOR_H_HEIGHT = 4;
 export const IW_DOOR_V_WIDTH = 4;
-export const IW_DOOR_FLOOR_ROW = 27;
+export const IW_DOOR_FLOOR_ROW = 18;
+/** Outer boundary wall thickness around the unified grid. Independent of
+ *  IW_DOOR_DEPTH — this controls the world frame, not door geometry. */
+export const IW_BOUNDARY_THICKNESS = 3;
 export const SEAL_DEPTH = 2;
 
 export interface DoorMask {
@@ -161,29 +171,26 @@ export class ItemWorldMapController {
     const midC = Math.floor(W / 2);
     const vDoorC0 = Math.max(0, midC - Math.floor(DV / 2));
 
-    // LEFT
+    // Trust LDtk IntGrid as authoritative. Don't add seal walls — LDtk
+    // templates already paint walls at non-exit edges, and what looks like
+    // an "air pocket near a non-exit edge" (e.g. Level_20 cols 22-25 rows
+    // 28-29) is intentional interior layout (vertical drop ending on the
+    // solid floor at row 30), not a ghost door to seal.
+    //
+    // Carve still runs on exit sides as a safety net — if the picked
+    // template doesn't already have air at the door position, this opens
+    // it. With strict tag-match picking this is a no-op in the happy path.
     if (cell.exits.left) {
       carveRectsLocal.push({ c0: 0, r0: hDoorR0, cN: D, rN: hDoorR0 + DH });
-    } else {
-      sealRectsLocal.push({ c0: 0, r0: 0, cN: D, rN: H });
     }
-    // RIGHT
     if (cell.exits.right) {
       carveRectsLocal.push({ c0: W - D, r0: hDoorR0, cN: W, rN: hDoorR0 + DH });
-    } else {
-      sealRectsLocal.push({ c0: W - D, r0: 0, cN: W, rN: H });
     }
-    // UP
     if (cell.exits.up) {
       carveRectsLocal.push({ c0: vDoorC0, r0: 0, cN: vDoorC0 + DV, rN: D });
-    } else {
-      sealRectsLocal.push({ c0: 0, r0: 0, cN: W, rN: D });
     }
-    // DOWN
     if (cell.exits.down) {
       carveRectsLocal.push({ c0: vDoorC0, r0: H - D, cN: vDoorC0 + DV, rN: H });
-    } else {
-      sealRectsLocal.push({ c0: 0, r0: H - D, cN: W, rN: H });
     }
 
     return { carveRectsLocal, sealRectsLocal };
@@ -233,17 +240,29 @@ export class ItemWorldMapController {
     }
   }
 
-  /** Remove wall tiles whose pixel position falls inside any carve rect. */
+  /**
+   * Remove wall tiles whose pixel position falls inside any carve rect — but
+   * only when the underlying IntGrid value would actually be carved by
+   * `applyDoorMaskToFullGrid` (v1/v7/v9). Platform (v3) and water (v2) survive
+   * carve rects so collision and visuals stay in sync. Without this guard the
+   * visual was dropped while the platform collision lived on, producing an
+   * invisible-but-solid platform at door seams.
+   */
   filterWallTilesByCarves<T extends { px: [number, number] }>(
     wallTiles: T[],
     carveRectsLocal: DoorMask['carveRectsLocal'],
+    collisionGrid?: number[][],
   ): T[] {
     if (carveRectsLocal.length === 0) return wallTiles;
     return wallTiles.filter(t => {
       const tc = Math.floor(t.px[0] / TILE_SIZE);
       const tr = Math.floor(t.px[1] / TILE_SIZE);
       for (const rect of carveRectsLocal) {
-        if (tr >= rect.r0 && tr < rect.rN && tc >= rect.c0 && tc < rect.cN) return false;
+        if (tr >= rect.r0 && tr < rect.rN && tc >= rect.c0 && tc < rect.cN) {
+          const v = collisionGrid?.[tr]?.[tc] ?? 1;
+          if (v === 1 || v === 7 || v === 9) return false;
+          return true;
+        }
       }
       return true;
     });

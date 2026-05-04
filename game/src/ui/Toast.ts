@@ -18,7 +18,7 @@ export class ToastManager {
     this.parent = parent;
   }
 
-  show(message: string, color = 0xffffff): void {
+  show(message: string, color = 0xffffff, durationMs = TOAST_DURATION): void {
     const container = new Container();
 
     const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: color } });
@@ -30,7 +30,7 @@ export class ToastManager {
     container.y = 40 + this.toasts.length * 14;
 
     this.parent.addChild(container);
-    this.toasts.push({ container, timer: TOAST_DURATION });
+    this.toasts.push({ container, timer: durationMs });
   }
 
   /** Large centered text for boss clear rewards, level ups, etc. */

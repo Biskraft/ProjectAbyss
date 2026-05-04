@@ -144,7 +144,7 @@ VibeCoding/
 | TypeScript    | 메인 언어                |
 | Vite          | 빌드/번들러              |
 | @pixi/tilemap | 타일맵 렌더링            |
-| Howler.js     | 오디오 (BGM, SFX)        |
+| @pixi/sound   | 오디오 (BGM, SFX) — PixiJS v8 공식 플러그인 (DEC-040, 2026-05-04) |
 
 ### 서버
 

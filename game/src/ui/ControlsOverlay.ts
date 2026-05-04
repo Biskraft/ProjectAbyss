@@ -1,52 +1,52 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
-import { KeyPrompt } from './KeyPrompt';
-import { GAME_WIDTH } from '../Game';
-import { GameAction, actionKey } from '@core/InputManager';
+import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { CONTROL_BINDINGS } from '@data/inputBindings';
+import { onDeviceChange, getInputDevice } from '@core/input/InputDeviceTracker';
 
 /**
- * Dead Cells style dark-box key guide overlay.
- * Shows keybindings in the bottom-right corner.
+ * 키↔패드 동시 표기 컨트롤 가이드 (System_Input_Gamepad §8.1 Stage 2).
+ *
+ * Goodboy Galaxy 형식 — 두 컬럼 항상 표시. 감지된 디바이스 컬럼은 alpha 0.15
+ * highlight. gamepadconnected/disconnected → InputDeviceTracker.onDeviceChange
+ * 로 자동 highlight 전환.
+ *
+ * 데이터 SSoT: game/src/data/inputBindings.ts
  */
 export class ControlsOverlay {
   container: Container;
+  private kbHighlight!: Graphics;
+  private gpHighlight!: Graphics;
 
-  private static readonly LINE_H = 12;
-  private static readonly PAD_X = 4;
-  private static readonly PAD_Y = 4;
-  private static readonly BG_ALPHA = 0.5;
-  private static readonly KEY_SIZE = 8;
-
-  /**
-   * Each row is (keys[], label). A row with 2 keys renders both icons side-by-side
-   * (used for the Move row showing left+right keys).
-   */
-  private getControls(): { keys: string[]; label: string }[] {
-    return [
-      { keys: [actionKey(GameAction.MOVE_LEFT), actionKey(GameAction.MOVE_RIGHT)], label: 'Move' },
-      { keys: [actionKey(GameAction.JUMP)],     label: 'Jump' },
-      { keys: [actionKey(GameAction.DASH)],     label: 'Dash' },
-      { keys: [actionKey(GameAction.ATTACK)],   label: 'Attack' },
-      { keys: [actionKey(GameAction.FLASK)],    label: 'Flask' },
-      { keys: [actionKey(GameAction.INVENTORY)], label: 'Item' },
-    ];
-  }
+  // Layout
+  private static readonly LINE_H = 9;
+  private static readonly PAD_X = 6;
+  private static readonly PAD_Y = 5;
+  private static readonly BG_ALPHA = 0.55;
+  private static readonly HIGHLIGHT_ALPHA = 0.15;
+  private static readonly COL_ACTION_W = 46;
+  private static readonly COL_KB_W = 64;
+  private static readonly COL_GP_W = 56;
+  private static readonly FONT = 6;
 
   constructor() {
     this.container = new Container();
     this.build();
+    onDeviceChange(() => this.updateHighlight());
   }
 
   private build(): void {
-    const { LINE_H, PAD_X, PAD_Y, BG_ALPHA, KEY_SIZE } = ControlsOverlay;
-    const CONTROLS = this.getControls();
+    const { LINE_H, PAD_X, PAD_Y, BG_ALPHA, COL_ACTION_W, COL_KB_W, COL_GP_W, FONT } = ControlsOverlay;
 
-    const panelW = 80;
-    const panelH = PAD_Y * 2 + CONTROLS.length * LINE_H;
+    // Header (1) + divider (1) + bindings (N) — 표 끝까지.
+    const headerRows = 2;
+    const totalRows = headerRows + CONTROL_BINDINGS.length;
+    const panelW = PAD_X * 2 + COL_ACTION_W + COL_KB_W + COL_GP_W;
+    const panelH = PAD_Y * 2 + totalRows * LINE_H;
 
-    // Position bottom-right with 8px margin
+    // 우하단 정렬 (이전 ControlsOverlay 와 동일 위치 유지).
     const ox = GAME_WIDTH - panelW - 8;
-    const oy = 360 - panelH - 8;
+    const oy = GAME_HEIGHT - panelH - 8;
 
     // Background
     const bg = new Graphics();
@@ -55,32 +55,71 @@ export class ControlsOverlay {
     bg.y = oy;
     this.container.addChild(bg);
 
-    // Key-action pairs with dark-box key icons
-    for (let i = 0; i < CONTROLS.length; i++) {
-      const { keys, label } = CONTROLS[i];
-      const rowY = oy + PAD_Y + i * LINE_H;
+    // Column X 좌표
+    const colX = {
+      action: ox + PAD_X,
+      kb: ox + PAD_X + COL_ACTION_W,
+      gp: ox + PAD_X + COL_ACTION_W + COL_KB_W,
+    };
 
-      // One icon per key (handles ←→ for arrows or A/D for WASD).
-      let kx = ox + PAD_X;
-      for (const k of keys) {
-        const icon = KeyPrompt.createKeyIcon(k, KEY_SIZE);
-        icon.x = kx;
-        icon.y = rowY;
-        this.container.addChild(icon);
-        kx += KEY_SIZE + 1;
-      }
+    // Highlight 사각형 (header 아래 binding 행 전체) — bg 위·텍스트 아래.
+    const highlightY = oy + PAD_Y + headerRows * LINE_H;
+    const highlightH = CONTROL_BINDINGS.length * LINE_H;
 
-      // Action label (right-aligned)
-      const actionText = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: 0xcccccc },
-      });
-      actionText.anchor = { x: 1, y: 0 };
-      actionText.x = ox + panelW - PAD_X;
-      actionText.y = rowY + 1;
-      this.container.addChild(actionText);
+    this.kbHighlight = new Graphics();
+    this.kbHighlight.rect(0, 0, COL_KB_W, highlightH)
+      .fill({ color: 0xffffff, alpha: ControlsOverlay.HIGHLIGHT_ALPHA });
+    this.kbHighlight.x = colX.kb;
+    this.kbHighlight.y = highlightY;
+    this.container.addChild(this.kbHighlight);
+
+    this.gpHighlight = new Graphics();
+    this.gpHighlight.rect(0, 0, COL_GP_W, highlightH)
+      .fill({ color: 0xffffff, alpha: ControlsOverlay.HIGHLIGHT_ALPHA });
+    this.gpHighlight.x = colX.gp;
+    this.gpHighlight.y = highlightY;
+    this.container.addChild(this.gpHighlight);
+
+    // Header
+    const headerY = oy + PAD_Y;
+    this._addText('Action',   colX.action, headerY, FONT, 0xaaaaaa);
+    this._addText('Keyboard', colX.kb,     headerY, FONT, 0xaaaaaa);
+    this._addText('Gamepad',  colX.gp,     headerY, FONT, 0xaaaaaa);
+
+    // Divider
+    const divider = new Graphics();
+    divider.rect(0, 0, panelW - PAD_X * 2, 1).fill({ color: 0x666666, alpha: 0.6 });
+    divider.x = ox + PAD_X;
+    divider.y = oy + PAD_Y + LINE_H + 1;
+    this.container.addChild(divider);
+
+    // Bindings
+    for (let i = 0; i < CONTROL_BINDINGS.length; i++) {
+      const { action, kb, gp } = CONTROL_BINDINGS[i];
+      const rowY = oy + PAD_Y + (i + headerRows) * LINE_H;
+      this._addText(action, colX.action, rowY, FONT, 0xdddddd);
+      this._addText(kb,     colX.kb,     rowY, FONT, 0xffcc44);
+      this._addText(gp,     colX.gp,     rowY, FONT, 0x88ddff);
     }
 
     this.container.alpha = 0.7;
+    this.updateHighlight();
+  }
+
+  private _addText(text: string, x: number, y: number, fontSize: number, color: number): void {
+    const t = new BitmapText({
+      text,
+      style: { fontFamily: PIXEL_FONT, fontSize, fill: color },
+    });
+    t.x = x;
+    t.y = y;
+    this.container.addChild(t);
+  }
+
+  /** 감지된 device 의 컬럼만 highlight visible. */
+  private updateHighlight(): void {
+    const device = getInputDevice();
+    if (this.kbHighlight) this.kbHighlight.visible = device === 'keyboard';
+    if (this.gpHighlight) this.gpHighlight.visible = device === 'gamepad';
   }
 }

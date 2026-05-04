@@ -17,6 +17,8 @@ import type { Game } from '../Game';
 import { assetPath } from '@core/AssetLoader';
 import { PRESET_INFOS, PRESET_NAMES, type PresetName, GameAction, actionKey } from '@core/InputManager';
 import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA } from '@ui/ModalPanel';
+import { getInputDevice } from '@core/input/InputDeviceTracker';
+import { GP } from '@core/input/gamepadStandard';
 
 const LOGO_PATH = assetPath('assets/ui/title_logo.png');
 
@@ -44,12 +46,19 @@ export class TitleScene extends Scene {
   private hintText!: Text;
   private pulseGfx!: Graphics;
   private accentLine!: Graphics;
+  /** "Gamepad Recommended" / "🎮 Gamepad Detected" 자막 — 50% alpha base. */
+  private gamepadHint!: Text;
+  /** gamepadconnected 후 자막 fade-swap 잔여 시간 (ms). 0 이면 base 상태. */
+  private gamepadHintSwapMs = 0;
 
   // Preset selection
   private presetContainer!: Container;
   private presetIndex = 0;
   private presetCards: Container[] = [];
   private presetSelectHint!: Text;
+  /** "🎮 Gamepad detected — Press [Menu] to skip" 힌트. presets phase 에서 패드 감지 시 visible. */
+  private presetsPadHint!: Text;
+  private presetsPadHintBg!: Graphics;
 
   // Confirm modal
   private confirmModal!: Container;
@@ -57,6 +66,14 @@ export class TitleScene extends Scene {
   constructor(game: Game) {
     super(game);
   }
+
+  /** gamepadconnected → 자막 1.5s fade swap ("🎮 Gamepad Detected"). */
+  private _onGamepadConnect = (): void => {
+    if (this.gamepadHint) {
+      this.gamepadHint.text = '🎮 Gamepad Detected';
+    }
+    this.gamepadHintSwapMs = 1500;
+  };
 
   async init(): Promise<void> {
     const s = this.game.uiScale;
@@ -137,15 +154,16 @@ export class TitleScene extends Scene {
     subtitle.y = cy - 10 * s;
     this.uiRoot.addChild(subtitle);
 
-    // "PRESS ANY KEY" hint
+    // "Press Any Key or Button to Continue" hint + 키보드/패드 글리프
+    // (System_Input_Gamepad §8.1 Stage 1 — 키↔패드 동시 표기)
     this.hintText = new Text({
-      text: 'PRESS ANY KEY',
+      text: 'Press Any Key or Button to Continue',
       style: new TextStyle({
         fontFamily: '"Rajdhani", sans-serif',
         fontSize: 9 * s,
         fontWeight: '700',
         fill: COL_DIM,
-        letterSpacing: 3 * s,
+        letterSpacing: 2 * s,
       }),
     });
     this.hintText.anchor.set(0.5);
@@ -153,6 +171,29 @@ export class TitleScene extends Scene {
     this.hintText.y = cy + 50 * s;
     this.hintText.visible = false;
     this.uiRoot.addChild(this.hintText);
+
+    // 자막 "🎮 Gamepad Recommended" — hint 아래, 50% alpha base.
+    // gamepadconnected 시 "🎮 Gamepad Detected" 로 1.5s fade swap.
+    // Pixi Text (canvas) 사용 — emoji 렌더 위해 BitmapText 회피.
+    this.gamepadHint = new Text({
+      text: '🎮 Gamepad Recommended',
+      style: new TextStyle({
+        fontFamily: '"Rajdhani", sans-serif',
+        fontSize: 8 * s,
+        fontWeight: '500',
+        fill: COL_DIM,
+        letterSpacing: 1.5 * s,
+      }),
+    });
+    this.gamepadHint.anchor.set(0.5);
+    this.gamepadHint.x = cx;
+    this.gamepadHint.y = cy + 66 * s;
+    this.gamepadHint.alpha = 0.5;
+    this.gamepadHint.visible = false;
+    this.uiRoot.addChild(this.gamepadHint);
+
+    // gamepadconnected 발생 시 자막 fade swap (Stage 1 spec).
+    window.addEventListener('gamepadconnected', this._onGamepadConnect);
 
     // ── Preset selection container (hidden initially) ──
     this.presetContainer = new Container();
@@ -280,6 +321,35 @@ export class TitleScene extends Scene {
     this.presetSelectHint.y = cy + 108 * s;
     this.presetContainer.addChild(this.presetSelectHint);
 
+    // Pad-detected skip hint — kb 로 cards 진입 후 패드 잡으면 visible.
+    // 명확히 보이도록 강한 알파(1.0) + accent color + bg pill.
+    const PAD_HINT_W = 340 * s;
+    const PAD_HINT_H = 22 * s;
+    const padHintY = cy + 122 * s;
+    this.presetsPadHintBg = new Graphics();
+    this.presetsPadHintBg.roundRect(-PAD_HINT_W / 2, 0, PAD_HINT_W, PAD_HINT_H, 4 * s)
+      .fill({ color: 0x1a3a3a, alpha: 0.85 })
+      .stroke({ color: COL_ACCENT, width: s, alpha: 0.9 });
+    this.presetsPadHintBg.x = cx;
+    this.presetsPadHintBg.y = padHintY;
+    this.presetsPadHintBg.visible = false;
+    this.presetContainer.addChild(this.presetsPadHintBg);
+    this.presetsPadHint = new Text({
+      text: '🎮 [A] Select keyboard    [B] Skip',
+      style: new TextStyle({
+        fontFamily: '"Rajdhani", sans-serif',
+        fontSize: 10 * s,
+        fontWeight: '700',
+        fill: COL_ACCENT,
+        letterSpacing: 1.5 * s,
+      }),
+    });
+    this.presetsPadHint.anchor.set(0.5);
+    this.presetsPadHint.x = cx;
+    this.presetsPadHint.y = padHintY + PAD_HINT_H / 2;
+    this.presetsPadHint.visible = false;
+    this.presetContainer.addChild(this.presetsPadHint);
+
     // ── Confirm modal (hidden initially) ──
     this.confirmModal = new Container();
     this.confirmModal.visible = false;
@@ -364,18 +434,52 @@ export class TitleScene extends Scene {
 
     switch (this.phase) {
       case 'logo':
-        // Wait 1.5s then show hint or presets
-        if (this.elapsed >= 1500) {
-          if (input.hasSavedPreset()) {
-            // Saved preset exists → show "PRESS ANY KEY" then go to game
-            this.phase = 'presskey';
-            this.hintText.visible = true;
+        // 1초 페이드 후 press-any-key 프롬프트 + 자막 표시. 입력 대기.
+        // 키보드 키 OR 패드 버튼 (setVirtualAction 으로 keyState 진입) 모두 anyKeyJustPressed 가 검출.
+        if (this.elapsed >= 1000) {
+          this.hintText.visible = true;
+          this.gamepadHint.visible = true;
+          // hint blink
+          this.hintText.alpha = 0.3 + Math.sin(this.elapsed / 500) * 0.4;
+          // 자막 alpha — base 0.5, swap 후 1.5s 동안 1.0 → 0.5 fade.
+          if (this.gamepadHintSwapMs > 0) {
+            this.gamepadHintSwapMs = Math.max(0, this.gamepadHintSwapMs - dt);
+            const t = 1 - this.gamepadHintSwapMs / 1500; // 0 → 1
+            this.gamepadHint.alpha = 1 - 0.5 * t; // 1.0 → 0.5
           } else {
-            // No saved preset → show preset selection
-            this.phase = 'presets';
+            this.gamepadHint.alpha = 0.5;
+          }
+          // Shift+P → 저장된 preset 강제 reset 후 cards 진입 (재선택 통로).
+          if (input.shiftDown && input.isRawKeyJustPressed('KeyP')) {
+            localStorage.removeItem('echoris-keybindings');
             this.hintText.visible = false;
+            this.gamepadHint.visible = false;
+            this.phase = 'presets';
             this.presetContainer.visible = true;
+            const savedIdx = PRESET_NAMES.indexOf(input.currentPreset);
+            if (savedIdx >= 0) this.presetIndex = savedIdx;
             this.updatePresetCards();
+            break;
+          }
+          // 입력 시 분기 (Shift 단독 입력 무시).
+          //   - 패드로 입력 → fadeout (키보드 layout 무관).
+          //   - 키보드 + 저장된 preset → fadeout (재선택 안 함).
+          //   - 키보드 + 저장 없음 → presets phase (cards 표시).
+          // Shift+P 로만 재선택 가능 — 사용자 결정 2026-05-04.
+          if (input.anyKeyJustPressed()
+            && !input.isRawKeyJustPressed('ShiftLeft')
+            && !input.isRawKeyJustPressed('ShiftRight')) {
+            this.hintText.visible = false;
+            this.gamepadHint.visible = false;
+            if (getInputDevice() === 'gamepad' || input.hasSavedPreset()) {
+              this.startFadeOut();
+            } else {
+              this.phase = 'presets';
+              this.presetContainer.visible = true;
+              const savedIdx = PRESET_NAMES.indexOf(input.currentPreset);
+              if (savedIdx >= 0) this.presetIndex = savedIdx;
+              this.updatePresetCards();
+            }
           }
         }
         break;
@@ -399,39 +503,61 @@ export class TitleScene extends Scene {
         break;
 
       case 'presets':
-        // Navigate presets with ←→ or A/D
-        if (input.isRawKeyJustPressed('ArrowLeft') || input.isRawKeyJustPressed('KeyA')) {
+        // 패드 감지 시 명시적 hint 표시 — A=Select / B=Skip.
+        //   A (FACE_DOWN) = 표준 "확인" — confirm modal 진입 (kb Enter 와 동일 경로)
+        //   B (FACE_RIGHT) = 표준 "취소/뒤" — kb layout 선택 건너뛰고 바로 fadeout
+        // "Menu" 버튼은 처음 쓰는 사람이 모를 수 있어 face button 채택.
+        {
+          const padActive = getInputDevice() === 'gamepad';
+          this.presetsPadHint.visible = padActive;
+          this.presetsPadHintBg.visible = padActive;
+          if (padActive) {
+            // B = skip
+            if (this.game.gamepad.isButtonJustPressed(GP.FACE_RIGHT)) {
+              input.applyPreset(PRESET_NAMES[this.presetIndex]);
+              this.startFadeOut();
+              break;
+            }
+            // A = confirm modal (아래 confirm 분기에서 isJustPressed(JUMP) 로 흡수됨).
+          }
+        }
+        // Navigate presets — kb raw 또는 패드 GameAction (LS/DPad → MOVE_LEFT/RIGHT).
+        if (input.isRawKeyJustPressed('ArrowLeft') || input.isRawKeyJustPressed('KeyA')
+          || input.isJustPressed(GameAction.MOVE_LEFT)) {
           this.presetIndex = (this.presetIndex + PRESET_NAMES.length - 1) % PRESET_NAMES.length;
           this.updatePresetCards();
         }
-        if (input.isRawKeyJustPressed('ArrowRight') || input.isRawKeyJustPressed('KeyD')) {
+        if (input.isRawKeyJustPressed('ArrowRight') || input.isRawKeyJustPressed('KeyD')
+          || input.isJustPressed(GameAction.MOVE_RIGHT)) {
           this.presetIndex = (this.presetIndex + 1) % PRESET_NAMES.length;
           this.updatePresetCards();
         }
         this.updatePresetPulse();
-        // Confirm → show confirm modal
+        // Confirm — kb 또는 패드 A (= JUMP 매핑).
         if (input.isRawKeyJustPressed('Enter')
           || input.isRawKeyJustPressed('KeyC')
           || input.isRawKeyJustPressed('KeyZ')
           || input.isRawKeyJustPressed('Space')
-          || input.isRawKeyJustPressed('KeyJ')) {
+          || input.isRawKeyJustPressed('KeyJ')
+          || input.isJustPressed(GameAction.JUMP)) {
           this.showConfirmModal();
         }
         break;
 
       case 'confirm':
-        // Enter/C/Z/Space → apply and start
+        // Confirm — kb Enter/C/Z/Space/J 또는 패드 A (= JUMP).
         if (input.isRawKeyJustPressed('Enter')
           || input.isRawKeyJustPressed('KeyC')
           || input.isRawKeyJustPressed('KeyZ')
           || input.isRawKeyJustPressed('Space')
-          || input.isRawKeyJustPressed('KeyJ')) {
+          || input.isRawKeyJustPressed('KeyJ')
+          || input.isJustPressed(GameAction.JUMP)) {
           input.applyPreset(PRESET_NAMES[this.presetIndex]);
           this.confirmModal.visible = false;
           this.startFadeOut();
         }
-        // ESC → back to preset selection
-        if (input.isRawKeyJustPressed('Escape')) {
+        // Cancel/back — kb Esc 또는 패드 B (FACE_RIGHT, 표준 "뒤로/취소").
+        if (input.isRawKeyJustPressed('Escape') || this.game.gamepad.isButtonJustPressed(GP.FACE_RIGHT)) {
           this.confirmModal.visible = false;
           this.phase = 'presets';
         }
@@ -565,6 +691,7 @@ export class TitleScene extends Scene {
   render(_alpha: number): void {}
 
   exit(): void {
+    window.removeEventListener('gamepadconnected', this._onGamepadConnect);
     if (this.uiRoot) {
       if (this.uiRoot.parent) this.uiRoot.parent.removeChild(this.uiRoot);
       this.uiRoot.destroy({ children: true });

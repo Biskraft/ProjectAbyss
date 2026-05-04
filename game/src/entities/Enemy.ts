@@ -10,6 +10,20 @@ const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
 const TILE_SIZE = 16;
 
+/**
+ * Chase 시 선회 hysteresis + cooldown + 관성 정지 (사용자 결정 2026-05-04, Q1+Q3).
+ * base Enemy.moveTowardTarget 의 same-level 분기가 매 프레임 dir 을 재계산해
+ * 플레이어가 바로 옆/겹친 상태에서 sub-pixel 위치 차이로 vx 가 +/- 오가며
+ * 좌우로 "파바바밧" 떨리던 현상 차단. 모든 ground 적·보스 공통 적용.
+ *
+ *   - HYSTERESIS_PX:  플레이어가 이 거리 안에 있으면 chaseDir 유지
+ *   - COOLDOWN_MS:    한번 선회한 뒤 다음 선회까지 강제 대기
+ *   - PAUSE_MS:       선회 직후 vx=0 으로 짧게 멈춰 모션 큐 강조 (≈2 프레임)
+ */
+const CHASE_TURN_HYSTERESIS_PX = 8;
+const CHASE_TURN_COOLDOWN_MS = 300;
+const CHASE_TURN_PAUSE_MS = 33;
+
 export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'hit' | 'death';
 
 export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
@@ -55,6 +69,14 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected moveSpeed: number;
   protected attackCooldown: number;
   protected cooldownTimer = 0;
+
+  // Chase 선회 상태 — base moveTowardTarget 의 same-level 분기에서 사용.
+  /** 현재 잠긴 수평 추격 방향. 매 프레임 재계산하지 않고 hysteresis + cooldown 으로 갱신. */
+  protected chaseDir: 1 | -1 = 1;
+  /** 다음 선회 가능까지 남은 시간 (ms). */
+  protected turnCooldownMs = 0;
+  /** 선회 직후 vx=0 으로 멈추는 잔여 시간 (ms). 모션 큐. */
+  protected turnPauseMs = 0;
 
   // Super armor — if true, hits don't interrupt actions (no hitstun/knockback)
   superArmor = false;
@@ -164,6 +186,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     }
 
     if (this.cooldownTimer > 0) this.cooldownTimer -= dt;
+    if (this.turnCooldownMs > 0) this.turnCooldownMs = Math.max(0, this.turnCooldownMs - dt);
+    if (this.turnPauseMs > 0) this.turnPauseMs = Math.max(0, this.turnPauseMs - dt);
 
     this.fsm.update(dt);
 
@@ -227,9 +251,13 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     // Jump cooldown
     if (this.jumpCooldownTimer > 0) this.jumpCooldownTimer -= dt;
 
-    // Facing
+    // Facing — chase 중에는 chaseDir 로 잠금 (target.x 직접 추적은 매 프레임 깜빡임 유발).
     if (this.target) {
-      this.facingRight = this.target.x > this.x;
+      if (this.fsm.currentState === 'chase') {
+        this.facingRight = this.chaseDir > 0;
+      } else {
+        this.facingRight = this.target.x > this.x;
+      }
     }
 
     // Water/submerged 상태 + enter/exit 전이 기록 — 씬에서 매 프레임 enemy 를
@@ -407,10 +435,37 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       // Player is above — find ceiling gap and move under it to jump through
       this.moveTowardCeilingGap(speed);
     } else {
-      // Same level — horizontal chase (§2.2-A Case 3)
-      const dir = this.target.x > this.x ? 1 : -1;
-      this.vx = dir * speed;
+      // Same level — horizontal chase (§2.2-A Case 3) + 선회 hysteresis + cooldown + pause.
+      // 선회 직후 turnPauseMs 동안 vx=0 으로 짧게 멈춤 (모션 큐 강조 + 떨림 차단).
+      if (this.turnPauseMs > 0) {
+        this.vx = 0;
+        return;
+      }
+      const dx = (this.target.x + this.target.width / 2) - (this.x + this.width / 2);
+      if (Math.abs(dx) > CHASE_TURN_HYSTERESIS_PX) {
+        const wantDir: 1 | -1 = dx > 0 ? 1 : -1;
+        if (wantDir !== this.chaseDir && this.turnCooldownMs <= 0) {
+          this.chaseDir = wantDir;
+          this.turnCooldownMs = CHASE_TURN_COOLDOWN_MS;
+          this.turnPauseMs = CHASE_TURN_PAUSE_MS;
+          this.vx = 0;
+          return;
+        }
+      }
+      this.vx = this.chaseDir * speed;
     }
+  }
+
+  /**
+   * Subclass 의 chase state enter() 에서 호출 권장. chaseDir 을 즉시 target
+   * 위치 기준으로 잡고 cooldown/pause 0 — 진입 첫 프레임에 의도치 않은
+   * vx=0 pause 가 발생하지 않도록.
+   */
+  protected initChaseDir(): void {
+    if (!this.target) return;
+    this.chaseDir = this.target.x > this.x ? 1 : -1;
+    this.turnCooldownMs = 0;
+    this.turnPauseMs = 0;
   }
 
   /**

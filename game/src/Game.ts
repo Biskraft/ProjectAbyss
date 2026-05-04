@@ -5,11 +5,13 @@ import 'pixi.js/browser';
 import { Container, RenderTexture, Sprite, Ticker, WebGLRenderer } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager, GameAction } from '@core/InputManager';
+import { GamepadManager } from '@core/GamepadManager';
 import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
 import { Debug } from '@core/Debug';
 import { GameRenderConst } from '@data/constData';
 import { FpsCounter } from '@ui/FpsCounter';
+import { FeedbackPanel } from '@ui/FeedbackPanel';
 
 export const GAME_WIDTH = GameRenderConst.GameWidth;
 export const GAME_HEIGHT = GameRenderConst.GameHeight;
@@ -25,6 +27,8 @@ export class Game {
   };
   sceneManager!: SceneManager;
   input!: InputManager;
+  /** W3C Gamepad API 폴링 — InputManager.setVirtualAction 으로 액션 주입. */
+  gamepad!: GamepadManager;
   assetLoader!: AssetLoader;
   camera!: Camera;
   gameContainer!: Container;
@@ -42,10 +46,19 @@ export class Game {
    */
   legacyUIContainer!: Container;
 
+  /**
+   * Top-most overlay (above HUD/minimap). Used by FeedbackPanel — its dim
+   * overlay covers EVERYTHING including the high-res UI layer.
+   */
+  feedbackOverlayContainer!: Container;
+
   /** Integer pixel scale (1x=640, 2x=1280, 3x=1920). */
   uiScale = 1;
 
   hitstopFrames = 0;
+  /** Set true while FeedbackPanel is open. Scenes early-return on update. */
+  feedbackOpen = false;
+  feedbackPanel!: FeedbackPanel;
   stats = {
     enemiesKilled: 0,
     itemsCollected: 0,
@@ -141,7 +154,14 @@ export class Game {
     this.uiContainer = new Container();
     this.app.stage.addChild(this.uiContainer);
 
+    // Top-most overlay layer — used by FeedbackPanel so it covers HUD/minimap.
+    // 640x360 coords, scaled like legacyUIContainer.
+    this.feedbackOverlayContainer = new Container();
+    this.feedbackOverlayContainer.scale.set(this.uiScale);
+    this.app.stage.addChild(this.feedbackOverlayContainer);
+
     this.input = new InputManager();
+    this.gamepad = new GamepadManager();
     this.assetLoader = new AssetLoader();
     this.camera = new Camera(GAME_WIDTH, GAME_HEIGHT);
     this.sceneManager = new SceneManager(this);
@@ -151,6 +171,9 @@ export class Game {
     // 의 영향을 받지 않도록 stage 의 가장 위 layer 로.
     this.fpsCounter = new FpsCounter(this.uiScale);
     this.app.stage.addChild(this.fpsCounter.container);
+
+    // F-key feedback panel — global, persists across scene changes.
+    this.feedbackPanel = new FeedbackPanel(this);
 
     this.app.ticker.add((ticker) => {
       this.accumulated += ticker.deltaMS;
@@ -162,8 +185,14 @@ export class Game {
         if (this.hitstopFrames > 0) {
           this.hitstopFrames--;
         } else {
+          // Gamepad 폴링 — sceneManager.update() 직전 + input.update() 전에 호출해야
+          // setVirtualAction 으로 주입된 keystate 가 isJustPressed 로 정확히 검출된다.
+          this.gamepad.poll(this.input);
+
           // Shift+I — 전역 디버그 오버레이 토글. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
-          if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
+          // import.meta.env.DEV (Vite dev-mode flag) 일 때만 동작 — production 빌드에선 disable.
+          if (import.meta.env.DEV
+            && this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
             this.input.consumeJustPressed(GameAction.INVENTORY);
             Debug.infoVisible = !Debug.infoVisible;
             Debug.visible = Debug.infoVisible;
@@ -171,6 +200,7 @@ export class Game {
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);
         }
+        this.feedbackPanel?.update(FIXED_STEP);
         this.input.update();
         this.accumulated -= FIXED_STEP;
       }

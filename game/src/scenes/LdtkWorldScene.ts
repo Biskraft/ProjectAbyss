@@ -42,6 +42,7 @@ import { Switch } from '@entities/Switch';
 import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { BreakableProp, type PropDrop } from '@entities/BreakableProp';
+import { Breakable, isBreakableSpriteId, type BreakableSpriteId } from '@entities/Breakable';
 import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
@@ -65,6 +66,7 @@ import { CharacterStats } from '@ui/CharacterStats';
 import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
+import { resolveBottomLeftPickupSpawn, resolveItemDropSpawn } from '@items/DropSpawn';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
 import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
 import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
@@ -127,6 +129,7 @@ import {
 } from '@data/areaPalettes';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
+import { brandLabel } from '@core/input/padGlyphs';
 import { WorldMapOverlay } from '@ui/WorldMapOverlay';
 
 import { PIXEL_FONT } from '@ui/fonts';
@@ -325,6 +328,8 @@ export class LdtkWorldScene extends Scene {
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
+  /** Gamepad hot-plug 토스트 unsubscribe — exit 시 호출. */
+  private _gpUnsub: (() => void) | null = null;
   /** Cooldown (ms) before another "No Weapon Equipped" toast can fire. */
   private noWeaponToastCooldown = 0;
   private dmgNumbers!: DamageNumberManager;
@@ -431,6 +436,8 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private breakableProps: BreakableProp[] = [];
+  /** 수동 배치 Breakable (LDtk Entity 'Breakable') — 절차 생성 props 와 분리 추적. */
+  private breakables: Breakable[] = [];
   private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
@@ -813,6 +820,7 @@ export class LdtkWorldScene extends Scene {
 
     // Toast, damage numbers, hit sparks, screen flash
     this.toast = new ToastManager(this.game.legacyUIContainer);
+    this._gpUnsub = this._attachGamepadToast();
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.propShatter = new PropShatterManager(this.entityLayer);
@@ -1003,9 +1011,42 @@ export class LdtkWorldScene extends Scene {
 
   private initialized = false;
 
+  /**
+   * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
+   * structurally — runtime duck-typing checks for this method.
+   */
+  getFeedbackContext(): {
+    area: 'world' | 'itemworld';
+    level_id?: string;
+    room_col: number;
+    room_row: number;
+    equipped_weapon_id?: string;
+    hp_pct: number;
+  } {
+    const cx = this.player.x + this.player.width / 2;
+    const cy = this.player.y + this.player.height / 2;
+    const equipped = this.inventory?.equipped;
+    return {
+      area: 'world',
+      level_id: this.currentLevel?.identifier,
+      room_col: Math.floor(cx / TILE_SIZE),
+      room_row: Math.floor(cy / TILE_SIZE),
+      equipped_weapon_id: equipped?.def.type ?? undefined,
+      hp_pct: this.player.maxHp > 0
+        ? Math.floor((this.player.hp / this.player.maxHp) * 100)
+        : 0,
+    };
+  }
+
   update(dt: number): void {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
+
+    // Feedback panel open — block scene update but keep toasts animating.
+    if (this.game.feedbackOpen) {
+      this.toast?.update(dt);
+      return;
+    }
 
     // Title→game fade-in handoff overlay.
     if (this.titleFadeInOverlay) {
@@ -1612,6 +1653,8 @@ export class LdtkWorldScene extends Scene {
 
     // Breakable props (sway animation)
     for (const bp of this.breakableProps) bp.update(dt);
+    // 수동 배치 Breakable (LDtk Entity).
+    for (const b of this.breakables) b.update(dt);
     // Decorative grass sway
     this.procDecorator?.update(dt);
 
@@ -2246,7 +2289,19 @@ export class LdtkWorldScene extends Scene {
     // Portals and altars are static, no interpolation needed
   }
 
+  /** GamepadManager 연결/분리 이벤트 → 토스트 (System_Input_Gamepad §8.1 Stage 3). */
+  private _attachGamepadToast(): () => void {
+    const off1 = this.game.gamepad.onConnectEvent((brand) => {
+      this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+    });
+    const off2 = this.game.gamepad.onDisconnectEvent(() => {
+      this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+    });
+    return () => { off1(); off2(); };
+  }
+
   exit(): void {
+    if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
@@ -2403,9 +2458,12 @@ export class LdtkWorldScene extends Scene {
     const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
     const goldAmount = isGolden ? baseGold * 3 : baseGold;
     if (goldAmount > 0) {
-      const burstX = enemy.x + enemy.width / 2 - 8;
-      const burstY = enemy.y + enemy.height;
-      for (const gp of GoldPickup.spawnBurst(burstX, burstY, goldAmount)) {
+      const burst = resolveBottomLeftPickupSpawn(
+        enemy.x + enemy.width / 2 - 8,
+        enemy.y + enemy.height,
+        this.collisionGrid,
+      );
+      for (const gp of GoldPickup.spawnBurst(burst.x, burst.y, goldAmount)) {
         gp.roomData = this.collisionGrid;
         this.goldPickups.push(gp);
         this.entityLayer.addChild(gp.container);
@@ -2413,14 +2471,17 @@ export class LdtkWorldScene extends Scene {
     }
 
     // HEL-05: Tiered healing drops (GDD §4.1)
-    const healDropX = enemy.x + enemy.width / 2 - 8;
-    const healDropY = enemy.y + enemy.height;
+    const healDrop = resolveBottomLeftPickupSpawn(
+      enemy.x + enemy.width / 2 - 8,
+      enemy.y + enemy.height,
+      this.collisionGrid,
+    );
     if (isGolden && this.dropRng.next() < 0.5) {
-      const heal = createForgeEmber(healDropX, healDropY, this.player.maxHp);
+      const heal = createForgeEmber(healDrop.x, healDrop.y, this.player.maxHp);
       this.healingPickups.push(heal);
       this.entityLayer.addChild(heal.container);
     } else if (!isGolden && this.dropRng.next() < 0.2) {
-      const heal = createEmberShard(healDropX, healDropY, this.player.maxHp);
+      const heal = createEmberShard(healDrop.x, healDrop.y, this.player.maxHp);
       this.healingPickups.push(heal);
       this.entityLayer.addChild(heal.container);
     }
@@ -3502,7 +3563,8 @@ export class LdtkWorldScene extends Scene {
             const pool = SWORD_DEFS.filter(d => d.rarity !== 'normal');
             const def = pool[Math.floor(Math.random() * pool.length)] ?? SWORD_DEFS[0];
             const item = createItem(def, def.rarity);
-            const drop = new ItemDropEntity(wall.centerX, wall.centerY, item);
+            const spawn = resolveItemDropSpawn(wall.centerX, wall.centerY, this.collisionGrid);
+            const drop = new ItemDropEntity(spawn.x, spawn.y, item);
             this.drops.push(drop);
             this.entityLayer.addChild(drop.container);
           }
@@ -3530,7 +3592,8 @@ export class LdtkWorldScene extends Scene {
         ? loreWeaponToWeaponDef(loreDef)
         : (SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0]);
       const item = createItem(def, def.rarity);
-      const drop = new ItemDropEntity(x, y, item);
+      const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
+      const drop = new ItemDropEntity(spawn.x, spawn.y, item);
       if (itemKey) (drop as any)._itemKey = itemKey;
       this.drops.push(drop);
       this.entityLayer.addChild(drop.container);
@@ -3545,7 +3608,8 @@ export class LdtkWorldScene extends Scene {
           ? loreWeaponToWeaponDef(loreDef)
           : (SWORD_DEFS.find(d => d.id === key) ?? SWORD_DEFS[0]);
         const item = createItem(def, def.rarity);
-        const drop = new ItemDropEntity(x, y, item);
+        const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
+        const drop = new ItemDropEntity(spawn.x, spawn.y, item);
         if (itemKey) (drop as any)._itemKey = itemKey;
         this.drops.push(drop);
         this.entityLayer.addChild(drop.container);
@@ -3785,6 +3849,26 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /**
+   * LDtk Entity 'Breakable' 직접 배치본 spawn — 사용자가 LDtk Editor 에서
+   * 'Sprite' enum 으로 카탈로그 ID 선택. 기본값 SignBoard_Save.
+   */
+  private spawnBreakableEntitiesForLevel(level: LdtkLevel): void {
+    for (const b of this.breakables) b.destroy();
+    this.breakables = [];
+    const ents = level.entities.filter(e => e.type === 'Breakable');
+    for (const ent of ents) {
+      const rawSprite = (ent.fields['Sprite'] ?? ent.fields['sprite']) as string | undefined;
+      const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
+        ? rawSprite
+        : 'SignBoard_Save';
+      // LDtk px[0/1] 은 entity 의 pivot 점 좌표. Breakable 은 pivot=(0.5,1) 가정.
+      const b = new Breakable(ent.px[0], ent.px[1], spriteId);
+      this.breakables.push(b);
+      this.entityLayer.addChild(b.container);
+    }
+  }
+
   private spawnBreakablePropsForLevel(level: LdtkLevel): void {
     for (const bp of this.breakableProps) bp.destroy();
     this.breakableProps = [];
@@ -3820,6 +3904,57 @@ export class LdtkWorldScene extends Scene {
     for (const prop of props) {
       this.breakableProps.push(prop);
       this.entityLayer.addChild(prop.container);
+    }
+  }
+
+  /**
+   * 플레이어 공격 vs 수동 배치 Breakable.
+   * BreakableProp 와 동일한 shatter / drop / 카메라 흔들림 처리.
+   */
+  private checkAttackOnBreakables(): void {
+    if (!this.player.isAttackActive()) return;
+    const step = this.player.getAttackStep(this.player.comboIndex);
+    if (!step) return;
+
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+
+    for (let i = this.breakables.length - 1; i >= 0; i--) {
+      const b = this.breakables[i];
+      if (b.destroyed) continue;
+      if (b.width === 0) continue; // texture 미로드 — 충돌 비활성.
+      if (!aabbOverlap(hitbox, b.getAABB())) continue;
+
+      const drop = b.break();
+      this.game.hitstopFrames += 4;
+      this.game.camera.shake(4);
+
+      this.propShatter.spawn(
+        b.x, b.y, b.width, b.height,
+        b.getParticleColor(), b.getAccentColor(),
+        b.getArtifactTexture(),
+      );
+      this.hitSparks.spawn(
+        b.x + b.width / 2, b.y + b.height / 2,
+        false, this.player.facingRight ? 1 : -1,
+      );
+
+      if (drop.type === 'gold' && drop.amount > 0) {
+        const burstX = b.x + b.width / 2 - 8;
+        const burstY = b.y + b.height;
+        for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+          gp.roomData = this.collisionGrid;
+          this.goldPickups.push(gp);
+          this.entityLayer.addChild(gp.container);
+        }
+      } else if (drop.type === 'flask') {
+        this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
+      }
+
+      b.destroy();
+      this.breakables.splice(i, 1);
     }
   }
 

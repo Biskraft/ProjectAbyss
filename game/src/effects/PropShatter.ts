@@ -60,40 +60,52 @@ export class PropShatterManager {
       rotSpeed: 0, life: 200, maxLife: 200, fade: 'linear', scaleMaxR: 22,
     });
 
-    // 2) Sprite-quadrant chunks
+    // 2) Sprite chunks — 2~5 조각 랜덤 (사용자 결정 2026-05-04, 4 quadrant 단조로움 회피).
+    //    2: 1×2 또는 2×1, 3: 1×3 또는 3×1, 4: 2×2 (기존), 5: 1×5 또는 5×1.
+    //    rows×cols 기반 slicing — 각 cell 의 위치에서 외부 방향으로 impulse 발산.
     if (tex) {
-      const halfW = Math.max(1, Math.floor(tex.frame.width / 2));
-      const halfH = Math.max(1, Math.floor(tex.frame.height / 2));
       const fb = tex.frame;
-      const quads: Array<{ fx: number; fy: number; sx: number; sy: number }> = [
-        { fx: 0,     fy: 0,     sx: -1, sy: -1 },
-        { fx: halfW, fy: 0,     sx:  1, sy: -1 },
-        { fx: 0,     fy: halfH, sx: -1, sy:  1 },
-        { fx: halfW, fy: halfH, sx:  1, sy:  1 },
-      ];
-      for (const q of quads) {
-        const sub = new Texture({
-          source: tex.source,
-          frame: new Rectangle(fb.x + q.fx, fb.y + q.fy, halfW, halfH),
-        });
-        const sp = new Sprite(sub);
-        sp.anchor.set(0.5);
-        const startX = cx + q.sx * (halfW / 2);
-        const startY = cy + q.sy * (halfH / 2);
-        sp.x = startX; sp.y = startY;
-        this.parent.addChild(sp);
-        const angle = Math.atan2(q.sy, q.sx) + (Math.random() - 0.5) * 0.6;
-        const speed = 110 + Math.random() * 110;
-        this.chunks.push({
-          node: sp, x: startX, y: startY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 90,
-          gravity: 320,
-          rotSpeed: (Math.random() - 0.5) * 9,
-          life: 700 + Math.random() * 400,
-          maxLife: 1100,
-          fade: 'late',
-        });
+      const numChunks = 2 + Math.floor(Math.random() * 4); // 2..5 inclusive
+      let rows: number;
+      let cols: number;
+      const orient = Math.random() < 0.5 ? 'h' : 'v'; // horizontal or vertical strips
+      if (numChunks === 4) { rows = 2; cols = 2; }
+      else if (orient === 'h') { rows = 1; cols = numChunks; }
+      else { rows = numChunks; cols = 1; }
+      const cellW = Math.max(1, Math.floor(fb.width / cols));
+      const cellH = Math.max(1, Math.floor(fb.height / rows));
+      const cCenter = (cols - 1) / 2;
+      const rCenter = (rows - 1) / 2;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const sub = new Texture({
+            source: tex.source,
+            frame: new Rectangle(fb.x + c * cellW, fb.y + r * cellH, cellW, cellH),
+          });
+          const sp = new Sprite(sub);
+          sp.anchor.set(0.5);
+          const startX = propX + c * cellW + cellW / 2;
+          const startY = propY + r * cellH + cellH / 2;
+          sp.x = startX; sp.y = startY;
+          this.parent.addChild(sp);
+          // Cell 의 grid 상대 위치로 impulse 방향 결정. 정중앙 cell 은 random.
+          const dx = c - cCenter;
+          const dy = r - rCenter;
+          const angle = (dx === 0 && dy === 0)
+            ? Math.random() * Math.PI * 2
+            : Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.6;
+          const speed = 110 + Math.random() * 110;
+          this.chunks.push({
+            node: sp, x: startX, y: startY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 90,
+            gravity: 320,
+            rotSpeed: (Math.random() - 0.5) * 9,
+            life: 700 + Math.random() * 400,
+            maxLife: 1100,
+            fade: 'late',
+          });
+        }
       }
     }
 

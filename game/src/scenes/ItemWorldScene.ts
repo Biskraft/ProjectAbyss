@@ -1,6 +1,7 @@
 ﻿import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
+import { SaveManager } from '@utils/SaveManager';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
@@ -60,6 +61,7 @@ import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
+import { brandLabel } from '@core/input/padGlyphs';
 import { TutorialHint } from '@ui/TutorialHint';
 import { SFX } from '@audio/Sfx';
 import { PRNG } from '@utils/PRNG';
@@ -134,6 +136,7 @@ import {
   IW_ROOM_W_TILES, IW_ROOM_H_TILES,
   IW_ROOM_W_PX, IW_ROOM_H_PX,
   IW_DOOR_DEPTH, IW_DOOR_H_HEIGHT, IW_DOOR_V_WIDTH, IW_DOOR_FLOOR_ROW,
+  IW_BOUNDARY_THICKNESS,
   SEAL_DEPTH,
   type DoorMask,
 } from './itemworld/ItemWorldMapController';
@@ -279,6 +282,8 @@ export class ItemWorldScene extends Scene {
   private screenFlash!: ScreenFlash;
   private hudSkin: UISkin | null = null;
   private toast!: ToastManager;
+  /** Gamepad hot-plug 토스트 unsubscribe — destroy 시 호출. */
+  private _gpUnsub: (() => void) | null = null;
   private tutorialHint!: TutorialHint;
   // A15: innocent capture seal orbs ? rise from capture point, home to player
   private captureOrbs: { gfx: Graphics; x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
@@ -307,6 +312,8 @@ export class ItemWorldScene extends Scene {
   // Unified grid (all strata combined)
   private earnedExp = 0;
   earnedGold = 0;
+  /** 아이템계 진입 시점의 보관된 골드 — HUD 표시는 baselineGold + earnedGold 누계. */
+  private baselineGold = 0;
   private roomsCleared = 0;
   private totalRooms = 0;
   private unifiedGrid!: UnifiedGridData;
@@ -345,6 +352,7 @@ export class ItemWorldScene extends Scene {
    * resets at every room seam. Rebuilt alongside fullMapContainer.
    */
   private bgAggregate: Container | null = null;
+  private interiorAggregate: Container | null = null;
   private wallAggregate: Container | null = null;
   private shadowAggregate: Container | null = null;
   /** Filter-free aggregate for hazard/signal tiles (water/spike/updraft/...). */
@@ -487,6 +495,28 @@ export class ItemWorldScene extends Scene {
       this.ldtkLoader.load(json, 'ItemStratum');
       this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
       this.ldtkRenderer = new LdtkRenderer();
+
+      // Manual Tiles layers (e.g. Buildings) reference tilesets that aren't
+      // covered by area palettes. Load any tilesetPath used by extraTileLayers
+      // so buildSprite can resolve them.
+      const extraTilesetPaths = new Set<string>();
+      for (const lvl of this.ldtkTemplates) {
+        for (const tiles of Object.values(lvl.extraTileLayers)) {
+          for (const t of tiles) {
+            if (t.tilesetPath) extraTilesetPaths.add(t.tilesetPath);
+          }
+        }
+      }
+      await Promise.all(
+        Array.from(extraTilesetPaths).map(async (relPath) => {
+          if (this.atlases[relPath]) return;
+          try {
+            this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
+          } catch (err) {
+            console.warn(`[ItemWorld] failed to load extra tileset "${relPath}":`, err);
+          }
+        }),
+      );
     } catch (e) {
       console.warn('[ItemWorld] LDtk templates not found, using code templates');
     }
@@ -764,6 +794,12 @@ export class ItemWorldScene extends Scene {
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
 
+    // 아이템계 진입 시점의 저장된 gold — HUD 가 외부 세계와 동일한 총액을 표시하도록.
+    // earnedGold 가 늘어날 때마다 baselineGold + earnedGold 로 갱신 (collectGold 분기 참조).
+    const savedData = SaveManager.load();
+    this.baselineGold = savedData?.gold ?? 0;
+    this.hud.updateGold(this.baselineGold);
+
     // Area title banner — shows item name on entry.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
@@ -798,6 +834,16 @@ export class ItemWorldScene extends Scene {
 
     // Toast
     this.toast = new ToastManager(this.game.legacyUIContainer);
+    // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
+    {
+      const off1 = this.game.gamepad.onConnectEvent((brand) => {
+        this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+      });
+      const off2 = this.game.gamepad.onDisconnectEvent(() => {
+        this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+      });
+      this._gpUnsub = () => { off1(); off2(); };
+    }
 
     // Tutorial hint (used for low-HP heal cue, etc. — same UX as world scene)
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
@@ -859,6 +905,7 @@ export class ItemWorldScene extends Scene {
     //   1) startSpawnDone=true 즉시 → spawnEnemiesInRoom 가 거주자 spawn
     //   2) 한 박자 (500ms) 후 입장 대사 — player 가 광장 풍경을 인지한 후 발화
     this.startSpawnDone = true;
+    this.spawnedRooms.add(`${this.currentCol},${this.currentRow}`);
     this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
     setTimeout(() => {
       void this.fireEgoEnterAsync();
@@ -927,15 +974,17 @@ export class ItemWorldScene extends Scene {
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
     this.bgAggregate = new Container();
+    this.interiorAggregate = new Container();
     this.wallAggregate = new Container();
     this.specialAggregate = new Container();
     this.shadowAggregate = new Container();
     this.sealAggregate = new Container();
-    // Render order: bg -> structDeco -> walls -> special(hazards) -> naturalDeco -> artificialDeco -> shadows -> seal
+    // Render order: bg -> LDtk interior/buildings -> structDeco -> walls -> special(hazards) -> naturalDeco -> artificialDeco -> shadows -> seal
     this.decoAggregate = new Container();         // natural detail (grass/roots) ? above walls
     this.artificialDecoAggregate = new Container(); // artificial detail (wiring/sensors) ? above walls
     this.structAggregate = new Container();        // structure (beams/concrete) ? behind walls
     this.fullMapContainer.addChild(this.bgAggregate);
+    this.fullMapContainer.addChild(this.interiorAggregate);
     this.fullMapContainer.addChild(this.structAggregate);
     this.fullMapContainer.addChild(this.wallAggregate);
     this.fullMapContainer.addChild(this.specialAggregate);
@@ -986,6 +1035,7 @@ export class ItemWorldScene extends Scene {
     // 각 cell layer 에 cullable=true + cullArea 가 viewport 검사. 부모는
     // cullableChildren=true 로 자식 cull 검사 흐름 enable.
     this.bgAggregate.cullableChildren = true;
+    this.interiorAggregate.cullableChildren = true;
     this.wallAggregate.cullableChildren = true;
     this.specialAggregate!.cullableChildren = true;
     this.shadowAggregate.cullableChildren = true;
@@ -1042,39 +1092,8 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        // DEC-039: Boss ('no_down') 셀은 LDtk 템플릿이 D opening 을 가지고
-        // 있더라도 collision 으로 강제 봉인. 자연 폴 다운 차단 — Trapdoor entity
-        // 만이 유일한 전이 수단.
-        //
-        // Plaza ('force_up' / LRUD) 는 천장이 자연 open 이므로 별도 seal 불필요.
-        // 위쪽 셀 (이전 stratum 보스) 가 'no_down' 으로 잠겨있어 양방향 통과는
-        // 차단되며, Trapdoor 가 뚫는 hole 만 일방 다이브 통로로 작동.
-        //
-        // !cell.exits.up 분기는 plaza 가 force_up 으로 cell.exits.up=true 라
-        // 자동 no-op. 일반 셀이 그래프상 위쪽 연결 없으면 여전히 작동.
-        const SEAL = 2;
-        if (!cell.exits.up) {
-          for (let r = 0; r < SEAL; r++) {
-            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
-              const gr = offR + r;
-              const gc = offC + c;
-              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
-                this.fullGrid[gr][gc] = 1;
-              }
-            }
-          }
-        }
-        if (!cell.exits.down) {
-          for (let r = IW_ROOM_H_TILES - SEAL; r < IW_ROOM_H_TILES; r++) {
-            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
-              const gr = offR + r;
-              const gc = offC + c;
-              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
-                this.fullGrid[gr][gc] = 1;
-              }
-            }
-          }
-        }
+        const doorMask = this.computeDoorMask(cell, ldtkLevel);
+        this.applyDoorMaskToFullGrid(doorMask, offR, offC);
 
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
@@ -1082,8 +1101,13 @@ export class ItemWorldScene extends Scene {
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
-        const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
+        const wallTiles = this.filterWallTilesByCarves(
+          ldtkLevel.wallTiles.filter(inBounds),
+          doorMask.carveRectsLocal,
+          ldtkLevel.collisionGrid,
+        );
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell, inBounds);
         const renderer = new LdtkRenderer();
         // CSV Tileset is authoritative ? retag tiles to the CSV-derived atlas
         // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
@@ -1092,8 +1116,9 @@ export class ItemWorldScene extends Scene {
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
+        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
         renderer.bgLayer.position.set(roomX, roomY);
+        renderer.interiorLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
         renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
@@ -1102,10 +1127,12 @@ export class ItemWorldScene extends Scene {
         // local box = (0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX).
         const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
         renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
+        renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
         renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
         renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
         renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
         this.bgAggregate!.addChild(renderer.bgLayer);
+        this.interiorAggregate!.addChild(renderer.interiorLayer);
         this.wallAggregate!.addChild(renderer.wallLayer);
         this.specialAggregate!.addChild(renderer.specialLayer);
         this.shadowAggregate!.addChild(renderer.shadowLayer);
@@ -1113,7 +1140,7 @@ export class ItemWorldScene extends Scene {
         this.cellLayerGroups.push({
           col,
           row: absRow,
-          layers: [renderer.bgLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
+          layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
         });
 
         // Spawn LDtk-placed static entities for this room (with world offset)
@@ -1264,7 +1291,7 @@ export class ItemWorldScene extends Scene {
     const layer = new Container();
     const fullW = gridW * IW_ROOM_W_PX;
     const fullH = gridH * IW_ROOM_H_PX;
-    const thickness = IW_DOOR_DEPTH * TILE_SIZE;
+    const thickness = IW_BOUNDARY_THICKNESS * TILE_SIZE;
     const frame = new Graphics();
     this.drawBoundaryWall(frame, 0, 0, fullW, thickness);
     this.drawBoundaryWall(frame, 0, fullH - thickness, fullW, thickness);
@@ -1278,7 +1305,7 @@ export class ItemWorldScene extends Scene {
   private addFullMapBoundaryCollision(gridW: number, gridH: number): void {
     const widthTiles = gridW * IW_ROOM_W_TILES;
     const heightTiles = gridH * IW_ROOM_H_TILES;
-    const thickness = IW_DOOR_DEPTH;
+    const thickness = IW_BOUNDARY_THICKNESS;
     for (let r = 0; r < heightTiles; r++) {
       for (let c = 0; c < widthTiles; c++) {
         const onBoundary = r < thickness
@@ -1315,13 +1342,14 @@ export class ItemWorldScene extends Scene {
    */
   private spawnEnemiesInRoom(col: number, row: number): void {
     const cell = this.unifiedGrid.cells[row]?.[col];
-    if (!cell || cell.cleared) return;
+    if (!cell) return;
 
     // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) 은 안전
     // 지대다. 적 스폰을 차단하고 즉시 cleared 처리해 HUD 카운터/재진입 흐름을
     // 일반 클리어와 동일하게 유지한다. P0 invariant — 절대 적 1마리도 안 됨.
     // 대신 거주자 그림자(Gatekeeper / Librarian) 1명을 결정론적으로 spawn.
     if (cell.role === 'hub' || cell.role === 'shrine') {
+      const wasCleared = cell.cleared;
       // Entry sequencing: 시작 룸은 입장 대사 완료까지 스폰 보류. cleared 마킹도
       // 함께 보류하여 대사 후 명시 호출에서 정상 경로로 처리되도록 한다.
       const isStartRoom = col === this.unifiedGrid.startRoom.col
@@ -1368,11 +1396,15 @@ export class ItemWorldScene extends Scene {
           }
         }
       }
-      cell.cleared = true;
-      this.roomsCleared++;
-      this.persistRoomState();
+      if (!wasCleared) {
+        cell.cleared = true;
+        this.roomsCleared++;
+        this.persistRoomState();
+      }
       return;
     }
+
+    if (cell.cleared) return;
 
     // Stratum start room ? safe zone, no monsters. Mark cleared so re-entry
     // skips the spawn path entirely.
@@ -1872,8 +1904,9 @@ export class ItemWorldScene extends Scene {
   private filterWallTilesByCarves<T extends { px: [number, number] }>(
     wallTiles: T[],
     carveRectsLocal: DoorMask['carveRectsLocal'],
+    collisionGrid?: number[][],
   ): T[] {
-    return this.mapController.filterWallTilesByCarves(wallTiles, carveRectsLocal);
+    return this.mapController.filterWallTilesByCarves(wallTiles, carveRectsLocal, collisionGrid);
   }
 
   /**
@@ -1887,6 +1920,7 @@ export class ItemWorldScene extends Scene {
   private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
     this.mapController.drawUniformWalls(roomContainer, this.sealedCells, offR, offC);
   }
+
 
   /**
    * Draw stone-brick blocks over sealed edge strips so players read them as
@@ -1993,6 +2027,43 @@ export class ItemWorldScene extends Scene {
     });
   }
 
+  private getInteriorTilesForRoom(
+    ldtkLevel: LdtkLevel,
+    cell: UnifiedRoomCell | null,
+    filter?: (tile: LdtkTile) => boolean,
+  ): LdtkTile[] {
+    const baseTiles = [
+      ...ldtkLevel.interiorTiles,
+      ...Object.values(ldtkLevel.extraTileLayers).flat(),
+    ];
+    const needsPlazaBuildings = this.isPlazaCell(cell)
+      && (ldtkLevel.extraTileLayers.Buildings?.length ?? 0) === 0;
+    const tiles = needsPlazaBuildings
+      ? [...baseTiles, ...this.getPlazaBuildingOverlayTiles()]
+      : baseTiles;
+    return filter ? tiles.filter(filter) : tiles;
+  }
+
+  private getPlazaBuildingOverlayTiles(): LdtkTile[] {
+    let best: LdtkLevel | null = null;
+    for (const template of this.ldtkTemplates) {
+      if (template.roomType !== 'Start') continue;
+      const count = template.extraTileLayers.Buildings?.length ?? 0;
+      if (count <= 0) continue;
+      const bestCount = best?.extraTileLayers.Buildings?.length ?? 0;
+      if (count > bestCount) best = template;
+    }
+    return best?.extraTileLayers.Buildings ?? [];
+  }
+
+  private isPlazaCell(cell: UnifiedRoomCell | null): boolean {
+    if (!cell) return false;
+    if (cell.role === 'hub') return true;
+    return this.unifiedGrid.stratumStartRooms?.some(
+      start => start.col === cell.col && start.absoluteRow === cell.absoluteRow,
+    ) ?? false;
+  }
+
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
@@ -2013,10 +2084,11 @@ export class ItemWorldScene extends Scene {
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell);
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.shadowTiles);
-        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
+        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
       }
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
@@ -2249,6 +2321,19 @@ export class ItemWorldScene extends Scene {
     }
 
     const exactByType = pool.filter(t => t.roomType === desiredType && this.sameExitSet(t.exits, required));
+    if (this.isPlazaCell(cell)) {
+      const buildingStarts = pool.filter(t =>
+        t.roomType === 'Start' && (t.extraTileLayers.Buildings?.length ?? 0) > 0,
+      );
+      if (buildingStarts.length > 0) {
+        const ranked = [...buildingStarts].sort((a, b) => {
+          const scoreDelta = this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required);
+          if (scoreDelta !== 0) return scoreDelta;
+          return (b.extraTileLayers.Buildings?.length ?? 0) - (a.extraTileLayers.Buildings?.length ?? 0);
+        });
+        return ranked[0];
+      }
+    }
     if (exactByType.length > 0) {
       return exactByType[rng.nextInt(0, exactByType.length - 1)];
     }
@@ -2877,6 +2962,7 @@ export class ItemWorldScene extends Scene {
     // Clear aggregate children (preserves the aggregate containers and their
     // palette filters, so the continuous gradient is maintained).
     this.bgAggregate.removeChildren();
+    this.interiorAggregate?.removeChildren();
     this.wallAggregate.removeChildren();
     this.specialAggregate?.removeChildren();
     this.shadowAggregate.removeChildren();
@@ -2904,6 +2990,7 @@ export class ItemWorldScene extends Scene {
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
         const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
+        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, cell, inBounds);
         const renderer = new LdtkRenderer();
         {
           const bgAreaId = `iw_${this._themeSlug}_bg`;
@@ -2911,25 +2998,28 @@ export class ItemWorldScene extends Scene {
           applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
           applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
         }
-        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid);
+        renderer.renderLevel(bgTiles, [], shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
         renderer.bgLayer.position.set(roomX, roomY);
+        renderer.interiorLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
         renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
         // Cell culling — buildFullMap 과 동일 패턴 (사용자 결정 2026-05-04).
         const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
         renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
+        renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
         renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
         renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
         renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
         this.bgAggregate.addChild(renderer.bgLayer);
+        this.interiorAggregate?.addChild(renderer.interiorLayer);
         this.wallAggregate.addChild(renderer.wallLayer);
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
         this.cellLayerGroups.push({
           col,
           row: absRow,
-          layers: [renderer.bgLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
+          layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
         });
       }
     }
@@ -3030,8 +3120,42 @@ export class ItemWorldScene extends Scene {
 
   private initialized = false;
 
+  /**
+   * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
+   * structurally — runtime duck-typing checks for this method.
+   */
+  getFeedbackContext(): {
+    area: 'world' | 'itemworld';
+    level_id?: string;
+    room_col: number;
+    room_row: number;
+    equipped_weapon_id?: string;
+    hp_pct: number;
+  } {
+    const cx = this.player.x + this.player.width / 2;
+    const cy = this.player.y + this.player.height / 2;
+    const equipped = this.inventory?.equipped;
+    return {
+      area: 'itemworld',
+      // ItemWorld is procedural — no LDtk level_id.
+      level_id: undefined,
+      room_col: Math.floor(cx / TILE_SIZE),
+      room_row: Math.floor(cy / TILE_SIZE),
+      equipped_weapon_id: equipped?.def.type ?? undefined,
+      hp_pct: this.player.maxHp > 0
+        ? Math.floor((this.player.hp / this.player.maxHp) * 100)
+        : 0,
+    };
+  }
+
   update(dt: number): void {
     if (!this.initialized) return;
+
+    // Feedback panel open — block scene update but keep toasts animating.
+    if (this.game.feedbackOpen) {
+      this.toast?.update(dt);
+      return;
+    }
 
     this.areaTitle.update(dt);
 
@@ -3413,6 +3537,8 @@ export class ItemWorldScene extends Scene {
       if (dx < 16 && dy < 16) {
         gp.collect();
         this.earnedGold += gp.amount;
+        // HUD 총액 갱신 — 외부 세계와 통일성 (baseline + earned).
+        this.hud.updateGold(this.baselineGold + this.earnedGold);
         this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
         this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
         gp.destroy();
@@ -5024,6 +5150,7 @@ export class ItemWorldScene extends Scene {
     fa.width = viewR - viewL;
     fa.height = viewB - viewT;
     if (this.bgAggregate) this.bgAggregate.filterArea = fa;
+    if (this.interiorAggregate) this.interiorAggregate.filterArea = fa;
     if (this.wallAggregate) this.wallAggregate.filterArea = fa;
     if (this.shadowAggregate) this.shadowAggregate.filterArea = fa;
     if (this.sealAggregate) this.sealAggregate.filterArea = fa;
@@ -5046,6 +5173,7 @@ export class ItemWorldScene extends Scene {
   }
 
   exit(): void {
+    if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();

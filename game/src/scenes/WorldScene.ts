@@ -18,6 +18,7 @@ import { HUD } from '@ui/HUD';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
+import { resolveItemDropSpawn } from '@items/DropSpawn';
 import { SWORD_DEFS, STARTER_ONLY_IDS } from '@data/weapons';
 import { createItem } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -49,6 +50,7 @@ import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ToastManager } from '@ui/Toast';
+import { brandLabel } from '@core/input/padGlyphs';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { SFX } from '@audio/Sfx';
@@ -104,6 +106,8 @@ export class WorldScene extends Scene {
 
   // Toast & damage numbers & Sakurai effects
   private toast!: ToastManager;
+  /** Gamepad hot-plug 토스트 unsubscribe — exit 시 호출. */
+  private _gpUnsub: (() => void) | null = null;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private deathParticles!: DeathParticleManager;
@@ -199,6 +203,16 @@ export class WorldScene extends Scene {
 
     // Toast, damage numbers & Sakurai hit effects
     this.toast = new ToastManager(this.game.legacyUIContainer);
+    // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
+    {
+      const off1 = this.game.gamepad.onConnectEvent((brand) => {
+        this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+      });
+      const off2 = this.game.gamepad.onDisconnectEvent(() => {
+        this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+      });
+      this._gpUnsub = () => { off1(); off2(); };
+    }
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.deathParticles = new DeathParticleManager(this.entityLayer);
@@ -571,9 +585,14 @@ export class WorldScene extends Scene {
           ? rollGoldenDrop(this.dropRng)    // guaranteed rare+ drop
           : rollDrop(this.dropRng);         // normal drop chance
         if (drop) {
-          const dropEntity = new ItemDropEntity(
+          const spawn = resolveItemDropSpawn(
             enemy.x + enemy.width / 2,
             enemy.y + enemy.height - 4,
+            this.roomData,
+          );
+          const dropEntity = new ItemDropEntity(
+            spawn.x,
+            spawn.y,
             drop,
           );
           this.drops.push(dropEntity);
@@ -1219,6 +1238,7 @@ export class WorldScene extends Scene {
   }
 
   exit(): void {
+    if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     this.toast.clear();
     if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);

@@ -10,6 +10,8 @@ const DETECT_CONFIRM_MS = 1000;  // long pause when spotting player
 const PATROL_SPEED_MULT = 0.5;  // patrol_speed / chase_speed ratio
 const LOSE_TARGET_MS = 1500;    // GDD §4.1: lose_target_delay_ms
 
+// 선회 hysteresis + cooldown + pause 는 base Enemy 로 일반화 (사용자 결정 2026-05-04, Q1).
+
 /** Atlas: 384×32 (12 × 32×32). idle 0-3 / walk 4-7 / jump 8-11. */
 const SKELETON_ATLAS_PNG_PATH = 'assets/characters/skeleton_01_atlas.png';
 const SKELETON_FRAME_W = 32;
@@ -36,6 +38,7 @@ export class Skeleton extends Enemy {
   private detectTimer = 0;
   // Lose target timer (Chase → Patrol fallback)
   private loseTargetTimer = 0;
+  // chaseDir / turnCooldownMs / turnPauseMs 는 base Enemy 에 정의 (선회 hysteresis 일반화).
   /** Atlas sprite — placeholder Graphics 를 가린다. */
   private skeletonSprite: Sprite | null = null;
   /** 12 frames (32×32) split from the 384×32 atlas. */
@@ -153,6 +156,8 @@ export class Skeleton extends Enemy {
    */
   override update(dt: number): void {
     super.update(dt);
+    // patrol 은 patrolDir 기반 facing (Skeleton 고유 — base 는 patrol 개념 없음).
+    // chase facing 은 base Enemy.update 가 chaseDir 로 잠가준다.
     if (this.fsm.currentState === 'patrol') {
       this.facingRight = this.patrolDir > 0;
     }
@@ -224,7 +229,11 @@ export class Skeleton extends Enemy {
     // ── Chase: move toward player, body contact = damage ──
     this.fsm.addState({
       name: 'chase',
-      enter: () => { this.loseTargetTimer = LOSE_TARGET_MS; },
+      enter: () => {
+        this.loseTargetTimer = LOSE_TARGET_MS;
+        // 첫 프레임 vx=0 pause 회피 — chaseDir 즉시 target 쪽으로.
+        this.initChaseDir();
+      },
       update: (dt) => {
         const dist = this.distToTarget();
         if (dist > this.detectRange * 1.5) {

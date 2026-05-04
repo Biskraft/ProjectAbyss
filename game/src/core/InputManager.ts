@@ -1,19 +1,20 @@
-export enum GameAction {
-  MOVE_LEFT = 'MOVE_LEFT',
-  MOVE_RIGHT = 'MOVE_RIGHT',
-  LOOK_UP = 'LOOK_UP',
-  LOOK_DOWN = 'LOOK_DOWN',
-  JUMP = 'JUMP',
-  DASH = 'DASH',
-  ATTACK = 'ATTACK',
-  INVENTORY = 'INVENTORY',
-  MAP = 'MAP',
-  MENU = 'MENU',
-  STATUS = 'STATUS',
-  FLASK = 'FLASK',
-  DEBUG_RESET = 'DEBUG_RESET',
-  DEBUG_CHEAT = 'DEBUG_CHEAT',
-  DEBUG_UI_TOGGLE = 'DEBUG_UI_TOGGLE',
+import { getInputDevice, getInputBrand, setInputDevice } from './input/InputDeviceTracker';
+import { PAD_BINDINGS } from './input/padBindings';
+import { getButtonGlyph } from './input/padGlyphs';
+import { GameAction } from './input/GameAction';
+
+// 기존 호출자 호환 — `@core/InputManager` 에서 GameAction 을 그대로 import 가능.
+export { GameAction };
+
+/**
+ * True when a real text input element owns focus. Used to bypass game key
+ * handling so the FeedbackPanel textarea (etc.) can receive input normally.
+ */
+function isTextInputFocused(): boolean {
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'TEXTAREA' || tag === 'INPUT';
 }
 
 // ── Preset definitions ────────────────────────────────────────────────────────
@@ -111,8 +112,19 @@ export function getActiveInput(): InputManager | null {
   return _activeInput;
 }
 
-/** Display label for the first key bound to an action under the active preset. */
+/**
+ * Display label for the first binding of an action.
+ *   - keyboard 디바이스: 키보드 라벨 (Z, Space, ←, ...)
+ *   - gamepad 디바이스: 패드 글리프 (A / × / B 등 — 브랜드 자동)
+ *
+ * 디바이스가 hot-swap 되면 createKeyIconForAction / createPromptForAction 으로
+ * 만든 prompt 만 자동 갱신. 단순 actionKey() 호출은 호출 시점 글리프를 반환.
+ */
 export function actionKey(action: GameAction): string {
+  if (getInputDevice() === 'gamepad') {
+    const btns = PAD_BINDINGS[action];
+    if (btns && btns.length > 0) return getButtonGlyph(btns[0], getInputBrand());
+  }
   return _activeInput?.getKeyDisplay(action) ?? '?';
 }
 
@@ -218,6 +230,8 @@ export class InputManager {
   private setupIMEBlock(): void {
     // Ensure canvas gets focus and keeps it
     const refocus = () => {
+      // Don't yank focus away from real text inputs (FeedbackPanel textarea, etc.).
+      if (isTextInputFocused()) return;
       const canvas = document.querySelector('canvas');
       if (canvas && document.activeElement !== canvas) {
         canvas.setAttribute('tabindex', '0');
@@ -243,6 +257,10 @@ export class InputManager {
     // Never intercept browser shortcuts (Ctrl/Meta combos like Ctrl+R, Ctrl+Shift+R)
     if (e.ctrlKey || e.metaKey) return;
 
+    // When a real text input owns focus (FeedbackPanel, etc.), let the browser
+    // handle every key normally. Game input is paused via game.feedbackOpen.
+    if (isTextInputFocused()) return;
+
     this.shiftDown = e.shiftKey;
     const code = e.code;
 
@@ -260,7 +278,10 @@ export class InputManager {
       if (resolvedCode && GAME_KEYS.has(resolvedCode)) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!e.repeat) this.keyState.set(resolvedCode, true);
+        if (!e.repeat) {
+          this.keyState.set(resolvedCode, true);
+          setInputDevice('keyboard');
+        }
       }
       return;
     }
@@ -268,11 +289,14 @@ export class InputManager {
     if (e.repeat) return;
     if (GAME_KEYS.has(code)) {
       e.preventDefault();
+      // 실제 game key 입력 시에만 디바이스 트래커 갱신 — 메뉴키/시스템키는 무시.
+      setInputDevice('keyboard');
     }
     this.keyState.set(code, true);
   }
 
   private onKeyUp(e: KeyboardEvent): void {
+    if (isTextInputFocused()) return;
     this.shiftDown = e.shiftKey;
     const code = e.code;
     if (GAME_KEYS.has(code)) {

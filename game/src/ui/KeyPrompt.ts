@@ -8,6 +8,11 @@
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { actionKey, GameAction, getActiveInput } from '@core/InputManager';
+import { onDeviceChange } from '@core/input/InputDeviceTracker';
+import { PAD_BINDINGS } from '@core/input/padBindings';
+import { getButtonGlyph } from '@core/input/padGlyphs';
+import type { ControllerBrand } from '@core/input/gamepadStandard';
 
 // Dark box visual constants (640x360 base)
 const KEY_BOX_SIZE = 7;
@@ -63,8 +68,11 @@ export class KeyPrompt {
     c.addChild(label);
 
     // size 를 컨테이너에 stash 해 setKeyIconProgress 가 reflect 없이 사용한다.
+    // _keyIconLabel 도 stash — createKeyIconForAction 의 hot-swap 핸들러가
+    // children.find 없이 직접 BitmapText 갱신할 수 있도록.
     (c as any)._keyIconSize = size;
     (c as any)._keyIconGauge = gauge;
+    (c as any)._keyIconLabel = label;
 
     return c;
   }
@@ -89,6 +97,79 @@ export class KeyPrompt {
     const fillH = size * p;
     gauge.rect(0, size - fillH, size, fillH)
       .fill({ color: KEY_BOX_GAUGE_COLOR, alpha: KEY_BOX_GAUGE_ALPHA });
+  }
+
+  /**
+   * createKeyIcon 의 GameAction 버전. 디바이스 hot-swap (Shift 패드 잡기 등) 시
+   * 글리프가 자동 갱신되도록 InputDeviceTracker.onDeviceChange 를 구독.
+   *
+   *   - HUD / ControlsOverlay 등 *영구* 아이콘에 사용. 일회성 prompt 는 createKeyIcon 으로 충분.
+   *   - 메모리 leak 주의: 컨테이너가 destroy 되어도 listener 는 남는다 — 향후 destroy 훅 추가 검토.
+   */
+  /**
+   * createKeyIcon 의 GameAction 버전. 디바이스 hot-swap 시 글리프 자동 갱신.
+   *
+   * 구현 노트 (사용자 검증 2026-05-04): PixiJS v8 가 *이미 렌더된* 컨테이너의
+   * 자식 변경 (text 갱신·BitmapText 재생성·wrapper inner 교체 모두) 을 시각으로
+   * 반영 못하는 케이스가 있어, init 시점에 키보드 + 패드 inner 를 *둘 다 미리
+   * 생성* 해 wrapper 에 attach 하고 device flip 시 visible 만 토글한다.
+   * visibility 토글은 Pixi 의 가장 기본 동작이라 안정.
+   *
+   * 브랜드(Xbox/PS/Switch) 가 다른 패드로 swap 되면 그 브랜드 inner 를 lazy
+   * 생성 (cache.set). 동일 브랜드 재진입은 cache hit.
+   */
+  static createKeyIconForAction(action: GameAction, size = KEY_BOX_SIZE): Container {
+    const wrapper = new Container();
+    /** glyph 문자열 → 해당 inner 컨테이너 캐시. */
+    const cache = new Map<string, Container>();
+
+    const ensureInner = (glyph: string): Container => {
+      let inner = cache.get(glyph);
+      if (!inner) {
+        inner = KeyPrompt.createKeyIcon(glyph, size);
+        wrapper.addChild(inner);
+        cache.set(glyph, inner);
+      }
+      return inner;
+    };
+
+    const showGlyph = (glyph: string): void => {
+      const target = ensureInner(glyph);
+      for (const [g, c] of cache) c.visible = (g === glyph);
+      // setKeyIconProgress 호환 — 현재 보이는 inner 의 stash 를 wrapper 에 미러링.
+      KeyPrompt._mirrorIconStash(wrapper, target);
+    };
+
+    // Init: 키보드 + 기본 브랜드 (xbox) inner 를 미리 생성. 둘 다 first-render 통과.
+    const kbGlyph = (getActiveInput()?.getKeyDisplay(action) ?? '?').toUpperCase();
+    const padGlyph = KeyPrompt._padGlyphFor(action, 'xbox');
+    if (padGlyph) ensureInner(padGlyph);
+    ensureInner(kbGlyph);
+    showGlyph(kbGlyph);
+
+    // Device flip 시 적합한 glyph 보이기.
+    onDeviceChange(() => {
+      showGlyph(actionKey(action).toUpperCase());
+    });
+
+    return wrapper;
+  }
+
+  /** 액션 → 패드 글리프. 매핑 없으면 null. */
+  private static _padGlyphFor(action: GameAction, brand: ControllerBrand): string | null {
+    const btns = PAD_BINDINGS[action];
+    if (!btns || btns.length === 0) return null;
+    return getButtonGlyph(btns[0], brand).toUpperCase();
+  }
+
+  /**
+   * createKeyIconForAction 의 wrapper 가 setKeyIconProgress 호출 대상이 될 수
+   * 있도록 inner 의 stash 를 wrapper 에도 미러링.
+   */
+  private static _mirrorIconStash(wrapper: Container, inner: Container): void {
+    (wrapper as any)._keyIconSize = (inner as any)._keyIconSize;
+    (wrapper as any)._keyIconGauge = (inner as any)._keyIconGauge;
+    (wrapper as any)._keyIconLabel = (inner as any)._keyIconLabel;
   }
 
   /**
@@ -124,6 +205,34 @@ export class KeyPrompt {
       .fill({ color: CONTEXT_BG, alpha: CONTEXT_BG_ALPHA });
     c.addChildAt(bg, 0);
 
+    return c;
+  }
+
+  /**
+   * createPrompt 의 GameAction 버전. 디바이스 hot-swap 시 키 박스 글리프 자동 갱신.
+   * 일회성 컨텍스트 프롬프트(상호작용 가까이 갈 때만 보이는 anvil/trapdoor 등) 는
+   * 매번 새로 생성되므로 createPrompt + actionKey() 로 충분 — 영구 prompt 에만 사용.
+   */
+  static createPromptForAction(action: GameAction, label: string, scale = 1): Container {
+    const c = KeyPrompt.createPrompt(actionKey(action), label, scale);
+    const keyIcon = c.children[1] as Container | undefined;
+    const size = keyIcon ? (keyIcon as any)._keyIconSize as number | undefined : undefined;
+    if (!keyIcon || !size) return c;
+    const fontSize = Math.max(4, Math.floor(size * 0.65));
+    onDeviceChange(() => {
+      const newText = actionKey(action).toUpperCase();
+      const oldLabel = (keyIcon as any)._keyIconLabel as BitmapText | undefined;
+      if (oldLabel && oldLabel.text === newText) return;
+      const newLabel = new BitmapText({
+        text: newText,
+        style: { fontFamily: PIXEL_FONT, fontSize, fill: KEY_BOX_TEXT_COLOR },
+      });
+      keyIcon.addChild(newLabel);
+      newLabel.x = Math.floor((size - newLabel.width) / 2);
+      newLabel.y = Math.floor((size - newLabel.height) / 2);
+      if (oldLabel) keyIcon.removeChild(oldLabel);
+      (keyIcon as any)._keyIconLabel = newLabel;
+    });
     return c;
   }
 
