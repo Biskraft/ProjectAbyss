@@ -21,7 +21,13 @@
 import { AudioBus } from './AudioBus';
 import { assetPath } from '@core/AssetLoader';
 
-type CueName = 'upgrade' | 'milestone100' | 'capture' | 'attack_hit' | 'attack_swing';
+type CueName = 'upgrade' | 'milestone100' | 'capture' | 'attack_hit' | 'attack_swing' | 'breakable_destroy' | 'footstep' | 'jump' | 'dash' | 'land';
+
+/** SFX.play options — speed 등 @pixi/sound PlayOptions 일부 노출. */
+interface PlayOpts {
+  /** 재생 속도 (1.0=원본, <1.0=느림+길어짐, >1.0=빠름+짧아짐). 피치도 같이 변함. */
+  speed?: number;
+}
 
 // OGG 자산이 도착한 cue 매핑 — `SFX.play(name, variant?)` 호출 시 합성 대신 AudioBus 경유.
 // 배열: variant 인덱스로 선택 (예: combo step 0/1/2 → whoosh_01/02/03).
@@ -34,6 +40,25 @@ const ASSET_BACKED_CUES: Partial<Record<CueName, Array<{ id: string; path: strin
   ],
   attack_hit: [
     { id: 'sfx_combat_rustborn_impact_01', path: assetPath('assets/audio/sfx/sfx_combat_rustborn_impact_01.ogg') },
+  ],
+  breakable_destroy: [
+    { id: 'sfx_world_break_01', path: assetPath('assets/audio/sfx/sfx_world_break_01.ogg') },
+  ],
+  // 발소리 — 현재 grass 단일 자산. 추후 metal/rust/wet 변주 추가 시 여기 배열 확장.
+  footstep: [
+    { id: 'sfx_player_footstep_grass_01', path: assetPath('assets/audio/sfx/sfx_player_footstep_grass_01.ogg') },
+  ],
+  // 점프 (지면 점프 + 더블 점프 공통).
+  jump: [
+    { id: 'sfx_player_jump_01', path: assetPath('assets/audio/sfx/sfx_player_jump_01.ogg') },
+  ],
+  // 대시 (지상 + 공중 공통, light fast wind whoosh).
+  dash: [
+    { id: 'sfx_player_dash_01', path: assetPath('assets/audio/sfx/sfx_player_dash_01.ogg') },
+  ],
+  // 착지 (body downfall thud). 낙하 속도가 LandingDust threshold 이상일 때만.
+  land: [
+    { id: 'sfx_player_land_01', path: assetPath('assets/audio/sfx/sfx_player_land_01.ogg') },
   ],
 };
 
@@ -94,8 +119,9 @@ class SfxSystem {
    *
    * @param variant 다중 자산 cue 의 인덱스 (예: attack_swing 의 combo step 0/1/2).
    *   범위 밖 값은 마지막 자산으로 클램프. 단일 자산 cue 에선 무시.
+   * @param opts speed 등 추가 재생 옵션. 미지정 시 자산 원본대로 재생.
    */
-  play(name: CueName, variant = 0): void {
+  play(name: CueName, variant = 0, opts?: PlayOpts): void {
     // OGG asset 이 등록된 cue 는 AudioBus 경유 (CSV mix_volume + 채널 라우팅).
     const variants = ASSET_BACKED_CUES[name];
     if (variants && variants.length > 0) {
@@ -109,7 +135,7 @@ class SfxSystem {
         AudioBus.add(asset.id, asset.path, 'sfx', false);
         this.registeredAssets.add(asset.id);
       }
-      AudioBus.play(asset.id, 'sfx');
+      AudioBus.play(asset.id, 'sfx', opts?.speed !== undefined ? { speed: opts.speed } : undefined);
       return;
     }
 

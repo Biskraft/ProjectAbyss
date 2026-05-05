@@ -850,12 +850,16 @@ export class Player extends Entity implements CombatEntity {
         this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
         this._justDoubleJumped = true;
+        // 더블 점프 — speed 약간 빠르게 (피치 ↑) 로 차별화.
+        SFX.play('jump', 0, { speed: 1.1 });
         return true;
       }
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
       // VFX: ground takeoff event (only fires for grounded jump — coyote counts)
       this._justJumpedGround = true;
+      // 지면 점프 — speed 0.95~1.05 무작위 (단조로움 감소).
+      SFX.play('jump', 0, { speed: 0.95 + Math.random() * 0.1 });
       this.fsm.transition('jump');
       return true;
     }
@@ -891,6 +895,8 @@ export class Player extends Entity implements CombatEntity {
     } else {
       this.airDashAvailable = false;
     }
+    // 대시 sound — speed 0.95~1.05 무작위 (반복감 ↓).
+    SFX.play('dash', 0, { speed: 0.95 + Math.random() * 0.1 });
     this.dashTimer = DASH_DURATION;
     // 대시 선딜 3프레임(50ms) 동결 — stateDash 에서 풀릴 때 방향 확정 후 dashSpeed 커밋.
     this.dashFreezeTimer = DASH_FREEZE_MS;

@@ -21,7 +21,9 @@ const EQUIP_SLOTS = 6;     // Weapon, Visor, Plate, Gauntlet, Greaves, Sigil
 const EQUIP_GAP = 3;
 
 const MAX_VISIBLE_ROWS = 8;
-const LIST_H = MAX_VISIBLE_ROWS * (ROW_H + ROW_GAP);
+// LIST_H: BACKPACK 라벨 영역 (listStartY=12) + 모든 row + bottom 안전 padding (4).
+// 사용자 피드백 2026-05-05: 라벨 공간 미포함 → 마지막 row 가 detail divider 와 겹침.
+const LIST_H = 12 + MAX_VISIBLE_ROWS * (ROW_H + ROW_GAP) + 4;
 const DETAIL_H = 80;
 
 const PANEL_W = 340;

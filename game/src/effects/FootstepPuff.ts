@@ -17,7 +17,7 @@ interface Puff {
 }
 
 const LIFE = 260;
-const STEP_INTERVAL = 240; // ms between footsteps at full speed
+const STEP_INTERVAL = 360; // ms between footsteps at full speed (사용자 피드백 2026-05-05: 240→480→360 으로 조정)
 const COLOR = 0xc8b48a;
 
 export class FootstepPuffManager {
@@ -30,6 +30,9 @@ export class FootstepPuffManager {
   /**
    * Call each frame. Emits a puff if the player is moving horizontally on
    * ground at more than ~40 px/s and the step timer has elapsed.
+   *
+   * @returns true 면 이번 호출에서 step 이 실제로 발생 (puff spawn). 호출지가
+   *   같이 SFX.play('footstep') 등을 트리거할 때 사용.
    */
   stepIfMoving(
     dt: number,
@@ -38,13 +41,13 @@ export class FootstepPuffManager {
     footY: number,
     vx: number,
     facingRight: boolean,
-  ): void {
+  ): boolean {
     this.stepTimer -= dt;
     if (!grounded || Math.abs(vx) < 40) {
       this.stepTimer = 0;
-      return;
+      return false;
     }
-    if (this.stepTimer > 0) return;
+    if (this.stepTimer > 0) return false;
     this.stepTimer = STEP_INTERVAL;
 
     // Puff trails behind the player (opposite to facing)
@@ -62,6 +65,7 @@ export class FootstepPuffManager {
       vy: -8 - Math.random() * 12,
       life: LIFE, maxLife: LIFE,
     });
+    return true;
   }
 
   update(dt: number): void {

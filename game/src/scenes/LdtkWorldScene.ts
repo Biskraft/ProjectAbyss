@@ -2100,6 +2100,12 @@ export class LdtkWorldScene extends Scene {
     const landedSpeed = p.consumeLandedEvent();
     if (landedSpeed !== null) {
       this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
+      // Land thud — 낙하 속도가 의미 있을 때만 (작은 점프 후 착지 noise 회피).
+      // 무거운 낙하일수록 slower playback (deeper pitch).
+      if (landedSpeed > 120) {
+        const t = Math.min(1, (landedSpeed - 120) / 380);
+        SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
+      }
     }
 
     // Dash boost puff ??on dash start
@@ -2143,12 +2149,14 @@ export class LdtkWorldScene extends Scene {
       const outDir = -wallSide;
       this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
     }
-    // Footstep puff on ground movement
-    this.footstepPuff.stepIfMoving(
+    // Footstep puff on ground movement + sound. speed 0.92~1.08 무작위로 단조로움 감소.
+    if (this.footstepPuff.stepIfMoving(
       dt, p.isGrounded(),
       p.x + p.width / 2, p.y + p.height,
       p.getVx(), p.facingRight,
-    );
+    )) {
+      SFX.play('footstep', 0, { speed: 0.92 + Math.random() * 0.16 });
+    }
     // Surge VFX ??drive by state
     if (p.isSurgeCharging()) {
       this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
@@ -3978,6 +3986,8 @@ export class LdtkWorldScene extends Scene {
         b.getParticleColor(), b.getAccentColor(),
         b.getArtifactTexture(),
       );
+      // speed 1.0 / (1.0~1.5) → 길이 100~150% 랜덤 (반복감 감소).
+      SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
       this.hitSparks.spawn(
         b.x + b.width / 2, b.y + b.height / 2,
         false, this.player.facingRight ? 1 : -1,
@@ -4025,6 +4035,8 @@ export class LdtkWorldScene extends Scene {
         bp.getParticleColor(), bp.getAccentColor(),
         bp.getArtifactTexture(),
       );
+      // speed 1.0 / (1.0~1.5) → 길이 100~150% 랜덤 (반복감 감소).
+      SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
       // Subtle hit spark for impact emphasis
       this.hitSparks.spawn(
         bp.x + bp.width / 2, bp.y + bp.height / 2,
