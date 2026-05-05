@@ -3,6 +3,7 @@ import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 import { loadBundleOnce } from '@data/assetBundles';
+import { SFX } from '@audio/Sfx';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -59,6 +60,10 @@ try {
   // 가 진행되어 첫 게임 진입 시 hitch 가 줄어든다 (pixijs-references P1).
   // fire-and-forget: 실패해도 entity 측 Assets.load 가 개별 fallback 처리.
   void loadBundleOnce('core');
+
+  // Combat OGG cues 미리 register + decode — 첫 hit 무음 + Pixi sound race 회피.
+  // 부팅 시점의 preload=true 는 play 호출과 시간 격리되어 있어 race 없음.
+  SFX.preloadAssets();
 
   showStatus('Loading...');
   // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)

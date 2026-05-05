@@ -54,6 +54,7 @@ import { brandLabel } from '@core/input/padGlyphs';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { SFX } from '@audio/Sfx';
+import { AmbientLayer } from '@audio/AmbientLayer';
 import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
 import { SaveManager } from '@utils/SaveManager';
@@ -253,6 +254,9 @@ export class WorldScene extends Scene {
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
+
+    // Tier 3 ambient bed demo (Plan_Audio_Demo §3-1 #1A + #1C, DEC-040 §13-2.4 진척)
+    AmbientLayer.startWorldTier3Demo();
   }
 
   private updatePlayerAtk(): void {
@@ -618,6 +622,7 @@ export class WorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
+        SFX.play('attack_hit');
         if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
         if (hit.heavy) {
           this.screenFlash.flashHit(true);

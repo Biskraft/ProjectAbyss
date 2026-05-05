@@ -12,6 +12,7 @@ import type { Rarity, WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
+import { SFX } from '@audio/Sfx';
 
 // SSoT: Sheets/Content_Player.csv (loaded via @data/constData)
 const MOVE_SPEED = PlayerConst.MoveSpeed;
@@ -1057,6 +1058,10 @@ export class Player extends Entity implements CombatEntity {
     this.attackQueued = false;
     this.hitList.clear();
     this.comboWindowTimer = 0;
+
+    // Swing whoosh — every attack swing (hit 또는 miss 무관).
+    // comboIndex 0/1/2 → whoosh_01/02/03 자산 (Sfx.ASSET_BACKED_CUES 배열 인덱스).
+    SFX.play('attack_swing', this.comboIndex);
 
     // Show attack hitbox visual
     this.updateAttackVisual();

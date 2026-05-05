@@ -28,6 +28,17 @@ const JUMP_TIMER_MIN = 2000;
 /** Maximum ms between jump attempts. */
 const JUMP_TIMER_MAX = 3000;
 
+/**
+ * 공중 / 착지 직후 flee 방향 잠금 시간.
+ *
+ * 점프 중 plyer 가 npc 의 x 를 통과하면 매 프레임 `dir = target.x > this.x` 가
+ * 부호 반전 → vx 가 60Hz 로 ±moveSpeed 사이를 오가며 좌우로 떨려 보인다
+ * (사용자 피드백 2026-05-05). 같은 패턴 차단을 chase 에 적용한 base
+ * `CHASE_TURN_COOLDOWN_MS` 와 정합 — 공중에선 lock, 착지 직후에도 짧은
+ * cooldown 동안 잠가 둔다.
+ */
+const FLEE_TURN_COOLDOWN_MS = 250;
+
 export class MemoryShardNPC extends Enemy {
   /**
    * The innocent data this NPC represents.
@@ -44,6 +55,10 @@ export class MemoryShardNPC extends Enemy {
   onSubdued: (() => void) | null = null;
 
   private jumpTimer: number;
+  /** flee 방향 (1=오른쪽, -1=왼쪽). 매 프레임 재계산하지 않고 cooldown 으로 갱신. */
+  private fleeDir: 1 | -1 = 1;
+  /** 다음 flee 방향 갱신까지 남은 시간 (ms). 공중 + 착지 직후 떨림 차단. */
+  private fleeTurnCooldownMs = 0;
 
   constructor() {
     super({
@@ -87,18 +102,39 @@ export class MemoryShardNPC extends Enemy {
     // --- chase: flee AWAY from player (inverse movement direction) ---
     this.fsm.addState({
       name: 'chase',
+      enter: () => {
+        // 첫 진입 시 즉시 dir 결정 — cooldown 0 으로 idle→chase 전환 직후 플레이어
+        // 로부터 즉각 멀어진다.
+        if (this.target) {
+          this.fleeDir = this.target.x > this.x ? -1 : 1;
+        }
+        this.fleeTurnCooldownMs = 0;
+      },
       update: (dt) => {
         if (!this.target) return;
 
-        // Flee: move opposite direction from player
-        const dir = this.target.x > this.x ? -1 : 1;
-        this.vx = dir * this.moveSpeed;
+        // Flee dir 갱신 — 공중에선 잠그고 (점프 중 좌우 떨림 차단), 착지 직후에도
+        // FLEE_TURN_COOLDOWN_MS 동안 잠근다 (사용자 피드백 2026-05-05).
+        if (this.fleeTurnCooldownMs > 0) {
+          this.fleeTurnCooldownMs = Math.max(0, this.fleeTurnCooldownMs - dt);
+        }
+        if (this.grounded && this.fleeTurnCooldownMs <= 0) {
+          const wantDir: 1 | -1 = this.target.x > this.x ? -1 : 1;
+          if (wantDir !== this.fleeDir) {
+            this.fleeDir = wantDir;
+            this.fleeTurnCooldownMs = FLEE_TURN_COOLDOWN_MS;
+          }
+        }
+        this.vx = this.fleeDir * this.moveSpeed;
 
-        // Jump timer — escape pits and obstacles
+        // Jump timer — escape pits and obstacles. 이륙 시 cooldown 을 부여해
+        // 점프 도중 dir 이 갱신되지 않도록 한다 (실제로는 grounded 가드로
+        // 충분하지만 guard 가 풀리는 frame 사이 race 를 방지).
         this.jumpTimer -= dt;
         if (this.jumpTimer <= 0 && this.grounded) {
           this.vy = FLEE_JUMP_VY;
           this.jumpTimer = JUMP_TIMER_MIN + Math.random() * (JUMP_TIMER_MAX - JUMP_TIMER_MIN);
+          this.fleeTurnCooldownMs = FLEE_TURN_COOLDOWN_MS;
         }
 
         // If player leaves detect range, return to idle

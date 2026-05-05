@@ -19,7 +19,7 @@ import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
 import { GameAction, actionKey } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
-import { Guardian } from '@entities/Guardian';
+import { Boss01 } from '@entities/Boss01';
 import { GoldenMonster } from '@entities/GoldenMonster';
 import { createEnemy } from '@entities/EnemyFactory';
 import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } from '@entities/HealingPickup';
@@ -2453,7 +2453,9 @@ export class ItemWorldScene extends Scene {
   private spawnBoss(): void {
     const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
-    const boss = createEnemy('Guardian') as Guardian;
+    // Boss01 = 24-frame atlas 기반 신규 보스 (idle / attack1 / jump / charge).
+    // Guardian 는 EnemyFactory 에 그대로 남아 있어 'Boss' 또는 'Guardian' 으로 폴백 가능.
+    const boss = createEnemy('Boss01') as Boss01;
     boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
     boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
     boss.x = (this.roomW / 2) * TILE_SIZE;
@@ -3379,6 +3381,7 @@ export class ItemWorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
+        SFX.play('attack_hit');
         if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
         if (hit.heavy) {
           this.screenFlash.flashHit(true);

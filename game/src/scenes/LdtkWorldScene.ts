@@ -30,7 +30,7 @@ import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
-import { Guardian } from '@entities/Guardian';
+import { Boss01 } from '@entities/Boss01';
 import { GoldenMonster } from '@entities/GoldenMonster';
 import { createEnemy } from '@entities/EnemyFactory';
 import { Projectile } from '@entities/Projectile';
@@ -157,6 +157,8 @@ import {
   trackItemDrop,
 } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
+import { AmbientLayer } from '@audio/AmbientLayer';
+import { SFX } from '@audio/Sfx';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -931,13 +933,20 @@ export class LdtkWorldScene extends Scene {
       this.titleFadeInTimer = 0;
     }
 
-    // Spawn level ??saved level or default Player entity level
-    if (saveData && saveData.levelId) {
-      this.playerSpawnLevelId = saveData.levelId;
-    } else {
-      this.playerSpawnLevelId = this.findPlayerSpawnLevel();
+    // Spawn level: prefer the saved level, but fall back if the LDtk project
+    // changed since the save was written. A stale save level used to leave the
+    // scene initialized with only HUD visible and no currentLevel.
+    this.playerSpawnLevelId = this.resolveSpawnLevelId(saveData?.levelId);
+    if (!this.loadLevel(this.playerSpawnLevelId, 'down')) {
+      const fallbackLevelId = this.findPlayerSpawnLevel();
+      if (fallbackLevelId !== this.playerSpawnLevelId) {
+        console.warn(
+          `[LdtkWorldScene] Failed to load spawn level "${this.playerSpawnLevelId}", falling back to "${fallbackLevelId}"`,
+        );
+        this.playerSpawnLevelId = fallbackLevelId;
+        this.loadLevel(this.playerSpawnLevelId, 'down');
+      }
     }
-    this.loadLevel(this.playerSpawnLevelId, 'down');
 
     // If loading from save, snap player to save point
     if (saveData && this.savePoints.length > 0) {
@@ -945,6 +954,10 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.initialized = true;
+
+    // Tier 3 ambient bed demo (Plan_Audio_Demo §3-1 #1A + #1C, DEC-040 §13-2.4 진척)
+    AmbientLayer.startWorldTier3Demo();
+
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
     // update() ??fires once per session with auto-dismiss. No unconditional
     // toast here so returning from item world doesn't re-spam controls.
@@ -1518,6 +1531,7 @@ export class LdtkWorldScene extends Scene {
       for (const hit of hits) {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
+        SFX.play('attack_hit');
         if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
@@ -2337,6 +2351,24 @@ export class LdtkWorldScene extends Scene {
     return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
   }
 
+  private canLoadWorldLevel(levelId: string | null | undefined): levelId is string {
+    if (!levelId) return false;
+    const level = this.loader.getLevel(levelId);
+    if (!level) return false;
+    return level.roomType !== 'Debug' || LdtkWorldScene.debugMode;
+  }
+
+  private resolveSpawnLevelId(savedLevelId: string | null | undefined): string {
+    if (this.canLoadWorldLevel(savedLevelId)) return savedLevelId;
+    const fallbackLevelId = this.findPlayerSpawnLevel();
+    if (savedLevelId) {
+      console.warn(
+        `[LdtkWorldScene] Saved level "${savedLevelId}" is missing or inaccessible; using "${fallbackLevelId}"`,
+      );
+    }
+    return fallbackLevelId;
+  }
+
   /** Seal level exits with temporary collision doors when boss fight starts. */
   private activateBossLock(level: LdtkLevel, bossId: string = 'unknown'): void {
     if (this.bossActive) return; // already locked; avoid double start event
@@ -2366,6 +2398,11 @@ export class LdtkWorldScene extends Scene {
         '', 'event', '', 'atk', 0,
       );
       door.injectCollision(this.collisionGrid);
+      // 사용자 피드백 2026-05-05: boss-lock door 의 시각 (16px×룸높이 brown bar)
+      // 이 룸 가장자리에 어두운 세로 기둥으로 노출돼 misplaced asset 처럼 보임.
+      // collision-only 로 처리 — 시각 숨김. 향후 arena 진입 폴리시 (energy
+      // barrier 등) 추가 시 여기서 다른 styled 시각 부착.
+      door.container.visible = false;
       this.bossLockDoors.push(door);
       this.entityLayer.addChild(door.container);
     }
@@ -2493,15 +2530,16 @@ export class LdtkWorldScene extends Scene {
     return p.has('debug');
   })();
 
-  private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): void {
+  private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): boolean {
     // Debug rooms (RoomType=Debug) only accessible with ?debug in URL
     if (this.loader.getLevel(levelId)?.roomType === 'Debug' && !LdtkWorldScene.debugMode) {
-      return;
+      console.warn(`[LdtkWorldScene] Debug level blocked without ?debug: "${levelId}"`);
+      return false;
     }
     const level = this.loader.getLevel(levelId);
     if (!level) {
       console.error(`[LdtkWorldScene] Level not found: "${levelId}"`);
-      return;
+      return false;
     }
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
@@ -2714,6 +2752,7 @@ export class LdtkWorldScene extends Scene {
       this.worldMap.redraw();
     }
 
+    return true;
   }
 
   /**
@@ -4112,7 +4151,7 @@ export class LdtkWorldScene extends Scene {
       const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
       if (this.unlockedEvents.has(bossKey)) continue; // already killed permanently
 
-      const boss = new Guardian();
+      const boss = new Boss01();
       (boss as any)._isBoss = true;
       (boss as any)._bossKey = bossKey;
       boss.x = ent.px[0] - boss.width / 2;
@@ -4922,11 +4961,15 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.healthShardBonus = saveData.healthShardBonus ?? 0;
-      this.loadLevel(saveData.levelId, 'down');
+      const respawnLevelId = this.resolveSpawnLevelId(saveData.levelId);
+      this.playerSpawnLevelId = respawnLevelId;
+      this.loadLevel(respawnLevelId, 'down');
     } else {
       // No save ??return to spawn level
       this.healthShardBonus = 0;
-      this.loadLevel(this.playerSpawnLevelId, 'down');
+      const respawnLevelId = this.resolveSpawnLevelId(this.playerSpawnLevelId);
+      this.playerSpawnLevelId = respawnLevelId;
+      this.loadLevel(respawnLevelId, 'down');
     }
 
     // Full HP restore + snap to save point

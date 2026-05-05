@@ -31,30 +31,32 @@ When invoked with a path (e.g., `/ase-export game/public/assets/sprites/fx_slash
 
 When invoked with a directory (e.g., `/ase-export game/public/assets/sprites/`), export all `.ase` and `.aseprite` files in that directory.
 
-## Export Command
+## Export Command (FIXED — do not change)
 
-For each `.ase` / `.aseprite` file, run:
+For each `.ase` / `.aseprite` file, run **exactly** this command. Output names and `--sheet-type` are project-fixed conventions; do not substitute `_sheet`, `.json`, or `packed`.
 
 ```bash
-"/c/Program Files (x86)/Steam/steamapps/common/Aseprite/aseprite.exe" -b "{input}" --sheet "{basename}_sheet.png" --data "{basename}.json" --format json-array --sheet-type packed --split-slices --list-slices
+"/c/Program Files (x86)/Steam/steamapps/common/Aseprite/aseprite.exe" -b "{input}" --sheet "{basename}_atlas.png" --data "{basename}_atlas.json" --format json-array --sheet-type horizontal --split-slices --list-slices
 ```
 
 Where:
 - `{input}` = full path to the `.ase` file
-- `{basename}` = same directory + filename without extension
+- `{basename}` = same directory + filename without extension (e.g. `boss_01`, `erda`)
 - `-b` = batch mode (no UI)
-- `--sheet-type packed` = optimal packing
+- `--sheet-type horizontal` = single horizontal strip (project SSoT — required by atlas loaders)
 - `--split-slices` = each slice becomes a separate entry
 - `--list-slices` = include slice metadata in JSON
 
 ## Output
 
-Each input file produces two outputs in the same directory:
+Each input file produces two outputs in the same directory, **always** suffixed `_atlas`:
 
 | Input | Output 1 | Output 2 |
 |:------|:---------|:---------|
-| `ui_hud_01.ase` | `ui_hud_01_sheet.png` | `ui_hud_01.json` |
-| `fx_slash.ase` | `fx_slash_sheet.png` | `fx_slash.json` |
+| `erda.ase` | `erda_atlas.png` | `erda_atlas.json` |
+| `boss_01.ase` | `boss_01_atlas.png` | `boss_01_atlas.json` |
+| `ui_hud_01.ase` | `ui_hud_01_atlas.png` | `ui_hud_01_atlas.json` |
+| `fx_slash.ase` | `fx_slash_atlas.png` | `fx_slash_atlas.json` |
 
 ## Process
 
@@ -75,12 +77,18 @@ Each input file produces two outputs in the same directory:
 > /ase-export
 
 Exporting Aseprite files from game/public/assets/ui/...
-  [OK] ui_hud_01.ase → ui_hud_01_sheet.png + ui_hud_01.json
+  [OK] ui_hud_01.ase → ui_hud_01_atlas.png + ui_hud_01_atlas.json
 Exported 1 file.
 
 > /ase-export game/public/assets/sprites/fx_slash.ase
 
 Exporting: fx_slash.ase
-  [OK] fx_slash.ase → fx_slash_sheet.png + fx_slash.json
+  [OK] fx_slash.ase → fx_slash_atlas.png + fx_slash_atlas.json
+Exported 1 file.
+
+> /ase-export boss_01
+
+Locating: boss_01.ase under game/public/assets/...
+  [OK] boss_01.ase → boss_01_atlas.png + boss_01_atlas.json
 Exported 1 file.
 ```

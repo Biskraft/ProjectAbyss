@@ -24,6 +24,7 @@
  */
 
 import { sound, type IMediaInstance, type PlayOptions, type Sound } from '@pixi/sound';
+import { getEventMix } from '@data/audioEvents';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,7 +41,7 @@ interface ChannelState {
 /** Default channel volumes match LUFS targets in System_Audio_Direction §11-1. */
 const DEFAULT_CHANNEL_STATE: Record<AudioChannel, ChannelState> = {
   bgm:     { volume: 0.55, muted: false },
-  ambient: { volume: 0.45, muted: false },
+  ambient: { volume: 0.225, muted: false }, // 2026-05-05 청취 검증 후 0.45 → 0.225
   sfx:     { volume: 0.80, muted: false },
   voice:   { volume: 0.70, muted: false },
 };
@@ -94,12 +95,30 @@ class AudioBusImpl {
    * (channel volume is applied per `play()` call rather than via a
    * shared GainNode, since @pixi/sound v6 does not expose a stable
    * external GainNode injection point).
+   *
+   * @param preload true 면 즉시 디코드 시작 — 첫 play 무음 회피 (combat sfx 등
+   *   짧고 빠른 큐에 권장). 기본 false (lazy on first play).
    */
-  add(id: string, url: string, _channel: AudioChannel): Sound {
-    return sound.add(id, {
-      url,
-      preload: false,
-    });
+  add(id: string, url: string, _channel: AudioChannel, preload = false): Sound {
+    // Idempotent: HMR reloads or duplicate registration paths may call add()
+    // multiple times. @pixi/sound throws InvalidStateError if a sound with the
+    // same id is added twice (AudioBufferSourceNode.buffer can only be set
+    // once). Reuse existing registration; lazy-load on first play to avoid
+    // racing two decode callbacks against a single buffer source.
+    if (sound.exists(id)) {
+      return sound.find(id);
+    }
+    try {
+      return sound.add(id, {
+        url,
+        preload,
+      });
+    } catch (err) {
+      // Race fallback: another path registered the same id between exists()
+      // and add(). Return the now-registered entry instead of rethrowing.
+      if (sound.exists(id)) return sound.find(id);
+      throw err;
+    }
   }
 
   /** Play a registered sound. Returns the media instance, or undefined if muted. */
@@ -108,7 +127,9 @@ class AudioBusImpl {
     channel: AudioChannel,
     options: Omit<PlayOptions, 'volume'> & { volume?: number } = {},
   ): IMediaInstance | undefined {
-    const base = options.volume ?? 1.0;
+    // mix_volume SSoT: Sheets/Content_System_Audio_Events.csv → audioEvents.ts.
+    // options.volume 명시 호출은 직접값 우선 (디버그/테스트 경로 보존).
+    const base = options.volume ?? getEventMix(id);
     const eff = this.effective(channel, base);
     if (eff <= 0) return undefined;
     const result = sound.play(id, { ...options, volume: eff });

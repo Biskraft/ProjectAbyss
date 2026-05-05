@@ -101,11 +101,62 @@ mkdir _audio_workdir\trimmed_wav
 
 ### 3-1. 환경 베드 (Sound Effects, loopable)
 
-#### #1 World Tier 2/3 Environmental Bed
+#### #1 World Tier 2/3 Environmental Bed — 자산 레이어 분리 전략 (v3, 2026-05-05)
+
+> **레이어 분리 사유:** v2 (자연 보강 단일 프롬프트) 청취 결과 *자연이 전혀 안 들림 = v1과 동일* (Victor, 2026-05-05). ElevenLabs SE 가 *첫 키워드(Industrial megastructure) 우선* 가중치로 자연 키워드를 무시하는 패턴. 단일 프롬프트로 삼중 레이어 비중 강제 불가. **자산 2개로 분리 후 게임 코드 볼륨 합성**으로 전환. System_Audio §2-5 §B 비중 표가 코드 볼륨으로 직접 매핑.
+
+##### #1A — Builder Layer (v1 채택, Shaft / 빌더 폐허 영역 전용)
 ```
 Industrial megastructure ambience, vast cavernous reverb, low 60Hz drone foundation, distant builder footsteps barely audible, faint metallic structure groans, ventilation airflow, ghost industrial atmosphere, BLAME manga inspired, no melody, no human voice, no music, loopable 30 seconds
 ```
-- 길이: 30s — Loop: ON — 파일: `amb_world_shaft_tier3_bed.ogg`
+- 길이: 30s — Loop: ON — 파일: `amb_world_shaft_tier3_builder.ogg`
+- 청취 통과 (C1–C6) — 그대로 채택. 재생성 불필요
+- **사용 영역:** Shaft (광활한 수직 공동) / 빌더 폐허 (구조물 내부). Tier 2–5 주력. 단독 또는 #1B와 합성 X (Shaft = 빌더 단독)
+
+##### #1B — Natural Residue Layer (v2 — 메가스트럭처 내부 신호로 한정 2026-05-05)
+```
+Sparse natural residue inside vast megastructure cavern, water dripping from far above onto stone surfaces (slow irregular drips), faint mineral water trickling through ancient cracks, mineral crystal flow seeping between rocks, distant deep cavern echoes from below, underground stillness, vast cavernous reverb, no rain, no wind, no birds, no insects, no animals, no machinery, no metal, no human voice, no melody, ambient mineral and water traces only, very quiet, atmospheric, hollow deep cave, loopable 30 seconds
+```
+- 길이: 30s — Loop: ON — 파일: `amb_world_shaft_tier3_nature.ogg`
+- v1 폐기 사유 (Victor 청취 2026-05-05): "비 소리인데 게임에선 비가 안 옴 (루도나러티브 충돌) / 새는 무드 파괴 / 두 배경음 매치 X (외부 신호 vs #1A 내부 신호 공간 충돌)"
+- v2 청취 결과 (Victor 2026-05-05): "물 떨어지는게 이상함 (실제 구현으로) / 동굴 같은데 Shaft 같은 데선 꺼야 함 / 너무 동굴 같음"
+- v2 → 자산은 채택. **사용 영역만 한정**: 자연 동굴 / 균열 영역 (Tier 5–7 깊은 자연 침입 영역) 전용. The Shaft / 빌더 폐허에서는 OFF. AmbientLayer 가 RoomNode 공간 유형 enum 으로 분기 결정
+- 향후 v3 (선택, 후속 결정): 낙수 키워드 제거 (낙수는 별도 디제틱 SFX 분리). 현 v2 자산도 동굴 영역 한정 사용 시 디제틱 낙수와 중복 위험 적음 — 폴리시 단계에서 재평가
+
+##### #1C — Civilization Residue Layer (현 문명 잔재, 영구 룰 #9 신설)
+
+> **레퍼런스 톤:** 신세기 에반게리온 — 아야나미 레이 아파트 주변에서 *멀리 들리는 도시 공사* 소리. 쿵·쿵·깡·깡. 거대 도시의 인간 활동이 거주 공간 외부에서 *잔재로* 들리는 톤. ECHORIS 그림자 마을 형이상학과 정합 — *떠난 그림자 거주자가 옛날에 만들던 활동의 청각 메아리*. 1차 niche (Transistor / BLAME! / 메이드 인 어비스 팬과 교집합 큼) 신호 강화.
+
+##### Prompt
+```
+Ghost echoes of past urban construction in abandoned megastructure, faint distant metal hammering (deep low thuds and high pitched clangs at irregular sparse intervals every 8-15 seconds), far-off heavy machinery clanking residue, residual industrial activity sounds drifting through hollow city spaces, civilization residue traces of departed inhabitants, sparse impacts only, no human voices, no shouting, no human speech, no melody, no music, lonely melancholy quiet city ghost atmosphere, loopable 30 seconds
+```
+
+- 길이: 30s × **5변주** — Loop: 순차 사이클 150s, 크로스페이드 1.5s — 파일:
+  - `amb_world_civ_construction_v1.ogg` (← `MACHCnst-Realistic_soundscape-Elevenlabs.mp3`)
+  - `amb_world_civ_construction_v2.ogg` (← `Realistic_soundscape_#1-1777952920906.mp3`)
+  - `amb_world_civ_construction_v3.ogg` (← `Realistic_soundscape_#2-1777952942885.mp3`)
+  - `amb_world_civ_construction_v4.ogg` (← `Continuous_rumbling__#1-1777965287570.mp3`, 2026-05-05 추가, rumbling 톤)
+  - `amb_world_civ_construction_v5.ogg` (← `Continuous_rumbling__#4-1777965269233.mp3`, 2026-05-05 추가, rumbling 톤)
+- **3변주 순차 루프 채택 사유** (Victor 제안 + 자체 결정 2026-05-05): 단일 30초 루프의 반복 인지 한계 회피 + ElevenLabs SE 프롬프트 응답성 변주를 자산 다양성으로 흡수 + 큐레이션 베스트 1 선별 부담 제거. 라우드니스는 ffmpeg 정규화로 −22 LUFS 일관 (각각 −19.30 / −22.54 / −18.33 → −22). 영구 룰 #10 신설 (환경 베드 변주 풍부화 패턴)
+- **사용 영역**: Tier 2 세이브 포인트 (현 문명 표층 35%) / Tier 3–4 빌더 폐허 (10%). Tier 5–7 깊은 영역 OFF (자연 우세). AmbientLayer 가 RoomNode 공간 유형 enum 으로 분기
+- **게이트 (영구 룰 #9)**: 인간 발성·외침·이름 부르기 영구 금지. 도구 신호(망치·금속·공사·기계 활동)만 OK. 검 Ego 단독 화자 (DEC-033) + 큐레이션 C1 정합
+- **저작권 회피**: 프롬프트에 "Evangelion" / 작품명 직접 언급 X. 톤 키워드만 사용
+- 청취 통과 후 §13-2.4 AmbientLayer Layer A 합성 — Tier 2 기준 빌더 0.6 × 자연 0 × 현 문명 0.35 (3변주 순차)
+
+##### #1D — 디제틱 환경 SFX 분리 (시각 출처 동기, 영구 룰 #7)
+
+환경 베드(비디제틱 공간 톤) 와 디제틱 SFX(시각적 출처 동기) 는 **영구 분리**한다. 디제틱 SFX 는 게임 코드 Layer C 근접 트리거가 시각 입자/스프라이트와 동기 재생.
+
+| 디제틱 SFX | 프롬프트 | 시각 출처 |
+|:---|:---|:---|
+| `sfx_world_waterdrop_01.ogg` | `Single water drop hitting stone floor in vast cavern, brief tap with short reverb tail, 0.3 second, no other sounds, generate 3 distinct variations` | 천장 물방울 입자 시뮬 |
+| `sfx_world_mineral_creak_01.ogg` | `Distant mineral cracking, deep underground geological shift, brief low frequency creak, 0.5 second, generate 2 variations` | 화면 밖 지질 활동 (시각 X 가능) |
+| `sfx_world_seepage_drip_01.ogg` | `Slow mineral water seepage drip from rock crack, viscous slow drop, 0.4 second, 2 variations` | 벽 결로 입자 |
+
+- 길이: 각 0.3–0.5s — Loop: OFF — 파일: 위 표 기준
+- 게임 코드 Layer C 가 *시각 출처가 화면에 있을 때만* 트리거. 환경 베드와 동시 재생 가능
+- 생성 = Victor 트리거 후 (지금 진행 X)
 
 #### #2 Plaza Environmental Bed (Item World hub)
 ```
@@ -271,6 +322,7 @@ ElevenLabs Music — Smithy theme save point BGM, warm woodwinds (bassoon, Engli
 | C4 | **음역 범위 정합** | 환경 베드 = 저주파 우세 / SFX 임팩트 = 150–400 Hz 저음 / Ego 사인음 = 1.6–6 kHz 고주파 |
 | C5 | **잔향 길이 정합** | 환경 베드 = 광활 (긴 잔향) / SFX = 짧음 (≤ 120ms) / 종 = 4–6초 |
 | C6 | **유령 청각** (Lane/환경) | "사람 없는 공간에서 들리는 잔재" 톤. 활기·인구 느낌 즉시 탈락 |
+| C7 | **자연 잔재 결핍 검증** (월드 환경 베드) | 바람·낙수·광물 흐름·먼 새 잔재 중 1개 이상 들리는가. 자연 0 = 청각 피로 위험. NG (System_Audio §2-5 §B 삼중 레이어 SSoT). 단 Sanctum/Memorial 은 자연 X 가 정합 — 면제 |
 
 ### 4-2. SFX 개별 체크리스트
 

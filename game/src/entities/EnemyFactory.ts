@@ -8,11 +8,12 @@
 import { Skeleton } from './Skeleton';
 import { Ghost } from './Ghost';
 import { Slime } from './Slime';
-import { Guardian } from './Guardian';
 import { GoldenMonster } from './GoldenMonster';
+import { Boss01 } from './Boss01';
+// Guardian: 폐기 후보 (Boss01 으로 통합). import 제거 — 필요 시 다시 추가.
 import type { Enemy } from './Enemy';
 
-export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'WeakSlime' | 'Guardian' | 'GoldenMonster' | 'Boss';
+export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'WeakSlime' | 'Guardian' | 'GoldenMonster' | 'Boss' | 'Boss01';
 
 /**
  * Create an enemy instance by type name.
@@ -33,9 +34,12 @@ export function createEnemy(
       return new Slime(level);
     case 'WeakSlime':
       return new Slime(level, 'WeakSlime');
+    // 'Guardian' / 'Boss' / 'Boss01' 모두 Boss01 으로 통합 — 24-frame atlas 기반
+    // 신규 보스로 시각 통일. Guardian 클래스는 import 만 유지 (rollback 용).
     case 'Guardian':
     case 'Boss':
-      return new Guardian(level);
+    case 'Boss01':
+      return new Boss01(level);
     case 'GoldenMonster':
     case 'Golden':
       return new GoldenMonster(goldenDifficulty, level);
