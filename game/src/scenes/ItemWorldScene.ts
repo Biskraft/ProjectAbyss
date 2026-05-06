@@ -3277,7 +3277,8 @@ export class ItemWorldScene extends Scene {
 
     // World Map / Inventory are unavailable inside Item World ? surface a
     // short English toast so the player understands the key was recognised
-    // but intentionally disabled here.
+    // but intentionally disabled here. Shift+I 는 Game.ts 가 INVENTORY 를
+    // consume 해 전역 UI 토글로 사용 — 여기로 도달하지 않는다.
     if (this.game.input.isJustPressed(GameAction.MAP)) {
       this.game.input.consumeJustPressed(GameAction.MAP);
       this.toast.show('Currently unavailable', 0xaaaaaa);

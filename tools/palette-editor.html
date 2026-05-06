@@ -170,6 +170,7 @@ body::after {
   <label>BG Tileset<input type="file" id="bgTilesetInput" accept="image/*"></label>
   <button class="btn" onclick="bgTilesetInput.click()">SunnyLand</button>
   <div style="flex:1"></div>
+  <button class="btn" onclick="reloadFromDisk()">Reload from Disk</button>
   <button class="btn primary" onclick="copyCSV()">Copy CSV</button>
   <button class="btn" onclick="downloadCSV()">Download</button>
   <span class="status" id="statusMsg"></span>
@@ -297,14 +298,21 @@ function stopsToString(stops) {
     .map(s => s.t.toFixed(2) + ':' + (s.color & 0xffffff).toString(16).padStart(6, '0'))
     .join('|');
 }
+function quoteCsv(s) {
+  if (typeof s !== 'string') return s;
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
 function entriesToCSV() {
   let out = csvHeader + '\n';
   for (const e of csvEntries) {
     out += [
-      e.id, e.name, e.layer, e.brightness.toFixed(2),
+      e.id, quoteCsv(e.name), e.layer, e.brightness.toFixed(2),
       '0x' + (e.tint & 0xffffff).toString(16).padStart(6, '0').toUpperCase(),
       e.depthBias.toFixed(2), e.depthCenter.toFixed(2),
-      stopsToString(e.stops), e.description, e.tileset,
+      stopsToString(e.stops), quoteCsv(e.description), e.tileset,
       e.parallaxImage, e.parallaxFactor,
       e.parallaxImageMid, e.parallaxFactorMid,
       e.parallaxImageNear, e.parallaxFactorNear,
@@ -405,6 +413,12 @@ function renderGradientSection(entry, label) {
     html += '<span class="param-val" style="width:auto;color:#E87830">' + entry.tileset + '</span>';
     html += '</div>';
   }
+  // Description (editable)
+  const descSafe = (entry.description || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  html += '<div class="param-row" style="align-items:flex-start">';
+  html += '<label style="padding-top:4px">Desc</label>';
+  html += '<textarea class="param-text" style="width:100%;min-height:48px;resize:vertical;font-family:Inter,sans-serif;font-size:11px;line-height:1.4" data-layer="' + label + '" data-desc="text">' + descSafe + '</textarea>';
+  html += '</div>';
   html += '</div>';
 
   // Parallax section (collapsible, BG only typically)
@@ -551,6 +565,16 @@ function bindStopEvents() {
       const entry = findEntry(selectedPairId, layer);
       if (!entry) return;
       entry[field] = e.target.value.trim();
+    });
+  });
+
+  // Description textarea
+  document.querySelectorAll('[data-desc="text"]').forEach(input => {
+    input.addEventListener('input', e => {
+      const layer = e.target.dataset.layer;
+      const entry = findEntry(selectedPairId, layer);
+      if (!entry) return;
+      entry.description = e.target.value;
     });
   });
 
@@ -728,6 +752,80 @@ async function restoreFromStorage() {
   }
 }
 
+// ── Disk auto-load (works when served via dev server; fails silently on file://) ──
+const CSV_DISK_PATH = '../Sheets/Content_System_Area_Palette.csv';
+const ATLAS_DISK_DIR = '../game/public/assets/atlas/';
+
+function loadImageFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+async function tryFetchCsvFromDisk(bustCache) {
+  try {
+    const url = CSV_DISK_PATH + (bustCache ? '?_=' + Date.now() : '');
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.text();
+  } catch (e) { return null; }
+}
+
+async function tryFetchTilesetFromDisk(name) {
+  if (!name) return null;
+  try {
+    const res = await fetch(ATLAS_DISK_DIR + name + '.png');
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await loadImageFromBlob(blob);
+  } catch (e) { return null; }
+}
+
+async function autoLoadTilesetsFromDisk() {
+  // Pick the first BG/WALL entry's tileset name as the preview default
+  const bgName = (csvEntries.find(e => e.layer === 'BG' && e.tileset) || {}).tileset;
+  const wallName = (csvEntries.find(e => e.layer === 'WALL' && e.tileset) || {}).tileset;
+  const [bgImg, wallImg] = await Promise.all([
+    tryFetchTilesetFromDisk(bgName),
+    tryFetchTilesetFromDisk(wallName),
+  ]);
+  let loaded = 0;
+  if (bgImg) { bgTilesetImg = bgImg; loaded++; }
+  if (wallImg) { wallTilesetImg = wallImg; loaded++; }
+  return loaded;
+}
+
+async function reloadFromDisk() {
+  const text = await tryFetchCsvFromDisk(true);
+  if (!text) {
+    status('Reload failed: disk fetch unavailable (file:// blocks fetch — serve via dev server)', false);
+    return;
+  }
+  loadCSV(text);
+  saveCSVToStorage(text);
+  const tilesetsLoaded = await autoLoadTilesetsFromDisk();
+  status('Reloaded from disk (' + csvEntries.length + ' entries, ' + tilesetsLoaded + ' tilesets)', true);
+  if (csvEntries.length > 0) renderPreview();
+}
+
+async function initEditor() {
+  // 1. Try disk first (dev server)
+  const diskCsv = await tryFetchCsvFromDisk(false);
+  if (diskCsv) {
+    loadCSV(diskCsv);
+    saveCSVToStorage(diskCsv);
+    const tilesetsLoaded = await autoLoadTilesetsFromDisk();
+    status('Auto-loaded from disk (' + csvEntries.length + ' entries, ' + tilesetsLoaded + ' tilesets)', true);
+    if (csvEntries.length > 0) renderPreview();
+    return;
+  }
+  // 2. Fallback: localStorage
+  await restoreFromStorage();
+}
+
 // ── File handlers ──
 document.getElementById('csvInput').addEventListener('change', e => {
   const file = e.target.files[0];
@@ -763,8 +861,8 @@ document.addEventListener('drop', e => {
   }
 });
 
-// ── Auto-restore on load ──
-restoreFromStorage();
+// ── Auto-restore on load (disk first, localStorage fallback) ──
+initEditor();
 </script>
 </body>
 </html>

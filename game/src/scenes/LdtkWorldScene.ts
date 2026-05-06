@@ -423,9 +423,6 @@ export class LdtkWorldScene extends Scene {
   private inFixedItemWorld = false;
   private fixedItemWorldItem: ItemInstance | null = null;
 
-  // Debug: Shift+U UI mockup toggle
-  private debugUIHidden = false;
-  private debugHudMockup: Sprite | null = null;
 
   // Level tracking
   private visitedLevels: Set<string> = new Set(); // entered at least once ??revealed on minimap
@@ -1903,47 +1900,11 @@ export class LdtkWorldScene extends Scene {
       window.location.reload();
     }
 
+    // Shift+I 전역 UI 토글은 Game.ts 에서 처리 — INVENTORY 가 거기서 consume 되므로
+    // 여기 인벤토리 토글 핸들러는 자동으로 통과한다.
+
     // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      // Shift+U: toggle all UI off and show HUD mockup image
-      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
-        this.game.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
-        this.debugUIHidden = !this.debugUIHidden;
-        // Hide/show real UI layers
-        this.game.uiContainer.visible = !this.debugUIHidden;
-        this.game.legacyUIContainer.visible = !this.debugUIHidden;
-        // Show/hide mockup
-        if (this.debugUIHidden) {
-          const showMockup = (tex: Texture) => {
-            tex.source.scaleMode = 'nearest';
-            this.debugHudMockup = new Sprite(tex);
-            this.debugHudMockup.zIndex = 99999;
-            this.debugHudMockup.width = this.game.app.canvas.width;
-            this.debugHudMockup.height = this.game.app.canvas.height;
-            this.game.app.stage.addChild(this.debugHudMockup);
-          };
-          if (this.debugHudMockup) {
-            this.debugHudMockup.width = this.game.app.canvas.width;
-            this.debugHudMockup.height = this.game.app.canvas.height;
-            this.debugHudMockup.visible = true;
-          } else {
-            const url = assetPath('assets/ui/ui_hud_01.png');
-            Assets.load<Texture>(url).then((tex) => {
-              if (this.debugUIHidden) showMockup(tex);
-            });
-          }
-          this.toast.show('UI MOCKUP ON', 0x44aaff);
-        } else {
-          if (this.debugHudMockup) this.debugHudMockup.visible = false;
-          this.toast.show('UI MOCKUP OFF', 0x44aaff);
-        }
-      }
-      // Shift+I: toggle debug info (floor text, coordinates)
-      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.INVENTORY)) {
-        this.game.input.consumeJustPressed(GameAction.INVENTORY);
-        this.hud.toggleDebugInfo();
-        this.toast.show('DEBUG INFO TOGGLE', 0x44aaff);
-      }
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         const a = this.player.abilities;
         const allOn = a.cheat;

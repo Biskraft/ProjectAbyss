@@ -65,6 +65,8 @@ export class Game {
   uiScale = 1;
 
   hitstopFrames = 0;
+  /** Shift+I 로 모든 UI 레이어를 숨긴 상태. true 면 HUD/legacy/feedback overlay/FPS 모두 비표시. */
+  uiHidden = false;
   /** Set true while FeedbackPanel is open. Scenes early-return on update. */
   feedbackOpen = false;
   feedbackPanel!: FeedbackPanel;
@@ -222,13 +224,20 @@ export class Game {
           // setVirtualAction 으로 주입된 keystate 가 isJustPressed 로 정확히 검출된다.
           this.gamepad.poll(this.input);
 
-          // Shift+I — 전역 디버그 오버레이 토글. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
-          // import.meta.env.DEV (Vite dev-mode flag) 일 때만 동작 — production 빌드에선 disable.
-          if (import.meta.env.DEV
-            && this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
+          // Shift+I — 전역 UI 토글. HUD/legacy/feedback 오버레이 + FPS 카운터 + Debug 오버레이를
+          // 한꺼번에 켜고 끈다. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
+          if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
             this.input.consumeJustPressed(GameAction.INVENTORY);
-            Debug.infoVisible = !Debug.infoVisible;
-            Debug.visible = Debug.infoVisible;
+            this.uiHidden = !this.uiHidden;
+            const visible = !this.uiHidden;
+            this.uiContainer.visible = visible;
+            this.legacyUIContainer.visible = visible;
+            this.feedbackOverlayContainer.visible = visible;
+            this.fpsCounter.container.visible = visible;
+            if (import.meta.env.DEV) {
+              Debug.infoVisible = visible;
+              Debug.visible = visible;
+            }
           }
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);
