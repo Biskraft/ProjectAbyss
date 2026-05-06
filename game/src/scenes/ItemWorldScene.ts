@@ -173,13 +173,9 @@ const STRATUM_PICKER_COL_POSITIVE = 0x44ff44;
 const STRATUM_PICKER_COL_LOCKED = 0x666666;
 const STRATUM_PICKER_COL_GOLD = 0xffd700;
 
-const FOUNDRY_BG_HATCH_TILES = new Set([
-  '6,0', '7,0', '8,0', '9,0', '10,0',
-  '6,1', '7,1', '8,1', '9,1', '10,1',
-  '3,2', '6,2', '8,2', '9,2', '10,2',
-  '2,3', '3,3', '8,3', '9,3', '10,3',
-  '2,4', '3,4',
-]);
+// SurfaceOverlay is now spot-based, so it can run in item world without
+// producing long diagonal shadow/stain streaks.
+const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
 
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall';
@@ -896,9 +892,9 @@ export class ItemWorldScene extends Scene {
     // Camera
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
-    // LoreDisplay for Memory Rooms ? displays item memory fragments
-    this.loreDisplay = new LoreDisplay(this.game.input);
-    this.game.legacyUIContainer.addChild(this.loreDisplay.container);
+    // LoreDisplay for Memory Rooms — uiContainer(native) 직속 (UI native 1단계)
+    this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
+    this.game.uiContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
 
@@ -1135,7 +1131,7 @@ export class ItemWorldScene extends Scene {
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
+        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
         const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
         const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
@@ -1217,6 +1213,7 @@ export class ItemWorldScene extends Scene {
         maxStructures: 4,
         density: undefined,       // will be overridden by setTheme (then scaled)
         structureDensity: undefined,
+        surfaceOverlayEnabled: ITEM_WORLD_SURFACE_OVERLAY_ENABLED,
       });
       decorator.setTheme(this.item.def.themeId ?? 'T-HABITAT');
       // Scale density to 1/4 for item world
@@ -2049,15 +2046,6 @@ export class ItemWorldScene extends Scene {
     // No-op ? cycle scaling now happens via level bump at spawn time.
   }
 
-  private filterFoundryBackgroundDecorations(tiles: LdtkTile[]): LdtkTile[] {
-    if (this.item.def.themeId !== 'T-FOUNDRY') return tiles;
-    return tiles.filter((tile) => {
-      const col = Math.floor(tile.src[0] / TILE_SIZE);
-      const row = Math.floor(tile.src[1] / TILE_SIZE);
-      return !FOUNDRY_BG_HATCH_TILES.has(`${col},${row}`);
-    });
-  }
-
   private getInteriorTilesForRoom(
     ldtkLevel: LdtkLevel,
     filter?: (tile: LdtkTile) => boolean,
@@ -2088,12 +2076,13 @@ export class ItemWorldScene extends Scene {
       {
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
-        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles);
+        const bgTiles = ldtkLevel.backgroundTiles;
         const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel);
+        const shadowTiles = ldtkLevel.shadowTiles;
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
-        applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.shadowTiles);
-        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, ldtkLevel.shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
       }
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
@@ -2984,7 +2973,7 @@ export class ItemWorldScene extends Scene {
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = this.filterFoundryBackgroundDecorations(ldtkLevel.backgroundTiles.filter(inBounds));
+        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
         const wallTiles = ldtkLevel.wallTiles.filter((t) => {
           if (!inBounds(t)) return false;
           const tr = Math.floor(t.px[1] / TILE_SIZE);

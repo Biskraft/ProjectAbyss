@@ -70,9 +70,11 @@ export class LorePopup {
   private closePrompt: Container | null = null;
   private closeLabel: BitmapText | null = null;
 
-  constructor(skin?: UISkin | null) {
+  /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
+  constructor(skin?: UISkin | null, uiScale: number = 1) {
     this.skin = skin ?? null;
     this.container = new Container();
+    this.container.scale.set(uiScale);
     this.container.visible = false;
 
     this.overlay = new Graphics();

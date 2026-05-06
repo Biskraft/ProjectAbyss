@@ -151,11 +151,13 @@ export class StratumClearOverlay {
   get choice(): 'continue' | 'exit' | null { return this._choice; }
   get isDone(): boolean { return this._choice !== null; }
 
-  constructor(data: StratumClearData) {
+  /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
+  constructor(data: StratumClearData, uiScale: number = 1) {
     this.data = data;
     this.rarityColor = RARITY_COLOR[data.item.rarity];
     this.tier = RARITY_BURST[data.item.rarity];
     this.container = new Container();
+    this.container.scale.set(uiScale);
     this.container.eventMode = 'none';
 
     // ── Dim background ──

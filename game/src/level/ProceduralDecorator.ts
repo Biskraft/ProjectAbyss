@@ -35,6 +35,7 @@ interface DecoConfig {
   density: number;
   maxStructures: number;
   structureDensity: number;
+  surfaceOverlayEnabled: boolean;
 }
 
 const DEFAULTS: DecoConfig = {
@@ -43,6 +44,7 @@ const DEFAULTS: DecoConfig = {
   density: DecoratorConst.DefaultDensity,
   maxStructures: DecoratorConst.DefaultMaxStructures,
   structureDensity: DecoratorConst.DefaultStructureDensity,
+  surfaceOverlayEnabled: true,
 };
 
 // Scale multiplier for all detail decorations
@@ -273,7 +275,7 @@ export class ProceduralDecorator {
 
     // --- Pass 1: Surface Overlay (erosion/rust/stains on tile edges) ---
     // Surface overlays are environmental weathering — always natural
-    {
+    if (this.cfg.surfaceOverlayEnabled) {
       const surfGfx = new Graphics();
       const surfRng = new PRNG(seed + 11111);
       this.passSurfaceOverlay(surfGfx, edges, surfRng);
@@ -2299,35 +2301,41 @@ export class ProceduralDecorator {
       const w = rng.nextFloat(8, 24), ox = rng.nextFloat(0, T);
 
       switch (theme) {
-        case 'T-FOUNDRY': // Rust bloom + drip streaks
+        case 'T-FOUNDRY': // Rust bloom + heat spots; no linear drips/streaks
           if (edge.type === 'floor') {
             rustBloom(gfx, bx + ox + w / 2, by - 2, rng.nextFloat(4, 8), 3, this.cRebar, rng);
           } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-            dripTrail(gfx, wallX + 2 * dir, by + ox, by + ox + rng.nextFloat(10, 24),
-              this.cRebar, 3, 1.5, 0.3, rng);
+            for (let s = 0; s < rng.nextInt(3, 6); s++) {
+              gfx.circle(wallX + rng.nextFloat(1, 4) * dir, by + rng.nextFloat(1, T - 1), rng.nextFloat(1, 3));
+              gfx.fill({ color: this.cRebar, alpha: rng.nextFloat(0.18, 0.35) });
+            }
           } else {
-            dripTrail(gfx, bx + ox, cy, cy + rng.nextFloat(4, 10),
-              this.cRebar, 2, 1, 0.25, rng);
+            for (let s = 0; s < rng.nextInt(2, 4); s++) {
+              gfx.circle(bx + rng.nextFloat(0, T), cy + rng.nextFloat(0, 3), rng.nextFloat(0.8, 2));
+              gfx.fill({ color: this.cRebar, alpha: rng.nextFloat(0.15, 0.3) });
+            }
           } break;
-        case 'T-BREACH': // DLA crack network
-          if (edge.type === 'floor' || edge.type === 'ceiling') {
-            const sy2 = edge.type === 'floor' ? by : cy;
-            const crackDir = edge.type === 'floor' ? -Math.PI / 2 : Math.PI / 2;
-            crack(gfx, bx + ox, sy2, crackDir, rng.nextFloat(8, 18), this.cRebar, 1.5, 2, rng);
-          } else {
-            crack(gfx, wallX, by + ox, dir > 0 ? 0 : Math.PI, rng.nextFloat(6, 14), this.cRebar, 1.5, 1, rng);
+        case 'T-BREACH': // chipped spots, no crack lines
+          for (let s = 0; s < rng.nextInt(2, 5); s++) {
+            const sx = edge.type === 'wall_left' || edge.type === 'wall_right' ? wallX + rng.nextFloat(1, 4) * dir : bx + rng.nextFloat(0, T);
+            const sy = edge.type === 'floor' ? by - rng.nextFloat(0, 3) : edge.type === 'ceiling' ? cy + rng.nextFloat(0, 3) : by + rng.nextFloat(0, T);
+            gfx.rect(sx, sy, rng.nextFloat(1, 4) * dir, rng.nextFloat(1, 3));
+            gfx.fill({ color: this.cRebar, alpha: rng.nextFloat(0.18, 0.35) });
           } break;
-        case 'T-COOLANT': // Condensation drip trails
+        case 'T-COOLANT': // Condensation spots
           if (edge.type === 'ceiling') {
             for (let d = 0; d < rng.nextInt(2, 4); d++) {
               const dx = bx + rng.nextFloat(0, T);
-              dripTrail(gfx, dx, cy, cy + rng.nextFloat(8, 20), this.cHangerDrip, 1.5, 1.5, 0.3, rng);
+              gfx.circle(dx, cy + rng.nextFloat(0, 3), rng.nextFloat(1, 2.5));
+              gfx.fill({ color: this.cHangerDrip, alpha: rng.nextFloat(0.18, 0.35) });
             }
           } else if (edge.type === 'floor') {
             mossCluster(gfx, bx + ox, by - 1, rng.nextFloat(4, 10), 6, this.cHangerDrip, 0.7, rng);
           } else {
-            dripTrail(gfx, wallX + 1 * dir, by + ox, by + ox + rng.nextFloat(8, 20),
-              this.cHangerDrip, 1, 1, 0.25, rng);
+            for (let d = 0; d < rng.nextInt(2, 4); d++) {
+              gfx.circle(wallX + rng.nextFloat(1, 3) * dir, by + rng.nextFloat(0, T), rng.nextFloat(0.8, 2));
+              gfx.fill({ color: this.cHangerDrip, alpha: rng.nextFloat(0.16, 0.28) });
+            }
           } break;
         case 'T-MALFUNCTION': // Horizontal glitch stripes
           for (let s = 0; s < rng.nextInt(2, 5); s++) {
@@ -2352,45 +2360,41 @@ export class ProceduralDecorator {
           if (edge.type === 'floor') {
             gfx.circle(bx + ox, by - 1, rng.nextFloat(4, 10));
             gfx.fill({ color: this.cHangerColor, alpha: 0.15 });
-            // Scuff line
-            gfx.moveTo(bx + ox - 3, by - 1); gfx.lineTo(bx + ox + rng.nextFloat(6, 14), by - 1);
-            gfx.stroke({ width: 1, color: this.cConcrete });
           } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
             // Handprint/scuff
             gfx.circle(wallX + 3 * dir, by + rng.nextFloat(2, T - 2), rng.nextFloat(2, 4));
             gfx.fill({ color: this.cConcrete, alpha: 0.2 });
           } else {
-            gfx.moveTo(bx + ox, cy); gfx.lineTo(bx + ox + rng.nextFloat(-2, 2), cy + rng.nextFloat(3, 8));
-            gfx.stroke({ width: 1, color: this.cConcrete });
+            gfx.circle(bx + ox, cy + rng.nextFloat(0, 3), rng.nextFloat(1, 3));
+            gfx.fill({ color: this.cConcrete, alpha: 0.18 });
           } break;
         case 'T-SECURITY': // Clean scuff + boot marks
           if (edge.type === 'floor') {
-            gfx.moveTo(bx + ox, by - 0.5); gfx.lineTo(bx + ox + rng.nextFloat(4, 10), by - 0.5);
-            gfx.stroke({ width: 1.5, color: 0x2a2a2a });
+            gfx.rect(bx + ox, by - 2, rng.nextFloat(2, 5), rng.nextFloat(1, 2));
+            gfx.fill({ color: 0x2a2a2a, alpha: 0.5 });
           } break;
-        case 'T-ARCHIVE': // Static discharge marks
+        case 'T-ARCHIVE': // Static discharge dots
           if (edge.type === 'floor' || edge.type === 'ceiling') {
             const sy = edge.type === 'floor' ? by : cy;
-            let cx2 = bx + ox, cy2 = sy;
-            gfx.moveTo(cx2, cy2);
-            for (let s = 0; s < 3; s++) { cx2 += rng.nextFloat(3, 6); cy2 += rng.nextFloat(-2, 2); gfx.lineTo(cx2, cy2); }
-            gfx.stroke({ width: 0.8, color: this.cGrowerColor });
+            for (let s = 0; s < rng.nextInt(2, 5); s++) {
+              gfx.circle(bx + rng.nextFloat(0, T), sy + rng.nextFloat(-2, 2), rng.nextFloat(0.6, 1.5));
+              gfx.fill({ color: this.cGrowerColor, alpha: rng.nextFloat(0.25, 0.55) });
+            }
           } break;
         case 'T-LOGISTICS': // Oil/grease stains
           if (edge.type === 'floor') {
             gfx.circle(bx + ox, by - 1, rng.nextFloat(3, 8));
             gfx.fill({ color: 0x1a1a10, alpha: 0.2 });
           } else if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-            gfx.moveTo(wallX + 1 * dir, by + rng.nextFloat(0, T));
-            gfx.lineTo(wallX + 1 * dir, by + rng.nextFloat(0, T) + rng.nextFloat(4, 10));
-            gfx.stroke({ width: 2, color: 0x1a1a10 });
+            gfx.circle(wallX + 2 * dir, by + rng.nextFloat(0, T), rng.nextFloat(1.5, 4));
+            gfx.fill({ color: 0x1a1a10, alpha: 0.2 });
           } break;
         case 'T-COMMAND': // Faint holographic scan lines
           if (edge.type === 'wall_left' || edge.type === 'wall_right') {
             for (let l = 0; l < rng.nextInt(2, 4); l++) {
               const ly = by + rng.nextFloat(0, T);
-              gfx.moveTo(wallX, ly); gfx.lineTo(wallX + rng.nextFloat(4, 10) * dir, ly);
-              gfx.stroke({ width: 0.5, color: this.cGrowerColor });
+              gfx.rect(wallX, ly, rng.nextFloat(2, 5) * dir, 1);
+              gfx.fill({ color: this.cGrowerColor, alpha: 0.25 });
             }
           } break;
         case 'T-ECHO': // Resonance ripple marks

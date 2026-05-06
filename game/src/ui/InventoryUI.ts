@@ -115,9 +115,16 @@ export class InventoryUI {
     this.skin = skin;
   }
 
-  constructor(inventory: Inventory) {
+  /**
+   * @param uiScale  Native pixel scale (1=640, 2=1280, 3=1920). 컨테이너 자체에
+   *                 적용해 InventoryUI 가 `uiContainer`(native res) 직속으로 마운트
+   *                 되어도 기존 640-coord 내부 레이아웃을 그대로 화면 채우는 크기로
+   *                 표시한다. (DEC: 2026-04-14 UI 네이티브 해상도 결정 점진 마이그레이션)
+   */
+  constructor(inventory: Inventory, uiScale: number = 1) {
     this.inventory = inventory;
     this.container = new Container();
+    this.container.scale.set(uiScale);
     this.container.visible = false;
 
     // Background overlay

@@ -76,13 +76,16 @@ export class WorldUiController {
     }
 
     if (fadeOverlay && !fadeOverlay.parent) {
+      // fadeOverlay 는 일반 화면 어둡게(트랜지션) — legacyUIContainer 유지 (UI 마이그레이션 대상 아님).
       this.game.legacyUIContainer.addChild(fadeOverlay);
     }
     if (!worldMap.container.parent) {
-      this.game.legacyUIContainer.addChild(worldMap.container);
+      // uiContainer(native) 직속 — UI native 마이그레이션 1단계.
+      this.game.uiContainer.addChild(worldMap.container);
     }
     if (!inventoryUI.container.parent) {
-      this.game.legacyUIContainer.addChild(inventoryUI.container);
+      // uiContainer(native) 직속 — UI native 마이그레이션 1단계.
+      this.game.uiContainer.addChild(inventoryUI.container);
     }
   }
 

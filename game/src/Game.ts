@@ -224,20 +224,26 @@ export class Game {
           // setVirtualAction 으로 주입된 keystate 가 isJustPressed 로 정확히 검출된다.
           this.gamepad.poll(this.input);
 
-          // Shift+I — 전역 UI 토글. HUD/legacy/feedback 오버레이 + FPS 카운터 + Debug 오버레이를
-          // 한꺼번에 켜고 끈다. INVENTORY 를 consume 해 인벤토리 모달이 열리지 않도록.
+          // Shift+I — debug renderer(FPS + HUD 디버그 텍스트 + 히트박스 박스 등) 토글.
+          // Debug.visible: Player.attackSprite (공격 hitbox debug rect) 등 인게임 디버그 시각요소.
+          // Debug.infoVisible: HUD/씬 단의 debug 라벨 / FpsCounter container.
+          // INVENTORY consume — 인벤토리 모달 열림 방지.
           if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
             this.input.consumeJustPressed(GameAction.INVENTORY);
+            const next = !Debug.visible;
+            Debug.visible = next;
+            Debug.infoVisible = next;
+            this.fpsCounter.container.visible = next;
+          }
+          // Shift+U — 모든 HUD/모달 레이어(uiContainer + legacyUIContainer + feedback overlay) 토글.
+          // DEBUG_UI_TOGGLE consume 해서 다른 핸들러가 같은 키를 두 번 처리하지 않도록.
+          if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
+            this.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
             this.uiHidden = !this.uiHidden;
             const visible = !this.uiHidden;
             this.uiContainer.visible = visible;
             this.legacyUIContainer.visible = visible;
             this.feedbackOverlayContainer.visible = visible;
-            this.fpsCounter.container.visible = visible;
-            if (import.meta.env.DEV) {
-              Debug.infoVisible = visible;
-              Debug.visible = visible;
-            }
           }
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);

@@ -849,8 +849,8 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
-    // Pause menu (9-slice from UISkin)
-    this.pauseMenu = new PauseMenu(this.uiSkin);
+    // Pause menu (9-slice from UISkin) — uiContainer(native) 직속 (UI native 1단계)
+    this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale);
     this.pauseMenu.onAction = (action) => {
       if (action === 'continue') { this.isPaused = false; }
       else if (action === 'status') { this.openCharacterStats(); }
@@ -861,24 +861,24 @@ export class LdtkWorldScene extends Scene {
         });
       }
     };
-    this.game.legacyUIContainer.addChild(this.pauseMenu.container);
+    this.game.uiContainer.addChild(this.pauseMenu.container);
 
-    // Character stats overlay (opened from pause menu STATUS)
-    this.characterStats = new CharacterStats(this.uiSkin);
+    // Character stats overlay (opened from pause menu STATUS) — uiContainer(native)
+    this.characterStats = new CharacterStats(this.uiSkin, this.game.uiScale);
     this.characterStats.onVisibilityChanged = (vis) => {
       this.hud.container.visible = !vis;
       if (this.minimap) this.minimap.visible = !vis;
     };
-    this.game.legacyUIContainer.addChild(this.characterStats.container);
+    this.game.uiContainer.addChild(this.characterStats.container);
 
-    // Death screen
-    this.deathScreen = new DeathScreen(this.uiSkin);
+    // Death screen — uiContainer(native)
+    this.deathScreen = new DeathScreen(this.uiSkin, this.game.uiScale);
     this.deathScreen.onRespawn = () => {
       // Reload from last save point
       this.loadLevel(this.playerSpawnLevelId, 'down');
       this.player.hp = this.player.maxHp;
     };
-    this.game.legacyUIContainer.addChild(this.deathScreen.container);
+    this.game.uiContainer.addChild(this.deathScreen.container);
 
     // Tutorial hints
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
@@ -890,25 +890,25 @@ export class LdtkWorldScene extends Scene {
       input: this.game.input,
     });
 
-    // Inventory UI
-    this.inventoryUI = new InventoryUI(this.inventory);
+    // Inventory UI — uiContainer(native) 직속. InventoryUI 내부에서 scale.set(uiScale)
+    // 으로 640 좌표 레이아웃을 화면 채우는 크기로 보정. (UI native 마이그레이션 1단계)
+    this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
     this.inventoryUI.setSkin(this.uiSkin!);
-    this.game.legacyUIContainer.addChild(this.inventoryUI.container);
+    this.game.uiContainer.addChild(this.inventoryUI.container);
 
-    // Sacred Pickup ??LorePopup + DivePreview sit in the legacy UI layer so
-    // they render above gameplay but under debug overlays.
-    this.lorePopup = new LorePopup(this.uiSkin);
-    this.game.legacyUIContainer.addChild(this.lorePopup.container);
-    this.loreDisplay = new LoreDisplay(this.game.input);
-    this.game.legacyUIContainer.addChild(this.loreDisplay.container);
-    this.divePreview = new DivePreview(this.uiSkin);
-    this.game.legacyUIContainer.addChild(this.divePreview.container);
+    // Sacred Pickup — LorePopup + DivePreview + LoreDisplay 모두 uiContainer(native) 직속 (UI native 1단계)
+    this.lorePopup = new LorePopup(this.uiSkin, this.game.uiScale);
+    this.game.uiContainer.addChild(this.lorePopup.container);
+    this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
+    this.game.uiContainer.addChild(this.loreDisplay.container);
+    this.divePreview = new DivePreview(this.uiSkin, this.game.uiScale);
+    this.game.uiContainer.addChild(this.divePreview.container);
 
-    // World Map overlay
-    this.worldMap = new WorldMapOverlay(this.uiSkin);
+    // World Map overlay — uiContainer(native)
+    this.worldMap = new WorldMapOverlay(this.uiSkin, this.game.uiScale);
     this.worldMap.setLoader(this.loader);
     this.worldMap.setRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic'));
-    this.game.legacyUIContainer.addChild(this.worldMap.container);
+    this.game.uiContainer.addChild(this.worldMap.container);
 
     this.transitionController = new WorldTransitionController();
     this.uiController = new WorldUiController(this.game, {

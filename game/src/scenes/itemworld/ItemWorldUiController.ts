@@ -85,9 +85,9 @@ export class ItemWorldUiController {
 
   createReturnResult(hudSkin: UISkin | null, onDismiss: () => void): void {
     this.destroyReturnResult();
-    this.returnResult = new ReturnResult(hudSkin);
+    this.returnResult = new ReturnResult(hudSkin, this.game.uiScale);
     this.returnResult.onDismiss = onDismiss;
-    this.game.legacyUIContainer.addChild(this.returnResult.container);
+    this.game.uiContainer.addChild(this.returnResult.container);
   }
 
   updateReturnResult(dt: number): void {
@@ -365,8 +365,8 @@ export class ItemWorldUiController {
 
   showStratumClearOverlay(data: StratumClearData): void {
     this.destroyStratumClearOverlay();
-    this.stratumClearOverlay = new StratumClearOverlay(data);
-    this.game.legacyUIContainer.addChild(this.stratumClearOverlay.container);
+    this.stratumClearOverlay = new StratumClearOverlay(data, this.game.uiScale);
+    this.game.uiContainer.addChild(this.stratumClearOverlay.container);
   }
 
   updateStratumClearOverlay(dt: number, attackPressed: boolean, menuPressed: boolean): void {

@@ -103,9 +103,11 @@ export class LoreDisplay {
   /** True while lore text is being displayed — blocks player movement. */
   blocksMovement = false;
 
-  constructor(input: InputManager) {
+  /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
+  constructor(input: InputManager, uiScale: number = 1) {
     this.input = input;
     this.container = new Container();
+    this.container.scale.set(uiScale);
     this.container.visible = false;
 
     this.boxContainer = new Container();

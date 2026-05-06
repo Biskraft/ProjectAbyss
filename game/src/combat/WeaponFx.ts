@@ -87,6 +87,8 @@ export function resolveComboFx(
  * Must match fx_slash.json `frameTags`.
  */
 export const FX_SLASH_FRAMES: Record<string, [number, number]> = {
-  fx_slash_1: [0, 2],
+  // 0 번 프레임은 텍스처상 좌상단의 작은 dash 픽셀로, 앵커(0.5)·offsetX(-4) 조합에서
+  // 플레이어 등 뒤에 보이는 1프레임 잔상이 발생. 1번부터 시작해 칼날이 몸에서 뻗어나가는 듯이 보이게 한다.
+  fx_slash_1: [1, 2],
   fx_slash_2: [3, 5],
 };

@@ -241,9 +241,9 @@ export class WorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
-    // Inventory UI
-    this.inventoryUI = new InventoryUI(this.inventory);
-    this.game.legacyUIContainer.addChild(this.inventoryUI.container);
+    // Inventory UI — uiContainer(native) 직속 (UI native 마이그레이션 1단계)
+    this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
+    this.game.uiContainer.addChild(this.inventoryUI.container);
 
     // Load starting room
     this.loadRoom('down');
