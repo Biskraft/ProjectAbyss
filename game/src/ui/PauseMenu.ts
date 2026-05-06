@@ -17,9 +17,10 @@ import {
   ROW_SELECTED_EDGE,
 } from './ModalPanel';
 import type { UISkin } from './UISkin';
+import type { InputManager, PresetName } from '@core/InputManager';
 
 const PANEL_W = 200;
-const PANEL_H = 120;
+const PANEL_H = 138;
 const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
 const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
 const ITEM_START_Y = 36;
@@ -34,14 +35,30 @@ const COL_TEXT = 0xffffff;
 const COL_DIM = 0xaaaaaa;
 const COL_DANGER = 0xff4444;
 const COL_WARNING = 0xffcc44;
+const COL_ACCENT = ROW_CHEVRON_COLOR;
 
 type MenuItem = { label: string; action: string; color?: number };
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'CONTINUE', action: 'continue' },
   { label: 'STATUS', action: 'status' },
+  { label: 'SELECT KEYBOARD', action: 'select_keyboard' },
   { label: 'QUIT TO TITLE', action: 'quit', color: COL_DANGER },
 ];
+
+// 키보드 preset 카드 — `Documents/UI` (game/docs/ui-components.html line 1389) 의
+// "Preset Selection (Phase 1)" 카드 스펙을 따라 라벨 + 한 줄 키 미리보기.
+const PRESETS_DATA: { name: PresetName; label: string; desc: string }[] = [
+  { name: 'classic', label: 'CLASSIC', desc: 'ARROW MOVE  Z JUMP  X DASH  C ATTACK' },
+  { name: 'modern',  label: 'MODERN',  desc: 'ARROW MOVE  SPC JUMP  SH DASH  Z ATTACK' },
+  { name: 'wasd',    label: 'WASD',    desc: 'WASD MOVE  SPC JUMP  SH DASH  J ATTACK' },
+];
+
+const PRESET_PANEL_W = 280;
+const PRESET_PANEL_H = 156;
+const PRESET_ROW_H = 28;
+const PRESET_ROW_PAD_X = 10;
+const PRESET_LIST_Y = 30;
 
 export class PauseMenu {
   readonly container: Container;
@@ -66,15 +83,26 @@ export class PauseMenu {
   private confirmSelection = 1; // 0=YES, 1=NO (default NO)
   private confirmPanel: Container | null = null;
 
-  /** Callback: 'continue' | 'settings' | 'quit_confirmed' */
+  // Keyboard preset selector (sub-modal)
+  private presetActive = false;
+  private presetIndex = 0;
+  private presetPanel: Container | null = null;
+  private presetPulseG: Graphics | null = null;
+  private presetPulseTimer = 0;
+  private presetPulseRowY = 0;
+  private input: InputManager | null = null;
+
+  /** Callback: 'continue' | 'status' | 'quit_confirmed' */
   onAction: ((action: string) => void) | null = null;
 
   private skin: UISkin | null = null;
   private overlay: Graphics | null = null;
 
-  /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
-  constructor(skin?: UISkin | null, uiScale: number = 1) {
+  /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale.
+   *  inputManager 는 SELECT KEYBOARD 서브모달에서 preset 즉시 적용/현재 preset 조회용. */
+  constructor(skin?: UISkin | null, uiScale: number = 1, input?: InputManager | null) {
     this.skin = skin ?? null;
+    this.input = input ?? null;
     this.container = new Container();
     this.container.scale.set(uiScale);
     this.container.visible = false;
@@ -166,6 +194,7 @@ export class PauseMenu {
     this.visible = false;
     this.container.visible = false;
     this.hideConfirm();
+    this.hidePresetSelector();
   }
 
   navigate(dir: 'up' | 'down' | 'left' | 'right'): void {
@@ -174,6 +203,12 @@ export class PauseMenu {
         this.confirmSelection = this.confirmSelection === 0 ? 1 : 0;
         this.drawConfirm();
       }
+      return;
+    }
+    if (this.presetActive) {
+      if (dir === 'up') this.presetIndex = (this.presetIndex - 1 + PRESETS_DATA.length) % PRESETS_DATA.length;
+      if (dir === 'down') this.presetIndex = (this.presetIndex + 1) % PRESETS_DATA.length;
+      this.drawPresetSelector();
       return;
     }
     if (dir === 'up') this.selectedIndex = (this.selectedIndex - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
@@ -194,9 +229,21 @@ export class PauseMenu {
       return;
     }
 
+    if (this.presetActive) {
+      // 현재 선택한 preset 즉시 적용 + ACTIVE 뱃지 갱신. 모달은 ESC 로 닫는 흐름.
+      const sel = PRESETS_DATA[this.presetIndex];
+      this.input?.applyPreset(sel.name);
+      this.drawPresetSelector();
+      return;
+    }
+
     const action = MENU_ITEMS[this.selectedIndex].action;
     if (action === 'quit') {
       this.showConfirm();
+      return;
+    }
+    if (action === 'select_keyboard') {
+      this.showPresetSelector();
       return;
     }
     if (action === 'continue') {
@@ -208,6 +255,10 @@ export class PauseMenu {
   cancel(): void {
     if (this.confirmActive) {
       this.hideConfirm();
+      return;
+    }
+    if (this.presetActive) {
+      this.hidePresetSelector();
       return;
     }
     this.close();
@@ -255,6 +306,10 @@ export class PauseMenu {
     if (this.confirmActive && this.confirmPulseG) {
       this.confirmPulseTimer += dt;
       this.redrawConfirmPulse();
+    }
+    if (this.presetActive && this.presetPulseG) {
+      this.presetPulseTimer += dt;
+      this.redrawPresetPulse();
     }
   }
 
@@ -373,5 +428,153 @@ export class PauseMenu {
     if (this.selectionPulseG) this.selectionPulseG.alpha = 0.15;
 
     this.container.addChild(this.confirmPanel);
+  }
+
+  // ── Keyboard preset selector ────────────────────────────────────────────────
+
+  private showPresetSelector(): void {
+    this.presetActive = true;
+    // 현재 활성 preset 으로 커서 초기화 — 사용자가 즉시 비교 가능.
+    const cur = this.input?.currentPreset ?? 'classic';
+    const idx = PRESETS_DATA.findIndex(p => p.name === cur);
+    this.presetIndex = idx >= 0 ? idx : 0;
+    this.drawPresetSelector();
+  }
+
+  private hidePresetSelector(): void {
+    this.presetActive = false;
+    if (this.presetPanel) {
+      this.container.removeChild(this.presetPanel);
+      this.presetPanel.destroy({ children: true });
+      this.presetPanel = null;
+    }
+    this.presetPulseG = null;
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 1;
+  }
+
+  private drawPresetSelector(): void {
+    if (this.presetPanel) {
+      this.container.removeChild(this.presetPanel);
+      this.presetPanel.destroy({ children: true });
+    }
+
+    const cw = PRESET_PANEL_W;
+    const ch = PRESET_PANEL_H;
+    const cx = Math.floor((GAME_WIDTH - cw) / 2);
+    const cy = Math.floor((GAME_HEIGHT - ch) / 2);
+
+    this.presetPanel = new Container();
+    this.presetPanel.x = cx;
+    this.presetPanel.y = cy;
+
+    // 9-slice 패널 — Pause/Inventory 와 동일 카논 (createModalPanel).
+    const { panel } = createModalPanel(this.skin, cw, ch);
+    this.presetPanel.addChild(panel);
+
+    // Title
+    const title = new BitmapText({
+      text: 'CONTROLS',
+      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_TEXT },
+    });
+    title.x = Math.floor((cw - title.width) / 2);
+    title.y = 8;
+    panel.addChild(title);
+
+    // Divider
+    const divider = new Graphics();
+    divider.moveTo(12, 22); divider.lineTo(cw - 12, 22);
+    divider.stroke({ width: 1, color: COL_BORDER });
+    panel.addChild(divider);
+
+    const cur = this.input?.currentPreset ?? 'classic';
+    const rowW = cw - PRESET_ROW_PAD_X * 2;
+    let selectedRowY = 0;
+
+    for (let i = 0; i < PRESETS_DATA.length; i++) {
+      const p = PRESETS_DATA[i];
+      const isSel = i === this.presetIndex;
+      const isActive = p.name === cur;
+      const rowY = PRESET_LIST_Y + i * (PRESET_ROW_H + 2);
+
+      // Selection background — 선택 row 만 orange canonical (soft tier).
+      if (isSel) {
+        const rowBg = new Graphics();
+        rowBg.x = PRESET_ROW_PAD_X;
+        rowBg.y = rowY;
+        drawSelectionRow(rowBg, rowW, PRESET_ROW_H, 'soft');
+        panel.addChild(rowBg);
+        selectedRowY = rowY;
+      }
+
+      // Chevron — 선택 row 에만 좌측 ▶
+      const chevron = new BitmapText({
+        text: isSel ? '▶' : ' ',
+        style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: COL_ACCENT },
+      });
+      chevron.x = PRESET_ROW_PAD_X + 4;
+      chevron.y = rowY + 5;
+      panel.addChild(chevron);
+
+      // Label (CLASSIC / MODERN / WASD)
+      const label = new BitmapText({
+        text: p.label,
+        style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: isSel ? COL_TEXT : COL_DIM },
+      });
+      label.x = PRESET_ROW_PAD_X + 18;
+      label.y = rowY + 4;
+      panel.addChild(label);
+
+      // ACTIVE badge — 현재 적용된 preset 만 우측에 노란 라벨.
+      if (isActive) {
+        const badge = new BitmapText({
+          text: 'ACTIVE',
+          style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_WARNING },
+        });
+        badge.x = PRESET_ROW_PAD_X + rowW - badge.width - 6;
+        badge.y = rowY + 5;
+        panel.addChild(badge);
+      }
+
+      // Description (한 줄 키 미리보기)
+      const desc = new BitmapText({
+        text: p.desc,
+        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: isSel ? COL_DIM : 0x666677 },
+      });
+      desc.x = PRESET_ROW_PAD_X + 18;
+      desc.y = rowY + 16;
+      panel.addChild(desc);
+    }
+
+    // Bottom hint
+    const hint = new BitmapText({
+      text: '[↑↓] NAVIGATE  [C] APPLY  [ESC] BACK',
+      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
+    });
+    hint.x = Math.floor((cw - hint.width) / 2);
+    hint.y = ch - 12;
+    panel.addChild(hint);
+
+    // Pulse halo on the selected row (last child so it overlays)
+    this.presetPulseG = new Graphics();
+    this.presetPulseG.x = PRESET_ROW_PAD_X;
+    this.presetPulseG.y = selectedRowY;
+    panel.addChild(this.presetPulseG);
+    this.presetPulseRowY = selectedRowY;
+    this.presetPulseTimer = 0;
+    this.redrawPresetPulse();
+
+    // 메뉴 row pulse 음소거 (confirm 처럼).
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 0.15;
+
+    this.container.addChild(this.presetPanel);
+  }
+
+  private redrawPresetPulse(): void {
+    if (!this.presetPulseG) return;
+    const t = this.presetPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.75 + 0.25 * Math.sin(t * Math.PI * 2 * 0.8));
+    const rowW = PRESET_PANEL_W - PRESET_ROW_PAD_X * 2;
+    this.presetPulseG.clear();
+    drawSelectionPulse(this.presetPulseG, rowW, PRESET_ROW_H, a, 'soft');
   }
 }

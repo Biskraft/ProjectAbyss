@@ -20,19 +20,21 @@ export function installBitmapFont(scale = 1): void {
     ? '"Rajdhani", sans-serif'
     : '"Press Start 2P", monospace';
 
-  // 설치 fontSize 는 게임에서 자주 쓰는 8/12/16-pt 의 LCM(48) 을 source 로 잡아
-  // nearest 다운샘플 시 1/6 / 1/4 / 1/3 정수배 비율 → 픽셀 퍼펙트.
-  // (이전 16*scale source 는 12-pt 가 0.75x 비정수 비율로 떨어져 글리프가 흐릿했다.
-  //  사용자 결정 2026-05-07 — UI 텍스트 선명도 개선.)
-  // letterSpacing 도 install fontSize 비례로 3 배 (1*scale → 3*scale) 해 시각 간격 유지.
+  // 설치 fontSize 는 게임에서 자주 쓰는 8/10/12/15/16/20/24-pt 의 공약수에 가까운 120 을
+  // source 로 잡아 nearest 다운샘플 시 정수 배율로 떨어지게 한다.
+  //   8 → 1/15, 10 → 1/12, 12 → 1/10, 15 → 1/8, 16 → 1/7.5(살짝 비정수),
+  //   20 → 1/6, 24 → 1/5
+  // 인벤토리에서 자주 쓰는 10-pt 가 픽셀 퍼펙트로 보정된다.
+  // (이전 단계: 16 → 48. 사용자 결정 2026-05-07 — 텍스트 선명도 추가 강화.)
+  // letterSpacing 도 install fontSize 비례 (120/16 = 7.5x → 약 8) 해 시각 간격 유지.
   BitmapFont.install({
     name: PIXEL_FONT,
     style: {
       fontFamily: uiFamily,
-      fontSize: 48 * scale,
+      fontSize: 120 * scale,
       fontWeight: '700',
       fill: 0xffffff,
-      letterSpacing: 3 * scale,
+      letterSpacing: 8 * scale,
     },
     chars: [
       ['a', 'z'],
@@ -51,14 +53,17 @@ export function installBitmapFont(scale = 1): void {
     ? '"Cinzel", serif'
     : '"Press Start 2P", monospace';
 
+  // 설치 fontSize 144 — 타이틀 / AreaTitle 가 36-pt 로 자주 쓰므로 36/144 = 1/4
+  // 정수 비율 다운샘플로 깔끔. (이전 48 * scale 는 36-pt 가 3/4 비정수.)
+  // letterSpacing 도 144/48 = 3 배 비례 (8 → 24).
   BitmapFont.install({
     name: TITLE_FONT,
     style: {
       fontFamily: titleFamily,
-      fontSize: 48 * scale,
+      fontSize: 144 * scale,
       fontWeight: '900',
       fill: 0xffffff,
-      letterSpacing: 8 * scale,
+      letterSpacing: 24 * scale,
     },
     chars: [
       ['A', 'Z'],

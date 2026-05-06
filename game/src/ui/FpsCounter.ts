@@ -6,9 +6,16 @@
  *
  * 표시 항목:
  *   - FPS (1초 평균)
- *   - Sprite count (stage 트리 walk)
  *   - Frame time (ms, peak)
+ *   - Sprite count (stage 트리 walk)
+ *   - JS heap (Chromium 한정 — performance.memory)
  */
+
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
 
 import { BitmapText, Container, Graphics } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
@@ -75,10 +82,12 @@ export class FpsCounter {
     if (this.accumMs >= SAMPLE_INTERVAL_MS) {
       const fps = (this.frames * 1000) / this.accumMs;
       this.spriteCount = countDescendants(stage);
+      const memLine = formatMemoryLine();
       this.text.text =
         `FPS  ${fps.toFixed(1).padStart(5)}\n` +
         `peak ${this.peakFrameMs.toFixed(1).padStart(5)} ms\n` +
-        `nodes ${this.spriteCount.toString().padStart(5)}`;
+        `nodes ${this.spriteCount.toString().padStart(5)}` +
+        (memLine ? `\n${memLine}` : '');
       this.accumMs = 0;
       this.frames = 0;
       this.peakFrameMs = 0;
@@ -97,6 +106,19 @@ export class FpsCounter {
     if (this.container.parent) this.container.parent.removeChild(this.container);
     this.container.destroy({ children: true });
   }
+}
+
+/**
+ * `performance.memory` 는 Chromium 전용 (Firefox/Safari 미지원). 해당 API 가 없으면
+ * `null` 을 반환해 표시를 생략한다. used / heap 표시는 MB 단위 (소수 1 자리).
+ */
+function formatMemoryLine(): string | null {
+  const perf = performance as Performance & { memory?: PerformanceMemory };
+  const mem = perf.memory;
+  if (!mem) return null;
+  const usedMB = mem.usedJSHeapSize / (1024 * 1024);
+  const totalMB = mem.totalJSHeapSize / (1024 * 1024);
+  return `mem  ${usedMB.toFixed(1).padStart(5)} / ${totalMB.toFixed(0)} MB`;
 }
 
 /**

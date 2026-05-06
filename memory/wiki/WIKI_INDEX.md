@@ -5,8 +5,8 @@
 ## Daily Log (작업일지)
 최신순.
 
-- [2026-05-07](daily/2026-05-07.md) — 행사 디렉토리북 회신 확정 (스트라타 포지/에코리스 국문 음역, Fine/fine@echoris.io 공식 컨택, 사업자 미등록 명시, Gmail 평문 양식)
-- [2026-05-06](daily/2026-05-06.md) — Shift+I 전역 UI 토글 + 팔레트 hue 분리 + Kings and Pigs atlas 9종 (커밋 3c919e68 / GitHub Actions 25423868766 배포 성공). 디렉토리북 회신 1차 초안
+- [2026-05-07](daily/2026-05-07.md) — 행사 디렉토리북 회신 확정(국문 음역·Fine 페르소나·평문 양식) + UI native migration phase 1 배포(56c8812f, fonts LCM 48-pt + cyan-dominant 팔레트 + parallax 갱신 + 로고) + LDtk 월드 콘텐츠 배포(d15ce008)
+- [2026-05-06](daily/2026-05-06.md) — Shift+I 전역 UI 토글 + 팔레트 hue 분리 + Kings and Pigs atlas 9종 (커밋 3c919e68 / Actions 25423868766). 디렉토리북 회신 1차 초안. 별도 세션 481c8481 echoris.io 카피 정돈
 - [2026-05-04](daily/2026-05-04.md) — 사운드 시스템 전수 리서치 + DEC-040 (Audio Pipeline = @pixi/sound, ElevenLabs)
 - [2026-04-28](2026-04-28.md) — Beginner Grace 버프화 + Shift+I 디버그 HUD 토글 정정 (Game.ts/ItemWorldScene 충돌 해결)
 

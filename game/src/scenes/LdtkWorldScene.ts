@@ -849,8 +849,9 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
-    // Pause menu (9-slice from UISkin) — uiContainer(native) 직속 (UI native 1단계)
-    this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale);
+    // Pause menu (9-slice from UISkin) — uiContainer(native) 직속 (UI native 1단계).
+    // input 전달 — SELECT KEYBOARD 서브모달이 preset 즉시 적용.
+    this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input);
     this.pauseMenu.onAction = (action) => {
       if (action === 'continue') { this.isPaused = false; }
       else if (action === 'status') { this.openCharacterStats(); }
@@ -1895,8 +1896,11 @@ export class LdtkWorldScene extends Scene {
 
     // Shift+P: reset save & reload. Always available so playtesters can
     // recover from stuck states without needing a debug URL flag.
+    // 키보드 preset 도 함께 삭제 — 리셋 후 타이틀에서 키 레이아웃 선택 화면이
+    // 다시 등장하도록 (사용자 결정 2026-05-07).
     if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
       SaveManager.deleteSave();
+      localStorage.removeItem('echoris-keybindings');
       window.location.reload();
     }
 
