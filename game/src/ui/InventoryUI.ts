@@ -375,7 +375,7 @@ export class InventoryUI {
       const itemNameColor = hasItem ? (RARITY_COLOR[equippedItem!.rarity] ?? COL_TEXT_WHITE) : COL_EQUIP_EMPTY_BORDER;
       const itemLabel = new BitmapText({
         text: itemNameText,
-        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: itemNameColor }
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: itemNameColor }
       });
       // Scale down if the full name exceeds the slot width so long names
       // (e.g. "Steel Longblade") stay fully visible without truncation.
@@ -414,7 +414,7 @@ export class InventoryUI {
     // "BACKPACK (N/20)" label
     const backpackLabel = new BitmapText({
       text: this.mode === 'anvil' ? 'SELECT WEAPON TO DIVE' : `BACKPACK (${count}/20)`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_LOCKED }
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_LOCKED }
     });
     backpackLabel.x = PADDING;
     backpackLabel.y = 0;
@@ -550,7 +550,7 @@ export class InventoryUI {
     const lvColor = (isOnAnvil || isStarterOnly) ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : COL_TEXT);
     const lvText = new BitmapText({
       text: `Lv.${item.level}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: lvColor }
+      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: lvColor }
     });
     lvText.x = PADDING + rowW - 150;
     lvText.y = y + 4;
@@ -560,7 +560,7 @@ export class InventoryUI {
     const starCount = { normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 5 }[item.rarity] ?? 1;
     const starsText = new BitmapText({
       text: '★'.repeat(starCount),
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: 0xffd700 }
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffd700 }
     });
     starsText.x = PADDING + rowW - 110;
     starsText.y = y + 5;
@@ -599,7 +599,7 @@ export class InventoryUI {
       const diveBadge = new Graphics();
       diveBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).fill(COL_DIVE);
       this.listArea.addChild(diveBadge);
-      const diveText = new BitmapText({ text: 'DIVE', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: 0x000000 } });
+      const diveText = new BitmapText({ text: 'DIVE', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
       diveText.x = badgeX - 1;
       diveText.y = y + 4;
       this.listArea.addChild(diveText);

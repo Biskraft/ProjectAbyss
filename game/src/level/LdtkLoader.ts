@@ -173,6 +173,28 @@ export interface LdtkEntity {
    * e.g. { type: "Gold", price: 0, count: 100 }
    */
   fields: Record<string, unknown>;
+  /**
+   * Tile rect chosen for this instance (LDtk Entity Editor → tile picker).
+   * Null when the entity definition has no tile or instance has no override.
+   * Used by visual entities like Building that pick from a multi-building sheet.
+   */
+  tile: LdtkEntityTile | null;
+}
+
+/** A picked tile rectangle within an entity tileset. */
+export interface LdtkEntityTile {
+  /** Source position [x, y] in pixels within the tileset. */
+  src: [number, number];
+  /** Tile rect width in pixels. */
+  w: number;
+  /** Tile rect height in pixels. */
+  h: number;
+  /**
+   * Relative path of the tileset (e.g. "sprites/itemstrata_town_01.png").
+   * Resolved from tilesetUid via the loader's tilesetPathByUid map.
+   * Null if the tileset def has no relative path.
+   */
+  tilesetPath: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +231,13 @@ interface RawLdtkEntityInstance {
   width: number;
   height: number;
   fieldInstances: RawLdtkFieldInstance[];
+  /**
+   * Tile rect chosen by the user in LDtk Entity Editor.
+   * LDtk 1.5+ uses `__tile` on the instance (with tilesetUid + x/y/w/h).
+   * Some older saves may use `tileRect` — both supported here.
+   */
+  __tile?: { tilesetUid: number; x: number; y: number; w: number; h: number } | null;
+  tileRect?: { tilesetUid: number; x: number; y: number; w: number; h: number } | null;
 }
 
 interface RawLdtkFieldInstance {
@@ -626,15 +655,27 @@ export class LdtkLoader {
    *   { type: "Gold", price: 0, count: 100 }
    */
   private parseEntities(instances: RawLdtkEntityInstance[]): LdtkEntity[] {
-    return instances.map((inst) => ({
-      type: inst.__identifier,
-      iid: inst.iid ?? '',
-      px: [inst.px[0], inst.px[1]],
-      grid: [inst.__grid[0], inst.__grid[1]],
-      width: inst.width,
-      height: inst.height,
-      fields: this.flattenFields(inst.fieldInstances),
-    }));
+    return instances.map((inst) => {
+      const rawTile = inst.__tile ?? inst.tileRect ?? null;
+      const tile: LdtkEntityTile | null = rawTile
+        ? {
+            src: [rawTile.x, rawTile.y],
+            w: rawTile.w,
+            h: rawTile.h,
+            tilesetPath: this.tilesetPathByUid.get(rawTile.tilesetUid) ?? null,
+          }
+        : null;
+      return {
+        type: inst.__identifier,
+        iid: inst.iid ?? '',
+        px: [inst.px[0], inst.px[1]],
+        grid: [inst.__grid[0], inst.__grid[1]],
+        width: inst.width,
+        height: inst.height,
+        fields: this.flattenFields(inst.fieldInstances),
+        tile,
+      };
+    });
   }
 
   /**

@@ -1157,16 +1157,62 @@
   <section id="character-stats">
     <h2>CharacterStats <span class="pill organism">ORGANISM</span></h2>
     <div class="src">CharacterStats.ts</div>
-    <p>플레이어 스탯 패널. 베이스 / 장비 합산 / 인노센트 보너스 분해 표시.</p>
-    <div class="stage">
-      <div class="modal-panel" style="max-width:340px">
-        <div class="t-title">CHARACTER</div>
-        <div class="divider"></div>
-        <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;142&nbsp;&nbsp;<span class="t-hint">(base 80 +equip 50 +inn 12)</span></div>
-        <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;&nbsp;87&nbsp;&nbsp;<span class="t-hint">(base 40 +equip 47)</span></div>
-        <div class="t-body"><span style="color:var(--text-secondary)">HP</span>&nbsp;&nbsp;520 / 520</div>
-        <div class="t-body"><span style="color:var(--text-secondary)">STM</span>&nbsp;100</div>
+    <p>TAB 키 STATUS 패널. 9-slice 모달 + 단일 컬럼 — 한 화면에서 "내 파워 / 장비 / 진행도 / 유물" 일괄 조회. 인벤토리(I) 와 분리: 인벤토리는 정렬·비교, 스테이터스는 요약.</p>
+
+    <!-- ── 표준 레이아웃 ── -->
+    <div class="card">
+      <h3>Standard Layout (single column)</h3>
+      <div class="desc">9-slice 모달 + 카논 토큰. 폭 360px, 높이는 콘텐츠에 따라 자동. 중앙 정렬. 모든 텍스트는 PIXEL_FONT, 사이즈는 8 / 10 / 12 만 사용 (120 source 정수 비율).</div>
+      <div class="stage center">
+        <div class="modal-panel" style="width:100%;max-width:360px">
+          <div class="t-title" style="text-align:center">STATUS</div>
+          <div class="divider"></div>
+
+          <!-- Equipped weapon line -->
+          <div class="t-body" style="margin-bottom:6px"><span style="color:var(--r-rare)">Rustborn</span>&nbsp;&nbsp;<span class="t-hint">Normal · Lv.0</span></div>
+
+          <!-- Core stats with decomposition hint -->
+          <div class="t-body"><span style="color:var(--text-secondary);width:36px;display:inline-block">ATK</span>&nbsp;142&nbsp;&nbsp;<span class="t-hint">(80 +50 +12)</span></div>
+          <div class="t-body"><span style="color:var(--text-secondary);width:36px;display:inline-block">HP</span>&nbsp;520 / 520</div>
+
+          <!-- Bars -->
+          <div style="margin:6px 0">
+            <div class="t-hint" style="margin-bottom:2px">HP</div>
+            <div style="background:#222233;height:6px;width:100%;border:1px solid var(--modal-border)"><div style="background:#22aa22;height:100%;width:80%"></div></div>
+          </div>
+          <div style="margin:6px 0">
+            <div class="t-hint" style="margin-bottom:2px">EXP&nbsp;&nbsp;Lv.3 — 240 / 1000</div>
+            <div style="background:#222233;height:6px;width:100%;border:1px solid var(--modal-border)"><div style="background:#ffd700;height:100%;width:24%"></div></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Relics — 6 dots, acquired = orange filled, locked = dim outline -->
+          <div class="t-hint" style="margin-bottom:4px">RELICS</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--text-accent)"></span>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--text-accent)"></span>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)"></span>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)"></span>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)"></span>
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--muted)"></span>
+          </div>
+
+          <div class="divider"></div>
+          <div class="t-hint" style="text-align:right">[TAB] CLOSE</div>
+        </div>
       </div>
+    </div>
+
+    <!-- ── 폐기된 패턴 ── -->
+    <div class="card">
+      <h3>폐기 (Anti-pattern)</h3>
+      <ul>
+        <li><b>3-column 레이아웃</b>: 장비 슬롯 그리드 + 캐릭터 실루엣 + 스탯 분해를 한 패널에 다 넣지 않음. 장비는 InventoryUI(I), 캐릭터는 STATUS(TAB) 로 분리.</li>
+        <li><b>임의 fontSize</b>: 7 / 9 / 14 / 16 사용 금지. PIXEL_FONT 가 120 source 라 8 / 10 / 12 만 정수 비율로 깔끔. (16 은 7.5 비정수로 미세 alias.)</li>
+        <li><b>raw Graphics.rect 패널</b>: panel 배경은 `createModalPanel(skin, w, h)` 만 사용. UISkin 미로드 시 fallback rect 가 자동 적용됨.</li>
+        <li><b>실루엣 placeholder</b>: 캐릭터 이미지 미정 단계의 ? 박스는 노이즈만 추가. 데이터 노출 우선.</li>
+      </ul>
     </div>
   </section>
 

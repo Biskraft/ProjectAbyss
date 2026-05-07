@@ -14,6 +14,7 @@ import {
 } from 'pixi.js';
 import { SceneManager } from '@core/SceneManager';
 import { InputManager, GameAction } from '@core/InputManager';
+import { SaveManager } from '@utils/SaveManager';
 import { GamepadManager } from '@core/GamepadManager';
 import { AssetLoader } from '@core/AssetLoader';
 import { Camera } from '@core/Camera';
@@ -244,6 +245,15 @@ export class Game {
             this.uiContainer.visible = visible;
             this.legacyUIContainer.visible = visible;
             this.feedbackOverlayContainer.visible = visible;
+          }
+          // Shift+P — 전역 hard reset. 세이브 + 키보드 preset(localStorage) 모두 삭제 후 reload.
+          // 어떤 씬에서도 작동하도록 Game.ts 단으로 일원화 (이전엔 LdtkWorldScene 만 처리).
+          if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_RESET)) {
+            this.input.consumeJustPressed(GameAction.DEBUG_RESET);
+            SaveManager.deleteSave();
+            try { localStorage.removeItem('echoris-keybindings'); } catch { /* private mode */ }
+            window.location.reload();
+            return;
           }
           this.stats.playTimeMs += FIXED_STEP;
           this.sceneManager.update(FIXED_STEP);

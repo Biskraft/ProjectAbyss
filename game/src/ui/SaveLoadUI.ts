@@ -208,7 +208,7 @@ export class SaveLoadUI {
     this.panel.addChild(header);
 
     if (slot.corrupted) {
-      const corr = new BitmapText({ text: '[!] CORRUPTED DATA', style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DANGER } });
+      const corr = new BitmapText({ text: '[!] CORRUPTED DATA', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DANGER } });
       corr.x = x + 6; corr.y = y + 16;
       this.panel.addChild(corr);
       return;
@@ -217,7 +217,7 @@ export class SaveLoadUI {
     if (!slot.exists) {
       const empty = new BitmapText({
         text: '- EMPTY -',
-        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: inactive ? 0x333333 : 0x666666 },
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: inactive ? 0x333333 : 0x666666 },
       });
       empty.x = x + Math.floor((SLOT_W - 60) / 2);
       empty.y = y + 18;
@@ -260,7 +260,7 @@ export class SaveLoadUI {
       ? 'This cannot be undone.'
       : 'Data will be permanently deleted.';
 
-    const t1 = new BitmapText({ text: msg, style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DANGER } });
+    const t1 = new BitmapText({ text: msg, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DANGER } });
     t1.x = Math.floor((cw - msg.length * 5) / 2); t1.y = 10;
     this.deletePanel.addChild(t1);
 

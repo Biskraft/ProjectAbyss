@@ -1235,7 +1235,7 @@ export class ProceduralDecorator {
       // Floor: hammer strike mark (impact crater, no radial lines)
       const ox = rng.nextFloat(2, T - 4);
       const r = rng.nextFloat(3, 7);
-      gfx.circle(bx + ox, by - 1, r); gfx.stroke({ width: 1.5, color: this.cRebar });
+      gfx.circle(bx + ox, by - 1, r); gfx.fill({ color: this.cRebar, alpha: 0.18 });
       gfx.circle(bx + ox, by - 1, r * 0.5); gfx.fill({ color: 0xee6622, alpha: 0.3 });
       // Scattered impact debris dots
       for (let s = 0; s < 5; s++) {
@@ -1262,53 +1262,50 @@ export class ProceduralDecorator {
         gfx.poly([bx + ox + aw * 0.9, by - ah, bx + ox + aw + 8, by - ah + 2, bx + ox + aw + 8, by - ah + 5, bx + ox + aw * 0.9, by - ah + 3]);
         gfx.fill(c);
       } else if (pick === 1) {
-        // Crucible on stand: half-circle vessel with tripod legs
+        // Crucible block on stand: filled pixel shapes, no strokes.
         const r = rng.nextFloat(6, 12);
         const ox = rng.nextFloat(4, T - 4);
-        gfx.arc(bx + ox, by - 4, r, Math.PI, 0); gfx.stroke({ width: 2.5, color: c });
-        // Tripod legs
-        gfx.moveTo(bx + ox - r, by - 4); gfx.lineTo(bx + ox - r - 3, by); gfx.stroke({ width: 2, color: c });
-        gfx.moveTo(bx + ox + r, by - 4); gfx.lineTo(bx + ox + r + 3, by); gfx.stroke({ width: 2, color: c });
-        gfx.moveTo(bx + ox, by - 4 + r); gfx.lineTo(bx + ox, by); gfx.stroke({ width: 2, color: c });
+        gfx.rect(bx + ox - r, by - 9, r * 2, 5); gfx.fill(c);
+        gfx.rect(bx + ox - r + 2, by - 5, r * 2 - 4, 3); gfx.fill(c);
+        gfx.rect(bx + ox - r, by - 4, 3, 4); gfx.fill(c);
+        gfx.rect(bx + ox + r - 3, by - 4, 3, 4); gfx.fill(c);
+        gfx.rect(bx + ox - 1, by - 3, 2, 3); gfx.fill(c);
         // Glow inside crucible
-        gfx.circle(bx + ox, by - 4, r * 0.6);
-        gfx.fill({ color: 0xee6622, alpha: 0.2 });
+        gfx.rect(bx + ox - r * 0.5, by - 8, r, 2);
+        gfx.fill({ color: 0xee6622, alpha: 0.25 });
       } else {
-        // Ingot mold: rectangular mold with inner cavity
+        // Ingot mold: rectangular mold with inner cavity.
         const mw = rng.nextFloat(18, 32), mh = rng.nextFloat(6, 10);
         const ox = rng.nextFloat(0, T);
-        gfx.rect(bx + ox, by - mh, mw, mh); gfx.stroke({ width: 2, color: c });
+        gfx.rect(bx + ox, by - mh, mw, mh); gfx.fill({ color: c, alpha: 0.55 });
         gfx.rect(bx + ox + 3, by - mh + 2, mw - 6, mh - 3); gfx.fill({ color: this.cRebar, alpha: 0.3 });
       }
     } else if (edge.type === 'ceiling') {
-      // Industrial crane hook on chain: chain links + triangular hook
+      // Industrial crane hook on chain: filled links + triangular hook.
       const ox = rng.nextFloat(2, T - 2);
       const chainLen = rng.nextFloat(12, 24);
       // Chain links (alternating horizontal/vertical rects)
       for (let l = 0; l < Math.floor(chainLen / 4); l++) {
         const ly = cy + l * 4;
         if (l % 2 === 0) {
-          gfx.rect(bx + ox - 2, ly, 4, 3); gfx.stroke({ width: 1, color: c });
+          gfx.rect(bx + ox - 2, ly, 4, 2); gfx.fill(c);
         } else {
-          gfx.rect(bx + ox - 1.5, ly, 3, 3); gfx.stroke({ width: 1, color: c });
+          gfx.rect(bx + ox - 1, ly, 2, 4); gfx.fill(c);
         }
       }
       // Triangular hook at bottom
       const hookY = cy + chainLen;
       gfx.poly([bx + ox, hookY, bx + ox - 5, hookY + 8, bx + ox + 5, hookY + 8]);
-      gfx.stroke({ width: 2, color: this.cRebar });
-      // Hook opening
-      gfx.arc(bx + ox, hookY + 8, 4, 0, Math.PI); gfx.stroke({ width: 2, color: this.cRebar });
+      gfx.fill({ color: this.cRebar, alpha: 0.75 });
     } else {
-      // Wall: tongs/pliers silhouette (crossed lines with handles)
+      // Wall: small tool plate with rivets.
       const oy = rng.nextFloat(2, T - 6);
-      const len = rng.nextFloat(10, 20);
-      // Two crossing arms
-      gfx.moveTo(wallX + 1 * dir, by + oy); gfx.lineTo(wallX + len * dir, by + oy + len * 0.6);
-      gfx.moveTo(wallX + 1 * dir, by + oy + 4); gfx.lineTo(wallX + len * dir, by + oy + len * 0.6 - 4);
-      gfx.stroke({ width: 2, color: c });
-      // Pivot point
-      gfx.circle(wallX + len * 0.4 * dir, by + oy + 2, 2.5); gfx.fill(c);
+      const w = rng.nextFloat(8, 14);
+      gfx.rect(wallX + 1 * dir, by + oy, w * dir, 5); gfx.fill({ color: c, alpha: 0.65 });
+      for (let i = 0; i < 2; i++) {
+        gfx.circle(wallX + (3 + i * 4) * dir, by + oy + 2.5, 1);
+        gfx.fill({ color: this.cRebar, alpha: 0.8 });
+      }
     }
   }
 
@@ -1952,6 +1949,11 @@ export class ProceduralDecorator {
     const T = this.cfg.tileSize;
     const rows = grid.length;
     const cols = grid[0]?.length ?? 0;
+    if (this.preset?.themeId === 'T-FOUNDRY') {
+      // Foundry already has local chains/hooks in EdgeDetail. Full-room spans
+      // create long dark diagonals in item-world palettes.
+      return;
+    }
     let spanCount = 0;
     const maxSpans = 10;
 
@@ -2146,15 +2148,26 @@ export class ProceduralDecorator {
 
   private spanFoundryHoriz(gfx: Graphics, x0: number, x1: number, y: number, len: number, rng: PRNG): void {
     if (rng.next() < 0.75) return;
-    // Catenary chain
+    // Broken chain clusters. The old continuous catenary stroke read as a
+    // long diagonal shadow across item-world rooms after palette filtering.
     const sag = rng.nextFloat(10, len * 0.25);
-    const segs = 10;
-    gfx.moveTo(x0, y);
-    for (let i = 1; i <= segs; i++) {
-      const t = i / segs;
-      gfx.lineTo(x0 + len * t, y + 4 * sag * t * (1 - t));
+    const clusters = rng.nextInt(2, 4);
+    for (let c = 0; c < clusters; c++) {
+      const anchorT = (c + 1) / (clusters + 1) + rng.nextFloat(-0.08, 0.08);
+      const links = rng.nextInt(2, 4);
+      for (let i = 0; i < links; i++) {
+        const t = Math.max(0.05, Math.min(0.95, anchorT + (i - (links - 1) / 2) * 0.018));
+        const cx = x0 + len * t;
+        const cy = y + 4 * sag * t * (1 - t);
+        const horizontal = i % 2 === 0;
+        if (horizontal) {
+          gfx.rect(cx - 4, cy - 1, 8, 2);
+        } else {
+          gfx.rect(cx - 1, cy - 4, 2, 8);
+        }
+        gfx.fill({ color: this.cSteel, alpha: 0.75 });
+      }
     }
-    gfx.stroke({ width: 3, color: this.cSteel });
   }
 
   // --- ARCHIVE: data streams ---

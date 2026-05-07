@@ -43,6 +43,7 @@ import { GrowingWall } from '@entities/GrowingWall';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { BreakableProp, type PropDrop } from '@entities/BreakableProp';
 import { Breakable, isBreakableSpriteId, type BreakableSpriteId } from '@entities/Breakable';
+import { Building } from '@entities/Building';
 import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
@@ -437,6 +438,8 @@ export class LdtkWorldScene extends Scene {
   private breakableProps: BreakableProp[] = [];
   /** 수동 배치 Breakable (LDtk Entity 'Breakable') — 절차 생성 props 와 분리 추적. */
   private breakables: Breakable[] = [];
+  /** 수동 배치 Building (LDtk Entity 'Building') — 시각 데코, 충돌 없음. */
+  private buildings: Building[] = [];
   private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
@@ -1894,15 +1897,7 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
-    // Shift+P: reset save & reload. Always available so playtesters can
-    // recover from stuck states without needing a debug URL flag.
-    // 키보드 preset 도 함께 삭제 — 리셋 후 타이틀에서 키 레이아웃 선택 화면이
-    // 다시 등장하도록 (사용자 결정 2026-05-07).
-    if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_RESET)) {
-      SaveManager.deleteSave();
-      localStorage.removeItem('echoris-keybindings');
-      window.location.reload();
-    }
+    // Shift+P 전역 리셋은 Game.ts 단에서 처리 — 어떤 씬에서도 작동.
 
     // Shift+I 전역 UI 토글은 Game.ts 에서 처리 — INVENTORY 가 거기서 consume 되므로
     // 여기 인벤토리 토글 핸들러는 자동으로 통과한다.
@@ -2621,6 +2616,7 @@ export class LdtkWorldScene extends Scene {
     this.spawnSecretWalls(level);
     this.spawnBreakablePropsForLevel(level);
     this.spawnBreakableEntitiesForLevel(level);
+    this.spawnBuildingEntitiesForLevel(level);
 
     // Place player
     this.placePlayer(level, enterDirection);
@@ -3879,6 +3875,34 @@ export class LdtkWorldScene extends Scene {
       // LDtk px[0/1] 은 entity 의 pivot 점 좌표. Breakable 은 pivot=(0.5,1) 가정.
       const b = new Breakable(ent.px[0], ent.px[1], spriteId);
       this.breakables.push(b);
+      this.entityLayer.addChild(b.container);
+    }
+  }
+
+  /**
+   * LDtk Entity 'Building' spawn — 시각 데코.
+   * 사용자가 LDtk Editor 의 tile picker 로 선택한 사각형(__tile)을
+   * 시트에서 잘라 그대로 배치. 충돌 없음. Pivot=(0.5,1) 가정 — 바닥 라인 정렬.
+   */
+  private spawnBuildingEntitiesForLevel(level: LdtkLevel): void {
+    for (const b of this.buildings) b.destroy();
+    this.buildings = [];
+    const ents = level.entities.filter(e => e.type === 'Building');
+    for (const ent of ents) {
+      if (!ent.tile || !ent.tile.tilesetPath) {
+        console.warn(`[Building] entity at (${ent.px[0]}, ${ent.px[1]}) has no tile — skipped. LDtk Editor 에서 tile 을 선택해 주십시오.`);
+        continue;
+      }
+      const b = new Building(
+        ent.px[0],
+        ent.px[1],
+        ent.tile.tilesetPath,
+        ent.tile.src[0],
+        ent.tile.src[1],
+        ent.tile.w,
+        ent.tile.h,
+      );
+      this.buildings.push(b);
       this.entityLayer.addChild(b.container);
     }
   }

@@ -165,11 +165,11 @@ export class PauseMenu {
     // Symmetric chevrons — orange accent
     this.chevronL = new BitmapText({
       text: '\u25B6',
-      style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: ROW_CHEVRON_COLOR },
+      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR },
     });
     this.chevronR = new BitmapText({
       text: '\u25C0',
-      style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: ROW_CHEVRON_COLOR },
+      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR },
     });
     this.panel.addChild(this.chevronL);
     this.panel.addChild(this.chevronR);
@@ -369,7 +369,7 @@ export class PauseMenu {
 
     const sub = new BitmapText({
       text: 'Unsaved progress lost.',
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM },
     });
     sub.x = Math.floor((cw - 130) / 2);
     sub.y = 24;
@@ -509,7 +509,7 @@ export class PauseMenu {
       // Chevron — 선택 row 에만 좌측 ▶
       const chevron = new BitmapText({
         text: isSel ? '▶' : ' ',
-        style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: COL_ACCENT },
+        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ACCENT },
       });
       chevron.x = PRESET_ROW_PAD_X + 4;
       chevron.y = rowY + 5;
@@ -518,7 +518,7 @@ export class PauseMenu {
       // Label (CLASSIC / MODERN / WASD)
       const label = new BitmapText({
         text: p.label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 9, fill: isSel ? COL_TEXT : COL_DIM },
+        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: isSel ? COL_TEXT : COL_DIM },
       });
       label.x = PRESET_ROW_PAD_X + 18;
       label.y = rowY + 4;
@@ -528,7 +528,7 @@ export class PauseMenu {
       if (isActive) {
         const badge = new BitmapText({
           text: 'ACTIVE',
-          style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_WARNING },
+          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_WARNING },
         });
         badge.x = PRESET_ROW_PAD_X + rowW - badge.width - 6;
         badge.y = rowY + 5;
@@ -538,7 +538,7 @@ export class PauseMenu {
       // Description (한 줄 키 미리보기)
       const desc = new BitmapText({
         text: p.desc,
-        style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: isSel ? COL_DIM : 0x666677 },
+        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? COL_DIM : 0x666677 },
       });
       desc.x = PRESET_ROW_PAD_X + 18;
       desc.y = rowY + 16;
@@ -548,7 +548,7 @@ export class PauseMenu {
     // Bottom hint
     const hint = new BitmapText({
       text: '[↑↓] NAVIGATE  [C] APPLY  [ESC] BACK',
-      style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: COL_DIM },
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM },
     });
     hint.x = Math.floor((cw - hint.width) / 2);
     hint.y = ch - 12;

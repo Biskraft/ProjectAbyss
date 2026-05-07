@@ -27,6 +27,7 @@ import { GoldPickup } from '@entities/GoldPickup';
 import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { BreakableProp } from '@entities/BreakableProp';
+import { Building } from '@entities/Building';
 import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { GrowingWall } from '@entities/GrowingWall';
@@ -213,6 +214,8 @@ export class ItemWorldScene extends Scene {
    * (사용자 요청 2026-05-02 — "주민 렌더링 순서를 grid 다음으로 올려")
    */
   private residentsLayer!: Container;
+  /** Building layer — entityLayer 보다 뒤 (player 뒤로 렌더링). */
+  private buildingLayer!: Container;
   /**
    * 셀별 LdtkRenderer 4 layer (bg/wall/special/shadow) 그룹 — 매 프레임 viewport
    * 검사 후 visible toggle 로 화면 밖 cell 의 draw 차단 (사용자 결정 2026-05-04,
@@ -373,6 +376,8 @@ export class ItemWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private switches: Switch[] = [];
   private lockedDoors: LockedDoor[] = [];
+  /** 수동 배치 Building (LDtk Entity 'Building') — 시각 데코, 충돌 없음. */
+  private buildings: Building[] = [];
   private cameraZones: {
     x: number; y: number; w: number; h: number;
     zoom: number; deadZoneX: number; deadZoneY: number;
@@ -703,6 +708,14 @@ export class ItemWorldScene extends Scene {
         row: getAreaPaletteRow(bgEntry.id),
       });
     }
+
+    // Building layer — fullMapContainer (platform/wall tile) 보다도 뒤로.
+    // fullMapContainer 가 addChildAt(0) 으로 강제 삽입되므로 단순 addChild 순서로는
+    // 뒤에 못 둠. sortableChildren + 음수 zIndex 로 강제.
+    this.container.sortableChildren = true;
+    this.buildingLayer = new Container();
+    this.buildingLayer.zIndex = -1;
+    this.container.addChild(this.buildingLayer);
 
     // Residents layer — grid 위, entityLayer 아래. addChild 순서가 z 결정.
     this.residentsLayer = new Container();
@@ -2583,6 +2596,26 @@ export class ItemWorldScene extends Scene {
       const ay = ent.px[1] + offY;
 
       switch (ent.type) {
+        case 'Building': {
+          if (!ent.tile || !ent.tile.tilesetPath) {
+            console.warn(`[Building] entity at (${ax}, ${ay}) has no tile — skipped. LDtk Editor 에서 tile picker 로 사각형을 선택해 주십시오.`);
+            break;
+          }
+          const b = new Building(
+            ax, ay,
+            ent.tile.tilesetPath,
+            ent.tile.src[0], ent.tile.src[1],
+            ent.tile.w, ent.tile.h,
+          );
+          // BG/wall SSoT 톤 매핑 — wall row 기준 (전경 데코 톤).
+          if (this.wallPaletteFilter) {
+            b.container.filters = [this.wallPaletteFilter];
+          }
+          this.buildings.push(b);
+          // buildingLayer 로 추가 — entityLayer 보다 뒤라 player 뒤로 렌더링.
+          this.buildingLayer.addChild(b.container);
+          break;
+        }
         case 'Spike': {
           const spike = new Spike(ax, ay, ent.width, ent.height);
           this.spikes.push(spike);
@@ -2739,6 +2772,8 @@ export class ItemWorldScene extends Scene {
     this.switches = [];
     for (const e of this.lockedDoors) e.destroy();
     this.lockedDoors = [];
+    for (const e of this.buildings) e.destroy();
+    this.buildings = [];
     this.cameraZones = [];
     this.activeCameraZone = null;
     // Destroy memory shard visuals + particles
