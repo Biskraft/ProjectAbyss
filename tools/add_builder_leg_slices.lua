@@ -13,12 +13,21 @@
   Slice geometry mirrors game/src/entities/builderLegAtlas.ts.
 --]]
 
+-- Pivot is the slice-local point that aligns with the entity position. For
+-- joints (shoulder, knee) it sits where the disc visually joins the limb;
+-- for limbs and foot it sits where the upstream joint attaches. Edit these
+-- in Aseprite (Slice properties → Pivot) when you re-draw the art and
+-- re-run this script with the desired numbers, or open the .ase and drag
+-- the pivot directly. Values are slice-local pixels.
 local SLICES = {
-  { name = "shoulder",   x = 0, y =   0, w = 96, h =  96 },
-  { name = "knee",       x = 0, y =  96, w = 80, h =  80 },
-  { name = "upper_limb", x = 0, y = 176, w = 96, h = 280 },
-  { name = "lower_limb", x = 0, y = 456, w = 64, h = 340 },
-  { name = "foot",       x = 0, y = 796, w = 80, h = 160 },
+  -- Joint discs: centered visually inside the disc.
+  { name = "shoulder",   x = 0, y =   0, w = 96, h =  96, px = 48, py = 48 },
+  { name = "knee",       x = 0, y =  96, w = 80, h =  80, px = 40, py = 40 },
+  -- Limbs: pivot at the top-center where the joint above attaches.
+  { name = "upper_limb", x = 0, y = 176, w = 96, h = 280, px = 48, py =  0 },
+  { name = "lower_limb", x = 0, y = 456, w = 64, h = 340, px = 32, py =  0 },
+  -- Foot: pivot at the top-center (ankle attach point).
+  { name = "foot",       x = 0, y = 796, w = 80, h = 160, px = 40, py =  0 },
 }
 
 local file = nil
@@ -59,9 +68,13 @@ end
 for _, spec in ipairs(SLICES) do
   local slice = sprite:newSlice(Rectangle(spec.x, spec.y, spec.w, spec.h))
   slice.name = spec.name
+  if spec.px ~= nil and spec.py ~= nil then
+    slice.pivot = Point(spec.px, spec.py)
+  end
   print(string.format(
-    "[add_slices] %-11s @ (%d,%d) %dx%d",
-    slice.name, spec.x, spec.y, spec.w, spec.h
+    "[add_slices] %-11s @ (%d,%d) %dx%d  pivot=(%s,%s)",
+    slice.name, spec.x, spec.y, spec.w, spec.h,
+    tostring(spec.px), tostring(spec.py)
   ))
 end
 
