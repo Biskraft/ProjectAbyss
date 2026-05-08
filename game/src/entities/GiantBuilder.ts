@@ -14,6 +14,7 @@ import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { LegRig, type LegMount } from './LegRig';
 import { GlowFilter } from '@effects/GlowFilter';
+import { LandingDustManager } from '@effects/LandingDust';
 
 // ---------------------------------------------------------------------------
 // BuilderLight — blinking indicator on the builder body
@@ -67,6 +68,7 @@ export class GiantBuilder {
 
   private renderer: LdtkRenderer;
   private legRig: LegRig;
+  private footDust: LandingDustManager;
   private lights: BuilderLightDef[] = [];
   private lightTime = 0;
   /** Unfiltered container for light graphics — sits above palette-filtered layers
@@ -88,6 +90,11 @@ export class GiantBuilder {
       interior: this.renderer.interiorLayer,
       shadow: this.renderer.shadowLayer,
     };
+  }
+
+  setLegFilters(filters: Container['filters']): void {
+    this.legRig.container.filters = filters ? [...filters] : filters;
+    this.legRig.frontContainer.filters = filters ? [...filters] : filters;
   }
 
   constructor(
@@ -122,7 +129,11 @@ export class GiantBuilder {
     // (peek out around the body); legs with ForwardRender=true render in the
     // front layer to show the full leg silhouette in front of the body.
     const mounts = GiantBuilder.extractLegMounts(level);
-    this.legRig = new LegRig(mounts);
+    this.footDust = new LandingDustManager(this.container);
+    this.legRig = new LegRig(mounts, (x, y, mount) => {
+      if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
+      this.footDust.spawnScaled(x, y, 700, 4, 'vertical');
+    });
     this.container.addChildAt(this.legRig.container, 0);
     this.container.addChild(this.legRig.frontContainer);
     this.legRig.update(0); // initial pose (gait phase 0, no advance)
@@ -316,6 +327,7 @@ export class GiantBuilder {
       light.gfx.alpha = 0.3 + pulse * 0.7;
       light.glowGfx.alpha = pulse * 0.6;
     }
+    this.footDust.update(dt);
 
     if (this.state === 'dormant' || this.route.length === 0) return;
 

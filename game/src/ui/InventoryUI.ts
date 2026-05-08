@@ -1,5 +1,5 @@
 import { Container, Graphics, BitmapText, Text } from 'pixi.js';
-import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
+import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey, DEMO_BLOCK_REDIVE } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { ItemImage } from './ItemImage';
@@ -212,6 +212,9 @@ export class InventoryUI {
         const item = this.inventory.items[this.selectedIndex];
         if (!item) return;
         if (STARTER_ONLY_IDS.has(item.def.id)) return;
+        // Demo build: cleared items are dive-blocked. Input is silently
+        // ignored — the LOCK visual on the row already signals the state.
+        if (DEMO_BLOCK_REDIVE && item.worldProgress?.cleared === true) return;
 
         // If equipped: only allow auto-unequip on FIRST dive (tutorial)
         if (this.inventory.equipped?.uid === item.uid) {
@@ -484,6 +487,12 @@ export class InventoryUI {
 
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
     const isStarterOnly = STARTER_ONLY_IDS.has(item.def.id);
+    // Demo build: cleared items are dive-blocked → render with the LOCK pattern
+    // (gray dim + 🔒 badge), same treatment as starter-only weapons. In full
+    // builds (DEMO_BLOCK_REDIVE=false), cleared items keep the green CLR badge
+    // since the yarikomi cycle is reachable.
+    const isClearedBlocked = DEMO_BLOCK_REDIVE && (item.worldProgress?.cleared === true);
+    const isLocked = isStarterOnly || isClearedBlocked;
 
     // Row background — Bloodstained-tier 4-layer for selected,
     // simple equipped tint otherwise. SSoT: docs/ui-components.html#selection-state
@@ -544,7 +553,7 @@ export class InventoryUI {
     // selection signal stays uniform across the list.
     const nameColor = isSelected
       ? COL_TEXT_WHITE
-      : (isStarterOnly ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
+      : (isLocked ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
     const name = item.def.name;
     const nameText = createUiText(name, { fontSize: 10, fill: nameColor });
     nameText.x = cx;
@@ -552,7 +561,7 @@ export class InventoryUI {
     this.listArea.addChild(nameText);
 
     // Level (between name and stars)
-    const lvColor = (isOnAnvil || isStarterOnly) ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : COL_TEXT);
+    const lvColor = (isOnAnvil || isLocked) ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : COL_TEXT);
     const lvText = new BitmapText({
       text: `Lv.${item.level}`,
       style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: lvColor }
@@ -574,7 +583,7 @@ export class InventoryUI {
     // ATK stat
     const atkText = new BitmapText({
       text: `ATK ${item.finalAtk}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isStarterOnly || isEquipped) ? COL_LOCKED : COL_TEXT }
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isLocked || isEquipped) ? COL_LOCKED : COL_TEXT }
     });
     atkText.x = PADDING + rowW - 68;
     atkText.y = y + 4;
@@ -583,8 +592,8 @@ export class InventoryUI {
 
     // DIVE / CLR / LOCKED badge (right end)
     const badgeX = PADDING + rowW - 28;
-    if (isStarterOnly || isEquipped) {
-      // Starter-only item — can't dive
+    if (isLocked || isEquipped) {
+      // LOCK pattern: starter-only / equipped / cleared(demo block)
       const lockBadge = new Graphics();
       lockBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).stroke({ color: COL_LOCKED, width: 1 });
       this.listArea.addChild(lockBadge);

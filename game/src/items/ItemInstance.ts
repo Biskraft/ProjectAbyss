@@ -82,6 +82,13 @@ export function getOrCreateWorldProgress(item: ItemInstance): ItemWorldProgress 
   return item.worldProgress;
 }
 
+/**
+ * Demo build switch: when true, items that have been fully cleared cannot be
+ * dived again (re-dive prompt is replaced by a refusal toast). Set to false
+ * to restore the cycle / yarikomi flow in Phase 3+ full builds.
+ */
+export const DEMO_BLOCK_REDIVE = true;
+
 /** True when the player has beaten every stratum of this item at least once. */
 export function isItemFullyCleared(item: ItemInstance): boolean {
   return item.worldProgress?.cleared === true;

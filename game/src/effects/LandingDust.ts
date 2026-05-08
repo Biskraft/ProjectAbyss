@@ -41,21 +41,32 @@ export class LandingDustManager {
    * @param fallSpeed abs(vy) at the moment of landing, in px/s. Drives intensity.
    */
   spawn(footX: number, footY: number, fallSpeed: number): void {
+    this.spawnScaled(footX, footY, fallSpeed, 1);
+  }
+
+  spawnScaled(
+    footX: number,
+    footY: number,
+    fallSpeed: number,
+    scale: number,
+    spreadAxis: 'horizontal' | 'vertical' = 'horizontal',
+  ): void {
     if (fallSpeed < 80) return; // negligible — skip (walk-offs of small ledges)
 
+    const s = Math.max(0.1, scale);
     let count: number;
     let radiusBase: number;
     let heavy = false;
     if (fallSpeed >= HEAVY_THRESHOLD) {
-      count = 7;
-      radiusBase = 4.5;
+      count = Math.ceil(7 * Math.min(2.5, s));
+      radiusBase = 4.5 * s;
       heavy = true;
     } else if (fallSpeed >= LIGHT_THRESHOLD) {
-      count = 5;
-      radiusBase = 3.5;
+      count = Math.ceil(5 * Math.min(2.5, s));
+      radiusBase = 3.5 * s;
     } else {
-      count = 3;
-      radiusBase = 2.5;
+      count = Math.ceil(3 * Math.min(2.5, s));
+      radiusBase = 2.5 * s;
     }
 
     // Lateral puffs — spread outward along the ground line
@@ -63,14 +74,19 @@ export class LandingDustManager {
       // Symmetric-ish spread: alternating left/right
       const side = (i % 2 === 0) ? -1 : 1;
       const t = Math.floor(i / 2) + 1;            // 1,1,2,2,3,...
-      const baseOffsetX = side * t * 3;           // -3, +3, -6, +6, -9, ...
-      const jitterX = (Math.random() - 0.5) * 4;
-      const x = footX + baseOffsetX + jitterX;
-      const y = footY - 1 + (Math.random() - 0.5) * 1.5;
+      const baseOffset = side * t * 3 * s;        // -3, +3, -6, +6, -9, ...
+      const jitterMain = (Math.random() - 0.5) * 4 * s;
+      const jitterCross = (Math.random() - 0.5) * 1.5 * s;
+      const x = spreadAxis === 'vertical' ? footX + jitterCross : footX + baseOffset + jitterMain;
+      const y = spreadAxis === 'vertical' ? footY + baseOffset + jitterMain : footY - 1 * s + jitterCross;
 
-      const speed = 40 + Math.random() * 40;
-      const vx = side * speed * (0.6 + Math.random() * 0.6);
-      const vy = -20 - Math.random() * 30;        // small upward lift
+      const speed = (40 + Math.random() * 40) * s;
+      const vx = spreadAxis === 'vertical'
+        ? (Math.random() - 0.5) * 18 * s
+        : side * speed * (0.6 + Math.random() * 0.6);
+      const vy = spreadAxis === 'vertical'
+        ? side * speed * (0.6 + Math.random() * 0.6)
+        : (-20 - Math.random() * 30) * s;  // small upward lift
 
       const radius = radiusBase * (0.8 + Math.random() * 0.5);
 
@@ -91,8 +107,8 @@ export class LandingDustManager {
     // Heavy landings get a small central upward plume
     if (heavy) {
       for (let i = 0; i < 3; i++) {
-        const x = footX + (Math.random() - 0.5) * 4;
-        const y = footY - 2;
+        const x = footX + (Math.random() - 0.5) * 4 * s;
+        const y = footY - 2 * s;
         const radius = radiusBase * 0.8;
         const gfx = new Graphics();
         gfx.circle(0, 0, radius).fill({ color: PUFF_COLOR, alpha: 0.6 });
@@ -101,8 +117,8 @@ export class LandingDustManager {
         this.parent.addChild(gfx);
         this.puffs.push({
           gfx, x, y,
-          vx: (Math.random() - 0.5) * 20,
-          vy: -50 - Math.random() * 30,
+          vx: (Math.random() - 0.5) * 20 * s,
+          vy: (-50 - Math.random() * 30) * s,
           life: PUFF_LIFE * 0.8,
           maxLife: PUFF_LIFE,
           startRadius: radius,

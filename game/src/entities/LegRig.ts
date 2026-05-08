@@ -56,6 +56,7 @@ const DEFAULT_STRIDE = 280;      // foot travel along leg's local X per cycle
 const DEFAULT_SWING_LIFT = 200;  // peak retraction along leg's local -Y during swing
 const SWING_PORTION = 0.18;
 const GAIT_DISTANCE = 280;       // body-px per full gait cycle
+const LEG_RENDER_SCALE = 1;
 
 // Foot brick — the leg's lower limb attaches to the ankle (top of the brick),
 // and the brick's far face rests flat on the surface point the IK targets.
@@ -99,6 +100,8 @@ interface ResolvedMount {
   swingLift: number;
 }
 
+type LegFootPlantCallback = (x: number, y: number, mount: ResolvedMount) => void;
+
 /** Sprite set for one leg. */
 interface LegSprites {
   shoulder: Sprite;
@@ -130,10 +133,13 @@ export class LegRig {
   private phase = 0;
   private cumulativeDist = 0;
   private unsubscribeSwap: (() => void) | null = null;
+  private wasPlanted: boolean[] = [];
+  private onFootPlant: LegFootPlantCallback | null = null;
 
-  constructor(mounts: LegMount[]) {
+  constructor(mounts: LegMount[], onFootPlant?: LegFootPlantCallback) {
     this.container = new Container();
     this.frontContainer = new Container();
+    this.onFootPlant = onFootPlant ?? null;
     const n = Math.max(1, mounts.length);
     this.mounts = mounts.map((m, i) => {
       // Resolve effective angle and reach.
@@ -173,6 +179,7 @@ export class LegRig {
         swingLift: DEFAULT_SWING_LIFT * scale,
       };
     });
+    this.wasPlanted = this.mounts.map(() => false);
 
     // Atlas may already be loaded (boot preloaded) — build sprites synchronously
     // in that case so the very first update() shows full legs. Otherwise kick
@@ -318,6 +325,13 @@ export class LegRig {
       const ky = m.y + ik.kx * sa + ik.ky * ca;
       const fx = m.x + lx * ca - ly * sa;
       const fy = m.y + lx * sa + ly * ca;
+      const planted = localPhase >= SWING_PORTION;
+      if (planted && !this.wasPlanted[i] && Math.abs(bodyDelta) > 0.01) {
+        const footBottomX = fx;
+        const footBottomY = m.mirror ? fy - FOOT_THICKNESS : fy;
+        this.onFootPlant?.(footBottomX, footBottomY, m);
+      }
+      this.wasPlanted[i] = planted;
 
       // Foot rotation is decoupled from the leg axis — the brick stays
       // axis-aligned (long axis horizontal, short axis vertical) so it
@@ -351,7 +365,7 @@ export class LegRig {
       // the rendered distance.
       const upperActualLen = Math.hypot(kx - sx, ky - sy);
       const lowerActualLen = Math.hypot(ankleX - kx, ankleY - ky);
-      const legScale = 1;
+      const legScale = LEG_RENDER_SCALE;
 
       // m.mirror flips joint + limb sprites horizontally so the asymmetric
       // armor art reflects for legs on the opposite side of the body
@@ -360,11 +374,11 @@ export class LegRig {
       // disturb the rotation / endpoint math — it only mirrors the texture
       // pixel content around the anchor's vertical axis.
       //
-      // Foot is intentionally NOT mirrored: the foot brick's heel/toe
-      // axis encodes walking direction, which is the same for every leg
-      // of a forward-walking body. Flipping it for mirrored legs swaps
-      // toe and heel and leaves the foot pointing backward.
+      // Foot stays unrotated. On mirrored legs only its Y axis flips; keeping
+      // X unflipped preserves the authored toe/heel direction.
       const mirrorX = m.mirror ? -legScale : legScale;
+      const footMirrorX = legScale;
+      const footMirrorY = m.mirror ? -legScale : legScale;
 
       sprites.shoulder.position.set(sx, sy);
       sprites.shoulder.scale.set(mirrorX, legScale);
@@ -387,14 +401,9 @@ export class LegRig {
       sprites.lower.rotation = Math.atan2(kx - ankleX, ankleY - ky);
       sprites.lower.scale.set(mirrorX, lowerActualLen / sprites.lowerSourceH);
 
-      // Foot follows the lower limb's rotation so the brick reads as a
-      // natural extension of the limb instead of hinging off it at a fixed
-      // axis-aligned angle. With this the foot's heel/toe axis stays
-      // consistent with the leg direction at every gait phase, including
-      // mirrored legs where IK already flipped the stride.
       sprites.foot.position.set(ankleX, ankleY);
-      sprites.foot.rotation = sprites.lower.rotation;
-      sprites.foot.scale.set(legScale, legScale);
+      sprites.foot.rotation = 0;
+      sprites.foot.scale.set(footMirrorX, footMirrorY);
     }
   }
 

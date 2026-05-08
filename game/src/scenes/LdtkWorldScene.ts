@@ -70,7 +70,7 @@ import { ItemDropEntity } from '@items/ItemDrop';
 import { resolveBottomLeftPickupSpawn, resolveItemDropSpawn } from '@items/DropSpawn';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
 import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
-import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle } from '@items/ItemInstance';
+import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle, DEMO_BLOCK_REDIVE } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
@@ -4959,6 +4959,7 @@ export class LdtkWorldScene extends Scene {
       builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
       builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
       builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
     }
 
     const topY = 64;                                          // 4 tiles from top
@@ -5033,6 +5034,7 @@ export class LdtkWorldScene extends Scene {
       builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
       builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
       builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
     }
 
     const px = 15 * 16; // 좌측 벽 + 15 tile (1 tile = 16 px).
@@ -5941,6 +5943,12 @@ export class LdtkWorldScene extends Scene {
           this.toast.show('Cannot dive ??too broken', 0xff4444);
           return;
         }
+        // Demo build: block re-dive on fully cleared items (parity with anvil).
+        if (DEMO_BLOCK_REDIVE && isItemFullyCleared(item)) {
+          this.toast.show('Memory exhausted. Find another blade.', 0xff8844);
+          this.closeAltarUI();
+          return;
+        }
         if (this.activeAltar) {
           const altar = this.activeAltar;
           altar.used = true;
@@ -6151,10 +6159,14 @@ export class LdtkWorldScene extends Scene {
         this.toast.show('Cannot dive ??too broken', 0xff4444);
         return;
       }
-      // Fully cleared item ??confirm re-dive (increments cycle, resets strata).
-      // Reuse the existing cycle-prompt overlay; it draws on top of the
-      // inventory and steals input via the updateCyclePromptInput path.
+      // Fully cleared item — demo blocks re-dive (DEMO_BLOCK_REDIVE).
+      // In Phase 3+ full builds, fall through to the cycle-prompt overlay.
       if (isItemFullyCleared(item)) {
+        if (DEMO_BLOCK_REDIVE) {
+          this.toast.show('Memory exhausted. Find another blade.', 0xff8844);
+          this.inventoryUI.close();
+          return;
+        }
         this.cyclePromptItem = item;
         this.drawCyclePromptUI(item);
         return;
