@@ -34,6 +34,26 @@ const KO_FONT_FAMILY = '"Noto Sans KR", "IBM Plex Sans KR", "Press Start 2P", sa
 const KO_FONT_SIZE_BOOST = 2;
 
 /**
+ * Default texture resolution for KO PIXI.Text nodes.
+ *
+ * Almost every UI container in ECHORIS does `container.scale.set(uiScale)` so
+ * a fontSize=8 node ends up rendered at `8 * uiScale` device pixels. PIXI.Text
+ * defaults to resolution=1, which makes the canvas-backed glyph texture only
+ * 8 px tall — bilinearly stretched 3× by the container, so KO text looks
+ * blurry while latin BitmapText (atlas-backed, already crisp) stays sharp.
+ *
+ * Game.init() calls setDefaultUiScale(this.uiScale) once at boot so every
+ * KO text node downstream picks up a 3× density texture and renders 1:1.
+ * Callers that already pass an explicit `resolution` argument to createUiText
+ * (e.g. LoreDisplay) override this default.
+ */
+let defaultUiScale = 1;
+
+export function setDefaultUiScale(scale: number): void {
+  defaultUiScale = Math.max(1, scale);
+}
+
+/**
  * Locale-aware font-family substitution for `PIXI.Text` styles that already use
  * a custom latin family (Cinzel, Rajdhani). KO builds need a CJK-capable font
  * regardless of which latin family the caller intended.
@@ -62,9 +82,10 @@ export function localizeFontFamily(latinFamily: string): string {
 export function createUiText(
   text: string,
   style: TextStyleOptions,
-  resolution: number = 1,
+  resolution?: number,
   latinFont: string = PIXEL_FONT,
 ): BitmapText | Text {
+  const effectiveResolution = resolution ?? defaultUiScale;
   if (getLocale() === 'ko') {
     const enSize = typeof style.fontSize === 'number' ? style.fontSize : 8;
     const koSize = enSize + KO_FONT_SIZE_BOOST;
@@ -82,7 +103,7 @@ export function createUiText(
         lineHeight: Math.round(koSize * 1.3),
       },
     });
-    if (resolution > 1) node.resolution = resolution;
+    if (effectiveResolution > 1) node.resolution = effectiveResolution;
     return node;
   }
   // EN branch — caller picks the latin BitmapFont (PIXEL_FONT default,
