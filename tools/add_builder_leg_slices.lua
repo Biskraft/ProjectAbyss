@@ -1,22 +1,23 @@
 --[[
   add_builder_leg_slices.lua
 
-  Adds the 5 builder-leg slices to builder_leg_01.ase, with NineSlice 9-patch
-  centers on the limb segments. Idempotent — existing slices with the same
-  name are removed first so re-running never duplicates.
+  Adds the 5 builder-leg slices to builder_leg_01.ase. Single-sprite design:
+  no NineSlice / 9-patch — limbs scale via sprite.scale at runtime. Slices
+  carry only bounds. Idempotent — existing slices with the same name are
+  removed first so re-running never duplicates.
 
   Run via:
     aseprite.exe -b --script-param file=<absolute path to .ase> \
                  --script tools/add_builder_leg_slices.lua
 
-  Slice geometry mirrors tools/gen_builder_leg_atlas.mjs / builderLegAtlas.ts.
+  Slice geometry mirrors game/src/entities/builderLegAtlas.ts.
 --]]
 
 local SLICES = {
   { name = "shoulder",   x = 0, y =   0, w = 96, h =  96 },
   { name = "knee",       x = 0, y =  96, w = 80, h =  80 },
-  { name = "upper_limb", x = 0, y = 176, w = 96, h = 280, capTop = 24, capBottom = 24 },
-  { name = "lower_limb", x = 0, y = 456, w = 64, h = 340, capTop = 16, capBottom = 16 },
+  { name = "upper_limb", x = 0, y = 176, w = 96, h = 280 },
+  { name = "lower_limb", x = 0, y = 456, w = 64, h = 340 },
   { name = "foot",       x = 0, y = 796, w = 80, h = 160 },
 }
 
@@ -58,17 +59,9 @@ end
 for _, spec in ipairs(SLICES) do
   local slice = sprite:newSlice(Rectangle(spec.x, spec.y, spec.w, spec.h))
   slice.name = spec.name
-  if spec.capTop and spec.capBottom then
-    -- 9-patch center: stays inside the cap rows. Caps run full width so
-    -- left/right are 0 and width = full slice width.
-    local cy = spec.capTop
-    local ch = spec.h - spec.capTop - spec.capBottom
-    slice.center = Rectangle(0, cy, spec.w, ch)
-  end
   print(string.format(
-    "[add_slices] %-11s @ (%d,%d) %dx%d%s",
-    slice.name, spec.x, spec.y, spec.w, spec.h,
-    spec.capTop and string.format(" 9-patch top=%d bottom=%d", spec.capTop, spec.capBottom) or ""
+    "[add_slices] %-11s @ (%d,%d) %dx%d",
+    slice.name, spec.x, spec.y, spec.w, spec.h
   ))
 end
 
