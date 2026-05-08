@@ -304,7 +304,7 @@ export class InventoryUI {
       this.panelBg.rect(0, 0, pw, PANEL_H).stroke({ color: COL_BORDER, width: 1 });
     }
 
-    this.titleText.text = this.mode === 'anvil' ? 'FORGE' : 'INVENTORY';
+    this.titleText.text = this.mode === 'anvil' ? t('ui.inventory.title_anvil') : t('ui.inventory.title');
 
     this.drawEquipmentSlots();
     this.drawList();

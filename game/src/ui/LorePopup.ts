@@ -214,15 +214,24 @@ export class LorePopup {
     rarityText.y = 28;
     this.panel.addChild(rarityText);
 
-    // Lore 2줄 (8px)
+    // Lore 2줄 (8px). Width budget = panel - TEXT_X - right padding. Pre-
+    // split lines may wrap further on KO build (Noto Sans KR latin glyph
+    // metrics differ from BitmapText pixel atlas) so we honor `node.height`
+    // instead of a fixed line increment.
+    const LORE_WRAP_W = W - TEXT_X - 12;
     const lore = getWeaponLore(item.def.id, item.def.name, item.rarity);
     let ly = 44;
     for (const line of lore) {
-      const node = createUiText(line, { fontSize: 8, fill: 0xccccdd });
+      const node = createUiText(line, {
+        fontSize: 8,
+        fill: 0xccccdd,
+        wordWrap: true,
+        wordWrapWidth: LORE_WRAP_W,
+      });
       node.x = TEXT_X;
       node.y = ly;
       this.panel.addChild(node);
-      ly += 10;
+      ly += Math.max(10, Math.ceil(node.height) + 1);
     }
 
     // 구분선 — 아이콘 하단 아래로 14px 여유를 두고 배치.

@@ -27,11 +27,17 @@ import { PIXEL_FONT } from './fonts';
 const KO_FONT_FAMILY = '"Noto Sans KR", "IBM Plex Sans KR", "Press Start 2P", sans-serif';
 
 /**
- * Hangul x-height runs visibly smaller than the latin pixel atlas at the same
- * point size. We bump KO render size globally so perceived weight matches the
- * EN BitmapText baseline. Tuned 2026-05-08 against LoreDisplay (Victor visual).
+ * KO render size adjustment relative to caller's fontSize. Originally bumped
+ * +2 to compensate for hangul x-height vs latin pixel atlas, but that pushed
+ * KO text well past BitmapText layout assumptions (slot labels overlapping,
+ * DIVE/CANCEL pills overflowing, equipment grid stacking). Set to 0 so KO
+ * Text sits inside the same pixel budget as the original EN BitmapText
+ * layout — Korean glyphs read as slightly thinner but layouts hold.
+ *
+ * Tuned 2026-05-08 against InventoryUI/Forge mode (Victor full-screen
+ * audit).
  */
-const KO_FONT_SIZE_BOOST = 2;
+const KO_FONT_SIZE_BOOST = 0;
 
 /**
  * Default texture resolution for KO PIXI.Text nodes.
@@ -95,12 +101,12 @@ export function createUiText(
         ...style,
         fontFamily: KO_FONT_FAMILY,
         fontSize: koSize,
-        // Hangul 받침 (jongsung) extends well below the alphabetic baseline.
-        // PIXI.Text's default texture bounds clip these descenders, so add
-        // padding sized to the font. lineHeight 1.3 also gives the glyph room
-        // to breathe without the texture trimming the bottom row.
+        // Hangul 받침 (jongsung) extends below the alphabetic baseline. PIXI's
+        // default texture bounds clip these descenders, so widen via padding.
+        // lineHeight ratio kept tight (1.15) so vertical row pitch stays close
+        // to BitmapText layouts that callers tuned for fontSize 8 / 10 / 12.
         padding: Math.max(2, Math.round(koSize * 0.25)),
-        lineHeight: Math.round(koSize * 1.3),
+        lineHeight: Math.round(koSize * 1.15),
       },
     });
     if (effectiveResolution > 1) node.resolution = effectiveResolution;
