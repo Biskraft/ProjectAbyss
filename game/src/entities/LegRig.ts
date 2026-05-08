@@ -363,14 +363,21 @@ export class LegRig {
 
       sprites.shoulder.position.set(sx, sy);
 
+      // PIXI applies rotation as a standard CCW matrix in math space; with
+      // anchor (0.5, 0) the sprite's default "down" vector (0, 1) becomes
+      // (-sin θ, cos θ) after rotation in screen coords. Solving
+      //   (-sin θ, cos θ) = (vx, vy) / |v|
+      // gives θ = atan2(-vx, vy). Earlier code dropped the negation on vx
+      // and produced a horizontally mirrored leg silhouette — limb
+      // endpoints met the joints but the limb rotated the wrong way.
       sprites.upper.position.set(sx, sy);
-      sprites.upper.rotation = Math.atan2(kx - sx, ky - sy);
+      sprites.upper.rotation = Math.atan2(sx - kx, ky - sy);
       sprites.upper.scale.set(legScale, upperActualLen / sprites.upperSourceH);
 
       sprites.knee.position.set(kx, ky);
 
       sprites.lower.position.set(kx, ky);
-      sprites.lower.rotation = Math.atan2(ankleX - kx, ankleY - ky);
+      sprites.lower.rotation = Math.atan2(kx - ankleX, ankleY - ky);
       sprites.lower.scale.set(legScale, lowerActualLen / sprites.lowerSourceH);
 
       sprites.foot.position.set(ankleX, ankleY);
