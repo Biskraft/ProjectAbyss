@@ -1,6 +1,7 @@
 /**
  * LegRig — Procedural N-leg IK rig for the GiantBuilder, driven by
- * author-placed mount points.
+ * author-placed mount points and rendered with sprites from the
+ * builder_leg_01 atlas.
  *
  * Each LegMount specifies:
  *   x, y     — shoulder position in body-local pixels
@@ -28,15 +29,26 @@
  * IK: 2-segment chain solved in the leg's local frame by law of cosines.
  * Knee solution with smaller local X is chosen so knees bend backward
  * (AT-AT / mech silhouette) regardless of mount orientation.
+ *
+ * Rendering: 5 sprites per leg from builder_leg_01 atlas (shoulder, knee,
+ * upper_limb, lower_limb, foot). Limb sprites scale.y with per-leg length;
+ * limb rotation is recomputed each frame from the IK result. Atlas hot-
+ * swap is supported via onLegSheetSwap — each sprite's texture re-binds
+ * automatically on swap.
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
+import {
+  loadBuilderLegSheet,
+  getLegPart,
+  isBuilderLegSheetLoaded,
+  onLegSheetSwap,
+  type LegPartName,
+} from './builderLegAtlas';
 
-const COL_LIMB = 0x4a4a52;
-const COL_JOINT = 0xe87830;
-const COL_FOOT = 0x1a1a1a;
-
-// Default proportions, sized for the 768×1152 builder body.
+// Default proportions, sized for the 768×1152 builder body. Sprite source
+// dimensions match these defaults so a leg using `length === DEFAULT_STAND_DIST`
+// renders at sprite scale 1.
 const DEFAULT_UPPER_LEN = 280;
 const DEFAULT_LOWER_LEN = 340;
 const DEFAULT_STAND_DIST = 520;  // foot reach along leg's local +Y when planted
@@ -87,6 +99,18 @@ interface ResolvedMount {
   swingLift: number;
 }
 
+/** Sprite set for one leg. */
+interface LegSprites {
+  shoulder: Sprite;
+  upper: Sprite;
+  knee: Sprite;
+  lower: Sprite;
+  foot: Sprite;
+  /** Constant per-leg scale derived from m.upperLen / DEFAULT_UPPER_LEN. */
+  upperScaleY: number;
+  lowerScaleY: number;
+}
+
 export class LegRig {
   /** Back layer — sits behind the builder body tilemap. */
   readonly container: Container;
@@ -95,9 +119,11 @@ export class LegRig {
    *  of the body tilemap (otherwise legs render behind it). */
   readonly frontContainer: Container;
   private mounts: ResolvedMount[];
-  private gfx: Graphics[] = [];
+  private legs: LegSprites[] = [];
+  private ready = false;
   private phase = 0;
   private cumulativeDist = 0;
+  private unsubscribeSwap: (() => void) | null = null;
 
   constructor(mounts: LegMount[]) {
     this.container = new Container();
@@ -141,11 +167,84 @@ export class LegRig {
         swingLift: DEFAULT_SWING_LIFT * scale,
       };
     });
+
+    // Atlas may already be loaded (boot preloaded) — build sprites synchronously
+    // in that case so the very first update() shows full legs. Otherwise kick
+    // off async load and populate when the texture arrives.
+    if (isBuilderLegSheetLoaded()) {
+      this.buildSprites();
+      this.ready = true;
+    } else {
+      void this.bootstrap();
+    }
+
+    // Re-bind sprite textures whenever the atlas swaps to a variant sheet.
+    this.unsubscribeSwap = onLegSheetSwap(() => this.refreshTextures());
+  }
+
+  private async bootstrap(): Promise<void> {
+    await loadBuilderLegSheet();
+    if (this.legs.length === 0) {
+      this.buildSprites();
+      this.ready = true;
+    }
+  }
+
+  private buildSprites(): void {
     for (const m of this.mounts) {
-      const g = new Graphics();
+      const upperScaleY = m.upperLen / DEFAULT_UPPER_LEN;
+      const lowerScaleY = m.lowerLen / DEFAULT_LOWER_LEN;
+
+      const shoulder = this.makeSprite('shoulder');
+      const upper = this.makeSprite('upper_limb');
+      const knee = this.makeSprite('knee');
+      const lower = this.makeSprite('lower_limb');
+      const foot = this.makeSprite('foot');
+
+      // Per-leg constant scales (length variations baked once). Frame-to-frame
+      // we only mutate position + rotation.
+      upper.scale.set(1, upperScaleY);
+      lower.scale.set(1, lowerScaleY);
+
+      // Z-order: limb shafts and foot in the back, joint pads on top so the
+      // joint art covers the limb's top cap seam.
+      const legContainer = new Container();
+      legContainer.addChild(upper);
+      legContainer.addChild(lower);
+      legContainer.addChild(foot);
+      legContainer.addChild(shoulder);
+      legContainer.addChild(knee);
+
       const target = m.forwardRender ? this.frontContainer : this.container;
-      target.addChild(g);
-      this.gfx.push(g);
+      target.addChild(legContainer);
+
+      this.legs.push({ shoulder, upper, knee, lower, foot, upperScaleY, lowerScaleY });
+    }
+  }
+
+  private makeSprite(name: LegPartName): Sprite {
+    const part = getLegPart(name);
+    const s = new Sprite(part.texture);
+    s.anchor.set(part.pivotX, part.pivotY);
+    return s;
+  }
+
+  /** Re-bind sprite textures after a hot atlas swap. */
+  private refreshTextures(): void {
+    for (const leg of this.legs) {
+      leg.shoulder.texture = getLegPart('shoulder').texture;
+      leg.upper.texture    = getLegPart('upper_limb').texture;
+      leg.knee.texture     = getLegPart('knee').texture;
+      leg.lower.texture    = getLegPart('lower_limb').texture;
+      leg.foot.texture     = getLegPart('foot').texture;
+    }
+  }
+
+  /** Detach swap subscription. Call when the rig is destroyed. */
+  destroy(): void {
+    if (this.unsubscribeSwap) {
+      this.unsubscribeSwap();
+      this.unsubscribeSwap = null;
     }
   }
 
@@ -156,9 +255,12 @@ export class LegRig {
   update(bodyDelta: number): void {
     this.cumulativeDist += Math.abs(bodyDelta);
     this.phase = (this.cumulativeDist / GAIT_DISTANCE) % 1;
+    if (!this.ready) return;
 
     for (let i = 0; i < this.mounts.length; i++) {
       const m = this.mounts[i];
+      const sprites = this.legs[i];
+      if (!sprites) continue;
       const localPhase = (this.phase + m.phase) % 1;
 
       // Foot position in the leg's LOCAL frame (down=+Y, forward=+X).
@@ -181,7 +283,19 @@ export class LegRig {
         const k = m.maxReach / d;
         lx *= k; ly *= k; d = m.maxReach;
       }
-      if (d < 1) { this.gfx[i].clear(); continue; }
+      if (d < 1) {
+        sprites.shoulder.visible = false;
+        sprites.upper.visible = false;
+        sprites.knee.visible = false;
+        sprites.lower.visible = false;
+        sprites.foot.visible = false;
+        continue;
+      }
+      sprites.shoulder.visible = true;
+      sprites.upper.visible = true;
+      sprites.knee.visible = true;
+      sprites.lower.visible = true;
+      sprites.foot.visible = true;
 
       const ik = this.solveLocal(lx, ly, d, m.mirror, m.upperLen, m.lowerLen);
 
@@ -190,6 +304,8 @@ export class LegRig {
       const alpha = m.angle - Math.PI / 2;
       const ca = Math.cos(alpha);
       const sa = Math.sin(alpha);
+      const sx = m.x;
+      const sy = m.y;
       const kx = m.x + ik.kx * ca - ik.ky * sa;
       const ky = m.y + ik.kx * sa + ik.ky * ca;
       const fx = m.x + lx * ca - ly * sa;
@@ -203,7 +319,27 @@ export class LegRig {
       const ankleX = fx;
       const ankleY = fy - FOOT_THICKNESS;
 
-      this.drawLeg(this.gfx[i], m.x, m.y, kx, ky, ankleX, ankleY, fx, fy);
+      // Sprite layout:
+      //   shoulder centered on (sx, sy)
+      //   upper limb anchored top-center at (sx, sy), rotated to point at knee
+      //   knee centered on (kx, ky)
+      //   lower limb anchored top-center at (kx, ky), rotated to point at ankle
+      //   foot anchored top-center at (ankleX, ankleY) — axis-aligned, no rotation
+      //
+      // PIXI rotation is clockwise from +X. With anchor (0.5, 0) the sprite's
+      // default "down" direction is +Y, so atan2(dx, dy) maps that down vector
+      // to the IK chain segment direction.
+      sprites.shoulder.position.set(sx, sy);
+
+      sprites.upper.position.set(sx, sy);
+      sprites.upper.rotation = Math.atan2(kx - sx, ky - sy);
+
+      sprites.knee.position.set(kx, ky);
+
+      sprites.lower.position.set(kx, ky);
+      sprites.lower.rotation = Math.atan2(ankleX - kx, ankleY - ky);
+
+      sprites.foot.position.set(ankleX, ankleY);
     }
   }
 
@@ -231,27 +367,8 @@ export class LegRig {
       ky: Math.sin(kAng) * upperLen,
     };
   }
-
-  private drawLeg(
-    g: Graphics,
-    sx: number, sy: number,
-    kx: number, ky: number,
-    ax: number, ay: number,   // ankle (lower-limb endpoint, top of foot)
-    fx: number, fy: number,   // sole midpoint (on the surface)
-  ): void {
-    g.clear();
-    g.moveTo(sx, sy).lineTo(kx, ky).stroke({ width: 72, color: COL_LIMB });
-    g.moveTo(kx, ky).lineTo(ax, ay).stroke({ width: 56, color: COL_LIMB });
-    g.circle(sx, sy, 48).fill(COL_JOINT);
-    g.circle(kx, ky, 40).fill(COL_JOINT);
-
-    // Foot brick — always axis-aligned to body-local (≈ world) axes:
-    // long side along X (= along the floor), short side along Y. This keeps
-    // the foot flat on a horizontal surface regardless of leg tilt.
-    const halfL = FOOT_LENGTH * 0.5; // along floor (X)
-    const halfT = FOOT_THICKNESS * 0.5; // perpendicular to floor (Y)
-    const cx = fx;
-    const cy = fy - halfT; // sole sits at fy; brick center is halfT above
-    g.rect(cx - halfL, cy - halfT, FOOT_LENGTH, FOOT_THICKNESS).fill(COL_FOOT);
-  }
 }
+
+// FOOT_LENGTH retained as exported metadata in case other systems need to
+// query the foot footprint along the surface (collision, particles).
+export { FOOT_LENGTH, FOOT_THICKNESS };
