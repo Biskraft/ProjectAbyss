@@ -65,6 +65,7 @@ import { ToastManager } from '@ui/Toast';
 import { brandLabel } from '@core/input/padGlyphs';
 import { TutorialHint } from '@ui/TutorialHint';
 import { SFX } from '@audio/Sfx';
+import { BgmController } from '@audio/BgmController';
 import { PRNG } from '@utils/PRNG';
 import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
@@ -3143,6 +3144,9 @@ export class ItemWorldScene extends Scene {
   enter(): void {
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
     this.entryFreezeTimer = ENTRY_FREEZE_MS;
+    // 월드 BGM 종료 — outro 1 회 재생 후 silence. Item World 자체 BGM 은
+    // 추후 mus_iw_lane_rust_loop 등 도착 시 BgmController.play 로 교체 예정.
+    BgmController.stop('mus_world_main_outro');
   }
 
   private initialized = false;

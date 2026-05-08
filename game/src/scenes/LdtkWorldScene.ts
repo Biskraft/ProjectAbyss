@@ -17,7 +17,7 @@
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture, Sprite } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
@@ -160,6 +160,7 @@ import {
 import { assetPath } from '@core/AssetLoader';
 import { AmbientLayer } from '@audio/AmbientLayer';
 import { SFX } from '@audio/Sfx';
+import { BgmController } from '@audio/BgmController';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -230,8 +231,10 @@ export class LdtkWorldScene extends Scene {
   // Counts tile crossings so we can emit shakes on every other crossing
   // (half the cadence of raw 16-px steps — slower, weightier rhythm).
   private builderStepCounter = 0;
-  /** Cells in host collisionGrid currently overwritten by builder (row, col). Only cells that were 0 are stamped. */
-  private builderStamps: Array<{ r: number; c: number }> = [];
+  /** Cells in host collisionGrid currently overwritten by builder, packed as row * gridWidth + col. Only cells that were 0 are stamped. */
+  private builderStamps: number[] = [];
+  private builderStampOriginX: number | null = null;
+  private builderStampOriginY: number | null = null;
   /** True if, after last physics step, the player was grounded on a builder-stamped tile. Used to carry the player vertically with the builder. */
   private playerOnBuilder = false;
   /** True if the player's AABB overlaps the builder's world-space rectangle (airborne too). Used for camera override. */
@@ -424,6 +427,13 @@ export class LdtkWorldScene extends Scene {
   private inFixedItemWorld = false;
   private fixedItemWorldItem: ItemInstance | null = null;
 
+  // ── Debug warp (` 백틱 = 뷰포트 클릭 워프, Shift+M = 전 맵 클릭 워프) ────────
+  private warpModeActive = false;
+  private warpHintText: BitmapText | null = null;
+  private warpClickHandler: ((e: PointerEvent) => void) | null = null;
+
+  // ── BGM dim 상태 — save 룸 진입 시 음악을 0 으로, 떠나면 풀 볼륨 복귀 ──────
+  private bgmDimmedForSaveRoom = false;
 
   // Level tracking
   private visitedLevels: Set<string> = new Set(); // entered at least once ??revealed on minimap
@@ -554,8 +564,21 @@ export class LdtkWorldScene extends Scene {
       this.introPhase = 'fadeIn';
     }
 
-    // Fetch and parse LDtk project (multi-world ??pick Overworld)
-    const json = await fetch(LDTK_PATH).then((r) => r.json()) as Record<string, unknown>;
+    // Fetch and parse LDtk project (multi-world — pick Overworld).
+    // cache:'no-store' + cache-bust query — 모든 캐시 (브라우저 / Vite / SW / proxy)
+    // 우회. 정적 파일이라 prod 영향 미미 (씬 init 1 회).
+    const cacheBust = `?t=${Date.now()}`;
+    const json = await fetch(LDTK_PATH + cacheBust, { cache: 'no-store' }).then((r) => r.json()) as Record<string, unknown>;
+    if (import.meta.env.DEV) {
+      const builderLvl1Raw = (() => {
+        const worlds = json['worlds'] as Array<{ identifier: string; levels: Array<{ identifier: string; layerInstances?: unknown[] }> }> | undefined;
+        const w = worlds?.find(w => w.identifier === 'Builder');
+        return w?.levels.find(l => l.identifier === 'Builder_Level_1');
+      })();
+      const layerCount = builderLvl1Raw?.layerInstances?.length ?? 0;
+      // eslint-disable-next-line no-console
+      console.info(`[LDtk] fetched at ${new Date().toISOString()} — Builder_Level_1 layers=${layerCount}`);
+    }
     this.loader = new LdtkLoader();
     this.loader.load(json, LDTK_WORLD_IDS);
 
@@ -967,6 +990,15 @@ export class LdtkWorldScene extends Scene {
   enter(): void {
     this.container.visible = true;
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
+    this.reattachPersistentUi();
+    // 월드 BGM — intro 1 회 → loop 반복. 5 초 fade-in 으로 부드러운 진입.
+    // ItemWorld 에서 pop 으로 돌아온 경우 BgmController 가 같은 trackKey 면
+    // no-op 하므로 안전하게 매번 호출.
+    BgmController.play(
+      'mus_world_main',
+      { intro: 'mus_world_main_intro', loop: 'mus_world_main_loop' },
+      { fadeInMs: 5000 },
+    );
     // Area banner is triggered from loadLevel on Shaft_01 entry (not here).
     // On pop return from sub-scenes (ItemWorld) the current level is still
     // the one the player left from, so no banner replay is needed.
@@ -1008,6 +1040,16 @@ export class LdtkWorldScene extends Scene {
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
+  }
+
+  private reattachPersistentUi(): void {
+    const ui = this.game.uiContainer;
+    if (this.pauseMenu && !this.pauseMenu.container.parent) ui.addChild(this.pauseMenu.container);
+    if (this.characterStats && !this.characterStats.container.parent) ui.addChild(this.characterStats.container);
+    if (this.deathScreen && !this.deathScreen.container.parent) ui.addChild(this.deathScreen.container);
+    if (this.lorePopup && !this.lorePopup.container.parent) ui.addChild(this.lorePopup.container);
+    if (this.loreDisplay && !this.loreDisplay.container.parent) ui.addChild(this.loreDisplay.container);
+    if (this.divePreview && !this.divePreview.container.parent) ui.addChild(this.divePreview.container);
   }
 
   private detachSharedUiForItemWorld(): void {
@@ -1276,7 +1318,13 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // World Map toggle (M key) ??disabled inside item tunnels
+    // Debug warp:
+    //   Shift+M  → 모든 룸 풀 디테일 + 클릭 워프 모드로 월드맵 오픈
+    //   Backtick → 뷰포트 클릭 워프 토글 (현재 화면 안 임의 위치로 즉시 점프)
+    this.handleDebugWarp();
+
+    // World Map toggle (M key) ??disabled inside item tunnels.
+    // Shift+M 은 위 handleDebugWarp 가 먼저 consume 하므로 여기 일반 M 분기엔 도달 안 함.
     this.uiController.handleWorldMapToggle({
       canToggle: !this.inItemTunnel,
       onBeforeOpen: () => {
@@ -1395,8 +1443,12 @@ export class LdtkWorldScene extends Scene {
         // Keep interpolation consistent so the carry doesn't flicker.
         this.player.prevY += stampDelta;
       }
-      this.unstampBuilder();
-      this.stampBuilder();
+      const nextStampX = Math.round(this.activeBuilder.container.x / 16);
+      const nextStampY = Math.round(this.activeBuilder.container.y / 16);
+      if (this.builderStampOriginX !== nextStampX || this.builderStampOriginY !== nextStampY) {
+        this.unstampBuilder();
+        this.stampBuilder();
+      }
       this.syncBuilderAttachments();
 
       // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
@@ -2680,6 +2732,10 @@ export class LdtkWorldScene extends Scene {
       // (clearBuilder() runs on level unload, so the instance must be
       // recreated on every entry.)
       this.spawnBuilder(level, 'cinematic', 'Builder_Level_0');
+    } else if (level.identifier === 'Shaft_02') {
+      // 사용자 결정 2026-05-07 — Shaft_02 좌측 벽 + 16 cell 위치에 Builder_02
+      // 배치, y=0..100 무한 왕복.
+      this.spawnShaft02Builder(level);
     } else if (level.identifier === 'Debug_Shaft_01') {
       this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
     } else if (level.identifier === 'Debug_Shaft_2') {
@@ -2719,6 +2775,14 @@ export class LdtkWorldScene extends Scene {
       this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
       this.worldMap.setMarkers(this.collectMapMarkers());
       this.worldMap.redraw();
+    }
+
+    // BGM dim — save 포인트 있는 룸은 음악을 잠시 0 으로 페이드 (사용자 결정 2026-05-08).
+    // 진입: 800 ms 페이드 아웃. 떠남: 1500 ms 페이드 인.
+    const isSaveRoom = this.savePoints.length > 0;
+    if (isSaveRoom !== this.bgmDimmedForSaveRoom) {
+      this.bgmDimmedForSaveRoom = isSaveRoom;
+      BgmController.setVolumeFactor(isSaveRoom ? 0 : 1, isSaveRoom ? 800 : 1500);
     }
 
     return true;
@@ -4606,7 +4670,7 @@ export class LdtkWorldScene extends Scene {
    * Only cells where the host grid is EMPTY (0) get stamped, so runtime
    * terrain changes (broken walls, open doors) and special tiles (updraft,
    * spikes) are preserved. Stamped cells are recorded so they can be
-   * restored next frame by unstampBuilder().
+   * restored when the builder crosses a tile boundary by unstampBuilder().
    */
   private stampBuilder(): void {
     const b = this.activeBuilder;
@@ -4628,19 +4692,26 @@ export class LdtkWorldScene extends Scene {
         if (c < 0 || c >= gridW) continue;
         if (hostRow[c] === 0) {
           hostRow[c] = v;
-          this.builderStamps.push({ r, c });
+          this.builderStamps.push(r * gridW + c);
         }
       }
     }
+    this.builderStampOriginX = tileOriginX;
+    this.builderStampOriginY = tileOriginY;
   }
 
   /** Restore cells previously stamped by the builder back to empty (0). */
   private unstampBuilder(): void {
-    for (const s of this.builderStamps) {
-      const row = this.collisionGrid[s.r];
-      if (row) row[s.c] = 0;
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    for (const stamp of this.builderStamps) {
+      const r = gridW > 0 ? Math.floor(stamp / gridW) : 0;
+      const c = gridW > 0 ? stamp - r * gridW : 0;
+      const row = this.collisionGrid[r];
+      if (row) row[c] = 0;
     }
     this.builderStamps.length = 0;
+    this.builderStampOriginX = null;
+    this.builderStampOriginY = null;
   }
 
   /**
@@ -4655,8 +4726,12 @@ export class LdtkWorldScene extends Scene {
     const footRow = Math.floor((feetY + 1) / 16);
     const leftCol = Math.floor(this.player.x / 16);
     const rightCol = Math.floor((this.player.x + this.player.width - 1) / 16);
-    for (const s of this.builderStamps) {
-      if (s.r === footRow && s.c >= leftCol && s.c <= rightCol) return true;
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridW <= 0) return false;
+    for (const stamp of this.builderStamps) {
+      const r = Math.floor(stamp / gridW);
+      const c = stamp - r * gridW;
+      if (r === footRow && c >= leftCol && c <= rightCol) return true;
     }
     return false;
   }
@@ -4678,6 +4753,170 @@ export class LdtkWorldScene extends Scene {
       px                      < bx + b.widthPx &&
       py + this.player.height > by &&
       py                      < by + b.heightPx
+    );
+  }
+
+  /**
+   * Debug 워프 핸들러 — update() 에서 매 프레임 호출.
+   *   ` (Backquote)  → 뷰포트 클릭 워프 모드 토글
+   *   Shift+M        → 전 맵 풀 디테일 + 룸 클릭 워프 모달
+   *
+   * `?debug=1` URL 플래그 가 있을 때만 활성. 일반 플레이어 실수 워프 방지.
+   * Shift+M 은 일반 M (월드맵) 보다 먼저 처리해 MAP 액션을 consume 한다.
+   */
+  private handleDebugWarp(): void {
+    if (!new URLSearchParams(window.location.search).has('debug')) return;
+    const input = this.game.input;
+
+    // Shift+M → 전 맵 워프 모달
+    if (input.shiftDown && input.isJustPressed(GameAction.MAP) && !this.inItemTunnel) {
+      input.consumeJustPressed(GameAction.MAP);
+      if (this.warpModeActive) this.toggleWarpMode(); // 백틱 모드와 충돌 방지
+      this.openDebugWorldMap();
+    }
+
+    // Backtick → 뷰포트 클릭 워프 토글
+    if (input.isRawKeyJustPressed('Backquote')) {
+      // 월드맵이 열려있으면 우선 닫기 (모달 충돌 방지)
+      if (this.worldMap.visible) this.worldMap.close();
+      this.toggleWarpMode();
+    }
+
+    // ESC 로 워프 모드 해제 (월드맵 esc 와 별도 처리 — 월드맵이 닫혀있을 때만)
+    if (this.warpModeActive && !this.worldMap.visible
+        && input.isJustPressed(GameAction.MENU)) {
+      input.consumeJustPressed(GameAction.MENU);
+      this.toggleWarpMode();
+    }
+  }
+
+  private openDebugWorldMap(): void {
+    this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
+    this.worldMap.setMarkers(this.collectMapMarkers());
+    if (this.currentLevel) {
+      this.worldMap.setPlayerPosition(
+        this.player.x + this.currentLevel.worldX,
+        this.player.y + this.currentLevel.worldY,
+      );
+    }
+    this.worldMap.onRoomClick = (roomId, localX, localY) => {
+      this.worldMap.close();
+      this.warpToRoom(roomId, Math.floor(localX), Math.floor(localY));
+    };
+    this.worldMap.openDebug();
+    this.hud.container.visible = false;
+    if (this.minimap) this.minimap.visible = false;
+  }
+
+  private toggleWarpMode(): void {
+    this.warpModeActive = !this.warpModeActive;
+    if (this.warpModeActive) {
+      // HUD 상단 중앙에 라벨
+      const us = this.game.uiScale;
+      this.warpHintText = new BitmapText({
+        text: '⊕ WARP MODE — click to teleport, ` or ESC to exit',
+        style: { fontFamily: PIXEL_FONT, fontSize: 8 * us, fill: 0xffe060 },
+      });
+      this.warpHintText.x = Math.floor((this.game.app.canvas.width - this.warpHintText.width) / 2);
+      this.warpHintText.y = 6 * us;
+      this.game.uiContainer.addChild(this.warpHintText);
+
+      // 캔버스 클릭 핸들러
+      this.warpClickHandler = (e: PointerEvent) => this.warpToScreenClick(e);
+      this.game.app.canvas.addEventListener('pointerdown', this.warpClickHandler);
+      this.game.app.canvas.style.cursor = 'crosshair';
+    } else {
+      if (this.warpHintText && this.warpHintText.parent) {
+        this.warpHintText.parent.removeChild(this.warpHintText);
+        this.warpHintText.destroy();
+        this.warpHintText = null;
+      }
+      if (this.warpClickHandler) {
+        this.game.app.canvas.removeEventListener('pointerdown', this.warpClickHandler);
+        this.warpClickHandler = null;
+      }
+      this.game.app.canvas.style.cursor = '';
+    }
+  }
+
+  private warpToScreenClick(e: PointerEvent): void {
+    if (!this.currentLevel) return;
+    const canvas = this.game.app.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const fractionX = (e.clientX - rect.left) / rect.width;
+    const fractionY = (e.clientY - rect.top) / rect.height;
+    // 좌표 변환 — Game.ts 의 gameContainer 배치 식을 역산:
+    //   gameContainer.x = -cam.renderX + rtW/2  (rtW = GAME_WIDTH / zoom)
+    //   화면 중앙(fraction=0.5) → cam.renderX
+    //   따라서 level-local x = cam.renderX - rtW/2 + fraction × rtW
+    // cam.setBounds(0, 0, level.pxWid, level.pxHei) 로 cam 은 이미 level-local.
+    // currentLevel.worldX 는 빼지 않는다.
+    const cam = this.game.camera;
+    const rtW = GAME_WIDTH / cam.zoom;
+    const rtH = GAME_HEIGHT / cam.zoom;
+    const localX = cam.renderX - rtW / 2 + fractionX * rtW;
+    const localY = cam.renderY - rtH / 2 + fractionY * rtH;
+    this.warpPlayerToLocal(localX, localY);
+    this.toast.show('WARPED', 0xffe060);
+  }
+
+  private warpToRoom(roomId: string, localX: number, localY: number): void {
+    if (this.currentLevel?.identifier !== roomId) {
+      this.loadLevel(roomId, 'down');
+    }
+    this.warpPlayerToLocal(localX, localY);
+    this.hud.container.visible = true;
+    if (this.minimap) this.minimap.visible = true;
+    this.toast.show(`WARPED → ${roomId}`, 0xffe060);
+  }
+
+  /**
+   * 플레이어를 현재 레벨 로컬 좌표 (clickX, clickY) 로 워프 + 정상 착지 보장.
+   *   1) clickX 컬럼에서 clickY 부터 아래로 첫 solid 행 탐색 — collision bottom 이
+   *      해당 floor 윗면 위에 +1px 오버랩되도록 배치 (resolveY 가 1px 밀어내며 grounded=true 트리거)
+   *   2) 솔리드 못 찾으면 clickY 그대로 — 떨어지면서 자연 착지
+   *   3) vx/vy = 0, prevPos 동기화, 5 프레임 물리 시뮬 (loadLevel 과 동일) →
+   *      FSM 가 grounded/idle 로 안정화, animation 도 정상화
+   *   4) 카메라 snap
+   */
+  private warpPlayerToLocal(clickX: number, clickY: number): void {
+    if (!this.currentLevel) return;
+    const grid = this.currentLevel.collisionGrid;
+    const TS = 16;
+    const col = Math.floor(clickX / TS);
+    const startRow = Math.floor(clickY / TS);
+    const maxRow = grid.length - 1;
+
+    // 클릭 지점 아래로 첫 solid (1) 행 탐색.
+    // collisionH = 24 (Player), collision bottom = player.y + player.height.
+    // 1px 오버랩으로 resolveY 가 위로 밀어 올리며 grounded=true 즉시 세팅.
+    let footY = clickY;
+    if (col >= 0 && grid[0] && col < grid[0].length) {
+      for (let r = Math.max(0, startRow); r <= maxRow; r++) {
+        const cell = grid[r]?.[col] ?? 0;
+        if (cell === 1) {
+          footY = r * TS + 1; // 1px 오버랩
+          break;
+        }
+      }
+    }
+
+    this.player.x = clickX - this.player.width / 2;
+    this.player.y = footY - this.player.height;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
+
+    // 5 프레임 물리 시뮬레이션 — resolveY 가 floor 위 정상 착지 처리, FSM 이 jump/fall
+    // 잔재 상태에서 idle/grounded 로 자연 전이 (loadLevel 의 settle 패턴 재사용).
+    for (let i = 0; i < 5; i++) {
+      this.player.update(16.667);
+    }
+
+    // 카메라 즉시 추적.
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
     );
   }
 
@@ -4755,6 +4994,64 @@ export class LdtkWorldScene extends Scene {
     this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
   }
 
+  /**
+   * Shaft_02 의 빌더 배치 — 좌측 벽 + 15 tile, y=0..768 무한 왕복.
+   * spawnBuilder 의 cinematic/patrol preset 외 1회성 케이스라 별도 헬퍼.
+   * Shaft_02 intentionally uses Builder_Level_1.
+   */
+  private spawnShaft02Builder(hostLevel: LdtkLevel): void {
+    const builderLevel = this.builderLoader.getLevel('Builder_Level_1');
+    if (!builderLevel) return;
+
+    const builder = new GiantBuilder(
+      builderLevel,
+      this.atlases,
+      'world_shaft_builder_bg',
+      'world_shaft_builder_wall',
+    );
+
+    // 빌더 데코 / 본체 팔레트 — Shaft_01 patrol 과 동일.
+    if (this.builderWallPaletteFilter) {
+      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
+      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
+      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
+    }
+    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
+      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
+      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
+      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
+      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+    }
+
+    const px = 15 * 16; // 좌측 벽 + 15 tile (1 tile = 16 px).
+    // 시작 위치 = patrol 의 아래쪽 끝 (y=832). 8 tile 아래 → 4 tile 위로 보정.
+    // 플레이어가 Shaft_02 진입 시 빌더가 아래에서부터 천천히 올라오는 인상.
+    builder.placeInLevel(px, 832);
+
+    // 렌더 순서: 빌더는 host wallLayer 앞 + procDecorator 자연/인공 데코 뒤.
+    // procDecorator.naturalLayer 인덱스 직전에 삽입 → 데코가 빌더 위로 그려져
+    // 자연 디테일이 빌더 실루엣에 가려지지 않음. 빌더는 host wallLayer 위에 있어
+    // 본체는 또렷이 보임.
+    const insertIdx = this.procDecorator
+      ? this.renderer.container.getChildIndex(this.procDecorator.naturalLayer)
+      : this.renderer.container.children.length;
+    this.renderer.container.addChildAt(builder.container, insertIdx);
+
+    // 아래(832) → 위(64) 무한 왕복. 각 끝점 5초 대기, 33 px/s 속도.
+    builder.setRoute([
+      { y: 832, waitMs: 5000 },
+      { y: 64,  waitMs: 5000 },
+    ], 33, true);
+
+    this.activeBuilder = builder;
+    this.activeBuilderMode = 'patrol';
+    this.builderWasMoving = false;
+    this.builderStepCounter = 0;
+
+    this.spawnBuilderEntities(builderLevel, 'Builder_Level_1', builder);
+    void hostLevel;
+  }
+
   /** Walk a builder level's LDtk entities and spawn the gameplay objects
    *  that make sense inside a moving builder. Add new cases here for any
    *  entity type that needs to be supported (Anvil, GoldPickup, etc.). */
@@ -4809,6 +5106,31 @@ export class LdtkWorldScene extends Scene {
             const hp = this.healingPickups[this.healingPickups.length - 1];
             this.attachToBuilder(builder, hp, hp.x - bx0, hp.y - by0, () => this.healingPickups.includes(hp));
           }
+          break;
+        }
+        case 'Builder': {
+          // LDtk Builder entity — 정적 데코레이션 sprite. tile (인스턴스 Tile field
+          // 또는 entity def 기본 tile) 의 native w×h 로 렌더 — entity bounds 32×32
+          // 에 맞추지 않음 (LDtk tileRenderMode = FullSizeUncropped 동작 모방).
+          // pivot = bottom-center (LDtk entity def: pivotX=0.5, pivotY=1).
+          const tile = ent.tile;
+          if (!tile || !tile.tilesetPath) break;
+          const url = assetPath(`assets/${tile.tilesetPath}`);
+          Assets.load<Texture>(url).then((tex) => {
+            if (!tex) return;
+            tex.source.scaleMode = 'nearest';
+            const frameTex = new Texture({
+              source: tex.source,
+              frame: new Rectangle(tile.src[0], tile.src[1], tile.w, tile.h),
+            });
+            const sprite = new Sprite(frameTex);
+            sprite.anchor.set(0.5, 1);
+            sprite.x = localX;
+            sprite.y = localY;
+            // tile native 크기로 렌더. wallLayer 의 자식으로 추가해 builder body
+            // 와 동일한 PaletteSwap + RimLight 필터를 자동 상속 (별도 filter 지정 X).
+            builder.bodyLayers.wall.addChild(sprite);
+          });
           break;
         }
         // Future entity types: Anvil, ...

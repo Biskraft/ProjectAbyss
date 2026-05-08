@@ -136,6 +136,23 @@ class AudioBusImpl {
     return isMediaInstance(result) ? result : undefined;
   }
 
+  /**
+   * play() 의 비동기 버전 — `@pixi/sound` 가 미디 디코드 중이면 Promise 를 반환
+   * 하므로 한 번 더 풀어 IMediaInstance 를 안전히 캡처. BGM 페이드처럼 인스턴스
+   * 직접 조작이 필요한 경로 전용.
+   */
+  async playAsync(
+    id: string,
+    channel: AudioChannel,
+    options: Omit<PlayOptions, 'volume'> & { volume?: number } = {},
+  ): Promise<IMediaInstance | undefined> {
+    const base = options.volume ?? getEventMix(id);
+    const eff = this.effective(channel, base);
+    if (eff <= 0) return undefined;
+    const result = await sound.play(id, { ...options, volume: eff });
+    return isMediaInstance(result) ? result : undefined;
+  }
+
   /** Stop every instance of a sound by id. */
   stop(id: string): void {
     if (sound.exists(id)) sound.stop(id);

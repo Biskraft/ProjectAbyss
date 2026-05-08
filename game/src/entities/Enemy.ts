@@ -251,9 +251,13 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     // Jump cooldown
     if (this.jumpCooldownTimer > 0) this.jumpCooldownTimer -= dt;
 
-    // Facing — chase 중에는 chaseDir 로 잠금 (target.x 직접 추적은 매 프레임 깜빡임 유발).
+    // Facing — chase / attack / cooldown / hit / detect 동안 chaseDir 로 잠금.
+    // target.x 직접 추적은 player 가 가까이서 좌우로 움직이거나 위로 점프하면
+    // dx 부호가 매 프레임 뒤집혀 "빙글빙글" facing 깜빡임 유발.
+    // patrol 은 subclass 가 super 호출 후 patrolDir 로 덮어쓴다 (Skeleton).
     if (this.target) {
-      if (this.fsm.currentState === 'chase') {
+      const s = this.fsm.currentState;
+      if (s === 'chase' || s === 'attack' || s === 'cooldown' || s === 'hit' || s === 'detect') {
         this.facingRight = this.chaseDir > 0;
       } else {
         this.facingRight = this.target.x > this.x;
@@ -421,6 +425,12 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.moveTowardTargetFlying(speed);
       return;
     }
+
+    // Ground enemies — 공중(점프/낙하 도중)에선 추격 재계산 스킵.
+    // 턱 넘는 점프 동안 player 와의 X 차이가 부호 진동하면 chaseDir 이 매 프레임
+    // 뒤집혀 좌우로 떨리는 현상 (사용자 결정 2026-05-08). 이륙 시 vx/chaseDir
+    // 을 고정한 채로 포물선 운동만 수행, 착지 후 다시 추격 평가.
+    if (!this.grounded) return;
 
     // Ground enemies: vertical chase rules (§2.2-A)
     const targetCY = this.target.y + this.target.height / 2;

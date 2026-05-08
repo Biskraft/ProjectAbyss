@@ -12,7 +12,7 @@
  * - Player can still move while map is open
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Rectangle } from 'pixi.js';
 import { create9SlicePanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import { PIXEL_FONT } from './fonts';
@@ -99,6 +99,14 @@ export class WorldMapOverlay {
   private currentRoomGfx: Graphics | null = null;
   private playerDot: Graphics | null = null;
 
+  /**
+   * Debug 모드: true 면 모든 룸을 visited 처리해 전체 맵 표시 + 룸 클릭 가능.
+   * Shift+M 으로 진입. onRoomClick 콜백이 클릭한 룸 id + 룸 내부 로컬 좌표 (px) 를 받음.
+   */
+  private debugMode = false;
+  /** 디버그 모드에서 룸 클릭 시 호출. (roomId, localX, localY) — localX/Y 는 룸 내부 픽셀. */
+  onRoomClick: ((roomId: string, localX: number, localY: number) => void) | null = null;
+
   private skin: UISkin | null = null;
 
   /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
@@ -154,16 +162,31 @@ export class WorldMapOverlay {
   }
 
   toggle(): void {
-    this.visible = !this.visible;
-    this.container.visible = this.visible;
     if (this.visible) {
+      this.close();
+    } else {
+      this.debugMode = false;
+      this.visible = true;
+      this.container.visible = true;
       this.redraw();
     }
+  }
+
+  /**
+   * Debug 워프 모드로 열기 — 모든 룸 visible + 룸 클릭 → onRoomClick 콜백.
+   * Shift+M 으로 진입.
+   */
+  openDebug(): void {
+    this.debugMode = true;
+    this.visible = true;
+    this.container.visible = true;
+    this.redraw();
   }
 
   close(): void {
     this.visible = false;
     this.container.visible = false;
+    this.debugMode = false;
   }
 
   update(dt: number): void {
@@ -242,7 +265,8 @@ export class WorldMapOverlay {
       const rh = Math.max(3, r.h * scale);
 
       const isCurrent = r.id === this.currentLevelId;
-      const visited = this.visitedLevels.has(r.id);
+      // Debug 모드는 모든 룸을 visited 로 강제 (가지 않은 룸도 풀 디테일 렌더).
+      const visited = this.debugMode || this.visitedLevels.has(r.id);
 
       const g = new Graphics();
 
@@ -301,6 +325,26 @@ export class WorldMapOverlay {
       // UNDISCOVERED: not adjacent — completely hidden (no drawing)
 
       this.mapContainer.addChild(g);
+
+      // Debug 모드: 룸 영역에 hit area + 클릭 핸들러 — 클릭 위치를 룸 내부 로컬 px 로 환산해 콜백.
+      if (this.debugMode && this.onRoomClick) {
+        g.eventMode = 'static';
+        g.cursor = 'pointer';
+        const room = r;
+        const roomRx = rx;
+        const roomRy = ry;
+        const roomRw = rw;
+        const roomRh = rh;
+        g.hitArea = new Rectangle(rx, ry, rw, rh);
+        g.on('pointerdown', (e) => {
+          const local = e.getLocalPosition(this.mapContainer);
+          const tx = (local.x - roomRx) / roomRw;
+          const ty = (local.y - roomRy) / roomRh;
+          const localPx = tx * room.w;
+          const localPy = ty * room.h;
+          this.onRoomClick?.(room.id, localPx, localPy);
+        });
+      }
 
       // Draw markers for visited rooms
       if (visited || isCurrent) {
