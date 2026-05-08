@@ -2561,6 +2561,12 @@ export class LdtkWorldScene extends Scene {
       console.error(`[LdtkWorldScene] Level not found: "${levelId}"`);
       return false;
     }
+
+    // Drop the previous builder before replacing collisionGrid. Its stamped
+    // cells belong to the previous level and must be restored there, not in
+    // the newly loaded room.
+    this.clearBuilder();
+
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
@@ -2642,12 +2648,6 @@ export class LdtkWorldScene extends Scene {
     // Camera bounds
     this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
 
-
-    // Drop the previous builder before entity collections are cleared below.
-    // The new builder is spawned after clearDrops()/processLdtkEntities() so
-    // builder-owned item drops are not immediately destroyed by level reload
-    // cleanup.
-    this.clearBuilder();
 
     // Area title on entry. During the intro fade-in we must defer the banner
     // until the screen is actually visible, otherwise it plays behind black.

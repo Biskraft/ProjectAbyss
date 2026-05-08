@@ -59,6 +59,7 @@ class BgmControllerImpl {
   private masterGain: GainNode | null = null;
   private buffers = new Map<string, AudioBuffer>();
   private active: ActiveBgm | null = null;
+  private playRequestId = 0;
 
   /**
    * 트랙 시작. 같은 trackKey 이미 활성 중이면 no-op.
@@ -66,11 +67,13 @@ class BgmControllerImpl {
    */
   play(trackKey: string, track: BgmTrack, opts?: PlayOpts): void {
     if (this.active && this.active.trackKey === trackKey) return;
-    void this.startTrack(trackKey, track, opts);
+    const requestId = ++this.playRequestId;
+    void this.startTrack(trackKey, track, opts, requestId);
   }
 
   /** 트랙 종료. outroId 있으면 1회 재생 후 silence. */
   stop(outroId?: string): void {
+    this.playRequestId++;
     if (!this.active) return;
     void this.endTrack(outroId);
   }
@@ -98,7 +101,7 @@ class BgmControllerImpl {
 
   // ── private ────────────────────────────────────────────────────────────────
 
-  private async startTrack(trackKey: string, track: BgmTrack, opts?: PlayOpts): Promise<void> {
+  private async startTrack(trackKey: string, track: BgmTrack, opts: PlayOpts | undefined, requestId: number): Promise<void> {
     if (this.active) this.stopActiveImmediate();
 
     AudioBus.resume();
@@ -113,7 +116,7 @@ class BgmControllerImpl {
     ]);
 
     // 도중 다른 play() 가 끼어들었으면 폐기.
-    if (this.active && this.active.trackKey !== trackKey) return;
+    if (requestId !== this.playRequestId) return;
 
     const baseGain = this.computeBaseGain(track.loop);
     const startTime = ctx.currentTime + 0.05;

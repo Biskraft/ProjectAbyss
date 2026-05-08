@@ -48,7 +48,7 @@ function ldtkFullReloadPlugin(): Plugin {
         if (!['add', 'change', 'unlink'].includes(eventName)) return;
         if (reloadTimer) clearTimeout(reloadTimer);
         reloadTimer = setTimeout(() => {
-          server.config.logger.info(`[ldtk] World_ProjectAbyss.ldtk changed - ${summarizeBuilderLevel(ldtkPath)} - full reload`);
+          server.config.logger.info(`[ldtk] World_ProjectAbyss.ldtk changed - ${summarizeBuilderLevels(ldtkPath)} - full reload`);
           server.ws.send({ type: 'full-reload', path: '*' });
         }, 250);
       });
@@ -56,7 +56,7 @@ function ldtkFullReloadPlugin(): Plugin {
   };
 }
 
-function summarizeBuilderLevel(ldtkPath: string): string {
+function summarizeBuilderLevels(ldtkPath: string): string {
   try {
     const jsonText = fs.readFileSync(ldtkPath, 'utf8');
     const json = JSON.parse(jsonText) as {
@@ -67,21 +67,23 @@ function summarizeBuilderLevel(ldtkPath: string): string {
       ...(json.levels ?? []),
       ...(json.worlds ?? []).flatMap((world) => world.levels ?? []),
     ];
-    const level = levels.find((candidate) => candidate.identifier === 'Builder_Level_2');
-    if (!level) return 'Builder_Level_2 missing';
-    const hash = crypto.createHash('sha1').update(JSON.stringify(level)).digest('hex').slice(0, 8);
-    const entityLayer = (level.layerInstances ?? []).find((layer) => {
-      return typeof layer === 'object'
-        && layer !== null
-        && (layer as { __identifier?: string }).__identifier === 'Entities';
-    }) as { entityInstances?: Array<{ __identifier?: string; px?: number[] }> } | undefined;
-    const legMounts = (entityLayer?.entityInstances ?? [])
-      .filter((entity) => entity.__identifier === 'LegMount')
-      .map((entity) => entity.px?.join(',') ?? '?')
-      .join(' | ');
-    return `Builder_Level_2 sha=${hash} legs=[${legMounts}]`;
+    return ['Builder_Level_1', 'Builder_Level_2'].map((levelId) => {
+      const level = levels.find((candidate) => candidate.identifier === levelId);
+      if (!level) return `${levelId} missing`;
+      const hash = crypto.createHash('sha1').update(JSON.stringify(level)).digest('hex').slice(0, 8);
+      const entityLayer = (level.layerInstances ?? []).find((layer) => {
+        return typeof layer === 'object'
+          && layer !== null
+          && (layer as { __identifier?: string }).__identifier === 'Entities';
+      }) as { entityInstances?: Array<{ __identifier?: string; px?: number[] }> } | undefined;
+      const legMounts = (entityLayer?.entityInstances ?? [])
+        .filter((entity) => entity.__identifier === 'LegMount')
+        .map((entity) => entity.px?.join(',') ?? '?')
+        .join(' | ');
+      return `${levelId} sha=${hash} legs=[${legMounts}]`;
+    }).join(' / ');
   } catch (error) {
-    return `Builder_Level_2 summary failed: ${(error as Error).message}`;
+    return `Builder summary failed: ${(error as Error).message}`;
   }
 }
 
