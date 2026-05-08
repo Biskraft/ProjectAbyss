@@ -149,8 +149,8 @@ export class Breakable {
   private rollDrop(): PropDrop {
     const roll = Math.floor(Math.random() * 100);
     if (roll < 50) return { type: 'none', amount: 0 };
-    if (roll < 85) return { type: 'gold', amount: 1 + Math.floor(Math.random() * 3) };
+    if (roll < 85) return { type: 'gold', amount: Math.max(1, Math.floor((1 + Math.floor(Math.random() * 3)) * 0.1)) };
     if (roll < 95) return { type: 'flask', amount: 1 };
-    return { type: 'gold', amount: 3 + Math.floor(Math.random() * 5) };
+    return { type: 'gold', amount: Math.max(1, Math.floor((3 + Math.floor(Math.random() * 5)) * 0.1)) };
   }
 }

@@ -170,9 +170,9 @@ export class BreakableProp {
     const rand = seededRandom(this.seed + this.x * 7 + this.y * 13);
     const roll = Math.floor(rand() * 100);
     if (roll < DROP_NONE) return { type: 'none', amount: 0 };
-    if (roll < DROP_NONE + DROP_GOLD) return { type: 'gold', amount: 1 + Math.floor(rand() * 3) };
+    if (roll < DROP_NONE + DROP_GOLD) return { type: 'gold', amount: Math.max(1, Math.floor((1 + Math.floor(rand() * 3)) * 0.1)) };
     if (roll < DROP_NONE + DROP_GOLD + DROP_FLASK) return { type: 'flask', amount: 1 };
-    return { type: 'gold', amount: 3 + Math.floor(rand() * 5) };
+    return { type: 'gold', amount: Math.max(1, Math.floor((3 + Math.floor(rand() * 5)) * 0.1)) };
   }
 
   /**
