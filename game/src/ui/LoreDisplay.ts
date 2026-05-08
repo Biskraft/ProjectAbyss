@@ -19,9 +19,10 @@
  *  - ▼ blinking advance indicator
  */
 
-import { Container, Graphics, BitmapText, Sprite, Texture, Assets } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text, Sprite, Texture, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
 import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
@@ -72,7 +73,13 @@ export class LoreDisplay {
   private bg: Graphics;
   private borderTop: Graphics;
   private speakerText: BitmapText;
-  private bodyText: BitmapText;
+  /**
+   * Body text node — locale-aware. EN locale = BitmapText (PIXEL_FONT atlas).
+   * KO locale = PIXI.Text with Noto Sans KR (CJK glyph coverage). Same
+   * `text`/`style` setters work on both backends.
+   * Spec: System_Localization_Core.md §4.9
+   */
+  private bodyText: BitmapText | Text;
   /**
    * 진행/스킵 프롬프트 컨테이너 — `[C] ▶` 형식.
    * ui-components.html §lore-display 명세 (KeyIcon + 화살표) 일치.
@@ -152,11 +159,9 @@ export class LoreDisplay {
     this.speakerText.y = SPEAKER_Y;
     this.boxContainer.addChild(this.speakerText);
 
-    // Body text
-    this.bodyText = new BitmapText({
-      text: '',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xdddddd },
-    });
+    // Body text — locale branches inside createUiText. uiScale fed in as
+    // resolution so KO PIXI.Text stays crisp inside the upscaled container.
+    this.bodyText = createUiText('', { fontSize: 8, fill: 0xdddddd }, uiScale);
     this.bodyText.x = TEXT_LEFT;
     this.bodyText.y = BODY_Y;
     this.boxContainer.addChild(this.bodyText);

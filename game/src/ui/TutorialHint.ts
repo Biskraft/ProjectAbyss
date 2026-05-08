@@ -6,8 +6,8 @@
  * Each hint ID fires at most once per session; persistent hints stay until dismiss().
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
-import { PIXEL_FONT } from './fonts';
+import { Container, Graphics } from 'pixi.js';
+import { createUiText } from './factories';
 import { KeyPrompt } from './KeyPrompt';
 import type { InputManager } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
@@ -75,10 +75,7 @@ export class TutorialHint {
     const panel = new Container();
 
     const keyIcon = opts.keyLabel ? KeyPrompt.createKeyIcon(opts.keyLabel, KEY_SIZE) : null;
-    const label = new BitmapText({
-      text: opts.text,
-      style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0xffffff },
-    });
+    const label = createUiText(opts.text, { fontSize: LABEL_FONT, fill: 0xffffff });
 
     const keyW = keyIcon ? KEY_SIZE : 0;
     const innerGap = keyIcon ? GAP : 0;

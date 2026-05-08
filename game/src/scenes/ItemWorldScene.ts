@@ -38,6 +38,7 @@ import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorl
 import { getEnemyStats } from '@data/enemyStats';
 import { getMemoryRoom } from '@data/memoryRoomTable';
 import { LoreDisplay } from '@ui/LoreDisplay';
+import { t } from '@i18n';
 import {
   EGO_IW_ENTER, EGO_MONSTER_FIRST, EGO_FIRST_KILL, EGO_ROOM_CLEAR,
   EGO_INNOCENT_FOUND, EGO_INNOCENT_STABLE,
@@ -1524,8 +1525,8 @@ export class ItemWorldScene extends Scene {
         const rewardRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 555);
         const pt = spawnPoints[rewardRng.nextInt(0, spawnPoints.length - 1)];
         if (rewardRng.next() < 0.5) {
-          // Gold — 5..15 (stratum 별 약간 가중)
-          const goldAmount = 5 + rewardRng.nextInt(0, 10) + (cell.stratumIndex ?? 0) * 2;
+          // Gold — 5..15 (stratum 별 약간 가중) × 0.1
+          const goldAmount = Math.floor((5 + rewardRng.nextInt(0, 10) + (cell.stratumIndex ?? 0) * 2) * 0.1);
           const gp = new GoldPickup(pt.x, pt.y, goldAmount);
           this.goldPickups.push(gp);
           this.entityLayer.addChild(gp.container);
@@ -3330,7 +3331,7 @@ export class ItemWorldScene extends Scene {
       markLowHpHealToastFired();
       this.tutorialHint.tryShow('low_hp_heal', {
         keyLabel: actionKey(GameAction.FLASK),
-        text: 'Heal',
+        text: t('tutorial.heal'),
       });
     }
     this.tutorialHint.update(dt);
@@ -3517,7 +3518,7 @@ export class ItemWorldScene extends Scene {
           }
 
           // Gold drop on kill — confetti burst of mixed denominations.
-          const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
+          const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.05);
           const goldAmount = isGolden ? baseGold * 3 : baseGold;
           if (goldAmount > 0) {
             for (const gp of GoldPickup.spawnBurst(dropX, dropY, goldAmount)) {
@@ -3919,7 +3920,7 @@ export class ItemWorldScene extends Scene {
       const engaged = fsmEngaged || wasHit;
       if (engaged && !(activeBoss as any)._bossBarShown) {
         (activeBoss as any)._bossBarShown = true;
-        this.hud.showBossHP((activeBoss as any).enemyType ?? 'Boss', activeBoss.hp, activeBoss.maxHp);
+        this.hud.showBossHP((activeBoss as any).enemyType ?? t('ui.hud.boss_default'), activeBoss.hp, activeBoss.maxHp);
       }
       if ((activeBoss as any)._bossBarShown) {
         this.hud.updateBossHP(activeBoss.hp);

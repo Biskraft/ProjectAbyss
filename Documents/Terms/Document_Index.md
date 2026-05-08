@@ -325,6 +325,7 @@ graph TD
 | SYS-TEC-02 | Performance Budget | `System/System_Performance_Budget.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-TEC-03 | Audio Direction | `System/System_Audio_Direction.md` | ✅ 완료 | 전체 | 전체 |
 | SYS-TEC-04 | Save Data Schema | `System/System_Save_DataSchema.md` | ✅ 완료 | 전체 | 전체 |
+| SYS-TEC-05 | Localization Core | `System/System_Localization_Core.md` | 🔄 진행 중 | 전체 | 전체 |
 
 ### ~~3.18 허브 시스템 (Hub)~~ — DEPRECATED
 

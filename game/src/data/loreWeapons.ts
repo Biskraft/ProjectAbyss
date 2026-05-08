@@ -10,13 +10,17 @@
  * italics), so we keep it alongside as sibling MD files referenced by
  * LorePath. Vite `import.meta.glob('?raw')` bundles them at build time.
  *
- * CSV columns:
- *   WeaponID,Name,Type,Rarity,BaseATK,AreaID,MemoryShardSeed,LorePath,Description
+ * CSV columns (post LOC-04):
+ *   WeaponID,NameKey,Type,Rarity,BaseATK,AreaID,MemoryShardSeed,LorePath,DescKey
+ *
+ * NameKey/DescKey resolve through Sheets/Content_Localization.csv via t().
+ * Strings live there as the SSoT; this CSV only carries structure + keys.
  */
 
 import csvText from '../../../Sheets/Content_Stats_Weapon_Lore.csv?raw';
 import type { Rarity, WeaponType } from './weapons';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from './weapons';
+import { t } from '@i18n';
 
 // Eagerly bundle every lore MD file so resolution is synchronous.
 const loreMarkdownBundle = import.meta.glob(
@@ -79,17 +83,19 @@ for (let i = 1; i < lines.length; i++) {
   const cols = splitCsvLine(lines[i]);
   if (cols.length < 9) continue;
   const id = cols[0].trim();
+  const nameKey = cols[1].trim();
   const lorePath = cols[7].trim();
+  const descKey = cols[8].trim();
   LORE_WEAPONS.set(id, {
     id,
-    name: cols[1].trim(),
+    name: t(nameKey),
     type: cols[2].trim() as WeaponType,
     rarity: cols[3].trim().toLowerCase() as Rarity,
     baseAtk: parseFloat(cols[4]) || 0,
     areaId: cols[5].trim(),
     innocentSeed: cols[6].trim(),
     lorePath,
-    description: cols[8].trim(),
+    description: t(descKey),
     lore: resolveLoreBody(lorePath),
   });
 }

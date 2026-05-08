@@ -11,6 +11,8 @@
 import { Text, TextStyle, Sprite, Assets, Container, Graphics } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { PIXEL_FONT } from '@ui/fonts';
+import { localizeFontFamily } from '@ui/factories';
+import { t } from '@i18n';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
@@ -70,7 +72,7 @@ export class TitleScene extends Scene {
   /** gamepadconnected → 자막 1.5s fade swap ("🎮 Gamepad Detected"). */
   private _onGamepadConnect = (): void => {
     if (this.gamepadHint) {
-      this.gamepadHint.text = '🎮 Gamepad Detected';
+      this.gamepadHint.text = t('title.gamepad_detected');
     }
     this.gamepadHintSwapMs = 1500;
   };
@@ -117,6 +119,8 @@ export class TitleScene extends Scene {
     } catch { /* no logo */ }
 
     if (!logoLoaded) {
+      // ECHORIS is the proper-noun brand — never localized. Cinzel kept for EN
+      // and KO alike (Cinzel covers latin only; CJK fallback irrelevant here).
       const titleText = new Text({
         text: 'ECHORIS',
         style: new TextStyle({
@@ -140,9 +144,9 @@ export class TitleScene extends Scene {
 
     // Subtitle
     const subtitle = new Text({
-      text: 'A WORLD INSIDE EVERY BLADE',
+      text: t('title.subtitle'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 9 * s,
         fontWeight: '600',
         fill: COL_TEAL,
@@ -157,9 +161,9 @@ export class TitleScene extends Scene {
     // "Press Any Key or Button to Continue" hint + 키보드/패드 글리프
     // (System_Input_Gamepad §8.1 Stage 1 — 키↔패드 동시 표기)
     this.hintText = new Text({
-      text: 'Press Any Key or Button to Continue',
+      text: t('title.press_any'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 9 * s,
         fontWeight: '700',
         fill: COL_DIM,
@@ -176,9 +180,9 @@ export class TitleScene extends Scene {
     // gamepadconnected 시 "🎮 Gamepad Detected" 로 1.5s fade swap.
     // Pixi Text (canvas) 사용 — emoji 렌더 위해 BitmapText 회피.
     this.gamepadHint = new Text({
-      text: '🎮 Gamepad Recommended',
+      text: t('title.gamepad_recommended'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 8 * s,
         fontWeight: '500',
         fill: COL_DIM,
@@ -202,9 +206,9 @@ export class TitleScene extends Scene {
 
     // "SELECT CONTROLS" label
     const selectLabel = new Text({
-      text: 'SELECT CONTROLS',
+      text: t('title.select_controls'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 8 * s,
         fontWeight: '600',
         fill: COL_DIM,
@@ -239,11 +243,12 @@ export class TitleScene extends Scene {
       cardPulse.label = 'pulse';
       card.addChild(cardPulse);
 
-      // Preset label
+      // Preset label — info.label is the preset's display name, not localized
+      // (preset names like "Default" / "Vim" / "WASD" are short brands).
       const label = new Text({
         text: info.label,
         style: new TextStyle({
-          fontFamily: '"Rajdhani", sans-serif',
+          fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
           fontSize: 11 * s,
           fontWeight: '700',
           fill: COL_WHITE,
@@ -255,12 +260,13 @@ export class TitleScene extends Scene {
       label.y = 6 * s;
       card.addChild(label);
 
-      // Key bindings (4 rows)
+      // Key bindings (4 rows). Action labels localized; key labels are raw
+      // bindings (e.g. "WASD") that translators leave intact.
       const rows = [
-        { key: info.move, action: 'Move' },
-        { key: info.jump, action: 'Jump' },
-        { key: info.dash, action: 'Dash' },
-        { key: info.attack, action: 'Attack' },
+        { key: info.move, action: t('ui.action.move') },
+        { key: info.jump, action: t('ui.action.jump') },
+        { key: info.dash, action: t('ui.action.dash') },
+        { key: info.attack, action: t('ui.action.attack') },
       ];
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
@@ -277,7 +283,7 @@ export class TitleScene extends Scene {
         const keyText = new Text({
           text: row.key,
           style: new TextStyle({
-            fontFamily: '"Rajdhani", sans-serif',
+            fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
             fontSize: 7 * s,
             fontWeight: '700',
             fill: 0xcccccc,
@@ -290,7 +296,7 @@ export class TitleScene extends Scene {
         const actionText = new Text({
           text: row.action,
           style: new TextStyle({
-            fontFamily: '"Rajdhani", sans-serif',
+            fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
             fontSize: 7 * s,
             fontWeight: '500',
             fill: 0x888888,
@@ -307,9 +313,9 @@ export class TitleScene extends Scene {
 
     // Bottom hint for preset selection
     this.presetSelectHint = new Text({
-      text: '[←→] Select    [Enter] Confirm',
+      text: t('title.preset_hint'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 7 * s,
         fontWeight: '500',
         fill: COL_DIM,
@@ -335,9 +341,9 @@ export class TitleScene extends Scene {
     this.presetsPadHintBg.visible = false;
     this.presetContainer.addChild(this.presetsPadHintBg);
     this.presetsPadHint = new Text({
-      text: '🎮 [A] Select keyboard    [B] Skip',
+      text: t('title.pad_skip_hint'),
       style: new TextStyle({
-        fontFamily: '"Rajdhani", sans-serif',
+        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 10 * s,
         fontWeight: '700',
         fill: COL_ACCENT,
@@ -371,7 +377,7 @@ export class TitleScene extends Scene {
     // TEXT_PRIMARY=#ffffff, TEXT_SECONDARY=#aaaaaa, TEXT_ACCENT=#00ced1
     const modalTitle = new Text({
       text: '',
-      style: new TextStyle({ fontFamily: '"Rajdhani", sans-serif', fontSize: 12 * s, fontWeight: '700', fill: COL_WHITE, letterSpacing: 2 * s }),
+      style: new TextStyle({ fontFamily: localizeFontFamily('"Rajdhani", sans-serif'), fontSize: 12 * s, fontWeight: '700', fill: COL_WHITE, letterSpacing: 2 * s }),
     });
     modalTitle.label = 'modal-title';
     modalTitle.anchor.set(0.5, 0);
@@ -379,15 +385,15 @@ export class TitleScene extends Scene {
 
     const modalKeys = new Text({
       text: '',
-      style: new TextStyle({ fontFamily: '"Rajdhani", sans-serif', fontSize: 10 * s, fontWeight: '500', fill: 0xaaaaaa }),
+      style: new TextStyle({ fontFamily: localizeFontFamily('"Rajdhani", sans-serif'), fontSize: 10 * s, fontWeight: '500', fill: 0xaaaaaa }),
     });
     modalKeys.label = 'modal-keys';
     modalKeys.anchor.set(0.5, 0);
     this.confirmModal.addChild(modalKeys);
 
     const modalHint = new Text({
-      text: `[Enter] Start    [${actionKey(GameAction.MENU)}] Back`,
-      style: new TextStyle({ fontFamily: '"Rajdhani", sans-serif', fontSize: 8 * s, fontWeight: '500', fill: 0x00ced1, letterSpacing: 1 * s }),
+      text: t('title.modal_hint', { back: actionKey(GameAction.MENU) }),
+      style: new TextStyle({ fontFamily: localizeFontFamily('"Rajdhani", sans-serif'), fontSize: 8 * s, fontWeight: '500', fill: 0x00ced1, letterSpacing: 1 * s }),
     });
     modalHint.label = 'modal-hint';
     modalHint.anchor.set(0.5, 0);
@@ -610,7 +616,12 @@ export class TitleScene extends Scene {
     // Key summary — 2줄로 분리하여 박스 안에 맞춤
     const keys = this.confirmModal.getChildByLabel('modal-keys') as Text;
     if (keys) {
-      keys.text = `${info.move}=Move   ${info.jump}=Jump   ${info.dash}=Dash   ${info.attack}=Attack`;
+      keys.text = t('title.modal_keys', {
+        move: info.move,
+        jump: info.jump,
+        dash: info.dash,
+        attack: info.attack,
+      });
       keys.x = cx;
       keys.y = my + 30 * s;
       // wordWrap으로 박스 초과 방지
@@ -622,7 +633,7 @@ export class TitleScene extends Scene {
     // Hint
     const hint = this.confirmModal.getChildByLabel('modal-hint') as Text;
     if (hint) {
-      hint.text = `[Enter] Start    [${actionKey(GameAction.MENU)}] Back`;
+      hint.text = t('title.modal_hint', { back: actionKey(GameAction.MENU) });
       hint.x = cx;
       hint.y = my + 62 * s;
     }

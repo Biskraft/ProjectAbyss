@@ -1,5 +1,5 @@
-import { Container, BitmapText, Graphics } from 'pixi.js';
-import { PIXEL_FONT } from './fonts';
+import { Container } from 'pixi.js';
+import { createUiText } from './factories';
 import { HudConst } from '@data/constData';
 
 const TOAST_DURATION = HudConst.Toast.DurationMs;
@@ -21,7 +21,7 @@ export class ToastManager {
   show(message: string, color = 0xffffff, durationMs = TOAST_DURATION): void {
     const container = new Container();
 
-    const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: color } });
+    const text = createUiText(message, { fontSize: 8, fill: color });
     text.anchor.set(0.5, 0);
     text.x = 320; // center of 640
     container.addChild(text);
@@ -37,7 +37,7 @@ export class ToastManager {
   showBig(message: string, color = 0xffd700, durationMs = HudConst.Toast.BigDurationMs): void {
     const container = new Container();
 
-    const text = new BitmapText({ text: message, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: color } });
+    const text = createUiText(message, { fontSize: 16, fill: color });
     text.anchor.set(0.5, 0.5);
     text.x = 320;
     text.y = 180; // center of 360

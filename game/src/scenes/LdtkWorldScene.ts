@@ -86,6 +86,7 @@ import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
+import { t } from '@i18n';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
   EGO_RUSTBORN_AWAKEN,
@@ -1237,7 +1238,7 @@ export class LdtkWorldScene extends Scene {
           : INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID;
         this.tutorialHint.tryShow(
           hintId,
-          { keyLabel: actionKey(GameAction.INVENTORY), text: 'Open Inventory', persistent: true },
+          { keyLabel: actionKey(GameAction.INVENTORY), text: t('tutorial.open_inventory'), persistent: true },
         );
         this.pendingInventoryHint = null;
       }
@@ -1501,7 +1502,7 @@ export class LdtkWorldScene extends Scene {
       markLowHpHealToastFired();
       this.tutorialHint.tryShow('low_hp_heal', {
         keyLabel: actionKey(GameAction.FLASK),
-        text: 'Heal',
+        text: t('tutorial.heal'),
       });
     }
 
@@ -2513,7 +2514,7 @@ export class LdtkWorldScene extends Scene {
     }
     // Gold drop on kill (Elden Ring style ??items are hand-placed, not monster drops)
     const isGolden = enemy instanceof GoldenMonster;
-    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.5);
+    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.05);
     const goldAmount = isGolden ? baseGold * 3 : baseGold;
     if (goldAmount > 0) {
       const burst = resolveBottomLeftPickupSpawn(
@@ -2655,7 +2656,7 @@ export class LdtkWorldScene extends Scene {
       if (this.introPhase === 'fadeIn') {
         this.pendingAreaTitle = 'The Shaft';
       } else {
-        this.areaTitle.show('The Shaft');
+        this.areaTitle.show(t('area.the_shaft'));
       }
     }
 
@@ -3690,8 +3691,10 @@ export class LdtkWorldScene extends Scene {
         break;
       }
       case 'currency': {
-        const match = master.name.match(/\((\d+)\)/);
-        const amount = match ? parseInt(match[1], 10) : 100;
+        // Parse amount from the itemId suffix (e.g. "gold_500" → 500). Regex on
+        // master.name was locale-fragile — translators may not preserve "(N)".
+        const idMatch = itemId.match(/_(\d+)$/);
+        const amount = Math.max(1, Math.floor((idMatch ? parseInt(idMatch[1], 10) : 100) * 0.1));
         const gp = new GoldPickup(x, y, amount);
         if (itemKey) (gp as any)._key = itemKey;
         this.goldPickups.push(gp);
@@ -4361,7 +4364,7 @@ export class LdtkWorldScene extends Scene {
         case 'GoldPickup': {
           const goldKey = `gold_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
           if (this.collectedItems.has(goldKey)) break;
-          const amount = (ent.fields['Amount'] ?? ent.fields['amount'] ?? 10) as number;
+          const amount = Math.max(1, Math.floor(((ent.fields['Amount'] ?? ent.fields['amount'] ?? 10) as number) * 0.1));
           const gp = new GoldPickup(ent.px[0], ent.px[1], amount);
           (gp as any)._key = goldKey;
           this.goldPickups.push(gp);

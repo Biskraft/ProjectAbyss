@@ -474,6 +474,7 @@ System 중분류:
 | Enemy | 적/AI 시스템 | AI, BossDesign, Spawning |
 | Multi | 멀티플레이 | Architecture, Party, NetworkSync, GhostMessage |
 | Economy | 경제 시스템 | Resources, Trade |
+| Localization | 로컬라이제이션 (KR/EN 2언어 SSoT, t() 함수, 분기·단일 빌드) | Core |
 | ~~Hub~~ | ~~허브 시스템~~ | ~~DEPRECATED~~ |
 
 Design 중분류:

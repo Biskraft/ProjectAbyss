@@ -87,34 +87,72 @@ function summarizeBuilderLevels(ldtkPath: string): string {
   }
 }
 
-export default defineConfig({
-  plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin()],
-  resolve: {
-    alias: {
-      '@core': path.resolve(__dirname, 'src/core'),
-      '@scenes': path.resolve(__dirname, 'src/scenes'),
-      '@entities': path.resolve(__dirname, 'src/entities'),
-      '@combat': path.resolve(__dirname, 'src/combat'),
-      '@level': path.resolve(__dirname, 'src/level'),
-      '@items': path.resolve(__dirname, 'src/items'),
-      '@data': path.resolve(__dirname, 'src/data'),
-      '@ui': path.resolve(__dirname, 'src/ui'),
-      '@utils': path.resolve(__dirname, 'src/utils'),
-      '@effects': path.resolve(__dirname, 'src/effects'),
-      '@systems': path.resolve(__dirname, 'src/systems'),
-      '@audio': path.resolve(__dirname, 'src/audio'),
-      '@save': path.resolve(__dirname, 'src/save'),
+// Locale resolution. `vite build --mode ko` selects the KO bundle as the active
+// locale; default (dev / `vite build`) is EN. The active locale is exposed as
+// the `@i18n/active` alias and as the `__LOCALE__` global string at build time.
+// See Documents/System/System_Localization_Core.md §4.7.
+function resolveLocale(mode: string): 'en' | 'ko' {
+  return mode === 'ko' ? 'ko' : 'en';
+}
+
+/**
+ * Inject Noto Sans KR Google Fonts link tag into index.html for KO builds.
+ * EN builds keep the smaller Cinzel/Rajdhani-only payload — see
+ * Documents/System/System_Localization_Core.md §4.9.
+ */
+function localeFontsPlugin(locale: 'en' | 'ko'): Plugin {
+  const KO_FONT_LINK =
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">';
+  return {
+    name: 'echoris-locale-fonts',
+    transformIndexHtml(html) {
+      if (locale !== 'ko') return html;
+      // Inject right before the existing latin Google Fonts link so DNS prefetch
+      // and CSS parse happen in the same batch.
+      return html.replace(
+        '<link href="https://fonts.googleapis.com/css2?family=Cinzel',
+        `${KO_FONT_LINK}\n  <link href="https://fonts.googleapis.com/css2?family=Cinzel`,
+      );
     },
-  },
-  server: {
-    port: 3000,
-    fs: {
-      // Allow serving files from the docs/ folder (one level above src/).
-      allow: [path.resolve(__dirname)],
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const LOCALE = resolveLocale(mode);
+  return {
+    plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin(), localeFontsPlugin(LOCALE)],
+    define: {
+      __LOCALE__: JSON.stringify(LOCALE),
     },
-  },
-  base: '/play/',
-  build: {
-    target: 'ES2022',
-  },
+    resolve: {
+      alias: {
+        '@core': path.resolve(__dirname, 'src/core'),
+        '@scenes': path.resolve(__dirname, 'src/scenes'),
+        '@entities': path.resolve(__dirname, 'src/entities'),
+        '@combat': path.resolve(__dirname, 'src/combat'),
+        '@level': path.resolve(__dirname, 'src/level'),
+        '@items': path.resolve(__dirname, 'src/items'),
+        '@data': path.resolve(__dirname, 'src/data'),
+        '@ui': path.resolve(__dirname, 'src/ui'),
+        '@utils': path.resolve(__dirname, 'src/utils'),
+        '@effects': path.resolve(__dirname, 'src/effects'),
+        '@systems': path.resolve(__dirname, 'src/systems'),
+        '@audio': path.resolve(__dirname, 'src/audio'),
+        '@save': path.resolve(__dirname, 'src/save'),
+        '@i18n/active': path.resolve(__dirname, `src/i18n/locales/${LOCALE}.json`),
+        '@i18n': path.resolve(__dirname, 'src/i18n'),
+      },
+    },
+    server: {
+      port: 3000,
+      fs: {
+        // Allow serving files from the docs/ folder (one level above src/).
+        allow: [path.resolve(__dirname)],
+      },
+    },
+    base: '/play/',
+    build: {
+      target: 'ES2022',
+    },
+  };
 });

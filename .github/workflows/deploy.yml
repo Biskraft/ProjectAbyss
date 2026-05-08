@@ -26,16 +26,36 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build game
+      - name: Install dependencies
         working-directory: game
-        run: |
-          npm install
-          npm run build
+        run: npm install
+
+      - name: Generate i18n locale bundles
+        run: node Sheets/tools/csv_to_locale.mjs
+
+      - name: Validate CSV integrity
+        run: node Sheets/tools/validate.mjs
+
+      - name: Type check
+        working-directory: game
+        run: npx tsc --noEmit
+
+      # Channel mapping (System_Localization_Core.md §4.7):
+      #   echoris.io/play/ = EN (global default)
+      #   echoris.io/ko/   = KO (KR test channel)
+      - name: Build game (EN, /play/)
+        working-directory: game
+        run: npx vite build --mode en
+
+      - name: Build game (KO, /ko/)
+        working-directory: game
+        run: npx vite build --mode ko --outDir dist-ko --base /ko/
 
       - name: Assemble site
         run: |
-          mkdir -p site/play
+          mkdir -p site/play site/ko
           cp -r game/dist/* site/play/
+          cp -r game/dist-ko/* site/ko/
           cp website/index.html site/
           cp -r website/assets site/
           cp website/assets/favicon.ico site/favicon.ico

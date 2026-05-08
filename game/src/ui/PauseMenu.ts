@@ -5,9 +5,11 @@
  * Pattern A (Modal): game paused, arrow nav, C confirm, ESC back.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import {
   createModalPanel,
   drawSelectionRow,
@@ -37,13 +39,13 @@ const COL_DANGER = 0xff4444;
 const COL_WARNING = 0xffcc44;
 const COL_ACCENT = ROW_CHEVRON_COLOR;
 
-type MenuItem = { label: string; action: string; color?: number };
+type MenuItem = { labelKey: string; action: string; color?: number };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'CONTINUE', action: 'continue' },
-  { label: 'STATUS', action: 'status' },
-  { label: 'SELECT KEYBOARD', action: 'select_keyboard' },
-  { label: 'QUIT TO TITLE', action: 'quit', color: COL_DANGER },
+  { labelKey: 'ui.pause.continue', action: 'continue' },
+  { labelKey: 'ui.pause.status', action: 'status' },
+  { labelKey: 'ui.pause.select_keyboard', action: 'select_keyboard' },
+  { labelKey: 'ui.pause.quit_to_title', action: 'quit', color: COL_DANGER },
 ];
 
 // 키보드 preset 카드 — `Documents/UI` (game/docs/ui-components.html line 1389) 의
@@ -65,7 +67,7 @@ export class PauseMenu {
   visible = false;
   private selectedIndex = 0;
   private panel: Container;
-  private menuTexts: BitmapText[] = [];
+  private menuTexts: (BitmapText | Text)[] = [];
 
   // Selection row layers (orange 4-layer canonical pattern)
   private selectionBg: Graphics | null = null;
@@ -130,8 +132,8 @@ export class PauseMenu {
     this.container.addChild(this.panel);
 
     // Title
-    const title = new BitmapText({ text: 'PAUSED', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_TEXT } });
-    title.x = Math.floor((PANEL_W - 48) / 2);
+    const title = createUiText(t('ui.pause.title'), { fontSize: 10, fill: COL_TEXT });
+    title.x = Math.floor((PANEL_W - title.width) / 2);
     title.y = 10;
     this.panel.addChild(title);
 
@@ -151,15 +153,15 @@ export class PauseMenu {
     // Menu items (drawn on top of selection bg)
     for (let i = 0; i < MENU_ITEMS.length; i++) {
       const item = MENU_ITEMS[i];
-      const t = new BitmapText({
-        text: item.label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: item.color ?? COL_TEXT },
+      const labelText = createUiText(t(item.labelKey), {
+        fontSize: 8,
+        fill: item.color ?? COL_TEXT,
       });
       // Center label horizontally inside the selection row band
-      t.x = Math.floor((PANEL_W - t.width) / 2);
-      t.y = ITEM_START_Y + i * ITEM_SPACING;
-      this.panel.addChild(t);
-      this.menuTexts.push(t);
+      labelText.x = Math.floor((PANEL_W - labelText.width) / 2);
+      labelText.y = ITEM_START_Y + i * ITEM_SPACING;
+      this.panel.addChild(labelText);
+      this.menuTexts.push(labelText);
     }
 
     // Symmetric chevrons — orange accent
@@ -359,19 +361,13 @@ export class PauseMenu {
     bg.rect(0, 0, cw, ch).stroke({ color: COL_DANGER, width: 1 });
     this.confirmPanel.addChild(bg);
 
-    const warning = new BitmapText({
-      text: 'Quit to title?',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_WARNING },
-    });
-    warning.x = Math.floor((cw - 90) / 2);
+    const warning = createUiText(t('ui.pause.quit_confirm_title'), { fontSize: 8, fill: COL_WARNING });
+    warning.x = Math.floor((cw - warning.width) / 2);
     warning.y = 10;
     this.confirmPanel.addChild(warning);
 
-    const sub = new BitmapText({
-      text: 'Unsaved progress lost.',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM },
-    });
-    sub.x = Math.floor((cw - 130) / 2);
+    const sub = createUiText(t('ui.pause.quit_confirm_warn'), { fontSize: 8, fill: COL_DIM });
+    sub.x = Math.floor((cw - sub.width) / 2);
     sub.y = 24;
     this.confirmPanel.addChild(sub);
 
@@ -382,7 +378,7 @@ export class PauseMenu {
     for (let b = 0; b < 2; b++) {
       const bx = b === 0 ? 20 : cw - 20 - btnW;
       const selected = b === this.confirmSelection;
-      const label = b === 0 ? 'YES' : 'NO';
+      const label = b === 0 ? t('ui.confirm.yes') : t('ui.confirm.no');
 
       const btnBg = new Graphics();
       btnBg.x = bx;
@@ -397,11 +393,8 @@ export class PauseMenu {
       }
       this.confirmPanel.addChild(btnBg);
 
-      const btnText = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? COL_TEXT : COL_DIM },
-      });
-      btnText.x = bx + Math.floor((btnW - label.length * 6) / 2);
+      const btnText = createUiText(label, { fontSize: 8, fill: selected ? COL_TEXT : COL_DIM });
+      btnText.x = bx + Math.floor((btnW - btnText.width) / 2);
       btnText.y = btnY + 4;
       this.confirmPanel.addChild(btnText);
     }
@@ -472,10 +465,7 @@ export class PauseMenu {
     this.presetPanel.addChild(panel);
 
     // Title
-    const title = new BitmapText({
-      text: 'CONTROLS',
-      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_TEXT },
-    });
+    const title = createUiText(t('ui.pause.controls'), { fontSize: 10, fill: COL_TEXT });
     title.x = Math.floor((cw - title.width) / 2);
     title.y = 8;
     panel.addChild(title);
@@ -526,10 +516,7 @@ export class PauseMenu {
 
       // ACTIVE badge — 현재 적용된 preset 만 우측에 노란 라벨.
       if (isActive) {
-        const badge = new BitmapText({
-          text: 'ACTIVE',
-          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_WARNING },
-        });
+        const badge = createUiText(t('ui.pause.active'), { fontSize: 8, fill: COL_WARNING });
         badge.x = PRESET_ROW_PAD_X + rowW - badge.width - 6;
         badge.y = rowY + 5;
         panel.addChild(badge);

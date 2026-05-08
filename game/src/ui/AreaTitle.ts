@@ -10,17 +10,18 @@
  * Add the container to `game.legacyUIContainer` (applies uiScale).
  */
 
-import { Container, BitmapText, Graphics } from 'pixi.js';
+import { Container, BitmapText, Text, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TITLE_FONT } from './fonts';
+import { createUiText } from './factories';
 
 type Phase = 'idle' | 'fadeIn' | 'hold' | 'fadeOut';
 
 export class AreaTitle {
   readonly container: Container;
 
-  private title: BitmapText;
-  private titleShadow: BitmapText;
+  private title: BitmapText | Text;
+  private titleShadow: BitmapText | Text;
   private divider: Graphics;
   private dividerShadow: Graphics;
 
@@ -42,7 +43,6 @@ export class AreaTitle {
     this.container.visible = false;
 
     const titleStyle = {
-      fontFamily: TITLE_FONT,
       fontSize: 36,
       fill: 0xf2e8c6, // warm crisp parchment
       letterSpacing: 6,
@@ -50,13 +50,12 @@ export class AreaTitle {
     };
 
     // Shadow rendered first (behind), full-opacity black, offset down-right.
-    this.titleShadow = new BitmapText({
-      text: '',
-      style: { ...titleStyle, fill: 0x000000 },
-    });
+    // KO branch swaps to Noto Sans KR via createUiText; EN keeps the Cinzel
+    // (TITLE_FONT) bitmap atlas.
+    this.titleShadow = createUiText('', { ...titleStyle, fill: 0x000000 }, 1, TITLE_FONT);
     this.titleShadow.anchor.set(0.5, 0.5);
 
-    this.title = new BitmapText({ text: '', style: titleStyle });
+    this.title = createUiText('', titleStyle, 1, TITLE_FONT);
     this.title.anchor.set(0.5, 0.5);
 
     this.dividerShadow = new Graphics();

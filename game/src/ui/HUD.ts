@@ -1,6 +1,8 @@
-import { Container, Graphics, BitmapText, Sprite, Assets, Texture } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text, Sprite, Assets, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import { onDeviceChange } from '@core/input/InputDeviceTracker';
@@ -114,8 +116,8 @@ export class HUD {
   // Boss HP bar
   private bossBarContainer: Container;
   private bossBar: Graphics;
-  private bossNameText: BitmapText;
-  private bossNameShadow: BitmapText;
+  private bossNameText: BitmapText | Text;
+  private bossNameShadow: BitmapText | Text;
   private bossHp = 0;
   private bossMaxHp = 0;
 
@@ -372,8 +374,8 @@ export class HUD {
     this.bossBar = new Graphics();
     this.bossBar.x = this.BOSS_X;
     this.bossBar.y = this.BOSS_Y;
-    this.bossNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.bossNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.bossNameShadow = createUiText('', { fontSize: this.FONT, fill: 0x000000 }, this.s);
+    this.bossNameText = createUiText('', { fontSize: this.FONT, fill: 0xffffff }, this.s);
     this.bossNameShadow.anchor.set(0.5, 0);
     this.bossNameText.anchor.set(0.5, 0);
     this.bossNameShadow.x = this.SW / 2 + s;
@@ -401,14 +403,8 @@ export class HUD {
       const KEY_SIZE = 14 * s;
       const LABEL_FONT = 10 * s;
       const escIcon = KeyPrompt.createKeyIconForAction(GameAction.MENU, KEY_SIZE);
-      const exitLabelShadow = new BitmapText({
-        text: 'Exit',
-        style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0x000000 },
-      });
-      const exitLabel = new BitmapText({
-        text: 'Exit',
-        style: { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: 0xffffff },
-      });
+      const exitLabelShadow = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: 0x000000 }, this.s);
+      const exitLabel = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: 0xffffff }, this.s);
       // Right-align the cluster: place icon, then label to its right.
       // Gold text sits at MARGIN (y); place hint a row below.
       const HINT_Y = this.MARGIN + this.FONT + 6 * s;

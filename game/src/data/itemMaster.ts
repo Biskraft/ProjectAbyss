@@ -2,6 +2,10 @@
  * itemMaster.ts — Unified item registry loaded from CSV at build time.
  *
  * SSoT: Sheets/Content_Item_Master.csv
+ *   Schema (post LOC-04):
+ *     ItemID, Category, NameKey, SourceSheet, SourceKey, Rarity, DescKey
+ *   Display strings (NameKey/DescKey) resolve through Content_Localization.csv
+ *   via t(). The CSV only carries structure + locale-key references.
  *
  * Every droppable item in the game has a unique ItemID registered here.
  * Other systems (SecretWall, LDtk Item entities, rollDrop, shops) reference
@@ -10,6 +14,7 @@
  */
 
 import csvText from '../../../Sheets/Content_Item_Master.csv?raw';
+import { t } from '@i18n';
 
 export type ItemCategory = 'weapon' | 'currency' | 'consumable' | 'material';
 
@@ -39,14 +44,16 @@ function parseMasterCSV(raw: string): void {
     const cols = lines[i].split(',');
     if (cols.length < 7) continue;
 
+    const nameKey = cols[2].trim();
+    const descKey = cols[6].trim();
     const entry: MasterItem = {
       itemId: cols[0].trim(),
       category: cols[1].trim() as ItemCategory,
-      name: cols[2].trim(),
+      name: t(nameKey),
       sourceSheet: cols[3].trim(),
       sourceKey: cols[4].trim(),
       rarity: cols[5].trim(),
-      description: cols[6].trim(),
+      description: t(descKey),
     };
 
     ITEM_MASTER.set(entry.itemId, entry);

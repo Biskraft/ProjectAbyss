@@ -14,6 +14,7 @@
 import shardCsvText from '../../../Sheets/Content_MemoryShards.csv?raw';
 import type { Rarity } from './weapons';
 import { getRarityConfig } from './rarityConfig';
+import { t } from '@i18n';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,9 +76,18 @@ export const MEMORY_SLOTS_BY_RARITY: Record<Rarity, number> = {
 export const INNOCENT_SPAWN_CHANCE = getRarityConfig('normal').shardSpawnChance;
 export const SHARD_SPAWN_CHANCE = INNOCENT_SPAWN_CHANCE;
 
-/** Memory Shard archetype table — SSoT: Sheets/Content_MemoryShards.csv */
+/**
+ * Memory Shard archetype table — SSoT: Sheets/Content_MemoryShards.csv
+ * Schema (post LOC-04):
+ *   Id, NameKey, Stat, BaseValue, DescKey [, Temperament]
+ *
+ * `id` is the stable internal archetype key. `name`/`description` are
+ * locale-resolved at parse time via t() against Content_Localization.csv.
+ */
 interface InnocentArchetype {
+  id: string;
   name: string;
+  description: string;
   stat: InnocentStatKey;
   baseValue: number;
   temperament?: Temperament;
@@ -88,12 +98,14 @@ export const INNOCENT_ARCHETYPES: InnocentArchetype[] = [];
 const _iLines = shardCsvText.trim().split('\n');
 for (let i = 1; i < _iLines.length; i++) {
   const cols = _iLines[i].split(',');
-  if (cols.length < 3) continue;
+  if (cols.length < 5) continue;
   INNOCENT_ARCHETYPES.push({
-    name: cols[0].trim(),
-    stat: cols[1].trim() as InnocentStatKey,
-    baseValue: parseInt(cols[2]),
-    temperament: (cols[3]?.trim() as Temperament) || undefined,
+    id: cols[0].trim(),
+    name: t(cols[1].trim()),
+    stat: cols[2].trim() as InnocentStatKey,
+    baseValue: parseInt(cols[3]),
+    description: t(cols[4].trim()),
+    temperament: (cols[5]?.trim() as Temperament) || undefined,
   });
 }
 
