@@ -146,9 +146,17 @@ async function applyAtlas(pngPath: string, jsonPath: string): Promise<void> {
   sheet.source.scaleMode = 'nearest';
   cachedSheet = sheet;
 
-  const meta = await Assets.load<AseAtlasJson>(jsonPath);
+  // PIXI v8 Assets.load() detects Aseprite-style JSON and returns a wrapped
+  // Spritesheet, hiding the original `meta` field. Fetch the raw JSON
+  // directly so our slice parser sees the top-level shape we wrote in
+  // builder_leg_01_atlas.json.
+  const res = await fetch(jsonPath);
+  if (!res.ok) {
+    throw new Error(`[builderLegAtlas] failed to fetch ${jsonPath}: ${res.status} ${res.statusText}`);
+  }
+  const meta = (await res.json()) as AseAtlasJson;
   const sliceByName = new Map<string, AseSlice>();
-  for (const s of meta.meta.slices ?? []) sliceByName.set(s.name, s);
+  for (const s of meta.meta?.slices ?? []) sliceByName.set(s.name, s);
 
   for (const name of LEG_PART_NAMES) {
     const slice = sliceByName.get(name);
