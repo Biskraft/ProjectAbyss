@@ -16,6 +16,8 @@ import { Container, Graphics, BitmapText, Rectangle } from 'pixi.js';
 import { create9SlicePanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import type { LdtkLoader } from '@level/LdtkLoader';
 
 const GAME_WIDTH = 640;
@@ -360,10 +362,7 @@ export class WorldMapOverlay {
     this.mapContainer.addChild(dot);
 
     // Title
-    const title = new BitmapText({
-      text: 'WORLD MAP',
-      style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0x88aacc },
-    });
+    const title = createUiText(t('ui.world_map.title'), { fontSize: 24, fill: 0x88aacc });
     title.x = MAP_MARGIN_X;
     title.y = MAP_MARGIN_Y - 30;
     this.mapContainer.addChild(title);
@@ -380,19 +379,13 @@ export class WorldMapOverlay {
     this.mapContainer.addChild(pctText);
 
     // Exploration label next to percentage
-    const pctLabel = new BitmapText({
-      text: 'EXPLORED',
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xaa8833 },
-    });
+    const pctLabel = createUiText(t('ui.world_map.explored'), { fontSize: 16, fill: 0xaa8833 });
     pctLabel.x = pctText.x - pctLabel.width - 10;
     pctLabel.y = MAP_MARGIN_Y - 22;
     this.mapContainer.addChild(pctLabel);
 
     // Controls hint
-    const hint = new BitmapText({
-      text: 'M: Close',
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x666688 },
-    });
+    const hint = createUiText(t('ui.world_map.close_hint'), { fontSize: 16, fill: 0x666688 });
     hint.x = GAME_WIDTH - MAP_MARGIN_X - hint.width;
     hint.y = GAME_HEIGHT - MAP_MARGIN_Y + 6;
     this.mapContainer.addChild(hint);
@@ -461,10 +454,10 @@ export class WorldMapOverlay {
     const spacing = 88;
 
     const items: [number, string][] = [
-      [MARKER_SAVE, 'Save'],
-      [MARKER_ANVIL, 'Anvil'],
-      [MARKER_BOSS, 'Boss'],
-      [MARKER_GATE, 'Gate'],
+      [MARKER_SAVE, t('ui.world_map.legend_save')],
+      [MARKER_ANVIL, t('ui.world_map.legend_anvil')],
+      [MARKER_BOSS, t('ui.world_map.legend_boss')],
+      [MARKER_GATE, t('ui.world_map.legend_gate')],
     ];
 
     for (let i = 0; i < items.length; i++) {
@@ -475,10 +468,7 @@ export class WorldMapOverlay {
       dot.circle(x, ly + 8, 4).fill(color);
       this.mapContainer.addChild(dot);
 
-      const text = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
-      });
+      const text = createUiText(label, { fontSize: 16, fill: 0x888899 });
       text.x = x + 10;
       text.y = ly;
       this.mapContainer.addChild(text);

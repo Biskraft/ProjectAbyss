@@ -1,5 +1,7 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { CONTROL_BINDINGS } from '@data/inputBindings';
 import { onDeviceChange, getInputDevice } from '@core/input/InputDeviceTracker';
@@ -82,9 +84,9 @@ export class ControlsOverlay {
 
     // Header
     const headerY = oy + PAD_Y;
-    this._addText('Action',   colX.action, headerY, FONT, 0xaaaaaa);
-    this._addText('Keyboard', colX.kb,     headerY, FONT, 0xaaaaaa);
-    this._addText('Gamepad',  colX.gp,     headerY, FONT, 0xaaaaaa);
+    this._addText(t('ui.controls.col_action'),   colX.action, headerY, FONT, 0xaaaaaa);
+    this._addText(t('ui.controls.col_keyboard'), colX.kb,     headerY, FONT, 0xaaaaaa);
+    this._addText(t('ui.controls.col_gamepad'),  colX.gp,     headerY, FONT, 0xaaaaaa);
 
     // Divider
     const divider = new Graphics();
@@ -95,11 +97,11 @@ export class ControlsOverlay {
 
     // Bindings
     for (let i = 0; i < CONTROL_BINDINGS.length; i++) {
-      const { action, kb, gp } = CONTROL_BINDINGS[i];
+      const { actionKey, kb, gp } = CONTROL_BINDINGS[i];
       const rowY = oy + PAD_Y + (i + headerRows) * LINE_H;
-      this._addText(action, colX.action, rowY, FONT, 0xdddddd);
-      this._addText(kb,     colX.kb,     rowY, FONT, 0xffcc44);
-      this._addText(gp,     colX.gp,     rowY, FONT, 0x88ddff);
+      this._addText(t(actionKey), colX.action, rowY, FONT, 0xdddddd);
+      this._addText(kb,           colX.kb,     rowY, FONT, 0xffcc44);
+      this._addText(gp,           colX.gp,     rowY, FONT, 0x88ddff);
     }
 
     this.container.alpha = 0.7;
@@ -107,13 +109,10 @@ export class ControlsOverlay {
   }
 
   private _addText(text: string, x: number, y: number, fontSize: number, color: number): void {
-    const t = new BitmapText({
-      text,
-      style: { fontFamily: PIXEL_FONT, fontSize, fill: color },
-    });
-    t.x = x;
-    t.y = y;
-    this.container.addChild(t);
+    const node = createUiText(text, { fontSize, fill: color });
+    node.x = x;
+    node.y = y;
+    this.container.addChild(node);
   }
 
   /** 감지된 device 의 컬럼만 highlight visible. */

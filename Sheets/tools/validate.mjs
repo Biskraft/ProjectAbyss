@@ -9,6 +9,11 @@
  *   V2 (P0): CSV Tileset column values must resolve to real PNG files.
  *   V3 (warn): LDtk __tilesetRelPath set should not diverge from CSV Tileset set.
  *
+ * LOC-10 (2026-05-08): i18n NameKey/DescKey ↔ Content_Localization.csv coverage.
+ *   V4 (P0): every NameKey/DescKey referenced by Item_Master.csv,
+ *            Content_Stats_Weapon_Lore.csv, Content_MemoryShards.csv must
+ *            exist as a Key in Content_Localization.csv.
+ *
  * Exit code: 0 = pass / warn, 1 = P0 failure. Build aborts on non-zero.
  */
 
@@ -21,6 +26,10 @@ const ROOT = resolve(__dirname, '..', '..');
 const CSV_PATH = resolve(ROOT, 'Sheets', 'Content_System_Area_Palette.csv');
 const ATLAS_DIR = resolve(ROOT, 'game', 'public', 'assets', 'atlas');
 const LDTK_PATH = resolve(ROOT, 'game', 'public', 'assets', 'World_ProjectAbyss.ldtk');
+const LOCALIZATION_CSV = resolve(ROOT, 'Sheets', 'Content_Localization.csv');
+const ITEM_MASTER_CSV = resolve(ROOT, 'Sheets', 'Content_Item_Master.csv');
+const WEAPON_LORE_CSV = resolve(ROOT, 'Sheets', 'Content_Stats_Weapon_Lore.csv');
+const MEMORY_SHARDS_CSV = resolve(ROOT, 'Sheets', 'Content_MemoryShards.csv');
 
 // ---------------------------------------------------------------------------
 // Hard-required AreaIDs (keep in sync with LdtkWorldScene.ts / ItemWorldScene.ts)
@@ -157,6 +166,77 @@ if (!existsSync(CSV_PATH)) {
 }
 
 // ---------------------------------------------------------------------------
+// V4 (LOC-10): NameKey/DescKey coverage in Content_Localization.csv
+// ---------------------------------------------------------------------------
+function parseSimpleCsv(text) {
+  const lines = text.replace(/^﻿/, '').trim().split(/\r?\n/);
+  const header = splitCsvLine(lines[0]).map((s) => s.trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    const cols = splitCsvLine(line);
+    const row = {};
+    header.forEach((h, j) => { row[h] = (cols[j] ?? '').trim(); });
+    rows.push(row);
+  }
+  return { header, rows };
+}
+
+function collectKeysFromCsv(path, columns) {
+  if (!existsSync(path)) {
+    pushWarn('V4', `referenced CSV not found (skipped): ${path}`);
+    return [];
+  }
+  const text = readFileSync(path, 'utf8');
+  const { header, rows } = parseSimpleCsv(text);
+  const refs = [];
+  for (const col of columns) {
+    if (!header.includes(col)) {
+      pushWarn('V4', `${path} has no column "${col}" (skipped)`);
+      continue;
+    }
+    for (const row of rows) {
+      const v = row[col];
+      if (v) refs.push({ key: v, col, where: path });
+    }
+  }
+  return refs;
+}
+
+if (!existsSync(LOCALIZATION_CSV)) {
+  pushErr('V4', `Content_Localization.csv not found: ${LOCALIZATION_CSV}`);
+} else {
+  const locText = readFileSync(LOCALIZATION_CSV, 'utf8');
+  const { header: locHeader, rows: locRows } = parseSimpleCsv(locText);
+  if (!locHeader.includes('Key')) {
+    pushErr('V4', 'Content_Localization.csv missing "Key" column');
+  } else {
+    const definedKeys = new Set();
+    for (const row of locRows) {
+      const k = row.Key;
+      if (k && !k.startsWith('#')) definedKeys.add(k);
+    }
+    const refs = [
+      ...collectKeysFromCsv(ITEM_MASTER_CSV, ['NameKey', 'DescKey']),
+      ...collectKeysFromCsv(WEAPON_LORE_CSV, ['NameKey', 'DescKey']),
+      ...collectKeysFromCsv(MEMORY_SHARDS_CSV, ['NameKey', 'DescKey']),
+    ];
+    const missing = new Map();
+    for (const ref of refs) {
+      if (!definedKeys.has(ref.key)) {
+        const list = missing.get(ref.key) ?? [];
+        list.push(`${ref.col} @ ${ref.where.split(/[\\/]/).slice(-1)[0]}`);
+        missing.set(ref.key, list);
+      }
+    }
+    for (const [key, sources] of missing) {
+      pushErr('V4', `i18n key "${key}" referenced by ${sources.join(', ')} but missing from Content_Localization.csv`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const hdr = (s) => `\n===== ${s} =====`;
@@ -164,6 +244,7 @@ console.log(hdr('Sheets validate.mjs'));
 console.log(`  CSV:      ${CSV_PATH}`);
 console.log(`  Atlas:    ${ATLAS_DIR}`);
 console.log(`  LDtk:     ${LDTK_PATH}`);
+console.log(`  Locale:   ${LOCALIZATION_CSV}`);
 
 if (warnings.length) {
   console.log(hdr(`Warnings (${warnings.length})`));

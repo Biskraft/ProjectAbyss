@@ -2,8 +2,8 @@
 
 ## 구현 현황 (Implementation Status)
 
-> 최근 업데이트: 2026-05-08 (LOC 인프라 + 데이터 + 핵심 UI 마이그레이션 완료. 194 키 SSoT)
-> 문서 상태: `Phase 2 — 인프라/데이터/핵심 UI 가동. 잔여 UI(InventoryUI, ItemDetailView, DivePreview, FeedbackPanel, ControlsOverlay 등) 점진 마이그레이션`
+> 최근 업데이트: 2026-05-08 (Phase 2 LOC 종결. 311 키 SSoT, 모든 핵심 UI 마이그레이션 + LOC-10 검증 가동)
+> 문서 상태: `Phase 2 — 종결. LOC-08/09 (PauseMenu LANGUAGE 토글 + navigator.language 자동감지) 는 Phase 3 EA 진입 시 단일 빌드 승격과 함께 처리`
 > 2-Space: 전체 (World / Item World 동일 적용)
 > 기둥: 전체 (인프라 — 1차 niche 팬덤의 글로벌 도달 확장)
 
@@ -18,7 +18,7 @@
 | LOC-07 | 코드 | BitmapFont 한국어 분기 (Text + Noto Sans KR) | P2 | 완료 (2026-05-08) | `createUiText()` 팩토리 + `localeFontsPlugin` (KO 빌드만 Noto Sans KR `<link>` 주입). LoreDisplay body 마이그레이션 완료. HUD/Toast/Tutorial 등 추가 사이트는 t() 전환과 함께 점진 |
 | LOC-08 | UI | PauseMenu LANGUAGE 행 + 토글 카드 | P2 | 대기 | Phase 3 단일 빌드 승격 시 |
 | LOC-09 | 코드 | navigator.language 자동 감지 + localStorage 영속 | P2 | 대기 | 첫 실행 1회만 |
-| LOC-10 | 검증 | validate.mjs 키 존재 검증 (NameKey ∈ Localization) | P2 | 대기 | 기존 스크립트 확장 |
+| LOC-10 | 검증 | validate.mjs 키 존재 검증 (NameKey ∈ Localization) | P2 | 완료 (2026-05-08) | V4 prebuild 단계: Item_Master/Weapon_Lore/MemoryShards 의 NameKey/DescKey 모두 Localization.csv 에 존재 검증. 위반 시 빌드 실패 |
 | LOC-11 | 정책 | Sheets/Content_Stats_Weapon_Lore.csv 한국어 5행 정리 | P0 | 완료 (2026-05-08) | NameKey/DescKey 마이그레이션과 통합. KR 원문은 Localization.csv ko 컬럼으로 이전 (SSoT 보존) |
 
 ---
