@@ -16,9 +16,11 @@
  * All fonts/sizes from ModalPanel tokens. Prompts via KeyPrompt.createPrompt.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { GameAction, actionKey } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
 import { ItemImage } from './ItemImage';
@@ -125,9 +127,9 @@ export class StratumClearOverlay {
   private itemImage: ItemImage;
   private flashOverlay: Graphics;
   private particles: Particle[] = [];
-  private titleText: BitmapText;
+  private titleText: BitmapText | Text;
   private atkText: Container;
-  private innocentText: BitmapText;
+  private innocentText: BitmapText | Text;
   private promptContainer: Container;
 
   // Rarity-driven enhancement burst layers
@@ -219,11 +221,8 @@ export class StratumClearOverlay {
     this.container.addChild(this.flashOverlay);
 
     // ── Title (above icon, FONT_TITLE = 12, primary white) ──
-    const titleStr = data.isFinal ? 'MEMORY ECHOED' : 'STRATUM CLEARED';
-    this.titleText = new BitmapText({
-      text: titleStr,
-      style: { fontFamily: PIXEL_FONT, fontSize: TITLE_FONT_SIZE, fill: TEXT_PRIMARY },
-    });
+    const titleStr = data.isFinal ? t('ui.stratum.title_final') : t('ui.stratum.title_normal');
+    this.titleText = createUiText(titleStr, { fontSize: TITLE_FONT_SIZE, fill: TEXT_PRIMARY });
     this.titleText.x = Math.floor((GAME_WIDTH - this.titleText.width) / 2);
     this.titleText.y = TITLE_Y;
     this.titleText.alpha = 0;
@@ -278,16 +277,13 @@ export class StratumClearOverlay {
     return root;
   }
 
-  private buildInnocentText(): BitmapText {
+  private buildInnocentText(): BitmapText | Text {
     const d = this.data;
     const delta = d.afterInnocents - d.beforeInnocents;
     const str = delta > 0
-      ? `INNOCENTS  +${delta} stabilized`
-      : `INNOCENTS  ${d.afterInnocents}`;
-    const text = new BitmapText({
-      text: str,
-      style: { fontFamily: PIXEL_FONT, fontSize: INNOCENT_FONT_SIZE, fill: TEXT_ACCENT },
-    });
+      ? t('ui.stratum.innocents_gain', { delta })
+      : t('ui.stratum.innocents_total', { total: d.afterInnocents });
+    const text = createUiText(str, { fontSize: INNOCENT_FONT_SIZE, fill: TEXT_ACCENT });
     text.x = Math.floor((GAME_WIDTH - text.width) / 2);
     text.y = INNOCENT_Y;
     return text;

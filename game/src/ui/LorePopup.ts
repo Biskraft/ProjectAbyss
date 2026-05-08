@@ -16,8 +16,10 @@
  *   - popup.visible 시 플레이어 입력을 막는 쪽에서 isBlocking() 사용
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
@@ -68,7 +70,7 @@ export class LorePopup {
 
   // [C] CLOSE 프롬프트 — dim 갱신용 참조. 게이지는 KeyPrompt.setKeyIconProgress 가 관리.
   private closePrompt: Container | null = null;
-  private closeLabel: BitmapText | null = null;
+  private closeLabel: BitmapText | Text | null = null;
 
   /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
   constructor(skin?: UISkin | null, uiScale: number = 1) {
@@ -201,19 +203,13 @@ export class LorePopup {
     this.panel.addChild(image.container);
 
     // 이름 (12px)
-    const nameText = new BitmapText({
-      text: item.def.name,
-      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rColor },
-    });
+    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rColor });
     nameText.x = TEXT_X;
     nameText.y = 14;
     this.panel.addChild(nameText);
 
     // 레어리티 뱃지
-    const rarityText = new BitmapText({
-      text: RARITY_DISPLAY_NAME[item.rarity].toUpperCase(),
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: rColor },
-    });
+    const rarityText = createUiText(RARITY_DISPLAY_NAME[item.rarity].toUpperCase(), { fontSize: 8, fill: rColor });
     rarityText.x = TEXT_X;
     rarityText.y = 28;
     this.panel.addChild(rarityText);
@@ -222,13 +218,10 @@ export class LorePopup {
     const lore = getWeaponLore(item.def.id, item.def.name, item.rarity);
     let ly = 44;
     for (const line of lore) {
-      const t = new BitmapText({
-        text: line,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xccccdd },
-      });
-      t.x = TEXT_X;
-      t.y = ly;
-      this.panel.addChild(t);
+      const node = createUiText(line, { fontSize: 8, fill: 0xccccdd });
+      node.x = TEXT_X;
+      node.y = ly;
+      this.panel.addChild(node);
       ly += 10;
     }
 
@@ -237,22 +230,16 @@ export class LorePopup {
     div.rect(12, 90, W - 24, 1).fill({ color: 0x3a3a4e, alpha: 1 });
     this.panel.addChild(div);
 
-    // 스탯
+    // 스탯 — ATK / Lv. abbrev kept latin per Q2.
     const statLine = `ATK ${item.finalAtk}   Lv.${item.level}`;
-    const stat = new BitmapText({
-      text: statLine,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-    });
+    const stat = createUiText(statLine, { fontSize: 8, fill: 0xffffff });
     stat.x = 12;
     stat.y = 98;
     this.panel.addChild(stat);
 
     // Memory Strata
     const strata = STRATA_BY_RARITY[item.rarity] ?? 2;
-    const strataText = new BitmapText({
-      text: `Memory Strata: ${strata} Floors`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
-    });
+    const strataText = createUiText(t('ui.lore.memory_strata', { strata }), { fontSize: 8, fill: 0x88ccff });
     strataText.x = 12;
     strataText.y = 112;
     this.panel.addChild(strataText);
@@ -264,10 +251,7 @@ export class LorePopup {
     closePrompt.y = H - 18;
     this.panel.addChild(closePrompt);
 
-    const closeLabel = new BitmapText({
-      text: 'CLOSE',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
+    const closeLabel = createUiText(t('ui.lore.close'), { fontSize: 8, fill: 0xaaaaaa });
     closeLabel.x = W - 58;
     closeLabel.y = H - 16;
     this.panel.addChild(closeLabel);

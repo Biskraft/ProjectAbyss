@@ -5,9 +5,11 @@
  * [C] to return to last save point.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { MODAL_BG, MODAL_BORDER, MODAL_BORDER_W, TEXT_NEGATIVE, TEXT_SECONDARY, TEXT_ACCENT, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
@@ -84,11 +86,8 @@ export class DeathScreen {
     this.container.addChild(this.panel);
 
     // "YOU DIED"
-    const title = new BitmapText({
-      text: 'YOU DIED',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: TEXT_NEGATIVE },
-    });
-    title.x = Math.floor((PANEL_W - 80) / 2);
+    const title = createUiText(t('ui.death.title'), { fontSize: FONT_TITLE, fill: TEXT_NEGATIVE });
+    title.x = Math.floor((PANEL_W - title.width) / 2);
     title.y = 16;
     this.panel.addChild(title);
 
@@ -100,20 +99,17 @@ export class DeathScreen {
 
     // Stats
     const lines = [
-      `Time:     ${this.formatTime(stats.time)}`,
-      `Defeated: ${stats.defeated}`,
-      `Gold Lost: ${stats.goldLost}`,
+      t('ui.death.time', { time: this.formatTime(stats.time) }),
+      t('ui.death.defeated', { count: stats.defeated }),
+      t('ui.death.gold_lost', { amount: stats.goldLost }),
     ];
 
     let y = 44;
     for (const line of lines) {
-      const t = new BitmapText({
-        text: line,
-        style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
-      });
-      t.x = 24;
-      t.y = y;
-      this.panel.addChild(t);
+      const node = createUiText(line, { fontSize: FONT_HINT, fill: TEXT_SECONDARY });
+      node.x = 24;
+      node.y = y;
+      this.panel.addChild(node);
       y += 14;
     }
 
@@ -124,11 +120,11 @@ export class DeathScreen {
     this.panel.addChild(div2);
 
     // [C] RETURN
-    const action = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}] RETURN TO SAVE POINT`,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_ACCENT },
-    });
-    action.x = Math.floor((PANEL_W - 180) / 2);
+    const action = createUiText(
+      t('ui.death.return_hint', { key: actionKey(GameAction.ATTACK) }),
+      { fontSize: FONT_HINT, fill: TEXT_ACCENT },
+    );
+    action.x = Math.floor((PANEL_W - action.width) / 2);
     action.y = y + 14;
     this.panel.addChild(action);
   }

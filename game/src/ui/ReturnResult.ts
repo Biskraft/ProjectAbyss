@@ -5,9 +5,11 @@
  * Death variant shows losses with strikethrough.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE, TEXT_ACCENT, TEXT_GOLD, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
@@ -115,12 +117,8 @@ export class ReturnResult {
     let y = 14;
 
     // Title — centered DEFEATED
-    const title = 'DEFEATED';
-    const titleText = new BitmapText({
-      text: title,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: COL_NEGATIVE },
-    });
-    titleText.x = Math.floor((DEATH_PANEL_W - title.length * 8) / 2);
+    const titleText = createUiText(t('ui.return.death_title'), { fontSize: FONT_TITLE, fill: COL_NEGATIVE });
+    titleText.x = Math.floor((DEATH_PANEL_W - titleText.width) / 2);
     titleText.y = y;
     this.panel.addChild(titleText);
     y += 18;
@@ -132,22 +130,17 @@ export class ReturnResult {
     y += 10;
 
     // Body — single line. 패널티 없는 현 스펙 → 중립 메시지.
-    const body = 'Returning to the surface.';
-    const bodyText = new BitmapText({
-      text: body,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: COL_DIM },
-    });
-    bodyText.x = Math.floor((DEATH_PANEL_W - body.length * 5) / 2);
+    const bodyText = createUiText(t('ui.return.death_body'), { fontSize: FONT_HINT, fill: COL_DIM });
+    bodyText.x = Math.floor((DEATH_PANEL_W - bodyText.width) / 2);
     bodyText.y = y;
     this.panel.addChild(bodyText);
 
     // Hint — bottom center
-    const hint = `[${actionKey(GameAction.ATTACK)}] CONTINUE`;
-    const hintText = new BitmapText({
-      text: hint,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_ACCENT },
-    });
-    hintText.x = Math.floor((DEATH_PANEL_W - hint.length * 5) / 2);
+    const hintText = createUiText(
+      t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }),
+      { fontSize: FONT_HINT, fill: TEXT_ACCENT },
+    );
+    hintText.x = Math.floor((DEATH_PANEL_W - hintText.width) / 2);
     hintText.y = DEATH_PANEL_H - 18;
     this.panel.addChild(hintText);
   }
@@ -164,12 +157,8 @@ export class ReturnResult {
     let y = 12;
 
     // Title
-    const title = 'DIVE COMPLETE';
-    const titleText = new BitmapText({
-      text: title,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: COL_TEXT },
-    });
-    titleText.x = Math.floor((PANEL_W - title.length * 8) / 2);
+    const titleText = createUiText(t('ui.return.success_title'), { fontSize: FONT_TITLE, fill: COL_TEXT });
+    titleText.x = Math.floor((PANEL_W - titleText.width) / 2);
     titleText.y = y;
     this.panel.addChild(titleText);
     y += 18;
@@ -179,45 +168,45 @@ export class ReturnResult {
 
     // ITEM section
     const rarityColor = RARITY_COLOR[r.item.rarity] ?? COL_TEXT;
-    this.addText(`${r.item.def.name}`, 16, y, rarityColor, 8); y += 12;
+    this.addText(r.item.def.name, 16, y, rarityColor, 8); y += 12;
 
     // Level change
     const levelDelta = r.item.level - r.prevLevel;
     const levelColor = levelDelta > 0 ? COL_GOLD : COL_TEXT;
-    this.addText(`Lv.${r.prevLevel} -> Lv.${r.item.level}  (+${levelDelta})`, 16, y, levelColor, FONT_HINT);
+    this.addText(t('ui.return.level_change', { prev: r.prevLevel, next: r.item.level, delta: levelDelta }), 16, y, levelColor, FONT_HINT);
     y += 12;
 
     this.addDivider(y); y += 6;
 
     // STAT CHANGES
-    this.addText('STAT CHANGES', 16, y, COL_DIM, FONT_HINT); y += 12;
+    this.addText(t('ui.return.stat_changes_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
     const atkDelta = r.item.finalAtk - r.prevAtk;
     const atkColor = atkDelta > 0 ? COL_POSITIVE : atkDelta < 0 ? COL_NEGATIVE : COL_NEUTRAL;
     const atkSign = atkDelta > 0 ? '+' : '';
-    this.addText(`ATK: ${r.prevAtk} -> ${r.item.finalAtk}  (${atkSign}${atkDelta})`, 24, y, atkColor, FONT_HINT);
+    this.addText(t('ui.return.atk_delta', { prev: r.prevAtk, next: r.item.finalAtk, sign: atkSign, delta: atkDelta }), 24, y, atkColor, FONT_HINT);
     y += 14;
 
     this.addDivider(y); y += 6;
 
     // INNOCENTS
-    this.addText('INNOCENTS', 16, y, COL_DIM, FONT_HINT); y += 12;
+    this.addText(t('ui.return.innocents_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
     if (r.innocentsCaptured > 0) {
-      this.addText(`[*] ${r.innocentsCaptured} captured`, 24, y, COL_POSITIVE, FONT_HINT);
+      this.addText(t('ui.return.innocents_captured', { count: r.innocentsCaptured }), 24, y, COL_POSITIVE, FONT_HINT);
     } else {
-      this.addText('None captured', 24, y, COL_NEUTRAL, FONT_HINT);
+      this.addText(t('ui.return.innocents_none'), 24, y, COL_NEUTRAL, FONT_HINT);
     }
     y += 14;
 
     this.addDivider(y); y += 6;
 
     // STRATA PROGRESS
-    this.addText('STRATA', 16, y, COL_DIM, FONT_HINT); y += 12;
+    this.addText(t('ui.return.strata_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
+    const bossKeys = ['boss.item_general', 'boss.item_king', 'boss.item_god', 'boss.item_great_god'];
     for (let s = 0; s < r.totalStrata; s++) {
       const cleared = s < r.strataCleared;
       const symbol = cleared ? '[V]' : '[ ]';
       const color = cleared ? COL_POSITIVE : COL_NEUTRAL;
-      const bossNames = ['Item General', 'Item King', 'Item God', 'Item Great God'];
-      const bossName = bossNames[s] ?? `Stratum ${s + 1}`;
+      const bossName = bossKeys[s] ? t(bossKeys[s]) : t('boss.fallback_stratum', { n: s + 1 });
       this.addText(`${symbol} ${bossName}`, 24, y, color, FONT_HINT);
       y += 10;
     }
@@ -226,18 +215,18 @@ export class ReturnResult {
     this.addDivider(y); y += 6;
 
     // LOOT
-    this.addText(`Gold earned: ${r.goldEarned.toLocaleString()}`, 16, y, COL_DIM, FONT_HINT); y += 10;
-    this.addText(`Enemies defeated: ${r.enemiesDefeated}`, 16, y, COL_DIM, FONT_HINT); y += 14;
+    this.addText(t('ui.return.gold_earned', { amount: r.goldEarned.toLocaleString() }), 16, y, COL_DIM, FONT_HINT); y += 10;
+    this.addText(t('ui.return.enemies_defeated', { count: r.enemiesDefeated }), 16, y, COL_DIM, FONT_HINT); y += 14;
 
     // Action
-    this.addText(`[${actionKey(GameAction.ATTACK)}] CONTINUE`, Math.floor((PANEL_W - 100) / 2), PANEL_H - 20, TEXT_ACCENT, FONT_HINT);
+    this.addText(t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }), Math.floor((PANEL_W - 100) / 2), PANEL_H - 20, TEXT_ACCENT, FONT_HINT);
   }
 
-  private addText(text: string, x: number, y: number, color: number, fontSize: number): BitmapText {
-    const t = new BitmapText({ text, style: { fontFamily: PIXEL_FONT, fontSize, fill: color } });
-    t.x = x; t.y = y;
-    this.panel.addChild(t);
-    return t;
+  private addText(text: string, x: number, y: number, color: number, fontSize: number): BitmapText | Text {
+    const node = createUiText(text, { fontSize, fill: color });
+    node.x = x; node.y = y;
+    this.panel.addChild(node);
+    return node;
   }
 
   private addDivider(y: number): void {
