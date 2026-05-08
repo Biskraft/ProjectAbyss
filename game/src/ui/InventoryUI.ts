@@ -1,9 +1,11 @@
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text } from 'pixi.js';
 import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { ItemImage } from './ItemImage';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { create9SlicePanel, drawSelectionRow, drawSelectionPulse, ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA } from './ModalPanel';
@@ -64,7 +66,16 @@ const COL_EQUIP_EMPTY_BORDER = 0x3a3a4e;
 const COL_EQUIP_FILLED_BORDER = 0x5a5a6a;
 const COL_EQUIP_BG = 0x101018;
 
-const EQUIP_SLOT_NAMES = ['WEAPON', 'VISOR', 'PLATE', 'GAUNTLET', 'GREAVES', 'SIGIL'] as const;
+// Slot label localization keys — resolved per-frame via t() so locale flips
+// (and the scoped {count} interpolation in BACKPACK) apply.
+const EQUIP_SLOT_KEYS = [
+  'ui.equip_slot.weapon',
+  'ui.equip_slot.visor',
+  'ui.equip_slot.plate',
+  'ui.equip_slot.gauntlet',
+  'ui.equip_slot.greaves',
+  'ui.equip_slot.sigil',
+] as const;
 const EQUIP_SLOT_ICONS = ['⚔', '◇', '🛡', '✋', '▽', '◆'] as const;
 
 export type InventoryUIMode = 'inventory' | 'anvil';
@@ -77,7 +88,7 @@ export class InventoryUI {
   private scrollOffset = 0;
   private panel: Container;
   private panelBg: Graphics;
-  private titleText: BitmapText;
+  private titleText: BitmapText | Text;
 
   // Equipment slot area
   private equipArea: Container;
@@ -141,7 +152,7 @@ export class InventoryUI {
     this.panel.addChild(this.panelBg);
 
     // Title
-    this.titleText = new BitmapText({ text: 'INVENTORY', style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: COL_TEXT_WHITE } });
+    this.titleText = createUiText(t('ui.inventory.title'), { fontSize: 12, fill: COL_TEXT_WHITE });
     this.titleText.x = PADDING;
     this.titleText.y = 6;
     this.panel.addChild(this.titleText);
@@ -323,7 +334,7 @@ export class InventoryUI {
 
     for (let i = 0; i < EQUIP_SLOTS; i++) {
       const x = startX + i * (EQUIP_SLOT_W + EQUIP_GAP);
-      const slotName = EQUIP_SLOT_NAMES[i];
+      const slotName = t(EQUIP_SLOT_KEYS[i]);
 
       // Currently only weapon slot (index 0) can be equipped
       const isWeaponSlot = i === 0;
@@ -344,10 +355,7 @@ export class InventoryUI {
       this.equipArea.addChild(g);
 
       // Slot name label
-      const nameLabel = new BitmapText({
-        text: slotName,
-        style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: hasItem ? COL_DIM : COL_LOCKED }
-      });
+      const nameLabel = createUiText(slotName, { fontSize: 6, fill: hasItem ? COL_DIM : COL_LOCKED });
       nameLabel.x = x + Math.floor((EQUIP_SLOT_W - nameLabel.width) / 2);
       nameLabel.y = 2;
       this.equipArea.addChild(nameLabel);
@@ -371,12 +379,9 @@ export class InventoryUI {
       }
 
       // Item name or 'empty'
-      const itemNameText = hasItem ? equippedItem!.def.name : 'empty';
+      const itemNameText = hasItem ? equippedItem!.def.name : t('ui.inventory.empty_slot');
       const itemNameColor = hasItem ? (RARITY_COLOR[equippedItem!.rarity] ?? COL_TEXT_WHITE) : COL_EQUIP_EMPTY_BORDER;
-      const itemLabel = new BitmapText({
-        text: itemNameText,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: itemNameColor }
-      });
+      const itemLabel = createUiText(itemNameText, { fontSize: 8, fill: itemNameColor });
       // Scale down if the full name exceeds the slot width so long names
       // (e.g. "Steel Longblade") stay fully visible without truncation.
       const maxW = EQUIP_SLOT_W - 2;
@@ -412,10 +417,10 @@ export class InventoryUI {
     const count = items.length;
 
     // "BACKPACK (N/20)" label
-    const backpackLabel = new BitmapText({
-      text: this.mode === 'anvil' ? 'SELECT WEAPON TO DIVE' : `BACKPACK (${count}/20)`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_LOCKED }
-    });
+    const backpackLabel = createUiText(
+      this.mode === 'anvil' ? t('ui.inventory.select_weapon_to_dive') : t('ui.inventory.backpack', { count }),
+      { fontSize: 8, fill: COL_LOCKED }
+    );
     backpackLabel.x = PADDING;
     backpackLabel.y = 0;
     this.listArea.addChild(backpackLabel);
@@ -527,7 +532,7 @@ export class InventoryUI {
       const badge = new Graphics();
       badge.roundRect(cx, y + 3, 12, 12, 2).fill(COL_ROW_EQUIPPED_BAR);
       this.listArea.addChild(badge);
-      const eText = new BitmapText({ text: 'E', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
+      const eText = new BitmapText({ text: t('ui.inventory.equip_indicator'), style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
       eText.x = cx + 3;
       eText.y = y + 4;
       this.listArea.addChild(eText);
@@ -541,7 +546,7 @@ export class InventoryUI {
       ? COL_TEXT_WHITE
       : (isStarterOnly ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
     const name = item.def.name;
-    const nameText = new BitmapText({ text: name, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: nameColor } });
+    const nameText = createUiText(name, { fontSize: 10, fill: nameColor });
     nameText.x = cx;
     nameText.y = y + 3;
     this.listArea.addChild(nameText);
@@ -573,7 +578,7 @@ export class InventoryUI {
     });
     atkText.x = PADDING + rowW - 68;
     atkText.y = y + 4;
-    if (isOnAnvil) atkText.text = 'ON ANVIL';
+    if (isOnAnvil) atkText.text = t('ui.inventory.on_anvil');
     this.listArea.addChild(atkText);
 
     // DIVE / CLR / LOCKED badge (right end)
@@ -591,7 +596,7 @@ export class InventoryUI {
       const clrBadge = new Graphics();
       clrBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).fill(COL_CLEARED);
       this.listArea.addChild(clrBadge);
-      const clrText = new BitmapText({ text: 'CLR', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
+      const clrText = createUiText(t('ui.inventory.button_clr'), { fontSize: 8, fill: 0x000000 });
       clrText.x = badgeX;
       clrText.y = y + 4;
       this.listArea.addChild(clrText);
@@ -599,7 +604,7 @@ export class InventoryUI {
       const diveBadge = new Graphics();
       diveBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).fill(COL_DIVE);
       this.listArea.addChild(diveBadge);
-      const diveText = new BitmapText({ text: 'DIVE', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
+      const diveText = createUiText(t('ui.inventory.button_dive'), { fontSize: 8, fill: 0x000000 });
       diveText.x = badgeX - 1;
       diveText.y = y + 4;
       this.listArea.addChild(diveText);
@@ -625,10 +630,12 @@ export class InventoryUI {
     y += 6;
 
     if (!item) {
-      const emptyText = new BitmapText({
-        text: this.mode === 'anvil' ? 'No items to dive' : `${this.inventory.items.length}/20 items`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_DIM }
-      });
+      const emptyText = createUiText(
+        this.mode === 'anvil'
+          ? t('ui.inventory.no_items_to_dive')
+          : t('ui.inventory.empty_count', { count: this.inventory.items.length }),
+        { fontSize: 10, fill: COL_DIM }
+      );
       emptyText.x = PADDING;
       emptyText.y = y;
       this.detailArea.addChild(emptyText);
@@ -640,10 +647,7 @@ export class InventoryUI {
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
 
     // Item name
-    const nameText = new BitmapText({
-      text: item.def.name,
-      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rarityColor }
-    });
+    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rarityColor });
     nameText.x = PADDING;
     nameText.y = y;
     this.detailArea.addChild(nameText);
@@ -654,10 +658,7 @@ export class InventoryUI {
     const cycle = item.worldProgress?.cycle ?? 0;
     const cycleTag = cycle > 0 ? ` C${cycle}` : '';
     const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
-    const metaText = new BitmapText({
-      text: `${rarityName}${cycleTag}${clearTag}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM }
-    });
+    const metaText = createUiText(`${rarityName}${cycleTag}${clearTag}`, { fontSize: 8, fill: COL_DIM });
     metaText.x = PADDING;
     metaText.y = y;
     this.detailArea.addChild(metaText);
@@ -668,18 +669,18 @@ export class InventoryUI {
       const deltaAtk = item.finalAtk - equipped.finalAtk;
       const deltaColor = deltaAtk > 0 ? COL_POSITIVE : deltaAtk < 0 ? COL_NEGATIVE : COL_TEXT;
       const deltaStr = deltaAtk !== 0 ? ` (${deltaAtk > 0 ? '+' : ''}${deltaAtk})` : '';
-      const atkLine = new BitmapText({
-        text: `ATK: ${item.finalAtk}${deltaStr} vs equipped`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: deltaColor }
-      });
+      const atkLine = createUiText(
+        t('ui.inventory.atk_compare', { atk: item.finalAtk, delta: deltaStr }),
+        { fontSize: 10, fill: deltaColor },
+      );
       atkLine.x = PADDING;
       atkLine.y = y;
       this.detailArea.addChild(atkLine);
     } else {
-      const atkLine = new BitmapText({
-        text: `ATK: ${item.finalAtk}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_TEXT }
-      });
+      const atkLine = createUiText(
+        t('ui.inventory.atk_plain', { atk: item.finalAtk }),
+        { fontSize: 10, fill: COL_TEXT },
+      );
       atkLine.x = PADDING;
       atkLine.y = y;
       this.detailArea.addChild(atkLine);
@@ -692,10 +693,15 @@ export class InventoryUI {
     const strata = STRATA_BY_RARITY[item.rarity];
     const totalStrata = strata?.strata.length ?? 0;
     const clearedStrata = item.worldProgress?.deepestUnlocked ?? 0;
-    const infoLine = new BitmapText({
-      text: `Innocents: ${innocentCount}/${maxSlots} · Strata: ${clearedStrata}/${totalStrata}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM }
-    });
+    const infoLine = createUiText(
+      t('ui.inventory.summary', {
+        shards: innocentCount,
+        maxSlots,
+        cleared: clearedStrata,
+        total: totalStrata,
+      }),
+      { fontSize: 8, fill: COL_DIM },
+    );
     infoLine.x = PADDING;
     infoLine.y = y;
     this.detailArea.addChild(infoLine);
@@ -707,14 +713,15 @@ export class InventoryUI {
     const ESC = actionKey(GameAction.MENU);
     const JMP = actionKey(GameAction.JUMP);
     if (this.mode === 'anvil') {
-      hintText = this.anvilState === 'placed' ? `[${ATK}]DIVE  [${ESC}]Remove` : `[${ATK}]Place  [${ESC}]Back`;
+      hintText = this.anvilState === 'placed'
+        ? t('ui.inventory.hint_dive', { atk: ATK, esc: ESC })
+        : t('ui.inventory.hint_place', { atk: ATK, esc: ESC });
     } else {
-      hintText = isEquipped ? `[${ESC}]Close` : `[${ATK}]Equip  [${JMP}]Compare  [${ESC}]Close`;
+      hintText = isEquipped
+        ? t('ui.inventory.hint_close', { esc: ESC })
+        : t('ui.inventory.hint_equip', { atk: ATK, jmp: JMP, esc: ESC });
     }
-    const hint = new BitmapText({
-      text: hintText,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM }
-    });
+    const hint = createUiText(hintText, { fontSize: 8, fill: COL_DIM });
     hint.x = PADDING;
     hint.y = y;
     this.detailArea.addChild(hint);
@@ -781,13 +788,13 @@ export class InventoryUI {
       img.container.y = slotY + 4;
       slot.addChild(img.container);
 
-      const label = new BitmapText({ text: 'DIVE', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: rarityColor } });
-      label.x = slotX + Math.floor((anvilSlotSize - 28) / 2);
+      const label = createUiText(t('ui.inventory.button_dive'), { fontSize: 10, fill: rarityColor });
+      label.x = slotX + Math.floor((anvilSlotSize - label.width) / 2);
       label.y = slotY + anvilSlotSize + 4;
       slot.addChild(label);
     } else {
-      const label = new BitmapText({ text: 'ANVIL', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM } });
-      label.x = slotX + Math.floor((anvilSlotSize - 30) / 2);
+      const label = createUiText(t('ui.inventory.button_anvil'), { fontSize: 8, fill: COL_DIM });
+      label.x = slotX + Math.floor((anvilSlotSize - label.width) / 2);
       label.y = slotY + anvilSlotSize + 4;
       slot.addChild(label);
     }

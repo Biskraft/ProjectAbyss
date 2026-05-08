@@ -9,8 +9,10 @@
  *   - showCompact: 이후 다이브. 화면 하단 1줄 스트립, [C] OK / [ESC] CANCEL.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
@@ -135,10 +137,7 @@ export class DivePreview {
     // All coordinates are now panel-local (0,0 = top-left of panel).
 
     // Title.
-    const title = new BitmapText({
-      text: 'DIVE INTO MEMORY',
-      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: 0xffcc44 },
-    });
+    const title = createUiText(t('ui.dive.title'), { fontSize: 10, fill: 0xffcc44 });
     title.x = 12;
     title.y = 10;
     this.panel.addChild(title);
@@ -153,29 +152,20 @@ export class DivePreview {
     const textX = 12 + ICON_SIZE + 10;
 
     // Item name.
-    const nameText = new BitmapText({
-      text: item.def.name,
-      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: rColor },
-    });
+    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rColor });
     nameText.x = textX;
     nameText.y = 28;
     this.panel.addChild(nameText);
 
     // Rarity badge.
-    const rarityText = new BitmapText({
-      text: RARITY_DISPLAY_NAME[item.rarity].toUpperCase(),
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: rColor },
-    });
+    const rarityText = createUiText(RARITY_DISPLAY_NAME[item.rarity].toUpperCase(), { fontSize: 8, fill: rColor });
     rarityText.x = textX;
     rarityText.y = 44;
     this.panel.addChild(rarityText);
 
-    // Stratum quick stat beside portrait.
+    // Stratum quick stat beside portrait. "Lv./F" abbreviations stay latin.
     const strata = STRATA_BY_RARITY[item.rarity] ?? 2;
-    const stratumInline = new BitmapText({
-      text: `Lv.${item.level + 1}  ${strata}F`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
-    });
+    const stratumInline = createUiText(`Lv.${item.level + 1}  ${strata}F`, { fontSize: 8, fill: 0x88ccff });
     stratumInline.x = textX;
     stratumInline.y = 58;
     this.panel.addChild(stratumInline);
@@ -187,18 +177,15 @@ export class DivePreview {
 
     // Reward hint.
     const lines: Array<{ text: string; color: number }> = [
-      { text: 'Estimated reward:',                    color: 0xaaaaaa },
-      { text: 'XP, Innocents, Fragments',             color: 0xffffff },
+      { text: t('ui.dive.estimated_reward'),  color: 0xaaaaaa },
+      { text: t('ui.dive.reward_list'),       color: 0xffffff },
     ];
     let ly = 104;
     for (const line of lines) {
-      const t = new BitmapText({
-        text: line.text,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: line.color },
-      });
-      t.x = 12;
-      t.y = ly;
-      this.panel.addChild(t);
+      const node = createUiText(line.text, { fontSize: 8, fill: line.color });
+      node.x = 12;
+      node.y = ly;
+      this.panel.addChild(node);
       ly += 12;
     }
 
@@ -208,10 +195,7 @@ export class DivePreview {
     dIcon.x = 12;
     dIcon.y = promptY;
     this.panel.addChild(dIcon);
-    const dLabel = new BitmapText({
-      text: 'DIVE',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-    });
+    const dLabel = createUiText(t('ui.dive.button_dive'), { fontSize: 8, fill: 0xffffff });
     dLabel.x = 26;
     dLabel.y = promptY + 1;
     this.panel.addChild(dLabel);
@@ -220,10 +204,7 @@ export class DivePreview {
     cIcon.x = W - 78;
     cIcon.y = promptY;
     this.panel.addChild(cIcon);
-    const cLabel = new BitmapText({
-      text: 'CANCEL',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
+    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: 0xaaaaaa });
     cLabel.x = W - 60;
     cLabel.y = promptY + 1;
     this.panel.addChild(cLabel);
@@ -250,10 +231,10 @@ export class DivePreview {
     this.panel.addChild(thumb.container);
 
     const strata = STRATA_BY_RARITY[item.rarity] ?? 2;
-    const text = new BitmapText({
-      text: `Diving into ${item.def.name} - ${strata} floors`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-    });
+    const text = createUiText(
+      t('ui.dive.compact_strip', { name: item.def.name, strata }),
+      { fontSize: 8, fill: 0xffffff },
+    );
     text.x = 14 + 14 + 6;
     text.y = y + Math.floor((H - text.height) / 2);
     this.panel.addChild(text);
@@ -262,10 +243,7 @@ export class DivePreview {
     okIcon.x = GAME_WIDTH - 90;
     okIcon.y = y + 4;
     this.panel.addChild(okIcon);
-    const okLabel = new BitmapText({
-      text: 'OK',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
-    });
+    const okLabel = createUiText(t('ui.dive.button_ok'), { fontSize: 8, fill: 0xffffff });
     okLabel.x = GAME_WIDTH - 76;
     okLabel.y = y + 5;
     this.panel.addChild(okLabel);
@@ -274,10 +252,7 @@ export class DivePreview {
     cIcon.x = GAME_WIDTH - 58;
     cIcon.y = y + 4;
     this.panel.addChild(cIcon);
-    const cLabel = new BitmapText({
-      text: 'CANCEL',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
+    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: 0xaaaaaa });
     cLabel.x = GAME_WIDTH - 40;
     cLabel.y = y + 5;
     this.panel.addChild(cLabel);

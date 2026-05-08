@@ -5,9 +5,11 @@
  * Border color matches item rarity. Pattern B (Prompt): read-only, C to close.
  */
 
-import { Container, Graphics, BitmapText } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
@@ -77,42 +79,47 @@ export class ItemDetailView {
     // Meta
     const rarityName = RARITY_DISPLAY_NAME[item.rarity] ?? item.rarity;
     const cycle = item.worldProgress?.cycle ?? 0;
-    const cycleTag = cycle > 0 ? ` Cycle:${cycle}` : '';
-    const clearTag = item.worldProgress?.cleared ? ' CLEARED' : '';
-    add(`${rarityName} Lv.${item.level}${cycleTag}${clearTag}`, 16, COL_DIM, 7);
+    const cycleTag = cycle > 0 ? ` ${t('ui.detail.cycle_tag', { n: cycle })}` : '';
+    const clearTag = item.worldProgress?.cleared ? ` ${t('ui.detail.cleared_tag')}` : '';
+    add(t('ui.detail.meta', { rarity: rarityName, level: item.level, cycleTag, clearTag }), 16, COL_DIM, 7);
 
     // Type
-    add(`${item.def.type} (Weapon)`, 16, COL_DIM, 7);
+    add(t('ui.detail.type_line', { type: item.def.type }), 16, COL_DIM, 7);
 
     addDiv();
 
     // Stats
-    add('STATS', 16, COL_DIM, 7);
+    add(t('ui.detail.stats'), 16, COL_DIM, 7);
     const base = getPlayerBaseStats(1); // TODO: pass actual player level
     const bonusAtk = calcInnocentBonus(item, 'atk' as InnocentStatKey);
     const bonusHp = calcInnocentBonus(item, 'hp' as InnocentStatKey);
-    add(`ATK: ${item.finalAtk}  (Base:${base.atk} + Equip:${item.finalAtk - base.atk - bonusAtk} + Inn:${bonusAtk})`, 24, COL_TEXT, 7);
+    add(t('ui.detail.atk_full', {
+      final: item.finalAtk,
+      base: base.atk,
+      equip: item.finalAtk - base.atk - bonusAtk,
+      inn: bonusAtk,
+    }), 24, COL_TEXT, 7);
     if (bonusHp > 0) {
-      add(`HP Bonus: +${bonusHp}  (from Innocents)`, 24, COL_POSITIVE, 7);
+      add(t('ui.detail.hp_bonus', { bonus: bonusHp }), 24, COL_POSITIVE, 7);
     }
 
     addDiv();
 
     // Innocents
     const maxSlots = { normal: 2, magic: 3, rare: 4, legendary: 6, ancient: 8 }[item.rarity] ?? 2;
-    add(`INNOCENTS (${item.innocents.length}/${maxSlots})`, 16, COL_DIM, 7);
+    add(t('ui.detail.innocents_header', { count: item.innocents.length, max: maxSlots }), 16, COL_DIM, 7);
     for (let i = 0; i < maxSlots; i++) {
       const inn = item.innocents[i];
       if (inn) {
         const isSubdued = (inn as any).subdued;
         const symbol = isSubdued ? '[O]' : '[!]';
         const color = isSubdued ? COL_SUBDUED : COL_WILD;
-        const state = isSubdued ? 'Subdued' : 'Wild';
+        const state = isSubdued ? t('ui.detail.subdued') : t('ui.detail.wild');
         const statName = (inn as any).stat ?? 'atk';
         const lv = (inn as any).level ?? 1;
-        add(`${symbol} ${statName.toUpperCase()} Boost Lv.${lv}  (${state})`, 24, color, 7);
+        add(t('ui.detail.innocent_row', { symbol, stat: statName.toUpperCase(), lv, state }), 24, color, 7);
       } else {
-        add('[ ] Empty', 24, COL_LOCKED, 7);
+        add(t('ui.detail.empty_slot'), 24, COL_LOCKED, 7);
       }
     }
 
@@ -122,21 +129,21 @@ export class ItemDetailView {
     const strata = STRATA_BY_RARITY[item.rarity];
     const totalStrata = strata?.strata.length ?? 0;
     const deepest = item.worldProgress?.deepestUnlocked ?? 0;
-    const bossNames = ['Item General', 'Item King', 'Item God', 'Item Great God', 'The Abyss'];
-    add(`MEMORY STRATA (${deepest}/${totalStrata})`, 16, COL_DIM, 7);
+    const bossKeys = ['boss.item_general', 'boss.item_king', 'boss.item_god', 'boss.item_great_god', 'boss.the_abyss'];
+    add(t('ui.detail.strata_header', { deepest, total: totalStrata }), 16, COL_DIM, 7);
     for (let s = 0; s < totalStrata; s++) {
       const cleared = s < deepest;
       const current = s === deepest;
       const symbol = cleared ? '[V]' : current ? '[>]' : '[ ]';
       const color = cleared ? COL_SUBDUED : current ? COL_CURRENT : COL_LOCKED;
-      const name = bossNames[s] ?? `Stratum ${s + 1}`;
-      add(`${symbol} Stratum ${s + 1} - ${name}`, 24, color, 7);
+      const name = bossKeys[s] ? t(bossKeys[s]) : t('boss.fallback_stratum', { n: s + 1 });
+      add(t('ui.detail.stratum_row', { symbol, n: s + 1, boss: name }), 24, color, 7);
     }
 
     addDiv();
 
     // Action hint
-    add(`[${actionKey(GameAction.ATTACK)}] Close`, Math.floor(PANEL_W / 2) - 30, 0x00ced1, 8);
+    add(t('ui.detail.close_hint', { key: actionKey(GameAction.ATTACK) }), Math.floor(PANEL_W / 2) - 30, 0x00ced1, 8);
 
     // Calculate panel height, then build overlay + 9-slice panel
     const panelH = Math.max(PANEL_MIN_H, y + 12);
@@ -161,13 +168,10 @@ export class ItemDetailView {
         this.contentContainer.addChild(g);
         continue;
       }
-      const t = new BitmapText({
-        text: line.text,
-        style: { fontFamily: PIXEL_FONT, fontSize: line.size, fill: line.color },
-      });
-      t.x = line.x;
-      t.y = line.y;
-      this.contentContainer.addChild(t);
+      const node = createUiText(line.text, { fontSize: line.size, fill: line.color });
+      node.x = line.x;
+      node.y = line.y;
+      this.contentContainer.addChild(node);
     }
   }
 }
