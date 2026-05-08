@@ -223,7 +223,15 @@ export class ReturnResult {
   }
 
   private addText(text: string, x: number, y: number, color: number, fontSize: number): BitmapText | Text {
-    const node = createUiText(text, { fontSize, fill: color });
+    // wordWrap with the remaining panel width as budget — KO build's wider
+    // Noto Sans KR latin metrics can otherwise spill long stat / boss lines
+    // past the right border. EN build text usually fits without wrapping.
+    const node = createUiText(text, {
+      fontSize,
+      fill: color,
+      wordWrap: true,
+      wordWrapWidth: Math.max(60, PANEL_W - x - 12),
+    });
     node.x = x; node.y = y;
     this.panel.addChild(node);
     return node;

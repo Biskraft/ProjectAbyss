@@ -189,7 +189,7 @@ export class SaveLoadUI {
         delete: actionKey(GameAction.DASH),
         back: actionKey(GameAction.MENU),
       }),
-      { fontSize: 6, fill: COL_DIM },
+      { fontSize: 6, fill: COL_DIM, wordWrap: true, wordWrapWidth: PANEL_W - 24 },
     );
     hint.x = 12; hint.y = PANEL_H - 16;
     this.panel.addChild(hint);
@@ -240,7 +240,12 @@ export class SaveLoadUI {
       { text: slot.savedAt ?? '', color: 0x666688, size: 5, dy: 40 },
     ];
     for (const line of info) {
-      const node = createUiText(line.text, { fontSize: line.size, fill: line.color });
+      const node = createUiText(line.text, {
+        fontSize: line.size,
+        fill: line.color,
+        wordWrap: true,
+        wordWrapWidth: SLOT_W - 12,
+      });
       node.x = x + 6; node.y = y + line.dy;
       this.panel.addChild(node);
     }
@@ -267,11 +272,15 @@ export class SaveLoadUI {
       ? t('ui.save.delete_confirm_sub_undone')
       : t('ui.save.delete_confirm_sub_perm');
 
-    const t1 = createUiText(msg, { fontSize: 8, fill: COL_DANGER });
+    const t1 = createUiText(msg, {
+      fontSize: 8, fill: COL_DANGER, wordWrap: true, wordWrapWidth: cw - 24,
+    });
     t1.x = Math.floor((cw - t1.width) / 2); t1.y = 10;
     this.deletePanel.addChild(t1);
 
-    const t2 = createUiText(sub, { fontSize: 6, fill: COL_DIM });
+    const t2 = createUiText(sub, {
+      fontSize: 6, fill: COL_DIM, wordWrap: true, wordWrapWidth: cw - 24,
+    });
     t2.x = Math.floor((cw - t2.width) / 2); t2.y = 24;
     this.deletePanel.addChild(t2);
 

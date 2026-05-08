@@ -182,11 +182,13 @@ export class DivePreview {
     ];
     let ly = 104;
     for (const line of lines) {
-      const node = createUiText(line.text, { fontSize: 8, fill: line.color });
+      const node = createUiText(line.text, {
+        fontSize: 8, fill: line.color, wordWrap: true, wordWrapWidth: W - 24,
+      });
       node.x = 12;
       node.y = ly;
       this.panel.addChild(node);
-      ly += 12;
+      ly += Math.max(12, Math.ceil(node.height) + 2);
     }
 
     // Prompts row.
@@ -231,6 +233,9 @@ export class DivePreview {
     this.panel.addChild(thumb.container);
 
     const strata = STRATA_BY_RARITY[item.rarity] ?? 2;
+    // Compact strip is one line; wordWrap kept off so it stays single-line
+    // and the badge/keys on the right don't get displaced. KO names long
+    // enough to overflow are vanishingly rare with BOOST=0.
     const text = createUiText(
       t('ui.dive.compact_strip', { name: item.def.name, strata }),
       { fontSize: 8, fill: 0xffffff },

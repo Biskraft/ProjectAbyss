@@ -283,7 +283,12 @@ export class StratumClearOverlay {
     const str = delta > 0
       ? t('ui.stratum.innocents_gain', { delta })
       : t('ui.stratum.innocents_total', { total: d.afterInnocents });
-    const text = createUiText(str, { fontSize: INNOCENT_FONT_SIZE, fill: TEXT_ACCENT });
+    const text = createUiText(str, {
+      fontSize: INNOCENT_FONT_SIZE,
+      fill: TEXT_ACCENT,
+      wordWrap: true,
+      wordWrapWidth: GAME_WIDTH - 40,
+    });
     text.x = Math.floor((GAME_WIDTH - text.width) / 2);
     text.y = INNOCENT_Y;
     return text;

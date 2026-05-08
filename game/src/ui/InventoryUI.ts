@@ -646,8 +646,14 @@ export class InventoryUI {
     const isEquipped = equipped?.uid === item.uid;
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
 
-    // Item name
-    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rarityColor });
+    // Item name — wordWrap to detail panel width (minus side padding).
+    const DETAIL_WRAP_W = PANEL_W - PADDING * 2;
+    const nameText = createUiText(item.def.name, {
+      fontSize: 12,
+      fill: rarityColor,
+      wordWrap: true,
+      wordWrapWidth: DETAIL_WRAP_W,
+    });
     nameText.x = PADDING;
     nameText.y = y;
     this.detailArea.addChild(nameText);
@@ -671,7 +677,7 @@ export class InventoryUI {
       const deltaStr = deltaAtk !== 0 ? ` (${deltaAtk > 0 ? '+' : ''}${deltaAtk})` : '';
       const atkLine = createUiText(
         t('ui.inventory.atk_compare', { atk: item.finalAtk, delta: deltaStr }),
-        { fontSize: 10, fill: deltaColor },
+        { fontSize: 10, fill: deltaColor, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
       );
       atkLine.x = PADDING;
       atkLine.y = y;
@@ -679,7 +685,7 @@ export class InventoryUI {
     } else {
       const atkLine = createUiText(
         t('ui.inventory.atk_plain', { atk: item.finalAtk }),
-        { fontSize: 10, fill: COL_TEXT },
+        { fontSize: 10, fill: COL_TEXT, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
       );
       atkLine.x = PADDING;
       atkLine.y = y;
@@ -700,7 +706,7 @@ export class InventoryUI {
         cleared: clearedStrata,
         total: totalStrata,
       }),
-      { fontSize: 8, fill: COL_DIM },
+      { fontSize: 8, fill: COL_DIM, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
     );
     infoLine.x = PADDING;
     infoLine.y = y;
@@ -721,7 +727,12 @@ export class InventoryUI {
         ? t('ui.inventory.hint_close', { esc: ESC })
         : t('ui.inventory.hint_equip', { atk: ATK, jmp: JMP, esc: ESC });
     }
-    const hint = createUiText(hintText, { fontSize: 8, fill: COL_DIM });
+    const hint = createUiText(hintText, {
+      fontSize: 8,
+      fill: COL_DIM,
+      wordWrap: true,
+      wordWrapWidth: DETAIL_WRAP_W,
+    });
     hint.x = PADDING;
     hint.y = y;
     this.detailArea.addChild(hint);

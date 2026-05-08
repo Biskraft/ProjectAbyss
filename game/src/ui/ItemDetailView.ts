@@ -168,7 +168,17 @@ export class ItemDetailView {
         this.contentContainer.addChild(g);
         continue;
       }
-      const node = createUiText(line.text, { fontSize: line.size, fill: line.color });
+      // Width budget — panel width minus the column inset (line.x) and a
+      // 12-px right gutter. KO Noto Sans KR is wider per-char than the EN
+      // BitmapText pixel atlas, so long boss / state lines can overflow at
+      // their authored fixed indents; wordWrap absorbs the difference and
+      // keeps layout inside the panel.
+      const node = createUiText(line.text, {
+        fontSize: line.size,
+        fill: line.color,
+        wordWrap: true,
+        wordWrapWidth: Math.max(60, PANEL_W - line.x - 12),
+      });
       node.x = line.x;
       node.y = line.y;
       this.contentContainer.addChild(node);

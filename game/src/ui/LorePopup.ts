@@ -202,8 +202,12 @@ export class LorePopup {
     image.container.y = ICON_Y;
     this.panel.addChild(image.container);
 
-    // 이름 (12px)
-    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rColor });
+    // 이름 (12px) — wordWrap to right edge so long KO names don't bleed past
+    // the panel border.
+    const HEADER_WRAP_W = W - TEXT_X - 12;
+    const nameText = createUiText(item.def.name, {
+      fontSize: 12, fill: rColor, wordWrap: true, wordWrapWidth: HEADER_WRAP_W,
+    });
     nameText.x = TEXT_X;
     nameText.y = 14;
     this.panel.addChild(nameText);

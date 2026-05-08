@@ -361,12 +361,16 @@ export class PauseMenu {
     bg.rect(0, 0, cw, ch).stroke({ color: COL_DANGER, width: 1 });
     this.confirmPanel.addChild(bg);
 
-    const warning = createUiText(t('ui.pause.quit_confirm_title'), { fontSize: 8, fill: COL_WARNING });
+    const warning = createUiText(t('ui.pause.quit_confirm_title'), {
+      fontSize: 8, fill: COL_WARNING, wordWrap: true, wordWrapWidth: cw - 20,
+    });
     warning.x = Math.floor((cw - warning.width) / 2);
     warning.y = 10;
     this.confirmPanel.addChild(warning);
 
-    const sub = createUiText(t('ui.pause.quit_confirm_warn'), { fontSize: 8, fill: COL_DIM });
+    const sub = createUiText(t('ui.pause.quit_confirm_warn'), {
+      fontSize: 8, fill: COL_DIM, wordWrap: true, wordWrapWidth: cw - 20,
+    });
     sub.x = Math.floor((cw - sub.width) / 2);
     sub.y = 24;
     this.confirmPanel.addChild(sub);

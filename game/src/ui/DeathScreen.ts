@@ -106,11 +106,16 @@ export class DeathScreen {
 
     let y = 44;
     for (const line of lines) {
-      const node = createUiText(line, { fontSize: FONT_HINT, fill: TEXT_SECONDARY });
+      const node = createUiText(line, {
+        fontSize: FONT_HINT,
+        fill: TEXT_SECONDARY,
+        wordWrap: true,
+        wordWrapWidth: PANEL_W - 24 - 16,
+      });
       node.x = 24;
       node.y = y;
       this.panel.addChild(node);
-      y += 14;
+      y += Math.max(14, Math.ceil(node.height) + 2);
     }
 
     // Divider 2
