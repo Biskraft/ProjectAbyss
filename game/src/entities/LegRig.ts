@@ -106,9 +106,15 @@ interface LegSprites {
   knee: Sprite;
   lower: Sprite;
   foot: Sprite;
-  /** Constant per-leg scale derived from m.upperLen / DEFAULT_UPPER_LEN. */
-  upperScaleY: number;
-  lowerScaleY: number;
+  /**
+   * Sprite source heights (= slice frame heights). Used as the divisor when
+   * computing limb scale.y so the rendered limb height equals the IK-solved
+   * distance regardless of how tall the artist drew the slice. Avoids the
+   * 4-8 px detachments that creep in when the slice frame doesn't exactly
+   * match DEFAULT_*_LEN.
+   */
+  upperSourceH: number;
+  lowerSourceH: number;
 }
 
 export class LegRig {
@@ -191,20 +197,22 @@ export class LegRig {
   }
 
   private buildSprites(): void {
-    for (const m of this.mounts) {
-      const upperScaleY = m.upperLen / DEFAULT_UPPER_LEN;
-      const lowerScaleY = m.lowerLen / DEFAULT_LOWER_LEN;
+    const upperPart = getLegPart('upper_limb');
+    const lowerPart = getLegPart('lower_limb');
+    const upperSourceH = upperPart.rect.height;
+    const lowerSourceH = lowerPart.rect.height;
 
+    for (const m of this.mounts) {
       const shoulder = this.makeSprite('shoulder');
       const upper = this.makeSprite('upper_limb');
       const knee = this.makeSprite('knee');
       const lower = this.makeSprite('lower_limb');
       const foot = this.makeSprite('foot');
 
-      // Per-leg constant scales (length variations baked once). Frame-to-frame
-      // we only mutate position + rotation.
-      upper.scale.set(1, upperScaleY);
-      lower.scale.set(1, lowerScaleY);
+      // Initial scale — replaced on first update tick. Uses source height so
+      // the pose looks right even before any motion accumulates.
+      upper.scale.set(1, m.upperLen / upperSourceH);
+      lower.scale.set(1, m.lowerLen / lowerSourceH);
 
       // Z-order: limb shafts and foot in the back, joint pads on top so the
       // joint art covers the limb's top cap seam.
@@ -218,7 +226,7 @@ export class LegRig {
       const target = m.forwardRender ? this.frontContainer : this.container;
       target.addChild(legContainer);
 
-      this.legs.push({ shoulder, upper, knee, lower, foot, upperScaleY, lowerScaleY });
+      this.legs.push({ shoulder, upper, knee, lower, foot, upperSourceH, lowerSourceH });
     }
   }
 
@@ -357,13 +365,13 @@ export class LegRig {
 
       sprites.upper.position.set(sx, sy);
       sprites.upper.rotation = Math.atan2(kx - sx, ky - sy);
-      sprites.upper.scale.set(legScale, upperActualLen / DEFAULT_UPPER_LEN);
+      sprites.upper.scale.set(legScale, upperActualLen / sprites.upperSourceH);
 
       sprites.knee.position.set(kx, ky);
 
       sprites.lower.position.set(kx, ky);
       sprites.lower.rotation = Math.atan2(ankleX - kx, ankleY - ky);
-      sprites.lower.scale.set(legScale, lowerActualLen / DEFAULT_LOWER_LEN);
+      sprites.lower.scale.set(legScale, lowerActualLen / sprites.lowerSourceH);
 
       sprites.foot.position.set(ankleX, ankleY);
 
