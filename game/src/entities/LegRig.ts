@@ -337,30 +337,39 @@ export class LegRig {
       // PIXI rotation is clockwise from +X. With anchor (0.5, 0) the sprite's
       // default "down" direction is +Y, so atan2(dx, dy) maps that down vector
       // to the IK chain segment direction.
-      sprites.shoulder.position.set(sx, sy);
-
+      //
       // Per-frame scale.y is rendered-distance / sprite-source-height.
       // We use the *actual* distance the sprite has to span — not the IK
       // constraint length — because the lower limb's IK target is the foot
       // pivot but the rendered endpoint is the ankle (which sits
       // FOOT_THICKNESS above the foot). Without this the lower sprite
-      // detaches from the ankle / foot brick. Upper limb's rendered length
-      // equals upperLen exactly (IK enforces that), so scaling either way
-      // is fine — we recompute it for symmetry.
+      // detaches from the ankle / foot brick.
       const upperActualLen = Math.hypot(kx - sx, ky - sy);
       const lowerActualLen = Math.hypot(ankleX - kx, ankleY - ky);
 
+      // Joint pads + foot brick + limb width all scale uniformly with the
+      // leg's overall size (m.standDist / DEFAULT_STAND_DIST) so a short
+      // leg doesn't get oversized 96×96 joints visually swamping its
+      // narrow limb. Limb height (scale.y) follows the rendered distance
+      // independently — that's what keeps endpoints attached.
+      const legScale = m.standDist / DEFAULT_STAND_DIST;
+
+      sprites.shoulder.position.set(sx, sy);
+      sprites.shoulder.scale.set(legScale);
+
       sprites.upper.position.set(sx, sy);
       sprites.upper.rotation = Math.atan2(kx - sx, ky - sy);
-      sprites.upper.scale.set(1, upperActualLen / DEFAULT_UPPER_LEN);
+      sprites.upper.scale.set(legScale, upperActualLen / DEFAULT_UPPER_LEN);
 
       sprites.knee.position.set(kx, ky);
+      sprites.knee.scale.set(legScale);
 
       sprites.lower.position.set(kx, ky);
       sprites.lower.rotation = Math.atan2(ankleX - kx, ankleY - ky);
-      sprites.lower.scale.set(1, lowerActualLen / DEFAULT_LOWER_LEN);
+      sprites.lower.scale.set(legScale, lowerActualLen / DEFAULT_LOWER_LEN);
 
       sprites.foot.position.set(ankleX, ankleY);
+      sprites.foot.scale.set(legScale);
 
       if (debug) {
         console.log(
