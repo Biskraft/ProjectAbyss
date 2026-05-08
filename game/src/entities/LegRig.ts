@@ -387,7 +387,13 @@ export class LegRig {
       sprites.lower.rotation = Math.atan2(kx - ankleX, ankleY - ky);
       sprites.lower.scale.set(mirrorX, lowerActualLen / sprites.lowerSourceH);
 
+      // Foot follows the lower limb's rotation so the brick reads as a
+      // natural extension of the limb instead of hinging off it at a fixed
+      // axis-aligned angle. With this the foot's heel/toe axis stays
+      // consistent with the leg direction at every gait phase, including
+      // mirrored legs where IK already flipped the stride.
       sprites.foot.position.set(ankleX, ankleY);
+      sprites.foot.rotation = sprites.lower.rotation;
       sprites.foot.scale.set(legScale, legScale);
     }
   }
