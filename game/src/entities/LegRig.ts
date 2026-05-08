@@ -374,10 +374,13 @@ export class LegRig {
       if (debug) {
         console.log(
           `[LegRig#${i}] mount=(${m.x.toFixed(0)},${m.y.toFixed(0)}) angle=${(m.angle * 180 / Math.PI).toFixed(0)}° ` +
-          `standDist=${m.standDist.toFixed(0)} upperLen=${m.upperLen.toFixed(0)} lowerLen=${m.lowerLen.toFixed(0)}\n` +
+          `standDist=${m.standDist.toFixed(0)} legScale=${legScale.toFixed(3)} upperLen=${m.upperLen.toFixed(0)} lowerLen=${m.lowerLen.toFixed(0)}\n` +
           `  shoulder=(${sx.toFixed(0)},${sy.toFixed(0)}) knee=(${kx.toFixed(0)},${ky.toFixed(0)}) ankle=(${ankleX.toFixed(0)},${ankleY.toFixed(0)}) foot=(${fx.toFixed(0)},${fy.toFixed(0)})\n` +
-          `  upperRot=${(sprites.upper.rotation * 180 / Math.PI).toFixed(1)}° upperScaleY=${sprites.upper.scale.y.toFixed(3)} ` +
-          `lowerRot=${(sprites.lower.rotation * 180 / Math.PI).toFixed(1)}° lowerScaleY=${sprites.lower.scale.y.toFixed(3)}\n` +
+          `  upperRot=${(sprites.upper.rotation * 180 / Math.PI).toFixed(1)}° upperScaleX=${sprites.upper.scale.x.toFixed(3)} upperScaleY=${sprites.upper.scale.y.toFixed(3)} ` +
+          `lowerRot=${(sprites.lower.rotation * 180 / Math.PI).toFixed(1)}° lowerScaleX=${sprites.lower.scale.x.toFixed(3)} lowerScaleY=${sprites.lower.scale.y.toFixed(3)}\n` +
+          `  shoulderScale=(${sprites.shoulder.scale.x.toFixed(3)},${sprites.shoulder.scale.y.toFixed(3)}) ` +
+          `kneeScale=(${sprites.knee.scale.x.toFixed(3)},${sprites.knee.scale.y.toFixed(3)}) ` +
+          `footScale=(${sprites.foot.scale.x.toFixed(3)},${sprites.foot.scale.y.toFixed(3)})\n` +
           `  spriteSizes: shoulder=${sprites.shoulder.width.toFixed(0)}x${sprites.shoulder.height.toFixed(0)} ` +
           `upper=${sprites.upper.width.toFixed(0)}x${sprites.upper.height.toFixed(0)} ` +
           `lower=${sprites.lower.width.toFixed(0)}x${sprites.lower.height.toFixed(0)} ` +
