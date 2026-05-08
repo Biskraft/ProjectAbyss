@@ -383,7 +383,10 @@ export class LegRig {
       sprites.lower.scale.set(mirrorX, lowerActualLen / sprites.lowerSourceH);
 
       sprites.foot.position.set(ankleX, ankleY);
-      sprites.foot.scale.set(mirrorX, legScale);
+      // Foot mirrors once more on top of the leg-wide mirror — keeps the
+      // toe / heel direction opposite to the rest of the chain (Victor's
+      // asymmetric foot art).
+      sprites.foot.scale.set(-mirrorX, legScale);
     }
   }
 
