@@ -52,8 +52,6 @@ export interface LegPartFrame {
 interface AseSliceKey {
   frame: number;
   bounds: { x: number; y: number; w: number; h: number };
-  /** Optional pivot point in slice-local pixels (Aseprite Slice → Pivot). */
-  pivot?: { x: number; y: number };
 }
 
 interface AseSlice {
@@ -171,24 +169,17 @@ async function applyAtlas(pngPath: string, jsonPath: string): Promise<void> {
       console.warn(`[builderLegAtlas] missing slice "${name}" in atlas JSON — skipping.`);
       continue;
     }
-    const key = slice.keys[0];
-    const b = key.bounds;
+    const b = slice.keys[0].bounds;
     const rect = new Rectangle(b.x, b.y, b.w, b.h);
     const isJoint = name === 'shoulder' || name === 'knee';
 
-    // Slice pivot is authored in slice-local pixels via Aseprite (Slice
-    // Properties → Pivot, or our Lua bootstrapper). Convert to a 0..1
-    // anchor that PIXI sprites consume. Falls back to geometric center for
-    // joints / top-center for limbs+foot when the slice has no pivot.
-    let pivotX: number;
-    let pivotY: number;
-    if (key.pivot) {
-      pivotX = key.pivot.x / b.w;
-      pivotY = key.pivot.y / b.h;
-    } else {
-      pivotX = 0.5;
-      pivotY = isJoint ? 0.5 : 0;
-    }
+    // Anchor convention — art must be centered inside its slice frame:
+    //   joints (shoulder, knee)  → anchor (0.5, 0.5)
+    //   limbs / foot             → anchor (0.5, 0)  (top-center attach)
+    // No per-slice pivot lookup; if the visible art isn't centered in the
+    // frame, recenter it in Aseprite — that's the convention.
+    const pivotX = 0.5;
+    const pivotY = isJoint ? 0.5 : 0;
 
     const newTex = new Texture({ source: sheet.source, frame: rect });
     const existing = cachedParts[name];
