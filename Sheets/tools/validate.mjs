@@ -28,6 +28,7 @@ const ATLAS_DIR = resolve(ROOT, 'game', 'public', 'assets', 'atlas');
 const LDTK_PATH = resolve(ROOT, 'game', 'public', 'assets', 'World_ProjectAbyss.ldtk');
 const LOCALIZATION_CSV = resolve(ROOT, 'Sheets', 'Content_Localization.csv');
 const ITEM_MASTER_CSV = resolve(ROOT, 'Sheets', 'Content_Item_Master.csv');
+const WEAPON_LIST_CSV = resolve(ROOT, 'Sheets', 'Content_Stats_Weapon_List.csv');
 const WEAPON_LORE_CSV = resolve(ROOT, 'Sheets', 'Content_Stats_Weapon_Lore.csv');
 const MEMORY_SHARDS_CSV = resolve(ROOT, 'Sheets', 'Content_MemoryShards.csv');
 
@@ -219,6 +220,7 @@ if (!existsSync(LOCALIZATION_CSV)) {
     }
     const refs = [
       ...collectKeysFromCsv(ITEM_MASTER_CSV, ['NameKey', 'DescKey']),
+      ...collectKeysFromCsv(WEAPON_LIST_CSV, ['NameKey']),
       ...collectKeysFromCsv(WEAPON_LORE_CSV, ['NameKey', 'DescKey']),
       ...collectKeysFromCsv(MEMORY_SHARDS_CSV, ['NameKey', 'DescKey']),
     ];
