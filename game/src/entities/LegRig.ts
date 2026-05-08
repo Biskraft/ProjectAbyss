@@ -353,12 +353,17 @@ export class LegRig {
       const lowerActualLen = Math.hypot(ankleX - kx, ankleY - ky);
       const legScale = 1;
 
-      // m.mirror flips every sprite horizontally about its anchor so legs
-      // on the opposite side of the body show the asymmetric art reflected
-      // (matches the gait stride flip already done by the IK above). PIXI
+      // m.mirror flips joint + limb sprites horizontally so the asymmetric
+      // armor art reflects for legs on the opposite side of the body
+      // (matches the gait stride flip already done by IK above). PIXI
       // applies scale before rotation, so a negative scale.x doesn't
       // disturb the rotation / endpoint math — it only mirrors the texture
       // pixel content around the anchor's vertical axis.
+      //
+      // Foot is intentionally NOT mirrored: the foot brick's heel/toe
+      // axis encodes walking direction, which is the same for every leg
+      // of a forward-walking body. Flipping it for mirrored legs swaps
+      // toe and heel and leaves the foot pointing backward.
       const mirrorX = m.mirror ? -legScale : legScale;
 
       sprites.shoulder.position.set(sx, sy);
@@ -383,10 +388,7 @@ export class LegRig {
       sprites.lower.scale.set(mirrorX, lowerActualLen / sprites.lowerSourceH);
 
       sprites.foot.position.set(ankleX, ankleY);
-      // Foot mirrors once more on top of the leg-wide mirror — keeps the
-      // toe / heel direction opposite to the rest of the chain (Victor's
-      // asymmetric foot art).
-      sprites.foot.scale.set(-mirrorX, legScale);
+      sprites.foot.scale.set(legScale, legScale);
     }
   }
 
