@@ -5,8 +5,10 @@
  * Phases: rumble -> fade -> title display -> key wait -> scene transition.
  */
 
-import { Graphics, BitmapText } from 'pixi.js';
+import { Graphics, BitmapText, Text } from 'pixi.js';
 import { PIXEL_FONT } from '@ui/fonts';
+import { createUiText } from '@ui/factories';
+import { t } from '@i18n';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import type { InputManager } from '@core/InputManager';
 import type { Camera } from '@core/Camera';
@@ -25,9 +27,9 @@ export class EndingSequence {
   private phase: EndingPhase = 'idle';
   private timer = 0;
   private overlay: Graphics | null = null;
-  private titleText: BitmapText | null = null;
-  private tbcText: BitmapText | null = null;
-  private hintText: BitmapText | null = null;
+  private titleText: BitmapText | Text | null = null;
+  private tbcText: BitmapText | Text | null = null;
+  private hintText: BitmapText | Text | null = null;
 
   /** True while ending sequence is running */
   get isActive(): boolean { return this.phase !== 'idle'; }
@@ -92,9 +94,8 @@ export class EndingSequence {
         this.phase = 'title';
         this.timer = 0;
 
-        this.titleText = new BitmapText({
-          text: 'ECHORIS',
-          style: { fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd },
+        this.titleText = createUiText(t('ui.ending.echoris'), {
+          fontFamily: PIXEL_FONT, fontSize: 24, fill: 0xdddddd,
         });
         this.titleText.anchor.set(0.5);
         this.titleText.x = GAME_WIDTH / 2;
@@ -102,9 +103,8 @@ export class EndingSequence {
         this.titleText.alpha = 0;
         this.uiContainer.addChild(this.titleText);
 
-        this.tbcText = new BitmapText({
-          text: 'To be continued...',
-          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+        this.tbcText = createUiText(t('ui.ending.to_be_continued'), {
+          fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888,
         });
         this.tbcText.anchor.set(0.5);
         this.tbcText.x = GAME_WIDTH / 2;
@@ -123,9 +123,8 @@ export class EndingSequence {
       }
 
       if (this.timer >= 2500 && !this.hintText) {
-        this.hintText = new BitmapText({
-          text: 'PRESS ANY KEY',
-          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666 },
+        this.hintText = createUiText(t('ui.ending.press_any'), {
+          fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x666666,
         });
         this.hintText.anchor.set(0.5);
         this.hintText.x = GAME_WIDTH / 2;

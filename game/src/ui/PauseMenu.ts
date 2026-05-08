@@ -50,10 +50,10 @@ const MENU_ITEMS: MenuItem[] = [
 
 // 키보드 preset 카드 — `Documents/UI` (game/docs/ui-components.html line 1389) 의
 // "Preset Selection (Phase 1)" 카드 스펙을 따라 라벨 + 한 줄 키 미리보기.
-const PRESETS_DATA: { name: PresetName; label: string; desc: string }[] = [
-  { name: 'classic', label: 'CLASSIC', desc: 'ARROW MOVE  Z JUMP  X DASH  C ATTACK' },
-  { name: 'modern',  label: 'MODERN',  desc: 'ARROW MOVE  SPC JUMP  SH DASH  Z ATTACK' },
-  { name: 'wasd',    label: 'WASD',    desc: 'WASD MOVE  SPC JUMP  SH DASH  J ATTACK' },
+const PRESETS_DATA: { name: PresetName; labelKey: string; descKey: string }[] = [
+  { name: 'classic', labelKey: 'ui.pause.preset_classic_label', descKey: 'ui.pause.preset_classic_desc' },
+  { name: 'modern',  labelKey: 'ui.pause.preset_modern_label',  descKey: 'ui.pause.preset_modern_desc' },
+  { name: 'wasd',    labelKey: 'ui.pause.preset_wasd_label',    descKey: 'ui.pause.preset_wasd_desc' },
 ];
 
 const PRESET_PANEL_W = 280;
@@ -510,9 +510,8 @@ export class PauseMenu {
       panel.addChild(chevron);
 
       // Label (CLASSIC / MODERN / WASD)
-      const label = new BitmapText({
-        text: p.label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: isSel ? COL_TEXT : COL_DIM },
+      const label = createUiText(t(p.labelKey), {
+        fontFamily: PIXEL_FONT, fontSize: 10, fill: isSel ? COL_TEXT : COL_DIM,
       });
       label.x = PRESET_ROW_PAD_X + 18;
       label.y = rowY + 4;
@@ -527,9 +526,8 @@ export class PauseMenu {
       }
 
       // Description (한 줄 키 미리보기)
-      const desc = new BitmapText({
-        text: p.desc,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? COL_DIM : 0x666677 },
+      const desc = createUiText(t(p.descKey), {
+        fontFamily: PIXEL_FONT, fontSize: 8, fill: isSel ? COL_DIM : 0x666677,
       });
       desc.x = PRESET_ROW_PAD_X + 18;
       desc.y = rowY + 16;
@@ -537,9 +535,8 @@ export class PauseMenu {
     }
 
     // Bottom hint
-    const hint = new BitmapText({
-      text: '[↑↓] NAVIGATE  [C] APPLY  [ESC] BACK',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM },
+    const hint = createUiText(t('ui.pause.preset_hint'), {
+      fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DIM,
     });
     hint.x = Math.floor((cw - hint.width) / 2);
     hint.y = ch - 12;

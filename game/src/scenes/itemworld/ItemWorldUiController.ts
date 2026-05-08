@@ -1,6 +1,8 @@
-import { BitmapText, Container, Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { create9SlicePanel } from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
+import { createUiText } from '@ui/factories';
+import { t } from '@i18n';
 import type { UISkin } from '@ui/UISkin';
 import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
 import { StratumClearOverlay, type StratumClearData } from '@ui/StratumClearOverlay';
@@ -148,18 +150,18 @@ export class ItemWorldUiController {
       container.addChild(bg);
     }
 
-    const title = new BitmapText({
-      text: autoConfirmed ? 'STRATUM CLEARED' : 'PROGRESS BANKED',
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xffd35a },
-    });
+    const title = createUiText(
+      autoConfirmed ? t('ui.iw.stratum_cleared') : t('ui.iw.progress_banked'),
+      { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xffd35a },
+    );
     title.x = Math.floor((W - title.width) / 2);
     title.y = 12;
     container.addChild(title);
 
     const rows: Array<[string, number, number]> = [
-      ['ATK', snapshot.beforeAtk, snapshot.afterAtk],
-      ['Item Lv', snapshot.beforeLevel, snapshot.afterLevel],
-      ['Innocents', snapshot.beforeInnocents, snapshot.afterInnocents],
+      [t('ui.iw.row_atk'), snapshot.beforeAtk, snapshot.afterAtk],
+      [t('ui.iw.row_item_lv'), snapshot.beforeLevel, snapshot.afterLevel],
+      [t('ui.iw.row_innocents'), snapshot.beforeInnocents, snapshot.afterInnocents],
     ];
 
     let ry = 48;
@@ -168,34 +170,33 @@ export class ItemWorldUiController {
       const hasDelta = delta !== 0;
       const deltaColor = delta > 0 ? 0x88ff88 : delta < 0 ? 0xff8888 : 0x888899;
 
-      const lbl = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xbbbbcc } });
+      const lbl = createUiText(label, { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xbbbbcc });
       lbl.x = 20;
       lbl.y = ry;
       container.addChild(lbl);
 
-      const bef = new BitmapText({ text: String(before), style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
+      const bef = createUiText(String(before), { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 });
       bef.x = 120;
       bef.y = ry;
       container.addChild(bef);
 
-      const arrow = new BitmapText({ text: '→', style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 } });
+      const arrow = createUiText('→', { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 });
       arrow.x = 160;
       arrow.y = ry;
       container.addChild(arrow);
 
-      const aft = new BitmapText({
-        text: String(after),
-        style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? 0xffffff : 0x888899 },
+      const aft = createUiText(String(after), {
+        fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? 0xffffff : 0x888899,
       });
       aft.x = 196;
       aft.y = ry;
       container.addChild(aft);
 
       if (hasDelta) {
-        const d = new BitmapText({
-          text: `${delta > 0 ? '+' : ''}${delta}`,
-          style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: deltaColor },
-        });
+        const d = createUiText(
+          `${delta > 0 ? '+' : ''}${delta}`,
+          { fontFamily: PIXEL_FONT, fontSize: 16, fill: deltaColor },
+        );
         d.x = 244;
         d.y = ry;
         container.addChild(d);
@@ -204,10 +205,10 @@ export class ItemWorldUiController {
       ry += 28;
     }
 
-    const hint = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}] CONTINUE`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
-    });
+    const hint = createUiText(
+      t('ui.iw.continue_hint', { key: actionKey(GameAction.ATTACK) }),
+      { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
+    );
     hint.x = Math.floor((W - hint.width) / 2);
     hint.y = H - 28;
     container.addChild(hint);
@@ -259,31 +260,45 @@ export class ItemWorldUiController {
       panel.addChild(bg);
     }
 
-    const title = new BitmapText({ text: 'Leave Item World?', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
+    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff });
     title.x = 12;
     title.y = 6;
     panel.addChild(title);
 
-    const expInfo = new BitmapText({
-      text: `${options.itemName} Lv${options.itemLevel}  EXP: ${options.itemExp}/${options.expPerLevel}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
-    });
+    const expInfo = createUiText(
+      t('ui.iw.leave_summary', {
+        name: options.itemName,
+        level: options.itemLevel,
+        exp: options.itemExp,
+        maxExp: options.expPerLevel,
+      }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
+    );
     expInfo.x = 12;
     expInfo.y = 20;
     panel.addChild(expInfo);
 
-    const floorInfo = new BitmapText({
-      text: `Rooms ${options.roomsCleared}/${options.totalRooms}  +${options.earnedExp} EXP  +${options.earnedGold} G`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
+    const floorInfo = createUiText(
+      t('ui.iw.leave_rooms_summary', {
+        cleared: options.roomsCleared,
+        total: options.totalRooms,
+        exp: options.earnedExp,
+        gold: options.earnedGold,
+      }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+    );
     floorInfo.x = 12;
     floorInfo.y = 33;
     panel.addChild(floorInfo);
 
-    const controls = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}] Yes   [${actionKey(GameAction.JUMP)}/${actionKey(GameAction.DASH)}] No`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    });
+    const controls = createUiText(
+      t('ui.iw.leave_yes_no', {
+        atk: actionKey(GameAction.ATTACK),
+        jump: actionKey(GameAction.JUMP),
+        dash: actionKey(GameAction.DASH),
+      }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+    );
     controls.x = 12;
     controls.y = 48;
     panel.addChild(controls);
@@ -320,34 +335,33 @@ export class ItemWorldUiController {
       panel.addChild(bg);
     }
 
-    const title = new BitmapText({
-      text: 'BOSS DEFEATED',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc66 },
+    const title = createUiText(t('ui.iw.boss_defeated_title'), {
+      fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc66,
     });
     title.x = Math.floor((panelW - title.width) / 2);
     title.y = 8;
     panel.addChild(title);
 
-    const info = new BitmapText({
-      text: `Next: Stratum ${options.nextStratumIndex + 1}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
-    });
+    const info = createUiText(
+      t('ui.iw.next_stratum', { n: options.nextStratumIndex + 1 }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
+    );
     info.x = Math.floor((panelW - info.width) / 2);
     info.y = 24;
     panel.addChild(info);
 
-    const goPrompt = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}] Continue Deeper`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
-    });
+    const goPrompt = createUiText(
+      t('ui.iw.boss_continue_continue', { key: actionKey(GameAction.ATTACK) }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
+    );
     goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
     goPrompt.y = 44;
     panel.addChild(goPrompt);
 
-    const exitPrompt = new BitmapText({
-      text: `[${actionKey(GameAction.MENU)}] Exit Safely`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
-    });
+    const exitPrompt = createUiText(
+      t('ui.iw.boss_continue_exit', { key: actionKey(GameAction.MENU) }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffaa44 },
+    );
     exitPrompt.x = Math.floor((panelW - exitPrompt.width) / 2);
     exitPrompt.y = 60;
     panel.addChild(exitPrompt);
@@ -446,9 +460,8 @@ export class ItemWorldUiController {
     }
 
     for (let i = 0; i < lines.length; i++) {
-      const text = new BitmapText({
-        text: lines[i],
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
+      const text = createUiText(lines[i], {
+        fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff,
       });
       text.x = padX;
       text.y = padY + i * lineH;
@@ -456,10 +469,10 @@ export class ItemWorldUiController {
     }
 
     const step = `${this.onboardingStep + 1}/${options.messages.length}`;
-    const prompt = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}] Next  ${step}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
-    });
+    const prompt = createUiText(
+      t('ui.iw.next_step_hint', { key: actionKey(GameAction.ATTACK), step }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+    );
     prompt.x = padX;
     prompt.y = panelH - padY - 8;
     panel.addChild(prompt);

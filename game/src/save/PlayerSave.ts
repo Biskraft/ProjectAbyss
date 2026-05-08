@@ -15,6 +15,8 @@
  * 빈 초기값으로 생성된다.
  */
 
+import { t } from '@i18n';
+
 export interface SacredSettings {
   /** false 기본. true 시 매 획득마다 LorePopup 재표시. */
   alwaysShowLore: boolean;
@@ -165,26 +167,27 @@ export function isLowHpHealToastFired(): boolean { return _lowHpHealToastFired; 
 export function markLowHpHealToastFired(): void { _lowHpHealToastFired = true; }
 
 /**
- * 무기 정의에 따라 간단한 Lore 2줄을 반환. CSV에 lore가 추가되기 전까지의
- * 임시 폴백 — 각 줄은 영문, "memory/echo/stratum/grain/forge" 중 1단어 이상 포함.
+ * 무기 정의에 따라 간단한 Lore 2줄을 반환. defId 별 special 우선,
+ * 없으면 rarity 폴백, 그것도 없으면 generic fallback. 모두 CSV (lore.*) 에서 로드.
  */
 export function getWeaponLore(defId: string, weaponName: string, rarity: string): string[] {
-  // CSV 확장 시 def.lore가 우선.
-  const templates: Record<string, string[]> = {
-    sword_broken: [
-      'A shattered blade still hums with memory.',
-      'Its forge is silent, but the echo remains.',
-    ],
-  };
-  if (templates[defId]) return templates[defId];
+  // 1) defId 기반 special — 키 존재 시 사용 (fallback 시 t() 가 키 자체를 반환하므로
+  //    "lore.special.<defId>.<n>" 문자열로 시작하면 미정의로 간주).
+  const sp0Key = `lore.special.${defId}.0`;
+  const sp1Key = `lore.special.${defId}.1`;
+  const sp0 = t(sp0Key);
+  if (sp0 !== sp0Key) {
+    return [sp0, t(sp1Key)];
+  }
 
-  // rarity 기반 폴백. 문장에 키워드가 최소 1개 포함되도록 구성.
-  const rarityLore: Record<string, string[]> = {
-    normal:   [`${weaponName} carries the grain of many hands.`,      'A plain memory, honestly forged.'],
-    magic:    [`Faint stratum of arcane echo within ${weaponName}.`,  'Someone once whispered to this steel.'],
-    rare:     [`Few forges could hold this memory.`,                  `${weaponName} sings when dust settles.`],
-    legendary:[`The echo of a legend sleeps in ${weaponName}.`,       'Its grain is the record of a vow.'],
-    ancient:  [`Older than any forge — ${weaponName} remembers first fire.`, 'Every stratum of its echo is a ruin.'],
-  };
-  return rarityLore[rarity] ?? ['Memory coils in the grain.', 'Something still echoes here.'];
+  // 2) rarity 폴백 — {name} 보간.
+  const r0Key = `lore.rarity.${rarity}.0`;
+  const r1Key = `lore.rarity.${rarity}.1`;
+  const r0 = t(r0Key, { name: weaponName });
+  if (r0 !== r0Key) {
+    return [r0, t(r1Key, { name: weaponName })];
+  }
+
+  // 3) 최종 폴백.
+  return [t('lore.fallback.0'), t('lore.fallback.1')];
 }

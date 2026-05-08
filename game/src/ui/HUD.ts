@@ -272,9 +272,9 @@ export class HUD {
     const ACTION_BAR_Y = this.SH - this.MARGIN - this.FONT - 4 * s - KEY_ICON;
     // 패드 hot-swap 자동 반영을 위해 GameAction 직접 보관 (createKeyIconForAction).
     const actions: Array<{ action: GameAction; label: string }> = [
-      { action: GameAction.JUMP,   label: 'Jump' },
-      { action: GameAction.DASH,   label: 'Dash' },
-      { action: GameAction.ATTACK, label: 'Atk' },
+      { action: GameAction.JUMP,   label: t('ui.hud.label_jump') },
+      { action: GameAction.DASH,   label: t('ui.hud.label_dash') },
+      { action: GameAction.ATTACK, label: t('ui.hud.label_atk') },
     ];
     let actionX = this.MARGIN;
     for (const a of actions) {
@@ -283,10 +283,7 @@ export class HUD {
       icon.y = ACTION_BAR_Y;
       this.actionKeyBar.addChild(icon);
 
-      const text = new BitmapText({
-        text: a.label,
-        style: { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR },
-      });
+      const text = createUiText(a.label, { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR });
       text.x = actionX + KEY_ICON + 2 * s;
       text.y = ACTION_BAR_Y + Math.floor((KEY_ICON - text.height) / 2);
       this.actionKeyBar.addChild(text);
@@ -329,8 +326,8 @@ export class HUD {
     this.sideKeyBar = new Container();
     const sideKeyY = this.MARGIN + 72 * s + 6 * s; // below minimap
     const sideActions: Array<{ label: string; action: GameAction }> = [
-      { label: 'Item', action: GameAction.INVENTORY },
-      { label: 'Map',  action: GameAction.MAP },
+      { label: t('ui.hud.label_item'), action: GameAction.INVENTORY },
+      { label: t('ui.hud.label_map'),  action: GameAction.MAP },
     ];
     // [I] 키 펄스 glow 는 아이콘 뒤에 그려야 하므로 루프보다 먼저 추가.
     this.itemKeyPulseGlow = new Graphics();
@@ -339,10 +336,7 @@ export class HUD {
     let sideX = this.SW - this.MARGIN;
     for (let i = sideActions.length - 1; i >= 0; i--) {
       const a = sideActions[i];
-      const lbl = new BitmapText({
-        text: a.label,
-        style: { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR },
-      });
+      const lbl = createUiText(a.label, { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR });
       sideX -= lbl.width;
       lbl.x = sideX;
       lbl.y = sideKeyY + Math.floor((KEY_ICON - lbl.height) / 2);

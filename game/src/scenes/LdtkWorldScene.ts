@@ -87,6 +87,7 @@ import { DivePreview } from '@ui/DivePreview';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import { t } from '@i18n';
+import { createUiText } from '@ui/factories';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
   EGO_RUSTBORN_AWAKEN,
@@ -1374,7 +1375,7 @@ export class LdtkWorldScene extends Scene {
           void this.loreDisplay.showDialogue(EGO_INVENTORY_LOCKED, false);
         }
       } else {
-        this.toast.show('Locked', 0xaaaaaa);
+        this.toast.show(t('toast.locked'), 0xaaaaaa);
       }
       return;
     }
@@ -1492,7 +1493,7 @@ export class LdtkWorldScene extends Scene {
     if (this.player.attackBlockedNoWeaponPulse) {
       this.player.attackBlockedNoWeaponPulse = false;
       if (this.noWeaponToastCooldown <= 0) {
-        this.toast.show('No Weapon Equipped', 0xFF8000);
+        this.toast.show(t('toast.no_weapon'), 0xFF8000);
         this.noWeaponToastCooldown = 1500;
       }
     }
@@ -1769,7 +1770,7 @@ export class LdtkWorldScene extends Scene {
         const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
         this.screenFlash.flash(0x44ff44, 0.3, 150);
-        this.toast.show(`HP +${healed}`, 0x44ff44);
+        this.toast.show(t('toast.hp_gain', { amount: healed }), 0x44ff44);
         hp.destroy();
         this.healingPickups.splice(i, 1);
       }
@@ -1792,7 +1793,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames = 8;
         this.screenFlash.flash(0xff4488, 0.4, 200);
         this.game.camera.shake(4);
-        this.toast.showBig(`MAX HP +${shard.hpBonus}`, 0xff4488);
+        this.toast.showBig(t('toast.max_hp_gain', { amount: shard.hpBonus }), 0xff4488);
         shard.destroy();
         this.healthShards.splice(i, 1);
       }
@@ -1808,22 +1809,22 @@ export class LdtkWorldScene extends Scene {
         trackRelicAcquire(abilityName, this.currentLevel?.identifier);
         if (abilityName === 'dash') {
           this.player.abilities.dash = true;
-          this.toast.showBig('Dash unlocked!', 0xffd700);
+          this.toast.showBig(t('toast.unlock_dash'), 0xffd700);
         } else if (abilityName === 'diveAttack') {
           this.player.abilities.diveAttack = true;
-          this.toast.showBig('Dive Attack unlocked!', 0xffd700);
+          this.toast.showBig(t('toast.unlock_dive_attack'), 0xffd700);
         } else if (abilityName === 'surge') {
           this.player.abilities.surge = true;
-          this.toast.showBig('Counter-Current Surge unlocked!', 0xffd700);
+          this.toast.showBig(t('toast.unlock_counter_current'), 0xffd700);
         } else if (abilityName === 'waterBreathing') {
           this.player.abilities.waterBreathing = true;
-          this.toast.showBig('Water Breathing unlocked!', 0x4488ff);
+          this.toast.showBig(t('toast.unlock_water_breathing'), 0x4488ff);
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
-          this.toast.showBig('Wall Jump unlocked!', 0xffd700);
+          this.toast.showBig(t('toast.unlock_wall_jump'), 0xffd700);
         } else if (abilityName === 'doubleJump') {
           this.player.abilities.doubleJump = true;
-          this.toast.showBig('Double Jump unlocked!', 0xffd700);
+          this.toast.showBig(t('toast.unlock_double_jump'), 0xffd700);
         } else if (abilityName === 'cheat') {
           // DEC-010: ?�버�?치트 ?�릭.
           // Gate: Debug_ 방에 배치 ???debug URL ?�라미터 ?�이???�근 불�?.
@@ -1831,7 +1832,7 @@ export class LdtkWorldScene extends Scene {
           this.player.abilities.cheat = true;
           this.updatePlayerAtk(); // re-applies +99999 via cheat branch
           this.player.hp = this.player.maxHp; // full heal to new cap
-          this.toast.showBig('CHEAT: ATK/HP +99999', 0xff00ff);
+          this.toast.showBig(t('toast.cheat_atk_hp'), 0xff00ff);
         }
         this.game.hitstopFrames = 8;
         this.game.camera.shake(3);
@@ -1850,7 +1851,7 @@ export class LdtkWorldScene extends Scene {
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
           this.game.stats.itemsCollected++;
-          this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          this.toast.show(t('toast.item_acquired', { name: drop.item.def.name, rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
           // hint removed
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
@@ -1974,13 +1975,13 @@ export class LdtkWorldScene extends Scene {
           for (const key of Object.keys(a)) {
             (a as Record<string, boolean>)[key] = key === 'dash';
           }
-          this.toast.show('CHEAT OFF ??abilities reset', 0xff4444);
+          this.toast.show(t('toast.cheat_off'), 0xff4444);
         } else {
           // All on ??set every ability to true
           for (const key of Object.keys(a)) {
             (a as Record<string, boolean>)[key] = true;
           }
-          this.toast.show('CHEAT ON ??all relics unlocked', 0xff4444);
+          this.toast.show(t('toast.cheat_on'), 0xff4444);
         }
         this.updatePlayerAtk();
       }
@@ -2337,10 +2338,10 @@ export class LdtkWorldScene extends Scene {
   /** GamepadManager 연결/분리 이벤트 → 토스트 (System_Input_Gamepad §8.1 Stage 3). */
   private _attachGamepadToast(): () => void {
     const off1 = this.game.gamepad.onConnectEvent((brand) => {
-      this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+      this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
     });
     const off2 = this.game.gamepad.onDisconnectEvent(() => {
-      this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+      this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
     });
     return () => { off1(); off2(); };
   }
@@ -2504,7 +2505,7 @@ export class LdtkWorldScene extends Scene {
         this.updatePlayerAtk();
         const atkGain = this.fixedItemWorldItem.finalAtk - prevAtk;
         if (atkGain > 0) {
-          this.toast.showBig(`ATK +${atkGain}`, 0xffd700);
+          this.toast.showBig(t('toast.atk_gain', { amount: atkGain }), 0xffd700);
         }
 
         // Spawn portal after delay
@@ -2514,7 +2515,7 @@ export class LdtkWorldScene extends Scene {
         }, 1500);
       } else {
         // World boss (test) ??no portal, just big toast
-        this.toast.showBig('BOSS DEFEATED!', 0xffd700);
+        this.toast.showBig(t('toast.boss_defeated_excl'), 0xffd700);
       }
     } else if (enemy instanceof Slime) {
       // setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
@@ -2962,7 +2963,7 @@ export class LdtkWorldScene extends Scene {
         // Break effect
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
-        this.toast.show('Gate Opened!', 0x44ffaa);
+        this.toast.show(t('toast.gate_opened'), 0x44ffaa);
         door.destroy();
         this.lockedDoors.splice(i, 1);
         return;
@@ -3022,7 +3023,7 @@ export class LdtkWorldScene extends Scene {
         });
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
-        this.toast.show('Gate Destroyed!', 0x44ffaa);
+        this.toast.show(t('toast.gate_destroyed'), 0x44ffaa);
         door.destroy();
         this.lockedDoors.splice(i, 1);
       } else if (result === 'rejected') {
@@ -3030,7 +3031,7 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.shake(2);
         const threshold = door.statThreshold;
         const current = playerStats[door.statType] ?? 0;
-        this.toast.show(`${door.statType.toUpperCase()} ${current} / ${threshold} required`, 0xff4444);
+        this.toast.show(t('toast.stat_gate_locked', { stat: door.statType.toUpperCase(), current: current, required: threshold }), 0xff4444);
         break;
       }
     }
@@ -3163,7 +3164,7 @@ export class LdtkWorldScene extends Scene {
       playtime: this.game.stats.playTimeMs,
       healthShardBonus: this.healthShardBonus,
     });
-    this.toast.show('Game Saved!', 0x44ffaa);
+    this.toast.show(t('toast.game_saved'), 0x44ffaa);
     trackSave(
       this.currentLevel?.identifier ?? this.playerSpawnLevelId,
       Math.floor(this.game.stats.playTimeMs / 1000),
@@ -3652,9 +3653,9 @@ export class LdtkWorldScene extends Scene {
             this.drops.push(drop);
             this.entityLayer.addChild(drop.container);
           }
-          this.toast.show('Secret Found!', 0xffd700);
+          this.toast.show(t('toast.secret_found'), 0xffd700);
         } else {
-          this.toast.show('Path Opened!', 0x44ffaa);
+          this.toast.show(t('toast.path_opened'), 0x44ffaa);
         }
 
         wall.destroy();
@@ -3738,7 +3739,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames += 4;
         this.screenFlash.flash(0xffffff, 0.4, 150);
         this.game.camera.shake(8);
-        this.toast.show('Wall Shattered!', 0xffaa44);
+        this.toast.show(t('toast.wall_shattered'), 0xffaa44);
         for (let j = 0; j < 6; j++) {
           this.hitSparks.spawn(
             wall.x + Math.random() * wall.width,
@@ -3762,7 +3763,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames += 4;
         this.screenFlash.flash(0xffffff, 0.4, 150);
         this.game.camera.shake(10);
-        this.toast.show('Floor Destroyed!', 0xffaa44);
+        this.toast.show(t('toast.floor_destroyed'), 0xffaa44);
         cf.destroy();
         this.crackedFloors.splice(i, 1);
       }
@@ -3829,7 +3830,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames += 4;
         this.screenFlash.flash(0xffffff, 0.4, 150);
         this.game.camera.shake(10);
-        this.toast.show('Floor Destroyed!', 0xffaa44);
+        this.toast.show(t('toast.floor_destroyed'), 0xffaa44);
         cf.destroy();
         this.crackedFloors.splice(i, 1);
       }
@@ -3847,7 +3848,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames += 4;
         this.screenFlash.flash(0xffffff, 0.4, 150);
         this.game.camera.shake(10);
-        this.toast.show('Wall Shattered!', 0xffaa44);
+        this.toast.show(t('toast.wall_shattered'), 0xffaa44);
         // Spawn debris particles
         for (let j = 0; j < 6; j++) {
           this.hitSparks.spawn(
@@ -3929,7 +3930,7 @@ export class LdtkWorldScene extends Scene {
       this.game.hitstopFrames += 4;
       this.screenFlash.flash(0xffffff, 0.4, 150);
       this.game.camera.shake(6);
-      this.toast.show('Wall Destroyed!', 0xffaa44);
+      this.toast.show(t('toast.wall_destroyed'), 0xffaa44);
       cf.destroy();
       this.crackedFloors.splice(i, 1);
     }
@@ -4145,7 +4146,7 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.shake(3);
         this.screenFlash.flashHit(false);
         this.unlockDoorByIid(sw.targetDoorIid);
-        this.toast.show('Switch Destroyed!', 0x44ffaa);
+        this.toast.show(t('toast.switch_destroyed'), 0x44ffaa);
       }
     }
   }
@@ -4177,10 +4178,10 @@ export class LdtkWorldScene extends Scene {
     const HITS_TO_BREAK = 3;
     const l = Math.floor(hitbox.x / T);
     const r = Math.floor((hitbox.x + hitbox.width - 1) / T);
-    const t = Math.floor(hitbox.y / T);
+    const ty = Math.floor(hitbox.y / T);
     const b = Math.floor((hitbox.y + hitbox.height - 1) / T);
     let broken = false;
-    for (let row = t; row <= b; row++) {
+    for (let row = ty; row <= b; row++) {
       for (let col = l; col <= r; col++) {
         if ((this.collisionGrid[row]?.[col] ?? 0) !== 9) continue;
         const key = `${col},${row}`;
@@ -4200,7 +4201,7 @@ export class LdtkWorldScene extends Scene {
       this.game.hitstopFrames += 4;
       this.game.camera.shake(4);
       this.screenFlash.flash(0xffffff, 0.3, 100);
-      this.toast.show('Wall Destroyed!', 0xffaa44);
+      this.toast.show(t('toast.wall_destroyed'), 0xffaa44);
       this.rerenderTilemap();
     }
   }
@@ -4869,7 +4870,7 @@ export class LdtkWorldScene extends Scene {
     const localX = cam.renderX - rtW / 2 + fractionX * rtW;
     const localY = cam.renderY - rtH / 2 + fractionY * rtH;
     this.warpPlayerToLocal(localX, localY);
-    this.toast.show('WARPED', 0xffe060);
+    this.toast.show(t('toast.warped'), 0xffe060);
   }
 
   private warpToRoom(roomId: string, localX: number, localY: number): void {
@@ -4879,7 +4880,7 @@ export class LdtkWorldScene extends Scene {
     this.warpPlayerToLocal(localX, localY);
     this.hud.container.visible = true;
     if (this.minimap) this.minimap.visible = true;
-    this.toast.show(`WARPED → ${roomId}`, 0xffe060);
+    this.toast.show(t('toast.warped_to', { room: roomId }), 0xffe060);
   }
 
   /**
@@ -5245,19 +5246,18 @@ export class LdtkWorldScene extends Scene {
     bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x111111, alpha: 0.8 });
     overlay.addChild(bg);
 
-    const title = new BitmapText({
-      text: 'YOU DIED',
-      style: { fontFamily: PIXEL_FONT, fontSize: 14, fill: 0xff2222 },
+    const title = createUiText(t('ui.death.youdied_world'), {
+      fontFamily: PIXEL_FONT, fontSize: 14, fill: 0xff2222,
     });
     title.anchor.set(0.5);
     title.x = GAME_WIDTH / 2;
     title.y = GAME_HEIGHT / 2 - 20;
     overlay.addChild(title);
 
-    const hint = new BitmapText({
-      text: `Press ${actionKey(GameAction.JUMP)} or ${actionKey(GameAction.DASH)} to return to save point`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
-    });
+    const hint = createUiText(
+      t('ui.death.return_save_point', { jump: actionKey(GameAction.JUMP), dash: actionKey(GameAction.DASH) }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
+    );
     hint.anchor.set(0.5);
     hint.x = GAME_WIDTH / 2;
     hint.y = GAME_HEIGHT / 2 + 10;
@@ -5381,7 +5381,7 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.shake(portal.spawnShake);
 
     if (rarity !== 'normal') {
-      this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
+      this.toast.show(t('toast.portal_appeared', { rarity: rarity.toUpperCase() }), 0xffcc44);
     }
     // hint removed
   }
@@ -5482,7 +5482,7 @@ export class LdtkWorldScene extends Scene {
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
         this.gold += itemWorldScene.earnedGold;
-        this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+        this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
       }
 
       // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
@@ -5495,7 +5495,7 @@ export class LdtkWorldScene extends Scene {
 
       if (isAltar) {
         if (targetItem.level > prevLevel) {
-          this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+          this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
         }
       } else {
         if (this.inventory.add(dungeonItem!)) {
@@ -5511,7 +5511,7 @@ export class LdtkWorldScene extends Scene {
         }
       }
       if (this.player.atk !== prevAtk) {
-        this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
       }
     };
 
@@ -5828,7 +5828,7 @@ export class LdtkWorldScene extends Scene {
 
   private openAltarUI(altar: Altar): void {
     if (this.inventory.items.length === 0) {
-      this.toast.show('No items to offer', 0xff4444);
+      this.toast.show(t('toast.no_items_to_offer'), 0xff4444);
       return;
     }
     this.altarSelectActive = true;
@@ -5940,12 +5940,12 @@ export class LdtkWorldScene extends Scene {
         // Starter-only weapons (e.g. the Broken Sword) have no item world ??
         // altar must refuse to spawn a dive portal for them.
         if (STARTER_ONLY_IDS.has(item.def.id)) {
-          this.toast.show('Cannot dive ??too broken', 0xff4444);
+          this.toast.show(t('toast.cannot_dive_broken'), 0xff4444);
           return;
         }
         // Demo build: block re-dive on fully cleared items (parity with anvil).
         if (DEMO_BLOCK_REDIVE && isItemFullyCleared(item)) {
-          this.toast.show('Memory exhausted. Find another blade.', 0xff8844);
+          this.toast.show(t('toast.memory_exhausted'), 0xff8844);
           this.closeAltarUI();
           return;
         }
@@ -6100,9 +6100,8 @@ export class LdtkWorldScene extends Scene {
       bg.roundRect(0, 0, 72 * us, 18 * us, 3 * us)
         .fill({ color: 0x151515, alpha: 0.82 })
         .stroke({ color: 0x777777, width: Math.max(1, us), alpha: 0.9 });
-      const label = new BitmapText({
-        text: 'DISABLED',
-        style: { fontFamily: PIXEL_FONT, fontSize: 7 * us, fill: 0xb8b8b8 },
+      const label = createUiText(t('ui.world.disabled'), {
+        fontFamily: PIXEL_FONT, fontSize: 7 * us, fill: 0xb8b8b8,
       });
       label.x = Math.round((72 * us - label.width) / 2);
       label.y = Math.round((18 * us - label.height) / 2);
@@ -6138,7 +6137,7 @@ export class LdtkWorldScene extends Scene {
     // Playtest 2026-04-26: retired anvil ignores all approach interaction.
     if (!this.anvil || this.anvil.disabled) return;
     if (this.inventory.items.length === 0) {
-      this.toast.show('No items to place', 0xff4444);
+      this.toast.show(t('toast.no_items_to_place'), 0xff4444);
       return;
     }
     // ?�레?�어가 ?�빌???�달 ???�내??tether ?�무 ?�료.
@@ -6150,20 +6149,20 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI.openForAnvil((item) => {
       // Cannot place equipped weapon on anvil
       if (this.inventory.equipped?.uid === item.uid) {
-        this.toast.show('Unequip first', 0xff4444);
+        this.toast.show(t('toast.unequip_first'), 0xff4444);
         return;
       }
       // Starter-only weapons (e.g. the Broken Sword) have no item world ??
       // they are story props, not dive-able loot. Block placement outright.
       if (STARTER_ONLY_IDS.has(item.def.id)) {
-        this.toast.show('Cannot dive ??too broken', 0xff4444);
+        this.toast.show(t('toast.cannot_dive_broken'), 0xff4444);
         return;
       }
       // Fully cleared item — demo blocks re-dive (DEMO_BLOCK_REDIVE).
       // In Phase 3+ full builds, fall through to the cycle-prompt overlay.
       if (isItemFullyCleared(item)) {
         if (DEMO_BLOCK_REDIVE) {
-          this.toast.show('Memory exhausted. Find another blade.', 0xff8844);
+          this.toast.show(t('toast.memory_exhausted'), 0xff8844);
           this.inventoryUI.close();
           return;
         }
@@ -6283,7 +6282,7 @@ export class LdtkWorldScene extends Scene {
       // Confirm re-dive ??reset progress, close prompt, proceed to anvil strike
       resetItemForNextCycle(item);
       this.closeCyclePromptUI();
-      this.toast.show(`Cycle ${item.worldProgress?.cycle ?? 0} ??Memories rewind`, 0xff8844);
+      this.toast.show(t('toast.cycle_rewind', { n: item.worldProgress?.cycle ?? 0 }), 0xff8844);
       this.placeItemOnAnvil(item);
       return;
     }
@@ -6470,14 +6469,14 @@ export class LdtkWorldScene extends Scene {
       // Collect earned gold from Item World
       if (itemWorldScene.earnedGold > 0) {
         this.gold += itemWorldScene.earnedGold;
-        this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+        this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
       }
 
       if (targetItem.level > prevLevel) {
-        this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+        this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
       }
       if (this.player.atk !== prevAtk) {
-        this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
       }
 
       // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
@@ -6551,7 +6550,7 @@ export class LdtkWorldScene extends Scene {
         // Collect earned gold from Item World
         if (itemWorldScene.earnedGold > 0) {
           this.gold += itemWorldScene.earnedGold;
-          this.toast.show(`+${itemWorldScene.earnedGold} G`, 0xffd700);
+          this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
         }
         this.inItemTunnel = false;
         if (this.preTunnelLevelId) {

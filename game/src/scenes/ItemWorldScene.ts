@@ -458,14 +458,14 @@ export class ItemWorldScene extends Scene {
   private stratumPickerPulseRect: { x: number; y: number; w: number; h: number } | null = null;
 
   // Onboarding — last line uses live keybindings via getter (preset-aware).
-  private static readonly ONBOARDING_BASE_MSGS = [
-    'You entered the Memory Strata!',
-    'Each stratum goes deeper.\nDefeat the boss to descend.',
-  ];
   private static getOnboardingMsgs(): string[] {
     return [
-      ...ItemWorldScene.ONBOARDING_BASE_MSGS,
-      `${actionKey(GameAction.MENU)} to abandon. [${actionKey(GameAction.JUMP)}] to proceed.`,
+      t('ui.iw.onboarding_entered'),
+      t('ui.iw.onboarding_descend'),
+      t('ui.iw.onboarding_controls', {
+        menu: actionKey(GameAction.MENU),
+        jump: actionKey(GameAction.JUMP),
+      }),
     ];
   }
   // Callback when done
@@ -858,10 +858,10 @@ export class ItemWorldScene extends Scene {
     // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
     {
       const off1 = this.game.gamepad.onConnectEvent((brand) => {
-        this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+        this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
       });
       const off2 = this.game.gamepad.onDisconnectEvent(() => {
-        this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+        this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
       });
       this._gpUnsub = () => { off1(); off2(); };
     }
@@ -2136,7 +2136,7 @@ export class ItemWorldScene extends Scene {
 
     // Stratum change toast
     if (prevStratumIndex !== this.currentStratumIndex) {
-      this.toast.show(`Stratum ${this.currentStratumIndex + 1} ? Deeper...`, 0xff4488);
+      this.toast.show(t('toast.stratum_deeper', { n: this.currentStratumIndex + 1 }), 0xff4488);
 
       // Update progress on stratum descent
       if (this.currentStratumIndex > prevStratumIndex) {
@@ -3097,7 +3097,7 @@ export class ItemWorldScene extends Scene {
         door.unlock(this.fullGrid);
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
-        this.toast.show('Gate Opened!', 0x44ffaa);
+        this.toast.show(t('toast.gate_opened'), 0x44ffaa);
         door.destroy();
         this.lockedDoors.splice(i, 1);
         return;
@@ -3316,11 +3316,11 @@ export class ItemWorldScene extends Scene {
     // consume 해 전역 UI 토글로 사용 — 여기로 도달하지 않는다.
     if (this.game.input.isJustPressed(GameAction.MAP)) {
       this.game.input.consumeJustPressed(GameAction.MAP);
-      this.toast.show('Currently unavailable', 0xaaaaaa);
+      this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
     }
     if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
       this.game.input.consumeJustPressed(GameAction.INVENTORY);
-      this.toast.show('Currently unavailable', 0xaaaaaa);
+      this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
     }
 
     this.player.update(dt);
@@ -3556,7 +3556,7 @@ export class ItemWorldScene extends Scene {
         const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
         this.screenFlash.flash(0x44ff44, 0.3, 150);
-        if (healed > 0) this.toast.show(`HP +${healed}`, 0x44ff44);
+        if (healed > 0) this.toast.show(t('toast.hp_gain', { amount: healed }), 0x44ff44);
         this.itemPickupGlow.spawn(hp.x + hp.width / 2, hp.y + hp.height / 2, 0x44ff44);
         hp.collect();
         hp.destroy();
@@ -3728,7 +3728,7 @@ export class ItemWorldScene extends Scene {
         const bossHeal = Math.floor(this.player.maxHp * 0.30);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + bossHeal);
         if (bossHeal > 0) {
-          this.toast.show(`HP +${bossHeal}`, 0x44ff44);
+          this.toast.show(t('toast.hp_gain', { amount: bossHeal }), 0x44ff44);
           this.hud.flashBossHeal();
         }
 
@@ -3759,7 +3759,7 @@ export class ItemWorldScene extends Scene {
         this.game.hitstopFrames = 24;
         this.game.camera.shake(9);
         this.screenFlash.flash(0xffffff, 0.55, 180);
-        this.toast.showBig('BOSS DEFEATED', 0xffd35a, 2200);
+        this.toast.showBig(t('toast.boss_defeated'), 0xffd35a, 2200);
         // Follow-up burst: ember-gold flash + second particle layer
         setTimeout(() => {
           this.screenFlash.flash(0xffaa22, 0.35, 220);
@@ -3810,7 +3810,7 @@ export class ItemWorldScene extends Scene {
           this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
           this.entityLayer.addChild(this.trapdoor.container);
           this.descentToWorld = pendingDescentToWorld;
-          this.toast.show('Trapdoor opens — strike to descend.', 0xff7744);
+          this.toast.show(t('toast.trapdoor_opens'), 0xff7744);
           console.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
           // DLG-11: Trapdoor 포탈 — 첫 spawn 시점에 한 번만 발화 (사용자
           // 결정 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 표식으로 중복 차단.
@@ -3865,7 +3865,7 @@ export class ItemWorldScene extends Scene {
       const totalStrata = this.strataConfig.strata.length;
       this.currentStratumIndex = cellAtCursor.stratumIndex;
       this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
-      this.toast.show(`DEPTH ${this.currentStratumIndex + 1} / ${totalStrata}`, 0xff4488);
+      this.toast.show(t('toast.depth', { n: this.currentStratumIndex + 1, total: totalStrata }), 0xff4488);
       if (this.currentStratumIndex > prevStratumIndex) {
         if (this.progress.deepestUnlocked < this.currentStratumIndex) {
           this.progress.deepestUnlocked = this.currentStratumIndex;
@@ -4592,7 +4592,7 @@ export class ItemWorldScene extends Scene {
     // Stratum 2+ 진입 시 DEPTH 표기 (ULTRAKILL 패턴).
     if (stratumIndex > 0) {
       const totalStrata = this.strataConfig.strata.length;
-      this.toast.show(`DEPTH ${stratumIndex + 1} / ${totalStrata}`, 0xff4488);
+      this.toast.show(t('toast.depth', { n: stratumIndex + 1, total: totalStrata }), 0xff4488);
     }
   }
 
@@ -4678,7 +4678,7 @@ export class ItemWorldScene extends Scene {
     if (afterAtk <= beforeAtk || beforeAtk <= 0) return;
     const pct = Math.round(((afterAtk - beforeAtk) / beforeAtk) * 100);
     if (pct <= 0) return;
-    this.toast.show(`+${pct}% DMG  (${beforeAtk} \u2192 ${afterAtk})`, 0xffcc44);
+    this.toast.show(t('toast.damage_increase', { pct, before: beforeAtk, after: afterAtk }), 0xffcc44);
   }
 
   /**
@@ -4808,7 +4808,7 @@ export class ItemWorldScene extends Scene {
 
     const nextStratum = this.currentStratumIndex + 1;
     const totalStrata = this.strataConfig.strata.length;
-    this.toast.show(`Descending — DEPTH ${nextStratum + 1} / ${totalStrata}`, 0xff8000);
+    this.toast.show(t('toast.descending_depth', { n: nextStratum + 1, total: totalStrata }), 0xff8000);
   }
 
   /** A17: player chose to exit ? bank progress, leave the item world. */

@@ -1,6 +1,8 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { GameAction, actionKey } from '@core/InputManager';
+import { t } from '@i18n';
+import { createUiText } from '@ui/factories';
 import { trackItemDrop } from '@utils/Analytics';
 import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
@@ -207,10 +209,10 @@ export class WorldScene extends Scene {
     // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
     {
       const off1 = this.game.gamepad.onConnectEvent((brand) => {
-        this.toast.show(`${brandLabel(brand)} Controller connected`, 0x88ddff);
+        this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
       });
       const off2 = this.game.gamepad.onDisconnectEvent(() => {
-        this.toast.show('Gamepad disconnected → Keyboard', 0xffaa44);
+        this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
       });
       this._gpUnsub = () => { off1(); off2(); };
     }
@@ -332,13 +334,16 @@ export class WorldScene extends Scene {
     bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.7 });
     overlay.addChild(bg);
 
-    const title = new BitmapText({ text: 'GAME OVER', style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 } });
+    const title = createUiText(t('ui.world.game_over'), { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 });
     title.anchor.set(0.5);
     title.x = 240;
     title.y = 120;
     overlay.addChild(title);
 
-    const hint = new BitmapText({ text: `Press ${actionKey(GameAction.JUMP)} or ${actionKey(GameAction.DASH)} to respawn`, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa } });
+    const hint = createUiText(
+      t('ui.world.respawn_hint', { jump: actionKey(GameAction.JUMP), dash: actionKey(GameAction.DASH) }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+    );
     hint.anchor.set(0.5);
     hint.x = 240;
     hint.y = 150;
@@ -735,7 +740,7 @@ export class WorldScene extends Scene {
       drop.update(dt);
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
-          this.toast.show(`Got ${drop.item.def.name} [${drop.item.rarity.toUpperCase()}]`, 0xffcc44);
+          this.toast.show(t('toast.item_acquired', { name: drop.item.def.name, rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
           this.itemPickupGlow.spawn(drop.x, drop.y, getRarityConfig(drop.item.rarity).fxTint);
           drop.destroy();
           this.drops.splice(i, 1);
@@ -749,7 +754,7 @@ export class WorldScene extends Scene {
       const cell = this.gridData.cells[this.currentRow][this.currentCol];
       if (!cell.cleared) {
         cell.cleared = true;
-        this.toast.show('Room Clear!', 0x44ff44);
+        this.toast.show(t('toast.room_clear'), 0x44ff44);
         this.drawMiniMap();
       }
     }
@@ -934,7 +939,7 @@ export class WorldScene extends Scene {
 
     // Flash for rare+ portals
     if (rarity !== 'normal') {
-      this.toast.show(`${rarity.toUpperCase()} Portal appeared!`, 0xffcc44);
+      this.toast.show(t('toast.portal_appeared', { rarity: rarity.toUpperCase() }), 0xffcc44);
     }
   }
 
@@ -1006,16 +1011,16 @@ export class WorldScene extends Scene {
 
       if (isAltar) {
         if (targetItem.level > prevLevel) {
-          this.toast.show(`${targetItem.def.name} Level Up! Lv${targetItem.level}`, 0xff88ff);
+          this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
           SFX.play('upgrade');
         }
       } else {
         if (this.inventory.add(dungeonItem!)) {
-          this.toast.show(`Got ${dungeonItem!.def.name} [${dungeonItem!.rarity.toUpperCase()}]`, 0xffcc44);
+          this.toast.show(t('toast.item_acquired', { name: dungeonItem!.def.name, rarity: dungeonItem!.rarity.toUpperCase() }), 0xffcc44);
         }
       }
       if (this.player.atk !== prevAtk) {
-        this.toast.show(`ATK ${prevAtk} -> ${this.player.atk}`, 0xffff44);
+        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
       }
       this.autoSave(); // persist worldProgress changes
     };
@@ -1038,7 +1043,7 @@ export class WorldScene extends Scene {
 
   private openAltarUI(altar: Altar): void {
     if (this.inventory.items.length === 0) {
-      this.toast.show('No items to offer', 0xff4444);
+      this.toast.show(t('toast.no_items_to_offer'), 0xff4444);
       return;
     }
     this.altarSelectActive = true;
@@ -1069,7 +1074,7 @@ export class WorldScene extends Scene {
     bg.y = py;
     ui.addChild(bg);
 
-    const title = new BitmapText({ text: 'Offer item to altar:', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff } });
+    const title = createUiText(t('ui.world.offer_item'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff });
     title.x = px + 6;
     title.y = py + 4;
     ui.addChild(title);
