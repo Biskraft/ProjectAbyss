@@ -14,8 +14,10 @@
  * Hangul completion press doesn't accidentally submit.
  */
 
-import { Container, Graphics, BitmapText, Rectangle } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text, Rectangle } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import {
   MODAL_BG,
@@ -85,18 +87,18 @@ export class FeedbackPanel {
   private currentText = '';
   private blinkTimer = 0;
   private cursorVisible = true;
-  private hintText!: BitmapText;
+  private hintText!: BitmapText | Text;
   private hintFlashUntil = 0;
   private hoveredIndex = -1;
   private sendButtonBg!: Graphics;
-  private sendLabel!: BitmapText;
+  private sendLabel!: BitmapText | Text;
   private sendKeyBg!: Graphics;
   private sendKeyText!: BitmapText;
   private sendButtonHovered = false;
   private closeButtonBg!: Graphics;
   private closeButtonHovered = false;
   private hintIndicator!: Container;
-  private readonly hintDefault = 'Click or [Tab] to pick category';
+  private get hintDefault(): string { return t('ui.feedback.default_hint'); }
 
   // Bound listeners (so they can be removed cleanly).
   private onKeyDown = (e: KeyboardEvent) => this.handleKeyDown(e);
@@ -160,10 +162,7 @@ export class FeedbackPanel {
     let cy = py + PAD;
 
     // Title
-    const title = new BitmapText({
-      text: 'Feedback (F)',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: TEXT_PRIMARY },
-    });
+    const title = createUiText(t('ui.feedback.title'), { fontSize: FONT_TITLE, fill: TEXT_PRIMARY });
     title.x = px + PAD; title.y = cy;
     this.container.addChild(title);
     cy += FONT_TITLE + 4;
@@ -274,10 +273,7 @@ export class FeedbackPanel {
     this.container.addChild(this.closeButtonBg);
     this.drawCloseButton();
     drawMiniKeyBox(this.container, closeX + 6, bottomY + 4, 22, 10, 'ESC');
-    const closeLabel = new BitmapText({
-      text: 'CLOSE',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_PRIMARY },
-    });
+    const closeLabel = createUiText(t('ui.feedback.button_close'), { fontSize: FONT_HINT, fill: TEXT_PRIMARY });
     closeLabel.x = closeX + 34;
     closeLabel.y = bottomY + Math.floor((btnH - FONT_HINT) / 2);
     this.container.addChild(closeLabel);
@@ -297,10 +293,7 @@ export class FeedbackPanel {
       setTimeout(() => this.hiddenInput.focus(), 0);
     });
     this.container.addChild(this.sendButtonBg);
-    this.sendLabel = new BitmapText({
-      text: 'SEND',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_PRIMARY },
-    });
+    this.sendLabel = createUiText(t('ui.feedback.button_send'), { fontSize: FONT_HINT, fill: TEXT_PRIMARY });
     this.sendLabel.x = sendX + 6;
     this.sendLabel.y = bottomY + Math.floor((btnH - FONT_HINT) / 2);
     this.container.addChild(this.sendLabel);
@@ -315,10 +308,7 @@ export class FeedbackPanel {
     // Hint between the two buttons (centered)
     const hintLeft = closeX + btnW + 8;
     const hintRight = sendX - 8;
-    this.hintText = new BitmapText({
-      text: this.hintDefault,
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
-    });
+    this.hintText = createUiText(this.hintDefault, { fontSize: FONT_HINT, fill: TEXT_SECONDARY });
     this.hintText.x = hintLeft + Math.max(0, Math.floor(((hintRight - hintLeft) - this.hintText.width) / 2));
     this.hintText.y = bottomY + Math.floor((btnH - FONT_HINT) / 2);
     this.container.addChild(this.hintText);
@@ -554,11 +544,11 @@ export class FeedbackPanel {
 
   private attemptSubmit(): void {
     if (this.currentCategory === null) {
-      this.flashWarning('Select a category (Tab or click)');
+      this.flashWarning(t('ui.feedback.warn_no_category'));
       return;
     }
     if (this.currentText.trim() === '') {
-      this.flashWarning('Type something first');
+      this.flashWarning(t('ui.feedback.warn_empty'));
       return;
     }
 

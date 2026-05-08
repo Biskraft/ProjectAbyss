@@ -8,6 +8,8 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import { createModalPanel } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
@@ -158,8 +160,12 @@ export class SaveLoadUI {
     this.container.addChild(this.panel);
 
     // Title
-    const titles: Record<SaveLoadMode, string> = { new: 'NEW GAME', load: 'LOAD GAME', save: 'SAVE GAME' };
-    const title = new BitmapText({ text: titles[this.mode], style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_TEXT } });
+    const titleKeys: Record<SaveLoadMode, string> = {
+      new: 'ui.save.title_new',
+      load: 'ui.save.title_load',
+      save: 'ui.save.title_save',
+    };
+    const title = createUiText(t(titleKeys[this.mode]), { fontSize: 8, fill: COL_TEXT });
     title.x = 12; title.y = 10;
     this.panel.addChild(title);
 
@@ -177,10 +183,14 @@ export class SaveLoadUI {
     }
 
     // Hints
-    const hint = new BitmapText({
-      text: `[${actionKey(GameAction.ATTACK)}]Select  [${actionKey(GameAction.DASH)}]Delete  [${actionKey(GameAction.MENU)}]Back`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: COL_DIM },
-    });
+    const hint = createUiText(
+      t('ui.save.hint', {
+        select: actionKey(GameAction.ATTACK),
+        delete: actionKey(GameAction.DASH),
+        back: actionKey(GameAction.MENU),
+      }),
+      { fontSize: 6, fill: COL_DIM },
+    );
     hint.x = 12; hint.y = PANEL_H - 16;
     this.panel.addChild(hint);
   }
@@ -200,26 +210,20 @@ export class SaveLoadUI {
     this.panel.addChild(g);
 
     // Header
-    const header = new BitmapText({
-      text: `SLOT ${index + 1}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: COL_DIM },
-    });
+    const header = createUiText(t('ui.save.slot_header', { n: index + 1 }), { fontSize: 6, fill: COL_DIM });
     header.x = x + 6; header.y = y + 3;
     this.panel.addChild(header);
 
     if (slot.corrupted) {
-      const corr = new BitmapText({ text: '[!] CORRUPTED DATA', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DANGER } });
+      const corr = createUiText(t('ui.save.corrupted'), { fontSize: 8, fill: COL_DANGER });
       corr.x = x + 6; corr.y = y + 16;
       this.panel.addChild(corr);
       return;
     }
 
     if (!slot.exists) {
-      const empty = new BitmapText({
-        text: '- EMPTY -',
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: inactive ? 0x333333 : 0x666666 },
-      });
-      empty.x = x + Math.floor((SLOT_W - 60) / 2);
+      const empty = createUiText(t('ui.save.empty'), { fontSize: 8, fill: inactive ? 0x333333 : 0x666666 });
+      empty.x = x + Math.floor((SLOT_W - empty.width) / 2);
       empty.y = y + 18;
       this.panel.addChild(empty);
       return;
@@ -227,15 +231,18 @@ export class SaveLoadUI {
 
     // Filled slot info
     const info = [
-      { text: `Erda  Lv.${slot.level ?? '?'}`, color: COL_TEXT, size: 7, dy: 12 },
-      { text: slot.area ?? 'Unknown Area', color: 0xaaaacc, size: 6, dy: 22 },
-      { text: `Play: ${this.formatTime(slot.playtime ?? 0)}  Gold: ${(slot.gold ?? 0).toLocaleString()}`, color: COL_GOLD, size: 6, dy: 32 },
+      { text: t('ui.save.character_line', { level: slot.level ?? '?' }), color: COL_TEXT, size: 7, dy: 12 },
+      { text: slot.area ?? t('ui.save.unknown_area'), color: 0xaaaacc, size: 6, dy: 22 },
+      { text: t('ui.save.play_gold_line', {
+        time: this.formatTime(slot.playtime ?? 0),
+        gold: (slot.gold ?? 0).toLocaleString(),
+      }), color: COL_GOLD, size: 6, dy: 32 },
       { text: slot.savedAt ?? '', color: 0x666688, size: 5, dy: 40 },
     ];
     for (const line of info) {
-      const t = new BitmapText({ text: line.text, style: { fontFamily: PIXEL_FONT, fontSize: line.size, fill: line.color } });
-      t.x = x + 6; t.y = y + line.dy;
-      this.panel.addChild(t);
+      const node = createUiText(line.text, { fontSize: line.size, fill: line.color });
+      node.x = x + 6; node.y = y + line.dy;
+      this.panel.addChild(node);
     }
   }
 
@@ -254,25 +261,25 @@ export class SaveLoadUI {
     this.deletePanel.addChild(bg);
 
     const msg = this.deleteStage === 1
-      ? `Delete Slot ${this.selectedIndex + 1}?`
-      : 'ARE YOU SURE?';
+      ? t('ui.save.delete_confirm_title', { n: this.selectedIndex + 1 })
+      : t('ui.save.delete_confirm_sure');
     const sub = this.deleteStage === 1
-      ? 'This cannot be undone.'
-      : 'Data will be permanently deleted.';
+      ? t('ui.save.delete_confirm_sub_undone')
+      : t('ui.save.delete_confirm_sub_perm');
 
-    const t1 = new BitmapText({ text: msg, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_DANGER } });
-    t1.x = Math.floor((cw - msg.length * 5) / 2); t1.y = 10;
+    const t1 = createUiText(msg, { fontSize: 8, fill: COL_DANGER });
+    t1.x = Math.floor((cw - t1.width) / 2); t1.y = 10;
     this.deletePanel.addChild(t1);
 
-    const t2 = new BitmapText({ text: sub, style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: COL_DIM } });
-    t2.x = Math.floor((cw - sub.length * 4) / 2); t2.y = 24;
+    const t2 = createUiText(sub, { fontSize: 6, fill: COL_DIM });
+    t2.x = Math.floor((cw - t2.width) / 2); t2.y = 24;
     this.deletePanel.addChild(t2);
 
     const btnW = 50, btnH = 16, btnY = 48;
     for (let b = 0; b < 2; b++) {
       const bx = b === 0 ? 30 : cw - 30 - btnW;
       const sel = b === this.deleteSelection;
-      const label = b === 0 ? 'YES' : 'NO';
+      const label = b === 0 ? t('ui.confirm.yes') : t('ui.confirm.no');
       const borderCol = b === 0 ? COL_DANGER : COL_SELECTED;
 
       const btn = new Graphics();
@@ -280,8 +287,8 @@ export class SaveLoadUI {
       btn.rect(bx, btnY, btnW, btnH).stroke({ color: sel ? borderCol : 0x333333, width: sel ? 2 : 1 });
       this.deletePanel.addChild(btn);
 
-      const bt = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_TEXT } });
-      bt.x = bx + Math.floor((btnW - label.length * 6) / 2); bt.y = btnY + 4;
+      const bt = createUiText(label, { fontSize: 8, fill: COL_TEXT });
+      bt.x = bx + Math.floor((btnW - bt.width) / 2); bt.y = btnY + 4;
       this.deletePanel.addChild(bt);
     }
 

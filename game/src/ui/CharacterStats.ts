@@ -16,6 +16,8 @@
 
 import { Container, Graphics, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
+import { createUiText } from './factories';
+import { t } from '@i18n';
 import type { Inventory } from '@items/Inventory';
 import { RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
@@ -104,10 +106,7 @@ export class CharacterStats {
     this.container.addChild(panel);
 
     // ── Title ──
-    const title = new BitmapText({
-      text: 'STATUS',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: TEXT_PRIMARY },
-    });
+    const title = createUiText(t('ui.character.title'), { fontSize: FONT_TITLE, fill: TEXT_PRIMARY });
     title.x = Math.floor((PANEL_W - title.width) / 2);
     title.y = 10;
     panel.addChild(title);
@@ -140,10 +139,7 @@ export class CharacterStats {
     y += 6;
 
     // ── Hint ──
-    const hint = new BitmapText({
-      text: '[TAB] CLOSE',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
-    });
+    const hint = createUiText(t('ui.character.close_hint'), { fontSize: FONT_HINT, fill: TEXT_SECONDARY });
     hint.x = PANEL_W - PADDING - hint.width;
     hint.y = y;
     panel.addChild(hint);
@@ -161,26 +157,20 @@ export class CharacterStats {
   private drawEquippedLine(parent: Container, y: number): number {
     const eq = this.inventory?.equipped;
     if (eq) {
-      const name = new BitmapText({
-        text: eq.def.name,
-        style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: RARITY_COLOR[eq.rarity] ?? TEXT_PRIMARY },
-      });
+      const name = createUiText(eq.def.name, { fontSize: FONT_BODY, fill: RARITY_COLOR[eq.rarity] ?? TEXT_PRIMARY });
       name.x = PADDING;
       name.y = y;
       parent.addChild(name);
 
-      const meta = new BitmapText({
-        text: `${RARITY_DISPLAY_NAME[eq.rarity] ?? eq.rarity} . Lv.${eq.level}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
-      });
+      const meta = createUiText(
+        t('ui.character.equipped_meta', { rarity: RARITY_DISPLAY_NAME[eq.rarity] ?? eq.rarity, level: eq.level }),
+        { fontSize: FONT_HINT, fill: TEXT_SECONDARY },
+      );
       meta.x = PADDING + name.width + 8;
       meta.y = y + 2;
       parent.addChild(meta);
     } else {
-      const name = new BitmapText({
-        text: 'No weapon equipped',
-        style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: TEXT_SECONDARY },
-      });
+      const name = createUiText(t('ui.character.no_weapon'), { fontSize: FONT_BODY, fill: TEXT_SECONDARY });
       name.x = PADDING;
       name.y = y;
       parent.addChild(name);
@@ -302,10 +292,7 @@ export class CharacterStats {
   }
 
   private drawRelics(parent: Container, y: number): number {
-    const lbl = new BitmapText({
-      text: 'RELICS',
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
-    });
+    const lbl = createUiText(t('ui.character.relics'), { fontSize: FONT_HINT, fill: TEXT_SECONDARY });
     lbl.x = PADDING;
     lbl.y = y;
     parent.addChild(lbl);
