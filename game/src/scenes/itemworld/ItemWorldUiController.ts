@@ -100,6 +100,14 @@ export class ItemWorldUiController {
 
   showReturnResult(result: DiveResult, onDismiss: () => void): boolean {
     if (!this.returnResult) return false;
+    // Death-path cleanup wipes uiContainer.children before showing the
+    // ReturnResult modal, so its container can lose its parent. Re-attach
+    // before show() so the modal actually renders. (Without this the user
+    // sees the game freeze on death — modal is "shown" but lives outside
+    // the scene graph.)
+    if (!this.returnResult.container.parent) {
+      this.game.uiContainer.addChild(this.returnResult.container);
+    }
     this.returnResult.onDismiss = onDismiss;
     this.returnResult.show(result);
     return true;
