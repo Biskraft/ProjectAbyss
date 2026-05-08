@@ -5,6 +5,8 @@
 ## Daily Log (작업일지)
 최신순.
 
+- [2026-05-09](daily/2026-05-09.md) — 발 미러링 정리(256aaff4/78b74945/d1b1d795) + Death 모달 ReturnResult 재부착 회귀 fix(82abb69b) + LegRig/LandingDust 보강(03a454ce) + 위키 갱신
+- [2026-05-08](daily/2026-05-08.md) — BGM 시스템 도입(78e24336/9d177db3) + KR/EN i18n 시스템 첫 도입(30e394e7) + UI 12+ 마이그레이션 + Builder Leg 아트 파이프라인 재정립(Graphics → 스프라이트 아틀라스, 16 커밋)
 - [2026-05-07](daily/2026-05-07.md) — 행사 디렉토리북 회신 확정(국문 음역·Fine 페르소나·평문 양식) + UI native migration phase 1 배포(56c8812f, fonts LCM 48-pt + cyan-dominant 팔레트 + parallax 갱신 + 로고) + LDtk 월드 콘텐츠 배포(d15ce008)
 - [2026-05-06](daily/2026-05-06.md) — Shift+I 전역 UI 토글 + 팔레트 hue 분리 + Kings and Pigs atlas 9종 (커밋 3c919e68 / Actions 25423868766). 디렉토리북 회신 1차 초안. 별도 세션 481c8481 echoris.io 카피 정돈
 - [2026-05-04](daily/2026-05-04.md) — 사운드 시스템 전수 리서치 + DEC-040 (Audio Pipeline = @pixi/sound, ElevenLabs)
@@ -20,7 +22,9 @@
 
 ## Features (기능 히스토리)
 
+- [BuilderLegArt](features/BuilderLegArt.md) — GiantBuilder 다리 아트 파이프라인 (Pixi Graphics → ASE 슬라이스 스프라이트 아틀라스 전환)
 - [FeedbackSystem](features/FeedbackSystem.md) — F-key 인게임 피드백 채널
+- [Localization](features/Localization.md) — KR/EN i18n SSoT 시스템 (Sheets/Content_Localization.csv → game/src/i18n/locales/ 자동 생성)
 
 ## Playtests (플레이테스트)
 
