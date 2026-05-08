@@ -155,8 +155,13 @@ async function applyAtlas(pngPath: string, jsonPath: string): Promise<void> {
     throw new Error(`[builderLegAtlas] failed to fetch ${jsonPath}: ${res.status} ${res.statusText}`);
   }
   const meta = (await res.json()) as AseAtlasJson;
+  const slicesIn = meta.meta?.slices ?? [];
+  console.log(
+    `[builderLegAtlas] loaded ${jsonPath}: ${slicesIn.length} slices ` +
+    `[${slicesIn.map((s) => s.name).join(', ')}]`,
+  );
   const sliceByName = new Map<string, AseSlice>();
-  for (const s of meta.meta?.slices ?? []) sliceByName.set(s.name, s);
+  for (const s of slicesIn) sliceByName.set(s.name, s);
 
   for (const name of LEG_PART_NAMES) {
     const slice = sliceByName.get(name);
