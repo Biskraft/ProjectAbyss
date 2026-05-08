@@ -415,6 +415,9 @@ export class TitleScene extends Scene {
     if (this.uiRoot) this.uiRoot.visible = true;
     this.game.camera.snap(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.game.camera.target = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
+    // Title screen never wants gameplay HUD or the [F] FEEDBACK hint visible.
+    // Reset the gate so quit-to-title properly hides them again.
+    this.game.hudReady = false;
   }
 
   update(dt: number): void {

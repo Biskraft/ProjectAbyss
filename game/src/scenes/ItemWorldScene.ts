@@ -194,6 +194,12 @@ const DESCENT_TOTAL_MS = DESCENT_PAN_MS + DESCENT_WARP_HOLD_MS + DESCENT_IN_MS;
 const DESCENT_CAMERA_DROP_PX = 96;
 
 export class ItemWorldScene extends Scene {
+  /**
+   * Production-safe scene-type marker. FeedbackPanel reads this to log the
+   * correct `area` field (analytics) without relying on `constructor.name`,
+   * which gets mangled by Vite/Rollup minification.
+   */
+  readonly isItemWorld = true;
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */

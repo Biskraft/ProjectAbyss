@@ -70,6 +70,12 @@ export class Game {
   uiHidden = false;
   /** Set true while FeedbackPanel is open. Scenes early-return on update. */
   feedbackOpen = false;
+  /**
+   * True once gameplay HUD is allowed to render (post-title, post-Shaft banner).
+   * FeedbackPanel hint indicator and HUD reveal both gate on this flag.
+   * Reset to false when returning to TitleScene (Quit to Title path).
+   */
+  hudReady = false;
   feedbackPanel!: FeedbackPanel;
   stats = {
     enemiesKilled: 0,

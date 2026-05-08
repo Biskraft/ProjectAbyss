@@ -827,8 +827,14 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.addChild(this.hud.container);
     // Hide HUD immediately during the intro sequence so it can't flash above
     // the fade overlay while async init is still running. Revealed after
-    // the area title completes.
-    if (startHidden && !saveData) this.hud.container.visible = false;
+    // the area title completes. Mirror to Game.hudReady so global UI (e.g.
+    // FeedbackPanel hint) follows the same gate.
+    if (startHidden && !saveData) {
+      this.hud.container.visible = false;
+      this.game.hudReady = false;
+    } else {
+      this.game.hudReady = true;
+    }
 
     // Area title banner — Elden Ring style. Rides on legacyUIContainer so it
     // inherits uiScale with the rest of the overlay UI.
@@ -1141,6 +1147,9 @@ export class LdtkWorldScene extends Scene {
       this.hud.container.visible = true;
       if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
       this.introPhase = 'done';
+      // Reveal global UI (FeedbackPanel hint etc.) at the same moment the HUD
+      // appears, so the player sees a unified intro → world handoff.
+      this.game.hudReady = true;
     }
     this.wasAreaTitleActive = areaTitleActive;
 

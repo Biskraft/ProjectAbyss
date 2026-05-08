@@ -674,17 +674,22 @@ export class FeedbackPanel {
   // -------------------------------------------------------------------------
 
   private canOpenInCurrentScene(): boolean {
-    const scene = this.game.sceneManager.active as { constructor: { name: string }; isPaused?: boolean } | null;
+    // Use Game.hudReady as the authoritative "gameplay UI is ready" signal.
+    // The previous `scene.constructor.name === 'LdtkWorldScene'` check broke in
+    // production builds where Vite/Rollup minifies class names — that is why
+    // the [F] FEEDBACK hint disappeared on the live KO build.
+    if (!this.game.hudReady) return false;
+    const scene = this.game.sceneManager.active as { isPaused?: boolean } | null;
     if (!scene) return false;
-    const okScene = scene.constructor.name === 'LdtkWorldScene' || scene.constructor.name === 'ItemWorldScene';
-    if (!okScene) return false;
     if (scene.isPaused === true) return false;
     return true;
   }
 
   private getCurrentArea(): 'world' | 'itemworld' {
-    const name = this.game.sceneManager.active?.constructor.name ?? '';
-    return name === 'ItemWorldScene' ? 'itemworld' : 'world';
+    // ItemWorldScene flips a Game-level flag while active; reading that is
+    // production-safe (constructor.name is mangled by minification).
+    const scene = this.game.sceneManager.active as { isItemWorld?: boolean } | null;
+    return scene?.isItemWorld === true ? 'itemworld' : 'world';
   }
 
   // -------------------------------------------------------------------------
