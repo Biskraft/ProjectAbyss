@@ -353,7 +353,16 @@ export class LegRig {
       const lowerActualLen = Math.hypot(ankleX - kx, ankleY - ky);
       const legScale = 1;
 
+      // m.mirror flips every sprite horizontally about its anchor so legs
+      // on the opposite side of the body show the asymmetric art reflected
+      // (matches the gait stride flip already done by the IK above). PIXI
+      // applies scale before rotation, so a negative scale.x doesn't
+      // disturb the rotation / endpoint math — it only mirrors the texture
+      // pixel content around the anchor's vertical axis.
+      const mirrorX = m.mirror ? -legScale : legScale;
+
       sprites.shoulder.position.set(sx, sy);
+      sprites.shoulder.scale.set(mirrorX, legScale);
 
       // PIXI applies rotation as a standard CCW matrix in math space; with
       // anchor (0.5, 0) the sprite's default "down" vector (0, 1) becomes
@@ -364,15 +373,17 @@ export class LegRig {
       // endpoints met the joints but the limb rotated the wrong way.
       sprites.upper.position.set(sx, sy);
       sprites.upper.rotation = Math.atan2(sx - kx, ky - sy);
-      sprites.upper.scale.set(legScale, upperActualLen / sprites.upperSourceH);
+      sprites.upper.scale.set(mirrorX, upperActualLen / sprites.upperSourceH);
 
       sprites.knee.position.set(kx, ky);
+      sprites.knee.scale.set(mirrorX, legScale);
 
       sprites.lower.position.set(kx, ky);
       sprites.lower.rotation = Math.atan2(kx - ankleX, ankleY - ky);
-      sprites.lower.scale.set(legScale, lowerActualLen / sprites.lowerSourceH);
+      sprites.lower.scale.set(mirrorX, lowerActualLen / sprites.lowerSourceH);
 
       sprites.foot.position.set(ankleX, ankleY);
+      sprites.foot.scale.set(mirrorX, legScale);
     }
   }
 
