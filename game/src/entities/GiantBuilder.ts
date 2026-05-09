@@ -34,6 +34,7 @@ interface BuilderLightDef {
 }
 
 const TILE = 16;
+const AUTO_FOOT_WALL_CLEARANCE = 2 * TILE;
 
 export interface BuilderRoutePoint {
   y: number;
@@ -41,6 +42,12 @@ export interface BuilderRoutePoint {
 }
 
 type BuilderState = 'moving' | 'waiting' | 'dormant';
+
+interface HostFootAnchorContext {
+  hostLevel: LdtkLevel;
+  builderX: number;
+  builderY: number;
+}
 
 export class GiantBuilder {
   readonly container: Container;
@@ -102,6 +109,7 @@ export class GiantBuilder {
     atlases: Record<string, Texture>,
     bgAreaId: string,
     wallAreaId: string,
+    hostFootAnchor?: HostFootAnchorContext,
   ) {
     this.widthPx = level.pxWid;
     this.heightPx = level.pxHei;
@@ -128,7 +136,7 @@ export class GiantBuilder {
     // in the builder level. Back-layer legs render behind the body tilemap
     // (peek out around the body); legs with ForwardRender=true render in the
     // front layer to show the full leg silhouette in front of the body.
-    const mounts = GiantBuilder.extractLegMounts(level);
+    const mounts = GiantBuilder.extractLegMounts(level, hostFootAnchor);
     this.footDust = new LandingDustManager(this.container);
     this.legRig = new LegRig(mounts, (x, y, mount) => {
       if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
@@ -192,7 +200,7 @@ export class GiantBuilder {
    *                row (×16 → px). Use to snap feet to a horizontal floor.
    *                Overrides Angle/Length when set.
    */
-  private static extractLegMounts(level: LdtkLevel): LegMount[] {
+  private static extractLegMounts(level: LdtkLevel, hostFootAnchor?: HostFootAnchorContext): LegMount[] {
     return level.entities
       .filter((e) => e.type === 'LegMount')
       .map((e) => {
@@ -206,8 +214,26 @@ export class GiantBuilder {
           : undefined;
         // FootX / FootY are authored in cells for editor-friendly snapping;
         // convert to body-local pixels for the IK anchor.
-        const footAnchorX = typeof e.fields.FootX === 'number' ? e.fields.FootX * TILE : undefined;
-        const footAnchorY = typeof e.fields.FootY === 'number' ? e.fields.FootY * TILE : undefined;
+        const autoFootRight = e.fields.AutoFootRight === true;
+        const autoFootLeft = e.fields.AutoFootLeft === true;
+        let footAnchorX = typeof e.fields.FootX === 'number' ? e.fields.FootX * TILE : undefined;
+        let footAnchorY = typeof e.fields.FootY === 'number' ? e.fields.FootY * TILE : undefined;
+        let footContact: LegMount['footContact'] = 'bottom';
+        if (hostFootAnchor && (autoFootRight || autoFootLeft)) {
+          const localFootY = footAnchorY ?? e.px[1];
+          const row = GiantBuilder.resolveFootScanRow(hostFootAnchor.hostLevel, hostFootAnchor.builderY + localFootY);
+          const hostFaceX = autoFootRight
+            ? GiantBuilder.findRightHostWallFaceX(hostFootAnchor.hostLevel, row)
+            : GiantBuilder.findLeftHostWallFaceX(hostFootAnchor.hostLevel, row);
+          if (hostFaceX !== undefined) {
+            const clearance = typeof e.fields.AutoFootClearance === 'number'
+              ? e.fields.AutoFootClearance * TILE
+              : AUTO_FOOT_WALL_CLEARANCE;
+            footAnchorX = hostFaceX - hostFootAnchor.builderX + (autoFootRight ? -clearance : clearance);
+            footContact = autoFootRight ? 'right' : 'left';
+          }
+          footAnchorY ??= (row + 0.5) * TILE - hostFootAnchor.builderY;
+        }
         return {
           x: e.px[0],
           y: e.px[1],
@@ -218,8 +244,32 @@ export class GiantBuilder {
           length,
           footAnchorX,
           footAnchorY,
+          footContact,
         };
       });
+  }
+
+  private static resolveFootScanRow(level: LdtkLevel, yPx: number): number {
+    const row = Math.floor(yPx / TILE);
+    return Math.max(0, Math.min(level.gridH - 1, row));
+  }
+
+  private static findRightHostWallFaceX(level: LdtkLevel, row: number): number | undefined {
+    for (let c = level.gridW - 1; c >= 0; c--) {
+      if ((level.collisionGrid[row]?.[c] ?? 0) !== 1) continue;
+      while (c > 0 && (level.collisionGrid[row]?.[c - 1] ?? 0) === 1) c--;
+      return c * TILE;
+    }
+    return undefined;
+  }
+
+  private static findLeftHostWallFaceX(level: LdtkLevel, row: number): number | undefined {
+    for (let c = 0; c < level.gridW; c++) {
+      if ((level.collisionGrid[row]?.[c] ?? 0) !== 1) continue;
+      while (c < level.gridW - 1 && (level.collisionGrid[row]?.[c + 1] ?? 0) === 1) c++;
+      return (c + 1) * TILE;
+    }
+    return undefined;
   }
 
   private static extractLights(level: LdtkLevel): BuilderLightDef[] {

@@ -82,6 +82,7 @@ export interface LegMount {
    */
   footAnchorX?: number;
   footAnchorY?: number;
+  footContact?: 'bottom' | 'left' | 'right';
 }
 
 interface ResolvedMount {
@@ -98,6 +99,7 @@ interface ResolvedMount {
   standDist: number;
   stride: number;
   swingLift: number;
+  footContact: 'bottom' | 'left' | 'right';
 }
 
 type LegFootPlantCallback = (x: number, y: number, mount: ResolvedMount) => void;
@@ -118,6 +120,8 @@ interface LegSprites {
    */
   upperSourceH: number;
   lowerSourceH: number;
+  footSourceW: number;
+  footSourceH: number;
 }
 
 export class LegRig {
@@ -134,6 +138,8 @@ export class LegRig {
   private cumulativeDist = 0;
   private unsubscribeSwap: (() => void) | null = null;
   private wasPlanted: boolean[] = [];
+  private plantedFoot: Array<{ x: number; y: number } | null> = [];
+  private swingStartFoot: Array<{ x: number; y: number } | null> = [];
   private onFootPlant: LegFootPlantCallback | null = null;
 
   constructor(mounts: LegMount[], onFootPlant?: LegFootPlantCallback) {
@@ -177,9 +183,12 @@ export class LegRig {
         standDist,
         stride: DEFAULT_STRIDE * scale,
         swingLift: DEFAULT_SWING_LIFT * scale,
+        footContact: m.footContact ?? 'bottom',
       };
     });
     this.wasPlanted = this.mounts.map(() => false);
+    this.plantedFoot = this.mounts.map(() => null);
+    this.swingStartFoot = this.mounts.map(() => null);
 
     // Atlas may already be loaded (boot preloaded) — build sprites synchronously
     // in that case so the very first update() shows full legs. Otherwise kick
@@ -206,8 +215,11 @@ export class LegRig {
   private buildSprites(): void {
     const upperPart = getLegPart('upper_limb');
     const lowerPart = getLegPart('lower_limb');
+    const footPart = getLegPart('foot');
     const upperSourceH = upperPart.rect.height;
     const lowerSourceH = lowerPart.rect.height;
+    const footSourceW = footPart.rect.width;
+    const footSourceH = footPart.rect.height;
 
     for (const m of this.mounts) {
       const shoulder = this.makeSprite('shoulder');
@@ -233,7 +245,7 @@ export class LegRig {
       const target = m.forwardRender ? this.frontContainer : this.container;
       target.addChild(legContainer);
 
-      this.legs.push({ shoulder, upper, knee, lower, foot, upperSourceH, lowerSourceH });
+      this.legs.push({ shoulder, upper, knee, lower, foot, upperSourceH, lowerSourceH, footSourceW, footSourceH });
     }
   }
 
@@ -281,16 +293,51 @@ export class LegRig {
       // Foot position in the leg's LOCAL frame (down=+Y, forward=+X).
       let lx: number;
       let ly: number;
-      if (localPhase < SWING_PORTION) {
+      const isSwing = localPhase < SWING_PORTION;
+      const alpha = m.angle - Math.PI / 2;
+      const ca = Math.cos(alpha);
+      const sa = Math.sin(alpha);
+      const sx = m.x;
+      const sy = m.y;
+      if (isSwing) {
         const t = localPhase / SWING_PORTION;
-        lx = -m.stride * 0.5 + m.stride * t;
-        ly = m.standDist - Math.sin(t * Math.PI) * m.swingLift;
+        const planted = this.plantedFoot[i];
+        if (planted && !this.swingStartFoot[i]) {
+          planted.y -= bodyDelta;
+          const dx = planted.x - m.x;
+          const dy = planted.y - m.y;
+          this.swingStartFoot[i] = {
+            x: dx * ca + dy * sa,
+            y: -dx * sa + dy * ca,
+          };
+        }
+        const start = this.swingStartFoot[i];
+        const endX = m.mirror ? -m.stride * 0.5 : m.stride * 0.5;
+        const endY = m.standDist;
+        if (start) {
+          lx = start.x + (endX - start.x) * t;
+          ly = start.y + (endY - start.y) * t - Math.sin(t * Math.PI) * m.swingLift;
+        } else {
+          lx = (m.mirror ? 1 : -1) * m.stride * 0.5 + (m.mirror ? -m.stride : m.stride) * t;
+          ly = m.standDist - Math.sin(t * Math.PI) * m.swingLift;
+        }
+        this.plantedFoot[i] = null;
       } else {
+        this.swingStartFoot[i] = null;
         const t = (localPhase - SWING_PORTION) / (1 - SWING_PORTION);
         lx = m.stride * 0.5 - m.stride * t;
         ly = m.standDist;
+        if (m.mirror) lx = -lx;
       }
-      if (m.mirror) lx = -lx;
+
+      if (!isSwing && this.plantedFoot[i]) {
+        const planted = this.plantedFoot[i]!;
+        planted.y -= bodyDelta;
+        const dx = planted.x - m.x;
+        const dy = planted.y - m.y;
+        lx = dx * ca + dy * sa;
+        ly = -dx * sa + dy * ca;
+      }
 
       // Clamp foot reach in local frame so IK stays solvable.
       let d = Math.hypot(lx, ly);
@@ -316,20 +363,20 @@ export class LegRig {
 
       // Rotate local frame so that the leg's local +Y aligns with the mount's
       // angle direction in body-local space. alpha = angle - π/2.
-      const alpha = m.angle - Math.PI / 2;
-      const ca = Math.cos(alpha);
-      const sa = Math.sin(alpha);
-      const sx = m.x;
-      const sy = m.y;
       const kx = m.x + ik.kx * ca - ik.ky * sa;
       const ky = m.y + ik.kx * sa + ik.ky * ca;
       const fx = m.x + lx * ca - ly * sa;
       const fy = m.y + lx * sa + ly * ca;
+      const legScale = LEG_RENDER_SCALE;
+      const mirrorX = m.mirror ? -legScale : legScale;
+      const footMirrorX = legScale;
+      const footMirrorY = m.mirror ? -legScale : legScale;
       const planted = localPhase >= SWING_PORTION;
-      if (planted && !this.wasPlanted[i] && Math.abs(bodyDelta) > 0.01) {
-        const footBottomX = fx;
-        const footBottomY = m.mirror ? fy - FOOT_THICKNESS : fy;
-        this.onFootPlant?.(footBottomX, footBottomY, m);
+      if (planted && !this.wasPlanted[i]) {
+        this.plantedFoot[i] = { x: fx, y: fy };
+        const contactX = fx;
+        const contactY = fy;
+        if (Math.abs(bodyDelta) > 0.01) this.onFootPlant?.(contactX, contactY, m);
       }
       this.wasPlanted[i] = planted;
 
@@ -338,8 +385,16 @@ export class LegRig {
       // always lies flat on a horizontal floor regardless of how the leg
       // is tilted by FootX/FootY. Ankle is therefore directly above the
       // sole by FOOT_THICKNESS in body-local space.
-      const ankleX = fx;
-      const ankleY = fy - FOOT_THICKNESS;
+      const footHalfW = sprites.footSourceW * legScale * 0.5;
+      const footH = sprites.footSourceH * legScale;
+      const ankleX = m.footContact === 'right'
+        ? fx - footHalfW
+        : m.footContact === 'left'
+          ? fx + footHalfW
+          : fx;
+      const ankleY = m.footContact === 'right' || m.footContact === 'left'
+        ? fy - (footH * footMirrorY * 0.5)
+        : fy - FOOT_THICKNESS;
 
       // Sprite layout:
       //   shoulder centered on (sx, sy)
@@ -365,8 +420,6 @@ export class LegRig {
       // the rendered distance.
       const upperActualLen = Math.hypot(kx - sx, ky - sy);
       const lowerActualLen = Math.hypot(ankleX - kx, ankleY - ky);
-      const legScale = LEG_RENDER_SCALE;
-
       // m.mirror flips joint + limb sprites horizontally so the asymmetric
       // armor art reflects for legs on the opposite side of the body
       // (matches the gait stride flip already done by IK above). PIXI
@@ -376,10 +429,6 @@ export class LegRig {
       //
       // Foot stays unrotated. On mirrored legs only its Y axis flips; keeping
       // X unflipped preserves the authored toe/heel direction.
-      const mirrorX = m.mirror ? -legScale : legScale;
-      const footMirrorX = legScale;
-      const footMirrorY = m.mirror ? -legScale : legScale;
-
       sprites.shoulder.position.set(sx, sy);
       sprites.shoulder.scale.set(mirrorX, legScale);
 

@@ -39,6 +39,7 @@ const CORE_ASSETS: Record<string, string> = {
   fx019: assetPath('assets/sprites/FX019.png'),
   breakable_01: assetPath('assets/sprites/breakable_01.png'),
   signboard_save: assetPath('assets/sprites/signboard_save_01.png'),
+  coin_atlas: assetPath('assets/sprites/coin_01_atlas.png'),
 };
 
 /**

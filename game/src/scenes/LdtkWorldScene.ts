@@ -1751,6 +1751,7 @@ export class LdtkWorldScene extends Scene {
         gp.collect();
         this.gold += gp.amount;
         this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
+        this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
         gp.destroy();
         this.goldPickups.splice(i, 1);
       }
@@ -2524,7 +2525,7 @@ export class LdtkWorldScene extends Scene {
     }
     // Gold drop on kill (Elden Ring style ??items are hand-placed, not monster drops)
     const isGolden = enemy instanceof GoldenMonster;
-    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.05);
+    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.1);
     const goldAmount = isGolden ? baseGold * 3 : baseGold;
     if (goldAmount > 0) {
       const burst = resolveBottomLeftPickupSpawn(
@@ -4936,12 +4937,19 @@ export class LdtkWorldScene extends Scene {
   private spawnBuilder(hostLevel: LdtkLevel, mode: 'cinematic' | 'patrol', builderLevelId: string): void {
     const builderLevel = this.builderLoader.getLevel(builderLevelId);
     if (!builderLevel) return;
+    const topY = 64;
+    const bottomY = hostLevel.pxHei - builderLevel.pxHei - 64;
+    const px = mode === 'cinematic'
+      ? hostLevel.pxWid - builderLevel.pxWid - 31 * 16
+      : hostLevel.pxWid - builderLevel.pxWid - 16 * 16;
+    const initialY = mode === 'cinematic' && this.shaft01CinematicPlayed ? topY : bottomY;
 
     const builder = new GiantBuilder(
       builderLevel,
       this.atlases,
       'world_shaft_builder_bg',
       'world_shaft_builder_wall',
+      { hostLevel, builderX: px, builderY: initialY },
     );
 
     // Builder decorations use the builder-specific palette so the structure
@@ -4963,15 +4971,11 @@ export class LdtkWorldScene extends Scene {
       builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
     }
 
-    const topY = 64;                                          // 4 tiles from top
-    const bottomY = hostLevel.pxHei - builder.heightPx - 64;  // 4 tiles from bottom
-
     if (mode === 'cinematic') {
       // Shaft_01 — right wall minus 31 tiles (사용자 결정 2026-05-03). First
       // entry: one-shot bottom→top ascent. Re-entries: spawn at the dormant
       // top pose with no route so the builder stays parked where the
       // cinematic left it.
-      const px = hostLevel.pxWid - builder.widthPx - 31 * 16;
       if (this.shaft01CinematicPlayed) {
         builder.placeInLevel(px, topY);
         this.renderer.container.addChild(builder.container);
@@ -4987,7 +4991,6 @@ export class LdtkWorldScene extends Scene {
       }
     } else {
       // Debug_Shaft_01 — infinite patrol; spawn at bottom, climb up first.
-      const px = hostLevel.pxWid - builder.widthPx - 16 * 16;
       builder.placeInLevel(px, bottomY);
       this.renderer.container.addChild(builder.container);
       builder.setRoute([
@@ -5016,12 +5019,15 @@ export class LdtkWorldScene extends Scene {
   private spawnShaft02Builder(hostLevel: LdtkLevel): void {
     const builderLevel = this.builderLoader.getLevel('Builder_Level_1');
     if (!builderLevel) return;
+    const builderX = 15 * 16;
+    const initialY = 832;
 
     const builder = new GiantBuilder(
       builderLevel,
       this.atlases,
       'world_shaft_builder_bg',
       'world_shaft_builder_wall',
+      { hostLevel, builderX, builderY: initialY },
     );
 
     // 빌더 데코 / 본체 팔레트 — Shaft_01 patrol 과 동일.
@@ -5041,7 +5047,7 @@ export class LdtkWorldScene extends Scene {
     const px = 15 * 16; // 좌측 벽 + 15 tile (1 tile = 16 px).
     // 시작 위치 = patrol 의 아래쪽 끝 (y=832). 8 tile 아래 → 4 tile 위로 보정.
     // 플레이어가 Shaft_02 진입 시 빌더가 아래에서부터 천천히 올라오는 인상.
-    builder.placeInLevel(px, 832);
+    builder.placeInLevel(px, initialY);
 
     // 렌더 순서: 빌더는 host wallLayer 앞 + procDecorator 자연/인공 데코 뒤.
     // procDecorator.naturalLayer 인덱스 직전에 삽입 → 데코가 빌더 위로 그려져
@@ -5342,6 +5348,7 @@ export class LdtkWorldScene extends Scene {
     this.player.atk = buffedStats.atk;
 
     // Sync equipped weapon properties for FX + attack hitbox scaling.
+    this.player.equippedWeaponId = equippedItem ? equippedItem.def.id : null;
     this.player.equippedWeaponType = equippedItem ? equippedItem.def.type : null;
     this.player.equippedRarity = equippedItem ? equippedItem.rarity : null;
     this.player.attackHitboxMul = equippedItem

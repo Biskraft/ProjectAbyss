@@ -270,6 +270,7 @@ export class WorldScene extends Scene {
     this.player.atk = buffedStats.atk;
     this.player.def = buffedStats.def;
     const eq = this.inventory.equipped;
+    this.player.equippedWeaponId = eq ? eq.def.id : null;
     this.player.equippedWeaponType = eq ? eq.def.type : null;
     this.player.equippedRarity = eq ? eq.rarity : null;
     this.player.attackHitboxMul = eq ? eq.def.hitboxW / BASE_HITBOX_W : 1;

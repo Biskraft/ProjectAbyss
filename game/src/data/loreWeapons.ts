@@ -138,5 +138,7 @@ export function loreWeaponToWeaponDef(lore: LoreWeaponDef): WeaponDef {
     hitboxW: template.hitboxW,
     hitboxH: template.hitboxH,
     themeId: template.themeId,
+    weaponHandleX: template.weaponHandleX,
+    weaponHandleY: template.weaponHandleY,
   };
 }

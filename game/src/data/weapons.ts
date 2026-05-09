@@ -3,7 +3,8 @@
  *
  * SSoT: Sheets/Content_Stats_Weapon_List.csv
  * CSV columns (post LOC-04): WeaponID, NameKey, Type, Rarity, BaseATK,
- *   AtkSpeed, Range, HitboxW, HitboxH, ThemeID, Topology
+ *   AtkSpeed, Range, HitboxW, HitboxH, ThemeID, Topology,
+ *   WeaponHandleX, WeaponHandleY
  *
  * NameKey resolves through Sheets/Content_Localization.csv via t() so KO
  * builds (and Phase 3 runtime swap) localize correctly. The same key space
@@ -91,6 +92,9 @@ export interface WeaponDef {
   hitboxH: number;
   /** Item World visual theme. e.g. "T-HABITAT", "T-FOUNDRY" */
   themeId: string;
+  /** Weapon sprite handle point in item icon pixels. */
+  weaponHandleX: number;
+  weaponHandleY: number;
   /**
    * 무기별 Room Graph 토폴로지 강제 (Phase 4). 지정 시 모든 stratum 의
    * StratumDef.topology 를 오버라이드한다. 미지정 = stratum 기본값.
@@ -138,5 +142,7 @@ for (let i = 1; i < lines.length; i++) {
     hitboxH: parseInt(cols[8]),
     themeId: (cols[9] ?? 'T-HABITAT').trim(),
     topologyOverride,
+    weaponHandleX: Number.isFinite(parseFloat(cols[11])) ? parseFloat(cols[11]) : 3,
+    weaponHandleY: Number.isFinite(parseFloat(cols[12])) ? parseFloat(cols[12]) : 13,
   });
 }

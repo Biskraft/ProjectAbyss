@@ -8,7 +8,7 @@ import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
 import { resolveComboFx, FX_SLASH_FRAMES } from '@combat/WeaponFx';
 import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
-import type { Rarity, WeaponType } from '@data/weapons';
+import { SWORD_DEFS, type Rarity, type WeaponDef, type WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
@@ -46,6 +46,16 @@ const DASH_CORNER_TOLERANCE = PlayerConst.DashCornerToleranceY;
 const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upward
 
 const FRAME_MS = 1000 / 60;
+const DEBUG_ATTACK_TIME_SCALE = 1;
+const WEAPON_ICON_BASE_ROTATION = -45 * Math.PI / 180;
+
+const ATTACK_WEAPON_POSES = [
+  { x: 14, y: 17, rotation: 2.35, scale: 0.85 },
+  { x: 15, y: 17, rotation: 2.35, scale: 0.9 },
+  { x: 15, y: 16, rotation: 2.35, scale: 0.85 },
+  { x: 14, y: 16, rotation: 2.35, scale: 0.8 },
+] as const;
+type AttackWeaponPose = { x: number; y: number; rotation: number; scale: number };
 
 export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | 'surge_charge' | 'surge_fly' | 'attack' | 'hit' | 'death';
 
@@ -63,6 +73,9 @@ export class Player extends Entity implements CombatEntity {
    * 로딩이 비동기이므로 로드 전엔 null, 로드 완료 시 컨테이너에 부착.
    */
   private erdaSprite: Sprite | null = null;
+  private weaponSprite: Sprite | null = null;
+  private weaponSpriteDefId: string | null = null;
+  private attackWeaponPoses: AttackWeaponPose[] = ATTACK_WEAPON_POSES.map(p => ({ ...p }));
   /** 아틀라스에서 잘라낸 8개 프레임 텍스처 (idle 0–3, jump 4–7). */
   private erdaFrames: Texture[] = [];
   /**
@@ -91,7 +104,7 @@ export class Player extends Entity implements CombatEntity {
    */
   private erdaJumpedOff = false;
   private static readonly ANIM_IDLE_FRAME_MS = 400;  // 원본 100ms × 4 느리게
-  private static readonly ANIM_RUN_FRAME_MS = 100;    // running — atlas 원본 속도
+  private static readonly ANIM_RUN_FRAME_MS = 67;     // running — 원본 100ms 의 1.5× 속도
   private static readonly ANIM_TAKEOFF_MS = 160;      // 프레임 4 — 짧은 이륙 squash (2배 튜닝)
   private static readonly ANIM_LAND_FRAME_MS = 150;   // 프레임 6, 7 각각 — 속도 2/3 로 감속 (100→150ms)
   private static readonly ANIM_DASH_STARTUP_MS = 30;  // 프레임 16 — 날카로운 시동 (짧게)
@@ -123,6 +136,7 @@ export class Player extends Entity implements CombatEntity {
    * Consumed by triggerSlash() to pick per-type FX from Content_FX_WeaponType.
    */
   equippedWeaponType: WeaponType | null = null;
+  equippedWeaponId: string | null = null;
 
   /**
    * One-shot pulse: ATTACK was pressed in a state that *would* attack, but
@@ -326,6 +340,8 @@ export class Player extends Entity implements CombatEntity {
 
     // 비동기 로드: 완료 시 Graphics 를 숨기고 Sprite 로 교체.
     this.loadErdaSprite();
+    this.loadAttackWeaponPoseData();
+    this.loadWeaponSprite();
     this.loadSlashSprite();
 
     // State machine
@@ -1059,7 +1075,7 @@ export class Player extends Entity implements CombatEntity {
 
   private startAttack(): void {
     const step = COMBO_STEPS[this.comboIndex];
-    this.attackTimer = step.totalFrames * FRAME_MS;
+    this.attackTimer = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
     this.attackActive = true;
     this.attackQueued = false;
     this.hitList.clear();
@@ -1083,10 +1099,10 @@ export class Player extends Entity implements CombatEntity {
     this.attackTimer -= dt;
 
     const step = COMBO_STEPS[this.comboIndex];
-    const activeEnd = step.activeFrames * FRAME_MS;
+    const activeEnd = step.activeFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
 
     // Deactivate hitbox after active frames
-    if (this.attackTimer <= (step.totalFrames - step.activeFrames) * FRAME_MS) {
+    if (this.attackTimer <= (step.totalFrames - step.activeFrames) * FRAME_MS * DEBUG_ATTACK_TIME_SCALE) {
       this.attackActive = false;
       this.attackSprite.visible = false;
     }
@@ -1330,12 +1346,114 @@ export class Player extends Entity implements CombatEntity {
       s.x = this.width / 2;
       s.y = this.height;
       // attackSprite / flashOverlay 보다 아래에 놓아 히트박스 디버그 오버레이를 가리지 않도록.
-      this.container.addChildAt(s, 0);
+      const weaponIdx = this.weaponSprite ? this.container.getChildIndex(this.weaponSprite) : -1;
+      this.container.addChildAt(s, weaponIdx >= 0 ? weaponIdx + 1 : 0);
       this.erdaSprite = s;
       this.sprite.visible = false; // placeholder off.
     }).catch(() => {
       // 로드 실패 → placeholder 유지.
     });
+  }
+
+  private getEquippedWeaponDef(): WeaponDef {
+    const id = this.equippedWeaponId ?? 'sword_broken';
+    return SWORD_DEFS.find(d => d.id === id) ?? SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
+  }
+
+  private loadWeaponSprite(defId = 'sword_broken'): void {
+    const def = SWORD_DEFS.find(d => d.id === defId) ?? SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
+    const path = assetPath(`assets/items/${def.id}.png`);
+    Assets.load(path).then((tex: Texture) => {
+      if (this.container.destroyed) return;
+      tex.source.scaleMode = 'nearest';
+
+      const s = new Sprite(tex);
+      s.anchor.set(0, 0);
+      s.pivot.set(def.weaponHandleX, def.weaponHandleY);
+      s.visible = false;
+
+      if (this.weaponSprite && !this.weaponSprite.destroyed) {
+        this.container.removeChild(this.weaponSprite);
+        this.weaponSprite.destroy();
+      }
+      const erdaIdx = this.erdaSprite ? this.container.getChildIndex(this.erdaSprite) : -1;
+      this.container.addChildAt(s, erdaIdx >= 0 ? erdaIdx : 0);
+      this.weaponSprite = s;
+      this.weaponSpriteDefId = def.id;
+    }).catch(() => {
+      // Cosmetic only: attack still works without the held weapon sprite.
+    });
+  }
+
+  private loadAttackWeaponPoseData(): void {
+    const path = assetPath('assets/characters/erda_atlas.json');
+    fetch(path)
+      .then(res => res.ok ? res.json() : null)
+      .then((json: {
+        meta?: {
+          slices?: Array<{
+            name?: string;
+            keys?: Array<{
+              bounds?: { x: number; y: number; w?: number; h?: number };
+              pivot?: { x: number; y: number };
+            }>;
+          }>;
+        };
+      } | null) => {
+        if (!json?.meta?.slices) return;
+
+        const poses = this.attackWeaponPoses.map(p => ({ ...p }));
+        for (const slice of json.meta.slices) {
+          const match = /^weapon_(\d+)_r(-?\d+)_s(\d+)$/i.exec(slice.name ?? '');
+          const key = slice.keys?.[0];
+          if (!match || !key?.bounds) continue;
+
+          const frameNo = Number(match[1]);
+          const attackFrameIdx =
+            frameNo >= 19 && frameNo <= 22 ? frameNo - 19 :
+            frameNo >= 18 && frameNo <= 21 ? frameNo - 18 :
+            -1;
+          if (attackFrameIdx < 0 || attackFrameIdx >= poses.length) continue;
+
+          poses[attackFrameIdx] = {
+            x: key.bounds.x + (key.pivot?.x ?? Math.floor((key.bounds.w ?? 1) / 2)),
+            y: key.bounds.y + (key.pivot?.y ?? Math.floor((key.bounds.h ?? 1) / 2)),
+            rotation: Number(match[2]) * Math.PI / 180 + WEAPON_ICON_BASE_ROTATION,
+            scale: Number(match[3]) / 100,
+          };
+        }
+        this.attackWeaponPoses = poses;
+      })
+      .catch(() => {
+        // Fall back to ATTACK_WEAPON_POSES when slice metadata is unavailable.
+      });
+  }
+
+  private hideAttackWeapon(): void {
+    if (this.weaponSprite) this.weaponSprite.visible = false;
+  }
+
+  private updateAttackWeaponPose(frameIdx: number): void {
+    const s = this.weaponSprite;
+    const def = this.getEquippedWeaponDef();
+    if (this.weaponSpriteDefId !== def.id) {
+      this.loadWeaponSprite(def.id);
+    }
+    if (!s) return;
+
+    const idx = Math.max(0, Math.min(this.attackWeaponPoses.length - 1, frameIdx));
+    const pose = this.attackWeaponPoses[idx];
+    const erdaLocalX = this.width / 2;
+    const erdaLocalY = this.height;
+    const erdaFrameW = 32;
+    const erdaFrameH = 32;
+    s.visible = true;
+    s.x = this.facingRight
+      ? erdaLocalX - erdaFrameW / 2 + pose.x
+      : erdaLocalX + erdaFrameW / 2 - pose.x;
+    s.y = erdaLocalY - erdaFrameH + pose.y;
+    s.rotation = this.facingRight ? pose.rotation : -pose.rotation;
+    s.scale.set(this.facingRight ? pose.scale : -pose.scale, pose.scale);
   }
 
   /**
@@ -1415,6 +1533,8 @@ export class Player extends Entity implements CombatEntity {
     s.tint = fx.color;
     s.texture = this.slashFrames[from];
     s.visible = true;
+    this.container.setChildIndex(s, this.container.children.length - 1);
+    this.updateSlashFX(0);
   }
 
   /**
@@ -1435,8 +1555,9 @@ export class Player extends Entity implements CombatEntity {
     s.scale.x = this.facingRight ? sx : -sx;
 
     this.slashTimer += dt;
-    while (this.slashTimer >= Player.ANIM_SLASH_FRAME_MS) {
-      this.slashTimer -= Player.ANIM_SLASH_FRAME_MS;
+    const slashFrameMs = Player.ANIM_SLASH_FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    while (this.slashTimer >= slashFrameMs) {
+      this.slashTimer -= slashFrameMs;
       this.slashFrameIdx++;
       if (this.slashFrameIdx > this.slashToIdx) {
         // 재생 완료 → 숨김.
@@ -1461,6 +1582,7 @@ export class Player extends Entity implements CombatEntity {
     // dash 중엔 grounded 엣지(takeoff/land) 전이를 건너뛰어 16→17 시퀀스를 보장.
     const fsmState = this.fsm.currentState;
     if (fsmState === 'dash') {
+      this.hideAttackWeapon();
       if (this.erdaAnim !== 'dash') {
         this.erdaAnim = 'dash';
         this.erdaAnimFrame = 0;
@@ -1493,10 +1615,12 @@ export class Player extends Entity implements CombatEntity {
       }
       this.erdaPrevGrounded = this.grounded;
       const step = COMBO_STEPS[this.comboIndex];
-      const total = step.totalFrames * FRAME_MS;
+      const total = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
       const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
       const idx = Math.min(3, Math.floor(progress * 4));
+      this.erdaAnimFrame = idx;
       this.erdaSprite.texture = this.erdaFrames[18 + idx];
+      this.updateAttackWeaponPose(idx);
       return;
     }
     if (this.erdaAnim === 'attack') {
@@ -1505,6 +1629,7 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
+    this.hideAttackWeapon();
 
     // 엣지 감지 — grounded 변화 순간에만 서브 스테이트 전이.
     if (this.erdaPrevGrounded && !this.grounded) {
@@ -1629,6 +1754,10 @@ export class Player extends Entity implements CombatEntity {
     if (this.erdaSprite) {
       // Sprite 는 anchor(0.5, 1) 기준이므로 scale.x 만 뒤집으면 중심 축 회전.
       this.erdaSprite.scale.x = this.facingRight ? 1 : -1;
+      if (this.weaponSprite?.visible && this.erdaAnim === 'attack') {
+        this.updateAttackWeaponPose(this.erdaAnimFrame);
+        this.weaponSprite.alpha = this.erdaSprite.alpha;
+      }
     } else {
       // Placeholder Graphics 는 top-left 기준 → x 보정 필요 (기존 로직 유지).
       this.sprite.scale.x = this.facingRight ? 1 : -1;
