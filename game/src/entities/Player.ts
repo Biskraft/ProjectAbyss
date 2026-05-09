@@ -48,6 +48,10 @@ const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upwar
 const FRAME_MS = 1000 / 60;
 const DEBUG_ATTACK_TIME_SCALE = 1;
 const WEAPON_ICON_BASE_ROTATION = -45 * Math.PI / 180;
+const SLASH_FX_FRAME_W = 96;
+const SLASH_FX_FRAME_H = 64;
+const SLASH_FX_ERDA_REF_X = 0;
+const SLASH_FX_ERDA_REF_Y = 16;
 
 const ATTACK_WEAPON_POSES = [
   { x: 14, y: 17, rotation: 2.35, scale: 0.85 },
@@ -311,6 +315,7 @@ export class Player extends Entity implements CombatEntity {
   attackQueued = false;     // next attack input buffered
   hitList = new Set<CombatEntity>();
   private attackActive = false;
+  private attackHasActivated = false;
 
   // Room data reference for collision
   roomData: number[][] = [];
@@ -1076,7 +1081,8 @@ export class Player extends Entity implements CombatEntity {
   private startAttack(): void {
     const step = COMBO_STEPS[this.comboIndex];
     this.attackTimer = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
-    this.attackActive = true;
+    this.attackActive = false;
+    this.attackHasActivated = false;
     this.attackQueued = false;
     this.hitList.clear();
     this.comboWindowTimer = 0;
@@ -1086,9 +1092,8 @@ export class Player extends Entity implements CombatEntity {
     SFX.play('attack_swing', this.comboIndex);
 
     // Show attack hitbox visual
-    this.updateAttackVisual();
+    this.attackSprite.visible = false;
     // Slash FX — comboIndex 별 태그/스케일.
-    this.triggerSlash(this.comboIndex);
   }
 
   private stateAttack(dt: number): void {
@@ -1099,10 +1104,20 @@ export class Player extends Entity implements CombatEntity {
     this.attackTimer -= dt;
 
     const step = COMBO_STEPS[this.comboIndex];
-    const activeEnd = step.activeFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    const totalMs = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    const activeMs = step.activeFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    const activeStartMs = totalMs / 4;
+    const elapsedMs = totalMs - this.attackTimer;
+
+    if (!this.attackHasActivated && elapsedMs >= activeStartMs) {
+      this.attackHasActivated = true;
+      this.attackActive = true;
+      this.updateAttackVisual();
+      this.triggerSlash(this.comboIndex);
+    }
 
     // Deactivate hitbox after active frames
-    if (this.attackTimer <= (step.totalFrames - step.activeFrames) * FRAME_MS * DEBUG_ATTACK_TIME_SCALE) {
+    if (this.attackHasActivated && elapsedMs >= activeStartMs + activeMs) {
       this.attackActive = false;
       this.attackSprite.visible = false;
     }
@@ -1110,6 +1125,7 @@ export class Player extends Entity implements CombatEntity {
     // Attack animation finished
     if (this.attackTimer <= 0) {
       this.attackActive = false;
+      this.attackHasActivated = false;
 
       if (this.attackQueued && this.comboIndex < 2) {
         // Next combo step
@@ -1141,6 +1157,7 @@ export class Player extends Entity implements CombatEntity {
 
   private endAttack(): void {
     this.attackActive = false;
+    this.attackHasActivated = false;
     this.attackSprite.visible = false;
   }
 
@@ -1461,19 +1478,19 @@ export class Player extends Entity implements CombatEntity {
    * 재생은 startAttack() 에서 triggerSlash(comboIndex) 로 시작, updateSlashFX() 가 프레임 진행.
    */
   private loadSlashSprite(): void {
-    const path = assetPath('assets/sprites/fx_slash.png');
+    const path = assetPath('assets/sprites/fx_slash_02_atlas.png');
     Assets.load(path).then((tex: Texture) => {
       if (this.container.destroyed) return;
       tex.source.scaleMode = 'nearest';
       this.slashFrames = [];
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 4; i++) {
         this.slashFrames.push(
-          new Texture({ source: tex.source, frame: new Rectangle(i * 32, 0, 32, 32) }),
+          new Texture({ source: tex.source, frame: new Rectangle(i * SLASH_FX_FRAME_W, 0, SLASH_FX_FRAME_W, SLASH_FX_FRAME_H) }),
         );
       }
       const s = new Sprite(this.slashFrames[0]);
       // 앵커: 가로 중앙(0.5) + 세로 중앙(0.5) — 플레이어 높이 중앙에 맞춰 배치.
-      s.anchor.set(0.5, 0.5);
+      s.anchor.set(0, 0);
       s.visible = false;
       // attackSprite 위(디버그 박스 위)에 오도록 그냥 추가.
       this.container.addChild(s);
@@ -1528,7 +1545,7 @@ export class Player extends Entity implements CombatEntity {
     const mul = this.attackHitboxMul;
     s.scale.set(
       this.facingRight ? fx.scaleX * mul : -fx.scaleX * mul,
-      fx.scaleY * mul,
+      fx.sprite === 'fx_slash_02' ? fx.scaleY : fx.scaleY * mul,
     );
     s.tint = fx.color;
     s.texture = this.slashFrames[from];
@@ -1546,10 +1563,12 @@ export class Player extends Entity implements CombatEntity {
     const s = this.slashSprite;
 
     // 중심 = 히트박스 중심 + FxOffsetX(좌향 시 부호 반전). Y = 플레이어 높이 중앙 + FxOffsetY.
-    const hw = this.slashHitboxW;
-    const hitboxCenterX = this.facingRight ? (this.width + hw / 2) : (-hw / 2);
-    s.x = this.facingRight ? (hitboxCenterX + this.slashOffsetX) : (hitboxCenterX - this.slashOffsetX);
-    s.y = this.height / 2 + this.slashOffsetY;
+    const erdaTopLeftX = this.width / 2 - 16;
+    const erdaTopLeftY = this.height - 32;
+    s.x = this.facingRight
+      ? erdaTopLeftX - SLASH_FX_ERDA_REF_X + this.slashOffsetX
+      : erdaTopLeftX + 32 + SLASH_FX_ERDA_REF_X - this.slashOffsetX;
+    s.y = erdaTopLeftY - SLASH_FX_ERDA_REF_Y + this.slashOffsetY;
     // 방향 유지 (공격 중 facing 이 바뀌진 않지만 보수적 갱신).
     const sx = Math.abs(s.scale.x);
     s.scale.x = this.facingRight ? sx : -sx;

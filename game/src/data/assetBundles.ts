@@ -33,7 +33,7 @@ const CORE_ASSETS: Record<string, string> = {
   title_logo: assetPath('assets/ui/title_logo.png'),
   save_point: assetPath('assets/sprites/save_point_01.png'),
   erda_portrait: assetPath('assets/portraits/erda.png'),
-  fx_slash: assetPath('assets/sprites/fx_slash.png'),
+  fx_slash: assetPath('assets/sprites/fx_slash_02_atlas.png'),
   anvil_gate: assetPath('assets/sprites/anvil_gate_01.png'),
   anvil_gate_disable: assetPath('assets/sprites/anvil_gate_01_disable.png'),
   fx019: assetPath('assets/sprites/FX019.png'),

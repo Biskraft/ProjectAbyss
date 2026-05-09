@@ -91,4 +91,5 @@ export const FX_SLASH_FRAMES: Record<string, [number, number]> = {
   // 플레이어 등 뒤에 보이는 1프레임 잔상이 발생. 1번부터 시작해 칼날이 몸에서 뻗어나가는 듯이 보이게 한다.
   fx_slash_1: [1, 2],
   fx_slash_2: [3, 5],
+  fx_slash_02: [0, 3],
 };
