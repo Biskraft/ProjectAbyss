@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { GlowFilter } from '@effects/GlowFilter';
 
 /**
  * Simple projectile entity used by Ghost enemies.
@@ -29,9 +30,16 @@ export class Projectile {
     this.container = new Container();
     this.sprite = new Graphics();
 
-    // Ghostly fireball: cyan core with darker outline
-    this.sprite.circle(4, 4, 4).fill({ color: 0x222244, alpha: 0.6 });
-    this.sprite.circle(4, 4, 2.5).fill(0x66ccff);
+    // Ghostly ember: reddish-orange core with deep crimson outline.
+    this.sprite.circle(4, 4, 4).fill({ color: 0x441100, alpha: 0.6 });
+    this.sprite.circle(4, 4, 2.5).fill(0xFF5522);
+    // Strong ember halo — reads as a glowing fireball on dark backgrounds.
+    this.sprite.filters = [new GlowFilter({
+      color: 0xFF5522,
+      radius: 7,
+      intensity: 2.8,
+      coreBoost: 1.4,
+    })];
     this.container.addChild(this.sprite);
 
     this.container.x = this.x;

@@ -27,6 +27,10 @@ const DASH_DISTANCE = PlayerConst.DashDistance;
 const DASH_DURATION = PlayerConst.DashDurationMs;
 const DASH_GROUND_DELAY = PlayerConst.DashGroundDelayMs;
 const ATTACK_MOVE_MULT = PlayerConst.AttackMoveMult;
+/** Horizontal input multiplier during aerial attacks — much smaller than the
+ *  grounded value so the player can't drift sideways mid-swing. Keeps the
+ *  aerial combo visually "anchored" instead of looking like they're sliding. */
+const AERIAL_ATTACK_MOVE_MULT = 0.05;
 
 const WALL_SLIDE_SPEED = PlayerConst.WallSlideSpeed;
 const WALL_JUMP_VX = PlayerConst.WallJumpVx;
@@ -68,12 +72,12 @@ const COMBO_3_PRE_DELAY_MS = 100;
 // ── Air Stall — aerial attacks suspend the player so a 3-hit combo lands. ──
 // Applied during state==='attack' && !grounded. comboIndex 0/1 (1타/2타) get
 // "slow descent"; comboIndex 2 (3타) gets "near-halt" to anchor the finisher.
-/** Gravity multiplier during 1타/2타 aerial swings (slow descent). */
-const AIR_STALL_GRAVITY_MUL_12 = 0.15;
+/** Gravity multiplier during 1타/2타 aerial swings — 0 = full halt. */
+const AIR_STALL_GRAVITY_MUL_12 = 0;
 /** Gravity multiplier during 3타 aerial swing — 0 = full halt for the finisher. */
 const AIR_STALL_GRAVITY_MUL_3 = 0;
-/** Max downward speed cap during 1타/2타 aerial swings (px/s). */
-const AIR_STALL_MAX_FALL_12 = 60;
+/** Max downward speed cap during 1타/2타 aerial swings (px/s) — 0 = no drift. */
+const AIR_STALL_MAX_FALL_12 = 0;
 /** Max downward speed cap during 3타 aerial swing (px/s) — 0 = no drift. */
 const AIR_STALL_MAX_FALL_3 = 0;
 /** Per-16ms damp on upward velocity during aerial attack — kills jump residue
@@ -1168,7 +1172,10 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateAttack(dt: number): void {
-    this.applyHorizontalInput(dt, ATTACK_MOVE_MULT);
+    // Aerial swings near-fully lock horizontal input — air stall already
+    // pins vy, so the player feels anchored mid-combo instead of skating.
+    const moveMul = this.grounded ? ATTACK_MOVE_MULT : AERIAL_ATTACK_MOVE_MULT;
+    this.applyHorizontalInput(dt, moveMul);
 
     // Gravity already applied in update() before state dispatch — no double gravity
 

@@ -1,13 +1,28 @@
-import { Graphics } from 'pixi.js';
+import { Assets, Sprite, Texture } from 'pixi.js';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
+import { OrangeGlowFilter } from '@effects/OrangeGlowFilter';
+import { assetPath } from '@core/AssetLoader';
 
 const PROJECTILE_SPEED = 120; // px/s
+
+const GHOST_ATLAS_PATH = 'assets/characters/ghost_01_atlas.png';
+
+// ── Glow pulse — base ×2 of the previous setting, modulated 0.4..1.0× over
+//    a slow 2.1s period for an "ember breathing" feel on the orange parts.
+const GHOST_GLOW_BASE_INTENSITY = 4.0;
+const GHOST_GLOW_PULSE_FREQ = 0.003;     // rad/ms — period ≈ 2094ms
+const GHOST_GLOW_PULSE_LO = 0.4;
+const GHOST_GLOW_PULSE_HI = 1.0;
 
 export class Ghost extends Enemy {
   private shootTimer = 0;
   private hasShot = false;
-  private glowSprite: Graphics;
+  /** Atlas sprite — single 16×32 frame, no animation. Null until loaded. */
+  private ghostSprite: Sprite | null = null;
+  /** Glow filter applied to the atlas sprite — kept as a field so update()
+   *  can modulate its intensity each frame for the slow pulse. */
+  private orangeGlow: OrangeGlowFilter | null = null;
   /** Spawned projectiles — scene must read and manage these */
   pendingProjectiles: Projectile[] = [];
 
@@ -22,11 +37,47 @@ export class Ghost extends Enemy {
     });
     this.applyStats('Ghost', level);
 
-    // Outer glow aura
-    this.glowSprite = new Graphics();
-    this.glowSprite.rect(-3, -3, 20, 24).fill({ color: 0xaabbff, alpha: 0.25 });
-    this.container.addChildAt(this.glowSprite, 0);
+    // Sprite (16×32) extends well above the 14×18 collision — push HP bar up.
+    this.hpBarOffsetY = -16;
+
+    // Hide the base Enemy placeholder rect immediately — atlas takes over.
+    this.sprite.visible = false;
+
+    void this.loadGhostSprite();
   }
+
+  /**
+   * Loads ghost_01_atlas.png (16×32, single frame). Anchored bottom-center
+   * so the visual body extends upward — fits a "floating" ghost over the
+   * 14×18 collision box. Hit flash overlays this sprite via mainSprite.
+   */
+  private async loadGhostSprite(): Promise<void> {
+    try {
+      const tex = await Assets.load<Texture>(assetPath(GHOST_ATLAS_PATH));
+      if (this.container.destroyed) return;
+      tex.source.scaleMode = 'nearest';
+      const s = new Sprite(tex);
+      s.anchor.set(0.5, 1);
+      s.x = this.width / 2;
+      s.y = this.height;
+      // Strong glow — chromatic mask gates it to orange pixels (eyes + booster).
+      // Doubled intensity baseline; update() modulates it for a slow pulse.
+      this.orangeGlow = new OrangeGlowFilter({
+        color: 0xFF7000,
+        radius: 12,
+        intensity: GHOST_GLOW_BASE_INTENSITY,
+        coreBoost: 2.0,
+      });
+      s.filters = [this.orangeGlow];
+      this.container.addChildAt(s, 0);
+      this.ghostSprite = s;
+      this.mainSprite = s;  // Enemy.render hit flash uses this
+      this.sprite.visible = false;
+    } catch {
+      // Load failed → keep base Graphics placeholder visible.
+    }
+  }
+
 
   // GDD §4.2 movement params
   private spawnX = 0;
@@ -199,12 +250,30 @@ export class Ghost extends Enemy {
     super.update(dt);
     if (!this.alive) return;
 
+    // Facing — base Enemy.update locks facing to chaseDir during attack/cooldown/etc,
+    // but Ghost skips the 'chase' state so chaseDir never updates. Override
+    // explicitly: patrol uses patrolDir, every other state tracks the player.
+    const fsmState = this.fsm.currentState;
+    if (fsmState === 'patrol') {
+      this.facingRight = this.patrolDir > 0;
+    } else if (this.target) {
+      // detect / retreat / attack / cooldown / hit — always face the player.
+      this.facingRight = this.target.x > this.x;
+    }
+    // Mirror the atlas sprite around its anchor (0.5, 1).
+    if (this.ghostSprite) {
+      this.ghostSprite.scale.x = this.facingRight ? 1 : -1;
+    }
+
     // Gentle vertical bob (cosmetic, on top of physics)
     this.y += Math.sin(Date.now() * 0.003) * 0.3;
 
-    // Ghostly pulsing visibility
-    const pulse = 0.55 + 0.35 * Math.sin(Date.now() * 0.004);
-    this.container.alpha = pulse;
-    this.glowSprite.alpha = 0.15 + 0.2 * Math.sin(Date.now() * 0.003);
+    // Slow ember-breathing pulse on the orange glow (eyes + booster).
+    if (this.orangeGlow) {
+      const t = Date.now() * GHOST_GLOW_PULSE_FREQ;
+      const phase = (Math.sin(t) + 1) * 0.5; // 0..1
+      const factor = GHOST_GLOW_PULSE_LO + (GHOST_GLOW_PULSE_HI - GHOST_GLOW_PULSE_LO) * phase;
+      this.orangeGlow.setIntensity(GHOST_GLOW_BASE_INTENSITY * factor);
+    }
   }
 }

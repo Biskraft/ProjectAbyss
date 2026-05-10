@@ -101,6 +101,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private hpBarVisible = false;
   private hpBarTimer = 0;
   private readonly HP_BAR_SHOW_DURATION = EnemyConst.HpBarShowMs;
+  /** Subclasses with taller-than-collision sprites can shift the HP bar up
+   *  by setting this in their constructor. Negative = upward in screen space. */
+  protected hpBarOffsetY = 0;
 
   // Death
   private deathTimer = 0;
@@ -575,7 +578,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     const barW = this.width + 4;
     const barH = 3;
     const barX = (this.width - barW) / 2;
-    const barY = -6;
+    const barY = -6 + this.hpBarOffsetY;
 
     // Background
     this.hpBarContainer.rect(barX, barY, barW, barH).fill(0x333333);
