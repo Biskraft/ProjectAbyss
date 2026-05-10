@@ -52,6 +52,11 @@ const SLASH_FX_FRAME_W = 96;
 const SLASH_FX_FRAME_H = 64;
 const SLASH_FX_ERDA_REF_X = 0;
 const SLASH_FX_ERDA_REF_Y = 16;
+const ERDA_FRAME_W = 32;
+const ERDA_FRAME_H = 32;
+const ERDA_ATTACK_GROUND_START = 18;
+const ERDA_ATTACK_AIR_START = 22;
+const ERDA_ATTACK_FRAME_COUNT = 4;
 
 const ATTACK_WEAPON_POSES = [
   { x: 14, y: 17, rotation: 2.35, scale: 0.85 },
@@ -1093,6 +1098,8 @@ export class Player extends Entity implements CombatEntity {
 
     // Show attack hitbox visual
     this.attackSprite.visible = false;
+    if (this.slashSprite) this.slashSprite.visible = false;
+    this.slashToIdx = -1;
     // Slash FX — comboIndex 별 태그/스케일.
   }
 
@@ -1159,6 +1166,8 @@ export class Player extends Entity implements CombatEntity {
     this.attackActive = false;
     this.attackHasActivated = false;
     this.attackSprite.visible = false;
+    if (this.slashSprite) this.slashSprite.visible = false;
+    this.slashToIdx = -1;
   }
 
   /** Whether the attack hitbox is currently active (for HitManager to check) */
@@ -1347,11 +1356,12 @@ export class Player extends Entity implements CombatEntity {
       // 아틀라스 가로 22프레임(32×32) 을 sub-rect 텍스처로 분할.
       // idle 0..3 / jump 4..7 / running 8..15 / dash 16..17 / attack1 18..21. 모두 같은 source 공유.
       this.erdaFrames = [];
-      for (let i = 0; i < 22; i++) {
+      const frameCount = Math.floor(tex.width / ERDA_FRAME_W);
+      for (let i = 0; i < frameCount; i++) {
         this.erdaFrames.push(
           new Texture({
             source: tex.source,
-            frame: new Rectangle(i * 32, 0, 32, 32),
+            frame: new Rectangle(i * ERDA_FRAME_W, 0, ERDA_FRAME_W, ERDA_FRAME_H),
           }),
         );
       }
@@ -1455,6 +1465,8 @@ export class Player extends Entity implements CombatEntity {
     const def = this.getEquippedWeaponDef();
     if (this.weaponSpriteDefId !== def.id) {
       this.loadWeaponSprite(def.id);
+      if (s) s.visible = false;
+      return;
     }
     if (!s) return;
 
@@ -1532,6 +1544,7 @@ export class Player extends Entity implements CombatEntity {
     const range = FX_SLASH_FRAMES[fx.sprite];
     if (!range) return; // 알 수 없는 태그 — FX 생략.
     const [from, to] = range;
+    if (from < 0 || to < from || to >= this.slashFrames.length) return;
 
     this.slashFromIdx = from;
     this.slashToIdx = to;
@@ -1636,9 +1649,12 @@ export class Player extends Entity implements CombatEntity {
       const step = COMBO_STEPS[this.comboIndex];
       const total = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
       const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
-      const idx = Math.min(3, Math.floor(progress * 4));
+      const idx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
+      const attackStart = (!this.grounded && this.erdaFrames.length >= ERDA_ATTACK_AIR_START + ERDA_ATTACK_FRAME_COUNT)
+        ? ERDA_ATTACK_AIR_START
+        : ERDA_ATTACK_GROUND_START;
       this.erdaAnimFrame = idx;
-      this.erdaSprite.texture = this.erdaFrames[18 + idx];
+      this.erdaSprite.texture = this.erdaFrames[attackStart + idx];
       this.updateAttackWeaponPose(idx);
       return;
     }

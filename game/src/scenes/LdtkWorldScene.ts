@@ -1095,7 +1095,7 @@ export class LdtkWorldScene extends Scene {
       level_id: this.currentLevel?.identifier,
       room_col: Math.floor(cx / TILE_SIZE),
       room_row: Math.floor(cy / TILE_SIZE),
-      equipped_weapon_id: equipped?.def.type ?? undefined,
+      equipped_weapon_id: equipped?.def.id ?? undefined,
       hp_pct: this.player.maxHp > 0
         ? Math.floor((this.player.hp / this.player.maxHp) * 100)
         : 0,
