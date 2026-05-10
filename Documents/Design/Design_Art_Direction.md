@@ -627,3 +627,126 @@ relic aesthetic, NOT BLAME! megastructure, NOT high-saturation
 - 캐릭터(에르다 v3, §4.2)와 배경 타일이 본 절제 톤으로 통일될지, §2.3 고채도가 유지될지 미확정
 - 결정되기 전까지: **프랍·오브젝트는 §12, 캐릭터/배경/이펙트는 §2.3·§3.4 유지**
 - 통일 결정 시 §2.3·§3.4 채도를 §12 기준으로 재조정해야 함
+
+---
+
+## 13. 적 패밀리 출하 스타일 SSoT — 메카닉 통일 (2026-05-10)
+
+> **본 섹션은 모든 적(Enemy) sprite 의 캐논 SSoT. §12 (Breakable Prop 의례 톤) 와 별도 섹션이며, 적 sprite 는 본 섹션을 따른다.**
+> **2026-05-10 결정:** 모든 기본 적은 BLAME! Safeguard 톤의 산업 메카닉으로 통일. 인간형·생체·의례 톤 폐기.
+
+### 13.1. 적용 대상
+
+| 적 | 클래스 | 문서 |
+|:---|:---|:---|
+| Ghost | Sentinel (부유 정찰 mech) | `Documents/Content/Monster/Ghost.md` |
+| Skeleton | Contact (보행 측량 mech) | `Documents/Content/Monster/Skeleton_01.md` |
+| Slime | Cluster (액체 nanomachine) | `Documents/Content/Monster/Slime_01.md` |
+| Boss | Heavy (대형 산업 mech) | `Documents/Content/Monster/Boss_01.md` |
+
+### 13.2. 통일 팔레트
+
+```
+지배색 (Dominant):
+  검정 industrial armor   — #1A1410 ~ #2A2418   (전체 면적 60%+)
+
+미드 톤 (Mid):
+  녹슨 갈색·세피아         — #3A2818 ~ #5A4830   (어깨·정강이·표면 디테일)
+
+윤곽 (Outline):
+  잉크 흑                  — #1A1410 ~ #0E0E14   (풀 아웃라인 강제)
+
+시그너처 강조 (Sensor — 모든 적 공통):
+  청록·라벤더 sensor lens — #AABBFF ~ #88AAEE   (적 정체 시그니처)
+
+희소 강조 (Status / 단조열 코어):
+  주황 (ECHORIS SSoT)     — #FF8000              (status light, 활성 코어)
+  주황·금 ember           — #FFAA40              (누출·thrust glow)
+
+산화 디테일:
+  산화 청회색             — #4A5660              (사슬·케이블·관절)
+```
+
+#### 채도 규칙
+
+- 셀당 사용 색상 **8~12색 이내**
+- **모든 적이 동일한 sensor lens 색(#AABBFF) 사용** — 적 패밀리 통일성 보장
+- 강조색(주황·청록) 은 보스를 제외하고 **5% 이하** (보스는 §13.6 예외)
+
+### 13.3. 통일 시그너처 (4 monster 공통)
+
+| 요소 | 통일 어휘 |
+|:---|:---|
+| Sensor lens | 청록·라벤더 #AABBFF (시그너처) |
+| 공격 텔 | sensor lens 청록 → 주황 1프레임 점멸 (모든 적 공통 어휘) |
+| 활성 코어 | 단조열 주황 #FF8000 (status·thrust·core) |
+| Base | 검정 #1A1410 + 녹슨 갈색 #3A2818 ~ #5A4830 |
+| 화법 | 풀 잉크 아웃라인 + 단순 dithering + 4단 톤 위계 |
+
+### 13.4. 주제 어휘 (Iconography Vocabulary)
+
+신규 적 sprite 는 다음 카테고리 안에서만 작업:
+
+| 카테고리 | 예시 |
+|:---------|:-----|
+| 산업 mech 부품 | 카메라 lens, sensor pod, 안테나, 액추에이터, 부스터, 케이블, 리벳 패널 |
+| 무기 (보스 한정) | 산업 슬레지 망치, mechanical claw, 둔단 메이스 |
+| 부유물 | 소형 정찰 drone, lubricant 누액, ember 입자 |
+| 표면 풍화 | 녹슨 armor, 산화 청회색 사슬, 단순 dithering 마름 |
+
+### 13.5. 폐기된 어휘 (이전 적 톤)
+
+- **인골·두개골·본 파치먼트** (#C8B89A) — Skeleton/Slime/Boss 모두 폐기
+- **수의 천·봉합천 다발** — Slime 폐기
+- **봉인 두루마리·향로·의례 망치·장례 배너** — Boss 폐기
+- **가일트 슬릿** (#A88A48) — sensor lens (#AABBFF) 로 교체
+- **버건디 텔** (#6E2C20) — 단조열 주황 (#FF8000) 으로 교체
+- **세피아 엄버** (#5A3E28) — 녹슨 갈색 (#3A2818 ~ #5A4830) 으로 시프트
+
+### 13.6. 룰 예외 — 보스 단조열 면적
+
+§13.2 의 5% 룰은 일반 적·엘리트·잡몹에 적용. **Boss 의 격노 페이즈 가슴 코어** 와 **dust cape 단조열 가장자리** 는 시그니처 식별을 위해 면적 제한 초과 (예상 10~15%). 보스 슬롯 한정.
+
+### 13.7. 무드 키워드 (생성·검수용)
+
+- BLAME! Safeguard automated defense unit
+- megastructure brutalist sci-fi mechanical
+- Tsutomu Nihei industrial aesthetic
+- weathered industrial machinery (오래 작동한 자동 시스템)
+- "이 메카닉이 인간보다 오래 작동했다"
+- silent automated patrol (생체적 격정 X, 침묵·규칙적)
+
+### 13.8. 레퍼런스 — 가까움 / 먼
+
+| 거리 | 작품 | 차용 부분 |
+|:---|:---|:---|
+| 가까움 | BLAME! Safeguard | 산업 메카닉 실루엣·자동 시스템 톤 |
+| 가까움 | Tsutomu Nihei mechanical concept | 디테일·산업 양식 |
+| 가까움 | Hollow Knight 잔존체 어휘 | 화법(잉크 아웃라인·dithering) — 단 의례 모티프는 폐기 |
+| 멈 | Salt & Sanctuary 트링켓 | §12 (의례 prop) 한정, 적 sprite 에는 미적용 |
+| 멈 | Blasphemous 잔재 | §12 한정 — 적 sprite 에는 적용 X |
+
+### 13.9. 미드저니 v8.1 / niji 7 프롬프트 골격 (적 sprite 재현용)
+
+```
+2D anime manga pixel art video game small enemy sprite, side-view of a [enemy_type]
+in a colossal megastructure world. BLAME manga inspired Tsutomu Nihei brutalist
+sci-fi mechanical aesthetic. [structure_description with stacked parts]. Strict
+color palette: deep black mechanical body base (#1A1410) with rusty brown
+detail (#3A2818 ~ #5A4830), glowing pale teal-lavender sensor lens (#AABBFF) as
+the signature, small warm orange status indicator (#FF8000) — no other colors.
+Absolutely no smoke, no fog, no mist, no wisps, no particles, no transparency,
+no weapons attached separately, no guns, no barrels. Solid mechanical
+hard-surface design only. Pure flat empty white background, isolated subject,
+no environment, no scenery, no other elements whatsoever. Completely flat 2D
+side profile illustration with absolutely no perspective, no depth, no 3D
+rendering, no foreshortening, no camera tilt. Crisp aliased pixel art edges,
+simple readable silhouette around [N] pixels tall, anime chibi proportions
+for a tiny enemy sprite. --ar [W:H] --s 400 --v 8.1
+```
+
+(`--niji 7` 도 동일 구조에서 교체 가능. niji 가 캐릭터/적 자산에 더 적합하나 BLAME! 산업 톤은 v8.1 도 강함.)
+
+### 13.10. 변경 이력
+
+- **2026-05-10:** 적 패밀리 메카닉 통일 결정. 인골·의례·생체 톤 모두 폐기. Ghost (신규) / Skeleton (재정의) / Slime (재정의) / Boss (재정의) 4 monster 통일 SSoT 로 본 §13 신설. 신규 자산 생성 필요 (기존 인골·세피아 톤 자산 폐기).

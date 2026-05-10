@@ -13,19 +13,19 @@ const PATROL_SPEED_MULT = 0.5;
 const LOSE_TARGET_MS = 1500;
 
 // ── Skeleton atlas reuse — identical layout to Skeleton.ts. ──
-// 384×32 = 12 × 32×32. idle 0-3 / walk 4-7 / jump 8-11.
+// 512×32 = 16 × 32×32. idle 0-3 / walk 4-11 / jump 12-15.
 // GoldenMonster wears this skin and is differentiated by a gold GlowFilter.
 const SKELETON_ATLAS_PNG_PATH = 'assets/characters/skeleton_01_atlas.png';
 const SKELETON_FRAME_W = 32;
 const SKELETON_FRAME_H = 32;
-const SKELETON_FRAME_COUNT = 12;
+const SKELETON_FRAME_COUNT = 16;
 const SKELETON_ANIM_FRAME_MS = 100;
 
 type GoldAnim = 'idle' | 'walk' | 'jump';
 const ANIM_RANGES: Record<GoldAnim, { from: number; to: number }> = {
   idle: { from: 0, to: 3 },
-  walk: { from: 4, to: 7 },
-  jump: { from: 8, to: 11 },
+  walk: { from: 4, to: 11 },
+  jump: { from: 12, to: 15 },
 };
 
 // Gold glow params — strong enough to read at a glance vs regular Skeleton.

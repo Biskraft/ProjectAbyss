@@ -1,5 +1,6 @@
-import { Assets, Rectangle, Sprite, Texture } from 'pixi.js';
+import { Assets, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { Enemy } from './Enemy';
+import { GlowFilter } from '@effects/GlowFilter';
 import { isSolid } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
 
@@ -12,20 +13,35 @@ const LOSE_TARGET_MS = 1500;    // GDD §4.1: lose_target_delay_ms
 
 // 선회 hysteresis + cooldown + pause 는 base Enemy 로 일반화 (사용자 결정 2026-05-04, Q1).
 
-/** Atlas: 384×32 (12 × 32×32). idle 0-3 / walk 4-7 / jump 8-11. */
+/** Atlas: 512×32 (16 × 32×32). idle 0-3 / walk 4-11 / jump 12-15. */
 const SKELETON_ATLAS_PNG_PATH = 'assets/characters/skeleton_01_atlas.png';
 const SKELETON_FRAME_W = 32;
 const SKELETON_FRAME_H = 32;
-const SKELETON_FRAME_COUNT = 12;
+const SKELETON_FRAME_COUNT = 16;
 /** JSON 의 duration 100ms 와 일치. 모든 anim 동일. */
 const SKELETON_ANIM_FRAME_MS = 100;
 
 type SkeletonAnim = 'idle' | 'walk' | 'jump';
 const SKELETON_ANIM_RANGES: Record<SkeletonAnim, { from: number; to: number }> = {
   idle: { from: 0, to: 3 },
-  walk: { from: 4, to: 7 },
-  jump: { from: 8, to: 11 },
+  walk: { from: 4, to: 11 },
+  jump: { from: 12, to: 15 },
 };
+
+// ── Eye glow — independent Graphics 발광점 위에만 GlowFilter 적용. ──
+// 본체 픽셀과 완전 무관하므로 색 mask 가 새지 않는다. 눈 위치는 sprite
+// 머리에 맞춰 튜닝하면 되고, 좌우 facing 시에도 대칭이라 mirror 무관.
+const SKELETON_EYE_GLOW_COLOR = 0x79BD8A;
+const SKELETON_EYE_GLOW_RADIUS = 6;
+const SKELETON_EYE_GLOW_INTENSITY = 4.5;
+const SKELETON_EYE_GLOW_CORE_BOOST = 2.4;
+/** 발광점 RGB — glow 색과 동일 계열로 통일 (cool green). */
+const SKELETON_EYE_DOT_COLOR = 0x79BD8A;
+const SKELETON_EYE_DOT_RADIUS = 1.2;
+/** 단일 눈 (sprite 가 cyclops 형). 컨테이너 origin 기준 +X 만큼 한쪽에 배치,
+ *  facing 좌우 반전 시 mirror 되어 자동으로 반대편으로 이동. */
+const SKELETON_EYE_OFFSET_X = 8;
+const SKELETON_EYE_OFFSET_Y = 2;
 
 export class Skeleton extends Enemy {
   private attackTimer = 0;
@@ -41,6 +57,8 @@ export class Skeleton extends Enemy {
   // chaseDir / turnCooldownMs / turnPauseMs 는 base Enemy 에 정의 (선회 hysteresis 일반화).
   /** Atlas sprite — placeholder Graphics 를 가린다. */
   private skeletonSprite: Sprite | null = null;
+  /** 단일 눈 glow Graphics — facing 좌우 반전 시 mirror. */
+  private eyeGlow: Graphics | null = null;
   /** 12 frames (32×32) split from the 384×32 atlas. */
   private skeletonFrames: Texture[] = [];
   /** 현재 재생 중인 anim. */
@@ -60,6 +78,8 @@ export class Skeleton extends Enemy {
       moveSpeed: 60, attackCooldown: 1200,
     });
     this.applyStats('Skeleton', level);
+    // Sprite (32×32) extends well above the 16×24 collision — push HP bar up.
+    this.hpBarOffsetY = -12;
     void this.loadSkeletonSprite();
   }
 
@@ -92,6 +112,21 @@ export class Skeleton extends Enemy {
       this.skeletonSprite = s;
       this.mainSprite = s; // Enemy.render 의 hit flash 가 알파 채널 모양 따라 발광
       this.sprite.visible = false;
+
+      // Eye glow — sprite 위에 단일 발광점을 얹어 거기에만 GlowFilter 적용.
+      // 본체 sprite 에는 어떤 filter 도 적용 안 됨 → 누출 0%.
+      const eyes = new Graphics();
+      eyes.circle(SKELETON_EYE_OFFSET_X, 0, SKELETON_EYE_DOT_RADIUS).fill(SKELETON_EYE_DOT_COLOR);
+      eyes.x = this.width / 2;
+      eyes.y = SKELETON_EYE_OFFSET_Y;
+      eyes.filters = [new GlowFilter({
+        color: SKELETON_EYE_GLOW_COLOR,
+        radius: SKELETON_EYE_GLOW_RADIUS,
+        intensity: SKELETON_EYE_GLOW_INTENSITY,
+        coreBoost: SKELETON_EYE_GLOW_CORE_BOOST,
+      })];
+      this.container.addChild(eyes);
+      this.eyeGlow = eyes;
     } catch {
       // 로드 실패 → placeholder 유지.
     }
@@ -142,7 +177,10 @@ export class Skeleton extends Enemy {
     const range = SKELETON_ANIM_RANGES[this.currentAnim];
     const tex = this.skeletonFrames[range.from + this.animFrameIndex];
     if (tex) this.skeletonSprite.texture = tex;
-    this.skeletonSprite.scale.x = this.facingRight ? 1 : -1;
+    const facing = this.facingRight ? 1 : -1;
+    this.skeletonSprite.scale.x = facing;
+    // 단일 눈도 함께 mirror — facing-right 일 때 +X, facing-left 일 때 -X.
+    if (this.eyeGlow) this.eyeGlow.scale.x = facing;
   }
 
   /**

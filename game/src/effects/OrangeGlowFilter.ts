@@ -51,10 +51,18 @@ uniform float uRadius;
 uniform float uIntensity;
 uniform float uCoreBoost;
 
-// "Warm orange" mask. 1.0 = pure orange, 0 = blue/grey/dark.
-// Tuned: high red AND low blue gate hard, slight green tolerance.
+// Eye/ember mask. 1.0 = saturated bright orange (eye glow / booster fire),
+// 0 = bone-warm desaturated body / cool body / dark areas.
+// Two gates: warm-orange chromaticity AND high saturation. Saturation gate
+// rejects warm-but-desaturated pixels (skeleton bones, leather etc.) while
+// still passing the vivid orange light pixels we actually want to glow.
 float orangeMask(vec3 c) {
-  return clamp(c.r * 1.6 - c.b * 2.2 - c.g * 0.2, 0.0, 1.0);
+  float warm = clamp(c.r * 1.6 - c.b * 2.2 - c.g * 0.2, 0.0, 1.0);
+  float maxC = max(max(c.r, c.g), c.b);
+  float minC = min(min(c.r, c.g), c.b);
+  float sat  = maxC - minC;
+  float satGate = smoothstep(0.4, 0.7, sat);
+  return warm * satGate;
 }
 
 void main() {
