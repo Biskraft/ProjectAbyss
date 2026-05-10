@@ -59,7 +59,11 @@ try {
   // Prefetch core asset bundle in parallel — TitleScene 진입과 동시에 다운로드
   // 가 진행되어 첫 게임 진입 시 hitch 가 줄어든다 (pixijs-references P1).
   // fire-and-forget: 실패해도 entity 측 Assets.load 가 개별 fallback 처리.
-  void loadBundleOnce('core');
+  showStatus('Loading assets...');
+  await Promise.all([
+    loadBundleOnce('core'),
+    loadBundleOnce('item_world'),
+  ]);
 
   // Combat OGG cues 미리 register + decode — 첫 hit 무음 + Pixi sound race 회피.
   // 부팅 시점의 preload=true 는 play 호출과 시간 격리되어 있어 race 없음.
