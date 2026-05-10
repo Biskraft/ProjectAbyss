@@ -57,6 +57,7 @@ const ERDA_FRAME_H = 32;
 const ERDA_ATTACK_GROUND_START = 18;
 const ERDA_ATTACK_AIR_START = 22;
 const ERDA_ATTACK_FRAME_COUNT = 4;
+const COMBO3_SLASH_SCALE_X = 1.35;
 
 const ATTACK_WEAPON_POSES = [
   { x: 14, y: 17, rotation: 2.35, scale: 0.85 },
@@ -1556,9 +1557,11 @@ export class Player extends Entity implements CombatEntity {
 
     // FX 시각 크기도 공격 범위에 비례.
     const mul = this.attackHitboxMul;
+    const fxScaleY = this.comboIndex === 1 ? -fx.scaleY : fx.scaleY;
+    const comboScaleX = this.comboIndex === 2 ? COMBO3_SLASH_SCALE_X : 1;
     s.scale.set(
-      this.facingRight ? fx.scaleX * mul : -fx.scaleX * mul,
-      fx.sprite === 'fx_slash_02' ? fx.scaleY : fx.scaleY * mul,
+      this.facingRight ? fx.scaleX * mul * comboScaleX : -fx.scaleX * mul * comboScaleX,
+      fx.sprite === 'fx_slash_02' ? fxScaleY : fxScaleY * mul,
     );
     s.tint = fx.color;
     s.texture = this.slashFrames[from];
@@ -1582,6 +1585,9 @@ export class Player extends Entity implements CombatEntity {
       ? erdaTopLeftX - SLASH_FX_ERDA_REF_X + this.slashOffsetX
       : erdaTopLeftX + 32 + SLASH_FX_ERDA_REF_X - this.slashOffsetX;
     s.y = erdaTopLeftY - SLASH_FX_ERDA_REF_Y + this.slashOffsetY;
+    if (s.scale.y < 0) {
+      s.y += SLASH_FX_FRAME_H * Math.abs(s.scale.y);
+    }
     // 방향 유지 (공격 중 facing 이 바뀌진 않지만 보수적 갱신).
     const sx = Math.abs(s.scale.x);
     s.scale.x = this.facingRight ? sx : -sx;
@@ -1649,7 +1655,8 @@ export class Player extends Entity implements CombatEntity {
       const step = COMBO_STEPS[this.comboIndex];
       const total = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
       const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
-      const idx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
+      const forwardIdx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
+      const idx = this.comboIndex === 1 ? ERDA_ATTACK_FRAME_COUNT - 1 - forwardIdx : forwardIdx;
       const attackStart = (!this.grounded && this.erdaFrames.length >= ERDA_ATTACK_AIR_START + ERDA_ATTACK_FRAME_COUNT)
         ? ERDA_ATTACK_AIR_START
         : ERDA_ATTACK_GROUND_START;

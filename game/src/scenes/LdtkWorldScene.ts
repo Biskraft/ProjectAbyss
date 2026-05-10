@@ -2944,8 +2944,6 @@ export class LdtkWorldScene extends Scene {
           gate_type: 'event',
           level_id: this.currentLevel?.identifier,
         });
-        door.destroy();
-        this.lockedDoors.splice(i, 1);
       }
     }
   }
@@ -2965,8 +2963,6 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
         this.toast.show(t('toast.gate_opened'), 0x44ffaa);
-        door.destroy();
-        this.lockedDoors.splice(i, 1);
         return;
       }
     }
@@ -3025,8 +3021,6 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.shake(6);
         this.screenFlash.flashHit(true);
         this.toast.show(t('toast.gate_destroyed'), 0x44ffaa);
-        door.destroy();
-        this.lockedDoors.splice(i, 1);
       } else if (result === 'rejected') {
         this.doorRejectSet.add(door.iid);
         this.game.camera.shake(2);
