@@ -136,7 +136,7 @@
 | 요소 | 현 구현 | 레퍼런스 대비 |
 |:---|:---|:---|
 | Depth Layer | BG + Solid(wall) + Seal + Entity + UI = **5층** | Celeste 표준과 동등 |
-| Tileset | `world_01` + `SunnyLand_ext` 멀티 아틀라스 lazy 로드 | 바이옴 확장성 확보 |
+| Tileset | `world_01` + `world_interior_01` 멀티 아틀라스 lazy 로드 | 바이옴 확장성 확보 |
 | Palette Row | BG + WALL 보색 페어 × 6 바이옴 = 12행 | Dead Cells 수준 이상 |
 | Gradient Stops | 팔레트당 8-9 stops | Dead Cells 동등 |
 | Props | LDtk Entity로 배치 (제한적) | Celeste 대비 부족 |

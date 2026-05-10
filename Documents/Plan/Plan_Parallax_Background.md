@@ -66,9 +66,9 @@ AreaID,Name,Layer,Brightness,Tint,DepthBias,DepthCenter,Stops,Description,Tilese
 
 서브 에어리어 BG/WALL 행은 필요 시 추가:
 ```csv
-world_garden_bg,정원,BG,1.00,...,정원 배경,SunnyLand_by_Ansimuz-extended
+world_garden_bg,정원,BG,1.00,...,정원 배경,world_01
 world_garden_wall,정원,WALL,1.00,...,정원 벽,world_01
-world_sewers_bg,수로,BG,1.00,...,수로 배경,SunnyLand_by_Ansimuz-extended
+world_sewers_bg,수로,BG,1.00,...,수로 배경,world_01
 world_sewers_wall,수로,WALL,1.00,...,수로 벽,world_01
 ```
 
@@ -141,7 +141,7 @@ const DEFAULT_AREA = 'world_shaft';
 game/public/assets/
 ├── atlas/                          ← 기존 타일셋
 │   ├── world_01.png
-│   └── SunnyLand_by_Ansimuz-extended.png
+│   └── world_interior_01.png
 ├── parallax/                       ← [신규] 패럴랙스 이미지
 │   ├── shaft_far.png               ← 그레이스케일, 세로 타일링
 │   ├── shaft_near.png              ← 그레이스케일, 세로 타일링

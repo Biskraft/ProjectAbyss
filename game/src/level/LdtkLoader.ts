@@ -149,7 +149,7 @@ export interface LdtkTile {
    * Relative path of the source tileset (from the LDtk layer's __tilesetRelPath).
    * Renderer uses this to pick the right loaded atlas texture when a level
    * mixes tiles from multiple tilesets (e.g. Background from world_01.png,
-   * Collisions from SunnyLand). Null if the layer has no assigned tileset.
+   * Interior from world_interior_01.png). Null if the layer has no assigned tileset.
    */
   tilesetPath: string | null;
 }

@@ -46,7 +46,6 @@ const CORE_ASSETS: Record<string, string> = {
   parallax_far: assetPath('assets/parallax/parallax_far.png'),
   parallax_mid: assetPath('assets/parallax/parallax_mid.png'),
   parallax_near: assetPath('assets/parallax/parallax_near.png'),
-  atlas_sunnyland: assetPath('assets/atlas/SunnyLand_by_Ansimuz-extended.png'),
   atlas_terrain: assetPath('assets/atlas/Terrain (32x32).png'),
   atlas_world_01: assetPath('assets/atlas/world_01.png'),
   atlas_world_02: assetPath('assets/atlas/world_02.png'),

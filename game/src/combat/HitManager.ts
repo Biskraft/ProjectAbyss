@@ -4,6 +4,7 @@ import { COMBO_STEPS, getAttackHitbox, type ComboStep } from './CombatData';
 import { CombatConst } from '@data/constData';
 import type { Entity } from '@entities/Entity';
 import type { Game } from '../Game';
+import { rumbleGamepad } from '@utils/GamepadRumble';
 
 export interface CombatEntity {
   x: number;
@@ -20,7 +21,7 @@ export interface CombatEntity {
   invincibleTimer: number;  // ms remaining
   facingRight?: boolean;
   /**
-   * Weapon-driven scale multiplier applied to COMBO_STEPS hitboxW/H.
+   * Weapon-driven scale multiplier applied to COMBO_STEPS hitboxW.
    * Default 1 (no scaling). Player sets this based on equipped weapon;
    * enemies leave it undefined.
    */
@@ -35,7 +36,6 @@ export function scaleComboStep(base: ComboStep, mul: number): ComboStep {
   return {
     ...base,
     hitboxW: Math.round(base.hitboxW * mul),
-    hitboxH: Math.round(base.hitboxH * mul),
   };
 }
 
@@ -177,6 +177,7 @@ export class HitManager {
           dirX,
           step.knockbackY < CombatConst.KnockbackVerticalBiasThresholdY ? CombatConst.KnockbackVerticalBiasFactor : 0,
         );
+        rumbleGamepad(heavy ? 120 : 75, heavy ? 0.45 : 0.25, heavy ? 0.9 : 0.55);
 
         // Hit point (center of overlap region)
         const hitX = facingRight

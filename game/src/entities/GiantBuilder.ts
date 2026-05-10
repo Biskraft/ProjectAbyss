@@ -121,7 +121,7 @@ export class GiantBuilder {
     const wallTiles = [...level.wallTiles];
     const shadowTiles = [...level.shadowTiles];
     const defaultWallTileset = 'atlas/world_01.png';
-    const defaultBgTileset = 'atlas/SunnyLand_by_Ansimuz-extended.png';
+    const defaultBgTileset = 'atlas/world_01.png';
     applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
     applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles.filter(t => t.tilesetPath === defaultWallTileset));
     applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles.filter(t => t.tilesetPath === defaultWallTileset));

@@ -232,15 +232,15 @@ export async function ensureAreaTilesetsLoaded(
  *
  * Why this exists: LDtk stores one `__tilesetRelPath` per layer at authoring
  * time (e.g. `atlas/world_01.png`). The CSV often specifies different tilesets
- * for BG vs WALL (e.g. BG=world_01, WALL=SunnyLand). Without retag, BG and
- * WALL collide on the same LDtk key and the renderer resolves both to
- * whichever atlas was registered first. Retag moves the lookup from LDtk's
- * path to the CSV-derived path so each layer picks its own atlas.
+ * for BG vs WALL per area. Without retag, BG and WALL collide on the same
+ * LDtk key and the renderer resolves both to whichever atlas was registered
+ * first. Retag moves the lookup from LDtk's path to the CSV-derived path so
+ * each layer picks its own atlas.
  *
  * Hazard "color region" tiles (src[0] >= 160 && src[1] >= 208) are left
  * untouched — they're raw color swatches baked into the LDtk source atlas
- * (world_01), and the CSV-specified replacement tileset (e.g. SunnyLand)
- * would have different pixels at those coordinates.
+ * (world_01), and any CSV-specified replacement tileset would have different
+ * pixels at those coordinates.
  *
  * Scenes must still call `ensureAreaTilesetsLoaded` beforehand so the
  * CSV-keyed atlas textures exist in the atlases map.

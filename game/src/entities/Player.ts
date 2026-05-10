@@ -13,6 +13,7 @@ import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
 import { SFX } from '@audio/Sfx';
+import { rumbleGamepad } from '@utils/GamepadRumble';
 
 // SSoT: Sheets/Content_Player.csv (loaded via @data/constData)
 const MOVE_SPEED = PlayerConst.MoveSpeed;
@@ -46,7 +47,38 @@ const DASH_CORNER_TOLERANCE = PlayerConst.DashCornerToleranceY;
 const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upward
 
 const FRAME_MS = 1000 / 60;
-const DEBUG_ATTACK_TIME_SCALE = 1;
+/** Global attack speed multiplier across every equipped weapon.
+ *  1.0 = baseline, <1 = slower, >1 = faster. Currently 1/1.5 ≈ 0.667 → 1.5x slower. */
+const ATTACK_SPEED_MUL = 1 / 1.5;
+/** Time-domain inverse of ATTACK_SPEED_MUL — multiplied into every attack
+ *  timer (combo step duration, hitbox active window, slash FX frame ms,
+ *  Erda attack frame progress). Larger = slower swings. */
+const ATTACK_TIME_SCALE = 1 / ATTACK_SPEED_MUL;
+
+/** Per-combo-step time multiplier. Currently uniform — rhythm comes from the
+ *  pre-3타 pause (COMBO_3_PRE_DELAY_MS) instead of slowing the 3타 swing itself.
+ *  Compounds with weapon atkSpeed and ATTACK_TIME_SCALE inside startAttack. */
+const COMBO_STEP_TIME_MUL: ReadonlyArray<number> = [1.0, 1.0, 1.0];
+
+/** Pause inserted between 2타 끝과 3타 시작 — "슉슉(쉼)슉" 박자.
+ *  Player stays in attack state (air stall remains active for hover combos),
+ *  no hitbox / slash FX during the wait, then 3타 swings at normal pace. */
+const COMBO_3_PRE_DELAY_MS = 100;
+
+// ── Air Stall — aerial attacks suspend the player so a 3-hit combo lands. ──
+// Applied during state==='attack' && !grounded. comboIndex 0/1 (1타/2타) get
+// "slow descent"; comboIndex 2 (3타) gets "near-halt" to anchor the finisher.
+/** Gravity multiplier during 1타/2타 aerial swings (slow descent). */
+const AIR_STALL_GRAVITY_MUL_12 = 0.15;
+/** Gravity multiplier during 3타 aerial swing — 0 = full halt for the finisher. */
+const AIR_STALL_GRAVITY_MUL_3 = 0;
+/** Max downward speed cap during 1타/2타 aerial swings (px/s). */
+const AIR_STALL_MAX_FALL_12 = 60;
+/** Max downward speed cap during 3타 aerial swing (px/s) — 0 = no drift. */
+const AIR_STALL_MAX_FALL_3 = 0;
+/** Per-16ms damp on upward velocity during aerial attack — kills jump residue
+ *  so the player "hovers" rather than continuing to rise mid-swing. */
+const AIR_STALL_RISE_DAMP_PER_16MS = 0.82;
 const WEAPON_ICON_BASE_ROTATION = -45 * Math.PI / 180;
 const SLASH_FX_FRAME_W = 96;
 const SLASH_FX_FRAME_H = 64;
@@ -322,6 +354,13 @@ export class Player extends Entity implements CombatEntity {
   hitList = new Set<CombatEntity>();
   private attackActive = false;
   private attackHasActivated = false;
+  /** Captured at startAttack — ATTACK_TIME_SCALE divided by the equipped
+   *  weapon's CSV atkSpeed. Locks the swing's pace so a mid-swing weapon
+   *  swap doesn't visually rubber-band. CSV atkSpeed > 1 = faster, < 1 = slower. */
+  private currentAttackTimeScale = ATTACK_TIME_SCALE;
+  /** ms remaining in the 2→3타 pause. >0 holds the player in 'attack' state
+   *  with no active hitbox / no timer tick until it elapses. */
+  private preAttackDelay = 0;
 
   // Room data reference for collision
   roomData: number[][] = [];
@@ -673,10 +712,27 @@ export class Player extends Entity implements CombatEntity {
 
     // Apply gravity (except during dash/dive/surge) — reduced in water.
     // 정점 근처(|vy| < APEX_THRESHOLD)에서 중력 절반 → 체공감 상승.
+    // Aerial attack → "Air Stall": gravity dramatically reduced + max fall
+    // capped so 1/2/3타 콤보 전체를 공중에서 이어 맞출 수 있다. 3타는
+    // 거의 멈춰서 마무리 강타를 안정적으로 꽂게 한다.
     if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
       const apexMult = Math.abs(this.vy) < APEX_THRESHOLD ? APEX_GRAVITY_MULT : 1.0;
-      this.vy += GRAVITY * waterMult * apexMult * dtSec;
-      const maxFall = this.inWater ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
+      const aerialAttack = state === 'attack' && !this.grounded;
+      const stallMult = aerialAttack
+        ? (this.comboIndex === 2 ? AIR_STALL_GRAVITY_MUL_3 : AIR_STALL_GRAVITY_MUL_12)
+        : 1.0;
+
+      this.vy += GRAVITY * waterMult * apexMult * stallMult * dtSec;
+
+      // Damp residual upward velocity from a jump → "hover" feel during stall.
+      if (aerialAttack && this.vy < 0) {
+        this.vy *= Math.pow(AIR_STALL_RISE_DAMP_PER_16MS, dt / 16.67);
+      }
+
+      const baseMaxFall = this.inWater ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
+      const maxFall = aerialAttack
+        ? (this.comboIndex === 2 ? AIR_STALL_MAX_FALL_3 : AIR_STALL_MAX_FALL_12)
+        : baseMaxFall;
       if (this.vy > maxFall) this.vy = maxFall;
     }
 
@@ -924,6 +980,7 @@ export class Player extends Entity implements CombatEntity {
     }
     // 대시 sound — speed 0.95~1.05 무작위 (반복감 ↓).
     SFX.play('dash', 0, { speed: 0.95 + Math.random() * 0.1 });
+    rumbleGamepad(45, 0.15, 0.35);
     this.dashTimer = DASH_DURATION;
     // 대시 선딜 3프레임(50ms) 동결 — stateDash 에서 풀릴 때 방향 확정 후 dashSpeed 커밋.
     this.dashFreezeTimer = DASH_FREEZE_MS;
@@ -1086,7 +1143,13 @@ export class Player extends Entity implements CombatEntity {
 
   private startAttack(): void {
     const step = COMBO_STEPS[this.comboIndex];
-    this.attackTimer = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    // Capture per-swing time scale = global slow-down × (1 / weapon atkSpeed)
+    // × per-combo-step multiplier ("슉슉-슝": 3타 drawn out).
+    const def = this.getEquippedWeaponDef();
+    const wSpeed = def.atkSpeed > 0 ? def.atkSpeed : 1.0;
+    const stepMul = COMBO_STEP_TIME_MUL[this.comboIndex] ?? 1.0;
+    this.currentAttackTimeScale = (ATTACK_TIME_SCALE / wSpeed) * stepMul;
+    this.attackTimer = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
     this.attackActive = false;
     this.attackHasActivated = false;
     this.attackQueued = false;
@@ -1109,11 +1172,23 @@ export class Player extends Entity implements CombatEntity {
 
     // Gravity already applied in update() before state dispatch — no double gravity
 
+    // 2→3타 pause — hold the player in 'attack' state (air stall stays active
+    // because comboIndex is already 2) without ticking attack/hitbox logic.
+    // When the countdown elapses, fire startAttack() to begin 3타.
+    if (this.preAttackDelay > 0) {
+      this.preAttackDelay -= dt;
+      if (this.preAttackDelay <= 0) {
+        this.preAttackDelay = 0;
+        this.startAttack();
+      }
+      return;
+    }
+
     this.attackTimer -= dt;
 
     const step = COMBO_STEPS[this.comboIndex];
-    const totalMs = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
-    const activeMs = step.activeFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    const totalMs = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
+    const activeMs = step.activeFrames * FRAME_MS * this.currentAttackTimeScale;
     const activeStartMs = totalMs / 4;
     const elapsedMs = totalMs - this.attackTimer;
 
@@ -1139,7 +1214,13 @@ export class Player extends Entity implements CombatEntity {
         // Next combo step
         this.comboIndex++;
         this.attackQueued = false;
-        this.startAttack();
+        if (this.comboIndex === 2) {
+          // 2타 → 3타: insert "슉슉(쉼)슉" pause. stateAttack will fire
+          // startAttack() once the delay countdown reaches 0.
+          this.preAttackDelay = COMBO_3_PRE_DELAY_MS;
+        } else {
+          this.startAttack();
+        }
         return;
       }
 
@@ -1169,6 +1250,8 @@ export class Player extends Entity implements CombatEntity {
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
+    // Clear any pending 2→3 pause so an interrupted swing doesn't carry it over.
+    this.preAttackDelay = 0;
   }
 
   /** Whether the attack hitbox is currently active (for HitManager to check) */
@@ -1323,6 +1406,7 @@ export class Player extends Entity implements CombatEntity {
     this.endLagTimer = 0;
     this.comboWindowTimer = 0;
     this.comboIndex = 0;
+    rumbleGamepad(140, 0.5, 1.0);
   }
 
   private stateHit(dt: number): void {
@@ -1514,9 +1598,9 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * Weapon-aware hitbox: scales COMBO_STEPS by attackHitboxMul.
+   * Weapon-aware hitbox: scales COMBO_STEPS width by attackHitboxMul.
    * All player attack hitbox queries go through this, so equipment
-   * actually changes reach. Enemies keep using COMBO_STEPS directly.
+   * actually changes reach without making taller weapons hit below the FX.
    */
   getAttackStep(comboIndex: number): ComboStep | null {
     const base = COMBO_STEPS[comboIndex];
@@ -1593,7 +1677,7 @@ export class Player extends Entity implements CombatEntity {
     s.scale.x = this.facingRight ? sx : -sx;
 
     this.slashTimer += dt;
-    const slashFrameMs = Player.ANIM_SLASH_FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+    const slashFrameMs = Player.ANIM_SLASH_FRAME_MS * this.currentAttackTimeScale;
     while (this.slashTimer >= slashFrameMs) {
       this.slashTimer -= slashFrameMs;
       this.slashFrameIdx++;
@@ -1653,7 +1737,7 @@ export class Player extends Entity implements CombatEntity {
       }
       this.erdaPrevGrounded = this.grounded;
       const step = COMBO_STEPS[this.comboIndex];
-      const total = step.totalFrames * FRAME_MS * DEBUG_ATTACK_TIME_SCALE;
+      const total = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
       const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
       const forwardIdx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
       const idx = this.comboIndex === 1 ? ERDA_ATTACK_FRAME_COUNT - 1 - forwardIdx : forwardIdx;

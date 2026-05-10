@@ -1,5 +1,8 @@
+import { Assets, Rectangle, Sprite, Texture } from 'pixi.js';
 import { Enemy } from './Enemy';
+import { GlowFilter } from '@effects/GlowFilter';
 import { isSolid } from '@core/Physics';
+import { assetPath } from '@core/AssetLoader';
 import type { Rarity } from '@data/weapons';
 
 const TILE_SIZE = 16;
@@ -8,6 +11,28 @@ const FRAME_MS = 1000 / 60;
 const DETECT_CONFIRM_MS = 1000;
 const PATROL_SPEED_MULT = 0.5;
 const LOSE_TARGET_MS = 1500;
+
+// ── Skeleton atlas reuse — identical layout to Skeleton.ts. ──
+// 384×32 = 12 × 32×32. idle 0-3 / walk 4-7 / jump 8-11.
+// GoldenMonster wears this skin and is differentiated by a gold GlowFilter.
+const SKELETON_ATLAS_PNG_PATH = 'assets/characters/skeleton_01_atlas.png';
+const SKELETON_FRAME_W = 32;
+const SKELETON_FRAME_H = 32;
+const SKELETON_FRAME_COUNT = 12;
+const SKELETON_ANIM_FRAME_MS = 100;
+
+type GoldAnim = 'idle' | 'walk' | 'jump';
+const ANIM_RANGES: Record<GoldAnim, { from: number; to: number }> = {
+  idle: { from: 0, to: 3 },
+  walk: { from: 4, to: 7 },
+  jump: { from: 8, to: 11 },
+};
+
+// Gold glow params — strong enough to read at a glance vs regular Skeleton.
+const GOLD_GLOW_COLOR = 0xFFD700;
+const GOLD_GLOW_RADIUS = 3;
+const GOLD_GLOW_INTENSITY = 0.5;
+const GOLD_GLOW_CORE_BOOST = 0.15;
 
 /** Rarity weights by difficulty tier */
 const RARITY_WEIGHTS: Record<string, [Rarity, number][]> = {
@@ -42,6 +67,13 @@ export class GoldenMonster extends Enemy {
   private detectTimer = 0;
   private loseTargetTimer = 0;
 
+  /** Skeleton atlas overlay — identical sprite to Skeleton, gold-glowed. */
+  private skeletonSprite: Sprite | null = null;
+  private skeletonFrames: Texture[] = [];
+  private currentAnim: GoldAnim = 'idle';
+  private animFrameIndex = 0;
+  private animTimer = 0;
+
   /** The rarity of the portal this monster will drop */
   readonly portalRarity: Rarity;
 
@@ -60,6 +92,92 @@ export class GoldenMonster extends Enemy {
     this.applyStats('GoldenMonster', level);
 
     this.portalRarity = pickRarity(difficulty);
+
+    void this.loadSkeletonSprite();
+  }
+
+  /**
+   * Loads skeleton_01_atlas.png and attaches a gold GlowFilter to the sprite
+   * — same atlas as Skeleton, the glow is the only visual differentiator.
+   * Falls back to base Graphics on load failure.
+   */
+  private async loadSkeletonSprite(): Promise<void> {
+    try {
+      const tex = await Assets.load<Texture>(assetPath(SKELETON_ATLAS_PNG_PATH));
+      if (this.container.destroyed) return;
+      tex.source.scaleMode = 'nearest';
+
+      this.skeletonFrames = [];
+      for (let i = 0; i < SKELETON_FRAME_COUNT; i++) {
+        this.skeletonFrames.push(new Texture({
+          source: tex.source,
+          frame: new Rectangle(i * SKELETON_FRAME_W, 0, SKELETON_FRAME_W, SKELETON_FRAME_H),
+        }));
+      }
+
+      const s = new Sprite(this.skeletonFrames[0]);
+      // Foot-anchored — sprite (32×32) is wider than 18×26 collision box.
+      s.anchor.set(0.5, 1);
+      s.x = this.width / 2;
+      s.y = this.height;
+
+      // Gold glow — readable at a glance, distinguishes from regular Skeleton.
+      s.filters = [new GlowFilter({
+        color: GOLD_GLOW_COLOR,
+        radius: GOLD_GLOW_RADIUS,
+        intensity: GOLD_GLOW_INTENSITY,
+        coreBoost: GOLD_GLOW_CORE_BOOST,
+      })];
+
+      this.container.addChildAt(s, 0);
+      this.skeletonSprite = s;
+      this.mainSprite = s;  // Enemy.render hit-flash overlays this sprite
+      this.sprite.visible = false;
+    } catch {
+      // Load failed → keep Graphics placeholder.
+    }
+  }
+
+  /** Physics-state → animation pick (matches Skeleton). */
+  private decideAnim(): GoldAnim {
+    if (!this.grounded) return 'jump';
+    if (Math.abs(this.vx) > 1) return 'walk';
+    return 'idle';
+  }
+
+  private setAnim(next: GoldAnim): void {
+    if (this.currentAnim === next) return;
+    this.currentAnim = next;
+    this.animFrameIndex = 0;
+    this.animTimer = 0;
+  }
+
+  /** Per-frame anim tick (matches Skeleton.updateSkeletonAnim). */
+  private updateSkeletonAnim(dt: number): void {
+    if (!this.skeletonSprite || this.skeletonFrames.length === 0) return;
+
+    this.setAnim(this.decideAnim());
+    this.animTimer += dt;
+    while (this.animTimer >= SKELETON_ANIM_FRAME_MS) {
+      this.animTimer -= SKELETON_ANIM_FRAME_MS;
+      const range = ANIM_RANGES[this.currentAnim];
+      const span = range.to - range.from + 1;
+      this.animFrameIndex = (this.animFrameIndex + 1) % span;
+    }
+
+    const range = ANIM_RANGES[this.currentAnim];
+    const tex = this.skeletonFrames[range.from + this.animFrameIndex];
+    if (tex) this.skeletonSprite.texture = tex;
+    this.skeletonSprite.scale.x = this.facingRight ? 1 : -1;
+  }
+
+  override update(dt: number): void {
+    super.update(dt);
+    // patrol facing override — base Enemy targets player but patrol wanders.
+    if (this.fsm.currentState === 'patrol') {
+      this.facingRight = this.patrolDir > 0;
+    }
+    this.updateSkeletonAnim(dt);
   }
 
   protected setupStates(): void {

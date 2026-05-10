@@ -162,6 +162,7 @@ import {
 import { assetPath } from '@core/AssetLoader';
 import { AmbientLayer } from '@audio/AmbientLayer';
 import { SFX } from '@audio/Sfx';
+import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
 
 // ---------------------------------------------------------------------------
@@ -655,7 +656,7 @@ export class LdtkWorldScene extends Scene {
 
     // Primary atlas kept for any legacy single-atlas paths.
     this.atlas =
-      this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
+      this.atlases['atlas/world_01.png'] ??
       Object.values(this.atlases)[0];
 
     // Parallax background ??behind everything
@@ -2601,7 +2602,7 @@ export class LdtkWorldScene extends Scene {
     // current tilesetPath matches the LDtk default for that layer. Levels
     // that override the tileset (e.g. Builder with builder_01) keep theirs.
     const defaultWallTileset = 'atlas/world_01.png';
-    const defaultBgTileset = 'atlas/SunnyLand_by_Ansimuz-extended.png';
+    const defaultBgTileset = 'atlas/world_01.png';
     const bgToRetag = level.backgroundTiles.filter(t => t.tilesetPath === defaultBgTileset);
     const wallToRetag = filteredWalls.filter(t => t.tilesetPath === defaultWallTileset);
     applyAreaTilesetToLdtkTiles('world_shaft_bg', bgToRetag);
@@ -2961,6 +2962,7 @@ export class LdtkWorldScene extends Scene {
         });
         // Break effect
         this.game.camera.shake(6);
+        rumbleGamepad(180, 0.6, 1.0);
         this.screenFlash.flashHit(true);
         this.toast.show(t('toast.gate_opened'), 0x44ffaa);
         return;
@@ -3019,6 +3021,7 @@ export class LdtkWorldScene extends Scene {
           level_id: this.currentLevel?.identifier,
         });
         this.game.camera.shake(6);
+        rumbleGamepad(180, 0.6, 1.0);
         this.screenFlash.flashHit(true);
         this.toast.show(t('toast.gate_destroyed'), 0x44ffaa);
       } else if (result === 'rejected') {
@@ -3442,6 +3445,7 @@ export class LdtkWorldScene extends Scene {
     // Feedback ??strong hitstop for spike pain
     this.game.hitstopFrames = 16;
     this.game.camera.shake(5);
+    rumbleGamepad(160, 0.55, 1.0);
     this.screenFlash.flashDamage(true);
     this.player.triggerFlash();
     this.dmgNumbers.spawn(
@@ -4258,10 +4262,10 @@ export class LdtkWorldScene extends Scene {
         } else {
           enemy = createEnemy(enemyType, enemyLevel);
         }
-        // Golden monster portal callback
-        if (enemy instanceof GoldenMonster) {
-          enemy.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
-        }
+        // 필드 GoldenMonster 처치 시 포탈 스폰 — 사용자 요청으로 비활성.
+        // if (enemy instanceof GoldenMonster) {
+        //   enemy.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
+        // }
         enemy.x = spawner.px[0];
         enemy.y = spawner.px[1] - enemy.height;
         enemy.roomData = this.collisionGrid;

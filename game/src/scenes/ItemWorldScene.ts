@@ -499,7 +499,7 @@ export class ItemWorldScene extends Scene {
     const areaIds = [`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`];
     await ensureAreaTilesetsLoaded(areaIds, this.atlases);
     this.atlas =
-      this.atlases['atlas/SunnyLand_by_Ansimuz-extended.png'] ??
+      this.atlases['atlas/world_01.png'] ??
       Object.values(this.atlases)[0] ??
       null;
     try {

@@ -472,9 +472,10 @@ export class WorldScene extends Scene {
       golden.y = floorY - golden.height;
       golden.roomData = this.roomData;
       golden.target = this.player;
-      golden.onDeathCallback = (x, y, rarity) => {
-        this.spawnPortal(x, y, rarity, 'monster');
-      };
+      // 필드 GoldenMonster 처치 시 포탈 스폰 — 사용자 요청으로 비활성.
+      // golden.onDeathCallback = (x, y, rarity) => {
+      //   this.spawnPortal(x, y, rarity, 'monster');
+      // };
       this.enemies.push(golden);
       this.entityLayer.addChild(golden.container);
     }
