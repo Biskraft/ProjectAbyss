@@ -74,6 +74,17 @@ export function isSpecialVisualTile(tileId: number): boolean {
   return tileId === 2 || tileId === 4 || tileId === 5 || tileId === 6 || tileId === 8 || tileId === 10;
 }
 
+/** Check if an entity is standing ON a one-way (drop-through) platform — for tutorial gating. */
+export function isOnOneWay(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const feetRow = Math.floor((y + height) / TILE_SIZE);
+  const leftCol = Math.floor(x / TILE_SIZE);
+  const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
+  for (let col = leftCol; col <= rightCol; col++) {
+    if (isOneWay(getTile(roomData, col, feetRow))) return true;
+  }
+  return false;
+}
+
 /** Check if an entity is standing ON an ice tile (feet on ice surface). */
 export function isOnIce(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
   const feetRow = Math.floor((y + height) / TILE_SIZE);

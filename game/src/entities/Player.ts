@@ -2,7 +2,7 @@ import { Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater, isOnIce, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
@@ -1366,6 +1366,10 @@ export class Player extends Entity implements CombatEntity {
   /** Ice-tile accessor for skid streak VFX. */
   isStandingOnIce(): boolean {
     return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
+  }
+  /** One-way (drop-through) platform accessor — for drop-through tutorial gating. */
+  isOnOneWayPlatform(): boolean {
+    return this.grounded && isOnOneWay(this.x, this.y, this.width, this.height, this.roomData);
   }
   /**
    * One-shot water enter/exit edge event.

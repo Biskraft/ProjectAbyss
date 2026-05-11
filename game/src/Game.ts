@@ -235,29 +235,34 @@ export class Game {
           // setVirtualAction 으로 주입된 keystate 가 isJustPressed 로 정확히 검출된다.
           this.gamepad.poll(this.input);
 
-          // Shift+I — debug renderer(FPS + HUD 디버그 텍스트 + 히트박스 박스 등) 토글.
-          // Debug.visible: Player.attackSprite (공격 hitbox debug rect) 등 인게임 디버그 시각요소.
-          // Debug.infoVisible: HUD/씬 단의 debug 라벨 / FpsCounter container.
-          // INVENTORY consume — 인벤토리 모달 열림 방지.
-          if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
-            this.input.consumeJustPressed(GameAction.INVENTORY);
-            const next = !Debug.visible;
-            Debug.visible = next;
-            Debug.infoVisible = next;
-            this.fpsCounter.container.visible = next;
-          }
-          // Shift+U — 모든 HUD/모달 레이어(uiContainer + legacyUIContainer + feedback overlay) 토글.
-          // DEBUG_UI_TOGGLE consume 해서 다른 핸들러가 같은 키를 두 번 처리하지 않도록.
-          if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
-            this.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
-            this.uiHidden = !this.uiHidden;
-            const visible = !this.uiHidden;
-            this.uiContainer.visible = visible;
-            this.legacyUIContainer.visible = visible;
-            this.feedbackOverlayContainer.visible = visible;
+          // `?debug` URL 플래그 게이트: Shift+I/U 등 디버그 콤보는 일반 유저에게 비활성.
+          // Shift+P (hard reset) 는 어떤 모드에서도 항상 동작해야 하므로 게이트 밖에 둔다.
+          if (new URLSearchParams(window.location.search).has('debug')) {
+            // Shift+I — debug renderer(FPS + HUD 디버그 텍스트 + 히트박스 박스 등) 토글.
+            // Debug.visible: Player.attackSprite (공격 hitbox debug rect) 등 인게임 디버그 시각요소.
+            // Debug.infoVisible: HUD/씬 단의 debug 라벨 / FpsCounter container.
+            // INVENTORY consume — 인벤토리 모달 열림 방지.
+            if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
+              this.input.consumeJustPressed(GameAction.INVENTORY);
+              const next = !Debug.visible;
+              Debug.visible = next;
+              Debug.infoVisible = next;
+              this.fpsCounter.container.visible = next;
+            }
+            // Shift+U — 모든 HUD/모달 레이어(uiContainer + legacyUIContainer + feedback overlay) 토글.
+            // DEBUG_UI_TOGGLE consume 해서 다른 핸들러가 같은 키를 두 번 처리하지 않도록.
+            if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
+              this.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
+              this.uiHidden = !this.uiHidden;
+              const visible = !this.uiHidden;
+              this.uiContainer.visible = visible;
+              this.legacyUIContainer.visible = visible;
+              this.feedbackOverlayContainer.visible = visible;
+            }
           }
           // Shift+P — 전역 hard reset. 세이브 + 키보드 preset(localStorage) 모두 삭제 후 reload.
           // 어떤 씬에서도 작동하도록 Game.ts 단으로 일원화 (이전엔 LdtkWorldScene 만 처리).
+          // debug 게이트 밖 — 일반 유저도 망가진 세이브/키바인딩을 복구할 수 있어야 함.
           if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_RESET)) {
             this.input.consumeJustPressed(GameAction.DEBUG_RESET);
             SaveManager.deleteSave();

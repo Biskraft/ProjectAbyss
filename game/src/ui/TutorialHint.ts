@@ -10,6 +10,7 @@ import { Container, Graphics } from 'pixi.js';
 import { createUiText } from './factories';
 import { KeyPrompt } from './KeyPrompt';
 import type { InputManager } from '@core/InputManager';
+import type { GameAction } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
 import { HudConst } from '@data/constData';
 
@@ -36,7 +37,10 @@ const PULSE_PERIOD_MS = 1600;      // soft tier (matches ui-components.html)
 const BOX_Y = GAME_HEIGHT - 48;    // bottom-center anchor
 
 export interface TutorialHintOpts {
+  /** 레거시 단일 키 라벨 — 정적, 표시 시점 글리프. */
   keyLabel?: string;
+  /** GameAction 다중 키 — KeyPrompt.createKeyIconForAction 으로 디바이스 hot-swap 자동 갱신. */
+  actions?: GameAction[];
   text: string;
   persistent?: boolean;
 }
@@ -74,12 +78,36 @@ export class TutorialHint {
 
     const panel = new Container();
 
-    const keyIcon = opts.keyLabel ? KeyPrompt.createKeyIcon(opts.keyLabel, KEY_SIZE) : null;
+    // Build key row — actions 우선(hot-swap), fallback to keyLabel (정적).
+    // 다중 키는 사이에 "+" glyph 로 콤보 표시.
+    const keyRow = new Container();
+    const keyIcons: Container[] = [];
+    if (opts.actions && opts.actions.length > 0) {
+      for (const a of opts.actions) keyIcons.push(KeyPrompt.createKeyIconForAction(a, KEY_SIZE));
+    } else if (opts.keyLabel) {
+      keyIcons.push(KeyPrompt.createKeyIcon(opts.keyLabel, KEY_SIZE));
+    }
+    let rowX = 0;
+    const PLUS_PAD = 3;
+    for (let i = 0; i < keyIcons.length; i++) {
+      if (i > 0) {
+        const plus = createUiText('+', { fontSize: LABEL_FONT, fill: 0xffffff });
+        plus.x = rowX + PLUS_PAD;
+        plus.y = Math.floor((KEY_SIZE - plus.height) / 2);
+        keyRow.addChild(plus);
+        rowX += plus.width + PLUS_PAD * 2;
+      }
+      keyIcons[i].x = rowX;
+      keyIcons[i].y = 0;
+      keyRow.addChild(keyIcons[i]);
+      rowX += KEY_SIZE;
+    }
+    const keyRowW = rowX;
+
     const label = createUiText(opts.text, { fontSize: LABEL_FONT, fill: 0xffffff });
 
-    const keyW = keyIcon ? KEY_SIZE : 0;
-    const innerGap = keyIcon ? GAP : 0;
-    const contentW = keyW + innerGap + label.width;
+    const innerGap = keyRowW > 0 ? GAP : 0;
+    const contentW = keyRowW + innerGap + label.width;
     const totalW = contentW + PAD_X * 2;
     const totalH = Math.max(KEY_SIZE, label.height) + PAD_Y * 2;
     const startX = -Math.floor(totalW / 2);
@@ -100,13 +128,13 @@ export class TutorialHint {
       .stroke({ color: ACCENT_COLOR, width: BORDER_W, alpha: BORDER_ALPHA });
     panel.addChild(bg);
 
-    if (keyIcon) {
-      keyIcon.x = startX + PAD_X;
-      keyIcon.y = PAD_Y;
-      panel.addChild(keyIcon);
+    if (keyRowW > 0) {
+      keyRow.x = startX + PAD_X;
+      keyRow.y = PAD_Y;
+      panel.addChild(keyRow);
     }
 
-    label.x = startX + PAD_X + keyW + innerGap;
+    label.x = startX + PAD_X + keyRowW + innerGap;
     label.y = PAD_Y + Math.floor((KEY_SIZE - label.height) / 2);
     panel.addChild(label);
 
@@ -121,6 +149,24 @@ export class TutorialHint {
     this.timer = DISPLAY_DURATION;
     this.pulseTimer = 0;
     this.fading = false;
+  }
+
+  /** True while a hint with the given id is currently displayed. */
+  isShowing(id: string): boolean {
+    return this.panel !== null && this.panelId === id;
+  }
+
+  /**
+   * 학습 완료 신호 후 즉시 사라지지 않고 `delayMs` 동안 유지 후 자동 fade.
+   * 실수 입력으로 hint 가 사용자 인지 전에 사라지는 케이스 방지. persistent 해제 +
+   * 잔여 timer 를 delayMs 로 reset — update() 가 timer 진행 + fade 처리.
+   */
+  dismissAfter(id: string, delayMs: number): void {
+    if (this.panel && this.panelId === id) {
+      this.panelPersistent = false;
+      this.timer = delayMs;
+      this.fading = false;
+    }
   }
 
   /**

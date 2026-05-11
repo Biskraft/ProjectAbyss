@@ -223,6 +223,20 @@ export class LdtkWorldScene extends Scene {
    * 매 프레임 cutscene/dialogue 종료 검사 후 실제 표시.
    */
   private pendingInventoryHint: 'first_pickup' | 'first_iw_return' | null = null;
+  /** Drop-through 튜토리얼 1회 발사 가드. 사용자가 직접 dropthrough 하면 학습됐으니 발사 안 함. */
+  private dropThroughHintHandled = false;
+  /** 점프 튜토리얼 — 사용자가 화살표(MOVE_LEFT/RIGHT)로 처음 움직였을 때 1회 발사, JUMP 입력 시 dismiss. */
+  private jumpHintHandled = false;
+  /** 점프 hint 트리거 가드 — 사용자가 horizontal 이동 입력을 한 번이라도 누른 적 있는가. */
+  private hasMovedHorizontally = false;
+  /** 첫 horizontal 입력 후 점프 hint 발사까지의 잔여 지연(ms). */
+  private jumpHintDelayMs = 2000;
+  /** 공격 튜토리얼 — 카메라 안에 적이 처음 등장하는 프레임에 1회 발사, ATTACK 입력 시 dismiss. */
+  private attackHintHandled = false;
+  /** 대시 튜토리얼 — Overworld_Level_36 진입 1초 후 발사, DASH 입력 시 dismiss. */
+  private dashHintHandled = false;
+  /** Dash 룸 진입 후 hint 발사까지의 잔여 ms. -1 = 방 밖(리셋). */
+  private dashHintDelayMs = -1;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
   // Shaft_01 cinematic builder is a one-shot — the ascent plays only on the
@@ -298,7 +312,9 @@ export class LdtkWorldScene extends Scene {
   private readonly TITLE_FADE_IN_MS = 1400;
   // Game-start intro sequence: fade-in → area title → reveal HUD.
   // 'none' = skip sequence (e.g. pop return from sub-scenes).
-  private introPhase: 'none' | 'fadeIn' | 'title' | 'done' = 'none';
+  private introPhase: 'none' | 'fadeIn' | 'title' | 'awaitingHud' | 'done' = 'none';
+  /** Shaft_01 영화적 비트 — AreaTitle 종료 후 HUD 노출까지의 잔여 ms. */
+  private hudRevealTimer = 0;
   // Area title queued during intro fade-in; shown once the fade completes.
   private pendingAreaTitle: string | null = null;
   // Edge detector: when areaTitle transitions active→inactive while HUD is
@@ -944,6 +960,8 @@ export class LdtkWorldScene extends Scene {
     this.worldMap = new WorldMapOverlay(this.uiSkin, this.game.uiScale);
     this.worldMap.setLoader(this.loader);
     this.worldMap.setRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic'));
+    // Shift+M 디버그 워프용: Debug 룸 포함(Cinematic 만 제외) 풀 리스트 별도 등록.
+    this.worldMap.setDebugRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Cinematic'));
     this.game.uiContainer.addChild(this.worldMap.container);
 
     this.transitionController = new WorldTransitionController();
@@ -1023,7 +1041,7 @@ export class LdtkWorldScene extends Scene {
     // Hide HUD + minimap until the Shaft_01 area title completes. Covers
     // both the initial intro ('fadeIn') and the post-fade 'title' waiting
     // state (player may roam non-Shaft rooms before first entering Shaft_01).
-    if (this.introPhase === 'fadeIn' || this.introPhase === 'title') {
+    if (this.introPhase === 'fadeIn' || this.introPhase === 'title' || this.introPhase === 'awaitingHud') {
       this.hud.container.visible = false;
       if (this.minimap) this.minimap.visible = false;
     }
@@ -1135,23 +1153,27 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // HUD reveal: fires the frame an area title transitions active→inactive
-    // while HUD is still hidden. This is the moment the player finishes
-    // watching "THE SHAFT" (or any future intro banner) and gameplay UI
-    // should appear. If the player spawns outside Shaft_01, HUD stays
-    // hidden until they walk in and trigger the banner via loadLevel.
+    // HUD reveal: AreaTitle 이 inactive 되는 프레임에 5초 timer 를 시작해 Shaft_01
+    // 영화적 비트(거대 빌더가 누비는 대공동 - 잠시 침묵) 를 살린 뒤 HUD/미니맵 노출.
+    // 'awaitingHud' 상태 동안 위 강제 숨김 분기가 HUD 를 가린다.
     const areaTitleActive = this.areaTitle.isActive;
     if (
       this.wasAreaTitleActive &&
       !areaTitleActive &&
       this.introPhase === 'title'
     ) {
-      this.hud.container.visible = true;
-      if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
-      this.introPhase = 'done';
-      // Reveal global UI (FeedbackPanel hint etc.) at the same moment the HUD
-      // appears, so the player sees a unified intro → world handoff.
-      this.game.hudReady = true;
+      this.introPhase = 'awaitingHud';
+      this.hudRevealTimer = 5000;
+    }
+    if (this.introPhase === 'awaitingHud') {
+      this.hudRevealTimer -= dt;
+      if (this.hudRevealTimer <= 0) {
+        this.hud.container.visible = true;
+        if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
+        this.introPhase = 'done';
+        // FeedbackPanel hint / 점프 튜토리얼 등 글로벌 UI 가 HUD 노출과 동시에 등장.
+        this.game.hudReady = true;
+      }
     }
     this.wasAreaTitleActive = areaTitleActive;
 
@@ -1252,6 +1274,90 @@ export class LdtkWorldScene extends Scene {
           { keyLabel: actionKey(GameAction.INVENTORY), text: t('tutorial.open_inventory'), persistent: true },
         );
         this.pendingInventoryHint = null;
+      }
+    }
+
+    // 첫 platform 위 grounded → drop-through 튜토리얼 hint 1회 발사.
+    // 가드 플래그는 사용자가 직접 dropthrough 시에도 set 되므로 학습 후 재발사 안 됨.
+    // 모든 hint 는 학습 입력 감지 후 dismissAfter(2000ms) — 사용자가 실수로 키를 눌러도
+    // hint 가 2초간 유지되어 인지/무시할 수 있도록.
+    const HINT_LINGER_MS = 2000;
+
+    // Drop-through 튜토리얼 — platform 위 grounded 시 tryShow. handled set 은
+    // consumeDropThroughEvent 분기에서만 — panel busy 로 발사 못 한 경우 다음 platform
+    // 진입 시 재시도 가능.
+    if (!this.dropThroughHintHandled && this.player.isOnOneWayPlatform()) {
+      this.tutorialHint.tryShow('hint_drop_through', {
+        actions: [GameAction.LOOK_DOWN, GameAction.JUMP],
+        text: t('tutorial.drop_through'),
+        persistent: true,
+      });
+    }
+
+    // 점프 튜토리얼 — 게임 시작 지점(playerSpawnLevelId) 에서 사용자가 화살표
+    // (MOVE_LEFT/RIGHT) 로 한 번이라도 움직인 후 2초 지연 후 발사. Shaft_01 등 다른
+    // 룸에서는 절대 발사하지 않는다. JUMP 입력 시 2초 linger 후 fade.
+    if (!this.jumpHintHandled) {
+      const isInSpawnRoom = this.currentLevel?.identifier === this.playerSpawnLevelId;
+      if (isInSpawnRoom && !this.hasMovedHorizontally
+          && (this.game.input.isDown(GameAction.MOVE_LEFT)
+            || this.game.input.isDown(GameAction.MOVE_RIGHT))) {
+        this.hasMovedHorizontally = true;
+      }
+      if (this.hasMovedHorizontally && this.jumpHintDelayMs > 0) {
+        this.jumpHintDelayMs -= dt;
+      }
+      if (isInSpawnRoom && this.hasMovedHorizontally && this.jumpHintDelayMs <= 0) {
+        this.tutorialHint.tryShow('hint_jump', {
+          actions: [GameAction.JUMP],
+          text: t('tutorial.jump'),
+          persistent: true,
+        });
+      }
+      if (this.tutorialHint.isShowing('hint_jump')
+          && this.game.input.isJustPressed(GameAction.JUMP)) {
+        this.tutorialHint.dismissAfter('hint_jump', HINT_LINGER_MS);
+        this.jumpHintHandled = true;
+      }
+    }
+
+    // 공격 튜토리얼 — 살아있는 적이 4타일 이내로 접근한 프레임에 1회 발사.
+    // dismiss 는 hint 가 표시 중일 때 ATTACK 입력 시. 4초 linger.
+    if (!this.attackHintHandled) {
+      if (this.hasEnemyNearby()) {
+        this.tutorialHint.tryShow('hint_attack', {
+          actions: [GameAction.ATTACK],
+          text: t('tutorial.attack'),
+          persistent: true,
+        });
+      }
+      if (this.tutorialHint.isShowing('hint_attack')
+          && this.game.input.isJustPressed(GameAction.ATTACK)) {
+        this.tutorialHint.dismissAfter('hint_attack', HINT_LINGER_MS);
+        this.attackHintHandled = true;
+      }
+    }
+
+    // 대시 튜토리얼 — Overworld_Level_36 진입 1초 후 발사. 룸을 떠나면 timer 리셋.
+    if (!this.dashHintHandled) {
+      const inDashRoom = this.currentLevel?.identifier === 'Overworld_Level_36';
+      if (inDashRoom) {
+        if (this.dashHintDelayMs < 0) this.dashHintDelayMs = 1000;
+        else if (this.dashHintDelayMs > 0) this.dashHintDelayMs -= dt;
+        if (this.dashHintDelayMs <= 0) {
+          this.tutorialHint.tryShow('hint_dash', {
+            actions: [GameAction.DASH],
+            text: t('tutorial.dash'),
+            persistent: true,
+          });
+        }
+      } else {
+        this.dashHintDelayMs = -1;
+      }
+      if (this.tutorialHint.isShowing('hint_dash')
+          && this.game.input.isJustPressed(GameAction.DASH)) {
+        this.tutorialHint.dismissAfter('hint_dash', HINT_LINGER_MS);
+        this.dashHintHandled = true;
       }
     }
 
@@ -2210,6 +2316,10 @@ export class LdtkWorldScene extends Scene {
     // Drop-through dust streak
     if (p.consumeDropThroughEvent()) {
       this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
+      // 사용자가 직접 drop-through 학습 완료 — hint 가 표시 중이면 2초 후 자동 fade,
+      // 재발사 방지 위해 handled flag 도 set.
+      this.tutorialHint.dismissAfter('hint_drop_through', 2000);
+      this.dropThroughHintHandled = true;
     }
     // Ice skid streak
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
@@ -2382,6 +2492,19 @@ export class LdtkWorldScene extends Scene {
    */
   private findPlayerSpawnLevel(): string {
     return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
+  }
+
+  /** Returns true when at least one alive enemy is within 4 tiles (64px) of the player. */
+  private hasEnemyNearby(): boolean {
+    if (!this.enemies || this.enemies.length === 0) return false;
+    const RANGE = 4 * 16; // 4 tiles
+    const px = this.player.x;
+    const py = this.player.y;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (Math.abs(e.x - px) < RANGE && Math.abs(e.y - py) < RANGE) return true;
+    }
+    return false;
   }
 
   private canLoadWorldLevel(levelId: string | null | undefined): levelId is string {

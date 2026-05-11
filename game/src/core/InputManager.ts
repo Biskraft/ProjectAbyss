@@ -62,7 +62,7 @@ export const PRESETS: Record<string, Record<GameAction, string[]>> = {
   wasd: PRESET_WASD,
 };
 
-export const PRESET_NAMES = ['classic', 'modern', 'wasd'] as const;
+export const PRESET_NAMES = ['modern', 'wasd', 'classic'] as const;
 export type PresetName = typeof PRESET_NAMES[number];
 
 export interface PresetInfo {
@@ -75,12 +75,12 @@ export interface PresetInfo {
 }
 
 export const PRESET_INFOS: PresetInfo[] = [
-  { name: 'classic', label: 'CLASSIC', move: 'Arrow', jump: 'Z', dash: 'X', attack: 'C' },
   { name: 'modern', label: 'MODERN', move: 'Arrow', jump: 'Space', dash: 'Shift', attack: 'Z' },
   { name: 'wasd', label: 'WASD', move: 'WASD', jump: 'Space', dash: 'Shift', attack: 'J' },
+  { name: 'classic', label: 'CLASSIC', move: 'Arrow', jump: 'Z', dash: 'X', attack: 'C' },
 ];
 
-const DEFAULT_BINDINGS = PRESET_CLASSIC;
+const DEFAULT_BINDINGS = PRESET_MODERN;
 const STORAGE_KEY = 'echoris-keybindings';
 
 // ── GAME_KEYS set (rebuilt on preset change) ──────────────────────────────────
@@ -137,7 +137,7 @@ export class InputManager {
   shiftDown = false;
 
   /** Currently active preset name */
-  currentPreset: PresetName = 'classic';
+  currentPreset: PresetName = 'modern';
 
   constructor() {
     // Load saved preset or use default

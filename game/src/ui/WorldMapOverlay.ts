@@ -80,6 +80,8 @@ export class WorldMapOverlay {
 
   // Data
   private rooms: WorldMapRoom[] = [];
+  /** Debug 모드 전용 풀 리스트 (Debug 룸 포함). Shift+M 워프 시 그리기/클릭 대상. */
+  private debugRooms: WorldMapRoom[] = [];
   private visitedLevels: Set<string> = new Set();
   private currentLevelId = '';
   private markers: MapMarker[] = [];
@@ -144,6 +146,11 @@ export class WorldMapOverlay {
   setRooms(rooms: WorldMapRoom[]): void {
     this.rooms = rooms;
     this.totalRooms = this.rooms.length;
+  }
+
+  /** Debug(Shift+M) 모드에서 그릴 풀 리스트. Cinematic 만 제외, Debug 룸 포함. */
+  setDebugRooms(rooms: WorldMapRoom[]): void {
+    this.debugRooms = rooms;
   }
 
   /** Update visited levels and current level */
@@ -218,11 +225,13 @@ export class WorldMapOverlay {
     this.currentRoomGfx = null;
     this.playerDot = null;
 
-    if (this.rooms.length === 0) return;
+    // Debug(Shift+M) 모드면 풀 리스트(Debug 룸 포함)로 그려 워프 클릭이 가능하게 한다.
+    const renderList = this.debugMode && this.debugRooms.length > 0 ? this.debugRooms : this.rooms;
+    if (renderList.length === 0) return;
 
     // Compute bounds of entire world
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const r of this.rooms) {
+    for (const r of renderList) {
       minX = Math.min(minX, r.x);
       minY = Math.min(minY, r.y);
       maxX = Math.max(maxX, r.x + r.w);
@@ -260,7 +269,7 @@ export class WorldMapOverlay {
     }
 
     // Draw rooms
-    for (const r of this.rooms) {
+    for (const r of renderList) {
       const rx = offsetX + (r.x - minX) * scale;
       const ry = offsetY + (r.y - minY) * scale;
       const rw = Math.max(3, r.w * scale);
