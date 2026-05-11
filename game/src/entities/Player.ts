@@ -1741,6 +1741,13 @@ export class Player extends Entity implements CombatEntity {
     // Attack — FSM state === 'attack' 진입 시 attackTimer 진행률로 18..21 스크럽.
     // 매 콤보 스텝의 startAttack() 에서 attackTimer 가 total 로 리셋되므로 각 타격마다 18→21 재생.
     if (fsmState === 'attack') {
+      // 2→3 pause(preAttackDelay) 동안 직전 frame + weapon pose hold.
+      // attackTimer 가 0 이라 아래 progress 계산이 0.9999 로 튀어 frame jump 발생 — 가드로 차단.
+      if (this.preAttackDelay > 0) {
+        this.updateAttackWeaponPose(this.erdaAnimFrame);
+        this.erdaPrevGrounded = this.grounded;
+        return;
+      }
       if (this.erdaAnim !== 'attack') {
         this.erdaAnim = 'attack';
         this.erdaAnimFrame = 0;
@@ -1758,6 +1765,18 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnimFrame = idx;
       this.erdaSprite.texture = this.erdaFrames[attackStart + idx];
       this.updateAttackWeaponPose(idx);
+      return;
+    }
+    // 콤보 hold — attack 종료 직후 콤보 윈도우(또는 3타 endLag) 동안 마지막 attack
+    // frame 을 hold 해 칼 든 자세 + weapon pose 유지. 다음 콤보 입력 시 자연스럽게
+    // 다음 swing 으로 연결, 윈도우 만료/점프/대시 등으로 캔슬되면 idle 로 복귀.
+    // 점프·대시·공중은 hold 깨고 자연 전이 (fsmState 가드).
+    if (this.erdaAnim === 'attack'
+        && (this.comboWindowTimer > 0 || this.endLagTimer > 0)
+        && this.grounded
+        && (fsmState === 'idle' || fsmState === 'run')) {
+      this.updateAttackWeaponPose(this.erdaAnimFrame);
+      this.erdaPrevGrounded = this.grounded;
       return;
     }
     if (this.erdaAnim === 'attack') {

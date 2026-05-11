@@ -129,9 +129,16 @@ export class Switch {
     return true;
   }
 
-  /** AABB for hit detection. */
+  /** AABB for hit detection — sprite 영역의 절반, center 유지. */
   getHitAABB(): { x: number; y: number; width: number; height: number } {
-    return { x: this.x, y: this.y, width: this.width, height: this.height };
+    const w = this.width * 0.5;
+    const h = this.height * 0.5;
+    return {
+      x: this.x + (this.width - w) / 2,
+      y: this.y + (this.height - h) / 2,
+      width: w,
+      height: h,
+    };
   }
 
   destroy(): void {

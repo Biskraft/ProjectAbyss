@@ -69,7 +69,7 @@ const CORE_ASSETS: Record<string, string> = {
  */
 const ITEM_WORLD_ASSETS: Record<string, string> = {
   skeleton_atlas: assetPath('assets/characters/skeleton_01_atlas.png'),
-  slime: assetPath('assets/characters/slime_01.png'),
+  slime: assetPath('assets/characters/slime_01_atlas.png'),
   villager: assetPath('assets/sprites/shadow_town_villager.png'),
   switch: assetPath('assets/sprites/breakable_switch_01.png'),
 };

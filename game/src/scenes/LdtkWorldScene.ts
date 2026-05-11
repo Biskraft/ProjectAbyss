@@ -141,6 +141,7 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
+import { FluidSystem } from '@effects/FluidSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
@@ -286,6 +287,8 @@ export class LdtkWorldScene extends Scene {
 
   // Layers
   private entityLayer!: Container;
+  private fluidLayer!: Container;
+  private fluidSystem!: FluidSystem;
 
   // Entities
   private player!: Player;
@@ -797,6 +800,12 @@ export class LdtkWorldScene extends Scene {
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
 
+    // Fluid layer — entity layer 앞에 위치. player/enemy 가 fluid 안에 들어가면
+    // 잠긴 부분이 자연스럽게 fluid 색으로 가려진다 (실제 잠수 효과).
+    this.fluidLayer = new Container();
+    this.container.addChild(this.fluidLayer);
+    this.fluidSystem = new FluidSystem(this.fluidLayer);
+
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
     // Void fog particles (black mist rising from void tiles)
@@ -1279,9 +1288,9 @@ export class LdtkWorldScene extends Scene {
 
     // 첫 platform 위 grounded → drop-through 튜토리얼 hint 1회 발사.
     // 가드 플래그는 사용자가 직접 dropthrough 시에도 set 되므로 학습 후 재발사 안 됨.
-    // 모든 hint 는 학습 입력 감지 후 dismissAfter(2000ms) — 사용자가 실수로 키를 눌러도
-    // hint 가 2초간 유지되어 인지/무시할 수 있도록.
-    const HINT_LINGER_MS = 2000;
+    // 모든 hint 는 학습 입력 감지 후 dismissAfter(1000ms) — 사용자가 실수로 키를 눌러도
+    // hint 가 1초간 유지되어 인지/무시할 수 있도록.
+    const HINT_LINGER_MS = 1000;
 
     // Drop-through 튜토리얼 — platform 위 grounded 시 tryShow. handled set 은
     // consumeDropThroughEvent 분기에서만 — panel busy 로 발사 못 한 경우 다음 platform
@@ -1692,7 +1701,10 @@ export class LdtkWorldScene extends Scene {
 
     // Player attacks ??Sakurai full feedback chain
     if (this.player.isAttackActive()) {
-      const targets = this.enemies.filter((e) => e.alive) as CombatEntity[];
+      // Locked door 가 player 와 enemy 사이에 있으면 hit 차단 — attack 이 door 를 투과 안 함.
+      const targets = this.enemies
+        .filter((e) => e.alive)
+        .filter((e) => !this.isAttackBlockedByDoor(e)) as CombatEntity[];
       const hits = this.hitManager.checkHits(
         this.player,
         this.player.comboIndex,
@@ -2310,15 +2322,18 @@ export class LdtkWorldScene extends Scene {
     if (waterT !== null) {
       const strength = waterT > 0 ? 1.0 : 0.8;
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
+      // Dynamic fluid surface ripple — 진입(+) 시 큰 임펄스, 탈출(-) 시 약한 반대 임펄스.
+      const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
+      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
     // Continuous rising bubbles while submerged
     this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
     if (p.consumeDropThroughEvent()) {
       this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
-      // 사용자가 직접 drop-through 학습 완료 — hint 가 표시 중이면 2초 후 자동 fade,
+      // 사용자가 직접 drop-through 학습 완료 — hint 가 표시 중이면 1초 후 자동 fade,
       // 재발사 방지 위해 handled flag 도 set.
-      this.tutorialHint.dismissAfter('hint_drop_through', 2000);
+      this.tutorialHint.dismissAfter('hint_drop_through', 1000);
       this.dropThroughHintHandled = true;
     }
     // Ice skid streak
@@ -2333,6 +2348,8 @@ export class LdtkWorldScene extends Scene {
       if (e.waterTransition !== 0) {
         const strength = e.waterTransition > 0 ? 1.0 : 0.8;
         this.waterSplash.spawn(ex, ey, strength);
+        const impulseVy = e.waterTransition > 0 ? 150 : -100;
+        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
       }
       const key = `enemy_${i}`;
       this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
@@ -2364,6 +2381,7 @@ export class LdtkWorldScene extends Scene {
     this.diveLandImpact.update(dt);
     this.waterSplash.update(dt);
     this.waterBubbles.update(dt);
+    this.fluidSystem.update(dt);
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
     this.itemPickupGlow.update(dt);
@@ -2492,6 +2510,27 @@ export class LdtkWorldScene extends Scene {
    */
   private findPlayerSpawnLevel(): string {
     return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
+  }
+
+  /** locked door 가 player center 와 entity center 사이에 끼어 있는지 — attack 차단용. */
+  private isAttackBlockedByDoor(entity: { x: number; y: number; width: number; height: number }): boolean {
+    if (this.lockedDoors.length === 0) return false;
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+    const ex = entity.x + entity.width / 2;
+    const ey = entity.y + entity.height / 2;
+    const xMin = Math.min(px, ex);
+    const xMax = Math.max(px, ex);
+    const yMin = Math.min(py, ey);
+    const yMax = Math.max(py, ey);
+    for (const door of this.lockedDoors) {
+      if (!door.locked) continue;
+      const a = door.getHitAABB();
+      if (a.x + a.width < xMin || a.x > xMax) continue;
+      if (a.y + a.height < yMin || a.y > yMax) continue;
+      return true;
+    }
+    return false;
   }
 
   /** Returns true when at least one alive enemy is within 4 tiles (64px) of the player. */
@@ -2708,18 +2747,23 @@ export class LdtkWorldScene extends Scene {
 
     // Collision grid ??deep copy so runtime modifications don't persist across reloads
     this.collisionGrid = level.collisionGrid.map(row => [...row]);
+
+    // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
+    this.fluidSystem.attach(level);
     // Reset breakable hit tracking on level transition
     this.breakableHits.clear();
     // 보스 HP �?초기?????�전 ?�벨?�서 ?�아?�을 가?�성(?�망·?�프 ?? 차단.
     // ???�벨??보스방이�?activateBossLock ??update 루프?�서 ?�시 ?�시?�다.
     this.hud.hideBossHP();
 
-    // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone)
+    // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone).
+    // value=2 (water) 정적 sprite 는 dynamic FluidSystem 이 대신 표현하므로 제외.
     this.renderer.clear();
     const filteredWalls = level.wallTiles.filter(t => {
       const col = Math.floor(t.px[0] / TILE_SIZE);
       const row = Math.floor(t.px[1] / TILE_SIZE);
-      return (this.collisionGrid[row]?.[col] ?? 0) !== 0;
+      const v = this.collisionGrid[row]?.[col] ?? 0;
+      return v !== 0 && v !== 2;
     });
     // Retag BG/WALL tiles to CSV-derived atlas — but ONLY if the tile's
     // current tilesetPath matches the LDtk default for that layer. Levels
@@ -3040,7 +3084,7 @@ export class LdtkWorldScene extends Scene {
       const doorKey = unlockCondition === 'event'
         ? unlockEvent
         : ent.iid; // use entity IID as unique key
-      if (this.unlockedEvents.has(doorKey)) continue;
+      const isAlreadyUnlocked = this.unlockedEvents.has(doorKey);
 
       const door = new LockedDoor(
         ent.px[0], ent.px[1],
@@ -3054,6 +3098,11 @@ export class LdtkWorldScene extends Scene {
       door.injectCollision(this.collisionGrid);
       this.lockedDoors.push(door);
       this.entityLayer.addChild(door.container);
+      // 이미 unlocked 된 문 — spawn 직후 instant unlock 으로 caps(top/bottom) 만 남김.
+      // collision 도 즉시 0 으로 되돌려 진행 막힘 없음.
+      if (isAlreadyUnlocked) {
+        door.unlock(this.collisionGrid, true);
+      }
     }
   }
 
@@ -3150,9 +3199,12 @@ export class LdtkWorldScene extends Scene {
       } else if (result === 'rejected') {
         this.doorRejectSet.add(door.iid);
         this.game.camera.shake(2);
-        const threshold = door.statThreshold;
-        const current = playerStats[door.statType] ?? 0;
-        this.toast.show(t('toast.stat_gate_locked', { stat: door.statType.toUpperCase(), current: current, required: threshold }), 0xff4444);
+        // Stat door 만 stat 요구 toast — event/switch 는 shake 피드백만.
+        if (door.unlockCondition === 'stat') {
+          const threshold = door.statThreshold;
+          const current = playerStats[door.statType] ?? 0;
+          this.toast.show(t('toast.stat_gate_locked', { stat: door.statType.toUpperCase(), current: current, required: threshold }), 0xff4444);
+        }
         break;
       }
     }

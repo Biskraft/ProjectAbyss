@@ -26,6 +26,7 @@ function exportAse(absPath) {
     '--sheet-type', 'horizontal',
     '--split-slices',
     '--list-slices',
+    '--list-tags',
   ];
   const rel = relative(ROOT, absPath).replace(/\\/g, '/');
   console.log(`[ase-watch] ${new Date().toLocaleTimeString()} export ${rel}`);

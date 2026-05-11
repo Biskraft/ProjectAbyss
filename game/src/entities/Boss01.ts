@@ -55,28 +55,29 @@ interface AnimDef {
 const BOSS01_ANIM_RANGES: Record<Boss01Anim, AnimDef> = {
   // 4f 호흡 (user 1-4). 프레임당 200ms — 기본 100ms 의 2배 (사용자 피드백 2026-05-05).
   idle:        { from: 0,  to: 3,  loop: true,  frameMs: [200, 200, 200, 200] },
-  // attack1 (사용자 spec 2026-05-05): user "8" (array 7) = 타격 long hold,
-  // user "9, 10" (array 8, 9) = recovery. 8(400ms hit window) → 9(100) → 10(100). 총 600ms.
-  attack1:     { from: 7,  to: 9,  loop: false, frameMs: [400, 100, 100] },
-  // 'jump' = legacy 단일 anim. 현재는 slam_* 4분할로 대체. fallback 보존.
-  jump:        { from: 9,  to: 14, loop: false },
+  // attack1 (사용자 spec 2026-05-11): user 5-10 (array 4-9) — 6 frames.
+  //  frame 1: 짧은 windup. frame 2: lunge 발동(거리 진행). frame 3-6: recovery(anticipate).
+  attack1:     { from: 4,  to: 9,  loop: false, frameMs: [120, 300, 100, 100, 100, 100] },
+  // 'jump' = legacy 단일 anim. 현재는 slam_* 분할로 대체. fallback 보존.
+  // 사용자 spec 2026-05-11: jump 6 frames (user 11-16 → array 10-15).
+  jump:        { from: 10, to: 15, loop: false },
 
-  // Charge telegraph: user "19→20→21" → array 18→19→20. 20 freeze (telegraph 종료).
-  charge_prep: { from: 18, to: 20, loop: false },
-  // Charge active: user "23" → array 22 단일 프레임.
-  charge:      { from: 22, to: 22, loop: false },
+  // Charge telegraph: 기존 user "19-21" → array 18-20 였음. atlas 갱신으로 -2 shift → 16-18.
+  charge_prep: { from: 16, to: 18, loop: false },
+  // Charge active: 기존 array 22 → -2 shift = 20.
+  charge:      { from: 20, to: 20, loop: false },
 
-  // Slam telegraph (pendingAttack='slam'): user "11" → array 10. telegraph 끝까지 hold.
+  // ── Jump cycle 6-frame 매핑 (사용자 spec 2026-05-11) ──
+  //  frame 1 (array 10): telegraph/windup — prep + rising 공통.
+  //  frame 2 (array 11): apex 정점.
+  //  frame 3 (array 12): 낙하 시작.
+  //  frame 4-6 (array 13-15): 낙하 후반 + 착지 시퀀스.
   slam_prep:   { from: 10, to: 10, loop: false },
-  // Slam rise — 상승: user "12" → array 11.
-  slam_rising: { from: 11, to: 11, loop: false },
-  // Slam rise — apex: user "13" → array 12.
-  slam_apex:   { from: 12, to: 12, loop: false },
-  // Slam fall (낙하 — slam_fall state, grounded 까지): user "14" → array 13.
-  slam_fall:   { from: 13, to: 13, loop: false },
-  // Slam land: user "15→16→17→18" → array 14→15→16→17. 각 프레임 100ms 균등.
-  //  500ms hold 제거 (사용자 피드백 — freeze 느낌). 총 400ms 로 단축.
-  slam_land:   { from: 14, to: 17, loop: false, frameMs: [100, 100, 100, 100] },
+  slam_rising: { from: 10, to: 10, loop: false },
+  slam_apex:   { from: 11, to: 11, loop: false },
+  slam_fall:   { from: 12, to: 12, loop: false },
+  // 착지 3 frame (기존 4 frame 에서 단축 — jump 가 6 frame 으로 줄어 land 영역도 -1).
+  slam_land:   { from: 13, to: 15, loop: false, frameMs: [100, 100, 100] },
 };
 
 /**
@@ -103,8 +104,19 @@ const SLAM_LAND_DURATION = 400;        // ms — anim 14→15→16→17 (각 100
 // floor 위에서 frame 14 잔류 (의도된 trade-off — frame 14 미표시보다 자연스러움).
 const SLAM_FALL_MIN_MS = 300;
 const SWIPE_TELEGRAPH = 250;           // ms — shorter telegraph
-const SWIPE_DURATION = 600;            // ms — anim attack1 (400+100+100) 와 동기. 8 hold 길게.
-const SWIPE_KNOCKBACK = 200;           // px/s — lunge forward
+const SWIPE_DURATION = 820;            // ms — anim attack1 (120 + 300 + 100×4) 와 동기.
+const SWIPE_KNOCKBACK = 400;           // px/s — lunge forward (사용자 spec 2배)
+const SWIPE_LUNGE_FRAME = 1;           // attack1 anim local 2번 (array index 1) 에서 lunge 발동
+const SWIPE_LUNGE_END_FRAME = 2;       // attack1 anim local 3번 부터 recovery — lunge 종료
+
+/** 공격 류 fsm state — 진행 중 facing 변경 차단 (lunge 로 player 지나쳐도 안 돈다). */
+const ATTACK_STATES: ReadonlySet<string> = new Set([
+  'telegraph', 'swipe',
+  'slam_prep', 'slam_rising', 'slam_apex', 'slam_fall', 'slam_land',
+  'charge', 'cooldown',
+]);
+/** Attack 종료 후 chase 진입 시 chaseDir 변경 차단 기간 (ms). */
+const POST_ATTACK_TURN_LOCK_MS = 1500;
 const COOLDOWN_NORMAL = 1200;          // ms
 const COOLDOWN_ENRAGED = 700;          // ms
 
@@ -163,6 +175,12 @@ export class Boss01 extends Enemy<Boss01State> {
   private animFrameIndex = 0;
   private animTimer = 0;
   private animFinished = false;
+  /** swipe state — frame 5 도달 시 한 번만 lunge 발동되도록 가드. */
+  private swipeLungeFired = false;
+  /** swipe 진입 시 캡처된 lunge 방향. 진행 동안 facing 잠금에 사용. */
+  private swipeDir = 1;
+  /** telegraph 진입 시 캡처된 attack 방향(±1). 모든 attack 류 state 동안 facing lock. */
+  private attackFacingDir: number = 1;
 
   constructor(level = 1) {
     super({
@@ -278,9 +296,14 @@ export class Boss01 extends Enemy<Boss01State> {
 
   override update(dt: number): void {
     super.update(dt);
-    // Charge 중 facing 잠금 — base Enemy.update 가 매 프레임 facingRight 를
-    // (target.x > x) 로 갱신하므로 플레이어를 지나치는 순간 sprite 가 뒤집힌다.
-    // chargeDir 로 방향 고정 (사용자 피드백 2026-05-05).
+    // 공격 중 facing 잠금 — base Enemy.update 가 facingRight 를 target.x > x 로
+    // 갱신하므로 lunge·slam·charge 진행 중 player 를 지나치면 sprite 가 뒤집힌다.
+    // telegraph 진입 시 캡처된 attackFacingDir 로 attack 류 state 전체 고정.
+    const curState = this.fsm.currentState;
+    if (curState && ATTACK_STATES.has(curState)) {
+      this.facingRight = this.attackFacingDir > 0;
+    }
+    // Charge 중 추가 lock — chargeDir 기준 (attackFacingDir 와 동일 값이지만 명시).
     if (this.fsm.currentState === 'charge') {
       this.facingRight = this.chargeDir > 0;
       // 발 밑 큰 먼지 트레일.
@@ -468,6 +491,11 @@ export class Boss01 extends Enemy<Boss01State> {
           this.chargeDir = this.target.x > this.x ? 1 : -1;
           this.slamTargetX = this.target.x;
         }
+        // 공격 시작 시점 facing 캡처 — 이후 모든 attack 류 state 동안 lock.
+        this.attackFacingDir = this.target
+          ? (this.target.x > this.x ? 1 : -1)
+          : (this.facingRight ? 1 : -1);
+        this.facingRight = this.attackFacingDir > 0;
       },
       update: (dt) => {
         this.telegraphTimer -= dt;
@@ -574,18 +602,33 @@ export class Boss01 extends Enemy<Boss01State> {
       exit: () => { this.attackActive = false; },
     });
 
-    // --- SWIPE (close-range melee) ---
+    // --- SWIPE (close-range melee) — frame 5 lunge, frame 6 종료 hold ---
     this.fsm.addState({
       name: 'swipe',
       enter: () => {
         this.attackTimer = SWIPE_DURATION;
         this.attackActive = true;
-        const dir = this.target ? (this.target.x > this.x ? 1 : -1) : (this.facingRight ? 1 : -1);
-        this.vx = dir * SWIPE_KNOCKBACK;
+        this.vx = 0;
+        this.swipeLungeFired = false;
+        // swipe 진입 시점에 방향 캡처 — lunge 로 player 를 지나쳐도 facing 뒤집힘 차단.
+        this.swipeDir = this.target ? (this.target.x > this.x ? 1 : -1) : (this.facingRight ? 1 : -1);
+        this.facingRight = this.swipeDir > 0;
+        // attack1 anim 즉시 시작 — animFrameIndex=0 reset, 이전 anim 잔여값 차단.
+        this.setAnim('attack1');
       },
       update: (dt) => {
         this.attackTimer -= dt;
-        this.vx *= 0.92;
+        // Frame 2 (local) 도달 시 lunge 발동 — 한 번만. 방향은 enter 캡처값 사용.
+        if (!this.swipeLungeFired && this.animFrameIndex >= SWIPE_LUNGE_FRAME) {
+          this.vx = this.swipeDir * SWIPE_KNOCKBACK;
+          this.swipeLungeFired = true;
+        }
+        // Frame 6 (local) 도달 시 lunge 종료 — 빠른 decay.
+        if (this.animFrameIndex >= SWIPE_LUNGE_END_FRAME) {
+          this.vx *= 0.6;
+        } else if (this.swipeLungeFired) {
+          this.vx *= 0.96;
+        }
         if (this.attackTimer <= 0) {
           this.attackActive = false;
           this.cooldownTimer = this.enraged ? COOLDOWN_ENRAGED * 0.7 : COOLDOWN_NORMAL * 0.6;
@@ -607,6 +650,13 @@ export class Boss01 extends Enemy<Boss01State> {
     // --- COOLDOWN ---
     this.fsm.addState({
       name: 'cooldown',
+      enter: () => {
+        // Attack 종료 후 facing/chaseDir 잠금: chase 가 진입하면 base Enemy.moveTowardTarget
+        // 가 chaseDir 을 즉시 target.x 기준으로 갱신해 보스가 등 돌림. 이를 막기 위해
+        // chaseDir 을 attackFacingDir 로 sync + turnCooldownMs 를 길게 set.
+        this.chaseDir = (this.attackFacingDir > 0 ? 1 : -1);
+        this.turnCooldownMs = POST_ATTACK_TURN_LOCK_MS;
+      },
       update: () => {
         this.vx = 0;
         if (this.cooldownTimer <= 0) {

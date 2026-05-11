@@ -112,6 +112,8 @@ export class LockedDoor {
   /** Reject animation timer (ms remaining). */
   private rejectTimer = 0;
   private rejectShakeOffset = 0;
+  /** reject 시 빨간 X 표시 여부 — stat door 만 true. event/switch 는 shake 만. */
+  private rejectShowCross = true;
   /** Slide-down animation state — non-zero while the mid strip is retracting. */
   private slideTimer = 0;
   private sliding = false;
@@ -297,9 +299,12 @@ export class LockedDoor {
   tryAttackUnlock(playerStats: Record<string, number>, grid: number[][]): 'unlocked' | 'rejected' | 'ignored' {
     if (!this.locked) return 'ignored';
 
-    // 'event' and 'switch' doors don't respond to direct attacks.
-    // 'switch' doors are unlocked by hitting a linked Switch entity.
-    if (this.unlockCondition === 'event' || this.unlockCondition === 'switch') return 'ignored';
+    // 'event' and 'switch' doors 는 직접 attack 으로 unlock 안 됨. 그래도 shake 피드백.
+    // 'switch' doors 는 linked Switch entity 를 때려야 unlock — 본체 attack 은 거부.
+    if (this.unlockCondition === 'event' || this.unlockCondition === 'switch') {
+      this.reject(false); // shake only — red cross 없음
+      return 'rejected';
+    }
 
     if (this.unlockCondition === 'stat') {
       const val = playerStats[this.statType] ?? 0;
@@ -316,7 +321,7 @@ export class LockedDoor {
 
   /** Remove collision, hide stat label artifacts, and start the mid-slide
    *  open animation. Top/bottom caps stay visible permanently. */
-  unlock(grid: number[][]): void {
+  unlock(grid: number[][], instant = false): void {
     if (!this.locked) return;
     this.locked = false;
 
@@ -332,9 +337,15 @@ export class LockedDoor {
     if (this.rejectCross) this.rejectCross.visible = false;
 
     if (this.midSlice) {
-      // Animated retract — top/bottom caps remain. update() drives the slide.
-      this.sliding = true;
-      this.slideTimer = 0;
+      if (instant) {
+        // 재진입 시 호출 — slide 애니메이션 없이 mid 즉시 숨김. caps 만 남는 정적 상태.
+        this.midSlice.visible = false;
+        this.sliding = false;
+      } else {
+        // Animated retract — top/bottom caps remain. update() drives the slide.
+        this.sliding = true;
+        this.slideTimer = 0;
+      }
     } else {
       // Texture never loaded → only the Graphics fallback exists. Hide the
       // whole container as before — caps don't exist to keep visible.
@@ -342,9 +353,10 @@ export class LockedDoor {
     }
   }
 
-  /** Play reject animation — shake + red flash. */
-  private reject(): void {
+  /** Play reject animation — shake (+ optional red cross for stat doors). */
+  private reject(showCross = true): void {
     this.rejectTimer = 400; // ms
+    this.rejectShowCross = showCross;
   }
 
   /** Call every frame with dt in ms. */
@@ -355,10 +367,10 @@ export class LockedDoor {
       this.rejectShakeOffset = Math.sin(this.rejectTimer * 0.05) * 3;
       this.container.x = this.x + this.rejectShakeOffset;
 
-      // Flash red tint + show cross over the stat requirement
+      // Flash red tint + show cross over the stat requirement (stat door 만 cross).
       const flash = Math.sin(this.rejectTimer * 0.02) > 0;
       if (this.label) this.label.style.fill = flash ? 0xff0000 : 0xff5555;
-      if (this.rejectCross) this.rejectCross.visible = flash;
+      if (this.rejectCross) this.rejectCross.visible = flash && this.rejectShowCross;
 
       if (this.rejectTimer <= 0) {
         this.rejectTimer = 0;
