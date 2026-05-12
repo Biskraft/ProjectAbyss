@@ -2867,7 +2867,7 @@ export class LdtkWorldScene extends Scene {
     // until the screen is actually visible, otherwise it plays behind black.
     if (level.identifier === 'Shaft_01') {
       if (this.introPhase === 'fadeIn') {
-        this.pendingAreaTitle = 'The Shaft';
+        this.pendingAreaTitle = t('area.the_shaft');
       } else {
         this.areaTitle.show(t('area.the_shaft'));
       }
@@ -3992,7 +3992,7 @@ export class LdtkWorldScene extends Scene {
         break;
       }
       case 'consumable': {
-        this.toast.show(master.name, 0x44ff88);
+        this.toast.show(t('toast.consumable_acquired', { name: master.name }), 0x44ff88);
         break;
       }
       default:
@@ -5107,7 +5107,7 @@ export class LdtkWorldScene extends Scene {
       // HUD 상단 중앙에 라벨
       const us = this.game.uiScale;
       this.warpHintText = new BitmapText({
-        text: '⊕ WARP MODE — click to teleport, ` or ESC to exit',
+        text: t('ui.debug.warp_mode_hint'),
         style: { fontFamily: PIXEL_FONT, fontSize: 8 * us, fill: 0xffe060 },
       });
       this.warpHintText.x = Math.floor((this.game.app.canvas.width - this.warpHintText.width) / 2);

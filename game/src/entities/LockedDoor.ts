@@ -12,6 +12,7 @@
 
 import { Assets, Container, Graphics, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { t } from '@i18n';
 
 const TILE_SIZE = 16;
 
@@ -159,7 +160,10 @@ export class LockedDoor {
         fontWeight: 'bold',
         stroke: { color: 0x000000, width: 3 },
       });
-      this.label = new Text({ text: `${statType.toUpperCase()} ${statThreshold}`, style });
+      this.label = new Text({
+        text: t('gate.stat_label', { stat: statType.toUpperCase(), threshold: statThreshold }),
+        style,
+      });
       this.label.anchor.set(0.5, 1); // anchor 하단 → label.y 는 label bottom 위치
       this.label.x = width / 2;
       this.label.y = -4; // gate 상단에서 4px 위에 label bottom

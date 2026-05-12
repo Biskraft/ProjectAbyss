@@ -239,6 +239,112 @@ if (!existsSync(LOCALIZATION_CSV)) {
 }
 
 // ---------------------------------------------------------------------------
+// V5 (LOC-11) — 코드의 t('key') 호출이 Content_Localization.csv 에 존재하는지 검사.
+// V6 — CSV value 의 {placeholder} 와 t() 호출 vars 객체 키 일치 여부 검사.
+// 둘 다 P0 (ERROR). 빌드 차단으로 raw key 노출 / raw {n} 노출 재발 방지.
+// ---------------------------------------------------------------------------
+import { readdirSync, statSync } from 'node:fs';
+
+const SRC_DIR = resolve(ROOT, 'game', 'src');
+
+/** Recursively collect every .ts file under dir. */
+function walkTs(dir, acc = []) {
+  if (!existsSync(dir)) return acc;
+  for (const name of readdirSync(dir)) {
+    if (name === 'node_modules' || name.startsWith('.')) continue;
+    const p = resolve(dir, name);
+    const s = statSync(p);
+    if (s.isDirectory()) walkTs(p, acc);
+    else if (p.endsWith('.ts')) acc.push(p);
+  }
+  return acc;
+}
+
+/**
+ * Parse t() calls. Captures key + (optional) vars literal as raw text.
+ * Skips dynamic keys (template literals with ${...}). String concat skipped too.
+ * Format covered: t('foo.bar'), t("foo.bar", { name: x }), t(`foo.bar`).
+ */
+const T_CALL_RE = /\bt\(\s*(['"`])([a-zA-Z0-9_.\-]+)\1\s*(?:,\s*(\{[^{}]*\}))?\s*\)/g;
+/** Object key names — supports `name:`, `'name':`, and shorthand `{ name }`. */
+const VARS_KEY_RE = /[,{]\s*['"`]?([a-zA-Z_][a-zA-Z0-9_]*)['"`]?\s*(?=[:,}])/g;
+/** Placeholder tokens inside CSV value. */
+const PLACEHOLDER_RE = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+
+function extractCallsFromFile(file) {
+  const text = readFileSync(file, 'utf8');
+  const calls = [];
+  let m;
+  T_CALL_RE.lastIndex = 0;
+  while ((m = T_CALL_RE.exec(text)) !== null) {
+    const key = m[2];
+    const varsRaw = m[3] ?? '';
+    const varNames = new Set();
+    if (varsRaw) {
+      let vm;
+      VARS_KEY_RE.lastIndex = 0;
+      while ((vm = VARS_KEY_RE.exec(varsRaw)) !== null) varNames.add(vm[1]);
+    }
+    // Compute line number from index.
+    const upto = text.slice(0, m.index);
+    const line = upto.split(/\r?\n/).length;
+    calls.push({ file, line, key, vars: varNames });
+  }
+  return calls;
+}
+
+if (existsSync(LOCALIZATION_CSV)) {
+  const locText = readFileSync(LOCALIZATION_CSV, 'utf8');
+  const { header: locHeader, rows: locRows } = parseSimpleCsv(locText);
+  if (locHeader.includes('Key')) {
+    // Build key → placeholder set map. Use 'en' column primarily, fall back to 'ko'.
+    const definedKeys = new Map();
+    for (const row of locRows) {
+      const k = row.Key;
+      if (!k || k.startsWith('#')) continue;
+      const val = row.en || row.ko || '';
+      const placeholders = new Set();
+      let pm;
+      PLACEHOLDER_RE.lastIndex = 0;
+      while ((pm = PLACEHOLDER_RE.exec(val)) !== null) placeholders.add(pm[1]);
+      definedKeys.set(k, placeholders);
+    }
+
+    const tsFiles = walkTs(SRC_DIR);
+    const allCalls = [];
+    for (const f of tsFiles) allCalls.push(...extractCallsFromFile(f));
+
+    // V5 — missing keys.
+    for (const c of allCalls) {
+      if (!definedKeys.has(c.key)) {
+        const rel = c.file.replace(ROOT + (process.platform === 'win32' ? '\\' : '/'), '');
+        pushErr('V5', `t("${c.key}") used at ${rel}:${c.line} but missing from Content_Localization.csv`);
+      }
+    }
+
+    // V6 — placeholder mismatch (only when key exists).
+    for (const c of allCalls) {
+      const placeholders = definedKeys.get(c.key);
+      if (!placeholders) continue;
+      // Required placeholder absent from call vars
+      for (const ph of placeholders) {
+        if (!c.vars.has(ph)) {
+          const rel = c.file.replace(ROOT + (process.platform === 'win32' ? '\\' : '/'), '');
+          pushErr('V6', `t("${c.key}") at ${rel}:${c.line} missing var "${ph}" — CSV uses {${ph}}`);
+        }
+      }
+      // Extra vars supplied but not used by template — warn only (forward-compat).
+      for (const v of c.vars) {
+        if (!placeholders.has(v)) {
+          const rel = c.file.replace(ROOT + (process.platform === 'win32' ? '\\' : '/'), '');
+          pushWarn('V6', `t("${c.key}") at ${rel}:${c.line} passes var "${v}" but CSV value has no {${v}} token`);
+        }
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const hdr = (s) => `\n===== ${s} =====`;
