@@ -33,6 +33,9 @@ import {
   FONT_HINT,
   ROW_SELECTED_EDGE,
   createOverlay,
+  BUTTON_BG_IDLE, BUTTON_BG_DISABLED, BUTTON_BG_FOCUS,
+  BUTTON_BG_ACCENT, BUTTON_BORDER, BUTTON_TEXT_DISABLED,
+  CARD_BG, CARD_BORDER,
 } from './ModalPanel';
 import {
   trackFeedbackOpened,
@@ -322,8 +325,8 @@ export class FeedbackPanel {
   private drawCloseButton(): void {
     const w = 78;
     const h = 18;
-    const fill = this.closeButtonHovered ? 0x3a3a52 : 0x2a2a3e;
-    const border = this.closeButtonHovered ? 0xff8000 : 0x4a4a6a;
+    const fill = this.closeButtonHovered ? BUTTON_BG_IDLE : BUTTON_BG_DISABLED;
+    const border = this.closeButtonHovered ? BUTTON_BG_ACCENT : BUTTON_BORDER;
     this.closeButtonBg.clear();
     this.closeButtonBg.rect(0, 0, w, h).fill({ color: fill, alpha: 1 });
     this.closeButtonBg.rect(0, 0, w, h).stroke({ color: border, width: 1 });
@@ -335,22 +338,22 @@ export class FeedbackPanel {
     const w = 78;
     const h = 18;
     const disabled = this.isSendDisabled();
-    let fill = 0x2a2a3e;
-    let border = 0x4a4a6a;
-    let labelColor = TEXT_PRIMARY;
-    let keyBoxBorder = 0x666666;
-    let keyBoxBg = 0x1a1a1a;
-    let keyTextColor = 0xffffff;
+    let fill: number = BUTTON_BG_DISABLED;
+    let border: number = BUTTON_BORDER;
+    let labelColor: number = TEXT_PRIMARY;
+    let keyBoxBorder: number = CARD_BORDER;
+    let keyBoxBg: number = CARD_BG;
+    let keyTextColor: number = TEXT_PRIMARY;
     if (disabled) {
-      fill = 0x1e1e2c;
+      fill = 0x1e1e2c;            // deeper than DISABLED to express grayed-out
       border = 0x333344;
-      labelColor = 0x666677;
+      labelColor = BUTTON_TEXT_DISABLED;
       keyBoxBorder = 0x333344;
-      keyBoxBg = 0x141420;
-      keyTextColor = 0x666677;
+      keyBoxBg = BUTTON_BG_FOCUS;
+      keyTextColor = BUTTON_TEXT_DISABLED;
     } else if (this.sendButtonHovered) {
-      fill = 0x3a3a52;
-      border = 0xff8000;
+      fill = BUTTON_BG_IDLE;
+      border = BUTTON_BG_ACCENT;
     }
     this.sendButtonBg.clear();
     this.sendButtonBg.rect(0, 0, w, h).fill({ color: fill, alpha: 1 });

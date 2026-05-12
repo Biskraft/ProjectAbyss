@@ -18,7 +18,7 @@ import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
 import { assetPath } from '@core/AssetLoader';
 import { PRESET_INFOS, PRESET_NAMES, type PresetName, GameAction, actionKey } from '@core/InputManager';
-import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SECONDARY } from '@ui/ModalPanel';
+import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SECONDARY, CARD_BG, CARD_BORDER, TEXT_KEY } from '@ui/ModalPanel';
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
 
@@ -275,9 +275,9 @@ export class TitleScene extends Scene {
         // Key box
         const keyBox = new Graphics();
         keyBox.roundRect(10 * s, ry, 24 * s, 11 * s, 2 * s)
-          .fill({ color: 0x1a1a1a, alpha: 0.85 });
+          .fill({ color: CARD_BG, alpha: 0.85 });
         keyBox.roundRect(10 * s, ry, 24 * s, 11 * s, 2 * s)
-          .stroke({ color: 0x666666, width: s });
+          .stroke({ color: CARD_BORDER, width: s });
         card.addChild(keyBox);
 
         const keyText = new Text({
@@ -286,7 +286,7 @@ export class TitleScene extends Scene {
             fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
             fontSize: 7 * s,
             fontWeight: '700',
-            fill: 0xcccccc,
+            fill: TEXT_KEY,
           }),
         });
         keyText.x = 22 * s - keyText.width / 2;

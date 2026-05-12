@@ -498,6 +498,51 @@ Fields:
 
 전부 burn 종료 시 AIR 로 소진 (재 잔존 없음).
 
+### 7.2.2. Tier B BurnableProp Entity (절차적 가연 오브젝트)
+
+타일 cell 만으로는 표현 불가능한 **인스턴스화된 가연 오브젝트** (상자, 가지 더미, 커튼, 덩굴 등). BurnableZonePass 가 grass/wood 셀과 동일 영역에서 **밀도의 15%** 확률로 함께 스폰한다.
+
+**카탈로그 (`game/src/entities/BurnableProp.ts`):**
+
+| id | 셀 | hp | burn ms | anchor | ignite chance | 톤 |
+|:---|:---:|:---:|:---:|:---|:---:|:---|
+| `WoodCrate` | 1×1 | 1 | 2500 | floor | 0.45 | 보급 상자, 단단한 목재 |
+| `BranchPile` | 1×1 | 1 | 800 | floor | 0.85 | 마른 가지 부싯깃 — 빠른 점화 |
+| `Bush` | 1×1 | 1 | 600 | floor | 0.90 | 잡관목 — 가장 빠른 점화 |
+| `Curtain` | 1×3 | 1 | 1200 | ceiling | 0.75 | 천장 매달림, 수직 천 |
+| `Vine` | 1×3 | 1 | 900 | ceiling | 0.70 | 천장 덩굴 |
+
+**전파 규칙:**
+
+- **타일 → 엔티티:** 인접 burning 타일의 4-이웃에 엔티티 footprint 가 있으면 `spec.ignitionChance` 확률로 점화
+- **엔티티 → 타일:** burning 엔티티 footprint 의 4-이웃 flammable 타일은 50% 확률로 점화 (radiating heat)
+- **엔티티 → 엔티티:** burning 엔티티 인접 다른 엔티티는 `0.40 × target.ignitionChance` 로 점화
+- **자체 소진:** burn 시간 종료 시 sprite 제거 + footprint 셀은 AIR 유지
+
+**자동 배치 규칙 (`BurnableZonePass.populateZoneEntities`):**
+
+- BurnableZone density × 0.15 확률로 셀당 시도
+- anchor 자동 감지:
+  - WALL 가 아래에만 있는 AIR 셀 → `floor` (위로 성장)
+  - WALL 가 위에만 있는 AIR 셀 → `ceiling` (아래로 성장)
+- BurnableZone Type 별 카탈로그 풀:
+  - **Grass:** Bush, BranchPile, Vine
+  - **Wood:** WoodCrate, BranchPile, Curtain
+  - **Mixed:** 전체 풀에서 무작위
+- footprint 전 셀 AIR + 위험 인접 0 + 다른 엔티티 미점유 검증 통과 시 commit
+- Seed > 0 시 mulberry32 결정론적 배치 (grass 와 동일 시드 공유)
+
+**스폰 후 라이프사이클:**
+
+1. 씬이 `BurnableProp` 인스턴스 생성 → `entityLayer.addChild(prop.container)` → `tileMutator.registerBurnable(prop)`
+2. 매 프레임 `prop.update(dt)` (TileHazards tick 안에서 호출)
+3. `prop.destroyed === true` 도달 시 unregister + `prop.destroy()` (sprite 제거)
+4. 룸 / floor 전환 시 모든 prop 강제 destroy + registry 비움
+
+**시각 (V1 placeholder):**
+
+PixiJS Graphics primitive 로 anchor 별 박스 + 불꽃 오버레이 (intensity 펄스 + lifeRatio 기반 색 darken). 실제 sprite 자산 도착 시 `BurnableSpec.assetPath` 로 swap. 카탈로그에 슬롯 예약됨.
+
 ### 7.3. Entity 유지 대상
 
 다음은 IntGrid 로 전환하지 않고 Entity 로 유지:

@@ -1,5 +1,9 @@
 import { Container, Graphics } from 'pixi.js';
-import { create9SlicePanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY } from '@ui/ModalPanel';
+import {
+  create9SlicePanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY,
+  TEXT_DELTA_POSITIVE, TEXT_DELTA_NEGATIVE, TEXT_DELTA_NEUTRAL,
+  TEXT_INFO_WARM, TEXT_INFO_COOL, TEXT_LABEL_MUTED, TEXT_BOSS_TITLE, TEXT_INFO,
+} from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
 import { createUiText } from '@ui/factories';
 import { t } from '@i18n';
@@ -152,7 +156,7 @@ export class ItemWorldUiController {
 
     const title = createUiText(
       autoConfirmed ? t('ui.iw.stratum_cleared') : t('ui.iw.progress_banked'),
-      { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xffd35a },
+      { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_INFO_WARM },
     );
     title.x = Math.floor((W - title.width) / 2);
     title.y = 12;
@@ -168,25 +172,25 @@ export class ItemWorldUiController {
     for (const [label, before, after] of rows) {
       const delta = after - before;
       const hasDelta = delta !== 0;
-      const deltaColor = delta > 0 ? 0x88ff88 : delta < 0 ? 0xff8888 : 0x888899;
+      const deltaColor = delta > 0 ? TEXT_DELTA_POSITIVE : delta < 0 ? TEXT_DELTA_NEGATIVE : TEXT_DELTA_NEUTRAL;
 
-      const lbl = createUiText(label, { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0xbbbbcc });
+      const lbl = createUiText(label, { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_LABEL_MUTED });
       lbl.x = 20;
       lbl.y = ry;
       container.addChild(lbl);
 
-      const bef = createUiText(String(before), { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 });
+      const bef = createUiText(String(before), { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL });
       bef.x = 120;
       bef.y = ry;
       container.addChild(bef);
 
-      const arrow = createUiText('→', { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 });
+      const arrow = createUiText('→', { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL });
       arrow.x = 160;
       arrow.y = ry;
       container.addChild(arrow);
 
       const aft = createUiText(String(after), {
-        fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? 0xffffff : 0x888899,
+        fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? TEXT_PRIMARY : TEXT_DELTA_NEUTRAL,
       });
       aft.x = 196;
       aft.y = ry;
@@ -207,7 +211,7 @@ export class ItemWorldUiController {
 
     const hint = createUiText(
       t('ui.iw.continue_hint', { key: actionKey(GameAction.ATTACK) }),
-      { fontFamily: PIXEL_FONT, fontSize: 16, fill: 0x888899 },
+      { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL },
     );
     hint.x = Math.floor((W - hint.width) / 2);
     hint.y = H - 28;
@@ -272,7 +276,7 @@ export class ItemWorldUiController {
         exp: options.itemExp,
         maxExp: options.expPerLevel,
       }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ccff },
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_INFO_COOL },
     );
     expInfo.x = 12;
     expInfo.y = 20;
@@ -336,7 +340,7 @@ export class ItemWorldUiController {
     }
 
     const title = createUiText(t('ui.iw.boss_defeated_title'), {
-      fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc66,
+      fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_BOSS_TITLE,
     });
     title.x = Math.floor((panelW - title.width) / 2);
     title.y = 8;
@@ -344,7 +348,7 @@ export class ItemWorldUiController {
 
     const info = createUiText(
       t('ui.iw.next_stratum', { n: options.nextStratumIndex + 1 }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xcccccc },
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_INFO },
     );
     info.x = Math.floor((panelW - info.width) / 2);
     info.y = 24;
@@ -352,7 +356,7 @@ export class ItemWorldUiController {
 
     const goPrompt = createUiText(
       t('ui.iw.boss_continue_continue', { key: actionKey(GameAction.ATTACK) }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x88ff88 },
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_DELTA_POSITIVE },
     );
     goPrompt.x = Math.floor((panelW - goPrompt.width) / 2);
     goPrompt.y = 44;

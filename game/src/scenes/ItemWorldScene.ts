@@ -18,7 +18,8 @@ import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { applyTileHazards } from '@systems/TileHazards';
-import { applyBurnableZones } from '@level/BurnableZonePass';
+import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
+import { BurnableProp } from '@entities/BurnableProp';
 import { GameAction, actionKey } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
@@ -380,6 +381,8 @@ export class ItemWorldScene extends Scene {
   private updraftSystem!: UpdraftSystem;
   /** Dynamic IntGrid state (frozen/burning/electric). Reset per floor. */
   private tileMutator = new TileMutator();
+  /** Tier B burnable entities spawned by BurnableZonePass. Reset per floor. */
+  private burnableProps: BurnableProp[] = [];
 
   // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
   private spikes: Spike[] = [];
@@ -997,9 +1000,12 @@ export class ItemWorldScene extends Scene {
       this.fullMapContainer.parent.removeChild(this.fullMapContainer);
       this.fullMapContainer.destroy({ children: true }); // free GPU textures
     }
-    // Reset elemental tile overlays (frozen/burning/electric) — old cell keys
-    // would otherwise leak into the freshly built fullGrid coordinates.
+    // Reset elemental tile overlays (frozen/burning/electric) + burnable
+    // entity registry — old cell keys would otherwise leak into the freshly
+    // built fullGrid coordinates.
     this.tileMutator.reset();
+    for (const p of this.burnableProps) p.destroy();
+    this.burnableProps.length = 0;
     this.fullMapContainer = new Container();
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
@@ -1200,11 +1206,19 @@ export class ItemWorldScene extends Scene {
           layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
         });
 
-        // Hybrid procedural pass — populate grass/wood inside LDtk BurnableZone
-        // rect entities. Operates on the fullGrid with the room's cell offset
-        // so each room's zones land in their correct fullGrid coordinates.
+        // Hybrid procedural pass — populate grass/wood + spawn Tier B
+        // BurnableProp entities inside LDtk BurnableZone rect entities.
+        // Operates on the fullGrid with the room's cell offset so each room's
+        // zones land in their correct fullGrid coordinates.
         // GDD: Documents/System/System_World_TileSystem.md §7
-        applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
+        const burnableSpecs: BurnableEntitySpec[] =
+          applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
+        for (const s of burnableSpecs) {
+          const prop = new BurnableProp(s.id, s.gx, s.gy);
+          this.burnableProps.push(prop);
+          this.tileMutator.registerBurnable(prop);
+          this.entityLayer.addChild(prop.container);
+        }
 
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
@@ -2618,6 +2632,17 @@ export class ItemWorldScene extends Scene {
   private tickTileHazards(dt: number): void {
     if (!this.fullGrid || !this.fullGrid.length) return;
     this.tileMutator.tick(this.fullGrid, dt);
+
+    // Tier B burnable entities: animation tick + destroy cleanup.
+    for (let i = this.burnableProps.length - 1; i >= 0; i--) {
+      const p = this.burnableProps[i];
+      p.update(dt);
+      if (p.destroyed) {
+        this.tileMutator.unregisterBurnable(p);
+        p.destroy();
+        this.burnableProps.splice(i, 1);
+      }
+    }
 
     if (this.player.hp > 0) {
       applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {

@@ -258,36 +258,83 @@ export class TileMutator {
   }
 
   /**
-   * Spread fire across any flammable neighbour (oil · wood · grass).
+   * Spread fire across any flammable neighbour:
+   *   - tile (oil/wood/grass) → tile (existing chance table)
+   *   - tile → entity (BurnableProp.ignitionChance from catalog)
+   *   - entity → tile (entity radiates fire to adjacent flammable cells, 0.50)
+   *   - entity → entity (entity adjacency, 0.40)
    * Grass has higher spread chance (dry foliage), wood lower (dense fuel),
-   * oil baseline.
+   * oil baseline. Entity chances come from each BurnableSpec.
    */
   private spreadOilFire(roomData: number[][]): void {
     const newBurns: Array<[number, number]> = [];
+    const newPropIgnites: BurnableProp[] = [];
+
+    const tryQueueTile = (nx: number, ny: number, chance: number) => {
+      const nt = getTile(roomData, nx, ny);
+      if (!isFlammable(nt)) return;
+      const nk = this.k(nx, ny);
+      if (this.burning.has(nk)) return;
+      if (Math.random() < chance) newBurns.push([nx, ny]);
+    };
+    const tryQueueProp = (nx: number, ny: number) => {
+      const prop = this.burnableAt(nx, ny);
+      if (!prop || prop.burning || prop.destroyed) return;
+      if (Math.random() < prop.spec.ignitionChance) {
+        if (newPropIgnites.indexOf(prop) < 0) newPropIgnites.push(prop);
+      }
+    };
+    const tileChance = (t: number): number =>
+      t === TILE_GRASS ? 0.85 :
+      t === TILE_WOOD ? 0.30 :
+      TileMutator.OIL_SPREAD_CHANCE;
+
+    // 1) Spread from burning tile cells
     for (const key of this.burning.keys()) {
       const { gx, gy } = this.unpack(key);
-      const neighbours: Array<[number, number]> = [
+      const ns: Array<[number, number]> = [
         [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
       ];
-      for (const n of neighbours) {
+      for (const n of ns) {
         const nx = n[0], ny = n[1];
         const nt = getTile(roomData, nx, ny);
-        if (!isFlammable(nt)) continue;
-        const nk = this.k(nx, ny);
-        if (this.burning.has(nk)) continue;
-        // Per-fuel spread chance: grass 0.85 (fast), oil 0.55, wood 0.30 (slow).
-        const chance =
-          nt === TILE_GRASS ? 0.85 :
-          nt === TILE_WOOD ? 0.30 :
-          TileMutator.OIL_SPREAD_CHANCE;
-        if (Math.random() < chance) newBurns.push([nx, ny]);
+        if (isFlammable(nt)) tryQueueTile(nx, ny, tileChance(nt));
+        tryQueueProp(nx, ny);
       }
     }
+
+    // 2) Spread from burning entities (entity → tile + entity → entity)
+    for (const prop of this.burnableEntities) {
+      if (!prop.burning || prop.destroyed) continue;
+      const cells = prop.getCells();
+      for (const cell of cells) {
+        const cgx = cell[0], cgy = cell[1];
+        const ns: Array<[number, number]> = [
+          [cgx + 1, cgy], [cgx - 1, cgy], [cgx, cgy + 1], [cgx, cgy - 1],
+        ];
+        for (const n of ns) {
+          const nx = n[0], ny = n[1];
+          // Skip self-cells (multi-tile prop)
+          if (prop.containsCell(nx, ny)) continue;
+          tryQueueTile(nx, ny, 0.50); // entity radiates strong fire
+          // entity → other entity (chance 0.40 modulated by target spec)
+          const other = this.burnableAt(nx, ny);
+          if (other && !other.burning && !other.destroyed) {
+            if (Math.random() < 0.40 * other.spec.ignitionChance) {
+              if (newPropIgnites.indexOf(other) < 0) newPropIgnites.push(other);
+            }
+          }
+        }
+      }
+    }
+
+    // 3) Apply
     for (const b of newBurns) {
       const t = getTile(roomData, b[0], b[1]);
       const dur = BURN_DURATION_BY_TILE[t] ?? TileMutator.BURN_DURATION_MS;
       this.burning.set(this.k(b[0], b[1]), { remainingMs: dur, strong: false });
     }
+    for (const p of newPropIgnites) p.ignite();
   }
 
   private tickPassiveInteractions(roomData: number[][]): void {

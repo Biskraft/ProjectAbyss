@@ -144,7 +144,8 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
 import { applyTileHazards } from '@systems/TileHazards';
-import { applyBurnableZones } from '@level/BurnableZonePass';
+import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
+import { BurnableProp } from '@entities/BurnableProp';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { FluidSystem } from '@effects/FluidSystem';
@@ -484,6 +485,8 @@ export class LdtkWorldScene extends Scene {
   private updraftSystem!: UpdraftSystem;
   /** Dynamic IntGrid state — frozen/burning/electric overlays. Reset per room. */
   private tileMutator = new TileMutator();
+  /** Tier B burnable entities spawned by BurnableZonePass. Reset per room. */
+  private burnableProps: BurnableProp[] = [];
   // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
   private voidDropActive = false;
   private voidFadePhase: 'none' | 'out' | 'in' = 'none';
@@ -2760,14 +2763,24 @@ export class LdtkWorldScene extends Scene {
     // Collision grid ??deep copy so runtime modifications don't persist across reloads
     this.collisionGrid = level.collisionGrid.map(row => [...row]);
 
-    // Hybrid procedural pass — populate grass/wood inside LDtk-painted
-    // BurnableZone rect entities. Density + seed come from entity fields.
-    // GDD: Documents/System/System_World_TileSystem.md §7
-    applyBurnableZones(this.collisionGrid, level.entities);
-
-    // Reset elemental tile overlays — frozen timers from the previous room
-    // would otherwise apply to cells of a different layout.
+    // Reset elemental tile overlays + burnable entities — frozen timers and
+    // entity registry from the previous room would otherwise leak across
+    // rooms with different layouts.
     this.tileMutator.reset();
+    for (const p of this.burnableProps) p.destroy();
+    this.burnableProps.length = 0;
+
+    // Hybrid procedural pass — populate grass/wood inside LDtk-painted
+    // BurnableZone rect entities + spawn Tier B BurnableProp entities.
+    // Density + seed come from entity fields.
+    // GDD: Documents/System/System_World_TileSystem.md §7
+    const burnableSpecs: BurnableEntitySpec[] = applyBurnableZones(this.collisionGrid, level.entities);
+    for (const s of burnableSpecs) {
+      const prop = new BurnableProp(s.id, s.gx, s.gy);
+      this.burnableProps.push(prop);
+      this.tileMutator.registerBurnable(prop);
+      this.entityLayer.addChild(prop.container);
+    }
 
     // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
     this.fluidSystem.attach(level);
@@ -3677,6 +3690,18 @@ export class LdtkWorldScene extends Scene {
 
     // Advance frozen/burning/electric timers + oil-spread + passive interactions.
     this.tileMutator.tick(room, dt);
+
+    // Tick burnable entities (Tier B) — flame VFX + burnRemainingMs countdown.
+    // Destroyed ones are unregistered + removed from scene graph.
+    for (let i = this.burnableProps.length - 1; i >= 0; i--) {
+      const p = this.burnableProps[i];
+      p.update(dt);
+      if (p.destroyed) {
+        this.tileMutator.unregisterBurnable(p);
+        p.destroy();
+        this.burnableProps.splice(i, 1);
+      }
+    }
 
     // Player hazards (only when not already dead)
     if (this.player.hp > 0) {

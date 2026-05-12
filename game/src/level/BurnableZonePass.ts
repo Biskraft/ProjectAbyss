@@ -27,6 +27,7 @@ import {
   TILE_MAGMA, TILE_CHARGED, TILE_SPIKE, TILE_WATER, TILE_ACID,
 } from '../core/Physics';
 import type { LdtkEntity } from './LdtkLoader';
+import { BURNABLE_CATALOG, pickPropForZone, type BurnablePropId, type BurnableAnchor } from '../entities/BurnableProp';
 
 export type BurnableZoneType = 'Grass' | 'Wood' | 'Mixed';
 
@@ -34,6 +35,14 @@ interface ZoneConfig {
   type: BurnableZoneType;
   density: number;
   seed: number;
+}
+
+/** Procedural spec the scene uses to instantiate BurnableProp entities. */
+export interface BurnableEntitySpec {
+  id: BurnablePropId;
+  /** Top-left cell of footprint, in fullGrid coordinates. */
+  gx: number;
+  gy: number;
 }
 
 /** Mulberry32 — deterministic PRNG for Seed-based generation. */
@@ -56,17 +65,25 @@ function mulberry32(seed: number): () => number {
  * @param offsetCellX horizontal cell offset (for ItemWorld fullGrid concat)
  * @param offsetCellY vertical cell offset
  */
+/**
+ * Apply burnable population to `collisionGrid` and collect entity spawn specs.
+ * Mutates the grid in place and returns the list of BurnableProp entity specs
+ * the caller (scene) should instantiate and register.
+ *
+ * @returns Array of entity specs to spawn. Empty if no zones / no entities.
+ */
 export function applyBurnableZones(
   collisionGrid: number[][],
   entities: LdtkEntity[],
   tileSize = 16,
   offsetCellX = 0,
   offsetCellY = 0,
-): void {
-  if (!collisionGrid?.length) return;
+): BurnableEntitySpec[] {
+  const specs: BurnableEntitySpec[] = [];
+  if (!collisionGrid?.length) return specs;
   const rows = collisionGrid.length;
   const cols = collisionGrid[0]?.length ?? 0;
-  if (!cols) return;
+  if (!cols) return specs;
 
   for (const ent of entities) {
     if (ent.type !== 'BurnableZone') continue;
@@ -85,7 +102,9 @@ export function applyBurnableZones(
     const rng = cfg.seed > 0 ? mulberry32(cfg.seed) : Math.random;
 
     populateZone(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng);
+    populateZoneEntities(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng, specs);
   }
+  return specs;
 }
 
 function readZoneConfig(ent: LdtkEntity): ZoneConfig {
@@ -180,4 +199,77 @@ function grassNeighbourCount(grid: number[][], x: number, y: number): number {
   if (grid[y - 1]?.[x] === TILE_GRASS) n++;
   if (grid[y + 1]?.[x] === TILE_GRASS) n++;
   return n;
+}
+
+/**
+ * Tier B — sparse BurnableProp placement inside a zone rect.
+ *
+ * Walks the rect; at each candidate cell with appropriate anchor (floor cell
+ * has WALL below + AIR self, ceiling cell has WALL above + AIR self), rolls
+ * `density * 0.15` to spawn an entity (~6.7% of grass cell rate).
+ *
+ * Footprint validation: ensures the prop's cells × anchor neighbours are all
+ * AIR (or already entity-occupied skip) before committing. Avoids hazard
+ * blacklist within 1 cell of any footprint cell.
+ */
+function populateZoneEntities(
+  grid: number[][], x0: number, y0: number, x1: number, y1: number,
+  cfg: ZoneConfig, rng: () => number,
+  specs: BurnableEntitySpec[],
+): void {
+  const occupied = new Set<number>(); // packed cell keys
+  const pack = (gx: number, gy: number) => gy * 4096 + gx;
+
+  const ENTITY_DENSITY_MUL = 0.15; // entities are sparser than grass cells
+
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      // base trigger
+      if (rng() > cfg.density * ENTITY_DENSITY_MUL) continue;
+
+      // skip if cell already part of another prop
+      if (occupied.has(pack(x, y))) continue;
+      // base air check
+      if ((grid[y]?.[x] ?? -1) !== TILE_AIR) continue;
+      if (hasHazardNearby(grid, x, y, 1)) continue;
+
+      // Detect anchor: floor (WALL directly below) or ceiling (WALL directly above)
+      const wallBelow = (grid[y + 1]?.[x] ?? TILE_AIR) === TILE_WALL;
+      const wallAbove = (grid[y - 1]?.[x] ?? TILE_AIR) === TILE_WALL;
+      let anchor: BurnableAnchor;
+      if (wallBelow && !wallAbove) anchor = 'floor';
+      else if (wallAbove && !wallBelow) anchor = 'ceiling';
+      else continue;
+
+      const id = pickPropForZone(cfg.type, rng, anchor);
+      if (!id) continue;
+      const spec = BURNABLE_CATALOG[id];
+      const cellW = spec.cells[0], cellH = spec.cells[1];
+
+      // Validate footprint: all cells must be AIR + not occupied
+      let topLeftY: number;
+      if (anchor === 'floor') topLeftY = y - (cellH - 1); // grow upward
+      else topLeftY = y; // ceiling: grow downward
+
+      if (topLeftY < 0 || topLeftY + cellH > grid.length) continue;
+      let ok = true;
+      for (let dy = 0; dy < cellH && ok; dy++) {
+        for (let dx = 0; dx < cellW && ok; dx++) {
+          const fx = x + dx, fy = topLeftY + dy;
+          if ((grid[fy]?.[fx] ?? -1) !== TILE_AIR) { ok = false; break; }
+          if (occupied.has(pack(fx, fy))) { ok = false; break; }
+          if (hasHazardNearby(grid, fx, fy, 1)) { ok = false; break; }
+        }
+      }
+      if (!ok) continue;
+
+      // Commit
+      for (let dy = 0; dy < cellH; dy++) {
+        for (let dx = 0; dx < cellW; dx++) {
+          occupied.add(pack(x + dx, topLeftY + dy));
+        }
+      }
+      specs.push({ id, gx: x, gy: topLeftY });
+    }
+  }
 }

@@ -34,6 +34,30 @@ export const TEXT_NEGATIVE = 0xff4444;
 export const TEXT_ACCENT = 0x00ced1;
 export const TEXT_GOLD = 0xffd700;
 export const TEXT_WARNING = 0xffcc44;
+// Region-specific accent tokens (cluster: ItemWorld delta / status info).
+export const TEXT_DELTA_POSITIVE = 0x88ff88;   // soft green for +delta
+export const TEXT_DELTA_NEGATIVE = 0xff8888;   // soft red for -delta
+export const TEXT_DELTA_NEUTRAL  = 0x888899;   // mute neutral
+export const TEXT_INFO_WARM = 0xffd35a;        // warm yellow (StratumClear title / boss flair)
+export const TEXT_INFO_COOL = 0x88ccff;        // cool cyan (info hint inside IW panel)
+export const TEXT_LABEL_MUTED = 0xbbbbcc;      // soft label row label
+export const TEXT_BOSS_TITLE = 0xffcc66;       // warm orange-yellow boss banner
+export const TEXT_INFO = 0xcccccc;             // light grey paragraph
+
+// Button state tokens (FeedbackPanel send/close).
+export const BUTTON_BG_IDLE     = 0x3a3a52;
+export const BUTTON_BG_HOVER    = 0x4a4a6a;
+export const BUTTON_BG_DISABLED = 0x2a2a3e;
+export const BUTTON_BG_FOCUS    = 0x141420;
+export const BUTTON_BG_ACCENT   = 0xff8000;    // CTA orange (DEC-035 key color)
+export const BUTTON_BORDER      = 0x4a4a6a;    // alias of MODAL_BORDER, semantic for buttons
+export const BUTTON_BORDER_DIM  = 0x666677;
+export const BUTTON_TEXT_DISABLED = 0x666677;
+
+// Brand card tokens (TitleScene preset card — darker than MODAL_BG to differentiate sub-card).
+export const CARD_BG     = 0x1a1a1a;
+export const CARD_BORDER = 0x666666;
+export const TEXT_KEY    = 0xcccccc;            // preset card key cap label
 
 // ---------------------------------------------------------------------------
 // Font size tokens (3 tiers only)
