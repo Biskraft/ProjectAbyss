@@ -33,6 +33,7 @@
 
 import { isInAcid, isInCharged, isInMagma } from '../core/Physics';
 import type { TileMutator } from './TileMutator';
+import type { FluidSystem } from '../effects/FluidSystem';
 
 export type HazardSource = 'magma' | 'charged' | 'acid' | 'fire' | 'thunder' | 'burn';
 
@@ -51,6 +52,11 @@ export interface HazardTarget {
   burnTickAccum?: number;
   /** Accumulator for 0.5-second charged ticks (resets on exit). */
   chargedTickAccum?: number;
+  /** Accumulator for 0.1-second acid ticks (resets on exit). */
+  acidTickAccum?: number;
+  /** Was overlapping an electric overlay last frame? Used so thunder damages
+   *  once per pulse (on transition into overlay), not every frame. */
+  prevInElectric?: boolean;
 }
 
 export interface HazardCallbacks {
@@ -61,16 +67,21 @@ export interface HazardCallbacks {
 }
 
 // === Tunables (mirror GDD §2 table) ===
+// Durations / tick intervals × 5 for verification readability (2026-05-12).
 const MAGMA_FIRST_HIT_PCT = 0.02;
-const MAGMA_BURN_DURATION_MS = 3000;
-const ACID_DPS_PCT = 0.016;
+const MAGMA_BURN_DURATION_MS = 15000;
+// Acid: tick-based (was continuous DPS — scene's Math.max(1, dmg) forced
+// at-least-1-per-frame floor that vastly exceeded intended DPS).
+// 0.1 s tick × 0.5% maxHp → ~5%/s nominal, scales nicely with maxHp.
+const ACID_TICK_PCT = 0.005;
+const ACID_TICK_MS = 100;
 const CHARGED_TICK_PCT = 0.01;
-const CHARGED_TICK_MS = 500;
+const CHARGED_TICK_MS = 2500;
 const FIRE_DPS_PCT = 0.03;
-const FIRE_BURN_REFRESH_MS = 2000;
+const FIRE_BURN_REFRESH_MS = 10000;
 const THUNDER_HIT_PCT = 0.50;
 const BURN_TICK_PCT = 0.02;
-const BURN_TICK_MS = 1000;
+const BURN_TICK_MS = 5000;
 
 /**
  * Apply all tile-based hazards to `target` for one frame.
@@ -108,9 +119,18 @@ export function applyTileHazards(
     }
   }
 
-  // 2) Acid contact — continuous DOT
+  // 2) Acid contact — 0.1 s tick (was continuous; Math.max(1, dmg) flooring
+  //    in scene callbacks made the continuous version dump 1 hp/frame regardless
+  //    of the configured DPS).
+  let acidAcc = target.acidTickAccum ?? 0;
   if (isInAcid(x, y, w, h, roomData)) {
-    cb.onDamage(target.maxHp * ACID_DPS_PCT * (dtMs / 1000), 'acid');
+    acidAcc += dtMs;
+    while (acidAcc >= ACID_TICK_MS) {
+      acidAcc -= ACID_TICK_MS;
+      cb.onDamage(target.maxHp * ACID_TICK_PCT, 'acid');
+    }
+  } else if (acidAcc !== 0) {
+    acidAcc = 0;
   }
 
   // 3) Charged contact — 0.5s tick
@@ -134,10 +154,15 @@ export function applyTileHazards(
     }
   }
 
-  // 5) Thunder chain electric overlay — single big hit (recharges only when overlay refreshes)
-  if (mutator.aabbHasOverlay(x, y, w, h, 'electric')) {
+  // 5) Thunder chain electric overlay — single big hit on transition into the
+  // overlay. Re-firing while the target is still inside is suppressed so the
+  // damage is per-pulse (one application per Shift+3 / enchant trigger),
+  // not per-frame (which would stack to thousands over the 2.5s duration).
+  const inElectric = mutator.aabbHasOverlay(x, y, w, h, 'electric');
+  if (inElectric && !target.prevInElectric) {
     cb.onDamage(target.maxHp * THUNDER_HIT_PCT, 'thunder');
   }
+  target.prevInElectric = inElectric;
 
   // 6) Burn DOT — 2% maxHp / 1s
   if (burnRem > 0) {
@@ -156,6 +181,7 @@ export function applyTileHazards(
   target.burnRemainingMs = burnRem;
   target.burnTickAccum = burnAcc;
   target.chargedTickAccum = chargedAcc;
+  target.acidTickAccum = acidAcc;
 }
 
 // ============================================================
@@ -169,27 +195,51 @@ import {
 } from '../core/Physics';
 
 /**
- * Fire enchant hits an AABB. Reacts:
- *   oil → ignite (cascading spread handled by TileMutator)
- *   ice → melt to water (permanent)
- *   water → steam (the scene should also damage adjacent enemies)
- * Returns the kind of reaction triggered (or null).
+ * Fire enchant hits an AABB. Sweeps EVERY cell in the AABB and applies the
+ * appropriate reaction (priority: water > ice > flammable/entity). Without
+ * the sweep, the previous "find first oil → return" logic would silently
+ * skip a hitbox that contained wood/grass but no oil — confusing UX.
+ *
+ * Reactions:
+ *   water → steam (cell → AIR + FluidSystem.removeCell so polygon updates)
+ *   ice → melt to water (permanent terrain shift)
+ *   oil/wood/grass / BurnableProp footprint → tryIgnite (cascading via TileMutator)
+ *
+ * Returns the strongest reaction observed (or null).
  */
 export function applyFireAttack(
   roomData: number[][], mutator: TileMutator,
   ax: number, ay: number, aw: number, ah: number,
+  fluidSystem?: FluidSystem,
 ): 'ignite' | 'melt' | 'steam' | null {
-  const oilHit = findCellInAABB(ax, ay, aw, ah, roomData, isOil);
-  if (oilHit) { mutator.tryIgnite(roomData, oilHit.gx, oilHit.gy); return 'ignite'; }
-  const iceHit = findCellInAABB(ax, ay, aw, ah, roomData, isIce);
-  if (iceHit) { mutator.tryMeltIce(roomData, iceHit.gx, iceHit.gy); return 'melt'; }
-  const waterHit = findCellInAABB(ax, ay, aw, ah, roomData, isWater);
-  if (waterHit) {
-    // Scene-level effect: turn the water cell into air (steam) — emergent water removal.
-    if (roomData[waterHit.gy]) roomData[waterHit.gy][waterHit.gx] = 0;
-    return 'steam';
+  const TILE = 16;
+  const l = Math.floor(ax / TILE);
+  const r = Math.floor((ax + aw - 1) / TILE);
+  const t = Math.floor(ay / TILE);
+  const b = Math.floor((ay + ah - 1) / TILE);
+  let result: 'ignite' | 'melt' | 'steam' | null = null;
+  const prio = (k: 'ignite' | 'melt' | 'steam') =>
+    ({ steam: 3, melt: 2, ignite: 1 }[k]);
+  const promote = (k: 'ignite' | 'melt' | 'steam') => {
+    if (!result || prio(k) > prio(result)) result = k;
+  };
+  for (let gy = t; gy <= b; gy++) {
+    for (let gx = l; gx <= r; gx++) {
+      const tile = getTile(roomData, gx, gy);
+      if (isWater(tile)) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        if (fluidSystem) fluidSystem.removeCell(gx, gy);
+        promote('steam');
+      } else if (isIce(tile)) {
+        if (mutator.tryMeltIce(roomData, gx, gy)) promote('melt');
+      } else {
+        // tryIgnite covers flammable tiles (oil/wood/grass) AND
+        // BurnableProp entity footprints via its fallback.
+        if (mutator.tryIgnite(roomData, gx, gy)) promote('ignite');
+      }
+    }
   }
-  return null;
+  return result;
 }
 
 /**

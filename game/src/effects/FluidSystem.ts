@@ -21,6 +21,21 @@ import { Container, Graphics } from 'pixi.js';
 import type { LdtkLevel, LdtkEntity } from '@level/LdtkLoader';
 import { getFluidDef, type FluidType, type FluidTypeDef } from '@data/FluidTypes';
 
+/**
+ * IntGrid cell value → default FluidType id. Each value flood-fills into
+ * its own bodies (water never merges with magma even if adjacent).
+ * Values must match Physics.ts TILE_* constants.
+ */
+const FLUID_CELL_TYPES: Array<{ value: number; type: FluidType }> = [
+  { value: 2,  type: 'water' },
+  { value: 6,  type: 'magma' },
+  { value: 11, type: 'oil'   },
+  { value: 13, type: 'acid'  },
+];
+
+/** Set of IntGrid values that are treated as flowing fluid by gravityTick. */
+const FLUID_VALUES = new Set(FLUID_CELL_TYPES.map(f => f.value));
+
 const TILE = 16;
 const COLUMN_SPACING = 8;          // px per spring column (sub-tile)
 const AMBIENT_AMP = 0.55;          // ambient wave amplitude — 분명한 잔파도
@@ -42,6 +57,10 @@ interface FluidBody {
   cells: Set<number>;             // packed key (row * gridW + col)
   bounds: { minX: number; minY: number; maxX: number; maxY: number };  // level-local px
   surface: SurfaceColumn[];
+  /** Topmost gy per column (cell coords). Used for surface y0. */
+  topRow: Map<number, number>;
+  /** Bottom-most gy per column. Used for stair-stepped bottom polygon. */
+  bottomRow: Map<number, number>;
   gfx: Graphics;
   ambientPhase: number;           // 0..1 — body 별 시간 진행
 }
@@ -51,6 +70,16 @@ export class FluidSystem {
   private bodies: FluidBody[] = [];
   /** Set to current level grid width to allow packed cell key lookup. */
   private gridW = 0;
+  /** FluidVolume entities cached from attach() — used by rebuildFromGrid to keep type assignments. */
+  private cachedVolumes: LdtkEntity[] = [];
+  /** Accumulator for gravity tick (ms). */
+  private gravityAccum = 0;
+  /** Accumulator for thin-strip evaporation (ms). */
+  private evapAccum = 0;
+  /** Tunable: gravity tick interval. Lower = water flows faster but more rebuild churn. */
+  static GRAVITY_TICK_MS = 140;
+  /** How often a thin-strip body loses one surface cell to evaporation. */
+  static EVAP_INTERVAL_MS = 250;
 
   constructor(parent: Container) {
     this.parent = parent;
@@ -68,19 +97,24 @@ export class FluidSystem {
     const gridW = grid[0]?.length ?? 0;
     this.gridW = gridW;
 
-    // FluidVolume entity rect 들 — 있으면 type override 용.
+    // FluidVolume entity rect 들 — 있으면 type override 용. Cache for rebuildFromGrid.
     const volumes = level.entities.filter(e => e.type === 'FluidVolume');
+    this.cachedVolumes = volumes;
 
-    // Flood-fill: value=2 cells → connected components.
+    // Flood-fill: each fluid cell value → connected components per type.
+    // Different fluid types never merge (water + magma adjacent = two bodies).
     const visited = new Uint8Array(gridH * gridW);
-    for (let y = 0; y < gridH; y++) {
-      for (let x = 0; x < gridW; x++) {
-        if (visited[y * gridW + x]) continue;
-        if (grid[y][x] !== 2) continue;
-        const component = this.floodFill(grid, x, y, gridW, gridH, visited);
-        if (component.cells.size === 0) continue;
-        const type = this.resolveFluidType(component, volumes);
-        this.createBody(type, component, gridW);
+    for (const { value, type: defaultType } of FLUID_CELL_TYPES) {
+      for (let y = 0; y < gridH; y++) {
+        for (let x = 0; x < gridW; x++) {
+          if (visited[y * gridW + x]) continue;
+          if (grid[y][x] !== value) continue;
+          const component = this.floodFill(grid, x, y, gridW, gridH, visited, value);
+          if (component.cells.size === 0) continue;
+          // FluidVolume entity may override type for water only (legacy lava use).
+          const type = value === 2 ? this.resolveFluidType(component, volumes) : defaultType;
+          this.createBody(type, component, gridW);
+        }
       }
     }
     // 첫 프레임 지연 제거 — attach 직후 mesh polygon 즉시 그려 룸 자산과 동시 표시.
@@ -163,9 +197,11 @@ export class FluidSystem {
     gridW: number,
     gridH: number,
     visited: Uint8Array,
-  ): { cells: Set<number>; minX: number; minY: number; maxX: number; maxY: number; topRow: Map<number, number> } {
+    targetValue: number,
+  ): { cells: Set<number>; minX: number; minY: number; maxX: number; maxY: number; topRow: Map<number, number>; bottomRow: Map<number, number> } {
     const cells = new Set<number>();
-    const topRow = new Map<number, number>();   // col → topmost row of fluid
+    const topRow = new Map<number, number>();      // col → topmost row of fluid
+    const bottomRow = new Map<number, number>();   // col → bottom-most row
     let minX = sx, minY = sy, maxX = sx, maxY = sy;
     const stack: Array<[number, number]> = [[sx, sy]];
     while (stack.length > 0) {
@@ -173,18 +209,20 @@ export class FluidSystem {
       if (x < 0 || y < 0 || x >= gridW || y >= gridH) continue;
       const k = y * gridW + x;
       if (visited[k]) continue;
-      if (grid[y][x] !== 2) continue;
+      if (grid[y][x] !== targetValue) continue;
       visited[k] = 1;
       cells.add(k);
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
       if (y > maxY) maxY = y;
-      const prev = topRow.get(x);
-      if (prev === undefined || y < prev) topRow.set(x, y);
+      const prevTop = topRow.get(x);
+      if (prevTop === undefined || y < prevTop) topRow.set(x, y);
+      const prevBot = bottomRow.get(x);
+      if (prevBot === undefined || y > prevBot) bottomRow.set(x, y);
       stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
-    return { cells, minX, minY, maxX, maxY, topRow };
+    return { cells, minX, minY, maxX, maxY, topRow, bottomRow };
   }
 
   private resolveFluidType(
@@ -213,7 +251,7 @@ export class FluidSystem {
 
   private createBody(
     type: FluidType,
-    component: { cells: Set<number>; minX: number; minY: number; maxX: number; maxY: number; topRow: Map<number, number> },
+    component: { cells: Set<number>; minX: number; minY: number; maxX: number; maxY: number; topRow: Map<number, number>; bottomRow: Map<number, number> },
     gridW: number,
   ): void {
     const def = getFluidDef(type);
@@ -226,19 +264,36 @@ export class FluidSystem {
     const endCol = sortedCols[sortedCols.length - 1];
     const startX = startCol * TILE;
     const endX = (endCol + 1) * TILE;
+
+    // Smooth topRow with 5-tap weighted average (weights 1·2·3·2·1) so a 1-cell
+    // stair-step in the underlying grid renders as a soft ⅓-cell slope instead
+    // of a hard 16-px bump. Cells themselves stay grid-aligned; only the
+    // render-time resting Y of each surface column is smoothed.
+    const smoothedY0 = new Map<number, number>();
+    for (const gx of component.topRow.keys()) {
+      let sum = 0, denom = 0;
+      for (let dx = -2; dx <= 2; dx++) {
+        const t = component.topRow.get(gx + dx);
+        if (t !== undefined) {
+          const w = dx === 0 ? 3 : (Math.abs(dx) === 1 ? 2 : 1);
+          sum += t * w;
+          denom += w;
+        }
+      }
+      smoothedY0.set(gx, (sum / denom) * TILE);
+    }
+
     // Loop 은 endX 미만까지만 — endX 자체는 col=endCol+1 매핑되어 topRow 실패.
     // 마지막 col 의 right edge (=endX) 는 sentinel column 으로 별도 push 해 polygon
     // 우측이 fluid 영역 우측 edge 와 정확히 일치하게 만든다.
     for (let x = startX; x < endX; x += COLUMN_SPACING) {
       const col = Math.floor(x / TILE);
-      const topRow = component.topRow.get(col);
-      if (topRow === undefined) continue;
-      const y0 = topRow * TILE;
+      if (!component.topRow.has(col)) continue;
+      const y0 = smoothedY0.get(col)!;
       surface.push({ x, y0, y: y0, vy: 0 });
     }
-    const lastTopRow = component.topRow.get(endCol);
-    if (lastTopRow !== undefined) {
-      const y0 = lastTopRow * TILE;
+    if (component.topRow.has(endCol)) {
+      const y0 = smoothedY0.get(endCol)!;
       surface.push({ x: endX, y0, y: y0, vy: 0 });
     }
     if (surface.length === 0) return;
@@ -257,38 +312,61 @@ export class FluidSystem {
         maxY: (component.maxY + 1) * TILE,
       },
       surface,
+      topRow: component.topRow,
+      bottomRow: component.bottomRow,
       gfx,
       ambientPhase: Math.random(),
     };
     this.bodies.push(body);
-    // Suppress unused-var lint: gridW kept for future packed-key APIs.
-    void gridW;
+    // Cache grid width for packed-key APIs (removeCell / queryBodyAt).
+    this.gridW = gridW;
   }
 
   private stepSpring(body: FluidBody, dt: number): void {
     const def = body.def;
     const k = def.surfaceK;
-    const damp = def.surfaceDamping;
     const prop = def.propagation;
     const cols = body.surface;
     const n = cols.length;
 
-    // Ambient wave — random column + 인접 ±2 까지 같은 방향 cluster 임펄스. 단일
-    // spike 가 아닌 5 column 폭 부드러운 ripple 이 끊임없이 흐른다. propagation 으로
-    // 시간 따라 옆으로 자연 전파.
-    body.ambientPhase += dt / AMBIENT_PERIOD_MS;
-    if (body.ambientPhase >= 1) {
-      body.ambientPhase -= 1;
-      const idx = Math.floor(Math.random() * n);
-      const amp = (Math.random() - 0.5) * AMBIENT_AMP;
-      cols[idx].vy += amp;
-      if (idx - 1 >= 0) cols[idx - 1].vy += amp * 0.6;
-      if (idx + 1 < n) cols[idx + 1].vy += amp * 0.6;
-      if (idx - 2 >= 0) cols[idx - 2].vy += amp * 0.3;
-      if (idx + 2 < n) cols[idx + 2].vy += amp * 0.3;
+    // Body-size scaling — small puddles need calmer behaviour to avoid
+    // looking like they shimmer forever. Threshold around 8 surface columns
+    // (≈ 4 tiles wide) where ambient becomes negligible.
+    const sizeFactor = Math.max(0, Math.min(1, (n - 4) / 8)); // 0 for n≤4, 1 for n≥12
+    // Damping ramps UP as body shrinks so leftover spring energy dies fast.
+    const damp = def.surfaceDamping + (1 - sizeFactor) * 0.35;
+
+    // Per-fluid-type ambient profile — magma should look like it's actively
+    // boiling/bubbling, oil more like sluggish sloshing, water natural.
+    let ampMul = 1.0, periodMul = 1.0;
+    if (body.type === 'magma' || body.type === 'lava') {
+      ampMul = 2.4;     // bigger bubble bursts
+      periodMul = 0.45; // ~2x more frequent
+    } else if (body.type === 'oil') {
+      ampMul = 0.7;
+      periodMul = 1.6;
+    } else if (body.type === 'acid') {
+      ampMul = 1.2;
+      periodMul = 0.8;
     }
 
-    // Spring forces — 두 패스로 인접 전파 계산 (이전 frame y 값 보존).
+    // Ambient wave — random column + neighbours cluster impulse. Skipped when
+    // the body is small (size factor 0) so single-puddle puddles stop wobbling.
+    if (sizeFactor > 0) {
+      body.ambientPhase += dt / (AMBIENT_PERIOD_MS * periodMul);
+      if (body.ambientPhase >= 1) {
+        body.ambientPhase -= 1;
+        const idx = Math.floor(Math.random() * n);
+        const amp = (Math.random() - 0.5) * AMBIENT_AMP * sizeFactor * ampMul;
+        cols[idx].vy += amp;
+        if (idx - 1 >= 0) cols[idx - 1].vy += amp * 0.6;
+        if (idx + 1 < n) cols[idx + 1].vy += amp * 0.6;
+        if (idx - 2 >= 0) cols[idx - 2].vy += amp * 0.3;
+        if (idx + 2 < n) cols[idx + 2].vy += amp * 0.3;
+      }
+    }
+
+    // Spring forces — two-pass with prev-y preservation for correct adjacency.
     const prevY = new Float32Array(n);
     for (let i = 0; i < n; i++) prevY[i] = cols[i].y;
 
@@ -298,8 +376,14 @@ export class FluidSystem {
       f += -damp * c.vy;
       if (i > 0)     f += prop * (prevY[i - 1] - c.y);
       if (i < n - 1) f += prop * (prevY[i + 1] - c.y);
-      c.vy += f * dt * 0.06;     // dt 스케일 조정 (게임 dt ms 단위)
+      c.vy += f * dt * 0.06;
       c.y  += c.vy * dt * 0.06;
+      // Aggressive snap to rest for tiny bodies — kill numeric jitter that
+      // keeps the puddle "moving" indefinitely below visible thresholds.
+      if (sizeFactor < 0.2 && Math.abs(c.y - c.y0) < 0.5 && Math.abs(c.vy) < 0.05) {
+        c.y = c.y0;
+        c.vy = 0;
+      }
     }
   }
 
@@ -309,26 +393,63 @@ export class FluidSystem {
     g.clear();
     const cols = body.surface;
     if (cols.length < 2) return;
+    const bodyCols = Array.from(body.bottomRow.keys()).sort((a, b) => a - b);
+    if (bodyCols.length === 0) return;
 
-    // Surface polygon: top edge (cols) + bottom edge (body.bounds.maxY straight line).
-    const bottomY = body.bounds.maxY;
-    g.moveTo(cols[0].x, Math.round(cols[0].y));
-    for (let i = 1; i < cols.length; i++) {
-      g.lineTo(cols[i].x, Math.round(cols[i].y));
+    // Build polygon path:
+    //   1. Top edge — smoothed spring surface columns L→R
+    //   2. Right side — down from rightmost top to rightmost bottom
+    //   3. Bottom edge — per-column bottomRow R→L (stair-stepped, follows cells)
+    //   4. closePath — vertical left side back to start
+    //
+    // Stair-stepped bottom means polygon shape matches actual cell footprint:
+    // if a column has water from gy=4 down to gy=8 but next column only to gy=6,
+    // the polygon dips at that column. Irregular shapes (after fire on water,
+    // etc.) render exactly without filling air gaps.
+    const drawShape = (yOffset: number) => {
+      g.moveTo(cols[0].x, Math.round(cols[0].y) + yOffset);
+      for (let i = 1; i < cols.length; i++) {
+        g.lineTo(cols[i].x, Math.round(cols[i].y) + yOffset);
+      }
+      // Right side: down from last top to last column's bottom
+      const lastGx = bodyCols[bodyCols.length - 1];
+      let prevBy = (body.bottomRow.get(lastGx)! + 1) * TILE;
+      g.lineTo(cols[cols.length - 1].x, prevBy);
+      // Bottom edge R→L with stair-step
+      for (let i = bodyCols.length - 1; i >= 0; i--) {
+        const gx = bodyCols[i];
+        const by = (body.bottomRow.get(gx)! + 1) * TILE;
+        if (by !== prevBy) {
+          // vertical step at right edge of this column
+          g.lineTo((gx + 1) * TILE, by);
+          prevBy = by;
+        }
+        // horizontal to left edge of this column
+        g.lineTo(gx * TILE, by);
+      }
+      g.closePath();
+    };
+
+    drawShape(0);
+    // Per-fluid body opacity. Water/acid stay translucent so the player +
+    // background structures read through; magma/oil/lava are thick liquids
+    // that should look near-solid.
+    let bodyAlpha = 0.75;
+    if (body.type === 'magma' || body.type === 'lava' || body.type === 'oil') {
+      bodyAlpha = 0.95;
     }
-    g.lineTo(cols[cols.length - 1].x, bottomY);
-    g.lineTo(cols[0].x, bottomY);
-    g.closePath();
-    g.fill({ color: def.bodyColor, alpha: 0.75 });
+    g.fill({ color: def.bodyColor, alpha: bodyAlpha });
 
-    // Glow overlay — lava etc.
+    // Glow overlay — lava etc. (offset 4px below surface)
     if (def.glowColor !== null) {
       g.moveTo(cols[0].x, Math.round(cols[0].y));
       for (let i = 1; i < cols.length; i++) {
         g.lineTo(cols[i].x, Math.round(cols[i].y));
       }
-      g.lineTo(cols[cols.length - 1].x, Math.min(bottomY, Math.round(cols[cols.length - 1].y) + 4));
-      g.lineTo(cols[0].x, Math.min(bottomY, Math.round(cols[0].y) + 4));
+      const lastGx = bodyCols[bodyCols.length - 1];
+      const lastBy = (body.bottomRow.get(lastGx)! + 1) * TILE;
+      g.lineTo(cols[cols.length - 1].x, Math.min(lastBy, Math.round(cols[cols.length - 1].y) + 4));
+      g.lineTo(cols[0].x, Math.min(lastBy, Math.round(cols[0].y) + 4));
       g.closePath();
       g.fill({ color: def.glowColor, alpha: 0.35 });
     }
@@ -339,5 +460,344 @@ export class FluidSystem {
       g.lineTo(cols[i].x, Math.round(cols[i].y));
     }
     g.stroke({ color: def.surfaceColor, width: 1, alpha: 0.9 });
+  }
+
+  // ============================================================
+  // Cell mutation API (option B + C from prototype)
+  // ============================================================
+
+  /**
+   * Remove a cell from whichever body contains it. Handles 3 cases:
+   *   - Empty body → destroy
+   *   - Connected after removal → rebuild surface/bottom (preserve wave momentum)
+   *   - Disconnected → split into N sub-bodies (each preserves wave from old)
+   * Called by element attack hooks (e.g., Fire enchant on water cell).
+   */
+  removeCell(gx: number, gy: number): void {
+    const key = gy * this.gridW + gx;
+    let body: FluidBody | null = null;
+    for (const b of this.bodies) {
+      if (b.cells.has(key)) { body = b; break; }
+    }
+    if (!body) return;
+    body.cells.delete(key);
+    if (body.cells.size === 0) {
+      // destroy
+      if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
+      body.gfx.destroy();
+      this.bodies = this.bodies.filter(b => b !== body);
+      return;
+    }
+    this.maybeSplit(body);
+  }
+
+  /**
+   * Check whether body.cells is still 4-connected after a mutation.
+   * If multiple components found, replace body with N new bodies sharing the
+   * type/def. Wave state is transferred by closest x-match.
+   */
+  private maybeSplit(body: FluidBody): void {
+    if (body.cells.size <= 1) {
+      this.rebuildBody(body);
+      return;
+    }
+    const visited = new Set<number>();
+    const components: Set<number>[] = [];
+    for (const start of body.cells) {
+      if (visited.has(start)) continue;
+      const comp = new Set<number>();
+      const stack = [start];
+      while (stack.length) {
+        const k = stack.pop()!;
+        if (visited.has(k)) continue;
+        if (!body.cells.has(k)) continue;
+        visited.add(k);
+        comp.add(k);
+        const x = k % this.gridW;
+        const y = Math.floor(k / this.gridW);
+        stack.push(
+          y * this.gridW + (x + 1),
+          y * this.gridW + (x - 1),
+          (y + 1) * this.gridW + x,
+          (y - 1) * this.gridW + x,
+        );
+      }
+      components.push(comp);
+    }
+    if (components.length === 1) {
+      this.rebuildBody(body);
+      return;
+    }
+    // Split: destroy old body, create new ones per component, transfer wave.
+    const oldSurface = body.surface;
+    const oldAmbient = body.ambientPhase;
+    if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
+    body.gfx.destroy();
+    this.bodies = this.bodies.filter(b => b !== body);
+    for (const compCells of components) {
+      const newBody = this.makeBodyFromCells(body.type, compCells);
+      if (!newBody) continue;
+      this.transferWaveState(newBody, oldSurface, oldAmbient);
+    }
+  }
+
+  /** Recompute topRow / bottomRow / surface / bounds from body.cells in-place. */
+  private rebuildBody(body: FluidBody): void {
+    const oldSurface = body.surface;
+    const oldAmbient = body.ambientPhase;
+    const newBody = this.makeBodyFromCells(body.type, body.cells);
+    if (!newBody) {
+      // shouldn't happen unless cells empty
+      if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
+      body.gfx.destroy();
+      this.bodies = this.bodies.filter(b => b !== body);
+      return;
+    }
+    // newBody was pushed to this.bodies; remove old, transfer wave state.
+    if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
+    body.gfx.destroy();
+    this.bodies = this.bodies.filter(b => b !== body);
+    this.transferWaveState(newBody, oldSurface, oldAmbient);
+  }
+
+  /** Build a new FluidBody from a cell set (same type). Returns body or null if empty. */
+  private makeBodyFromCells(type: FluidType, cells: Set<number>): FluidBody | null {
+    if (cells.size === 0) return null;
+    // Recompute topRow / bottomRow / bounds
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const topRow = new Map<number, number>();
+    const bottomRow = new Map<number, number>();
+    for (const k of cells) {
+      const x = k % this.gridW;
+      const y = Math.floor(k / this.gridW);
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+      const t = topRow.get(x); if (t === undefined || y < t) topRow.set(x, y);
+      const b = bottomRow.get(x); if (b === undefined || y > b) bottomRow.set(x, y);
+    }
+    const before = this.bodies.length;
+    this.createBody(type, { cells, minX, minY, maxX, maxY, topRow, bottomRow }, this.gridW);
+    if (this.bodies.length === before) return null;
+    return this.bodies[this.bodies.length - 1];
+  }
+
+  // ============================================================
+  // Cellular gravity (prototype option C+) — water cells fall + spread
+  // ============================================================
+
+  /**
+   * Accumulator-driven gravity tick. Call every frame with current roomData.
+   * Mutates roomData (water cell positions) so player physics stays consistent
+   * with the visible water surface. After mutations, rebuilds bodies from
+   * the grid so polygons match new cell layout. Preserves wave momentum.
+   *
+   * @param roomData scene.collisionGrid (also player.roomData)
+   * @param tileMutator optional — for frozen-cell check (ice cap support)
+   * @param dtMs frame delta in milliseconds
+   */
+  gravityTick(
+    roomData: number[][],
+    dtMs: number,
+    tileMutator?: {
+      isFrozen(gx: number, gy: number): boolean;
+      transferElectricOverlay?(fromGx: number, fromGy: number, toGx: number, toGy: number): void;
+    },
+  ): void {
+    if (!roomData || !roomData.length) return;
+    this.gravityAccum += dtMs;
+    if (this.gravityAccum < FluidSystem.GRAVITY_TICK_MS) return;
+    this.gravityAccum -= FluidSystem.GRAVITY_TICK_MS;
+
+    const gridH = roomData.length;
+    const gridW = roomData[0]?.length ?? 0;
+    if (!gridW) return;
+
+    let moved = false;
+    const tryMove = (fx: number, fy: number, tx: number, ty: number): boolean => {
+      if (tx < 0 || tx >= gridW || ty < 0 || ty >= gridH) return false;
+      if (roomData[ty][tx] !== 0) return false; // dest must be AIR
+      if (tileMutator?.isFrozen(tx, ty)) return false;
+      const v = roomData[fy][fx]; // preserve cell type (water/magma/oil/acid)
+      roomData[ty][tx] = v;
+      roomData[fy][fx] = 0;
+      // Carry electric overlay so thunder pulses stay on the (now moved) fluid
+      // cells instead of being orphaned on the old AIR coordinate.
+      tileMutator?.transferElectricOverlay?.(fx, fy, tx, ty);
+      moved = true;
+      return true;
+    };
+
+    // Collect thin-strip cells — these are locked from cellular movement.
+    // Reason: a single-row puddle that can't fully fill its row would shuffle
+    // the gap back and forth forever as cells spread sideways. Lock them and
+    // let evaporation finish the job instead.
+    const lockedCells = new Set<number>();
+    for (const body of this.bodies) {
+      if (this.isThinStrip(body)) {
+        for (const k of body.cells) lockedCells.add(k);
+      }
+    }
+
+    // Bottom-up with alternating row direction to avoid bias
+    for (let gy = gridH - 2; gy >= 0; gy--) {
+      const ltr = (gy & 1) === 0;
+      const xStart = ltr ? 0 : gridW - 1;
+      const xEnd   = ltr ? gridW : -1;
+      const xStep  = ltr ? 1 : -1;
+      for (let gx = xStart; gx !== xEnd; gx += xStep) {
+        const v = roomData[gy][gx];
+        if (!FLUID_VALUES.has(v)) continue;
+        if (tileMutator?.isFrozen(gx, gy)) continue;
+        if (lockedCells.has(gy * gridW + gx)) continue;
+        // Ice cap: fluid trapped beneath frozen cells doesn't drain.
+        // The cap must be the same fluid type (so freezing the surface of a
+        // water pool doesn't trap magma below — it wouldn't realistically).
+        if (tileMutator) {
+          let capped = false;
+          for (let cy = gy - 1; cy >= 0; cy--) {
+            const cc = roomData[cy][gx];
+            if (cc !== v) break;
+            if (tileMutator.isFrozen(gx, cy)) { capped = true; break; }
+          }
+          if (capped) continue;
+        }
+        // 1. fall straight down
+        if (tryMove(gx, gy, gx, gy + 1)) continue;
+        // 2. diagonal down (random priority)
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        if (tryMove(gx, gy, gx + dir, gy + 1)) continue;
+        if (tryMove(gx, gy, gx - dir, gy + 1)) continue;
+        // 3. horizontal spread (always — self-levels naturally)
+        if (tryMove(gx, gy, gx + dir, gy)) continue;
+        tryMove(gx, gy, gx - dir, gy);
+      }
+    }
+
+    if (moved) this.rebuildFromGrid(roomData);
+
+    // Thin-strip evaporation — a body that has nowhere to fall and forms a
+    // single-row strip (every column 1 cell deep) is essentially a residual
+    // puddle that can't fully fill the row it sits in. Cellular self-leveling
+    // would shuffle the gap around forever (visually shimmering). Slowly
+    // remove one surface cell per body every EVAP_INTERVAL_MS so puddles
+    // gracefully dry up instead of dancing.
+    this.evapAccum += dtMs;
+    if (this.evapAccum >= FluidSystem.EVAP_INTERVAL_MS) {
+      this.evapAccum -= FluidSystem.EVAP_INTERVAL_MS;
+      let evaporated = false;
+      for (const body of this.bodies) {
+        if (!this.isThinStrip(body)) continue;
+        // Pick a random non-frozen cell to evaporate.
+        const choices: number[] = [];
+        for (const k of body.cells) {
+          const x = k % this.gridW;
+          const y = Math.floor(k / this.gridW);
+          if (!tileMutator?.isFrozen(x, y)) choices.push(k);
+        }
+        if (choices.length === 0) continue;
+        const k = choices[Math.floor(Math.random() * choices.length)];
+        const x = k % this.gridW;
+        const y = Math.floor(k / this.gridW);
+        if (roomData[y] && FLUID_VALUES.has(roomData[y][x])) {
+          roomData[y][x] = 0;
+          evaporated = true;
+        }
+      }
+      if (evaporated) this.rebuildFromGrid(roomData);
+    }
+  }
+
+  /** True when every column of the body has exactly 1 cell (single-row strip). */
+  private isThinStrip(body: FluidBody): boolean {
+    if (!body.topRow.size) return false;
+    for (const gx of body.topRow.keys()) {
+      const top = body.topRow.get(gx)!;
+      const bot = body.bottomRow.get(gx)!;
+      if (top !== bot) return false; // any column ≥ 2 cells deep → not thin
+    }
+    return true;
+  }
+
+  /**
+   * Rebuild all bodies from the current collisionGrid + cachedVolumes.
+   * Used after gravityTick to keep polygons in sync with cell positions.
+   * Preserves wave momentum by matching old bodies to new by cell overlap.
+   */
+  private rebuildFromGrid(roomData: number[][]): void {
+    const gridH = roomData.length;
+    if (!gridH) return;
+    const gridW = roomData[0]?.length ?? 0;
+    if (!gridW) return;
+    const oldBodies = this.bodies;
+    this.bodies = [];
+    this.gridW = gridW;
+
+    const visited = new Uint8Array(gridH * gridW);
+    for (const { value, type: defaultType } of FLUID_CELL_TYPES) {
+      for (let gy = 0; gy < gridH; gy++) {
+        for (let gx = 0; gx < gridW; gx++) {
+          if (visited[gy * gridW + gx]) continue;
+          if (roomData[gy][gx] !== value) continue;
+          const component = this.floodFill(roomData, gx, gy, gridW, gridH, visited, value);
+          if (component.cells.size === 0) continue;
+          const type = value === 2 ? this.resolveFluidType(component, this.cachedVolumes) : defaultType;
+          this.createBody(type, component, gridW);
+        }
+      }
+    }
+
+    // Transfer wave state from old → new (closest-x cell overlap match)
+    for (const newBody of this.bodies) {
+      let bestOld: FluidBody | null = null;
+      let bestOverlap = 0;
+      for (const oldBody of oldBodies) {
+        if (oldBody.type !== newBody.type) continue;
+        let overlap = 0;
+        for (const k of newBody.cells) if (oldBody.cells.has(k)) overlap++;
+        if (overlap > bestOverlap) { bestOverlap = overlap; bestOld = oldBody; }
+      }
+      if (bestOld && bestOverlap > 0) {
+        this.transferWaveState(newBody, bestOld.surface, bestOld.ambientPhase);
+      }
+    }
+
+    // Draw new bodies IMMEDIATELY so the fill is present before we destroy old
+    // gfx. Otherwise we get a 1-frame empty-polygon flash (alpha blink).
+    for (const newBody of this.bodies) this.drawBody(newBody);
+
+    // Now safe to destroy old graphics
+    for (const oldBody of oldBodies) {
+      if (oldBody.gfx.parent) oldBody.gfx.parent.removeChild(oldBody.gfx);
+      oldBody.gfx.destroy();
+    }
+  }
+
+  /**
+   * Transfer surface column y / vy from old body's surface to new body by
+   * closest x match. Preserves wave continuity across rebuild / split so
+   * the surface doesn't snap back to rest position every time cells change.
+   */
+  private transferWaveState(
+    newBody: FluidBody,
+    oldSurface: SurfaceColumn[],
+    oldAmbient: number,
+  ): void {
+    if (oldSurface.length === 0) return;
+    for (const newCol of newBody.surface) {
+      let best: SurfaceColumn | null = null;
+      let bestDx = Infinity;
+      for (const oc of oldSurface) {
+        const dx = Math.abs(oc.x - newCol.x);
+        if (dx < bestDx) { bestDx = dx; best = oc; }
+      }
+      if (best && bestDx < TILE) {
+        // Preserve ABSOLUTE y so the visible surface doesn't snap when cells
+        // fall. The spring force will smoothly drift y toward the new y0
+        // (resting at new water level). Damping prevents overshoot.
+        newCol.y = best.y;
+        newCol.vy = best.vy * 0.5; // damp velocity slightly on transfer to avoid bounce
+      }
+    }
+    newBody.ambientPhase = oldAmbient;
   }
 }

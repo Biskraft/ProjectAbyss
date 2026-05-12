@@ -4,7 +4,7 @@
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
-import { isSpecialVisualTile } from '@core/Physics';
+import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA } from '@core/Physics';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -108,12 +108,16 @@ export class LdtkRenderer {
     this.clear();
 
     for (const tile of bgTiles) {
+      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (sprite) this.bgLayer.addChild(sprite);
     }
 
     // Wall/terrain tiles at full opacity. Hazards routed to specialLayer.
+    // Oil/Acid cells are skipped entirely — FluidSystem draws them as fluid
+    // bodies, so the underlying auto-tile sprite would just be hidden noise.
     for (const tile of wallTiles) {
+      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (!sprite) continue;
       if (this.isSpecialTile(tile, collisionGrid)) {
@@ -125,6 +129,7 @@ export class LdtkRenderer {
 
     // Interior decoration (no collision, between walls and shadows)
     for (const tile of interiorTiles) {
+      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (sprite) this.interiorLayer.addChild(sprite);
     }
@@ -167,6 +172,7 @@ export class LdtkRenderer {
     this.wallLayer.removeChildren();
     this.specialLayer.removeChildren();
     for (const tile of wallTiles) {
+      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (!sprite) continue;
       if (this.isSpecialTile(tile, collisionGrid)) {
@@ -221,6 +227,24 @@ export class LdtkRenderer {
    * (1)은 IntGrid 정보가 없어도 동작하므로, 해저드가 아닌 장식용 컬러 타일도
    * 팔레트 스왑에 물들지 않는다.
    */
+  /**
+   * Cells whose IntGrid value is OIL / ACID / MAGMA are drawn by FluidSystem
+   * as dynamic fluid bodies (polygon + animated surface). The LDtk auto-tile
+   * sprite underneath would just be hidden noise, so we suppress it.
+   *
+   * Water is hidden via the LDtk auto-rule (no tile painted for value=2),
+   * so it does not need a runtime skip here.
+   */
+  private isFluidHiddenTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {
+    if (!collisionGrid) return false;
+    const col = Math.floor(tile.px[0] / TILE_SIZE);
+    const row = Math.floor(tile.px[1] / TILE_SIZE);
+    const rowData = collisionGrid[row];
+    if (!rowData) return false;
+    const v = rowData[col] ?? 0;
+    return v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA;
+  }
+
   private isSpecialTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {
     if (tile.src[0] >= COLOR_TILE_MIN_SRC_X && tile.src[1] >= COLOR_TILE_MIN_SRC_Y) {
       return true;

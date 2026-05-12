@@ -22,4 +22,10 @@ export enum GameAction {
   DEBUG_RESET = 'DEBUG_RESET',
   DEBUG_CHEAT = 'DEBUG_CHEAT',
   DEBUG_UI_TOGGLE = 'DEBUG_UI_TOGGLE',
+  /** Ignites the cell at player feet + 4-neighbours. ?debug URL gated. Shift+1. */
+  DEBUG_FIRE = 'DEBUG_FIRE',
+  /** Freezes water/magma cell at player + 4-neighbours. ?debug URL gated. Shift+2. */
+  DEBUG_ICE = 'DEBUG_ICE',
+  /** Thunder chain at player + 4-neighbours (water/metal/acid flood-fill). ?debug URL gated. Shift+3. */
+  DEBUG_THUNDER = 'DEBUG_THUNDER',
 }

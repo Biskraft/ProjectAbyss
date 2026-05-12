@@ -32,8 +32,11 @@ export const TILE_SIZE = 16;
  *  11 = oil (passable, slight slip, ignites from Fire attack → fire spreads + air) [Phase 1]
  *  12 = metal (solid, Thunder flood-fill conductor, acid corrodes) [Phase 1]
  *  13 = acid (passable, DoT + corrodes adjacent metal + conducts thunder + vapor on magma) [Phase 1]
- *  14 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
- *  15 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
+ *  15 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
+ *  16 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
+ *
+ * NOTE: slot 14 is intentionally skipped — matches LDtk Editor numbering
+ * (user-painted slots are 1-13, 15, 16; slot 14 was removed during editing).
  *
  * GDD: Documents/System/System_World_TileSystem.md
  */
@@ -51,8 +54,8 @@ export const TILE_VOID = 10;
 export const TILE_OIL = 11;
 export const TILE_METAL = 12;
 export const TILE_ACID = 13;
-export const TILE_WOOD = 14;
-export const TILE_GRASS = 15;
+export const TILE_WOOD = 15;
+export const TILE_GRASS = 16;
 
 export function isSolid(tileId: number): boolean {
   return (

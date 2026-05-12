@@ -167,6 +167,11 @@
     <div class="row"><span class="k">enemies</span><span class="v" id="st-enemies">0</span></div>
     <div class="row"><span class="k">fires</span><span class="v" id="st-fires">0</span></div>
     <div class="row"><span class="k">elec</span><span class="v" id="st-elec">0</span></div>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:4px">
+      <div style="display:flex;justify-content:space-between"><span class="k">wave</span><span class="v" id="st-wave">1.0</span></div>
+      <input type="range" id="wave-amp" min="0" max="2" step="0.05" value="1.0"
+        style="width:100%;accent-color:var(--acc);margin:0">
+    </div>
 
     <div class="desc" id="scenario-desc">
       <b>Empty.</b> 빈 캔버스. 도구를 선택해 자유 빌드, 또는 상단 시나리오 프리셋을 누르세요.
@@ -231,6 +236,298 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 const dist2 = (ax, ay, bx, by) => { const dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; };
 
+/* ============================================================
+   FluidSystem — option B + C prototype
+   Per-cell mutation + body split detection.
+   Spring surface simulation per body. Replaces cell-color render
+   for water cells with polygon strips.
+============================================================ */
+
+class FluidBody {
+  static pack(gx, gy) { return gy * GRID_W + gx; }
+  static unpack(k)    { return { gx: k % GRID_W, gy: Math.floor(k / GRID_W) }; }
+
+  // Wave tunables — calmer defaults than original. Live-adjustable via UI slider.
+  static WAVE_K = 0.06;        // spring stiffness (restoring force)
+  static WAVE_DAMP = 0.20;     // damping (higher = waves die fast — calmer)
+  static WAVE_PROP = 0.35;     // propagation — high so adjacent columns sync fast
+  static WAVE_PERIOD = 0.9;    // ambient impulse interval (seconds, larger = quieter)
+  static WAVE_AMP_BASE = 0.30; // base ambient amplitude
+  static WAVE_AMP_MUL = 1.0;   // slider multiplier — 0=glass, 2=stormy
+
+  constructor(world, type, cells) {
+    this.world = world;
+    this.type = type;
+    this.cells = new Set(cells);
+    this.surface = [];
+    this.bounds = null;
+    this.ambientPhase = Math.random();
+    this.rebuild();
+  }
+
+  containsCell(gx, gy) { return this.cells.has(FluidBody.pack(gx, gy)); }
+
+  /** Recompute bounds + surface columns from cells. Call after add/remove. */
+  rebuild() {
+    if (this.cells.size === 0) { this.surface = []; this.bounds = null; return; }
+    let minX = GRID_W, minY = GRID_H, maxX = -1, maxY = -1;
+    const topRow = new Map();
+    for (const k of this.cells) {
+      const { gx, gy } = FluidBody.unpack(k);
+      if (gx < minX) minX = gx;
+      if (gx > maxX) maxX = gx;
+      if (gy < minY) minY = gy;
+      if (gy > maxY) maxY = gy;
+      const prev = topRow.get(gx);
+      if (prev === undefined || gy < prev) topRow.set(gx, gy);
+    }
+    this.bounds = { minX, minY, maxX, maxY };
+    this.topRow = topRow;
+    // Smooth topRow with 5-tap averaging across neighbors. This removes the
+    // hard 1-cell stair-step from the surface so 3-4 cell deletions don't
+    // leave sharp bumps that gravity can't level (cellular auto reaches a
+    // discrete equilibrium with column heights differing by ≤1, which still
+    // shows as a hard step). Smoothed Y0 distributes the step across
+    // ±2 columns visually.
+    const smoothedY0 = new Map();
+    for (const gx of topRow.keys()) {
+      let sum = 0, count = 0;
+      for (let dx = -2; dx <= 2; dx++) {
+        const t = topRow.get(gx + dx);
+        if (t !== undefined) {
+          const w = dx === 0 ? 3 : (Math.abs(dx) === 1 ? 2 : 1);
+          sum += t * w;
+          count += w;
+        }
+      }
+      smoothedY0.set(gx, (sum / count) * CELL);
+    }
+    // Surface columns: 2 per tile (8px sub-cell) for soft waves
+    this.surface = [];
+    const SPACING = 8;
+    const sortedCols = [...topRow.keys()].sort((a, b) => a - b);
+    for (let i = 0; i < sortedCols.length; i++) {
+      const gx = sortedCols[i];
+      const y0 = smoothedY0.get(gx);
+      for (let dx = 0; dx < CELL; dx += SPACING) {
+        this.surface.push({ x: gx * CELL + dx, y0, y: y0, vy: 0, gx });
+      }
+      // Right edge of last contiguous column
+      if (i === sortedCols.length - 1 || sortedCols[i + 1] !== gx + 1) {
+        this.surface.push({ x: (gx + 1) * CELL, y0, y: y0, vy: 0, gx });
+      }
+    }
+  }
+
+  update(dt) {
+    if (!this.surface.length) return;
+    // Wave tunables — adjust live via FluidBody.WAVE_AMP_MUL etc. (slider in UI).
+    const K = FluidBody.WAVE_K;
+    const DAMP = FluidBody.WAVE_DAMP;
+    const PROP = FluidBody.WAVE_PROP;
+    const PERIOD = FluidBody.WAVE_PERIOD;
+    const AMP_BASE = FluidBody.WAVE_AMP_BASE * FluidBody.WAVE_AMP_MUL;
+    // Ambient wave — random column cluster impulse
+    this.ambientPhase += dt / PERIOD;
+    if (this.ambientPhase >= 1) {
+      this.ambientPhase -= 1;
+      const idx = Math.floor(Math.random() * this.surface.length);
+      const amp = (Math.random() - 0.5) * AMP_BASE;
+      this.surface[idx].vy += amp;
+      if (idx > 0) this.surface[idx - 1].vy += amp * 0.6;
+      if (idx < this.surface.length - 1) this.surface[idx + 1].vy += amp * 0.6;
+    }
+    // Spring forces (two-pass, prev-y preservation)
+    const n = this.surface.length;
+    const prev = new Float32Array(n);
+    for (let i = 0; i < n; i++) prev[i] = this.surface[i].y;
+    for (let i = 0; i < n; i++) {
+      const c = this.surface[i];
+      let f = -K * (c.y - c.y0);
+      f += -DAMP * c.vy;
+      if (i > 0)     f += PROP * (prev[i - 1] - c.y);
+      if (i < n - 1) f += PROP * (prev[i + 1] - c.y);
+      c.vy += f * dt * 60;
+      c.y  += c.vy * dt * 60;
+    }
+  }
+
+  /**
+   * Draw fluid body using clip + rect-per-cell.
+   *
+   * Why this approach: cells can be irregular (gravity creates non-rectangular
+   * shapes, holes, etc). A single bounding-box polygon would fill air gaps
+   * incorrectly. Instead:
+   *   1. Build wave-shaped clip path (top edge = surface columns, bottom = maxY)
+   *   2. Clip canvas to that path
+   *   3. Draw rect for each actual fluid cell — clip cuts the top edge
+   *      to match the wave, body fill is exact (no gap-fill artifacts)
+   *   4. Restore clip, draw surface highlight line on top
+   */
+  render(ctx) {
+    if (this.surface.length < 2 || !this.bounds) return;
+    const def = this.type === 'acid'
+      ? { body: '#2a6838', surface: '#7abc3a' }
+      : { body: '#2a6b9a', surface: '#5a9bd8' };
+    const bottomY = (this.bounds.maxY + 1) * CELL;
+    const cols = this.surface;
+
+    // 1. Build wave-shape clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cols[0].x, cols[0].y);
+    for (let i = 1; i < cols.length; i++) ctx.lineTo(cols[i].x, cols[i].y);
+    ctx.lineTo(cols[cols.length - 1].x, bottomY);
+    ctx.lineTo(cols[0].x, bottomY);
+    ctx.closePath();
+    ctx.clip();
+
+    // 2. Rect per cell — fills only actual fluid cells, no air gaps
+    ctx.fillStyle = def.body;
+    for (const key of this.cells) {
+      const { gx, gy } = FluidBody.unpack(key);
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL + 1); // +1 to bleed into wave region
+    }
+    ctx.restore();
+
+    // 3. Surface highlight stroke (drawn outside clip, above water surface)
+    ctx.strokeStyle = def.surface;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cols[0].x, cols[0].y);
+    for (let i = 1; i < cols.length; i++) ctx.lineTo(cols[i].x, cols[i].y);
+    ctx.stroke();
+  }
+}
+
+class FluidSystem {
+  constructor(world) {
+    this.world = world;
+    this.bodies = [];
+    this.dirty = false;
+  }
+  markDirty() { this.dirty = true; }
+  /**
+   * Flood-fill all WATER (and ACID) cells into bodies.
+   * Preserves wave momentum across rebuilds — each new body inherits surface
+   * column y/vy values from the old body with the most cell overlap. Without
+   * this, every gravity tick reset all surface columns to y=y0 (flat) which
+   * looked unnatural (waves snapping back to rest instantly).
+   */
+  rebuild() {
+    const oldBodies = this.bodies;
+    this.bodies = [];
+    this.dirty = false;
+    const visited = new Uint8Array(GRID_W * GRID_H);
+    const w = this.world;
+    const newBodies = [];
+    for (let gy = 0; gy < GRID_H; gy++) {
+      for (let gx = 0; gx < GRID_W; gx++) {
+        const k = gy * GRID_W + gx;
+        if (visited[k]) continue;
+        const c = w.cells[k];
+        if (c !== WATER && c !== ACID) continue;
+        const cells = [];
+        const stack = [[gx, gy]];
+        while (stack.length) {
+          const [cx, cy] = stack.pop();
+          if (cx < 0 || cx >= GRID_W || cy < 0 || cy >= GRID_H) continue;
+          const ck = cy * GRID_W + cx;
+          if (visited[ck]) continue;
+          if (w.cells[ck] !== c) continue;
+          visited[ck] = 1;
+          cells.push(ck);
+          stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+        }
+        if (cells.length > 0) {
+          newBodies.push(new FluidBody(w, c === ACID ? 'acid' : 'water', cells));
+        }
+      }
+    }
+    // Transfer wave state from old bodies to new ones (cell-overlap matching).
+    for (const newBody of newBodies) {
+      let bestOld = null, bestOverlap = 0;
+      for (const oldBody of oldBodies) {
+        if (oldBody.type !== newBody.type) continue;
+        let overlap = 0;
+        for (const k of newBody.cells) if (oldBody.cells.has(k)) overlap++;
+        if (overlap > bestOverlap) { bestOverlap = overlap; bestOld = oldBody; }
+      }
+      if (!bestOld || bestOverlap === 0) continue;
+      // Match surface columns by world X (closest old col → copy y/vy).
+      for (const newCol of newBody.surface) {
+        let bestCol = null, bestDx = Infinity;
+        for (const oldCol of bestOld.surface) {
+          const dx = Math.abs(oldCol.x - newCol.x);
+          if (dx < bestDx) { bestDx = dx; bestCol = oldCol; }
+        }
+        if (bestCol && bestDx < CELL) {
+          // Preserve wave displacement relative to (new) y0 for natural continuity.
+          const oldDisp = bestCol.y - bestCol.y0;
+          newCol.y = newCol.y0 + oldDisp;
+          newCol.vy = bestCol.vy;
+        }
+      }
+      newBody.ambientPhase = bestOld.ambientPhase;
+    }
+    this.bodies = newBodies;
+  }
+  bodyAt(gx, gy) {
+    for (const b of this.bodies) if (b.containsCell(gx, gy)) return b;
+    return null;
+  }
+  /** Remove a cell. Handles split detection (option C). */
+  removeCell(gx, gy) {
+    const body = this.bodyAt(gx, gy);
+    if (!body) return;
+    body.cells.delete(FluidBody.pack(gx, gy));
+    if (body.cells.size === 0) {
+      this.bodies = this.bodies.filter(b => b !== body);
+      return;
+    }
+    this.maybeSplit(body);
+  }
+  /** Check body connectivity. If disconnected, split into multiple bodies. */
+  maybeSplit(body) {
+    if (body.cells.size <= 1) { body.rebuild(); return; }
+    const visited = new Set();
+    const components = [];
+    for (const start of body.cells) {
+      if (visited.has(start)) continue;
+      const comp = [];
+      const stack = [start];
+      while (stack.length) {
+        const k = stack.pop();
+        if (visited.has(k)) continue;
+        if (!body.cells.has(k)) continue;
+        visited.add(k);
+        comp.push(k);
+        const { gx, gy } = FluidBody.unpack(k);
+        stack.push(
+          FluidBody.pack(gx + 1, gy),
+          FluidBody.pack(gx - 1, gy),
+          FluidBody.pack(gx, gy + 1),
+          FluidBody.pack(gx, gy - 1),
+        );
+      }
+      components.push(comp);
+    }
+    if (components.length === 1) { body.rebuild(); return; }
+    // Split — remove old, create new bodies per component
+    this.bodies = this.bodies.filter(b => b !== body);
+    for (const comp of components) {
+      this.bodies.push(new FluidBody(this.world, body.type, comp));
+    }
+  }
+  update(dt) {
+    if (this.dirty) this.rebuild();
+    for (const b of this.bodies) b.update(dt);
+  }
+  render(ctx) {
+    for (const b of this.bodies) b.render(ctx);
+  }
+}
+
 class World {
   constructor(canvas) {
     this.canvas = canvas;
@@ -240,6 +537,7 @@ class World {
     this.elec = new Float32Array(GRID_W * GRID_H);   // 0~1 pulse
     this.frozen = new Float32Array(GRID_W * GRID_H); // freeze timer (sec)
     this.originalCell = new Uint8Array(GRID_W * GRID_H); // for restoring after freeze
+    this.fluidSystem = new FluidSystem(this);
 
     this.boxes = [];
     this.enemies = [];
@@ -253,6 +551,7 @@ class World {
     this.tool = 'paint_wall';
     this.tickT = 0;
     this.elecT = 0;
+    this.fluidGravityAccum = 0;
 
     this.bindInput();
     this.bindUI();
@@ -312,6 +611,18 @@ class World {
         this.loadPreset(p);
       });
     });
+    // Wave amplitude slider — multiplier on FluidBody ambient impulse
+    const waveSlider = document.getElementById('wave-amp');
+    const waveLabel = document.getElementById('st-wave');
+    if (waveSlider && waveLabel) {
+      const apply = () => {
+        const v = parseFloat(waveSlider.value);
+        FluidBody.WAVE_AMP_MUL = v;
+        waveLabel.textContent = v.toFixed(2);
+      };
+      waveSlider.addEventListener('input', apply);
+      apply();
+    }
   }
 
   onClick() {
@@ -376,20 +687,42 @@ class World {
     if (el === 'fire') {
       // ignite oil/wood/anything flammable, melt ice
       this.fire[idx] = 1;
-      if (c === ICE) { this.setCell(gx, gy, WATER); this.fxRing(x, y, '#8cf', 30); }
-      // steam if water
-      if (c === WATER) { this.setCell(gx, gy, AIR); this.fxSteam(x, y); }
+      if (c === ICE) {
+        this.setCell(gx, gy, WATER);
+        this.fluidSystem.markDirty();  // option B — new water cell joins fluid
+        this.fxRing(x, y, '#8cf', 30);
+      }
+      // steam if water → cell becomes air AND fluid body loses the cell
+      // (option B + C: removeCell handles split if middle cell removed)
+      if (c === WATER) {
+        this.setCell(gx, gy, AIR);
+        this.fluidSystem.removeCell(gx, gy);
+        this.fxSteam(x, y);
+      }
       // splash effect
       this.fxRing(x, y, '#f73', 24);
       // damage enemies in radius
       this.dmgEnemiesInRadius(x, y, 30, 0.3);
     } else if (el === 'ice') {
-      // freeze water/magma to wall for 3 sec
-      if (c === WATER || c === MAGMA) {
-        this.frozen[idx] = 3;
-        this.originalCell[idx] = c;
-        this.fxRing(x, y, '#8cf', 24);
+      // Freeze 3×3 area around click — single-cell click left checkerboard
+      // pattern (alternating frozen + water) which looked broken. Area sweep
+      // creates a solid ice patch that reads as one chunk.
+      // FluidSystem reads world.frozen[] to skip frozen columns in polygon.
+      let frozenCount = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const fgx = gx + dx, fgy = gy + dy;
+          if (!this.inBounds(fgx, fgy)) continue;
+          const fi = this.cellIdx(fgx, fgy);
+          const fc = this.cells[fi];
+          if ((fc === WATER || fc === MAGMA) && this.frozen[fi] <= 0) {
+            this.frozen[fi] = 3;
+            this.originalCell[fi] = fc;
+            frozenCount++;
+          }
+        }
       }
+      if (frozenCount > 0) this.fxRing(x, y, '#8cf', 24);
       // extinguish fire
       this.fire[idx] = 0;
       this.dmgEnemiesInRadius(x, y, 24, 0.2);
@@ -449,10 +782,17 @@ class World {
   paintAt(gx, gy, value) {
     if (!this.inBounds(gx, gy)) return;
     const idx = this.cellIdx(gx, gy);
+    const prev = this.cells[idx];
     this.cells[idx] = value;
     this.frozen[idx] = 0;
     this.fire[idx] = 0;
     this.elec[idx] = 0;
+    // Mark fluid dirty if cell entered or left WATER/ACID set.
+    const wasFluid = prev === WATER || prev === ACID;
+    const isFluid = value === WATER || value === ACID;
+    if (wasFluid !== isFluid || (wasFluid && isFluid && prev !== value)) {
+      this.fluidSystem.markDirty();
+    }
   }
 
   /* ===== UPDATE ===== */
@@ -516,6 +856,17 @@ class World {
     this.updatePlayer(dt);
     this.updateSwitches();
 
+    // 5.4) Cellular fluid gravity — water/acid cells fall + diagonal slide + slow
+    // horizontal spread. Runs at fixed 60ms tick so flow is visible (not teleporting).
+    this.fluidGravityAccum += dt;
+    while (this.fluidGravityAccum >= 0.06) {
+      this.fluidGravityAccum -= 0.06;
+      this.fluidGravityTick();
+    }
+
+    // 5.5) Fluid system — rebuild if dirty, then advance spring simulation per body
+    this.fluidSystem.update(dt);
+
     // 6) Particles / FX
     for (const p of this.particles) {
       p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 100 * dt; p.life -= dt * 0.8;
@@ -551,6 +902,65 @@ class World {
       if (e2 > -dy) { err -= dy; x += sx; }
       if (e2 < dx) { err += dx; y += sy; }
     }
+  }
+
+  /**
+   * Cellular automaton fluid gravity. Each tick runs 2 passes:
+   *   1. Water/acid cells try to fall straight down into AIR.
+   *   2. If blocked, try diagonal-down (random order to avoid bias).
+   *   3. If still blocked, ALWAYS attempt horizontal spread to any AIR
+   *      neighbor at same Y. Since AIR at same Y means neighbor's water
+   *      surface is lower, this self-levels — no sloshing once flat.
+   * Frozen cells stay put. Multi-pass per tick gives near-instant settling.
+   * Iterates bottom-up + alternating direction per row to prevent bias.
+   */
+  fluidGravityTick() {
+    let mutated = false;
+    const tryMove = (fromIdx, toGx, toGy) => {
+      if (toGx < 0 || toGx >= GRID_W || toGy < 0 || toGy >= GRID_H) return false;
+      const toIdx = this.cellIdx(toGx, toGy);
+      if (this.cells[toIdx] !== AIR) return false;
+      if (this.frozen[toIdx] > 0) return false;
+      this.cells[toIdx] = this.cells[fromIdx];
+      this.cells[fromIdx] = AIR;
+      mutated = true;
+      return true;
+    };
+    // 2 passes per tick → water levels in roughly half the time
+    for (let pass = 0; pass < 2; pass++) {
+      for (let gy = GRID_H - 2; gy >= 0; gy--) {
+        const ltr = ((gy + pass) & 1) === 0;
+        const xStart = ltr ? 0 : GRID_W - 1;
+        const xEnd   = ltr ? GRID_W : -1;
+        const xStep  = ltr ? 1 : -1;
+        for (let gx = xStart; gx !== xEnd; gx += xStep) {
+          const i = this.cellIdx(gx, gy);
+          const c = this.cells[i];
+          if (c !== WATER && c !== ACID) continue;
+          if (this.frozen[i] > 0) continue;
+          // Ice cap: water trapped below frozen ice doesn't move (preserves pool).
+          let capped = false;
+          for (let cy = gy - 1; cy >= 0; cy--) {
+            const ci = this.cellIdx(gx, cy);
+            const cc = this.cells[ci];
+            if (cc !== WATER && cc !== ACID) break;
+            if (this.frozen[ci] > 0) { capped = true; break; }
+          }
+          if (capped) continue;
+          // 1. fall straight down
+          if (tryMove(i, gx, gy + 1)) continue;
+          // 2. diagonal down (random direction priority)
+          const dirA = Math.random() < 0.5 ? -1 : 1;
+          const dirB = -dirA;
+          if (tryMove(i, gx + dirA, gy + 1)) continue;
+          if (tryMove(i, gx + dirB, gy + 1)) continue;
+          // 3. ALWAYS spread horizontally when blocked below. Self-leveling.
+          if (tryMove(i, gx + dirA, gy)) continue;
+          tryMove(i, gx + dirB, gy);
+        }
+      }
+    }
+    if (mutated) this.fluidSystem.markDirty();
   }
 
   cellTick() {
@@ -592,7 +1002,7 @@ class World {
       }
     }
 
-    // Magma melts adjacent ice (rare)
+    // Magma melts adjacent ice (rare) → new WATER cell needs fluid rebuild
     for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
       const i = this.cellIdx(gx, gy);
       if (this.cells[i] !== MAGMA) continue;
@@ -600,7 +1010,10 @@ class World {
       for (const [dx, dy] of n) {
         if (!this.inBounds(gx + dx, gy + dy)) continue;
         const ni = this.cellIdx(gx + dx, gy + dy);
-        if (this.cells[ni] === ICE && Math.random() < 0.04) this.cells[ni] = WATER;
+        if (this.cells[ni] === ICE && Math.random() < 0.04) {
+          this.cells[ni] = WATER;
+          this.fluidSystem.markDirty();
+        }
       }
     }
 
@@ -614,7 +1027,11 @@ class World {
         const ni = this.cellIdx(gx + dx, gy + dy);
         const nc = this.cells[ni];
         if (nc === METAL && Math.random() < 0.06) this.cells[ni] = AIR;
-        else if (nc === MAGMA && Math.random() < 0.15) { this.cells[i] = AIR; this.fxSteam(gx * CELL + CELL / 2, gy * CELL); }
+        else if (nc === MAGMA && Math.random() < 0.15) {
+          this.cells[i] = AIR;
+          this.fluidSystem.removeCell(gx, gy);  // acid evaporated → drop from body
+          this.fxSteam(gx * CELL + CELL / 2, gy * CELL);
+        }
       }
     }
   }
@@ -793,8 +1210,9 @@ class World {
       for (const g of this.gates) {
         if (g.gx === gx && g.gy === gy && g.open > 0.5) { color = null; break; }
       }
-      // frozen overlay
-      if (this.frozen[i] > 0) color = '#cef';
+      // WATER / ACID — fully delegated to FluidSystem polygon + post-overlay
+      // (frozen cells drawn AFTER polygon so ice reads as floating on water).
+      if (c === WATER || c === ACID) continue;
       if (!color) continue;
       ctx.fillStyle = color;
       ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
@@ -812,20 +1230,6 @@ class World {
           ctx.fillStyle = '#fff';
           ctx.fillRect(gx * CELL + rand(0, CELL), gy * CELL + rand(0, CELL), 1, 1);
         }
-      }
-      // water surface wave (top of water)
-      if (c === WATER && this.cells[this.cellIdx(gx, gy - 1)] !== WATER) {
-        const off = Math.sin(performance.now() * 0.003 + gx * 0.3) * 1.5;
-        ctx.fillStyle = '#5a9bd8';
-        ctx.fillRect(gx * CELL, gy * CELL + off, CELL, 2);
-      }
-      // acid bubbles
-      if (c === ACID) {
-        const t = performance.now() * 0.002 + gx * 0.5 + gy * 0.3;
-        const bx = (Math.sin(t) * 0.5 + 0.5) * (CELL - 4);
-        const by = ((t * 8) % CELL);
-        ctx.fillStyle = 'rgba(180,230,120,0.6)';
-        ctx.fillRect(gx * CELL + bx, gy * CELL + CELL - by - 2, 2, 2);
       }
       // charged: volumetric electric field (zigzag arcs + bouncing white sparks)
       if (c === CHARGED) {
@@ -867,6 +1271,23 @@ class World {
         ctx.strokeStyle = '#321'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(gx * CELL + 2, gy * CELL + 2); ctx.lineTo(gx * CELL + CELL - 2, gy * CELL + CELL - 2); ctx.stroke();
       }
+    }
+
+    // Fluid bodies (water / acid) — spring-surface polygons.
+    this.fluidSystem.render(ctx);
+
+    // Ice overlay — draw frozen water/acid cells as #cef on top of polygon
+    // so ice reads as chunks floating on/in the pool (not buried under water).
+    for (let i = 0; i < this.cells.length; i++) {
+      if (this.frozen[i] <= 0) continue;
+      const c = this.cells[i];
+      if (c !== WATER && c !== ACID) continue;
+      const gx = i % GRID_W, gy = Math.floor(i / GRID_W);
+      ctx.fillStyle = '#cef';
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+      // Subtle ice rim
+      ctx.fillStyle = '#eaf8ff';
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, 2);
     }
 
     // updraft particles
@@ -980,6 +1401,8 @@ class World {
     this.player = null;
     this.particles = [];
     this.fxRings = [];
+    this.fluidSystem.bodies = []; // clear bodies; preset will mark dirty
+    this.fluidSystem.dirty = true;
   }
 
   fillRect(x0, y0, x1, y1, v) {

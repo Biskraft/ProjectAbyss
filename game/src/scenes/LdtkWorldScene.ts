@@ -48,7 +48,7 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, isInMagma, isInOil, isInAcid } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -143,6 +143,7 @@ import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
+import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards } from '@systems/TileHazards';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
@@ -385,6 +386,7 @@ export class LdtkWorldScene extends Scene {
   private hitBloodSpray!: HitBloodSprayManager;
   private diveLandImpact!: DiveLandImpactManager;
   private waterSplash!: WaterSplashManager;
+  private prevPlayerInOtherFluid = false;
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
@@ -485,6 +487,8 @@ export class LdtkWorldScene extends Scene {
   private updraftSystem!: UpdraftSystem;
   /** Dynamic IntGrid state — frozen/burning/electric overlays. Reset per room. */
   private tileMutator = new TileMutator();
+  /** Renders frozen/burning/electric overlays on top of static tile sprites. */
+  private tileMutatorRenderer: TileMutatorRenderer | null = null;
   /** Tier B burnable entities spawned by BurnableZonePass. Reset per room. */
   private burnableProps: BurnableProp[] = [];
   // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
@@ -810,6 +814,9 @@ export class LdtkWorldScene extends Scene {
     // Entity layer (enemies, drops, portals, altars)
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
+
+    // Tile mutator overlay (fire/ice/electric VFX on top of static tile sprites).
+    this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
     // Fluid layer — entity layer 앞에 위치. player/enemy 가 fluid 안에 들어가면
     // 잠긴 부분이 자연스럽게 fluid 색으로 가려진다 (실제 잠수 효과).
@@ -2102,23 +2109,29 @@ export class LdtkWorldScene extends Scene {
 
     // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
+      // Shift+O — toggle HP lock at 1 (hazard testing without dying).
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
-        const a = this.player.abilities;
-        const allOn = a.cheat;
-        if (allOn) {
-          // Toggle off ??reset all to false except dash (default ability)
-          for (const key of Object.keys(a)) {
-            (a as Record<string, boolean>)[key] = key === 'dash';
-          }
-          this.toast.show(t('toast.cheat_off'), 0xff4444);
+        this.player.debugLockHpAtOne = !this.player.debugLockHpAtOne;
+        if (this.player.debugLockHpAtOne) {
+          this.player.hp = 1;
+          this.toast.show('HP locked @ 1', 0xff4444);
         } else {
-          // All on ??set every ability to true
-          for (const key of Object.keys(a)) {
-            (a as Record<string, boolean>)[key] = true;
-          }
-          this.toast.show(t('toast.cheat_on'), 0xff4444);
+          this.toast.show('HP lock OFF', 0x44ff44);
         }
-        this.updatePlayerAtk();
+      }
+
+      // Shift+1 = Ignite plant/oil/wood at player feet + 4-neighbours.
+      // Verifies grass/wood/oil propagation (TileMutator) without enchant system.
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_FIRE)) {
+        this.debugIgniteAtPlayer();
+      }
+      // Shift+2 = Freeze water/magma at player + 4-neighbours (3s temp wall).
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_ICE)) {
+        this.debugFreezeAtPlayer();
+      }
+      // Shift+3 = Thunder chain at player + 4-neighbours (water/metal/acid flood-fill).
+      if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) {
+        this.debugThunderAtPlayer();
       }
     }
 
@@ -2341,6 +2354,16 @@ export class LdtkWorldScene extends Scene {
       const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
+    // Non-water fluid (magma/oil/acid) entry/exit ripple — same impulse pattern
+    // as water but no swim physics / oxygen handling (those are water-only).
+    const inAnyOther = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid)
+                    || isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid)
+                    || isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid);
+    if (inAnyOther !== this.prevPlayerInOtherFluid) {
+      const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
+      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
+      this.prevPlayerInOtherFluid = inAnyOther;
+    }
     // Continuous rising bubbles while submerged
     this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
@@ -2397,6 +2420,9 @@ export class LdtkWorldScene extends Scene {
     this.waterSplash.update(dt);
     this.waterBubbles.update(dt);
     this.fluidSystem.update(dt);
+    // Cellular gravity — water cells fall + spread to merge after mutations
+    // (fire on water creates holes; gravity refills them from above).
+    this.fluidSystem.gravityTick(this.collisionGrid, dt, this.tileMutator);
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
     this.itemPickupGlow.update(dt);
@@ -2781,6 +2807,11 @@ export class LdtkWorldScene extends Scene {
       this.tileMutator.registerBurnable(prop);
       this.entityLayer.addChild(prop.container);
     }
+    if (LdtkWorldScene.debugMode) {
+      const zoneCount = level.entities.filter(e => e.type === 'BurnableZone').length;
+      // eslint-disable-next-line no-console
+      console.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
+    }
 
     // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
     this.fluidSystem.attach(level);
@@ -2812,7 +2843,7 @@ export class LdtkWorldScene extends Scene {
     // original LDtk tilesetPath. Tilesets are pre-loaded in init().
     const allExtraTiles = Object.values(level.extraTileLayers).flat();
     const combinedInterior = level.interiorTiles.concat(allExtraTiles);
-    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, undefined, combinedInterior);
+    this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, this.collisionGrid, combinedInterior);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
     if (!new URLSearchParams(window.location.search).has('noproc')) {
@@ -3703,6 +3734,9 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
+    // Render overlay for fire / ice / electric cell states.
+    this.tileMutatorRenderer?.update(this.tileMutator);
+
     // Player hazards (only when not already dead)
     if (this.player.hp > 0) {
       applyTileHazards(this.player, room, this.tileMutator, dt, {
@@ -3748,6 +3782,123 @@ export class LdtkWorldScene extends Scene {
 
   /** Public accessor for attack hooks (Fire/Ice/Thunder enchants land in this mutator). */
   getTileMutator(): TileMutator { return this.tileMutator; }
+
+  /**
+   * DEBUG: ignite the player's feet cell + 4-neighbours. Tries every adjacent
+   * cell so it works regardless of which side the player is touching the
+   * flammable terrain (e.g. standing next to a grass patch).
+   *
+   * URL-gated: only callable when ?debug is present. Bound to KeyF.
+   */
+  /**
+   * Compute the elemental attack hitbox AABB.
+   * Covers player AABB expanded 8px each side + 32px sword reach in facing
+   * direction. Vertical extension reaches the floor cell BELOW feet (so ice
+   * underfoot is hit) and ceiling cell ABOVE head (Vine entities).
+   */
+  private getDebugAttackHitbox(): { ax: number; ay: number; aw: number; ah: number } {
+    const reach = 32;
+    const expand = 8;
+    const ax = this.player.facingRight
+      ? this.player.x - expand
+      : this.player.x - expand - reach;
+    return {
+      ax,
+      ay: this.player.y - expand,
+      aw: this.player.width + expand * 2 + reach,
+      ah: this.player.height + expand * 2 + 8, // extra +8 below so floor cells reliably hit
+    };
+  }
+
+  /** Iterate every grid cell overlapped by an AABB. */
+  private forEachCellInAABB(
+    ax: number, ay: number, aw: number, ah: number,
+    cb: (gx: number, gy: number) => void,
+  ): void {
+    const lx = Math.floor(ax / 16);
+    const rx = Math.floor((ax + aw - 1) / 16);
+    const ty = Math.floor(ay / 16);
+    const by = Math.floor((ay + ah - 1) / 16);
+    for (let gy = ty; gy <= by; gy++) {
+      for (let gx = lx; gx <= rx; gx++) cb(gx, gy);
+    }
+  }
+
+  /**
+   * DEBUG Shift+1 — Fire enchant attack. Sweeps the hitbox AABB:
+   *   - oil/wood/grass cell → ignite (cascading via TileMutator)
+   *   - ice cell → melt to water (permanent)
+   *   - water cell → steam (cell → AIR)
+   *   - BurnableProp footprint → ignite entity (via tryIgnite fallback)
+   */
+  private debugIgniteAtPlayer(): void {
+    const room = this.player.roomData;
+    if (!room) return;
+    const hb = this.getDebugAttackHitbox();
+    let actions = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      const tile = getTile(room, gx, gy);
+      if (isIce(tile)) {
+        if (this.tileMutator.tryMeltIce(room, gx, gy)) actions++;
+      } else if (isWater(tile)) {
+        if (room[gy]) {
+          room[gy][gx] = TILE_AIR;
+          this.fluidSystem.removeCell(gx, gy); // sync fluid body
+          actions++;
+        }
+      } else {
+        // flammable tile OR BurnableProp footprint
+        if (this.tileMutator.tryIgnite(room, gx, gy)) actions++;
+      }
+    });
+    // eslint-disable-next-line no-console
+    console.log(
+      `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount}`,
+    );
+    this.toast.show(`fire: ${actions}`, 0xff8844);
+  }
+
+  /**
+   * DEBUG Shift+2 — Ice enchant attack. Sweeps the hitbox AABB:
+   *   - water/magma cell → freeze 15s (temp wall)
+   */
+  private debugFreezeAtPlayer(): void {
+    const room = this.player.roomData;
+    if (!room) return;
+    const hb = this.getDebugAttackHitbox();
+    let frozen = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      if (this.tileMutator.tryFreeze(room, gx, gy)) frozen++;
+    });
+    // eslint-disable-next-line no-console
+    console.log(
+      `[DebugIce] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) frozen=${frozen} total=${this.tileMutator.frozenCount}`,
+    );
+    this.toast.show(`ice: ${frozen}`, 0x88ccff);
+  }
+
+  /**
+   * DEBUG Shift+3 — Thunder enchant attack. Sweeps the hitbox AABB:
+   *   - For each conductor cell (water/metal/acid) not yet electric,
+   *     flood-fill connected conductor body. Multiple disconnected pools
+   *     in the hitbox all get lit. Per-pulse damage handled by TileHazards
+   *     transition detection (prevInElectric).
+   */
+  private debugThunderAtPlayer(): void {
+    const room = this.player.roomData;
+    if (!room) return;
+    const hb = this.getDebugAttackHitbox();
+    let totalLit = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      if (this.tileMutator.isElectric(gx, gy)) return;
+      totalLit += this.tileMutator.applyThunderChain(room, gx, gy);
+    });
+    // eslint-disable-next-line no-console
+    console.log(
+      `[DebugThunder] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) lit=${totalLit} electric=${this.tileMutator.electricCount}`,
+    );
+    this.toast.show(`thunder: ${totalLit}`, 0xffee44);
+  }
 
   /** IntGrid void (value 10) -- fade out/in, return to last safe ground. */
   private voidCooldown = 0;
@@ -6599,7 +6750,7 @@ export class LdtkWorldScene extends Scene {
       // Keep tile only if collision cell is still solid (1) or water (2)
       return (grid[row]?.[col] ?? 0) !== 0;
     });
-    this.renderer.rebuildWallLayer(filteredTiles, this.atlases);
+    this.renderer.rebuildWallLayer(filteredTiles, this.atlases, this.collisionGrid);
   }
 
   private triggerFloorCollapse(): void {

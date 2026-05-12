@@ -35,6 +35,9 @@ const PRESET_CLASSIC: Record<GameAction, string[]> = {
   [GameAction.DEBUG_RESET]: ['KeyP'],
   [GameAction.DEBUG_CHEAT]: ['KeyO'],
   [GameAction.DEBUG_UI_TOGGLE]: ['KeyU'],
+  [GameAction.DEBUG_FIRE]: ['Digit1'],
+  [GameAction.DEBUG_ICE]: ['Digit2'],
+  [GameAction.DEBUG_THUNDER]: ['Digit3'],
 };
 
 const PRESET_MODERN: Record<GameAction, string[]> = {
@@ -144,7 +147,9 @@ export class InputManager {
     const saved = this.loadSaved();
     if (saved) {
       this.currentPreset = saved.preset;
-      this.bindings = saved.bindings;
+      // Backfill any GameAction missing from older saved bindings (e.g. a new
+      // DEBUG_FIRE introduced after the user's last save) using DEFAULT_BINDINGS.
+      this.bindings = { ...DEFAULT_BINDINGS, ...saved.bindings };
     } else {
       this.bindings = { ...DEFAULT_BINDINGS };
     }
@@ -315,6 +320,7 @@ export class InputManager {
     const vKey = VIRTUAL_PREFIX + action;
     this.keyState.set(vKey, pressed);
     // Also register in bindings so isDown/isJustPressed can find it
+    if (!this.bindings[action]) this.bindings[action] = [];
     const keys = this.bindings[action];
     if (!keys.includes(vKey)) {
       keys.push(vKey);
@@ -328,11 +334,13 @@ export class InputManager {
 
   isDown(action: GameAction): boolean {
     const keys = this.bindings[action];
+    if (!keys) return false;
     return keys.some((k) => this.keyState.get(k) === true);
   }
 
   isJustPressed(action: GameAction): boolean {
     const keys = this.bindings[action];
+    if (!keys) return false;
     return keys.some(
       (k) => this.keyState.get(k) === true && this.prevKeyState.get(k) !== true
         && !this.consumed.has(k)
@@ -342,6 +350,7 @@ export class InputManager {
   /** Mark a key as consumed so isJustPressed returns false for the rest of this frame */
   consumeJustPressed(action: GameAction): void {
     const keys = this.bindings[action];
+    if (!keys) return;
     for (const k of keys) {
       if (this.keyState.get(k) === true && this.prevKeyState.get(k) !== true) {
         this.consumed.add(k);
@@ -361,6 +370,7 @@ export class InputManager {
 
   isJustReleased(action: GameAction): boolean {
     const keys = this.bindings[action];
+    if (!keys) return false;
     return keys.some(
       (k) => this.keyState.get(k) !== true && this.prevKeyState.get(k) === true
     );

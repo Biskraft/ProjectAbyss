@@ -31,9 +31,9 @@ import type { BurnableProp } from '../entities/BurnableProp';
 
 /** Per-tile burn duration. Grass burns fast (dry foliage), oil mid, wood slow (dense). */
 const BURN_DURATION_BY_TILE: Record<number, number> = {
-  [TILE_GRASS]: 600,
-  [TILE_OIL]: 1800,
-  [TILE_WOOD]: 3000,
+  [TILE_GRASS]: 3000,
+  [TILE_OIL]: 9000,
+  [TILE_WOOD]: 15000,
 };
 
 interface FrozenState {
@@ -53,14 +53,15 @@ interface ElectricState {
 
 export class TileMutator {
   // === Tunables (GDD §3.2 매트릭스) ===
-  static readonly FREEZE_DURATION_MS = 3000;
-  static readonly BURN_DURATION_MS = 1800;
-  static readonly ELECTRIC_DURATION_MS = 500;
+  // Durations × 5 for verification readability (2026-05-12).
+  static readonly FREEZE_DURATION_MS = 15000;
+  static readonly BURN_DURATION_MS = 9000;
+  static readonly ELECTRIC_DURATION_MS = 2500;
 
-  static readonly OIL_SPREAD_INTERVAL_MS = 120;
+  static readonly OIL_SPREAD_INTERVAL_MS = 600;
   static readonly OIL_SPREAD_CHANCE = 0.55;
 
-  static readonly AUTO_INTERACT_INTERVAL_MS = 200;
+  static readonly AUTO_INTERACT_INTERVAL_MS = 1000;
   static readonly ACID_METAL_CORRODE_CHANCE = 0.06;
   static readonly ACID_MAGMA_VAPOR_CHANCE = 0.15;
   static readonly MAGMA_ICE_MELT_CHANCE = 0.04;
@@ -303,6 +304,29 @@ export class TileMutator {
       }
     }
 
+    // 1b) Magma cells act as permanent fire sources — every magma tile
+    //     radiates to 4-neighbour flammable cells and BurnableProps.
+    //     Without this, magma next to grass/wood/oil never ignites them,
+    //     which is unintuitive ("lava should set the forest on fire").
+    const rows = roomData.length;
+    const cols = roomData[0]?.length ?? 0;
+    for (let gy = 0; gy < rows; gy++) {
+      const row = roomData[gy];
+      if (!row) continue;
+      for (let gx = 0; gx < cols; gx++) {
+        if (row[gx] !== TILE_MAGMA) continue;
+        const ns: Array<[number, number]> = [
+          [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
+        ];
+        for (const n of ns) {
+          const nx = n[0], ny = n[1];
+          const nt = getTile(roomData, nx, ny);
+          if (isFlammable(nt)) tryQueueTile(nx, ny, tileChance(nt));
+          tryQueueProp(nx, ny);
+        }
+      }
+    }
+
     // 2) Spread from burning entities (entity → tile + entity → entity)
     for (const prop of this.burnableEntities) {
       if (!prop.burning || prop.destroyed) continue;
@@ -407,6 +431,20 @@ export class TileMutator {
   }
   isElectric(gx: number, gy: number): boolean {
     return this.electric.has(this.k(gx, gy));
+  }
+
+  /**
+   * Transfer the electric overlay from one cell to another. Called by
+   * FluidSystem.gravityTick when a water cell moves so the thunder pulse
+   * state follows the cell instead of staying at the old position (which
+   * becomes AIR after the move).
+   */
+  transferElectricOverlay(fromGx: number, fromGy: number, toGx: number, toGy: number): void {
+    const fromKey = this.k(fromGx, fromGy);
+    const state = this.electric.get(fromKey);
+    if (!state) return;
+    this.electric.delete(fromKey);
+    this.electric.set(this.k(toGx, toGy), state);
   }
   isFrozen(gx: number, gy: number): boolean {
     return this.frozen.has(this.k(gx, gy));

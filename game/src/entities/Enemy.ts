@@ -47,6 +47,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   burnRemainingMs = 0;
   burnTickAccum = 0;
   chargedTickAccum = 0;
+  acidTickAccum = 0;
+  prevInElectric = false;
 
   // Physics
   protected grounded = false;

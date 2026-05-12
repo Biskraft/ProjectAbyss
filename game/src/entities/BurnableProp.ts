@@ -39,25 +39,26 @@ export interface BurnableSpec {
   assetPath?: string | null;
 }
 
+// burnMs × 5 for verification readability (2026-05-12).
 export const BURNABLE_CATALOG = {
   WoodCrate: {
-    name: 'Wood Crate', cells: [1, 1], burnMs: 2500, hp: 1, anchor: 'floor',
+    name: 'Wood Crate', cells: [1, 1], burnMs: 12500, hp: 1, anchor: 'floor',
     ignitionChance: 0.45, bodyColor: 0xA6743C, accentColor: 0x5A3A1E,
   },
   BranchPile: {
-    name: 'Branch Pile', cells: [1, 1], burnMs: 800, hp: 1, anchor: 'floor',
+    name: 'Branch Pile', cells: [1, 1], burnMs: 4000, hp: 1, anchor: 'floor',
     ignitionChance: 0.85, bodyColor: 0x6E4823, accentColor: 0x3B260F,
   },
   Bush: {
-    name: 'Bush', cells: [1, 1], burnMs: 600, hp: 1, anchor: 'floor',
+    name: 'Bush', cells: [1, 1], burnMs: 3000, hp: 1, anchor: 'floor',
     ignitionChance: 0.90, bodyColor: 0x5D8A3A, accentColor: 0x2E4A1A,
   },
   Curtain: {
-    name: 'Curtain', cells: [1, 3], burnMs: 1200, hp: 1, anchor: 'ceiling',
+    name: 'Curtain', cells: [1, 3], burnMs: 6000, hp: 1, anchor: 'ceiling',
     ignitionChance: 0.75, bodyColor: 0x884444, accentColor: 0x442222,
   },
   Vine: {
-    name: 'Vine', cells: [1, 3], burnMs: 900, hp: 1, anchor: 'ceiling',
+    name: 'Vine', cells: [1, 3], burnMs: 4500, hp: 1, anchor: 'ceiling',
     ignitionChance: 0.70, bodyColor: 0x4A6E3A, accentColor: 0x294020,
   },
 } as const satisfies Record<string, BurnableSpec>;
@@ -194,16 +195,69 @@ export class BurnableProp {
   private drawBody(): void {
     this.body = new Graphics();
     const w = this.width, h = this.height;
-    if (this.spec.anchor === 'ceiling') {
-      // hangs from top — body fills downward from y=0
-      this.body
-        .rect(2, 0, w - 4, h - 2).fill(this.spec.bodyColor)
-        .rect(2, 0, w - 4, 3).fill(this.spec.accentColor);
-    } else {
-      // floor / free — body sits at bottom
-      this.body
-        .rect(1, 2, w - 2, h - 3).fill(this.spec.bodyColor)
-        .rect(1, h - 3, w - 2, 2).fill(this.spec.accentColor);
+    const body = this.spec.bodyColor;
+    const acc = this.spec.accentColor;
+
+    switch (this.id) {
+      case 'WoodCrate': {
+        // Box with cross-strap (4 wood planks)
+        this.body
+          .rect(1, 4, w - 2, h - 5).fill(body)
+          .rect(1, 4, w - 2, 1).fill(acc)
+          .rect(1, h - 2, w - 2, 1).fill(acc)
+          .moveTo(1, 4).lineTo(w - 1, h - 1).stroke({ color: acc, width: 1 })
+          .moveTo(w - 1, 4).lineTo(1, h - 1).stroke({ color: acc, width: 1 });
+        break;
+      }
+      case 'BranchPile': {
+        // Crossed sticks pile — dark mound + 3 angular lines
+        this.body
+          .ellipse(w / 2, h - 2, w / 2 - 1, 3).fill(body)
+          .moveTo(2, h - 4).lineTo(w - 2, h - 8).stroke({ color: acc, width: 1.5 })
+          .moveTo(w - 2, h - 4).lineTo(2, h - 8).stroke({ color: acc, width: 1.5 })
+          .moveTo(w / 2, h - 3).lineTo(w / 2 + 1, h - 9).stroke({ color: body, width: 1.5 });
+        break;
+      }
+      case 'Bush': {
+        // Rounded clump — 3 overlapping circles
+        const baseY = h - 3;
+        this.body
+          .circle(w / 2, baseY - 3, 5).fill(body)
+          .circle(w / 2 - 4, baseY - 1, 4).fill(body)
+          .circle(w / 2 + 4, baseY - 1, 4).fill(body)
+          .circle(w / 2, baseY - 5, 2).fill(acc)
+          .rect(0, h - 2, w, 2).fill(acc); // grounding shadow line
+        break;
+      }
+      case 'Curtain': {
+        // Vertical fabric strip with rod + bottom taper
+        this.body
+          .rect(1, 0, w - 2, 2).fill(acc)            // rod
+          .rect(2, 2, w - 4, h - 6).fill(body)       // fabric
+          .moveTo(2, h - 4).lineTo(w / 2, h - 1).lineTo(w - 2, h - 4)
+          .fill(body)                                 // tapered hem
+          .rect(w / 2 - 1, 2, 2, h - 6).fill(acc);   // center pleat
+        break;
+      }
+      case 'Vine': {
+        // Wavy vertical line + leaf clusters
+        this.body
+          .rect(w / 2 - 1, 0, 2, h).fill(acc);       // stem
+        for (let i = 4; i < h - 2; i += 6) {
+          const offX = (i / 6) % 2 === 0 ? -3 : 3;
+          this.body.circle(w / 2 + offX, i, 3).fill(body);
+        }
+        this.body.circle(w / 2, h - 2, 2).fill(body); // tip
+        break;
+      }
+      default: {
+        // Fallback rect
+        if (this.spec.anchor === 'ceiling') {
+          this.body.rect(2, 0, w - 4, h - 2).fill(body).rect(2, 0, w - 4, 2).fill(acc);
+        } else {
+          this.body.rect(1, 2, w - 2, h - 3).fill(body).rect(1, h - 3, w - 2, 2).fill(acc);
+        }
+      }
     }
     this.container.addChild(this.body);
   }

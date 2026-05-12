@@ -15,8 +15,9 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
+import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards } from '@systems/TileHazards';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
@@ -381,6 +382,8 @@ export class ItemWorldScene extends Scene {
   private updraftSystem!: UpdraftSystem;
   /** Dynamic IntGrid state (frozen/burning/electric). Reset per floor. */
   private tileMutator = new TileMutator();
+  /** Renders frozen/burning/electric overlays on top of static tile sprites. */
+  private tileMutatorRenderer: TileMutatorRenderer | null = null;
   /** Tier B burnable entities spawned by BurnableZonePass. Reset per floor. */
   private burnableProps: BurnableProp[] = [];
 
@@ -740,6 +743,9 @@ export class ItemWorldScene extends Scene {
     // Entity layer
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
+
+    // Tile mutator overlay (fire/ice/electric VFX).
+    this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
@@ -2644,6 +2650,9 @@ export class ItemWorldScene extends Scene {
       }
     }
 
+    // Render overlay for fire / ice / electric cell states.
+    this.tileMutatorRenderer?.update(this.tileMutator);
+
     if (this.player.hp > 0) {
       applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {
         onDamage: (amount, src) => {
@@ -2686,6 +2695,82 @@ export class ItemWorldScene extends Scene {
 
   /** Public accessor for attack hooks. */
   getTileMutator(): TileMutator { return this.tileMutator; }
+
+  /**
+   * DEBUG: ignite cells around the player. Bound to KeyF when ?debug is set.
+   * Verifies fire propagation through grass/oil/wood without the enchant system.
+   */
+  /** Compute the elemental attack hitbox AABB (player AABB + 8px expansion + 32px reach forward). */
+  private getDebugAttackHitbox(): { ax: number; ay: number; aw: number; ah: number } {
+    const reach = 32;
+    const expand = 8;
+    const ax = this.player.facingRight
+      ? this.player.x - expand
+      : this.player.x - expand - reach;
+    return {
+      ax,
+      ay: this.player.y - expand,
+      aw: this.player.width + expand * 2 + reach,
+      ah: this.player.height + expand * 2 + 8,
+    };
+  }
+
+  private forEachCellInAABB(
+    ax: number, ay: number, aw: number, ah: number,
+    cb: (gx: number, gy: number) => void,
+  ): void {
+    const lx = Math.floor(ax / 16);
+    const rx = Math.floor((ax + aw - 1) / 16);
+    const ty = Math.floor(ay / 16);
+    const by = Math.floor((ay + ah - 1) / 16);
+    for (let gy = ty; gy <= by; gy++) {
+      for (let gx = lx; gx <= rx; gx++) cb(gx, gy);
+    }
+  }
+
+  /** DEBUG Shift+1 — Fire enchant sweep. See LdtkWorldScene for full spec. */
+  private debugIgniteAtPlayer(): void {
+    if (!this.fullGrid?.length) return;
+    const hb = this.getDebugAttackHitbox();
+    let actions = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      const tile = getTile(this.fullGrid, gx, gy);
+      if (isIce(tile)) {
+        if (this.tileMutator.tryMeltIce(this.fullGrid, gx, gy)) actions++;
+      } else if (isWater(tile)) {
+        if (this.fullGrid[gy]) { this.fullGrid[gy][gx] = TILE_AIR; actions++; }
+      } else {
+        if (this.tileMutator.tryIgnite(this.fullGrid, gx, gy)) actions++;
+      }
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[DebugFire] actions=${actions} burning=${this.tileMutator.burningCount}`);
+  }
+
+  /** DEBUG Shift+2 — Ice enchant sweep. */
+  private debugFreezeAtPlayer(): void {
+    if (!this.fullGrid?.length) return;
+    const hb = this.getDebugAttackHitbox();
+    let frozen = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      if (this.tileMutator.tryFreeze(this.fullGrid, gx, gy)) frozen++;
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[DebugIce] frozen=${frozen} total=${this.tileMutator.frozenCount}`);
+  }
+
+  /** DEBUG Shift+3 — Thunder enchant sweep. */
+  private debugThunderAtPlayer(): void {
+    if (!this.fullGrid?.length) return;
+    const hb = this.getDebugAttackHitbox();
+    let totalLit = 0;
+    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
+      if (this.tileMutator.isElectric(gx, gy)) return;
+      totalLit += this.tileMutator.applyThunderChain(this.fullGrid, gx, gy);
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[DebugThunder] lit=${totalLit} electric=${this.tileMutator.electricCount}`);
+  }
 
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
   private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
@@ -3442,6 +3527,17 @@ export class ItemWorldScene extends Scene {
 
     // Updraft wind zones (IntGrid value 4 in fullGrid)
     this.applyUpdrafts(dt);
+
+    // DEBUG: Shift+1/2/3 = Fire / Ice / Thunder, Shift+O = HP lock at 1. ?debug URL gated.
+    if (new URLSearchParams(window.location.search).has('debug') && this.game.input.shiftDown) {
+      if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE)) this.debugIgniteAtPlayer();
+      if (this.game.input.isJustPressed(GameAction.DEBUG_ICE)) this.debugFreezeAtPlayer();
+      if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.debugThunderAtPlayer();
+      if (this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
+        this.player.debugLockHpAtOne = !this.player.debugLockHpAtOne;
+        if (this.player.debugLockHpAtOne) this.player.hp = 1;
+      }
+    }
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
     this.updateStaticEntities(dt);

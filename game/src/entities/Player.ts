@@ -187,6 +187,17 @@ export class Player extends Entity implements CombatEntity {
   burnTickAccum = 0;
   /** Charged 0.5초 tick 누적자 (필드 진입 중에만 증가). */
   chargedTickAccum = 0;
+  /** Acid 0.1초 tick 누적자 (필드 진입 중에만 증가). */
+  acidTickAccum = 0;
+  /** 이전 프레임 electric 오버레이 안이었는지 (thunder per-pulse 데미지 트래킹). */
+  prevInElectric = false;
+
+  /**
+   * DEBUG: when true, hp is clamped to ≥1 each frame and isDead/drowned are
+   * cleared. Bound to Shift+O. Used for hazard testing — take damage but
+   * never die. Toggled by scene handler. URL-gated via ?debug.
+   */
+  debugLockHpAtOne = false;
 
   /**
    * Currently equipped weapon type — set by the scene whenever inventory
@@ -492,6 +503,23 @@ export class Player extends Entity implements CombatEntity {
   }
 
   update(dt: number): void {
+    // DEBUG: Shift+O HP lock — clamp hp ≥ 1 and clear death markers each frame.
+    // Lets the player walk through hazards taking continuous damage without dying.
+    // Big hits (thunder 50%, spike 20%) trigger onDeath() before this clamp,
+    // landing the FSM in 'death' state — we have to eject out of it explicitly
+    // or the player ends up alive (hp=1) but frozen in death animation.
+    if (this.debugLockHpAtOne) {
+      if (this.hp < 1) this.hp = 1;
+      this.isDead = false;
+      this.drowned = false;
+      this.oxygen = Player.OXYGEN_MAX;
+      if (this.fsm.currentState === 'death') {
+        this.deathTimer = 0;
+        this.sprite.alpha = 1;
+        this.fsm.transition('fall');
+      }
+    }
+
     this.savePrevPosition();
     this.diveLanded = false; // reset each frame — scene reads this flag
     this.updateInvincibility(dt);

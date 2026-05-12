@@ -101,8 +101,12 @@ export function applyBurnableZones(
 
     const rng = cfg.seed > 0 ? mulberry32(cfg.seed) : Math.random;
 
-    populateZone(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng);
-    populateZoneEntities(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng, specs);
+    // ENTITIES FIRST so they claim wall-top AIR cells before grass occupies them.
+    // Without this ordering, floor-anchored props (Bush, Bush, BranchPile, WoodCrate)
+    // never spawn because grass fills the only valid air-above-wall slot.
+    const occupied = new Set<number>();
+    populateZoneEntities(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng, specs, occupied);
+    populateZone(collisionGrid, cellX0, cellY0, cellX1, cellY1, cfg, rng, occupied);
   }
   return specs;
 }
@@ -133,16 +137,23 @@ function readZoneConfig(ent: LdtkEntity): ZoneConfig {
 function populateZone(
   grid: number[][], x0: number, y0: number, x1: number, y1: number,
   cfg: ZoneConfig, rng: () => number,
+  occupied: Set<number>,
 ): void {
+  const pack = (gx: number, gy: number) => gy * 4096 + gx;
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const row = grid[y];
       if (!row || row[x] !== TILE_WALL) continue;
 
+      // Skip if this WALL cell is reserved for a wood-replacement by an entity,
+      // or its air-above slot is occupied by an entity footprint.
+      if (occupied.has(pack(x, y))) continue;
+
       // Need AIR above to place a 1-tile cover (grass) or to keep wood readable.
       if (y - 1 < 0) continue;
       const above = grid[y - 1]?.[x] ?? TILE_AIR;
       if (above !== TILE_AIR) continue;
+      if (occupied.has(pack(x, y - 1))) continue;
 
       // Hazard blacklist within 1 cell radius
       if (hasHazardNearby(grid, x, y - 1, 1)) continue;
@@ -212,64 +223,109 @@ function grassNeighbourCount(grid: number[][], x: number, y: number): number {
  * AIR (or already entity-occupied skip) before committing. Avoids hazard
  * blacklist within 1 cell of any footprint cell.
  */
+/**
+ * Count-based candidate model:
+ *   1. Walk the rect collecting valid anchor cells (floor + ceiling).
+ *   2. Compute target = max(1, floor(candidateCount × density × ENTITY_DENSITY_MUL)).
+ *   3. Shuffle candidates with the same RNG, then commit until target reached
+ *      (or all candidates exhausted via footprint validation).
+ *
+ * Guarantees ≥1 spawn whenever the zone has any valid anchor cell, which
+ * solves the "small zone gets 0 entities by bad luck" problem.
+ */
 function populateZoneEntities(
   grid: number[][], x0: number, y0: number, x1: number, y1: number,
   cfg: ZoneConfig, rng: () => number,
   specs: BurnableEntitySpec[],
+  occupied: Set<number>,
 ): void {
-  const occupied = new Set<number>(); // packed cell keys
   const pack = (gx: number, gy: number) => gy * 4096 + gx;
 
-  const ENTITY_DENSITY_MUL = 0.15; // entities are sparser than grass cells
+  interface Candidate { x: number; y: number; anchor: BurnableAnchor; }
+  const candidates: Candidate[] = [];
+  const seen = new Set<number>();
+  const addCandidate = (x: number, y: number, anchor: BurnableAnchor) => {
+    const key = pack(x, y);
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ x, y, anchor });
+  };
 
+  // Phase 1 — collect candidates supporting BOTH user conventions:
+  //   (A) BurnableZone rect painted OVER the AIR cells above the floor
+  //   (B) BurnableZone rect painted ON the WALL/floor cells themselves
+  // grass placement (populateZone) walks WALL cells in rect and places grass
+  // at (x, y-1); entity scan does the same here so the conventions match.
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      // base trigger
-      if (rng() > cfg.density * ENTITY_DENSITY_MUL) continue;
+      const cell = grid[y]?.[x];
+      if (cell === undefined) continue;
 
-      // skip if cell already part of another prop
-      if (occupied.has(pack(x, y))) continue;
-      // base air check
-      if ((grid[y]?.[x] ?? -1) !== TILE_AIR) continue;
-      if (hasHazardNearby(grid, x, y, 1)) continue;
-
-      // Detect anchor: floor (WALL directly below) or ceiling (WALL directly above)
-      const wallBelow = (grid[y + 1]?.[x] ?? TILE_AIR) === TILE_WALL;
-      const wallAbove = (grid[y - 1]?.[x] ?? TILE_AIR) === TILE_WALL;
-      let anchor: BurnableAnchor;
-      if (wallBelow && !wallAbove) anchor = 'floor';
-      else if (wallAbove && !wallBelow) anchor = 'ceiling';
-      else continue;
-
-      const id = pickPropForZone(cfg.type, rng, anchor);
-      if (!id) continue;
-      const spec = BURNABLE_CATALOG[id];
-      const cellW = spec.cells[0], cellH = spec.cells[1];
-
-      // Validate footprint: all cells must be AIR + not occupied
-      let topLeftY: number;
-      if (anchor === 'floor') topLeftY = y - (cellH - 1); // grow upward
-      else topLeftY = y; // ceiling: grow downward
-
-      if (topLeftY < 0 || topLeftY + cellH > grid.length) continue;
-      let ok = true;
-      for (let dy = 0; dy < cellH && ok; dy++) {
-        for (let dx = 0; dx < cellW && ok; dx++) {
-          const fx = x + dx, fy = topLeftY + dy;
-          if ((grid[fy]?.[fx] ?? -1) !== TILE_AIR) { ok = false; break; }
-          if (occupied.has(pack(fx, fy))) { ok = false; break; }
-          if (hasHazardNearby(grid, fx, fy, 1)) { ok = false; break; }
-        }
+      // (A) AIR cell in rect — check 4-anchor
+      if (cell === TILE_AIR) {
+        if (hasHazardNearby(grid, x, y, 1)) continue;
+        const wallBelow = (grid[y + 1]?.[x] ?? TILE_AIR) === TILE_WALL;
+        const wallAbove = (grid[y - 1]?.[x] ?? TILE_AIR) === TILE_WALL;
+        let anchor: BurnableAnchor;
+        if (wallBelow && !wallAbove) anchor = 'floor';
+        else if (wallAbove && !wallBelow) anchor = 'ceiling';
+        else continue;
+        addCandidate(x, y, anchor);
       }
-      if (!ok) continue;
-
-      // Commit
-      for (let dy = 0; dy < cellH; dy++) {
-        for (let dx = 0; dx < cellW; dx++) {
-          occupied.add(pack(x + dx, topLeftY + dy));
-        }
+      // (B) WALL cell in rect — the AIR cell above is a floor-anchor candidate
+      else if (cell === TILE_WALL) {
+        const cy = y - 1;
+        if (cy < 0) continue;
+        if ((grid[cy]?.[x] ?? -1) !== TILE_AIR) continue;
+        if (hasHazardNearby(grid, x, cy, 1)) continue;
+        addCandidate(x, cy, 'floor');
       }
-      specs.push({ id, gx: x, gy: topLeftY });
     }
+  }
+  if (candidates.length === 0) return;
+
+  // Phase 2 — shuffle (Fisher-Yates with our rng)
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = candidates[i]; candidates[i] = candidates[j]; candidates[j] = tmp;
+  }
+
+  // Phase 3 — commit up to target count.
+  // density 1.0 → fill 100% of valid candidates (clamped by footprint validation).
+  // density 0.5 → fill ~50%. Min 1 spawn when zone has any candidate.
+  const target = Math.max(1, Math.floor(candidates.length * cfg.density));
+  let placed = 0;
+  for (const c of candidates) {
+    if (placed >= target) break;
+    if (occupied.has(pack(c.x, c.y))) continue;
+
+    const id = pickPropForZone(cfg.type, rng, c.anchor);
+    if (!id) continue;
+    const spec = BURNABLE_CATALOG[id];
+    const cellW = spec.cells[0], cellH = spec.cells[1];
+
+    let topLeftY: number;
+    if (c.anchor === 'floor') topLeftY = c.y - (cellH - 1);
+    else topLeftY = c.y;
+    if (topLeftY < 0 || topLeftY + cellH > grid.length) continue;
+
+    let ok = true;
+    for (let dy = 0; dy < cellH && ok; dy++) {
+      for (let dx = 0; dx < cellW && ok; dx++) {
+        const fx = c.x + dx, fy = topLeftY + dy;
+        if ((grid[fy]?.[fx] ?? -1) !== TILE_AIR) { ok = false; break; }
+        if (occupied.has(pack(fx, fy))) { ok = false; break; }
+        if (hasHazardNearby(grid, fx, fy, 1)) { ok = false; break; }
+      }
+    }
+    if (!ok) continue;
+
+    for (let dy = 0; dy < cellH; dy++) {
+      for (let dx = 0; dx < cellW; dx++) {
+        occupied.add(pack(c.x + dx, topLeftY + dy));
+      }
+    }
+    specs.push({ id, gx: c.x, gy: topLeftY });
+    placed++;
   }
 }
