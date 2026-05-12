@@ -19,7 +19,7 @@ import { ItemImage } from './ItemImage';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
-import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, createModalPanel } from './ModalPanel';
+import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, createModalPanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
 
 /** Floors per rarity — matches LorePopup STRATA_BY_RARITY table. */
@@ -137,7 +137,7 @@ export class DivePreview {
     // All coordinates are now panel-local (0,0 = top-left of panel).
 
     // Title.
-    const title = createUiText(t('ui.dive.title'), { fontSize: 10, fill: 0xffcc44 });
+    const title = createUiText(t('ui.dive.title'), { fontSize: 10, fill: TEXT_WARNING });
     title.x = 12;
     title.y = 10;
     this.panel.addChild(title);
@@ -177,8 +177,8 @@ export class DivePreview {
 
     // Reward hint.
     const lines: Array<{ text: string; color: number }> = [
-      { text: t('ui.dive.estimated_reward'),  color: 0xaaaaaa },
-      { text: t('ui.dive.reward_list'),       color: 0xffffff },
+      { text: t('ui.dive.estimated_reward'),  color: TEXT_SECONDARY },
+      { text: t('ui.dive.reward_list'),       color: TEXT_PRIMARY },
     ];
     let ly = 104;
     for (const line of lines) {
@@ -197,7 +197,7 @@ export class DivePreview {
     dIcon.x = 12;
     dIcon.y = promptY;
     this.panel.addChild(dIcon);
-    const dLabel = createUiText(t('ui.dive.button_dive'), { fontSize: 8, fill: 0xffffff });
+    const dLabel = createUiText(t('ui.dive.button_dive'), { fontSize: 8, fill: TEXT_PRIMARY });
     dLabel.x = 26;
     dLabel.y = promptY + 1;
     this.panel.addChild(dLabel);
@@ -206,7 +206,7 @@ export class DivePreview {
     cIcon.x = W - 78;
     cIcon.y = promptY;
     this.panel.addChild(cIcon);
-    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: 0xaaaaaa });
+    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: TEXT_SECONDARY });
     cLabel.x = W - 60;
     cLabel.y = promptY + 1;
     this.panel.addChild(cLabel);
@@ -238,7 +238,7 @@ export class DivePreview {
     // enough to overflow are vanishingly rare with BOOST=0.
     const text = createUiText(
       t('ui.dive.compact_strip', { name: item.def.name, strata }),
-      { fontSize: 8, fill: 0xffffff },
+      { fontSize: 8, fill: TEXT_PRIMARY },
     );
     text.x = 14 + 14 + 6;
     text.y = y + Math.floor((H - text.height) / 2);
@@ -248,7 +248,7 @@ export class DivePreview {
     okIcon.x = GAME_WIDTH - 90;
     okIcon.y = y + 4;
     this.panel.addChild(okIcon);
-    const okLabel = createUiText(t('ui.dive.button_ok'), { fontSize: 8, fill: 0xffffff });
+    const okLabel = createUiText(t('ui.dive.button_ok'), { fontSize: 8, fill: TEXT_PRIMARY });
     okLabel.x = GAME_WIDTH - 76;
     okLabel.y = y + 5;
     this.panel.addChild(okLabel);
@@ -257,7 +257,7 @@ export class DivePreview {
     cIcon.x = GAME_WIDTH - 58;
     cIcon.y = y + 4;
     this.panel.addChild(cIcon);
-    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: 0xaaaaaa });
+    const cLabel = createUiText(t('ui.dive.button_cancel'), { fontSize: 8, fill: TEXT_SECONDARY });
     cLabel.x = GAME_WIDTH - 40;
     cLabel.y = y + 5;
     this.panel.addChild(cLabel);

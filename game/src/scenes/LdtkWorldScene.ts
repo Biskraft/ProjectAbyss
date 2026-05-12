@@ -142,6 +142,9 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
+import { TileMutator } from '@systems/TileMutator';
+import { applyTileHazards } from '@systems/TileHazards';
+import { applyBurnableZones } from '@level/BurnableZonePass';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { FluidSystem } from '@effects/FluidSystem';
@@ -479,6 +482,8 @@ export class LdtkWorldScene extends Scene {
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
   private updraftSystem!: UpdraftSystem;
+  /** Dynamic IntGrid state — frozen/burning/electric overlays. Reset per room. */
+  private tileMutator = new TileMutator();
   // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
   private voidDropActive = false;
   private voidFadePhase: 'none' | 'out' | 'in' = 'none';
@@ -2064,6 +2069,10 @@ export class LdtkWorldScene extends Scene {
     if (this.voidCooldown > 0) this.voidCooldown -= dt;
     this.checkVoidContact();
 
+    // Elemental tile hazards (magma · charged · acid · fire · thunder · burn)
+    // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+    this.tickTileHazards(dt);
+
     // Updraft wind zones
     this.applyUpdrafts(dt);
 
@@ -2750,6 +2759,15 @@ export class LdtkWorldScene extends Scene {
 
     // Collision grid ??deep copy so runtime modifications don't persist across reloads
     this.collisionGrid = level.collisionGrid.map(row => [...row]);
+
+    // Hybrid procedural pass — populate grass/wood inside LDtk-painted
+    // BurnableZone rect entities. Density + seed come from entity fields.
+    // GDD: Documents/System/System_World_TileSystem.md §7
+    applyBurnableZones(this.collisionGrid, level.entities);
+
+    // Reset elemental tile overlays — frozen timers from the previous room
+    // would otherwise apply to cells of a different layout.
+    this.tileMutator.reset();
 
     // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
     this.fluidSystem.attach(level);
@@ -3645,6 +3663,66 @@ export class LdtkWorldScene extends Scene {
       this.screenFlash.flashDamage(true);
     }
   }
+
+  /**
+   * Per-frame tile hazard tick: TileMutator state + DOT on player & enemies.
+   * Mirrors checkSpikeContact pattern but channels through TileHazards.applyTileHazards
+   * so magma/charged/acid/fire/thunder/burn share one code path.
+   *
+   * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+   */
+  private tickTileHazards(dt: number): void {
+    const room = this.player.roomData;
+    if (!room) return;
+
+    // Advance frozen/burning/electric timers + oil-spread + passive interactions.
+    this.tileMutator.tick(room, dt);
+
+    // Player hazards (only when not already dead)
+    if (this.player.hp > 0) {
+      applyTileHazards(this.player, room, this.tileMutator, dt, {
+        onDamage: (amount, src) => {
+          if (this.player.invincible) return;
+          const dmg = Math.max(1, Math.floor(amount));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = src;
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(
+            this.player.x + this.player.width / 2,
+            this.player.y - 8, dmg, src === 'thunder',
+          );
+          if (src === 'thunder') {
+            this.game.camera.shake(6);
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          } else if (src === 'magma' || src === 'fire') {
+            this.game.camera.shake(2);
+          }
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          }
+        },
+        onBurnApplied: () => this.player.triggerFlash(),
+      });
+    }
+
+    // Enemy hazards (every alive enemy)
+    for (const enemy of this.enemies) {
+      if (!enemy.alive || enemy.hp <= 0) continue;
+      applyTileHazards(enemy, room, this.tileMutator, dt, {
+        onDamage: (amount) => {
+          enemy.hp -= Math.max(1, Math.floor(amount));
+          if (enemy.hp <= 0) enemy.hp = 0;
+        },
+      });
+    }
+  }
+
+  /** Public accessor for attack hooks (Fire/Ice/Thunder enchants land in this mutator). */
+  getTileMutator(): TileMutator { return this.tileMutator; }
 
   /** IntGrid void (value 10) -- fade out/in, return to last safe ground. */
   private voidCooldown = 0;

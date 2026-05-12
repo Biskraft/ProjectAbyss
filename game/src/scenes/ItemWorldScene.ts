@@ -16,6 +16,9 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike } from '@core/Physics';
+import { TileMutator } from '@systems/TileMutator';
+import { applyTileHazards } from '@systems/TileHazards';
+import { applyBurnableZones } from '@level/BurnableZonePass';
 import { GameAction, actionKey } from '@core/InputManager';
 import { Player } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
@@ -375,6 +378,8 @@ export class ItemWorldScene extends Scene {
 
   // Updraft (IntGrid value 4) ? particles + force handled per-frame
   private updraftSystem!: UpdraftSystem;
+  /** Dynamic IntGrid state (frozen/burning/electric). Reset per floor. */
+  private tileMutator = new TileMutator();
 
   // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
   private spikes: Spike[] = [];
@@ -992,6 +997,9 @@ export class ItemWorldScene extends Scene {
       this.fullMapContainer.parent.removeChild(this.fullMapContainer);
       this.fullMapContainer.destroy({ children: true }); // free GPU textures
     }
+    // Reset elemental tile overlays (frozen/burning/electric) — old cell keys
+    // would otherwise leak into the freshly built fullGrid coordinates.
+    this.tileMutator.reset();
     this.fullMapContainer = new Container();
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
@@ -1191,6 +1199,12 @@ export class ItemWorldScene extends Scene {
           row: absRow,
           layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
         });
+
+        // Hybrid procedural pass — populate grass/wood inside LDtk BurnableZone
+        // rect entities. Operates on the fullGrid with the room's cell offset
+        // so each room's zones land in their correct fullGrid coordinates.
+        // GDD: Documents/System/System_World_TileSystem.md §7
+        applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
 
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
@@ -2594,6 +2608,60 @@ export class ItemWorldScene extends Scene {
   // LDtk-placed static entities (Option A: hazards + puzzles + camera zones)
   // ---------------------------------------------------------------------------
 
+  /**
+   * Per-frame elemental tile hazards. Operates on fullGrid (procedural concat),
+   * mirroring the LdtkWorldScene tickTileHazards but routed through this scene's
+   * UI/feedback systems.
+   *
+   * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+   */
+  private tickTileHazards(dt: number): void {
+    if (!this.fullGrid || !this.fullGrid.length) return;
+    this.tileMutator.tick(this.fullGrid, dt);
+
+    if (this.player.hp > 0) {
+      applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {
+        onDamage: (amount, src) => {
+          if (this.player.invincible) return;
+          const dmg = Math.max(1, Math.floor(amount));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = src;
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(
+            this.player.x + this.player.width / 2,
+            this.player.y - 8, dmg, src === 'thunder',
+          );
+          if (src === 'thunder') {
+            this.game.camera.shake(6);
+            this.game.hitstopFrames = 8;
+            this.screenFlash.flashDamage(true);
+          } else if (src === 'magma' || src === 'fire') {
+            this.game.camera.shake(2);
+          }
+          if (this.player.hp <= 0) {
+            this.player.hp = 0;
+            this.player.onDeath();
+            this.screenFlash.flashDamage(true);
+          }
+        },
+        onBurnApplied: () => this.player.triggerFlash(),
+      });
+    }
+
+    for (const enemy of this.enemies) {
+      if (!enemy.alive || enemy.hp <= 0) continue;
+      applyTileHazards(enemy, this.fullGrid, this.tileMutator, dt, {
+        onDamage: (amount) => {
+          enemy.hp -= Math.max(1, Math.floor(amount));
+          if (enemy.hp <= 0) enemy.hp = 0;
+        },
+      });
+    }
+  }
+
+  /** Public accessor for attack hooks. */
+  getTileMutator(): TileMutator { return this.tileMutator; }
+
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
   private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
     // Per-room iid prefix ? when the same template is reused in multiple rooms,
@@ -2806,6 +2874,10 @@ export class ItemWorldScene extends Scene {
 
   /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
   private updateStaticEntities(dt: number): void {
+    // Elemental tile hazards (magma · charged · acid · fire · thunder · burn).
+    // Mutator must tick before hazard check so frozen reverts are visible this frame.
+    this.tickTileHazards(dt);
+
     // IntGrid spike (value 5) ? contact damage + safe-ground respawn.
     // Replaces the old Entity-based Spike AABB check with fullGrid tile scan.
     if (!this.player.invincible && this.player.hp > 0) {

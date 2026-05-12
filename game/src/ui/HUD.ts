@@ -233,7 +233,7 @@ export class HUD {
 
     // --- HP text with shadow ---
     this.hpTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: 0x000000 } });
-    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: 0xffffff } });
+    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: TEXT_PRIMARY } });
     this.hpTextShadow.x = this.HP_X + 44 * s + s;
     this.hpTextShadow.y = this.FLASK_Y + s;
     this.hpText.x = this.HP_X + 44 * s;
@@ -255,7 +255,7 @@ export class HUD {
 
     // --- Gold text — right-aligned ---
     this.goldTextShadow = new BitmapText({ text: 'G 0', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.goldText = new BitmapText({ text: 'G 0', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffd700 } });
+    this.goldText = new BitmapText({ text: 'G 0', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: TEXT_GOLD } });
     this.goldTextShadow.anchor.set(1, 0);
     this.goldText.anchor.set(1, 0);
     this.goldTextShadow.x = this.SW - this.MARGIN + s;
@@ -268,7 +268,7 @@ export class HUD {
     // --- Key icon shared sizes ---
     const KEY_ICON = 12 * s;  // icon box size
     const KEY_FONT = 8 * s;   // label font next to icon
-    const KEY_LABEL_COLOR = 0xaaaaaa;
+    const KEY_LABEL_COLOR = TEXT_SECONDARY;
 
     // --- Action key bar: [Z]Jump [X]Dash [C]Atk — bottom-left (above floor text) ---
     this.actionKeyBar = new Container();
@@ -297,7 +297,7 @@ export class HUD {
 
     // --- Floor/Item text — debug only (Shift+I to toggle) ---
     this.floorTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.floorText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0xffffff } });
+    this.floorText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: TEXT_PRIMARY } });
     this.floorTextShadow.x = this.MARGIN + s;
     this.floorTextShadow.y = this.SH - this.MARGIN - this.FONT + s;
     this.floorText.x = this.MARGIN;
@@ -372,7 +372,7 @@ export class HUD {
     this.bossBar.x = this.BOSS_X;
     this.bossBar.y = this.BOSS_Y;
     this.bossNameShadow = createUiText('', { fontSize: this.FONT, fill: 0x000000 }, this.s);
-    this.bossNameText = createUiText('', { fontSize: this.FONT, fill: 0xffffff }, this.s);
+    this.bossNameText = createUiText('', { fontSize: this.FONT, fill: TEXT_PRIMARY }, this.s);
     this.bossNameShadow.anchor.set(0.5, 0);
     this.bossNameText.anchor.set(0.5, 0);
     this.bossNameShadow.x = this.SW / 2 + s;
@@ -401,7 +401,7 @@ export class HUD {
       const LABEL_FONT = 10 * s;
       const escIcon = KeyPrompt.createKeyIconForAction(GameAction.MENU, KEY_SIZE);
       const exitLabelShadow = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: 0x000000 }, this.s);
-      const exitLabel = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: 0xffffff }, this.s);
+      const exitLabel = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: TEXT_PRIMARY }, this.s);
       // Right-align the cluster: place icon, then label to its right.
       // Gold text sits at MARGIN (y); place hint a row below.
       const HINT_Y = this.MARGIN + this.FONT + 6 * s;
@@ -427,9 +427,9 @@ export class HUD {
     this.expBarGfx = new Graphics();
     this.expBarContainer.addChild(this.expBarGfx);
     this.expNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
-    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0xffffff } });
+    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: TEXT_PRIMARY } });
     this.expLevelShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
-    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0xffffff } });
+    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: TEXT_PRIMARY } });
     this.expBarContainer.addChild(this.expNameShadow);
     this.expBarContainer.addChild(this.expNameText);
     this.expBarContainer.addChild(this.expLevelShadow);
@@ -467,7 +467,7 @@ export class HUD {
     this.flaskPulseGlow.clear();
     this.flaskPulseGlow.alpha = 0;
     this.hpTextFlashTimer = 0;
-    this.hpText.tint = 0xffffff;
+    this.hpText.tint = TEXT_PRIMARY;
     this.vignetteTimer = 0;
     this.vignette.alpha = 0;
     this.vignette.clear();
@@ -487,7 +487,7 @@ export class HUD {
       this.healFlashStartRatio = prevHp / maxHp;
       this.healFlashRatio = hp / maxHp;
       this.healFlashTimer = HEAL_FLASH_DURATION;
-      this.healFlashColor = 0x44ff44;
+      this.healFlashColor = TEXT_POSITIVE;
     }
 
     this.redrawHpBar();
@@ -497,7 +497,7 @@ export class HUD {
 
     if (hp < prevHp && prevHp > 0) {
       this.hpTextFlashTimer = HP_TEXT_FLASH_DURATION;
-      this.hpText.tint = 0xff4444;
+      this.hpText.tint = TEXT_NEGATIVE;
     }
   }
 
@@ -557,14 +557,14 @@ export class HUD {
     this.healFlashStartRatio = startRatio;
     this.healFlashRatio = this.currentHp / this.currentMaxHp;
     this.healFlashTimer = HEAL_FLASH_DURATION;
-    this.healFlashColor = 0x44ff44;
+    this.healFlashColor = TEXT_POSITIVE;
   }
 
   flashBossHeal(): void {
     this.healFlashStartRatio = Math.max(0, (this.currentHp - this.currentMaxHp * 0.3) / this.currentMaxHp);
     this.healFlashRatio = this.currentHp / this.currentMaxHp;
     this.healFlashTimer = BOSS_HEAL_FLASH_DURATION;
-    this.healFlashColor = 0xffd700;
+    this.healFlashColor = TEXT_GOLD;
   }
 
   flashDamage(): void {
@@ -764,7 +764,7 @@ export class HUD {
     }
     if (this.hpTextFlashTimer > 0) {
       this.hpTextFlashTimer -= dt;
-      if (this.hpTextFlashTimer <= 0) { this.hpTextFlashTimer = 0; this.hpText.tint = 0xffffff; }
+      if (this.hpTextFlashTimer <= 0) { this.hpTextFlashTimer = 0; this.hpText.tint = TEXT_PRIMARY; }
     }
     if (this.vignetteTimer > 0) {
       this.vignetteTimer -= dt;
@@ -818,7 +818,7 @@ export class HUD {
       g.rect(0, 0, W * ghostRatio, H).fill({ color: 0xaa2222, alpha: ghostAlpha * 0.8 });
     }
     if (this.healFlashTimer > 0) {
-      const dur = this.healFlashColor === 0xffd700 ? BOSS_HEAL_FLASH_DURATION : HEAL_FLASH_DURATION;
+      const dur = this.healFlashColor === TEXT_GOLD ? BOSS_HEAL_FLASH_DURATION : HEAL_FLASH_DURATION;
       const flashAlpha = this.healFlashTimer / dur;
       const x0 = W * Math.max(0, this.healFlashStartRatio);
       const x1 = W * Math.min(1, this.healFlashRatio);
@@ -1061,7 +1061,7 @@ export class HUD {
     const lvText = this.expIsMax ? 'Lv.MAX' : `Lv.${this.expLevel}`;
     this.expLevelText.text = lvText;
     this.expLevelShadow.text = lvText;
-    this.expLevelText.style.fill = this.expIsMax ? EXP_BAR_MAX_COLOR : 0xffffff;
+    this.expLevelText.style.fill = this.expIsMax ? EXP_BAR_MAX_COLOR : TEXT_PRIMARY;
     const lvX = startX + this.expNameText.width + 4 * s;
     this.expLevelText.x = lvX;
     this.expLevelText.y = startY;

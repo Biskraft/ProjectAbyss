@@ -18,7 +18,7 @@ import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
 import { assetPath } from '@core/AssetLoader';
 import { PRESET_INFOS, PRESET_NAMES, type PresetName, GameAction, actionKey } from '@core/InputManager';
-import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA } from '@ui/ModalPanel';
+import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SECONDARY } from '@ui/ModalPanel';
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
 
@@ -385,7 +385,7 @@ export class TitleScene extends Scene {
 
     const modalKeys = new Text({
       text: '',
-      style: new TextStyle({ fontFamily: localizeFontFamily('"Rajdhani", sans-serif'), fontSize: 10 * s, fontWeight: '500', fill: 0xaaaaaa }),
+      style: new TextStyle({ fontFamily: localizeFontFamily('"Rajdhani", sans-serif'), fontSize: 10 * s, fontWeight: '500', fill: TEXT_SECONDARY }),
     });
     modalKeys.label = 'modal-keys';
     modalKeys.anchor.set(0.5, 0);

@@ -227,13 +227,14 @@
   <!-- ============================================================ -->
   <section id="em">
     <h2>06. 전자기</h2>
-    <div class="src">conductor chain, water-metal, magnet, railgun, static</div>
+    <div class="src">conductor chain, water-metal, magnet, railgun, static, charged field</div>
     <div class="tile-grid">
       <div class="tile"><canvas data-demo="conductor_chain"></canvas><h3>금속 도체 체인</h3><p class="hint">왼쪽 끝 <b>클릭</b>=감전. 금속 라인 따라 전파.</p></div>
       <div class="tile"><canvas data-demo="water_metal"></canvas><h3>물 + 금속 = 전체 전도</h3><p class="hint">금속 봉을 <b>클릭</b>해 충전. 연결된 water 전체 감전.</p></div>
       <div class="tile"><canvas data-demo="magnet"></canvas><h3>자석</h3><p class="hint">자석 <b>드래그</b>. 금속 조각들이 따라온다.</p></div>
       <div class="tile"><canvas data-demo="railgun"></canvas><h3>레일건 (자기 가속)</h3><p class="hint">두 자석 사이로 금속 <b>드래그</b>. 가속 발사.</p></div>
       <div class="tile"><canvas data-demo="static_buildup"></canvas><h3>정전기 축적</h3><p class="hint">카펫 위 <b>드래그</b>로 걷기. 게이지 만땅 후 <b>클릭</b>=방전.</p></div>
+      <div class="tile wide"><canvas data-demo="charged_field"></canvas><h3>Charged 전기 필드 (Volumetric · GDD §2.8 확정안)</h3><p class="hint"><b>드래그</b>=필드 페인트 · <b>우클릭</b>=지우기 · <b>마우스 호버</b>=플레이어 (필드 진입 시 lightning 흡수 + DOT). 노란 부피·zigzag 아크·omnidirectional 흰 spark·경계 halo·셀별 intensity flicker. <b>표면 wave 없음</b> 으로 water 와 구분.</p></div>
     </div>
   </section>
 
@@ -1946,6 +1947,283 @@ class StaticBuildup extends Demo {
     ctx.fillStyle = '#ff8'; ctx.fillRect(8, 8, 60 * this.gauge, 6);
   }
 }
+
+/* ============================================================
+   ChargedField — volumetric electric field
+   Detailed prototype for GDD §2.8 Option A (confirmed 2026-05-11).
+   Layers:
+     1. base translucent yellow fill (per-cell intensity flicker)
+     2. outer halo around field boundary
+     3. persistent zigzag arcs (lifetime fade, multiple simultaneous)
+     4. omnidirectional bouncing white sparks (1×1 pixel)
+     5. player-targeted arcs (when player AABB inside field)
+     6. damage flash overlay + player HP bar
+     7. shockwave burst on click (extra arc density for 0.4s)
+   Explicitly NO surface wave / no upward buoyancy (water 와 결정적 구분).
+============================================================ */
+class ChargedField extends Demo {
+  init() {
+    this.cols = 36; this.rows = 16;
+    this.cw = this.w / this.cols;
+    this.ch = (this.h - 8) / this.rows;
+    this.cells = new Uint8Array(this.cols * this.rows);
+    this.intensity = new Float32Array(this.cols * this.rows);
+    this.arcs = [];
+    this.sparks = [];
+    this.player = { x: this.w / 2, y: this.h - 12, hp: 1 };
+    this.flash = 0;
+    this.arcSpawnT = 0;
+    this.shockT = 0;
+    this.seedPreset();
+  }
+  seedPreset() {
+    // L-shape field showing both thin (1-tile) and volumetric placement
+    for (let y = 8; y < 13; y++) for (let x = 10; x < 16; x++) this.cells[y * this.cols + x] = 1;
+    for (let y = 11; y < 13; y++) for (let x = 16; x < 26; x++) this.cells[y * this.cols + x] = 1;
+    for (let y = 4; y < 6; y++) for (let x = 28; x < 33; x++) this.cells[y * this.cols + x] = 1;
+  }
+  isCharged(gx, gy) {
+    if (gx < 0 || gy < 0 || gx >= this.cols || gy >= this.rows) return false;
+    return this.cells[gy * this.cols + gx] > 0;
+  }
+  onDown() {
+    if (!this.mouse.right) this.shockT = 0.4;
+  }
+  update(dt) {
+    // 1) paint / erase
+    if (this.mouse.x > 0 && (this.mouse.down || this.mouse.right)) {
+      const gx = Math.floor(this.mouse.x / this.cw);
+      const gy = Math.floor(this.mouse.y / this.ch);
+      if (gx >= 0 && gy >= 0 && gx < this.cols && gy < this.rows) {
+        this.cells[gy * this.cols + gx] = this.mouse.right ? 0 : 1;
+      }
+    }
+    // 2) player follows mouse (when present)
+    if (this.mouse.x > 0) {
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.18);
+      this.player.y = lerp(this.player.y, this.mouse.y, 0.18);
+    }
+    // 3) DOT if inside
+    const pgx = Math.floor(this.player.x / this.cw);
+    const pgy = Math.floor(this.player.y / this.ch);
+    const inside = this.isCharged(pgx, pgy);
+    if (inside) {
+      this.player.hp = Math.max(0, this.player.hp - dt * 0.12);
+      this.flash = Math.min(1, this.flash + dt * 3);
+    } else {
+      this.flash = Math.max(0, this.flash - dt * 4);
+      this.player.hp = Math.min(1, this.player.hp + dt * 0.06);
+    }
+    if (this.player.hp <= 0) this.player.hp = 1; // respawn
+
+    // 4) per-cell intensity flicker (electric hum)
+    const t = performance.now();
+    for (let i = 0; i < this.cells.length; i++) {
+      if (this.cells[i]) {
+        this.intensity[i] = 0.55 + Math.sin(t * 0.011 + i * 1.7) * 0.18 + (Math.random() - 0.5) * 0.08;
+      }
+    }
+
+    // 5) arc spawning
+    this.arcSpawnT += dt;
+    const spawnInterval = this.shockT > 0 ? 0.015 : 0.05;
+    if (this.arcSpawnT > spawnInterval) {
+      this.arcSpawnT = 0;
+      this.spawnArcs(inside);
+    }
+    if (this.shockT > 0) this.shockT -= dt;
+
+    // 6) arc lifetime
+    for (const a of this.arcs) a.life -= dt * 4;
+    this.arcs = this.arcs.filter(a => a.life > 0);
+
+    // 7) spark emission (omnidirectional, no buoyancy)
+    for (let i = 0; i < this.cells.length; i++) {
+      if (!this.cells[i]) continue;
+      if (Math.random() < 0.06) {
+        const gx = i % this.cols, gy = Math.floor(i / this.cols);
+        const ang = Math.random() * Math.PI * 2; // omnidirectional
+        const sp = 20 + Math.random() * 40;
+        this.sparks.push({
+          x: gx * this.cw + Math.random() * this.cw,
+          y: gy * this.ch + Math.random() * this.ch,
+          vx: Math.cos(ang) * sp,
+          vy: Math.sin(ang) * sp,
+          life: 0.4 + Math.random() * 0.3,
+        });
+      }
+    }
+    for (const s of this.sparks) {
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      // damping (sparks slow as they leave the field)
+      s.vx *= 0.9; s.vy *= 0.9;
+      s.life -= dt * 2.2;
+    }
+    this.sparks = this.sparks.filter(s => s.life > 0);
+  }
+  spawnArcs(playerInside) {
+    // Inter-cell arcs: for each charged cell, occasional arc between two random edge points
+    const arcsPerSpawn = this.shockT > 0 ? 6 : 2;
+    for (let k = 0; k < arcsPerSpawn; k++) {
+      // pick random charged cell
+      const candidates = [];
+      for (let i = 0; i < this.cells.length; i++) if (this.cells[i]) candidates.push(i);
+      if (!candidates.length) break;
+      const i = candidates[Math.floor(Math.random() * candidates.length)];
+      const gx = i % this.cols, gy = Math.floor(i / this.cols);
+      const x0 = gx * this.cw, y0 = gy * this.ch;
+      const edges = [
+        [x0 + Math.random() * this.cw, y0],
+        [x0 + Math.random() * this.cw, y0 + this.ch],
+        [x0, y0 + Math.random() * this.ch],
+        [x0 + this.cw, y0 + Math.random() * this.ch],
+      ];
+      let sIdx = Math.floor(Math.random() * 4);
+      let eIdx = (sIdx + 1 + Math.floor(Math.random() * 3)) % 4;
+      const path = [edges[sIdx]];
+      const numMid = Math.random() < 0.5 ? 1 : 2;
+      const sx = edges[sIdx][0], sy = edges[sIdx][1];
+      const ex = edges[eIdx][0], ey = edges[eIdx][1];
+      for (let m = 1; m <= numMid; m++) {
+        const f = m / (numMid + 1);
+        path.push([
+          sx + (ex - sx) * f + (Math.random() - 0.5) * 4,
+          sy + (ey - sy) * f + (Math.random() - 0.5) * 4,
+        ]);
+      }
+      path.push(edges[eIdx]);
+      this.arcs.push({
+        path, life: 0.5 + Math.random() * 0.3,
+        color: Math.random() < 0.5 ? '#ffee44' : '#ffffaa', strong: false,
+      });
+    }
+    // Player-targeted arcs (lightning reaches toward absorbed target)
+    if (playerInside && Math.random() < 0.4) {
+      const pgx = Math.floor(this.player.x / this.cw);
+      const pgy = Math.floor(this.player.y / this.ch);
+      const cx = pgx * this.cw + this.cw / 2;
+      const cy = pgy * this.ch + this.ch / 2;
+      const path = [[cx, cy]];
+      const steps = 3;
+      for (let s = 1; s <= steps; s++) {
+        const f = s / (steps + 1);
+        path.push([
+          cx + (this.player.x - cx) * f + (Math.random() - 0.5) * 6,
+          cy + (this.player.y - cy) * f + (Math.random() - 0.5) * 6,
+        ]);
+      }
+      path.push([this.player.x + rand(-3, 3), this.player.y + rand(-8, -2)]);
+      this.arcs.push({ path, life: 0.7, color: '#ffffff', strong: true });
+    }
+  }
+  render() {
+    const { ctx, w, h, cw, ch, cols, rows } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, w, h);
+
+    // (1) outer halo — drawn first, slightly inflated, low alpha
+    for (let i = 0; i < this.cells.length; i++) {
+      if (!this.cells[i]) continue;
+      const gx = i % cols, gy = Math.floor(i / cols);
+      // check edge
+      let edge = false;
+      if (!this.isCharged(gx + 1, gy) || !this.isCharged(gx - 1, gy) ||
+          !this.isCharged(gx, gy + 1) || !this.isCharged(gx, gy - 1)) edge = true;
+      if (edge) {
+        ctx.fillStyle = 'rgba(255,238,68,0.09)';
+        ctx.fillRect(gx * cw - 2, gy * ch - 2, cw + 4, ch + 4);
+      }
+    }
+
+    // (2) base volumetric fill with per-cell flicker
+    for (let i = 0; i < this.cells.length; i++) {
+      if (!this.cells[i]) continue;
+      const gx = i % cols, gy = Math.floor(i / cols);
+      const v = this.intensity[i];
+      ctx.fillStyle = `rgba(255,238,68,${0.20 + v * 0.20})`;
+      ctx.fillRect(gx * cw, gy * ch, cw, ch);
+    }
+
+    // (3) inner brightness band along boundary (subtle inner glow)
+    for (let i = 0; i < this.cells.length; i++) {
+      if (!this.cells[i]) continue;
+      const gx = i % cols, gy = Math.floor(i / cols);
+      ctx.fillStyle = 'rgba(255,255,180,0.10)';
+      if (!this.isCharged(gx, gy - 1)) ctx.fillRect(gx * cw, gy * ch, cw, 2);
+      if (!this.isCharged(gx, gy + 1)) ctx.fillRect(gx * cw, gy * ch + ch - 2, cw, 2);
+      if (!this.isCharged(gx - 1, gy)) ctx.fillRect(gx * cw, gy * ch, 2, ch);
+      if (!this.isCharged(gx + 1, gy)) ctx.fillRect(gx * cw + cw - 2, gy * ch, 2, ch);
+    }
+
+    // (4) persistent arcs
+    for (const a of this.arcs) {
+      ctx.globalAlpha = Math.min(1, a.life);
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = a.strong ? 1.6 : 1;
+      ctx.beginPath();
+      ctx.moveTo(a.path[0][0], a.path[0][1]);
+      for (let k = 1; k < a.path.length; k++) ctx.lineTo(a.path[k][0], a.path[k][1]);
+      ctx.stroke();
+      // strong arcs get a faint white core
+      if (a.strong) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(a.path[0][0], a.path[0][1]);
+        for (let k = 1; k < a.path.length; k++) ctx.lineTo(a.path[k][0], a.path[k][1]);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // (5) bouncing sparks
+    for (const s of this.sparks) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, s.life * 1.5)})`;
+      ctx.fillRect(s.x | 0, s.y | 0, 1, 1);
+    }
+
+    // (6) shock burst ring on click
+    if (this.shockT > 0) {
+      const r = (0.4 - this.shockT) * 90;
+      ctx.strokeStyle = `rgba(255,255,180,${this.shockT * 2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(this.player.x, this.player.y, r, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // (7) damage screen tint when player inside
+    if (this.flash > 0.1) {
+      ctx.fillStyle = `rgba(255,255,150,${this.flash * 0.10})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // (8) floor
+    ctx.fillStyle = '#332';
+    ctx.fillRect(0, h - 3, w, 3);
+
+    // (9) player + HP bar
+    if (this.mouse.x > 0) {
+      // player sprite
+      ctx.fillStyle = this.flash > 0.4 ? '#ffff88' : '#fc9';
+      ctx.fillRect(this.player.x - 5, this.player.y - 12, 10, 14);
+      // electric corona when inside
+      if (this.flash > 0.3) {
+        for (let k = 0; k < 4; k++) {
+          ctx.fillStyle = `rgba(255,255,255,${0.4 - k * 0.08})`;
+          ctx.fillRect(this.player.x - 5 - k, this.player.y - 12, 1, 14);
+          ctx.fillRect(this.player.x + 4 + k, this.player.y - 12, 1, 14);
+        }
+      }
+      // HP bar above
+      ctx.fillStyle = '#332'; ctx.fillRect(this.player.x - 10, this.player.y - 18, 20, 3);
+      ctx.fillStyle = this.player.hp < 0.4 ? '#f44' : '#4f8';
+      ctx.fillRect(this.player.x - 10, this.player.y - 18, 20 * this.player.hp, 3);
+    }
+
+    // (10) HUD legend (subtle)
+    ctx.fillStyle = '#665';
+    ctx.font = '8px ui-monospace,monospace';
+    ctx.fillText('drag=paint  rclick=erase  hover=player', 6, h - 6);
+  }
+}
 </script>
 <script>
 /* ============================================================
@@ -3117,6 +3395,7 @@ const DEMOS = {
   magnet: MagnetDemo,
   railgun: Railgun,
   static_buildup: StaticBuildup,
+  charged_field: ChargedField,
   // 07 Light
   torch_chain: TorchChain,
   mirror_reflect: MirrorReflect,

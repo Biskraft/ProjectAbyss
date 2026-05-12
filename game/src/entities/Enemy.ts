@@ -42,6 +42,12 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   facingRight = false;
   alive = true;
 
+  // Tile hazard status (TileHazards.ts HazardTarget 호환).
+  // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+  burnRemainingMs = 0;
+  burnTickAccum = 0;
+  chargedTickAccum = 0;
+
   // Physics
   protected grounded = false;
 

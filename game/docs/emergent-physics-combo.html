@@ -102,6 +102,7 @@
   <button class="preset-btn" data-preset="rope_chandelier">⑥ 로프+샹들리에</button>
   <button class="preset-btn" data-preset="updraft_breakable">⑦ Updraft+다이브</button>
   <button class="preset-btn" data-preset="acid_metal">⑧ Acid+금속 부식</button>
+  <button class="preset-btn" data-preset="charged_field">⑨ Charged 전기 필드</button>
   <button class="preset-btn danger" data-preset="clear">CLEAR</button>
 </div>
 
@@ -120,6 +121,7 @@
       <button class="tool-btn" data-tool="paint_metal"><span class="sw" style="background:#aab"></span>Metal</button>
       <button class="tool-btn" data-tool="paint_wood"><span class="sw" style="background:#864"></span>Wood</button>
       <button class="tool-btn" data-tool="paint_acid"><span class="sw" style="background:#88cc44"></span>Acid</button>
+      <button class="tool-btn" data-tool="paint_charged"><span class="sw" style="background:#ffee44"></span>Charged</button>
       <button class="tool-btn" data-tool="paint_breakable"><span class="sw" style="background:#643"></span>Break</button>
       <button class="tool-btn" data-tool="paint_spike"><span class="sw" style="background:#c44"></span>Spike</button>
       <button class="tool-btn" data-tool="paint_updraft"><span class="sw" style="background:#2CE8F5"></span>Updraft</button>
@@ -176,6 +178,7 @@
       <div class="lg"><span class="sw" style="background:#3a7bb8"></span>Water · drown / conduct</div>
       <div class="lg"><span class="sw" style="background:#ff5522"></span>Magma · burn DOT</div>
       <div class="lg"><span class="sw" style="background:#88ccff"></span>Ice · solid + slip</div>
+      <div class="lg"><span class="sw" style="background:#ffee44"></span>Charged · volumetric field · weak DOT</div>
       <div class="lg"><span class="sw" style="background:#3a2618"></span>Oil · flammable</div>
       <div class="lg"><span class="sw" style="background:#aab"></span>Metal · conductor</div>
       <div class="lg"><span class="sw" style="background:#88cc44"></span>Acid · DOT / corrode metal / conduct</div>
@@ -459,7 +462,7 @@ class World {
       const tool = this.tool.slice(6);
       const v = ({ wall: WALL, air: AIR, water: WATER, magma: MAGMA, ice: ICE, oil: OIL,
                    metal: METAL, wood: WOOD, breakable: BREAKABLE, spike: SPIKE,
-                   updraft: UPDRAFT, platform: PLATFORM, acid: ACID })[tool];
+                   updraft: UPDRAFT, platform: PLATFORM, acid: ACID, charged: CHARGED })[tool];
       if (v !== undefined) {
         // line from prev to current
         const gx0 = this.mouse.prevGx >= 0 ? this.mouse.prevGx : this.mouse.gx;
@@ -648,6 +651,7 @@ class World {
       if (fc === SPIKE) e.hp = 0;
       if (fc === MAGMA || this.fire[fci] > 0.5) e.hp = Math.max(0, e.hp - dt * 0.6);
       if (fc === ACID) e.hp = Math.max(0, e.hp - dt * 0.8); // acid DOT
+      if (fc === CHARGED) e.hp = Math.max(0, e.hp - dt * 0.5); // charged weak DOT
       if (fc === WATER && e.x + e.w / 2 > 0) { /* could drown — left as visual */ }
       if (this.elec[fci] > 0.5) e.hp = 0;
       // physics
@@ -822,6 +826,36 @@ class World {
         const by = ((t * 8) % CELL);
         ctx.fillStyle = 'rgba(180,230,120,0.6)';
         ctx.fillRect(gx * CELL + bx, gy * CELL + CELL - by - 2, 2, 2);
+      }
+      // charged: volumetric electric field (zigzag arcs + bouncing white sparks)
+      if (c === CHARGED) {
+        const cx0 = gx * CELL, cy0 = gy * CELL;
+        // zigzag arc between random edge points (refreshed each frame)
+        if (Math.random() < 0.35) {
+          const sides = [
+            [cx0 + Math.random() * CELL, cy0],
+            [cx0 + Math.random() * CELL, cy0 + CELL],
+            [cx0, cy0 + Math.random() * CELL],
+            [cx0 + CELL, cy0 + Math.random() * CELL],
+          ];
+          const s = sides[Math.floor(Math.random() * 4)];
+          const e = sides[Math.floor(Math.random() * 4)];
+          ctx.strokeStyle = Math.random() < 0.5 ? '#ffee44' : '#ffff88';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(s[0], s[1]);
+          // 1~2 mid zigzag points
+          const mx = (s[0] + e[0]) / 2 + (Math.random() - 0.5) * 4;
+          const my = (s[1] + e[1]) / 2 + (Math.random() - 0.5) * 4;
+          ctx.lineTo(mx, my);
+          ctx.lineTo(e[0], e[1]);
+          ctx.stroke();
+        }
+        // bouncing white spark particles (omnidirectional, no buoyancy)
+        if (Math.random() < 0.4) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(cx0 + Math.random() * CELL, cy0 + Math.random() * CELL, 1, 1);
+        }
       }
       // ice shine
       if (c === ICE) {
@@ -1044,6 +1078,21 @@ class World {
       // enemy directly below
       this.enemies.push({ x: 30 * CELL - 7, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 0 });
       this.setDesc('<b>⑥ 로프+샹들리에.</b> 천장에 매달린 무게추가 적 위에. <b>DRAG</b> 도구로 로프 중간을 클릭해 절단 → 무게추 낙하 → 적 처치.');
+    }
+    else if (name === 'charged_field') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // 좌측: 얇은 1타일 두께 (튜토리얼 트랩)
+      this.fillRect(10, 32, 16, 32, CHARGED);
+      // 가운데: 부피 영역 (3x4) — 의도된 위험 구역
+      this.fillRect(25, 28, 30, 32, CHARGED);
+      // 우측: 다리 위로 통과해야 하는 좁은 통로 (필드 + platform 조합)
+      this.fillRect(40, 30, 50, 30, PLATFORM);
+      this.fillRect(40, 31, 50, 33, CHARGED);
+      // 적 배치 (필드 안에 들어가서 DOT 받음)
+      this.enemies.push({ x: 12 * CELL, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.enemies.push({ x: 27 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.enemies.push({ x: 45 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: -1 });
+      this.setDesc('<b>⑨ Charged 전기 필드 (Option A).</b> 노란 반투명 부피 + zigzag 전기 아크 + 흰 spark. <b>표면 wave 없음</b> 이 water 와 결정적 차이. 적이 필드 안에 체류하면 약한 DOT (0.5 hp/s). 좌(1타일) · 중(3x4 부피) · 우(platform+field 조합) 의 배치 변형 비교.');
     }
     else if (name === 'acid_metal') {
       this.fillRect(0, 33, GRID_W - 1, 34, WALL);

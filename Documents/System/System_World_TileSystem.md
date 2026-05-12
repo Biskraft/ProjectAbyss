@@ -21,6 +21,9 @@
 | TIL-11 | IntGrid | oil (11) | P1 | ⬜ 제작 필요 | 가연성 슬릭. 화 인챈트로 연쇄 발화 |
 | TIL-12 | IntGrid | metal (12) | P1 | ⬜ 제작 필요 | 뇌 인챈트 도체. water/acid 연결 시 풀 전체 감전 |
 | TIL-13 | IntGrid | acid (13) | P2 | ⬜ 제작 필요 | DOT + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 |
+| TIL-14 | IntGrid | wood (14) | P1 | ⬜ 제작 필요 | 솔리드 목재. fire 전파 slow burn (~3s). 가연 — BurnableZone 자동 배치 |
+| TIL-15 | IntGrid | grass (15) | P1 | ⬜ 제작 필요 | 통과 1-타일 식생 cover. fast burn (~0.6s). 가연 — BurnableZone 자동 배치 |
+| TIL-30 | Entity (LDtk) | BurnableZone | P1 | ✅ 코드 완료 | 절차적 풀/목재 배치 영역 마커 (rect, Type/Density/Seed 필드) |
 | TIL-20 | Entity | CrackedFloor | P0 | ✅ 완료 | 다이브 어택 파괴 |
 | TIL-21 | Entity | CollapsingPlatform | P0 | ✅ 완료 | 착지 후 무너짐 |
 | TIL-22 | Entity | GrowingWall | P1 | ✅ 완료 | 주기적 확장/축소 |
@@ -160,20 +163,77 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 ### 2.8. charged (8) - 전기 [뇌]
 
-- 통과 가능. 영역 내 체류 시 **약한 지속 데미지 (DoT)**
+- **통과 가능 부피 영역** (water 와 동등한 placement 모델 — 1+ 셀 자유 배치)
+- 영역 내 체류 시 **약한 지속 데미지 (DoT)**
 - 데미지: 0.5초마다 최대HP 1% (spike보다 약함, 체류 시간에 비례)
 - 감전 상태이상 미부여 (약한 환경 위험이지 전투 디버프가 아님)
-- 시각: 노란 사각형 + 전기 스파크 (Phase 0: 노란 사각형)
+- **시각 (확정, 2026-05-11):**
+  - 노란 반투명 사각형 (`#FFEE44` 70% alpha) + 셀 가장자리에서 무작위 방향으로 zigzag 형성되는 전기 아크 (`#FFEE44` ~ `#FFFF80`)
+  - 흰색 1×1 spark 파티클이 셀 내부에서 튕김. **표면 wave 없음** (water 와 구분)
+  - 입자 부력 없음 (사방 무작위) — water 의 위로 솟는 거품과 구분
+- **세계관 정당화:** 거대 빌더의 노출 회로 / 부서진 reactor 의 플라즈마 누출 / 폐허 연구소 잔존 전기장
 - **속성 상호작용:** 없음 (독립)
 
 ### 2.9. breakable (9) - 파괴 가능 벽
 
 - 솔리드 (wall과 동일 충돌)
 - 플레이어 공격 1히트 → air(0)으로 전환
-- 전환 시 파편 파티클 (Phase 0: 없음)
+- 전환 시 파편 파티클
 - 비밀 통로, 숨겨진 보상 방 입구에 사용
 - **저장 규칙:** 같은 지층 내에서는 fullGrid 메모리로 유지. 지층 전환/재진입 시 리셋
-- 시각 단서: wall과 **미세하게 다른 색** 또는 **균열 텍스처** (Phase 0: 약간 어두운 갈색)
+- 시각 단서: wall과 **미세하게 다른 색** 또는 **균열 텍스처** (기본 어두운 갈색 + 균열선)
+
+### 2.10. void (10) - 공허 / 아이템계 진입 트리거
+
+- 통과 가능. **데미지 없음** (낙사 처리 아님)
+- 발 진입 시 **itemworld 낙하 시퀀스 트리거** — DEC-039 Trapdoor Descent + 지층 축소 참조
+- 월드 측: 아이템계 진입 의식의 일부로서 anvil → FloorCollapse → void 낙하 시퀀스에 사용
+- 아이템계 내부: 지층 간 (N → N+1) trapdoor 표현
+- **시각:** 검은 사각형 (`#181425`) + 무한히 빠지는 듯한 다크 그라데이션
+- **속성 상호작용:** 없음 (원소 무관)
+- **저장 규칙:** 정적 (런타임에 상태 변경 없음)
+
+### 2.11. oil (11) - 가연성 슬릭
+
+- 통과 가능. **이동 마찰 약간 감소** (ice 만큼은 아님)
+- **화 인챈트 1히트 → 즉시 발화 + 인접 oil 셀로 연쇄 전파** (5px/tick 확률 55%)
+- 발화 후 1.8초 burn → air(0) 전환 (재 없음)
+- 발화 중 셀 위 적 → 화상(Burn) 상태이상 (`System_Combat_Elements.md §3.2`)
+- 다른 원소 (빙/뇌) 와는 무반응 (oil 은 단순 fuel — fuel + spark = fire)
+- **시각:** 어두운 갈색 (`#3A2618`) + 표면 반사 하이라이트 (얇은 노란 빛). 발화 시 oil 색이 fire 오버레이로 덮임
+- **세계관 정당화:** 거대 빌더의 누수 윤활유 / 폐허 발전기의 연료 / 의식용 등잔 기름
+- **속성 상호작용:**
+  - + 화 → 발화 (위 규칙)
+  - + 다른 원소 → 무반응
+  - + spike/void → 그대로 (oil 위에 spike 배치 시 둘 다 효과)
+
+### 2.12. metal (12) - 전도성 금속
+
+- **솔리드** (wall 과 동일 충돌)
+- **뇌 인챈트 도체:** 뇌 공격이 metal 셀에 적중하거나 인접한 water/acid 가 뇌에 감전되면 **flood-fill 로 connected metal 전체에 전파**
+- 한 번 전도된 metal 은 인접 water/acid 도 즉시 감전시킴 (다단 전도)
+- 다른 원소 (화/빙) 와는 무반응
+- 산성 (acid) 인접 시 **점진 부식** — 6%/tick 확률로 metal → air(0). 시간 트랩 / 절차적 다리 파괴 활용
+- **시각:** 회청색 솔리드 (`#A8A8B8`) + 가는 리벳/이음새 라인. 감전 중 노란 spark 오버레이
+- **세계관 정당화:** 거대 빌더의 강철 골조 / 공장 컨베이어 / 폐기된 무기 잔해
+- **속성 상호작용:**
+  - + 뇌 → 전도 (위 규칙)
+  - + acid 인접 → 부식
+  - + 다른 원소 → 무반응
+
+### 2.13. acid (13) - 산성 풀
+
+- 통과 가능. 영역 내 체류 시 **DOT (HP 1.6%/s)** — magma 의 절반 강도
+- **인접 metal 부식:** 6%/tick 확률로 metal → air (시간차 다리 끊김 트랩)
+- **뇌 전도체:** 뇌 공격 시 connected acid 전체로 flood-fill 전파 (water 와 동등). water 와 인접 시 두 풀이 연결된 단일 conductor body 로 처리
+- **magma 인접 시 증발:** 15%/tick 확률로 acid → air + 스팀 VFX
+- 화 / 빙 공격에는 무반응 (산성은 액체이지만 fire 로 끓지 않음 — 단순화)
+- **시각:** 산성 녹색 (`#88CC44`) + 표면 wave (water 와 동등) + 작은 노란-녹색 기포가 셀 내부에서 위로 떠오르는 애니메이션
+- **세계관 정당화:** 폐허 연구소의 화학 잔류물 / 거대 빌더의 부식성 냉각수 / 부패한 의식 잔존물
+- **속성 상호작용:**
+  - + 뇌 → 전도 (water 동등)
+  - + magma 인접 → 증발
+  - 자체적으로 metal 부식 (passive)
 
 ---
 
@@ -189,11 +249,23 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 | 타일 \\ 공격 원소 | 화 | 빙 | 뇌 | 무속성 |
 |:---|:---:|:---:|:---:|:---:|
-| **water (2)** | 증기 폭발 (범위 피해 + 물 제거) | 결빙 → wall(1) 임시 3초 | 감전 연쇄 (물 위 적 전원 감전) | - |
+| **water (2)** | 증기 폭발 (범위 피해 + 물 제거) | 결빙 → wall(1) 임시 3초 | 감전 연쇄 (flood-fill, 위 적 전원 감전) | - |
 | **magma (6)** | - | 냉각 → wall(1) 임시 3초 | - | - |
 | **ice (7)** | 융해 → water(2) 영구 전환 | - | - | - |
 | **charged (8)** | - | - | - | - |
 | **breakable (9)** | 파괴 | 파괴 | 파괴 | 파괴 |
+| **oil (11)** | **발화 → 연쇄 전파 → 1.8s 후 air** | - | - | - |
+| **metal (12)** | - | - | **flood-fill 전도 (인접 water/acid 까지 확장)** | - |
+| **acid (13)** | - | - | **flood-fill 전도 (water 와 등가)** | - |
+
+**자동 상호작용 (공격 원소 없이 발생):**
+
+| 인접 셀 A | 인접 셀 B | 결과 |
+|:---|:---|:---|
+| acid (13) | metal (12) | 6%/tick metal → air (점진 부식) |
+| acid (13) | magma (6) | 15%/tick acid → air + 스팀 (증발) |
+| magma (6) | ice (7) | 4%/tick ice → water (자연 융해) |
+| ice (7) | water (2) | 4%/tick water → 임시 frozen (자연 결빙) |
 
 ### 3.3. 상호작용 상세
 
@@ -223,6 +295,34 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 - 얼음 바닥이 물로 바뀜 (지형 영구 변화)
 - 전략: 얼음 바닥 위의 적이 물에 빠짐 → 뇌로 추가타
 
+**화 + oil → 연쇄 발화**
+- 적중 oil 셀 fire 값 1.0 으로 설정
+- 매 tick (~120ms) 인접 4방 oil 셀로 55% 확률 전파
+- 발화 oil 위 적 → 화상(Burn) 상태이상 부여
+- 발화 후 1.8초 burn → air(0) 전환 (재 잔존 없음)
+- 전략: 적 동선 앞에 oil 깔고 한 점만 점화 → 연쇄 폭격
+
+**뇌 + metal → flood-fill 전도**
+- 적중 metal 셀과 connected 4방 metal 그룹 전체 감전
+- 인접 water/acid 가 있으면 그 풀까지 확장 → 풀 위 적 즉사
+- 전략: 금속 다리 → 물 표면 → 풀 안의 모든 적에게 광역 처치
+- 데드셀의 Shock chain 과 유사하나 grid flood-fill 로 결정론적
+
+**뇌 + acid → flood-fill 전도 (water 와 등가)**
+- acid 는 water 와 동등한 conductor body 로 처리
+- 인접한 water + acid + metal 셀들이 단일 connected component 로 묶임
+- 전략: acid 풀 위 적 + water 풀 위 적을 한 번에 처치
+
+**acid + metal (자동, 패시브)**
+- 매 tick 6% 확률로 acid 인접 metal → air
+- 시간차 트랩 — 금속 다리가 점진적으로 부식되며 끊김
+- 전략: acid 풀 위에 metal 다리 → 적이 건너는 동안 부식 → 적 추락 → DOT 사망
+
+**acid + magma (자동, 패시브)**
+- 매 tick 15% 확률로 magma 인접 acid → air
+- 산이 magma 의 열에 증발 → 스팀 VFX
+- 전략: 산성 풀을 magma 로 차단 / 우회 경로 강제
+
 ---
 
 ## 4. 아이템 재질 → 타일 테마 매핑
@@ -235,11 +335,13 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 | 아이템 재질 | 주 타일 | 부 타일 | 분위기 |
 |:---|:---|:---|:---|
-| 철/강철 (기본) | wall, platform | charged(낮은 확률) | 단단하고 차가운 |
-| 화염/용암 | magma | spike | 뜨겁고 위험한 |
+| 철/강철 (기본) | wall, metal | charged (낮은 확률) | 단단하고 차가운, 전도성 위험 |
+| 화염/용암 | magma | spike, oil | 뜨겁고 위험한 |
 | 빙결/결정 | ice | water | 미끄럽고 투명한 |
-| 번개/전기 | charged | platform(편도) | 날카롭고 불안정 |
-| 고대/부식 | breakable | spike, water | 낡고 무너지는 |
+| 번개/전기 | charged | metal, platform(편도) | 날카롭고 불안정 |
+| 고대/부식 | breakable | spike, acid | 낡고 무너지는, 산성 잔류 |
+| 산성/연금 | acid | metal, breakable | 부식성, 시간차 |
+| 유기/연료 | oil | wood (Entity 후보), breakable | 가연성, 의식 잔존 |
 
 ### 4.3. 구현 방식
 
@@ -267,6 +369,10 @@ Phase 0에서는 아이템 재질 매핑 미적용. 모든 아이템이 동일�
 | ice (7) | ✓ (빙결 보존소, Tier 6) | ✓ (빙결 아이템) |
 | charged (8) | ✓ (연구소 폐허, Tier 5) | ✓ (전기 아이템) |
 | breakable (9) | ✓ (비밀 통로) | ✓ (비밀 통로) |
+| void (10) | ✓ (anvil 진입 시퀀스) | ✓ (지층 간 trapdoor, DEC-039) |
+| oil (11) | ✓ (등잔/연료고) | ✓ (유기/연료 아이템) |
+| metal (12) | ✓ (구조물 골조) | ✓ (철/강철, 번개/전기 아이템) |
+| acid (13) | ✓ (연구소 잔류) | ✓ (산성/연금 아이템, 고대/부식) |
 
 **차이점:**
 - 월드: 타일이 **능력 게이트**와 결합 (수중 호흡 없으면 물 진입 불가)
@@ -278,66 +384,130 @@ Phase 0에서는 아이템 재질 매핑 미적용. 모든 아이템이 동일�
 
 ## 6. Phase별 구현 순서
 
-### Phase 0 (현재)
+### Phase 0 (완료)
 
-| 타일 | 상태 | 작업 |
+| 타일 | 상태 | 비고 |
 |:---|:---|:---|
-| wall (1) | ✅ | - |
-| water (2) | ✅ | - |
-| platform (3) | ✅ | - |
-| updraft (4) | ✅ | - |
-| spike (5) | ⬜ | Entity Spike를 IntGrid로 전환. Physics.ts에 접촉 데미지 로직 추가 |
-| breakable (9) | ⬜ | Physics.ts에 솔리드 충돌 + 공격 히트 시 air 전환 로직 추가 |
+| wall (1) / water (2) / platform (3) / updraft (4) | ✅ | 코어 |
+| spike (5) | ✅ | IntGrid 편입 완료 |
+| ice (7) | ✅ | 마찰 0 + 화 융해 |
+| breakable (9) | ✅ | 1히트 파괴 |
+| void (10) | ✅ | itemworld 진입 시퀀스 |
 
-### Phase 1
+### Phase 1 (현재 작업 대상 — 일괄 추가)
+
+> **결정 (2026-05-11):** LDtk IntGrid 5종을 한 번에 등록 + Physics.ts 함수를 한 번에 구현.
+
+| 타일 | LDtk 작업 | Physics.ts 작업 | 상호작용 |
+|:---|:---|:---|:---|
+| magma (6) | slot 6 identifier `magma`, color `#FF6600`, tile 부여 | `isMagma()` 추가. 접촉 시 Burn 상태이상 (HP 2%/s, 3s) | 빙 인챈트 → 3s wall ; acid 인접 시 acid 증발 |
+| charged (8) | slot 8 identifier `charged`, color `#FFEE44`, tile 부여 | `isCharged()` 추가. 0.5s마다 HP 1% DOT (체류) | 없음 (독립) |
+| oil (11) | slot 11 identifier `oil`, color `#3A2618` | `isOil()` 추가. 화 공격 시 연쇄 발화 grid mutation | 화 → 1.8s burn → air |
+| metal (12) | slot 12 identifier `metal`, color `#A8A8B8` | `isMetal()` + `floodFillConductor()` (flood-fill 뇌 전도) | 뇌 → 인접 water/acid 까지 전도 ; acid 인접 → 부식 |
+| acid (13) | slot 13 identifier `acid`, color `#88CC44` | `isAcid()` 추가. HP 1.6%/s DOT + 인접 metal 부식 cellTick | 뇌 → water 와 등가 ; magma 인접 → 증발 |
+
+**동기화 대상:**
+- `Physics.ts:73` `isSpecialVisualTile()` — magma·charged·oil·acid 시각 보존 필요 타일 추가
+- `Sheets/` 영향 없음 (IntGrid 는 LDtk-only)
+- 기존 룸 데이터 영향 없음 (신규 슬롯만 추가)
+
+### Phase 2 (후속)
 
 | 타일 | 작업 |
 |:---|:---|
-| magma (6) | IntGrid 추가. 접촉 시 화상 부여. 빙 냉각 상호작용 |
-| ice (7) | IntGrid 추가. 마찰 0 물리. 화 융해 상호작용 |
-| charged (8) | IntGrid 추가. 접촉 시 감전 부여 |
-| 속성 상호작용 | 화+water→증기, 빙+water→결빙, 뇌+water→감전연쇄 |
-
-### Phase 2
-
-| 타일 | 작업 |
-|:---|:---|
-| 아이템 재질 테마 매핑 | CSV TileTheme 컬럼 + 방 선택 가중치 |
+| 아이템 재질 테마 매핑 | CSV TileTheme 컬럼 + 방 선택 가중치. `Content_Stats_Weapon_List.csv` |
 | 타일 시각 (오토타일) | 각 IntGrid 값별 LDtk Auto-Tile 룰 정의 |
+| frozen 시각 통일 | water/magma 가 ice 로 임시 전환된 상태의 통일 표현 (현재 frozen overlay 임시) |
 
 ---
 
 ## 7. LDtk 설정 가이드
 
-### 7.1. IntGrid 등록
+### 7.1. IntGrid 등록 (Collisions 레이어)
 
-Collisions 레이어에 새 값 추가:
+> **컨벤션:** identifier 는 **lowercase** (현행 `walls`, `water`, `ice` 와 일치). PascalCase 금지.
+> **현재 LDtk 상태:** slots 1-5·7·9·10 은 active. **slots 6·8 은 색상만 예약된 null** (즉시 identifier 부여 필요).
 
-| 값 | identifier | 색 | 비고 |
-|:---:|:---|:---|:---|
-| 5 | spike | #FF4444 | 빨강 |
-| 6 | magma | #FF6600 | 주황 |
-| 7 | ice | #88CCFF | 하늘색 |
-| 8 | charged | #FFEE44 | 노랑 |
-| 9 | breakable | #886644 | 어두운 갈색 |
+| 값 | identifier | 색 | 충돌 | 비고 |
+|:---:|:---|:---|:---|:---|
+| 1 | walls | `#B1824C` | 솔리드 | 기존 |
+| 2 | water | `#7297E5` | 통과 | 기존 |
+| 3 | platform | `#14248B` | 편도 | 기존 |
+| 4 | updraft | `#2CE8F5` | 통과 | 기존 |
+| 5 | spike | `#FF0044` | 통과 | 기존 |
+| **6** | **magma** | `#FF6600` | **통과** | **신규 (slot 예약됨, identifier 부여 필요)** |
+| 7 | ice | `#124E89` | 솔리드 | 기존 |
+| **8** | **charged** | `#FFEE44` | **통과** | **신규 (slot 예약됨, identifier 부여 필요)** |
+| 9 | breakable | `#886644` | 솔리드 | 기존 |
+| 10 | void | `#181425` | 통과 | 기존 |
+| **11** | **oil** | `#3A2618` | **통과** | **신규** |
+| **12** | **metal** | `#A8A8B8` | **솔리드** | **신규** |
+| **13** | **acid** | `#88CC44` | **통과** | **신규** |
+| **14** | **wood** | `#9A6E3A` | **솔리드** | **신규 — 가연 (slow burn 3s)** |
+| **15** | **grass** | `#6BA84F` | **통과** | **신규 — 가연 (fast burn 0.6s), 1-타일 cover** |
 
 ### 7.2. 배치 규칙
 
-- spike: 바닥/벽/천장에 1타일 두께로 배치. 연속 배치 가능
-- magma: water처럼 영역으로 배치. 최소 2x2
-- ice: wall 대체로 배치 (바닥 표면). 연속 배치 권장
-- charged: spike처럼 1타일 배치 또는 영역 배치
-- breakable: wall과 동일하게 배치. 반드시 뒤에 빈 공간(비밀 통로) 확보
+- **spike (5):** 바닥/벽/천장에 1타일 두께. 연속 배치 가능
+- **magma (6):** water 와 동일 영역 배치. 최소 2x2 권장
+- **ice (7):** wall 대체로 바닥 표면 연속 배치 권장
+- **charged (8):** 부피 영역 배치 (1+ 타일 자유). water 와 동일 모델
+- **breakable (9):** wall 과 동일. 반드시 뒤에 빈 공간 (비밀 통로) 확보
+- **void (10):** anvil 의식 / 지층 trapdoor 등 의도된 진입 트리거 위치에만
+- **oil (11):** 바닥에 얕은 영역 배치 (1~2 타일 두께 권장). 적 동선 위에 깔아 화 연쇄 유도
+- **metal (12):** 다리 / 발판 / 회로 형태. **acid 풀 위에 배치 시 자연 부식 트랩 형성**
+- **acid (13):** water 와 동일 영역 모델. **금속 인접 시 자동 부식 발생 — 디자인 의도 확인**
+
+### 7.2.1. BurnableZone Entity (절차적 풀/목재 배치 마커)
+
+**용도:** 핸드페인트 vs 절차의 **하이브리드**. LDtk 에서 룸 디자이너는 "여기는 식생 영역"이라는 의도만 rect 로 칠해 두고, 코드(`BurnableZonePass.ts`) 가 셀 단위 분포는 자동 채움.
+
+**LDtk Editor 정의:**
+
+```
+Identifier: BurnableZone
+Resizable: true (rect)
+Pivot: 0, 0 (top-left)
+Color: #6BA84F (UI 표시용)
+Fields:
+  - Type: Enum (Grass | Wood | Mixed)   default = Grass
+  - Density: Float (0..1)               default = 0.4
+  - Seed: Int                           default = 0 (0 = non-deterministic)
+```
+
+**배치 규칙 (코드가 자동 수행):**
+
+- **grass (15):** rect 내부에서 `WALL 위에 AIR 있는` 셀의 AIR 슬롯에 배치 (1-타일 cover)
+- **wood (14):** rect 내부에서 WALL 가로 run 길이 ≥ 3 인 셀의 WALL 을 wood 로 치환 (다리·바닥 변형)
+- **Blacklist:** 1-셀 반경 내 magma · charged · spike · water · acid 있으면 skip (ECHORIS 톤: 식생/목재는 위험 근처에서 자라지 않음)
+- **Cluster bias:** grass 셀 4-이웃에 grass 있으면 추가 +0.20 확률 (군락 형성)
+- **Mixed:** rng 50/50 로 grass·wood 분기
+- **Seed > 0:** mulberry32 PRNG 로 결정론적 분포 (같은 룸 = 항상 같은 모습)
+
+**적용 시점:**
+- **월드:** `LdtkWorldScene.loadLevel()` 의 collisionGrid 복사 직후 (룸 전환마다)
+- **아이템계:** `ItemWorldScene.buildFullMap()` 의 각 룸 stamp 직후 (room offset 으로 fullGrid 좌표 보정)
+
+**Fire 전파 시 burn duration (TileMutator):**
+
+| 타일 | spread chance (인접) | burn duration |
+|:---|:---:|:---:|
+| grass (15) | 0.85 (fast) | 0.6 s |
+| oil (11) | 0.55 | 1.8 s |
+| wood (14) | 0.30 (slow) | 3.0 s |
+
+전부 burn 종료 시 AIR 로 소진 (재 잔존 없음).
 
 ### 7.3. Entity 유지 대상
 
-다음은 IntGrid로 전환하지 않고 Entity로 유지:
+다음은 IntGrid 로 전환하지 않고 Entity 로 유지:
 
 | Entity | 이유 |
 |:---|:---|
 | CrackedFloor | 다이브 어택 전용 파괴 + 상태 변화 |
 | CollapsingPlatform | 타이머 상태 (착지→무너짐→재생) |
 | GrowingWall | 주기적 확장/축소 + 슬라임 생성 |
+| Wood (가연 구조물) | 향후 추가 시 IntGrid 대신 Entity 권장 (slow burn 상태 추적) |
 
 ---
 

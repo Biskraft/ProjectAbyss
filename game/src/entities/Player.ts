@@ -176,6 +176,18 @@ export class Player extends Entity implements CombatEntity {
   def = PlayerConst.BaseDef;
   facingRight = true;
 
+  // ============================================================
+  // Tile hazard status (TileHazards.ts duck-typed fields)
+  // magma 접촉 → Burn 3s · charged 체류 → 0.5s tick · acid 체류 → 연속 DOT
+  // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+  // ============================================================
+  /** Burn 상태 잔여 ms (0 = 정상). magma/fire 접촉 시 설정·갱신. */
+  burnRemainingMs = 0;
+  /** Burn 1초 tick 누적자 (HazardTarget 호환). */
+  burnTickAccum = 0;
+  /** Charged 0.5초 tick 누적자 (필드 진입 중에만 증가). */
+  chargedTickAccum = 0;
+
   /**
    * Currently equipped weapon type — set by the scene whenever inventory
    * equip state changes. `null` = bare hand (falls back to Combo.csv FX).

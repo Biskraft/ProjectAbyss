@@ -14,7 +14,7 @@ export function aabbOverlap(a: AABB, b: AABB): boolean {
   );
 }
 
-const TILE_SIZE = 16;
+export const TILE_SIZE = 16;
 
 /**
  * Tile types (shared by procedural + LDtk):
@@ -24,14 +24,41 @@ const TILE_SIZE = 16;
  *   3 = one-way platform
  *   4 = updraft (passable, applies strong upward wind)
  *   5 = spike (passable, contact = physical damage + respawn)
- *   6 = magma (passable, contact = burn DoT) [Phase 1]
+ *   6 = magma (passable, contact = Burn 3s + DoT) [Phase 1]
  *   7 = ice (solid, zero friction surface) [Phase 1]
- *   8 = charged (passable, contact = shock DoT) [Phase 1]
+ *   8 = charged (passable, contact = Shock DoT volumetric field) [Phase 1]
  *   9 = breakable (solid, 1-hit destroy → air) [Phase 0]
  *  10 = void (passable, contact = void drop sequence, no damage)
+ *  11 = oil (passable, slight slip, ignites from Fire attack → fire spreads + air) [Phase 1]
+ *  12 = metal (solid, Thunder flood-fill conductor, acid corrodes) [Phase 1]
+ *  13 = acid (passable, DoT + corrodes adjacent metal + conducts thunder + vapor on magma) [Phase 1]
+ *  14 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
+ *  15 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
+ *
+ * GDD: Documents/System/System_World_TileSystem.md
  */
+export const TILE_AIR = 0;
+export const TILE_WALL = 1;
+export const TILE_WATER = 2;
+export const TILE_PLATFORM = 3;
+export const TILE_UPDRAFT = 4;
+export const TILE_SPIKE = 5;
+export const TILE_MAGMA = 6;
+export const TILE_ICE = 7;
+export const TILE_CHARGED = 8;
+export const TILE_BREAKABLE = 9;
+export const TILE_VOID = 10;
+export const TILE_OIL = 11;
+export const TILE_METAL = 12;
+export const TILE_ACID = 13;
+export const TILE_WOOD = 14;
+export const TILE_GRASS = 15;
+
 export function isSolid(tileId: number): boolean {
-  return tileId === 1 || tileId === 7 || tileId === 9;
+  return (
+    tileId === TILE_WALL || tileId === TILE_ICE || tileId === TILE_BREAKABLE ||
+    tileId === TILE_METAL || tileId === TILE_WOOD
+  );
 }
 
 export function isOneWay(tileId: number): boolean {
@@ -59,7 +86,45 @@ export function isIce(tileId: number): boolean {
 }
 
 export function isVoid(tileId: number): boolean {
-  return tileId === 10;
+  return tileId === TILE_VOID;
+}
+
+export function isMagma(tileId: number): boolean {
+  return tileId === TILE_MAGMA;
+}
+
+export function isCharged(tileId: number): boolean {
+  return tileId === TILE_CHARGED;
+}
+
+export function isOil(tileId: number): boolean {
+  return tileId === TILE_OIL;
+}
+
+export function isMetal(tileId: number): boolean {
+  return tileId === TILE_METAL;
+}
+
+export function isAcid(tileId: number): boolean {
+  return tileId === TILE_ACID;
+}
+
+export function isWood(tileId: number): boolean {
+  return tileId === TILE_WOOD;
+}
+
+export function isGrass(tileId: number): boolean {
+  return tileId === TILE_GRASS;
+}
+
+/** Cell types that flood-fill conduct Thunder (water + metal + acid). */
+export function isConductor(tileId: number): boolean {
+  return tileId === TILE_WATER || tileId === TILE_METAL || tileId === TILE_ACID;
+}
+
+/** Cell types that can ignite and propagate fire (Fire enchant seed or 4-neighbor spread). */
+export function isFlammable(tileId: number): boolean {
+  return tileId === TILE_OIL || tileId === TILE_WOOD || tileId === TILE_GRASS;
 }
 
 /**
@@ -71,7 +136,11 @@ export function isVoid(tileId: number): boolean {
  * the filtered wall layer.
  */
 export function isSpecialVisualTile(tileId: number): boolean {
-  return tileId === 2 || tileId === 4 || tileId === 5 || tileId === 6 || tileId === 8 || tileId === 10;
+  return (
+    tileId === TILE_WATER || tileId === TILE_UPDRAFT || tileId === TILE_SPIKE ||
+    tileId === TILE_MAGMA || tileId === TILE_CHARGED || tileId === TILE_VOID ||
+    tileId === TILE_OIL || tileId === TILE_ACID || tileId === TILE_GRASS
+  );
 }
 
 /** Check if an entity is standing ON a one-way (drop-through) platform — for tutorial gating. */
@@ -133,6 +202,56 @@ export function isInVoid(x: number, y: number, width: number, height: number, ro
     if (isVoid(getTile(roomData, col, feetRow))) return true;
   }
   return false;
+}
+
+/** AABB-overlap any-cell predicate factory for hazard tiles. */
+function isInTile(
+  pred: (t: number) => boolean,
+): (x: number, y: number, w: number, h: number, roomData: number[][]) => boolean {
+  return (x, y, w, h, roomData) => {
+    const l = Math.floor(x / TILE_SIZE);
+    const r = Math.floor((x + w - 1) / TILE_SIZE);
+    const t = Math.floor(y / TILE_SIZE);
+    const b = Math.floor((y + h - 1) / TILE_SIZE);
+    for (let row = t; row <= b; row++) {
+      for (let col = l; col <= r; col++) {
+        if (pred(getTile(roomData, col, row))) return true;
+      }
+    }
+    return false;
+  };
+}
+
+/** Check if an entity AABB overlaps any magma tile (any cell touching = hit). */
+export const isInMagma = isInTile(isMagma);
+
+/** Check if an entity AABB overlaps any charged tile (any cell = hit). */
+export const isInCharged = isInTile(isCharged);
+
+/** Check if an entity AABB overlaps any oil tile (feet on oil = slip + fire vulnerability). */
+export const isInOil = isInTile(isOil);
+
+/** Check if an entity AABB overlaps any acid tile. */
+export const isInAcid = isInTile(isAcid);
+
+/**
+ * Enumerate AABB cells whose tile satisfies `pred`. For Thunder seed cell pick,
+ * fire-source check, etc.
+ */
+export function findCellInAABB(
+  x: number, y: number, w: number, h: number, roomData: number[][],
+  pred: (t: number) => boolean,
+): { gx: number; gy: number } | null {
+  const l = Math.floor(x / TILE_SIZE);
+  const r = Math.floor((x + w - 1) / TILE_SIZE);
+  const t = Math.floor(y / TILE_SIZE);
+  const b = Math.floor((y + h - 1) / TILE_SIZE);
+  for (let row = t; row <= b; row++) {
+    for (let col = l; col <= r; col++) {
+      if (pred(getTile(roomData, col, row))) return { gx: col, gy: row };
+    }
+  }
+  return null;
 }
 
 /**
@@ -390,7 +509,7 @@ export function tryDashCornerCorrect(
   return null;
 }
 
-function getTile(roomData: number[][], col: number, row: number): number {
+export function getTile(roomData: number[][], col: number, row: number): number {
   if (row < 0 || row >= roomData.length || col < 0 || col >= (roomData[0]?.length ?? 0)) {
     return 1; // out of bounds = solid wall
   }
