@@ -304,9 +304,9 @@ export class StratumClearOverlay {
     // open the global EscapeConfirm popup either (handled in ItemWorldScene).
     const prompts: Container[] = [];
     if (!d.isFinal && d.hasNextStratum) {
-      prompts.push(KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Continue Deeper'));
+      prompts.push(KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('ui.stratum.continue_deeper')));
     } else {
-      prompts.push(KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Return'));
+      prompts.push(KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('ui.stratum.return')));
     }
 
     const gap = 12;

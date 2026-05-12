@@ -17,6 +17,8 @@ import {
   ROW_CHEVRON_COLOR,
   ROW_SELECTED_GLOW_ALPHA,
   ROW_SELECTED_EDGE,
+  MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_NEGATIVE, TEXT_WARNING,
+  MODAL_OVERLAY, MODAL_OVERLAY_ALPHA,
 } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import type { InputManager, PresetName } from '@core/InputManager';
@@ -31,12 +33,12 @@ const ROW_PAD_X = 10;          // left/right padding inside the selection row
 const ROW_H = 14;              // selection row height
 const CHEVRON_INSET = 4;       // distance from row edge to ▶ / ◀
 
-const COL_BG = 0x1a1a2e;
-const COL_BORDER = 0x4a4a6a;
-const COL_TEXT = 0xffffff;
-const COL_DIM = 0xaaaaaa;
-const COL_DANGER = 0xff4444;
-const COL_WARNING = 0xffcc44;
+const COL_BG = MODAL_BG;
+const COL_BORDER = MODAL_BORDER;
+const COL_TEXT = TEXT_PRIMARY;
+const COL_DIM = TEXT_SECONDARY;
+const COL_DANGER = TEXT_NEGATIVE;
+const COL_WARNING = TEXT_WARNING;
 const COL_ACCENT = ROW_CHEVRON_COLOR;
 
 type MenuItem = { labelKey: string; action: string; color?: number };
@@ -123,7 +125,7 @@ export class PauseMenu {
 
     // Overlay
     this.overlay = new Graphics();
-    this.overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.6 });
+    this.overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: MODAL_OVERLAY, alpha: MODAL_OVERLAY_ALPHA });
     this.container.addChild(this.overlay);
 
     // Panel with 9-slice or fallback

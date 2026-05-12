@@ -27,7 +27,7 @@ import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { sacredSave, getWeaponLore } from '@save/PlayerSave';
-import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, createModalPanel } from './ModalPanel';
+import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, createModalPanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
 
 /** 레어리티별 기억의 지층 개수 — GDD §레어리티 체계 기준. */
@@ -245,7 +245,7 @@ export class LorePopup {
 
     // 스탯 — ATK / Lv. abbrev kept latin per Q2.
     const statLine = `ATK ${item.finalAtk}   Lv.${item.level}`;
-    const stat = createUiText(statLine, { fontSize: 8, fill: 0xffffff });
+    const stat = createUiText(statLine, { fontSize: 8, fill: TEXT_PRIMARY });
     stat.x = 12;
     stat.y = 98;
     this.panel.addChild(stat);
@@ -264,7 +264,7 @@ export class LorePopup {
     closePrompt.y = H - 18;
     this.panel.addChild(closePrompt);
 
-    const closeLabel = createUiText(t('ui.lore.close'), { fontSize: 8, fill: 0xaaaaaa });
+    const closeLabel = createUiText(t('ui.lore.close'), { fontSize: 8, fill: TEXT_SECONDARY });
     closeLabel.x = W - 58;
     closeLabel.y = H - 16;
     this.panel.addChild(closeLabel);

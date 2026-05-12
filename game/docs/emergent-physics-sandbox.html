@@ -1,0 +1,3305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ECHORIS — Emergent Physics Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d18; --panel-bg:#14141f; --line:#232336; --muted:#7c7c95;
+    --text-primary:#fff; --text-secondary:#aaa; --text-accent:#00ced1;
+    --text-gold:#ffd700; --text-warning:#ffcc44; --text-orange:#ff8c00;
+    --hot:#ff4422; --cold:#44aaff; --metal:#aab; --gold:#ffd700;
+    --font-ui:'Rajdhani',system-ui,sans-serif;
+    --font-title:'Cinzel',serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-ui);font-weight:500}
+  body{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+  aside{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line);padding:20px 16px;background:#0a0a14;
+  }
+  aside h1{font-family:var(--font-title);font-size:15px;letter-spacing:2px;margin:0 0 2px}
+  aside .sub{color:var(--muted);font-size:9px;margin-bottom:14px;letter-spacing:1px}
+  aside nav a{display:block;color:var(--text-secondary);text-decoration:none;font-size:10px;padding:3px 0;letter-spacing:0.5px;border-left:2px solid transparent;padding-left:8px;transition:all 0.15s}
+  aside nav a:hover{color:var(--text-accent);border-left-color:var(--text-accent)}
+  aside nav .group{color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:2px;margin-top:12px;margin-bottom:2px;padding-left:8px}
+
+  main{padding:24px 32px;max-width:1280px}
+  header.page{margin-bottom:24px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  header.page h1{font-family:var(--font-title);font-size:28px;margin:0 0 4px;letter-spacing:4px}
+  header.page p{color:var(--text-secondary);margin:0;font-size:12px;line-height:1.5}
+  header.page .rules{margin-top:12px;padding:10px 12px;background:var(--panel-bg);border-left:3px solid var(--text-accent);font-size:11px;color:#ddd;line-height:1.6}
+  header.page .rules b{color:var(--text-accent)}
+  header.page kbd{background:#0a0a14;border:1px solid var(--line);border-bottom-width:2px;padding:1px 5px;border-radius:3px;font-family:ui-monospace,monospace;font-size:10px;color:var(--text-warning)}
+
+  section{margin:32px 0;padding-top:8px}
+  section > h2{font-family:var(--font-title);font-size:18px;margin:0 0 2px;letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:5px}
+  section > .src{color:var(--muted);font-size:10px;margin:0 0 12px;font-family:ui-monospace,monospace}
+
+  .tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .tile{background:var(--panel-bg);border:1px solid var(--line);border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:6px}
+  .tile canvas{width:100%;height:140px;background:#050510;display:block;border-radius:2px;cursor:crosshair;touch-action:none}
+  .tile h3{margin:0;font-size:11px;letter-spacing:1px;color:var(--text-primary);font-weight:700}
+  .tile .hint{margin:0;font-size:9px;color:var(--muted);line-height:1.4;min-height:24px}
+  .tile .hint b{color:var(--text-accent);font-weight:700}
+  .tile.wide{grid-column:span 2}
+
+  footer.page{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.5}
+
+  /* checkbox toggle on each tile */
+  .tile{position:relative}
+  .tile-toggle{
+    position:absolute;top:6px;right:6px;z-index:5;
+    display:flex;align-items:center;gap:4px;
+    background:rgba(0,0,0,0.55);border:1px solid var(--line);border-radius:2px;
+    padding:2px 5px;cursor:pointer;user-select:none;
+    font-family:ui-monospace,monospace;font-size:8px;letter-spacing:1px;color:var(--muted);
+    transition:all 0.15s;
+  }
+  .tile-toggle:hover{border-color:var(--text-accent);color:var(--text-accent)}
+  .tile-toggle input{margin:0;cursor:pointer;width:11px;height:11px;accent-color:var(--text-accent)}
+  .tile-toggle.checked{color:var(--text-accent);border-color:#2a4848}
+
+  .toolbar-config{
+    display:flex;gap:6px;margin:8px 0 14px;padding:8px 10px;
+    background:var(--panel-bg);border:1px solid var(--line);border-radius:2px;
+    align-items:center;font-size:11px;color:var(--muted);
+  }
+  .toolbar-config .lbl{font-family:ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase;font-size:9px}
+  .toolbar-config button{
+    padding:4px 10px;background:#0a0a14;color:var(--text-secondary);
+    border:1px solid var(--line);border-radius:2px;font-family:inherit;font-size:10px;
+    cursor:pointer;letter-spacing:0.5px;
+  }
+  .toolbar-config button:hover{border-color:var(--text-accent);color:var(--text-accent)}
+  .toolbar-config .count{color:var(--text-accent);font-family:ui-monospace,monospace}
+
+  @media (max-width:900px){
+    body{grid-template-columns:1fr}
+    aside{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    main{padding:18px}
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>EMERGENT</h1>
+  <div class="sub">PHYSICS SANDBOX</div>
+  <nav>
+    <div class="group">01 Thermodynamics</div>
+    <a href="#thermo">열역학</a>
+    <div class="group">02 Chemistry</div>
+    <a href="#chem">화학</a>
+    <div class="group">03 Rigid Body</div>
+    <a href="#rigid">강체</a>
+    <div class="group">04 Verlet</div>
+    <a href="#verlet">끈 물리</a>
+    <div class="group">05 Fluid</div>
+    <a href="#fluid">유체</a>
+    <div class="group">06 EM</div>
+    <a href="#em">전자기</a>
+    <div class="group">07 Light</div>
+    <a href="#light">빛/시야</a>
+    <div class="group">08 Sound</div>
+    <a href="#sound">소리</a>
+    <div class="group">09 Time/Gravity</div>
+    <a href="#time">시간/중력</a>
+    <div class="group">10 Enemy ↔ Env</div>
+    <a href="#enemy">적/환경</a>
+    <div class="group">11 Destructible</div>
+    <a href="#destruct">파괴</a>
+    <div class="group">12 Shaders</div>
+    <a href="#shader">셰이더</a>
+    <div class="group" style="color:#664;margin-top:18px">— ARCHIVE —</div>
+    <a href="#archive" style="color:#776">스텔스 (제외)</a>
+  </nav>
+</aside>
+
+<main>
+  <header class="page">
+    <h1>EMERGENT PHYSICS SANDBOX</h1>
+    <p>ECHORIS — 웹페이지에서 가능한 창발적 물리 메커닉 카탈로그. 각 타일은 독립 시뮬레이션이며 마우스로 상호작용한다.
+       메커닉 <b style="color:var(--text-accent)">조합 (창발)</b> 검증은 <a href="emergent-physics-combo.html" style="color:var(--text-accent);font-family:ui-monospace,monospace">→ Combo Sandbox</a></p>
+
+    <div class="toolbar-config">
+      <span class="lbl">Components:</span>
+      <span>active <span class="count" id="cfg-active">--</span></span>
+      <span>archived <span class="count" id="cfg-archived">--</span></span>
+      <span style="flex:1"></span>
+      <button id="cfg-all-on">Enable All</button>
+      <button id="cfg-defaults">Defaults (stealth off)</button>
+      <button id="cfg-reset">Reset Storage</button>
+    </div>
+
+    <div class="rules">
+      <b>조작:</b> 마우스 <kbd>좌클릭</kbd> = 트리거 / 그리기 · <kbd>드래그</kbd> = 적용 · <kbd>우클릭</kbd> = 보조 도구 (일부 타일).
+      <b>성능:</b> 화면에 보이는 타일만 시뮬레이션. 스크롤로 벗어나면 자동 일시정지.
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- 01 THERMODYNAMICS -->
+  <!-- ============================================================ -->
+  <section id="thermo">
+    <h2>01. 열역학</h2>
+    <div class="src">heat propagation, fire spread, steam, frost, ash</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="heat_grid"></canvas><h3>온도 그리드</h3><p class="hint"><b>드래그</b>로 열을 칠한다. 인접 셀로 확산된다. <b>우클릭</b>=냉각.</p></div>
+      <div class="tile"><canvas data-demo="heat_conduction"></canvas><h3>열 전도 (막대)</h3><p class="hint">왼쪽 끝에 <b>호버</b>로 가열. 반대쪽까지 전달되면 도화선 발화.</p></div>
+      <div class="tile"><canvas data-demo="fire_spread"></canvas><h3>불 확산</h3><p class="hint"><b>클릭</b>해서 발화. 인접 가연 타일로 전파, 다 타면 재.</p></div>
+      <div class="tile"><canvas data-demo="steam_rise"></canvas><h3>증기 상승</h3><p class="hint">바닥 물에 <b>드래그</b>로 열 주입. 스팀이 위로 올라가 시야 차단.</p></div>
+      <div class="tile"><canvas data-demo="frost_drip"></canvas><h3>결로 / 얼음 다리</h3><p class="hint">천장 얼음에서 물방울. <b>호버</b>로 가열 시 빠르게 녹음.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 02 CHEMISTRY -->
+  <!-- ============================================================ -->
+  <section id="chem">
+    <h2>02. 화학</h2>
+    <div class="src">oil, gas, acid, base, wet weapon, molotov</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="oil_slick"></canvas><h3>기름 슬릭</h3><p class="hint"><b>드래그</b>로 기름 칠. <b>우클릭</b>=불씨. 기름 위 즉시 발화 전파.</p></div>
+      <div class="tile"><canvas data-demo="gas_leak"></canvas><h3>가스 누출</h3><p class="hint">파이프에서 가스 누출, 위로 축적. <b>클릭</b>=스파크 → 폭발.</p></div>
+      <div class="tile"><canvas data-demo="acid_pool"></canvas><h3>산성 풀</h3><p class="hint"><b>드래그</b>로 금속 다리를 산성 위로. 시간차로 녹아 끊어진다.</p></div>
+      <div class="tile"><canvas data-demo="acid_base"></canvas><h3>산 + 염기</h3><p class="hint">두 액체 <b>드래그</b>로 섞어라. 반응 시 연기로 시야 차단.</p></div>
+      <div class="tile"><canvas data-demo="wet_weapon"></canvas><h3>젖은 무기</h3><p class="hint"><b>물 / 불 / 뇌</b> 버튼 클릭. 물 묻은 후 뇌=자기 감전.</p></div>
+      <div class="tile"><canvas data-demo="molotov"></canvas><h3>화염병</h3><p class="hint"><b>드래그-릴리스</b>로 던지기. 착탄점에 화염 확산.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 03 RIGID BODY -->
+  <!-- ============================================================ -->
+  <section id="rigid">
+    <h2>03. 강체</h2>
+    <div class="src">push, roll, weight switch, stack collapse, bounce, sticky</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="push_box"></canvas><h3>박스 밀기</h3><p class="hint"><b>드래그</b>로 박스 이동. 다른 박스 위에 쌓을 수 있다.</p></div>
+      <div class="tile"><canvas data-demo="rolling_barrel"></canvas><h3>굴러가는 통</h3><p class="hint"><b>클릭</b>=통 풀어주기. 경사 내려가며 타겟 부숨.</p></div>
+      <div class="tile"><canvas data-demo="weight_switch"></canvas><h3>무게 스위치</h3><p class="hint">스위치 위에 박스 <b>드래그</b>해 올리면 게이트 개방.</p></div>
+      <div class="tile"><canvas data-demo="stack_collapse"></canvas><h3>스택 무너짐</h3><p class="hint">탑처럼 쌓인 박스. 바닥 박스 <b>드래그</b>=도미노 붕괴.</p></div>
+      <div class="tile"><canvas data-demo="bounce_pad"></canvas><h3>튕김 패드</h3><p class="hint"><b>클릭</b>해서 공 드롭. 스프링 패드에서 점프력 우회.</p></div>
+      <div class="tile"><canvas data-demo="sticky_pad"></canvas><h3>점착 표면</h3><p class="hint"><b>클릭</b>=공 발사. 점착 패드에 1초 붙은 후 분리.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 04 VERLET (Rope/Chain/Cloth) -->
+  <!-- ============================================================ -->
+  <section id="verlet">
+    <h2>04. 끈 물리 (Verlet)</h2>
+    <div class="src">rope, grapple, cloth, web, suspension bridge</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="rope"></canvas><h3>로프 / 사슬</h3><p class="hint">끝 노드를 <b>드래그</b>. 흔들 수 있고 끊을 수 있다.</p></div>
+      <div class="tile"><canvas data-demo="grapple"></canvas><h3>그래플 훅</h3><p class="hint"><b>클릭</b>=훅 발사. 천장에 고정되면 플레이어 끌어당김.</p></div>
+      <div class="tile"><canvas data-demo="cloth"></canvas><h3>천 (커튼)</h3><p class="hint">아무 노드 <b>드래그</b>. 천 시뮬레이션 + 불에 잘 붙음.</p></div>
+      <div class="tile"><canvas data-demo="spider_web"></canvas><h3>거미줄</h3><p class="hint"><b>클릭</b>=플레이어 통과. 거미줄 잡혀 감속.</p></div>
+      <div class="tile"><canvas data-demo="suspension_bridge"></canvas><h3>현수교</h3><p class="hint">케이블을 <b>클릭</b>해 끊으면 다리 무너짐.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 05 FLUID -->
+  <!-- ============================================================ -->
+  <section id="fluid">
+    <h2>05. 유체 상호작용</h2>
+    <div class="src">floater, bubble, current, ice raft, wave alert, air pocket, geyser</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="floater"></canvas><h3>부유물 (코르크)</h3><p class="hint"><b>드래그</b>로 코르크를 물 밑까지. 놓으면 부력으로 솟구침.</p></div>
+      <div class="tile"><canvas data-demo="air_bubble"></canvas><h3>잠수 산소 거품</h3><p class="hint"><b>클릭</b>=거품 방출. 잠수 중 산소 게이지 보충.</p></div>
+      <div class="tile"><canvas data-demo="current"></canvas><h3>수류 (방향성)</h3><p class="hint"><b>클릭</b>=입자 드롭. 화살표 방향으로 떠밀린다.</p></div>
+      <div class="tile"><canvas data-demo="ice_raft"></canvas><h3>얼음 뗏목</h3><p class="hint"><b>드래그</b>로 얼음 뗏목 밀기. 물 위 슬라이드.</p></div>
+      <div class="tile"><canvas data-demo="air_pocket"></canvas><h3>공기 주머니</h3><p class="hint"><b>드래그</b>=플레이어. 천장 아래 공기로 호흡 회복.</p></div>
+      <div class="tile"><canvas data-demo="geyser"></canvas><h3>간헐천</h3><p class="hint">주기적 spurt. 분출 중 <b>클릭</b>으로 플레이어 진입=상승.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 06 ELECTROMAGNETIC -->
+  <!-- ============================================================ -->
+  <section id="em">
+    <h2>06. 전자기</h2>
+    <div class="src">conductor chain, water-metal, magnet, railgun, static</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="conductor_chain"></canvas><h3>금속 도체 체인</h3><p class="hint">왼쪽 끝 <b>클릭</b>=감전. 금속 라인 따라 전파.</p></div>
+      <div class="tile"><canvas data-demo="water_metal"></canvas><h3>물 + 금속 = 전체 전도</h3><p class="hint">금속 봉을 <b>클릭</b>해 충전. 연결된 water 전체 감전.</p></div>
+      <div class="tile"><canvas data-demo="magnet"></canvas><h3>자석</h3><p class="hint">자석 <b>드래그</b>. 금속 조각들이 따라온다.</p></div>
+      <div class="tile"><canvas data-demo="railgun"></canvas><h3>레일건 (자기 가속)</h3><p class="hint">두 자석 사이로 금속 <b>드래그</b>. 가속 발사.</p></div>
+      <div class="tile"><canvas data-demo="static_buildup"></canvas><h3>정전기 축적</h3><p class="hint">카펫 위 <b>드래그</b>로 걷기. 게이지 만땅 후 <b>클릭</b>=방전.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 07 LIGHT -->
+  <!-- ============================================================ -->
+  <section id="light">
+    <h2>07. 빛 / 시야</h2>
+    <div class="src">torch chain, mirror, enemy vision, fog, glass, crystal</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="torch_chain"></canvas><h3>횃불 점화 연쇄</h3><p class="hint">첫 횃불 <b>클릭</b>=점화. 인접 횃불로 연쇄 점등.</p></div>
+      <div class="tile"><canvas data-demo="mirror_reflect"></canvas><h3>거울 반사</h3><p class="hint">거울 <b>드래그</b>=각도 조정. 광선이 타겟까지 도달.</p></div>
+      <div class="tile"><canvas data-demo="glass_break"></canvas><h3>유리 깨기</h3><p class="hint">유리 <b>클릭</b>=균열. 한 번 더=파편 + 시야 통과.</p></div>
+      <div class="tile"><canvas data-demo="light_crystal"></canvas><h3>빛 결정 (실명)</h3><p class="hint"><b>호버</b>=충전. <b>클릭</b>=플래시. 적 일시 실명.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 08 SOUND -->
+  <!-- ============================================================ -->
+  <section id="sound">
+    <h2>08. 소리 / 진동</h2>
+    <div class="src">vibration, bell summon</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="vibration"></canvas><h3>진동 (붕괴 동시 트리거)</h3><p class="hint"><b>클릭</b>=지진. 모든 약한 발판 동시 흔들림→붕괴.</p></div>
+      <div class="tile"><canvas data-demo="bell_summon"></canvas><h3>종 (적 그룹핑 / AoE 도구)</h3><p class="hint">종 <b>클릭</b>=타종. 적들이 종 위치로 모임 (AoE 콤보용).</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 09 TIME / GRAVITY -->
+  <!-- ============================================================ -->
+  <section id="time">
+    <h2>09. 시간 / 중력</h2>
+    <div class="src">slow zone, low gravity, antigrav, time stop</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="slow_zone"></canvas><h3>slow zone</h3><p class="hint">하단 보라색 영역 = dt × 0.2. 입자 진입 시 감속.</p></div>
+      <div class="tile"><canvas data-demo="low_gravity"></canvas><h3>저중력 거품</h3><p class="hint"><b>클릭</b>=중력 토글. 저중력 시 부유 유영.</p></div>
+      <div class="tile"><canvas data-demo="antigrav"></canvas><h3>역중력 타일</h3><p class="hint">바닥 <b>클릭</b>=역중력. 플레이어 천장으로.</p></div>
+      <div class="tile"><canvas data-demo="time_stop"></canvas><h3>시간 멈춤</h3><p class="hint"><b>클릭</b>=stop/resume. 플레이어만 정상 이동.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 10 ENEMY ↔ ENV -->
+  <!-- ============================================================ -->
+  <section id="enemy">
+    <h2>10. 적 ↔ 환경</h2>
+    <div class="src">enemy spike, corpse platform, corpse bomb, grab, charm, slime trail</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="enemy_spike"></canvas><h3>적도 환경 데미지 공유</h3><p class="hint">적 <b>드래그</b>해 spike 위로. 적이 즉사.</p></div>
+      <div class="tile"><canvas data-demo="corpse_platform"></canvas><h3>적 시체 = 발판</h3><p class="hint"><b>클릭</b>=적 처치. 시체가 일정 시간 solid 발판.</p></div>
+      <div class="tile"><canvas data-demo="corpse_bomb"></canvas><h3>적 시체 = 폭탄</h3><p class="hint">엘리트 적 <b>클릭</b>=처치. 1초 후 폭발.</p></div>
+      <div class="tile"><canvas data-demo="enemy_grab"></canvas><h3>적 끌고 가기</h3><p class="hint">적 <b>드래그</b>. 놓을 때 vy로 던지기.</p></div>
+      <div class="tile"><canvas data-demo="enemy_charm"></canvas><h3>적 매혹 (동족 공격)</h3><p class="hint">적 <b>클릭</b>=charm. 가장 가까운 적 공격.</p></div>
+      <div class="tile"><canvas data-demo="enemy_slime_trail"></canvas><h3>슬라임 점착 자국</h3><p class="hint">슬라임이 이동하며 자국. <b>드래그</b>=플레이어, 자국 위 감속.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 11 DESTRUCTIBLE -->
+  <!-- ============================================================ -->
+  <section id="destruct">
+    <h2>11. 파괴 가능 지형</h2>
+    <div class="src">breakable tier, partial collapse, tunneling, rubble</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="breakable_tier"></canvas><h3>Breakable 등급화</h3><p class="hint"><b>클릭</b>=공격. 1-hit / 5-hit / 폭발 전용 벽.</p></div>
+      <div class="tile"><canvas data-demo="partial_collapse"></canvas><h3>부분 붕괴</h3><p class="hint">천장 타일 <b>클릭</b>=파괴. 인접 타일 낙하 데미지.</p></div>
+      <div class="tile"><canvas data-demo="tunneling"></canvas><h3>터널링 (드릴)</h3><p class="hint">벽 위에 <b>호버</b>로 드릴. 느리게 갉아먹음.</p></div>
+      <div class="tile"><canvas data-demo="rubble_platform"></canvas><h3>잔해 발판</h3><p class="hint">벽 <b>클릭</b>=파괴. 잔해 더미가 점프대.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 12 SHADERS / VISUAL -->
+  <!-- ============================================================ -->
+  <section id="shader">
+    <h2>12. 셰이더 / 시각 효과</h2>
+    <div class="src">heat haze, wet pixel, ice refract, shadow caster, dust</div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="heat_haze"></canvas><h3>Heat Haze (열파)</h3><p class="hint">마그마 위 화면 왜곡. <b>호버</b>=강도 증가.</p></div>
+      <div class="tile"><canvas data-demo="wet_pixel"></canvas><h3>젖은 픽셀 반사</h3><p class="hint"><b>드래그</b>=물 칠. 표면 반사 효과.</p></div>
+      <div class="tile"><canvas data-demo="ice_refract"></canvas><h3>빙결 굴절</h3><p class="hint">얼음 뒤 객체가 굴절되어 보임.</p></div>
+      <div class="tile"><canvas data-demo="shadow_caster"></canvas><h3>2D 그림자 캐스터</h3><p class="hint">광원 <b>드래그</b>. 객체 뒤 그림자 동적 생성.</p></div>
+      <div class="tile"><canvas data-demo="dust_accum"></canvas><h3>먼지 누적</h3><p class="hint"><b>드래그</b>=먼지 쌓기. 정적 메쉬로 영구 보존.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- ARCHIVE — 현재 스코프 제외 메커닉 (보존용) -->
+  <!-- ============================================================ -->
+  <section id="archive" style="margin-top:48px;padding-top:16px;border-top:2px dashed #553;opacity:0.7">
+    <h2 style="color:#aab">ARCHIVE — 현재 스코프 제외</h2>
+    <div class="src" style="color:#665">
+      스텔스 플레이는 ECHORIS 현재 스코프에서 제외됨. 아래 메커닉은 향후 재검토 가능성을 위해 보존.
+      코드/레지스트리/시뮬레이션은 동작하나, 정식 채택 시 본 섹션에서 해당 카테고리로 복귀시킬 것.
+    </div>
+    <div class="tile-grid">
+      <div class="tile"><canvas data-demo="ash_footprint"></canvas><h3>재 / 발자국</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 스텔스 추적 단서]</b><br><b>드래그</b>로 걷기. 재 위 발자국이 잔존.</p></div>
+      <div class="tile"><canvas data-demo="wave_alert"></canvas><h3>Wave 알람</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 적 경계 트리거]</b><br><b>클릭</b>=splash. 표면 wave가 적에게 도달.</p></div>
+      <div class="tile"><canvas data-demo="enemy_shadow"></canvas><h3>적 시야 (횃불 OFF)</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 적 시야 콘]</b><br>횃불 <b>클릭</b>=ON/OFF. 어둠 시 적 시야 단축.</p></div>
+      <div class="tile"><canvas data-demo="fog_conceal"></canvas><h3>안개 변신</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 적 시야 통과]</b><br><b>클릭</b>=안개 변신.</p></div>
+      <div class="tile"><canvas data-demo="sound_gauge"></canvas><h3>소리 게이지</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 발걸음 소음 → 적 인지]</b><br><b>드래그</b>=발걸음. 빠를수록 게이지 차오름.</p></div>
+      <div class="tile"><canvas data-demo="echo_ping"></canvas><h3>메아리 핑</h3><p class="hint" style="color:#a86"><b>[ARCHIVE: 어둠 속 적 정찰]</b><br>어둠 방에 <b>클릭</b>=ping. 적 윤곽 일시 가시화.</p></div>
+    </div>
+  </section>
+
+  <footer class="page">
+    ECHORIS · Emergent Physics Sandbox · 본 문서는 PixiJS 통합 전 메커닉 검증용 vanilla Canvas2D 데모이다.
+  </footer>
+</main>
+
+<script>
+/* ============================================================
+   COMMON: Base Demo class, utilities, registry
+============================================================ */
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const dist2 = (ax, ay, bx, by) => { const dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; };
+
+class Demo {
+  constructor(canvas) {
+    this.canvas = canvas;
+    // resize for crisp pixels
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
+    this.w = canvas.width;
+    this.h = canvas.height;
+    this.ctx = canvas.getContext('2d');
+    this.mouse = { x: -999, y: -999, down: false, right: false, justDown: false, justUp: false };
+    this.prevMouse = { x: -999, y: -999 };
+    this.running = false;
+    this.lastT = 0;
+    this.bind();
+    this.init && this.init();
+  }
+  bind() {
+    const c = this.canvas;
+    const update = (e) => {
+      const r = c.getBoundingClientRect();
+      this.mouse.x = (e.clientX - r.left) * (c.width / r.width);
+      this.mouse.y = (e.clientY - r.top) * (c.height / r.height);
+    };
+    c.addEventListener('mousemove', update);
+    c.addEventListener('mousedown', (e) => {
+      update(e);
+      if (e.button === 2) this.mouse.right = true;
+      else this.mouse.down = true;
+      this.mouse.justDown = true;
+      this.onDown && this.onDown(e);
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 2) this.mouse.right = false;
+      else this.mouse.down = false;
+      this.mouse.justUp = true;
+      this.onUp && this.onUp(e);
+    });
+    c.addEventListener('mouseleave', () => { this.mouse.x = -999; this.mouse.y = -999; });
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Touch
+    c.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const t = e.touches[0]; if (!t) return;
+      const r = c.getBoundingClientRect();
+      this.mouse.x = (t.clientX - r.left) * (c.width / r.width);
+      this.mouse.y = (t.clientY - r.top) * (c.height / r.height);
+    }, { passive: false });
+    c.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const t = e.touches[0]; if (!t) return;
+      const r = c.getBoundingClientRect();
+      this.mouse.x = (t.clientX - r.left) * (c.width / r.width);
+      this.mouse.y = (t.clientY - r.top) * (c.height / r.height);
+      this.mouse.down = true; this.mouse.justDown = true;
+      this.onDown && this.onDown(e);
+    }, { passive: false });
+    c.addEventListener('touchend', () => {
+      this.mouse.down = false; this.mouse.justUp = true;
+      this.onUp && this.onUp();
+    });
+  }
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this.lastT = performance.now();
+    this.loop();
+  }
+  stop() { this.running = false; }
+  loop() {
+    if (!this.running) return;
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this.lastT) / 1000);
+    this.lastT = now;
+    this.update(dt);
+    this.render();
+    this.mouse.justDown = false;
+    this.mouse.justUp = false;
+    this.prevMouse.x = this.mouse.x;
+    this.prevMouse.y = this.mouse.y;
+    requestAnimationFrame(() => this.loop());
+  }
+  update(dt) {}
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+/* ============================================================
+   01 THERMODYNAMICS
+============================================================ */
+class HeatGrid extends Demo {
+  init() {
+    this.cols = 24; this.rows = 14;
+    this.cw = this.w / this.cols; this.ch = this.h / this.rows;
+    this.t = new Float32Array(this.cols * this.rows);
+    this.t2 = new Float32Array(this.cols * this.rows);
+  }
+  update(dt) {
+    if (this.mouse.x > 0) {
+      const cx = Math.floor(this.mouse.x / this.cw);
+      const cy = Math.floor(this.mouse.y / this.ch);
+      const target = this.mouse.right ? -1 : 1;
+      if (this.mouse.down || this.mouse.right) {
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const x = cx + dx, y = cy + dy;
+          if (x < 0 || y < 0 || x >= this.cols || y >= this.rows) continue;
+          this.t[y * this.cols + x] = lerp(this.t[y * this.cols + x], target, 0.4);
+        }
+      }
+    }
+    // diffusion
+    for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+      const i = y * this.cols + x;
+      let sum = this.t[i] * 4, n = 4;
+      if (x > 0) { sum += this.t[i - 1]; n++; }
+      if (x < this.cols - 1) { sum += this.t[i + 1]; n++; }
+      if (y > 0) { sum += this.t[i - this.cols]; n++; }
+      if (y < this.rows - 1) { sum += this.t[i + this.cols]; n++; }
+      this.t2[i] = sum / n * 0.997;
+    }
+    [this.t, this.t2] = [this.t2, this.t];
+  }
+  render() {
+    const { ctx, cw, ch, cols, rows, t } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, this.w, this.h);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const v = t[y * cols + x];
+      if (Math.abs(v) < 0.02) continue;
+      let r, g, b;
+      if (v > 0) { r = 255 * v; g = 80 * v; b = 30 * v; }
+      else { r = 30 * -v; g = 100 * -v; b = 255 * -v; }
+      ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+      ctx.fillRect(x * cw, y * ch, cw, ch);
+    }
+  }
+}
+
+class HeatConduction extends Demo {
+  init() {
+    this.n = 12; this.bar = new Float32Array(this.n);
+    this.fuseLit = false; this.fuseTime = 0;
+  }
+  update(dt) {
+    // Heat left if hovered
+    const barY = this.h * 0.5, barH = 16;
+    if (this.mouse.y > barY - barH && this.mouse.y < barY + barH) {
+      const cx = Math.floor(this.mouse.x / (this.w / this.n));
+      if (cx === 0) this.bar[0] = Math.min(1, this.bar[0] + dt * 1.5);
+    }
+    // Diffuse
+    const next = new Float32Array(this.n);
+    for (let i = 0; i < this.n; i++) {
+      let s = this.bar[i] * 2, c = 2;
+      if (i > 0) { s += this.bar[i - 1]; c++; }
+      if (i < this.n - 1) { s += this.bar[i + 1]; c++; }
+      next[i] = s / c * 0.998;
+    }
+    this.bar = next;
+    if (this.bar[this.n - 1] > 0.6 && !this.fuseLit) this.fuseLit = true;
+    if (this.fuseLit) this.fuseTime += dt;
+    if (this.fuseTime > 2) { this.fuseLit = false; this.fuseTime = 0; this.bar.fill(0); }
+  }
+  render() {
+    const { ctx, w, h, n, bar } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, w, h);
+    const barY = h * 0.5 - 8, barH = 16, cellW = w / n;
+    for (let i = 0; i < n; i++) {
+      const v = bar[i];
+      ctx.fillStyle = `rgb(${(255 * v) | 0},${(80 * v) | 0},${(30 * v) | 0})`;
+      ctx.fillRect(i * cellW + 1, barY, cellW - 2, barH);
+      ctx.strokeStyle = '#445'; ctx.strokeRect(i * cellW + 1, barY, cellW - 2, barH);
+    }
+    // fuse at end
+    ctx.fillStyle = this.fuseLit ? '#ff8' : '#553';
+    ctx.beginPath(); ctx.arc(w - 8, barY + barH / 2, 6, 0, Math.PI * 2); ctx.fill();
+    if (this.fuseLit) {
+      ctx.fillStyle = 'rgba(255,180,50,' + (0.8 - this.fuseTime / 2.5) + ')';
+      ctx.beginPath(); ctx.arc(w - 8, barY + barH / 2, 6 + this.fuseTime * 12, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#88a'; ctx.font = '9px ui-monospace,monospace';
+    ctx.fillText('hover left →', 6, barY - 6);
+  }
+}
+
+class FireSpread extends Demo {
+  init() {
+    this.cols = 14; this.rows = 8;
+    this.cw = this.w / this.cols; this.ch = this.h / this.rows;
+    this.state = new Uint8Array(this.cols * this.rows); // 0=fuel 1=burning 2=ash
+    this.burn = new Float32Array(this.cols * this.rows);
+    this.tickT = 0;
+  }
+  onDown() {
+    const cx = Math.floor(this.mouse.x / this.cw);
+    const cy = Math.floor(this.mouse.y / this.ch);
+    if (cx >= 0 && cy >= 0 && cx < this.cols && cy < this.rows) {
+      const i = cy * this.cols + cx;
+      if (this.state[i] === 0) { this.state[i] = 1; this.burn[i] = 0; }
+      if (this.state[i] === 2) { this.state[i] = 0; }
+    }
+  }
+  update(dt) {
+    this.tickT += dt;
+    for (let i = 0; i < this.state.length; i++) {
+      if (this.state[i] === 1) {
+        this.burn[i] += dt;
+        if (this.burn[i] > 1.8) { this.state[i] = 2; }
+      }
+    }
+    if (this.tickT > 0.25) {
+      this.tickT = 0;
+      const next = new Uint8Array(this.state);
+      for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+        const i = y * this.cols + x;
+        if (this.state[i] !== 1) continue;
+        const n = [[1,0],[-1,0],[0,1],[0,-1]];
+        for (const [dx, dy] of n) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= this.cols || ny >= this.rows) continue;
+          const ni = ny * this.cols + nx;
+          if (this.state[ni] === 0 && Math.random() < 0.55) { next[ni] = 1; this.burn[ni] = 0; }
+        }
+      }
+      this.state = next;
+    }
+  }
+  render() {
+    const { ctx, cw, ch, cols, rows, state } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, this.w, this.h);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x, s = state[i];
+      if (s === 0) ctx.fillStyle = '#5a4222';   // fuel (wood)
+      else if (s === 1) {
+        const p = this.burn[i] / 1.8;
+        const r = 255, g = 120 + Math.sin(performance.now() * 0.01 + i) * 60 | 0, b = 40;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+      } else ctx.fillStyle = '#2a2228'; // ash
+      ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
+    }
+  }
+}
+
+class SteamRise extends Demo {
+  init() {
+    this.cols = 24; this.rows = 14;
+    this.cw = this.w / this.cols; this.ch = this.h / this.rows;
+    this.waterRow = this.rows - 3;
+    this.heat = new Float32Array(this.cols);
+    this.particles = [];
+  }
+  update(dt) {
+    if (this.mouse.down) {
+      const cx = Math.floor(this.mouse.x / this.cw);
+      const cy = Math.floor(this.mouse.y / this.ch);
+      if (cy >= this.waterRow && cx >= 0 && cx < this.cols) {
+        this.heat[cx] = Math.min(1, this.heat[cx] + dt * 2);
+      }
+    }
+    for (let i = 0; i < this.cols; i++) {
+      this.heat[i] *= 0.997;
+      if (this.heat[i] > 0.5 && Math.random() < this.heat[i] * 0.3) {
+        this.particles.push({ x: i * this.cw + this.cw / 2, y: this.waterRow * this.ch, vx: rand(-10, 10), vy: rand(-20, -40), life: 1 });
+      }
+    }
+    for (const p of this.particles) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy *= 0.99; p.life -= dt * 0.4;
+    }
+    this.particles = this.particles.filter(p => p.life > 0);
+  }
+  render() {
+    const { ctx, cw, ch, cols, rows } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, this.w, this.h);
+    // water
+    for (let x = 0; x < cols; x++) {
+      const t = this.heat[x];
+      ctx.fillStyle = t > 0.5 ? `rgb(${(80 + t * 100) | 0}, 120, ${(200 - t * 80) | 0})` : '#3a7bb8';
+      ctx.fillRect(x * cw, this.waterRow * ch, cw, this.h - this.waterRow * ch);
+    }
+    for (const p of this.particles) {
+      ctx.fillStyle = `rgba(220,230,240,${p.life * 0.7})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class FrostDrip extends Demo {
+  init() {
+    this.icicles = [];
+    for (let i = 0; i < 8; i++) this.icicles.push({ x: this.w / 8 * (i + 0.5), len: rand(8, 18), heat: 0 });
+    this.drops = [];
+    this.spawnT = 0;
+  }
+  update(dt) {
+    if (this.mouse.x > 0) {
+      for (const ic of this.icicles) {
+        const d = Math.abs(ic.x - this.mouse.x);
+        if (d < 30 && this.mouse.y < 30) ic.heat += dt * 2;
+      }
+    }
+    for (const ic of this.icicles) { ic.heat *= 0.99; ic.len = Math.max(2, ic.len - ic.heat * dt * 4); }
+    this.spawnT += dt;
+    if (this.spawnT > 0.6) {
+      this.spawnT = 0;
+      const ic = this.icicles[Math.floor(Math.random() * this.icicles.length)];
+      if (ic.len > 3) this.drops.push({ x: ic.x, y: ic.len, vy: 30 });
+    }
+    for (const d of this.drops) { d.vy += 200 * dt; d.y += d.vy * dt; }
+    this.drops = this.drops.filter(d => d.y < this.h);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a1018'; ctx.fillRect(0, 0, w, h);
+    // ceiling
+    ctx.fillStyle = '#4a6a88'; ctx.fillRect(0, 0, w, 6);
+    for (const ic of this.icicles) {
+      ctx.fillStyle = ic.heat > 0.3 ? '#88aabb' : '#aaccee';
+      ctx.beginPath();
+      ctx.moveTo(ic.x - 4, 6);
+      ctx.lineTo(ic.x + 4, 6);
+      ctx.lineTo(ic.x, 6 + ic.len);
+      ctx.fill();
+    }
+    for (const d of this.drops) {
+      ctx.fillStyle = '#aaccee';
+      ctx.beginPath(); ctx.ellipse(d.x, d.y, 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // floor puddle
+    ctx.fillStyle = '#3a6688'; ctx.fillRect(0, h - 4, w, 4);
+  }
+}
+
+class AshFootprint extends Demo {
+  init() {
+    this.ash = [];
+    this.bake = null;
+    this.lastX = -1; this.lastY = -1;
+  }
+  update(dt) {
+    if (this.mouse.x > 0 && this.lastX > 0) {
+      if (dist2(this.mouse.x, this.mouse.y, this.lastX, this.lastY) > 36) {
+        this.ash.push({ x: this.mouse.x, y: this.mouse.y, r: rand(3, 6), a: 0.8 });
+        this.lastX = this.mouse.x; this.lastY = this.mouse.y;
+      }
+    } else {
+      this.lastX = this.mouse.x; this.lastY = this.mouse.y;
+    }
+    for (const a of this.ash) a.a = Math.min(1, a.a + dt * 0.1);
+    if (this.ash.length > 200) this.ash.splice(0, this.ash.length - 200);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#1a1410'; ctx.fillRect(0, 0, w, h);
+    // ash field
+    ctx.fillStyle = '#2a2220';
+    for (let i = 0; i < 80; i++) {
+      const x = (i * 137) % w, y = (i * 89) % h;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    for (const a of this.ash) {
+      ctx.fillStyle = `rgba(80,60,50,${a.a})`;
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(40,30,25,${a.a * 0.6})`;
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r * 0.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+/* ============================================================
+   02 CHEMISTRY
+============================================================ */
+class OilSlick extends Demo {
+  init() {
+    this.cols = 28; this.rows = 14;
+    this.cw = this.w / this.cols; this.ch = this.h / this.rows;
+    this.oil = new Float32Array(this.cols * this.rows);
+    this.fire = new Float32Array(this.cols * this.rows);
+    this.tickT = 0;
+  }
+  onDown(e) {
+    const cx = Math.floor(this.mouse.x / this.cw);
+    const cy = Math.floor(this.mouse.y / this.ch);
+    if (cx < 0 || cy < 0 || cx >= this.cols || cy >= this.rows) return;
+    const i = cy * this.cols + cx;
+    if (this.mouse.right) { if (this.oil[i] > 0.3) this.fire[i] = 1; }
+  }
+  update(dt) {
+    if (this.mouse.x > 0 && this.mouse.down && !this.mouse.right) {
+      const cx = Math.floor(this.mouse.x / this.cw);
+      const cy = Math.floor(this.mouse.y / this.ch);
+      if (cx >= 0 && cy >= 0 && cx < this.cols && cy < this.rows) {
+        this.oil[cy * this.cols + cx] = Math.min(1, this.oil[cy * this.cols + cx] + dt * 4);
+      }
+    }
+    this.tickT += dt;
+    if (this.tickT > 0.12) {
+      this.tickT = 0;
+      const next = new Float32Array(this.fire);
+      for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+        const i = y * this.cols + x;
+        if (this.fire[i] > 0.1) {
+          const n = [[1,0],[-1,0],[0,1],[0,-1]];
+          for (const [dx, dy] of n) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= this.cols || ny >= this.rows) continue;
+            const ni = ny * this.cols + nx;
+            if (this.oil[ni] > 0.2 && this.fire[ni] < 0.5) next[ni] = 1;
+          }
+          this.oil[i] = Math.max(0, this.oil[i] - 0.15);
+        }
+      }
+      this.fire = next;
+      for (let i = 0; i < this.fire.length; i++) {
+        if (this.fire[i] > 0 && this.oil[i] < 0.05) this.fire[i] = Math.max(0, this.fire[i] - 0.2);
+      }
+    }
+  }
+  render() {
+    const { ctx, cw, ch, cols, rows } = this;
+    ctx.fillStyle = '#181810'; ctx.fillRect(0, 0, this.w, this.h);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      const o = this.oil[i], f = this.fire[i];
+      if (o > 0.05) {
+        ctx.fillStyle = `rgba(${30 + o * 30 | 0},${20 + o * 20 | 0},${10 + o * 30 | 0},${0.5 + o * 0.4})`;
+        ctx.fillRect(x * cw, y * ch, cw, ch);
+      }
+      if (f > 0.1) {
+        ctx.fillStyle = `rgba(255,${100 + Math.sin(performance.now() * 0.01 + i) * 60 | 0},30,${f})`;
+        ctx.fillRect(x * cw, y * ch, cw, ch);
+      }
+    }
+  }
+}
+
+class GasLeak extends Demo {
+  init() {
+    this.particles = [];
+    this.spawnT = 0;
+    this.boomT = 0;
+  }
+  update(dt) {
+    this.spawnT += dt;
+    if (this.spawnT > 0.05) {
+      this.spawnT = 0;
+      this.particles.push({ x: this.w * 0.2 + rand(-3, 3), y: this.h - 12, vx: rand(-5, 5), vy: rand(-15, -25), life: 4 });
+    }
+    for (const p of this.particles) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy *= 0.99; p.life -= dt * 0.5;
+    }
+    this.particles = this.particles.filter(p => p.life > 0 && p.y > 0);
+    if (this.mouse.justDown && this.mouse.y < this.h * 0.4) {
+      // count nearby particles
+      let count = 0;
+      for (const p of this.particles) if (dist2(p.x, p.y, this.mouse.x, this.mouse.y) < 1600) count++;
+      if (count > 6) { this.boomT = 1; this.particles = []; }
+    }
+    if (this.boomT > 0) this.boomT -= dt * 1.5;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#080812'; ctx.fillRect(0, 0, w, h);
+    // pipe
+    ctx.fillStyle = '#553'; ctx.fillRect(w * 0.18, h - 10, 12, 10);
+    for (const p of this.particles) {
+      ctx.fillStyle = `rgba(150,200,80,${p.life * 0.3})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+    }
+    if (this.boomT > 0) {
+      const r = (1 - this.boomT) * 80;
+      ctx.fillStyle = `rgba(255,180,50,${this.boomT})`;
+      ctx.beginPath(); ctx.arc(this.mouse.x, this.mouse.y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    // spark hint
+    if (this.mouse.y < h * 0.4 && this.mouse.x > 0) {
+      ctx.strokeStyle = '#ffd060'; ctx.beginPath();
+      ctx.arc(this.mouse.x, this.mouse.y, 8, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+}
+
+class AcidPool extends Demo {
+  init() {
+    this.bridge = { x: this.w * 0.3, y: this.h * 0.4, w: 80, h: 8, drag: false, dx: 0, dy: 0, hp: 1 };
+    this.poolY = this.h - 24;
+    this.bubbles = [];
+  }
+  onDown() {
+    const b = this.bridge;
+    if (this.mouse.x > b.x && this.mouse.x < b.x + b.w && this.mouse.y > b.y - 8 && this.mouse.y < b.y + b.h + 4) {
+      b.drag = true; b.dx = this.mouse.x - b.x; b.dy = this.mouse.y - b.y;
+    }
+  }
+  onUp() { this.bridge.drag = false; }
+  update(dt) {
+    const b = this.bridge;
+    if (b.drag) { b.x = this.mouse.x - b.dx; b.y = this.mouse.y - b.dy; }
+    if (b.y + b.h >= this.poolY) {
+      b.hp = Math.max(0, b.hp - dt * 0.3);
+      if (Math.random() < 0.3) this.bubbles.push({ x: b.x + Math.random() * b.w, y: this.poolY, vy: -rand(15, 30), life: 1 });
+    }
+    for (const p of this.bubbles) { p.y += p.vy * dt; p.life -= dt; }
+    this.bubbles = this.bubbles.filter(p => p.life > 0);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // pool
+    ctx.fillStyle = '#4a8830'; ctx.fillRect(0, this.poolY, w, h - this.poolY);
+    ctx.fillStyle = '#6aaa50'; ctx.fillRect(0, this.poolY, w, 4);
+    for (const p of this.bubbles) {
+      ctx.fillStyle = `rgba(200,255,180,${p.life * 0.6})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    // bridge
+    const b = this.bridge;
+    const tint = Math.floor(180 * b.hp + 40);
+    ctx.fillStyle = `rgb(${tint},${tint},${tint + 10})`;
+    ctx.fillRect(b.x, b.y, b.w * b.hp, b.h);
+    ctx.strokeStyle = '#445'; ctx.strokeRect(b.x, b.y, b.w * b.hp, b.h);
+  }
+}
+
+class AcidBase extends Demo {
+  init() {
+    this.dropA = { x: this.w * 0.3, y: 24, vy: 0 };
+    this.dropB = { x: this.w * 0.7, y: 24, vy: 0 };
+    this.held = null;
+    this.smoke = [];
+    this.poolY = this.h - 20;
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.dropA.x, this.dropA.y) < 100) this.held = this.dropA;
+    else if (dist2(this.mouse.x, this.mouse.y, this.dropB.x, this.dropB.y) < 100) this.held = this.dropB;
+  }
+  onUp() { this.held = null; }
+  update(dt) {
+    if (this.held) { this.held.x = this.mouse.x; this.held.y = this.mouse.y; this.held.vy = 0; }
+    for (const d of [this.dropA, this.dropB]) {
+      if (this.held === d) continue;
+      d.vy += 220 * dt; d.y += d.vy * dt;
+      if (d.y >= this.poolY) { d.y = this.poolY; d.vy = 0; }
+    }
+    if (Math.abs(this.dropA.x - this.dropB.x) < 24 && Math.abs(this.dropA.y - this.dropB.y) < 24) {
+      for (let i = 0; i < 3; i++) {
+        const cx = (this.dropA.x + this.dropB.x) / 2;
+        const cy = (this.dropA.y + this.dropB.y) / 2;
+        this.smoke.push({ x: cx + rand(-4, 4), y: cy, vx: rand(-8, 8), vy: rand(-20, -10), life: 1.5, r: rand(4, 7) });
+      }
+    }
+    for (const s of this.smoke) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 0.6; s.r += dt * 6; }
+    this.smoke = this.smoke.filter(s => s.life > 0);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#333'; ctx.fillRect(0, this.poolY, w, h - this.poolY);
+    for (const s of this.smoke) {
+      ctx.fillStyle = `rgba(180,200,220,${s.life * 0.4})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#88ff66';
+    ctx.beginPath(); ctx.arc(this.dropA.x, this.dropA.y, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ff6688';
+    ctx.beginPath(); ctx.arc(this.dropB.x, this.dropB.y, 10, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+class WetWeapon extends Demo {
+  init() {
+    this.state = 'dry'; // dry / wet
+    this.flash = 0;
+    this.buttons = [
+      { x: 12, y: this.h - 20, w: 36, h: 14, label: 'WATER', color: '#4af' },
+      { x: 56, y: this.h - 20, w: 36, h: 14, label: 'FIRE', color: '#f74' },
+      { x: 100, y: this.h - 20, w: 36, h: 14, label: 'THUNDER', color: '#ff4' },
+    ];
+  }
+  onDown() {
+    for (const b of this.buttons) {
+      if (this.mouse.x >= b.x && this.mouse.x <= b.x + b.w && this.mouse.y >= b.y && this.mouse.y <= b.y + b.h) {
+        if (b.label === 'WATER') this.state = 'wet';
+        else if (b.label === 'FIRE') { if (this.state === 'wet') this.flash = 0.3; }
+        else if (b.label === 'THUNDER') { this.flash = this.state === 'wet' ? 1 : 0.4; if (this.state === 'wet') this.state = 'dry'; }
+      }
+    }
+  }
+  update(dt) { if (this.flash > 0) this.flash -= dt * 1.2; }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // player
+    const px = w / 2, py = h / 2 - 16;
+    ctx.fillStyle = this.flash > 0.5 ? '#ff8' : '#fc9';
+    ctx.fillRect(px - 8, py - 16, 16, 24);
+    // weapon (wet=blue tint)
+    ctx.fillStyle = this.state === 'wet' ? '#4af' : '#aab';
+    ctx.fillRect(px + 8, py - 18, 4, 24);
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,150,${this.flash})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+    for (const b of this.buttons) {
+      ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.fillStyle = '#000'; ctx.font = '8px ui-monospace,monospace';
+      ctx.fillText(b.label, b.x + 2, b.y + 10);
+    }
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace';
+    ctx.fillText('state: ' + this.state, 8, 14);
+  }
+}
+
+class Molotov extends Demo {
+  init() {
+    this.bottle = { x: 30, y: this.h - 30, vx: 0, vy: 0, flying: false, broken: false };
+    this.fires = [];
+    this.dragStart = null;
+  }
+  onDown() {
+    if (!this.bottle.flying && dist2(this.mouse.x, this.mouse.y, this.bottle.x, this.bottle.y) < 400) {
+      this.dragStart = { x: this.mouse.x, y: this.mouse.y };
+    }
+  }
+  onUp() {
+    if (this.dragStart && !this.bottle.flying) {
+      this.bottle.vx = (this.mouse.x - this.dragStart.x) * 3;
+      this.bottle.vy = (this.mouse.y - this.dragStart.y) * 3;
+      this.bottle.flying = true; this.bottle.broken = false;
+    }
+    this.dragStart = null;
+  }
+  update(dt) {
+    if (this.bottle.flying) {
+      this.bottle.vy += 400 * dt;
+      this.bottle.x += this.bottle.vx * dt;
+      this.bottle.y += this.bottle.vy * dt;
+      if (this.bottle.y > this.h - 8 || this.bottle.x < 0 || this.bottle.x > this.w) {
+        for (let i = 0; i < 8; i++) this.fires.push({ x: this.bottle.x + rand(-20, 20), y: this.h - 8, life: 1.5 });
+        this.bottle.flying = false; this.bottle.broken = true;
+        setTimeout(() => { this.bottle.x = 30; this.bottle.y = this.h - 30; this.bottle.broken = false; }, 1500);
+      }
+    }
+    for (const f of this.fires) f.life -= dt * 0.5;
+    this.fires = this.fires.filter(f => f.life > 0);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 8, w, 8);
+    for (const f of this.fires) {
+      ctx.fillStyle = `rgba(255,${100 + Math.random() * 100 | 0},30,${f.life * 0.7})`;
+      ctx.beginPath(); ctx.arc(f.x, f.y - 6, 8 * f.life, 0, Math.PI * 2); ctx.fill();
+    }
+    if (!this.bottle.broken) {
+      ctx.fillStyle = '#6c4';
+      ctx.fillRect(this.bottle.x - 4, this.bottle.y - 8, 8, 14);
+      ctx.fillStyle = '#f73';
+      ctx.fillRect(this.bottle.x - 2, this.bottle.y - 12, 4, 4);
+    }
+    if (this.dragStart) {
+      ctx.strokeStyle = '#ff8'; ctx.beginPath();
+      ctx.moveTo(this.dragStart.x, this.dragStart.y);
+      ctx.lineTo(this.mouse.x, this.mouse.y); ctx.stroke();
+    }
+  }
+}
+
+/* ============================================================
+   03 RIGID BODY
+============================================================ */
+class PushBox extends Demo {
+  init() {
+    this.boxes = [];
+    for (let i = 0; i < 3; i++) this.boxes.push({ x: 30 + i * 50, y: this.h - 28, w: 24, h: 24, vy: 0 });
+    this.held = null;
+  }
+  onDown() {
+    for (const b of this.boxes) {
+      if (this.mouse.x > b.x && this.mouse.x < b.x + b.w && this.mouse.y > b.y && this.mouse.y < b.y + b.h) {
+        this.held = b; this.held.dx = this.mouse.x - b.x; this.held.dy = this.mouse.y - b.y;
+        break;
+      }
+    }
+  }
+  onUp() { this.held = null; }
+  update(dt) {
+    if (this.held) { this.held.x = this.mouse.x - this.held.dx; this.held.y = this.mouse.y - this.held.dy; this.held.vy = 0; }
+    for (const b of this.boxes) {
+      if (b === this.held) continue;
+      b.vy += 600 * dt; b.y += b.vy * dt;
+      // floor
+      if (b.y + b.h > this.h) { b.y = this.h - b.h; b.vy = 0; }
+      // stack on other boxes
+      for (const other of this.boxes) {
+        if (other === b) continue;
+        if (b.x + b.w > other.x && b.x < other.x + other.w && b.y + b.h > other.y && b.y + b.h < other.y + other.h && b.vy >= 0) {
+          b.y = other.y - b.h; b.vy = 0;
+        }
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    for (const b of this.boxes) {
+      ctx.fillStyle = b === this.held ? '#8af' : '#a86';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = '#553'; ctx.strokeRect(b.x, b.y, b.w, b.h);
+    }
+  }
+}
+
+class RollingBarrel extends Demo {
+  init() {
+    this.barrel = { x: 28, y: 24, vx: 0, vy: 0, r: 10, rot: 0, released: false };
+    this.target = { x: this.w - 40, y: this.h - 20, hp: 1 };
+  }
+  onDown() { this.barrel.released = true; }
+  update(dt) {
+    if (this.barrel.released) {
+      // slope from (0, 24) to (this.w * 0.7, this.h - 30), then floor
+      const slopeEndX = this.w * 0.7;
+      const slopeEndY = this.h - 16;
+      if (this.barrel.x < slopeEndX) {
+        const t = this.barrel.x / slopeEndX;
+        const groundY = 24 + (slopeEndY - 24) * t;
+        if (this.barrel.y + this.barrel.r > groundY) this.barrel.y = groundY - this.barrel.r;
+        this.barrel.vx += 160 * dt;
+      } else {
+        this.barrel.vy += 600 * dt;
+        if (this.barrel.y + this.barrel.r > this.h - 6) { this.barrel.y = this.h - 6 - this.barrel.r; this.barrel.vy = 0; }
+      }
+      this.barrel.x += this.barrel.vx * dt;
+      this.barrel.y += this.barrel.vy * dt;
+      this.barrel.rot += this.barrel.vx * dt * 0.1;
+      if (this.barrel.x + this.barrel.r > this.target.x && this.barrel.x - this.barrel.r < this.target.x + 16) {
+        this.target.hp = Math.max(0, this.target.hp - dt * 4);
+      }
+      if (this.barrel.x > this.w + 20) {
+        this.barrel.x = 28; this.barrel.y = 24; this.barrel.vx = 0; this.barrel.vy = 0; this.barrel.released = false;
+        this.target.hp = 1;
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // slope
+    ctx.fillStyle = '#332'; ctx.beginPath();
+    ctx.moveTo(0, 30); ctx.lineTo(this.w * 0.7, this.h - 16);
+    ctx.lineTo(this.w * 0.7, this.h); ctx.lineTo(0, this.h); ctx.fill();
+    ctx.fillRect(this.w * 0.7, this.h - 6, this.w * 0.3, 6);
+    // target
+    if (this.target.hp > 0) {
+      ctx.fillStyle = '#a44';
+      ctx.fillRect(this.target.x, this.target.y - 16 * this.target.hp, 16, 16 * this.target.hp);
+    }
+    // barrel
+    ctx.save();
+    ctx.translate(this.barrel.x, this.barrel.y);
+    ctx.rotate(this.barrel.rot);
+    ctx.fillStyle = '#864';
+    ctx.beginPath(); ctx.arc(0, 0, this.barrel.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#532'; ctx.beginPath(); ctx.moveTo(-this.barrel.r, 0); ctx.lineTo(this.barrel.r, 0); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class WeightSwitch extends Demo {
+  init() {
+    this.box = { x: 30, y: this.h - 28, w: 22, h: 22, drag: false, dx: 0, dy: 0 };
+    this.pad = { x: this.w * 0.5, y: this.h - 8, w: 32, h: 6, pressed: false };
+    this.gate = { x: this.w - 30, y: 10, w: 12, h: this.h - 20, open: 0 };
+  }
+  onDown() {
+    const b = this.box;
+    if (this.mouse.x > b.x && this.mouse.x < b.x + b.w && this.mouse.y > b.y && this.mouse.y < b.y + b.h) {
+      b.drag = true; b.dx = this.mouse.x - b.x; b.dy = this.mouse.y - b.y;
+    }
+  }
+  onUp() { this.box.drag = false; }
+  update(dt) {
+    const b = this.box;
+    if (b.drag) { b.x = this.mouse.x - b.dx; b.y = this.mouse.y - b.dy; }
+    else {
+      b.y += 400 * dt;
+      if (b.y + b.h > this.h) b.y = this.h - b.h;
+    }
+    const p = this.pad;
+    this.pad.pressed = (b.x + b.w > p.x && b.x < p.x + p.w && b.y + b.h >= p.y - 2);
+    this.gate.open = lerp(this.gate.open, this.pad.pressed ? 1 : 0, 0.1);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    // pad
+    ctx.fillStyle = this.pad.pressed ? '#4f8' : '#484';
+    ctx.fillRect(this.pad.x, this.pad.y, this.pad.w, this.pad.h);
+    // gate
+    const g = this.gate;
+    ctx.fillStyle = '#664';
+    ctx.fillRect(g.x, g.y + g.h * g.open, g.w, g.h * (1 - g.open));
+    // box
+    ctx.fillStyle = '#a86';
+    ctx.fillRect(this.box.x, this.box.y, this.box.w, this.box.h);
+  }
+}
+
+class StackCollapse extends Demo {
+  init() {
+    this.boxes = [];
+    for (let i = 0; i < 5; i++) this.boxes.push({ x: this.w / 2 - 12 + rand(-2, 2), y: this.h - 26 - i * 22, w: 24, h: 22, vx: 0, vy: 0, drag: false });
+  }
+  onDown() {
+    for (const b of this.boxes) {
+      if (this.mouse.x > b.x && this.mouse.x < b.x + b.w && this.mouse.y > b.y && this.mouse.y < b.y + b.h) {
+        b.drag = true; b.dx = this.mouse.x - b.x; b.dy = this.mouse.y - b.y; break;
+      }
+    }
+  }
+  onUp() { for (const b of this.boxes) b.drag = false; }
+  update(dt) {
+    for (const b of this.boxes) {
+      if (b.drag) { b.x = this.mouse.x - b.dx; b.y = this.mouse.y - b.dy; b.vx = 0; b.vy = 0; continue; }
+      b.vy += 600 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      b.vx *= 0.96;
+      if (b.y + b.h > this.h) { b.y = this.h - b.h; b.vy = 0; b.vx *= 0.7; }
+      if (b.x < 0) { b.x = 0; b.vx = Math.abs(b.vx) * 0.5; }
+      if (b.x + b.w > this.w) { b.x = this.w - b.w; b.vx = -Math.abs(b.vx) * 0.5; }
+      for (const other of this.boxes) {
+        if (other === b) continue;
+        if (b.x + b.w > other.x && b.x < other.x + other.w && b.y + b.h > other.y && b.y < other.y + other.h) {
+          // simple resolve
+          const overlapY = (b.y + b.h) - other.y;
+          const overlapX = Math.min(b.x + b.w - other.x, other.x + other.w - b.x);
+          if (overlapY < overlapX && b.vy > 0) { b.y = other.y - b.h; b.vy = 0; b.vx += rand(-30, 30) * dt; }
+          else { if (b.x < other.x) b.x = other.x - b.w; else b.x = other.x + other.w; b.vx *= -0.3; }
+        }
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    for (const b of this.boxes) {
+      ctx.fillStyle = b.drag ? '#8af' : '#a86';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = '#553'; ctx.strokeRect(b.x, b.y, b.w, b.h);
+    }
+  }
+}
+
+class BouncePad extends Demo {
+  init() {
+    this.ball = null;
+    this.padY = this.h - 12;
+    this.padX = this.w / 2 - 24;
+    this.padW = 48;
+    this.compress = 0;
+  }
+  onDown() { this.ball = { x: this.mouse.x, y: 0, vx: 0, vy: 0 }; }
+  update(dt) {
+    if (this.ball) {
+      this.ball.vy += 600 * dt;
+      this.ball.x += this.ball.vx * dt; this.ball.y += this.ball.vy * dt;
+      if (this.ball.y + 8 > this.padY && this.ball.x > this.padX && this.ball.x < this.padX + this.padW) {
+        this.ball.y = this.padY - 8; this.ball.vy = -Math.abs(this.ball.vy) * 1.4;
+        this.compress = 1;
+      } else if (this.ball.y + 8 > this.h) { this.ball.y = this.h - 8; this.ball.vy *= -0.4; this.ball.vx *= 0.7; }
+      if (Math.abs(this.ball.vy) < 4 && this.ball.y + 8 >= this.padY - 1) this.ball = null;
+    }
+    this.compress *= 0.85;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    // pad
+    ctx.fillStyle = '#4af';
+    const padH = 8 + this.compress * 6;
+    ctx.fillRect(this.padX, this.padY - padH * 0.5, this.padW, padH);
+    if (this.ball) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(this.ball.x, this.ball.y, 8, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class StickyPad extends Demo {
+  init() {
+    this.ball = null;
+    this.stuck = 0;
+  }
+  onDown() {
+    this.ball = { x: 16, y: this.h - 20, vx: 220, vy: -180 };
+    this.stuck = 0;
+  }
+  update(dt) {
+    if (!this.ball) return;
+    if (this.stuck > 0) {
+      this.stuck -= dt;
+      if (this.stuck <= 0) {
+        this.ball.vy = -200; this.ball.vx = -80;
+      }
+      return;
+    }
+    this.ball.vy += 600 * dt;
+    this.ball.x += this.ball.vx * dt; this.ball.y += this.ball.vy * dt;
+    // sticky pad on right wall
+    if (this.ball.x + 6 > this.w - 12 && this.ball.y > 20 && this.ball.y < this.h - 30) {
+      this.ball.x = this.w - 12 - 6;
+      this.ball.vx = 0; this.ball.vy = 0;
+      this.stuck = 1.2;
+    }
+    if (this.ball.y + 8 > this.h) this.ball = null;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    // sticky pad
+    ctx.fillStyle = '#c6a';
+    ctx.fillRect(w - 12, 20, 12, h - 50);
+    if (this.ball) {
+      ctx.fillStyle = this.stuck > 0 ? '#c6a' : '#fff';
+      ctx.beginPath(); ctx.arc(this.ball.x, this.ball.y, 7, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+</script>
+<script>
+/* ============================================================
+   04 VERLET (Rope / Cloth / Web)
+============================================================ */
+class VerletPoint {
+  constructor(x, y, pinned = false) {
+    this.x = x; this.y = y; this.px = x; this.py = y; this.pinned = pinned;
+  }
+  update(dt, gravity = 600) {
+    if (this.pinned) return;
+    const vx = (this.x - this.px) * 0.99;
+    const vy = (this.y - this.py) * 0.99;
+    this.px = this.x; this.py = this.y;
+    this.x += vx; this.y += vy + gravity * dt * dt * 60;
+  }
+}
+function verletConstrain(a, b, len) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+  const diff = (len - d) / d * 0.5;
+  const ox = dx * diff, oy = dy * diff;
+  if (!a.pinned) { a.x -= ox; a.y -= oy; }
+  if (!b.pinned) { b.x += ox; b.y += oy; }
+}
+
+class Rope extends Demo {
+  init() {
+    this.pts = [];
+    const n = 14, segLen = (this.w - 30) / n;
+    for (let i = 0; i < n; i++) this.pts.push(new VerletPoint(15 + i * segLen, 20, i === 0));
+    this.segLen = segLen;
+    this.held = null;
+  }
+  onDown() {
+    let min = 400, best = null;
+    for (const p of this.pts) { const d = dist2(p.x, p.y, this.mouse.x, this.mouse.y); if (d < min) { min = d; best = p; } }
+    this.held = best;
+  }
+  onUp() { this.held = null; }
+  update(dt) {
+    if (this.held) { this.held.x = this.mouse.x; this.held.y = this.mouse.y; this.held.px = this.held.x; this.held.py = this.held.y; }
+    for (const p of this.pts) p.update(dt);
+    for (let k = 0; k < 4; k++) for (let i = 0; i < this.pts.length - 1; i++) verletConstrain(this.pts[i], this.pts[i + 1], this.segLen);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#c87'; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.moveTo(this.pts[0].x, this.pts[0].y);
+    for (let i = 1; i < this.pts.length; i++) ctx.lineTo(this.pts[i].x, this.pts[i].y);
+    ctx.stroke();
+    for (const p of this.pts) {
+      ctx.fillStyle = p.pinned ? '#f88' : '#fc8';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class GrappleDemo extends Demo {
+  init() {
+    this.player = { x: this.w * 0.5, y: this.h - 30, vy: 0 };
+    this.hook = null;
+    this.rope = [];
+  }
+  onDown() {
+    this.hook = { x: this.mouse.x, y: 10 };
+    const n = 10, dx = (this.hook.x - this.player.x) / n, dy = (this.hook.y - this.player.y) / n;
+    this.rope = [];
+    for (let i = 0; i <= n; i++) this.rope.push(new VerletPoint(this.player.x + dx * i, this.player.y + dy * i, i === 0));
+    this.segLen = Math.sqrt(dx * dx + dy * dy);
+  }
+  update(dt) {
+    if (this.hook && this.rope.length) {
+      this.rope[0].x = this.hook.x; this.rope[0].y = this.hook.y;
+      const last = this.rope[this.rope.length - 1];
+      last.x = this.player.x; last.y = this.player.y;
+      const dx = this.hook.x - this.player.x, dy = this.hook.y - this.player.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      this.player.x += (dx / d) * 60 * dt;
+      this.player.y += (dy / d) * 80 * dt;
+      if (d < 30) { this.hook = null; this.rope = []; }
+    } else {
+      this.player.vy += 400 * dt; this.player.y += this.player.vy * dt;
+      if (this.player.y > this.h - 14) { this.player.y = this.h - 14; this.player.vy = 0; }
+    }
+    for (const p of this.rope) p.update(dt, 200);
+    if (this.rope.length) {
+      for (let k = 0; k < 3; k++) for (let i = 0; i < this.rope.length - 1; i++) verletConstrain(this.rope[i], this.rope[i + 1], this.segLen);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, 0, w, 6);
+    ctx.fillRect(0, h - 4, w, 4);
+    if (this.rope.length > 1) {
+      ctx.strokeStyle = '#0cd'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(this.rope[0].x, this.rope[0].y);
+      for (let i = 1; i < this.rope.length; i++) ctx.lineTo(this.rope[i].x, this.rope[i].y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 6, this.player.y - 12, 12, 14);
+    if (this.hook) {
+      ctx.fillStyle = '#ff8';
+      ctx.beginPath(); ctx.arc(this.hook.x, this.hook.y, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class Cloth extends Demo {
+  init() {
+    this.cols = 10; this.rows = 6;
+    const spaceX = (this.w - 30) / (this.cols - 1), spaceY = 14;
+    this.spaceX = spaceX; this.spaceY = spaceY;
+    this.pts = [];
+    for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+      this.pts.push(new VerletPoint(15 + x * spaceX, 12 + y * spaceY, y === 0));
+    }
+    this.held = null;
+  }
+  onDown() {
+    let min = 400, best = null;
+    for (const p of this.pts) { const d = dist2(p.x, p.y, this.mouse.x, this.mouse.y); if (d < min) { min = d; best = p; } }
+    this.held = best;
+  }
+  onUp() { this.held = null; }
+  idx(x, y) { return y * this.cols + x; }
+  update(dt) {
+    if (this.held) { this.held.x = this.mouse.x; this.held.y = this.mouse.y; this.held.px = this.held.x; this.held.py = this.held.y; }
+    for (const p of this.pts) p.update(dt, 400);
+    for (let k = 0; k < 3; k++) {
+      for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+        if (x < this.cols - 1) verletConstrain(this.pts[this.idx(x, y)], this.pts[this.idx(x + 1, y)], this.spaceX);
+        if (y < this.rows - 1) verletConstrain(this.pts[this.idx(x, y)], this.pts[this.idx(x, y + 1)], this.spaceY);
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#a37'; ctx.lineWidth = 1;
+    for (let y = 0; y < this.rows; y++) for (let x = 0; x < this.cols; x++) {
+      const p = this.pts[this.idx(x, y)];
+      if (x < this.cols - 1) { const p2 = this.pts[this.idx(x + 1, y)]; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+      if (y < this.rows - 1) { const p2 = this.pts[this.idx(x, y + 1)]; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+    }
+  }
+}
+
+class SpiderWeb extends Demo {
+  init() {
+    this.player = null;
+  }
+  onDown() { this.player = { x: 6, y: this.mouse.y, vx: 150, vy: 0 }; }
+  update(dt) {
+    if (this.player) {
+      let slow = 1;
+      const cx = this.w / 2, cy = this.h / 2;
+      const d = Math.sqrt(dist2(this.player.x, this.player.y, cx, cy));
+      if (d < 60) slow = 0.15 + d / 60 * 0.4;
+      this.player.x += this.player.vx * slow * dt;
+      this.player.y += this.player.vy * slow * dt;
+      if (this.player.x > this.w + 10) this.player = null;
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(220,220,255,0.5)';
+    const cx = w / 2, cy = h / 2;
+    for (let a = 0; a < 12; a++) {
+      const ang = a * Math.PI * 2 / 12;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * 60, cy + Math.sin(ang) * 60); ctx.stroke();
+    }
+    for (let r = 1; r <= 4; r++) {
+      ctx.beginPath();
+      for (let a = 0; a <= 12; a++) {
+        const ang = a * Math.PI * 2 / 12;
+        const x = cx + Math.cos(ang) * r * 14, y = cy + Math.sin(ang) * r * 14;
+        if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    if (this.player) {
+      ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 5, this.player.y - 5, 10, 10);
+    }
+  }
+}
+
+class SuspensionBridge extends Demo {
+  init() {
+    this.pts = [];
+    const n = 12;
+    const segLen = (this.w - 40) / n;
+    this.segLen = segLen;
+    for (let i = 0; i <= n; i++) this.pts.push(new VerletPoint(20 + i * segLen, 26, i === 0 || i === n));
+    this.cables = [];
+    for (let i = 0; i <= n; i++) this.cables.push({ pt: i, alive: true, anchorX: 20 + i * segLen, anchorY: 4 });
+  }
+  onDown() {
+    for (const c of this.cables) {
+      if (!c.alive) continue;
+      const p = this.pts[c.pt];
+      const midX = (p.x + c.anchorX) / 2, midY = (p.y + c.anchorY) / 2;
+      if (dist2(this.mouse.x, this.mouse.y, midX, midY) < 120) { c.alive = false; this.pts[c.pt].pinned = false; }
+    }
+  }
+  update(dt) {
+    for (const p of this.pts) p.update(dt, 500);
+    for (let k = 0; k < 4; k++) for (let i = 0; i < this.pts.length - 1; i++) verletConstrain(this.pts[i], this.pts[i + 1], this.segLen);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, 0, w, 6); ctx.fillRect(0, h - 4, w, 4);
+    ctx.strokeStyle = '#aab'; ctx.lineWidth = 1;
+    for (const c of this.cables) {
+      if (!c.alive) continue;
+      const p = this.pts[c.pt];
+      ctx.beginPath(); ctx.moveTo(c.anchorX, c.anchorY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+    ctx.strokeStyle = '#a86'; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.moveTo(this.pts[0].x, this.pts[0].y);
+    for (let i = 1; i < this.pts.length; i++) ctx.lineTo(this.pts[i].x, this.pts[i].y);
+    ctx.stroke();
+  }
+}
+</script>
+<script>
+/* ============================================================
+   05 FLUID
+============================================================ */
+class Floater extends Demo {
+  init() {
+    this.waterY = this.h * 0.5;
+    this.cork = { x: this.w / 2, y: this.h * 0.3, vy: 0, drag: false };
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.cork.x, this.cork.y) < 200) this.cork.drag = true;
+  }
+  onUp() { this.cork.drag = false; }
+  update(dt) {
+    if (this.cork.drag) { this.cork.x = this.mouse.x; this.cork.y = this.mouse.y; this.cork.vy = 0; return; }
+    if (this.cork.y > this.waterY) {
+      const depth = this.cork.y - this.waterY;
+      this.cork.vy -= depth * 0.8 * dt;
+      this.cork.vy *= 0.95;
+    } else {
+      this.cork.vy += 500 * dt;
+    }
+    this.cork.y += this.cork.vy * dt;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#1a3144'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#0a1830'; ctx.fillRect(0, 0, w, this.waterY);
+    ctx.fillStyle = '#3a7bb8';
+    const off = Math.sin(performance.now() * 0.002) * 2;
+    ctx.fillRect(0, this.waterY + off, w, h);
+    ctx.fillStyle = '#c84';
+    ctx.fillRect(this.cork.x - 8, this.cork.y - 6, 16, 12);
+    ctx.fillStyle = '#964';
+    ctx.fillRect(this.cork.x - 8, this.cork.y - 6, 16, 3);
+  }
+}
+
+class AirBubble extends Demo {
+  init() {
+    this.bubbles = [];
+    this.oxygen = 0.4;
+  }
+  onDown() {
+    this.bubbles.push({ x: this.mouse.x, y: this.mouse.y, vy: -40, life: 2 });
+    this.oxygen = Math.min(1, this.oxygen + 0.15);
+  }
+  update(dt) {
+    this.oxygen = Math.max(0, this.oxygen - dt * 0.05);
+    for (const b of this.bubbles) { b.y += b.vy * dt; b.life -= dt; b.vy -= 5 * dt; }
+    this.bubbles = this.bubbles.filter(b => b.life > 0 && b.y > 0);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a3060'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#1a4080'; for (let i = 0; i < 50; i++) ctx.fillRect((i * 73) % w, (i * 41) % h, 1, 1);
+    for (const b of this.bubbles) {
+      ctx.fillStyle = `rgba(200,230,255,${b.life * 0.5})`;
+      ctx.beginPath(); ctx.arc(b.x, b.y, 5 * b.life, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#332'; ctx.fillRect(8, 8, 80, 8);
+    ctx.fillStyle = '#4af'; ctx.fillRect(8, 8, 80 * this.oxygen, 8);
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace'; ctx.fillText('O2', 92, 16);
+  }
+}
+
+class Current extends Demo {
+  init() { this.particles = []; }
+  onDown() { this.particles.push({ x: this.mouse.x, y: this.mouse.y, vx: 0, vy: 0, life: 4 }); }
+  update(dt) {
+    for (const p of this.particles) {
+      p.vx += 80 * dt;
+      p.vy += Math.sin(p.x * 0.05 + performance.now() * 0.002) * 30 * dt;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.life -= dt * 0.5;
+    }
+    this.particles = this.particles.filter(p => p.life > 0 && p.x < this.w + 10);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a2540'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(170,200,230,0.3)';
+    const t = performance.now() * 0.001;
+    for (let y = 12; y < h; y += 16) for (let x = -20; x < w; x += 24) {
+      const off = ((x + t * 30) % 24);
+      ctx.beginPath(); ctx.moveTo(off + 2, y); ctx.lineTo(off + 12, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(off + 9, y - 3); ctx.lineTo(off + 12, y); ctx.lineTo(off + 9, y + 3); ctx.stroke();
+    }
+    for (const p of this.particles) {
+      ctx.fillStyle = `rgba(255,200,100,${p.life * 0.3})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class IceRaft extends Demo {
+  init() {
+    this.raft = { x: this.w / 2 - 24, y: this.h * 0.5 - 8, w: 48, h: 10, vx: 0, drag: false, dx: 0 };
+    this.waterY = this.h * 0.5;
+  }
+  onDown() {
+    const r = this.raft;
+    if (this.mouse.x > r.x && this.mouse.x < r.x + r.w && this.mouse.y > r.y - 10 && this.mouse.y < r.y + r.h + 5) {
+      r.drag = true; r.dx = this.mouse.x - r.x;
+    }
+  }
+  onUp() {
+    if (this.raft.drag) {
+      this.raft.vx = (this.mouse.x - this.prevMouse.x) * 20;
+      this.raft.drag = false;
+    }
+  }
+  update(dt) {
+    const r = this.raft;
+    if (r.drag) { r.x = this.mouse.x - r.dx; r.vx = 0; }
+    else { r.x += r.vx * dt; r.vx *= 0.98; }
+    if (r.x < 0) { r.x = 0; r.vx = -r.vx * 0.4; }
+    if (r.x + r.w > this.w) { r.x = this.w - r.w; r.vx = -r.vx * 0.4; }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a1830'; ctx.fillRect(0, 0, w, this.waterY);
+    ctx.fillStyle = '#3a7bb8'; ctx.fillRect(0, this.waterY, w, h - this.waterY);
+    const r = this.raft;
+    const off = Math.sin(performance.now() * 0.003 + r.x * 0.05) * 1;
+    ctx.fillStyle = '#cef'; ctx.fillRect(r.x, r.y + off, r.w, r.h);
+    ctx.fillStyle = '#9bd'; ctx.fillRect(r.x, r.y + off + r.h - 3, r.w, 3);
+  }
+}
+
+class WaveAlert extends Demo {
+  init() {
+    this.waterY = this.h * 0.6;
+    this.waves = [];
+    this.enemy = { x: this.w - 30, y: this.waterY, alert: 0 };
+  }
+  onDown() {
+    if (this.mouse.y > this.waterY - 10) this.waves.push({ x: this.mouse.x, r: 0, life: 1 });
+  }
+  update(dt) {
+    for (const wv of this.waves) { wv.r += 120 * dt; wv.life -= dt * 0.7; }
+    for (const wv of this.waves) {
+      const d = Math.abs(this.enemy.x - wv.x);
+      if (Math.abs(d - wv.r) < 8 && wv.life > 0.3) this.enemy.alert = 1;
+    }
+    this.enemy.alert = Math.max(0, this.enemy.alert - dt * 0.3);
+    this.waves = this.waves.filter(w => w.life > 0);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a1830'; ctx.fillRect(0, 0, w, this.waterY);
+    ctx.fillStyle = '#3a7bb8'; ctx.fillRect(0, this.waterY, w, h - this.waterY);
+    ctx.strokeStyle = '#aef';
+    for (const wv of this.waves) {
+      ctx.globalAlpha = wv.life;
+      ctx.beginPath(); ctx.arc(wv.x, this.waterY, wv.r, 0, Math.PI, true); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = this.enemy.alert > 0.5 ? '#f44' : '#844';
+    ctx.fillRect(this.enemy.x - 8, this.enemy.y - 18, 16, 18);
+    if (this.enemy.alert > 0.3) { ctx.fillStyle = '#ff0'; ctx.font = '14px ui-monospace,monospace'; ctx.fillText('!', this.enemy.x - 2, this.enemy.y - 22); }
+  }
+}
+
+class AirPocket extends Demo {
+  init() {
+    this.waterY = 20;
+    this.pocketY = 30; this.pocketX = this.w * 0.5; this.pocketW = 60;
+    this.player = { x: this.w * 0.1, y: this.h - 20, oxygen: 1 };
+  }
+  update(dt) {
+    if (this.mouse.x > 0) {
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.1);
+      this.player.y = lerp(this.player.y, this.mouse.y, 0.1);
+    }
+    const inPocket = (this.player.x > this.pocketX - this.pocketW / 2 && this.player.x < this.pocketX + this.pocketW / 2 &&
+                      this.player.y < this.pocketY + 12 && this.player.y > 6);
+    if (inPocket) this.player.oxygen = Math.min(1, this.player.oxygen + dt * 1.5);
+    else if (this.player.y > this.waterY) this.player.oxygen = Math.max(0, this.player.oxygen - dt * 0.2);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a3060'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, 0, w, 10);
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(this.pocketX - this.pocketW / 2, 10, this.pocketW, 22);
+    ctx.fillStyle = 'rgba(180,220,255,0.15)';
+    ctx.fillRect(this.pocketX - this.pocketW / 2, 10, this.pocketW, 22);
+    ctx.fillStyle = '#fc9';
+    ctx.fillRect(this.player.x - 5, this.player.y - 10, 10, 12);
+    ctx.fillStyle = '#332'; ctx.fillRect(8, h - 12, 60, 6);
+    ctx.fillStyle = '#4af'; ctx.fillRect(8, h - 12, 60 * this.player.oxygen, 6);
+  }
+}
+
+class Geyser extends Demo {
+  init() {
+    this.t = 0; this.active = false; this.particles = [];
+    this.player = { x: this.w / 2, y: this.h - 16, vy: 0, free: false };
+  }
+  onDown() { this.player.free = !this.player.free; }
+  update(dt) {
+    this.t += dt;
+    const cycle = (this.t % 4);
+    this.active = cycle > 2.5;
+    if (this.active) {
+      for (let i = 0; i < 3; i++) this.particles.push({ x: this.w / 2 + rand(-6, 6), y: this.h - 6, vy: rand(-180, -260), life: 1 });
+    }
+    for (const p of this.particles) { p.y += p.vy * dt; p.vy += 200 * dt; p.life -= dt; }
+    this.particles = this.particles.filter(p => p.life > 0 && p.y > 0);
+    if (this.player.free) {
+      const inCol = Math.abs(this.player.x - this.w / 2) < 12;
+      if (this.active && inCol) this.player.vy -= 600 * dt;
+      this.player.vy += 400 * dt;
+      this.player.y += this.player.vy * dt;
+      if (this.player.y > this.h - 16) { this.player.y = this.h - 16; this.player.vy = 0; }
+      if (this.player.y < 10) { this.player.y = 10; this.player.vy = 0; }
+      if (this.mouse.x > 0) this.player.x = lerp(this.player.x, this.mouse.x, 0.1);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#1a1410'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    ctx.fillStyle = '#000'; ctx.fillRect(w / 2 - 6, h - 6, 12, 6);
+    for (const p of this.particles) {
+      ctx.fillStyle = `rgba(180,220,255,${p.life * 0.7})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 5, this.player.y - 12, 10, 12);
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace';
+    ctx.fillText(this.player.free ? 'released' : 'click to release', 6, 14);
+  }
+}
+</script>
+<script>
+/* ============================================================
+   06 ELECTROMAGNETIC
+============================================================ */
+class ConductorChain extends Demo {
+  init() {
+    this.n = 14; this.cells = new Float32Array(this.n);
+    this.cellW = (this.w - 16) / this.n;
+  }
+  onDown() {
+    if (this.mouse.x < this.cellW + 8) this.cells[0] = 1;
+  }
+  update(dt) {
+    const next = new Float32Array(this.cells);
+    for (let i = 0; i < this.n; i++) {
+      if (this.cells[i] > 0.5) {
+        if (i + 1 < this.n) next[i + 1] = Math.max(next[i + 1], this.cells[i] - 0.08);
+      }
+      next[i] = Math.max(0, next[i] - dt * 0.4);
+    }
+    this.cells = next;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    const cy = h / 2;
+    for (let i = 0; i < this.n; i++) {
+      const v = this.cells[i];
+      ctx.fillStyle = v > 0.1 ? `rgb(${(120 + 135 * v) | 0},${(120 + 135 * v) | 0},${(40 + 40 * v) | 0})` : '#445';
+      ctx.fillRect(8 + i * this.cellW + 1, cy - 7, this.cellW - 2, 14);
+      if (v > 0.5) {
+        ctx.fillStyle = 'rgba(255,255,200,0.8)';
+        for (let j = 0; j < 3; j++) {
+          ctx.fillRect(8 + i * this.cellW + Math.random() * this.cellW, cy - 7 + Math.random() * 14, 1, 1);
+        }
+      }
+    }
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace'; ctx.fillText('← click', 6, cy - 12);
+  }
+}
+
+class WaterMetal extends Demo {
+  init() {
+    this.waterY = this.h * 0.5;
+    this.rod = { x: this.w * 0.3, y: this.waterY + 10, charge: 0 };
+    this.fish = [
+      { x: this.w * 0.5, y: this.waterY + 28, alive: true },
+      { x: this.w * 0.75, y: this.waterY + 18, alive: true },
+    ];
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.rod.x, this.rod.y) < 600) this.rod.charge = 1;
+  }
+  update(dt) {
+    if (this.rod.charge > 0.5) {
+      for (const f of this.fish) if (f.alive && f.y > this.waterY) f.alive = false;
+    }
+    this.rod.charge = Math.max(0, this.rod.charge - dt * 0.7);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a1830'; ctx.fillRect(0, 0, w, this.waterY);
+    ctx.fillStyle = this.rod.charge > 0.3 ? `rgb(${100 + this.rod.charge * 100 | 0},${150 + this.rod.charge * 100 | 0},${200 + this.rod.charge * 55 | 0})` : '#3a7bb8';
+    ctx.fillRect(0, this.waterY, w, h - this.waterY);
+    ctx.fillStyle = this.rod.charge > 0.3 ? '#ff8' : '#aab';
+    ctx.fillRect(this.rod.x - 2, this.waterY - 16, 4, 30);
+    for (const f of this.fish) {
+      if (!f.alive) continue;
+      ctx.fillStyle = '#fa8';
+      ctx.beginPath(); ctx.ellipse(f.x, f.y, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (this.rod.charge > 0.5) {
+      ctx.strokeStyle = '#ff8';
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(rand(0, w), this.waterY + rand(0, 40));
+        ctx.lineTo(rand(0, w), this.waterY + rand(0, 40));
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+class MagnetDemo extends Demo {
+  init() {
+    this.magnet = { x: this.w / 2, y: this.h / 2, drag: false };
+    this.bits = [];
+    for (let i = 0; i < 12; i++) this.bits.push({ x: rand(20, this.w - 20), y: rand(20, this.h - 20), vx: 0, vy: 0 });
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.magnet.x, this.magnet.y) < 400) this.magnet.drag = true;
+  }
+  onUp() { this.magnet.drag = false; }
+  update(dt) {
+    if (this.magnet.drag) { this.magnet.x = this.mouse.x; this.magnet.y = this.mouse.y; }
+    for (const b of this.bits) {
+      const dx = this.magnet.x - b.x, dy = this.magnet.y - b.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const f = 6000 / (d * d);
+      b.vx += (dx / d) * f * dt;
+      b.vy += (dy / d) * f * dt;
+      b.vx *= 0.9; b.vy *= 0.9;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#a44'; ctx.fillRect(this.magnet.x - 12, this.magnet.y - 8, 24, 16);
+    ctx.fillStyle = '#fff'; ctx.font = '10px ui-monospace,monospace';
+    ctx.fillText('N', this.magnet.x - 10, this.magnet.y + 4);
+    ctx.fillText('S', this.magnet.x + 4, this.magnet.y + 4);
+    for (const b of this.bits) {
+      ctx.fillStyle = '#cce';
+      ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
+    }
+  }
+}
+
+class Railgun extends Demo {
+  init() {
+    this.mA = { x: this.w * 0.3, y: this.h / 2 };
+    this.mB = { x: this.w * 0.7, y: this.h / 2 };
+    this.proj = { x: this.w / 2, y: this.h - 30, vx: 0, vy: 0, drag: false };
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.proj.x, this.proj.y) < 200) this.proj.drag = true;
+  }
+  onUp() { this.proj.drag = false; }
+  update(dt) {
+    const p = this.proj;
+    if (p.drag) { p.x = this.mouse.x; p.y = this.mouse.y; p.vx = 0; p.vy = 0; return; }
+    if (p.y > this.mA.y - 20 && p.y < this.mA.y + 20 && p.x > this.mA.x && p.x < this.mB.x) {
+      p.vx += 800 * dt;
+    }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vy += 300 * dt;
+    if (p.y > this.h - 10) { p.y = this.h - 10; p.vy = 0; p.vx *= 0.9; }
+    if (p.x > this.w + 10) { p.x = this.w / 2; p.y = this.h - 30; p.vx = 0; p.vy = 0; }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#a44'; ctx.fillRect(this.mA.x - 8, this.mA.y - 8, 16, 16);
+    ctx.fillStyle = '#44a'; ctx.fillRect(this.mB.x - 8, this.mB.y - 8, 16, 16);
+    ctx.strokeStyle = '#aab'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(this.mA.x, this.mA.y); ctx.lineTo(this.mB.x, this.mB.y); ctx.stroke();
+    ctx.fillStyle = '#cce'; ctx.fillRect(this.proj.x - 4, this.proj.y - 4, 8, 8);
+    if (this.proj.vx > 100) {
+      ctx.fillStyle = `rgba(150,200,255,0.7)`;
+      ctx.fillRect(this.proj.x - 20, this.proj.y - 1, 16, 2);
+    }
+  }
+}
+
+class StaticBuildup extends Demo {
+  init() {
+    this.gauge = 0;
+    this.bolt = 0;
+    this.player = { x: 30, y: this.h - 20 };
+  }
+  update(dt) {
+    if (this.mouse.x > 0 && Math.abs(this.mouse.x - this.player.x) > 8) {
+      this.gauge = Math.min(1, this.gauge + dt * 0.6);
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.15);
+    }
+    if (this.mouse.justDown && this.gauge > 0.4) {
+      this.bolt = 1; this.gauge = 0;
+    }
+    if (this.bolt > 0) this.bolt -= dt * 2;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#532'; ctx.fillRect(0, h - 12, w, 12);
+    for (let i = 0; i < w / 4; i++) { ctx.fillStyle = '#643'; ctx.fillRect(i * 4, h - 12, 2, 12); }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 6, this.player.y - 12, 12, 14);
+    if (this.gauge > 0.2) {
+      ctx.fillStyle = `rgba(255,255,80,${this.gauge * 0.6})`;
+      ctx.beginPath(); ctx.arc(this.player.x, this.player.y - 6, 16 * this.gauge, 0, Math.PI * 2); ctx.fill();
+    }
+    if (this.bolt > 0) {
+      ctx.strokeStyle = '#ff8'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      let x = this.player.x, y = this.player.y - 6;
+      ctx.moveTo(x, y);
+      for (let i = 0; i < 5; i++) { x += rand(-10, 10); y -= 6; ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#332'; ctx.fillRect(8, 8, 60, 6);
+    ctx.fillStyle = '#ff8'; ctx.fillRect(8, 8, 60 * this.gauge, 6);
+  }
+}
+</script>
+<script>
+/* ============================================================
+   07 LIGHT / VISION
+============================================================ */
+class TorchChain extends Demo {
+  init() {
+    this.torches = [];
+    const n = 6;
+    for (let i = 0; i < n; i++) this.torches.push({ x: 18 + i * (this.w - 36) / (n - 1), y: this.h / 2, lit: 0 });
+  }
+  onDown() {
+    for (const t of this.torches) {
+      if (dist2(this.mouse.x, this.mouse.y, t.x, t.y) < 200) { t.lit = 1; break; }
+    }
+  }
+  update(dt) {
+    for (let i = 0; i < this.torches.length; i++) {
+      if (this.torches[i].lit > 0.3 && i + 1 < this.torches.length && this.torches[i + 1].lit < 0.3) {
+        this.torches[i + 1].lit = Math.min(1, this.torches[i + 1].lit + dt * 0.6);
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#080814'; ctx.fillRect(0, 0, w, h);
+    // overlay darkness with light holes
+    for (const t of this.torches) {
+      if (t.lit < 0.1) continue;
+      const r = 32 * t.lit;
+      const grd = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, r);
+      grd.addColorStop(0, `rgba(255,200,100,${0.5 * t.lit})`);
+      grd.addColorStop(1, 'rgba(255,200,100,0)');
+      ctx.fillStyle = grd; ctx.fillRect(t.x - r, t.y - r, r * 2, r * 2);
+    }
+    for (const t of this.torches) {
+      ctx.fillStyle = '#553'; ctx.fillRect(t.x - 2, t.y - 4, 4, 16);
+      ctx.fillStyle = t.lit > 0.5 ? `rgb(255,${180 + Math.random() * 60 | 0},80)` : '#222';
+      ctx.beginPath(); ctx.arc(t.x, t.y - 6, 4 + t.lit * 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class MirrorReflect extends Demo {
+  init() {
+    this.source = { x: 16, y: this.h / 2 };
+    this.mirror = { x: this.w * 0.5, y: this.h / 2, angle: Math.PI / 4, drag: false };
+    this.target = { x: this.w - 16, y: 20, hit: false };
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.mirror.x, this.mirror.y) < 400) this.mirror.drag = true;
+  }
+  onUp() { this.mirror.drag = false; }
+  update(dt) {
+    if (this.mirror.drag) {
+      const dx = this.mouse.x - this.mirror.x, dy = this.mouse.y - this.mirror.y;
+      this.mirror.angle = Math.atan2(dy, dx);
+    }
+    // reflect: incident along +x, normal along mirror.angle - 90
+    const incident = { x: 1, y: 0 };
+    const nAng = this.mirror.angle - Math.PI / 2;
+    const n = { x: Math.cos(nAng), y: Math.sin(nAng) };
+    const dot = incident.x * n.x + incident.y * n.y;
+    this.reflected = { x: incident.x - 2 * dot * n.x, y: incident.y - 2 * dot * n.y };
+    // find target hit point
+    const dx2 = this.target.x - this.mirror.x;
+    const t2 = this.reflected.x !== 0 ? dx2 / this.reflected.x : 999;
+    const hitY = this.mirror.y + this.reflected.y * t2;
+    this.target.hit = Math.abs(hitY - this.target.y) < 20 && t2 > 0;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // incident beam
+    ctx.strokeStyle = '#ff8'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(this.source.x, this.source.y); ctx.lineTo(this.mirror.x, this.mirror.y); ctx.stroke();
+    // reflected beam
+    ctx.beginPath(); ctx.moveTo(this.mirror.x, this.mirror.y);
+    ctx.lineTo(this.mirror.x + this.reflected.x * 200, this.mirror.y + this.reflected.y * 200); ctx.stroke();
+    // source
+    ctx.fillStyle = '#ff8'; ctx.beginPath(); ctx.arc(this.source.x, this.source.y, 4, 0, Math.PI * 2); ctx.fill();
+    // mirror
+    ctx.save();
+    ctx.translate(this.mirror.x, this.mirror.y);
+    ctx.rotate(this.mirror.angle);
+    ctx.fillStyle = '#cce'; ctx.fillRect(-12, -2, 24, 4);
+    ctx.restore();
+    // target
+    ctx.fillStyle = this.target.hit ? '#4f8' : '#844';
+    ctx.fillRect(this.target.x - 8, this.target.y - 8, 16, 16);
+  }
+}
+
+class EnemyShadow extends Demo {
+  init() {
+    this.torch = { x: this.w / 2, y: 20, on: true };
+    this.enemy = { x: this.w * 0.75, y: this.h - 30, facing: 1 };
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.torch.x, this.torch.y) < 400) this.torch.on = !this.torch.on;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = this.torch.on ? '#1a1418' : '#050510'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 8, w, 8);
+    // light cone from torch
+    if (this.torch.on) {
+      const grd = ctx.createRadialGradient(this.torch.x, this.torch.y, 0, this.torch.x, this.torch.y, this.w * 0.7);
+      grd.addColorStop(0, 'rgba(255,200,100,0.5)');
+      grd.addColorStop(1, 'rgba(255,200,100,0)');
+      ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+    }
+    // torch
+    ctx.fillStyle = '#553'; ctx.fillRect(this.torch.x - 2, this.torch.y - 4, 4, 8);
+    ctx.fillStyle = this.torch.on ? '#ff8' : '#222';
+    ctx.beginPath(); ctx.arc(this.torch.x, this.torch.y - 4, 4, 0, Math.PI * 2); ctx.fill();
+    // enemy vision cone
+    const visionRange = this.torch.on ? 80 : 30;
+    ctx.fillStyle = 'rgba(255,80,80,0.15)';
+    ctx.beginPath();
+    ctx.moveTo(this.enemy.x, this.enemy.y - 5);
+    ctx.lineTo(this.enemy.x - visionRange, this.enemy.y - 15);
+    ctx.lineTo(this.enemy.x - visionRange, this.enemy.y + 5);
+    ctx.fill();
+    // enemy
+    ctx.fillStyle = '#a44'; ctx.fillRect(this.enemy.x - 8, this.enemy.y - 18, 16, 18);
+  }
+}
+
+class FogConceal extends Demo {
+  init() {
+    this.player = { x: 30, y: this.h - 20, mist: 0 };
+    this.enemy = { x: this.w - 30, y: this.h - 20 };
+    this.alert = 0;
+  }
+  onDown() { this.player.mist = 1; }
+  update(dt) {
+    if (this.mouse.x > 0) this.player.x = lerp(this.player.x, this.mouse.x, 0.1);
+    this.player.mist = Math.max(0, this.player.mist - dt * 0.25);
+    const visible = this.player.mist < 0.3 && Math.abs(this.player.x - this.enemy.x) < this.w * 0.8;
+    this.alert = lerp(this.alert, visible ? 1 : 0, 0.1);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#1a1418'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    // player
+    if (this.player.mist > 0.05) {
+      ctx.fillStyle = `rgba(180,180,200,${this.player.mist * 0.6})`;
+      ctx.beginPath(); ctx.arc(this.player.x, this.player.y - 6, 14, 0, Math.PI * 2); ctx.fill();
+    }
+    if (this.player.mist < 0.7) {
+      ctx.fillStyle = `rgba(255,200,150,${1 - this.player.mist})`;
+      ctx.fillRect(this.player.x - 5, this.player.y - 14, 10, 14);
+    }
+    ctx.fillStyle = this.alert > 0.5 ? '#f44' : '#844';
+    ctx.fillRect(this.enemy.x - 8, this.enemy.y - 16, 16, 16);
+    if (this.alert > 0.3) {
+      ctx.fillStyle = '#ff0'; ctx.font = '14px ui-monospace,monospace';
+      ctx.fillText('!', this.enemy.x - 2, this.enemy.y - 20);
+    }
+  }
+}
+
+class GlassBreak extends Demo {
+  init() {
+    this.state = 0; // 0=intact 1=cracked 2=shattered
+    this.shards = [];
+  }
+  onDown() {
+    if (this.mouse.x > this.w * 0.3 && this.mouse.x < this.w * 0.7 && this.mouse.y > 20 && this.mouse.y < this.h - 20) {
+      if (this.state === 0) this.state = 1;
+      else if (this.state === 1) {
+        this.state = 2;
+        for (let i = 0; i < 24; i++) {
+          this.shards.push({
+            x: rand(this.w * 0.3, this.w * 0.7), y: rand(20, this.h - 20),
+            vx: rand(-60, 60), vy: rand(-100, 0), rot: 0, vr: rand(-3, 3), life: 2
+          });
+        }
+      }
+    }
+  }
+  update(dt) {
+    for (const s of this.shards) {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 400 * dt; s.rot += s.vr * dt; s.life -= dt * 0.5;
+    }
+    this.shards = this.shards.filter(s => s.life > 0);
+    if (this.state === 2 && this.shards.length === 0) {
+      setTimeout(() => { this.state = 0; }, 1500);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, 0, w * 0.3, h); ctx.fillRect(w * 0.7, 0, w * 0.3, h);
+    if (this.state < 2) {
+      ctx.fillStyle = 'rgba(170,210,240,0.3)';
+      ctx.fillRect(w * 0.3, 20, w * 0.4, h - 40);
+      ctx.strokeStyle = '#aef';
+      ctx.strokeRect(w * 0.3, 20, w * 0.4, h - 40);
+      if (this.state === 1) {
+        ctx.beginPath();
+        const cx = w / 2, cy = h / 2;
+        for (let a = 0; a < 6; a++) {
+          const ang = a * Math.PI / 3;
+          ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * 30, cy + Math.sin(ang) * 30);
+        }
+        ctx.stroke();
+      }
+    }
+    for (const s of this.shards) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+      ctx.fillStyle = `rgba(170,210,240,${s.life * 0.6})`;
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.restore();
+    }
+  }
+}
+
+class LightCrystal extends Demo {
+  init() {
+    this.charge = 0;
+    this.flash = 0;
+    this.enemy = { x: this.w - 30, y: this.h - 24, blind: 0 };
+  }
+  update(dt) {
+    if (this.mouse.x > 0 && Math.abs(this.mouse.x - this.w / 2) < 30 && Math.abs(this.mouse.y - this.h / 2) < 30) {
+      this.charge = Math.min(1, this.charge + dt * 0.6);
+    }
+    if (this.mouse.justDown && this.charge > 0.3) {
+      this.flash = 1; this.enemy.blind = 1; this.charge = 0;
+    }
+    this.flash = Math.max(0, this.flash - dt * 2);
+    this.enemy.blind = Math.max(0, this.enemy.blind - dt * 0.3);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 8, w, 8);
+    // crystal
+    ctx.save();
+    ctx.translate(this.w / 2, this.h / 2);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = `rgb(${200 + this.charge * 55 | 0},${200 + this.charge * 55 | 0},${100 + this.charge * 155 | 0})`;
+    ctx.fillRect(-12, -12, 24, 24);
+    ctx.restore();
+    // glow
+    if (this.charge > 0.1) {
+      const grd = ctx.createRadialGradient(this.w / 2, this.h / 2, 0, this.w / 2, this.h / 2, 40 * this.charge);
+      grd.addColorStop(0, `rgba(255,255,200,${this.charge * 0.7})`);
+      grd.addColorStop(1, 'rgba(255,255,200,0)');
+      ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+    }
+    // flash
+    if (this.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${this.flash})`; ctx.fillRect(0, 0, w, h); }
+    // enemy
+    ctx.fillStyle = this.enemy.blind > 0.3 ? '#844' : '#a44';
+    ctx.fillRect(this.enemy.x - 8, this.enemy.y - 14, 16, 14);
+    if (this.enemy.blind > 0.3) {
+      ctx.fillStyle = '#ff0'; ctx.font = '10px ui-monospace,monospace';
+      ctx.fillText('blind', this.enemy.x - 12, this.enemy.y - 18);
+    }
+  }
+}
+</script>
+<script>
+/* ============================================================
+   08 SOUND
+============================================================ */
+class SoundGauge extends Demo {
+  init() {
+    this.player = { x: 30, y: this.h - 20 };
+    this.gauge = 0;
+    this.enemy = { x: this.w - 30, y: this.h - 20, alert: 0 };
+    this.lastX = this.player.x;
+  }
+  update(dt) {
+    if (this.mouse.x > 0) {
+      const speed = Math.abs(this.mouse.x - this.player.x);
+      this.gauge = Math.min(1, this.gauge + speed * 0.002);
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.15);
+    }
+    this.gauge = Math.max(0, this.gauge - dt * 0.4);
+    if (this.gauge > 0.7) this.enemy.alert = 1;
+    this.enemy.alert = Math.max(0, this.enemy.alert - dt * 0.3);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    // sound rings
+    if (this.gauge > 0.2) {
+      for (let i = 0; i < 3; i++) {
+        const r = (performance.now() * 0.05 + i * 30) % 60;
+        ctx.strokeStyle = `rgba(255,255,120,${(1 - r / 60) * this.gauge * 0.5})`;
+        ctx.beginPath(); ctx.arc(this.player.x, this.player.y - 6, r, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 6, this.player.y - 12, 12, 14);
+    ctx.fillStyle = this.enemy.alert > 0.5 ? '#f44' : '#844';
+    ctx.fillRect(this.enemy.x - 8, this.enemy.y - 14, 16, 14);
+    // gauge
+    ctx.fillStyle = '#332'; ctx.fillRect(8, 8, 60, 6);
+    ctx.fillStyle = this.gauge > 0.7 ? '#f84' : '#ff8'; ctx.fillRect(8, 8, 60 * this.gauge, 6);
+    if (this.enemy.alert > 0.3) { ctx.fillStyle = '#ff0'; ctx.font = '14px ui-monospace,monospace'; ctx.fillText('!', this.enemy.x - 2, this.enemy.y - 18); }
+  }
+}
+
+class EchoPing extends Demo {
+  init() {
+    this.ping = null;
+    this.enemies = [];
+    for (let i = 0; i < 4; i++) this.enemies.push({ x: rand(30, this.w - 30), y: rand(30, this.h - 30), reveal: 0 });
+  }
+  onDown() { this.ping = { x: this.mouse.x, y: this.mouse.y, r: 0 }; }
+  update(dt) {
+    if (this.ping) {
+      this.ping.r += 200 * dt;
+      for (const e of this.enemies) {
+        const d = Math.sqrt(dist2(e.x, e.y, this.ping.x, this.ping.y));
+        if (Math.abs(d - this.ping.r) < 10) e.reveal = 1;
+      }
+      if (this.ping.r > 200) this.ping = null;
+    }
+    for (const e of this.enemies) e.reveal = Math.max(0, e.reveal - dt * 0.4);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, w, h);
+    if (this.ping) {
+      ctx.strokeStyle = `rgba(180,255,220,${1 - this.ping.r / 200})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(this.ping.x, this.ping.y, this.ping.r, 0, Math.PI * 2); ctx.stroke();
+    }
+    for (const e of this.enemies) {
+      ctx.fillStyle = `rgba(${200 - e.reveal * 100 | 0},${80 + e.reveal * 100 | 0},${80 + e.reveal * 100 | 0},${0.2 + e.reveal * 0.6})`;
+      ctx.fillRect(e.x - 7, e.y - 10, 14, 14);
+    }
+  }
+}
+
+class Vibration extends Demo {
+  init() {
+    this.shake = 0;
+    this.platforms = [];
+    for (let i = 0; i < 4; i++) this.platforms.push({ x: 18 + i * (this.w - 36) / 4, y: this.h - 30, hp: 1, shaking: 0 });
+  }
+  onDown() {
+    this.shake = 1;
+    for (const p of this.platforms) p.shaking = 1;
+  }
+  update(dt) {
+    this.shake = Math.max(0, this.shake - dt * 0.5);
+    for (const p of this.platforms) {
+      if (p.shaking > 0) p.shaking -= dt * 0.5;
+      if (p.shaking > 0.5) p.hp = Math.max(0, p.hp - dt * 0.4);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    const ox = this.shake > 0 ? rand(-3, 3) : 0, oy = this.shake > 0 ? rand(-2, 2) : 0;
+    ctx.save(); ctx.translate(ox, oy);
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    for (const p of this.platforms) {
+      if (p.hp <= 0) continue;
+      const sox = p.shaking > 0 ? rand(-2, 2) : 0;
+      ctx.fillStyle = p.shaking > 0.5 ? '#a64' : '#864';
+      ctx.fillRect(p.x + sox, p.y, 36, 8 * p.hp);
+    }
+    ctx.restore();
+  }
+}
+
+class BellSummon extends Demo {
+  init() {
+    this.bell = { x: this.w / 2, y: 28 };
+    this.ring = 0;
+    this.enemies = [];
+    for (let i = 0; i < 4; i++) this.enemies.push({ x: rand(20, this.w - 20), y: this.h - 16, target: null });
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.bell.x, this.bell.y) < 400) {
+      this.ring = 1;
+      for (const e of this.enemies) e.target = { x: this.bell.x, y: this.h - 16 };
+    }
+  }
+  update(dt) {
+    this.ring = Math.max(0, this.ring - dt * 0.5);
+    for (const e of this.enemies) {
+      if (e.target) {
+        const dx = e.target.x - e.x;
+        if (Math.abs(dx) < 4) e.target = null;
+        else e.x += Math.sign(dx) * 30 * dt;
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    // bell
+    ctx.fillStyle = '#cb6';
+    ctx.beginPath(); ctx.arc(this.bell.x, this.bell.y, 12, 0, Math.PI); ctx.fill();
+    ctx.fillRect(this.bell.x - 12, this.bell.y - 12, 24, 4);
+    if (this.ring > 0.1) {
+      for (let i = 0; i < 3; i++) {
+        const r = 20 + (1 - this.ring + i * 0.2) * 60;
+        ctx.strokeStyle = `rgba(255,220,100,${this.ring * (1 - i / 3)})`;
+        ctx.beginPath(); ctx.arc(this.bell.x, this.bell.y, r, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    for (const e of this.enemies) {
+      ctx.fillStyle = e.target ? '#f64' : '#a44';
+      ctx.fillRect(e.x - 6, e.y - 14, 12, 14);
+    }
+  }
+}
+</script>
+<script>
+/* ============================================================
+   09 TIME / GRAVITY
+============================================================ */
+class SlowZone extends Demo {
+  init() {
+    this.particles = [];
+    for (let i = 0; i < 18; i++) this.particles.push({ x: rand(0, this.w), y: rand(0, this.h), vx: rand(-60, 60), vy: rand(-60, 60) });
+    this.zoneY = this.h * 0.55;
+  }
+  update(dt) {
+    for (const p of this.particles) {
+      const slow = p.y > this.zoneY ? 0.2 : 1;
+      p.x += p.vx * slow * dt; p.y += p.vy * slow * dt;
+      if (p.x < 0 || p.x > this.w) p.vx *= -1;
+      if (p.y < 0 || p.y > this.h) p.vy *= -1;
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(150,80,200,0.15)';
+    ctx.fillRect(0, this.zoneY, w, h - this.zoneY);
+    ctx.fillStyle = 'rgba(150,80,200,0.4)';
+    ctx.fillRect(0, this.zoneY, w, 2);
+    for (const p of this.particles) {
+      ctx.fillStyle = p.y > this.zoneY ? '#c8f' : '#fff';
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+  }
+}
+
+class LowGravity extends Demo {
+  init() {
+    this.particles = [];
+    for (let i = 0; i < 8; i++) this.particles.push({ x: rand(20, this.w - 20), y: rand(20, this.h - 20), vx: rand(-50, 50), vy: rand(-50, 50) });
+    this.low = false;
+  }
+  onDown() { this.low = !this.low; }
+  update(dt) {
+    const g = this.low ? 60 : 400;
+    for (const p of this.particles) {
+      p.vy += g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.y > this.h - 6) { p.y = this.h - 6; p.vy *= -0.7; p.vx *= 0.9; }
+      if (p.x < 4) { p.x = 4; p.vx *= -0.7; }
+      if (p.x > this.w - 4) { p.x = this.w - 4; p.vx *= -0.7; }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = this.low ? '#0a142a' : '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    for (const p of this.particles) {
+      ctx.fillStyle = '#fc8';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace';
+    ctx.fillText(this.low ? 'low gravity' : 'normal', 6, 14);
+  }
+}
+
+class AntiGrav extends Demo {
+  init() {
+    this.player = { x: this.w / 2, y: this.h - 20, vy: 0 };
+    this.flip = false;
+  }
+  onDown() { if (this.mouse.y > this.h - 20) this.flip = !this.flip; }
+  update(dt) {
+    const g = this.flip ? -500 : 500;
+    this.player.vy += g * dt;
+    this.player.y += this.player.vy * dt;
+    if (this.flip) {
+      if (this.player.y < 10) { this.player.y = 10; this.player.vy = 0; }
+    } else {
+      if (this.player.y > this.h - 14) { this.player.y = this.h - 14; this.player.vy = 0; }
+    }
+    if (this.mouse.x > 0) this.player.x = lerp(this.player.x, this.mouse.x, 0.1);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = this.flip ? '#a64' : '#332'; ctx.fillRect(0, h - 8, w, 8);
+    ctx.fillStyle = this.flip ? '#332' : '#332'; ctx.fillRect(0, 0, w, 4);
+    ctx.save();
+    if (this.flip) { ctx.translate(this.player.x, this.player.y); ctx.scale(1, -1); ctx.translate(-this.player.x, -this.player.y); }
+    ctx.fillStyle = '#fc9';
+    ctx.fillRect(this.player.x - 6, this.player.y - 12, 12, 14);
+    ctx.restore();
+  }
+}
+
+class TimeStop extends Demo {
+  init() {
+    this.particles = [];
+    for (let i = 0; i < 8; i++) this.particles.push({ x: rand(20, this.w - 20), y: rand(20, this.h - 20), vx: rand(-80, 80), vy: rand(-80, 80) });
+    this.stopped = false;
+    this.player = { x: 20, y: this.h - 20 };
+  }
+  onDown() { this.stopped = !this.stopped; }
+  update(dt) {
+    if (!this.stopped) {
+      for (const p of this.particles) {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x < 4 || p.x > this.w - 4) p.vx *= -1;
+        if (p.y < 4 || p.y > this.h - 4) p.vy *= -1;
+      }
+    }
+    if (this.mouse.x > 0) {
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.15);
+      this.player.y = lerp(this.player.y, this.mouse.y, 0.15);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = this.stopped ? '#1a1a30' : '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    for (const p of this.particles) {
+      ctx.fillStyle = this.stopped ? '#88a' : '#fff';
+      ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+    }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 5, this.player.y - 10, 10, 12);
+    if (this.stopped) {
+      ctx.fillStyle = '#88f'; ctx.font = '10px ui-monospace,monospace';
+      ctx.fillText('TIME STOP', 6, 14);
+    }
+  }
+}
+</script>
+<script>
+/* ============================================================
+   10 ENEMY ↔ ENVIRONMENT
+============================================================ */
+class EnemySpike extends Demo {
+  init() {
+    this.enemy = { x: 30, y: this.h - 24, w: 16, h: 18, drag: false, dx: 0, dy: 0, alive: true };
+    this.spike = { x: this.w - 50, y: this.h - 14, w: 30, h: 10 };
+    this.flash = 0;
+  }
+  onDown() {
+    if (!this.enemy.alive) return;
+    const e = this.enemy;
+    if (this.mouse.x > e.x && this.mouse.x < e.x + e.w && this.mouse.y > e.y && this.mouse.y < e.y + e.h) {
+      e.drag = true; e.dx = this.mouse.x - e.x; e.dy = this.mouse.y - e.y;
+    }
+  }
+  onUp() { this.enemy.drag = false; }
+  update(dt) {
+    const e = this.enemy;
+    if (!e.alive) {
+      this.flash -= dt;
+      if (this.flash <= 0) { e.alive = true; e.x = 30; e.y = this.h - 24; }
+      return;
+    }
+    if (e.drag) { e.x = this.mouse.x - e.dx; e.y = this.mouse.y - e.dy; }
+    else { e.y = Math.min(this.h - e.h - 4, e.y + 400 * dt); }
+    if (e.x + e.w > this.spike.x && e.x < this.spike.x + this.spike.w && e.y + e.h > this.spike.y - 2) {
+      e.alive = false; this.flash = 1;
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    // spike
+    ctx.fillStyle = '#c44';
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(this.spike.x + i * 6, this.spike.y + 10);
+      ctx.lineTo(this.spike.x + i * 6 + 3, this.spike.y);
+      ctx.lineTo(this.spike.x + i * 6 + 6, this.spike.y + 10);
+      ctx.fill();
+    }
+    if (this.enemy.alive) {
+      const e = this.enemy;
+      ctx.fillStyle = e.drag ? '#f88' : '#a44';
+      ctx.fillRect(e.x, e.y, e.w, e.h);
+    } else if (this.flash > 0) {
+      ctx.fillStyle = `rgba(255,80,80,${this.flash})`;
+      ctx.fillRect(this.spike.x - 4, this.spike.y - 20, this.spike.w + 8, 24);
+    }
+  }
+}
+
+class CorpsePlatform extends Demo {
+  init() {
+    this.enemies = [];
+    for (let i = 0; i < 3; i++) this.enemies.push({ x: 30 + i * 50, y: this.h - 24, w: 18, h: 18, alive: true, deadT: 0 });
+    this.player = { x: this.w / 2, y: this.h - 20, vy: 0 };
+  }
+  onDown() {
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (dist2(this.mouse.x, this.mouse.y, e.x + e.w / 2, e.y + e.h / 2) < 300) {
+        e.alive = false; e.deadT = 4;
+      }
+    }
+  }
+  update(dt) {
+    for (const e of this.enemies) {
+      if (!e.alive) {
+        e.deadT -= dt;
+        if (e.deadT <= 0) e.alive = true;
+      }
+    }
+    if (this.mouse.x > 0) this.player.x = lerp(this.player.x, this.mouse.x, 0.1);
+    this.player.vy += 500 * dt;
+    let groundY = this.h - 4;
+    for (const e of this.enemies) {
+      if (e.alive) continue;
+      if (this.player.x + 5 > e.x && this.player.x - 5 < e.x + e.w) {
+        if (e.y < groundY) groundY = e.y;
+      }
+    }
+    this.player.y += this.player.vy * dt;
+    if (this.player.y + 12 > groundY) { this.player.y = groundY - 12; this.player.vy = 0; }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    for (const e of this.enemies) {
+      if (e.alive) { ctx.fillStyle = '#a44'; ctx.fillRect(e.x, e.y, e.w, e.h); }
+      else {
+        ctx.fillStyle = `rgba(120,60,60,${e.deadT / 4})`;
+        ctx.fillRect(e.x, e.y, e.w, e.h * 0.5);
+      }
+    }
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 5, this.player.y, 10, 12);
+  }
+}
+
+class CorpseBomb extends Demo {
+  init() {
+    this.enemy = { x: this.w / 2, y: this.h - 26, alive: true, fuse: 0, blast: 0 };
+  }
+  onDown() {
+    if (this.enemy.alive && dist2(this.mouse.x, this.mouse.y, this.enemy.x, this.enemy.y) < 600) {
+      this.enemy.alive = false; this.enemy.fuse = 1;
+    }
+  }
+  update(dt) {
+    if (!this.enemy.alive && this.enemy.fuse > 0) {
+      this.enemy.fuse -= dt;
+      if (this.enemy.fuse <= 0) { this.enemy.blast = 1; setTimeout(() => { this.enemy.alive = true; this.enemy.blast = 0; }, 800); }
+    }
+    if (this.enemy.blast > 0) this.enemy.blast = Math.max(0, this.enemy.blast - dt * 1.2);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    if (this.enemy.alive) { ctx.fillStyle = '#f84'; ctx.fillRect(this.enemy.x - 10, this.enemy.y - 18, 20, 20); }
+    else if (this.enemy.fuse > 0) {
+      const flash = (Math.sin(performance.now() * 0.04) + 1) * 0.5;
+      ctx.fillStyle = `rgb(${200 + flash * 55 | 0},${100 + flash * 100 | 0},80)`;
+      ctx.fillRect(this.enemy.x - 10, this.enemy.y - 18, 20, 20);
+    }
+    if (this.enemy.blast > 0) {
+      const r = (1 - this.enemy.blast) * 60;
+      ctx.fillStyle = `rgba(255,200,80,${this.enemy.blast})`;
+      ctx.beginPath(); ctx.arc(this.enemy.x, this.enemy.y - 10, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+class EnemyGrab extends Demo {
+  init() {
+    this.enemy = { x: this.w / 2, y: this.h - 24, w: 16, h: 18, vx: 0, vy: 0, drag: false, dx: 0, dy: 0 };
+  }
+  onDown() {
+    const e = this.enemy;
+    if (this.mouse.x > e.x && this.mouse.x < e.x + e.w && this.mouse.y > e.y && this.mouse.y < e.y + e.h) {
+      e.drag = true; e.dx = this.mouse.x - e.x; e.dy = this.mouse.y - e.y;
+    }
+  }
+  onUp() {
+    if (this.enemy.drag) {
+      this.enemy.vx = (this.mouse.x - this.prevMouse.x) * 30;
+      this.enemy.vy = (this.mouse.y - this.prevMouse.y) * 30;
+      this.enemy.drag = false;
+    }
+  }
+  update(dt) {
+    const e = this.enemy;
+    if (e.drag) { e.x = this.mouse.x - e.dx; e.y = this.mouse.y - e.dy; return; }
+    e.vy += 600 * dt;
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    e.vx *= 0.99;
+    if (e.y + e.h > this.h - 4) { e.y = this.h - 4 - e.h; e.vy *= -0.5; e.vx *= 0.7; }
+    if (e.x < 0 || e.x + e.w > this.w) e.vx *= -0.6;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    const e = this.enemy;
+    ctx.fillStyle = e.drag ? '#f88' : '#a44';
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+  }
+}
+
+class EnemyCharm extends Demo {
+  init() {
+    this.enemies = [];
+    for (let i = 0; i < 4; i++) this.enemies.push({ x: rand(20, this.w - 20), y: this.h - 24, charmed: false, hp: 1 });
+  }
+  onDown() {
+    for (const e of this.enemies) {
+      if (dist2(this.mouse.x, this.mouse.y, e.x, e.y) < 200) e.charmed = true;
+    }
+  }
+  update(dt) {
+    for (const e of this.enemies) {
+      if (e.charmed) {
+        // find nearest non-charmed
+        let best = null, bestD = Infinity;
+        for (const o of this.enemies) {
+          if (o === e || o.charmed || o.hp <= 0) continue;
+          const d = dist2(e.x, e.y, o.x, o.y);
+          if (d < bestD) { bestD = d; best = o; }
+        }
+        if (best) {
+          e.x += Math.sign(best.x - e.x) * 40 * dt;
+          if (Math.abs(e.x - best.x) < 18) best.hp = Math.max(0, best.hp - dt * 0.6);
+        }
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      ctx.fillStyle = e.charmed ? '#48f' : '#a44';
+      ctx.fillRect(e.x - 8, e.y - 14, 16, 14 * e.hp);
+      if (e.charmed) {
+        ctx.fillStyle = '#aef'; ctx.font = '8px ui-monospace,monospace';
+        ctx.fillText('♡', e.x - 3, e.y - 16);
+      }
+    }
+  }
+}
+
+class EnemySlimeTrail extends Demo {
+  init() {
+    this.slime = { x: 30, y: this.h - 20, vx: 40 };
+    this.trail = [];
+    this.player = { x: this.w / 2, y: this.h - 20 };
+    this.spawnT = 0;
+  }
+  update(dt) {
+    this.slime.x += this.slime.vx * dt;
+    if (this.slime.x > this.w - 20 || this.slime.x < 20) this.slime.vx *= -1;
+    this.spawnT += dt;
+    if (this.spawnT > 0.2) {
+      this.spawnT = 0;
+      this.trail.push({ x: this.slime.x, y: this.h - 6, life: 4 });
+    }
+    for (const t of this.trail) t.life -= dt * 0.5;
+    this.trail = this.trail.filter(t => t.life > 0);
+    if (this.mouse.x > 0) {
+      let slow = 1;
+      for (const t of this.trail) if (Math.abs(this.player.x - t.x) < 12) slow = 0.2;
+      this.player.x = lerp(this.player.x, this.mouse.x, 0.15 * slow);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 4, w, 4);
+    for (const t of this.trail) {
+      ctx.fillStyle = `rgba(140,220,120,${t.life / 4 * 0.6})`;
+      ctx.fillRect(t.x - 6, t.y - 3, 12, 3);
+    }
+    ctx.fillStyle = '#6b6';
+    ctx.beginPath(); ctx.arc(this.slime.x, this.slime.y - 6, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fc9'; ctx.fillRect(this.player.x - 5, this.player.y - 12, 10, 14);
+  }
+}
+
+/* ============================================================
+   11 DESTRUCTIBLE
+============================================================ */
+class BreakableTier extends Demo {
+  init() {
+    this.walls = [
+      { x: 14, y: 30, w: 32, h: 60, hp: 1, max: 1, label: '1-HIT', color: '#864' },
+      { x: 80, y: 30, w: 32, h: 60, hp: 5, max: 5, label: '5-HIT', color: '#a86' },
+      { x: 146, y: 30, w: 32, h: 60, hp: 1, max: 1, label: 'FIRE', color: '#864', fireOnly: true },
+    ];
+    this.shards = [];
+  }
+  onDown() {
+    for (const w of this.walls) {
+      if (this.mouse.x > w.x && this.mouse.x < w.x + w.w && this.mouse.y > w.y && this.mouse.y < w.y + w.h) {
+        if (w.fireOnly && !this.mouse.right) continue;
+        w.hp = Math.max(0, w.hp - 1);
+        if (w.hp <= 0) {
+          for (let i = 0; i < 10; i++) {
+            this.shards.push({ x: w.x + rand(0, w.w), y: w.y + rand(0, w.h), vx: rand(-80, 80), vy: rand(-100, 0), life: 1.5, color: w.color });
+          }
+        }
+      }
+    }
+  }
+  update(dt) {
+    for (const s of this.shards) { s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 400 * dt; s.life -= dt; }
+    this.shards = this.shards.filter(s => s.life > 0);
+    // respawn
+    for (const w of this.walls) if (w.hp <= 0 && Math.random() < 0.005) w.hp = w.max;
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    for (const wall of this.walls) {
+      if (wall.hp <= 0) continue;
+      ctx.fillStyle = wall.color; ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+      ctx.fillStyle = '#fff'; ctx.font = '9px ui-monospace,monospace';
+      ctx.fillText(wall.label, wall.x + 2, wall.y + 12);
+      ctx.fillText('hp:' + wall.hp, wall.x + 2, wall.y + 22);
+    }
+    for (const s of this.shards) {
+      ctx.fillStyle = s.color; ctx.fillRect(s.x - 2, s.y - 2, 4, 4);
+    }
+    ctx.fillStyle = '#aab'; ctx.font = '8px ui-monospace,monospace';
+    ctx.fillText('right-click = fire', 6, this.h - 6);
+  }
+}
+
+class PartialCollapse extends Demo {
+  init() {
+    this.tiles = [];
+    const cols = 16, rows = 4;
+    this.cols = cols; this.rows = rows;
+    this.cw = this.w / cols; this.ch = 14;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      this.tiles.push({ x: x * this.cw, y: y * this.ch, hp: 1, falling: false, vy: 0 });
+    }
+  }
+  onDown() {
+    for (const t of this.tiles) {
+      if (t.hp <= 0 || t.falling) continue;
+      if (this.mouse.x > t.x && this.mouse.x < t.x + this.cw && this.mouse.y > t.y && this.mouse.y < t.y + this.ch) {
+        t.hp = 0;
+        // adjacent tiles fall
+        for (const o of this.tiles) {
+          if (o === t || o.hp <= 0) continue;
+          if (Math.abs(o.x - t.x) < this.cw * 1.5 && Math.abs(o.y - t.y) < this.ch * 1.5) {
+            if (Math.random() < 0.5) o.falling = true;
+          }
+        }
+      }
+    }
+  }
+  update(dt) {
+    for (const t of this.tiles) {
+      if (t.falling) { t.vy += 400 * dt; t.y += t.vy * dt; if (t.y > this.h) t.hp = 0; }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    for (const t of this.tiles) {
+      if (t.hp <= 0) continue;
+      ctx.fillStyle = t.falling ? '#a64' : '#864';
+      ctx.fillRect(t.x + 1, t.y + 1, this.cw - 2, this.ch - 2);
+    }
+  }
+}
+
+class Tunneling extends Demo {
+  init() {
+    this.cols = 20; this.rows = 8;
+    this.cw = this.w / this.cols; this.ch = this.h / this.rows;
+    this.wall = new Float32Array(this.cols * this.rows);
+    this.wall.fill(1);
+  }
+  update(dt) {
+    if (this.mouse.x > 0) {
+      const cx = Math.floor(this.mouse.x / this.cw);
+      const cy = Math.floor(this.mouse.y / this.ch);
+      if (cx >= 0 && cy >= 0 && cx < this.cols && cy < this.rows) {
+        const i = cy * this.cols + cx;
+        this.wall[i] = Math.max(0, this.wall[i] - dt * 1.2);
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h, cols, rows, cw, ch } = this;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const v = this.wall[y * cols + x];
+      if (v < 0.05) continue;
+      ctx.fillStyle = `rgb(${(60 + v * 80) | 0},${(40 + v * 60) | 0},${(20 + v * 30) | 0})`;
+      ctx.fillRect(x * cw, y * ch, cw, ch);
+    }
+    if (this.mouse.x > 0) {
+      ctx.strokeStyle = '#ff8';
+      ctx.beginPath(); ctx.arc(this.mouse.x, this.mouse.y, 8, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+}
+
+class RubblePlatform extends Demo {
+  init() {
+    this.walls = [];
+    for (let i = 0; i < 3; i++) this.walls.push({ x: 20 + i * 60, y: 20, w: 28, h: 40, intact: true });
+    this.rubble = [];
+  }
+  onDown() {
+    for (const w of this.walls) {
+      if (!w.intact) continue;
+      if (this.mouse.x > w.x && this.mouse.x < w.x + w.w && this.mouse.y > w.y && this.mouse.y < w.y + w.h) {
+        w.intact = false;
+        // generate rubble at base
+        for (let i = 0; i < 6; i++) {
+          this.rubble.push({ x: w.x + rand(-4, w.w + 4), y: this.h - 14 - rand(0, 14), w: rand(6, 12), h: rand(4, 10) });
+        }
+      }
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    for (const wall of this.walls) {
+      if (!wall.intact) continue;
+      ctx.fillStyle = '#864'; ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+      ctx.strokeStyle = '#532'; ctx.strokeRect(wall.x, wall.y, wall.w, wall.h);
+    }
+    for (const r of this.rubble) {
+      ctx.fillStyle = '#754'; ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = '#432'; ctx.strokeRect(r.x, r.y, r.w, r.h);
+    }
+  }
+}
+
+/* ============================================================
+   12 SHADERS / VISUAL
+============================================================ */
+class HeatHaze extends Demo {
+  init() { this.intensity = 0.3; }
+  update(dt) {
+    if (this.mouse.x > 0) this.intensity = Math.min(1, this.intensity + dt * 0.3);
+    else this.intensity = Math.max(0.3, this.intensity - dt * 0.5);
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // magma ground
+    ctx.fillStyle = '#f64'; ctx.fillRect(0, h - 18, w, 18);
+    ctx.fillStyle = '#fa6'; ctx.fillRect(0, h - 18, w, 3);
+    // structure
+    const t = performance.now() * 0.003;
+    for (let y = 10; y < h - 20; y += 2) {
+      const off = Math.sin(t + y * 0.1) * this.intensity * 4;
+      ctx.fillStyle = `rgba(80,90,110,${0.3 + Math.sin(y * 0.05) * 0.1})`;
+      ctx.fillRect(w * 0.3 + off, y, w * 0.4, 2);
+    }
+    // legend
+    ctx.fillStyle = '#aab'; ctx.font = '9px ui-monospace,monospace';
+    ctx.fillText('intensity: ' + this.intensity.toFixed(2), 6, 14);
+  }
+}
+
+class WetPixel extends Demo {
+  init() {
+    this.wet = new Float32Array(40 * 14);
+    this.cw = this.w / 40; this.ch = this.h / 14;
+  }
+  update(dt) {
+    if (this.mouse.x > 0 && this.mouse.down) {
+      const cx = Math.floor(this.mouse.x / this.cw);
+      const cy = Math.floor(this.mouse.y / this.ch);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const x = cx + dx, y = cy + dy;
+        if (x < 0 || y < 0 || x >= 40 || y >= 14) continue;
+        this.wet[y * 40 + x] = 1;
+      }
+    }
+    for (let i = 0; i < this.wet.length; i++) this.wet[i] = Math.max(0, this.wet[i] - dt * 0.05);
+  }
+  render() {
+    const { ctx, w, h, cw, ch } = this;
+    ctx.fillStyle = '#221'; ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < 14; y++) for (let x = 0; x < 40; x++) {
+      const v = this.wet[y * 40 + x];
+      if (v < 0.1) continue;
+      const shine = Math.sin(performance.now() * 0.005 + x * 0.3 + y * 0.2) * 0.3 + 0.7;
+      ctx.fillStyle = `rgba(${100 + shine * 80 | 0},${130 + shine * 80 | 0},${180 + shine * 60 | 0},${v * 0.7})`;
+      ctx.fillRect(x * cw, y * ch, cw, ch);
+    }
+  }
+}
+
+class IceRefract extends Demo {
+  init() { this.t = 0; }
+  update(dt) { this.t += dt; }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // background objects (lines)
+    ctx.strokeStyle = '#a64';
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 10 + i * 20);
+      ctx.lineTo(w, 10 + i * 20);
+      ctx.stroke();
+    }
+    // ice cube with refraction (offset slices)
+    const iceX = w * 0.35, iceY = h * 0.25, iceW = w * 0.3, iceH = h * 0.5;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(iceX, iceY, iceW, iceH); ctx.clip();
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(iceX, iceY, iceW, iceH);
+    for (let sy = 0; sy < iceH; sy += 4) {
+      const off = Math.sin(sy * 0.1 + this.t * 2) * 5;
+      ctx.strokeStyle = '#a64';
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(iceX, 10 + i * 20 + off);
+        ctx.lineTo(iceX + iceW, 10 + i * 20 + off);
+        ctx.clip();
+      }
+    }
+    ctx.restore();
+    ctx.fillStyle = 'rgba(170,210,240,0.2)'; ctx.fillRect(iceX, iceY, iceW, iceH);
+    ctx.strokeStyle = '#aef'; ctx.strokeRect(iceX, iceY, iceW, iceH);
+  }
+}
+
+class ShadowCaster extends Demo {
+  init() {
+    this.light = { x: 30, y: 30, drag: false };
+    this.objects = [
+      { x: this.w * 0.4, y: this.h * 0.4, w: 24, h: 24 },
+      { x: this.w * 0.7, y: this.h * 0.5, w: 18, h: 30 },
+    ];
+  }
+  onDown() {
+    if (dist2(this.mouse.x, this.mouse.y, this.light.x, this.light.y) < 400) this.light.drag = true;
+  }
+  onUp() { this.light.drag = false; }
+  update(dt) {
+    if (this.light.drag) { this.light.x = this.mouse.x; this.light.y = this.mouse.y; }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    // light cone
+    const grd = ctx.createRadialGradient(this.light.x, this.light.y, 0, this.light.x, this.light.y, 120);
+    grd.addColorStop(0, 'rgba(255,220,140,0.4)');
+    grd.addColorStop(1, 'rgba(255,220,140,0)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+    // shadows
+    for (const o of this.objects) {
+      const dx = o.x + o.w / 2 - this.light.x;
+      const dy = o.y + o.h / 2 - this.light.y;
+      const len = 200;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.moveTo(o.x, o.y);
+      ctx.lineTo(o.x + o.w, o.y);
+      ctx.lineTo(o.x + o.w + dx * 2, o.y + dy * 2);
+      ctx.lineTo(o.x + dx * 2, o.y + dy * 2);
+      ctx.fill();
+    }
+    for (const o of this.objects) { ctx.fillStyle = '#864'; ctx.fillRect(o.x, o.y, o.w, o.h); }
+    // light source
+    ctx.fillStyle = '#ff8';
+    ctx.beginPath(); ctx.arc(this.light.x, this.light.y, 4, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+class DustAccum extends Demo {
+  init() { this.dust = []; }
+  update(dt) {
+    if (this.mouse.x > 0 && this.mouse.down) {
+      for (let i = 0; i < 3; i++) {
+        this.dust.push({
+          x: this.mouse.x + rand(-6, 6),
+          y: this.mouse.y + rand(-6, 6),
+          a: rand(0.3, 0.8),
+          r: rand(1, 3),
+          c: `rgb(${rand(150, 200) | 0},${rand(120, 160) | 0},${rand(80, 110) | 0})`
+        });
+      }
+      if (this.dust.length > 800) this.dust.splice(0, this.dust.length - 800);
+    }
+  }
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#332'; ctx.fillRect(0, h - 6, w, 6);
+    for (const d of this.dust) {
+      ctx.fillStyle = d.c;
+      ctx.globalAlpha = d.a;
+      ctx.fillRect(d.x - d.r / 2, d.y - d.r / 2, d.r, d.r);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+</script>
+
+<script>
+/* ============================================================
+   REGISTRY + INITIALIZATION
+============================================================ */
+const DEMOS = {
+  // 01 Thermodynamics
+  heat_grid: HeatGrid,
+  heat_conduction: HeatConduction,
+  fire_spread: FireSpread,
+  steam_rise: SteamRise,
+  frost_drip: FrostDrip,
+  ash_footprint: AshFootprint,
+  // 02 Chemistry
+  oil_slick: OilSlick,
+  gas_leak: GasLeak,
+  acid_pool: AcidPool,
+  acid_base: AcidBase,
+  wet_weapon: WetWeapon,
+  molotov: Molotov,
+  // 03 Rigid Body
+  push_box: PushBox,
+  rolling_barrel: RollingBarrel,
+  weight_switch: WeightSwitch,
+  stack_collapse: StackCollapse,
+  bounce_pad: BouncePad,
+  sticky_pad: StickyPad,
+  // 04 Verlet
+  rope: Rope,
+  grapple: GrappleDemo,
+  cloth: Cloth,
+  spider_web: SpiderWeb,
+  suspension_bridge: SuspensionBridge,
+  // 05 Fluid
+  floater: Floater,
+  air_bubble: AirBubble,
+  current: Current,
+  ice_raft: IceRaft,
+  wave_alert: WaveAlert,
+  air_pocket: AirPocket,
+  geyser: Geyser,
+  // 06 EM
+  conductor_chain: ConductorChain,
+  water_metal: WaterMetal,
+  magnet: MagnetDemo,
+  railgun: Railgun,
+  static_buildup: StaticBuildup,
+  // 07 Light
+  torch_chain: TorchChain,
+  mirror_reflect: MirrorReflect,
+  enemy_shadow: EnemyShadow,
+  fog_conceal: FogConceal,
+  glass_break: GlassBreak,
+  light_crystal: LightCrystal,
+  // 08 Sound
+  sound_gauge: SoundGauge,
+  echo_ping: EchoPing,
+  vibration: Vibration,
+  bell_summon: BellSummon,
+  // 09 Time / Gravity
+  slow_zone: SlowZone,
+  low_gravity: LowGravity,
+  antigrav: AntiGrav,
+  time_stop: TimeStop,
+  // 10 Enemy ↔ Env
+  enemy_spike: EnemySpike,
+  corpse_platform: CorpsePlatform,
+  corpse_bomb: CorpseBomb,
+  enemy_grab: EnemyGrab,
+  enemy_charm: EnemyCharm,
+  enemy_slime_trail: EnemySlimeTrail,
+  // 11 Destructible
+  breakable_tier: BreakableTier,
+  partial_collapse: PartialCollapse,
+  tunneling: Tunneling,
+  rubble_platform: RubblePlatform,
+  // 12 Shaders
+  heat_haze: HeatHaze,
+  wet_pixel: WetPixel,
+  ice_refract: IceRefract,
+  shadow_caster: ShadowCaster,
+  dust_accum: DustAccum,
+};
+
+/* ============================================================
+   CHECKBOX TOGGLE + ARCHIVE + LOCALSTORAGE
+============================================================ */
+const STORAGE_KEY = 'echoris_physics_components_v1';
+
+// Tiles originally in ARCHIVE section — their "real" home category.
+// Used when user re-enables a stealth tile, to know where to move it back.
+const ORIGINAL_CATEGORY = {
+  ash_footprint: 'thermo',
+  wave_alert: 'fluid',
+  enemy_shadow: 'light',
+  fog_conceal: 'light',
+  sound_gauge: 'sound',
+  echo_ping: 'sound',
+};
+const DEFAULT_ARCHIVED = new Set(Object.keys(ORIGINAL_CATEGORY));
+
+function loadCompState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveCompState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+}
+function updateCountBadges() {
+  const tiles = document.querySelectorAll('.tile[data-demo-name]');
+  let on = 0, off = 0;
+  tiles.forEach(t => { (t.dataset.included === 'true' ? on++ : off++); });
+  const a = document.getElementById('cfg-active'), b = document.getElementById('cfg-archived');
+  if (a) a.textContent = on;
+  if (b) b.textContent = off;
+}
+
+function applyTileInclusion(tile, included, archiveGrid) {
+  tile.dataset.included = included ? 'true' : 'false';
+  const cb = tile.querySelector('.tile-toggle input');
+  const lbl = tile.querySelector('.tile-toggle');
+  if (cb) cb.checked = included;
+  if (lbl) lbl.classList.toggle('checked', included);
+  if (included) {
+    const cat = tile.dataset.category;
+    const target = document.querySelector('#' + cat + ' .tile-grid');
+    if (target && tile.parentElement !== target) target.appendChild(tile);
+  } else {
+    if (archiveGrid && tile.parentElement !== archiveGrid) archiveGrid.appendChild(tile);
+  }
+}
+
+// IntersectionObserver — only animate visible tiles
+const observer = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    const demo = e.target._demo;
+    if (!demo) continue;
+    if (e.isIntersecting) demo.start();
+    else demo.stop();
+  }
+}, { rootMargin: '80px', threshold: 0.05 });
+
+window.addEventListener('DOMContentLoaded', () => {
+  const state = loadCompState();
+  const archiveSection = document.querySelector('#archive .tile-grid');
+
+  // First pass: instantiate demos + tag tiles with category
+  document.querySelectorAll('canvas[data-demo]').forEach(c => {
+    const name = c.dataset.demo;
+    const tile = c.closest('.tile');
+    if (!tile) return;
+    tile.dataset.demoName = name;
+
+    // determine original category
+    const parent = tile.closest('section');
+    if (parent && parent.id !== 'archive') tile.dataset.category = parent.id;
+    else if (ORIGINAL_CATEGORY[name]) tile.dataset.category = ORIGINAL_CATEGORY[name];
+    else tile.dataset.category = 'thermo';
+
+    // add checkbox toggle
+    const lbl = document.createElement('label');
+    lbl.className = 'tile-toggle';
+    lbl.title = 'Toggle include / archive';
+    const cbId = 'tg_' + name;
+    lbl.innerHTML = '<input type="checkbox" id="' + cbId + '"><span>INCL</span>';
+    tile.appendChild(lbl);
+
+    // initial state: localStorage > default
+    const included = (name in state) ? !!state[name] : !DEFAULT_ARCHIVED.has(name);
+    applyTileInclusion(tile, included, archiveSection);
+
+    // wire change event
+    lbl.querySelector('input').addEventListener('change', (ev) => {
+      const s = loadCompState();
+      s[name] = ev.target.checked;
+      saveCompState(s);
+      applyTileInclusion(tile, ev.target.checked, archiveSection);
+      updateCountBadges();
+    });
+
+    // instantiate demo
+    const Cls = DEMOS[name];
+    if (!Cls) { console.warn('Missing demo class:', name); return; }
+    try {
+      const demo = new Cls(c);
+      c._demo = demo;
+      observer.observe(c);
+    } catch (err) { console.error('Failed to init demo:', name, err); }
+  });
+
+  // Toolbar buttons
+  const allOn = document.getElementById('cfg-all-on');
+  if (allOn) allOn.addEventListener('click', () => {
+    const s = {};
+    document.querySelectorAll('.tile[data-demo-name]').forEach(t => {
+      const n = t.dataset.demoName;
+      s[n] = true;
+      applyTileInclusion(t, true, archiveSection);
+    });
+    saveCompState(s);
+    updateCountBadges();
+  });
+  const defaultsBtn = document.getElementById('cfg-defaults');
+  if (defaultsBtn) defaultsBtn.addEventListener('click', () => {
+    const s = {};
+    document.querySelectorAll('.tile[data-demo-name]').forEach(t => {
+      const n = t.dataset.demoName;
+      const included = !DEFAULT_ARCHIVED.has(n);
+      s[n] = included;
+      applyTileInclusion(t, included, archiveSection);
+    });
+    saveCompState(s);
+    updateCountBadges();
+  });
+  const resetBtn = document.getElementById('cfg-reset');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    if (!confirm('Clear all component preferences from localStorage?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    document.querySelectorAll('.tile[data-demo-name]').forEach(t => {
+      const n = t.dataset.demoName;
+      const included = !DEFAULT_ARCHIVED.has(n);
+      applyTileInclusion(t, included, archiveSection);
+    });
+    updateCountBadges();
+  });
+
+  updateCountBadges();
+});
+</script>
+
+</body>
+</html>
+

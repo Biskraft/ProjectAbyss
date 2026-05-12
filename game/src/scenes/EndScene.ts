@@ -10,6 +10,7 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TitleScene } from './TitleScene';
 import type { Game } from '../Game';
+import { t } from '@i18n';
 
 export class EndScene extends Scene {
   private elapsed = 0;
@@ -32,10 +33,10 @@ export class EndScene extends Scene {
     const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
     const statLines = [
-      `Enemies defeated: ${s.enemiesKilled}`,
-      `Items collected: ${s.itemsCollected}`,
-      `Gates broken: ${s.gatesBroken}`,
-      `Play time: ${timeStr}`,
+      t('ending.enemies_defeated', { n: s.enemiesKilled }),
+      t('ending.items_collected', { n: s.itemsCollected }),
+      t('ending.gates_broken', { n: s.gatesBroken }),
+      t('ending.play_time', { time: timeStr }),
     ];
 
     // Stats (shown at 3s)
@@ -48,12 +49,12 @@ export class EndScene extends Scene {
     }
 
     // "The Abyss deepens..." (shown at 5s)
-    const abyssText = this.makeText('The Abyss deepens...', 0x8888ff, 170);
+    const abyssText = this.makeText(t('ending.abyss_deepens'), 0x8888ff, 170);
     abyssText.alpha = 0;
     this.elements.push(abyssText);
 
     // "PRESS ANY KEY" (shown at 8s)
-    const hintText = this.makeText('PRESS ANY KEY TO RETURN TO TITLE', 0x666666, 220);
+    const hintText = this.makeText(t('ending.press_any_key'), 0x666666, 220);
     hintText.alpha = 0;
     this.elements.push(hintText);
   }

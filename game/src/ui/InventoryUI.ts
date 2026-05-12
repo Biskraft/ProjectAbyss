@@ -8,7 +8,11 @@ import { createUiText } from './factories';
 import { t } from '@i18n';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
-import { create9SlicePanel, drawSelectionRow, drawSelectionPulse, ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA } from './ModalPanel';
+import {
+  create9SlicePanel, drawSelectionRow, drawSelectionPulse,
+  ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA,
+  MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE,
+} from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 import { sacredSave } from '@save/PlayerSave';
@@ -38,9 +42,9 @@ const PANEL_W_ANVIL = PANEL_W + ARROW_W + ANVIL_SLOT_W + 12;
 
 const ANVIL_EQUIPPED_DIM_ALPHA = 0.15;
 
-// ── Color tokens ──────────────────────────────────────────────────────────────
-const COL_PANEL_BG = 0x1a1a2e;
-const COL_BORDER = 0x4a4a6a;
+// ── Color tokens — ModalPanel SSoT alias ─────────────────────────────────────
+const COL_PANEL_BG = MODAL_BG;
+const COL_BORDER = MODAL_BORDER;
 
 // Row states (selection palette → ModalPanel.ts ROW_SELECTED tokens)
 const COL_ROW_BG = 0x000000;       // transparent (alpha 0)
@@ -51,10 +55,10 @@ const COL_ROW_CURSOR = ROW_CHEVRON_COLOR;
 // Text
 const COL_TEXT = 0xcccccc;
 const COL_TEXT_DIM = 0x777777;
-const COL_TEXT_WHITE = 0xffffff;
-const COL_DIM = 0xaaaaaa;
-const COL_POSITIVE = 0x44ff44;
-const COL_NEGATIVE = 0xff4444;
+const COL_TEXT_WHITE = TEXT_PRIMARY;
+const COL_DIM = TEXT_SECONDARY;
+const COL_POSITIVE = TEXT_POSITIVE;
+const COL_NEGATIVE = TEXT_NEGATIVE;
 
 // Badge
 const COL_DIVE = 0x00ced1;

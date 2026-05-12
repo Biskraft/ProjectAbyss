@@ -935,7 +935,7 @@ export class ItemWorldScene extends Scene {
 
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
-    const stratumLabel = `Memory Stratum ${this.currentStratumIndex + 1}`;
+    const stratumLabel = t('iw.stratum_banner', { n: this.currentStratumIndex + 1 });
     this.toast.show(stratumLabel, rarityColor);
 
     // Show stratum picker if player has unlocked more than one stratum on this item
@@ -4325,7 +4325,9 @@ export class ItemWorldScene extends Scene {
       parent.addChild(right);
     }
 
-    const leftBadge = isLocked ? 'LOCK' : (isSelected ? 'START' : (cleared ? 'CLR' : 'OPEN'));
+    const leftBadge = isLocked
+      ? t('iw.picker.lock')
+      : (isSelected ? t('iw.picker.start') : (cleared ? t('iw.picker.clear') : t('iw.picker.open')));
     const leftBadgeColor = isLocked ? STRATUM_PICKER_COL_LOCKED : (cleared && !isSelected ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_ACCENT);
     this.drawStratumPickerBadge(parent, x + 20, y + 3, STRATUM_PICKER_BADGE_W, leftBadge, leftBadgeColor, isLocked);
 
@@ -5008,7 +5010,7 @@ export class ItemWorldScene extends Scene {
     if (!this.trapdoorPrompt) {
       this.trapdoorPrompt = KeyPrompt.createPrompt(
         actionKey(GameAction.ATTACK),
-        'Descend',
+        t('prompt.descend'),
         this.game.uiScale,
       );
     }

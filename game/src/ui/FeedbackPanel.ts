@@ -131,7 +131,7 @@ export class FeedbackPanel {
     // KeyPrompt-style: [F] FEEDBACK — full pixel-sharp size, low alpha to stay
     // present without competing with gameplay UI. Pixel fonts break at
     // fractional scales; keep scale at 1.0 and dim with alpha instead.
-    const prompt = KeyPrompt.createPrompt('F', 'FEEDBACK');
+    const prompt = KeyPrompt.createPrompt('F', t('ui.feedback.hint_label'));
     this.hintIndicator.addChild(prompt);
     this.hintIndicator.alpha = 0.5;
 

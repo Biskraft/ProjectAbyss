@@ -13,7 +13,7 @@
  */
 
 import { Container, Graphics, BitmapText, Rectangle } from 'pixi.js';
-import { create9SlicePanel } from './ModalPanel';
+import { create9SlicePanel, TEXT_WARNING } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
@@ -381,7 +381,7 @@ export class WorldMapOverlay {
     const percent = this.totalRooms > 0 ? Math.floor((visitedCount / this.totalRooms) * 100) : 0;
     const pctText = new BitmapText({
       text: `${percent}%`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 40, fill: 0xffcc44 },
+      style: { fontFamily: PIXEL_FONT, fontSize: 40, fill: TEXT_WARNING },
     });
     pctText.x = GAME_WIDTH - MAP_MARGIN_X - pctText.width;
     pctText.y = MAP_MARGIN_Y - 42;

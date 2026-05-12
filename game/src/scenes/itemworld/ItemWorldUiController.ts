@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import { create9SlicePanel } from '@ui/ModalPanel';
+import { create9SlicePanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY } from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
 import { createUiText } from '@ui/factories';
 import { t } from '@i18n';
@@ -145,8 +145,8 @@ export class ItemWorldUiController {
       container.addChild(frame);
     } else {
       const bg = new Graphics();
-      bg.rect(0, 0, W, H).fill({ color: 0x1a1a2e, alpha: 0.96 });
-      bg.rect(0, 0, W, H).stroke({ color: 0x4a4a6a, width: 1 });
+      bg.rect(0, 0, W, H).fill({ color: MODAL_BG, alpha: 0.96 });
+      bg.rect(0, 0, W, H).stroke({ color: MODAL_BORDER, width: 1 });
       container.addChild(bg);
     }
 
@@ -255,12 +255,12 @@ export class ItemWorldUiController {
       panel.addChild(frame);
     } else {
       const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+      bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.95 });
+      bg.rect(0, 0, panelW, panelH).stroke({ color: MODAL_BORDER, width: 1 });
       panel.addChild(bg);
     }
 
-    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff });
+    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_PRIMARY });
     title.x = 12;
     title.y = 6;
     panel.addChild(title);
@@ -285,7 +285,7 @@ export class ItemWorldUiController {
         exp: options.earnedExp,
         gold: options.earnedGold,
       }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
     );
     floorInfo.x = 12;
     floorInfo.y = 33;
@@ -297,7 +297,7 @@ export class ItemWorldUiController {
         jump: actionKey(GameAction.JUMP),
         dash: actionKey(GameAction.DASH),
       }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
     );
     controls.x = 12;
     controls.y = 48;
@@ -330,8 +330,8 @@ export class ItemWorldUiController {
       panel.addChild(frame);
     } else {
       const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+      bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.95 });
+      bg.rect(0, 0, panelW, panelH).stroke({ color: MODAL_BORDER, width: 1 });
       panel.addChild(bg);
     }
 

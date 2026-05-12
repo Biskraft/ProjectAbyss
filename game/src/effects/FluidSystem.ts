@@ -83,6 +83,8 @@ export class FluidSystem {
         this.createBody(type, component, gridW);
       }
     }
+    // 첫 프레임 지연 제거 — attach 직후 mesh polygon 즉시 그려 룸 자산과 동시 표시.
+    for (const body of this.bodies) this.drawBody(body);
   }
 
   /** 룸 떠날 때 호출. 모든 body 의 mesh 제거. */

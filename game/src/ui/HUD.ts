@@ -4,6 +4,9 @@ import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
+import {
+  TEXT_PRIMARY, TEXT_SECONDARY, TEXT_NEGATIVE, TEXT_POSITIVE, TEXT_GOLD,
+} from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import { onDeviceChange } from '@core/input/InputDeviceTracker';
 import type { UISkin } from './UISkin';
@@ -47,7 +50,7 @@ const FLASK_PULSE_PERIOD = HudConst.Timing.FlaskPulsePeriodMs;
 const BASE_EXP_W = 60;
 const BASE_EXP_H = 4;
 const EXP_BG_COLOR = 0x222222;
-const EXP_BAR_COLOR = 0xffd700;
+const EXP_BAR_COLOR = TEXT_GOLD;
 const EXP_BAR_MAX_COLOR = 0xff8833;
 const EXP_LERP_DURATION = HudConst.Timing.ExpLerpMs;
 const EXP_LEVELUP_FLASH_DURATION = HudConst.Timing.ExpLevelupFlashMs;
@@ -87,7 +90,7 @@ export class HUD {
   private ghostHp = 0;
   private ghostTimer = 0;
   private healFlashTimer = 0;
-  private healFlashColor = 0x44ff44;
+  private healFlashColor = TEXT_POSITIVE;
   private healFlashRatio = 0;
   private healFlashStartRatio = 0;
   private lowHpTimer = 0;
@@ -141,7 +144,7 @@ export class HUD {
   private expLevelText: BitmapText;
   private expLevelShadow: BitmapText;
   private expItemName = '';
-  private expItemRarityColor = 0xffffff;
+  private expItemRarityColor = TEXT_PRIMARY;
   private expLevel = 0;
   private expCurrent = 0;
   private expMax = 300;

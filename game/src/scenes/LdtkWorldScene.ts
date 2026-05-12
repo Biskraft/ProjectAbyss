@@ -60,6 +60,9 @@ import { AreaTitle } from '@ui/AreaTitle';
 import { TITLE_FADE_OVERLAY_LABEL } from './TitleScene';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
+import {
+  MODAL_BG, MODAL_BG_ALPHA, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, FONT_HINT,
+} from '@ui/ModalPanel';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { PauseMenu } from '@ui/PauseMenu';
@@ -3425,7 +3428,7 @@ export class LdtkWorldScene extends Scene {
       };
 
       if (triggerType === 'interact') {
-        const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Talk', this.game.uiScale);
+        const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.talk'), this.game.uiScale);
         prompt.visible = false;
         this.game.uiContainer.addChild(prompt);
         trigger.prompt = prompt;
@@ -4514,7 +4517,7 @@ export class LdtkWorldScene extends Scene {
           this.entityLayer.addChild(marker);
           // Context prompt — rendered in uiContainer for crisp text
           const us = this.game.uiScale;
-          const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Save', us);
+          const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.save'), us);
           prompt.visible = false;
           this.game.uiContainer.addChild(prompt);
           const entry: { x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container } =
@@ -6033,7 +6036,7 @@ export class LdtkWorldScene extends Scene {
     const panelH = 20 + items.length * 12;
     const px = Math.floor((GAME_WIDTH - panelW) / 2);
     const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
+    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: MODAL_BG_ALPHA });
     bg.rect(0, 0, panelW, panelH).stroke({ color: accentColor, width: 1 });
     bg.x = px;
     bg.y = py;
@@ -6237,7 +6240,7 @@ export class LdtkWorldScene extends Scene {
     // 다가가면 항상 prompt 를 띄워 "C 로 진행 가능"을 일관되게 알린다.
     if (near) {
       if (!this.anvilPrompt) {
-        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Place Weapon', this.game.uiScale);
+        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.place_weapon'), this.game.uiScale);
       }
       if (!this.anvilPrompt.parent) {
         this.game.uiContainer.addChild(this.anvilPrompt);
@@ -6402,14 +6405,14 @@ export class LdtkWorldScene extends Scene {
     const py = Math.floor((GAME_HEIGHT - panelH) / 2);
 
     const bg = new Graphics();
-    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
+    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.96 });
     bg.rect(0, 0, panelW, panelH).stroke({ color: 0xff8844, width: 1 });
     bg.x = px;
     bg.y = py;
     ui.addChild(bg);
 
     const title = new BitmapText({
-      text: '[MEMORY ALREADY ECHOED]',
+      text: t('ui.cycle.already_echoed'),
       style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xff8844 },
     });
     title.x = px + 8;
@@ -6420,22 +6423,22 @@ export class LdtkWorldScene extends Scene {
     const lines = [
       `${item.def.name}`,
       '',
-      'Dive again? Memories rewind.',
-      'Enemies grow sharper.',
+      t('ui.cycle.dive_again_prompt'),
+      t('ui.cycle.enemies_sharper'),
       '',
-      `Cycle ${nextCycle}`,
+      t('ui.cycle.label', { n: nextCycle }),
       '',
-      `[${actionKey(GameAction.ATTACK)}] Dive Again   [${actionKey(GameAction.MENU)}] Cancel`,
+      `[${actionKey(GameAction.ATTACK)}] ${t('ui.cycle.dive_action')}   [${actionKey(GameAction.MENU)}] ${t('ui.cycle.cancel_action')}`,
     ];
     for (let i = 0; i < lines.length; i++) {
-      const fill = i === 0 ? 0xffcc44 : i === lines.length - 1 ? 0xaaaaaa : 0xffffff;
-      const t = new BitmapText({
+      const fill = i === 0 ? TEXT_WARNING : i === lines.length - 1 ? TEXT_SECONDARY : TEXT_PRIMARY;
+      const tx = new BitmapText({
         text: lines[i],
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill },
+        style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill },
       });
-      t.x = px + 8;
-      t.y = py + 18 + i * 8;
-      ui.addChild(t);
+      tx.x = px + 8;
+      tx.y = py + 18 + i * 8;
+      ui.addChild(tx);
     }
 
     this.cyclePromptUI = ui;

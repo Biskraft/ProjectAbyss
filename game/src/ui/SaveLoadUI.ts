@@ -10,7 +10,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
-import { createModalPanel } from './ModalPanel';
+import { createModalPanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_NEGATIVE, TEXT_ACCENT } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
 
@@ -23,13 +23,13 @@ const SLOT_H = 48;
 const SLOT_GAP = 8;
 const SLOT_START_Y = 40;
 
-const COL_BG = 0x1a1a2e;
-const COL_BORDER = 0x4a4a6a;
-const COL_SELECTED = 0x00ced1;
-const COL_TEXT = 0xffffff;
-const COL_DIM = 0xaaaaaa;
+const COL_BG = MODAL_BG;
+const COL_BORDER = MODAL_BORDER;
+const COL_SELECTED = TEXT_ACCENT;
+const COL_TEXT = TEXT_PRIMARY;
+const COL_DIM = TEXT_SECONDARY;
 const COL_GOLD = 0xffdd44;
-const COL_DANGER = 0xff4444;
+const COL_DANGER = TEXT_NEGATIVE;
 const COL_SLOT_BG = 0x0d0d1a;
 
 export type SaveLoadMode = 'new' | 'load' | 'save';

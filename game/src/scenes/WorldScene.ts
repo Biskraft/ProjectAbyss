@@ -3,6 +3,7 @@ import { Scene } from '@core/Scene';
 import { GameAction, actionKey } from '@core/InputManager';
 import { t } from '@i18n';
 import { createUiText } from '@ui/factories';
+import { MODAL_BG, MODAL_BORDER, TEXT_PRIMARY } from '@ui/ModalPanel';
 import { trackItemDrop } from '@utils/Analytics';
 import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
@@ -1070,8 +1071,8 @@ export class WorldScene extends Scene {
     const panelH = 20 + items.length * 12;
     const px = Math.floor((GAME_WIDTH - panelW) / 2);
     const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-    bg.rect(0, 0, panelW, panelH).fill({ color: 0x1a1a2e, alpha: 0.95 });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: 0x4a4a6a, width: 1 });
+    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.95 });
+    bg.rect(0, 0, panelW, panelH).stroke({ color: MODAL_BORDER, width: 1 });
     bg.x = px;
     bg.y = py;
     ui.addChild(bg);
@@ -1087,7 +1088,7 @@ export class WorldScene extends Scene {
       const prefix = selected ? '> ' : '  ';
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
       const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
-      const t = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : 0xffffff } });
+      const t = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : TEXT_PRIMARY } });
       t.x = px + 6;
       t.y = py + 16 + i * 12;
       ui.addChild(t);

@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ECHORIS — Combo Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d18; --panel:#14141f; --line:#232336; --muted:#7c7c95;
+    --tx:#fff; --tx2:#aaa; --acc:#00ced1; --warn:#ffcc44; --orange:#ff8c00;
+    --fire:#ff5522; --ice:#88ccff; --thunder:#ffee44;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--tx);font-family:'Rajdhani',system-ui,sans-serif;font-weight:500}
+
+  header.page{padding:16px 24px;border-bottom:1px solid var(--line);background:#0a0a14}
+  header.page h1{font-family:'Cinzel',serif;font-size:22px;margin:0 0 4px;letter-spacing:4px}
+  header.page p{margin:0;color:var(--tx2);font-size:11px;line-height:1.5}
+  header.page a{color:var(--acc);text-decoration:none;font-size:10px;font-family:ui-monospace,monospace}
+  header.page a:hover{text-decoration:underline}
+
+  .preset-bar{
+    display:flex;flex-wrap:wrap;gap:6px;padding:10px 24px;background:#0a0a14;border-bottom:1px solid var(--line);
+  }
+  .preset-bar .lbl{color:var(--muted);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-right:8px;align-self:center;font-family:ui-monospace,monospace}
+  .preset-btn{
+    padding:5px 10px;background:var(--panel);color:var(--tx2);border:1px solid var(--line);border-radius:2px;
+    font-family:inherit;font-size:11px;letter-spacing:0.5px;cursor:pointer;transition:all 0.1s;
+  }
+  .preset-btn:hover{border-color:var(--acc);color:var(--acc)}
+  .preset-btn.danger{border-color:#553;color:#a86}
+  .preset-btn.danger:hover{border-color:#f64;color:#f64}
+
+  .layout{display:grid;grid-template-columns:180px 1fr 220px;gap:8px;padding:8px}
+
+  .tools{
+    background:var(--panel);border:1px solid var(--line);padding:10px;border-radius:2px;
+    display:flex;flex-direction:column;gap:8px;height:fit-content;position:sticky;top:8px;
+  }
+  .tools h4{margin:0 0 2px;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-family:ui-monospace,monospace}
+  .tools .tool-group{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .tool-btn{
+    padding:6px 4px;background:#0a0a14;color:var(--tx2);border:1px solid var(--line);border-radius:2px;
+    font-family:inherit;font-size:10px;cursor:pointer;letter-spacing:0.5px;transition:all 0.1s;
+    display:flex;align-items:center;justify-content:center;gap:4px;
+  }
+  .tool-btn:hover{border-color:#445}
+  .tool-btn.active{border-color:var(--acc);color:var(--acc);background:rgba(0,206,209,0.08)}
+  .tool-btn .sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid #333}
+  .tool-btn.full{grid-column:span 2}
+
+  .stage{
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;
+    display:flex;align-items:center;justify-content:center;padding:8px;
+  }
+  canvas#world{
+    background:#050510;display:block;border:1px solid #1a1a28;
+    image-rendering:pixelated;cursor:crosshair;touch-action:none;max-width:100%;height:auto;
+  }
+
+  .status{
+    background:var(--panel);border:1px solid var(--line);padding:10px;border-radius:2px;
+    height:fit-content;position:sticky;top:8px;
+  }
+  .status h4{margin:0 0 8px;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-family:ui-monospace,monospace}
+  .status .row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid #1a1a26;font-family:ui-monospace,monospace}
+  .status .row .k{color:var(--tx2)}
+  .status .row .v{color:var(--tx)}
+  .status .desc{margin:10px 0 0;padding:8px;background:#0a0a14;border-left:2px solid var(--acc);font-size:10px;color:#cfd6dd;line-height:1.5;border-radius:2px}
+  .status .desc b{color:var(--acc)}
+  .status .legend{margin-top:10px;display:flex;flex-direction:column;gap:3px;font-size:9px;color:var(--muted);font-family:ui-monospace,monospace}
+  .status .legend .lg{display:flex;align-items:center;gap:6px}
+  .status .legend .sw{width:10px;height:10px;border-radius:1px}
+
+  @media (max-width:1100px){
+    .layout{grid-template-columns:1fr}
+    .tools,.status{position:static}
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>COMBO SANDBOX</h1>
+  <p>
+    ECHORIS — 메커닉 곱셈(창발) 검증용 단일 캔버스 시뮬레이션. 단일 메커닉이 아닌 <b style="color:var(--acc)">조합</b>에서 발생하는 emergence 를 보여준다.
+    개별 데모는 <a href="emergent-physics-sandbox.html">→ Sandbox</a>
+  </p>
+</header>
+
+<div class="preset-bar">
+  <span class="lbl">SCENARIO</span>
+  <button class="preset-btn" data-preset="clear">▢ Empty</button>
+  <button class="preset-btn" data-preset="water_metal_thunder">① 물+금속+뇌</button>
+  <button class="preset-btn" data-preset="oil_molotov">② 기름+화염병</button>
+  <button class="preset-btn" data-preset="ice_magma_bridge">③ 빙+마그마=다리</button>
+  <button class="preset-btn" data-preset="fire_ice_water">④ 화→얼음→물→뇌</button>
+  <button class="preset-btn" data-preset="box_switch_gate">⑤ 박스+스위치+게이트</button>
+  <button class="preset-btn" data-preset="rope_chandelier">⑥ 로프+샹들리에</button>
+  <button class="preset-btn" data-preset="updraft_breakable">⑦ Updraft+다이브</button>
+  <button class="preset-btn" data-preset="acid_metal">⑧ Acid+금속 부식</button>
+  <button class="preset-btn danger" data-preset="clear">CLEAR</button>
+</div>
+
+<div class="layout">
+
+  <!-- =================== TOOLS =================== -->
+  <div class="tools">
+    <h4>Paint (drag)</h4>
+    <div class="tool-group">
+      <button class="tool-btn active" data-tool="paint_wall"><span class="sw" style="background:#864"></span>Wall</button>
+      <button class="tool-btn" data-tool="paint_air"><span class="sw" style="background:#050510;border-color:#445"></span>Erase</button>
+      <button class="tool-btn" data-tool="paint_water"><span class="sw" style="background:#3a7bb8"></span>Water</button>
+      <button class="tool-btn" data-tool="paint_magma"><span class="sw" style="background:#ff5522"></span>Magma</button>
+      <button class="tool-btn" data-tool="paint_ice"><span class="sw" style="background:#88ccff"></span>Ice</button>
+      <button class="tool-btn" data-tool="paint_oil"><span class="sw" style="background:#3a2618"></span>Oil</button>
+      <button class="tool-btn" data-tool="paint_metal"><span class="sw" style="background:#aab"></span>Metal</button>
+      <button class="tool-btn" data-tool="paint_wood"><span class="sw" style="background:#864"></span>Wood</button>
+      <button class="tool-btn" data-tool="paint_acid"><span class="sw" style="background:#88cc44"></span>Acid</button>
+      <button class="tool-btn" data-tool="paint_breakable"><span class="sw" style="background:#643"></span>Break</button>
+      <button class="tool-btn" data-tool="paint_spike"><span class="sw" style="background:#c44"></span>Spike</button>
+      <button class="tool-btn" data-tool="paint_updraft"><span class="sw" style="background:#2CE8F5"></span>Updraft</button>
+      <button class="tool-btn" data-tool="paint_platform"><span class="sw" style="background:#553"></span>Platfm</button>
+    </div>
+
+    <h4>Spawn (click)</h4>
+    <div class="tool-group">
+      <button class="tool-btn" data-tool="spawn_box">📦 Box</button>
+      <button class="tool-btn" data-tool="spawn_enemy">👾 Enemy</button>
+      <button class="tool-btn" data-tool="spawn_switch">⚙ Switch</button>
+      <button class="tool-btn" data-tool="spawn_gate">🚪 Gate</button>
+      <button class="tool-btn" data-tool="spawn_rope">🪢 Rope</button>
+      <button class="tool-btn" data-tool="spawn_player">🧍 Player</button>
+    </div>
+
+    <h4>Attack — Enchant</h4>
+    <div class="tool-group">
+      <button class="tool-btn full" data-tool="attack_none"><span class="sw" style="background:#aab"></span>Physical</button>
+      <button class="tool-btn full" data-tool="attack_fire"><span class="sw" style="background:#ff5522"></span>FIRE 🔥</button>
+      <button class="tool-btn full" data-tool="attack_ice"><span class="sw" style="background:#88ccff"></span>ICE ❄</button>
+      <button class="tool-btn full" data-tool="attack_thunder"><span class="sw" style="background:#ffee44"></span>THUNDER ⚡</button>
+    </div>
+
+    <h4>Interact</h4>
+    <div class="tool-group">
+      <button class="tool-btn full" data-tool="drag">✋ Drag (boxes/enemy)</button>
+    </div>
+  </div>
+
+  <!-- =================== STAGE =================== -->
+  <div class="stage">
+    <canvas id="world" width="720" height="420"></canvas>
+  </div>
+
+  <!-- =================== STATUS =================== -->
+  <div class="status">
+    <h4>State</h4>
+    <div class="row"><span class="k">tool</span><span class="v" id="st-tool">paint_wall</span></div>
+    <div class="row"><span class="k">enchant</span><span class="v" id="st-enchant">none</span></div>
+    <div class="row"><span class="k">fps</span><span class="v" id="st-fps">--</span></div>
+    <div class="row"><span class="k">boxes</span><span class="v" id="st-boxes">0</span></div>
+    <div class="row"><span class="k">enemies</span><span class="v" id="st-enemies">0</span></div>
+    <div class="row"><span class="k">fires</span><span class="v" id="st-fires">0</span></div>
+    <div class="row"><span class="k">elec</span><span class="v" id="st-elec">0</span></div>
+
+    <div class="desc" id="scenario-desc">
+      <b>Empty.</b> 빈 캔버스. 도구를 선택해 자유 빌드, 또는 상단 시나리오 프리셋을 누르세요.
+    </div>
+
+    <h4 style="margin-top:14px">Tile Legend</h4>
+    <div class="legend">
+      <div class="lg"><span class="sw" style="background:#864"></span>Wall · solid</div>
+      <div class="lg"><span class="sw" style="background:#3a7bb8"></span>Water · drown / conduct</div>
+      <div class="lg"><span class="sw" style="background:#ff5522"></span>Magma · burn DOT</div>
+      <div class="lg"><span class="sw" style="background:#88ccff"></span>Ice · solid + slip</div>
+      <div class="lg"><span class="sw" style="background:#3a2618"></span>Oil · flammable</div>
+      <div class="lg"><span class="sw" style="background:#aab"></span>Metal · conductor</div>
+      <div class="lg"><span class="sw" style="background:#88cc44"></span>Acid · DOT / corrode metal / conduct</div>
+      <div class="lg"><span class="sw" style="background:#643"></span>Breakable · 1-hit</div>
+      <div class="lg"><span class="sw" style="background:#c44"></span>Spike · damage</div>
+      <div class="lg"><span class="sw" style="background:#2CE8F5"></span>Updraft · lift</div>
+      <div class="lg"><span class="sw" style="background:#553"></span>Platform · one-way</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   COMBO SANDBOX — single emergent simulation
+============================================================ */
+
+const GRID_W = 60, GRID_H = 35;
+const CELL = 12;
+const CANVAS_W = GRID_W * CELL;
+const CANVAS_H = GRID_H * CELL;
+
+// Cell types
+const AIR = 0, WALL = 1, WATER = 2, PLATFORM = 3, UPDRAFT = 4, SPIKE = 5,
+      MAGMA = 6, ICE = 7, CHARGED = 8, BREAKABLE = 9, OIL = 10, METAL = 11, WOOD = 12,
+      ACID = 13;
+
+const CELL_COLORS = {
+  [AIR]: null,
+  [WALL]: '#5a4022',
+  [WATER]: '#3a7bb8',
+  [PLATFORM]: '#553',
+  [UPDRAFT]: '#2CE8F5',
+  [SPIKE]: '#c44',
+  [MAGMA]: '#ff5522',
+  [ICE]: '#88ccff',
+  [CHARGED]: '#ffee44',
+  [BREAKABLE]: '#643',
+  [OIL]: '#3a2618',
+  [METAL]: '#a8a8b8',
+  [WOOD]: '#866',
+  [ACID]: '#88cc44',
+};
+
+const SOLID = new Set([WALL, ICE, BREAKABLE, METAL]);
+const FLAMMABLE = new Set([OIL, WOOD]);
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const dist2 = (ax, ay, bx, by) => { const dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; };
+
+class World {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.cells = new Uint8Array(GRID_W * GRID_H);
+    this.fire = new Float32Array(GRID_W * GRID_H);   // 0~1
+    this.elec = new Float32Array(GRID_W * GRID_H);   // 0~1 pulse
+    this.frozen = new Float32Array(GRID_W * GRID_H); // freeze timer (sec)
+    this.originalCell = new Uint8Array(GRID_W * GRID_H); // for restoring after freeze
+
+    this.boxes = [];
+    this.enemies = [];
+    this.switches = [];
+    this.gates = [];
+    this.ropes = [];
+    this.player = null;
+    this.particles = [];
+    this.fxRings = []; // shockwave / steam puff visuals
+
+    this.tool = 'paint_wall';
+    this.tickT = 0;
+    this.elecT = 0;
+
+    this.bindInput();
+    this.bindUI();
+    this.lastT = performance.now();
+    this.fpsT = 0;
+    this.fpsN = 0;
+    this.fps = 0;
+    requestAnimationFrame(() => this.loop());
+  }
+
+  cellIdx(gx, gy) { return gy * GRID_W + gx; }
+  inBounds(gx, gy) { return gx >= 0 && gy >= 0 && gx < GRID_W && gy < GRID_H; }
+  getCell(gx, gy) { return this.inBounds(gx, gy) ? this.cells[this.cellIdx(gx, gy)] : WALL; }
+  setCell(gx, gy, v) { if (this.inBounds(gx, gy)) this.cells[this.cellIdx(gx, gy)] = v; }
+  isSolid(gx, gy) {
+    const c = this.getCell(gx, gy);
+    if (SOLID.has(c)) return true;
+    if (this.frozen[this.cellIdx(gx, gy)] > 0) return true; // ice-frozen water/magma
+    return false;
+  }
+
+  bindInput() {
+    const c = this.canvas;
+    this.mouse = { x: 0, y: 0, gx: 0, gy: 0, down: false, justDown: false, prevGx: -1, prevGy: -1 };
+    const upd = (e) => {
+      const r = c.getBoundingClientRect();
+      this.mouse.x = (e.clientX - r.left) * (CANVAS_W / r.width);
+      this.mouse.y = (e.clientY - r.top) * (CANVAS_H / r.height);
+      this.mouse.gx = Math.floor(this.mouse.x / CELL);
+      this.mouse.gy = Math.floor(this.mouse.y / CELL);
+    };
+    c.addEventListener('mousemove', upd);
+    c.addEventListener('mousedown', (e) => { upd(e); this.mouse.down = true; this.mouse.justDown = true; this.onClick(); });
+    window.addEventListener('mouseup', () => { this.mouse.down = false; this.releaseDrag(); });
+    c.addEventListener('contextmenu', e => e.preventDefault());
+    // touch
+    c.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.touches[0]; upd(t); this.mouse.down = true; this.mouse.justDown = true; this.onClick(); }, { passive: false });
+    c.addEventListener('touchmove', (e) => { e.preventDefault(); const t = e.touches[0]; upd(t); }, { passive: false });
+    c.addEventListener('touchend', () => { this.mouse.down = false; this.releaseDrag(); });
+  }
+
+  bindUI() {
+    document.querySelectorAll('.tool-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        this.tool = b.dataset.tool;
+        document.getElementById('st-tool').textContent = this.tool;
+        if (this.tool.startsWith('attack_')) {
+          document.getElementById('st-enchant').textContent = this.tool.slice(7);
+        }
+      });
+    });
+    document.querySelectorAll('.preset-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const p = b.dataset.preset;
+        this.loadPreset(p);
+      });
+    });
+  }
+
+  onClick() {
+    const t = this.tool;
+    const { gx, gy, x, y } = this.mouse;
+    if (t === 'spawn_box') this.boxes.push({ x: x - 9, y: y - 9, w: 18, h: 18, vx: 0, vy: 0, drag: false });
+    else if (t === 'spawn_enemy') this.enemies.push({ x: x - 7, y: y - 11, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, charmed: false, ai: 'patrol', patrolDir: 1 });
+    else if (t === 'spawn_switch') this.switches.push({ gx, gy: gy, pressed: false, linkedGate: this.gates.length - 1 });
+    else if (t === 'spawn_gate') this.gates.push({ gx, gy, open: 0 });
+    else if (t === 'spawn_rope') this.spawnRope(gx, gy);
+    else if (t === 'spawn_player') this.player = { x: x, y: y, vx: 0, vy: 0, onGround: false, oxygen: 1 };
+    else if (t === 'drag') this.tryGrab();
+    else if (t.startsWith('attack_')) this.applyAttack(t.slice(7));
+  }
+
+  releaseDrag() {
+    for (const b of this.boxes) b.drag = false;
+    for (const e of this.enemies) {
+      if (e.drag) {
+        e.vx = (this.mouse.x - (e.lastX || this.mouse.x)) * 8;
+        e.vy = (this.mouse.y - (e.lastY || this.mouse.y)) * 8;
+        e.drag = false;
+      }
+    }
+  }
+
+  tryGrab() {
+    for (const b of this.boxes) {
+      if (this.mouse.x > b.x && this.mouse.x < b.x + b.w && this.mouse.y > b.y && this.mouse.y < b.y + b.h) {
+        b.drag = true; b.dx = this.mouse.x - b.x; b.dy = this.mouse.y - b.y; return;
+      }
+    }
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      if (this.mouse.x > e.x && this.mouse.x < e.x + e.w && this.mouse.y > e.y && this.mouse.y < e.y + e.h) {
+        e.drag = true; e.dx = this.mouse.x - e.x; e.dy = this.mouse.y - e.y; return;
+      }
+    }
+    // rope cut
+    for (const r of this.ropes) {
+      if (r.cut) continue;
+      for (let i = 1; i < r.pts.length - 1; i++) {
+        const p = r.pts[i];
+        if (dist2(this.mouse.x, this.mouse.y, p.x, p.y) < 100) { r.cut = true; r.pts[0].pinned = false; return; }
+      }
+    }
+  }
+
+  spawnRope(gx, gy) {
+    const ax = gx * CELL + CELL / 2, ay = gy * CELL;
+    const n = 10, segLen = 8;
+    const pts = [];
+    for (let i = 0; i < n; i++) pts.push({ x: ax, y: ay + i * segLen, px: ax, py: ay + i * segLen, pinned: i === 0 });
+    this.ropes.push({ pts, segLen, cut: false, hang: { w: 16, h: 12, mass: 1 } });
+  }
+
+  applyAttack(el) {
+    const { gx, gy, x, y } = this.mouse;
+    const idx = this.cellIdx(gx, gy);
+    const c = this.getCell(gx, gy);
+
+    if (el === 'fire') {
+      // ignite oil/wood/anything flammable, melt ice
+      this.fire[idx] = 1;
+      if (c === ICE) { this.setCell(gx, gy, WATER); this.fxRing(x, y, '#8cf', 30); }
+      // steam if water
+      if (c === WATER) { this.setCell(gx, gy, AIR); this.fxSteam(x, y); }
+      // splash effect
+      this.fxRing(x, y, '#f73', 24);
+      // damage enemies in radius
+      this.dmgEnemiesInRadius(x, y, 30, 0.3);
+    } else if (el === 'ice') {
+      // freeze water/magma to wall for 3 sec
+      if (c === WATER || c === MAGMA) {
+        this.frozen[idx] = 3;
+        this.originalCell[idx] = c;
+        this.fxRing(x, y, '#8cf', 24);
+      }
+      // extinguish fire
+      this.fire[idx] = 0;
+      this.dmgEnemiesInRadius(x, y, 24, 0.2);
+    } else if (el === 'thunder') {
+      // shock cell + flood-fill water + propagate metal
+      this.elec[idx] = 1;
+      this.fxRing(x, y, '#ff8', 30);
+      // immediate shock chain
+      this.thunderChain(gx, gy, new Set());
+      this.dmgEnemiesInRadius(x, y, 26, 0.4);
+    } else {
+      // physical: break breakable, damage enemy
+      if (c === BREAKABLE) { this.setCell(gx, gy, AIR); this.fxRing(x, y, '#a86', 20); }
+      this.dmgEnemiesInRadius(x, y, 22, 0.5);
+    }
+  }
+
+  thunderChain(gx, gy, visited) {
+    const k = gx + ',' + gy;
+    if (visited.has(k)) return;
+    visited.add(k);
+    if (!this.inBounds(gx, gy)) return;
+    const c = this.getCell(gx, gy);
+    const idx = this.cellIdx(gx, gy);
+    if (c !== WATER && c !== METAL && c !== ACID) return;
+    this.elec[idx] = 1;
+    // damage enemies whose AABB overlaps this cell
+    const cellX = gx * CELL, cellY = gy * CELL;
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      if (e.x + e.w > cellX && e.x < cellX + CELL && e.y + e.h > cellY && e.y < cellY + CELL) {
+        e.hp = 0;
+      }
+    }
+    // propagate
+    this.thunderChain(gx + 1, gy, visited);
+    this.thunderChain(gx - 1, gy, visited);
+    this.thunderChain(gx, gy + 1, visited);
+    this.thunderChain(gx, gy - 1, visited);
+  }
+
+  dmgEnemiesInRadius(x, y, r, dmg) {
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+      if (dist2(cx, cy, x, y) < r * r) e.hp = Math.max(0, e.hp - dmg);
+    }
+  }
+
+  fxRing(x, y, color, maxR) {
+    this.fxRings.push({ x, y, r: 0, maxR, color, life: 1 });
+  }
+  fxSteam(x, y) {
+    for (let i = 0; i < 6; i++) this.particles.push({ x: x + rand(-4, 4), y, vx: rand(-10, 10), vy: rand(-40, -60), life: 1.5, color: 'rgba(200,210,220,', size: 4 });
+  }
+
+  paintAt(gx, gy, value) {
+    if (!this.inBounds(gx, gy)) return;
+    const idx = this.cellIdx(gx, gy);
+    this.cells[idx] = value;
+    this.frozen[idx] = 0;
+    this.fire[idx] = 0;
+    this.elec[idx] = 0;
+  }
+
+  /* ===== UPDATE ===== */
+  update(dt) {
+    // 1) Paint tools (drag-paint)
+    if (this.mouse.down && this.tool.startsWith('paint_')) {
+      const tool = this.tool.slice(6);
+      const v = ({ wall: WALL, air: AIR, water: WATER, magma: MAGMA, ice: ICE, oil: OIL,
+                   metal: METAL, wood: WOOD, breakable: BREAKABLE, spike: SPIKE,
+                   updraft: UPDRAFT, platform: PLATFORM, acid: ACID })[tool];
+      if (v !== undefined) {
+        // line from prev to current
+        const gx0 = this.mouse.prevGx >= 0 ? this.mouse.prevGx : this.mouse.gx;
+        const gy0 = this.mouse.prevGy >= 0 ? this.mouse.prevGy : this.mouse.gy;
+        this.paintLine(gx0, gy0, this.mouse.gx, this.mouse.gy, v);
+      }
+    }
+    this.mouse.prevGx = this.mouse.gx;
+    this.mouse.prevGy = this.mouse.gy;
+
+    // 2) Drag entities
+    if (this.tool === 'drag' && this.mouse.down) {
+      for (const b of this.boxes) {
+        if (b.drag) { b.x = this.mouse.x - b.dx; b.y = this.mouse.y - b.dy; b.vx = 0; b.vy = 0; }
+      }
+      for (const e of this.enemies) {
+        if (e.drag) {
+          e.lastX = e.x; e.lastY = e.y;
+          e.x = this.mouse.x - e.dx; e.y = this.mouse.y - e.dy; e.vx = 0; e.vy = 0;
+        }
+      }
+    }
+
+    // 3) Cell sim (every ~120 ms)
+    this.tickT += dt;
+    if (this.tickT > 0.12) {
+      this.tickT = 0;
+      this.cellTick();
+    }
+
+    // 4) Continuous: frozen countdown, fire decay
+    for (let i = 0; i < this.frozen.length; i++) {
+      if (this.frozen[i] > 0) {
+        this.frozen[i] -= dt;
+        if (this.frozen[i] <= 0) this.frozen[i] = 0;
+      }
+    }
+    for (let i = 0; i < this.fire.length; i++) {
+      if (this.fire[i] > 0 && this.cells[i] !== OIL && this.cells[i] !== WOOD && this.cells[i] !== MAGMA) {
+        this.fire[i] = Math.max(0, this.fire[i] - dt * 0.5);
+      }
+    }
+    for (let i = 0; i < this.elec.length; i++) {
+      this.elec[i] = Math.max(0, this.elec[i] - dt * 1.2);
+    }
+
+    // 5) Entity physics
+    this.updateBoxes(dt);
+    this.updateEnemies(dt);
+    this.updateRopes(dt);
+    this.updatePlayer(dt);
+    this.updateSwitches();
+
+    // 6) Particles / FX
+    for (const p of this.particles) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 100 * dt; p.life -= dt * 0.8;
+    }
+    this.particles = this.particles.filter(p => p.life > 0);
+    for (const fx of this.fxRings) { fx.r += fx.maxR * dt * 4; fx.life -= dt * 2; }
+    this.fxRings = this.fxRings.filter(f => f.life > 0);
+
+    // 7) Stats
+    this.fpsT += dt; this.fpsN++;
+    if (this.fpsT > 0.5) {
+      this.fps = (this.fpsN / this.fpsT) | 0;
+      this.fpsT = 0; this.fpsN = 0;
+      document.getElementById('st-fps').textContent = this.fps;
+      document.getElementById('st-boxes').textContent = this.boxes.length;
+      document.getElementById('st-enemies').textContent = this.enemies.filter(e => !e.dead).length;
+      let fc = 0, ec = 0;
+      for (let i = 0; i < this.fire.length; i++) { if (this.fire[i] > 0.2) fc++; if (this.elec[i] > 0.3) ec++; }
+      document.getElementById('st-fires').textContent = fc;
+      document.getElementById('st-elec').textContent = ec;
+    }
+  }
+
+  paintLine(x0, y0, x1, y1, v) {
+    // Bresenham
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy, x = x0, y = y0;
+    while (true) {
+      this.paintAt(x, y, v);
+      if (x === x1 && y === y1) break;
+      const e2 = err * 2;
+      if (e2 > -dy) { err -= dy; x += sx; }
+      if (e2 < dx) { err += dx; y += sy; }
+    }
+  }
+
+  cellTick() {
+    // Fire spread on flammable cells
+    const fireNext = new Float32Array(this.fire);
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      const i = this.cellIdx(gx, gy);
+      const c = this.cells[i];
+      // magma is permanently "burning"
+      if (c === MAGMA) { fireNext[i] = 1; continue; }
+      if (this.fire[i] > 0.5 && FLAMMABLE.has(c)) {
+        // spread
+        const n = [[1,0],[-1,0],[0,1],[0,-1]];
+        for (const [dx, dy] of n) {
+          if (!this.inBounds(gx + dx, gy + dy)) continue;
+          const ni = this.cellIdx(gx + dx, gy + dy);
+          const nc = this.cells[ni];
+          if (FLAMMABLE.has(nc) && fireNext[ni] < 0.5) fireNext[ni] = 1;
+        }
+        // consume: oil burns out, becomes air
+        if (c === OIL && Math.random() < 0.2) this.cells[i] = AIR;
+      }
+    }
+    this.fire = fireNext;
+
+    // Ice freeze on adjacent water/magma when ice cell touches
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      const i = this.cellIdx(gx, gy);
+      if (this.cells[i] !== ICE) continue;
+      const n = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (const [dx, dy] of n) {
+        if (!this.inBounds(gx + dx, gy + dy)) continue;
+        const ni = this.cellIdx(gx + dx, gy + dy);
+        const nc = this.cells[ni];
+        if (nc === WATER && this.frozen[ni] <= 0 && Math.random() < 0.04) {
+          this.frozen[ni] = 1.5;
+          this.originalCell[ni] = WATER;
+        }
+      }
+    }
+
+    // Magma melts adjacent ice (rare)
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      const i = this.cellIdx(gx, gy);
+      if (this.cells[i] !== MAGMA) continue;
+      const n = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (const [dx, dy] of n) {
+        if (!this.inBounds(gx + dx, gy + dy)) continue;
+        const ni = this.cellIdx(gx + dx, gy + dy);
+        if (this.cells[ni] === ICE && Math.random() < 0.04) this.cells[ni] = WATER;
+      }
+    }
+
+    // Acid corrodes adjacent metal (slow). Also vaporizes acid on magma contact.
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      const i = this.cellIdx(gx, gy);
+      if (this.cells[i] !== ACID) continue;
+      const n = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (const [dx, dy] of n) {
+        if (!this.inBounds(gx + dx, gy + dy)) continue;
+        const ni = this.cellIdx(gx + dx, gy + dy);
+        const nc = this.cells[ni];
+        if (nc === METAL && Math.random() < 0.06) this.cells[ni] = AIR;
+        else if (nc === MAGMA && Math.random() < 0.15) { this.cells[i] = AIR; this.fxSteam(gx * CELL + CELL / 2, gy * CELL); }
+      }
+    }
+  }
+
+  updateBoxes(dt) {
+    for (const b of this.boxes) {
+      if (b.drag) continue;
+      b.vy += 800 * dt;
+      // check updraft
+      const cgx = Math.floor((b.x + b.w / 2) / CELL), cgy = Math.floor((b.y + b.h / 2) / CELL);
+      if (this.getCell(cgx, cgy) === UPDRAFT) b.vy -= 1400 * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.vx *= 0.98;
+      this.resolveAABB(b);
+      if (b.y > CANVAS_H) { b.y = CANVAS_H - b.h; b.vy = 0; }
+    }
+  }
+
+  updateEnemies(dt) {
+    for (const e of this.enemies) {
+      if (e.dead) {
+        e.deadT += dt;
+        continue;
+      }
+      if (e.drag) { e.lastX = e.x; e.lastY = e.y; continue; }
+      // simple AI: walk back/forth
+      if (e.ai === 'patrol') e.vx = 30 * e.patrolDir;
+      e.vy += 800 * dt;
+      // updraft
+      const cgx = Math.floor((e.x + e.w / 2) / CELL), cgy = Math.floor((e.y + e.h / 2) / CELL);
+      if (this.getCell(cgx, cgy) === UPDRAFT) e.vy -= 1400 * dt;
+      // hazards
+      const fc = this.getCell(cgx, cgy);
+      const fci = this.cellIdx(cgx, cgy);
+      if (fc === SPIKE) e.hp = 0;
+      if (fc === MAGMA || this.fire[fci] > 0.5) e.hp = Math.max(0, e.hp - dt * 0.6);
+      if (fc === ACID) e.hp = Math.max(0, e.hp - dt * 0.8); // acid DOT
+      if (fc === WATER && e.x + e.w / 2 > 0) { /* could drown — left as visual */ }
+      if (this.elec[fci] > 0.5) e.hp = 0;
+      // physics
+      const prevX = e.x;
+      e.x += e.vx * dt; e.y += e.vy * dt;
+      const blocked = this.resolveAABB(e);
+      if (blocked.x) { e.patrolDir *= -1; e.vx *= -1; e.x = prevX; }
+      // hp check
+      if (e.hp <= 0 && !e.dead) {
+        e.dead = true; e.deadT = 0;
+        this.fxRing(e.x + e.w / 2, e.y + e.h / 2, '#f44', 28);
+        for (let i = 0; i < 6; i++) this.particles.push({ x: e.x + e.w / 2, y: e.y + e.h / 2, vx: rand(-60, 60), vy: rand(-100, -30), life: 1.2, color: 'rgba(200,80,80,', size: 3 });
+      }
+    }
+    // remove enemies after death timer
+    this.enemies = this.enemies.filter(e => !(e.dead && e.deadT > 4));
+  }
+
+  resolveAABB(o) {
+    // Tile-based AABB resolution. o = { x, y, w, h, vx, vy }
+    let blockedX = false, blockedY = false;
+    // Y axis first
+    {
+      const gx0 = Math.floor(o.x / CELL), gx1 = Math.floor((o.x + o.w - 1) / CELL);
+      const gy0 = Math.floor(o.y / CELL), gy1 = Math.floor((o.y + o.h - 1) / CELL);
+      for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) {
+        const solid = this.isSolid(gx, gy);
+        const c = this.getCell(gx, gy);
+        const isPlat = (c === PLATFORM);
+        if (solid || isPlat) {
+          const cellTop = gy * CELL, cellBot = (gy + 1) * CELL;
+          if (o.vy > 0 && o.y + o.h > cellTop && o.y + o.h < cellTop + 12) {
+            o.y = cellTop - o.h; o.vy = 0; o.onGround = true; blockedY = true;
+          } else if (o.vy < 0 && solid && o.y < cellBot && o.y > cellBot - 8) {
+            o.y = cellBot; o.vy = 0;
+          }
+        }
+      }
+    }
+    // X axis
+    {
+      const gx0 = Math.floor(o.x / CELL), gx1 = Math.floor((o.x + o.w - 1) / CELL);
+      const gy0 = Math.floor(o.y / CELL), gy1 = Math.floor((o.y + o.h - 1) / CELL);
+      for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) {
+        if (this.isSolid(gx, gy)) {
+          const cellL = gx * CELL, cellR = (gx + 1) * CELL;
+          if (o.vx > 0 && o.x + o.w > cellL && o.x + o.w < cellL + 12) { o.x = cellL - o.w; o.vx = 0; blockedX = true; }
+          else if (o.vx < 0 && o.x < cellR && o.x > cellR - 12) { o.x = cellR; o.vx = 0; blockedX = true; }
+        }
+      }
+    }
+    // box-box stacking (simple)
+    if (this.boxes && this.boxes.includes(o)) {
+      for (const ob of this.boxes) {
+        if (ob === o) continue;
+        if (o.x + o.w > ob.x && o.x < ob.x + ob.w && o.y + o.h > ob.y && o.y + o.h < ob.y + ob.h && o.vy >= 0) {
+          o.y = ob.y - o.h; o.vy = 0; o.onGround = true; blockedY = true;
+        }
+      }
+    }
+    if (o.x < 0) { o.x = 0; o.vx = 0; }
+    if (o.x + o.w > CANVAS_W) { o.x = CANVAS_W - o.w; o.vx = 0; }
+    return { x: blockedX, y: blockedY };
+  }
+
+  updateRopes(dt) {
+    for (const r of this.ropes) {
+      for (const p of r.pts) {
+        if (p.pinned) continue;
+        const vx = (p.x - p.px) * 0.99, vy = (p.y - p.py) * 0.99;
+        p.px = p.x; p.py = p.y;
+        p.x += vx; p.y += vy + 700 * dt * dt * 60;
+      }
+      for (let k = 0; k < 4; k++) {
+        for (let i = 0; i < r.pts.length - 1; i++) {
+          const a = r.pts[i], b = r.pts[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+          const diff = (r.segLen - d) / d * 0.5;
+          if (!a.pinned) { a.x -= dx * diff; a.y -= dy * diff; }
+          if (!b.pinned) { b.x += dx * diff; b.y += dy * diff; }
+        }
+      }
+      // hang object at last pt — damages enemies on impact
+      const last = r.pts[r.pts.length - 1];
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
+        if (dist2(last.x, last.y, ex, ey) < 200) e.hp = Math.max(0, e.hp - dt * (r.cut ? 1.2 : 0));
+      }
+    }
+  }
+
+  updateSwitches() {
+    for (const s of this.switches) {
+      let pressed = false;
+      for (const b of this.boxes) {
+        const cgx = Math.floor((b.x + b.w / 2) / CELL), cgy = Math.floor((b.y + b.h) / CELL);
+        if (cgx === s.gx && cgy === s.gy) pressed = true;
+      }
+      s.pressed = pressed;
+      if (s.linkedGate >= 0 && this.gates[s.linkedGate]) {
+        this.gates[s.linkedGate].open = lerp(this.gates[s.linkedGate].open, pressed ? 1 : 0, 0.08);
+      }
+    }
+    // gates affect cell solidity: when open, treat as air
+    for (const g of this.gates) {
+      // we don't modify cells, render handles it; isSolid checked separately
+    }
+  }
+
+  updatePlayer(dt) {
+    if (!this.player) return;
+    const p = this.player;
+    if (this.mouse.x > 0) p.x = lerp(p.x, this.mouse.x, 0.15);
+    p.vy += 800 * dt;
+    const cgx = Math.floor(p.x / CELL), cgy = Math.floor((p.y + 10) / CELL);
+    if (this.getCell(cgx, cgy) === UPDRAFT) p.vy -= 1400 * dt;
+    p.y += p.vy * dt;
+    // ground
+    const gx = Math.floor(p.x / CELL);
+    for (let gy = Math.floor(p.y / CELL); gy < GRID_H; gy++) {
+      if (this.isSolid(gx, gy)) { if (p.y + 12 > gy * CELL) { p.y = gy * CELL - 12; p.vy = 0; p.onGround = true; } break; }
+    }
+    if (p.y > CANVAS_H) { p.y = CANVAS_H - 12; p.vy = 0; }
+  }
+
+  /* ===== RENDER ===== */
+  render() {
+    const ctx = this.ctx;
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // cells
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      const i = this.cellIdx(gx, gy);
+      let c = this.cells[i];
+      let color = CELL_COLORS[c];
+      // gate override: hide cell if it's where a gate is and it's open
+      for (const g of this.gates) {
+        if (g.gx === gx && g.gy === gy && g.open > 0.5) { color = null; break; }
+      }
+      // frozen overlay
+      if (this.frozen[i] > 0) color = '#cef';
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+      // fire overlay
+      if (this.fire[i] > 0.2) {
+        const t = performance.now() * 0.01;
+        ctx.fillStyle = `rgba(255,${(120 + Math.sin(t + i) * 60) | 0},30,${this.fire[i] * 0.7})`;
+        ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+      }
+      // electric overlay
+      if (this.elec[i] > 0.3) {
+        ctx.fillStyle = `rgba(255,255,150,${this.elec[i] * 0.7})`;
+        ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+        if (Math.random() < 0.3) {
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(gx * CELL + rand(0, CELL), gy * CELL + rand(0, CELL), 1, 1);
+        }
+      }
+      // water surface wave (top of water)
+      if (c === WATER && this.cells[this.cellIdx(gx, gy - 1)] !== WATER) {
+        const off = Math.sin(performance.now() * 0.003 + gx * 0.3) * 1.5;
+        ctx.fillStyle = '#5a9bd8';
+        ctx.fillRect(gx * CELL, gy * CELL + off, CELL, 2);
+      }
+      // acid bubbles
+      if (c === ACID) {
+        const t = performance.now() * 0.002 + gx * 0.5 + gy * 0.3;
+        const bx = (Math.sin(t) * 0.5 + 0.5) * (CELL - 4);
+        const by = ((t * 8) % CELL);
+        ctx.fillStyle = 'rgba(180,230,120,0.6)';
+        ctx.fillRect(gx * CELL + bx, gy * CELL + CELL - by - 2, 2, 2);
+      }
+      // ice shine
+      if (c === ICE) {
+        ctx.fillStyle = '#cef';
+        ctx.fillRect(gx * CELL, gy * CELL, CELL, 2);
+      }
+      // breakable crack pattern
+      if (c === BREAKABLE) {
+        ctx.strokeStyle = '#321'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(gx * CELL + 2, gy * CELL + 2); ctx.lineTo(gx * CELL + CELL - 2, gy * CELL + CELL - 2); ctx.stroke();
+      }
+    }
+
+    // updraft particles
+    for (let gy = 0; gy < GRID_H; gy++) for (let gx = 0; gx < GRID_W; gx++) {
+      if (this.cells[this.cellIdx(gx, gy)] !== UPDRAFT) continue;
+      const t = performance.now() * 0.001;
+      for (let k = 0; k < 2; k++) {
+        const py = ((t * 80 + k * 30 + gx * 7) % CELL);
+        ctx.fillStyle = 'rgba(150,230,250,0.6)';
+        ctx.fillRect(gx * CELL + 4 + Math.sin(t + gx) * 2, gy * CELL + CELL - py, 2, 4);
+      }
+    }
+
+    // ropes
+    for (const r of this.ropes) {
+      ctx.strokeStyle = r.cut ? '#866' : '#c87'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < r.pts.length; i++) {
+        const p = r.pts[i];
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      // hang weight at last point
+      const last = r.pts[r.pts.length - 1];
+      ctx.fillStyle = '#553';
+      ctx.fillRect(last.x - 8, last.y - 4, 16, 12);
+    }
+
+    // boxes
+    for (const b of this.boxes) {
+      ctx.fillStyle = b.drag ? '#8af' : '#a86';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = '#532'; ctx.strokeRect(b.x, b.y, b.w, b.h);
+    }
+
+    // switches
+    for (const s of this.switches) {
+      ctx.fillStyle = s.pressed ? '#4f8' : '#484';
+      ctx.fillRect(s.gx * CELL + 2, s.gy * CELL + CELL - 4, CELL - 4, 4);
+    }
+
+    // gates (visual; cells already hidden when open)
+    for (const g of this.gates) {
+      if (g.open > 0.9) continue;
+      ctx.fillStyle = '#664';
+      const oH = CELL * (1 - g.open);
+      ctx.fillRect(g.gx * CELL, g.gy * CELL + (CELL - oH), CELL, oH);
+    }
+
+    // enemies
+    for (const e of this.enemies) {
+      if (e.dead) {
+        ctx.fillStyle = `rgba(140,40,40,${Math.max(0, 1 - e.deadT / 4) * 0.6})`;
+        ctx.fillRect(e.x, e.y + e.h / 2, e.w, e.h / 2);
+        continue;
+      }
+      ctx.fillStyle = e.drag ? '#f88' : (e.charmed ? '#48f' : '#a44');
+      ctx.fillRect(e.x, e.y, e.w, e.h);
+      // hp bar
+      ctx.fillStyle = '#322'; ctx.fillRect(e.x, e.y - 4, e.w, 2);
+      ctx.fillStyle = '#4f4'; ctx.fillRect(e.x, e.y - 4, e.w * e.hp, 2);
+    }
+
+    // player
+    if (this.player) {
+      ctx.fillStyle = '#fc9';
+      ctx.fillRect(this.player.x - 5, this.player.y - 12, 10, 14);
+    }
+
+    // particles
+    for (const p of this.particles) {
+      ctx.fillStyle = `${p.color}${p.life * 0.7})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+    }
+    // fx rings
+    for (const fx of this.fxRings) {
+      ctx.strokeStyle = fx.color; ctx.lineWidth = 2; ctx.globalAlpha = fx.life;
+      ctx.beginPath(); ctx.arc(fx.x, fx.y, fx.r, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // mouse cursor hint
+    const gx = this.mouse.gx, gy = this.mouse.gy;
+    if (gx >= 0 && gy >= 0 && gx < GRID_W && gy < GRID_H) {
+      ctx.strokeStyle = '#0cd'; ctx.lineWidth = 1;
+      ctx.strokeRect(gx * CELL, gy * CELL, CELL, CELL);
+    }
+  }
+
+  loop() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this.lastT) / 1000);
+    this.lastT = now;
+    this.update(dt);
+    this.render();
+    this.mouse.justDown = false;
+    requestAnimationFrame(() => this.loop());
+  }
+
+  /* ===== PRESETS ===== */
+  reset() {
+    this.cells.fill(0);
+    this.fire.fill(0);
+    this.elec.fill(0);
+    this.frozen.fill(0);
+    this.boxes = [];
+    this.enemies = [];
+    this.switches = [];
+    this.gates = [];
+    this.ropes = [];
+    this.player = null;
+    this.particles = [];
+    this.fxRings = [];
+  }
+
+  fillRect(x0, y0, x1, y1, v) {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) this.setCell(x, y, v);
+  }
+
+  setDesc(html) {
+    document.getElementById('scenario-desc').innerHTML = html;
+  }
+
+  loadPreset(name) {
+    this.reset();
+    if (name === 'clear') {
+      this.setDesc('<b>Empty.</b> 빈 캔버스. 도구를 선택해 자유 빌드.');
+      return;
+    }
+    if (name === 'water_metal_thunder') {
+      // floor
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // water pool
+      this.fillRect(8, 28, 28, 32, WATER);
+      // metal rod going into pool
+      this.fillRect(18, 20, 18, 28, METAL);
+      // platform with rod end
+      this.fillRect(15, 19, 22, 19, WALL);
+      // enemies in water
+      this.enemies.push({ x: 12 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.enemies.push({ x: 24 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: -1 });
+      this.enemies.push({ x: 18 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      // dry land enemy (safe)
+      this.enemies.push({ x: 40 * CELL, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.setDesc('<b>① 물+금속+뇌.</b> <b>THUNDER</b> 인챈트 선택 후 금속 봉 위쪽을 클릭. 봉 → 물 → 풀 전체 전도 → 풀 안 적 일망타진. 마른 땅 적은 안 죽음.');
+    }
+    else if (name === 'oil_molotov') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // oil slick path
+      this.fillRect(8, 32, 50, 32, OIL);
+      // wood blocks at end (chain extends)
+      this.fillRect(50, 28, 54, 32, WOOD);
+      // enemies along path
+      for (let i = 0; i < 5; i++) {
+        this.enemies.push({ x: (12 + i * 8) * CELL, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      }
+      this.setDesc('<b>② 기름+화염병.</b> <b>FIRE</b> 인챈트로 기름 시작점 클릭. 연쇄 발화로 모든 적 동시 점화 + 끝의 나무 블록까지 전파.');
+    }
+    else if (name === 'ice_magma_bridge') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // magma river
+      this.fillRect(15, 31, 45, 33, MAGMA);
+      // platforms either side
+      this.fillRect(0, 30, 14, 30, WALL);
+      this.fillRect(46, 30, GRID_W - 1, 30, WALL);
+      // enemy on far side
+      this.enemies.push({ x: 50 * CELL, y: 30 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: -1 });
+      this.setDesc('<b>③ 빙+마그마=다리.</b> 마그마 강을 건너야 적에게 도달. <b>ICE</b> 인챈트로 마그마 위 셀들을 클릭 → 3초간 wall 로 굳음 → 통과 가능.');
+    }
+    else if (name === 'fire_ice_water') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      this.fillRect(0, 30, 5, 30, WALL); this.fillRect(55, 30, GRID_W - 1, 30, WALL);
+      // ice bridge
+      this.fillRect(6, 30, 54, 30, ICE);
+      // enemy on bridge
+      this.enemies.push({ x: 30 * CELL, y: 28 * CELL, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.setDesc('<b>④ 화→얼음→물→뇌.</b> <b>FIRE</b> 로 ice 다리 가운데를 녹여 water 로 만들고, <b>THUNDER</b> 로 그 water 를 감전 → 위 적 사망. (영구 지형 변화)');
+    }
+    else if (name === 'box_switch_gate') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // box
+      this.boxes.push({ x: 8 * CELL, y: 32 * CELL - 18, w: 18, h: 18, vx: 0, vy: 0, drag: false });
+      // pressure switch
+      this.switches.push({ gx: 30, gy: 32, pressed: false, linkedGate: 0 });
+      // gate (wall stack that opens)
+      this.fillRect(45, 28, 45, 32, WALL);
+      this.gates.push({ gx: 45, gy: 28, open: 0 });
+      this.gates.push({ gx: 45, gy: 29, open: 0 });
+      this.gates.push({ gx: 45, gy: 30, open: 0 });
+      this.gates.push({ gx: 45, gy: 31, open: 0 });
+      this.gates.push({ gx: 45, gy: 32, open: 0 });
+      // re-link to switch
+      this.switches[0].linkedGate = 0;
+      // adjust: all 5 gates open when switch pressed
+      // simplest: link to first, then in updateSwitches sync all
+      // target enemy beyond gate
+      this.enemies.push({ x: 52 * CELL, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.setDesc('<b>⑤ 박스+스위치+게이트.</b> <b>DRAG</b> 도구로 박스를 녹색 스위치 위로 밀어 올리세요. 게이트가 열리며 너머의 적에게 접근 가능.');
+    }
+    else if (name === 'rope_chandelier') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      this.fillRect(0, 0, GRID_W - 1, 1, WALL);
+      // rope from ceiling at middle
+      this.spawnRope(30, 1);
+      // make rope longer + heavier
+      const r = this.ropes[this.ropes.length - 1];
+      r.segLen = 16;
+      for (const p of r.pts) { p.y *= 2; p.py = p.y; }
+      // enemy directly below
+      this.enemies.push({ x: 30 * CELL - 7, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 0 });
+      this.setDesc('<b>⑥ 로프+샹들리에.</b> 천장에 매달린 무게추가 적 위에. <b>DRAG</b> 도구로 로프 중간을 클릭해 절단 → 무게추 낙하 → 적 처치.');
+    }
+    else if (name === 'acid_metal') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // acid pool
+      this.fillRect(15, 31, 45, 33, ACID);
+      // metal bridge above acid
+      this.fillRect(15, 28, 45, 28, METAL);
+      // platforms either side at bridge level
+      this.fillRect(0, 28, 14, 28, WALL);
+      this.fillRect(46, 28, GRID_W - 1, 28, WALL);
+      // enemy crossing the bridge
+      this.enemies.push({ x: 20 * CELL, y: 28 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.enemies.push({ x: 35 * CELL, y: 28 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: -1 });
+      this.setDesc('<b>⑧ Acid+금속 부식.</b> 산성 풀 위 금속 다리. 시간 경과로 acid 가 metal 을 부식시켜 다리가 끊김 → 적 추락 → 산성 DOT 사망. 또는 <b>THUNDER</b> 로 acid 연쇄 감전 → 즉사.');
+    }
+    else if (name === 'updraft_breakable') {
+      this.fillRect(0, 33, GRID_W - 1, 34, WALL);
+      // updraft column
+      this.fillRect(28, 5, 32, 32, UPDRAFT);
+      // breakable floor at top
+      this.fillRect(20, 4, 40, 4, BREAKABLE);
+      // hidden chamber above
+      this.fillRect(20, 0, 40, 0, WALL);
+      this.fillRect(20, 1, 20, 3, WALL); this.fillRect(40, 1, 40, 3, WALL);
+      // treasure box in hidden chamber
+      this.boxes.push({ x: 30 * CELL, y: 2 * CELL, w: 16, h: 14, vx: 0, vy: 0, drag: false });
+      // ground enemy
+      this.enemies.push({ x: 10 * CELL, y: 32 * CELL - 22, w: 14, h: 22, vx: 0, vy: 0, hp: 1, dead: false, deadT: 0, drag: false, ai: 'patrol', patrolDir: 1 });
+      this.setDesc('<b>⑦ Updraft+다이브+Breakable.</b> 박스를 updraft 컬럼에 두면 위로 떠올라 breakable 천장을 칠 수 있음. 또는 <b>Physical</b> 공격으로 직접 부수기. 비밀방 진입.');
+    }
+
+    // update tool buttons display
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === this.tool));
+  }
+}
+
+/* Special handling: gate group should all open with one switch.
+   We override updateSwitches to sync open value across gates referenced from same switch's gy column. */
+const _origSyncGates = World.prototype.updateSwitches;
+World.prototype.updateSwitches = function() {
+  for (const s of this.switches) {
+    let pressed = false;
+    for (const b of this.boxes) {
+      const cgx = Math.floor((b.x + b.w / 2) / CELL), cgy = Math.floor((b.y + b.h) / CELL);
+      if (cgx === s.gx && cgy === s.gy + 1) pressed = true;
+      if (cgx === s.gx && cgy === s.gy) pressed = true;
+    }
+    s.pressed = pressed;
+    if (s.linkedGate >= 0 && this.gates.length) {
+      // open every gate (simplification — for preset 5 they form a stack)
+      for (const g of this.gates) g.open = lerp(g.open, pressed ? 1 : 0, 0.08);
+    }
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  const c = document.getElementById('world');
+  window.WORLD = new World(c);
+});
+</script>
+
+</body>
+</html>

@@ -542,10 +542,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         const gapX = r * TILE_SIZE + TILE_SIZE / 2;
         const myX = this.x + this.width / 2;
         if (Math.abs(gapX - myX) < TILE_SIZE) {
-          // Already under the gap — jump!
+          // Already under the gap — jump! + player 쪽 vx 적용 (제자리 점프 방지).
           if (this.grounded && this.jumpCooldownTimer <= 0) {
             const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
             this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+            this.vx = (this.target.x > this.x ? 1 : -1) * speed;
             this.jumpCooldownTimer = 500;
           }
         } else {
@@ -560,6 +561,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
           if (this.grounded && this.jumpCooldownTimer <= 0) {
             const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
             this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+            this.vx = (this.target.x > this.x ? 1 : -1) * speed;
             this.jumpCooldownTimer = 500;
           }
         } else {

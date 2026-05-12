@@ -3,6 +3,8 @@ import { PIXEL_FONT } from '@ui/fonts';
 import type { Rarity } from '@data/weapons';
 import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
+import { actionKey, GameAction } from '@core/InputManager';
+import { t } from '@i18n';
 
 export const PORTAL_COLOR: Record<Rarity, number> = {
   normal: 0xffffff,
@@ -109,7 +111,10 @@ export class Portal {
     this.particleGfx = new Graphics();
     this.container.addChild(this.particleGfx);
 
-    this.hintText = new BitmapText({ text: 'C: Enter', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff } });
+    this.hintText = new BitmapText({
+      text: `${actionKey(GameAction.ATTACK)}: ${t('prompt.enter')}`,
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffffff },
+    });
     this.hintText.anchor.set(0.5);
     this.hintText.y = -this.baseSize / 2 - 12;
     this.hintText.visible = false;

@@ -26,6 +26,7 @@ import { createUiText } from './factories';
 import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
+import { TEXT_SECONDARY, TEXT_WARNING } from './ModalPanel';
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
@@ -153,7 +154,7 @@ export class LoreDisplay {
     // Source label
     this.speakerText = new BitmapText({
       text: '',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffcc44 },
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_WARNING },
     });
     this.speakerText.x = TEXT_LEFT;
     this.speakerText.y = SPEAKER_Y;
@@ -178,7 +179,7 @@ export class LoreDisplay {
     this.advanceHint.addChild(keyIcon);
     this.advanceArrow = new BitmapText({
       text: '\u25B6',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
+      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
     });
     this.advanceArrow.x = KEY_SIZE + ARROW_GAP;
     this.advanceArrow.y = 0;
@@ -344,7 +345,7 @@ export class LoreDisplay {
 
     if (line.speaker) {
       this.speakerText.text = line.speaker;
-      this.speakerText.style.fill = line.speakerColor ?? 0xffcc44;
+      this.speakerText.style.fill = line.speakerColor ?? TEXT_WARNING;
       this.speakerText.visible = true;
     } else {
       this.speakerText.visible = false;

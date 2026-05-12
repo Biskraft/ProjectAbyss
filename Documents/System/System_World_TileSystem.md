@@ -2,7 +2,7 @@
 
 ## 구현 현황 (Implementation Status)
 
-> **최근 업데이트:** 2026-04-12
+> **최근 업데이트:** 2026-05-11
 > **문서 상태:** Draft
 > **기둥:** 탐험/전투
 
@@ -11,15 +11,19 @@
 | TIL-01 | IntGrid | wall (1) | P0 | ✅ 완료 | 솔리드 충돌 |
 | TIL-02 | IntGrid | water (2) | P0 | ✅ 완료 | 수중 물리 |
 | TIL-03 | IntGrid | platform (3) | P0 | ✅ 완료 | 편도 플랫폼 |
-| TIL-04 | IntGrid | updraft (4) | P0 | ✅ 완료 | 상승 바람 (IntGrid 구현 완료) |
-| TIL-05 | IntGrid | spike (5) | P0 | ⬜ 제작 필요 | Entity→IntGrid 편입 |
-| TIL-06 | IntGrid | magma (6) | P1 | ⬜ 제작 필요 | 화 원소 환경 |
-| TIL-07 | IntGrid | ice (7) | P1 | ⬜ 제작 필요 | 빙 원소 환경 |
-| TIL-08 | IntGrid | charged (8) | P1 | ⬜ 제작 필요 | 뇌 원소 환경 |
-| TIL-09 | IntGrid | breakable (9) | P1 | ⬜ 제작 필요 | 파괴 가능 벽 |
-| TIL-10 | Entity | CrackedFloor | P0 | ✅ 완료 | 다이브 어택 파괴 |
-| TIL-11 | Entity | CollapsingPlatform | P0 | ✅ 완료 | 착지 후 무너짐 |
-| TIL-12 | Entity | GrowingWall | P1 | ✅ 완료 | 주기적 확장/축소 |
+| TIL-04 | IntGrid | updraft (4) | P0 | ✅ 완료 | 상승 바람 |
+| TIL-05 | IntGrid | spike (5) | P0 | ✅ 완료 | IntGrid 편입 완료 |
+| TIL-06 | IntGrid | magma (6) | P1 | ⬜ 제작 필요 | 화 원소 환경. LDtk 슬롯 예약됨 (identifier=null) |
+| TIL-07 | IntGrid | ice (7) | P1 | ✅ 완료 | 빙 원소 환경. 마찰 0 |
+| TIL-08 | IntGrid | charged (8) | P1 | ⬜ 제작 필요 | 뇌 원소 환경. LDtk 슬롯 예약됨 (identifier=null) |
+| TIL-09 | IntGrid | breakable (9) | P0 | ✅ 완료 | 1히트 파괴 |
+| TIL-10 | IntGrid | void (10) | P0 | ✅ 완료 | itemworld 진입 트리거 (낙하 시퀀스). GDD 누락분 추가 |
+| TIL-11 | IntGrid | oil (11) | P1 | ⬜ 제작 필요 | 가연성 슬릭. 화 인챈트로 연쇄 발화 |
+| TIL-12 | IntGrid | metal (12) | P1 | ⬜ 제작 필요 | 뇌 인챈트 도체. water/acid 연결 시 풀 전체 감전 |
+| TIL-13 | IntGrid | acid (13) | P2 | ⬜ 제작 필요 | DOT + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 |
+| TIL-20 | Entity | CrackedFloor | P0 | ✅ 완료 | 다이브 어택 파괴 |
+| TIL-21 | Entity | CollapsingPlatform | P0 | ✅ 완료 | 착지 후 무너짐 |
+| TIL-22 | Entity | GrowingWall | P1 | ✅ 완료 | 주기적 확장/축소 |
 
 ---
 
@@ -60,18 +64,31 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 | 1 | wall | - | 솔리드 | 벽/바닥. 기본 지형 | #B1824C |
 | 2 | water | 수 | 통과 | 수중 물리 적용 (감속, 부력) | #7297E5 |
 | 3 | platform | - | 편도 | 위에서 착지 가능, 아래에서 통과 | #14248B |
-| 4 | updraft | 풍 | 통과 | 상향 힘 적용 (강도 1-3) | #2CE8F5 |
-| 5 | spike | - | 통과 | 접촉 시 물리 데미지 | #FF4444 |
+| 4 | updraft | 풍 | 통과 | 상향 힘 적용 | #2CE8F5 |
+| 5 | spike | - | 통과 | 접촉 시 물리 데미지 + lastSafeGround 텔레포트 | #FF0044 |
 | 6 | magma | 화 | 통과 | 접촉 시 화상(Burn) 상태이상 | #FF6600 |
-| 7 | ice | 빙 | 솔리드 | 미끄러운 표면 (마찰 0) | #88CCFF |
-| 8 | charged | 뇌 | 통과 | 접촉 시 감전(Shock) 상태이상 | #FFEE44 |
+| 7 | ice | 빙 | 솔리드 | 미끄러운 표면 (마찰 0) | #124E89 |
+| 8 | charged | 뇌 | 통과 | 접촉 시 감전(Shock) 상태이상 (약한 DoT) | #FFEE44 |
 | 9 | breakable | - | 솔리드 | 공격 1히트로 파괴 → air(0) 전환 | #886644 |
+| 10 | void | - | 통과 | 발 진입 시 itemworld 낙하 시퀀스 트리거 (데미지 없음) | #181425 |
+| 11 | oil | - | 통과 | 가연성. 화 공격 1회 → 인접 oil 연쇄 발화 → 짧은 시간 후 air | #3A2618 |
+| 12 | metal | - | 솔리드 | 뇌 인챈트 도체. water/acid 인접 시 flood-fill 전도 | #A8A8B8 |
+| 13 | acid | - | 통과 | DOT (HP 1.6%/s) + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 | #88CC44 |
 
 ### 1.2. 분류
 
-**솔리드 (충돌 있음):** wall(1), platform(3, 편도), ice(7), breakable(9)
-**통과 (충돌 없음, 효과 있음):** water(2), updraft(4), spike(5), magma(6), charged(8)
-**무효과:** air(0), wall(1), platform(3)
+**솔리드 (충돌 있음):** wall(1), platform(3, 편도), ice(7), breakable(9), metal(12)
+**통과 (효과 있음):** water(2), updraft(4), spike(5), magma(6), charged(8), void(10), oil(11), acid(13)
+**무효과:** air(0)
+
+**원소 환경 매핑:**
+- 수 = water(2)
+- 풍 = updraft(4)
+- 화 = magma(6)
+- 빙 = ice(7)
+- 뇌 = charged(8)
+- 무속성 위험 = spike(5), void(10), acid(13)
+- 가연/도체 자원 = oil(11), metal(12)
 
 ### 1.3. 확률 타일 (ItemWorldTemplates 빌드 전용)
 
