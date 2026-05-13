@@ -67,9 +67,10 @@ export interface HazardCallbacks {
 }
 
 // === Tunables (mirror GDD §2 table) ===
-// Durations / tick intervals × 5 for verification readability (2026-05-12).
+// SHIPPABLE values — Burn DOT 지속·acid tick·magma 시그널은 원소 메카닉
+// 핵심 시그널이라 출시 그대로 사용. 검증용 단축 대상 아님 (2026-05-13).
 const MAGMA_FIRST_HIT_PCT = 0.02;
-const MAGMA_BURN_DURATION_MS = 15000;
+export const MAGMA_BURN_DURATION_MS = 15000;
 // Acid: tick-based (was continuous DPS — scene's Math.max(1, dmg) forced
 // at-least-1-per-frame floor that vastly exceeded intended DPS).
 // 0.1 s tick × 0.5% maxHp → ~5%/s nominal, scales nicely with maxHp.
@@ -144,8 +145,14 @@ export function applyTileHazards(
     chargedAcc = 0;
   }
 
-  // 4) Fire overlay (oil burning) — continuous DOT + refresh Burn
-  if (mutator.aabbHasOverlay(x, y, w, h, 'fire')) {
+  // 4) Fire overlay (oil/wood/grass burning + burning BurnableProp) — DOT + Burn refresh.
+  //    Expand AABB by 2 px so SOLID burning tiles (wood) adjacent to the entity
+  //    register a touch (wood is solid → entity can't physically enter it, but
+  //    the flames lick outward and should damage anyone right next to it).
+  const fireFx = 2;
+  const inTileFire = mutator.aabbHasOverlay(x - fireFx, y - fireFx, w + fireFx * 2, h + fireFx * 2, 'fire');
+  const nearBurningProp = mutator.aabbNearBurningProp(x - fireFx, y - fireFx, w + fireFx * 2, h + fireFx * 2);
+  if (inTileFire || nearBurningProp) {
     cb.onDamage(target.maxHp * FIRE_DPS_PCT * (dtMs / 1000), 'fire');
     if (burnRem < FIRE_BURN_REFRESH_MS) {
       const wasBurning = burnRem > 0;

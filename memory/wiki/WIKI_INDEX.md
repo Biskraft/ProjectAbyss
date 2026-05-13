@@ -5,6 +5,7 @@
 ## Daily Log (작업일지)
 최신순.
 
+- [2026-05-13](daily/2026-05-13.md) — Fluid VFX 마감(SteamPuff / AshRemnant / Burn HUD / multi-fluid Splash) + Damage Matrix SSoT (Documents/System/System_World_TileSystem.md §3.0/§3.0.2/§3.2/§3.4 보강)
 - [2026-05-09](daily/2026-05-09.md) — 발 미러링 정리(256aaff4/78b74945/d1b1d795) + Death 모달 ReturnResult 재부착 회귀 fix(82abb69b) + LegRig/LandingDust 보강(03a454ce) + 위키 갱신
 - [2026-05-08](daily/2026-05-08.md) — BGM 시스템 도입(78e24336/9d177db3) + KR/EN i18n 시스템 첫 도입(30e394e7) + UI 12+ 마이그레이션 + Builder Leg 아트 파이프라인 재정립(Graphics → 스프라이트 아틀라스, 16 커밋)
 - [2026-05-07](daily/2026-05-07.md) — 행사 디렉토리북 회신 확정(국문 음역·Fine 페르소나·평문 양식) + UI native migration phase 1 배포(56c8812f, fonts LCM 48-pt + cyan-dominant 팔레트 + parallax 갱신 + 로고) + LDtk 월드 콘텐츠 배포(d15ce008)

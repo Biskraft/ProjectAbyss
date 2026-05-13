@@ -154,6 +154,22 @@ export class HUD {
   private expLevelUpFlash = 0;
   private expIsMax = false;
 
+  // Status effects (burn / poison / etc.) — currently only burn is wired.
+  private statusIconContainer!: Container;
+  private burnIconGfx!: Graphics;
+  private burnGaugeGfx!: Graphics;
+  private burnRemainingMs = 0;
+  private burnTotalMs = 0;
+  private burnFlickerT = 0;
+
+  // Ego Shard ammo (Hades-style cast). 3 dots showing filled/empty + active
+  // enchant tint (fire orange / ice cyan / thunder yellow).
+  private egoShardContainer!: Container;
+  private egoShardGfx!: Graphics;
+  private egoShardCount = 0;
+  private egoShardMax = 3;
+  private egoShardElement: 'fire' | 'ice' | 'thunder' = 'fire';
+
   // Portrait
   private portraitSprite: Sprite | null = null;
 
@@ -306,6 +322,29 @@ export class HUD {
     this.floorTextShadow.visible = false;
     this.container.addChild(this.floorTextShadow);
     this.container.addChild(this.floorText);
+
+    // --- Status icons (burn etc.) — placed to the right of the HP bar. ---
+    // Layout: [HP bar][HP text]  [statusIconContainer]
+    // Each icon is roughly KEY_ICON sized; container holds a single burn icon
+    // for now, easy to extend with more statuses later.
+    this.statusIconContainer = new Container();
+    this.statusIconContainer.x = this.HP_X + this.HP_W + 8 * s + 60 * s; // HP_W + gap + reserved HP text width
+    this.statusIconContainer.y = this.HP_Y;
+    this.statusIconContainer.visible = false;
+    this.burnIconGfx = new Graphics();
+    this.burnGaugeGfx = new Graphics();
+    this.statusIconContainer.addChild(this.burnGaugeGfx);
+    this.statusIconContainer.addChild(this.burnIconGfx);
+    this.container.addChild(this.statusIconContainer);
+
+    // Ego Shard counter — under the flask row, aligned with HP bar left edge.
+    this.egoShardContainer = new Container();
+    this.egoShardContainer.x = this.HP_X + 44 * s + 70 * s; // right of HP text
+    this.egoShardContainer.y = this.FLASK_Y;
+    this.egoShardGfx = new Graphics();
+    this.egoShardContainer.addChild(this.egoShardGfx);
+    this.container.addChild(this.egoShardContainer);
+    this.redrawEgoShards();
 
     // --- Damage vignette ---
     this.vignette = new Graphics();
@@ -678,6 +717,109 @@ export class HUD {
     this.itemExitHintContainer.visible = false;
   }
 
+  /**
+   * Set the Ego Shard ammo display (Hades-style 3-dot indicator).
+   * `element` decides the dot color so the player sees which enchant is
+   * currently bound to the next cast.
+   */
+  setEgoShards(count: number, max: number, element: 'fire' | 'ice' | 'thunder'): void {
+    if (this.egoShardCount === count && this.egoShardMax === max && this.egoShardElement === element) return;
+    this.egoShardCount = count;
+    this.egoShardMax = max;
+    this.egoShardElement = element;
+    this.redrawEgoShards();
+  }
+
+  private redrawEgoShards(): void {
+    const s = this.s;
+    const g = this.egoShardGfx;
+    g.clear();
+    const filled = this.egoShardElement === 'fire' ? 0xff7733
+                 : this.egoShardElement === 'ice'  ? 0x88ccff
+                 : 0xffee44;
+    const empty = 0x333333;
+    const dotR = 3 * s;
+    const gap = 4 * s;
+    for (let i = 0; i < this.egoShardMax; i++) {
+      const cx = i * (dotR * 2 + gap) + dotR;
+      const cy = dotR;
+      const isFilled = i < this.egoShardCount;
+      // Outer diamond
+      g.moveTo(cx + dotR, cy).lineTo(cx, cy - dotR).lineTo(cx - dotR, cy).lineTo(cx, cy + dotR).closePath();
+      g.fill({ color: isFilled ? filled : empty, alpha: isFilled ? 0.95 : 0.5 });
+      // Inner core (filled only)
+      if (isFilled) {
+        const r2 = dotR * 0.5;
+        g.moveTo(cx + r2, cy).lineTo(cx, cy - r2).lineTo(cx - r2, cy).lineTo(cx, cy + r2).closePath();
+        g.fill({ color: 0xffffff, alpha: 0.85 });
+      }
+    }
+  }
+
+  /**
+   * Set the player's burn status. Pass remainingMs=0 to hide.
+   *
+   * totalMs is the original burn duration so the gauge can render the
+   * remaining ratio. update() is responsible for the flame flicker animation.
+   */
+  setBurnStatus(remainingMs: number, totalMs: number): void {
+    this.burnRemainingMs = Math.max(0, remainingMs);
+    this.burnTotalMs = Math.max(1, totalMs);
+    const visible = this.burnRemainingMs > 0;
+    if (this.statusIconContainer.visible !== visible) {
+      this.statusIconContainer.visible = visible;
+    }
+    if (!visible) {
+      this.burnIconGfx.clear();
+      this.burnGaugeGfx.clear();
+    }
+  }
+
+  private redrawBurnIcon(): void {
+    if (this.burnRemainingMs <= 0) return;
+    const s = this.s;
+    const size = 14 * s;        // icon box
+    const cx = size / 2;
+    const cy = size / 2;
+    const ratio = Math.max(0, Math.min(1, this.burnRemainingMs / this.burnTotalMs));
+    const flicker = 0.85 + Math.sin(this.burnFlickerT * 0.018) * 0.15;
+
+    // Background ring — full circle dim, then drop arc for elapsed portion.
+    this.burnGaugeGfx.clear();
+    this.burnGaugeGfx
+      .circle(cx, cy, size * 0.62).fill({ color: 0x000000, alpha: 0.45 });
+    // Remaining arc (clockwise from top).
+    const startA = -Math.PI / 2;
+    const endA = startA + Math.PI * 2 * ratio;
+    this.burnGaugeGfx
+      .moveTo(cx, cy)
+      .arc(cx, cy, size * 0.55, startA, endA)
+      .lineTo(cx, cy)
+      .closePath()
+      .fill({ color: 0xff8844, alpha: 0.55 });
+
+    // Flame icon — 3-tongued teardrop.
+    const fg = this.burnIconGfx;
+    fg.clear();
+    const tipY = cy - size * 0.45 * flicker;
+    const baseY = cy + size * 0.30;
+    const leftX = cx - size * 0.22;
+    const rightX = cx + size * 0.22;
+    // outer flame
+    fg.moveTo(cx, tipY)
+      .quadraticCurveTo(rightX, cy - size * 0.05, rightX - size * 0.05, baseY)
+      .quadraticCurveTo(cx, baseY + size * 0.08, leftX + size * 0.05, baseY)
+      .quadraticCurveTo(leftX, cy - size * 0.05, cx, tipY)
+      .closePath()
+      .fill({ color: 0xff7733, alpha: 0.95 });
+    // inner core
+    fg.moveTo(cx, tipY + size * 0.10)
+      .quadraticCurveTo(rightX - size * 0.06, cy, cx, baseY - size * 0.05)
+      .quadraticCurveTo(leftX + size * 0.06, cy, cx, tipY + size * 0.10)
+      .closePath()
+      .fill({ color: 0xffdd66, alpha: 0.95 * flicker });
+  }
+
   /** [I]tem 키 강조 on/off — 첫 아이템계 클리어 유도 후 I 입력까지만 true. */
   setItemKeyHighlight(active: boolean): void {
     this.itemKeyPulseActive = active;
@@ -690,6 +832,12 @@ export class HUD {
   }
 
   update(dt: number): void {
+    // Burn status flicker — only redraws while burning.
+    if (this.burnRemainingMs > 0) {
+      this.burnFlickerT += dt;
+      this.redrawBurnIcon();
+    }
+
     if (this.ghostTimer > 0) {
       this.ghostTimer -= dt;
       if (this.ghostTimer <= 0) { this.ghostHp = 0; this.ghostTimer = 0; }

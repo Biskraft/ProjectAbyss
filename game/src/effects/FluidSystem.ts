@@ -17,7 +17,7 @@
  * 폴리곤 매 프레임 redraw (vertex 수 적어 비용 무시 가능).
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, BlurFilter } from 'pixi.js';
 import type { LdtkLevel, LdtkEntity } from '@level/LdtkLoader';
 import { getFluidDef, type FluidType, type FluidTypeDef } from '@data/FluidTypes';
 
@@ -62,7 +62,15 @@ interface FluidBody {
   /** Bottom-most gy per column. Used for stair-stepped bottom polygon. */
   bottomRow: Map<number, number>;
   gfx: Graphics;
+  /**
+   * Optional soft halo behind the body for self-illuminating fluids
+   * (magma / lava / acid). Drawn under gfx with BlurFilter for a light
+   * source feel. null for non-emissive fluids (water / oil).
+   */
+  haloGfx: Graphics | null;
   ambientPhase: number;           // 0..1 — body 별 시간 진행
+  /** Phase for pulsing halo brightness, ms accumulator. */
+  haloPhaseMs: number;
 }
 
 export class FluidSystem {
@@ -80,6 +88,25 @@ export class FluidSystem {
   static GRAVITY_TICK_MS = 140;
   /** How often a thin-strip body loses one surface cell to evaporation. */
   static EVAP_INTERVAL_MS = 250;
+  /** Per-frame animation of evaporating droplets (cells removed from grid but still fading visually). */
+  private evaporatingDrops: Array<{
+    gfx: Graphics;
+    cx: number;          // pixel center X
+    by: number;          // pixel bottom Y (anchor)
+    age: number;
+    life: number;
+    color: number;
+  }> = [];
+  /** Total fade-out duration for an evaporating droplet (ms). */
+  static EVAP_FADE_MS = 650;
+
+  /**
+   * Optional callback fired when a thin-strip cell dries up. Lets the scene
+   * leave a per-cell residue (oil/acid/magma) where the puddle vanished.
+   * `fluidType` mirrors the FluidBody.type string ('water' | 'oil' | 'acid' |
+   * 'magma' | 'lava'). Scene decides what to spawn per type.
+   */
+  onEvaporated: ((gx: number, gy: number, fluidType: string) => void) | null = null;
 
   constructor(parent: Container) {
     this.parent = parent;
@@ -126,16 +153,30 @@ export class FluidSystem {
     for (const body of this.bodies) {
       if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
       body.gfx.destroy();
+      if (body.haloGfx) {
+        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
+        body.haloGfx.destroy();
+      }
     }
     this.bodies = [];
+    // Also clean up any in-flight evaporation droplets so they don't dangle
+    // across level reloads.
+    for (const d of this.evaporatingDrops) {
+      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
+      d.gfx.destroy();
+    }
+    this.evaporatingDrops.length = 0;
   }
 
   /** Per-frame simulation step + render. dt in ms. */
   update(dt: number): void {
     for (const body of this.bodies) {
       this.stepSpring(body, dt);
+      // Advance halo pulse phase for emissive fluids — slow ~1.8 s period.
+      if (body.haloGfx) body.haloPhaseMs += dt;
       this.drawBody(body);
     }
+    this.updateEvaporatingDrops(dt);
   }
 
   /**
@@ -298,6 +339,16 @@ export class FluidSystem {
     }
     if (surface.length === 0) return;
 
+    // Halo first (rendered UNDER body when both children of parent).
+    let haloGfx: Graphics | null = null;
+    if (type === 'magma' || type === 'lava' || type === 'acid') {
+      haloGfx = new Graphics();
+      // BlurFilter gives the halo a soft glow look without ugly hard edges.
+      // strength=8 is enough for ~6px feathering at our zoom.
+      const blur = new BlurFilter({ strength: 8, quality: 4 });
+      haloGfx.filters = [blur];
+      this.parent.addChild(haloGfx);
+    }
     const gfx = new Graphics();
     this.parent.addChild(gfx);
 
@@ -315,7 +366,9 @@ export class FluidSystem {
       topRow: component.topRow,
       bottomRow: component.bottomRow,
       gfx,
+      haloGfx,
       ambientPhase: Math.random(),
+      haloPhaseMs: Math.random() * 2000,
     };
     this.bodies.push(body);
     // Cache grid width for packed-key APIs (removeCell / queryBodyAt).
@@ -440,7 +493,7 @@ export class FluidSystem {
     }
     g.fill({ color: def.bodyColor, alpha: bodyAlpha });
 
-    // Glow overlay — lava etc. (offset 4px below surface)
+    // ─── Inline body glow (lava etc.) — offset 4px below surface. Strong. ───
     if (def.glowColor !== null) {
       g.moveTo(cols[0].x, Math.round(cols[0].y));
       for (let i = 1; i < cols.length; i++) {
@@ -451,7 +504,53 @@ export class FluidSystem {
       g.lineTo(cols[cols.length - 1].x, Math.min(lastBy, Math.round(cols[cols.length - 1].y) + 4));
       g.lineTo(cols[0].x, Math.min(lastBy, Math.round(cols[0].y) + 4));
       g.closePath();
-      g.fill({ color: def.glowColor, alpha: 0.35 });
+      g.fill({ color: def.glowColor, alpha: 0.55 });
+    }
+
+    // ─── Light-source halo (magma / lava / acid) ───
+    // Drawn on the separate haloGfx (which has BlurFilter) so it produces a
+    // soft glow around and above the fluid surface. Two stacked shapes:
+    //  - Wide outer halo extending ~24 px above + ~12 px outside body width
+    //  - Tight inner halo extending ~10 px above + body footprint
+    // Brightness pulses with haloPhaseMs (~ 2 s period).
+    if (body.haloGfx && def.glowColor !== null) {
+      const h = body.haloGfx;
+      h.clear();
+      const pulse = 0.5 + 0.5 * Math.sin((body.haloPhaseMs / 1800) * Math.PI * 2);
+      const lastGx = bodyCols[bodyCols.length - 1];
+      const lastBy = (body.bottomRow.get(lastGx)! + 1) * TILE;
+
+      // Outer halo — wide, very soft, biggest above-surface reach.
+      const outerLift = 24;
+      const outerPad = 12;
+      h.moveTo(cols[0].x - outerPad, Math.round(cols[0].y) - outerLift);
+      for (let i = 1; i < cols.length; i++) {
+        h.lineTo(cols[i].x, Math.round(cols[i].y) - outerLift);
+      }
+      h.lineTo(cols[cols.length - 1].x + outerPad, Math.round(cols[cols.length - 1].y) - outerLift);
+      h.lineTo(cols[cols.length - 1].x + outerPad, lastBy + 4);
+      h.lineTo(cols[0].x - outerPad, lastBy + 4);
+      h.closePath();
+      h.fill({ color: def.glowColor, alpha: 0.18 + pulse * 0.10 });
+
+      // Inner halo — tighter, brighter, follows the surface.
+      const innerLift = 10;
+      h.moveTo(cols[0].x, Math.round(cols[0].y) - innerLift);
+      for (let i = 1; i < cols.length; i++) {
+        h.lineTo(cols[i].x, Math.round(cols[i].y) - innerLift);
+      }
+      h.lineTo(cols[cols.length - 1].x, Math.round(cols[cols.length - 1].y) - innerLift);
+      h.lineTo(cols[cols.length - 1].x, lastBy + 2);
+      h.lineTo(cols[0].x, lastBy + 2);
+      h.closePath();
+      h.fill({ color: def.glowColor, alpha: 0.35 + pulse * 0.15 });
+
+      // Hot core line — bright accent right along the surface.
+      h.moveTo(cols[0].x, Math.round(cols[0].y) - 1);
+      for (let i = 1; i < cols.length; i++) {
+        h.lineTo(cols[i].x, Math.round(cols[i].y) - 1);
+      }
+      h.stroke({ color: 0xffffff, width: 1.5, alpha: 0.55 + pulse * 0.30 });
     }
 
     // Surface highlight line — 1px stroke for readability.
@@ -485,6 +584,10 @@ export class FluidSystem {
       // destroy
       if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
       body.gfx.destroy();
+      if (body.haloGfx) {
+        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
+        body.haloGfx.destroy();
+      }
       this.bodies = this.bodies.filter(b => b !== body);
       return;
     }
@@ -533,6 +636,10 @@ export class FluidSystem {
     const oldAmbient = body.ambientPhase;
     if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
     body.gfx.destroy();
+    if (body.haloGfx) {
+      if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
+      body.haloGfx.destroy();
+    }
     this.bodies = this.bodies.filter(b => b !== body);
     for (const compCells of components) {
       const newBody = this.makeBodyFromCells(body.type, compCells);
@@ -550,12 +657,20 @@ export class FluidSystem {
       // shouldn't happen unless cells empty
       if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
       body.gfx.destroy();
+      if (body.haloGfx) {
+        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
+        body.haloGfx.destroy();
+      }
       this.bodies = this.bodies.filter(b => b !== body);
       return;
     }
     // newBody was pushed to this.bodies; remove old, transfer wave state.
     if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
     body.gfx.destroy();
+    if (body.haloGfx) {
+      if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
+      body.haloGfx.destroy();
+    }
     this.bodies = this.bodies.filter(b => b !== body);
     this.transferWaveState(newBody, oldSurface, oldAmbient);
   }
@@ -699,11 +814,65 @@ export class FluidSystem {
         const x = k % this.gridW;
         const y = Math.floor(k / this.gridW);
         if (roomData[y] && FLUID_VALUES.has(roomData[y][x])) {
+          // Spawn a fading droplet at the cell's center+bottom BEFORE removing
+          // the grid value (so the body color is still readable from `body.def`).
+          this.spawnEvaporatingDrop(x, y, body.def.bodyColor);
+          // Permanent residue stain on the floor — scene decides per type.
+          this.onEvaporated?.(x, y, body.type);
           roomData[y][x] = 0;
           evaporated = true;
         }
       }
       if (evaporated) this.rebuildFromGrid(roomData);
+    }
+  }
+
+  /**
+   * Create a fading droplet at the cell's center+bottom that scales down to
+   * zero over EVAP_FADE_MS. Anchored at the bottom-center so the shrink
+   * visually settles into the floor instead of vanishing in mid-air.
+   */
+  private spawnEvaporatingDrop(gx: number, gy: number, color: number): void {
+    const cx = (gx + 0.5) * TILE;
+    const by = (gy + 1) * TILE;   // bottom edge of the cell
+    const g = new Graphics();
+    g.x = cx;
+    g.y = by;
+    // Pivot at (0, 0) which is the center-bottom of the cell — scale shrinks
+    // toward this anchor naturally.
+    g.pivot.set(0, 0);
+    this.parent.addChild(g);
+    this.evaporatingDrops.push({
+      gfx: g,
+      cx,
+      by,
+      age: 0,
+      life: FluidSystem.EVAP_FADE_MS,
+      color,
+    });
+  }
+
+  /** Tick + render evaporating droplets. Called from update(). */
+  private updateEvaporatingDrops(dtMs: number): void {
+    for (let i = this.evaporatingDrops.length - 1; i >= 0; i--) {
+      const d = this.evaporatingDrops[i];
+      d.age += dtMs;
+      const k = Math.min(1, d.age / d.life);
+      // Linear shrink from full cell → 0, anchored at center-bottom so the
+      // square sinks evenly into the floor (bottom edge stays put, top edge
+      // descends toward bottom).
+      const scale = 1 - k;
+      const w = TILE * scale;
+      const h = TILE * scale;
+      const alpha = 0.85 * (1 - k * 0.4);
+      d.gfx.clear();
+      // Rect anchored: x from -w/2..+w/2, y from -h..0 (bottom edge at y=0).
+      d.gfx.rect(-w / 2, -h, w, h).fill({ color: d.color, alpha });
+      if (d.age >= d.life) {
+        if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
+        d.gfx.destroy();
+        this.evaporatingDrops.splice(i, 1);
+      }
     }
   }
 
@@ -716,6 +885,15 @@ export class FluidSystem {
       if (top !== bot) return false; // any column ≥ 2 cells deep → not thin
     }
     return true;
+  }
+
+  /**
+   * Public entry for outside callers (e.g. scene reacts to ice→water melt)
+   * to nudge the fluid system into discovering newly-introduced fluid cells.
+   * Internal path uses rebuildFromGrid directly after gravityTick.
+   */
+  refreshFromGrid(roomData: number[][]): void {
+    this.rebuildFromGrid(roomData);
   }
 
   /**
@@ -769,6 +947,10 @@ export class FluidSystem {
     for (const oldBody of oldBodies) {
       if (oldBody.gfx.parent) oldBody.gfx.parent.removeChild(oldBody.gfx);
       oldBody.gfx.destroy();
+      if (oldBody.haloGfx) {
+        if (oldBody.haloGfx.parent) oldBody.haloGfx.parent.removeChild(oldBody.haloGfx);
+        oldBody.haloGfx.destroy();
+      }
     }
   }
 

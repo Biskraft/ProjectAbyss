@@ -19,6 +19,10 @@ export enum GameAction {
   MENU = 'MENU',
   STATUS = 'STATUS',
   FLASK = 'FLASK',
+  /** Hades-style ranged cast — Ego Shard 발사. 인챈트별 효과 변주. */
+  CAST = 'CAST',
+  /** Pickup nearby pickable / throw held object. Spelunky-style 들기 던지기. */
+  GRAB = 'GRAB',
   DEBUG_RESET = 'DEBUG_RESET',
   DEBUG_CHEAT = 'DEBUG_CHEAT',
   DEBUG_UI_TOGGLE = 'DEBUG_UI_TOGGLE',

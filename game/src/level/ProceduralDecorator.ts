@@ -84,17 +84,33 @@ export function hashString(s: string): number {
 }
 
 // Decoration anchor classification (Physics IntGrid 값 기준):
-//   0 = empty, 2 = water, 5 = spike, 10 = void → decoration 미배치
-//   (passable + 해저드/시그널/시네마틱)
-//   그 외(1 wall, 3 platform, 4 updraft, 6 magma, 7 ice, 8 charged, 9 breakable)
-//   → 기존대로 solid 로 취급. spike/void 는 플레이어 시그널 또는 cinematic
-//   드롭 트리거이므로 장식이 덮이지 않도록 명시적으로 제외한다.
+//
+// 장식물 표면 = "구조적 솔리드 셀" 만. 다음 값은 명시적으로 제외:
+//   0 air / 2 water / 5 spike / 10 void  — passable / 해저드 / 시네마틱
+//   6 magma                              — 용암 표면 위 풀/이끼 어색
+//   7 ice                                — 얼음 표면 위 자연 장식 부조화
+//   8 charged                            — 전기 영역 위 자연 장식 부조화
+//   11 oil                               — 가연성 슬릭. 표면 위 장식 어색 + 소실 시 부유
+//   13 acid                              — 산성액. 부식 환경에 자연 장식 부조화
+//   15 wood                              — 가연성 솔리드. 소진 시 장식이 공중에 떠 버림
+//
+// 결과: 장식 spawn 허용 셀 = 1 wall / 3 platform / 4 updraft /
+//   9 breakable / 12 metal / 16 grass
 function isSolid(val: number): boolean {
-  return val !== 0 && val !== 2 && val !== 5 && val !== 10;
+  return (
+    val === 1 || val === 3 || val === 4 ||
+    val === 9 || val === 12 || val === 16
+  );
 }
 
 function isEmpty(val: number): boolean {
-  return val === 0 || val === 2 || val === 5 || val === 10;
+  // 인접 셀이 "passable" 인지 판단 — edge type 결정에 사용.
+  // 해저드/원소 셀(magma/charged/oil/acid)도 floor 위에서 passable 로 본다
+  // (그래야 magma 풀 옆 wall 의 floor 표면에 장식이 정상적으로 자란다).
+  return (
+    val === 0 || val === 2 || val === 5 || val === 6 || val === 7 ||
+    val === 8 || val === 10 || val === 11 || val === 13 || val === 15
+  );
 }
 
 function gridAt(grid: number[][], row: number, col: number): number {

@@ -32,6 +32,8 @@ const PRESET_CLASSIC: Record<GameAction, string[]> = {
   [GameAction.STATUS]: ['Tab'],
   [GameAction.MENU]: ['Escape'],
   [GameAction.FLASK]: ['KeyR'],
+  [GameAction.CAST]: ['KeyV'],
+  [GameAction.GRAB]: ['KeyB'],
   [GameAction.DEBUG_RESET]: ['KeyP'],
   [GameAction.DEBUG_CHEAT]: ['KeyO'],
   [GameAction.DEBUG_UI_TOGGLE]: ['KeyU'],
@@ -345,6 +347,11 @@ export class InputManager {
       (k) => this.keyState.get(k) === true && this.prevKeyState.get(k) !== true
         && !this.consumed.has(k)
     );
+  }
+
+  /** Raw key-code check — bypasses binding map. Used by ?debug helpers. */
+  isJustPressedKeyCode(code: string): boolean {
+    return this.keyState.get(code) === true && this.prevKeyState.get(code) !== true;
   }
 
   /** Mark a key as consumed so isJustPressed returns false for the rest of this frame */

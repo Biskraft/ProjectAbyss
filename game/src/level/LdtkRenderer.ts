@@ -4,7 +4,7 @@
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
-import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA } from '@core/Physics';
+import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER } from '@core/Physics';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -228,12 +228,14 @@ export class LdtkRenderer {
    * 팔레트 스왑에 물들지 않는다.
    */
   /**
-   * Cells whose IntGrid value is OIL / ACID / MAGMA are drawn by FluidSystem
-   * as dynamic fluid bodies (polygon + animated surface). The LDtk auto-tile
-   * sprite underneath would just be hidden noise, so we suppress it.
+   * Cells whose IntGrid value is WATER / OIL / ACID / MAGMA are drawn by
+   * FluidSystem as dynamic fluid bodies (polygon + animated surface). The
+   * LDtk auto-tile sprite underneath would just be hidden noise, so we
+   * suppress it.
    *
-   * Water is hidden via the LDtk auto-rule (no tile painted for value=2),
-   * so it does not need a runtime skip here.
+   * WATER is included here primarily to clean up obsolete tiles after a
+   * runtime mutation (ice → water on fire). LDtk auto-rules typically don't
+   * paint water tiles, so this rarely fires on static data.
    */
   private isFluidHiddenTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {
     if (!collisionGrid) return false;
@@ -242,7 +244,7 @@ export class LdtkRenderer {
     const rowData = collisionGrid[row];
     if (!rowData) return false;
     const v = rowData[col] ?? 0;
-    return v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA;
+    return v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA;
   }
 
   private isSpecialTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {

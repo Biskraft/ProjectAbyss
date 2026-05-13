@@ -14,7 +14,7 @@
  * GDD: Documents/System/System_World_TileSystem.md §7.2.2
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, BlurFilter } from 'pixi.js';
 
 export type BurnableAnchor = 'floor' | 'ceiling' | 'free';
 
@@ -39,7 +39,8 @@ export interface BurnableSpec {
   assetPath?: string | null;
 }
 
-// burnMs × 5 for verification readability (2026-05-12).
+// burnMs — shippable showcase values. 원소 화염 연쇄가 핵심 메카닉이라
+// 플레이어가 점화 → 확산 → 잔존 시퀀스를 관전할 수 있도록 의도적으로 김.
 export const BURNABLE_CATALOG = {
   WoodCrate: {
     name: 'Wood Crate', cells: [1, 1], burnMs: 12500, hp: 1, anchor: 'floor',
@@ -50,7 +51,7 @@ export const BURNABLE_CATALOG = {
     ignitionChance: 0.85, bodyColor: 0x6E4823, accentColor: 0x3B260F,
   },
   Bush: {
-    name: 'Bush', cells: [1, 1], burnMs: 3000, hp: 1, anchor: 'floor',
+    name: 'Bush', cells: [1, 1], burnMs: 10000, hp: 1, anchor: 'floor',
     ignitionChance: 0.90, bodyColor: 0x5D8A3A, accentColor: 0x2E4A1A,
   },
   Curtain: {
@@ -118,6 +119,8 @@ export class BurnableProp {
   readonly container = new Container();
   private body!: Graphics;
   private fireGfx: Graphics | null = null;
+  /** Separate Graphics with BlurFilter for the prop's light-source halo. */
+  private fireHaloGfx: Graphics | null = null;
   private flickerT = 0;
 
   constructor(id: BurnablePropId, gx: number, gy: number, tileSize = 16) {
@@ -263,6 +266,13 @@ export class BurnableProp {
   }
 
   private spawnFireGfx(): void {
+    // Halo behind the prop body — drawn FIRST so flames render on top.
+    // BlurFilter feathers the halo into a soft warm light bath. Added to the
+    // container's parent index 0 so it lives "behind" via depth ordering.
+    this.fireHaloGfx = new Graphics();
+    const blur = new BlurFilter({ strength: 10, quality: 4 });
+    this.fireHaloGfx.filters = [blur];
+    this.container.addChildAt(this.fireHaloGfx, 0);
     this.fireGfx = new Graphics();
     this.container.addChild(this.fireGfx);
   }
@@ -272,19 +282,79 @@ export class BurnableProp {
     this.fireGfx.clear();
     const w = this.width, h = this.height;
     const lifeRatio = Math.max(0, this.burnRemainingMs / this.spec.burnMs);
-    const intensity = 0.6 + Math.sin(this.flickerT * 0.04) * 0.2;
-    const flameH = Math.min(h * 0.7, 12 * intensity);
-    const baseY = this.spec.anchor === 'ceiling' ? flameH : -flameH;
+    // ── Multi-strand teardrop flames (realistic fire silhouette) ──
+    // Three independently-phased strands across the prop width. Tall center,
+    // shorter shoulders. 4 color layers (red→orange→yellow→white core).
+    const isCeiling = this.spec.anchor === 'ceiling';
+    // For floor anchor: flames rise from prop top edge (y=0) upward (negative y).
+    // For ceiling anchor: flames descend from prop bottom edge (y=h) downward.
+    const baseY = isCeiling ? h : 0;
+    const tallScale = lifeRatio * 1.0;             // fades with burn time
+    const strands: Array<{ cx: number; phase: number; tall: number; wide: number }> = [
+      { cx: w * 0.5, phase: this.flickerT * 0.018 + 0,  tall: 26 * tallScale, wide: 5.5 },
+      { cx: w * 0.25, phase: this.flickerT * 0.020 + 1.3, tall: 18 * tallScale, wide: 4   },
+      { cx: w * 0.75, phase: this.flickerT * 0.019 + 2.7, tall: 19 * tallScale, wide: 4.2 },
+    ];
+    for (const s of strands) {
+      const wobble = 0.85 + Math.sin(s.phase) * 0.25;
+      const flameH = s.tall * wobble;
+      const flameW = s.wide * (0.9 + Math.sin(s.phase * 1.4) * 0.18);
+      const swayX = Math.sin(s.phase * 0.7) * 1.6;
+      const sx = s.cx + swayX;
+      // Tip lies above (floor) or below (ceiling) the base.
+      const tipY = isCeiling ? baseY + flameH : baseY - flameH;
+      // Side bulge midpoint Y — between base and tip.
+      const midY = isCeiling ? baseY + flameH * 0.45 : baseY - flameH * 0.45;
+      const drawTeardrop = (halfW: number, hScale: number, color: number, alpha: number) => {
+        const hh = flameH * hScale;
+        const tY = isCeiling ? baseY + hh : baseY - hh;
+        const mY = isCeiling ? baseY + hh * 0.45 : baseY - hh * 0.45;
+        this.fireGfx!.moveTo(sx - halfW, baseY);
+        this.fireGfx!.quadraticCurveTo(sx - halfW * 1.4, mY, sx, tY);
+        this.fireGfx!.quadraticCurveTo(sx + halfW * 1.4, mY, sx + halfW, baseY);
+        this.fireGfx!.closePath();
+        this.fireGfx!.fill({ color, alpha: alpha * lifeRatio });
+      };
+      void tipY; void midY; // referenced by closure below via locals
+      drawTeardrop(flameW * 1.20, 1.00, 0xff3311, 0.55);
+      drawTeardrop(flameW * 0.85, 0.92, 0xff7722, 0.78);
+      drawTeardrop(flameW * 0.55, 0.80, 0xffcc44, 0.85);
+      drawTeardrop(flameW * 0.30, 0.62, 0xffffaa, 0.85);
+    }
+    // Embers — bright pixel sparks rising/falling along the flame column.
+    if (Math.random() < 0.6) {
+      const ex = Math.random() * w;
+      const ey = isCeiling
+        ? baseY + 14 + Math.random() * 12
+        : baseY - 14 - Math.random() * 12;
+      this.fireGfx.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffee88, alpha: 0.95 });
+    }
+    if (Math.random() < 0.30) {
+      const ex = Math.random() * w;
+      const ey = isCeiling
+        ? baseY + 8 + Math.random() * 18
+        : baseY - 8 - Math.random() * 18;
+      this.fireGfx.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffffff, alpha: 0.9 });
+    }
+    // body tint while burning — darken as it chars
+    this.body.tint = lifeRatio > 0.3 ? 0xffffff : 0x553322;
 
-    // base flame band
-    this.fireGfx
-      .rect(0, baseY, w, flameH)
-      .fill({ color: 0xff7733, alpha: 0.35 * lifeRatio });
-    // hot core
-    this.fireGfx
-      .rect(2, baseY + flameH * 0.3, w - 4, flameH * 0.6)
-      .fill({ color: 0xffdd66, alpha: 0.55 * lifeRatio });
-    // body tint while burning
-    this.body.tint = lifeRatio > 0.3 ? 0xffffff : 0x553322; // darken to char
+    // ── Light-source halo (behind body, soft pulse) ──
+    if (this.fireHaloGfx) {
+      const halo = this.fireHaloGfx;
+      halo.clear();
+      const haloPulse = 0.8 + Math.sin(this.flickerT * 0.008) * 0.2;
+      const cx = w / 2;
+      const cy = this.spec.anchor === 'ceiling' ? h * 0.25 : h * 0.55;
+      // Outer wash — broad warm light extending past the prop edges
+      halo.ellipse(cx, cy, w * 1.6 * haloPulse, h * 1.3 * haloPulse)
+        .fill({ color: 0xff6622, alpha: 0.45 * lifeRatio });
+      // Mid layer — hotter yellow
+      halo.ellipse(cx, cy - 2, w * 1.0 * haloPulse, h * 0.8 * haloPulse)
+        .fill({ color: 0xffaa44, alpha: 0.65 * lifeRatio });
+      // Core — bright white-yellow
+      halo.ellipse(cx, cy - 3, w * 0.5 * haloPulse, h * 0.4 * haloPulse)
+        .fill({ color: 0xfff0aa, alpha: 0.85 * lifeRatio });
+    }
   }
 }

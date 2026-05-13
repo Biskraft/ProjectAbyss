@@ -15,25 +15,64 @@
  * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, BlurFilter } from 'pixi.js';
 import type { TileMutator } from './TileMutator';
+import { TILE_OIL, TILE_GRASS, getTile } from '../core/Physics';
 
 export class TileMutatorRenderer {
   private gfx = new Graphics();
+  /** Separate Graphics that should live ABOVE the fluid layer (oil flames). */
+  private aboveFluidGfx = new Graphics();
+  /**
+   * Fire light-source halo — BlurFilter applied so each burning cell emits
+   * a soft warm glow above the scene. Drawn on aboveFluidGfx parent (which
+   * is above the fluid polygon layer) for visibility over oil pools.
+   */
+  private fireHaloGfx = new Graphics();
 
   constructor(parent: Container) {
     parent.addChild(this.gfx);
+    // BlurFilter strength=10 — enough for ~8px feathering on 16px cells.
+    const blur = new BlurFilter({ strength: 10, quality: 4 });
+    this.fireHaloGfx.filters = [blur];
+  }
+
+  /**
+   * Provide a Graphics container that sits ABOVE the fluid layer. Oil flame
+   * tongues are drawn here so they aren't covered by the fluid polygon.
+   * Fire halo also lives here for the same z-order reason.
+   * If never called, the flames + halo still render but may be hidden by fluid.
+   */
+  setAboveFluidLayer(parent: Container): void {
+    parent.addChild(this.fireHaloGfx);   // halo first (back)
+    parent.addChild(this.aboveFluidGfx); // flame on top (front)
   }
 
   destroy(): void {
     if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
     this.gfx.destroy();
+    if (this.aboveFluidGfx.parent) this.aboveFluidGfx.parent.removeChild(this.aboveFluidGfx);
+    this.aboveFluidGfx.destroy();
+    if (this.fireHaloGfx.parent) this.fireHaloGfx.parent.removeChild(this.fireHaloGfx);
+    this.fireHaloGfx.destroy();
   }
 
-  /** Rebuilds overlay every frame. Cheap because cell counts are small. */
-  update(mutator: TileMutator): void {
+  /**
+   * Rebuilds overlay every frame. Cheap because cell counts are small.
+   *
+   * @param mutator        - Current TileMutator state
+   * @param collisionGrid  - Optional grid for tile-type-aware rendering
+   *                         (oil flames rise above the surface, wood/grass
+   *                         fill the cell). If absent, all burning cells
+   *                         fill the cell.
+   */
+  update(mutator: TileMutator, collisionGrid?: number[][]): void {
     const g = this.gfx;
+    const af = this.aboveFluidGfx;
+    const fh = this.fireHaloGfx;
     g.clear();
+    af.clear();
+    fh.clear();
     const t = performance.now();
 
     // ── Frozen cells (ice wall, water/magma → temp wall) ──────────────────
@@ -46,16 +85,101 @@ export class TileMutatorRenderer {
     });
 
     // ── Burning cells (oil/wood/grass on fire) ────────────────────────────
-    // orange flickering body + hot yellow core + occasional white spark
+    // Oil cells: draw flame tongues RISING above the cell surface (on the
+    //   aboveFluid layer, so they're visible over the fluid polygon).
+    // Wood/Grass: in-cell orange tint + yellow core (original style).
     mutator.forEachBurning((gx, gy) => {
       const x = gx * 16, y = gy * 16;
-      const flicker = 0.65 + Math.sin(t * 0.012 + (gx * 7 + gy * 13) * 0.5) * 0.25;
-      g.rect(x, y, 16, 16).fill({ color: 0xff7733, alpha: 0.45 * flicker });
-      g.rect(x + 3, y + 3, 10, 10).fill({ color: 0xffdd66, alpha: 0.55 * flicker });
-      if (Math.random() < 0.35) {
-        const sx = x + Math.random() * 16;
-        const sy = y + Math.random() * 16;
-        g.rect(sx | 0, sy | 0, 1, 1).fill({ color: 0xffffff, alpha: 0.9 });
+      const cellSeed = gx * 7 + gy * 13;
+      const tile = collisionGrid ? getTile(collisionGrid, gx, gy) : 0;
+      const isOil = tile === TILE_OIL;
+      const isGrass = tile === TILE_GRASS;
+
+      // Flame base Y depends on what the source actually is in pixel space:
+      //   oil   = fluid surface = top of cell
+      //   wood  = solid block top = top of cell
+      //   grass = thin foliage growing UP from the floor below = BOTTOM of cell
+      //           (so flames sit on the floor, not floating one cell above).
+      const flameBaseY = isGrass ? y + 16 : y;
+      // Halo follows the flame source so the light bath is centered where
+      // the heat actually is.
+      const haloCy = flameBaseY - 4;
+
+      // ── Fire halo — broad warm light bath. BlurFilter on fh smooths edges. ──
+      const cx = x + 8;
+      const haloPulse = 0.8 + Math.sin(t * 0.008 + cellSeed * 0.6) * 0.2;
+      fh.ellipse(cx, haloCy, 28 * haloPulse, 22 * haloPulse)
+        .fill({ color: 0xff7733, alpha: 0.55 });
+      fh.ellipse(cx, haloCy - 2, 14 * haloPulse, 12 * haloPulse)
+        .fill({ color: 0xffdd66, alpha: 0.75 });
+      fh.circle(cx, haloCy, 5 * haloPulse)
+        .fill({ color: 0xffffff, alpha: 0.55 });
+
+      // ── Multi-strand teardrop flames (realistic fire silhouette) ──
+      // Grass cells get SHORTER strands so the flame body fits inside the
+      // cell (overlapping the grass blades) rather than billowing into the
+      // cell ABOVE — which made the fire read as "floating above grass."
+      // Bulge control also biased lower for grass (heavy at base = floor).
+      const strands: Array<{ cxOff: number; phase: number; tall: number; wide: number }> = isGrass
+        ? [
+            { cxOff: 8,   phase: t * 0.018 + cellSeed * 1.7, tall: 13, wide: 6 },
+            { cxOff: 3.5, phase: t * 0.020 + cellSeed * 2.3, tall: 10, wide: 4.5 },
+            { cxOff: 12.5,phase: t * 0.019 + cellSeed * 3.1, tall: 11, wide: 4.5 },
+          ]
+        : [
+            { cxOff: 8,   phase: t * 0.018 + cellSeed * 1.7, tall: 22, wide: 7 },
+            { cxOff: 3.5, phase: t * 0.020 + cellSeed * 2.3, tall: 15, wide: 5 },
+            { cxOff: 12.5,phase: t * 0.019 + cellSeed * 3.1, tall: 16, wide: 5 },
+          ];
+      const bulgeYFactor = isGrass ? 0.30 : 0.45;   // lower bulge for grass
+      const layer = isOil ? af : g;   // oil flames need to render over the fluid polygon
+      // For solid cells, also faint glow inside the cell so the source reads.
+      // For grass, anchor the in-cell glow at the floor half (lower 8 px)
+      // so it overlaps the blade visual instead of the whole cell.
+      if (!isOil) {
+        if (isGrass) {
+          g.rect(x, y + 8, 16, 8).fill({ color: 0xff7733, alpha: 0.45 });
+        } else {
+          g.rect(x, y, 16, 16).fill({ color: 0xff7733, alpha: 0.35 });
+        }
+      }
+      for (const s of strands) {
+        const wobble = 0.85 + Math.sin(s.phase) * 0.25;
+        const h = s.tall * wobble;
+        const w = s.wide * (0.9 + Math.sin(s.phase * 1.4) * 0.18);
+        const swayX = Math.sin(s.phase * 0.7) * 1.2;     // side-to-side sway
+        const sx = x + s.cxOff + swayX;
+        const tipY = flameBaseY - h;
+        // Per-flame teardrop path: bottom-left → bulge mid-left → tip → bulge mid-right → bottom-right
+        const drawTeardrop = (
+          gfx: typeof g, halfWidth: number, height: number, color: number, alpha: number,
+        ) => {
+          gfx.moveTo(sx - halfWidth, flameBaseY);
+          gfx.quadraticCurveTo(sx - halfWidth * 1.4, flameBaseY - height * bulgeYFactor, sx, tipY);
+          gfx.quadraticCurveTo(sx + halfWidth * 1.4, flameBaseY - height * bulgeYFactor, sx + halfWidth, flameBaseY);
+          gfx.closePath();
+          gfx.fill({ color, alpha });
+        };
+        // Layer 1 — outer red, widest
+        drawTeardrop(layer, w * 1.2, h,        0xff3311, 0.55);
+        // Layer 2 — orange mid
+        drawTeardrop(layer, w * 0.85, h * 0.92, 0xff7722, 0.78);
+        // Layer 3 — yellow inner
+        drawTeardrop(layer, w * 0.55, h * 0.80, 0xffcc44, 0.85);
+        // Layer 4 — white-yellow core
+        drawTeardrop(layer, w * 0.30, h * 0.62, 0xffffaa, 0.85);
+      }
+      // ── Embers rising from cell top — 0~2 per frame, random spawn ──
+      const emberLayer = isOil ? af : g;
+      if (Math.random() < 0.55) {
+        const ex = x + Math.random() * 16;
+        const ey = flameBaseY - 18 - Math.random() * 8;
+        emberLayer.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffee88, alpha: 0.95 });
+      }
+      if (Math.random() < 0.30) {
+        const ex = x + Math.random() * 16;
+        const ey = flameBaseY - 12 - Math.random() * 14;
+        emberLayer.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffffff, alpha: 0.9 });
       }
     });
 

@@ -29,10 +29,15 @@ import {
 } from '../core/Physics';
 import type { BurnableProp } from '../entities/BurnableProp';
 
-/** Per-tile burn duration. Grass burns fast (dry foliage), oil mid, wood slow (dense). */
+/**
+ * Per-tile burn duration. Long durations are intentional — the elemental
+ * fire propagation is a core showcase mechanic and the player should be
+ * able to watch the spread + chain reactions unfold. These are SHIPPABLE
+ * values, not verification multipliers.
+ */
 const BURN_DURATION_BY_TILE: Record<number, number> = {
-  [TILE_GRASS]: 3000,
-  [TILE_OIL]: 9000,
+  [TILE_GRASS]: 10000,
+  [TILE_OIL]: 15000,
   [TILE_WOOD]: 15000,
 };
 
@@ -53,7 +58,9 @@ interface ElectricState {
 
 export class TileMutator {
   // === Tunables (GDD §3.2 매트릭스) ===
-  // Durations × 5 for verification readability (2026-05-12).
+  // SHIPPABLE values — 원소 메카닉(빙결 다리·화염 연쇄·뇌 도체) 시그널은
+  // 플레이어가 변화를 관전할 수 있도록 의도적으로 길게 유지된다. 검증용
+  // 단축 대상 아님 (2026-05-13 confirmed).
   static readonly FREEZE_DURATION_MS = 15000;
   static readonly BURN_DURATION_MS = 9000;
   static readonly ELECTRIC_DURATION_MS = 2500;
@@ -80,6 +87,22 @@ export class TileMutator {
   // Accumulators for discrete tick events
   private oilSpreadAccum = 0;
   private autoInteractAccum = 0;
+
+  /**
+   * Optional callback the scene registers to receive cell-level steam events
+   * (magma-melts-ice, acid+magma vapor, fire-on-water by attack handlers, etc).
+   * Scene maps (gx, gy) → pixel position and spawns SteamPuffManager bursts.
+   */
+  onSteamEvent: ((gx: number, gy: number) => void) | null = null;
+
+  /**
+   * Optional callback fired when a cell mutation visibly changes the wall
+   * layer (ice→water, wood/grass burnout→air, metal corrosion→air). Scene
+   * sets a dirty flag and calls rerenderTilemap once per frame to coalesce
+   * multiple mutations. Magma-frozen / passive freezing don't fire — the
+   * frozen overlay covers the cell visually.
+   */
+  onWallTileChanged: ((gx: number, gy: number) => void) | null = null;
 
   /** Pack (gx,gy) → single number key. Assumes maps ≤ 4096 columns. */
   private k(gx: number, gy: number): number {
@@ -157,6 +180,7 @@ export class TileMutator {
     if (getTile(roomData, gx, gy) !== TILE_ICE) return false;
     if (!roomData[gy]) return false;
     roomData[gy][gx] = TILE_WATER;
+    this.onWallTileChanged?.(gx, gy);
     return true;
   }
 
@@ -231,6 +255,10 @@ export class TileMutator {
           const t = roomData[gy][gx];
           if (t === TILE_OIL || t === TILE_WOOD || t === TILE_GRASS) {
             roomData[gy][gx] = TILE_AIR;
+            // Wood/Grass have static tile sprites — wall layer must refresh.
+            // Oil cells are already hidden by isFluidHiddenTile, but firing
+            // the event for oil too is harmless and keeps the contract simple.
+            this.onWallTileChanged?.(gx, gy);
           }
         }
         this.burning.delete(key);
@@ -371,9 +399,9 @@ export class TileMutator {
       for (let gx = 0; gx < cols; gx++) {
         const t = row[gx];
 
-        // Magma melts adjacent ice → water
+        // Magma melts adjacent ice → water (emit steam at the mutated cell)
         if (t === TILE_MAGMA) {
-          this.maybeMutateNeighbour(roomData, gx, gy, TILE_ICE, TILE_WATER, TileMutator.MAGMA_ICE_MELT_CHANCE);
+          this.maybeMutateNeighbourWithSteam(roomData, gx, gy, TILE_ICE, TILE_WATER, TileMutator.MAGMA_ICE_MELT_CHANCE);
         }
         // Ice freezes adjacent water (slow, natural — not the 3s temp freeze)
         else if (t === TILE_ICE) {
@@ -385,6 +413,7 @@ export class TileMutator {
           if (this.neighbourMatches(roomData, gx, gy, TILE_MAGMA) &&
               Math.random() < TileMutator.ACID_MAGMA_VAPOR_CHANCE) {
             row[gx] = TILE_AIR;
+            this.onSteamEvent?.(gx, gy);
           }
         }
       }
@@ -399,6 +428,22 @@ export class TileMutator {
       const nx = n[0], ny = n[1];
       if (getTile(roomData, nx, ny) === want && roomData[ny] && Math.random() < chance) {
         roomData[ny][nx] = to;
+        this.onWallTileChanged?.(nx, ny);
+      }
+    }
+  }
+
+  /** Same as maybeMutateNeighbour but emits a steam event at the mutated cell. */
+  private maybeMutateNeighbourWithSteam(
+    roomData: number[][], gx: number, gy: number, want: number, to: number, chance: number,
+  ): void {
+    const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
+    for (const n of ns) {
+      const nx = n[0], ny = n[1];
+      if (getTile(roomData, nx, ny) === want && roomData[ny] && Math.random() < chance) {
+        roomData[ny][nx] = to;
+        this.onSteamEvent?.(nx, ny);
+        this.onWallTileChanged?.(nx, ny);
       }
     }
   }
@@ -465,6 +510,31 @@ export class TileMutator {
       for (let gx = l; gx <= r; gx++) {
         if (map.has(this.k(gx, gy))) return true;
       }
+    }
+    return false;
+  }
+
+  /**
+   * True if (x, y, w, h) AABB overlaps any cell currently occupied by a
+   * burning BurnableProp (Tier B). Used by TileHazards to dispatch fire DOT
+   * for entities standing next to / inside a burning prop (the prop itself
+   * is also solid for collision so adjacency is the common case).
+   */
+  aabbNearBurningProp(x: number, y: number, w: number, h: number): boolean {
+    const TILE = 16;
+    const l = Math.floor(x / TILE);
+    const r = Math.floor((x + w - 1) / TILE);
+    const t = Math.floor(y / TILE);
+    const b = Math.floor((y + h - 1) / TILE);
+    for (const p of this.burnableEntities) {
+      if (p.destroyed || !p.burning) continue;
+      // Inflate prop footprint by 1 cell on each side to catch adjacency.
+      const pl = p.gx - 1;
+      const pr = p.gx + p.cellW;
+      const pt = p.gy - 1;
+      const pb = p.gy + p.cellH;
+      if (r < pl || l > pr || b < pt || t > pb) continue;
+      return true;
     }
     return false;
   }

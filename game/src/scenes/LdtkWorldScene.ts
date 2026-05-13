@@ -26,7 +26,7 @@ import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { Player } from '@entities/Player';
+import { Player, OIL_SLIP_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
@@ -114,6 +114,11 @@ import { HitBloodSprayManager } from '@effects/HitBloodSpray';
 import { DiveLandImpactManager } from '@effects/DiveLandImpact';
 import { WaterSplashManager } from '@effects/WaterSplash';
 import { WaterBubblesManager } from '@effects/WaterBubbles';
+import { SteamPuffManager } from '@effects/SteamPuff';
+import { AshRemnantManager } from '@effects/AshRemnant';
+import { FluidResidueManager } from '@effects/FluidResidue';
+import { EgoShardManager, CAST_MIN_GAP_MS, type ShardElement } from '@effects/EgoShard';
+import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
@@ -144,7 +149,7 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
-import { applyTileHazards } from '@systems/TileHazards';
+import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
 import { DamageNumberManager } from '@ui/DamageNumber';
@@ -386,7 +391,17 @@ export class LdtkWorldScene extends Scene {
   private hitBloodSpray!: HitBloodSprayManager;
   private diveLandImpact!: DiveLandImpactManager;
   private waterSplash!: WaterSplashManager;
+  private steamPuff!: SteamPuffManager;
+  private ashRemnant!: AshRemnantManager;
+  private fluidResidue!: FluidResidueManager;
+  private egoShard!: EgoShardManager;
+  private containers: ThrowableContainer[] = [];
+  /** Currently held container (Spelunky-style — one at a time). */
+  private heldContainer: ThrowableContainer | null = null;
   private prevPlayerInOtherFluid = false;
+  private prevEnemyInOtherFluid: boolean[] = [];
+  /** Set true when a TileMutator mutation invalidates the wall layer sprites. */
+  private wallLayerDirty = false;
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
@@ -823,6 +838,11 @@ export class LdtkWorldScene extends Scene {
     this.fluidLayer = new Container();
     this.container.addChild(this.fluidLayer);
     this.fluidSystem = new FluidSystem(this.fluidLayer);
+    // Oil flame tongues need to render ABOVE the fluid polygon, so we give
+    // the mutator renderer a Graphics child of a container drawn after fluid.
+    const aboveFluidLayer = new Container();
+    this.container.addChild(aboveFluidLayer);
+    this.tileMutatorRenderer.setAboveFluidLayer(aboveFluidLayer);
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
@@ -916,6 +936,30 @@ export class LdtkWorldScene extends Scene {
     this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
     this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
     this.waterSplash = new WaterSplashManager(this.entityLayer);
+    this.steamPuff = new SteamPuffManager(this.entityLayer);
+    this.ashRemnant = new AshRemnantManager(this.entityLayer);
+    this.fluidResidue = new FluidResidueManager(this.entityLayer);
+    this.egoShard = new EgoShardManager(this.entityLayer);
+    // Fluid evaporation → drop permanent residue on the floor cell.
+    this.fluidSystem.onEvaporated = (gx, gy, type) => {
+      if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
+      const px = (gx + 0.5) * 16;
+      const py = (gy + 1) * 16;        // bottom of cell
+      this.fluidResidue.dropAt(type, px, py, 1.0);
+    };
+    // TileMutator emits steam events when hot-meets-wet cells mutate
+    // (magma→ice melt, acid+magma vapor). Convert cell coords → pixel.
+    this.tileMutator.onSteamEvent = (gx, gy) => {
+      const px = (gx + 0.5) * 16;
+      const py = (gy + 0.5) * 16;
+      this.steamPuff.spawn(px, py, 1.0);
+    };
+    // Ice melt / wood-grass burnout / metal corrosion all invalidate the
+    // static wall tile sprites at the mutated cell. Coalesce many mutations
+    // per frame into a single rerenderTilemap call.
+    this.tileMutator.onWallTileChanged = (_gx, _gy) => {
+      this.wallLayerDirty = true;
+    };
     this.waterBubbles = new WaterBubblesManager(this.entityLayer);
     this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
     this.iceSkidStreak = new IceSkidStreakManager(this.entityLayer);
@@ -2133,6 +2177,90 @@ export class LdtkWorldScene extends Scene {
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) {
         this.debugThunderAtPlayer();
       }
+      // Digit 1/2/3 (without shift) — switch active enchant (Hades-style Boon swap).
+      if (!this.game.input.shiftDown) {
+        if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE))    this.player.activeEnchant = 'fire';
+        else if (this.game.input.isJustPressed(GameAction.DEBUG_ICE))    this.player.activeEnchant = 'ice';
+        else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
+      }
+      // Shift+G — spawn 4 debug containers near player (until LDtk Entity wiring lands).
+      if (this.game.input.shiftDown && this.game.input.isJustPressedKeyCode('KeyG')) {
+        this.debugSpawnContainers();
+      }
+    }
+
+    // ── Hades-style Cast (V / Y) — fire an Ego Shard in facing direction. ──
+    if (this.game.input.isJustPressed(GameAction.CAST)) {
+      if (this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0) {
+        const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
+        const px = this.player.x + this.player.width / 2 + facing * 4;
+        const py = this.player.y + this.player.height * 0.45;
+        const el = this.player.activeEnchant;
+        this.egoShard.spawn(px, py, facing, el);
+        this.player.egoShardCount--;
+        // Push an 8s recovery timer. Persists across room transitions so
+        // exiting and re-entering does NOT reset the wait.
+        this.player.shardCooldowns.push(SHARD_RECOVERY_MS);
+        this.player.egoCastCooldownMs = CAST_MIN_GAP_MS;
+      }
+    }
+    if (this.player.egoCastCooldownMs > 0) {
+      this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
+    }
+    // Tick all in-flight cooldowns. When one expires, the shard auto-returns
+    // to the player (one of the visual shards in the world is effectively
+    // claimed). We don't tie this to a specific visual shard — the queue is
+    // a pure ammo timer.
+    {
+      const cd = this.player.shardCooldowns;
+      for (let i = cd.length - 1; i >= 0; i--) {
+        cd[i] -= dt;
+        if (cd[i] <= 0) {
+          cd.splice(i, 1);
+          this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
+        }
+      }
+    }
+
+    // ── Grab / Throw (B / RB) — Spelunky-style pickup or release. ──
+    if (this.game.input.isJustPressed(GameAction.GRAB)) {
+      if (this.heldContainer) {
+        // Throw: forward + slight upward arc. ↑ = higher arc, ↓ = drop.
+        const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
+        const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
+        const facing = this.player.facingRight ? 1 : -1;
+        let vx = facing * 220;
+        let vy = -180;
+        if (lookUp) { vy = -320; vx = facing * 140; }
+        else if (lookDown) { vx = 0; vy = 40; }   // soft drop
+        this.heldContainer.release(vx, vy);
+        this.heldContainer = null;
+      } else {
+        // Pickup: scan containers within 18px of player center.
+        const px = this.player.x + this.player.width / 2;
+        const py = this.player.y + this.player.height / 2;
+        let best: ThrowableContainer | null = null;
+        let bestDist = 18 * 18;
+        for (const c of this.containers) {
+          if (c.destroyed || c.held) continue;
+          const cx = c.x + c.width / 2;
+          const cy = c.y + c.height / 2;
+          const d = (cx - px) ** 2 + (cy - py) ** 2;
+          if (d < bestDist) { best = c; bestDist = d; }
+        }
+        if (best) {
+          best.pickUp();
+          this.heldContainer = best;
+        }
+      }
+    }
+    // Held container tracks player position (anchored above shoulder).
+    if (this.heldContainer && !this.heldContainer.destroyed) {
+      const h = this.heldContainer;
+      h.x = this.player.x + (this.player.width - h.width) / 2;
+      h.y = this.player.y - h.height - 2;
+      h.container.x = h.x;
+      h.container.y = h.y;
     }
 
     // Portal interactions
@@ -2161,6 +2289,8 @@ export class LdtkWorldScene extends Scene {
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
     this.hud.updateGold(this.gold);
+    this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
+    this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
 
     // Boss HP bar ??교전 감�? 3�??�리�?
     //  1) FSM ?�태 ?�이 (detect/chase/hit/...) ???�반 경우 커버
@@ -2356,14 +2486,79 @@ export class LdtkWorldScene extends Scene {
     }
     // Non-water fluid (magma/oil/acid) entry/exit ripple — same impulse pattern
     // as water but no swim physics / oxygen handling (those are water-only).
-    const inAnyOther = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid)
-                    || isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid)
-                    || isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid);
+    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid);
+    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid);
+    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid);
+    const inAnyOther = inMagma_ || inOil_ || inAcid_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
+      const type: 'magma' | 'oil' | 'acid' = inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
+      const strength = inAnyOther ? 1.0 : 0.8;
+      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
       const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
+      // Magma entry → also emit a single steam puff (water-on-skin sizzle).
+      if (inAnyOther && inMagma_) {
+        this.steamPuff.spawn(p.x + p.width / 2, p.y + p.height, 1.2);
+      }
       this.prevPlayerInOtherFluid = inAnyOther;
     }
+    // ── Residue trail timers (oil/acid/magma) ───────────────────────────
+    // Each timer = remaining ms during which the player's feet still leave
+    // a residue blot. Touching the source fluid refreshes to full duration.
+    // Oil additionally drives the slip debuff (Player.update reads it).
+    if (inOil_) p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
+    else if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+    p.prevInOil = inOil_;
+
+    if (inAcid_) p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
+    else if (p.acidResidueRemainingMs > 0) p.acidResidueRemainingMs = Math.max(0, p.acidResidueRemainingMs - dt);
+    p.prevInAcid = inAcid_;
+
+    if (inMagma_) p.magmaResidueRemainingMs = MAGMA_RESIDUE_DURATION_MS;
+    else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
+    p.prevInMagma = inMagma_;
+
+    const footX = p.x + p.width / 2;
+    const footY = p.y + p.height;
+    const grounded = p.isGrounded();
+    this.fluidResidue.emit('oil',   footX, footY, p.oilSlipRemainingMs > 0,    grounded, p.oilSlipRemainingMs / OIL_SLIP_DURATION_MS);
+    this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
+    this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
+
+    // ── Residue contact effects: standing on a blot triggers the matching
+    // hazard. Oil = slip refresh. Acid = damage tick. Magma = burn DOT.
+    // Burning oil blot = fire DOT + Burn refresh.
+    this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
+      refreshOilSlip: () => { p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS; },
+      onAcidContact: () => {
+        let acc = p.acidTickAccum ?? 0;
+        acc += dt;
+        while (acc >= 100 /* ACID_TICK_MS */) {
+          acc -= 100;
+          const dmg = Math.max(1, Math.floor(p.maxHp * 0.005));
+          if (!p.invincible) p.hp = Math.max(0, p.hp - dmg);
+        }
+        p.acidTickAccum = acc;
+      },
+      onMagmaContact: () => {
+        // Refresh Burn DOT (mirrors magma cell behavior — initial hit + 15s burn).
+        const wasBurning = (p.burnRemainingMs ?? 0) > 0;
+        p.burnRemainingMs = 15000;
+        if (!wasBurning && !p.invincible) {
+          const dmg = Math.max(1, Math.floor(p.maxHp * 0.02));
+          p.hp = Math.max(0, p.hp - dmg);
+        }
+      },
+      onFireContact: () => {
+        // Burning oil residue — same per-frame fire DOT as fire overlay.
+        if (!p.invincible) {
+          const dmg = Math.max(1, Math.floor(p.maxHp * 0.03 * (dt / 1000)));
+          p.hp = Math.max(0, p.hp - dmg);
+        }
+        // Refresh Burn DOT so the player keeps cooking after stepping off.
+        p.burnRemainingMs = Math.max(p.burnRemainingMs ?? 0, 10000);
+      },
+    });
     // Continuous rising bubbles while submerged
     this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
@@ -2385,9 +2580,25 @@ export class LdtkWorldScene extends Scene {
       const ey = e.y + e.height;
       if (e.waterTransition !== 0) {
         const strength = e.waterTransition > 0 ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength);
+        this.waterSplash.spawn(ex, ey, strength, 'water');
         const impulseVy = e.waterTransition > 0 ? 150 : -100;
         this.fluidSystem.applyImpulse(ex, ey, impulseVy);
+      }
+      // Magma / oil / acid entry-exit splash (same as player handler).
+      const inOther = isInMagma(e.x, e.y, e.width, e.height, this.collisionGrid)
+                   || isInOil  (e.x, e.y, e.width, e.height, this.collisionGrid)
+                   || isInAcid (e.x, e.y, e.width, e.height, this.collisionGrid);
+      const prevOther = this.prevEnemyInOtherFluid[i] ?? false;
+      if (inOther !== prevOther) {
+        // Pick the fluid actually under the enemy for splash color.
+        let type: 'magma' | 'oil' | 'acid' = 'magma';
+        if (isInOil (e.x, e.y, e.width, e.height, this.collisionGrid)) type = 'oil';
+        else if (isInAcid(e.x, e.y, e.width, e.height, this.collisionGrid)) type = 'acid';
+        const strength = inOther ? 1.0 : 0.8;
+        this.waterSplash.spawn(ex, ey, strength, type);
+        const impulseVy = inOther ? 150 : -100;
+        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
+        this.prevEnemyInOtherFluid[i] = inOther;
       }
       const key = `enemy_${i}`;
       this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
@@ -2418,7 +2629,56 @@ export class LdtkWorldScene extends Scene {
     this.hitBloodSpray.update(dt);
     this.diveLandImpact.update(dt);
     this.waterSplash.update(dt);
+    this.steamPuff.update(dt);
+    this.fluidResidue.update(dt);
     this.waterBubbles.update(dt);
+    // ── Throwable containers: gravity tick + impact paint ──
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      const impact = c.update(dt, (gx, gy) => {
+        const t = this.collisionGrid[gy]?.[gx] ?? 0;
+        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+      });
+      if (impact) {
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy);
+        c.destroy();
+        this.containers.splice(i, 1);
+      }
+    }
+
+    // ── Ego Shards: flight tick + impact dispatch + retrieval scan ──
+    this.egoShard.update(
+      dt,
+      (info) => this.onEgoShardImpact(info.x, info.y, info.element),
+      (x, y) => {
+        const gx = Math.floor(x / 16);
+        const gy = Math.floor(y / 16);
+        const row = this.collisionGrid[gy];
+        const t = row?.[gx] ?? 0;
+        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+      },
+      (x, y, element) => this.checkShardEnemyHit(x, y, element),
+    );
+    // Wider retrieval hit-zone — 24px padding around the player AABB so
+    // shards stuck on adjacent walls / floor edges are easily grabbed.
+    const pad = 24;
+    const retrieved = this.egoShard.retrieveInAABB(
+      this.player.x - pad,
+      this.player.y - pad,
+      this.player.width + pad * 2,
+      this.player.height + pad * 2,
+    );
+    // Each manually-retrieved shard consumes one cooldown entry (whichever
+    // has the most time remaining, so the player saves the biggest wait).
+    for (let i = 0; i < retrieved; i++) {
+      const cd = this.player.shardCooldowns;
+      if (cd.length > 0) {
+        let maxIdx = 0;
+        for (let j = 1; j < cd.length; j++) if (cd[j] > cd[maxIdx]) maxIdx = j;
+        cd.splice(maxIdx, 1);
+      }
+      this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
+    }
     this.fluidSystem.update(dt);
     // Cellular gravity — water cells fall + spread to merge after mutations
     // (fire on water creates holes; gravity refills them from above).
@@ -2795,6 +3055,12 @@ export class LdtkWorldScene extends Scene {
     this.tileMutator.reset();
     for (const p of this.burnableProps) p.destroy();
     this.burnableProps.length = 0;
+    this.ashRemnant?.clear();
+    this.fluidResidue?.clear();
+    this.egoShard?.clear();
+    for (const c of this.containers) c.destroy();
+    this.containers.length = 0;
+    this.heldContainer = null;
 
     // Hybrid procedural pass — populate grass/wood inside LDtk-painted
     // BurnableZone rect entities + spawn Tier B BurnableProp entities.
@@ -3728,6 +3994,15 @@ export class LdtkWorldScene extends Scene {
       const p = this.burnableProps[i];
       p.update(dt);
       if (p.destroyed) {
+        // Drop ash remnant — only for props that were actually burnt out
+        // (still had burn remaining when they reached 0). Floor/free anchors
+        // leave ash; ceiling props (curtains, vines) vanish without remnant
+        // because falling ash would clip mid-air without a hanger.
+        if (p.spec.anchor !== 'ceiling') {
+          const cx = p.x + p.width / 2;
+          const baseY = p.y + p.height - 1;
+          this.ashRemnant.spawn(cx, baseY, p.width);
+        }
         this.tileMutator.unregisterBurnable(p);
         p.destroy();
         this.burnableProps.splice(i, 1);
@@ -3735,7 +4010,17 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Render overlay for fire / ice / electric cell states.
-    this.tileMutatorRenderer?.update(this.tileMutator);
+    this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid);
+
+    // Wall layer refresh — ice melted to water, wood/grass burned out, metal
+    // corroded. rerenderTilemap reads the current collisionGrid and skips
+    // tiles whose cell is now air or a fluid type (handled by LdtkRenderer).
+    if (this.wallLayerDirty) {
+      this.wallLayerDirty = false;
+      this.rerenderTilemap();
+      // New water cells (from ice melt) need a fluid body — rebuild from grid.
+      this.fluidSystem.refreshFromGrid(this.collisionGrid);
+    }
 
     // Player hazards (only when not already dead)
     if (this.player.hp > 0) {
@@ -3810,6 +4095,137 @@ export class LdtkWorldScene extends Scene {
     };
   }
 
+  /**
+   * Per-shard enemy-hit test. Returns true if the shard at (x, y) overlaps
+   * a living enemy's AABB — manager then transitions the shard to STUCK.
+   * Damage + element status applied immediately. Killing an enemy with a
+   * lodged shard auto-retrieves all shards inside its bounding box (Hades
+   * Bloodstone return-on-kill).
+   */
+  private checkShardEnemyHit(x: number, y: number, element: ShardElement): boolean {
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (x < e.x || x > e.x + e.width || y < e.y || y > e.y + e.height) continue;
+      // Base damage scales with player atk; element flavour added below.
+      const baseDmg = Math.max(2, Math.floor(this.player.atk * 0.6));
+      e.hp -= baseDmg;
+      e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
+      this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
+      this.hitSparks.spawn(x, y, false, 0);
+      // Element side-effects.
+      if (element === 'fire') {
+        e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
+      } else if (element === 'ice') {
+        // Reuse charged tick accum field as a generic slow timer marker —
+        // Enemy.ts has no dedicated freeze field yet, so apply burst dmg.
+        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.3));
+      } else if (element === 'thunder') {
+        // Thunder = extra immediate damage burst (no chain on bare hit).
+        e.hp -= Math.max(2, Math.floor(this.player.atk * 0.4));
+      }
+      if (e.hp <= 0) {
+        e.hp = 0;
+        e.onDeath();
+        // Auto-retrieve any lodged shards inside the dying enemy's AABB.
+        const got = this.egoShard.retrieveInAABB(e.x, e.y, e.width, e.height);
+        if (got > 0) {
+          this.player.egoShardCount = Math.min(this.player.egoShardCount + got, 99);
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Apply container splash paint: fill a small cell radius around the impact
+   * point with the container's fluid type. Cells that are currently solid
+   * (wall/wood/metal) are not painted — only AIR cells flip.
+   */
+  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number): void {
+    const grid = this.collisionGrid;
+    const spec = (() => { switch (kind) {
+      case 'OilDrum':       return { tile: 11, radius: 2 };
+      case 'WaterBarrel':   return { tile: 2,  radius: 2 };
+      case 'MagmaCrucible': return { tile: 6,  radius: 1 };
+      case 'AcidVial':      return { tile: 13, radius: 1 };
+    }})();
+    for (let dy = -spec.radius; dy <= spec.radius; dy++) {
+      for (let dx = -spec.radius; dx <= spec.radius; dx++) {
+        if (dx * dx + dy * dy > spec.radius * spec.radius) continue;
+        const nx = gx + dx, ny = gy + dy;
+        const row = grid[ny];
+        if (!row) continue;
+        const t = row[nx] ?? 0;
+        if (t === 0 || t === 16) row[nx] = spec.tile; // overwrite air/grass only
+      }
+    }
+    // Force fluid system + wall layer refresh so the painted cells appear.
+    this.fluidSystem.refreshFromGrid(this.collisionGrid);
+    this.rerenderTilemap();
+    // Magma + adjacent water → steam puff for theatricality.
+    if (kind === 'MagmaCrucible') {
+      this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
+    }
+  }
+
+  /**
+   * Debug helper — spawn a few containers near the player for testing.
+   * Bound to Shift+G via debug input until LDtk Entity spawning is wired.
+   */
+  private debugSpawnContainers(): void {
+    const baseX = Math.floor(this.player.x / 16) * 16 + 32;
+    const baseY = Math.floor(this.player.y / 16) * 16;
+    const kinds: ContainerKind[] = ['OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
+    for (let i = 0; i < kinds.length; i++) {
+      const c = new ThrowableContainer(kinds[i], baseX + i * 20, baseY);
+      this.containers.push(c);
+      this.entityLayer.addChild(c.container);
+    }
+  }
+
+  /**
+   * Ego Shard impact dispatcher — runs the element's effect at the impact
+   * point (cell-level). Default radius = 3×3 grid around the impact cell
+   * so a single shard reliably affects a small cluster (oil pool / drum
+   * patch / multi-cell ice block).
+   */
+  private onEgoShardImpact(px: number, py: number, element: ShardElement): void {
+    const room = this.player.roomData;
+    if (!room) return;
+    const cx = Math.floor(px / 16);
+    const cy = Math.floor(py / 16);
+    const cells: Array<[number, number]> = [];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        cells.push([cx + dx, cy + dy]);
+      }
+    }
+    if (element === 'fire') {
+      for (const [gx, gy] of cells) {
+        const t = (room[gy]?.[gx] ?? 0);
+        if (t === 7 /* ice */) this.tileMutator.tryMeltIce(room, gx, gy);
+        else if (t === 2 /* water */ && room[gy]) {
+          room[gy][gx] = 0;
+          this.fluidSystem.removeCell(gx, gy);
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
+        } else {
+          this.tileMutator.tryIgnite(room, gx, gy);
+        }
+      }
+      this.fluidResidue.ignite(px - 24, py - 24, 48, 48);
+    } else if (element === 'ice') {
+      for (const [gx, gy] of cells) {
+        this.tileMutator.tryFreeze(room, gx, gy);
+      }
+    } else if (element === 'thunder') {
+      for (const [gx, gy] of cells) {
+        if (this.tileMutator.isElectric(gx, gy)) continue;
+        this.tileMutator.applyThunderChain(room, gx, gy);
+      }
+    }
+  }
+
   /** Iterate every grid cell overlapped by an AABB. */
   private forEachCellInAABB(
     ax: number, ay: number, aw: number, ah: number,
@@ -3844,6 +4260,7 @@ export class LdtkWorldScene extends Scene {
         if (room[gy]) {
           room[gy][gx] = TILE_AIR;
           this.fluidSystem.removeCell(gx, gy); // sync fluid body
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
           actions++;
         }
       } else {
@@ -3851,9 +4268,12 @@ export class LdtkWorldScene extends Scene {
         if (this.tileMutator.tryIgnite(room, gx, gy)) actions++;
       }
     });
+    // Fire on oil residue → ignite the blot. Blots burn in place + emit fire DOT.
+    const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
+    actions += igniteN;
     // eslint-disable-next-line no-console
     console.log(
-      `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount}`,
+      `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`,
     );
     this.toast.show(`fire: ${actions}`, 0xff8844);
   }

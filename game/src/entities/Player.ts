@@ -44,6 +44,18 @@ const VAR_JUMP_CUT_MULT = PlayerConst.VarJumpCutMult;
 const APEX_THRESHOLD = PlayerConst.ApexThreshold;
 const APEX_GRAVITY_MULT = PlayerConst.ApexGravityMult;
 const AIR_ACCEL_MULT = PlayerConst.AirAccelMult;
+
+/** Oil slip — 플레이어가 oil 셀에서 빠져나온 후 미끄러짐이 지속되는 시간. */
+export const OIL_SLIP_DURATION_MS = 10000;
+/** Acid residue — acid 셀 이탈 후 잔존 trail 발생 기간. */
+export const ACID_RESIDUE_DURATION_MS = 10000;
+/** Magma residue — magma 셀 이탈 후 잔존 trail 발생 기간. */
+export const MAGMA_RESIDUE_DURATION_MS = 10000;
+
+/** Ego Shard — 기본 보유 발수. Hades Bloodstone 동일 (3발). */
+export const EGO_SHARD_MAX = 3;
+/** Time until a fired shard automatically returns to the player (ms). */
+export const SHARD_RECOVERY_MS = 8000;
 const DASH_FREEZE_MS = PlayerConst.DashFreezeMs;
 const DASH_CORNER_TOLERANCE = PlayerConst.DashCornerToleranceY;
 
@@ -191,6 +203,44 @@ export class Player extends Entity implements CombatEntity {
   acidTickAccum = 0;
   /** 이전 프레임 electric 오버레이 안이었는지 (thunder per-pulse 데미지 트래킹). */
   prevInElectric = false;
+  /**
+   * Oil slip debuff 잔여 ms. oil 셀에서 빠져나오면 OIL_SLIP_DURATION_MS 로
+   * refresh. > 0 인 동안 ice 와 동일한 미끄러짐 (frictionMul = 0.1).
+   * Scene 의 hazard tick 에서 매 프레임 감소.
+   */
+  oilSlipRemainingMs = 0;
+  /** 이전 프레임 oil 셀 안에 있었는지 — 진입·이탈 전환 감지에 사용. */
+  prevInOil = false;
+  /** Acid residue trail 잔여 시간 — 발이 acid 에 젖어있어 잔존 흔적 spawn. */
+  acidResidueRemainingMs = 0;
+  prevInAcid = false;
+  /** Magma residue trail 잔여 시간 — 발이 magma 에 그을려 잔존 흔적 spawn. */
+  magmaResidueRemainingMs = 0;
+  prevInMagma = false;
+
+  // ============================================================
+  // Ego Shard — Hades-style cast ammo
+  // ============================================================
+  /** Currently available shards (consumed by Cast, refilled by retrieval or cooldown). */
+  egoShardCount = EGO_SHARD_MAX;
+  /** Currently selected enchant — drives Shard impact effect + Attack tint. */
+  activeEnchant: 'fire' | 'ice' | 'thunder' = 'fire';
+  /** Brief anti-spam gap between casts (ms). Recovery handled by cooldown queue below. */
+  egoCastCooldownMs = 0;
+  /**
+   * One entry per fired-but-not-yet-recovered shard. Each value is the
+   * remaining ms until automatic retrieval. Persists across room changes
+   * (lives on the Player object) so the player can't spam by leaving a
+   * room. Manual retrieval (walking over a stuck shard) consumes one
+   * entry from this queue, granting the shard back immediately.
+   */
+  shardCooldowns: number[] = [];
+
+  // ============================================================
+  // Carry (Grab/Throw)
+  // ============================================================
+  /** Currently held pickable (Spelunky-style). Null = empty-handed. */
+  heldItem: { kind: string; gfx?: unknown } | null = null;
 
   /**
    * DEBUG: when true, hp is clamped to ≥1 each frame and isDead/drowned are
@@ -940,8 +990,14 @@ export class Player extends Entity implements CombatEntity {
     // Ice (IntGrid 7): near-zero friction. Acceleration and deceleration are
     // reduced to 10% so the player slides with heavy inertia. Direction changes
     // take much longer, and releasing input barely slows down.
+    //
+    // Oil slip debuff: after touching oil, the player's feet stay slick for
+    // OIL_SLIP_DURATION_MS. While `oilSlipRemainingMs > 0`, friction drops the
+    // same as on ice — even on dry ground. The debuff expires naturally on
+    // the timer; touching oil again refreshes it to full duration.
     const onIce = this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
-    const frictionMul = onIce ? 0.1 : 1.0;
+    const oilSlipping = this.grounded && this.oilSlipRemainingMs > 0;
+    const frictionMul = (onIce || oilSlipping) ? 0.1 : 1.0;
     // 공중에서는 가속/감속을 약간 줄여 도약감·조작감을 무겁게.
     const airMul = this.grounded ? 1.0 : AIR_ACCEL_MULT;
     const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60) * frictionMul * airMul;

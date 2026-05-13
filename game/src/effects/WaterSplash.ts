@@ -26,18 +26,42 @@ interface Crown {
 const CROWN_LIFE = 260;
 const DROP_LIFE = 520;
 const DROP_COUNT = 9;
-const COLOR_DROP = 0x9bd6e8;
-const COLOR_CROWN = 0xd5f0ff;
+
+interface SplashPalette { drop: number; crown: number; }
+const PALETTE_WATER: SplashPalette = { drop: 0x9bd6e8, crown: 0xd5f0ff };
+const PALETTE_MAGMA: SplashPalette = { drop: 0xffaa44, crown: 0xffd070 };
+const PALETTE_OIL:   SplashPalette = { drop: 0x664422, crown: 0x886633 };
+const PALETTE_ACID:  SplashPalette = { drop: 0x88cc44, crown: 0xaadd66 };
+
+export type SplashFluidType = 'water' | 'magma' | 'oil' | 'acid';
+function paletteFor(t: SplashFluidType): SplashPalette {
+  switch (t) {
+    case 'magma': return PALETTE_MAGMA;
+    case 'oil':   return PALETTE_OIL;
+    case 'acid':  return PALETTE_ACID;
+    default:      return PALETTE_WATER;
+  }
+}
+
+interface ColoredCrown extends Crown { palette: SplashPalette; }
+interface ColoredDrop extends Drop { palette: SplashPalette; }
 
 export class WaterSplashManager {
   private parent: Container;
-  private crowns: Crown[] = [];
-  private drops: Drop[] = [];
+  private crowns: ColoredCrown[] = [];
+  private drops: ColoredDrop[] = [];
 
   constructor(parent: Container) { this.parent = parent; }
 
-  spawn(x: number, surfaceY: number, strength: number): void {
+  /**
+   * Spawn a crown + droplet burst at (x, surfaceY).
+   *
+   * @param fluidType - default 'water'. Use 'magma' / 'oil' / 'acid' for
+   *                    non-water fluid entries so the colour reads correctly.
+   */
+  spawn(x: number, surfaceY: number, strength: number, fluidType: SplashFluidType = 'water'): void {
     const s = Math.max(0.6, Math.min(1.5, strength));
+    const palette = paletteFor(fluidType);
 
     const crown = new Graphics();
     crown.x = x; crown.y = surfaceY;
@@ -48,6 +72,7 @@ export class WaterSplashManager {
       maxLife: CROWN_LIFE,
       startR: 6 * s,
       endR: 36 * s,
+      palette,
     });
 
     for (let i = 0; i < DROP_COUNT; i++) {
@@ -56,7 +81,7 @@ export class WaterSplashManager {
       const speed = 130 + Math.random() * 140;
       const gfx = new Graphics();
       const size = 1.5 + Math.random() * 1.8;
-      gfx.circle(0, 0, size).fill({ color: COLOR_DROP, alpha: 1 });
+      gfx.circle(0, 0, size).fill({ color: palette.drop, alpha: 1 });
       gfx.x = x; gfx.y = surfaceY;
       this.parent.addChild(gfx);
       this.drops.push({
@@ -65,6 +90,7 @@ export class WaterSplashManager {
         vy: Math.sin(angle) * speed * s,
         life: DROP_LIFE * (0.6 + Math.random() * 0.6),
         maxLife: DROP_LIFE,
+        palette,
       });
     }
   }
@@ -79,7 +105,7 @@ export class WaterSplashManager {
       const alpha = Math.max(0, 1 - k);
       c.gfx.clear();
       c.gfx.ellipse(0, 0, radius, radius * 0.22)
-        .stroke({ color: COLOR_CROWN, width: 2, alpha });
+        .stroke({ color: c.palette.crown, width: 2, alpha });
       if (c.life <= 0) {
         if (c.gfx.parent) c.gfx.parent.removeChild(c.gfx);
         c.gfx.destroy();

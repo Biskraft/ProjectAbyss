@@ -76,7 +76,10 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 | 10 | void | - | 통과 | 발 진입 시 itemworld 낙하 시퀀스 트리거 (데미지 없음) | #181425 |
 | 11 | oil | - | 통과 | 가연성. 화 공격 1회 → 인접 oil 연쇄 발화 → 짧은 시간 후 air | #3A2618 |
 | 12 | metal | - | 솔리드 | 뇌 인챈트 도체. water/acid 인접 시 flood-fill 전도 | #A8A8B8 |
-| 13 | acid | - | 통과 | DOT (HP 1.6%/s) + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 | #88CC44 |
+| 13 | acid | - | 통과 | DOT (HP 0.5%/0.1s 틱) + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 | #88CC44 |
+| 14 | (예약) | - | - | LDtk 편집 중 제거. 슬롯 미사용 (Physics.ts 코멘트 참조) | - |
+| 15 | wood | - | 솔리드 | 가연성 솔리드. 발화 시 ~15초 후 air. BurnableProp(Tier B)과 별개 | #6E4823 |
+| 16 | grass | - | 통과 | 얇은 가연성 식생. 발화 시 ~3초 후 air | #5D8A3A |
 
 ### 1.2. 분류
 
@@ -91,7 +94,7 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 - 빙 = ice(7)
 - 뇌 = charged(8)
 - 무속성 위험 = spike(5), void(10), acid(13)
-- 가연/도체 자원 = oil(11), metal(12)
+- 가연/도체 자원 = oil(11), metal(12), wood(15), grass(16)
 
 ### 1.3. 확률 타일 (ItemWorldTemplates 빌드 전용)
 
@@ -239,6 +242,43 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 ## 3. 속성-타일 상호작용 매트릭스
 
+> **SSoT 위치:** 이 §3 이 IntGrid × Damage / Interaction 의 **단일 참조 출처**.
+> 코드 상수는 `game/src/systems/TileHazards.ts` 와 `game/src/systems/TileMutator.ts`.
+> CSV 시트는 `Sheets/Content_System_FluidTypes.csv` (fluid 시각·물성).
+> 값을 바꿀 때는 이 문서 → 코드 상수 → CSV 순으로 동기화한다.
+
+### 3.0. 데미지 수치 SSoT (코드 ↔ 문서 동기화)
+
+타일 접촉 / 진입 시 발생하는 즉시·지속 데미지의 **정량 SSoT**. `Documents/System/System_Combat_Damage.md` 와 충돌할 경우 이 §3.0 이 우선한다.
+
+| 출처 (셀/상태) | 첫 적중 | 지속 데미지 | 틱 간격 | 총 지속 | 코드 상수 |
+|:---|:---:|:---:|:---:|:---:|:---|
+| spike (5) | maxHp × 20% | - | - | - | `SPIKE_DAMAGE_PCT` (Player) |
+| magma (6) — 접촉 | maxHp × **2%** | Burn DOT (아래) | - | - | `MAGMA_FIRST_HIT_PCT` |
+| magma (6) — Burn DOT | - | maxHp × **2%** | 1.0 s | **15 s** (shippable) | `BURN_TICK_PCT` / `MAGMA_BURN_DURATION_MS` |
+| charged (8) — 환경 DoT | - | maxHp × **1%** | 0.5 s | 접촉 동안 무한 | TileHazards charged tick |
+| charged (8) — 뇌 펄스 | maxHp × 8% | - | 진입 트랜지션 1회 | - | `prevInElectric` 트랜지션 |
+| acid (13) | - | maxHp × **0.5%** | **0.1 s** | 접촉 동안 무한 (≈ 5%/s 명목) | `ACID_TICK_PCT` / `ACID_TICK_MS` |
+| void (10) | 데미지 0 | - | - | - | 페이드 + 안전 발판 복귀 |
+| water (2) — Thunder 감전 | - | maxHp × 8% | 풀 점등마다 1회 | flood-fill 지속 | `applyThunderChain` |
+
+> **Shippable durations:** 모든 원소 메카닉 지속값(BURN / FREEZE / ELECTRIC / ACID_TICK / BURN_DURATION_BY_TILE / BURNABLE_CATALOG.burnMs) 은 출시 그대로 사용. 원소 메카닉이 핵심 시그널이라 플레이어가 변화를 관전할 수 있도록 의도적으로 길게 설계됨 (Victor 2026-05-13 confirmed). 임의 단축 금지.
+
+### 3.0.2. BurnableProp (Tier B) 타임라인
+
+코드 상수는 `game/src/entities/BurnableProp.ts` `BURNABLE_CATALOG` 가 SSoT.
+
+| 프롭 ID | 셀 | HP | burnMs (shippable) | ignitionChance | 앵커 |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| WoodCrate | 1×1 | 1 | 12 500 | 0.45 | floor |
+| BranchPile | 1×1 | 1 | 4 000 | 0.85 | floor |
+| Bush | 1×1 | 1 | 10 000 | 0.90 | floor |
+| Curtain | 1×3 | 1 | 6 000 | 0.75 | ceiling |
+| Vine | 1×3 | 1 | 4 500 | 0.70 | ceiling |
+
+- **소진 후:** floor/free 앵커 → AshRemnant (재 잔존, 충돌 없음). ceiling 앵커 → 잔존 없음.
+- **확산 출처:** 인접 burning oil/wood/grass 셀 + 인접 BurnableProp(불타는 경우) 모두 propagation 후보. 매 `OIL_SPREAD_INTERVAL_MS` (=600ms) tick.
+
 ### 3.1. 원칙
 
 - **플레이어 에코 인챈트**가 원소 공격의 주체
@@ -247,25 +287,39 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 ### 3.2. 매트릭스
 
-| 타일 \\ 공격 원소 | 화 | 빙 | 뇌 | 무속성 |
+> **읽는 법:** "행(타일) 이 열(공격 원소) 을 맞으면 어떻게 되는가". `-` 는 효과 없음(통과). 수치는 §3.0 SSoT 와 동기.
+
+| 타일 \\ 공격 원소 | 화 (Fire) | 빙 (Ice) | 뇌 (Thunder) | 무속성 (Raw) |
 |:---|:---:|:---:|:---:|:---:|
-| **water (2)** | 증기 폭발 (범위 피해 + 물 제거) | 결빙 → wall(1) 임시 3초 | 감전 연쇄 (flood-fill, 위 적 전원 감전) | - |
-| **magma (6)** | - | 냉각 → wall(1) 임시 3초 | - | - |
-| **ice (7)** | 융해 → water(2) 영구 전환 | - | - | - |
+| **air (0)** | - | - | - | - |
+| **wall (1)** | - | - | - | - |
+| **water (2)** | 증기 폭발 (셀 → air + steam VFX + 범위 피해) | 결빙 → wall(1) 임시 15 s | flood-fill 감전 연쇄 (풀 위 적 전원) | - |
+| **platform (3)** | - | - | - | - |
+| **updraft (4)** | - | - | - | - |
+| **spike (5)** | - | - | - | - |
+| **magma (6)** | - | 냉각 → wall(1) 임시 15 s | - | - |
+| **ice (7)** | 융해 → water(2) **영구** | - | - | - |
 | **charged (8)** | - | - | - | - |
-| **breakable (9)** | 파괴 | 파괴 | 파괴 | 파괴 |
-| **oil (11)** | **발화 → 연쇄 전파 → 1.8s 후 air** | - | - | - |
-| **metal (12)** | - | - | **flood-fill 전도 (인접 water/acid 까지 확장)** | - |
-| **acid (13)** | - | - | **flood-fill 전도 (water 와 등가)** | - |
+| **breakable (9)** | 파괴 → air | 파괴 → air | 파괴 → air | 파괴 → air |
+| **void (10)** | - | - | - | - |
+| **oil (11)** | **발화 → 연쇄 전파 → ~15 s 후 air** | - | - (도체 아님) | - |
+| **metal (12)** | - | - | **flood-fill 전도** (인접 water/acid 풀까지 확장) | - |
+| **acid (13)** | - | - | **flood-fill 전도** (water 와 등가 도체) | - |
+| **wood (15)** | **발화 → ~15 s 후 air** (가장 느린 가연) | - | - | - |
+| **grass (16)** | **발화 → ~10 s 후 air** (foliage burn) | - | - | - |
+| **BurnableProp (Tier B)** | **발화 (`ignite()`) → burnMs 후 destroyed** | - | - | - |
 
-**자동 상호작용 (공격 원소 없이 발생):**
+**자동 상호작용 (공격 원소 없이 매 `AUTO_INTERACT_INTERVAL_MS` = 1.0 s 틱):**
 
-| 인접 셀 A | 인접 셀 B | 결과 |
-|:---|:---|:---|
-| acid (13) | metal (12) | 6%/tick metal → air (점진 부식) |
-| acid (13) | magma (6) | 15%/tick acid → air + 스팀 (증발) |
-| magma (6) | ice (7) | 4%/tick ice → water (자연 융해) |
-| ice (7) | water (2) | 4%/tick water → 임시 frozen (자연 결빙) |
+| 인접 셀 A | 인접 셀 B | 결과 | 코드 상수 |
+|:---|:---|:---|:---|
+| acid (13) | metal (12) | 6%/tick metal → air (점진 부식) | `ACID_METAL_CORRODE_CHANCE` |
+| acid (13) | magma (6) | 15%/tick acid → air + steam VFX | `ACID_MAGMA_VAPOR_CHANCE` |
+| magma (6) | ice (7) | 4%/tick ice → water + steam VFX | `MAGMA_ICE_MELT_CHANCE` |
+| ice (7) | water (2) | 4%/tick water → 임시 frozen (자연 결빙) | `ICE_WATER_FREEZE_CHANCE` |
+| burning oil/wood/grass | 인접 flammable (oil/wood/grass) | `OIL_SPREAD_CHANCE` = 55% 확률로 전파 (매 600 ms) | `OIL_SPREAD_INTERVAL_MS` / `OIL_SPREAD_CHANCE` |
+| burning magma | 인접 flammable | 영구 발화 출처 (magma 셀은 소진되지 않음) | `spreadOilFire` 내 magma 스캔 |
+| BurnableProp on fire | 인접 BurnableProp / 인접 flammable 셀 | `spec.ignitionChance` 확률로 점화 | `BURNABLE_CATALOG` |
 
 ### 3.3. 상호작용 상세
 
@@ -295,12 +349,14 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 - 얼음 바닥이 물로 바뀜 (지형 영구 변화)
 - 전략: 얼음 바닥 위의 적이 물에 빠짐 → 뇌로 추가타
 
-**화 + oil → 연쇄 발화**
-- 적중 oil 셀 fire 값 1.0 으로 설정
-- 매 tick (~120ms) 인접 4방 oil 셀로 55% 확률 전파
-- 발화 oil 위 적 → 화상(Burn) 상태이상 부여
-- 발화 후 1.8초 burn → air(0) 전환 (재 잔존 없음)
-- 전략: 적 동선 앞에 oil 깔고 한 점만 점화 → 연쇄 폭격
+**화 + oil/wood/grass → 연쇄 발화**
+- 적중 셀에 burning 상태 설정 (`tryIgnite`)
+- 매 `OIL_SPREAD_INTERVAL_MS` (=600 ms) 인접 4방 flammable 셀로 `OIL_SPREAD_CHANCE` (=55%) 전파
+- magma 셀은 영구 발화 출처 — 인접 flammable 점화 후에도 magma 자체는 소진되지 않음
+- 발화 셀 위 적·플레이어 → 화상(Burn) 상태이상 부여 (DOT 시작)
+- 발화 지속: grass 10 s / oil 15 s / wood 15 s — **shippable showcase values**. 화염 전파는 핵심 메카닉 시그널이라 플레이어가 확산·연쇄 반응을 관전할 수 있도록 의도적으로 길게 유지. ÷5 검증 단축 대상 아님 → air(0) 전환
+- BurnableProp(Tier B) 도 점화 대상. 인접 burning 셀이 prop 셀에 닿으면 `spec.ignitionChance` 굴림
+- 전략: 적 동선 앞에 oil 깔고 한 점만 점화 → 연쇄 폭격. grass 는 빨라서 트리거선, wood 는 느려서 지연 폭탄
 
 **뇌 + metal → flood-fill 전도**
 - 적중 metal 셀과 connected 4방 metal 그룹 전체 감전
@@ -322,6 +378,19 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 - 매 tick 15% 확률로 magma 인접 acid → air
 - 산이 magma 의 열에 증발 → 스팀 VFX
 - 전략: 산성 풀을 magma 로 차단 / 우회 경로 강제
+
+### 3.4. VFX 트리거 SSoT
+
+| 이벤트 | VFX | 출처 코드 | 비고 |
+|:---|:---|:---|:---|
+| 화 공격 → water 셀 제거 | `SteamPuffManager.spawn(cx, cy, 1.2)` | `LdtkWorldScene.debugIgniteAtPlayer` | 화 셀 단위 |
+| magma → ice 융해 (passive) | `SteamPuffManager.spawn(cx, cy, 1.0)` | `TileMutator.maybeMutateNeighbourWithSteam` | 융해된 셀 위치 |
+| acid → magma 증발 (passive) | `SteamPuffManager.spawn(cx, cy, 1.0)` | `TileMutator.tickPassiveInteractions` | acid 셀 위치 |
+| 플레이어 magma 진입 | `SteamPuffManager.spawn` + `WaterSplashManager.spawn('magma')` | `LdtkWorldScene.update` | 진입 트랜지션 |
+| 플레이어/적 oil·acid 진입·탈출 | `WaterSplashManager.spawn(type)` + `FluidSystem.applyImpulse` | 〃 | 색상은 fluid 별 팔레트 |
+| 플레이어 water 진입·탈출 | `WaterSplashManager.spawn('water')` + bubble emit | 〃 | 기존 |
+| BurnableProp 소진 (floor 앵커) | `AshRemnantManager.spawn` | `LdtkWorldScene` burn-out 처리 | ceiling 앵커는 잔존 없음 |
+| Burn 상태 활성 (`burnRemainingMs > 0`) | HUD `setBurnStatus` (flame 아이콘 + 라디얼 게이지) | `HUD.setBurnStatus` | maxHp × 2%/s DOT 시각 신호 |
 
 ---
 

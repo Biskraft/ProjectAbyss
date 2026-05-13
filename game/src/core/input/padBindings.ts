@@ -30,7 +30,11 @@ export const PAD_BINDINGS: Partial<Record<GameAction, readonly number[]>> = {
   // Start (가운데) 는 잡은 상태에서 누르기 어려워 B (FACE_RIGHT) 도 cancel/close 로 추가.
   // B = Xbox 표준 "back/cancel" — inventory · map · DivePreview 등 모달 close 일관 동작.
   [GameAction.MENU]: [GP.START, GP.FACE_RIGHT],
-  // Y (FACE_UP) = 회복 (FLASK). 기억 단편 Active (명세 §3.1 의 Y 점유 예정) 가 아직
-  // 미구현이라 임시 점유. 추후 충돌 시 재배정.
-  [GameAction.FLASK]: [GP.FACE_UP],
+  // Flask 회복 = LB. 이전엔 Y 점유했으나 Hades 식 Cast 도입으로 Y 가 CAST 로
+  // 재배정. LB 는 비어있던 좌 범퍼. 우측 RT 가 대시인 점과 대칭 (좌=heal · 우=mobility).
+  [GameAction.FLASK]: [GP.LB],
+  // Y (FACE_UP) = Ego Shard Cast. §3.1 명세의 "기억 단편 Active" 자리에 도입.
+  [GameAction.CAST]: [GP.FACE_UP],
+  // RB = Grab/Throw. 첫 누름 = 인접 pickable 들기, 두 번째 누름 = 던지기.
+  [GameAction.GRAB]: [GP.RB],
 };
