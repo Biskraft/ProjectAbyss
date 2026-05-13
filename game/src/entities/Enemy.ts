@@ -49,6 +49,12 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   chargedTickAccum = 0;
   acidTickAccum = 0;
   prevInElectric = false;
+  /**
+   * Frozen status — set by Ice Ego Shard impact. While > 0 the enemy is
+   * fully halted: AI tick skipped, vx zeroed, body tinted blue. Decrements
+   * each frame. 0 = normal.
+   */
+  frozenRemainingMs = 0;
 
   // Physics
   protected grounded = false;
@@ -200,7 +206,18 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     if (this.turnCooldownMs > 0) this.turnCooldownMs = Math.max(0, this.turnCooldownMs - dt);
     if (this.turnPauseMs > 0) this.turnPauseMs = Math.max(0, this.turnPauseMs - dt);
 
-    this.fsm.update(dt);
+    // Frozen status — skip AI tick + zero motion. Gravity still applies
+    // via the movement block below (frozen enemies in the air will fall).
+    if (this.frozenRemainingMs > 0) {
+      this.frozenRemainingMs = Math.max(0, this.frozenRemainingMs - dt);
+      this.vx = 0;
+      this.sprite.tint = 0x88ccff;
+    } else {
+      // Restore tint once unfrozen, but leave other tints (e.g. invincible
+      // flash) untouched by checking the current tint isn't ice-blue.
+      if (this.sprite.tint === 0x88ccff) this.sprite.tint = 0xffffff;
+      this.fsm.update(dt);
+    }
 
     if (this.movementType === 'flying') {
       // Flying enemies: no gravity, free movement. Only solid walls block.

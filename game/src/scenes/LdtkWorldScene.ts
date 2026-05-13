@@ -117,8 +117,8 @@ import { WaterBubblesManager } from '@effects/WaterBubbles';
 import { SteamPuffManager } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { FluidResidueManager } from '@effects/FluidResidue';
-import { EgoShardManager, CAST_MIN_GAP_MS, type ShardElement } from '@effects/EgoShard';
-import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
+import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
+import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
@@ -395,6 +395,11 @@ export class LdtkWorldScene extends Scene {
   private ashRemnant!: AshRemnantManager;
   private fluidResidue!: FluidResidueManager;
   private egoShard!: EgoShardManager;
+  private egoShardPreview!: EgoShardPreview;
+  /** Time the player has been holding CAST this charge (ms). 0 = not charging. */
+  private egoCastChargeMs = 0;
+  /** Accumulator: drains 1 oil cell under the player every 200 ms. */
+  private oilDrainAccumMs = 0;
   private containers: ThrowableContainer[] = [];
   /** Currently held container (Spelunky-style — one at a time). */
   private heldContainer: ThrowableContainer | null = null;
@@ -940,6 +945,7 @@ export class LdtkWorldScene extends Scene {
     this.ashRemnant = new AshRemnantManager(this.entityLayer);
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShard = new EgoShardManager(this.entityLayer);
+    this.egoShardPreview = new EgoShardPreview(this.entityLayer);
     // Fluid evaporation → drop permanent residue on the floor cell.
     this.fluidSystem.onEvaporated = (gx, gy, type) => {
       if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
@@ -1003,8 +1009,10 @@ export class LdtkWorldScene extends Scene {
     };
     this.game.uiContainer.addChild(this.deathScreen.container);
 
-    // Tutorial hints
+    // Tutorial hints — restore "already-seen" ids from save so loaded games
+    // don't re-show hints the player already completed.
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
+    if (saveData) this.tutorialHint.hydrate(saveData.completedTutorialHints);
 
     // Ending sequence
     this.ending = new EndingSequence({
@@ -2075,6 +2083,7 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnSecretWalls();
     this.checkAttackOnBreakables();
     this.checkAttackOnBreakableEntities();
+    this.checkAttackOnContainers();
     for (const door of this.lockedDoors) door.update(dt);
     for (const wall of this.growingWalls) {
       wall.update(dt);
@@ -2189,28 +2198,53 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // ── Hades-style Cast (V / Y) — fire an Ego Shard in facing direction. ──
-    if (this.game.input.isJustPressed(GameAction.CAST)) {
-      if (this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0) {
-        const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
-        const px = this.player.x + this.player.width / 2 + facing * 4;
-        const py = this.player.y + this.player.height * 0.45;
-        const el = this.player.activeEnchant;
-        this.egoShard.spawn(px, py, facing, el);
+    // ── Hold-and-release Cast (V / Y) — charge a shard, release to fire.
+    // While held, render a trajectory preview matching the charged power.
+    const castDown = this.game.input.isDown(GameAction.CAST);
+    const canCast = this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
+    const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
+    // Launch from the aim-pose gun muzzle. The aim sprite extends the gun
+    // ~14 px past the player's body center; launchY sits at the arm/shoulder
+    // line where the gun is held, raised by 5 px to match the sprite.
+    const launchX = this.player.x + this.player.width / 2 + facing * 14;
+    const launchY = this.player.y + this.player.height * 0.38 - 5;
+    if (castDown && canCast) {
+      this.egoCastChargeMs = Math.min(this.egoCastChargeMs + dt, CAST_CHARGE_MAX_MS);
+      this.player.isAiming = true;
+      const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
+      const grid = this.collisionGrid;
+      this.egoShardPreview.show(
+        launchX, launchY, vx, vy, this.player.activeEnchant,
+        (x, y) => {
+          const gx = Math.floor(x / 16);
+          const gy = Math.floor(y / 16);
+          const t = grid[gy]?.[gx] ?? 0;
+          return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+        },
+      );
+    } else if (!castDown && this.egoCastChargeMs > 0) {
+      // Released — fire shard with whatever charge accumulated.
+      if (canCast) {
+        const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
+        this.egoShard.spawn(launchX, launchY, vx, vy, this.player.activeEnchant);
         this.player.egoShardCount--;
-        // Push an 8s recovery timer. Persists across room transitions so
-        // exiting and re-entering does NOT reset the wait.
         this.player.shardCooldowns.push(SHARD_RECOVERY_MS);
         this.player.egoCastCooldownMs = CAST_MIN_GAP_MS;
       }
+      this.egoCastChargeMs = 0;
+      this.egoShardPreview.hide();
+      this.player.isAiming = false;
+    } else {
+      this.egoShardPreview.hide();
+      this.player.isAiming = false;
     }
     if (this.player.egoCastCooldownMs > 0) {
       this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
     }
-    // Tick all in-flight cooldowns. When one expires, the shard auto-returns
-    // to the player (one of the visual shards in the world is effectively
-    // claimed). We don't tie this to a specific visual shard — the queue is
-    // a pure ammo timer.
+    // Tick all in-flight cooldowns. When one expires, the OLDEST living
+    // shard in the world is called back to the Ego sword — visually
+    // disappears with a ring burst. This keeps the world from accumulating
+    // forgotten shards as the player keeps firing.
     {
       const cd = this.player.shardCooldowns;
       for (let i = cd.length - 1; i >= 0; i--) {
@@ -2218,6 +2252,7 @@ export class LdtkWorldScene extends Scene {
         if (cd[i] <= 0) {
           cd.splice(i, 1);
           this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
+          this.egoShard.removeOldestShard();
         }
       }
     }
@@ -2225,15 +2260,11 @@ export class LdtkWorldScene extends Scene {
     // ── Grab / Throw (B / RB) — Spelunky-style pickup or release. ──
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
-        // Throw: forward + slight upward arc. ↑ = higher arc, ↓ = drop.
-        const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
-        const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
+        // Short underhand toss — 1/4 of the previous range. vx + |vy|
+        // both halved → range D ∝ vx·|vy| becomes D/4. Container lands
+        // about 2~3 cells in front of the player.
         const facing = this.player.facingRight ? 1 : -1;
-        let vx = facing * 220;
-        let vy = -180;
-        if (lookUp) { vy = -320; vx = facing * 140; }
-        else if (lookDown) { vx = 0; vy = 40; }   // soft drop
-        this.heldContainer.release(vx, vy);
+        this.heldContainer.release(facing * 80, -170);
         this.heldContainer = null;
       } else {
         // Pickup: scan containers within 18px of player center.
@@ -2506,8 +2537,34 @@ export class LdtkWorldScene extends Scene {
     // Each timer = remaining ms during which the player's feet still leave
     // a residue blot. Touching the source fluid refreshes to full duration.
     // Oil additionally drives the slip debuff (Player.update reads it).
-    if (inOil_) p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-    else if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+    if (inOil_) {
+      p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
+      // Drain oil cells under the player at ~1 cell per 200 ms so a soaked
+      // player gradually consumes the pool. Picks a random oil cell inside
+      // the player AABB so the trail isn't strictly deterministic.
+      this.oilDrainAccumMs = (this.oilDrainAccumMs ?? 0) + dt;
+      while (this.oilDrainAccumMs >= 200) {
+        this.oilDrainAccumMs -= 200;
+        const oilCells: Array<[number, number]> = [];
+        const leftGx  = Math.floor(p.x / 16);
+        const rightGx = Math.floor((p.x + p.width - 1) / 16);
+        const topGy   = Math.floor(p.y / 16);
+        const botGy   = Math.floor((p.y + p.height - 1) / 16);
+        for (let gy = topGy; gy <= botGy; gy++) {
+          for (let gx = leftGx; gx <= rightGx; gx++) {
+            if (this.collisionGrid[gy]?.[gx] === 11) oilCells.push([gx, gy]);
+          }
+        }
+        if (oilCells.length === 0) break;
+        const [dgx, dgy] = oilCells[Math.floor(Math.random() * oilCells.length)];
+        this.collisionGrid[dgy][dgx] = 0;
+        this.fluidSystem.removeCell(dgx, dgy);
+        this.fluidResidue.dropAt('oil', (dgx + 0.5) * 16, (dgy + 1) * 16, 1.0);
+      }
+    } else {
+      this.oilDrainAccumMs = 0;
+      if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+    }
     p.prevInOil = inOil_;
 
     if (inAcid_) p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
@@ -2632,19 +2689,32 @@ export class LdtkWorldScene extends Scene {
     this.steamPuff.update(dt);
     this.fluidResidue.update(dt);
     this.waterBubbles.update(dt);
-    // ── Throwable containers: gravity tick + impact paint ──
+    // ── Throwable containers: gravity tick + impact paint + stacking ──
+    const isContainerSolidCell = (gx: number, gy: number): boolean => {
+      const t = this.collisionGrid[gy]?.[gx] ?? 0;
+      return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+    };
+    const isAcidCell = (gx: number, gy: number) =>
+      (this.collisionGrid[gy]?.[gx] ?? 0) === 13;
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
-      const impact = c.update(dt, (gx, gy) => {
-        const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-      });
+      const dissolved = c.tickEnvironment(dt, isAcidCell);
+      if (dissolved) {
+        // Metal crate corroded — no fluid paint, just destroy. Small acid
+        // puff cue would be nice but skip for now.
+        c.destroy();
+        this.containers.splice(i, 1);
+        continue;
+      }
+      const impact = c.update(dt, isContainerSolidCell, this.containers);
       if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy);
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
         c.destroy();
         this.containers.splice(i, 1);
       }
     }
+    // ── Player ↔ container collision (push / stack / block) ──
+    this.resolvePlayerContainerCollision();
 
     // ── Ego Shards: flight tick + impact dispatch + retrieval scan ──
     this.egoShard.update(
@@ -2657,7 +2727,7 @@ export class LdtkWorldScene extends Scene {
         const t = row?.[gx] ?? 0;
         return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
       },
-      (x, y, element) => this.checkShardEnemyHit(x, y, element),
+      (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
     );
     // Wider retrieval hit-zone — 24px padding around the player AABB so
     // shards stuck on adjacent walls / floor edges are easily grabbed.
@@ -3078,6 +3148,57 @@ export class LdtkWorldScene extends Scene {
       // eslint-disable-next-line no-console
       console.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
     }
+
+    // Throwable Container entities — LDtk-placed Box props player can grab/throw.
+    //   Entity type:  "Container"
+    //   Fields:
+    //     Kind         (Enum or String) — Crate / OilDrum / WaterBarrel /
+    //                                     MagmaCrucible / AcidVial
+    //     FluidVolume  (Integer, optional) — number of cells flooded on
+    //                                        break. If omitted or < 0,
+    //                                        falls back to spec default.
+    // Position uses the entity's px[] top-left.
+    const containerEnts = level.entities.filter(e => e.type === 'Container');
+    let spawnedCount = 0;
+    const spawnLog: string[] = [];
+    for (const ent of containerEnts) {
+      const fields = ent.fields ?? {};
+      const kind = parseContainerKind(fields['Kind']);
+      if (!kind) {
+        // eslint-disable-next-line no-console
+        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) — invalid, skipped. Valid values: Crate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial`);
+        continue;
+      }
+      const fvRaw = fields['FluidVolume'];
+      const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
+      // Use the entity's GRID position (cell coords) for a pivot-independent
+      // top-left. LDtk's `px` depends on the entity definition's pivot
+      // (center vs top-left) which we can't see from the loader; `grid`
+      // is always the cell containing the entity, so `grid * 16` is the
+      // unambiguous top-left of the cell.
+      const cx = ent.grid[0] * 16;
+      const cy = ent.grid[1] * 16;
+      const c = new ThrowableContainer(kind, cx, cy, fluidVolume);
+      this.containers.push(c);
+      this.entityLayer.addChild(c.container);
+      spawnLog.push(`  ${kind}@(${cx},${cy}) px=(${ent.px[0]},${ent.px[1]}) grid=(${ent.grid[0]},${ent.grid[1]}) vol=${c.fluidVolume}`);
+      spawnedCount++;
+    }
+    // Settle all spawned containers in dependency order — bottom containers
+    // first so containers placed above them detect the proper resting
+    // position. Loop is small (typically < 20) so cost is negligible.
+    {
+      const isContainerSolidCell = (gx: number, gy: number): boolean => {
+        const t = this.collisionGrid[gy]?.[gx] ?? 0;
+        return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
+      };
+      const sorted = [...this.containers].sort((a, b) => b.y - a.y);
+      for (const c of sorted) c.settleAtSpawn(isContainerSolidCell, this.containers);
+    }
+    // Always log how many Container entities were seen vs spawned + where —
+    // helps diagnose camera-out-of-view, off-grid, etc.
+    // eslint-disable-next-line no-console
+    console.log(`[Container] level="${level.identifier}" found=${containerEnts.length} spawned=${spawnedCount}\n${spawnLog.join('\n')}`);
 
     // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
     this.fluidSystem.attach(level);
@@ -3667,6 +3788,7 @@ export class LdtkWorldScene extends Scene {
       gold: this.gold,
       playtime: this.game.stats.playTimeMs,
       healthShardBonus: this.healthShardBonus,
+      completedTutorialHints: this.tutorialHint.getCompletedIds(),
     });
     this.toast.show(t('toast.game_saved'), 0x44ffaa);
     trackSave(
@@ -4096,6 +4218,28 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
+   * Per-shard container-hit test. Returns true if the shard at (x, y)
+   * overlaps any container AABB. Applies takeAttack damage and breaks
+   * the container on kill (BFS-paint via paintContainerImpact).
+   */
+  private checkShardContainerHit(x: number, y: number): boolean {
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      if (c.destroyed || c.held) continue;
+      if (x < c.x || x > c.x + c.spec.width || y < c.y || y > c.y + c.spec.height) continue;
+      const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
+      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      if (impact) {
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
+        c.destroy();
+        this.containers.splice(i, 1);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Per-shard enemy-hit test. Returns true if the shard at (x, y) overlaps
    * a living enemy's AABB — manager then transitions the shard to STUCK.
    * Damage + element status applied immediately. Killing an enemy with a
@@ -4116,12 +4260,28 @@ export class LdtkWorldScene extends Scene {
       if (element === 'fire') {
         e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
       } else if (element === 'ice') {
-        // Reuse charged tick accum field as a generic slow timer marker —
-        // Enemy.ts has no dedicated freeze field yet, so apply burst dmg.
-        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.3));
+        // 2s 정식 빙결 — AI tick 중지 + vx=0 + 푸른 tint (Enemy.frozenRemainingMs).
+        e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
       } else if (element === 'thunder') {
-        // Thunder = extra immediate damage burst (no chain on bare hit).
+        // 즉발 추가 데미지 + 적의 위치 셀이 도체 풀(water/metal/acid) 이면
+        // flood-fill thunder chain 트리거 — 단일 표적이 풀 위에 서있을 때
+        // 풀 전체 점등이라는 대형 시너지로 이어짐.
         e.hp -= Math.max(2, Math.floor(this.player.atk * 0.4));
+        const room = this.player.roomData;
+        if (room) {
+          // 2×2 corner-snap centered on enemy AABB center — keeps thunder
+          // chain footprint consistent with shard impact (2×2 cells).
+          const ax = Math.round((e.x + e.width / 2) / 16);
+          const ay = Math.round((e.y + e.height / 2) / 16);
+          const chainCells: Array<[number, number]> = [
+            [ax - 1, ay - 1], [ax, ay - 1],
+            [ax - 1, ay],     [ax, ay],
+          ];
+          for (const [nx, ny] of chainCells) {
+            if (this.tileMutator.isElectric(nx, ny)) continue;
+            this.tileMutator.applyThunderChain(room, nx, ny);
+          }
+        }
       }
       if (e.hp <= 0) {
         e.hp = 0;
@@ -4138,34 +4298,130 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
+   * Resolve player AABB vs every container AABB. Smallest penetration axis
+   * decides: horizontal contact pushes the container (passing the player's
+   * vx through) or stops the player; vertical contact lets the player stand
+   * on top or get bonked from below.
+   */
+  private resolvePlayerContainerCollision(): void {
+    const p = this.player;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      // AABB overlap test
+      const cx0 = c.x, cy0 = c.y, cx1 = c.x + c.spec.width, cy1 = c.y + c.spec.height;
+      const px0 = p.x, py0 = p.y, px1 = p.x + p.width, py1 = p.y + p.height;
+      if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
+      // Penetration on each axis
+      const overlapLeft   = px1 - cx0;       // player coming from left → push right
+      const overlapRight  = cx1 - px0;       // player coming from right → push left
+      const overlapTop    = py1 - cy0;       // player landing from above
+      const overlapBottom = cy1 - py0;       // player bonking from below
+      const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+      if (min === overlapTop) {
+        // Player stands on container (vertical stack — counts as ground).
+        p.y = cy0 - p.height;
+        if (p.getVy() > 0) p.vy = 0;
+        // Treat the container top as ground for jump / land state. The flag
+        // gets refreshed each frame so the player can keep jumping off it.
+        p.forceGrounded();
+      } else if (min === overlapBottom) {
+        // Player jumped into container from underneath: stop upward motion.
+        p.y = cy1;
+        if (p.getVy() < 0) p.vy = 0;
+      } else if (min === overlapLeft) {
+        // Player pushing rightward into container — push container OR block.
+        if (Math.abs(p.getVx()) > 20) {
+          c.x += Math.max(0, overlapLeft - 1);  // bleed 1px to keep contact
+          p.x = cx0 - p.width;
+        } else {
+          p.x = cx0 - p.width;
+        }
+      } else if (min === overlapRight) {
+        if (Math.abs(p.getVx()) > 20) {
+          c.x -= Math.max(0, overlapRight - 1);
+          p.x = cx1;
+        } else {
+          p.x = cx1;
+        }
+      }
+    }
+  }
+
+  /**
    * Apply container splash paint: fill a small cell radius around the impact
    * point with the container's fluid type. Cells that are currently solid
    * (wall/wood/metal) are not painted — only AIR cells flip.
    */
-  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number): void {
+  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
     const grid = this.collisionGrid;
-    const spec = (() => { switch (kind) {
-      case 'OilDrum':       return { tile: 11, radius: 2 };
-      case 'WaterBarrel':   return { tile: 2,  radius: 2 };
-      case 'MagmaCrucible': return { tile: 6,  radius: 1 };
-      case 'AcidVial':      return { tile: 13, radius: 1 };
-    }})();
-    for (let dy = -spec.radius; dy <= spec.radius; dy++) {
-      for (let dx = -spec.radius; dx <= spec.radius; dx++) {
-        if (dx * dx + dy * dy > spec.radius * spec.radius) continue;
-        const nx = gx + dx, ny = gy + dy;
-        const row = grid[ny];
-        if (!row) continue;
-        const t = row[nx] ?? 0;
-        if (t === 0 || t === 16) row[nx] = spec.tile; // overwrite air/grass only
+    const tile: number = (() => {
+      switch (kind) {
+        case 'OilDrum':       return 11;
+        case 'WaterBarrel':   return 2;
+        case 'MagmaCrucible': return 6;
+        case 'AcidVial':      return 13;
+        case 'Crate':         return 0;
+        case 'MetalCrate':    return 0;
       }
+    })();
+    if (tile > 0 && quantity > 0) {
+      this.paintFluidSplash(grid, gx, gy, tile, quantity);
+      this.fluidSystem.refreshFromGrid(this.collisionGrid);
+      this.rerenderTilemap();
     }
-    // Force fluid system + wall layer refresh so the painted cells appear.
-    this.fluidSystem.refreshFromGrid(this.collisionGrid);
-    this.rerenderTilemap();
-    // Magma + adjacent water → steam puff for theatricality.
     if (kind === 'MagmaCrucible') {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
+    }
+  }
+
+  /**
+   * BFS-flood paint up to `quantity` cells starting from (sx, sy). Cells
+   * that get overwritten:
+   *   air(0) · grass(16) · existing fluids (water/oil/acid/magma)
+   * Solid cells (wall/ice/breakable/metal/wood) block both paint and
+   * expansion — natural splash bounded by terrain. Painting magma over
+   * flammable neighbours immediately ignites them so the user sees fire
+   * rather than waiting for the slower 600ms passive spread tick.
+   */
+  private paintFluidSplash(grid: number[][], sx: number, sy: number, tile: number, quantity: number): void {
+    if (quantity <= 0) return;
+    const W = grid[0]?.length ?? 0;
+    if (!W) return;
+    const isPaintable = (t: number) =>
+      t === 0 || t === 16 || t === 2 || t === 6 || t === 11 || t === 13;
+    const key = (x: number, y: number) => y * W + x;
+    const visited = new Set<number>();
+    const queue: Array<[number, number]> = [[sx, sy]];
+    visited.add(key(sx, sy));
+    let painted = 0;
+    const paintedCells: Array<[number, number]> = [];
+    while (queue.length > 0 && painted < quantity) {
+      const [x, y] = queue.shift()!;
+      const row = grid[y];
+      if (!row) continue;
+      const t = row[x] ?? -1;
+      if (isPaintable(t)) {
+        row[x] = tile;
+        painted++;
+        paintedCells.push([x, y]);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          const k = key(nx, ny);
+          if (!visited.has(k)) {
+            visited.add(k);
+            queue.push([nx, ny]);
+          }
+        }
+      }
+    }
+    // Magma paint → immediately ignite adjacent flammable cells so the
+    // user sees a chain reaction the same frame the container breaks.
+    if (tile === 6) {
+      for (const [px, py] of paintedCells) {
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          this.tileMutator.tryIgnite(grid, px + dx, py + dy);
+        }
+      }
     }
   }
 
@@ -4186,21 +4442,19 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Ego Shard impact dispatcher — runs the element's effect at the impact
-   * point (cell-level). Default radius = 3×3 grid around the impact cell
-   * so a single shard reliably affects a small cluster (oil pool / drum
-   * patch / multi-cell ice block).
+   * point. Damage footprint = 2×2 cells whose shared corner is nearest to
+   * the impact pixel (nearest-corner snap). Compact, picks the most-likely
+   * intended 4 cells without overshooting into unrelated terrain.
    */
   private onEgoShardImpact(px: number, py: number, element: ShardElement): void {
     const room = this.player.roomData;
     if (!room) return;
-    const cx = Math.floor(px / 16);
-    const cy = Math.floor(py / 16);
-    const cells: Array<[number, number]> = [];
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        cells.push([cx + dx, cy + dy]);
-      }
-    }
+    const ax = Math.round(px / 16);   // grid corner nearest the impact pixel
+    const ay = Math.round(py / 16);
+    const cells: Array<[number, number]> = [
+      [ax - 1, ay - 1], [ax, ay - 1],
+      [ax - 1, ay],     [ax, ay],
+    ];
     if (element === 'fire') {
       for (const [gx, gy] of cells) {
         const t = (room[gy]?.[gx] ?? 0);
@@ -4213,7 +4467,9 @@ export class LdtkWorldScene extends Scene {
           this.tileMutator.tryIgnite(room, gx, gy);
         }
       }
-      this.fluidResidue.ignite(px - 24, py - 24, 48, 48);
+      // Residue ignite box matches the 2×2 cell footprint, anchored at the
+      // snap corner so it's centered exactly on the same 4 cells.
+      this.fluidResidue.ignite((ax - 1) * 16, (ay - 1) * 16, 32, 32);
     } else if (element === 'ice') {
       for (const [gx, gy] of cells) {
         this.tileMutator.tryFreeze(room, gx, gy);
@@ -4460,6 +4716,35 @@ export class LdtkWorldScene extends Scene {
       this.secretWalls.push(wall);
       // Add to wallLayer so PaletteSwapFilter applies to hint cracks
       this.renderer.wallLayer.addChild(wall.container);
+    }
+  }
+
+  /**
+   * Player sword swing → container damage. Mirrors checkAttackOnSecretWalls
+   * pattern: get current combo step hitbox, AABB-overlap each container,
+   * apply atk damage. On destroy → BFS fluid paint + container teardown.
+   */
+  private checkAttackOnContainers(): void {
+    if (!this.player.isAttackActive()) return;
+    const step = this.player.getAttackStep(this.player.comboIndex);
+    if (!step) return;
+    const hitbox = getAttackHitbox(
+      this.player.x, this.player.y, this.player.width, this.player.height,
+      this.player.facingRight ?? true, step,
+    );
+    const dmg = Math.max(1, Math.floor(this.player.atk));
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      if (c.destroyed || c.held) continue;
+      const cBox = { x: c.x, y: c.y, width: c.spec.width, height: c.spec.height };
+      if (!aabbOverlap(hitbox, cBox)) continue;
+      const impact = c.takeAttack(dmg);
+      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      if (impact) {
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
+        c.destroy();
+        this.containers.splice(i, 1);
+      }
     }
   }
 

@@ -101,19 +101,31 @@ export class TileMutatorRenderer {
       //   grass = thin foliage growing UP from the floor below = BOTTOM of cell
       //           (so flames sit on the floor, not floating one cell above).
       const flameBaseY = isGrass ? y + 16 : y;
-      // Halo follows the flame source so the light bath is centered where
-      // the heat actually is.
-      const haloCy = flameBaseY - 4;
+      // Halo follows the flame source. For grass we sink the halo center
+      // BELOW cell bottom (into the wall row) so the BlurFilter spread bias
+      // is downward — the user perceives the warm glow as "from the floor",
+      // not "floating in the cell above the grass".
+      const haloCy = isGrass ? y + 18 : flameBaseY - 4;
 
-      // ── Fire halo — broad warm light bath. BlurFilter on fh smooths edges. ──
+      // ── Fire halo — broad warm light bath. BlurFilter on fh smooths edges.
+      // Grass halo is smaller + dimmer because the cell is thin foliage; a
+      // full-strength halo bleeds into the row above and looks like the
+      // fire originates there.
       const cx = x + 8;
       const haloPulse = 0.8 + Math.sin(t * 0.008 + cellSeed * 0.6) * 0.2;
-      fh.ellipse(cx, haloCy, 28 * haloPulse, 22 * haloPulse)
-        .fill({ color: 0xff7733, alpha: 0.55 });
-      fh.ellipse(cx, haloCy - 2, 14 * haloPulse, 12 * haloPulse)
-        .fill({ color: 0xffdd66, alpha: 0.75 });
-      fh.circle(cx, haloCy, 5 * haloPulse)
-        .fill({ color: 0xffffff, alpha: 0.55 });
+      if (isGrass) {
+        fh.ellipse(cx, haloCy, 12 * haloPulse, 6 * haloPulse)
+          .fill({ color: 0xff7733, alpha: 0.45 });
+        fh.ellipse(cx, haloCy - 1, 7 * haloPulse, 4 * haloPulse)
+          .fill({ color: 0xffdd66, alpha: 0.6 });
+      } else {
+        fh.ellipse(cx, haloCy, 28 * haloPulse, 22 * haloPulse)
+          .fill({ color: 0xff7733, alpha: 0.55 });
+        fh.ellipse(cx, haloCy - 2, 14 * haloPulse, 12 * haloPulse)
+          .fill({ color: 0xffdd66, alpha: 0.75 });
+        fh.circle(cx, haloCy, 5 * haloPulse)
+          .fill({ color: 0xffffff, alpha: 0.55 });
+      }
 
       // ── Multi-strand teardrop flames (realistic fire silhouette) ──
       // Grass cells get SHORTER strands so the flame body fits inside the
@@ -122,9 +134,11 @@ export class TileMutatorRenderer {
       // Bulge control also biased lower for grass (heavy at base = floor).
       const strands: Array<{ cxOff: number; phase: number; tall: number; wide: number }> = isGrass
         ? [
-            { cxOff: 8,   phase: t * 0.018 + cellSeed * 1.7, tall: 13, wide: 6 },
-            { cxOff: 3.5, phase: t * 0.020 + cellSeed * 2.3, tall: 10, wide: 4.5 },
-            { cxOff: 12.5,phase: t * 0.019 + cellSeed * 3.1, tall: 11, wide: 4.5 },
+            // Heights capped well under 16 (cell size) so the flame stays
+            // inside the grass cell and never licks into the row above.
+            { cxOff: 8,   phase: t * 0.018 + cellSeed * 1.7, tall: 9,  wide: 5.5 },
+            { cxOff: 4.5, phase: t * 0.020 + cellSeed * 2.3, tall: 7,  wide: 4.0 },
+            { cxOff: 11.5,phase: t * 0.019 + cellSeed * 3.1, tall: 7,  wide: 4.0 },
           ]
         : [
             { cxOff: 8,   phase: t * 0.018 + cellSeed * 1.7, tall: 22, wide: 7 },
@@ -169,16 +183,22 @@ export class TileMutatorRenderer {
         // Layer 4 — white-yellow core
         drawTeardrop(layer, w * 0.30, h * 0.62, 0xffffaa, 0.85);
       }
-      // ── Embers rising from cell top — 0~2 per frame, random spawn ──
+      // ── Embers rising — for grass we cap rise so embers stay inside
+      // the grass cell. For solid wood / oil they may rise into the air
+      // above the cell as before (heat plume).
       const emberLayer = isOil ? af : g;
+      const emberHighY  = isGrass ? flameBaseY - 8  : flameBaseY - 18;
+      const emberRange  = isGrass ? 4                : 8;
+      const emberHighY2 = isGrass ? flameBaseY - 5  : flameBaseY - 12;
+      const emberRange2 = isGrass ? 6                : 14;
       if (Math.random() < 0.55) {
         const ex = x + Math.random() * 16;
-        const ey = flameBaseY - 18 - Math.random() * 8;
+        const ey = emberHighY - Math.random() * emberRange;
         emberLayer.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffee88, alpha: 0.95 });
       }
       if (Math.random() < 0.30) {
         const ex = x + Math.random() * 16;
-        const ey = flameBaseY - 12 - Math.random() * 14;
+        const ey = emberHighY2 - Math.random() * emberRange2;
         emberLayer.rect(ex | 0, ey | 0, 1, 1).fill({ color: 0xffffff, alpha: 0.9 });
       }
     });

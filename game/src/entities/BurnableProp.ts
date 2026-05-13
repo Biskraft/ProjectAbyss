@@ -286,9 +286,14 @@ export class BurnableProp {
     // Three independently-phased strands across the prop width. Tall center,
     // shorter shoulders. 4 color layers (red→orange→yellow→white core).
     const isCeiling = this.spec.anchor === 'ceiling';
-    // For floor anchor: flames rise from prop top edge (y=0) upward (negative y).
-    // For ceiling anchor: flames descend from prop bottom edge (y=h) downward.
-    const baseY = isCeiling ? h : 0;
+    // BASE = where the flame sits ON the prop, not where it floats above.
+    //   floor anchor   → base at prop BOTTOM (y = h, = floor surface). Flame
+    //                    body extends UP from there, covering the prop body
+    //                    + small lick above. This is what overlaps grass/
+    //                    bush visually instead of floating one tile up.
+    //   ceiling anchor → base at prop TOP (y = 0, = ceiling attach). Flame
+    //                    body drapes DOWN into the prop body.
+    const baseY = isCeiling ? 0 : h;
     const tallScale = lifeRatio * 1.0;             // fades with burn time
     const strands: Array<{ cx: number; phase: number; tall: number; wide: number }> = [
       { cx: w * 0.5, phase: this.flickerT * 0.018 + 0,  tall: 26 * tallScale, wide: 5.5 },

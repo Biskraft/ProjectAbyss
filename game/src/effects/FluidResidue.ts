@@ -41,7 +41,7 @@ interface Blot {
 
 // Tunables
 const MIN_STEP_DIST = 6;     // pixels between drops
-const LIFE_MS = 4500;        // base fade-out duration for non-burning blots
+const LIFE_MS = 2000;        // base fade-out duration for non-burning blots (shorter so trails don't linger)
 const MAX_BLOTS = 120;       // hard cap to keep render cheap
 const OIL_BURN_LIFE_MS = 4000;
 

@@ -2,7 +2,7 @@ import { Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isInOil, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
@@ -149,7 +149,12 @@ export class Player extends Entity implements CombatEntity {
    * 공중 진입/착지는 grounded 엣지로 트리거.
    * dash / attack 은 FSM state 감지로 진입/이탈.
    */
-  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' = 'idle';
+  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' | 'aim' = 'idle';
+  /**
+   * Charging Cast — set by scene each frame while V (CAST) is held. Drives
+   * the dedicated "aim" Erda animation override. Cleared on release.
+   */
+  isAiming = false;
   /** idle/run/land 용 서브 프레임 인덱스 (0 기준). takeoff/air 는 사용 안 함. */
   private erdaAnimFrame = 0;
   /** 프레임 누적 타이머 (ms). */
@@ -785,13 +790,19 @@ export class Player extends Entity implements CombatEntity {
     this.prevInWater = this.inWater;
     const waterMult = this.inWater ? PlayerConst.WaterMoveMult : 1.0; // slow everything in water
 
-    // Submersion check — head (top of sprite) is in water = 2+ tiles deep
+    // Submersion check — head (top of sprite) is in water OR oil = 2+
+    // tiles deep. Oil submersion drains oxygen the same way water does so
+    // the dive gauge mechanic generalizes across drowning fluids.
     const headRow = Math.floor(this.y / 16);
     const midCol = Math.floor((this.x + this.width / 2) / 16);
-    const headInWater = this.roomData[headRow]?.[midCol] === 2;
-    this.submerged = this.inWater && headInWater;
+    const headTile = this.roomData[headRow]?.[midCol] ?? 0;
+    const headInWater = headTile === 2;
+    const headInOil = headTile === 11;
+    const inOil = isInOil(this.x, this.y, this.width, this.height, this.roomData);
+    this.submerged = (this.inWater && headInWater) || (inOil && headInOil);
 
-    // Oxygen timer
+    // Oxygen timer — drains while submerged in water or oil. Water breathing
+    // ability bypasses both (treats every drowning fluid the same).
     this.drowned = false;
     if (this.submerged && !this.abilities.waterBreathing) {
       this.oxygen -= dt;
@@ -883,7 +894,11 @@ export class Player extends Entity implements CombatEntity {
 
     const ry = resolveY(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData, this.dropThroughTimer > 0);
     this.y = ry.y - colOffY;
-    this.grounded = ry.grounded;
+    // Grid grounded OR scene-supplied "standing on container" flag. The
+    // sticky flag is set each frame by the scene's container-collision
+    // resolve; we read it here so animation + jump checks behave as if
+    // the player is on solid ground.
+    this.grounded = ry.grounded || this.extraGroundedSticky;
     if (ry.collided) {
       if (this.vy > 0) this.vy = 0;
       if (this.vy < 0) this.vy = 0;
@@ -944,6 +959,9 @@ export class Player extends Entity implements CombatEntity {
     this.updateErdaAnimation(dt);
     // Slash FX — 재생 중일 때만 프레임 갱신, 완료 시 자동 숨김.
     this.updateSlashFX(dt);
+    // Consume the scene-supplied "standing on container" flag. The scene
+    // re-sets it AFTER player.update each frame; reads here next frame.
+    this.extraGroundedSticky = false;
   }
 
   // --- CombatEntity interface ---
@@ -1050,21 +1068,21 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateIdle(dt: number): void {
-    this.applyHorizontalInput(dt);
+    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
     if (Math.abs(this.vx) > 10) this.fsm.transition('run');
   }
 
   private stateRun(dt: number): void {
-    this.applyHorizontalInput(dt);
+    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
     if (Math.abs(this.vx) < 10) this.fsm.transition('idle');
   }
 
   private stateAir(dt: number): void {
-    this.applyHorizontalInput(dt);
+    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
     this.tryJump();
   }
 
@@ -1459,6 +1477,15 @@ export class Player extends Entity implements CombatEntity {
   getVy(): number { return this.vy; }
   /** Grounded accessor (scene-side VFX polling). */
   isGrounded(): boolean { return this.grounded; }
+  /**
+   * Sticky external grounding — set TRUE when standing on a non-grid solid
+   * (e.g., a ThrowableContainer top). Player physics OR's it into `grounded`
+   * at the end of each update, AFTER the grid check has already overwritten
+   * `grounded` to false. Reset to false at the end of update so the scene
+   * must re-flag each frame to keep the player on the container.
+   */
+  private extraGroundedSticky = false;
+  forceGrounded(): void { this.extraGroundedSticky = true; }
   /** Ice-tile accessor for skid streak VFX. */
   isStandingOnIce(): boolean {
     return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
@@ -1832,6 +1859,44 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
+    }
+
+    // Aim release → restore idle/run/air just like dash exit. Without this,
+    // erdaAnim stays 'aim' after V is released and the subsequent
+    // idle/run animation branch (gated on erdaAnim === 'idle'|'run')
+    // never fires — visually frozen on the last aim frame.
+    if (!this.isAiming && this.erdaAnim === 'aim') {
+      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnimFrame = 0;
+      this.erdaAnimTimer = 0;
+    }
+
+    // Aim override — while charging an Ego Shard. 4-frame aim animation
+    // at indices 26~29. When the player is moving (|vx| > 10), cycle the
+    // 4 frames as a walk-aim shuffle. When stationary, hold frame 26
+    // (steady aim). Higher priority than idle/run/jump but below dash.
+    if (this.isAiming && this.erdaFrames.length > 29) {
+      this.hideAttackWeapon();
+      if (this.erdaAnim !== 'aim') {
+        this.erdaAnim = 'aim';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      const moving = Math.abs(this.vx) > 10 && this.grounded;
+      if (moving) {
+        this.erdaAnimTimer += dt;
+        const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ≈ 440ms cycle
+        while (this.erdaAnimTimer >= AIM_WALK_FRAME_MS) {
+          this.erdaAnimTimer -= AIM_WALK_FRAME_MS;
+          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
+        }
+      } else {
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaSprite.texture = this.erdaFrames[26 + this.erdaAnimFrame];
+      this.erdaPrevGrounded = this.grounded;
+      return;
     }
 
     // Attack — FSM state === 'attack' 진입 시 attackTimer 진행률로 18..21 스크럽.

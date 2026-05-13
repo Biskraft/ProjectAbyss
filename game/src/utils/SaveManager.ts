@@ -49,6 +49,12 @@ export interface SaveData {
    * 레거시 세이브에는 없을 수 있으므로 optional.
    */
   sacredState?: SacredSaveState;
+  /**
+   * Tutorial hint ids that the player has already seen. Re-loading the save
+   * suppresses these hints so the player isn't taught the same lesson twice.
+   * Optional for backward compat with version 3 saves that pre-date this.
+   */
+  completedTutorialHints?: string[];
 }
 
 interface SerializedItem {
@@ -103,6 +109,7 @@ export class SaveManager {
     gold: number;
     playtime: number;
     healthShardBonus?: number;
+    completedTutorialHints?: readonly string[];
   }): void {
     const data: SaveData = {
       version: 3,
@@ -122,6 +129,7 @@ export class SaveManager {
       playtime: params.playtime,
       healthShardBonus: params.healthShardBonus ?? 0,
       sacredState: sacredSave.serialize(),
+      completedTutorialHints: params.completedTutorialHints ? [...params.completedTutorialHints] : undefined,
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));

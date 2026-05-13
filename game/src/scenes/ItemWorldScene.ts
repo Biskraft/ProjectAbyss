@@ -103,7 +103,7 @@ import { WaterBubblesManager } from '@effects/WaterBubbles';
 import { SteamPuffManager } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { FluidResidueManager } from '@effects/FluidResidue';
-import { EgoShardManager, CAST_MIN_GAP_MS, type ShardElement } from '@effects/EgoShard';
+import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
@@ -296,6 +296,9 @@ export class ItemWorldScene extends Scene {
   private ashRemnant!: AshRemnantManager;
   private fluidResidue!: FluidResidueManager;
   private egoShard!: EgoShardManager;
+  private egoShardPreview!: EgoShardPreview;
+  private egoCastChargeMs = 0;
+  private oilDrainAccumMs = 0;
   private containers: ThrowableContainer[] = [];
   private heldContainer: ThrowableContainer | null = null;
   private waterBubbles!: WaterBubblesManager;
@@ -819,6 +822,7 @@ export class ItemWorldScene extends Scene {
     this.ashRemnant = new AshRemnantManager(this.entityLayer);
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShard = new EgoShardManager(this.entityLayer);
+    this.egoShardPreview = new EgoShardPreview(this.entityLayer);
     this.tileMutator.onSteamEvent = (gx, gy) => {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.0);
     };
@@ -2756,6 +2760,23 @@ export class ItemWorldScene extends Scene {
   }
 
   /** DEBUG Shift+1 — Fire enchant sweep. See LdtkWorldScene for full spec. */
+  private checkShardContainerHit(x: number, y: number): boolean {
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      if (c.destroyed || c.held) continue;
+      if (x < c.x || x > c.x + c.spec.width || y < c.y || y > c.y + c.spec.height) continue;
+      const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
+      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      if (impact) {
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
+        c.destroy();
+        this.containers.splice(i, 1);
+      }
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Shard ↔ Enemy hit test (ItemWorld). Mirror of LdtkWorldScene helper —
    * applies element side-effect + auto-retrieve on kill.
@@ -2772,9 +2793,21 @@ export class ItemWorldScene extends Scene {
       if (element === 'fire') {
         e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
       } else if (element === 'ice') {
-        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.3));
+        e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
       } else if (element === 'thunder') {
         e.hp -= Math.max(2, Math.floor(this.player.atk * 0.4));
+        const room = this.fullGrid;
+        if (room?.length) {
+          const gx = Math.floor((e.x + e.width / 2) / 16);
+          const gy = Math.floor((e.y + e.height / 2) / 16);
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = gx + dx, ny = gy + dy;
+              if (this.tileMutator.isElectric(nx, ny)) continue;
+              this.tileMutator.applyThunderChain(room, nx, ny);
+            }
+          }
+        }
       }
       if (e.hp <= 0) {
         e.hp = 0;
@@ -2795,22 +2828,56 @@ export class ItemWorldScene extends Scene {
    * handled by each room's renderer on the next room rebuild — for fluid
    * cells the FluidResidue marks aren't critical, the IntGrid mutation is.
    */
-  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number): void {
+  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
     const grid = this.fullGrid;
-    const spec = (() => { switch (kind) {
-      case 'OilDrum':       return { tile: 11, radius: 2 };
-      case 'WaterBarrel':   return { tile: 2,  radius: 2 };
-      case 'MagmaCrucible': return { tile: 6,  radius: 1 };
-      case 'AcidVial':      return { tile: 13, radius: 1 };
-    }})();
-    for (let dy = -spec.radius; dy <= spec.radius; dy++) {
-      for (let dx = -spec.radius; dx <= spec.radius; dx++) {
-        if (dx * dx + dy * dy > spec.radius * spec.radius) continue;
-        const nx = gx + dx, ny = gy + dy;
-        const row = grid[ny];
-        if (!row) continue;
-        const t = row[nx] ?? 0;
-        if (t === 0 || t === 16) row[nx] = spec.tile;
+    const tile: number = (() => {
+      switch (kind) {
+        case 'OilDrum':       return 11;
+        case 'WaterBarrel':   return 2;
+        case 'MagmaCrucible': return 6;
+        case 'AcidVial':      return 13;
+        case 'Crate':         return 0;
+        case 'MetalCrate':    return 0;
+      }
+    })();
+    if (tile > 0 && quantity > 0) {
+      const W = grid[0]?.length ?? 0;
+      if (W) {
+        const key = (x: number, y: number) => y * W + x;
+        const visited = new Set<number>();
+        const queue: Array<[number, number]> = [[gx, gy]];
+        visited.add(key(gx, gy));
+        let painted = 0;
+        while (queue.length > 0 && painted < quantity) {
+          const [x, y] = queue.shift()!;
+          const row = grid[y];
+          if (!row) continue;
+          const t = row[x] ?? -1;
+          // Paint over: air / grass / any fluid. Solid cells block paint.
+          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 11 || t === 13) {
+            row[x] = tile;
+            painted++;
+            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+              const nx = x + dx, ny = y + dy;
+              const k = key(nx, ny);
+              if (!visited.has(k)) {
+                visited.add(k);
+                queue.push([nx, ny]);
+              }
+            }
+          }
+        }
+      }
+    }
+    // Magma paint → ignite adjacent flammable cells immediately. Scan
+    // radius scales with quantity so larger splashes also light a wider
+    // ring of oil/wood/grass.
+    if (tile === 6) {
+      const r = Math.max(2, Math.ceil(Math.sqrt(quantity)) + 1);
+      for (let dy2 = -r; dy2 <= r; dy2++) {
+        for (let dx2 = -r; dx2 <= r; dx2++) {
+          this.tileMutator.tryIgnite(grid, gx + dx2, gy + dy2);
+        }
       }
     }
     if (kind === 'MagmaCrucible') {
@@ -2838,14 +2905,12 @@ export class ItemWorldScene extends Scene {
   private onEgoShardImpact(px: number, py: number, element: ShardElement): void {
     const room = this.fullGrid;
     if (!room?.length) return;
-    const cx = Math.floor(px / 16);
-    const cy = Math.floor(py / 16);
-    const cells: Array<[number, number]> = [];
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        cells.push([cx + dx, cy + dy]);
-      }
-    }
+    const ax = Math.round(px / 16);
+    const ay = Math.round(py / 16);
+    const cells: Array<[number, number]> = [
+      [ax - 1, ay - 1], [ax, ay - 1],
+      [ax - 1, ay],     [ax, ay],
+    ];
     if (element === 'fire') {
       for (const [gx, gy] of cells) {
         const t = (room[gy]?.[gx] ?? 0);
@@ -2857,7 +2922,7 @@ export class ItemWorldScene extends Scene {
           this.tileMutator.tryIgnite(room, gx, gy);
         }
       }
-      this.fluidResidue.ignite(px - 24, py - 24, 48, 48);
+      this.fluidResidue.ignite((ax - 1) * 16, (ay - 1) * 16, 32, 32);
     } else if (element === 'ice') {
       for (const [gx, gy] of cells) this.tileMutator.tryFreeze(room, gx, gy);
     } else if (element === 'thunder') {
@@ -3258,6 +3323,20 @@ export class ItemWorldScene extends Scene {
         }
         // Breakable tiles (IntGrid 9) ? 3 hits to destroy → air(0)
         this.checkAttackOnBreakables(hitbox);
+        // Throwable containers — sword damage breaks them.
+        for (let i = this.containers.length - 1; i >= 0; i--) {
+          const c = this.containers[i];
+          if (c.destroyed || c.held) continue;
+          const cBox = { x: c.x, y: c.y, width: c.spec.width, height: c.spec.height };
+          if (!aabbOverlap(hitbox, cBox)) continue;
+          const impact = c.takeAttack(Math.max(1, Math.floor(this.player.atk)));
+          this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+          if (impact) {
+            this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
+            c.destroy();
+            this.containers.splice(i, 1);
+          }
+        }
       }
     } else {
       // Attack ended ? reset breakable swing tracking
@@ -3688,23 +3767,46 @@ export class ItemWorldScene extends Scene {
       else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
     }
 
-    // ── Hades-style Ego Shard Cast (Y / V) ──
-    if (this.game.input.isJustPressed(GameAction.CAST)) {
-      if (this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0) {
-        const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
-        const px = this.player.x + this.player.width / 2 + facing * 4;
-        const py = this.player.y + this.player.height * 0.45;
-        const el = this.player.activeEnchant;
-        this.egoShard.spawn(px, py, facing, el);
+    // ── Hold-and-release Cast ──
+    const castDown = this.game.input.isDown(GameAction.CAST);
+    const canCast = this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
+    const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
+    const launchX = this.player.x + this.player.width / 2 + facing * 14;
+    const launchY = this.player.y + this.player.height * 0.38 - 5;
+    if (castDown && canCast) {
+      this.egoCastChargeMs = Math.min(this.egoCastChargeMs + dt, CAST_CHARGE_MAX_MS);
+      this.player.isAiming = true;
+      const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
+      const grid = this.fullGrid;
+      this.egoShardPreview.show(
+        launchX, launchY, vx, vy, this.player.activeEnchant,
+        (x, y) => {
+          const gx = Math.floor(x / 16);
+          const gy = Math.floor(y / 16);
+          const t = grid[gy]?.[gx] ?? 0;
+          return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+        },
+      );
+    } else if (!castDown && this.egoCastChargeMs > 0) {
+      if (canCast) {
+        const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
+        this.egoShard.spawn(launchX, launchY, vx, vy, this.player.activeEnchant);
         this.player.egoShardCount--;
         this.player.shardCooldowns.push(SHARD_RECOVERY_MS);
         this.player.egoCastCooldownMs = CAST_MIN_GAP_MS;
       }
+      this.egoCastChargeMs = 0;
+      this.egoShardPreview.hide();
+      this.player.isAiming = false;
+    } else {
+      this.egoShardPreview.hide();
+      this.player.isAiming = false;
     }
     if (this.player.egoCastCooldownMs > 0) {
       this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
     }
-    // Tick recovery queue (persists across rooms).
+    // Tick recovery queue (persists across rooms). On expiry the oldest
+    // living world-shard is called back with a ring burst.
     {
       const cd = this.player.shardCooldowns;
       for (let i = cd.length - 1; i >= 0; i--) {
@@ -3712,6 +3814,7 @@ export class ItemWorldScene extends Scene {
         if (cd[i] <= 0) {
           cd.splice(i, 1);
           this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
+          this.egoShard.removeOldestShard();
         }
       }
     }
@@ -3719,14 +3822,8 @@ export class ItemWorldScene extends Scene {
     // ── Grab / Throw (B / RB) ──
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
-        const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
-        const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
         const facing = this.player.facingRight ? 1 : -1;
-        let vx = facing * 220;
-        let vy = -180;
-        if (lookUp) { vy = -320; vx = facing * 140; }
-        else if (lookDown) { vx = 0; vy = 40; }
-        this.heldContainer.release(vx, vy);
+        this.heldContainer.release(facing * 80, -170);
         this.heldContainer = null;
       } else {
         const px = this.player.x + this.player.width / 2;
@@ -4470,8 +4567,30 @@ export class ItemWorldScene extends Scene {
     const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid);
     const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid);
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid);
-    if (inOil_)   p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-    else if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+    if (inOil_) {
+      p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
+      this.oilDrainAccumMs = (this.oilDrainAccumMs ?? 0) + dt;
+      while (this.oilDrainAccumMs >= 200) {
+        this.oilDrainAccumMs -= 200;
+        const oilCells: Array<[number, number]> = [];
+        const leftGx  = Math.floor(p.x / 16);
+        const rightGx = Math.floor((p.x + p.width - 1) / 16);
+        const topGy   = Math.floor(p.y / 16);
+        const botGy   = Math.floor((p.y + p.height - 1) / 16);
+        for (let gy = topGy; gy <= botGy; gy++) {
+          for (let gx = leftGx; gx <= rightGx; gx++) {
+            if (this.fullGrid[gy]?.[gx] === 11) oilCells.push([gx, gy]);
+          }
+        }
+        if (oilCells.length === 0) break;
+        const [dgx, dgy] = oilCells[Math.floor(Math.random() * oilCells.length)];
+        this.fullGrid[dgy][dgx] = 0;
+        this.fluidResidue.dropAt('oil', (dgx + 0.5) * 16, (dgy + 1) * 16, 1.0);
+      }
+    } else {
+      this.oilDrainAccumMs = 0;
+      if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+    }
     p.prevInOil = inOil_;
     if (inAcid_)  p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
     else if (p.acidResidueRemainingMs > 0) p.acidResidueRemainingMs = Math.max(0, p.acidResidueRemainingMs - dt);
@@ -4555,16 +4674,52 @@ export class ItemWorldScene extends Scene {
     this.steamPuff.update(dt);
     this.fluidResidue.update(dt);
     // Throwable containers: gravity + impact paint (ItemWorld uses fullGrid).
+    const isContainerSolidCell = (gx: number, gy: number): boolean => {
+      const t = this.fullGrid[gy]?.[gx] ?? 0;
+      return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+    };
+    const isAcidCell = (gx: number, gy: number) =>
+      (this.fullGrid[gy]?.[gx] ?? 0) === 13;
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
-      const impact = c.update(dt, (gx, gy) => {
-        const t = this.fullGrid[gy]?.[gx] ?? 0;
-        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-      });
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy);
+      const dissolved = c.tickEnvironment(dt, isAcidCell);
+      if (dissolved) {
         c.destroy();
         this.containers.splice(i, 1);
+        continue;
+      }
+      const impact = c.update(dt, isContainerSolidCell, this.containers);
+      if (impact) {
+        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
+        c.destroy();
+        this.containers.splice(i, 1);
+      }
+    }
+    // Player ↔ container resolve (same as world scene)
+    const p2 = this.player;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      const cx0 = c.x, cy0 = c.y, cx1 = c.x + c.spec.width, cy1 = c.y + c.spec.height;
+      const px0 = p2.x, py0 = p2.y, px1 = p2.x + p2.width, py1 = p2.y + p2.height;
+      if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
+      const overlapLeft   = px1 - cx0;
+      const overlapRight  = cx1 - px0;
+      const overlapTop    = py1 - cy0;
+      const overlapBottom = cy1 - py0;
+      const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+      if (min === overlapTop) {
+        p2.y = cy0 - p2.height;
+        if (p2.getVy() > 0) p2.vy = 0;
+        p2.forceGrounded();
+      } else if (min === overlapBottom) {
+        p2.y = cy1;
+        if (p2.getVy() < 0) p2.vy = 0;
+      } else if (min === overlapLeft) {
+        if (Math.abs(p2.getVx()) > 20) c.x += Math.max(0, overlapLeft - 1);
+        p2.x = cx0 - p2.width;
+      } else if (min === overlapRight) {
+        if (Math.abs(p2.getVx()) > 20) c.x -= Math.max(0, overlapRight - 1);
+        p2.x = cx1;
       }
     }
     // Ego shards: flight + impact + retrieval (uses fullGrid for solid check).
@@ -4577,7 +4732,7 @@ export class ItemWorldScene extends Scene {
         const t = this.fullGrid[gy]?.[gx] ?? 0;
         return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
       },
-      (x, y, element) => this.checkShardEnemyHit(x, y, element),
+      (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
     );
     const pad = 24;
     const retrieved = this.egoShard.retrieveInAABB(

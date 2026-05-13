@@ -19,16 +19,37 @@ import { Container, Graphics } from 'pixi.js';
 
 export type ShardElement = 'fire' | 'ice' | 'thunder';
 
-const SHARD_SPEED = 280;          // px/sec horizontal
-const SHARD_GRAVITY = 240;        // px/sec² downward
+// Gravity for in-flight shards. Also used by the trajectory preview so the
+// dotted arc matches the actual flight path 1:1.
+export const SHARD_GRAVITY = 240;     // px/sec² downward
+// Min / max velocities — driven by hold-charge ratio.
+const CAST_VX_MIN = 140;
+const CAST_VX_MAX = 480;
+const CAST_VY_MIN = -30;
+const CAST_VY_MAX = -130;      // halved — flatter max-charge trajectory
+// Hold-charge timing.
+export const CAST_CHARGE_MIN_MS = 0;     // tap fires immediately at min power
+export const CAST_CHARGE_MAX_MS = 900;   // 0.9 s caps at max power
+const SHARD_SPEED = CAST_VX_MAX;          // kept for backward compat (unused now)
+/** Resolve initial (vx, vy) from a hold-charge time in ms. Facing decides
+ *  horizontal sign. Clamps `chargeMs` to [min, max] internally. */
+export function getShardVelocity(chargeMs: number, facing: -1 | 1): { vx: number; vy: number } {
+  const clamped = Math.max(CAST_CHARGE_MIN_MS, Math.min(CAST_CHARGE_MAX_MS, chargeMs));
+  const ratio = (clamped - CAST_CHARGE_MIN_MS) / Math.max(1, CAST_CHARGE_MAX_MS - CAST_CHARGE_MIN_MS);
+  const vx = (CAST_VX_MIN + (CAST_VX_MAX - CAST_VX_MIN) * ratio) * facing;
+  const vy = CAST_VY_MIN + (CAST_VY_MAX - CAST_VY_MIN) * ratio;
+  return { vx, vy };
+}
+void SHARD_SPEED;   // suppress unused warning while phased out
 // Safety only — shard finishes its parabola and lands on solid first. This
 // just prevents runaway shards that fall off the world without bound.
 const SHARD_LIFE_MS = 10000;
 const SHARD_STUCK_MS = 60000;     // long stick — manual retrieve is best path
 const TRAIL_MAX = 12;             // a bit longer for the bigger shard
 const TRAIL_LIFE_MS = 280;
-/** Anti-spam minimum gap between casts (ms). Recovery is queue-based, not per-cast. */
-export const CAST_MIN_GAP_MS = 140;
+/** Cast gap (ms) — minimum time between consecutive shard casts. 1 s enforces
+ *  considered shots so the player can't burst 3 shards instantly. */
+export const CAST_MIN_GAP_MS = 1000;
 
 interface ShardPalette {
   outer: number;
@@ -73,17 +94,17 @@ export class Shard {
   constructor(
     parent: Container,
     x: number, y: number,
-    facing: -1 | 1,
+    vx: number, vy: number,
     element: ShardElement,
   ) {
     this.x = x;
     this.y = y;
     this.prevX = x;
     this.prevY = y;
-    this.facing = facing;
+    this.facing = vx >= 0 ? 1 : -1;
     this.element = element;
-    this.vx = SHARD_SPEED * facing;
-    this.vy = -40;                  // small initial up-tilt for arc
+    this.vx = vx;
+    this.vy = vy;
     this.trailGfx = new Graphics();
     parent.addChild(this.trailGfx);
     this.gfx = new Graphics();
@@ -152,6 +173,67 @@ export class Shard {
   }
 }
 
+/**
+ * Trajectory preview — dotted arc shown while the player holds the cast
+ * key. Same gravity as a live shard so the prediction matches the actual
+ * flight 1:1. The dots fade with distance for a soft aim-assist feel.
+ */
+export class EgoShardPreview {
+  private gfx: Graphics;
+  constructor(parent: Container) {
+    this.gfx = new Graphics();
+    parent.addChild(this.gfx);
+    this.gfx.visible = false;
+  }
+  hide(): void { this.gfx.visible = false; }
+  /**
+   * Plot a dotted parabola from (x, y) with initial (vx, vy) until it hits
+   * solid or runs out of simulation budget. Element tints the dots.
+   */
+  show(
+    x: number, y: number, vx: number, vy: number, element: ShardElement,
+    isSolidAt: (x: number, y: number) => boolean,
+    maxMs = 1500,
+  ): void {
+    const g = this.gfx;
+    g.clear();
+    g.visible = true;
+    const pal = PALETTE[element];
+    // Higher resolution simulation (8 ms steps) gives a smooth continuous
+    // curve when stroked, instead of visibly faceted segments.
+    const stepMs = 8;
+    const dt = stepMs / 1000;
+    const points: Array<{ x: number; y: number }> = [{ x, y }];
+    let px = x, py = y;
+    let pvx = vx, pvy = vy;
+    let t = 0;
+    while (t < maxMs) {
+      px += pvx * dt;
+      py += pvy * dt;
+      pvy += SHARD_GRAVITY * dt;
+      if (isSolidAt(px, py)) break;
+      points.push({ x: px, y: py });
+      t += stepMs;
+    }
+    if (points.length < 2) return;
+    // Outer soft glow (thicker, transparent).
+    g.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y);
+    g.stroke({ color: pal.trail, width: 4, alpha: 0.30 });
+    // Inner solid line (thin, bright).
+    g.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y);
+    g.stroke({ color: pal.core, width: 1.5, alpha: 0.95 });
+    // Tip ring at landing point — telegraphs the impact cell.
+    const tip = points[points.length - 1];
+    g.circle(tip.x, tip.y, 3).stroke({ color: pal.core, width: 1.5, alpha: 0.9 });
+  }
+  destroy(): void {
+    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
+    this.gfx.destroy();
+  }
+}
+
 /** Retrieval ring burst — spawned when a stuck shard is absorbed. */
 interface Ring {
   gfx: Graphics;
@@ -169,8 +251,8 @@ export class EgoShardManager {
 
   constructor(parent: Container) { this.parent = parent; }
 
-  spawn(x: number, y: number, facing: -1 | 1, element: ShardElement): void {
-    this.shards.push(new Shard(this.parent, x, y, facing, element));
+  spawn(x: number, y: number, vx: number, vy: number, element: ShardElement): void {
+    this.shards.push(new Shard(this.parent, x, y, vx, vy, element));
   }
 
   /**
@@ -272,6 +354,32 @@ export class EgoShardManager {
       count++;
     }
     return count;
+  }
+
+  /**
+   * Destroy the OLDEST living shard (highest total lifetime). Used when the
+   * player's per-shard 8 s recovery timer expires — that timer's shard is
+   * "called back" to the Ego sword and disappears from the world with a
+   * ring burst (same VFX as manual retrieval). Returns true if a shard was
+   * destroyed.
+   */
+  removeOldestShard(): boolean {
+    let bestIdx = -1;
+    let bestLifetime = -Infinity;
+    for (let i = 0; i < this.shards.length; i++) {
+      const s = this.shards[i];
+      const lifetime = s.age + s.stuckAge;
+      if (lifetime > bestLifetime) {
+        bestLifetime = lifetime;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return false;
+    const s = this.shards[bestIdx];
+    this.spawnRing(s.x, s.y, s.element);
+    s.destroy();
+    this.shards.splice(bestIdx, 1);
+    return true;
   }
 
   /** Force-destroy all shards + rings — call on level reload. */

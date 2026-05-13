@@ -65,6 +65,21 @@ export class TutorialHint {
   }
 
   /**
+   * Restore the set of already-shown hint ids from a save load. Once an id
+   * is in `shown`, `tryShow` is a no-op — so previously-displayed hints
+   * never re-appear after loading the game.
+   */
+  hydrate(ids: readonly string[] | undefined): void {
+    if (!ids?.length) return;
+    for (const id of ids) this.shown.add(id);
+  }
+
+  /** Serialize the shown set for SaveManager. Order doesn't matter. */
+  getCompletedIds(): string[] {
+    return [...this.shown];
+  }
+
+  /**
    * Show a hint by id. Each id fires at most once per session unless dismissed.
    * If `persistent: true`, the panel stays visible until `dismiss(id)` is called
    * (no auto-fade). Useful for "press [I] to open inventory" cues that should

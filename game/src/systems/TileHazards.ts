@@ -69,7 +69,7 @@ export interface HazardCallbacks {
 // === Tunables (mirror GDD §2 table) ===
 // SHIPPABLE values — Burn DOT 지속·acid tick·magma 시그널은 원소 메카닉
 // 핵심 시그널이라 출시 그대로 사용. 검증용 단축 대상 아님 (2026-05-13).
-const MAGMA_FIRST_HIT_PCT = 0.02;
+const MAGMA_FIRST_HIT_PCT = 0.10;   // 5x — heavier punishment for direct magma contact
 export const MAGMA_BURN_DURATION_MS = 15000;
 // Acid: tick-based (was continuous DPS — scene's Math.max(1, dmg) forced
 // at-least-1-per-frame floor that vastly exceeded intended DPS).
