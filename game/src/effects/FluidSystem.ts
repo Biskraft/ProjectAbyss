@@ -37,7 +37,12 @@ const FLUID_CELL_TYPES: Array<{ value: number; type: FluidType }> = [
 const FLUID_VALUES = new Set(FLUID_CELL_TYPES.map(f => f.value));
 
 const TILE = 16;
-const COLUMN_SPACING = 8;          // px per spring column (sub-tile)
+// Hybrid render — keep IntGrid logic at 16×16 but render fluid surface at
+// SUB-PIXEL resolution. 4 px column spacing = 4 columns per 16-px cell,
+// doubled from the previous 8 px (= 2/cell). Combined with quadratic curve
+// smoothing in drawBody this gives Noita-ish fluid surface without paying
+// the simulation cost of sub-cell physics.
+const COLUMN_SPACING = 4;          // px per spring column (sub-tile)
 const AMBIENT_AMP = 0.55;          // ambient wave amplitude — 분명한 잔파도
 const AMBIENT_PERIOD_MS = 380;     // ambient 임펄스 주기 — 끊임없이 흐르는 wave
 const IMPULSE_FALLOFF_PX = 16;     // splash 즉시 인접 범위 1 tile — 옆은 propagation 으로 시간 전파
@@ -117,15 +122,23 @@ export class FluidSystem {
    * @param level LdtkLevel — collisionGrid + entities
    */
   attach(level: LdtkLevel): void {
+    const volumes = level.entities.filter(e => e.type === 'FluidVolume');
+    this.attachGrid(level.collisionGrid, volumes);
+  }
+
+  /**
+   * Grid-only attach — for scenes (ItemWorldScene) that build their grids
+   * procedurally without a LdtkLevel wrapper. Behaves identically to
+   * attach(level) but skips the LdtkLevel.entities filter step.
+   */
+  attachGrid(grid: number[][], volumes: LdtkEntity[] = []): void {
     this.detach();
-    const grid = level.collisionGrid;
     if (!grid || grid.length === 0) return;
     const gridH = grid.length;
     const gridW = grid[0]?.length ?? 0;
     this.gridW = gridW;
 
     // FluidVolume entity rect 들 — 있으면 type override 용. Cache for rebuildFromGrid.
-    const volumes = level.entities.filter(e => e.type === 'FluidVolume');
     this.cachedVolumes = volumes;
 
     // Flood-fill: each fluid cell value → connected components per type.
@@ -460,10 +473,19 @@ export class FluidSystem {
     // the polygon dips at that column. Irregular shapes (after fire on water,
     // etc.) render exactly without filling air gaps.
     const drawShape = (yOffset: number) => {
-      g.moveTo(cols[0].x, Math.round(cols[0].y) + yOffset);
-      for (let i = 1; i < cols.length; i++) {
-        g.lineTo(cols[i].x, Math.round(cols[i].y) + yOffset);
+      // Smooth top surface — quadratic curves through column midpoints
+      // (each spring point is the control, segments end at the midpoint
+      // between adjacent points). Eliminates the faceted segment look at
+      // tight column spacing without changing physics.
+      g.moveTo(cols[0].x, cols[0].y + yOffset);
+      for (let i = 0; i < cols.length - 1; i++) {
+        const mx = (cols[i].x + cols[i + 1].x) / 2;
+        const my = (cols[i].y + cols[i + 1].y) / 2 + yOffset;
+        g.quadraticCurveTo(cols[i].x, cols[i].y + yOffset, mx, my);
       }
+      // Final segment ends at the last column exactly so the polygon
+      // closes cleanly on the right edge.
+      g.lineTo(cols[cols.length - 1].x, cols[cols.length - 1].y + yOffset);
       // Right side: down from last top to last column's bottom
       const lastGx = bodyCols[bodyCols.length - 1];
       let prevBy = (body.bottomRow.get(lastGx)! + 1) * TILE;
@@ -493,12 +515,23 @@ export class FluidSystem {
     }
     g.fill({ color: def.bodyColor, alpha: bodyAlpha });
 
+    // Shared helper — smooth surface path with quadratic midpoint curves.
+    const traceSmoothSurface = (
+      gfx: typeof g,
+      yShift: number,
+    ): void => {
+      gfx.moveTo(cols[0].x, cols[0].y + yShift);
+      for (let i = 0; i < cols.length - 1; i++) {
+        const mx = (cols[i].x + cols[i + 1].x) / 2;
+        const my = (cols[i].y + cols[i + 1].y) / 2 + yShift;
+        gfx.quadraticCurveTo(cols[i].x, cols[i].y + yShift, mx, my);
+      }
+      gfx.lineTo(cols[cols.length - 1].x, cols[cols.length - 1].y + yShift);
+    };
+
     // ─── Inline body glow (lava etc.) — offset 4px below surface. Strong. ───
     if (def.glowColor !== null) {
-      g.moveTo(cols[0].x, Math.round(cols[0].y));
-      for (let i = 1; i < cols.length; i++) {
-        g.lineTo(cols[i].x, Math.round(cols[i].y));
-      }
+      traceSmoothSurface(g, 0);
       const lastGx = bodyCols[bodyCols.length - 1];
       const lastBy = (body.bottomRow.get(lastGx)! + 1) * TILE;
       g.lineTo(cols[cols.length - 1].x, Math.min(lastBy, Math.round(cols[cols.length - 1].y) + 4));
@@ -523,11 +556,9 @@ export class FluidSystem {
       // Outer halo — wide, very soft, biggest above-surface reach.
       const outerLift = 24;
       const outerPad = 12;
-      h.moveTo(cols[0].x - outerPad, Math.round(cols[0].y) - outerLift);
-      for (let i = 1; i < cols.length; i++) {
-        h.lineTo(cols[i].x, Math.round(cols[i].y) - outerLift);
-      }
-      h.lineTo(cols[cols.length - 1].x + outerPad, Math.round(cols[cols.length - 1].y) - outerLift);
+      h.moveTo(cols[0].x - outerPad, cols[0].y - outerLift);
+      traceSmoothSurface(h, -outerLift);
+      h.lineTo(cols[cols.length - 1].x + outerPad, cols[cols.length - 1].y - outerLift);
       h.lineTo(cols[cols.length - 1].x + outerPad, lastBy + 4);
       h.lineTo(cols[0].x - outerPad, lastBy + 4);
       h.closePath();
@@ -535,29 +566,19 @@ export class FluidSystem {
 
       // Inner halo — tighter, brighter, follows the surface.
       const innerLift = 10;
-      h.moveTo(cols[0].x, Math.round(cols[0].y) - innerLift);
-      for (let i = 1; i < cols.length; i++) {
-        h.lineTo(cols[i].x, Math.round(cols[i].y) - innerLift);
-      }
-      h.lineTo(cols[cols.length - 1].x, Math.round(cols[cols.length - 1].y) - innerLift);
+      traceSmoothSurface(h, -innerLift);
       h.lineTo(cols[cols.length - 1].x, lastBy + 2);
       h.lineTo(cols[0].x, lastBy + 2);
       h.closePath();
       h.fill({ color: def.glowColor, alpha: 0.35 + pulse * 0.15 });
 
       // Hot core line — bright accent right along the surface.
-      h.moveTo(cols[0].x, Math.round(cols[0].y) - 1);
-      for (let i = 1; i < cols.length; i++) {
-        h.lineTo(cols[i].x, Math.round(cols[i].y) - 1);
-      }
+      traceSmoothSurface(h, -1);
       h.stroke({ color: 0xffffff, width: 1.5, alpha: 0.55 + pulse * 0.30 });
     }
 
     // Surface highlight line — 1px stroke for readability.
-    g.moveTo(cols[0].x, Math.round(cols[0].y));
-    for (let i = 1; i < cols.length; i++) {
-      g.lineTo(cols[i].x, Math.round(cols[i].y));
-    }
+    traceSmoothSurface(g, 0);
     g.stroke({ color: def.surfaceColor, width: 1, alpha: 0.9 });
   }
 
@@ -790,19 +811,38 @@ export class FluidSystem {
 
     if (moved) this.rebuildFromGrid(roomData);
 
-    // Thin-strip evaporation — a body that has nowhere to fall and forms a
-    // single-row strip (every column 1 cell deep) is essentially a residual
-    // puddle that can't fully fill the row it sits in. Cellular self-leveling
-    // would shuffle the gap around forever (visually shimmering). Slowly
-    // remove one surface cell per body every EVAP_INTERVAL_MS so puddles
-    // gracefully dry up instead of dancing.
+    // Thin-strip evaporation — conditional.
+    //
+    // Original problem: 1-cell-deep strips that don't fill their row dance
+    // around forever via cellular self-leveling. The fix is to dry up the
+    // strip slowly so it eventually disappears.
+    //
+    // Counter-requirement (Victor): LDtk-authored puddles that DO sit on a
+    // fully solid floor (no hole below any cell of the strip) are
+    // intentional content and must be preserved. Floor-row is "꽉 차있다"
+    // → puddle is stable; floor-row has any gap → puddle is residue.
+    //
+    // Decision rule per body:
+    //   - must be a thin strip (1-cell-deep in every occupied column)
+    //   - AND the cell directly below at least one of its cells must be
+    //     non-solid (air or another fluid). That means the strip is sitting
+    //     on a broken/incomplete floor — it's residue, dry it up.
+    //   - If the floor is solid under every cell, leave it alone.
     this.evapAccum += dtMs;
     if (this.evapAccum >= FluidSystem.EVAP_INTERVAL_MS) {
       this.evapAccum -= FluidSystem.EVAP_INTERVAL_MS;
       let evaporated = false;
       for (const body of this.bodies) {
-        if (!this.isThinStrip(body)) continue;
-        // Pick a random non-frozen cell to evaporate.
+        // Two stability checks. BOTH must pass for the pool to be considered
+        // an authored, locked-in puddle; otherwise it's residue and evaporates.
+        //   1. hasSolidFloorUnderBottomRow — every floor cell directly below
+        //      the body's bottom row is non-air, non-fluid.
+        //   2. isWallBraced — every row the body touches has its leftmost
+        //      and rightmost columns butted against a wall (or grid edge).
+        // Either condition failing → puddle has somewhere to leak / dry up.
+        const floorOk = this.hasSolidFloorUnderBottomRow(body, roomData);
+        const braceOk = this.isWallBraced(body, roomData);
+        if (floorOk && braceOk) continue;
         const choices: number[] = [];
         for (const k of body.cells) {
           const x = k % this.gridW;
@@ -814,10 +854,7 @@ export class FluidSystem {
         const x = k % this.gridW;
         const y = Math.floor(k / this.gridW);
         if (roomData[y] && FLUID_VALUES.has(roomData[y][x])) {
-          // Spawn a fading droplet at the cell's center+bottom BEFORE removing
-          // the grid value (so the body color is still readable from `body.def`).
           this.spawnEvaporatingDrop(x, y, body.def.bodyColor);
-          // Permanent residue stain on the floor — scene decides per type.
           this.onEvaporated?.(x, y, body.type);
           roomData[y][x] = 0;
           evaporated = true;
@@ -825,6 +862,58 @@ export class FluidSystem {
       }
       if (evaporated) this.rebuildFromGrid(roomData);
     }
+  }
+
+  /**
+   * Inspect ONLY the body's bottom-row cells (one per occupied column) —
+   * those are the cells that actually touch the floor. The cell directly
+   * below each bottom-row cell must be a true non-fluid non-air solid
+   * (wall, wood, grass, metal, ice, breakable, …). A single air gap
+   * returns false → puddle is considered residue and starts evaporating.
+   *
+   * Earlier version iterated every cell in the body, but the "below" of
+   * a deep pool's upper cells is the pool itself (fluid) → false → every
+   * deep pool got mis-classified as residue. The bottom-row check is the
+   * correct anchor.
+   */
+  private hasSolidFloorUnderBottomRow(body: FluidBody, roomData: number[][]): boolean {
+    if (!body.bottomRow.size) return true; // empty body — nothing to evap
+    for (const [gx, bottomY] of body.bottomRow) {
+      const below = roomData[bottomY + 1]?.[gx];
+      if (below === undefined) continue; // grid bottom — treat as solid
+      if (below === 0 || FLUID_VALUES.has(below)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Wall-brace check. For every row the body occupies, the row's leftmost
+   * and rightmost columns must be flanked by a non-air, non-fluid cell
+   * (or by the grid edge). If either side is open, the pool can leak
+   * sideways and should evaporate.
+   */
+  private isWallBraced(body: FluidBody, roomData: number[][]): boolean {
+    if (!body.cells.size) return true;
+    // Build per-row [minX, maxX].
+    const rowExtent = new Map<number, [number, number]>();
+    for (const k of body.cells) {
+      const x = k % this.gridW;
+      const y = Math.floor(k / this.gridW);
+      const e = rowExtent.get(y);
+      if (!e) rowExtent.set(y, [x, x]);
+      else { if (x < e[0]) e[0] = x; if (x > e[1]) e[1] = x; }
+    }
+    for (const [y, [minX, maxX]] of rowExtent) {
+      const row = roomData[y];
+      if (!row) continue;
+      const left  = minX === 0           ? undefined : row[minX - 1];
+      const right = maxX === this.gridW - 1 ? undefined : row[maxX + 1];
+      // undefined (grid edge) counts as solid — pool can't leak off-map.
+      const leftSolid  = left  === undefined || (left  !== 0 && !FLUID_VALUES.has(left));
+      const rightSolid = right === undefined || (right !== 0 && !FLUID_VALUES.has(right));
+      if (!leftSolid || !rightSolid) return false;
+    }
+    return true;
   }
 
   /**

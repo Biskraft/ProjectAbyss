@@ -334,13 +334,26 @@ export class InputManager {
     this.consumed.clear();
   }
 
+  /**
+   * Soft input lock — when true, every game-action query returns false.
+   * The lock does NOT affect Shift/raw key-code paths (debug toggles like
+   * Shift+P / Shift+O stay reachable) and does NOT clear pressed state, so
+   * a key held through the lock won't "miss" once it releases.
+   *
+   * Used by cutscene-style sequences (void touch, lore popups) to suspend
+   * player control without freezing the rest of the scene update loop.
+   */
+  inputLocked = false;
+
   isDown(action: GameAction): boolean {
+    if (this.inputLocked) return false;
     const keys = this.bindings[action];
     if (!keys) return false;
     return keys.some((k) => this.keyState.get(k) === true);
   }
 
   isJustPressed(action: GameAction): boolean {
+    if (this.inputLocked) return false;
     const keys = this.bindings[action];
     if (!keys) return false;
     return keys.some(

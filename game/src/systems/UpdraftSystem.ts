@@ -21,8 +21,10 @@ interface UpdraftParticle {
 }
 
 const TILE = 16;
-const UPDRAFT_FORCE = 980 * 2.2;
-const MAX_UPDRAFT_VY = -250;
+// 75 % strength (Victor 2026-05-15). Force AND max upward velocity both
+// reduced so the rise feels lighter without changing visual particles.
+const UPDRAFT_FORCE = 980 * 2.2 * 0.75;
+const MAX_UPDRAFT_VY = -250 * 0.75;
 const P_COLOR = 0x66ddff;
 const P_SPEED = 140;
 const P_MAX = 50;

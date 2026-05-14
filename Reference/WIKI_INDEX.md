@@ -296,3 +296,15 @@
 | 18 | [Ability Soul](castlevania-wiki-md/Ability%20Soul.md) | 능력 해금 시스템 |
 | 19 | [Bonus Gauge](disgaea-wiki-md/Bonus%20Gauge.md) | 보상 시스템 설계 |
 | 20 | [Squad](disgaea-wiki-md/Squad.md) | 파티/부대 시스템 |
+
+---
+
+## 역기획서 (Reverse GDDs)
+
+본 폴더 내 외부 게임 시스템 역기획서 인덱스. 1차 소스 기반 + `[확인함]/[추측임]/[근거 없음]` 태깅 강제.
+
+- [Hades Boon Reverse GDD](Hades_Boon_Reverse_GDD.md) — Hades 1 / Hades II 의 Olympian Boon 시스템 (조작·자원·회수·효과·확장 5축, 2026-05-14)
+- [Disgaea Item World Reverse GDD](Disgaea_ItemWorld_Reverse_GDD.md) — 디스가이아 5 중심 아이템계 — 진입·층 구조·이노센트·아이템 보스·아이템 전생 (2026-03-23)
+- [Spelunky Level Generation Reverse GDD](Spelunky-LevelGeneration-ReverseGDD.md) — Spelunky Freeware/HD/2 의 Template-Based Procedural Generation (룸 템플릿·청크 기반 절차적 생성, 2026-03-23)
+- [Dead Cells Level Generation Reverse GDD](DeadCells-LevelGeneration-ReverseGDD.md) — Dead Cells v3.4 의 Hybrid PCG 파이프라인 (Roguevania 절차적 레벨, 2026-03-23)
+- [SideQuest Narrative Framework Reverse GDD](Reverse_GDD_SideQuest_Narrative_Framework.md) — The Witcher 3 / Fallout 4 의 모듈형 사이드 퀘스트 서사 프레임워크 (100+ 퀘스트 양산 구조, 2026-03-24)

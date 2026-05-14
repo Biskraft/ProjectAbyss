@@ -13,13 +13,16 @@
  */
 
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
-import { isSolid } from '@core/Physics';
+import { getTile, isSolid } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
 
 const GRAVITY = 720;        // px/s^2 — confetti fall rate
 const AIR_FRICTION = 0.965; // per ~16ms tick
 const BOB_AMPLITUDE = 2;
 const TILE_SIZE = 16;
+const MAX_PHYSICS_STEP_MS = 16;
+const BOUNCE_Y = 0.42;
+const BOUNCE_X = 0.45;
 const SETTLE_VY = 55;       // |vy| below this on a bounce → consider stopping
 const SETTLE_VX = 18;       // |vx| below this with floor contact → settle
 
@@ -147,6 +150,7 @@ export class GoldPickup {
   /** True when the coin has come to rest on a tile via burst physics.
    *  Floored coins skip the bob animation (idle hover is for fixed pickups). */
   private floored = false;
+  private physicsArmed = false;
 
   /** Fallback shape — visible only until the atlas texture finishes loading,
    *  or permanently if the load fails. */
@@ -225,10 +229,161 @@ export class GoldPickup {
     if (frame) this.sprite.texture = frame;
   }
 
+  enableTerrainPhysics(roomData: number[][]): void {
+    this.roomData = roomData;
+    this.physicsArmed = true;
+    this.floored = false;
+  }
+
+  private collisionRadius(): number {
+    return Math.max(1, this.tierSize * COIN_VISUAL_SCALE);
+  }
+
+  private solidAt(col: number, row: number): boolean {
+    return !!this.roomData && isSolid(getTile(this.roomData, col, row));
+  }
+
+  private getBounds(x = this.x, y = this.y): { left: number; right: number; top: number; bottom: number } {
+    const cx = x + this.width / 2;
+    const cy = y + this.height / 2;
+    const r = this.collisionRadius();
+    return { left: cx - r, right: cx + r, top: cy - r, bottom: cy + r };
+  }
+
+  private overlapsSolid(x = this.x, y = this.y): boolean {
+    if (!this.roomData) return false;
+    const b = this.getBounds(x, y);
+    const leftCol = Math.floor(b.left / TILE_SIZE);
+    const rightCol = Math.floor((b.right - 0.001) / TILE_SIZE);
+    const topRow = Math.floor(b.top / TILE_SIZE);
+    const bottomRow = Math.floor((b.bottom - 0.001) / TILE_SIZE);
+    for (let row = topRow; row <= bottomRow; row++) {
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (this.solidAt(col, row)) return true;
+      }
+    }
+    return false;
+  }
+
+  private resolveInitialOverlap(): void {
+    if (!this.roomData || !this.overlapsSolid()) return;
+
+    const maxPush = TILE_SIZE * 3;
+    let best: { x: number; y: number; dist: number } | null = null;
+    for (let radius = 1; radius <= maxPush && !best; radius++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+          const nx = this.x + dx;
+          const ny = this.y + dy;
+          if (this.overlapsSolid(nx, ny)) continue;
+          best = { x: nx, y: ny, dist: dx * dx + dy * dy };
+          break;
+        }
+        if (best) break;
+      }
+    }
+
+    if (best) {
+      this.x = best.x;
+      this.y = best.y;
+      this.vx = 0;
+      this.vy = Math.max(0, this.vy);
+    }
+  }
+
+  private resolveMoveX(dx: number): void {
+    this.x += dx;
+    if (!this.roomData || dx === 0) return;
+
+    const b = this.getBounds();
+    const topRow = Math.floor(b.top / TILE_SIZE);
+    const bottomRow = Math.floor((b.bottom - 0.001) / TILE_SIZE);
+
+    if (dx > 0) {
+      const rightCol = Math.floor((b.right - 0.001) / TILE_SIZE);
+      for (let row = topRow; row <= bottomRow; row++) {
+        if (!this.solidAt(rightCol, row)) continue;
+        this.x = rightCol * TILE_SIZE - this.width / 2 - this.collisionRadius();
+        this.vx = -this.vx * BOUNCE_X;
+        return;
+      }
+    } else {
+      const leftCol = Math.floor(b.left / TILE_SIZE);
+      for (let row = topRow; row <= bottomRow; row++) {
+        if (!this.solidAt(leftCol, row)) continue;
+        this.x = (leftCol + 1) * TILE_SIZE - this.width / 2 + this.collisionRadius();
+        this.vx = -this.vx * BOUNCE_X;
+        return;
+      }
+    }
+  }
+
+  private resolveMoveY(dy: number): boolean {
+    this.y += dy;
+    if (!this.roomData || dy === 0) return false;
+
+    const b = this.getBounds();
+    const leftCol = Math.floor(b.left / TILE_SIZE);
+    const rightCol = Math.floor((b.right - 0.001) / TILE_SIZE);
+
+    if (dy > 0) {
+      const bottomRow = Math.floor((b.bottom - 0.001) / TILE_SIZE);
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (!this.solidAt(col, bottomRow)) continue;
+        this.y = bottomRow * TILE_SIZE - this.height / 2 - this.collisionRadius();
+        this.vy = -this.vy * BOUNCE_Y;
+        this.vx *= 0.78;
+        return true;
+      }
+    } else {
+      const topRow = Math.floor(b.top / TILE_SIZE);
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (!this.solidAt(col, topRow)) continue;
+        this.y = (topRow + 1) * TILE_SIZE - this.height / 2 + this.collisionRadius();
+        this.vy = -this.vy * 0.25;
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  private stepPhysics(dt: number): void {
+    const sec = dt / 1000;
+    this.resolveInitialOverlap();
+    this.vy += GRAVITY * sec;
+    this.vx *= Math.pow(AIR_FRICTION, dt / 16);
+    if (this.physicsTimer > 0) this.physicsTimer = Math.max(0, this.physicsTimer - dt);
+
+    this.resolveMoveX(this.vx * sec);
+    const grounded = this.resolveMoveY(this.vy * sec);
+    if (grounded && Math.abs(this.vy) < SETTLE_VY && Math.abs(this.vx) < SETTLE_VX) {
+      this.vx = 0;
+      this.vy = 0;
+      this.physicsTimer = 0;
+      this.floored = true;
+      this.physicsArmed = false;
+      this.baseY = this.y;
+      this.timer = 0;
+    }
+  }
+
   update(dt: number): void {
     if (this.collected) return;
     // Bounce-loop runs unconditionally — burst flight, floored, idle bob alike.
     this.updateCoinAnim(dt);
+    if (!this.floored && this.roomData && (this.physicsArmed || this.physicsTimer > 0 || this.vx !== 0 || this.vy !== 0)) {
+      let remaining = Math.min(dt, 100);
+      while (remaining > 0 && !this.floored) {
+        const step = Math.min(MAX_PHYSICS_STEP_MS, remaining);
+        this.stepPhysics(step);
+        remaining -= step;
+      }
+      this.container.x = this.x;
+      this.container.y = this.y;
+      return;
+    }
     if (this.physicsTimer > 0) {
       const sec = dt / 1000;
       const halfW = this.width / 2;

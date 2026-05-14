@@ -19,10 +19,11 @@ import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR,
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
+import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
 import { GameAction, actionKey } from '@core/InputManager';
-import { Player, OIL_SLIP_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
+import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
 import { Boss01 } from '@entities/Boss01';
 import { GoldenMonster } from '@entities/GoldenMonster';
@@ -103,6 +104,7 @@ import { WaterBubblesManager } from '@effects/WaterBubbles';
 import { SteamPuffManager } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { FluidResidueManager } from '@effects/FluidResidue';
+import { FluidSystem } from '@effects/FluidSystem';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
@@ -266,6 +268,31 @@ export class ItemWorldScene extends Scene {
   private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
+  private fluidLayer!: Container;
+  private aboveFluidLayer!: Container;
+  private fluidSystem!: FluidSystem;
+  /** Last frame's "player in non-water fluid (magma/oil/acid)" flag — used
+   *  for entry/exit splash + impulse parity with LdtkWorldScene. */
+  private prevPlayerInOtherFluid = false;
+  /** Same as above but per-enemy (index-aligned with this.enemies). */
+  private prevEnemyInOtherFluid: boolean[] = [];
+  /** Set when TileMutator mutates a wall tile (ice melt, metal corrode,
+   *  oil/wood burnout, etc). Cleared in update() after a single fluid
+   *  refresh — coalesces many same-frame mutations into one rebuild. */
+  private fluidGridDirty = false;
+  /** Oxygen vignette + bar overlays (lazy-created on first submersion). */
+  private oxygenOverlay: Graphics | null = null;
+  private oxygenBar: Graphics | null = null;
+  /**
+   * Mutation mask — covers air cells that used to be wood/grass/oil with a
+   * black rect so the wall sprite (which was baked into wallAggregate at
+   * buildFullMap time) doesn't keep showing through after burnout. Mirrors
+   * LdtkWorldScene's `rerenderTilemap` filter, but the ItemWorld aggregate
+   * pipeline isn't per-cell, so a paint-over mask is the cheap parity.
+   */
+  private mutationMaskGfx: Graphics | null = null;
+  /** Air cells produced by TileMutator burnout / corrode (key = "gx,gy"). */
+  private mutatedCells: Set<string> = new Set();
   private hud!: HUD;
   private areaTitle!: AreaTitle;
   private uiController!: ItemWorldUiController;
@@ -298,7 +325,6 @@ export class ItemWorldScene extends Scene {
   private egoShard!: EgoShardManager;
   private egoShardPreview!: EgoShardPreview;
   private egoCastChargeMs = 0;
-  private oilDrainAccumMs = 0;
   private containers: ThrowableContainer[] = [];
   private heldContainer: ThrowableContainer | null = null;
   private waterBubbles!: WaterBubblesManager;
@@ -761,6 +787,19 @@ export class ItemWorldScene extends Scene {
     // Tile mutator overlay (fire/ice/electric VFX).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
+    // Dynamic fluid layer — flood-fill polygon mesh for water/oil/acid/magma
+    // cells. Lives above the entity layer so fluid bodies cover the player
+    // when submerged. Mirrors LdtkWorldScene wiring.
+    this.fluidLayer = new Container();
+    this.container.addChild(this.fluidLayer);
+    this.fluidSystem = new FluidSystem(this.fluidLayer);
+
+    // Above-fluid overlay — fire sprites + ember + smoke render here so
+    // they appear OVER oil pools / water surface.
+    this.aboveFluidLayer = new Container();
+    this.container.addChild(this.aboveFluidLayer);
+    this.tileMutatorRenderer.setAboveFluidLayer(this.aboveFluidLayer);
+
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
 
@@ -823,8 +862,31 @@ export class ItemWorldScene extends Scene {
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShard = new EgoShardManager(this.entityLayer);
     this.egoShardPreview = new EgoShardPreview(this.entityLayer);
+    // Fluid evaporation → drop residue stain (mirrors LdtkWorldScene).
+    this.fluidSystem.onEvaporated = (gx, gy, type) => {
+      if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
+      const px = (gx + 0.5) * 16;
+      const py = (gy + 1) * 16;
+      this.fluidResidue.dropAt(type, px, py, 1.0);
+    };
     this.tileMutator.onSteamEvent = (gx, gy) => {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.0);
+    };
+    // Wall-tile mutations (ice→water melt, acid→metal corrode, oil/wood
+    // burnout) invalidate the static tile layer AND can introduce new
+    // fluid cells (ice melt → water). Coalesce same-frame events into a
+    // single refresh in update().
+    this.tileMutator.onWallTileChanged = (gx, gy) => {
+      this.fluidGridDirty = true;
+      // If the mutation produced an air cell, paint over the baked-in
+      // wall sprite that was aggregated at buildFullMap. New fluid cells
+      // (ice→water) don't need a mask — FluidSystem will draw over the
+      // wall sprite via the fluid mesh.
+      const v = this.fullGrid[gy]?.[gx];
+      if (v === 0) {
+        this.mutatedCells.add(`${gx},${gy}`);
+        this.rebuildMutationMask();
+      }
     };
     this.waterBubbles = new WaterBubblesManager(this.entityLayer);
     this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
@@ -912,6 +974,11 @@ export class ItemWorldScene extends Scene {
 
     // Build full map (all rooms rendered into a single continuous grid)
     this.buildFullMap();
+    // Wire FluidSystem to the freshly built grid — flood-fills fluid bodies
+    // for every water/oil/acid/magma cell that any room template placed.
+    // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
+    // since ItemWorld has no single LdtkLevel wrapper.
+    this.fluidSystem.attachGrid(this.fullGrid);
     // Initialize depth gauge
     {
       const n = this.strataConfig.strata.length;
@@ -1057,6 +1124,12 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.interiorAggregate);
     this.fullMapContainer.addChild(this.structAggregate);
     this.fullMapContainer.addChild(this.wallAggregate);
+    // Mutation mask sits directly above the wall aggregate so burnout / corrode
+    // cells can hide their baked-in wall sprite without re-aggregating.
+    if (!this.mutationMaskGfx) this.mutationMaskGfx = new Graphics();
+    this.mutationMaskGfx.clear();
+    this.mutatedCells.clear();
+    this.fullMapContainer.addChild(this.mutationMaskGfx);
     this.fullMapContainer.addChild(this.specialAggregate);
     this.fullMapContainer.addChild(this.decoAggregate);
     this.fullMapContainer.addChild(this.artificialDecoAggregate);
@@ -1597,6 +1670,7 @@ export class ItemWorldScene extends Scene {
           // Gold — 5..15 (stratum 별 약간 가중) × 10 — 야리코미 보상 공간 강조
           const goldAmount = Math.floor((5 + rewardRng.nextInt(0, 10) + (cell.stratumIndex ?? 0) * 2) * 10);
           const gp = new GoldPickup(pt.x, pt.y, goldAmount);
+          gp.enableTerrainPhysics(this.roomData);
           this.goldPickups.push(gp);
           this.entityLayer.addChild(gp.container);
         } else {
@@ -2682,7 +2756,18 @@ export class ItemWorldScene extends Scene {
     }
 
     // Render overlay for fire / ice / electric cell states.
-    this.tileMutatorRenderer?.update(this.tileMutator, this.fullGrid);
+    this.tileMutatorRenderer?.update(this.tileMutator, this.fullGrid, dt);
+
+    // Wall-tile mutation coalesced refresh — re-flood-fills fluid bodies
+    // so new water (from ice melt) or removed cells (oil burnout, metal
+    // corrode) sync with the dynamic fluid mesh.
+    if (this.fluidGridDirty) {
+      this.fluidGridDirty = false;
+      this.fluidSystem.refreshFromGrid(this.fullGrid);
+    }
+    // Dynamic fluid: spring physics + cellular gravity. Mirrors LdtkWorldScene.
+    this.fluidSystem.update(dt);
+    this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator);
 
     if (this.player.hp > 0) {
       applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {
@@ -2716,9 +2801,14 @@ export class ItemWorldScene extends Scene {
     for (const enemy of this.enemies) {
       if (!enemy.alive || enemy.hp <= 0) continue;
       applyTileHazards(enemy, this.fullGrid, this.tileMutator, dt, {
-        onDamage: (amount) => {
-          enemy.hp -= Math.max(1, Math.floor(amount));
-          if (enemy.hp <= 0) enemy.hp = 0;
+        onDamage: (amount, src) => {
+          const mult = enemy.elementMultiplier(hazardToElement(src));
+          if (mult <= 0) return;
+          const dmg = Math.max(1, Math.floor(amount * mult));
+          enemy.hp -= dmg;
+          enemy.showHpBarFlash();
+          this.dmgNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, src === 'thunder');
+          if (enemy.hp <= 0) { enemy.hp = 0; enemy.onDeath(); }
         },
       });
     }
@@ -2764,17 +2854,72 @@ export class ItemWorldScene extends Scene {
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
-      if (x < c.x || x > c.x + c.spec.width || y < c.y || y > c.y + c.spec.height) continue;
+      if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
+      if (c.kind === 'MetalCrate') {
+        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
+        return true;
+      }
       const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
-      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        c.destroy();
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
       }
       return true;
     }
     return false;
+  }
+
+  private checkThrownContainerEnemyHit(): void {
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      if (c.destroyed || c.held) continue;
+      if (!c.wasThrown || c.hasDealtImpact) continue;
+      if (Math.abs(c.vx) < 60 && c.vy < 80) continue;
+      const ax = c.colX, ay = c.colY, aw = c.colW, ah = c.colH;
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        if (ax + aw <= e.x || ax >= e.x + e.width) continue;
+        if (ay + ah <= e.y || ay >= e.y + e.height) continue;
+        const baseDmg = Math.max(2, Math.floor(this.player.atk));
+        const mult = c.kind === 'MetalCrate' ? 1.8 : 1.0;
+        const dmg = Math.max(1, Math.floor(baseDmg * mult));
+        e.hp -= dmg;
+        const dir = c.vx >= 0 ? 1 : -1;
+        const isBoss = (e as any)._isBoss === true;
+        if (isBoss) e.onHit(dir * 60, -40, 0);
+        else        e.onHit(dir * 220, -160, 400);
+        this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, c.kind === 'MetalCrate');
+        this.hitSparks.spawn(ax + aw / 2, ay + ah / 2, true, 0);
+        if (e.hp <= 0) {
+          e.hp = 0;
+          e.onDeath();
+        }
+        c.hasDealtImpact = true;
+        const impactGx = Math.floor((ax + aw / 2) / 16);
+        const impactGy = Math.floor((ay + ah / 2) / 16);
+        if (c.spec.paintTile !== 0 && c.fluidVolume > 0) {
+          this.paintContainerImpact(c.kind, impactGx, impactGy, c.fluidVolume);
+        }
+        this.destroyContainerWithVFX(c);
+        this.containers.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  /** Same VFX/SFX bundle as LdtkWorldScene container break. */
+  private destroyContainerWithVFX(c: ThrowableContainer): void {
+    this.propShatter.spawn(
+      c.x, c.y, c.spec.width, c.spec.height,
+      c.getShatterColor(), c.getShatterAccent(),
+      c.getShatterTexture(),
+    );
+    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
+    this.game.hitstopFrames += 3;
+    this.game.camera.shake(2);
+    c.destroy();
   }
 
   /**
@@ -2785,17 +2930,18 @@ export class ItemWorldScene extends Scene {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (x < e.x || x > e.x + e.width || y < e.y || y > e.y + e.height) continue;
-      const baseDmg = Math.max(2, Math.floor(this.player.atk * 0.6));
-      e.hp -= baseDmg;
+      const elemMult = e.elementMultiplier(element as ElementAffinity);
+      const baseDmg = Math.max(1, Math.floor(this.player.atk * 0.6 * elemMult));
+      if (elemMult > 0) e.hp -= baseDmg;
       e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
       this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
       this.hitSparks.spawn(x, y, false, 0);
-      if (element === 'fire') {
+      if (element === 'fire' && elemMult > 0) {
         e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
-      } else if (element === 'ice') {
+      } else if (element === 'ice' && elemMult > 0) {
         e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
-      } else if (element === 'thunder') {
-        e.hp -= Math.max(2, Math.floor(this.player.atk * 0.4));
+      } else if (element === 'thunder' && elemMult > 0) {
+        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.4 * elemMult));
         const room = this.fullGrid;
         if (room?.length) {
           const gx = Math.floor((e.x + e.width / 2) / 16);
@@ -2823,10 +2969,10 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Container splash paint at impact cell. ItemWorld lacks fluidSystem so
-   * we only mutate fullGrid + emit steam VFX. Visual auto-tile refresh is
-   * handled by each room's renderer on the next room rebuild — for fluid
-   * cells the FluidResidue marks aren't critical, the IntGrid mutation is.
+   * Container splash paint at impact cell. Mutates fullGrid + (since
+   * FluidSystem integration) refreshes the fluid body mesh so the painted
+   * fluid cells get the dynamic surface / wave visuals. Magma paint also
+   * ignites adjacent flammable cells.
    */
   private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
     const grid = this.fullGrid;
@@ -2883,6 +3029,10 @@ export class ItemWorldScene extends Scene {
     if (kind === 'MagmaCrucible') {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
     }
+    // Refresh fluid mesh so the newly-painted cells get dynamic surface.
+    if (tile === 2 || tile === 6 || tile === 11 || tile === 13) {
+      this.fluidSystem.refreshFromGrid(this.fullGrid);
+    }
   }
 
   /** Spawn 4 debug containers near player. Shift+G binding under ?debug. */
@@ -2917,6 +3067,7 @@ export class ItemWorldScene extends Scene {
         if (t === 7) this.tileMutator.tryMeltIce(room, gx, gy);
         else if (t === 2 && room[gy]) {
           room[gy][gx] = 0;
+          this.fluidSystem.removeCell(gx, gy);
           this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
         } else {
           this.tileMutator.tryIgnite(room, gx, gy);
@@ -2942,7 +3093,12 @@ export class ItemWorldScene extends Scene {
       if (isIce(tile)) {
         if (this.tileMutator.tryMeltIce(this.fullGrid, gx, gy)) actions++;
       } else if (isWater(tile)) {
-        if (this.fullGrid[gy]) { this.fullGrid[gy][gx] = TILE_AIR; actions++; }
+        if (this.fullGrid[gy]) {
+          this.fullGrid[gy][gx] = TILE_AIR;
+          this.fluidSystem.removeCell(gx, gy);
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
+          actions++;
+        }
       } else {
         if (this.tileMutator.tryIgnite(this.fullGrid, gx, gy)) actions++;
       }
@@ -3323,17 +3479,22 @@ export class ItemWorldScene extends Scene {
         }
         // Breakable tiles (IntGrid 9) ? 3 hits to destroy → air(0)
         this.checkAttackOnBreakables(hitbox);
-        // Throwable containers — sword damage breaks them.
+        // Throwable containers — sword damage breaks them, except MetalCrate
+        // which is immune (acid only).
         for (let i = this.containers.length - 1; i >= 0; i--) {
           const c = this.containers[i];
           if (c.destroyed || c.held) continue;
-          const cBox = { x: c.x, y: c.y, width: c.spec.width, height: c.spec.height };
+          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
           if (!aabbOverlap(hitbox, cBox)) continue;
+          if (c.kind === 'MetalCrate') {
+            this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
+            continue;
+          }
           const impact = c.takeAttack(Math.max(1, Math.floor(this.player.atk)));
-          this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+          this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
           if (impact) {
             this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-            c.destroy();
+            this.destroyContainerWithVFX(c);
             this.containers.splice(i, 1);
           }
         }
@@ -3748,15 +3909,21 @@ export class ItemWorldScene extends Scene {
     // Updraft wind zones (IntGrid value 4 in fullGrid)
     this.applyUpdrafts(dt);
 
-    // DEBUG: Shift+1/2/3 = Fire / Ice / Thunder, Shift+O = HP lock at 1. ?debug URL gated.
+    // DEBUG: Shift+1/2/3 = Fire / Ice / Thunder, Shift+O = unified cheat
+    // bundle (all relics + HP/ATK 99999 + immortal). ?debug URL gated.
     const debugOn = new URLSearchParams(window.location.search).has('debug');
     if (debugOn && this.game.input.shiftDown) {
       if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE)) this.debugIgniteAtPlayer();
       if (this.game.input.isJustPressed(GameAction.DEBUG_ICE)) this.debugFreezeAtPlayer();
       if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.debugThunderAtPlayer();
       if (this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
-        this.player.debugLockHpAtOne = !this.player.debugLockHpAtOne;
-        if (this.player.debugLockHpAtOne) this.player.hp = 1;
+        if (this.player.debugCheatActive) {
+          this.player.disableCheatBundle();
+          this.toast.show('CHEAT OFF', 0x44ff44);
+        } else {
+          this.player.enableCheatBundle();
+          this.toast.show('CHEAT ON — relics + HP/ATK 99999 + immortal', 0xffaa00);
+        }
       }
       if (this.game.input.isJustPressedKeyCode('KeyG')) this.debugSpawnContainers();
     }
@@ -3822,18 +3989,30 @@ export class ItemWorldScene extends Scene {
     // ── Grab / Throw (B / RB) ──
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
+        // Two-handed forward toss — vx 160 = doubled range vs prior 80.
         const facing = this.player.facingRight ? 1 : -1;
-        this.heldContainer.release(facing * 80, -170);
+        this.heldContainer.release(facing * 160, -170);
         this.heldContainer = null;
       } else {
+        // AABB-with-padding grab (mirrors LdtkWorldScene). Center-distance
+        // alone misses adjacent 32×32 crates whose centers sit > 23 px away.
+        const GRAB_RANGE = 8;
+        const grabBox = {
+          x: this.player.x - GRAB_RANGE,
+          y: this.player.y - GRAB_RANGE,
+          width: this.player.width + GRAB_RANGE * 2,
+          height: this.player.height + GRAB_RANGE * 2,
+        };
         const px = this.player.x + this.player.width / 2;
         const py = this.player.y + this.player.height / 2;
         let best: ThrowableContainer | null = null;
-        let bestDist = 18 * 18;
+        let bestDist = Infinity;
         for (const c of this.containers) {
           if (c.destroyed || c.held) continue;
-          const cx = c.x + c.width / 2;
-          const cy = c.y + c.height / 2;
+          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
+          if (!aabbOverlap(grabBox, cBox)) continue;
+          const cx = c.colX + c.colW / 2;
+          const cy = c.colY + c.colH / 2;
           const d = (cx - px) ** 2 + (cy - py) ** 2;
           if (d < bestDist) { best = c; bestDist = d; }
         }
@@ -3846,6 +4025,9 @@ export class ItemWorldScene extends Scene {
       h.y = this.player.y - h.height - 2;
       h.container.x = h.x;
       h.container.y = h.y;
+      this.player.isLifting = true;
+    } else {
+      this.player.isLifting = false;
     }
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
@@ -4418,6 +4600,7 @@ export class ItemWorldScene extends Scene {
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
     this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
+    this.updateOxygenOverlay();
     this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
     // Boss HP bar ? 교전 감지 2중 트리거.
     //  1) FSM 상태 ≠ idle/death
@@ -4562,34 +4745,32 @@ export class ItemWorldScene extends Scene {
     if (waterT !== null) {
       const strength = waterT > 0 ? 1.0 : 0.8;
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
+      const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
+      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
     // ── Residue trail timers (oil/acid/magma) ───────────────────────────
     const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid);
     const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid);
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid);
+    // Non-water fluid entry / exit splash — same impulse pattern as water.
+    const inAnyOther = inMagma_ || inOil_ || inAcid_;
+    if (inAnyOther !== this.prevPlayerInOtherFluid) {
+      const type: 'magma' | 'oil' | 'acid' = inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
+      const strength = inAnyOther ? 1.0 : 0.8;
+      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
+      const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
+      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
+      if (inAnyOther && inMagma_) {
+        this.steamPuff.spawn(p.x + p.width / 2, p.y + p.height, 1.2);
+      }
+      this.prevPlayerInOtherFluid = inAnyOther;
+    }
     if (inOil_) {
       p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-      this.oilDrainAccumMs = (this.oilDrainAccumMs ?? 0) + dt;
-      while (this.oilDrainAccumMs >= 200) {
-        this.oilDrainAccumMs -= 200;
-        const oilCells: Array<[number, number]> = [];
-        const leftGx  = Math.floor(p.x / 16);
-        const rightGx = Math.floor((p.x + p.width - 1) / 16);
-        const topGy   = Math.floor(p.y / 16);
-        const botGy   = Math.floor((p.y + p.height - 1) / 16);
-        for (let gy = topGy; gy <= botGy; gy++) {
-          for (let gx = leftGx; gx <= rightGx; gx++) {
-            if (this.fullGrid[gy]?.[gx] === 11) oilCells.push([gx, gy]);
-          }
-        }
-        if (oilCells.length === 0) break;
-        const [dgx, dgy] = oilCells[Math.floor(Math.random() * oilCells.length)];
-        this.fullGrid[dgy][dgx] = 0;
-        this.fluidResidue.dropAt('oil', (dgx + 0.5) * 16, (dgy + 1) * 16, 1.0);
-      }
+      p.oilResidueRemainingMs = OIL_RESIDUE_DURATION_MS;
     } else {
-      this.oilDrainAccumMs = 0;
       if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+      if (p.oilResidueRemainingMs > 0) p.oilResidueRemainingMs = Math.max(0, p.oilResidueRemainingMs - dt);
     }
     p.prevInOil = inOil_;
     if (inAcid_)  p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
@@ -4602,12 +4783,18 @@ export class ItemWorldScene extends Scene {
     const footX = p.x + p.width / 2;
     const footY = p.y + p.height;
     const grounded = p.isGrounded();
-    this.fluidResidue.emit('oil',   footX, footY, p.oilSlipRemainingMs > 0,    grounded, p.oilSlipRemainingMs / OIL_SLIP_DURATION_MS);
+    this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
 
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: () => { p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS; },
+      refreshOilSlip: (remainingMs) => {
+        p.oilSlipRemainingMs = Math.max(p.oilSlipRemainingMs, remainingMs);
+        // Keep the residue-emit timer in sync so walking across an existing
+        // oil blot keeps dropping fresh footprints (was the cause of
+        // "slipping forever with no visible oil"). Symmetric with LdtkWorld.
+        p.oilResidueRemainingMs = Math.max(p.oilResidueRemainingMs, remainingMs);
+      },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;
         acc += dt;
@@ -4648,7 +4835,24 @@ export class ItemWorldScene extends Scene {
       const ey = e.y + e.height;
       if (e.waterTransition !== 0) {
         const strength = e.waterTransition > 0 ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength);
+        this.waterSplash.spawn(ex, ey, strength, 'water');
+        const impulseVy = e.waterTransition > 0 ? 150 : -100;
+        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
+      }
+      // Non-water fluid transition for enemies (magma/oil/acid).
+      const eInOther = isInMagma(e.x, e.y, e.width, e.height, this.fullGrid)
+                    || isInOil  (e.x, e.y, e.width, e.height, this.fullGrid)
+                    || isInAcid (e.x, e.y, e.width, e.height, this.fullGrid);
+      const ePrevOther = this.prevEnemyInOtherFluid[i] ?? false;
+      if (eInOther !== ePrevOther) {
+        let type: 'magma' | 'oil' | 'acid' = 'magma';
+        if (isInOil (e.x, e.y, e.width, e.height, this.fullGrid)) type = 'oil';
+        else if (isInAcid(e.x, e.y, e.width, e.height, this.fullGrid)) type = 'acid';
+        const strength = eInOther ? 1.0 : 0.8;
+        this.waterSplash.spawn(ex, ey, strength, type);
+        const impulseVy = eInOther ? 150 : -100;
+        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
+        this.prevEnemyInOtherFluid[i] = eInOther;
       }
       const key = `enemy_${i}`;
       this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
@@ -4656,6 +4860,54 @@ export class ItemWorldScene extends Scene {
       const eLanded = e.consumeLandedEvent();
       if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
       if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
+
+      // Residue contact effects — element multiplier per source.
+      if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
+      const eAcidM2  = e.elementMultiplier('acid');
+      const eMagmaM2 = e.elementMultiplier('magma');
+      const eFireM2  = e.elementMultiplier('fire');
+      this.fluidResidue.applyEffects(e.x, e.y, e.width, e.height, {
+        refreshOilSlip: (remainingMs) => {
+          e.oilSlipRemainingMs = Math.max(e.oilSlipRemainingMs, remainingMs);
+        },
+        onAcidContact: () => {
+          if (eAcidM2 <= 0) return;
+          let acc = e.acidTickAccum;
+          acc += dt;
+          let totalDmg = 0;
+          while (acc >= 100) {
+            acc -= 100;
+            const dmg = Math.max(1, Math.floor(e.maxHp * 0.005 * eAcidM2));
+            e.hp = Math.max(0, e.hp - dmg);
+            totalDmg += dmg;
+          }
+          e.acidTickAccum = acc;
+          if (totalDmg > 0) {
+            e.showHpBarFlash();
+            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, totalDmg, false);
+          }
+          if (e.hp <= 0) e.onDeath();
+        },
+        onMagmaContact: () => {
+          if (eMagmaM2 <= 0) return;
+          const wasBurning = e.burnRemainingMs > 0;
+          e.burnRemainingMs = 15000;
+          if (!wasBurning) {
+            const dmg = Math.max(1, Math.floor(e.maxHp * 0.02 * eMagmaM2));
+            e.hp = Math.max(0, e.hp - dmg);
+            e.showHpBarFlash();
+            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, false);
+            if (e.hp <= 0) e.onDeath();
+          }
+        },
+        onFireContact: () => {
+          if (eFireM2 <= 0) return;
+          const dmg = Math.max(1, Math.floor(e.maxHp * 0.03 * eFireM2 * (dt / 1000)));
+          e.hp = Math.max(0, e.hp - dmg);
+          e.burnRemainingMs = Math.max(e.burnRemainingMs, 10000);
+          if (e.hp <= 0) e.onDeath();
+        },
+      });
     }
 
     this.landingDust.update(dt);
@@ -4678,28 +4930,64 @@ export class ItemWorldScene extends Scene {
       const t = this.fullGrid[gy]?.[gx] ?? 0;
       return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
     };
-    const isAcidCell = (gx: number, gy: number) =>
-      (this.fullGrid[gy]?.[gx] ?? 0) === 13;
+    const env = {
+      isAcidCell:  (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 13,
+      isMagmaCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 6,
+      isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
+    };
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
-      const dissolved = c.tickEnvironment(dt, isAcidCell);
-      if (dissolved) {
-        c.destroy();
+      const envImpact = c.tickEnvironment(dt, env);
+      if (envImpact) {
+        this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
         continue;
       }
       const impact = c.update(dt, isContainerSolidCell, this.containers);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        c.destroy();
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
       }
     }
-    // Player ↔ container resolve (same as world scene)
+    // ── Thrown container × enemy impact (one hit per throw) ──
+    this.checkThrownContainerEnemyHit();
+    // ── Enemy ↔ container collision (stack / block, no damage) ──
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      for (const c of this.containers) {
+        if (c.destroyed || c.held) continue;
+        const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
+        const ex0 = e.x, ey0 = e.y, ex1 = e.x + e.width, ey1 = e.y + e.height;
+        if (ex1 <= cx0 || ex0 >= cx1 || ey1 <= cy0 || ey0 >= cy1) continue;
+        const oL = ex1 - cx0;
+        const oR = cx1 - ex0;
+        const oT = ey1 - cy0;
+        const oB = cy1 - ey0;
+        const minE = Math.min(oL, oR, oT, oB);
+        if (minE === oT) {
+          e.y = cy0 - e.height;
+          if (e.vy > 0) e.vy = 0;
+        } else if (minE === oB) {
+          c.y -= oB;
+          if (c.vy > 0) c.vy = 0;
+          c.container.x = c.x; c.container.y = c.y;
+          if (e.vy < 0) e.vy = 0;
+        } else if (minE === oL) {
+          e.x = cx0 - e.width;
+          if (e.vx > 0) e.vx = 0;
+        } else if (minE === oR) {
+          e.x = cx1;
+          if (e.vx < 0) e.vx = 0;
+        }
+      }
+    }
+    // Player ↔ container resolve (same as world scene). Uses collision rect.
     const p2 = this.player;
     for (const c of this.containers) {
       if (c.destroyed || c.held) continue;
-      const cx0 = c.x, cy0 = c.y, cx1 = c.x + c.spec.width, cy1 = c.y + c.spec.height;
+      const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
       const px0 = p2.x, py0 = p2.y, px1 = p2.x + p2.width, py1 = p2.y + p2.height;
       if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
       const overlapLeft   = px1 - cx0;
@@ -4712,7 +5000,11 @@ export class ItemWorldScene extends Scene {
         if (p2.getVy() > 0) p2.vy = 0;
         p2.forceGrounded();
       } else if (min === overlapBottom) {
-        p2.y = cy1;
+        // Container above — push container UP (never bury player into floor).
+        c.y -= overlapBottom;
+        if (c.vy > 0) c.vy = 0;
+        c.container.x = c.x;
+        c.container.y = c.y;
         if (p2.getVy() < 0) p2.vy = 0;
       } else if (min === overlapLeft) {
         if (Math.abs(p2.getVx()) > 20) c.x += Math.max(0, overlapLeft - 1);
@@ -5867,6 +6159,75 @@ export class ItemWorldScene extends Scene {
     if (!this.trapdoor) return;
     this.trapdoor.destroy();
     this.trapdoor = null;
+  }
+
+  /**
+   * Repaint the mutation mask covering every air cell produced by tile
+   * burnout / corrode. Each entry is a 16×16 black rect drawn above the
+   * wall aggregate. Lazy — only re-fills the Graphics when the cell set
+   * has actually changed.
+   */
+  private rebuildMutationMask(): void {
+    const g = this.mutationMaskGfx;
+    if (!g) return;
+    g.clear();
+    for (const key of this.mutatedCells) {
+      const ix = key.indexOf(',');
+      const gx = +key.slice(0, ix);
+      const gy = +key.slice(ix + 1);
+      g.rect(gx * 16, gy * 16, 16, 16).fill({ color: 0x000000, alpha: 1 });
+    }
+  }
+
+  /**
+   * Oxygen overlay — vignette + bottom-center bar shown while submerged
+   * (without the waterBreathing ability). Lazy-creates the Graphics on
+   * first need. Direct mirror of LdtkWorldScene's implementation.
+   */
+  private updateOxygenOverlay(): void {
+    const ratio = this.player.oxygenRatio;
+    const submerged = this.player.submerged && !this.player.abilities.waterBreathing;
+
+    if (submerged && ratio < 1) {
+      if (!this.oxygenOverlay) {
+        this.oxygenOverlay = new Graphics();
+        this.oxygenOverlay.eventMode = 'none';
+        this.game.legacyUIContainer.addChild(this.oxygenOverlay);
+      }
+      this.oxygenOverlay.clear();
+      const color = ratio > 0.5 ? 0x1122aa : ratio > 0.25 ? 0x882244 : 0xaa2222;
+      const intensity = (1 - ratio) * 0.5;
+      const pulse = ratio < 0.5 ? Math.sin(Date.now() * (ratio < 0.15 ? 0.015 : 0.008)) * 0.1 : 0;
+      const alpha = Math.min(0.6, intensity + pulse);
+      this.oxygenOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color, alpha });
+      const cx = GAME_WIDTH / 2;
+      const cy = GAME_HEIGHT / 2;
+      const r = GAME_WIDTH * 0.35 * (0.5 + ratio * 0.5);
+      this.oxygenOverlay.circle(cx, cy, r).cut();
+      this.oxygenOverlay.visible = true;
+    } else if (this.oxygenOverlay) {
+      this.oxygenOverlay.visible = false;
+    }
+
+    if (submerged && ratio < 1) {
+      if (!this.oxygenBar) {
+        this.oxygenBar = new Graphics();
+        this.oxygenBar.eventMode = 'none';
+        this.game.legacyUIContainer.addChild(this.oxygenBar);
+      }
+      this.oxygenBar.clear();
+      const barW = 60;
+      const barH = 4;
+      const bx = GAME_WIDTH / 2 - barW / 2;
+      const by = GAME_HEIGHT - 20;
+      this.oxygenBar.rect(bx, by, barW, barH).fill({ color: 0x111133, alpha: 0.7 });
+      const fillColor = ratio > 0.5 ? 0x4488ff : ratio > 0.25 ? 0xff8844 : 0xff2222;
+      this.oxygenBar.rect(bx, by, barW * ratio, barH).fill(fillColor);
+      this.oxygenBar.rect(bx, by, barW, barH).stroke({ color: 0x446688, width: 0.5 });
+      this.oxygenBar.visible = true;
+    } else if (this.oxygenBar) {
+      this.oxygenBar.visible = false;
+    }
   }
 
   render(alpha: number): void {

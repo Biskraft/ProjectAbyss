@@ -42,6 +42,7 @@ interface Blot {
 // Tunables
 const MIN_STEP_DIST = 6;     // pixels between drops
 const LIFE_MS = 2000;        // base fade-out duration for non-burning blots (shorter so trails don't linger)
+const OIL_LIFE_MS = 5000;    // oil slime matches OIL_SLIP_DURATION_MS (halved)
 const MAX_BLOTS = 120;       // hard cap to keep render cheap
 const OIL_BURN_LIFE_MS = 4000;
 
@@ -70,6 +71,10 @@ function aabbContainsPoint(
   px: number, py: number,
 ): boolean {
   return px >= ax && px <= ax + aw && py >= ay && py <= ay + ah;
+}
+
+function idleLifeFor(p: Blot): number {
+  return p.type === 'oil' ? OIL_LIFE_MS : LIFE_MS;
 }
 
 export class FluidResidueManager {
@@ -156,7 +161,7 @@ export class FluidResidueManager {
         continue;
       }
       this.drawIdleBlot(p);
-      if (p.age >= LIFE_MS) {
+      if (p.age >= idleLifeFor(p)) {
         if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
         p.gfx.destroy();
         this.blots.splice(i, 1);
@@ -168,7 +173,10 @@ export class FluidResidueManager {
     // Quick ramp-in then long fade-out.
     let alpha: number;
     if (p.age < 200) alpha = (p.age / 200) * 1.0;
-    else alpha = 1.0 * (1 - (p.age - 200) / (LIFE_MS - 200));
+    else {
+      const life = idleLifeFor(p);
+      alpha = 1.0 * (1 - (p.age - 200) / (life - 200));
+    }
     alpha *= p.intensity;
     const pal = PALETTE[p.type];
     const r = p.r;
@@ -231,24 +239,24 @@ export class FluidResidueManager {
   applyEffects(
     ax: number, ay: number, aw: number, ah: number,
     cb: {
-      refreshOilSlip: () => void;
+      refreshOilSlip: (remainingMs: number) => void;
       onAcidContact: () => void;
       onMagmaContact: () => void;
       onFireContact: () => void;
     },
   ): void {
-    let touchedOil = false;
+    let touchedOilRemaining = 0;
     let touchedAcid = false;
     let touchedMagma = false;
     let touchedFire = false;
     for (const p of this.blots) {
       if (!aabbContainsPoint(ax, ay, aw, ah, p.x, p.y)) continue;
       if (p.burning) { touchedFire = true; continue; }
-      if (p.type === 'oil')   touchedOil = true;
+      if (p.type === 'oil')   touchedOilRemaining = Math.max(touchedOilRemaining, idleLifeFor(p) - p.age);
       else if (p.type === 'acid')  touchedAcid = true;
       else if (p.type === 'magma') touchedMagma = true;
     }
-    if (touchedOil)   cb.refreshOilSlip();
+    if (touchedOilRemaining > 0) cb.refreshOilSlip(touchedOilRemaining);
     if (touchedAcid)  cb.onAcidContact();
     if (touchedMagma) cb.onMagmaContact();
     if (touchedFire)  cb.onFireContact();

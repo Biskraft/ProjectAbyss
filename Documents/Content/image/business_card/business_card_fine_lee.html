@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strata Forge — Business Card (Fine Lee)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss: #0A0A12;
+  --abyss-lighter: #0F1018;
+  --teal: #2A6B6B;
+  --teal-light: #3A8A8A;
+  --teal-deep: #087785;
+  --teal-glow: #5BC4C4;
+  --orange: #E87830;
+  --orange-deep: #C45A2C;
+  --orange-bright: #FF7900;
+  --orange-glow: #FFA660;
+  --incandescent: #E8E0D0;
+  --warm-white: #FFF5E0;
+  --concrete: #6A6A75;
+  --concrete-light: #8A8A95;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(8,119,133,0.06), transparent 55%),
+    radial-gradient(ellipse at 75% 90%, rgba(232,120,48,0.05), transparent 55%),
+    #0B0B14;
+  color: var(--incandescent);
+  font-family: 'Space Mono', monospace;
+  min-height: 100vh;
+}
+
+.page-title {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: var(--concrete);
+  padding: 32px 0 14px;
+}
+
+.page-title::after {
+  content: '';
+  display: block;
+  width: 52px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-light), transparent);
+  margin: 12px auto 0;
+}
+
+/* ===== STAGE ===== */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3vw;
+  padding: 2vw 2vw 5vw;
+}
+
+.card-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.face-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--concrete);
+}
+
+.face-label::before { content: '— '; color: var(--teal-light); }
+.face-label::after  { content: ' —'; color: var(--teal-light); }
+
+/* ===== CARD ===== */
+/* aspect: 85mm × 55mm = 17 : 11.
+   container-type:inline-size lets us use `cqw` so all inner sizes are
+   based on the CARD's actual width — independent of viewport or max-width caps. */
+.card {
+  width: min(92vw, 1500px);
+  aspect-ratio: 17 / 11;
+  background: var(--abyss);
+  border-radius: 1.2cqw;
+  overflow: hidden;
+  position: relative;
+  container-type: inline-size;
+  box-shadow:
+    0 0 0 1px rgba(42,107,107,0.18) inset,
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 1.8cqw 4.5cqw rgba(0,0,0,0.55),
+    0 0.6cqw 1.8cqw rgba(0,0,0,0.4);
+}
+
+/* metal ambient — circles bounded to card; closest-side keeps the fade inside */
+.card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle closest-side at 25% 32%, rgba(8,119,133,0.22), transparent 100%),
+    radial-gradient(circle closest-side at 78% 72%, rgba(232,120,48,0.15), transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* strata lines — very subtle horizontal etching */
+.card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(180deg,
+      transparent 0%,
+      transparent calc(50% - 0.5px),
+      rgba(232,224,208,0.018) 50%,
+      transparent calc(50% + 0.5px),
+      transparent 100%);
+  background-size: 100% 2cqw;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.45;
+}
+
+/* corner accents */
+.corner {
+  position: absolute;
+  width: 2.2cqw;
+  height: 2.2cqw;
+  z-index: 3;
+  pointer-events: none;
+}
+.corner::before, .corner::after {
+  content: '';
+  position: absolute;
+  background: var(--teal-light);
+  opacity: 0.55;
+}
+.corner::before { left: 0; top: 0; width: 100%; height: 1px; }
+.corner::after  { left: 0; top: 0; height: 100%; width: 1px; }
+.corner.tl { top: 1.8cqw; left: 1.8cqw; }
+.corner.tr { top: 1.8cqw; right: 1.8cqw; transform: scaleX(-1); }
+.corner.bl { bottom: 1.8cqw; left: 1.8cqw; transform: scaleY(-1); }
+.corner.br { bottom: 1.8cqw; right: 1.8cqw; transform: scale(-1, -1); }
+
+/* ===== FRONT FACE ===== */
+.front .content {
+  position: absolute; inset: 0;
+  padding: 5.5cqw 7cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqw;
+  z-index: 2;
+}
+
+.front .mark-wrap {
+  width: 24cqw;
+  height: 24cqw;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.front .mark-wrap svg { width: 100%; height: 100%; display: block; }
+
+.front .wm {
+  font-family: 'Cinzel', serif;
+  line-height: 1;
+  min-width: 0;
+}
+
+.front .wm .strata {
+  display: block;
+  font-size: 7.5cqw;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--incandescent);
+  white-space: nowrap;
+  text-shadow: 0 0 1.8cqw rgba(232,224,208,0.10);
+}
+
+.front .wm .forge-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8cqw;
+  margin-top: 1.2cqw;
+}
+
+.front .wm .forge-dash {
+  width: 5cqw;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--orange), var(--orange-bright));
+  opacity: 0.7;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.front .wm .forge {
+  font-size: 3.4cqw;
+  font-weight: 400;
+  letter-spacing: 0.48em;
+  color: var(--orange);
+  white-space: nowrap;
+  text-shadow: 0 0 1.4cqw rgba(232,120,48,0.35);
+}
+
+.front::before {
+  content: 'S-0001 / STRATUM I';
+  position: absolute;
+  left: 2.6cqw;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left center;
+  font-family: 'Space Mono', monospace;
+  font-size: 1.0cqw;
+  letter-spacing: 0.55em;
+  color: var(--teal-light);
+  opacity: 0.6;
+  z-index: 3;
+  white-space: nowrap;
+}
+
+/* ===== BACK FACE ===== */
+/* generous left padding, modest right padding so contact column has full breathing room.
+   grid auto+auto so both columns size to their content, then center the pair. */
+.back .content {
+  position: absolute; inset: 0;
+  padding: 5cqw 6cqw 5cqw 7cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4cqw;
+  z-index: 2;
+}
+
+.back .id-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.0cqw;
+  min-width: 0;
+}
+
+.back .id-name {
+  font-family: 'Cinzel', serif;
+  font-size: 6.4cqw;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--incandescent);
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 1.8cqw rgba(232,224,208,0.10);
+}
+
+.back .id-role-line {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+  margin-top: 0.4cqw;
+}
+
+.back .id-role-dash {
+  width: 4cqw;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--orange), var(--orange-bright));
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.back .id-role {
+  font-family: 'Cinzel', serif;
+  font-size: 2.6cqw;
+  font-weight: 400;
+  letter-spacing: 0.42em;
+  color: var(--orange);
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 1.2cqw rgba(232,120,48,0.30);
+}
+
+.back .id-org {
+  margin-top: 2.0cqw;
+  font-family: 'Space Mono', monospace;
+  font-size: 1.4cqw;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--teal-light);
+  white-space: nowrap;
+}
+
+.back .id-org .sep {
+  display: inline-block;
+  margin: 0 1.0cqw;
+  color: var(--concrete);
+}
+
+.back .contact-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+  border-left: 1.5px solid rgba(42,107,107,0.55);
+  padding-left: 3.5cqw;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.back .contact-block::before {
+  content: '';
+  position: absolute;
+  left: -1.5px;
+  top: 12%;
+  height: 76%;
+  width: 1.5px;
+  background: linear-gradient(180deg, transparent, var(--teal-glow) 50%, transparent);
+  opacity: 0.4;
+}
+
+.back .contact-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1.6cqw;
+  font-family: 'Space Mono', monospace;
+  font-size: 1.9cqw;
+  letter-spacing: 0.02em;
+  color: var(--incandescent);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.back .contact-row .label {
+  font-family: 'Cinzel', serif;
+  font-size: 1.25cqw;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--teal-light);
+  min-width: 4cqw;
+  flex-shrink: 0;
+}
+
+.back .contact-row .value {
+  white-space: nowrap;
+}
+
+.back .contact-row.web .value {
+  color: var(--orange);
+  text-shadow: 0 0 1.2cqw rgba(232,120,48,0.30);
+}
+
+/* ===== TECH SHEET ===== */
+.tech-sheet {
+  max-width: 1100px;
+  margin: 1vw auto 5vw;
+  background: var(--abyss-lighter);
+  border: 1px solid rgba(42,107,107,0.18);
+  border-radius: 14px;
+  padding: 32px 40px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--concrete-light);
+}
+
+.tech-sheet h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--teal-light);
+  margin-bottom: 18px;
+}
+
+.tech-sheet .grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 40px;
+}
+
+.tech-sheet code {
+  background: rgba(42,107,107,0.12);
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--teal-light);
+}
+
+.tech-sheet b { color: var(--incandescent); font-weight: 400; }
+
+/* ===== EXPORT MODE (URL ?export=front|back) — for 300 DPI PNG capture ===== */
+body.export-mode {
+  background: var(--abyss);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+body.export-mode .page-title,
+body.export-mode .tech-sheet,
+body.export-mode .face-label { display: none; }
+body.export-mode .stage { gap: 0; padding: 0; }
+body.export-mode .card-shell { gap: 0; display: none; }
+body.export-mode.export-front .card-shell:nth-of-type(1) { display: flex; }
+body.export-mode.export-back  .card-shell:nth-of-type(2) { display: flex; }
+body.export-mode .card {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ===== PRINT ===== */
+@page { size: 91mm 61mm; margin: 0; }
+
+@media print {
+  html, body { background: white; }
+  .page-title, .tech-sheet, .face-label { display: none; }
+  .stage { gap: 0; padding: 0; }
+  .card-shell { gap: 0; }
+  .card {
+    width: 91mm;
+    aspect-ratio: auto;
+    height: 61mm;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+  .card:last-of-type { page-break-after: auto; }
+  /* Strip every effect that triggers PDF transparency groups —
+     PDF→EPS conversion can't survive compositing-groups */
+  .card,
+  .card *,
+  .card::before,
+  .card::after {
+    mix-blend-mode: normal !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+  /* Kill radial-gradient ambients + strata lines (alpha-based) */
+  .card::before, .card::after { display: none !important; }
+  /* Gradient bars → solid color */
+  .front .wm .forge-dash,
+  .back .id-role-dash {
+    background: var(--orange) !important;
+  }
+  .back .contact-block { border-left-color: #2A6B6B !important; }
+  .back .contact-block::before { display: none !important; }
+  /* Solid corner mark (no opacity) */
+  .corner::before, .corner::after { opacity: 1 !important; }
+}
+</style>
+<script>
+  (function() {
+    const params = new URLSearchParams(location.search);
+    const face = params.get('export');
+    if (face === 'front' || face === 'back') {
+      document.documentElement.classList.add('export-html');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('export-mode', 'export-' + face);
+      });
+    }
+  })();
+</script>
+</head>
+<body>
+
+<div class="page-title">Strata Forge · Business Card · Fine Lee</div>
+
+<div class="stage">
+
+  <!-- ===== FRONT ===== -->
+  <div class="card-shell">
+    <div class="card front">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="content">
+        <div class="mark-wrap" aria-hidden="true">
+          <svg viewBox="0 0 1254 1254" xmlns="http://www.w3.org/2000/svg">
+            <g>
+              <path d="M 518 308 L 369 514 L 334 567 L 307 613 L 280 670 L 262 725 L 256 754 L 252 787 L 252 839 L 256 869 L 261 892 L 268 915 L 280 945 L 303 987 L 323 1015 L 338 1033 L 383 1076 L 429 1108 L 467 1128 L 496 1140 L 532 1151 L 549 1154 L 512 1117 L 487 1087 L 464 1054 L 441 1011 L 430 984 L 419 945 L 414 915 L 412 878 L 414 845 L 419 816 L 430 779 L 443 747 L 464 706 L 496 653 L 597 506 L 569 461 L 542 405 L 532 376 L 526 353 Z" fill="#087785"/>
+              <path d="M 644 71 L 632 85 L 619 104 L 601 137 L 586 177 L 579 205 L 574 243 L 574 282 L 578 316 L 585 348 L 597 385 L 608 412 L 639 472 L 676 530 L 752 639 L 775 675 L 803 724 L 817 753 L 832 794 L 840 829 L 843 853 L 844 886 L 839 932 L 830 969 L 817 1004 L 799 1040 L 778 1073 L 748 1111 L 708 1152 L 712 1152 L 744 1144 L 781 1130 L 810 1116 L 837 1100 L 865 1080 L 886 1062 L 911 1037 L 931 1013 L 960 969 L 974 941 L 987 907 L 995 877 L 1000 846 L 1002 816 L 1001 785 L 993 731 L 978 680 L 964 646 L 937 594 L 916 560 L 880 507 L 732 312 L 699 261 L 686 237 L 667 195 L 655 159 L 646 116 Z" fill="#FF7900"/>
+              <path d="M 627 811 L 529 911 L 628 1010 L 726 911 Z" fill="#FF7900"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="wm">
+          <span class="strata">STRATA</span>
+          <div class="forge-line">
+            <span class="forge-dash"></span>
+            <span class="forge">FORGE</span>
+            <span class="forge-dash"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="face-label">Front</div>
+  </div>
+
+  <!-- ===== BACK ===== -->
+  <div class="card-shell">
+    <div class="card back">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="content">
+        <div class="id-block">
+          <div class="id-name">FINE&nbsp;LEE</div>
+          <div class="id-role-line">
+            <span class="id-role-dash"></span>
+            <span class="id-role">Developer</span>
+          </div>
+          <div class="id-org">Strata Forge<span class="sep">·</span>ECHORIS</div>
+        </div>
+
+        <div class="contact-block">
+          <div class="contact-row">
+            <span class="label">Tel</span>
+            <span class="value">+82 10 9808 9044</span>
+          </div>
+          <div class="contact-row">
+            <span class="label">Mail</span>
+            <span class="value">fine@echoris.io</span>
+          </div>
+          <div class="contact-row web">
+            <span class="label">Web</span>
+            <span class="value">echoris.io</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="face-label">Back</div>
+  </div>
+
+</div>
+
+<!-- ===== TECH SHEET ===== -->
+<div class="tech-sheet">
+  <h3>Print Spec</h3>
+  <div class="grid">
+    <div>
+      <b>Trim</b> 85 × 55 mm (global)<br>
+      <b>Bleed</b> 3 mm × 4 → <code>91 × 61 mm</code><br>
+      <b>Safe area</b> 5 mm inset from trim
+    </div>
+    <div>
+      <b>Stock</b> matte 350 gsm + soft-touch<br>
+      <b>Color</b> CMYK convert from sRGB hex<br>
+      <b>Min print</b> 1.9 mm caption ok
+    </div>
+    <div>
+      <b>Type</b> Cinzel 600 / 400<br>
+      <b>Type</b> Space Mono 400<br>
+      <b>Export</b> 300 dpi PDF / X-1a · embed fonts
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

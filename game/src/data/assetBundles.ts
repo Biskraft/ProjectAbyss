@@ -62,6 +62,12 @@ const CORE_ASSETS: Record<string, string> = {
   coin_atlas: assetPath('assets/sprites/coin_01_atlas.png'),
   door_atlas: assetPath('assets/sprites/door_01_atlas.png'),
   door_atlas_json: assetPath('assets/sprites/door_01_atlas.json'),
+  crate_atlas: assetPath('assets/sprites/crate_01_atlas.png'),
+  crate_atlas_json: assetPath('assets/sprites/crate_01_atlas.json'),
+  fire_atlas: assetPath('assets/sprites/fire_01_atlas.png'),
+  fire_atlas_02: assetPath('assets/sprites/fire_02_atlas.png'),
+  fire_atlas_03: assetPath('assets/sprites/fire_03_atlas.png'),
+  fire_atlas_04: assetPath('assets/sprites/fire_04_atlas.png'),
 };
 
 /**

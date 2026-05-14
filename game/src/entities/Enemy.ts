@@ -5,6 +5,7 @@ import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
 import { EnemyConst } from '@data/constData';
+import { type ElementAffinity, elementGroup } from '@combat/ElementAffinity';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
@@ -55,6 +56,44 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    * each frame. 0 = normal.
    */
   frozenRemainingMs = 0;
+  /**
+   * Oil-slip residue. Refreshed by FluidResidueManager.applyEffects when
+   * the enemy AABB overlaps an oil blot. Mirrors Player.oilSlipRemainingMs.
+   * Scene-side handler can use this to dampen friction or skid the AI.
+   */
+  oilSlipRemainingMs = 0;
+
+  // ─────────────────────────────────────────────────────────────
+  // Element affinity (per-enemy elemental identity for resistance
+  // / immunity / weakness). Subclasses override the default
+  // `affinity = 'neutral'` in their constructor (or via CSV stats
+  // later). Explicit Sets win over family-affinity default.
+  // ─────────────────────────────────────────────────────────────
+  /** Enemy's elemental family. 'neutral' means no innate resist/weak. */
+  affinity: ElementAffinity = 'neutral';
+  /** Sources that deal 0 damage regardless of family rules. */
+  elementImmune: Set<ElementAffinity> | null = null;
+  /** Sources that deal 0.5× damage. */
+  elementResist: Set<ElementAffinity> | null = null;
+  /** Sources that deal 1.5× damage. */
+  elementWeak: Set<ElementAffinity> | null = null;
+
+  /**
+   * Multiplier applied to incoming damage of a given element. Order:
+   *   1. explicit immune set    → 0
+   *   2. explicit resist set    → 0.5
+   *   3. explicit weak set      → 1.5
+   *   4. same family as affinity → 0 (family immunity)
+   *   5. default                → 1.0
+   */
+  elementMultiplier(source: ElementAffinity): number {
+    if (this.elementImmune?.has(source)) return 0;
+    if (this.elementResist?.has(source)) return 0.5;
+    if (this.elementWeak?.has(source))   return 1.5;
+    if (this.affinity !== 'neutral'
+        && elementGroup(this.affinity) === elementGroup(source)) return 0;
+    return 1.0;
+  }
 
   // Physics
   protected grounded = false;
@@ -418,6 +457,20 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.hpBarContainer.visible = true;
       this.updateHpBar();
     }
+  }
+
+  /**
+   * Briefly flash the HP bar (same duration as onHit) without applying any
+   * knockback / FSM transition. Used by hazard tick callbacks (magma DOT,
+   * acid tick, charged pulse, burn, fluid residue) so the player gets clear
+   * visual feedback that the elemental damage is landing on the enemy.
+   */
+  showHpBarFlash(): void {
+    if ((this as any)._isBoss) return; // bosses use the HUD bar
+    this.hpBarVisible = true;
+    this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
+    this.hpBarContainer.visible = true;
+    this.updateHpBar();
   }
 
   onDeath(): void {

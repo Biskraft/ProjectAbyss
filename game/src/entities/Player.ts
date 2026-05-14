@@ -46,7 +46,8 @@ const APEX_GRAVITY_MULT = PlayerConst.ApexGravityMult;
 const AIR_ACCEL_MULT = PlayerConst.AirAccelMult;
 
 /** Oil slip — 플레이어가 oil 셀에서 빠져나온 후 미끄러짐이 지속되는 시간. */
-export const OIL_SLIP_DURATION_MS = 10000;
+export const OIL_SLIP_DURATION_MS = 5000;
+export const OIL_RESIDUE_DURATION_MS = OIL_SLIP_DURATION_MS;
 /** Acid residue — acid 셀 이탈 후 잔존 trail 발생 기간. */
 export const ACID_RESIDUE_DURATION_MS = 10000;
 /** Magma residue — magma 셀 이탈 후 잔존 trail 발생 기간. */
@@ -149,12 +150,18 @@ export class Player extends Entity implements CombatEntity {
    * 공중 진입/착지는 grounded 엣지로 트리거.
    * dash / attack 은 FSM state 감지로 진입/이탈.
    */
-  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' | 'aim' = 'idle';
+  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' | 'aim' | 'lift' = 'idle';
   /**
    * Charging Cast — set by scene each frame while V (CAST) is held. Drives
    * the dedicated "aim" Erda animation override. Cleared on release.
    */
   isAiming = false;
+  /**
+   * Holding a ThrowableContainer — set by scene each frame while the
+   * player carries something. Drives the "lift" animation + halves move
+   * speed (heavy carry).
+   */
+  isLifting = false;
   /** idle/run/land 용 서브 프레임 인덱스 (0 기준). takeoff/air 는 사용 안 함. */
   private erdaAnimFrame = 0;
   /** 프레임 누적 타이머 (ms). */
@@ -214,6 +221,11 @@ export class Player extends Entity implements CombatEntity {
    * Scene 의 hazard tick 에서 매 프레임 감소.
    */
   oilSlipRemainingMs = 0;
+  /**
+   * Oil footprint trail timer. Separate from slip so touching an old oil blot
+   * can refresh slipperiness without recursively spawning more oil blots.
+   */
+  oilResidueRemainingMs = 0;
   /** 이전 프레임 oil 셀 안에 있었는지 — 진입·이탈 전환 감지에 사용. */
   prevInOil = false;
   /** Acid residue trail 잔여 시간 — 발이 acid 에 젖어있어 잔존 흔적 spawn. */
@@ -249,10 +261,24 @@ export class Player extends Entity implements CombatEntity {
 
   /**
    * DEBUG: when true, hp is clamped to ≥1 each frame and isDead/drowned are
-   * cleared. Bound to Shift+O. Used for hazard testing — take damage but
-   * never die. Toggled by scene handler. URL-gated via ?debug.
+   * cleared. Used for hazard testing — take damage but never die. Scene
+   * handler toggles it as part of the unified Shift+O cheat bundle.
+   * URL-gated via ?debug.
    */
   debugLockHpAtOne = false;
+
+  /**
+   * DEBUG: when true, the unified Shift+O cheat bundle is currently active
+   * (all relic abilities granted, maxHp/atk inflated, hp locked at ≥ 1).
+   * Toggling Shift+O again restores the pre-cheat values from cheatBackup.
+   */
+  debugCheatActive = false;
+  private cheatBackup: {
+    maxHp: number;
+    atk: number;
+    abilities: Player['abilities'];
+    debugLockHpAtOne: boolean;
+  } | null = null;
 
   /**
    * Currently equipped weapon type — set by the scene whenever inventory
@@ -1068,21 +1094,21 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateIdle(dt: number): void {
-    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
+    this.applyHorizontalInput(dt, (this.isAiming || this.isLifting) ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
     if (Math.abs(this.vx) > 10) this.fsm.transition('run');
   }
 
   private stateRun(dt: number): void {
-    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
+    this.applyHorizontalInput(dt, (this.isAiming || this.isLifting) ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
     if (Math.abs(this.vx) < 10) this.fsm.transition('idle');
   }
 
   private stateAir(dt: number): void {
-    this.applyHorizontalInput(dt, this.isAiming ? 0.5 : 1);
+    this.applyHorizontalInput(dt, (this.isAiming || this.isLifting) ? 0.5 : 1);
     this.tryJump();
   }
 
@@ -1486,6 +1512,46 @@ export class Player extends Entity implements CombatEntity {
    */
   private extraGroundedSticky = false;
   forceGrounded(): void { this.extraGroundedSticky = true; }
+
+  /**
+   * DEBUG: Grant the full cheat bundle — every relic ability, inflated
+   * maxHp/atk, and HP-lock-at-1 (immortality clamp). Snapshots the prior
+   * values into `cheatBackup` so a second Shift+O press cleanly restores
+   * them. No-op if already active.
+   */
+  enableCheatBundle(): void {
+    if (this.debugCheatActive) return;
+    this.cheatBackup = {
+      maxHp: this.maxHp,
+      atk: this.atk,
+      abilities: { ...this.abilities },
+      debugLockHpAtOne: this.debugLockHpAtOne,
+    };
+    this.abilities.dash = true;
+    this.abilities.diveAttack = true;
+    this.abilities.surge = true;
+    this.abilities.waterBreathing = true;
+    this.abilities.wallJump = true;
+    this.abilities.doubleJump = true;
+    this.abilities.cheat = true;
+    this.maxHp = 99999;
+    this.hp = 99999;
+    this.atk = 99999;
+    this.debugLockHpAtOne = true;
+    this.debugCheatActive = true;
+  }
+
+  /** Reverse of `enableCheatBundle()` — restores pre-cheat snapshot. */
+  disableCheatBundle(): void {
+    if (!this.debugCheatActive || !this.cheatBackup) return;
+    this.abilities = { ...this.cheatBackup.abilities };
+    this.maxHp = this.cheatBackup.maxHp;
+    this.hp = Math.min(this.hp, this.maxHp);
+    this.atk = this.cheatBackup.atk;
+    this.debugLockHpAtOne = this.cheatBackup.debugLockHpAtOne;
+    this.cheatBackup = null;
+    this.debugCheatActive = false;
+  }
   /** Ice-tile accessor for skid streak VFX. */
   isStandingOnIce(): boolean {
     return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
@@ -1861,14 +1927,47 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnimTimer = 0;
     }
 
-    // Aim release → restore idle/run/air just like dash exit. Without this,
-    // erdaAnim stays 'aim' after V is released and the subsequent
-    // idle/run animation branch (gated on erdaAnim === 'idle'|'run')
-    // never fires — visually frozen on the last aim frame.
+    // Aim/lift release → restore idle/run/air just like dash exit. Without
+    // this, erdaAnim stays 'aim'/'lift' after release and the subsequent
+    // idle/run animation branch never fires — visually frozen on the last
+    // aim/lift frame.
     if (!this.isAiming && this.erdaAnim === 'aim') {
       this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
+    }
+    if (!this.isLifting && this.erdaAnim === 'lift') {
+      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnimFrame = 0;
+      this.erdaAnimTimer = 0;
+    }
+
+    // Lift override — while carrying a throwable container. 4-frame lift
+    // animation at indices 31~34 (Aseprite tag `lift`, 1-indexed 32~35).
+    // Walk cycle when |vx| > 10, hold frame 31 when stationary. Takes
+    // precedence over aim because hands are full.
+    if (this.isLifting && this.erdaFrames.length > 34) {
+      this.hideAttackWeapon();
+      if (this.erdaAnim !== 'lift') {
+        this.erdaAnim = 'lift';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      const moving = Math.abs(this.vx) > 10 && this.grounded;
+      if (moving) {
+        this.erdaAnimTimer += dt;
+        const LIFT_WALK_FRAME_MS = 110;
+        while (this.erdaAnimTimer >= LIFT_WALK_FRAME_MS) {
+          this.erdaAnimTimer -= LIFT_WALK_FRAME_MS;
+          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
+        }
+      } else {
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaSprite.texture = this.erdaFrames[31 + this.erdaAnimFrame];
+      this.erdaPrevGrounded = this.grounded;
+      return;
     }
 
     // Aim override — while charging an Ego Shard. 4-frame aim animation
@@ -1882,7 +1981,16 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      const moving = Math.abs(this.vx) > 10 && this.grounded;
+      // Mid-air aim — dedicated `aim_jump` frame. Atlas slot 31 (1-indexed
+       // per Aseprite UI) = array index 30. Falls back to the steady aim
+       // pose (frame 26) when the atlas hasn't been updated.
+      if (!this.grounded) {
+        const airIdx = this.erdaFrames.length > 30 ? 30 : 26;
+        this.erdaSprite.texture = this.erdaFrames[airIdx];
+        this.erdaPrevGrounded = this.grounded;
+        return;
+      }
+      const moving = Math.abs(this.vx) > 10;
       if (moving) {
         this.erdaAnimTimer += dt;
         const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ≈ 440ms cycle

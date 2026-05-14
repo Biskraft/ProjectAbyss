@@ -254,7 +254,7 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 | 출처 (셀/상태) | 첫 적중 | 지속 데미지 | 틱 간격 | 총 지속 | 코드 상수 |
 |:---|:---:|:---:|:---:|:---:|:---|
 | spike (5) | maxHp × 20% | - | - | - | `SPIKE_DAMAGE_PCT` (Player) |
-| magma (6) — 접촉 | maxHp × **2%** | Burn DOT (아래) | - | - | `MAGMA_FIRST_HIT_PCT` |
+| magma (6) — 접촉 | maxHp × **10%** | Burn DOT (아래) | - | - | `MAGMA_FIRST_HIT_PCT` (2026-05-14 5×) |
 | magma (6) — Burn DOT | - | maxHp × **2%** | 1.0 s | **15 s** (shippable) | `BURN_TICK_PCT` / `MAGMA_BURN_DURATION_MS` |
 | charged (8) — 환경 DoT | - | maxHp × **1%** | 0.5 s | 접촉 동안 무한 | TileHazards charged tick |
 | charged (8) — 뇌 펄스 | maxHp × 8% | - | 진입 트랜지션 1회 | - | `prevInElectric` 트랜지션 |
@@ -278,6 +278,25 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 
 - **소진 후:** floor/free 앵커 → AshRemnant (재 잔존, 충돌 없음). ceiling 앵커 → 잔존 없음.
 - **확산 출처:** 인접 burning oil/wood/grass 셀 + 인접 BurnableProp(불타는 경우) 모두 propagation 후보. 매 `OIL_SPREAD_INTERVAL_MS` (=600ms) tick.
+
+### 3.0.3. ThrowableContainer (Tier C) 환경 파괴 매트릭스
+
+코드 상수는 `game/src/entities/ThrowableContainer.ts` `CATALOG` 가 SSoT. LDtk Entity = `Container`, 필드 = `Kind` (enum) + `FluidVolume` (Integer, optional). 모든 컨테이너는 **32×32**.
+
+| Kind | atlas row | HP | paintTile (셀 페인트) | 파괴 경로 |
+|:---|:---:|:---:|:---:|:---|
+| Crate (wood) | 0 (variant 0-3) | 1 | - (빈 상자) | 검 1히트 / shard 1히트 / magma 1.5s / fire 1.5s / acid 3s |
+| MetalCrate | 1 (variant 0-3) | 4 | - (빈 상자) | **magma 2s** (2HP/s) 또는 **acid 4s** (1HP/s). 검·shard 면역, hit spark 만 |
+| OilDrum | 2 col 0 | 1 | 11 (oil) | 검 1히트 → BFS paint `FluidVolume` 셀 |
+| WaterBarrel | 2 col 3 | 1 | 2 (water) | 검 1히트 → BFS paint `FluidVolume` 셀 |
+| MagmaCrucible | 2 col 2 | 1 | 6 (magma) | 검 1히트 → BFS paint + 인접 flammable 즉발 ignite |
+| AcidVial | 2 col 1 | 1 | 13 (acid) | 검 1히트 → BFS paint `FluidVolume` 셀 |
+
+- **물리:** gravity 760 px/s². 다른 컨테이너를 solid 로 취급 → 스택 가능. `wasThrown` 플래그가 kinetic 발사체 여부 (현재는 데미지 0, bounce 정지만)
+- **Player ↔ container:** AABB 최소 침투축. top → 플레이어 stand + `forceGrounded` sticky / sides → 플레이어 vx > 20 이면 컨테이너 push / bottom → 컨테이너 위로 밀어 stack (플레이어를 floor 로 매장하지 않음)
+- **Grab/Throw:** B/RB 키. AABB 8px 인플레 인접 컨테이너 탐색. 들고 있는 동안 `Player.isLifting = true` → 이동속도 1/2 + lift 애니메이션. throw vx 80 / vy -170
+- **Paint BFS:** paintable = air(0) / grass(16) / fluid (water/oil/acid/magma). `FluidVolume` 셀 도달 시 종료. 솔리드 expansion 차단
+- **VFX:** `destroyContainerWithVFX` 헬퍼 = `propShatter.spawn` + `SFX.play('breakable_destroy')` + hitstop 3 + camera shake 2
 
 ### 3.1. 원칙
 
@@ -391,6 +410,12 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
 | 플레이어 water 진입·탈출 | `WaterSplashManager.spawn('water')` + bubble emit | 〃 | 기존 |
 | BurnableProp 소진 (floor 앵커) | `AshRemnantManager.spawn` | `LdtkWorldScene` burn-out 처리 | ceiling 앵커는 잔존 없음 |
 | Burn 상태 활성 (`burnRemainingMs > 0`) | HUD `setBurnStatus` (flame 아이콘 + 라디얼 게이지) | `HUD.setBurnStatus` | maxHp × 2%/s DOT 시각 신호 |
+| ThrowableContainer 파괴 (전 종) | `propShatter.spawn` + `SFX.play('breakable_destroy')` + hitstop 3 + shake 2 | `destroyContainerWithVFX` | MetalCrate 는 acid 4s 만 |
+| ThrowableContainer paint → fluid 생성 | `paintFluidSplash` BFS + 인접 ignite (magma 시) | `LdtkWorldScene.paintContainerImpact` | `FluidVolume` 필드로 셀 수 결정 |
+| Ego Shard cast 차징 중 | `EgoShardPreview` (quadraticCurveTo 곡선 + tip ring) | `LdtkWorldScene.update` (isAiming) | 시뮬레이션·실제 shard gravity 1:1 |
+| Ego Shard 발사 / 적중 | shard 본체 + trail + 폭발 ring + 3×3 영역 데미지 | `EgoShardManager.spawn` / `update` | gravity 240, 8s 회수 큐 |
+| Ego Shard 회수 | ring 폭발 + queue 최장 항목 pop | `EgoShardManager.retrieveInAABB` | 24px padding |
+| FluidResidue (oil/acid/magma 발자국) | 1×1 blot + 점진 fade | `FluidResidueManager` | oil=10s slip duration / acid·magma=2s |
 
 ---
 

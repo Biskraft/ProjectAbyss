@@ -26,7 +26,7 @@ import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { Player, OIL_SLIP_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
+import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
@@ -150,6 +150,7 @@ import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
+import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
 import { DamageNumberManager } from '@ui/DamageNumber';
@@ -185,7 +186,21 @@ import { BgmController } from '@audio/BgmController';
 
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
-const VOID_FADE_DURATION = 180;
+/**
+ * Void touch sequence (Victor spec 2026-05-15):
+ *   0–200 ms     — fade OUT (alpha 0 → 1)
+ *   200 ms       — teleport player to last safe ground, force-grounded.
+ *                  (scene + camera continue to tick; only player input is
+ *                  locked, so VFX / fluids / enemies keep simulating.)
+ *   200–1200 ms  — hold black 1000 ms (deferred scene work window)
+ *   1200–1700 ms — fade IN (alpha 1 → 0, 500 ms)
+ *   1700–2200 ms — extra input-lock dwell (~500 ms reveal beat)
+ * Total input lock = 2000 ms past the teleport tick.
+ */
+const VOID_FADE_OUT_DURATION = 200;
+const VOID_HOLD_DURATION = 1000;
+const VOID_FADE_IN_DURATION = 500;
+const VOID_INPUT_LOCK_MS = 2000;
 const SAVE_INTERACT_DELAY_MS = 500;
 const FIRST_ANVIL_LEVEL_ID = 'FirstAnvil';
 const INVENTORY_KEY_HINT_ID = 'inventory_key';
@@ -398,8 +413,6 @@ export class LdtkWorldScene extends Scene {
   private egoShardPreview!: EgoShardPreview;
   /** Time the player has been holding CAST this charge (ms). 0 = not charging. */
   private egoCastChargeMs = 0;
-  /** Accumulator: drains 1 oil cell under the player every 200 ms. */
-  private oilDrainAccumMs = 0;
   private containers: ThrowableContainer[] = [];
   /** Currently held container (Spelunky-style — one at a time). */
   private heldContainer: ThrowableContainer | null = null;
@@ -513,8 +526,14 @@ export class LdtkWorldScene extends Scene {
   private burnableProps: BurnableProp[] = [];
   // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
   private voidDropActive = false;
-  private voidFadePhase: 'none' | 'out' | 'in' = 'none';
+  private voidFadePhase: 'none' | 'out' | 'hold' | 'in' = 'none';
   private voidFadeTimer = 0;
+  /** Ms remaining before input is restored (separate from fade animation
+   *  so we can hold the lock past fade-in for the "natural reveal" beat). */
+  private voidInputLockMs = 0;
+  /** True after the teleport tick has fired — prevents repeated teleports
+   *  if updateVoidFade gets called multiple times mid-phase. */
+  private voidTeleported = false;
   private voidReturnLevelId = '';
   private voidReturnX = 0;
   private voidReturnY = 0;
@@ -1467,11 +1486,11 @@ export class LdtkWorldScene extends Scene {
       this.screenCrack.update(dt);
     }
 
-    // Void fade in progress -- all input blocked
+    // Void fade in progress — input locked but the rest of the scene keeps
+    // simulating (fluid, particles, camera, enemies all tick normally).
+    // updateVoidFade itself bumps the fade timer + force-grounds the player.
     if (this.voidDropActive) {
       this.updateVoidFade(dt);
-      this.screenFlash.update(dt);
-      return;
     }
 
     // Floor collapse in progress ??all input blocked, camera frozen
@@ -2162,14 +2181,16 @@ export class LdtkWorldScene extends Scene {
 
     // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      // Shift+O — toggle HP lock at 1 (hazard testing without dying).
+      // Shift+O — unified cheat toggle. ON: all relic abilities, maxHp/atk
+      // inflated to 99999, HP locked at ≥ 1 (immortal clamp). OFF: restore
+      // the snapshot taken at toggle-on.
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
-        this.player.debugLockHpAtOne = !this.player.debugLockHpAtOne;
-        if (this.player.debugLockHpAtOne) {
-          this.player.hp = 1;
-          this.toast.show('HP locked @ 1', 0xff4444);
+        if (this.player.debugCheatActive) {
+          this.player.disableCheatBundle();
+          this.toast.show('CHEAT OFF', 0x44ff44);
         } else {
-          this.toast.show('HP lock OFF', 0x44ff44);
+          this.player.enableCheatBundle();
+          this.toast.show('CHEAT ON — relics + HP/ATK 99999 + immortal', 0xffaa00);
         }
       }
 
@@ -2260,22 +2281,32 @@ export class LdtkWorldScene extends Scene {
     // ── Grab / Throw (B / RB) — Spelunky-style pickup or release. ──
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
-        // Short underhand toss — 1/4 of the previous range. vx + |vy|
-        // both halved → range D ∝ vx·|vy| becomes D/4. Container lands
-        // about 2~3 cells in front of the player.
+        // Two-handed forward toss. vx 160 puts the landing spot ~5–6 cells
+        // out (doubled from the prior 80; arc apex unchanged at vy -170).
         const facing = this.player.facingRight ? 1 : -1;
-        this.heldContainer.release(facing * 80, -170);
+        this.heldContainer.release(facing * 160, -170);
         this.heldContainer = null;
       } else {
-        // Pickup: scan containers within 18px of player center.
+        // Pickup: AABB overlap with player AABB inflated by GRAB_RANGE. This
+        // is more reliable than center-distance now that crates are 32×32
+        // — center-to-center with a body-adjacent crate can be 23+ px.
+        const GRAB_RANGE = 8;
+        const grabBox = {
+          x: this.player.x - GRAB_RANGE,
+          y: this.player.y - GRAB_RANGE,
+          width: this.player.width + GRAB_RANGE * 2,
+          height: this.player.height + GRAB_RANGE * 2,
+        };
+        let best: ThrowableContainer | null = null;
+        let bestDist = Infinity;
         const px = this.player.x + this.player.width / 2;
         const py = this.player.y + this.player.height / 2;
-        let best: ThrowableContainer | null = null;
-        let bestDist = 18 * 18;
         for (const c of this.containers) {
           if (c.destroyed || c.held) continue;
-          const cx = c.x + c.width / 2;
-          const cy = c.y + c.height / 2;
+          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
+          if (!aabbOverlap(grabBox, cBox)) continue;
+          const cx = c.colX + c.colW / 2;
+          const cy = c.colY + c.colH / 2;
           const d = (cx - px) ** 2 + (cy - py) ** 2;
           if (d < bestDist) { best = c; bestDist = d; }
         }
@@ -2292,6 +2323,9 @@ export class LdtkWorldScene extends Scene {
       h.y = this.player.y - h.height - 2;
       h.container.x = h.x;
       h.container.y = h.y;
+      this.player.isLifting = true;
+    } else {
+      this.player.isLifting = false;
     }
 
     // Portal interactions
@@ -2539,31 +2573,10 @@ export class LdtkWorldScene extends Scene {
     // Oil additionally drives the slip debuff (Player.update reads it).
     if (inOil_) {
       p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-      // Drain oil cells under the player at ~1 cell per 200 ms so a soaked
-      // player gradually consumes the pool. Picks a random oil cell inside
-      // the player AABB so the trail isn't strictly deterministic.
-      this.oilDrainAccumMs = (this.oilDrainAccumMs ?? 0) + dt;
-      while (this.oilDrainAccumMs >= 200) {
-        this.oilDrainAccumMs -= 200;
-        const oilCells: Array<[number, number]> = [];
-        const leftGx  = Math.floor(p.x / 16);
-        const rightGx = Math.floor((p.x + p.width - 1) / 16);
-        const topGy   = Math.floor(p.y / 16);
-        const botGy   = Math.floor((p.y + p.height - 1) / 16);
-        for (let gy = topGy; gy <= botGy; gy++) {
-          for (let gx = leftGx; gx <= rightGx; gx++) {
-            if (this.collisionGrid[gy]?.[gx] === 11) oilCells.push([gx, gy]);
-          }
-        }
-        if (oilCells.length === 0) break;
-        const [dgx, dgy] = oilCells[Math.floor(Math.random() * oilCells.length)];
-        this.collisionGrid[dgy][dgx] = 0;
-        this.fluidSystem.removeCell(dgx, dgy);
-        this.fluidResidue.dropAt('oil', (dgx + 0.5) * 16, (dgy + 1) * 16, 1.0);
-      }
+      p.oilResidueRemainingMs = OIL_RESIDUE_DURATION_MS;
     } else {
-      this.oilDrainAccumMs = 0;
       if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
+      if (p.oilResidueRemainingMs > 0) p.oilResidueRemainingMs = Math.max(0, p.oilResidueRemainingMs - dt);
     }
     p.prevInOil = inOil_;
 
@@ -2578,7 +2591,7 @@ export class LdtkWorldScene extends Scene {
     const footX = p.x + p.width / 2;
     const footY = p.y + p.height;
     const grounded = p.isGrounded();
-    this.fluidResidue.emit('oil',   footX, footY, p.oilSlipRemainingMs > 0,    grounded, p.oilSlipRemainingMs / OIL_SLIP_DURATION_MS);
+    this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
 
@@ -2586,7 +2599,12 @@ export class LdtkWorldScene extends Scene {
     // hazard. Oil = slip refresh. Acid = damage tick. Magma = burn DOT.
     // Burning oil blot = fire DOT + Burn refresh.
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: () => { p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS; },
+      refreshOilSlip: (remainingMs) => {
+        p.oilSlipRemainingMs = Math.max(p.oilSlipRemainingMs, remainingMs);
+        // Keep residue-emit timer alive — walking on an existing blot
+        // continues to drop fresh footprints under the player's feet.
+        p.oilResidueRemainingMs = Math.max(p.oilResidueRemainingMs, remainingMs);
+      },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;
         acc += dt;
@@ -2663,6 +2681,57 @@ export class LdtkWorldScene extends Scene {
       const eLanded = e.consumeLandedEvent();
       if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
       if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
+
+      // ── Residue contact effects: enemies share the player's residue
+      // hazard surface. Element multiplier applies — magma-affined enemies
+      // shrug off the magma blot; fire-affined ignore burning oil; etc.
+      // Burn DOT refresh is skipped when the source element has 0 multiplier.
+      if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
+      const eAcidM  = e.elementMultiplier('acid');
+      const eMagmaM = e.elementMultiplier('magma');
+      const eFireM  = e.elementMultiplier('fire');
+      this.fluidResidue.applyEffects(e.x, e.y, e.width, e.height, {
+        refreshOilSlip: (remainingMs) => {
+          e.oilSlipRemainingMs = Math.max(e.oilSlipRemainingMs, remainingMs);
+        },
+        onAcidContact: () => {
+          if (eAcidM <= 0) return;
+          let acc = e.acidTickAccum;
+          acc += dt;
+          let totalDmg = 0;
+          while (acc >= 100) {
+            acc -= 100;
+            const dmg = Math.max(1, Math.floor(e.maxHp * 0.005 * eAcidM));
+            e.hp = Math.max(0, e.hp - dmg);
+            totalDmg += dmg;
+          }
+          e.acidTickAccum = acc;
+          if (totalDmg > 0) {
+            e.showHpBarFlash();
+            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, totalDmg, false);
+          }
+          if (e.hp <= 0) e.onDeath();
+        },
+        onMagmaContact: () => {
+          if (eMagmaM <= 0) return;
+          const wasBurning = e.burnRemainingMs > 0;
+          e.burnRemainingMs = 15000;
+          if (!wasBurning) {
+            const dmg = Math.max(1, Math.floor(e.maxHp * 0.02 * eMagmaM));
+            e.hp = Math.max(0, e.hp - dmg);
+            e.showHpBarFlash();
+            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, false);
+            if (e.hp <= 0) e.onDeath();
+          }
+        },
+        onFireContact: () => {
+          if (eFireM <= 0) return;
+          const dmg = Math.max(1, Math.floor(e.maxHp * 0.03 * eFireM * (dt / 1000)));
+          e.hp = Math.max(0, e.hp - dmg);
+          e.burnRemainingMs = Math.max(e.burnRemainingMs, 10000);
+          if (e.hp <= 0) e.onDeath();
+        },
+      });
     }
 
     // --- Batch C ---
@@ -2694,27 +2763,35 @@ export class LdtkWorldScene extends Scene {
       const t = this.collisionGrid[gy]?.[gx] ?? 0;
       return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
     };
-    const isAcidCell = (gx: number, gy: number) =>
-      (this.collisionGrid[gy]?.[gx] ?? 0) === 13;
+    const env = {
+      isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
+      isMagmaCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 6,
+      isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
+    };
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
-      const dissolved = c.tickEnvironment(dt, isAcidCell);
-      if (dissolved) {
-        // Metal crate corroded — no fluid paint, just destroy. Small acid
-        // puff cue would be nice but skip for now.
-        c.destroy();
+      const envImpact = c.tickEnvironment(dt, env);
+      if (envImpact) {
+        this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
         continue;
       }
       const impact = c.update(dt, isContainerSolidCell, this.containers);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        c.destroy();
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
       }
     }
+    // ── Thrown container × enemy impact (one hit per throw) ──
+    this.checkThrownContainerEnemyHit();
     // ── Player ↔ container collision (push / stack / block) ──
     this.resolvePlayerContainerCollision();
+    // ── Enemy ↔ container collision (stack / block, no damage) ──
+    this.resolveEnemyContainerCollision();
+    // ── Container ↔ container overlap resolve (push or stop) ──
+    this.resolveContainerContainerCollision();
 
     // ── Ego Shards: flight tick + impact dispatch + retrieval scan ──
     this.egoShard.update(
@@ -4132,7 +4209,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Render overlay for fire / ice / electric cell states.
-    this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid);
+    this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid, dt);
 
     // Wall layer refresh — ice melted to water, wood/grass burned out, metal
     // corroded. rerenderTilemap reads the current collisionGrid and skips
@@ -4175,13 +4252,23 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // Enemy hazards (every alive enemy)
+    // Enemy hazards (every alive enemy). Element multiplier scales raw
+    // amount per source. Multiplier 0 = immune (skip). Otherwise damage
+    // is floored at 1 so tiny-maxHp enemies still take chip damage from
+    // residue ticks (without the floor, maxHp×0.005 etc rounds to 0).
+    // HP bar flashes + damage number floats on every applied tick so the
+    // player sees the elemental damage land.
     for (const enemy of this.enemies) {
       if (!enemy.alive || enemy.hp <= 0) continue;
       applyTileHazards(enemy, room, this.tileMutator, dt, {
-        onDamage: (amount) => {
-          enemy.hp -= Math.max(1, Math.floor(amount));
-          if (enemy.hp <= 0) enemy.hp = 0;
+        onDamage: (amount, src) => {
+          const mult = enemy.elementMultiplier(hazardToElement(src));
+          if (mult <= 0) return; // immune
+          const dmg = Math.max(1, Math.floor(amount * mult));
+          enemy.hp -= dmg;
+          enemy.showHpBarFlash();
+          this.dmgNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, src === 'thunder');
+          if (enemy.hp <= 0) { enemy.hp = 0; enemy.onDeath(); }
         },
       });
     }
@@ -4226,12 +4313,19 @@ export class LdtkWorldScene extends Scene {
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
-      if (x < c.x || x > c.x + c.spec.width || y < c.y || y > c.y + c.spec.height) continue;
+      if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
+      // MetalCrate is immune to direct attack damage — only acid corrosion
+      // (handled in tickEnvironment) can dissolve it. The shard still gets
+      // "stuck" (return true) so it can be retrieved like any wall hit.
+      if (c.kind === 'MetalCrate') {
+        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
+        return true;
+      }
       const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
-      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        c.destroy();
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
       }
       return true;
@@ -4250,23 +4344,26 @@ export class LdtkWorldScene extends Scene {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (x < e.x || x > e.x + e.width || y < e.y || y > e.y + e.height) continue;
-      // Base damage scales with player atk; element flavour added below.
-      const baseDmg = Math.max(2, Math.floor(this.player.atk * 0.6));
-      e.hp -= baseDmg;
+      // Element multiplier applies to BOTH the base shard hit damage and to
+      // the element-specific status (fire-affined enemies ignore Burn, ice-
+      // affined ignore Freeze, thunder-affined ignore chain pulse).
+      const elemMult = e.elementMultiplier(element as ElementAffinity);
+      const baseDmg = Math.max(1, Math.floor(this.player.atk * 0.6 * elemMult));
+      if (elemMult > 0) e.hp -= baseDmg;
       e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
       this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
       this.hitSparks.spawn(x, y, false, 0);
-      // Element side-effects.
-      if (element === 'fire') {
+      // Element side-effects — gated by multiplier > 0.
+      if (element === 'fire' && elemMult > 0) {
         e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
-      } else if (element === 'ice') {
+      } else if (element === 'ice' && elemMult > 0) {
         // 2s 정식 빙결 — AI tick 중지 + vx=0 + 푸른 tint (Enemy.frozenRemainingMs).
         e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
-      } else if (element === 'thunder') {
+      } else if (element === 'thunder' && elemMult > 0) {
         // 즉발 추가 데미지 + 적의 위치 셀이 도체 풀(water/metal/acid) 이면
         // flood-fill thunder chain 트리거 — 단일 표적이 풀 위에 서있을 때
         // 풀 전체 점등이라는 대형 시너지로 이어짐.
-        e.hp -= Math.max(2, Math.floor(this.player.atk * 0.4));
+        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.4 * elemMult));
         const room = this.player.roomData;
         if (room) {
           // 2×2 corner-snap centered on enemy AABB center — keeps thunder
@@ -4298,40 +4395,188 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
+   * Common container break VFX/SFX — propShatter chunks + breakable sound
+   * + small camera shake. Mirrors the existing BreakableProp destruction
+   * routine so containers feel like the same family.
+   */
+  /**
+   * Thrown containers deal a single impact hit on first contact with any
+   * living enemy AABB. Triggered when the container is `wasThrown` and has
+   * meaningful kinetic velocity (so a sitting crate that happens to touch
+   * an enemy doesn't pop). Damage scales like a normal sword strike; the
+   * MetalCrate gets a 1.8× bonus (no paint, heavy-steel trade). Bosses
+   * take damage but skip stun (super-armor preserved).
+   */
+  private checkThrownContainerEnemyHit(): void {
+    for (let i = this.containers.length - 1; i >= 0; i--) {
+      const c = this.containers[i];
+      if (c.destroyed || c.held) continue;
+      if (!c.wasThrown || c.hasDealtImpact) continue;
+      // Velocity gate — keep low-energy contact (e.g. a crate barely
+      // sliding over a stunned enemy) from auto-popping the throw.
+      if (Math.abs(c.vx) < 60 && c.vy < 80) continue;
+      const ax = c.colX, ay = c.colY, aw = c.colW, ah = c.colH;
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        if (ax + aw <= e.x || ax >= e.x + e.width) continue;
+        if (ay + ah <= e.y || ay >= e.y + e.height) continue;
+        const baseDmg = Math.max(2, Math.floor(this.player.atk));
+        const mult = c.kind === 'MetalCrate' ? 1.8 : 1.0;
+        const dmg = Math.max(1, Math.floor(baseDmg * mult));
+        e.hp -= dmg;
+        const dir = c.vx >= 0 ? 1 : -1;
+        // Bosses keep super-armor (no stun), but still take damage and
+        // a soft knockback that respects the throw direction.
+        const isBoss = (e as any)._isBoss === true;
+        if (isBoss) {
+          e.onHit(dir * 60, -40, 0);
+        } else {
+          e.onHit(dir * 220, -160, 400);
+        }
+        this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, c.kind === 'MetalCrate');
+        this.hitSparks.spawn(ax + aw / 2, ay + ah / 2, true, 0);
+        if (e.hp <= 0) {
+          e.hp = 0;
+          e.onDeath();
+        }
+        c.hasDealtImpact = true;
+        // Paint + destroy the container at the hit point.
+        const impactGx = Math.floor((ax + aw / 2) / 16);
+        const impactGy = Math.floor((ay + ah / 2) / 16);
+        if (c.spec.paintTile !== 0 && c.fluidVolume > 0) {
+          this.paintContainerImpact(c.kind, impactGx, impactGy, c.fluidVolume);
+        }
+        this.destroyContainerWithVFX(c);
+        this.containers.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  private destroyContainerWithVFX(c: ThrowableContainer): void {
+    this.propShatter.spawn(
+      c.x, c.y, c.spec.width, c.spec.height,
+      c.getShatterColor(), c.getShatterAccent(),
+      c.getShatterTexture(),
+    );
+    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
+    this.game.hitstopFrames += 3;
+    this.game.camera.shake(2);
+    c.destroy();
+  }
+
+  /**
+   * Resolve container ↔ container overlaps. When two containers occupy the
+   * same pixel space, push them apart along the smaller penetration axis.
+   * Runs after player push so a pushed crate can shove another crate.
+   */
+  private resolveContainerContainerCollision(): void {
+    const cs = this.containers;
+    for (let i = 0; i < cs.length; i++) {
+      const a = cs[i];
+      if (a.destroyed || a.held) continue;
+      for (let j = i + 1; j < cs.length; j++) {
+        const b = cs[j];
+        if (b.destroyed || b.held) continue;
+        // Use collision rects (inset-aware), not sprite frames.
+        const ax0 = a.colX, ay0 = a.colY, ax1 = a.colX + a.colW, ay1 = a.colY + a.colH;
+        const bx0 = b.colX, by0 = b.colY, bx1 = b.colX + b.colW, by1 = b.colY + b.colH;
+        if (ax1 <= bx0 || ax0 >= bx1 || ay1 <= by0 || ay0 >= by1) continue;
+        const overlapL = ax1 - bx0;
+        const overlapR = bx1 - ax0;
+        const overlapT = ay1 - by0;
+        const overlapB = by1 - ay0;
+        const min = Math.min(overlapL, overlapR, overlapT, overlapB);
+        if (min === overlapL) {
+          a.x -= overlapL * 0.5; b.x += overlapL * 0.5;
+        } else if (min === overlapR) {
+          a.x += overlapR * 0.5; b.x -= overlapR * 0.5;
+        } else if (min === overlapT) {
+          a.y -= overlapT * 0.5; b.y += overlapT * 0.5;
+        } else {
+          a.y += overlapB * 0.5; b.y -= overlapB * 0.5;
+        }
+        a.container.x = a.x; a.container.y = a.y;
+        b.container.x = b.x; b.container.y = b.y;
+      }
+    }
+  }
+
+  /**
    * Resolve player AABB vs every container AABB. Smallest penetration axis
    * decides: horizontal contact pushes the container (passing the player's
    * vx through) or stops the player; vertical contact lets the player stand
    * on top or get bonked from below.
    */
+  /**
+   * Mirror of resolvePlayerContainerCollision for every alive enemy. Enemies
+   * are blocked / stacked on containers exactly like the player, but cannot
+   * push containers (passive interaction — only the player has hands). No
+   * impact damage either: thrown-container damage is handled separately by
+   * checkThrownContainerEnemyHit. Enemies that would clip into a container
+   * from below push the container UP, mirroring the bury-fix on player.
+   */
+  private resolveEnemyContainerCollision(): void {
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      for (const c of this.containers) {
+        if (c.destroyed || c.held) continue;
+        const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
+        const ex0 = e.x, ey0 = e.y, ex1 = e.x + e.width, ey1 = e.y + e.height;
+        if (ex1 <= cx0 || ex0 >= cx1 || ey1 <= cy0 || ey0 >= cy1) continue;
+        const overlapLeft   = ex1 - cx0;
+        const overlapRight  = cx1 - ex0;
+        const overlapTop    = ey1 - cy0;
+        const overlapBottom = cy1 - ey0;
+        const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+        if (min === overlapTop) {
+          e.y = cy0 - e.height;
+          if (e.vy > 0) e.vy = 0;
+        } else if (min === overlapBottom) {
+          c.y -= overlapBottom;
+          if (c.vy > 0) c.vy = 0;
+          c.container.x = c.x;
+          c.container.y = c.y;
+          if (e.vy < 0) e.vy = 0;
+        } else if (min === overlapLeft) {
+          e.x = cx0 - e.width;
+          if (e.vx > 0) e.vx = 0;
+        } else if (min === overlapRight) {
+          e.x = cx1;
+          if (e.vx < 0) e.vx = 0;
+        }
+      }
+    }
+  }
+
   private resolvePlayerContainerCollision(): void {
     const p = this.player;
     for (const c of this.containers) {
       if (c.destroyed || c.held) continue;
-      // AABB overlap test
-      const cx0 = c.x, cy0 = c.y, cx1 = c.x + c.spec.width, cy1 = c.y + c.spec.height;
+      // Use container's collision rect (sprite frame minus inset).
+      const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
       const px0 = p.x, py0 = p.y, px1 = p.x + p.width, py1 = p.y + p.height;
       if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
-      // Penetration on each axis
-      const overlapLeft   = px1 - cx0;       // player coming from left → push right
-      const overlapRight  = cx1 - px0;       // player coming from right → push left
-      const overlapTop    = py1 - cy0;       // player landing from above
-      const overlapBottom = cy1 - py0;       // player bonking from below
+      const overlapLeft   = px1 - cx0;
+      const overlapRight  = cx1 - px0;
+      const overlapTop    = py1 - cy0;
+      const overlapBottom = cy1 - py0;
       const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
       if (min === overlapTop) {
-        // Player stands on container (vertical stack — counts as ground).
+        // Stand on physical top of the container (= cy0).
         p.y = cy0 - p.height;
         if (p.getVy() > 0) p.vy = 0;
-        // Treat the container top as ground for jump / land state. The flag
-        // gets refreshed each frame so the player can keep jumping off it.
         p.forceGrounded();
       } else if (min === overlapBottom) {
-        // Player jumped into container from underneath: stop upward motion.
-        p.y = cy1;
+        // Container pressed down onto player head — push container UP.
+        c.y -= overlapBottom;
+        if (c.vy > 0) c.vy = 0;
+        c.container.x = c.x;
+        c.container.y = c.y;
         if (p.getVy() < 0) p.vy = 0;
       } else if (min === overlapLeft) {
-        // Player pushing rightward into container — push container OR block.
         if (Math.abs(p.getVx()) > 20) {
-          c.x += Math.max(0, overlapLeft - 1);  // bleed 1px to keep contact
+          c.x += Math.max(0, overlapLeft - 1);
           p.x = cx0 - p.width;
         } else {
           p.x = cx0 - p.width;
@@ -4589,55 +4834,83 @@ export class LdtkWorldScene extends Scene {
     this.voidReturnY = this.player.lastSafeY;
     this.voidFadePhase = 'out';
     this.voidFadeTimer = 0;
+    this.voidInputLockMs = VOID_INPUT_LOCK_MS;
+    this.voidTeleported = false;
+    this.fadeOverlay.alpha = 0;
+    // Soft input lock — player loses control immediately, but every other
+    // system (camera, fluid, particles, enemies) keeps simulating.
+    this.game.input.inputLocked = true;
+  }
+
+  /**
+   * Snap the player to last safe ground + (re)load level if it differs.
+   * Forces a landed pose so the reveal doesn't show the player floating.
+   */
+  private performVoidTeleport(): void {
+    const sameLevel = this.currentLevel?.identifier === this.voidReturnLevelId;
+    if (!sameLevel) {
+      this.loadLevel(this.voidReturnLevelId, 'down');
+    }
+    this.player.x = this.voidReturnX;
+    this.player.y = this.voidReturnY;
+    this.player.lastSafeX = this.voidReturnX;
+    this.player.lastSafeY = this.voidReturnY;
     this.player.vx = 0;
     this.player.vy = 0;
-    this.fadeOverlay.alpha = 0;
+    this.player.roomData = this.collisionGrid;
+    this.player.savePrevPosition();
+    this.player.forceGrounded(); // sticky-grounded for this + next frame
+    // FSM nudge so the reveal frame shows idle/land pose, not 'fall'.
+    if ((this.player.fsm as any).currentState !== 'idle') {
+      try { (this.player.fsm as any).transition('idle'); } catch {}
+    }
+    this.game.camera.snap(
+      this.player.x + this.player.width / 2,
+      this.player.y + this.player.height / 2,
+    );
   }
 
   private updateVoidFade(dt: number): void {
+    if (this.voidInputLockMs > 0) this.voidInputLockMs = Math.max(0, this.voidInputLockMs - dt);
     this.voidFadeTimer += dt;
-    const t = Math.min(1, this.voidFadeTimer / VOID_FADE_DURATION);
 
     if (this.voidFadePhase === 'out') {
+      const t = Math.min(1, this.voidFadeTimer / VOID_FADE_OUT_DURATION);
       this.fadeOverlay.alpha = t;
-      if (t < 1) return;
-
-      // If the void return target is the level we're already in, do an
-      // in-place teleport instead of a full loadLevel. A reload would tear
-      // down and re-spawn level entities (e.g. the GiantBuilder cinematic),
-      // killing any in-progress cutscene. The void fall always originates
-      // inside the current level, so this branch is the common path.
-      const sameLevel = this.currentLevel?.identifier === this.voidReturnLevelId;
-      if (!sameLevel) {
-        this.loadLevel(this.voidReturnLevelId, 'down');
+      if (t >= 1) {
+        // Teleport at the moment of full black — player + scene swap is
+        // invisible to the user. forceGrounded keeps the reveal landed.
+        if (!this.voidTeleported) {
+          this.performVoidTeleport();
+          this.voidTeleported = true;
+        }
+        this.voidFadePhase = 'hold';
+        this.voidFadeTimer = 0;
       }
-      this.player.x = this.voidReturnX;
-      this.player.y = this.voidReturnY;
-      this.player.lastSafeX = this.voidReturnX;
-      this.player.lastSafeY = this.voidReturnY;
-      this.player.vx = 0;
-      this.player.vy = 0;
-      this.player.roomData = this.collisionGrid;
-      this.player.savePrevPosition();
-      this.game.camera.snap(
-        this.player.x + this.player.width / 2,
-        this.player.y + this.player.height / 2,
-      );
-
-      this.voidFadePhase = 'in';
-      this.voidFadeTimer = 0;
+    } else if (this.voidFadePhase === 'hold') {
       this.fadeOverlay.alpha = 1;
-      return;
+      // Keep stamping forceGrounded so player FSM doesn't fall mid-hold
+      // (gravity would have already been integrated this frame).
+      this.player.forceGrounded();
+      if (this.voidFadeTimer >= VOID_HOLD_DURATION) {
+        this.voidFadePhase = 'in';
+        this.voidFadeTimer = 0;
+      }
+    } else if (this.voidFadePhase === 'in') {
+      const t = Math.min(1, this.voidFadeTimer / VOID_FADE_IN_DURATION);
+      this.fadeOverlay.alpha = 1 - t;
+      this.player.forceGrounded();
+      if (t >= 1) {
+        this.fadeOverlay.alpha = 0;
+        this.voidFadePhase = 'none';
+      }
     }
 
-    if (this.voidFadePhase === 'in') {
-      this.fadeOverlay.alpha = 1 - t;
-      if (t < 1) return;
-
-      this.fadeOverlay.alpha = 0;
-      this.voidFadePhase = 'none';
-      this.voidCooldown = 500;
+    // Input lock outlasts fade-in by ~500 ms — natural reveal beat.
+    if (this.voidInputLockMs <= 0 && this.voidFadePhase === 'none') {
       this.voidDropActive = false;
+      this.voidCooldown = 500;
+      this.game.input.inputLocked = false;
     }
   }
 
@@ -4736,13 +5009,17 @@ export class LdtkWorldScene extends Scene {
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
-      const cBox = { x: c.x, y: c.y, width: c.spec.width, height: c.spec.height };
+      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
       if (!aabbOverlap(hitbox, cBox)) continue;
+      if (c.kind === 'MetalCrate') {
+        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
+        continue;
+      }
       const impact = c.takeAttack(dmg);
-      this.hitSparks.spawn(c.x + c.spec.width / 2, c.y + c.spec.height / 2, true, 0);
+      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        c.destroy();
+        this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
       }
     }
@@ -4842,6 +5119,7 @@ export class LdtkWorldScene extends Scene {
         const idMatch = itemId.match(/_(\d+)$/);
         const amount = Math.max(1, Math.floor((idMatch ? parseInt(idMatch[1], 10) : 100) * 0.1));
         const gp = new GoldPickup(x, y, amount);
+        gp.enableTerrainPhysics(this.collisionGrid);
         if (itemKey) (gp as any)._key = itemKey;
         this.goldPickups.push(gp);
         this.entityLayer.addChild(gp.container);
@@ -5512,6 +5790,7 @@ export class LdtkWorldScene extends Scene {
           if (this.collectedItems.has(goldKey)) break;
           const amount = Math.max(1, Math.floor(((ent.fields['Amount'] ?? ent.fields['amount'] ?? 10) as number) * 0.1));
           const gp = new GoldPickup(ent.px[0], ent.px[1], amount);
+          gp.enableTerrainPhysics(this.collisionGrid);
           (gp as any)._key = goldKey;
           this.goldPickups.push(gp);
           this.entityLayer.addChild(gp.container);

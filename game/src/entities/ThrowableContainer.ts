@@ -1,4 +1,5 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, Rectangle, Assets } from 'pixi.js';
+import { assetPath } from '@core/AssetLoader';
 
 /**
  * Throwable container (Tier C volatile prop). Player picks up via GRAB,
@@ -34,7 +35,24 @@ export interface ContainerSpec {
   defaultFluidVolume: number;
   /** Inner fluid window color (shown through the wooden frame). */
   fluidColor: number;
+  /**
+   * Pixel inset from sprite frame to physical collision rect. Used by every
+   * collision query (grab range, player stand-on, container ↔ container
+   * stack, thrown enemy-hit). Sprite render position is unaffected.
+   *
+   * Per kind:
+   *   - Crate (wood)  — 0 all sides (sprite fills 32×32 frame).
+   *   - MetalCrate    — left/right 2 (locker body is 28 wide; sprite frame
+   *                     reserves 2px gutter for hinge highlights).
+   *   - Drum 4종      — left/right 1 (drum body is 30 wide; sprite frame
+   *                     reserves 1px halo).
+   */
+  collisionInset: { top: number; bottom: number; left: number; right: number };
 }
+
+const INSET_FULL   = { top: 0, bottom: 0, left: 0, right: 0 };
+const INSET_LOCKER = { top: 0, bottom: 0, left: 2, right: 2 };
+const INSET_DRUM   = { top: 0, bottom: 0, left: 1, right: 1 };
 
 // All containers share the WOOD crate exterior (placeholder until art lands).
 // Per-kind variation is communicated by the colored fluid window inside.
@@ -42,17 +60,59 @@ const WOOD_BODY    = 0x8b5a2b;
 const WOOD_ACCENT  = 0xc28b50;
 
 const CATALOG: Record<ContainerKind, ContainerSpec> = {
-  // Uniform 16×16 wood crate exterior. The fluid stays INSIDE the box —
-  // not visible as a leaking window. Only a small sealed stamp in the
-  // center hints at the contents (placeholder until art swap).
-  Crate:         { width: 16, height: 16, hp: 1, paintTile: 0,  defaultFluidVolume: 0, fluidColor: WOOD_BODY },
-  // Steel crate — sturdier (hp 4) and corrodes in acid over ~4 s exposure.
-  MetalCrate:    { width: 16, height: 16, hp: 4, paintTile: 0,  defaultFluidVolume: 0, fluidColor: 0xa0a0b0 },
-  OilDrum:       { width: 16, height: 16, hp: 1, paintTile: 11, defaultFluidVolume: 6, fluidColor: 0x4d2e14 },
-  WaterBarrel:   { width: 16, height: 16, hp: 1, paintTile: 2,  defaultFluidVolume: 6, fluidColor: 0x4076c8 },
-  MagmaCrucible: { width: 16, height: 16, hp: 1, paintTile: 6,  defaultFluidVolume: 4, fluidColor: 0xff6633 },
-  AcidVial:      { width: 16, height: 16, hp: 1, paintTile: 13, defaultFluidVolume: 4, fluidColor: 0x88cc44 },
+  // 32×32 sprite-based crates. Wood family (everything except MetalCrate)
+  // uses the wood slice set; MetalCrate uses the metal slice set. Variant
+  // index 0~3 is randomized per spawn and fixed for the entity lifetime.
+  Crate:         { width: 32, height: 32, hp: 1, paintTile: 0,  defaultFluidVolume: 0, fluidColor: WOOD_BODY,   collisionInset: INSET_FULL   },
+  MetalCrate:    { width: 32, height: 32, hp: 4, paintTile: 0,  defaultFluidVolume: 0, fluidColor: 0xa0a0b0,   collisionInset: INSET_LOCKER },
+  OilDrum:       { width: 32, height: 32, hp: 1, paintTile: 11, defaultFluidVolume: 6, fluidColor: 0x4d2e14,   collisionInset: INSET_DRUM   },
+  WaterBarrel:   { width: 32, height: 32, hp: 1, paintTile: 2,  defaultFluidVolume: 6, fluidColor: 0x4076c8,   collisionInset: INSET_DRUM   },
+  MagmaCrucible: { width: 32, height: 32, hp: 1, paintTile: 6,  defaultFluidVolume: 4, fluidColor: 0xff6633,   collisionInset: INSET_DRUM   },
+  AcidVial:      { width: 32, height: 32, hp: 1, paintTile: 13, defaultFluidVolume: 4, fluidColor: 0x88cc44,   collisionInset: INSET_DRUM   },
 };
+
+/**
+ * Cached slice textures from crate_01_atlas. Keys: 'wood_0'..'wood_3',
+ * 'metal_0'..'metal_3'. Populated on first async load; subsequent calls
+ * resolve from cache.
+ */
+const SLICE_TEXTURES: Record<string, Texture | null> = {};
+let slicePromise: Promise<void> | null = null;
+
+function ensureSliceTextures(): Promise<void> {
+  if (slicePromise) return slicePromise;
+  slicePromise = (async () => {
+    const sheet = await Assets.load<Texture>(assetPath('assets/sprites/crate_01_atlas.png'));
+    if (sheet?.source) sheet.source.scaleMode = 'nearest';
+    // Row 0 (y=0): wood_01~04 — 4 variants for plain Crate
+    // Row 1 (y=32): metal_01~04 — 4 variants for MetalCrate
+    // Row 2 (y=64): oil / acid / magma / water — 1 dedicated slice per fluid
+    for (let i = 0; i < 4; i++) {
+      SLICE_TEXTURES[`wood_${i}`]  = new Texture({ source: sheet.source, frame: new Rectangle(i * 32,  0, 32, 32) });
+      SLICE_TEXTURES[`metal_${i}`] = new Texture({ source: sheet.source, frame: new Rectangle(i * 32, 32, 32, 32) });
+    }
+    SLICE_TEXTURES['oil_0']   = new Texture({ source: sheet.source, frame: new Rectangle( 0, 64, 32, 32) });
+    SLICE_TEXTURES['acid_0']  = new Texture({ source: sheet.source, frame: new Rectangle(32, 64, 32, 32) });
+    SLICE_TEXTURES['magma_0'] = new Texture({ source: sheet.source, frame: new Rectangle(64, 64, 32, 32) });
+    SLICE_TEXTURES['water_0'] = new Texture({ source: sheet.source, frame: new Rectangle(96, 64, 32, 32) });
+  })().catch((e) => {
+    // eslint-disable-next-line no-console
+    console.warn('[ThrowableContainer] crate atlas load failed', e);
+  });
+  return slicePromise;
+}
+
+/** Resolve which slice key (and family) to use for a given kind + variant. */
+function sliceKeyForKind(kind: ContainerKind, variantIdx: number): string {
+  switch (kind) {
+    case 'Crate':         return `wood_${variantIdx}`;
+    case 'MetalCrate':    return `metal_${variantIdx}`;
+    case 'OilDrum':       return 'oil_0';
+    case 'WaterBarrel':   return 'water_0';
+    case 'MagmaCrucible': return 'magma_0';
+    case 'AcidVial':      return 'acid_0';
+  }
+}
 
 const KIND_LIST: ContainerKind[] = ['Crate', 'MetalCrate', 'OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
 
@@ -89,10 +149,35 @@ export class ThrowableContainer {
    * to rest after a throw.
    */
   wasThrown = false;
-  /** Time spent in acid (MetalCrate only). 1 HP per second of contact. */
+  /** Time spent in acid. MetalCrate: 1 HP/s × 4 HP = 4 s. Wood: 3 s threshold. */
   acidExposureMs = 0;
+  /** Time spent in magma (wood family). 1.5 s threshold → burn out. */
+  magmaExposureMs = 0;
+  /** Time spent on a burning cell (wood family). 1.5 s threshold → burn out. */
+  fireExposureMs = 0;
+  /**
+   * After release(), the thrower (player) is invulnerable to this
+   * container for this many ms — prevents self-bonk on dropped throws.
+   * 0 means the container can hit any entity (including the thrower).
+   */
+  selfHitInvulnMs = 0;
+  /**
+   * Whether this thrown container has already dealt an impact hit. Each
+   * thrown container can only damage one enemy (the first contact), then
+   * destroys itself. Prevents multi-hits from a single throw.
+   */
+  hasDealtImpact = false;
+  /** Random 0~3 — chosen at spawn, fixed for the lifetime of this crate. */
+  readonly variantIdx: number;
   readonly container = new Container();
   private body!: Graphics;
+
+  // ── Collision rect (physical body) accessors — sprite render is offset
+  // by collisionInset.left / collisionInset.top from this rect.
+  get colX(): number { return this.x + this.spec.collisionInset.left; }
+  get colY(): number { return this.y + this.spec.collisionInset.top; }
+  get colW(): number { return this.spec.width - this.spec.collisionInset.left - this.spec.collisionInset.right; }
+  get colH(): number { return this.spec.height - this.spec.collisionInset.top - this.spec.collisionInset.bottom; }
 
   constructor(kind: ContainerKind, x: number, y: number, fluidVolumeOverride?: number) {
     this.kind = kind;
@@ -103,6 +188,7 @@ export class ThrowableContainer {
     this.fluidVolume = fluidVolumeOverride !== undefined && fluidVolumeOverride >= 0
       ? Math.floor(fluidVolumeOverride)
       : this.spec.defaultFluidVolume;
+    this.variantIdx = Math.floor(Math.random() * 4);
     this.container.x = x;
     this.container.y = y;
     this.draw();
@@ -111,9 +197,9 @@ export class ThrowableContainer {
   get width(): number { return this.spec.width; }
   get height(): number { return this.spec.height; }
 
-  /** AABB used by both grab range and impact collision. */
+  /** Physical AABB (inset-aware) used by grab range, stacking, enemy hit. */
   getAABB(): { x: number; y: number; w: number; h: number } {
-    return { x: this.x, y: this.y, w: this.spec.width, h: this.spec.height };
+    return { x: this.colX, y: this.colY, w: this.colW, h: this.colH };
   }
 
   /**
@@ -129,18 +215,20 @@ export class ThrowableContainer {
     if (this.held || this.destroyed) {
       this.container.x = this.x;
       this.container.y = this.y;
+      if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs -= dtMs;
       return null;
     }
     const dt = dtMs / 1000;
+    if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs = Math.max(0, this.selfHitInvulnMs - dtMs);
     // ── Combined solid check: grid cell OR another container occupying
     // the cell. Treats containers as part of the world for stacking +
-    // collision purposes.
+    // collision purposes. Uses each container's collision rect (inset-aware).
     const cellBlockedBy = (gx: number, gy: number): ThrowableContainer | null => {
       const cellPx = gx * 16, cellPy = gy * 16;
       for (const o of others) {
         if (o === this || o.destroyed || o.held) continue;
-        if (o.x < cellPx + 16 && o.x + o.spec.width > cellPx &&
-            o.y < cellPy + 16 && o.y + o.spec.height > cellPy) return o;
+        if (o.colX < cellPx + 16 && o.colX + o.colW > cellPx &&
+            o.colY < cellPy + 16 && o.colY + o.colH > cellPy) return o;
       }
       return null;
     };
@@ -150,21 +238,26 @@ export class ThrowableContainer {
     };
 
     // ── Grounded check (grid floor OR another container's top).
-    const feetY = this.y + this.spec.height;
+    // All cell math uses the collision rect (sprite frame minus inset).
+    const insetTop = this.spec.collisionInset.top;
+    const insetBot = this.spec.collisionInset.bottom;
+    const feetY = this.colY + this.colH; // physical bottom
     const feetGy = Math.floor(feetY / 16);
-    const leftGx = Math.floor(this.x / 16);
-    const rightGx = Math.floor((this.x + this.spec.width - 1) / 16);
+    const leftGx = Math.floor(this.colX / 16);
+    const rightGx = Math.floor((this.colX + this.colW - 1) / 16);
     let grounded = false;
     for (let gx = leftGx; gx <= rightGx; gx++) {
       if (isBlocked(gx, feetGy)) { grounded = true; break; }
     }
     if (grounded && this.vy >= 0) {
-      // Snap to whichever floor is highest (smallest y) under our feet.
-      let snapY = feetGy * 16 - this.spec.height; // grid floor candidate
+      // Snap so physical bottom rests on the highest floor under feet.
+      // sprite.y = floorY - spec.height + insetBot  (because physical bottom = sprite.y + spec.height - insetBot)
+      let snapY = feetGy * 16 - this.spec.height + insetBot;
       for (const o of others) {
         if (o === this || o.destroyed || o.held) continue;
-        if (this.x + this.spec.width <= o.x || this.x >= o.x + o.spec.width) continue;
-        const candidate = o.y - this.spec.height;
+        if (this.colX + this.colW <= o.colX || this.colX >= o.colX + o.colW) continue;
+        // Stack onto o's collision top: physical bottom = o.colY → sprite.y = o.colY - colH - insetTop
+        const candidate = o.colY - this.colH - insetTop;
         if (candidate >= this.y && candidate < snapY) snapY = candidate;
       }
       this.y = snapY;
@@ -191,23 +284,21 @@ export class ThrowableContainer {
     const nx = this.x + stepX;
     const ny = this.y + stepY;
 
-    // Corner-cell check. Only DESTROY if this is a thrown container that
-    // hit a solid cell — gravity-only contact stops at the snap step
-    // above. If a thrown container hits another container, it bounces
-    // back lightly instead of breaking on it.
+    // Corner-cell check — sample 4 corners of the *collision rect* at the
+    // candidate sprite position. Containers are kinetically indestructible;
+    // throws bounce/stop on walls but never shatter.
+    const ncolX = nx + this.spec.collisionInset.left;
+    const ncolY = ny + insetTop;
     const checks: Array<[number, number]> = [
-      [nx, ny + this.spec.height - 1],
-      [nx + this.spec.width - 1, ny + this.spec.height - 1],
-      [nx, ny],
-      [nx + this.spec.width - 1, ny],
+      [ncolX,                ncolY + this.colH - 1],
+      [ncolX + this.colW - 1, ncolY + this.colH - 1],
+      [ncolX,                ncolY],
+      [ncolX + this.colW - 1, ncolY],
     ];
     for (const [cx, cy] of checks) {
       const gx = Math.floor(cx / 16);
       const gy = Math.floor(cy / 16);
       if (isSolidAt(gx, gy)) {
-        // Containers are kinetically indestructible. Throws bounce/stop on
-        // walls but never shatter — only `takeAttack` (external damage) can
-        // destroy them. This keeps "stack a wall of crates" gameplay viable.
         this.vx *= 0.3;
         this.vy = 0;
         return null;
@@ -237,15 +328,20 @@ export class ThrowableContainer {
     others: readonly ThrowableContainer[],
     maxDropPx = 1024,
   ): void {
-    const leftGx = Math.floor(this.x / 16);
-    const rightGx = Math.floor((this.x + this.spec.width - 1) / 16);
+    const insetTop = this.spec.collisionInset.top;
+    const insetBot = this.spec.collisionInset.bottom;
+    const colW = this.colW;
+    const colH = this.colH;
+    // Collision rect's left edge in pixel coords (constant during drop).
+    const colX0 = this.x + this.spec.collisionInset.left;
+    const leftGx = Math.floor(colX0 / 16);
+    const rightGx = Math.floor((colX0 + colW - 1) / 16);
     let bestY = this.y;
-    // Scan down 1px at a time until ANY corner overlaps a solid cell or
-    // another container. Set this.y to the position just above the obstacle.
     for (let dy = 0; dy <= maxDropPx; dy++) {
       const testY = this.y + dy;
-      const feetY = testY + this.spec.height;
-      const feetGy = Math.floor(feetY / 16);
+      const colTop = testY + insetTop;
+      const colBot = colTop + colH;
+      const feetGy = Math.floor(colBot / 16);
       let blocked = false;
       for (let gx = leftGx; gx <= rightGx; gx++) {
         if (isSolidAt(gx, feetGy)) { blocked = true; break; }
@@ -253,19 +349,19 @@ export class ThrowableContainer {
       if (!blocked) {
         for (const o of others) {
           if (o === this || o.destroyed || o.held) continue;
-          if (this.x + this.spec.width <= o.x) continue;
-          if (this.x >= o.x + o.spec.width) continue;
-          if (feetY > o.y && feetY <= o.y + o.spec.height) { blocked = true; break; }
-          if (testY < o.y + o.spec.height && testY + this.spec.height > o.y) { blocked = true; break; }
+          if (colX0 + colW <= o.colX) continue;
+          if (colX0 >= o.colX + o.colW) continue;
+          if (colBot > o.colY && colBot <= o.colY + o.colH) { blocked = true; break; }
+          if (colTop < o.colY + o.colH && colTop + colH > o.colY) { blocked = true; break; }
         }
       }
       if (blocked) {
         bestY = testY - 1;
-        // Snap to cell-aligned floor when stopped by grid (cleaner stack).
-        const feetGy = Math.floor((bestY + this.spec.height) / 16);
+        // Snap so physical bottom = floor cell top (cleaner stack).
+        const feetGy = Math.floor((bestY + insetTop + colH) / 16);
         for (let gx = leftGx; gx <= rightGx; gx++) {
           if (isSolidAt(gx, feetGy)) {
-            bestY = feetGy * 16 - this.spec.height;
+            bestY = feetGy * 16 - this.spec.height + insetBot;
             break;
           }
         }
@@ -283,10 +379,15 @@ export class ThrowableContainer {
   pickUp(): void { this.held = true; this.vx = 0; this.vy = 0; }
 
   /** Throw with initial velocity. Marks container as "thrown" — only thrown
-   *  containers shatter on solid contact. */
+   *  containers shatter on solid contact, and only thrown containers deal
+   *  impact damage to enemies on first contact.
+   *  Sets self-hit invuln so the thrower (player) is protected from the
+   *  container's first 200 ms of flight (anti self-bonk on drop throws). */
   release(vx: number, vy: number): void {
     this.held = false;
     this.wasThrown = true;
+    this.hasDealtImpact = false;
+    this.selfHitInvulnMs = 200;
     this.vx = vx;
     this.vy = vy;
   }
@@ -302,8 +403,8 @@ export class ThrowableContainer {
     if (this.hp <= 0) {
       this.destroyed = true;
       return {
-        gx: Math.floor((this.x + this.spec.width / 2) / 16),
-        gy: Math.floor((this.y + this.spec.height / 2) / 16),
+        gx: Math.floor((this.colX + this.colW / 2) / 16),
+        gy: Math.floor((this.colY + this.colH / 2) / 16),
       };
     }
     return null;
@@ -315,7 +416,20 @@ export class ThrowableContainer {
     this.container.destroy({ children: true });
   }
 
+  private spriteLoaded = false;
   private draw(): void {
+    // Try sprite path first (sync — if atlas already loaded, instant).
+    const key = sliceKeyForKind(this.kind, this.variantIdx);
+    if (SLICE_TEXTURES[key]) {
+      this.applySprite(SLICE_TEXTURES[key]!);
+      return;
+    }
+    void ensureSliceTextures().then(() => {
+      if (this.destroyed) return;
+      const t = SLICE_TEXTURES[key];
+      if (t) this.applySprite(t);
+    });
+    // ── Fallback Graphics path — runs when the atlas hasn't loaded yet.
     this.body = new Graphics();
     const w = this.spec.width, h = this.spec.height;
 
@@ -358,33 +472,109 @@ export class ThrowableContainer {
   }
 
   /**
-   * Per-frame environmental tick — currently handles acid corrosion for
-   * MetalCrate. Returns true if the container was destroyed this tick.
-   * Caller must still splice + destroy on the returned true.
+   * Texture used for shatter chunks — the loaded sprite slice if available,
+   * else null (PropShatterManager falls back to solid-color chunks).
+   */
+  getShatterTexture(): Texture | null {
+    return SLICE_TEXTURES[sliceKeyForKind(this.kind, this.variantIdx)] ?? null;
+  }
+  /** Primary debris color — wood brown for wood family, steel for metal. */
+  getShatterColor(): number {
+    return this.kind === 'MetalCrate' ? 0x7a7a88 : WOOD_BODY;
+  }
+  getShatterAccent(): number {
+    return this.kind === 'MetalCrate' ? 0xb0b0c0 : WOOD_ACCENT;
+  }
+
+  /**
+   * Swap the Graphics fallback out for the atlas Sprite once textures load.
+   * Adds the fluid color stamp overlay for fluid-bearing wood crates.
+   */
+  private applySprite(tex: Texture): void {
+    if (this.spriteLoaded) return;
+    this.spriteLoaded = true;
+    this.container.removeChildren();
+    const sprite = new Sprite(tex);
+    sprite.x = 0;
+    sprite.y = 0;
+    this.container.addChild(sprite);
+    if (this.kind !== 'Crate' && this.kind !== 'MetalCrate' && this.fluidVolume > 0) {
+      const stampW = 8;
+      const stamp = new Graphics();
+      stamp
+        .rect((this.spec.width - stampW) / 2, (this.spec.height - stampW) / 2, stampW, stampW)
+        .fill({ color: this.spec.fluidColor, alpha: 0.95 });
+      this.container.addChild(stamp);
+    }
+    this.body = new Graphics(); // unused placeholder for type safety
+  }
+
+  /**
+   * Per-frame environmental tick. Per kind:
+   *   MetalCrate  — acid only (1 HP/s × 4 HP = 4 s to dissolve).
+   *   Wood family — magma 1.5 s / fire (burning cell overlay) 1.5 s /
+   *                 acid 3 s. On threshold, instantly destroys (HP 1) and
+   *                 returns impact coords so the scene can paint fluid.
+   * Returns {gx, gy} impact when destroyed this tick, else null.
    */
   tickEnvironment(
     dtMs: number,
-    isAcidCell: (gx: number, gy: number) => boolean,
-  ): boolean {
-    if (this.destroyed || this.held) return false;
-    if (this.kind !== 'MetalCrate') return false;
-    const lx = Math.floor(this.x / 16);
-    const rx = Math.floor((this.x + this.spec.width - 1) / 16);
-    const ty = Math.floor(this.y / 16);
-    const by = Math.floor((this.y + this.spec.height - 1) / 16);
-    let inAcid = false;
-    for (let gy = ty; gy <= by && !inAcid; gy++) {
+    env: {
+      isAcidCell:  (gx: number, gy: number) => boolean;
+      isMagmaCell: (gx: number, gy: number) => boolean;
+      isFireCell:  (gx: number, gy: number) => boolean;
+    },
+  ): { gx: number; gy: number } | null {
+    if (this.destroyed || this.held) return null;
+    const lx = Math.floor(this.colX / 16);
+    const rx = Math.floor((this.colX + this.colW - 1) / 16);
+    const ty = Math.floor(this.colY / 16);
+    const by = Math.floor((this.colY + this.colH - 1) / 16);
+    let inAcid = false, inMagma = false, inFire = false;
+    for (let gy = ty; gy <= by; gy++) {
       for (let gx = lx; gx <= rx; gx++) {
-        if (isAcidCell(gx, gy)) { inAcid = true; break; }
+        if (!inAcid  && env.isAcidCell (gx, gy)) inAcid  = true;
+        if (!inMagma && env.isMagmaCell(gx, gy)) inMagma = true;
+        if (!inFire  && env.isFireCell (gx, gy)) inFire  = true;
       }
     }
-    if (!inAcid) { this.acidExposureMs = 0; return false; }
-    this.acidExposureMs += dtMs;
-    while (this.acidExposureMs >= 1000) {
-      this.acidExposureMs -= 1000;
-      const impact = this.takeAttack(1);
-      if (impact) return true;
+    if (this.kind === 'MetalCrate') {
+      // Acid corrosion: 1 HP/s × 4 HP = 4 s.
+      // Magma melt:    2 HP/s × 4 HP = 2 s — molten heat liquefies steel
+      //                faster than acid eats it (intuitive heat > corrosion).
+      if (!inAcid)  this.acidExposureMs  = 0;
+      if (!inMagma) this.magmaExposureMs = 0;
+      if (inAcid) {
+        this.acidExposureMs += dtMs;
+        while (this.acidExposureMs >= 1000) {
+          this.acidExposureMs -= 1000;
+          const impact = this.takeAttack(1);
+          if (impact) return impact;
+        }
+      }
+      if (inMagma) {
+        this.magmaExposureMs += dtMs;
+        while (this.magmaExposureMs >= 500) {
+          this.magmaExposureMs -= 500;
+          const impact = this.takeAttack(1);
+          if (impact) return impact;
+        }
+      }
+      return null;
     }
-    return false;
+    // Wood family
+    if (inMagma) {
+      this.magmaExposureMs += dtMs;
+      if (this.magmaExposureMs >= 1500) return this.takeAttack(this.hp);
+    } else this.magmaExposureMs = 0;
+    if (inFire) {
+      this.fireExposureMs += dtMs;
+      if (this.fireExposureMs >= 1500) return this.takeAttack(this.hp);
+    } else this.fireExposureMs = 0;
+    if (inAcid) {
+      this.acidExposureMs += dtMs;
+      if (this.acidExposureMs >= 3000) return this.takeAttack(this.hp);
+    } else this.acidExposureMs = 0;
+    return null;
   }
 }

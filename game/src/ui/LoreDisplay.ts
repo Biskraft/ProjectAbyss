@@ -171,20 +171,19 @@ export class LoreDisplay {
     // Advance / skip prompt \u2014 [C] \u25B6 (ui-components \u00A7lore-display \uBA85\uC138 \uC77C\uCE58).
     // KeyIcon \uC740 ATTACK \uC561\uC158 \uC790\uB3D9 \uD45C\uAE30 \u2014 \uD328\uB4DC \uC7A1\uC73C\uBA74 [A]/[X] \uB4F1\uC73C\uB85C hot-swap.
     this.advanceHint = new Container();
-    const KEY_SIZE = 8;
-    const ARROW_GAP = 2;
+    const KEY_SIZE = 14;
+    const ARROW_GAP = 3;
     const keyIcon = KeyPrompt.createKeyIconForAction(GameAction.ATTACK, KEY_SIZE);
     keyIcon.x = 0;
     keyIcon.y = 0;
     this.advanceHint.addChild(keyIcon);
     this.advanceArrow = new BitmapText({
       text: '\u25B6',
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
+      style: { fontFamily: PIXEL_FONT, fontSize: 14, fill: TEXT_SECONDARY },
     });
     this.advanceArrow.x = KEY_SIZE + ARROW_GAP;
     this.advanceArrow.y = 0;
     this.advanceHint.addChild(this.advanceArrow);
-    // \uC6B0\uD558\uB2E8 \uC815\uB82C.
     const totalW = KEY_SIZE + ARROW_GAP + this.advanceArrow.width;
     this.advanceHint.x = GAME_WIDTH - 8 - totalW;
     this.advanceHint.y = BOX_HEIGHT - 6 - KEY_SIZE;

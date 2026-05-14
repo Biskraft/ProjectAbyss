@@ -405,6 +405,13 @@ export class ProceduralDecorator {
   private scanEdges(grid: number[][]): EdgeTile[] {
     const edges: EdgeTile[] = [];
     const rows = grid.length;
+    // Hazard / fluid tiles that should NEVER carry deco directly above —
+    // a wall cell's "floor" face is rejected when the cell above is one of
+    // these. Spike (5) added per Victor request 2026-05-15. Already covered
+    // upstream by isHazardCellAbove: magma(6) / charged(8) / oil(11) / acid(13)
+    // / wood(15) / ice(7).
+    const isHazardCellAbove = (v: number): boolean =>
+      v === 5 || v === 6 || v === 7 || v === 8 || v === 11 || v === 13 || v === 15;
 
     for (let row = 0; row < rows; row++) {
       const cols = grid[row].length;
@@ -417,7 +424,13 @@ export class ProceduralDecorator {
         // Skip decorations on thin (1-tile) surfaces:
         // only register edge if the opposite side is solid (has depth).
         if (isEmpty(gridAt(grid, row - 1, col))) {
-          if (isPlatform || isSolid(gridAt(grid, row + 1, col))) {
+          // Block deco when the floor face is occupied by a hazard tile
+          // (spike, magma, oil, acid, charged, ice, wood). Keeps grass /
+          // metal-rod / cable from "growing out" of dangerous tiles.
+          const above = gridAt(grid, row - 1, col);
+          if (isHazardCellAbove(above)) {
+            // skip
+          } else if (isPlatform || isSolid(gridAt(grid, row + 1, col))) {
             edges.push({ col, row, type: 'floor' });
           }
         }
