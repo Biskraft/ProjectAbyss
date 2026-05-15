@@ -86,8 +86,9 @@ export class Altar {
   private buildSymbolPrompt(): Container {
     const c = new Container();
 
-    // Up-arrow key icon (UP key). Using KeyPrompt helper for consistency.
-    const keyIcon = KeyPrompt.createKeyIcon(actionKey(GameAction.LOOK_UP), 9);
+    // Up-arrow key icon — bound to LOOK_UP so the glyph hot-swaps with the
+    // active device (keyboard W ↔ pad ↑) instead of locking at spawn time.
+    const keyIcon = KeyPrompt.createKeyIconForAction(GameAction.LOOK_UP, 9);
     c.addChild(keyIcon);
 
     // Hammer pictogram (handle + head), drawn at world scale to match key icon

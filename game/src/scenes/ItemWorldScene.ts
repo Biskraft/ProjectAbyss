@@ -105,8 +105,10 @@ import { SteamPuffManager } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { FluidResidueManager } from '@effects/FluidResidue';
 import { FluidSystem } from '@effects/FluidSystem';
+import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
-import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
+import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
+import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
@@ -271,6 +273,7 @@ export class ItemWorldScene extends Scene {
   private fluidLayer!: Container;
   private aboveFluidLayer!: Container;
   private fluidSystem!: FluidSystem;
+  private fluidSpawners!: FluidSpawnerManager;
   /** Last frame's "player in non-water fluid (magma/oil/acid)" flag — used
    *  for entry/exit splash + impulse parity with LdtkWorldScene. */
   private prevPlayerInOtherFluid = false;
@@ -303,6 +306,7 @@ export class ItemWorldScene extends Scene {
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private propShatter!: PropShatterManager;
+  private containerFluidDirty = false;
   private deathParticles!: DeathParticleManager;
   private landingDust!: LandingDustManager;
   private dashAfterimage!: DashAfterimageManager;
@@ -793,6 +797,10 @@ export class ItemWorldScene extends Scene {
     this.fluidLayer = new Container();
     this.container.addChild(this.fluidLayer);
     this.fluidSystem = new FluidSystem(this.fluidLayer);
+    {
+      const _fsDebug = new URLSearchParams(window.location.search).has('debug');
+      this.fluidSpawners = new FluidSpawnerManager(_fsDebug ? this.entityLayer : null);
+    }
 
     // Above-fluid overlay — fire sprites + ember + smoke render here so
     // they appear OVER oil pools / water surface.
@@ -973,12 +981,32 @@ export class ItemWorldScene extends Scene {
     this.countTotalRooms();
 
     // Build full map (all rooms rendered into a single continuous grid)
+    // Spawner state must be cleared BEFORE buildFullMap because the room
+    // placement loop pushes into fluidSpawners as templates are placed.
+    this.fluidSpawners.clear();
+    this.containers.length = 0; // reset across stratum reloads
     this.buildFullMap();
     // Wire FluidSystem to the freshly built grid — flood-fills fluid bodies
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
     // since ItemWorld has no single LdtkLevel wrapper.
     this.fluidSystem.attachGrid(this.fullGrid);
+    // FluidSpawner wiring happens per-room inside buildFullMap (offsets
+    // adjusted to the unified grid). Spawner state cleared before
+    // buildFullMap, so here we just proceed to settle containers.
+    // Settle every container that buildFullMap spawned (explicit + spawner
+    // results combined) in dependency order — taller stacks land last.
+    {
+      const isContainerSolidCell = (gx: number, gy: number): boolean => {
+        const t = this.fullGrid[gy]?.[gx] ?? 0;
+        return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
+      };
+      const sorted = [...this.containers].sort((a, b) => b.y - a.y);
+      for (const c of sorted) {
+        if (c.skipSettle) continue; // Drop-bias containers fall naturally.
+        c.settleAtSpawn(isContainerSolidCell, this.containers);
+      }
+    }
     // Initialize depth gauge
     {
       const n = this.strataConfig.strata.length;
@@ -1271,6 +1299,82 @@ export class ItemWorldScene extends Scene {
 
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
+        // Template-local cell origin → unified-grid cell offset for
+        // Container / ContainerSpawner / FluidSpawner entity wiring.
+        const offGx = roomX / 16;
+        const offGy = roomY / 16;
+        // ── Container entity (explicit) ──
+        for (const ent of ldtkLevel.entities) {
+          if (ent.type !== 'Container') continue;
+          const kind = parseContainerKind(ent.fields?.['Kind']);
+          if (!kind) continue;
+          const fvRaw = ent.fields?.['FluidVolume'];
+          const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
+          const cx = (ent.grid[0] + offGx) * 16;
+          const cy = (ent.grid[1] + offGy) * 16;
+          const c = new ThrowableContainer(kind, cx, cy, fluidVolume);
+          this.containers.push(c);
+          this.entityLayer.addChild(c.container);
+        }
+        // ── ContainerSpawner entity (procedural fill, §12) ──
+        // Each spawner runs against the unified grid window covered by this
+        // template, with explicit Containers already pushed marking
+        // occupancy so they don't double up.
+        const occupied = new Set<string>();
+        for (const c of this.containers) {
+          const gx0 = Math.floor(c.x / 16);
+          const gx1 = Math.floor((c.x + c.spec.width - 1) / 16);
+          const gy0 = Math.floor(c.y / 16);
+          const gy1 = Math.floor((c.y + c.spec.height - 1) / 16);
+          for (let gy = gy0; gy <= gy1; gy++) {
+            for (let gx = gx0; gx <= gx1; gx++) occupied.add(`${gx},${gy}`);
+          }
+        }
+        for (const ent of ldtkLevel.entities) {
+          if (ent.type !== 'ContainerSpawner') continue;
+          const opts = readSpawnerEntity(ent);
+          // Translate template-local rect → unified-grid pixel rect.
+          const rect = {
+            x: opts.rect.x + roomX,
+            y: opts.rect.y + roomY,
+            w: opts.rect.w,
+            h: opts.rect.h,
+          };
+          // Deterministic per-room seed when entity asks for "any".
+          const autoSeed = opts.seed >= 0 ? opts.seed
+            : (((this.item.uid | 0) * 73856093) ^ (col * 19349663) ^ (absRow * 83492791)) | 0;
+          const spawned = runContainerSpawner({
+            rect,
+            collisionGrid: this.fullGrid,
+            existing: this.containers,
+            occupiedCells: occupied,
+            pool: opts.pool,
+            minCount: opts.minCount,
+            maxCount: opts.maxCount,
+            bias: opts.bias,
+            seed: autoSeed,
+            avoidEntity: opts.avoidEntity,
+            fluidVolumeOverride: opts.fluidVolumeOverride,
+          });
+          for (const c of spawned) {
+            this.containers.push(c);
+            this.entityLayer.addChild(c.container);
+            occupied.add(`${Math.floor(c.x / 16)},${Math.floor(c.y / 16)}`);
+          }
+        }
+        // ── FluidSpawner entity (continuous emission, §13) ──
+        // Template-local grid → unified grid via offGx/offGy.
+        for (const ent of ldtkLevel.entities) {
+          if (ent.type !== 'FluidSpawner') continue;
+          for (const opt of readFluidSpawnerEntities(ent)) {
+            this.fluidSpawners.add({
+              gx: opt.gx + offGx,
+              gy: opt.gy + offGy,
+              type: opt.type,
+              intervalMs: opt.intervalMs,
+            });
+          }
+        }
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
@@ -2766,6 +2870,8 @@ export class ItemWorldScene extends Scene {
       this.fluidSystem.refreshFromGrid(this.fullGrid);
     }
     // Dynamic fluid: spring physics + cellular gravity. Mirrors LdtkWorldScene.
+    // FluidSpawner tick (V1: World 만 active. ItemWorld 는 V2 까지 no-op).
+    this.fluidSpawners.update(dt, this.fullGrid, this.fluidSystem);
     this.fluidSystem.update(dt);
     this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator);
 
@@ -2869,6 +2975,36 @@ export class ItemWorldScene extends Scene {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Wall-tunnel guard for player-pushed containers — returns true only
+   * when the container's collision rect at newX stays inside non-solid
+   * cells. Mirror of LdtkWorldScene's identical helper.
+   */
+  private canContainerOccupyX(c: ThrowableContainer, newX: number): boolean {
+    const inset = c.spec.collisionInset;
+    const colX = newX + inset.left;
+    const colW = c.colW;
+    const colY = c.colY;
+    const colH = c.colH;
+    const lgx = Math.floor(colX / 16);
+    const rgx = Math.floor((colX + colW - 1) / 16);
+    const tgy = Math.floor(colY / 16);
+    const bgy = Math.floor((colY + colH - 1) / 16);
+    for (let gy = tgy; gy <= bgy; gy++) {
+      for (let gx = lgx; gx <= rgx; gx++) {
+        const t = this.fullGrid[gy]?.[gx] ?? 0;
+        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return false;
+      }
+    }
+    for (const o of this.containers) {
+      if (o === c || o.destroyed || o.held) continue;
+      if (colX + colW <= o.colX || colX >= o.colX + o.colW) continue;
+      if (colY + colH <= o.colY || colY >= o.colY + o.colH) continue;
+      return false;
+    }
+    return true;
   }
 
   private checkThrownContainerEnemyHit(): void {
@@ -3031,8 +3167,14 @@ export class ItemWorldScene extends Scene {
     }
     // Refresh fluid mesh so the newly-painted cells get dynamic surface.
     if (tile === 2 || tile === 6 || tile === 11 || tile === 13) {
-      this.fluidSystem.refreshFromGrid(this.fullGrid);
+      this.containerFluidDirty = true;
     }
+  }
+
+  private flushContainerFluidChanges(): void {
+    if (!this.containerFluidDirty) return;
+    this.containerFluidDirty = false;
+    this.fluidSystem.refreshFromGrid(this.fullGrid);
   }
 
   /** Spawn 4 debug containers near player. Shift+G binding under ?debug. */
@@ -3934,9 +4076,17 @@ export class ItemWorldScene extends Scene {
       else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
     }
 
-    // ── Hold-and-release Cast ──
-    const castDown = this.game.input.isDown(GameAction.CAST);
-    const canCast = this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
+    // ── Hold-and-release Cast — debug-only ability (Victor 2026-05-15).
+    //   ?debug in URL → ability live (charge/preview/fire all enabled)
+    //   no ?debug     → ability fully suppressed, leftover state cleared
+    const _shardAbilityOn = new URLSearchParams(window.location.search).has('debug');
+    if (!_shardAbilityOn) {
+      this.egoCastChargeMs = 0;
+      this.egoShardPreview.hide();
+      this.player.isAiming = false;
+    }
+    const castDown = _shardAbilityOn && this.game.input.isDown(GameAction.CAST);
+    const canCast = _shardAbilityOn && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
     const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
     const launchX = this.player.x + this.player.width / 2 + facing * 14;
     const launchY = this.player.y + this.player.height * 0.38 - 5;
@@ -4928,7 +5078,7 @@ export class ItemWorldScene extends Scene {
     // Throwable containers: gravity + impact paint (ItemWorld uses fullGrid).
     const isContainerSolidCell = (gx: number, gy: number): boolean => {
       const t = this.fullGrid[gy]?.[gx] ?? 0;
-      return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
+      return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
     };
     const env = {
       isAcidCell:  (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 13,
@@ -5007,13 +5157,26 @@ export class ItemWorldScene extends Scene {
         c.container.y = c.y;
         if (p2.getVy() < 0) p2.vy = 0;
       } else if (min === overlapLeft) {
-        if (Math.abs(p2.getVx()) > 20) c.x += Math.max(0, overlapLeft - 1);
+        if (Math.abs(p2.getVx()) > 20) {
+          const newX = c.x + Math.max(0, overlapLeft - 1);
+          if (this.canContainerOccupyX(c, newX)) {
+            c.x = newX;
+            c.container.x = c.x;
+          }
+        }
         p2.x = cx0 - p2.width;
       } else if (min === overlapRight) {
-        if (Math.abs(p2.getVx()) > 20) c.x -= Math.max(0, overlapRight - 1);
+        if (Math.abs(p2.getVx()) > 20) {
+          const newX = c.x - Math.max(0, overlapRight - 1);
+          if (this.canContainerOccupyX(c, newX)) {
+            c.x = newX;
+            c.container.x = c.x;
+          }
+        }
         p2.x = cx1;
       }
     }
+    this.flushContainerFluidChanges();
     // Ego shards: flight + impact + retrieval (uses fullGrid for solid check).
     this.egoShard.update(
       dt,
@@ -5026,6 +5189,7 @@ export class ItemWorldScene extends Scene {
       },
       (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
     );
+    this.flushContainerFluidChanges();
     const pad = 24;
     const retrieved = this.egoShard.retrieveInAABB(
       this.player.x - pad,

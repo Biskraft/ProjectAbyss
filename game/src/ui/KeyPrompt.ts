@@ -155,8 +155,20 @@ export class KeyPrompt {
     return wrapper;
   }
 
-  /** 액션 → 패드 글리프. 매핑 없으면 null. */
+  /**
+   * 액션 → 패드 글리프. 매핑 없으면 null.
+   *
+   * MOVE_LEFT / MOVE_RIGHT / LOOK_UP / LOOK_DOWN 은 padBindings.ts 에 PAD_BINDINGS
+   * 항목이 없다 (GamepadManager.syncToInputManager 가 좌스틱 + DPad 를 OR
+   * 결합해서 별도로 입력 처리). PAD_BINDINGS 에 추가하면 stick + dpad 처리가
+   * 이중 set 되어 race 위험이라 그대로 두고, 글리프만 여기서 직접 반환.
+   * 결과: tutorial hint 가 패드 모드에서 ↓·A 로 보이고 키보드에서 S·Z 로 보인다.
+   */
   private static _padGlyphFor(action: GameAction, brand: ControllerBrand): string | null {
+    if (action === GameAction.LOOK_DOWN)  return '↓';
+    if (action === GameAction.LOOK_UP)    return '↑';
+    if (action === GameAction.MOVE_LEFT)  return '←';
+    if (action === GameAction.MOVE_RIGHT) return '→';
     const btns = PAD_BINDINGS[action];
     if (!btns || btns.length === 0) return null;
     return getButtonGlyph(btns[0], brand).toUpperCase();

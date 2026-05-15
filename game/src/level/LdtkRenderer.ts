@@ -107,8 +107,11 @@ export class LdtkRenderer {
   ): void {
     this.clear();
 
+    // Background tiles stay visible under fluid cells too — they sit far
+    // enough behind the fluid mesh that the translucent water/oil/etc.
+    // simply tints them rather than erasing them. Only wall auto-tiles
+    // are skipped (the auto-tile would clash with the fluid surface).
     for (const tile of bgTiles) {
-      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (sprite) this.bgLayer.addChild(sprite);
     }
@@ -127,9 +130,12 @@ export class LdtkRenderer {
       }
     }
 
-    // Interior decoration (no collision, between walls and shadows)
+    // Interior decoration (no collision, between walls and shadows).
+    // Interior sprites stay visible under fluid cells — the FluidSystem
+    // polygon overlay sits on top with translucent alpha, so the interior
+    // detail (vines, drips, wiring) reads through. Skipping these here was
+    // the bug that made water-filled rooms look like empty black boxes.
     for (const tile of interiorTiles) {
-      if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
       if (sprite) this.interiorLayer.addChild(sprite);
     }

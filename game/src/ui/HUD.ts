@@ -338,12 +338,18 @@ export class HUD {
     this.container.addChild(this.statusIconContainer);
 
     // Ego Shard counter — under the flask row, aligned with HP bar left edge.
+    // Shard ability is debug-only (Victor 2026-05-15): hide the HUD widget
+    // entirely in shipping builds. ?debug gate matches the LdtkWorldScene /
+    // ItemWorldScene cast gate so the counter and the ability stay in sync.
     this.egoShardContainer = new Container();
     this.egoShardContainer.x = this.HP_X + 44 * s + 70 * s; // right of HP text
     this.egoShardContainer.y = this.FLASK_Y;
     this.egoShardGfx = new Graphics();
     this.egoShardContainer.addChild(this.egoShardGfx);
     this.container.addChild(this.egoShardContainer);
+    const _shardHudOn = typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).has('debug');
+    this.egoShardContainer.visible = _shardHudOn;
     this.redrawEgoShards();
 
     // --- Damage vignette ---

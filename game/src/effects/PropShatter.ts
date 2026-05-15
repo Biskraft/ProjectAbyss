@@ -30,6 +30,10 @@ interface Chunk {
   scaleMaxR?: number;
 }
 
+const MAX_ACTIVE_CHUNKS = 160;
+const FULL_BURST_BELOW = 80;
+const MEDIUM_BURST_BELOW = 125;
+
 export class PropShatterManager {
   private parent: Container;
   private chunks: Chunk[] = [];
@@ -47,25 +51,31 @@ export class PropShatterManager {
     baseColor: number, accentColor: number,
     tex: Texture | null,
   ): void {
+    const active = this.chunks.length;
+    if (active >= MAX_ACTIVE_CHUNKS) return;
+    const fullBurst = active < FULL_BURST_BELOW;
+    const mediumBurst = active < MEDIUM_BURST_BELOW;
     const cx = propX + propW / 2;
     const cy = propY + propH / 2;
 
     // 1) Impact ring
-    const ring = new Graphics();
-    ring.circle(0, 0, 6).stroke({ color: 0xffffff, width: 2, alpha: 0.95 });
-    ring.x = cx; ring.y = cy;
-    this.parent.addChild(ring);
-    this.chunks.push({
-      node: ring, x: cx, y: cy, vx: 0, vy: 0, gravity: 0,
-      rotSpeed: 0, life: 200, maxLife: 200, fade: 'linear', scaleMaxR: 22,
-    });
+    if (mediumBurst) {
+      const ring = new Graphics();
+      ring.circle(0, 0, 6).stroke({ color: 0xffffff, width: 2, alpha: 0.95 });
+      ring.x = cx; ring.y = cy;
+      this.parent.addChild(ring);
+      this.chunks.push({
+        node: ring, x: cx, y: cy, vx: 0, vy: 0, gravity: 0,
+        rotSpeed: 0, life: 200, maxLife: 200, fade: 'linear', scaleMaxR: 22,
+      });
+    }
 
     // 2) Sprite chunks — 2~5 조각 랜덤 (사용자 결정 2026-05-04, 4 quadrant 단조로움 회피).
     //    2: 1×2 또는 2×1, 3: 1×3 또는 3×1, 4: 2×2 (기존), 5: 1×5 또는 5×1.
     //    rows×cols 기반 slicing — 각 cell 의 위치에서 외부 방향으로 impulse 발산.
-    if (tex) {
+    if (tex && fullBurst) {
       const fb = tex.frame;
-      const numChunks = 2 + Math.floor(Math.random() * 4); // 2..5 inclusive
+      const numChunks = 2 + Math.floor(Math.random() * 3); // 2..4 inclusive
       let rows: number;
       let cols: number;
       const orient = Math.random() < 0.5 ? 'h' : 'v'; // horizontal or vertical strips
@@ -110,7 +120,7 @@ export class PropShatterManager {
     }
 
     // 3) Color flecks (smaller pool when sprite chunks are present)
-    const fleckCount = tex ? 6 : 12;
+    const fleckCount = fullBurst ? (tex ? 5 : 9) : (mediumBurst ? 3 : 1);
     for (let i = 0; i < fleckCount; i++) {
       const angle = (i / fleckCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
       const speed = 70 + Math.random() * 110;
@@ -134,15 +144,17 @@ export class PropShatterManager {
     }
 
     // 4) Dust puff (slow expanding circle)
-    const puff = new Graphics();
-    puff.circle(0, 0, 4).fill({ color: 0xb0a090, alpha: 0.55 });
-    puff.x = cx; puff.y = cy;
-    this.parent.addChild(puff);
-    this.chunks.push({
-      node: puff, x: cx, y: cy, vx: 0, vy: -22,
-      gravity: -10, rotSpeed: 0,
-      life: 380, maxLife: 380, fade: 'linear', scaleMaxR: 18,
-    });
+    if (fullBurst) {
+      const puff = new Graphics();
+      puff.circle(0, 0, 4).fill({ color: 0xb0a090, alpha: 0.55 });
+      puff.x = cx; puff.y = cy;
+      this.parent.addChild(puff);
+      this.chunks.push({
+        node: puff, x: cx, y: cy, vx: 0, vy: -22,
+        gravity: -10, rotSpeed: 0,
+        life: 380, maxLife: 380, fade: 'linear', scaleMaxR: 18,
+      });
+    }
   }
 
   update(dt: number): void {

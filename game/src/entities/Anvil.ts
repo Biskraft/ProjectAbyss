@@ -240,7 +240,10 @@ export class Anvil {
     const c = new Container();
 
     // Empty state: UP key + sword icon
-    this.keyUp = KeyPrompt.createKeyIcon(actionKey(GameAction.LOOK_UP), 9);
+    // Use the action-bound icon so the glyph hot-swaps when device flips
+    // (keyboard W ↔ pad ↑) — static createKeyIcon would lock to the device
+    // active at construction time.
+    this.keyUp = KeyPrompt.createKeyIconForAction(GameAction.LOOK_UP, 9);
     this.keyUp.x = 0;
     this.keyUp.y = 0;
     c.addChild(this.keyUp);

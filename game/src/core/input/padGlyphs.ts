@@ -51,8 +51,19 @@ export function getButtonGlyph(btn: number, brand: ControllerBrand): string {
     case GP.RT: return brand === 'playstation' ? 'R2' : 'RT';
 
     // ── Center cluster ───────────────────────────────────────────────────
-    case GP.BACK:  return brand === 'playstation' ? 'TP' : 'VW' /* View / Back */;
-    case GP.START: return brand === 'playstation' ? 'OP' : 'ST';
+    // 'VW' / 'ST' / 'TP' / 'OP' 같은 2-letter 약자는 사용자가 어느 버튼인지
+    // 즉시 알기 어려워서 (Victor 2026-05-15) 표준 영문 라벨로 교체:
+    //   Xbox  : BACK = 'BACK', START = 'MENU' (콘솔 공식: View / Menu)
+    //   PS    : BACK = 'PAD'  (Touchpad), START = 'OPT' (Options)
+    //   Switch: BACK = '-'  , START = '+'  (Switch 공식 라벨)
+    case GP.BACK:
+      return brand === 'playstation' ? 'PAD'
+           : brand === 'switch'      ? '-'
+           :                            'BACK';
+    case GP.START:
+      return brand === 'playstation' ? 'OPT'
+           : brand === 'switch'      ? '+'
+           :                            'MENU';
 
     // ── Sticks / D-Pad ───────────────────────────────────────────────────
     case GP.LSTICK: return 'L3';

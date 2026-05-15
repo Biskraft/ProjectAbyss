@@ -127,6 +127,13 @@ export function getActiveInput(): InputManager | null {
  */
 export function actionKey(action: GameAction): string {
   if (getInputDevice() === 'gamepad') {
+    // Stick / D-pad actions aren't in PAD_BINDINGS (GamepadManager handles
+    // them via syncToInputManager). Hardcode arrow glyphs so prompts read
+    // ↓ / ↑ / ← / → on pad instead of falling back to keyboard letters.
+    if (action === GameAction.LOOK_DOWN)  return '↓';
+    if (action === GameAction.LOOK_UP)    return '↑';
+    if (action === GameAction.MOVE_LEFT)  return '←';
+    if (action === GameAction.MOVE_RIGHT) return '→';
     const btns = PAD_BINDINGS[action];
     if (btns && btns.length > 0) return getButtonGlyph(btns[0], getInputBrand());
   }

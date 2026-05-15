@@ -115,6 +115,13 @@ function sliceKeyForKind(kind: ContainerKind, variantIdx: number): string {
 }
 
 const KIND_LIST: ContainerKind[] = ['Crate', 'MetalCrate', 'OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
+const TILE_SIZE = 16;
+const GRAVITY = 760;
+const MAX_FALL_SPEED = 720;
+const MAX_STEP_MS = 8;
+const REST_VX = 6;
+const FLOOR_FRICTION = 0.80;
+const WALL_BOUNCE = 0.30;
 
 /** Type-guard / parse for LDtk enum field. Returns null on invalid input. */
 export function parseContainerKind(value: unknown): ContainerKind | null {
@@ -167,6 +174,13 @@ export class ThrowableContainer {
    * destroys itself. Prevents multi-hits from a single throw.
    */
   hasDealtImpact = false;
+  /**
+   * Skip the scene's settleAtSpawn raycast for this container. Used by
+   * ContainerSpawner's `Drop` bias so the box keeps its initial spawn Y
+   * and falls naturally under gravity instead of teleporting to the
+   * floor on creation.
+   */
+  skipSettle = false;
   /** Random 0~3 — chosen at spawn, fixed for the lifetime of this crate. */
   readonly variantIdx: number;
   readonly container = new Container();
@@ -202,6 +216,182 @@ export class ThrowableContainer {
     return { x: this.colX, y: this.colY, w: this.colW, h: this.colH };
   }
 
+  private boundsAt(x = this.x, y = this.y): { x: number; y: number; w: number; h: number } {
+    return {
+      x: x + this.spec.collisionInset.left,
+      y: y + this.spec.collisionInset.top,
+      w: this.colW,
+      h: this.colH,
+    };
+  }
+
+  private overlapsSolidTilesAt(
+    x: number,
+    y: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+  ): boolean {
+    const b = this.boundsAt(x, y);
+    const left = Math.floor(b.x / TILE_SIZE);
+    const right = Math.floor((b.x + b.w - 1) / TILE_SIZE);
+    const top = Math.floor(b.y / TILE_SIZE);
+    const bottom = Math.floor((b.y + b.h - 1) / TILE_SIZE);
+    for (let gy = top; gy <= bottom; gy++) {
+      for (let gx = left; gx <= right; gx++) {
+        if (isSolidAt(gx, gy)) return true;
+      }
+    }
+    return false;
+  }
+
+  private overlapsContainerAt(x: number, y: number, other: ThrowableContainer): boolean {
+    const a = this.boundsAt(x, y);
+    return (
+      a.x < other.colX + other.colW &&
+      a.x + a.w > other.colX &&
+      a.y < other.colY + other.colH &&
+      a.y + a.h > other.colY
+    );
+  }
+
+  private overlapsAnyContainerAt(
+    x: number,
+    y: number,
+    others: readonly ThrowableContainer[],
+  ): ThrowableContainer | null {
+    for (const o of others) {
+      if (o === this || o.destroyed || o.held) continue;
+      if (this.overlapsContainerAt(x, y, o)) return o;
+    }
+    return null;
+  }
+
+  private blockedAt(
+    x: number,
+    y: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): boolean {
+    return this.overlapsSolidTilesAt(x, y, isSolidAt) || this.overlapsAnyContainerAt(x, y, others) !== null;
+  }
+
+  private supportYAt(
+    x: number,
+    y: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): number | null {
+    const b = this.boundsAt(x, y);
+    const bottom = b.y + b.h;
+    const footRow = Math.floor(bottom / TILE_SIZE);
+    const left = Math.floor(b.x / TILE_SIZE);
+    const right = Math.floor((b.x + b.w - 1) / TILE_SIZE);
+    let best: number | null = null;
+
+    for (let gx = left; gx <= right; gx++) {
+      if (!isSolidAt(gx, footRow)) continue;
+      const candidate = footRow * TILE_SIZE - this.spec.collisionInset.top - b.h;
+      best = best === null ? candidate : Math.min(best, candidate);
+    }
+
+    for (const o of others) {
+      if (o === this || o.destroyed || o.held) continue;
+      if (b.x + b.w <= o.colX || b.x >= o.colX + o.colW) continue;
+      if (bottom < o.colY || b.y >= o.colY) continue;
+      const candidate = o.colY - this.spec.collisionInset.top - b.h;
+      best = best === null ? candidate : Math.min(best, candidate);
+    }
+
+    return best;
+  }
+
+  private isGroundedOnSupport(
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): boolean {
+    return this.supportYAt(this.x, this.y + 1, isSolidAt, others) === this.y;
+  }
+
+  private resolveInitialOverlap(
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): void {
+    if (!this.blockedAt(this.x, this.y, isSolidAt, others)) return;
+    const maxPush = TILE_SIZE * 3;
+    let bestX = this.x;
+    let bestY = this.y;
+    let bestDist = Infinity;
+    for (let radius = 1; radius <= maxPush; radius++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+          const nx = this.x + dx;
+          const ny = this.y + dy;
+          if (this.blockedAt(nx, ny, isSolidAt, others)) continue;
+          const dist = dx * dx + dy * dy;
+          if (dist < bestDist) {
+            bestX = nx;
+            bestY = ny;
+            bestDist = dist;
+          }
+        }
+      }
+      if (bestDist < Infinity) break;
+    }
+    if (bestDist === Infinity) return;
+    this.x = bestX;
+    this.y = bestY;
+    this.vx = 0;
+    this.vy = Math.max(0, this.vy);
+  }
+
+  private moveX(
+    dx: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): void {
+    if (dx === 0) return;
+    const dir = Math.sign(dx);
+    let remaining = Math.abs(dx);
+    while (remaining > 0) {
+      const step = Math.min(1, remaining) * dir;
+      const nx = this.x + step;
+      if (this.blockedAt(nx, this.y, isSolidAt, others)) {
+        this.vx = -this.vx * WALL_BOUNCE;
+        if (Math.abs(this.vx) < REST_VX) this.vx = 0;
+        return;
+      }
+      this.x = nx;
+      remaining -= Math.abs(step);
+    }
+  }
+
+  private moveY(
+    dy: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+    others: readonly ThrowableContainer[],
+  ): boolean {
+    if (dy === 0) return false;
+    const dir = Math.sign(dy);
+    let remaining = Math.abs(dy);
+    while (remaining > 0) {
+      const step = Math.min(1, remaining) * dir;
+      const ny = this.y + step;
+      if (this.blockedAt(this.x, ny, isSolidAt, others)) {
+        if (dy > 0) {
+          const supportY = this.supportYAt(this.x, ny, isSolidAt, others);
+          if (supportY !== null) this.y = supportY;
+          this.vy = 0;
+          return true;
+        }
+        this.vy = Math.max(0, -this.vy * 0.20);
+        return false;
+      }
+      this.y = ny;
+      remaining -= Math.abs(step);
+    }
+    return false;
+  }
+
   /**
    * Simple gravity + horizontal motion. Returns the impact info if this
    * frame the container collided with a solid surface; null otherwise.
@@ -218,8 +408,43 @@ export class ThrowableContainer {
       if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs -= dtMs;
       return null;
     }
-    const dt = dtMs / 1000;
     if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs = Math.max(0, this.selfHitInvulnMs - dtMs);
+    this.resolveInitialOverlap(isSolidAt, others);
+    let remainingMs = Math.min(dtMs, 100);
+    while (remainingMs > 0) {
+      const stepMs = Math.min(MAX_STEP_MS, remainingMs);
+      const dt = stepMs / 1000;
+      const groundedBefore = this.isGroundedOnSupport(isSolidAt, others);
+
+      if (groundedBefore && this.vy >= 0) {
+        const supportY = this.supportYAt(this.x, this.y + 1, isSolidAt, others);
+        if (supportY !== null) this.y = supportY;
+        this.vy = 0;
+        this.vx *= FLOOR_FRICTION;
+        if (Math.abs(this.vx) < REST_VX) {
+          this.vx = 0;
+          this.wasThrown = false;
+        }
+      } else {
+        this.vy = Math.min(MAX_FALL_SPEED, this.vy + GRAVITY * dt);
+      }
+
+      this.moveX(this.vx * dt, isSolidAt, others);
+      const landed = this.moveY(this.vy * dt, isSolidAt, others);
+      if (landed) {
+        this.vx *= FLOOR_FRICTION;
+        if (Math.abs(this.vx) < REST_VX) {
+          this.vx = 0;
+          this.wasThrown = false;
+        }
+      }
+      remainingMs -= stepMs;
+    }
+    this.container.x = this.x;
+    this.container.y = this.y;
+    return null;
+
+    const dt = dtMs / 1000;
     // ── Combined solid check: grid cell OR another container occupying
     // the cell. Treats containers as part of the world for stacking +
     // collision purposes. Uses each container's collision rect (inset-aware).
@@ -328,6 +553,20 @@ export class ThrowableContainer {
     others: readonly ThrowableContainer[],
     maxDropPx = 1024,
   ): void {
+    this.resolveInitialOverlap(isSolidAt, others);
+    for (let dy = 0; dy <= maxDropPx; dy++) {
+      const testY = this.y + dy;
+      if (!this.blockedAt(this.x, testY + 1, isSolidAt, others)) continue;
+      const supportY = this.supportYAt(this.x, testY + 1, isSolidAt, others);
+      if (supportY !== null) this.y = supportY;
+      break;
+    }
+    this.vx = 0;
+    this.vy = 0;
+    this.container.x = this.x;
+    this.container.y = this.y;
+    return;
+
     const insetTop = this.spec.collisionInset.top;
     const insetBot = this.spec.collisionInset.bottom;
     const colW = this.colW;
