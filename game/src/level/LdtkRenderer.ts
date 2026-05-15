@@ -250,7 +250,15 @@ export class LdtkRenderer {
     const rowData = collisionGrid[row];
     if (!rowData) return false;
     const v = rowData[col] ?? 0;
-    return v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA;
+    // Fluid values (water/oil/acid/magma) — surface drawn by FluidSystem polygon.
+    // Generic fluid markers (FluidGeneric_A/B/C = 17/18/19) — used by ItemWorld
+    // room templates; resolved to concrete fluid values at dive entry but the
+    // LDtk wallTiles still reference the generic-cell auto-rule sprites, so we
+    // suppress them here regardless of whether resolution ran.
+    return (
+      v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA ||
+      v === 17 || v === 18 || v === 19
+    );
   }
 
   private isSpecialTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {

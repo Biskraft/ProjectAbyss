@@ -18,13 +18,16 @@ function exportAse(absPath) {
   const { dir, name } = parse(absPath);
   const sheet = join(dir, `${name}_atlas.png`);
   const data = join(dir, `${name}_atlas.json`);
+  // --split-slices was rounding slice bounds outward to the visual content
+  // bounding box (e.g. ase rect 90×13 → exported 100×14). Dropping it makes
+  // the exporter emit the literal slice rect the user drew. `--list-slices`
+  // alone still writes the slices array (with bounds + center) into JSON.
   const args = [
     '-b', absPath,
     '--sheet', sheet,
     '--data', data,
     '--format', 'json-array',
     '--sheet-type', 'horizontal',
-    '--split-slices',
     '--list-slices',
     '--list-tags',
   ];

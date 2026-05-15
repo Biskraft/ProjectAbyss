@@ -886,7 +886,7 @@ export class LdtkWorldScene extends Scene {
     // FluidSpawner debug overlay lives above entity layer so designers see
     // the source cell even when fluid covers it. ?debug gates visibility.
     const _fsDebug = new URLSearchParams(window.location.search).has('debug');
-    this.fluidSpawners = new FluidSpawnerManager(_fsDebug ? this.entityLayer : null);
+    this.fluidSpawners = new FluidSpawnerManager(this.fluidLayer, _fsDebug ? this.entityLayer : null);
     // Oil flame tongues need to render ABOVE the fluid polygon, so we give
     // the mutator renderer a Graphics child of a container drawn after fluid.
     const aboveFluidLayer = new Container();
@@ -900,6 +900,7 @@ export class LdtkWorldScene extends Scene {
 
     // Player
     this.player = new Player(this.game);
+    this.player.fluidOverlayQuery = (x, y, w, h) => this.fluidSpawners.queryTileAtAabb(x, y, w, h, this.collisionGrid);
     this.player.onFlaskHeal = (amount) => {
       this.screenFlash.flash(0x44ff44, 0.3, 150);
       this.dmgNumbers.spawnSpecial(
@@ -958,7 +959,11 @@ export class LdtkWorldScene extends Scene {
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
     this.uiSkin = hudSkin;
-    hudSkin.load().then(() => this.hud.applySkin(hudSkin));
+    hudSkin.load().then(() => this.hud.applySkin(hudSkin))
+      .catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
+      });
 
     // Controls overlay (disabled)
     // this.controlsOverlay = new ControlsOverlay();
@@ -2589,9 +2594,10 @@ export class LdtkWorldScene extends Scene {
     }
     // Non-water fluid (magma/oil/acid) entry/exit ripple — same impulse pattern
     // as water but no swim physics / oxygen handling (those are water-only).
-    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid);
-    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid);
-    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid);
+    const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.collisionGrid);
+    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'magma';
+    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'oil';
+    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'acid';
     const inAnyOther = inMagma_ || inOil_ || inAcid_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
       const type: 'magma' | 'oil' | 'acid' = inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
@@ -2875,6 +2881,7 @@ export class LdtkWorldScene extends Scene {
     // Cellular gravity — water cells fall + spread to merge after mutations
     // (fire on water creates holes; gravity refills them from above).
     this.fluidSystem.gravityTick(this.collisionGrid, dt, this.tileMutator);
+    this.fluidSpawners.pressureDrain(this.collisionGrid, this.fluidSystem);
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
     this.itemPickupGlow.update(dt);
@@ -3433,6 +3440,7 @@ export class LdtkWorldScene extends Scene {
     const allExtraTiles = Object.values(level.extraTileLayers).flat();
     const combinedInterior = level.interiorTiles.concat(allExtraTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, this.collisionGrid, combinedInterior);
+    this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
     if (!new URLSearchParams(window.location.search).has('noproc')) {
@@ -3459,6 +3467,7 @@ export class LdtkWorldScene extends Scene {
         this.procDecorator.naturalLayer.filters = [this.naturalPaletteFilter!];
         this.procDecorator.artificialLayer.filters = [this.wallPaletteFilter];
         this.procDecorator.structureLayer.filters = [this.wallPaletteFilter];
+        this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
       }
       const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
       this.renderer.container.addChildAt(this.procDecorator.structureLayer, structIdx);
@@ -4380,6 +4389,40 @@ export class LdtkWorldScene extends Scene {
         },
         onBurnApplied: () => this.player.triggerFlash(),
       });
+      const waterfallType = this.fluidSpawners.queryFluidAtAabb(
+        this.player.x, this.player.y, this.player.width, this.player.height, this.collisionGrid,
+      );
+      if (waterfallType === 'acid' && !this.player.invincible) {
+        let acc = this.player.acidTickAccum ?? 0;
+        acc += dt;
+        while (acc >= 100) {
+          acc -= 100;
+          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.005));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = 'acid';
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+        }
+        this.player.acidTickAccum = acc;
+      } else if (waterfallType === 'magma') {
+        const wasBurning = (this.player.burnRemainingMs ?? 0) > 0;
+        this.player.burnRemainingMs = MAGMA_BURN_DURATION_MS;
+        if (!wasBurning && !this.player.invincible) {
+          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.10));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = 'magma';
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+          this.game.camera.shake(2);
+          this.player.triggerFlash();
+        }
+      }
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.player.onDeath();
+        this.game.hitstopFrames = 8;
+        this.screenFlash.flashDamage(true);
+      }
     }
 
     // Enemy hazards (every alive enemy). Element multiplier scales raw
@@ -7972,6 +8015,29 @@ export class LdtkWorldScene extends Scene {
       return (grid[row]?.[col] ?? 0) !== 0;
     });
     this.renderer.rebuildWallLayer(filteredTiles, this.atlases, this.collisionGrid);
+    this.applyTerrainFilterAreas(this.currentLevel.pxWid, this.currentLevel.pxHei);
+  }
+
+  private applyTerrainFilterAreas(width: number, height: number): void {
+    // Pixi's automatic filter bounds can drift when filtered world layers are
+    // rendered into the camera RT under a translated parent. The failure mode
+    // is severe: palette-filtered terrain disappears and the screen looks
+    // almost black while unfiltered sprites remain. Pin the filter/bounds area
+    // in each layer's local level coordinates so camera movement cannot affect
+    // the computed filter input.
+    const area = new Rectangle(0, 0, width, height);
+    const apply = (layer?: Container | null) => {
+      if (!layer) return;
+      layer.filterArea = area;
+      layer.boundsArea = area;
+    };
+    apply(this.renderer.bgLayer);
+    apply(this.renderer.wallLayer);
+    apply(this.renderer.interiorLayer);
+    apply(this.renderer.shadowLayer);
+    apply(this.procDecorator?.naturalLayer);
+    apply(this.procDecorator?.artificialLayer);
+    apply(this.procDecorator?.structureLayer);
   }
 
   private triggerFloorCollapse(): void {

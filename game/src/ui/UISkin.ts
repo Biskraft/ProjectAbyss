@@ -33,11 +33,18 @@ export class UISkin {
   get isLoaded(): boolean { return this.loaded; }
 
   async load(
-    jsonPath = 'assets/ui/ui_hud_01.json',
-    sheetPath = 'assets/ui/ui_hud_01_sheet.png',
+    // SSoT migration (2026-05-15): ase-export now emits a unified
+    // *_atlas.json + *_atlas.png pair. The previous _sheet.png + _.json
+    // split is gone. JSON schema (meta.slices) is unchanged so the parsing
+    // path below stays identical.
+    jsonPath = 'assets/ui/ui_hud_01_atlas.json',
+    sheetPath = 'assets/ui/ui_hud_01_atlas.png',
   ): Promise<void> {
     const [json, sheetTex] = await Promise.all([
-      fetch(assetPath(jsonPath)).then(r => r.json()),
+      fetch(assetPath(jsonPath)).then(r => {
+        if (!r.ok) throw new Error(`UISkin: ${jsonPath} returned ${r.status}`);
+        return r.json();
+      }),
       Assets.load<Texture>(assetPath(sheetPath)),
     ]);
 

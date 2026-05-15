@@ -102,7 +102,15 @@ export class TileMutator {
    * multiple mutations. Magma-frozen / passive freezing don't fire — the
    * frozen overlay covers the cell visually.
    */
-  onWallTileChanged: ((gx: number, gy: number) => void) | null = null;
+  /**
+   * `originalTile` is the IntGrid value that occupied the cell BEFORE the
+   * mutation (e.g., TILE_OIL on burnout, TILE_ICE on melt, TILE_METAL on
+   * acid corrosion). Scenes use it to decide whether the cell needs a
+   * paint-over mask: fluid-source tiles (OIL/WATER/ACID/MAGMA) are already
+   * filtered out of the static wall sprite layer by isFluidHiddenTile, so
+   * scenes can skip mask painting for those.
+   */
+  onWallTileChanged: ((gx: number, gy: number, originalTile: number) => void) | null = null;
 
   /** Pack (gx,gy) → single number key. Assumes maps ≤ 4096 columns. */
   private k(gx: number, gy: number): number {
@@ -180,7 +188,7 @@ export class TileMutator {
     if (getTile(roomData, gx, gy) !== TILE_ICE) return false;
     if (!roomData[gy]) return false;
     roomData[gy][gx] = TILE_WATER;
-    this.onWallTileChanged?.(gx, gy);
+    this.onWallTileChanged?.(gx, gy, TILE_ICE);
     return true;
   }
 
@@ -256,9 +264,10 @@ export class TileMutator {
           if (t === TILE_OIL || t === TILE_WOOD || t === TILE_GRASS) {
             roomData[gy][gx] = TILE_AIR;
             // Wood/Grass have static tile sprites — wall layer must refresh.
-            // Oil cells are already hidden by isFluidHiddenTile, but firing
-            // the event for oil too is harmless and keeps the contract simple.
-            this.onWallTileChanged?.(gx, gy);
+            // Oil cells were never baked into the wall sprite (isFluidHiddenTile
+            // filtered them out at bake time), so the scene uses `originalTile`
+            // to decide whether to paint a burnout mask.
+            this.onWallTileChanged?.(gx, gy, t);
           }
         }
         this.burning.delete(key);
@@ -428,7 +437,7 @@ export class TileMutator {
       const nx = n[0], ny = n[1];
       if (getTile(roomData, nx, ny) === want && roomData[ny] && Math.random() < chance) {
         roomData[ny][nx] = to;
-        this.onWallTileChanged?.(nx, ny);
+        this.onWallTileChanged?.(nx, ny, want);
       }
     }
   }
@@ -443,7 +452,7 @@ export class TileMutator {
       if (getTile(roomData, nx, ny) === want && roomData[ny] && Math.random() < chance) {
         roomData[ny][nx] = to;
         this.onSteamEvent?.(nx, ny);
-        this.onWallTileChanged?.(nx, ny);
+        this.onWallTileChanged?.(nx, ny, want);
       }
     }
   }

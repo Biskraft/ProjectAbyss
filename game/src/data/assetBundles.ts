@@ -31,7 +31,7 @@ export type BundleName = 'core' | 'item_world';
  */
 const CORE_ASSETS: Record<string, string> = {
   world_ldtk: assetPath('assets/World_ProjectAbyss.ldtk'),
-  title_logo: assetPath('assets/ui/title_logo.png'),
+  title_logo: assetPath('assets/ui/ui_title_01.png'),
   save_point: assetPath('assets/sprites/save_point_01.png'),
   erda_portrait: assetPath('assets/portraits/erda.png'),
   erda_atlas_png: assetPath('assets/characters/erda_atlas.png'),

@@ -137,6 +137,48 @@
   - `physical` 공식: `(ATK * SkillMult) - (DEF * DEF_Factor)` 원문 그대로 GDD에 인용되었는지 확인
   - `CritMultBase=1.5`, `CritMultCap=1.5` 일치 (Glossary "크리티컬 고정 5%")
 
+## 15. ItemWorld Fluid 매핑
+
+- **CSV:** `Sheets/Content_ItemWorld_FluidMapping.csv`
+- **GDD 주 문서:** `Documents/System/System_World_Fluid.md` (§3.4 Generic IntGrid + 치환 layer)
+- **GDD 부 문서:** `Documents/System/System_World_Container.md` (§12.4 Container Pool ID 표)
+- **코드 mirror:** `game/src/data/ItemWorldFluidMapping.ts` (`FLUID_MAPPING` 객체)
+- **검증 컬럼:** `temperament`, `slot_a`, `slot_b`, `slot_c`, `container_pool_id`
+- **검증 포인트:**
+  - `temperament` 값은 정확히 `forge` / `iron` / `rust` / `spark` / `shadow` 5개 (DEC-036 5색 기질). 대소문자·오타 불허
+  - `slot_a/b/c` 값은 `water` / `magma` / `oil` / `acid` 중 하나 (lava 는 V1 미사용)
+  - `container_pool_id` 가 `System_World_Container.md` §12.4 의 Pool ID 표에 *존재* 해야 함
+  - CSV 의 모든 row (`forge/iron/rust/spark/shadow` 5개) 가 `ItemWorldFluidMapping.ts` 의 `FLUID_MAPPING` 객체와 *정확히 일치* (값·키)
+
+### 15.1 LDtk IntGrid Generic 마커 cross-validation
+
+- **LDtk 파일:** `game/public/assets/World_ProjectAbyss.ldtk`
+- **GDD 주 문서:** `Documents/System/System_World_Fluid.md` §3.4
+- **검증 포인트:**
+  - LDtk `Collisions` 레이어에 IntGrid value 17/18/19 = `FluidGeneric_A/B/C` 정의 존재
+  - **World 룸** (LdtkWorldScene 이 attach 하는 일반 룸) 의 셀 데이터에 17/18/19 사용 **0건** — 월드는 *명시 fluid value* 만 사용
+  - **ItemWorld 룸 템플릿** (ItemWorldScene 이 buildFullMap 으로 합치는 룸) 의 셀 데이터에 명시 fluid value (2/6/11/13) 사용 **0건** — 아이템계는 *generic 17/18/19 만* 사용
+  - 단, 위 후자는 *템플릿 룸 식별 가능성* 에 의존. 식별 신호가 없으면 *경고만* (오류 아님)
+
+### 15.2 FluidSpawner Generic Type cross-validation
+
+- **LDtk 파일:** `game/public/assets/World_ProjectAbyss.ldtk` 의 `FluidType` enum (uid 1003)
+- **GDD:** `Documents/System/System_World_Fluid.md` §10.1 (Type 필드 표)
+- **코드:** `game/src/systems/FluidSpawner.ts` (`readFluidSpawnerEntities` 분기) + `game/src/data/ItemWorldFluidMapping.ts` (`resolveGenericFluidType`)
+- **검증 포인트:**
+  - LDtk `FluidType` enum 에 `Generic_A` / `Generic_B` / `Generic_C` 3 값 존재
+  - 코드 `readFluidSpawnerEntities` 가 `generic_a/b/c` (lowercase) 분기 처리 존재
+  - `resolveGenericFluidType` 의 반환값이 4 명시 type (`water/magma/oil/acid`) 중 하나만 가능 (lava 등 미지원 type 으로 fallback 금지)
+
+### 15.3 ContainerPools 카탈로그 cross-validation
+
+- **코드 SSoT:** `game/src/data/ContainerPools.ts` (`CONTAINER_POOLS` 객체)
+- **GDD:** `Documents/System/System_World_Container.md` §12.4 (Pool 가중치 표)
+- **검증 포인트:**
+  - `Content_ItemWorld_FluidMapping.csv` 의 모든 `container_pool_id` 값이 `CONTAINER_POOLS` 객체 키로 존재 — 미존재 시 spawn 시점에 빈 배열 fallback (조용한 실패)
+  - `CONTAINER_POOLS` 의 각 Pool 의 ContainerKind 값이 `ThrowableContainer.ts` 의 `ContainerKind` enum 6종 (Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial) 안에 존재
+  - §12.4 표의 Pool ID 와 코드 `CONTAINER_POOLS` 키 *완전 일치* — 한쪽만 갱신하면 디버전스
+
 ---
 
 ## 파생 계산 공식 (Layer 1.2)

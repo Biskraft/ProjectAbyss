@@ -15,7 +15,7 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR, isInOil, isInMagma, isInAcid } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR, TILE_OIL, isInOil, isInMagma, isInAcid } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
@@ -105,6 +105,7 @@ import { SteamPuffManager } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { FluidResidueManager } from '@effects/FluidResidue';
 import { FluidSystem } from '@effects/FluidSystem';
+import { applyFluidGenericResolution } from '@data/ItemWorldFluidMapping';
 import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
@@ -799,7 +800,7 @@ export class ItemWorldScene extends Scene {
     this.fluidSystem = new FluidSystem(this.fluidLayer);
     {
       const _fsDebug = new URLSearchParams(window.location.search).has('debug');
-      this.fluidSpawners = new FluidSpawnerManager(_fsDebug ? this.entityLayer : null);
+      this.fluidSpawners = new FluidSpawnerManager(this.fluidLayer, _fsDebug ? this.entityLayer : null);
     }
 
     // Above-fluid overlay — fire sprites + ember + smoke render here so
@@ -813,6 +814,7 @@ export class ItemWorldScene extends Scene {
 
     // Player (clone stats from world player)
     this.player = new Player(this.game);
+    this.player.fluidOverlayQuery = (x, y, w, h) => this.fluidSpawners.queryTileAtAabb(x, y, w, h, this.fullGrid);
     this.player.hp = this.sourcePlayer.hp;
     this.player.maxHp = this.sourcePlayer.maxHp;
     this.player.atk = this.sourcePlayer.atk;
@@ -884,14 +886,17 @@ export class ItemWorldScene extends Scene {
     // burnout) invalidate the static tile layer AND can introduce new
     // fluid cells (ice melt → water). Coalesce same-frame events into a
     // single refresh in update().
-    this.tileMutator.onWallTileChanged = (gx, gy) => {
+    this.tileMutator.onWallTileChanged = (gx, gy, originalTile) => {
       this.fluidGridDirty = true;
       // If the mutation produced an air cell, paint over the baked-in
       // wall sprite that was aggregated at buildFullMap. New fluid cells
       // (ice→water) don't need a mask — FluidSystem will draw over the
-      // wall sprite via the fluid mesh.
+      // wall sprite via the fluid mesh. OIL also doesn't need a mask
+      // because its wall sprite was filtered out of the aggregate at
+      // bake time (isFluidHiddenTile) — masking would leave a fake
+      // residue rectangle where the fluid simply evaporated.
       const v = this.fullGrid[gy]?.[gx];
-      if (v === 0) {
+      if (v === 0 && originalTile !== TILE_OIL) {
         this.mutatedCells.add(`${gx},${gy}`);
         this.rebuildMutationMask();
       }
@@ -949,7 +954,11 @@ export class ItemWorldScene extends Scene {
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
     this.hudSkin = hudSkin;
-    hudSkin.load().then(() => this.hud.applySkin(hudSkin));
+    hudSkin.load().then(() => this.hud.applySkin(hudSkin))
+      .catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
+      });
 
     // Return result screen (9-slice from UISkin)
     this.uiController.createReturnResult(hudSkin, () => {
@@ -986,6 +995,11 @@ export class ItemWorldScene extends Scene {
     this.fluidSpawners.clear();
     this.containers.length = 0; // reset across stratum reloads
     this.buildFullMap();
+    // Resolve FluidGeneric_A/B/C (17/18/19) -> concrete fluid tiles based on
+    // this dive's weapon temperament (forge/iron/rust/spark/shadow). MUST run
+    // before fluidSystem.attachGrid so flood-fill sees the resolved values.
+    // Spec: Documents/System/System_World_Fluid.md §3.4
+    applyFluidGenericResolution(this.fullGrid, this.item.def.temperamentPrimary);
     // Wire FluidSystem to the freshly built grid — flood-fills fluid bodies
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
@@ -1332,7 +1346,7 @@ export class ItemWorldScene extends Scene {
         }
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'ContainerSpawner') continue;
-          const opts = readSpawnerEntity(ent);
+          const opts = readSpawnerEntity(ent, this.item.def.temperamentPrimary);
           // Translate template-local rect → unified-grid pixel rect.
           const rect = {
             x: opts.rect.x + roomX,
@@ -1366,7 +1380,7 @@ export class ItemWorldScene extends Scene {
         // Template-local grid → unified grid via offGx/offGy.
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'FluidSpawner') continue;
-          for (const opt of readFluidSpawnerEntities(ent)) {
+          for (const opt of readFluidSpawnerEntities(ent, this.item.def.temperamentPrimary)) {
             this.fluidSpawners.add({
               gx: opt.gx + offGx,
               gy: opt.gy + offGy,
@@ -2874,6 +2888,7 @@ export class ItemWorldScene extends Scene {
     this.fluidSpawners.update(dt, this.fullGrid, this.fluidSystem);
     this.fluidSystem.update(dt);
     this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator);
+    this.fluidSpawners.pressureDrain(this.fullGrid, this.fluidSystem);
 
     if (this.player.hp > 0) {
       applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {
@@ -2902,6 +2917,39 @@ export class ItemWorldScene extends Scene {
         },
         onBurnApplied: () => this.player.triggerFlash(),
       });
+      const waterfallType = this.fluidSpawners.queryFluidAtAabb(
+        this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid,
+      );
+      if (waterfallType === 'acid' && !this.player.invincible) {
+        let acc = this.player.acidTickAccum ?? 0;
+        acc += dt;
+        while (acc >= 100) {
+          acc -= 100;
+          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.005));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = 'acid';
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+        }
+        this.player.acidTickAccum = acc;
+      } else if (waterfallType === 'magma') {
+        const wasBurning = (this.player.burnRemainingMs ?? 0) > 0;
+        this.player.burnRemainingMs = MAGMA_BURN_DURATION_MS;
+        if (!wasBurning && !this.player.invincible) {
+          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.10));
+          this.player.hp -= dmg;
+          this.player.lastDamageSource = 'magma';
+          this.hud.flashDamage();
+          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+          this.game.camera.shake(2);
+          this.player.triggerFlash();
+        }
+      }
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.player.onDeath();
+        this.screenFlash.flashDamage(true);
+      }
     }
 
     for (const enemy of this.enemies) {
@@ -4899,9 +4947,10 @@ export class ItemWorldScene extends Scene {
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
     // ── Residue trail timers (oil/acid/magma) ───────────────────────────
-    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid);
-    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid);
-    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid);
+    const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.fullGrid);
+    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'oil';
+    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'acid';
+    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'magma';
     // Non-water fluid entry / exit splash — same impulse pattern as water.
     const inAnyOther = inMagma_ || inOil_ || inAcid_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
@@ -6327,9 +6376,11 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Repaint the mutation mask covering every air cell produced by tile
-   * burnout / corrode. Each entry is a 16×16 black rect drawn above the
-   * wall aggregate. Lazy — only re-fills the Graphics when the cell set
-   * has actually changed.
+   * burnout / corrode. Each entry is a 16×16 rect drawn above the wall
+   * aggregate. Color matches the AshRemnant dark tone (#1f1a16) instead of
+   * pure black so the burnout site reads as "scorched residue" rather than
+   * a hole punched in the world. Lazy — only re-fills the Graphics when the
+   * cell set has actually changed.
    */
   private rebuildMutationMask(): void {
     const g = this.mutationMaskGfx;
@@ -6339,7 +6390,9 @@ export class ItemWorldScene extends Scene {
       const ix = key.indexOf(',');
       const gx = +key.slice(0, ix);
       const gy = +key.slice(ix + 1);
-      g.rect(gx * 16, gy * 16, 16, 16).fill({ color: 0x000000, alpha: 1 });
+      // Sepia-charred tone — same palette as AshRemnantManager COLOR_ASH_DARK.
+      // Reads as scorched residue, not a void.
+      g.rect(gx * 16, gy * 16, 16, 16).fill({ color: 0x1f1a16, alpha: 0.92 });
     }
   }
 

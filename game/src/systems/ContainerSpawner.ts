@@ -14,6 +14,7 @@
 import { PRNG } from '@utils/PRNG';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
 import type { LdtkEntity } from '@level/LdtkLoader';
+import { lookupPoolByTemperament } from '@data/ContainerPools';
 
 // Solid IntGrid values that act as floor for spawning (must match the
 // ThrowableContainer physics' solid set). Keep in sync with
@@ -100,10 +101,29 @@ export interface SpawnerEntityData {
   maintain: boolean;
 }
 
-/** Read fields with safe defaults from a `ContainerSpawner` LDtk entity. */
-export function readSpawnerEntity(ent: LdtkEntity): SpawnerEntityData {
+/** Read fields with safe defaults from a `ContainerSpawner` LDtk entity.
+ *
+ *  @param temperament Optional dive-weapon temperament — when `Pool` is empty
+ *  the catalog pool for the temperament is applied as a fallback so room
+ *  templates don't need to repeat the same pool string. World rooms (which
+ *  have no temperament context) should pass `null` and rely on explicit Pool.
+ */
+export function readSpawnerEntity(
+  ent: LdtkEntity,
+  temperament?: string | null,
+): SpawnerEntityData {
   const f = ent.fields ?? {};
-  const pool = parsePool(f['Pool']);
+  let pool = parsePool(f['Pool']);
+  if (pool.length === 0 && temperament) {
+    // ContainerPools imports PoolEntry from this file as type-only, so the
+    // runtime cycle is broken — safe to static-import here.
+    const auto = lookupPoolByTemperament(temperament);
+    if (auto.length > 0) {
+      pool = auto;
+      // eslint-disable-next-line no-console
+      console.log(`[ContainerSpawner] pool=auto temperament=${temperament} entries=${auto.length}`);
+    }
+  }
   // Accept either `Min`/`Max` or `MinCount`/`MaxCount` — Victor's LDtk
   // setup uses the shorter names; spec doc shows the longer ones. Either
   // works for the same effect.

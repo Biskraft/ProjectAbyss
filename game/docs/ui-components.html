@@ -1323,9 +1323,123 @@
 
   <section id="title-screen">
     <h2>TitleScreen <span class="pill organism">ORGANISM</span></h2>
-    <div class="src">TitleScene.ts</div>
+    <div class="src">TitleScene.ts · assets/ui/title_01.png</div>
     <p>게임 시작 전 어두운 화면. 로고 → 컨트롤 프리셋 선택 → fade-out → 게임 시작.<br>
-       <b>규칙:</b> 이 화면은 게임의 첫인상이다. 최소한의 요소만 표시. 배경은 순수 검정.</p>
+       <b>규칙:</b> 이 화면은 게임의 첫인상이다. 최소한의 요소만 표시. 배경은 순수 검정(<code>#0A0A0A</code>).</p>
+
+    <!-- ============================================================
+         Title Screen — local tokens (mirror TitleScene.ts)
+         Pure black stage. Only the logo + pulse glow remain.
+         No grid, no accent line, no subtitle, no key hints.
+         ============================================================ -->
+    <style>
+      .ts-stage{
+        position:relative;
+        background:#000000;                   /* pure black */
+        border:1px solid var(--line);
+        width:100%;
+        aspect-ratio: 16 / 9;
+        overflow:hidden;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        padding:36px 24px;text-align:center;
+        color:#F0F0F0;                        /* COL_WHITE */
+      }
+      /* Radial pulse glow behind logo (TitleScene.ts:435 — COL_ACCENT, ~3s breath) */
+      .ts-pulse{
+        position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+        width:560px;height:560px;border-radius:50%;
+        background:
+          radial-gradient(circle at center, rgba(232,120,48,.16) 0%, rgba(232,120,48,0) 60%),
+          radial-gradient(circle at center, rgba(232,120,48,.22) 0%, rgba(232,120,48,0) 32%);
+        filter:blur(4px);
+        animation:ts-pulse 3s ease-in-out infinite;
+        pointer-events:none;
+      }
+      @keyframes ts-pulse{
+        0%,100%{transform:translate(-50%,-50%) scale(.92);opacity:.65}
+        50%    {transform:translate(-50%,-50%) scale(1.08);opacity:1}
+      }
+      /* Logo (640x166 native, pixel-art) */
+      .ts-logo{
+        position:relative;
+        image-rendering:pixelated;
+        image-rendering:crisp-edges;
+        width:min(72%, 480px);
+        height:auto;
+        filter:drop-shadow(0 0 18px rgba(232,120,48,.18));
+        animation:ts-rise 1s cubic-bezier(.2,.7,.2,1) both;
+      }
+      @keyframes ts-rise{
+        0%   {opacity:0;transform:translateY(8px)}
+        100% {opacity:1;transform:none}
+      }
+      /* Preset card row (Step 2) */
+      .ts-presets{
+        position:relative;
+        display:flex;gap:10px;justify-content:center;
+        margin-top:26px;
+      }
+      .ts-card{
+        width:120px;padding:8px 6px;
+        border:1px solid #2a2a3e;border-radius:3px;
+        text-align:center;
+        background:rgba(0,0,0,0);
+      }
+      .ts-card .name{
+        font-size:11px;font-weight:700;letter-spacing:1px;
+        color:#3A3A48;margin-bottom:6px;
+      }
+      .ts-card.selected{
+        background:linear-gradient(90deg,var(--row-selected) 0%,var(--row-selected-2) 100%);
+        outline:2px solid var(--row-selected-edge);outline-offset:-2px;
+        box-shadow:
+          inset 0 0 0 1px var(--row-selected-glow-inner),
+          0 0 12px var(--row-selected-glow-inner),
+          0 0 24px var(--row-selected-glow);
+        animation:row-pulse 1.4s ease-in-out infinite;
+      }
+      .ts-card.selected .name{color:#fff}
+      .ts-card .rows{display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px}
+      .ts-card .kb{
+        display:inline-flex;align-items:center;justify-content:center;
+        width:20px;height:13px;font-size:7px;font-weight:700;border-radius:2px;
+        background:var(--kp-key-bg);border:1px solid var(--kp-key-border);
+        color:#fff;
+      }
+      .ts-card.selected .kb{color:#ffd699}
+      .ts-card .act{color:var(--text-secondary);align-self:center}
+      .ts-card:not(.selected) .kb{color:#888}
+      .ts-card:not(.selected) .act{color:#555}
+      .ts-select-label{
+        position:relative;
+        font-size:8px;color:#3A3A48;letter-spacing:2px;text-transform:uppercase;
+        margin-top:16px;
+      }
+      .ts-preset-hint{
+        position:relative;
+        font-size:8px;color:var(--muted);letter-spacing:1px;
+        margin-top:14px;
+      }
+      /* Gamepad recommendation — Step 2 only (50% alpha base, COL_DIM) */
+      .ts-gamepad{
+        position:relative;
+        font-family:var(--font-ui);
+        font-size:8px;font-weight:500;
+        color:#3A3A48;
+        letter-spacing:1.5px;text-transform:uppercase;
+        margin-top:8px;opacity:.5;
+      }
+      /* Step 3 — fade-out overlay (pure black) */
+      .ts-fade{
+        position:absolute;inset:0;
+        background:#000000;opacity:.85;
+        pointer-events:none;
+      }
+
+      @media (prefers-reduced-motion: reduce){
+        .ts-pulse,.ts-logo,.ts-card.selected{animation:none}
+      }
+    </style>
 
     <!-- ── 전체 플로우 ── -->
     <div class="card">
@@ -1335,73 +1449,90 @@
       </div>
       <div class="stage col" style="gap:18px;width:100%">
 
-        <!-- Step 1: 로고 -->
-        <div>
-          <div class="meta">Step 1 — Logo (1초 페이드인)</div>
-          <div style="background:#000;padding:40px 20px;text-align:center;border:1px solid var(--line);width:100%">
-            <div style="font-family:var(--font-title-display);font-size:28px;letter-spacing:8px;color:#fff;opacity:0.95">ECHORIS</div>
-            <div style="font-size:9px;color:var(--muted);margin-top:8px;letter-spacing:3px">A WORLD INSIDE EVERY BLADE</div>
+        <!-- Step 1 — Logo (pure black · pulse only · logo) -->
+        <div style="width:100%">
+          <div class="meta">Step 1 — Logo (배경 #000 · pulse만 · 1초 페이드인)</div>
+          <div class="ts-stage">
+            <div class="ts-pulse" aria-hidden="true"></div>
+            <img class="ts-logo" src="../public/assets/ui/title_01.png" alt="ECHORIS" width="640" height="166" decoding="async">
           </div>
         </div>
 
-        <!-- Step 2: 컨트롤 프리셋 -->
-        <div>
-          <div class="meta">Step 2 — Control Preset (로고 아래에 나타남)</div>
-          <div style="background:#000;padding:30px 20px;text-align:center;border:1px solid var(--line);width:100%">
-            <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:6px;color:#fff;opacity:0.85;margin-bottom:20px">ECHORIS</div>
-            <div style="font-size:8px;color:var(--muted);margin-bottom:16px;letter-spacing:2px">SELECT CONTROLS</div>
+        <!-- Step 2 — Control Preset (pure black · pulse only · logo size unchanged · gamepad hint) -->
+        <div style="width:100%">
+          <div class="meta">Step 2 — Control Preset (배경 #000 · pulse만 · 타이틀 크기 유지 · 카드 하단 + Gamepad 권장)</div>
+          <div class="ts-stage">
+            <div class="ts-pulse" aria-hidden="true"></div>
+            <img class="ts-logo" src="../public/assets/ui/title_01.png" alt="ECHORIS" width="640" height="166" decoding="async">
+            <div class="ts-select-label">Select Controls</div>
 
-            <!-- 프리셋 3종 (가로 배치) -->
-            <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
-
-              <!-- Classic (선택됨) -->
-              <div style="width:130px;padding:10px 8px;background:var(--row-selected);outline:2px solid rgba(255,255,255,0.35);outline-offset:-2px;border-radius:2px;text-align:center">
-                <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:1px;margin-bottom:6px">CLASSIC</div>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
-                  <span class="key-icon" style="width:18px;height:14px;font-size:7px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">←→</span><span style="color:var(--text-secondary)">Move</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">Z</span><span style="color:var(--text-secondary)">Jump</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">X</span><span style="color:var(--text-secondary)">Dash</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#fff">C</span><span style="color:var(--text-secondary)">Attack</span>
+            <div class="ts-presets">
+              <!-- Classic (선택) -->
+              <div class="ts-card selected">
+                <div class="name">CLASSIC</div>
+                <div class="rows">
+                  <span class="kb">←→</span><span class="act">Move</span>
+                  <span class="kb">Z</span><span class="act">Jump</span>
+                  <span class="kb">X</span><span class="act">Dash</span>
+                  <span class="kb">C</span><span class="act">Attack</span>
                 </div>
-                <div style="margin-top:6px"><span class="row-badge eq" style="font-size:7px">▶ SELECTED</span></div>
               </div>
-
               <!-- Modern -->
-              <div style="width:130px;padding:10px 8px;border:1px solid #2a2a3e;border-radius:2px;text-align:center">
-                <div style="font-size:11px;color:var(--text-secondary);font-weight:700;letter-spacing:1px;margin-bottom:6px">MODERN</div>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
-                  <span class="key-icon" style="width:18px;height:14px;font-size:7px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">←→</span><span style="color:#666">Move</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SPC</span><span style="color:#666">Jump</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SHF</span><span style="color:#666">Dash</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">Z</span><span style="color:#666">Attack</span>
+              <div class="ts-card">
+                <div class="name">MODERN</div>
+                <div class="rows">
+                  <span class="kb">←→</span><span class="act">Move</span>
+                  <span class="kb" style="font-size:6px">SPC</span><span class="act">Jump</span>
+                  <span class="kb" style="font-size:6px">SHF</span><span class="act">Dash</span>
+                  <span class="kb">Z</span><span class="act">Attack</span>
                 </div>
               </div>
-
               <!-- WASD -->
-              <div style="width:130px;padding:10px 8px;border:1px solid #2a2a3e;border-radius:2px;text-align:center">
-                <div style="font-size:11px;color:var(--text-secondary);font-weight:700;letter-spacing:1px;margin-bottom:6px">WASD</div>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 6px;text-align:left;font-size:8px">
-                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">AD</span><span style="color:#666">Move</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SPC</span><span style="color:#666">Jump</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:6px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">SHF</span><span style="color:#666">Dash</span>
-                  <span class="key-icon" style="width:18px;height:14px;font-size:8px;border-radius:1px;display:inline-flex;align-items:center;justify-content:center;background:var(--kp-key-bg);border:1px solid var(--kp-key-border);color:#999">J</span><span style="color:#666">Attack</span>
+              <div class="ts-card">
+                <div class="name">WASD</div>
+                <div class="rows">
+                  <span class="kb">AD</span><span class="act">Move</span>
+                  <span class="kb" style="font-size:6px">SPC</span><span class="act">Jump</span>
+                  <span class="kb" style="font-size:6px">SHF</span><span class="act">Dash</span>
+                  <span class="kb">J</span><span class="act">Attack</span>
                 </div>
               </div>
             </div>
 
-            <div style="font-size:8px;color:var(--muted)">[←→] Select&nbsp;&nbsp;&nbsp;[C] or [Enter] Confirm</div>
+            <div class="ts-preset-hint">[←→] Select&nbsp;&nbsp;&nbsp;[C] or [Enter] Confirm</div>
+            <div class="ts-gamepad">🎮 Gamepad Recommended</div>
           </div>
         </div>
 
-        <!-- Step 3: Fade-out -->
-        <div>
-          <div class="meta">Step 3 — Fade-out (0.5초) → 게임 시작</div>
-          <div style="background:#000;padding:40px 20px;text-align:center;border:1px solid var(--line);width:100%;position:relative;overflow:hidden">
-            <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:6px;color:#fff;opacity:0.15">ECHORIS</div>
-            <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,1))"></div>
+        <!-- Step 3 — Fade-out -->
+        <div style="width:100%">
+          <div class="meta">Step 3 — Fade-out (0.5초 ease-in to <code>#000</code>) → 게임 시작</div>
+          <div class="ts-stage">
+            <div class="ts-pulse" aria-hidden="true" style="opacity:.2"></div>
+            <img class="ts-logo" src="../public/assets/ui/title_01.png" alt="" width="640" height="166" decoding="async" style="opacity:.18;animation:none">
+            <div class="ts-fade" aria-hidden="true"></div>
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- ── 자산 명세 ── -->
+    <div class="card">
+      <h3>로고 자산 (assets/ui/title_01.png)</h3>
+      <div class="desc">
+        픽셀아트 로고. ECHO 부분 <code>#F0F0F0</code> (COL_WHITE), RIS 부분 <code>#FF8000</code> (주황 ACCENT 변형).
+        <code>image-rendering: pixelated</code> 필수.
+      </div>
+      <div class="stage center" style="background:#0A0A0A">
+        <img src="../public/assets/ui/title_01.png" alt="ECHORIS logo"
+             style="image-rendering:pixelated;width:480px;height:auto;max-width:100%">
+      </div>
+      <div class="stage col" style="gap:4px;margin-top:8px">
+        <div class="t-body"><span style="color:var(--text-secondary)">Native size:</span>&nbsp;&nbsp;640 × 166 (palette PNG)</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Source:</span>&nbsp;&nbsp;<code>game/public/assets/ui/title_01.png</code></div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Loaded by:</span>&nbsp;&nbsp;<code>TitleScene.ts</code> (LOGO_PATH 갱신 필요 — 현재 <code>title_logo.png</code> 지칭, 코드 fallback 텍스트 사용 중)</div>
+        <div class="t-body"><span style="color:var(--text-secondary)">Logical scale:</span>&nbsp;&nbsp;게임 내 <code>logo.scale.set(uiScale)</code>, 화면 중앙 y - 50px</div>
       </div>
     </div>
 

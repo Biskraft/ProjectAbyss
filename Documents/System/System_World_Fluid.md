@@ -83,6 +83,56 @@ fields:
 2. 각 component → 1 `FluidBody`
 3. component 가 IntGrid value 2 (water) 인 경우만 `FluidVolume` entity AABB 교차 검사 → entity Type 으로 override
 
+### 3.4 ItemWorld Generic Fluid 마커 (17/18/19) + 치환 layer
+
+ItemWorld 룸 템플릿이 *무기 무관* 으로 재사용되도록, 룸의 fluid 셀은 *추상 마커* 로 그려진다. 다이브 진입 시 무기의 5색 기질에 따라 *실제 fluid value* 로 치환된 후 `FluidSystem.attachGrid` 가 호출된다.
+
+**IntGrid 신설 값 (LDtk `Collisions` 레이어):**
+
+| value | identifier | 역할 | 진입 시 치환 대상 |
+| :-: | :--- | :--- | :--- |
+| 17 | `FluidGeneric_A` | 주력 (primary) | 무기 기질의 *주력 fluid* — `mapping.slotA` |
+| 18 | `FluidGeneric_B` | 보조 (secondary) | 무기 기질의 *보조 fluid* — `mapping.slotB` |
+| 19 | `FluidGeneric_C` | 액센트 (accent) | 무기 기질의 *액센트 fluid* — `mapping.slotC` |
+
+> *번호 17-19 의 이유:* LDtk 1.5.3 의 IntGrid value editor 가 sparse 값 (예: 30+) 에서 `ui_RulePatternEditor` 크래시를 일으킨다 (2026-05-16 확인). 기존 정의 최대치 (16=grass) 직후 연속값이 가장 안전한 라인.
+
+**5색 기질 × 3 slot 매핑 SSoT:**
+
+데이터: `Sheets/Content_ItemWorld_FluidMapping.csv`
+코드 mirror: `game/src/data/ItemWorldFluidMapping.ts` (수동 sync — V2 에서 build-time loader 도입 검토)
+
+| temperament | slot_a (primary) | slot_b (secondary) | slot_c (accent) | container_pool_id |
+| :--- | :--- | :--- | :--- | :--- |
+| `forge` | magma (6) | oil (11) | water (2) | `ItemWorld_Forge` |
+| `iron` | water (2) | water (2) | water (2) | `ItemWorld_Iron` |
+| `rust` | acid (13) | oil (11) | water (2) | `ItemWorld_Rust` |
+| `spark` | water (2) | acid (13) | water (2) | `ItemWorld_Spark` |
+| `shadow` | oil (11) | acid (13) | water (2) | `ItemWorld_Shadow` |
+
+> Iron 의 slot_b 는 V2 에서 `metal-flooded` (metal cell 인접 water 침수) 변종 도입 검토. V1 은 water 로 단순화.
+
+**치환 layer 호출 흐름 (ItemWorldScene `attach` / `buildFullMap` 직후):**
+
+```typescript
+// game/src/scenes/ItemWorldScene.ts
+this.buildFullMap();
+applyFluidGenericResolution(this.fullGrid, this.item.def.temperamentPrimary);
+this.fluidSystem.attachGrid(this.fullGrid);
+```
+
+`applyFluidGenericResolution(grid, temperament)` 은 `grid` 를 *in-place 치환* 한다. 17/18/19 셀만 영향받고 나머지는 보존. 호출 후의 grid 는 *명시 fluid value 만 가진* 상태가 되어 FluidSystem 의 flood-fill 이 기존 4종 type 분리 로직 그대로 작동.
+
+**Default 동작:**
+
+- 무기에 `temperamentPrimary` 가 정의되지 않은 경우 → `forge` 기본값으로 치환 (`magma/oil/water`)
+- 알 수 없는 temperament 문자열 → 동일하게 `forge` fallback
+
+**World 룸 (비-ItemWorld) 에서의 정책:**
+
+- `LdtkWorldScene` 은 치환 함수를 호출하지 않는다 — 월드 룸은 *명시 fluid value* (2/6/11/13) 로만 작성
+- 만약 월드 룸에 17/18/19 셀이 그려져 있다면 `FluidSystem` 이 인식 못 함 → 시각/물리 안 보임. gdd-integrity-checker 가 검출 (§5 cross-validation 룰)
+
 ### 3.3 코드 측 데이터 구조
 
 ```typescript
@@ -426,7 +476,7 @@ cell 한 개 제거 후 4-connected 검사:
 
 | Field | Type | 기본값 | 설명 |
 | :--- | :--- | :-: | :--- |
-| `Type` | enum FluidType | `water` | 생성할 fluid 종류 |
+| `Type` | enum FluidType | `water` | 생성할 fluid 종류. *명시값* `water` / `oil` / `magma` / `acid` 또는 *제네릭* `Generic_A` / `Generic_B` / `Generic_C` (아이템계 룸 템플릿에서 사용 — 진입 시 무기 기질에 따라 매핑, §3.4) |
 | `Rate` | float | 4.0 | 초당 생성 cell 수 (Curtain 은 column 분산, Stream 은 집중) |
 | `Pattern` | enum SpawnPattern | `Curtain` | `Curtain` / `Stream` / `Splatter` — 아래 10.3 |
 | `Pressure` | int | 30 | 활성 fluid cell 한도. 초과 시 일시 정지 (paint pressure 자동 조절) |

@@ -177,8 +177,12 @@ export class HUD {
   private skinLayer: Container | null = null;
   private skinMapFrame: Sprite | null = null;
   private minimapFrameVisible = true;
+  private skinHpFrame: Sprite | null = null;
   private skinHpFill: Sprite | null = null;
+  private skinHpFillMask: Graphics | null = null;
   private skinHpFillMaxW = 0;
+  private skinHpFillMaxH = 0;
+  private skinHpFillSlashW = 0;
   private skinFloorFill: Sprite | null = null;
   private skinFloorFillMaxH = 0;
   // Skin flask pulse position (overrides HP_X/FLASK_Y when skin is active)
@@ -206,7 +210,8 @@ export class HUD {
   private skinFlaskEmptyTex: import('pixi.js').Texture | null = null;
   private skinFlaskStartX = 0;
   private skinFlaskStartY = 0;
-  private skinFlaskIconSize = 0;
+  private skinFlaskIconW = 0;
+  private skinFlaskIconH = 0;
   private skinFlaskGap = 0;
 
   constructor(uiScale = 1) {
@@ -536,7 +541,7 @@ export class HUD {
     }
 
     this.redrawHpBar();
-    const hpStr = `${Math.ceil(hp)}/${maxHp}`;
+    const hpStr = this.hasSkin ? `${Math.ceil(hp)}` : `${Math.ceil(hp)}/${maxHp}`;
     this.hpText.text = hpStr;
     this.hpTextShadow.text = hpStr;
 
@@ -1003,15 +1008,18 @@ export class HUD {
         if (icon.parent) icon.parent.removeChild(icon);
       }
       this.skinFlaskIcons = [];
-      const iconS = this.skinFlaskIconSize * this.s;
+      const iconW = this.skinFlaskIconW * this.s;
+      const iconH = this.skinFlaskIconH * this.s;
       const gap = this.skinFlaskGap * this.s;
+      const totalW = count * iconW + Math.max(0, count - 1) * gap;
+      const startX = this.skinFlaskStartX - totalW;
       for (let i = 0; i < count; i++) {
         const tex = i < this.flaskCurrent ? this.skinFlaskFillTex : this.skinFlaskEmptyTex;
         const icon = new Sprite(tex);
-        icon.x = this.skinFlaskStartX + i * (iconS + gap);
+        icon.x = startX + i * (iconW + gap);
         icon.y = this.skinFlaskStartY;
-        icon.width = iconS;
-        icon.height = iconS;
+        icon.width = iconW;
+        icon.height = iconH;
         this.skinLayer!.addChild(icon);
         this.skinFlaskIcons.push(icon);
       }
@@ -1267,6 +1275,7 @@ export class HUD {
 
     // Create a skin layer that sits behind everything else
     this.skinLayer = new Container();
+    this.skinLayer.sortableChildren = true;
     this.container.addChildAt(this.skinLayer, 0);
 
     // Helper: create a sprite from a slice, positioned at its 640x360 bounds * uiScale
@@ -1286,20 +1295,28 @@ export class HUD {
 
     // --- Static frames ---
     place('hud_status_frame');
-    place('hud_status_hp_frame');
+    this.skinHpFrame = place('hud_status_hp_frame');
+    if (this.skinHpFrame) this.skinHpFrame.zIndex = 10;
     place('hud_status_portrait_frame');
 
-    // Portrait image inside portrait frame
+    // Portrait image inside portrait frame — sized to fill the inner
+    // diamond. The portrait PNG is 128×128 with the character centered in
+    // a transparent canvas, so sizing it to the frame bounds straight-up
+    // makes the character look tiny. We scale so the portrait's display
+    // size is ~1.3× the frame bounds (slight overshoot fills the inner
+    // diamond cleanly) and center-anchor it on the frame.
     {
       const pBounds = skin.getBounds('hud_status_portrait_frame');
       if (pBounds) {
         Assets.load<Texture>(assetPath('assets/portraits/erda.png')).then(tex => {
           tex.source.scaleMode = 'nearest';
           const sprite = new Sprite(tex);
-          sprite.x = pBounds.x * s;
-          sprite.y = pBounds.y * s;
-          sprite.width = pBounds.w * s;
-          sprite.height = pBounds.h * s;
+          sprite.anchor.set(0.5, 0.5);
+          const targetSize = Math.max(pBounds.w, pBounds.h) * 1.3; // logical px
+          const scale = (targetSize / tex.width) * s;
+          sprite.scale.set(scale);
+          sprite.x = (pBounds.x + pBounds.w / 2) * s;
+          sprite.y = (pBounds.y + pBounds.h / 2 + 2) * s;
           this.skinLayer!.addChild(sprite);
           this.portraitSprite = sprite;
         });
@@ -1349,19 +1366,37 @@ export class HUD {
       }
     }
 
-    // --- HP fill (dynamic width) — position inside hp_frame using 9-slice center ---
+    // --- HP fill (dynamic width). Sprite shape comes from
+    // `hud_status_hp_fill` (size + 9-slice corners), but the on-screen
+    // position is anchored to `hud_status_hp_frame` — the fill draws
+    // ON TOP of the frame at the same X/Y, then the frame shows as the
+    // border once the fill width shrinks. 9-slice keeps the diagonal caps.
     const hpFillTex = skin.getTexture('hud_status_hp_fill');
+    const hpFillBounds = skin.getBounds('hud_status_hp_fill');
+    const hpFillCenter = skin.getCenter('hud_status_hp_fill');
     const hpFrameBoundsForFill = skin.getBounds('hud_status_hp_frame');
-    const hpFrameCenter = skin.getCenter('hud_status_hp_frame');
-    if (hpFillTex && hpFrameBoundsForFill && hpFrameCenter) {
+    if (hpFillTex && hpFillBounds && hpFrameBoundsForFill) {
       this.skinHpFill = new Sprite(hpFillTex);
-      // Place fill inside hp_frame's center (inner area)
-      this.skinHpFill.x = (hpFrameBoundsForFill.x + hpFrameCenter.x) * s;
-      this.skinHpFill.y = (hpFrameBoundsForFill.y + hpFrameCenter.y + 1) * s;
-      this.skinHpFill.height = hpFrameCenter.h * s;
-      this.skinHpFillMaxW = hpFrameCenter.w * s;
+      // Anchor on the frame's pixel rect — atlas might place fill anywhere
+      // in the source PNG, but display position must match the frame.
+      this.skinHpFill.x = hpFrameBoundsForFill.x * s;
+      this.skinHpFill.y = hpFrameBoundsForFill.y * s;
+      this.skinHpFill.height = hpFrameBoundsForFill.h * s;
+      this.skinHpFillMaxW = hpFrameBoundsForFill.w * s;
+      this.skinHpFillMaxH = hpFrameBoundsForFill.h * s;
+      this.skinHpFillSlashW = ((hpFillCenter)
+        ? hpFillBounds.w - (hpFillCenter.x + hpFillCenter.w)
+        : Math.round(hpFillBounds.h * 0.85)) * s;
       this.skinHpFill.width = this.skinHpFillMaxW;
+      this.skinHpFill.zIndex = 20;
       this.skinLayer.addChild(this.skinHpFill);
+
+      this.skinHpFillMask = new Graphics();
+      this.skinHpFillMask.x = this.skinHpFill.x;
+      this.skinHpFillMask.y = this.skinHpFill.y;
+      this.skinHpFillMask.zIndex = 20;
+      this.skinLayer.addChild(this.skinHpFillMask);
+      this.skinHpFill.mask = this.skinHpFillMask;
     }
 
     // --- Floor indicator fill (dynamic height) ---
@@ -1397,20 +1432,37 @@ export class HUD {
       txt.y = (bounds.y + bounds.h / 2) * s;
       this.skinLayer!.addChild(txt);
     };
-    // Action keys: key letter in upper half + action name below the box
-    const placeActionKey = (name: string, action: GameAction, label: string) => {
-      const sprite = place(name);
-      if (!sprite) return;
-      const bounds = skin.getBounds(name)!;
-      // Key letter — centered inside box
+    // Action keys: reuse a single `hud_action_key` atlas slice (the atlas
+    // collapsed the old per-action sprites into one shared key sprite).
+    // We pass per-instance world coords so JUMP / DASH / ATK can sit at
+    // their original horizontal layout.
+    const placeActionKey = (
+      sliceName: string,
+      worldX: number,
+      worldY: number,
+      action: GameAction,
+      label: string,
+    ) => {
+      const tex = skin.getTexture(sliceName);
+      const bounds = skin.getBounds(sliceName);
+      if (!tex || !bounds) return;
+      const sprite = new Sprite(tex);
+      sprite.x = worldX * s;
+      sprite.y = worldY * s;
+      sprite.width = bounds.w * s;
+      sprite.height = bounds.h * s;
+      this.skinLayer!.addChild(sprite);
+      // Key letter — placed inside the SMALL bottom diamond (≈ 70% down the
+      // sprite). Atlas sprite has two stacked diamonds; the large upper
+      // one stays decorative, the small lower one carries the key glyph.
       const keyTxt = new BitmapText({
         text: actionKey(action),
         style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xffffff },
       });
       bindActionText(keyTxt, action);
       keyTxt.anchor.set(0.5, 0.5);
-      keyTxt.x = (bounds.x + bounds.w / 2) * s;
-      keyTxt.y = (bounds.y + bounds.h * 0.12 + 2) * s;
+      keyTxt.x = (worldX + bounds.w / 2) * s;
+      keyTxt.y = (worldY + bounds.h * 0.70 + 2) * s;
       this.skinLayer!.addChild(keyTxt);
       // Action name — below box
       const actionTxt = new BitmapText({
@@ -1418,8 +1470,8 @@ export class HUD {
         style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xaaaaaa },
       });
       actionTxt.anchor.set(0.5, 0);
-      actionTxt.x = (bounds.x + bounds.w / 2) * s;
-      actionTxt.y = (bounds.y + bounds.h + 2) * s;
+      actionTxt.x = (worldX + bounds.w / 2) * s;
+      actionTxt.y = (worldY + bounds.h + 2) * s;
       this.skinLayer!.addChild(actionTxt);
     };
     // Flask key — 25% larger font + store pulse position
@@ -1451,10 +1503,11 @@ export class HUD {
       if (fillTex && emptyTex && fillBounds && flaskKeyBounds) {
         this.skinFlaskFillTex = fillTex;
         this.skinFlaskEmptyTex = emptyTex;
-        this.skinFlaskIconSize = fillBounds.w;
-        this.skinFlaskGap = 1;
+        this.skinFlaskIconW = fillBounds.w;
+        this.skinFlaskIconH = fillBounds.h;
+        this.skinFlaskGap = -5;
         // Start right of [R] key with 2px gap
-        this.skinFlaskStartX = (flaskKeyBounds.x + flaskKeyBounds.w + 2) * s;
+        this.skinFlaskStartX = (flaskKeyBounds.x - 1) * s;
         this.skinFlaskStartY = (flaskKeyBounds.y + (flaskKeyBounds.h - fillBounds.h) / 2) * s;
       }
     }
@@ -1469,9 +1522,15 @@ export class HUD {
       }
     }
     placeKey('hud_map_key_inv_normal', GameAction.MAP);
-    placeActionKey('hud_action_key_jump',   GameAction.JUMP,   'JUMP');
-    placeActionKey('hud_action_key_dash',   GameAction.DASH,   'DASH');
-    placeActionKey('hud_action_key_attack', GameAction.ATTACK, 'ATK');
+    // Three action keys share the single `hud_action_key` atlas slice.
+    // Horizontal layout preserves the ~39 px stride from the old atlas,
+    // but lifted ~30 px upward so the JUMP label no longer clips the
+    // bottom of the screen (GAME_HEIGHT 360 leaves no room at y=309+43).
+    // Y aligned across all three for a clean row.
+    // sprite w=38 + 4 px gap → stride 42. Row stays at y=300.
+    placeActionKey('hud_action_key',  9, 300, GameAction.JUMP,   'JUMP');
+    placeActionKey('hud_action_key', 51, 300, GameAction.DASH,   'DASH');
+    placeActionKey('hud_action_key', 93, 300, GameAction.ATTACK, 'ATK');
 
     // Hide old Graphics-based elements that the skin replaces
     this.hpBar.visible = false;
@@ -1490,11 +1549,19 @@ export class HUD {
 
     // Reposition text to match skin layout
     const hpFrameBounds = skin.getBounds('hud_status_hp_frame');
+    const portraitBounds = skin.getBounds('hud_status_portrait_frame');
     if (hpFrameBounds) {
-      // HP text: right of HP bar
-      const hpRight = (hpFrameBounds.x + hpFrameBounds.w + 2) * s;
-      this.hpText.x = hpRight;
-      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - this.HP_FONT) / 2;
+      // HP text: current HP only, placed beside the portrait.
+      const skinHpFont = this.HP_FONT * 0.75;
+      this.hpText.style.fontSize = skinHpFont;
+      this.hpTextShadow.style.fontSize = skinHpFont;
+      this.hpText.text = `${Math.ceil(this.currentHp)}`;
+      this.hpTextShadow.text = this.hpText.text;
+      const hpTextX = portraitBounds
+        ? (portraitBounds.x + portraitBounds.w + 2) * s
+        : (hpFrameBounds.x + hpFrameBounds.w + 2) * s;
+      this.hpText.x = hpTextX + 4 * s;
+      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - skinHpFont) / 2 - 1 * s;
       this.hpTextShadow.x = this.hpText.x + s;
       this.hpTextShadow.y = this.hpText.y + s;
     }
@@ -1529,11 +1596,24 @@ export class HUD {
     }
   }
 
-  /** Update skin HP fill width to match current HP ratio. Called from redrawHpBar. */
+  /** Update skin HP fill mask to match current HP ratio. Called from redrawHpBar. */
   private updateSkinHpFill(): void {
-    if (!this.skinHpFill) return;
+    if (!this.skinHpFill || !this.skinHpFillMask) return;
     const maxHp = this.currentMaxHp || 1;
     const ratio = Math.max(0, Math.min(1, this.currentHp / maxHp));
-    this.skinHpFill.width = this.skinHpFillMaxW * ratio;
+    this.skinHpFill.visible = ratio > 0;
+    this.skinHpFillMask.clear();
+    if (ratio <= 0) return;
+
+    const w = this.skinHpFillMaxW;
+    const h = this.skinHpFillMaxH;
+    const slash = Math.max(this.s, this.skinHpFillSlashW);
+    const front = w * ratio;
+    const topRight = Math.min(w, front + slash * 0.5);
+    const bottomRight = Math.max(0, front - slash * 0.5);
+
+    this.skinHpFillMask
+      .poly([0, 0, topRight, 0, bottomRight, h, 0, h])
+      .fill(0xffffff);
   }
 }

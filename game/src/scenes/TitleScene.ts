@@ -22,10 +22,13 @@ import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SEC
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
 
-const LOGO_PATH = assetPath('assets/ui/title_logo.png');
+// Logo asset path — synced with ui-components.html §title-screen spec
+// (assets/ui/ui_title_01.png is the 640×166 ECHO/RIS palette PNG).
+const LOGO_PATH = assetPath('assets/ui/ui_title_01.png');
 
-// Presentation palette
-const COL_VOID = 0x0a0a0a;
+// Presentation palette — pure black per ui-components.html §title-screen.
+// COL_TEAL retained because legacy KeyConfig screens still reference it.
+const COL_VOID = 0x000000;
 const COL_ACCENT = 0xe87830;
 const COL_TEAL = 0x4a8a8a;
 const COL_WHITE = 0xf0f0f0;
@@ -87,32 +90,31 @@ export class TitleScene extends Scene {
     this.uiRoot = new Container();
     this.game.uiContainer.addChild(this.uiRoot);
 
-    // Background
+    // Background — pure black stage (ui-components.html §title-screen).
+    // No grid lines, no accent stripe: minimum elements per the spec.
     const bg = new Graphics();
     bg.rect(0, 0, sw, sh).fill(COL_VOID);
     this.uiRoot.addChild(bg);
 
-    // Grid lines
-    const gridGfx = new Graphics();
-    for (let ly = 0; ly < sh; ly += 80 * s) {
-      gridGfx.rect(0, ly, sw, s).fill({ color: 0x1a3a3a, alpha: 0.15 });
-    }
-    this.uiRoot.addChild(gridGfx);
-
-    // Pulse glow
+    // Pulse glow — only ambient element behind the logo.
     this.pulseGfx = new Graphics();
     this.uiRoot.addChild(this.pulseGfx);
 
-    // Logo
+    // Logo — sized to leave room for SELECT CONTROLS label + 3 preset cards
+    // below it on the 360-px-tall canvas. Native PNG is 640×166; targeting
+    // 280 px logical width gives ~73 px height — fits comfortably in the
+    // top quarter of the screen.
     let logoLoaded = false;
     try {
       const tex = await Assets.load(LOGO_PATH);
       if (tex && tex.width > 1) {
         const logo = new Sprite(tex);
         logo.anchor.set(0.5);
-        logo.scale.set(s);
+        const TARGET_LOGICAL_W = 380; // ≈ 59% of canvas; height ≈ 99 px
+        const baseScale = TARGET_LOGICAL_W / tex.width;
+        logo.scale.set(baseScale * s);
         logo.x = cx;
-        logo.y = cy - 50 * s;
+        logo.y = cy - 65 * s; // slightly above center, clears label + cards
         this.uiRoot.addChild(logo);
         logoLoaded = true;
       }
@@ -137,26 +139,13 @@ export class TitleScene extends Scene {
       this.uiRoot.addChild(titleText);
     }
 
-    // Accent line
+    // Accent line and subtitle intentionally omitted (spec rule: minimum
+    // elements only). The orange accent now lives in the pulse halo + logo
+    // tint instead of a horizontal stripe. accentLine is still created as
+    // an inert Graphics so later phases that toggle visibility don't crash.
     this.accentLine = new Graphics();
-    this.accentLine.rect(cx - 80 * s, cy - 25 * s, 160 * s, s).fill({ color: COL_ACCENT, alpha: 0.7 });
+    this.accentLine.visible = false;
     this.uiRoot.addChild(this.accentLine);
-
-    // Subtitle
-    const subtitle = new Text({
-      text: t('title.subtitle'),
-      style: new TextStyle({
-        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
-        fontSize: 9 * s,
-        fontWeight: '600',
-        fill: COL_TEAL,
-        letterSpacing: 3 * s,
-      }),
-    });
-    subtitle.anchor.set(0.5);
-    subtitle.x = cx;
-    subtitle.y = cy - 10 * s;
-    this.uiRoot.addChild(subtitle);
 
     // "Press Any Key or Button to Continue" hint + 키보드/패드 글리프
     // (System_Input_Gamepad §8.1 Stage 1 — 키↔패드 동시 표기)

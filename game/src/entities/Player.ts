@@ -472,6 +472,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Room data reference for collision
   roomData: number[][] = [];
+  fluidOverlayQuery: ((x: number, y: number, width: number, height: number) => number | null) | null = null;
 
   constructor(game: Game) {
     super();
@@ -809,7 +810,8 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Water detection
-    this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
+    const overlayTile = this.fluidOverlayQuery?.(this.x, this.y, this.width, this.height) ?? null;
+    this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 2;
     // Edge-detect water enter/exit for splash VFX
     if (this.inWater && !this.prevInWater) this._waterTransition = 1;
     else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
@@ -822,9 +824,10 @@ export class Player extends Entity implements CombatEntity {
     const headRow = Math.floor(this.y / 16);
     const midCol = Math.floor((this.x + this.width / 2) / 16);
     const headTile = this.roomData[headRow]?.[midCol] ?? 0;
-    const headInWater = headTile === 2;
-    const headInOil = headTile === 11;
-    const inOil = isInOil(this.x, this.y, this.width, this.height, this.roomData);
+    const headOverlayTile = this.fluidOverlayQuery?.(this.x + this.width / 2 - 1, this.y, 2, 2) ?? null;
+    const headInWater = headTile === 2 || headOverlayTile === 2;
+    const headInOil = headTile === 11 || headOverlayTile === 11;
+    const inOil = isInOil(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 11;
     this.submerged = (this.inWater && headInWater) || (inOil && headInOil);
 
     // Oxygen timer — drains while submerged in water or oil. Water breathing

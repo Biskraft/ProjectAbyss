@@ -354,7 +354,7 @@ rerenderTilemap()                            // 정적 wall sprite 갱신
 
 | Field | Type | 기본값 | 설명 |
 | :--- | :--- | :-: | :--- |
-| `Pool` | string[] (Kind 가중치) | `["Crate:6", "OilDrum:2", "WaterBarrel:2"]` | `"Kind:weight"` 형식 배열. 빈 배열이면 spawn 없음 |
+| `Pool` | string[] (Kind 가중치) | `["Crate:6", "OilDrum:2", "WaterBarrel:2"]` | `"Kind:weight"` 형식 배열. **빈 배열이면 (아이템계 한정) 무기 기질의 `container_pool_id` 자동 적용** — 카탈로그는 `game/src/data/ContainerPools.ts` (§12.4 거울). 월드 룸은 자동 적용 비활성 — 비우면 spawn 없음 |
 | `MinCount` | int | 1 | 최소 spawn 개수 |
 | `MaxCount` | int | 3 | 최대 spawn 개수 (실제는 `[Min..Max]` uniform sample) |
 | `Bias` | enum `SpawnBias` | `Floor` | `Floor` / `Stack` / `Cluster` — 아래 12.3 참조 |
@@ -397,8 +397,10 @@ for i in 0..count-1:
 | `Workshop_Hazard` | 작업장 / 단조 시설 | `Crate:3, OilDrum:3, MagmaCrucible:2, MetalCrate:2` |
 | `Lab_Acid` | 실험실 / 부식 구역 | `Crate:2, AcidVial:5, MetalCrate:3` |
 | `ItemWorld_Forge` | 아이템계 Forge 기질 룸 | `MagmaCrucible:4, OilDrum:2, Crate:1, MetalCrate:3` |
+| `ItemWorld_Iron` | 아이템계 Iron 기질 룸 | `Crate:4, MetalCrate:4, WaterBarrel:2` (단조 강철 + 차분 water) |
 | `ItemWorld_Rust` | 아이템계 Rust 기질 룸 | `AcidVial:4, MetalCrate:5, Crate:2` |
 | `ItemWorld_Spark` | 아이템계 Spark 기질 룸 | `WaterBarrel:4, MetalCrate:3, Crate:3` (전도체 함정 setup) |
+| `ItemWorld_Shadow` | 아이템계 Shadow 기질 룸 | `Crate:5, AcidVial:2, OilDrum:2` (은밀 / 부식 / 잔존 톤) |
 | `Empty_Decor` | 장식용 (전투 없음) | `Crate:10` (오직 박스) |
 
 > Pool ID 는 `Sheets/Content_System_ContainerPools.csv` (신규) 에 정의 — Spawner entity 의 `Pool` field 와 ID 매칭 또는 인라인 `["Kind:w", ...]` 형식 둘 다 허용.

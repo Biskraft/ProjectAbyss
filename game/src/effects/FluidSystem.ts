@@ -231,6 +231,21 @@ export class FluidSystem {
     return body ? body.def : null;
   }
 
+  /**
+   * Cell count of the fluid body that covers (gx, gy) — 0 if no body is
+   * present at that grid cell. Exposed so spawners can cap themselves
+   * against an unbounded pool (a sideways-spreading shallow puddle that
+   * keeps gravity moving cells out of the spawn point, causing the
+   * spawner to emit forever).
+   */
+  fluidBodyCellCountAtCell(gx: number, gy: number): number {
+    const key = gy * this.gridW + gx;
+    for (const body of this.bodies) {
+      if (body.cells.has(key)) return body.cells.size;
+    }
+    return 0;
+  }
+
   /** 임의 world 좌표가 어떤 fluid body 의 cells 안에 있는지. */
   private queryBodyAt(worldX: number, worldY: number): FluidBody | null {
     const col = Math.floor(worldX / TILE);
@@ -763,15 +778,20 @@ export class FluidSystem {
       return true;
     };
 
-    // Collect thin-strip cells — these are locked from cellular movement.
-    // Reason: a single-row puddle that can't fully fill its row would shuffle
-    // the gap back and forth forever as cells spread sideways. Lock them and
-    // let evaporation finish the job instead.
+    // Collect locked cells — bodies that are STABLE puddles (thin strip on
+    // a fully-solid floor AND wall-braced) stay put. Unstable bodies (the
+    // pool at the foot of an airborne FluidSpawner waterfall, or a strip
+    // missing its floor) stay free so cellular gravity can drain them.
+    //
+    // Without this stability gate, every flat puddle was locked — including
+    // the half-formed pool below a mid-air spawner — and gravity couldn't
+    // pull cells downward, leaving fluid floating in place.
     const lockedCells = new Set<number>();
     for (const body of this.bodies) {
-      if (this.isThinStrip(body)) {
-        for (const k of body.cells) lockedCells.add(k);
-      }
+      if (!this.isThinStrip(body)) continue;
+      if (!this.hasSolidFloorUnderBottomRow(body, roomData)) continue;
+      if (!this.isWallBraced(body, roomData)) continue;
+      for (const k of body.cells) lockedCells.add(k);
     }
 
     // Bottom-up with alternating row direction to avoid bias

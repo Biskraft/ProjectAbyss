@@ -1,6 +1,67 @@
 # ECHORIS — 프로젝트
 
+## Coding Behavioral Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+1. Think Before Coding
+   Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+State your assumptions explicitly. If uncertain, ask.
+If multiple interpretations exist, present them - don't pick silently.
+If a simpler approach exists, say so. Push back when warranted.
+If something is unclear, stop. Name what's confusing. Ask.
+2. Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+
+No features beyond what was asked.
+No abstractions for single-use code.
+No "flexibility" or "configurability" that wasn't requested.
+No error handling for impossible scenarios.
+If you write 200 lines and it could be 50, rewrite it.
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+3. Surgical Changes
+   Touch only what you must. Clean up only your own mess.
+
+When editing existing code:
+
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor things that aren't broken.
+Match existing style, even if you'd do it differently.
+If you notice unrelated dead code, mention it - don't delete it.
+When your changes create orphans:
+
+Remove imports/variables/functions that YOUR changes made unused.
+Don't remove pre-existing dead code unless asked.
+The test: Every changed line should trace directly to the user's request.
+
+4. Goal-Driven Execution
+   Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+
+"Add validation" → "Write tests for invalid inputs, then make them pass"
+"Fix the bug" → "Write a test that reproduces it, then make it pass"
+"Refactor X" → "Ensure tests pass before and after"
+For multi-step tasks, state a brief plan:
+
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+   Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
 > This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
+
 
 ## 프로젝트 개요
 
@@ -100,10 +161,10 @@ VibeCoding/
 
 ### 2-Space 분리 모델 (월드 + 아이템계)
 
-| 공간                  | 핵심 목적                              | 인원      | 맵 유형                    |
-| :-------------------- | :------------------------------------- | :-------- | :------------------------- |
-| 월드 (World)          | 탐험, 능력 획득, 스토리, 대장간/상점 (세이브 포인트) | 솔로(1인) | 핸드크래프트 + 절차적 혼합 |
-| 아이템계 (Item World) | 아이템 강화, 야리코미                  | 1-2인 (Phase 3) / 최대 4인 (Phase 4+) | 완전 절차적 생성 (기억의 지층)   |
+| 공간                  | 핵심 목적                                            | 인원                                  | 맵 유형                        |
+| :-------------------- | :--------------------------------------------------- | :------------------------------------ | :----------------------------- |
+| 월드 (World)          | 탐험, 능력 획득, 스토리, 대장간/상점 (세이브 포인트) | 솔로(1인)                             | 핸드크래프트 + 절차적 혼합     |
+| 아이템계 (Item World) | 아이템 강화, 야리코미                                | 1-2인 (Phase 3) / 최대 4인 (Phase 4+) | 완전 절차적 생성 (기억의 지층) |
 
 ### 아이템계 핵심 규칙
 
@@ -122,13 +183,13 @@ VibeCoding/
 
 ### 레어리티 체계 (Diablo Style)
 
-| 등급      | 색상         | 스탯 배율 | 정체성 슬롯 (Core 전용) | 기억 슬롯 (자유) | 합계 | 아이템계 지층 수                     |
-| :-------- | :----------- | :-------- | :---------------------: | :--------------: | :--: | :----------------------------------- |
-| Normal    | 흰색 #FFFFFF | x1.0      | 2                       | 0                | 2    | 1 지층 (DEC-039: 단일 다이브)        |
-| Magic     | 파란 #6969FF | x1.3      | 3                       | 0                | 3    | 2 지층                               |
-| Rare      | 노란 #FFFF00 | x1.7      | 3                       | 1                | 4    | 3 지층                               |
-| Legendary | 주황 #FF8000 | x2.2      | 4                       | 2                | 6    | 4 지층                               |
-| Ancient   | 초록 #00FF00 | x3.0      | 5 (4 + 심연)            | 3                | 8    | 4 지층 + 심연                        |
+| 등급      | 색상         | 스탯 배율 | 정체성 슬롯 (Core 전용) | 기억 슬롯 (자유) | 합계 | 아이템계 지층 수              |
+| :-------- | :----------- | :-------- | :---------------------: | :--------------: | :--: | :---------------------------- |
+| Normal    | 흰색 #FFFFFF | x1.0      |            2            |        0        |  2  | 1 지층 (DEC-039: 단일 다이브) |
+| Magic     | 파란 #6969FF | x1.3      |            3            |        0        |  3  | 2 지층                        |
+| Rare      | 노란 #FFFF00 | x1.7      |            3            |        1        |  4  | 3 지층                        |
+| Legendary | 주황 #FF8000 | x2.2      |            4            |        2        |  6  | 4 지층                        |
+| Ancient   | 초록 #00FF00 | x3.0      |      5 (4 + 심연)      |        3        |  8  | 4 지층 + 심연                 |
 
 > 정체성 슬롯에는 핵심 기억(Core Memory)만 장착 가능. 기억 슬롯은 일반 단편을 Active/Passive 역할로 끼움. DEC-036 참조.
 
@@ -138,12 +199,12 @@ VibeCoding/
 
 ### 클라이언트
 
-| 기술          | 용도                     |
-| :------------ | :----------------------- |
-| PixiJS v8     | 2D 렌더링 (WebGL/WebGPU) |
-| TypeScript    | 메인 언어                |
-| Vite          | 빌드/번들러              |
-| @pixi/tilemap | 타일맵 렌더링            |
+| 기술          | 용도                                                               |
+| :------------ | :----------------------------------------------------------------- |
+| PixiJS v8     | 2D 렌더링 (WebGL/WebGPU)                                           |
+| TypeScript    | 메인 언어                                                          |
+| Vite          | 빌드/번들러                                                        |
+| @pixi/tilemap | 타일맵 렌더링                                                      |
 | @pixi/sound   | 오디오 (BGM, SFX) — PixiJS v8 공식 플러그인 (DEC-040, 2026-05-04) |
 
 ### 서버
@@ -191,31 +252,31 @@ VibeCoding/
 | :------------------- | :---------------------------------- | :---------------------------------------------------- |
 | Phase 1 (프로토타입) | 핵심 루프가 재미있는가?             | 이동/전투, 타일맵, 절차적 방 생성, 아이템계 미니 버전 |
 | Phase 2 (알파)       | 성장/탐험 쾌감이 있는가?            | 장비/기억 단편, 스탯·능력 게이트, 월드 연결, 보스    |
-| Phase 3 (베타)       | 파티 플레이/무한 파밍이 작동하는가? | WebSocket 멀티, 아이템계 전 지층, URL 링크 파티 합류 |
+| Phase 3 (베타)       | 파티 플레이/무한 파밍이 작동하는가? | WebSocket 멀티, 아이템계 전 지층, URL 링크 파티 합류  |
 | Phase 4 (런칭)       | 장기 운영 가능한가?                 | 시즌, 이벤트, 길드                                    |
 
 ---
 
 ## 용어 사전 (Quick Reference)
 
-| 용어                | 정의                                                        |
-| :------------------ | :---------------------------------------------------------- |
-| 야리코미 (やりこみ) | 게임의 한계까지 파고드는 극한 플레이                        |
-| 메트로베니아        | Metroid + Castlevania. 능력 게이트 기반 비선형 탐험 액션    |
-| 2-Space 모델        | 월드/아이템계 두 공간 분리 설계 (허브는 폐기, 기능은 월드 세이브 포인트로 통합) |
-| 스탯 게이트         | 장비 ATK 또는 INT가 특정 수치 이상일 때 열리는 진행 장벽 (ATK/INT 이중 게이트) |
-| 능력 게이트         | 특정 능력 획득 시 열리는 진행 장벽                          |
-| 기억 단편 (Memory Shard) | 무기 Ego의 잊혀진 기억 조각. 일반 단편은 단일 효과·자유 전이. 5색 기질(Forge/Iron/Rust/Spark/Shadow)로 분류. (DEC-036) |
-| 핵심 기억 (Core Memory)  | 지층 보스 처치 시 100% 드롭하는 영혼 단편. 무기의 정체성 결을 가동. 정체성 슬롯 전용·전이 시 결 붕괴 |
-| 정체성 결 (Identity Trait) | 핵심 기억이 가동시키는 무기의 본질적 성격 한 면. 결의 합 = 무기의 코어 인격 |
-| Forgotten / Recalled     | 단편 상태. 잊혀진(50% 효과, 적 NPC) → 회상된(100% 효과, 전이 가능) |
-| 5색 기질 (Temperament)   | Forge(주황·분노) / Iron(청록·결연) / Rust(회색·체념) / Spark(흰빛·호기심) / Shadow(자주·은밀) |
-| ~~이노센트~~        | ~~DEPRECATED. DEC-036에서 검 Ego(DEC-033)와 통합되어 기억 단편 시스템으로 흡수. 재도입 금지.~~ |
-| 아이템계            | 장비 아이템 내부의 절차적 던전 (기억의 지층, 레어리티별 2~4 지층) |
-| ~~재귀적 진입~~     | ~~DEPRECATED. 아이템계 내 중첩 진입은 삭제. 아이템계에서 획득한 아이템은 월드 귀환 후 진입~~ |
-| Critical Path       | 시작점에서 종료점까지 반드시 통과 가능한 경로               |
-| Room Template       | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조          |
-| Chunk               | Room 내부에 배치되는 지형/장애물의 작은 블록 단위           |
+| 용어                       | 정의                                                                                                                    |
+| :------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| 야리코미 (やりこみ)        | 게임의 한계까지 파고드는 극한 플레이                                                                                    |
+| 메트로베니아               | Metroid + Castlevania. 능력 게이트 기반 비선형 탐험 액션                                                                |
+| 2-Space 모델               | 월드/아이템계 두 공간 분리 설계 (허브는 폐기, 기능은 월드 세이브 포인트로 통합)                                         |
+| 스탯 게이트                | 장비 ATK 또는 INT가 특정 수치 이상일 때 열리는 진행 장벽 (ATK/INT 이중 게이트)                                          |
+| 능력 게이트                | 특정 능력 획득 시 열리는 진행 장벽                                                                                      |
+| 기억 단편 (Memory Shard)   | 무기 Ego의 잊혀진 기억 조각. 일반 단편은 단일 효과·자유 전이. 5색 기질(Forge/Iron/Rust/Spark/Shadow)로 분류. (DEC-036) |
+| 핵심 기억 (Core Memory)    | 지층 보스 처치 시 100% 드롭하는 영혼 단편. 무기의 정체성 결을 가동. 정체성 슬롯 전용·전이 시 결 붕괴                   |
+| 정체성 결 (Identity Trait) | 핵심 기억이 가동시키는 무기의 본질적 성격 한 면. 결의 합 = 무기의 코어 인격                                             |
+| Forgotten / Recalled       | 단편 상태. 잊혀진(50% 효과, 적 NPC) → 회상된(100% 효과, 전이 가능)                                                     |
+| 5색 기질 (Temperament)     | Forge(주황·분노) / Iron(청록·결연) / Rust(회색·체념) / Spark(흰빛·호기심) / Shadow(자주·은밀)                      |
+| ~~이노센트~~              | ~~DEPRECATED. DEC-036에서 검 Ego(DEC-033)와 통합되어 기억 단편 시스템으로 흡수. 재도입 금지.~~                         |
+| 아이템계                   | 장비 아이템 내부의 절차적 던전 (기억의 지층, 레어리티별 2~4 지층)                                                       |
+| ~~재귀적 진입~~           | ~~DEPRECATED. 아이템계 내 중첩 진입은 삭제. 아이템계에서 획득한 아이템은 월드 귀환 후 진입~~                           |
+| Critical Path              | 시작점에서 종료점까지 반드시 통과 가능한 경로                                                                           |
+| Room Template              | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조                                                                      |
+| Chunk                      | Room 내부에 배치되는 지형/장애물의 작은 블록 단위                                                                       |
 
 ---
 
@@ -265,6 +326,7 @@ VibeCoding/
 ECHORIS 는 다음 **3 niche 팬덤의 교집합** 을 1차 타깃으로 한다. 모든 디자인 결정은 이 페르소나의 만족을 시금석으로 삼는다.
 
 **1차 niche (시그널 강화 대상):**
+
 - **BLAME! / 메이드 인 어비스 팬** — 메가스트럭처 · 거대 스케일 · 침묵 · 깊이 메타포
 - **디스가이아 / 야리코미 팬** — 아이템계 · 무한 파밍 · 장비 강화 의례
 - **Transistor / 침묵 주인공 팬** — 말하는 무기 · 단독 화자 · 절제된 서사
@@ -312,66 +374,10 @@ ECHORIS 는 다음 **3 niche 팬덤의 교집합** 을 1차 타깃으로 한다.
 ### 의사결정 기록 기준
 
 다음에 해당하면 decisions/ 에 기록한다:
+
 - 시스템 설계 방향이 바뀔 때
 - 기능을 추가/삭제/변경할 때
 - 기술 스택이나 구조가 바뀔 때
 - 사용자가 명시적으로 결정을 내릴 때
 
 ---
-
-## Coding Behavioral Guidelines
-
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
-
-Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-1. Think Before Coding
-Don't assume. Don't hide confusion. Surface tradeoffs.
-
-Before implementing:
-
-State your assumptions explicitly. If uncertain, ask.
-If multiple interpretations exist, present them - don't pick silently.
-If a simpler approach exists, say so. Push back when warranted.
-If something is unclear, stop. Name what's confusing. Ask.
-2. Simplicity First
-Minimum code that solves the problem. Nothing speculative.
-
-No features beyond what was asked.
-No abstractions for single-use code.
-No "flexibility" or "configurability" that wasn't requested.
-No error handling for impossible scenarios.
-If you write 200 lines and it could be 50, rewrite it.
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-3. Surgical Changes
-Touch only what you must. Clean up only your own mess.
-
-When editing existing code:
-
-Don't "improve" adjacent code, comments, or formatting.
-Don't refactor things that aren't broken.
-Match existing style, even if you'd do it differently.
-If you notice unrelated dead code, mention it - don't delete it.
-When your changes create orphans:
-
-Remove imports/variables/functions that YOUR changes made unused.
-Don't remove pre-existing dead code unless asked.
-The test: Every changed line should trace directly to the user's request.
-
-4. Goal-Driven Execution
-Define success criteria. Loop until verified.
-
-Transform tasks into verifiable goals:
-
-"Add validation" → "Write tests for invalid inputs, then make them pass"
-"Fix the bug" → "Write a test that reproduces it, then make it pass"
-"Refactor X" → "Ensure tests pass before and after"
-For multi-step tasks, state a brief plan:
-
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
