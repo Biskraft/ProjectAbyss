@@ -16,6 +16,7 @@
 
 ## Decisions (의사결정)
 
+- [DEC-041 Fluid Crest Foam](decisions/DEC-041-Fluid-Crest-Foam.md) — 폭포 상단 포말 + 본체 별빛 입자, foam_color/density CSV SSoT, 5종 fluid 매칭 (2026-05-17)
 - [DEC-040 Audio Pipeline](decisions/DEC-040-Audio-Pipeline.md) — @pixi/sound + ElevenLabs AI 자산 + 검 Ego 타이핑 SFX (2026-05-04)
 - [DEC-039 Item World Continuous Dive](decisions/DEC-039-Item-World-Continuous-Dive.md) — Trapdoor Descent + 지층 축소 (Normal 1 / Magic 2) (2026-05-02)
 - [DEC-038 Town of Orphaned Shadows](decisions/DEC-038-Town-of-Orphaned-Shadows.md) — 그림자 마을 sci-fi 톤 (2026-04-30)

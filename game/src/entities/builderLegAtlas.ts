@@ -52,6 +52,7 @@ export interface LegPartFrame {
 interface AseSliceKey {
   frame: number;
   bounds: { x: number; y: number; w: number; h: number };
+  pivot?: { x: number; y: number };
 }
 
 interface AseSlice {
@@ -169,17 +170,23 @@ async function applyAtlas(pngPath: string, jsonPath: string): Promise<void> {
       console.warn(`[builderLegAtlas] missing slice "${name}" in atlas JSON — skipping.`);
       continue;
     }
-    const b = slice.keys[0].bounds;
+    const key = slice.keys[0];
+    const b = key.bounds;
     const rect = new Rectangle(b.x, b.y, b.w, b.h);
     const isJoint = name === 'shoulder' || name === 'knee';
+    const isFoot = name === 'foot';
 
     // Anchor convention — art must be centered inside its slice frame:
     //   joints (shoulder, knee)  → anchor (0.5, 0.5)
-    //   limbs / foot             → anchor (0.5, 0)  (top-center attach)
-    // No per-slice pivot lookup; if the visible art isn't centered in the
-    // frame, recenter it in Aseprite — that's the convention.
-    const pivotX = 0.5;
-    const pivotY = isJoint ? 0.5 : 0;
+    //   limbs                    → anchor (0.5, 0)   (top-center attach)
+    //   foot                     → anchor (0.5, 1)   (BOTTOM-CENTER = sole)
+    //
+    // The foot anchor sits on the SOLE (사용자 결정 2026-05-17). That makes
+    // the IK target equal the raycast wall face directly: no ankle offset
+    // calculation in LegRig.setFootAnchor, and the sprite's bottom edge
+    // lands flush on the floor / wall face regardless of rotation.
+    const pivotX = key.pivot ? key.pivot.x / b.w : 0.5;
+    const pivotY = key.pivot ? key.pivot.y / b.h : (isJoint ? 0.5 : (isFoot ? 1 : 0));
 
     const newTex = new Texture({ source: sheet.source, frame: rect });
     const existing = cachedParts[name];

@@ -9,7 +9,7 @@
 
 import csvText from '../../../Sheets/Content_System_FluidTypes.csv?raw';
 
-export type FluidType = 'water' | 'lava' | 'magma' | 'oil' | 'acid' | string;
+export type FluidType = 'water' | 'lava' | 'magma' | 'oil' | 'acid' | 'charged' | string;
 
 export interface FluidTypeDef {
   id: FluidType;
@@ -29,6 +29,10 @@ export interface FluidTypeDef {
   bubbleEmitter: string | null;
   surfaceSfx: string;
   enterSfx: string;
+  /** Waterfall crest foam tint. Brighter variant of surfaceColor. */
+  foamColor: number;
+  /** Foam intensity 0..1. 0 = no foam (e.g. oil), 1 = vigorous (water, acid). */
+  foamDensity: number;
 }
 
 const TABLE = new Map<string, FluidTypeDef>();
@@ -58,7 +62,7 @@ function parseCSV(text: string): void {
     const line = lines[i].trim();
     if (!line || line.startsWith('#')) continue;
     const cols = line.split(',');
-    if (cols.length < 17) continue;
+    if (cols.length < 19) continue;
     const def: FluidTypeDef = {
       id: cols[0].trim(),
       displayName: cols[1].trim(),
@@ -77,9 +81,16 @@ function parseCSV(text: string): void {
       bubbleEmitter: parseOptStr(cols[14]),
       surfaceSfx: cols[15].trim(),
       enterSfx: cols[16].trim(),
+      foamColor: parseHexColor(cols[17]),
+      foamDensity: clamp01(parseFloat(cols[18])),
     };
     TABLE.set(def.id, def);
   }
+}
+
+function clamp01(v: number): number {
+  if (Number.isNaN(v)) return 0;
+  return Math.max(0, Math.min(1, v));
 }
 
 parseCSV(csvText);
@@ -103,6 +114,8 @@ const FALLBACK: FluidTypeDef = {
   bubbleEmitter: 'bubble_water',
   surfaceSfx: 'sfx_water_amb',
   enterSfx: 'sfx_water_enter',
+  foamColor: 0xd5f0ff,
+  foamDensity: 1.0,
 };
 
 export function getFluidDef(id: FluidType): FluidTypeDef {

@@ -20,6 +20,9 @@ interface Puff {
   baseR: number;
   /** 0..1 — drives growth + alpha curve. */
   seed: number;
+  /** Per-puff tint (set at spawn time, used by draw). */
+  bodyColor: number;
+  rimColor: number;
 }
 
 const PUFF_LIFE_MIN = 520;
@@ -28,6 +31,17 @@ const PUFFS_PER_BURST = 4;
 const COLOR_PUFF = 0xe6f0f5;
 const COLOR_PUFF_RIM = 0xffffff;
 
+export interface PuffTint {
+  /** Body color override (default `#e6f0f5` white). */
+  body: number;
+  /** Rim color override (default `#ffffff`). */
+  rim?: number;
+}
+
+/** Preset tints for common chemical reactions. */
+export const PUFF_TINT_TOXIC: PuffTint  = { body: 0xccdd44, rim: 0xeeff66 }; // R-NEW-003 acid flash
+export const PUFF_TINT_PLASMA: PuffTint = { body: 0xb066ff, rim: 0xe0aaff }; // R-NEW-018 magma detonation
+
 export class SteamPuffManager {
   private parent: Container;
   private puffs: Puff[] = [];
@@ -35,12 +49,15 @@ export class SteamPuffManager {
   constructor(parent: Container) { this.parent = parent; }
 
   /**
-   * @param x       - World-space center
-   * @param y       - World-space center (steam rises from here)
-   * @param strength - 1.0 = default, ~0.6 small fizz, ~1.4 big jet
+   * @param x        - World-space center
+   * @param y        - World-space center (steam rises from here)
+   * @param strength - 1.0 = default, ~0.6 small fizz, ~1.4 big jet, up to 2.0 for detonation
+   * @param tint     - Optional color override (PUFF_TINT_TOXIC / PUFF_TINT_PLASMA / custom)
    */
-  spawn(x: number, y: number, strength = 1.0): void {
-    const s = Math.max(0.5, Math.min(1.6, strength));
+  spawn(x: number, y: number, strength = 1.0, tint?: PuffTint): void {
+    const s = Math.max(0.5, Math.min(2.0, strength));
+    const bodyColor = tint?.body ?? COLOR_PUFF;
+    const rimColor  = tint?.rim  ?? COLOR_PUFF_RIM;
     for (let i = 0; i < PUFFS_PER_BURST; i++) {
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.5;
       const speed = (30 + Math.random() * 40) * s;
@@ -59,6 +76,8 @@ export class SteamPuffManager {
         maxLife: life,
         baseR: (3.5 + Math.random() * 2.5) * s,
         seed: Math.random(),
+        bodyColor,
+        rimColor,
       });
     }
   }
@@ -78,9 +97,9 @@ export class SteamPuffManager {
       // Alpha bell: low → peak ~0.3 → fade out
       const a = k < 0.25 ? (k / 0.25) * 0.7 : (1 - (k - 0.25) / 0.75) * 0.7;
       p.gfx.clear();
-      p.gfx.ellipse(0, 0, r, r * 0.78).fill({ color: COLOR_PUFF, alpha: Math.max(0, a) });
+      p.gfx.ellipse(0, 0, r, r * 0.78).fill({ color: p.bodyColor, alpha: Math.max(0, a) });
       p.gfx.ellipse(-r * 0.2, -r * 0.2, r * 0.4, r * 0.32)
-           .fill({ color: COLOR_PUFF_RIM, alpha: Math.max(0, a * 0.6) });
+           .fill({ color: p.rimColor, alpha: Math.max(0, a * 0.6) });
       p.gfx.x = p.x;
       p.gfx.y = p.y;
       if (p.life <= 0) {

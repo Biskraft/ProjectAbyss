@@ -48,7 +48,7 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, isInMagma, isInOil, isInAcid } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInMagma, isInOil, isInAcid } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -114,13 +114,15 @@ import { HitBloodSprayManager } from '@effects/HitBloodSpray';
 import { DiveLandImpactManager } from '@effects/DiveLandImpact';
 import { WaterSplashManager } from '@effects/WaterSplash';
 import { WaterBubblesManager } from '@effects/WaterBubbles';
-import { SteamPuffManager } from '@effects/SteamPuff';
+import { SteamPuffManager, PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/SteamPuff';
 import { AshRemnantManager } from '@effects/AshRemnant';
+import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import { FluidResidueManager } from '@effects/FluidResidue';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
 import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
 import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
+import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
@@ -157,7 +159,7 @@ import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZone
 import { BurnableProp } from '@entities/BurnableProp';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
-import { FluidSystem } from '@effects/FluidSystem';
+import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
@@ -270,6 +272,13 @@ export class LdtkWorldScene extends Scene {
   private dashHintDelayMs = -1;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
+  /**
+   * Drive the builder's footstep camera shake even when mode is 'patrol'.
+   * spawnBuilder sets this true for 'cinematic', false for plain 'patrol';
+   * one-off helpers (spawnDemoEndBuilder) can force it on for patrol-style
+   * routes that still need the weighty "쿵" feedback.
+   */
+  private builderShakeEnabled = false;
   // Shaft_01 cinematic builder is a one-shot — the ascent plays only on the
   // first time the player enters the room this session. Re-entries skip it.
   private shaft01CinematicPlayed = false;
@@ -320,6 +329,7 @@ export class LdtkWorldScene extends Scene {
   private fluidLayer!: Container;
   private fluidSystem!: FluidSystem;
   private fluidSpawners!: FluidSpawnerManager;
+  private fluidCrestFoam!: FluidCrestFoamManager;
 
   // Entities
   private player!: Player;
@@ -412,6 +422,7 @@ export class LdtkWorldScene extends Scene {
   private waterSplash!: WaterSplashManager;
   private steamPuff!: SteamPuffManager;
   private ashRemnant!: AshRemnantManager;
+  private grassClumpFire = new GrassClumpFireSystem();
   private fluidResidue!: FluidResidueManager;
   private egoShard!: EgoShardManager;
   private egoShardPreview!: EgoShardPreview;
@@ -432,6 +443,14 @@ export class LdtkWorldScene extends Scene {
     avoidEntity: boolean;
     fluidVolumeOverride: number;
     checkAccum: number;
+    /**
+     * Containers this spawner emitted. Tracked so the refill rule (refill
+     * only when *all* owned containers are gone) can ignore unrelated
+     * containers that happen to drift into the spawner rect — and so the
+     * spawner's "current spawn count" is queryable as `owned.length` after
+     * pruning destroyed entries.
+     */
+    owned: ThrowableContainer[];
   }> = [];
   /** Maintained-spawner re-check interval (ms). */
   private static readonly MAINTAIN_CHECK_MS = 500;
@@ -441,6 +460,9 @@ export class LdtkWorldScene extends Scene {
   private prevEnemyInOtherFluid: boolean[] = [];
   /** Set true when a TileMutator mutation invalidates the wall layer sprites. */
   private wallLayerDirty = false;
+  /** Runtime WALL cells that do not have LDtk baked wall sprites, currently hardened magma. */
+  private solidifiedWallGfx: Graphics | null = null;
+  private solidifiedWallCells: Set<string> = new Set();
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
@@ -760,6 +782,8 @@ export class LdtkWorldScene extends Scene {
     // LDtk renderer ??tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
+    this.solidifiedWallGfx = new Graphics();
+    this.renderer.container.addChild(this.solidifiedWallGfx);
 
     // Dead Cells-style palette swap filter ??production default.
     // Data-driven via Sheets/Content_System_Area_Palette.csv: rows for
@@ -874,6 +898,7 @@ export class LdtkWorldScene extends Scene {
     // Entity layer (enemies, drops, portals, altars)
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
+    this.grassClumpFire.setFireLayer(this.entityLayer);
 
     // Tile mutator overlay (fire/ice/electric VFX on top of static tile sprites).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
@@ -887,6 +912,8 @@ export class LdtkWorldScene extends Scene {
     // the source cell even when fluid covers it. ?debug gates visibility.
     const _fsDebug = new URLSearchParams(window.location.search).has('debug');
     this.fluidSpawners = new FluidSpawnerManager(this.fluidLayer, _fsDebug ? this.entityLayer : null);
+    const _reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    this.fluidCrestFoam = new FluidCrestFoamManager(this.fluidLayer, _reduceMotion);
     // Oil flame tongues need to render ABOVE the fluid polygon, so we give
     // the mutator renderer a Graphics child of a container drawn after fluid.
     const aboveFluidLayer = new Container();
@@ -1002,6 +1029,95 @@ export class LdtkWorldScene extends Scene {
       const py = (gy + 1) * 16;        // bottom of cell
       this.fluidResidue.dropAt(type, px, py, 1.0);
     };
+
+    // ─── Arc Scan Cycle (R-NEW-031 v2) — 월드 씬 동일 처리 ─────────────────
+    this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
+      const links: ArcLink[] = [];
+      const r2 = radiusPx * radiusPx;
+      {
+        const px = this.player.x + this.player.width / 2;
+        const py = this.player.y + this.player.height / 2;
+        const dx = px - originX, dy = py - originY;
+        if (dx * dx + dy * dy < r2) {
+          links.push({ worldX: px, worldY: py, kind: 'entity', ref: this.player });
+        }
+      }
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        const ex = e.x + e.width / 2;
+        const ey = e.y + e.height / 2;
+        const dx = ex - originX, dy = ey - originY;
+        if (dx * dx + dy * dy < r2) {
+          links.push({ worldX: ex, worldY: ey, kind: 'entity', ref: e });
+        }
+      }
+      for (const c of this.containers) {
+        if (c.destroyed || c.held) continue;
+        if (c.kind !== 'MetalCrate') continue;
+        const ccx = c.colX + c.colW / 2;
+        const ccy = c.colY + c.colH / 2;
+        const dx = ccx - originX, dy = ccy - originY;
+        if (dx * dx + dy * dy < r2) {
+          links.push({ worldX: ccx, worldY: ccy, kind: 'container', ref: c });
+        }
+      }
+      const ogx = Math.floor(originX / 16);
+      const ogy = Math.floor(originY / 16);
+      const radCells = Math.ceil(radiusPx / 16) + 1;
+      for (let dy = -radCells; dy <= radCells; dy++) {
+        for (let dx = -radCells; dx <= radCells; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const gx = ogx + dx, gy = ogy + dy;
+          if (gy < 0 || gy >= this.collisionGrid.length) continue;
+          const row = this.collisionGrid[gy];
+          if (!row || gx < 0 || gx >= row.length) continue;
+          const t = row[gx];
+          if (t !== TILE_WATER && t !== TILE_METAL && t !== TILE_ACID) continue;
+          const cx = (gx + 0.5) * 16;
+          const cy = (gy + 0.5) * 16;
+          const ddx = cx - originX, ddy = cy - originY;
+          if (ddx * ddx + ddy * ddy > r2) continue;
+          links.push({
+            worldX: cx, worldY: cy,
+            kind: t === TILE_WATER ? 'fluid' : 'cell',
+            ref: { gx, gy, tile: t },
+          });
+        }
+      }
+      if (links.length > 6) {
+        links.sort((a, b) => {
+          const da = (a.worldX - originX) ** 2 + (a.worldY - originY) ** 2;
+          const db = (b.worldX - originX) ** 2 + (b.worldY - originY) ** 2;
+          return da - db;
+        });
+        links.length = 6;
+      }
+      return links;
+    };
+
+    this.fluidSystem.onArcDischarge = (_originX, _originY, links) => {
+      if (links.length === 0) return;
+      this.game.camera.shake(3);
+      for (const link of links) {
+        if (link.kind === 'entity') {
+          const ent = link.ref as { hp: number; maxHp: number; chargedStateMs?: number; alive?: boolean };
+          if (!ent) continue;
+          if (ent.alive === false) continue;
+          const dmg = Math.max(1, Math.floor(ent.maxHp * FluidSystem.ARC_DAMAGE_PCT));
+          ent.hp = Math.max(0, ent.hp - dmg);
+          ent.chargedStateMs = Math.max(ent.chargedStateMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
+          this.dmgNumbers.spawn(link.worldX, link.worldY - 8, dmg, false);
+        } else if (link.kind === 'container') {
+          const c = link.ref as { electricChargedMs?: number };
+          if (c) c.electricChargedMs = Math.max(c.electricChargedMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
+        } else if (link.kind === 'fluid' || link.kind === 'cell') {
+          const cellRef = link.ref as { gx: number; gy: number } | undefined;
+          if (cellRef) {
+            this.tileMutator.applyThunderChain(this.collisionGrid, cellRef.gx, cellRef.gy);
+          }
+        }
+      }
+    };
     // TileMutator emits steam events when hot-meets-wet cells mutate
     // (magma→ice melt, acid+magma vapor). Convert cell coords → pixel.
     this.tileMutator.onSteamEvent = (gx, gy) => {
@@ -1009,10 +1125,79 @@ export class LdtkWorldScene extends Scene {
       const py = (gy + 0.5) * 16;
       this.steamPuff.spawn(px, py, 1.0);
     };
+    this.tileMutator.onSteamBurst = (gx, gy) => {
+      const cx = (gx + 0.5) * 16;
+      const cy = (gy + 0.5) * 16;
+      this.steamPuff.spawn(cx, cy, 2.1);
+      this.steamPuff.spawn(cx - 10, cy - 6, 1.6);
+      this.steamPuff.spawn(cx + 10, cy - 6, 1.6);
+      this.steamPuff.spawn(cx, cy - 18, 1.4, PUFF_TINT_PLASMA);
+      this.game.camera.shake(4);
+    };
+    this.tileMutator.onElectricInsulated = (gx, gy) => {
+      const px = (gx + 0.5) * 16;
+      const py = (gy + 0.5) * 16;
+      this.hitSparks.spawn(px, py, false, 0);
+    };
+    this.tileMutator.onElectricAcidPulse = (gx, gy) => {
+      const px = (gx + 0.5) * 16;
+      const py = (gy + 0.5) * 16;
+      this.steamPuff.spawn(px, py, 0.8, PUFF_TINT_TOXIC);
+    };
+    // R-NEW-001 Exothermic Steam: acid+water 발열 반응 — 강한 증기 + vertical
+    // burst. Horizontal 24px, vertical 64px 영향.
+    this.tileMutator.onAcidSteamBurst = (gx, gy) => {
+      const cx = (gx + 0.5) * 16;
+      const cy = (gy + 0.5) * 16;
+      const steamBaseY = (gy + 1) * 16;
+      this.steamPuff.spawn(cx, steamBaseY, 1.5);
+      this.steamPuff.spawn(cx, steamBaseY - 22, 1.3);
+      this.steamPuff.spawn(cx, steamBaseY - 44, 1.1);
+      this.game.camera.shake(2);
+      const radiusX = 24;
+      const radiusY = 64;
+      const inSteamBurst = (x: number, y: number): boolean => {
+        const dx = (x - cx) / radiusX;
+        const dy = (y - cy) / radiusY;
+        return dx * dx + dy * dy < 1;
+      };
+      const px = this.player.x + this.player.width / 2;
+      const py = this.player.y + this.player.height / 2;
+      if (inSteamBurst(px, py)) {
+        const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.05));
+        this.player.hp = Math.max(0, this.player.hp - dmg);
+        this.player.burnRemainingMs = Math.max(this.player.burnRemainingMs ?? 0, 5000);
+        this.player.vy = Math.min(this.player.getVy(), -220);
+      }
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        const ex = e.x + e.width / 2;
+        const ey = e.y + e.height / 2;
+        if (inSteamBurst(ex, ey)) {
+          const dmg = Math.max(1, Math.floor(e.maxHp * 0.05));
+          e.hp -= dmg;
+          e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 5000);
+          e.onHit(0, -260, 120);
+          this.dmgNumbers.spawn(ex, e.y - 8, dmg, false);
+        }
+      }
+      for (const c of this.containers) {
+        if (c.destroyed || c.held) continue;
+        const ccx = c.colX + c.colW / 2;
+        const ccy = c.colY + c.colH / 2;
+        if (inSteamBurst(ccx, ccy)) {
+          c.applySteamLift(3000);
+        }
+      }
+    };
     // Ice melt / wood-grass burnout / metal corrosion all invalidate the
     // static wall tile sprites at the mutated cell. Coalesce many mutations
     // per frame into a single rerenderTilemap call.
-    this.tileMutator.onWallTileChanged = (_gx, _gy) => {
+    this.tileMutator.onWallTileChanged = (gx, gy, originalTile) => {
+      if (this.collisionGrid[gy]?.[gx] === TILE_WALL && originalTile === TILE_MAGMA) {
+        this.solidifiedWallCells.add(`${gx},${gy}`);
+        this.rebuildSolidifiedWallOverlay();
+      }
       this.wallLayerDirty = true;
     };
     this.waterBubbles = new WaterBubblesManager(this.entityLayer);
@@ -1188,6 +1373,8 @@ export class LdtkWorldScene extends Scene {
     // Re-sync collision grid and tilemap (deep copy to restore original state)
     this.collisionGrid = this.currentLevel.collisionGrid.map(row => [...row]);
     this.player.roomData = this.collisionGrid;
+    this.solidifiedWallCells.clear();
+    this.rebuildSolidifiedWallOverlay();
     this.rerenderTilemap();
 
     this.updatePlayerAtk();
@@ -1466,9 +1653,10 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // 대시 튜토리얼 — Overworld_Level_36 진입 1초 후 발사. 룸을 떠나면 timer 리셋.
+    // 대시 튜토리얼 — Tutorial_Dash 진입 1초 후 발사. 룸을 떠나면 timer 리셋.
+    // 사용자 결정 2026-05-16 — 다른 룸에서는 절대 표시되지 않도록 단일 식별자만 허용.
     if (!this.dashHintHandled) {
-      const inDashRoom = this.currentLevel?.identifier === 'Overworld_Level_36';
+      const inDashRoom = this.currentLevel?.identifier === 'Tutorial_Dash';
       if (inDashRoom) {
         if (this.dashHintDelayMs < 0) this.dashHintDelayMs = 1000;
         else if (this.dashHintDelayMs > 0) this.dashHintDelayMs -= dt;
@@ -1548,6 +1736,10 @@ export class LdtkWorldScene extends Scene {
 
     // Game Over state
     if (this.gameOverActive) {
+      // Debug warp must remain usable from the death screen so the developer
+      // can bounce to any room without going through the save-point respawn.
+      // `?debug` gated inside handleDebugWarp itself; safe for live builds.
+      this.handleDebugWarp();
       if (
         this.game.input.isJustPressed(GameAction.ATTACK) ||
         this.game.input.isJustPressed(GameAction.JUMP)
@@ -1700,7 +1892,9 @@ export class LdtkWorldScene extends Scene {
       // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
       // of the descent. Rhythmic "쿵" every two tile crossings while moving,
       // then a single heavy "쿠웅" on the frame the builder comes to rest.
-      if (this.activeBuilderMode === 'cinematic') {
+      // `builderShakeEnabled` lets patrol-mode builders opt in to the same
+      // feedback (e.g. Shaft_DemoEnd's Builder_Level_2).
+      if (this.activeBuilderMode === 'cinematic' || this.builderShakeEnabled) {
         const nowMoving = this.activeBuilder.isMoving;
         if (nowMoving && stampDelta !== 0) {
           this.builderStepCounter++;
@@ -2660,6 +2854,10 @@ export class LdtkWorldScene extends Scene {
         p.acidTickAccum = acc;
       },
       onMagmaContact: () => {
+        if (p.inWater) {
+          p.extinguishFireDebuffs();
+          return;
+        }
         // Refresh Burn DOT (mirrors magma cell behavior — initial hit + 15s burn).
         const wasBurning = (p.burnRemainingMs ?? 0) > 0;
         p.burnRemainingMs = 15000;
@@ -2669,6 +2867,10 @@ export class LdtkWorldScene extends Scene {
         }
       },
       onFireContact: () => {
+        if (p.inWater) {
+          p.extinguishFireDebuffs();
+          return;
+        }
         // Burning oil residue — same per-frame fire DOT as fire overlay.
         if (!p.invincible) {
           const dmg = Math.max(1, Math.floor(p.maxHp * 0.03 * (dt / 1000)));
@@ -2678,6 +2880,7 @@ export class LdtkWorldScene extends Scene {
         p.burnRemainingMs = Math.max(p.burnRemainingMs ?? 0, 10000);
       },
     });
+    if (p.inWater) p.extinguishFireDebuffs();
     // Continuous rising bubbles while submerged
     this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
@@ -2813,6 +3016,12 @@ export class LdtkWorldScene extends Scene {
       isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
       isMagmaCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 6,
       isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
+      // R-NEW-049/050/051/052/053: 신규 환경 노출 hook
+      isWaterCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 2,
+      isOilCell:   (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 11,
+      isFrozenOrIceCell: (gx: number, gy: number) =>
+        (this.collisionGrid[gy]?.[gx] ?? 0) === 7 || this.tileMutator.isFrozen(gx, gy),
+      isChargedCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 8,
     };
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
@@ -2882,6 +3091,7 @@ export class LdtkWorldScene extends Scene {
     // (fire on water creates holes; gravity refills them from above).
     this.fluidSystem.gravityTick(this.collisionGrid, dt, this.tileMutator);
     this.fluidSpawners.pressureDrain(this.collisionGrid, this.fluidSystem);
+    this.fluidCrestFoam.update(dt, this.fluidSpawners.getActiveSegments(this.collisionGrid));
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
     this.itemPickupGlow.update(dt);
@@ -3257,6 +3467,8 @@ export class LdtkWorldScene extends Scene {
     this.ashRemnant?.clear();
     this.fluidResidue?.clear();
     this.egoShard?.clear();
+    this.solidifiedWallCells.clear();
+    this.rebuildSolidifiedWallOverlay();
     for (const c of this.containers) c.destroy();
     this.containers.length = 0;
     this.heldContainer = null;
@@ -3364,8 +3576,10 @@ export class LdtkWorldScene extends Scene {
         occupiedCells.add(`${Math.floor(c.x / 16)},${Math.floor(c.y / 16)}`);
         spawnerSpawned++;
       }
-      // Register for runtime refill if Maintain=true. Live count check
-      // runs every MAINTAIN_CHECK_MS in update().
+      // Register for runtime refill if Maintain=true. Refill check runs
+      // every MAINTAIN_CHECK_MS in update(). `owned` starts as the initial
+      // spawn batch — refill targets only spawners whose owned list is
+      // fully depleted (all containers destroyed).
       if (opts.maintain && opts.pool.length > 0) {
         this.maintainedSpawners.push({
           rect: opts.rect,
@@ -3377,6 +3591,7 @@ export class LdtkWorldScene extends Scene {
           avoidEntity: opts.avoidEntity,
           fluidVolumeOverride: opts.fluidVolumeOverride,
           checkAccum: 0,
+          owned: [...spawned],
         });
       }
     }
@@ -3405,6 +3620,7 @@ export class LdtkWorldScene extends Scene {
     // Each tick injects 1 cell of the configured type at the spawn grid;
     // cellular gravity in FluidSystem then carries it downward.
     this.fluidSpawners.clear();
+    this.fluidCrestFoam?.clear();
     for (const ent of level.entities) {
       if (ent.type !== 'FluidSpawner') continue;
       // Expand rect → per-cell spawners. width=16,height=16 → 1 cell; wider
@@ -3462,7 +3678,11 @@ export class LdtkWorldScene extends Scene {
       const themeParam = new URLSearchParams(window.location.search).get('theme');
       if (themeParam) this.procDecorator.setTheme(themeParam);
       this.procDecorator.clear();
+      this.grassClumpFire.clear();
       this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));
+      for (const prop of this.grassClumpFire.register(this.procDecorator.getGrassClumpsWithCells())) {
+        this.tileMutator.registerBurnable(prop);
+      }
       if (this.wallPaletteFilter) {
         this.procDecorator.naturalLayer.filters = [this.naturalPaletteFilter!];
         this.procDecorator.artificialLayer.filters = [this.wallPaletteFilter];
@@ -3579,6 +3799,10 @@ export class LdtkWorldScene extends Scene {
       // 사용자 결정 2026-05-07 — Shaft_02 좌측 벽 + 16 cell 위치에 Builder_02
       // 배치, y=0..100 무한 왕복.
       this.spawnShaft02Builder(level);
+    } else if (level.identifier === 'Shaft_DemoEnd') {
+      // 사용자 결정 2026-05-16 — Shaft_DemoEnd 좌측 끝(x=18px, y=130px)에
+      // Builder_Level_2 배치, y 방향 무한 왕복.
+      this.spawnDemoEndBuilder(level);
     } else if (level.identifier === 'Debug_Shaft_01') {
       this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
     } else if (level.identifier === 'Debug_Shaft_2') {
@@ -4347,6 +4571,29 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
+    // Procedural grass clumps — fire ignition + chain to TILE_GRASS tiles.
+    this.grassClumpFire.update(dt, this.tileMutator, this.collisionGrid, this.ashRemnant, 16);
+
+    // BreakableProp ignition is driven by TileMutator.spreadOilFire (same
+    // pipeline as BurnableProp / oil / wood / grass). Here we only handle
+    // the burn-out → shatter/drop transition for props that finished burning.
+    for (let i = this.breakableProps.length - 1; i >= 0; i--) {
+      const bp = this.breakableProps[i];
+      if (bp.destroyed) {
+        this.tileMutator.unregisterBurnable(bp);
+        this.breakableProps.splice(i, 1);
+        continue;
+      }
+      if (bp.burnedOut) {
+        this.tileMutator.unregisterBurnable(bp);
+        this.destroyBreakablePropWithEffects(bp, 'fire');
+        this.breakableProps.splice(i, 1);
+      }
+    }
+
+    // Advance timed-fade ash remnants (grass clump leftovers fade out).
+    this.ashRemnant.update(dt);
+
     // Render overlay for fire / ice / electric cell states.
     this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid, dt);
 
@@ -4392,7 +4639,9 @@ export class LdtkWorldScene extends Scene {
       const waterfallType = this.fluidSpawners.queryFluidAtAabb(
         this.player.x, this.player.y, this.player.width, this.player.height, this.collisionGrid,
       );
-      if (waterfallType === 'acid' && !this.player.invincible) {
+      if (waterfallType === 'water') {
+        this.player.extinguishFireDebuffs();
+      } else if (waterfallType === 'acid' && !this.player.invincible) {
         let acc = this.player.acidTickAccum ?? 0;
         acc += dt;
         while (acc >= 100) {
@@ -4459,12 +4708,12 @@ export class LdtkWorldScene extends Scene {
    */
   /**
    * Compute the elemental attack hitbox AABB.
-   * Covers player AABB expanded 8px each side + 32px sword reach in facing
+   * Covers player AABB expanded 8px each side + 24px sword reach in facing
    * direction. Vertical extension reaches the floor cell BELOW feet (so ice
    * underfoot is hit) and ceiling cell ABOVE head (Vine entities).
    */
   private getDebugAttackHitbox(): { ax: number; ay: number; aw: number; ah: number } {
-    const reach = 32;
+    const reach = 24;
     const expand = 8;
     const ax = this.player.facingRight
       ? this.player.x - expand
@@ -4491,6 +4740,26 @@ export class LdtkWorldScene extends Scene {
       // (handled in tickEnvironment) can dissolve it. The shard still gets
       // "stuck" (return true) so it can be retrieved like any wall hit.
       if (c.kind === 'MetalCrate') {
+        // R-NEW-054 Brittle Crate: ice/frozen 셀 위면 1 hit 즉파
+        const lx = Math.floor(c.colX / 16);
+        const rx = Math.floor((c.colX + c.colW - 1) / 16);
+        const by = Math.floor((c.colY + c.colH - 1) / 16);
+        let isBrittle = false;
+        for (let gx = lx; gx <= rx; gx++) {
+          const below = this.collisionGrid[by + 1]?.[gx];
+          if (below === 7 /* ice */ || this.tileMutator.isFrozen(gx, by + 1)) {
+            isBrittle = true; break;
+          }
+        }
+        if (isBrittle) {
+          const impact = c.shatterBrittle();
+          this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
+          if (impact) {
+            this.destroyContainerWithVFX(c);
+            this.containers.splice(i, 1);
+          }
+          return true;
+        }
         this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
         return true;
       }
@@ -4638,17 +4907,22 @@ export class LdtkWorldScene extends Scene {
       ms.checkAccum += dtMs;
       if (ms.checkAccum < LdtkWorldScene.MAINTAIN_CHECK_MS) continue;
       ms.checkAccum = 0;
-      // Live count inside this spawner's rect (AABB overlap).
-      let alive = 0;
+
+      // Prune destroyed containers from the owned set. `owned.length` after
+      // this is the spawner's current spawn count.
+      for (let i = ms.owned.length - 1; i >= 0; i--) {
+        if (ms.owned[i].destroyed) ms.owned.splice(i, 1);
+      }
+      // Refill rule (user spec): only when *all* owned containers are gone.
+      // Partial losses are left alone so destroying one box doesn't force
+      // an immediate replacement.
+      if (ms.owned.length > 0) continue;
+
+      // Build occupancy map of all live containers globally so the refill
+      // placement doesn't collide with boxes outside the rect either.
       const occupiedCells = new Set<string>();
       for (const c of this.containers) {
         if (c.destroyed) continue;
-        const cx0 = c.x, cy0 = c.y, cx1 = c.x + c.spec.width, cy1 = c.y + c.spec.height;
-        const overlaps = !(cx1 <= ms.rect.x || cx0 >= ms.rect.x + ms.rect.w
-                        || cy1 <= ms.rect.y || cy0 >= ms.rect.y + ms.rect.h);
-        if (overlaps) alive++;
-        // Mark every cell the container covers globally so refill placement
-        // doesn't collide with existing boxes outside the rect either.
         const gx0 = Math.floor(c.x / 16);
         const gx1 = Math.floor((c.x + c.spec.width - 1) / 16);
         const gy0 = Math.floor(c.y / 16);
@@ -4657,22 +4931,22 @@ export class LdtkWorldScene extends Scene {
           for (let gx = gx0; gx <= gx1; gx++) occupiedCells.add(`${gx},${gy}`);
         }
       }
-      const shortBy = ms.minCount - alive;
-      if (shortBy <= 0) continue;
-      // Emit `shortBy` more — non-deterministic so successive refills don't
-      // land in the exact same spots. Seed mixes monotonic time so each
-      // refill has a fresh distribution.
+
+      // Non-deterministic refill seed so successive depletions don't land
+      // in identical spots.
       const refillSeed = ms.seed >= 0
         ? (ms.seed ^ ((performance.now() | 0) >>> 0))
         : ((performance.now() | 0) >>> 0);
+      // Refill batch size = minCount~maxCount (matches the initial spawn
+      // distribution — "keep min" semantically guaranteed, max as ceiling).
       const refilled = runContainerSpawner({
         rect: ms.rect,
         collisionGrid: this.collisionGrid,
         existing: this.containers,
         occupiedCells,
         pool: ms.pool,
-        minCount: shortBy,
-        maxCount: shortBy,
+        minCount: ms.minCount,
+        maxCount: ms.maxCount,
         bias: ms.bias,
         seed: refillSeed,
         avoidEntity: ms.avoidEntity,
@@ -4687,6 +4961,7 @@ export class LdtkWorldScene extends Scene {
         this.containers.push(c);
         this.entityLayer.addChild(c.container);
         if (!c.skipSettle) c.settleAtSpawn(isContainerSolidCell, this.containers);
+        ms.owned.push(c);
       }
     }
   }
@@ -4890,6 +5165,39 @@ export class LdtkWorldScene extends Scene {
     if (kind === 'MagmaCrucible') {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
     }
+    // R-NEW-011 Impact Solidification: WaterBarrel + magma → WALL 굳음
+    if (kind === 'WaterBarrel') {
+      let solidified = 0;
+      for (let dy2 = -1; dy2 <= 1; dy2++) {
+        for (let dx2 = -1; dx2 <= 1; dx2++) {
+          const nx = gx + dx2, ny = gy + dy2;
+          if (grid[ny]?.[nx] === 6) {
+            grid[ny][nx] = 1;
+            this.tileMutator.onWallTileChanged?.(nx, ny, 6);
+            solidified++;
+          }
+        }
+      }
+      if (solidified > 0) {
+        this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0);
+        this.game.camera.shake(4);
+        this.containerFluidDirty = true;
+      }
+    }
+    // R-NEW-012 Acid Container Chain: AcidVial + 2-tile radius 컨테이너 가속
+    if (kind === 'AcidVial') {
+      const reachSq = 32 * 32;
+      const cx = (gx + 0.5) * 16;
+      const cy = (gy + 0.5) * 16;
+      for (const other of this.containers) {
+        if (other.destroyed) continue;
+        const dx = (other.colX + other.colW / 2) - cx;
+        const dy = (other.colY + other.colH / 2) - cy;
+        if (dx * dx + dy * dy < reachSq) {
+          other.acidExposureMs += 1000;
+        }
+      }
+    }
   }
 
   private flushContainerFluidChanges(): void {
@@ -4981,26 +5289,83 @@ export class LdtkWorldScene extends Scene {
       [ax - 1, ay],     [ax, ay],
     ];
     if (element === 'fire') {
-      for (const [gx, gy] of cells) {
+      const fireHitSize = 24;
+      const fireHalf = fireHitSize / 2;
+      const fireCells: Array<[number, number]> = [];
+      this.forEachCellInAABB(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize, (gx, gy) => {
+        if (room[gy]?.[gx] === undefined) return;
+        fireCells.push([gx, gy]);
+      });
+      for (const [gx, gy] of fireCells) {
         const t = (room[gy]?.[gx] ?? 0);
         if (t === 7 /* ice */) this.tileMutator.tryMeltIce(room, gx, gy);
         else if (t === 2 /* water */ && room[gy]) {
           room[gy][gx] = 0;
           this.fluidSystem.removeCell(gx, gy);
           this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
+        } else if (t === 13 /* acid */ && room[gy]) {
+          // R-NEW-003 Toxic Acid Flash
+          room[gy][gx] = 0;
+          this.fluidSystem.removeCell(gx, gy);
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4, PUFF_TINT_TOXIC);
+        } else if (t === 6 /* magma */ && room[gy]) {
+          // R-NEW-020 Magma Surge
+          const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
+          for (const [nx, ny] of ns) {
+            if ((room[ny]?.[nx] ?? -1) === 0 && Math.random() < 0.40) {
+              room[ny][nx] = 6;
+            }
+          }
+          this.fluidSystem.refreshFromGrid(this.collisionGrid);
+        } else if (t === 12 /* metal */) {
+          // R-NEW-019 Heat Metal: metal cell 유지 + 4s fire overlay
+          this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
         } else {
           this.tileMutator.tryIgnite(room, gx, gy);
         }
       }
       // Residue ignite box matches the 2×2 cell footprint, anchored at the
       // snap corner so it's centered exactly on the same 4 cells.
-      this.fluidResidue.ignite((ax - 1) * 16, (ay - 1) * 16, 32, 32);
+      this.fluidResidue.ignite(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize);
+      // BreakableProp ignition happens inside `tryIgnite` above (BreakableProp
+      // is registered as IgnitableEntity, same path as BurnableProp).
+      // Procedural grass clumps inside the impact cells → direct ignite
+      // (clumps are NOT TileMutator-registered yet — separate fire system).
+      if (fireCells.length > 0) {
+        let minGx = fireCells[0][0], maxGx = fireCells[0][0];
+        let minGy = fireCells[0][1], maxGy = fireCells[0][1];
+        for (const [gx, gy] of fireCells) {
+          minGx = Math.min(minGx, gx);
+          maxGx = Math.max(maxGx, gx);
+          minGy = Math.min(minGy, gy);
+          maxGy = Math.max(maxGy, gy);
+        }
+        this.grassClumpFire.igniteInCellAABB(minGx, minGy, maxGx, maxGy);
+      }
     } else if (element === 'ice') {
       for (const [gx, gy] of cells) {
-        this.tileMutator.tryFreeze(room, gx, gy);
+        const t = (room[gy]?.[gx] ?? 0);
+        if (t === 12 /* metal */) this.tileMutator.tryFreezeMetal(room, gx, gy);
+        else this.tileMutator.tryFreeze(room, gx, gy);
       }
     } else if (element === 'thunder') {
       for (const [gx, gy] of cells) {
+        const t = (room[gy]?.[gx] ?? 0);
+        if (t === 6 /* magma */) {
+          // R-NEW-018 Magma Detonation
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0, PUFF_TINT_PLASMA);
+          this.game.camera.shake(4);
+          this.tileMutator.applyThunderChain(room, gx, gy);
+          continue;
+        }
+        if (t === 7 /* ice */ && room[gy]) {
+          // R-NEW-022 Shatter Pulse
+          room[gy][gx] = 0;
+          this.tileMutator.clearFrozen(gx, gy);
+          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4);
+          this.game.camera.shake(2);
+          continue;
+        }
         if (this.tileMutator.isElectric(gx, gy)) continue;
         this.tileMutator.applyThunderChain(room, gx, gy);
       }
@@ -5713,6 +6078,9 @@ export class LdtkWorldScene extends Scene {
     for (const prop of props) {
       this.breakableProps.push(prop);
       this.entityLayer.addChild(prop.container);
+      // Register with TileMutator so cell-level fire propagation can ignite
+      // this prop the same way BurnableProp / oil / wood / grass tiles chain.
+      this.tileMutator.registerBurnable(prop);
     }
   }
 
@@ -5784,41 +6152,48 @@ export class LdtkWorldScene extends Scene {
       const bp = this.breakableProps[i];
       if (bp.destroyed) continue;
       if (!aabbOverlap(hitbox, bp.getAABB())) continue;
+      this.destroyBreakablePropWithEffects(bp, 'sword');
+      this.breakableProps.splice(i, 1);
+    }
+  }
 
-      const drop = bp.break();
+  /**
+   * Shared destroy path for BreakableProp — invoked by sword hits and by fire
+   * burn-out. `source` controls camera shake / hitstop / hit-spark (we skip
+   * those for fire to avoid spurious feedback during ambient burns).
+   *
+   * Caller is responsible for splicing the prop out of `this.breakableProps`.
+   */
+  private destroyBreakablePropWithEffects(bp: BreakableProp, source: 'sword' | 'fire'): void {
+    const drop = bp.break();
+    if (source === 'sword') {
       this.game.hitstopFrames += 4;
       this.game.camera.shake(4);
-
-      // Destruction burst (sprite-quadrant chunks + flecks + dust)
-      this.propShatter.spawn(
-        bp.x, bp.y, bp.width, bp.height,
-        bp.getParticleColor(), bp.getAccentColor(),
-        bp.getArtifactTexture(),
-      );
-      // speed 1.0 / (1.0~1.5) → 길이 100~150% 랜덤 (반복감 감소).
-      SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-      // Subtle hit spark for impact emphasis
+    }
+    this.propShatter.spawn(
+      bp.x, bp.y, bp.width, bp.height,
+      bp.getParticleColor(), bp.getAccentColor(),
+      bp.getArtifactTexture(),
+    );
+    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
+    if (source === 'sword') {
       this.hitSparks.spawn(
         bp.x + bp.width / 2, bp.y + bp.height / 2,
         false, this.player.facingRight ? 1 : -1,
       );
-
-      // Handle drops
-      if (drop.type === 'gold' && drop.amount > 0) {
-        const burstX = bp.x + bp.width / 2 - 8;
-        const burstY = bp.y + bp.height;
-        for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-          gp.roomData = this.collisionGrid;
-          this.goldPickups.push(gp);
-          this.entityLayer.addChild(gp.container);
-        }
-      } else if (drop.type === 'flask') {
-        this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
-      }
-
-      bp.destroy();
-      this.breakableProps.splice(i, 1);
     }
+    if (drop.type === 'gold' && drop.amount > 0) {
+      const burstX = bp.x + bp.width / 2 - 8;
+      const burstY = bp.y + bp.height;
+      for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
+        gp.roomData = this.collisionGrid;
+        this.goldPickups.push(gp);
+        this.entityLayer.addChild(gp.container);
+      }
+    } else if (drop.type === 'flask') {
+      this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
+    }
+    bp.destroy();
   }
 
   private checkAttackOnSwitches(): void {
@@ -6509,11 +6884,29 @@ export class LdtkWorldScene extends Scene {
     }
     this.worldMap.onRoomClick = (roomId, localX, localY) => {
       this.worldMap.close();
+      // If we opened debug warp from the death screen, revive in place so
+      // the warp destination is playable — otherwise the player would land
+      // dead and the game-over UI would immediately re-cover the new room.
+      if (this.gameOverActive) this.reviveFromGameOver();
       this.warpToRoom(roomId, Math.floor(localX), Math.floor(localY));
     };
     this.worldMap.openDebug();
     this.hud.container.visible = false;
     if (this.minimap) this.minimap.visible = false;
+  }
+
+  /** Clear death state without going through SaveManager — debug warp only. */
+  private reviveFromGameOver(): void {
+    this.gameOverActive = false;
+    if (this.gameOverOverlay?.parent) {
+      this.gameOverOverlay.parent.removeChild(this.gameOverOverlay);
+    }
+    this.gameOverOverlay = null;
+    this.player.hp = this.player.maxHp;
+    this.player.isDead = false;
+    this.player.drowned = false;
+    this.hud.container.visible = true;
+    if (this.minimap) this.minimap.visible = true;
   }
 
   private toggleWarpMode(): void {
@@ -6703,6 +7096,7 @@ export class LdtkWorldScene extends Scene {
     // builder. Each spawn registers a BuilderAttachment whose world coords
     // are recomputed every frame in syncBuilderAttachments().
     this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
+    this.registerBuilderGrassClumps(builder);
   }
 
   /**
@@ -6764,7 +7158,96 @@ export class LdtkWorldScene extends Scene {
     this.builderStepCounter = 0;
 
     this.spawnBuilderEntities(builderLevel, 'Builder_Level_1', builder);
+    this.registerBuilderGrassClumps(builder);
     void hostLevel;
+  }
+
+  /**
+   * Shaft_DemoEnd 의 빌더 배치 — 좌측 끝(x=18px), 초기 y=130px, y 방향 무한 왕복.
+   * Builder_Level_2 사용. spawnShaft02Builder 패턴을 그대로 따른다.
+   */
+  private spawnDemoEndBuilder(hostLevel: LdtkLevel): void {
+    const builderLevel = this.builderLoader.getLevel('Builder_Level_2');
+    if (!builderLevel) return;
+    const initialY = 135;         // px, 사용자 결정 2026-05-16.
+    const bottomY = Math.max(initialY + 64, hostLevel.pxHei - builderLevel.pxHei - 64);
+
+    // Left-wall hug: read the host IntGrid and place builder's left edge
+    // flush against the rightmost wall column the builder will touch as it
+    // travels y=initialY..bottomY. For every row the builder occupies at any
+    // y stop on its route, walk left→right counting consecutive TILE_WALL
+    // (1) cells; the largest such prefix across all those rows is the
+    // builder's flush x in cells. Multiply by 16 for px.
+    const builderHeightCells = Math.ceil(builderLevel.pxHei / 16);
+    const topRow = Math.floor(initialY / 16);
+    const bottomRowIncl = Math.floor(bottomY / 16) + builderHeightCells;
+    let wallPrefixMax = 0;
+    for (let r = topRow; r <= bottomRowIncl; r++) {
+      const row = hostLevel.collisionGrid[r];
+      if (!row) continue;
+      let x = 0;
+      while (x < row.length && row[x] === 1) x++;  // 1 = TILE_WALL
+      if (x > wallPrefixMax) wallPrefixMax = x;
+    }
+    const builderX = wallPrefixMax * 16;
+
+    const builder = new GiantBuilder(
+      builderLevel,
+      this.atlases,
+      'world_shaft_builder_bg',
+      'world_shaft_builder_wall',
+      { hostLevel, builderX, builderY: initialY },
+    );
+
+    // Decorator/Body 팔레트 — Shaft_02 patrol 과 동일 필터 스택.
+    if (this.builderWallPaletteFilter) {
+      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
+      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
+      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
+    }
+    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
+      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
+      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
+      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
+      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
+    }
+
+    builder.placeInLevel(builderX, initialY);
+
+    // 렌더 순서: 빌더는 host wallLayer 앞 + procDecorator 자연/인공 데코 뒤.
+    const insertIdx = this.procDecorator
+      ? this.renderer.container.getChildIndex(this.procDecorator.naturalLayer)
+      : this.renderer.container.children.length;
+    this.renderer.container.addChildAt(builder.container, insertIdx);
+
+    // y 방향 무한 왕복. 양 끝점 5초 대기, 33 px/s.
+    builder.setRoute([
+      { y: initialY, waitMs: 5000 },
+      { y: bottomY,  waitMs: 5000 },
+    ], 33, true);
+
+    this.activeBuilder = builder;
+    this.activeBuilderMode = 'patrol';
+    // Shaft_01 처럼 발걸음 카메라 쉐이크 — patrol 모드지만 무게감 연출은 동일.
+    this.builderShakeEnabled = true;
+    this.builderWasMoving = false;
+    this.builderStepCounter = 0;
+
+    this.spawnBuilderEntities(builderLevel, 'Builder_Level_2', builder);
+    this.registerBuilderGrassClumps(builder);
+  }
+
+  private registerBuilderGrassClumps(builder: GiantBuilder): void {
+    const registered = this.grassClumpFire.registerWithCellResolver(
+      builder.decorator.getGrassClumpsWithCells(),
+      (clump) => {
+        const bx = Math.round(builder.container.x / 16);
+        const by = Math.round(builder.container.y / 16);
+        return { gx: bx + clump.gx, gy: by + clump.gy };
+      },
+    );
+    for (const prop of registered) this.tileMutator.registerBurnable(prop);
   }
 
   /** Walk a builder level's LDtk entities and spawn the gameplay objects
@@ -6821,6 +7304,27 @@ export class LdtkWorldScene extends Scene {
             const hp = this.healingPickups[this.healingPickups.length - 1];
             this.attachToBuilder(builder, hp, hp.x - bx0, hp.y - by0, () => this.healingPickups.includes(hp));
           }
+          break;
+        }
+        case 'Anvil': {
+          // Builder-mounted anvil. Single-instance policy: if the host level
+          // already spawned an anvil via spawnAnvilFromLdtk, skip — no double
+          // anvil in the same room. Builder anvil reuses Anvil class so all
+          // prompts / dialogue / IW entry routing work unchanged once the
+          // attachment makes its world coords track the builder.
+          if (this.anvil) break;
+          const anvilDisabled = (
+            this.currentLevel?.identifier === FIRST_ANVIL_LEVEL_ID &&
+            (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED) ||
+             sacredSave.isFirstItemWorldBossDefeated())
+          );
+          const anvil = new Anvil(wx, wy, anvilDisabled);
+          this.anvil = anvil;
+          this.currentAnvilIid = ent.iid;
+          // attachToBuilder reparents container.parent → builder.container,
+          // sets container.x/y to local coords. World x/y are then refreshed
+          // each frame in syncBuilderAttachments() for prompt/interaction tests.
+          this.attachToBuilder(builder, anvil, localX, localY, () => this.anvil === anvil);
           break;
         }
         case 'Builder': {
@@ -6909,6 +7413,7 @@ export class LdtkWorldScene extends Scene {
       this.activeBuilder = null;
     }
     this.activeBuilderMode = null;
+    this.builderShakeEnabled = false;
     this.builderWasMoving = false;
     // Attached entities themselves are cleared with the level via their
     // owning collections (this.drops, etc.); just drop our tracking refs.
@@ -8016,6 +8521,28 @@ export class LdtkWorldScene extends Scene {
     });
     this.renderer.rebuildWallLayer(filteredTiles, this.atlases, this.collisionGrid);
     this.applyTerrainFilterAreas(this.currentLevel.pxWid, this.currentLevel.pxHei);
+  }
+
+  /**
+   * Runtime solidification can create WALL cells where LDtk has no baked wall
+   * auto-tile. Draw those cells explicitly so hardened magma is opaque.
+   */
+  private rebuildSolidifiedWallOverlay(): void {
+    const g = this.solidifiedWallGfx;
+    if (!g) return;
+    g.clear();
+    for (const key of this.solidifiedWallCells) {
+      const ix = key.indexOf(',');
+      const gx = +key.slice(0, ix);
+      const gy = +key.slice(ix + 1);
+      if (this.collisionGrid[gy]?.[gx] !== TILE_WALL) continue;
+      const x = gx * TILE_SIZE;
+      const y = gy * TILE_SIZE;
+      g.rect(x, y, TILE_SIZE, TILE_SIZE).fill({ color: 0x2b2520, alpha: 1 });
+      g.rect(x, y, TILE_SIZE, 2).fill({ color: 0x8a4c2b, alpha: 1 });
+      g.rect(x + 2, y + 4, TILE_SIZE - 4, 1).fill({ color: 0x4d382c, alpha: 0.9 });
+      g.rect(x + 1, y + TILE_SIZE - 2, TILE_SIZE - 2, 1).fill({ color: 0x171310, alpha: 0.85 });
+    }
   }
 
   private applyTerrainFilterAreas(width: number, height: number): void {

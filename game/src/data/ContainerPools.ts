@@ -25,9 +25,13 @@ export const CONTAINER_POOLS: Record<string, PoolEntry[]> = {
     { kind: 'Crate',         weight: 1 },
     { kind: 'MetalCrate',    weight: 3 },
   ],
+  // V2 (2026-05-17) — Design_ItemWorld_Themes.md §2.2 비평 회수:
+  //   Iron MetalCrate 4→5 (Brittle setup 강화, ice 위 MetalCrate × Physical 1hit)
+  //   Spark + OilDrum:2 (절연체로 회로 단절 퍼즐)
+  //   Shadow + MagmaCrucible:1 (작은 vent 의외성 함정)
   ItemWorld_Iron:   [
-    { kind: 'Crate',         weight: 4 },
-    { kind: 'MetalCrate',    weight: 4 },
+    { kind: 'Crate',         weight: 3 },
+    { kind: 'MetalCrate',    weight: 5 },
     { kind: 'WaterBarrel',   weight: 2 },
   ],
   ItemWorld_Rust:   [
@@ -36,14 +40,16 @@ export const CONTAINER_POOLS: Record<string, PoolEntry[]> = {
     { kind: 'Crate',         weight: 2 },
   ],
   ItemWorld_Spark:  [
-    { kind: 'WaterBarrel',   weight: 4 },
+    { kind: 'WaterBarrel',   weight: 3 },
+    { kind: 'OilDrum',       weight: 2 },
     { kind: 'MetalCrate',    weight: 3 },
-    { kind: 'Crate',         weight: 3 },
+    { kind: 'Crate',         weight: 2 },
   ],
   ItemWorld_Shadow: [
-    { kind: 'Crate',         weight: 5 },
+    { kind: 'Crate',         weight: 4 },
+    { kind: 'OilDrum',       weight: 3 },
     { kind: 'AcidVial',      weight: 2 },
-    { kind: 'OilDrum',       weight: 2 },
+    { kind: 'MagmaCrucible', weight: 1 },
   ],
 
   // ── World / generic-use pools (LdtkWorldScene rooms, themed but

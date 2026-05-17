@@ -79,6 +79,35 @@ const DROP_NONE = 50;
 const DROP_GOLD = 35;
 const DROP_FLASK = 10;
 
+/**
+ * Per-variant fire response. `null` = fire-immune (not currently used; all
+ * variants are flammable in ECHORIS tone — single-tone megastructure where the
+ * forge heat reaches everything). Tallgrass burns fastest (dry plant material);
+ * metal/composite variants burn slower (forge heat scorch).
+ */
+export interface BreakableFireSpec {
+  /** Per ignition-roll chance (rolled every IGN_ROLL_INTERVAL_MS while adjacent to fire). */
+  ignitionChance: number;
+  burnMs: number;
+  leavesAsh: boolean;
+}
+
+const FIRE_SPECS: Record<PropVariant, BreakableFireSpec> = {
+  // ignitionChance values are deliberately moderate (≤ 0.35) so a single
+  // burning prop doesn't ignite all 4-cell neighbours within one roll —
+  // chain propagation needs to read as a sweep, not an instant flash.
+  tallgrass: { ignitionChance: 0.35, burnMs: 5000, leavesAsh: false },
+  crystal:   { ignitionChance: 0.20, burnMs: 5000, leavesAsh: false },
+  crate:     { ignitionChance: 0.30, burnMs: 5000, leavesAsh: false },
+  panel:     { ignitionChance: 0.25, burnMs: 5000, leavesAsh: false },
+  pipe:      { ignitionChance: 0.15, burnMs: 5000, leavesAsh: false },
+  debris:    { ignitionChance: 0.10, burnMs: 5000, leavesAsh: false },
+};
+
+export function getBreakableFireSpec(variant: PropVariant): BreakableFireSpec {
+  return FIRE_SPECS[variant];
+}
+
 export interface PropDrop {
   type: 'none' | 'gold' | 'flask';
   amount: number;
@@ -102,10 +131,40 @@ export class BreakableProp {
   height = S;
   destroyed = false;
 
+  // === IgnitableEntity interface (consumed by TileMutator.spreadOilFire) ===
+  readonly cellW = 2;
+  readonly cellH = 2;
+  get gx(): number { return Math.floor(this.x / 16); }
+  get gy(): number { return Math.floor(this.y / 16); }
+  /** Alias for fireSpec — TileMutator reads `prop.spec.ignitionChance`. */
+  get spec(): BreakableFireSpec { return FIRE_SPECS[this.variant]; }
+  containsCell(gx: number, gy: number): boolean {
+    return gx >= this.gx && gx < this.gx + this.cellW &&
+           gy >= this.gy && gy < this.gy + this.cellH;
+  }
+  getCells(): Array<[number, number]> {
+    const out: Array<[number, number]> = [];
+    for (let dy = 0; dy < this.cellH; dy++) {
+      for (let dx = 0; dx < this.cellW; dx++) {
+        out.push([this.gx + dx, this.gy + dy]);
+      }
+    }
+    return out;
+  }
+
   private gfx: Graphics;
   private seed: number;
   private swayTimer = 0;
   private swayOffset: number;
+
+  // Fire response state — driven by scene-level adjacency checks. The prop
+  // burns for `_burnMs` then `burnedOut` flips true; scene then runs the same
+  // shatter/drop/destroy path as a sword break.
+  private _burning = false;
+  private _burnElapsed = 0;
+  private _burnMs = 0;
+  private fireGfx: Graphics | null = null;
+  private flickerT = 0;
 
   constructor(x: number, y: number, variant: PropVariant, seed = 0) {
     // Anchor bottom-left: y is the floor tile, prop extends upward
@@ -164,6 +223,102 @@ export class BreakableProp {
       const sway = Math.sin(this.swayTimer * 0.002 + this.swayOffset) * 0.04;
       this.gfx.skew.x = sway;
     }
+    if (this._burning) {
+      this._burnElapsed += dt;
+      this.flickerT += dt;
+      this.animateFire();
+      // Char tint — applied to `this.gfx` directly because Pixi v8's
+      // Container has no `tint` property (sets there are silently ignored).
+      // Graphics carries tint correctly; for artifact-sprite variants we
+      // also tint the first Sprite child if present.
+      const life = 1 - this._burnElapsed / this._burnMs;
+      const t =
+        life > 0.6 ? 0xffffff :
+        life > 0.25 ? 0xffcc88 :
+        0x886644;
+      this.gfx.tint = t;
+      for (const child of this.container.children) {
+        if ('texture' in child) (child as Sprite).tint = t;
+      }
+    }
+  }
+
+  // ============================================================
+  // Fire response
+  // ============================================================
+
+  get burning(): boolean { return this._burning; }
+  get burnedOut(): boolean { return this._burning && this._burnElapsed >= this._burnMs; }
+  get fireSpec(): BreakableFireSpec { return FIRE_SPECS[this.variant]; }
+
+  /** Begin burning. Returns true if newly ignited. */
+  ignite(): boolean {
+    if (this._burning || this.destroyed) return false;
+    const spec = this.fireSpec;
+    this._burning = true;
+    this._burnElapsed = 0;
+    this._burnMs = spec.burnMs;
+    this.flickerT = 0;
+    this.fireGfx = new Graphics();
+    // Additive blend so the flame reads as light overlaid on the prop sprite
+    // even when the underlying graphics is dark. Without this the teardrops
+    // sit *under* the prop body and can be visually indistinguishable.
+    this.fireGfx.blendMode = 'add';
+    this.container.addChild(this.fireGfx);
+    return true;
+  }
+
+  private animateFire(): void {
+    const gfx = this.fireGfx;
+    if (!gfx) return;
+    gfx.clear();
+    const life = 1 - this._burnElapsed / this._burnMs;
+    if (life <= 0) return;
+
+    const drawStrand = (baseX: number, baseY: number, flameH: number, flameW: number, phaseOffset: number) => {
+      const phase = this.flickerT * 0.018 + phaseOffset;
+      const wob = 0.85 + Math.sin(phase) * 0.25;
+      const h0 = flameH * wob;
+      const w0 = flameW * (0.9 + Math.sin(phase * 1.4) * 0.18);
+      const drawTeardrop = (halfW: number, hScale: number, color: number, alpha: number) => {
+        const hh = h0 * hScale;
+        const mY = baseY - hh * 0.45;
+        const tY = baseY - hh;
+        gfx.moveTo(baseX - halfW, baseY);
+        gfx.quadraticCurveTo(baseX - halfW * 1.4, mY, baseX, tY);
+        gfx.quadraticCurveTo(baseX + halfW * 1.4, mY, baseX + halfW, baseY);
+        gfx.closePath();
+        gfx.fill({ color, alpha: alpha * life });
+      };
+      drawTeardrop(w0 * 1.20, 1.00, 0xff3311, 0.55);
+      drawTeardrop(w0 * 0.85, 0.92, 0xff7722, 0.78);
+      drawTeardrop(w0 * 0.55, 0.80, 0xffcc44, 0.85);
+      drawTeardrop(w0 * 0.30, 0.62, 0xffffaa, 0.95);
+    };
+
+    if (this.variant === 'tallgrass') {
+      // Re-derive blade positions from the same seed used by draw() so each
+      // flame strand sits on top of its corresponding blade. Mirrors the
+      // exact sequence in draw()'s tallgrass case (5 rng calls per blade).
+      const rng = seededRandom(this.seed);
+      const bladeCount = 4 + Math.floor(rng() * 4);
+      for (let i = 0; i < bladeCount; i++) {
+        const bx = 4 + rng() * (S - 8);
+        const bh = 14 + rng() * 16;
+        rng(); rng(); rng();   // consume bw / lean / shade rolls (sequence parity)
+        const baseX = bx;
+        const baseY = S;
+        // Tall, slightly wider flame that fully wraps the blade — additive
+        // blend makes the overlap read as glow rather than a smaller silhouette.
+        const flameH = (bh + 6) * life;
+        const flameW = 3.5;
+        drawStrand(baseX, baseY, flameH, flameW, i * 0.73);
+      }
+      return;
+    }
+
+    // Single forge-scorch flame at prop centre for non-plant variants.
+    drawStrand(this.width / 2, this.height, 16 * life, 5, 0);
   }
 
   private rollDrop(): PropDrop {

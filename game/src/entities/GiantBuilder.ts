@@ -1,5 +1,5 @@
 /**
- * GiantBuilder — A massive Builder entity rendered from a separate LDtk level.
+ * GiantBuilder ??A massive Builder entity rendered from a separate LDtk level.
  *
  * Moves sub-pixel smooth along a vertical route. The scene is responsible
  * for stamping this builder's collisionGrid into the host grid each frame
@@ -15,9 +15,10 @@ import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { LegRig, type LegMount } from './LegRig';
 import { GlowFilter } from '@effects/GlowFilter';
 import { LandingDustManager } from '@effects/LandingDust';
+import { Debug } from '@core/Debug';
 
 // ---------------------------------------------------------------------------
-// BuilderLight — blinking indicator on the builder body
+// BuilderLight ??blinking indicator on the builder body
 // ---------------------------------------------------------------------------
 
 interface BuilderLightDef {
@@ -34,7 +35,20 @@ interface BuilderLightDef {
 }
 
 const TILE = 16;
-const AUTO_FOOT_WALL_CLEARANCE = 2 * TILE;
+// How far the foot anchor sits away from the wall face. Default 0 means the
+// visible sole edge is exactly on the raycast face; LDtk can still override
+// with AutoFootClearance when a specific leg needs art-directed spacing.
+const AUTO_FOOT_WALL_CLEARANCE = 0;
+// AutoFoot wall scan uses a vertical band instead of a 1-tile line so small
+// wall holes do not make builder feet lose their wall contact.
+const AUTO_FOOT_RAY_THICKNESS_TILES = 10;
+
+function readBoolField(fields: Record<string, unknown>, ...names: string[]): boolean {
+  for (const name of names) {
+    if (typeof fields[name] === 'boolean') return fields[name] as boolean;
+  }
+  return false;
+}
 
 export interface BuilderRoutePoint {
   y: number;
@@ -78,7 +92,31 @@ export class GiantBuilder {
   private footDust: LandingDustManager;
   private lights: BuilderLightDef[] = [];
   private lightTime = 0;
-  /** Unfiltered container for light graphics — sits above palette-filtered layers
+
+  /** Host level reference for the per-frame raycast (set in constructor when
+   *  a hostFootAnchor is supplied). Null host = no AutoFoot updates. */
+  private hostLevel: LdtkLevel | null = null;
+  /** AutoFoot leg book-keeping. One entry per LegMount with AutoFootLeft/Right
+   *  set. `smoothedX/Y` is the IK anchor actually pushed to LegRig ??lerped
+   *  toward the live raycast target each frame so row-boundary jumps don't
+   *  read as 16-px snaps. `lastX/Y` are the most recent successful target,
+   *  used as the lerp target on frames where the ray misses. */
+  private autoFootLegs: Array<{
+    legIdx: number;
+    shoulderLocalX: number;
+    shoulderLocalY: number;
+    direction: 'left' | 'right';
+    clearance: number;
+    smoothedX?: number;
+    smoothedY?: number;
+    lastX?: number;
+    lastY?: number;
+  }> = [];
+
+  /** Anchor lerp rate per frame (0 = static, 1 = instant). 0.20 absorbs a
+   *  16-px row-boundary snap over ~10 frames (~160 ms at 60 fps). */
+  private static readonly FOOT_ANCHOR_LERP = 0.20;
+  /** Unfiltered container for light graphics ??sits above palette-filtered layers
    *  so glow colors are not crushed by the dark palette swap. */
   readonly lightContainer: Container;
 
@@ -136,7 +174,7 @@ export class GiantBuilder {
     // in the builder level. Back-layer legs render behind the body tilemap
     // (peek out around the body); legs with ForwardRender=true render in the
     // front layer to show the full leg silhouette in front of the body.
-    const mounts = GiantBuilder.extractLegMounts(level, hostFootAnchor);
+    const mounts = GiantBuilder.extractLegMounts(level);
     this.footDust = new LandingDustManager(this.container);
     this.legRig = new LegRig(mounts, (x, y, mount) => {
       if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
@@ -144,9 +182,20 @@ export class GiantBuilder {
     });
     this.container.addChildAt(this.legRig.container, 0);
     this.container.addChild(this.legRig.frontContainer);
+    this.syncLegDebug();
+
+    // Live foot raycast: track the host level + extract per-leg AutoFoot
+    // settings so `updateFootAnchors()` can refresh anchors every frame.
+    if (hostFootAnchor) {
+      this.hostLevel = hostFootAnchor.hostLevel;
+      this.autoFootLegs = GiantBuilder.extractAutoFootEntries(level);
+      // Initial seed so the first rendered frame already shows the ray
+      // result instead of the spawn-time fallback anchor.
+      this.updateFootAnchors();
+    }
     this.legRig.update(0); // initial pose (gait phase 0, no advance)
 
-    // Procedural decorations on the builder body — same Z layout as the host
+    // Procedural decorations on the builder body ??same Z layout as the host
     // level: structureLayer behind walls, naturalLayer / artificialLayer
     // between walls and shadows. Seeded by the LDtk level identifier so the
     // builder always looks the same.
@@ -167,7 +216,7 @@ export class GiantBuilder {
       this.lightContainer.addChild(light.glowGfx);
       this.lightContainer.addChild(light.gfx);
     }
-    // Bloom shader on all lights — makes them glow like real indicators
+    // Bloom shader on all lights ??makes them glow like real indicators
     if (this.lights.length > 0) {
       this.lightContainer.filters = [new GlowFilter({
         color: this.lights[0].color,
@@ -184,92 +233,150 @@ export class GiantBuilder {
    * LegMount entity contract:
    *   Pivot:  (0.5, 0.5) center
    *   Fields:
-   *     - Angle  (Float, degrees) — direction from shoulder to foot.
-   *                0 = right, 90 = down, 180 = left, -90 = up.
-   *     - Phase  (Float, optional, 0..1) — gait offset; auto-distributed if null.
-   *     - Mirror        (Bool, optional) — flip stride direction.
-   *     - ForwardRender (Bool, optional) — render this leg in front of the
+   *     - XFlip         (Bool, optional) - flip leg sprites and stride direction horizontally.
+   *     - YFlip         (Bool, optional) - flip leg sprites vertically.
+   *     - KneeFlip      (Bool, optional) - flip IK knee bend direction only.
+   *     - ForwardRender (Bool, optional) ??render this leg in front of the
    *                       body tilemap (default: behind).
-   *     - Length (Float, optional, cells) — planted-foot reach (×16 → px).
-   *                Scales the whole leg so the foot can rest on a specific
-   *                surface without tilting the mount via Angle.
-   *     - FootX  (Float, optional, body-local cells) — lock foot to this
-   *                column (×16 → px). Use to snap feet to a vertical wall.
-   *                Overrides Angle/Length when set.
-   *     - FootY  (Float, optional, body-local cells) — lock foot to this
-   *                row (×16 → px). Use to snap feet to a horizontal floor.
-   *                Overrides Angle/Length when set.
    */
-  private static extractLegMounts(level: LdtkLevel, hostFootAnchor?: HostFootAnchorContext): LegMount[] {
+  private static extractLegMounts(level: LdtkLevel): LegMount[] {
     return level.entities
       .filter((e) => e.type === 'LegMount')
       .map((e) => {
-        const angleDeg = typeof e.fields.Angle === 'number' ? e.fields.Angle : 90;
-        const phase = typeof e.fields.Phase === 'number' ? e.fields.Phase : undefined;
-        const mirror = typeof e.fields.Mirror === 'boolean' ? e.fields.Mirror : false;
+        const flipX = readBoolField(e.fields, 'XFlip', 'FlipX', 'flipX');
+        const flipY = readBoolField(e.fields, 'YFlip', 'FlipY', 'flipY');
+        const kneeFlip = readBoolField(e.fields, 'KneeFlip', 'kneeFlip');
         const forwardRender = typeof e.fields.ForwardRender === 'boolean' ? e.fields.ForwardRender : false;
-        // Length is authored in cells (×16 → px) for editor-friendly sizing.
-        const length = typeof e.fields.Length === 'number' && e.fields.Length > 0
-          ? e.fields.Length * TILE
-          : undefined;
-        // FootX / FootY are authored in cells for editor-friendly snapping;
-        // convert to body-local pixels for the IK anchor.
-        const autoFootRight = e.fields.AutoFootRight === true;
-        const autoFootLeft = e.fields.AutoFootLeft === true;
-        let footAnchorX = typeof e.fields.FootX === 'number' ? e.fields.FootX * TILE : undefined;
-        let footAnchorY = typeof e.fields.FootY === 'number' ? e.fields.FootY * TILE : undefined;
-        let footContact: LegMount['footContact'] = 'bottom';
-        if (hostFootAnchor && (autoFootRight || autoFootLeft)) {
-          const localFootY = footAnchorY ?? e.px[1];
-          const row = GiantBuilder.resolveFootScanRow(hostFootAnchor.hostLevel, hostFootAnchor.builderY + localFootY);
-          const hostFaceX = autoFootRight
-            ? GiantBuilder.findRightHostWallFaceX(hostFootAnchor.hostLevel, row)
-            : GiantBuilder.findLeftHostWallFaceX(hostFootAnchor.hostLevel, row);
-          if (hostFaceX !== undefined) {
-            const clearance = typeof e.fields.AutoFootClearance === 'number'
-              ? e.fields.AutoFootClearance * TILE
-              : AUTO_FOOT_WALL_CLEARANCE;
-            footAnchorX = hostFaceX - hostFootAnchor.builderX + (autoFootRight ? -clearance : clearance);
-            footContact = autoFootRight ? 'right' : 'left';
-          }
-          footAnchorY ??= (row + 0.5) * TILE - hostFootAnchor.builderY;
-        }
+        const footContact: LegMount['footContact'] = 'bottom';
         return {
           x: e.px[0],
           y: e.px[1],
-          angle: (angleDeg * Math.PI) / 180,
-          phase,
-          mirror,
+          flipX,
+          flipY,
+          kneeFlip,
           forwardRender,
-          length,
-          footAnchorX,
-          footAnchorY,
           footContact,
         };
       });
   }
 
-  private static resolveFootScanRow(level: LdtkLevel, yPx: number): number {
-    const row = Math.floor(yPx / TILE);
-    return Math.max(0, Math.min(level.gridH - 1, row));
+  /**
+   * Walk LegMount entities in raw LDtk order and emit one tracking entry
+   * per AutoFootLeft/Right mount. Index aligns with extractLegMounts so the
+   * caller can pass `legIdx` directly to LegRig.setFootAnchor.
+   */
+  private static extractAutoFootEntries(level: LdtkLevel): GiantBuilder['autoFootLegs'] {
+    const out: GiantBuilder['autoFootLegs'] = [];
+    let legIdx = 0;
+    for (const e of level.entities) {
+      if (e.type !== 'LegMount') continue;
+      const al = e.fields.AutoFootLeft === true;
+      const ar = e.fields.AutoFootRight === true;
+      if (al || ar) {
+        const clearanceCells = typeof e.fields.AutoFootClearance === 'number'
+          ? e.fields.AutoFootClearance
+          : AUTO_FOOT_WALL_CLEARANCE / TILE;
+        out.push({
+          legIdx,
+          shoulderLocalX: e.px[0],
+          shoulderLocalY: e.px[1],
+          direction: al ? 'left' : 'right',
+          clearance: clearanceCells * TILE,
+        });
+      }
+      legIdx++;
+    }
+    return out;
   }
 
-  private static findRightHostWallFaceX(level: LdtkLevel, row: number): number | undefined {
-    for (let c = level.gridW - 1; c >= 0; c--) {
-      if ((level.collisionGrid[row]?.[c] ?? 0) !== 1) continue;
-      while (c > 0 && (level.collisionGrid[row]?.[c - 1] ?? 0) === 1) c--;
-      return c * TILE;
+  /**
+   * Raycast from a shoulder world coord through a thick horizontal band in
+   * host IntGrid space.
+   * Returns the first wall cell's *near* face (the side facing the shoulder)
+   * along with the center row the ray travelled. `maxCells` caps the scan distance.
+   * Returns null when no wall is encountered ??caller falls back to the
+   * last successful anchor (or default pose if none).
+   */
+  private static raycastWallFromShoulder(
+    hostLevel: LdtkLevel,
+    shoulderWorldX: number,
+    shoulderWorldY: number,
+    direction: 'left' | 'right',
+    maxCells: number = 64,
+  ): { faceWorldX: number; row: number } | null {
+    const row = Math.floor(shoulderWorldY / TILE);
+    if (row < 0 || row >= hostLevel.gridH) return null;
+    const bandBefore = Math.floor((AUTO_FOOT_RAY_THICKNESS_TILES - 1) / 2);
+    const bandAfter = AUTO_FOOT_RAY_THICKNESS_TILES - 1 - bandBefore;
+    const rowMin = Math.max(0, row - bandBefore);
+    const rowMax = Math.min(hostLevel.gridH - 1, row + bandAfter);
+    const startCol = Math.floor(shoulderWorldX / TILE);
+    const step = direction === 'left' ? -1 : 1;
+    let scanned = 0;
+    for (let c = startCol; c >= 0 && c < hostLevel.gridW && scanned < maxCells; c += step) {
+      let hitsBand = false;
+      for (let r = rowMin; r <= rowMax; r++) {
+        if (hostLevel.collisionGrid[r]?.[c] === 1) {
+          hitsBand = true;
+          break;
+        }
+      }
+      if (hitsBand) {
+        // Face = the side of this cell that points back at the shoulder.
+        //   left-ray hit  ??wall is to the *left* of shoulder ??face is c+1
+        //   right-ray hit ??wall is to the *right* of shoulder ??face is c
+        const faceCol = direction === 'left' ? c + 1 : c;
+        return { faceWorldX: faceCol * TILE, row };
+      }
+      scanned++;
     }
-    return undefined;
+    return null;
   }
 
-  private static findLeftHostWallFaceX(level: LdtkLevel, row: number): number | undefined {
-    for (let c = 0; c < level.gridW; c++) {
-      if ((level.collisionGrid[row]?.[c] ?? 0) !== 1) continue;
-      while (c < level.gridW - 1 && (level.collisionGrid[row]?.[c + 1] ?? 0) === 1) c++;
-      return (c + 1) * TILE;
+  /**
+   * Per-frame raycast for every AutoFoot leg, pushing a smoothed anchor
+   * into LegRig.
+   *
+   * Smoothing rationale: the raycast snaps to 16-px cells, so when the
+   * builder crosses a row boundary the raw target jumps by a full cell.
+   * Without smoothing the foot pops; with lerp the IK eases over ~10 frames.
+   * The first frame seeds smoothedX/Y to the target (no startup interpolation
+   * from origin).
+   */
+  private updateFootAnchors(): void {
+    if (!this.hostLevel || this.autoFootLegs.length === 0) return;
+    const RATE = GiantBuilder.FOOT_ANCHOR_LERP;
+    for (const entry of this.autoFootLegs) {
+      const sx = this.container.x + entry.shoulderLocalX;
+      const sy = this.container.y + entry.shoulderLocalY;
+      const hit = GiantBuilder.raycastWallFromShoulder(this.hostLevel, sx, sy, entry.direction);
+      let targetX: number | undefined;
+      let targetY: number | undefined;
+      if (hit) {
+        // Convert host-world ??builder-local before handing to LegRig
+        // (mount coords live in body-local space).
+        const localFaceX = hit.faceWorldX - this.container.x;
+        const localFootY = (hit.row + 0.5) * TILE - this.container.y;
+        // Sign points away from the wall toward the shoulder.
+        const sign = entry.direction === 'left' ? 1 : -1;
+        targetX = localFaceX + sign * entry.clearance;
+        targetY = localFootY;
+        entry.lastX = targetX;
+        entry.lastY = targetY;
+      } else if (entry.lastX !== undefined && entry.lastY !== undefined) {
+        // Fallback (c) ??hold the last successful target so a momentary
+        // miss (host edge, wall-less row) doesn't snap to default pose.
+        targetX = entry.lastX;
+        targetY = entry.lastY;
+      }
+      if (targetX === undefined || targetY === undefined) continue;
+      // Smoothing temporarily disabled during the sole-anchor diagnosis ??      // any stale lastSuccess value lerping in would obscure whether the
+      // IK target itself is correct. Re-enable once visuals are confirmed.
+      entry.smoothedX = targetX;
+      entry.smoothedY = targetY;
+      void RATE;
+      this.legRig.setFootAnchor(entry.legIdx, entry.smoothedX, entry.smoothedY, entry.direction);
     }
-    return undefined;
   }
 
   private static extractLights(level: LdtkLevel): BuilderLightDef[] {
@@ -355,12 +462,17 @@ export class GiantBuilder {
     }
   }
 
+  private syncLegDebug(): void {
+    this.legRig.setDebug(Debug.visible ? this.container : null);
+  }
+
   /** True while the builder is actively traveling between route points. */
   get isMoving(): boolean {
     return this.state === 'moving';
   }
 
   update(dt: number): void {
+    this.syncLegDebug();
     this.lastDeltaY = 0;
 
     // Animate lights regardless of movement state
@@ -379,7 +491,16 @@ export class GiantBuilder {
     }
     this.footDust.update(dt);
 
-    if (this.state === 'dormant' || this.route.length === 0) return;
+    // Per-frame leg raycast ??anchors track the host wall as the builder
+    // moves. Done before any state early-return so dormant / waiting
+    // builders still adapt (e.g. cracked floor breaks under a stopped leg).
+    this.updateFootAnchors();
+
+    if (this.state === 'dormant' || this.route.length === 0) {
+      // Even dormant, push anchor changes into IK so sprite reflects ray.
+      this.legRig.update(0);
+      return;
+    }
 
     if (this.state === 'waiting') {
       this.waitTimer -= dt;
@@ -398,6 +519,7 @@ export class GiantBuilder {
           this.state = 'moving';
         }
       }
+      this.legRig.update(0);
       return;
     }
 

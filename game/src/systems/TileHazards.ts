@@ -31,7 +31,7 @@
  * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13, §3.2
  */
 
-import { isInAcid, isInCharged, isInMagma } from '../core/Physics';
+import { isInAcid, isInCharged, isInMagma, isInWater } from '../core/Physics';
 import type { TileMutator } from './TileMutator';
 import type { FluidSystem } from '../effects/FluidSystem';
 
@@ -57,6 +57,15 @@ export interface HazardTarget {
   /** Was overlapping an electric overlay last frame? Used so thunder damages
    *  once per pulse (on transition into overlay), not every frame. */
   prevInElectric?: boolean;
+  /** Optional player hook: water clears burn/fire debuffs immediately. */
+  extinguishFireDebuffs?: () => void;
+  /**
+   * Charged 상태 buff 잔여 ms — Arc Discharge 적중 시 ARC_CHARGED_BUFF_MS
+   * (3000ms) 부여. 양수면 entity 가 *전도화 상태* — Charge Inhabit:
+   *   - 다음 metal/water/acid 셀 접촉 시 보조 thunder chain trigger
+   *   - 시각 sparkle overlay
+   */
+  chargedStateMs?: number;
 }
 
 export interface HazardCallbacks {
@@ -96,6 +105,11 @@ export function applyTileHazards(
   cb: HazardCallbacks,
 ): void {
   if (target.hp <= 0) return;
+  const x = target.x, y = target.y, w = target.width, h = target.height;
+  const extinguishesFireInWater = !!target.extinguishFireDebuffs && isInWater(x, y, w, h, roomData);
+  if (extinguishesFireInWater) {
+    target.extinguishFireDebuffs?.();
+  }
   if (target.invincible) {
     // While invincible we still cool down the burn timer so the player doesn't
     // emerge from i-frames still on fire from a brief touch.
@@ -105,13 +119,12 @@ export function applyTileHazards(
     return;
   }
 
-  const x = target.x, y = target.y, w = target.width, h = target.height;
   let burnRem = target.burnRemainingMs ?? 0;
   let burnAcc = target.burnTickAccum ?? 0;
   let chargedAcc = target.chargedTickAccum ?? 0;
 
   // 1) Magma contact — Burn 3s + 2% maxHp immediate
-  if (isInMagma(x, y, w, h, roomData)) {
+  if (!extinguishesFireInWater && isInMagma(x, y, w, h, roomData)) {
     const wasBurning = burnRem > 0;
     burnRem = MAGMA_BURN_DURATION_MS;
     if (!wasBurning) {
@@ -152,7 +165,7 @@ export function applyTileHazards(
   const fireFx = 2;
   const inTileFire = mutator.aabbHasOverlay(x - fireFx, y - fireFx, w + fireFx * 2, h + fireFx * 2, 'fire');
   const nearBurningProp = mutator.aabbNearBurningProp(x - fireFx, y - fireFx, w + fireFx * 2, h + fireFx * 2);
-  if (inTileFire || nearBurningProp) {
+  if (!extinguishesFireInWater && (inTileFire || nearBurningProp)) {
     cb.onDamage(target.maxHp * FIRE_DPS_PCT * (dtMs / 1000), 'fire');
     if (burnRem < FIRE_BURN_REFRESH_MS) {
       const wasBurning = burnRem > 0;
@@ -171,8 +184,25 @@ export function applyTileHazards(
   }
   target.prevInElectric = inElectric;
 
+  // 5.5) Charge Inhabit (R-NEW-021) — Arc Discharge 적중 entity 는 chargedStateMs
+  //      동안 *전도화 상태*. 그 동안 water/metal/acid 셀에 AABB 접촉 시 그 셀에서
+  //      thunder chain BFS 1회 trigger 후 buff 소비.
+  let chargedSt = target.chargedStateMs ?? 0;
+  if (chargedSt > 0) {
+    chargedSt = Math.max(0, chargedSt - dtMs);
+    if (chargedSt > 0) {
+      const conductorCell = findCellInAABB(x, y, w, h, roomData,
+        t => isWater(t) || isMetal(t) || isAcid(t));
+      if (conductorCell) {
+        mutator.applyThunderChain(roomData, conductorCell.gx, conductorCell.gy);
+        chargedSt = 0;  // 1회 소비
+      }
+    }
+  }
+  target.chargedStateMs = chargedSt;
+
   // 6) Burn DOT — 2% maxHp / 1s
-  if (burnRem > 0) {
+  if (!extinguishesFireInWater && burnRem > 0) {
     burnRem -= dtMs;
     burnAcc += dtMs;
     while (burnAcc >= BURN_TICK_MS) {
@@ -214,20 +244,22 @@ import {
  *
  * Returns the strongest reaction observed (or null).
  */
+export type FireAttackResult = 'ignite' | 'melt' | 'steam' | 'toxic' | 'magma-surge' | 'heat-metal';
+
 export function applyFireAttack(
   roomData: number[][], mutator: TileMutator,
   ax: number, ay: number, aw: number, ah: number,
   fluidSystem?: FluidSystem,
-): 'ignite' | 'melt' | 'steam' | null {
+): FireAttackResult | null {
   const TILE = 16;
   const l = Math.floor(ax / TILE);
   const r = Math.floor((ax + aw - 1) / TILE);
   const t = Math.floor(ay / TILE);
   const b = Math.floor((ay + ah - 1) / TILE);
-  let result: 'ignite' | 'melt' | 'steam' | null = null;
-  const prio = (k: 'ignite' | 'melt' | 'steam') =>
-    ({ steam: 3, melt: 2, ignite: 1 }[k]);
-  const promote = (k: 'ignite' | 'melt' | 'steam') => {
+  let result: FireAttackResult | null = null;
+  const prio = (k: FireAttackResult): number =>
+    ({ steam: 5, toxic: 4, 'magma-surge': 3, 'heat-metal': 3, melt: 2, ignite: 1 }[k]);
+  const promote = (k: FireAttackResult): void => {
     if (!result || prio(k) > prio(result)) result = k;
   };
   for (let gy = t; gy <= b; gy++) {
@@ -239,6 +271,25 @@ export function applyFireAttack(
         promote('steam');
       } else if (isIce(tile)) {
         if (mutator.tryMeltIce(roomData, gx, gy)) promote('melt');
+      } else if (isAcid(tile)) {
+        // R-NEW-003 Acid Flash: fire on acid → toxic steam + cell removal
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        if (fluidSystem) fluidSystem.removeCell(gx, gy);
+        promote('toxic');
+      } else if (isMagma(tile)) {
+        // R-NEW-020 Magma Surge: fire on magma → 1-tile expansion to adjacent AIR
+        const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
+        for (const n of ns) {
+          if (getTile(roomData, n[0], n[1]) === 0 && roomData[n[1]] && Math.random() < 0.40) {
+            roomData[n[1]][n[0]] = tile; // magma 확장
+          }
+        }
+        promote('magma-surge');
+      } else if (isMetal(tile)) {
+        // R-NEW-019 Heat Metal: fire on metal → 4s fire overlay on metal cell
+        // (metal 셀 자체는 유지, fire overlay 만 부여 — DOT + acid 부식 가속 hook)
+        mutator.tryIgniteOverlayOnly(gx, gy, 4000);
+        promote('heat-metal');
       } else {
         // tryIgnite covers flammable tiles (oil/wood/grass) AND
         // BurnableProp entity footprints via its fallback.
@@ -249,49 +300,133 @@ export function applyFireAttack(
   return result;
 }
 
+export type IceAttackResult =
+  | 'freeze-water' | 'freeze-magma' | 'freeze-oil' | 'freeze-acid' | 'freeze-metal';
+
 /**
- * Ice enchant hits an AABB. Reacts:
- *   water → freeze 3s (wall)
- *   magma → freeze 3s (wall)
+ * Ice enchant hits an AABB — sweeps EVERY cell. Reacts:
+ *   water → freeze 15s (R-028)
+ *   magma → freeze 15s (R-029)
+ *   oil   → freeze 8s   (R-NEW-004 — frozen oil, unstable)
+ *   acid  → freeze 5s   (R-NEW-006 — frozen acid, most unstable)
+ *   metal → freeze 15s + brittle (R-NEW-021 — Frozen Steel, Physical 1 hit shatters)
+ * Returns the strongest reaction (priority: water > magma > metal > oil > acid).
  */
 export function applyIceAttack(
   roomData: number[][], mutator: TileMutator,
   ax: number, ay: number, aw: number, ah: number,
-): 'freeze-water' | 'freeze-magma' | null {
-  const waterHit = findCellInAABB(ax, ay, aw, ah, roomData, isWater);
-  if (waterHit) { mutator.tryFreeze(roomData, waterHit.gx, waterHit.gy); return 'freeze-water'; }
-  const magmaHit = findCellInAABB(ax, ay, aw, ah, roomData, isMagma);
-  if (magmaHit) { mutator.tryFreeze(roomData, magmaHit.gx, magmaHit.gy); return 'freeze-magma'; }
-  return null;
+): IceAttackResult | null {
+  const TILE = 16;
+  const l = Math.floor(ax / TILE);
+  const r = Math.floor((ax + aw - 1) / TILE);
+  const t = Math.floor(ay / TILE);
+  const b = Math.floor((ay + ah - 1) / TILE);
+  let result: IceAttackResult | null = null;
+  const prio = (k: IceAttackResult): number =>
+    ({ 'freeze-water': 5, 'freeze-magma': 4, 'freeze-metal': 3, 'freeze-oil': 2, 'freeze-acid': 1 }[k]);
+  const promote = (k: IceAttackResult): void => {
+    if (!result || prio(k) > prio(result)) result = k;
+  };
+  for (let gy = t; gy <= b; gy++) {
+    for (let gx = l; gx <= r; gx++) {
+      const tile = getTile(roomData, gx, gy);
+      if (isWater(tile))      { mutator.tryFreeze(roomData, gx, gy); promote('freeze-water'); }
+      else if (isMagma(tile)) { mutator.tryFreeze(roomData, gx, gy); promote('freeze-magma'); }
+      else if (isOil(tile))   { mutator.tryFreeze(roomData, gx, gy); promote('freeze-oil');   }
+      else if (isAcid(tile))  { mutator.tryFreeze(roomData, gx, gy); promote('freeze-acid');  }
+      else if (isMetal(tile)) { mutator.tryFreezeMetal(roomData, gx, gy); promote('freeze-metal'); }
+    }
+  }
+  return result;
+}
+
+export interface ThunderAttackResult {
+  /** Number of cells lit by conductor chain. */
+  cellsLit: number;
+  /** R-NEW-018: magma cell hit by Thunder — detonation flag (50% maxHp radial). */
+  detonationAt: { gx: number; gy: number } | null;
+  /** R-NEW-022: ice cell hit by Thunder — shatter flag (30% maxHp + cell→AIR). */
+  shatterAt: { gx: number; gy: number } | null;
 }
 
 /**
  * Thunder enchant hits an AABB. Reacts:
  *   water | metal | acid → flood-fill conductor chain
- * Returns number of cells lit (0 if no conductor in AABB).
+ *   magma → R-NEW-018 detonation flag (scene handles entity damage + VFX)
+ *   ice   → R-NEW-022 shatter flag (cell → AIR + 30% maxHp)
+ * Returns structured result with chain count + detonation/shatter coords.
  */
 export function applyThunderAttack(
   roomData: number[][], mutator: TileMutator,
   ax: number, ay: number, aw: number, ah: number,
-): number {
-  const hit = findCellInAABB(ax, ay, aw, ah, roomData, isConductor);
-  if (!hit) return 0;
-  return mutator.applyThunderChain(roomData, hit.gx, hit.gy);
+): ThunderAttackResult {
+  const result: ThunderAttackResult = { cellsLit: 0, detonationAt: null, shatterAt: null };
+  // Magma detonation — first magma cell in AABB
+  const magmaHit = findCellInAABB(ax, ay, aw, ah, roomData, isMagma);
+  if (magmaHit) result.detonationAt = { gx: magmaHit.gx, gy: magmaHit.gy };
+  // Ice shatter — first ice cell in AABB
+  const iceHit = findCellInAABB(ax, ay, aw, ah, roomData, isIce);
+  if (iceHit) {
+    result.shatterAt = { gx: iceHit.gx, gy: iceHit.gy };
+    if (roomData[iceHit.gy]) roomData[iceHit.gy][iceHit.gx] = 0; // ice → AIR
+  }
+  // Conductor chain — first conductor in AABB
+  const conductorHit = findCellInAABB(ax, ay, aw, ah, roomData, isConductor);
+  if (conductorHit) {
+    result.cellsLit = mutator.applyThunderChain(roomData, conductorHit.gx, conductorHit.gy);
+  }
+  return result;
 }
 
+export type PhysicalAttackResult = 'break-breakable' | 'break-ice' | 'chop-wood' | 'cut-grass' | 'shatter-frozen-metal';
+
 /**
- * Physical (non-elemental) attack on a breakable cell. Just provided for
- * symmetry — most scenes already handle this via Entity Breakable, but the
- * IntGrid breakable (9) can be hit directly too.
+ * Physical (non-elemental) attack on AABB. Sweeps cells. Reacts:
+ *   breakable (9)            → AIR (R-034 기존)
+ *   ice                      → AIR (R-NEW-037 Break Ice)
+ *   wood                     → AIR (R-NEW-030 Chop Wood)
+ *   grass                    → AIR (R-NEW-036 Cut Grass — 보상 hook scene 측)
+ *   frozen metal (WALL+meta) → AIR (R-NEW-017 Brittle Metal — 1 hit shatter)
  */
 export function applyPhysicalAttack(
-  roomData: number[][],
+  roomData: number[][], mutator: TileMutator,
   ax: number, ay: number, aw: number, ah: number,
-): boolean {
-  const hit = findCellInAABB(ax, ay, aw, ah, roomData, (t) => t === 9);
-  if (!hit) return false;
-  if (roomData[hit.gy]) roomData[hit.gy][hit.gx] = 0;
-  return true;
+): PhysicalAttackResult | null {
+  const TILE = 16;
+  const l = Math.floor(ax / TILE);
+  const r = Math.floor((ax + aw - 1) / TILE);
+  const t = Math.floor(ay / TILE);
+  const b = Math.floor((ay + ah - 1) / TILE);
+  let result: PhysicalAttackResult | null = null;
+  const prio = (k: PhysicalAttackResult): number =>
+    ({ 'shatter-frozen-metal': 5, 'break-breakable': 4, 'break-ice': 3, 'chop-wood': 2, 'cut-grass': 1 }[k]);
+  const promote = (k: PhysicalAttackResult): void => {
+    if (!result || prio(k) > prio(result)) result = k;
+  };
+  for (let gy = t; gy <= b; gy++) {
+    for (let gx = l; gx <= r; gx++) {
+      const tile = getTile(roomData, gx, gy);
+      // R-NEW-017 Brittle Metal: WALL 인데 frozen 이고 originalTile 이 METAL 이면 1 hit 즉파
+      if (tile === 1 /*WALL*/ && mutator.isFrozenMetal(gx, gy)) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        mutator.clearFrozen(gx, gy);
+        promote('shatter-frozen-metal');
+      } else if (tile === 9 /*BREAKABLE*/) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        promote('break-breakable');
+      } else if (isIce(tile)) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        promote('break-ice');
+      } else if (tile === 15 /*WOOD*/) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        promote('chop-wood');
+      } else if (tile === 16 /*GRASS*/) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        promote('cut-grass');
+      }
+    }
+  }
+  return result;
 }
 
 // Re-export for one-import convenience at call sites

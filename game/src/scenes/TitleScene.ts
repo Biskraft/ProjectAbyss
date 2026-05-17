@@ -8,7 +8,7 @@
  *   3. Fade-out (0.5s) → game start
  */
 
-import { Text, TextStyle, Sprite, Assets, Container, Graphics } from 'pixi.js';
+import { Text, TextStyle, Sprite, Assets, Container, Graphics, BlurFilter } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { PIXEL_FONT } from '@ui/fonts';
 import { localizeFontFamily } from '@ui/factories';
@@ -18,6 +18,7 @@ import { LdtkWorldScene } from './LdtkWorldScene';
 import type { Game } from '../Game';
 import { assetPath } from '@core/AssetLoader';
 import { PRESET_INFOS, PRESET_NAMES, type PresetName, GameAction, actionKey } from '@core/InputManager';
+import { requestFullscreenSafely, isInIframe, isFullscreenActive } from '@core/Fullscreen';
 import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SECONDARY, CARD_BG, CARD_BORDER, TEXT_KEY } from '@ui/ModalPanel';
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
@@ -49,7 +50,10 @@ export class TitleScene extends Scene {
 
   // Logo elements
   private hintText!: Text;
+  /** Outer bloom — wide, heavily blurred, additive. Reads as ambient haze. */
   private pulseGfx!: Graphics;
+  /** Inner hot core — tighter blur, additive, brighter. Forge highlight. */
+  private pulseHotCore!: Graphics;
   private accentLine!: Graphics;
   /** "Gamepad Recommended" / "🎮 Gamepad Detected" 자막 — 50% alpha base. */
   private gamepadHint!: Text;
@@ -97,8 +101,25 @@ export class TitleScene extends Scene {
     this.uiRoot.addChild(bg);
 
     // Pulse glow — only ambient element behind the logo.
+    //
+    // Two stacked graphics so the bloom reads as "forge breathing":
+    //   pulseGfx     — outer haze. Wide blur (24), additive blend, 4 falloff
+    //                  layers. Drives the soft orange halo around the logo.
+    //   pulseHotCore — inner hot spot. Tight blur (6), additive blend, near-
+    //                  white centre. Gives the impression of an ember at the
+    //                  middle of the bloom.
+    // BlurFilter is set once and the graphics is redrawn each frame; Pixi v8
+    // re-uses the filter target so this is cheaper than rebuilding filters.
     this.pulseGfx = new Graphics();
+    // Wider blur than before so the outer mist disperses to nothing instead
+    // of forming a hard ring at high pulse.
+    this.pulseGfx.filters = [new BlurFilter({ strength: 32, quality: 4 })];
+    this.pulseGfx.blendMode = 'add';
     this.uiRoot.addChild(this.pulseGfx);
+    this.pulseHotCore = new Graphics();
+    this.pulseHotCore.filters = [new BlurFilter({ strength: 10, quality: 4 })];
+    this.pulseHotCore.blendMode = 'add';
+    this.uiRoot.addChild(this.pulseHotCore);
 
     // Logo — sized to leave room for SELECT CONTROLS label + 3 preset cards
     // below it on the 360-px-tall canvas. Native PNG is 640×166; targeting
@@ -416,13 +437,32 @@ export class TitleScene extends Scene {
     const cy = (GAME_HEIGHT / 2) * s;
     const input = this.game.input;
 
-    // Pulse glow
-    if (this.pulseGfx) {
+    // Pulse glow — "distant ember breath". Two design choices keep this
+    // present without burning the eye:
+    //   1) NO white core. Pure forge-orange palette (b04020..ffaa50). White
+    //      is what made the prior bloom feel like a flashbulb.
+    //   2) Narrow breath: pulse 0.88..1.0 (variance 0.06), radius +/- 5 px.
+    //      The motion reads as a low ember, not a strobe.
+    // BlurFilter (strength 32 outer, 10 inner) softens layer edges into a
+    // continuous radial falloff. Additive blend so the haze adds light to
+    // the black stage without ever darkening anything.
+    if (this.pulseGfx && this.pulseHotCore) {
+      const t = this.elapsed / 3500 * Math.PI * 2;
+      const pulse = 0.94 + Math.sin(t) * 0.06;
+      const baseR = (118 + Math.sin(t) * 5) * s;
+      const px = cx;
+      const py = cy - 40 * s;
+
       this.pulseGfx.clear();
-      const pulse = 0.3 + Math.sin(this.elapsed / 3000 * Math.PI * 2) * 0.15;
-      const radius = (120 + Math.sin(this.elapsed / 3000 * Math.PI * 2) * 15) * s;
-      this.pulseGfx.circle(cx, cy - 40 * s, radius).fill({ color: COL_ACCENT, alpha: pulse * 0.08 });
-      this.pulseGfx.circle(cx, cy - 40 * s, radius * 0.6).fill({ color: COL_ACCENT, alpha: pulse * 0.12 });
+      // Outer mist — deep dim ember at the edge, warming as it approaches centre.
+      this.pulseGfx.circle(px, py, baseR * 1.85).fill({ color: 0x8a3a18, alpha: 0.022 * pulse });
+      this.pulseGfx.circle(px, py, baseR * 1.35).fill({ color: 0xc0541e, alpha: 0.038 * pulse });
+      this.pulseGfx.circle(px, py, baseR * 0.95).fill({ color: 0xe87830, alpha: 0.055 * pulse });
+
+      this.pulseHotCore.clear();
+      // Inner ember — small, gentle, no white. Just two orange steps.
+      this.pulseHotCore.circle(px, py, baseR * 0.42).fill({ color: 0xff8a38, alpha: 0.095 * pulse });
+      this.pulseHotCore.circle(px, py, baseR * 0.22).fill({ color: 0xffaa55, alpha: 0.135 * pulse });
     }
 
     // Accent line pulse
@@ -469,6 +509,9 @@ export class TitleScene extends Scene {
             && !input.isRawKeyJustPressed('ShiftRight')) {
             this.hintText.visible = false;
             this.gamepadHint.visible = false;
+            // First user gesture → opportunistic fullscreen nudge. Must be
+            // called from the same gesture frame so the browser accepts it.
+            this.tryAutoFullscreen();
             if (getInputDevice() === 'gamepad' || input.hasSavedPreset()) {
               this.startFadeOut();
             } else {
@@ -496,6 +539,7 @@ export class TitleScene extends Scene {
         }
         // Skip Shift-only press (modifier keys shouldn't trigger "any key")
         if (input.anyKeyJustPressed() && !input.isRawKeyJustPressed('ShiftLeft') && !input.isRawKeyJustPressed('ShiftRight')) {
+          this.tryAutoFullscreen();
           this.startFadeOut();
         }
         break;
@@ -689,6 +733,32 @@ export class TitleScene extends Scene {
     if (!pulse) return;
     pulse.clear();
     drawSelectionPulse(pulse, cardW, cardH, a, 'soft');
+  }
+
+  /**
+   * Best-effort fullscreen entry on the first user gesture.
+   *
+   *  - Skipped silently when the page is in an iframe (itch.io etc) — the
+   *    host already provides a fullscreen control there.
+   *  - Already-fullscreen → no-op.
+   *  - On rejection (browser denied / no permission) a small hint becomes
+   *    visible on the title prompt suggesting the F shortcut from inside
+   *    the game (PauseMenu manual toggle covers the rest).
+   */
+  private fullscreenAttempted = false;
+  private tryAutoFullscreen(): void {
+    if (this.fullscreenAttempted) return;
+    this.fullscreenAttempted = true;
+    if (isInIframe() || isFullscreenActive()) return;
+    requestFullscreenSafely().then((ok) => {
+      if (!ok && this.hintText) {
+        // Surface a non-blocking hint — the scene is about to fade out, so
+        // the hint may flash briefly. That's fine: the player saw enough
+        // to recall the F key when they reopen the pause menu.
+        this.hintText.text = t('title.fullscreen_hint');
+        this.hintText.visible = true;
+      }
+    }).catch(() => { /* already swallowed inside Fullscreen.ts */ });
   }
 
   render(_alpha: number): void {}

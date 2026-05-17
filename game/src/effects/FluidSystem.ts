@@ -27,10 +27,11 @@ import { getFluidDef, type FluidType, type FluidTypeDef } from '@data/FluidTypes
  * Values must match Physics.ts TILE_* constants.
  */
 const FLUID_CELL_TYPES: Array<{ value: number; type: FluidType }> = [
-  { value: 2,  type: 'water' },
-  { value: 6,  type: 'magma' },
-  { value: 11, type: 'oil'   },
-  { value: 13, type: 'acid'  },
+  { value: 2,  type: 'water'   },
+  { value: 6,  type: 'magma'   },
+  { value: 8,  type: 'charged' },
+  { value: 11, type: 'oil'     },
+  { value: 13, type: 'acid'    },
 ];
 
 /** Set of IntGrid values that are treated as flowing fluid by gravityTick. */
@@ -56,6 +57,18 @@ interface SurfaceColumn {
   vy: number;       // velocity (px/ms)
 }
 
+/**
+ * Arc Scan Cycle 의 한 연결 — charged body 의 origin 에서 target 으로 그어지는
+ * 전기 선. 씬이 discharge 시 ref/kind 로 적절한 동작을 한다.
+ */
+export interface ArcLink {
+  worldX: number;
+  worldY: number;
+  kind: 'entity' | 'container' | 'fluid' | 'cell';
+  /** Scene 이 쓰는 reference (player/enemy/container instance / FluidBody / 셀 좌표). */
+  ref?: unknown;
+}
+
 interface FluidBody {
   type: FluidType;
   def: FluidTypeDef;
@@ -76,6 +89,24 @@ interface FluidBody {
   ambientPhase: number;           // 0..1 — body 별 시간 진행
   /** Phase for pulsing halo brightness, ms accumulator. */
   haloPhaseMs: number;
+  /**
+   * Wet-Conductor Spread (R-NEW-025). water body 가 charged body 와 4-인접 시
+   * true. attachGrid 직후 markElectrifiedBodies 가 마크. Arc Scan + Charge
+   * Multiplier 가 이 flag 를 source pool 로 사용한다.
+   */
+  isElectrified: boolean;
+  /**
+   * Arc Scan Cycle (R-NEW-031 v2) — charged body 의 사이클 페이즈.
+   * water + isElectrified 도 동일 사이클 진행 (wet-conductor 도 자체 arc 방출).
+   */
+  arcPhase: 'scan' | 'hold' | 'recover';
+  arcPhaseMs: number;
+  arcLinks: ArcLink[];
+  /** Arc 시작점 — body 의 어느 surface column 좌표에서 발화 (world px). */
+  arcOriginX: number;
+  arcOriginY: number;
+  /** Arc VFX gfx. 사이클마다 link 들 새로 그림. */
+  arcGfx: Graphics | null;
 }
 
 export class FluidSystem {
@@ -104,6 +135,44 @@ export class FluidSystem {
   }> = [];
   /** Total fade-out duration for an evaporating droplet (ms). */
   static EVAP_FADE_MS = 650;
+
+  /**
+   * Arc Scan Cycle (R-NEW-031 v2) — charged body 가 주변 conductor 를 검색하여
+   * 전기선을 그은 후 일정 시간 뒤 일제히 방전. 4 페이즈 사이클:
+   *   scan 1500ms     : onArcScanRequest 콜백 → arcLinks 셋업. arc line 천천히 자라남.
+   *   hold 1500ms     : arc 가 완전히 연결. 깜빡임 강화 (warning).
+   *   discharge (즉시): onArcDischarge 콜백 → entity damage + charged buff + thunder chain.
+   *   recover 3000ms  : 사이클 휴식. 끝나면 다시 scan.
+   */
+  static ARC_SCAN_DURATION_MS = 1500;
+  static ARC_HOLD_DURATION_MS = 1500;
+  static ARC_RECOVER_DURATION_MS = 3000;
+  /** Arc 검색 반경 (px). 1 tile = 16 px → 5 tile = 80 px. */
+  static ARC_SCAN_RADIUS_PX = 80;
+  /** Discharge 시 entity 별 maxHp 비율 피해. */
+  static ARC_DAMAGE_PCT = 0.05;
+  /** Discharge 적중 entity 에게 부여되는 charged 상태 buff (ms). */
+  static ARC_CHARGED_BUFF_MS = 3000;
+
+  /**
+   * Arc 가 닿은 1 개 target. discharge 시 씬이 이 ref/kind/좌표로 적절히
+   * damage / chain trigger / charged buff 를 적용한다.
+   */
+
+  /**
+   * Arc Scan Cycle 의 페이즈가 'scan' 으로 진입할 때 호출. 씬은 (originX, originY)
+   * 반경 ARC_SCAN_RADIUS_PX 안의 conductor (player / enemies / metal containers /
+   * water fluid) 를 검색해 ArcLink[] 로 반환한다.
+   */
+  onArcScanRequest: ((originX: number, originY: number, radiusPx: number) => ArcLink[]) | null = null;
+  /**
+   * Discharge 페이즈 도달 시 호출. 씬은 각 ArcLink 에 대해:
+   *   - entity (player/enemy): thunder damage + charged buff 부여
+   *   - metal container: charged 마크 + 다음 thunder 적중 시 강화
+   *   - fluid (water): isElectrified=true 보강
+   *   - cell (water/metal/acid): applyThunderChain trigger
+   */
+  onArcDischarge: ((originX: number, originY: number, links: ArcLink[]) => void) | null = null;
 
   /**
    * Optional callback fired when a thin-strip cell dries up. Lets the scene
@@ -157,8 +226,42 @@ export class FluidSystem {
         }
       }
     }
+    // Wet-Conductor Spread (R-NEW-025) — charged body 와 4-인접 water body 마크.
+    this.markElectrifiedBodies();
     // 첫 프레임 지연 제거 — attach 직후 mesh polygon 즉시 그려 룸 자산과 동시 표시.
     for (const body of this.bodies) this.drawBody(body);
+  }
+
+  /**
+   * Wet-Conductor Spread (R-NEW-025) — charged FluidBody 의 cells 중 하나라도
+   * water FluidBody 의 cells 와 4-인접 시 그 water body 를 전도화(영구) 마크.
+   * attachGrid / rebuildFromGrid 직후 1회 호출. 비용: 인접 검사라 O(charged_cells × 4).
+   */
+  private markElectrifiedBodies(): void {
+    const chargedBodies = this.bodies.filter(b => b.type === 'charged');
+    if (chargedBodies.length === 0) return;
+    const waterBodies = this.bodies.filter(b => b.type === 'water');
+    if (waterBodies.length === 0) return;
+    const gridW = this.gridW;
+    for (const cb of chargedBodies) {
+      for (const key of cb.cells) {
+        const gx = key % gridW;
+        const gy = Math.floor(key / gridW);
+        const neighborKeys = [
+          (gy - 1) * gridW + gx,
+          (gy + 1) * gridW + gx,
+          gy * gridW + (gx - 1),
+          gy * gridW + (gx + 1),
+        ];
+        for (const nkey of neighborKeys) {
+          for (const wb of waterBodies) {
+            if (!wb.isElectrified && wb.cells.has(nkey)) {
+              wb.isElectrified = true;
+            }
+          }
+        }
+      }
+    }
   }
 
   /** 룸 떠날 때 호출. 모든 body 의 mesh 제거. */
@@ -169,6 +272,10 @@ export class FluidSystem {
       if (body.haloGfx) {
         if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
         body.haloGfx.destroy();
+      }
+      if (body.arcGfx) {
+        if (body.arcGfx.parent) body.arcGfx.parent.removeChild(body.arcGfx);
+        body.arcGfx.destroy();
       }
     }
     this.bodies = [];
@@ -187,9 +294,118 @@ export class FluidSystem {
       this.stepSpring(body, dt);
       // Advance halo pulse phase for emissive fluids — slow ~1.8 s period.
       if (body.haloGfx) body.haloPhaseMs += dt;
+      // Arc Scan Cycle — charged body 와 electrified water body 모두 사이클 진행.
+      if (body.type === 'charged' || (body.type === 'water' && body.isElectrified)) {
+        this.tickArcCycle(body, dt);
+      }
       this.drawBody(body);
     }
     this.updateEvaporatingDrops(dt);
+  }
+
+  /**
+   * Arc Scan Cycle tick — 페이즈 머신.
+   *   scan (1.5s): 시작 시 onArcScanRequest 콜백 → arcLinks 셋업. arc 가 천천히 자라남 (시각).
+   *   hold (1.5s): arc 완전 연결, 깜빡임 강화.
+   *   discharge: hold 종료 순간 onArcDischarge 호출 + arcLinks 초기화.
+   *   recover (3s): 휴식. 끝나면 scan 으로 복귀.
+   */
+  private tickArcCycle(body: FluidBody, dt: number): void {
+    body.arcPhaseMs += dt;
+    if (body.arcPhase === 'recover') {
+      if (body.arcPhaseMs >= FluidSystem.ARC_RECOVER_DURATION_MS) {
+        body.arcPhase = 'scan';
+        body.arcPhaseMs = 0;
+        this.startArcScan(body);
+      }
+      return;
+    }
+    if (body.arcPhase === 'scan') {
+      if (body.arcPhaseMs >= FluidSystem.ARC_SCAN_DURATION_MS) {
+        body.arcPhase = 'hold';
+        body.arcPhaseMs = 0;
+      }
+      this.drawArcLinks(body);
+      return;
+    }
+    // hold
+    if (body.arcPhaseMs >= FluidSystem.ARC_HOLD_DURATION_MS) {
+      // Discharge!
+      if (this.onArcDischarge && body.arcLinks.length > 0) {
+        this.onArcDischarge(body.arcOriginX, body.arcOriginY, body.arcLinks);
+      }
+      // Clear visuals
+      body.arcLinks = [];
+      if (body.arcGfx) body.arcGfx.clear();
+      body.arcPhase = 'recover';
+      body.arcPhaseMs = 0;
+      return;
+    }
+    this.drawArcLinks(body);
+  }
+
+  /**
+   * Scan 페이즈 시작 — origin 좌표 결정 + 콜백으로 도체 검색 → arcLinks 셋업.
+   */
+  private startArcScan(body: FluidBody): void {
+    if (body.surface.length === 0) {
+      body.arcLinks = [];
+      return;
+    }
+    const idx = Math.floor(Math.random() * body.surface.length);
+    const col = body.surface[idx];
+    body.arcOriginX = col.x;
+    body.arcOriginY = col.y;
+    body.arcLinks = this.onArcScanRequest
+      ? this.onArcScanRequest(body.arcOriginX, body.arcOriginY, FluidSystem.ARC_SCAN_RADIUS_PX)
+      : [];
+    if (body.arcLinks.length > 0 && !body.arcGfx) {
+      body.arcGfx = new Graphics();
+      this.parent.addChild(body.arcGfx);
+    }
+  }
+
+  /**
+   * Arc VFX 그리기 — scan 페이즈 동안 길이가 자라남 (0..1), hold 페이즈 동안
+   * 완전 연결 + 깜빡임.
+   */
+  private drawArcLinks(body: FluidBody): void {
+    if (!body.arcGfx || body.arcLinks.length === 0) return;
+    const g = body.arcGfx;
+    g.clear();
+    let growT = 1;
+    let flicker = 1;
+    if (body.arcPhase === 'scan') {
+      growT = Math.min(1, body.arcPhaseMs / FluidSystem.ARC_SCAN_DURATION_MS);
+      flicker = 0.55 + 0.35 * Math.sin((body.arcPhaseMs / 80));
+    } else if (body.arcPhase === 'hold') {
+      const holdT = body.arcPhaseMs / FluidSystem.ARC_HOLD_DURATION_MS;
+      flicker = 0.4 + 0.6 * Math.abs(Math.sin(holdT * Math.PI * 12));
+    }
+    const tintGlow = 0xC088FF;
+    const tintCore = 0xffffff;
+    for (const link of body.arcLinks) {
+      const tx = body.arcOriginX + (link.worldX - body.arcOriginX) * growT;
+      const ty = body.arcOriginY + (link.worldY - body.arcOriginY) * growT;
+      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintGlow, 6, 0.30 * flicker);
+      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintCore, 1.5, 0.85 * flicker);
+    }
+  }
+
+  private drawZigzagSegment(
+    g: Graphics, x0: number, y0: number, x1: number, y1: number,
+    color: number, width: number, alpha: number,
+  ): void {
+    const segments = 6;
+    const dx = (x1 - x0) / segments;
+    const dy = (y1 - y0) / segments;
+    g.moveTo(x0, y0);
+    for (let s = 1; s <= segments; s++) {
+      const nx = x0 + dx * s + (s < segments ? (Math.random() - 0.5) * 6 : 0);
+      const ny = y0 + dy * s + (s < segments ? (Math.random() - 0.5) * 6 : 0);
+      g.lineTo(nx, ny);
+    }
+    g.stroke({ color, width, alpha });
   }
 
   /**
@@ -369,7 +585,7 @@ export class FluidSystem {
 
     // Halo first (rendered UNDER body when both children of parent).
     let haloGfx: Graphics | null = null;
-    if (type === 'magma' || type === 'lava' || type === 'acid') {
+    if (type === 'magma' || type === 'lava' || type === 'acid' || type === 'charged') {
       haloGfx = new Graphics();
       // BlurFilter gives the halo a soft glow look without ugly hard edges.
       // strength=8 is enough for ~6px feathering at our zoom.
@@ -397,6 +613,17 @@ export class FluidSystem {
       haloGfx,
       ambientPhase: Math.random(),
       haloPhaseMs: Math.random() * 2000,
+      isElectrified: false,
+      // Arc Scan Cycle — charged body 만 recover 페이즈에서 시작 (다양한 시점 분산).
+      // water body 는 markElectrifiedBodies 후 isElectrified=true 가 되면 동일하게 시작.
+      arcPhase: 'recover',
+      arcPhaseMs: type === 'charged'
+        ? FluidSystem.ARC_RECOVER_DURATION_MS * Math.random()
+        : 0,
+      arcLinks: [],
+      arcOriginX: 0,
+      arcOriginY: 0,
+      arcGfx: null,
     };
     this.bodies.push(body);
     // Cache grid width for packed-key APIs (removeCell / queryBodyAt).
@@ -595,6 +822,42 @@ export class FluidSystem {
     // Surface highlight line — 1px stroke for readability.
     traceSmoothSurface(g, 0);
     g.stroke({ color: def.surfaceColor, width: 1, alpha: 0.9 });
+
+    // ─── Wet-Conductor Spread (R-NEW-025) — water 풀 위에 자주 sparkle 점 산발.
+    //     영구 마크된 water body 에만 적용.
+    if (body.type === 'water' && body.isElectrified) {
+      const sparkleColor = 0xA05AE5;
+      // 표면 column 마다 30% 확률로 1점. 시각 sparkle 효과는 ambientPhase 로 미세 시프트.
+      for (let i = 0; i < cols.length; i++) {
+        const phase = (body.ambientPhase + i * 0.137) % 1;
+        if (phase < 0.30) {
+          const sx = cols[i].x;
+          const sy = cols[i].y - 1.5;
+          g.circle(sx, sy, 0.9).fill({ color: sparkleColor, alpha: 0.55 + phase * 1.4 });
+        }
+      }
+    }
+
+    // ─── Arc Scan Cycle warning glow — hold 페이즈 동안 surface 강하게 깜빡임
+    //     (discharge 직전 1.5초). scan 페이즈는 약한 ambient.
+    if (body.arcPhase === 'hold') {
+      const holdT = body.arcPhaseMs / FluidSystem.ARC_HOLD_DURATION_MS;
+      const intensity = 0.4 + 0.6 * Math.abs(Math.sin(holdT * Math.PI * 12));
+      traceSmoothSurface(g, 0);
+      g.stroke({
+        color: 0xC088FF,
+        width: 2 + intensity * 1.8,
+        alpha: 0.50 + intensity * 0.45,
+      });
+    } else if (body.arcPhase === 'scan' && body.arcLinks.length > 0) {
+      const scanT = body.arcPhaseMs / FluidSystem.ARC_SCAN_DURATION_MS;
+      traceSmoothSurface(g, 0);
+      g.stroke({
+        color: 0xA05AE5,
+        width: 1.2,
+        alpha: 0.30 + 0.20 * scanT,
+      });
+    }
   }
 
   // ============================================================
@@ -778,19 +1041,17 @@ export class FluidSystem {
       return true;
     };
 
-    // Collect locked cells — bodies that are STABLE puddles (thin strip on
-    // a fully-solid floor AND wall-braced) stay put. Unstable bodies (the
-    // pool at the foot of an airborne FluidSpawner waterfall, or a strip
-    // missing its floor) stay free so cellular gravity can drain them.
+    // Collect locked cells — thin strips that already sit on a fully-solid
+    // floor stay put. If their sides are not wall-braced they still evaporate
+    // below, but they should not pop left/right while waiting to dry up.
     //
-    // Without this stability gate, every flat puddle was locked — including
+    // Without the solid-floor gate, every flat puddle was locked — including
     // the half-formed pool below a mid-air spawner — and gravity couldn't
     // pull cells downward, leaving fluid floating in place.
     const lockedCells = new Set<number>();
     for (const body of this.bodies) {
       if (!this.isThinStrip(body)) continue;
       if (!this.hasSolidFloorUnderBottomRow(body, roomData)) continue;
-      if (!this.isWallBraced(body, roomData)) continue;
       for (const k of body.cells) lockedCells.add(k);
     }
 
@@ -1045,8 +1306,17 @@ export class FluidSystem {
       }
       if (bestOld && bestOverlap > 0) {
         this.transferWaveState(newBody, bestOld.surface, bestOld.ambientPhase);
+        // Wet-Conductor 영구 마크 + Arc Cycle 페이즈 보존 — 풀이 흘러
+        // 위치가 바뀌어도 전도화·사이클 상태 유지.
+        newBody.isElectrified = bestOld.isElectrified;
+        newBody.arcPhase = bestOld.arcPhase;
+        newBody.arcPhaseMs = bestOld.arcPhaseMs;
       }
     }
+
+    // Wet-Conductor Spread 재마크 — 풀 위치 변경으로 새로 인접해진 water body
+    // 도 전도화.
+    this.markElectrifiedBodies();
 
     // Draw new bodies IMMEDIATELY so the fill is present before we destroy old
     // gfx. Otherwise we get a 1-frame empty-polygon flash (alpha blink).

@@ -179,6 +179,58 @@
   - `CONTAINER_POOLS` 의 각 Pool 의 ContainerKind 값이 `ThrowableContainer.ts` 의 `ContainerKind` enum 6종 (Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial) 안에 존재
   - §12.4 표의 Pool ID 와 코드 `CONTAINER_POOLS` 키 *완전 일치* — 한쪽만 갱신하면 디버전스
 
+## 16. 화학 반응 매트릭스 (Chemical Reactions SSoT)
+
+- **권위 SSoT:** `Documents/System/System_World_ChemicalReactions.md` (54 기존 + 15 신규)
+- **로드맵:** `Documents/Design/Design_World_ChemicalReactions_Roadmap.md` (Tier 1/2/3)
+- **코드 SSoT:** `game/src/systems/TileMutator.ts` + `game/src/systems/TileHazards.ts` + `game/src/effects/FluidSystem.ts` + `game/src/effects/FluidResidue.ts` + `game/src/entities/ThrowableContainer.ts`
+
+### 16.1 Damage Matrix cross-validation
+
+- **검증 포인트 (Layer 1 — 게임플레이 영향):**
+  - `TileHazards.ts:72` `MAGMA_FIRST_HIT_PCT = 0.10` ↔ ChemicalReactions.md §3.1 ↔ Fluid.md §6.3 ↔ TileSystem.md §3.0
+  - `TileHazards.ts:73` `MAGMA_BURN_DURATION_MS = 15000` ↔ 동일 위치
+  - `TileHazards.ts:77-78` `ACID_TICK_PCT = 0.005`, `ACID_TICK_MS = 100` ↔ 동일 위치
+  - `TileHazards.ts:79-80` `CHARGED_TICK_PCT = 0.01`, `CHARGED_TICK_MS = 2500` (⚠️ 코드 주석 "0.5s" 자가-모순 별도 검출)
+  - `TileHazards.ts:81-82` `FIRE_DPS_PCT = 0.03`, `FIRE_BURN_REFRESH_MS = 10000`
+  - `TileHazards.ts:83` `THUNDER_HIT_PCT = 0.50` (⚠️ TileSystem.md "8%" legacy 정정 필요)
+  - `TileHazards.ts:84-85` `BURN_TICK_PCT = 0.02`, `BURN_TICK_MS = 5000` (⚠️ 코드 주석 "1s" 자가-모순)
+  - `TileMutator.ts:64-66` `FREEZE_DURATION_MS=15000`, `BURN_DURATION_MS=9000`, `ELECTRIC_DURATION_MS=2500`
+
+### 16.2 Passive Interaction cross-validation
+
+- **검증 포인트:**
+  - `TileMutator.ts:71-75` `AUTO_INTERACT_INTERVAL_MS=1000`, `OIL_SPREAD_INTERVAL_MS=600`, `OIL_SPREAD_CHANCE=0.55`, `ACID_METAL_CORRODE_CHANCE=0.06`, `ACID_MAGMA_VAPOR_CHANCE=0.15`, `MAGMA_ICE_MELT_CHANCE=0.04`, `ICE_WATER_FREEZE_CHANCE=0.04`
+  - `TileMutator.ts:38-42` `BURN_DURATION_BY_TILE[GRASS]=10000`, `[OIL]=15000`, `[WOOD]=15000`
+  - 각 상수 ↔ ChemicalReactions.md §4 표 ↔ TileSystem.md §3.2 자동 상호작용 표 *3축 동기화*
+
+### 16.3 BurnableProp burnMs cross-validation
+
+- **권위:** `BurnableProp.ts:46-62` (`BURNABLE_CATALOG`)
+- **legacy 폐기:** `TileSystem.md §7.2.2` (구버전 수치 5-17배 차이) → 삭제 또는 *§3.0.2 와 통합* 후 제거 권장
+- **검증 포인트:**
+  - WoodCrate=12500, BranchPile=4000, Bush=10000, Curtain=6000, Vine=4500 — 모든 row 코드 ↔ §3.0.2 ↔ ChemicalReactions.md 일치
+
+### 16.4 자가-모순 검출
+
+다음 *코드 주석 vs 코드 상수* 자가-모순은 별도 *Code Internal* 디버전스로 검출:
+
+- `TileHazards.ts:8` 주석 "magma 2%" vs `:72` `MAGMA_FIRST_HIT_PCT = 0.10` (5× 차이)
+- `TileHazards.ts:11` 주석 "charged 0.5s tick" vs `:80` `CHARGED_TICK_MS = 2500` (5× 차이)
+- `TileHazards.ts:174` 주석 "1s" vs `:85` `BURN_TICK_MS = 5000` (5× 차이)
+
+검출 시: 코드 상수가 권위. 주석을 상수에 맞춰 정정.
+
+### 16.5 Phase 3 카드 등록
+
+다음은 *문서만 명시, 코드 미구현* (orphan spec) — Phase 3 카드로 식별:
+
+- NM-02 Shock 상태이상 (Combat_Damage.md §3 + Combat_Elements.md §3.2)
+- NM-03 원소 퓨전 Steam Blast / Plasma Surge / Cryo Shock (Combat_Elements.md §8)
+- NM-07 entity 빙결 + 화염 → 증기 폭발 (Combat_Damage.md §5.2)
+
+검증 시 *"orphan — Phase 3 카드"* 표시. 코드 부재가 *오류 아님* (의도된 미구현).
+
 ---
 
 ## 파생 계산 공식 (Layer 1.2)

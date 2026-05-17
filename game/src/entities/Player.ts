@@ -235,6 +235,13 @@ export class Player extends Entity implements CombatEntity {
   magmaResidueRemainingMs = 0;
   prevInMagma = false;
 
+  /** Water extinguishes every player-side fire debuff / burn accumulator. */
+  extinguishFireDebuffs(): void {
+    this.burnRemainingMs = 0;
+    this.burnTickAccum = 0;
+    this.magmaResidueRemainingMs = 0;
+  }
+
   // ============================================================
   // Ego Shard — Hades-style cast ammo
   // ============================================================

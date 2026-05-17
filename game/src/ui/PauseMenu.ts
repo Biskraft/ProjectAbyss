@@ -22,9 +22,10 @@ import {
 } from './ModalPanel';
 import type { UISkin } from './UISkin';
 import type { InputManager, PresetName } from '@core/InputManager';
+import { toggleFullscreen, isFullscreenActive } from '@core/Fullscreen';
 
 const PANEL_W = 200;
-const PANEL_H = 138;
+const PANEL_H = 156;
 const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
 const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
 const ITEM_START_Y = 36;
@@ -45,10 +46,18 @@ type MenuItem = { labelKey: string; action: string; color?: number };
 
 const MENU_ITEMS: MenuItem[] = [
   { labelKey: 'ui.pause.continue', action: 'continue' },
+  { labelKey: 'ui.pause.fullscreen_off', action: 'fullscreen' },
   { labelKey: 'ui.pause.status', action: 'status' },
   { labelKey: 'ui.pause.select_keyboard', action: 'select_keyboard' },
   { labelKey: 'ui.pause.quit_to_title', action: 'quit', color: COL_DANGER },
 ];
+
+function resolveItemLabel(item: MenuItem): string {
+  if (item.action === 'fullscreen') {
+    return t(isFullscreenActive() ? 'ui.pause.fullscreen_on' : 'ui.pause.fullscreen_off');
+  }
+  return t(item.labelKey);
+}
 
 // 키보드 preset 카드 — `Documents/UI` (game/docs/ui-components.html line 1389) 의
 // "Preset Selection (Phase 1)" 카드 스펙을 따라 라벨 + 한 줄 키 미리보기.
@@ -155,7 +164,7 @@ export class PauseMenu {
     // Menu items (drawn on top of selection bg)
     for (let i = 0; i < MENU_ITEMS.length; i++) {
       const item = MENU_ITEMS[i];
-      const labelText = createUiText(t(item.labelKey), {
+      const labelText = createUiText(resolveItemLabel(item), {
         fontSize: 8,
         fill: item.color ?? COL_TEXT,
       });
@@ -250,10 +259,30 @@ export class PauseMenu {
       this.showPresetSelector();
       return;
     }
+    if (action === 'fullscreen') {
+      // Manual toggle. Promise resolves with the resulting state — refresh
+      // the menu label so the player sees "FULLSCREEN: ON/OFF" flip.
+      // Stays inside the pause menu (no close, no onAction propagation).
+      toggleFullscreen().then(() => this.refreshFullscreenLabel());
+      return;
+    }
     if (action === 'continue') {
       this.close();
     }
     this.onAction?.(action);
+  }
+
+  /** Rewrite the label of the fullscreen menu row (if present). */
+  private refreshFullscreenLabel(): void {
+    for (let i = 0; i < MENU_ITEMS.length; i++) {
+      if (MENU_ITEMS[i].action !== 'fullscreen') continue;
+      const t = this.menuTexts[i];
+      if (!t) return;
+      t.text = resolveItemLabel(MENU_ITEMS[i]);
+      // Re-center horizontally — label width changed.
+      t.x = Math.floor((PANEL_W - t.width) / 2);
+      return;
+    }
   }
 
   cancel(): void {

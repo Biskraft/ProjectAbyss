@@ -122,6 +122,12 @@ const MAX_STEP_MS = 8;
 const REST_VX = 6;
 const FLOOR_FRICTION = 0.80;
 const WALL_BOUNCE = 0.30;
+const STEAM_LIFT_DURATION_MS = 3000;
+const STEAM_LIFT_INITIAL_VY = -120;
+const STEAM_LIFT_MIN_VY = -90;
+const STEAM_LIFT_MAX_VY = -160;
+const STEAM_LIFT_ACCEL = 140;
+const METAL_CHARGE_REFRESH_MS = 250;
 
 /** Type-guard / parse for LDtk enum field. Returns null on invalid input. */
 export function parseContainerKind(value: unknown): ContainerKind | null {
@@ -162,6 +168,8 @@ export class ThrowableContainer {
   magmaExposureMs = 0;
   /** Time spent on a burning cell (wood family). 1.5 s threshold → burn out. */
   fireExposureMs = 0;
+  /** R-NEW-052 Slowly Rusting: MetalCrate on water cells. 30 s → 1 HP. */
+  waterExposureMs = 0;
   /**
    * After release(), the thrower (player) is invulnerable to this
    * container for this many ms — prevents self-bonk on dropped throws.
@@ -181,10 +189,15 @@ export class ThrowableContainer {
    * floor on creation.
    */
   skipSettle = false;
+  /** Remaining upward force time from acid+water exothermic steam. */
+  private steamLiftRemainingMs = 0;
+  /** MetalCrate only: temporary charge while touching TILE_CHARGED. */
+  private chargedRemainingMs = 0;
   /** Random 0~3 — chosen at spawn, fixed for the lifetime of this crate. */
   readonly variantIdx: number;
   readonly container = new Container();
   private body!: Graphics;
+  private chargeGfx = new Graphics();
 
   // ── Collision rect (physical body) accessors — sprite render is offset
   // by collisionInset.left / collisionInset.top from this rect.
@@ -206,10 +219,28 @@ export class ThrowableContainer {
     this.container.x = x;
     this.container.y = y;
     this.draw();
+    this.container.addChild(this.chargeGfx);
   }
 
   get width(): number { return this.spec.width; }
   get height(): number { return this.spec.height; }
+
+  applySteamLift(durationMs = STEAM_LIFT_DURATION_MS): void {
+    if (this.destroyed || this.held) return;
+    this.steamLiftRemainingMs = Math.max(this.steamLiftRemainingMs, durationMs);
+    this.vy = Math.min(this.vy, STEAM_LIFT_INITIAL_VY);
+    this.wasThrown = false;
+  }
+
+  applyCharge(durationMs = METAL_CHARGE_REFRESH_MS): void {
+    if (this.destroyed || this.held || this.kind !== 'MetalCrate') return;
+    this.chargedRemainingMs = Math.max(this.chargedRemainingMs, durationMs);
+    this.wasThrown = false;
+  }
+
+  isCharged(): boolean {
+    return this.kind === 'MetalCrate' && this.chargedRemainingMs > 0 && !this.destroyed && !this.held;
+  }
 
   /** Physical AABB (inset-aware) used by grab range, stacking, enemy hit. */
   getAABB(): { x: number; y: number; w: number; h: number } {
@@ -406,6 +437,9 @@ export class ThrowableContainer {
       this.container.x = this.x;
       this.container.y = this.y;
       if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs -= dtMs;
+      if (this.held) this.steamLiftRemainingMs = 0;
+      if (this.held) this.chargedRemainingMs = 0;
+      this.updateChargeVisual(dtMs);
       return null;
     }
     if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs = Math.max(0, this.selfHitInvulnMs - dtMs);
@@ -428,6 +462,13 @@ export class ThrowableContainer {
       } else {
         this.vy = Math.min(MAX_FALL_SPEED, this.vy + GRAVITY * dt);
       }
+      if (this.steamLiftRemainingMs > 0) {
+        this.steamLiftRemainingMs = Math.max(0, this.steamLiftRemainingMs - stepMs);
+        this.vy = Math.max(
+          STEAM_LIFT_MAX_VY,
+          Math.min(this.vy, STEAM_LIFT_MIN_VY) - STEAM_LIFT_ACCEL * dt,
+        );
+      }
 
       this.moveX(this.vx * dt, isSolidAt, others);
       const landed = this.moveY(this.vy * dt, isSolidAt, others);
@@ -442,6 +483,7 @@ export class ThrowableContainer {
     }
     this.container.x = this.x;
     this.container.y = this.y;
+    this.updateChargeVisual(dtMs);
     return null;
 
     const dt = dtMs / 1000;
@@ -746,6 +788,27 @@ export class ThrowableContainer {
       this.container.addChild(stamp);
     }
     this.body = new Graphics(); // unused placeholder for type safety
+    this.container.addChild(this.chargeGfx);
+  }
+
+  private updateChargeVisual(dtMs: number): void {
+    if (this.chargedRemainingMs > 0) {
+      this.chargedRemainingMs = Math.max(0, this.chargedRemainingMs - dtMs);
+    }
+    this.chargeGfx.clear();
+    if (!this.isCharged()) return;
+    const phase = Date.now() * 0.018;
+    const alpha = 0.42 + Math.sin(phase) * 0.18;
+    this.chargeGfx
+      .rect(-1, -1, this.spec.width + 2, this.spec.height + 2)
+      .stroke({ color: 0xffee55, alpha, width: 2 });
+    const y1 = 4 + (Math.sin(phase * 1.7) + 1) * 10;
+    const y2 = 5 + (Math.cos(phase * 1.3) + 1) * 9;
+    this.chargeGfx
+      .moveTo(3, y1).lineTo(9, y1 - 4).lineTo(7, y1 + 3).lineTo(14, y1 - 2)
+      .stroke({ color: 0xffffff, alpha: 0.7, width: 1 })
+      .moveTo(this.spec.width - 4, y2).lineTo(this.spec.width - 10, y2 + 4).lineTo(this.spec.width - 8, y2 - 3).lineTo(this.spec.width - 15, y2 + 2)
+      .stroke({ color: 0xfff28a, alpha: 0.75, width: 1 });
   }
 
   /**
@@ -762,6 +825,14 @@ export class ThrowableContainer {
       isAcidCell:  (gx: number, gy: number) => boolean;
       isMagmaCell: (gx: number, gy: number) => boolean;
       isFireCell:  (gx: number, gy: number) => boolean;
+      /** R-NEW-049/052: water 셀 인접 검사. 미제공 시 false. */
+      isWaterCell?: (gx: number, gy: number) => boolean;
+      /** R-NEW-050/053: oil 셀 인접 검사. 미제공 시 false. */
+      isOilCell?: (gx: number, gy: number) => boolean;
+      /** R-NEW-051/054: frozen 또는 ice 셀 검사. Brittle/Preserve 분기. */
+      isFrozenOrIceCell?: (gx: number, gy: number) => boolean;
+      /** Charged hazard cell. MetalCrate becomes an electrified conductor. */
+      isChargedCell?: (gx: number, gy: number) => boolean;
     },
   ): { gx: number; gy: number } | null {
     if (this.destroyed || this.held) return null;
@@ -770,23 +841,44 @@ export class ThrowableContainer {
     const ty = Math.floor(this.colY / 16);
     const by = Math.floor((this.colY + this.colH - 1) / 16);
     let inAcid = false, inMagma = false, inFire = false;
+    let inWater = false, inOil = false, inFrozenOrIce = false, inCharged = false;
     for (let gy = ty; gy <= by; gy++) {
       for (let gx = lx; gx <= rx; gx++) {
         if (!inAcid  && env.isAcidCell (gx, gy)) inAcid  = true;
         if (!inMagma && env.isMagmaCell(gx, gy)) inMagma = true;
         if (!inFire  && env.isFireCell (gx, gy)) inFire  = true;
+        if (!inWater && env.isWaterCell?.(gx, gy)) inWater = true;
+        if (!inOil   && env.isOilCell?.(gx, gy))   inOil   = true;
+        if (!inFrozenOrIce && env.isFrozenOrIceCell?.(gx, gy)) inFrozenOrIce = true;
+        if (!inCharged && env.isChargedCell?.(gx, gy)) inCharged = true;
       }
     }
+
+    // R-NEW-051 Frozen Crate (Wood family) / R-NEW-054 Brittle (MetalCrate):
+    // ice/frozen 위에 있으면 모든 환경 노출 정지. Wood family = 영구 면역;
+    // MetalCrate = Brittle 처리는 takeAttack 측 검사 (외부 Physical attack 시).
+    if (inFrozenOrIce) {
+      this.acidExposureMs = 0;
+      this.magmaExposureMs = 0;
+      this.fireExposureMs = 0;
+      this.waterExposureMs = 0;
+      return null;
+    }
+
     if (this.kind === 'MetalCrate') {
       // Acid corrosion: 1 HP/s × 4 HP = 4 s.
-      // Magma melt:    2 HP/s × 4 HP = 2 s — molten heat liquefies steel
-      //                faster than acid eats it (intuitive heat > corrosion).
+      // R-NEW-053 Coated Metal: oil 위면 acid 부식 50% 감속 (1 HP/2s).
+      // Magma melt:    2 HP/s × 4 HP = 2 s — molten heat liquefies steel.
+      // R-NEW-052 Slowly Rusting: water 위 30 s → 1 HP (장기 압박).
+      const acidTickMs = inOil ? 2000 : 1000;
       if (!inAcid)  this.acidExposureMs  = 0;
       if (!inMagma) this.magmaExposureMs = 0;
+      if (!inWater) this.waterExposureMs = 0;
+      if (inCharged) this.applyCharge();
       if (inAcid) {
         this.acidExposureMs += dtMs;
-        while (this.acidExposureMs >= 1000) {
-          this.acidExposureMs -= 1000;
+        while (this.acidExposureMs >= acidTickMs) {
+          this.acidExposureMs -= acidTickMs;
           const impact = this.takeAttack(1);
           if (impact) return impact;
         }
@@ -799,21 +891,49 @@ export class ThrowableContainer {
           if (impact) return impact;
         }
       }
+      if (inWater) {
+        this.waterExposureMs += dtMs;
+        while (this.waterExposureMs >= 30000) {
+          this.waterExposureMs -= 30000;
+          const impact = this.takeAttack(1);
+          if (impact) return impact;
+        }
+      }
       return null;
     }
     // Wood family
+    // R-NEW-049 Waterlogged Crate: water 위면 fire 노출 카운터 정지 (immune).
+    // R-NEW-050 Oil-Soaked Crate: oil 위면 fire threshold 1.5s → 0.5s.
+    const fireThresholdMs = inOil ? 500 : 1500;
     if (inMagma) {
       this.magmaExposureMs += dtMs;
       if (this.magmaExposureMs >= 1500) return this.takeAttack(this.hp);
     } else this.magmaExposureMs = 0;
-    if (inFire) {
+    if (inFire && !inWater) {
       this.fireExposureMs += dtMs;
-      if (this.fireExposureMs >= 1500) return this.takeAttack(this.hp);
+      if (this.fireExposureMs >= fireThresholdMs) return this.takeAttack(this.hp);
     } else this.fireExposureMs = 0;
     if (inAcid) {
       this.acidExposureMs += dtMs;
       if (this.acidExposureMs >= 3000) return this.takeAttack(this.hp);
     } else this.acidExposureMs = 0;
     return null;
+  }
+
+  /**
+   * R-NEW-054 Brittle Crate hook — MetalCrate 가 frozen/ice 셀 위에 있을 때
+   * Physical attack 1 hit 면 즉파. 호출처 (Scene 측 sword swing → container hit)
+   * 가 `mutator.isFrozen / cell value` 검사 후 본 메서드 호출.
+   * Wood family 는 이미 검 1 hit 면 깨지므로 본 hook 은 MetalCrate 전용.
+   */
+  shatterBrittle(): { gx: number; gy: number } | null {
+    if (this.destroyed || this.held) return null;
+    if (this.kind !== 'MetalCrate') return null;
+    this.hp = 0;
+    this.destroyed = true;
+    return {
+      gx: Math.floor((this.colX + this.colW / 2) / 16),
+      gy: Math.floor((this.colY + this.colH / 2) / 16),
+    };
   }
 }

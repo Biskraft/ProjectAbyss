@@ -146,6 +146,8 @@ export class ProceduralDecorator {
   readonly structureLayer: Container;
   /** Grass clump containers — each pivoted at root for natural sway. */
   private grassClumps: Container[] = [];
+  /** Parallel array of (gx, gy) AIR-above-floor cells for fire ignition checks. */
+  private grassClumpCells: Array<{ gx: number; gy: number }> = [];
   private swayTimer = 0;
 
   /** @deprecated Use naturalLayer / artificialLayer instead. Alias for naturalLayer. */
@@ -348,6 +350,7 @@ export class ProceduralDecorator {
     this.artificialLayer.removeChildren();
     this.structureLayer.removeChildren();
     this.grassClumps = [];
+    this.grassClumpCells = [];
   }
 
   /** Animate grass sway — root fixed, tips sway. Call each frame. */
@@ -476,6 +479,23 @@ export class ProceduralDecorator {
 
     this.naturalLayer.addChild(clump);
     this.grassClumps.push(clump);
+    // edge.row is the WALL cell (floor). The grass visually occupies the AIR
+    // cell ABOVE it; that's the cell we register for fire ignition checks.
+    this.grassClumpCells.push({ gx: edge.col, gy: edge.row - 1 });
+  }
+
+  /**
+   * Snapshot of grass clumps with their grid cells. Used by GrassClumpFire
+   * to drive ignition propagation. Cell coords are AIR-above-floor — matches
+   * the convention used by TILE_GRASS / TileMutator.isOnFire().
+   */
+  getGrassClumpsWithCells(): Array<{ container: Container; gx: number; gy: number }> {
+    const out: Array<{ container: Container; gx: number; gy: number }> = [];
+    for (let i = 0; i < this.grassClumps.length; i++) {
+      const cell = this.grassClumpCells[i];
+      out.push({ container: this.grassClumps[i], gx: cell.gx, gy: cell.gy });
+    }
+    return out;
   }
 
   private drawGrower(gfx: Graphics, edge: EdgeTile, rng: PRNG): void {

@@ -345,6 +345,41 @@ if (existsSync(LOCALIZATION_CSV)) {
 }
 
 // ---------------------------------------------------------------------------
+// V7 — Content_System_FluidTypes.csv shape check.
+// foam_color is a valid #RRGGBB hex, foam_density ∈ [0,1].
+// FluidSpawner crest foam relies on these — broken values would silently
+// produce invisible foam or runtime NaN tint.
+// ---------------------------------------------------------------------------
+const FLUID_TYPES_CSV = resolve(ROOT, 'Sheets', 'Content_System_FluidTypes.csv');
+if (existsSync(FLUID_TYPES_CSV)) {
+  const text = readFileSync(FLUID_TYPES_CSV, 'utf8');
+  const { header, rows } = parseSimpleCsv(text);
+  const required = ['foam_color', 'foam_density'];
+  for (const col of required) {
+    if (!header.includes(col)) {
+      pushErr('V7', `Content_System_FluidTypes.csv missing required column "${col}"`);
+    }
+  }
+  const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
+  for (const row of rows) {
+    const id = row.id || '(no id)';
+    if (header.includes('foam_color')) {
+      const v = (row.foam_color || '').trim();
+      if (!HEX_RE.test(v)) {
+        pushErr('V7', `FluidTypes "${id}" foam_color="${v}" — expected #RRGGBB`);
+      }
+    }
+    if (header.includes('foam_density')) {
+      const raw = (row.foam_density || '').trim();
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0 || n > 1) {
+        pushErr('V7', `FluidTypes "${id}" foam_density="${raw}" — expected number in [0,1]`);
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const hdr = (s) => `\n===== ${s} =====`;

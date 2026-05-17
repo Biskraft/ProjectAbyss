@@ -25,20 +25,22 @@ import type { LdtkEntity } from '@level/LdtkLoader';
 import type { FluidSystem } from '@effects/FluidSystem';
 import { getFluidDef } from '@data/FluidTypes';
 
-export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid';
+export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid' | 'charged';
 
 const FLUID_TYPE_TO_TILE: Record<FluidSpawnerType, number> = {
-  water: 2,
-  oil:   11,
-  magma: 6,
-  acid:  13,
+  water:   2,
+  oil:    11,
+  magma:   6,
+  acid:   13,
+  charged: 8,
 };
 
 const TYPE_DEBUG_COLOR: Record<FluidSpawnerType, number> = {
-  water: 0x4488ff,
-  oil:   0x88553a,
-  magma: 0xff6633,
-  acid:  0x88cc44,
+  water:   0x4488ff,
+  oil:     0x88553a,
+  magma:   0xff6633,
+  acid:    0x88cc44,
+  charged: 0xA05AE5,
 };
 
 /**
@@ -69,13 +71,15 @@ interface ActiveBasin {
   basin: BasinSnapshot;
 }
 
-interface WaterfallSegment {
+export interface WaterfallSegment {
   type: FluidSpawnerType;
   minGx: number;
   maxGx: number;
   gy: number;
   endY: number;
   flow: number;
+  /** True when the cell above the source is solid — vertical pipe / nozzle. */
+  ceilingFed: boolean;
 }
 
 export interface FluidSpawnerOptions {
@@ -114,7 +118,7 @@ export function readFluidSpawnerEntities(
   let type: FluidSpawnerType;
   if (typeStr === 'generic_a' || typeStr === 'generic_b' || typeStr === 'generic_c') {
     type = resolveGenericFluidType(typeStr, temperament);
-  } else if (typeStr === 'oil' || typeStr === 'magma' || typeStr === 'acid') {
+  } else if (typeStr === 'oil' || typeStr === 'magma' || typeStr === 'acid' || typeStr === 'charged') {
     type = typeStr as FluidSpawnerType;
   } else {
     type = 'water';
@@ -489,15 +493,52 @@ export class FluidSpawnerManager {
       if (h < 2) continue;
       const inset = 3.5 * (1 - seg.flow);
       const bodyAlpha = 0.44 + 0.2 * seg.flow;
-      const edgeAlpha = 0.18 * seg.flow;
       const glowColor = def.glowColor ?? def.bodyColor;
 
+      // Soft outer halo (no edge stripes, no bottom puddle circle).
       g.rect(x - 5, y, w + 10, h).fill({ color: glowColor, alpha: 0.09 * seg.flow });
-      g.rect(x - 1, y, 3, h).fill({ color: def.surfaceColor, alpha: edgeAlpha });
-      g.rect(x + w - 2, y, 3, h).fill({ color: def.surfaceColor, alpha: edgeAlpha * 0.75 });
       g.rect(x + inset, y, w - inset * 2, h).fill({ color: def.bodyColor, alpha: bodyAlpha });
-      g.circle(x + w / 2, y + h, Math.max(8, w * 0.35) * seg.flow).fill({ color: def.bodyColor, alpha: bodyAlpha * 0.45 });
+
+      // ── Crest foam band (top of the cliff) — 20% boost ──────────
+      // Skip when fed from a ceiling (pipe nozzle) — there's no rim to crest on.
+      // foamDensity 0 disables (e.g. oil). Particle layer adds the spray drops.
+      if (!seg.ceilingFed && def.foamDensity > 0.05) {
+        const fd = def.foamDensity;
+        const f = seg.flow;
+        // Big, soft outer halo extending well past the column edge.
+        g.rect(x - 17, y - 17, w + 34, 19)
+          .fill({ color: def.foamColor, alpha: 0.26 * fd * f });
+        // Mid band — broad and bright.
+        g.rect(x - 10, y - 12, w + 20, 10)
+          .fill({ color: def.foamColor, alpha: 0.66 * fd * f });
+        // Top spine — most saturated, sits exactly on the cliff lip.
+        g.rect(x - 3, y - 5, w + 6, 5)
+          .fill({ color: def.foamColor, alpha: Math.min(1, 1.08 * fd * f) });
+      }
+
+      // ── Bottom impact foam (where the waterfall lands) — 20% boost ──
+      // Mirrors the crest band but flipped: the heavy bright spine sits at
+      // the basin lip, with a halo splashing outward to the sides.
+      if (def.foamDensity > 0.05) {
+        const fd = def.foamDensity;
+        const f = seg.flow;
+        const by = y + h; // basin top — first solid/fluid cell below the column
+        // Outer impact halo — extends widely, big atomized cloud feel.
+        g.rect(x - 22, by - 5, w + 44, 22)
+          .fill({ color: def.foamColor, alpha: 0.24 * fd * f });
+        // Mid band — sits at the impact line.
+        g.rect(x - 12, by - 3, w + 24, 12)
+          .fill({ color: def.foamColor, alpha: 0.60 * fd * f });
+        // Bright impact spine — strongest right where the column meets ground.
+        g.rect(x - 4, by - 2, w + 8, 6)
+          .fill({ color: def.foamColor, alpha: Math.min(1, 1.02 * fd * f) });
+      }
     }
+  }
+
+  /** Public read-only snapshot of the current frame's merged waterfall segments. */
+  getActiveSegments(grid: number[][]): WaterfallSegment[] {
+    return this.buildWaterfallSegments(grid);
   }
 
   private buildWaterfallSegments(grid: number[][]): WaterfallSegment[] {
@@ -507,7 +548,16 @@ export class FluidSpawnerManager {
       const basin = this.findBasinSnapshot(s, grid);
       const endY = this.findWaterfallVisualEndY(s, basin, grid);
       if (endY === null || endY <= s.gy) continue;
-      cells.push({ type: s.type, minGx: s.gx, maxGx: s.gx, gy: s.gy, endY, flow: s.flow });
+      const ceilingFed = this.isSolidCell(grid[s.gy - 1]?.[s.gx]);
+      cells.push({
+        type: s.type,
+        minGx: s.gx,
+        maxGx: s.gx,
+        gy: s.gy,
+        endY,
+        flow: s.flow,
+        ceilingFed,
+      });
     }
     cells.sort((a, b) =>
       a.type.localeCompare(b.type) || a.gy - b.gy || a.endY - b.endY || a.minGx - b.minGx,
@@ -524,6 +574,8 @@ export class FluidSpawnerManager {
       ) {
         last.maxGx = seg.maxGx;
         last.flow = Math.max(last.flow, seg.flow);
+        // Merged segment is ceilingFed only if every contributing source is.
+        last.ceilingFed = last.ceilingFed && seg.ceilingFed;
       } else {
         out.push({ ...seg });
       }
@@ -550,16 +602,11 @@ export class FluidSpawnerManager {
     return basin.bottomY + 1;
   }
 
-  /** Redraw debug rect/dot for each spawner (called when set changes). */
+  /** Spawner debug overlay is intentionally a no-op. The foam VFX make
+   *  per-cell markers redundant; re-enable a draw pass here if a future
+   *  designer-facing debug tier needs spawner positions back. */
   private repaintDebug(): void {
     if (!this.dbg) return;
     this.dbg.clear();
-    for (const s of this.spawners) {
-      const col = TYPE_DEBUG_COLOR[s.type];
-      // 16×16 outline at the spawn cell + bigger crosshair so designers
-      // can spot the source even when the stream covers the cell.
-      this.dbg.rect(s.gx * 16, s.gy * 16, 16, 16).stroke({ color: col, width: 1, alpha: 0.9 });
-      this.dbg.circle(s.gx * 16 + 8, s.gy * 16 + 8, 3).fill({ color: col, alpha: 0.85 });
-    }
   }
 }

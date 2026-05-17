@@ -121,6 +121,9 @@ export const STARTER_ONLY_IDS: ReadonlySet<string> = new Set(['sword_broken']);
 /** Sword weapon definitions — parsed from Content_Stats_Weapon_List.csv */
 export const SWORD_DEFS: WeaponDef[] = [];
 
+const TEMPERAMENT_VALUES = new Set(['forge', 'iron', 'rust', 'spark', 'shadow']);
+type TemperamentValue = 'forge' | 'iron' | 'rust' | 'spark' | 'shadow';
+
 const lines = csvText.trim().split('\n');
 for (let i = 1; i < lines.length; i++) {
   const cols = lines[i].split(',');
@@ -129,6 +132,13 @@ for (let i = 1; i < lines.length; i++) {
   const topologyOverride = TOPOLOGY_VALUES.has(topoRaw)
     ? (topoRaw as TopologyKind)
     : undefined;
+  // CSV cols[13] = Temperament. Empty / missing → undefined (ItemWorld 의
+  // resolveFluidMapping 이 DEFAULT_TEMPERAMENT = 'forge' 로 fallback).
+  // 데모 4 Blade 무기만 명시 부여: sword_broken=forge / sword_rustborn=rust /
+  // sword_magic=iron / sword_rare=spark. 나머지 31 무기는 미부여 (V1.0 콘텐츠).
+  const tempRaw = (cols[13] ?? '').trim().toLowerCase();
+  const temperamentPrimary: TemperamentValue | undefined =
+    TEMPERAMENT_VALUES.has(tempRaw) ? (tempRaw as TemperamentValue) : undefined;
   const nameKey = cols[1].trim();
   SWORD_DEFS.push({
     id: cols[0].trim(),
@@ -144,5 +154,6 @@ for (let i = 1; i < lines.length; i++) {
     topologyOverride,
     weaponHandleX: Number.isFinite(parseFloat(cols[11])) ? parseFloat(cols[11]) : 3,
     weaponHandleY: Number.isFinite(parseFloat(cols[12])) ? parseFloat(cols[12]) : 13,
+    temperamentPrimary,
   });
 }
