@@ -462,6 +462,21 @@ export class GiantBuilder {
     }
   }
 
+  /**
+   * Skip the initial wait that setRoute() seeds. Used by helpers that want
+   * the builder to start moving on the same frame as spawn (e.g. when a
+   * player enters Shaft_DemoEnd the builder should be in motion immediately
+   * rather than idle for the first route point's waitMs).
+   */
+  skipInitialWait(): void {
+    if (this.route.length === 0) return;
+    this.waitTimer = 0;
+    this.state = 'moving';
+    // Advance to the next route point so the builder targets the *second*
+    // endpoint immediately (the first endpoint is already its spawn pose).
+    this.routeIndex = Math.min(1, this.route.length - 1);
+  }
+
   private syncLegDebug(): void {
     this.legRig.setDebug(Debug.visible ? this.container : null);
   }

@@ -41,10 +41,20 @@ export class EndingSequence {
   private readonly camera: Camera;
   private readonly input: InputManager;
 
-  constructor(deps: { uiContainer: Container; camera: Camera; input: InputManager }) {
+  /** Fires once when an EndingTrigger first activates — host scene wires
+   *  HUD/minimap hide here so the sequence stage is clean. */
+  private readonly onStart?: () => void;
+
+  constructor(deps: {
+    uiContainer: Container;
+    camera: Camera;
+    input: InputManager;
+    onStart?: () => void;
+  }) {
     this.uiContainer = deps.uiContainer;
     this.camera = deps.camera;
     this.input = deps.input;
+    this.onStart = deps.onStart;
   }
 
   /** Check if player overlaps any ending trigger */
@@ -65,6 +75,7 @@ export class EndingSequence {
   private start(): void {
     this.phase = 'rumble';
     this.timer = 0;
+    this.onStart?.();
   }
 
   update(dt: number): void {

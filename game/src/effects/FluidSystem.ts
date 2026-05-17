@@ -67,6 +67,12 @@ export interface ArcLink {
   kind: 'entity' | 'container' | 'fluid' | 'cell';
   /** Scene 이 쓰는 reference (player/enemy/container instance / FluidBody / 셀 좌표). */
   ref?: unknown;
+  /**
+   * Pre-computed zigzag jitter offsets (segment - 1 pair × 2 numbers, alternating dx/dy).
+   * Set by startArcScan so the arc line is *visually stable across frames* instead of
+   * recomputing random per frame (was the source of the "불안정" look).
+   */
+  zigzagSeed?: number[];
 }
 
 interface FluidBody {
@@ -144,15 +150,19 @@ export class FluidSystem {
    *   discharge (즉시): onArcDischarge 콜백 → entity damage + charged buff + thunder chain.
    *   recover 3000ms  : 사이클 휴식. 끝나면 다시 scan.
    */
-  static ARC_SCAN_DURATION_MS = 1500;
-  static ARC_HOLD_DURATION_MS = 1500;
-  static ARC_RECOVER_DURATION_MS = 3000;
+  static ARC_SCAN_DURATION_MS = 800;
+  static ARC_HOLD_DURATION_MS = 400;
+  static ARC_RECOVER_DURATION_MS = 1800;
+  /** Discharge 직후 arc VFX 가 부드럽게 fade-out 되는 시간 (recovery 페이즈 초기). */
+  static ARC_FADE_OUT_MS = 280;
   /** Arc 검색 반경 (px). 1 tile = 16 px → 5 tile = 80 px. */
   static ARC_SCAN_RADIUS_PX = 80;
   /** Discharge 시 entity 별 maxHp 비율 피해. */
   static ARC_DAMAGE_PCT = 0.05;
   /** Discharge 적중 entity 에게 부여되는 charged 상태 buff (ms). */
   static ARC_CHARGED_BUFF_MS = 3000;
+  /** Arc zigzag segment 수 — frame-fixed seed 길이 결정. */
+  static ARC_ZIGZAG_SEGMENTS = 6;
 
   /**
    * Arc 가 닿은 1 개 target. discharge 시 씬이 이 ref/kind/좌표로 적절히
@@ -257,6 +267,10 @@ export class FluidSystem {
           for (const wb of waterBodies) {
             if (!wb.isElectrified && wb.cells.has(nkey)) {
               wb.isElectrified = true;
+              // Arc 사이클 시작 시점 분산 — 여러 electrified body 가 동시 발현
+              // 되어 화면이 항상 arc 로 가득 차는 현상 방지.
+              wb.arcPhase = 'recover';
+              wb.arcPhaseMs = FluidSystem.ARC_RECOVER_DURATION_MS * Math.random();
             }
           }
         }
@@ -304,18 +318,31 @@ export class FluidSystem {
   }
 
   /**
-   * Arc Scan Cycle tick — 페이즈 머신.
-   *   scan (1.5s): 시작 시 onArcScanRequest 콜백 → arcLinks 셋업. arc 가 천천히 자라남 (시각).
-   *   hold (1.5s): arc 완전 연결, 깜빡임 강화.
-   *   discharge: hold 종료 순간 onArcDischarge 호출 + arcLinks 초기화.
-   *   recover (3s): 휴식. 끝나면 scan 으로 복귀.
+   * Arc Scan Cycle tick — 페이즈 머신 (총 3초 사이클).
+   *   scan (0.8s):  arcLinks 셋업, arc 자라남.
+   *   hold (0.4s):  arc 완전 연결 + 강 깜빡임 (warning).
+   *   discharge:    hold 종료 순간 onArcDischarge 호출. arc 시각 유지 (fade-out 대기).
+   *   recover (1.8s):
+   *     첫 ARC_FADE_OUT_MS (0.28s): arcGfx.alpha 1 → 0 부드러운 fade.
+   *     이후: arc 완전히 비움. 휴식.
    */
   private tickArcCycle(body: FluidBody, dt: number): void {
     body.arcPhaseMs += dt;
     if (body.arcPhase === 'recover') {
+      // Fade-out: discharge 직후 arc 가 부드럽게 사라짐.
+      if (body.arcGfx) {
+        if (body.arcPhaseMs < FluidSystem.ARC_FADE_OUT_MS) {
+          body.arcGfx.alpha = 1 - body.arcPhaseMs / FluidSystem.ARC_FADE_OUT_MS;
+        } else if (body.arcGfx.alpha !== 0) {
+          body.arcGfx.alpha = 0;
+          body.arcGfx.clear();
+          body.arcLinks = [];
+        }
+      }
       if (body.arcPhaseMs >= FluidSystem.ARC_RECOVER_DURATION_MS) {
         body.arcPhase = 'scan';
         body.arcPhaseMs = 0;
+        if (body.arcGfx) body.arcGfx.alpha = 1;
         this.startArcScan(body);
       }
       return;
@@ -330,15 +357,13 @@ export class FluidSystem {
     }
     // hold
     if (body.arcPhaseMs >= FluidSystem.ARC_HOLD_DURATION_MS) {
-      // Discharge!
+      // Discharge! arc 는 마지막 frame 그대로 유지 → recover 단계 fade-out 에서 사라짐.
       if (this.onArcDischarge && body.arcLinks.length > 0) {
         this.onArcDischarge(body.arcOriginX, body.arcOriginY, body.arcLinks);
       }
-      // Clear visuals
-      body.arcLinks = [];
-      if (body.arcGfx) body.arcGfx.clear();
       body.arcPhase = 'recover';
       body.arcPhaseMs = 0;
+      // arcGfx.alpha 는 1 그대로 — recover 페이즈 첫 ARC_FADE_OUT_MS 동안 0 으로 감.
       return;
     }
     this.drawArcLinks(body);
@@ -346,6 +371,7 @@ export class FluidSystem {
 
   /**
    * Scan 페이즈 시작 — origin 좌표 결정 + 콜백으로 도체 검색 → arcLinks 셋업.
+   * 각 link 마다 zigzag pattern 을 *미리 1회 random 화* 해 cycle 동안 안정 시각.
    */
   private startArcScan(body: FluidBody): void {
     if (body.surface.length === 0) {
@@ -359,15 +385,26 @@ export class FluidSystem {
     body.arcLinks = this.onArcScanRequest
       ? this.onArcScanRequest(body.arcOriginX, body.arcOriginY, FluidSystem.ARC_SCAN_RADIUS_PX)
       : [];
+    // Frame-fixed zigzag seed — cycle 동안 jitter 안정.
+    const segs = FluidSystem.ARC_ZIGZAG_SEGMENTS;
+    for (const link of body.arcLinks) {
+      const seeds: number[] = [];
+      for (let i = 0; i < segs - 1; i++) {
+        seeds.push((Math.random() - 0.5) * 6);
+        seeds.push((Math.random() - 0.5) * 6);
+      }
+      link.zigzagSeed = seeds;
+    }
     if (body.arcLinks.length > 0 && !body.arcGfx) {
       body.arcGfx = new Graphics();
       this.parent.addChild(body.arcGfx);
     }
+    if (body.arcGfx) body.arcGfx.alpha = 1;
   }
 
   /**
    * Arc VFX 그리기 — scan 페이즈 동안 길이가 자라남 (0..1), hold 페이즈 동안
-   * 완전 연결 + 깜빡임.
+   * 완전 연결 + 깜빡임. zigzag pattern 은 cycle 동안 *고정* (link.zigzagSeed).
    */
   private drawArcLinks(body: FluidBody): void {
     if (!body.arcGfx || body.arcLinks.length === 0) return;
@@ -377,32 +414,41 @@ export class FluidSystem {
     let flicker = 1;
     if (body.arcPhase === 'scan') {
       growT = Math.min(1, body.arcPhaseMs / FluidSystem.ARC_SCAN_DURATION_MS);
-      flicker = 0.55 + 0.35 * Math.sin((body.arcPhaseMs / 80));
+      flicker = 0.6 + 0.3 * Math.sin(body.arcPhaseMs / 80);
     } else if (body.arcPhase === 'hold') {
       const holdT = body.arcPhaseMs / FluidSystem.ARC_HOLD_DURATION_MS;
-      flicker = 0.4 + 0.6 * Math.abs(Math.sin(holdT * Math.PI * 12));
+      flicker = 0.55 + 0.45 * Math.abs(Math.sin(holdT * Math.PI * 8));
     }
     const tintGlow = 0xC088FF;
     const tintCore = 0xffffff;
     for (const link of body.arcLinks) {
       const tx = body.arcOriginX + (link.worldX - body.arcOriginX) * growT;
       const ty = body.arcOriginY + (link.worldY - body.arcOriginY) * growT;
-      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintGlow, 6, 0.30 * flicker);
-      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintCore, 1.5, 0.85 * flicker);
+      const seeds = link.zigzagSeed ?? [];
+      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintGlow, 6, 0.30 * flicker, seeds, growT);
+      this.drawZigzagSegment(g, body.arcOriginX, body.arcOriginY, tx, ty, tintCore, 1.5, 0.85 * flicker, seeds, growT);
     }
   }
 
+  /**
+   * zigzag stroke — segment 마다 seed[] 의 미리 계산된 offset 적용.
+   * growT < 1 이면 *마지막 segment* 만 *t 비율* 까지 그려 자라나는 듯한 효과.
+   */
   private drawZigzagSegment(
     g: Graphics, x0: number, y0: number, x1: number, y1: number,
     color: number, width: number, alpha: number,
+    seeds: number[], growT: number,
   ): void {
-    const segments = 6;
+    const segments = FluidSystem.ARC_ZIGZAG_SEGMENTS;
     const dx = (x1 - x0) / segments;
     const dy = (y1 - y0) / segments;
     g.moveTo(x0, y0);
     for (let s = 1; s <= segments; s++) {
-      const nx = x0 + dx * s + (s < segments ? (Math.random() - 0.5) * 6 : 0);
-      const ny = y0 + dy * s + (s < segments ? (Math.random() - 0.5) * 6 : 0);
+      const seedIdx = (s - 1) * 2;
+      const offX = (s < segments && seedIdx     < seeds.length) ? seeds[seedIdx]     : 0;
+      const offY = (s < segments && seedIdx + 1 < seeds.length) ? seeds[seedIdx + 1] : 0;
+      const nx = x0 + dx * s + offX;
+      const ny = y0 + dy * s + offY;
       g.lineTo(nx, ny);
     }
     g.stroke({ color, width, alpha });

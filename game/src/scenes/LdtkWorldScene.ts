@@ -401,6 +401,7 @@ export class LdtkWorldScene extends Scene {
   private _gpUnsub: (() => void) | null = null;
   /** Cooldown (ms) before another "No Weapon Equipped" toast can fire. */
   private noWeaponToastCooldown = 0;
+
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private propShatter!: PropShatterManager;
@@ -1248,11 +1249,17 @@ export class LdtkWorldScene extends Scene {
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
     if (saveData) this.tutorialHint.hydrate(saveData.completedTutorialHints);
 
-    // Ending sequence
+    // Ending sequence — when player walks into an LDtk EndingTrigger, the
+    // sequence starts. Hide HUD/minimap so the stage is clean during the
+    // rumble→fade→title build, then route to EndingScene (Demo End Phase C).
     this.ending = new EndingSequence({
       uiContainer: this.game.legacyUIContainer,
       camera: this.game.camera,
       input: this.game.input,
+      onStart: () => {
+        this.hud.container.visible = false;
+        if (this.minimap) this.minimap.visible = false;
+      },
     });
 
     // Inventory UI — uiContainer(native) 직속. InventoryUI 내부에서 scale.set(uiScale)
@@ -1440,6 +1447,7 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
+
     // Feedback panel open — block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
       this.toast?.update(dt);
@@ -1500,8 +1508,10 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.clearBounds();
         // Reset save on ending completion
         SaveManager.deleteSave();
-        import('./TitleScene').then(({ TitleScene }) => {
-          this.game.sceneManager.replace(new TitleScene(this.game));
+        // Route into Demo End Phase C UI (EndingScene) — replaces the
+        // previous TitleScene jump so the player sees the demo wrap-up.
+        import('./EndingScene').then(({ EndingScene }) => {
+          this.game.sceneManager.replace(new EndingScene(this.game));
         });
       }
       return;
@@ -3801,7 +3811,8 @@ export class LdtkWorldScene extends Scene {
       this.spawnShaft02Builder(level);
     } else if (level.identifier === 'Shaft_DemoEnd') {
       // 사용자 결정 2026-05-16 — Shaft_DemoEnd 좌측 끝(x=18px, y=130px)에
-      // Builder_Level_2 배치, y 방향 무한 왕복.
+      // Builder_Level_2 배치, y 방향 무한 왕복. 종료 시퀀스는 별도 LDtk
+      // `EndingTrigger` entity 가 처리한다 — 이 함수는 빌더만 띄움.
       this.spawnDemoEndBuilder(level);
     } else if (level.identifier === 'Debug_Shaft_01') {
       this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
@@ -7221,11 +7232,16 @@ export class LdtkWorldScene extends Scene {
       : this.renderer.container.children.length;
     this.renderer.container.addChildAt(builder.container, insertIdx);
 
-    // y 방향 무한 왕복. 양 끝점 5초 대기, 33 px/s.
+    // y 방향 무한 왕복. 시작은 즉시 이동(사용자 결정 2026-05-17 — 플레이어가
+    // Shaft_DemoEnd 진입 즉시 빌더 무게감 연출), 이후 양 끝점 5초 대기.
     builder.setRoute([
-      { y: initialY, waitMs: 5000 },
+      { y: initialY, waitMs: 0 },
       { y: bottomY,  waitMs: 5000 },
     ], 33, true);
+    // setRoute 는 첫 entry 에서 waiting 상태로 시작 — waitMs=0 라도 다음 frame
+    // update 까지 1 tick 대기. activate() 로 dormant→moving 만 직행하므로,
+    // 여기서 직접 첫 wait 을 건너뛴다.
+    builder.skipInitialWait();
 
     this.activeBuilder = builder;
     this.activeBuilderMode = 'patrol';
