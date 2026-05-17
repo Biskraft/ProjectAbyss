@@ -15,7 +15,7 @@
  * Spec: Documents/System/System_World_Fluid.md §3.4
  */
 
-import { TILE_WATER, TILE_MAGMA, TILE_OIL, TILE_ACID, TILE_ICE, TILE_CHARGED } from '../core/Physics';
+import { TILE_WATER, TILE_MAGMA, TILE_OIL, TILE_ACID, TILE_ICE, TILE_CHARGED, TILE_CYRO } from '../core/Physics';
 
 /** Generic fluid IntGrid value (LDtk Collisions layer). Mirrors World_ProjectAbyss.ldtk. */
 export const TILE_FLUID_GENERIC_A = 17;
@@ -44,33 +44,38 @@ export interface FluidMapping {
  * When tuning, update CSV first and regenerate this table (manual sync until
  * a build-time CSV loader exists).
  *
- * V3 (2026-05-13) — 위협 곡선 + 단조성 동시 회수:
- *   - slot_a = water 모든 기질 통일 (unified base)
- *   - slot_b = 각 기질의 시그니처 hazard (magma/ice/acid/charged/oil) — 정체성 직매핑
- *   - slot_c = slot_b 와 상호작용 가능한 시너지 fluid
- *   - spark slot_b 가 TILE_CHARGED — charged 가 fluid 화 되기 전엔 정적 hazard 셀로
- *     작동 (FluidSystem 의 flood-fill 에서 빠짐, TileHazards 의 DOT 1%/0.5s 발현).
- *     향후 charged fluid 화 spec 확정 후 자동 흡수.
- * 참조: Design_ItemWorld_Themes.md V3 + memory/wiki/decisions/DEC-V3-fluid-mapping.md
+ * V2 (2026-05-17) — Design_ItemWorld_Themes.md §2.1 권위 SSoT 동기화:
+ *   - slot_a = 각 기질의 primary fluid signature (room first-impression dominant)
+ *   - slot_b = signature 와 시너지 producing fluid
+ *   - slot_c = signature trigger / reaction base fluid
+ *   - 폐기된 V3 (2026-05-13) "slot_a = water unified base" 정책은 §11 단조성
+ *     비평으로 회수됨 (Design 문서 §0.1 ~ §0.3).
+ *
+ * Spark 결정 (2026-05-17, V2.2 회수):
+ *   slot_a=charged primary signature (Arc Scan Cycle + Wet-Conductor Spread
+ *   첫 인상 메커닉) · slot_b=water (charged conductor base + Wet-Conductor 4-인접
+ *   전도화 트리거) · slot_c=acid (Thunder Chain 확장 conductor).
+ *   V2 oil 절연 회로 안은 폐기 — charged dynamic 메커닉 보존 우선.
  */
 const FLUID_MAPPING: Record<Temperament, FluidMapping> = {
-  forge:  { slotA: TILE_WATER, slotB: TILE_MAGMA,   slotC: TILE_OIL,   containerPoolId: 'ItemWorld_Forge'  },
-  iron:   { slotA: TILE_WATER, slotB: TILE_ICE,     slotC: TILE_ACID,  containerPoolId: 'ItemWorld_Iron'   },
-  rust:   { slotA: TILE_WATER, slotB: TILE_ACID,    slotC: TILE_OIL,   containerPoolId: 'ItemWorld_Rust'   },
-  spark:  { slotA: TILE_WATER, slotB: TILE_CHARGED, slotC: TILE_ACID,  containerPoolId: 'ItemWorld_Spark'  },
-  shadow: { slotA: TILE_WATER, slotB: TILE_OIL,     slotC: TILE_MAGMA, containerPoolId: 'ItemWorld_Shadow' },
+  forge:  { slotA: TILE_MAGMA, slotB: TILE_OIL,     slotC: TILE_WATER, containerPoolId: 'ItemWorld_Forge'  },
+  iron:   { slotA: TILE_CYRO,  slotB: TILE_ICE,     slotC: TILE_WATER, containerPoolId: 'ItemWorld_Iron'   },
+  rust:   { slotA: TILE_ACID,  slotB: TILE_OIL,     slotC: TILE_WATER, containerPoolId: 'ItemWorld_Rust'   },
+  spark:  { slotA: TILE_CHARGED, slotB: TILE_WATER, slotC: TILE_ACID,  containerPoolId: 'ItemWorld_Spark'  },
+  shadow: { slotA: TILE_OIL,   slotB: TILE_ACID,    slotC: TILE_MAGMA, containerPoolId: 'ItemWorld_Shadow' },
 };
 
 /** Used when a weapon has no temperament tag (e.g., test items, ancient legacy items). */
 const DEFAULT_TEMPERAMENT: Temperament = 'forge';
 
 /** Reverse map — TILE_* numeric value -> fluid type string identifier used by FluidSpawner. */
-const TILE_TO_FLUID_TYPE_STR: Record<number, 'water' | 'magma' | 'oil' | 'acid' | 'charged'> = {
+const TILE_TO_FLUID_TYPE_STR: Record<number, 'water' | 'magma' | 'oil' | 'acid' | 'charged' | 'cyro'> = {
   [TILE_WATER]:   'water',
   [TILE_MAGMA]:   'magma',
   [TILE_OIL]:     'oil',
   [TILE_ACID]:    'acid',
   [TILE_CHARGED]: 'charged',
+  [TILE_CYRO]:    'cyro',
 };
 
 /**
@@ -85,7 +90,7 @@ const TILE_TO_FLUID_TYPE_STR: Record<number, 'water' | 'magma' | 'oil' | 'acid' 
 export function resolveGenericFluidType(
   slotKey: 'generic_a' | 'generic_b' | 'generic_c',
   temperament: string | null | undefined,
-): 'water' | 'magma' | 'oil' | 'acid' | 'charged' {
+): 'water' | 'magma' | 'oil' | 'acid' | 'charged' | 'cyro' {
   const m = resolveFluidMapping(temperament);
   const tile = slotKey === 'generic_a' ? m.slotA
              : slotKey === 'generic_b' ? m.slotB

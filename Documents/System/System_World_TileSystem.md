@@ -21,8 +21,9 @@
 | TIL-11 | IntGrid | oil (11) | P1 | ⬜ 제작 필요 | 가연성 슬릭. 화 인챈트로 연쇄 발화 |
 | TIL-12 | IntGrid | metal (12) | P1 | ⬜ 제작 필요 | 뇌 인챈트 도체. water/acid 연결 시 풀 전체 감전 |
 | TIL-13 | IntGrid | acid (13) | P2 | ⬜ 제작 필요 | DOT + 인접 metal 부식 + 뇌 전도 + magma 접촉 시 증발 |
-| TIL-14 | IntGrid | wood (14) | P1 | ⬜ 제작 필요 | 솔리드 목재. fire 전파 slow burn (~3s). 가연 — BurnableZone 자동 배치 |
-| TIL-15 | IntGrid | grass (15) | P1 | ⬜ 제작 필요 | 통과 1-타일 식생 cover. fast burn (~0.6s). 가연 — BurnableZone 자동 배치 |
+| TIL-14 | IntGrid | **cyro (14)** | P1 | ✅ **완료 (V2.2 2026-05-17)** | **액화 질소 — Iron primary signature. light DOT 1%/1s + Frozen 상태이상 (이동 -60% / 2s, 셀 접촉 중 refresh). 청백 발광 fluid (BlurFilter halo). LDtk enum=`Cyro` (오타 고정).** Design_ItemWorld_Themes.md §0.3, §2.1, §3.2 권위. |
+| TIL-15 | IntGrid | wood (15) | P1 | ⬜ 제작 필요 | 솔리드 목재. fire 전파 slow burn (~3s). 가연 — BurnableZone 자동 배치 |
+| TIL-16 | IntGrid | grass (16) | P1 | ⬜ 제작 필요 | 통과 1-타일 식생 cover. fast burn (~0.6s). 가연 — BurnableZone 자동 배치 |
 | TIL-30 | Entity (LDtk) | BurnableZone | P1 | ✅ 코드 완료 | 절차적 풀/목재 배치 영역 마커 (rect, Type/Density/Seed 필드) |
 | TIL-20 | Entity | CrackedFloor | P0 | ✅ 완료 | 다이브 어택 파괴 |
 | TIL-21 | Entity | CollapsingPlatform | P0 | ✅ 완료 | 착지 후 무너짐 |
@@ -237,6 +238,31 @@ ECHORIS의 전투 원소 3종(화/빙/뇌)은 전투에서만이 아니라 **발
   - + 뇌 → 전도 (water 동등)
   - + magma 인접 → 증발
   - 자체적으로 metal 부식 (passive)
+
+### 2.14. cyro (14) — 액화 질소 [Iron primary signature, V2.2 2026-05-17]
+
+- 통과 가능. 영역 내 체류 시 **light DOT (maxHp × 1% / 1 s tick)** + **Frozen 상태이상** (이동속도 -60% / 2 s 잔여, 셀 접촉 중 매 프레임 refresh).
+- **Frozen 상태** 는 셀 이탈 후에도 *frozenRemainingMs* 가 자연 감소하며 캐릭터 측 (Player / Enemy) 이 `target.frozenRemainingMs > 0` 동안 max speed × `(1 - CYRO_FROZEN_SLOW_PCT)` 적용.
+- **발광 fluid (BlurFilter halo):** magma / lava / acid / charged 와 동일 halo 처리. 청백 발광 (`#A0E0F0`) 으로 룸 첫 인상 dominant.
+- **속성 상호작용 (V2.2 구현 완료 2026-05-17 — TileMutator.tickPassiveInteractions + applyFireAttack 분기):**
+
+  | 반응 ID | 트리거 | 결과 | 확률/효과 |
+  | :-- | :-- | :-- | :-- |
+  | **R-NEW-CYRO-001 Cryo Burst** | cyro 셀 + 인접 magma | cyro → AIR, 인접 magma → WALL 최대 8 셀, steam + onSteamBurst | 100% (water+magma R-NEW-007 의 1.6× 광역) |
+  | **R-NEW-CYRO-002 Cryo Freeze** | cyro 셀 + 인접 water | water → tryFreeze (`FreezeState`) | 4%/tick (ice 의 1%/tick 대비 4× 강) |
+  | **R-NEW-CYRO-003 Frozen Steel auto** | cyro 셀 + 인접 metal | metal → tryFreezeMetal (Brittle setup) | 6%/tick — Ice enchant 없이도 환경 발화 |
+  | **R-NEW-CYRO-004 Frozen Oil/Acid auto** | cyro 셀 + 인접 oil 또는 acid | tryFreeze (Frozen Oil 8s / Frozen Acid 5s) | 4%/tick — R-NEW-004 / R-NEW-006 환경 발화 |
+  | **R-NEW-CYRO-005 Wood Frost auto** | cyro 셀 + 인접 wood | wood → tryFreeze (10s frozen WALL) | 3%/tick — R-NEW-044 환경 발화 |
+  | **R-NEW-CYRO-006 Grass Wither cryo** | cyro 셀 + 인접 grass | grass → AIR (시들음) | 2%/tick — acid wither 와 동일 패턴 |
+  | **R-NEW-CYRO-007 Cryo Evaporation** | Fire enchant 공격이 cyro 셀 적중 | cyro → AIR + steam | 100% (water R-NEW-003 동등) |
+  | **(Fire entity 소화)** | entity 가 cyro 셀 접촉 | `extinguishFireDebuffs()` (burn / fire 즉시 제거) | 100% — water 동등 (TileHazards.applyTileHazards) |
+  | **(Frozen 상태이상)** | entity 가 cyro 셀 접촉 | `frozenRemainingMs = 2000ms` refresh + light DOT 1%/1s | 매 프레임 |
+
+  뇌 인챈트는 *후속 검토* (현재는 비도체).
+  Ice enchant × cyro 는 *무반응* (이미 차가운 fluid → 추가 freeze 의미 없음).
+- **시각:** 청백 surface (`#A0E0F0`) + 어두운 청 body (`#4080B0`) + glow `#C0F0FF` halo. 표면 wave water 와 동등.
+- **세계관 정당화:** 거대 빌더의 *극저온 격납고* / 폐허 연구소의 *액화 질소 누출* / *Made in Abyss 6층 격리 코어* 톤.
+- **LDtk Editor enum:** `Cyro` (PascalCase, 오타 고정 사용자 명시 2026-05-17). 코드는 lowercase `cyro` / `TILE_CYRO` / `isCyro` / `isInCyro` 로 일관 mirror.
 
 ---
 

@@ -6,6 +6,7 @@ import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
 import { EnemyConst } from '@data/constData';
 import { type ElementAffinity, elementGroup } from '@combat/ElementAffinity';
+import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
@@ -49,6 +50,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   burnTickAccum = 0;
   chargedTickAccum = 0;
   acidTickAccum = 0;
+  chargedStateMs = 0;
+  cyroTickAccum = 0;
+  cyroSlowRemainingMs = 0;
   prevInElectric = false;
   /**
    * Frozen status — set by Ice Ego Shard impact. While > 0 the enemy is
@@ -231,6 +235,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.savePrevPosition();
     this.updateInvincibility(dt);
     const dtSec = dt / 1000;
+    const cyroMoveMult = this.cyroSlowRemainingMs > 0 ? 1 - CYRO_FROZEN_SLOW_PCT : 1;
 
     // HP bar timer
     if (this.hpBarTimer > 0) {
@@ -261,16 +266,16 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     if (this.movementType === 'flying') {
       // Flying enemies: no gravity, free movement. Only solid walls block.
       if (this.roomData.length > 0) {
-        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
+        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec * cyroMoveMult, this.roomData);
         this.x = rx.x;
         if (rx.collided) this.vx = 0;
 
-        const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
+        const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec * cyroMoveMult, this.roomData);
         this.y = ry.y;
         if (ry.collided) this.vy = 0;
       } else {
-        this.x += this.vx * dtSec;
-        this.y += this.vy * dtSec;
+        this.x += this.vx * dtSec * cyroMoveMult;
+        this.y += this.vy * dtSec * cyroMoveMult;
       }
       this.grounded = false;
     } else {
@@ -279,7 +284,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
 
       if (this.roomData.length > 0) {
-        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec, this.roomData);
+        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec * cyroMoveMult, this.roomData);
         this.x = rx.x;
 
         // Wall-blocked jump: scan wall height, jump just enough to clear it

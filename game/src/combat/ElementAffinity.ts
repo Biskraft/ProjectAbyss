@@ -56,5 +56,6 @@ export function hazardToElement(src: HazardSource): ElementAffinity {
     case 'thunder': return 'thunder';
     case 'charged': return 'thunder';
     case 'acid':    return 'acid';
+    case 'cyro':    return 'ice';
   }
 }

@@ -48,7 +48,7 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInMagma, isInOil, isInAcid } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -121,6 +121,7 @@ import { FluidResidueManager } from '@effects/FluidResidue';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
 import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
+import { resolveContainerSlotKind } from '@data/ContainerPools';
 import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
@@ -153,7 +154,7 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
-import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
+import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
 import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
@@ -457,6 +458,7 @@ export class LdtkWorldScene extends Scene {
   private static readonly MAINTAIN_CHECK_MS = 500;
   /** Currently held container (Spelunky-style — one at a time). */
   private heldContainer: ThrowableContainer | null = null;
+  private containerPrompt: Container | null = null;
   private prevPlayerInOtherFluid = false;
   private prevEnemyInOtherFluid: boolean[] = [];
   /** Set true when a TileMutator mutation invalidates the wall layer sprites. */
@@ -596,6 +598,8 @@ export class LdtkWorldScene extends Scene {
   // Ending sequence
   private endingTriggers: EndingTrigger[] = [];
   private ending!: EndingSequence;
+  /** isDone 분기가 매 프레임 재진입해 replace 가 2회 발사되는 것을 막는 게이트. */
+  private endingTransitionStarted = false;
   private savePoints: Array<{ x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container }> = [];
   private saveDelayTimer = 0;
   private saveQueued = false;
@@ -1249,17 +1253,13 @@ export class LdtkWorldScene extends Scene {
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
     if (saveData) this.tutorialHint.hydrate(saveData.completedTutorialHints);
 
-    // Ending sequence — when player walks into an LDtk EndingTrigger, the
-    // sequence starts. Hide HUD/minimap so the stage is clean during the
-    // rumble→fade→title build, then route to EndingScene (Demo End Phase C).
+    // Ending sequence — EndingTrigger 터치 시 player 입력만 잠그고 환경은 계속
+    // 움직임. HUD 가시성은 Shaft_DemoEnd 룸 진입 시점에 별도로 hide 되므로 여기
+    // onStart 콜백은 비워둔다.
     this.ending = new EndingSequence({
       uiContainer: this.game.legacyUIContainer,
       camera: this.game.camera,
       input: this.game.input,
-      onStart: () => {
-        this.hud.container.visible = false;
-        if (this.minimap) this.minimap.visible = false;
-      },
     });
 
     // Inventory UI — uiContainer(native) 직속. InventoryUI 내부에서 scale.set(uiScale)
@@ -1500,21 +1500,33 @@ export class LdtkWorldScene extends Scene {
     }
     this.wasAreaTitleActive = areaTitleActive;
 
-    // Ending sequence active ??block everything
+    // Ending sequence — 환경은 계속 update 되어야 하므로 early-return 하지 않는다.
+    // inputLocked 가 켜져 있어 player 만 멈춘다. isDone 시점에 한 번만 정리 +
+    // replace 한다 (import().then() 비동기 대기 중 동일 분기가 재진입해 두 번째
+    // replace 가 발사되면 EndingScene 이 fade-in 중 새 인스턴스로 즉시 교체되어
+    // 사용자에겐 "팝업"처럼 보이는 문제가 있었음).
+    //
+    // overlay dispose 는 EndingScene init/enter 가 끝난 *다음*에 한다.
+    // 이전엔 dispose 후 동적 import 가 resolve 되기 전 한 frame 갭에 worldSprite
+    // 의 이전 RT(빌더/player 가 그려진 게임 화면)가 노출되어 흰색 픽셀이
+    // 새어 보이는 증상이 있었음.
     if (this.ending.isActive) {
       this.ending.update(dt);
-      if (this.ending.isDone) {
+      if (this.ending.isDone && !this.endingTransitionStarted) {
+        this.endingTransitionStarted = true;
         this.game.camera.setZoom(1.0);
         this.game.camera.clearBounds();
-        // Reset save on ending completion
         SaveManager.deleteSave();
-        // Route into Demo End Phase C UI (EndingScene) — replaces the
-        // previous TitleScene jump so the player sees the demo wrap-up.
-        import('./EndingScene').then(({ EndingScene }) => {
-          this.game.sceneManager.replace(new EndingScene(this.game));
+        this.game.input.inputLocked = false;
+        const endingRef = this.ending;
+        const game = this.game;
+        import('./EndingScene').then(async ({ EndingScene }) => {
+          await game.sceneManager.replace(new EndingScene(game));
+          endingRef.dispose();
         });
+        return;
       }
-      return;
+      if (this.endingTransitionStarted) return;
     }
 
     // Character stats overlay (blocks all input while open)
@@ -1533,6 +1545,12 @@ export class LdtkWorldScene extends Scene {
       this.game.input.consumeJustPressed(GameAction.STATUS);
       this.openCharacterStats();
       return;
+    }
+
+    // Debug warp must remain reachable from death/game-over UI, which can
+    // early-return through handlePauseAndDeath before normal gameplay input.
+    if (this.deathScreen?.visible || this.gameOverActive) {
+      this.handleDebugWarp();
     }
 
     const pauseOrDeath = this.uiController.handlePauseAndDeath({
@@ -1746,10 +1764,6 @@ export class LdtkWorldScene extends Scene {
 
     // Game Over state
     if (this.gameOverActive) {
-      // Debug warp must remain usable from the death screen so the developer
-      // can bounce to any room without going through the save-point respawn.
-      // `?debug` gated inside handleDebugWarp itself; safe for live builds.
-      this.handleDebugWarp();
       if (
         this.game.input.isJustPressed(GameAction.ATTACK) ||
         this.game.input.isJustPressed(GameAction.JUMP)
@@ -2537,26 +2551,7 @@ export class LdtkWorldScene extends Scene {
         // Pickup: AABB overlap with player AABB inflated by GRAB_RANGE. This
         // is more reliable than center-distance now that crates are 32×32
         // — center-to-center with a body-adjacent crate can be 23+ px.
-        const GRAB_RANGE = 8;
-        const grabBox = {
-          x: this.player.x - GRAB_RANGE,
-          y: this.player.y - GRAB_RANGE,
-          width: this.player.width + GRAB_RANGE * 2,
-          height: this.player.height + GRAB_RANGE * 2,
-        };
-        let best: ThrowableContainer | null = null;
-        let bestDist = Infinity;
-        const px = this.player.x + this.player.width / 2;
-        const py = this.player.y + this.player.height / 2;
-        for (const c of this.containers) {
-          if (c.destroyed || c.held) continue;
-          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-          if (!aabbOverlap(grabBox, cBox)) continue;
-          const cx = c.colX + c.colW / 2;
-          const cy = c.colY + c.colH / 2;
-          const d = (cx - px) ** 2 + (cy - py) ** 2;
-          if (d < bestDist) { best = c; bestDist = d; }
-        }
+        const best = this.findNearestGrabbableContainer();
         if (best) {
           best.pickUp();
           this.heldContainer = best;
@@ -2574,6 +2569,7 @@ export class LdtkWorldScene extends Scene {
     } else {
       this.player.isLifting = false;
     }
+    this.updateContainerPrompt();
 
     // Portal interactions
     this.updatePortals(dt);
@@ -2802,9 +2798,10 @@ export class LdtkWorldScene extends Scene {
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'magma';
     const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'oil';
     const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'acid';
-    const inAnyOther = inMagma_ || inOil_ || inAcid_;
+    const inCyro_  = isInCyro (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'cyro';
+    const inAnyOther = inMagma_ || inOil_ || inAcid_ || inCyro_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
-      const type: 'magma' | 'oil' | 'acid' = inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
+      const type: 'magma' | 'oil' | 'acid' | 'cyro' = inCyro_ ? 'cyro' : inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
       const strength = inAnyOther ? 1.0 : 0.8;
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
       const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
@@ -3514,10 +3511,19 @@ export class LdtkWorldScene extends Scene {
     const spawnLog: string[] = [];
     for (const ent of containerEnts) {
       const fields = ent.fields ?? {};
-      const kind = parseContainerKind(fields['Kind']);
+      const kindRaw = fields['Kind'];
+      let kind = parseContainerKind(kindRaw);
+      if (!kind) {
+        // Generic_A/B/C — World 룸은 temperament 컨텍스트가 없으므로 default
+        // (forge) 슬롯 풀에서 뽑힘. 룸별 톤이 필요하면 explicit Kind 사용.
+        const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
+        if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
+          kind = resolveContainerSlotKind(slotStr, null);
+        }
+      }
       if (!kind) {
         // eslint-disable-next-line no-console
-        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) — invalid, skipped. Valid values: Crate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial`);
+        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) — invalid, skipped. Valid values: Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial / Generic_A / Generic_B / Generic_C`);
         continue;
       }
       const fvRaw = fields['FluidVolume'];
@@ -3820,6 +3826,17 @@ export class LdtkWorldScene extends Scene {
       this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
     }
 
+    // HUD/minimap visibility — Shaft_DemoEnd 룸 안에서는 항상 가린다 (사용자
+    // 결정 2026-05-17). 워프 등으로 다른 룸으로 빠지면 intro 완료(hudReady) 시점
+    // 의 정상 가시성으로 복원한다.
+    if (level.identifier === 'Shaft_DemoEnd') {
+      this.hud.container.visible = false;
+      if (this.minimap) this.minimap.visible = false;
+    } else if (this.game.hudReady) {
+      this.hud.container.visible = true;
+      if (this.minimap) this.minimap.visible = true;
+    }
+
     // Exit Light Bleed ???�웃 방이 ?�는 방향???�린 ?�??구간??주황 글로우.
     this.spawnExitGlows(level);
 
@@ -4111,6 +4128,55 @@ export class LdtkWorldScene extends Scene {
         break;
       }
     }
+  }
+
+  private findNearestGrabbableContainer(): ThrowableContainer | null {
+    const GRAB_RANGE = 8;
+    const grabBox = {
+      x: this.player.x - GRAB_RANGE,
+      y: this.player.y - GRAB_RANGE,
+      width: this.player.width + GRAB_RANGE * 2,
+      height: this.player.height + GRAB_RANGE * 2,
+    };
+    let best: ThrowableContainer | null = null;
+    let bestDist = Infinity;
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
+      if (!aabbOverlap(grabBox, cBox)) continue;
+      const cx = c.colX + c.colW / 2;
+      const cy = c.colY + c.colH / 2;
+      const d = (cx - px) ** 2 + (cy - py) ** 2;
+      if (d < bestDist) { best = c; bestDist = d; }
+    }
+    return best;
+  }
+
+  private updateContainerPrompt(): void {
+    const target = this.heldContainer ? null : this.findNearestGrabbableContainer();
+    if (!target) {
+      if (this.containerPrompt) this.containerPrompt.visible = false;
+      return;
+    }
+    if (!this.containerPrompt) {
+      this.containerPrompt = KeyPrompt.createPromptForAction(GameAction.GRAB, t('prompt.lift'), this.game.uiScale);
+      this.containerPrompt.visible = false;
+      this.game.uiContainer.addChild(this.containerPrompt);
+    } else if (!this.containerPrompt.parent) {
+      this.game.uiContainer.addChild(this.containerPrompt);
+    }
+
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const worldX = target.colX + target.colW / 2;
+    const worldY = target.colY;
+    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.containerPrompt.width / 2;
+    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 28) * us;
+    this.containerPrompt.x = Math.round(sx);
+    this.containerPrompt.y = Math.round(sy);
+    this.containerPrompt.visible = true;
   }
 
   /** Check if player is near a save point ??show hint, save on UP. */
@@ -4676,6 +4742,22 @@ export class LdtkWorldScene extends Scene {
           this.game.camera.shake(2);
           this.player.triggerFlash();
         }
+      } else if (waterfallType === 'cyro') {
+        this.player.extinguishFireDebuffs();
+        this.player.cyroSlowRemainingMs = CYRO_FROZEN_MS;
+        let acc = this.player.cyroTickAccum ?? 0;
+        acc += dt;
+        while (acc >= CYRO_TICK_MS) {
+          acc -= CYRO_TICK_MS;
+          if (!this.player.invincible) {
+            const dmg = Math.max(1, Math.floor(this.player.maxHp * CYRO_TICK_PCT));
+            this.player.hp -= dmg;
+            this.player.lastDamageSource = 'cyro';
+            this.hud.flashDamage();
+            this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+          }
+        }
+        this.player.cyroTickAccum = acc;
       }
       if (this.player.hp <= 0) {
         this.player.hp = 0;
@@ -5165,6 +5247,9 @@ export class LdtkWorldScene extends Scene {
         case 'WaterBarrel':   return 2;
         case 'MagmaCrucible': return 6;
         case 'AcidVial':      return 13;
+        case 'ChargedCrate':  return 8;
+        case 'ChargedCell':   return 8;
+        case 'CyroCanister':  return 14;
         case 'Crate':         return 0;
         case 'MetalCrate':    return 0;
       }
@@ -5232,7 +5317,7 @@ export class LdtkWorldScene extends Scene {
     const W = grid[0]?.length ?? 0;
     if (!W) return;
     const isPaintable = (t: number) =>
-      t === 0 || t === 16 || t === 2 || t === 6 || t === 11 || t === 13;
+      t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 14;
     const key = (x: number, y: number) => y * W + x;
     const visited = new Set<number>();
     const queue: Array<[number, number]> = [[sx, sy]];

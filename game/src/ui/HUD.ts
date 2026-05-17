@@ -1442,6 +1442,8 @@ export class HUD {
       worldY: number,
       action: GameAction,
       label: string,
+      keyGlyphYOffset = 0,
+      keyFontSize = 8 * s,
     ) => {
       const tex = skin.getTexture(sliceName);
       const bounds = skin.getBounds(sliceName);
@@ -1457,12 +1459,12 @@ export class HUD {
       // one stays decorative, the small lower one carries the key glyph.
       const keyTxt = new BitmapText({
         text: actionKey(action),
-        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xffffff },
+        style: { fontFamily: PIXEL_FONT, fontSize: keyFontSize, fill: 0xffffff },
       });
       bindActionText(keyTxt, action);
       keyTxt.anchor.set(0.5, 0.5);
       keyTxt.x = (worldX + bounds.w / 2) * s;
-      keyTxt.y = (worldY + bounds.h * 0.70 + 2) * s;
+      keyTxt.y = (worldY + bounds.h * 0.70 + 2 + keyGlyphYOffset) * s;
       this.skinLayer!.addChild(keyTxt);
       // Action name — below box
       const actionTxt = new BitmapText({

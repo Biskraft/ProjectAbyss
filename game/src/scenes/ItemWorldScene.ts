@@ -15,10 +15,10 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
-import { applyTileHazards, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
+import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
 import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
@@ -111,6 +111,7 @@ import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpa
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
+import { resolveContainerSlotKind } from '@data/ContainerPools';
 import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
@@ -339,6 +340,7 @@ export class ItemWorldScene extends Scene {
   private egoCastChargeMs = 0;
   private containers: ThrowableContainer[] = [];
   private heldContainer: ThrowableContainer | null = null;
+  private containerPrompt: Container | null = null;
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
@@ -1501,10 +1503,21 @@ export class ItemWorldScene extends Scene {
         // Container / ContainerSpawner / FluidSpawner entity wiring.
         const offGx = roomX / 16;
         const offGy = roomY / 16;
-        // ── Container entity (explicit) ──
+        // ── Container entity (explicit Kind or Generic_A/B/C slot) ──
+        // Kind=Crate/MetalCrate/OilDrum/... → 그대로 ThrowableContainer 생성
+        // Kind=Generic_A/B/C → temperamentPrimary 와 slot 매핑으로 실제 kind
+        //   resolve (ContainerPools.resolveContainerSlotKind). 무기 기질별로
+        //   다른 ContainerKind 가 자연스럽게 등장.
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'Container') continue;
-          const kind = parseContainerKind(ent.fields?.['Kind']);
+          const kindRaw = ent.fields?.['Kind'];
+          let kind = parseContainerKind(kindRaw);
+          if (!kind) {
+            const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
+            if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
+              kind = resolveContainerSlotKind(slotStr, this.item.def.temperamentPrimary);
+            }
+          }
           if (!kind) continue;
           const fvRaw = ent.fields?.['FluidVolume'];
           const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
@@ -3159,6 +3172,22 @@ export class ItemWorldScene extends Scene {
           this.game.camera.shake(2);
           this.player.triggerFlash();
         }
+      } else if (waterfallType === 'cyro') {
+        this.player.extinguishFireDebuffs();
+        this.player.cyroSlowRemainingMs = CYRO_FROZEN_MS;
+        let acc = this.player.cyroTickAccum ?? 0;
+        acc += dt;
+        while (acc >= CYRO_TICK_MS) {
+          acc -= CYRO_TICK_MS;
+          if (!this.player.invincible) {
+            const dmg = Math.max(1, Math.floor(this.player.maxHp * CYRO_TICK_PCT));
+            this.player.hp -= dmg;
+            this.player.lastDamageSource = 'cyro';
+            this.hud.flashDamage();
+            this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
+          }
+        }
+        this.player.cyroTickAccum = acc;
       }
       if (this.player.hp <= 0) {
         this.player.hp = 0;
@@ -3436,6 +3465,9 @@ export class ItemWorldScene extends Scene {
         case 'WaterBarrel':   return 2;
         case 'MagmaCrucible': return 6;
         case 'AcidVial':      return 13;
+        case 'ChargedCrate':  return 8;
+        case 'ChargedCell':   return 8;
+        case 'CyroCanister':  return 14;
         case 'Crate':         return 0;
         case 'MetalCrate':    return 0;
       }
@@ -3453,8 +3485,10 @@ export class ItemWorldScene extends Scene {
           const row = grid[y];
           if (!row) continue;
           const t = row[x] ?? -1;
-          // Paint over: air / grass / any fluid. Solid cells block paint.
-          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 11 || t === 13) {
+          // Paint over: air / grass / any fluid (water/magma/oil/acid/charged/cyro).
+          // Solid cells block paint. charged (8) 포함 — ChargedCrate splash 가
+          // 기존 charged 풀 위 다시 칠해도 무해 (셀 값 그대로).
+          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 14) {
             row[x] = tile;
             painted++;
             for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -4543,26 +4577,7 @@ export class ItemWorldScene extends Scene {
       } else {
         // AABB-with-padding grab (mirrors LdtkWorldScene). Center-distance
         // alone misses adjacent 32×32 crates whose centers sit > 23 px away.
-        const GRAB_RANGE = 8;
-        const grabBox = {
-          x: this.player.x - GRAB_RANGE,
-          y: this.player.y - GRAB_RANGE,
-          width: this.player.width + GRAB_RANGE * 2,
-          height: this.player.height + GRAB_RANGE * 2,
-        };
-        const px = this.player.x + this.player.width / 2;
-        const py = this.player.y + this.player.height / 2;
-        let best: ThrowableContainer | null = null;
-        let bestDist = Infinity;
-        for (const c of this.containers) {
-          if (c.destroyed || c.held) continue;
-          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-          if (!aabbOverlap(grabBox, cBox)) continue;
-          const cx = c.colX + c.colW / 2;
-          const cy = c.colY + c.colH / 2;
-          const d = (cx - px) ** 2 + (cy - py) ** 2;
-          if (d < bestDist) { best = c; bestDist = d; }
-        }
+        const best = this.findNearestGrabbableContainer();
         if (best) { best.pickUp(); this.heldContainer = best; }
       }
     }
@@ -4576,6 +4591,7 @@ export class ItemWorldScene extends Scene {
     } else {
       this.player.isLifting = false;
     }
+    this.updateContainerPrompt();
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
     this.updateStaticEntities(dt);
@@ -5300,10 +5316,11 @@ export class ItemWorldScene extends Scene {
     const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'oil';
     const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'acid';
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'magma';
+    const inCyro_  = isInCyro (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'cyro';
     // Non-water fluid entry / exit splash — same impulse pattern as water.
-    const inAnyOther = inMagma_ || inOil_ || inAcid_;
+    const inAnyOther = inMagma_ || inOil_ || inAcid_ || inCyro_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
-      const type: 'magma' | 'oil' | 'acid' = inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
+      const type: 'magma' | 'oil' | 'acid' | 'cyro' = inCyro_ ? 'cyro' : inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
       const strength = inAnyOther ? 1.0 : 0.8;
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
       const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
@@ -6488,6 +6505,55 @@ export class ItemWorldScene extends Scene {
   // ---------------------------------------------------------------------------
   // DEC-039 Trapdoor 침강 시퀀스
   // ---------------------------------------------------------------------------
+
+  private findNearestGrabbableContainer(): ThrowableContainer | null {
+    const GRAB_RANGE = 8;
+    const grabBox = {
+      x: this.player.x - GRAB_RANGE,
+      y: this.player.y - GRAB_RANGE,
+      width: this.player.width + GRAB_RANGE * 2,
+      height: this.player.height + GRAB_RANGE * 2,
+    };
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+    let best: ThrowableContainer | null = null;
+    let bestDist = Infinity;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
+      if (!aabbOverlap(grabBox, cBox)) continue;
+      const cx = c.colX + c.colW / 2;
+      const cy = c.colY + c.colH / 2;
+      const d = (cx - px) ** 2 + (cy - py) ** 2;
+      if (d < bestDist) { best = c; bestDist = d; }
+    }
+    return best;
+  }
+
+  private updateContainerPrompt(): void {
+    const target = this.heldContainer ? null : this.findNearestGrabbableContainer();
+    if (!target) {
+      if (this.containerPrompt) this.containerPrompt.visible = false;
+      return;
+    }
+    if (!this.containerPrompt) {
+      this.containerPrompt = KeyPrompt.createPromptForAction(GameAction.GRAB, t('prompt.lift'), this.game.uiScale);
+      this.containerPrompt.visible = false;
+      this.game.uiContainer.addChild(this.containerPrompt);
+    } else if (!this.containerPrompt.parent) {
+      this.game.uiContainer.addChild(this.containerPrompt);
+    }
+
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const worldX = target.colX + target.colW / 2;
+    const worldY = target.colY;
+    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.containerPrompt.width / 2;
+    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 28) * us;
+    this.containerPrompt.x = Math.round(sx);
+    this.containerPrompt.y = Math.round(sy);
+    this.containerPrompt.visible = true;
+  }
 
   /**
    * 매 프레임 — Trapdoor 의 idle 갱신 + KeyPrompt UI + ATTACK 입력 인터랙트.

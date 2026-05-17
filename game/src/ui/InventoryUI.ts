@@ -1,4 +1,4 @@
-import { Container, Graphics, BitmapText, Text } from 'pixi.js';
+import { Container, Graphics, BitmapText, Sprite, Text } from 'pixi.js';
 import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey, DEMO_BLOCK_REDIVE } from '@items/ItemInstance';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
@@ -10,7 +10,7 @@ import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import {
   create9SlicePanel, drawSelectionRow, drawSelectionPulse,
-  ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW_ALPHA,
+  ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW, ROW_SELECTED_GLOW_ALPHA, ROW_SELECTED_GLOW_INNER,
   MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE,
 } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
@@ -36,9 +36,9 @@ const PANEL_W = 340;
 const PANEL_H = PADDING + 16 + 4 + EQUIP_AREA_H + 6 + LIST_H + 4 + DETAIL_H + PADDING;
 
 // Anvil mode extra
-const ANVIL_SLOT_W = 64;
-const ARROW_W = 24;
-const PANEL_W_ANVIL = PANEL_W + ARROW_W + ANVIL_SLOT_W + 12;
+const ANVIL_SLOT_W = 112;
+const ANVIL_SIDE_W = 156;
+const PANEL_W_ANVIL = PANEL_W + ANVIL_SIDE_W;
 
 const ANVIL_EQUIPPED_DIM_ALPHA = 0.15;
 
@@ -115,6 +115,8 @@ export class InventoryUI {
   private anvilState: 'selecting' | 'placed' = 'selecting';
   private anvilItem: ItemInstance | null = null;
   private anvilSlotContainer: Container | null = null;
+  private anvilEmptyPulseOverlay: Graphics | null = null;
+  private anvilEmptyPulseRect: { w: number; h: number } | null = null;
   private anvilPulseTimer = 0;
 
   // Selection pulse (drawn each frame in update over the selected row)
@@ -779,37 +781,43 @@ export class InventoryUI {
 
   private drawAnvilArea(): void {
     const slot = new Container();
-    const anvilSlotSize = 56;
+    const anvilSlotSize = ANVIL_SLOT_W;
     const hasItem = !!this.anvilItem;
     const rarityColor = hasItem ? (RARITY_COLOR[this.anvilItem!.rarity] ?? COL_TEXT_WHITE) : COL_BORDER;
 
-    // Arrow
-    const arrowX = PANEL_W - 8;
-    const arrowY = Math.floor(PANEL_H / 2) - 10;
-    const arrowColor = hasItem ? rarityColor : 0x444466;
-    const arrow = new Graphics();
-    arrow.rect(arrowX, arrowY + 6, ARROW_W - 10, 6).fill(arrowColor);
-    arrow.poly([
-      arrowX + ARROW_W - 10, arrowY,
-      arrowX + ARROW_W, arrowY + 9,
-      arrowX + ARROW_W - 10, arrowY + 18,
-    ]);
-    arrow.fill(arrowColor);
-    slot.addChild(arrow);
-
     // Anvil slot
-    const slotX = PANEL_W + ARROW_W - 4;
+    const slotX = PANEL_W + Math.floor((ANVIL_SIDE_W - anvilSlotSize) / 2);
     const slotY = Math.floor((PANEL_H - anvilSlotSize) / 2) - 6;
-    const bg = new Graphics();
-    bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).fill({ color: COL_EQUIP_BG, alpha: 0.5 });
-    const borderColor = hasItem ? rarityColor : COL_BORDER;
-    bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).stroke({ color: borderColor, width: 2 });
-    slot.addChild(bg);
+    const activeForgeTexture = hasItem ? this.skin?.getTexture('ui_forge_active') : undefined;
+    if (activeForgeTexture) {
+      const forge = new Sprite(activeForgeTexture);
+      forge.x = slotX;
+      forge.y = slotY;
+      forge.width = anvilSlotSize;
+      forge.height = anvilSlotSize;
+      slot.addChild(forge);
+    } else {
+      const bg = new Graphics();
+      bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).fill({ color: COL_EQUIP_BG, alpha: 0.5 });
+      const borderColor = hasItem ? rarityColor : COL_BORDER;
+      bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).stroke({ color: borderColor, width: 2 });
+      slot.addChild(bg);
+      if (!hasItem) {
+        const pulse = new Graphics();
+        pulse.x = slotX;
+        pulse.y = slotY;
+        slot.addChild(pulse);
+        this.anvilEmptyPulseOverlay = pulse;
+        this.anvilEmptyPulseRect = { w: anvilSlotSize, h: anvilSlotSize };
+        this.redrawAnvilEmptyPulse();
+      }
+    }
 
     if (hasItem) {
-      const img = new ItemImage(this.anvilItem!, anvilSlotSize - 8);
-      img.container.x = slotX + 4;
-      img.container.y = slotY + 4;
+      const itemSize = activeForgeTexture ? 64 : anvilSlotSize - 18;
+      const img = new ItemImage(this.anvilItem!, itemSize);
+      img.container.x = slotX + Math.floor((anvilSlotSize - itemSize) / 2);
+      img.container.y = slotY + Math.floor((anvilSlotSize - itemSize) / 2);
       slot.addChild(img.container);
 
       const label = createUiText(t('ui.inventory.button_dive'), { fontSize: 10, fill: rarityColor });
@@ -836,6 +844,21 @@ export class InventoryUI {
       this.anvilSlotContainer.destroy({ children: true });
       this.anvilSlotContainer = null;
     }
+    this.anvilEmptyPulseOverlay = null;
+    this.anvilEmptyPulseRect = null;
+  }
+
+  private redrawAnvilEmptyPulse(): void {
+    if (!this.anvilEmptyPulseOverlay || !this.anvilEmptyPulseRect) return;
+    const t = this.anvilPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.55 + 0.45 * Math.sin(t * Math.PI * 2 * 1.2));
+    this.anvilEmptyPulseOverlay.clear();
+    this.anvilEmptyPulseOverlay
+      .rect(0, 0, this.anvilEmptyPulseRect.w, this.anvilEmptyPulseRect.h)
+      .stroke({ color: ROW_SELECTED_GLOW, width: 2, alpha: a });
+    this.anvilEmptyPulseOverlay
+      .rect(1, 1, this.anvilEmptyPulseRect.w - 2, this.anvilEmptyPulseRect.h - 2)
+      .stroke({ color: ROW_SELECTED_GLOW_INNER, width: 1, alpha: Math.min(1, a * 0.85) });
   }
 
   update(dt: number): void {
@@ -845,8 +868,9 @@ export class InventoryUI {
       this.selectionPulseTimer += dt;
       this.redrawSelectionPulse();
     }
-    if (this.anvilState === 'placed' && this.anvilSlotContainer) {
+    if (this.mode === 'anvil' && this.anvilSlotContainer) {
       this.anvilPulseTimer += dt;
+      this.redrawAnvilEmptyPulse();
     }
   }
 }

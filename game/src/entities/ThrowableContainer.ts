@@ -15,7 +15,16 @@ import { assetPath } from '@core/AssetLoader';
  * Visual: simple Graphics primitive for now (sprite atlas swap when art lands).
  */
 
-export type ContainerKind = 'Crate' | 'MetalCrate' | 'OilDrum' | 'WaterBarrel' | 'MagmaCrucible' | 'AcidVial';
+export type ContainerKind =
+  | 'Crate'
+  | 'MetalCrate'
+  | 'OilDrum'
+  | 'WaterBarrel'
+  | 'MagmaCrucible'
+  | 'AcidVial'
+  | 'ChargedCrate'
+  | 'ChargedCell'
+  | 'CyroCanister';
 
 export interface ContainerSpec {
   /** Pixel size of the prop. Uniform crate shape for all kinds. */
@@ -69,6 +78,14 @@ const CATALOG: Record<ContainerKind, ContainerSpec> = {
   WaterBarrel:   { width: 32, height: 32, hp: 1, paintTile: 2,  defaultFluidVolume: 6, fluidColor: 0x4076c8,   collisionInset: INSET_DRUM   },
   MagmaCrucible: { width: 32, height: 32, hp: 1, paintTile: 6,  defaultFluidVolume: 4, fluidColor: 0xff6633,   collisionInset: INSET_DRUM   },
   AcidVial:      { width: 32, height: 32, hp: 1, paintTile: 13, defaultFluidVolume: 4, fluidColor: 0x88cc44,   collisionInset: INSET_DRUM   },
+  CyroCanister:  { width: 32, height: 32, hp: 1, paintTile: 14, defaultFluidVolume: 5, fluidColor: 0xA0E0F0,   collisionInset: INSET_DRUM   },
+  // V2.2 (2026-05-17) — Spark primary signature container. charged 풀 (TILE=8)
+  // 을 spawn → FluidSystem 이 charged FluidBody 로 자동 흡수 → Arc Scan Cycle
+  // 및 Wet-Conductor Spread 자연 발현. fluidVolume 5 = magma(4)~oil/water(6)
+  // 사이, *위험 시그니처*. fluidColor 보라 #A05AE5 (Content_System_FluidTypes.csv
+  // charged 행 surface_color 일치). Atlas: crate_01_atlas.png Row 3 (0, 96).
+  ChargedCrate:  { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xA05AE5,   collisionInset: INSET_DRUM   },
+  ChargedCell:   { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xA05AE5,   collisionInset: INSET_DRUM   },
 };
 
 /**
@@ -84,17 +101,20 @@ function ensureSliceTextures(): Promise<void> {
   slicePromise = (async () => {
     const sheet = await Assets.load<Texture>(assetPath('assets/sprites/crate_01_atlas.png'));
     if (sheet?.source) sheet.source.scaleMode = 'nearest';
-    // Row 0 (y=0): wood_01~04 — 4 variants for plain Crate
+    // Row 0 (y=0):  wood_01~04 — 4 variants for plain Crate
     // Row 1 (y=32): metal_01~04 — 4 variants for MetalCrate
-    // Row 2 (y=64): oil / acid / magma / water — 1 dedicated slice per fluid
+    // Row 2 (y=64): oil / acid / magma / water — 1 slice per fluid drum
+    // Row 3 (y=96): charged_01 (x=0) — V2.2 ChargedCrate primary signature
     for (let i = 0; i < 4; i++) {
       SLICE_TEXTURES[`wood_${i}`]  = new Texture({ source: sheet.source, frame: new Rectangle(i * 32,  0, 32, 32) });
       SLICE_TEXTURES[`metal_${i}`] = new Texture({ source: sheet.source, frame: new Rectangle(i * 32, 32, 32, 32) });
     }
-    SLICE_TEXTURES['oil_0']   = new Texture({ source: sheet.source, frame: new Rectangle( 0, 64, 32, 32) });
-    SLICE_TEXTURES['acid_0']  = new Texture({ source: sheet.source, frame: new Rectangle(32, 64, 32, 32) });
-    SLICE_TEXTURES['magma_0'] = new Texture({ source: sheet.source, frame: new Rectangle(64, 64, 32, 32) });
-    SLICE_TEXTURES['water_0'] = new Texture({ source: sheet.source, frame: new Rectangle(96, 64, 32, 32) });
+    SLICE_TEXTURES['oil_0']     = new Texture({ source: sheet.source, frame: new Rectangle( 0, 64, 32, 32) });
+    SLICE_TEXTURES['acid_0']    = new Texture({ source: sheet.source, frame: new Rectangle(32, 64, 32, 32) });
+    SLICE_TEXTURES['magma_0']   = new Texture({ source: sheet.source, frame: new Rectangle(64, 64, 32, 32) });
+    SLICE_TEXTURES['water_0']   = new Texture({ source: sheet.source, frame: new Rectangle(96, 64, 32, 32) });
+    SLICE_TEXTURES['charged_0'] = new Texture({ source: sheet.source, frame: new Rectangle( 0, 96, 32, 32) });
+    SLICE_TEXTURES['cyro_0']    = new Texture({ source: sheet.source, frame: new Rectangle(32, 96, 32, 32) });
   })().catch((e) => {
     // eslint-disable-next-line no-console
     console.warn('[ThrowableContainer] crate atlas load failed', e);
@@ -111,10 +131,23 @@ function sliceKeyForKind(kind: ContainerKind, variantIdx: number): string {
     case 'WaterBarrel':   return 'water_0';
     case 'MagmaCrucible': return 'magma_0';
     case 'AcidVial':      return 'acid_0';
+    case 'ChargedCrate':  return 'charged_0';
+    case 'ChargedCell':   return 'charged_0';
+    case 'CyroCanister':  return 'cyro_0';
   }
 }
 
-const KIND_LIST: ContainerKind[] = ['Crate', 'MetalCrate', 'OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
+const KIND_LIST: ContainerKind[] = [
+  'Crate',
+  'MetalCrate',
+  'OilDrum',
+  'WaterBarrel',
+  'MagmaCrucible',
+  'AcidVial',
+  'ChargedCrate',
+  'ChargedCell',
+  'CyroCanister',
+];
 const TILE_SIZE = 16;
 const GRAVITY = 760;
 const MAX_FALL_SPEED = 720;

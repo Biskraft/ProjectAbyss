@@ -1025,57 +1025,50 @@
     </div>
 
     <div class="card">
-      <h3>Anvil Mode — FORGE (앤빌 근접 C키)</h3>
+      <h3>Anvil Mode — FORGE (앤빌 근접 C키, 빈 상태)</h3>
+      <p class="desc">
+        인벤토리(I)와 시각 언어를 완전히 분리. <b>좌 = 컴팩트 무기 선택창</b>, <b>우 = 마름모 anvil 슬롯</b>.
+        인벤토리의 6-슬롯 장비바·디테일 패널·다컬럼 리스트를 모두 제거하고, 우측 슬롯은 직사각 → 마름모로 형상 자체를 바꾼다.
+        마름모 자산은 atlas <code>ui_hud_01_atlas.png</code> 의 <code>ui_forge_active</code> slice (336·112·64×64, 오렌지 frame) 사용.
+      </p>
       <div class="stage center">
-        <div class="modal-overlay" style="max-width:560px">
+        <div class="modal-overlay" style="max-width:480px">
           <div class="modal-panel" style="width:100%">
             <div class="t-title">FORGE</div>
             <div class="divider"></div>
-            <!-- Equipped Slot (상단 고정, 잠김 표시) -->
-            <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.15);border-radius:2px;margin-bottom:8px;opacity:0.6">
-              <div style="width:32px;height:32px;border:2px solid var(--row-equipped-bar);display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(255,140,0,0.06)">⚔</div>
-              <div style="flex:1">
-                <div class="t-body" style="color:var(--r-legendary);font-weight:700">Cosmic Blade</div>
-                <div class="t-hint">Legendary · ATK 120</div>
-              </div>
-              <span class="row-badge lock">🔒 IN USE</span>
-            </div>
-            <!-- Item List (다이브 가능 아이템만) -->
-            <div class="t-hint" style="margin-bottom:4px;color:var(--muted)">SELECT WEAPON TO DIVE</div>
-            <div style="margin-bottom:10px">
-              <div class="inv-row selected">
-                <span class="row-cursor">▶</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-rare)">Galaxy Sword</span>
-                <span class="row-stars">★★★</span>
-                <span class="row-stat">ATK 100</span>
-                <span class="row-dive-status"><span class="row-badge dive">DIVE</span></span>
-              </div>
-              <div class="inv-row">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-magic)">Old Cleaver</span>
-                <span class="row-stars">★★</span>
-                <span class="row-stat">ATK 8</span>
-                <span class="row-dive-status"><span class="row-badge clr">CLR</span></span>
-              </div>
-            </div>
-            <!-- Detail + Anvil slot -->
-            <div class="divider"></div>
-            <div style="display:flex;gap:14px;padding-top:8px">
-              <div style="flex:1">
-                <div class="t-title" style="color:var(--r-rare)">GALAXY SWORD</div>
-                <div class="t-hint">Rare · Blade · Lv.35</div>
-                <div style="margin-top:6px">
-                  <div class="t-body"><span style="color:var(--text-secondary)">Strata</span>&nbsp;3 layers</div>
-                  <div class="t-body"><span style="color:var(--text-secondary)">Cleared</span>&nbsp;0 / 3</div>
+            <!-- 2-column body: 좌 selection / 우 rhombus -->
+            <div style="display:flex;gap:18px;padding-top:8px;align-items:stretch;min-height:160px">
+              <!-- ▼ Left: 컴팩트 무기 선택 (장비바·디테일 패널 없음) ▼ -->
+              <div style="flex:1.15;min-width:0;display:flex;flex-direction:column">
+                <div class="t-hint" style="margin-bottom:6px;color:var(--muted);letter-spacing:1.5px">SELECT WEAPON</div>
+                <!-- Row: selected -->
+                <div style="padding:5px 8px;background:linear-gradient(90deg,rgba(255,153,51,0.22),rgba(255,153,51,0.04));border-left:3px solid #FF9933;margin-bottom:3px;display:flex;align-items:center;gap:6px">
+                  <span style="color:#FFD699">▶</span>
+                  <span style="flex:1;color:#FFFFFF;font-weight:700">Galaxy Sword</span>
+                  <span style="color:var(--text-secondary);font-size:9px">ATK 100</span>
+                </div>
+                <!-- Row: cleared -->
+                <div style="padding:5px 8px;margin-bottom:3px;display:flex;align-items:center;gap:6px">
+                  <span style="color:transparent">▶</span>
+                  <span style="flex:1;color:var(--r-magic)">Old Cleaver</span>
+                  <span style="color:#88dd88;font-size:9px;font-weight:700">CLR</span>
+                </div>
+                <!-- Row: locked -->
+                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
+                  <span style="color:transparent">▶</span>
+                  <span style="flex:1;color:var(--row-locked)">Rustborn</span>
+                  <span style="color:var(--row-locked);font-size:9px">🔒</span>
                 </div>
               </div>
-              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
-                <div style="width:48px;height:48px;border:2px dashed var(--row-locked);display:flex;align-items:center;justify-content:center;color:var(--row-locked);font-size:8px">ANVIL</div>
-                <div class="t-hint">[C] Place</div>
+
+              <!-- ▼ Right: 마름모 anvil 슬롯 (비어있음) ▼ -->
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-left:1px solid var(--modal-divider);padding-left:14px">
+                <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+                  <!-- 마름모 외곽 (dim, dashed) -->
+                  <div style="position:absolute;width:82px;height:82px;border:2px dashed rgba(255,140,0,0.45);transform:rotate(45deg);background:rgba(0,0,0,0.35)"></div>
+                  <span style="position:relative;color:var(--row-locked);font-size:8px;letter-spacing:2px">ANVIL</span>
+                </div>
+                <div class="t-hint" style="color:var(--muted)">[C] Place</div>
               </div>
             </div>
             <div class="divider"></div>
@@ -1086,48 +1079,49 @@
     </div>
 
     <div class="card">
-      <h3>Anvil Mode — Placed (아이템 배치 후)</h3>
+      <h3>Anvil Mode — Placed (아이템 배치 후, 노란 active)</h3>
+      <p class="desc">
+        선택된 무기가 우측 마름모로 이동. 슬롯 외곽이 <b style="color:#FFD700">노란 active 프레임</b> + 골드 글로우 펄스로 전환되어
+        "배치 완료, 다이브 준비" 상태를 시각적으로 강하게 신호한다. 좌측 리스트의 해당 행은 ON ANVIL 으로 dim 처리.
+        실제 자산은 <code>ui_forge_active</code> slice 본체 + GlowFilter <code>0xFFD700</code> 오버레이 조합.
+      </p>
       <div class="stage center">
-        <div class="modal-overlay" style="max-width:560px">
+        <div class="modal-overlay" style="max-width:480px">
           <div class="modal-panel" style="width:100%">
             <div class="t-title">FORGE</div>
             <div class="divider"></div>
-            <!-- List (dimmed) -->
-            <div style="margin-bottom:10px;opacity:0.4">
-              <div class="inv-row equipped">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge eq">E</span>
-                <span class="row-name" style="color:var(--r-legendary)">Cosmic Blade</span>
-                <span class="row-stars">★★★★</span>
-                <span class="row-stat">ATK 120</span>
-                <span class="row-dive-status"></span>
-              </div>
-              <div class="inv-row">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-rare);opacity:0.5">Galaxy Sword</span>
-                <span class="row-stars" style="opacity:0.5">★★★</span>
-                <span class="row-stat" style="opacity:0.5">ON ANVIL</span>
-                <span class="row-dive-status"></span>
-              </div>
-            </div>
-            <!-- Detail + Anvil (filled) -->
-            <div class="divider"></div>
-            <div style="display:flex;gap:14px;padding-top:8px">
-              <div style="flex:1">
-                <div class="t-title" style="color:var(--r-rare)">GALAXY SWORD</div>
-                <div class="t-hint">Rare · Blade · Lv.35 · Strata 3</div>
-                <div style="margin-top:6px">
-                  <div class="t-body" style="color:var(--text-accent)">Ready to dive</div>
+            <div style="display:flex;gap:18px;padding-top:8px;align-items:stretch;min-height:160px">
+              <!-- ▼ Left: 리스트 (선택 아이템 = ON ANVIL, 나머지 dim) ▼ -->
+              <div style="flex:1.15;min-width:0;display:flex;flex-direction:column">
+                <div class="t-hint" style="margin-bottom:6px;color:var(--muted);letter-spacing:1.5px">SELECT WEAPON</div>
+                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.4;display:flex;align-items:center;gap:6px">
+                  <span style="color:transparent">▶</span>
+                  <span style="flex:1;color:var(--r-rare)">Galaxy Sword</span>
+                  <span style="color:#FFD700;font-size:9px;font-weight:700">▶ ANVIL</span>
+                </div>
+                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
+                  <span style="color:transparent">▶</span>
+                  <span style="flex:1;color:var(--r-magic)">Old Cleaver</span>
+                  <span style="color:#88dd88;font-size:9px;font-weight:700">CLR</span>
+                </div>
+                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
+                  <span style="color:transparent">▶</span>
+                  <span style="flex:1;color:var(--row-locked)">Rustborn</span>
+                  <span style="color:var(--row-locked);font-size:9px">🔒</span>
                 </div>
               </div>
-              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
-                <div style="width:48px;height:48px;border:2px solid var(--r-rare);display:flex;align-items:center;justify-content:center;color:var(--r-rare);font-size:8px;background:rgba(255,255,0,0.05)">
-                  <span style="font-size:16px">⚔</span>
+
+              <!-- ▼ Right: 마름모 anvil (placed, 노란 active + 글로우) ▼ -->
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-left:1px solid var(--modal-divider);padding-left:14px">
+                <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 14px rgba(255,215,0,0.7))">
+                  <!-- 마름모 외곽 (노란 active, 굵게) -->
+                  <div style="position:absolute;width:84px;height:84px;border:3px solid #FFD700;transform:rotate(45deg);background:rgba(255,170,40,0.14)"></div>
+                  <!-- 내측 보조 라인 -->
+                  <div style="position:absolute;width:62px;height:62px;border:1px solid rgba(255,215,0,0.45);transform:rotate(45deg)"></div>
+                  <!-- 아이템 아이콘 (회전 X) -->
+                  <span style="position:relative;font-size:32px;color:#FFD700;text-shadow:0 0 8px rgba(255,215,0,0.85)">⚔</span>
                 </div>
-                <div class="t-hint" style="color:var(--text-accent)">DIVE</div>
+                <div class="t-body" style="color:#FFD700;font-weight:700;letter-spacing:2.5px">DIVE</div>
               </div>
             </div>
             <div class="divider"></div>
@@ -1135,6 +1129,14 @@
           </div>
         </div>
       </div>
+      <p class="desc" style="margin-top:8px">
+        <b>구현 가이드</b> (InventoryUI.drawAnvilArea, line 780-828):
+        ① <code>mode === 'anvil'</code> 일 때 <code>drawEquipmentSlots</code> / <code>drawDetail</code> 스킵 — 좌측 리스트만 컴팩트 렌더 (cursor + name + ATK 2컬럼, stars·badge 제거).
+        ② 우측 마름모 슬롯: <code>Sprite</code> 로 <code>ui_forge_active</code> slice 표시. 빈 상태는 alpha 0.5 + dashed mask, placed 상태는 alpha 1.0 + <code>GlowFilter({color:0xFFD700, radius:14, intensity:1.1})</code>.
+        ③ 마름모 안의 아이템 아이콘은 <code>ItemImage</code> 그대로(회전 없음). 슬롯 사각 영역의 정중앙에 anchor.set(0.5).
+        ④ <code>PANEL_W_ANVIL</code> 재계산: 컴팩트 리스트 폭 220 + gap 18 + 마름모 컬럼 160 + padding ≈ <b>420px</b> (현재 440 에서 약간 축소).
+        ⑤ "DIVE" 라벨 색 <code>#FFD700</code>, <code>anvilPulseTimer</code> 로 알파 sin 변조 (1.4Hz).
+      </p>
     </div>
   </section>
 

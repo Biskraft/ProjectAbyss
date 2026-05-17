@@ -14,6 +14,7 @@ import { PlayerConst } from '@data/constData';
 import { BARE_HAND_ATK } from '@data/rarityConfig';
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
+import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
 
 // SSoT: Sheets/Content_Player.csv (loaded via @data/constData)
 const MOVE_SPEED = PlayerConst.MoveSpeed;
@@ -213,6 +214,9 @@ export class Player extends Entity implements CombatEntity {
   chargedTickAccum = 0;
   /** Acid 0.1초 tick 누적자 (필드 진입 중에만 증가). */
   acidTickAccum = 0;
+  chargedStateMs = 0;
+  cyroTickAccum = 0;
+  cyroSlowRemainingMs = 0;
   /** 이전 프레임 electric 오버레이 안이었는지 (thunder per-pulse 데미지 트래킹). */
   prevInElectric = false;
   /**
@@ -1025,6 +1029,9 @@ export class Player extends Entity implements CombatEntity {
     this.isDead = false;
     this.deathTimer = 0;
     this.lastDamageSource = 'unknown';
+    this.cyroTickAccum = 0;
+    this.cyroSlowRemainingMs = 0;
+    this.chargedStateMs = 0;
     this.hp = this.maxHp;
     this.invincible = true;
     this.invincibleTimer = 1000;
@@ -1039,7 +1046,7 @@ export class Player extends Entity implements CombatEntity {
   private applyHorizontalInput(dt: number, speedMult = 1): void {
     const dtSec = dt / 1000;
     const input = this.game.input;
-    const targetSpeed = MOVE_SPEED * speedMult;
+    const targetSpeed = MOVE_SPEED * speedMult * this.getCyroMoveMultiplier();
 
     // Ice (IntGrid 7): near-zero friction. Acceleration and deceleration are
     // reduced to 10% so the player slides with heavy inertia. Direction changes
@@ -1073,6 +1080,10 @@ export class Player extends Entity implements CombatEntity {
         this.vx -= Math.sign(this.vx) * decel;
       }
     }
+  }
+
+  private getCyroMoveMultiplier(): number {
+    return this.cyroSlowRemainingMs > 0 ? 1 - CYRO_FROZEN_SLOW_PCT : 1;
   }
 
   private tryJump(): boolean {
@@ -1167,7 +1178,7 @@ export class Player extends Entity implements CombatEntity {
       this.vy = 0;
       if (this.dashFreezeTimer <= 0) {
         // Freeze 해제 — 실제 대시 속도 커밋.
-        const dashSpeed = DASH_DISTANCE / (DASH_DURATION / 1000);
+        const dashSpeed = (DASH_DISTANCE / (DASH_DURATION / 1000)) * this.getCyroMoveMultiplier();
         this.vx = this.dashDirX * dashSpeed;
         this.vy = 0;
         this._dashDir = this.dashDirX; // VFX 재확정 (방향 변경됐을 수 있음)
@@ -1177,7 +1188,7 @@ export class Player extends Entity implements CombatEntity {
 
     this.dashTimer -= dt;
     if (this.dashTimer <= 0) {
-      this.vx = this.dashDirX * MOVE_SPEED * 0.5;
+      this.vx = this.dashDirX * MOVE_SPEED * 0.5 * this.getCyroMoveMultiplier();
       // groundDashDelayTimer 는 FSM dash.exit 에서 통합 처리 (중단 경로 커버).
       if (this.grounded) {
         this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');

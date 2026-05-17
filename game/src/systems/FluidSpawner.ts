@@ -25,7 +25,7 @@ import type { LdtkEntity } from '@level/LdtkLoader';
 import type { FluidSystem } from '@effects/FluidSystem';
 import { getFluidDef } from '@data/FluidTypes';
 
-export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid' | 'charged';
+export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid' | 'charged' | 'cyro';
 
 const FLUID_TYPE_TO_TILE: Record<FluidSpawnerType, number> = {
   water:   2,
@@ -33,6 +33,7 @@ const FLUID_TYPE_TO_TILE: Record<FluidSpawnerType, number> = {
   magma:   6,
   acid:   13,
   charged: 8,
+  cyro:   14,
 };
 
 const TYPE_DEBUG_COLOR: Record<FluidSpawnerType, number> = {
@@ -41,6 +42,7 @@ const TYPE_DEBUG_COLOR: Record<FluidSpawnerType, number> = {
   magma:   0xff6633,
   acid:    0x88cc44,
   charged: 0xA05AE5,
+  cyro:    0xA0E0F0,
 };
 
 /**
@@ -118,8 +120,13 @@ export function readFluidSpawnerEntities(
   let type: FluidSpawnerType;
   if (typeStr === 'generic_a' || typeStr === 'generic_b' || typeStr === 'generic_c') {
     type = resolveGenericFluidType(typeStr, temperament);
-  } else if (typeStr === 'oil' || typeStr === 'magma' || typeStr === 'acid' || typeStr === 'charged') {
+  } else if (typeStr === 'oil' || typeStr === 'magma' || typeStr === 'acid' || typeStr === 'charged' || typeStr === 'cyro') {
     type = typeStr as FluidSpawnerType;
+  } else if (typeStr === 'cryo') {
+    // LDtk FluidType enum 은 "Cryo" (영어 표준 철자) 로 정의돼 있지만
+    // Physics.ts 의 locked tile 코드명은 'cyro' 다. 여기서 lowercased
+    // 'cryo' → internal 'cyro' 로 정규화한다 (Physics.ts §TILE_CYRO 코멘트).
+    type = 'cyro';
   } else {
     type = 'water';
   }

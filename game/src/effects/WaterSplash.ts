@@ -32,13 +32,15 @@ const PALETTE_WATER: SplashPalette = { drop: 0x9bd6e8, crown: 0xd5f0ff };
 const PALETTE_MAGMA: SplashPalette = { drop: 0xffaa44, crown: 0xffd070 };
 const PALETTE_OIL:   SplashPalette = { drop: 0x664422, crown: 0x886633 };
 const PALETTE_ACID:  SplashPalette = { drop: 0x88cc44, crown: 0xaadd66 };
+const PALETTE_CYRO:  SplashPalette = { drop: 0xa0e0f0, crown: 0xe0f8ff };
 
-export type SplashFluidType = 'water' | 'magma' | 'oil' | 'acid';
+export type SplashFluidType = 'water' | 'magma' | 'oil' | 'acid' | 'cyro';
 function paletteFor(t: SplashFluidType): SplashPalette {
   switch (t) {
     case 'magma': return PALETTE_MAGMA;
     case 'oil':   return PALETTE_OIL;
     case 'acid':  return PALETTE_ACID;
+    case 'cyro':  return PALETTE_CYRO;
     default:      return PALETTE_WATER;
   }
 }

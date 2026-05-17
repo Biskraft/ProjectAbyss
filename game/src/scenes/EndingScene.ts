@@ -1,16 +1,21 @@
 /**
- * EndingScene — Demo End UI (Phase C of `docs/ui-components.html` §ending-sequence).
+ * EndingScene — Phase C "Demo End" static UI.
  *
- * Per user direction 2026-05-17 the Steam wishlist primary CTA and the
- * "Wishlist on Steam to continue." line are intentionally omitted for this
- * pass. Layout reuses the spec's spacing/typography otherwise.
+ * Lives on `game.uiContainer` (native-resolution layer) following the
+ * TitleScene pattern, so text stays sharp and *uiScale only applies once.
+ * (The base Scene.container hangs off gameContainer which is rendered to a
+ * 640×360 RT then upscaled — adding the UI there would double-scale it.)
  *
- * Phase A/B (fade + ECHORIS title) are NOT included here — this scene is
- * the static Phase C card only. The caller (LdtkWorldScene) decides when
- * to swap to this scene.
+ * Per user direction 2026-05-17:
+ *   - Wishlist primary CTA + "Wishlist on Steam" line omitted.
+ *   - Two clickable CTAs: Community Discord + Follow on X.
+ *   - Any keyboard key returns to the title (CTA clicks fire external links
+ *     and do *not* leave this scene).
+ *
+ * Spec: game/docs/ui-components.html §ending-scene Phase C.
  */
 
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Rectangle, Text, TextStyle } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { localizeFontFamily } from '@ui/factories';
 import { t } from '@i18n';
@@ -18,75 +23,96 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TitleScene } from './TitleScene';
 import type { Game } from '../Game';
 
-// Spec colors (ui-components.html §ending-sequence Phase C)
+const DISCORD_URL = 'https://discord.gg/nqEcnZbS2c';
+const X_URL       = 'https://x.com/Strata_Forge';
+
 const COL_BG       = 0x000000;
 const COL_TITLE    = 0xf0f0f0;
-const COL_TITLE_KR = 0x7c7c95;
+const COL_TITLE_SUB = 0x7c7c95;
 const COL_SUB      = 0xb0b0b0;
-const COL_CTA_TEXT = 0xb0b0b0;
+const COL_CTA_DIM  = 0xb0b0b0;
 const COL_CTA_HI   = 0xf0f0f0;
-const COL_CTA_BRD  = 0x2a8a8a;
-const COL_CTA_BRD_HI = 0x4a8a8a;
+const COL_BRD_DIM  = 0x2a8a8a;
+const COL_BRD_HI   = 0x4a8a8a;
+const COL_HINT     = 0x6a6a78;
+
+const FADEIN_MS = 1000;
+const INPUT_DELAY_MS = 1100;
+
+interface Cta {
+  hit: Graphics;
+  border: Graphics;
+  text: Text;
+  rect: { x: number; y: number; w: number; h: number };
+  hovered: boolean;
+}
 
 export class EndingScene extends Scene {
-  private root!: Container;
+  private uiRoot!: Container;
+  private fadeRoot!: Container;
+  private ctas: Cta[] = [];
   private elapsed = 0;
-  private canProceed = false;
-  private ctaRects: Array<{ x: number; y: number; w: number; h: number }> = [];
 
   constructor(game: Game) { super(game); }
 
   init(): void {
     const s = this.game.uiScale;
-    this.root = new Container();
-    this.container.addChild(this.root);
+    const sw = GAME_WIDTH * s;
+    const sh = GAME_HEIGHT * s;
+    const cx = sw / 2;
+    const cy = sh / 2;
 
-    // Background — pure black stage.
+    this.uiRoot = new Container();
+    this.game.uiContainer.addChild(this.uiRoot);
+
     const bg = new Graphics();
-    bg.rect(0, 0, GAME_WIDTH * s, GAME_HEIGHT * s).fill(COL_BG);
-    this.root.addChild(bg);
+    bg.rect(0, 0, sw, sh).fill(COL_BG);
+    this.uiRoot.addChild(bg);
 
-    const cx = (GAME_WIDTH / 2) * s;
-    const cy = (GAME_HEIGHT / 2) * s;
+    this.fadeRoot = new Container();
+    this.fadeRoot.alpha = 0;
+    this.uiRoot.addChild(this.fadeRoot);
 
-    // Title (English, primary per global persona)
     const title = new Text({
       text: t('ending.demo_complete'),
       style: new TextStyle({
         fontFamily: localizeFontFamily('"Cinzel", serif'),
-        fontSize: 18 * s,
+        fontSize: 30 * s,
         fontWeight: '900',
         fill: COL_TITLE,
-        letterSpacing: 6 * s,
+        letterSpacing: 7 * s,
       }),
     });
     title.anchor.set(0.5);
     title.x = cx;
     title.y = cy - 50 * s;
-    this.root.addChild(title);
+    this.fadeRoot.addChild(title);
 
-    // KR sub-title under the English title
-    const titleKr = new Text({
-      text: t('ending.demo_complete_kr'),
+    // Sub-title is the *opposite* language of the main title (EN locale gets
+    // a KR sub, KO locale gets an EN sub) so we can't lean on
+    // `localizeFontFamily` here — it would pick a CJK-only family when
+    // running EN and a latin-only family when running KO. Use an explicit
+    // chain so each glyph falls through to a font that has it.
+    const titleSub = new Text({
+      text: t('ending.demo_complete_sub'),
       style: new TextStyle({
-        fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
-        fontSize: 8 * s,
+        fontFamily: '"Rajdhani", "Noto Sans KR", "IBM Plex Sans KR", sans-serif',
+        fontSize: 10 * s,
         fontWeight: '600',
-        fill: COL_TITLE_KR,
-        letterSpacing: 3 * s,
+        fill: COL_TITLE_SUB,
+        letterSpacing: 3.5 * s,
       }),
     });
-    titleKr.anchor.set(0.5);
-    titleKr.x = cx;
-    titleKr.y = cy - 30 * s;
-    this.root.addChild(titleKr);
+    titleSub.anchor.set(0.5);
+    titleSub.x = cx;
+    titleSub.y = cy - 26 * s;
+    this.fadeRoot.addChild(titleSub);
 
-    // Subtext (wishlist line intentionally omitted)
     const sub = new Text({
       text: t('ending.subtext'),
       style: new TextStyle({
         fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
-        fontSize: 9 * s,
+        fontSize: 11 * s,
         fontWeight: '400',
         fill: COL_SUB,
         align: 'center',
@@ -94,91 +120,127 @@ export class EndingScene extends Scene {
     });
     sub.anchor.set(0.5);
     sub.x = cx;
-    sub.y = cy - 10 * s;
-    this.root.addChild(sub);
+    sub.y = cy - 4 * s;
+    this.fadeRoot.addChild(sub);
 
-    // CTA secondary row (Restart Demo / Community Discord). Primary
-    // wishlist CTA omitted per user direction.
-    const ctaY = cy + 30 * s;
-    const ctaPadX = 14 * s;
-    const ctaH = 18 * s;
-    const ctaGap = 12 * s;
+    this.buildCtaRow(cx, cy + 32 * s, s);
 
-    const restartLabel = t('ending.cta_restart');
-    const discordLabel = t('ending.cta_discord');
-
-    // Measure
-    const restartText = this.makeCtaText(restartLabel, s);
-    const discordText = this.makeCtaText(discordLabel, s);
-    const restartW = restartText.width + ctaPadX * 2;
-    const discordW = discordText.width + ctaPadX * 2;
-    const totalW = restartW + discordW + ctaGap;
-    const restartX = cx - totalW / 2;
-    const discordX = restartX + restartW + ctaGap;
-
-    this.drawCtaButton(restartX, ctaY, restartW, ctaH);
-    restartText.x = restartX + ctaPadX;
-    restartText.y = ctaY + (ctaH - restartText.height) / 2;
-    this.root.addChild(restartText);
-
-    this.drawCtaButton(discordX, ctaY, discordW, ctaH);
-    discordText.x = discordX + ctaPadX;
-    discordText.y = ctaY + (ctaH - discordText.height) / 2;
-    this.root.addChild(discordText);
-
-    this.ctaRects = [
-      { x: restartX, y: ctaY, w: restartW, h: ctaH },
-      { x: discordX, y: ctaY, w: discordW, h: ctaH },
-    ];
-    void COL_CTA_HI; void COL_CTA_BRD_HI;  // reserved for hover-state once input wiring lands
-  }
-
-  private makeCtaText(label: string, s: number): Text {
-    return new Text({
-      text: label,
+    const hint = new Text({
+      text: t('title.press_any'),
       style: new TextStyle({
         fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
         fontSize: 8 * s,
-        fontWeight: '600',
-        fill: COL_CTA_TEXT,
-        letterSpacing: 2 * s,
+        fontWeight: '500',
+        fill: COL_HINT,
+        letterSpacing: 1.5 * s,
       }),
     });
+    hint.anchor.set(0.5);
+    hint.x = cx;
+    hint.y = cy + 76 * s;
+    this.fadeRoot.addChild(hint);
   }
 
-  private drawCtaButton(x: number, y: number, w: number, h: number): void {
-    const g = new Graphics();
-    g.rect(x, y, w, h)
-      .stroke({ color: COL_CTA_BRD, width: 1, alignment: 0.5 });
-    this.root.addChild(g);
+  private buildCtaRow(cx: number, ctaY: number, s: number): void {
+    const ctaH = 22 * s;
+    const ctaPadX = 14 * s;
+    const ctaGap = 10 * s;
+
+    const defs = [
+      { label: t('ending.cta_discord'), url: DISCORD_URL },
+      { label: t('ending.cta_x'),       url: X_URL },
+    ];
+
+    const items = defs.map(d => {
+      const text = new Text({
+        text: d.label,
+        style: new TextStyle({
+          fontFamily: localizeFontFamily('"Rajdhani", sans-serif'),
+          fontSize: 9 * s,
+          fontWeight: '600',
+          fill: COL_CTA_DIM,
+          letterSpacing: 2 * s,
+        }),
+      });
+      return { text, url: d.url, w: text.width + ctaPadX * 2 };
+    });
+
+    const totalW = items.reduce((a, it) => a + it.w, 0) + ctaGap * (items.length - 1);
+    let x = cx - totalW / 2;
+
+    for (const it of items) {
+      const rect = { x, y: ctaY, w: it.w, h: ctaH };
+
+      // Invisible hit target — needs a fill so Pixi picks it up. Stays in
+      // fadeRoot so it ignores clicks during the initial 600 ms fade.
+      const hit = new Graphics();
+      hit.rect(rect.x, rect.y, rect.w, rect.h).fill({ color: 0x000000, alpha: 0.001 });
+      hit.eventMode = 'static';
+      hit.cursor = 'pointer';
+      hit.hitArea = new Rectangle(rect.x, rect.y, rect.w, rect.h);
+      this.fadeRoot.addChild(hit);
+
+      const border = new Graphics();
+      this.fadeRoot.addChild(border);
+
+      it.text.x = rect.x + ctaPadX;
+      it.text.y = rect.y + (rect.h - it.text.height) / 2;
+      this.fadeRoot.addChild(it.text);
+
+      const cta: Cta = { hit, border, text: it.text, rect, hovered: false };
+      this.ctas.push(cta);
+      this.drawCta(cta);
+
+      const url = it.url;
+      hit.on('pointerover', () => { cta.hovered = true;  this.drawCta(cta); });
+      hit.on('pointerout',  () => { cta.hovered = false; this.drawCta(cta); });
+      hit.on('pointertap',  () => {
+        if (this.elapsed < INPUT_DELAY_MS) return;
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
+
+      x += rect.w + ctaGap;
+    }
+  }
+
+  private drawCta(cta: Cta): void {
+    const { rect, hovered } = cta;
+    cta.border.clear();
+    cta.border.rect(rect.x, rect.y, rect.w, rect.h)
+      .stroke({ color: hovered ? COL_BRD_HI : COL_BRD_DIM, width: 1, alignment: 0.5 });
+    cta.text.style.fill = hovered ? COL_CTA_HI : COL_CTA_DIM;
   }
 
   enter(): void {
     this.container.visible = true;
+    if (this.uiRoot) this.uiRoot.visible = true;
     this.game.camera.snap(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.game.camera.target = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
   }
 
   update(dt: number): void {
     this.elapsed += dt;
-    // Short delay so the previous-scene fade-out can complete before the
-    // ending text is "claimable" by an accidental keypress.
-    if (this.elapsed >= 800) this.canProceed = true;
-    if (!this.canProceed) return;
+    if (this.elapsed >= FADEIN_MS) {
+      this.fadeRoot.alpha = 1;
+    } else {
+      // ease-in cubic — start near-invisible, accelerate. Prevents the first
+      // ~3 frames from already being at ~10 % opacity (which read as a flash
+      // of bright text on the black backdrop).
+      const t = this.elapsed / FADEIN_MS;
+      this.fadeRoot.alpha = t * t * t;
+    }
 
-    // For now any input returns to the title (Restart Demo equivalent).
-    // CTA-specific routing (Discord link, etc.) is wired later when input
-    // mapping for the secondary buttons is finalised.
+    if (this.elapsed < INPUT_DELAY_MS) return;
+
     if (this.game.input.anyKeyJustPressed()) {
       this.game.sceneManager.replace(new TitleScene(this.game));
     }
-    void this.ctaRects;
   }
 
   render(_alpha: number): void { /* static */ }
 
   exit(): void {
-    if (this.root.parent) this.root.parent.removeChild(this.root);
-    this.root.destroy({ children: true });
+    if (this.uiRoot?.parent) this.uiRoot.parent.removeChild(this.uiRoot);
+    this.uiRoot?.destroy({ children: true });
   }
 }

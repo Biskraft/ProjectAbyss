@@ -31,11 +31,11 @@
  * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13, §3.2
  */
 
-import { isInAcid, isInCharged, isInMagma, isInWater } from '../core/Physics';
+import { isInAcid, isInCharged, isInCyro, isInMagma, isInWater } from '../core/Physics';
 import type { TileMutator } from './TileMutator';
 import type { FluidSystem } from '../effects/FluidSystem';
 
-export type HazardSource = 'magma' | 'charged' | 'acid' | 'fire' | 'thunder' | 'burn';
+export type HazardSource = 'magma' | 'charged' | 'acid' | 'fire' | 'thunder' | 'burn' | 'cyro';
 
 export interface HazardTarget {
   x: number;
@@ -66,6 +66,14 @@ export interface HazardTarget {
    *   - 시각 sparkle overlay
    */
   chargedStateMs?: number;
+  /** Accumulator for cryo DOT ticks (resets on exit). */
+  cyroTickAccum?: number;
+  /**
+   * Frozen 상태이상 잔여 ms (V2.2 cryo 시그니처).
+   * 양수면 *이동속도 -60%* 적용. cryo 셀 접촉 중 매 0.5s 마다 refresh.
+   * 캐릭터 측 (Player / Enemy) 이 read 해서 max speed multiplier 적용.
+   */
+  cyroSlowRemainingMs?: number;
 }
 
 export interface HazardCallbacks {
@@ -87,6 +95,12 @@ const ACID_TICK_PCT = 0.005;
 const ACID_TICK_MS = 100;
 const CHARGED_TICK_PCT = 0.01;
 const CHARGED_TICK_MS = 2500;
+// Cyro (액화 질소, TILE_CYRO=14) — V2.2 2026-05-17 Iron primary signature.
+// 가벼운 DOT + Frozen 상태이상 (이동 -60% / 2s, 셀 재진입 시 refresh).
+export const CYRO_TICK_PCT = 0.01;        // maxHp × 1% per tick
+export const CYRO_TICK_MS = 1000;         // 1초 간격 (charged 2.5s 보다 빠른 DOT)
+export const CYRO_FROZEN_MS = 2000;       // Frozen 상태이상 지속 ms
+const CYRO_SLOW_PCT = 0.60;        // 이동속도 감소 비율 (캐릭터 측에서 read)
 const FIRE_DPS_PCT = 0.03;
 const FIRE_BURN_REFRESH_MS = 10000;
 const THUNDER_HIT_PCT = 0.50;
@@ -106,7 +120,9 @@ export function applyTileHazards(
 ): void {
   if (target.hp <= 0) return;
   const x = target.x, y = target.y, w = target.width, h = target.height;
-  const extinguishesFireInWater = !!target.extinguishFireDebuffs && isInWater(x, y, w, h, roomData);
+  // V2.2 — cyro 셀도 water 와 동등하게 fire/burn 즉시 소화 (액화 질소 + 화염 = 즉시 진압).
+  const extinguishesFireInWater = !!target.extinguishFireDebuffs &&
+    (isInWater(x, y, w, h, roomData) || isInCyro(x, y, w, h, roomData));
   if (extinguishesFireInWater) {
     target.extinguishFireDebuffs?.();
   }
@@ -122,6 +138,8 @@ export function applyTileHazards(
   let burnRem = target.burnRemainingMs ?? 0;
   let burnAcc = target.burnTickAccum ?? 0;
   let chargedAcc = target.chargedTickAccum ?? 0;
+  let cyroAcc = target.cyroTickAccum ?? 0;
+  let cyroSlowRem = target.cyroSlowRemainingMs ?? 0;
 
   // 1) Magma contact — Burn 3s + 2% maxHp immediate
   if (!extinguishesFireInWater && isInMagma(x, y, w, h, roomData)) {
@@ -156,6 +174,21 @@ export function applyTileHazards(
     }
   } else if (chargedAcc !== 0) {
     chargedAcc = 0;
+  }
+
+  // 3.5) Cyro contact (TILE_CYRO=14) — V2.2 Iron primary signature.
+  //      1초 마다 maxHp × 1% DOT + Frozen 상태이상 2초 refresh (이동 -60%).
+  //      Frozen 잔여시간은 셀 이탈 후에도 자연 감소 (캐릭터가 read 해서 속도 적용).
+  if (isInCyro(x, y, w, h, roomData)) {
+    cyroAcc += dtMs;
+    while (cyroAcc >= CYRO_TICK_MS) {
+      cyroAcc -= CYRO_TICK_MS;
+      cb.onDamage(target.maxHp * CYRO_TICK_PCT, 'cyro');
+    }
+    cyroSlowRem = CYRO_FROZEN_MS;  // refresh while in cyro cells
+  } else {
+    if (cyroAcc !== 0) cyroAcc = 0;
+    if (cyroSlowRem > 0) cyroSlowRem = Math.max(0, cyroSlowRem - dtMs);
   }
 
   // 4) Fire overlay (oil/wood/grass burning + burning BurnableProp) — DOT + Burn refresh.
@@ -219,7 +252,12 @@ export function applyTileHazards(
   target.burnTickAccum = burnAcc;
   target.chargedTickAccum = chargedAcc;
   target.acidTickAccum = acidAcc;
+  target.cyroTickAccum = cyroAcc;
+  target.cyroSlowRemainingMs = cyroSlowRem;
 }
+
+/** Public Frozen 상태이상 상수 (V2.2 cyro). 캐릭터가 max speed multiplier 적용 시 사용. */
+export const CYRO_FROZEN_SLOW_PCT = CYRO_SLOW_PCT;
 
 // ============================================================
 // Element attack convenience — called by the scene's attack hooks
@@ -227,7 +265,7 @@ export function applyTileHazards(
 // ============================================================
 
 import {
-  findCellInAABB, isAcid, isIce, isMagma, isMetal, isOil, isWater, getTile,
+  findCellInAABB, isAcid, isIce, isMagma, isMetal, isOil, isWater, isCyro, getTile,
   isConductor,
 } from '../core/Physics';
 
@@ -266,6 +304,12 @@ export function applyFireAttack(
     for (let gx = l; gx <= r; gx++) {
       const tile = getTile(roomData, gx, gy);
       if (isWater(tile)) {
+        if (roomData[gy]) roomData[gy][gx] = 0;
+        if (fluidSystem) fluidSystem.removeCell(gx, gy);
+        promote('steam');
+      } else if (isCyro(tile)) {
+        // R-NEW-CYRO-007 Cryo Evaporation: Fire enchant on cyro → AIR + 강한 steam
+        // (water 동등 패턴, 액화 질소가 극열에 즉시 기화).
         if (roomData[gy]) roomData[gy][gx] = 0;
         if (fluidSystem) fluidSystem.removeCell(gx, gy);
         promote('steam');

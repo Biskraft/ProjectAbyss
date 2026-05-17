@@ -24,7 +24,7 @@
 
 import {
   TILE_AIR, TILE_WALL, TILE_WATER, TILE_MAGMA, TILE_ICE, TILE_OIL, TILE_METAL, TILE_ACID,
-  TILE_WOOD, TILE_GRASS, TILE_CHARGED,
+  TILE_WOOD, TILE_GRASS, TILE_CHARGED, TILE_CYRO,
   getTile, isFlammable,
 } from '../core/Physics';
 
@@ -102,6 +102,12 @@ export class TileMutator {
   static readonly ACID_WOOD_EAT_CHANCE = 0.04;        // R-NEW-026 Acid Eats Wood
   static readonly ACID_GRASS_WITHER_CHANCE = 0.08;    // R-NEW-032 Wither
   static readonly WATER_METAL_RUST_CHANCE = 0.005;    // R-NEW-031 Slow Rust
+  static readonly CYRO_WATER_FREEZE_CHANCE = 0.04;    // R-NEW-CYRO-002 Cryo Freeze
+  static readonly CYRO_METAL_FREEZE_CHANCE = 0.06;    // R-NEW-CYRO-003 Frozen Steel auto
+  static readonly CYRO_OIL_ACID_FREEZE_CHANCE = 0.04; // R-NEW-CYRO-004 Frozen Oil/Acid auto
+  static readonly CYRO_WOOD_FREEZE_CHANCE = 0.03;     // R-NEW-CYRO-005 Wood Frost auto
+  static readonly CYRO_GRASS_WITHER_CHANCE = 0.02;    // R-NEW-CYRO-006 Grass Wither cryo
+  static readonly CYRO_BURST_SOLIDIFY_MAX_CELLS = 8;  // R-NEW-CYRO-001 Cryo Burst
 
   // === State maps (cell-keyed) ===
   private frozen = new Map<number, FrozenState>();
@@ -547,8 +553,10 @@ export class TileMutator {
 
     // 1b) Magma cells act as permanent fire sources — every magma tile
     //     radiates to 4-neighbour flammable cells and BurnableProps.
-    //     Without this, magma next to grass/wood/oil never ignites them,
-    //     which is unintuitive ("lava should set the forest on fire").
+    //     Wood adjacent to magma ignites *instantly* on contact (chance 1.0)
+    //     — lava is hot enough; the slow 30% tile-to-tile spread chance is
+    //     for wood→wood propagation, not for a magma fire source. Matrix
+    //     R-005 (Design_ChemicalReactions_FullMatrix.md §3) marks this ✅.
     const rows = roomData.length;
     const cols = roomData[0]?.length ?? 0;
     for (let gy = 0; gy < rows; gy++) {
@@ -562,7 +570,10 @@ export class TileMutator {
         for (const n of ns) {
           const nx = n[0], ny = n[1];
           const nt = getTile(roomData, nx, ny);
-          if (isFlammable(nt)) tryQueueTile(nx, ny, tileChance(nt));
+          if (isFlammable(nt)) {
+            const chance = nt === TILE_WOOD ? 1.0 : tileChance(nt);
+            tryQueueTile(nx, ny, chance);
+          }
           tryQueueProp(nx, ny);
         }
       }
@@ -692,6 +703,35 @@ export class TileMutator {
         }
         // R-NEW-008 Oil Acid Coagulation: oil 이 acid 인접 시 자기 → WALL (sludge)
         // R-NEW-002 Oil Float: 바로 위 water 면 위치 교환 (oil 이 water 위로 부상)
+        else if (t === TILE_CYRO) {
+          if (this.neighbourMatches(roomData, gx, gy, TILE_MAGMA)) {
+            row[gx] = TILE_AIR;
+            this.onSteamEvent?.(gx, gy);
+            this.onSteamBurst?.(gx, gy);
+            this.onWallTileChanged?.(gx, gy, TILE_CYRO);
+            const magmaCells: Array<[number, number]> = [
+              [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
+              [gx + 1, gy + 1], [gx - 1, gy + 1], [gx + 1, gy - 1], [gx - 1, gy - 1],
+              [gx + 2, gy], [gx - 2, gy], [gx, gy + 2], [gx, gy - 2],
+            ];
+            let solidified = 0;
+            for (const [mx, my] of magmaCells) {
+              if (solidified >= TileMutator.CYRO_BURST_SOLIDIFY_MAX_CELLS) break;
+              if (getTile(roomData, mx, my) === TILE_MAGMA && roomData[my]) {
+                roomData[my][mx] = TILE_WALL;
+                this.onWallTileChanged?.(mx, my, TILE_MAGMA);
+                solidified++;
+              }
+            }
+            continue;
+          }
+          this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_WATER, TileMutator.CYRO_WATER_FREEZE_CHANCE);
+          this.maybeFreezeMetalNeighbour(roomData, gx, gy, TileMutator.CYRO_METAL_FREEZE_CHANCE);
+          this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_OIL, TileMutator.CYRO_OIL_ACID_FREEZE_CHANCE);
+          this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_ACID, TileMutator.CYRO_OIL_ACID_FREEZE_CHANCE);
+          this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_WOOD, TileMutator.CYRO_WOOD_FREEZE_CHANCE);
+          this.maybeMutateNeighbour(roomData, gx, gy, TILE_GRASS, TILE_AIR, TileMutator.CYRO_GRASS_WITHER_CHANCE);
+        }
         else if (t === TILE_OIL) {
           const coagulated =
             this.maybeMutateSelfIfNeighbour(roomData, gx, gy, TILE_ACID, TILE_WALL, TileMutator.OIL_ACID_COAG_CHANCE);
@@ -766,6 +806,28 @@ export class TileMutator {
       const nx = n[0], ny = n[1];
       if (getTile(roomData, nx, ny) === TILE_WATER && Math.random() < chance) {
         this.tryFreeze(roomData, nx, ny);
+      }
+    }
+  }
+
+  private maybeFreezeNeighbourByTile(
+    roomData: number[][], gx: number, gy: number, want: number, chance: number,
+  ): void {
+    const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
+    for (const n of ns) {
+      const nx = n[0], ny = n[1];
+      if (getTile(roomData, nx, ny) === want && Math.random() < chance) {
+        this.tryFreeze(roomData, nx, ny);
+      }
+    }
+  }
+
+  private maybeFreezeMetalNeighbour(roomData: number[][], gx: number, gy: number, chance: number): void {
+    const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
+    for (const n of ns) {
+      const nx = n[0], ny = n[1];
+      if (getTile(roomData, nx, ny) === TILE_METAL && Math.random() < chance) {
+        this.tryFreezeMetal(roomData, nx, ny);
       }
     }
   }

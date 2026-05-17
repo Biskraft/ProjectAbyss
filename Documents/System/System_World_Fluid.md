@@ -45,18 +45,22 @@ LDtk Collisions IntGrid 의 **fluid cell 값 4종** 을 spring surface + cellula
 
 ## 3. 데이터 모델
 
-### 3.1 LDtk IntGrid 값 (4종)
+### 3.1 LDtk IntGrid 값 (6종, V2.2 2026-05-17 cyro 추가)
 
 `Collisions` Layer 의 IntGrid value:
 
-| value | type | 색 (`bodyColor` 기준) | 시각 alpha | 발광 halo |
-| :-: | :--- | :--- | :-: | :-: |
-| **2** | `water` | 청록 | 0.75 | 없음 |
-| **6** | `magma` | 주황-적색 | 0.95 | 있음 (pulse) |
-| **11** | `oil` | 어두운 갈색 | 0.95 | 없음 |
-| **13** | `acid` | 형광 녹색 | 0.75 | 있음 (pulse) |
+| value | type | 색 (`bodyColor` 기준) | 시각 alpha | 발광 halo | 시그니처 기질 |
+| :-: | :--- | :--- | :-: | :-: | :-- |
+| **2** | `water` | 청록 | 0.75 | 없음 | (공통 base) |
+| **6** | `magma` | 주황-적색 | 0.95 | 있음 (pulse) | Forge |
+| **8** | `charged` | 보라 | 0.75 | 있음 (pulse + Arc Cycle) | Spark (V2.2) |
+| **11** | `oil` | 어두운 갈색 | 0.95 | 없음 | Shadow |
+| **13** | `acid` | 형광 녹색 | 0.75 | 있음 (pulse) | Rust |
+| **14** | `cyro` | 청백 | 0.75 | 있음 (pulse) | **Iron (V2.2)** — 액화 질소, Frozen 상태이상 |
 
-**확장 규칙:** 새 type 추가 = `FluidTypes.ts` 의 `FLUID_TYPES` 객체에 한 줄 + `FLUID_CELL_TYPES` 배열에 `{ value, type }` 한 줄. IntGrid 정의 추가는 LDtk 에 신규 value 등록 필요.
+**확장 규칙:** 새 type 추가 = `Sheets/Content_System_FluidTypes.csv` 행 추가 + `FluidTypes.ts` FluidType union + `FLUID_CELL_TYPES` 배열 (FluidSystem.ts) + `FLUID_TYPE_TO_TILE` (FluidSpawner.ts) + `TILE_*` 상수 (Physics.ts) + isXxx/isInXxx helpers. LDtk 에 IntGrid value 등록 필요 (PascalCase identifier — 예: `Cyro` 오타 고정 사용 2026-05-17).
+
+**SSoT:** `Documents/Design/Design_ItemWorld_Themes.md §0.3 / §2.1 / §3.2` 가 fluid 분포 + 발광 권위. 이 §3.1 표는 거울.
 
 ### 3.2 LDtk Entity `FluidVolume` (water 한정 type override)
 

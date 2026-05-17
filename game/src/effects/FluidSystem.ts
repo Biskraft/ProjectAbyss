@@ -32,6 +32,7 @@ const FLUID_CELL_TYPES: Array<{ value: number; type: FluidType }> = [
   { value: 8,  type: 'charged' },
   { value: 11, type: 'oil'     },
   { value: 13, type: 'acid'    },
+  { value: 14, type: 'cyro'    },
 ];
 
 /** Set of IntGrid values that are treated as flowing fluid by gravityTick. */
@@ -155,8 +156,10 @@ export class FluidSystem {
   static ARC_RECOVER_DURATION_MS = 1800;
   /** Discharge 직후 arc VFX 가 부드럽게 fade-out 되는 시간 (recovery 페이즈 초기). */
   static ARC_FADE_OUT_MS = 280;
-  /** Arc 검색 반경 (px). 1 tile = 16 px → 5 tile = 80 px. */
-  static ARC_SCAN_RADIUS_PX = 80;
+  /** Arc 검색 반경 (px). 1 tile = 16 px → 10 tile = 160 px (V2.2 2026-05-17 — Spark
+   *  primary signature charged 강화. 기존 80px 5-tile 에서 2배 확장. 메가스트럭처
+   *  광역 위협 톤 + Spark 룸 시그니처 wow 강도 ↑.) */
+  static ARC_SCAN_RADIUS_PX = 160;
   /** Discharge 시 entity 별 maxHp 비율 피해. */
   static ARC_DAMAGE_PCT = 0.05;
   /** Discharge 적중 entity 에게 부여되는 charged 상태 buff (ms). */
@@ -631,7 +634,7 @@ export class FluidSystem {
 
     // Halo first (rendered UNDER body when both children of parent).
     let haloGfx: Graphics | null = null;
-    if (type === 'magma' || type === 'lava' || type === 'acid' || type === 'charged') {
+    if (type === 'magma' || type === 'lava' || type === 'acid' || type === 'charged' || type === 'cyro') {
       haloGfx = new Graphics();
       // BlurFilter gives the halo a soft glow look without ugly hard edges.
       // strength=8 is enough for ~6px feathering at our zoom.

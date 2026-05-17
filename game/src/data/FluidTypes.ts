@@ -9,7 +9,7 @@
 
 import csvText from '../../../Sheets/Content_System_FluidTypes.csv?raw';
 
-export type FluidType = 'water' | 'lava' | 'magma' | 'oil' | 'acid' | 'charged' | string;
+export type FluidType = 'water' | 'lava' | 'magma' | 'oil' | 'acid' | 'charged' | 'cyro' | string;
 
 export interface FluidTypeDef {
   id: FluidType;

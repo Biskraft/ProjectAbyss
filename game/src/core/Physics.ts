@@ -32,11 +32,11 @@ export const TILE_SIZE = 16;
  *  11 = oil (passable, slight slip, ignites from Fire attack → fire spreads + air) [Phase 1]
  *  12 = metal (solid, Thunder flood-fill conductor, acid corrodes) [Phase 1]
  *  13 = acid (passable, DoT + corrodes adjacent metal + conducts thunder + vapor on magma) [Phase 1]
+ *  14 = cyro (passable, light DoT + Frozen status: 이동 -60% / 2s) [V2.2 2026-05-17, Iron primary signature.
+ *           Note: spelled "cyro" not "cryo" — LDtk Editor enum value is locked
+ *           as `Cyro` so the codebase mirrors that spelling everywhere.]
  *  15 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
  *  16 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
- *
- * NOTE: slot 14 is intentionally skipped — matches LDtk Editor numbering
- * (user-painted slots are 1-13, 15, 16; slot 14 was removed during editing).
  *
  * GDD: Documents/System/System_World_TileSystem.md
  */
@@ -54,6 +54,7 @@ export const TILE_VOID = 10;
 export const TILE_OIL = 11;
 export const TILE_METAL = 12;
 export const TILE_ACID = 13;
+export const TILE_CYRO = 14;
 export const TILE_WOOD = 15;
 export const TILE_GRASS = 16;
 
@@ -112,6 +113,10 @@ export function isAcid(tileId: number): boolean {
   return tileId === TILE_ACID;
 }
 
+export function isCyro(tileId: number): boolean {
+  return tileId === TILE_CYRO;
+}
+
 export function isWood(tileId: number): boolean {
   return tileId === TILE_WOOD;
 }
@@ -142,7 +147,8 @@ export function isSpecialVisualTile(tileId: number): boolean {
   return (
     tileId === TILE_WATER || tileId === TILE_UPDRAFT || tileId === TILE_SPIKE ||
     tileId === TILE_MAGMA || tileId === TILE_CHARGED || tileId === TILE_VOID ||
-    tileId === TILE_OIL || tileId === TILE_ACID || tileId === TILE_GRASS
+    tileId === TILE_OIL || tileId === TILE_ACID || tileId === TILE_CYRO ||
+    tileId === TILE_GRASS
   );
 }
 
@@ -236,6 +242,9 @@ export const isInOil = isInTile(isOil);
 
 /** Check if an entity AABB overlaps any acid tile. */
 export const isInAcid = isInTile(isAcid);
+
+/** Check if an entity AABB overlaps any cryo tile (any cell = Frozen 상태이상 + light DOT). */
+export const isInCyro = isInTile(isCyro);
 
 /**
  * Enumerate AABB cells whose tile satisfies `pred`. For Thunder seed cell pick,

@@ -225,12 +225,15 @@ export class KeyPrompt {
    * 일회성 컨텍스트 프롬프트(상호작용 가까이 갈 때만 보이는 anvil/trapdoor 등) 는
    * 매번 새로 생성되므로 createPrompt + actionKey() 로 충분 — 영구 prompt 에만 사용.
    */
-  static createPromptForAction(action: GameAction, label: string, scale = 1): Container {
+  static createPromptForAction(action: GameAction, label: string, scale = 1, keyGlyphYOffset = 0): Container {
     const c = KeyPrompt.createPrompt(actionKey(action), label, scale);
     const keyIcon = c.children[1] as Container | undefined;
     const size = keyIcon ? (keyIcon as any)._keyIconSize as number | undefined : undefined;
     if (!keyIcon || !size) return c;
     const fontSize = Math.max(4, Math.floor(size * 0.65));
+    const offsetY = keyGlyphYOffset * scale;
+    const initialLabel = (keyIcon as any)._keyIconLabel as BitmapText | undefined;
+    if (initialLabel) initialLabel.y += offsetY;
     onDeviceChange(() => {
       const newText = actionKey(action).toUpperCase();
       const oldLabel = (keyIcon as any)._keyIconLabel as BitmapText | undefined;
@@ -241,7 +244,7 @@ export class KeyPrompt {
       });
       keyIcon.addChild(newLabel);
       newLabel.x = Math.floor((size - newLabel.width) / 2);
-      newLabel.y = Math.floor((size - newLabel.height) / 2);
+      newLabel.y = Math.floor((size - newLabel.height) / 2) + offsetY;
       if (oldLabel) keyIcon.removeChild(oldLabel);
       (keyIcon as any)._keyIconLabel = newLabel;
     });
