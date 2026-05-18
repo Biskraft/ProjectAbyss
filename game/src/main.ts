@@ -1,3 +1,15 @@
+// Mobile gate — index.html sets window.__ECHORIS_MOBILE before this module
+// executes. ECHORIS is PC/Console only; mobile users see the notice overlay
+// and the game scenes never initialize. The bundle still downloads (vite needs
+// the static entry tag) but heavy scene mounting is skipped.
+declare global {
+  interface Window { __ECHORIS_MOBILE?: boolean }
+}
+if (window.__ECHORIS_MOBILE) {
+  // Stop here. Mobile notice overlay is already rendered by index.html.
+  throw new Error('__ECHORIS_MOBILE_SKIP');
+}
+
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';

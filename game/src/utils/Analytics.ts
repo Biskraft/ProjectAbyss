@@ -265,6 +265,22 @@ export function trackRelicAcquire(abilityName: string, levelId?: string): void {
 }
 
 /**
+ * TEL-19: Secret wall discovered and broken.
+ * Fires once per wall on successful break — proxy for "did the player
+ * explore observantly enough to find hidden content?".
+ */
+export function trackSecretWallBreak(params: {
+  mode: 'item' | 'passage';
+  level_id?: string;
+  item_id?: string;
+}): void {
+  const payload: GtagParams = { mode: params.mode };
+  if (params.level_id) payload.level_id = params.level_id;
+  if (params.item_id) payload.item_id = params.item_id;
+  send('secret_wall_break', payload);
+}
+
+/**
  * TEL-10: Boss encounter lifecycle. `phase` distinguishes start/clear.
  * `start` fires on arena lock engaged; `clear` fires on boss defeated.
  */

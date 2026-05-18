@@ -179,6 +179,7 @@ import {
   trackItemLevelUp,
   trackBossFight,
   trackItemDrop,
+  trackSecretWallBreak,
 } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 import { AmbientLayer } from '@audio/AmbientLayer';
@@ -5858,6 +5859,13 @@ export class LdtkWorldScene extends Scene {
       if (wall.break(this.collisionGrid, this.game, dirX)) {
         const key = (wall as any)._key as string;
         if (key) this.unlockedEvents.add(key);
+
+        // TEL-19: Track secret wall discovery (fires once per wall, proxy for exploration depth).
+        trackSecretWallBreak({
+          mode: wall.mode,
+          level_id: this.currentLevel?.identifier,
+          item_id: wall.mode === 'item' ? ((wall as any)._itemId as string | undefined) : undefined,
+        });
 
         // Erase the AutoTile wall sprites at this position
         this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height);
