@@ -2292,7 +2292,7 @@ export class LdtkWorldScene extends Scene {
           this.acquireOverlay?.show({
             type: 'relic', iconKey: 'dash',
             name: t('ui.acquire.relic.dash.name'),
-            usage: t('ui.acquire.relic.dash.usage'),
+            usage: t('ui.acquire.relic.dash.usage', { key: '{key}' }),
             keyAction: GameAction.DASH,
           });
         } else if (abilityName === 'diveAttack') {
@@ -2300,7 +2300,7 @@ export class LdtkWorldScene extends Scene {
           this.acquireOverlay?.show({
             type: 'relic', iconKey: 'diveAttack',
             name: t('ui.acquire.relic.diveAttack.name'),
-            usage: t('ui.acquire.relic.diveAttack.usage'),
+            usage: t('ui.acquire.relic.diveAttack.usage', { key: '{key}' }),
             keyAction: GameAction.ATTACK,
           });
         } else if (abilityName === 'surge') {
@@ -2308,7 +2308,7 @@ export class LdtkWorldScene extends Scene {
           this.acquireOverlay?.show({
             type: 'relic', iconKey: 'surge',
             name: t('ui.acquire.relic.surge.name'),
-            usage: t('ui.acquire.relic.surge.usage'),
+            usage: t('ui.acquire.relic.surge.usage', { key: '{key}' }),
             keyAction: GameAction.JUMP,
           });
         } else if (abilityName === 'waterBreathing') {
@@ -2325,7 +2325,7 @@ export class LdtkWorldScene extends Scene {
           this.acquireOverlay?.show({
             type: 'relic', iconKey: 'wallJump',
             name: t('ui.acquire.relic.wallJump.name'),
-            usage: t('ui.acquire.relic.wallJump.usage'),
+            usage: t('ui.acquire.relic.wallJump.usage', { key: '{key}' }),
             keyAction: GameAction.JUMP,
           });
         } else if (abilityName === 'doubleJump') {
@@ -2333,7 +2333,7 @@ export class LdtkWorldScene extends Scene {
           this.acquireOverlay?.show({
             type: 'relic', iconKey: 'doubleJump',
             name: t('ui.acquire.relic.doubleJump.name'),
-            usage: t('ui.acquire.relic.doubleJump.usage'),
+            usage: t('ui.acquire.relic.doubleJump.usage', { key: '{key}' }),
             keyAction: GameAction.JUMP,
           });
         } else if (abilityName === 'cheat') {
