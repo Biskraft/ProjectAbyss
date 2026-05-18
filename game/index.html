@@ -39,25 +39,169 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
+    #mobile-notice {
+      position: fixed; inset: 0; z-index: 10000;
+      background: linear-gradient(180deg, #1a0c14 0%, #3a1a28 60%, #5a2438 100%);
+      color: #f0e0d0;
+      font-family: 'Rajdhani', 'Press Start 2P', system-ui, sans-serif;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 32px 20px; overflow-y: auto;
+      animation: fadein 0.5s ease;
+    }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+    #mobile-notice .brand {
+      font-family: 'Cinzel', serif;
+      font-size: 36px; letter-spacing: 8px;
+      color: #ff9933; margin-bottom: 8px;
+      text-shadow: 0 0 24px rgba(255, 153, 51, 0.35);
+    }
+    #mobile-notice .tagline {
+      font-size: 13px; letter-spacing: 2px;
+      color: #b09080; margin-bottom: 36px; text-align: center;
+    }
+    #mobile-notice .headline {
+      font-size: 22px; font-weight: 700;
+      color: #f0e0d0; margin-bottom: 14px; text-align: center;
+    }
+    #mobile-notice .body {
+      font-size: 15px; line-height: 1.6;
+      color: #c8b8a8; max-width: 360px;
+      text-align: center; margin-bottom: 28px;
+    }
+    #mobile-notice .url-box {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255, 153, 51, 0.35);
+      border-radius: 4px;
+      padding: 14px 20px; margin-bottom: 28px;
+      font-family: 'DM Mono', monospace, monospace;
+      font-size: 15px; color: #ff9933;
+      letter-spacing: 1px;
+    }
+    #mobile-notice .cta-row {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      justify-content: center; max-width: 360px;
+    }
+    #mobile-notice .cta {
+      display: inline-block; padding: 14px 22px;
+      background: rgba(255, 153, 51, 0.12);
+      border: 1px solid rgba(255, 153, 51, 0.5);
+      color: #ff9933; text-decoration: none;
+      font-size: 14px; font-weight: 600;
+      letter-spacing: 1px; border-radius: 4px;
+      transition: all 0.2s ease;
+      min-width: 110px; text-align: center;
+    }
+    #mobile-notice .cta:active,
+    #mobile-notice .cta:hover {
+      background: rgba(255, 153, 51, 0.25);
+      transform: translateY(-1px);
+    }
+    #mobile-notice .footer-note {
+      margin-top: 36px; font-size: 11px;
+      color: #806060; letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
   <div id="game-container"></div>
   <div id="load-status" style="position:fixed;top:10px;left:10px;color:#0f0;font-family:monospace;font-size:14px;z-index:9999;">Starting...</div>
+
+  <script>
+    // ── Mobile detection: ECHORIS is PC/Console only. Mobile users see CTA instead of loading 1.6MB game bundle. ──
+    (function() {
+      var ua = navigator.userAgent || '';
+      var isTouchUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+      var isNarrow = (window.screen && window.screen.width && window.screen.width < 820);
+      var isMobile = isTouchUA || isNarrow;
+      if (!isMobile) {
+        window.__ECHORIS_MOBILE = false;
+        return;
+      }
+      window.__ECHORIS_MOBILE = true;
+      var lang = (document.documentElement.lang || 'en').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+      var copy = lang === 'ko' ? {
+        tagline: 'Enter the memory of your weapon',
+        headline: 'PC 전용 게임입니다',
+        body: 'ECHORIS는 키보드·마우스·게임패드 입력을 사용하는 PC 메트로베니아입니다. 모바일 컨트롤은 지원하지 않습니다. 데스크탑에서 아래 주소로 다시 방문해 주세요.',
+        urlLabel: 'echoris.io/ko',
+        ctaWishlist: 'Steam 위시리스트',
+        ctaX: 'X (Twitter)',
+        ctaDiscord: 'Discord',
+        footer: 'COMING TO STEAM · BUILT BY STRATA FORGE'
+      } : {
+        tagline: 'Enter the memory of your weapon',
+        headline: 'ECHORIS is a PC game',
+        body: 'ECHORIS is a PC metroidvania built for keyboard, mouse, and gamepad. Mobile controls are not supported. Please revisit on a desktop computer to play.',
+        urlLabel: 'echoris.io',
+        ctaWishlist: 'Steam Wishlist',
+        ctaX: 'X (Twitter)',
+        ctaDiscord: 'Discord',
+        footer: 'COMING TO STEAM · BUILT BY STRATA FORGE'
+      };
+      var notice = document.createElement('div');
+      notice.id = 'mobile-notice';
+      notice.innerHTML =
+        '<div class="brand">ECHORIS</div>' +
+        '<div class="tagline">' + copy.tagline + '</div>' +
+        '<div class="headline">' + copy.headline + '</div>' +
+        '<div class="body">' + copy.body + '</div>' +
+        '<div class="url-box">' + copy.urlLabel + '</div>' +
+        '<div class="cta-row">' +
+          '<a class="cta" data-cta="x" href="https://x.com/Strata_Forge" target="_blank" rel="noopener">' + copy.ctaX + '</a>' +
+          '<a class="cta" data-cta="discord" href="https://discord.gg/nqEcnZbS2c" target="_blank" rel="noopener">' + copy.ctaDiscord + '</a>' +
+        '</div>' +
+        '<div class="footer-note">' + copy.footer + '</div>';
+      document.addEventListener('DOMContentLoaded', function() {
+        var status = document.getElementById('load-status');
+        if (status) status.style.display = 'none';
+        var container = document.getElementById('game-container');
+        if (container) container.style.display = 'none';
+        document.body.appendChild(notice);
+      });
+      // GA4 events (gtag queues via dataLayer until script loads)
+      try {
+        gtag('event', 'mobile_detected', {
+          locale: lang,
+          ua_mobile: isTouchUA,
+          screen_narrow: isNarrow,
+          screen_width: (window.screen && window.screen.width) || 0
+        });
+      } catch (e) {}
+      document.addEventListener('click', function(e) {
+        var el = e.target.closest && e.target.closest('[data-cta]');
+        if (!el) return;
+        try {
+          gtag('event', 'mobile_cta_click', { cta: el.getAttribute('data-cta'), locale: lang });
+        } catch (err) {}
+      });
+    })();
+  </script>
+
   <script>
     window.onerror = function(msg, src, line, col, err) {
+      if (window.__ECHORIS_MOBILE) return;
       document.body.style.color = '#f44';
       document.body.style.padding = '20px';
       document.body.style.fontFamily = 'monospace';
       document.body.innerHTML = '<h2>Error</h2><pre>' + msg + '\n' + src + ':' + line + ':' + col + '\n' + (err && err.stack || '') + '</pre>';
     };
     window.addEventListener('unhandledrejection', function(e) {
+      if (window.__ECHORIS_MOBILE) return;
       document.body.style.color = '#f44';
       document.body.style.padding = '20px';
       document.body.style.fontFamily = 'monospace';
       document.body.innerHTML = '<h2>Error</h2><pre>' + (e.reason && e.reason.stack || e.reason || 'Unknown') + '</pre>';
     });
   </script>
-  <script type="module" src="/src/main.ts"></script>
+
+  <script>
+    // Conditionally inject game module only on desktop — mobile users skip the 1.6MB bundle.
+    if (!window.__ECHORIS_MOBILE) {
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = '/src/main.ts';
+      document.body.appendChild(s);
+    }
+  </script>
 </body>
 </html>
