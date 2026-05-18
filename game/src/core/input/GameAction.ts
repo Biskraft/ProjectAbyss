@@ -17,6 +17,13 @@ export enum GameAction {
   INVENTORY = 'INVENTORY',
   MAP = 'MAP',
   MENU = 'MENU',
+  /**
+   * Pad B(FACE_RIGHT) 전용 cancel-only 액션. 모달 close 트리거로만 사용되고
+   * pause 메뉴 *open* 은 트리거하지 않는다. Open 사이트는 `MENU && !CANCEL`
+   * 로 게이트해 B 누름이 메뉴를 *띄우지* 못하게 한다. 키보드 Escape 는
+   * CANCEL 에 바인딩되지 않으므로 종전과 동일하게 MENU 만 발화.
+   */
+  CANCEL = 'CANCEL',
   STATUS = 'STATUS',
   FLASK = 'FLASK',
   /** Hades-style ranged cast — Ego Shard 발사. 인챈트별 효과 변주. */

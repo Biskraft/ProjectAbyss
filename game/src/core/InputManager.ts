@@ -31,6 +31,8 @@ const PRESET_CLASSIC: Record<GameAction, string[]> = {
   [GameAction.MAP]: ['KeyM'],
   [GameAction.STATUS]: ['Tab'],
   [GameAction.MENU]: ['Escape'],
+  // CANCEL = pad B 전용 (키보드 미바인딩). 모달 close 게이트로만 사용.
+  [GameAction.CANCEL]: [],
   [GameAction.FLASK]: ['KeyR'],
   [GameAction.CAST]: ['KeyV'],
   [GameAction.GRAB]: ['KeyB'],

@@ -285,7 +285,7 @@ function setState(state: string) {
 | **forge_strike** | 6f | — (커스텀) | 아이템계 진입 연출 |
 | **emote_wave** | 6f | — (커스텀) | 코옵 인사 |
 | **revive** | 8f | getting-up | 부활 |
-| **mist_transform** | 6f | — (커스텀) | 안개 변신 능력 |
+| **mist_transform** | 6f | — (커스텀) | 안개 변신 능력 | **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 | **double_jump** | 3f | backflip | 이단 점프 |
 | **weapon_switch** | 3f | — (수동) | 무기 교체 모션 |
 

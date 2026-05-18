@@ -15,7 +15,7 @@ import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
@@ -23,7 +23,7 @@ import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
 import { GameAction, actionKey } from '@core/InputManager';
-import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
+import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Ghost } from '@entities/Ghost';
 import { Boss01 } from '@entities/Boss01';
 import { GoldenMonster } from '@entities/GoldenMonster';
@@ -106,7 +106,7 @@ import { AshRemnantManager } from '@effects/AshRemnant';
 import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import { FluidResidueManager } from '@effects/FluidResidue';
 import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
-import { applyFluidGenericResolution } from '@data/ItemWorldFluidMapping';
+import { applyFluidGenericResolution, substituteSolidGenericSprites } from '@data/ItemWorldFluidMapping';
 import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
 import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
@@ -232,6 +232,13 @@ export class ItemWorldScene extends Scene {
   private projectiles: Projectile[] = [];
   private healingPickups: HealingPickup[] = [];
   private goldPickups: GoldPickup[] = [];
+  /**
+   * Room-key (`${col}:${absRow}`) → ItemSpawner entity 의 unified-grid pixel
+   * 위치 배열. buildFullMap 에서 LDtk 템플릿의 ItemSpawner 엔티티를 스캔해
+   * 채운다. spawnRoomRewards 가 룸 입장 시 이 목록 위치에 보상을 spawn.
+   * (2026-05-18 — 랜덤 위치 → designer-placed ItemSpawner 로 전환)
+   */
+  private roomItemSpawners: Map<string, Array<{ x: number; y: number }>> = new Map();
   /** DEC-038 Town of Orphaned Shadows — hub Gatekeeper / shrine Librarian. */
   private memoryResidents: MemoryResident[] = [];
   /**
@@ -1331,6 +1338,7 @@ export class ItemWorldScene extends Scene {
     for (const c of this.containers) c.destroy();
     this.containers.length = 0;
     this.heldContainer = null;
+    this.roomItemSpawners.clear();
     this.fullMapContainer = new Container();
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
@@ -1586,6 +1594,22 @@ export class ItemWorldScene extends Scene {
             });
           }
         }
+        // ── ItemSpawner entity (reward spawn point, 2026-05-18) ──
+        // designer-placed 보상 위치. spawnRoomRewards 가 입장 시 각 위치마다
+        // gold/heal 1개씩 spawn. 데이터 (gold:heal 비율, drop table 등) 는 추후
+        // CSV 로 이전 예정 — 현재는 코드 내 상수 (REWARD_*).
+        {
+          const list: Array<{ x: number; y: number }> = [];
+          for (const ent of ldtkLevel.entities) {
+            if (ent.type !== 'ItemSpawner') continue;
+            const sx = (ent.grid[0] + offGx) * 16;
+            const sy = (ent.grid[1] + offGy) * 16;
+            list.push({ x: sx, y: sy });
+          }
+          if (list.length > 0) {
+            this.roomItemSpawners.set(`${col}:${absRow}`, list);
+          }
+        }
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
           t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
@@ -1598,10 +1622,13 @@ export class ItemWorldScene extends Scene {
         // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
         const bgAreaId = `iw_${this._themeSlug}_bg`;
         const wallAreaId = `iw_${this._themeSlug}_wall`;
+        const wallTilesSub = substituteSolidGenericSprites(
+          wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
+        );
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-        applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
         applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.interiorLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
@@ -1842,6 +1869,57 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
+   * Designer-placed ItemSpawner 위치에 보상을 드롭한다. (2026-05-18)
+   *
+   * 룰:
+   *   - 각 ItemSpawner 위치마다 gold or healing pickup 1개 (50:50 PRNG)
+   *   - Gold 금액 = base × rarityMul × (1 + stratumDepth × 0.2) — 무기 rarity 가
+   *     높을수록, stratum 깊을수록 점진 증가
+   *   - Heal pickup 은 player.maxHp 비례 (createForgeEmber 가 25% maxHP)
+   *
+   * TODO: 보상 데이터 (gold 범위 / heal 종류 / 비율) 를 별도 CSV
+   *   (Sheets/Content_ItemWorld_Rewards.csv) 로 이전. 현재는 코드 상수.
+   */
+  private spawnRoomRewards(col: number, row: number): void {
+    const list = this.roomItemSpawners.get(`${col}:${row}`);
+    if (!list || list.length === 0) return;
+
+    // Rarity → 보상 multiplier (TODO: CSV 로 이전).
+    const RARITY_MUL: Record<string, number> = {
+      normal: 1.0, magic: 1.3, rare: 1.6, legendary: 2.0, ancient: 2.5,
+    };
+    const rarityMul = RARITY_MUL[this.item.rarity] ?? 1.0;
+    const cell = this.unifiedGrid.cells[row]?.[col];
+    const stratumDepth = cell?.stratumIndex ?? 0;
+    const depthMul = 1 + stratumDepth * 0.2;
+
+    const rng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 7777);
+    for (let i = 0; i < list.length; i++) {
+      const pt = list[i];
+      if (rng.next() < 0.5) {
+        // Gold: base 50~150 × rarityMul × depthMul.
+        const goldBase = 50 + rng.nextInt(0, 100);
+        const goldAmount = Math.max(1, Math.floor(goldBase * rarityMul * depthMul));
+        const gp = new GoldPickup(pt.x, pt.y, goldAmount);
+        gp.enableTerrainPhysics(this.roomData);
+        this.goldPickups.push(gp);
+        this.entityLayer.addChild(gp.container);
+      } else {
+        // Healing — Forge Ember (25% maxHP). Rarity 가 높으면 추가로 1개 더 spawn.
+        const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
+        this.healingPickups.push(heal);
+        this.entityLayer.addChild(heal.container);
+        if (rarityMul >= 2.0 && rng.next() < 0.5) {
+          // legendary/ancient 보너스 — 같은 spawner 에서 추가 ember 1개 약간 옆에.
+          const heal2 = createForgeEmber(pt.x + 8, pt.y, this.player.maxHp);
+          this.healingPickups.push(heal2);
+          this.entityLayer.addChild(heal2.container);
+        }
+      }
+    }
+  }
+
+  /**
    * Spawn enemies in the given room cell (lazy ? triggered on first player entry).
    * Replaces the per-room spawnEnemies() used in loadRoom().
    */
@@ -1865,7 +1943,16 @@ export class ItemWorldScene extends Scene {
       const offYHs = row * IW_ROOM_H_PX;
       const roomTopRowHs = Math.floor(offYHs / TILE_SIZE);
       const roomTopColHs = Math.floor(offXHs / TILE_SIZE);
-      const pointsHs = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopColHs, roomTopRowHs);
+      const rawPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopColHs, roomTopRowHs);
+      // 2026-05-17: 문지기/주민/코어 보는 자는 *바닥 솔리드 위* 에만 spawn.
+      // computeSpawnPoints 는 below>=1 만 검사해 fluid (water/oil/magma/acid/cyro)
+      // 위 점도 포함시킨다. isSolid 로 wall/ice/breakable/metal/wood 만 허용.
+      const pointsHs = rawPoints.filter(pt => {
+        const tcBelow = Math.floor(pt.x / TILE_SIZE);
+        const trBelow = Math.floor(pt.y / TILE_SIZE);
+        const belowTile = this.fullGrid[trBelow]?.[tcBelow] ?? TILE_AIR;
+        return isSolid(belowTile);
+      });
       if (pointsHs.length > 0) {
         // 결정론 시드: itemUid + col + absRow → 같은 무기·같은 방이면 항상 동일 위치.
         const rngHs = new PRNG(this.item.uid * 31337 + col * 199 + row * 73);
@@ -1974,32 +2061,13 @@ export class ItemWorldScene extends Scene {
 
     if (spawnPoints.length === 0 && !isBossRoom) return;
 
-    // Corridor cell (DEC-037 chain-length variable pattern) — 통로는 이동
-    // 전용. 적 스폰 없이 cleared 처리. dead-end (exit 1개) 통로는 막다른 길의
-    // 야리코미 보상감을 위해 작은 픽업(체력 또는 골드, 50/50)을 1개 드랍.
+    // 모든 room type 에 대해 ItemSpawner-placed 보상 처리 (no-op if 없음).
+    // 2026-05-18: 이전 random-position (corridor dead-end + Rest 1~2 heal) 폐기.
+    // Combat/Treasure/Boss 도 designer 가 ItemSpawner 페인트 시 함께 작동.
+    this.spawnRoomRewards(col, row);
+
+    // Corridor cell (DEC-037 chain-length variable pattern) — 이동 전용, 적 미스폰.
     if (cell.kind === 'corridor') {
-      const exitCount = (cell.exits.left ? 1 : 0)
-        + (cell.exits.right ? 1 : 0)
-        + (cell.exits.up ? 1 : 0)
-        + (cell.exits.down ? 1 : 0);
-      const isDeadEnd = exitCount === 1;
-      if (isDeadEnd && spawnPoints.length > 0) {
-        const rewardRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 555);
-        const pt = spawnPoints[rewardRng.nextInt(0, spawnPoints.length - 1)];
-        if (rewardRng.next() < 0.5) {
-          // Gold — 5..15 (stratum 별 약간 가중) × 10 — 야리코미 보상 공간 강조
-          const goldAmount = Math.floor((5 + rewardRng.nextInt(0, 10) + (cell.stratumIndex ?? 0) * 2) * 10);
-          const gp = new GoldPickup(pt.x, pt.y, goldAmount);
-          gp.enableTerrainPhysics(this.roomData);
-          this.goldPickups.push(gp);
-          this.entityLayer.addChild(gp.container);
-        } else {
-          // Healing
-          const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
-          this.healingPickups.push(heal);
-          this.entityLayer.addChild(heal.container);
-        }
-      }
       if (!cell.cleared) {
         cell.cleared = true;
         this.roomsCleared++;
@@ -2010,16 +2078,8 @@ export class ItemWorldScene extends Scene {
 
     // ─── RoomType-specific branching ────────────────────────────────────────
     // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
-    // Rest also drops 1-2 HealingPickups. Mark cleared so HUD counters update.
+    // Rest room — ItemSpawner 보상은 상단 spawnRoomRewards 가 이미 처리.
     if (roomType === 'Rest') {
-      const restRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 42);
-      const healCount = 1 + restRng.nextInt(0, 1); // 1-2 pickups
-      for (let i = 0; i < healCount && spawnPoints.length > 0; i++) {
-        const pt = spawnPoints[restRng.nextInt(0, spawnPoints.length - 1)];
-        const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
-        this.healingPickups.push(heal);
-        this.entityLayer.addChild(heal.container);
-      }
       if (!cell.cleared) {
         cell.cleared = true;
         this.roomsCleared++;
@@ -2557,10 +2617,19 @@ export class ItemWorldScene extends Scene {
         const bgTiles = ldtkLevel.backgroundTiles;
         const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel);
         const shadowTiles = ldtkLevel.shadowTiles;
+        // SolidGeneric_A/B 셀의 sprite 를 *resolved 솔리드 타입* 의 world_01 sprite
+        // 로 치환 (2026-05-18). pre-resolution collisionGrid (값 21/22 살아있음)
+        // 기준으로 치환 후 *복사된* 배열을 renderLevel 에 전달.
+        const wallTilesSub = substituteSolidGenericSprites(
+          ldtkLevel.wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
+        );
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-        applyAreaTilesetToLdtkTiles(wallAreaId, ldtkLevel.wallTiles);
+        applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
         applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
-        this.ldtkRenderer.renderLevel(bgTiles, ldtkLevel.wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        // 원본 collisionGrid 를 그대로 전달 — isFluidHiddenTile 의 `v === 17/18/19`
+        // 가 fluid placeholder sprite 를 숨긴다. SolidGeneric_A/B (21/22) 는 hide
+        // 대상 아님 — 위 substitute 단계에서 sprite 가 적절히 교체됨.
+        this.ldtkRenderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
       }
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
@@ -3467,7 +3536,7 @@ export class ItemWorldScene extends Scene {
         case 'AcidVial':      return 13;
         case 'ChargedCrate':  return 8;
         case 'ChargedCell':   return 8;
-        case 'CyroCanister':  return 14;
+        case 'CyroCanister':  return 20;
         case 'Crate':         return 0;
         case 'MetalCrate':    return 0;
       }
@@ -3488,7 +3557,7 @@ export class ItemWorldScene extends Scene {
           // Paint over: air / grass / any fluid (water/magma/oil/acid/charged/cyro).
           // Solid cells block paint. charged (8) 포함 — ChargedCrate splash 가
           // 기존 charged 풀 위 다시 칠해도 무해 (셀 값 그대로).
-          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 14) {
+          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20) {
             row[x] = tile;
             painted++;
             for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -4170,7 +4239,10 @@ export class ItemWorldScene extends Scene {
           applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
           applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
         }
-        renderer.renderLevel(bgTiles, wallTiles, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        const wallTilesSub = substituteSolidGenericSprites(
+          wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
+        );
+        renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
         renderer.bgLayer.position.set(roomX, roomY);
         renderer.interiorLayer.position.set(roomX, roomY);
         renderer.wallLayer.position.set(roomX, roomY);
@@ -4397,7 +4469,11 @@ export class ItemWorldScene extends Scene {
     } else if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
       if (this.uiController.isEscapeConfirmVisible()) {
         this.hideEscapeConfirm();
-      } else {
+        return;
+      }
+      // Pad B (CANCEL 동시 발화) 는 EscapeConfirm 을 *띄우지* 못한다.
+      // START · Escape 만 open 트리거 (사용자 요구 2026-05-17).
+      if (!this.game.input.isJustPressed(GameAction.CANCEL)) {
         this.showEscapeConfirm();
       }
       return;
@@ -4516,8 +4592,8 @@ export class ItemWorldScene extends Scene {
       this.egoShardPreview.hide();
       this.player.isAiming = false;
     }
-    const castDown = _shardAbilityOn && this.game.input.isDown(GameAction.CAST);
-    const canCast = _shardAbilityOn && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
+    const castDown = _shardAbilityOn && !this.heldContainer && this.game.input.isDown(GameAction.CAST);
+    const canCast = _shardAbilityOn && !this.heldContainer && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
     const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
     const launchX = this.player.x + this.player.width / 2 + facing * 14;
     const launchY = this.player.y + this.player.height * 0.38 - 5;
@@ -4580,6 +4656,13 @@ export class ItemWorldScene extends Scene {
         const best = this.findNearestGrabbableContainer();
         if (best) { best.pickUp(); this.heldContainer = best; }
       }
+    } else if (this.heldContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
+      // 들고 있을 때만 ATTACK 도 throw. 검 휘두름 차단 위해 consume.
+      // (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
+      const facing = this.player.facingRight ? 1 : -1;
+      this.heldContainer.release(facing * 160, -170);
+      this.heldContainer = null;
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
     }
     if (this.heldContainer && !this.heldContainer.destroyed) {
       const h = this.heldContainer;
@@ -5345,20 +5428,27 @@ export class ItemWorldScene extends Scene {
     else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
     p.prevInMagma = inMagma_;
 
+    // Water/Cyro 시각-only residue (2026-05-18).
+    if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
+    else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
+
+    if (inCyro_) p.cyroResidueRemainingMs = CYRO_RESIDUE_DURATION_MS;
+    else if (p.cyroResidueRemainingMs > 0) p.cyroResidueRemainingMs = Math.max(0, p.cyroResidueRemainingMs - dt);
+    p.prevInCyro = inCyro_;
+
     const footX = p.x + p.width / 2;
     const footY = p.y + p.height;
     const grounded = p.isGrounded();
     this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
+    this.fluidResidue.emit('water', footX, footY, p.waterResidueRemainingMs > 0, grounded, p.waterResidueRemainingMs / WATER_RESIDUE_DURATION_MS);
+    this.fluidResidue.emit('cyro',  footX, footY, p.cyroResidueRemainingMs > 0, grounded, p.cyroResidueRemainingMs / CYRO_RESIDUE_DURATION_MS);
 
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: (remainingMs) => {
-        p.oilSlipRemainingMs = Math.max(p.oilSlipRemainingMs, remainingMs);
-        // Keep the residue-emit timer in sync so walking across an existing
-        // oil blot keeps dropping fresh footprints (was the cause of
-        // "slipping forever with no visible oil"). Symmetric with LdtkWorld.
-        p.oilResidueRemainingMs = Math.max(p.oilResidueRemainingMs, remainingMs);
+      refreshOilSlip: (_remainingMs) => {
+        // No-op (2026-05-17): residue blot → player 전이 차단. 발자국 자가-재오일
+        // 루프로 "발바닥 기름이 영원히 안 사라지던" 버그 픽스. TILE_OIL 원본만 전이.
       },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;

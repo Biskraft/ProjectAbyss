@@ -33,7 +33,7 @@ const FLUID_TYPE_TO_TILE: Record<FluidSpawnerType, number> = {
   magma:   6,
   acid:   13,
   charged: 8,
-  cyro:   14,
+  cyro:   20,
 };
 
 const TYPE_DEBUG_COLOR: Record<FluidSpawnerType, number> = {
@@ -41,7 +41,7 @@ const TYPE_DEBUG_COLOR: Record<FluidSpawnerType, number> = {
   oil:     0x88553a,
   magma:   0xff6633,
   acid:    0x88cc44,
-  charged: 0xA05AE5,
+  charged: 0xFFE033,
   cyro:    0xA0E0F0,
 };
 

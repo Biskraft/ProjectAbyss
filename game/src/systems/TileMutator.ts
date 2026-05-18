@@ -102,11 +102,14 @@ export class TileMutator {
   static readonly ACID_WOOD_EAT_CHANCE = 0.04;        // R-NEW-026 Acid Eats Wood
   static readonly ACID_GRASS_WITHER_CHANCE = 0.08;    // R-NEW-032 Wither
   static readonly WATER_METAL_RUST_CHANCE = 0.005;    // R-NEW-031 Slow Rust
-  static readonly CYRO_WATER_FREEZE_CHANCE = 0.04;    // R-NEW-CYRO-002 Cryo Freeze
-  static readonly CYRO_METAL_FREEZE_CHANCE = 0.06;    // R-NEW-CYRO-003 Frozen Steel auto
-  static readonly CYRO_OIL_ACID_FREEZE_CHANCE = 0.04; // R-NEW-CYRO-004 Frozen Oil/Acid auto
-  static readonly CYRO_WOOD_FREEZE_CHANCE = 0.03;     // R-NEW-CYRO-005 Wood Frost auto
-  static readonly CYRO_GRASS_WITHER_CHANCE = 0.02;    // R-NEW-CYRO-006 Grass Wither cryo
+  // 2026-05-18 cyro chemistry 강화 (약 2x). Iron 룸에서 cyro 풀 주변 freeze 가
+  // 빠르게 퍼져 visible 한 시그니처 가시화. 원래 0.04~0.06 / 1초 → 평균 25~17s
+  // 첫 freeze 였으나 이제 평균 ~10s, 풀 크기·인접 셀에 따라 빠르게 누적.
+  static readonly CYRO_WATER_FREEZE_CHANCE = 0.10;    // R-NEW-CYRO-002 Cryo Freeze (was 0.04)
+  static readonly CYRO_METAL_FREEZE_CHANCE = 0.12;    // R-NEW-CYRO-003 Frozen Steel auto (was 0.06)
+  static readonly CYRO_OIL_ACID_FREEZE_CHANCE = 0.08; // R-NEW-CYRO-004 Frozen Oil/Acid auto (was 0.04)
+  static readonly CYRO_WOOD_FREEZE_CHANCE = 0.06;     // R-NEW-CYRO-005 Wood Frost auto (was 0.03)
+  static readonly CYRO_GRASS_WITHER_CHANCE = 0.05;    // R-NEW-CYRO-006 Grass Wither cryo (was 0.02)
   static readonly CYRO_BURST_SOLIDIFY_MAX_CELLS = 8;  // R-NEW-CYRO-001 Cryo Burst
 
   // === State maps (cell-keyed) ===
@@ -725,7 +728,11 @@ export class TileMutator {
             }
             continue;
           }
-          this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_WATER, TileMutator.CYRO_WATER_FREEZE_CHANCE);
+          // R-NEW-CYRO-002 v2 (2026-05-18): cyro + water 즉시 *영구* TILE_ICE 변환.
+          // 이전 temp-freeze (15s WALL revert) 는 "얼음이 안 생긴다" 인식 — water+magma
+          // burst (R-NEW-007) 와 대칭으로 instant permanent terrain change.
+          // chance 1.0 + steam puff (얼음 격렬한 hiss 시각).
+          this.maybeMutateNeighbourWithSteam(roomData, gx, gy, TILE_WATER, TILE_ICE, 1.0);
           this.maybeFreezeMetalNeighbour(roomData, gx, gy, TileMutator.CYRO_METAL_FREEZE_CHANCE);
           this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_OIL, TileMutator.CYRO_OIL_ACID_FREEZE_CHANCE);
           this.maybeFreezeNeighbourByTile(roomData, gx, gy, TILE_ACID, TileMutator.CYRO_OIL_ACID_FREEZE_CHANCE);

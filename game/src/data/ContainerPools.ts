@@ -39,38 +39,41 @@ type SlotKey = 'generic_a' | 'generic_b' | 'generic_c';
  * use an explicit `Kind` value (Crate/MetalCrate/...) on the Container
  * entity instead of Generic_A/B/C.
  */
+// V2.5 (2026-05-18) — 결정론적 1:1 매핑으로 단순화:
+//   designer 가 명시 Container 엔티티에 Kind=Generic_A/B/C 를 *공간 의도*로
+//   배치하므로 슬롯 별 *단일 ContainerKind* 가 일관된 디자인. 이전 weight-pool
+//   샘플링은 *같은 슬롯이 매번 다른 컨테이너로 나오는* 비결정성 → designer 의도
+//   상실. Pool 무작위는 ContainerSpawner (절차적 채움) 의 CONTAINER_POOLS 에서만 유효.
+//
+// 매핑 원칙: Container Generic_X = 그 temperament 의 fluid slot_X 와 동일한 fluid 의 통.
+// (ItemWorldFluidMapping.ts 의 slotA/B/C 와 1:1.) 솔리드 prop (MetalCrate/Crate)
+// 은 designer 가 *명시 Kind* 또는 *SolidGeneric IntGrid* 로 따로 페인트.
 const CONTAINER_SLOT_POOLS: Record<string, Record<SlotKey, PoolEntry[]>> = {
   forge: {
-    generic_a: [{ kind: 'MagmaCrucible', weight: 4 }],
-    generic_b: [{ kind: 'OilDrum',       weight: 2 }, { kind: 'MetalCrate', weight: 3 }],
-    generic_c: [{ kind: 'Crate',         weight: 1 }],
+    generic_a: [{ kind: 'MagmaCrucible', weight: 1 }],
+    generic_b: [{ kind: 'OilDrum',       weight: 1 }],
+    generic_c: [{ kind: 'WaterBarrel',   weight: 1 }],
   },
   iron: {
-    // V2.2 (2026-05-17) — Iron primary signature 가 cyro fluid 로 승격되며
-    // Generic_A 도 CyroCanister (청백 액화 질소 통) 으로 매핑. 깨지면 cyro 풀
-    // (TILE=14) spawn → FluidSystem 자동 흡수 + Frozen 상태이상 (-60% 2s) 발현.
-    generic_a: [{ kind: 'CyroCanister',  weight: 4 }],
-    generic_b: [{ kind: 'MetalCrate',    weight: 5 }],
-    generic_c: [{ kind: 'WaterBarrel',   weight: 2 }, { kind: 'Crate', weight: 3 }],
+    // slot_a/b 모두 cyro (FluidMapping V2.3 iron slot_b 통합) → CyroCanister 단일.
+    generic_a: [{ kind: 'CyroCanister',  weight: 1 }],
+    generic_b: [{ kind: 'CyroCanister',  weight: 1 }],
+    generic_c: [{ kind: 'WaterBarrel',   weight: 1 }],
   },
   rust: {
-    generic_a: [{ kind: 'AcidVial',      weight: 4 }],
-    generic_b: [{ kind: 'MetalCrate',    weight: 5 }],
-    generic_c: [{ kind: 'Crate',         weight: 2 }],
+    generic_a: [{ kind: 'AcidVial',      weight: 1 }],
+    generic_b: [{ kind: 'OilDrum',       weight: 1 }],
+    generic_c: [{ kind: 'WaterBarrel',   weight: 1 }],
   },
   spark: {
-    // V2.2 (2026-05-17) — Spark primary signature 가 charged 로 승격되며
-    // Generic_A 도 ChargedCell (보라 배터리 통, LDtk 명명 고정) 으로 매핑.
-    // 깨지면 charged 풀 (TILE=8) spawn → FluidSystem 자동 흡수 + Arc Scan
-    // Cycle 즉시 발현 + 인접 water 자동 Wet-Conductor Spread 전도화.
-    generic_a: [{ kind: 'ChargedCell',   weight: 4 }],
-    generic_b: [{ kind: 'WaterBarrel',   weight: 3 }],
-    generic_c: [{ kind: 'MetalCrate',    weight: 3 }, { kind: 'Crate', weight: 2 }],
+    generic_a: [{ kind: 'ChargedCell',   weight: 1 }],
+    generic_b: [{ kind: 'WaterBarrel',   weight: 1 }],
+    generic_c: [{ kind: 'AcidVial',      weight: 1 }],
   },
   shadow: {
-    generic_a: [{ kind: 'OilDrum',       weight: 3 }],
-    generic_b: [{ kind: 'AcidVial',      weight: 2 }, { kind: 'MagmaCrucible', weight: 1 }],
-    generic_c: [{ kind: 'Crate',         weight: 4 }],
+    generic_a: [{ kind: 'OilDrum',       weight: 1 }],
+    generic_b: [{ kind: 'AcidVial',      weight: 1 }],
+    generic_c: [{ kind: 'MagmaCrucible', weight: 1 }],
   },
 };
 

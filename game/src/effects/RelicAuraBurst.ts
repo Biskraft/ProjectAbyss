@@ -2,9 +2,10 @@ import { Container, Graphics } from 'pixi.js';
 
 /**
  * Relic aura burst — reserved for Metroidvania ability unlocks (Dash, Wall
- * Climb, Double Jump, Mist Form, Water Breathing, Anti-Gravity). Significantly
- * more dramatic than ItemPickupGlow: triple expanding ring, starburst rays, and
- * a lingering column of light to punctuate the moment.
+ * Climb, Double Jump, Water Breathing, Anti-Gravity). Significantly more
+ * dramatic than ItemPickupGlow: triple expanding ring, starburst rays, and a
+ * lingering column of light to punctuate the moment.
+ * (2026-05-18: Mist Form 렐릭 폐기 — SotN 카피 우려. 5 렐릭으로 축소.)
  */
 
 interface Ring {

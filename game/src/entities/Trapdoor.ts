@@ -52,7 +52,9 @@ export class Trapdoor {
   x: number;
   y: number;
   width = 24;
-  height = 32;
+  // 빛기둥 높이 96 (2026-05-17 32→96, 3x — 시각 인지도 강화). drawIdle 의 모든
+  // rect 가 this.height 참조라 단일 상수만 변경. AABB / proximity 도 영향.
+  height = 96;
 
   /** True 일 때 인터랙트 가능. activate() 후 false. */
   active = true;

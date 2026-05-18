@@ -210,7 +210,10 @@ export class WorldUiController {
       return 'pause';
     }
 
-    if (!deathScreen.visible && input.isJustPressed(GameAction.MENU) && options.canOpenPause) {
+    if (!deathScreen.visible && input.isJustPressed(GameAction.MENU)
+        && !input.isJustPressed(GameAction.CANCEL) && options.canOpenPause) {
+      // CANCEL 동시 발화 = pad B 입력. B 는 모달 close 전용으로 두고 pause
+      // open 은 차단한다 (START / Escape 만 pause 토글).
       options.onPauseOpened();
       pauseMenu.open();
       return 'pause';

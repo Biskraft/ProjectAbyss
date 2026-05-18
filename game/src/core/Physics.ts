@@ -32,9 +32,9 @@ export const TILE_SIZE = 16;
  *  11 = oil (passable, slight slip, ignites from Fire attack → fire spreads + air) [Phase 1]
  *  12 = metal (solid, Thunder flood-fill conductor, acid corrodes) [Phase 1]
  *  13 = acid (passable, DoT + corrodes adjacent metal + conducts thunder + vapor on magma) [Phase 1]
- *  14 = cyro (passable, light DoT + Frozen status: 이동 -60% / 2s) [V2.2 2026-05-17, Iron primary signature.
- *           Note: spelled "cyro" not "cryo" — LDtk Editor enum value is locked
- *           as `Cyro` so the codebase mirrors that spelling everywhere.]
+ *  20 = cyro (passable, light DoT + Frozen status: 이동 -75% / 3s) [V2.4 2026-05-18, Iron primary signature.
+ *           LDtk Editor enum value: SSoT — Editor 재정렬 후 cyro=20 으로 고정.
+ *           Spelled "cyro" not "cryo" — LDtk Cyro enum 표기와 코드베이스가 mirror.]
  *  15 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
  *  16 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
  *
@@ -54,9 +54,10 @@ export const TILE_VOID = 10;
 export const TILE_OIL = 11;
 export const TILE_METAL = 12;
 export const TILE_ACID = 13;
-export const TILE_CYRO = 14;
 export const TILE_WOOD = 15;
 export const TILE_GRASS = 16;
+// TILE_CYRO 2026-05-18: 14 → 20 (LDtk SSoT 와 정렬, Editor 재정렬 후 cyro=20).
+export const TILE_CYRO = 20;
 
 export function isSolid(tileId: number): boolean {
   return (

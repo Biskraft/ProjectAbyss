@@ -26,7 +26,7 @@ import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
+import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
 import { Slime } from '@entities/Slime';
@@ -85,6 +85,7 @@ import { WeaponPulse } from '@effects/WeaponPulse';
 import { AnvilTether } from '@effects/AnvilTether';
 import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
+import { AcquireOverlay } from '@ui/AcquireOverlay';
 import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
@@ -513,6 +514,8 @@ export class LdtkWorldScene extends Scene {
   /** Item currently displayed by LorePopup (used by confirm key handler). */
   private activeLorePopupItem: ItemInstance | null = null;
   private divePreview: DivePreview | null = null;
+  /** Ceremonial overlay for relic / max HP+ acquisition. Replaces former toast.showBig. */
+  private acquireOverlay: AcquireOverlay | null = null;
   private activeWeaponPulse: WeaponPulse | null = null;
   private activeAnvilTether: AnvilTether | null = null;
   private pickupZoomOverride = 1.0;
@@ -1276,10 +1279,19 @@ export class LdtkWorldScene extends Scene {
     this.divePreview = new DivePreview(this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.divePreview.container);
 
+    // AcquireOverlay — relic / max HP+ ceremonial modal (vignette only, no panel box).
+    this.acquireOverlay = new AcquireOverlay(this.game.uiScale);
+    this.game.uiContainer.addChild(this.acquireOverlay.container);
+
     // World Map overlay — uiContainer(native)
     this.worldMap = new WorldMapOverlay(this.uiSkin, this.game.uiScale);
     this.worldMap.setLoader(this.loader);
-    this.worldMap.setRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic'));
+    // identifier "Debug_*" prefix 도 안전망으로 함께 차단 — LDtk 에서 RoomType
+    // 태그가 빈 배열로 비어있는 Debug 룸이 클리어율에 섞여드는 것을 방지
+    // (2026-05-17: Debug_7/8/9 누수로 max 75% 에서 멈추던 버그 픽스).
+    this.worldMap.setRooms(this.loader.getWorldMap().filter(r =>
+      r.roomType !== 'Debug' && r.roomType !== 'Cinematic' && !r.id.startsWith('Debug_')
+    ));
     // Shift+M 디버그 워프용: Debug 룸 포함(Cinematic 만 제외) 풀 리스트 별도 등록.
     this.worldMap.setDebugRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Cinematic'));
     this.game.uiContainer.addChild(this.worldMap.container);
@@ -1555,7 +1567,7 @@ export class LdtkWorldScene extends Scene {
 
     const pauseOrDeath = this.uiController.handlePauseAndDeath({
       dt,
-      canOpenPause: !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible,
+      canOpenPause: !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible && !this.acquireOverlay?.isBlocking(),
       onPauseOpened: () => { this.isPaused = true; },
       onPauseClosed: () => { this.isPaused = false; },
     });
@@ -1607,6 +1619,7 @@ export class LdtkWorldScene extends Scene {
         this.activeWeaponPulse?.isBlocking ||
         this.lorePopup?.isBlocking() ||
         this.lorePopupItem !== null ||
+        this.acquireOverlay?.isBlocking() ||
         this.loreDisplay?.isActive;
       if (!cutsceneBlocking) {
         const hintId = this.pendingInventoryHint === 'first_pickup'
@@ -1841,8 +1854,9 @@ export class LdtkWorldScene extends Scene {
         if (!sacredSave.isFirstPickupDone()) return;
         this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
         this.hud.setItemKeyHighlight(false);
-        this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
-        this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
+        // 2026-05-18: tutorialHint.dismiss 는 *Rustborn 실제 착용 후* equip 분기에서만
+        // 실행한다. I 키만 누르면 인벤토리 보고 끄는 케이스 → 사용자가 튜토리얼을
+        // 잊는 문제. HUD pulse 는 여기서 멈추지만 hint 텍스트는 유지.
       },
     });
 
@@ -1858,9 +1872,14 @@ export class LdtkWorldScene extends Scene {
       if (inventoryResult === 'confirmed_equipment_change') {
         this.updatePlayerAtk();
         this.hud.updateATK(this.player.atk);
-        // Player completed the inventory tutorial action (weapon swap).
-        this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
-        this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
+        // 2026-05-18: 튜토리얼 hint 는 *Rustborn 실제 착용 시점* 에만 dismiss.
+        // 사용자가 다른 무기로 갈아끼우는 케이스에선 hint 유지 — 튜토리얼 목적은
+        // "Rustborn 착용" 학습이므로 그 행동이 끝나야 학습 완료로 인정.
+        const equipped = this.inventory.equipped;
+        if (equipped?.def.id === 'sword_rustborn') {
+          this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
+          this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
+        }
       }
       return; // Pause game while inventory open
     }
@@ -2250,7 +2269,11 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames = 8;
         this.screenFlash.flash(0xff4488, 0.4, 200);
         this.game.camera.shake(4);
-        this.toast.showBig(t('toast.max_hp_gain', { amount: shard.hpBonus }), 0xff4488);
+        this.acquireOverlay?.show({
+          type: 'hp',
+          name: t('ui.acquire.hp.name', { amount: shard.hpBonus }),
+          description: t('ui.acquire.hp.description'),
+        });
         shard.destroy();
         this.healthShards.splice(i, 1);
       }
@@ -2266,22 +2289,53 @@ export class LdtkWorldScene extends Scene {
         trackRelicAcquire(abilityName, this.currentLevel?.identifier);
         if (abilityName === 'dash') {
           this.player.abilities.dash = true;
-          this.toast.showBig(t('toast.unlock_dash'), 0xffd700);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'dash',
+            name: t('ui.acquire.relic.dash.name'),
+            usage: t('ui.acquire.relic.dash.usage'),
+            keyAction: GameAction.DASH,
+          });
         } else if (abilityName === 'diveAttack') {
           this.player.abilities.diveAttack = true;
-          this.toast.showBig(t('toast.unlock_dive_attack'), 0xffd700);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'diveAttack',
+            name: t('ui.acquire.relic.diveAttack.name'),
+            usage: t('ui.acquire.relic.diveAttack.usage'),
+            keyAction: GameAction.ATTACK,
+          });
         } else if (abilityName === 'surge') {
           this.player.abilities.surge = true;
-          this.toast.showBig(t('toast.unlock_counter_current'), 0xffd700);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'surge',
+            name: t('ui.acquire.relic.surge.name'),
+            usage: t('ui.acquire.relic.surge.usage'),
+            keyAction: GameAction.JUMP,
+          });
         } else if (abilityName === 'waterBreathing') {
           this.player.abilities.waterBreathing = true;
-          this.toast.showBig(t('toast.unlock_water_breathing'), 0x4488ff);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'waterBreathing',
+            name: t('ui.acquire.relic.waterBreathing.name'),
+            usage: t('ui.acquire.relic.waterBreathing.usage'),
+            // No keyAction — passive ability
+            tint: 0x4488ff,
+          });
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
-          this.toast.showBig(t('toast.unlock_wall_jump'), 0xffd700);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'wallJump',
+            name: t('ui.acquire.relic.wallJump.name'),
+            usage: t('ui.acquire.relic.wallJump.usage'),
+            keyAction: GameAction.JUMP,
+          });
         } else if (abilityName === 'doubleJump') {
           this.player.abilities.doubleJump = true;
-          this.toast.showBig(t('toast.unlock_double_jump'), 0xffd700);
+          this.acquireOverlay?.show({
+            type: 'relic', iconKey: 'doubleJump',
+            name: t('ui.acquire.relic.doubleJump.name'),
+            usage: t('ui.acquire.relic.doubleJump.usage'),
+            keyAction: GameAction.JUMP,
+          });
         } else if (abilityName === 'cheat') {
           // DEC-010: ?�버�?치트 ?�릭.
           // Gate: Debug_ 방에 배치 ???debug URL ?�라미터 ?�이???�근 불�?.
@@ -2482,8 +2536,8 @@ export class LdtkWorldScene extends Scene {
       this.egoShardPreview.hide();
       this.player.isAiming = false;
     }
-    const castDown = _shardAbilityOn && this.game.input.isDown(GameAction.CAST);
-    const canCast = _shardAbilityOn && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
+    const castDown = _shardAbilityOn && !this.heldContainer && this.game.input.isDown(GameAction.CAST);
+    const canCast = _shardAbilityOn && !this.heldContainer && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
     const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
     // Launch from the aim-pose gun muzzle. The aim sprite extends the gun
     // ~14 px past the player's body center; launchY sits at the arm/shoulder
@@ -2557,6 +2611,13 @@ export class LdtkWorldScene extends Scene {
           this.heldContainer = best;
         }
       }
+    } else if (this.heldContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
+      // 들고 있을 때만 ATTACK 도 throw. 검 휘두름이 같은 프레임에 발생하지 않도록
+      // 입력 consume. (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
+      const facing = this.player.facingRight ? 1 : -1;
+      this.heldContainer.release(facing * 160, -170);
+      this.heldContainer = null;
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
     }
     // Held container tracks player position (anchored above shoulder).
     if (this.heldContainer && !this.heldContainer.destroyed) {
@@ -2833,22 +2894,31 @@ export class LdtkWorldScene extends Scene {
     else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
     p.prevInMagma = inMagma_;
 
+    // Water/Cyro 시각-only residue (2026-05-18).
+    if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
+    else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
+
+    if (inCyro_) p.cyroResidueRemainingMs = CYRO_RESIDUE_DURATION_MS;
+    else if (p.cyroResidueRemainingMs > 0) p.cyroResidueRemainingMs = Math.max(0, p.cyroResidueRemainingMs - dt);
+    p.prevInCyro = inCyro_;
+
     const footX = p.x + p.width / 2;
     const footY = p.y + p.height;
     const grounded = p.isGrounded();
     this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
+    this.fluidResidue.emit('water', footX, footY, p.waterResidueRemainingMs > 0, grounded, p.waterResidueRemainingMs / WATER_RESIDUE_DURATION_MS);
+    this.fluidResidue.emit('cyro',  footX, footY, p.cyroResidueRemainingMs > 0, grounded, p.cyroResidueRemainingMs / CYRO_RESIDUE_DURATION_MS);
 
     // ── Residue contact effects: standing on a blot triggers the matching
     // hazard. Oil = slip refresh. Acid = damage tick. Magma = burn DOT.
     // Burning oil blot = fire DOT + Burn refresh.
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: (remainingMs) => {
-        p.oilSlipRemainingMs = Math.max(p.oilSlipRemainingMs, remainingMs);
-        // Keep residue-emit timer alive — walking on an existing blot
-        // continues to drop fresh footprints under the player's feet.
-        p.oilResidueRemainingMs = Math.max(p.oilResidueRemainingMs, remainingMs);
+      refreshOilSlip: (_remainingMs) => {
+        // No-op (2026-05-17): residue blot → player 전이 차단. 플레이어가 자기
+        // 발자국 위를 걸으면 oilResidueRemainingMs 가 무한 refresh 되어 발바닥
+        // 기름이 영원히 안 사라지는 버그 픽스. TILE_OIL 원본 셀만 player 에 전이.
       },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;
@@ -5249,7 +5319,7 @@ export class LdtkWorldScene extends Scene {
         case 'AcidVial':      return 13;
         case 'ChargedCrate':  return 8;
         case 'ChargedCell':   return 8;
-        case 'CyroCanister':  return 14;
+        case 'CyroCanister':  return 20;
         case 'Crate':         return 0;
         case 'MetalCrate':    return 0;
       }
@@ -5317,7 +5387,7 @@ export class LdtkWorldScene extends Scene {
     const W = grid[0]?.length ?? 0;
     if (!W) return;
     const isPaintable = (t: number) =>
-      t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 14;
+      t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
     const key = (x: number, y: number) => y * W + x;
     const visited = new Set<number>();
     const queue: Array<[number, number]> = [[sx, sy]];
@@ -8047,6 +8117,20 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
+    // AcquireOverlay — relic / max HP+ ceremonial modal. Same pattern as LorePopup:
+    // 1000ms 입력 잠금 후 ATTACK 으로 dismiss. 잠금 중 ATTACK 은 소비만 하고 통과시키지 않음.
+    if (this.acquireOverlay?.isBlocking()) {
+      this.acquireOverlay.update(dt);
+      blocking = true;
+      const input = this.game.input;
+      if (this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+        input.consumeJustPressed(GameAction.ATTACK);
+        this.acquireOverlay.confirm();
+      } else if (!this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+        input.consumeJustPressed(GameAction.ATTACK);
+      }
+    }
+
     // Dive preview modal takes priority over other UI input.
     if (this.divePreview?.isBlocking()) {
       blocking = true;
@@ -9051,7 +9135,7 @@ export class LdtkWorldScene extends Scene {
     if (!this.currentLevel) return;
 
     const worldMap = this.loader.getWorldMap()
-      .filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic');
+      .filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic' && !r.id.startsWith('Debug_'));
     if (worldMap.length === 0) return;
 
     // Panel size matches skin hud_map_frame inner area (center: 112x60 at 640x360)
@@ -9079,7 +9163,8 @@ export class LdtkWorldScene extends Scene {
     this.minimapPW = PW;
     this.minimapPH = PH;
 
-    // Fog of war: visited + adjacent (outlined)
+    // Fog of war: visited + adjacent (outlined). Secret 방은 *방문 전 outline 비공개*
+    // — adjacentIds 에 추가되지 않게 필터. 방문 후엔 visited 분기에서 정상 렌더.
     const visitedIds = this.visitedLevels;
     const clearedIds = this.clearedLevels;
     const adjacentIds = new Set<string>();
@@ -9087,7 +9172,10 @@ export class LdtkWorldScene extends Scene {
       const level = this.loader.getLevel(id);
       if (level) {
         for (const nb of level.neighbors) {
-          if (!visitedIds.has(nb)) adjacentIds.add(nb);
+          if (visitedIds.has(nb)) continue;
+          const nbLevel = this.loader.getLevel(nb);
+          if (nbLevel?.secret) continue;     // Secret 방 — adjacent 표시 제외
+          adjacentIds.add(nb);
         }
       }
     }

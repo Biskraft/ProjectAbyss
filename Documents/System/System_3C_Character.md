@@ -20,7 +20,7 @@
 | CHR-04-B   | 시스템 | 다이브 어택 (Dive Attack)          |    P1    | 📅 대기      | 렐릭 해금. 급강하 + 충격파 + 균열 바닥 파괴 |
 | CHR-05-A   | 시스템 | 히트박스/허트박스 시스템            |    P1    | 📅 대기      | AABB 기반, 넓은 히트박스  |
 | CHR-05-B   | 시스템 | 피격/넉백 처리                     |    P1    | 📅 대기      | 히트스턴 + 넉백 벡터      |
-| CHR-06-A   | 시스템 | 변신 시스템 (Transform)            |    P3    | 📅 대기      | Mist Form / Bat Form      |
+| CHR-06-A   | 시스템 | 변신 시스템 (Transform)            |    P3    | 📅 대기      | Mist Form / Bat Form      | **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 | CHR-07-A   | 시스템 | 멀티플레이 물리 동기화             |    P1    | 📅 대기      | 서버 권위 모델            |
 | CHR-08-A   | 시스템 | 타일맵 충돌 / 원웨이 플랫폼       |    P1    | 📅 대기      | 16px 그리드 기반          |
 | CHR-09-A   | 시스템 | 스킬 슬롯 시스템 (SkillCast)       |    P1    | 📅 대기      | 스킬 버튼 기반 직관 조작  |
@@ -164,11 +164,11 @@ stateDiagram-v2
 
     Death --> [*]
 
-    Transform --> MistForm : 미스트 변신
+~~    Transform --> MistForm : 미스트 변신~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
     Transform --> BatForm : 박쥐 변신
 
-    MistForm --> Idle : 변신 해제 + 지면
-    MistForm --> Fall : 변신 해제 + 공중
+~~    MistForm --> Idle : 변신 해제 + 지면~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
+~~    MistForm --> Fall : 변신 해제 + 공중~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
     BatForm --> Idle : 변신 해제 + 지면
     BatForm --> Fall : 변신 해제 + 공중
 
@@ -425,8 +425,8 @@ character_physics:
 
   # --- 변신 (Transform) ---
   transform_startup_frames: 12   # 변신 시작 애니메이션 프레임 수
-  mist_form_speed: 2.4           # px/frame, 안개 형태 이동 속도
-  mist_form_duration_max_ms: 3000  # ms, 안개 형태 최대 지속
+~~  mist_form_speed: 2.4           # px/frame, 안개 형태 이동 속도~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
+~~  mist_form_duration_max_ms: 3000  # ms, 안개 형태 최대 지속~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
   bat_form_speed: 3.6            # px/frame, 박쥐 형태 이동 속도 (전방향)
   bat_form_duration_max_ms: 4000   # ms, 박쥐 형태 최대 지속
 

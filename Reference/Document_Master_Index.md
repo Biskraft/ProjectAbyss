@@ -57,7 +57,7 @@ Reference/              # 레퍼런스 (분석서, 위키, GDC 인사이트)
 | SC-05 | SYS_Combat_Boss.md | 보스 전투 설계 원칙 (패턴, 페이즈, 보상) | CV: Dracula, Death / DG: Item Bosses | 신규 |
 | SC-06 | SYS_Combat_Enemy_AI.md | 적 AI 시스템 (Token 기반, 행동 패턴, 어그로) | GDC: Token AI, Authored vs Systemic | 신규 |
 | SC-07 | SYS_Movement.md | 캐릭터 이동 (걷기, 달리기, 점프, 대시, 낙하) | CV: Alucard 이동 | 신규 |
-| SC-08 | SYS_Movement_Ability.md | 특수 이동 능력 (이단점프, 벽타기, 안개변신, 수중호흡, 역중력) | CV: Ability Soul, Relics | 신규 |
+| SC-08 | SYS_Movement_Ability.md | 특수 이동 능력 (이단점프, 벽타기, 안개변신, 수중호흡, 역중력) | CV: Ability Soul, Relics | 신규 | **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 | SC-09 | SYS_Camera.md | 횡스크롤 카메라 시스템 (Camera Window, Cue Focus, Region) | GDC: How Cameras in Side-Scrollers Work | 신규 |
 
 ---

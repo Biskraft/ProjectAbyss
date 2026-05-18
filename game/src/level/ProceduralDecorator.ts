@@ -188,6 +188,13 @@ export class ProceduralDecorator {
     this.cfg.structureDensity = Math.min(1.0, this.cfg.structureDensity + amount * DecoratorConst.StructDensityBoostMult);
   }
 
+  /** Pixi Graphics.rect can triangulate badly with negative dimensions in prod builds. */
+  private rect(gfx: Graphics, x: number, y: number, w: number, h: number): Graphics {
+    const rx = w < 0 ? x + w : x;
+    const ry = h < 0 ? y + h : y;
+    return gfx.rect(rx, ry, Math.abs(w), Math.abs(h));
+  }
+
   // Color accessors — prefer preset, fall back to hardcoded defaults
   private get cGrowerColor(): number { return this.preset?.growerColor ?? COLOR_GROWER; }
   private get cGrowerTip(): number { return this.preset?.growerTipColor ?? COLOR_GROWER_TIP; }
@@ -694,10 +701,12 @@ export class ProceduralDecorator {
       // Web going up
       const endX = x0 + beamLen * lean;
       const endY = y0 - beamLen;
-      gfx.moveTo(x0 - webW / 2, y0);
-      gfx.lineTo(endX - webW / 2, endY);
-      gfx.lineTo(endX + webW / 2, endY);
-      gfx.lineTo(x0 + webW / 2, y0);
+      gfx.poly([
+        x0 - webW / 2, y0,
+        endX - webW / 2, endY,
+        endX + webW / 2, endY,
+        x0 + webW / 2, y0,
+      ]);
       gfx.fill(this.cSteel);
       // Top flange
       gfx.rect(endX - flangeH / 2, endY - beamH / 2, flangeH, beamH / 2);
@@ -710,10 +719,12 @@ export class ProceduralDecorator {
       // Hanging beam segment
       gfx.rect(x0 - flangeH / 2, y0, flangeH, beamH / 2);
       gfx.fill(this.cSteel);
-      gfx.moveTo(x0 - webW / 2, y0);
-      gfx.lineTo(x0 - webW / 2, endY);
-      gfx.lineTo(x0 + webW / 2, endY);
-      gfx.lineTo(x0 + webW / 2, y0);
+      gfx.poly([
+        x0 - webW / 2, y0,
+        x0 - webW / 2, endY,
+        x0 + webW / 2, endY,
+        x0 + webW / 2, y0,
+      ]);
       gfx.fill(this.cSteel);
       // Bottom flange
       gfx.rect(x0 - flangeH / 2, endY, flangeH, beamH / 2);
@@ -727,14 +738,16 @@ export class ProceduralDecorator {
       const y0 = baseY + oy;
       const endX = wallX + beamLen * 0.5 * dir;
       // Horizontal I-beam
-      gfx.rect(wallX, y0 - flangeH / 2, beamH / 2 * dir, flangeH);
+      this.rect(gfx, wallX, y0 - flangeH / 2, beamH / 2 * dir, flangeH);
       gfx.fill(this.cSteel);
-      gfx.moveTo(wallX, y0 - webW / 2);
-      gfx.lineTo(endX, y0 - webW / 2);
-      gfx.lineTo(endX, y0 + webW / 2);
-      gfx.lineTo(wallX, y0 + webW / 2);
+      gfx.poly([
+        wallX, y0 - webW / 2,
+        endX, y0 - webW / 2,
+        endX, y0 + webW / 2,
+        wallX, y0 + webW / 2,
+      ]);
       gfx.fill(this.cSteel);
-      gfx.rect(endX - beamH / 2 * dir, y0 - flangeH / 2, beamH / 2 * dir, flangeH);
+      this.rect(gfx, endX - beamH / 2 * dir, y0 - flangeH / 2, beamH / 2 * dir, flangeH);
       gfx.fill(this.cSteel);
     }
   }
@@ -1114,7 +1127,7 @@ export class ProceduralDecorator {
       // Wall-mounted cabinet + shelf with objects
       const oy = rng.nextFloat(0, T - 8);
       const cw = rng.nextFloat(20, 36), ch = rng.nextFloat(16, 28);
-      gfx.rect(wallX + 1 * dir, by + oy, cw * dir, ch); gfx.stroke({ width: 2, color: c });
+      this.rect(gfx, wallX + 1 * dir, by + oy, cw * dir, ch); gfx.stroke({ width: 2, color: c });
       // Shelf inside cabinet
       gfx.moveTo(wallX + 1 * dir, by + oy + ch * 0.4); gfx.lineTo(wallX + (1 + cw) * dir, by + oy + ch * 0.4);
       gfx.stroke({ width: 1.5, color: c });
@@ -1122,7 +1135,7 @@ export class ProceduralDecorator {
       for (let it = 0; it < 4; it++) {
         const ix = wallX + (3 + it * (cw / 4)) * dir;
         const ih = rng.nextFloat(4, 10);
-        gfx.rect(ix, by + oy + ch * 0.4 - ih, 4 * dir, ih); gfx.fill(c2);
+        this.rect(gfx, ix, by + oy + ch * 0.4 - ih, 4 * dir, ih); gfx.fill(c2);
       }
     } else {
       // Ceiling: massive fluorescent light frame + hanging cables
@@ -1217,16 +1230,16 @@ export class ProceduralDecorator {
       if (pick === 0) {
         // Massive camera on articulated arm
         const oy = rng.nextFloat(0, T - 6);
-        gfx.rect(wallX, by + oy, 8 * dir, 8); gfx.fill(c); // mount plate
+        this.rect(gfx, wallX, by + oy, 8 * dir, 8); gfx.fill(c); // mount plate
         gfx.moveTo(wallX + 8 * dir, by + oy + 4); gfx.lineTo(wallX + 20 * dir, by + oy + 8);
         gfx.stroke({ width: 3, color: c }); // arm
         gfx.circle(wallX + 22 * dir, by + oy + 8, 6); gfx.fill(c2); // housing
         gfx.circle(wallX + 22 * dir, by + oy + 8, 3); gfx.fill({ color: 0x4444ee, alpha: 0.6 }); // lens
       } else if (pick === 1) {
         // Full gate frame (spans tile height)
-        gfx.rect(wallX, by, 8 * dir, T); gfx.fill(c); // vertical
-        gfx.rect(wallX, by, 20 * dir, 5); gfx.fill(c); // top beam
-        gfx.rect(wallX, by + T - 5, 20 * dir, 5); gfx.fill(c); // bottom beam
+        this.rect(gfx, wallX, by, 8 * dir, T); gfx.fill(c); // vertical
+        this.rect(gfx, wallX, by, 20 * dir, 5); gfx.fill(c); // top beam
+        this.rect(gfx, wallX, by + T - 5, 20 * dir, 5); gfx.fill(c); // bottom beam
         // Warning chevrons
         for (let ch = 0; ch < 3; ch++) {
           const chy = by + 8 + ch * 4;
@@ -1236,8 +1249,8 @@ export class ProceduralDecorator {
       } else {
         // Large access panel with keycard reader
         const oy = rng.nextFloat(1, T - 10);
-        gfx.rect(wallX + 1 * dir, by + oy, 14 * dir, 14); gfx.fill(c);
-        gfx.rect(wallX + 2 * dir, by + oy + 3, 8 * dir, 2); gfx.fill(0x222222); // card slot
+        this.rect(gfx, wallX + 1 * dir, by + oy, 14 * dir, 14); gfx.fill(c);
+        this.rect(gfx, wallX + 2 * dir, by + oy + 3, 8 * dir, 2); gfx.fill(0x222222); // card slot
         // Status LEDs (3 dots)
         for (let d = 0; d < 3; d++) {
           gfx.circle(wallX + (4 + d * 3) * dir, by + oy + 10, 1.5);
@@ -1350,7 +1363,7 @@ export class ProceduralDecorator {
       // Wall: small tool plate with rivets.
       const oy = rng.nextFloat(2, T - 6);
       const w = rng.nextFloat(8, 14);
-      gfx.rect(wallX + 1 * dir, by + oy, w * dir, 5); gfx.fill({ color: c, alpha: 0.65 });
+      this.rect(gfx, wallX + 1 * dir, by + oy, w * dir, 5); gfx.fill({ color: c, alpha: 0.65 });
       for (let i = 0; i < 2; i++) {
         gfx.circle(wallX + (3 + i * 4) * dir, by + oy + 2.5, 1);
         gfx.fill({ color: this.cRebar, alpha: 0.8 });
@@ -1452,7 +1465,7 @@ export class ProceduralDecorator {
       // bio_culture_tank: vertical rect + top circle
       const h = rng.nextFloat(12, 22), w = rng.nextFloat(6, 10);
       const oy = rng.nextFloat(0, T - 4);
-      gfx.rect(wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1, color: c });
+      this.rect(gfx, wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1, color: c });
       gfx.circle(wallX + (w / 2 + 1) * dir, by + oy, 3); gfx.fill(c);
     } else if (edge.type === 'ceiling') {
       // bio_irrigation: thin round pipe — DISABLED (pipes spawn rate 0)
@@ -1503,7 +1516,7 @@ export class ProceduralDecorator {
       for (let s = 0; s < screens; s++) {
         const oy = rng.nextFloat(1, T - 5);
         const w = rng.nextFloat(5, 10), h = rng.nextFloat(4, 8);
-        gfx.rect(wallX + 1 * dir, by + oy, w * dir, h);
+        this.rect(gfx, wallX + 1 * dir, by + oy, w * dir, h);
         gfx.fill({ color: c, alpha: rng.nextFloat(0.4, 0.8) });
         // Scan line inside screen
         gfx.moveTo(wallX + 1 * dir, by + oy + h * 0.5);
@@ -1522,7 +1535,7 @@ export class ProceduralDecorator {
     if (edge.type === 'wall_left' || edge.type === 'wall_right') {
       // Massive server rack (full tile height, with blinking LEDs)
       const rh = T, rw = rng.nextFloat(12, 20);
-      gfx.rect(wallX + 1 * dir, by, rw * dir, rh); gfx.stroke({ width: 2, color: c });
+      this.rect(gfx, wallX + 1 * dir, by, rw * dir, rh); gfx.stroke({ width: 2, color: c });
       // Drive bays (horizontal lines)
       for (let l = 0; l < 8; l++) {
         const ly = by + rh * (l + 1) / 9;
@@ -1583,7 +1596,7 @@ export class ProceduralDecorator {
       // Wall: shipping sticker (rect with diagonal stripe)
       const oy = rng.nextFloat(2, T - 6);
       const sw = rng.nextFloat(4, 8), sh = rng.nextFloat(3, 5);
-      gfx.rect(wallX + 1 * dir, by + oy, sw * dir, sh); gfx.stroke({ width: 0.7, color: this.cConcrete });
+      this.rect(gfx, wallX + 1 * dir, by + oy, sw * dir, sh); gfx.stroke({ width: 0.7, color: this.cConcrete });
       gfx.moveTo(wallX + 1 * dir, by + oy); gfx.lineTo(wallX + (1 + sw) * dir, by + oy + sh);
       gfx.stroke({ width: 0.5, color: this.cSteel });
     }
@@ -1613,7 +1626,7 @@ export class ProceduralDecorator {
     } else {
       // wall: cargo tie-down hook
       const oy = rng.nextFloat(3, T - 5);
-      gfx.rect(wallX, by + oy, 4 * dir, 3); gfx.fill(c);
+      this.rect(gfx, wallX, by + oy, 4 * dir, 3); gfx.fill(c);
       gfx.moveTo(wallX + 4 * dir, by + oy + 1.5); gfx.lineTo(wallX + 8 * dir, by + oy + 5);
       gfx.stroke({ width: 1.5, color: c });
     }
@@ -1642,11 +1655,11 @@ export class ProceduralDecorator {
       const oy = rng.nextFloat(2, T - 8);
       for (let b = 0; b < 4; b++) {
         const bh = rng.nextFloat(2, 8);
-        gfx.rect(wallX + (1 + b * 3) * dir, by + oy + 8 - bh, 2 * dir, bh);
+        this.rect(gfx, wallX + (1 + b * 3) * dir, by + oy + 8 - bh, 2 * dir, bh);
         gfx.fill({ color: ct, alpha: 0.5 + b * 0.1 });
       }
       // Readout frame
-      gfx.rect(wallX + 0.5 * dir, by + oy, 13 * dir, 9); gfx.stroke({ width: 0.5, color: c });
+      this.rect(gfx, wallX + 0.5 * dir, by + oy, 13 * dir, 9); gfx.stroke({ width: 0.5, color: c });
     } else {
       // Ceiling: holographic targeting reticle
       const cx = bx + rng.nextFloat(3, T - 3), cy = (edge.row + 1) * T + rng.nextFloat(4, 10);
@@ -1672,7 +1685,7 @@ export class ProceduralDecorator {
         // cmd_console_panel: rect + dial row
         const w = rng.nextFloat(8, 14), h = rng.nextFloat(10, 16);
         const oy = rng.nextFloat(0, T - 4);
-        gfx.rect(wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1, color: c });
+        this.rect(gfx, wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1, color: c });
         for (let d = 0; d < 3; d++) {
           gfx.circle(wallX + (3 + d * 3) * dir, by + oy + h * 0.6, 1.2); gfx.fill(c);
         }
@@ -1680,7 +1693,7 @@ export class ProceduralDecorator {
         // cmd_display_frame: large empty rect
         const w = rng.nextFloat(12, 20), h = rng.nextFloat(8, 14);
         const oy = rng.nextFloat(0, T - 4);
-        gfx.rect(wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1.5, color: c });
+        this.rect(gfx, wallX + 1 * dir, by + oy, w * dir, h); gfx.stroke({ width: 1.5, color: c });
       }
     } else if (edge.type === 'ceiling') {
       // cmd_antenna_shard: long thin diagonal line
@@ -1740,7 +1753,7 @@ export class ProceduralDecorator {
         // mal_error_glyph: rect + X
         const oy = rng.nextFloat(2, T - 6);
         const s = rng.nextFloat(4, 7);
-        gfx.rect(wallX + 1 * dir, by + oy, s * dir, s); gfx.stroke({ width: 1, color: c });
+        this.rect(gfx, wallX + 1 * dir, by + oy, s * dir, s); gfx.stroke({ width: 1, color: c });
         gfx.moveTo(wallX + 1 * dir, by + oy); gfx.lineTo(wallX + (1 + s) * dir, by + oy + s);
         gfx.moveTo(wallX + (1 + s) * dir, by + oy); gfx.lineTo(wallX + 1 * dir, by + oy + s);
         gfx.stroke({ width: 0.7, color: c });
@@ -1934,7 +1947,7 @@ export class ProceduralDecorator {
       // echo_glitch_stripe: horizontal glowing thin rect
       const oy = rng.nextFloat(1, T - 2);
       const w = rng.nextFloat(6, 16);
-      gfx.rect(wallX, by + oy, w * dir, 1.5);
+      this.rect(gfx, wallX, by + oy, w * dir, 1.5);
       gfx.fill({ color: c, alpha: rng.nextFloat(0.2, 0.8) });
     } else {
       // echo_data_dust: many tiny translucent circles
@@ -2381,7 +2394,7 @@ export class ProceduralDecorator {
           for (let s = 0; s < rng.nextInt(2, 5); s++) {
             const sx = edge.type === 'wall_left' || edge.type === 'wall_right' ? wallX + rng.nextFloat(1, 4) * dir : bx + rng.nextFloat(0, T);
             const sy = edge.type === 'floor' ? by - rng.nextFloat(0, 3) : edge.type === 'ceiling' ? cy + rng.nextFloat(0, 3) : by + rng.nextFloat(0, T);
-            gfx.rect(sx, sy, rng.nextFloat(1, 4) * dir, rng.nextFloat(1, 3));
+            this.rect(gfx, sx, sy, rng.nextFloat(1, 4) * dir, rng.nextFloat(1, 3));
             gfx.fill({ color: this.cRebar, alpha: rng.nextFloat(0.18, 0.35) });
           } break;
         case 'T-COOLANT': // Condensation spots
@@ -2408,7 +2421,7 @@ export class ProceduralDecorator {
           } break;
         case 'T-BIOZONE': // Organic film + spore residue
           if (edge.type === 'wall_left' || edge.type === 'wall_right') {
-            gfx.rect(wallX, by + rng.nextFloat(0, T - 4), rng.nextFloat(3, 8) * dir, rng.nextFloat(6, 16));
+            this.rect(gfx, wallX, by + rng.nextFloat(0, T - 4), rng.nextFloat(3, 8) * dir, rng.nextFloat(6, 16));
             gfx.fill({ color: this.cClingerColor, alpha: 0.25 });
           } else {
             const n = rng.nextInt(3, 7);
@@ -2455,7 +2468,7 @@ export class ProceduralDecorator {
           if (edge.type === 'wall_left' || edge.type === 'wall_right') {
             for (let l = 0; l < rng.nextInt(2, 4); l++) {
               const ly = by + rng.nextFloat(0, T);
-              gfx.rect(wallX, ly, rng.nextFloat(2, 5) * dir, 1);
+              this.rect(gfx, wallX, ly, rng.nextFloat(2, 5) * dir, 1);
               gfx.fill({ color: this.cGrowerColor, alpha: 0.25 });
             }
           } break;

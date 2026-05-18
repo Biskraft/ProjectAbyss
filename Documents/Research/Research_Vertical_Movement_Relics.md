@@ -148,7 +148,7 @@ SotN의 릴릭(Relic)은 특정 보스 처치 또는 탐험 중 발견으로 획
 | **효과** | 박쥐로 변신. 자유 비행 (모든 방향 이동). MP 점진 소비 |
 | **입력** | 릴릭 슬롯 활성화 토글 |
 | **선행 조건** | Leap Stone + Soul of Mist 획득 필수 |
-| **획득처** | Long Library 하부 (Lesser Demon 보스 처치 후, Mist Form으로 쇠창살 통과 후) |
+| **획득처** | Long Library 하부 (Lesser Demon 보스 처치 후, Mist Form으로 쇠창살 통과 후) | **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 | **탐험 해금** | 성의 거의 모든 영역이 개방됨. "Soul of Bat 획득 후 성이 완전히 열린다"고 공식 가이드에서 명시 |
 | **조합 기술** | Wing Smash: 박쥐 상태에서 돌진 공격. 명령어 조합(점프 홀드 + 방향키 순환 + 점프 해제)으로 발동 |
 
@@ -204,7 +204,7 @@ Soul of Mist → (쇠창살 통과) → Soul of Bat 획득 경로 → Soul of Ba
 
 ```
 Leap Stone (이단 점프)
-    └─→ Soul of Mist (안개 변신) - Colosseum 접근에 필요
+~~    └─→ Soul of Mist (안개 변신) - Colosseum 접근에 필요~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
              └─→ Soul of Bat (박쥐 비행) - Long Library 쇠창살 통과 후 획득
                       └─→ 성 전체 비행 탐험 가능
 
@@ -346,7 +346,7 @@ Soul of Bat 획득은 사실상 SotN의 중간 지점이다. 이후 역전된 �
 
 ---
 
-#### [R-V03] 기억의 안개 (Memory Mist) — 안개 변신
+~~#### [R-V03] 기억의 안개 (Memory Mist) — 안개 변신~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 
 | 항목 | 내용 |
 | :--- | :--- |
@@ -829,7 +829,7 @@ Dead Cells는 기본적으로 수평 이동 중심 설계이지만, 상승 전�
 - [Castlevania Wiki — High Jump](https://castlevania.fandom.com/wiki/High_Jump)
 - [Castlevania SotN — Gravity Boots Guide](https://guides.gamercorner.net/sotn/relics/gravity-boots)
 - [Castlevania Wiki — Bat Form](https://castlevania.fandom.com/wiki/Bat_Form)
-- [Castlevania Wiki — Mist Form](https://castlevania.fandom.com/wiki/Mist_Form)
+~~- [Castlevania Wiki — Mist Form](https://castlevania.fandom.com/wiki/Mist_Form)~~ **DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)**
 - [Castlevania Wiki — Wing Smash](https://castlevania.fandom.com/wiki/Wing_Smash)
 - [StrategyWiki — SotN Relics](https://strategywiki.org/wiki/Castlevania:_Symphony_of_the_Night/Relics)
 - [Hollow Knight Wiki — Mantis Claw](https://hollowknight.fandom.com/wiki/Mantis_Claw)

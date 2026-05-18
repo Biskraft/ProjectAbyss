@@ -17,7 +17,7 @@ import { Container, Graphics } from 'pixi.js';
  * Adapted from the AshFootprint demo in docs/emergent-physics-sandbox.html.
  */
 
-export type ResidueType = 'oil' | 'acid' | 'magma';
+export type ResidueType = 'oil' | 'acid' | 'magma' | 'water' | 'cyro';
 
 interface Blot {
   gfx: Graphics;
@@ -56,6 +56,8 @@ const PALETTE: Record<ResidueType, Palette> = {
   oil:   { halo: 0x281610, outer: 0x3a2618, inner: 0x0a0604, sheen: 0x8a6a3a },
   acid:  { halo: 0x2a4422, outer: 0x88cc44, inner: 0x2a4a1a, sheen: 0xaadd66 },
   magma: { halo: 0x551100, outer: 0xff6633, inner: 0x882211, sheen: 0xffcc66 },
+  water: { halo: 0x2244aa, outer: 0x7297e5, inner: 0x1a3070, sheen: 0xd5f0ff },
+  cyro:  { halo: 0x4080b0, outer: 0xa0e0f0, inner: 0x3070a0, sheen: 0xffffff },
 };
 
 /**
@@ -85,6 +87,8 @@ export class FluidResidueManager {
     oil:   { x: -9999, y: -9999 },
     acid:  { x: -9999, y: -9999 },
     magma: { x: -9999, y: -9999 },
+    water: { x: -9999, y: -9999 },
+    cyro:  { x: -9999, y: -9999 },
   };
 
   constructor(parent: Container) { this.parent = parent; }
@@ -181,6 +185,27 @@ export class FluidResidueManager {
     const pal = PALETTE[p.type];
     const r = p.r;
     p.gfx.clear();
+
+    // Cyro: 작은 6-spoke ice 결정 (puddle 대신). 결정 핵 + 별 모양 6 spoke.
+    if (p.type === 'cyro') {
+      const s = r * 0.9;
+      // halo
+      p.gfx.circle(0, 0, r * 0.9)
+        .fill({ color: pal.halo, alpha: Math.max(0, alpha * 0.35) });
+      // 6-spoke star (수직 + 2 대각선)
+      p.gfx.moveTo(0, -s).lineTo(0, s)
+        .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
+      p.gfx.moveTo(-s * 0.866, -s * 0.5).lineTo(s * 0.866, s * 0.5)
+        .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
+      p.gfx.moveTo(-s * 0.866, s * 0.5).lineTo(s * 0.866, -s * 0.5)
+        .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
+      // 중앙 핵
+      p.gfx.circle(0, 0, r * 0.3)
+        .fill({ color: pal.outer, alpha: Math.max(0, alpha * 0.9) });
+      return;
+    }
+
+    // 기본 — water/oil/acid/magma 공용 puddle.
     p.gfx.ellipse(0, 0, r * 1.6, r * 0.85)
       .fill({ color: pal.halo, alpha: Math.max(0, alpha * 0.45) });
     p.gfx.ellipse(0, 0, r, r * 0.55)

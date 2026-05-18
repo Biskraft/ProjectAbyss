@@ -95,12 +95,14 @@ const ACID_TICK_PCT = 0.005;
 const ACID_TICK_MS = 100;
 const CHARGED_TICK_PCT = 0.01;
 const CHARGED_TICK_MS = 2500;
-// Cyro (액화 질소, TILE_CYRO=14) — V2.2 2026-05-17 Iron primary signature.
+// Cyro (액화 질소, TILE_CYRO=20) — V2.2 2026-05-17 Iron primary signature.
 // 가벼운 DOT + Frozen 상태이상 (이동 -60% / 2s, 셀 재진입 시 refresh).
-export const CYRO_TICK_PCT = 0.01;        // maxHp × 1% per tick
-export const CYRO_TICK_MS = 1000;         // 1초 간격 (charged 2.5s 보다 빠른 DOT)
-export const CYRO_FROZEN_MS = 2000;       // Frozen 상태이상 지속 ms
-const CYRO_SLOW_PCT = 0.60;        // 이동속도 감소 비율 (캐릭터 측에서 read)
+// 2026-05-18 cyro 효과 강화: DOT 2x + tick 1.33x 빠름 (effective DPS 2.67x)
+// + slow 60→75% + frozen 2→3s. Iron 의 primary signature 위협감 보강.
+export const CYRO_TICK_PCT = 0.02;        // maxHp × 2% per tick (was 1%)
+export const CYRO_TICK_MS = 750;          // 0.75s 간격 (was 1000ms)
+export const CYRO_FROZEN_MS = 3000;       // Frozen 상태이상 3s (was 2000)
+const CYRO_SLOW_PCT = 0.75;        // 이동속도 75% 감소 (was 60%)
 const FIRE_DPS_PCT = 0.03;
 const FIRE_BURN_REFRESH_MS = 10000;
 const THUNDER_HIT_PCT = 0.50;
@@ -176,7 +178,7 @@ export function applyTileHazards(
     chargedAcc = 0;
   }
 
-  // 3.5) Cyro contact (TILE_CYRO=14) — V2.2 Iron primary signature.
+  // 3.5) Cyro contact (TILE_CYRO=20) — V2.2 Iron primary signature.
   //      1초 마다 maxHp × 1% DOT + Frozen 상태이상 2초 refresh (이동 -60%).
   //      Frozen 잔여시간은 셀 이탈 후에도 자연 감소 (캐릭터가 read 해서 속도 적용).
   if (isInCyro(x, y, w, h, roomData)) {

@@ -4,7 +4,7 @@
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
-import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER } from '@core/Physics';
+import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER, TILE_CYRO } from '@core/Physics';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -257,7 +257,11 @@ export class LdtkRenderer {
     // suppress them here regardless of whether resolution ran.
     return (
       v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA ||
+      v === TILE_CYRO ||
+      // Fluid generic markers (17/18/19) — FluidSystem 이 dynamic 으로 그리므로 hidden.
       v === 17 || v === 18 || v === 19
+      // Solid generic markers (20/21) 는 *hidden 하지 않는다* — LDtk 의 auto-tile
+      // rule 이 각 솔리드 타입에 맞는 sprite 를 페인트하도록 위임 (2026-05-18).
     );
   }
 

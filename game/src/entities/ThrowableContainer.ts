@@ -78,14 +78,15 @@ const CATALOG: Record<ContainerKind, ContainerSpec> = {
   WaterBarrel:   { width: 32, height: 32, hp: 1, paintTile: 2,  defaultFluidVolume: 6, fluidColor: 0x4076c8,   collisionInset: INSET_DRUM   },
   MagmaCrucible: { width: 32, height: 32, hp: 1, paintTile: 6,  defaultFluidVolume: 4, fluidColor: 0xff6633,   collisionInset: INSET_DRUM   },
   AcidVial:      { width: 32, height: 32, hp: 1, paintTile: 13, defaultFluidVolume: 4, fluidColor: 0x88cc44,   collisionInset: INSET_DRUM   },
-  CyroCanister:  { width: 32, height: 32, hp: 1, paintTile: 14, defaultFluidVolume: 5, fluidColor: 0xA0E0F0,   collisionInset: INSET_DRUM   },
+  CyroCanister:  { width: 32, height: 32, hp: 1, paintTile: 20, defaultFluidVolume: 5, fluidColor: 0xA0E0F0,   collisionInset: INSET_DRUM   },
   // V2.2 (2026-05-17) — Spark primary signature container. charged 풀 (TILE=8)
   // 을 spawn → FluidSystem 이 charged FluidBody 로 자동 흡수 → Arc Scan Cycle
   // 및 Wet-Conductor Spread 자연 발현. fluidVolume 5 = magma(4)~oil/water(6)
-  // 사이, *위험 시그니처*. fluidColor 보라 #A05AE5 (Content_System_FluidTypes.csv
-  // charged 행 surface_color 일치). Atlas: crate_01_atlas.png Row 3 (0, 96).
-  ChargedCrate:  { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xA05AE5,   collisionInset: INSET_DRUM   },
-  ChargedCell:   { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xA05AE5,   collisionInset: INSET_DRUM   },
+  // 사이, *위험 시그니처*. fluidColor 노랑 #FFE033 (Content_System_FluidTypes.csv
+  // charged 행 surface_color 일치, 2026-05-17 보라→노랑 변경).
+  // Atlas: crate_01_atlas.png Row 3 (0, 96).
+  ChargedCrate:  { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xFFE033,   collisionInset: INSET_DRUM   },
+  ChargedCell:   { width: 32, height: 32, hp: 1, paintTile: 8,  defaultFluidVolume: 5, fluidColor: 0xFFE033,   collisionInset: INSET_DRUM   },
 };
 
 /**

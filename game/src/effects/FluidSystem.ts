@@ -32,7 +32,7 @@ const FLUID_CELL_TYPES: Array<{ value: number; type: FluidType }> = [
   { value: 8,  type: 'charged' },
   { value: 11, type: 'oil'     },
   { value: 13, type: 'acid'    },
-  { value: 14, type: 'cyro'    },
+  { value: 20, type: 'cyro'    },
 ];
 
 /** Set of IntGrid values that are treated as flowing fluid by gravityTick. */
@@ -422,7 +422,7 @@ export class FluidSystem {
       const holdT = body.arcPhaseMs / FluidSystem.ARC_HOLD_DURATION_MS;
       flicker = 0.55 + 0.45 * Math.abs(Math.sin(holdT * Math.PI * 8));
     }
-    const tintGlow = 0xC088FF;
+    const tintGlow = 0xFFF080;
     const tintCore = 0xffffff;
     for (const link of body.arcLinks) {
       const tx = body.arcOriginX + (link.worldX - body.arcOriginX) * growT;
@@ -868,6 +868,38 @@ export class FluidSystem {
       h.stroke({ color: 0xffffff, width: 1.5, alpha: 0.55 + pulse * 0.30 });
     }
 
+    // ─── Cyro cold mist drift — haloGfx (BlurFilter) 위에 부드러운 안개 띠 3겹.
+    //     각 layer 가 다른 속도로 횡 드리프트 + Y 파동 → 떠다니는 한기 인상.
+    //     (2026-05-18 사용자 요청 — water 와 차별화).
+    if (body.type === 'cyro' && body.haloGfx) {
+      const h = body.haloGfx;
+      const driftBase = body.ambientPhase * Math.PI * 2;
+      for (let layer = 0; layer < 3; layer++) {
+        const lift = 5 + layer * 6;
+        const pad = 6 + layer * 5;
+        const drift = Math.sin(driftBase + layer * 1.3) * (3 + layer * 2);
+        const alpha = 0.14 - layer * 0.035;
+        const waveAmp = 1.4 + layer * 0.8;
+        const wave = (i: number) =>
+          Math.sin(driftBase * 1.4 + i * 0.55 + layer * 2.1) * waveAmp;
+        h.moveTo(cols[0].x - pad + drift, cols[0].y - lift + wave(0));
+        for (let i = 0; i < cols.length - 1; i++) {
+          const mx = (cols[i].x + cols[i + 1].x) / 2 + drift;
+          const my = (cols[i].y + cols[i + 1].y) / 2 - lift + wave(i + 0.5);
+          h.quadraticCurveTo(cols[i].x + drift, cols[i].y - lift + wave(i), mx, my);
+        }
+        h.lineTo(
+          cols[cols.length - 1].x + pad + drift,
+          cols[cols.length - 1].y - lift + wave(cols.length - 1),
+        );
+        // 안개 두께 — 위 윤곽 ~ surface 약간 위 (밴드 형태 닫기)
+        h.lineTo(cols[cols.length - 1].x + pad + drift, cols[cols.length - 1].y - lift + 4);
+        h.lineTo(cols[0].x - pad + drift, cols[0].y - lift + 4);
+        h.closePath();
+        h.fill({ color: 0xE0F8FF, alpha });
+      }
+    }
+
     // Surface highlight line — 1px stroke for readability.
     traceSmoothSurface(g, 0);
     g.stroke({ color: def.surfaceColor, width: 1, alpha: 0.9 });
@@ -875,7 +907,7 @@ export class FluidSystem {
     // ─── Wet-Conductor Spread (R-NEW-025) — water 풀 위에 자주 sparkle 점 산발.
     //     영구 마크된 water body 에만 적용.
     if (body.type === 'water' && body.isElectrified) {
-      const sparkleColor = 0xA05AE5;
+      const sparkleColor = 0xFFE033;
       // 표면 column 마다 30% 확률로 1점. 시각 sparkle 효과는 ambientPhase 로 미세 시프트.
       for (let i = 0; i < cols.length; i++) {
         const phase = (body.ambientPhase + i * 0.137) % 1;
@@ -887,6 +919,53 @@ export class FluidSystem {
       }
     }
 
+    // ─── Cyro frost — 6-spoke ice 결정 surface 산발 + frost shimmer + 내부 specks.
+    //     water 와 외관 차별화를 위해 Iron primary signature 시각 마커. (2026-05-18)
+    if (body.type === 'cyro') {
+      const crystalColor = 0xE0F8FF;  // foam_color — 가장 밝은 ice white
+      const frostColor   = 0xFFFFFF;
+
+      // 표면 ice crystal — column 마다 18% 확률로 6-spoke 별 결정.
+      // ambientPhase 로 size 가 미세 호흡 (얼음이 굳었다 풀렸다).
+      for (let i = 0; i < cols.length; i++) {
+        const phase = (body.ambientPhase + i * 0.211) % 1;
+        if (phase < 0.18) {
+          const cx = cols[i].x;
+          const cy = cols[i].y - 1;
+          const s = 1.4 + Math.sin(phase * Math.PI * 10) * 0.5;
+          const alpha = 0.55 + phase * 2.0;
+          // 6-spoke (vertical + 2 diagonals = 6각형 효과)
+          g.moveTo(cx, cy - s).lineTo(cx, cy + s)
+            .stroke({ color: crystalColor, width: 0.7, alpha });
+          g.moveTo(cx - s * 0.866, cy - s * 0.5).lineTo(cx + s * 0.866, cy + s * 0.5)
+            .stroke({ color: crystalColor, width: 0.7, alpha });
+          g.moveTo(cx - s * 0.866, cy + s * 0.5).lineTo(cx + s * 0.866, cy - s * 0.5)
+            .stroke({ color: crystalColor, width: 0.7, alpha });
+        }
+      }
+
+      // 표면 frost shimmer — 흰 highlight 한 줄을 surface 위로 살짝 띄워 결빙 광택.
+      traceSmoothSurface(g, -0.5);
+      g.stroke({ color: frostColor, width: 0.5, alpha: 0.35 });
+
+      // 내부 frost specks — bodyCols 표본 추출해 column 당 0~1점, 천천히 떠다님.
+      // 매 frame 새로 그려지므로 ambientPhase 가 위치를 결정해 floaty 한 인상.
+      for (const gx of bodyCols) {
+        const phase = (body.ambientPhase + gx * 0.073) % 1;
+        if (phase < 0.12) {
+          const surfaceCol = cols.find(c => Math.abs(c.x - (gx + 0.5) * TILE) < TILE * 0.6);
+          const topY = surfaceCol ? surfaceCol.y : null;
+          const botY = (body.bottomRow.get(gx)! + 1) * TILE;
+          if (topY !== null && botY > topY + 4) {
+            const t = phase / 0.12;
+            const speckY = topY + 3 + t * (botY - topY - 6);
+            const speckX = (gx + 0.5) * TILE;
+            g.circle(speckX, speckY, 0.6).fill({ color: frostColor, alpha: 0.45 });
+          }
+        }
+      }
+    }
+
     // ─── Arc Scan Cycle warning glow — hold 페이즈 동안 surface 강하게 깜빡임
     //     (discharge 직전 1.5초). scan 페이즈는 약한 ambient.
     if (body.arcPhase === 'hold') {
@@ -894,7 +973,7 @@ export class FluidSystem {
       const intensity = 0.4 + 0.6 * Math.abs(Math.sin(holdT * Math.PI * 12));
       traceSmoothSurface(g, 0);
       g.stroke({
-        color: 0xC088FF,
+        color: 0xFFF080,
         width: 2 + intensity * 1.8,
         alpha: 0.50 + intensity * 0.45,
       });
@@ -902,7 +981,7 @@ export class FluidSystem {
       const scanT = body.arcPhaseMs / FluidSystem.ARC_SCAN_DURATION_MS;
       traceSmoothSurface(g, 0);
       g.stroke({
-        color: 0xA05AE5,
+        color: 0xFFE033,
         width: 1.2,
         alpha: 0.30 + 0.20 * scanT,
       });

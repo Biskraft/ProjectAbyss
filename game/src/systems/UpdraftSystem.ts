@@ -21,10 +21,16 @@ interface UpdraftParticle {
 }
 
 const TILE = 16;
+const GRAVITY = 980; // must match Player.ts
 // 75 % strength (Victor 2026-05-15). Force AND max upward velocity both
 // reduced so the rise feels lighter without changing visual particles.
-const UPDRAFT_FORCE = 980 * 2.2 * 0.75;
+const UPDRAFT_FORCE = GRAVITY * 2.2 * 0.75;
 const MAX_UPDRAFT_VY = -250 * 0.75;
+// Exit bounce (Victor 2026-05-17): updraft 를 빠져나가는 순간부터 짧게 2×중력의
+// 상승 가속을 더 가해 플레이어를 *위로 튕겨낸다*. 0.2s 동안 누적해 약 +390 px/s
+// 의 추가 vy → 약 8타일 부스트 점프 (2.5→2.0 으로 완화, 2026-05-17).
+const EXIT_BOUNCE_GRAVITY_MUL = 2.0;
+const EXIT_BOUNCE_DURATION_MS = 200;
 const P_COLOR = 0x66ddff;
 const P_SPEED = 140;
 const P_MAX = 50;
@@ -33,6 +39,11 @@ export class UpdraftSystem {
   private particles: UpdraftParticle[] = [];
   private gfx: Graphics | null = null;
   private entityLayer: Container;
+
+  // Exit bounce state. `wasInUpdraft` 로 false→true 트랜지션을 감지해
+  // exitBounceMs 를 채우고, 0 이 될 때까지 매 프레임 2.5×중력 상승 가속 추가.
+  private wasInUpdraft = false;
+  private exitBounceMs = 0;
 
   constructor(entityLayer: Container) {
     this.entityLayer = entityLayer;
@@ -49,7 +60,15 @@ export class UpdraftSystem {
       if (inUpdraft) {
         player.vy -= UPDRAFT_FORCE * dtSec;
         if (player.vy < MAX_UPDRAFT_VY) player.vy = MAX_UPDRAFT_VY;
+      } else if (this.wasInUpdraft) {
+        // Just exited — fire the bounce window.
+        this.exitBounceMs = EXIT_BOUNCE_DURATION_MS;
       }
+      if (!inUpdraft && this.exitBounceMs > 0) {
+        player.vy -= GRAVITY * EXIT_BOUNCE_GRAVITY_MUL * dtSec;
+        this.exitBounceMs -= dt;
+      }
+      this.wasInUpdraft = inUpdraft;
     }
 
     // --- Particles ---

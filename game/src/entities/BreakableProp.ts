@@ -80,10 +80,13 @@ const DROP_GOLD = 35;
 const DROP_FLASK = 10;
 
 /**
- * Per-variant fire response. `null` = fire-immune (not currently used; all
- * variants are flammable in ECHORIS tone — single-tone megastructure where the
- * forge heat reaches everything). Tallgrass burns fastest (dry plant material);
- * metal/composite variants burn slower (forge heat scorch).
+ * Per-variant fire response. 2026-05-18: 유기물(tallgrass) 만 가연성으로 정리.
+ * 이전 정책 (metal/composite 도 forge 열로 발화) 은 사용자 직관에 어긋남 — metal
+ * pipe/crate/panel 이 magma 인접 시 점화돼 보이는 버그성 동작을 정리.
+ *
+ * 가연 ↔ 비가연 기준:
+ *   tallgrass — 마른 식물성, 즉시 점화
+ *   crystal/crate/panel/pipe/debris — 광물·금속·콘크리트 류, fire-immune (chance=0)
  */
 export interface BreakableFireSpec {
   /** Per ignition-roll chance (rolled every IGN_ROLL_INTERVAL_MS while adjacent to fire). */
@@ -93,15 +96,12 @@ export interface BreakableFireSpec {
 }
 
 const FIRE_SPECS: Record<PropVariant, BreakableFireSpec> = {
-  // ignitionChance values are deliberately moderate (≤ 0.35) so a single
-  // burning prop doesn't ignite all 4-cell neighbours within one roll —
-  // chain propagation needs to read as a sweep, not an instant flash.
   tallgrass: { ignitionChance: 0.35, burnMs: 5000, leavesAsh: false },
-  crystal:   { ignitionChance: 0.20, burnMs: 5000, leavesAsh: false },
-  crate:     { ignitionChance: 0.30, burnMs: 5000, leavesAsh: false },
-  panel:     { ignitionChance: 0.25, burnMs: 5000, leavesAsh: false },
-  pipe:      { ignitionChance: 0.15, burnMs: 5000, leavesAsh: false },
-  debris:    { ignitionChance: 0.10, burnMs: 5000, leavesAsh: false },
+  crystal:   { ignitionChance: 0,    burnMs: 5000, leavesAsh: false },
+  crate:     { ignitionChance: 0,    burnMs: 5000, leavesAsh: false },
+  panel:     { ignitionChance: 0,    burnMs: 5000, leavesAsh: false },
+  pipe:      { ignitionChance: 0,    burnMs: 5000, leavesAsh: false },
+  debris:    { ignitionChance: 0,    burnMs: 5000, leavesAsh: false },
 };
 
 export function getBreakableFireSpec(variant: PropVariant): BreakableFireSpec {

@@ -55,6 +55,8 @@ interface WorldMapRoom {
   y: number;
   w: number;
   h: number;
+  /** True 면 방문 전 outline 비공개. 방문 후엔 visited 분기에서 정상 렌더. (2026-05-18) */
+  secret?: boolean;
 }
 
 interface MapMarker {
@@ -407,6 +409,9 @@ export class WorldMapOverlay {
   private isAdjacentToVisited(roomId: string): boolean {
     const room = this.rooms.find(r => r.id === roomId);
     if (!room) return false;
+    // Secret 룸은 *방문 전 OUTLINED 표시 금지* — adjacent 검사에서 즉시 false.
+    // 방문 후엔 visited 분기 (line 322 부근) 가 직접 isVisited 검사로 정상 렌더.
+    if (room.secret) return false;
     for (const visited of this.visitedLevels) {
       const vr = this.rooms.find(r => r.id === visited);
       if (!vr) continue;

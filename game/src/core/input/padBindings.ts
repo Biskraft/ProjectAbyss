@@ -29,7 +29,14 @@ export const PAD_BINDINGS: Partial<Record<GameAction, readonly number[]>> = {
   [GameAction.MAP]: [GP.LT],
   // Start (가운데) 는 잡은 상태에서 누르기 어려워 B (FACE_RIGHT) 도 cancel/close 로 추가.
   // B = Xbox 표준 "back/cancel" — inventory · map · DivePreview 등 모달 close 일관 동작.
-  [GameAction.MENU]: [GP.START, GP.FACE_RIGHT],
+  // B 는 MENU 와 CANCEL 두 액션 모두에 바인딩된다. close 사이트는 MENU 만 체크 →
+  // B 누름으로 모달이 닫힌다. open 사이트(pause·EscapeConfirm)는 `MENU && !CANCEL`
+  // 게이트가 있어 B 가 *메뉴를 띄우지는* 못한다 (사용자 요구 2026-05-17).
+  //
+  // 배열 순서: FACE_RIGHT 가 *먼저* — `actionKey(MENU)` 가 첫 항목 글리프를
+  // 반환하므로, 모달 back 프롬프트가 [START] 가 아닌 [B] 로 표시된다 (2026-05-17).
+  [GameAction.MENU]: [GP.FACE_RIGHT, GP.START],
+  [GameAction.CANCEL]: [GP.FACE_RIGHT],
   // Flask 회복 = LB. 이전엔 Y 점유했으나 Hades 식 Cast 도입으로 Y 가 CAST 로
   // 재배정. LB 는 비어있던 좌 범퍼. 우측 RT 가 대시인 점과 대칭 (좌=heal · 우=mobility).
   [GameAction.FLASK]: [GP.LB],

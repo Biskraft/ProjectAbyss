@@ -68,6 +68,12 @@ export interface LdtkLevel {
    */
   roomType: string | null;
   /**
+   * RoomType 배열에 'Secret' 이 포함되면 true. 비밀룸 마커 — *방문 전엔
+   * minimap/worldmap 에 표시하지 않는다* (인접 outline 비공개). 방문 후엔 정상
+   * 렌더 (visited 분기). 별도 Bool field 가 아닌 RoomType enum 재사용 (2026-05-18).
+   */
+  secret: boolean;
+  /**
    * 2D collision grid derived from the Collisions IntGrid layer.
    * Access: collisionGrid[y][x]
    * Values: 0 = empty, 1 = solid, 2 = water
@@ -416,7 +422,7 @@ export class LdtkLoader {
    * spatial queries. Each entry contains the level id and its world-space
    * bounding rectangle.
    */
-  getWorldMap(): { id: string; x: number; y: number; w: number; h: number; roomType: string | null }[] {
+  getWorldMap(): { id: string; x: number; y: number; w: number; h: number; roomType: string | null; secret: boolean }[] {
     return Array.from(this.levels.values()).map((lvl) => ({
       id: lvl.identifier,
       x: lvl.worldX,
@@ -424,6 +430,7 @@ export class LdtkLoader {
       w: lvl.pxWid,
       h: lvl.pxHei,
       roomType: lvl.roomType,
+      secret: lvl.secret,
     }));
   }
 
@@ -438,9 +445,16 @@ export class LdtkLoader {
     const gridW = Math.round(raw.pxWid / TILE_SIZE);
     const gridH = Math.round(raw.pxHei / TILE_SIZE);
 
-    // Extract the RoomType custom field (Array<LocalEnum.RoomType> — take first value).
+    // Extract the RoomType custom field (Array<LocalEnum.RoomType>).
+    // roomType = first value (legacy filter 호환). secret = *배열 내 'Secret' 포함 여부*
+    // — RoomType enum 의 'Secret' 값을 비밀룸 마커로 재사용 (2026-05-18, 별도 Bool
+    // field 추가 불필요).
     const rawRoomType = this.extractFieldValue(raw.fieldInstances, 'RoomType');
-    const roomType = Array.isArray(rawRoomType) ? (rawRoomType[0] as string ?? null) : (rawRoomType as string | null);
+    const roomTypeArr = Array.isArray(rawRoomType)
+      ? (rawRoomType as string[])
+      : (rawRoomType != null ? [rawRoomType as string] : []);
+    const roomType = roomTypeArr[0] ?? null;
+    const secret = roomTypeArr.includes('Secret');
 
     // Default empty structures — used when a layer is absent or has no data.
     let collisionGrid: number[][] = this.emptyGrid(gridW, gridH);
@@ -516,6 +530,7 @@ export class LdtkLoader {
       gridW,
       gridH,
       roomType,
+      secret,
       collisionGrid,
       backgroundTiles,
       wallTiles,

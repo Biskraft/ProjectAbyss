@@ -2,7 +2,7 @@ import { Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater, isInOil, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveX, resolveY, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
@@ -53,6 +53,10 @@ export const OIL_RESIDUE_DURATION_MS = OIL_SLIP_DURATION_MS;
 export const ACID_RESIDUE_DURATION_MS = 10000;
 /** Magma residue — magma 셀 이탈 후 잔존 trail 발생 기간. */
 export const MAGMA_RESIDUE_DURATION_MS = 10000;
+/** Water residue — water 셀 이탈 후 puddle 자국 잔존 기간 (2026-05-18 시각 only). */
+export const WATER_RESIDUE_DURATION_MS = 4000;
+/** Cyro residue — cyro 셀 이탈 후 ice 결정 잔존 기간 (2026-05-18 시각 only). */
+export const CYRO_RESIDUE_DURATION_MS = 6000;
 
 /** Ego Shard — 기본 보유 발수. Hades Bloodstone 동일 (3발). */
 export const EGO_SHARD_MAX = 3;
@@ -238,6 +242,11 @@ export class Player extends Entity implements CombatEntity {
   /** Magma residue trail 잔여 시간 — 발이 magma 에 그을려 잔존 흔적 spawn. */
   magmaResidueRemainingMs = 0;
   prevInMagma = false;
+  /** Water residue trail 잔여 시간 — 발 젖음 puddle 흔적 (2026-05-18). */
+  waterResidueRemainingMs = 0;
+  /** Cyro residue trail 잔여 시간 — 발자국에 ice 결정 잔존 (2026-05-18). */
+  cyroResidueRemainingMs = 0;
+  prevInCyro = false;
 
   /** Water extinguishes every player-side fire debuff / burn accumulator. */
   extinguishFireDebuffs(): void {
@@ -670,8 +679,15 @@ export class Player extends Entity implements CombatEntity {
         this._justDroppedThrough = true; // VFX: drop-through dust
         return;                     // skip all other jump/attack processing this frame
       }
+      // 2026-05-17: drop-through 연타 시 "착지 직후 자동 점프" 방지.
+      //  - DOWN 이 눌린 상태의 JUMP 는 buffer 하지 않는다 (의도=드랍, not jump).
+      //  - drop-through 직후 short window (dropThroughTimer 활성 중) 의 JUMP 도 무시.
+      // 둘 다 적용해 (a) DOWN 유지 mash 와 (b) DOWN 떼고 JUMP 연타 모두 차단.
+      if (this.game.input.isDown(GameAction.LOOK_DOWN) || this.dropThroughTimer > 0) {
+        return;
+      }
       // Wall Jump: touching wall + jump → kick off opposite direction
-      else if (this.wallSliding && this.touchingWallDir !== 0) {
+      else if (!this.isLifting && this.wallSliding && this.touchingWallDir !== 0) {
         const kickDir = -this.touchingWallDir; // +1 = kicked to right, -1 = kicked to left
         this.vx = kickDir * WALL_JUMP_VX;
         this.vy = WALL_JUMP_VY;
@@ -687,7 +703,7 @@ export class Player extends Entity implements CombatEntity {
       // Double Jump: in air + no coyote + ability unlocked + not used yet
       // Reset vy to 0 first so the jump height is consistent regardless of
       // whether the player is rising or falling when they press jump.
-      else if (!this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
+      else if (!this.isLifting && !this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
         this.vy = 0;
         this.vy = JUMP_VELOCITY * 0.85;
         this.doubleJumpAvailable = false;
@@ -705,7 +721,7 @@ export class Player extends Entity implements CombatEntity {
     const state = this.fsm.currentState;
 
     // Surge input — ↑ + C on ground or wall
-    if (this.abilities.surge && this.game.input.isJustPressed(GameAction.DASH) &&
+    if (!this.isLifting && this.abilities.surge && this.game.input.isJustPressed(GameAction.DASH) &&
         this.game.input.isDown(GameAction.LOOK_UP) &&
         (this.grounded || this.wallSliding) &&
         state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
@@ -714,7 +730,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Dash input (requires dash ability, available from most states, cancels 3타 end lag)
-    if (this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
+    if (!this.isLifting && this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
         state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
       if (canDash) {
@@ -725,7 +741,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Dive attack input — air + ↓ + C
-    if (this.abilities.diveAttack && !this.grounded &&
+    if (!this.isLifting && this.abilities.diveAttack && !this.grounded &&
         this.game.input.isDown(GameAction.LOOK_DOWN) &&
         this.game.input.isJustPressed(GameAction.ATTACK) &&
         state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
@@ -741,7 +757,7 @@ export class Player extends Entity implements CombatEntity {
     // (cheat already grants +99999 ATK so C should always swing for testing).
     const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK);
     const attackStateAllowed =
-      state !== 'dive' && state !== 'hit' && state !== 'death';
+      !this.isLifting && state !== 'dive' && state !== 'hit' && state !== 'death';
     if (attackPressedThisFrame && attackStateAllowed &&
         this.equippedWeaponType === null && !this.abilities.cheat) {
       // Bare-hand swing attempt → surface toast via scene, no state change.
@@ -827,7 +843,15 @@ export class Player extends Entity implements CombatEntity {
     if (this.inWater && !this.prevInWater) this._waterTransition = 1;
     else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
     this.prevInWater = this.inWater;
-    const waterMult = this.inWater ? PlayerConst.WaterMoveMult : 1.0; // slow everything in water
+    // 2026-05-17: 부력 / 유체 저항을 모든 fluid (water/oil/magma/acid/cyro) 에
+    // 일관 적용. `waterMult` 가 gravity + 수평 이동 + max fall 을 동시에 댐핑한다.
+    // 변수명은 legacy "water" 유지 (참조 부담 ↓). 별도 inAnyFluid 플래그로 split.
+    const inAnyFluid = this.inWater
+      || isInOil(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 11
+      || isInMagma(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 6
+      || isInAcid(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 13
+      || isInCyro(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 20;
+    const waterMult = inAnyFluid ? PlayerConst.WaterMoveMult : 1.0; // slow everything in fluid
 
     // Submersion check — head (top of sprite) is in water OR oil = 2+
     // tiles deep. Oil submersion drains oxygen the same way water does so
@@ -874,7 +898,8 @@ export class Player extends Entity implements CombatEntity {
         this.vy *= Math.pow(AIR_STALL_RISE_DAMP_PER_16MS, dt / 16.67);
       }
 
-      const baseMaxFall = this.inWater ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
+      // inAnyFluid 면 fluid drag 로 max fall 도 동일 캡 (2026-05-17 — 부력 통일).
+      const baseMaxFall = inAnyFluid ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
       const maxFall = aerialAttack
         ? (this.comboIndex === 2 ? AIR_STALL_MAX_FALL_3 : AIR_STALL_MAX_FALL_12)
         : baseMaxFall;
@@ -1092,7 +1117,7 @@ export class Player extends Entity implements CombatEntity {
 
     if (canJump && wantsJump) {
       // If already in jump state, this is a buffered double-jump, not a ground re-jump
-      if (this.fsm.currentState === 'jump' && this.abilities.doubleJump && this.doubleJumpAvailable) {
+      if (!this.isLifting && this.fsm.currentState === 'jump' && this.abilities.doubleJump && this.doubleJumpAvailable) {
         this.jumpBufferTimer = 0;
         this.vy = 0;
         this.vy = JUMP_VELOCITY * 0.85;

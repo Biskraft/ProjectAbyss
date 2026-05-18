@@ -30,7 +30,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | AABB | 축 정렬 경계 상자 | Axis-Aligned Bounding Box. 히트박스·허트박스 충돌 판정에 사용하는 직사각형 영역. 회전 없이 x·y 축에 정렬된 박사각형으로 계산 비용이 낮다. | `Documents/System/System_3C_Character.md` |
-| Ability Gate | 능력 게이트 | 특정 이동 능력(이단 점프, 벽 타기, 안개 변신 등)을 보유해야 통과 가능한 월드 진행 장벽. 보스 처치 또는 렐릭 획득으로 해금된다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_2Space.md` |
+| Ability Gate | 능력 게이트 | 특정 이동 능력(이단 점프, 벽 타기, 수중 호흡 등)을 보유해야 통과 가능한 월드 진행 장벽. 보스 처치 또는 렐릭 획득으로 해금된다. | `Reference/게임 기획 개요.md`, `Documents/Design/Design_Architecture_2Space.md` |
 | Air Attack | 공중 공격 | 점프·낙하 등 공중 상태에서 공격 버튼을 입력할 때 발동하는 단일 타격. 전방 공격과 하방 공격(바운스 포함) 두 종류가 존재한다. 공중 공격은 1회로 제한된다. | `Documents/System/System_Combat_Action.md` |
 | Always Winnable | 항상 클리어 가능 | 절차적으로 생성된 모든 시드에서 입구부터 출구까지 반드시 클리어 가능한 경로(Critical Path)가 보장됨을 의미하는 설계 원칙. 검증 실패 시 재시드를 수행한다. | `Documents/System/System_World_ProcGen.md` |
 | Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 접근성을 높이고 전투 흐름을 유지하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |

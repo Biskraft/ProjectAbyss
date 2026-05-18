@@ -1343,11 +1343,14 @@ export class HUD {
         this.skinDepthFrame.visible = false;
         this.skinLayer!.addChild(this.skinDepthFrame);
 
-        // Position fill INSIDE the frame, using fill texture height as gauge length
-        const topPad = (depthFrameBounds.h - depthFillBounds.h) / 2 + 9;
+        // Position fill INSIDE the frame, using fill texture height as gauge length.
+        // 2026-05-18: magic "+9" 보정 제거. fill 은 frame 의 (w, h) 차이의 절반만큼만 inset.
+        // 추가로 사용자 요청: fill 만 8px (640×360 base) 위로 — frame 은 무이동.
+        const FILL_Y_OFFSET = -8;
+        const topPad = (depthFrameBounds.h - depthFillBounds.h) / 2;
         this.skinDepthFillTex = depthFillTex;
         this.skinDepthFillX = (depthFrameBounds.x + (depthFrameBounds.w - depthFillBounds.w) / 2) * s;
-        this.skinDepthFillY = (depthFrameBounds.y + topPad) * s;
+        this.skinDepthFillY = (depthFrameBounds.y + topPad + FILL_Y_OFFSET) * s;
         this.skinDepthFillW = depthFillBounds.w * s;
         this.skinDepthFillMaxH = depthFillBounds.h * s;
 
