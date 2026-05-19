@@ -41,6 +41,7 @@ uniform sampler2D uTexture;
 uniform vec3  uRimColor;
 uniform float uRimAlpha;
 uniform float uRimThickness;
+uniform float uTopGuardPixels;
 
 void main() {
   vec4 src = texture(uTexture, vTextureCoord);
@@ -50,6 +51,13 @@ void main() {
   }
 
   float stepY = vTexelSize.y;
+  // 2026-05-20: 텍스처 *상단 경계 밖* 을 샘플하면 alpha=0 으로 잡혀 rim 이 잘못
+  // 발화하는 문제 — 진짜 월드 상단 (위에 콘텐츠 없는 자리) 까지 흰선이 생긴다.
+  // 샘플 좌표 y 가 stepY 미만 (= 위로 1 픽셀 샘플 시 0 미만) 이면 rim 스킵.
+  if (vTextureCoord.y < stepY * max(1.0, uTopGuardPixels)) {
+    finalColor = src;
+    return;
+  }
   float rimStrength = 0.0;
 
   // Sample 1px above
@@ -81,6 +89,8 @@ export interface RimLightOptions {
   alpha?: number;
   /** Rim thickness in pixels (1..3). Default 1. */
   thickness?: number;
+  /** Suppress rim detection this many input pixels from the top edge. Default 1. */
+  topGuardPixels?: number;
 }
 
 export class RimLightFilter extends Filter {
@@ -98,6 +108,7 @@ export class RimLightFilter extends Filter {
       uRimColor: { value: rgb, type: 'vec3<f32>' },
       uRimAlpha: { value: opts.alpha ?? 0.5, type: 'f32' },
       uRimThickness: { value: opts.thickness ?? 1, type: 'f32' },
+      uTopGuardPixels: { value: Math.max(1, opts.topGuardPixels ?? 1), type: 'f32' },
     });
 
     super({
@@ -124,5 +135,10 @@ export class RimLightFilter extends Filter {
   setThickness(thickness: number): void {
     const uniforms = (this.resources.rimUniforms as any).uniforms;
     uniforms.uRimThickness = Math.max(1, Math.min(3, thickness));
+  }
+
+  setTopGuardPixels(pixels: number): void {
+    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    uniforms.uTopGuardPixels = Math.max(1, pixels);
   }
 }

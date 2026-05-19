@@ -4,7 +4,7 @@
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
-import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER, TILE_CYRO } from '@core/Physics';
+import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER, TILE_CYRO, TILE_UPDRAFT } from '@core/Physics';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -239,6 +239,10 @@ export class LdtkRenderer {
    * LDtk auto-tile sprite underneath would just be hidden noise, so we
    * suppress it.
    *
+   * UPDRAFT is drawn by UpdraftSystem (sandbox §13 demo K: tile suppression +
+   * dynamic K layers) and follows the same pattern — suppress the static
+   * sprite so the system has full control of the channel visual.
+   *
    * WATER is included here primarily to clean up obsolete tiles after a
    * runtime mutation (ice → water on fire). LDtk auto-rules typically don't
    * paint water tiles, so this rarely fires on static data.
@@ -251,6 +255,7 @@ export class LdtkRenderer {
     if (!rowData) return false;
     const v = rowData[col] ?? 0;
     // Fluid values (water/oil/acid/magma) — surface drawn by FluidSystem polygon.
+    // Updraft — drawn by UpdraftSystem (K-style channel takeover, 2026-05-20).
     // Generic fluid markers (FluidGeneric_A/B/C = 17/18/19) — used by ItemWorld
     // room templates; resolved to concrete fluid values at dive entry but the
     // LDtk wallTiles still reference the generic-cell auto-rule sprites, so we
@@ -258,6 +263,7 @@ export class LdtkRenderer {
     return (
       v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA ||
       v === TILE_CYRO ||
+      v === TILE_UPDRAFT ||
       // Fluid generic markers (17/18/19) — FluidSystem 이 dynamic 으로 그리므로 hidden.
       v === 17 || v === 18 || v === 19
       // Solid generic markers (20/21) 는 *hidden 하지 않는다* — LDtk 의 auto-tile

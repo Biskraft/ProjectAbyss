@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ECHORIS — Pitch Deck v1</title>
+<style>
+/* ===================== SELF-HOSTED FONTS (offline, no Google fetch) ===================== */
+@font-face { font-family: 'Cinzel';   font-weight: 700; font-style: normal; font-display: swap; src: url('./fonts/cinzel-700.woff2') format('woff2'); }
+@font-face { font-family: 'Cinzel';   font-weight: 900; font-style: normal; font-display: swap; src: url('./fonts/cinzel-900.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-weight: 300; font-style: normal; font-display: swap; src: url('./fonts/rajdhani-300.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-weight: 400; font-style: normal; font-display: swap; src: url('./fonts/rajdhani-400.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-weight: 500; font-style: normal; font-display: swap; src: url('./fonts/rajdhani-500.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-weight: 600; font-style: normal; font-display: swap; src: url('./fonts/rajdhani-600.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-weight: 700; font-style: normal; font-display: swap; src: url('./fonts/rajdhani-700.woff2') format('woff2'); }
+@font-face { font-family: 'DM Mono';  font-weight: 400; font-style: normal; font-display: swap; src: url('./fonts/dm-mono-400.woff2') format('woff2'); }
+@font-face { font-family: 'DM Mono';  font-weight: 500; font-style: normal; font-display: swap; src: url('./fonts/dm-mono-500.woff2') format('woff2'); }
+
+/* ===================== TOKENS (mirrors ui-components.html / website) ===================== */
+:root {
+  --bg: #0A0A0A;
+  --bg-2: #14141A;
+  --pulse: #2A8A8A;
+  --pulse-dim: #1A4A4A;
+  --orange: #FF9933;
+  --orange-dim: #B86A1F;
+  --cta: #E87830;
+  --text-1: #F0F0F0;
+  --text-2: #B0B0B0;
+  --text-3: #4A8A8A;
+  --text-dim: #3A6A6A;
+  --grid: rgba(26, 58, 58, 0.30);
+  --beam: rgba(42, 138, 138, 0.10);
+  --gold: #FFD700;
+  --font-title: 'Cinzel', serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+/* ===================== RESET ===================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ===================== PAGE / PDF ===================== */
+@page {
+  size: 1920px 1080px landscape;
+  margin: 0;
+}
+
+.slide {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  page-break-after: always;
+  page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  /* Skip painting offscreen slides until they near the viewport (modern CSS perf). */
+  content-visibility: auto;
+  contain-intrinsic-size: 1920px 1080px;
+}
+.slide:last-child { page-break-after: auto; }
+
+/* ===================== SCREEN PREVIEW ===================== */
+@media screen {
+  html, body { background: #08080A; }
+  .deck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 40px;
+  }
+  .slide {
+    /* Lighter shadow on screen — 60px blur on 20 elements was the main paint cost. */
+    box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+    border: 1px solid #1a1a1f;
+  }
+}
+
+@media print {
+  .deck { padding: 0; gap: 0; }
+}
+
+/* ===================== SHARED LAYOUT ===================== */
+.brand-strip {
+  position: absolute;
+  top: 36px; left: 60px;
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 8px;
+  color: var(--orange);
+  text-shadow: 0 0 16px rgba(255, 153, 51, 0.35);
+  z-index: 2;
+}
+.brand-strip .dot {
+  width: 8px; height: 8px;
+  background: var(--orange);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--orange);
+}
+
+.slide-no {
+  position: absolute;
+  bottom: 36px; right: 60px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  z-index: 2;
+}
+
+.footer-line {
+  position: absolute;
+  bottom: 36px; left: 60px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  z-index: 2;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 8px;
+  color: var(--pulse);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.title-1 {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 80px;
+  line-height: 1.05;
+  letter-spacing: 4px;
+  color: var(--text-1);
+}
+
+.title-2 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 1.1;
+  letter-spacing: 3px;
+  color: var(--text-1);
+}
+
+.title-3 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 36px;
+  letter-spacing: 4px;
+  color: var(--orange);
+  text-transform: uppercase;
+}
+
+.lede {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.55;
+  color: var(--text-2);
+  max-width: 1100px;
+}
+
+.body-text {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--text-2);
+  max-width: 900px;
+}
+
+.tagline {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 22px;
+  letter-spacing: 6px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.body-content {
+  flex: 1;
+  display: flex;
+  padding: 130px 100px 120px;
+  gap: 60px;
+}
+
+/* ===================== BACKGROUND ART ===================== */
+.bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.bg-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 40%,
+    rgba(0,0,0,0.7) 100%
+  );
+  pointer-events: none;
+}
+
+.bg-beam {
+  position: absolute;
+  left: 50%; top: 0;
+  width: 2px; height: 100%;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(255, 153, 51, 0.3) 20%,
+    rgba(255, 153, 51, 0.5) 50%,
+    rgba(255, 153, 51, 0.3) 80%,
+    transparent 100%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* ===================== COVER (Slide 1) ===================== */
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0;
+}
+.cover .brand-strip { display: none; }
+.cover h1 {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 200px;
+  letter-spacing: 28px;
+  color: var(--text-1);
+  text-shadow: 0 0 60px rgba(255, 153, 51, 0.4);
+  margin-right: -28px;
+  margin-bottom: 30px;
+}
+.cover .tagline-cover {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 28px;
+  letter-spacing: 12px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 80px;
+}
+.cover .meta {
+  position: absolute;
+  bottom: 80px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 100px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+}
+.cover .meta strong { color: var(--orange); font-weight: 500; }
+
+/* ===================== HOOK (Slide 2) ===================== */
+.hook .body-content {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  padding: 130px 200px;
+}
+.hook .visual-frame {
+  width: 1100px; height: 480px;
+  background: linear-gradient(135deg, #1a1a22 0%, #0d0d12 100%);
+  border: 2px solid var(--pulse-dim);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 60px;
+  display: flex; align-items: center; justify-content: center;
+}
+.hook .visual-frame::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(255,153,51,0.1) 0%, transparent 70%);
+}
+.hook .visual-frame .placeholder-label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  z-index: 1;
+  text-align: center;
+}
+.hook .visual-frame .placeholder-label strong {
+  color: var(--orange);
+  font-size: 18px;
+}
+.hook .hero-statement {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 64px;
+  letter-spacing: 4px;
+  color: var(--text-1);
+  line-height: 1.15;
+  margin-bottom: 30px;
+}
+.hook .hero-statement em { color: var(--orange); font-style: normal; }
+.hook .sub-statement {
+  font-size: 22px;
+  color: var(--text-2);
+  max-width: 1100px;
+  line-height: 1.55;
+}
+
+/* ===================== TWO COLUMN ===================== */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  width: 100%;
+}
+.two-col .col h2 { margin-bottom: 24px; }
+
+/* ===================== PILLAR CARDS (Slide 5) ===================== */
+.pillars-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-top: 60px;
+  width: 100%;
+}
+.pillar-card {
+  background: linear-gradient(180deg, rgba(255,153,51,0.05) 0%, rgba(255,153,51,0.0) 100%);
+  border: 1px solid var(--pulse-dim);
+  padding: 50px 40px;
+  position: relative;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+}
+.pillar-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 60px; height: 2px;
+  background: var(--orange);
+}
+.pillar-card .pillar-no {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--orange);
+  margin-bottom: 24px;
+}
+.pillar-card h3 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: 2px;
+  color: var(--text-1);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+.pillar-card .pillar-fantasy {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--pulse);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.pillar-card p {
+  font-size: 18px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+/* ===================== CORE LOOP DIAGRAM (Slide 6) ===================== */
+.loop-diagram {
+  position: relative;
+  width: 620px; height: 560px;
+  margin: 40px auto 0;
+}
+.loop-node {
+  position: absolute;
+  width: 200px;
+  text-align: center;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: var(--text-1);
+  text-transform: uppercase;
+}
+.loop-node small {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--text-2);
+  text-transform: none;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.loop-node .icon {
+  width: 64px; height: 64px;
+  border: 2px solid var(--orange);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  color: var(--orange);
+  box-shadow: 0 0 24px rgba(255,153,51,0.3);
+  background: var(--bg);
+  position: relative;
+  z-index: 2;
+}
+.loop-node.pos-top    { top: 0;    left: 50%;  transform: translateX(-50%); }
+.loop-node.pos-right  { top: 50%;  right: 0;   transform: translateY(-50%); }
+.loop-node.pos-bottom { bottom: 0; left: 50%;  transform: translateX(-50%); }
+.loop-node.pos-left   { top: 50%;  left: 0;    transform: translateY(-50%); }
+
+.loop-circle {
+  position: absolute;
+  top: 80px; bottom: 80px;
+  left: 110px; right: 110px;
+  border: 2px dashed var(--pulse-dim);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===================== FEATURE LIST ===================== */
+.feature-list {
+  list-style: none;
+  margin-top: 30px;
+}
+.feature-list li {
+  position: relative;
+  padding-left: 36px;
+  margin-bottom: 18px;
+  font-size: 20px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.feature-list li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 14px;
+  width: 16px; height: 2px;
+  background: var(--orange);
+}
+.feature-list li strong { color: var(--text-1); font-weight: 600; }
+
+/* ===================== TEMPERAMENTS (Slide 11) ===================== */
+.temperament-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 30px;
+  margin-top: 80px;
+  width: 100%;
+}
+.temperament-card {
+  text-align: center;
+  padding: 40px 20px;
+  border: 1px solid var(--pulse-dim);
+  position: relative;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.temperament-card .swatch {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  margin-bottom: 24px;
+  box-shadow: 0 0 30px currentColor;
+}
+.temperament-card h4 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.temperament-card .descriptor {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+.temperament-card p {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.t-forge { color: #FF9933; }
+.t-iron { color: #2A8A8A; }
+.t-rust { color: #8A6A5A; }
+.t-spark { color: #F0F0F0; }
+.t-shadow { color: #9966CC; }
+.t-forge .swatch { background: #FF9933; }
+.t-iron .swatch { background: #2A8A8A; }
+.t-rust .swatch { background: #8A6A5A; }
+.t-spark .swatch { background: #F0F0F0; }
+.t-shadow .swatch { background: #9966CC; }
+.temperament-card h4 { color: var(--text-1); }
+
+/* ===================== MATRIX (Slide 14) ===================== */
+.matrix {
+  position: relative;
+  width: 900px; height: 700px;
+  margin: 60px auto 0;
+  border-left: 2px solid var(--pulse-dim);
+  border-bottom: 2px solid var(--pulse-dim);
+}
+.matrix .axis-y {
+  position: absolute;
+  left: -120px; top: 50%;
+  transform: rotate(-90deg) translateX(50%);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.matrix .axis-x {
+  position: absolute;
+  bottom: -50px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.matrix .point {
+  position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--text-dim);
+  background: rgba(74,138,138,0.2);
+}
+.matrix .point::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 32px; top: -2px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.matrix .point.us {
+  width: 36px; height: 36px;
+  background: rgba(255,153,51,0.3);
+  border: 2px solid var(--orange);
+  box-shadow: 0 0 30px rgba(255,153,51,0.4);
+}
+.matrix .point.us::after {
+  color: var(--orange);
+  font-weight: 600;
+  font-size: 15px;
+  left: 46px;
+}
+
+/* ===================== STATS GRID (Slide 15) ===================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+  margin-top: 60px;
+  width: 100%;
+}
+.stat-card {
+  text-align: center;
+  padding: 40px 20px;
+  border: 1px solid var(--pulse-dim);
+  background: linear-gradient(180deg, rgba(42,138,138,0.05) 0%, transparent 100%);
+}
+.stat-card .value {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 72px;
+  color: var(--orange);
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.stat-card .label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+/* ===================== ROADMAP (Slide 16) ===================== */
+.roadmap {
+  position: relative;
+  margin-top: 80px;
+  padding: 60px 0;
+  width: 100%;
+}
+.roadmap-line {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 2px;
+  background: var(--pulse-dim);
+}
+.roadmap-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: relative;
+}
+.roadmap-stop {
+  text-align: center;
+  position: relative;
+  padding: 0 20px;
+}
+.roadmap-stop .dot {
+  width: 24px; height: 24px;
+  background: var(--bg);
+  border: 3px solid var(--orange);
+  border-radius: 50%;
+  margin: 0 auto 30px;
+  box-shadow: 0 0 20px rgba(255,153,51,0.5);
+  position: relative;
+  z-index: 2;
+}
+.roadmap-stop .phase {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.roadmap-stop h4 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--text-1);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.roadmap-stop p {
+  font-size: 15px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ===================== ASK (Slide 19) ===================== */
+.ask-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-top: 70px;
+  width: 100%;
+}
+.ask-card {
+  padding: 50px 40px;
+  border: 1px solid var(--pulse-dim);
+  background: linear-gradient(180deg, rgba(255,153,51,0.08) 0%, transparent 100%);
+}
+.ask-card h3 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 2px;
+  color: var(--orange);
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+.ask-card p {
+  font-size: 18px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+/* ===================== CONTACT (Slide 20) ===================== */
+.contact {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0;
+}
+.contact .brand-strip { display: none; }
+.contact .contact-mark {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 120px;
+  letter-spacing: 20px;
+  color: var(--orange);
+  text-shadow: 0 0 50px rgba(255, 153, 51, 0.4);
+  margin-bottom: 40px;
+  margin-right: -20px;
+}
+.contact .contact-tagline {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 24px;
+  letter-spacing: 10px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  margin-bottom: 90px;
+}
+.contact .contact-grid {
+  display: flex;
+  gap: 100px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--text-1);
+}
+.contact .contact-grid .label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.contact .contact-grid .value { color: var(--orange); }
+
+/* ===================== VISUAL PLACEHOLDERS ===================== */
+.visual-block {
+  background: linear-gradient(135deg, #1a1a22 0%, #0d0d12 100%);
+  border: 1px dashed var(--text-dim);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 40px;
+  overflow: hidden;
+}
+.visual-block::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(255,153,51,0.06) 0%, transparent 70%);
+}
+.visual-block .ph {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+  max-width: 80%;
+}
+.visual-block .ph strong {
+  display: block;
+  color: var(--orange);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+<!-- ===================== SLIDE 1 — COVER ===================== -->
+<section class="slide cover">
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
+  <h1>ECHORIS</h1>
+  <div class="tagline-cover">Enter the memory of your weapon</div>
+  <div class="meta">
+    <div>STRATA FORGE · <strong>2026</strong></div>
+    <div>A 2D METROIDVANIA · <strong>PITCH DECK v1</strong></div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 2 — HOOK ===================== -->
+<section class="slide hook">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div class="visual-frame">
+      <div class="placeholder-label">
+        <strong>[ HERO GIF / TRAILER STILL ]</strong>
+        Suggested: descent into a vertical shaft with weapon glow
+      </div>
+    </div>
+    <div class="hero-statement">Every weapon you find <em>hides a procedural world</em> inside it.</div>
+    <div class="sub-statement">Descend a vertical megastructure left by giants who no longer remember why. Step inside any blade you find to enter its Item World. Reforge it through layers of memory and reactive elemental depths.</div>
+  </div>
+  <div class="footer-line">THE HOOK</div>
+  <div class="slide-no">02 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 3 — THE GAME ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">The Game</div>
+    <h2 class="title-1">A 2D metroidvania<br>of vertical descent<br>and infinite weapon depth.</h2>
+    <div style="margin-top: 60px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 80px; max-width: 1300px;">
+      <div>
+        <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px;">Genre</div>
+        <div class="body-text" style="font-size: 22px;">2D side-scrolling metroidvania · Procedural Item World</div>
+      </div>
+      <div>
+        <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px;">Platform</div>
+        <div class="body-text" style="font-size: 22px;">PC (Steam) · Console ports planned</div>
+      </div>
+      <div>
+        <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px;">Release</div>
+        <div class="body-text" style="font-size: 22px;">Early Access — 2026 H2 (planned)</div>
+      </div>
+      <div>
+        <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px;">Team</div>
+        <div class="body-text" style="font-size: 22px;">Strata Forge — solo developer & collaborators</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">OVERVIEW</div>
+  <div class="slide-no">03 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 4 — THE SPIKE ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+      <div class="eyebrow">The Spike</div>
+      <h2 class="title-1" style="font-size: 70px;">Every weapon<br>hides a world.</h2>
+      <p class="lede" style="margin-top: 40px;">Each blade carries a voice — the Ego of the soul who once wielded it. Step inside any weapon to enter its Item World. Descend its Memory Strata. Defeat the bosses that guard each layer. Reforge the weapon into something stronger — again, and again, and again.</p>
+    </div>
+    <div class="visual-block" style="flex: 1; min-height: 600px;">
+      <div class="ph"><strong>[ ITEM WORLD ENTRY VISUAL ]</strong>Weapon icon → portal opening → procedural dungeon inside</div>
+    </div>
+  </div>
+  <div class="footer-line">CORE DIFFERENTIATOR</div>
+  <div class="slide-no">04 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 5 — 3 PILLARS ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Three Pillars</div>
+    <h2 class="title-2">Exploration · Forging · Cooperation.</h2>
+    <div class="pillars-row">
+      <div class="pillar-card">
+        <div class="pillar-no">PILLAR 01</div>
+        <h3>Explore</h3>
+        <div class="pillar-fantasy">The Wanderer</div>
+        <p>Unlock relics one by one and reach places you could not reach before. Stat gates and ability gates lock paths until you grow into them. A vertical megastructure unfolds the deeper you go.</p>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-no">PILLAR 02</div>
+        <h3>Forge</h3>
+        <div class="pillar-fantasy">The Craftsman</div>
+        <p>Step inside any weapon you find. Defeat the memories that linger inside it. Slot the shards you reclaim into its Identity. Build the one blade no one else will ever wield.</p>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-no">PILLAR 03</div>
+        <h3>Descend Together</h3>
+        <div class="pillar-fantasy">The Adventurer</div>
+        <p>The deeper Item Worlds were never meant to be faced alone. Cooperative descent — friends in the same blade, the same strata, the same fall — is planned for a post-launch update.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">DESIGN PILLARS</div>
+  <div class="slide-no">05 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 6 — CORE LOOP ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px; align-items: center; text-align: center;">
+    <div class="eyebrow">The Loop</div>
+    <h2 class="title-2">A cycle that respects your time<br>and rewards your obsession.</h2>
+    <div class="loop-diagram">
+      <div class="loop-circle"></div>
+      <div class="loop-node pos-top">
+        <div class="icon">◆</div>
+        EXPLORE
+        <small>Descend the shaft.<br>Find a weapon.</small>
+      </div>
+      <div class="loop-node pos-right">
+        <div class="icon">▶</div>
+        ENTER
+        <small>Step inside the blade.<br>Begin its Item World.</small>
+      </div>
+      <div class="loop-node pos-bottom">
+        <div class="icon">▲</div>
+        REFORGE
+        <small>Slot the shards.<br>The blade grows.</small>
+      </div>
+      <div class="loop-node pos-left">
+        <div class="icon">◀</div>
+        RETURN
+        <small>Carry it back to the shaft.<br>Break the next gate.</small>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">CORE LOOP</div>
+  <div class="slide-no">06 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 7 — EXPLORE (Pillar 1) ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div style="flex: 1.1; display: flex; flex-direction: column; justify-content: center;">
+      <div class="eyebrow">Pillar 01 · Explore</div>
+      <h2 class="title-1" style="font-size: 64px;">The Shaft<br>never ends.</h2>
+      <ul class="feature-list" style="margin-top: 40px;">
+        <li><strong>Vertical megastructure</strong> — half-built, half-ruined corridors carved by colossal builders.</li>
+        <li><strong>Stat gates and ability gates</strong> — true interconnected metroidvania structure.</li>
+        <li><strong>Relics that reshape movement</strong> — dash, double-jump, walljump, underwater breath, shadow-slip.</li>
+        <li><strong>Handcrafted corridors stitched with procedural depths</strong>.</li>
+      </ul>
+    </div>
+    <div class="visual-block" style="flex: 1; min-height: 600px;">
+      <div class="ph"><strong>[ MEGASTRUCTURE SCREENSHOT ]</strong>Wide vertical shaft with parallax · player traversal</div>
+    </div>
+  </div>
+  <div class="footer-line">EXPLORE THE SHAFT</div>
+  <div class="slide-no">07 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 8 — FORGE (Pillar 2) ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div class="visual-block" style="flex: 1; min-height: 600px;">
+      <div class="ph"><strong>[ ITEM WORLD SCREENSHOT ]</strong>Procedural dungeon interior · Memory Strata layered descent</div>
+    </div>
+    <div style="flex: 1.1; display: flex; flex-direction: column; justify-content: center;">
+      <div class="eyebrow">Pillar 02 · Forge</div>
+      <h2 class="title-1" style="font-size: 64px;">Inside every<br>weapon, a world.</h2>
+      <ul class="feature-list" style="margin-top: 40px;">
+        <li><strong>Procedural Item World</strong> — every blade hides its own dungeon.</li>
+        <li><strong>Memory Strata</strong> — descend layered floors, defeat the guardians (Item General, Item King, Item God).</li>
+        <li><strong>Memory Shards</strong> — recover the fragments, slot them into Identity, watch the blade's voice grow clearer.</li>
+        <li><strong>Five rarity tiers</strong> from Normal to Ancient, with deeper tiers waiting in the dark.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-line">EVERY WEAPON HIDES A WORLD</div>
+  <div class="slide-no">08 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 9 — DESCEND TOGETHER (Pillar 3) ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div style="flex: 1.1; display: flex; flex-direction: column; justify-content: center;">
+      <div class="eyebrow">Pillar 03 · Descend Together</div>
+      <h2 class="title-1" style="font-size: 64px;">Cooperative<br>descent.</h2>
+      <p class="lede" style="margin-top: 40px;">The deeper Item Worlds were never meant to be faced alone. Cooperative descent — friends in the same blade, the same strata, the same fall — is planned for a post-launch update.</p>
+      <p class="body-text" style="margin-top: 30px; font-size: 18px; color: var(--text-3);">In development. Targeted for the Early Access window.</p>
+    </div>
+    <div class="visual-block" style="flex: 1; min-height: 600px;">
+      <div class="ph"><strong>[ COOP CONCEPT VISUAL ]</strong>Multi-character silhouettes inside a shared Item World</div>
+    </div>
+  </div>
+  <div class="footer-line">DESCEND TOGETHER (IN DEVELOPMENT)</div>
+  <div class="slide-no">09 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 10 — WORLDS THAT REACT ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Worlds That React</div>
+    <h2 class="title-2">Every floor is a chemistry set.</h2>
+    <p class="lede" style="margin-top: 30px;">Water flows. Oil spreads. Fire spreads further. Lightning leaps between conductors. Frost crawls across pools. Throw a flask of oil into a torchlit corridor and watch it run. Slash a water-vase above an electrified pool. The room becomes a tactic.</p>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 30px; margin-top: 80px; width: 100%;">
+      <div style="text-align: center; padding: 30px 10px; border: 1px solid var(--pulse-dim);">
+        <div style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px; color: var(--text-3); margin-bottom: 14px;">FLUID</div>
+        <div style="font-family: var(--font-title); font-size: 28px; color: #4A8AFF;">WATER</div>
+      </div>
+      <div style="text-align: center; padding: 30px 10px; border: 1px solid var(--pulse-dim);">
+        <div style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px; color: var(--text-3); margin-bottom: 14px;">FLUID</div>
+        <div style="font-family: var(--font-title); font-size: 28px; color: #8A6A2A;">OIL</div>
+      </div>
+      <div style="text-align: center; padding: 30px 10px; border: 1px solid var(--pulse-dim);">
+        <div style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px; color: var(--text-3); margin-bottom: 14px;">ELEMENT</div>
+        <div style="font-family: var(--font-title); font-size: 28px; color: #FF6633;">FIRE</div>
+      </div>
+      <div style="text-align: center; padding: 30px 10px; border: 1px solid var(--pulse-dim);">
+        <div style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px; color: var(--text-3); margin-bottom: 14px;">ELEMENT</div>
+        <div style="font-family: var(--font-title); font-size: 28px; color: #CCEEFF;">LIGHTNING</div>
+      </div>
+      <div style="text-align: center; padding: 30px 10px; border: 1px solid var(--pulse-dim);">
+        <div style="font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px; color: var(--text-3); margin-bottom: 14px;">ELEMENT</div>
+        <div style="font-family: var(--font-title); font-size: 28px; color: #88DDEE;">CRYO</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">EMERGENT SYSTEMS</div>
+  <div class="slide-no">10 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 11 — 5 TEMPERAMENTS ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Five Temperaments</div>
+    <h2 class="title-2">No two weapons grow the same way.</h2>
+    <p class="lede" style="margin-top: 20px;">Each Memory Shard belongs to one of five temperaments. The mix you choose shapes what kind of soul your blade becomes.</p>
+    <div class="temperament-row">
+      <div class="temperament-card t-forge">
+        <div class="swatch"></div>
+        <h4>Forge</h4>
+        <div class="descriptor">Rage · Fire</div>
+        <p>Aggressive, destructive, burns through resistance.</p>
+      </div>
+      <div class="temperament-card t-iron">
+        <div class="swatch"></div>
+        <h4>Iron</h4>
+        <div class="descriptor">Resolve · Defense</div>
+        <p>Unyielding, defensive, holds the line.</p>
+      </div>
+      <div class="temperament-card t-rust">
+        <div class="swatch"></div>
+        <h4>Rust</h4>
+        <div class="descriptor">Resignation · Decay</div>
+        <p>Patient corruption, lingering damage over time.</p>
+      </div>
+      <div class="temperament-card t-spark">
+        <div class="swatch"></div>
+        <h4>Spark</h4>
+        <div class="descriptor">Curiosity · Light</div>
+        <p>Quick, inquisitive, finds what is hidden.</p>
+      </div>
+      <div class="temperament-card t-shadow">
+        <div class="swatch"></div>
+        <h4>Shadow</h4>
+        <div class="descriptor">Stealth · Silence</div>
+        <p>Concealed strikes from places that should not exist.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">WEAPON IDENTITY</div>
+  <div class="slide-no">11 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 12 — VISUAL STYLE ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content">
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+      <div class="eyebrow">Visual Style</div>
+      <h2 class="title-1" style="font-size: 64px;">Architecture of<br>the forgotten.</h2>
+      <ul class="feature-list" style="margin-top: 40px;">
+        <li><strong>Pixel art with palette swap</strong> per area and weapon temperament.</li>
+        <li><strong>The Shaft</strong> — teal background, orange architecture, vast vertical scale.</li>
+        <li><strong>The Item World</strong> — palette inverts. Orange background, teal details. Inside metal.</li>
+        <li><strong>Two visual worlds, one game.</strong> Awe outside, intimacy inside.</li>
+      </ul>
+    </div>
+    <div class="visual-block" style="flex: 1.2; min-height: 700px;">
+      <div class="ph"><strong>[ ART DIRECTION COMPARISON ]</strong>Split image: megastructure (top) vs item world (bottom)</div>
+    </div>
+  </div>
+  <div class="footer-line">ART DIRECTION</div>
+  <div class="slide-no">12 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 13 — TARGET AUDIENCE ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Target Audience</div>
+    <h2 class="title-2">For players who love the depth, not the surface.</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 50px; margin-top: 70px; width: 100%;">
+      <div style="padding: 50px 30px; border-top: 2px solid var(--orange);">
+        <div style="font-family: var(--font-mono); font-size: 13px; letter-spacing: 4px; color: var(--orange); margin-bottom: 20px;">PRIMARY · CORE</div>
+        <h3 style="font-family: var(--font-title); font-size: 30px; letter-spacing: 2px; color: var(--text-1); margin-bottom: 24px;">2D Metroidvania Veterans</h3>
+        <p style="font-size: 18px; color: var(--text-2); line-height: 1.6;">Players who chase interconnected, gate-locked exploration and who count their playthroughs in maps explored.</p>
+      </div>
+      <div style="padding: 50px 30px; border-top: 2px solid var(--orange);">
+        <div style="font-family: var(--font-mono); font-size: 13px; letter-spacing: 4px; color: var(--orange); margin-bottom: 20px;">PRIMARY · CORE</div>
+        <h3 style="font-family: var(--font-title); font-size: 30px; letter-spacing: 2px; color: var(--text-1); margin-bottom: 24px;">Loot-Loop Obsessives</h3>
+        <p style="font-size: 18px; color: var(--text-2); line-height: 1.6;">Players who would happily farm the same dungeon a hundred times if every run rewards a meaningfully different weapon.</p>
+      </div>
+      <div style="padding: 50px 30px; border-top: 2px solid var(--orange);">
+        <div style="font-family: var(--font-mono); font-size: 13px; letter-spacing: 4px; color: var(--orange); margin-bottom: 20px;">PRIMARY · CORE</div>
+        <h3 style="font-family: var(--font-title); font-size: 30px; letter-spacing: 2px; color: var(--text-1); margin-bottom: 24px;">Vertical-Scale Devotees</h3>
+        <p style="font-size: 18px; color: var(--text-2); line-height: 1.6;">Players drawn to vast vertical worlds and the silence left by lost civilizations. Atmosphere matters as much as combat.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">PERSONA</div>
+  <div class="slide-no">13 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 14 — WHERE WE FIT ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px; align-items: center;">
+    <div class="eyebrow">Where We Fit</div>
+    <h2 class="title-2">At the crossroads of depth and atmosphere.</h2>
+    <div class="matrix">
+      <div class="axis-y">Atmospheric Depth →</div>
+      <div class="axis-x">Mechanical Loot Depth →</div>
+      <div class="point" style="left: 80px; top: 80px;" data-label="Atmospheric explorers"></div>
+      <div class="point" style="left: 80px; top: 480px;" data-label="Light platformers"></div>
+      <div class="point" style="right: 80px; top: 80px;" data-label="Hardcore loot grinders"></div>
+      <div class="point" style="right: 80px; top: 480px;" data-label="Action roguelites"></div>
+      <div class="point us" style="left: 50%; top: 35%; transform: translate(-50%, -50%);" data-label="ECHORIS"></div>
+    </div>
+  </div>
+  <div class="footer-line">MARKET POSITION</div>
+  <div class="slide-no">14 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 15 — TRACTION ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Early Traction</div>
+    <h2 class="title-2">A free web demo. A growing community. Real player data.</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="value">13min</div>
+        <div class="label">Avg session<br>desktop cohort</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">100%</div>
+        <div class="label">Game-start<br>to tutorial</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">32%</div>
+        <div class="label">Reach the<br>Item World</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">70+</div>
+        <div class="label">Research<br>documents</div>
+      </div>
+    </div>
+    <p class="body-text" style="margin-top: 60px; text-align: center; width: 100%; font-size: 18px;">Free web demo live at <strong style="color: var(--orange);">echoris.io</strong> · Active GA4 telemetry · Iterative playtest cadence with engaged player coalitions</p>
+  </div>
+  <div class="footer-line">TRACTION</div>
+  <div class="slide-no">15 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 16 — ROADMAP ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Roadmap</div>
+    <h2 class="title-2">Steady release. Honest scope.</h2>
+    <div class="roadmap">
+      <div class="roadmap-line"></div>
+      <div class="roadmap-row">
+        <div class="roadmap-stop">
+          <div class="dot"></div>
+          <div class="phase">Now · Phase 2</div>
+          <h4>Pre-Early Access</h4>
+          <p>Core loop, Item World, Five Temperaments, chemical reactions, web demo live.</p>
+        </div>
+        <div class="roadmap-stop">
+          <div class="dot"></div>
+          <div class="phase">2026 H2</div>
+          <h4>Early Access Launch</h4>
+          <p>Single-player core. Multiple strata. Steam Coming Soon → Wishlist push.</p>
+        </div>
+        <div class="roadmap-stop">
+          <div class="dot"></div>
+          <div class="phase">EA · 12–18 mo</div>
+          <h4>Co-op + Content</h4>
+          <p>Cooperative descent. New strata, weapons, bosses. Localization rollout.</p>
+        </div>
+        <div class="roadmap-stop">
+          <div class="dot"></div>
+          <div class="phase">1.0</div>
+          <h4>Full Release</h4>
+          <p>Console ports. Steam Deck Verified target. Live service post-launch cadence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">ROADMAP</div>
+  <div class="slide-no">16 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 17 — BUSINESS MODEL ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">Business Model</div>
+    <h2 class="title-2">Premium. Honest. No predatory mechanics.</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 60px; margin-top: 70px; width: 100%;">
+      <div>
+        <h3 style="font-family: var(--font-title); font-size: 28px; color: var(--orange); letter-spacing: 2px; margin-bottom: 24px; text-transform: uppercase;">Pricing</h3>
+        <ul class="feature-list">
+          <li><strong>Premium Early Access</strong> — fair entry price, gradual increase as content ships.</li>
+          <li><strong>Full release</strong> at a higher tier reflecting the complete scope.</li>
+          <li><strong>No microtransactions. No DLC paywalls.</strong> Cosmetic-only post-launch additions if any.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-family: var(--font-title); font-size: 28px; color: var(--orange); letter-spacing: 2px; margin-bottom: 24px; text-transform: uppercase;">Distribution</h3>
+        <ul class="feature-list">
+          <li><strong>Steam</strong> primary launch channel — Trust Lock in progress.</li>
+          <li><strong>itch.io</strong> companion channel for demo and early supporters.</li>
+          <li><strong>Console ports planned</strong> — Switch, PlayStation, Xbox. Steam Deck Verified target.</li>
+          <li><strong>Localization</strong> — English first, Korean / Japanese / Simplified Chinese planned.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">MODEL</div>
+  <div class="slide-no">17 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 18 — TEAM ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">The Team</div>
+    <h2 class="title-2">Small. Focused. Built around a single vision.</h2>
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 80px; margin-top: 70px; width: 100%;">
+      <div>
+        <h3 style="font-family: var(--font-title); font-size: 32px; color: var(--orange); letter-spacing: 3px; margin-bottom: 24px; text-transform: uppercase;">Strata Forge</h3>
+        <p class="body-text" style="font-size: 20px;">An independent studio built around one core principle: every system in the game must strengthen the central fantasy — that every weapon hides a world worth descending into.</p>
+        <p class="body-text" style="font-size: 20px; margin-top: 20px;">Solo development with a tight circle of trusted collaborators across sound, art, and narrative consulting. Deep research backbone (70+ design documents) keeps decisions consistent across the long arc of development.</p>
+      </div>
+      <div style="border-left: 2px solid var(--pulse-dim); padding-left: 50px;">
+        <div style="margin-bottom: 30px;">
+          <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px; margin-bottom: 8px;">Studio</div>
+          <div style="font-family: var(--font-title); font-size: 22px; color: var(--text-1); letter-spacing: 2px;">Strata Forge</div>
+        </div>
+        <div style="margin-bottom: 30px;">
+          <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px; margin-bottom: 8px;">Founded</div>
+          <div style="font-family: var(--font-body); font-size: 20px; color: var(--text-2);">2025</div>
+        </div>
+        <div style="margin-bottom: 30px;">
+          <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px; margin-bottom: 8px;">Location</div>
+          <div style="font-family: var(--font-body); font-size: 20px; color: var(--text-2);">Seoul, Republic of Korea</div>
+        </div>
+        <div>
+          <div class="eyebrow" style="font-size: 12px; letter-spacing: 4px; margin-bottom: 8px;">Contact</div>
+          <div style="font-family: var(--font-mono); font-size: 18px; color: var(--orange);">fine@echoris.io</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line">TEAM</div>
+  <div class="slide-no">18 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 19 — THE ASK ===================== -->
+<section class="slide">
+  <div class="bg-grid"></div>
+  <div class="brand-strip"><span class="dot"></span>ECHORIS</div>
+  <div class="body-content" style="flex-direction: column; padding-top: 130px;">
+    <div class="eyebrow">The Ask</div>
+    <h2 class="title-2">We are looking for partners who share the long game.</h2>
+    <div class="ask-list">
+      <div class="ask-card">
+        <h3>Publishing</h3>
+        <p>Marketing reach, QA support, and console porting expertise. We are open to discussing scope and structure.</p>
+      </div>
+      <div class="ask-card">
+        <h3>Asian Markets</h3>
+        <p>Localization and distribution partners with strength in Japan, Korea, and Simplified Chinese markets.</p>
+      </div>
+      <div class="ask-card">
+        <h3>Co-Marketing</h3>
+        <p>Steam, Nintendo, PlayStation feature placements. Indie showcase opportunities. Curator and influencer networks.</p>
+      </div>
+    </div>
+    <p class="body-text" style="margin-top: 60px; text-align: center; width: 100%; font-size: 20px; color: var(--text-3);">Tell us which of these matches your strengths — we will tailor the next conversation accordingly.</p>
+  </div>
+  <div class="footer-line">PARTNERSHIP</div>
+  <div class="slide-no">19 / 20</div>
+</section>
+
+<!-- ===================== SLIDE 20 — CONTACT ===================== -->
+<section class="slide contact">
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
+  <div class="contact-mark">ECHORIS</div>
+  <div class="contact-tagline">Thank you</div>
+  <div class="contact-grid">
+    <div>
+      <div class="label">Email</div>
+      <div class="value">fine@echoris.io</div>
+    </div>
+    <div>
+      <div class="label">Web</div>
+      <div class="value">echoris.io</div>
+    </div>
+    <div>
+      <div class="label">Studio</div>
+      <div class="value">Strata Forge</div>
+    </div>
+  </div>
+  <div class="meta" style="position: absolute; bottom: 80px; left: 0; right: 0; display: flex; justify-content: center; font-family: var(--font-mono); font-size: 12px; letter-spacing: 6px; color: var(--text-dim);">
+    PITCH DECK v1 · 2026
+  </div>
+</section>
+
+</div>
+
+</body>
+</html>

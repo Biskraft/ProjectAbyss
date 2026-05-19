@@ -87,6 +87,10 @@ export function hashString(s: string): number {
 //
 // 장식물 표면 = "구조적 솔리드 셀" 만. 다음 값은 명시적으로 제외:
 //   0 air / 2 water / 5 spike / 10 void  — passable / 해저드 / 시네마틱
+//   4 updraft                            — K 비주얼 채널. UpdraftSystem 이 dynamic
+//                                          렌더링 전담. 자연 장식이 채널 안/경계에
+//                                          자라면 sci-fi 통로 정체성을 훼손한다.
+//                                          (Victor 2026-05-20)
 //   6 magma                              — 용암 표면 위 풀/이끼 어색
 //   7 ice                                — 얼음 표면 위 자연 장식 부조화
 //   8 charged                            — 전기 영역 위 자연 장식 부조화
@@ -94,11 +98,10 @@ export function hashString(s: string): number {
 //   13 acid                              — 산성액. 부식 환경에 자연 장식 부조화
 //   15 wood                              — 가연성 솔리드. 소진 시 장식이 공중에 떠 버림
 //
-// 결과: 장식 spawn 허용 셀 = 1 wall / 3 platform / 4 updraft /
-//   9 breakable / 12 metal / 16 grass
+// 결과: 장식 spawn 허용 셀 = 1 wall / 3 platform / 9 breakable / 12 metal / 16 grass
 function isSolid(val: number): boolean {
   return (
-    val === 1 || val === 3 || val === 4 ||
+    val === 1 || val === 3 ||
     val === 9 || val === 12 || val === 16
   );
 }
@@ -423,11 +426,25 @@ export class ProceduralDecorator {
     const isHazardCellAbove = (v: number): boolean =>
       v === 5 || v === 6 || v === 7 || v === 8 || v === 11 || v === 13 || v === 15;
 
+    // 3x3 proximity test — any updraft cell within ±1 row/col of (r, c)?
+    // Used to suppress deco on walls that line the channel. The channel itself
+    // is already filtered out by isSolid (updraft removed 2026-05-20).
+    const isNearUpdraft = (r: number, c: number): boolean => {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (gridAt(grid, r + dr, c + dc) === 4) return true;
+        }
+      }
+      return false;
+    };
+
     for (let row = 0; row < rows; row++) {
       const cols = grid[row].length;
       for (let col = 0; col < cols; col++) {
         const val = grid[row][col];
         if (!isSolid(val)) continue;
+        // No deco on walls directly bordering an updraft channel.
+        if (isNearUpdraft(row, col)) continue;
 
         const isPlatform = val === 3;
 

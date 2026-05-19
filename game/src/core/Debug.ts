@@ -11,4 +11,7 @@ export const Debug = {
   /** True = show HUD debug text such as item-world buff diagnostics. */
   infoVisible: typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('debug'),
+  log(...args: unknown[]): void {
+    if (this.infoVisible) console.log(...args);
+  },
 };

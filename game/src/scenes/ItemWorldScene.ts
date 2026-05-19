@@ -1,4 +1,4 @@
-﻿import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
@@ -147,6 +147,18 @@ import {
 import { assetPath } from '@core/AssetLoader';
 import { loadBundleOnce } from '@data/assetBundles';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
+import {
+  findNearestGrabbableContainer as findNearestContainerForGrab,
+  startContainerGrabPull,
+  updateContainerArcTether,
+  updateContainerPrompt as updateContainerPromptUi,
+} from '@systems/ContainerInteraction';
+import {
+  getEnemyRoomKey,
+  isEnemyExpGranted,
+  markEnemyExpGranted,
+  setEnemyRoomKey,
+} from '@systems/EntityRuntimeMeta';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { ParallaxBackground } from '@level/ParallaxBackground';
 import { ItemWorldConst } from '@data/constData';
@@ -628,7 +640,7 @@ export class ItemWorldScene extends Scene {
     if (this.progress.cleared) {
       resetItemForNextCycle(this.item);
       this.progress = getOrCreateWorldProgress(this.item);
-      console.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
+      Debug.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
     // ── Ego init ──
@@ -649,7 +661,7 @@ export class ItemWorldScene extends Scene {
     // 레어리티 무관 (Normal/Magic/Rare/...) 의 글로벌 게이트.
     if (!sacredSave.isFirstItemWorldBossDefeated() && this.strataConfig.strata.length > 1) {
       this.strataConfig = { strata: [this.strataConfig.strata[0]] };
-      console.log('[ItemWorld] First-boss onboarding: strata truncated to 1.');
+      Debug.log('[ItemWorld] First-boss onboarding: strata truncated to 1.');
     }
 
     // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
@@ -660,7 +672,7 @@ export class ItemWorldScene extends Scene {
     const urlTopology: TopologyKind | undefined = TOPOLOGY_VALUES.has(urlTopologyRaw as TopologyKind)
       ? (urlTopologyRaw as TopologyKind)
       : undefined;
-    if (urlTopology) console.log(`[ItemWorld] URL topology override: ${urlTopology}`);
+    if (urlTopology) Debug.log(`[ItemWorld] URL topology override: ${urlTopology}`);
     // DEC-039 archetype 매핑 — 무기의 (주색, 부색) 기질 → 7 archetype 중 하나.
     // 미지정 시 'zigzag' fallback. URL ?archetype= 으로 dev 측 강제 가능.
     const urlArchRaw = new URLSearchParams(window.location.search)
@@ -671,7 +683,7 @@ export class ItemWorldScene extends Scene {
     const archetype = validArchetypes.has(urlArchRaw)
       ? (urlArchRaw as ReturnType<typeof archetypeFor>)
       : archetypeFor(this.item.def.temperamentPrimary, this.item.def.temperamentSecondary);
-    console.log(`[ItemWorld] archetype: ${archetype} (primary=${this.item.def.temperamentPrimary ?? '-'} secondary=${this.item.def.temperamentSecondary ?? '-'})`);
+    Debug.log(`[ItemWorld] archetype: ${archetype} (primary=${this.item.def.temperamentPrimary ?? '-'} secondary=${this.item.def.temperamentSecondary ?? '-'})`);
     const adapterResult = generateUnifiedGridFromGraph(
       this.strataConfig.strata,
       this.item.uid,
@@ -1386,7 +1398,7 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.shadowAggregate);
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
-    const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2 });
+    const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 });
     this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
     // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
@@ -1442,7 +1454,7 @@ export class ItemWorldScene extends Scene {
     // 없이 unifiedGrid 전체를 자유롭게 이동.
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
-    console.log(`[ItemWorld] buildFullMap UNIFIED totalGrid=${totalCols}x${totalRows} strata=${this.unifiedGrid.strataOffsets.length} templates=${this.ldtkTemplates.length}`);
+    Debug.log(`[ItemWorld] buildFullMap UNIFIED totalGrid=${totalCols}x${totalRows} strata=${this.unifiedGrid.strataOffsets.length} templates=${this.ldtkTemplates.length}`);
 
     // Initialize full grid as solid (1) — unrendered regions remain impassable
     this.fullGrid = this.mapController.initFullGrid(totalCols, totalRows);
@@ -2042,7 +2054,7 @@ export class ItemWorldScene extends Scene {
     const roomKey = `${col},${row}`;
     // Helper to tag a freshly-spawned enemy with its room and bump live count
     const trackEnemy = (e: Enemy<string>) => {
-      (e as any)._roomKey = roomKey;
+      setEnemyRoomKey(e, roomKey);
       this.roomEnemyCount.set(roomKey, (this.roomEnemyCount.get(roomKey) ?? 0) + 1);
     };
 
@@ -2456,7 +2468,7 @@ export class ItemWorldScene extends Scene {
       const picked = pool[rng.nextInt(0, pool.length - 1)];
       const key = `${picked.col}:${picked.absRow}`;
       this.memoryRoomPlacements.set(key, template);
-      console.log(`[ItemWorld] Memory room placement stratum=${si} weapon=${weaponId} cell=(${picked.col},${picked.absRow}) template=${roomName}`);
+      Debug.log(`[ItemWorld] Memory room placement stratum=${si} weapon=${weaponId} cell=(${picked.col},${picked.absRow}) template=${roomName}`);
     }
   }
 
@@ -2529,7 +2541,7 @@ export class ItemWorldScene extends Scene {
       { dc: 0, dr: -1, name: 'N' },
       { dc: 0, dr: 1, name: 'S' },
     ];
-    console.log(`[ItemWorld] preSpawnNeighborRooms from (${curCol},${curAbsRow}) totalGrid=${totalCols}x${totalRows}`);
+    Debug.log(`[ItemWorld] preSpawnNeighborRooms from (${curCol},${curAbsRow}) totalGrid=${totalCols}x${totalRows}`);
     let spawnedCount = 0;
     let skippedBounds = 0;
     let skippedSpawned = 0;
@@ -2538,19 +2550,19 @@ export class ItemWorldScene extends Scene {
       const ncLocal = curCol + dc;
       const nrAbs = curAbsRow + dr;
       if (ncLocal < 0 || ncLocal >= totalCols || nrAbs < 0 || nrAbs >= totalRows) {
-        console.log(`  [${name}] skip: out of bounds (${ncLocal},${nrAbs})`);
+        Debug.log(`  [${name}] skip: out of bounds (${ncLocal},${nrAbs})`);
         skippedBounds++;
         continue;
       }
       const nKey = `${ncLocal},${nrAbs}`;
       if (this.spawnedRooms.has(nKey)) {
-        console.log(`  [${name}] skip: already spawned ${nKey}`);
+        Debug.log(`  [${name}] skip: already spawned ${nKey}`);
         skippedSpawned++;
         continue;
       }
       const nCell = this.unifiedGrid.cells[nrAbs]?.[ncLocal];
       if (!nCell) {
-        console.log(`  [${name}] skip: null cell ${nKey}`);
+        Debug.log(`  [${name}] skip: null cell ${nKey}`);
         skippedNullCell++;
         continue;
       }
@@ -2558,10 +2570,10 @@ export class ItemWorldScene extends Scene {
       const beforeCount = this.enemies.length;
       this.spawnEnemiesInRoom(ncLocal, nrAbs);
       const spawned = this.enemies.length - beforeCount;
-      console.log(`  [${name}] spawned ${spawned} enemies in ${nKey} (roomType=${this.roomTypeMap.get(`${ncLocal}:${nrAbs}`) ?? '?'}, cleared=${nCell.cleared})`);
+      Debug.log(`  [${name}] spawned ${spawned} enemies in ${nKey} (roomType=${this.roomTypeMap.get(`${ncLocal}:${nrAbs}`) ?? '?'}, cleared=${nCell.cleared})`);
       spawnedCount++;
     }
-    console.log(`[ItemWorld] preSpawn result: ${spawnedCount} rooms spawned, ${skippedBounds} bounds, ${skippedSpawned} already, ${skippedNullCell} null`);
+    Debug.log(`[ItemWorld] preSpawn result: ${spawnedCount} rooms spawned, ${skippedBounds} bounds, ${skippedSpawned} already, ${skippedNullCell} null`);
     this.persistRoomState();
   }
 
@@ -3787,7 +3799,7 @@ export class ItemWorldScene extends Scene {
     const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
     actions += igniteN;
     // eslint-disable-next-line no-console
-    console.log(`[DebugFire] actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`);
+    Debug.log(`[DebugFire] actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`);
   }
 
   /** DEBUG Shift+2 — Ice enchant sweep. */
@@ -3799,7 +3811,7 @@ export class ItemWorldScene extends Scene {
       if (this.tileMutator.tryFreeze(this.fullGrid, gx, gy)) frozen++;
     });
     // eslint-disable-next-line no-console
-    console.log(`[DebugIce] frozen=${frozen} total=${this.tileMutator.frozenCount}`);
+    Debug.log(`[DebugIce] frozen=${frozen} total=${this.tileMutator.frozenCount}`);
   }
 
   /** DEBUG Shift+3 — Thunder enchant sweep. */
@@ -3812,7 +3824,7 @@ export class ItemWorldScene extends Scene {
       totalLit += this.tileMutator.applyThunderChain(this.fullGrid, gx, gy);
     });
     // eslint-disable-next-line no-console
-    console.log(`[DebugThunder] lit=${totalLit} electric=${this.tileMutator.electricCount}`);
+    Debug.log(`[DebugThunder] lit=${totalLit} electric=${this.tileMutator.electricCount}`);
   }
 
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
@@ -4797,8 +4809,8 @@ export class ItemWorldScene extends Scene {
     // Check for kills AFTER combat (checkHits may have set alive=false)
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
-      if (!enemy.alive && !(enemy as any)._expGranted) {
-        (enemy as any)._expGranted = true;
+      if (!enemy.alive && !isEnemyExpGranted(enemy)) {
+        markEnemyExpGranted(enemy);
 
         // ── Ego T06: first enemy kill ──
         if (!(enemy instanceof MemoryShardNPC) && !(enemy as any)._isBoss) {
@@ -4827,7 +4839,7 @@ export class ItemWorldScene extends Scene {
         }
 
         // Decrement room enemy count; if it reaches zero, mark room cleared
-        const rk = (enemy as any)._roomKey as string | undefined;
+        const rk = getEnemyRoomKey(enemy);
         if (rk) {
           const remaining = (this.roomEnemyCount.get(rk) ?? 1) - 1;
           if (remaining <= 0) {
@@ -5163,7 +5175,7 @@ export class ItemWorldScene extends Scene {
           pendingTrapX = Math.min(cellRightPx - 16, Math.max(cellLeftPx + 16, enemyCx));
           pendingTrapY = floorTileRow * TILE_SIZE;
           pendingDescentToWorld = this.isFinalEndRoom(bossCellCol, bossCellRow);
-          console.log(`[Trapdoor] queued at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) cell=(${bossCellCol},${bossCellRow}) descentToWorld=${pendingDescentToWorld}`);
+          Debug.log(`[Trapdoor] queued at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) cell=(${bossCellCol},${bossCellRow}) descentToWorld=${pendingDescentToWorld}`);
         }
 
         // Trapdoor entity 생성 콜백 — dialogue 종료 후 호출.
@@ -5173,7 +5185,7 @@ export class ItemWorldScene extends Scene {
           this.entityLayer.addChild(this.trapdoor.container);
           this.descentToWorld = pendingDescentToWorld;
           this.toast.show(t('toast.trapdoor_opens'), 0xff7744);
-          console.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
+          Debug.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
           // DLG-11: Trapdoor 포탈 — 첫 spawn 시점에 한 번만 발화 (사용자
           // 결정 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 표식으로 중복 차단.
           if (
@@ -6629,103 +6641,41 @@ export class ItemWorldScene extends Scene {
 
   /** Arc Tether 픽업 후보 — 자세한 명세는 LdtkWorldScene.findNearestGrabbableContainer 참조. */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height / 2;
-    const MAX_RANGE = 96;
-    const MAX_RANGE_SQ = MAX_RANGE * MAX_RANGE;
-    const ADJ_THRESHOLD_SQ = 24 * 24;
-    const CONE_COS = 0.5;
-    let dirX = this.player.facingRight ? 1 : -1;
-    let dirY = 0;
-    if (this.game.input.isDown(GameAction.LOOK_UP))        { dirX = 0; dirY = -1; }
-    else if (this.game.input.isDown(GameAction.LOOK_DOWN)) { dirX = 0; dirY = 1; }
-    let best: ThrowableContainer | null = null;
-    let bestDist = Infinity;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      const cx = c.colX + c.colW / 2;
-      const cy = c.colY + c.colH / 2;
-      const dx = cx - px;
-      const dy = cy - py;
-      const distSq = dx * dx + dy * dy;
-      if (distSq > MAX_RANGE_SQ) continue;
-      if (distSq <= ADJ_THRESHOLD_SQ) {
-        if (distSq < bestDist) { best = c; bestDist = distSq; }
-        continue;
-      }
-      const dist = Math.sqrt(distSq);
-      const dot = (dx / dist) * dirX + (dy / dist) * dirY;
-      if (dot < CONE_COS) continue;
-      if (distSq < bestDist) { best = c; bestDist = distSq; }
-    }
-    return best;
+    return findNearestContainerForGrab({
+      player: this.player,
+      containers: this.containers,
+      input: this.game.input,
+    });
   }
 
   private startGrabPull(target: ThrowableContainer): void {
-    this.pullStartX = target.x;
-    this.pullStartY = target.y;
-    this.pullElapsedMs = 0;
-    this.pullingContainer = target;
-    target.pickUp();
-    this.heldContainer = target;
-    const boosted = target.kind === 'ChargedCrate' || target.kind === 'ChargedCell';
-    this.arcTether?.startPull(boosted);
-    SFX.play('grab_arc');
+    const state = startContainerGrabPull(target, this.arcTether);
+    this.pullStartX = state.pullStartX;
+    this.pullStartY = state.pullStartY;
+    this.pullElapsedMs = state.pullElapsedMs;
+    this.pullingContainer = state.pullingContainer;
+    this.heldContainer = state.heldContainer;
   }
 
   private updateArcTether(dtMs: number): void {
-    if (!this.arcTether) return;
-    const tether = this.arcTether;
-    const fromX = this.player.x + this.player.width / 2;
-    const fromY = this.player.y + this.player.height * 0.4;
-    if (this.heldContainer && !this.heldContainer.destroyed) {
-      const h = this.heldContainer;
-      const boosted = h.kind === 'ChargedCrate' || h.kind === 'ChargedCell';
-      if (this.pullingContainer === h) {
-        if (tether.getPhase() !== 'pull') tether.startPull(boosted);
-      } else if (tether.getPhase() !== 'hold') {
-        tether.setHold(boosted);
-      }
-      const toX = h.colX + h.colW / 2;
-      const toY = h.colY + h.colH / 2;
-      tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
-      return;
-    }
-    const hover = this.findNearestGrabbableContainer();
-    if (!hover) {
-      if (tether.isVisible()) tether.hide();
-      return;
-    }
-    const boosted = hover.kind === 'ChargedCrate' || hover.kind === 'ChargedCell';
-    if (tether.getPhase() !== 'hover') tether.setHover(boosted);
-    const toX = hover.colX + hover.colW / 2;
-    const toY = hover.colY + hover.colH / 2;
-    tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
+    updateContainerArcTether({
+      dtMs,
+      player: this.player,
+      arcTether: this.arcTether,
+      heldContainer: this.heldContainer,
+      pullingContainer: this.pullingContainer,
+      findHover: () => this.findNearestGrabbableContainer(),
+    });
   }
 
   private updateContainerPrompt(): void {
-    const target = this.heldContainer ? null : this.findNearestGrabbableContainer();
-    if (!target) {
-      if (this.containerPrompt) this.containerPrompt.visible = false;
-      return;
-    }
-    if (!this.containerPrompt) {
-      this.containerPrompt = KeyPrompt.createPromptForAction(GameAction.GRAB, t('prompt.lift'), this.game.uiScale);
-      this.containerPrompt.visible = false;
-      this.game.uiContainer.addChild(this.containerPrompt);
-    } else if (!this.containerPrompt.parent) {
-      this.game.uiContainer.addChild(this.containerPrompt);
-    }
-
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    const worldX = target.colX + target.colW / 2;
-    const worldY = target.colY;
-    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.containerPrompt.width / 2;
-    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 28) * us;
-    this.containerPrompt.x = Math.round(sx);
-    this.containerPrompt.y = Math.round(sy);
-    this.containerPrompt.visible = true;
+    this.containerPrompt = updateContainerPromptUi({
+      game: this.game,
+      prompt: this.containerPrompt,
+      heldContainer: this.heldContainer,
+      findTarget: () => this.findNearestGrabbableContainer(),
+      promptText: t('prompt.lift'),
+    });
   }
 
   /**
@@ -6921,7 +6871,7 @@ export class ItemWorldScene extends Scene {
     eraseAt(this.bgAggregate);
     eraseAt(this.sealAggregate);
 
-    console.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
+    Debug.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
   }
 
   /** 매 프레임 재사용 — GC 방지. filterArea + viewport 검사 공용. */
@@ -7166,7 +7116,7 @@ export class ItemWorldScene extends Scene {
       }
     };
     window.addEventListener('keydown', this.roomGraphDebugKeyHandler, true);
-    console.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press Shift+2 to toggle.`);
+    Debug.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press Shift+2 to toggle.`);
   }
 
   private destroyRoomGraphDebug(): void {
@@ -7198,7 +7148,7 @@ export class ItemWorldScene extends Scene {
     this.topologyCycleKeyHandler = (e: KeyboardEvent) => {
       // Diagnostic: log every Shift-modified L press to verify reachability.
       if (e.code === 'KeyL' && e.shiftKey) {
-        console.log('[ItemWorld] Shift+L caught.');
+        Debug.log('[ItemWorld] Shift+L caught.');
       }
       if (e.code !== 'KeyL' || !e.shiftKey) return;
       e.preventDefault();
@@ -7209,12 +7159,12 @@ export class ItemWorldScene extends Scene {
       const next = TOPOLOGIES[(idx + 1) % TOPOLOGIES.length];
       params.set('topology', next);
       const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      console.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} → ${next}. Reloading...`);
+      Debug.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} → ${next}. Reloading...`);
       window.history.replaceState(null, '', url);
       window.location.reload();
     };
     window.addEventListener('keydown', this.topologyCycleKeyHandler, true);
-    console.log('[ItemWorld] Shift+L ready: cycle ?topology= through 8 kinds (page reload).');
+    Debug.log('[ItemWorld] Shift+L ready: cycle ?topology= through 8 kinds (page reload).');
   }
 
   private destroyTopologyCycleKey(): void {

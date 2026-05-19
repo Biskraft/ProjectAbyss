@@ -57,7 +57,7 @@ import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
 import { AreaTitle } from '@ui/AreaTitle';
-import { TITLE_FADE_OVERLAY_LABEL } from './TitleScene';
+import { TITLE_FADE_OVERLAY_LABEL, TitleScene } from './TitleScene';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import {
@@ -156,6 +156,13 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import { VoidFogSystem } from '@systems/VoidFogSystem';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
+import {
+  findNearestGrabbableContainer as findNearestContainerForGrab,
+  startContainerGrabPull,
+  updateContainerArcTether,
+  updateContainerPrompt as updateContainerPromptUi,
+} from '@systems/ContainerInteraction';
+import { isEnemyKillHandled, markEnemyKillHandled } from '@systems/EntityRuntimeMeta';
 import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
 import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
 import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
@@ -847,7 +854,7 @@ export class LdtkWorldScene extends Scene {
         brightness: wallEntry.brightness,
         tint: wallEntry.tint,
       });
-      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 1.0, thickness: 3 });
+      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 1.0, thickness: 3, topGuardPixels: 16 });
       this.wallRimFilter = rimFilter;
       const interiorFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
@@ -1246,9 +1253,7 @@ export class LdtkWorldScene extends Scene {
       else if (action === 'status') { this.openCharacterStats(); }
       else if (action === 'quit_confirmed') {
         this.isPaused = false;
-        import('./TitleScene').then(({ TitleScene }) => {
-          this.game.sceneManager.replace(new TitleScene(this.game));
-        });
+        this.game.sceneManager.replace(new TitleScene(this.game));
       }
     };
     this.game.uiContainer.addChild(this.pauseMenu.container);
@@ -2098,8 +2103,8 @@ export class LdtkWorldScene extends Scene {
       }
       // Check kills after combat resolution
       for (const enemy of this.enemies) {
-        if (!enemy.alive && !enemy.shouldRemove && !(enemy as any).__killHandled) {
-          (enemy as any).__killHandled = true;
+        if (!enemy.alive && !enemy.shouldRemove && !isEnemyKillHandled(enemy)) {
+          markEnemyKillHandled(enemy);
           this.handleEnemyKill(enemy);
         }
       }
@@ -3607,7 +3612,7 @@ export class LdtkWorldScene extends Scene {
     if (LdtkWorldScene.debugMode) {
       const zoneCount = level.entities.filter(e => e.type === 'BurnableZone').length;
       // eslint-disable-next-line no-console
-      console.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
+      Debug.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
     }
 
     // Throwable Container entities — LDtk-placed Box props player can grab/throw.
@@ -3741,7 +3746,7 @@ export class LdtkWorldScene extends Scene {
     // Always log how many Container entities were seen vs spawned + where —
     // helps diagnose camera-out-of-view, off-grid, etc.
     // eslint-disable-next-line no-console
-    console.log(`[Container] level="${level.identifier}" explicit=${spawnedCount}/${containerEnts.length} spawner=${spawnerSpawned} (from ${spawnerEnts.length} spawners)\n${spawnLog.join('\n')}`);
+    Debug.log(`[Container] level="${level.identifier}" explicit=${spawnedCount}/${containerEnts.length} spawner=${spawnerSpawned} (from ${spawnerEnts.length} spawners)\n${spawnLog.join('\n')}`);
 
     // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
     this.fluidSystem.attach(level);
@@ -4249,38 +4254,11 @@ export class LdtkWorldScene extends Scene {
    * 인접 거리(< 24px)는 cone 밖이라도 무조건 후보로 채택 (기존 동작 호환).
    */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height / 2;
-    const MAX_RANGE = 96; // 6 타일 — 화면 밖에서 끌려오는 부조리를 방지하는 상한.
-    const MAX_RANGE_SQ = MAX_RANGE * MAX_RANGE;
-    const ADJ_THRESHOLD_SQ = 24 * 24;
-    const CONE_COS = 0.5; // half-angle 60° (생성된 cone 폭 120°).
-
-    let dirX = this.player.facingRight ? 1 : -1;
-    let dirY = 0;
-    if (this.game.input.isDown(GameAction.LOOK_UP))        { dirX = 0; dirY = -1; }
-    else if (this.game.input.isDown(GameAction.LOOK_DOWN)) { dirX = 0; dirY = 1; }
-
-    let best: ThrowableContainer | null = null;
-    let bestDist = Infinity;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      const cx = c.colX + c.colW / 2;
-      const cy = c.colY + c.colH / 2;
-      const dx = cx - px;
-      const dy = cy - py;
-      const distSq = dx * dx + dy * dy;
-      if (distSq > MAX_RANGE_SQ) continue;
-      if (distSq <= ADJ_THRESHOLD_SQ) {
-        if (distSq < bestDist) { best = c; bestDist = distSq; }
-        continue;
-      }
-      const dist = Math.sqrt(distSq);
-      const dot = (dx / dist) * dirX + (dy / dist) * dirY;
-      if (dot < CONE_COS) continue;
-      if (distSq < bestDist) { best = c; bestDist = distSq; }
-    }
-    return best;
+    return findNearestContainerForGrab({
+      player: this.player,
+      containers: this.containers,
+      input: this.game.input,
+    });
   }
 
   /**
@@ -4290,15 +4268,12 @@ export class LdtkWorldScene extends Scene {
    * held-position block of update().
    */
   private startGrabPull(target: ThrowableContainer): void {
-    this.pullStartX = target.x;
-    this.pullStartY = target.y;
-    this.pullElapsedMs = 0;
-    this.pullingContainer = target;
-    target.pickUp();
-    this.heldContainer = target;
-    const boosted = target.kind === 'ChargedCrate' || target.kind === 'ChargedCell';
-    this.arcTether?.startPull(boosted);
-    SFX.play('grab_arc');
+    const state = startContainerGrabPull(target, this.arcTether);
+    this.pullStartX = state.pullStartX;
+    this.pullStartY = state.pullStartY;
+    this.pullElapsedMs = state.pullElapsedMs;
+    this.pullingContainer = state.pullingContainer;
+    this.heldContainer = state.heldContainer;
   }
 
   /**
@@ -4309,59 +4284,24 @@ export class LdtkWorldScene extends Scene {
    *   - none                              : hidden
    */
   private updateArcTether(dtMs: number): void {
-    if (!this.arcTether) return;
-    const tether = this.arcTether;
-    const fromX = this.player.x + this.player.width / 2;
-    const fromY = this.player.y + this.player.height * 0.4;
-    if (this.heldContainer && !this.heldContainer.destroyed) {
-      const h = this.heldContainer;
-      const boosted = h.kind === 'ChargedCrate' || h.kind === 'ChargedCell';
-      if (this.pullingContainer === h) {
-        if (tether.getPhase() !== 'pull') tether.startPull(boosted);
-      } else if (tether.getPhase() !== 'hold') {
-        tether.setHold(boosted);
-      }
-      const toX = h.colX + h.colW / 2;
-      const toY = h.colY + h.colH / 2;
-      tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
-      return;
-    }
-    const hover = this.findNearestGrabbableContainer();
-    if (!hover) {
-      if (tether.isVisible()) tether.hide();
-      return;
-    }
-    const boosted = hover.kind === 'ChargedCrate' || hover.kind === 'ChargedCell';
-    if (tether.getPhase() !== 'hover') tether.setHover(boosted);
-    const toX = hover.colX + hover.colW / 2;
-    const toY = hover.colY + hover.colH / 2;
-    tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
+    updateContainerArcTether({
+      dtMs,
+      player: this.player,
+      arcTether: this.arcTether,
+      heldContainer: this.heldContainer,
+      pullingContainer: this.pullingContainer,
+      findHover: () => this.findNearestGrabbableContainer(),
+    });
   }
 
   private updateContainerPrompt(): void {
-    // Pull / hold 중에는 프롬프트 숨김 (이미 잡혔으므로 [B] LIFT 안내가 모순).
-    const target = this.heldContainer ? null : this.findNearestGrabbableContainer();
-    if (!target) {
-      if (this.containerPrompt) this.containerPrompt.visible = false;
-      return;
-    }
-    if (!this.containerPrompt) {
-      this.containerPrompt = KeyPrompt.createPromptForAction(GameAction.GRAB, t('prompt.lift'), this.game.uiScale);
-      this.containerPrompt.visible = false;
-      this.game.uiContainer.addChild(this.containerPrompt);
-    } else if (!this.containerPrompt.parent) {
-      this.game.uiContainer.addChild(this.containerPrompt);
-    }
-
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    const worldX = target.colX + target.colW / 2;
-    const worldY = target.colY;
-    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.containerPrompt.width / 2;
-    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 28) * us;
-    this.containerPrompt.x = Math.round(sx);
-    this.containerPrompt.y = Math.round(sy);
-    this.containerPrompt.visible = true;
+    this.containerPrompt = updateContainerPromptUi({
+      game: this.game,
+      prompt: this.containerPrompt,
+      heldContainer: this.heldContainer,
+      findTarget: () => this.findNearestGrabbableContainer(),
+      promptText: t('prompt.lift'),
+    });
   }
 
   /** Check if player is near a save point ??show hint, save on UP. */
@@ -5699,7 +5639,7 @@ export class LdtkWorldScene extends Scene {
     const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
     actions += igniteN;
     // eslint-disable-next-line no-console
-    console.log(
+    Debug.log(
       `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`,
     );
     this.toast.show(`fire: ${actions}`, 0xff8844);
@@ -5718,7 +5658,7 @@ export class LdtkWorldScene extends Scene {
       if (this.tileMutator.tryFreeze(room, gx, gy)) frozen++;
     });
     // eslint-disable-next-line no-console
-    console.log(
+    Debug.log(
       `[DebugIce] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) frozen=${frozen} total=${this.tileMutator.frozenCount}`,
     );
     this.toast.show(`ice: ${frozen}`, 0x88ccff);
@@ -5741,7 +5681,7 @@ export class LdtkWorldScene extends Scene {
       totalLit += this.tileMutator.applyThunderChain(room, gx, gy);
     });
     // eslint-disable-next-line no-console
-    console.log(
+    Debug.log(
       `[DebugThunder] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) lit=${totalLit} electric=${this.tileMutator.electricCount}`,
     );
     this.toast.show(`thunder: ${totalLit}`, 0xffee44);
@@ -6954,9 +6894,9 @@ export class LdtkWorldScene extends Scene {
     // when multiple neighbors share the same edge (e.g. two rooms to the right)
     const playerWorldX = this.currentLevel.worldX + px + pw / 2;
     const playerWorldY = this.currentLevel.worldY + py + ph / 2;
-    console.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
+    Debug.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
     const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
-    console.log(`[EdgeTransition] ??neighborId=${neighborId}`);
+    Debug.log(`[EdgeTransition] ??neighborId=${neighborId}`);
     if (!neighborId) return;
 
     this.startTransition(direction, neighborId);

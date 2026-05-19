@@ -24,6 +24,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import type { FluidSystem } from '@effects/FluidSystem';
 import { getFluidDef } from '@data/FluidTypes';
+import { Debug } from '@core/Debug';
 
 export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid' | 'charged' | 'cyro';
 
@@ -190,8 +191,7 @@ export class FluidSpawnerManager {
   add(opts: FluidSpawnerOptions): void {
     this.spawners.push({ ...opts, accum: 0, flow: 1, targetFlow: 1 });
     this.repaintDebug();
-    // eslint-disable-next-line no-console
-    console.log(`[FluidSpawner] add type=${opts.type} cell=(${opts.gx},${opts.gy}) interval=${opts.intervalMs}ms (total now ${this.spawners.length})`);
+    Debug.log(`[FluidSpawner] add type=${opts.type} cell=(${opts.gx},${opts.gy}) interval=${opts.intervalMs}ms (total now ${this.spawners.length})`);
   }
 
   /** Clear all spawners (call on room transition). */
@@ -240,8 +240,7 @@ export class FluidSpawnerManager {
       // per spawner to avoid console spam.
       if (!(s as { _logged?: boolean })._logged) {
         const cellV = grid[s.gy]?.[s.gx];
-        // eslint-disable-next-line no-console
-        console.log(`[FluidSpawner] init type=${s.type} cell=(${s.gx},${s.gy}) value=${cellV} interval=${s.intervalMs}ms gridSize=${grid[0]?.length ?? '?'}x${grid.length}`);
+        Debug.log(`[FluidSpawner] init type=${s.type} cell=(${s.gx},${s.gy}) value=${cellV} interval=${s.intervalMs}ms gridSize=${grid[0]?.length ?? '?'}x${grid.length}`);
         (s as { _logged?: boolean })._logged = true;
       }
       while (true) {

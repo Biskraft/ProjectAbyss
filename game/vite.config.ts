@@ -153,6 +153,18 @@ export default defineConfig(({ mode }) => {
     base: '/play/',
     build: {
       target: 'ES2022',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/pixi.js') || id.includes('node_modules/@pixi')) {
+              return 'pixi';
+            }
+            if (id.includes('/src/scenes/LdtkWorldScene.ts')) return 'scene-world';
+            if (id.includes('/src/scenes/ItemWorldScene.ts')) return 'scene-item-world';
+          },
+        },
+      },
+      chunkSizeWarningLimit: 750,
     },
   };
 });

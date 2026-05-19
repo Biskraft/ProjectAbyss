@@ -15,6 +15,7 @@ import { PRNG } from '@utils/PRNG';
 import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import { lookupPoolByTemperament } from '@data/ContainerPools';
+import { Debug } from '@core/Debug';
 
 // Solid IntGrid values that act as floor for spawning (must match the
 // ThrowableContainer physics' solid set). Keep in sync with
@@ -120,8 +121,7 @@ export function readSpawnerEntity(
     const auto = lookupPoolByTemperament(temperament);
     if (auto.length > 0) {
       pool = auto;
-      // eslint-disable-next-line no-console
-      console.log(`[ContainerSpawner] pool=auto temperament=${temperament} entries=${auto.length}`);
+      Debug.log(`[ContainerSpawner] pool=auto temperament=${temperament} entries=${auto.length}`);
     }
   }
   // Accept either `Min`/`Max` or `MinCount`/`MaxCount` — Victor's LDtk
@@ -225,8 +225,7 @@ export function runContainerSpawner(opts: SpawnerOptions): ThrowableContainer[] 
     console.warn(`[ContainerSpawner] no floor candidates in rect px=(${opts.rect.x},${opts.rect.y}) ${opts.rect.w}x${opts.rect.h} (cells ${lgx},${tgy}..${rgx},${bgy}).\n  Need: cell=0(air) AND below∈{1,3,7,9,12,15}.\n  Actual: ${diag.join(' ')}`);
     return out;
   }
-  // eslint-disable-next-line no-console
-  console.log(`[ContainerSpawner] rect=(${opts.rect.x},${opts.rect.y}) ${opts.rect.w}x${opts.rect.h} bias=${opts.bias} pool=${opts.pool.map(p => `${p.kind}:${p.weight}`).join(',')} minMax=${opts.minCount}..${opts.maxCount} candidates=${floorCandidates.length}`);
+  Debug.log(`[ContainerSpawner] rect=(${opts.rect.x},${opts.rect.y}) ${opts.rect.w}x${opts.rect.h} bias=${opts.bias} pool=${opts.pool.map(p => `${p.kind}:${p.weight}`).join(',')} minMax=${opts.minCount}..${opts.maxCount} candidates=${floorCandidates.length}`);
 
   // Fisher-Yates shuffle for unbiased candidate order.
   for (let i = floorCandidates.length - 1; i > 0; i--) {

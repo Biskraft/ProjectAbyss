@@ -23,6 +23,7 @@
 
 import { AudioBus, type AudioChannel } from './AudioBus';
 import { assetPath } from '@core/AssetLoader';
+import { Debug } from '@core/Debug';
 
 // ---------------------------------------------------------------------------
 // Asset registry — Phase 1 demo
@@ -76,12 +77,12 @@ class AmbientLayerImpl {
 
     // [DEBUG] startup trace — temporary, remove after demo verification
     const ctx = AudioBus.getContext();
-    console.log('[AmbientLayer] start. ctxState=', ctx?.state, 'master=', AudioBus.getMasterVolume(), 'ambientCh=', AudioBus.getChannelVolume('ambient'));
+    Debug.log('[AmbientLayer] start. ctxState=', ctx?.state, 'master=', AudioBus.getMasterVolume(), 'ambientCh=', AudioBus.getChannelVolume('ambient'));
     AudioBus.resume();
 
     // volume 옵션 미전달 → CSV mix_volume 자동 적용 (audioEvents.ts SSoT).
     const builderInst = AudioBus.play(ASSET_BUILDER, CHANNEL, { loop: true });
-    console.log('[AmbientLayer] builder play result:', builderInst ? 'instance' : 'undefined/promise');
+    Debug.log('[AmbientLayer] builder play result:', builderInst ? 'instance' : 'undefined/promise');
     this.playNextCivVariation();
   }
 
@@ -90,7 +91,7 @@ class AmbientLayerImpl {
     const id = ASSET_CIV_VARIATIONS[this.civIndex];
     if (id) {
       const inst = AudioBus.play(id, CHANNEL, { loop: false });
-      console.log('[AmbientLayer] civ', id, 'result:', inst ? 'instance' : 'undefined/promise');
+      Debug.log('[AmbientLayer] civ', id, 'result:', inst ? 'instance' : 'undefined/promise');
     }
     this.civIndex = (this.civIndex + 1) % ASSET_CIV_VARIATIONS.length;
 
