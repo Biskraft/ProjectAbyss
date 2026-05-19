@@ -83,6 +83,7 @@ import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
 import { WeaponPulse } from '@effects/WeaponPulse';
 import { AnvilTether } from '@effects/AnvilTether';
+import { ArcTether } from '@effects/ArcTether';
 import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
 import { AcquireOverlay } from '@ui/AcquireOverlay';
@@ -461,6 +462,17 @@ export class LdtkWorldScene extends Scene {
   /** Currently held container (Spelunky-style — one at a time). */
   private heldContainer: ThrowableContainer | null = null;
   private containerPrompt: Container | null = null;
+  /**
+   * Container currently being *pulled* by the arc tether toward the player's
+   * shoulder. Equals heldContainer during the 200 ms pull animation, then
+   * clears to null while heldContainer stays set (hold phase).
+   */
+  private pullingContainer: ThrowableContainer | null = null;
+  private pullStartX = 0;
+  private pullStartY = 0;
+  private pullElapsedMs = 0;
+  /** Arc Tether VFX — drives hover spark / pull arc / hold tether. */
+  private arcTether: ArcTether | null = null;
   private prevPlayerInOtherFluid = false;
   private prevEnemyInOtherFluid: boolean[] = [];
   /** Set true when a TileMutator mutation invalidates the wall layer sprites. */
@@ -952,6 +964,12 @@ export class LdtkWorldScene extends Scene {
       );
     };
     this.entityLayer.addChild(this.player.container);
+    // Arc Tether — Spark-기질 시그니처 픽업 VFX. Player layer 와 같은 entityLayer 에
+    // 추가하되 player 보다 *뒤*에 add (검에서 뻗어나가는 톤을 위해 player 위에 그린다).
+    if (!this.arcTether) {
+      this.arcTether = new ArcTether();
+      this.entityLayer.addChild(this.arcTether.container);
+    }
     if (saveData) {
       this.player.hp = saveData.player.hp;
       this.player.maxHp = saveData.player.maxHp;
@@ -2594,37 +2612,57 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // ── Grab / Throw (B / RB) — Spelunky-style pickup or release. ──
+    // ── Grab / Throw (B / RB) — Arc Tether 원격 픽업 + Spelunky 던지기. ──
+    // 픽업 단계:
+    //   1) GRAB 입력 → findNearestGrabbableContainer (facing × cone × 6타일)
+    //   2) 후보 found → startGrabPull : pickUp() 즉시 호출 (held=true → no gravity)
+    //      + pullingContainer 설정 + arcTether.startPull(boosted)
+    //   3) 200ms 동안 컨테이너가 어깨로 ease-out 보간 (아래 held 위치 갱신 블록)
+    //   4) 보간 완료 → pullingContainer=null, arcTether → hold 페이즈
+    // 던지기 단계는 종전과 동일 — pull 진행 중에는 던지기 입력 무시.
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
-        // Two-handed forward toss. vx 160 puts the landing spot ~5–6 cells
-        // out (doubled from the prior 80; arc apex unchanged at vy -170).
-        const facing = this.player.facingRight ? 1 : -1;
-        this.heldContainer.release(facing * 160, -170);
-        this.heldContainer = null;
-      } else {
-        // Pickup: AABB overlap with player AABB inflated by GRAB_RANGE. This
-        // is more reliable than center-distance now that crates are 32×32
-        // — center-to-center with a body-adjacent crate can be 23+ px.
-        const best = this.findNearestGrabbableContainer();
-        if (best) {
-          best.pickUp();
-          this.heldContainer = best;
+        if (!this.pullingContainer) {
+          const facing = this.player.facingRight ? 1 : -1;
+          this.heldContainer.release(facing * 160, -170);
+          this.heldContainer = null;
+          this.arcTether?.hide();
         }
+      } else {
+        const best = this.findNearestGrabbableContainer();
+        if (best) this.startGrabPull(best);
       }
-    } else if (this.heldContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
+    } else if (this.heldContainer && !this.pullingContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
       // 들고 있을 때만 ATTACK 도 throw. 검 휘두름이 같은 프레임에 발생하지 않도록
       // 입력 consume. (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
       const facing = this.player.facingRight ? 1 : -1;
       this.heldContainer.release(facing * 160, -170);
       this.heldContainer = null;
+      this.arcTether?.hide();
       this.game.input.consumeJustPressed(GameAction.ATTACK);
     }
-    // Held container tracks player position (anchored above shoulder).
+    // Held container tracks player. During the pull phase, lerp from spawn
+    // origin to the shoulder anchor with an ease-out so the crate visibly
+    // "flies in" along the arc rather than teleporting to the shoulder.
     if (this.heldContainer && !this.heldContainer.destroyed) {
       const h = this.heldContainer;
-      h.x = this.player.x + (this.player.width - h.width) / 2;
-      h.y = this.player.y - h.height - 2;
+      const targetX = this.player.x + (this.player.width - h.width) / 2;
+      const targetY = this.player.y - h.height - 2;
+      if (this.pullingContainer === h) {
+        this.pullElapsedMs += dt;
+        const PULL_DURATION_MS = 200;
+        const t = Math.min(1, this.pullElapsedMs / PULL_DURATION_MS);
+        const easeT = 1 - Math.pow(1 - t, 3);
+        h.x = this.pullStartX + (targetX - this.pullStartX) * easeT;
+        h.y = this.pullStartY + (targetY - this.pullStartY) * easeT;
+        if (t >= 1) {
+          this.pullingContainer = null;
+          this.pullElapsedMs = 0;
+        }
+      } else {
+        h.x = targetX;
+        h.y = targetY;
+      }
       h.container.x = h.x;
       h.container.y = h.y;
       this.player.isLifting = true;
@@ -2632,6 +2670,7 @@ export class LdtkWorldScene extends Scene {
       this.player.isLifting = false;
     }
     this.updateContainerPrompt();
+    this.updateArcTether(dt);
 
     // Portal interactions
     this.updatePortals(dt);
@@ -3550,6 +3589,9 @@ export class LdtkWorldScene extends Scene {
     for (const c of this.containers) c.destroy();
     this.containers.length = 0;
     this.heldContainer = null;
+    this.pullingContainer = null;
+    this.pullElapsedMs = 0;
+    this.arcTether?.hide();
 
     // Hybrid procedural pass — populate grass/wood inside LDtk-painted
     // BurnableZone rect entities + spawn Tier B BurnableProp entities.
@@ -4201,31 +4243,103 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  /**
+   * Arc Tether 픽업 후보 탐색 — facing 방향 cone (반각 60°) × 최대 6 타일.
+   * LOOK_UP / LOOK_DOWN 누른 채로 GRAB 하면 cone 이 위/아래로 회전 (stack/위층 픽업).
+   * 인접 거리(< 24px)는 cone 밖이라도 무조건 후보로 채택 (기존 동작 호환).
+   */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
-    const GRAB_RANGE = 8;
-    const grabBox = {
-      x: this.player.x - GRAB_RANGE,
-      y: this.player.y - GRAB_RANGE,
-      width: this.player.width + GRAB_RANGE * 2,
-      height: this.player.height + GRAB_RANGE * 2,
-    };
-    let best: ThrowableContainer | null = null;
-    let bestDist = Infinity;
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y + this.player.height / 2;
+    const MAX_RANGE = 96; // 6 타일 — 화면 밖에서 끌려오는 부조리를 방지하는 상한.
+    const MAX_RANGE_SQ = MAX_RANGE * MAX_RANGE;
+    const ADJ_THRESHOLD_SQ = 24 * 24;
+    const CONE_COS = 0.5; // half-angle 60° (생성된 cone 폭 120°).
+
+    let dirX = this.player.facingRight ? 1 : -1;
+    let dirY = 0;
+    if (this.game.input.isDown(GameAction.LOOK_UP))        { dirX = 0; dirY = -1; }
+    else if (this.game.input.isDown(GameAction.LOOK_DOWN)) { dirX = 0; dirY = 1; }
+
+    let best: ThrowableContainer | null = null;
+    let bestDist = Infinity;
     for (const c of this.containers) {
       if (c.destroyed || c.held) continue;
-      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-      if (!aabbOverlap(grabBox, cBox)) continue;
       const cx = c.colX + c.colW / 2;
       const cy = c.colY + c.colH / 2;
-      const d = (cx - px) ** 2 + (cy - py) ** 2;
-      if (d < bestDist) { best = c; bestDist = d; }
+      const dx = cx - px;
+      const dy = cy - py;
+      const distSq = dx * dx + dy * dy;
+      if (distSq > MAX_RANGE_SQ) continue;
+      if (distSq <= ADJ_THRESHOLD_SQ) {
+        if (distSq < bestDist) { best = c; bestDist = distSq; }
+        continue;
+      }
+      const dist = Math.sqrt(distSq);
+      const dot = (dx / dist) * dirX + (dy / dist) * dirY;
+      if (dot < CONE_COS) continue;
+      if (distSq < bestDist) { best = c; bestDist = distSq; }
     }
     return best;
   }
 
+  /**
+   * Begin a tethered pull on `target`. Marks the container as held immediately
+   * (suspends gravity + own collision), records spawn origin for lerp, and
+   * triggers the arc VFX + zap SFX. The 200 ms ease-out lerp runs in the
+   * held-position block of update().
+   */
+  private startGrabPull(target: ThrowableContainer): void {
+    this.pullStartX = target.x;
+    this.pullStartY = target.y;
+    this.pullElapsedMs = 0;
+    this.pullingContainer = target;
+    target.pickUp();
+    this.heldContainer = target;
+    const boosted = target.kind === 'ChargedCrate' || target.kind === 'ChargedCell';
+    this.arcTether?.startPull(boosted);
+    SFX.play('grab_arc');
+  }
+
+  /**
+   * Drive arc tether visibility + phase per frame.
+   *   - heldContainer + pullingContainer : pull (started by startGrabPull)
+   *   - heldContainer + no pulling       : hold (thin tether + breathing pulse)
+   *   - no held + hover target           : hover (small sparks above target)
+   *   - none                              : hidden
+   */
+  private updateArcTether(dtMs: number): void {
+    if (!this.arcTether) return;
+    const tether = this.arcTether;
+    const fromX = this.player.x + this.player.width / 2;
+    const fromY = this.player.y + this.player.height * 0.4;
+    if (this.heldContainer && !this.heldContainer.destroyed) {
+      const h = this.heldContainer;
+      const boosted = h.kind === 'ChargedCrate' || h.kind === 'ChargedCell';
+      if (this.pullingContainer === h) {
+        if (tether.getPhase() !== 'pull') tether.startPull(boosted);
+      } else if (tether.getPhase() !== 'hold') {
+        tether.setHold(boosted);
+      }
+      const toX = h.colX + h.colW / 2;
+      const toY = h.colY + h.colH / 2;
+      tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
+      return;
+    }
+    const hover = this.findNearestGrabbableContainer();
+    if (!hover) {
+      if (tether.isVisible()) tether.hide();
+      return;
+    }
+    const boosted = hover.kind === 'ChargedCrate' || hover.kind === 'ChargedCell';
+    if (tether.getPhase() !== 'hover') tether.setHover(boosted);
+    const toX = hover.colX + hover.colW / 2;
+    const toY = hover.colY + hover.colH / 2;
+    tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
+  }
+
   private updateContainerPrompt(): void {
+    // Pull / hold 중에는 프롬프트 숨김 (이미 잡혔으므로 [B] LIFT 안내가 모순).
     const target = this.heldContainer ? null : this.findNearestGrabbableContainer();
     if (!target) {
       if (this.containerPrompt) this.containerPrompt.visible = false;

@@ -21,7 +21,7 @@
 import { AudioBus } from './AudioBus';
 import { assetPath } from '@core/AssetLoader';
 
-type CueName = 'upgrade' | 'milestone100' | 'capture' | 'attack_hit' | 'attack_swing' | 'breakable_destroy' | 'footstep' | 'jump' | 'dash' | 'land';
+type CueName = 'upgrade' | 'milestone100' | 'capture' | 'attack_hit' | 'attack_swing' | 'breakable_destroy' | 'footstep' | 'jump' | 'dash' | 'land' | 'grab_arc';
 
 /** SFX.play options — speed 등 @pixi/sound PlayOptions 일부 노출. */
 interface PlayOpts {
@@ -148,6 +148,7 @@ class SfxSystem {
       case 'capture':      this.playCapture(ctx, this.master); break;
       case 'attack_hit':   this.playAttackHit(ctx, this.master); break;
       case 'attack_swing': this.playAttackSwing(ctx, this.master); break; // synth fallback
+      case 'grab_arc':     this.playGrabArc(ctx, this.master); break;
     }
   }
 
@@ -382,6 +383,55 @@ class SfxSystem {
     ping.connect(pingGain).connect(dest);
     ping.start(t0 + 0.24);
     ping.stop(t0 + 0.6);
+  }
+
+  /**
+   * Grab Arc — Spark 기질 시그니처 zap. 무기 Ego 가 컨테이너에 절연 아크를
+   * 발사하는 순간의 단발 효과음.
+   *
+   * 구성:
+   *   - Noise body  : 화이트 노이즈 + bandpass 800→3200Hz exp sweep (90ms)
+   *                   → 짧은 electric crackle.
+   *   - High ping   : 1760Hz(A6) sine 단발 (40ms) — "lock-on" 신호.
+   *
+   * DEC-040 Phase 2 자산 도착 시 sfx_grab_arc_spawn_01.ogg 로 교체 예정.
+   * CSV: Content_System_Audio_Events.csv 의 grab_arc_spawn 행 참조.
+   */
+  private playGrabArc(ctx: AudioContext, dest: AudioNode): void {
+    const t0 = ctx.currentTime;
+
+    // Electric crackle body
+    const bufferSize = Math.floor(ctx.sampleRate * 0.09);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(800, t0);
+    bp.frequency.exponentialRampToValueAtTime(3200, t0 + 0.09);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, t0);
+    noiseGain.gain.linearRampToValueAtTime(0.55, t0 + 0.008);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
+    noise.connect(bp).connect(noiseGain).connect(dest);
+    noise.start(t0);
+
+    // High lock-on ping (A6)
+    const ping = ctx.createOscillator();
+    const pingGain = ctx.createGain();
+    ping.type = 'triangle';
+    ping.frequency.setValueAtTime(1760, t0 + 0.02);
+    pingGain.gain.setValueAtTime(0, t0 + 0.02);
+    pingGain.gain.linearRampToValueAtTime(0.28, t0 + 0.03);
+    pingGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+    ping.connect(pingGain).connect(dest);
+    ping.start(t0 + 0.02);
+    ping.stop(t0 + 0.18);
   }
 }
 

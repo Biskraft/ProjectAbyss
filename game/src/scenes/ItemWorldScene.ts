@@ -82,6 +82,7 @@ import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, TOPOLOGY_VALUES, type StrataConfig, type StratumDef, type TopologyKind } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
+import { ArcTether } from '@effects/ArcTether';
 import { HitSparkManager } from '@effects/HitSpark';
 import { PropShatterManager } from '@effects/PropShatter';
 import { DeathParticleManager } from '@effects/DeathParticles';
@@ -348,6 +349,12 @@ export class ItemWorldScene extends Scene {
   private containers: ThrowableContainer[] = [];
   private heldContainer: ThrowableContainer | null = null;
   private containerPrompt: Container | null = null;
+  /** Arc Tether pull animation state (mirrors LdtkWorldScene). */
+  private pullingContainer: ThrowableContainer | null = null;
+  private pullStartX = 0;
+  private pullStartY = 0;
+  private pullElapsedMs = 0;
+  private arcTether: ArcTether | null = null;
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
@@ -865,6 +872,10 @@ export class ItemWorldScene extends Scene {
       );
     };
     this.entityLayer.addChild(this.player.container);
+    if (!this.arcTether) {
+      this.arcTether = new ArcTether();
+      this.entityLayer.addChild(this.arcTether.container);
+    }
 
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
@@ -1338,6 +1349,9 @@ export class ItemWorldScene extends Scene {
     for (const c of this.containers) c.destroy();
     this.containers.length = 0;
     this.heldContainer = null;
+    this.pullingContainer = null;
+    this.pullElapsedMs = 0;
+    this.arcTether?.hide();
     this.roomItemSpawners.clear();
     this.fullMapContainer = new Container();
     // Create aggregate layer containers so the palette filter spans the
@@ -4643,31 +4657,47 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // ── Grab / Throw (B / RB) ──
+    // ── Grab / Throw (B / RB) — Arc Tether 원격 픽업 + Spelunky 던지기. ──
+    // LdtkWorldScene 와 동일 흐름. 자세한 주석은 LdtkWorldScene update() 참조.
     if (this.game.input.isJustPressed(GameAction.GRAB)) {
       if (this.heldContainer) {
-        // Two-handed forward toss — vx 160 = doubled range vs prior 80.
-        const facing = this.player.facingRight ? 1 : -1;
-        this.heldContainer.release(facing * 160, -170);
-        this.heldContainer = null;
+        if (!this.pullingContainer) {
+          const facing = this.player.facingRight ? 1 : -1;
+          this.heldContainer.release(facing * 160, -170);
+          this.heldContainer = null;
+          this.arcTether?.hide();
+        }
       } else {
-        // AABB-with-padding grab (mirrors LdtkWorldScene). Center-distance
-        // alone misses adjacent 32×32 crates whose centers sit > 23 px away.
         const best = this.findNearestGrabbableContainer();
-        if (best) { best.pickUp(); this.heldContainer = best; }
+        if (best) this.startGrabPull(best);
       }
-    } else if (this.heldContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
-      // 들고 있을 때만 ATTACK 도 throw. 검 휘두름 차단 위해 consume.
+    } else if (this.heldContainer && !this.pullingContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
       // (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
       const facing = this.player.facingRight ? 1 : -1;
       this.heldContainer.release(facing * 160, -170);
       this.heldContainer = null;
+      this.arcTether?.hide();
       this.game.input.consumeJustPressed(GameAction.ATTACK);
     }
     if (this.heldContainer && !this.heldContainer.destroyed) {
       const h = this.heldContainer;
-      h.x = this.player.x + (this.player.width - h.width) / 2;
-      h.y = this.player.y - h.height - 2;
+      const targetX = this.player.x + (this.player.width - h.width) / 2;
+      const targetY = this.player.y - h.height - 2;
+      if (this.pullingContainer === h) {
+        this.pullElapsedMs += dt;
+        const PULL_DURATION_MS = 200;
+        const t = Math.min(1, this.pullElapsedMs / PULL_DURATION_MS);
+        const easeT = 1 - Math.pow(1 - t, 3);
+        h.x = this.pullStartX + (targetX - this.pullStartX) * easeT;
+        h.y = this.pullStartY + (targetY - this.pullStartY) * easeT;
+        if (t >= 1) {
+          this.pullingContainer = null;
+          this.pullElapsedMs = 0;
+        }
+      } else {
+        h.x = targetX;
+        h.y = targetY;
+      }
       h.container.x = h.x;
       h.container.y = h.y;
       this.player.isLifting = true;
@@ -4675,6 +4705,7 @@ export class ItemWorldScene extends Scene {
       this.player.isLifting = false;
     }
     this.updateContainerPrompt();
+    this.updateArcTether(dt);
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
     this.updateStaticEntities(dt);
@@ -6596,28 +6627,80 @@ export class ItemWorldScene extends Scene {
   // DEC-039 Trapdoor 침강 시퀀스
   // ---------------------------------------------------------------------------
 
+  /** Arc Tether 픽업 후보 — 자세한 명세는 LdtkWorldScene.findNearestGrabbableContainer 참조. */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
-    const GRAB_RANGE = 8;
-    const grabBox = {
-      x: this.player.x - GRAB_RANGE,
-      y: this.player.y - GRAB_RANGE,
-      width: this.player.width + GRAB_RANGE * 2,
-      height: this.player.height + GRAB_RANGE * 2,
-    };
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y + this.player.height / 2;
+    const MAX_RANGE = 96;
+    const MAX_RANGE_SQ = MAX_RANGE * MAX_RANGE;
+    const ADJ_THRESHOLD_SQ = 24 * 24;
+    const CONE_COS = 0.5;
+    let dirX = this.player.facingRight ? 1 : -1;
+    let dirY = 0;
+    if (this.game.input.isDown(GameAction.LOOK_UP))        { dirX = 0; dirY = -1; }
+    else if (this.game.input.isDown(GameAction.LOOK_DOWN)) { dirX = 0; dirY = 1; }
     let best: ThrowableContainer | null = null;
     let bestDist = Infinity;
     for (const c of this.containers) {
       if (c.destroyed || c.held) continue;
-      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-      if (!aabbOverlap(grabBox, cBox)) continue;
       const cx = c.colX + c.colW / 2;
       const cy = c.colY + c.colH / 2;
-      const d = (cx - px) ** 2 + (cy - py) ** 2;
-      if (d < bestDist) { best = c; bestDist = d; }
+      const dx = cx - px;
+      const dy = cy - py;
+      const distSq = dx * dx + dy * dy;
+      if (distSq > MAX_RANGE_SQ) continue;
+      if (distSq <= ADJ_THRESHOLD_SQ) {
+        if (distSq < bestDist) { best = c; bestDist = distSq; }
+        continue;
+      }
+      const dist = Math.sqrt(distSq);
+      const dot = (dx / dist) * dirX + (dy / dist) * dirY;
+      if (dot < CONE_COS) continue;
+      if (distSq < bestDist) { best = c; bestDist = distSq; }
     }
     return best;
+  }
+
+  private startGrabPull(target: ThrowableContainer): void {
+    this.pullStartX = target.x;
+    this.pullStartY = target.y;
+    this.pullElapsedMs = 0;
+    this.pullingContainer = target;
+    target.pickUp();
+    this.heldContainer = target;
+    const boosted = target.kind === 'ChargedCrate' || target.kind === 'ChargedCell';
+    this.arcTether?.startPull(boosted);
+    SFX.play('grab_arc');
+  }
+
+  private updateArcTether(dtMs: number): void {
+    if (!this.arcTether) return;
+    const tether = this.arcTether;
+    const fromX = this.player.x + this.player.width / 2;
+    const fromY = this.player.y + this.player.height * 0.4;
+    if (this.heldContainer && !this.heldContainer.destroyed) {
+      const h = this.heldContainer;
+      const boosted = h.kind === 'ChargedCrate' || h.kind === 'ChargedCell';
+      if (this.pullingContainer === h) {
+        if (tether.getPhase() !== 'pull') tether.startPull(boosted);
+      } else if (tether.getPhase() !== 'hold') {
+        tether.setHold(boosted);
+      }
+      const toX = h.colX + h.colW / 2;
+      const toY = h.colY + h.colH / 2;
+      tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
+      return;
+    }
+    const hover = this.findNearestGrabbableContainer();
+    if (!hover) {
+      if (tether.isVisible()) tether.hide();
+      return;
+    }
+    const boosted = hover.kind === 'ChargedCrate' || hover.kind === 'ChargedCell';
+    if (tether.getPhase() !== 'hover') tether.setHover(boosted);
+    const toX = hover.colX + hover.colW / 2;
+    const toY = hover.colY + hover.colH / 2;
+    tether.update(dtMs, { x: fromX, y: fromY }, { x: toX, y: toY });
   }
 
   private updateContainerPrompt(): void {
