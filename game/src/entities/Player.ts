@@ -255,6 +255,10 @@ export class Player extends Entity implements CombatEntity {
     this.magmaResidueRemainingMs = 0;
   }
 
+  getEchoWalkFrames(): Texture[] {
+    return this.erdaFrames.length >= 16 ? this.erdaFrames.slice(8, 16) : [];
+  }
+
   // ============================================================
   // Ego Shard — Hades-style cast ammo
   // ============================================================

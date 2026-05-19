@@ -121,7 +121,7 @@ export class Game {
     const initOpts = {
       width: nativeW,
       height: nativeH,
-      backgroundColor: 0x3a1a28,
+      backgroundColor: 0x000000,
       resolution: 1,
       autoDensity: false,
       antialias: false,
@@ -347,5 +347,9 @@ export class Game {
     canvas.style.width = `${Math.floor(GAME_WIDTH * displayScale)}px`;
     canvas.style.height = `${Math.floor(GAME_HEIGHT * displayScale)}px`;
     canvas.style.imageRendering = 'pixelated';
+  }
+
+  generateTexture(container: Container) {
+    return this.renderer.generateTexture(container);
   }
 }

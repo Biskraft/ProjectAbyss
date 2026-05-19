@@ -60,6 +60,12 @@ class BgmControllerImpl {
   private buffers = new Map<string, AudioBuffer>();
   private active: ActiveBgm | null = null;
   private playRequestId = 0;
+  /**
+   * endTrack 으로 schedule 된 outro source. active 와 무관하게 살아있으므로
+   * 새 play() 진입 시 별도 정리하지 않으면 outro 와 새 트랙이 동시 재생된다
+   * (ItemWorld 왕복 시 중복 BGM 의 root cause).
+   */
+  private pendingOutro: { node: AudioBufferSourceNode; gain: GainNode } | null = null;
 
   /**
    * 트랙 시작. 같은 trackKey 이미 활성 중이면 no-op.
@@ -102,7 +108,10 @@ class BgmControllerImpl {
   // ── private ────────────────────────────────────────────────────────────────
 
   private async startTrack(trackKey: string, track: BgmTrack, opts: PlayOpts | undefined, requestId: number): Promise<void> {
+    // 진행 중인 segments 와 pending outro 모두 즉시 끊는다. outro 까지 청소하지
+    // 않으면 endTrack 가 schedule 한 outro source 가 새 트랙과 동시에 들린다.
     if (this.active) this.stopActiveImmediate();
+    this.stopPendingOutro();
 
     AudioBus.resume();
     if (!this.ensureCtx()) return;
@@ -117,6 +126,11 @@ class BgmControllerImpl {
 
     // 도중 다른 play() 가 끼어들었으면 폐기.
     if (requestId !== this.playRequestId) return;
+
+    // 디코드 await 동안 또 다른 startTrack 이 active 를 채웠을 수 있다 — 덮어쓰면
+    // 그 segments 가 추적 불능이 되어 영원히 재생됨. 강제로 다시 청소한다.
+    if (this.active) this.stopActiveImmediate();
+    this.stopPendingOutro();
 
     const baseGain = this.computeBaseGain(track.loop);
     const startTime = ctx.currentTime + 0.05;
@@ -260,11 +274,27 @@ class BgmControllerImpl {
       node.connect(segGain);
       segGain.connect(master);
       try { node.start(outroStart); } catch { /* ok */ }
+      // outro 가 살아있는 동안 startTrack 이 끊을 수 있도록 추적.
+      this.pendingOutro = { node, gain: segGain };
       node.onended = () => {
+        if (this.pendingOutro && this.pendingOutro.node === node) {
+          this.pendingOutro = null;
+        }
         try { segGain.disconnect(); } catch { /* ok */ }
         try { node.disconnect(); } catch { /* ok */ }
       };
     }
+  }
+
+  /** endTrack 가 schedule 한 outro source 강제 종료. play 직전에 호출. */
+  private stopPendingOutro(): void {
+    if (!this.pendingOutro || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const { node, gain } = this.pendingOutro;
+    try { node.stop(now); } catch { /* already stopped */ }
+    try { gain.disconnect(); } catch { /* ok */ }
+    try { node.disconnect(); } catch { /* ok */ }
+    this.pendingOutro = null;
   }
 
   private stopActiveImmediate(): void {

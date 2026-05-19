@@ -11,12 +11,14 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const browser = await puppeteer.launch({ headless: 'new' });
 try {
+  // PDF is vector-native — deviceScaleFactor=1 keeps text crisp without bloating raster ops.
   // ---- Pitch Deck (1920x1080 landscape) ----
   {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
+    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
     const url = 'file:///' + path.resolve(__dirname, 'index.html').replace(/\\/g, '/');
     await page.goto(url, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
     await page.evaluateHandle('document.fonts.ready');
     const out = path.join(outDir, 'ECHORIS_PitchDeck_EN_v1.pdf');
     await page.pdf({
@@ -33,9 +35,10 @@ try {
   // ---- One-Pager (A4 portrait) ----
   {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
+    await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 1 });
     const url = 'file:///' + path.resolve(__dirname, 'one-pager.html').replace(/\\/g, '/');
     await page.goto(url, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
     await page.evaluateHandle('document.fonts.ready');
     const out = path.join(outDir, 'ECHORIS_OnePager_EN_v1.pdf');
     await page.pdf({

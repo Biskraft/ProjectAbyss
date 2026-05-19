@@ -297,11 +297,11 @@ export class Anvil {
     this.itemGfx.rect(-4, -this.height - 11, 2, 4).fill(color);
     this.container.addChild(this.itemGfx);
 
-    // Show item icon at anvil center
     this.showItemIcon(item);
 
-    // Play FX019 activation effect at anvil center
-    this.playActivationFX();
+    // FX019 sprite playback is intentionally disabled while the Item World
+    // entry transition is being reworked.
+    // this.playActivationFX();
 
     // Symbol prompt now advertises strike action
     this.refreshSymbolPrompt();
@@ -320,11 +320,8 @@ export class Anvil {
       const icon = new Sprite(tex);
       icon.anchor.set(0.5, 0.5);
       // Gate center + 50px down offset
-      const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
       icon.x = -3;
       icon.y = -47;
-      icon.width = 64;
-      icon.height = 64;
       this.itemIcon = icon;
       this.container.addChild(icon);
     }).catch(() => { /* no icon available */ });

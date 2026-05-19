@@ -59,6 +59,7 @@ import {
 import { MemoryShardNPC } from '@entities/MemoryShardNPC';
 import { MemoryResident, type ResidentType } from '@entities/MemoryResident';
 import { Trapdoor } from '@entities/Trapdoor';
+import { Anvil } from '@entities/Anvil';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
@@ -278,6 +279,14 @@ export class ItemWorldScene extends Scene {
    * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
    */
   private trapdoor: Trapdoor | null = null;
+  /**
+   * LDtk-placed Anvils inside ItemStratum levels. Acts as an in-world exit:
+   * approach → KeyPrompt → ATTACK opens EscapeConfirm (same flow as MENU/ESC).
+   * One Anvil class per instance (visual halo + sparks); built-in symbol prompt
+   * is suppressed in favor of the standard KeyPrompt pattern.
+   */
+  private itemWorldAnvils: Anvil[] = [];
+  private itemWorldAnvilPrompt: Container | null = null;
   /** 침강 시퀀스 진행 누적 ms. transitionState='descent_fall' 동안만 갱신. */
   private descentTimer = 0;
   /** 텔레포트 완료 표식 — 시퀀스 중 한 번만 수행 보장. */
@@ -3993,6 +4002,16 @@ export class ItemWorldScene extends Scene {
           });
           break;
         }
+        case 'Anvil': {
+          // ItemStratum 안의 Anvil = "맵 밖으로 나가기" 거점. Overworld Anvil 의
+          // place-weapon/strike 흐름은 사용하지 않고, 근접 시 KeyPrompt 를 띄워
+          // ATTACK 입력으로 EscapeConfirm(ESC 다이얼로그) 을 연다.
+          const anvil = new Anvil(ax, ay, false);
+          anvil.setShowHint(false); // 자체 symbol prompt 비활성 — KeyPrompt 만 사용
+          this.itemWorldAnvils.push(anvil);
+          this.entityLayer.addChild(anvil.container);
+          break;
+        }
         // Other entity types intentionally not handled in ItemWorldScene
       }
     }
@@ -4035,6 +4054,10 @@ export class ItemWorldScene extends Scene {
       this.trapdoor.destroy();
       this.trapdoor = null;
     }
+    // ItemWorld exit-anvils — rebuild/stratum 전환 시 잔류 방지.
+    for (const a of this.itemWorldAnvils) a.destroy();
+    this.itemWorldAnvils = [];
+    this.destroyItemWorldAnvilPrompt();
   }
 
   /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
@@ -4783,6 +4806,8 @@ export class ItemWorldScene extends Scene {
     this.updateResidentEgoTriggers();
     // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 인터랙트.
     this.updateTrapdoor(dt);
+    // ItemWorld exit Anvil — proximity prompt + ATTACK 인터랙트로 ESC 다이얼로그.
+    this.updateItemWorldAnvils(dt);
     // 수동 cell culling — viewport 밖 cell 의 4 layer 는 visible=false 로 draw skip.
     this.updateCellVisibility();
 
@@ -6742,6 +6767,86 @@ export class ItemWorldScene extends Scene {
     if (this.trapdoorPrompt) this.trapdoorPrompt.visible = false;
   }
 
+  /**
+   * ItemStratum Anvil — proximity + KeyPrompt + ATTACK 인터랙트.
+   *
+   * Anvil 동작 = ESC 키와 동일: 다가가서 [C] 누르면 EscapeConfirm 모달이 열린다.
+   * 모달 안에서 ATTACK 한 번 더 누르면 startExitFade → exitItemWorld 로 월드 귀환.
+   *
+   * 인풋 충돌 방지: showEscapeConfirm 후 ATTACK 을 consume 해서 같은 프레임의
+   * EscapeConfirm 핸들러가 즉시 confirm 으로 폭주하지 않도록 한다.
+   */
+  private updateItemWorldAnvils(dt: number): void {
+    if (this.itemWorldAnvils.length === 0) {
+      this.hideItemWorldAnvilPrompt();
+      return;
+    }
+    // Modal/transition 진행 중에는 prompt 숨김 (다른 UI 위에 겹치지 않게).
+    const suppressed = this.shouldSuppressWorldPrompts()
+      || this.uiController.isEscapeConfirmVisible()
+      || this.transitionState !== 'none';
+
+    let nearest: Anvil | null = null;
+    for (const a of this.itemWorldAnvils) {
+      a.update(dt);
+      if (suppressed) continue;
+      const promptRange = 16;
+      if (a.overlaps(
+        this.player.x - promptRange,
+        this.player.y - promptRange,
+        this.player.width + promptRange * 2,
+        this.player.height + promptRange * 2,
+      )) {
+        nearest = a;
+      }
+    }
+
+    if (!nearest) {
+      this.hideItemWorldAnvilPrompt();
+      return;
+    }
+
+    // World→screen prompt placement (Anvil/Save/Talk 표준 패턴).
+    if (!this.itemWorldAnvilPrompt) {
+      this.itemWorldAnvilPrompt = KeyPrompt.createPrompt(
+        actionKey(GameAction.ATTACK),
+        t('prompt.return'),
+        this.game.uiScale,
+      );
+    }
+    if (!this.itemWorldAnvilPrompt.parent) {
+      this.game.uiContainer.addChild(this.itemWorldAnvilPrompt);
+    }
+    this.itemWorldAnvilPrompt.visible = true;
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const ax = nearest.container.x;
+    const ay = nearest.container.y - nearest.height;
+    const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.itemWorldAnvilPrompt.width / 2;
+    const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 24) * us;
+    this.itemWorldAnvilPrompt.x = Math.round(sx);
+    this.itemWorldAnvilPrompt.y = Math.round(sy);
+
+    if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+      this.game.input.consumeJustPressed(GameAction.ATTACK);
+      this.hideItemWorldAnvilPrompt();
+      this.showEscapeConfirm();
+    }
+  }
+
+  private hideItemWorldAnvilPrompt(): void {
+    if (this.itemWorldAnvilPrompt) this.itemWorldAnvilPrompt.visible = false;
+  }
+
+  private destroyItemWorldAnvilPrompt(): void {
+    if (!this.itemWorldAnvilPrompt) return;
+    if (this.itemWorldAnvilPrompt.parent) {
+      this.itemWorldAnvilPrompt.parent.removeChild(this.itemWorldAnvilPrompt);
+    }
+    this.itemWorldAnvilPrompt.destroy({ children: true });
+    this.itemWorldAnvilPrompt = null;
+  }
+
   private destroyTrapdoorPrompt(): void {
     if (!this.trapdoorPrompt) return;
     if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
@@ -7035,6 +7140,7 @@ export class ItemWorldScene extends Scene {
     this.toast.clear();
     this.uiController.destroy();
     this.destroyTrapdoorPrompt();
+    this.destroyItemWorldAnvilPrompt();
     this.clearStaticEntities();
     if (this.loreDisplay) {
       this.loreDisplay.close();

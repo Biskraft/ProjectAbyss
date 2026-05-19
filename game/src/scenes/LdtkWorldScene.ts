@@ -78,6 +78,7 @@ import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
+import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
 import { FloorCollapse } from '@effects/FloorCollapse';
 import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
@@ -390,6 +391,13 @@ export class LdtkWorldScene extends Scene {
   private pendingPlayerTileY = 0;
   private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
+  /**
+   * ItemWorld 복귀 fade-in 전용 overlay. fadeOverlay 와 분리해 voidFade /
+   * level transition 과 race 발생 없이 독립 페이드. 0 = invisible, 1 = full black.
+   */
+  private iwReturnFade!: Graphics;
+  private iwReturnFadeMs = 0;
+  private readonly IW_RETURN_FADE_DURATION = 500;
   private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
   private lookHoldTimer = 0; // ms holding UP/DOWN while idle
 
@@ -504,7 +512,9 @@ export class LdtkWorldScene extends Scene {
   private portals: Portal[] = [];
   private altars: Altar[] = [];
   private portalTransition: PortalTransition | null = null;
+  private itemWorldTransition: ItemWorldTransitionController | null = null;
   private pendingPortalData: { rarity: Rarity; sourceType: PortalSourceType; sourceItem?: ItemInstance } | null = null;
+  private pendingPortalEntity: Portal | null = null;
   private altarSelectActive = false;
   private altarSelectIndex = 0;
   private activeAltar: Altar | null = null;
@@ -526,6 +536,8 @@ export class LdtkWorldScene extends Scene {
   private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
   private diveTransitionActive = false;
   private collapseItem: ItemInstance | null = null;
+  private anvilDiveUiHidden = false;
+  private anvilDiveUiWasVisible = true;
 
   // Sacred Pickup ??weapon pickup cutscene + lore popup + dive preview.
   private lorePopup: LorePopup | null = null;
@@ -997,6 +1009,12 @@ export class LdtkWorldScene extends Scene {
     this.fadeOverlay.alpha = 0;
     this.game.legacyUIContainer.addChild(this.fadeOverlay);
 
+    // ItemWorld 복귀 전용 fade-in overlay (fadeOverlay 위에 별도 레이어).
+    this.iwReturnFade = new Graphics();
+    this.iwReturnFade.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
+    this.iwReturnFade.alpha = 0;
+    this.game.legacyUIContainer.addChild(this.iwReturnFade);
+
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
@@ -1450,6 +1468,19 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private hideUiForAnvilDiveTransition(): void {
+    if (this.anvilDiveUiHidden) return;
+    this.anvilDiveUiWasVisible = this.game.uiContainer.visible;
+    this.game.uiContainer.visible = false;
+    this.anvilDiveUiHidden = true;
+  }
+
+  private restoreUiAfterAnvilDiveTransition(): void {
+    if (!this.anvilDiveUiHidden) return;
+    this.game.uiContainer.visible = this.anvilDiveUiWasVisible;
+    this.anvilDiveUiHidden = false;
+  }
+
   private initialized = false;
 
   /**
@@ -1742,7 +1773,14 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Portal transition playing
+    // Item World transition playing
+    if (this.itemWorldTransition) {
+      this.itemWorldTransition.update(dt);
+      this.game.camera.update(dt);
+      return;
+    }
+
+    // Legacy portal transition playing
     if (this.portalTransition) {
       this.portalTransition.update(dt);
       this.game.camera.update(dt);
@@ -1774,6 +1812,12 @@ export class LdtkWorldScene extends Scene {
     // updateVoidFade itself bumps the fade timer + force-grounds the player.
     if (this.voidDropActive) {
       this.updateVoidFade(dt);
+    }
+
+    // ItemWorld 복귀 fade-in 진행 — 별도 overlay, 다른 fade 와 race 없음.
+    if (this.iwReturnFadeMs > 0) {
+      this.iwReturnFadeMs = Math.max(0, this.iwReturnFadeMs - dt);
+      this.iwReturnFade.alpha = this.iwReturnFadeMs / this.IW_RETURN_FADE_DURATION;
     }
 
     // Floor collapse in progress ??all input blocked, camera frozen
@@ -3309,6 +3353,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   exit(): void {
+    this.restoreUiAfterAnvilDiveTransition();
     if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
@@ -3321,9 +3366,12 @@ export class LdtkWorldScene extends Scene {
     //  ??그�?�??�아 ItemWorldScene ?�서 ?�을 ???�는 "stuck" ?�태가 ??)
     if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
+    if (this.itemWorldTransition) { this.itemWorldTransition.destroy(); this.itemWorldTransition = null; }
+    if (this.pendingPortalEntity) { this.pendingPortalEntity.destroy(); this.pendingPortalEntity = null; }
   }
 
   override destroy(): void {
+    this.restoreUiAfterAnvilDiveTransition();
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
     super.destroy();
@@ -5736,6 +5784,15 @@ export class LdtkWorldScene extends Scene {
     );
   }
 
+  /**
+   * ItemWorld 복귀 페이드인 트리거 — 검은 overlay alpha 1 → 0.
+   * onComplete 콜백 3 경로(일반 portal / floor collapse / fixed level)에서 호출.
+   */
+  private startItemWorldReturnFadeIn(): void {
+    this.iwReturnFadeMs = this.IW_RETURN_FADE_DURATION;
+    this.iwReturnFade.alpha = 1;
+  }
+
   private updateVoidFade(dt: number): void {
     if (this.voidInputLockMs > 0) this.voidInputLockMs = Math.max(0, this.voidInputLockMs - dt);
     this.voidFadeTimer += dt;
@@ -7828,29 +7885,41 @@ export class LdtkWorldScene extends Scene {
   private enterPortal(portal: Portal): void {
     this.closeAltarUI();
 
-    const cam = this.game.camera;
-    const screenX = portal.x - cam.renderX + GAME_WIDTH / 2;
-    const screenY = portal.y - cam.renderY + GAME_HEIGHT / 2;
-
-    const transition = new PortalTransition(
-      screenX, screenY,
-      portal.rarity, portal.sourceType, portal.sourceItem,
-    );
-    this.portalTransition = transition;
-    this.game.legacyUIContainer.addChild(transition.container);
-
-    transition.onShake = (intensity) => this.game.camera.shake(intensity);
-    transition.onHitstop = (frames) => { this.game.hitstopFrames += frames; };
-
     const idx = this.portals.indexOf(portal);
     if (idx >= 0) this.portals.splice(idx, 1);
-    portal.destroy();
+    portal.setShowHint(false);
 
     this.pendingPortalData = {
       rarity: portal.rarity,
       sourceType: portal.sourceType,
       sourceItem: portal.sourceItem,
     };
+    this.pendingPortalEntity = portal;
+
+    this.itemWorldTransition = new ItemWorldTransitionController({
+      game: this.game,
+      player: this.player,
+      layers: {
+        realityGroups: [
+          [this.parallaxBG?.container],
+          [this.renderer?.bgLayer, this.renderer?.interiorLayer],
+          [
+            this.renderer?.wallLayer,
+            this.renderer?.specialLayer,
+            this.renderer?.shadowLayer,
+            this.solidifiedWallGfx,
+            this.fluidLayer,
+            this.procDecorator?.naturalLayer,
+            this.procDecorator?.artificialLayer,
+            this.procDecorator?.structureLayer,
+          ],
+        ],
+        fxLayer: this.entityLayer,
+        overlayLayer: this.game.legacyUIContainer,
+      },
+      onComplete: () => this.completePendingPortalEntry(),
+    });
+    this.itemWorldTransition.start(portal);
   }
 
   private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean): void {
@@ -7869,6 +7938,16 @@ export class LdtkWorldScene extends Scene {
     const data = this.pendingPortalData;
     if (!data) return;
     this.pendingPortalData = null;
+
+    if (this.itemWorldTransition) {
+      const transition = this.itemWorldTransition;
+      this.itemWorldTransition = null;
+      transition.destroy();
+    }
+    if (this.pendingPortalEntity) {
+      this.pendingPortalEntity.destroy();
+      this.pendingPortalEntity = null;
+    }
 
     // In fixed item world ??portal = return to forge
     if (this.inFixedItemWorld) {
@@ -7907,6 +7986,7 @@ export class LdtkWorldScene extends Scene {
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
+      this.startItemWorldReturnFadeIn();
       this.updatePlayerAtk();
       // Mark global Item World tutorial as done — ONLY after the player
       // actually defeated the first IW boss. ESC / escape-altar exits before
@@ -8639,6 +8719,7 @@ export class LdtkWorldScene extends Scene {
       const confirm = () => {
         if (!this.anvil) return;
         sacredSave.markFirstDiveDone();
+        this.hideUiForAnvilDiveTransition();
         this.anvil.placeItem(item);
         this.collapseItem = item;
         this.inventoryUI.close();
@@ -8654,6 +8735,7 @@ export class LdtkWorldScene extends Scene {
     }
     // Fallback path if preview unavailable.
     sacredSave.markFirstDiveDone();
+    this.hideUiForAnvilDiveTransition();
     this.anvil.placeItem(item);
     this.collapseItem = item;
     this.inventoryUI.close();
@@ -8846,11 +8928,9 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.zoomTo(2, 0.03);
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    // Warp when FX019 animation completes: custom screen transition
-    // Keep zoom-in during transition — reset only after full blackout
-    this.anvil.onFxComplete = () => {
-      this.runDiveTransition();
-    };
+    // FX019/item-icon playback is disabled for the new Echo transition.
+    // Start the transition directly after the strike feedback breathes.
+    window.setTimeout(() => this.runDiveTransition(), 250);
   }
 
   /** Rarity ??ItemTunnel level name mapping. */
@@ -8925,6 +9005,7 @@ export class LdtkWorldScene extends Scene {
   /** Called when player reaches the end of an ItemTunnel ??enter Item World. */
   private enterItemWorldFromTunnel(): void {
     if (!this.collapseItem) return;
+    this.restoreUiAfterAnvilDiveTransition();
 
     const targetItem = this.collapseItem;
 
@@ -8956,6 +9037,7 @@ export class LdtkWorldScene extends Scene {
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
+      this.startItemWorldReturnFadeIn();
       this.updatePlayerAtk();
       // Only set after first IW boss kill — see other onComplete site for rationale.
       if (sacredSave.isFirstItemWorldBossDefeated()) {
@@ -9026,6 +9108,7 @@ export class LdtkWorldScene extends Scene {
    * Navigates back via portal or edge transition.
    */
   private enterFixedItemWorld(item: ItemInstance): void {
+    this.restoreUiAfterAnvilDiveTransition();
     const levelId = item.fixedLevelId!;
     const level = this.loader.getLevel(levelId);
     if (!level) {
@@ -9038,6 +9121,7 @@ export class LdtkWorldScene extends Scene {
       itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
       itemWorldScene.onComplete = () => {
         this.game.sceneManager.pop();
+        this.startItemWorldReturnFadeIn();
         this.updatePlayerAtk();
         // Only set after first IW boss kill — see other onComplete site for rationale.
         if (sacredSave.isFirstItemWorldBossDefeated()) {
@@ -9586,71 +9670,48 @@ export class LdtkWorldScene extends Scene {
   private diveIris: Graphics | null = null;
 
   private runDiveTransition(): void {
-    this.diveTransitionActive = true;
-    const anvilCx = this.anvil!.x;
-    const anvilCy = this.anvil!.y - this.anvil!.height / 2;
-    const cam = this.game.camera;
+    if (!this.anvil || !this.collapseItem) return;
 
-    // ── Step 1: 공명 (hitstop + flash) ──
-    this.game.hitstopFrames = 10;
-    this.screenFlash.flash(0xffffff, 0.6, 200);
-    this.game.camera.shake(4);
-
-    // ── Step 2: 색상 드레인 + 아이리스 축소 (800ms) ──
-    setTimeout(() => {
-      // Desaturation overlay
-      this.diveOverlay = new Graphics();
-      this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-        .fill({ color: 0x000000, alpha: 0 });
-      this.game.legacyUIContainer.addChild(this.diveOverlay);
-
-      // Iris circle mask effect (shrinking circle toward anvil)
-      this.diveIris = new Graphics();
-      this.game.legacyUIContainer.addChild(this.diveIris);
-
-      const IRIS_DURATION = 800;
-      const startTime = performance.now();
-      const maxRadius = Math.max(GAME_WIDTH, GAME_HEIGHT);
-
-      // Convert anvil world coords to screen coords
-      const screenCx = anvilCx - cam.renderX + GAME_WIDTH / 2;
-      const screenCy = anvilCy - cam.renderY + GAME_HEIGHT / 2;
-
-      const animateIris = () => {
-        const elapsed = performance.now() - startTime;
-        const t = Math.min(1, elapsed / IRIS_DURATION);
-        const eased = t * t; // ease-in
-
-        // Darken overlay (desaturation effect)
-        if (this.diveOverlay) {
-          this.diveOverlay.clear();
-          this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-            .fill({ color: 0x000000, alpha: eased * 0.6 });
+    const anvilTargetX = this.anvil.x;
+    const anvilTargetY = this.anvil.y - this.anvil.height / 2;
+    this.itemWorldTransition = new ItemWorldTransitionController({
+      game: this.game,
+      player: this.player,
+      layers: {
+        realityGroups: [
+          [this.parallaxBG?.container],
+          [this.renderer?.bgLayer, this.renderer?.interiorLayer],
+          [
+            this.renderer?.wallLayer,
+            this.renderer?.specialLayer,
+            this.renderer?.shadowLayer,
+            this.solidifiedWallGfx,
+            this.fluidLayer,
+            this.procDecorator?.naturalLayer,
+            this.procDecorator?.artificialLayer,
+            this.procDecorator?.structureLayer,
+          ],
+        ],
+        fxLayer: this.entityLayer,
+        overlayLayer: this.game.legacyUIContainer,
+      },
+      onComplete: () => {
+        if (this.itemWorldTransition) {
+          const transition = this.itemWorldTransition;
+          this.itemWorldTransition = null;
+          transition.destroy();
         }
-
-        // Iris: black screen with shrinking transparent circle
-        if (this.diveIris) {
-          const radius = maxRadius * (1 - eased);
-          this.diveIris.clear();
-          // Full black rect
-          this.diveIris.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-            .fill({ color: 0x000000, alpha: eased * 0.8 });
-          // Cut transparent circle
-          if (radius > 2) {
-            this.diveIris.circle(screenCx, screenCy, radius)
-              .cut();
-          }
-        }
-
-        if (t < 1) {
-          requestAnimationFrame(animateIris);
-        } else {
-          // ── Step 3: 검은 화면 500ms → 씬 전환 ──
-          this.stepDiveBlackout();
-        }
-      };
-      requestAnimationFrame(animateIris);
-    }, 200); // wait for hitstop to finish
+        this.diveTransitionActive = false;
+        this.game.camera.setZoom(1.0);
+        this.completeFloorCollapseEntry();
+      },
+    });
+    this.itemWorldTransition.start({
+      x: anvilTargetX,
+      y: anvilTargetY,
+      rarity: this.collapseItem.rarity,
+      container: this.anvil.container,
+    });
   }
 
   private stepDiveBlackout(): void {
