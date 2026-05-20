@@ -29,7 +29,7 @@
   --bg: #0A0A0A;
   --pulse: #2A8A8A;
   --pulse-dim: #1A4A4A;
-  --cta: #E87830;
+  --cta: #ffa41b;
   --text-1: #F0F0F0;
   --text-2: #B0B0B0;
   --text-3: #4A8A8A;
@@ -90,8 +90,8 @@ body::before {
 .echo-pulse.fire { animation: pulse-expand 2.5s cubic-bezier(.15,.6,.35,1) forwards; }
 @keyframes pulse-expand { 0% { width:0;height:0;opacity:.8; } 100% { width:250vmax;height:250vmax;opacity:0; } }
 .echo-pulse.item-world {
-  background: radial-gradient(circle, transparent 40%, rgba(232,120,48,.1) 60%, transparent 100%);
-  border-color: rgba(232,120,48,.2);
+  background: radial-gradient(circle, transparent 40%, rgba(255, 164, 27,.1) 60%, transparent 100%);
+  border-color: rgba(255, 164, 27,.2);
 }
 
 /* ═══ DEPTH SHAFT ═══ */
@@ -110,7 +110,7 @@ body.scrolled #depth-shaft { opacity: 1; }
   animation: dot-pulse 3s ease-in-out infinite;
 }
 @keyframes dot-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
-.shaft-fill.breached { background: linear-gradient(180deg, var(--pulse-dim) 0%, rgba(232,120,48,.4) 100%); }
+.shaft-fill.breached { background: linear-gradient(180deg, var(--pulse-dim) 0%, rgba(255, 164, 27,.4) 100%); }
 .shaft-fill.breached::after { background: var(--cta); }
 .shaft-value {
   font-family: var(--font-mono); font-size: 0.65rem; color: var(--pulse-dim);
@@ -127,7 +127,7 @@ section { padding: 100px 0; position: relative; }
   background: linear-gradient(90deg, transparent 0%, var(--beam) 20%, var(--pulse-dim) 50%, var(--beam) 80%, transparent 100%);
 }
 .divider.orange {
-  background: linear-gradient(90deg, transparent 0%, rgba(232,120,48,.06) 20%, rgba(232,120,48,.2) 50%, rgba(232,120,48,.06) 80%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 164, 27,.06) 20%, rgba(255, 164, 27,.2) 50%, rgba(255, 164, 27,.06) 80%, transparent 100%);
 }
 
 /* Reveal */
@@ -145,16 +145,14 @@ section { padding: 100px 0; position: relative; }
 }
 
 .hero-logo { display: inline-block; margin-bottom: 16px; position: relative; }
-.hero-title {
-  font-family: var(--font-title); font-weight: 900;
-  font-size: clamp(3rem, 11vw, 8rem); line-height: 0.9;
-  letter-spacing: 0.12em; text-transform: uppercase;
-  color: #2A8A8A; filter: url(#grunge); margin: 0;
+/* SVG logo (official ECHORIS title, ui_title_01.svg) — white on transparent.
+   Sized responsively to match previous text wordmark footprint. */
+.hero-title-img {
+  display: block; width: clamp(280px, 60vw, 720px); height: auto; margin: 0;
 }
-.hero-title span { color: #e87830; }
 .hero-logo::after {
   content: ''; position: absolute; bottom: -4px; left: 15%; right: 15%; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(42,138,138,.25) 30%, rgba(232,120,48,.25) 70%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(42,138,138,.25) 30%, rgba(255, 164, 27,.25) 70%, transparent);
   filter: url(#grunge);
 }
 
@@ -261,11 +259,11 @@ section { padding: 100px 0; position: relative; }
 #item-world { background: linear-gradient(180deg, #0e0906 0%, #0a0604 100%); }
 #item-world::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 30%, rgba(232,120,48,.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 164, 27,.08) 0%, transparent 60%);
 }
-#item-world .block-label { color: rgba(232,120,48,.35); }
+#item-world .block-label { color: rgba(255, 164, 27,.35); }
 #item-world .block-heading { color: rgba(240,200,170,.9); }
-#item-world .block-quote { color: rgba(232,120,48,.55); }
+#item-world .block-quote { color: rgba(255, 164, 27,.55); }
 #item-world .block-body { color: rgba(200,170,150,.7); }
 
 /* Bottom */
@@ -306,20 +304,20 @@ footer {
   opacity: 0;
   transition: opacity 1.5s ease;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 20px rgba(232,120,48,0.12));
+  filter: drop-shadow(0 0 20px rgba(255, 164, 27,0.12));
   transform-origin: center center;
   will-change: transform, top;
 }
 body.scrolled #builder-crawler { opacity: 0.45; }
 /* When entering Item World section, builder glows warmer */
 body.builder-warm #builder-crawler {
-  filter: drop-shadow(0 0 30px rgba(232,120,48,0.3));
+  filter: drop-shadow(0 0 30px rgba(255, 164, 27,0.3));
   opacity: 0.6;
 }
 
 /* ═══ Mobile ═══ */
 @media (max-width: 768px) {
-  .hero-title { font-size: clamp(2.2rem, 11vw, 4rem); letter-spacing: 0.08em; }
+  .hero-title-img { width: clamp(220px, 80vw, 380px); }
   #depth-shaft { display: none; }
   #builder-crawler { display: none; }
   section { padding: 60px 0; }
@@ -372,7 +370,8 @@ body.builder-warm #builder-crawler {
   </svg>
 
   <div class="hero-logo reveal" data-delay="1">
-    <h1 class="hero-title">ECHO<span>RIS</span></h1>
+    <h1 class="visually-hidden" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">ECHORIS</h1>
+    <img class="hero-title-img" src="assets/echoris-logo.svg" alt="ECHORIS" width="640" height="289" />
   </div>
   <p class="hero-tagline reveal" data-delay="2">Enter the memory of your weapon.</p>
   <p class="hero-genre reveal" data-delay="2">2D Metroidvania &middot; Item World &middot; Coming to Steam</p>
@@ -463,7 +462,7 @@ body.builder-warm #builder-crawler {
       Enter the Item World. Fight through procedural strata shaped by the weapon's history. Defeat wild Memory Shards and they serve you, boosting your gear's stats permanently. Return to the world. Break the next gate. Find a better weapon. Go deeper.
     </p>
     <p class="block-body dim reveal" data-delay="3">
-      <strong style="color:rgba(232,120,48,.75);font-weight:600;letter-spacing:0.05em">Co-op coming.</strong> 1&ndash;4 players. Share a URL, friends join instantly &mdash; no lobbies, no accounts. Just click and fight together inside your weapon's memory.
+      <strong style="color:rgba(255, 164, 27,.75);font-weight:600;letter-spacing:0.05em">Co-op coming.</strong> 1&ndash;4 players. Share a URL, friends join instantly &mdash; no lobbies, no accounts. Just click and fight together inside your weapon's memory.
     </p>
   </div>
 </section>

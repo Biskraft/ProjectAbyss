@@ -23,8 +23,9 @@ import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SEC
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
 
-// Logo asset path — synced with ui-components.html §title-screen spec
-// (assets/ui/ui_title_01.png is the 640×166 ECHO/RIS palette PNG).
+// Logo asset path — synced with ui-components.html §title-screen spec.
+// assets/ui/ui_title_01.png is the official ECHORIS title logo:
+// 640×289 indexed PNG, 2 colors (white #FEFFFF + transparent), finalized 2026-05-20.
 const LOGO_PATH = assetPath('assets/ui/ui_title_01.png');
 
 // Presentation palette — pure black per ui-components.html §title-screen.
