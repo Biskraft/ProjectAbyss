@@ -393,6 +393,7 @@
     <a href="#portal">Portal (Glitch)</a>
     <div class="group">World Effects</div>
     <a href="#fluid-spawner">FluidSpawner (waterfall)</a>
+    <a href="#hit-effect">HitEffect (Hollow Knight)</a>
   </nav>
 </aside>
 
@@ -3677,6 +3678,748 @@
         <div class="t-body">⑦ <b>예산:</b> spray 220 / streak 80 / impact 220 (씬당). spawner 평균 4~8개로 충분</div>
       </div>
     </div>
+  </section>
+
+  <!-- ============================================================
+       HIT EFFECT (Hollow Knight study)
+       ============================================================ -->
+  <section id="hit-effect">
+    <h2>HitEffect — Hollow Knight Slash <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">레퍼런스: Hollow Knight 슬래시 임팩트 · 후보 구현: game/src/effects/HitFX.ts (예정)</div>
+    <p>플레이어 검 적중 시 0.25초 안에 끝나는 폭발적 임팩트.
+       Hollow Knight 슬래시의 핵심은 <b>"메인 1 통과 + 서브 N 갭"</b> 구조이다.
+       <b>메인 슬래시는 중심을 그대로 관통</b>하고 (현재 1.5× 길이), 서브 교차선은 <b>중심을 비워두고</b> 갭 바깥에서 외부로 뻗는다.
+       즉 타격 중심에는 메인만 보인다.<br>
+       ① <b>Orange Burst</b> 단조열 톤 →
+       ② <b>Main Slash ×1</b> 두껍고 긴 연속선 (중심 관통, 1.5× 길이) →
+       ③ <b>Cross Lines ×N</b> 다른 각도 가는 선 (중심 갭, 양쪽 segment, <b>동적 가중치</b>) →
+       ④ <b>Debris</b> 파편 + ⑤ <b>Shake / Hit Stop</b>.</p>
+
+    <style>
+      /* ─────────────────────────────────────────────────────────
+         Hit Effect tokens — DEC-035 키컬러 orange 정합
+         ───────────────────────────────────────────────────────── */
+      :root{
+        --he-burst:    #ff8833;
+        --he-burst-2:  #ffcc66;
+        --he-slash:    #ffffff;
+        --he-spark:    #fff2c4;
+        --he-debris:   #0a0a14;
+      }
+
+      .he-stage{
+        position:relative;
+        background:
+          radial-gradient(ellipse at 50% 60%, #1a2032 0%, #0a0e18 60%, #05070d 100%);
+        height:380px;
+        width:100%;
+        border:1px solid var(--line);
+        overflow:hidden;
+        cursor:crosshair;
+        user-select:none;
+        -webkit-user-select:none;
+      }
+      .he-stage.compact{height:200px}
+
+      /* Background hint */
+      .he-stage .he-floor{
+        position:absolute;left:0;right:0;bottom:0;height:34%;
+        background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,0.55) 100%);
+        pointer-events:none;
+      }
+      .he-stage .he-hint{
+        position:absolute;left:50%;top:14px;transform:translateX(-50%);
+        font-family:ui-monospace,monospace;font-size:10px;
+        color:var(--muted);letter-spacing:1px;pointer-events:none;
+      }
+
+      /* Knight silhouette (player) */
+      .he-knight{
+        position:absolute;width:18px;height:30px;left:18%;bottom:36%;
+        background:linear-gradient(180deg,#1a1a26 0%,#080810 100%);
+        border-radius:3px 3px 0 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.05),
+          0 6px 18px rgba(0,0,0,0.6);
+        pointer-events:none;
+      }
+      .he-knight::before{
+        content:'';position:absolute;left:-3px;top:6px;width:24px;height:3px;
+        background:#cfd3e0;opacity:0.85;border-radius:1px;
+        transform:rotate(-12deg);
+      }
+
+      /* Target (enemy) */
+      .he-target{
+        position:absolute;width:34px;height:38px;left:62%;bottom:34%;
+        background:radial-gradient(ellipse at 50% 35%,#3a2f24 0%,#1a140e 80%);
+        border-radius:6px 6px 14px 14px;
+        box-shadow:0 6px 22px rgba(0,0,0,0.65);
+        pointer-events:none;
+      }
+      .he-target::before,.he-target::after{
+        content:'';position:absolute;top:10px;width:5px;height:6px;
+        background:#ff8833;border-radius:50%;
+        box-shadow:0 0 5px #ff8833;
+      }
+      .he-target::before{left:7px}
+      .he-target::after{right:7px}
+
+      /* ─── FX primitives (all absolute, ~target center) ─── */
+      .he-fx{
+        position:absolute;pointer-events:none;
+        transform-origin:center center;
+        will-change:transform,opacity;
+      }
+
+      /* ① Orange burst (warm forge tone) */
+      .he-burst{
+        width:96px;height:96px;left:-48px;top:-48px;
+        background:radial-gradient(circle,
+          rgba(255,204,102,0.95) 0%,
+          rgba(255,136,51,0.7) 28%,
+          rgba(255,136,51,0.25) 55%,
+          transparent 72%);
+        mix-blend-mode:screen;
+        filter:blur(1px);
+        animation:he-burst-anim 320ms cubic-bezier(.2,.6,.3,1) forwards;
+      }
+      @keyframes he-burst-anim{
+        0%   {transform:scale(0.25);opacity:0.95}
+        40%  {transform:scale(1.1); opacity:0.9}
+        100% {transform:scale(2.3); opacity:0}
+      }
+
+      /* ③ Main slash — ONE CONTINUOUS line passing straight through the hit
+         center (NO gap). Anchored at center, scales outward symmetrically.
+         Symmetric gradient: transparent at both ends, brightest at the middle. */
+      .he-main-slash{
+        background:linear-gradient(90deg,
+          rgba(255,255,255,0.0)  0%,
+          rgba(255,255,255,0.85) 10%,
+          #ffffff 30%,
+          #ffffff 70%,
+          rgba(255,255,255,0.85) 90%,
+          rgba(255,255,255,0.0) 100%);
+        border-radius:50% / 100%;     /* lens taper at both tips */
+        filter:
+          drop-shadow(0 0 4px rgba(255,255,255,0.9))
+          drop-shadow(0 0 14px rgba(207,230,255,0.5));
+        transform-origin:50% 50%;     /* expand from center */
+        animation:he-main-slash-anim 300ms cubic-bezier(.15,.85,.35,1) forwards;
+      }
+      @keyframes he-main-slash-anim{
+        0%   {transform:scaleX(0.05) scaleY(2.4); opacity:0}
+        13%  {transform:scaleX(1.0)  scaleY(1.3); opacity:1}
+        45%  {transform:scaleX(1.04) scaleY(1.0); opacity:1}
+        75%  {transform:scaleX(1.08) scaleY(0.55);opacity:0.75}
+        100% {transform:scaleX(1.12) scaleY(0.15);opacity:0}
+      }
+
+      /* ④ Cross line SEGMENT — half of a cross line (lines 2/3/4).
+         Same gap construction, thinner & shorter than main. */
+      .he-segment-cross{
+        background:linear-gradient(90deg,
+          rgba(255,255,255,0.0)  0%,
+          rgba(255,255,255,0.85) 16%,
+          #ffffff 50%,
+          rgba(255,255,255,0.7)  86%,
+          rgba(255,255,255,0.0) 100%);
+        filter:drop-shadow(0 0 3px rgba(255,255,255,0.75));
+        transform-origin:0% 50%;
+        animation:he-segment-cross-anim 240ms cubic-bezier(.2,.85,.3,1) forwards;
+      }
+      @keyframes he-segment-cross-anim{
+        0%   {transform:scaleX(0.08) scaleY(1.6); opacity:0}
+        20%  {transform:scaleX(1.0)  scaleY(1.0); opacity:1}
+        65%  {transform:scaleX(1.04) scaleY(0.7); opacity:0.8}
+        100% {transform:scaleX(1.1)  scaleY(0.15);opacity:0}
+      }
+
+      /* ④ Debris particle — dark blood/dust */
+      .he-debris{
+        width:4px;height:4px;border-radius:50%;
+        background:var(--he-debris);
+        box-shadow:0 0 0 1px rgba(0,0,0,0.4);
+        animation:he-debris-anim 420ms cubic-bezier(.2,.6,.3,1) forwards;
+      }
+      .he-debris.lt{background:#1a1a22;width:3px;height:3px}
+      .he-debris.spark{
+        background:var(--he-spark);
+        box-shadow:0 0 4px var(--he-spark);
+      }
+
+      /* JS sets --dx / --dy / --rot per particle */
+      @keyframes he-debris-anim{
+        0%   {transform:translate(0,0) scale(1.2);opacity:1}
+        20%  {opacity:1}
+        100% {transform:translate(var(--dx),var(--dy)) scale(0.4) rotate(var(--rot));opacity:0}
+      }
+
+      /* ⑤ Screen shake (applied to stage) */
+      .he-stage.shake{animation:he-shake-anim 180ms steps(6,end)}
+      @keyframes he-shake-anim{
+        0%   {transform:translate(0,0)}
+        16%  {transform:translate(-3px,1px)}
+        33%  {transform:translate(2px,-2px)}
+        50%  {transform:translate(-2px,2px)}
+        66%  {transform:translate(2px,1px)}
+        83%  {transform:translate(-1px,-1px)}
+        100% {transform:translate(0,0)}
+      }
+
+      /* Hit-stop tint (brief white tint over stage) */
+      .he-stage .he-tint{
+        position:absolute;inset:0;background:rgba(255,255,255,0);
+        pointer-events:none;mix-blend-mode:screen;
+      }
+      .he-stage.tint .he-tint{
+        animation:he-tint-anim 90ms ease-out;
+      }
+      @keyframes he-tint-anim{
+        0%   {background:rgba(255,255,255,0.25)}
+        100% {background:rgba(255,255,255,0)}
+      }
+
+      /* Damage number */
+      .he-dmg{
+        position:absolute;
+        font-family:var(--font-title-display);font-weight:900;
+        font-size:24px;color:#ffeb6e;letter-spacing:1px;
+        text-shadow:
+          2px 2px 0 #000, -2px -2px 0 #000,
+          2px -2px 0 #000, -2px 2px 0 #000,
+          0 0 8px rgba(255,235,110,0.6);
+        animation:he-dmg-anim 600ms cubic-bezier(.2,.7,.3,1) forwards;
+        pointer-events:none;
+      }
+      .he-dmg.crit{font-size:34px;color:#ff5252}
+      @keyframes he-dmg-anim{
+        0%   {transform:translate(-50%,0) scale(0.4);opacity:0}
+        25%  {transform:translate(-50%,-12px) scale(1.2);opacity:1}
+        45%  {transform:translate(-50%,-18px) scale(1.0);opacity:1}
+        100% {transform:translate(-50%,-38px) scale(0.9);opacity:0}
+      }
+
+      /* Variant cards row */
+      .he-variants{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+      .he-variants .card{margin-bottom:0}
+      .he-variants .card h3{font-size:11px;letter-spacing:1.5px}
+      .he-variants .card .meta{font-size:9px}
+
+      /* Controls */
+      .he-controls{
+        display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;
+        font-family:ui-monospace,monospace;font-size:11px;color:var(--text-secondary)
+      }
+      .he-btn{
+        background:#1a1a2e;border:1px solid #3a3a55;color:#fff;
+        padding:6px 12px;font-family:ui-monospace,monospace;font-size:11px;
+        letter-spacing:1px;cursor:pointer;border-radius:2px;
+        transition:background 0.1s,border-color 0.1s;
+      }
+      .he-btn:hover{background:#2a2a44;border-color:#5a5a7a}
+      .he-btn.light{border-color:#5a5a7a}
+      .he-btn.heavy{border-color:#ff8833;color:#ffcc66}
+      .he-btn.crit{border-color:#ff5252;color:#ff8c8c;font-weight:700}
+      .he-toggle{display:inline-flex;gap:5px;align-items:center;font-size:10px;color:var(--muted)}
+      .he-toggle input{accent-color:#ff8833}
+
+      .he-layer-grid{
+        display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:8px;margin-top:6px;
+      }
+      .he-layer{
+        background:#000;border:1px solid var(--line);padding:8px 10px;
+        font-family:ui-monospace,monospace;font-size:9px;
+        color:var(--text-secondary);line-height:1.55;
+      }
+      .he-layer b{color:#fff;font-size:10px;letter-spacing:1px}
+      .he-layer .num{
+        display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;
+        background:#ff8833;color:#000;border-radius:50%;font-weight:700;
+        margin-right:4px;font-size:9px;
+      }
+
+      @media (prefers-reduced-motion: reduce){
+        .he-fx,.he-stage.shake,.he-stage.tint .he-tint{animation:none !important}
+      }
+      @media (max-width: 900px){
+        .he-variants{grid-template-columns:1fr}
+      }
+    </style>
+
+    <!-- ── Main interactive stage ── -->
+    <div class="card">
+      <h3>Interactive Stage <span style="font-size:10px;color:var(--text-secondary);font-weight:400;letter-spacing:0.5px">— 클릭한 위치에서 임팩트 발사</span></h3>
+      <div class="meta">stage 어디든 클릭. Heavy = 6 slash · Burst · Shake · 280ms. Crit = 9 slash · Big Burst · 강한 Shake · DMG popup.</div>
+      <div class="he-stage" id="heStageMain">
+        <div class="he-floor"></div>
+        <div class="he-tint"></div>
+        <div class="he-hint">CLICK ANYWHERE TO STRIKE · L / H / C buttons below</div>
+        <div class="he-knight"></div>
+        <div class="he-target"></div>
+      </div>
+      <div class="he-controls">
+        <button class="he-btn light" data-variant="light">L · LIGHT</button>
+        <button class="he-btn heavy" data-variant="heavy">H · HEAVY</button>
+        <button class="he-btn crit"  data-variant="crit">C · CRITICAL</button>
+        <span style="flex:1"></span>
+        <label class="he-toggle"><input type="checkbox" id="heAutoLoop"> auto loop (1.4s)</label>
+        <label class="he-toggle"><input type="checkbox" id="heSlowMo"> slow-motion (0.4×)</label>
+      </div>
+    </div>
+
+    <!-- ── 3 variants auto-looping ── -->
+    <div class="he-variants">
+      <div class="card">
+        <h3>LIGHT · 4 slash</h3>
+        <div class="meta">flash only · no burst · no shake · 180ms</div>
+        <div class="he-stage compact" data-loop="light">
+          <div class="he-tint"></div>
+          <div class="he-target" style="left:50%;transform:translateX(-50%)"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>HEAVY · 6 slash</h3>
+        <div class="meta">flash · burst · shake · 280ms</div>
+        <div class="he-stage compact" data-loop="heavy">
+          <div class="he-tint"></div>
+          <div class="he-target" style="left:50%;transform:translateX(-50%)"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>CRITICAL · 9 slash</h3>
+        <div class="meta">flash · big burst · strong shake · sparks · DMG popup</div>
+        <div class="he-stage compact" data-loop="crit">
+          <div class="he-tint"></div>
+          <div class="he-target" style="left:50%;transform:translateX(-50%)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Layer breakdown ── -->
+    <div class="card">
+      <h3>5 Layer Recipe</h3>
+      <div class="desc">중심에는 <b>메인 슬래시만 보인다</b>. 메인은 갭 없이 통과하고 (1.5× 길이),
+         서브 교차선들은 중심을 비워둔 채 갭 바깥에서 외부로 뻗는다.
+         서브의 effective segment 길이가 임계치 아래로 떨어지면 <b>cross 수가 동적으로 감소</b>한다.</div>
+      <div class="he-layer-grid">
+        <div class="he-layer"><span class="num">1</span><b>ORANGE BURST</b><br>radial 96px · 320ms<br>scale 0.25→2.3 · 단조열 톤</div>
+        <div class="he-layer"><span class="num">2</span><b>MAIN SLASH ×1 (연속)</b><br>4~6px × <b>150~300px</b> · 300ms<br>갭 없음, 중심 관통, 1.5× 길이</div>
+        <div class="he-layer"><span class="num">3</span><b>CROSS LINE ×N (2-seg)</b><br>1.5~2.5px × 70~150px · 240ms<br>중심 갭 18~34px, segLen 기반 동적 가중치</div>
+        <div class="he-layer"><span class="num">4</span><b>DEBRIS PARTICLE ×N</b><br>3~4px dark dots · 420ms<br>radial scatter + gravity</div>
+        <div class="he-layer"><span class="num">5</span><b>SHAKE + HIT STOP</b><br>±3px · 180ms · 6 steps<br>+ 90ms white tint over stage</div>
+      </div>
+    </div>
+
+    <!-- ── Variant spec table ── -->
+    <div class="card">
+      <h3>Variant Spec (게임 코드 권장 수치)</h3>
+      <div class="stage col" style="gap:5px;font-family:ui-monospace,monospace;font-size:10px;line-height:1.6">
+        <div style="display:grid;grid-template-columns:80px 80px 50px 90px 50px 80px 70px 60px 60px;gap:6px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:4px">
+          <span>VARIANT</span><span>MAIN LEN</span><span>THK</span><span>CROSS · LEN</span><span>GAP</span><span>BURST</span><span>SHAKE</span><span>DEBRIS</span><span>STOP</span>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 80px 50px 90px 50px 80px 70px 60px 60px;gap:6px;color:#fff">
+          <span>LIGHT</span><span>150px</span><span>4px</span><span>2 · 70px</span><span>18px</span><span style="color:var(--muted)">—</span><span style="color:var(--muted)">—</span><span>4</span><span>40ms</span>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 80px 50px 90px 50px 80px 70px 60px 60px;gap:6px;color:#ffcc66">
+          <span>HEAVY</span><span>225px</span><span>5px</span><span>3 · 100px</span><span>26px</span><span>96px</span><span>±3·180ms</span><span>8</span><span>70ms</span>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 80px 50px 90px 50px 80px 70px 60px 60px;gap:6px;color:#ff8c8c">
+          <span>CRITICAL</span><span>300px</span><span>6px</span><span>4 · 150px</span><span>34px</span><span>130px</span><span>±5·240ms</span><span>14</span><span>120ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Design notes ── -->
+    <div class="card">
+      <h3>설계 규칙</h3>
+      <div class="stage col" style="gap:6px">
+        <div class="t-body">① <b>메인은 갭 없음 · 서브만 갭:</b> 메인 슬래시는 중심을 연속으로 관통한다. 서브 교차선만 중심에 갭을 둔다. 결과 — 타격 중심에는 <b>메인만</b> 보이고 베기 방향이 명확해짐</div>
+        <div class="t-body">② <b>메인 1.5× 길이:</b> 서브 교차선 + 갭 구성으로 중심이 시각적으로 비좁아 보일 위험을 메인 길이로 상쇄. 베기 동선이 길게 늘어져 강조됨</div>
+        <div class="t-body">③ <b>서브 갭 크기:</b> Light 18px / Heavy 26px / Crit 34px (서브 길이의 약 25%). 갭이 충분히 커야 중심의 메인이 깨끗하게 분리되어 보이고, 서브 segment 도 끝이 잘려나간 짧은 흔적처럼 읽힌다</div>
+        <div class="t-body">④ <b>서브 Segment 2개로 갭 구성:</b> 각 서브 선은 두 개의 half-segment (forward + backward) 로 그린다. 각 segment 는 갭 가장자리(inner edge)를 anchor 로 잡고 외부로 sweep</div>
+        <div class="t-body">⑤ <b>동적 가중치(Cross Count):</b> <code>segLen = (crossLen/2) - gap</code> 기준으로 cross 수 자동 캡 — 32px↑ 풀 / 22px↑ 3 / 14px↑ 2 / 6px↑ 1 / 6px↓ 0. 갭이 커져도 안 보이는 stub 가 생성되지 않음</div>
+        <div class="t-body">⑥ <b>Per-cross 길이 클램프:</b> <code>minCrossLen = (gap + 6) × 2</code>. jitter 가 길이를 더 줄이려 해도 이 값 이상으로 강제. 항상 6px 이상의 visible segment 보장</div>
+        <div class="t-body">⑦ <b>메인 슬래시 각도 = 베기 방향:</b> 한 hit 당 한 각도. 풀: 대각선 내려치기 ( -30°~-15° ), 수평 베기 ( 0°/180° ), 위로 올려치기 ( +15°~+30° ). 정수직 ±90° 회피 (캐릭터 라인 충돌)</div>
+        <div class="t-body">⑧ <b>Cross 각도 풀:</b> ±45° / ±60° / ±90° / ±120° / ±135° 중 비복원 추출 + ±10° jitter. 0°/180° (메인과 같은 축) 회피</div>
+        <div class="t-body">⑨ <b>길이 jitter:</b> 메인 ±10% (안정적 형태 유지), 교차선 ±20%. 동일 길이 다발은 인공적, 너무 큰 jitter 는 산만함</div>
+        <div class="t-body">⑩ <b>stagger:</b> 메인 0ms 즉시 발사 (베기 신호). 교차선 8~50ms 순차 발사. 메인 → 교차 → 파편 의 시간 차가 임팩트 깊이를 만든다</div>
+        <div class="t-body">⑪ <b>그라디언트 fade:</b> 메인은 양 끝 모두 transparent → 중심 풀 흰색. 서브 segment 는 inner edge (갭 쪽) transparent → outer 50% 풀 흰색 → outer edge fade</div>
+        <div class="t-body">⑫ <b>버스트 색 = 단조열:</b> #ff8833 (DEC-035 키컬러 정합). 적 종류별 변동 금지 — 임팩트는 무기 발사 신호이지 적 신호가 아님</div>
+        <div class="t-body">⑬ <b>Hit Stop:</b> Heavy 이상에서만. Light 약공격은 0 (콤보 흐름 보호). Sekiro/HK 모두 동일</div>
+        <div class="t-body">⑭ <b>Shake 축 = 메인 방향:</b> 베기 방향에 평행한 흔들림. 무지향 random shake 보다 타격 방향감 강화</div>
+        <div class="t-body">⑮ <b>예산:</b> 메인 1 + 서브 segment 최대 8 / 파편 80 / 버스트 4 (씬당). DOM 노드는 setTimeout 으로 정리</div>
+        <div class="t-body">⑯ <b>reduce-motion:</b> segment·파편 0.6× 길이 + 즉시 페이드, shake/burst 비활성. 가독성은 유지</div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      'use strict';
+
+      // ────────── Variant config ──────────
+      // HK 스타일: 메인 슬래시 1개 (연속, 중심 관통, 1.5× 길이)
+      //          + 다른 각도 교차선 N개 (중심 갭, 양방향 segment).
+      // 결과: 타격 중심에는 메인만 보이고, 서브는 갭 바깥에서 외부로 sweep.
+      const VARIANTS = {
+        light: {
+          mainLen: 150, mainThick: 4,
+          crossCount: 2, crossLen: 70, crossThick: 1.5,  // 50 → 70 to keep segs visible
+          gap: 18,                                       // 10 → 18 (1.8× longer)
+          burst: false, burstScale: 0,
+          shake: false,
+          debrisCount: 4, debrisSpread: 70,
+          sparkCount: 0,
+          tint: false,
+          dmg: null,
+        },
+        heavy: {
+          mainLen: 225, mainThick: 5,
+          crossCount: 3, crossLen: 100, crossThick: 2,   // 80 → 100
+          gap: 26,                                       // 14 → 26 (1.85× longer)
+          burst: true, burstScale: 1.0,
+          shake: true, shakeStrength: 1,
+          debrisCount: 8, debrisSpread: 100,
+          sparkCount: 2,
+          tint: true,
+          dmg: '28',
+        },
+        crit: {
+          mainLen: 300, mainThick: 6,
+          crossCount: 4, crossLen: 150, crossThick: 2.5, // 120 → 150
+          gap: 34,                                       // 18 → 34 (1.9× longer)
+          burst: true, burstScale: 1.35,
+          shake: true, shakeStrength: 1.6,
+          debrisCount: 14, debrisSpread: 150,
+          sparkCount: 5,
+          tint: true,
+          dmg: '74',
+          critDmg: true,
+        },
+      };
+
+      // Main slash angle pool — 베기 방향 후보 (대각선 위주, 정수직 ±90° 회피).
+      const MAIN_ANGLE_POOL = [-30, -25, -20, -15, 0, 15, 20, 25, 30, 180, -165, -155, 155, 165];
+      function pickMainAngle(){
+        const a = MAIN_ANGLE_POOL[Math.floor(Math.random() * MAIN_ANGLE_POOL.length)];
+        return a + (Math.random() - 0.5) * 8;
+      }
+
+      // Cross line offsets relative to main slash angle.
+      // ±45° / ±60° / ±90° / ±120° / ±135° — avoids 0/180 (same axis as main).
+      const CROSS_OFFSET_POOL = [-135, -120, -90, -60, -45, 45, 60, 90, 120, 135];
+      function pickCrossOffsets(n){
+        const pool = CROSS_OFFSET_POOL.slice();
+        const out = [];
+        for (let i = 0; i < n && pool.length > 0; i++){
+          const idx = Math.floor(Math.random() * pool.length);
+          out.push(pool[idx] + (Math.random() - 0.5) * 20);
+          pool.splice(idx, 1);
+        }
+        return out;
+      }
+
+      // ────────── Spawn primitives ──────────
+      function spawn(stage, el, lifetimeMs){
+        stage.appendChild(el);
+        const ttl = (lifetimeMs || 800) * timeMultiplier();
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, ttl);
+      }
+
+      function spawnBurst(stage, cx, cy, scale){
+        const el = document.createElement('div');
+        el.className = 'he-fx he-burst';
+        const size = Math.round(96 * scale);
+        el.style.width  = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = (cx - size / 2) + 'px';
+        el.style.top  = (cy - size / 2) + 'px';
+        applyDur(el, 320);
+        spawn(stage, el, 320);
+      }
+
+      // Main slash — ONE continuous line passing through hit center (NO gap).
+      // Renders as a single element anchored at hit center, scales outward.
+      function spawnMainSlash(stage, cx, cy, angleDeg, length, thickness){
+        const wrap = document.createElement('div');
+        wrap.style.position = 'absolute';
+        wrap.style.left = (cx - length / 2) + 'px';
+        wrap.style.top  = (cy - thickness / 2) + 'px';
+        wrap.style.width  = length + 'px';
+        wrap.style.height = thickness + 'px';
+        wrap.style.transformOrigin = '50% 50%';
+        wrap.style.transform = `rotate(${angleDeg}deg)`;
+        wrap.style.pointerEvents = 'none';
+
+        const el = document.createElement('div');
+        el.className = 'he-fx he-main-slash';
+        el.style.position = 'absolute';
+        el.style.left = '0';
+        el.style.top  = '0';
+        el.style.width  = length + 'px';
+        el.style.height = thickness + 'px';
+        applyDur(el, 300);
+        wrap.appendChild(el);
+
+        stage.appendChild(wrap);
+        const ttl = 340 * timeMultiplier();
+        setTimeout(() => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, ttl);
+      }
+
+      // Cross-line half segment — starts at distance `gapOffset` from (cx,cy)
+      // along +angleDeg, extends outward by `length`. Inner edge animates outward.
+      function spawnCrossSegment(stage, cx, cy, angleDeg, length, thickness, gapOffset, delayMs){
+        const rad = angleDeg * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const segCenterDist = gapOffset + length / 2;
+        const cxSeg = cx + cos * segCenterDist;
+        const cySeg = cy + sin * segCenterDist;
+
+        const wrap = document.createElement('div');
+        wrap.style.position = 'absolute';
+        wrap.style.left = (cxSeg - length / 2) + 'px';
+        wrap.style.top  = (cySeg - thickness / 2) + 'px';
+        wrap.style.width  = length + 'px';
+        wrap.style.height = thickness + 'px';
+        wrap.style.transformOrigin = '50% 50%';
+        wrap.style.transform = `rotate(${angleDeg}deg)`;
+        wrap.style.pointerEvents = 'none';
+
+        const el = document.createElement('div');
+        el.className = 'he-fx he-segment-cross';
+        el.style.position = 'absolute';
+        el.style.left = '0';
+        el.style.top  = '0';
+        el.style.width  = length + 'px';
+        el.style.height = thickness + 'px';
+        applyDur(el, 240);
+        if (delayMs > 0){
+          el.style.animationDelay = (delayMs * timeMultiplier()) + 'ms';
+        }
+        wrap.appendChild(el);
+
+        stage.appendChild(wrap);
+        const ttl = (240 + delayMs + 40) * timeMultiplier();
+        setTimeout(() => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, ttl);
+      }
+
+      // Cross line — passes through (cx,cy) at angleDeg with empty gap in the middle.
+      // Renders as TWO segments (forward + backward), gap radius shared.
+      function spawnCrossLine(stage, cx, cy, angleDeg, totalLen, thickness, gap, delayMs){
+        const segLen = (totalLen / 2) - gap;
+        if (segLen < 6) return;  // gap too large for this length
+        spawnCrossSegment(stage, cx, cy, angleDeg,       segLen, thickness, gap, delayMs);
+        spawnCrossSegment(stage, cx, cy, angleDeg + 180, segLen, thickness, gap, delayMs);
+      }
+
+      function spawnDebris(stage, cx, cy, angleDeg, distance, isSpark){
+        const el = document.createElement('div');
+        el.className = 'he-fx he-debris' + (isSpark ? ' spark' : (Math.random() < 0.4 ? ' lt' : ''));
+        const rad = angleDeg * Math.PI / 180;
+        const dx = Math.cos(rad) * distance;
+        const dy = Math.sin(rad) * distance + 18; // gravity drift down
+        el.style.left = (cx - 2) + 'px';
+        el.style.top  = (cy - 2) + 'px';
+        el.style.setProperty('--dx', dx + 'px');
+        el.style.setProperty('--dy', dy + 'px');
+        el.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+        applyDur(el, 420);
+        spawn(stage, el, 460);
+      }
+
+      function spawnDamage(stage, cx, cy, text, isCrit){
+        const el = document.createElement('div');
+        el.className = 'he-dmg' + (isCrit ? ' crit' : '');
+        el.textContent = text;
+        el.style.left = cx + 'px';
+        el.style.top  = (cy - 8) + 'px';
+        applyDur(el, 600);
+        spawn(stage, el, 650);
+      }
+
+      // ────────── Slow-mo / hit-stop ──────────
+      let slowMo = false;
+      function timeMultiplier(){ return slowMo ? 2.5 : 1; }
+      function applyDur(el, ms){
+        if (slowMo){
+          el.style.animationDuration = (ms * 2.5) + 'ms';
+        }
+      }
+
+      // Dynamic cross-count weighting.
+      // When the base cross segLen ((crossLen/2) - gap) drops below a threshold,
+      // cap crossCount so we don't render tiny invisible stubs.
+      //   < 6px  → 0  (gap entirely swallows the cross)
+      //   <14px  → cap at 1
+      //   <22px  → cap at 2
+      //   <32px  → cap at 3
+      //   else   → full v.crossCount
+      function effectiveCrossCount(v){
+        const segLen = (v.crossLen / 2) - v.gap;
+        if (segLen < 6)  return 0;
+        if (segLen < 14) return Math.min(v.crossCount, 1);
+        if (segLen < 22) return Math.min(v.crossCount, 2);
+        if (segLen < 32) return Math.min(v.crossCount, 3);
+        return v.crossCount;
+      }
+
+      // ────────── Trigger ──────────
+      function triggerHit(stage, x, y, variantKey){
+        const v = VARIANTS[variantKey];
+        if (!v) return;
+
+        // Layer 1 — Burst (Heavy/Crit only)
+        if (v.burst){
+          spawnBurst(stage, x, y, v.burstScale);
+        }
+
+        // Layer 2 — ONE main slash, CONTINUOUS line through the hit center (no gap).
+        // Main is the only thing visible at the center.
+        const mainAngle = pickMainAngle();
+        const mainLen = v.mainLen * (1 + (Math.random() - 0.5) * 0.2); // ±10%
+        spawnMainSlash(stage, x, y, mainAngle, mainLen, v.mainThick);
+
+        // Layer 3 — N cross lines through center, each WITH a center gap.
+        // Cross count is dynamically capped, and per-cross length is clamped
+        // so the visible segment never drops below ~6px after jitter.
+        const nCross = effectiveCrossCount(v);
+        const minCrossLen = (v.gap + 6) * 2;  // minimum end-to-end length for a visible segment
+        const offsets = pickCrossOffsets(nCross);
+        for (let i = 0; i < offsets.length; i++){
+          const ang = mainAngle + offsets[i];
+          const jittered = v.crossLen * (0.8 + Math.random() * 0.4);
+          const len = Math.max(minCrossLen, jittered);
+          const delay = 8 + i * 10 + Math.random() * 12;
+          spawnCrossLine(stage, x, y, ang, len, v.crossThick, v.gap, delay);
+        }
+
+        // Layer 4 — Debris particles (radial dust/blood, not slash lines).
+        for (let i = 0; i < v.debrisCount; i++){
+          const ang = Math.random() * 360;
+          const dist = v.debrisSpread * (0.5 + Math.random() * 0.8);
+          spawnDebris(stage, x, y, ang, dist, false);
+        }
+        for (let i = 0; i < v.sparkCount; i++){
+          const ang = Math.random() * 360;
+          const dist = v.debrisSpread * 0.7 * (0.6 + Math.random() * 0.5);
+          spawnDebris(stage, x, y, ang, dist, true);
+        }
+
+        // Layer 5 — Hit stop (CSS tint) + shake.
+        if (v.tint){
+          stage.classList.remove('tint'); void stage.offsetWidth;
+          stage.classList.add('tint');
+        }
+        if (v.shake){
+          stage.classList.remove('shake'); void stage.offsetWidth;
+          stage.classList.add('shake');
+          setTimeout(() => stage.classList.remove('shake'), 200 * timeMultiplier());
+        }
+
+        // Damage number
+        if (v.dmg){
+          spawnDamage(stage, x, y, v.dmg, !!v.critDmg);
+        }
+      }
+
+      // ────────── Bind main stage ──────────
+      const main = document.getElementById('heStageMain');
+      const slowToggle = document.getElementById('heSlowMo');
+      const loopToggle = document.getElementById('heAutoLoop');
+      let currentVariant = 'heavy';
+      let mainLoopId = null;
+
+      slowToggle.addEventListener('change', () => { slowMo = slowToggle.checked; });
+
+      main.addEventListener('click', (e) => {
+        const rect = main.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        triggerHit(main, x, y, currentVariant);
+      });
+
+      // Variant buttons
+      document.querySelectorAll('#hit-effect .he-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentVariant = btn.getAttribute('data-variant');
+          // Fire one at target center for instant feedback
+          const t = main.querySelector('.he-target');
+          const tr = t.getBoundingClientRect();
+          const mr = main.getBoundingClientRect();
+          const cx = tr.left - mr.left + tr.width / 2;
+          const cy = tr.top  - mr.top  + tr.height / 2;
+          triggerHit(main, cx, cy, currentVariant);
+        });
+      });
+
+      // Keyboard shortcuts L / H / C — only when hit-effect section is in view
+      // and the user isn't typing into a text input.
+      document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (!['l','h','c'].includes(key)) return;
+        const tag = (document.activeElement && document.activeElement.tagName) || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        const rect = main.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+        e.preventDefault();
+        currentVariant = key === 'l' ? 'light' : key === 'h' ? 'heavy' : 'crit';
+        const t = main.querySelector('.he-target');
+        const tr = t.getBoundingClientRect();
+        const mr = main.getBoundingClientRect();
+        const cx = tr.left - mr.left + tr.width / 2;
+        const cy = tr.top  - mr.top  + tr.height / 2;
+        triggerHit(main, cx, cy, currentVariant);
+      });
+
+      // Auto-loop on main stage
+      function startMainLoop(){
+        stopMainLoop();
+        const tick = () => {
+          if (!loopToggle.checked) return;
+          const t = main.querySelector('.he-target');
+          const tr = t.getBoundingClientRect();
+          const mr = main.getBoundingClientRect();
+          const cx = tr.left - mr.left + tr.width / 2;
+          const cy = tr.top  - mr.top  + tr.height / 2;
+          triggerHit(main, cx, cy, currentVariant);
+          mainLoopId = setTimeout(tick, 1400 * timeMultiplier());
+        };
+        mainLoopId = setTimeout(tick, 600);
+      }
+      function stopMainLoop(){
+        if (mainLoopId){ clearTimeout(mainLoopId); mainLoopId = null; }
+      }
+      loopToggle.addEventListener('change', () => {
+        if (loopToggle.checked) startMainLoop();
+        else stopMainLoop();
+      });
+
+      // ────────── Variant loop cards ──────────
+      document.querySelectorAll('#hit-effect .he-stage[data-loop]').forEach(stage => {
+        const variant = stage.getAttribute('data-loop');
+        const tick = () => {
+          const t = stage.querySelector('.he-target');
+          if (!t) return;
+          const tr = t.getBoundingClientRect();
+          const sr = stage.getBoundingClientRect();
+          // Don't fire if scrolled off-screen (perf)
+          if (sr.bottom < 0 || sr.top > window.innerHeight + 200) return;
+          const cx = tr.left - sr.left + tr.width / 2;
+          const cy = tr.top  - sr.top  + tr.height / 2;
+          triggerHit(stage, cx, cy, variant);
+        };
+        // Stagger initial fire so the 3 cards don't sync
+        const offset = variant === 'light' ? 0 : variant === 'heavy' ? 600 : 1100;
+        setTimeout(tick, 800 + offset);
+        setInterval(tick, 1800);
+      });
+
+    })();
+    </script>
   </section>
 
   <footer style="margin:48px 0 24px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:10px">

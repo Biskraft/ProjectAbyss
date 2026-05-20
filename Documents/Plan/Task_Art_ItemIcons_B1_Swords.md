@@ -269,4 +269,4 @@ Evokes "a weapon that was once a machine, remembering how to be a sword".
 - **아트 디렉션 (팔레트/톤):** `Documents/Design/Design_Art_Direction.md`
 - **애니메이션 규격 (자매 문서):** `Documents/Design/Design_Art_AnimationSpec.md`
 - **무기 스탯 SSoT:** `Sheets/Content_Stats_Weapon_List.csv`
-- **스토리 무기 narrative:** `Documents/Content/Content_Item_Narrative_FirstSword.md`
+- **스토리 무기 narrative (신규 기준 — 2026-05-20):** `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` (구 `Content_Item_Narrative_FirstSword.md` 폐기)

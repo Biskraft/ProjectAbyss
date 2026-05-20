@@ -363,8 +363,9 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
 | CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 완료 |
-| CNT-ITM-001 | Item Narrative: 할아버지의 부엌칼 | `Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | ✅ 완료 |
-| CNT-ITM-002 | Item Narrative: First Sword | `Content/Content_Item_Narrative_FirstSword.md` | ✅ 완료 |
+| CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준 예시) | `Content/Content_Item_Narrative_SurveyorEchoWedge.md` | ✅ 완료 |
+| ~~CNT-ITM-001 (구판)~~ | ~~Item Narrative: 할아버지의 부엌칼~~ | ~~`Content/Content_Item_Narrative_GrandfatherKitchenKnife.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |
+| ~~CNT-ITM-002 (구판)~~ | ~~Item Narrative: First Sword~~ | ~~`Content/Content_Item_Narrative_FirstSword.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |
 | CNT-01 | Weapon List | `Content/Content_Weapon_List.md` | ✅ 완료 |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Memory Shard Catalog | `Content/Content_Memory Shard_Catalog.md` | ⬜ 제작 필요 |

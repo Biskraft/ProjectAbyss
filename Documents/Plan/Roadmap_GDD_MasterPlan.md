@@ -215,8 +215,8 @@
 |:---|:-------|:-----|:-----|:-----|
 | CNT-00 | World Bible | Done | - | 세계관, 거대 빌더, 대공동, 격벽 |
 | CNT-EXP-001 | 첫 30분 경험 플로우 v3 | Done | - | 22 스크린, 에르다 대사 0줄. 검 Ego 대사 허용 |
-| CNT-ITM-001 | Item Narrative: 할아버지의 부엌칼 | Done | - | 샘플 아이템 서사 |
-| CNT-ITM-002 | Item Narrative: First Sword | Done | - | 첫 검 서사 |
+| CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준, 2026-05-20) | Done | - | Magic 등급 2지층 샘플. 격벽 측량사 도구. BLAME!/대공동 톤 정합 |
+| ~~CNT-ITM-002~~ | ~~Item Narrative: First Sword~~ | ~~Done~~ | - | ❌ 폐기 2026-05-20 (판타지 톤 — 파일 삭제) |
 | CNT-01 | **Weapon List** | **NEW** | **B0** | 5종(검/대검/단검/활/지팡이) x 5레어리티 = 25개 무기 상세. CSV 연동 |
 | CNT-02 | **Armor & Accessory List** | **NEW** | **B1** | 방어구/악세서리 목록, 세트 효과 |
 | CNT-03 | **Memory Shard Catalog** | **NEW** | **B1** | 12종 기억 단편 상세 (행동 패턴, 스탯 보너스, 출현 조건) |

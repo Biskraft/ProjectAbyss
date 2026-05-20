@@ -1,108 +1,307 @@
 import { Container, Graphics } from 'pixi.js';
 
 /**
- * Sakurai: "Hit Effect = Impact Spark → Sharp Burst → Soft Glow"
- * Sharp line-based sparks emanating from hit point.
- * Dark outlines mixed in for contrast (Make It "Pop").
+ * Hollow Knight–style hit effect.
+ *
+ * Architecture (catalog: game/docs/ui-components.html#hit-effect):
+ *   1. MAIN SLASH  — ONE continuous thick line through the hit center (no gap),
+ *                    angled toward the attack direction (dirX biased).
+ *   2. CROSS LINES — N thinner lines crossing the hit center, each WITH a center
+ *                    gap. Cross count is dynamically capped via segLen threshold
+ *                    so a too-large gap never produces invisible stubs.
+ *                    Center reads as "main only" — subs approach but don't touch.
+ *   3. DEBRIS      — small dark radial particles drifting outward with gravity,
+ *                    plus optional bright sparks for heavy hits.
+ *
+ * Burst (orange forge tone) and screen-flash are intentionally NOT in this
+ * effect — heavy hits route through ComboFinisherBurst + ScreenFlash separately.
+ *
+ * Same API as before: spawn(x, y, heavy, dirX) and update(dt). All 30+ call
+ * sites in scenes/* continue to work unchanged.
  */
 
-interface Spark {
+type FxKind = 'main' | 'cross-seg' | 'debris';
+
+interface Fx {
   gfx: Graphics;
-  x: number;
-  y: number;
+  kind: FxKind;
+  age: number;
+  maxLife: number;
+  startDelay: number;
+  // debris-only
   vx: number;
   vy: number;
-  life: number;
-  maxLife: number;
 }
 
-const SPARK_COUNT_LIGHT = 4;
-const SPARK_COUNT_HEAVY = 7;
-const SPARK_SPEED = 180;  // px/s
-const SPARK_LIFE = 180;   // ms
+interface Variant {
+  mainLen: number;
+  mainThick: number;
+  crossCount: number;
+  crossLen: number;
+  crossThick: number;
+  gap: number;
+  debrisCount: number;
+  debrisSpread: number;
+  sparkCount: number;
+}
+
+const VARIANTS: Record<'light' | 'heavy', Variant> = {
+  light: {
+    mainLen: 40,  mainThick: 2,
+    crossCount: 2, crossLen: 18, crossThick: 1,
+    gap: 4,
+    debrisCount: 4, debrisSpread: 22,
+    sparkCount: 0,
+  },
+  heavy: {
+    mainLen: 64,  mainThick: 3,                  // 1.6× longer than light
+    crossCount: 3, crossLen: 28, crossThick: 1.5,
+    gap: 6,
+    debrisCount: 8, debrisSpread: 32,
+    sparkCount: 2,
+  },
+};
+
+const MAIN_LIFE_MS   = 220;
+const CROSS_LIFE_MS  = 180;
+const DEBRIS_LIFE_MS = 320;
+
+// Main-slash angle pool — biased toward attack direction (dirX).
+// Right-facing: -30° ~ +30° (mostly horizontal, slight diagonals).
+// Left-facing: 150° ~ -150° (mirror).
+// Vertical (±90°) avoided — collides with character silhouette.
+const RIGHT_DEG = [-30, -25, -20, -15, -5, 5, 15, 20, 25, 30];
+const LEFT_DEG  = [150, 155, 160, 165, 175, -175, -165, -160, -155, -150];
+
+function pickMainAngle(dirX: number): number {
+  let pool: number[];
+  if (dirX > 0.1) pool = RIGHT_DEG;
+  else if (dirX < -0.1) pool = LEFT_DEG;
+  else pool = RIGHT_DEG.concat(LEFT_DEG);
+  const deg = pool[Math.floor(Math.random() * pool.length)]
+            + (Math.random() - 0.5) * 6;
+  return (deg * Math.PI) / 180;
+}
+
+// Cross-line offsets relative to main angle.
+// ±45° / ±60° / ±90° / ±120° / ±135° — avoids 0/180 (same axis as main).
+const CROSS_OFFSET_DEG = [-135, -120, -90, -60, -45, 45, 60, 90, 120, 135];
+
+function pickCrossOffsets(n: number): number[] {
+  const pool = CROSS_OFFSET_DEG.slice();
+  const out: number[] = [];
+  for (let i = 0; i < n && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(((pool[idx] + (Math.random() - 0.5) * 18) * Math.PI) / 180);
+    pool.splice(idx, 1);
+  }
+  return out;
+}
+
+// Dynamic cap on cross count based on visible segment length.
+// segLen = (crossLen/2) - gap. When the gap eats most of the cross length,
+// reduce count so we don't render imperceptible stubs.
+function effectiveCrossCount(v: Variant): number {
+  const segLen = v.crossLen / 2 - v.gap;
+  if (segLen < 1.5) return 0;
+  if (segLen < 4)   return Math.min(v.crossCount, 1);
+  if (segLen < 6)   return Math.min(v.crossCount, 2);
+  if (segLen < 9)   return Math.min(v.crossCount, 3);
+  return v.crossCount;
+}
 
 export class HitSparkManager {
   private parent: Container;
-  private sparks: Spark[] = [];
+  private fx: Fx[] = [];
 
   constructor(parent: Container) {
     this.parent = parent;
   }
 
   /**
-   * Spawn a hit spark burst at (x, y).
-   * @param heavy - true for 3타 or critical hits (more sparks, bigger)
-   * @param dirX - knockback direction for directional bias
+   * Spawn a hit burst at (x, y).
+   * @param heavy true for 3타/critical/heavy attacks (larger slash, more debris).
+   * @param dirX  knockback direction (-1, 0, +1) — biases the main slash angle.
    */
   spawn(x: number, y: number, heavy: boolean, dirX: number): void {
-    const count = heavy ? SPARK_COUNT_HEAVY : SPARK_COUNT_LIGHT;
-    const speedMult = heavy ? 1.4 : 1.0;
-    const size = heavy ? 6 : 4;
+    const v = VARIANTS[heavy ? 'heavy' : 'light'];
 
-    // Central flash burst (bright, fades fast)
-    const flash = new Graphics();
-    const flashSize = heavy ? 12 : 8;
-    flash.circle(0, 0, flashSize).fill({ color: 0xffffff, alpha: 0.9 });
-    flash.circle(0, 0, flashSize * 0.6).fill({ color: 0xffffaa, alpha: 1 });
-    flash.x = x;
-    flash.y = y;
-    this.parent.addChild(flash);
-    this.sparks.push({
-      gfx: flash, x, y, vx: 0, vy: 0,
-      life: SPARK_LIFE * 0.5, maxLife: SPARK_LIFE * 0.5,
-    });
+    // ① Main slash — continuous line through hit center, attack-direction biased.
+    const mainAngle = pickMainAngle(dirX);
+    const mainLen = v.mainLen * (1 + (Math.random() - 0.5) * 0.2);  // ±10%
+    this.spawnMain(x, y, mainAngle, mainLen, v.mainThick);
 
-    // Line sparks
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
-      // Bias toward knockback direction
-      const biasAngle = angle + dirX * 0.4;
-      const speed = SPARK_SPEED * speedMult * (0.6 + Math.random() * 0.8);
+    // ② Cross lines — with center gap, dynamically-capped count, per-cross clamp.
+    const nCross = effectiveCrossCount(v);
+    const minCrossLen = (v.gap + 2) * 2;
+    const offsets = pickCrossOffsets(nCross);
+    for (let i = 0; i < offsets.length; i++) {
+      const ang = mainAngle + offsets[i];
+      const jittered = v.crossLen * (0.8 + Math.random() * 0.4);
+      const len = Math.max(minCrossLen, jittered);
+      const delay = 8 + i * 8 + Math.random() * 10;
+      this.spawnCrossLine(x, y, ang, len, v.crossThick, v.gap, delay);
+    }
 
-      const gfx = new Graphics();
-      // Dark outline for contrast (Sakurai: mix dark elements)
-      gfx.moveTo(0, 0).lineTo(size * 1.5, 0).stroke({ color: 0x000000, width: 3 });
-      // Bright core
-      const color = heavy ? 0xffff44 : 0xffffff;
-      gfx.moveTo(0, 0).lineTo(size, 0).stroke({ color, width: 1.5 });
-      gfx.x = x;
-      gfx.y = y;
-      // Rotate toward travel direction
-      gfx.rotation = biasAngle;
-
-      this.parent.addChild(gfx);
-      this.sparks.push({
-        gfx,
-        x, y,
-        vx: Math.cos(biasAngle) * speed,
-        vy: Math.sin(biasAngle) * speed,
-        life: SPARK_LIFE * (0.7 + Math.random() * 0.6),
-        maxLife: SPARK_LIFE,
-      });
+    // ③ Debris — dark radial particles + optional yellow sparks for heavy.
+    for (let i = 0; i < v.debrisCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = v.debrisSpread * (0.5 + Math.random() * 0.8);
+      this.spawnDebris(x, y, ang, dist, false);
+    }
+    for (let i = 0; i < v.sparkCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = v.debrisSpread * 0.7 * (0.6 + Math.random() * 0.5);
+      this.spawnDebris(x, y, ang, dist, true);
     }
   }
 
+  // ────────── Spawn helpers ──────────
+
+  private spawnMain(cx: number, cy: number, ang: number, L: number, T: number): void {
+    const gfx = new Graphics();
+    // Dim outer halo + bright thinner inner core (HK "white slash" style).
+    gfx.rect(-L / 2, -(T + 1) / 2, L, T + 1).fill({ color: 0xffffff, alpha: 0.32 });
+    gfx.rect(-L / 2, -T * 0.35,     L, T * 0.7).fill({ color: 0xffffff, alpha: 0.95 });
+    gfx.x = cx;
+    gfx.y = cy;
+    gfx.rotation = ang;
+    gfx.scale.set(0.05, 2.4);
+    gfx.alpha = 0;
+    this.parent.addChild(gfx);
+    this.fx.push({
+      gfx, kind: 'main',
+      age: 0, maxLife: MAIN_LIFE_MS, startDelay: 0,
+      vx: 0, vy: 0,
+    });
+  }
+
+  private spawnCrossLine(cx: number, cy: number, ang: number,
+                          totalLen: number, T: number, gap: number,
+                          delay: number): void {
+    const segLen = totalLen / 2 - gap;
+    if (segLen < 1.5) return;
+    this.spawnCrossSegment(cx, cy, ang,            segLen, T, gap, delay);
+    this.spawnCrossSegment(cx, cy, ang + Math.PI,  segLen, T, gap, delay);
+  }
+
+  private spawnCrossSegment(cx: number, cy: number, ang: number,
+                             L: number, T: number, gap: number,
+                             delay: number): void {
+    const cos = Math.cos(ang);
+    const sin = Math.sin(ang);
+    const gfx = new Graphics();
+    // Origin at inner (gap) edge: draw from x=0 to x=L. Scale anchors here.
+    gfx.rect(0, -(T + 0.6) / 2, L, T + 0.6).fill({ color: 0xffffff, alpha: 0.28 });
+    gfx.rect(0, -T * 0.35,       L, T * 0.7).fill({ color: 0xffffff, alpha: 0.9 });
+    gfx.x = cx + cos * gap;
+    gfx.y = cy + sin * gap;
+    gfx.rotation = ang;
+    gfx.scale.set(0.05, 1.6);
+    gfx.alpha = 0;
+    this.parent.addChild(gfx);
+    this.fx.push({
+      gfx, kind: 'cross-seg',
+      age: 0, maxLife: CROSS_LIFE_MS, startDelay: delay,
+      vx: 0, vy: 0,
+    });
+  }
+
+  private spawnDebris(cx: number, cy: number, ang: number, dist: number,
+                       isSpark: boolean): void {
+    const cos = Math.cos(ang);
+    const sin = Math.sin(ang);
+    const size = isSpark ? 1.5 : 1.2 + Math.random() * 0.8;
+    const gfx = new Graphics();
+    const color = isSpark ? 0xfff2c4 : 0x0a0a14;
+    gfx.circle(0, 0, size).fill({ color, alpha: 1 });
+    gfx.x = cx;
+    gfx.y = cy;
+    this.parent.addChild(gfx);
+    // Outward velocity sized so particle reaches ~dist over its lifetime.
+    const life = DEBRIS_LIFE_MS * (0.7 + Math.random() * 0.4);
+    const speed = (dist / life) * 1000;
+    this.fx.push({
+      gfx, kind: 'debris',
+      age: 0, maxLife: life, startDelay: 0,
+      vx: cos * speed,
+      vy: sin * speed + 24,  // slight downward bias (gravity hint)
+    });
+  }
+
+  // ────────── Per-frame update ──────────
+
   update(dt: number): void {
     const dtSec = dt / 1000;
-    for (let i = this.sparks.length - 1; i >= 0; i--) {
-      const s = this.sparks[i];
-      s.life -= dt;
-      s.x += s.vx * dtSec;
-      s.y += s.vy * dtSec;
-      s.gfx.x = s.x;
-      s.gfx.y = s.y;
-      // Decelerate
-      s.vx *= 0.92;
-      s.vy *= 0.92;
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      const f = this.fx[i];
+      // startDelay defers the visual but the slot stays reserved.
+      if (f.startDelay > 0) {
+        f.startDelay -= dt;
+        if (f.startDelay > 0) continue;
+      }
+      f.age += dt;
+      const t = Math.min(1, f.age / f.maxLife);
 
-      const t = Math.max(0, s.life / s.maxLife);
-      s.gfx.alpha = t;
-      s.gfx.scale.set(0.5 + t * 0.5);
+      if (f.kind === 'main') {
+        this.applyMainAnim(f.gfx, t);
+      } else if (f.kind === 'cross-seg') {
+        this.applyCrossAnim(f.gfx, t);
+      } else {
+        // debris
+        f.gfx.x += f.vx * dtSec;
+        f.gfx.y += f.vy * dtSec;
+        f.vx *= 0.92;
+        f.vy = f.vy * 0.94 + 220 * dtSec;
+        f.gfx.alpha = 1 - t;
+        f.gfx.scale.set(0.9 - t * 0.4);
+      }
 
-      if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        this.sparks.splice(i, 1);
+      if (f.age >= f.maxLife) {
+        if (f.gfx.parent) f.gfx.parent.removeChild(f.gfx);
+        f.gfx.destroy();
+        this.fx.splice(i, 1);
       }
     }
+  }
+
+  // Mirrors CSS keyframe `he-main-slash-anim` from the catalog.
+  // scaleX 0.05 → 1.0 → 1.04 → 1.08 → 1.12
+  // scaleY 2.4  → 1.3 → 1.0  → 0.55 → 0.15
+  // alpha  0    → 1   → 1    → 0.75 → 0
+  private applyMainAnim(gfx: Graphics, t: number): void {
+    let sx: number, sy: number, a: number;
+    if (t < 0.13) {
+      const k = t / 0.13;
+      sx = 0.05 + 0.95 * k; sy = 2.4 - 1.1 * k; a = k;
+    } else if (t < 0.45) {
+      const k = (t - 0.13) / 0.32;
+      sx = 1.0 + 0.04 * k;  sy = 1.3 - 0.3 * k; a = 1;
+    } else if (t < 0.75) {
+      const k = (t - 0.45) / 0.30;
+      sx = 1.04 + 0.04 * k; sy = 1.0 - 0.45 * k; a = 1 - 0.25 * k;
+    } else {
+      const k = (t - 0.75) / 0.25;
+      sx = 1.08 + 0.04 * k; sy = 0.55 - 0.40 * k; a = 0.75 - 0.75 * k;
+    }
+    gfx.scale.set(sx, sy);
+    gfx.alpha = Math.max(0, a);
+  }
+
+  // Mirrors `he-segment-cross-anim`. Inner-edge anchored sweep.
+  private applyCrossAnim(gfx: Graphics, t: number): void {
+    let sx: number, sy: number, a: number;
+    if (t < 0.20) {
+      const k = t / 0.20;
+      sx = 0.08 + 0.92 * k; sy = 1.6 - 0.6 * k; a = k;
+    } else if (t < 0.65) {
+      const k = (t - 0.20) / 0.45;
+      sx = 1.0 + 0.04 * k;  sy = 1.0 - 0.3 * k; a = 1 - 0.2 * k;
+    } else {
+      const k = (t - 0.65) / 0.35;
+      sx = 1.04 + 0.06 * k; sy = 0.7 - 0.55 * k; a = 0.8 - 0.8 * k;
+    }
+    gfx.scale.set(sx, sy);
+    gfx.alpha = Math.max(0, a);
   }
 }

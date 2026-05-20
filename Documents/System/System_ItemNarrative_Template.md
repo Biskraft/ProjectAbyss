@@ -27,7 +27,7 @@
 * Item World Core: `Documents/System/System_ItemWorld_Core.md`
 * Equipment Rarity: `Documents/System/System_Equipment_Rarity.md`
 * World Bible: `Documents/Content/Content_World_Bible.md`
-* GrandfatherKitchenKnife (기준 예시): `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md`
+* Surveyor's Echo Wedge (신규 기준 예시 — 2026-05-20): `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md`
 
 ---
 
@@ -35,7 +35,7 @@
 
 ### 1.1. 문제 정의 — 왜 템플릿 시스템이 필요한가?
 
-`Content_Item_Narrative_GrandfatherKitchenKnife.md`는 ECHORIS 아이템 서사의 기준점이자 품질 목표다. 그러나 그 포맷을 그대로 100개 아이템에 적용하면 다음 문제가 발생한다.
+`Content_Item_Narrative_SurveyorEchoWedge.md`(2026-05-20 신규 기준 예시)는 ECHORIS 아이템 서사의 기준점이자 품질 목표다. 그러나 그 포맷을 그대로 100개 아이템에 적용하면 다음 문제가 발생한다.
 
 | 문제 | 수치 | 영향 |
 | :--- | :--- | :--- |
@@ -77,16 +77,16 @@
 
 아래 항목들은 테마나 레어리티로 유추할 수 없다. 이것이 아이템의 "영혼"이다. 전량 수작업으로 작성한다.
 
-| 항목 | 내용 | 예시 (할아버지의 부엌칼) |
+| 항목 | 내용 | 예시 (측량사의 에코 쐐기) |
 | :--- | :--- | :--- |
-| **아이템 프로필** | 이름, 기원 4요소(Creator/Purpose/History/Fate), 플레이버 텍스트 | "칼날에 기름때가 깊이 밴 칼. '충성'이라는 글자가 희미하게 새겨져 있다." |
-| **서사 곡선** | 3막 구조 (감정 기조 + 핵심 질문), Fire & Ember 구조 | 지층1 따뜻함→지층2 의무→지층3 선택 |
-| **정보 공개 타임라인** | 지층 진입 시점별 공개 정보/미공개 정보 | 지층1: 기름때·'충성' 글자 → 지층2: 경비병 신분 드러남 |
-| **NPC 유령 대사** | 상태별 조건 대사 (첫 진입 / 재방문 / 지층별) | "이 복도를 수천 번은 걸었지. 부엌으로 가는 길이 더 길었어." |
-| **기억 단편 고유 대사** | 야생 상태 / 복종 상태 각 3줄 이상 | 맛의 정령: "이 칼에 내 레시피를 건드리지 마. 아직 안 됐어." |
-| **Fire 모멘트** | 지층 3 클라이맥스 한 마디. 이 아이템 전체의 감정적 정점 | "사람을 베는 칼이 아니라 먹이는 칼을 쥐고 싶었다. 그게 전부야." |
-| **보스 서사 오버라이드** | 지층별 보스 고유 처치 연출 텍스트, 드랍 오브젝트 이름 | 지층2 보스 드랍: "은퇴 축하 메달" |
-| **환경 핵심 오브젝트** | 지층별 핵심 오브젝트 최대 3개 (나머지는 풀에서 자동 로드) | 지층3: 검과 방패(왼벽), 부엌칼(오른벽), 석양 창문 |
+| **아이템 프로필** | 이름, 기원 4요소(Creator/Purpose/History/Fate), 플레이버 텍스트 | "한쪽 끝은 무딘 망치, 반대편은 결정질을 가르는 첨두. 손잡이 가죽에 측량사 등록 인장이 절반쯤 닳아 있다." |
+| **서사 곡선** | 2-3막 구조 (DEC-039 등급별 지층 수 정합), 감정 기조 + 핵심 질문, Fire & Ember 구조 | 지층1 회로(직업적)→지층2 하강(결정적) |
+| **정보 공개 타임라인** | 지층 진입 시점별 공개 정보/미공개 정보 | 지층1: 닳은 인장 → 지층2: 측량사가 보고하지 않았다 |
+| **NPC 잔영 대사** | 상태별 조건 대사 (첫 진입 / 재방문) | "보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야." |
+| **Core Memory 잔향 대사** | 정체성 슬롯 가동 시 안전 구역 대사 3줄 이상 (DEC-036) | 공명의 결: "두드리고 듣는다. 그게 전부였어." |
+| **Fire 모멘트** | 최종 지층 클라이맥스 한 마디. 이 아이템 전체의 감정적 정점 | "보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야." |
+| **보스 서사 오버라이드** | 지층별 보스 고유 처치 연출 텍스트, 드랍 오브젝트 이름 | 지층2 보스 드랍: "마지막 표지" |
+| **환경 핵심 오브젝트** | 지층별 핵심 오브젝트 최대 3개 (나머지는 풀에서 자동 로드) | 지층2: 측량사의 외투, 박힌 쐐기들의 흔적, 마지막 박힌 쐐기 |
 
 ### 2.2. 모듈 콘텐츠 (공유 풀에서 참조)
 
@@ -136,10 +136,10 @@
 | **지층 4** (Legendary+) | 기원 테마 (아이템이 만들어진 당시) | 창조의 순간, 서사의 근원 |
 | **심연** (Ancient) | 고유 테마 (세계관 핵심과 연결) | Ancient 아이템만 존재. 월드 서사와 직결 |
 
-**예시 (할아버지의 부엌칼 — Magic, 3지층):**
-- 지층 1: `T-HOME` (은퇴 후 요리사 인생)
-- 지층 2: `T-MILITARY` (경비병 시절)
-- 지층 3: `T-HOME + T-MILITARY` Crossroads (검을 내려놓고 칼을 잡은 선택의 순간)
+**예시 (측량사의 에코 쐐기 — Magic, 2지층 / DEC-039):**
+- 지층 1: `T-SURVEY/corridor` (격벽 측량사의 직업적 일상)
+- 지층 2: `T-DESCENT/silent` (균열을 따라 격벽 6으로 내려간 마지막 며칠)
+- (Magic 등급은 2지층 + Crossroads 없음 — DEC-039)
 
 **조합 불가 원칙:** 동일 테마를 지층 1과 지층 2에 중복 배정할 수 없다. 단, 지층 3 Crossroads에서 지층 1 테마 재등장은 허용한다 (감정적 귀환을 의도).
 
@@ -332,7 +332,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 
 | ID | 아키타입명 | 감정 여정 | 권장 레어리티 | Fire 모멘트 방향 | 예시 아이템 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **SA-01** | 기억 탐구 | 따뜻함 → 낯섦 → 이해 | Magic - Rare | 과거의 선택에 대한 조용한 긍정 | 할아버지의 부엌칼 |
+| **SA-01** | 기억 탐구 | 단조로움 → 발견 → 이해 | Magic - Rare | 직업적 일상에서 발견된 진실의 한 조각 | (TBD — 신규 샘플 작성 시 등록) |
 | **SA-02** | 비극적 상실 | 평온 → 균열 → 수용 | Rare - Legendary | 돌아올 수 없음을 인정하는 한 마디 | 전사한 기사의 검 |
 | **SA-03** | 복수와 해소 | 분노 → 행동 → 해방 (또는 공허) | Rare - Legendary | 복수가 완성되었을 때의 감정 — 기쁨이 아닌 것 | 배신자에게 바친 단검 |
 | **SA-04** | 일상의 발견 | 평온 → 관찰 → 작은 놀라움 | Normal - Magic | 평범한 삶에서 발견한 아름다움의 조각 | 농부의 낫, 행상인의 지팡이 |
@@ -407,7 +407,7 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 
 | 문서 | 경로 | 상태 | 우선순위 |
 | :--- | :--- | :--- | :--- |
-| 아이템 서사 기준 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` | 완성 | — |
+| 아이템 서사 기준 예시 (신규, 2026-05-20) | `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` | 완성 | — |
 | 몬스터 풀 시스템 | `Documents/System/System_ItemNarrative_MonsterPool.md` | 미작성 | P2 |
 | 환경 팔레트 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` | 미작성 | P2 |
 | 기억 단편 타입 정의 | `Documents/System/System_Memory Shard_Core.md` §3 | Draft | — |
@@ -421,6 +421,6 @@ world-builder와 writer 에이전트가 공동 작업할 때의 병렬화 가능
 
 **Canon Level:** Provisional
 **Visible To Player:** Hidden (시스템 문서)
-**Cross-References:** Design_Narrative_Worldbuilding, System_ItemWorld_Core, System_Equipment_Rarity, Content_Item_Narrative_GrandfatherKitchenKnife
-**Contradictions Check:** GrandfatherKitchenKnife 문서의 기존 포맷과 충돌 없음. 본 문서는 해당 포맷의 상위 시스템으로 기능하며 기존 문서를 무효화하지 않는다.
+**Cross-References:** Design_Narrative_Worldbuilding, System_ItemWorld_Core, System_Equipment_Rarity, Content_Item_Narrative_SurveyorEchoWedge
+**Contradictions Check:** SurveyorEchoWedge가 DEC-036(정체성 슬롯)·DEC-039(Magic=2지층)·DEC-038(Sci-fi 톤) 정합. 구판 두 샘플(KitchenKnife, FirstSword)은 2026-05-20 폐기 — 판타지 톤 디버전스로 신 BLAME!/대공동 세계관과 불일치.
 **Source:** SYS-INS-01 초기 제정, 2026-03-25

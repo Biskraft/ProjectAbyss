@@ -3,7 +3,7 @@
 > **문서 ID:** PLN-MR-001
 > **상태:** Draft
 > **작성일:** 2026-04-11
-> **관련 콘텐츠:** `Content_Item_Narrative_FirstSword.md` (CNT-ITM-002)
+> **관련 콘텐츠:** ~~`Content_Item_Narrative_FirstSword.md` (CNT-ITM-002)~~ — ❌ 폐기 2026-05-20. 신판 기준: `Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판)
 > **관련 시스템:** `DialogueBox.ts`, `DialogueManager.ts` (재활용)
 
 ---
@@ -18,7 +18,7 @@ ECHORIS 캐치프레이즈 **"아이템에 들어가면, 그 아이템의 기억
 
 - 신규 UI/이펙트/오디오/입력 시스템 발명 금지
 - 기존 `DialogueBox`/`DialogueManager` 재활용 — X키 팝업 = 대화와 동일
-- 기존 CNT-ITM-002 텍스트 그대로 사용 — 신규 글쓰기 0
+- ~~기존 CNT-ITM-002 텍스트 그대로 사용 — 신규 글쓰기 0~~ → **2026-05-20 갱신:** CNT-ITM-002 폐기됨. 신판 CNT-ITM-001(SurveyorEchoWedge) §3.1 "측량 일지" / "결정질 표지 모음" / "닳은 망치 받침대" 텍스트 또는 보스 처치 후 "닳은 측량 인장" 텍스트를 활용
 
 ---
 
@@ -60,7 +60,7 @@ Dead Cells — Lore Rooms. 크리티컬 패스 밖 작은 방, 단일 오브젝�
 |:---|:---|:---|
 | L1 | LDtk Entity 타입 `Memory` 등록 — 필드 `text: String` | 1 엔티티 |
 | L2 | LDtk 방 `memory_first_sword_01` 생성 (test용 1개) | 1 레벨 |
-| L3 | 방에 Memory Entity 1개 배치, `text` 필드에 CNT-ITM-002 §3.1 "빈 칼집" 텍스트 입력 | 1 인스턴스 |
+| L3 | 방에 Memory Entity 1개 배치, `text` 필드에 신판 CNT-ITM-001 §3.1 "측량 일지" 텍스트("필체가 일정하다. 한 사람이 30년 동안 같은 형식으로 작성했다…") 입력 | 1 인스턴스 |
 
 ### 3.2. 코드
 
@@ -99,7 +99,7 @@ sword_magic,0,memory_first_sword_01
 ## 4. 구현 순서
 
 1. **L1** — LDtk Entity 타입 `Memory` 등록
-2. **L2-L3** — test 방 1개 생성 + Memory Entity 배치 + CNT-ITM-002 §3.1 텍스트 입력
+2. **L2-L3** — test 방 1개 생성 + Memory Entity 배치 + 신판 CNT-ITM-001 §3.1 "측량 일지" 텍스트 입력
 3. **C1-C3** — 파서 + 씬 통합 + 몹 스폰 스킵
 4. **C4-C5 + CSV 생성** — 테이블 로더 + First Sword sword_magic 1행 등록
 5. **플레이 테스트** — sword_magic 진입 시 stratum 0에 memory 방 등장 확인
@@ -114,7 +114,7 @@ sword_magic,0,memory_first_sword_01
 | AC1 | sword_magic으로 아이템계 진입 시 지층 0에 memory 방 1개 포함 |
 | AC2 | Memory 방에 몹 스폰 없음 |
 | AC3 | Memory Entity 근접 시 기존 대화창이 슬라이드 인 |
-| AC4 | 대화 텍스트 = CNT-ITM-002 §3.1 "빈 칼집" 문장 |
+| AC4 | 대화 텍스트 = 신판 CNT-ITM-001 §3.1 "측량 일지" 문장 |
 | AC5 | X키로 닫기. 재근접 시 다시 열람 가능 |
 
 ---
@@ -134,7 +134,7 @@ sword_magic,0,memory_first_sword_01
 
 ## 7. 참고
 
-- `Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) — 텍스트 원본
+- `Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판, 2026-05-20) — 텍스트 원본. 구판 `Content_Item_Narrative_FirstSword.md` 폐기
 - `game/src/ui/DialogueBox.ts` — 재활용할 UI
 - `game/src/systems/DialogueManager.ts` — 재활용할 trigger 로직
 - `game/src/level/LdtkLoader.ts` — 엔티티 파서 추가 위치

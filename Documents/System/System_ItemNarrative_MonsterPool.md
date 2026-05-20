@@ -16,7 +16,7 @@
 | Narrative & Worldbuilding | `Documents/Design/Design_Narrative_Worldbuilding.md` |
 | Enemy AI System | `Documents/System/System_Enemy_AI.md` |
 | Quest Narrative Framework | `Documents/System/System_ItemNarrative_Template.md` |
-| 아이템 서사 예시 (기준 문서) | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
+| 아이템 서사 예시 (신규 기준 — 2026-05-20) | `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` |
 | 환경 풀 | `Documents/System/System_ItemNarrative_EnvironmentPool.md` |
 | 기억 단편 타입 | `Documents/System/System_Memory Shard_Core.md` §3 |
 
@@ -285,7 +285,7 @@
 6. 아이템 서사 문서에 테마 코드와 선택한 몬스터 ID를 명시한다.
 ```
 
-**예시 — 할아버지의 부엌칼 (CNT-ITM-001):**
-- 지층 1: T-HOME — 도망치는 재료(=도망치는 양파), 성난 주방도구(=성난 생선), 날뛰는 가축(=날뛰는 닭), 화난 양념 다발(=화난 마늘 다발)
-- 지층 2: T-MILITARY — 기어오르는 침입자, 야간 침입자의 잔영, 불량배 무리
-- 지층 3: T-PHANTOM — 젊은 자신의 환영, 성장한 자신의 환영 + T-MILITARY × T-HOME 혼합 1종
+**예시 — 측량사의 에코 쐐기 (CNT-ITM-001, 신규 기준 2026-05-20):**
+- 지층 1: `T-SURVEY/corridor` — 회로 잔영형 (불완전한 측량 도구의 환영, 무딘 망치를 든 그림자, 끊긴 케이블이 휘감는 슬라임형) — Phase 2 R&D에서 정식 풀 등록 예정
+- 지층 2: `T-DESCENT/silent` — 침식 잔영형 (심연 침식이 흉내 낸 측량사 환영, 부서진 표지가 살아 움직임) — Phase 2 R&D에서 정식 풀 등록 예정
+- (Magic 등급은 DEC-039에 의해 2지층 + Crossroads/T-PHANTOM 미사용)

@@ -16,7 +16,7 @@
 | Narrative & Worldbuilding | `Documents/Design/Design_Narrative_Worldbuilding.md` |
 | 몬스터 풀 | `Documents/System/System_ItemNarrative_MonsterPool.md` |
 | 기억 단편 타입 | `Documents/System/System_Memory Shard_Core.md` §3 |
-| 아이템 서사 예시 | `Documents/Content/Content_Item_Narrative_GrandfatherKitchenKnife.md` |
+| 아이템 서사 예시 (신규 기준 — 2026-05-20) | `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` |
 | Item World Core | `Documents/System/System_ItemWorld_Core.md` |
 
 ---

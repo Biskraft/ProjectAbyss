@@ -12,7 +12,8 @@
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`
 * 타격 피드백: `Documents/System/System_Combat_HitFeedback.md`
 * 첫 30분 경험 흐름: `Documents/Content/Content_First30Min_ExperienceFlow.md` (CNT-EXP-001) — Screen 13 그림자 검사 보스 확정 스펙
-* 첫 아이템 서사: `Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) — 그림자 검사 내러티브 근거
+* ~~첫 아이템 서사: `Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) — 그림자 검사 내러티브 근거~~ **DEPRECATED 2026-05-20 (판타지 톤 — 파일 삭제). 첫 보스 내러티브 재작성 대기.**
+* 아이템 서사 신규 기준: `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판) — 첫 보스 내러티브 재작성 시 포맷 참조
 * 보스 디자인 리서치: `Documents/Research/BossDesign_SideScrolling_Research.md`
 * 야리코미 철학: `Documents/Design/Design_Yarikomi_Philosophy.md`
 
@@ -454,9 +455,10 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 
 ### 2.9. 첫 보스 참조 명세: 그림자 검사 (Shadow Swordsman) — P0
 
-> **내러티브 참조:** `CNT-ITM-002` §3.1 보스 오버라이드 / `CNT-EXP-001` Screen 13
+> **내러티브 상태 (2026-05-20):** 구판 CNT-ITM-002(격벽 틈에서 꺼낸 낡은 검) 폐기 — 판타지 톤 디버전스. 본 보스의 *전투 메커니즘*은 유지하되, *서사 래퍼*(외형 설명 "용병의 전투 방식이 그대로 반영된 실루엣", 드랍 "닳은 여행 표지", kill_visual 문장)는 BLAME!/대공동 세계관 톤으로 **재작성 대기**. 신규 기준 예시는 `CNT-ITM-001 신판 (SurveyorEchoWedge)` 참조.
+> **내러티브 참조 (구):** ~~`CNT-ITM-002` §3.1 보스 오버라이드~~ / `CNT-EXP-001` Screen 13 (수치 SSoT는 유지)
 > **등급:** Tier 1 — 아이템 장군 (기억의 수문장)
-> **출현 아이템:** 격벽 틈에서 꺼낸 낡은 검 (Magic 등급) — 튜토리얼 전용 고정 인스턴스
+> **출현 아이템 (구):** ~~격벽 틈에서 꺼낸 낡은 검~~ — 튜토리얼 첫 아이템 재명명 대기
 
 이 섹션은 CNT-EXP-001 Screen 13에 확정된 그림자 검사 보스의 구현 명세다. 모듈형 보스 시스템(섹션 2.2)의 Tier 1 인스턴스이며, 최초 아이템계 진입 특례(SYS-IW-01 §2.3)가 동시 적용된다.
 
@@ -500,7 +502,7 @@ CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패
 | 보스 HP | 사망 직전 수치 유지 (리셋 없음) |
 | 횟수 제한 | 없음 |
 
-> **내러티브 근거:** 격벽 틈에서 꺼낸 낡은 검(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 First Sword 한정. 이후 자기 무기로 진입하면 정상 규칙 적용.
+> **내러티브 근거:** 튜토리얼 첫 아이템(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 First Sword 한정. 이후 자기 무기로 진입하면 정상 규칙 적용. *(2026-05-20: 구 "격벽 틈에서 꺼낸 낡은 검" 명칭 폐기. 첫 아이템 재명명 대기.)*
 
 #### 보스 처치 결과
 
@@ -515,7 +517,7 @@ shadow_swordsman_clear:
     value: "+SHADOW_CLEAR_ATK_BONUS"  # 파라미터 참조: 8
     display: "Old Sword — ATK +8 (Permanent)"
     timing: "처치 후 1초 뒤 화면 중앙 큰 텍스트 + 효과음"
-  # 에르다 대사 없음 — 행동/환경 묘사만 (CNT-ITM-002 F-13 정합)
+  # 에르다 대사 없음 — 행동/환경 묘사만 (신판 CNT-ITM-001 F-12 정합)
 ```
 
 > **SSoT 주의:** 위 수치(HP 80, ATK 12, ATK +8)는 CNT-EXP-001 Screen 13이 SSoT다. 이 섹션은 참조 요약이며, 값 변경 시 CNT-EXP-001을 먼저 수정하고 이 섹션을 동기화한다.

@@ -45,8 +45,8 @@ System_Combat_Damage.md에서 MP는 DEPRECATED 선언됨. 그런데 이 파일�
 | 파일 | 라인 | 수정 |
 |---|---|---|
 | `Documents/Plan/Phase1_Implementation_Priority.md` | 141 | `Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md` |
-| `Documents/Content/Content_Item_Narrative_FirstSword.md` | 248 | `Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md` |
-| `Documents/Content/Content_Item_Narrative_FirstSword.md` | 251 | `Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md` |
+| ~~`Documents/Content/Content_Item_Narrative_FirstSword.md` | 248~~ | ~~`Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md`~~ — 파일 폐기 2026-05-20 (판타지 톤), 라인 참조 무효 |
+| ~~`Documents/Content/Content_Item_Narrative_FirstSword.md` | 251~~ | ~~`Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md`~~ — 동상 |
 | `Documents/Research/Retention_Hour1to10_Research.md` | 10 | `Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md` |
 | `Documents/Research/SilentTutorial_EnvironmentalTeaching_Research.md` | 518, 525 | `Content_First30Min_v2.md` → `Content_First30Min_ExperienceFlow.md` |
 

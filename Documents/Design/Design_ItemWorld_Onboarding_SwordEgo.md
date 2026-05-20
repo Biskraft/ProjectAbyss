@@ -5,12 +5,12 @@
 > **작성일:** 2026-04-25
 > **선행 문서:**
 > - `Documents/Content/Content_First30Min_ExperienceFlow.md` (CNT-EXP-001) -- 기존 30분 흐름
-> - `Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) -- 기존 첫 검 서사
+> - ~~`Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002)~~ -- ❌ 폐기 2026-05-20 (판타지 톤 — 파일 삭제). 신규 기준 예시: `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판)
 > - `Documents/Design/Design_Narrative_Worldbuilding.md` (D-12) -- 내러티브 원칙
 > - `Documents/Research/ItemWorldEntry_NaturalOnboarding_Research.md` -- 온보딩 리서치
 > - `Documents/Research/Memory Shard_Narrative_Worldbuilding_Research.md` -- 기억 단편 세계관
 > **의사결정:** DEC-033 (스파이크 재정의 + 검 Ego 도입)
-> **폐기 문서:** 이 문서가 채택되면 CNT-EXP-001의 Phase D~E, CNT-ITM-002의 전체 구조가 개정 대상
+> **폐기 문서:** 이 문서가 채택되면 CNT-EXP-001의 Phase D~E가 개정 대상. (CNT-ITM-002는 2026-05-20 이미 파일 삭제됨 — 첫 아이템 재명명/재서사 대기 중.)
 
 ---
 
@@ -503,7 +503,7 @@ Rustborn에 심어둘 부정-역전 쌍:
 | `CLAUDE.md` 캐치프레이즈 | 직접 | 재검토 필요 |
 | `Terms/Project_Vision_Abyss.md` | 직접 | 스파이크 정의 변경 |
 | `Content/Content_First30Min_ExperienceFlow.md` | 대규모 | Phase D~E 전면 개정 |
-| `Content/Content_Item_Narrative_FirstSword.md` | 대규모 | Ego 추가, 이름 변경, 기억 단편 재프레임 |
+| ~~`Content/Content_Item_Narrative_FirstSword.md`~~ → `Content/Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판) | 폐기 후 신판 작성 완료 (2026-05-20) | 판타지 톤 디버전스 — 격벽 측량사 도구로 재기획 완료 |
 | `Design/Design_Narrative_Worldbuilding.md` | 중간 | Ego 개념 추가, 기억 단편 재해석 |
 | `Research/Memory Shard_Narrative_Worldbuilding_Research.md` | 중간 | "야생/복종" → "불안정/안정화" 용어 변경 |
 | `System/System_ItemWorld_Core.md` | 중간 | Ego 시스템 섹션 추가 |

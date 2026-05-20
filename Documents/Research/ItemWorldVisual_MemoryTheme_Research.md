@@ -732,7 +732,7 @@ Core 지층 (지층 4, Legendary+):
 
 ## 7. 크로스로드 테마 혼합 원칙
 
-지층 3(Crossroads)에서 두 테마가 만날 때의 시각 설계 규칙. `Content_Item_Narrative_GrandfatherKitchenKnife.md`에서 "왼쪽 벽: 석조(T-MILITARY), 오른쪽 벽: 황토(T-HOME)"로 이미 방향이 잡혀 있다.
+지층 3(Crossroads)에서 두 테마가 만날 때의 시각 설계 규칙. (구판 `GrandfatherKitchenKnife` 예시 — "왼쪽 벽: 석조 / 오른쪽 벽: 황토" — 폐기 2026-05-20. Magic 등급은 DEC-039에 의해 2지층만 가지며 Crossroads 미사용. Rare 이상 등급에서 신규 Crossroads 예시 작성 대기.)
 
 ### 공간 분할 방법 3가지
 
@@ -757,7 +757,7 @@ Phase 1에서는 아이템계 미니(1지층)를 목표로 한다. 최소한 다
 | 우선순위 | 테마 | 이유 |
 | :--- | :--- | :--- |
 | 1 | T-FORGE | PA 세계관 핵심. 에르다가 대장장이. 스파이크 데모에 가장 적합 |
-| 2 | T-HOME | 할아버지의 부엌칼(CNT-ITM-001)이 PA 첫 번째 콘텐츠 아이템. 코믹한 톤으로 서비스 |
+| 2 | T-SURVEY/corridor | 측량사의 에코 쐐기(CNT-ITM-001 신판, 2026-05-20)가 PA 첫 번째 콘텐츠 아이템. BLAME!/대공동 톤. 격벽 측량사 도구 |
 
 이 두 테마만으로도 "같은 아이템계인데 다른 기억"이라는 스파이크를 검증할 수 있다.
 
