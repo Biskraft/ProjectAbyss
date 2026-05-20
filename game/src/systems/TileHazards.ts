@@ -10,7 +10,7 @@
  *   charged 1% maxHp / 0.5s tick (체류 시간 비례)
  *   acid    1.6% maxHp / second (continuous)
  *   fire    3% maxHp / second + refresh Burn 2s (overlay from oil ignition)
- *   thunder 50% maxHp single-hit when caught in conductor flood-fill
+ *   thunder electric overlay 12% maxHp / 0.5s while inside conductor flood-fill
  *   burn    2% maxHp / second for burn duration
  *
  * The Burn 3s timer + 1s tick accumulator + 0.5s charged tick accumulator
@@ -57,6 +57,8 @@ export interface HazardTarget {
   /** Was overlapping an electric overlay last frame? Used so thunder damages
    *  once per pulse (on transition into overlay), not every frame. */
   prevInElectric?: boolean;
+  /** Accumulator for repeated electric-overlay damage ticks. */
+  electricTickAccum?: number;
   /** Optional player hook: water clears burn/fire debuffs immediately. */
   extinguishFireDebuffs?: () => void;
   /**
@@ -105,7 +107,8 @@ export const CYRO_FROZEN_MS = 3000;       // Frozen 상태이상 3s (was 2000)
 const CYRO_SLOW_PCT = 0.75;        // 이동속도 75% 감소 (was 60%)
 const FIRE_DPS_PCT = 0.03;
 const FIRE_BURN_REFRESH_MS = 10000;
-const THUNDER_HIT_PCT = 0.50;
+const ELECTRIC_TICK_PCT = 0.12;
+const ELECTRIC_TICK_MS = 500;
 const BURN_TICK_PCT = 0.02;
 const BURN_TICK_MS = 5000;
 
@@ -214,8 +217,15 @@ export function applyTileHazards(
   // damage is per-pulse (one application per Shift+3 / enchant trigger),
   // not per-frame (which would stack to thousands over the 2.5s duration).
   const inElectric = mutator.aabbHasOverlay(x, y, w, h, 'electric');
-  if (inElectric && !target.prevInElectric) {
-    cb.onDamage(target.maxHp * THUNDER_HIT_PCT, 'thunder');
+  let electricAcc = target.electricTickAccum ?? 0;
+  if (inElectric) {
+    electricAcc += dtMs;
+    while (electricAcc >= ELECTRIC_TICK_MS) {
+      electricAcc -= ELECTRIC_TICK_MS;
+      cb.onDamage(target.maxHp * ELECTRIC_TICK_PCT, 'thunder');
+    }
+  } else if (electricAcc !== 0) {
+    electricAcc = 0;
   }
   target.prevInElectric = inElectric;
 
@@ -253,6 +263,7 @@ export function applyTileHazards(
   target.burnRemainingMs = burnRem;
   target.burnTickAccum = burnAcc;
   target.chargedTickAccum = chargedAcc;
+  target.electricTickAccum = electricAcc;
   target.acidTickAccum = acidAcc;
   target.cyroTickAccum = cyroAcc;
   target.cyroSlowRemainingMs = cyroSlowRem;

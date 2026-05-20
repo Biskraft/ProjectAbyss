@@ -33,12 +33,12 @@ export class HitBloodSprayManager {
       const baseAngle = dirX >= 0 ? 0 : Math.PI;
       const spread = (Math.random() - 0.5) * 1.6;
       const angle = baseAngle + spread;
-      const speed = 110 + Math.random() * 120;
+      const speed = 220 + Math.random() * 240;
 
       const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed - 40; // upward bias
+      const vy = Math.sin(angle) * speed - 80; // upward bias
 
-      const size = 2 + Math.random() * 2;
+      const size = 4 + Math.random() * 4;
       const gfx = new Graphics();
       gfx.circle(0, 0, size).fill({ color: COLOR_DEEP, alpha: 1 });
       gfx.circle(0, 0, size * 0.55).fill({ color: COLOR_BRIGHT, alpha: 1 });
@@ -62,7 +62,7 @@ export class HitBloodSprayManager {
       s.x += s.vx * dtSec;
       s.y += s.vy * dtSec;
       s.vx *= 0.94;
-      s.vy = s.vy * 0.95 + 240 * dtSec; // gravity
+      s.vy = s.vy * 0.95 + 480 * dtSec; // gravity
       s.gfx.x = s.x;
       s.gfx.y = s.y;
       const t = Math.max(0, s.life / s.maxLife);

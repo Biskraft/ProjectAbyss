@@ -631,7 +631,6 @@ export class WorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         SFX.play('attack_hit');
-        if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
           this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);

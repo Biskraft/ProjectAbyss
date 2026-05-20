@@ -175,7 +175,7 @@ export class ScreenCrack {
         this.glowGfx
           .moveTo(seg.x1, seg.y1)
           .lineTo(ex, ey)
-          .stroke({ color: 0xe87830, width: 6, alpha: 0.3 * eased });
+          .stroke({ color: 0xffa41b, width: 6, alpha: 0.3 * eased });
 
         accumulated += segLen;
       }
@@ -188,7 +188,7 @@ export class ScreenCrack {
       this.phase = 'shatter';
       this.timer = 0;
       this.onCrackComplete?.();
-      this.onScreenFlash?.(0xe87830, 0.4);
+      this.onScreenFlash?.(0xffa41b, 0.4);
       this.onHitstop?.(4);
     }
   }
@@ -215,14 +215,14 @@ export class ScreenCrack {
         this.glowGfx
           .moveTo(seg.x1, seg.y1)
           .lineTo(seg.x2, seg.y2)
-          .stroke({ color: 0xe87830, width: 8 + gapWidth * 3, alpha: 0.2 + progress * 0.3 });
+          .stroke({ color: 0xffa41b, width: 8 + gapWidth * 3, alpha: 0.2 + progress * 0.3 });
       }
     }
 
     // Full-screen Damascus glow intensifies
     this.fragmentGfx
       .rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-      .fill({ color: 0xe87830, alpha: progress * 0.15 });
+      .fill({ color: 0xffa41b, alpha: progress * 0.15 });
 
     this.onShake?.(8 * (1 - progress * 0.5));
 

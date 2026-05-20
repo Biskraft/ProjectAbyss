@@ -18,7 +18,7 @@
 import { Container, Graphics, Sprite, Texture, Rectangle, Assets, BlurFilter, DisplacementFilter } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import type { TileMutator } from './TileMutator';
-import { TILE_OIL, TILE_GRASS, getTile } from '../core/Physics';
+import { TILE_OIL, TILE_GRASS, TILE_WATER, TILE_ACID, TILE_CHARGED, getTile } from '../core/Physics';
 import { EmberRiseManager } from '../effects/EmberRise';
 import { SmokeWispManager } from '../effects/SmokeWisp';
 
@@ -503,7 +503,11 @@ export class TileMutatorRenderer {
     // yellow translucent tint + zigzag arc between random edge points + bright sparks
     mutator.forEachElectric((gx, gy) => {
       const x = gx * 16, y = gy * 16;
-      g.rect(x, y, 16, 16).fill({ color: 0xffee44, alpha: 0.55 });
+      const tile = collisionGrid ? getTile(collisionGrid, gx, gy) : 0;
+      const isFluidCell = tile === TILE_WATER || tile === TILE_ACID || tile === TILE_CHARGED;
+      if (!isFluidCell) {
+        g.rect(x, y, 16, 16).fill({ color: 0xffee44, alpha: 0.55 });
+      }
       // ~40% chance per frame to draw an arc this cell
       if (Math.random() < 0.4) {
         const edge = (i: number): [number, number] => {

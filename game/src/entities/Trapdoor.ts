@@ -27,7 +27,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
 
-const FORGE_EMBER_COLOR = 0xff8000;   // CLAUDE.md 토큰 — orange #FF8000
+const FORGE_EMBER_COLOR = 0xffa41b;   // brand key color orange (#FFA41B 2026-05-20)
 const EMBER_GLOW_COLOR = 0xffaa44;
 const PILLAR_INNER_COLOR = 0xffd35a;  // 펄스 중심 — 단조열 핵
 const DEFAULT_PROXIMITY = 120;        // px — 보스 룸 중앙 점유물. 공중 부유 보스에 대비해 넉넉하게.

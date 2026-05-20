@@ -60,6 +60,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    * each frame. 0 = normal.
    */
   frozenRemainingMs = 0;
+  isFrozen(): boolean {
+    return this.frozenRemainingMs > 0;
+  }
   /**
    * Oil-slip residue. Refreshed by FluidResidueManager.applyEffects when
    * the enemy AABB overlaps an oil blot. Mirrors Player.oilSlipRemainingMs.

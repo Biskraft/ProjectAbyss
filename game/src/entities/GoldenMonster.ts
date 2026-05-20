@@ -177,7 +177,7 @@ export class GoldenMonster extends Enemy {
     if (this.fsm.currentState === 'patrol') {
       this.facingRight = this.patrolDir > 0;
     }
-    this.updateSkeletonAnim(dt);
+    if (!this.isFrozen()) this.updateSkeletonAnim(dt);
   }
 
   protected setupStates(): void {
@@ -206,6 +206,7 @@ export class GoldenMonster extends Enemy {
         }
         const patrolSpeed = this.moveSpeed * PATROL_SPEED_MULT;
         this.vx = this.patrolDir * patrolSpeed;
+        if (!this.grounded) return;
 
         if (this.x > this.spawnX + this.patrolRangePx) this.patrolDir = -1;
         if (this.x < this.spawnX - this.patrolRangePx) this.patrolDir = 1;

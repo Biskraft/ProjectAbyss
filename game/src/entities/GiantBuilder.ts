@@ -387,7 +387,7 @@ export class GiantBuilder {
         const colorRaw = e.fields.LightColor;
         const color = typeof colorRaw === 'string'
           ? parseInt(colorRaw.replace(/^#/, ''), 16)
-          : (typeof colorRaw === 'number' ? colorRaw : 0xE87830);
+          : (typeof colorRaw === 'number' ? colorRaw : 0xFFA41B);
         const rate = typeof e.fields.Rate === 'number' ? e.fields.Rate : 2.0;
         const glowRadius = typeof e.fields.GlowRadius === 'number' ? e.fields.GlowRadius : 6;
         const onlyWhileMoving = e.fields.OnlyWhileMoving === true;

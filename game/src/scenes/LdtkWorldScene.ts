@@ -2033,7 +2033,7 @@ export class LdtkWorldScene extends Scene {
     if (this.player.attackBlockedNoWeaponPulse) {
       this.player.attackBlockedNoWeaponPulse = false;
       if (this.noWeaponToastCooldown <= 0) {
-        this.toast.show(t('toast.no_weapon'), 0xFF8000);
+        this.toast.show(t('toast.no_weapon'), 0xFFA41B);
         this.noWeaponToastCooldown = 1500;
       }
     }
@@ -2139,7 +2139,6 @@ export class LdtkWorldScene extends Scene {
         this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
         this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
         SFX.play('attack_hit');
-        if (hit.critical) this.criticalHighlight.spawn(hit.hitX, hit.hitY);
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
           this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
@@ -3174,9 +3173,14 @@ export class LdtkWorldScene extends Scene {
     // ── Maintained spawners: refill when live count drops below minCount ──
     this.tickMaintainedSpawners(dt);
     // ── Throwable containers: gravity tick + impact paint + stacking ──
-    const isContainerSolidCell = (gx: number, gy: number): boolean => {
+    const isContainerFluidCell = (gx: number, gy: number): boolean => {
       const t = this.collisionGrid[gy]?.[gx] ?? 0;
-      return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
+      return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
+    };
+    const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
+      const t = this.collisionGrid[gy]?.[gx] ?? 0;
+      if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
+      return c.isWoodFamily() && isContainerFluidCell(gx, gy);
     };
     const env = {
       isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
@@ -3193,17 +3197,19 @@ export class LdtkWorldScene extends Scene {
       const c = this.containers[i];
       const envImpact = c.tickEnvironment(dt, env);
       if (envImpact) {
-        this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
+        this.applyContainerEffectToFluid(c);
         this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
         continue;
       }
-      const impact = c.update(dt, isContainerSolidCell, this.containers);
+      const impact = c.update(dt, isContainerSolidCellFor(c), this.containers, isContainerFluidCell);
       if (impact) {
         this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
         this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
+        continue;
       }
+      this.applyContainerEffectToFluid(c);
     }
     // ── Thrown container × enemy impact (one hit per throw) ──
     this.checkThrownContainerEnemyHit();
@@ -3781,14 +3787,18 @@ export class LdtkWorldScene extends Scene {
     // first so containers placed above them detect the proper resting
     // position. Loop is small (typically < 20) so cost is negligible.
     {
-      const isContainerSolidCell = (gx: number, gy: number): boolean => {
+      const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
         const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
+        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
+        return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
       };
       const sorted = [...this.containers].sort((a, b) => b.y - a.y);
       for (const c of sorted) {
         if (c.skipSettle) continue; // Drop-bias containers fall naturally.
-        c.settleAtSpawn(isContainerSolidCell, this.containers);
+        c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
+          const t = this.collisionGrid[gy]?.[gx] ?? 0;
+          return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
+        });
       }
     }
     // Always log how many Container entities were seen vs spawned + where —
@@ -5219,14 +5229,18 @@ export class LdtkWorldScene extends Scene {
         fluidVolumeOverride: ms.fluidVolumeOverride,
       });
       if (refilled.length === 0) continue;
-      const isContainerSolidCell = (gx: number, gy: number): boolean => {
+      const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
         const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        return t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15;
+        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
+        return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
       };
       for (const c of refilled) {
         this.containers.push(c);
         this.entityLayer.addChild(c.container);
-        if (!c.skipSettle) c.settleAtSpawn(isContainerSolidCell, this.containers);
+        if (!c.skipSettle) c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
+          const t = this.collisionGrid[gy]?.[gx] ?? 0;
+          return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
+        });
         ms.owned.push(c);
       }
     }
@@ -5474,6 +5488,87 @@ export class LdtkWorldScene extends Scene {
     this.containerFluidDirty = false;
     this.fluidSystem.refreshFromGrid(this.collisionGrid);
     this.rerenderTilemap();
+  }
+
+  private applyContainerEffectToFluid(c: ThrowableContainer): void {
+    if (
+      c.kind === 'OilDrum' ||
+      c.kind === 'WaterBarrel' ||
+      c.kind === 'Crate' ||
+      c.kind === 'MetalCrate'
+    ) return;
+    const grid = this.collisionGrid;
+    const left = Math.floor(c.colX / 16);
+    const right = Math.floor((c.colX + c.colW - 1) / 16);
+    const foot = Math.floor((c.colY + c.colH) / 16);
+    let changed = false;
+    let shocked = false;
+    for (let gy = foot - 1; gy <= foot; gy++) {
+      for (let gx = left; gx <= right; gx++) {
+        const row = grid[gy];
+        if (!row) continue;
+        const t = row[gx] ?? -1;
+        if (t !== 2 && t !== 6 && t !== 8 && t !== 11 && t !== 13 && t !== 20) continue;
+        switch (c.kind) {
+          case 'MagmaCrucible':
+            this.tileMutator.tryIgniteOverlayOnly(gx, gy, 1800);
+            this.tileMutator.tryIgnite(grid, gx, gy);
+            this.tileMutator.tryIgnite(grid, gx + 1, gy);
+            this.tileMutator.tryIgnite(grid, gx - 1, gy);
+            this.tileMutator.tryIgnite(grid, gx, gy + 1);
+            this.tileMutator.tryIgnite(grid, gx, gy - 1);
+            break;
+          case 'AcidVial':
+            this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
+            break;
+          case 'ChargedCrate':
+          case 'ChargedCell':
+            if (this.tileMutator.applyThunderChain(grid, gx, gy) === 0 && t === 11) {
+              this.tileMutator.onElectricInsulated?.(gx, gy);
+            }
+            shocked = true;
+            break;
+          case 'CyroCanister':
+            changed = this.freezeConnectedFluidFrom(grid, gx, gy) || changed;
+            break;
+        }
+      }
+    }
+    if (changed) this.containerFluidDirty = true;
+    if (changed && c.kind === 'CyroCanister') this.freezeEnemiesInFrozenCells(4000);
+    void shocked;
+  }
+
+  private freezeConnectedFluidFrom(grid: number[][], sx: number, sy: number): boolean {
+    const seed = grid[sy]?.[sx] ?? -1;
+    if (seed !== 2 && seed !== 6 && seed !== 8 && seed !== 11 && seed !== 13 && seed !== 20) return false;
+    const W = grid[0]?.length ?? 0;
+    if (!W) return false;
+    const visited = new Set<number>();
+    const queue: Array<[number, number]> = [[sx, sy]];
+    const key = (gx: number, gy: number) => gy * W + gx;
+    let changed = false;
+    while (queue.length) {
+      const [gx, gy] = queue.shift()!;
+      const k = key(gx, gy);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      if ((grid[gy]?.[gx] ?? -1) !== seed) continue;
+      changed = this.tileMutator.tryFreeze(grid, gx, gy) || changed;
+      queue.push([gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]);
+    }
+    return changed;
+  }
+
+  private freezeEnemiesInFrozenCells(durationMs: number): void {
+    for (const enemy of this.enemies) {
+      if (!enemy.alive || enemy.hp <= 0) continue;
+      if (!this.tileMutator.aabbHasOverlay(enemy.x, enemy.y, enemy.width, enemy.height, 'frozen')) continue;
+      enemy.frozenRemainingMs = Math.max(enemy.frozenRemainingMs ?? 0, durationMs);
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.showHpBarFlash();
+    }
   }
 
   /**

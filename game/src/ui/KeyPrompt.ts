@@ -24,9 +24,9 @@ const KEY_BOX_TEXT_COLOR = 0xffffff;
 const KEY_BOX_FONT_SIZE = 5;
 const KEY_BOX_RADIUS = 1;
 
-// Gauge fill — DEC-035 키컬러 orange. 입력 잠금/홀드 confirm 등 진행률 표기에 공통 사용.
+// Gauge fill — brand key color orange #FFA41B (2026-05-20). 입력 잠금/홀드 confirm 등 진행률 표기에 공통 사용.
 // alpha 0.85 — 부모가 dim 되더라도 게이지가 충분히 보이도록 강하게.
-const KEY_BOX_GAUGE_COLOR = 0xff8000;
+const KEY_BOX_GAUGE_COLOR = 0xffa41b;
 const KEY_BOX_GAUGE_ALPHA = 0.85;
 
 // Context prompt — world-space interactable prompts (must be legible at 640x360)

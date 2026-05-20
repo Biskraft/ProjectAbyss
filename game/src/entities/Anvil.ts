@@ -23,8 +23,8 @@ import { RARITY_COLOR } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
 import { GlowFilter } from '@effects/GlowFilter';
 
-/** Anvil halo glow — forge ember orange. CLAUDE.md 토큰 #FF8000 계열. */
-const ANVIL_HALO_GLOW_COLOR = 0xff8000;
+/** Anvil halo glow — brand key color orange (#FFA41B 2026-05-20). */
+const ANVIL_HALO_GLOW_COLOR = 0xffa41b;
 
 interface Spark {
   gfx: Graphics;

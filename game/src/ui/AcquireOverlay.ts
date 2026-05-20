@@ -51,7 +51,7 @@ export interface AcquireRelicConfig {
   usage: string;
   /** Action to embed as key icon in usage text. Omit for relics without a key (Water Breathing). */
   keyAction?: GameAction;
-  /** Glow tint, default ROW_SELECTED_GLOW (#FF9933 orange). */
+  /** Glow tint, default ROW_SELECTED_GLOW (#FFA41B brand key color orange). */
   tint?: number;
 }
 

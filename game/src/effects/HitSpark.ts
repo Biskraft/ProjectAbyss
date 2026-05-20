@@ -47,17 +47,17 @@ interface Variant {
 
 const VARIANTS: Record<'light' | 'heavy', Variant> = {
   light: {
-    mainLen: 40,  mainThick: 2,
-    crossCount: 2, crossLen: 18, crossThick: 1,
-    gap: 4,
-    debrisCount: 4, debrisSpread: 22,
+    mainLen: 80,  mainThick: 4,
+    crossCount: 2, crossLen: 36, crossThick: 2,
+    gap: 8,
+    debrisCount: 4, debrisSpread: 44,
     sparkCount: 0,
   },
   heavy: {
-    mainLen: 64,  mainThick: 3,                  // 1.6× longer than light
-    crossCount: 3, crossLen: 28, crossThick: 1.5,
-    gap: 6,
-    debrisCount: 8, debrisSpread: 32,
+    mainLen: 128, mainThick: 6,                  // 1.6× longer than light
+    crossCount: 3, crossLen: 56, crossThick: 3,
+    gap: 12,
+    debrisCount: 8, debrisSpread: 64,
     sparkCount: 2,
   },
 };
@@ -132,17 +132,6 @@ export class HitSparkManager {
     this.spawnMain(x, y, mainAngle, mainLen, v.mainThick);
 
     // ② Cross lines — with center gap, dynamically-capped count, per-cross clamp.
-    const nCross = effectiveCrossCount(v);
-    const minCrossLen = (v.gap + 2) * 2;
-    const offsets = pickCrossOffsets(nCross);
-    for (let i = 0; i < offsets.length; i++) {
-      const ang = mainAngle + offsets[i];
-      const jittered = v.crossLen * (0.8 + Math.random() * 0.4);
-      const len = Math.max(minCrossLen, jittered);
-      const delay = 8 + i * 8 + Math.random() * 10;
-      this.spawnCrossLine(x, y, ang, len, v.crossThick, v.gap, delay);
-    }
-
     // ③ Debris — dark radial particles + optional yellow sparks for heavy.
     for (let i = 0; i < v.debrisCount; i++) {
       const ang = Math.random() * Math.PI * 2;
@@ -160,9 +149,26 @@ export class HitSparkManager {
 
   private spawnMain(cx: number, cy: number, ang: number, L: number, T: number): void {
     const gfx = new Graphics();
-    // Dim outer halo + bright thinner inner core (HK "white slash" style).
-    gfx.rect(-L / 2, -(T + 1) / 2, L, T + 1).fill({ color: 0xffffff, alpha: 0.32 });
-    gfx.rect(-L / 2, -T * 0.35,     L, T * 0.7).fill({ color: 0xffffff, alpha: 0.95 });
+    // Lens-shaped slash — pointy tips, fat middle (Dead Cells / HK style).
+    // 6-point poly: tapered 20% on each end, 60% flat in the middle.
+    const Tout = T + 1;
+    const Tin = T * 0.7;
+    gfx.poly([
+      -L / 2,     0,
+      -L * 0.30, -Tout / 2,
+       L * 0.30, -Tout / 2,
+       L / 2,     0,
+       L * 0.30,  Tout / 2,
+      -L * 0.30,  Tout / 2,
+    ]).fill({ color: 0xffffff, alpha: 0.32 });
+    gfx.poly([
+      -L / 2,     0,
+      -L * 0.30, -Tin / 2,
+       L * 0.30, -Tin / 2,
+       L / 2,     0,
+       L * 0.30,  Tin / 2,
+      -L * 0.30,  Tin / 2,
+    ]).fill({ color: 0xffffff, alpha: 0.95 });
     gfx.x = cx;
     gfx.y = cy;
     gfx.rotation = ang;
@@ -191,9 +197,26 @@ export class HitSparkManager {
     const cos = Math.cos(ang);
     const sin = Math.sin(ang);
     const gfx = new Graphics();
-    // Origin at inner (gap) edge: draw from x=0 to x=L. Scale anchors here.
-    gfx.rect(0, -(T + 0.6) / 2, L, T + 0.6).fill({ color: 0xffffff, alpha: 0.28 });
-    gfx.rect(0, -T * 0.35,       L, T * 0.7).fill({ color: 0xffffff, alpha: 0.9 });
+    // Origin at inner (gap) edge: draw from x=0 to x=L. Lens shape — both ends taper.
+    // 6-point poly: tapered 15% on each end, 70% flat in the middle.
+    const Tout = T + 0.6;
+    const Tin = T * 0.7;
+    gfx.poly([
+      0,          0,
+      L * 0.15, -Tout / 2,
+      L * 0.85, -Tout / 2,
+      L,          0,
+      L * 0.85,  Tout / 2,
+      L * 0.15,  Tout / 2,
+    ]).fill({ color: 0xffffff, alpha: 0.28 });
+    gfx.poly([
+      0,          0,
+      L * 0.15, -Tin / 2,
+      L * 0.85, -Tin / 2,
+      L,          0,
+      L * 0.85,  Tin / 2,
+      L * 0.15,  Tin / 2,
+    ]).fill({ color: 0xffffff, alpha: 0.9 });
     gfx.x = cx + cos * gap;
     gfx.y = cy + sin * gap;
     gfx.rotation = ang;
@@ -211,7 +234,7 @@ export class HitSparkManager {
                        isSpark: boolean): void {
     const cos = Math.cos(ang);
     const sin = Math.sin(ang);
-    const size = isSpark ? 1.5 : 1.2 + Math.random() * 0.8;
+    const size = isSpark ? 3 : 2.4 + Math.random() * 1.6;
     const gfx = new Graphics();
     const color = isSpark ? 0xfff2c4 : 0x0a0a14;
     gfx.circle(0, 0, size).fill({ color, alpha: 1 });

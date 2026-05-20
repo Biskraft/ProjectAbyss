@@ -31,7 +31,7 @@ const LOGO_PATH = assetPath('assets/ui/ui_title_01.png');
 // Presentation palette — pure black per ui-components.html §title-screen.
 // COL_TEAL retained because legacy KeyConfig screens still reference it.
 const COL_VOID = 0x000000;
-const COL_ACCENT = 0xe87830;
+const COL_ACCENT = 0xffa41b;
 const COL_TEAL = 0x4a8a8a;
 const COL_WHITE = 0xf0f0f0;
 const COL_DIM = 0x3a3a48;
@@ -458,7 +458,7 @@ export class TitleScene extends Scene {
       // Outer mist — deep dim ember at the edge, warming as it approaches centre.
       this.pulseGfx.circle(px, py, baseR * 1.85).fill({ color: 0x8a3a18, alpha: 0.022 * pulse });
       this.pulseGfx.circle(px, py, baseR * 1.35).fill({ color: 0xc0541e, alpha: 0.038 * pulse });
-      this.pulseGfx.circle(px, py, baseR * 0.95).fill({ color: 0xe87830, alpha: 0.055 * pulse });
+      this.pulseGfx.circle(px, py, baseR * 0.95).fill({ color: 0xffa41b, alpha: 0.055 * pulse });
 
       this.pulseHotCore.clear();
       // Inner ember — small, gentle, no white. Just two orange steps.

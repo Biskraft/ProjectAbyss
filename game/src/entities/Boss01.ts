@@ -304,7 +304,7 @@ export class Boss01 extends Enemy<Boss01State> {
       this.facingRight = this.attackFacingDir > 0;
     }
     // Charge 중 추가 lock — chargeDir 기준 (attackFacingDir 와 동일 값이지만 명시).
-    if (this.fsm.currentState === 'charge') {
+    if (!this.isFrozen() && this.fsm.currentState === 'charge') {
       this.facingRight = this.chargeDir > 0;
       // 발 밑 큰 먼지 트레일.
       this.dustChargeTimer -= dt;
@@ -315,8 +315,10 @@ export class Boss01 extends Enemy<Boss01State> {
     } else {
       this.dustChargeTimer = 0;
     }
-    this.updateDust(dt);
-    this.updateBossAnim(dt);
+    if (!this.isFrozen()) {
+      this.updateDust(dt);
+      this.updateBossAnim(dt);
+    }
   }
 
   // ─── Dust ──────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
  * Designed for small Graphics lights (2-16px), not full-screen bloom.
  *
  * Usage:
- *   const glow = new GlowFilter({ color: 0xE87830, radius: 12, intensity: 1.5 });
+ *   const glow = new GlowFilter({ color: 0xFFA41B, radius: 12, intensity: 1.5 });
  *   lightContainer.filters = [glow];
  */
 
@@ -89,7 +89,7 @@ void main() {
 `;
 
 export interface GlowOptions {
-  /** Glow color as 0xRRGGBB. Default 0xE87830 (forge orange). */
+  /** Glow color as 0xRRGGBB. Default 0xFFA41B (brand key color orange). */
   color?: number;
   /** Blur sample radius in pixels. Default 8. */
   radius?: number;
@@ -101,7 +101,7 @@ export interface GlowOptions {
 
 export class GlowFilter extends Filter {
   constructor(opts: GlowOptions = {}) {
-    const c = opts.color ?? 0xE87830;
+    const c = opts.color ?? 0xFFA41B;
     const rgb = new Float32Array([
       ((c >> 16) & 0xff) / 255,
       ((c >> 8) & 0xff) / 255,

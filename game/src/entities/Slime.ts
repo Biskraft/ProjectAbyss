@@ -163,7 +163,7 @@ export class Slime extends Enemy {
     // Slime 은 detectRange=0 이라 base 의 target 기반 facing 가 항상 같은 방향.
     // wanderDir 기반으로 강제 갱신.
     this.facingRight = this.wanderDir > 0;
-    this.updateSlimeAnim(dt);
+    if (!this.isFrozen()) this.updateSlimeAnim(dt);
     const facing = this.facingRight ? 1 : -1;
     if (this.slimeSprite) this.slimeSprite.scale.x = facing;
     // 눈도 sprite content 와 함께 mirror (offset 이 center 아니므로 facing 따라야).
