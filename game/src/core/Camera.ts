@@ -62,6 +62,12 @@ export class Camera {
     this.bounds = null;
   }
 
+  get isShaking(): boolean {
+    return this.shakeIntensity > this.shakeMinThreshold ||
+      Math.abs(this.shakeOffsetX) > 0.01 ||
+      Math.abs(this.shakeOffsetY) > 0.01;
+  }
+
   /** Instantly set zoom level (no lerp) */
   setZoom(value: number): void {
     const clamped = Math.max(0.01, Math.min(4.0, value));

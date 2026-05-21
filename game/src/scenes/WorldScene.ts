@@ -7,6 +7,7 @@ import { MODAL_BG, MODAL_BORDER, TEXT_PRIMARY } from '@ui/ModalPanel';
 import { trackItemDrop } from '@utils/Analytics';
 import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
+import { createBoundsGuard } from '@level/BoundsGuard';
 import { generateRoomGrid, type RoomGridData, type RoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import { Player } from '@entities/Player';
@@ -76,6 +77,7 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
 export class WorldScene extends Scene {
   private tilemap!: TilemapRenderer;
+  private boundsGuard: Graphics | null = null;
   private player!: Player;
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -180,6 +182,8 @@ export class WorldScene extends Scene {
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
+    this.boundsGuard = createBoundsGuard(ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE, 0x192433);
+    this.container.addChild(this.boundsGuard);
     this.container.addChild(this.tilemap.container);
 
     // Entity layer
@@ -1244,6 +1248,7 @@ export class WorldScene extends Scene {
   }
 
   render(alpha: number): void {
+    if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     this.player.render(alpha);
     for (const enemy of this.enemies) enemy.render(alpha);
     // Portals and altars are static, no interpolation needed

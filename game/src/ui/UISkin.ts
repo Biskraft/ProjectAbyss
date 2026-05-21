@@ -1,4 +1,4 @@
-import { Assets, Texture, Rectangle } from 'pixi.js';
+import { Texture, Rectangle } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 
 interface SliceBounds {
@@ -12,6 +12,22 @@ interface SliceEntry {
   name: string;
   bounds: SliceBounds;
   center?: SliceBounds; // 9-slice center
+}
+
+async function loadTextureViaFetch(url: string): Promise<Texture> {
+  const response = await fetch(url, { cache: 'force-cache' });
+  if (!response.ok) throw new Error(`UISkin: ${url} returned ${response.status}`);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = objectUrl;
+    await img.decode();
+    return Texture.from(img);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 /**
@@ -40,12 +56,14 @@ export class UISkin {
     jsonPath = 'assets/ui/ui_hud_01_atlas.json',
     sheetPath = 'assets/ui/ui_hud_01_atlas.png',
   ): Promise<void> {
+    const jsonUrl = assetPath(jsonPath);
+    const sheetUrl = assetPath(sheetPath);
     const [json, sheetTex] = await Promise.all([
-      fetch(assetPath(jsonPath)).then(r => {
-        if (!r.ok) throw new Error(`UISkin: ${jsonPath} returned ${r.status}`);
+      fetch(jsonUrl, { cache: 'force-cache' }).then(r => {
+        if (!r.ok) throw new Error(`UISkin: ${jsonUrl} returned ${r.status}`);
         return r.json();
       }),
-      Assets.load<Texture>(assetPath(sheetPath)),
+      loadTextureViaFetch(sheetUrl),
     ]);
 
     // Pixel-art: nearest-neighbor scaling

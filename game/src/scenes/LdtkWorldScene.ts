@@ -26,6 +26,7 @@ import { aabbOverlap } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { createBoundsGuard } from '@level/BoundsGuard';
 import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
@@ -309,6 +310,7 @@ export class LdtkWorldScene extends Scene {
   /** True if the player's AABB overlaps the builder's world-space rectangle (airborne too). Used for camera override. */
   private playerInBuilder = false;
   private renderer!: LdtkRenderer;
+  private boundsGuard: Graphics | null = null;
   private procDecorator: ProceduralDecorator | null = null;
   private _extraDecorators: ProceduralDecorator[] = [];
   private wallPaletteFilter: PaletteSwapFilter | null = null;
@@ -3394,6 +3396,7 @@ export class LdtkWorldScene extends Scene {
 
   render(alpha: number): void {
     if (!this.initialized) return;
+    if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     // During post-transition snap, disable interpolation to prevent 1-frame jitter
     const a = this.postTransitionSnapFrames > 0 ? 1 : alpha;
     this.player.render(a);
@@ -3904,6 +3907,8 @@ export class LdtkWorldScene extends Scene {
     const allExtraTiles = Object.values(level.extraTileLayers).flat();
     const combinedInterior = level.interiorTiles.concat(allExtraTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, this.collisionGrid, combinedInterior);
+    this.boundsGuard = createBoundsGuard(level.pxWid, level.pxHei, 0x192433);
+    this.renderer.container.addChildAt(this.boundsGuard, 0);
     this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)

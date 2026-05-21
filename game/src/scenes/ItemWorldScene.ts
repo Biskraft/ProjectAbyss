@@ -3,6 +3,7 @@ import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
 import { TilemapRenderer } from '@level/TilemapRenderer';
+import { createBoundsGuard } from '@level/BoundsGuard';
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
 import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
@@ -442,6 +443,7 @@ export class ItemWorldScene extends Scene {
   /** Cells written by door-mask seal (code-generated walls, not LDtk). */
   private sealedCells = new Set<string>();
   private fullMapContainer: Container | null = null;
+  private boundsGuard: Graphics | null = null;
   /** Palette-swap filter for background tiles (production default). */
   private bgPaletteFilter!: PaletteSwapFilter;
   /** Palette-swap filter for wall + shadow tiles (dark, cool row). */
@@ -1385,6 +1387,12 @@ export class ItemWorldScene extends Scene {
     this.arcTether?.hide();
     this.roomItemSpawners.clear();
     this.fullMapContainer = new Container();
+    this.boundsGuard = createBoundsGuard(
+      this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
+      this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
+      0x192433,
+    );
+    this.fullMapContainer.addChild(this.boundsGuard);
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
     this.bgAggregate = new Container();
@@ -7257,6 +7265,7 @@ export class ItemWorldScene extends Scene {
 
   render(alpha: number): void {
     if (!this.initialized) return;
+    if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     this.player.render(alpha);
     for (const enemy of this.enemies) enemy.render(alpha);
     const cam = this.game.camera;
