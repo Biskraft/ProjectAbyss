@@ -20,19 +20,51 @@ export function isInIframe(): boolean {
   catch { return true; }
 }
 
+const PSEUDO_FULLSCREEN_CLASS = 'echoris-pseudo-fullscreen';
+
+function isPseudoFullscreenActive(): boolean {
+  return document.body.classList.contains(PSEUDO_FULLSCREEN_CLASS);
+}
+
+function setPseudoFullscreen(active: boolean): boolean {
+  document.body.classList.toggle(PSEUDO_FULLSCREEN_CLASS, active);
+  window.dispatchEvent(new Event('resize'));
+  return isPseudoFullscreenActive();
+}
+
+function shouldUsePseudoFullscreenFallback(): boolean {
+  const ua = navigator.userAgent || '';
+  const isTouchApple =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+  return isTouchApple || !document.fullscreenEnabled;
+}
+
 /** True when any fullscreen element is currently active. */
 export function isFullscreenActive(): boolean {
   return !!(
     document.fullscreenElement ||
-    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+    isPseudoFullscreenActive()
   );
 }
 
 interface FullscreenCapableElement extends HTMLElement {
   webkitRequestFullscreen?: () => Promise<void> | void;
+  webkitRequestFullScreen?: () => Promise<void> | void;
 }
 interface FullscreenCapableDocument extends Document {
   webkitExitFullscreen?: () => Promise<void> | void;
+  webkitCancelFullScreen?: () => Promise<void> | void;
+}
+
+function fullscreenTargets(): FullscreenCapableElement[] {
+  const targets = [
+    document.getElementById('game-container'),
+    document.querySelector('canvas'),
+    document.documentElement,
+  ];
+  return targets.filter((el): el is FullscreenCapableElement => el instanceof HTMLElement);
 }
 
 /**
@@ -49,22 +81,25 @@ export async function requestFullscreenSafely(
 ): Promise<boolean> {
   if (isInIframe() && !opts.allowInIframe) return false;
   if (isFullscreenActive()) return true;
-  const el = document.documentElement as FullscreenCapableElement;
-  const fn = el.requestFullscreen ?? el.webkitRequestFullscreen;
-  if (!fn) return false;
-  try {
-    await Promise.resolve(fn.call(el));
-    return isFullscreenActive();
-  } catch {
-    return false;
+  for (const el of fullscreenTargets()) {
+    const fn = el.requestFullscreen ?? el.webkitRequestFullscreen ?? el.webkitRequestFullScreen;
+    if (!fn) continue;
+    try {
+      await Promise.resolve(fn.call(el));
+      if (isFullscreenActive()) return true;
+    } catch {
+      // Try the next target/fallback below.
+    }
   }
+  return shouldUsePseudoFullscreenFallback() ? setPseudoFullscreen(true) : false;
 }
 
 /** Exit fullscreen if active. Resolves quietly even on failure. */
 export async function exitFullscreenSafely(): Promise<void> {
+  if (isPseudoFullscreenActive()) setPseudoFullscreen(false);
   if (!isFullscreenActive()) return;
   const doc = document as FullscreenCapableDocument;
-  const fn = doc.exitFullscreen ?? doc.webkitExitFullscreen;
+  const fn = doc.exitFullscreen ?? doc.webkitExitFullscreen ?? doc.webkitCancelFullScreen;
   if (!fn) return;
   try { await Promise.resolve(fn.call(doc)); }
   catch { /* ignore */ }
