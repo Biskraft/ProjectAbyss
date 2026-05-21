@@ -24,7 +24,7 @@ export class TilemapRenderer {
   }
 
   loadRoom(roomData: number[][], tileset?: Texture): void {
-    this.container.removeChildren();
+    this.clear();
 
     const height = roomData.length;
     const width = roomData[0]?.length ?? 0;
@@ -84,5 +84,12 @@ export class TilemapRenderer {
 
   get tileWidth(): number {
     return this.tileSize;
+  }
+
+  clear(): void {
+    const children = this.container.removeChildren();
+    for (const child of children) {
+      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+    }
   }
 }

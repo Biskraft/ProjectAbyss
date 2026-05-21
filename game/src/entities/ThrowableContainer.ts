@@ -163,8 +163,9 @@ const STEAM_LIFT_MAX_VY = -160;
 const STEAM_LIFT_ACCEL = 140;
 const METAL_CHARGE_REFRESH_MS = 250;
 const WOOD_FLUID_SINK_PX = 12;
-const WOOD_FLUID_BOB_PX = 1.5;
-const WOOD_FLUID_BOB_MS = 900;
+const WOOD_FLUID_BOB_PX = 0.6;
+const WOOD_FLUID_BOB_MS = 1400;
+const SUPPORT_EPSILON_PX = 0.5;
 
 /** Type-guard / parse for LDtk enum field. Returns null on invalid input. */
 export function parseContainerKind(value: unknown): ContainerKind | null {
@@ -311,6 +312,7 @@ export class ThrowableContainer {
     x: number,
     y: number,
     isSolidAt: (gx: number, gy: number) => boolean,
+    isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): boolean {
     const b = this.boundsAt(x, y);
     const left = Math.floor(b.x / TILE_SIZE);
@@ -319,7 +321,9 @@ export class ThrowableContainer {
     const bottom = Math.floor((b.y + b.h - 1) / TILE_SIZE);
     for (let gy = top; gy <= bottom; gy++) {
       for (let gx = left; gx <= right; gx++) {
-        if (isSolidAt(gx, gy)) return true;
+        if (!isSolidAt(gx, gy)) continue;
+        if (this.isWoodFamily() && isFluidSupportAt?.(gx, gy)) continue;
+        return true;
       }
     }
     return false;
@@ -352,8 +356,9 @@ export class ThrowableContainer {
     y: number,
     isSolidAt: (gx: number, gy: number) => boolean,
     others: readonly ThrowableContainer[],
+    isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): boolean {
-    return this.overlapsSolidTilesAt(x, y, isSolidAt) || this.overlapsAnyContainerAt(x, y, others) !== null;
+    return this.overlapsSolidTilesAt(x, y, isSolidAt, isFluidSupportAt) || this.overlapsAnyContainerAt(x, y, others) !== null;
   }
 
   private supportYAt(
@@ -394,14 +399,34 @@ export class ThrowableContainer {
     others: readonly ThrowableContainer[],
     isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): boolean {
-    return this.supportYAt(this.x, this.y + 1, isSolidAt, others, isFluidSupportAt) === this.y;
+    const supportY = this.supportYAt(this.x, this.y + 1, isSolidAt, others, isFluidSupportAt);
+    return supportY !== null && Math.abs(supportY - this.y) <= SUPPORT_EPSILON_PX;
+  }
+
+  private hasFluidSupportAt(
+    x: number,
+    y: number,
+    isSolidAt: (gx: number, gy: number) => boolean,
+    isFluidSupportAt?: (gx: number, gy: number) => boolean,
+  ): boolean {
+    if (!this.isWoodFamily() || !isFluidSupportAt) return false;
+    const b = this.boundsAt(x, y);
+    const bottom = b.y + b.h;
+    const footRow = Math.floor(bottom / TILE_SIZE);
+    const left = Math.floor(b.x / TILE_SIZE);
+    const right = Math.floor((b.x + b.w - 1) / TILE_SIZE);
+    for (let gx = left; gx <= right; gx++) {
+      if (isSolidAt(gx, footRow) && isFluidSupportAt(gx, footRow)) return true;
+    }
+    return false;
   }
 
   private resolveInitialOverlap(
     isSolidAt: (gx: number, gy: number) => boolean,
     others: readonly ThrowableContainer[],
+    isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): void {
-    if (!this.blockedAt(this.x, this.y, isSolidAt, others)) return;
+    if (!this.blockedAt(this.x, this.y, isSolidAt, others, isFluidSupportAt)) return;
     const maxPush = TILE_SIZE * 3;
     let bestX = this.x;
     let bestY = this.y;
@@ -412,7 +437,7 @@ export class ThrowableContainer {
           if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
           const nx = this.x + dx;
           const ny = this.y + dy;
-          if (this.blockedAt(nx, ny, isSolidAt, others)) continue;
+          if (this.blockedAt(nx, ny, isSolidAt, others, isFluidSupportAt)) continue;
           const dist = dx * dx + dy * dy;
           if (dist < bestDist) {
             bestX = nx;
@@ -434,6 +459,7 @@ export class ThrowableContainer {
     dx: number,
     isSolidAt: (gx: number, gy: number) => boolean,
     others: readonly ThrowableContainer[],
+    isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): void {
     if (dx === 0) return;
     const dir = Math.sign(dx);
@@ -441,7 +467,7 @@ export class ThrowableContainer {
     while (remaining > 0) {
       const step = Math.min(1, remaining) * dir;
       const nx = this.x + step;
-      if (this.blockedAt(nx, this.y, isSolidAt, others)) {
+      if (this.blockedAt(nx, this.y, isSolidAt, others, isFluidSupportAt)) {
         this.vx = -this.vx * WALL_BOUNCE;
         if (Math.abs(this.vx) < REST_VX) this.vx = 0;
         return;
@@ -463,7 +489,15 @@ export class ThrowableContainer {
     while (remaining > 0) {
       const step = Math.min(1, remaining) * dir;
       const ny = this.y + step;
-      if (this.blockedAt(this.x, ny, isSolidAt, others)) {
+      if (dy > 0) {
+        const supportY = this.supportYAt(this.x, ny, isSolidAt, others, isFluidSupportAt);
+        if (supportY !== null && this.y <= supportY && ny >= supportY) {
+          this.y = supportY;
+          this.vy = 0;
+          return true;
+        }
+      }
+      if (this.blockedAt(this.x, ny, isSolidAt, others, isFluidSupportAt)) {
         if (dy > 0) {
           const supportY = this.supportYAt(this.x, ny, isSolidAt, others, isFluidSupportAt);
           if (supportY !== null) this.y = supportY;
@@ -501,14 +535,15 @@ export class ThrowableContainer {
     }
     if (this.selfHitInvulnMs > 0) this.selfHitInvulnMs = Math.max(0, this.selfHitInvulnMs - dtMs);
     this.floatPhaseMs = (this.floatPhaseMs + dtMs) % WOOD_FLUID_BOB_MS;
-    this.resolveInitialOverlap(isSolidAt, others);
+    this.resolveInitialOverlap(isSolidAt, others, isFluidSupportAt);
     this.floatingOnFluid = false;
     let remainingMs = Math.min(dtMs, 100);
     while (remainingMs > 0) {
       const stepMs = Math.min(MAX_STEP_MS, remainingMs);
       const dt = stepMs / 1000;
       const groundedBefore = this.isGroundedOnSupport(isSolidAt, others, isFluidSupportAt);
-      if (groundedBefore && this.isWoodFamily()) this.floatingOnFluid = true;
+      const fluidGroundedBefore = groundedBefore && this.hasFluidSupportAt(this.x, this.y + 1, isSolidAt, isFluidSupportAt);
+      if (fluidGroundedBefore) this.floatingOnFluid = true;
 
       if (groundedBefore && this.vy >= 0) {
         const supportY = this.supportYAt(this.x, this.y + 1, isSolidAt, others, isFluidSupportAt);
@@ -530,10 +565,10 @@ export class ThrowableContainer {
         );
       }
 
-      this.moveX(this.vx * dt, isSolidAt, others);
+      this.moveX(this.vx * dt, isSolidAt, others, isFluidSupportAt);
       const landed = this.moveY(this.vy * dt, isSolidAt, others, isFluidSupportAt);
       if (landed) {
-        if (this.isWoodFamily()) this.floatingOnFluid = true;
+        if (this.hasFluidSupportAt(this.x, this.y + 1, isSolidAt, isFluidSupportAt)) this.floatingOnFluid = true;
         this.vx *= FLOOR_FRICTION;
         if (Math.abs(this.vx) < REST_VX) {
           this.vx = 0;
@@ -654,12 +689,13 @@ export class ThrowableContainer {
     maxDropPx = 1024,
     isFluidSupportAt?: (gx: number, gy: number) => boolean,
   ): void {
-    this.resolveInitialOverlap(isSolidAt, others);
+    this.resolveInitialOverlap(isSolidAt, others, isFluidSupportAt);
     for (let dy = 0; dy <= maxDropPx; dy++) {
       const testY = this.y + dy;
-      if (!this.blockedAt(this.x, testY + 1, isSolidAt, others)) continue;
       const supportY = this.supportYAt(this.x, testY + 1, isSolidAt, others, isFluidSupportAt);
-      if (supportY !== null) this.y = supportY;
+      if (supportY === null) continue;
+      this.y = supportY;
+      this.floatingOnFluid = this.hasFluidSupportAt(this.x, this.y + 1, isSolidAt, isFluidSupportAt);
       break;
     }
     this.vx = 0;

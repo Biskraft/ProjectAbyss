@@ -22,6 +22,7 @@ export class EchoPlayer {
   private height = 24;
   private facingRight = true;
   private walkFrames: Texture[] = [];
+  private generatedTexture: Texture | null = null;
 
   constructor() {
     this.container.visible = false;
@@ -37,6 +38,11 @@ export class EchoPlayer {
     this.walkFrames = walkFrames;
     const baseTexture = this.walkFrames[0] ?? texture;
     const useCharacterFrames = this.walkFrames.length > 0;
+    if (useCharacterFrames) {
+      texture.destroy(true);
+    } else {
+      this.generatedTexture = texture;
+    }
 
     this.aura = new Sprite(baseTexture);
     this.aura.tint = 0x30e8ff;
@@ -150,6 +156,8 @@ export class EchoPlayer {
     this.container.removeChildren();
     this.sprite?.destroy();
     this.aura?.destroy();
+    this.generatedTexture?.destroy(true);
+    this.generatedTexture = null;
     this.sprite = null;
     this.aura = null;
     this.walkFrames = [];

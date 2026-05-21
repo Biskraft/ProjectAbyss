@@ -87,7 +87,7 @@ import { AnvilTether } from '@effects/AnvilTether';
 import { ArcTether } from '@effects/ArcTether';
 import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
-import { AcquireOverlay } from '@ui/AcquireOverlay';
+import { AcquireOverlay, type AcquireConfig } from '@ui/AcquireOverlay';
 import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
@@ -1468,6 +1468,37 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private releaseWorldVisualsForItemWorld(): void {
+    // iPad Safari can reload the page when the hidden overworld and the
+    // procedural ItemWorld are both resident. Once the dive transition has
+    // fully covered the screen, drop render-only overworld resources; return
+    // flow calls loadLevel(), which rebuilds these layers from LDtk data.
+    this.clearBuilder();
+    this.renderer.clear();
+    if (this.procDecorator) {
+      if (this.procDecorator.naturalLayer.parent) this.procDecorator.naturalLayer.parent.removeChild(this.procDecorator.naturalLayer);
+      if (this.procDecorator.artificialLayer.parent) this.procDecorator.artificialLayer.parent.removeChild(this.procDecorator.artificialLayer);
+      if (this.procDecorator.structureLayer.parent) this.procDecorator.structureLayer.parent.removeChild(this.procDecorator.structureLayer);
+      this.procDecorator.clear();
+    }
+    for (const d of this._extraDecorators) {
+      if (d.naturalLayer.parent) d.naturalLayer.parent.removeChild(d.naturalLayer);
+      if (d.artificialLayer.parent) d.artificialLayer.parent.removeChild(d.artificialLayer);
+      if (d.structureLayer.parent) d.structureLayer.parent.removeChild(d.structureLayer);
+      d.clear();
+    }
+    this._extraDecorators = [];
+    this.grassClumpFire.clear();
+    this.fluidSystem.detach();
+    this.fluidSpawners.clear();
+    this.fluidCrestFoam.clear();
+    this.fluidResidue.clear();
+    this.updraftSystem.clear();
+    this.itemPickupGlow.clear();
+    this.relicAuraBurst.clear();
+    this.dmgNumbers?.clear();
+  }
+
   private hideUiForAnvilDiveTransition(): void {
     if (this.anvilDiveUiHidden) return;
     this.anvilDiveUiWasVisible = this.game.uiContainer.visible;
@@ -1594,6 +1625,14 @@ export class LdtkWorldScene extends Scene {
         return;
       }
       if (this.endingTransitionStarted) return;
+    }
+
+    if (this.updateAcquireOverlay(dt)) {
+      this.game.camera.update(dt);
+      this.hitSparks.update(dt);
+      this.propShatter.update(dt);
+      this.screenFlash.update(dt);
+      return;
     }
 
     // Character stats overlay (blocks all input while open)
@@ -2336,7 +2375,7 @@ export class LdtkWorldScene extends Scene {
         this.game.hitstopFrames = 8;
         this.screenFlash.flash(0xff4488, 0.4, 200);
         this.game.camera.shake(4);
-        this.acquireOverlay?.show({
+        this.showAcquireOverlay({
           type: 'hp',
           name: t('ui.acquire.hp.name', { amount: shard.hpBonus }),
           description: t('ui.acquire.hp.description'),
@@ -2356,7 +2395,7 @@ export class LdtkWorldScene extends Scene {
         trackRelicAcquire(abilityName, this.currentLevel?.identifier);
         if (abilityName === 'dash') {
           this.player.abilities.dash = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'dash',
             name: t('ui.acquire.relic.dash.name'),
             usage: t('ui.acquire.relic.dash.usage', { key: '{key}' }),
@@ -2364,7 +2403,7 @@ export class LdtkWorldScene extends Scene {
           });
         } else if (abilityName === 'diveAttack') {
           this.player.abilities.diveAttack = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'diveAttack',
             name: t('ui.acquire.relic.diveAttack.name'),
             usage: t('ui.acquire.relic.diveAttack.usage', { key: '{key}' }),
@@ -2372,7 +2411,7 @@ export class LdtkWorldScene extends Scene {
           });
         } else if (abilityName === 'surge') {
           this.player.abilities.surge = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'surge',
             name: t('ui.acquire.relic.surge.name'),
             usage: t('ui.acquire.relic.surge.usage', { key: '{key}' }),
@@ -2380,7 +2419,7 @@ export class LdtkWorldScene extends Scene {
           });
         } else if (abilityName === 'waterBreathing') {
           this.player.abilities.waterBreathing = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'waterBreathing',
             name: t('ui.acquire.relic.waterBreathing.name'),
             usage: t('ui.acquire.relic.waterBreathing.usage'),
@@ -2389,7 +2428,7 @@ export class LdtkWorldScene extends Scene {
           });
         } else if (abilityName === 'wallJump') {
           this.player.abilities.wallJump = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'wallJump',
             name: t('ui.acquire.relic.wallJump.name'),
             usage: t('ui.acquire.relic.wallJump.usage', { key: '{key}' }),
@@ -2397,7 +2436,7 @@ export class LdtkWorldScene extends Scene {
           });
         } else if (abilityName === 'doubleJump') {
           this.player.abilities.doubleJump = true;
-          this.acquireOverlay?.show({
+          this.showAcquireOverlay({
             type: 'relic', iconKey: 'doubleJump',
             name: t('ui.acquire.relic.doubleJump.name'),
             usage: t('ui.acquire.relic.doubleJump.usage', { key: '{key}' }),
@@ -3182,6 +3221,18 @@ export class LdtkWorldScene extends Scene {
       if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
       return c.isWoodFamily() && isContainerFluidCell(gx, gy);
     };
+    const containerOverlapsFluid = (c: ThrowableContainer): boolean => {
+      const left = Math.floor(c.colX / 16);
+      const right = Math.floor((c.colX + c.colW - 1) / 16);
+      const top = Math.floor(c.colY / 16);
+      const bottom = Math.floor((c.colY + c.colH - 1) / 16);
+      for (let gy = top; gy <= bottom; gy++) {
+        for (let gx = left; gx <= right; gx++) {
+          if (isContainerFluidCell(gx, gy)) return true;
+        }
+      }
+      return false;
+    };
     const env = {
       isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
       isMagmaCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 6,
@@ -3197,6 +3248,9 @@ export class LdtkWorldScene extends Scene {
       const c = this.containers[i];
       const envImpact = c.tickEnvironment(dt, env);
       if (envImpact) {
+        if (containerOverlapsFluid(c)) {
+          this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
+        }
         this.applyContainerEffectToFluid(c);
         this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
@@ -8072,6 +8126,7 @@ export class LdtkWorldScene extends Scene {
     // Hide world while in Item World and detach shared UI from global containers.
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
+    this.releaseWorldVisualsForItemWorld();
     // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
     // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
     this.dmgNumbers?.clear();
@@ -8249,6 +8304,38 @@ export class LdtkWorldScene extends Scene {
     this.activeAnvilTether = tether;
   }
 
+  private showAcquireOverlay(config: AcquireConfig): void {
+    if (!this.acquireOverlay) {
+      this.acquireOverlay = new AcquireOverlay(this.game.uiScale);
+    }
+    const overlayContainer = this.acquireOverlay.container;
+    if (overlayContainer.parent !== this.game.uiContainer) {
+      if (overlayContainer.parent) overlayContainer.parent.removeChild(overlayContainer);
+      this.game.uiContainer.addChild(overlayContainer);
+    }
+    this.game.uiContainer.setChildIndex(overlayContainer, this.game.uiContainer.children.length - 1);
+    this.hud.container.visible = false;
+    if (this.minimap) this.minimap.visible = false;
+    this.acquireOverlay.show(config, () => {
+      if (!this.game.hudReady) return;
+      this.hud.container.visible = true;
+      if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
+    });
+  }
+
+  private updateAcquireOverlay(dt: number): boolean {
+    if (!this.acquireOverlay?.isBlocking()) return false;
+    this.acquireOverlay.update(dt);
+    const input = this.game.input;
+    if (this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+      input.consumeJustPressed(GameAction.ATTACK);
+      this.acquireOverlay.confirm();
+    } else if (!this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
+      input.consumeJustPressed(GameAction.ATTACK);
+    }
+    return true;
+  }
+
   /**
    * Advance pulse + tether. Returns true while input must remain blocked for
    * this frame (i.e. T2 cutscene or LorePopup is up).
@@ -8356,17 +8443,7 @@ export class LdtkWorldScene extends Scene {
 
     // AcquireOverlay — relic / max HP+ ceremonial modal. Same pattern as LorePopup:
     // 1000ms 입력 잠금 후 ATTACK 으로 dismiss. 잠금 중 ATTACK 은 소비만 하고 통과시키지 않음.
-    if (this.acquireOverlay?.isBlocking()) {
-      this.acquireOverlay.update(dt);
-      blocking = true;
-      const input = this.game.input;
-      if (this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        input.consumeJustPressed(GameAction.ATTACK);
-        this.acquireOverlay.confirm();
-      } else if (!this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        input.consumeJustPressed(GameAction.ATTACK);
-      }
-    }
+    if (this.updateAcquireOverlay(dt)) blocking = true;
 
     // Dive preview modal takes priority over other UI input.
     if (this.divePreview?.isBlocking()) {
@@ -9123,6 +9200,7 @@ export class LdtkWorldScene extends Scene {
 
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
+    this.releaseWorldVisualsForItemWorld();
     // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
     // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
     this.dmgNumbers?.clear();
@@ -9240,6 +9318,7 @@ export class LdtkWorldScene extends Scene {
       };
       this.container.visible = false;
       this.detachSharedUiForItemWorld();
+      this.releaseWorldVisualsForItemWorld();
       this.game.sceneManager.push(itemWorldScene, true);
       return;
     }

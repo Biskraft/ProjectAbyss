@@ -4329,12 +4329,12 @@ export class ItemWorldScene extends Scene {
     if (!this.bgAggregate || !this.wallAggregate || !this.shadowAggregate || !this.sealAggregate) return;
     // Clear aggregate children (preserves the aggregate containers and their
     // palette filters, so the continuous gradient is maintained).
-    this.bgAggregate.removeChildren();
-    this.interiorAggregate?.removeChildren();
-    this.wallAggregate.removeChildren();
-    this.specialAggregate?.removeChildren();
-    this.shadowAggregate.removeChildren();
-    this.sealAggregate.removeChildren();
+    this.destroyAggregateChildren(this.bgAggregate);
+    if (this.interiorAggregate) this.destroyAggregateChildren(this.interiorAggregate);
+    this.destroyAggregateChildren(this.wallAggregate);
+    if (this.specialAggregate) this.destroyAggregateChildren(this.specialAggregate);
+    this.destroyAggregateChildren(this.shadowAggregate);
+    this.destroyAggregateChildren(this.sealAggregate);
     this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — 아래 loop 가 다시 push
 
     const grid = this.unifiedGrid;
@@ -4403,6 +4403,13 @@ export class ItemWorldScene extends Scene {
     }
 
     this.fillNullCellSeal(grid, totalCols, totalRows);
+  }
+
+  private destroyAggregateChildren(layer: Container): void {
+    const children = layer.removeChildren();
+    for (const child of children) {
+      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+    }
   }
 
   /**
@@ -5751,6 +5758,18 @@ export class ItemWorldScene extends Scene {
       if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
       return c.isWoodFamily() && isContainerFluidCell(gx, gy);
     };
+    const containerOverlapsFluid = (c: ThrowableContainer): boolean => {
+      const left = Math.floor(c.colX / 16);
+      const right = Math.floor((c.colX + c.colW - 1) / 16);
+      const top = Math.floor(c.colY / 16);
+      const bottom = Math.floor((c.colY + c.colH - 1) / 16);
+      for (let gy = top; gy <= bottom; gy++) {
+        for (let gx = left; gx <= right; gx++) {
+          if (isContainerFluidCell(gx, gy)) return true;
+        }
+      }
+      return false;
+    };
     const env = {
       isAcidCell:  (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 13,
       isMagmaCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 6,
@@ -5766,6 +5785,9 @@ export class ItemWorldScene extends Scene {
       const c = this.containers[i];
       const envImpact = c.tickEnvironment(dt, env);
       if (envImpact) {
+        if (containerOverlapsFluid(c)) {
+          this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
+        }
         this.applyContainerEffectToFluid(c);
         this.destroyContainerWithVFX(c);
         this.containers.splice(i, 1);
