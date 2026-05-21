@@ -3378,8 +3378,10 @@ export class LdtkWorldScene extends Scene {
 
   override destroy(): void {
     this.restoreUiAfterAnvilDiveTransition();
+    this.clearBuilder();
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
+    this.renderer?.destroy();
     super.destroy();
   }
 
@@ -7792,9 +7794,7 @@ export class LdtkWorldScene extends Scene {
     this.playerOnBuilder = false;
     this.playerInBuilder = false;
     if (this.activeBuilder) {
-      if (this.activeBuilder.container.parent) {
-        this.activeBuilder.container.parent.removeChild(this.activeBuilder.container);
-      }
+      this.activeBuilder.destroy();
       this.activeBuilder = null;
     }
     this.activeBuilderMode = null;

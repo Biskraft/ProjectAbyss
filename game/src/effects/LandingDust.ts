@@ -154,6 +154,7 @@ export class LandingDustManager {
   clear(): void {
     for (const p of this.puffs) {
       if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+      p.gfx.destroy({ children: true, context: true });
     }
     this.puffs.length = 0;
   }

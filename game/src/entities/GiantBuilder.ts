@@ -573,4 +573,12 @@ export class GiantBuilder {
 
     // (Light animation handled above, before dormant early-return)
   }
+
+  destroy(): void {
+    this.footDust.clear();
+    this.legRig.destroy();
+    this.renderer.destroy();
+    this.lights.length = 0;
+    this.autoFootLegs.length = 0;
+  }
 }

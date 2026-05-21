@@ -356,9 +356,12 @@ export class ProceduralDecorator {
   }
 
   clear(): void {
-    this.naturalLayer.removeChildren();
-    this.artificialLayer.removeChildren();
-    this.structureLayer.removeChildren();
+    for (const layer of [this.naturalLayer, this.artificialLayer, this.structureLayer]) {
+      const children = layer.removeChildren();
+      for (const child of children) {
+        child.destroy({ children: true, texture: true, textureSource: false, context: true });
+      }
+    }
     this.grassClumps = [];
     this.grassClumpCells = [];
   }

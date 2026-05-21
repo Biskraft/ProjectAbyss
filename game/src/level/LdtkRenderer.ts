@@ -155,7 +155,7 @@ export class LdtkRenderer {
    * @param entities - Entity list from the LDtk level.
    */
   renderEntityMarkers(entities: LdtkEntity[]): void {
-    this.entityMarkers.removeChildren();
+    this.destroyLayerChildren(this.entityMarkers);
 
     for (const entity of entities) {
       const color = ENTITY_COLORS[entity.type] ?? ENTITY_COLOR_FALLBACK;
@@ -175,8 +175,8 @@ export class LdtkRenderer {
     atlases: Texture | Record<string, Texture>,
     collisionGrid?: number[][],
   ): void {
-    this.wallLayer.removeChildren();
-    this.specialLayer.removeChildren();
+    this.destroyLayerChildren(this.wallLayer);
+    this.destroyLayerChildren(this.specialLayer);
     for (const tile of wallTiles) {
       if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
       const sprite = this.buildSprite(tile, atlases);
@@ -205,7 +205,8 @@ export class LdtkRenderer {
           child.x >= x && child.x < x + w &&
           child.y >= y && child.y < y + h
         ) {
-          layer.removeChildAt(i);
+          const child = layer.removeChildAt(i);
+          child.destroy({ children: true, texture: true, textureSource: false, context: true });
         }
       }
     };
@@ -215,12 +216,25 @@ export class LdtkRenderer {
 
   /** Remove all rendered tiles and markers. */
   clear(): void {
-    this.bgLayer.removeChildren();
-    this.wallLayer.removeChildren();
-    this.specialLayer.removeChildren();
-    this.interiorLayer.removeChildren();
-    this.shadowLayer.removeChildren();
-    this.entityMarkers.removeChildren();
+    this.destroyLayerChildren(this.bgLayer);
+    this.destroyLayerChildren(this.wallLayer);
+    this.destroyLayerChildren(this.specialLayer);
+    this.destroyLayerChildren(this.interiorLayer);
+    this.destroyLayerChildren(this.shadowLayer);
+    this.destroyLayerChildren(this.entityMarkers);
+  }
+
+  destroy(): void {
+    this.clear();
+    if (this.container.parent) this.container.parent.removeChild(this.container);
+    this.container.destroy({ children: true, context: true });
+  }
+
+  private destroyLayerChildren(layer: Container): void {
+    const children = layer.removeChildren();
+    for (const child of children) {
+      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+    }
   }
 
   /**
