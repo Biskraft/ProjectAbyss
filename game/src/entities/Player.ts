@@ -408,6 +408,9 @@ export class Player extends Entity implements CombatEntity {
    *  carrier 가 떠나버린 위치로 복귀하지 않게 한다. Scene 이 매 프레임
    *  playerOnBuilder 결과로 갱신한다. */
   onCarrier = false;
+  /** Vertical velocity inherited from the moving carrier underfoot. The scene
+   * sets this before update; grounded jumps add it to their takeoff velocity. */
+  carrierVelocityY = 0;
 
   // Double jump
   private doubleJumpAvailable = false;
@@ -545,7 +548,7 @@ export class Player extends Entity implements CombatEntity {
     this.fsm.addState({
       name: 'jump',
       enter: () => {
-        this.vy = JUMP_VELOCITY;
+        this.vy = JUMP_VELOCITY + this.carrierVelocityY;
         this.grounded = false;
         // Variable jump height — 이 시간 안에 JUMP 떼면 상승속도 절반 컷.
         this.varJumpTimer = VAR_JUMP_TIME;
@@ -1561,7 +1564,10 @@ export class Player extends Entity implements CombatEntity {
    * must re-flag each frame to keep the player on the container.
    */
   private extraGroundedSticky = false;
-  forceGrounded(): void { this.extraGroundedSticky = true; }
+  forceGrounded(): void {
+    this.extraGroundedSticky = true;
+    this.grounded = true;
+  }
 
   /**
    * DEBUG: Grant the full cheat bundle — every relic ability, inflated

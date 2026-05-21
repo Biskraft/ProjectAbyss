@@ -22,10 +22,10 @@ import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
-import { aabbOverlap } from '@core/Physics';
+import { aabbOverlap, isSolid } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel } from '@level/LdtkLoader';
+import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
 import { createBoundsGuard } from '@level/BoundsGuard';
 import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
@@ -287,20 +287,20 @@ export class LdtkWorldScene extends Scene {
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
   /**
    * Drive the builder's footstep camera shake even when mode is 'patrol'.
-   * spawnBuilder sets this true for 'cinematic', false for plain 'patrol';
-   * one-off helpers (spawnDemoEndBuilder) can force it on for patrol-style
-   * routes that still need the weighty "쿵" feedback.
+   * BuilderSpawner can force this on for patrol-style routes that still need
+   * the weighty "쿵" feedback.
    */
   private builderShakeEnabled = false;
-  // Shaft_01 cinematic builder is a one-shot — the ascent plays only on the
-  // first time the player enters the room this session. Re-entries skip it.
-  private shaft01CinematicPlayed = false;
+  // Per-session one-shot BuilderSpawner keys. Re-entries can park the builder
+  // at the route end without replaying the movement.
+  private builderSpawnerRunOnceKeys = new Set<string>();
   // Tracks the builder's moving state across frames so we can emit a single
   // heavy "landing" shake on the exact frame it transitions to idle.
   private builderWasMoving = false;
   // Counts tile crossings so we can emit shakes on every other crossing
   // (half the cadence of raw 16-px steps — slower, weightier rhythm).
   private builderStepCounter = 0;
+  private builderCarrierVelocityY = 0;
   /** Cells in host collisionGrid currently overwritten by builder, packed as row * gridWidth + col. Only cells that were 0 are stamped. */
   private builderStamps: number[] = [];
   private builderStampOriginX: number | null = null;
@@ -2026,12 +2026,11 @@ export class LdtkWorldScene extends Scene {
       // player wasn't carried" frame that looks like a jump in place.
       const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
+      this.builderCarrierVelocityY = dt > 0 ? this.activeBuilder.lastDeltaY / (dt / 1000) : 0;
       const newStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       const stampDelta = newStampY - prevStampY;
       if (this.playerOnBuilder && stampDelta !== 0) {
-        this.player.y += stampDelta;
-        // Keep interpolation consistent so the carry doesn't flicker.
-        this.player.prevY += stampDelta;
+        this.carryPlayerWithBuilderY(stampDelta);
       }
       const nextStampX = Math.round(this.activeBuilder.container.x / 16);
       const nextStampY = Math.round(this.activeBuilder.container.y / 16);
@@ -2040,6 +2039,9 @@ export class LdtkWorldScene extends Scene {
         this.stampBuilder();
       }
       this.syncBuilderAttachments();
+      if (this.playerOnBuilder) {
+        this.resolvePlayerSolidOverlapAfterBuilder(stampDelta);
+      }
 
       // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
       // of the descent. Rhythmic "쿵" every two tile crossings while moving,
@@ -2060,13 +2062,17 @@ export class LdtkWorldScene extends Scene {
         }
         this.builderWasMoving = nowMoving;
       }
+    } else {
+      this.builderCarrierVelocityY = 0;
     }
 
     // Player
     // 직전 프레임의 playerOnBuilder 값을 onCarrier 로 전달해, 빌더 위
     // grounding 이 lastSafeX/Y 갱신을 건너뛰도록 한다. 빌더에서 내려선
     // 다음 프레임에 1틱 늦게 safe ground 가 잡히는데 시각적으로 무시 가능.
-    this.player.onCarrier = this.playerOnBuilder;
+    const wasPlayerOnBuilder = this.playerOnBuilder;
+    this.player.onCarrier = wasPlayerOnBuilder;
+    this.player.carrierVelocityY = wasPlayerOnBuilder ? this.builderCarrierVelocityY : 0;
     this.player.update(dt);
 
     // No-weapon attack feedback — Player flags the pulse, scene shows toast
@@ -2097,8 +2103,12 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // After physics: is the player now grounded on a builder-stamped tile?
-    this.playerOnBuilder = this.activeBuilder ? this.isPlayerOnBuilderStamp() : false;
+    // After physics: keep riders aligned to the builder's tile-quantized
+    // collision surface. This prevents the moving stamp from slowly burying
+    // or dropping the player through the carried floor.
+    const snappedToBuilder = wasPlayerOnBuilder ? this.snapPlayerToBuilderSurface() : false;
+    this.playerOnBuilder = this.activeBuilder ? (snappedToBuilder || this.isPlayerOnBuilderStamp()) : false;
+    if (!this.playerOnBuilder) this.player.carrierVelocityY = 0;
 
     // Volume check: is the player's AABB inside the builder's rectangle?
     // (includes airborne — used for camera override that must persist on jump.)
@@ -4038,29 +4048,9 @@ export class LdtkWorldScene extends Scene {
     // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
     this.processLdtkEntities(level);
 
-    // Giant Builder:
-    //   Shaft_01       — Builder_Level_0 cinematic one-shot descent
-    //   Debug_Shaft_01 — Builder_Level_1 infinite patrol (gameplay/testing)
-    //   Debug_Shaft_2  — Builder_Level_1 infinite patrol (gameplay/testing)
-    if (level.identifier === 'Shaft_01') {
-      // Always spawn — first visit plays the ascent cinematic, subsequent
-      // visits place the builder at its final dormant pose at the top.
-      // (clearBuilder() runs on level unload, so the instance must be
-      // recreated on every entry.)
-      this.spawnBuilder(level, 'cinematic', 'Builder_Level_0');
-    } else if (level.identifier === 'Shaft_02') {
-      // 사용자 결정 2026-05-07 — Shaft_02 좌측 벽 + 16 cell 위치에 Builder_02
-      // 배치, y=0..100 무한 왕복.
-      this.spawnShaft02Builder(level);
-    } else if (level.identifier === 'Shaft_DemoEnd') {
-      // 사용자 결정 2026-05-16 — Shaft_DemoEnd 좌측 끝(x=18px, y=130px)에
-      // Builder_Level_2 배치, y 방향 무한 왕복. 종료 시퀀스는 별도 LDtk
-      // `EndingTrigger` entity 가 처리한다 — 이 함수는 빌더만 띄움.
-      this.spawnDemoEndBuilder(level);
-    } else if (level.identifier === 'Debug_Shaft_01') {
-      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
-    } else if (level.identifier === 'Debug_Shaft_2') {
-      this.spawnBuilder(level, 'patrol', 'Builder_Level_1');
+    const builderSpawner = level.entities.find((e) => e.type === 'BuilderSpawner' && e.fields.Enabled !== false);
+    if (builderSpawner) {
+      this.spawnBuilderFromSpawner(level, builderSpawner);
     }
 
     // HUD/minimap visibility — Shaft_DemoEnd 룸 안에서는 항상 가린다 (사용자
@@ -7188,6 +7178,106 @@ export class LdtkWorldScene extends Scene {
   // Giant Builder
   // ---------------------------------------------------------------------------
 
+  private readStringField(entity: LdtkEntity, key: string, fallback: string): string {
+    const value = entity.fields[key];
+    return typeof value === 'string' && value.length > 0 ? value : fallback;
+  }
+
+  private readNumberField(entity: LdtkEntity, key: string, fallback: number): number {
+    const value = entity.fields[key];
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  }
+
+  private readBoolField(entity: LdtkEntity, key: string, fallback: boolean): boolean {
+    const value = entity.fields[key];
+    return typeof value === 'boolean' ? value : fallback;
+  }
+
+  private applyBuilderVisualFilters(builder: GiantBuilder): void {
+    if (this.builderWallPaletteFilter) {
+      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
+      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
+      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
+    }
+
+    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
+      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
+      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
+      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
+      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
+    }
+  }
+
+  private addBuilderToScene(builder: GiantBuilder, insertBeforeNaturalDecor: boolean): void {
+    if (insertBeforeNaturalDecor && this.procDecorator) {
+      const insertIdx = this.renderer.container.getChildIndex(this.procDecorator.naturalLayer);
+      this.renderer.container.addChildAt(builder.container, insertIdx);
+    } else {
+      this.renderer.container.addChild(builder.container);
+    }
+  }
+
+  private spawnBuilderFromSpawner(hostLevel: LdtkLevel, spawner: LdtkEntity): void {
+    const builderLevelId = this.readStringField(spawner, 'BuilderLevelId', 'Builder_Level_1');
+    const builderLevel = this.builderLoader.getLevel(builderLevelId);
+    if (!builderLevel) return;
+
+    const anchor = this.readStringField(spawner, 'Anchor', 'Entity');
+    const offsetPx = this.readNumberField(spawner, 'OffsetCellsX', 0) * TILE_SIZE;
+    const startY = this.readNumberField(spawner, 'StartYCells', Math.round(spawner.px[1] / TILE_SIZE)) * TILE_SIZE;
+    const endY = this.readNumberField(spawner, 'EndYCells', Math.round(spawner.px[1] / TILE_SIZE)) * TILE_SIZE;
+    const speed = Math.max(0, this.readNumberField(spawner, 'Speed', 33));
+    const loop = this.readBoolField(spawner, 'Loop', false);
+    const autoStart = this.readBoolField(spawner, 'AutoStart', true);
+    const skipInitialWait = this.readBoolField(spawner, 'SkipInitialWait', false);
+    const cameraShake = this.readBoolField(spawner, 'CameraShake', false);
+    const runOnceKey = this.readStringField(spawner, 'RunOnceKey', '');
+    const replayAtEnd = this.readBoolField(spawner, 'ReplayAtEnd', false);
+    const startWaitMs = Math.max(0, this.readNumberField(spawner, 'StartWaitMs', 0));
+    const endWaitMs = Math.max(0, this.readNumberField(spawner, 'EndWaitMs', 0));
+    const insertBeforeNaturalDecor = this.readBoolField(spawner, 'InsertBeforeNaturalDecor', true);
+    const alreadyPlayed = runOnceKey.length > 0 && this.builderSpawnerRunOnceKeys.has(runOnceKey);
+    const spawnY = alreadyPlayed && replayAtEnd ? endY : startY;
+
+    let builderX = spawner.px[0] + offsetPx;
+    if (anchor === 'LeftWall') {
+      builderX = offsetPx;
+    } else if (anchor === 'RightWall') {
+      builderX = hostLevel.pxWid - builderLevel.pxWid - offsetPx;
+    }
+
+    const builder = new GiantBuilder(
+      builderLevel,
+      this.atlases,
+      'world_shaft_builder_bg',
+      'world_shaft_builder_wall',
+      { hostLevel, builderX, builderY: spawnY },
+    );
+
+    this.applyBuilderVisualFilters(builder);
+    builder.placeInLevel(builderX, spawnY);
+    this.addBuilderToScene(builder, insertBeforeNaturalDecor);
+
+    if (autoStart && !alreadyPlayed) {
+      builder.setRoute([
+        { y: startY, waitMs: startWaitMs },
+        { y: endY,   waitMs: endWaitMs },
+      ], speed, loop);
+      if (skipInitialWait) builder.skipInitialWait();
+      if (runOnceKey.length > 0) this.builderSpawnerRunOnceKeys.add(runOnceKey);
+    }
+
+    this.activeBuilder = builder;
+    this.activeBuilderMode = cameraShake ? 'cinematic' : 'patrol';
+    this.builderShakeEnabled = cameraShake;
+    this.builderWasMoving = false;
+    this.builderStepCounter = 0;
+
+    this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
+    this.registerBuilderGrassClumps(builder);
+  }
+
   /**
    * Stamp the active builder's solid tiles into the host collisionGrid.
    *
@@ -7258,6 +7348,147 @@ export class LdtkWorldScene extends Scene {
       if (r === footRow && c >= leftCol && c <= rightCol) return true;
     }
     return false;
+  }
+
+  private carryPlayerWithBuilderY(deltaY: number): void {
+    // Drop-through 직후 프레임에서 빌더가 상승 중이라면 플레이어가 위로
+    // 끌려 올라가 platform 을 다시 뚫고 올라간다. dropThroughTimer 활성
+    // 동안은 carrier 동기화를 건너뛴다.
+    if (this.player.dropThroughTimer > 0) return;
+    const colOffX = (this.player.width - this.player.collisionW) / 2;
+    const colOffY = this.player.height - this.player.collisionH;
+    const x = this.player.x + colOffX;
+    const y = this.player.y + colOffY;
+    const w = this.player.collisionW;
+    const h = this.player.collisionH;
+    const nextY = y + deltaY;
+    const leadY = deltaY > 0 ? nextY + h : nextY;
+    const checkRow = Math.floor(leadY / TILE_SIZE);
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + w - 1) / TILE_SIZE);
+    const stampSet = this.getBuilderStampSet();
+
+    let resolvedY = nextY;
+    let collided = false;
+    for (let col = leftCol; col <= rightCol; col++) {
+      if (!this.isStaticSolidCell(col, checkRow, stampSet)) continue;
+      resolvedY = deltaY > 0
+        ? checkRow * TILE_SIZE - h
+        : (checkRow + 1) * TILE_SIZE;
+      collided = true;
+      break;
+    }
+
+    const spriteY = resolvedY - colOffY;
+    const applied = spriteY - this.player.y;
+    if (Math.abs(applied) > 0.001) {
+      this.player.y = spriteY;
+      this.player.prevY += applied;
+    }
+    if (collided && deltaY < 0 && this.player.vy < 0) this.player.vy = 0;
+  }
+
+  private snapPlayerToBuilderSurface(): boolean {
+    const b = this.activeBuilder;
+    if (!b) return false;
+    // A real jump should detach from the carrier. Snapping only while falling
+    // or resting prevents the moving floor from stealing jump height.
+    if (this.player.getVy() < -1) return false;
+    // Drop-through 활성 동안은 빌더 collisionGrid 의 platform(3) 셀을 발판
+    // 후보에서 빼야 한다. 그렇지 않으면 `y += 2` 직후 snap 이 platform top
+    // 으로 즉시 복귀시켜 DOWN+JUMP 이 항상 취소된다.
+    if (this.player.dropThroughTimer > 0) return false;
+
+    const originX = Math.round(b.container.x / 16);
+    const originY = Math.round(b.container.y / 16);
+    const leftCol = Math.max(0, Math.floor(this.player.x / 16) - originX);
+    const rightCol = Math.min(b.widthTiles - 1, Math.floor((this.player.x + this.player.width - 1) / 16) - originX);
+    if (rightCol < leftCol) return false;
+
+    const feetY = this.player.y + this.player.height;
+    let bestTopY: number | null = null;
+    let bestDist = Infinity;
+    for (let br = 0; br < b.heightTiles; br++) {
+      for (let bc = leftCol; bc <= rightCol; bc++) {
+        const tile = b.collisionGrid[br]?.[bc] ?? 0;
+        if (tile === 0) continue;
+        const above = br > 0 ? (b.collisionGrid[br - 1]?.[bc] ?? 0) : 0;
+        if (above !== 0) continue;
+        const topY = (originY + br) * 16;
+        const dist = Math.abs(topY - feetY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestTopY = topY;
+        }
+      }
+    }
+    if (bestTopY === null || bestDist > 24) return false;
+
+    const nextY = bestTopY - this.player.height;
+    if (this.playerCollisionOverlapsSolidAt(this.player.x, nextY)) return false;
+    const delta = nextY - this.player.y;
+    if (Math.abs(delta) > 0.001) {
+      this.player.y = nextY;
+      this.player.prevY += delta;
+    }
+    if (this.player.vy > 0) this.player.vy = 0;
+    this.player.forceGrounded();
+    return true;
+  }
+
+  private playerCollisionOverlapsSolidAt(playerX: number, playerY: number): boolean {
+    const colOffX = (this.player.width - this.player.collisionW) / 2;
+    const colOffY = this.player.height - this.player.collisionH;
+    const x = playerX + colOffX;
+    const y = playerY + colOffY;
+    const w = this.player.collisionW;
+    const h = this.player.collisionH;
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + w - 1) / TILE_SIZE);
+    const topRow = Math.floor(y / TILE_SIZE);
+    const bottomRow = Math.floor((y + h - 1) / TILE_SIZE);
+    for (let row = topRow; row <= bottomRow; row++) {
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL)) return true;
+      }
+    }
+    return false;
+  }
+
+  private resolvePlayerSolidOverlapAfterBuilder(stampDeltaY: number): boolean {
+    if (!this.playerCollisionOverlapsSolidAt(this.player.x, this.player.y)) return false;
+
+    const verticalFirst = stampDeltaY < 0
+      ? [{ x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }]
+      : [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
+
+    for (let dist = 1; dist <= TILE_SIZE; dist++) {
+      for (const dir of verticalFirst) {
+        const nextX = this.player.x + dir.x * dist;
+        const nextY = this.player.y + dir.y * dist;
+        if (this.playerCollisionOverlapsSolidAt(nextX, nextY)) continue;
+        this.player.prevX += nextX - this.player.x;
+        this.player.prevY += nextY - this.player.y;
+        this.player.x = nextX;
+        this.player.y = nextY;
+        if (dir.y !== 0) this.player.vy = 0;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private getBuilderStampSet(): Set<number> {
+    return new Set(this.builderStamps);
+  }
+
+  private isStaticSolidCell(col: number, row: number, builderStampSet: Set<number>): boolean {
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridW <= 0) return true;
+    if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return true;
+    if (builderStampSet.has(row * gridW + col)) return false;
+    return isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL);
   }
 
   /**
@@ -7412,15 +7643,6 @@ export class LdtkWorldScene extends Scene {
     this.toast.show(t('toast.warped_to', { room: roomId }), 0xffe060);
   }
 
-  /**
-   * 플레이어를 현재 레벨 로컬 좌표 (clickX, clickY) 로 워프 + 정상 착지 보장.
-   *   1) clickX 컬럼에서 clickY 부터 아래로 첫 solid 행 탐색 — collision bottom 이
-   *      해당 floor 윗면 위에 +1px 오버랩되도록 배치 (resolveY 가 1px 밀어내며 grounded=true 트리거)
-   *   2) 솔리드 못 찾으면 clickY 그대로 — 떨어지면서 자연 착지
-   *   3) vx/vy = 0, prevPos 동기화, 5 프레임 물리 시뮬 (loadLevel 과 동일) →
-   *      FSM 가 grounded/idle 로 안정화, animation 도 정상화
-   *   4) 카메라 snap
-   */
   private warpPlayerToLocal(clickX: number, clickY: number): void {
     if (!this.currentLevel) return;
     const grid = this.currentLevel.collisionGrid;
@@ -7429,15 +7651,12 @@ export class LdtkWorldScene extends Scene {
     const startRow = Math.floor(clickY / TS);
     const maxRow = grid.length - 1;
 
-    // 클릭 지점 아래로 첫 solid (1) 행 탐색.
-    // collisionH = 24 (Player), collision bottom = player.y + player.height.
-    // 1px 오버랩으로 resolveY 가 위로 밀어 올리며 grounded=true 즉시 세팅.
     let footY = clickY;
     if (col >= 0 && grid[0] && col < grid[0].length) {
       for (let r = Math.max(0, startRow); r <= maxRow; r++) {
         const cell = grid[r]?.[col] ?? 0;
         if (cell === 1) {
-          footY = r * TS + 1; // 1px 오버랩
+          footY = r * TS + 1;
           break;
         }
       }
@@ -7449,240 +7668,19 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.savePrevPosition();
 
-    // 5 프레임 물리 시뮬레이션 — resolveY 가 floor 위 정상 착지 처리, FSM 이 jump/fall
-    // 잔재 상태에서 idle/grounded 로 자연 전이 (loadLevel 의 settle 패턴 재사용).
     for (let i = 0; i < 5; i++) {
       this.player.update(16.667);
     }
 
-    // 카메라 즉시 추적.
     this.game.camera.snap(
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
     );
   }
 
-  private spawnBuilder(hostLevel: LdtkLevel, mode: 'cinematic' | 'patrol', builderLevelId: string): void {
-    const builderLevel = this.builderLoader.getLevel(builderLevelId);
-    if (!builderLevel) return;
-    const topY = 64;
-    const bottomY = hostLevel.pxHei - builderLevel.pxHei - 64;
-    const px = mode === 'cinematic'
-      ? hostLevel.pxWid - builderLevel.pxWid - 31 * 16
-      : hostLevel.pxWid - builderLevel.pxWid - 16 * 16;
-    const initialY = mode === 'cinematic' && this.shaft01CinematicPlayed ? topY : bottomY;
-
-    const builder = new GiantBuilder(
-      builderLevel,
-      this.atlases,
-      'world_shaft_builder_bg',
-      'world_shaft_builder_wall',
-      { hostLevel, builderX: px, builderY: initialY },
-    );
-
-    // Builder decorations use the builder-specific palette so the structure
-    // reads as a cool steel mass against the warm crimson shaft.
-    if (this.builderWallPaletteFilter) {
-      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
-      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
-      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
-    }
-
-    // Builder body layers receive a parallel filter stack to the host level,
-    // but with builder-specific palette rows. Rim filter is shared so the
-    // forge-orange highlight still glows along the builder's top edge.
-    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
-      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
-      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
-      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
-      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
-    }
-
-    if (mode === 'cinematic') {
-      // Shaft_01 — right wall minus 31 tiles (사용자 결정 2026-05-03). First
-      // entry: one-shot bottom→top ascent. Re-entries: spawn at the dormant
-      // top pose with no route so the builder stays parked where the
-      // cinematic left it.
-      if (this.shaft01CinematicPlayed) {
-        builder.placeInLevel(px, topY);
-        this.renderer.container.addChild(builder.container);
-        // No setRoute → state remains 'dormant', builder visible & still.
-      } else {
-        builder.placeInLevel(px, bottomY);
-        this.renderer.container.addChild(builder.container);
-        builder.setRoute([
-          { y: bottomY, waitMs: 0 },
-          { y: topY,    waitMs: 0 },
-        ], 45, false); // 45 px/s, no loop
-        this.shaft01CinematicPlayed = true;
-      }
-    } else {
-      // Debug_Shaft_01 — infinite patrol; spawn at bottom, climb up first.
-      builder.placeInLevel(px, bottomY);
-      this.renderer.container.addChild(builder.container);
-      builder.setRoute([
-        { y: bottomY, waitMs: 3000 },
-        { y: topY,    waitMs: 3000 },
-        { y: bottomY, waitMs: 3000 },
-      ], 22, true); // 22 px/s, loop
-    }
-
-    this.activeBuilder = builder;
-    this.activeBuilderMode = mode;
-    this.builderWasMoving = false;
-    this.builderStepCounter = 0;
-
-    // Spawn entities placed inside the builder level so they ride the
-    // builder. Each spawn registers a BuilderAttachment whose world coords
-    // are recomputed every frame in syncBuilderAttachments().
-    this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
-    this.registerBuilderGrassClumps(builder);
-  }
-
-  /**
-   * Shaft_02 의 빌더 배치 — 좌측 벽 + 15 tile, y=0..768 무한 왕복.
-   * spawnBuilder 의 cinematic/patrol preset 외 1회성 케이스라 별도 헬퍼.
-   * Shaft_02 intentionally uses Builder_Level_1.
-   */
-  private spawnShaft02Builder(hostLevel: LdtkLevel): void {
-    const builderLevel = this.builderLoader.getLevel('Builder_Level_1');
-    if (!builderLevel) return;
-    const builderX = 15 * 16;
-    const initialY = 832;
-
-    const builder = new GiantBuilder(
-      builderLevel,
-      this.atlases,
-      'world_shaft_builder_bg',
-      'world_shaft_builder_wall',
-      { hostLevel, builderX, builderY: initialY },
-    );
-
-    // 빌더 데코 / 본체 팔레트 — Shaft_01 patrol 과 동일.
-    if (this.builderWallPaletteFilter) {
-      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
-      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
-      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
-    }
-    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
-      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
-      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
-      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
-      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
-    }
-
-    const px = 15 * 16; // 좌측 벽 + 15 tile (1 tile = 16 px).
-    // 시작 위치 = patrol 의 아래쪽 끝 (y=832). 8 tile 아래 → 4 tile 위로 보정.
-    // 플레이어가 Shaft_02 진입 시 빌더가 아래에서부터 천천히 올라오는 인상.
-    builder.placeInLevel(px, initialY);
-
-    // 렌더 순서: 빌더는 host wallLayer 앞 + procDecorator 자연/인공 데코 뒤.
-    // procDecorator.naturalLayer 인덱스 직전에 삽입 → 데코가 빌더 위로 그려져
-    // 자연 디테일이 빌더 실루엣에 가려지지 않음. 빌더는 host wallLayer 위에 있어
-    // 본체는 또렷이 보임.
-    const insertIdx = this.procDecorator
-      ? this.renderer.container.getChildIndex(this.procDecorator.naturalLayer)
-      : this.renderer.container.children.length;
-    this.renderer.container.addChildAt(builder.container, insertIdx);
-
-    // 아래(832) → 위(64) 무한 왕복. 각 끝점 5초 대기, 33 px/s 속도.
-    builder.setRoute([
-      { y: 832, waitMs: 5000 },
-      { y: 64,  waitMs: 5000 },
-    ], 33, true);
-
-    this.activeBuilder = builder;
-    this.activeBuilderMode = 'patrol';
-    this.builderWasMoving = false;
-    this.builderStepCounter = 0;
-
-    this.spawnBuilderEntities(builderLevel, 'Builder_Level_1', builder);
-    this.registerBuilderGrassClumps(builder);
-    void hostLevel;
-  }
-
-  /**
-   * Shaft_DemoEnd 의 빌더 배치 — 좌측 끝(x=18px), 초기 y=130px, y 방향 무한 왕복.
-   * Builder_Level_2 사용. spawnShaft02Builder 패턴을 그대로 따른다.
-   */
-  private spawnDemoEndBuilder(hostLevel: LdtkLevel): void {
-    const builderLevel = this.builderLoader.getLevel('Builder_Level_2');
-    if (!builderLevel) return;
-    const initialY = 135;         // px, 사용자 결정 2026-05-16.
-    const bottomY = Math.max(initialY + 64, hostLevel.pxHei - builderLevel.pxHei - 64);
-
-    // Left-wall hug: read the host IntGrid and place builder's left edge
-    // flush against the rightmost wall column the builder will touch as it
-    // travels y=initialY..bottomY. For every row the builder occupies at any
-    // y stop on its route, walk left→right counting consecutive TILE_WALL
-    // (1) cells; the largest such prefix across all those rows is the
-    // builder's flush x in cells. Multiply by 16 for px.
-    const builderHeightCells = Math.ceil(builderLevel.pxHei / 16);
-    const topRow = Math.floor(initialY / 16);
-    const bottomRowIncl = Math.floor(bottomY / 16) + builderHeightCells;
-    let wallPrefixMax = 0;
-    for (let r = topRow; r <= bottomRowIncl; r++) {
-      const row = hostLevel.collisionGrid[r];
-      if (!row) continue;
-      let x = 0;
-      while (x < row.length && row[x] === 1) x++;  // 1 = TILE_WALL
-      if (x > wallPrefixMax) wallPrefixMax = x;
-    }
-    const builderX = wallPrefixMax * 16;
-
-    const builder = new GiantBuilder(
-      builderLevel,
-      this.atlases,
-      'world_shaft_builder_bg',
-      'world_shaft_builder_wall',
-      { hostLevel, builderX, builderY: initialY },
-    );
-
-    // Decorator/Body 팔레트 — Shaft_02 patrol 과 동일 필터 스택.
-    if (this.builderWallPaletteFilter) {
-      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
-      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
-      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
-    }
-    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
-      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
-      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
-      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
-      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
-    }
-
-    builder.placeInLevel(builderX, initialY);
-
-    // 렌더 순서: 빌더는 host wallLayer 앞 + procDecorator 자연/인공 데코 뒤.
-    const insertIdx = this.procDecorator
-      ? this.renderer.container.getChildIndex(this.procDecorator.naturalLayer)
-      : this.renderer.container.children.length;
-    this.renderer.container.addChildAt(builder.container, insertIdx);
-
-    // y 방향 무한 왕복. 시작은 즉시 이동(사용자 결정 2026-05-17 — 플레이어가
-    // Shaft_DemoEnd 진입 즉시 빌더 무게감 연출), 이후 양 끝점 5초 대기.
-    builder.setRoute([
-      { y: initialY, waitMs: 0 },
-      { y: bottomY,  waitMs: 5000 },
-    ], 33, true);
-    // setRoute 는 첫 entry 에서 waiting 상태로 시작 — waitMs=0 라도 다음 frame
-    // update 까지 1 tick 대기. activate() 로 dormant→moving 만 직행하므로,
-    // 여기서 직접 첫 wait 을 건너뛴다.
-    builder.skipInitialWait();
-
-    this.activeBuilder = builder;
-    this.activeBuilderMode = 'patrol';
-    // Shaft_01 처럼 발걸음 카메라 쉐이크 — patrol 모드지만 무게감 연출은 동일.
-    this.builderShakeEnabled = true;
-    this.builderWasMoving = false;
-    this.builderStepCounter = 0;
-
-    this.spawnBuilderEntities(builderLevel, 'Builder_Level_2', builder);
-    this.registerBuilderGrassClumps(builder);
-  }
+  // ---------------------------------------------------------------------------
+  // Giant Builder
+  // ---------------------------------------------------------------------------
 
   private registerBuilderGrassClumps(builder: GiantBuilder): void {
     const registered = this.grassClumpFire.registerWithCellResolver(
@@ -7695,7 +7693,6 @@ export class LdtkWorldScene extends Scene {
     );
     for (const prop of registered) this.tileMutator.registerBurnable(prop);
   }
-
   /** Walk a builder level's LDtk entities and spawn the gameplay objects
    *  that make sense inside a moving builder. Add new cases here for any
    *  entity type that needs to be supported (Anvil, GoldPickup, etc.). */
@@ -8775,8 +8772,11 @@ export class LdtkWorldScene extends Scene {
       this.anvilPrompt.visible = true;
       const us = this.game.uiScale;
       const cam = this.game.camera;
-      const ax = this.anvil.container.x;
-      const ay = this.anvil.container.y;
+      // Builder-mounted anvil 의 container.x/y 는 builder 로컬 좌표이므로
+      // 카메라 변환에 그대로 쓰면 화면 밖으로 빠진다. syncBuilderAttachments 가
+      // 매 프레임 갱신해 주는 anvil.x/y(월드 좌표)를 사용한다.
+      const ax = this.anvil.x;
+      const ay = this.anvil.y;
       const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilPrompt.width / 2;
       const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
       this.anvilPrompt.x = Math.round(sx);
@@ -8825,8 +8825,9 @@ export class LdtkWorldScene extends Scene {
 
     const us = this.game.uiScale;
     const cam = this.game.camera;
-    const ax = this.anvil.container.x;
-    const ay = this.anvil.container.y;
+    // Builder-mounted anvil: container.x/y 는 로컬이라 카메라 좌표에 직접 못 쓴다.
+    const ax = this.anvil.x;
+    const ay = this.anvil.y;
     const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilDisabledPrompt.width / 2;
     const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
     this.anvilDisabledPrompt.x = Math.round(sx);
