@@ -337,8 +337,10 @@ export class Game {
   }
 
   private handleResize(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const pseudoFullscreen = document.documentElement.classList.contains('echoris-pseudo-fullscreen');
+    const vv = window.visualViewport;
+    const w = pseudoFullscreen ? Math.floor(vv?.width ?? window.innerWidth) : window.innerWidth;
+    const h = pseudoFullscreen ? Math.floor(vv?.height ?? window.innerHeight) : window.innerHeight;
     const canvas = this.app.canvas;
 
     // uiScale is locked at init — renderer/fonts/HUD are all built for that scale.

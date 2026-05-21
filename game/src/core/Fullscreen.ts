@@ -21,13 +21,66 @@ export function isInIframe(): boolean {
 }
 
 const PSEUDO_FULLSCREEN_CLASS = 'echoris-pseudo-fullscreen';
+let pseudoFullscreenListenersInstalled = false;
 
 function isPseudoFullscreenActive(): boolean {
-  return document.body.classList.contains(PSEUDO_FULLSCREEN_CLASS);
+  return document.documentElement.classList.contains(PSEUDO_FULLSCREEN_CLASS) ||
+    document.body.classList.contains(PSEUDO_FULLSCREEN_CLASS);
+}
+
+function syncPseudoFullscreenViewport(): void {
+  const vv = window.visualViewport;
+  const w = Math.floor(vv?.width ?? window.innerWidth);
+  const h = Math.floor(vv?.height ?? window.innerHeight);
+  const left = Math.floor(vv?.offsetLeft ?? 0);
+  const top = Math.floor(vv?.offsetTop ?? 0);
+  document.documentElement.style.setProperty('--echoris-vw', `${w}px`);
+  document.documentElement.style.setProperty('--echoris-vh', `${h}px`);
+  document.documentElement.style.setProperty('--echoris-vv-left', `${left}px`);
+  document.documentElement.style.setProperty('--echoris-vv-top', `${top}px`);
+}
+
+function clearPseudoFullscreenViewport(): void {
+  document.documentElement.style.removeProperty('--echoris-vw');
+  document.documentElement.style.removeProperty('--echoris-vh');
+  document.documentElement.style.removeProperty('--echoris-vv-left');
+  document.documentElement.style.removeProperty('--echoris-vv-top');
+}
+
+function installPseudoFullscreenListeners(): void {
+  if (pseudoFullscreenListenersInstalled) return;
+  pseudoFullscreenListenersInstalled = true;
+  window.visualViewport?.addEventListener('resize', onPseudoFullscreenViewportChanged);
+  window.visualViewport?.addEventListener('scroll', onPseudoFullscreenViewportChanged);
+  window.addEventListener('orientationchange', onPseudoFullscreenViewportChanged);
+}
+
+function uninstallPseudoFullscreenListeners(): void {
+  if (!pseudoFullscreenListenersInstalled) return;
+  pseudoFullscreenListenersInstalled = false;
+  window.visualViewport?.removeEventListener('resize', onPseudoFullscreenViewportChanged);
+  window.visualViewport?.removeEventListener('scroll', onPseudoFullscreenViewportChanged);
+  window.removeEventListener('orientationchange', onPseudoFullscreenViewportChanged);
+}
+
+function onPseudoFullscreenViewportChanged(): void {
+  if (!isPseudoFullscreenActive()) return;
+  syncPseudoFullscreenViewport();
+  window.dispatchEvent(new Event('resize'));
 }
 
 function setPseudoFullscreen(active: boolean): boolean {
+  document.documentElement.classList.toggle(PSEUDO_FULLSCREEN_CLASS, active);
   document.body.classList.toggle(PSEUDO_FULLSCREEN_CLASS, active);
+  if (active) {
+    syncPseudoFullscreenViewport();
+    installPseudoFullscreenListeners();
+    window.scrollTo(0, 0);
+    document.querySelector('canvas')?.focus();
+  } else {
+    uninstallPseudoFullscreenListeners();
+    clearPseudoFullscreenViewport();
+  }
   window.dispatchEvent(new Event('resize'));
   return isPseudoFullscreenActive();
 }
@@ -44,7 +97,8 @@ function shouldUsePseudoFullscreenFallback(): boolean {
 export function isFullscreenActive(): boolean {
   return !!(
     document.fullscreenElement ||
-    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+    (document as unknown as { webkitFullscreenElement?: Element; webkitIsFullScreen?: boolean }).webkitFullscreenElement ||
+    (document as unknown as { webkitIsFullScreen?: boolean }).webkitIsFullScreen ||
     isPseudoFullscreenActive()
   );
 }

@@ -274,6 +274,7 @@ export class ItemWorldScene extends Scene {
     row: number;
     layers: Container[];
   }> = [];
+  private visibleCellWindowKey = '';
   /**
    * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
    * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
@@ -383,6 +384,7 @@ export class ItemWorldScene extends Scene {
   private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
   private hudSkin: UISkin | null = null;
+  private itemWorldReduceVisualCost = false;
   private toast!: ToastManager;
   /** Gamepad hot-plug 토스트 unsubscribe — destroy 시 호출. */
   private _gpUnsub: (() => void) | null = null;
@@ -592,9 +594,19 @@ export class ItemWorldScene extends Scene {
     // Resolve visual theme from weapon definition (themeId: "T-HABITAT" → "habitat")
     const themeSlug = (this.item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
+    const ua = navigator.userAgent || '';
+    this.itemWorldReduceVisualCost =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
     // ItemWorld 전용 적/주민/스위치 스프라이트를 entity 가 개별 Assets.load 로
     // 부르기 전에 그룹 prefetch — 첫 진입 hitch 회피 (pixijs-references P1).
     void loadBundleOnce('item_world');
+    const hudSkin = new UISkin();
+    this.hudSkin = hudSkin;
+    const hudSkinLoad = hudSkin.load().catch((e) => {
+      // eslint-disable-next-line no-console
+      console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
+    });
     // Lazy-load tilesets for this theme's palette rows
     const areaIds = [`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`];
     await ensureAreaTilesetsLoaded(areaIds, this.atlases);
@@ -1170,17 +1182,11 @@ export class ItemWorldScene extends Scene {
       showToast: (message, color) => this.toast.show(message, color),
     });
 
-    // Load & apply UI skin (async, non-blocking)
-    const hudSkin = new UISkin();
-    this.hudSkin = hudSkin;
-    hudSkin.load().then(() => this.hud.applySkin(hudSkin))
-      .catch((e) => {
-        // eslint-disable-next-line no-console
-        console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
-      });
+    await hudSkinLoad;
+    if (hudSkin.isLoaded) this.hud.applySkin(hudSkin);
 
     // Return result screen (9-slice from UISkin)
-    this.uiController.createReturnResult(hudSkin, () => {
+    this.uiController.createReturnResult(hudSkin.isLoaded ? hudSkin : null, () => {
       this.game.sceneManager.pop();
     });
 
@@ -1411,8 +1417,11 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.shadowAggregate);
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
-    const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 });
-    this.wallAggregate.filters = [this.wallPaletteFilter, rimFilter];
+    const wallFilters: any[] = [this.wallPaletteFilter];
+    if (!this.itemWorldReduceVisualCost) {
+      wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 }));
+    }
+    this.wallAggregate.filters = wallFilters;
     // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
     // Decoration filter ? reduced strength so natural colors show through
@@ -1427,9 +1436,9 @@ export class ItemWorldScene extends Scene {
       tint: wallEntry.tint,
     };
     // Same palette filter as walls ? decorations get full depth gradient
-    this.decoAggregate.filters = [this.naturalPaletteFilter];
-    this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
-    this.structAggregate.filters = [this.wallPaletteFilter];
+    this.decoAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.naturalPaletteFilter];
+    this.artificialDecoAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.wallPaletteFilter];
+    this.structAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.wallPaletteFilter];
 
     // Strata depth auto-transformation ? deeper = darker, more corroded
     const totalStrata = this.strataConfig.strata.length;
@@ -1461,6 +1470,7 @@ export class ItemWorldScene extends Scene {
     this.roomTypeMap.clear();
     this.clearEnemies();
     this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — buildFullMap 가 다시 push
+    this.visibleCellWindowKey = '';
 
     // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
     // 한 번에 렌더링. fullGrid 도 totalWidth×totalHeight 로 확장. 플레이어는 워프
@@ -4336,6 +4346,7 @@ export class ItemWorldScene extends Scene {
     this.destroyAggregateChildren(this.shadowAggregate);
     this.destroyAggregateChildren(this.sealAggregate);
     this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — 아래 loop 가 다시 push
+    this.visibleCellWindowKey = '';
 
     const grid = this.unifiedGrid;
     const totalCols = grid.totalWidth;
@@ -7105,7 +7116,6 @@ export class ItemWorldScene extends Scene {
    * 전체가 아닌 viewport 만 처리하도록 매 프레임 갱신.
    */
   private updateCellVisibility(): void {
-    if (this.cellLayerGroups.length === 0) return;
     const cam = this.game.camera;
     const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
     const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
@@ -7114,15 +7124,21 @@ export class ItemWorldScene extends Scene {
     const viewR = cam.renderX + halfW + IW_ROOM_W_PX;
     const viewT = cam.renderY - halfH - IW_ROOM_H_PX;
     const viewB = cam.renderY + halfH + IW_ROOM_H_PX;
-    for (const g of this.cellLayerGroups) {
-      const x = g.col * IW_ROOM_W_PX;
-      const y = g.row * IW_ROOM_H_PX;
-      const visible =
-        x + IW_ROOM_W_PX >= viewL &&
-        x <= viewR &&
-        y + IW_ROOM_H_PX >= viewT &&
-        y <= viewB;
-      for (const layer of g.layers) layer.visible = visible;
+    const minCol = Math.floor(viewL / IW_ROOM_W_PX);
+    const maxCol = Math.floor(viewR / IW_ROOM_W_PX);
+    const minRow = Math.floor(viewT / IW_ROOM_H_PX);
+    const maxRow = Math.floor(viewB / IW_ROOM_H_PX);
+    const windowKey = `${minCol},${maxCol},${minRow},${maxRow}`;
+    if (windowKey !== this.visibleCellWindowKey) {
+      this.visibleCellWindowKey = windowKey;
+      for (const g of this.cellLayerGroups) {
+        const visible =
+          g.col >= minCol &&
+          g.col <= maxCol &&
+          g.row >= minRow &&
+          g.row <= maxRow;
+        for (const layer of g.layers) layer.visible = visible;
+      }
     }
     // Filter area culling — aggregate 의 filter 가 viewport 만 처리하도록 제한.
     const fa = this._viewportRect;
