@@ -9369,27 +9369,8 @@ export class LdtkWorldScene extends Scene {
       this.inventoryUI.close();
       return;
     }
-    // Sacred Pickup S6 / T5 ??show preview before committing.
-    // �??�이�??�후?�도 ?�일??full 모달 ?�용 (compact ?�트�??�기).
-    if (this.divePreview) {
-      const confirm = () => {
-        if (!this.anvil) return;
-        sacredSave.markFirstDiveDone();
-        this.hideUiForAnvilDiveTransition();
-        this.anvil.placeItem(item);
-        this.collapseItem = item;
-        this.inventoryUI.close();
-        // 공격 ?�계 ?�략 ???�이???�택 즉시 ?�이�?진입
-        this.triggerFloorCollapse();
-      };
-      const cancel = () => {
-        // Reopen the inventory in anvil mode so user can pick another item.
-        this.inventoryUI.refresh();
-      };
-      this.divePreview.showFull(item, confirm, cancel);
-      return;
-    }
-    // Fallback path if preview unavailable.
+    // 사용자 결정 2026-05-24: DivePreview 모달 제거. anvil UI 의 [C] Dive prompt 가 이미
+    // 확정 단계이므로 추가 모달은 redundant. 바로 dive transition 진입.
     sacredSave.markFirstDiveDone();
     this.hideUiForAnvilDiveTransition();
     this.anvil.placeItem(item);

@@ -116,6 +116,13 @@ interface FluidBody {
   arcGfx: Graphics | null;
 }
 
+export interface FluidCellBounds {
+  minGx: number;
+  minGy: number;
+  maxGx: number;
+  maxGy: number;
+}
+
 export class FluidSystem {
   private parent: Container;
   private bodies: FluidBody[] = [];
@@ -213,7 +220,7 @@ export class FluidSystem {
    * procedurally without a LdtkLevel wrapper. Behaves identically to
    * attach(level) but skips the LdtkLevel.entities filter step.
    */
-  attachGrid(grid: number[][], volumes: LdtkEntity[] = []): void {
+  attachGrid(grid: number[][], volumes: LdtkEntity[] = [], bounds?: FluidCellBounds): void {
     this.detach();
     if (!grid || grid.length === 0) return;
     const gridH = grid.length;
@@ -226,9 +233,10 @@ export class FluidSystem {
     // Flood-fill: each fluid cell value → connected components per type.
     // Different fluid types never merge (water + magma adjacent = two bodies).
     const visited = new Uint8Array(gridH * gridW);
+    const scan = this.clampBounds(bounds, gridW, gridH);
     for (const { value, type: defaultType } of FLUID_CELL_TYPES) {
-      for (let y = 0; y < gridH; y++) {
-        for (let x = 0; x < gridW; x++) {
+      for (let y = scan.minGy; y <= scan.maxGy; y++) {
+        for (let x = scan.minGx; x <= scan.maxGx; x++) {
           if (visited[y * gridW + x]) continue;
           if (grid[y][x] !== value) continue;
           const component = this.floodFill(grid, x, y, gridW, gridH, visited, value);
@@ -306,8 +314,13 @@ export class FluidSystem {
   }
 
   /** Per-frame simulation step + render. dt in ms. */
-  update(dt: number): void {
+  update(dt: number, bounds?: FluidCellBounds): void {
     for (const body of this.bodies) {
+      const active = this.bodyIntersectsBounds(body, bounds);
+      body.gfx.visible = active;
+      if (body.haloGfx) body.haloGfx.visible = active;
+      if (body.arcGfx) body.arcGfx.visible = active;
+      if (!active) continue;
       this.stepSpring(body, dt);
       // Advance halo pulse phase for emissive fluids — slow ~1.8 s period.
       if (body.haloGfx) body.haloPhaseMs += dt;
@@ -1144,6 +1157,7 @@ export class FluidSystem {
       isFrozen(gx: number, gy: number): boolean;
       transferElectricOverlay?(fromGx: number, fromGy: number, toGx: number, toGy: number): void;
     },
+    bounds?: FluidCellBounds,
   ): void {
     if (!roomData || !roomData.length) return;
     this.gravityAccum += dtMs;
@@ -1153,6 +1167,7 @@ export class FluidSystem {
     const gridH = roomData.length;
     const gridW = roomData[0]?.length ?? 0;
     if (!gridW) return;
+    const scan = this.clampBounds(bounds, gridW, gridH);
 
     let moved = false;
     const tryMove = (fx: number, fy: number, tx: number, ty: number): boolean => {
@@ -1178,16 +1193,17 @@ export class FluidSystem {
     // pull cells downward, leaving fluid floating in place.
     const lockedCells = new Set<number>();
     for (const body of this.bodies) {
+      if (!this.bodyIntersectsBounds(body, scan)) continue;
       if (!this.isThinStrip(body)) continue;
       if (!this.hasSolidFloorUnderBottomRow(body, roomData)) continue;
       for (const k of body.cells) lockedCells.add(k);
     }
 
     // Bottom-up with alternating row direction to avoid bias
-    for (let gy = gridH - 2; gy >= 0; gy--) {
+    for (let gy = Math.min(gridH - 2, scan.maxGy); gy >= scan.minGy; gy--) {
       const ltr = (gy & 1) === 0;
-      const xStart = ltr ? 0 : gridW - 1;
-      const xEnd   = ltr ? gridW : -1;
+      const xStart = ltr ? scan.minGx : scan.maxGx;
+      const xEnd   = ltr ? scan.maxGx + 1 : scan.minGx - 1;
       const xStep  = ltr ? 1 : -1;
       for (let gx = xStart; gx !== xEnd; gx += xStep) {
         const v = roomData[gy][gx];
@@ -1218,7 +1234,7 @@ export class FluidSystem {
       }
     }
 
-    if (moved) this.rebuildFromGrid(roomData);
+    if (moved) this.rebuildFromGrid(roomData, scan);
 
     // Thin-strip evaporation — conditional.
     //
@@ -1242,6 +1258,7 @@ export class FluidSystem {
       this.evapAccum -= FluidSystem.EVAP_INTERVAL_MS;
       let evaporated = false;
       for (const body of this.bodies) {
+        if (!this.bodyIntersectsBounds(body, scan)) continue;
         // Two stability checks. BOTH must pass for the pool to be considered
         // an authored, locked-in puddle; otherwise it's residue and evaporates.
         //   1. hasSolidFloorUnderBottomRow — every floor cell directly below
@@ -1269,7 +1286,7 @@ export class FluidSystem {
           evaporated = true;
         }
       }
-      if (evaporated) this.rebuildFromGrid(roomData);
+      if (evaporated) this.rebuildFromGrid(roomData, scan);
     }
   }
 
@@ -1390,8 +1407,34 @@ export class FluidSystem {
    * to nudge the fluid system into discovering newly-introduced fluid cells.
    * Internal path uses rebuildFromGrid directly after gravityTick.
    */
-  refreshFromGrid(roomData: number[][]): void {
-    this.rebuildFromGrid(roomData);
+  private clampBounds(bounds: FluidCellBounds | undefined, gridW: number, gridH: number): FluidCellBounds {
+    if (!bounds) return { minGx: 0, minGy: 0, maxGx: gridW - 1, maxGy: gridH - 1 };
+    const minGx = Math.max(0, Math.min(gridW - 1, Math.floor(bounds.minGx)));
+    const minGy = Math.max(0, Math.min(gridH - 1, Math.floor(bounds.minGy)));
+    const maxGx = Math.max(0, Math.min(gridW - 1, Math.ceil(bounds.maxGx)));
+    const maxGy = Math.max(0, Math.min(gridH - 1, Math.ceil(bounds.maxGy)));
+    return {
+      minGx: Math.min(minGx, maxGx),
+      minGy: Math.min(minGy, maxGy),
+      maxGx: Math.max(minGx, maxGx),
+      maxGy: Math.max(minGy, maxGy),
+    };
+  }
+
+  private bodyIntersectsBounds(body: FluidBody, bounds?: FluidCellBounds): boolean {
+    if (!bounds) return true;
+    const minX = bounds.minGx * TILE;
+    const minY = bounds.minGy * TILE;
+    const maxX = (bounds.maxGx + 1) * TILE;
+    const maxY = (bounds.maxGy + 1) * TILE;
+    return body.bounds.minX < maxX &&
+      body.bounds.maxX > minX &&
+      body.bounds.minY < maxY &&
+      body.bounds.maxY > minY;
+  }
+
+  refreshFromGrid(roomData: number[][], bounds?: FluidCellBounds): void {
+    this.rebuildFromGrid(roomData, bounds);
   }
 
   /**
@@ -1399,7 +1442,7 @@ export class FluidSystem {
    * Used after gravityTick to keep polygons in sync with cell positions.
    * Preserves wave momentum by matching old bodies to new by cell overlap.
    */
-  private rebuildFromGrid(roomData: number[][]): void {
+  private rebuildFromGrid(roomData: number[][], bounds?: FluidCellBounds): void {
     const gridH = roomData.length;
     if (!gridH) return;
     const gridW = roomData[0]?.length ?? 0;
@@ -1409,9 +1452,10 @@ export class FluidSystem {
     this.gridW = gridW;
 
     const visited = new Uint8Array(gridH * gridW);
+    const scan = this.clampBounds(bounds, gridW, gridH);
     for (const { value, type: defaultType } of FLUID_CELL_TYPES) {
-      for (let gy = 0; gy < gridH; gy++) {
-        for (let gx = 0; gx < gridW; gx++) {
+      for (let gy = scan.minGy; gy <= scan.maxGy; gy++) {
+        for (let gx = scan.minGx; gx <= scan.maxGx; gx++) {
           if (visited[gy * gridW + gx]) continue;
           if (roomData[gy][gx] !== value) continue;
           const component = this.floodFill(roomData, gx, gy, gridW, gridH, visited, value);

@@ -186,6 +186,24 @@ export class TileMutator {
     return { gx: key % 4096, gy: Math.floor(key / 4096) };
   }
 
+  private clampBounds(
+    bounds: { minGx: number; minGy: number; maxGx: number; maxGy: number } | undefined,
+    cols: number,
+    rows: number,
+  ): { minGx: number; minGy: number; maxGx: number; maxGy: number } {
+    if (!bounds) return { minGx: 0, minGy: 0, maxGx: cols - 1, maxGy: rows - 1 };
+    const minGx = Math.max(0, Math.min(cols - 1, Math.floor(bounds.minGx)));
+    const minGy = Math.max(0, Math.min(rows - 1, Math.floor(bounds.minGy)));
+    const maxGx = Math.max(0, Math.min(cols - 1, Math.ceil(bounds.maxGx)));
+    const maxGy = Math.max(0, Math.min(rows - 1, Math.ceil(bounds.maxGy)));
+    return {
+      minGx: Math.min(minGx, maxGx),
+      minGy: Math.min(minGy, maxGy),
+      maxGx: Math.max(minGx, maxGx),
+      maxGy: Math.max(minGy, maxGy),
+    };
+  }
+
   /** Re-initialise for a new room. Clears all transient state. */
   reset(): void {
     this.frozen.clear();
@@ -444,7 +462,7 @@ export class TileMutator {
   // ============================================================
 
   /** Advance all dynamic state by dtMs. Mutates roomData on expiry/spread/corrosion. */
-  tick(roomData: number[][], dtMs: number): void {
+  tick(roomData: number[][], dtMs: number, bounds?: { minGx: number; minGy: number; maxGx: number; maxGy: number }): void {
     // 1) Frozen countdown → revert
     for (const [key, state] of this.frozen) {
       state.remainingMs -= dtMs;
@@ -497,15 +515,15 @@ export class TileMutator {
     this.oilSpreadAccum += dtMs;
     while (this.oilSpreadAccum >= TileMutator.OIL_SPREAD_INTERVAL_MS) {
       this.oilSpreadAccum -= TileMutator.OIL_SPREAD_INTERVAL_MS;
-      this.spreadOilFire(roomData);
+      this.spreadOilFire(roomData, bounds);
     }
 
     // 5) Passive cell-cell interactions (corrosion / vapor / melt / freeze)
     this.autoInteractAccum += dtMs;
     while (this.autoInteractAccum >= TileMutator.AUTO_INTERACT_INTERVAL_MS) {
       this.autoInteractAccum -= TileMutator.AUTO_INTERACT_INTERVAL_MS;
-      this.tickPassiveInteractions(roomData);
-    }
+      this.tickPassiveInteractions(roomData, bounds);
+  }
   }
 
   /**
@@ -517,7 +535,7 @@ export class TileMutator {
    * Grass has higher spread chance (dry foliage), wood lower (dense fuel),
    * oil baseline. Entity chances come from each BurnableSpec.
    */
-  private spreadOilFire(roomData: number[][]): void {
+  private spreadOilFire(roomData: number[][], bounds?: { minGx: number; minGy: number; maxGx: number; maxGy: number }): void {
     const newBurns: Array<[number, number]> = [];
     const newPropIgnites: IgnitableEntity[] = [];
 
@@ -562,10 +580,11 @@ export class TileMutator {
     //     R-005 (Design_ChemicalReactions_FullMatrix.md §3) marks this ✅.
     const rows = roomData.length;
     const cols = roomData[0]?.length ?? 0;
-    for (let gy = 0; gy < rows; gy++) {
+    const scan = this.clampBounds(bounds, cols, rows);
+    for (let gy = scan.minGy; gy <= scan.maxGy; gy++) {
       const row = roomData[gy];
       if (!row) continue;
-      for (let gx = 0; gx < cols; gx++) {
+      for (let gx = scan.minGx; gx <= scan.maxGx; gx++) {
         if (row[gx] !== TILE_MAGMA) continue;
         const ns: Array<[number, number]> = [
           [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
@@ -616,14 +635,15 @@ export class TileMutator {
     for (const p of newPropIgnites) p.ignite();
   }
 
-  private tickPassiveInteractions(roomData: number[][]): void {
+  private tickPassiveInteractions(roomData: number[][], bounds?: { minGx: number; minGy: number; maxGx: number; maxGy: number }): void {
     const rows = roomData.length;
     if (!rows) return;
     const cols = roomData[0]?.length ?? 0;
     if (!cols) return;
-    for (let gy = 0; gy < rows; gy++) {
+    const scan = this.clampBounds(bounds, cols, rows);
+    for (let gy = scan.minGy; gy <= scan.maxGy; gy++) {
       const row = roomData[gy];
-      for (let gx = 0; gx < cols; gx++) {
+      for (let gx = scan.minGx; gx <= scan.maxGx; gx++) {
         const t = row[gx];
 
         // Magma melts adjacent ice → water (emit steam at the mutated cell)

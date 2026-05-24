@@ -21,6 +21,7 @@ import { Camera } from '@core/Camera';
 import { Debug } from '@core/Debug';
 import { GameRenderConst } from '@data/constData';
 import { FpsCounter } from '@ui/FpsCounter';
+import { PerfMonitor } from '@utils/PerfMonitor';
 import { FeedbackPanel } from '@ui/FeedbackPanel';
 import { setDefaultUiScale } from '@ui/factories';
 
@@ -222,6 +223,7 @@ export class Game {
     this.feedbackPanel = new FeedbackPanel(this);
 
     this.app.ticker.add((ticker) => {
+      PerfMonitor.frameBegin();
       this.accumulated += ticker.deltaMS;
       if (this.accumulated > MAX_ACCUMULATED) {
         this.accumulated = MAX_ACCUMULATED;
@@ -283,7 +285,9 @@ export class Game {
             return;
           }
           this.stats.playTimeMs += FIXED_STEP;
+          PerfMonitor.begin('scene.update');
           this.sceneManager.update(FIXED_STEP);
+          PerfMonitor.end('scene.update');
         }
         this.feedbackPanel?.update(FIXED_STEP);
         this.input.update();
@@ -291,7 +295,9 @@ export class Game {
       }
 
       const alpha = this.accumulated / FIXED_STEP;
+      PerfMonitor.begin('scene.render');
       this.sceneManager.render(alpha);
+      PerfMonitor.end('scene.render');
 
       // --- Zoom via RenderTexture ---
       const zoom = this.camera.zoom;
@@ -320,21 +326,25 @@ export class Game {
       this.gameContainer.x = gcx;
       this.gameContainer.y = gcy;
 
+      PerfMonitor.begin('renderer.bgRT');
       this.renderer.render({
         container: this.backgroundContainer,
         target: this.backgroundRT,
         clear: true,
         clearColor: [0, 0, 0, 0],
       });
+      PerfMonitor.end('renderer.bgRT');
 
       // Render world to offscreen texture. The world RT is transparent so the
       // fixed background RT behind it remains visible through empty space.
+      PerfMonitor.begin('renderer.worldRT');
       this.renderer.render({
         container: this.gameContainer,
         target: this.worldRT,
         clear: true,
         clearColor: [0, 0, 0, 0],
       });
+      PerfMonitor.end('renderer.worldRT');
 
       // Scale RT sprite to fill native resolution
       this.backgroundSprite.scale.set(this.uiScale);
@@ -345,7 +355,10 @@ export class Game {
       this.fpsCounter.update(ticker.deltaMS, stage);
 
       // Render stage (worldSprite + uiContainer) to screen at native res
+      PerfMonitor.begin('renderer.draw');
       this.renderer.render({ container: stage });
+      PerfMonitor.end('renderer.draw');
+      PerfMonitor.tickWindow();
     });
   }
 

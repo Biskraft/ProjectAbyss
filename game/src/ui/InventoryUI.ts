@@ -33,8 +33,11 @@ const GRID_COLS = 4;
 const GRID_ROWS = 6;
 
 const GRID_W = GRID_COLS * CELL_W + (GRID_COLS - 1) * CELL_GAP; // 142
-const INFO_W = 232;
-const STATUS_W = 148;
+// spec.png 재측정 (2109x1183 / native 640x360):
+//   INVENTORY 152, ANVIL 198 (가장 넓음), STRATUM 150
+//   합: 8 + 142 + 6 + 200 + 6 + 150 + 8 = 520 (PANEL_W).
+const INFO_W = 200;
+const STATUS_W = 150;
 
 const GRID_COL_X = PADDING_H;
 const INFO_COL_X = PADDING_H + GRID_W + COL_GAP;    // 192
@@ -47,7 +50,7 @@ const TAB_GAP = 2;
 // y where grid / info / status content begins
 const CONTENT_START_Y = PADDING_V + TITLE_H + TITLE_GAP + TAB_H + TAB_GAP; // 38
 
-const PANEL_W = 550;
+const PANEL_W = 520; // spec.png native 519 (모달 외곽 측정)
 const PANEL_H = 254;
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -116,6 +119,9 @@ export class InventoryUI {
   private anvilPulseOverlay: Graphics | null = null;
   private anvilPulseRect: { w: number; h: number } | null = null;
   private anvilPulseTimer = 0;
+  // Dive prompt pulse — placed 상태에서 Dive 키 + 라벨 alpha sin 변동.
+  private divePromptIcon: Container | null = null;
+  private divePromptLabel: Container | null = null;
 
   // Selection pulse
   private selectionPulseOverlay: Graphics | null = null;
@@ -323,13 +329,33 @@ export class InventoryUI {
   }
 
   private drawTitle(): void {
-    // Remove previous title
+    // Remove previous title(s)
     const old = (this.panel as any).__title;
-    if (old?.parent) old.parent.removeChild(old);
-    old?.destroy?.();
+    if (old) {
+      const arr = Array.isArray(old) ? old : [old];
+      for (const t of arr) { if (t?.parent) t.parent.removeChild(t); t?.destroy?.(); }
+    }
 
-    const titleStr = this.mode === 'anvil' ? t('ui.inventory.title_anvil') : t('ui.inventory.title');
-    const titleTxt = createUiText(titleStr, { fontSize: 9, fill: COL_DIM });
+    if (this.mode === 'anvil') {
+      // 3-column headers (spec.png): INVENTORY · ANVIL · STRATUM aligned to each column x.
+      const headers: { key: string; x: number }[] = [
+        { key: 'ui.inventory.title_anvil', x: GRID_COL_X },
+        { key: 'ui.inventory.button_anvil', x: INFO_COL_X },
+        { key: 'ui.inventory.stratum_header', x: STATUS_COL_X },
+      ];
+      const created: any[] = [];
+      for (const h of headers) {
+        const txt = createUiText(t(h.key), { fontSize: 9, fill: COL_DIM });
+        txt.x = h.x;
+        txt.y = PADDING_V;
+        this.panel.addChild(txt);
+        created.push(txt);
+      }
+      (this.panel as any).__title = created;
+      return;
+    }
+
+    const titleTxt = createUiText(t('ui.inventory.title'), { fontSize: 9, fill: COL_DIM });
     titleTxt.x = PADDING_H;
     titleTxt.y = PADDING_V;
     this.panel.addChild(titleTxt);
@@ -641,17 +667,17 @@ export class InventoryUI {
   }
 
   // ── Anvil slot (anvil mode, middle column) ────────────────────────────────────
-  // v2 (2026-05-24): 64px 아이콘 좌측 + 우측에 이름 / Stage 호칭 / Recovery% 메타.
+  // v3 (2026-05-24): spec.png 픽셀 단위 정렬. slot 48px (구 64), 좌측 padding 4 (구 8).
   // 빈 상태/placed 상태 슬롯 위치 일관 (둘 다 좌측 정렬) — 위치 점프 방지.
   // 선택 변경 시 active item 으로 메타 + RadialMap 자동 갱신 (selecting 단계에도 preview).
-  // ui-components.html #inventory "Anvil Mode v2" 카드 참조.
+  // ui-components.html #inventory "Anvil Mode v3" 카드 참조.
   private drawAnvilSlot(): void {
     const hasItem = !!this.anvilItem;
     // anvil 에 placed 된 아이템 우선, 없으면 그리드 선택 아이템 (preview).
     const activeItem = this.anvilItem ?? this.filteredItems()[this.selectedIndex] ?? null;
-    const slotSize = 64;
-    const slotX = 8;
-    const slotY = 8;
+    const slotSize = 48; // spec.png native 42 ≈ 48 (cell 비례 유지)
+    const slotX = 4;
+    const slotY = 4;
 
     const bg = new Graphics();
     bg.rect(slotX, slotY, slotSize, slotSize).fill({ color: 0x0d0d10, alpha: 0.8 });
@@ -675,7 +701,7 @@ export class InventoryUI {
         let mY = slotY + 2;
         const displayName = getDisplayName(activeItem);
         const nameText = createUiText(displayName, {
-          fontSize: 12, fill: rarityColor, wordWrap: true, wordWrapWidth: metaW,
+          fontSize: 9, fill: rarityColor, wordWrap: true, wordWrapWidth: metaW, breakWords: true,
         });
         nameText.x = metaX; nameText.y = mY;
         this.infoArea.addChild(nameText);
@@ -695,11 +721,7 @@ export class InventoryUI {
         recovText.x = metaX; recovText.y = mY;
         this.infoArea.addChild(recovText);
       }
-
-      const label = createUiText(t('ui.inventory.button_anvil'), { fontSize: 8, fill: COL_DIM });
-      label.x = Math.floor((INFO_W - label.width) / 2);
-      label.y = slotY + slotSize + 6;
-      this.infoArea.addChild(label);
+      // (ANVIL column header is now drawn by drawTitle in anvil mode.)
     } else {
       const item = this.anvilItem!;
       const rarityColor = RARITY_COLOR[item.rarity] ?? 0xffffff;
@@ -740,26 +762,37 @@ export class InventoryUI {
       const recovText = createUiText(`Recovery ${recoveryPct}%`, { fontSize: 9, fill: COL_DIM });
       recovText.x = metaX; recovText.y = mY;
       this.infoArea.addChild(recovText);
-
-      // 하단 DIVE 라벨 (전체 폭 중앙)
-      const divLabel = createUiText(t('ui.inventory.button_dive'), { fontSize: 10, fill: rarityColor });
-      divLabel.x = Math.floor((INFO_W - divLabel.width) / 2);
-      divLabel.y = slotY + slotSize + 4;
-      this.infoArea.addChild(divLabel);
+      // (중앙 "다이브/DIVE" 라벨 제거 — 사용자 결정 2026-05-24. RadialMap 시각 노이즈 방지.)
     }
 
+    // spec.png 정렬: prompts 는 ANVIL 컬럼 *바닥* 에 위치.
+    // 사용자 결정 2026-05-24: 버튼 1.5배 (iconSize 15, fontSize 10) + Dive 노란 펄스.
     const hintPairs = hasItem
-      ? [{ action: GameAction.ATTACK, label: 'Dive' }, { action: GameAction.MENU, label: 'Cancel' }]
-      : [{ action: GameAction.ATTACK, label: 'Place' }, { action: GameAction.MENU, label: 'Back' }];
-    const hintRow = this.buildHintRow(hintPairs);
+      ? [
+          { action: GameAction.ATTACK, label: 'Dive', labelColor: COL_KEY },
+          { action: GameAction.MENU,   label: 'Cancel' },
+        ]
+      : [
+          { action: GameAction.ATTACK, label: 'Place' },
+          { action: GameAction.MENU,   label: 'Back' },
+        ];
+    const hintRow = this.buildHintRow(hintPairs, 15, 10);
     hintRow.x = 4;
-    hintRow.y = slotY + slotSize + 22;
+    hintRow.y = PANEL_H - CONTENT_START_Y - PADDING_V - 16; // 1.5배라 y 보정
     this.infoArea.addChild(hintRow);
+    // Dive 펄스 — placed 상태에서 첫 두 자식 (icon + label) alpha sin 변동.
+    if (hasItem) {
+      this.divePromptIcon = hintRow.children[0] as Container;
+      this.divePromptLabel = hintRow.children[1] as Container;
+    } else {
+      this.divePromptIcon = null;
+      this.divePromptLabel = null;
+    }
 
     // RadialMap (Shift+2 의 단계형 다이브 뷰) 임베드 — active item 있으면 항상.
     // selecting 단계의 preview 도 포함 (사용자 결정 2026-05-24: 선택 변경 시 갱신).
     if (activeItem) {
-      this.drawAnvilRadialMap(activeItem, slotY + slotSize + 40);
+      this.drawAnvilRadialMap(activeItem, slotY + slotSize + 12);
     }
   }
 
@@ -773,9 +806,11 @@ export class InventoryUI {
     const reached = item.worldProgress?.deepestUnlocked ?? 0;
     const nextStratum = Math.min(reached + 1, totalStrata); // 1-based
 
-    // 영역: 좌 stats 60px + 우 graph (나머지)
-    const statsW = 60;
-    const graphX = statsW + 8;
+    // 영역: 좌 stats 박스 (slot 과 좌측 정렬) + 우 graph (나머지).
+    // 사용자 결정 2026-05-24: 박스 폭 컴팩트, 위 ANVIL slot (x=4) 과 좌측 정렬.
+    const statsX0 = 4;
+    const statsW = 76; // MEM SHARD + 0/8 겹침 방지 (2026-05-24)
+    const graphX = statsX0 + statsW + 6;
     const graphW = INFO_W - graphX - 4;
     const rowH = 14;
 
@@ -786,7 +821,8 @@ export class InventoryUI {
     //   MEM SHARD  = 회상된 메모리 단편 수 / 최대 슬롯
     //   DIVES      = 재진입 횟수 (보조)
     const lines: Array<{ label: string; value: string; key: boolean; alert?: boolean }> = [];
-    const playerAtk = this.playerStats?.atk ?? 0;
+    // YOUR ATK = 현재 장착 무기 finalAtk (setPlayerStats 미주입 시에도 동작).
+    const playerAtk = this.inventory.getWeaponAtk() || (this.playerStats?.atk ?? 0);
     lines.push({ label: 'YOUR ATK', value: String(playerAtk || '—'), key: false });
 
     // MAX ATK — Recovery 100% 가정 + 현재 reDive 보너스 (recalcItemAtk 공식 미러)
@@ -801,136 +837,178 @@ export class InventoryUI {
 
     lines.push({ label: 'DIVES', value: String(item.reDiveCount ?? 0), key: false });
 
+    // 4-stat row: 라벨 좌측 정렬 + 값 우측 정렬, baseline 동일, 행간 16.
+    // label fontSize 8 / value fontSize 10 — 사용자 결정 2026-05-24 (겹침 방지).
+    const statRowH = 16;
+    // 4-stat 영역 dim 반투명 배경 — slot 과 좌측 정렬, stratum graph 와 시각 분리.
+    const statsBgG = new Graphics();
+    const bgX = statsX0;
+    const bgY = baseY - 3;
+    const bgW = statsW;
+    const bgH = lines.length * statRowH + 5;
+    statsBgG.roundRect(bgX, bgY, bgW, bgH, 3)
+      .fill({ color: 0x05050a, alpha: 0.55 });
+    statsBgG.roundRect(bgX, bgY, bgW, bgH, 3)
+      .stroke({ color: 0x2a2a3a, width: 1, alpha: 0.5 });
+    this.infoArea.addChild(statsBgG);
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
-      const ly = baseY + i * 18;
+      const ly = baseY + i * statRowH;
       const labelColor = ln.key ? 0xffd470 : 0x888888;
-      const labelText = createUiText(ln.label, { fontSize: 7, fill: labelColor });
-      labelText.x = 2; labelText.y = ly;
+      const labelText = createUiText(ln.label, { fontSize: 8, fill: labelColor });
+      labelText.x = statsX0 + 4;
+      labelText.y = ly + 2; // value baseline 과 정렬 (10px - 8px = 2px 보정)
       this.infoArea.addChild(labelText);
       const valColor = ln.alert ? 0xff6060 : (ln.key ? COL_KEY : 0xcccccc);
-      const valText = createUiText(ln.value, { fontSize: 11, fill: valColor });
-      valText.x = statsW - 4 - valText.width;
-      valText.y = ly + 1;
+      const valText = createUiText(ln.value, { fontSize: 10, fill: valColor });
+      valText.x = statsX0 + statsW - 4 - valText.width;
+      valText.y = ly;
       this.infoArea.addChild(valText);
     }
 
-    // === Right: stepped graph — 5 stratum 행 ===
-    // Boss = 중앙, 양옆으로 *추상화된* branch 분포 (사용자 결정 2026-05-24).
-    // 실제 노드 수 → log-bucket 추상으로 빽빽함 해소하되 stratum 별 변별 유지.
-    // 행간 간격 확대 → "층" 시각 강조.
-    const graphRowH = 22;                          // 14 → 22 (행간 확대)
-    const cy0 = baseY + Math.floor(graphRowH * 0.5);
-    const cxMid = graphX + Math.floor(graphW / 2); // boss 중앙 위치
+    // === Right: spec image 패턴 + 큰 사이즈 (이전 디자인 크기). ===
+    //   - 5 row 모두 표시 (S1-S5), graphRowH 22 (이전 디자인 사이즈)
+    //   - 각 row: [S라벨] [hub ⋄] [좌2 진행 ◆] [보스/HERE ◈] [우3 미진행 ◇]
+    //   - 중앙 수직 dashed = DIVE path (S1→S5 전체)
+    const radialRowH = 22;          // 이전 디자인 크기 복원
+    const labelW = 14;
+    const hubX = graphX + labelW + 2;
+    const dotsRight = graphX + graphW - 4;
+    const dotsArea = dotsRight - hubX;
+    const spacing = Math.min(14, dotsArea / 6); // 7 markers
+    const cxMid = hubX + 3 * spacing;
+    // 사용자 결정 2026-05-24: stratum layout 8px 위로 (YOUR ATK 라인과 정렬).
+    const cy0 = baseY + Math.floor(radialRowH * 0.5) - 8;
 
-    // 행 사이 DIVE dashed line — 중앙 column 따라 수직.
-    const diveG = new Graphics();
-    for (let s = 1; s < 5; s++) {
-      const y0 = cy0 + (s - 1) * graphRowH + 6;
-      const y1 = cy0 + s * graphRowH - 6;
-      let yy = y0;
-      while (yy < y1) {
-        const yEnd = Math.min(yy + 2, y1);
-        diveG.moveTo(cxMid, yy).lineTo(cxMid, yEnd).stroke({ color: COL_KEY, width: 1, alpha: 0.7 });
-        yy += 4;
+    // 1) 중앙 수직 DIVE 점선 — 행 사이 빈 공간만 그림 (마름모 영역 skip).
+    //    사용자 결정 2026-05-24: 마름모 안쪽으로 점선 투과 금지.
+    {
+      const diveG = new Graphics();
+      const drawDashed = (ya: number, yb: number) => {
+        let yy = ya;
+        while (yy < yb) {
+          const yEnd = Math.min(yy + 3, yb);
+          diveG.moveTo(cxMid, yy).lineTo(cxMid, yEnd)
+            .stroke({ color: COL_KEY, width: 1.5, alpha: 0.8 });
+          yy += 6;
+        }
+      };
+      // 각 row 의 중심 마름모 size (lock=3.5, 보스=6, final=6.5)
+      const szAt = (L: number): number => {
+        if (L > totalStrata) return 3.5 + 1;
+        const isFinal = L === totalStrata;
+        return (isFinal ? 6.5 : 6) + 1;
+      };
+      // S1 위쪽 약간
+      const ry1 = cy0;
+      drawDashed(ry1 - szAt(1) - 6, ry1 - szAt(1));
+      // 행 사이 (L → L+1)
+      for (let L = 1; L < 5; L++) {
+        const ryTop = cy0 + (L - 1) * radialRowH;
+        const ryBot = cy0 + L * radialRowH;
+        drawDashed(ryTop + szAt(L), ryBot - szAt(L + 1));
       }
+      // S5 아래쪽 약간
+      const ry5 = cy0 + 4 * radialRowH;
+      drawDashed(ry5 + szAt(5), ry5 + szAt(5) + 6);
+      this.infoArea.addChild(diveG);
     }
-    this.infoArea.addChild(diveG);
 
-    // Stratum rows — 추상화된 노드 분포 (5 등급 변별 강화, 2026-05-24 사용자 결정).
-    // 추상 공식: dispBranch = clamp(2, 7, ceil(realN / 2.5))
-    //   realN=3 → 2 (Normal)
-    //   realN=5 → 2-3 (Magic)
-    //   realN=8 → 4 (Rare)
-    //   realN=12 → 5 (Legendary)
-    //   realN=15+ → 6-7 (Ancient)
-    // Boss 중앙 + 양옆 균등 spacing 으로 추상 다이아 배치.
-    const rowLeftLabel = graphX + 2;       // S1~S5 라벨 자리
-    const branchSpacing = 12;               // 양옆 추상 다이아 간격 (px)
+    // 2) 5 stratum rows
     for (let L = 1; L <= 5; L++) {
-      const ry = cy0 + (L - 1) * graphRowH;
+      const ry = cy0 + (L - 1) * radialRowH;
       const isAvail = L <= totalStrata;
       const isReached = L <= reached;
       const isNext = isAvail && L === nextStratum && !isReached;
       const isFinal = isAvail && L === totalStrata;
-      const baseAlpha = isAvail ? (isReached ? 1 : (isNext ? 0.85 : 0.55)) : 0.3;
+      const baseAlpha = isAvail ? (isReached ? 1 : (isNext ? 0.95 : 0.55)) : 0.32;
 
-      // 좌측 라벨 S1~S5
-      const sLabel = createUiText(`S${L}`, { fontSize: 7, fill: isNext ? COL_KEY : (isAvail ? 0xbbbbbb : 0x555555) });
-      sLabel.x = rowLeftLabel;
-      sLabel.y = ry - 3;
+      // 좌측 라벨 S1
+      const sLabel = createUiText(`S${L}`, {
+        fontSize: 9,
+        fill: isNext ? COL_KEY : (isReached ? 0xddddee : (isAvail ? 0x888888 : 0x555555)),
+      });
+      sLabel.x = graphX;
+      sLabel.y = ry - 4;
       this.infoArea.addChild(sLabel);
 
-      // 행 가로선 (PATH) — 라벨 너머부터 graph 우측 끝까지
+      // 가로 path line — 마름모 영역 skip (사용자 결정 2026-05-24: outline 안쪽 투과 방지).
       const pathG = new Graphics();
-      pathG.moveTo(graphX + 14, ry).lineTo(graphX + graphW - 4, ry)
-        .stroke({ color: 0x5a3a1a, width: 1, alpha: baseAlpha * 0.7 });
+      const pathColor = isAvail ? 0x6a4a20 : 0x3a3a44;
+      const pathAlpha = baseAlpha * 0.7;
+      const drawHSeg = (xa: number, xb: number) => {
+        if (xb > xa) {
+          pathG.moveTo(xa, ry).lineTo(xb, ry)
+            .stroke({ color: pathColor, width: 1, alpha: pathAlpha });
+        }
+      };
+      const isFinalRow = isAvail && L === totalStrata;
+      const zones: { x: number; sz: number }[] = isAvail
+        ? [
+            { x: hubX,                  sz: 3 + 1 },                       // hub
+            { x: hubX + spacing,        sz: 4 + 1 },                       // 좌1
+            { x: hubX + 2 * spacing,    sz: 4 + 1 },                       // 좌2
+            { x: cxMid,                 sz: (isFinalRow ? 6.5 : 6) + 1 }, // 보스/HERE
+            { x: cxMid + spacing,       sz: 4 + 1 },                       // 우1
+            { x: cxMid + 2 * spacing,   sz: 4 + 1 },                       // 우2
+            { x: cxMid + 3 * spacing,   sz: 4 + 1 },                       // 우3
+          ]
+        : [{ x: cxMid, sz: 3.5 + 1 }];                                     // 잠금 중앙 ◇
+      let xs = hubX - 2;
+      for (const z of zones) {
+        drawHSeg(xs, z.x - z.sz);
+        xs = z.x + z.sz;
+      }
+      drawHSeg(xs, dotsRight);
       this.infoArea.addChild(pathG);
 
-      // 미보유 stratum — placeholder 보스 (회색 outline) 만
       if (!isAvail) {
-        const phG = new Graphics();
-        phG.poly([cxMid, ry - 3, cxMid + 3, ry, cxMid, ry + 3, cxMid - 3, ry])
-          .stroke({ color: 0x555555, width: 1, alpha: baseAlpha });
-        this.infoArea.addChild(phG);
+        // 잠금 stratum — 중앙에 outline ◇ 만 (크게).
+        const lockG = new Graphics();
+        const sz = 3.5;
+        lockG.poly([cxMid, ry - sz, cxMid + sz, ry, cxMid, ry + sz, cxMid - sz, ry])
+          .stroke({ color: 0x666677, width: 1.2, alpha: baseAlpha });
+        this.infoArea.addChild(lockG);
         continue;
       }
 
-      // 실제 RoomGraph 노드 수 → 추상화
-      const graph = this.buildStratumGraph(item, L - 1);
-      const allNodes = graph ? [...graph.nodes.values()] : [];
-      const realN = allNodes.filter(n => n.role !== 'boss').length;
-      const dispBranch = Math.min(7, Math.max(2, Math.ceil(realN / 2.5)));
-      const leftN = Math.floor(dispBranch / 2);
-      const rightN = dispBranch - leftN;
-
-      // Hub / Shrine 존재 여부 — 강조 fill 위치 결정용
-      const hasHub = allNodes.some(n => n.role === 'hub');
-      const hasShrine = allNodes.some(n => n.role === 'shrine');
-
-      // 양옆 추상 다이아 배치 (boss 중앙 기준)
       const nodeG = new Graphics();
-      const branchSize = 2.5;
-      for (let i = 1; i <= leftN; i++) {
-        const bx = cxMid - i * branchSpacing;
-        // 가장 안쪽 좌측 노드를 Hub (있으면 골드 fill), 그 다음 Shrine
-        if (i === 1 && hasHub) {
-          nodeG.poly([bx, ry - 3, bx + 3, ry, bx, ry + 3, bx - 3, ry])
-            .fill({ color: COL_KEY, alpha: baseAlpha });
-        } else if (i === 2 && hasShrine) {
-          nodeG.poly([bx, ry - 2.5, bx + 2.5, ry, bx, ry + 2.5, bx - 2.5, ry])
-            .fill({ color: 0xeeeeee, alpha: baseAlpha });
-        } else {
-          nodeG.poly([bx, ry - branchSize, bx + branchSize, ry, bx, ry + branchSize, bx - branchSize, ry])
-            .stroke({ color: COL_KEY, width: 1, alpha: baseAlpha * 0.7 });
-        }
+      // (a) Hub — 최좌측, 작은 흰색 ◆ (spawn)
+      const hubSz = 3;
+      nodeG.poly([hubX, ry - hubSz, hubX + hubSz, ry, hubX, ry + hubSz, hubX - hubSz, ry])
+        .fill({ color: 0xcccccc, alpha: baseAlpha });
+
+      // (b) 좌측 2 노드 — fill orange (path 마커)
+      for (let i = 1; i <= 2; i++) {
+        const bx = hubX + i * spacing;
+        const sz = 4;
+        const diamond = [bx, ry - sz, bx + sz, ry, bx, ry + sz, bx - sz, ry];
+        nodeG.poly(diamond).fill({ color: COL_KEY, alpha: baseAlpha });
       }
-      for (let i = 1; i <= rightN; i++) {
-        const bx = cxMid + i * branchSpacing;
-        nodeG.poly([bx, ry - branchSize, bx + branchSize, ry, bx, ry + branchSize, bx - branchSize, ry])
-          .stroke({ color: COL_KEY, width: 1, alpha: baseAlpha * 0.7 });
+
+      // (c) 중앙 = 보스 (또는 HERE 커서) — 큼
+      const centerSz = isFinal ? 6.5 : 6;
+      const centerD = [cxMid, ry - centerSz, cxMid + centerSz, ry, cxMid, ry + centerSz, cxMid - centerSz, ry];
+      if (isNext) {
+        // HERE — outline (밝게, 두껍게)
+        nodeG.poly(centerD).stroke({ color: COL_KEY, width: 2, alpha: 1 });
+      } else {
+        const bossColor = isFinal ? 0xff4d4d : COL_KEY;
+        nodeG.poly(centerD).fill({ color: bossColor, alpha: baseAlpha });
+        // 보스 안쪽 어두운 점 (강조)
+        nodeG.poly([cxMid, ry - 2, cxMid + 2, ry, cxMid, ry + 2, cxMid - 2, ry])
+          .fill({ color: 0x1a1a1a, alpha: baseAlpha });
       }
+
+      // (d) 우측 3 노드 — 미진행 outline
+      for (let i = 1; i <= 3; i++) {
+        const bx = cxMid + i * spacing;
+        const sz = 4;
+        const diamond = [bx, ry - sz, bx + sz, ry, bx, ry + sz, bx - sz, ry];
+        nodeG.poly(diamond).stroke({ color: COL_KEY, width: 1.2, alpha: baseAlpha * 0.75 });
+      }
+
       this.infoArea.addChild(nodeG);
-
-      // BOSS — 중앙, ◈ 강조 (Final 은 적색)
-      const bossG = new Graphics();
-      const bossColor = isFinal ? 0xff4d4d : COL_KEY;
-      const bossSize = isFinal ? 5 : 4;
-      bossG.poly([cxMid, ry - bossSize, cxMid + bossSize, ry, cxMid, ry + bossSize, cxMid - bossSize, ry])
-        .fill({ color: bossColor, alpha: baseAlpha });
-      bossG.poly([cxMid, ry - 1.5, cxMid + 1.5, ry, cxMid, ry + 1.5, cxMid - 1.5, ry])
-        .fill({ color: 0x1a1a1a, alpha: baseAlpha });
-      this.infoArea.addChild(bossG);
-    }
-
-    // HERE 커서 — 다음 진행 stratum 의 *직전 dive 라인* 에 표시 (중앙 column)
-    if (nextStratum > 1 && nextStratum <= totalStrata) {
-      const hereY = cy0 + (nextStratum - 1) * graphRowH - Math.floor(graphRowH / 2);
-      const hereG = new Graphics();
-      hereG.circle(cxMid, hereY, 4).stroke({ color: 0xbcd0e0, width: 1, alpha: 0.6 });
-      hereG.poly([cxMid - 2, hereY - 1, cxMid + 2, hereY - 1, cxMid, hereY + 2.5])
-        .fill({ color: 0xe0eaf2 });
-      this.infoArea.addChild(hereG);
     }
   }
 
@@ -1073,13 +1151,9 @@ export class InventoryUI {
    * 향후 후속 단계: RoomGraph 실제 데이터로 mock 교체. 현재는 시각 위계만.
    */
   private drawStratumMinimap(): void {
+    // STRATUM column header is now drawn by drawTitle in anvil mode (spec.png 3-column layout).
     let y = 0;
     const W = STATUS_W - 6;
-
-    const header = createUiText(t('ui.inventory.stratum_header'), { fontSize: 8, fill: COL_DIM });
-    header.x = 2; header.y = y;
-    this.statusArea.addChild(header);
-    y += 14;
 
     // 선택된 아이템 (anvil placed 우선, 그 외 grid 선택)
     const item = this.anvilItem ?? this.filteredItems()[this.selectedIndex];
@@ -1243,19 +1317,23 @@ export class InventoryUI {
   }
 
   // ── Update loop ───────────────────────────────────────────────────────────────
-  private buildHintRow(pairs: Array<{ action: GameAction; label: string }>, iconSize = 10): Container {
+  private buildHintRow(
+    pairs: Array<{ action: GameAction; label: string; labelColor?: number }>,
+    iconSize = 10,
+    fontSize = 7,
+  ): Container {
     const row = new Container();
     let x = 0;
-    for (const { action, label } of pairs) {
+    for (const { action, label, labelColor } of pairs) {
       const icon = KeyPrompt.createKeyIcon(actionKey(action), iconSize);
       icon.x = x;
       row.addChild(icon);
-      x += iconSize + 3;
-      const txt = createUiText(label, { fontSize: 7, fill: COL_DIM });
+      x += iconSize + 4;
+      const txt = createUiText(label, { fontSize, fill: labelColor ?? COL_DIM });
       txt.x = x;
-      txt.y = Math.floor((iconSize - (txt.height ?? 7)) / 2);
+      txt.y = Math.floor((iconSize - (txt.height ?? fontSize)) / 2);
       row.addChild(txt);
-      x += (txt.width ?? 20) + 8;
+      x += (txt.width ?? 20) + 10;
     }
     return row;
   }
@@ -1269,6 +1347,13 @@ export class InventoryUI {
     if (this.mode === 'anvil') {
       this.anvilPulseTimer += dt;
       this.redrawAnvilPulse();
+      // Dive prompt 노란 펄스 — placed 상태에서만 icon + label alpha sin 변동.
+      if (this.divePromptIcon && this.divePromptLabel) {
+        const t = this.anvilPulseTimer / 1000;
+        const pulse = 0.55 + 0.45 * Math.sin(t * Math.PI * 2 * 1.2);
+        this.divePromptIcon.alpha = pulse;
+        this.divePromptLabel.alpha = pulse;
+      }
     }
   }
 }

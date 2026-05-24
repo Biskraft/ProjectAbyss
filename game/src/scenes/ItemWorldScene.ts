@@ -108,7 +108,7 @@ import { SteamPuffManager, PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/St
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import { FluidResidueManager } from '@effects/FluidResidue';
-import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
+import { FluidSystem, type ArcLink, type FluidCellBounds } from '@effects/FluidSystem';
 import { applyFluidGenericResolution, substituteSolidGenericSprites } from '@data/ItemWorldFluidMapping';
 import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
@@ -298,6 +298,7 @@ export class ItemWorldScene extends Scene {
     row: number;
     layers: Container[];
   }>();
+  private runtimeSpawnedCells = new Set<string>();
   private visibleCellWindowKey = '';
   /**
    * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
@@ -331,6 +332,7 @@ export class ItemWorldScene extends Scene {
   private fluidLayer!: Container;
   private aboveFluidLayer!: Container;
   private fluidSystem!: FluidSystem;
+  private fluidSystemReady = false;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
   /** Last frame's "player in non-water fluid (magma/oil/acid)" flag — used
@@ -1236,6 +1238,7 @@ export class ItemWorldScene extends Scene {
     this.fluidSpawners.clear();
     this.fluidCrestFoam?.clear();
     this.containers.length = 0; // reset across stratum reloads
+    this.fluidSystemReady = false;
     this.buildFullMap();
     // Resolve FluidGeneric_A/B/C (17/18/19) -> concrete fluid tiles based on
     // this dive's weapon temperament (forge/iron/rust/spark/shadow). MUST run
@@ -1246,7 +1249,8 @@ export class ItemWorldScene extends Scene {
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
     // since ItemWorld has no single LdtkLevel wrapper.
-    this.fluidSystem.attachGrid(this.fullGrid);
+    this.fluidSystem.attachGrid(this.fullGrid, [], this.getActiveTileBounds());
+    this.fluidSystemReady = true;
     // FluidSpawner wiring happens per-room inside buildFullMap (offsets
     // adjusted to the unified grid). Spawner state cleared before
     // buildFullMap, so here we just proceed to settle containers.
@@ -1495,6 +1499,7 @@ export class ItemWorldScene extends Scene {
     this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — buildFullMap 가 다시 push
     this.cellVisualRecords.clear();
     this.renderedCellVisuals.clear();
+    this.runtimeSpawnedCells.clear();
     this.visibleCellWindowKey = '';
 
     // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
@@ -1590,6 +1595,7 @@ export class ItemWorldScene extends Scene {
         // Kind=Generic_A/B/C → temperamentPrimary 와 slot 매핑으로 실제 kind
         //   resolve (ContainerPools.resolveContainerSlotKind). 무기 기질별로
         //   다른 ContainerKind 가 자연스럽게 등장.
+        if (this.shouldEagerSpawnRuntimeEntities()) {
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'Container') continue;
           const kindRaw = ent.fields?.['Kind'];
@@ -1672,6 +1678,7 @@ export class ItemWorldScene extends Scene {
         // designer-placed 보상 위치. spawnRoomRewards 가 입장 시 각 위치마다
         // gold/heal 1개씩 spawn. 데이터 (gold:heal 비율, drop table 등) 는 추후
         // CSV 로 이전 예정 — 현재는 코드 내 상수 (REWARD_*).
+        }
         {
           const list: Array<{ x: number; y: number }> = [];
           for (const ent of ldtkLevel.entities) {
@@ -1702,6 +1709,7 @@ export class ItemWorldScene extends Scene {
         // Operates on the fullGrid with the room's cell offset so each room's
         // zones land in their correct fullGrid coordinates.
         // GDD: Documents/System/System_World_TileSystem.md §7
+        if (this.shouldEagerSpawnRuntimeEntities()) {
         const burnableSpecs: BurnableEntitySpec[] =
           applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
         for (const s of burnableSpecs) {
@@ -1713,6 +1721,7 @@ export class ItemWorldScene extends Scene {
 
         // Spawn LDtk-placed static entities for this room (with world offset)
         this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
+        }
 
         // DEC-039 안 A: stratum 0 의 startRoom Player entity 만 init() 첫 스폰에
         // 사용. 다른 stratum 으로 워프하지 않으므로 별도 키 보관은 불필요하지만,
@@ -1773,6 +1782,7 @@ export class ItemWorldScene extends Scene {
 
     // Insert map container into scene, then ensure parallax stays behind everything
     this.container.addChildAt(this.fullMapContainer, 0);
+    this.spawnRuntimeForCell(this.currentCol, this.currentRow);
     this.updateCellVisibility();
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
@@ -2585,6 +2595,7 @@ export class ItemWorldScene extends Scene {
         skippedNullCell++;
         continue;
       }
+      this.spawnRuntimeForCell(ncLocal, nrAbs);
       this.spawnedRooms.add(nKey);
       const beforeCount = this.enemies.length;
       this.spawnEnemiesInRoom(ncLocal, nrAbs);
@@ -3160,6 +3171,51 @@ export class ItemWorldScene extends Scene {
     this.updraftSystem.update(dt, this.player, this.fullGrid, this.game.camera);
   }
 
+  private getActiveTileBounds(roomBuffer = 2): FluidCellBounds {
+    const gridH = this.fullGrid.length;
+    const gridW = this.fullGrid[0]?.length ?? 0;
+    if (!gridH || !gridW) return { minGx: 0, minGy: 0, maxGx: 0, maxGy: 0 };
+
+    const cam = this.game.camera;
+    const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
+    const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
+    const padX = IW_ROOM_W_PX * roomBuffer;
+    const padY = IW_ROOM_H_PX * roomBuffer;
+    const viewL = cam.renderX - halfW - padX;
+    const viewR = cam.renderX + halfW + padX;
+    const viewT = cam.renderY - halfH - padY;
+    const viewB = cam.renderY + halfH + padY;
+
+    const fallbackCx = this.currentCol * IW_ROOM_W_TILES + Math.floor(IW_ROOM_W_TILES / 2);
+    const fallbackCy = this.currentRow * IW_ROOM_H_TILES + Math.floor(IW_ROOM_H_TILES / 2);
+    const fallbackMinGx = fallbackCx - IW_ROOM_W_TILES * roomBuffer;
+    const fallbackMaxGx = fallbackCx + IW_ROOM_W_TILES * roomBuffer;
+    const fallbackMinGy = fallbackCy - IW_ROOM_H_TILES * roomBuffer;
+    const fallbackMaxGy = fallbackCy + IW_ROOM_H_TILES * roomBuffer;
+    const minGx = Math.min(
+      Number.isFinite(viewL) ? Math.floor(viewL / TILE_SIZE) : fallbackMinGx,
+      fallbackMinGx,
+    );
+    const maxGx = Math.max(
+      Number.isFinite(viewR) ? Math.ceil(viewR / TILE_SIZE) : fallbackMaxGx,
+      fallbackMaxGx,
+    );
+    const minGy = Math.min(
+      Number.isFinite(viewT) ? Math.floor(viewT / TILE_SIZE) : fallbackMinGy,
+      fallbackMinGy,
+    );
+    const maxGy = Math.max(
+      Number.isFinite(viewB) ? Math.ceil(viewB / TILE_SIZE) : fallbackMaxGy,
+      fallbackMaxGy,
+    );
+    return {
+      minGx: Math.max(0, minGx),
+      minGy: Math.max(0, minGy),
+      maxGx: Math.min(gridW - 1, maxGx),
+      maxGy: Math.min(gridH - 1, maxGy),
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // LDtk-placed static entities (Option A: hazards + puzzles + camera zones)
   // ---------------------------------------------------------------------------
@@ -3173,7 +3229,8 @@ export class ItemWorldScene extends Scene {
    */
   private tickTileHazards(dt: number): void {
     if (!this.fullGrid || !this.fullGrid.length) return;
-    this.tileMutator.tick(this.fullGrid, dt);
+    const activeTileBounds = this.getActiveTileBounds();
+    this.tileMutator.tick(this.fullGrid, dt, activeTileBounds);
 
     // Tier B burnable entities: animation tick + destroy cleanup.
     for (let i = this.burnableProps.length - 1; i >= 0; i--) {
@@ -3220,13 +3277,13 @@ export class ItemWorldScene extends Scene {
     // corrode) sync with the dynamic fluid mesh.
     if (this.fluidGridDirty) {
       this.fluidGridDirty = false;
-      this.fluidSystem.refreshFromGrid(this.fullGrid);
+      this.fluidSystem.refreshFromGrid(this.fullGrid, activeTileBounds);
     }
     // Dynamic fluid: spring physics + cellular gravity. Mirrors LdtkWorldScene.
     // FluidSpawner tick (V1: World 만 active. ItemWorld 는 V2 까지 no-op).
     this.fluidSpawners.update(dt, this.fullGrid, this.fluidSystem);
-    this.fluidSystem.update(dt);
-    this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator);
+    this.fluidSystem.update(dt, activeTileBounds);
+    this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator, activeTileBounds);
     this.fluidSpawners.pressureDrain(this.fullGrid, this.fluidSystem);
     this.fluidCrestFoam.update(dt, this.fluidSpawners.getActiveSegments(this.fullGrid));
 
@@ -3675,7 +3732,7 @@ export class ItemWorldScene extends Scene {
   private flushContainerFluidChanges(): void {
     if (!this.containerFluidDirty) return;
     this.containerFluidDirty = false;
-    this.fluidSystem.refreshFromGrid(this.fullGrid);
+    this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
   }
 
   private applyContainerEffectToFluid(c: ThrowableContainer): void {
@@ -3813,7 +3870,7 @@ export class ItemWorldScene extends Scene {
               room[ny][nx] = 6;
             }
           }
-          this.fluidSystem.refreshFromGrid(this.fullGrid);
+          this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
         } else if (t === 12) {
           // R-NEW-019 Heat Metal: metal cell 유지 + 4s fire overlay
           this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
@@ -3925,6 +3982,128 @@ export class ItemWorldScene extends Scene {
     });
     // eslint-disable-next-line no-console
     Debug.log(`[DebugThunder] lit=${totalLit} electric=${this.tileMutator.electricCount}`);
+  }
+
+  private shouldEagerSpawnRuntimeEntities(): boolean {
+    return false;
+  }
+
+  private spawnRuntimeForCell(col: number, absRow: number): void {
+    const key = `${col}:${absRow}`;
+    if (this.runtimeSpawnedCells.has(key)) return;
+    const rec = this.cellVisualRecords.get(key);
+    if (!rec) return;
+    this.runtimeSpawnedCells.add(key);
+
+    const { ldtkLevel, roomX, roomY } = rec;
+    const offGx = roomX / TILE_SIZE;
+    const offGy = roomY / TILE_SIZE;
+    const beforeContainers = this.containers.length;
+
+    for (const ent of ldtkLevel.entities) {
+      if (ent.type !== 'Container') continue;
+      const kindRaw = ent.fields?.['Kind'];
+      let kind = parseContainerKind(kindRaw);
+      if (!kind) {
+        const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
+        if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
+          kind = resolveContainerSlotKind(slotStr, this.item.def.temperamentPrimary);
+        }
+      }
+      if (!kind) continue;
+      const fvRaw = ent.fields?.['FluidVolume'];
+      const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
+      const c = new ThrowableContainer(
+        kind,
+        (ent.grid[0] + offGx) * TILE_SIZE,
+        (ent.grid[1] + offGy) * TILE_SIZE,
+        fluidVolume,
+      );
+      this.containers.push(c);
+      this.entityLayer.addChild(c.container);
+    }
+
+    const occupied = new Set<string>();
+    for (const c of this.containers) {
+      const gx0 = Math.floor(c.x / TILE_SIZE);
+      const gx1 = Math.floor((c.x + c.spec.width - 1) / TILE_SIZE);
+      const gy0 = Math.floor(c.y / TILE_SIZE);
+      const gy1 = Math.floor((c.y + c.spec.height - 1) / TILE_SIZE);
+      for (let gy = gy0; gy <= gy1; gy++) {
+        for (let gx = gx0; gx <= gx1; gx++) occupied.add(`${gx},${gy}`);
+      }
+    }
+    for (const ent of ldtkLevel.entities) {
+      if (ent.type !== 'ContainerSpawner') continue;
+      const opts = readSpawnerEntity(ent, this.item.def.temperamentPrimary);
+      const rect = {
+        x: opts.rect.x + roomX,
+        y: opts.rect.y + roomY,
+        w: opts.rect.w,
+        h: opts.rect.h,
+      };
+      const autoSeed = opts.seed >= 0 ? opts.seed
+        : (((this.item.uid | 0) * 73856093) ^ (col * 19349663) ^ (absRow * 83492791)) | 0;
+      const spawned = runContainerSpawner({
+        rect,
+        collisionGrid: this.fullGrid,
+        existing: this.containers,
+        occupiedCells: occupied,
+        pool: opts.pool,
+        minCount: opts.minCount,
+        maxCount: opts.maxCount,
+        bias: opts.bias,
+        seed: autoSeed,
+        avoidEntity: opts.avoidEntity,
+        fluidVolumeOverride: opts.fluidVolumeOverride,
+      });
+      for (const c of spawned) {
+        this.containers.push(c);
+        this.entityLayer.addChild(c.container);
+        occupied.add(`${Math.floor(c.x / TILE_SIZE)},${Math.floor(c.y / TILE_SIZE)}`);
+      }
+    }
+
+    for (const ent of ldtkLevel.entities) {
+      if (ent.type !== 'FluidSpawner') continue;
+      for (const opt of readFluidSpawnerEntities(ent, this.item.def.temperamentPrimary)) {
+        this.fluidSpawners.add({
+          gx: opt.gx + offGx,
+          gy: opt.gy + offGy,
+          type: opt.type,
+          intervalMs: opt.intervalMs,
+        });
+      }
+    }
+
+    const burnableSpecs: BurnableEntitySpec[] =
+      applyBurnableZones(this.fullGrid, ldtkLevel.entities, TILE_SIZE, roomX, roomY);
+    for (const s of burnableSpecs) {
+      const prop = new BurnableProp(s.id, s.gx, s.gy);
+      this.burnableProps.push(prop);
+      this.tileMutator.registerBurnable(prop);
+      this.entityLayer.addChild(prop.container);
+    }
+
+    this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
+    this.settleContainersFrom(beforeContainers);
+  }
+
+  private settleContainersFrom(startIndex: number): void {
+    if (startIndex >= this.containers.length) return;
+    const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
+      const t = this.fullGrid[gy]?.[gx] ?? 0;
+      if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
+      return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
+    };
+    const sorted = this.containers.slice(startIndex).sort((a, b) => b.y - a.y);
+    for (const c of sorted) {
+      if (c.skipSettle) continue;
+      c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
+        const t = this.fullGrid[gy]?.[gx] ?? 0;
+        return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
+      });
+    }
   }
 
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
@@ -7217,6 +7396,7 @@ export class ItemWorldScene extends Scene {
       this.visibleCellWindowKey = windowKey;
       for (let row = minRow; row <= maxRow; row++) {
         for (let col = minCol; col <= maxCol; col++) {
+          this.spawnRuntimeForCell(col, row);
           this.renderCellVisual(`${col}:${row}`);
         }
       }
@@ -7241,6 +7421,9 @@ export class ItemWorldScene extends Scene {
         } else {
           for (const layer of g.layers) layer.visible = visible;
         }
+      }
+      if (this.fluidSystemReady) {
+        this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
       }
     }
     // Filter area culling — aggregate 의 filter 가 viewport 만 처리하도록 제한.

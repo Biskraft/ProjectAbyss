@@ -20,6 +20,7 @@ interface PerformanceMemory {
 import { BitmapText, Container, Graphics } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { Debug } from '@core/Debug';
+import { PerfMonitor } from '@utils/PerfMonitor';
 
 const SAMPLE_INTERVAL_MS = 500; // 0.5s 갱신
 const TEXT_COLOR = 0xffe060;
@@ -83,11 +84,23 @@ export class FpsCounter {
       const fps = (this.frames * 1000) / this.accumMs;
       this.spriteCount = countDescendants(stage);
       const memLine = formatMemoryLine();
+      // Phase 0.1: 단계별 ms breakdown (PerfMonitor) + 최근 spike.
+      const perfLines = PerfMonitor.snapshot()
+        .filter(s => s.avgMs >= 0.05) // 0.05ms 미만은 노이즈
+        .slice(0, 6)                  // 상위 6개만
+        .map(s => `${s.stage.padEnd(14)} ${s.avgMs.toFixed(2).padStart(5)} ms`)
+        .join('\n');
+      const spikes = PerfMonitor.recentSpikes();
+      const spikeLine = spikes.length > 0
+        ? `spikes ${spikes.map(s => s.ms.toFixed(0)).join(',')}`
+        : '';
       this.text.text =
         `FPS  ${fps.toFixed(1).padStart(5)}\n` +
         `peak ${this.peakFrameMs.toFixed(1).padStart(5)} ms\n` +
         `nodes ${this.spriteCount.toString().padStart(5)}` +
-        (memLine ? `\n${memLine}` : '');
+        (memLine ? `\n${memLine}` : '') +
+        (perfLines ? `\n--\n${perfLines}` : '') +
+        (spikeLine ? `\n${spikeLine}` : '');
       this.accumMs = 0;
       this.frames = 0;
       this.peakFrameMs = 0;
