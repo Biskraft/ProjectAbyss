@@ -86,7 +86,7 @@ export class Game {
     playTimeMs: 0,
   };
   private accumulated = 0;
-  private renderer!: Renderer;
+  renderer!: Renderer;
   /** 현재 렌더러 백엔드. 디버그 / 추후 WGSL 포트 분기에 사용. */
   rendererType: 'webgl' | 'webgpu' = 'webgl';
   private backgroundRT!: RenderTexture;

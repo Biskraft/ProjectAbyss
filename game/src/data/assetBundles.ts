@@ -20,7 +20,7 @@
  * pixijs-references.html roadmap P1 — Asset Bundle.
  */
 
-import { Assets } from 'pixi.js';
+import { Assets, Container, Sprite, Texture, type Renderer } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 
 export type BundleName = 'core' | 'item_world';
@@ -75,6 +75,7 @@ const CORE_ASSETS: Record<string, string> = {
  */
 const ITEM_WORLD_ASSETS: Record<string, string> = {
   skeleton_atlas: assetPath('assets/characters/skeleton_01_atlas.png'),
+  boss_01_atlas: assetPath('assets/characters/boss_01_atlas.png'),
   slime: assetPath('assets/characters/slime_01_atlas.png'),
   villager: assetPath('assets/sprites/shadow_town_villager.png'),
   switch: assetPath('assets/sprites/breakable_switch_01.png'),
@@ -112,4 +113,59 @@ export function loadBundleOnce(name: BundleName): Promise<void> {
     });
   loadPromises.set(name, p);
   return p;
+}
+
+/**
+ * Phase 1.A — GPU texture prewarm. 모든 등록 bundle 의 Texture 를 invisible
+ * Sprite 로 묶어 `renderer.prepare.upload()` 로 한 번에 GPU 업로드한다.
+ *
+ * 효과: 게임 중 첫 sprite 등장 시 발생하는 `renderer.worldRT` spike (수십~100ms+)
+ *      를 부팅 시점으로 이동 — 게임플레이 중 spike 0 목표.
+ *
+ * 비용: 부팅 시간 +수백 ms (한 번). 이후 frame 모두 hot GPU 캐시.
+ *
+ * 전제: `import 'pixi.js/prepare'` 가 main.ts 에서 한 번 import 되어 있어야 함.
+ */
+export async function prewarmAllBundleTextures(renderer: Renderer): Promise<{ count: number; ms: number }> {
+  const start = performance.now();
+  const tmp = new Container();
+  let count = 0;
+  for (const name of Object.keys(BUNDLES) as BundleName[]) {
+    const bundle = BUNDLES[name];
+    for (const url of Object.values(bundle)) {
+      const tex = Assets.get(url);
+      if (tex instanceof Texture) {
+        const sp = new Sprite(tex);
+        sp.alpha = 0;
+        tmp.addChild(sp);
+        count++;
+      }
+    }
+  }
+  if (count === 0) {
+    tmp.destroy();
+    return { count: 0, ms: 0 };
+  }
+  const prep = (renderer as unknown as { prepare?: { upload: (t: Container) => Promise<void> } }).prepare;
+  if (!prep) {
+    tmp.destroy({ children: true });
+    console.warn('[assetBundles] renderer.prepare unavailable — pixi.js/prepare not imported?');
+    return { count: 0, ms: 0 };
+  }
+  // PIXI v8: prepare.upload() returns Promise (callback 인자 아님).
+  // 안전망: 5초 timeout — texture source 가 미로드 상태이면 prepare 가 hang 할 수 있다.
+  let tid: ReturnType<typeof setTimeout> | undefined;
+  const uploadP = prep.upload(tmp).catch((e) => {
+    console.warn('[prewarm] upload error:', e);
+  });
+  const timeoutP = new Promise<void>(resolve => {
+    tid = setTimeout(() => {
+      console.warn('[prewarm] 5s timeout reached — proceeding without full prewarm.');
+      resolve();
+    }, 5000);
+  });
+  await Promise.race([uploadP, timeoutP]);
+  if (tid !== undefined) clearTimeout(tid); // 먼저 끝난 쪽 외 cleanup
+  tmp.destroy({ children: true });
+  return { count, ms: performance.now() - start };
 }

@@ -28,26 +28,53 @@ type StageStat = {
   openAt: number;
   /** 직전 윈도우 평균 (ms/frame). 표시용. */
   lastAvgMs: number;
+  /** 현재 frame 누적 ms (frameBegin 마다 reset). spike snapshot 용. */
+  thisFrameMs: number;
+  /** 현재 frame 호출 횟수 (track() 카운트). spike snapshot 용. */
+  thisFrameCount: number;
+};
+
+/** spike 발생 시 그 frame 의 stage 별 ms + 호출 카운트 캡쳐. */
+export type SpikeSnapshot = {
+  /** spike 발생 시각 (performance.now). */
+  at: number;
+  /** 그 frame 의 전체 ms. */
+  totalMs: number;
+  /** stage → ms (그 frame 의 누적). count 는 track() 호출 시 1+. */
+  breakdown: Array<{ stage: string; ms: number; count: number }>;
 };
 
 class PerfMonitorImpl {
   private stats = new Map<string, StageStat>();
   /** 윈도우 시작 시각. */
   private windowStart = performance.now();
-  /** 마지막 spike 5건 (ms). */
-  private spikes: Array<{ at: number; ms: number }> = [];
+  /** 마지막 spike 5건 (ms + breakdown). */
+  private spikes: SpikeSnapshot[] = [];
   /** 마지막 frame begin 시각 (frameBegin 호출 시 갱신). */
   private frameBeginAt = 0;
 
-  /** 새 frame 시작. spike 감지 트리거. */
+  /** 새 frame 시작. spike 감지 트리거 + 직전 frame 의 stage breakdown 캡쳐. */
   frameBegin(): void {
     const now = performance.now();
     if (this.frameBeginAt > 0) {
       const dt = now - this.frameBeginAt;
       if (dt > GC_SPIKE_MS) {
-        this.spikes.push({ at: now, ms: dt });
+        // 직전 frame 의 stage 별 ms + count breakdown 캡쳐 (큰 → 작은 순).
+        const breakdown: Array<{ stage: string; ms: number; count: number }> = [];
+        for (const [stage, st] of this.stats) {
+          if (st.thisFrameMs >= 0.1 || st.thisFrameCount > 0) {
+            breakdown.push({ stage, ms: st.thisFrameMs, count: st.thisFrameCount });
+          }
+        }
+        breakdown.sort((a, b) => b.ms - a.ms);
+        this.spikes.push({ at: now, totalMs: dt, breakdown });
         if (this.spikes.length > SPIKE_HISTORY) this.spikes.shift();
       }
+    }
+    // 새 frame 진입 — 각 stage 의 thisFrameMs/Count reset.
+    for (const st of this.stats.values()) {
+      st.thisFrameMs = 0;
+      st.thisFrameCount = 0;
     }
     this.frameBeginAt = now;
   }
@@ -56,7 +83,7 @@ class PerfMonitorImpl {
   begin(stage: string): void {
     let st = this.stats.get(stage);
     if (!st) {
-      st = { accumMs: 0, frames: 0, openAt: -1, lastAvgMs: 0 };
+      st = { accumMs: 0, frames: 0, openAt: -1, lastAvgMs: 0, thisFrameMs: 0, thisFrameCount: 0 };
       this.stats.set(stage, st);
     }
     st.openAt = performance.now();
@@ -68,8 +95,25 @@ class PerfMonitorImpl {
     if (!st || st.openAt < 0) return;
     const ms = performance.now() - st.openAt;
     st.accumMs += ms;
+    st.thisFrameMs += ms;
     st.frames += 1;
     st.openAt = -1;
+  }
+
+  /**
+   * 카테고리 직접 누적 (begin/end 없이). nested 또는 monkey-patch 측정용.
+   * 호출자가 ms 계산. count 1+ 도 자동.
+   */
+  track(category: string, ms: number): void {
+    let st = this.stats.get(category);
+    if (!st) {
+      st = { accumMs: 0, frames: 0, openAt: -1, lastAvgMs: 0, thisFrameMs: 0, thisFrameCount: 0 };
+      this.stats.set(category, st);
+    }
+    st.accumMs += ms;
+    st.thisFrameMs += ms;
+    st.thisFrameCount += 1;
+    st.frames += 1;
   }
 
   /** 1초 윈도우 경과 시 평균 갱신. Game loop 마지막에 호출 권장. */
@@ -99,8 +143,8 @@ class PerfMonitorImpl {
     return arr;
   }
 
-  /** 최근 spike 5건 (frame 시간 33ms+). */
-  recentSpikes(): ReadonlyArray<{ at: number; ms: number }> {
+  /** 최근 spike 5건 (frame 시간 33ms+) + 그 frame 의 stage breakdown. */
+  recentSpikes(): ReadonlyArray<SpikeSnapshot> {
     return this.spikes;
   }
 

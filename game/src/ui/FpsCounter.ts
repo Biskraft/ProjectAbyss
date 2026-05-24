@@ -91,9 +91,17 @@ export class FpsCounter {
         .map(s => `${s.stage.padEnd(14)} ${s.avgMs.toFixed(2).padStart(5)} ms`)
         .join('\n');
       const spikes = PerfMonitor.recentSpikes();
-      const spikeLine = spikes.length > 0
-        ? `spikes ${spikes.map(s => s.ms.toFixed(0)).join(',')}`
-        : '';
+      // spike 요약 + 최신 spike 의 top 3 stage (ms + count).
+      let spikeLine = '';
+      if (spikes.length > 0) {
+        const msList = spikes.map(s => s.totalMs.toFixed(0)).join(',');
+        const last = spikes[spikes.length - 1];
+        const top3 = last.breakdown.slice(0, 3).map(b => {
+          const cnt = b.count > 0 ? `x${b.count}` : '';
+          return `← ${b.stage} ${b.ms.toFixed(0)}ms ${cnt}`.trim();
+        }).join('\n');
+        spikeLine = `spikes ${msList}\n${top3}`;
+      }
       this.text.text =
         `FPS  ${fps.toFixed(1).padStart(5)}\n` +
         `peak ${this.peakFrameMs.toFixed(1).padStart(5)} ms\n` +

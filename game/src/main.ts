@@ -65,6 +65,12 @@ try {
   const game = new Game();
   await game.init();
 
+  // Phase 1.B.5 — ?debug 일 때 dynamic texture 생성 추적 (spike 원인 식별용).
+  if (new URLSearchParams(window.location.search).has('debug')) {
+    const { installTextureInstrumentation } = await import('@utils/textureInstrumentation');
+    installTextureInstrumentation(game.renderer);
+  }
+
   // Install BitmapFont at native resolution (must be after game.init for uiScale)
   installBitmapFont(game.uiScale);
 

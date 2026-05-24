@@ -117,8 +117,11 @@ export class ReturnResult {
 
     let y = 14;
 
-    // Title — centered DEFEATED
-    const titleText = createUiText(t('ui.return.death_title'), { fontSize: FONT_TITLE, fill: COL_NEGATIVE });
+    // Title — BitmapText (글리프, alloc 절감). 사용자 결정 2026-05-25.
+    const titleText = new BitmapText({
+      text: t('ui.return.death_title'),
+      style: { fontFamily: PIXEL_FONT, fontSize: FONT_TITLE, fill: COL_NEGATIVE },
+    });
     titleText.x = Math.floor((DEATH_PANEL_W - titleText.width) / 2);
     titleText.y = y;
     this.panel.addChild(titleText);
@@ -130,17 +133,20 @@ export class ReturnResult {
     this.panel.addChild(div);
     y += 10;
 
-    // Body — single line. 패널티 없는 현 스펙 → 중립 메시지.
-    const bodyText = createUiText(t('ui.return.death_body'), { fontSize: FONT_HINT, fill: COL_DIM });
+    // Body — BitmapText.
+    const bodyText = new BitmapText({
+      text: t('ui.return.death_body'),
+      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: COL_DIM },
+    });
     bodyText.x = Math.floor((DEATH_PANEL_W - bodyText.width) / 2);
     bodyText.y = y;
     this.panel.addChild(bodyText);
 
-    // Hint — bottom center
-    const hintText = createUiText(
-      t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }),
-      { fontSize: FONT_HINT, fill: TEXT_ACCENT },
-    );
+    // Hint — BitmapText.
+    const hintText = new BitmapText({
+      text: t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }),
+      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_ACCENT },
+    });
     hintText.x = Math.floor((DEATH_PANEL_W - hintText.width) / 2);
     hintText.y = DEATH_PANEL_H - 18;
     this.panel.addChild(hintText);

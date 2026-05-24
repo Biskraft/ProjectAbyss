@@ -11,6 +11,12 @@ import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { generateRoomGraph, type RoomGraphData } from '@level/RoomGraph';
 import { archetypeFor } from '@level/RoomGraphArchetypes';
+import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
+import type { UnifiedGridData } from '@level/RoomGrid';
+import { pickTemplate, TEMPLATE_W, TEMPLATE_H, type ExitDir } from '@level/ItemWorldTemplates';
+import { PRNG } from '@utils/PRNG';
+import { getItemWorldTemplatesIfReady, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
+import type { LdtkLevel } from '@level/LdtkLoader';
 import {
   create9SlicePanel, drawSelectionPulse,
   ROW_SELECTED_GLOW, ROW_SELECTED_GLOW_ALPHA, ROW_SELECTED_GLOW_INNER,
@@ -131,6 +137,8 @@ export class InventoryUI {
   // ITEM MAP — generated room graphs, keyed by `${item.uid}:${stratumIndex}`.
   // Item 별로 시드 결정적이라 한 번 계산 후 캐시.
   private roomGraphCache = new Map<string, RoomGraphData | null>();
+  // Unified grid (실제 dive 좌표 col/absRow) 캐시. 동일 키.
+  private unifiedGridCache = new Map<string, UnifiedGridData | null>();
 
   // ── Public API ───────────────────────────────────────────────────────────────
   setInventory(inventory: Inventory): void { this.inventory = inventory; }
@@ -190,6 +198,13 @@ export class InventoryUI {
     this.scrollRowOffset = 0;
     this.filter = 'ALL';
     this.selectedIndex = this.filteredItems().length > 0 ? 0 : -1;
+    // Anvil 모드 진입 시 LDtk template pool 비동기 preload. 로드 완료 후
+    // 다음 refresh() 에서 LDtk 다운샘플 사용 — 그 전엔 코드 RoomTemplate fallback.
+    if (mode === 'anvil') {
+      void prepareItemWorldTemplates().then(() => {
+        if (this.visible && this.mode === 'anvil') this.refresh();
+      });
+    }
     this.refresh();
     if (!wasVisible) this.onVisibilityChange?.(true);
   }
@@ -1118,6 +1133,287 @@ export class InventoryUI {
   }
 
   /**
+   * 시작 룸의 collisionGrid 를 다운샘플하여 *실제 던전 타일* 미니맵 생성.
+   * 1 mini-pixel = `tilesPerPx` × `tilesPerPx` 타일 블록의 majority vote.
+   *
+   * @param exits 시작 룸의 출입 방향 (RoomGraph hub 노드에서 추출)
+   * @param tilesPerPx 다운샘플 비율 (4 = 1px당 4×4 tiles, 4tile/px)
+   * @param seed PRNG 시드 (decision template variant)
+   */
+  private renderStartRoomTiles(
+    card: Graphics,
+    exits: ExitDir[],
+    seed: number,
+    targetX: number,
+    targetY: number,
+    tilesPerPx: number,
+    fillColor: number,
+    bgColor: number,
+    alpha: number,
+  ): void {
+    if (exits.length === 0) return;
+    const rng = new PRNG(seed);
+    let template: { grid: number[][] };
+    try {
+      template = pickTemplate(exits, rng, false);
+    } catch {
+      return;
+    }
+    const grid = template.grid;
+    const targetW = Math.max(1, Math.ceil(TEMPLATE_W / tilesPerPx));
+    const targetH = Math.max(1, Math.ceil(TEMPLATE_H / tilesPerPx));
+
+    // BG 한 번에 채움 — 픽셀 단위 fill 호출 최소화
+    card.rect(targetX, targetY, targetW, targetH).fill({ color: bgColor, alpha });
+
+    for (let r = 0; r < targetH; r++) {
+      for (let c = 0; c < targetW; c++) {
+        // *Any wall* 룰 — 블록에 벽이 *하나라도* 있으면 벽으로 표시.
+        // majority vote 는 외곽 1-tile 벽을 *공기로* 삼킴 → 룸 모양 사라짐.
+        // 외곽 벽 보존이 *맵 인지* 의 핵심이므로 보수적 룰.
+        let hasWall = false;
+        const r0 = Math.floor(r * tilesPerPx);
+        const r1 = Math.min(TEMPLATE_H, Math.floor((r + 1) * tilesPerPx));
+        const c0 = Math.floor(c * tilesPerPx);
+        const c1 = Math.min(TEMPLATE_W, Math.floor((c + 1) * tilesPerPx));
+        outer: for (let sr = r0; sr < r1; sr++) {
+          for (let sc = c0; sc < c1; sc++) {
+            if (grid[sr][sc] === 1) { hasWall = true; break outer; }
+          }
+        }
+        if (hasWall) {
+          card.rect(targetX + c, targetY + r, 1, 1).fill({ color: fillColor, alpha });
+        }
+      }
+    }
+  }
+
+  /**
+   * LDtk pool 에서 exits + roomType 매칭. ItemWorldScene.pickTemplateForCell 의
+   * 단순화 버전 — exits 정확 매칭 + type 정확 매칭 우선, 그 다음 exits 만, 그 다음
+   * type 만, 모두 실패 시 null.
+   */
+  private findLdtkTemplate(
+    pool: LdtkLevel[],
+    exits: ExitDir[],
+    desiredType: string,
+    rng: PRNG,
+  ): LdtkLevel | null {
+    const memFiltered = pool.filter(t => !/^memory_/i.test(t.identifier));
+    const sortedExits = [...exits].sort().join('');
+    const matchExit = (lvl: LdtkLevel): boolean => [...lvl.exits].sort().join('') === sortedExits;
+
+    // 1) type + exits 정확 매칭
+    const byTypeAndExit = memFiltered.filter(t => t.roomType === desiredType && matchExit(t));
+    if (byTypeAndExit.length > 0) return byTypeAndExit[rng.nextInt(0, byTypeAndExit.length - 1)];
+
+    // 2) exits 만 정확 매칭
+    const byExit = memFiltered.filter(matchExit);
+    if (byExit.length > 0) return byExit[rng.nextInt(0, byExit.length - 1)];
+
+    // 3) type 만 매칭
+    const byType = memFiltered.filter(t => t.roomType === desiredType);
+    if (byType.length > 0) return byType[rng.nextInt(0, byType.length - 1)];
+
+    // 4) 임의 (pool 자체)
+    if (memFiltered.length > 0) return memFiltered[rng.nextInt(0, memFiltered.length - 1)];
+    return null;
+  }
+
+  /**
+   * Stratum 픽셀 미니맵 viewport (2026-05-25 사용자 결정).
+   *   *전체 stratum 을 보여주려 하지 않고*, hub(시작 위치) 를 카드 좌측에 고정한 후
+   *   카드 viewport 안에 들어가는 룸들만 *실제 스케일* 로 그림. rarity 와 무관하게
+   *   고정 스케일 → "이게 아이템의 맵의 시작 부분이구나" 인지 강화.
+   *
+   *   - 스케일 고정: 1px = 2 tiles → 룸 1개 = 24×16 px
+   *   - hub 위치: 카드 좌측 padding 내. 다른 룸은 hub 기준 (tx-hubTx, ty-hubTy) 오프셋
+   *   - 클리핑: 픽셀 좌표가 카드 viewport 밖이면 그리지 않음 (수동 mask)
+   *   - 색: 벽 검정, 공기 어두운 청회색, hub 외곽 흰색
+   */
+  private renderStratumPixelMap(
+    card: Graphics,
+    item: ItemInstance,
+    stratumIndex: number,
+    cardY: number,
+    cardH: number,
+    cardW: number,
+    isReached: boolean,
+    isNext: boolean,
+  ): void {
+    const itemUid = item.uid;
+    // 실제 dive 좌표 (col, absRow) 기반 unified grid — *진짜 메가스트럭처 배치*
+    const unified = this.buildStratumUnified(item, stratumIndex);
+    if (!unified) return;
+
+    // 2) 고정 스케일 — 1.5배 확대 (2026-05-25). 룸 36×24 px.
+    const roomMiniW = 36;  // 48 / 1.333
+    const roomMiniH = 24;  // 32 / 1.333
+
+    // 3) Hub 위치 — *해당 stratum* 의 startRoom (plaza top).
+    //    unified grid 가 모든 stratum 통합이라 stratumStartRooms[stratumIndex] 사용.
+    const startRoom = unified.stratumStartRooms[stratumIndex] ?? unified.stratumStartRooms[0];
+    if (!startRoom) return;
+    const hubCol = startRoom.col;
+    const hubAbsRow = startRoom.absoluteRow;
+
+    // 이 stratum 의 row 범위 (rowOffset ~ rowOffset+height)
+    const stratumBound = unified.strataOffsets[stratumIndex];
+    const stratumRowMin = stratumBound?.rowOffset ?? 0;
+    const stratumRowMax = stratumBound ? stratumBound.rowOffset + stratumBound.height : unified.totalHeight;
+
+    // Viewport — 카드 전체 영역 (border 제거됨)
+    const vpX0 = 0;
+    const vpY0 = cardY;
+    const vpX1 = cardW;
+    const vpY1 = cardY + cardH;
+
+    // Hub 위치 = viewport 좌상단에서 *우측으로 1 룸 칸* 이동 (2026-05-25 사용자 결정).
+    //   좌측 1칸 공간 확보 → CP 좌측 분기 / 좌측 spoke 도 viewport 안에 보임.
+    //   상단은 그대로 — hub 가 stratum 시작점 (plaza, 위로는 없음).
+    const hubScreenX = vpX0 + roomMiniW;
+    const hubScreenY = vpY0;
+
+    // 4) 색 (사용자 명시 2026-05-25): 벽 #161515 / 공기 #595959.
+    //    BG 는 벽과 동일 (#161515) — 룸 사이가 벽으로 자연 연결.
+    const baseAlpha = 1;
+    const wallC = 0x161515;  // 어두운 — 벽
+    const airC = 0x595959;   // 중간 회색 — 공기 (룸 내부)
+
+    // LDtk pool 로딩 완료면 LDtk template 우선, 아니면 코드 RoomTemplate fallback
+    const ldtkPool = getItemWorldTemplatesIfReady();
+
+    // 5) 이 stratum 영역의 cell 만 순회 (다른 stratum 제외).
+    //    Transpose 제거 (2026-05-25): 사용자 정합성 요청 — *실제 게임 좌표 그대로*.
+    //    cell.col → screen X (수평), cell.absoluteRow - hubAbsRow → screen Y (수직 dive 진행).
+    //    카드 가로 underuse 일지언정 *연결 구조 = ItemWorldScene 와 1:1 동일*.
+    for (let r = stratumRowMin; r < stratumRowMax && r < unified.cells.length; r++) {
+      const row = unified.cells[r];
+      for (let c = 0; c < row.length; c++) {
+        const cell = row[c];
+        if (!cell) continue;
+
+        // 실제 게임 좌표 그대로: col → X, absRow → Y
+        const roomOffX = hubScreenX + (cell.col - hubCol) * roomMiniW;
+        const roomOffY = hubScreenY + (cell.absoluteRow - hubAbsRow) * roomMiniH;
+
+        // Viewport 클리핑
+        if (roomOffX + roomMiniW < vpX0 || roomOffX > vpX1) continue;
+        if (roomOffY + roomMiniH < vpY0 || roomOffY > vpY1) continue;
+
+        // exits — cell.exits 에서 직접. 시각 회전 적용 후에도 도어 carve 가 *맵 구조* 와 일관:
+        //   원래 down (dive 진행) → 시각적으로 right
+        //   원래 up (역방향) → 시각적으로 left
+        //   원래 left/right (수평 분기) → 시각적으로 up/down
+        // 그러나 룸 grid 자체는 비회전이라 룸 외곽 도어 위치는 원래대로. 사용자 인지엔 영향 미미.
+        const exits: ExitDir[] = [];
+        if (cell.exits.left) exits.push('L');
+        if (cell.exits.right) exits.push('R');
+        if (cell.exits.up) exits.push('U');
+        if (cell.exits.down) exits.push('D');
+        if (exits.length === 0) exits.push('D');
+
+        const rng = new PRNG(itemUid * 1000 + stratumIndex * 7919 + cell.col * 31 + cell.absoluteRow * 17);
+
+      // LDtk 우선 — 정확 exit 매칭. 없으면 superset 또는 임의. 최종 폴백: 코드 RoomTemplate
+      let grid: number[][];
+      if (ldtkPool && ldtkPool.length > 0) {
+        const isStartCell = cell.col === hubCol && cell.absoluteRow === hubAbsRow;
+        const desiredType = cell.role === 'boss' ? 'Boss'
+          : (cell.role === 'hub' || isStartCell) ? 'Start'
+          : cell.role === 'shrine' ? 'Rest'
+          : cell.kind === 'corridor' ? 'Corridor'
+          : 'Combat';
+        const ldtkMatch = this.findLdtkTemplate(ldtkPool, exits, desiredType, rng);
+        if (ldtkMatch) {
+          grid = ldtkMatch.collisionGrid;
+        } else {
+          let tplFallback: { grid: number[][] };
+          try { tplFallback = pickTemplate(exits, rng, false); }
+          catch { continue; }
+          grid = tplFallback.grid;
+        }
+      } else {
+        let tplFallback: { grid: number[][] };
+        try { tplFallback = pickTemplate(exits, rng, false); }
+        catch { continue; }
+        grid = tplFallback.grid;
+      }
+      const gridH = grid.length;
+      const gridW = grid[0]?.length ?? 0;
+
+      // BG 일괄 (공기 색) — 클리핑된 영역만
+      const bgX = Math.max(roomOffX, vpX0);
+      const bgY = Math.max(roomOffY, vpY0);
+      const bgW = Math.min(roomOffX + roomMiniW, vpX1 + 1) - bgX;
+      const bgH = Math.min(roomOffY + roomMiniH, vpY1 + 1) - bgY;
+      if (bgW > 0 && bgH > 0) {
+        card.rect(bgX, bgY, bgW, bgH).fill({ color: airC, alpha: baseAlpha });
+      }
+
+      // 벽 픽셀 stamp — any-wall 룰 + viewport 클리핑
+      // gridW/gridH 는 LDtk 의 룸 크기 (보통 TEMPLATE_W/H 와 동일 48×32, 다를 수도)
+      const srcTilesPerPxX = gridW / roomMiniW;
+      const srcTilesPerPxY = gridH / roomMiniH;
+      for (let r = 0; r < roomMiniH; r++) {
+        const py = roomOffY + r;
+        if (py < vpY0 || py > vpY1) continue;
+        for (let c = 0; c < roomMiniW; c++) {
+          const px = roomOffX + c;
+          if (px < vpX0 || px > vpX1) continue;
+          const r0 = Math.floor(r * srcTilesPerPxY);
+          const r1 = Math.min(gridH, Math.floor((r + 1) * srcTilesPerPxY));
+          const c0 = Math.floor(c * srcTilesPerPxX);
+          const c1 = Math.min(gridW, Math.floor((c + 1) * srcTilesPerPxX));
+          let hasWall = false;
+          outer: for (let sr = r0; sr < r1; sr++) {
+            for (let sc = c0; sc < c1; sc++) {
+              if (grid[sr][sc] === 1) { hasWall = true; break outer; }
+            }
+          }
+          if (hasWall) {
+            card.rect(px, py, 1, 1).fill({ color: wallC, alpha: baseAlpha });
+          }
+        }
+      }
+      } // close inner cells `for c`
+    } // close outer cells `for r`
+
+    // 6) Hub 외곽 강조 폐기 (2026-05-25 사용자 결정) — border 전혀 없음.
+  }
+
+  /**
+   * 아이템의 *전체 dive unified grid* 생성 (캐시) — ItemWorldScene 의 생성 원리와 동일.
+   *
+   *   모든 strata 를 *함께* generateUnifiedGridFromGraph 에 전달해야 plaza-align
+   *   col offset 이 ItemWorldScene 과 일치한다. 단일 stratum 호출은 colOffset 계산이
+   *   달라져 실제 dive 의 룸 연결 구조와 불일치 (사용자 지적 2026-05-25).
+   *
+   *   topologyOverride 도 weaponDef 에서 가져와 동일 결과 보장.
+   *   캐시 키 = item.uid (모든 stratum 통합이므로 stratumIndex 무관).
+   */
+  private buildStratumUnified(item: ItemInstance, _stratumIndex: number): UnifiedGridData | null {
+    const key = `${item.uid}`;
+    if (this.unifiedGridCache.has(key)) return this.unifiedGridCache.get(key) ?? null;
+    const cfg = STRATA_BY_RARITY[item.rarity];
+    if (!cfg?.strata?.length) { this.unifiedGridCache.set(key, null); return null; }
+    try {
+      const arch = archetypeFor(item.def.temperamentPrimary, item.def.temperamentSecondary);
+      const { unifiedGrid } = generateUnifiedGridFromGraph(
+        cfg.strata,                       // 모든 strata — ItemWorldScene 과 동일
+        item.uid,
+        item.def.topologyOverride,        // weaponDef 의 override 적용
+        arch,
+      );
+      this.unifiedGridCache.set(key, unifiedGrid);
+      return unifiedGrid;
+    } catch {
+      this.unifiedGridCache.set(key, null);
+      return null;
+    }
+  }
+
+  /**
    * 아이템 + stratum 의 RoomGraph 생성 (캐시). ItemWorldScene 과 동일 시드/archetype
    * 으로 *결정적* 결과 — anvil 에서 보이는 미니맵 = dive 후 실제 룸 배치.
    */
@@ -1172,118 +1468,61 @@ export class InventoryUI {
     const reached = item.worldProgress?.deepestUnlocked ?? 0;
     const next = Math.min(reached + 1, totalStrata); // 다음 진행 대상 L
 
-    // 5단 카드 — 위 L1 → 아래 L5 (깊은 지층이 아래, 2026-05-24 사용자 결정).
+    // 2.5 카드 viewport (2026-05-25 사용자 결정).
+    //   - 슬롯 0/1 = 풀 카드, 슬롯 2 = 절반 카드 (다음 stratum 있음 힌트)
+    //   - 풀 카드 높이 = totalH * 0.4 (2.5 카드 fit)
+    //   - firstVisibleIdx = max(0, reached - 1) — 마지막 클리어 stratum 이 1번 칸
+    //     (사용자: "3층까지 깼으면 그게 1번칸")
     const totalH = PANEL_H - CONTENT_START_Y - 20;
-    const cardGap = 2;
-    const cardH = Math.floor((totalH - cardGap * 4) / 5);
+    const cardGap = 4;
+    const cardHFull = Math.floor((totalH - cardGap * 2) * 0.4);
+    const cardHHalf = Math.floor(cardHFull * 0.5);
     const cardW = W;
 
-    for (let L = 1; L <= 5; L++) {
-      const cardY = y + (L - 1) * (cardH + cardGap);
-      const isAvailable = L <= totalStrata;
-      const isReached = L <= reached;
+    const firstVisibleIdx = Math.max(0, Math.min(totalStrata - 1, reached - 1));
+    const slotHeights = [cardHFull, cardHFull, cardHHalf];
+
+    let cardY = y;
+    for (let slot = 0; slot < slotHeights.length; slot++) {
+      const cardH = slotHeights[slot];
+      const stratumIdx = firstVisibleIdx + slot;
+      const L = stratumIdx + 1;
+      const isAvailable = stratumIdx < totalStrata;
+      const isReached = stratumIdx < reached;
       const isNext = isAvailable && L === next && !isReached;
 
       const card = new Graphics();
-      const fillAlpha = isAvailable ? 0.8 : 0.4;
-      card.rect(2, cardY, cardW, cardH).fill({ color: 0x0a0a12, alpha: fillAlpha });
-      const borderColor = isNext ? COL_KEY : (isAvailable ? COL_BORDER : COL_LOCKED);
-      const borderWidth = isNext ? 2 : 1;
-      card.rect(2, cardY, cardW, cardH).stroke({ color: borderColor, width: borderWidth });
+      // 2026-05-25 사용자 결정: 카드 내부 border 전혀 없게 — 단 *현재 층(isNext)* 만 예외.
+      //   BG = #161515 (벽과 동일) — 룸 사이가 벽으로 자연 연결.
+      card.rect(0, cardY, cardW, cardH).fill({ color: 0x161515, alpha: isAvailable ? 1 : 0.6 });
 
       // 실제 RoomGraph 데이터 → topology 미니맵 (수직/수평 무관 가로 펼침).
       // 사용자 결정 2026-05-24: 공간 좌표(layout.x/y) 대신 *연결 구조* 기반.
       //   x = depth (왼→오), y = branchIndex (CP=중앙, L=위, R=아래, dead=±2)
       if (isAvailable) {
-        const graph = this.buildStratumGraph(item, L - 1);
-        if (graph) {
-          const mapPadX = 16;       // 좌측은 L 라벨 자리
-          const mapPadY = 3;
-          const mapX0 = 2 + mapPadX;
-          const mapY0 = cardY + mapPadY;
-          const mapW = cardW - mapPadX - 6;
-          const mapH = cardH - mapPadY * 2;
+        this.renderStratumPixelMap(card, item, L - 1, cardY, cardH, cardW, isReached, isNext);
+      }
 
-          // 1) 각 노드의 topology 좌표 계산 (depth, branch-derived row)
-          const topo = new Map<string, { tx: number; ty: number }>();
-          let minTx = 0, maxTx = 0, minTy = 0, maxTy = 0;
-          for (const [id, n] of graph.nodes) {
-            const tx = n.depth;
-            let ty = 0;
-            if (n.role === 'hub') { ty = 0; }
-            else if (n.role === 'boss') { ty = 0; }       // CP 끝 — 중앙 행
-            else if (n.role === 'shrine') { ty = 1; }      // hub 옆 아래
-            else if (n.branchIndex === 0) { ty = 0; }      // CP
-            else if (n.branchIndex === 1) { ty = -1; }     // Left branch → 위
-            else if (n.branchIndex === 2) { ty = 1; }      // Right branch → 아래
-            else if (n.branchIndex === 3) {
-              // Dead-end branch — id 의 b.N 으로 위/아래 stagger
-              const m = id.match(/^b\.(\d+)/);
-              const k = m ? parseInt(m[1], 10) : 0;
-              ty = (k % 2 === 0) ? -2 : 2;
-            }
-            topo.set(id, { tx, ty });
-            if (tx < minTx) minTx = tx;
-            if (tx > maxTx) maxTx = tx;
-            if (ty < minTy) minTy = ty;
-            if (ty > maxTy) maxTy = ty;
-          }
-
-          const xSpan = (maxTx - minTx) + 1;
-          const ySpan = (maxTy - minTy) + 1;
-          const cellPx = Math.max(2, Math.floor(Math.min(mapW / xSpan, mapH / ySpan)));
-          // 중앙 정렬 offset
-          const usedW = cellPx * xSpan;
-          const usedH = cellPx * ySpan;
-          const offX = mapX0 + Math.floor((mapW - usedW) / 2);
-          const offY = mapY0 + Math.floor((mapH - usedH) / 2);
-          const toPx = (id: string) => {
-            const p = topo.get(id)!;
-            return {
-              cx: offX + (p.tx - minTx + 0.5) * cellPx,
-              cy: offY + (p.ty - minTy + 0.5) * cellPx,
-            };
-          };
-          const dim = isReached || isNext;
-          const baseAlpha = dim ? 1 : 0.5;
-
-          // 1) Corridors — 노드 간 연결 통로. 셀 폭의 ~30% 두께. 방 먼저 그리면 위에 덮이니
-          //    corridor 를 *먼저* 그려 방이 corridor 끝에 자연스럽게 박힘.
-          const corridorColor = isReached ? 0x3a5060 : (isNext ? 0x5a3a14 : 0x2a2a34);
-          const corridorW = Math.max(1, Math.floor(cellPx * 0.35));
-          for (const e of graph.edges) {
-            if (!graph.nodes.has(e.a) || !graph.nodes.has(e.b)) continue;
-            const ap = toPx(e.a);
-            const bp = toPx(e.b);
-            card.moveTo(ap.cx, ap.cy).lineTo(bp.cx, bp.cy)
-              .stroke({ color: corridorColor, width: corridorW, alpha: baseAlpha });
-          }
-
-          // 2) Rooms — 셀 폭의 ~70% 사각형. role 별 색.
-          const roomSize = Math.max(2, Math.floor(cellPx * 0.7));
-          const half = Math.floor(roomSize / 2);
-          for (const [id, n] of graph.nodes) {
-            const { cx, cy } = toPx(id);
-            let color = isReached ? 0x4a6a8a : (isNext ? 0x8a6a3a : 0x4a4a55);
-            if (n.role === 'boss') color = 0xff4d4d;
-            else if (n.role === 'hub') color = COL_KEY;
-            else if (n.role === 'shrine') color = 0xeeeeee;
-            const rx = Math.round(cx - half);
-            const ry = Math.round(cy - half);
-            card.rect(rx, ry, roomSize, roomSize).fill({ color, alpha: baseAlpha });
-            // 어두운 outline 으로 방 분리
-            card.rect(rx, ry, roomSize, roomSize).stroke({ color: 0x0a0a12, width: 1, alpha: baseAlpha });
-          }
-        }
+      // 다음 층 outline — isAvailable 카드 회색 1px (룸 픽셀 위에 그림).
+      if (isAvailable && !isNext) {
+        card.rect(0, cardY, cardW, cardH).stroke({ color: 0x555555, width: 1 });
+      }
+      // 현재 층 (isNext) outline — key color 2px, 위에 덮음 (2026-05-25).
+      if (isNext) {
+        card.rect(0, cardY, cardW, cardH).stroke({ color: COL_KEY, width: 2 });
       }
       this.statusArea.addChild(card);
 
-      // L 라벨 (좌상단)
+      // L 라벨 — 우상단 (좌상단은 hub 룸이 차지). 카드 border 제거된 상태에서
+      // 맵 위에 작은 overlay 로 표시. 절반 카드는 라벨만 보임 (clipped 효과).
       const labelColor = isNext ? COL_KEY : (isAvailable ? COL_DIM : COL_LOCKED);
       const label = createUiText(`S${L}`, { fontSize: 8, fill: labelColor });
-      label.x = 5;
+      label.x = cardW - label.width - 4;
       label.y = cardY + 2;
       this.statusArea.addChild(label);
+
+      // 다음 슬롯 y 누적
+      cardY += cardH + cardGap;
     }
   }
 
