@@ -9,6 +9,8 @@ import { createUiText } from './factories';
 import { t } from '@i18n';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
+import { generateRoomGraph, type RoomGraphData } from '@level/RoomGraph';
+import { archetypeFor } from '@level/RoomGraphArchetypes';
 import {
   create9SlicePanel, drawSelectionPulse,
   ROW_SELECTED_GLOW, ROW_SELECTED_GLOW_ALPHA, ROW_SELECTED_GLOW_INNER,
@@ -119,6 +121,10 @@ export class InventoryUI {
   private selectionPulseOverlay: Graphics | null = null;
   private selectionPulseRect: { w: number; h: number } | null = null;
   private selectionPulseTimer = 0;
+
+  // ITEM MAP — generated room graphs, keyed by `${item.uid}:${stratumIndex}`.
+  // Item 별로 시드 결정적이라 한 번 계산 후 캐시.
+  private roomGraphCache = new Map<string, RoomGraphData | null>();
 
   // ── Public API ───────────────────────────────────────────────────────────────
   setInventory(inventory: Inventory): void { this.inventory = inventory; }
@@ -637,9 +643,12 @@ export class InventoryUI {
   // ── Anvil slot (anvil mode, middle column) ────────────────────────────────────
   // v2 (2026-05-24): 64px 아이콘 좌측 + 우측에 이름 / Stage 호칭 / Recovery% 메타.
   // 빈 상태/placed 상태 슬롯 위치 일관 (둘 다 좌측 정렬) — 위치 점프 방지.
+  // 선택 변경 시 active item 으로 메타 + RadialMap 자동 갱신 (selecting 단계에도 preview).
   // ui-components.html #inventory "Anvil Mode v2" 카드 참조.
   private drawAnvilSlot(): void {
     const hasItem = !!this.anvilItem;
+    // anvil 에 placed 된 아이템 우선, 없으면 그리드 선택 아이템 (preview).
+    const activeItem = this.anvilItem ?? this.filteredItems()[this.selectedIndex] ?? null;
     const slotSize = 64;
     const slotX = 8;
     const slotY = 8;
@@ -657,6 +666,35 @@ export class InventoryUI {
       this.anvilPulseOverlay = pulse;
       this.anvilPulseRect = { w: slotSize, h: slotSize };
       this.redrawAnvilPulse();
+
+      // 선택 아이템 preview 메타 (selecting 단계에도 우측에 표시).
+      if (activeItem) {
+        const rarityColor = RARITY_COLOR[activeItem.rarity] ?? 0xffffff;
+        const metaX = slotX + slotSize + 8;
+        const metaW = INFO_W - metaX - 4;
+        let mY = slotY + 2;
+        const displayName = getDisplayName(activeItem);
+        const nameText = createUiText(displayName, {
+          fontSize: 12, fill: rarityColor, wordWrap: true, wordWrapWidth: metaW,
+        });
+        nameText.x = metaX; nameText.y = mY;
+        this.infoArea.addChild(nameText);
+        mY += Math.max(16, Math.floor((nameText.height ?? 14)) + 2);
+
+        const category = getIdentityCategory(activeItem);
+        const categoryLabel = category === 'Unknown'
+          ? t('ui.inventory.recovery_unknown')
+          : t(`ui.category.${category.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase()}`);
+        const titleText = createUiText(categoryLabel, { fontSize: 9, fill: COL_TEXT });
+        titleText.x = metaX; titleText.y = mY;
+        this.infoArea.addChild(titleText);
+        mY += 14;
+
+        const recoveryPct = Math.floor(activeItem.memoryRecovery);
+        const recovText = createUiText(`Recovery ${recoveryPct}%`, { fontSize: 9, fill: COL_DIM });
+        recovText.x = metaX; recovText.y = mY;
+        this.infoArea.addChild(recovText);
+      }
 
       const label = createUiText(t('ui.inventory.button_anvil'), { fontSize: 8, fill: COL_DIM });
       label.x = Math.floor((INFO_W - label.width) / 2);
@@ -717,6 +755,183 @@ export class InventoryUI {
     hintRow.x = 4;
     hintRow.y = slotY + slotSize + 22;
     this.infoArea.addChild(hintRow);
+
+    // RadialMap (Shift+2 의 단계형 다이브 뷰) 임베드 — active item 있으면 항상.
+    // selecting 단계의 preview 도 포함 (사용자 결정 2026-05-24: 선택 변경 시 갱신).
+    if (activeItem) {
+      this.drawAnvilRadialMap(activeItem, slotY + slotSize + 40);
+    }
+  }
+
+  /**
+   * 컴팩트 RadialMap — ui-components.html #radial-map 사양의 INFO 영역 축약판.
+   * 좌(stats 5종) + 우(단계형 graph). HERE 커서로 진행 stratum 강조.
+   */
+  private drawAnvilRadialMap(item: ItemInstance, baseY: number): void {
+    const cfg = STRATA_BY_RARITY[item.rarity];
+    const totalStrata = cfg.strata.length;
+    const reached = item.worldProgress?.deepestUnlocked ?? 0;
+    const nextStratum = Math.min(reached + 1, totalStrata); // 1-based
+
+    // 영역: 좌 stats 60px + 우 graph (나머지)
+    const statsW = 60;
+    const graphX = statsW + 8;
+    const graphW = INFO_W - graphX - 4;
+    const rowH = 14;
+
+    // === Left: stats panel (★ 핵심 2 + ◦ 보조 2) ===
+    // 2026-05-24 사용자 결정:
+    //   YOUR ATK   = 현재 내(플레이어) 공격력
+    //   MAX ATK    = 이 무기의 최대 공격력 추정치 (Recovery 100% + 현재 reDive 보너스)
+    //   MEM SHARD  = 회상된 메모리 단편 수 / 최대 슬롯
+    //   DIVES      = 재진입 횟수 (보조)
+    const lines: Array<{ label: string; value: string; key: boolean; alert?: boolean }> = [];
+    const playerAtk = this.playerStats?.atk ?? 0;
+    lines.push({ label: 'YOUR ATK', value: String(playerAtk || '—'), key: false });
+
+    // MAX ATK — Recovery 100% 가정 + 현재 reDive 보너스 (recalcItemAtk 공식 미러)
+    const reDiveBonus = 1 + (item.reDiveCount ?? 0) * 0.05;
+    const maxAtk = Math.ceil((item.def.baseAtk ?? 0) * 1.5 * reDiveBonus);
+    lines.push({ label: 'MAX ATK', value: String(maxAtk || '—'), key: true, alert: playerAtk > 0 && playerAtk < maxAtk });
+
+    // MEMORY SHARD — 현재 / 최대 (rarity 별 slot 수)
+    const maxShards = ({ normal: 2, magic: 3, rare: 4, legendary: 6, ancient: 8 } as const)[item.rarity] ?? 2;
+    const curShards = item.innocents?.length ?? 0;
+    lines.push({ label: 'MEM SHARD', value: `${curShards}/${maxShards}`, key: true });
+
+    lines.push({ label: 'DIVES', value: String(item.reDiveCount ?? 0), key: false });
+
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      const ly = baseY + i * 18;
+      const labelColor = ln.key ? 0xffd470 : 0x888888;
+      const labelText = createUiText(ln.label, { fontSize: 7, fill: labelColor });
+      labelText.x = 2; labelText.y = ly;
+      this.infoArea.addChild(labelText);
+      const valColor = ln.alert ? 0xff6060 : (ln.key ? COL_KEY : 0xcccccc);
+      const valText = createUiText(ln.value, { fontSize: 11, fill: valColor });
+      valText.x = statsW - 4 - valText.width;
+      valText.y = ly + 1;
+      this.infoArea.addChild(valText);
+    }
+
+    // === Right: stepped graph — 5 stratum 행 ===
+    // Boss = 중앙, 양옆으로 *추상화된* branch 분포 (사용자 결정 2026-05-24).
+    // 실제 노드 수 → log-bucket 추상으로 빽빽함 해소하되 stratum 별 변별 유지.
+    // 행간 간격 확대 → "층" 시각 강조.
+    const graphRowH = 22;                          // 14 → 22 (행간 확대)
+    const cy0 = baseY + Math.floor(graphRowH * 0.5);
+    const cxMid = graphX + Math.floor(graphW / 2); // boss 중앙 위치
+
+    // 행 사이 DIVE dashed line — 중앙 column 따라 수직.
+    const diveG = new Graphics();
+    for (let s = 1; s < 5; s++) {
+      const y0 = cy0 + (s - 1) * graphRowH + 6;
+      const y1 = cy0 + s * graphRowH - 6;
+      let yy = y0;
+      while (yy < y1) {
+        const yEnd = Math.min(yy + 2, y1);
+        diveG.moveTo(cxMid, yy).lineTo(cxMid, yEnd).stroke({ color: COL_KEY, width: 1, alpha: 0.7 });
+        yy += 4;
+      }
+    }
+    this.infoArea.addChild(diveG);
+
+    // Stratum rows — 추상화된 노드 분포 (5 등급 변별 강화, 2026-05-24 사용자 결정).
+    // 추상 공식: dispBranch = clamp(2, 7, ceil(realN / 2.5))
+    //   realN=3 → 2 (Normal)
+    //   realN=5 → 2-3 (Magic)
+    //   realN=8 → 4 (Rare)
+    //   realN=12 → 5 (Legendary)
+    //   realN=15+ → 6-7 (Ancient)
+    // Boss 중앙 + 양옆 균등 spacing 으로 추상 다이아 배치.
+    const rowLeftLabel = graphX + 2;       // S1~S5 라벨 자리
+    const branchSpacing = 12;               // 양옆 추상 다이아 간격 (px)
+    for (let L = 1; L <= 5; L++) {
+      const ry = cy0 + (L - 1) * graphRowH;
+      const isAvail = L <= totalStrata;
+      const isReached = L <= reached;
+      const isNext = isAvail && L === nextStratum && !isReached;
+      const isFinal = isAvail && L === totalStrata;
+      const baseAlpha = isAvail ? (isReached ? 1 : (isNext ? 0.85 : 0.55)) : 0.3;
+
+      // 좌측 라벨 S1~S5
+      const sLabel = createUiText(`S${L}`, { fontSize: 7, fill: isNext ? COL_KEY : (isAvail ? 0xbbbbbb : 0x555555) });
+      sLabel.x = rowLeftLabel;
+      sLabel.y = ry - 3;
+      this.infoArea.addChild(sLabel);
+
+      // 행 가로선 (PATH) — 라벨 너머부터 graph 우측 끝까지
+      const pathG = new Graphics();
+      pathG.moveTo(graphX + 14, ry).lineTo(graphX + graphW - 4, ry)
+        .stroke({ color: 0x5a3a1a, width: 1, alpha: baseAlpha * 0.7 });
+      this.infoArea.addChild(pathG);
+
+      // 미보유 stratum — placeholder 보스 (회색 outline) 만
+      if (!isAvail) {
+        const phG = new Graphics();
+        phG.poly([cxMid, ry - 3, cxMid + 3, ry, cxMid, ry + 3, cxMid - 3, ry])
+          .stroke({ color: 0x555555, width: 1, alpha: baseAlpha });
+        this.infoArea.addChild(phG);
+        continue;
+      }
+
+      // 실제 RoomGraph 노드 수 → 추상화
+      const graph = this.buildStratumGraph(item, L - 1);
+      const allNodes = graph ? [...graph.nodes.values()] : [];
+      const realN = allNodes.filter(n => n.role !== 'boss').length;
+      const dispBranch = Math.min(7, Math.max(2, Math.ceil(realN / 2.5)));
+      const leftN = Math.floor(dispBranch / 2);
+      const rightN = dispBranch - leftN;
+
+      // Hub / Shrine 존재 여부 — 강조 fill 위치 결정용
+      const hasHub = allNodes.some(n => n.role === 'hub');
+      const hasShrine = allNodes.some(n => n.role === 'shrine');
+
+      // 양옆 추상 다이아 배치 (boss 중앙 기준)
+      const nodeG = new Graphics();
+      const branchSize = 2.5;
+      for (let i = 1; i <= leftN; i++) {
+        const bx = cxMid - i * branchSpacing;
+        // 가장 안쪽 좌측 노드를 Hub (있으면 골드 fill), 그 다음 Shrine
+        if (i === 1 && hasHub) {
+          nodeG.poly([bx, ry - 3, bx + 3, ry, bx, ry + 3, bx - 3, ry])
+            .fill({ color: COL_KEY, alpha: baseAlpha });
+        } else if (i === 2 && hasShrine) {
+          nodeG.poly([bx, ry - 2.5, bx + 2.5, ry, bx, ry + 2.5, bx - 2.5, ry])
+            .fill({ color: 0xeeeeee, alpha: baseAlpha });
+        } else {
+          nodeG.poly([bx, ry - branchSize, bx + branchSize, ry, bx, ry + branchSize, bx - branchSize, ry])
+            .stroke({ color: COL_KEY, width: 1, alpha: baseAlpha * 0.7 });
+        }
+      }
+      for (let i = 1; i <= rightN; i++) {
+        const bx = cxMid + i * branchSpacing;
+        nodeG.poly([bx, ry - branchSize, bx + branchSize, ry, bx, ry + branchSize, bx - branchSize, ry])
+          .stroke({ color: COL_KEY, width: 1, alpha: baseAlpha * 0.7 });
+      }
+      this.infoArea.addChild(nodeG);
+
+      // BOSS — 중앙, ◈ 강조 (Final 은 적색)
+      const bossG = new Graphics();
+      const bossColor = isFinal ? 0xff4d4d : COL_KEY;
+      const bossSize = isFinal ? 5 : 4;
+      bossG.poly([cxMid, ry - bossSize, cxMid + bossSize, ry, cxMid, ry + bossSize, cxMid - bossSize, ry])
+        .fill({ color: bossColor, alpha: baseAlpha });
+      bossG.poly([cxMid, ry - 1.5, cxMid + 1.5, ry, cxMid, ry + 1.5, cxMid - 1.5, ry])
+        .fill({ color: 0x1a1a1a, alpha: baseAlpha });
+      this.infoArea.addChild(bossG);
+    }
+
+    // HERE 커서 — 다음 진행 stratum 의 *직전 dive 라인* 에 표시 (중앙 column)
+    if (nextStratum > 1 && nextStratum <= totalStrata) {
+      const hereY = cy0 + (nextStratum - 1) * graphRowH - Math.floor(graphRowH / 2);
+      const hereG = new Graphics();
+      hereG.circle(cxMid, hereY, 4).stroke({ color: 0xbcd0e0, width: 1, alpha: 0.6 });
+      hereG.poly([cxMid - 2, hereY - 1, cxMid + 2, hereY - 1, cxMid, hereY + 2.5])
+        .fill({ color: 0xe0eaf2 });
+      this.infoArea.addChild(hereG);
+    }
   }
 
   private redrawAnvilPulse(): void {
@@ -824,6 +1039,39 @@ export class InventoryUI {
     }
   }
 
+  /**
+   * 아이템 + stratum 의 RoomGraph 생성 (캐시). ItemWorldScene 과 동일 시드/archetype
+   * 으로 *결정적* 결과 — anvil 에서 보이는 미니맵 = dive 후 실제 룸 배치.
+   */
+  private buildStratumGraph(item: ItemInstance, stratumIndex: number): RoomGraphData | null {
+    const key = `${item.uid}:${stratumIndex}`;
+    if (this.roomGraphCache.has(key)) return this.roomGraphCache.get(key) ?? null;
+    const cfg = STRATA_BY_RARITY[item.rarity];
+    const def = cfg.strata[stratumIndex];
+    if (!def) { this.roomGraphCache.set(key, null); return null; }
+    try {
+      const arch = archetypeFor(item.def.temperamentPrimary, item.def.temperamentSecondary);
+      const graph = generateRoomGraph(def, item.uid, stratumIndex, undefined, arch);
+      this.roomGraphCache.set(key, graph);
+      return graph;
+    } catch {
+      this.roomGraphCache.set(key, null);
+      return null;
+    }
+  }
+
+  /**
+   * ITEM MAP — L1~L5 stratum 미니맵 5단 스택 (위=L5, 아래=L1).
+   * v2 (2026-05-24): placeholder 폐기, 단계별 mini-map cards 구현.
+   *
+   * 가시 정책:
+   *   - 아이템 rarity 별 stratum 수만 *활성* (Normal=1, Magic=2, ..., Ancient=5)
+   *   - 도달한 stratum (deepestUnlocked) = 진하게 + room mock 표시
+   *   - 다음 진행 stratum (= deepestUnlocked+1) = 골드 outline 강조
+   *   - 미도달/미보유 = 옅음 + outline 만
+   *
+   * 향후 후속 단계: RoomGraph 실제 데이터로 mock 교체. 현재는 시각 위계만.
+   */
   private drawStratumMinimap(): void {
     let y = 0;
     const W = STATUS_W - 6;
@@ -833,16 +1081,136 @@ export class InventoryUI {
     this.statusArea.addChild(header);
     y += 14;
 
-    const mapH = PANEL_H - CONTENT_START_Y - 20;
-    const mapG = new Graphics();
-    mapG.rect(2, y, W, mapH).fill({ color: 0x0a0a12, alpha: 0.8 });
-    mapG.rect(2, y, W, mapH).stroke({ color: COL_BORDER, width: 1 });
-    this.statusArea.addChild(mapG);
+    // 선택된 아이템 (anvil placed 우선, 그 외 grid 선택)
+    const item = this.anvilItem ?? this.filteredItems()[this.selectedIndex];
+    if (!item) {
+      const ph = createUiText('—', { fontSize: 8, fill: COL_LOCKED });
+      ph.x = 2 + Math.floor((W - ph.width) / 2);
+      ph.y = y + 20;
+      this.statusArea.addChild(ph);
+      return;
+    }
 
-    const ph = createUiText('—', { fontSize: 8, fill: COL_LOCKED });
-    ph.x = 2 + Math.floor((W - ph.width) / 2);
-    ph.y = y + Math.floor(mapH / 2) - 4;
-    this.statusArea.addChild(ph);
+    // Stratum 수 — Ancient 는 4 + ABYSS 라 5 단으로 표시
+    const totalStrata = ({
+      normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 5,
+    } as const)[item.rarity] ?? 1;
+    const reached = item.worldProgress?.deepestUnlocked ?? 0;
+    const next = Math.min(reached + 1, totalStrata); // 다음 진행 대상 L
+
+    // 5단 카드 — 위 L1 → 아래 L5 (깊은 지층이 아래, 2026-05-24 사용자 결정).
+    const totalH = PANEL_H - CONTENT_START_Y - 20;
+    const cardGap = 2;
+    const cardH = Math.floor((totalH - cardGap * 4) / 5);
+    const cardW = W;
+
+    for (let L = 1; L <= 5; L++) {
+      const cardY = y + (L - 1) * (cardH + cardGap);
+      const isAvailable = L <= totalStrata;
+      const isReached = L <= reached;
+      const isNext = isAvailable && L === next && !isReached;
+
+      const card = new Graphics();
+      const fillAlpha = isAvailable ? 0.8 : 0.4;
+      card.rect(2, cardY, cardW, cardH).fill({ color: 0x0a0a12, alpha: fillAlpha });
+      const borderColor = isNext ? COL_KEY : (isAvailable ? COL_BORDER : COL_LOCKED);
+      const borderWidth = isNext ? 2 : 1;
+      card.rect(2, cardY, cardW, cardH).stroke({ color: borderColor, width: borderWidth });
+
+      // 실제 RoomGraph 데이터 → topology 미니맵 (수직/수평 무관 가로 펼침).
+      // 사용자 결정 2026-05-24: 공간 좌표(layout.x/y) 대신 *연결 구조* 기반.
+      //   x = depth (왼→오), y = branchIndex (CP=중앙, L=위, R=아래, dead=±2)
+      if (isAvailable) {
+        const graph = this.buildStratumGraph(item, L - 1);
+        if (graph) {
+          const mapPadX = 16;       // 좌측은 L 라벨 자리
+          const mapPadY = 3;
+          const mapX0 = 2 + mapPadX;
+          const mapY0 = cardY + mapPadY;
+          const mapW = cardW - mapPadX - 6;
+          const mapH = cardH - mapPadY * 2;
+
+          // 1) 각 노드의 topology 좌표 계산 (depth, branch-derived row)
+          const topo = new Map<string, { tx: number; ty: number }>();
+          let minTx = 0, maxTx = 0, minTy = 0, maxTy = 0;
+          for (const [id, n] of graph.nodes) {
+            const tx = n.depth;
+            let ty = 0;
+            if (n.role === 'hub') { ty = 0; }
+            else if (n.role === 'boss') { ty = 0; }       // CP 끝 — 중앙 행
+            else if (n.role === 'shrine') { ty = 1; }      // hub 옆 아래
+            else if (n.branchIndex === 0) { ty = 0; }      // CP
+            else if (n.branchIndex === 1) { ty = -1; }     // Left branch → 위
+            else if (n.branchIndex === 2) { ty = 1; }      // Right branch → 아래
+            else if (n.branchIndex === 3) {
+              // Dead-end branch — id 의 b.N 으로 위/아래 stagger
+              const m = id.match(/^b\.(\d+)/);
+              const k = m ? parseInt(m[1], 10) : 0;
+              ty = (k % 2 === 0) ? -2 : 2;
+            }
+            topo.set(id, { tx, ty });
+            if (tx < minTx) minTx = tx;
+            if (tx > maxTx) maxTx = tx;
+            if (ty < minTy) minTy = ty;
+            if (ty > maxTy) maxTy = ty;
+          }
+
+          const xSpan = (maxTx - minTx) + 1;
+          const ySpan = (maxTy - minTy) + 1;
+          const cellPx = Math.max(2, Math.floor(Math.min(mapW / xSpan, mapH / ySpan)));
+          // 중앙 정렬 offset
+          const usedW = cellPx * xSpan;
+          const usedH = cellPx * ySpan;
+          const offX = mapX0 + Math.floor((mapW - usedW) / 2);
+          const offY = mapY0 + Math.floor((mapH - usedH) / 2);
+          const toPx = (id: string) => {
+            const p = topo.get(id)!;
+            return {
+              cx: offX + (p.tx - minTx + 0.5) * cellPx,
+              cy: offY + (p.ty - minTy + 0.5) * cellPx,
+            };
+          };
+          const dim = isReached || isNext;
+          const baseAlpha = dim ? 1 : 0.5;
+
+          // 1) Corridors — 노드 간 연결 통로. 셀 폭의 ~30% 두께. 방 먼저 그리면 위에 덮이니
+          //    corridor 를 *먼저* 그려 방이 corridor 끝에 자연스럽게 박힘.
+          const corridorColor = isReached ? 0x3a5060 : (isNext ? 0x5a3a14 : 0x2a2a34);
+          const corridorW = Math.max(1, Math.floor(cellPx * 0.35));
+          for (const e of graph.edges) {
+            if (!graph.nodes.has(e.a) || !graph.nodes.has(e.b)) continue;
+            const ap = toPx(e.a);
+            const bp = toPx(e.b);
+            card.moveTo(ap.cx, ap.cy).lineTo(bp.cx, bp.cy)
+              .stroke({ color: corridorColor, width: corridorW, alpha: baseAlpha });
+          }
+
+          // 2) Rooms — 셀 폭의 ~70% 사각형. role 별 색.
+          const roomSize = Math.max(2, Math.floor(cellPx * 0.7));
+          const half = Math.floor(roomSize / 2);
+          for (const [id, n] of graph.nodes) {
+            const { cx, cy } = toPx(id);
+            let color = isReached ? 0x4a6a8a : (isNext ? 0x8a6a3a : 0x4a4a55);
+            if (n.role === 'boss') color = 0xff4d4d;
+            else if (n.role === 'hub') color = COL_KEY;
+            else if (n.role === 'shrine') color = 0xeeeeee;
+            const rx = Math.round(cx - half);
+            const ry = Math.round(cy - half);
+            card.rect(rx, ry, roomSize, roomSize).fill({ color, alpha: baseAlpha });
+            // 어두운 outline 으로 방 분리
+            card.rect(rx, ry, roomSize, roomSize).stroke({ color: 0x0a0a12, width: 1, alpha: baseAlpha });
+          }
+        }
+      }
+      this.statusArea.addChild(card);
+
+      // L 라벨 (좌상단)
+      const labelColor = isNext ? COL_KEY : (isAvailable ? COL_DIM : COL_LOCKED);
+      const label = createUiText(`S${L}`, { fontSize: 8, fill: labelColor });
+      label.x = 5;
+      label.y = cardY + 2;
+      this.statusArea.addChild(label);
+    }
   }
 
   // ── Anvil internal ────────────────────────────────────────────────────────────

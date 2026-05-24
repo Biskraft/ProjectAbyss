@@ -2,10 +2,14 @@
  * loreWeapons.ts — Hand-placed lore weapon definitions.
  *
  * SSoT:
- *   - Sheets/Content_Stats_Weapon_Lore.csv  (stats/meta)
- *   - Sheets/LoreTexts/{weaponId}.md        (prose, frontmatter + body)
+ *   - Sheets/Content_Stats_Weapon_Lore.csv      (stats/meta)
+ *   - Sheets/LoreTexts/Weapons/{weaponId}.md    (prose, frontmatter + body)
  *
- * Rationale: Sheets_Writing_Rules mandate CSV for structured data.  The
+ * 2026-05-24: LoreTexts 정리에 따라 Lore 무기 MD 는 `LoreTexts/Weapons/` 하위로 이동.
+ *   - 같은 LoreTexts 상위 폴더의 `Fragments/` 는 DEC-046 Memory Fragment 시스템 전용
+ *     (fragments.ts 가 별도 로드). 두 종류는 *컨벤션이 다르므로* 디렉토리로 분리.
+ *
+ * Rationale: Sheets_Writing_Rules mandate CSV for structured data. The
  * long-form lore prose doesn't fit a CSV cell (multi-paragraph, quotes,
  * italics), so we keep it alongside as sibling MD files referenced by
  * LorePath. Vite `import.meta.glob('?raw')` bundles them at build time.
@@ -22,9 +26,10 @@ import type { Rarity, WeaponType } from './weapons';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from './weapons';
 import { t } from '@i18n';
 
-// Eagerly bundle every lore MD file so resolution is synchronous.
+// Eagerly bundle every lore weapon MD file under LoreTexts/Weapons/.
+// Note: Sibling LoreTexts/Fragments/ 는 DEC-046 fragments.ts 가 별도 로드 (의도된 분리).
 const loreMarkdownBundle = import.meta.glob(
-  '../../../Sheets/LoreTexts/*.md',
+  '../../../Sheets/LoreTexts/Weapons/*.md',
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -71,8 +76,8 @@ function stripFrontmatter(md: string): string {
 
 /** Resolve a Sheets-relative lore path to its bundled markdown body. */
 function resolveLoreBody(lorePath: string): string | null {
-  // lorePath is e.g. "LoreTexts/shaft_survey_compass.md" (relative to Sheets/).
-  // Glob keys look like "../../../Sheets/LoreTexts/shaft_survey_compass.md".
+  // lorePath is e.g. "LoreTexts/Weapons/shaft_survey_compass.md" (relative to Sheets/).
+  // Glob keys look like "../../../Sheets/LoreTexts/Weapons/shaft_survey_compass.md".
   const key = Object.keys(loreMarkdownBundle).find(k => k.endsWith('/' + lorePath));
   if (!key) return null;
   return stripFrontmatter(loreMarkdownBundle[key]);
