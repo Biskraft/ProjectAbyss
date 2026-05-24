@@ -6,6 +6,7 @@ import type { PauseMenu } from '@ui/PauseMenu';
 import type { DeathScreen } from '@ui/DeathScreen';
 import type { TutorialHint } from '@ui/TutorialHint';
 import type { InventoryUI } from '@ui/InventoryUI';
+import type { IdentityArchive } from '@ui/IdentityArchive';
 import type { WorldMapOverlay } from '@ui/WorldMapOverlay';
 import type { ToastManager } from '@ui/Toast';
 
@@ -15,6 +16,7 @@ interface WorldUiControllerDeps {
   deathScreen: DeathScreen;
   tutorialHint: TutorialHint;
   inventoryUI: InventoryUI;
+  identityArchive: IdentityArchive | null;
   worldMap: WorldMapOverlay;
   toast: ToastManager;
   minimap: Container | null;
@@ -159,8 +161,36 @@ export class WorldUiController {
 
   handleInventoryInput(): InventoryInputResult {
     const input = this.game.input;
-    const { inventoryUI } = this.deps;
+    const { inventoryUI, identityArchive } = this.deps;
 
+    // === DEC-046 Identity Archive 진입 처리 (Z 키 = JUMP 액션 매핑) ===
+    // 인벤토리가 열린 상태이고 archive가 닫힌 상태에서 Z 키 입력 시 진입.
+    // archive가 열린 상태에서 키 처리는 별도 (handleIdentityArchiveInput).
+    if (identityArchive && !identityArchive.visible && input.isJustPressed(GameAction.JUMP)) {
+      const item = inventoryUI.getSelectedItem?.();
+      input.consumeJustPressed(GameAction.JUMP);
+      if (item) identityArchive.showForItem(item);
+      else identityArchive.show();
+      return 'none';
+    }
+
+    // Identity Archive 활성 시 — 자체 키 처리로 위임 (인벤토리 키는 무시)
+    if (identityArchive?.visible) {
+      if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
+        identityArchive.hide();
+      } else if (input.isJustPressed(GameAction.LOOK_UP)) {
+        identityArchive.navigateCategory(-1);
+      } else if (input.isJustPressed(GameAction.LOOK_DOWN)) {
+        identityArchive.navigateCategory(1);
+      } else if (input.isJustPressed(GameAction.MOVE_LEFT)) {
+        identityArchive.navigateCharacter(-1);
+      } else if (input.isJustPressed(GameAction.MOVE_RIGHT)) {
+        identityArchive.navigateCharacter(1);
+      }
+      return 'none';
+    }
+
+    if (input.isJustPressed(GameAction.STATUS)) inventoryUI.cycleFilter();
     if (input.isJustPressed(GameAction.MOVE_LEFT)) inventoryUI.navigate('left');
     if (input.isJustPressed(GameAction.MOVE_RIGHT)) inventoryUI.navigate('right');
     if (input.isJustPressed(GameAction.LOOK_UP)) inventoryUI.navigate('up');
@@ -170,10 +200,6 @@ export class WorldUiController {
       const wasAnvilMode = inventoryUI.isAnvilMode();
       inventoryUI.confirmSelected();
       if (!wasAnvilMode) return 'confirmed_equipment_change';
-    }
-
-    if (input.isJustPressed(GameAction.JUMP)) {
-      inventoryUI.toggleCompare();
     }
 
     if (input.isJustPressed(GameAction.MENU)) {

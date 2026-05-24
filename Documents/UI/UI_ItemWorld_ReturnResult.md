@@ -1,10 +1,19 @@
-# UI_ItemWorld_ReturnResult.md — 아이템계 보스/레벨업/귀환 결과
+# UI_ItemWorld_ReturnResult.md — 아이템계 보스/Fragment 해금/귀환 결과
 
 > **작성일:** 2026-04-21
+> **최종 재설계:** 2026-05-24 (DEC-046 Memory Recovery 패러다임 반영)
 > **베이스 해상도:** 640x360 (3x @1080p = 1920x1080)
-> **문서 상태:** Draft
+> **문서 상태:** Draft (DEC-046 핵심 변경 적용)
 > **2-Space:** Item World (아이템계) → World (귀환)
 > **기둥:** 야리코미 (주)
+
+> **DEC-046 핵심 변경 (2026-05-24):**
+> - "지층 클리어 레벨업 팝업 (RR-02)" → "**Memory Fragment 해금 팝업**" 으로 재정의
+> - 레벨 카운트업 → **Recovery % 게이지 채움 + 이름 진화 연출**
+> - "스탯 변화 +N" → **Fragment 문장 + 정체성 결 가동 표시**
+> - "기억 단편 복종 (Subdued)" → **폐기** (5색 기질 단편 시스템 폐기)
+> - 귀환 결과 화면 (RR-03)에 **"이번 다이브에서 만난 인생 1명"** 섹션 신규 추가
+> - 사망 결과 화면 (RR-04)의 "기억 단편 LOST" → **"Fragment 미해금"** (이미 해금된 Fragment는 영구 보존이므로 손실 없음)
 
 ---
 
@@ -13,9 +22,9 @@
 | 항목 | ID | 우선순위 | 상태 | 비고 |
 |:---|:---|:---:|:---|:---|
 | 보스 등급 표시 (Boss Grade Display) | RR-01 | P0 | 미구현 | 기존 보스 HP 바 위에 Grade Label 추가 |
-| 지층 클리어 레벨업 팝업 (Level-up Popup) | RR-02 | P1 | 미구현 | 보스 처치 직후 팝업 |
-| 귀환 결과 화면 — 정상 완료/Mr. Gency (Return Result) | RR-03 | P1 | 미구현 | 야리코미 루프 결산 화면 |
-| 귀환 결과 화면 — 사망 변형 (Death Variant) | RR-04 | P1 | 미구현 | 진행 소멸 패널티 전달 |
+| **Memory Fragment 해금 팝업** | RR-02 | P0 | 미구현 | (DEC-046) 보스 처치 직후 — 문장 + Recovery 게이지 + 이름 진화 |
+| 귀환 결과 화면 — Dive Complete | RR-03 | P1 | 미구현 | (DEC-046) 인물 카드 + 해금 Fragment + Recovery 최종 |
+| 귀환 결과 화면 — 사망 변형 (Death Variant) | RR-04 | P1 | 미구현 | (DEC-046) 미해금 Fragment 표시, 이미 해금된 Fragment는 보존 |
 | Mr. Gency Exit 확인 UI | RR-05 | P1 | 미구현 | 2-버튼 확인 다이얼로그 |
 
 ---
@@ -122,38 +131,42 @@ Grade Label: fontSize 8, 색상은 위 표의 등급별 색상 적용.
 
 ---
 
-### 3.2 지층 클리어 레벨업 팝업 (Stratum Clear Level-up Popup) — RR-02
+### 3.2 Memory Fragment 해금 팝업 (Fragment Unlock Popup) — RR-02 (DEC-046)
 
 #### 3.2.1 개요
 
-보스 처치 후 아이템이 레벨업할 때 즉각 표시되는 오버레이 팝업이다. 지층 클리어의 물질적 보상(레벨+스탯 증가)을 순간적으로 확인시킨다. 자동 닫기 가능하며 [Z]로 조기 닫기도 가능하여 반복 플레이를 방해하지 않는다.
+> **2026-05-24 전면 재정의 (DEC-046):** "레벨업 팝업"은 폐기. 보스 처치 즉각 표시되는 새 팝업은 *Memory Fragment 1개의 문장 해금* + *Recovery 게이지 진행* + *이름 진화* + *정체성 결 가동* 의 4단 연출이다.
 
-#### 3.2.2 레이아웃 다이어그램
+보스 처치 후 아이템이 *한 사람의 인생의 다음 페이지를 펼친 순간* 표시되는 오버레이 팝업이다. 강화 보상 확인이 아니라 *복원 의례* 다.
+
+자동 닫기 가능하며 [Z]로 조기 닫기도 가능하여 반복 플레이를 방해하지 않는다.
+
+#### 3.2.2 레이아웃 다이어그램 (DEC-046)
 
 ```
 640x360 화면 중앙 오버레이
 
-┌──────────────────────────────────────────────┐
-│ 반투명 검정 오버레이 alpha 0.5                │
-│                                               │
-│       ╔══[ STRATUM CLEARED! ]══╗             │
-│       ║                        ║             │
-│       ║  Iron Blade            ║  (레어리티 색상 텍스트)
-│       ║  Lv.3 -> Lv.4          ║  (골드 #FFD700)
-│       ║                        ║             │
-│       ║  ATK:  45 -> 52  (+7)  ║  (초록 #22DD44)
-│       ║  INT:   0 ->  0        ║  (회색 #666666, 변화 없음)
-│       ║                        ║             │
-│       ║  ATK Boost Lv.2        ║  (기억 단편 복종 시만 표시)
-│       ║  Memory Shard Subdued!     ║  (초록 #22DD44)
-│       ║                        ║             │
-│       ║  [Z] Continue          ║             │
-│       ╚════════════════════════╝             │
-│                                               │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ 반투명 검정 오버레이 alpha 0.5                    │
+│                                                   │
+│   ╔══[ MEMORY RECOVERED ]══════════════════╗     │
+│   ║                                          ║   │
+│   ║  Unknown Wedge → Survey Tool             ║   │ (이전 이름 → 새 이름)
+│   ║                                          ║   │
+│   ║  ▸ "두드리고 듣는다.                     ║   │ (Fragment 텍스트, 타자기 등장)
+│   ║     그게 전부였어."                      ║   │
+│   ║                                          ║   │
+│   ║  Recovery: ████████░░░░ 25%             ║   │ (게이지 채움 애니메이션)
+│   ║                                          ║   │
+│   ║  공명의 결 (Resonance Trait) — 가동       ║   │ (Identity Trait 알림)
+│   ║                                          ║   │
+│   ║  [Z] Continue                            ║   │
+│   ╚══════════════════════════════════════════╝   │
+│                                                   │
+└──────────────────────────────────────────────────┘
 
-패널 크기: 240x100px
-패널 위치: x=200, y=130 (640x360 기준 중앙, Math.floor((640-240)/2), Math.floor((360-100)/2))
+패널 크기: 280x130px
+패널 위치: x=180, y=115 (Math.floor((640-280)/2), Math.floor((360-130)/2))
 ```
 
 #### 3.2.3 패널 사양
@@ -168,19 +181,21 @@ Grade Label: fontSize 8, 색상은 위 표의 등급별 색상 적용.
 | 패딩 | 8px (상하좌우) |
 | 오버레이 | 전체 화면 #000000, alpha 0.5 |
 
-#### 3.2.4 콘텐츠 라인 사양
+#### 3.2.4 콘텐츠 라인 사양 (DEC-046)
 
 | 라인 | 내용 | 색상 | fontSize |
 |:---|:---|:---|:---|
-| 아이템명 | 아이템 이름 (예: "Iron Blade") | 레어리티 색상 (`RARITY_COLOR[rarity]`) | 8 |
-| 레벨 변화 | "Lv.N -> Lv.M" | #FFD700 (골드) | 8 |
-| 스탯 변화 | "ATK: X -> Y  (+Z)" | 증가 시 #22DD44 (초록), 변화 없음 #666666 | 7 |
-| 기억 단편 복종 | "[기억 단편명] Lv.N  Memory Shard Subdued!" | #22DD44 (초록) | 7 |
-| 닫기 안내 | "[Z] Continue" | #AAAAAA | 6 |
+| 이름 진화 | `"Unknown Wedge → Survey Tool"` (Stage 변경 시) / 동일 Stage 시 `"Survey Tool"` 단일 표시 | 레어리티 색 / 양쪽 모두 | 8 |
+| Fragment 텍스트 | `"▸ \"두드리고 듣는다. 그게 전부였어.\""` (한 문장, 길면 2-3줄로 자동 분할) | #FFFFFF | 9 (강조) |
+| Recovery 게이지 | `"Recovery: ████████░░░░ 25%"` 시각 막대 + % 텍스트 (애니메이션) | Stage 색 (0=회색 / 4=레어리티 색) | 7 |
+| Identity Trait 가동 | `"공명의 결 (Resonance Trait) — 가동"` (Stage 변경 시만) | #FFD700 (골드) | 7 |
+| 닫기 안내 | `[Z] Continue` (KeyPrompt 글리프) | #AAAAAA | 6 |
 
-스탯 변화 라인은 레벨업으로 실제 변화한 스탯만 표시한다. 0 변화 라인은 표시하지 않는다. 단 ATK와 INT는 0이라도 항상 표시한다(게이트 달성 여부 추적용).
-
-기억 단편 라인은 해당 지층 탐색 중 복종(Tamed)시킨 기억 단편가 1개 이상 있을 때만 표시한다. 2개 이상이면 "N Memory Shards Subdued!" 단일 라인으로 요약한다.
+> **폐기된 라인:** "Lv.N → Lv.M" (레벨 시스템 폐기), "ATK X → Y (+Z)" (수치 변화는 STATUS 칼럼으로), "Memory Shard Subdued!" (5색 기질 단편 폐기).
+>
+> **Stage 변경 vs 동일 Stage 처리:**
+> - Stage 변경 시 (Recovery가 25%/50%/75%/100% 경계 통과): 이름 진화 + Trait 가동 알림 *함께* 표시
+> - 동일 Stage 내 (예: 50% → 60% 점진 진행, 보스 미처치): Fragment 해금 없음 → 팝업 자체가 표시되지 않음 (점진 누적은 HUD 게이지로만 반영)
 
 #### 3.2.5 트리거 및 닫기 규칙
 
@@ -214,7 +229,7 @@ Grade Label: fontSize 8, 색상은 위 표의 등급별 색상 적용.
 
 이것은 ECHORIS에서 가장 중요한 단일 UI 화면이다. 이 화면의 만족도가 다음 다이브 결정을 좌우한다.
 
-#### 3.3.2 레이아웃 다이어그램
+#### 3.3.2 레이아웃 다이어그램 (DEC-046)
 
 ```
 640x360 전체 화면 (게임 화면 없음, 순수 결과 화면)
@@ -224,36 +239,35 @@ Grade Label: fontSize 8, 색상은 위 표의 등급별 색상 적용.
 │                                                                   │
 │     ╔═══════════════[ DIVE COMPLETE ]═══════════════╗            │
 │     ║                                               ║            │
-│     ║  ┌─ ITEM ───────────────────────────────┐    ║            │
-│     ║  │  Iron Blade                 RARE      │    ║  (레어리티 색상 테두리)
-│     ║  │  Lv.1 -> Lv.4   (+3 levels)          │    ║            │
-│     ║  │  Cycle: 1 -> 2                        │    ║  (재사이클 시만)
+│     ║  ┌─ A LIFE RECOVERED ───────────────────┐    ║            │
+│     ║  │  Surveyor's Echo Wedge        MAGIC   │    ║  (레어리티 색상 테두리)
+│     ║  │  Bulkhead Survey Guild                │    ║  (직업/소속)
+│     ║  │  Recovery: ████████████████ 100%      │    ║  (게이지 풀)
 │     ║  └──────────────────────────────────────┘    ║            │
 │     ║                                               ║            │
-│     ║  -- STAT CHANGES --------------------------   ║            │
-│     ║  ATK:   30 -> 52  (+22)   [^]               ║            │
-│     ║  INT:    0 ->  0  ( +0)                      ║            │
-│     ║  HP:     0 -> 10  (+10)   [^]               ║            │
+│     ║  -- MEMORY FRAGMENTS RECOVERED ------------   ║            │
+│     ║  ▸ "두드리고 듣는다. 그게 전부였어."          ║            │
+│     ║  ▸ "균열은 거짓말을 하지 않아. 사람만..."     ║            │
+│     ║  ▸ "위에 있는 사람들은 보고서를..."           ║            │
+│     ║  ▸ "보고하지 않은 건 비밀이어서가 아니야.     ║  (Fire 모멘트, 강조)
+│     ║     끝을 보고 싶었을 뿐이야."                 ║            │
 │     ║                                               ║            │
-│     ║  -- MEMORY_SHARDS ------------------------------  ║            │
-│     ║  [*] ATK Boost Lv.3   NEW! Subdued           ║  (초록)
-│     ║  [!] HP Boost Lv.2    Wild                   ║  (빨강)
+│     ║  -- IDENTITY TRAITS ACTIVE --------------     ║            │
+│     ║  ● 공명의 결                                  ║            │
+│     ║  ● 끝을 보는 결                                ║            │
+│     ║  ● 측량사의 정체성 핵                          ║            │
 │     ║                                               ║            │
-│     ║  -- STRATA PROGRESS ------------------------  ║            │
-│     ║  [V] Stratum 1   [V] Stratum 2               ║            │
-│     ║  [ ] Stratum 3                                ║            │
-│     ║                                               ║            │
-│     ║  -- LOOT -----------------------------------  ║            │
-│     ║  Gold earned:   1,250                         ║            │
-│     ║  Items found:   3                             ║            │
+│     ║  -- LOOT ----------------------------------   ║            │
+│     ║  HL earned:    1,250                          ║            │
+│     ║  Items found:  3                              ║            │
 │     ║                                               ║            │
 │     ║  [Z] Continue                                 ║            │
 │     ╚═══════════════════════════════════════════════╝            │
 │                                                                   │
 └──────────────────────────────────────────────────────────────────┘
 
-패널 크기: 400x260px
-패널 위치: x=120, y=50 (Math.floor((640-400)/2), Math.floor((360-260)/2))
+패널 크기: 400x290px (DEC-046로 30px 확장 — Fragment 텍스트 영역)
+패널 위치: x=120, y=35 (중앙 정렬)
 ```
 
 #### 3.3.3 패널 사양
@@ -269,70 +283,99 @@ Grade Label: fontSize 8, 색상은 위 표의 등급별 색상 적용.
 | 타이틀 | "DIVE COMPLETE", fontSize 9, #FFFFFF |
 | 섹션 구분선 | #333355, 1px 가로선 |
 
-#### 3.3.4 ITEM 섹션
+> **DEC-046 섹션 매핑:**
+> 구 `ITEM` 섹션 → 신 `A LIFE RECOVERED` 섹션 (이름/직업/Recovery)
+> 구 `STAT CHANGES` 섹션 → 폐기 (수치는 부산물, STATUS 칼럼으로)
+> 구 `MEMORY_SHARDS` 섹션 → 신 `MEMORY FRAGMENTS RECOVERED` 섹션 (문장 컬렉션)
+> 구 `STRATA PROGRESS` 섹션 → 폐기 (Recovery 게이지로 흡수)
+> 신 `IDENTITY TRAITS ACTIVE` 섹션 추가 (가동된 결 목록)
+> 구 `LOOT` 섹션 → 유지
+
+#### 3.3.4 A LIFE RECOVERED 섹션 (구 ITEM 섹션, DEC-046 재정의)
 
 ```
-┌─ ITEM ───────────────────────────────────┐   ← 보더 색상 = RARITY_COLOR[rarity], 1px
-│  Iron Blade                     RARE     │   ← 아이템명 left-align, 레어리티 right-align
-│  Lv.1 -> Lv.4   (+3 levels)             │   ← 레벨 변화, #FFD700
-│  Cycle: 1 -> 2                           │   ← 재사이클 발생 시만 표시
+┌─ A LIFE RECOVERED ───────────────────────┐   ← 보더 색상 = RARITY_COLOR[rarity], 1px
+│  Surveyor's Echo Wedge         MAGIC     │   ← 진명 (Stage 4) + 레어리티 배지
+│  Bulkhead Survey Guild                   │   ← 직업/소속 (Stage 2부터)
+│  Recovery: ████████████████ 100%         │   ← Recovery 게이지 풀
+│  Re-Dive: 0/3                            │   ← Re-Dive 카운터 (100% 도달 후만 표시)
 └──────────────────────────────────────────┘
 ```
 
 | 요소 | 색상 | fontSize |
 |:---|:---|:---|
-| 아이템명 | 레어리티 색상 (`RARITY_COLOR[rarity]`) | 8 |
+| 표시 이름 | 레어리티 색상 (`RARITY_COLOR[rarity]`) | 8 |
 | 레어리티 배지 | 레어리티 색상 | 7 |
-| 레벨 변화 라인 | #FFD700 (골드) | 8 |
-| Cycle 라인 | #AAAAAA (회색) | 7 |
+| 직업/소속 라인 | #FFFFFF | 7 |
+| Recovery 게이지 | Stage 색 (0=회색 / 4=레어리티 색) | 시각 막대 + 8px % |
+| Re-Dive 카운터 | #AAAAAA (회색) | 6 |
 
-레벨 변화에서 "+N levels" 텍스트는 레벨 차이를 표시한다. 1레벨 증가 시 "Lv.1 -> Lv.2  (+1 level)", 복수 시 "+N levels".
+> **이름 표시 규칙:** 이번 다이브에서 Stage가 변경된 경우(예: Stage 2 → Stage 4) `"Guild Survey Tool → Surveyor's Echo Wedge"` 형식 양쪽 표시. 변경 없으면 현재 이름 단일 표시.
+>
+> **Recovery 게이지:** 다이브 시작 Recovery → 종료 Recovery 변화를 *애니메이션* 으로 표시. 예: 50% → 100% 진행 시 막대가 절반에서 시작하여 풀까지 채워짐.
+>
+> **Re-Dive 카운터:** Recovery 100% 도달 후만 표시. `0/3` 부터 시작. 1차 Re-Dive 완료 시 `1/3` 으로 갱신.
 
-Cycle 라인은 이번 다이브 중 재사이클이 발생한 경우에만 표시한다. 재사이클 미발생 시 라인 없음.
+#### 3.3.5 ~~STAT CHANGES~~ → 폐기 (DEC-046)
 
-#### 3.3.5 STAT CHANGES 섹션
+> STAT CHANGES 섹션은 폐기. 수치 변화는 *부산물* 이며 STATUS 칼럼(인벤토리 우측)에서 *상시* 확인 가능. 귀환 결과 화면은 *서사 보상* 에 집중.
+>
+> 이전 콘텐츠 매핑:
+> - `ATK: 30 -> 52 (+22)` → effective stat은 Recovery 100% 도달 시 자동 산정 (수치는 STATUS 칼럼)
+> - `INT: 0 -> 0` → 동일
+> - `HP: 0 -> 10 (+10)` → 동일
 
-```
--- STAT CHANGES --
-ATK:   30 -> 52  (+22)   [^]
-INT:    0 ->  0  ( +0)
-HP:     0 -> 10  (+10)   [^]
-```
+> **DEC-046 신규 섹션 — MEMORY FRAGMENTS RECOVERED (§3.3.6)**, **IDENTITY TRAITS ACTIVE (§3.3.7)** 으로 대체.
 
-| 조건 | 색상 |
-|:---|:---|
-| 증가 (+N > 0) | #22DD44 (초록) + [^] 상승 아이콘 |
-| 변화 없음 (+0) | #666666 (회색), [^] 없음 |
-| 감소 (이론상 발생 안 함) | #FF4444 (빨강) + [v] 하락 아이콘 |
-
-표시 스탯: ATK, INT, HP. 추후 스탯 추가 시 이 섹션에 순차 추가.
-
-수치 정렬: "ATK:" 레이블 우측 정렬 고정 폭(3글자), 수치는 우측 정렬(최대 4자리 가정), 화살표(->) 고정 위치, 델타 (+N) 우측 정렬. fontSize 7.
-
-#### 3.3.6 MEMORY_SHARDS 섹션
+#### 3.3.6 MEMORY FRAGMENTS RECOVERED 섹션 (DEC-046 신규)
 
 ```
--- MEMORY_SHARDS --
-[*] ATK Boost Lv.3   NEW! Subdued   ← 이번 다이브에서 새로 복종
-[!] HP Boost Lv.2    Wild           ← Wild 상태로 이번 다이브 종료
-[ ] DEF Boost Lv.1   Subdued        ← 이전 다이브에서 복종, 이번 변화 없음
+-- MEMORY FRAGMENTS RECOVERED --
+▸ "두드리고 듣는다. 그게 전부였어."
+▸ "균열은 거짓말을 하지 않아. 사람만 거짓말을 하지."
+▸ "위에 있는 사람들은 보고서를 원했어. 나는 답을 원했어."
+▸ "보고하지 않은 건 비밀이어서가 아니야.       ← Fire 모멘트 (강조)
+   끝을 보고 싶었을 뿐이야."
 ```
 
-| 아이콘 | 조건 | 색상 |
+| 요소 | 색상 | fontSize | 비고 |
+|:---|:---|:---|:---|
+| Fragment 텍스트 (일반) | #FFFFFF | 7 | 한 문장당 1-2줄 자동 분할 |
+| Fragment 텍스트 (Fire 모멘트 = Stage 4) | #FFFFFF + 글로우 효과 | 8 (강조) | 마지막 단편만 |
+| Re-Dive Fragment (다른 회차) | #AAAAAA (회색 톤) | 7 | 회차별 그룹화 |
+
+> **표시 규칙:**
+> - 이번 다이브에서 해금된 Fragment만 표시 (전체 누적 목록은 Identity Archive에서 확인)
+> - 1차 다이브: Stage 1-4 모든 Fragment (해금된 만큼)
+> - Re-Dive 1-3차: 해당 회차에서 새로 해금된 Fragment만
+> - 텍스트 등장 연출: *타자기* 처럼 한 글자씩 (속도 약 30 char/sec)
+> - Fire 모멘트(Stage 4 Fragment)는 *마지막에 별도 강조 등장*
+
+> **폐기된 표시:** Wild/Subdued/Empty 슬롯, ATK/HP Boost 레벨, "NEW! Subdued" 태그. 모두 5색 기질 단편 시스템 폐기에 따라 폐기.
+
+#### 3.3.7 IDENTITY TRAITS ACTIVE 섹션 (DEC-046 신규)
+
+```
+-- IDENTITY TRAITS ACTIVE --
+● 공명의 결           — 약점 노출 적에 ATK +12%
+● 끝을 보는 결        — 처치 시 ATK 5% 누적 (최대 25%)
+● 측량사의 정체성 핵   — 격벽 인접 시 INT +8%
+```
+
+| 요소 | 색상 | fontSize |
 |:---|:---|:---|
-| `[*]` | 이번 다이브에서 Tamed 전환 (NEW!) | #22DD44 (초록) |
-| `[!]` | Wild 상태로 슬롯에 존재 | #FF4444 (빨강) |
-| `[ ]` | 이미 Tamed, 이번 다이브 변화 없음 | #888888 (회색) |
+| 결 이름 | #FFD700 (골드) | 7 |
+| 효과 설명 | #AAAAAA (회색) | 6 |
 
-"NEW! Subdued" 태그는 이번 다이브(진입~귀환 사이)에서 Tamed 전환된 기억 단편에만 붙는다.
+> 가동된 결만 표시. Stage 1만 도달한 경우 1줄. Stage 4 도달 시 4줄 (Magic = 3줄 / Legendary = 4줄 / Ancient = 4줄+Abyss).
 
-기억 단편가 0개인 슬롯은 표시하지 않는다. 슬롯이 모두 비어 있으면 "No Memory Shards" 단일 회색 텍스트.
+#### 3.3.8 ~~STRATA PROGRESS~~ → 폐기 (DEC-046)
 
-레어리티별 슬롯 수(Normal 2 ~ Ancient 8)에 따라 표시 줄 수가 달라진다. Ancient(8슬롯)의 경우 공간 초과가 우려되므로 최대 6줄 표시, 나머지는 "+N more" 요약 처리한다.
+> STRATA PROGRESS 섹션은 폐기. 지층 클리어 상태는 Recovery 게이지(§3.3.4)로 흡수. 별도 표시 불필요.
+>
+> 이하 구 명세는 참고용:
 
-fontSize 7.
-
-#### 3.3.7 STRATA PROGRESS 섹션
+##### (DEPRECATED) STRATA PROGRESS 섹션
 
 ```
 -- STRATA PROGRESS --

@@ -37,7 +37,6 @@ export class ParallaxBackground {
   /** Accumulated offset to keep parallax continuous across room transitions. */
   private offsetX = 0;
   private offsetY = 0;
-
   constructor() {
     this.container = new Container();
     this.gradientLayer = new Container();

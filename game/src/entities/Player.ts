@@ -11,7 +11,7 @@ import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
 import { SWORD_DEFS, type Rarity, type WeaponDef, type WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
-import { BARE_HAND_ATK } from '@data/rarityConfig';
+// 2026-05-24: BARE_HAND_ATK import 제거 — 맨손 상태 폐기
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
@@ -201,7 +201,9 @@ export class Player extends Entity implements CombatEntity {
   // Stats
   hp = PlayerConst.BaseHp;
   maxHp = PlayerConst.BaseHp;
-  atk = PlayerConst.BaseAtk + BARE_HAND_ATK; // STR(Lv1) + bare hand
+  // 2026-05-24: 맨손 상태 제거. BARE_HAND_ATK 가산 폐기. 무기 미장착 시 ATK 0.
+  // updatePlayerAtk() 가 매 프레임 atk 를 재계산하므로 초기값은 placeholder.
+  atk = 0;
   def = PlayerConst.BaseDef;
   facingRight = true;
 
@@ -663,9 +665,23 @@ export class Player extends Entity implements CombatEntity {
     }
     // Carrier(GiantBuilder) 위 grounding 은 safe ground 로 기록하지 않는다.
     // 빌더가 이동/소실된 후 spike teleport 가 빈 공간을 가리키면 안 됨.
+    // 또한 좁은 틈(좌우 벽 압착 또는 머리 위 막힘) 안에 있으면 기록하지 않는다.
     if (this.grounded && this.hp > 0 && !this.onCarrier) {
-      this.lastSafeX = this.x;
-      this.lastSafeY = this.y;
+      const T = 16;
+      const cOffX = (this.width - this.collisionW) / 2;
+      const cOffY = this.height - this.collisionH;
+      const leftCol  = Math.floor((this.x + cOffX - 1) / T);
+      const rightCol = Math.floor((this.x + cOffX + this.collisionW) / T);
+      const headRow  = Math.floor((this.y + cOffY - 1) / T);
+      const bodyRow  = Math.floor((this.y + cOffY + this.collisionH / 2) / T);
+      const midCol   = Math.floor((this.x + this.width / 2) / T);
+      const squeezedH = isSolid(this.roomData[bodyRow]?.[leftCol] ?? 0) &&
+                        isSolid(this.roomData[bodyRow]?.[rightCol] ?? 0);
+      const squeezedV = isSolid(this.roomData[headRow]?.[midCol] ?? 0);
+      if (!squeezedH && !squeezedV) {
+        this.lastSafeX = this.x;
+        this.lastSafeY = this.y;
+      }
     }
     // Recharge ground dash after delay
     if (this.grounded && this.groundDashDelayTimer <= 0) {

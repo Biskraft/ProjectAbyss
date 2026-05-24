@@ -1,5 +1,5 @@
-/**
- * LdtkRenderer — renders parsed LDtk level data using PixiJS v8 sprites.
+﻿/**
+ * LdtkRenderer ??renders parsed LDtk level data using PixiJS v8 sprites.
  */
 
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
@@ -9,15 +9,13 @@ import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER, TILE_
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
 /**
- * Atlas 원색 보존 영역 (src 좌표, px 기준).
+ * Atlas ?먯깋 蹂댁〈 ?곸뿭 (src 醫뚰몴, px 湲곗?).
  *
- * 아틀라스 오른쪽 하단 구역에 배치된 해저드/신호 타일들(물/가시/바람/불 등)은
- * 색상 자체가 플레이어 커뮤니케이션 역할을 하므로 biome PaletteSwapFilter 에
- * 물들지 않도록 `specialLayer` 로 우회시킨다.
+ * ?꾪??쇱뒪 ?ㅻⅨ履??섎떒 援ъ뿭??諛곗튂???댁????좏샇 ??쇰뱾(臾?媛??諛붾엺/遺????
+ * ?됱긽 ?먯껜媛 ?뚮젅?댁뼱 而ㅻ??덉??댁뀡 ??븷???섎?濡?biome PaletteSwapFilter ?? * 臾쇰뱾吏 ?딅룄濡?`specialLayer` 濡??고쉶?쒗궓??
  *
- * IntGrid 값이 특수(2/4/5/6/8)가 아니더라도, tile.src 가 이 사각형 안에 들면
- * 무조건 specialLayer 로 간주. 아틀라스마다 색상 영역이 달라지면 이 상수만
- * 조정하면 된다.
+ * IntGrid 媛믪씠 ?뱀닔(2/4/5/6/8)媛 ?꾨땲?붾씪?? tile.src 媛 ???ш컖???덉뿉 ?ㅻ㈃
+ * 臾댁“嫄?specialLayer 濡?媛꾩＜. ?꾪??쇱뒪留덈떎 ?됱긽 ?곸뿭???щ씪吏硫????곸닔留? * 議곗젙?섎㈃ ?쒕떎.
  */
 const COLOR_TILE_MIN_SRC_X = 160;
 const COLOR_TILE_MIN_SRC_Y = 208;
@@ -33,7 +31,11 @@ const ENTITY_COLOR_FALLBACK = 0xffffff;
 const ENTITY_MARKER_SIZE = 6;
 
 export class LdtkRenderer {
-  /** Root container — add this to your scene. */
+  private static readonly textureSourceIds = new WeakMap<object, number>();
+  private static nextTextureSourceId = 1;
+  private static readonly tileTextureCache = new Map<string, Texture>();
+
+  /** Root container ??add this to your scene. */
   readonly container: Container;
 
   /** Background autoLayer tiles (rendered first / bottom). */
@@ -56,6 +58,16 @@ export class LdtkRenderer {
   /** Interior decoration tiles (no collision, rendered between walls and shadows). */
   readonly interiorLayer: Container;
 
+  /**
+   * BuilderInterior layer ??populated by renderBuilderInteriorLayer().
+   * Hidden (alpha=0) by default; the scene dissolves it to 1 when the player
+   * overlaps BuilderInterior IntGrid cells, revealing internal builder details.
+   */
+  readonly builderInteriorLayer: Container;
+
+  /** BuilderOutside decoration layer, rendered above BuilderInterior and below special/shadow overlays. */
+  readonly builderOutsideLayer: Container;
+
   /** Optional debug markers for entity positions. */
   private entityMarkers: Container;
 
@@ -67,12 +79,19 @@ export class LdtkRenderer {
     this.specialLayer = new Container();
     this.interiorLayer = new Container();
     this.shadowLayer = new Container();
+    this.builderInteriorLayer = new Container();
+    this.builderOutsideLayer = new Container();
     this.entityMarkers = new Container();
 
-    // Render order: bg → interior → walls → special (hazards) → shadows → entity markers
+    // Render order: bg -> interior -> walls/IntGrid -> BuilderOutside -> special -> shadows -> entity markers
+    // NOTE: builderInteriorLayer is intentionally NOT added here. The host scene
+    // attaches it above the entityLayer so the dissolved interior tiles render
+    // *in front of* the player/enemies (revealing internal builder detail by
+    // occluding entities, rather than entities occluding the interior).
     this.container.addChild(this.bgLayer);
     this.container.addChild(this.interiorLayer);
     this.container.addChild(this.wallLayer);
+    this.container.addChild(this.builderOutsideLayer);
     this.container.addChild(this.specialLayer);
     this.container.addChild(this.shadowLayer);
     this.container.addChild(this.entityMarkers);
@@ -83,7 +102,7 @@ export class LdtkRenderer {
    *
    * @param bgTiles       - Tiles from the Background autoLayer.
    * @param shadowTiles   - Tiles from the Wall_shadows autoLayer.
-   * @param atlases        - Either a single atlas Texture (legacy — applied to
+   * @param atlases        - Either a single atlas Texture (legacy ??applied to
    *                         every tile) or a map keyed by the tileset's
    *                         __tilesetRelPath. Per-tile tilesetPath (set by
    *                         LdtkLoader from __tilesetRelPath) picks the
@@ -107,7 +126,7 @@ export class LdtkRenderer {
   ): void {
     this.clear();
 
-    // Background tiles stay visible under fluid cells too — they sit far
+    // Background tiles stay visible under fluid cells too ??they sit far
     // enough behind the fluid mesh that the translucent water/oil/etc.
     // simply tints them rather than erasing them. Only wall auto-tiles
     // are skipped (the auto-tile would clash with the fluid surface).
@@ -117,7 +136,7 @@ export class LdtkRenderer {
     }
 
     // Wall/terrain tiles at full opacity. Hazards routed to specialLayer.
-    // Oil/Acid cells are skipped entirely — FluidSystem draws them as fluid
+    // Oil/Acid cells are skipped entirely ??FluidSystem draws them as fluid
     // bodies, so the underlying auto-tile sprite would just be hidden noise.
     for (const tile of wallTiles) {
       if (this.isFluidHiddenTile(tile, collisionGrid)) continue;
@@ -131,7 +150,7 @@ export class LdtkRenderer {
     }
 
     // Interior decoration (no collision, between walls and shadows).
-    // Interior sprites stay visible under fluid cells — the FluidSystem
+    // Interior sprites stay visible under fluid cells ??the FluidSystem
     // polygon overlay sits on top with translucent alpha, so the interior
     // detail (vines, drips, wiring) reads through. Skipping these here was
     // the bug that made water-filled rooms look like empty black boxes.
@@ -169,6 +188,34 @@ export class LdtkRenderer {
     }
   }
 
+  /**
+   * Populate the BuilderInterior layer with tiles from the LDtk BuilderInterior
+   * IntGrid. Call this once after renderLevel(). The layer starts at alpha=0;
+   * the scene controls visibility via dissolve.
+   */
+  renderBuilderInteriorLayer(
+    tiles: LdtkTile[],
+    atlases: Texture | Record<string, Texture>,
+  ): void {
+    this.destroyLayerChildren(this.builderInteriorLayer);
+    for (const tile of tiles) {
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.builderInteriorLayer.addChild(sprite);
+    }
+  }
+
+  /** Populate the BuilderOutside layer from the LDtk BuilderOutside tile layer. */
+  renderBuilderOutsideLayer(
+    tiles: LdtkTile[],
+    atlases: Texture | Record<string, Texture>,
+  ): void {
+    this.destroyLayerChildren(this.builderOutsideLayer);
+    for (const tile of tiles) {
+      const sprite = this.buildSprite(tile, atlases);
+      if (sprite) this.builderOutsideLayer.addChild(sprite);
+    }
+  }
+
   /** Rebuild only the wall + special layers (leaves background and shadows untouched). */
   rebuildWallLayer(
     wallTiles: LdtkTile[],
@@ -193,9 +240,15 @@ export class LdtkRenderer {
    * Remove wall/shadow tiles that overlap a pixel-space AABB.
    * Used by SecretWall to erase the AutoTile visuals when broken.
    */
-  clearTilesInRect(x: number, y: number, w: number, h: number): void {
+  clearTilesInRect(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    opts: { preserveInterior?: boolean } = {},
+  ): void {
     // Tile children are anchored at top-left, so a child whose top-left lies
-    // within [x, x+w) × [y, y+h) is inside the rect. No margin: extending the
+    // within [x, x+w) 횞 [y, y+h) is inside the rect. No margin: extending the
     // bounds upward/leftward would erase neighbouring cells (e.g. the cell
     // above a SecretWall when it's broken).
     const remove = (layer: Container) => {
@@ -206,12 +259,17 @@ export class LdtkRenderer {
           child.y >= y && child.y < y + h
         ) {
           const child = layer.removeChildAt(i);
-          child.destroy({ children: true, texture: true, textureSource: false, context: true });
+          child.destroy({ children: true, texture: false, textureSource: false, context: true });
         }
       }
     };
+    remove(this.bgLayer);
     remove(this.wallLayer);
+    remove(this.specialLayer);
+    if (!opts.preserveInterior) remove(this.interiorLayer);
     remove(this.shadowLayer);
+    if (!opts.preserveInterior) remove(this.builderInteriorLayer);
+    remove(this.builderOutsideLayer);
   }
 
   /** Remove all rendered tiles and markers. */
@@ -221,6 +279,8 @@ export class LdtkRenderer {
     this.destroyLayerChildren(this.specialLayer);
     this.destroyLayerChildren(this.interiorLayer);
     this.destroyLayerChildren(this.shadowLayer);
+    this.destroyLayerChildren(this.builderInteriorLayer);
+    this.destroyLayerChildren(this.builderOutsideLayer);
     this.destroyLayerChildren(this.entityMarkers);
   }
 
@@ -233,19 +293,39 @@ export class LdtkRenderer {
   private destroyLayerChildren(layer: Container): void {
     const children = layer.removeChildren();
     for (const child of children) {
-      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+      child.destroy({ children: true, texture: false, textureSource: false, context: true });
     }
+  }
+
+  private static getTextureSourceId(source: object): number {
+    let id = LdtkRenderer.textureSourceIds.get(source);
+    if (!id) {
+      id = LdtkRenderer.nextTextureSourceId++;
+      LdtkRenderer.textureSourceIds.set(source, id);
+    }
+    return id;
+  }
+
+  private static getTileTexture(atlas: Texture, tile: LdtkTile): Texture {
+    const sourceId = LdtkRenderer.getTextureSourceId(atlas.source as object);
+    const key = `${sourceId}:${tile.src[0]}:${tile.src[1]}:${TILE_SIZE}:${TILE_SIZE}`;
+    let texture = LdtkRenderer.tileTextureCache.get(key);
+    if (!texture) {
+      const frame = new Rectangle(tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
+      texture = new Texture({ source: atlas.source, frame });
+      LdtkRenderer.tileTextureCache.set(key, texture);
+    }
+    return texture;
   }
 
   /**
    * Decide if a tile should live on specialLayer instead of wallLayer.
    *
-   * 두 가지 조건 중 하나라도 true 면 specialLayer 로:
-   *   1) tile.src 가 아틀라스 컬러 영역(오른쪽 하단) 안에 있을 때 — 원색 보존
-   *   2) IntGrid 값이 특수 해저드(water/spike/updraft/magma/charged)일 때
-   *
-   * (1)은 IntGrid 정보가 없어도 동작하므로, 해저드가 아닌 장식용 컬러 타일도
-   * 팔레트 스왑에 물들지 않는다.
+   * ??媛吏 議곌굔 以??섎굹?쇰룄 true 硫?specialLayer 濡?
+   *   1) tile.src 媛 ?꾪??쇱뒪 而щ윭 ?곸뿭(?ㅻⅨ履??섎떒) ?덉뿉 ?덉쓣 ?????먯깋 蹂댁〈
+   *   2) IntGrid 媛믪씠 ?뱀닔 ?댁???water/spike/updraft/magma/charged)????   *
+   * (1)? IntGrid ?뺣낫媛 ?놁뼱???숈옉?섎?濡? ?댁??쒓? ?꾨땶 ?μ떇??而щ윭 ??쇰룄
+   * ?붾젅???ㅼ솑??臾쇰뱾吏 ?딅뒗??
    */
   /**
    * Cells whose IntGrid value is WATER / OIL / ACID / MAGMA are drawn by
@@ -253,12 +333,12 @@ export class LdtkRenderer {
    * LDtk auto-tile sprite underneath would just be hidden noise, so we
    * suppress it.
    *
-   * UPDRAFT is drawn by UpdraftSystem (sandbox §13 demo K: tile suppression +
-   * dynamic K layers) and follows the same pattern — suppress the static
+   * UPDRAFT is drawn by UpdraftSystem (sandbox 짠13 demo K: tile suppression +
+   * dynamic K layers) and follows the same pattern ??suppress the static
    * sprite so the system has full control of the channel visual.
    *
    * WATER is included here primarily to clean up obsolete tiles after a
-   * runtime mutation (ice → water on fire). LDtk auto-rules typically don't
+   * runtime mutation (ice ??water on fire). LDtk auto-rules typically don't
    * paint water tiles, so this rarely fires on static data.
    */
   private isFluidHiddenTile(tile: LdtkTile, collisionGrid?: number[][]): boolean {
@@ -268,9 +348,9 @@ export class LdtkRenderer {
     const rowData = collisionGrid[row];
     if (!rowData) return false;
     const v = rowData[col] ?? 0;
-    // Fluid values (water/oil/acid/magma) — surface drawn by FluidSystem polygon.
-    // Updraft — drawn by UpdraftSystem (K-style channel takeover, 2026-05-20).
-    // Generic fluid markers (FluidGeneric_A/B/C = 17/18/19) — used by ItemWorld
+    // Fluid values (water/oil/acid/magma) ??surface drawn by FluidSystem polygon.
+    // Updraft ??drawn by UpdraftSystem (K-style channel takeover, 2026-05-20).
+    // Generic fluid markers (FluidGeneric_A/B/C = 17/18/19) ??used by ItemWorld
     // room templates; resolved to concrete fluid values at dive entry but the
     // LDtk wallTiles still reference the generic-cell auto-rule sprites, so we
     // suppress them here regardless of whether resolution ran.
@@ -278,10 +358,10 @@ export class LdtkRenderer {
       v === TILE_WATER || v === TILE_OIL || v === TILE_ACID || v === TILE_MAGMA ||
       v === TILE_CYRO ||
       v === TILE_UPDRAFT ||
-      // Fluid generic markers (17/18/19) — FluidSystem 이 dynamic 으로 그리므로 hidden.
+      // Fluid generic markers (17/18/19) ??FluidSystem ??dynamic ?쇰줈 洹몃━誘濡?hidden.
       v === 17 || v === 18 || v === 19
-      // Solid generic markers (20/21) 는 *hidden 하지 않는다* — LDtk 의 auto-tile
-      // rule 이 각 솔리드 타입에 맞는 sprite 를 페인트하도록 위임 (2026-05-18).
+      // Solid generic markers (20/21) ??*hidden ?섏? ?딅뒗?? ??LDtk ??auto-tile
+      // rule ??媛??붾━????낆뿉 留욌뒗 sprite 瑜??섏씤?명븯?꾨줉 ?꾩엫 (2026-05-18).
     );
   }
 
@@ -305,11 +385,10 @@ export class LdtkRenderer {
    * Build a Sprite for one LDtk tile entry.
    *
    * Flip is encoded in the `f` bitmask:
-   *   bit 0 (f & 1) → horizontal flip: scale.x = -1, anchor.x = 1
-   *   bit 1 (f & 2) → vertical flip:   scale.y = -1, anchor.y = 1
+   *   bit 0 (f & 1) ??horizontal flip: scale.x = -1, anchor.x = 1
+   *   bit 1 (f & 2) ??vertical flip:   scale.y = -1, anchor.y = 1
    *
-   * Returns null when `atlases` is a map and the tile's tileset is absent —
-   * caller should skip the tile (e.g. scene didn't load that atlas yet).
+   * Returns null when `atlases` is a map and the tile's tileset is absent ??   * caller should skip the tile (e.g. scene didn't load that atlas yet).
    */
   private buildSprite(
     tile: LdtkTile,
@@ -328,14 +407,15 @@ export class LdtkRenderer {
       atlas = firstKey ? atlases[firstKey] : undefined;
       if (!atlas) return null;
       if (tile.tilesetPath && !atlases[tile.tilesetPath]) {
-        // Tileset was referenced but not loaded — skip rather than miscolor.
+        // Tileset was referenced but not loaded ??skip rather than miscolor.
         return null;
       }
     }
 
-    const frame = new Rectangle(tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
-    // Reuse the atlas GPU source; only the frame rect differs per tile.
-    const texture = new Texture({ source: atlas.source, frame });
+    // Reuse the atlas GPU source and the frame texture wrapper. ItemWorld
+    // builds thousands of tile sprites across many room renderers; creating
+    // one Texture wrapper per tile was a large avoidable JS memory cost.
+    const texture = LdtkRenderer.getTileTexture(atlas, tile);
 
     const sprite = new Sprite(texture);
     sprite.x = tile.px[0];

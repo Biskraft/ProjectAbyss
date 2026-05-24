@@ -1,5 +1,4 @@
 import type { ItemInstance } from './ItemInstance';
-import { BARE_HAND_ATK } from '@data/rarityConfig';
 import { trackItemEquip } from '@utils/Analytics';
 import { ItemConst } from '@data/constData';
 
@@ -48,13 +47,17 @@ export class Inventory {
     }
   }
 
+  /**
+   * @deprecated 2026-05-24: 무기 미장착 상태 차단. 호출 시 no-op + 콘솔 경고.
+   * 무기 교체는 항상 다른 무기를 직접 equip() 으로 수행해야 한다.
+   */
   unequip(): void {
-    this.equipped = null;
+    console.warn('[Inventory] unequip() blocked — 무기 미장착 상태가 차단되어 있습니다 (2026-05-24).');
   }
 
-  /** Total ATK from equipped weapon (or bare hand) */
+  /** Total ATK from equipped weapon. 2026-05-24: 맨손 상태 제거 — 무기 미장착 시 0. */
   getWeaponAtk(): number {
-    return this.equipped ? this.equipped.finalAtk : BARE_HAND_ATK;
+    return this.equipped ? this.equipped.finalAtk : 0;
   }
 
   getById(uid: number): ItemInstance | undefined {

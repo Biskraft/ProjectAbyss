@@ -259,6 +259,18 @@ export class Game {
               this.legacyUIContainer.visible = visible;
               this.feedbackOverlayContainer.visible = visible;
             }
+            // Shift+[ — zoom in (+0.1). Shift+] — zoom out (-0.1). Camera.setZoom
+            // 이 [0.01, 4.0] 으로 클램프. raw 키 코드를 쓰는 이유: [/] 는 GameAction
+            // 바인딩에 없고 즉석 디버그 목적이라 enum 등록을 피한다.
+            // 룸/씬 전환 시 기존 코드(LdtkWorldScene/ItemWorldScene)가 setZoom(1.0)
+            // 호출 → 다른 방 갔다오면 자동 리셋.
+            const zoomIn = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketLeft');
+            const zoomOut = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketRight');
+            if (zoomIn || zoomOut) {
+              this.camera.setZoom(this.camera.zoom + (zoomIn ? 0.1 : -0.1));
+              const toast = (this.sceneManager.active as { toast?: { show: (msg: string, color?: number) => void } } | null)?.toast;
+              toast?.show(`Zoom ${this.camera.zoom.toFixed(1)}x`, 0xffa41b);
+            }
           }
           // Shift+P — 전역 hard reset. 세이브 + 키보드 preset(localStorage) 모두 삭제 후 reload.
           // 어떤 씬에서도 작동하도록 Game.ts 단으로 일원화 (이전엔 LdtkWorldScene 만 처리).
@@ -325,6 +337,7 @@ export class Game {
       });
 
       // Scale RT sprite to fill native resolution
+      this.backgroundSprite.scale.set(this.uiScale);
       this.worldSprite.scale.x = (GAME_WIDTH / rtW) * this.uiScale;
       this.worldSprite.scale.y = (GAME_HEIGHT / rtH) * this.uiScale;
 

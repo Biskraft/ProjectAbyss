@@ -26,20 +26,22 @@
 import { Container, Graphics } from 'pixi.js';
 
 const GLOW_COLOR_DEFAULT = 0xe07028;
-const GLOW_REACH = 40;
+// 2026-05-23 사용자 결정: 길이 / intensity / 파티클 모두 2배. 오렌지 출구 시그널
+// 강화 — 다음 방으로 가는 가장자리 식별성 ↑.
+const GLOW_REACH = 80;        // 40 × 2
 const GLOW_BANDS = 5;
 const PULSE_PERIOD_MS = 1000;
-const PULSE_BASE = 0.6;
-const PULSE_AMP = 0.2;
+const PULSE_BASE = 1.2;       // 0.6 × 2 (band falloff 으로 가장 진한 band 만 1.0 cap)
+const PULSE_AMP = 0.4;        // 0.2 × 2
 
 // --- Dust particles ---------------------------------------------------------
 /** 먼지가 퍼지는 방 안쪽 깊이 (10 타일 = 원본 4타일의 2.5배). */
 const DUST_REACH_TILES = 10;
 const DUST_REACH = DUST_REACH_TILES * 16;
-/** 에지 1타일(16px)당 먼지 개수 — span 길이에 비례해 총량 결정. */
-const DUST_PER_TILE = 2.2;
-const DUST_MIN_COUNT = 8;
-const DUST_MAX_COUNT = 56;
+/** 에지 1타일(16px)당 먼지 개수 — span 길이에 비례해 총량 결정. 2026-05-23 ×2. */
+const DUST_PER_TILE = 4.4;    // 2.2 × 2
+const DUST_MIN_COUNT = 16;    // 8 × 2
+const DUST_MAX_COUNT = 112;   // 56 × 2
 const DUST_COLOR = 0xffd8a8;
 /** 거리 반응: 이 거리 이하 → 최대 알파. */
 const DUST_CLOSE_DIST = 48;
@@ -69,6 +71,19 @@ const DUST_LIFE_MIN = 1800;
 const DUST_LIFE_MAX = 3600;
 
 export type ExitGlowDir = 'left' | 'right' | 'up' | 'down';
+
+export interface ExitGlowOptions {
+  /** false 면 main glow 사각형(gradient band)을 그리지 않음 — 먼지만 표시.
+   *  기본 true. tunnel-deployment 처럼 gradient 가 어울리지 않는 케이스용. */
+  showGlow?: boolean;
+  /** dust 입자가 도달하는 안쪽 깊이(px). 미지정 시 DUST_REACH_TILES × 16 사용.
+   *  입자 개수는 (span × reach) 면적에 비례해 자동 스케일. */
+  dustReachPx?: number;
+  /** true 면 respawn 시에도 깊이 균등 분포 — 입자 수명이 reach 도달 시간보다
+   *  짧을 때 *끝 영역까지* 항상 입자가 채워지도록 보장. 기본 false (에지에서
+   *  바람 부는 방향성 유지). 긴 터널 같은 케이스에 사용. */
+  evenSpread?: boolean;
+}
 
 interface DustParticle {
   /** Position in container-local coordinates. */
@@ -115,14 +130,20 @@ export class ExitGlow {
   private glowReach: number;
   private pulseBase: number;
   private pulseAmp: number;
+  private showGlow: boolean;
+  private dustReach: number;
+  private evenSpread: boolean;
 
-  constructor(dir: ExitGlowDir, x: number, y: number, span: number) {
+  constructor(dir: ExitGlowDir, x: number, y: number, span: number, opts: ExitGlowOptions = {}) {
     this.dir = dir;
     this.span = span;
     this.glowColor = GLOW_COLOR_DEFAULT;
     this.glowReach = GLOW_REACH;
     this.pulseBase = PULSE_BASE;
     this.pulseAmp = PULSE_AMP;
+    this.showGlow = opts.showGlow ?? true;
+    this.dustReach = Math.max(16, opts.dustReachPx ?? DUST_REACH);
+    this.evenSpread = opts.evenSpread ?? false;
     this.container = new Container();
     this.container.x = x;
     this.container.y = y;
@@ -183,7 +204,10 @@ export class ExitGlow {
   // -------------------------------------------------------------------------
 
   private particleCount(): number {
-    const raw = Math.round((this.span / 16) * DUST_PER_TILE);
+    // span × reach 면적에 비례. 기본 reach 대비 비율로 스케일 — reach 가 길어지면
+    // 입자 개수도 자동 증가해 가로 길이 전체에 고른 밀도 유지.
+    const reachScale = this.dustReach / DUST_REACH;
+    const raw = Math.round((this.span / 16) * DUST_PER_TILE * reachScale);
     return clamp(raw, DUST_MIN_COUNT, DUST_MAX_COUNT);
   }
 
@@ -209,8 +233,11 @@ export class ExitGlow {
 
     // 에지 축에 따른 랜덤 위치.
     const alongT = Math.random();
-    const depthT = stagger ? Math.random() : Math.random() * 0.2; // respawn 은 edge 근처
-    const depth = depthT * DUST_REACH;
+    // respawn 시 evenSpread=true 면 전체 reach 에 균등 분포 (긴 터널 케이스).
+    // 그 외엔 기존 동작 (stagger=true 초기 균등, respawn 은 에지 근처).
+    const useFullSpread = stagger || this.evenSpread;
+    const depthT = useFullSpread ? Math.random() : Math.random() * 0.2;
+    const depth = depthT * this.dustReach;
 
     // container-local 좌표로 변환.
     let px = 0, py = 0;
@@ -260,7 +287,7 @@ export class ExitGlow {
       p.ageMs += dt;
       // 4타일을 벗어났거나 수명 종료 → 에지에서 재생성.
       const depth = this.localDepth(p.x, p.y);
-      if (p.ageMs >= p.lifeMs || depth > DUST_REACH || depth < -1) {
+      if (p.ageMs >= p.lifeMs || depth > this.dustReach || depth < -1) {
         this.particles[i] = this.makeParticle(false);
       }
     }
@@ -311,6 +338,7 @@ export class ExitGlow {
   private draw(baseAlpha: number): void {
     const g = this.gfx;
     g.clear();
+    if (!this.showGlow) return;
     const step = this.glowReach / GLOW_BANDS;
     for (let i = 0; i < GLOW_BANDS; i++) {
       // Band 0 sits closest to the edge (brightest); band N-1 is the furthest

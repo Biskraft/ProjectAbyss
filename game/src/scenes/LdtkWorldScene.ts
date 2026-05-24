@@ -17,12 +17,12 @@
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, ColorMatrixFilter, type Filter } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
-import { aabbOverlap, isSolid } from '@core/Physics';
+import { aabbOverlap, isOneWay, isSolid } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
@@ -49,7 +49,7 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, TILE_UPDRAFT, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -66,6 +66,7 @@ import {
 } from '@ui/ModalPanel';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
+import { IdentityArchive } from '@ui/IdentityArchive';
 import { PauseMenu } from '@ui/PauseMenu';
 import { CharacterStats } from '@ui/CharacterStats';
 import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
@@ -80,7 +81,8 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
-import { FloorCollapse } from '@effects/FloorCollapse';
+import { ItemDeploymentController } from '@effects/ItemDeploymentController';
+import { WallGate } from '@entities/WallGate';
 import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
 import { WeaponPulse } from '@effects/WeaponPulse';
@@ -97,7 +99,7 @@ import { t } from '@i18n';
 import { createUiText } from '@ui/factories';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_RUSTBORN_AWAKEN,
+  EGO_RUSTBORN_AWAKEN, EGO_TUNNEL_OPEN,
   EGO_WORLD_RETURN, EGO_INVENTORY_LOCKED, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -112,7 +114,6 @@ import { WallSlideDustManager } from '@effects/WallSlideDust';
 import { FootstepPuffManager } from '@effects/FootstepPuff';
 import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
 import { SurgeVfxManager } from '@effects/SurgeVfx';
-import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
 import { CriticalHighlightManager } from '@effects/CriticalHighlight';
 import { HitBloodSprayManager } from '@effects/HitBloodSpray';
 import { DiveLandImpactManager } from '@effects/DiveLandImpact';
@@ -175,7 +176,7 @@ import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
-import { GiantBuilder } from '@entities/GiantBuilder';
+import { GiantBuilder, type GiantBuilderSnapshot } from '@entities/GiantBuilder';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
@@ -219,7 +220,8 @@ const VOID_HOLD_DURATION = 1000;
 const VOID_FADE_IN_DURATION = 500;
 const VOID_INPUT_LOCK_MS = 2000;
 const SAVE_INTERACT_DELAY_MS = 500;
-const FIRST_ANVIL_LEVEL_ID = 'FirstAnvil';
+// FIRST_ANVIL_LEVEL_ID 폐기 (2026-05-24): 식별자 분기는 LDtk Anvil entity 의
+// RetireAfterFirstBoss field 로 데이터 기반 제어.
 const INVENTORY_KEY_HINT_ID = 'inventory_key';
 const INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID = 'inventory_key_after_first_item_world';
 const INVENTORY_KEY_AFTER_FIRST_IW_EVENT = '__inventoryKeyAfterFirstItemWorldShown';
@@ -253,6 +255,7 @@ interface BuilderAttachment {
   localX: number;
   localY: number;
   isAlive: () => boolean;
+  sync?: (entity: BuilderAttachable, builderX: number, builderY: number, localX: number, localY: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +288,11 @@ export class LdtkWorldScene extends Scene {
   private dashHintDelayMs = -1;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
+  private activeBuilderLevelId: string | null = null;
+  /** posY snapshot per builderLevelId — survives level transitions so re-entry
+   *  spawns the builder at its last position instead of restarting the route. */
+  private readonly builderSavedPositions = new Map<string, number>();
+  private readonly builderSavedStates = new Map<string, GiantBuilderSnapshot>();
   /**
    * Drive the builder's footstep camera shake even when mode is 'patrol'.
    * BuilderSpawner can force this on for patrol-style routes that still need
@@ -301,6 +309,8 @@ export class LdtkWorldScene extends Scene {
   // (half the cadence of raw 16-px steps — slower, weightier rhythm).
   private builderStepCounter = 0;
   private builderCarrierVelocityY = 0;
+  /** Current alpha for the BuilderInterior dissolve layer (0=hidden, 1=shown). */
+  private builderInteriorAlpha = 1;
   /** Cells in host collisionGrid currently overwritten by builder, packed as row * gridWidth + col. Only cells that were 0 are stamped. */
   private builderStamps: number[] = [];
   private builderStampOriginX: number | null = null;
@@ -309,6 +319,7 @@ export class LdtkWorldScene extends Scene {
   private playerOnBuilder = false;
   /** True if the player's AABB overlaps the builder's world-space rectangle (airborne too). Used for camera override. */
   private playerInBuilder = false;
+  private builderOneWayDropThroughGraceMs = 0;
   private renderer!: LdtkRenderer;
   private boundsGuard: Graphics | null = null;
   private procDecorator: ProceduralDecorator | null = null;
@@ -322,7 +333,7 @@ export class LdtkWorldScene extends Scene {
   // crimson shaft). Built alongside the host filters in init().
   private builderBgPaletteFilter: PaletteSwapFilter | null = null;
   private builderWallPaletteFilter: PaletteSwapFilter | null = null;
-  private builderInteriorPaletteFilter: PaletteSwapFilter | null = null;
+  private builderInteriorWallPaletteFilter: PaletteSwapFilter | null = null;
   private builderNaturalPaletteFilter: PaletteSwapFilter | null = null;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
@@ -340,10 +351,13 @@ export class LdtkWorldScene extends Scene {
 
   // Layers
   private entityLayer!: Container;
+  private deploymentFxLayer!: Container;
   private fluidLayer!: Container;
   private fluidSystem!: FluidSystem;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
+  private laserDesaturationFilter: ColorMatrixFilter | null = null;
+  private readonly laserDesaturationPrevFilters = new Map<Container, Filter[] | null>();
 
   // Entities
   private player!: Player;
@@ -362,6 +376,8 @@ export class LdtkWorldScene extends Scene {
    *  (for bob-animated entities) can be attached. */
   private builderAttachments: BuilderAttachment[] = [];
   private inventoryUI!: InventoryUI;
+  /** DEC-046 Identity Archive (인물 아카이브). 인벤토리 Z키 진입. */
+  private identityArchive!: IdentityArchive;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
   // Title→game fade-in overlay (handed off from TitleScene via game.uiContainer).
@@ -437,7 +453,6 @@ export class LdtkWorldScene extends Scene {
   private footstepPuff!: FootstepPuffManager;
   private flaskBurst!: FlaskHealBurstManager;
   private surgeVfx!: SurgeVfxManager;
-  private comboFinisherBurst!: ComboFinisherBurstManager;
   private criticalHighlight!: CriticalHighlightManager;
   private hitBloodSpray!: HitBloodSprayManager;
   private diveLandImpact!: DiveLandImpactManager;
@@ -533,11 +548,12 @@ export class LdtkWorldScene extends Scene {
   private anvil: Anvil | null = null;
   private anvilPrompt: Container | null = null;
   private anvilDisabledPrompt: Container | null = null;
-  private floorCollapse: FloorCollapse | null = null;
   private screenCrack: ScreenCrack | null = null;
   private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
   private diveTransitionActive = false;
   private collapseItem: ItemInstance | null = null;
+  private itemDeployment: ItemDeploymentController | null = null;
+  private wallGate: WallGate | null = null;
   private anvilDiveUiHidden = false;
   private anvilDiveUiWasVisible = true;
 
@@ -566,6 +582,8 @@ export class LdtkWorldScene extends Scene {
    */
   private lastUsedAnvilPos: { x: number; y: number; width: number; height: number } | null = null;
   private lastUsedAnvilLevelId: string | null = null;
+  /** 직전 사용 anvil 의 RetireAfterFirstBoss field 값. retire-after-boss 분기 SSoT. */
+  private lastUsedAnvilRetireAfterBoss = false;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
   private inItemTunnel = false;
   /** The level to return to after exiting Item World via tunnel. */
@@ -573,6 +591,7 @@ export class LdtkWorldScene extends Scene {
   /** True while inside a fixed (hand-crafted) item world level. */
   private inFixedItemWorld = false;
   private fixedItemWorldItem: ItemInstance | null = null;
+  private fixedItemWorldHadFirstBossClear = false;
 
   // ── Debug warp (` 백틱 = 뷰포트 클릭 워프, Shift+M = 전 맵 클릭 워프) ────────
   private warpModeActive = false;
@@ -590,6 +609,9 @@ export class LdtkWorldScene extends Scene {
   private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
   private lockedDoors: LockedDoor[] = [];
   private switches: Switch[] = [];
+  private doorCollisionGrids = new WeakMap<LockedDoor, number[][]>();
+  private switchCollisionGrids = new WeakMap<Switch, number[][]>();
+  private collapsingPlatformCollisionGrids = new WeakMap<CollapsingPlatform, number[][]>();
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private breakableProps: BreakableProp[] = [];
@@ -620,11 +642,10 @@ export class LdtkWorldScene extends Scene {
   private voidReturnLevelId = '';
   private voidReturnX = 0;
   private voidReturnY = 0;
+  private lastWorldSafeLevelId = '';
+  private lastWorldSafeX = 0;
+  private lastWorldSafeY = 0;
   private voidFogSystem!: VoidFogSystem;
-  // Breakable tile (IntGrid 9) hit tracking ??3 hits to destroy
-  private breakableHits: Map<string, number> = new Map();
-  private breakableHitThisSwing: Set<string> = new Set();
-  private breakableLastCombo = -1;
   private collapsingPlatforms: CollapsingPlatform[] = [];
   private healthShards: HealthShard[] = [];
   private healingPickups: HealingPickup[] = [];
@@ -912,18 +933,18 @@ export class LdtkWorldScene extends Scene {
         brightness: builderWallEntry.brightness,
         tint: builderWallEntry.tint,
       });
-      // Builder interior intentionally keeps the full BG brightness (no
-      // dampening multiplier the host uses) so the forge-orange interior
-      // reads as a hot core rather than a recessed shadow.
-      this.builderInteriorPaletteFilter = new PaletteSwapFilter({
+      // BuilderInterior uses the same wall palette row as BuilderWall. Builder
+      // palette rows keep DepthBias at 0 in CSV so split LDtk layers do not
+      // drift in brightness while the whole builder moves as one body.
+      this.builderInteriorWallPaletteFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
         rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(builderBgEntry.id),
+        row: getAreaPaletteRow(builderWallEntry.id),
         strength: 1.0,
-        depthBias: builderBgEntry.depthBias,
-        depthCenter: builderBgEntry.depthCenter,
-        brightness: builderBgEntry.brightness,
-        tint: builderBgEntry.tint,
+        depthBias: builderWallEntry.depthBias,
+        depthCenter: builderWallEntry.depthCenter,
+        brightness: builderWallEntry.brightness,
+        tint: builderWallEntry.tint,
       });
       this.builderNaturalPaletteFilter = new PaletteSwapFilter({
         paletteTex: atlas.texture,
@@ -961,6 +982,9 @@ export class LdtkWorldScene extends Scene {
     const aboveFluidLayer = new Container();
     this.container.addChild(aboveFluidLayer);
     this.tileMutatorRenderer.setAboveFluidLayer(aboveFluidLayer);
+
+    this.deploymentFxLayer = new Container();
+    this.container.addChild(this.deploymentFxLayer);
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
@@ -1066,7 +1090,6 @@ export class LdtkWorldScene extends Scene {
     this.footstepPuff = new FootstepPuffManager(this.entityLayer);
     this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
     this.surgeVfx = new SurgeVfxManager(this.entityLayer);
-    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
     this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
     this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
     this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
@@ -1314,6 +1337,15 @@ export class LdtkWorldScene extends Scene {
     this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
     this.inventoryUI.setSkin(this.uiSkin!);
     this.game.uiContainer.addChild(this.inventoryUI.container);
+    // 인벤토리/Anvil UI 열림 시 HUD + minimap 숨김 (사용자 결정 2026-05-24).
+    this.inventoryUI.onVisibilityChange = (vis: boolean) => {
+      this.hud.container.visible = !vis;
+      if (this.minimap) this.minimap.visible = !vis;
+    };
+
+    // DEC-046 Identity Archive — 인벤토리 Z키 (JUMP 액션) 진입.
+    this.identityArchive = new IdentityArchive(this.inventory, this.uiSkin, this.game.uiScale);
+    this.game.uiContainer.addChild(this.identityArchive.container);
 
     // Sacred Pickup — LorePopup + DivePreview + LoreDisplay 모두 uiContainer(native) 직속 (UI native 1단계)
     this.lorePopup = new LorePopup(this.uiSkin, this.game.uiScale);
@@ -1347,6 +1379,7 @@ export class LdtkWorldScene extends Scene {
       deathScreen: this.deathScreen,
       tutorialHint: this.tutorialHint,
       inventoryUI: this.inventoryUI,
+      identityArchive: this.identityArchive,
       worldMap: this.worldMap,
       toast: this.toast,
       minimap: this.minimap,
@@ -1428,11 +1461,6 @@ export class LdtkWorldScene extends Scene {
       this.memoryDive.destroy();
       this.memoryDive = null;
     }
-    if (this.floorCollapse) {
-      this.floorCollapse.destroy();
-      this.floorCollapse = null;
-    }
-
     // Re-sync collision grid and tilemap (deep copy to restore original state)
     this.collisionGrid = this.currentLevel.collisionGrid.map(row => [...row]);
     this.player.roomData = this.collisionGrid;
@@ -1831,7 +1859,21 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Dive transition in progress — all input blocked
+    // ItemDeployment sequence — blocking states (all except Deployed) lock input
+    if (this.itemDeployment?.isBlocking) {
+      this.itemDeployment.update(dt);
+      this.anvil?.update(dt);
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+      this.game.camera.update(dt);
+      this.hitSparks.update(dt);
+      this.propShatter.update(dt);
+      this.screenFlash.update(dt);
+      return;
+    }
+
+    // Legacy dive transition (archived — kept for FloorCollapse compatibility)
     if (this.diveTransitionActive) {
       this.player.vx = 0;
       this.player.vy = 0;
@@ -1859,29 +1901,6 @@ export class LdtkWorldScene extends Scene {
     if (this.iwReturnFadeMs > 0) {
       this.iwReturnFadeMs = Math.max(0, this.iwReturnFadeMs - dt);
       this.iwReturnFade.alpha = this.iwReturnFadeMs / this.IW_RETURN_FADE_DURATION;
-    }
-
-    // Floor collapse in progress ??all input blocked, camera frozen
-    if (this.floorCollapse && this.floorCollapse.phase !== 'idle') {
-      this.floorCollapse.update(dt);
-
-      const ph = this.floorCollapse.phase;
-      if (ph === 'anvil_fall' || ph === 'fade_out' || ph === 'done') {
-        // 충돌 무시 ???�레?�어가 ?�면 밖으�??�유 ?�하 (?�연?�러??중력)
-        if (this.player.vy == null || this.player.vy === 0) this.player.vy = 0.5;
-        this.player.vy = this.player.vy + 0.02 * dt;
-        this.player.y += this.player.vy * (dt / 16.67);
-      }
-
-      if (this.floorCollapse.shouldTransition) {
-        this.completeFloorCollapseEntry();
-        return;
-      }
-
-      this.hitSparks.update(dt);
-      this.propShatter.update(dt);
-      this.screenFlash.update(dt);
-      return;
     }
 
     // Game Over state
@@ -2026,7 +2045,14 @@ export class LdtkWorldScene extends Scene {
       // player wasn't carried" frame that looks like a jump in place.
       const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
+      // BuilderInterior / lightContainer / leg 는 scene container 의 별도 자식
+      // 이라 builder transform 을 직접 받지 않는다. position 만 매 프레임 따라
+      // 그려야 builder 와 함께 이동.
+      this.activeBuilder.builderInteriorLayer.position.copyFrom(this.activeBuilder.container.position);
+      this.activeBuilder.lightContainer.position.copyFrom(this.activeBuilder.container.position);
+      this.activeBuilder.legFrontLayer.position.copyFrom(this.activeBuilder.container.position);
       this.builderCarrierVelocityY = dt > 0 ? this.activeBuilder.lastDeltaY / (dt / 1000) : 0;
+      this.maintainLockedDoorCollisions();
       const newStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       const stampDelta = newStampY - prevStampY;
       if (this.playerOnBuilder && stampDelta !== 0) {
@@ -2043,13 +2069,37 @@ export class LdtkWorldScene extends Scene {
         this.resolvePlayerSolidOverlapAfterBuilder(stampDelta);
       }
 
+      const nowMoving = this.activeBuilder.isMoving;
+
+      if (this.anvil && !this.anvil.used) {
+        const shouldDisableAnvil = nowMoving || this.isAnvilRetiredByBossClear(this.anvil);
+        if (this.anvil.disabled !== shouldDisableAnvil) {
+          void this.anvil.setDisabled(shouldDisableAnvil);
+        }
+      }
+
+      // BuilderInterior dissolve: when the player overlaps interior IntGrid
+      // cells the layer fades in (alpha→1), revealing internal builder details.
+      // When the player leaves, it fades back out (alpha→0).
+      {
+        const target = (this.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
+          this.player.x, this.player.y, this.player.width, this.player.height,
+        )) ? 0 : 1;
+        if (this.builderInteriorAlpha !== target) {
+          this.builderInteriorAlpha += (target - this.builderInteriorAlpha) * 0.08;
+          if (Math.abs(this.builderInteriorAlpha - target) < 0.01) {
+            this.builderInteriorAlpha = target;
+          }
+          this.activeBuilder.builderInteriorLayer.alpha = this.builderInteriorAlpha;
+        }
+      }
+
       // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
       // of the descent. Rhythmic "쿵" every two tile crossings while moving,
       // then a single heavy "쿠웅" on the frame the builder comes to rest.
       // `builderShakeEnabled` lets patrol-mode builders opt in to the same
       // feedback (e.g. Shaft_DemoEnd's Builder_Level_2).
       if (this.activeBuilderMode === 'cinematic' || this.builderShakeEnabled) {
-        const nowMoving = this.activeBuilder.isMoving;
         if (nowMoving && stampDelta !== 0) {
           this.builderStepCounter++;
           if (this.builderStepCounter % 2 === 0) {
@@ -2064,16 +2114,26 @@ export class LdtkWorldScene extends Scene {
       }
     } else {
       this.builderCarrierVelocityY = 0;
+      this.maintainLockedDoorCollisions();
     }
 
     // Player
     // 직전 프레임의 playerOnBuilder 값을 onCarrier 로 전달해, 빌더 위
-    // grounding 이 lastSafeX/Y 갱신을 건너뛰도록 한다. 빌더에서 내려선
-    // 다음 프레임에 1틱 늦게 safe ground 가 잡히는데 시각적으로 무시 가능.
+    // grounding 이 lastSafeX/Y 갱신을 건너뛰도록 한다.
+    // 1틱 지연 버그 보정 (2026-05-24): 빌더 위 첫 착지 프레임에선 onCarrier 가
+    // 아직 false 라 lastSafe 가 *빌더 cell* 로 갱신되어, 낙사 복귀 시 빌더가
+    // 떠난 빈 공간으로 워프되는 문제가 있었다. update 전 lastSafe 를 스냅샷
+    // 떠 두고, post-snap 단계에서 *현재 프레임* playerOnBuilder=true 면 롤백.
     const wasPlayerOnBuilder = this.playerOnBuilder;
+    const preUpdateLastSafeX = this.player.lastSafeX;
+    const preUpdateLastSafeY = this.player.lastSafeY;
     this.player.onCarrier = wasPlayerOnBuilder;
     this.player.carrierVelocityY = wasPlayerOnBuilder ? this.builderCarrierVelocityY : 0;
     this.player.update(dt);
+    this.resolvePlayerAgainstLockedDoors();
+    if (this.builderOneWayDropThroughGraceMs > 0) {
+      this.builderOneWayDropThroughGraceMs = Math.max(0, this.builderOneWayDropThroughGraceMs - dt);
+    }
 
     // No-weapon attack feedback — Player flags the pulse, scene shows toast
     // with cooldown so spamming C doesn't spam toasts.
@@ -2106,13 +2166,30 @@ export class LdtkWorldScene extends Scene {
     // After physics: keep riders aligned to the builder's tile-quantized
     // collision surface. This prevents the moving stamp from slowly burying
     // or dropping the player through the carried floor.
-    const snappedToBuilder = wasPlayerOnBuilder ? this.snapPlayerToBuilderSurface() : false;
+    const snappedToBuilder = this.activeBuilder && (wasPlayerOnBuilder || this.isPlayerInBuilderVolume())
+      ? this.snapPlayerToBuilderSurface()
+      : false;
     this.playerOnBuilder = this.activeBuilder ? (snappedToBuilder || this.isPlayerOnBuilderStamp()) : false;
     if (!this.playerOnBuilder) this.player.carrierVelocityY = 0;
+    // 낙사 판정 가드: 현재 프레임이 빌더 위로 끝났다면 player.update 가 갱신한
+    // lastSafeX/Y(=빌더 cell)를 되돌린다. 빌더는 world 가 아니므로 safe ground
+    // 자격 없음 — void 복귀는 오직 world 정적 타일 위 grounded 위치만 사용.
+    if (this.playerOnBuilder) {
+      this.player.lastSafeX = preUpdateLastSafeX;
+      this.player.lastSafeY = preUpdateLastSafeY;
+    }
 
     // Volume check: is the player's AABB inside the builder's rectangle?
     // (includes airborne — used for camera override that must persist on jump.)
     this.playerInBuilder = this.activeBuilder ? this.isPlayerInBuilderVolume() : false;
+    if (
+      this.player.isGrounded() &&
+      !this.playerOnBuilder &&
+      !this.playerInBuilder &&
+      this.isWorldFloorUnderPlayerAt(this.player.x, this.player.y)
+    ) {
+      this.recordLastWorldSafePosition(this.player.x, this.player.y);
+    }
 
     // Visual sync: while riding, mirror the builder's render offset from its
     // tile-aligned stamp. Use container.y (integer) so the offset matches
@@ -2192,7 +2269,6 @@ export class LdtkWorldScene extends Scene {
         SFX.play('attack_hit');
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
-          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
         }
       }
       // Check kills after combat resolution
@@ -2520,7 +2596,6 @@ export class LdtkWorldScene extends Scene {
     this.checkAttackOnCrackedFloors();
     this.checkAttackOnBreakableProps();
     this.checkAttackOnSecretWalls();
-    this.checkAttackOnBreakables();
     this.checkAttackOnBreakableEntities();
     this.checkAttackOnContainers();
     for (const door of this.lockedDoors) door.update(dt);
@@ -2550,7 +2625,12 @@ export class LdtkWorldScene extends Scene {
     for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
       const cp = this.collapsingPlatforms[i];
       const wasSolid = (cp as any).state !== 'collapsed' && (cp as any).state !== 'respawning';
+      const beforeState = (cp as any).state as string;
       cp.update(dt);
+      const afterState = (cp as any).state as string;
+      if (beforeState !== afterState) {
+        this.refreshBuilderStampForGrid(this.getCollapsingPlatformCollisionGrid(cp));
+      }
       if (cp.isPlayerOnTop(this.player.x, this.player.y, this.player.width, this.player.height)) {
         cp.startShake();
       }
@@ -2855,6 +2935,9 @@ export class LdtkWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
+    // ItemDeployment Deployed-state: check player ∩ wallGate entrance each frame
+    this.itemDeployment?.update(dt);
+
     // Camera — deadzone follow + zoom lerp. Player is always in world coords.
     // While riding the builder, include visualYOffset so the camera tracks the
     // player's *visual* position. Without this, the physics +16 tile crossing
@@ -3101,6 +3184,7 @@ export class LdtkWorldScene extends Scene {
     this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
     if (p.consumeDropThroughEvent()) {
+      this.builderOneWayDropThroughGraceMs = 260;
       this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
       // 사용자가 직접 drop-through 학습 완료 — hint 가 표시 중이면 1초 후 자동 fade,
       // 재발사 방지 위해 handled flag 도 set.
@@ -3213,7 +3297,6 @@ export class LdtkWorldScene extends Scene {
     this.wallSlideDust.update(dt);
     this.footstepPuff.update(dt);
     this.flaskBurst.update(dt);
-    this.comboFinisherBurst.update(dt);
     this.criticalHighlight.update(dt);
     this.hitBloodSpray.update(dt);
     this.diveLandImpact.update(dt);
@@ -3444,6 +3527,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   override destroy(): void {
+    this.setLaserDesaturation(false);
+    this.itemDeployment?.destroy();
+    this.itemDeployment = null;
     this.restoreUiAfterAnvilDiveTransition();
     this.clearBuilder();
     this.parallaxBG?.destroy();
@@ -3612,6 +3698,10 @@ export class LdtkWorldScene extends Scene {
 
       // Level up item if inside fixed item world
       if (this.fixedItemWorldItem) {
+        if (!sacredSave.isFirstItemWorldBossDefeated()) {
+          sacredSave.markFirstItemWorldBossDefeated();
+        }
+
         const rarity = this.fixedItemWorldItem.rarity;
         const sourceItem = this.fixedItemWorldItem;
         const prevAtk = this.fixedItemWorldItem.finalAtk;
@@ -3888,8 +3978,6 @@ export class LdtkWorldScene extends Scene {
       // rect → wider waterfall. Each cell ticks independently.
       for (const opt of readFluidSpawnerEntities(ent)) this.fluidSpawners.add(opt);
     }
-    // Reset breakable hit tracking on level transition
-    this.breakableHits.clear();
     // 보스 HP �?초기?????�전 ?�벨?�서 ?�아?�을 가?�성(?�망·?�프 ?? 차단.
     // ???�벨??보스방이�?activateBossLock ??update 루프?�서 ?�시 ?�시?�다.
     this.hud.hideBossHP();
@@ -4180,6 +4268,7 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.roomData = this.collisionGrid;
     this.player.savePrevPosition();
+    this.recordLastWorldSafePosition(spawnX, spawnY);
   }
 
   /**
@@ -4238,6 +4327,7 @@ export class LdtkWorldScene extends Scene {
         statThreshold,
       );
       door.injectCollision(this.collisionGrid);
+      this.doorCollisionGrids.set(door, this.collisionGrid);
       this.lockedDoors.push(door);
       this.entityLayer.addChild(door.container);
       // 이미 unlocked 된 문 — spawn 직후 instant unlock 으로 caps(top/bottom) 만 남김.
@@ -4248,13 +4338,92 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private getDoorCollisionGrid(door: LockedDoor): number[][] {
+    return this.doorCollisionGrids.get(door) ?? this.collisionGrid;
+  }
+
+  private getSwitchCollisionGrid(sw: Switch): number[][] {
+    return this.switchCollisionGrids.get(sw) ?? this.collisionGrid;
+  }
+
+  private getCollapsingPlatformCollisionGrid(cp: CollapsingPlatform): number[][] {
+    return this.collapsingPlatformCollisionGrids.get(cp) ?? this.collisionGrid;
+  }
+
+  private refreshBuilderStampForGrid(grid: number[][]): void {
+    if (!this.activeBuilder || grid !== this.activeBuilder.collisionGrid) return;
+    this.unstampBuilder();
+    this.stampBuilder();
+  }
+
+  private maintainLockedDoorCollisions(): void {
+    let builderGridChanged = false;
+    for (const door of this.lockedDoors) {
+      if (!door.locked) continue;
+      const grid = this.getDoorCollisionGrid(door);
+      const changed = door.ensureCollision(grid);
+      builderGridChanged ||= changed && !!this.activeBuilder && grid === this.activeBuilder.collisionGrid;
+    }
+    if (builderGridChanged && this.activeBuilder) {
+      this.refreshBuilderStampForGrid(this.activeBuilder.collisionGrid);
+    }
+  }
+
+  private resolvePlayerAgainstLockedDoors(): void {
+    for (const door of this.lockedDoors) {
+      if (!door.locked) continue;
+      const a = door.getHitAABB();
+      const px0 = this.player.x;
+      const py0 = this.player.y;
+      const px1 = px0 + this.player.width;
+      const py1 = py0 + this.player.height;
+      if (px1 <= a.x || px0 >= a.x + a.width || py1 <= a.y || py0 >= a.y + a.height) continue;
+
+      const prevX0 = this.player.prevX;
+      const prevY0 = this.player.prevY;
+      const prevX1 = prevX0 + this.player.width;
+      const prevY1 = prevY0 + this.player.height;
+
+      let dx = 0;
+      let dy = 0;
+      if (prevX1 <= a.x) dx = a.x - px1;
+      else if (prevX0 >= a.x + a.width) dx = a.x + a.width - px0;
+      else if (prevY1 <= a.y) dy = a.y - py1;
+      else if (prevY0 >= a.y + a.height) dy = a.y + a.height - py0;
+      else {
+        const pushLeft = a.x - px1;
+        const pushRight = a.x + a.width - px0;
+        const pushUp = a.y - py1;
+        const pushDown = a.y + a.height - py0;
+        const bestX = Math.abs(pushLeft) < Math.abs(pushRight) ? pushLeft : pushRight;
+        const bestY = Math.abs(pushUp) < Math.abs(pushDown) ? pushUp : pushDown;
+        if (Math.abs(bestX) < Math.abs(bestY)) dx = bestX;
+        else dy = bestY;
+      }
+
+      if (dx !== 0) {
+        this.player.x += dx;
+        this.player.prevX += dx;
+        this.player.vx = 0;
+      }
+      if (dy !== 0) {
+        this.player.y += dy;
+        this.player.prevY += dy;
+        this.player.vy = 0;
+        if (dy < 0) this.player.forceGrounded();
+      }
+    }
+  }
+
   /** Unlock all doors matching the given event name. */
   unlockDoors(eventName: string): void {
     this.unlockedEvents.add(eventName);
     for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
       const door = this.lockedDoors[i];
       if (door.unlockEvent === eventName) {
-        door.unlock(this.collisionGrid);
+        const grid = this.getDoorCollisionGrid(door);
+        door.unlock(grid);
+        this.refreshBuilderStampForGrid(grid);
         trackGateBreak({
           gate_type: 'event',
           level_id: this.currentLevel?.identifier,
@@ -4269,7 +4438,9 @@ export class LdtkWorldScene extends Scene {
     for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
       const door = this.lockedDoors[i];
       if (door.iid === iid) {
-        door.unlock(this.collisionGrid);
+        const grid = this.getDoorCollisionGrid(door);
+        door.unlock(grid);
+        this.refreshBuilderStampForGrid(grid);
         trackGateBreak({
           gate_type: door.unlockCondition === 'switch' ? 'switch' : 'event',
           level_id: this.currentLevel?.identifier,
@@ -4324,9 +4495,11 @@ export class LdtkWorldScene extends Scene {
         def: this.player.def,
       };
 
-      const result = door.tryAttackUnlock(playerStats, this.collisionGrid);
+      const grid = this.getDoorCollisionGrid(door);
+      const result = door.tryAttackUnlock(playerStats, grid);
 
       if (result === 'unlocked') {
+        this.refreshBuilderStampForGrid(grid);
         this.unlockedEvents.add(door.iid);
         trackGateBreak({
           gate_type: 'stat',
@@ -4572,6 +4745,7 @@ export class LdtkWorldScene extends Scene {
       (cp as any)._key = key;
       (cp as any)._respawns = respawns;
       cp.injectCollision(this.collisionGrid);
+      this.collapsingPlatformCollisionGrids.set(cp, this.collisionGrid);
       this.collapsingPlatforms.push(cp);
       this.entityLayer.addChild(cp.container);
     }
@@ -4803,7 +4977,16 @@ export class LdtkWorldScene extends Scene {
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
   private applyUpdrafts(dt: number): void {
     // Use player's active roomData (builder grid when riding, host grid otherwise)
-    this.updraftSystem.update(dt, this.player, this.player.roomData, this.game.camera);
+    this.updraftSystem.update(dt, this.player, this.player.roomData, this.game.camera, this.getBuilderUpdraftChannels());
+  }
+
+  private getBuilderUpdraftChannels(): Array<{ grid: number[][]; x: number; y: number }> {
+    if (!this.activeBuilder) return [];
+    return [{
+      grid: this.activeBuilder.collisionGrid,
+      x: this.activeBuilder.container.x,
+      y: this.activeBuilder.container.y,
+    }];
   }
 
   /** Check player overlap with spikes ??damage + teleport to last safe ground. */
@@ -4811,7 +4994,10 @@ export class LdtkWorldScene extends Scene {
   private checkSpikeContact(): void {
     if (this.player.invincible || this.player.hp <= 0) return;
 
-    if (!isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData)) return;
+    const inTileSpike = isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData);
+    const playerBox = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
+    const inEntitySpike = this.spikes.some(spike => aabbOverlap(playerBox, spike.getAABB()));
+    if (!inTileSpike && !inEntitySpike) return;
 
     // 20% max HP damage
     const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
@@ -5888,10 +6074,11 @@ export class LdtkWorldScene extends Scene {
     if (this.voidDropActive || this.voidCooldown > 0 || this.player.hp <= 0) return;
     if (!isInVoid(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData)) return;
 
+    const returnPoint = this.resolveWorldOnlyVoidReturnPoint();
     this.voidDropActive = true;
-    this.voidReturnLevelId = this.currentLevel?.identifier ?? this.playerSpawnLevelId;
-    this.voidReturnX = this.player.lastSafeX;
-    this.voidReturnY = this.player.lastSafeY;
+    this.voidReturnLevelId = this.lastWorldSafeLevelId || this.currentLevel?.identifier || this.playerSpawnLevelId;
+    this.voidReturnX = returnPoint.x;
+    this.voidReturnY = returnPoint.y;
     this.voidFadePhase = 'out';
     this.voidFadeTimer = 0;
     this.voidInputLockMs = VOID_INPUT_LOCK_MS;
@@ -5900,6 +6087,106 @@ export class LdtkWorldScene extends Scene {
     // Soft input lock — player loses control immediately, but every other
     // system (camera, fluid, particles, enemies) keeps simulating.
     this.game.input.inputLocked = true;
+  }
+
+  private recordLastWorldSafePosition(x: number, y: number): void {
+    this.lastWorldSafeLevelId = this.currentLevel?.identifier ?? this.playerSpawnLevelId;
+    this.lastWorldSafeX = x;
+    this.lastWorldSafeY = y;
+  }
+
+  private resolveWorldOnlyVoidReturnPoint(): { x: number; y: number } {
+    const x = this.lastWorldSafeX;
+    const y = this.lastWorldSafeY;
+    if (this.isWorldFloorUnderPlayerAt(x, y)) return { x, y };
+    const nearest = this.findNearestWorldFloorSpawn(x, y);
+    if (nearest) return nearest;
+    const playerEntity = this.currentLevel?.entities.find((e) => e.type === 'Player');
+    if (playerEntity) {
+      return { x: playerEntity.px[0], y: playerEntity.px[1] - this.player.height };
+    }
+    return { x: this.player.x, y: this.player.y };
+  }
+
+  private isWorldFloorUnderPlayerAt(x: number, y: number): boolean {
+    if (this.isAabbInsideActiveBuilderVolume(x, y, this.player.width, this.player.height)) return false;
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridW <= 0) return false;
+    const stampSet = this.getBuilderStampSet();
+    const footRow = Math.floor((y + this.player.height + 1) / TILE_SIZE);
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + this.player.width - 1) / TILE_SIZE);
+    for (let col = leftCol; col <= rightCol; col++) {
+      if (this.isWorldFloorCell(col, footRow, stampSet)) return true;
+    }
+    return false;
+  }
+
+  private findNearestWorldFloorSpawn(x: number, y: number): { x: number; y: number } | null {
+    const gridH = this.collisionGrid.length;
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridH <= 0 || gridW <= 0) return null;
+
+    const stampSet = this.getBuilderStampSet();
+    const targetX = x + this.player.width / 2;
+    const targetY = y + this.player.height;
+    let best: { x: number; y: number; d2: number } | null = null;
+
+    for (let row = 0; row < gridH; row++) {
+      for (let col = 0; col < gridW; col++) {
+        if (!this.isWorldFloorCell(col, row, stampSet)) continue;
+        const candidateX = col * TILE_SIZE + TILE_SIZE / 2 - this.player.width / 2;
+        const candidateY = row * TILE_SIZE - this.player.height;
+        if (this.isAabbInsideActiveBuilderVolume(candidateX, candidateY, this.player.width, this.player.height)) continue;
+        if (!this.isWorldBodyClearAt(candidateX, candidateY, stampSet)) continue;
+        const dx = candidateX + this.player.width / 2 - targetX;
+        const dy = candidateY + this.player.height - targetY;
+        const d2 = dx * dx + dy * dy;
+        if (!best || d2 < best.d2) best = { x: candidateX, y: candidateY, d2 };
+      }
+    }
+
+    return best ? { x: best.x, y: best.y } : null;
+  }
+
+  private isWorldFloorCell(col: number, row: number, builderStampSet: Set<number>): boolean {
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridW <= 0) return false;
+    if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return false;
+    if (builderStampSet.has(row * gridW + col)) return false;
+    const tile = this.collisionGrid[row]?.[col] ?? TILE_AIR;
+    return isSolid(tile) || isOneWay(tile);
+  }
+
+  private isWorldBodyClearAt(x: number, y: number, builderStampSet: Set<number>): boolean {
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    if (gridW <= 0) return false;
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + this.player.width - 1) / TILE_SIZE);
+    const topRow = Math.floor(y / TILE_SIZE);
+    const bottomRow = Math.floor((y + this.player.height - 1) / TILE_SIZE);
+    for (let row = topRow; row <= bottomRow; row++) {
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return false;
+        if (builderStampSet.has(row * gridW + col)) continue;
+        const tile = this.collisionGrid[row]?.[col] ?? TILE_WALL;
+        if (isSolid(tile)) return false;
+      }
+    }
+    return true;
+  }
+
+  private isAabbInsideActiveBuilderVolume(x: number, y: number, w: number, h: number): boolean {
+    const b = this.activeBuilder;
+    if (!b) return false;
+    const bx = b.container.x;
+    const by = b.container.y;
+    const bw = b.widthTiles * TILE_SIZE;
+    const bh = b.heightTiles * TILE_SIZE;
+    return aabbOverlap(
+      { x, y, width: w, height: h },
+      { x: bx, y: by, width: bw, height: bh },
+    );
   }
 
   /**
@@ -6033,7 +6320,9 @@ export class LdtkWorldScene extends Scene {
             }
           }
         }
-        this.renderer.clearTilesInRect(topLeftX, topLeftY, ent.width, ent.height);
+        // 룸 재진입 — 이미 부서진 SecretWall 의 wall tile 만 다시 지우고 interior
+        // 데코는 유지 (preserveInterior). 6207 의 *최초 파괴* 경로와 동일 옵션.
+        this.renderer.clearTilesInRect(topLeftX, topLeftY, ent.width, ent.height, { preserveInterior: true });
         continue;
       }
 
@@ -6124,8 +6413,9 @@ export class LdtkWorldScene extends Scene {
           item_id: wall.mode === 'item' ? ((wall as any)._itemId as string | undefined) : undefined,
         });
 
-        // Erase the AutoTile wall sprites at this position
-        this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height);
+        // Erase the AutoTile wall sprites at this position. interior 데코(파이프·라이트
+        // 등)는 벽 너머 공간을 채우는 시각 자산이므로 *보존* — preserveInterior=true.
+        this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height, { preserveInterior: true });
 
         // Mode=Item: spawn item drop at wall center
         if (wall.mode === 'item') {
@@ -6391,6 +6681,7 @@ export class LdtkWorldScene extends Scene {
       } else {
         sw.injectCollision(this.collisionGrid);
       }
+      this.switchCollisionGrids.set(sw, this.collisionGrid);
       this.switches.push(sw);
       this.entityLayer.addChild(sw.container);
     }
@@ -6517,7 +6808,6 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * 플레이어 공격 vs 수동 배치 Breakable Entity (LDtk).
-   * 기존 IntGrid 9-tile 기반 checkAttackOnBreakables 와 별개.
    * BreakableProp 와 동일한 shatter / drop / 카메라 흔들림 처리.
    */
   private checkAttackOnBreakableEntities(): void {
@@ -6642,67 +6932,14 @@ export class LdtkWorldScene extends Scene {
       if (sw.activated) continue;
       if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
 
-      if (sw.activate(this.collisionGrid)) {
+      const grid = this.getSwitchCollisionGrid(sw);
+      if (sw.activate(grid)) {
+        this.refreshBuilderStampForGrid(grid);
         this.game.camera.shake(3);
         this.screenFlash.flashHit(false);
         this.unlockDoorByIid(sw.targetDoorIid);
         this.toast.show(t('toast.switch_destroyed'), 0x44ffaa);
       }
-    }
-  }
-
-  /** IntGrid breakable (9) ??3 SWINGS to destroy ??air(0).
-   *  Each attack swing (combo step) counts as 1 hit per tile. Subsequent
-   *  frames of the same swing are ignored so holding attack doesn't insta-break. */
-  private checkAttackOnBreakables(): void {
-    if (!this.player.isAttackActive()) {
-      // Attack ended ??reset swing tracking
-      if (this.breakableHitThisSwing.size > 0) {
-        this.breakableHitThisSwing.clear();
-        this.breakableLastCombo = -1;
-      }
-      return;
-    }
-    // New combo step = new swing opportunity
-    if (this.player.comboIndex !== this.breakableLastCombo) {
-      this.breakableHitThisSwing.clear();
-      this.breakableLastCombo = this.player.comboIndex;
-    }
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
-    const T = 16;
-    const HITS_TO_BREAK = 3;
-    const l = Math.floor(hitbox.x / T);
-    const r = Math.floor((hitbox.x + hitbox.width - 1) / T);
-    const ty = Math.floor(hitbox.y / T);
-    const b = Math.floor((hitbox.y + hitbox.height - 1) / T);
-    let broken = false;
-    for (let row = ty; row <= b; row++) {
-      for (let col = l; col <= r; col++) {
-        if ((this.collisionGrid[row]?.[col] ?? 0) !== 9) continue;
-        const key = `${col},${row}`;
-        if (this.breakableHitThisSwing.has(key)) continue; // already hit this swing
-        this.breakableHitThisSwing.add(key);
-        const hits = (this.breakableHits.get(key) ?? 0) + 1;
-        if (hits >= HITS_TO_BREAK) {
-          this.collisionGrid[row][col] = 0;
-          this.breakableHits.delete(key);
-          broken = true;
-        } else {
-          this.breakableHits.set(key, hits);
-        }
-      }
-    }
-    if (broken) {
-      this.game.hitstopFrames += 4;
-      this.game.camera.shake(4);
-      this.screenFlash.flash(0xffffff, 0.3, 100);
-      this.toast.show(t('toast.wall_destroyed'), 0xffaa44);
-      this.rerenderTilemap();
     }
   }
 
@@ -7194,24 +7431,27 @@ export class LdtkWorldScene extends Scene {
   }
 
   private applyBuilderVisualFilters(builder: GiantBuilder): void {
-    if (this.builderWallPaletteFilter) {
-      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter!];
+    if (this.builderWallPaletteFilter && this.builderNaturalPaletteFilter) {
+      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter];
       builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
       builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
     }
 
-    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorPaletteFilter && this.wallRimFilter) {
-      builder.bodyLayers.bg.filters       = [this.builderBgPaletteFilter];
-      builder.bodyLayers.wall.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.bodyLayers.interior.filters = [this.builderInteriorPaletteFilter];
-      builder.bodyLayers.shadow.filters   = [this.builderWallPaletteFilter];
+    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorWallPaletteFilter && this.wallRimFilter) {
+      builder.bodyLayers.bg.filters           = [this.builderBgPaletteFilter];
+      builder.bodyLayers.wall.filters         = [this.builderWallPaletteFilter, this.wallRimFilter];
+      builder.bodyLayers.interior.filters     = [this.builderBgPaletteFilter];
+      builder.bodyLayers.shadow.filters       = [this.builderWallPaletteFilter];
+      builder.builderInteriorLayer.filters    = [this.builderInteriorWallPaletteFilter];
+      builder.builderOutsideLayer.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
       builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
+      builder.pinFilterBounds();
     }
   }
 
   private addBuilderToScene(builder: GiantBuilder, insertBeforeNaturalDecor: boolean): void {
     if (insertBeforeNaturalDecor && this.procDecorator) {
-      const insertIdx = this.renderer.container.getChildIndex(this.procDecorator.naturalLayer);
+      const insertIdx = this.renderer.container.getChildIndex(this.renderer.shadowLayer);
       this.renderer.container.addChildAt(builder.container, insertIdx);
     } else {
       this.renderer.container.addChild(builder.container);
@@ -7238,7 +7478,9 @@ export class LdtkWorldScene extends Scene {
     const endWaitMs = Math.max(0, this.readNumberField(spawner, 'EndWaitMs', 0));
     const insertBeforeNaturalDecor = this.readBoolField(spawner, 'InsertBeforeNaturalDecor', true);
     const alreadyPlayed = runOnceKey.length > 0 && this.builderSpawnerRunOnceKeys.has(runOnceKey);
-    const spawnY = alreadyPlayed && replayAtEnd ? endY : startY;
+    const savedState = this.builderSavedStates.get(builderLevelId);
+    const savedY = this.builderSavedPositions.get(builderLevelId);
+    const spawnY = savedState?.posY ?? savedY ?? (alreadyPlayed && replayAtEnd ? endY : startY);
 
     let builderX = spawner.px[0] + offsetPx;
     if (anchor === 'LeftWall') {
@@ -7258,17 +7500,36 @@ export class LdtkWorldScene extends Scene {
     this.applyBuilderVisualFilters(builder);
     builder.placeInLevel(builderX, spawnY);
     this.addBuilderToScene(builder, insertBeforeNaturalDecor);
+    // BuilderInterior 는 entityLayer 위에 별도 부착 — entity 보다 *앞* 에 그려져
+    // builder 외벽 안 디테일이 player/적을 occlude. position 은 매 프레임 builder
+    // container 와 동기화 (아래 update loop).
+    this.container.addChild(builder.builderInteriorLayer);
+    builder.builderInteriorLayer.position.copyFrom(builder.container.position);
+    // BuilderLight indicators 는 BuilderInterior 보다도 *위*. 광원이 내부 디테일
+    // 마저 뚫고 떠야 실제 표시등처럼 읽힌다.
+    this.container.addChild(builder.lightContainer);
+    builder.lightContainer.position.copyFrom(builder.container.position);
+    // Leg 는 가장 *앞*. 거대 빌더의 다리가 모든 전경 위로 떠야 실루엣이 강조된다.
+    this.container.addChild(builder.legFrontLayer);
+    builder.legFrontLayer.position.copyFrom(builder.container.position);
 
-    if (autoStart && !alreadyPlayed) {
+    if (autoStart && !alreadyPlayed && (savedState || savedY === undefined)) {
       builder.setRoute([
         { y: startY, waitMs: startWaitMs },
         { y: endY,   waitMs: endWaitMs },
       ], speed, loop);
-      if (skipInitialWait) builder.skipInitialWait();
+      if (savedState) {
+        builder.restoreSnapshot(savedState);
+      } else if (skipInitialWait) {
+        builder.skipInitialWait();
+      }
       if (runOnceKey.length > 0) this.builderSpawnerRunOnceKeys.add(runOnceKey);
+    } else if (savedState) {
+      builder.restoreSnapshot(savedState);
     }
 
     this.activeBuilder = builder;
+    this.activeBuilderLevelId = builderLevelId;
     this.activeBuilderMode = cameraShake ? 'cinematic' : 'patrol';
     this.builderShakeEnabled = cameraShake;
     this.builderWasMoving = false;
@@ -7302,6 +7563,7 @@ export class LdtkWorldScene extends Scene {
       for (let bc = 0; bc < b.widthTiles; bc++) {
         const v = bRow[bc];
         if (!v) continue;
+        if (v === TILE_UPDRAFT) continue;
         const c = tileOriginX + bc;
         if (c < 0 || c >= gridW) continue;
         if (hostRow[c] === 0) {
@@ -7397,7 +7659,7 @@ export class LdtkWorldScene extends Scene {
     // Drop-through 활성 동안은 빌더 collisionGrid 의 platform(3) 셀을 발판
     // 후보에서 빼야 한다. 그렇지 않으면 `y += 2` 직후 snap 이 platform top
     // 으로 즉시 복귀시켜 DOWN+JUMP 이 항상 취소된다.
-    if (this.player.dropThroughTimer > 0) return false;
+    if (this.player.dropThroughTimer > 0 || this.builderOneWayDropThroughGraceMs > 0) return false;
 
     const originX = Math.round(b.container.x / 16);
     const originY = Math.round(b.container.y / 16);
@@ -7406,15 +7668,25 @@ export class LdtkWorldScene extends Scene {
     if (rightCol < leftCol) return false;
 
     const feetY = this.player.y + this.player.height;
+    const prevFeetY = this.player.prevY + this.player.height;
     let bestTopY: number | null = null;
     let bestDist = Infinity;
     for (let br = 0; br < b.heightTiles; br++) {
       for (let bc = leftCol; bc <= rightCol; bc++) {
         const tile = b.collisionGrid[br]?.[bc] ?? 0;
-        if (tile === 0) continue;
+        if (!isSolid(tile) && !isOneWay(tile)) continue;
         const above = br > 0 ? (b.collisionGrid[br - 1]?.[bc] ?? 0) : 0;
         if (above !== 0) continue;
         const topY = (originY + br) * 16;
+        if (isOneWay(tile)) {
+          // Moving one-way platforms can cross the player's feet between
+          // tile-stamp updates and the normal resolveY "feetBefore" test.
+          // Accept the platform only from above/near-above, never during a
+          // jump-up from below or an intentional drop-through.
+          const cameFromAbove = prevFeetY <= topY + TILE_SIZE;
+          const nearLandingBand = feetY >= topY - 2 && feetY <= topY + TILE_SIZE * 1.5;
+          if (!cameFromAbove || !nearLandingBand) continue;
+        }
         const dist = Math.abs(topY - feetY);
         if (dist < bestDist) {
           bestDist = dist;
@@ -7756,12 +8028,9 @@ export class LdtkWorldScene extends Scene {
           // prompts / dialogue / IW entry routing work unchanged once the
           // attachment makes its world coords track the builder.
           if (this.anvil) break;
-          const anvilDisabled = (
-            this.currentLevel?.identifier === FIRST_ANVIL_LEVEL_ID &&
-            (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED) ||
-             sacredSave.isFirstItemWorldBossDefeated())
-          );
-          const anvil = new Anvil(wx, wy, anvilDisabled);
+          const retireFlag = this.readAnvilRetireAfterBossFlag(ent);
+          const anvil = new Anvil(wx, wy, this.shouldSpawnAnvilDisabled(retireFlag));
+          anvil.retireAfterFirstBoss = retireFlag;
           this.anvil = anvil;
           this.currentAnvilIid = ent.iid;
           // attachToBuilder reparents container.parent → builder.container,
@@ -7770,7 +8039,161 @@ export class LdtkWorldScene extends Scene {
           this.attachToBuilder(builder, anvil, localX, localY, () => this.anvil === anvil);
           break;
         }
-        case 'Builder': {
+        case 'LockedDoor': {
+          const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
+          const unlockCondition = (rawCondition.toLowerCase() as UnlockCondition) || 'event';
+          const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
+          const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
+          const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
+          const doorKey = unlockCondition === 'event' ? unlockEvent : ent.iid;
+          const isAlreadyUnlocked = this.unlockedEvents.has(doorKey);
+          const door = new LockedDoor(
+            localX, localY,
+            ent.width, ent.height,
+            ent.iid,
+            unlockCondition,
+            unlockCondition === 'event' ? unlockEvent : doorKey,
+            statType,
+            statThreshold,
+          );
+          door.injectCollision(builder.collisionGrid);
+          this.doorCollisionGrids.set(door, builder.collisionGrid);
+          if (isAlreadyUnlocked) door.unlock(builder.collisionGrid, true);
+          this.lockedDoors.push(door);
+          this.entityLayer.addChild(door.container);
+          this.attachToBuilder(
+            builder,
+            door,
+            door.container.x,
+            door.container.y,
+            () => this.lockedDoors.includes(door),
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                entity.x = bx + lx;
+                entity.y = by + ly;
+                entity.container.x = entity.x;
+                entity.container.y = entity.y;
+              },
+            },
+          );
+          break;
+        }
+        case 'Switch': {
+          const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
+          if (!ref?.entityIid) break;
+          const sw = new Switch(localX, localY, ent.width, ent.height, ref.entityIid);
+          if (this.unlockedEvents.has(ref.entityIid)) {
+            sw.activate(builder.collisionGrid);
+          } else {
+            sw.injectCollision(builder.collisionGrid);
+          }
+          this.switchCollisionGrids.set(sw, builder.collisionGrid);
+          this.switches.push(sw);
+          this.entityLayer.addChild(sw.container);
+          this.attachToBuilder(
+            builder,
+            sw,
+            sw.container.x,
+            sw.container.y,
+            () => this.switches.includes(sw),
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                entity.x = bx + lx;
+                entity.y = by + ly;
+                entity.container.x = entity.x;
+                entity.container.y = entity.y;
+              },
+            },
+          );
+          break;
+        }
+        case 'Spike': {
+          const spike = new Spike(localX, localY, ent.width, ent.height);
+          this.spikes.push(spike);
+          this.entityLayer.addChild(spike.container);
+          this.attachToBuilder(
+            builder,
+            spike,
+            spike.container.x,
+            spike.container.y,
+            () => this.spikes.includes(spike),
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                entity.x = bx + lx;
+                entity.y = by + ly;
+                entity.container.x = entity.x;
+                entity.container.y = entity.y;
+              },
+            },
+          );
+          break;
+        }
+        case 'Breakable': {
+          const rawSprite = (ent.fields['Sprite'] ?? ent.fields['sprite']) as string | undefined;
+          const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
+            ? rawSprite
+            : 'SignBoard_Save';
+          const breakable = new Breakable(localX, localY, spriteId);
+          this.breakables.push(breakable);
+          this.entityLayer.addChild(breakable.container);
+          this.attachToBuilder(
+            builder,
+            breakable,
+            localX,
+            localY,
+            () => this.breakables.includes(breakable) && !breakable.destroyed,
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                entity.container.x = bx + lx;
+                entity.container.y = by + ly;
+                entity.x = entity.container.x;
+                entity.y = entity.container.y;
+                const b = entity as Breakable;
+                if (b.width > 0) {
+                  b.x = b.container.x - b.width / 2;
+                  b.y = b.container.y - b.height;
+                }
+              },
+            },
+          );
+          break;
+        }
+        case 'CollapsingPlatform': {
+          const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
+          const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
+          const key = `cplat_${builderLevelId}_${localX}_${localY}`;
+          if (!respawns && this.unlockedEvents.has(key)) break;
+
+          const cp = new CollapsingPlatform(localX, localY, ent.width, ent.height, respawns, respawnTime);
+          (cp as any)._key = key;
+          (cp as any)._respawns = respawns;
+          cp.injectCollision(builder.collisionGrid);
+          this.collapsingPlatformCollisionGrids.set(cp, builder.collisionGrid);
+          this.collapsingPlatforms.push(cp);
+          this.entityLayer.addChild(cp.container);
+          this.attachToBuilder(
+            builder,
+            cp,
+            cp.container.x,
+            cp.container.y,
+            () => this.collapsingPlatforms.includes(cp),
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                entity.x = bx + lx;
+                entity.y = by + ly;
+                entity.container.x = entity.x;
+                entity.container.y = entity.y;
+              },
+            },
+          );
+          break;
+        }
+        case 'BuilderSprite': {
           // LDtk Builder entity — 정적 데코레이션 sprite. tile (인스턴스 Tile field
           // 또는 entity def 기본 tile) 의 native w×h 로 렌더 — entity bounds 32×32
           // 에 맞추지 않음 (LDtk tileRenderMode = FullSizeUncropped 동작 모방).
@@ -7813,17 +8236,28 @@ export class LdtkWorldScene extends Scene {
     localX: number,
     localY: number,
     isAlive: () => boolean,
+    options: {
+      reparent?: boolean;
+      sync?: (entity: BuilderAttachable, builderX: number, builderY: number, localX: number, localY: number) => void;
+    } = {},
   ): void {
-    if (entity.container.parent) {
-      entity.container.parent.removeChild(entity.container);
+    const reparent = options.reparent ?? true;
+    if (reparent) {
+      if (entity.container.parent) {
+        entity.container.parent.removeChild(entity.container);
+      }
+      builder.container.addChild(entity.container);
+      entity.container.x = localX;
+      entity.container.y = localY;
+      if (typeof entity.baseY === 'number') {
+        entity.baseY = localY;
+      }
+      this.builderAttachments.push({ entity, localX, localY, isAlive, sync: options.sync });
+      return;
     }
-    builder.container.addChild(entity.container);
-    entity.container.x = localX;
-    entity.container.y = localY;
-    if (typeof entity.baseY === 'number') {
-      entity.baseY = localY;
-    }
-    this.builderAttachments.push({ entity, localX, localY, isAlive });
+
+    options.sync?.(entity, builder.container.x, builder.container.y, localX, localY);
+    this.builderAttachments.push({ entity, localX, localY, isAlive, sync: options.sync });
   }
 
   /** Sync world coords (entity.x/y) of builder-attached entities so
@@ -7840,22 +8274,44 @@ export class LdtkWorldScene extends Scene {
         this.builderAttachments.splice(i, 1);
         continue;
       }
-      a.entity.x = bx + a.localX;
-      a.entity.y = by + a.localY;
+      if (a.sync) {
+        a.sync(a.entity, bx, by, a.localX, a.localY);
+      } else {
+        a.entity.x = bx + a.localX;
+        a.entity.y = by + a.localY;
+      }
     }
   }
 
   private clearBuilder(): void {
+    if (this.activeBuilder && this.activeBuilderLevelId) {
+      this.builderSavedPositions.set(this.activeBuilderLevelId, this.activeBuilder.posY);
+      this.builderSavedStates.set(this.activeBuilderLevelId, this.activeBuilder.createSnapshot());
+    }
     this.unstampBuilder();
     this.playerOnBuilder = false;
     this.playerInBuilder = false;
     if (this.activeBuilder) {
+      const interior = this.activeBuilder.builderInteriorLayer;
+      if (interior.parent) interior.parent.removeChild(interior);
+      interior.destroy({ children: true });
+      const lights = this.activeBuilder.lightContainer;
+      if (lights.parent) lights.parent.removeChild(lights);
+      lights.destroy({ children: true });
+      const legBack = this.activeBuilder.legBackLayer;
+      if (legBack.parent) legBack.parent.removeChild(legBack);
+      legBack.destroy({ children: true });
+      const legFront = this.activeBuilder.legFrontLayer;
+      if (legFront.parent) legFront.parent.removeChild(legFront);
+      legFront.destroy({ children: true });
       this.activeBuilder.destroy();
       this.activeBuilder = null;
     }
+    this.activeBuilderLevelId = null;
     this.activeBuilderMode = null;
     this.builderShakeEnabled = false;
     this.builderWasMoving = false;
+    this.builderInteriorAlpha = 1;
     // Attached entities themselves are cleared with the level via their
     // owning collections (this.drops, etc.); just drop our tracking refs.
     this.builderAttachments = [];
@@ -7923,6 +8379,7 @@ export class LdtkWorldScene extends Scene {
     // Clear fixed item world / tunnel state
     this.inFixedItemWorld = false;
     this.fixedItemWorldItem = null;
+    this.fixedItemWorldHadFirstBossClear = false;
     this.inItemTunnel = false;
     this.collapseItem = null;
 
@@ -8129,6 +8586,7 @@ export class LdtkWorldScene extends Scene {
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
     this.releaseWorldVisualsForItemWorld();
+    this.game.camera.setZoom(1.0);
     // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
     // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
     this.dmgNumbers?.clear();
@@ -8697,17 +9155,11 @@ export class LdtkWorldScene extends Scene {
     const anvilEnts = level.entities.filter(
       e => e.type === 'Anvil',
     );
-    // Anvil retires after the EGO_ANVIL_RETIRED dialogue plays once
-    // (which itself fires on the first world-return after first IW boss clear).
-    // Until that dialogue plays, the anvil stays active even if the boss has
-    // been defeated — Rustborn explains the retirement before the visual changes.
-    const anvilDisabled = (
-      level.identifier === FIRST_ANVIL_LEVEL_ID &&
-      (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED) || sacredSave.isFirstItemWorldBossDefeated())
-    );
     if (anvilEnts.length > 0) {
       const ent = anvilEnts[0]; // One anvil per level
-      this.anvil = new Anvil(ent.px[0], ent.px[1], anvilDisabled);
+      const retireFlag = this.readAnvilRetireAfterBossFlag(ent);
+      this.anvil = new Anvil(ent.px[0], ent.px[1], this.shouldSpawnAnvilDisabled(retireFlag));
+      this.anvil.retireAfterFirstBoss = retireFlag;
       this.currentAnvilIid = ent.iid;
       this.entityLayer.addChildAt(this.anvil.container, 0);
       return;
@@ -8718,10 +9170,33 @@ export class LdtkWorldScene extends Scene {
     if (altarEnts.length > 0) {
       console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" ??using first Altar position as fallback`);
       const ent = altarEnts[0];
-      this.anvil = new Anvil(ent.px[0], ent.px[1], anvilDisabled);
+      this.anvil = new Anvil(ent.px[0], ent.px[1], false);
       this.currentAnvilIid = ent.iid;
       this.entityLayer.addChildAt(this.anvil.container, 0);
     }
+  }
+
+  /** retireAfterFirstBoss=true 인 anvil 만 retire 상태로 spawn 가능. 데이터 기반. */
+  private shouldSpawnAnvilDisabled(retireAfterFirstBoss: boolean): boolean {
+    if (!retireAfterFirstBoss) return false;
+    return this.hasBossClearForAnvilRetire();
+  }
+
+  private hasBossClearForAnvilRetire(): boolean {
+    if (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)) return true;
+    if (sacredSave.isFirstItemWorldBossDefeated()) return true;
+    for (const event of this.unlockedEvents) {
+      if (event.startsWith('boss_')) return true;
+    }
+    return false;
+  }
+
+  private isAnvilRetiredByBossClear(anvil: Anvil | null): boolean {
+    return !!anvil?.retireAfterFirstBoss && this.hasBossClearForAnvilRetire();
+  }
+
+  private readAnvilRetireAfterBossFlag(ent: LdtkEntity): boolean {
+    return (ent.fields['RetireAfterFirstBoss'] as boolean | undefined) ?? false;
   }
 
   private isPlayerNearAnvil(): boolean {
@@ -8740,6 +9215,9 @@ export class LdtkWorldScene extends Scene {
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
       if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
       return;
+    }
+    if (this.isAnvilRetiredByBossClear(this.anvil) && !this.anvil.disabled) {
+      void this.anvil.setDisabled(true);
     }
     if (this.anvil.used || this.anvil.disabled) {
       this.anvil.update(dt);
@@ -9077,14 +9555,9 @@ export class LdtkWorldScene extends Scene {
   private triggerFloorCollapse(): void {
     if (!this.anvil || !this.collapseItem) return;
 
-    this.diveTransitionActive = true;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    // All anvils are reusable ??snapshot position for player return point.
     this.lastUsedAnvilPos = {
       x: this.anvil.x,
       y: this.anvil.y,
@@ -9092,23 +9565,111 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
     this.lastUsedAnvilLevelId = this.currentLevel?.identifier ?? null;
+    this.lastUsedAnvilRetireAfterBoss = this.anvil.retireAfterFirstBoss;
+    this.preTunnelLevelId = this.currentLevel.identifier;
 
-    // ARCHIVED: MemoryDive sequence ??replaced by anvil gate FX019 activation
-    // The anvil's placeItem() already triggers FX019 + item icon display.
-    // We just need hitstop + flash + delayed entry.
     sacredSave.incrementDive(this.collapseItem.def.id);
 
-    // Hitstop freeze so player sees the FX + icon on the gate
-    this.game.hitstopFrames = 8; // short hit freeze
-
-    // Short hit feedback + zoom into anvil
+    this.game.hitstopFrames = 8;
     this.game.camera.shake(3);
-    this.game.camera.zoomTo(2, 0.03);
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
-    // FX019/item-icon playback is disabled for the new Echo transition.
-    // Start the transition directly after the strike feedback breathes.
-    window.setTimeout(() => this.runDiveTransition(), 250);
+    this.itemDeployment?.destroy();
+    this.itemDeployment = new ItemDeploymentController(
+      this.game,
+      this.player,
+      this.entityLayer,
+      () => this.enterItemWorldFromTunnel(),
+      this.activeBuilder,
+      (x, y) => this.hitSparks.spawn(x, y, true, 1),
+      (x, y, w, h) => this.openDeploymentTunnel(x, y, w, h),
+      this.currentLevel.pxWid,
+      () => this.anvil?.getGatePivotWorld() ?? null,
+      this.deploymentFxLayer,
+      (active) => this.setLaserDesaturation(active),
+      () => this.anvil?.getPlacedItemWorld() ?? null,
+      () => this.anvil?.startPlacedItemPunch(),
+      (targetX, targetY) => this.anvil?.startPlacedItemDissolve(targetX, targetY),
+      () => {
+        // onItemAbsorbed — retire 는 *ItemWorld 보스 클리어* 가 트리거 (정책
+        // 원본). retireFirstAnvilAfterBossClear() 가 ItemWorld 복귀 시 처리.
+      },
+    );
+    this.itemDeployment.start(this.anvil.x, this.anvil.y);
+  }
+
+  /** Clears world tiles and collision for the item-deployment tunnel. */
+  private openDeploymentTunnel(x: number, y: number, w: number, h: number): void {
+    const levelRight = this.currentLevel?.pxWid ?? x + w;
+    const clearW = Math.max(w, levelRight - x);
+
+    const TILE = 16;
+    const col0 = Math.floor(x / TILE);
+    const col1 = Math.floor((x + clearW - 1) / TILE);
+    const row0 = Math.floor(y / TILE);
+    const row1 = Math.floor((y + h - 1) / TILE);
+
+    // Zero world collision cells in tunnel area.
+    for (let row = row0; row <= row1; row++) {
+      const gridRow = this.collisionGrid[row];
+      if (!gridRow) continue;
+      for (let col = col0; col <= col1; col++) {
+        if (col >= 0 && col < gridRow.length) gridRow[col] = 0;
+      }
+    }
+
+    // Remove world renderer tiles in tunnel area.
+    this.renderer.clearTilesInRect(x, y, clearW, h, { preserveInterior: true });
+
+    // Also zero builder collisionGrid so stampBuilder won't re-fill the tunnel.
+    if (this.activeBuilder) {
+      this.activeBuilder.digTunnel(x, y, h);
+      this.unstampBuilder();
+      this.stampBuilder();
+    }
+
+    // Anvil halo directional trail — 터널 방향 시각 안내 (E).
+    // 터널이 anvil.x 부터 오른쪽으로 clearW 만큼이라 길이 = clearW.
+    this.anvil?.triggerDirectionalTrail(clearW);
+
+    // EGO_TUNNEL_OPEN — 첫 진입 1회 한정 발화 (H).
+    const TUNNEL_OPEN_EGO_KEY = '__ego_tunnel_open_first';
+    if (!this.unlockedEvents.has(TUNNEL_OPEN_EGO_KEY)) {
+      this.unlockedEvents.add(TUNNEL_OPEN_EGO_KEY);
+      void this.loreDisplay?.showDialogue(EGO_TUNNEL_OPEN, false);
+    }
+  }
+
+  private setLaserDesaturation(active: boolean): void {
+    const targets = [
+      this.game.backgroundContainer,
+      this.renderer?.container,
+      this.entityLayer,
+      this.fluidLayer,
+    ].filter((target): target is Container => !!target);
+
+    if (active) {
+      if (!this.laserDesaturationFilter) {
+        this.laserDesaturationFilter = new ColorMatrixFilter();
+        this.laserDesaturationFilter.desaturate();
+        this.laserDesaturationFilter.contrast(1.5, true);
+      }
+      for (const target of targets) {
+        if (target === this.deploymentFxLayer) continue;
+        if (!this.laserDesaturationPrevFilters.has(target)) {
+          this.laserDesaturationPrevFilters.set(target, target.filters ? [...target.filters] : null);
+        }
+        const prev = this.laserDesaturationPrevFilters.get(target);
+        const next = prev ? [...prev, this.laserDesaturationFilter] : [this.laserDesaturationFilter];
+        target.filters = next;
+      }
+      return;
+    }
+
+    for (const [target, filters] of this.laserDesaturationPrevFilters) {
+      target.filters = filters;
+    }
+    this.laserDesaturationPrevFilters.clear();
   }
 
   /** Rarity ??ItemTunnel level name mapping. */
@@ -9138,11 +9699,6 @@ export class LdtkWorldScene extends Scene {
       this.memoryDive.destroy();
       this.memoryDive = null;
     }
-    if (this.floorCollapse) {
-      this.floorCollapse.destroy();
-      this.floorCollapse = null;
-    }
-
     // Remember where we came from so we can return after exiting Item World.
     this.preTunnelLevelId = this.currentLevel.identifier;
 
@@ -9215,6 +9771,7 @@ export class LdtkWorldScene extends Scene {
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
+      this.restoreWorldAtAnvilReturnPoint(true);
       this.game.sceneManager.pop();
       this.startItemWorldReturnFadeIn();
       this.updatePlayerAtk();
@@ -9242,22 +9799,6 @@ export class LdtkWorldScene extends Scene {
       this.fireWorldReturnDialogue(targetItem.def.id);
       this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
 
-      // Return to the forge room (not the tunnel)
-      this.inItemTunnel = false;
-      if (this.preTunnelLevelId) {
-        this.loadLevel(this.preTunnelLevelId, 'down');
-        this.preTunnelLevelId = null;
-      }
-      this.collapseItem = null;
-
-      // Reset anvil so it can be reused for repeated Item World dives
-      if (this.anvil) {
-        this.anvil.used = false;
-        this.anvil.item = null;
-      }
-
-      // Spawn next to the (now-removed) anvil using the snapshot position.
-      this.placePlayerAtReturnPoint();
     };
 
     this.game.sceneManager.push(itemWorldScene, true);
@@ -9281,6 +9822,26 @@ export class LdtkWorldScene extends Scene {
     this.game.camera.snap(this.player.x, this.player.y);
   }
 
+  private restoreWorldAtAnvilReturnPoint(resetAnvil: boolean): void {
+    this.inItemTunnel = false;
+    this.transitionState = 'none';
+    this.pendingLevelId = null;
+    this.pendingDirection = null;
+    const returnLevelId = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId;
+    if (returnLevelId) {
+      this.loadLevel(returnLevelId, 'down');
+    }
+    this.preTunnelLevelId = null;
+    this.collapseItem = null;
+
+    if (resetAnvil && this.anvil) {
+      this.anvil.used = false;
+      this.anvil.item = null;
+    }
+
+    this.placePlayerAtReturnPoint();
+  }
+
   /**
    * Enter a hand-crafted item world level (fixedLevelId).
    * Uses the same LdtkWorldScene level loading ??player spawns at Player entity.
@@ -9299,6 +9860,7 @@ export class LdtkWorldScene extends Scene {
       itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
       itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
       itemWorldScene.onComplete = () => {
+        this.restoreWorldAtAnvilReturnPoint(false);
         this.game.sceneManager.pop();
         this.startItemWorldReturnFadeIn();
         this.updatePlayerAtk();
@@ -9313,14 +9875,8 @@ export class LdtkWorldScene extends Scene {
           this.gold += itemWorldScene.earnedGold;
           this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
         }
-        this.inItemTunnel = false;
-        if (this.preTunnelLevelId) {
-          this.loadLevel(this.preTunnelLevelId, 'down');
-          this.preTunnelLevelId = null;
-        }
-        this.collapseItem = null;
-        // Spawn next to the (now-removed) anvil using the snapshot position.
-        this.placePlayerAtReturnPoint();
+        this.fireWorldReturnDialogue(item.def.id);
+        this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
       };
       this.container.visible = false;
       this.detachSharedUiForItemWorld();
@@ -9332,6 +9888,7 @@ export class LdtkWorldScene extends Scene {
     // Track that we're in a fixed item world (for return logic)
     this.inFixedItemWorld = true;
     this.fixedItemWorldItem = item;
+    this.fixedItemWorldHadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
 
     // Load the hand-crafted level ??'down' uses Player entity spawn
     this.inItemTunnel = false;
@@ -9345,17 +9902,34 @@ export class LdtkWorldScene extends Scene {
       this.portalTransition = null;
     }
 
+    const completedItem = this.fixedItemWorldItem;
+    const hadFirstBossClear = this.fixedItemWorldHadFirstBossClear;
     this.inFixedItemWorld = false;
     this.fixedItemWorldItem = null;
+    this.fixedItemWorldHadFirstBossClear = false;
     this.collapseItem = null;
 
-    // Return to forge
-    const returnLevel = this.preTunnelLevelId ?? this.playerSpawnLevelId;
+    // Return to the anvil's original level. `preTunnelLevelId` can be
+    // dirtied by edge transitions; the anvil snapshot is the authoritative
+    // return point for item-world exits.
+    this.transitionState = 'none';
+    this.pendingLevelId = null;
+    this.pendingDirection = null;
+    const returnLevel = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId ?? this.playerSpawnLevelId;
     this.preTunnelLevelId = null;
     this.loadLevel(returnLevel, 'down');
 
     // Place player next to the (possibly-removed) anvil snapshot.
     this.placePlayerAtReturnPoint();
+
+    if (sacredSave.isFirstItemWorldBossDefeated()) {
+      this.unlockedEvents.add('__itemWorldTutorialDone');
+    }
+    this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
+    if (completedItem) {
+      this.fireWorldReturnDialogue(completedItem.def.id);
+    }
+    this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
   }
 
   // ---------------------------------------------------------------------------
@@ -9761,18 +10335,24 @@ export class LdtkWorldScene extends Scene {
   }
 
   private retireFirstAnvilAfterBossClear(hadFirstBossClear: boolean): void {
-    if (hadFirstBossClear) return;
-    if (!sacredSave.isFirstItemWorldBossDefeated()) return;
-    if (this.lastUsedAnvilLevelId !== FIRST_ANVIL_LEVEL_ID) return;
+    // 2026-05-24 fix v2: lastUsedAnvilRetireAfterBoss 가드 제거.
+    // dive 시점 추적은 *dive 직전의 this.anvil 정체* (host vs builder) 에 따라
+    // 불안정. 복귀 시점의 *현재 anvil.retireAfterFirstBoss* 를 직접 보는 게
+    // 정책상 더 명확 — "retire flag true 인 anvil 은 보스 클리어 후 항상 disable".
+    if (!this.hasBossClearForAnvilRetire()) return;
+    if (!this.lastUsedAnvilRetireAfterBoss) return;
+    if (!this.anvil) return;
 
-    this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
-    this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-
-    if (this.anvil) {
-      this.anvil.used = false;
-      this.anvil.item = null;
-      void this.anvil.setDisabled(true);
+    // Dialogue + EGO event 는 *최초 1회만* (hadFirstBossClear=false 일 때).
+    if (!hadFirstBossClear) {
+      this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
+      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
     }
+
+    this.anvil.used = false;
+    this.anvil.item = null;
+    this.anvil.retireAfterFirstBoss = true;
+    void this.anvil.setDisabled(true);
     if (this.anvilPrompt) this.anvilPrompt.visible = false;
     if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
       this.inventoryUI.close();
@@ -9794,7 +10374,7 @@ export class LdtkWorldScene extends Scene {
 
     const anvilRetiring = (
       sacredSave.isFirstItemWorldBossDefeated()
-      && this.lastUsedAnvilLevelId === FIRST_ANVIL_LEVEL_ID
+      && (this.anvil?.retireAfterFirstBoss ?? false)
       && !this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
     );
 
@@ -9809,7 +10389,6 @@ export class LdtkWorldScene extends Scene {
         if (this.loreDisplay && !this.loreDisplay.isActive) {
           await this.loreDisplay.showDialogue(getEgoAnvilRetired(), true);
         }
-        // Disable the current anvil only after Rustborn explains it.
         await this.anvil?.setDisabled(true);
       }, 200);
       return;

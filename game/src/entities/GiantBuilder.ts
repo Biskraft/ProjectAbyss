@@ -6,16 +6,17 @@
  * (tile-aligned) so the player walks on it via standard tile physics.
  */
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Rectangle } from 'pixi.js';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Texture } from 'pixi.js';
 import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
-import { LegRig, type LegMount } from './LegRig';
+import { LegRig, type LegMount, type LegRigSnapshot } from './LegRig';
 import { GlowFilter } from '@effects/GlowFilter';
 import { LandingDustManager } from '@effects/LandingDust';
 import { Debug } from '@core/Debug';
+import { isSolid } from '@core/Physics';
 
 // ---------------------------------------------------------------------------
 // BuilderLight ??blinking indicator on the builder body
@@ -55,7 +56,16 @@ export interface BuilderRoutePoint {
   waitMs: number;
 }
 
-type BuilderState = 'moving' | 'waiting' | 'dormant';
+export type BuilderState = 'moving' | 'waiting' | 'dormant';
+
+export interface GiantBuilderSnapshot {
+  posY: number;
+  routeIndex: number;
+  state: BuilderState;
+  waitTimer: number;
+  lightTime: number;
+  legRig: LegRigSnapshot;
+}
 
 interface HostFootAnchorContext {
   hostLevel: LdtkLevel;
@@ -86,6 +96,7 @@ export class GiantBuilder {
   private waitTimer = 0;
   private speed = 0;
   private loop = true;
+  private awakeningMode = false;
 
   private renderer: LdtkRenderer;
   private legRig: LegRig;
@@ -113,6 +124,9 @@ export class GiantBuilder {
     lastY?: number;
   }> = [];
 
+  /** BuilderInterior IntGrid cells (packed row*widthTiles+col) for O(1) overlap tests. */
+  private _interiorCells = new Set<number>();
+
   /** Anchor lerp rate per frame (0 = static, 1 = instant). 0.20 absorbs a
    *  16-px row-boundary snap over ~10 frames (~160 ms at 60 fps). */
   private static readonly FOOT_ANCHOR_LERP = 0.20;
@@ -137,9 +151,71 @@ export class GiantBuilder {
     };
   }
 
+  /** The BuilderInterior dissolve layer. Alpha is 0 (hidden) by default and
+   *  lerped to 1 by the scene when the player overlaps interior cells. */
+  get builderInteriorLayer(): Container {
+    return this.renderer.builderInteriorLayer;
+  }
+
+  /** The BuilderOutside layer, rendered after BuilderInterior and before special/shadow overlays. */
+  get builderOutsideLayer(): Container {
+    return this.renderer.builderOutsideLayer;
+  }
+
+  /** LegRig back-layer (legs that should peek behind the body). Externally attached. */
+  get legBackLayer(): Container {
+    return this.legRig.container;
+  }
+
+  /** LegRig front-layer (legs that should render in front of the body). Externally attached. */
+  get legFrontLayer(): Container {
+    return this.legRig.frontContainer;
+  }
+
+  /**
+   * Returns true when the player AABB overlaps at least one BuilderInterior
+   * IntGrid cell in builder-local space. Used each frame to drive the dissolve.
+   */
+  isPlayerInInteriorCells(worldX: number, worldY: number, w: number, h: number): boolean {
+    if (this._interiorCells.size === 0) return false;
+    const localX = worldX - this.container.x;
+    const localY = worldY - this.container.y;
+    const col0 = Math.floor(localX / TILE);
+    const col1 = Math.floor((localX + w - 1) / TILE);
+    const row0 = Math.floor(localY / TILE);
+    const row1 = Math.floor((localY + h - 1) / TILE);
+    for (let r = row0; r <= row1; r++) {
+      for (let c = col0; c <= col1; c++) {
+        if (this._interiorCells.has(r * this.widthTiles + c)) return true;
+      }
+    }
+    return false;
+  }
+
   setLegFilters(filters: Container['filters']): void {
     this.legRig.container.filters = filters ? [...filters] : filters;
     this.legRig.frontContainer.filters = filters ? [...filters] : filters;
+  }
+
+  pinFilterBounds(): void {
+    const area = new Rectangle(0, 0, this.widthPx, this.heightPx);
+    const apply = (layer?: Container | null): void => {
+      if (!layer) return;
+      layer.filterArea = area;
+      layer.boundsArea = area;
+    };
+    apply(this.renderer.bgLayer);
+    apply(this.renderer.wallLayer);
+    apply(this.renderer.interiorLayer);
+    apply(this.renderer.shadowLayer);
+    apply(this.renderer.specialLayer);
+    apply(this.renderer.builderInteriorLayer);
+    apply(this.renderer.builderOutsideLayer);
+    apply(this.decorator?.naturalLayer);
+    apply(this.decorator?.artificialLayer);
+    apply(this.decorator?.structureLayer);
+    apply(this.legRig.container);
+    apply(this.legRig.frontContainer);
   }
 
   constructor(
@@ -154,6 +230,7 @@ export class GiantBuilder {
     this.widthTiles = Math.ceil(level.pxWid / TILE);
     this.heightTiles = Math.ceil(level.pxHei / TILE);
     this.collisionGrid = level.collisionGrid.map(r => [...r]);
+    this.fillEnclosedAirCells();
 
     const bgTiles = [...level.backgroundTiles];
     const wallTiles = [...level.wallTiles];
@@ -164,11 +241,31 @@ export class GiantBuilder {
     applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles.filter(t => t.tilesetPath === defaultWallTileset));
     applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles.filter(t => t.tilesetPath === defaultWallTileset));
 
-    const interiorTiles = [...level.interiorTiles, ...Object.values(level.extraTileLayers).flat()];
+    // BuilderInterior tiles are handled separately (dissolve layer) — exclude
+    // them from the general interiorTiles merge so they don't render twice.
+    const builderInteriorTiles = level.extraTileLayers['BuilderInterior'] ?? [];
+    const builderOutsideTiles = level.extraTileLayers['BuilderOutside'] ?? [];
+    const otherExtraLayers = Object.entries(level.extraTileLayers)
+      .filter(([k]) => k !== 'BuilderInterior' && k !== 'BuilderOutside')
+      .flatMap(([, v]) => v);
+    const interiorTiles = [...level.interiorTiles, ...otherExtraLayers];
 
     this.renderer = new LdtkRenderer();
-    this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases, undefined, undefined, interiorTiles);
+    this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases, undefined, this.collisionGrid, interiorTiles);
     this.container = this.renderer.container;
+
+    if (builderInteriorTiles.length > 0) {
+      this.renderer.renderBuilderInteriorLayer(builderInteriorTiles, atlases);
+      for (const tile of builderInteriorTiles) {
+        const col = Math.floor(tile.px[0] / TILE);
+        const row = Math.floor(tile.px[1] / TILE);
+        this._interiorCells.add(row * this.widthTiles + col);
+      }
+    }
+
+    if (builderOutsideTiles.length > 0) {
+      this.renderer.renderBuilderOutsideLayer(builderOutsideTiles, atlases);
+    }
 
     // Procedural legs are author-driven via LDtk "LegMount" entities placed
     // in the builder level. Back-layer legs render behind the body tilemap
@@ -180,8 +277,10 @@ export class GiantBuilder {
       if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
       this.footDust.spawnScaled(x, y, 700, 4, 'vertical');
     });
-    this.container.addChildAt(this.legRig.container, 0);
-    this.container.addChild(this.legRig.frontContainer);
+    // NOTE: legRig.container / frontContainer 는 builder.container 에 부착하지
+    // 않는다. host scene 이 entityLayer + builderInterior + light 보다도 더 *앞*
+    // 에 직접 add 하고 position 을 매 프레임 동기화한다. 다리가 가장 앞에 떠야
+    // 거대 빌더의 실루엣이 모든 전경 위에서 읽힌다.
     this.syncLegDebug();
 
     // Live foot raycast: track the host level + extract per-leg AutoFoot
@@ -195,21 +294,25 @@ export class GiantBuilder {
     }
     this.legRig.update(0); // initial pose (gait phase 0, no advance)
 
-    // Procedural decorations on the builder body ??same Z layout as the host
-    // level: structureLayer behind walls, naturalLayer / artificialLayer
-    // between walls and shadows. Seeded by the LDtk level identifier so the
-    // builder always looks the same.
+    // Procedural decorations on the builder body render behind the authored
+    // builder tile layers so LDtk BuilderWall/BuilderInterior remains the
+    // primary silhouette and decoration never sits on top of the body.
     this.decorator = new ProceduralDecorator();
     this.decorator.generate(this.collisionGrid, hashString(level.identifier));
     const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
     this.container.addChildAt(this.decorator.structureLayer, wallIdx);
-    const shadowIdx = this.container.getChildIndex(this.renderer.shadowLayer);
-    this.container.addChildAt(this.decorator.naturalLayer, shadowIdx);
-    this.container.addChildAt(this.decorator.artificialLayer, shadowIdx + 1);
+    this.container.addChildAt(this.decorator.naturalLayer, wallIdx + 1);
+    this.container.addChildAt(this.decorator.artificialLayer, wallIdx + 2);
+    const interiorIdx = this.container.getChildIndex(this.renderer.interiorLayer);
+    this.container.addChildAt(this.legRig.container, interiorIdx);
 
     // Blinking indicator lights from BuilderLight entities.
     // Placed in a separate unfiltered container so palette swap
     // doesn't crush the glow into darkness.
+    // NOTE: lightContainer 는 builder.container 에 부착하지 않는다. host scene 이
+    // entityLayer + builderInteriorLayer 보다 *앞* 에 직접 add 하고, position 을
+    // 매 프레임 동기화한다. 광원이 builder 내부 디테일/플레이어 위에 떠야 진짜
+    // indicator 처럼 읽힌다.
     this.lightContainer = new Container();
     this.lights = GiantBuilder.extractLights(level);
     for (const light of this.lights) {
@@ -225,7 +328,6 @@ export class GiantBuilder {
         coreBoost: 0.9,
       })];
     }
-    this.container.addChild(this.lightContainer);
   }
 
   /**
@@ -477,13 +579,116 @@ export class GiantBuilder {
     this.routeIndex = Math.min(1, this.route.length - 1);
   }
 
+  createSnapshot(): GiantBuilderSnapshot {
+    return {
+      posY: this.posY,
+      routeIndex: this.routeIndex,
+      state: this.state,
+      waitTimer: this.waitTimer,
+      lightTime: this.lightTime,
+      legRig: this.legRig.createSnapshot(),
+    };
+  }
+
+  restoreSnapshot(snapshot: GiantBuilderSnapshot): void {
+    this.posY = snapshot.posY;
+    this.container.y = Math.round(snapshot.posY);
+    this.routeIndex = Math.max(0, Math.min(snapshot.routeIndex, Math.max(0, this.route.length - 1)));
+    this.state = snapshot.state;
+    this.waitTimer = snapshot.waitTimer;
+    this.lightTime = snapshot.lightTime;
+    this.lastDeltaY = 0;
+    this.legRig.restoreSnapshot(snapshot.legRig);
+    this.updateFootAnchors();
+    this.legRig.update(0);
+  }
+
   private syncLegDebug(): void {
     this.legRig.setDebug(Debug.visible ? this.container : null);
+  }
+
+  /**
+   * Builder bodies can contain decorative sealed cavities. If those cells stay
+   * passable, a moving builder can shove the player into them for one frame and
+   * trap them behind the stamped collision. Keep only air connected to the
+   * builder's outer boundary; all sealed air becomes solid collision.
+   */
+  private fillEnclosedAirCells(): void {
+    const h = this.collisionGrid.length;
+    const w = this.collisionGrid[0]?.length ?? 0;
+    if (h === 0 || w === 0) return;
+
+    const reachable = Array.from({ length: h }, () => Array<boolean>(w).fill(false));
+    const queue: Array<{ x: number; y: number }> = [];
+    const enqueue = (x: number, y: number): void => {
+      if (x < 0 || x >= w || y < 0 || y >= h) return;
+      if (reachable[y][x] || isSolid(this.collisionGrid[y]?.[x] ?? 1)) return;
+      reachable[y][x] = true;
+      queue.push({ x, y });
+    };
+
+    for (let x = 0; x < w; x++) {
+      enqueue(x, 0);
+      enqueue(x, h - 1);
+    }
+    for (let y = 0; y < h; y++) {
+      enqueue(0, y);
+      enqueue(w - 1, y);
+    }
+
+    for (let i = 0; i < queue.length; i++) {
+      const p = queue[i];
+      enqueue(p.x + 1, p.y);
+      enqueue(p.x - 1, p.y);
+      enqueue(p.x, p.y + 1);
+      enqueue(p.x, p.y - 1);
+    }
+
+    for (let y = 0; y < h; y++) {
+      const row = this.collisionGrid[y];
+      for (let x = 0; x < w; x++) {
+        if (row[x] === 0 && !reachable[y][x]) row[x] = 1;
+      }
+    }
   }
 
   /** True while the builder is actively traveling between route points. */
   get isMoving(): boolean {
     return this.state === 'moving';
+  }
+
+  /** Forces all lights ON at full intensity (ignores onlyWhileMoving). Used by
+   *  ItemDeploymentController during the Awakening stage. */
+  setAwakeningMode(on: boolean): void {
+    this.awakeningMode = on;
+  }
+
+  /**
+   * Ray-cast rightward from worldX and erase all tiles/collision to the
+   * builder's right edge. Call site must also unstamp/restamp the builder
+   * so the host collisionGrid reflects the cleared cells immediately.
+   */
+  digTunnel(worldX: number, worldY: number, h: number): void {
+    const localX = worldX - this.container.x;
+    const localY = worldY - this.container.y;
+
+    // Sweep to builder right edge.
+    const clearW = this.widthPx - localX;
+    if (clearW <= 0) return;
+
+    this.renderer.clearTilesInRect(localX, localY, clearW, h, { preserveInterior: true });
+
+    const col0 = Math.max(0, Math.floor(localX / TILE));
+    const col1 = this.widthTiles - 1;
+    const row0 = Math.max(0, Math.floor(localY / TILE));
+    const row1 = Math.min(this.heightTiles - 1, Math.floor((localY + h - 1) / TILE));
+    for (let row = row0; row <= row1; row++) {
+      const gridRow = this.collisionGrid[row];
+      if (!gridRow) continue;
+      for (let col = col0; col <= col1; col++) {
+        if (col < gridRow.length) gridRow[col] = 0;
+      }
+    }
   }
 
   update(dt: number): void {
@@ -494,15 +699,15 @@ export class GiantBuilder {
     this.lightTime += dt / 1000;
     const moving = this.state === 'moving';
     for (const light of this.lights) {
-      if (light.onlyWhileMoving && !moving) {
+      if (light.onlyWhileMoving && !moving && !this.awakeningMode) {
         light.gfx.alpha = 0;
         light.glowGfx.alpha = 0;
         continue;
       }
       const phase = (this.lightTime / light.rate) % 1;
       const pulse = Math.sin(phase * Math.PI * 2) * 0.5 + 0.5;
-      light.gfx.alpha = 0.3 + pulse * 0.7;
-      light.glowGfx.alpha = pulse * 0.6;
+      light.gfx.alpha = this.awakeningMode ? 1.0 : (0.3 + pulse * 0.7);
+      light.glowGfx.alpha = this.awakeningMode ? 0.9 : (pulse * 0.6);
     }
     this.footDust.update(dt);
 

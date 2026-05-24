@@ -141,7 +141,7 @@ export class HitManager {
           target.onDeath?.();
         }
 
-        const heavy = comboIndex >= CombatConst.ComboFinisherIndex || isKill || critical;
+        const heavy = isFinisher || isKill || critical;
 
         // --- Sakurai Feedback System ---
         const attackerEntity = attacker as unknown as Entity;

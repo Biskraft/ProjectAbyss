@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECHORIS — Marketing Kanban</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #ffa41b; --brand-dim: #cc7a00;
+      --bg: #0b0e14; --surface: #131720; --surface2: #1a2030;
+      --border: #252d40; --text: #e2e8f0; --text-dim: #64748b; --text-muted: #3d4e6b;
+      --ch-x:#1d9bf0; --ch-reddit:#ff4500; --ch-tiktok:#00c8c8;
+      --ch-discord:#5865f2; --ch-steam:#66c0f4; --ch-youtube:#ff4444; --ch-press:#a855f7;
+      --hook-item:#a855f7; --hook-fluid:#3b82f6; --hook-ego:#f59e0b;
+      --hook-mega:#14b8a6; --hook-solo:#22c55e; --hook-biz:#ec4899;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Chakra Petch', sans-serif; min-height: 100vh; overflow-x: auto; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 12px 24px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    }
+    .logo { font-size: 16px; font-weight: 700; color: var(--brand); letter-spacing: 2px; }
+    .wishlist-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+    .wl-label { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; white-space: nowrap; }
+    .progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--brand-dim), var(--brand)); border-radius: 3px; transition: width .4s; }
+    .wl-count { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--brand); font-weight: 500; white-space: nowrap; }
+    .meta-badge { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+    .save-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); margin-right: 6px; vertical-align: middle; transition: background .3s; }
+    .save-dot.saving { background: var(--brand); }
+    .save-dot.saved  { background: #22c55e; }
+    .save-dot.error  { background: #f87171; }
+
+    /* ── FILTERS ── */
+    .filters { padding: 10px 24px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+    .filter-btn {
+      font-family: 'Chakra Petch', sans-serif; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim); cursor: pointer; transition: all .15s;
+    }
+    .filter-btn:hover { border-color: var(--brand); color: var(--brand); }
+    .filter-btn.active { background: var(--brand); border-color: var(--brand); color: #000; }
+
+    /* ── BOARD ── */
+    .board { display: flex; gap: 16px; padding: 20px 24px; align-items: flex-start; min-width: max-content; }
+    .column { width: 280px; flex-shrink: 0; }
+    .col-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 6px 6px 0 0; margin-bottom: 8px; }
+    .col-header h2 { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .col-count { font-family: 'DM Mono', monospace; font-size: 11px; opacity: .7; }
+    .col-idea  .col-header { background:#1e2535; border-bottom:2px solid #374151; }
+    .col-wip   .col-header { background:#1a2340; border-bottom:2px solid #1d4ed8; }
+    .col-ready .col-header { background:#1f2810; border-bottom:2px solid #65a30d; }
+    .col-done  .col-header { background:#0f2018; border-bottom:2px solid #16a34a; }
+    .col-idea  .col-header h2 { color:#94a3b8; }
+    .col-wip   .col-header h2 { color:#93c5fd; }
+    .col-ready .col-header h2 { color:#bef264; }
+    .col-done  .col-header h2 { color:#4ade80; }
+
+    /* ── DROP ZONE ── */
+    .cards { display:flex; flex-direction:column; gap:8px; min-height:80px; border-radius:0 0 6px 6px; padding:4px; transition:background .15s; }
+    .cards.drag-over { background:rgba(255,164,27,.07); outline:2px dashed var(--brand); outline-offset:-2px; }
+
+    /* ── CARD ── */
+    .card {
+      background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:12px;
+      cursor:grab; user-select:none; transition:border-color .15s, transform .1s, opacity .15s;
+    }
+    .card:hover { border-color:var(--brand-dim); transform:translateY(-1px); }
+    .card.dragging { opacity:.3; cursor:grabbing; }
+    .card.this-week { border-left:3px solid var(--brand); }
+    .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .card-title { font-size:13px; font-weight:600; line-height:1.4; }
+    .ch-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:3px; white-space:nowrap; flex-shrink:0; }
+    .card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .hook-tag { font-size:10px; padding:2px 6px; border-radius:3px; font-family:'DM Mono',monospace; }
+    .date-tag { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); margin-left:auto; }
+    .date-tag.overdue { color:#f87171; } .date-tag.soon { color:var(--brand); }
+    .result-row { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-family:'DM Mono',monospace; font-size:11px; color:#4ade80; }
+    .notes-row { margin-top:6px; font-size:11px; color:var(--text-dim); font-style:italic; }
+    .week-div { font-size:10px; font-family:'DM Mono',monospace; color:var(--text-muted); text-align:center; padding:4px 0 2px; }
+    .empty-col { text-align:center; padding:32px 0; color:var(--text-muted); font-size:12px; border:1px dashed var(--border); border-radius:6px; }
+
+    /* ── COLORS ── */
+    .ch-X       {background:rgba(29,155,240,.15); color:var(--ch-x);}
+    .ch-Reddit  {background:rgba(255,69,0,.15);   color:var(--ch-reddit);}
+    .ch-TikTok  {background:rgba(0,200,200,.12);  color:var(--ch-tiktok);}
+    .ch-Discord {background:rgba(88,101,242,.15); color:var(--ch-discord);}
+    .ch-Steam   {background:rgba(102,192,244,.15);color:var(--ch-steam);}
+    .ch-YouTube {background:rgba(255,68,68,.15);  color:var(--ch-youtube);}
+    .ch-Press   {background:rgba(168,85,247,.15); color:var(--ch-press);}
+    .hook-아이템계    {background:rgba(168,85,247,.12);color:var(--hook-item);}
+    .hook-Fluid      {background:rgba(59,130,246,.12); color:var(--hook-fluid);}
+    .hook-검Ego      {background:rgba(245,158,11,.12); color:var(--hook-ego);}
+    .hook-메가스트럭처{background:rgba(20,184,166,.12); color:var(--hook-mega);}
+    .hook-1인개발    {background:rgba(34,197,94,.12);  color:var(--hook-solo);}
+    .hook-비즈니스   {background:rgba(236,72,153,.12); color:var(--hook-biz);}
+
+    /* ── LOADING ── */
+    .loading { display:flex; align-items:center; justify-content:center; height:60vh; font-size:13px; color:var(--text-dim); font-family:'DM Mono',monospace; }
+
+    .footer { text-align:center; padding:16px; font-family:'DM Mono',monospace; font-size:10px; color:var(--text-muted); border-top:1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">ECHORIS</div>
+  <div class="wishlist-wrap">
+    <span class="wl-label">WISHLIST</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <span class="wl-count" id="wl-count">—</span>
+  </div>
+  <span class="meta-badge" id="week-count"></span>
+  <span class="meta-badge"><span class="save-dot" id="save-dot"></span><span id="save-label">연결 중...</span></span>
+</div>
+
+<div class="filters" id="filters"></div>
+<div id="app"><div class="loading">calendar.json 로딩 중...</div></div>
+<div class="footer">드래그 → calendar.json 자동 저장 → Claude가 읽음 | http://localhost:4321</div>
+
+<script>
+(function () {
+  const COLS = [
+    { key:'아이디어',  label:'아이디어',  cls:'col-idea'  },
+    { key:'제작 중',   label:'제작 중',   cls:'col-wip'   },
+    { key:'준비 완료', label:'준비 완료', cls:'col-ready' },
+    { key:'게시 완료', label:'게시 완료', cls:'col-done'  },
+  ];
+
+  let DATA = null;
+  let activeFilter = '전체';
+  let draggingId   = null;
+
+  // ── 저장 상태 표시 ──
+  function setSaveDot(state, text) {
+    const dot   = document.querySelector('#save-dot');
+    const label = document.querySelector('#save-label');
+    dot.className = 'save-dot ' + state;
+    label.textContent = text;
+  }
+
+  // ── 서버 통신 ──
+  async function loadData() {
+    try {
+      const res = await fetch('/data');
+      DATA = await res.json();
+      setSaveDot('saved', '동기화됨');
+      renderAll();
+    } catch {
+      setSaveDot('error', '서버 연결 실패 — node server.js 실행 필요');
+      document.querySelector('#app').innerHTML =
+        '<div class="loading" style="color:#f87171">서버에 연결할 수 없습니다.<br><br>' +
+        '<code style="font-size:12px;background:#1a2030;padding:8px 16px;border-radius:4px">node server.js</code>' +
+        '<br><br>위 명령을 터미널에서 실행 후 새로고침하세요.</div>';
+    }
+  }
+
+  async function saveData() {
+    setSaveDot('saving', '저장 중...');
+    try {
+      await fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DATA)
+      });
+      setSaveDot('saved', '저장됨 ' + new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' }));
+    } catch {
+      setSaveDot('error', '저장 실패');
+    }
+  }
+
+  // ── 유틸 ──
+  function today() { return new Date().toISOString().slice(0,10); }
+  function daysDiff(d) { return Math.ceil((new Date(d) - new Date(today())) / 86400000); }
+  function weekLabel(d) { const dt=new Date(d); return `${dt.getMonth()+1}월 ${Math.ceil(dt.getDate()/7)}주`; }
+  function getWeekRange() {
+    const n=new Date(), mon=new Date(n); mon.setDate(n.getDate()-((n.getDay()+6)%7));
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    return [mon.toISOString().slice(0,10), sun.toISOString().slice(0,10)];
+  }
+  function isThisWeek(d) { if(!d) return false; const [m,s]=getWeekRange(); return d>=m&&d<=s; }
+
+  // ── 카드 이동 ──
+  function moveCard(id, toStatus) {
+    const item = DATA.items.find(i => i.id === id);
+    if (!item || item.status === toStatus) return;
+    item.status = toStatus;
+    if (toStatus === '게시 완료' && !item.posted_date) item.posted_date = today();
+    if (toStatus !== '게시 완료') item.posted_date = null;
+    saveData();
+    renderBoard();
+    renderTopbar();
+  }
+
+  // ── 드래그 ──
+  function onDragStart(e, id) {
+    draggingId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => document.querySelector(`[data-id="${id}"]`)?.classList.add('dragging'), 0);
+  }
+  function onDragEnd() {
+    document.querySelectorAll('.card.dragging').forEach(c=>c.classList.remove('dragging'));
+    document.querySelectorAll('.cards.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    draggingId = null;
+  }
+  function onDragOver(e, zone) {
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.cards.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    zone.classList.add('drag-over');
+  }
+  function onDrop(e, colKey, zone) {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    if (draggingId) moveCard(draggingId, colKey);
+  }
+
+  // ── 렌더 ──
+  function renderTopbar() {
+    const pct = Math.min(100, (DATA.meta.wishlist_count / DATA.meta.target) * 100);
+    document.querySelector('#progress-fill').style.width = pct + '%';
+    document.querySelector('#wl-count').textContent =
+      DATA.meta.wishlist_count.toLocaleString() + ' / ' + DATA.meta.target.toLocaleString();
+    const [m,s] = getWeekRange();
+    const n = DATA.items.filter(i=>i.due_date>=m&&i.due_date<=s&&i.status!=='게시 완료').length;
+    document.querySelector('#week-count').textContent = `이번 주 예정 ${n}건`;
+  }
+
+  function renderFilters() {
+    const channels = ['전체', ...new Set(DATA.items.map(i=>i.channel))];
+    const wrap = document.querySelector('#filters');
+    wrap.innerHTML = '';
+    channels.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (ch===activeFilter?' active':'');
+      btn.textContent = ch;
+      btn.onclick = () => { activeFilter=ch; renderFilters(); renderBoard(); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function renderBoard() {
+    const app = document.querySelector('#app');
+    app.innerHTML = '';
+    const board = document.createElement('div');
+    board.className = 'board';
+
+    const filtered = activeFilter==='전체' ? DATA.items : DATA.items.filter(i=>i.channel===activeFilter);
+
+    COLS.forEach(col => {
+      const items = filtered.filter(i=>i.status===col.key)
+        .sort((a,b)=>(a.due_date||'9999')<(b.due_date||'9999')?-1:1);
+
+      const colEl = document.createElement('div');
+      colEl.className = `column ${col.cls}`;
+      colEl.innerHTML = `<div class="col-header"><h2>${col.label}</h2><span class="col-count">${items.length}</span></div>`;
+
+      const zone = document.createElement('div');
+      zone.className = 'cards'; zone.dataset.col = col.key;
+      zone.addEventListener('dragover',  e => onDragOver(e, zone));
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop',      e => onDrop(e, col.key, zone));
+
+      if (items.length === 0) {
+        zone.innerHTML = '<div class="empty-col">여기로 드래그</div>';
+      } else {
+        let lastWeek = '';
+        items.forEach(item => {
+          const wk = item.due_date ? weekLabel(item.due_date) : '';
+          if (wk && wk !== lastWeek && col.key !== '게시 완료') {
+            const d = document.createElement('div'); d.className='week-div';
+            d.textContent='── '+wk+' ──'; zone.appendChild(d); lastWeek=wk;
+          }
+          let dc='';
+          if (item.due_date && item.status!=='게시 완료') {
+            const diff=daysDiff(item.due_date); if(diff<0) dc='overdue'; else if(diff<=7) dc='soon';
+          }
+          const dateDisplay = item.posted_date ? `✓ ${item.posted_date}` : (item.due_date||'—');
+
+          const card = document.createElement('div');
+          card.className = 'card'+(isThisWeek(item.due_date)&&item.status!=='게시 완료'?' this-week':'');
+          card.dataset.id = item.id; card.draggable = true;
+          card.addEventListener('dragstart', e=>onDragStart(e,item.id));
+          card.addEventListener('dragend',   onDragEnd);
+          card.innerHTML = `
+            <div class="card-top">
+              <span class="card-title">${item.title}</span>
+              <span class="ch-badge ch-${item.channel}">${item.channel}</span>
+            </div>
+            <div class="card-meta">
+              <span class="hook-tag hook-${item.hook}">${item.hook}</span>
+              <span class="date-tag ${dc}">${dateDisplay}</span>
+            </div>
+            ${item.result ? `<div class="result-row">↑ ${item.result}</div>` : ''}
+            ${item.notes  ? `<div class="notes-row">${item.notes}</div>`     : ''}
+          `;
+          zone.appendChild(card);
+        });
+      }
+      colEl.appendChild(zone); board.appendChild(colEl);
+    });
+    app.appendChild(board);
+  }
+
+  function renderAll() { renderTopbar(); renderFilters(); renderBoard(); }
+
+  loadData();
+})();
+</script>
+</body>
+</html>

@@ -89,6 +89,11 @@ export const EGO_ANVIL: LoreLine[] = [
   rust(t('ego.anvil.0'), 3000),
 ];
 
+/** 2026-05-24: 첫 anvil 사용 → 터널 열림. 1회 한정 발화. ItemWorld 진입 방향 cue. */
+export const EGO_TUNNEL_OPEN: LoreLine[] = [
+  rust(t('ego.tunnel_open.0'), 2500),
+];
+
 /**
  * 첫 IW 보스 처치 전에 player 가 인벤토리 키를 누르면 — Rustborn 소유 시 발화.
  * (사용자 결정 2026-05-03) 보스 처치 전엔 인벤토리 잠금 상태이며 Ego 가 모루로

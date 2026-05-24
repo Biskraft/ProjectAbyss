@@ -177,28 +177,48 @@ ExpToNext = (Level × 100) + (Level^2 × 50)
 
 > **참고:** 시간 추정값은 플레이 스타일(전투 숙련도, 탐험 속도)에 따라 ±30% 변동
 
-### 2.3. 아이템 레벨 (Item Level)
+### 2.3. 아이템 진행 — Memory Recovery (DEC-046)
 
-아이템 레벨은 **캐릭터 레벨과 독립적**으로 운영된다. System_ItemWorld_Core.md §3.1 참고.
+> **2026-05-24 변경:** 기존 아이템 레벨(0-99) 시스템은 폐기. **Memory Recovery % (0-100)** 으로 전면 대체.
+> SSoT: `Documents/System/System_Memory_Core.md` (SYS-MEM-01) / `Documents/System/System_Equipment_Growth.md` (SYS-EQP-03)
 
-#### 아이템 EXP
+아이템 진행은 *캐릭터 레벨과 독립* 으로 운영된다. 단일 진행 게이지인 Memory Recovery (0~100%) 가 모든 진행을 표현한다.
 
-| 수급원       | 기본 Item EXP | 누적 대상                   |
-| :----------- | -----------: | :------------------------ |
-| 적 처치      | 30           | 각 적마다                  |
-| 방 클리어    | 120          | 클리어 보너스              |
-| 보스 처치    | 600          | 지층별 배율 적용 (×1.0-×5) |
-| 재방문 감소  | ×0.5         | 클리어 지층 재방문 시      |
+#### Recovery 증가 경로 요약
 
-#### 아이템 레벨 상한 (레어리티별)
+| 경로 | Recovery 증가 | 비고 |
+| :--- | :---: | :--- |
+| 지층 보스 처치 | +25% (레어리티별 stage jump) | Memory Fragment 1개 해금 동시 |
+| 일반 적 처치 | +0.1% | 점진 누적 |
+| 방 클리어 | +0.3% | 클리어 보너스 |
+| 환경 서사 오브젝트 | +0.5% | 1회 한정 |
+| 비밀방 발견 | +1.0% | 가장 강한 점진 보상 |
 
-| 레어리티 | 최대 아이템 레벨 | 스탯 배율 | 야리코미 역할   |
-| :------- | :-----------: | -------: | :------------- |
-| Normal   | 10            | ×1.50    | 입문           |
-| Magic    | 15            | ×1.75    | 중급           |
-| Rare     | 15            | ×1.75    | 상급           |
-| Legendary | 20           | ×2.00    | 고급           |
-| Ancient  | 20+           | ×2.00+   | 극한/무한      |
+> 상세 규칙: `System_Memory_Core.md` §2.1
+
+#### effective stat 산정
+
+```
+effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier × (1 + reDive × 0.05)
+```
+
+- Recovery 0% → baseStat의 40%
+- Recovery 100% → baseStat의 100%
+- Re-Dive 1회당 +5% 곱셈 보너스 (최대 3회)
+
+> 상세 공식: `System_Equipment_Growth.md` §2.3
+
+#### 레어리티별 Stage 수
+
+| 레어리티 | 지층 수 | Stage 수 | 보스 처치당 Recovery 점프 |
+| :------- | :-----------: | :-------: | :--- |
+| Normal   | 1            | 2 (Stage 0 → 4) | 100% (1번의 발견으로 완전 복원) |
+| Magic    | 2            | 3 (Stage 0 → 2 → 4) | 50% per boss |
+| Rare     | 3            | 4 (Stage 0 → 1 → 2 → 4) | 33%/33%/34% |
+| Legendary | 4           | 5 (Stage 0 → 1 → 2 → 3 → 4) | 25% per boss |
+| Ancient  | 4 + 심연      | 5 + Abyss | 25% per boss + Re-Dive 영역 |
+
+> **폐기된 항목:** 아이템 레벨 0-99 / 아이템 EXP / 보스 처치 영구 ATK +N / 레어리티 승급 (피티 시스템) / 심연 진화 1-3단계.
 
 ### 2.4. 스탯 게이트 (Phase 2)
 
@@ -239,15 +259,18 @@ ExpToNext = (Level × 100) + (Level^2 × 50)
 | 영역 보스    | 월드 주요 지역 | 400      | World ×1.0   | 레벨업 촉진, 스탯 게이트 돌파 |
 | 최종 보스    | 스토리 클리어 | 1000     | World ×1.0   | Lv 캡 근처 달성 (예정)       |
 
-### 3.3. 아이템계 EXP 보상 체계
+### 3.3. 아이템계 Recovery 진행 체계 (DEC-046)
 
-System_ItemWorld_Core.md §3.1 정의:
+> **2026-05-24 변경:** Item EXP 체계는 폐기. Memory Recovery % 진행으로 대체.
+> SSoT: `Documents/System/System_Memory_Core.md` §2.1
 
-| 활동                  | 기본 Item EXP | 지층 배율   | 예시 (Rare 1층)      |
-| :-------------------- | -----------: | :---------- | :------------------- |
-| 몬스터 처치           | 30           | ×1.0-×3.5   | 30-105 Item EXP      |
-| 방 클리어 보너스      | 120          | ×1.0-×3.5   | 120-420 Item EXP     |
-| 보스 처치             | 600          | ×1.0-×3.5   | 600-2100 Item EXP    |
+| 활동                  | Recovery 증가  | 예시 (Magic 1지층)      |
+| :-------------------- | -----------: | :------------------- |
+| 몬스터 처치           | +0.1%        | 30마리 처치 시 +3.0%   |
+| 방 클리어 보너스      | +0.3%        | 4방 클리어 시 +1.2%   |
+| 환경 서사 오브젝트    | +0.5%        | 3 오브젝트 시 +1.5%   |
+| 비밀방 발견           | +1.0%        | 1 비밀방 시 +1.0%     |
+| 지층 보스 처치        | +25% 단위 점프  | Magic: +50%, Legendary: +25% |
 
 ### 3.4. 멀티플레이 EXP 조정 [Phase 3]
 
@@ -298,22 +321,30 @@ System_ItemWorld_Core.md §3.1 정의:
     [플레이어 선택: 진행 / 준비 계속]
 ```
 
-### 4.3. 아이템 레벨업 (아이템계 내부)
+### 4.3. 아이템 Recovery 진행 (아이템계 내부) (DEC-046)
 
 ```
-[Item EXP 누적]
+[Recovery 점진 누적 (적 처치 / 방 클리어 / 환경 오브젝트 / 비밀방)]
            ↓
-[Item EXP ≥ ItemExpToNext?]
-           ↓ YES
-[Item Level +1]
+[지층 보스 처치]
            ↓
-[EquipStat 재계산] (ItemStat 공식 적용)
+[Recovery = max(currentRecovery, stageJumpTarget)]
            ↓
-[FinalStat 재계산] (BaseStat + EquipStat + Memory ShardBonus)
+[Memory Fragment 1개 해금]
            ↓
-[전투력 변화 UI 표시]
+[currentStage = floor(Recovery / 25) 갱신 시 → 이름 진화 연출]
            ↓
-[아이템계 계속 진행]
+[Identity Trait 추가 가동]
+           ↓
+[effectiveStat 재계산] (baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier)
+           ↓
+[FinalStat 재계산] (BaseStat + EquipStat)
+           ↓
+[전투력 변화 UI 표시 + Fragment 문장 연출]
+           ↓
+[Identity Archive 즉각 갱신]
+           ↓
+[다음 지층 선택 or 탈출]
 ```
 
 ---

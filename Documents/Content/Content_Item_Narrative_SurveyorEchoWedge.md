@@ -1,11 +1,19 @@
 # 아이템 서사 정의서: 측량사의 에코 쐐기 (Surveyor's Echo Wedge)
-# 포맷 버전: SYS-INS-01 v1.1 (DEC-036 정체성 슬롯 · DEC-039 2지층 반영)
+# 포맷 버전: SYS-INS-01 v2.0 (DEC-046 Memory Recovery 패러다임 반영)
 
 > **문서 ID:** CNT-ITM-001
 > **문서 상태:** Draft
-> **작성일:** 2026-05-20
+> **최초 작성:** 2026-05-20
+> **최종 갱신:** 2026-05-24 (DEC-046 패러다임 전환)
 > **Canon Level:** Established
 > **기준 예시 (Reference Sample):** 본 문서가 ECHORIS 아이템 서사의 신규 기준점이다. 구 CNT-ITM-001(할아버지의 부엌칼), CNT-ITM-002(격벽 틈에서 꺼낸 낡은 검)는 판타지 톤 디버전스로 2026-05-20 폐기.
+
+> **2026-05-24 DEC-046 갱신 사항:**
+> - 보스 처치 보상 모델 변경: ATK +N → **Memory Fragment 1개 + Recovery 50% 점프**
+> - 이름 진화 5단계 명시 (Stage 0 → Stage 4)
+> - "Core Memory 1/2/3" → "Stage 1/2/4 Fragment + Identity Trait" 로 명칭 정리
+> - kill_drop 보상 텍스트에서 "ATK +N" 수치 제거 (effective stat은 Recovery 게이지로부터 자동 산정)
+> - §6 신설: Name Evolution 5 단계 명세 (Stage 0 ~ Stage 4)
 
 ---
 
@@ -29,12 +37,13 @@
 
 | 항목 | 내용 |
 | :--- | :--- |
-| **이름** | 측량사의 에코 쐐기 |
+| **이름 (Stage 4 진명)** | 측량사의 에코 쐐기 (Surveyor's Echo Wedge) |
 | **등급** | Magic (#6969FF) |
 | **스탯 배율** | x1.3 |
-| **정체성 슬롯** | 3 (Core Memory 전용 — DEC-036) |
-| **기억 슬롯** | 0 (Magic 등급은 일반 단편 슬롯 없음) |
+| **Stage 수** | 3 (Stage 0 → Stage 2 → Stage 4) — Magic = 2지층 = 보스 2회 |
+| **Identity Trait 수** | 3개 (Stage 1/2/4 Fragment 해금에 따라 누적) |
 | **지층 수** | 2 (DEC-039: Magic = 2지층 + 보스 2회) |
+| **인물 카테고리** | Surveyor (격벽 측량사) |
 
 ### 1.2. 플레이버 텍스트
 
@@ -101,19 +110,22 @@
 **40초 이벤트:** 4개 풀에서 사용 (지층 1 단축 — DEC-039 정합).
 Pinned: #1 회랑 끝에서 망치 두드리는 잔향, #2 측량사 그림자가 벽면 표지를 짚고 사라짐.
 
-**Core Memory 1 — "공명의 결" (Resonance Trait)**
-- 정체성 슬롯 전용 (DEC-036)
-- 효과 가동: 격벽 진단자 — 약점 노출 적에 대한 ATK +12%
+**Stage 1 Fragment + Identity Trait — "공명의 결" (Resonance Trait)** (DEC-046)
+- 해금 조건: 지층 1 보스 처치 → Recovery 0% → 50% 점프
+- 이름 진화: `Unknown Wedge` → `Guild Survey Tool` (Magic은 Stage 0 → 2 직접 점프, Stage 1을 건너뜀)
+- Fragment 텍스트 (Identity Archive 영구 등록):
+  > **▸ "두드리고 듣는다. 그게 전부였어."**
+  > **▸ "균열은 거짓말을 하지 않아. 사람만 거짓말을 하지."**
+- Identity Trait 효과: **격벽 진단자** — 약점 노출 적에 대한 effective ATK +12%
 - 결의 성격: 측량사의 직업적 집중. 흔들리지 않는 손. 같은 동작을 30년 반복한 몸의 기억.
-- 잔향 대사 (정체성 결 가동 중, 안전 구역):
-  > "두드리고 듣는다. 그게 전부였어."
-  > "균열은 거짓말을 하지 않아. 사람만 거짓말을 하지."
+
+> **Magic Stage 진행 주의:** Magic 등급은 2지층 = 2 보스. Stage 진행은 Stage 0 → 2 → 4 (Stage 1, 3 건너뜀). 따라서 Stage 1 Fragment 2개가 *첫 보스 처치* 시 함께 해금된다. 이름도 `Survey Tool` 단계 없이 `Guild Survey Tool` 로 직접 진입.
 
 **보스 오버라이드: "잔향의 회랑지기"**
 - 형태: 측량 케이블이 결정질 격벽에 얽혀 형성된 무형의 진동체. 망치를 들었던 자리가 비어 있다.
 - 전투 서사: 격벽 진동의 부정적 응결. 측량사가 듣지 못한 잔향들이 모인 것.
 - kill_drop: **닳은 측량 인장** — 상호작용 시: "이름 칸이 닳아 읽히지 않는다. 직위 칸에는 '격벽 측량사'라고만 남아 있다."
-- kill_line: 진동체가 결정질 안으로 흩어진다. 회랑이 처음으로 조용해진다. 쐐기가 +8 ATK를 획득한다.
+- kill_line (DEC-046): 진동체가 결정질 안으로 흩어진다. 회랑이 처음으로 조용해진다. 쐐기의 이름이 *Unknown Wedge* 에서 *Guild Survey Tool* 로 변하고, Recovery 게이지가 0%에서 50%로 차오른다. 공명의 결이 가동된다.
 
 ---
 
@@ -135,14 +147,14 @@ Pinned: #1 회랑 끝에서 망치 두드리는 잔향, #2 측량사 그림자�
 **40초 이벤트:** 5개 풀에서 사용.
 Pinned: #1 위쪽 회로에서 들려오는 망치 잔향(메아리만 100년 늦게 도착), #3 심홍색 심연광 펄스, #5 측량사 그림자가 한 번 멈췄다 다시 걸어 들어감.
 
-**Core Memory 2 — "끝을 보는 결" (Trait of Seeing the End)**
-- 정체성 슬롯 전용
-- 효과 가동: 깊이의 결단 — 적 처치 시 ATK 5% 누적 (최대 25%, 피격 시 50% 감소)
+**Stage 2-3 Fragment + Identity Trait — "끝을 보는 결" (Trait of Seeing the End)** (DEC-046)
+- 해금 조건: 지층 2 보스 처치 도중 단편 텍스트 점진 등장 (안전 구역 잔향)
+- Fragment 텍스트 (Identity Archive 영구 등록):
+  > **▸ "위에 있는 사람들은 보고서를 원했어. 나는 답을 원했어. 그게 같은 건 줄 알았어."**
+  > **▸ "균열을 따라가는 게 직무 위반인지, 직무 자체인지 — 그건 위에서 정해줘야 했는데, 아무도 정해주지 않았어."**
+- Identity Trait 효과: **깊이의 결단** — 적 처치 시 effective ATK 5% 누적 (최대 25%, 피격 시 50% 감소)
 - 결의 성격: 보고서보다 답을 우선하는 충동. 직업윤리를 어긴 것이 아니라, 직업의 본질을 자기 식으로 다시 정의한 사람.
-- 잔향 대사 (안전 구역):
-  > "위에 있는 사람들은 보고서를 원했어. 나는 답을 원했어. 그게 같은 건 줄 알았어."
-  > "균열을 따라가는 게 직무 위반인지, 직무 자체인지 — 그건 위에서 정해줘야 했는데, 아무도 정해주지 않았어."
-- 잔향 대사 — 지층 2 클리어 직후 단 한 번:
+- 잔향 대사 — 지층 2 클리어 직후 단 한 번 (이 대사는 Stage 4 진입 직전 등장):
   > "끝까지 본 것 같아. 그게 무엇이었는지는 아직도 모르겠지만."
 
 **NPC 유령: 측량사의 잔영 (최종 등장 — Fire)**
@@ -158,13 +170,17 @@ Pinned: #1 위쪽 회로에서 들려오는 망치 잔향(메아리만 100년 �
 **보스 오버라이드: "균열의 첨두"**
 - 형태: 측량사가 마지막으로 박은 쐐기 자체가 심연 침식을 받아 거대화. 결정질 첨두형. 본체는 격벽 절단면에 박혀 있고 주변에 분리된 잔영 첨두들이 회전한다.
 - 전투 메커니즘: 본체는 무적이며, 회전하는 잔영 첨두 4개를 모두 격파하면 본체가 잠시 노출된다. 노출 시점에 본체 첨두에 ATK 게이트(스탯 게이트 검증을 겸한 보스 — Magic 등급 적정선)가 적용된다.
-- kill_drop: **마지막 표지** — 상호작용 시: "여기까지. 이 너머는 측량 회로가 아니다." (이 문장은 이 아이템 서사의 마지막 문장이다.)
-- kill_line: 첨두가 결정질 안으로 흩어지며 심홍색 누출이 잠시 진정된다. 격벽 절단면이 평범한 결정질로 돌아간다. 쐐기가 +14 ATK 획득.
+- kill_drop: **마지막 표지** — 상호작용 시: "여기까지. 이 너머는 측량 회로가 아니다." (이 문장은 이 아이템 서사의 *기록자 차원* 마지막 문장이다.)
+- kill_line (DEC-046): 첨두가 결정질 안으로 흩어지며 심홍색 누출이 잠시 진정된다. 격벽 절단면이 평범한 결정질로 돌아간다. 쐐기의 이름이 *Guild Survey Tool* 에서 **Surveyor's Echo Wedge** 로 변하고, Recovery 게이지가 50%에서 100%로 차오른다. 측량사의 정체성 핵이 가동된다. *진명* 이 떠올랐다.
 
-**Core Memory 3 — "측량사의 정체성 핵" (Surveyor's Identity Core)**
-- 정체성 슬롯 전용 — 쐐기 자체의 출생 기억
-- 효과 가동: 격벽 진단 기본형 — 격벽/벽/결정질 타일 인접 시 INT +8%
+**Stage 4 Fragment + Identity Trait — "측량사의 정체성 핵" (Surveyor's Identity Core)** — Fire 모멘트 (DEC-046)
+- 해금 조건: 지층 2 보스 처치 → Recovery 50% → 100% 점프 → 진명 확정
+- 이름 진화: `Guild Survey Tool` → **`Surveyor's Echo Wedge`** (Stage 4 진명)
+- Fragment 텍스트 — **Fire 모멘트** (Identity Archive에 *강조 등록*):
+  > **▸ "보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야."**
+- Identity Trait 효과: **격벽 진단 기본형** — 격벽/벽/결정질 타일 인접 시 effective INT +8%
 - 결의 성격: 무기가 되기 전, 도구로 만들어졌다는 자기 인식. 죽이기 위해서가 아니라 듣기 위해 단조된 첨두.
+- Identity Archive 등록: 인물 카테고리 `Surveyor` 의 첫 인물로 100% 등록
 
 ---
 
@@ -174,7 +190,59 @@ Pinned: #1 위쪽 회로에서 들려오는 망치 잔향(메아리만 100년 �
 
 ---
 
-## 4. 검증 체크리스트
+## 4. Name Evolution 5단계 명세 (DEC-046 신규)
+
+> Magic 등급 = Stage 0/2/4 3단계 사용 (Stage 1/3 건너뜀). 5단계 명세를 모두 정의하되, 인게임 표시는 3단계만 사용한다.
+
+| Stage | Recovery | 표시 이름 | 인게임 사용 (Magic) | 의미 |
+| :---: | :---: | :--- | :---: | :--- |
+| Stage 0 | 0% | `Unknown Wedge` | ✓ (시작) | 정체불명 — 격벽 표면에서 회수된 도구 |
+| Stage 1 | 25% | `Survey Tool` | (Magic 건너뜀) | 측량 도구 — 직업/용도 확인 |
+| Stage 2 | 50% | `Guild Survey Tool` | ✓ (지층 1 클리어 후) | 길드 소속 측량 도구 — 사회적 위치 확인 |
+| Stage 3 | 75% | `The Last Wedge` | (Magic 건너뜀) | 마지막 박힌 쐐기 — 운명/별명 확인 |
+| Stage 4 | 100% | **`Surveyor's Echo Wedge`** | ✓ (지층 2 클리어 후) | 측량사의 에코 쐐기 — 진명 / Identity Archive 등록 |
+
+> **CSV 등록:** `Sheets/Content_Item_Master.csv` 의 본 아이템 행에 다음 컬럼 추가:
+> ```
+> nameStage0: Unknown Wedge
+> nameStage1: Survey Tool
+> nameStage2: Guild Survey Tool
+> nameStage3: The Last Wedge
+> nameStage4: Surveyor's Echo Wedge
+> ```
+
+> **Magic 등급의 Stage 건너뜀 처리:** 시스템은 `displayName = item.def.nameStage[currentStage]` 로 계산. Magic이 0 → 2로 점프 시 Stage 1 (`Survey Tool`) 은 *플레이어에게 표시되지 않음*. 단, Identity Archive에는 *5단계 전체 진화 경로* 가 기록되어 "이 무기가 거쳤을 수 있는 단계"가 보존된다 (재방문 가치).
+
+---
+
+## 5. Re-Dive 단편 (DEC-046 신규)
+
+100% Recovery 완성 후 재진입 시 다른 해석의 단편이 등장한다. 측량사의 에코 쐐기의 Re-Dive 단편:
+
+### Re-Dive 1차 (자긍심 / 직업 윤리 재정의)
+
+- 환경 시각 시프트: 청회색 → 시안
+- Fragment 텍스트:
+  > **▸ "측량의 본질은 보고가 아니라 답이야. 그걸 위에서 정해주지 않았을 뿐."**
+- Identity Trait 효과 변형: 격벽 인접 시 effective INT +8% → effective ATK +8% (직업 정체성이 *수동적 진단* 에서 *능동적 답 탐색* 으로 재해석)
+
+### Re-Dive 2차 (가족의 시선 / 후회)
+
+- 환경 시각 시프트: 시안 → 자주
+- Fragment 텍스트:
+  > **▸ "그날 일지에는 안 적었지만, 집에는 편지 한 통 두고 갔어."**
+- Identity Trait 효과 변형: ATK 누적 효과의 피격 감소율 50% → 30% (가족이 기다린다는 마음이 결단을 무겁게 만든다)
+
+### Re-Dive 3차 (Network Fragment 트리거)
+
+- 환경 시각 시프트: 자주 → 회색
+- Fragment 텍스트:
+  > **▸ "...누군가 한 명만 더 같이 와줬으면. 그러면 보고서를 썼을지도 모르겠어."**
+- Network Fragment 자동 해금 (격벽 수리공 카테고리의 첫 인물도 100% 복원 시): *"같이 술 마시던 사이였어. 측량사가 사라진 그날 밤도, 수리공은 그가 술집에 오지 않은 걸 이상하게 생각하지 않았어 — 측량사는 원래 약속을 잘 어겼으니까."*
+
+---
+
+## 6. 검증 체크리스트
 
 | # | 항목 | 결과 |
 | :--- | :--- | :---: |
@@ -191,9 +259,13 @@ Pinned: #1 위쪽 회로에서 들려오는 망치 잔향(메아리만 100년 �
 | F-11 | 판타지 잔재(갑옷·중세 용병·성채 경비병·왕국) 0건 | 통과 |
 | F-12 | 에르다 대사 0건 (잔영 대사만) | 통과 |
 | F-13 | 의뢰/코인/허브/마을 NPC 언급 0건 | 통과 |
-| F-14 | DEC-036 (정체성 슬롯) / DEC-039 (2지층) 정합 | 통과 |
+| F-14 | DEC-046 (Memory Recovery) / DEC-039 (2지층) 정합 | 통과 |
+| F-15 | Name Evolution 5단계 모두 작성 (Stage 0~4) | 통과 — §4 |
+| F-16 | Stage 4 Fragment가 단 한 문장의 Fire 모멘트 | 통과 — "보고하지 않은 건 비밀이어서가 아니야..." |
+| F-17 | Re-Dive 1-3차 단편 작성 | 통과 — §5 |
+| F-18 | Identity Archive 인물 카테고리 등록 (`Surveyor`) | 통과 — §1.1 |
 
 **Contradictions Check:** Magic 등급 = 100년 전 격벽 측량사 도구. World Bible Layer 1 Era 3 말기 + Layer 0 §0.4(심연 침식) 정합.
-**Cross-References:** `Content_World_Bible.md` §0.4 §0.7.2, `Design_ItemWorld_Themes.md`, `System_ItemNarrative_Template.md`, `System_ItemNarrative_MonsterPool.md`, `System_ItemNarrative_EnvironmentPool.md`
+**Cross-References:** `Content_World_Bible.md` §0.4 §0.7.2, `Design_ItemWorld_Themes.md`, `System_ItemNarrative_Template.md`, `System_Memory_Core.md` (DEC-046), `System_Equipment_Growth.md` (DEC-046)
 **신규 테마 등록 필요:** `T-SURVEY/corridor`, `T-DESCENT/silent` — Phase 2 R&D에서 MonsterPool/EnvironmentPool에 정식 풀 등록 예정.
-**Source:** CNT-ITM-001 (구판 폐기 후 신판). 2026-05-20.
+**Source:** CNT-ITM-001 (구판 폐기 후 신판). 2026-05-20 (DEC-036 기반) → 2026-05-24 갱신 (DEC-046 패러다임 전환).

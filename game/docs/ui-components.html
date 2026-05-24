@@ -6,7 +6,7 @@
 <title>ECHORIS — UI Component Catalog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   /* =========================================================
      SSoT — sourced from game/src/ui/ModalPanel.ts + KeyPrompt.ts + Toast.ts
@@ -36,8 +36,8 @@
     --font-title: 12px;
     --font-body:  10px;
     --font-hint:  8px;
-    --font-ui:    'Rajdhani', system-ui, sans-serif;
-    --font-title-display: 'Cinzel', serif;
+    --font-ui:    'Chakra Petch', system-ui, sans-serif;
+    --font-title-display: 'Chakra Petch', sans-serif;
 
     /* Slot/selection (LEGACY grid — kept for non-inventory uses) */
     --slot-bg:        #2a2a3e;
@@ -48,13 +48,12 @@
     --row-bg:         transparent;
     --row-selected:   #4a2810;            /* warm dark fill */
     --row-selected-2: #2a1808;            /* gradient end (subtle vignette) */
-    --row-selected-edge: rgba(255,153,51,1.0); /* full-alpha vibrant orange border */
-    --row-selected-glow: rgba(255,153,51,0.95); /* outer halo (pulses, intense) */
+    --row-selected-edge: rgba(255,164,27,1.0); /* full-alpha vibrant orange border */
+    --row-selected-glow: rgba(255,164,27,0.95); /* outer halo (pulses, intense) */
     --row-selected-glow-inner: rgba(255,204,102,0.85); /* inner cream-orange bloom */
     --row-chevron:    #ffd699;            /* bright cream-orange chevron pop */
     --row-equipped-bg:#2a1a10;
     --row-equipped-bar:#ff8c00;
-    --row-dive:       #00ced1;
     --row-cleared:    #44ff44;
     --row-locked:     #666666;
 
@@ -286,35 +285,35 @@
       inset 0 0 0 1px var(--row-selected-glow-inner),
       0 0 8px var(--row-selected-glow-inner),
       0 0 22px var(--row-selected-glow),
-      0 0 36px rgba(255,153,51,0.45);
+      0 0 36px rgba(255,164,27,0.45);
     animation:row-pulse 1.4s ease-in-out infinite;
   }
   .inv-row.selected::after{
     content:'\25C0';                  /* ◀ right-side mirror chevron */
     position:absolute;right:8px;top:50%;transform:translateY(-50%);
     color:var(--row-chevron);font-size:11px;font-weight:700;
-    text-shadow:0 0 6px rgba(255,153,51,0.9);
+    text-shadow:0 0 6px rgba(255,164,27,0.9);
     pointer-events:none;
   }
   .inv-row.selected .row-cursor{
     opacity:1;color:var(--row-chevron);font-size:11px;
-    text-shadow:0 0 6px rgba(255,153,51,0.9);
+    text-shadow:0 0 6px rgba(255,164,27,0.9);
   }
   .inv-row.selected .row-name{
     color:#fff !important;
-    text-shadow:0 0 6px rgba(255,153,51,0.6);
+    text-shadow:0 0 6px rgba(255,164,27,0.6);
   }
   @keyframes row-pulse{
     0%,100%{box-shadow:
       inset 0 0 0 1px rgba(255,204,102,0.55),
       0 0 6px rgba(255,204,102,0.55),
-      0 0 16px rgba(255,153,51,0.55),
-      0 0 28px rgba(255,153,51,0.30)}
+      0 0 16px rgba(255,164,27,0.55),
+      0 0 28px rgba(255,164,27,0.30)}
     50%   {box-shadow:
       inset 0 0 0 1px rgba(255,204,102,0.95),
       0 0 12px rgba(255,204,102,0.90),
-      0 0 28px rgba(255,153,51,0.95),
-      0 0 48px rgba(255,153,51,0.55)}
+      0 0 28px rgba(255,164,27,0.95),
+      0 0 48px rgba(255,164,27,0.55)}
   }
   @media (prefers-reduced-motion: reduce){
     .inv-row.selected{animation:none}
@@ -330,13 +329,69 @@
   .inv-row .row-icon{width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
   .inv-row .row-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px;flex:none}
   .inv-row .row-badge.eq{background:var(--row-equipped-bar);color:#000}
-  .inv-row .row-badge.dive{background:var(--row-dive);color:#000}
+  .inv-row .row-badge.dive{background:var(--text-accent);color:#000}
   .inv-row .row-badge.clr{background:var(--row-cleared);color:#000}
   .inv-row .row-badge.lock{background:transparent;border:1px solid var(--row-locked);color:var(--row-locked)}
   .inv-row .row-name{flex:1;font-weight:700;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-secondary)}
   .inv-row .row-stars{color:var(--text-gold);font-size:9px;flex:none;width:40px}
   .inv-row .row-stat{color:var(--text-secondary);font-size:9px;flex:none;width:52px;text-align:right;font-family:ui-monospace,monospace}
   .inv-row .row-dive-status{flex:none;width:54px;text-align:right}
+
+  /* ===================================================
+     Inventory Grid Cell (NEW — replaces list for main inventory)
+     28×28px cells, 2px gap, 4 columns (SSoT: InventoryUI.ts GRID_COLS=4)
+     =================================================== */
+  .inv-grid{
+    display:grid;
+    grid-template-columns:repeat(4,28px);
+    gap:2px;
+  }
+  .inv-cell{
+    width:28px;height:28px;
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    box-sizing:border-box;cursor:default;
+  }
+  /* Rarity border + background (normal state) */
+  .inv-cell.r-normal   {border:1px solid #ffffff;background:rgba(255,255,255,0.06)}
+  .inv-cell.r-magic    {border:1px solid #6969ff;background:rgba(105,105,255,0.06)}
+  .inv-cell.r-rare     {border:1px solid #ffff00;background:rgba(255,255,0,0.06)}
+  .inv-cell.r-legendary{border:1px solid #ff8000;background:rgba(255,128,0,0.06)}
+  .inv-cell.r-ancient  {border:1px solid #00ff00;background:rgba(0,255,0,0.06)}
+  /* Selected state — thicker border + brighter fill */
+  .inv-cell.selected.r-normal   {border:2px solid #ffffff;background:rgba(255,255,255,0.18)}
+  .inv-cell.selected.r-magic    {border:2px solid #6969ff;background:rgba(105,105,255,0.18)}
+  .inv-cell.selected.r-rare     {border:2px solid #ffff00;background:rgba(255,255,0,0.18)}
+  .inv-cell.selected.r-legendary{border:2px solid #ff8000;background:rgba(255,128,0,0.18)}
+  .inv-cell.selected.r-ancient  {border:2px solid #00ff00;background:rgba(0,255,0,0.18)}
+  /* Equipped override — white border regardless of rarity */
+  .inv-cell.equipped             {border:1px solid #ffffff!important;background:rgba(255,255,255,0.06)!important}
+  .inv-cell.selected.equipped    {border:2px solid #ffffff!important;background:rgba(255,255,255,0.18)!important}
+  /* Corner badges: 4×4px dots at the four corners */
+  .inv-cell-badge{
+    position:absolute;width:4px;height:4px;
+  }
+  .inv-cell-badge.b-equipped{top:1px;left:1px;background:#ffffff}
+  .inv-cell-badge.b-dive    {top:1px;right:1px;background:#4488ff}
+  .inv-cell-badge.b-cleared {bottom:1px;right:1px;background:#44ff44}
+  .inv-cell-badge.b-shard   {bottom:1px;left:1px;background:#ffffff}
+  .inv-cell-badge.b-shard.wild{background:#ff4444}
+  /* Icon inside cell */
+  .inv-cell-icon{font-size:13px;line-height:1;position:relative;z-index:1;user-select:none}
+  /* Filter tabs row */
+  .inv-tabs{display:flex;gap:2px;margin-bottom:4px}
+  .inv-tab{
+    padding:2px 8px;font-size:8px;letter-spacing:1px;
+    background:transparent;color:#7c7c95;
+    border:1px solid #2a2a3e;cursor:default;
+  }
+  .inv-tab.active{background:#3a3a5a;color:#ffffff;border-color:#4a4a6a}
+  /* Scrollbar strip (purely decorative in the guide) */
+  .inv-scrollbar-strip{
+    width:3px;background:#1a1a2e;border:1px solid #2a2a3e;
+    display:flex;flex-direction:column;align-items:stretch;
+  }
+  .inv-scrollbar-thumb{flex:none;background:#4a4a6a}
 </style>
 </head>
 <body>
@@ -364,7 +419,7 @@
     <div class="group">Panels</div>
     <a href="#modal-panel">ModalPanel</a>
     <a href="#hud">HUD</a>
-    <a href="#inventory">InventoryUI</a>
+    <a href="#inventory">InventoryUI (+ Anvil Mode)</a>
     <a href="#item-detail">ItemDetailView</a>
     <a href="#character-stats">CharacterStats</a>
     <a href="#save-load">SaveLoadUI</a>
@@ -391,6 +446,7 @@
     <a href="#stratum-clear">StratumClear</a>
     <a href="#gold-drop">GoldDrop</a>
     <a href="#portal">Portal (Glitch)</a>
+    <a href="#radial-map">RadialMap (Shift+2)</a>
     <div class="group">World Effects</div>
     <a href="#fluid-spawner">FluidSpawner (waterfall)</a>
     <a href="#hit-effect">HitEffect (Hollow Knight)</a>
@@ -490,7 +546,7 @@
     <h2>Typography <span class="pill token">FOUNDATION</span></h2>
     <div class="src">SSoT: game/src/ui/fonts.ts · ModalPanel.ts</div>
     <p>3-tier 사이즈만 허용. 다른 사이즈를 쓰지 말 것.<br>
-       In-game UI: <b>Rajdhani 700</b> (BitmapFont 'GameUI'). 타이틀: <b>Cinzel 900</b> (BitmapFont 'CinzelTitle').</p>
+       In-game UI: <b>Chakra Petch 700</b> (BitmapFont 'GameUI'). 타이틀: <b>Chakra Petch 700</b> (BitmapFont 'ChakraPetchTitle').</p>
     <div class="stage col">
       <div class="t-title">FONT_TITLE — 12px · createTitle()</div>
       <div class="t-body">FONT_BODY — 10px · createBody()</div>
@@ -914,238 +970,583 @@
 
   <section id="inventory">
     <h2>InventoryUI <span class="pill organism">ORGANISM</span></h2>
-    <div class="src">InventoryUI.ts</div>
-    <p><b>리스트 + 디테일 패널 하이브리드.</b> Disgaea/Bloodstained 스타일. 좌측: 아이템 리스트 (행 = 아이콘+뱃지+이름+레어리티+ATK+DIVE). 하단: 선택 아이템 상세 + 비교.<br>
-       <b>상태 구분:</b> Normal=기본행, Selected=밝은 하이라이트+▶커서, Equipped=주황 좌측 바+[E]뱃지.</p>
+    <div class="src">InventoryUI.ts · 관련: <a href="#item-detail">#item-detail</a> (middle column 변종) · <a href="#radial-map">#radial-map</a> (Anvil Mode 우측 패널)</div>
+    <p><b>3칼럼 레이아웃: 좌(4열 그리드) + 중(아이템 정보) + 우(캐릭터 스탯).</b> 셀 28×28px, 최대 120개, 스크롤 지원. 레어리티 색상 테두리 + 4코너 배지(장착/다이브/클리어/기억단편)로 즉시 식별.<br>
+       <b>셀 상태:</b> Normal=레어리티 테두리 1px, Selected=2px+밝은 배경, Equipped=흰색 테두리 2px. 선택 커서 없음 — 테두리만으로 표현.<br>
+       <b>Anvil 모드:</b> 우측 칼럼이 캐릭터 스탯→지층 미니맵으로 전환. 중간 칼럼은 Anvil 슬롯+아이템 정보. 그리드는 동일.</p>
 
+    <!-- ── Cell Anatomy ── -->
     <div class="card">
-      <h3>Inventory Mode (I키)</h3>
+      <h3>Cell Anatomy — 28×28px 셀 구조</h3>
+      <div class="meta">CELL_W=28px · CELL_H=28px · CELL_GAP=2px · GRID_COLS=6</div>
+      <div class="stage" style="gap:24px;align-items:flex-start">
+        <!-- Normal (비선택) -->
+        <div style="text-align:center">
+          <div class="inv-cell r-rare" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">Normal</div>
+          <div class="t-hint" style="color:var(--muted)">테두리 1px</div>
+        </div>
+        <!-- Selected -->
+        <div style="text-align:center">
+          <div class="inv-cell r-rare selected" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">Selected</div>
+          <div class="t-hint" style="color:var(--muted)">테두리 2px+배경</div>
+        </div>
+        <!-- Equipped (비선택) -->
+        <div style="text-align:center">
+          <div class="inv-cell r-legendary equipped" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-equipped"></span>
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">Equipped</div>
+          <div class="t-hint" style="color:var(--muted)">흰색 테두리</div>
+        </div>
+        <!-- Selected + Equipped -->
+        <div style="text-align:center">
+          <div class="inv-cell r-legendary selected equipped" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-equipped"></span>
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">Sel + Equip</div>
+          <div class="t-hint" style="color:var(--muted)">흰색 2px</div>
+        </div>
+        <!-- All badges -->
+        <div style="text-align:center">
+          <div class="inv-cell r-ancient" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-equipped"></span>
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-badge b-shard wild"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">배지 전부</div>
+          <div class="t-hint" style="color:var(--muted)">E+Dive+Wild</div>
+        </div>
+        <!-- Cleared -->
+        <div style="text-align:center">
+          <div class="inv-cell r-magic" style="margin:0 auto 6px">
+            <span class="inv-cell-badge b-dive"></span>
+            <span class="inv-cell-badge b-cleared"></span>
+            <span class="inv-cell-badge b-shard"></span>
+            <span class="inv-cell-icon">⚔</span>
+          </div>
+          <div class="t-hint">Cleared</div>
+          <div class="t-hint" style="color:var(--muted)">우하단 초록</div>
+        </div>
+
+        <!-- 배지 범례 -->
+        <div style="border-left:1px solid var(--line);padding-left:18px;display:flex;flex-direction:column;gap:6px">
+          <div class="t-hint" style="color:var(--muted);letter-spacing:1px;margin-bottom:2px">BADGE LEGEND</div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:4px;height:4px;background:#ffffff"></div><span class="t-hint">좌상단: Equipped [E]</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:4px;height:4px;background:#4488ff"></div><span class="t-hint">우상단: Dive available</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:4px;height:4px;background:#44ff44"></div><span class="t-hint">우하단: Cleared</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:4px;height:4px;background:#ffffff"></div><span class="t-hint">좌하단: Memory Shard (Subdued)</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:4px;height:4px;background:#ff4444"></div><span class="t-hint">좌하단: Memory Shard (Wild 포함)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Inventory Mode 전체 레이아웃 ── -->
+    <div class="card">
+      <h3>Inventory Mode (I키) — 전체 레이아웃 (3칼럼)</h3>
+      <div class="meta">PANEL_W=550px · PANEL_H=254px · GRID_W=178px(6×28+5×2) · INFO_W=196px · STATUS_W=148px</div>
       <div class="stage center">
-        <div class="modal-overlay" style="max-width:580px">
+        <div class="modal-overlay" style="max-width:700px">
           <div class="modal-panel" style="width:100%">
             <div class="t-title">INVENTORY</div>
-            <div class="divider"></div>
 
-            <!-- ── EQUIPMENT SLOTS (6종) ── -->
-            <div style="display:flex;gap:6px;margin-bottom:10px">
-              <!-- Weapon (장착됨) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,140,0,0.1);border:1px solid rgba(255,140,0,0.3);border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--row-equipped-bar);margin-bottom:3px">WEAPON</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:2px solid var(--row-equipped-bar);display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,140,0,0.06)">⚔</div>
-                <div class="t-hint" style="color:var(--r-legendary);margin-top:3px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">Cosmic Blade</div>
-              </div>
-              <!-- Visor (빈 슬롯) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,255,255,0.02);border:1px solid #2a2a3e;border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--muted);margin-bottom:3px">VISOR</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:1px dashed #3a3a4e;display:flex;align-items:center;justify-content:center;color:#3a3a4e;font-size:10px">—</div>
-                <div class="t-hint" style="color:#3a3a4e;margin-top:3px">empty</div>
-              </div>
-              <!-- Plate (장착됨) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,255,255,0.03);border:1px solid #3a3a4e;border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--text-secondary);margin-bottom:3px">PLATE</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:1px solid #5a5a6a;display:flex;align-items:center;justify-content:center;font-size:14px">🛡</div>
-                <div class="t-hint" style="color:var(--r-magic);margin-top:3px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">Iron Plate</div>
-              </div>
-              <!-- Gauntlet (빈) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,255,255,0.02);border:1px solid #2a2a3e;border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--muted);margin-bottom:3px">GAUNTLET</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:1px dashed #3a3a4e;display:flex;align-items:center;justify-content:center;color:#3a3a4e;font-size:10px">—</div>
-                <div class="t-hint" style="color:#3a3a4e;margin-top:3px">empty</div>
-              </div>
-              <!-- Greaves (빈) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,255,255,0.02);border:1px solid #2a2a3e;border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--muted);margin-bottom:3px">GREAVES</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:1px dashed #3a3a4e;display:flex;align-items:center;justify-content:center;color:#3a3a4e;font-size:10px">—</div>
-                <div class="t-hint" style="color:#3a3a4e;margin-top:3px">empty</div>
-              </div>
-              <!-- Sigil (장착됨) -->
-              <div style="flex:1;padding:5px 6px;background:rgba(255,255,255,0.03);border:1px solid #3a3a4e;border-radius:2px;text-align:center">
-                <div class="t-hint" style="color:var(--text-secondary);margin-bottom:3px">SIGIL</div>
-                <div style="width:28px;height:28px;margin:0 auto;border:1px solid #5a5a6a;display:flex;align-items:center;justify-content:center;font-size:14px">◆</div>
-                <div class="t-hint" style="color:var(--r-normal);margin-top:3px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">Seal Ring</div>
-              </div>
+            <!-- Filter tabs -->
+            <div class="inv-tabs" style="margin:5px 0 6px">
+              <div class="inv-tab active">ALL</div>
+              <div class="inv-tab">WPN</div>
+              <div class="inv-tab">ARM</div>
+              <div class="inv-tab">ACC</div>
             </div>
+            <div class="divider" style="margin-bottom:8px"></div>
 
-            <!-- ── ITEM LIST ── -->
-            <div class="t-hint" style="margin-bottom:4px;color:var(--muted)">BACKPACK (4/20)</div>
-            <div style="margin-bottom:10px">
-              <div class="inv-row selected">
-                <span class="row-cursor" style="color:var(--text-accent);font-size:12px">▶</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-rare)">Galaxy Sword</span>
-                <span class="row-stars">★★★</span>
-                <span class="row-stat">ATK 100</span>
-                <span class="row-dive-status"><span class="row-badge dive">DIVE</span></span>
-              </div>
-              <div class="inv-row">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">⚔</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-normal)">Bronze Dagger</span>
-                <span class="row-stars">★</span>
-                <span class="row-stat">ATK 5</span>
-                <span class="row-dive-status"><span class="row-badge dive">DIVE</span></span>
-              </div>
-              <div class="inv-row">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">🛡</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-magic)">Old Cleaver</span>
-                <span class="row-stars">★★</span>
-                <span class="row-stat">ATK 8</span>
-                <span class="row-dive-status"><span class="row-badge clr">CLR</span></span>
-              </div>
-              <div class="inv-row">
-                <span class="row-cursor">&nbsp;</span>
-                <span class="row-icon">◆</span>
-                <span class="row-badge">&nbsp;&nbsp;</span>
-                <span class="row-name" style="color:var(--r-normal)">Cracked Sigil</span>
-                <span class="row-stars">★</span>
-                <span class="row-stat">INT 3</span>
-                <span class="row-dive-status"></span>
-              </div>
-            </div>
+            <!-- Three-column body -->
+            <div style="display:flex;gap:8px;align-items:flex-start">
 
-            <!-- ── DETAIL PANEL ── -->
-            <div class="divider"></div>
-            <div style="display:flex;gap:14px;padding-top:8px">
-              <div style="flex:1">
-                <div class="t-title" style="color:var(--r-rare)">GALAXY SWORD</div>
-                <div class="t-hint">Rare · Blade · Lv.35</div>
-                <div style="margin-top:6px">
-                  <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;&nbsp;100 <span style="color:var(--text-negative)">−20 vs equipped</span></div>
+              <!-- ▼ LEFT: 6×3 Grid ▼ -->
+              <div style="flex:none">
+                <div style="display:flex;gap:2px;align-items:flex-start">
+                  <div class="inv-grid">
+                    <!-- Row 0 -->
+                    <div class="inv-cell r-legendary selected equipped">
+                      <span class="inv-cell-badge b-equipped"></span>
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-magic">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-badge b-cleared"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-rare">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">🛡</span>
+                    </div>
+                    <div class="inv-cell r-normal">
+                      <span class="inv-cell-icon">◆</span>
+                    </div>
+                    <div class="inv-cell r-ancient">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-badge b-shard wild"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-magic">
+                      <span class="inv-cell-badge b-cleared"></span>
+                      <span class="inv-cell-badge b-shard"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <!-- Row 1 -->
+                    <div class="inv-cell r-legendary">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-normal">
+                      <span class="inv-cell-icon">🛡</span>
+                    </div>
+                    <div class="inv-cell r-magic">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-rare">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-badge b-shard"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-normal">
+                      <span class="inv-cell-icon">◆</span>
+                    </div>
+                    <div class="inv-cell r-magic">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <!-- Row 2 -->
+                    <div class="inv-cell r-rare">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-magic">
+                      <span class="inv-cell-badge b-cleared"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell r-normal">
+                      <span class="inv-cell-icon">◆</span>
+                    </div>
+                    <div class="inv-cell r-ancient">
+                      <span class="inv-cell-badge b-dive"></span>
+                      <span class="inv-cell-icon">⚔</span>
+                    </div>
+                    <div class="inv-cell" style="border:none;background:none"></div>
+                    <div class="inv-cell" style="border:none;background:none"></div>
+                  </div>
+                  <!-- 스크롤바 -->
+                  <div class="inv-scrollbar-strip" style="height:90px;margin-left:2px">
+                    <div class="inv-scrollbar-thumb" style="height:60%;margin-top:0"></div>
+                  </div>
                 </div>
-                <div class="t-hint" style="margin-top:4px">Innocents: 2/3 · Strata: 1/3</div>
+                <div class="t-hint" style="margin-top:4px;text-align:right;color:var(--muted);padding-right:6px">20 / 120</div>
               </div>
+
+              <!-- ▼ MIDDLE: 아이템 정보 ▼ -->
+              <div style="flex:none;width:196px;border-left:1px solid var(--modal-divider);padding-left:8px">
+                <div class="t-title" style="color:var(--r-legendary);font-size:11px">COSMIC BLADE</div>
+                <div class="t-hint">Legendary · Blade [E]</div>
+                <div class="t-hint" style="color:var(--muted)">Lv.12 · Cycle 2</div>
+                <div class="divider"></div>
+                <div class="t-body"><span style="color:var(--text-secondary)">ATK</span>&nbsp;312</div>
+                <div class="t-body"><span style="color:var(--text-secondary)">INT</span>&nbsp;0</div>
+                <div class="t-hint">HP: +25</div>
+                <div class="divider"></div>
+                <div class="t-hint">Memory Shards: 4/6</div>
+                <div class="t-hint">Strata: 2/4</div>
+                <div class="divider"></div>
+                <div class="t-hint" style="color:var(--muted)">[Z] Detail</div>
+                <div class="t-hint" style="color:var(--muted)">[X] Equip</div>
+              </div>
+
+              <!-- ▼ RIGHT: 캐릭터 스탯 ▼ -->
+              <div style="flex:none;width:148px;border-left:1px solid var(--modal-divider);padding-left:8px">
+                <div class="t-hint" style="color:var(--muted);letter-spacing:1px;font-size:8px;margin-bottom:4px">CHARACTER</div>
+                <div class="t-hint"><span style="color:var(--text-secondary)">Lv</span>&nbsp;23</div>
+                <div class="t-hint"><span style="color:var(--text-secondary)">HP</span>&nbsp;340</div>
+                <div class="divider"></div>
+                <!-- 장착 전/후 스탯 비교: 선택 아이템 착용 시 델타 표시 -->
+                <div class="t-hint">
+                  <span style="color:var(--text-secondary)">ATK</span>&nbsp;80
+                  <span style="color:#44dd44;margin-left:4px">(+45)</span>
+                </div>
+                <div class="t-hint">
+                  <span style="color:var(--text-secondary)">INT</span>&nbsp;45
+                </div>
+                <div class="divider"></div>
+                <!-- 렐릭 5종 -->
+                <div class="t-hint" style="color:var(--muted);font-size:8px;letter-spacing:1px;margin-bottom:3px">RELICS</div>
+                <div class="t-hint"><span style="color:#44ff44">●</span> Dash</div>
+                <div class="t-hint"><span style="color:#44ff44">●</span> Wall Climb</div>
+                <div class="t-hint"><span style="color:#44ff44">●</span> Double Jump</div>
+                <div class="t-hint"><span style="color:var(--muted)">○</span> <span style="color:var(--muted)">Underwater</span></div>
+                <div class="t-hint"><span style="color:var(--muted)">○</span> <span style="color:var(--muted)">Anti-Grav</span></div>
+              </div>
+
             </div>
-            <div class="divider"></div>
-            <div class="t-hint">[C] Equip&nbsp;&nbsp;[Z] Detail&nbsp;&nbsp;[ESC] Close</div>
+
+            <div class="divider" style="margin-top:8px"></div>
+            <div class="t-hint">[Tab] Filter&nbsp;&nbsp;[↑↓←→] Navigate&nbsp;&nbsp;[X] Equip&nbsp;&nbsp;[Z] Detail&nbsp;&nbsp;[ESC] Close</div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- ── Rarity Grid Variants ── -->
     <div class="card">
-      <h3>Anvil Mode — FORGE (앤빌 근접 C키, 빈 상태)</h3>
-      <p class="desc">
-        인벤토리(I)와 시각 언어를 완전히 분리. <b>좌 = 컴팩트 무기 선택창</b>, <b>우 = 마름모 anvil 슬롯</b>.
-        인벤토리의 6-슬롯 장비바·디테일 패널·다컬럼 리스트를 모두 제거하고, 우측 슬롯은 직사각 → 마름모로 형상 자체를 바꾼다.
-        마름모 자산은 atlas <code>ui_hud_01_atlas.png</code> 의 <code>ui_forge_active</code> slice (336·112·64×64, 오렌지 frame) 사용.
-      </p>
-      <div class="stage center">
-        <div class="modal-overlay" style="max-width:480px">
-          <div class="modal-panel" style="width:100%">
-            <div class="t-title">FORGE</div>
-            <div class="divider"></div>
-            <!-- 2-column body: 좌 selection / 우 rhombus -->
-            <div style="display:flex;gap:18px;padding-top:8px;align-items:stretch;min-height:160px">
-              <!-- ▼ Left: 컴팩트 무기 선택 (장비바·디테일 패널 없음) ▼ -->
-              <div style="flex:1.15;min-width:0;display:flex;flex-direction:column">
-                <div class="t-hint" style="margin-bottom:6px;color:var(--muted);letter-spacing:1.5px">SELECT WEAPON</div>
-                <!-- Row: selected -->
-                <div style="padding:5px 8px;background:linear-gradient(90deg,rgba(255,164,27,0.22),rgba(255,164,27,0.04));border-left:3px solid #FFA41B;margin-bottom:3px;display:flex;align-items:center;gap:6px">
-                  <span style="color:#FFD699">▶</span>
-                  <span style="flex:1;color:#FFFFFF;font-weight:700">Galaxy Sword</span>
-                  <span style="color:var(--text-secondary);font-size:9px">ATK 100</span>
-                </div>
-                <!-- Row: cleared -->
-                <div style="padding:5px 8px;margin-bottom:3px;display:flex;align-items:center;gap:6px">
-                  <span style="color:transparent">▶</span>
-                  <span style="flex:1;color:var(--r-magic)">Old Cleaver</span>
-                  <span style="color:#88dd88;font-size:9px;font-weight:700">CLR</span>
-                </div>
-                <!-- Row: locked -->
-                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
-                  <span style="color:transparent">▶</span>
-                  <span style="flex:1;color:var(--row-locked)">Rustborn</span>
-                  <span style="color:var(--row-locked);font-size:9px">🔒</span>
-                </div>
-              </div>
-
-              <!-- ▼ Right: 마름모 anvil 슬롯 (비어있음) ▼ -->
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-left:1px solid var(--modal-divider);padding-left:14px">
-                <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
-                  <!-- 마름모 외곽 (dim, dashed) -->
-                  <div style="position:absolute;width:82px;height:82px;border:2px dashed rgba(255,140,0,0.45);transform:rotate(45deg);background:rgba(0,0,0,0.35)"></div>
-                  <span style="position:relative;color:var(--row-locked);font-size:8px;letter-spacing:2px">ANVIL</span>
-                </div>
-                <div class="t-hint" style="color:var(--muted)">[C] Place</div>
-              </div>
-            </div>
-            <div class="divider"></div>
-            <div class="t-hint">[C] Place on Anvil&nbsp;&nbsp;[ESC] Close</div>
-          </div>
+      <h3>레어리티별 셀 외관</h3>
+      <div class="stage" style="gap:10px">
+        <div style="text-align:center"><div class="inv-cell r-normal" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint" style="color:var(--r-normal)">Normal</div></div>
+        <div style="text-align:center"><div class="inv-cell r-magic" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint" style="color:var(--r-magic)">Magic</div></div>
+        <div style="text-align:center"><div class="inv-cell r-rare" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint" style="color:var(--r-rare)">Rare</div></div>
+        <div style="text-align:center"><div class="inv-cell r-legendary" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint" style="color:var(--r-legendary)">Legendary</div></div>
+        <div style="text-align:center"><div class="inv-cell r-ancient" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint" style="color:var(--r-ancient)">Ancient</div></div>
+        <div style="border-left:1px solid var(--line);padding-left:14px;display:flex;gap:10px">
+          <div style="text-align:center"><div class="inv-cell r-legendary selected" style="margin:0 auto 4px"><span class="inv-cell-icon">⚔</span></div><div class="t-hint">Selected</div></div>
+          <div style="text-align:center"><div class="inv-cell r-legendary equipped" style="margin:0 auto 4px"><span class="inv-cell-badge b-equipped"></span><span class="inv-cell-icon">⚔</span></div><div class="t-hint">Equipped</div></div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h3>Anvil Mode — Placed (아이템 배치 후, 노란 active)</h3>
+      <h3>Anvil Mode — 3-Column (Inventory · Anvil · Item Map) — v2 (2026-05-24)</h3>
       <p class="desc">
-        선택된 무기가 우측 마름모로 이동. 슬롯 외곽이 <b style="color:#FFD700">노란 active 프레임</b> + 골드 글로우 펄스로 전환되어
-        "배치 완료, 다이브 준비" 상태를 시각적으로 강하게 신호한다. 좌측 리스트의 해당 행은 ON ANVIL 으로 dim 처리.
-        실제 자산은 <code>ui_forge_active</code> slice 본체 + GlowFilter <code>0xFFD700</code> 오버레이 조합.
+        이미지 reference 기반 새 통합 레이아웃. 좌(인벤토리 그리드) + 중(ANVIL: 64px
+        아이콘 + 이름 + 호칭 + Recovery% + 단계형 RadialMap) + 우(ITEM MAP: L1~L5
+        stratum 미니맵 스택). 이전 "FORGE 빈/Placed" 두 카드를 단일 통합으로 교체.
       </p>
-      <div class="stage center">
-        <div class="modal-overlay" style="max-width:480px">
-          <div class="modal-panel" style="width:100%">
-            <div class="t-title">FORGE</div>
-            <div class="divider"></div>
-            <div style="display:flex;gap:18px;padding-top:8px;align-items:stretch;min-height:160px">
-              <!-- ▼ Left: 리스트 (선택 아이템 = ON ANVIL, 나머지 dim) ▼ -->
-              <div style="flex:1.15;min-width:0;display:flex;flex-direction:column">
-                <div class="t-hint" style="margin-bottom:6px;color:var(--muted);letter-spacing:1.5px">SELECT WEAPON</div>
-                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.4;display:flex;align-items:center;gap:6px">
-                  <span style="color:transparent">▶</span>
-                  <span style="flex:1;color:var(--r-rare)">Galaxy Sword</span>
-                  <span style="color:#FFD700;font-size:9px;font-weight:700">▶ ANVIL</span>
-                </div>
-                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
-                  <span style="color:transparent">▶</span>
-                  <span style="flex:1;color:var(--r-magic)">Old Cleaver</span>
-                  <span style="color:#88dd88;font-size:9px;font-weight:700">CLR</span>
-                </div>
-                <div style="padding:5px 8px;margin-bottom:3px;opacity:0.55;display:flex;align-items:center;gap:6px">
-                  <span style="color:transparent">▶</span>
-                  <span style="flex:1;color:var(--row-locked)">Rustborn</span>
-                  <span style="color:var(--row-locked);font-size:9px">🔒</span>
-                </div>
-              </div>
+      <div class="stage" style="background:#0a0a0a;padding:16px;border:1px solid #1a1a1a;overflow:auto">
+        <div class="anvil3-root">
+          <!-- ═══ LEFT: INVENTORY ═══ -->
+          <div class="anvil3-col-left">
+            <div class="anvil3-col-title">인벤토리</div>
+            <div class="anvil3-tabs">
+              <div class="anvil3-tab active">ALL</div>
+              <div class="anvil3-tab">WPN</div>
+              <div class="anvil3-tab">ARM</div>
+              <div class="anvil3-tab">ACC</div>
+            </div>
+            <div class="anvil3-grid">
+              <!-- 4-column grid (SSoT: InventoryUI.ts GRID_COLS=4) — 24 cells = 6 rows -->
+              <div class="anvil3-cell sel r-legendary"><span class="anvil3-icon">⚔</span></div>
+              <div class="anvil3-cell r-magic"><span class="anvil3-badge b-equipped">E</span><span class="anvil3-icon">⚔</span></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+              <div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div><div class="anvil3-cell"></div>
+            </div>
+          </div>
 
-              <!-- ▼ Right: 마름모 anvil (placed, 노란 active + 글로우) ▼ -->
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-left:1px solid var(--modal-divider);padding-left:14px">
-                <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 14px rgba(255,215,0,0.7))">
-                  <!-- 마름모 외곽 (노란 active, 굵게) -->
-                  <div style="position:absolute;width:84px;height:84px;border:3px solid #FFD700;transform:rotate(45deg);background:rgba(255,170,40,0.14)"></div>
-                  <!-- 내측 보조 라인 -->
-                  <div style="position:absolute;width:62px;height:62px;border:1px solid rgba(255,215,0,0.45);transform:rotate(45deg)"></div>
-                  <!-- 아이템 아이콘 (회전 X) -->
-                  <span style="position:relative;font-size:32px;color:#FFD700;text-shadow:0 0 8px rgba(255,215,0,0.85)">⚔</span>
-                </div>
-                <div class="t-body" style="color:#FFD700;font-weight:700;letter-spacing:2.5px">DIVE</div>
+          <!-- ═══ CENTER: ANVIL ═══ -->
+          <div class="anvil3-col-center">
+            <div class="anvil3-col-title">ANVIL</div>
+            <div class="anvil3-anvil-header">
+              <!-- 64px 아이콘 (rarity frame) -->
+              <div class="anvil3-icon-frame">
+                <span class="anvil3-icon-big">⚔</span>
+              </div>
+              <div class="anvil3-anvil-meta">
+                <div class="anvil3-item-name">IRON ECHO BLADE</div>
+                <div class="anvil3-item-title">Surveyor's Blade</div>
+                <div class="anvil3-recovery">Recovery <b>44%</b></div>
               </div>
             </div>
-            <div class="divider"></div>
-            <div class="t-hint">[C] DIVE&nbsp;&nbsp;[ESC] Remove</div>
+
+            <!-- 단계형 RadialMap 임베드 -->
+            <div class="anvil3-radial">
+              <svg viewBox="0 0 540 360" width="100%" preserveAspectRatio="xMidYMid meet">
+                <rect width="540" height="360" fill="#0a0a0a"/>
+                <!-- Stats panel (left) -->
+                <g transform="translate(8 8)">
+                  <rect width="80" height="344" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+                  <g font-family="Chakra Petch,sans-serif" text-anchor="middle">
+                    <text x="40" y="22" fill="#ffd470" font-size="8" font-weight="700" letter-spacing="2">STRATUMS</text>
+                    <text x="40" y="46" fill="#ffa41b" font-size="18" font-weight="700">5</text>
+                    <line x1="10" y1="60" x2="70" y2="60" stroke="#3a3a3a"/>
+                    <text x="40" y="80" fill="#888" font-size="8" font-weight="700" letter-spacing="1.5">YOUR ATK</text>
+                    <text x="40" y="104" fill="#ccc" font-size="16" font-weight="700">38</text>
+                    <line x1="10" y1="118" x2="70" y2="118" stroke="#3a3a3a"/>
+                    <text x="40" y="138" fill="#ffd470" font-size="8" font-weight="700" letter-spacing="2">ATK GATE</text>
+                    <text x="40" y="162" fill="#ff6060" font-size="18" font-weight="700">45</text>
+                    <line x1="10" y1="176" x2="70" y2="176" stroke="#3a3a3a"/>
+                    <text x="40" y="196" fill="#ffd470" font-size="8" font-weight="700" letter-spacing="2">IDENTITY</text>
+                    <text x="40" y="220" fill="#ffa41b" font-size="18" font-weight="700">II</text>
+                    <line x1="10" y1="234" x2="70" y2="234" stroke="#3a3a3a"/>
+                    <text x="40" y="254" fill="#888" font-size="8" font-weight="700" letter-spacing="1.5">DIVES</text>
+                    <text x="40" y="278" fill="#ccc" font-size="16" font-weight="700">7</text>
+                  </g>
+                </g>
+
+                <!-- Stepped graph -->
+                <g transform="translate(110 16)">
+                  <g stroke="#ffa41b" stroke-width="1.5" stroke-dasharray="3 3" fill="none">
+                    <line x1="160" y1="40" x2="160" y2="78"/>
+                    <line x1="160" y1="116" x2="160" y2="154"/>
+                    <line x1="160" y1="192" x2="160" y2="230"/>
+                    <line x1="160" y1="268" x2="160" y2="282"/>
+                  </g>
+                  <g fill="#ffa41b">
+                    <polygon points="156,74 164,74 160,82"/>
+                    <polygon points="156,150 164,150 160,158"/>
+                    <polygon points="156,226 164,226 160,234"/>
+                    <polygon points="156,278 164,278 160,286"/>
+                  </g>
+                  <!-- S1 -->
+                  <g transform="translate(0 16)">
+                    <text x="-8" y="6" fill="#bbb" font-size="8" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">STRATUM 1</text>
+                    <line x1="46" y1="2" x2="296" y2="2" stroke="#2a2a2a"/>
+                    <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1">
+                      <polygon points="90,2 96,-4 102,2 96,8"/>
+                      <polygon points="124,2 130,-4 136,2 130,8"/>
+                      <polygon points="194,2 200,-4 206,2 200,8"/>
+                      <polygon points="228,2 234,-4 240,2 234,8"/>
+                    </g>
+                    <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2">
+                      <line x1="96" y1="2" x2="160" y2="2"/><line x1="160" y1="2" x2="234" y2="2"/>
+                    </g>
+                    <polygon points="160,-12 174,2 160,16 146,2" fill="#5a3a14" stroke="#ffa41b" opacity="0.4"/>
+                    <polygon points="160,-8 170,2 160,12 150,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+                    <polygon points="160,-3 164,2 160,7 156,2" fill="#1a1a1a"/>
+                  </g>
+                  <!-- S2 -->
+                  <g transform="translate(0 92)">
+                    <text x="-8" y="6" fill="#bbb" font-size="8" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">STRATUM 2</text>
+                    <line x1="46" y1="2" x2="296" y2="2" stroke="#2a2a2a"/>
+                    <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1">
+                      <polygon points="74,2 80,-4 86,2 80,8"/><polygon points="108,2 114,-4 120,2 114,8"/><polygon points="142,2 148,-4 154,2 148,8"/>
+                      <polygon points="184,2 190,-4 196,2 190,8"/><polygon points="218,2 224,-4 230,2 224,8"/><polygon points="252,2 258,-4 264,2 258,8"/>
+                    </g>
+                    <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2">
+                      <line x1="80" y1="2" x2="160" y2="2"/><line x1="160" y1="2" x2="258" y2="2"/>
+                    </g>
+                    <polygon points="160,-12 174,2 160,16 146,2" fill="#5a3a14" stroke="#ffa41b" opacity="0.4"/>
+                    <polygon points="160,-8 170,2 160,12 150,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+                    <polygon points="160,-3 164,2 160,7 156,2" fill="#1a1a1a"/>
+                  </g>
+                  <!-- HERE cursor (S2→S3 사이) -->
+                  <g transform="translate(160 135)">
+                    <circle cx="0" cy="0" r="6" fill="none" stroke="#bcd0e0" opacity="0.5"/>
+                    <polygon points="-4,-3 4,-3 0,4" fill="#e0eaf2"/>
+                    <text x="12" y="3" fill="#e0eaf2" font-size="7" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">HERE</text>
+                  </g>
+                  <!-- S3 -->
+                  <g transform="translate(0 168)">
+                    <text x="-8" y="6" fill="#888" font-size="8" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">STRATUM 3</text>
+                    <line x1="46" y1="2" x2="296" y2="2" stroke="#2a2a2a"/>
+                    <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1" opacity="0.6">
+                      <polygon points="64,2 70,-4 76,2 70,8"/><polygon points="98,2 104,-4 110,2 104,8"/><polygon points="132,2 138,-4 144,2 138,8"/>
+                      <polygon points="190,2 196,-4 202,2 196,8"/><polygon points="224,2 230,-4 236,2 230,8"/><polygon points="258,2 264,-4 270,2 264,8"/>
+                    </g>
+                    <g opacity="0.6">
+                      <polygon points="160,-12 174,2 160,16 146,2" fill="#5a3a14" stroke="#ffa41b" opacity="0.4"/>
+                      <polygon points="160,-8 170,2 160,12 150,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+                    </g>
+                  </g>
+                  <!-- S4 placeholder -->
+                  <g transform="translate(0 244)" opacity="0.35">
+                    <text x="-8" y="6" fill="#666" font-size="8" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">STRATUM 4</text>
+                    <line x1="46" y1="2" x2="296" y2="2" stroke="#2a2a2a"/>
+                    <polygon points="160,-10 172,2 160,14 148,2" fill="none" stroke="#ffa41b"/>
+                  </g>
+                  <!-- S5 ABYSS placeholder -->
+                  <g transform="translate(0 292)" opacity="0.35">
+                    <text x="-8" y="6" fill="#ff6060" font-size="8" font-weight="700" letter-spacing="1" font-family="Chakra Petch,sans-serif">STRATUM 5</text>
+                    <line x1="46" y1="2" x2="296" y2="2" stroke="#3a1414"/>
+                    <polygon points="160,-12 174,2 160,16 146,2" fill="none" stroke="#ff4d4d"/>
+                    <text x="190" y="6" fill="#ff8080" font-size="7" font-weight="400" letter-spacing="2" opacity="0.7" font-family="Chakra Petch,sans-serif">· ABYSS</text>
+                  </g>
+                </g>
+
+                <!-- Legend -->
+                <g transform="translate(440 16)">
+                  <rect width="88" height="196" fill="none" stroke="#3a3a3a"/>
+                  <g font-family="Chakra Petch,sans-serif" font-size="8" font-weight="700" letter-spacing="1.2" fill="#ccc">
+                    <polygon points="14,24 22,16 30,24 22,32" fill="#ffa41b" stroke="#ffd470"/>
+                    <polygon points="20,24 22,22 24,24 22,26" fill="#1a1a1a"/>
+                    <text x="40" y="28">BOSS</text>
+                    <polygon points="16,56 22,50 28,56 22,62" fill="#0a0a0a" stroke="#ffa41b"/>
+                    <text x="40" y="60">BRANCH</text>
+                    <line x1="12" y1="92" x2="32" y2="92" stroke="#ffa41b" stroke-width="1.5" stroke-dasharray="3 3"/>
+                    <text x="40" y="96">DIVE</text>
+                    <line x1="12" y1="124" x2="32" y2="124" stroke="#5a3a1a" stroke-dasharray="2 2"/>
+                    <text x="40" y="128">PATH</text>
+                    <circle cx="22" cy="160" r="6" fill="none" stroke="#bcd0e0" opacity="0.5"/>
+                    <polygon points="18,157 26,157 22,164" fill="#e0eaf2"/>
+                    <text x="40" y="164">HERE</text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- ═══ RIGHT: ITEM MAP ═══ -->
+          <div class="anvil3-col-right">
+            <div class="anvil3-col-title">ITEM MAP</div>
+            <div class="anvil3-mapstack">
+              <!-- L5 -->
+              <div class="anvil3-mapcard active">
+                <div class="anvil3-maplabel">L5</div>
+                <svg viewBox="0 0 200 60" width="100%" preserveAspectRatio="xMidYMid meet">
+                  <rect width="200" height="60" fill="#1a1a1a"/>
+                  <g fill="#2a2a2a">
+                    <rect x="20" y="20" width="20" height="14"/><rect x="45" y="14" width="24" height="20"/>
+                    <rect x="74" y="24" width="20" height="14"/><rect x="100" y="18" width="22" height="16"/>
+                    <rect x="128" y="22" width="20" height="14"/><rect x="154" y="16" width="24" height="20"/>
+                  </g>
+                  <rect x="170" y="20" width="14" height="14" fill="#ff4d4d" stroke="#ff8080"/>
+                </svg>
+              </div>
+              <!-- L4 -->
+              <div class="anvil3-mapcard">
+                <div class="anvil3-maplabel">L4</div>
+                <svg viewBox="0 0 200 60" width="100%" preserveAspectRatio="xMidYMid meet">
+                  <rect width="200" height="60" fill="#1a1a1a"/>
+                  <g fill="#2a2a2a">
+                    <rect x="15" y="22" width="22" height="14"/><rect x="42" y="16" width="22" height="20"/>
+                    <rect x="70" y="22" width="22" height="14"/><rect x="98" y="18" width="22" height="16"/>
+                    <rect x="125" y="22" width="22" height="14"/><rect x="152" y="18" width="22" height="16"/>
+                  </g>
+                </svg>
+              </div>
+              <!-- L3 -->
+              <div class="anvil3-mapcard">
+                <div class="anvil3-maplabel">L3</div>
+                <svg viewBox="0 0 200 60" width="100%" preserveAspectRatio="xMidYMid meet">
+                  <rect width="200" height="60" fill="#1a1a1a"/>
+                  <g fill="#2a2a2a">
+                    <rect x="12" y="20" width="20" height="16"/><rect x="38" y="14" width="24" height="22"/>
+                    <rect x="68" y="22" width="22" height="14"/><rect x="96" y="18" width="22" height="18"/>
+                    <rect x="124" y="22" width="22" height="14"/><rect x="152" y="14" width="24" height="22"/>
+                  </g>
+                </svg>
+              </div>
+              <!-- L2 -->
+              <div class="anvil3-mapcard">
+                <div class="anvil3-maplabel">L2</div>
+                <svg viewBox="0 0 200 60" width="100%" preserveAspectRatio="xMidYMid meet">
+                  <rect width="200" height="60" fill="#1a1a1a"/>
+                  <g fill="#2a2a2a">
+                    <rect x="20" y="22" width="22" height="14"/><rect x="48" y="16" width="22" height="22"/>
+                    <rect x="76" y="22" width="22" height="14"/><rect x="104" y="20" width="22" height="16"/>
+                    <rect x="132" y="24" width="22" height="14"/><rect x="160" y="20" width="22" height="16"/>
+                  </g>
+                </svg>
+              </div>
+              <!-- L1 -->
+              <div class="anvil3-mapcard">
+                <div class="anvil3-maplabel">L1</div>
+                <svg viewBox="0 0 200 60" width="100%" preserveAspectRatio="xMidYMid meet">
+                  <rect width="200" height="60" fill="#1a1a1a"/>
+                  <g fill="#2a2a2a">
+                    <rect x="80" y="22" width="20" height="14"/><rect x="104" y="16" width="22" height="22"/>
+                    <rect x="130" y="22" width="20" height="14"/>
+                  </g>
+                  <polygon points="116,26 122,22 122,30" fill="#ffa41b"/>
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <style>
+        /* ── 3-Column Anvil Layout (v2 2026-05-24) ── */
+        .anvil3-root{display:flex;gap:12px;width:100%;color:#ccc;font-family:'Chakra Petch',sans-serif;font-size:11px}
+        .anvil3-col-title{font-size:12px;font-weight:700;letter-spacing:2px;color:#ffa41b;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #3a3a3a}
+        .anvil3-col-left{flex:0 0 220px}
+        .anvil3-col-center{flex:1 1 540px;min-width:480px}
+        .anvil3-col-right{flex:0 0 240px}
+        /* Inventory */
+        .anvil3-tabs{display:flex;gap:4px;margin-bottom:8px}
+        .anvil3-tab{flex:1;padding:4px 8px;border:1px solid #3a3a3a;background:#1a1a1a;font-size:10px;text-align:center;letter-spacing:1px}
+        .anvil3-tab.active{border-color:#ffa41b;color:#ffa41b}
+        .anvil3-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+        .anvil3-cell{aspect-ratio:1;background:#1a1a1a;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;position:relative;font-size:14px;color:#666}
+        .anvil3-cell.sel{border:2px solid #ffa41b;box-shadow:0 0 6px rgba(255,164,27,0.4)}
+        .anvil3-cell.r-magic{border-color:#6969ff}
+        .anvil3-cell.r-rare{border-color:#ffff00}
+        .anvil3-cell.r-legendary{border-color:#ff8000}
+        .anvil3-cell.r-ancient{border-color:#00ff00}
+        .anvil3-cell.sel.r-legendary{border-color:#ffaa44}
+        .anvil3-badge{position:absolute;top:-2px;right:-2px;background:#ffa41b;color:#000;font-size:8px;font-weight:700;padding:1px 3px;border-radius:1px;line-height:1}
+        .anvil3-icon{color:#ccc}
+        /* Anvil center */
+        .anvil3-anvil-header{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+        .anvil3-icon-frame{flex:0 0 64px;width:64px;height:64px;background:#1a1a1a;border:2px solid #ff8000;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(255,128,0,0.3)}
+        .anvil3-icon-big{font-size:36px;color:#ffd470}
+        .anvil3-anvil-meta{flex:1;padding-top:2px}
+        .anvil3-item-name{font-size:18px;font-weight:700;letter-spacing:1px;color:#ffa41b;line-height:1.1}
+        .anvil3-item-title{font-size:13px;font-weight:400;color:#ccc;letter-spacing:0.5px;margin-top:2px}
+        .anvil3-recovery{font-size:14px;color:#fff;margin-top:12px;letter-spacing:1px}
+        .anvil3-recovery b{color:#ffa41b;font-size:16px;margin-left:4px}
+        .anvil3-radial{background:#0a0a0a;border:1px solid #1a1a1a;padding:4px}
+        /* Item Map */
+        .anvil3-mapstack{display:flex;flex-direction:column;gap:6px}
+        .anvil3-mapcard{position:relative;border:1px solid #3a3a3a;background:#1a1a1a;padding:4px}
+        .anvil3-mapcard.active{border-color:#ffa41b;box-shadow:0 0 4px rgba(255,164,27,0.3)}
+        .anvil3-maplabel{position:absolute;top:4px;left:6px;font-size:10px;font-weight:700;color:#ffa41b;letter-spacing:1.5px;z-index:2;text-shadow:0 0 4px #000}
+      </style>
+    </div>
+
+    <div class="card">
+      <h3>Anvil Mode — 배치 이펙트 5단계 (구 §3.8.6, ForgeUI 통합 2026-05-24)</h3>
+      <p class="desc">
+        인벤토리에서 아이템 선택 후 <code>[C]</code> 누르면 마름모 anvil 슬롯에 *순차 시각 토큰*
+        재생. 모든 토큰은 <code>ui_hud_01_atlas.png</code> 의 <code>ui_forge_active</code> slice +
+        <code>GlowFilter</code> 조합.
+      </p>
+      <ol>
+        <li><b>비행</b> (150ms ease-out) — 선택된 그리드 셀 → 마름모 슬롯 중심으로 sprite tween</li>
+        <li><b>착지 스파크</b> (100ms) — 슬롯 도착 순간 small dust burst (rarity color)</li>
+        <li><b>테두리 플래시</b> (200ms) — 마름모 outline 이 흰색 → rarity color 페이드</li>
+        <li><b>슬롯 디밍</b> — 원본 그리드 셀이 alpha 0.4 + "ON ANVIL" 텍스트 오버레이</li>
+        <li><b>맥동</b> (0.8s loop, alternate) — <code>GlowFilter</code> radius 3~10px 사이 sine 펄스</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Anvil Mode — Stratum Tabs (구 ForgeUI, 통합 2026-05-24)</h3>
+      <p class="desc">
+        선택한 아이템의 레어리티에 따라 표시되는 stratum 탭 수가 달라진다. 진입 전
+        *어느 지층까지 도달 가능한지* 명시. Ancient 는 4 정규 stratum + ∞(ABYSS).
+      </p>
+      <table class="tokens" style="width:100%;border-collapse:collapse;margin-top:8px">
+        <thead><tr><th align="left">Rarity</th><th align="left">탭</th><th align="left">총 STRATUMS</th></tr></thead>
+        <tbody>
+          <tr><td>Normal</td><td><code>I</code></td><td>1</td></tr>
+          <tr><td>Magic</td><td><code>I · II</code></td><td>2</td></tr>
+          <tr><td>Rare</td><td><code>I · II · III</code></td><td>3</td></tr>
+          <tr><td>Legendary</td><td><code>I · II · III · IV</code></td><td>4</td></tr>
+          <tr><td>Ancient</td><td><code>I · II · III · IV · ∞</code></td><td>4 + ABYSS</td></tr>
+        </tbody>
+      </table>
       <p class="desc" style="margin-top:8px">
-        <b>구현 가이드</b> (InventoryUI.drawAnvilArea, line 780-828):
-        ① <code>mode === 'anvil'</code> 일 때 <code>drawEquipmentSlots</code> / <code>drawDetail</code> 스킵 — 좌측 리스트만 컴팩트 렌더 (cursor + name + ATK 2컬럼, stars·badge 제거).
-        ② 우측 마름모 슬롯: <code>Sprite</code> 로 <code>ui_forge_active</code> slice 표시. 빈 상태는 alpha 0.5 + dashed mask, placed 상태는 alpha 1.0 + <code>GlowFilter({color:0xFFD700, radius:14, intensity:1.1})</code>.
-        ③ 마름모 안의 아이템 아이콘은 <code>ItemImage</code> 그대로(회전 없음). 슬롯 사각 영역의 정중앙에 anchor.set(0.5).
-        ④ <code>PANEL_W_ANVIL</code> 재계산: 컴팩트 리스트 폭 220 + gap 18 + 마름모 컬럼 160 + padding ≈ <b>420px</b> (현재 440 에서 약간 축소).
-        ⑤ "DIVE" 라벨 색 <code>#FFD700</code>, <code>anvilPulseTimer</code> 로 알파 sin 변조 (1.4Hz).
+        탭 위계는 RadialMap (Shift+2) 의 STRATUM 라벨과 1:1 매칭. ABYSS=∞ 표기는 의례적 톤.
       </p>
     </div>
   </section>
 
   <section id="item-detail">
     <h2>ItemDetailView <span class="pill organism">ORGANISM</span></h2>
-    <div class="src">ItemDetailView.ts</div>
-    <p>인벤토리 우측 패널 또는 단독 모달. 이름(rarity color) + 타입 + 스탯 행 + 인노센트 슬롯 + 액션 힌트.</p>
+    <div class="src">ItemDetailView.ts · 관련: <a href="#inventory">#inventory</a> middle column</div>
+    <p>인벤토리 우측 패널 또는 단독 모달. 이름(rarity color) + 타입 + 스탯 행 + 인노센트 슬롯 + 액션 힌트. <code>#inventory</code> 의 middle column 이 이 컴포넌트의 *inline 변종* — 별개 인스턴스로 유지하되 동일 레이아웃 토큰 (rarity color + stat row + 인노센트 슬롯) 공유.</p>
     <div class="stage">
       <div class="modal-panel" style="max-width:300px">
         <div class="t-title" style="color:var(--r-legendary)">EMBER FANG</div>
@@ -1221,7 +1622,7 @@
     <div class="card">
       <h3>폐기 (Anti-pattern)</h3>
       <ul>
-        <li><b>3-column 레이아웃</b>: 장비 슬롯 그리드 + 캐릭터 실루엣 + 스탯 분해를 한 패널에 다 넣지 않음. 장비는 InventoryUI(I), 캐릭터는 STATUS(TAB) 로 분리.</li>
+        <li><b>캐릭터 실루엣 placeholder</b>: InventoryUI 우측 STATUS 칼럼에 캐릭터 이미지/실루엣 영역 금지. Lv/HP/ATK/INT+델타+렐릭 5종 텍스트 데이터만 표시.</li>
         <li><b>임의 fontSize</b>: 7 / 9 / 14 / 16 사용 금지. PIXEL_FONT 가 120 source 라 8 / 10 / 12 만 정수 비율로 깔끔. (16 은 7.5 비정수로 미세 alias.)</li>
         <li><b>raw Graphics.rect 패널</b>: panel 배경은 `createModalPanel(skin, w, h)` 만 사용. UISkin 미로드 시 fallback rect 가 자동 적용됨.</li>
         <li><b>실루엣 placeholder</b>: 캐릭터 이미지 미정 단계의 ? 박스는 노이즈만 추가. 데이터 노출 우선.</li>
@@ -1304,16 +1705,16 @@
           <div style="font-size:8px;letter-spacing:4px;color:#FFD699;text-transform:uppercase;opacity:0.9">Relic Acquired</div>
 
           <!-- 아이콘 + halo (실제로는 relic sprite, 여기는 placeholder glyph) -->
-          <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 20px rgba(255,153,51,0.75))">
+          <div style="position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 20px rgba(255,164,27,0.75))">
             <!-- 외곽 halo ring (펄스 대상) -->
-            <div style="position:absolute;inset:-8px;border:1px solid rgba(255,153,51,0.45);border-radius:50%"></div>
+            <div style="position:absolute;inset:-8px;border:1px solid rgba(255,164,27,0.45);border-radius:50%"></div>
             <div style="position:absolute;inset:-2px;border:1px solid rgba(255,204,102,0.25);border-radius:50%"></div>
             <!-- 아이콘 placeholder — 실제로는 64×64 relic sprite -->
-            <div style="font-size:54px;color:#FFCC66;text-shadow:0 0 14px rgba(255,153,51,0.95)">⟡</div>
+            <div style="font-size:54px;color:#FFCC66;text-shadow:0 0 14px rgba(255,164,27,0.95)">⟡</div>
           </div>
 
           <!-- Glyph / Name (Cinzel display, 큰 letter-spacing) -->
-          <div style="font-family:'Cinzel',serif;font-size:22px;letter-spacing:8px;color:#FFFFFF;text-shadow:0 0 14px rgba(255,153,51,0.7);text-transform:uppercase;font-weight:600">Dash</div>
+          <div style="font-family:'Chakra Petch',sans-serif;font-size:22px;letter-spacing:8px;color:#FFFFFF;text-shadow:0 0 14px rgba(255,164,27,0.7);text-transform:uppercase;font-weight:600">Dash</div>
 
           <!-- Usage description (with embedded KeyPrompt key icon) -->
           <div style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:11px;font-family:var(--font-ui)">
@@ -1349,7 +1750,7 @@
             <div style="font-size:44px;color:#FFD700;text-shadow:0 0 14px rgba(255,215,0,0.95)">♥</div>
           </div>
 
-          <div style="font-family:'Cinzel',serif;font-size:20px;letter-spacing:7px;color:#FFFFFF;text-shadow:0 0 12px rgba(255,215,0,0.65);text-transform:uppercase;font-weight:600">+1 Max HP</div>
+          <div style="font-family:'Chakra Petch',sans-serif;font-size:20px;letter-spacing:7px;color:#FFFFFF;text-shadow:0 0 12px rgba(255,215,0,0.65);text-transform:uppercase;font-weight:600">+1 Max HP</div>
 
           <div style="color:var(--text-secondary);font-size:11px;font-family:var(--font-ui);text-align:center;max-width:300px;line-height:1.55">
             Maximum HP increased. Rest at a save point to fully restore.
@@ -1384,7 +1785,7 @@
           두 변종은 색만 다르고 레이아웃은 동일.
         </li>
         <li>
-          <b>Display font</b>: 능력 이름은 <code>Cinzel serif</code> (TitleScene 과 동일) + uppercase + letter-spacing 7-8px.
+          <b>Display font</b>: 능력 이름은 <code>Chakra Petch sans-serif</code> (TitleScene 과 동일) + uppercase + letter-spacing 7-8px.
           PIXEL_FONT 가 아닌 이유 = relic 획득은 의례적 일회성 → 타이틀 톤. 일반 모달 본문(PIXEL_FONT 8/10/12) 과 시각 격차를 분명히.
         </li>
         <li>
@@ -1404,7 +1805,7 @@
           단순 픽업 (gold drop, healing) 과 영구 획득 (relic, max HP) 의 시각 격차 확보.
         </li>
         <li>
-          <b>크기/위치</b>: 화면 정중앙. 텍스트 stack 자체는 약 320×260 (아이콘 88 + gap 12 + Cinzel 22 + body 11 + hint 8 + 여유). 모바일 / 1920 해상도에서도 비례 유지.
+          <b>크기/위치</b>: 화면 정중앙. 텍스트 stack 자체는 약 320×260 (아이콘 88 + gap 12 + Chakra Petch 22 + body 11 + hint 8 + 여유). 모바일 / 1920 해상도에서도 비례 유지.
         </li>
       </ul>
     </div>
@@ -1942,7 +2343,7 @@
   <section id="death-screen">
     <h2>DeathScreen <span class="pill organism">ORGANISM</span></h2>
     <div class="src">DeathScreen.ts</div>
-    <p>사망 시 풀스크린. 빨간 디바이더 + 큰 타이틀(Cinzel) + 액션 prompt.</p>
+    <p>사망 시 풀스크린. 빨간 디바이더 + 큰 타이틀(Chakra Petch) + 액션 prompt.</p>
     <div class="stage center" style="background:rgba(40,0,0,0.85)">
       <div style="text-align:center">
         <div style="font-family:var(--font-title-display);font-size:32px;letter-spacing:6px;color:var(--text-negative)">YOU DIED</div>
@@ -2259,7 +2660,7 @@
   <section id="area-title">
     <h2>AreaTitle <span class="pill float">FLOATING</span></h2>
     <div class="src">AreaTitle.ts</div>
-    <p>지역 진입 시 화면 상단 페이드인 라벨. Cinzel 타이틀 폰트 사용.</p>
+    <p>지역 진입 시 화면 상단 페이드인 라벨. Chakra Petch 타이틀 폰트 사용.</p>
     <div class="stage center" style="background:#000">
       <div style="font-family:var(--font-title-display);font-size:22px;letter-spacing:5px;color:#fff;opacity:0.95">THE FORGE</div>
     </div>
@@ -3349,29 +3750,6 @@
   </section>
 
   <!-- ============================================================
-       TEXT INPUT FIELD  (F-key feedback)
-       ============================================================ -->
-  <section id="text-input-field">
-    <h2>TextInputField <span class="pill atom">ATOM</span></h2>
-    <div class="src">FeedbackPanel.ts (inline) · 다행 텍스트 입력</div>
-    <p>한글 IME 안전 텍스트 입력. <code>compositionstart</code>/<code>compositionend</code> 이벤트로 합성 상태를 추적, 합성 중 Enter는 합성 종료에만 작동(제출 안 됨).</p>
-    <h3>토큰</h3>
-    <ul>
-      <li><b>배경:</b> <code>MODAL_BG</code> · 1px 인셋 보더 <code>MODAL_BORDER</code></li>
-      <li><b>글자색:</b> <code>TEXT_PRIMARY</code> · 폰트 <code>FONT_BODY</code> (10px)</li>
-      <li><b>카운터:</b> 우하단 <code>"NNN/500"</code>. 480자 초과 시 색 <code>TEXT_WARNING</code> (#ffcc44) 로 전환</li>
-      <li><b>커서:</b> 1px 세로 막대 · orange <code>#FFA41B</code> · 500ms 주기 깜빡임</li>
-    </ul>
-    <h3>제약</h3>
-    <ul>
-      <li>최대 500자 (초과 입력 차단)</li>
-      <li>8줄 가로 fill, 자동 wrap</li>
-      <li>Enter는 제출 액션이며 줄바꿈이 아님 (Shift+Enter도 비활성)</li>
-      <li>Esc는 패널 닫힘 신호</li>
-    </ul>
-  </section>
-
-  <!-- ============================================================
        FEEDBACK PANEL  (F-key)
        ============================================================ -->
   <section id="feedback-panel">
@@ -3412,6 +3790,16 @@
       <li><b>본문 텍스트:</b> Google Form <code>feedback_text</code> 필드. 제한 없음(GA4에는 보내지 않음 — 100자 트렁케이트 + GDPR)</li>
       <li><b>자동 컨텍스트:</b> <code>auto_context_json</code> 필드에 JSON 직렬화. 씬의 <code>getFeedbackContext()</code> 스냅샷 + Analytics getter(run_id, build, utm, last_3_events, playtime) + window/navigator(ua_short, screen_w/h)</li>
       <li><b>GA4:</b> <code>feedback_opened</code>(area, playtime_sec) · <code>feedback_submitted</code>(area, playtime_sec, category, text_length)</li>
+    </ul>
+
+    <h3>TextInputField — inline atom (구 #text-input-field, 통합 2026-05-24)</h3>
+    <p>한글 IME 안전 텍스트 입력. <code>compositionstart</code>/<code>compositionend</code> 이벤트로 합성 상태를 추적, 합성 중 Enter는 합성 종료에만 작동(제출 안 됨). 이 atom 은 FeedbackPanel 외 사용처 없음 — inline 통합.</p>
+    <ul>
+      <li><b>배경:</b> <code>MODAL_BG</code> · 1px 인셋 보더 <code>MODAL_BORDER</code></li>
+      <li><b>글자색:</b> <code>TEXT_PRIMARY</code> · 폰트 <code>FONT_BODY</code> (10px)</li>
+      <li><b>카운터:</b> 우하단 <code>"NNN/500"</code>. 480자 초과 시 색 <code>TEXT_WARNING</code> (#ffcc44) 로 전환</li>
+      <li><b>커서:</b> 1px 세로 막대 · orange <code>#FFA41B</code> · 500ms 주기 깜빡임</li>
+      <li><b>제약:</b> 최대 500자 / 8줄 가로 fill / Enter=제출 (Shift+Enter도 비활성) / Esc=패널 닫힘</li>
     </ul>
   </section>
 
@@ -4420,6 +4808,338 @@
 
     })();
     </script>
+  </section>
+
+
+  <section id="radial-map">
+    <h2>RadialMap (Shift+2) — 단계형 다이브 뷰 <span class="pill panel">PANEL</span></h2>
+    <p>
+      ItemWorld 진행을 *수직 단계형* 으로 표시. ECHORIS 의 *기억의 지층* + DEC-039
+      *vertical dive* 메타포 (위→아래) 에 부합. 각 stratum 이 한 행으로 압축되고
+      stratum 간은 다이브 PATH 로 연결. Ancient 등급(4 stratum + Abyss)도 한
+      페이지에 동일 비율로 표현.
+    </p>
+    <ul>
+      <li><b>비율</b>: 4:3 (viewBox 600 × 450)</li>
+      <li><b>레이아웃</b>: 수직 5단 — Stratum 1~4 + Abyss(Ancient 전용)</li>
+      <li><b>구조</b>: 좌(stats) · 중(단계형 graph) · 우(legend)</li>
+      <li><b>다이브 메타포</b>: 위→아래 흐름. 행 간 dashed PATH + 하향 화살표</li>
+      <li><b>축약 정책</b>: 각 행 = 1 stratum, 중앙 BOSS + 양옆 branch MINOR. critical-path 룸 다수는 가로 압축</li>
+    </ul>
+
+    <div class="example" style="background:#0a0a0a;padding:20px;border:1px solid #1a1a1a;border-radius:6px">
+      <svg viewBox="0 0 600 450" width="600" height="450" style="max-width:100%;height:auto;display:block;margin:0 auto">
+        <!-- Background -->
+        <rect width="600" height="450" fill="#0a0a0a"/>
+
+        <!-- Title bar — 무기 이름(작게) + 등급/시스템(크게) 두 줄 -->
+        <line x1="20" y1="36" x2="200" y2="36" stroke="#5a3a1a" stroke-width="1"/>
+        <line x1="400" y1="36" x2="580" y2="36" stroke="#5a3a1a" stroke-width="1"/>
+        <text x="300" y="22" fill="#ffd470" font-family="Chakra Petch,sans-serif" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="3">SURVEYOR'S ECHO WEDGE</text>
+        <text x="300" y="40" fill="#ffa41b" font-family="Chakra Petch,sans-serif" font-size="14" font-weight="700" text-anchor="middle" letter-spacing="2">MEMORY STRATA · ANCIENT</text>
+
+        <!-- Left stats panel — 핵심 용어 3종(★) 강조 + 보조(◦) 옅게 (2026-05-24 정리).
+             ★ ATK GATE, IDENTITY, STRATUMS    ◦ YOUR ATK, DIVES
+             핵심은 진한 골드 + letter-spacing 2.5, 보조는 옅은 회색 + size 18. -->
+        <g transform="translate(16 56)">
+          <rect width="92" height="376" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+          <g font-family="Chakra Petch,sans-serif" text-anchor="middle">
+            <!-- ★ STRATUMS (= 총 지층 수, "DEPTH" 폐기 — 같은 STRATUM 어휘 재사용) -->
+            <text x="46" y="28" fill="#ffd470" font-size="9" font-weight="700" letter-spacing="2.5">STRATUMS</text>
+            <text x="46" y="56" fill="#ffa41b" font-size="22" font-weight="700">5</text>
+            <line x1="14" y1="72" x2="78" y2="72" stroke="#3a3a3a" stroke-width="1"/>
+            <!-- ◦ YOUR ATK (보조) — 단일 값만 표시 (사용자 결정 2026-05-24, /max 표기 폐기) -->
+            <text x="46" y="96" fill="#888" font-size="9" font-weight="700" letter-spacing="1.5">YOUR ATK</text>
+            <text x="46" y="122" fill="#ccc" font-size="18" font-weight="700">38</text>
+            <line x1="14" y1="140" x2="78" y2="140" stroke="#3a3a3a" stroke-width="1"/>
+            <!-- ★ ATK GATE (핵심 — 난이도) -->
+            <text x="46" y="164" fill="#ffd470" font-size="9" font-weight="700" letter-spacing="2.5">ATK GATE</text>
+            <text x="46" y="192" fill="#ff6060" font-size="22" font-weight="700">45</text>
+            <line x1="14" y1="208" x2="78" y2="208" stroke="#3a3a3a" stroke-width="1"/>
+            <!-- ★ IDENTITY (핵심 — 성장) -->
+            <text x="46" y="232" fill="#ffd470" font-size="9" font-weight="700" letter-spacing="2.5">IDENTITY</text>
+            <text x="46" y="260" fill="#ffa41b" font-size="22" font-weight="700">II</text>
+            <line x1="14" y1="276" x2="78" y2="276" stroke="#3a3a3a" stroke-width="1"/>
+            <!-- ◦ DIVES (보조, RESONANCE 폐기 — 평이한 단어) -->
+            <text x="46" y="300" fill="#888" font-size="9" font-weight="700" letter-spacing="1.5">DIVES</text>
+            <text x="46" y="328" fill="#ccc" font-size="18" font-weight="700">7</text>
+          </g>
+        </g>
+
+        <!-- Center stepped graph (좌측 라벨 공간 확보 위해 시작 x=140) -->
+        <g transform="translate(140 56)">
+          <!-- DIVE — 직선 점선 (사용자 결정 2026-05-24, sine wave 폐기).
+               S4→ABYSS 는 거리를 좁혀 *바로 다음 단계* 임을 강조 (y=296 단축). -->
+          <g stroke="#ffa41b" stroke-width="1.5" stroke-dasharray="3 3" fill="none">
+            <line x1="170" y1="44" x2="170" y2="86"/>
+            <line x1="170" y1="124" x2="170" y2="166"/>
+            <line x1="170" y1="204" x2="170" y2="246"/>
+            <line x1="170" y1="284" x2="170" y2="296"/>
+          </g>
+          <!-- Dive direction arrows on each PATH (S1~S3 끝점) -->
+          <g fill="#ffa41b">
+            <polygon points="166,82 174,82 170,90"/>
+            <polygon points="166,162 174,162 170,170"/>
+            <polygon points="166,242 174,242 170,250"/>
+            <polygon points="166,292 174,292 170,300"/>
+          </g>
+
+          <!-- ────────── STRATUM 1 (y=20 center) ────────── -->
+          <g transform="translate(0 20)">
+            <text x="-12" y="6" fill="#bbb" font-family="Chakra Petch,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STRATUM 1</text>
+            <line x1="50" y1="2" x2="316" y2="2" stroke="#2a2a2a" stroke-width="1"/>
+            <!-- branch nodes (outline only — boss 와 명확히 구분) -->
+            <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1">
+              <polygon points="98,2 104,-4 110,2 104,8"/>
+              <polygon points="134,2 140,-4 146,2 140,8"/>
+              <polygon points="210,2 216,-4 222,2 216,8"/>
+              <polygon points="246,2 252,-4 258,2 252,8"/>
+            </g>
+            <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2">
+              <line x1="104" y1="2" x2="170" y2="2"/>
+              <line x1="170" y1="2" x2="252" y2="2"/>
+            </g>
+            <!-- BOSS — ◈ 강조: outer halo + main fill + inner dark dot (눈) -->
+            <g>
+              <polygon points="170,-14 186,2 170,18 154,2" fill="#5a3a14" stroke="#ffa41b" stroke-width="1" opacity="0.4"/>
+              <polygon points="170,-10 182,2 170,14 158,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+              <polygon points="170,-4 174,2 170,8 166,2" fill="#1a1a1a" stroke="#fff5b0" stroke-width="0.5"/>
+            </g>
+          </g>
+
+          <!-- ────────── STRATUM 2 (y=100) ────────── -->
+          <g transform="translate(0 100)">
+            <text x="-12" y="6" fill="#bbb" font-family="Chakra Petch,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STRATUM 2</text>
+            <line x1="50" y1="2" x2="316" y2="2" stroke="#2a2a2a" stroke-width="1"/>
+            <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1">
+              <polygon points="80,2 86,-4 92,2 86,8"/>
+              <polygon points="116,2 122,-4 128,2 122,8"/>
+              <polygon points="152,2 158,-4 164,2 158,8"/>
+              <polygon points="194,2 200,-4 206,2 200,8"/>
+              <polygon points="230,2 236,-4 242,2 236,8"/>
+              <polygon points="266,2 272,-4 278,2 272,8"/>
+            </g>
+            <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2">
+              <line x1="86" y1="2" x2="170" y2="2"/>
+              <line x1="170" y1="2" x2="272" y2="2"/>
+            </g>
+            <g>
+              <polygon points="170,-14 186,2 170,18 154,2" fill="#5a3a14" stroke="#ffa41b" stroke-width="1" opacity="0.4"/>
+              <polygon points="170,-10 182,2 170,14 158,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+              <polygon points="170,-4 174,2 170,8 166,2" fill="#1a1a1a" stroke="#fff5b0" stroke-width="0.5"/>
+            </g>
+          </g>
+
+          <!-- ────────── STRATUM 3 (y=180) — *현재 진행 중* placeholder 표기 (옅게) ────────── -->
+          <g transform="translate(0 180)">
+            <text x="-12" y="6" fill="#888" font-family="Chakra Petch,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STRATUM 3</text>
+            <line x1="50" y1="2" x2="316" y2="2" stroke="#2a2a2a" stroke-width="1"/>
+            <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1" opacity="0.6">
+              <polygon points="68,2 74,-4 80,2 74,8"/>
+              <polygon points="104,2 110,-4 116,2 110,8"/>
+              <polygon points="140,2 146,-4 152,2 146,8"/>
+              <polygon points="206,2 212,-4 218,2 212,8"/>
+              <polygon points="242,2 248,-4 254,2 248,8"/>
+              <polygon points="278,2 284,-4 290,2 284,8"/>
+            </g>
+            <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2" opacity="0.6">
+              <line x1="74" y1="2" x2="170" y2="2"/>
+              <line x1="170" y1="2" x2="284" y2="2"/>
+            </g>
+            <g opacity="0.6">
+              <polygon points="170,-14 186,2 170,18 154,2" fill="#5a3a14" stroke="#ffa41b" stroke-width="1" opacity="0.4"/>
+              <polygon points="170,-10 182,2 170,14 158,2" fill="#ffa41b" stroke="#ffd470" stroke-width="1.5"/>
+              <polygon points="170,-4 174,2 170,8 166,2" fill="#1a1a1a" stroke="#fff5b0" stroke-width="0.5"/>
+            </g>
+          </g>
+
+          <!-- ────────── STRATUM 4 (y=260) — placeholder ────────── -->
+          <g transform="translate(0 260)" opacity="0.35">
+            <text x="-12" y="6" fill="#666" font-family="Chakra Petch,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STRATUM 4</text>
+            <line x1="50" y1="2" x2="316" y2="2" stroke="#2a2a2a" stroke-width="1"/>
+            <g fill="#0a0a0a" stroke="#ffa41b" stroke-width="1">
+              <polygon points="60,2 66,-4 72,2 66,8"/>
+              <polygon points="96,2 102,-4 108,2 102,8"/>
+              <polygon points="132,2 138,-4 144,2 138,8"/>
+              <polygon points="214,2 220,-4 226,2 220,8"/>
+              <polygon points="250,2 256,-4 262,2 256,8"/>
+              <polygon points="286,2 292,-4 298,2 292,8"/>
+            </g>
+            <g stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2">
+              <line x1="66" y1="2" x2="170" y2="2"/>
+              <line x1="170" y1="2" x2="292" y2="2"/>
+            </g>
+            <g>
+              <polygon points="170,-12 184,2 170,16 156,2" fill="none" stroke="#ffa41b" stroke-width="1"/>
+              <polygon points="170,-4 174,2 170,8 166,2" fill="none" stroke="#ffa41b" stroke-width="0.5"/>
+            </g>
+          </g>
+
+          <!-- ────────── STRATUM 5 (ABYSS) at y=310 — S4 와 거리 좁힘.
+               메인 라벨은 다른 stratum 과 일관된 "STRATUM 5", 서브로 "ABYSS" 부가.
+               STRATUM 어휘 일관성 강화 (사용자 결정 2026-05-24). ────────── -->
+          <g transform="translate(0 310)" opacity="0.35">
+            <text x="-12" y="6" fill="#ff6060" font-family="Chakra Petch,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STRATUM 5</text>
+            <line x1="50" y1="2" x2="316" y2="2" stroke="#3a1414" stroke-width="1"/>
+            <g>
+              <polygon points="170,-16 188,2 170,20 152,2" fill="none" stroke="#ff4d4d" stroke-width="1"/>
+              <polygon points="170,-5 176,2 170,9 164,2" fill="none" stroke="#ff8080" stroke-width="0.5"/>
+            </g>
+            <text x="208" y="6" fill="#ff8080" font-family="Chakra Petch,sans-serif" font-size="8" font-weight="400" letter-spacing="3" opacity="0.7">· ABYSS</text>
+          </g>
+
+          <!-- ────────── 현재 진행 위치 커서 (DIVE 라인 위, S2→S3 사이) ────────── -->
+          <g transform="translate(170 145)">
+            <!-- 옅은 청회색 outer ring -->
+            <circle cx="0" cy="0" r="6" fill="none" stroke="#bcd0e0" stroke-width="1" opacity="0.5"/>
+            <!-- inner triangle pointing down (다이브 방향) -->
+            <polygon points="-4,-3 4,-3 0,4" fill="#e0eaf2" stroke="#ffffff" stroke-width="0.5"/>
+            <!-- "HERE" label -->
+            <text x="14" y="3" fill="#e0eaf2" font-family="Chakra Petch,sans-serif" font-size="8" font-weight="700" letter-spacing="1">HERE</text>
+          </g>
+        </g>
+
+        <!-- Right legend — 단어 정리: FINAL 제거 (BOSS 의 색 변종일 뿐).
+             5종 → 5종 유지하되 어휘 통일 (DIVE/PATH 영문 일반 단어). -->
+        <g transform="translate(488 56)">
+          <rect width="96" height="232" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+          <g font-family="Chakra Petch,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#ccc">
+            <!-- BOSS (solid + 검은 점) -->
+            <polygon points="20,28 28,20 36,28 28,36" fill="#ffa41b" stroke="#ffd470" stroke-width="1"/>
+            <polygon points="26,28 28,26 30,28 28,30" fill="#1a1a1a"/>
+            <text x="46" y="32">BOSS</text>
+            <!-- BRANCH (outline only) -->
+            <polygon points="22,64 28,58 34,64 28,70" fill="#0a0a0a" stroke="#ffa41b" stroke-width="1"/>
+            <text x="46" y="68">BRANCH</text>
+            <!-- DIVE arrow -->
+            <line x1="18" y1="102" x2="38" y2="102" stroke="#ffa41b" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="46" y="106">DIVE</text>
+            <!-- PATH -->
+            <line x1="18" y1="138" x2="38" y2="138" stroke="#5a3a1a" stroke-width="1" stroke-dasharray="2 2"/>
+            <text x="46" y="142">PATH</text>
+            <!-- HERE — 현재 위치 커서 -->
+            <circle cx="28" cy="174" r="6" fill="none" stroke="#bcd0e0" stroke-width="1" opacity="0.5"/>
+            <polygon points="24,171 32,171 28,178" fill="#e0eaf2" stroke="#ffffff" stroke-width="0.5"/>
+            <text x="46" y="178">HERE</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <h3>레이아웃 사양 (viewBox 600×450)</h3>
+    <table class="tokens" style="width:100%;border-collapse:collapse;margin-top:8px">
+      <thead><tr><th align="left">영역</th><th align="left">위치</th><th align="left">크기</th></tr></thead>
+      <tbody>
+        <tr><td>제목 바</td><td>x=0~600, y=0~48</td><td>높이 48px</td></tr>
+        <tr><td>좌측 stats (5종)</td><td>x=16~108, y=56~432</td><td>92 × 376</td></tr>
+        <tr><td>중앙 단계 graph</td><td>x=130~470, y=56~430</td><td>340 × 374</td></tr>
+        <tr><td>우측 legend</td><td>x=488~584, y=56~288</td><td>96 × 232</td></tr>
+      </tbody>
+    </table>
+
+    <h3>각 행(Stratum) 사양</h3>
+    <ul>
+      <li><b>행 높이</b>: 80px (S1 y=76, S2 y=156, ..., Abyss y=396)</li>
+      <li><b>중앙 BOSS</b>: viewBox x=300 (graph local x=170), 다이아 반지름 8px</li>
+      <li><b>BRANCH minor</b>: 다이아 반지름 6px, BOSS 좌우로 균등 배치</li>
+      <li><b>가로 PATH</b>: 좌측 끝 minor → BOSS → 우측 끝 minor (dashed 2 2, 회색)</li>
+      <li><b>수직 DIVE PATH</b>: BOSS → 다음 S 라벨까지 dashed 3 3 + ▼ 화살표</li>
+      <li><b>등급별 가시 행 수</b>: Normal=1, Magic=2, Rare=3, Legendary=4, Ancient=4+ABYSS</li>
+    </ul>
+
+    <h3>노드 타입 (2026-05-24 강조 개편)</h3>
+    <ul>
+      <li><b>BOSS (◈)</b> — 다이아 반지름 12px, outer halo + solid fill <code>#ffa41b</code> + 중앙 <b>어두운 점 (눈)</b> <code>#1a1a1a</code>. 가운데 점이 boss 의 시그너처 — ◈ unicode 모양 차용</li>
+      <li><b>BRANCH</b> — 다이아 반지름 6px, outline only (fill = 배경색), stroke <code>#ffa41b</code></li>
+      <li><b>FINAL (Ancient ABYSS)</b> — 다이아 반지름 14px, fill <code>#ff4d4d</code>, 중앙 highlight, red halo</li>
+      <li><b>HERE (현재 진행 위치)</b> — 청회색 ring <code>#bcd0e0</code> + 흰색 ▼ <code>#e0eaf2</code>. DIVE 라인 위 *플레이어 현재 stratum 직전 위치*</li>
+      <li><b>DIVE</b> — vertical <b>직선</b> dashed <code>3 3</code>, <code>#ffa41b</code> 1.5px + 하향 ▼ (sine wave 폐기, 단순 직선 점선)</li>
+      <li><b>PATH</b> — horizontal dashed <code>2 2</code>, <code>#5a3a1a</code> 1px (옅은 갈색)</li>
+    </ul>
+
+    <h3>ABYSS 위치 정책 (2026-05-24 조정)</h3>
+    <p>
+      이전 S4(y=260) → ABYSS(y=340) 80px 간격은 *심리적 거리* 가 멀어 ABYSS 가 10층 아래
+      처럼 느껴짐. 변경: ABYSS y=310 (50px 간격) + S4→ABYSS dive 라인 단축 (y=284~296,
+      12px). ABYSS 가 *바로 다음 단계* 임을 강조.
+    </p>
+
+    <h3>제목 영역 (2-line)</h3>
+    <ul>
+      <li><b>1행 (작게)</b>: 무기 이름 — font-size 10, <code>#ffd470</code>, letter-spacing 3. 예: <code>SURVEYOR'S ECHO WEDGE</code></li>
+      <li><b>2행 (크게)</b>: 시스템·등급 — font-size 14, <code>#ffa41b</code>, letter-spacing 2. 예: <code>MEMORY STRATA · ANCIENT</code></li>
+      <li>좌우 dividers 는 2행 y=36 기준</li>
+    </ul>
+
+    <h3>핵심 용어 3종 + 보조 (2026-05-24 정리)</h3>
+    <p>
+      플레이어가 처음 봤을 때 학습할 *세계관 단어를 3개로 한정*. 나머지는 보조 톤(옅은
+      회색)으로 처리해 시각 위계 명확화.
+    </p>
+    <table class="tokens" style="width:100%;border-collapse:collapse;margin-top:8px">
+      <thead><tr><th align="left">분류</th><th align="left">용어</th><th align="left">의미</th><th align="left">시각</th></tr></thead>
+      <tbody>
+        <tr><td>★ 핵심</td><td><code>STRATUM</code></td><td>던전 (각 지층 + 총 STRATUMS 수)</td><td>골드 라벨 <code>#ffd470</code>, 값 22px</td></tr>
+        <tr><td>★ 핵심</td><td><code>ATK GATE</code></td><td>난이도 — 진행에 필요한 ATK 임계값</td><td>골드 라벨, 값 22px, 미달 시 적색 <code>#ff6060</code></td></tr>
+        <tr><td>★ 핵심</td><td><code>IDENTITY</code></td><td>성장 — Identity Rank (DEC-036)</td><td>골드 라벨, 값 22px</td></tr>
+        <tr><td>◦ 보조</td><td><code>YOUR ATK</code></td><td>현재 ATK (단일 값, /max 표기 폐기)</td><td>회색 라벨 <code>#888</code>, 값 18px <code>#ccc</code></td></tr>
+        <tr><td>◦ 보조</td><td><code>DIVES</code></td><td>재진입 횟수</td><td>회색 라벨, 값 18px</td></tr>
+      </tbody>
+    </table>
+
+    <h3>폐기된 용어 (재도입 금지)</h3>
+    <ul>
+      <li><code>DEPTH</code> → <code>STRATUMS</code> (같은 STRATUM 어휘 재사용으로 핵심 단어 강화)</li>
+      <li><code>RESONANCE</code> → <code>DIVES</code> (평이한 단어로 학습 부담 ↓)</li>
+      <li><code>GATE REQ</code> → <code>ATK GATE</code> (사용자 명시 핵심 단어)</li>
+      <li>Legend <code>FINAL</code> 항목 제거 — BOSS 의 색 변종일 뿐이라 별도 용어 불필요</li>
+      <li><code>ABYSS</code> — 폐기 X, 단 메인 라벨 <code>STRATUM 5</code> 옆 *서브 텍스트* 로 강등 (font-size 8, opacity 0.7)</li>
+      <li><code>ROOMS</code> / <code>BRANCHES</code> / <code>BOSSES</code> — 던전 수치 제거 (dive 결정 무관)</li>
+    </ul>
+
+    <h3>등급별 표시 정책</h3>
+    <ol>
+      <li><b>Normal</b> (1 stratum): S1만 표시, ABYSS 행 hidden</li>
+      <li><b>Magic</b> (2 stratum): S1+S2, S3/S4/ABYSS 회색 outline 만 placeholder</li>
+      <li><b>Rare</b> (3 stratum): S1~S3, S4/ABYSS placeholder</li>
+      <li><b>Legendary</b> (4 stratum): S1~S4, ABYSS placeholder</li>
+      <li><b>Ancient</b> (4+심연): 모든 행 fully rendered, FINAL boss 적색</li>
+    </ol>
+
+    <h3>축약 정책</h3>
+    <ol>
+      <li>각 stratum 의 *critical path 전체 룸 수* 와 무관하게 *고정 BRANCH 4-6개* 로 압축</li>
+      <li>shrine / archive 같은 sub-branch 는 *MINOR 데코* 로 통합 (별도 표시 X)</li>
+      <li>실제 게임 그래프와 정확히 동일할 필요 없음 — *진행 추정* 도식</li>
+      <li>플레이어가 도달한 stratum 까지만 *진한 색*, 미도달 stratum 은 회색 outline placeholder</li>
+    </ol>
+
+    <h3>현재 진행 위치 (HERE) 표기 규칙</h3>
+    <ul>
+      <li>플레이어가 *진행 중* 인 stratum 의 *진입 직전* (이전 stratum 의 DIVE 라인 위) 에 배치</li>
+      <li>예: 현재 STRATUM 3 진행 중 → HERE 커서는 S2 → S3 dive 라인 중간 (y=145)</li>
+      <li>도달한 stratum: 정상 진하게 (opacity 1.0)</li>
+      <li>현재 진행 stratum: 옅게 (opacity 0.6) + HERE 커서</li>
+      <li>미도달 stratum: placeholder (opacity 0.35, BOSS 도 outline only)</li>
+    </ul>
+
+    <h3>인게임 통합 — ANVIL UI 우측 패널 + Shift+2 모달</h3>
+    <p>
+      두 가지 모드로 통합:
+    </p>
+    <ol>
+      <li><b>ANVIL UI 우측 패널</b> — 무기 선택 시 anvil 화면 우측에 *축약 단계형 뷰* 가
+        상시 표시. 중앙은 ATK 38/60 + Identity Rank + Core Echo. 우측 패널 = 이 RadialMap
+        전체 (stats + graph + legend).</li>
+      <li><b>Shift+2 풀스크린 모달</b> — 같은 SVG 컴포넌트를 ModalPanel 9-slice 위에 렌더.
+        키 누르고 있는 동안만 표시.</li>
+    </ol>
+    <p>
+      데이터 소스: <code>StrataConfig</code> 의 stratum 메타 (depth, totalRooms,
+      totalBranches, bossCount) + <code>ItemInstance.worldProgress</code>
+      (currentStratum=HERE 위치, diveCount=DIVE CYCLE) + <code>item.def.name</code>
+      (제목 1행). 전체 그래프 노드 위치 계산 불필요 — BRANCH 개수는 *도식 상수*.
+    </p>
   </section>
 
   <footer style="margin:48px 0 24px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:10px">

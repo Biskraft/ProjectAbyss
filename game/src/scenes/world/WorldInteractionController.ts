@@ -7,7 +7,6 @@
  * - spawnSecretWalls / checkAttackOnSecretWalls
  * - spawnSwitches / checkAttackOnSwitches
  * - spawnCrackedFloors / checkAttackOnCrackedFloors
- * - checkAttackOnBreakables
  * - spawnAltarsFromLdtk / updateAltars / openAltarUI
  * - spawnAnvilFromLdtk / updateAnvil / openAnvilUI
  *

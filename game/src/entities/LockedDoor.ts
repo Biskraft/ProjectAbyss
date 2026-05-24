@@ -295,6 +295,33 @@ export class LockedDoor {
   }
 
   /**
+   * Re-assert solid collision in the grid without growing gridCells.
+   * ItemWorldScene 처럼 fullGrid 가 동적으로 재구축되는 환경에서, locked 동안
+   * 매 프레임 호출하여 collision 이 유실되지 않도록 한다. Idempotent.
+   */
+  ensureCollision(grid: number[][]): boolean {
+    if (!this.locked) return false;
+    let changed = false;
+    const startCol = Math.floor(this.x / TILE_SIZE);
+    const startRow = Math.floor(this.y / TILE_SIZE);
+    const cols = Math.ceil(this.width / TILE_SIZE);
+    const rows = Math.ceil(this.height / TILE_SIZE);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const gr = startRow + r;
+        const gc = startCol + c;
+        if (gr >= 0 && gr < grid.length && gc >= 0 && gc < (grid[0]?.length ?? 0)) {
+          if (grid[gr][gc] === 0) {
+            grid[gr][gc] = 1; // re-solidify only if previously open
+            changed = true;
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
+  /**
    * Try to unlock via player attack. Returns result:
    *  - 'unlocked': door opens
    *  - 'rejected': stat too low, plays reject animation

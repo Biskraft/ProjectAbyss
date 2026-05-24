@@ -1,20 +1,20 @@
 import { Container, Graphics } from 'pixi.js';
 
 /**
- * Hollow Knight–style hit effect.
+ * Hollow Knight?�style hit effect.
  *
  * Architecture (catalog: game/docs/ui-components.html#hit-effect):
- *   1. MAIN SLASH  — ONE continuous thick line through the hit center (no gap),
+ *   1. MAIN SLASH  ??ONE continuous thick line through the hit center (no gap),
  *                    angled toward the attack direction (dirX biased).
- *   2. CROSS LINES — N thinner lines crossing the hit center, each WITH a center
+ *   2. CROSS LINES ??N thinner lines crossing the hit center, each WITH a center
  *                    gap. Cross count is dynamically capped via segLen threshold
  *                    so a too-large gap never produces invisible stubs.
- *                    Center reads as "main only" — subs approach but don't touch.
- *   3. DEBRIS      — small dark radial particles drifting outward with gravity,
+ *                    Center reads as "main only" ??subs approach but don't touch.
+ *   3. DEBRIS      ??small dark radial particles drifting outward with gravity,
  *                    plus optional bright sparks for heavy hits.
  *
  * Burst (orange forge tone) and screen-flash are intentionally NOT in this
- * effect — heavy hits route through ComboFinisherBurst + ScreenFlash separately.
+ * effect ??heavy hits route through ScreenFlash separately.
  *
  * Same API as before: spawn(x, y, heavy, dirX) and update(dt). All 30+ call
  * sites in scenes/* continue to work unchanged.
@@ -54,10 +54,13 @@ const VARIANTS: Record<'light' | 'heavy', Variant> = {
     sparkCount: 0,
   },
   heavy: {
-    mainLen: 128, mainThick: 6,                  // 1.6× longer than light
-    crossCount: 3, crossLen: 56, crossThick: 3,
-    gap: 12,
-    debrisCount: 8, debrisSpread: 64,
+    // 2026-05-23 사용자 결정: critical/3타 hit effect 크기 2배 — 단, 두께는
+    // 원본 유지(절반으로 다시 줄임). 길고 가는 라인이 더 날카로운 인상.
+    // count(crossCount/debrisCount/sparkCount) 는 그대로 — 시각 노이즈 증가 회피.
+    mainLen: 256, mainThick: 6,                  // len×2, thick=원본
+    crossCount: 3, crossLen: 112, crossThick: 3, // len×2, thick=원본
+    gap: 24,                                      // 12 × 2
+    debrisCount: 8, debrisSpread: 128,            // 64 × 2
     sparkCount: 2,
   },
 };
@@ -66,10 +69,10 @@ const MAIN_LIFE_MS   = 220;
 const CROSS_LIFE_MS  = 180;
 const DEBRIS_LIFE_MS = 320;
 
-// Main-slash angle pool — biased toward attack direction (dirX).
+// Main-slash angle pool ??biased toward attack direction (dirX).
 // Right-facing: -30° ~ +30° (mostly horizontal, slight diagonals).
 // Left-facing: 150° ~ -150° (mirror).
-// Vertical (±90°) avoided — collides with character silhouette.
+// Vertical (±90°) avoided ??collides with character silhouette.
 const RIGHT_DEG = [-30, -25, -20, -15, -5, 5, 15, 20, 25, 30];
 const LEFT_DEG  = [150, 155, 160, 165, 175, -175, -165, -160, -155, -150];
 
@@ -84,7 +87,7 @@ function pickMainAngle(dirX: number): number {
 }
 
 // Cross-line offsets relative to main angle.
-// ±45° / ±60° / ±90° / ±120° / ±135° — avoids 0/180 (same axis as main).
+// ±45° / ±60° / ±90° / ±120° / ±135° ??avoids 0/180 (same axis as main).
 const CROSS_OFFSET_DEG = [-135, -120, -90, -60, -45, 45, 60, 90, 120, 135];
 
 function pickCrossOffsets(n: number): number[] {
@@ -120,19 +123,19 @@ export class HitSparkManager {
 
   /**
    * Spawn a hit burst at (x, y).
-   * @param heavy true for 3타/critical/heavy attacks (larger slash, more debris).
-   * @param dirX  knockback direction (-1, 0, +1) — biases the main slash angle.
+   * @param heavy true for 3?�/critical/heavy attacks (larger slash, more debris).
+   * @param dirX  knockback direction (-1, 0, +1) ??biases the main slash angle.
    */
   spawn(x: number, y: number, heavy: boolean, dirX: number): void {
     const v = VARIANTS[heavy ? 'heavy' : 'light'];
 
-    // ① Main slash — continuous line through hit center, attack-direction biased.
+    // ??Main slash ??continuous line through hit center, attack-direction biased.
     const mainAngle = pickMainAngle(dirX);
     const mainLen = v.mainLen * (1 + (Math.random() - 0.5) * 0.2);  // ±10%
     this.spawnMain(x, y, mainAngle, mainLen, v.mainThick);
 
-    // ② Cross lines — with center gap, dynamically-capped count, per-cross clamp.
-    // ③ Debris — dark radial particles + optional yellow sparks for heavy.
+    // ??Cross lines ??with center gap, dynamically-capped count, per-cross clamp.
+    // ??Debris ??dark radial particles + optional yellow sparks for heavy.
     for (let i = 0; i < v.debrisCount; i++) {
       const ang = Math.random() * Math.PI * 2;
       const dist = v.debrisSpread * (0.5 + Math.random() * 0.8);
@@ -145,11 +148,11 @@ export class HitSparkManager {
     }
   }
 
-  // ────────── Spawn helpers ──────────
+  // ?�?�?�?�?�?�?�?�?�?� Spawn helpers ?�?�?�?�?�?�?�?�?�?�
 
   private spawnMain(cx: number, cy: number, ang: number, L: number, T: number): void {
     const gfx = new Graphics();
-    // Lens-shaped slash — pointy tips, fat middle (Dead Cells / HK style).
+    // Lens-shaped slash ??pointy tips, fat middle (Dead Cells / HK style).
     // 6-point poly: tapered 20% on each end, 60% flat in the middle.
     const Tout = T + 1;
     const Tin = T * 0.7;
@@ -197,7 +200,7 @@ export class HitSparkManager {
     const cos = Math.cos(ang);
     const sin = Math.sin(ang);
     const gfx = new Graphics();
-    // Origin at inner (gap) edge: draw from x=0 to x=L. Lens shape — both ends taper.
+    // Origin at inner (gap) edge: draw from x=0 to x=L. Lens shape ??both ends taper.
     // 6-point poly: tapered 15% on each end, 70% flat in the middle.
     const Tout = T + 0.6;
     const Tin = T * 0.7;
@@ -252,7 +255,7 @@ export class HitSparkManager {
     });
   }
 
-  // ────────── Per-frame update ──────────
+  // ?�?�?�?�?�?�?�?�?�?� Per-frame update ?�?�?�?�?�?�?�?�?�?�
 
   update(dt: number): void {
     const dtSec = dt / 1000;
@@ -289,9 +292,9 @@ export class HitSparkManager {
   }
 
   // Mirrors CSS keyframe `he-main-slash-anim` from the catalog.
-  // scaleX 0.05 → 1.0 → 1.04 → 1.08 → 1.12
-  // scaleY 2.4  → 1.3 → 1.0  → 0.55 → 0.15
-  // alpha  0    → 1   → 1    → 0.75 → 0
+  // scaleX 0.05 ??1.0 ??1.04 ??1.08 ??1.12
+  // scaleY 2.4  ??1.3 ??1.0  ??0.55 ??0.15
+  // alpha  0    ??1   ??1    ??0.75 ??0
   private applyMainAnim(gfx: Graphics, t: number): void {
     let sx: number, sy: number, a: number;
     if (t < 0.13) {

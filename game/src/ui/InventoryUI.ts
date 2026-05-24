@@ -1,5 +1,6 @@
-import { Container, Graphics, BitmapText, Sprite, Text } from 'pixi.js';
-import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey, DEMO_BLOCK_REDIVE } from '@items/ItemInstance';
+import { Container, Graphics, BitmapText } from 'pixi.js';
+import { type ItemInstance, RARITY_COLOR, DEMO_BLOCK_REDIVE, getDisplayName, getIdentityCategory, getCurrentStage } from '@items/ItemInstance';
+import { getStageFragment } from '@data/fragments';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { ItemImage } from './ItemImage';
@@ -9,174 +10,156 @@ import { t } from '@i18n';
 import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import {
-  create9SlicePanel, drawSelectionRow, drawSelectionPulse,
-  ROW_CHEVRON_COLOR, ROW_SELECTED_GLOW, ROW_SELECTED_GLOW_ALPHA, ROW_SELECTED_GLOW_INNER,
+  create9SlicePanel, drawSelectionPulse,
+  ROW_SELECTED_GLOW, ROW_SELECTED_GLOW_ALPHA, ROW_SELECTED_GLOW_INNER,
   MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE,
 } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
+import { KeyPrompt } from './KeyPrompt';
 import type { UISkin } from './UISkin';
 import { sacredSave } from '@save/PlayerSave';
 
-// ── Layout constants ──────────────────────────────────────────────────────────
-const PADDING = 12;
-const ROW_H = 18;          // list row height
-const ROW_GAP = 1;         // gap between rows
-const EQUIP_AREA_H = 46;   // equipment slots area height
-const EQUIP_SLOT_W = 48;   // each equipment slot width
-const EQUIP_SLOTS = 6;     // Weapon, Visor, Plate, Gauntlet, Greaves, Sigil
-const EQUIP_GAP = 3;
+// ── Layout (DEC-045) ──────────────────────────────────────────────────────────
+const PADDING_H = 8;
+const PADDING_V = 8;
+const COL_GAP = 6;
 
-const MAX_VISIBLE_ROWS = 8;
-// LIST_H: BACKPACK 라벨 영역 (listStartY=12) + 모든 row + bottom 안전 padding (4).
-// 사용자 피드백 2026-05-05: 라벨 공간 미포함 → 마지막 row 가 detail divider 와 겹침.
-const LIST_H = 12 + MAX_VISIBLE_ROWS * (ROW_H + ROW_GAP) + 4;
-const DETAIL_H = 80;
+const CELL_W = 34; // 32px icon + 1px padding each side
+const CELL_H = 34;
+const CELL_GAP = 2;
+const GRID_COLS = 4;
+const GRID_ROWS = 6;
 
-const PANEL_W = 340;
-const PANEL_H = PADDING + 16 + 4 + EQUIP_AREA_H + 6 + LIST_H + 4 + DETAIL_H + PADDING;
+const GRID_W = GRID_COLS * CELL_W + (GRID_COLS - 1) * CELL_GAP; // 142
+const INFO_W = 232;
+const STATUS_W = 148;
 
-// Anvil mode extra
-const ANVIL_SLOT_W = 112;
-const ANVIL_SIDE_W = 156;
-const PANEL_W_ANVIL = PANEL_W + ANVIL_SIDE_W;
+const GRID_COL_X = PADDING_H;
+const INFO_COL_X = PADDING_H + GRID_W + COL_GAP;    // 192
+const STATUS_COL_X = INFO_COL_X + INFO_W + COL_GAP;  // 394
 
-const ANVIL_EQUIPPED_DIM_ALPHA = 0.15;
+const TITLE_H = 12;
+const TITLE_GAP = 2;
+const TAB_H = 14;
+const TAB_GAP = 2;
+// y where grid / info / status content begins
+const CONTENT_START_Y = PADDING_V + TITLE_H + TITLE_GAP + TAB_H + TAB_GAP; // 38
 
-// ── Color tokens — ModalPanel SSoT alias ─────────────────────────────────────
+const PANEL_W = 550;
+const PANEL_H = 254;
+
+// ── Colors ────────────────────────────────────────────────────────────────────
 const COL_PANEL_BG = MODAL_BG;
 const COL_BORDER = MODAL_BORDER;
-
-// Row states (selection palette → ModalPanel.ts ROW_SELECTED tokens)
-const COL_ROW_BG = 0x000000;       // transparent (alpha 0)
-const COL_ROW_EQUIPPED_BG = 0x2a1a10;
-const COL_ROW_EQUIPPED_BAR = 0xff8c00;
-const COL_ROW_CURSOR = ROW_CHEVRON_COLOR;
-
-// Text
-const COL_TEXT = 0xcccccc;
-const COL_TEXT_DIM = 0x777777;
-const COL_TEXT_WHITE = TEXT_PRIMARY;
+const COL_TEXT = TEXT_PRIMARY;
 const COL_DIM = TEXT_SECONDARY;
 const COL_POSITIVE = TEXT_POSITIVE;
 const COL_NEGATIVE = TEXT_NEGATIVE;
-
-// Badge
 const COL_DIVE = 0x00ced1;
 const COL_CLEARED = 0x44ff44;
-const COL_LOCKED = 0x666666;
+const COL_LOCKED = 0x555555;
+const COL_EQUIPPED_BAR = 0xff8c00;
+const COL_KEY = 0xffa41b; // brand key color
 
-// Equipment slot
-const COL_EQUIP_EMPTY_BORDER = 0x3a3a4e;
-const COL_EQUIP_FILLED_BORDER = 0x5a5a6a;
-const COL_EQUIP_BG = 0x101018;
+// ── Filter tabs ───────────────────────────────────────────────────────────────
+type FilterTab = 'ALL' | 'WPN' | 'ARM' | 'ACC';
+const FILTER_TABS: FilterTab[] = ['ALL', 'WPN', 'ARM', 'ACC'];
 
-// Slot label localization keys — resolved per-frame via t() so locale flips
-// (and the scoped {count} interpolation in BACKPACK) apply.
-const EQUIP_SLOT_KEYS = [
-  'ui.equip_slot.weapon',
-  'ui.equip_slot.visor',
-  'ui.equip_slot.plate',
-  'ui.equip_slot.gauntlet',
-  'ui.equip_slot.greaves',
-  'ui.equip_slot.sigil',
-] as const;
-const EQUIP_SLOT_ICONS = ['⚔', '◇', '🛡', '✋', '▽', '◆'] as const;
+function itemMatchesFilter(item: ItemInstance, filter: FilterTab): boolean {
+  if (filter === 'ALL' || filter === 'WPN') return true;
+  return false; // ARM / ACC: future item types
+}
+
+// ── Public types ──────────────────────────────────────────────────────────────
+export interface PlayerStats {
+  hp: number;
+  maxHp: number;
+  atk: number;
+  abilities: string[];
+}
 
 export type InventoryUIMode = 'inventory' | 'anvil';
 
 export class InventoryUI {
   container: Container;
   visible = false;
+
   private inventory: Inventory;
-  private selectedIndex = -1;
-  private scrollOffset = 0;
+  private selectedIndex = 0; // index within filteredItems()
+  private scrollRowOffset = 0;
+  private filter: FilterTab = 'ALL';
+
   private panel: Container;
   private panelBg: Graphics;
-  private titleText: BitmapText | Text;
+  private panelFrame: Container | null = null;
+  private columnDividers: Graphics | null = null;
 
-  // Equipment slot area
-  private equipArea: Container;
-
-  // List area
-  private listArea: Container;
-
-  // Detail area
-  private detailArea: Container;
+  private tabsArea: Container;
+  private gridArea: Container;
+  private infoArea: Container;
+  private statusArea: Container;
 
   private mode: InventoryUIMode = 'inventory';
   private onSelect: ((item: ItemInstance) => void) | null = null;
 
-  // Compare mode — now always-on when equipped item exists
-  private compareActive = false;
-  private skin: UISkin | null = null;
-  private panelFrame: Container | null = null;
+  /** Open/close 시 호출 — scene 이 HUD/minimap 등을 토글하도록 위임. */
+  onVisibilityChange?: (visible: boolean) => void;
 
-  // Anvil 2-stage placement
+  private skin: UISkin | null = null;
+  private playerStats: PlayerStats | null = null;
+
+  // Anvil 2-stage
   private anvilState: 'selecting' | 'placed' = 'selecting';
   private anvilItem: ItemInstance | null = null;
-  private anvilSlotContainer: Container | null = null;
-  private anvilEmptyPulseOverlay: Graphics | null = null;
-  private anvilEmptyPulseRect: { w: number; h: number } | null = null;
+  private anvilPulseOverlay: Graphics | null = null;
+  private anvilPulseRect: { w: number; h: number } | null = null;
   private anvilPulseTimer = 0;
 
-  // Selection pulse (drawn each frame in update over the selected row)
-  private selectionOverlay: Graphics | null = null;
-  private selectionRect: { x: number; y: number; w: number; h: number } | null = null;
+  // Selection pulse
+  private selectionPulseOverlay: Graphics | null = null;
+  private selectionPulseRect: { w: number; h: number } | null = null;
   private selectionPulseTimer = 0;
 
-  setInventory(inventory: Inventory): void {
-    this.inventory = inventory;
-  }
+  // ── Public API ───────────────────────────────────────────────────────────────
+  setInventory(inventory: Inventory): void { this.inventory = inventory; }
+  setSkin(skin: UISkin): void { this.skin = skin; }
+  setPlayerStats(stats: PlayerStats): void { this.playerStats = stats; }
 
-  setSkin(skin: UISkin): void {
-    this.skin = skin;
-  }
-
-  /**
-   * @param uiScale  Native pixel scale (1=640, 2=1280, 3=1920). 컨테이너 자체에
-   *                 적용해 InventoryUI 가 `uiContainer`(native res) 직속으로 마운트
-   *                 되어도 기존 640-coord 내부 레이아웃을 그대로 화면 채우는 크기로
-   *                 표시한다. (DEC: 2026-04-14 UI 네이티브 해상도 결정 점진 마이그레이션)
-   */
   constructor(inventory: Inventory, uiScale: number = 1) {
     this.inventory = inventory;
     this.container = new Container();
     this.container.scale.set(uiScale);
     this.container.visible = false;
 
-    // Background overlay
     const overlay = new Graphics();
     overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.5 });
     this.container.addChild(overlay);
 
-    // Panel container
     this.panel = new Container();
     this.container.addChild(this.panel);
 
-    // Panel background
     this.panelBg = new Graphics();
     this.panel.addChild(this.panelBg);
 
-    // Title
-    this.titleText = createUiText(t('ui.inventory.title'), { fontSize: 12, fill: COL_TEXT_WHITE });
-    this.titleText.x = PADDING;
-    this.titleText.y = 6;
-    this.panel.addChild(this.titleText);
+    this.tabsArea = new Container();
+    this.tabsArea.x = GRID_COL_X;
+    this.tabsArea.y = PADDING_V + TITLE_H + TITLE_GAP;
+    this.panel.addChild(this.tabsArea);
 
-    // Equipment slots area
-    this.equipArea = new Container();
-    this.equipArea.y = 22;
-    this.panel.addChild(this.equipArea);
+    this.gridArea = new Container();
+    this.gridArea.x = GRID_COL_X;
+    this.gridArea.y = CONTENT_START_Y;
+    this.panel.addChild(this.gridArea);
 
-    // List area
-    this.listArea = new Container();
-    this.listArea.y = 22 + EQUIP_AREA_H + 6;
-    this.panel.addChild(this.listArea);
+    this.infoArea = new Container();
+    this.infoArea.x = INFO_COL_X;
+    this.infoArea.y = CONTENT_START_Y;
+    this.panel.addChild(this.infoArea);
 
-    // Detail area
-    this.detailArea = new Container();
-    this.detailArea.y = 22 + EQUIP_AREA_H + 6 + LIST_H + 4;
-    this.panel.addChild(this.detailArea);
+    this.statusArea = new Container();
+    this.statusArea.x = STATUS_COL_X;
+    this.statusArea.y = CONTENT_START_Y;
+    this.panel.addChild(this.statusArea);
   }
 
   toggle(): void {
@@ -185,16 +168,18 @@ export class InventoryUI {
   }
 
   open(mode: InventoryUIMode, onSelect: ((item: ItemInstance) => void) | null): void {
+    const wasVisible = this.visible;
     this.mode = mode;
     this.onSelect = onSelect;
     this.visible = true;
     this.container.visible = true;
-    this.compareActive = false;
     this.anvilState = 'selecting';
     this.anvilItem = null;
-    this.scrollOffset = 0;
-    this.selectedIndex = this.inventory.items.length > 0 ? 0 : -1;
+    this.scrollRowOffset = 0;
+    this.filter = 'ALL';
+    this.selectedIndex = this.filteredItems().length > 0 ? 0 : -1;
     this.refresh();
+    if (!wasVisible) this.onVisibilityChange?.(true);
   }
 
   openForAnvil(onSelect: (item: ItemInstance) => void): void {
@@ -202,43 +187,37 @@ export class InventoryUI {
   }
 
   close(): void {
+    const wasVisible = this.visible;
     this.visible = false;
     this.container.visible = false;
     this.mode = 'inventory';
     this.onSelect = null;
-    this.compareActive = false;
     this.anvilState = 'selecting';
     this.anvilItem = null;
-    this.clearAnvilSlot();
+    if (wasVisible) this.onVisibilityChange?.(false);
   }
 
   confirmSelected(): void {
     if (this.mode === 'anvil') {
       if (this.anvilState === 'selecting') {
-        const item = this.inventory.items[this.selectedIndex];
+        const item = this.filteredItems()[this.selectedIndex];
         if (!item) return;
         if (STARTER_ONLY_IDS.has(item.def.id)) return;
-        // Demo build: cleared items are dive-blocked. Input is silently
-        // ignored — the LOCK visual on the row already signals the state.
         if (DEMO_BLOCK_REDIVE && item.worldProgress?.cleared === true) return;
-
-        // If equipped: only allow auto-unequip on FIRST dive (tutorial)
         if (this.inventory.equipped?.uid === item.uid) {
-          if (sacredSave.isFirstDiveDone()) return; // 2회차부터는 장착 무기 배치 차단
-          const fallback = this.inventory.items.find(
-            i => i.uid !== item.uid
-          );
-          if (fallback) this.inventory.equip(fallback.uid, true);
-          else this.inventory.unequip();
+          if (sacredSave.isFirstDiveDone()) return;
+          // 2026-05-24: 무기 미장착 차단. fallback 무기 있을 때만 anvil 배치 허용.
+          const fallback = this.inventory.items.find(i => i.uid !== item.uid);
+          if (!fallback) return; // 다른 무기 없으면 anvil 배치 거부
+          this.inventory.equip(fallback.uid, true);
         }
-
         this.placeOnAnvil(item);
       } else if (this.anvilState === 'placed') {
         this.confirmDive();
       }
       return;
     }
-    const item = this.inventory.items[this.selectedIndex];
+    const item = this.filteredItems()[this.selectedIndex];
     if (!item) return;
     this.inventory.equip(item.uid);
     this.refresh();
@@ -254,506 +233,623 @@ export class InventoryUI {
 
   isAnvilMode(): boolean { return this.mode === 'anvil'; }
 
-  toggleCompare(): void {
-    const item = this.inventory.items[this.selectedIndex];
-    const equipped = this.inventory.equipped;
-    if (!item || !equipped || item.uid === equipped.uid) return;
-    this.compareActive = !this.compareActive;
+  /** DEC-046: 현재 선택된 ItemInstance 반환 (Identity Archive 진입 시 사용). */
+  getSelectedItem(): ItemInstance | undefined {
+    return this.filteredItems()[this.selectedIndex];
+  }
+
+  cycleFilter(): void {
+    if (this.anvilState === 'placed') return;
+    const idx = FILTER_TABS.indexOf(this.filter);
+    this.filter = FILTER_TABS[(idx + 1) % FILTER_TABS.length];
+    this.scrollRowOffset = 0;
+    this.selectedIndex = this.filteredItems().length > 0 ? 0 : -1;
     this.refresh();
   }
 
   navigate(dir: 'left' | 'right' | 'up' | 'down'): void {
     if (this.mode === 'anvil' && this.anvilState === 'placed') return;
-    const count = this.inventory.items.length;
+    const count = this.filteredItems().length;
     if (count === 0) return;
-    if (this.selectedIndex < 0) { this.selectedIndex = 0; }
-    else {
+    if (this.selectedIndex < 0) {
+      this.selectedIndex = 0;
+    } else {
       switch (dir) {
-        case 'up': this.selectedIndex = Math.max(0, this.selectedIndex - 1); break;
-        case 'down': this.selectedIndex = Math.min(count - 1, this.selectedIndex + 1); break;
-        case 'left': this.selectedIndex = Math.max(0, this.selectedIndex - 1); break;
-        case 'right': this.selectedIndex = Math.min(count - 1, this.selectedIndex + 1); break;
+        case 'left':
+          this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+          break;
+        case 'right':
+          this.selectedIndex = Math.min(count - 1, this.selectedIndex + 1);
+          break;
+        case 'up':
+          if (this.selectedIndex >= GRID_COLS) this.selectedIndex -= GRID_COLS;
+          break;
+        case 'down':
+          if (this.selectedIndex + GRID_COLS < count) this.selectedIndex += GRID_COLS;
+          break;
       }
     }
-    // Scroll to keep selected visible
-    if (this.selectedIndex < this.scrollOffset) this.scrollOffset = this.selectedIndex;
-    if (this.selectedIndex >= this.scrollOffset + MAX_VISIBLE_ROWS) this.scrollOffset = this.selectedIndex - MAX_VISIBLE_ROWS + 1;
+    const row = Math.floor(this.selectedIndex / GRID_COLS);
+    if (row < this.scrollRowOffset) this.scrollRowOffset = row;
+    if (row >= this.scrollRowOffset + GRID_ROWS) this.scrollRowOffset = row - GRID_ROWS + 1;
     this.refresh();
   }
 
   equipSelected(): void {
-    const item = this.inventory.items[this.selectedIndex];
+    const item = this.filteredItems()[this.selectedIndex];
     if (item) { this.inventory.equip(item.uid); this.refresh(); }
   }
 
-  // ── Main refresh ──────────────────────────────────────────────────────────────
+  // ── Main refresh ─────────────────────────────────────────────────────────────
   refresh(): void {
-    const pw = this.mode === 'anvil' ? PANEL_W_ANVIL : PANEL_W;
-    this.panel.x = Math.floor((GAME_WIDTH - pw) / 2);
+    this.panel.x = Math.floor((GAME_WIDTH - PANEL_W) / 2);
     this.panel.y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
 
-    // Panel background
     this.panelBg.clear();
     if (this.panelFrame) {
-      this.panel.removeChild(this.panelFrame);
+      if (this.panelFrame.parent) this.panelFrame.parent.removeChild(this.panelFrame);
       this.panelFrame.destroy({ children: true });
       this.panelFrame = null;
     }
     if (this.skin?.isLoaded) {
-      const frame = create9SlicePanel(this.skin, pw, PANEL_H);
+      const frame = create9SlicePanel(this.skin, PANEL_W, PANEL_H);
       if (frame) {
         this.panelFrame = frame;
         this.panel.addChildAt(frame, 0);
       } else {
-        this.panelBg.rect(0, 0, pw, PANEL_H).fill({ color: COL_PANEL_BG, alpha: 0.95 });
-        this.panelBg.rect(0, 0, pw, PANEL_H).stroke({ color: COL_BORDER, width: 1 });
+        this.drawPanelBg();
       }
     } else {
-      this.panelBg.rect(0, 0, pw, PANEL_H).fill({ color: COL_PANEL_BG, alpha: 0.95 });
-      this.panelBg.rect(0, 0, pw, PANEL_H).stroke({ color: COL_BORDER, width: 1 });
+      this.drawPanelBg();
     }
 
-    this.titleText.text = this.mode === 'anvil' ? t('ui.inventory.title_anvil') : t('ui.inventory.title');
-
-    this.drawEquipmentSlots();
-    this.drawList();
-    this.drawDetail();
-
-    if (this.mode === 'anvil') {
-      this.clearAnvilSlot();
-      this.drawAnvilArea();
-    }
+    this.drawTitle();
+    this.drawColumnDividers();
+    this.drawFilterTabs();
+    this.drawGrid();
+    this.drawInfo();
+    this.drawRightColumn();
   }
 
-  // ── Equipment Slots (6-slot bar) ──────────────────────────────────────────────
-  private equipSlotImages: (ItemImage | null)[] = Array(EQUIP_SLOTS).fill(null);
+  private drawPanelBg(): void {
+    this.panelBg.rect(0, 0, PANEL_W, PANEL_H).fill({ color: COL_PANEL_BG, alpha: 0.95 });
+    this.panelBg.rect(0, 0, PANEL_W, PANEL_H).stroke({ color: COL_BORDER, width: 1 });
+  }
 
-  private drawEquipmentSlots(): void {
-    for (const c of [...this.equipArea.children]) {
-      this.equipArea.removeChild(c);
+  private drawTitle(): void {
+    // Remove previous title
+    const old = (this.panel as any).__title;
+    if (old?.parent) old.parent.removeChild(old);
+    old?.destroy?.();
+
+    const titleStr = this.mode === 'anvil' ? t('ui.inventory.title_anvil') : t('ui.inventory.title');
+    const titleTxt = createUiText(titleStr, { fontSize: 9, fill: COL_DIM });
+    titleTxt.x = PADDING_H;
+    titleTxt.y = PADDING_V;
+    this.panel.addChild(titleTxt);
+    (this.panel as any).__title = titleTxt;
+  }
+
+  private drawColumnDividers(): void {
+    if (this.columnDividers?.parent) {
+      this.columnDividers.parent.removeChild(this.columnDividers);
+    }
+    this.columnDividers?.destroy();
+
+    const g = new Graphics();
+    const y0 = PADDING_V;
+    const y1 = PANEL_H - PADDING_V;
+    const x1 = INFO_COL_X - Math.floor(COL_GAP / 2);
+    const x2 = STATUS_COL_X - Math.floor(COL_GAP / 2);
+    g.moveTo(x1, y0).lineTo(x1, y1).stroke({ color: COL_BORDER, width: 1 });
+    g.moveTo(x2, y0).lineTo(x2, y1).stroke({ color: COL_BORDER, width: 1 });
+    this.panel.addChildAt(g, 1);
+    this.columnDividers = g;
+  }
+
+  // ── Filter tabs ───────────────────────────────────────────────────────────────
+  private drawFilterTabs(): void {
+    for (const c of [...this.tabsArea.children]) {
+      this.tabsArea.removeChild(c);
       c.destroy?.({ children: true });
     }
-    // Clear cached images (they were destroyed with children above)
-    this.equipSlotImages = Array(EQUIP_SLOTS).fill(null);
 
-    const equipped = this.inventory.equipped;
-    const totalW = EQUIP_SLOTS * EQUIP_SLOT_W + (EQUIP_SLOTS - 1) * EQUIP_GAP;
-    const startX = PADDING + Math.floor((PANEL_W - PADDING * 2 - totalW) / 2);
-    const iconSize = 24; // ItemImage size inside slot
-
-    for (let i = 0; i < EQUIP_SLOTS; i++) {
-      const x = startX + i * (EQUIP_SLOT_W + EQUIP_GAP);
-      const slotName = t(EQUIP_SLOT_KEYS[i]);
-
-      // Currently only weapon slot (index 0) can be equipped
-      const isWeaponSlot = i === 0;
-      const equippedItem = isWeaponSlot ? equipped : null;
-      const hasItem = !!equippedItem;
+    const tabW = Math.floor((GRID_W - (FILTER_TABS.length - 1) * 2) / FILTER_TABS.length);
+    FILTER_TABS.forEach((tab, i) => {
+      const x = i * (tabW + 2);
+      const isActive = tab === this.filter;
 
       const g = new Graphics();
-
-      if (hasItem && isWeaponSlot) {
-        // Filled weapon slot — orange accent
-        g.rect(x, 0, EQUIP_SLOT_W, EQUIP_AREA_H).fill({ color: COL_ROW_EQUIPPED_BAR, alpha: 0.08 });
-        g.rect(x, 0, EQUIP_SLOT_W, EQUIP_AREA_H).stroke({ color: COL_ROW_EQUIPPED_BAR, width: 1, alpha: 0.3 });
+      if (isActive) {
+        g.rect(x, 0, tabW, TAB_H).fill({ color: COL_EQUIPPED_BAR, alpha: 0.18 });
+        g.rect(x, 0, tabW, TAB_H).stroke({ color: COL_EQUIPPED_BAR, width: 1 });
       } else {
-        // Empty slot — dim
-        g.rect(x, 0, EQUIP_SLOT_W, EQUIP_AREA_H).fill({ color: COL_EQUIP_BG, alpha: 0.3 });
-        g.rect(x, 0, EQUIP_SLOT_W, EQUIP_AREA_H).stroke({ color: COL_EQUIP_EMPTY_BORDER, width: 1 });
+        g.rect(x, 0, tabW, TAB_H).fill({ color: 0x111111, alpha: 0.3 });
+        g.rect(x, 0, tabW, TAB_H).stroke({ color: COL_BORDER, width: 1 });
       }
-      this.equipArea.addChild(g);
+      this.tabsArea.addChild(g);
 
-      // Slot name label
-      const nameLabel = createUiText(slotName, { fontSize: 6, fill: hasItem ? COL_DIM : COL_LOCKED });
-      nameLabel.x = x + Math.floor((EQUIP_SLOT_W - nameLabel.width) / 2);
-      nameLabel.y = 2;
-      this.equipArea.addChild(nameLabel);
-
-      // Item icon — use ItemImage for equipped items, dash for empty
-      if (hasItem && equippedItem) {
-        const img = new ItemImage(equippedItem, iconSize);
-        img.container.x = x + Math.floor((EQUIP_SLOT_W - iconSize) / 2);
-        img.container.y = 11;
-        this.equipArea.addChild(img.container);
-        this.equipSlotImages[i] = img;
-      } else {
-        // Empty dash
-        const dash = new BitmapText({
-          text: '—',
-          style: { fontFamily: PIXEL_FONT, fontSize: 14, fill: COL_EQUIP_EMPTY_BORDER }
-        });
-        dash.x = x + Math.floor((EQUIP_SLOT_W - 8) / 2);
-        dash.y = 14;
-        this.equipArea.addChild(dash);
-      }
-
-      // Item name or 'empty'
-      const itemNameText = hasItem ? equippedItem!.def.name : t('ui.inventory.empty_slot');
-      const itemNameColor = hasItem ? (RARITY_COLOR[equippedItem!.rarity] ?? COL_TEXT_WHITE) : COL_EQUIP_EMPTY_BORDER;
-      const itemLabel = createUiText(itemNameText, { fontSize: 8, fill: itemNameColor });
-      // Scale down if the full name exceeds the slot width so long names
-      // (e.g. "Steel Longblade") stay fully visible without truncation.
-      const maxW = EQUIP_SLOT_W - 2;
-      if (itemLabel.width > maxW) {
-        const s = maxW / itemLabel.width;
-        itemLabel.scale.set(s, s);
-      }
-      itemLabel.x = x + Math.floor((EQUIP_SLOT_W - itemLabel.width) / 2);
-      itemLabel.y = 37;
-      this.equipArea.addChild(itemLabel);
-    }
-
-    // Divider below equipment
-    const divG = new Graphics();
-    divG.moveTo(PADDING, EQUIP_AREA_H + 2);
-    divG.lineTo(PANEL_W - PADDING, EQUIP_AREA_H + 2);
-    divG.stroke({ width: 1, color: COL_BORDER });
-    this.equipArea.addChild(divG);
+      const label = createUiText(tab, { fontSize: 8, fill: isActive ? COL_EQUIPPED_BAR : COL_DIM });
+      label.x = x + Math.floor((tabW - label.width) / 2);
+      label.y = Math.floor((TAB_H - (label.height ?? 8)) / 2) + 1;
+      this.tabsArea.addChild(label);
+    });
   }
 
-  // ── Item List (scrollable) ────────────────────────────────────────────────────
-  private drawList(): void {
-    for (const c of [...this.listArea.children]) {
-      this.listArea.removeChild(c);
+  // ── Grid ─────────────────────────────────────────────────────────────────────
+  private drawGrid(): void {
+    for (const c of [...this.gridArea.children]) {
+      this.gridArea.removeChild(c);
       c.destroy?.({ children: true });
     }
-    // Overlay was destroyed with listArea children above; clear handle so
-    // update() doesn't reuse a destroyed Graphics.
-    this.selectionOverlay = null;
-    this.selectionRect = null;
+    this.selectionPulseOverlay = null;
+    this.selectionPulseRect = null;
 
-    const items = this.inventory.items;
-    const count = items.length;
+    const items = this.filteredItems();
+    const startIdx = this.scrollRowOffset * GRID_COLS;
+    const endIdx = Math.min(items.length, startIdx + GRID_ROWS * GRID_COLS);
 
-    // "BACKPACK (N/20)" label
-    const backpackLabel = createUiText(
-      this.mode === 'anvil' ? t('ui.inventory.select_weapon_to_dive') : t('ui.inventory.backpack', { count }),
-      { fontSize: 8, fill: COL_LOCKED }
-    );
-    backpackLabel.x = PADDING;
-    backpackLabel.y = 0;
-    this.listArea.addChild(backpackLabel);
+    for (let i = startIdx; i < endIdx; i++) {
+      const localIdx = i - startIdx;
+      const col = localIdx % GRID_COLS;
+      const row = Math.floor(localIdx / GRID_COLS);
+      this.drawCell(items[i], col * (CELL_W + CELL_GAP), row * (CELL_H + CELL_GAP), i === this.selectedIndex);
+    }
 
-    const listStartY = 12;
-    const visibleEnd = Math.min(count, this.scrollOffset + MAX_VISIBLE_ROWS);
-
-    for (let vi = this.scrollOffset; vi < visibleEnd; vi++) {
-      const item = items[vi];
-      const rowIdx = vi - this.scrollOffset;
-      const ry = listStartY + rowIdx * (ROW_H + ROW_GAP);
-      const isSelected = vi === this.selectedIndex;
-      const isEquipped = this.inventory.equipped?.uid === item.uid;
-      const isOnAnvil = this.anvilItem?.uid === item.uid;
-
-      this.drawRow(item, ry, isSelected, isEquipped, isOnAnvil);
+    // Empty slots
+    const itemsVisible = endIdx - startIdx;
+    for (let i = itemsVisible; i < GRID_ROWS * GRID_COLS; i++) {
+      const col = i % GRID_COLS;
+      const row = Math.floor(i / GRID_COLS);
+      const cx = col * (CELL_W + CELL_GAP);
+      const cy = row * (CELL_H + CELL_GAP);
+      const g = new Graphics();
+      g.rect(cx, cy, CELL_W, CELL_H).fill({ color: 0x0a0a0a, alpha: 0.3 });
+      g.rect(cx, cy, CELL_W, CELL_H).stroke({ color: 0x1e1e1e, width: 1 });
+      this.gridArea.addChild(g);
     }
 
     // Scroll indicator
-    if (count > MAX_VISIBLE_ROWS) {
+    const totalRows = Math.ceil(items.length / GRID_COLS);
+    if (totalRows > GRID_ROWS) {
+      const barH = GRID_ROWS * (CELL_H + CELL_GAP) - CELL_GAP;
+      const thumbH = Math.max(10, barH * (GRID_ROWS / totalRows));
+      const thumbY = (this.scrollRowOffset / (totalRows - GRID_ROWS)) * (barH - thumbH);
       const scrollG = new Graphics();
-      const barH = LIST_H - 14;
-      const thumbH = Math.max(10, barH * (MAX_VISIBLE_ROWS / count));
-      const thumbY = listStartY + (this.scrollOffset / (count - MAX_VISIBLE_ROWS)) * (barH - thumbH);
-      scrollG.rect(PANEL_W - PADDING - 3, listStartY, 2, barH).fill({ color: COL_BORDER, alpha: 0.3 });
-      scrollG.rect(PANEL_W - PADDING - 3, thumbY, 2, thumbH).fill({ color: COL_DIM, alpha: 0.6 });
-      this.listArea.addChild(scrollG);
+      scrollG.rect(GRID_W + 2, 0, 2, barH).fill({ color: COL_BORDER, alpha: 0.3 });
+      scrollG.rect(GRID_W + 2, thumbY, 2, thumbH).fill({ color: COL_DIM, alpha: 0.6 });
+      this.gridArea.addChild(scrollG);
     }
 
-    // Selection pulse overlay — sits on top of all rows; redrawn each frame
-    // in update(dt) with a sin-driven alpha. Sized to the selected row.
-    if (this.selectedIndex >= this.scrollOffset && this.selectedIndex < this.scrollOffset + MAX_VISIBLE_ROWS) {
-      const rowIdx = this.selectedIndex - this.scrollOffset;
-      const ry = listStartY + rowIdx * (ROW_H + ROW_GAP);
-      const rowW = PANEL_W - PADDING * 2;
-      const overlay = new Graphics();
-      overlay.x = PADDING;
-      overlay.y = ry;
-      this.listArea.addChild(overlay);
-      this.selectionOverlay = overlay;
-      this.selectionRect = { x: PADDING, y: ry, w: rowW, h: ROW_H };
+    // Selection pulse — added last so it renders on top of all cells
+    if (this.selectedIndex >= startIdx && this.selectedIndex < endIdx) {
+      const localIdx = this.selectedIndex - startIdx;
+      const col = localIdx % GRID_COLS;
+      const row = Math.floor(localIdx / GRID_COLS);
+      const pulse = new Graphics();
+      pulse.x = col * (CELL_W + CELL_GAP);
+      pulse.y = row * (CELL_H + CELL_GAP);
+      this.gridArea.addChild(pulse);
+      this.selectionPulseOverlay = pulse;
+      this.selectionPulseRect = { w: CELL_W, h: CELL_H };
       this.redrawSelectionPulse();
     }
   }
 
-  private redrawSelectionPulse(): void {
-    if (!this.selectionOverlay || !this.selectionRect) return;
-    const t = this.selectionPulseTimer / 1000; // ms → s
-    // 1.4 Hz pulse, 0.65 ± 0.35 of base alpha → range 0.30..1.00 of base
-    // (always-bright orange glow that breathes, never fully fades)
-    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
-    this.selectionOverlay.clear();
-    drawSelectionPulse(this.selectionOverlay, this.selectionRect.w, this.selectionRect.h, a);
-  }
-
-  private drawRow(item: ItemInstance, y: number, isSelected: boolean, isEquipped: boolean, isOnAnvil: boolean): void {
-    const rowW = PANEL_W - PADDING * 2;
-    const g = new Graphics();
-    g.x = PADDING;
-    g.y = y;
-
-    const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
+  private drawCell(item: ItemInstance, cx: number, cy: number, isSelected: boolean): void {
+    const rarityColor = RARITY_COLOR[item.rarity] ?? 0xffffff;
+    const isEquipped = this.inventory.equipped?.uid === item.uid;
+    const isOnAnvil = this.anvilItem?.uid === item.uid;
+    const isCleared = item.worldProgress?.cleared === true;
     const isStarterOnly = STARTER_ONLY_IDS.has(item.def.id);
-    // Demo build: cleared items are dive-blocked → render with the LOCK pattern
-    // (gray dim + 🔒 badge), same treatment as starter-only weapons. In full
-    // builds (DEMO_BLOCK_REDIVE=false), cleared items keep the green CLR badge
-    // since the yarikomi cycle is reachable.
-    const isClearedBlocked = DEMO_BLOCK_REDIVE && (item.worldProgress?.cleared === true);
-    const isLocked = isStarterOnly || isClearedBlocked;
+    const isLocked = isStarterOnly || (DEMO_BLOCK_REDIVE && isCleared);
 
-    // Row background — Bloodstained-tier 4-layer for selected,
-    // simple equipped tint otherwise. SSoT: docs/ui-components.html#selection-state
+    // Cell background
+    const bg = new Graphics();
+    bg.rect(cx, cy, CELL_W, CELL_H).fill({ color: 0x0d0d10, alpha: isOnAnvil ? 0.2 : 1 });
     if (isSelected) {
-      drawSelectionRow(g, rowW, ROW_H);
-      if (isEquipped) {
-        // Selected + equipped — both states are orange. The pulse + chevrons
-        // already signal selection; the [E] badge below signals equipped.
-        // Drop the redundant left bar to avoid double-orange clutter.
-      }
+      bg.rect(cx, cy, CELL_W, CELL_H).stroke({ color: COL_KEY, width: 2 });
     } else if (isEquipped) {
-      g.rect(0, 0, rowW, ROW_H).fill({ color: COL_ROW_EQUIPPED_BG, alpha: 0.6 });
-      g.rect(0, 0, 3, ROW_H).fill(COL_ROW_EQUIPPED_BAR); // orange left bar
+      bg.rect(cx, cy, CELL_W, CELL_H).stroke({ color: COL_EQUIPPED_BAR, width: 1 });
     } else {
-      // Normal — transparent (panel bg shows through)
+      bg.rect(cx, cy, CELL_W, CELL_H).stroke({ color: rarityColor, width: 1, alpha: 0.55 });
+    }
+    this.gridArea.addChild(bg);
+
+    // Item icon
+    if (!isOnAnvil) {
+      const iconSize = 32;
+      const img = new ItemImage(item, iconSize);
+      img.container.x = cx + Math.floor((CELL_W - iconSize) / 2);
+      img.container.y = cy + Math.floor((CELL_H - iconSize) / 2);
+      if (isLocked && this.mode === 'anvil') img.container.alpha = 0.4;
+      this.gridArea.addChild(img.container);
     }
 
-    // Dim only if placed on anvil (starter-only state is signalled by the
-    // 🔒 lock badge on the right; dimming the row also dims the selection
-    // halo and makes Broken Sword look "darker than the others" when picked).
-    if (isOnAnvil) {
-      g.alpha = 0.3;
-    }
-
-    this.listArea.addChild(g);
-
-    let cx = PADDING + 4;
-
-    // Symmetric chevrons (▶ left + ◀ right) — Bloodstained pattern.
-    // Right chevron sits inside the row's right padding so it doesn't collide
-    // with the dive-status column.
-    if (isSelected) {
-      const cursorL = new BitmapText({ text: '\u25B6', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ROW_CURSOR } });
-      cursorL.x = cx;
-      cursorL.y = y + 3;
-      this.listArea.addChild(cursorL);
-      const cursorR = new BitmapText({ text: '\u25C0', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: COL_ROW_CURSOR } });
-      cursorR.x = PADDING + rowW - 10;
-      cursorR.y = y + 3;
-      this.listArea.addChild(cursorR);
-    }
-    cx += 14;
-
-    // [E] badge
+    // Top-left: [E] equipped badge
     if (isEquipped) {
-      const badge = new Graphics();
-      badge.roundRect(cx, y + 3, 12, 12, 2).fill(COL_ROW_EQUIPPED_BAR);
-      this.listArea.addChild(badge);
-      const eText = new BitmapText({ text: t('ui.inventory.equip_indicator'), style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x000000 } });
-      eText.x = cx + 3;
-      eText.y = y + 4;
-      this.listArea.addChild(eText);
+      const b = new Graphics();
+      b.rect(cx, cy, 8, 7).fill(COL_EQUIPPED_BAR);
+      this.gridArea.addChild(b);
+      const eTxt = new BitmapText({ text: 'E', style: { fontFamily: PIXEL_FONT, fontSize: 6, fill: 0x000000 } });
+      eTxt.x = cx + 1; eTxt.y = cy;
+      this.gridArea.addChild(eTxt);
     }
-    cx += 16;
 
-    // Item name (rarity color, brighter if selected). Selection always
-    // wins — even starter-only items light up white when picked, so the
-    // selection signal stays uniform across the list.
-    const nameColor = isSelected
-      ? COL_TEXT_WHITE
-      : (isLocked ? COL_LOCKED : (isEquipped ? rarityColor : COL_DIM));
-    const name = item.def.name;
-    const nameText = createUiText(name, { fontSize: 10, fill: nameColor });
-    nameText.x = cx;
-    nameText.y = y + 3;
-    this.listArea.addChild(nameText);
-
-    // Level (between name and stars)
-    const lvColor = (isOnAnvil || isLocked) ? COL_LOCKED : (isSelected ? COL_TEXT_WHITE : COL_TEXT);
-    const lvText = new BitmapText({
-      text: `Lv.${item.level}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: lvColor }
-    });
-    lvText.x = PADDING + rowW - 150;
-    lvText.y = y + 4;
-    this.listArea.addChild(lvText);
-
-    // Stars (rarity)
-    const starCount = { normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 5 }[item.rarity] ?? 1;
-    const starsText = new BitmapText({
-      text: '★'.repeat(starCount),
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xffd700 }
-    });
-    starsText.x = PADDING + rowW - 110;
-    starsText.y = y + 5;
-    this.listArea.addChild(starsText);
-
-    // ATK stat
-    const atkText = new BitmapText({
-      text: `ATK ${item.finalAtk}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: (isOnAnvil || isLocked || isEquipped) ? COL_LOCKED : COL_TEXT }
-    });
-    atkText.x = PADDING + rowW - 68;
-    atkText.y = y + 4;
-    if (isOnAnvil) atkText.text = t('ui.inventory.on_anvil');
-    this.listArea.addChild(atkText);
-
-    // DIVE / CLR / LOCKED badge (right end)
-    const badgeX = PADDING + rowW - 28;
-    if (isLocked || isEquipped) {
-      // LOCK pattern: starter-only / equipped / cleared(demo block)
-      const lockBadge = new Graphics();
-      lockBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).stroke({ color: COL_LOCKED, width: 1 });
-      this.listArea.addChild(lockBadge);
-      const lockText = new BitmapText({ text: '🔒', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_LOCKED } });
-      lockText.x = badgeX + 2;
-      lockText.y = y + 4;
-      this.listArea.addChild(lockText);
-    } else if (item.worldProgress?.cleared) {
-      const clrBadge = new Graphics();
-      clrBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).fill(COL_CLEARED);
-      this.listArea.addChild(clrBadge);
-      const clrText = createUiText(t('ui.inventory.button_clr'), { fontSize: 8, fill: 0x000000 });
-      clrText.x = badgeX;
-      clrText.y = y + 4;
-      this.listArea.addChild(clrText);
-    } else if (!isOnAnvil) {
-      const diveBadge = new Graphics();
-      diveBadge.roundRect(badgeX - 4, y + 3, 28, 12, 2).fill(COL_DIVE);
-      this.listArea.addChild(diveBadge);
-      const diveText = createUiText(t('ui.inventory.button_dive'), { fontSize: 8, fill: 0x000000 });
-      diveText.x = badgeX - 1;
-      diveText.y = y + 4;
-      this.listArea.addChild(diveText);
+    // Bottom-right: CLR badge
+    if (isCleared && !isLocked) {
+      const b = new Graphics();
+      b.rect(cx + CELL_W - 12, cy + CELL_H - 7, 12, 7).fill({ color: COL_CLEARED, alpha: 0.85 });
+      this.gridArea.addChild(b);
+      const clrTxt = new BitmapText({ text: 'CLR', style: { fontFamily: PIXEL_FONT, fontSize: 5, fill: 0x000000 } });
+      clrTxt.x = cx + CELL_W - 11; clrTxt.y = cy + CELL_H - 7;
+      this.gridArea.addChild(clrTxt);
     }
+
+    // Lock icon — anvil mode only
+    if (isLocked && this.mode === 'anvil') {
+      const lock = new BitmapText({ text: '🔒', style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_LOCKED } });
+      lock.x = cx + Math.floor((CELL_W - 8) / 2);
+      lock.y = cy + Math.floor((CELL_H - 8) / 2) + 2;
+      this.gridArea.addChild(lock);
+    }
+
   }
 
-  // ── Detail Panel ──────────────────────────────────────────────────────────────
-  private drawDetail(): void {
-    for (const c of [...this.detailArea.children]) {
-      this.detailArea.removeChild(c);
+  private redrawSelectionPulse(): void {
+    if (!this.selectionPulseOverlay || !this.selectionPulseRect) return;
+    const s = this.selectionPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(s * Math.PI * 2 * 1.4));
+    this.selectionPulseOverlay.clear();
+    drawSelectionPulse(this.selectionPulseOverlay, this.selectionPulseRect.w, this.selectionPulseRect.h, a);
+  }
+
+  // ── Info column (middle) ─────────────────────────────────────────────────────
+  private drawInfo(): void {
+    for (const c of [...this.infoArea.children]) {
+      this.infoArea.removeChild(c);
       c.destroy?.({ children: true });
     }
+    this.anvilPulseOverlay = null;
+    this.anvilPulseRect = null;
 
-    const item = this.inventory.items[this.selectedIndex];
-    let y = 0;
+    if (this.mode === 'anvil') {
+      this.drawAnvilSlot();
+      return;
+    }
+    this.drawItemInfo(this.filteredItems()[this.selectedIndex]);
+  }
 
-    // Divider
-    const divG = new Graphics();
-    divG.moveTo(PADDING, y);
-    divG.lineTo(PANEL_W - PADDING, y);
-    divG.stroke({ width: 1, color: COL_BORDER });
-    this.detailArea.addChild(divG);
-    y += 6;
+  private drawItemInfo(item: ItemInstance | undefined): void {
+    const W = INFO_W - 8;
+    let y = 4;
 
     if (!item) {
-      const emptyText = createUiText(
-        this.mode === 'anvil'
-          ? t('ui.inventory.no_items_to_dive')
-          : t('ui.inventory.empty_count', { count: this.inventory.items.length }),
-        { fontSize: 10, fill: COL_DIM }
-      );
-      emptyText.x = PADDING;
-      emptyText.y = y;
-      this.detailArea.addChild(emptyText);
+      const empty = createUiText(t('ui.inventory.no_items_to_dive'), { fontSize: 9, fill: COL_DIM });
+      empty.x = 4; empty.y = y;
+      this.infoArea.addChild(empty);
       return;
     }
 
-    const equipped = this.inventory.equipped;
-    const isEquipped = equipped?.uid === item.uid;
-    const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT_WHITE;
+    const rarityColor = RARITY_COLOR[item.rarity] ?? 0xffffff;
 
-    // Item name — wordWrap to detail panel width (minus side padding).
-    const DETAIL_WRAP_W = PANEL_W - PADDING * 2;
-    const nameText = createUiText(item.def.name, {
-      fontSize: 12,
-      fill: rarityColor,
-      wordWrap: true,
-      wordWrapWidth: DETAIL_WRAP_W,
+    // === DEC-046 Identity Card 패러다임 ===
+
+    // 1. 표시 이름 (Stage 진화 반영)
+    const displayName = getDisplayName(item);
+    const nameText = createUiText(displayName, {
+      fontSize: 11, fill: rarityColor, wordWrap: true, wordWrapWidth: W,
     });
-    nameText.x = PADDING;
-    nameText.y = y;
-    this.detailArea.addChild(nameText);
+    nameText.x = 4; nameText.y = y;
+    this.infoArea.addChild(nameText);
     y += 14;
 
-    // Rarity (level is shown in the row, not here)
+    // 2. 레어리티 · 카테고리 · Recovery %
     const rarityName = RARITY_DISPLAY_NAME[item.rarity] ?? item.rarity;
-    const cycle = item.worldProgress?.cycle ?? 0;
-    const cycleTag = cycle > 0 ? ` C${cycle}` : '';
-    const clearTag = item.worldProgress?.cleared ? ' CLR' : '';
-    const metaText = createUiText(`${rarityName}${cycleTag}${clearTag}`, { fontSize: 8, fill: COL_DIM });
-    metaText.x = PADDING;
-    metaText.y = y;
-    this.detailArea.addChild(metaText);
-    y += 12;
-
-    // ATK with auto-compare (always show delta when equipped weapon exists)
-    if (equipped && equipped.uid !== item.uid) {
-      const deltaAtk = item.finalAtk - equipped.finalAtk;
-      const deltaColor = deltaAtk > 0 ? COL_POSITIVE : deltaAtk < 0 ? COL_NEGATIVE : COL_TEXT;
-      const deltaStr = deltaAtk !== 0 ? ` (${deltaAtk > 0 ? '+' : ''}${deltaAtk})` : '';
-      const atkLine = createUiText(
-        t('ui.inventory.atk_compare', { atk: item.finalAtk, delta: deltaStr }),
-        { fontSize: 10, fill: deltaColor, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
-      );
-      atkLine.x = PADDING;
-      atkLine.y = y;
-      this.detailArea.addChild(atkLine);
-    } else {
-      const atkLine = createUiText(
-        t('ui.inventory.atk_plain', { atk: item.finalAtk }),
-        { fontSize: 10, fill: COL_TEXT, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
-      );
-      atkLine.x = PADDING;
-      atkLine.y = y;
-      this.detailArea.addChild(atkLine);
-    }
-    y += 12;
-
-    // Innocents + Strata
-    const innocentCount = item.innocents?.length ?? 0;
-    const maxSlots = { normal: 2, magic: 3, rare: 4, legendary: 6, ancient: 8 }[item.rarity] ?? 2;
-    const strata = STRATA_BY_RARITY[item.rarity];
-    const totalStrata = strata?.strata.length ?? 0;
-    const clearedStrata = item.worldProgress?.deepestUnlocked ?? 0;
-    const infoLine = createUiText(
-      t('ui.inventory.summary', {
-        shards: innocentCount,
-        maxSlots,
-        cleared: clearedStrata,
-        total: totalStrata,
-      }),
-      { fontSize: 8, fill: COL_DIM, wordWrap: true, wordWrapWidth: DETAIL_WRAP_W },
+    const category = getIdentityCategory(item);
+    const categoryLabel = category === 'Unknown'
+      ? t('ui.inventory.recovery_unknown')
+      : t(`ui.category.${category.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase()}`);
+    const recoveryPct = Math.floor(item.memoryRecovery);
+    const meta = createUiText(
+      t('ui.inventory.recovery_meta', { rarity: rarityName, category: categoryLabel, pct: recoveryPct }),
+      { fontSize: 8, fill: COL_DIM },
     );
-    infoLine.x = PADDING;
-    infoLine.y = y;
-    this.detailArea.addChild(infoLine);
-    y += 14;
+    meta.x = 4; meta.y = y;
+    this.infoArea.addChild(meta);
+    y += 12;
 
-    // Action hints
-    let hintText: string;
-    const ATK = actionKey(GameAction.ATTACK);
-    const ESC = actionKey(GameAction.MENU);
-    const JMP = actionKey(GameAction.JUMP);
-    if (this.mode === 'anvil') {
-      hintText = this.anvilState === 'placed'
-        ? t('ui.inventory.hint_dive', { atk: ATK, esc: ESC })
-        : t('ui.inventory.hint_place', { atk: ATK, esc: ESC });
-    } else {
-      hintText = isEquipped
-        ? t('ui.inventory.hint_close', { esc: ESC })
-        : t('ui.inventory.hint_equip', { atk: ATK, jmp: JMP, esc: ESC });
+    // 3. Recovery 게이지 (시각 막대)
+    const barW = W - 4;
+    const barH = 4;
+    const bar = new Graphics();
+    bar.rect(4, y, barW, barH).fill({ color: 0x222230 });
+    const fillW = Math.floor(barW * (item.memoryRecovery / 100));
+    const stage = getCurrentStage(item);
+    const stageColor = stage === 0 ? 0x666666 : stage === 4 ? rarityColor : 0xcccccc;
+    if (fillW > 0) {
+      bar.rect(4, y, fillW, barH).fill({ color: stageColor });
     }
-    const hint = createUiText(hintText, {
-      fontSize: 8,
-      fill: COL_DIM,
-      wordWrap: true,
-      wordWrapWidth: DETAIL_WRAP_W,
-    });
-    hint.x = PADDING;
-    hint.y = y;
-    this.detailArea.addChild(hint);
+    bar.rect(4, y, barW, barH).stroke({ color: COL_BORDER, width: 1 });
+    this.infoArea.addChild(bar);
+    y += 10;
+
+    // 4. Re-Dive 카운터 (100% 도달 후만)
+    if (item.memoryRecovery >= 100) {
+      const reDiveTxt = createUiText(t('ui.inventory.redive_count', { count: item.reDiveCount }), { fontSize: 7, fill: COL_DIM });
+      reDiveTxt.x = 4; reDiveTxt.y = y;
+      this.infoArea.addChild(reDiveTxt);
+      y += 10;
+    }
+
+    // Divider
+    const div1 = new Graphics();
+    div1.moveTo(4, y).lineTo(W, y).stroke({ color: COL_BORDER, width: 1 });
+    this.infoArea.addChild(div1);
+    y += 5;
+
+    // 5. 해금된 Memory Fragment 목록 (최대 4줄)
+    const totalFragmentsForRarity = { normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 4 }[item.rarity] ?? 1;
+    const stages = item.rarity === 'normal' ? [4]
+      : item.rarity === 'magic' ? [2, 4]
+      : item.rarity === 'rare' ? [1, 2, 4]
+      : [1, 2, 3, 4];
+    let fragmentsShown = 0;
+    for (const fragStage of stages) {
+      if (fragmentsShown >= 4) break;
+      const f = getStageFragment(item.def.id, fragStage);
+      const isUnlocked = item.unlockedFragments.includes(`${item.def.id}_stage_${fragStage}`);
+      const text = isUnlocked && f
+        ? `▸ "${(f.textKo || f.textEn).slice(0, 38)}${(f.textKo || f.textEn).length > 38 ? '…' : ''}"`
+        : t('ui.inventory.fragment_placeholder');
+      const color = isUnlocked ? 0xffffff : 0x555555;
+      const fontSize = (fragStage === 4 && isUnlocked) ? 8 : 7;
+      const txt = createUiText(text, { fontSize, fill: color, wordWrap: true, wordWrapWidth: W });
+      txt.x = 4; txt.y = y;
+      this.infoArea.addChild(txt);
+      y += Math.max(10, Math.floor((txt.height ?? 10)));
+      fragmentsShown++;
+    }
+    if (totalFragmentsForRarity === 0) {
+      // 폴백 (불가능한 케이스)
+      const noFrag = createUiText(t('ui.inventory.fragment_placeholder'), { fontSize: 7, fill: 0x555555 });
+      noFrag.x = 4; noFrag.y = y;
+      this.infoArea.addChild(noFrag);
+      y += 10;
+    }
+
+    // Divider
+    const div2 = new Graphics();
+    div2.moveTo(4, y).lineTo(W, y).stroke({ color: COL_BORDER, width: 1 });
+    this.infoArea.addChild(div2);
+    y += 5;
+
+    // 6. Hints — key glyphs
+    const isEquipped = this.inventory.equipped?.uid === item.uid;
+    const hintPairs = isEquipped
+      ? [{ action: GameAction.MENU, label: 'Close' }]
+      : [{ action: GameAction.ATTACK, label: 'Equip' }, { action: GameAction.MENU, label: 'Close' }];
+    const hintRow = this.buildHintRow(hintPairs);
+    hintRow.x = 4; hintRow.y = y;
+    this.infoArea.addChild(hintRow);
   }
 
-  // ── Anvil 2-stage placement ───────────────────────────────────────────────────
+  // ── Anvil slot (anvil mode, middle column) ────────────────────────────────────
+  // v2 (2026-05-24): 64px 아이콘 좌측 + 우측에 이름 / Stage 호칭 / Recovery% 메타.
+  // 빈 상태/placed 상태 슬롯 위치 일관 (둘 다 좌측 정렬) — 위치 점프 방지.
+  // ui-components.html #inventory "Anvil Mode v2" 카드 참조.
+  private drawAnvilSlot(): void {
+    const hasItem = !!this.anvilItem;
+    const slotSize = 64;
+    const slotX = 8;
+    const slotY = 8;
+
+    const bg = new Graphics();
+    bg.rect(slotX, slotY, slotSize, slotSize).fill({ color: 0x0d0d10, alpha: 0.8 });
+    const borderColor = hasItem ? (RARITY_COLOR[this.anvilItem!.rarity] ?? 0xffffff) : COL_BORDER;
+    bg.rect(slotX, slotY, slotSize, slotSize).stroke({ color: borderColor, width: 2 });
+    this.infoArea.addChild(bg);
+
+    if (!hasItem) {
+      const pulse = new Graphics();
+      pulse.x = slotX; pulse.y = slotY;
+      this.infoArea.addChild(pulse);
+      this.anvilPulseOverlay = pulse;
+      this.anvilPulseRect = { w: slotSize, h: slotSize };
+      this.redrawAnvilPulse();
+
+      const label = createUiText(t('ui.inventory.button_anvil'), { fontSize: 8, fill: COL_DIM });
+      label.x = Math.floor((INFO_W - label.width) / 2);
+      label.y = slotY + slotSize + 6;
+      this.infoArea.addChild(label);
+    } else {
+      const item = this.anvilItem!;
+      const rarityColor = RARITY_COLOR[item.rarity] ?? 0xffffff;
+
+      // 64px 아이콘 (좌측)
+      const imgSize = slotSize - 12;
+      const img = new ItemImage(item, imgSize);
+      img.container.x = slotX + 6;
+      img.container.y = slotY + 6;
+      this.infoArea.addChild(img.container);
+
+      // 우측 메타 — 이름 + Stage 호칭 + Recovery%
+      const metaX = slotX + slotSize + 8;
+      const metaW = INFO_W - metaX - 4;
+      let mY = slotY + 2;
+
+      // 1. 아이템 이름 (Stage 진화 반영)
+      const displayName = getDisplayName(item);
+      const nameText = createUiText(displayName, {
+        fontSize: 12, fill: rarityColor, wordWrap: true, wordWrapWidth: metaW,
+      });
+      nameText.x = metaX; nameText.y = mY;
+      this.infoArea.addChild(nameText);
+      mY += Math.max(16, Math.floor((nameText.height ?? 14)) + 2);
+
+      // 2. Identity Stage 호칭
+      const category = getIdentityCategory(item);
+      const categoryLabel = category === 'Unknown'
+        ? t('ui.inventory.recovery_unknown')
+        : t(`ui.category.${category.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase()}`);
+      const titleText = createUiText(categoryLabel, { fontSize: 9, fill: COL_TEXT });
+      titleText.x = metaX; titleText.y = mY;
+      this.infoArea.addChild(titleText);
+      mY += 14;
+
+      // 3. Recovery %
+      const recoveryPct = Math.floor(item.memoryRecovery);
+      const recovText = createUiText(`Recovery ${recoveryPct}%`, { fontSize: 9, fill: COL_DIM });
+      recovText.x = metaX; recovText.y = mY;
+      this.infoArea.addChild(recovText);
+
+      // 하단 DIVE 라벨 (전체 폭 중앙)
+      const divLabel = createUiText(t('ui.inventory.button_dive'), { fontSize: 10, fill: rarityColor });
+      divLabel.x = Math.floor((INFO_W - divLabel.width) / 2);
+      divLabel.y = slotY + slotSize + 4;
+      this.infoArea.addChild(divLabel);
+    }
+
+    const hintPairs = hasItem
+      ? [{ action: GameAction.ATTACK, label: 'Dive' }, { action: GameAction.MENU, label: 'Cancel' }]
+      : [{ action: GameAction.ATTACK, label: 'Place' }, { action: GameAction.MENU, label: 'Back' }];
+    const hintRow = this.buildHintRow(hintPairs);
+    hintRow.x = 4;
+    hintRow.y = slotY + slotSize + 22;
+    this.infoArea.addChild(hintRow);
+  }
+
+  private redrawAnvilPulse(): void {
+    if (!this.anvilPulseOverlay || !this.anvilPulseRect) return;
+    const s = this.anvilPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.55 + 0.45 * Math.sin(s * Math.PI * 2 * 1.2));
+    this.anvilPulseOverlay.clear();
+    this.anvilPulseOverlay
+      .rect(0, 0, this.anvilPulseRect.w, this.anvilPulseRect.h)
+      .stroke({ color: ROW_SELECTED_GLOW, width: 2, alpha: a });
+    this.anvilPulseOverlay
+      .rect(1, 1, this.anvilPulseRect.w - 2, this.anvilPulseRect.h - 2)
+      .stroke({ color: ROW_SELECTED_GLOW_INNER, width: 1, alpha: Math.min(1, a * 0.85) });
+  }
+
+  // ── Right column ─────────────────────────────────────────────────────────────
+  private drawRightColumn(): void {
+    for (const c of [...this.statusArea.children]) {
+      this.statusArea.removeChild(c);
+      c.destroy?.({ children: true });
+    }
+    if (this.mode === 'anvil') {
+      this.drawStratumMinimap();
+    } else {
+      this.drawPlayerStatus();
+    }
+  }
+
+  private drawPlayerStatus(): void {
+    let y = 0;
+    const W = STATUS_W - 6;
+    const stats = this.playerStats;
+    const selectedItem = this.filteredItems()[this.selectedIndex];
+    const equippedItem = this.inventory.equipped;
+
+    // Header
+    const header = createUiText(t('ui.inventory.status_header'), { fontSize: 8, fill: COL_DIM });
+    header.x = 2; header.y = y;
+    this.statusArea.addChild(header);
+    y += 14;
+
+    // HP
+    const hpStr = stats ? `${stats.hp} / ${stats.maxHp}` : '—';
+    const hpL = createUiText('HP', { fontSize: 8, fill: COL_DIM });
+    const hpV = createUiText(hpStr, { fontSize: 8, fill: 0xee4444 });
+    hpL.x = 2; hpL.y = y;
+    hpV.x = W - hpV.width; hpV.y = y;
+    this.statusArea.addChild(hpL);
+    this.statusArea.addChild(hpV);
+    y += 12;
+
+    // ATK
+    const equippedAtk = equippedItem?.finalAtk ?? stats?.atk ?? 0;
+    const atkL = createUiText(t('ui.inventory.atk_label'), { fontSize: 8, fill: COL_DIM });
+    const atkV = createUiText(`${equippedAtk}`, { fontSize: 8, fill: COL_KEY });
+    atkL.x = 2; atkL.y = y;
+    atkV.x = W - atkV.width; atkV.y = y;
+    this.statusArea.addChild(atkL);
+    this.statusArea.addChild(atkV);
+    y += 10;
+
+    // ATK delta vs selected
+    if (selectedItem && selectedItem.uid !== equippedItem?.uid) {
+      const delta = selectedItem.finalAtk - equippedAtk;
+      if (delta !== 0) {
+        const sign = delta > 0 ? '+' : '';
+        const deltaColor = delta > 0 ? COL_POSITIVE : COL_NEGATIVE;
+        const deltaTxt = createUiText(`${sign}${delta}`, { fontSize: 7, fill: deltaColor });
+        deltaTxt.x = W - deltaTxt.width; deltaTxt.y = y;
+        this.statusArea.addChild(deltaTxt);
+      }
+    }
+    y += 10;
+
+    // Divider
+    const div = new Graphics();
+    div.moveTo(2, y).lineTo(W, y).stroke({ color: COL_BORDER, width: 1 });
+    this.statusArea.addChild(div);
+    y += 6;
+
+    // Relics
+    const relicHeader = createUiText(t('ui.inventory.relics_header'), { fontSize: 8, fill: COL_DIM });
+    relicHeader.x = 2; relicHeader.y = y;
+    this.statusArea.addChild(relicHeader);
+    y += 12;
+
+    const RELIC_DEFS: { key: string; icon: string; label: string }[] = [
+      { key: 'dash',           icon: '>>', label: 'DASH' },
+      { key: 'wallJump',       icon: '||', label: 'WALL' },
+      { key: 'doubleJump',     icon: '^^', label: '2JMP' },
+      { key: 'waterBreathing', icon: '~~', label: 'AQUA' },
+      { key: 'surge',          icon: '##', label: 'SURG' },
+    ];
+    const unlocked = stats?.abilities ?? [];
+    for (const relic of RELIC_DEFS) {
+      const isUnlocked = unlocked.includes(relic.key);
+      const color = isUnlocked ? COL_KEY : COL_LOCKED;
+      const icon = new BitmapText({ text: relic.icon, style: { fontFamily: PIXEL_FONT, fontSize: 7, fill: color } });
+      icon.x = 2; icon.y = y;
+      const lbl = createUiText(relic.label, { fontSize: 7, fill: color });
+      lbl.x = 16; lbl.y = y + 1;
+      this.statusArea.addChild(icon);
+      this.statusArea.addChild(lbl);
+      y += 11;
+    }
+  }
+
+  private drawStratumMinimap(): void {
+    let y = 0;
+    const W = STATUS_W - 6;
+
+    const header = createUiText(t('ui.inventory.stratum_header'), { fontSize: 8, fill: COL_DIM });
+    header.x = 2; header.y = y;
+    this.statusArea.addChild(header);
+    y += 14;
+
+    const mapH = PANEL_H - CONTENT_START_Y - 20;
+    const mapG = new Graphics();
+    mapG.rect(2, y, W, mapH).fill({ color: 0x0a0a12, alpha: 0.8 });
+    mapG.rect(2, y, W, mapH).stroke({ color: COL_BORDER, width: 1 });
+    this.statusArea.addChild(mapG);
+
+    const ph = createUiText('—', { fontSize: 8, fill: COL_LOCKED });
+    ph.x = 2 + Math.floor((W - ph.width) / 2);
+    ph.y = y + Math.floor(mapH / 2) - 4;
+    this.statusArea.addChild(ph);
+  }
+
+  // ── Anvil internal ────────────────────────────────────────────────────────────
+  private filteredItems(): ItemInstance[] {
+    return this.inventory.items.filter(item => itemMatchesFilter(item, this.filter));
+  }
+
   private placeOnAnvil(item: ItemInstance): void {
     this.anvilItem = item;
     this.anvilState = 'placed';
@@ -763,11 +859,10 @@ export class InventoryUI {
 
   private removeFromAnvil(): void {
     if (!this.anvilItem) return;
-    const slotIdx = this.inventory.items.indexOf(this.anvilItem);
+    const idx = this.filteredItems().indexOf(this.anvilItem);
     this.anvilItem = null;
     this.anvilState = 'selecting';
-    this.clearAnvilSlot();
-    if (slotIdx >= 0) this.selectedIndex = slotIdx;
+    if (idx >= 0) this.selectedIndex = idx;
     this.refresh();
   }
 
@@ -779,98 +874,33 @@ export class InventoryUI {
     this.onSelect?.(item);
   }
 
-  private drawAnvilArea(): void {
-    const slot = new Container();
-    const anvilSlotSize = ANVIL_SLOT_W;
-    const hasItem = !!this.anvilItem;
-    const rarityColor = hasItem ? (RARITY_COLOR[this.anvilItem!.rarity] ?? COL_TEXT_WHITE) : COL_BORDER;
-
-    // Anvil slot
-    const slotX = PANEL_W + Math.floor((ANVIL_SIDE_W - anvilSlotSize) / 2);
-    const slotY = Math.floor((PANEL_H - anvilSlotSize) / 2) - 6;
-    const activeForgeTexture = hasItem ? this.skin?.getTexture('ui_forge_active') : undefined;
-    if (activeForgeTexture) {
-      const forge = new Sprite(activeForgeTexture);
-      forge.x = slotX;
-      forge.y = slotY;
-      forge.width = anvilSlotSize;
-      forge.height = anvilSlotSize;
-      slot.addChild(forge);
-    } else {
-      const bg = new Graphics();
-      bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).fill({ color: COL_EQUIP_BG, alpha: 0.5 });
-      const borderColor = hasItem ? rarityColor : COL_BORDER;
-      bg.rect(slotX, slotY, anvilSlotSize, anvilSlotSize).stroke({ color: borderColor, width: 2 });
-      slot.addChild(bg);
-      if (!hasItem) {
-        const pulse = new Graphics();
-        pulse.x = slotX;
-        pulse.y = slotY;
-        slot.addChild(pulse);
-        this.anvilEmptyPulseOverlay = pulse;
-        this.anvilEmptyPulseRect = { w: anvilSlotSize, h: anvilSlotSize };
-        this.redrawAnvilEmptyPulse();
-      }
+  // ── Update loop ───────────────────────────────────────────────────────────────
+  private buildHintRow(pairs: Array<{ action: GameAction; label: string }>, iconSize = 10): Container {
+    const row = new Container();
+    let x = 0;
+    for (const { action, label } of pairs) {
+      const icon = KeyPrompt.createKeyIcon(actionKey(action), iconSize);
+      icon.x = x;
+      row.addChild(icon);
+      x += iconSize + 3;
+      const txt = createUiText(label, { fontSize: 7, fill: COL_DIM });
+      txt.x = x;
+      txt.y = Math.floor((iconSize - (txt.height ?? 7)) / 2);
+      row.addChild(txt);
+      x += (txt.width ?? 20) + 8;
     }
-
-    if (hasItem) {
-      const itemSize = activeForgeTexture ? 64 : anvilSlotSize - 18;
-      const img = new ItemImage(this.anvilItem!, itemSize);
-      img.container.x = slotX + Math.floor((anvilSlotSize - itemSize) / 2);
-      img.container.y = slotY + Math.floor((anvilSlotSize - itemSize) / 2);
-      slot.addChild(img.container);
-
-      const label = createUiText(t('ui.inventory.button_dive'), { fontSize: 10, fill: rarityColor });
-      label.x = slotX + Math.floor((anvilSlotSize - label.width) / 2);
-      label.y = slotY + anvilSlotSize + 4;
-      slot.addChild(label);
-    } else {
-      const label = createUiText(t('ui.inventory.button_anvil'), { fontSize: 8, fill: COL_DIM });
-      label.x = slotX + Math.floor((anvilSlotSize - label.width) / 2);
-      label.y = slotY + anvilSlotSize + 4;
-      slot.addChild(label);
-    }
-
-    this.panel.addChild(slot);
-    this.anvilSlotContainer = slot;
-  }
-
-  /** @deprecated Use drawAnvilArea instead */
-  private drawAnvilSlot(_item: ItemInstance): void { }
-
-  private clearAnvilSlot(): void {
-    if (this.anvilSlotContainer) {
-      if (this.anvilSlotContainer.parent) this.anvilSlotContainer.parent.removeChild(this.anvilSlotContainer);
-      this.anvilSlotContainer.destroy({ children: true });
-      this.anvilSlotContainer = null;
-    }
-    this.anvilEmptyPulseOverlay = null;
-    this.anvilEmptyPulseRect = null;
-  }
-
-  private redrawAnvilEmptyPulse(): void {
-    if (!this.anvilEmptyPulseOverlay || !this.anvilEmptyPulseRect) return;
-    const t = this.anvilPulseTimer / 1000;
-    const a = ROW_SELECTED_GLOW_ALPHA * (0.55 + 0.45 * Math.sin(t * Math.PI * 2 * 1.2));
-    this.anvilEmptyPulseOverlay.clear();
-    this.anvilEmptyPulseOverlay
-      .rect(0, 0, this.anvilEmptyPulseRect.w, this.anvilEmptyPulseRect.h)
-      .stroke({ color: ROW_SELECTED_GLOW, width: 2, alpha: a });
-    this.anvilEmptyPulseOverlay
-      .rect(1, 1, this.anvilEmptyPulseRect.w - 2, this.anvilEmptyPulseRect.h - 2)
-      .stroke({ color: ROW_SELECTED_GLOW_INNER, width: 1, alpha: Math.min(1, a * 0.85) });
+    return row;
   }
 
   update(dt: number): void {
     if (!this.visible) return;
-    // Selection halo pulse (always animates while a row is selected)
-    if (this.selectionOverlay) {
+    if (this.selectionPulseOverlay) {
       this.selectionPulseTimer += dt;
       this.redrawSelectionPulse();
     }
-    if (this.mode === 'anvil' && this.anvilSlotContainer) {
+    if (this.mode === 'anvil') {
       this.anvilPulseTimer += dt;
-      this.redrawAnvilEmptyPulse();
+      this.redrawAnvilPulse();
     }
   }
 }

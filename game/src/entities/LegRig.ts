@@ -135,6 +135,14 @@ interface LegSprites {
   footPivotY: number;
 }
 
+export interface LegRigSnapshot {
+  phase: number;
+  cumulativeDist: number;
+  wasPlanted: boolean[];
+  plantedFoot: Array<{ x: number; y: number } | null>;
+  swingStartFoot: Array<{ x: number; y: number } | null>;
+}
+
 export class LegRig {
   /** Back layer ??sits behind the builder body tilemap. */
   readonly container: Container;
@@ -315,6 +323,24 @@ export class LegRig {
       leg.footPivotX = foot.pivotX;
       leg.footPivotY = foot.pivotY;
     }
+  }
+
+  createSnapshot(): LegRigSnapshot {
+    return {
+      phase: this.phase,
+      cumulativeDist: this.cumulativeDist,
+      wasPlanted: [...this.wasPlanted],
+      plantedFoot: this.plantedFoot.map(p => p ? { ...p } : null),
+      swingStartFoot: this.swingStartFoot.map(p => p ? { ...p } : null),
+    };
+  }
+
+  restoreSnapshot(snapshot: LegRigSnapshot): void {
+    this.phase = snapshot.phase;
+    this.cumulativeDist = snapshot.cumulativeDist;
+    this.wasPlanted = snapshot.wasPlanted.map(Boolean);
+    this.plantedFoot = snapshot.plantedFoot.map(p => p ? { ...p } : null);
+    this.swingStartFoot = snapshot.swingStartFoot.map(p => p ? { ...p } : null);
   }
 
   /** Detach swap subscription. Call when the rig is destroyed. */

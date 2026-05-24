@@ -119,6 +119,8 @@
     <a href="#shader">셰이더</a>
     <div class="group">13 Updraft 표현</div>
     <a href="#updraft">Upstream</a>
+    <div class="group">14 Builder / Item World</div>
+    <a href="#itemworld">아이템계 진입</a>
     <div class="group" style="color:#664;margin-top:18px">— ARCHIVE —</div>
     <a href="#archive" style="color:#776">스텔스 (제외)</a>
   </nav>
@@ -245,12 +247,13 @@
   <!-- ============================================================ -->
   <section id="light">
     <h2>07. 빛 / 시야</h2>
-    <div class="src">torch chain, mirror, enemy vision, fog, glass, crystal</div>
+    <div class="src">torch chain, mirror, enemy vision, fog, glass, crystal, piledriver beam</div>
     <div class="tile-grid">
       <div class="tile"><canvas data-demo="torch_chain"></canvas><h3>횃불 점화 연쇄</h3><p class="hint">첫 횃불 <b>클릭</b>=점화. 인접 횃불로 연쇄 점등.</p></div>
       <div class="tile"><canvas data-demo="mirror_reflect"></canvas><h3>거울 반사</h3><p class="hint">거울 <b>드래그</b>=각도 조정. 광선이 타겟까지 도달.</p></div>
       <div class="tile"><canvas data-demo="glass_break"></canvas><h3>유리 깨기</h3><p class="hint">유리 <b>클릭</b>=균열. 한 번 더=파편 + 시야 통과.</p></div>
       <div class="tile"><canvas data-demo="light_crystal"></canvas><h3>빛 결정 (실명)</h3><p class="hint"><b>호버</b>=충전. <b>클릭</b>=플래시. 적 일시 실명.</p></div>
+      <div class="tile wide"><canvas data-demo="piledriver_beam"></canvas><h3>천공기 드릴 빔 (GiantBuilder)</h3><p class="hint"><b>클릭</b>=발사. 얇은 빔이 벽까지 뻗은 뒤 팍! 순간 팽창. 충격 파편·화면 섬광·플래시.</p></div>
     </div>
   </section>
 
@@ -350,6 +353,17 @@
       <div class="tile"><canvas data-demo="updraft_speed"></canvas><h3>I. Speed Lines (manga)</h3><p class="hint">빠른 얇은 대각선 streak. 액션 만화 어법.</p></div>
       <div class="tile wide"><canvas data-demo="updraft_composite"></canvas><h3>J. Layered Composite — ship-ready 권장</h3><p class="hint"><b>Beam (E) + Embers (D) + Edge halo (G) + Streamlines (A)</b> 4-layer 합성. 비주얼 풍부도 vs. 성능 균형 최적해. 코드 이관 시 layer 토글 옵션 권장.</p></div>
       <div class="tile wide"><canvas data-demo="updraft_pillars_speed"></canvas><h3>K. Pillars × Speed (G+I 혼합)</h3><p class="hint"><b>좌우 빛 기둥 + 간헐 가로 아크 (G)</b> 위에 <b>빠른 manga streak (I)</b> 를 얹은 합성. force field 경계 + 강력한 상승 운동감을 동시에 표현. 액션 페이즈 강조 후보.</p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 14 BUILDER / ITEM WORLD -->
+  <!-- ============================================================ -->
+  <section id="itemworld">
+    <h2>14. Builder / 아이템계 진입</h2>
+    <div class="src">item world entry — anvil gate absorption</div>
+    <div class="tile-grid">
+      <div class="tile wide"><canvas data-demo="itemworld_entry"></canvas><h3>아이템계 진입 연출 (Rustborn → Anvil Gate)</h3><p class="hint"><b>클릭</b>=진입 시작. 아이템이 짧게 커졌다가 분해되며 기계 중심으로 빨려들어간다.</p></div>
     </div>
   </section>
 
@@ -2520,6 +2534,212 @@ class LightCrystal extends Demo {
     }
   }
 }
+
+class PileDriverBeam extends Demo {
+  init() {
+    this.phase = 'idle'; // idle | hold | burst | decay
+    this.holdT = 0;      // hold 대기 경과 시간
+    this.beamHW = 1.5;   // 빔 반폭 (px)
+    this.flash = 0;      // 화면 섬광 alpha
+    this.shake = 0;      // 화면 흔들림 강도
+    this.impactGlow = 0; // 충돌 지점 글로우
+    this.particles = [];
+  }
+
+  onDown() {
+    if (this.phase === 'idle') {
+      this.phase = 'hold'; // 빔 즉시 풀 길이로 등장
+      this.holdT = 0;
+      this.beamHW = 1.5;
+      this.flash = 0;
+      this.shake = 0;
+      this.impactGlow = 0;
+      this.particles = [];
+    }
+  }
+
+  _bodyRightX() { return this.w * 0.27; }
+  _beamMaxLen()  { return this.w - this._bodyRightX() - 16; }
+  _beamCY()      { return this.h * 0.50; }
+
+  _doBurst() {
+    this.phase = 'burst';
+    this.flash = 1;
+    this.shake = 1;
+    this.impactGlow = 1;
+    const tx = this._bodyRightX() + this._beamMaxLen();
+    const ty = this._beamCY();
+    for (let i = 0; i < 36; i++) {
+      const fwd = i < 18;
+      const ang = fwd
+        ? (Math.random() - 0.5) * 1.4
+        : Math.random() * Math.PI * 2;
+      const spd = 60 + Math.random() * 180;
+      this.particles.push({
+        x: tx, y: ty,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - (fwd ? 10 : 0),
+        life: 0.45 + Math.random() * 0.55,
+        maxLife: 0.45 + Math.random() * 0.55,
+        size: 1 + Math.random() * 3.5,
+        hot: Math.random() > 0.35,
+      });
+    }
+  }
+
+  update(dt) {
+    if (this.phase === 'hold') {
+      this.holdT += dt;
+      // 얇은 빔 flicker + 끝점 글로우 점진 강화 (긴장감)
+      this.beamHW = 1.5 + Math.sin(performance.now() * 0.04) * 0.4;
+      this.impactGlow = Math.min(0.45, this.holdT * 0.7); // 벽 끝 예열 글로우
+      if (this.holdT >= 0.7) this._doBurst();
+    }
+
+    if (this.phase === 'burst') {
+      // 팍! — 반폭을 순식간에 55px 로
+      this.beamHW = Math.min(55, this.beamHW + dt * 1100);
+      this.flash = Math.max(0, this.flash - dt * 7);
+      this.shake = Math.max(0, this.shake - dt * 5);
+      this.impactGlow = Math.max(0, this.impactGlow - dt * 3);
+      if (this.flash <= 0) this.phase = 'decay';
+    }
+
+    if (this.phase === 'decay') {
+      this.beamHW = Math.max(0, this.beamHW - dt * 130);
+      this.impactGlow = Math.max(0, this.impactGlow - dt * 1.5);
+      if (this.beamHW <= 0) { this.phase = 'idle'; }
+    }
+
+    for (const p of this.particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 300 * dt;
+      p.life -= dt;
+    }
+    this.particles = this.particles.filter(p => p.life > 0);
+  }
+
+  render() {
+    const { ctx, w, h } = this;
+
+    ctx.save();
+    if (this.shake > 0) {
+      ctx.translate(
+        (Math.random() - 0.5) * this.shake * 6,
+        (Math.random() - 0.5) * this.shake * 3,
+      );
+    }
+
+    // 배경
+    ctx.fillStyle = '#05050f';
+    ctx.fillRect(-10, -10, w + 20, h + 20);
+
+    // 바닥
+    ctx.fillStyle = '#111120';
+    ctx.fillRect(0, h - 8, w, 8);
+
+    // 오른쪽 타겟 벽
+    ctx.fillStyle = '#18182c';
+    ctx.fillRect(w - 14, 4, 14, h - 12);
+    ctx.fillStyle = '#222238';
+    ctx.fillRect(w - 14, 4, 2, h - 12);
+    // 충돌 글로우 (벽 표면)
+    if (this.impactGlow > 0) {
+      const ig = ctx.createRadialGradient(w - 14, this._beamCY(), 0, w - 14, this._beamCY(), 40 * this.impactGlow);
+      ig.addColorStop(0, `rgba(255,200,80,${this.impactGlow * 0.9})`);
+      ig.addColorStop(1, 'rgba(255,120,0,0)');
+      ctx.fillStyle = ig;
+      ctx.fillRect(w - 54, this._beamCY() - 40, 54, 80);
+    }
+
+    // 빌더 몸체
+    const bx = 6, by = h * 0.15;
+    const bw = this._bodyRightX() - bx;
+    const bh = h * 0.70;
+    ctx.fillStyle = '#1e1e30';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = '#2c2c48'; ctx.lineWidth = 1;
+    ctx.strokeRect(bx + 3, by + 4, bw - 6, bh - 8);
+    // LED 인디케이터
+    for (let i = 0; i < 4; i++) {
+      const lit = this.phase !== 'idle';
+      ctx.fillStyle = lit ? (i % 2 === 0 ? '#ff8c00' : '#ffcc00') : '#332211';
+      ctx.fillRect(bx + 7 + i * 9, by + 13, 6, 3);
+    }
+    // 엠블럼 (십자)
+    const ex = bx + bw * 0.42, ey = by + bh * 0.58;
+    ctx.fillStyle = '#363660';
+    ctx.fillRect(ex - 1, ey - 8, 2, 16);
+    ctx.fillRect(ex - 8, ey - 1, 16, 2);
+    // 파이프 (상단)
+    ctx.fillStyle = '#2a2a42';
+    ctx.fillRect(bx + 4, by - 6, bw - 8, 8);
+    ctx.fillRect(bx + 6, by - 10, 6, 5);
+
+    // ── BEAM ──
+    if (this.phase !== 'idle') {
+      const bsX = this._bodyRightX();
+      const bLen = this._beamMaxLen();
+      const bCY  = this._beamCY();
+      const hw   = this.beamHW;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // 외부 글로우 (wide soft halo)
+      if (hw > 1) {
+        const glowR = hw * 4;
+        const grd = ctx.createLinearGradient(0, bCY - glowR, 0, bCY + glowR);
+        const a = Math.min(0.55, hw * 0.009);
+        grd.addColorStop(0,   'rgba(255,100,0,0)');
+        grd.addColorStop(0.3, `rgba(255,140,0,${a})`);
+        grd.addColorStop(0.5, `rgba(255,210,80,${a * 1.4})`);
+        grd.addColorStop(0.7, `rgba(255,140,0,${a})`);
+        grd.addColorStop(1,   'rgba(255,100,0,0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(bsX, bCY - glowR, bLen, glowR * 2);
+      }
+
+      // 코어 빔 (흰 중심 → 주황 끝)
+      const crd = ctx.createLinearGradient(bsX, 0, bsX + bLen, 0);
+      crd.addColorStop(0,   'rgba(255,180,60,0.9)');
+      crd.addColorStop(0.55,'rgba(255,240,160,1)');
+      crd.addColorStop(1,   'rgba(255,255,255,1)');
+      ctx.fillStyle = crd;
+      ctx.fillRect(bsX, bCY - hw, bLen, hw * 2);
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+    }
+
+    // 파편 입자
+    for (const p of this.particles) {
+      const a = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.hot
+        ? `rgba(255,${(100 + a * 130) | 0},0,${a})`
+        : `rgba(${(45 + a * 35) | 0},${(45 + a * 35) | 0},${(65 + a * 45) | 0},${a})`;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+
+    // 화면 섬광
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(255,210,110,${this.flash * 0.55})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 안내 텍스트
+    if (this.phase === 'idle') {
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.font = '9px ui-monospace,monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('CLICK = FIRE', w / 2, h - 22);
+      ctx.textAlign = 'left';
+    }
+
+    ctx.restore();
+  }
+}
 </script>
 <script>
 /* ============================================================
@@ -4088,6 +4308,228 @@ class UpdraftPillarsSpeed extends Demo {
 
 <script>
 /* ============================================================
+   14 BUILDER / ITEM WORLD
+============================================================ */
+class ItemWorldEntry extends Demo {
+  init() {
+    this.phase    = 'idle'; // idle | punch | suck | absorb
+    this.punchT   = 0;
+    this.scale    = 1;
+    this.shatterT = 0;
+    this.particles = [];
+    this.flash    = 0;
+    this.doneT    = 0;
+    this.pixelData  = null;
+    this.whiteCanvas = null; // 흰색 실루엣 캐시 캔버스
+    this._loadSprites();
+  }
+
+  _loadSprites() {
+    this.imgItem  = new Image();
+    this.imgAnvil = new Image();
+    this.imgItem.src  = '../public/assets/items/sword_rustborn.png';
+    this.imgAnvil.src = '../public/assets/sprites/anvil_gate_01_atlas.png';
+    this.imgItem.onload = () => {
+      // 흰색 실루엣: 스프라이트 알파를 유지하되 RGB=255,255,255 로 채움
+      const wc = document.createElement('canvas');
+      wc.width = 32; wc.height = 32;
+      const wctx = wc.getContext('2d');
+      wctx.drawImage(this.imgItem, 0, 0, 32, 32);
+      wctx.globalCompositeOperation = 'source-in';
+      wctx.fillStyle = 'white';
+      wctx.fillRect(0, 0, 32, 32);
+      this.whiteCanvas = wc;
+      // pixel sampling (CORS가 허용하는 환경에서만)
+      try {
+        const oc = document.createElement('canvas');
+        oc.width = 32; oc.height = 32;
+        const oc2 = oc.getContext('2d');
+        oc2.drawImage(this.imgItem, 0, 0, 32, 32);
+        this.pixelData = oc2.getImageData(0, 0, 32, 32).data;
+      } catch(e) { /* file:// CORS → fallback */ }
+    };
+  }
+
+  onDown() {
+    if (this.phase === 'idle') {
+      this.phase = 'punch'; this.punchT = 0; this.scale = 1;
+      this.particles = []; this.flash = 0; this.shatterT = 0;
+    }
+  }
+
+  // Layout helpers — anvil centered, item below
+  _as()      { return Math.min(this.h * 0.62 / 192, 0.56); }
+  _ax()      { return (this.w - 192 * this._as()) / 2; }
+  _ay()      { return 4; }
+  _suckX()   { return this._ax() + 192 * this._as() * 0.50; }
+  _suckY()   { return this._ay() + 192 * this._as() * 0.52; }
+  _itemX()   { return this.w / 2; }
+  _itemY()   { return this.h - 34; }
+
+  _spawnParticles() {
+    const DISP = 2, ix = this._itemX(), iy = this._itemY();
+    if (this.pixelData) {
+      for (let py = 0; py < 32; py++) {
+        for (let px = 0; px < 32; px++) {
+          if ((px + py) % 2 !== 0) continue;
+          const i = (py * 32 + px) * 4;
+          if (this.pixelData[i + 3] < 40) continue;
+          this.particles.push({
+            x: ix + (px - 16) * DISP * this.scale,
+            y: iy + (py - 16) * DISP * this.scale,
+            vx: (Math.random() - 0.5) * 30,
+            vy: (Math.random() - 0.5) * 30 - 15,
+            r: 255, g: 255, b: 255, // 흰색 분해
+            size: DISP,
+          });
+        }
+      }
+    } else {
+      // Fallback: procedural sword-shape scatter
+      for (let i = 0; i < 90; i++) {
+        const t = i / 90;
+        this.particles.push({
+          x: ix + (Math.random() - 0.5) * 28,
+          y: iy - 24 + t * 48 + (Math.random() - 0.5) * 8,
+          vx: (Math.random() - 0.5) * 30,
+          vy: (Math.random() - 0.5) * 30 - 15,
+          r: 255, g: 255, b: 255,
+          size: 2,
+        });
+      }
+    }
+  }
+
+  update(dt) {
+    // PUNCH — 1 → 1.5x 스케일 + 흰색 전환 후 즉시 분해
+    if (this.phase === 'punch') {
+      this.punchT += dt;
+      this.scale = 1 + Math.min(1, this.punchT / 1.0) * 0.5; // 1 → 1.5 (1.0s)
+      if (this.punchT >= 1.0) { this._spawnParticles(); this.phase = 'suck'; this.shatterT = 0; }
+    }
+
+    // SUCK — spiral toward absorption point
+    if (this.phase === 'suck') {
+      this.shatterT += dt;
+      const sx = this._suckX(), sy = this._suckY();
+      for (const p of this.particles) {
+        const dx = sx - p.x, dy = sy - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+        const pull  = (90 + this.shatterT * 380) / dist;
+        const swirl = 50 / (dist + 8);
+        p.vx += (dx / dist * pull + -dy / dist * swirl) * dt;
+        p.vy += (dy / dist * pull +  dx / dist * swirl) * dt;
+        const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (spd > 520) { p.vx = p.vx / spd * 520; p.vy = p.vy / spd * 520; }
+        p.x += p.vx * dt; p.y += p.vy * dt;
+      }
+      this.particles = this.particles.filter(p =>
+        Math.sqrt((sx - p.x) ** 2 + (sy - p.y) ** 2) > 3
+      );
+      if (this.particles.length === 0) {
+        this.phase = 'absorb'; this.flash = 1; this.doneT = 0;
+      }
+    }
+
+    // ABSORB — flash then reset
+    if (this.phase === 'absorb') {
+      this.flash = Math.max(0, this.flash - dt * 3.2);
+      this.doneT += dt;
+      if (this.doneT > 1.1) { this.phase = 'idle'; this.scale = 1; }
+    }
+  }
+
+  render() {
+    const { ctx, w, h } = this;
+    ctx.fillStyle = '#05050f'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#131322'; ctx.fillRect(0, h - 8, w, 8);
+
+    // Anvil gate machine
+    const as = this._as(), ax = this._ax(), ay = this._ay();
+    ctx.imageSmoothingEnabled = false;
+    if (this.imgAnvil.complete && this.imgAnvil.naturalWidth > 0) {
+      ctx.drawImage(this.imgAnvil, ax, ay, 192 * as, 192 * as);
+    } else {
+      ctx.fillStyle = '#1e1e30'; ctx.fillRect(ax, ay, 192 * as, 192 * as);
+    }
+
+    // Suck vortex glow (inside machine)
+    const sx = this._suckX(), sy = this._suckY();
+    if (this.phase === 'suck' || this.phase === 'absorb') {
+      const t = this.phase === 'absorb' ? this.flash : Math.min(1, this.shatterT * 1.8);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const vg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 14 * t + 4);
+      vg.addColorStop(0, `rgba(255,220,80,${t * 0.9})`);
+      vg.addColorStop(0.5, `rgba(255,100,0,${t * 0.5})`);
+      vg.addColorStop(1, 'rgba(255,60,0,0)');
+      ctx.fillStyle = vg;
+      ctx.beginPath(); ctx.arc(sx, sy, 14 * t + 4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Pedestal
+    if (this.phase === 'idle' || this.phase === 'punch') {
+      const px = this._itemX(), py = this._itemY() + 18;
+      ctx.fillStyle = '#252540'; ctx.fillRect(px - 24, py,     48, 10);
+      ctx.fillStyle = '#353560'; ctx.fillRect(px - 22, py,     44,  2);
+      ctx.fillStyle = '#1e1e38'; ctx.fillRect(px - 20, py + 2, 40,  8);
+      const glow = this.phase === 'punch' ? 0.5 : 0.2;
+      ctx.fillStyle = `rgba(255,255,255,${glow * 0.6})`;
+      ctx.fillRect(px - 22, py, 44, 2);
+    }
+
+    // Item sprite — idle: 원본 색상 / punch: 커지면서 흰색 알파 실루엣
+    if ((this.phase === 'idle' || this.phase === 'punch') &&
+        this.imgItem.complete && this.imgItem.naturalWidth > 0) {
+      const DISP = 2;
+      const sw = 32 * DISP * this.scale, sh = 32 * DISP * this.scale;
+      const ix = this._itemX() - sw / 2, iy = this._itemY() - sh / 2;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      if (this.phase === 'idle') {
+        ctx.drawImage(this.imgItem, ix, iy, sw, sh);
+      } else {
+        // 스케일과 함께 흰색 알파 0 → 1
+        const alpha = Math.min(1, this.punchT / 1.0);
+        const src = this.whiteCanvas || this.imgItem;
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(src, ix, iy, sw, sh);
+      }
+      ctx.restore();
+    }
+
+    // Particles
+    for (const p of this.particles) {
+      const dx = sx - p.x, dy = sy - p.y;
+      const alpha = Math.min(1, Math.sqrt(dx * dx + dy * dy) / 55);
+      ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+
+    // Absorb burst
+    if (this.flash > 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const bg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 55 * this.flash);
+      bg.addColorStop(0, `rgba(255,230,130,${this.flash * 0.85})`);
+      bg.addColorStop(1, 'rgba(255,130,0,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(sx, sy, 55 * this.flash, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Idle hint
+    if (this.phase === 'idle') {
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.font = '9px ui-monospace,monospace'; ctx.textAlign = 'center';
+      ctx.fillText('CLICK = 아이템계 진입', w / 2, h - 20);
+      ctx.textAlign = 'left';
+    }
+  }
+}
+</script>
+
+<script>
+/* ============================================================
    REGISTRY + INITIALIZATION
 ============================================================ */
 const DEMOS = {
@@ -4140,6 +4582,7 @@ const DEMOS = {
   // fog_conceal: FogConceal,  // DEPRECATED 2026-05-18 (안개 변신 폐기 — SotN 카피)
   glass_break: GlassBreak,
   light_crystal: LightCrystal,
+  piledriver_beam: PileDriverBeam,
   // 08 Sound
   sound_gauge: SoundGauge,
   echo_ping: EchoPing,
@@ -4180,6 +4623,8 @@ const DEMOS = {
   updraft_speed: UpdraftSpeed,
   updraft_composite: UpdraftComposite,
   updraft_pillars_speed: UpdraftPillarsSpeed,
+  // 14 Builder / Item World
+  itemworld_entry: ItemWorldEntry,
 };
 
 /* ============================================================

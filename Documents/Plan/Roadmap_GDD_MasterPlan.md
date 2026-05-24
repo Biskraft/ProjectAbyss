@@ -215,6 +215,7 @@
 |:---|:-------|:-----|:-----|:-----|
 | CNT-00 | World Bible | Done | - | 세계관, 거대 빌더, 대공동, 격벽 |
 | CNT-EXP-001 | 첫 30분 경험 플로우 v3 | Done | - | 22 스크린, 에르다 대사 0줄. 검 Ego 대사 허용 |
+| CNT-STR-001 | Story Synopsis (전체 시놉시스) | Done | - | §1.4 + §8 분리 (2026-05-22) |
 | CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준, 2026-05-20) | Done | - | Magic 등급 2지층 샘플. 격벽 측량사 도구. BLAME!/대공동 톤 정합 |
 | ~~CNT-ITM-002~~ | ~~Item Narrative: First Sword~~ | ~~Done~~ | - | ❌ 폐기 2026-05-20 (판타지 톤 — 파일 삭제) |
 | CNT-01 | **Weapon List** | **NEW** | **B0** | 5종(검/대검/단검/활/지팡이) x 5레어리티 = 25개 무기 상세. CSV 연동 |

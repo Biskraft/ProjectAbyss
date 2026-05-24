@@ -41,7 +41,6 @@ import { WallSlideDustManager } from '@effects/WallSlideDust';
 import { FootstepPuffManager } from '@effects/FootstepPuff';
 import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
 import { SurgeVfxManager } from '@effects/SurgeVfx';
-import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
 import { CriticalHighlightManager } from '@effects/CriticalHighlight';
 import { HitBloodSprayManager } from '@effects/HitBloodSpray';
 import { DiveLandImpactManager } from '@effects/DiveLandImpact';
@@ -127,7 +126,6 @@ export class WorldScene extends Scene {
   private footstepPuff!: FootstepPuffManager;
   private flaskBurst!: FlaskHealBurstManager;
   private surgeVfx!: SurgeVfxManager;
-  private comboFinisherBurst!: ComboFinisherBurstManager;
   private criticalHighlight!: CriticalHighlightManager;
   private hitBloodSpray!: HitBloodSprayManager;
   private diveLandImpact!: DiveLandImpactManager;
@@ -234,7 +232,6 @@ export class WorldScene extends Scene {
     this.footstepPuff = new FootstepPuffManager(this.entityLayer);
     this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
     this.surgeVfx = new SurgeVfxManager(this.entityLayer);
-    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
     this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
     this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
     this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
@@ -251,6 +248,10 @@ export class WorldScene extends Scene {
     // Inventory UI — uiContainer(native) 직속 (UI native 마이그레이션 1단계)
     this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
     this.game.uiContainer.addChild(this.inventoryUI.container);
+    // 인벤토리 열림 시 HUD 숨김 (사용자 결정 2026-05-24).
+    this.inventoryUI.onVisibilityChange = (vis: boolean) => {
+      this.hud.container.visible = !vis;
+    };
 
     // Load starting room
     this.loadRoom('down');
@@ -637,7 +638,6 @@ export class WorldScene extends Scene {
         SFX.play('attack_hit');
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
-          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
         }
         if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
           this.screenFlash.flashHit(true);
@@ -905,7 +905,6 @@ export class WorldScene extends Scene {
     this.wallSlideDust.update(dt);
     this.footstepPuff.update(dt);
     this.flaskBurst.update(dt);
-    this.comboFinisherBurst.update(dt);
     this.criticalHighlight.update(dt);
     this.hitBloodSpray.update(dt);
     this.diveLandImpact.update(dt);
@@ -920,6 +919,7 @@ export class WorldScene extends Scene {
 
   private updateInventoryInput(): void {
     const input = this.game.input;
+    if (input.isJustPressed(GameAction.STATUS)) this.inventoryUI.cycleFilter();
     if (input.isJustPressed(GameAction.MOVE_LEFT)) this.inventoryUI.navigate('left');
     if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.inventoryUI.navigate('right');
     if (input.isJustPressed(GameAction.LOOK_UP)) this.inventoryUI.navigate('up');

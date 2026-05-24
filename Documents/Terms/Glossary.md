@@ -1,7 +1,13 @@
 # ECHORIS 용어집 (Glossary)
 
-> 최근 업데이트: 2026-04-28 (DEC-036: Memory Shard → Memory Shard 통합. 5색 기질, 핵심 기억, 정체성 결, 회상/잊혀진 상태 추가)
+> 최근 업데이트: 2026-05-24 (DEC-046: Memory Recovery 패러다임 전환. 5색 기질/Active-Passive 슬롯/전이/합성 폐기. Memory Recovery %, Memory Fragment, Identity Archive, Identity Trait, Name Evolution, Re-Dive, Network Fragment 추가)
 > 문서 상태: `작성 중 (Draft)`
+
+> **DEC-046 핵심 변경 (2026-05-24):**
+> - **신규 용어:** Memory Recovery, Memory Fragment, Identity Archive, Name Evolution (Stage 0~4), Re-Dive, Network Fragment, Echo Chord, Era Echo
+> - **부분 폐기:** Memory Shard (5색 기질 단편 메커닉 폐기 — 단편 *기억 단편* 명칭과 *Forge/Iron/Rust/Spark/Shadow* 색은 시각/내러티브 토큰으로 잔존 가능)
+> - **완전 폐기:** Active/Passive 슬롯, 단편 전이 (Transfer), 단편 합성 (Bond), 단편 분해 (Remnant Fragment), 효과 변이, Forgotten/Recalled 상태, 레어리티 승급 (피티 시스템), 아이템 레벨 0-99, 보스 영구 ATK +N
+> - **재정의:** Identity Slot (정체성 슬롯) → Stage별 Identity Trait 자동 가동으로 대체
 
 ---
 
@@ -79,8 +85,10 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). Shadow 기질 단편(Ghost 등)으로 대시 i-frame을 추가할 수 있다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md`, `Documents/System/System_Memory_Core.md` |
-| Identity Slot | 정체성 슬롯 | 핵심 기억(Core Memory) 전용 슬롯. 무기의 지층 수와 동일한 개수를 가지며, 보스 처치 핵심 기억과 1대1 매칭된다. 일반 단편은 장착 불가. (DEC-036) | `Documents/System/System_Memory_Core.md` |
-| Identity Trait | 정체성 결 | 핵심 기억이 가동시키는 무기의 본질적 성격 한 면. 무기의 코어 인격은 결의 합으로 정의된다. 결을 붕괴(전이)시키면 그 무기다움이 사라진다. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| ~~Identity Slot~~ | ~~정체성 슬롯~~ | ~~DEPRECATED (DEC-046). 핵심 기억 전용 슬롯 개념 폐기. Identity Trait가 Stage 진행에 따라 자동 가동되며 슬롯 메커닉 불필요.~~ | — |
+| Identity Trait | 정체성 결 | 무기의 본질적 효과 단위. Memory Fragment 1개당 Identity Trait 1개가 가동된다. 무기의 모든 스킬·효과는 가동된 결의 합으로 정의. 결의 *성격* 은 무기의 인격을 구성. (DEC-046 재정의 — 이전 정의의 "핵심 기억이 가동시키는"은 "Fragment가 가동시키는"으로 변경) | `Documents/System/System_Memory_Core.md` |
+| Identity Archive | 인물 아카이브 | 복원된 인생들의 컬렉션. 무기 인벤토리와 별도 화면. 카테고리별 인물 목록 + 각 인물의 Recovery 진행도 + 해금된 Memory Fragment 전체. ECHORIS 야리코미의 정서적 핵심. (DEC-046) | `Documents/System/System_Memory_Core.md`, `Documents/UI/UI_Identity_Archive.md` (예정) |
+| Identity Card | 인물 카드 | 인벤토리 중앙 칼럼에 표시되는 현재 선택 아이템의 인물 정보. 이름 + 카테고리 + Recovery 게이지 + 해금 Fragment 목록. (DEC-046) | `Documents/UI/UI_Inventory.md` §3.5 |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | ~~Memory Shard~~ | ~~기억 단편~~ | ~~DEPRECATED. DEC-036에서 검 Ego(DEC-033)와 통합되어 Memory Shard(기억 단편) 시스템으로 흡수. 재도입 금지. 원전(Disgaea) 인용 시에만 영문 Memory Shard 표기 허용.~~ | `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` |
 | ~~Memory Shard Slot~~ | ~~기억 단편 슬롯~~ | ~~DEPRECATED. Identity Slot(정체성 슬롯) + Memory Slot(기억 슬롯) 분할 모델로 대체. (DEC-036)~~ | — |
@@ -98,8 +106,17 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Knockback | 넉백 | 피격 시 캐릭터가 공격 반대 방향으로 밀려나는 물리적 반응. 넉백 거리는 공격 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Character.md` |
-| Memory Shard | 기억 단편 | 무기 Ego의 잊혀진 기억 조각. 단일 효과(스탯·행동·원소)를 가지며 자유롭게 다른 무기로 전이 가능. 5색 기질(Forge/Iron/Rust/Spark/Shadow)로 분류. 일반 단편은 기억 슬롯에 Active 또는 Passive 역할로 장착. (DEC-036) | `Documents/System/System_Memory_Core.md`, `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` |
-| Memory Slot | 기억 슬롯 | 일반 기억 단편을 자유롭게 장착하는 슬롯. Active(전투 중 발현) 또는 Passive(상시) 두 역할 중 하나로 끼움. 같은 단편이라도 역할에 따라 다른 효과가 발현. (DEC-036) | `Documents/System/System_Memory_Core.md` |
+| ~~Memory Shard~~ | ~~기억 단편~~ | ~~DEPRECATED (DEC-046). 단편 효과 메커닉(atk/def/hp 단편, 5색 기질, Active/Passive, 전이, 합성, 효과 변이)은 모두 폐기. 단, *주변 인물의 잔향* 으로 재해석하여 Identity Archive의 보조 컬렉션 단편으로 잔존 가능.~~ | — |
+| Memory Fragment | 메모리 프래그먼트 | 보스 처치 시 1개씩 해금되는 *한 문장의 텍스트*. ECHORIS 보상 시스템의 본체. ATK +N이 아니라 *"보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야."* 같은 문장. Identity Archive에 영구 등록. Identity Trait를 가동시킨다. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.3 |
+| Memory Recovery | 메모리 복원도 | 0-100% 범위의 단일 진행 게이지. 아이템 레벨(0-99)을 대체. 보스 처치 시 단계 점프 + 일반 활동 점진 누적. effective stat은 Recovery에서 자동 파생. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.1, `Documents/System/System_Equipment_Growth.md` |
+| ~~Memory Slot~~ | ~~기억 슬롯~~ | ~~DEPRECATED (DEC-046). Active/Passive 단편 장착 슬롯 폐기. Identity Trait가 Stage 진행에 따라 자동 가동.~~ | — |
+| Name Evolution | 이름 진화 | Memory Recovery 단계가 변경될 때 아이템 이름이 변하는 시스템. Stage 0 (Unknown) → Stage 1 (직업) → Stage 2 (소속) → Stage 3 (운명/별명) → Stage 4 (진명). CSV의 `nameStage0~4` 5개 컬럼으로 정의. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.2 |
+| Network Fragment | 관계 단편 | 두 인물 모두 Stage 4 도달 시 해금되는 두 사람 간의 관계 1차 자료 문장. 인물 간 사회적 연결망을 보여준다. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.7 |
+| Re-Dive | 재다이브 | 100% Recovery 완성한 아이템에 재진입하는 모드. 같은 인생의 다른 해석 단편이 등장 (회한 → 자긍심 → 후회 등). 인물당 최대 3회. effective stat +5%씩 누적. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.6 |
+| Recovery Stage | 복원 단계 | Memory Recovery의 5단계 구간. Stage 0 (0%) / Stage 1 (25%) / Stage 2 (50%) / Stage 3 (75%) / Stage 4 (100%). 각 Stage 도달 시 이름 진화 + Identity Trait 가동. 레어리티별로 사용되는 Stage가 다름 (Normal = 0/4만, Magic = 0/2/4, Rare = 0/1/2/4, Legendary = 0/1/2/3/4). (DEC-046) | `Documents/System/System_Memory_Core.md` §2.1 |
+| Echo Chord | 에코 코드 | 한 인물 카테고리의 5명 전원 100% 복원 시 해금되는 카테고리 단편 (예: 측량사 5명 → 측량사 길드 전체의 한 면). (DEC-046) | `Documents/System/System_Memory_Core.md` §2.7 |
+| Era Echo | 시대 에코 | 30명 이상 100% 복원 시 해금되는 시대 단편 (예: 100년 전 격벽 측량사 길드의 마지막 해). (DEC-046) | `Documents/System/System_Memory_Core.md` §2.7 |
+| Fire 모멘트 | 파이어 모멘트 | Stage 4 (진명) 도달 시 해금되는 Fragment. 그 인생을 한 문장으로 응축한 텍스트. 단일 문장 + 1인칭 + 모순/긴장 포함 + 세계관 단어 1개 이상이 작성 원칙. (DEC-046) | `Documents/System/System_ItemNarrative_Template.md` |
 | Memory Wanderer | 기억의 방랑자 | 월드 필드에 랜덤 출현하는 유령형 존재. 과거에 아이템 속으로 들어갔다 돌아오지 못한 자들의 잔상. 접촉하면 임시 균열 제단이 생성되며, 이를 통해 보상 강화 아이템계로 진입 가능. 평균 30-45분에 1회 출현. | `Documents/System/System_ItemWorld_Core.md` |
 | Megastructure Shaft | 메가스트럭처 갱 | 아이템계 한 무기 안의 거대 수직 공동. 모든 지층(Stratum) 은 같은 자아의 메가스트럭처 다른 단면이며, Plaza 가 천장(top), Boss 가 바닥(bottom) 에 위치한다. BLAME! / 메이드 인 어비스 톤. (DEC-039) | `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md`, `Documents/Design/Design_ItemWorld_DeepDive.md` |
 | Marta ven-Nacht | 마르타 벤-나흐트 | 에르다의 스승. 중년 여성 장인. 10년 전 Ancient 아이템 내부로 들어가 자발적으로 남아 기억을 지키고 있다. 카엘 오르스와 마찬가지로 기억을 지키기 위한 자발적 유배를 선택한 인물. | `Documents/Content/Content_World_Bible.md` |
@@ -139,9 +156,9 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
-| Recall / Recalled | 회상 / 회상된 | Forgotten 단편을 격파하여 Ego가 받아들이는 행위·상태. 100% 효과, 다른 무기로 전이 가능. (DEC-036) | `Documents/System/System_Memory_Core.md` |
-| Forgotten | 잊혀진 | 기억 단편이 지층 내 적 NPC로 출현한 상태. 효과 50%. 격파(회상) 시 Recalled 상태로 전환. (DEC-036) | `Documents/System/System_Memory_Core.md` |
-| Remnant Fragment | 잔재 파편 | 회상된(Recalled) 기억 단편을 분해하여 획득하는 레어리티 승급 재료. floor(단편_레벨 / FRAGMENT_DIVISOR) 개 획득. System_Memory_Core.md 참조. | `Documents/System/System_Memory_Core.md` |
+| ~~Recall / Recalled~~ | ~~회상 / 회상된~~ | ~~DEPRECATED (DEC-046). Forgotten/Recalled 이분법 단편 상태 시스템 폐기. Memory Fragment는 보스 처치 시 직접 해금.~~ | — |
+| ~~Forgotten~~ | ~~잊혀진~~ | ~~DEPRECATED (DEC-046). 적 NPC로 출현하는 단편 상태 시스템 폐기.~~ | — |
+| ~~Remnant Fragment~~ | ~~잔재 파편~~ | ~~DEPRECATED (DEC-046). 단편 분해 → 레어리티 승급 재료 시스템 폐기. 레어리티 승급 자체 폐기.~~ | — |
 | Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·정체성 슬롯 수·기억 슬롯 수·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 아이템계는 4×4 고정, 월드 구역은 난이도에 따라 3×3-5×5. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
@@ -204,9 +221,15 @@
 | 카엘 오르스 | Kael Ors | 심연 전쟁의 영웅. 심연의 검을 들고 심연 속으로 뛰어들어 심연과 협약을 맺었다. 협약의 닻으로서 100년간 심연 속에 머물고 있다. 심연의 검 최심층에서 기억으로서 대면 가능. | `Documents/Content/Content_World_Bible.md` |
 | 협약 | The Accord | 카엘 오르스가 심연과 맺은 협상. 심연은 귀환을 멈추는 대신 세계가 심연을 기억해야 한다. 모든 아이템의 기억 최심층에 심연의 흔적이 존재하는 이유. | `Documents/Content/Content_World_Bible.md` |
 | 야리코미 | Yarikomi (やりこみ) | 게임의 한계까지 파고드는 극한 플레이를 의미하는 일본어. 디스가이아의 아이템계·Memory Shard 시스템이 대표적 야리코미 콘텐츠. ECHORIS에서는 아이템계 모든 지층 클리어·기억 단편 수집·레어리티 승급이 야리코미 축을 구성한다. | `Documents/Terms/Project_Vision_Abyss.md`, `Reference/디스가이아 시스템 분석.md` |
-| 회상 | Recall | 잊혀진(Forgotten) 단편을 격파하여 Ego가 되찾는 행위. = 격파. (DEC-036) | `Documents/System/System_Memory_Core.md` |
-| 핵심 기억 | Core Memory | 지층 보스 처치 시 100% 드롭하는 영혼 단편. 무기의 정체성 결을 가동. 정체성 슬롯 전용. 전이 시 정체성 결 붕괴. (DEC-036) | `Documents/System/System_Memory_Core.md` |
-| 기억 단편 | Memory Shard | (Memory Shard 항목 참조) | `Documents/System/System_Memory_Core.md` |
+| ~~회상~~ | ~~Recall~~ | ~~DEPRECATED (DEC-046). 잊혀진/회상된 단편 시스템 폐기.~~ | — |
+| ~~핵심 기억~~ | ~~Core Memory~~ | ~~부분 폐기 (DEC-046). 보스 100% 드롭 영혼 단편 메커닉 폐기. Memory Fragment (한 문장)로 대체. 단, 무기의 *정체성 결* 개념은 유지.~~ | `Documents/System/System_Memory_Core.md` |
+| 메모리 프래그먼트 | Memory Fragment | 보스 처치 시 1개씩 해금되는 한 문장. Identity Archive에 영구 등록되는 ECHORIS 보상 시스템의 본체. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.3 |
+| 메모리 복원도 | Memory Recovery | 0-100% 범위의 단일 진행 게이지. 모든 아이템 진행이 이 단일 축으로 통합. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.1 |
+| 인물 아카이브 | Identity Archive | 복원된 인생들의 컬렉션. 무기 인벤토리와 별도. ECHORIS 야리코미의 정서적 핵심. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.5 |
+| 재다이브 | Re-Dive | 100% Recovery 완성 후 재진입 모드. 같은 인생의 다른 해석 단편 등장. 인물당 최대 3회. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.6 |
+| 이름 진화 | Name Evolution | Recovery 단계마다 아이템 이름이 변하는 시스템. Stage 0 Unknown → Stage 4 진명. (DEC-046) | `Documents/System/System_Memory_Core.md` §2.2 |
+| 복원 | Recovery | 강화의 반대 개념. 무기 본래의 힘을 *깨우는* 행위 (없던 힘을 *더하는* 강화와 구분). ECHORIS 진행의 핵심 어휘. (DEC-046) | `Documents/System/System_Memory_Core.md` |
+| ~~기억 단편 (Memory Shard)~~ | ~~Memory Shard~~ | ~~부분 폐기 (DEC-046). 단편 메커닉 (5색 기질, Active/Passive, 전이, 합성, 효과 변이) 모두 폐기. 단, *기억 단편* 명칭은 *주변 인물의 잔향* 으로 재해석하여 보조 컬렉션으로 잔존 가능.~~ | — |
 
 ---
 

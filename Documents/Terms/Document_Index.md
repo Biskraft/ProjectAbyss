@@ -73,6 +73,7 @@ graph TD
 | T-04 | Document Index | `Terms/Document_Index.md` | 🔄 진행 중 | 이 문서 |
 | T-05 | GDD Roles | `Terms/GDD_Roles.md` | ✅ 완료 | 수석 게임 디자이너 역할, 책임, 협업 프로토콜 |
 | T-06 | Sheets Writing Rules | `Terms/Sheets_Writing_Rules.md` | ✅ 완료 | CSV 데이터 시트 작성 규칙, ID 체계, SSoT |
+| T-07 | Workflow (Fina Deliverables) | `Terms/Workflow_Fina_Deliverables.md` | ✅ 완료 | 외부 시나리오 작가 Fina 산출물 위치·표기·검수 워크플로우 (WFL-FINA-001, 2026-05-24) |
 
 ---
 
@@ -363,6 +364,8 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
 | CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 완료 |
+| CNT-STR-001 | Story Synopsis (전체 시놉시스) | `Content/Content_Story_Synopsis.md` | ✅ 완료 |
+| CNT-NME-001 | Project Name Etymology (Fina, 2026-05-24) | `Content/Content_Project_Name_Etymology.md` | ✅ 완료 |
 | CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준 예시) | `Content/Content_Item_Narrative_SurveyorEchoWedge.md` | ✅ 완료 |
 | ~~CNT-ITM-001 (구판)~~ | ~~Item Narrative: 할아버지의 부엌칼~~ | ~~`Content/Content_Item_Narrative_GrandfatherKitchenKnife.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |
 | ~~CNT-ITM-002 (구판)~~ | ~~Item Narrative: First Sword~~ | ~~`Content/Content_Item_Narrative_FirstSword.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |

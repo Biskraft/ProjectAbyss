@@ -52,6 +52,12 @@ interface Arc {
   jitter: number;
 }
 
+export interface UpdraftChannel {
+  grid: number[][];
+  x: number;
+  y: number;
+}
+
 const TILE = TILE_SIZE;
 const GRAVITY = 980; // must match Player.ts
 
@@ -117,14 +123,13 @@ export class UpdraftSystem {
     this.entityLayer = entityLayer;
   }
 
-  update(dt: number, player: Player, grid: number[][], camera: Camera): void {
+  update(dt: number, player: Player, grid: number[][], camera: Camera, extraChannels: UpdraftChannel[] = []): void {
     const dtSec = dt / 1000;
     this.t += dtSec;
 
     // Compute once for both physics and render.
-    const inUpdraft = isInUpdraft(
-      player.x, player.y, player.width, player.height, grid,
-    );
+    const inUpdraft = isInUpdraft(player.x, player.y, player.width, player.height, grid)
+      || this.isInExtraUpdraft(player.x, player.y, player.width, player.height, extraChannels);
 
     // ============ PHYSICS ============
     if (player.fsm.currentState !== 'dash') {
@@ -243,6 +248,9 @@ export class UpdraftSystem {
         }
       }
     }
+    for (const channel of extraChannels) {
+      this.drawChannelCells(channel.grid, channel.x, channel.y, viewL, viewT, viewR, viewB, pulse, innerWashAlpha);
+    }
 
     // ---------- LOOP 2: Streaks (manga thrust) ----------
     if (this.streaks.length < STREAK_MAX) {
@@ -262,6 +270,9 @@ export class UpdraftSystem {
           });
         }
       }
+    }
+    for (const channel of extraChannels) {
+      this.spawnChannelStreaks(channel.grid, channel.x, channel.y, viewL, viewT, viewR, viewB);
     }
 
     // Player-area extra streaks (faster, denser around the player).
@@ -286,7 +297,8 @@ export class UpdraftSystem {
       s.y += s.vy * dtSec;
       const tCol = Math.floor(s.x / TILE);
       const tRow = Math.floor(s.y / TILE);
-      const stillInUpdraft = (grid[tRow]?.[tCol] ?? 0) === TILE_UPDRAFT;
+      const stillInUpdraft = (grid[tRow]?.[tCol] ?? 0) === TILE_UPDRAFT
+        || this.isPointInExtraUpdraft(s.x, s.y, extraChannels);
       if (!stillInUpdraft || s.y < viewT - 20) continue;
       this.gfxFg
         .moveTo(s.x, s.y)
@@ -389,6 +401,101 @@ export class UpdraftSystem {
       if (grid[row]?.[col] === TILE_UPDRAFT) return { col, row };
     }
     return null;
+  }
+
+  private isInExtraUpdraft(x: number, y: number, width: number, height: number, channels: UpdraftChannel[]): boolean {
+    const midX = x + width / 2;
+    const midY = y + height / 2;
+    return this.isPointInExtraUpdraft(midX, midY, channels);
+  }
+
+  private isPointInExtraUpdraft(x: number, y: number, channels: UpdraftChannel[]): boolean {
+    for (const channel of channels) {
+      const col = Math.floor((x - channel.x) / TILE);
+      const row = Math.floor((y - channel.y) / TILE);
+      if ((channel.grid[row]?.[col] ?? 0) === TILE_UPDRAFT) return true;
+    }
+    return false;
+  }
+
+  private drawChannelCells(
+    grid: number[][],
+    originX: number,
+    originY: number,
+    viewL: number,
+    viewT: number,
+    viewR: number,
+    viewB: number,
+    pulse: number,
+    innerWashAlpha: number,
+  ): void {
+    if (!this.gfxBg || !this.gfxFg) return;
+    const colL = Math.max(0, Math.floor((viewL - originX) / TILE));
+    const colR = Math.min((grid[0]?.length ?? 1) - 1, Math.ceil((viewR - originX) / TILE));
+    const rowT = Math.max(0, Math.floor((viewT - originY) / TILE));
+    const rowB = Math.min(grid.length - 1, Math.ceil((viewB - originY) / TILE));
+    for (let row = rowT; row <= rowB; row++) {
+      const gridRow = grid[row];
+      if (!gridRow) continue;
+      for (let col = colL; col <= colR; col++) {
+        if (gridRow[col] !== TILE_UPDRAFT) continue;
+        const cellX = originX + col * TILE;
+        const cellY = originY + row * TILE;
+        this.gfxBg.rect(cellX, cellY, TILE, TILE).fill({ color: COL_DARK, alpha: 0.5 });
+        this.gfxBg.rect(cellX, cellY, TILE, TILE).fill({ color: COL_INNER_WASH, alpha: innerWashAlpha });
+        const leftIsUp = gridRow[col - 1] === TILE_UPDRAFT;
+        const rightIsUp = gridRow[col + 1] === TILE_UPDRAFT;
+        if (!leftIsUp) {
+          this.gfxBg.rect(cellX, cellY, EDGE_WASH_OUTER, TILE).fill({ color: COL_EDGE_WASH, alpha: 0.28 });
+          this.gfxBg.rect(cellX, cellY, EDGE_WASH_INNER, TILE).fill({ color: COL_EDGE_WASH, alpha: 0.22 });
+          this.gfxFg.rect(cellX, cellY, PILLAR_PRIMARY_WIDTH, TILE).fill({ color: COL_PILLAR_PRIMARY, alpha: pulse });
+          this.gfxFg.rect(cellX + PILLAR_PRIMARY_WIDTH, cellY, PILLAR_SECONDARY_WIDTH, TILE)
+            .fill({ color: COL_PILLAR_SECONDARY, alpha: pulse * 0.5 });
+        }
+        if (!rightIsUp) {
+          this.gfxBg.rect(cellX + TILE - EDGE_WASH_OUTER, cellY, EDGE_WASH_OUTER, TILE)
+            .fill({ color: COL_EDGE_WASH, alpha: 0.28 });
+          this.gfxBg.rect(cellX + TILE - EDGE_WASH_INNER, cellY, EDGE_WASH_INNER, TILE)
+            .fill({ color: COL_EDGE_WASH, alpha: 0.22 });
+          this.gfxFg.rect(cellX + TILE - PILLAR_PRIMARY_WIDTH, cellY, PILLAR_PRIMARY_WIDTH, TILE)
+            .fill({ color: COL_PILLAR_PRIMARY, alpha: pulse });
+          this.gfxFg.rect(cellX + TILE - PILLAR_PRIMARY_WIDTH - PILLAR_SECONDARY_WIDTH, cellY, PILLAR_SECONDARY_WIDTH, TILE)
+            .fill({ color: COL_PILLAR_SECONDARY, alpha: pulse * 0.5 });
+        }
+      }
+    }
+  }
+
+  private spawnChannelStreaks(
+    grid: number[][],
+    originX: number,
+    originY: number,
+    viewL: number,
+    viewT: number,
+    viewR: number,
+    viewB: number,
+  ): void {
+    if (this.streaks.length >= STREAK_MAX) return;
+    const colL = Math.max(0, Math.floor((viewL - originX) / TILE));
+    const colR = Math.min((grid[0]?.length ?? 1) - 1, Math.ceil((viewR - originX) / TILE));
+    const rowT = Math.max(0, Math.floor((viewT - originY) / TILE));
+    const rowB = Math.min(grid.length - 1, Math.ceil((viewB - originY) / TILE));
+    outer: for (let row = rowT; row <= rowB; row++) {
+      const gridRow = grid[row];
+      if (!gridRow) continue;
+      for (let col = colL; col <= colR; col++) {
+        if (gridRow[col] !== TILE_UPDRAFT) continue;
+        if (Math.random() > STREAK_SPAWN_CHANCE) continue;
+        if (this.streaks.length >= STREAK_MAX) break outer;
+        this.streaks.push({
+          x: originX + col * TILE + Math.random() * TILE,
+          y: originY + row * TILE + TILE,
+          vy: -(STREAK_SPEED_MIN + Math.random() * STREAK_SPEED_RANGE),
+          len: STREAK_LEN_MIN + Math.random() * STREAK_LEN_RANGE,
+          alpha: 0.6 + Math.random() * 0.4,
+        });
+      }
+    }
   }
 
   /** Reset transient state (e.g., on room transition). */

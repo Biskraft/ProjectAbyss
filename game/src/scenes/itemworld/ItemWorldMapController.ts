@@ -14,15 +14,19 @@ export const IW_ROOM_H_PX = IW_ROOM_H_TILES * TILE_SIZE;
 export const IW_FULL_W_TILES = IW_GRID_W * IW_ROOM_W_TILES;
 export const IW_FULL_H_TILES = IW_GRID_H * IW_ROOM_H_TILES;
 // Door geometry constants — MUST match LDtk corridor templates' paint exactly.
-// Audit (2026-05-04): all Item_corridor_* templates paint:
-//   - L/R doors at cols 0-3 / 44-47 (4 cells deep), rows 14-17 (4 rows tall)
-//   - U/D doors at cols 22-25 (4 cells wide), rows 0-3 / 28-31
+// 2026-05-23 일괄 변경: 4 → 6 cells.
+//   - 캐릭터(2 cells) 통과 폭의 3배로 점프/대시 동선 여유
+//   - 룸 폭(48) 의 1/8 비례 — 메가스트럭처 페르소나(좁은 문→광활한 룸 대비) 유지
+//   - 인테리어 침해 13% — 12 cells(25%) 대비 양산 자유도 회복
+// 표준 입구 좌표:
+//   - L/R doors: cols 0-3 / 44-47 (4 cells deep), rows 12-17 (6 rows tall)
+//   - U/D doors: cols 21-26 (6 cells wide), rows 0-3 / 28-31
 //   - Solid floor begins at row 18 (FLOOR_ROW)
 // Mismatch here produces collision holes at door seams (LDtk air not sealed,
 // or solid wall mistakenly carved).
 export const IW_DOOR_DEPTH = 4;
-export const IW_DOOR_H_HEIGHT = 4;
-export const IW_DOOR_V_WIDTH = 4;
+export const IW_DOOR_H_HEIGHT = 6;
+export const IW_DOOR_V_WIDTH = 6;
 export const IW_DOOR_FLOOR_ROW = 18;
 /** Outer boundary wall thickness around the unified grid. Independent of
  *  IW_DOOR_DEPTH — this controls the world frame, not door geometry. */

@@ -10,7 +10,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
-import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { RARITY_COLOR, type ItemInstance, getDisplayName, getIdentityCategory } from '@items/ItemInstance';
+import { getStageFragment } from '@data/fragments';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE, TEXT_ACCENT, TEXT_GOLD, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
@@ -166,52 +167,73 @@ export class ReturnResult {
     // Divider
     this.addDivider(y); y += 6;
 
-    // ITEM section
+    // === DEC-046 A LIFE RECOVERED 섹션 ===
     const rarityColor = RARITY_COLOR[r.item.rarity] ?? COL_TEXT;
-    this.addText(r.item.def.name, 16, y, rarityColor, 8); y += 12;
+    const displayName = getDisplayName(r.item);
+    const category = getIdentityCategory(r.item);
 
-    // Level change
-    const levelDelta = r.item.level - r.prevLevel;
-    const levelColor = levelDelta > 0 ? COL_GOLD : COL_TEXT;
-    this.addText(t('ui.return.level_change', { prev: r.prevLevel, next: r.item.level, delta: levelDelta }), 16, y, levelColor, FONT_HINT);
+    // 진명/현재 이름 + 카테고리
+    this.addText(displayName, 16, y, rarityColor, 9); y += 12;
+    if (category !== 'Unknown' && category !== 'Tutorial' && category !== 'LoreWeapon') {
+      const categoryKey = `ui.category.${category.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase()}`;
+      this.addText(t(categoryKey), 16, y, COL_DIM, FONT_HINT);
+      y += 12;
+    }
+
+    // Recovery 변화
+    const prevRecovery = Math.max(0, Math.min(100, r.prevLevel * 10));  // legacy level → recovery 환산
+    const currRecovery = Math.floor(r.item.memoryRecovery);
+    if (currRecovery > prevRecovery) {
+      this.addText(t('ui.return.recovery_change', { prev: prevRecovery, curr: currRecovery }), 16, y, COL_GOLD, FONT_HINT);
+    } else {
+      this.addText(t('ui.return.recovery_current', { curr: currRecovery }), 16, y, COL_DIM, FONT_HINT);
+    }
     y += 12;
 
     this.addDivider(y); y += 6;
 
-    // STAT CHANGES
-    this.addText(t('ui.return.stat_changes_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
+    // === MEMORY FRAGMENTS RECOVERED 섹션 ===
+    this.addText(t('ui.return.fragments_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
+
+    const stagesForRarity =
+      r.item.rarity === 'normal' ? [4]
+      : r.item.rarity === 'magic' ? [2, 4]
+      : r.item.rarity === 'rare' ? [1, 2, 4]
+      : [1, 2, 3, 4];
+
+    let fragmentLinesShown = 0;
+    for (const stage of stagesForRarity) {
+      if (fragmentLinesShown >= 4) break;
+      const fragId = `${r.item.def.id}_stage_${stage}`;
+      const isUnlocked = r.item.unlockedFragments.includes(fragId);
+      const f = getStageFragment(r.item.def.id, stage);
+      const isFire = stage === 4 && isUnlocked;
+      if (isUnlocked && f) {
+        const text = `▸ "${(f.textKo || f.textEn).slice(0, 52)}${(f.textKo || f.textEn).length > 52 ? '…' : ''}"`;
+        this.addText(text, 16, y, isFire ? COL_GOLD : COL_TEXT, isFire ? FONT_HINT : FONT_HINT);
+      } else {
+        this.addText(t('ui.inventory.fragment_placeholder'), 16, y, 0x555555, FONT_HINT);
+      }
+      y += 12;
+      fragmentLinesShown++;
+    }
+
+    this.addDivider(y); y += 6;
+
+    // === STAT CHANGES (수치는 부산물 — 작게 표시) ===
     const atkDelta = r.item.finalAtk - r.prevAtk;
     const atkColor = atkDelta > 0 ? COL_POSITIVE : atkDelta < 0 ? COL_NEGATIVE : COL_NEUTRAL;
     const atkSign = atkDelta > 0 ? '+' : '';
-    this.addText(t('ui.return.atk_delta', { prev: r.prevAtk, next: r.item.finalAtk, sign: atkSign, delta: atkDelta }), 24, y, atkColor, FONT_HINT);
+    const atkLabel = `ATK ${r.prevAtk} → ${r.item.finalAtk}${atkDelta !== 0 ? ` (${atkSign}${atkDelta})` : ''}`;
+    this.addText(atkLabel, 16, y, atkColor, FONT_HINT);
     y += 14;
 
     this.addDivider(y); y += 6;
 
-    // INNOCENTS
-    this.addText(t('ui.return.innocents_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
-    if (r.innocentsCaptured > 0) {
-      this.addText(t('ui.return.innocents_captured', { count: r.innocentsCaptured }), 24, y, COL_POSITIVE, FONT_HINT);
-    } else {
-      this.addText(t('ui.return.innocents_none'), 24, y, COL_NEUTRAL, FONT_HINT);
-    }
+    // STRATA PROGRESS — 압축 한 줄 표시 (Recovery 게이지로 흡수)
+    this.addText(t('ui.return.strata_summary', { cleared: r.strataCleared, total: r.totalStrata }), 16, y, COL_DIM, FONT_HINT);
     y += 14;
 
-    this.addDivider(y); y += 6;
-
-    // STRATA PROGRESS
-    this.addText(t('ui.return.strata_header'), 16, y, COL_DIM, FONT_HINT); y += 12;
-    const bossKeys = ['boss.item_general', 'boss.item_king', 'boss.item_god', 'boss.item_great_god'];
-    for (let s = 0; s < r.totalStrata; s++) {
-      const cleared = s < r.strataCleared;
-      const symbol = cleared ? '[V]' : '[ ]';
-      const color = cleared ? COL_POSITIVE : COL_NEUTRAL;
-      const bossName = bossKeys[s] ? t(bossKeys[s]) : t('boss.fallback_stratum', { n: s + 1 });
-      this.addText(`${symbol} ${bossName}`, 24, y, color, FONT_HINT);
-      y += 10;
-    }
-
-    y += 4;
     this.addDivider(y); y += 6;
 
     // LOOT

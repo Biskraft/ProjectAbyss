@@ -1,42 +1,37 @@
-# 기억 단편 코어 시스템 (Memory Shard Core System) — SYS-MEM-01
+# 기억 복원 코어 시스템 (Memory Recovery Core System) — SYS-MEM-01
+
+> **2026-05-24 전면 재작성 (DEC-046).** 이전 버전의 5색 기질 · Active/Passive 슬롯 · 전이/합성 · 효과 변이 메커닉은 모두 폐기되었다. 시스템의 목적이 "무기 강화"에서 "한 사람의 삶 복원"으로 전환되었다.
 
 ## §0. 필수 참고 자료 (Mandatory References)
 
+- DEC-046 (시스템 결정): `memory/wiki/decisions/DEC-046.md`
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
-- Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
-- Glossary: `Documents/Terms/Glossary.md`
-- 야리코미 철학: `Documents/Design/Design_Yarikomi_Philosophy.md`
-- 핵심 순환 구조: `Documents/Design/Design_CoreLoop_Circulation.md`
 - 아이템계 코어: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01)
+- 장비 성장 경로: `Documents/System/System_Equipment_Growth.md` (SYS-EQP-03)
 - 장비 레어리티: `Documents/System/System_Equipment_Rarity.md`
-- 스탯 게이트: `Documents/System/System_World_StatGating.md`
-- 2-Space 아키텍처: `Documents/Design/Design_Architecture_2Space.md`
-- DEC-036 (시스템 결정): `memory/wiki/decisions/DEC-036-Memory-Shard-System.md`
+- 측량사의 에코 쐐기 기준 예시: `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md`
+- DEC-036 (구 시스템 — 부분 폐기): `memory/wiki/decisions/DEC-036-Memory-Shard-System.md`
 
 ---
 
 ## 구현 현황 (Implementation Status)
 
-> 최근 업데이트: 2026-04-28
-> 문서 상태: `확정 (Final, DEC-036 반영)`
+> 최근 업데이트: 2026-05-24
+> 문서 상태: `재설계 완료 (DEC-046 반영)`
 > 2-Space: Item World (아이템계), World (스탯 게이트 판정)
 > 기둥: 야리코미 (주), 메트로베니아 탐험 (부), 온라인 멀티플레이 (부)
 
 | 기능 ID  | 분류      | 기능명                                       | 우선순위 | 구현 상태 | 비고                                                |
 | :------- | :-------- | :------------------------------------------- | :------: | :-------- | :--------------------------------------------------- |
-| MEM-01-A | 코어      | Forgotten/Recalled 이분법 상태 관리          |    P0    | 대기      | Forgotten=50%, Recalled=100% + 레벨 2배              |
-| MEM-02-A | 위계      | 일반 단편 + 핵심 기억 2-tier 분류            |    P0    | 대기      | 일반=몹/체스트, 핵심=보스 100% 드롭                  |
-| MEM-02-B | 색        | 5색 기질 (Forge/Iron/Rust/Spark/Shadow)      |    P0    | 대기      | 무기당 주색 1 + 부색 1                               |
-| MEM-02-C | 정체성    | Identity Trait (정체성 결)                   |    P0    | 대기      | 핵심 기억이 가동시키는 무기 본질                     |
-| MEM-02-D | 서사      | No.1 서사 단편                               |    P1    | 대기      | 색 무관, 에코 부착, 슬롯 비용 없음                   |
-| MEM-03-A | 슬롯      | 정체성 슬롯 + 기억 슬롯 분할                 |    P0    | 대기      | 레어리티별 분할 표 §2.3                              |
-| MEM-03-B | 슬롯역할  | Active / Passive 2-역할                      |    P0    | 대기      | 기억 슬롯에만 적용, 정체성 슬롯은 항상 Active        |
-| MEM-04-A | 드롭      | 잊혀진 단편 아이템계 내 조우                 |    P0    | 대기      | 방 클리어 시 확률 스폰 (`SHARD_SPAWN_RATE`)          |
-| MEM-05-A | 전투      | 회상 전투 규칙                               |    P0    | 대기      | 격파 = Recalled 확정. 레벨 2배 즉각 적용             |
-| MEM-06-A | 합성      | 동색·동형 단편 합성 (레벨 합산)              |    P1    | 대기      | 모루(Anvil)에서 수행                                 |
-| MEM-07-A | 전이      | 단편 전이 + 효과 변이                        |    P1    | 대기      | 모루 경유. 수신 Ego 색에 따라 변형                   |
-| MEM-08-A | 경제      | 잉여 단편 분해 → 레어리티 승급 재료          |    P1    | 대기      | Remnant Fragment. §2.8 참조                          |
-| MEM-09-A | 게이트    | 스탯 단편의 게이트 문지기 역할               |    P0    | 대기      | ATK/INT/HP 게이트 충족 경로                          |
+| MEM-01-A | 코어      | Memory Recovery % 게이지 (0-100)             |    P0    | 대기      | 아이템 레벨 0-99를 대체                              |
+| MEM-02-A | 코어      | 이름 진화 (Name Evolution) 5단계             |    P0    | 대기      | Recovery 단계마다 이름 변경                          |
+| MEM-03-A | 코어      | Memory Fragment (문장) 해금                  |    P0    | 대기      | 보스 처치 시 1개씩 영구 해금                         |
+| MEM-04-A | 코어      | 정체성 결 (Identity Trait) 가동              |    P0    | 대기      | Fragment마다 1개의 결, 무기의 모든 스킬/효과 결정    |
+| MEM-05-A | 코어      | Identity Archive (인물 아카이브) UI          |    P0    | 대기      | 무기가 아니라 사람들의 삶을 모으는 컬렉션            |
+| MEM-06-A | 메커닉    | Recovery 점진 누적 (전투/탐험)               |    P1    | 대기      | 0.1-1% 점진 누적. 다음 Fragment까지의 진행 게이지    |
+| MEM-07-A | 메커닉    | 재다이브 (Re-Dive) 단편 변이                 |    P2    | 대기      | 100% 복원 후 재진입 시 다른 해석의 단편 등장         |
+| MEM-08-A | 메커닉    | 인물 연결망 (Echo Network)                   |    P2    | 대기      | 두 인물 100% 복원 시 관계 단편 해금                  |
+| MEM-09-A | 게이트    | 스탯 게이트 = Recovery 기반 effective stat   |    P0    | 대기      | `effectiveStat = baseStat × (0.4 + Recovery × 0.006)` |
 
 ---
 
@@ -44,311 +39,355 @@
 
 ### §1.1. 설계 의도 (Intent)
 
-> "무기 안에 살아있는 세계가 있고, 그 세계에는 무기 자신이 잊은 기억들이 거주한다. 에르다는 무기 안으로 들어가 그 기억들을 회상시켜 Ego의 일부로 되돌린다. 핵심 기억은 무기의 본질을 정의하는 정체성의 결이고, 일반 단편은 그 위에 쌓는 빌드 정체성이다. 같은 기억이라도 어느 무기에 흡수되느냐에 따라 다르게 변형된다 — 이것이 나만의 무기를 만드는 행위다."
+> "플레이어가 측량사의 에코 쐐기에서 얻는 것은 ATK +22가 아니다. *한 측량사가 왜 보고서를 쓰지 않았는가* 다. 무기를 강화하는 게임이 아니라, 무기 한 자루에 남은 인생 하나를 복원하는 탐사 게임이다."
 
-기억 단편 시스템은 두 개의 역할을 동시에 수행한다.
+플레이어가 아이템계에 들어가는 이유는 *수치를 올리기 위해서*가 아니라 *이 사람의 마지막을 보기 위해서* 다.
 
-첫째, **무기의 정체성을 정의**한다. 핵심 기억이 가동시키는 *정체성 결(Identity Trait)* 의 합이 곧 그 무기의 인격이다. Rustborn은 그 핵심 기억들의 조합 때문에 Rustborn다워진다.
+측량사의 에코 쐐기를 100% 복원하면 그 무기는 단순히 강해진 검 한 자루가 아니라 — 100년 전 격벽 4에서 비정상 진동을 감지하고 보고서를 쓰지 않은 채 격벽 5 아래로 내려가 돌아오지 않은 한 사람의 인생 전체다.
 
-둘째, **빌드 차별화의 층위**다. 자유 슬롯에 들어가는 일반 단편은 "어떻게 싸울 것인가"를 결정한다. 같은 검이라도 어떤 단편을 어느 색의 Ego에 흡수시키느냐에 따라 전혀 다른 무기가 된다.
-
-에르다가 단편을 회상시키는 행위는 대장장이의 두드림이며, 동시에 인사이드 아웃의 라일리가 잠든 사이 Mind Workers가 기억을 정리하는 과정과 같다 — 잊혀진 기억을 본부(Ego)로 되돌리는 의식.
+이것이 ECHORIS의 야리코미다. 300개의 무기는 300명의 인생이며, 모든 무기를 100% 복원하는 것은 300명의 잊혀진 삶을 되찾는 것이다.
 
 ### §1.2. 설계 근거 (Reasoning)
 
 | 설계 결정 | 채택 이유 | 기각된 대안 |
 | :--- | :--- | :--- |
-| 일반 단편 + 핵심 기억 2-tier | 보스 보상의 무게 + 정체성 결 시스템 정합 | 단일 tier — 보스 의미 약화, 정체성 표현 불가 |
-| 5색 기질 시스템 | 전이 변이의 메커니즘 근거 + 인사이드 아웃 정합 | 무색 — 변이 임의 마법화, 검색 불가 |
-| Forgotten 50% / Recalled 100% + 레벨 2배 | 회상(리스크)에 따른 4배 실효 보상이 아이템계 진입의 결정적 동기 | 처음부터 Recalled — 회상 긴장감 소실 |
-| 정체성 슬롯 = 지층 수 | 인사이드 아웃 성격 섬 모델 1:1 매핑. 보스 처치 = 결의 회복 | 자유 슬롯만 — 보스의 무게감 ↓ |
-| Active/Passive 2-역할 | Transistor 검증 빌드 깊이. Upgrade 미도입으로 학습 부담 ↓ | 단일 역할 — 빌드 깊이 부족 / 3-역할 — 학습 부담 과다 |
-| 전이 시 효과 변이 | 스파이크 "나만의 무기" 직격. Soul Edge / Dark Souls Transposition 검증 | 무변형 전이 — 단편 시장화, 무기 정체성 약화 |
-| 아이템계 한정 획득 | 스파이크 "아이템 안의 세계" 정합 강화 | 다채널 — 스파이크 희석 |
-| 자연 시너지 (명시적 보너스 없음) | 무기·색·단편의 논리적 궁합을 발견하는 재미 | 명시적 보너스 — 최적 조합 검색 강제 |
+| 아이템 레벨 → Memory Recovery % | "Lv.3"는 강화의 언어. "Recovery 67%"는 복원의 언어. 같은 진행도 표현이지만 정체성이 다르다 | 아이템 레벨 유지 — 디스가이아 클론 인식 위험 |
+| 보스 보상 = 문장(Fragment) + Recovery 점프 | ATK +14보다 *"보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야"* 가 강한 보상이다. 수치는 부산물 | ATK 영구 +N — 강화 던전 정체성 |
+| 이름 진화 5단계 | "Unknown → 진명"의 4번 발견이 가장 즉각적으로 *정체를 밝혀냄* 을 체감시킨다 | 이름 고정 — 발견의 감각 부재 |
+| 정체성 결 = 무기의 모든 스킬 | 일반 단편을 폐기하면 "Berserker 단편 + Ghost 단편" 같은 빌드 자유도가 사라지지만, *어떤 인물의 무기를 선택하느냐* 가 더 강한 빌드 선택이 된다 | 5색 기질 유지 — 시스템 복잡도 ↑, 서사 희석 |
+| Identity Archive | 무기 인벤토리는 *물건* 목록이지만 Identity Archive는 *사람* 목록. 컬렉션의 정서가 다르다 | 무기 컬렉션만 — 한정흥 정서 락 약화 |
+| 스탯 = Recovery 부산물 | 스탯 게이트는 유지하되 "무기를 이해할수록 본래 힘이 깨어난다"로 재정의. 강화 어휘 추방 | ATK를 독립 진행축으로 유지 — 강화 던전 잔재 |
 
 ### §1.3. 3대 기둥 정렬 (Pillar Alignment)
 
-| 기둥 | 기억 단편 시스템에서의 구현 |
+| 기둥 | Memory Recovery에서의 구현 |
 | :--- | :--- |
-| 메트로베니아 탐험 | 스탯 단편 합산으로 ATK/INT/HP 게이트 해금 → 새 층위. 단편 없이는 게이트 통과 불가 |
-| 아이템계 야리코미 | 잊혀진 단편 회상 → Recalled 4배 실효 → 합성/전이 → 더 깊은 지층 / 다른 무기로 전이 |
-| 온라인 멀티플레이 | 깊은 지층의 고레벨 단편·핵심 기억은 파티 협력으로 획득. 무기 정체성이 팀 전투력 좌우 |
+| 메트로베니아 탐험 | Recovery %가 effective stat을 결정 → 스탯 게이트 해금. 단, 동기는 *"이 게이트를 뚫기 위해 강해진다"* 가 아니라 *"이 인생을 끝까지 보면 본래 힘이 깨어나 게이트도 열린다"* |
+| 아이템계 야리코미 | 300명의 인생 × 평균 4 Fragment = 1,200개 문장의 컬렉션. Identity Archive 100% 완성 = 야리코미 최종 목표 |
+| 온라인 멀티플레이 | 깊은 인생(Legendary/Ancient)의 보스 Fragment는 파티 협력이 현실적. 두 플레이어가 같은 인물의 다른 단편을 회수하여 *함께 한 사람을 복원* |
 
 ### §1.4. 저주받은 문제 검증 (Cursed Problem Check)
 
 | 긴장 | 위험 A | 위험 B | 설계의 선택 |
 | :--- | :--- | :--- | :--- |
-| 정체성 보존 vs 빌드 자유 | 핵심 기억 고정으로 빌드 단조 | 모든 슬롯 자유로 정체성 사라짐 | 정체성 슬롯(고정) + 기억 슬롯(자유) 분할 |
-| 회상 강제 vs 자발적 야리코미 | 게이트 때문에 억지 파밍 | 단편 없이도 통과 가능 → 야리코미 동기 ↓ | 게이트 수치를 단편+장비 합산. 강제가 아닌 효율 경로 |
-| 전이 자유 vs 무기 정체성 | 무한 자유 전이로 그 무기 의미 사라짐 | 전이 불가로 야리코미 깊이 ↓ | 자원 소모 + 효과 변이 + 핵심 기억 전이는 정체성 결 붕괴 |
-| 단편 발견 vs 정보 접근성 | 시너지 모르는 신규 → 진입 장벽 | 모든 시너지 명시 → 발견 재미 ↓ | 스탯 단편은 역할 명시. 행동/원소는 효과만 표시 |
+| 서사 깊이 vs 야리코미 수치 | 서사만 — 야리코미 수치 깊이 ↓ | 수치만 — 서사 부산물화 | 서사가 *진행 단위*, 수치는 *부산물*. Recovery %가 양쪽을 잇는 단일 게이지 |
+| 빌드 자유 vs 무기 정체성 | 자유 단편 시스템 — 모든 검이 같은 빌드 | 정체성 결만 — 빌드 다양성 ↓ | 빌드 다양성 = *어떤 인물의 무기를 선택하느냐 + 어떤 Fragment를 활성화하느냐*. 300명의 인생 = 300개의 빌드 |
+| 100% 복원 후 동기 | 동기 소멸 → 야리코미 종료 | 무한 갱신 → 서사 희석 | 재다이브(Re-Dive) 시스템 — 같은 인생을 다른 *해석* 으로 재방문 (회한 → 자긍심) |
+| 1차 niche vs 미드코어 | niche 깊이만 — 진입장벽 ↑ | 미드코어 친화만 — 1차 niche 신호 ↓ | Recovery %는 미드코어에게 *진행도 게이지*, 1차 niche에게 *복원 의례*. 단일 UI가 두 페르소나 모두에게 louder |
 
 ### §1.5. 위험과 보상 (Risk & Reward)
 
 | 행동 | 리스크 | 리턴 |
 | :--- | :--- | :--- |
-| 아이템계 진입 (단편 목적) | 지층 탈출 실패 시 진행 손실 | 잊혀진 단편 발견, 회상 시 Recalled + 레벨 2배 |
-| 잊혀진 단편 회상 | 보스급 전투 난이도 | 실효 4배 스탯 보상, 전이/합성 해금 |
-| 단편 전이 | 원본 소모 + 효과 변이 (예측 불가) | 다른 Ego의 색으로 변형된 새 효과, 빌드 다각화 |
-| 핵심 기억 전이 | 원본 무기의 정체성 결 붕괴 | 수신 무기에 새 정체성 결 생성 |
-| 잉여 단편 분해 | 단편 영구 소모 | Remnant Fragment 획득. 레어리티 승급 재료 |
+| 아이템계 진입 (Fragment 목적) | 지층 탈출 실패 시 진행 손실 | Fragment 1개 영구 해금 + Recovery 25% 점프 + 이름 진화 |
+| 100% 복원 도전 (최심 보스) | 가장 어려운 보스 + 최장 다이브 | *진명* 해금. Identity Archive에 해당 인물의 완전한 인생 등록 |
+| 재다이브 | 추가 시간 투자 | 같은 인생의 다른 해석. 인물 입체화 |
+| 인물 간 연결망 추적 | 두 무기를 모두 100% 복원해야 함 | 관계 단편 (Echo Network) — 인물 간 1차 관계 자료 |
 
 ---
 
 ## §2. 메커닉 규칙 (Mechanics & Rules)
 
-### §2.1. 위계 — 일반 단편 vs 핵심 기억
+### §2.1. Memory Recovery % — 단일 진행 게이지
 
-| 항목 | 기억 단편 (Memory Shard) | 핵심 기억 (Core Memory) |
+모든 장비 아이템은 0-100% 범위의 단일 게이지 *Memory Recovery* 를 가진다. 아이템 레벨(0-99)은 존재하지 않는다.
+
+#### Recovery 게이지 증가 경로
+
+| 경로 | 증가량 | 비고 |
 | :--- | :--- | :--- |
-| 획득 채널 | 지층 내 몹·체스트·시크릿 | 지층 보스 100% 드롭 (1개) |
-| 슬롯 종류 | 기억 슬롯 (자유) | 정체성 슬롯 (고정) |
-| 효과 단위 | 단일 효과 | 정체성 결 가동 |
-| 전이 | 자유. 효과 변이 동반 | 가능. 단, 원본 무기의 정체성 결 붕괴 |
-| 합성 | 동색·동형끼리 가능 | 불가 (1결 1핵심) |
-| 분해 | 가능 | 불가 (정체성 손실 영구) |
+| 지층 보스 처치 | **+25% 즉각 점프** (Legendary/Ancient는 ±α 조정) | Memory Fragment 1개 해금 동시 발생 |
+| 일반 적 처치 | +0.1% | 점진 누적. 다음 보스까지의 게이지 |
+| 방 클리어 | +0.3% | 클리어 보너스 |
+| 환경 오브젝트 상호작용 | +0.5% | 측량 일지, 마지막 표지 등 (서사 오브젝트) |
+| 비밀방 발견 | +1.0% | 가장 강한 점진 보상 |
 
-### §2.2. 5색 기질 (Temperament)
+> **설계 의도:** 보스 처치가 게이지의 *결정적* 진행을, 일반 활동이 *점진적* 진행을 담당한다. 보스 처치 한 번이 일반 활동 250회분과 같다. 이는 "보스를 잡아야 다음 단계로 간다"의 정량적 표현.
 
-각 무기 Ego는 *주색 1 + 부색 1*을 가진다. 단편도 색을 가진다. 색 일치도가 적합성을 결정한다.
+#### Recovery 단계 (Recovery Stages)
 
-| 색 | 한글명 | 시각 | 기질 | 대표 단편 계열 |
-| :--- | :--- | :--- | :--- | :--- |
-| Forge | 단조색 | 주황 | 분노·열정·공격성 | Gladiator, Berserker, Burner |
-| Iron | 강철색 | 청록 | 결연함·냉정 | Ironclad, Freezer |
-| Rust | 부식색 | 회색 | 비통·체념·세월 | Vampire, Leech, Dietician |
-| Spark | 섬광색 | 흰빛 | 호기심·경이 | Tutor, Sprinter, Shocker |
-| Shadow | 그림자색 | 자주 | 의심·교활·은밀 | Ghost |
+| 단계 | Recovery % | 의미 |
+| :--- | :---: | :--- |
+| Stage 0 | 0% | Unknown — 정체불명 |
+| Stage 1 | 25% | 직업/용도 확인 |
+| Stage 2 | 50% | 소속 확인 |
+| Stage 3 | 75% | 운명/별명 확인 |
+| Stage 4 | 100% | 진명 확인 — 인생 완전 복원 |
 
-색 적합성 매트릭스:
-- 주색 일치: 효과 1.0× (기본)
-- 부색 일치: 효과 0.85×
-- 인접색: 효과 0.7×
-- 대립색: 효과 0.5× + 효과 종류 변이 발생 가능
-- 무관색: 효과 0.6×
+**레어리티별 Stage 수 조정:**
 
-### §2.3. 슬롯 시스템
+| 레어리티 | 지층 수 | Stage 수 | 각 보스 처치 시 Recovery 증가 |
+| :--- | :---: | :---: | :---: |
+| Normal | 1 | 2 (Stage 0 → Stage 4) | 100% (1번의 발견으로 완전 복원) |
+| Magic | 2 | 3 (Stage 0 → 2 → 4) | 50% per boss |
+| Rare | 3 | 4 (Stage 0 → 1 → 2 → 4) | 33% per boss (마지막 보스 = 34%) |
+| Legendary | 4 | 5 (Stage 0 → 1 → 2 → 3 → 4) | 25% per boss |
+| Ancient | 4+심연 | 5 + Abyss | 25% per boss + 심연 5% × N (재다이브 영역) |
 
-총 슬롯 수는 레어리티별로 보존, 내부를 *정체성 슬롯* + *기억 슬롯*으로 분할.
+> **Normal 특례 (DEC-039 정합):** Normal 등급은 1지층 단일 다이브. 1번의 보스 처치로 Stage 0 → Stage 4 직접 점프. 짧고 강렬한 인생 한 편.
 
-| 레어리티 | 정체성 슬롯 | 기억 슬롯 | 합계 | 비고 |
-| :--- | :---: | :---: | :---: | :--- |
-| Normal    | 2 | 0 | 2 | 핵심 기억만으로 정의되는 순수 무기 |
-| Magic     | 3 | 0 | 3 | 동일 |
-| Rare      | 3 | 1 | 4 | 첫 자유 슬롯 — 빌드 분기 시작 |
-| Legendary | 4 | 2 | 6 | 빌드 정체성 명확화 |
-| Ancient   | 5 | 3 | 8 | 4지층 + 심연 = 5결. 풀 빌드 표현 |
+### §2.2. 이름 진화 (Name Evolution)
 
-#### 정체성 슬롯 (Identity Slots)
-- 핵심 기억 전용. 보스 처치 시 자동 배정 (1지층 1슬롯 1핵심)
-- 항상 Active 역할 — 정체성 결을 *가동*시킴
-- 비울 수 없음 (보스 클리어 후). 핵심 기억 전이 시 *결이 붕괴*하며 슬롯이 비어 *깨진 결*로 표시
+각 Stage에 도달하는 순간 아이템의 *표시 이름* 이 변한다. 이는 시각/시스템적으로 가장 즉각적인 *발견의 체감* 이다.
 
-#### 기억 슬롯 (Memory Slots)
-- 일반 단편 전용. 자유 배치
-- *Active* 또는 *Passive* 역할 중 하나로 끼움 (배치 시 결정)
-  - **Active**: 전투 중 발현 효과 (히트 시 발화, 스킬 보정, 조건 발동)
-  - **Passive**: 상시 효과 (스탯 보너스, 패시브 행동 변경)
-- 같은 단편이 어느 역할에 들어가느냐에 따라 다른 효과 발현
-- 예: Berserker 단편을 Active 슬롯에 → 일정 시간 광폭 모드 발동 / Passive 슬롯에 → 상시 공격 속도 +%
+#### 명명 규칙 (Naming Convention)
 
-### §2.4. Forgotten vs Recalled 상태
+| Stage | 이름 패턴 | 측량사의 에코 쐐기 예시 |
+| :--- | :--- | :--- |
+| Stage 0 (Unknown) | `Unknown {category}` | `Unknown Wedge` |
+| Stage 1 (직업/용도) | 직업/도구의 일반명 | `Survey Tool` |
+| Stage 2 (소속) | 길드/조직명 + 도구명 | `Guild Survey Tool` |
+| Stage 3 (운명/별명) | 별명/사건명 + 정관사 | `The Last Wedge` |
+| Stage 4 (진명) | 인물 + 본질 (완전한 진짜 이름) | `Surveyor's Echo Wedge` |
 
-#### Forgotten (잊혀진)
-- 무기 획득 시 모든 단편은 Forgotten 상태로 등록
-- 효과 배율: `FORGOTTEN_EFFECT_RATIO` (기본값 0.5)
-- 전이 불가, 합성 불가
-- 아이템계 역할: 해당 단편이 *적 NPC*로 등장해 플레이어를 공격
-- UI 표시: 회색 음영 + 깜빡이는 흐릿한 윤곽
+> **명명 SSoT:** `Sheets/Content_Item_Master.csv` 의 각 아이템 행에 `nameStage0` ~ `nameStage4` 5개 컬럼 추가. 무기 디자이너는 5개 이름을 모두 작성해야 한다.
 
-#### Recalled (회상된)
-- 획득 조건: 아이템계 내에서 해당 Forgotten 단편 NPC를 격파
-- 즉각 효과: 회상 시점에 단편 레벨 `RECALLED_LEVEL_MULTIPLIER`배 (기본값 2.0)
-- 효과 배율: 100% (해당 단편 색의 적합성 매트릭스 적용)
-- 전이 가능, 합성 가능
-- UI 표시: 단편 색으로 발광
+#### 인벤토리 표시 규칙
 
-체감 실효 증가:
-```
-Forgotten 실효 = Forgotten_Lv × FORGOTTEN_EFFECT_RATIO
-Recalled 실효  = (Forgotten_Lv × RECALLED_LEVEL_MULTIPLIER) × 1.0
-실효 배율 = 4.0배
+- 인벤토리 그리드의 아이템 이름은 *현재 Stage* 의 이름으로 표시
+- Identity Archive에는 *Stage 4 진명* 으로 항목 등록 (단, 미복원 인물은 *Stage 0 Unknown* 으로 등록)
+- 같은 종류의 무기 2개가 인벤토리에 있고 한쪽만 Stage 4 도달 시: 표시 이름이 다르므로 자연 구분
+
+### §2.3. Memory Fragment (문장) — 보스 보상의 본체
+
+지층 보스 처치 시 ATK +N이 아니라 **한 문장의 Memory Fragment** 가 해금된다. 이것이 보상의 본체다.
+
+#### Fragment 구조
+
+```yaml
+Fragment:
+  id: string                # 예: "F_SURVEYOR_LAST_WEDGE"
+  itemId: string            # 소속 아이템
+  stageUnlock: 1-4          # 어느 Stage에 해금되는가
+  textKey: i18n_key         # i18n 텍스트 키
+  narrativeRole: "core"     # core(필수) / branch(선택)
+  identityTrait:            # 이 단편이 가동시키는 정체성 결
+    name: "끝을 보는 결"
+    effect: "처치 시 ATK 5% 누적 (최대 25%, 피격 시 50% 감소)"
+    flavor: "보고서보다 답을 우선하는 충동"
 ```
 
-### §2.5. 잊혀진 단편 조우 (아이템계 내)
+#### Fragment 예시 (측량사의 에코 쐐기)
 
-```
-방 입장 → 모든 적 처치
-              ↓
-    [확률 판정: SHARD_SPAWN_RATE]
-         ├─ 스폰: Forgotten 단편 NPC 1마리 등장
-         │        초기 레벨 = 방 난이도 × [2~5 범위 랜덤]
-         │        색 = 해당 무기의 주색 ~ 부색 ~ 인접색 가중 시드
-         └─ 미스폰: 루프 계속
-```
+| Stage | Fragment 텍스트 | Identity Trait |
+| :--- | :--- | :--- |
+| 1 | "두드리고 듣는다. 그게 전부였어." | 공명의 결 — 약점 노출 적에 ATK +12% |
+| 2 | "균열은 거짓말을 하지 않아. 사람만 거짓말을 하지." | (Stage 1과 통합 가동) |
+| 3 | "위에 있는 사람들은 보고서를 원했어. 나는 답을 원했어." | 끝을 보는 결 — 처치 시 ATK 5% 누적 |
+| 4 (Fire) | **"보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야."** | 측량사의 정체성 핵 — 격벽 인접 시 INT +8% |
 
-조우 규칙:
-- 지층 클리어 또는 사망 탈출 시 미회상 Forgotten 단편은 사라짐
-- 슬롯이 모두 찬 상태 조우 시 회상 후 교체 또는 포기 선택
-- Forgotten 단편은 현재 탐험 중인 무기에 귀속 (전이 불가)
+> **설계 원칙:** Stage 4 Fragment는 *Fire 모멘트* 다. 그 인생을 한 문장으로 응축한 것. 작성 가이드는 `Documents/System/System_ItemNarrative_Template.md` 참조.
 
-### §2.6. 회상 전투 규칙
+### §2.4. 정체성 결 (Identity Trait) — 무기의 모든 스킬
 
-- 대상: 방 클리어 후 스폰된 Forgotten 단편 NPC
-- 난이도: 일반 적의 `SHARD_COMBAT_DIFFICULTY_RATIO` 배 (기본 1.2)
-- 격파 조건: HP = 0 → Recalled 확정 (실패 없음)
-- 회상 처리: 격파 즉시 "단편 회상" UI. 레벨 2배 적용
-- 자동 배치: 빈 첫 기억 슬롯 자동 배치. 슬롯 가득 찬 경우 교체 선택 UI
+이전 시스템의 *Active/Passive 단편*, *5색 기질 적합성*, *효과 변이* 는 모두 폐기. 무기의 모든 스킬·효과는 **정체성 결의 합** 이다.
 
-### §2.7. 합성 (Bond)
+#### 결의 구조
 
-모루(Anvil)에서 수행. 같은 색·같은 종류·둘 다 Recalled 상태일 때만 가능.
+각 정체성 결은 단일 효과 + 단일 발동 조건 + 단일 플레이버를 가진다.
 
-```
-조건: 같은 색 + 같은 종류 + 둘 다 Recalled
-결과: Result.Level = A.Level + B.Level
-예시: Berserker [Forge] Lv.15 + Berserker [Forge] Lv.25
-      → Berserker [Forge] Lv.40
+```yaml
+IdentityTrait:
+  id: string
+  triggerCondition: "always" | "on_hit" | "on_kill" | "on_dodge" | ...
+  effect:
+    type: "atk_multiplier" | "stat_bonus" | "behavior_change" | ...
+    value: number
+    cap?: number
+  flavor: string             # 결의 정서적 의미
 ```
 
-| 상황 | 처리 |
+#### 가동 규칙
+
+- **Stage 1 Fragment 해금** → Identity Trait 1 가동
+- **Stage 2 Fragment 해금** → Identity Trait 2 가동 (1과 누적)
+- ...
+- **Stage 4 Fragment 해금** → Identity Trait 4 가동 (1+2+3+4 모두 누적)
+
+> **레어리티별 결 수 = Stage 수.** Normal = 1결 / Magic = 2결 / Rare = 3결 / Legendary = 4결 / Ancient = 4결 + Abyss 단편.
+
+#### 빌드 다양성 확보
+
+이전 시스템처럼 *단편 슬롯에 무엇을 끼우느냐* 의 빌드는 사라진다. 대신:
+
+- **무기 선택 = 빌드 선택.** 300개 무기는 300개의 결 조합 = 300개의 빌드
+- **무기 교체 = 빌드 교체.** 측량사의 에코 쐐기 (공명+끝을 보는 결+정체성 핵) ≠ 격벽 수리공의 망치 (수리의 결 + 인내의 결)
+- **부분 복원 빌드.** Stage 2까지만 복원한 상태도 의도적 빌드가 될 수 있다 (특정 결만 원할 때)
+
+### §2.5. Identity Archive (인물 아카이브)
+
+무기 컬렉션과 별도로 *인물 컬렉션* 이 존재한다. 이것이 야리코미의 정서적 핵심이다.
+
+#### 아카이브 구조
+
+```
+IDENTITY ARCHIVE
+─────────────────────────────────────
+[Unknown]    Surveyor      [측량사]
+             격벽 측량사 길드
+             100년 전 격벽 4 표면에 박힌 채 발견
+             
+             ◆ "보고하지 않은 건 비밀이어서가
+                아니야. 끝을 보고 싶었을 뿐이야."
+             
+             Recovery: ████████████████ 100%
+
+[Unknown]    Bulkhead Repairman  [격벽 수리공]
+             ───────────────────────────────
+             ░░░░░░░░░░░░░░░░ 0% (Unknown)
+
+[Unknown]    Abyss Diver  [심연 잠수사]
+             ───────────────────────────────
+             ████░░░░░░░░░░░░ 25%
+             ◆ "물의 아래에는 또 다른 위가 있어."
+```
+
+#### 아카이브 페이지 구성 요소
+
+| 요소 | 내용 |
 | :--- | :--- |
-| Forgotten + Forgotten | 합성 불가 |
-| Forgotten + Recalled | 합성 불가 |
-| 다른 종류 | 합성 불가 |
-| 다른 색 (같은 종류) | 합성 불가 — 색 변화는 *전이*로만 |
+| 인물 명칭 | Stage 0 = `[Unknown]`, Stage 4 = `[진명]` |
+| 직업 | Stage 1부터 표시 |
+| 소속 | Stage 2부터 표시 |
+| 발견 위치 | Stage 0부터 표시 (Origin §1.3) |
+| 운명 한 줄 | Stage 3부터 표시 |
+| Memory Fragment 목록 | Stage별 해금된 Fragment 전부 |
+| Identity Trait 목록 | 해금된 결 전부 |
+| Recovery 게이지 | 진행도 시각화 |
+| 무기 아이콘 (소형) | 어떤 무기 안에 살았는가 |
 
-### §2.8. 전이 (Transfer) + 효과 변이
+#### 아카이브의 메타 컬렉션
 
-전이는 모루에서 수행. 한 무기의 단편을 다른 무기로 옮긴다. **원본 소모, 일방향**.
+- **인물 카테고리 분류**: 측량사 / 수리공 / 잠수사 / 운반자 / 기록관 / 단조공 / 경비병 / 해방파 / 수호단 ... (15-20 카테고리)
+- **카테고리 100% 완성 시**: 카테고리 전체에 *연결망 단편(Echo Network)* 1개 해금. 예: *"모든 측량사들은 같은 일지 양식을 쓴다 — 30년 전부터 변하지 않았다."*
+
+### §2.6. 재다이브 (Re-Dive)
+
+100% Recovery 완성한 아이템도 재진입할 수 있다. 단, 이번엔 *다른 해석* 의 단편이 등장한다.
+
+#### Re-Dive 규칙
+
+| 회차 | Fragment 톤 | 예시 (측량사 Stage 4) |
+| :---: | :--- | :--- |
+| 1차 (최초) | 회한 / 침묵 | "보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야." |
+| 2차 (Re-Dive) | 자긍심 / 직업 윤리 재정의 | "측량의 본질은 보고가 아니라 답이야. 그걸 위에서 정해주지 않았을 뿐." |
+| 3차 (Re-Dive×2) | 후회 / 가족의 시선 | "그날 일지에는 안 적었지만, 집에는 편지 한 통 두고 갔어." |
+
+> **상한:** 인물당 최대 3회 Re-Dive. 3회 완료 = 그 인생의 *모든 면* 을 본 상태.
+
+#### Re-Dive 동기 설계
+
+플레이어가 재다이브하는 이유:
+1. **인물 입체화** — 한 사람을 한 면으로 기억하지 않기 위해
+2. **Identity Archive 완성** — 모든 단편 컬렉션 (1차+2차+3차)
+3. **Effective Stat 미세 상향** — Re-Dive 1회당 effective stat 곱셈 보너스 +5% (선택적 야리코미 깊이)
+
+### §2.7. Echo Network (인물 간 연결망)
+
+세계관 인물들은 서로를 알았다. 측량사와 격벽 수리공은 길드 동료였다. 두 인물의 *진명* 을 모두 알게 되면 연결망이 활성화된다.
+
+#### 연결망 단편 (Network Fragment)
+
+| 조건 | 결과 |
+| :--- | :--- |
+| 인물 A, B 모두 Stage 4 도달 | A↔B 관계의 *Network Fragment* 1개 해금 |
+| 같은 카테고리 인물 5명 모두 Stage 4 | 카테고리 *Echo Chord* 해금 (예: 측량사 5명 → 측량사 길드 전체 단편) |
+| 30명 이상 Stage 4 | 시대 *Era Echo* 해금 (예: 100년 전 격벽 측량사 길드의 마지막 해) |
+
+#### Network Fragment 예시
+
+> **측량사 × 격벽 수리공:**
+> *"같이 술 마시던 사이였어. 측량사가 사라진 그날 밤도, 수리공은 그가 술집에 오지 않은 걸 이상하게 생각하지 않았어 — 측량사는 원래 약속을 잘 어겼으니까."*
+
+### §2.8. 스탯 = Recovery의 부산물
+
+스탯 게이트는 유지된다. 단, 스탯은 *Recovery에서 파생* 된다.
+
+#### 공식
 
 ```
-입력: A 무기의 단편 X (색 c1, 종류 t, 레벨 L, Recalled)
-       B 무기 (Ego 주색 c2_main, 부색 c2_sub)
-처리:
-  1. 색 적합성 = match(c1, c2_main, c2_sub)
-  2. 수치 변동: L * 적합성 계수
-  3. 이름 변형: 종류 + B Ego 어휘 → 재명명 텍스트 생성
-  4. 효과 종류: 적합성에 따라 동일/유사/변종 결정
-출력: B 무기에 변형된 단편 Y 장착 (레벨 L * 계수)
-       A 무기에서 단편 X 영구 제거
+effectiveATK = baseATK × (0.4 + Recovery × 0.006) × rarityMultiplier
+effectiveINT = baseINT × (0.4 + Recovery × 0.006) × rarityMultiplier
+effectiveHP_bonus = baseHP × (0.4 + Recovery × 0.006) × rarityMultiplier
 ```
 
-#### 효과 변이 매트릭스 예시
+> **⚠️ 구현 노트 (2026-05-24):** `Sheets/Content_Stats_Weapon_List.csv` 의 `BaseATK` 는 **rarity 배율이 사전 적용된 최종값** 으로 저장된다 (예: `sword_ancient.BaseATK = 45 = 15 × 3.0`). 따라서 *코드 측 실제 계산* 은 `rarityMultiplier` 항을 곱하지 *않는다*.
+>
+> **2026-05-24 폴백 공식 (Phase 2 임시):**
+> ```
+> effectiveStat = csvBaseStat × (1.0 + Recovery × 0.005) × (1 + reDive × 0.05)
+> ```
+> - Recovery 0% → ×1.0 (구 시스템 호환)
+> - Recovery 50% → ×1.25
+> - Recovery 100% → ×1.5 (구 시스템 Lv15+보너스와 거의 동등)
+>
+> **의미 재해석:** 본래 DEC-046 정의("100% = 본래 잠재력")는 baseStats × 2.0 상향이 결정되면 복귀. 현재 폴백은 *Recovery를 +50% 부가 표출* 로 해석. 정서적 정의(복원=해방)는 유지.
 
-| 단편 종류 | A 색 | B 색 | 변이 결과 |
-| :--- | :--- | :--- | :--- |
-| 분노의 단편 (Berserker) | Forge | Iron | "삭여낸 분노" — 일정 피격 후 폭발 |
-| 분노의 단편 (Berserker) | Forge | Rust | "녹슨 분노" — 지속 데미지 추가 |
-| 호기심의 단편 (Tutor) | Spark | Shadow | "수상한 호기심" — INT 보너스 + 적 약점 노출 |
+| Recovery | 효과 배율 |
+| :---: | :---: |
+| 0% | 40% (잠재력의 절반 미만) |
+| 25% | 55% |
+| 50% | 70% |
+| 75% | 85% |
+| 100% | 100% (잠재력 완전 발현) |
 
-#### 핵심 기억 전이
+> **설계 의도:** 무기는 *원래의 힘* 을 가지고 있다. 단, 그 힘은 사용자가 무기의 기억을 *이해* 했을 때 발현된다. 강화가 아니라 *해방* 이다.
 
-핵심 기억을 다른 무기로 전이 시:
-1. 원본 무기의 해당 정체성 결이 *붕괴* (해당 슬롯이 깨진 결로 표시)
-2. 수신 무기에 새 정체성 결이 생성 (수신 Ego 색에 따라 결의 성격 변형)
-3. 원본 무기의 잃은 결은 *재방문 가능* — 해당 지층 보스를 다시 처치하면 재생
+#### Re-Dive 추가 보너스
 
-### §2.9. 분해 → Remnant Fragment
+Re-Dive 1회마다 effective stat 배율에 +5% 곱셈. (1회 = ×1.05, 2회 = ×1.10, 3회 = ×1.15)
 
-잉여 단편을 모루에서 분해. 일반 단편만 가능, 핵심 기억은 분해 불가.
+### §2.9. 폐기된 메커닉 (전 시스템과의 비교)
 
-```
-조건: Recalled 상태 일반 단편
-획득: Remnant Fragment (레어리티 승급 재료)
-획득량: floor(단편_레벨 / FRAGMENT_DIVISOR) 개
-수수료: floor(단편_레벨 × SALVAGE_FEE_PER_LEVEL) HL
-```
+| 폐기 항목 | 폐기 이유 | 대체 방식 |
+| :--- | :--- | :--- |
+| 일반 단편 5색 기질 (Forge/Iron/Rust/Spark/Shadow) | 빌드 시스템이 *수치 조합* 게임이 되면 서사가 부산물화. 무기 = 인물 = 빌드 일체화 정합 ↓ | 정체성 결이 모든 효과를 결정. 색은 *시각 토큰* 으로만 잔존 가능 |
+| Active/Passive 슬롯 역할 분리 | 같은 단편이 다른 역할로 끼우면 빌드 조합 폭발 — 무기의 *인격* 이 흐려짐 | 정체성 결은 항상 *상시 가동* (전투 발동 조건은 결 자체에 포함) |
+| 단편 전이 (Transfer) + 효과 변이 | "Berserker [Forge] → Rust 무기로 전이하면 녹슨 분노로 변이" — 매력적이지만 인물 동질성 파괴 | Re-Dive로 대체. 다른 *해석* 을 받지만 *다른 인물의 단편으로 변형* 되지는 않음 |
+| 단편 합성 (Bond) — 동색 동형 레벨 합산 | 단편 = 수치 자원의 패턴. 서사 자원으로 재정의되면 합성 의미 없음 | Identity Archive 완성 (인물 100% + Re-Dive 3회) 로 대체 |
+| 단편 분해 → Remnant Fragment → 레어리티 승급 | 레어리티 승급 자체 폐기 (DEC-046). 인물 카테고리 100% 완성으로 대체 | Echo Network 해금 |
+| Forgotten / Recalled 이분법 + 50%/100% 효과 배율 | "단편이 적 NPC로 출현 → 격파 = 회상" 구조는 강력하지만, *문장* 보상과 어울리지 않음 | 보스 처치 = Memory Fragment 직접 해금. 잡몹은 점진 Recovery 누적 |
 
-분해 시 주의:
-- 되돌릴 수 없음 (확인 UI 필수)
-- Forgotten 단편은 분해 불가 (회상 후 가능)
-
-Remnant Fragment 활용처: `System_Equipment_Rarity.md` 승급 규칙 참조.
+> **마이그레이션:** 이미 작성된 CSV의 단편 데이터(`Sheets/Content_MemoryShards.csv`)는 *주변 인물의 잔향* 으로 재해석될 수 있다 (예: Berserker 단편 → 분노한 격벽 수리공의 잔향). 단, 이는 P2 작업이며 본 결정에서 우선 폐기 처리.
 
 ---
 
 ## §3. 콘텐츠 (Content)
 
-### §3.1. 단편 종류 — 5색 분포
+### §3.1. 인물 카테고리 (1차 18개)
 
-#### Forge 색 (주황 — 분노·공격성)
+| # | 카테고리 | 영문 | 대표 무기 | 환경 |
+| :-: | :--- | :--- | :--- | :--- |
+| 1 | 측량사 | Surveyor | 측량사의 에코 쐐기 (CNT-ITM-001) | 격벽 회랑 |
+| 2 | 격벽 수리공 | Bulkhead Repairman | (예정) | 격벽 표면 |
+| 3 | 심연 잠수사 | Abyss Diver | (예정) | 심연 수로 |
+| 4 | 케이블 운반자 | Cable Bearer | (예정) | 수직 케이블 통로 |
+| 5 | 도면 기록관 | Drafting Archivist | (예정) | 기록 침전소 |
+| 6 | 단조공 | Forge Smith | (예정) | 옛 단조소 폐허 |
+| 7 | 경비병 | Guard | (예정) | 중앙 성채 외곽 |
+| 8 | 해방파 연구원 | Liberation Researcher | (예정) | 마법 연구소 폐허 |
+| 9 | 수호단 | Wardens | (예정) | 카타콤 |
+| 10 | 빙결 보존사 | Cryo-Keeper | (예정) | 빙결 동굴 |
+| 11 | 관측자 | Observer | (예정) | 천공의 탑 |
+| 12 | 신호수 | Signaller | (예정) | 격벽 5 |
+| 13 | 측량사 가족 | Surveyor's Kin | (예정) | 외곽 거주구 |
+| 14 | 행상인 | Traveling Merchant | (예정) | 격벽 사이 |
+| 15 | 의약사 | Apothecary | (예정) | 기록 침전소 |
+| 16 | 음악가 | Musician | (예정) | 중앙 성채 |
+| 17 | 광부 | Miner | (예정) | 결정질 광맥 |
+| 18 | 카엘 오르스 동시대 영웅들 | Era 3 Heroes | (예정) | 심연의 구 |
 
-| 종류 | 효과 (Active) | 효과 (Passive) | 게이트 역할 |
-| :--- | :--- | :--- | :--- |
-| Gladiator | 일정 시간 ATK ×1.5 | ATK + (Lv × GLADIATOR_ATK_PER_LV) | ATK 게이트 문지기 |
-| Berserker | 일정 시간 광폭 모드 (속도+이속+) | 공격 속도 + (Lv × 0.33%) | — |
-| Burner | 다음 공격에 화상 부여 | Fire 인챈트 적용 중 데미지 + % | — |
+### §3.2. Stage 4 Fragment 작성 원칙
 
-#### Iron 색 (청록 — 결연함·냉정)
+Stage 4 (진명 해금)의 Fragment는 *Fire 모멘트* 다. 다음 원칙을 준수한다:
 
-| 종류 | 효과 (Active) | 효과 (Passive) | 게이트 역할 |
-| :--- | :--- | :--- | :--- |
-| Ironclad | 일정 시간 슈퍼 아머 부여 | 넉백 저항 + (Lv × 0.8%) | — |
-| Freezer | 다음 공격에 빙결 부여 | Ice 인챈트 적용 중 데미지 + % | — |
+1. **한 문장** — 두 문장 이상 금지. 응축이 본질
+2. **현재형 또는 과거형 1인칭** — 인물이 직접 말한다
+3. **설명 금지** — 보여줘야 한다. *"그는 외로웠다"* 가 아니라 *"그날 일지에는 안 적었지만, 집에는 편지 한 통 두고 갔어."*
+4. **모순/긴장 포함** — 한 면만 보여주지 않는다. *"보고하지 않은 건 비밀이어서가 아니야. 끝을 보고 싶었을 뿐이야"* 는 직업 윤리 위반과 인간적 충동을 동시에 담는다
+5. **세계관 단어 1개 이상** — *격벽*, *측량*, *심연*, *기록* 등. 인물이 그 시대 그 직업의 사람임을 증명
 
-#### Rust 색 (회색 — 비통·체념·세월)
-
-| 종류 | 효과 (Active) | 효과 (Passive) | 게이트 역할 |
-| :--- | :--- | :--- | :--- |
-| Dietician | 즉시 HP 회복 | MaxHP + (Lv × DIETICIAN_HP_PER_LV) | HP 게이트 문지기 |
-| Vampire | 일정 시간 처치 시 흡혈량 ×2 | 처치 시 MaxHP × 2.5% 회복 | — |
-| Leech | 다음 N회 적중에 강화 흡혈 | 적중 시 HP +1 (0.5초 쿨다운) | — |
-
-#### Spark 색 (흰빛 — 호기심·경이)
-
-| 종류 | 효과 (Active) | 효과 (Passive) | 게이트 역할 |
-| :--- | :--- | :--- | :--- |
-| Tutor | 다음 인챈트 위력 ×1.5 | INT + (Lv × TUTOR_INT_PER_LV) | INT 게이트 문지기 |
-| Sprinter | 일정 시간 이속 ×1.5 | 이동 속도 + (Lv × 0.25%) | — |
-| Shocker | 다음 공격에 감전 부여 | Thunder 인챈트 적용 중 데미지 + % | — |
-
-#### Shadow 색 (자주 — 의심·은밀)
-
-| 종류 | 효과 (Active) | 효과 (Passive) | 게이트 역할 |
-| :--- | :--- | :--- | :--- |
-| Ghost | 일정 시간 대시 무적 + 거리 +30% | 대시 i-frame + 거리 + (Lv × ...) | — |
-
-### §3.2. 핵심 기억 (Core Memory) — 정체성 결
-
-핵심 기억은 무기마다 고유. 핸드크래프트 무기는 고정, 절차 드롭 무기는 시드 결정.
-
-| 핵심 기억 ID | 가동 결 (Identity Trait) | 출현 무기 예시 |
-| :--- | :--- | :--- |
-| CM_RUST_GRIEF | 비통의 결 | Rustborn 1지층 |
-| CM_RUST_PERSEVERANCE | 인내의 결 | Rustborn 2지층 |
-| CM_FORGE_RAGE | 격노의 결 | First Sword 1지층 |
-| CM_IRON_RESOLVE | 결연의 결 | (절차) |
-| CM_SHADOW_DOUBT | 의심의 결 | (절차) |
-| CM_SPARK_CURIOSITY | 호기심의 결 | (절차) |
-
-각 핵심 기억은 그 무기의 행동 / 사운드 / Ego 대사 / 미세 시각효과에 영향. 자세한 가동 효과는 무기별 핸드크래프트 시트 참조.
-
-### §3.3. 서사 단편 — No.1
-
-No.1은 에르다의 에코(Echo)에 부착된 발광 구체. 분리 불가, 슬롯 비용 없음.
-
-| 항목 | 내용 |
-| :--- | :--- |
-| 분류 | 서사 단편 (Narrative Shard) |
-| 색 | 무관 (스승 마르타의 잔상으로 색 변화) |
-| 슬롯 비용 | 없음 (에코 전용 부착) |
-| P1 효과 | 없음 (비주얼 전용) |
-| P1 행동 | 위기 시 에코 뒤로 위치 이동. 회상 성공 시 진동 발광 |
-| P2 역할 | 서사 진행 이벤트 반응 |
-| 진실 | 마르타가 남긴 단편. 에르다가 처음 아이템계 진입한 순간 마르타의 금속 조각에서 에코로 이주 |
-| 3막 공개 | 마르타 실루엣이 기억의 방랑자로 등장 시 격렬 반응 |
-
-### §3.4. 무기별 자연 시너지 가이드
-
-| 무기 | 추천 주색 | 추천 부색 | 자연 시너지 |
-| :--- | :--- | :--- | :--- |
-| 검 (Sword) | Forge | Spark | Berserker + Ghost — 빠른 콤보 + 회피 |
-| 대검 (Greatsword) | Iron | Rust | Ironclad + Leech — 진지 사수 |
-| 단검 (Dagger) | Forge | Shadow | Berserker + Ghost — 극한 DPS |
-| 활 (Bow) | Spark | Shadow | Sprinter + Ghost — 카이팅 |
-| 지팡이 (Staff) | Spark | Forge/Iron | Tutor + 원소 단편 — 인챈트 극대화 |
+상세 작성 가이드: `Documents/System/System_ItemNarrative_Template.md`
 
 ---
 
@@ -358,19 +397,29 @@ No.1은 에르다의 에코(Echo)에 부착된 발광 구체. 분리 불가, 슬
 
 | 연동 지점 | 방향 | 세부 규칙 |
 | :--- | :--- | :--- |
-| 잊혀진 단편 스폰 | IW → MEM | 방 클리어 후 `SHARD_SPAWN_RATE` 확률, 무기 색 가중 |
-| 보스 → 핵심 기억 | IW → MEM | 지층 보스 처치 시 핵심 기억 100% 드롭, 정체성 슬롯 자동 배정 |
-| 회상 즉시 효과 | MEM → IW | Recalled 처리 후 즉각 스탯/효과 반영 |
-| 기억의 방랑자 | IW → MEM | 방랑자 접촉 시 임시 제단에서 보상 단편 획득 기회 |
+| 지층 보스 처치 | IW → MEM | Memory Fragment 1개 해금 + Recovery 단계 점프 + 이름 진화 트리거 |
+| 일반 적/방 클리어 | IW → MEM | Recovery 0.1-0.3% 점진 누적 |
+| 환경 오브젝트 상호작용 | IW → MEM | Recovery 0.5-1.0% (서사 오브젝트 한정) |
+| Re-Dive 진입 | IW → MEM | 단편 해석 톤 변경 시드 갱신 |
 
-### §4.2. 장비 연동
+### §4.2. 장비 시스템 연동
 
-단편은 장비에 귀속. 장비 교체 시 단편도 함께 이동.
+장비 데이터 구조에 *Memory Fragment* 와 *Identity Trait* 가 귀속된다.
 
-- **전이**: Recalled 단편만 다른 장비로 이동 가능 (모루 경유, 효과 변이 동반)
-- **판매 전 제거**: 장비 판매 시 단편 유무 경고. 제거 또는 포기 선택
-- **레어리티 승급**: 장비 승급 시 슬롯 증가. 기존 단편 보존
-- **핵심 기억 전이**: 정체성 결 붕괴 경고. 양 무기 영구 영향
+```yaml
+ItemInstance:
+  uid: number
+  def: WeaponDef
+  rarity: Rarity
+  memoryRecovery: number          # 0.0 ~ 100.0
+  unlockedFragments: FragmentId[] # 해금된 Fragment 목록
+  reDiveCount: number             # 0 ~ 3
+  reDiveFragments: FragmentId[]   # Re-Dive 단편 (회차별)
+  # --- DEPRECATED ---
+  # level: number               # 폐기
+  # exp: number                 # 폐기
+  # innocents: Innocent[]       # 폐기
+```
 
 ### §4.3. 스탯 게이트 연동
 
@@ -378,131 +427,107 @@ No.1은 에르다의 에코(Echo)에 부착된 발광 구체. 분리 불가, 슬
 게이트 판정 흐름:
   에르다가 게이트 접촉
     ↓
-  게이트 타입 (ATK/INT/HP) 확인
+  게이트 타입 (ATK/INT) 확인
     ↓
-  장착 장비 전체의 총_스탯 계산
-  (= 장비_기본_스탯 + Σ 장착_단편_효과 × 색_적합성)
+  장착 장비의 effectiveStat 계산
     ↓
-  총_스탯 ≥ GATE_THRESHOLD → 해금
+    effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier
+    ↓
+  effectiveStat ≥ GATE_THRESHOLD → 해금
 ```
 
-### §4.4. 경제 연동
+> **UX 갱신:** 게이트 UI에 *"이 무기를 더 복원하면 열린다"* 표시 (기존 *"이 무기를 강화하면 열린다"* 폐기).
 
-| 행위 | 소비 | 획득 |
-| :--- | :--- | :--- |
-| 합성 (Bond) | Recalled 단편 2개 | Recalled 단편 1개 (레벨 합산) |
-| 분해 | Recalled 단편 1개 | Remnant Fragment + HL 수수료 |
-| 전이 | Recalled 단편 1개 + HL | 변형된 Recalled 단편 (수신 무기에) |
-| 레어리티 승급 | Remnant Fragment N개 | 장비 등급 +1, 슬롯 +증가분 |
+### §4.4. UI 연동
+
+| UI 화면 | 표시 정보 |
+| :--- | :--- |
+| Inventory 그리드 | 셀에 현재 Stage 이름 + Recovery 게이지 (좌하단 4px 막대) |
+| Inventory 중앙 칼럼 | Recovery % + 다음 Stage까지 남은 진행 + 현재 해금된 Fragment 목록 |
+| Inventory 우측 칼럼 (Anvil 모드) | 지층 미니맵 + *"이 다이브에서 해금될 Fragment 미리보기"* (실루엣만) |
+| Identity Archive | 별도 화면. 카테고리별 인물 목록 + 진행도 |
+| Return Result | Fragment 해금 연출 (문장이 *타자기* 처럼 한 글자씩 등장) |
 
 ---
 
 ## §5. 밸런스 (Balance)
 
-### §5.1. 단편 레벨 효과 테이블
+### §5.1. Recovery 진행 속도 목표
 
-```yaml
-# 파라미터 기본값 (Phase 2 조정 가능)
-GLADIATOR_ATK_PER_LV:    1
-TUTOR_INT_PER_LV:        1
-DIETICIAN_HP_PER_LV:     1
-FORGOTTEN_EFFECT_RATIO:  0.5
-RECALLED_LEVEL_MULTIPLIER: 2.0
-SHARD_SOFT_CAP:          300
-
-BERSERKER_ATK_SPD_PER_LV: 0.33
-VAMPIRE_LEECH_RATIO:      2.5
-IRONCLAD_RESIST_PER_LV:   0.8
-GHOST_IFRAME_PER_LV:      0.5
-GHOST_DASH_RANGE_PER_LV:  0.33
-SPRINTER_SPEED_PER_LV:    0.25
-LEECH_HP_PER_HIT:         1
-LEECH_COOLDOWN_SEC:       0.5
-```
-
-### §5.2. 색 적합성 계수
-
-| 관계 | 계수 |
-| :--- | :---: |
-| 주색 일치 | 1.00 |
-| 부색 일치 | 0.85 |
-| 인접색 | 0.70 |
-| 대립색 | 0.50 (효과 변이 발생) |
-| 무관색 | 0.60 |
-
-### §5.3. 드랍률 및 조우 확률
-
-```yaml
-SHARD_SPAWN_RATE:               0.15
-SHARD_COMBAT_DIFFICULTY_RATIO:  1.2
-SHARD_LEVEL_RANGE_MIN:          2
-SHARD_LEVEL_RANGE_MAX:          5
-
-# 보스별 보장 단편 레벨 (일반 단편 1개 추가 드롭)
-Item_General_shard_lv_range:  [10, 20]
-Item_King_shard_lv_range:     [20, 40]
-Item_God_shard_lv_range:      [40, 80]
-Item_Overlord_shard_lv_range: [80, 150]
-
-# 핵심 기억은 보스마다 1개 100% 드롭 (레벨 무관, 정체성 결 가동용)
-
-FRAGMENT_DIVISOR:        10
-SALVAGE_FEE_PER_LEVEL:   5
-```
-
-### §5.4. 동종 단편 스태킹 규칙
-
-```
-1~2개: 100% 효율 (선형)
-3개 이상: 이전 추가분 대비 30% 효율
-```
-
-| 동종 단편 수 | 스태킹 효율 | Berserker 누적 (단위 +20%) |
-| :---: | :--- | :--- |
-| 1개 | 100% | +20% |
-| 2개 | 100% | +40% |
-| 3개 | 30% | +46% |
-| 4개 | 30% | +47.8% |
-| 8개 | 30% | ~+52% |
-
-하드캡:
-
-| 단편 | 하드캡 |
+| 시나리오 | 목표 시간 |
 | :--- | :--- |
-| Berserker | 공속 +30% |
-| Sprinter | 이속 +25% |
-| Ironclad | 넉백 저항 60% |
+| Normal 아이템 100% 복원 (단일 다이브) | 15-25분 |
+| Magic 아이템 100% 복원 | 35-50분 |
+| Rare 아이템 100% 복원 | 50-70분 |
+| Legendary 아이템 100% 복원 | 90-120분 |
+| Ancient 아이템 100% 복원 | 120-180분 + 심연 무한 |
+| Identity Archive 18 카테고리 첫 인물 100% | 25-40시간 (메인 진행) |
+| Identity Archive 100% (300명 전원) | 200-400시간 (야리코미) |
+
+### §5.2. effective stat 배율 검증
+
+레벨 10 Normal 검 (DEC-036 구 시스템) 대비 100% Recovery Normal 검 비교:
+
+```
+구 시스템 (Lv 10 Normal):
+  ATK = 15 × 1.0 × (1 + 10 × 0.05) = 15 × 1.5 = 22.5 → 23
+
+신 시스템 (100% Recovery Normal):
+  ATK = 15 × 1.0 × (0.4 + 1.0 × 0.006 × 100) = 15 × 1.0 × 1.0 = 15
+
+신 시스템 (100% Recovery Normal + boss 처치 영구 보너스 폐기):
+  ATK = 15 ← 베이스 스탯 그대로
+```
+
+> **수치 갭 처리:** 구 시스템 대비 100% 시점에서도 50% 가까이 낮아진다. 이는 의도된 변경 — *강화* 가 아니라 *해방* 이므로 베이스 스탯 자체가 *원래 의도된 잠재력* 이어야 한다. 따라서 `Sheets/Content_Stats_Weapon_List.csv` 의 baseStats를 1.5-2배 상향 조정해야 한다. (별도 Phase 2 작업)
+
+### §5.3. Fragment 작성 비용
+
+300무기 × 평균 4 Fragment = 1,200개 문장. 작가가 작성해야 할 양:
+
+- **MVP (Phase 2):** 5무기 × 4 Fragment = 20개 문장 (Stage 4 = 5개의 Fire 모멘트)
+- **Beta (Phase 3):** 100무기 × 4 Fragment = 400개 문장
+- **Launch (Phase 4):** 300무기 × 4 Fragment + Re-Dive × 3 × 300 = 1,200 + 900 = 2,100개 문장
+- **Network Fragment:** 인물 간 관계 30-50쌍 = 30-50개 문장
+
+> **작가 SSoT:** `Sheets/LoreTexts/Fragments/{itemId}.md` (신규 디렉토리).
 
 ---
 
 ## §6. 수용 기준 (Acceptance Criteria)
 
-#### 기능 기준
+### 기능 기준
 
-- [ ] Forgotten 단편은 0.5 효과, 회색 음영 표시
-- [ ] Recalled 단편은 100% 효과 + 레벨 2배 적용, 색 발광
-- [ ] 핵심 기억은 지층 보스 처치 시 100% 드롭 → 정체성 슬롯 자동 배정
-- [ ] 일반 단편 회상 시 빈 기억 슬롯 자동 배치
-- [ ] Active/Passive 역할 선택 UI 동작
-- [ ] 모루에서 합성 (동색·동형) UI 동작
-- [ ] 모루에서 전이 시 효과 변이 적용 (수치+이름+종류)
-- [ ] 핵심 기억 전이 시 정체성 결 붕괴 경고 + 처리
-- [ ] 분해 → Remnant Fragment 획득
-- [ ] 게이트 판정 시 단편 효과 합산 + 색 적합성 반영
+- [ ] 아이템 인스턴스에 `memoryRecovery: number` 필드 존재 (0.0 ~ 100.0)
+- [ ] 보스 처치 시 Fragment 해금 + Recovery 단계 점프 동시 발생
+- [ ] 일반 적 처치/방 클리어 시 Recovery 점진 누적 (0.1-0.3%)
+- [ ] Stage 변경 시 아이템 이름이 변함 (nameStage0~4)
+- [ ] 정체성 결이 Stage에 비례하여 가동 (Stage N = Trait 1~N 누적)
+- [ ] effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier 적용
+- [ ] Identity Archive 화면에 카테고리별 인물 목록 표시
+- [ ] Identity Archive에 해금된 Fragment 전부 영구 보존
+- [ ] 100% Recovery 아이템 재진입 시 Re-Dive 모드 진입
+- [ ] Re-Dive 시 다른 해석의 Fragment 등장
 
-#### 체험 기준
+### 체험 기준
 
-- [ ] 회상 직후 4배 점프가 *해방감*으로 체감되는가
-- [ ] 핵심 기억 획득이 보스 처치의 정점으로 느껴지는가
-- [ ] 단편 전이 시 변이된 결과가 *서프라이즈*로 작용하는가
-- [ ] 정체성 결의 합이 그 무기를 *나만의 무기*로 느끼게 하는가
-- [ ] 잉여 단편 분해가 자연스러운 자원 순환으로 느껴지는가
+- [ ] Stage 4 Fragment 해금 순간이 *지층 클리어의 정점* 으로 느껴지는가 (수치 보상보다 강한가)
+- [ ] 다음 다이브 선택 시 *"케이블 운반자 이야기가 궁금하다"* 가 *"Legendary 검을 키우고 싶다"* 보다 자주 나오는가
+- [ ] 인물 이름이 변하는 순간(Stage 1 → 2 등)이 시각적으로 즉각 인지되는가
+- [ ] Identity Archive 페이지를 *자발적으로* 다시 열어보는가
+- [ ] 100% 복원 후 *다음 인물* 로 자연스럽게 이동하는가 (시스템 강제 없이)
+- [ ] effective stat이 100% 시점에 *해방감* 으로 느껴지는가 (강화 누적이 아닌)
 
 ---
 
-**작성자:** Systems Designer (Creative Director 결정 반영)
-**최종 업데이트:** 2026-04-28
+**작성자:** Systems Designer (DEC-046 반영)
+**최종 업데이트:** 2026-05-24
 **변경 이력:**
-- 2026-04-28: DEC-036 반영 — 기억 단편 폐기, 기억 단편 시스템 도입. 5색 기질, 2-tier 위계, Active/Passive 슬롯, 효과 변이 도입.
+- 2026-05-24: DEC-046 전면 재작성 — Memory Recovery 패러다임 전환. 5색 기질·전이/합성·효과 변이 폐기. Memory Fragment + Identity Trait + Identity Archive + Name Evolution 도입.
+- 2026-04-28: DEC-036 (구버전) — 기억 단편 시스템 도입. 5색 기질, Active/Passive 슬롯, 효과 변이.
 
-**다음 단계:** Phase 2 — 색 적합성 변이 매트릭스 핸드크래프트, 핵심 기억 카탈로그 1차 30종 확정
+**다음 단계:**
+1. `Sheets/Content_Item_Master.csv` 에 `nameStage0~4` 5개 컬럼 추가
+2. `Sheets/Content_Stats_Weapon_List.csv` baseStats 1.5-2배 상향 (effective stat 갭 보정)
+3. `Sheets/LoreTexts/Fragments/` 디렉토리 신설 + 측량사의 에코 쐐기 4 Fragment 작성
+4. Identity Archive UI 명세 작성 (`Documents/UI/UI_Identity_Archive.md` 신규)

@@ -15,7 +15,7 @@
  * (Design_Tutorial_EnvironmentalTeaching §Symbol Prompt).
  */
 
-import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, Assets, Rectangle, ColorMatrixFilter } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -26,6 +26,47 @@ import { GlowFilter } from '@effects/GlowFilter';
 /** Anvil halo glow — brand key color orange (#FFA41B 2026-05-20). */
 const ANVIL_HALO_GLOW_COLOR = 0xffa41b;
 
+// Light pillar — anvil 플랫폼 표면에서 위로 솟는 빛기둥. 활성 anvil 의 식별 시그널.
+// disabled 상태에선 표시하지 않음 (update 게이트).
+// 바닥은 거의 불투명, 위로 갈수록 빠르게 (^1.5) 페이드 — 빛이 위쪽으로 흩어지는 느낌.
+const LIGHT_PILLAR_HEIGHT_PX = 64;    // 4 tiles
+const LIGHT_PILLAR_WIDTH_PX = 32;
+const LIGHT_PILLAR_BANDS = 12;
+// base × (1 + amp) × falloff_max(~0.94) ≤ 1.0 이어야 펄스 정점에서 i=0 band 의
+// alpha 가 clamp 되어 다음 band 와 단절선이 생기는 현상을 피한다.
+// 0.80 × 1.15 × 0.94 ≈ 0.87 — 안전 마진 확보.
+const LIGHT_PILLAR_BASE_ALPHA = 0.80;
+const LIGHT_PILLAR_PULSE_AMP = 0.15;
+const LIGHT_PILLAR_FALLOFF_EXP = 1.5; // 클수록 위쪽이 빨리 사라짐
+/** 아이템 배치 위치(ITEM_ICON_X) 기준 추가 x 오프셋 (px). anvil sprite 시각 중심 정렬. */
+const LIGHT_PILLAR_X_OFFSET = 4;
+/** 빛기둥 *시작*(바닥) Y 좌표 — anvil container local. anvil entity.y 는 floor 면
+ *  이라 플랫폼 상단(= floor 위 16px)에서 시작하려면 local y = -16. */
+const LIGHT_PILLAR_BASE_Y = -16;
+
+// Directional trail (E) — Anvil 사용 후 *오른쪽으로* 흐르는 1.5s 빛 트레일.
+// 터널 방향 시그널. ItemDeploymentController.onOpenTunnel 콜백에서 호출.
+const DIR_TRAIL_DEFAULT_MS = 1500;
+const DIR_TRAIL_HEIGHT_PX = 32;
+const DIR_TRAIL_BANDS = 16;
+const DIR_TRAIL_PEAK_ALPHA = 0.7;
+
+interface AsepriteAtlas {
+  frames: Array<{
+    frame: { x: number; y: number; w: number; h: number };
+  }>;
+  meta: {
+    image: string;
+    slices?: Array<{
+      keys?: Array<{
+        frame: number;
+        bounds: { x: number; y: number; w: number; h: number };
+        pivot?: { x: number; y: number };
+      }>;
+    }>;
+  };
+}
+
 interface Spark {
   gfx: Graphics;
   vx: number;
@@ -34,8 +75,24 @@ interface Spark {
   maxLife: number;
 }
 
+interface ItemDissolveParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+}
+
 const SPARK_SPAWN_INTERVAL = 180; // ms between idle sparks
 const MAX_SPARKS = 8;
+const ITEM_ICON_X = -3;
+const ITEM_ICON_Y = -47;
+const ITEM_PUNCH_DURATION = 1000;
+const ITEM_PUNCH_SCALE_MAX = 2.25;
+const ITEM_DISSOLVE_DURATION = 850;
+const ITEM_DISSOLVE_PARTICLE_COUNT = 64;
 
 /**
  * Build a small hammer pictogram (no language text) — points at the strike action.
@@ -86,11 +143,20 @@ export class Anvil {
   /** True after the first IW boss clear — anvil retired (Playtest 2026-04-26). */
   disabled = false;
 
+  /** LDtk Anvil entity 의 RetireAfterFirstBoss field. true 면 첫 IW 보스 클리어
+   *  후 retire (initial-spawn-disabled 또는 world-return-dialogue 시점). */
+  retireAfterFirstBoss = false;
+
   private hintContainer: Container;
   private showHint = false;
   private timer = 0;
   private gfx: Graphics;
   private halo: Graphics;
+  private lightPillar!: Graphics;
+  private dirTrail!: Graphics;
+  private dirTrailMs = 0;
+  private dirTrailDuration = 0;
+  private dirTrailLength = 0;
   private particleLayer: Container;
   private sparks: Spark[] = [];
   private sparkCooldown = 0;
@@ -101,6 +167,16 @@ export class Anvil {
   private fxFrameIndex = 0;
   private fxPlaying = false;
   private itemIcon: Sprite | null = null;
+  private itemIconBaseWidth = 0;
+  private itemIconBaseHeight = 0;
+  private itemPunchFilter: ColorMatrixFilter | null = null;
+  private itemPunchPhase: 'idle' | 'punch' | 'dissolve' | 'done' = 'idle';
+  private itemPunchElapsed = 0;
+  private itemDissolveTarget = { x: 0, y: 0 };
+  private itemDissolveGfx: Graphics | null = null;
+  private itemDissolveParticles: ItemDissolveParticle[] = [];
+  private itemDissolveElapsed = 0;
+  private itemDissolveSpawned = 0;
   /** Called when FX animation completes — scene uses this to trigger warp. */
   onFxComplete: (() => void) | null = null;
 
@@ -111,6 +187,7 @@ export class Anvil {
   private keyStrike: Container | null = null;
 
   private anvilSprite: Sprite | null = null;
+  private gatePivotLocal: { x: number; y: number } | null = null;
 
   constructor(x: number, y: number, disabled = false) {
     this.x = x;
@@ -132,6 +209,18 @@ export class Anvil {
       coreBoost: 0.4,
     })];
     this.container.addChild(this.halo);
+
+    // 빛기둥 — 아이템 배치 위치(ITEM_ICON_X, ITEM_ICON_Y)에서 위로 4타일 솟음.
+    // halo 와 같은 시점에 add → anvil sprite 뒤. blendMode 'add' 로 빛 합성.
+    this.lightPillar = new Graphics();
+    this.lightPillar.blendMode = 'add';
+    this.container.addChild(this.lightPillar);
+
+    // Directional trail — anvil 사용 후 오른쪽으로 흐르는 1.5s 빛 트레일.
+    // triggerDirectionalTrail() 호출 전에는 빈 Graphics.
+    this.dirTrail = new Graphics();
+    this.dirTrail.blendMode = 'add';
+    this.container.addChild(this.dirTrail);
 
     this.gfx = new Graphics();
     this.drawAnvil(); // placeholder until sprite loads
@@ -173,19 +262,45 @@ export class Anvil {
 
   private async loadAnvilSprite(): Promise<void> {
     try {
-      const path = this.disabled
-        ? 'assets/sprites/anvil_gate_01_disable.png'
-        : 'assets/sprites/anvil_gate_01.png';
-      const tex = await Assets.load<Texture>(assetPath(path));
+      this.gatePivotLocal = null;
+
+      const atlas = await fetch(assetPath('assets/sprites/anvil_gate_01_atlas.json'))
+        .then(r => r.json()) as AsepriteAtlas;
+      const frame = atlas.frames[this.disabled ? 1 : 0]?.frame ?? atlas.frames[0]?.frame;
+      if (!frame) throw new Error('anvil_gate_01_atlas.json has no frame');
+
+      const tex = await Assets.load<Texture>(assetPath(`assets/sprites/${atlas.meta.image}`));
       tex.source.scaleMode = 'nearest';
-      const sprite = new Sprite(tex);
+      const sprite = new Sprite(new Texture({
+        source: tex.source,
+        frame: new Rectangle(frame.x, frame.y, frame.w, frame.h),
+      }));
       sprite.anchor.set(0.5, 1); // bottom-center pivot
       this.anvilSprite = sprite;
+      this.gatePivotLocal = this.readGatePivotLocal(atlas, frame.w, frame.h);
       this.gfx.visible = false;
       this.container.addChildAt(sprite, this.container.getChildIndex(this.gfx));
     } catch {
       // Sprite not found — keep placeholder Graphics
     }
+  }
+
+  private readGatePivotLocal(atlas: AsepriteAtlas, frameW: number, frameH: number): { x: number; y: number } {
+    const key = atlas.meta.slices?.[0]?.keys?.[0];
+    if (!key) return { x: frameW, y: Math.floor(frameH * 0.5) };
+    const pivot = key.pivot ?? { x: Math.floor(key.bounds.w * 0.5), y: Math.floor(key.bounds.h * 0.5) };
+    return {
+      x: key.bounds.x + pivot.x,
+      y: key.bounds.y + pivot.y,
+    };
+  }
+
+  getGatePivotWorld(): { x: number; y: number } | null {
+    if (!this.anvilSprite || !this.gatePivotLocal) return null;
+    return {
+      x: this.x + this.gatePivotLocal.x - this.anvilSprite.width * this.anvilSprite.anchor.x,
+      y: this.y + this.gatePivotLocal.y - this.anvilSprite.height * this.anvilSprite.anchor.y,
+    };
   }
 
   /**
@@ -196,24 +311,24 @@ export class Anvil {
   async setDisabled(disabled: boolean): Promise<void> {
     if (this.disabled === disabled) return;
     this.disabled = disabled;
-    // Reload sprite for the new state
     if (this.anvilSprite) {
       this.container.removeChild(this.anvilSprite);
       this.anvilSprite.destroy();
       this.anvilSprite = null;
     }
     await this.loadAnvilSprite();
-    // Container may have been destroyed during await
     if (this.container.destroyed) return;
     if (disabled) {
-      if (this.halo && !this.halo.destroyed) this.halo.clear();
       if (this.hintContainer) this.hintContainer.visible = false;
-      // Drop existing sparks
       for (const s of this.sparks) {
         this.particleLayer.removeChild(s.gfx);
         s.gfx.destroy();
       }
       this.sparks = [];
+      // 빛기둥 즉시 제거 — disabled 상태는 비활성 시그널이므로 표시 금지.
+      if (this.lightPillar && !this.lightPillar.destroyed) {
+        this.lightPillar.clear();
+      }
     }
   }
 
@@ -290,6 +405,7 @@ export class Anvil {
       this.container.removeChild(this.itemGfx);
       this.itemGfx.destroy();
     }
+    this.resetPlacedItemEffect();
 
     const color = RARITY_COLOR[item.rarity];
     this.itemGfx = new Graphics();
@@ -320,11 +436,164 @@ export class Anvil {
       const icon = new Sprite(tex);
       icon.anchor.set(0.5, 0.5);
       // Gate center + 50px down offset
-      icon.x = -3;
-      icon.y = -47;
+      icon.x = ITEM_ICON_X;
+      icon.y = ITEM_ICON_Y;
+      this.itemIconBaseWidth = icon.width;
+      this.itemIconBaseHeight = icon.height;
       this.itemIcon = icon;
       this.container.addChild(icon);
     }).catch(() => { /* no icon available */ });
+  }
+
+  getPlacedItemWorld(): { x: number; y: number } | null {
+    if (!this.itemIcon) return null;
+    return {
+      x: this.x + this.itemIcon.x,
+      y: this.y + this.itemIcon.y,
+    };
+  }
+
+  startPlacedItemPunch(): void {
+    if (!this.itemIcon) return;
+    if (this.itemGfx) this.itemGfx.visible = false;
+    this.itemIcon.visible = true;
+    this.itemIcon.x = ITEM_ICON_X;
+    this.itemIcon.y = ITEM_ICON_Y;
+    this.itemIcon.alpha = 1;
+    this.itemIcon.scale.set(1);
+    this.itemPunchFilter = new ColorMatrixFilter();
+    this.itemIcon.filters = [this.itemPunchFilter];
+    this.itemPunchPhase = 'punch';
+    this.itemPunchElapsed = 0;
+  }
+
+  startPlacedItemDissolve(worldTargetX: number, worldTargetY: number): void {
+    if (!this.itemIcon || this.itemPunchPhase !== 'punch') return;
+    this.itemPunchPhase = 'dissolve';
+    this.itemDissolveTarget = {
+      x: worldTargetX - this.x,
+      y: worldTargetY - this.y,
+    };
+    this.itemIcon.visible = true;
+    this.itemDissolveElapsed = 0;
+    this.itemDissolveSpawned = 0;
+    this.itemDissolveParticles = [];
+    if (!this.itemDissolveGfx) {
+      this.itemDissolveGfx = new Graphics();
+      this.container.addChild(this.itemDissolveGfx);
+    }
+    this.itemDissolveGfx.clear();
+  }
+
+  private resetPlacedItemEffect(): void {
+    this.itemPunchPhase = 'idle';
+    this.itemPunchElapsed = 0;
+    this.itemDissolveParticles = [];
+    this.itemDissolveElapsed = 0;
+    this.itemDissolveSpawned = 0;
+    if (this.itemDissolveGfx) {
+      this.itemDissolveGfx.clear();
+    }
+    if (this.itemIcon) {
+      this.itemIcon.visible = true;
+      this.itemIcon.alpha = 1;
+      this.itemIcon.scale.set(1);
+      this.itemIcon.filters = [];
+    }
+    if (this.itemGfx) this.itemGfx.visible = true;
+    this.itemPunchFilter = null;
+  }
+
+  private setItemWhiten(t: number): void {
+    if (!this.itemPunchFilter) return;
+    this.itemPunchFilter.matrix = [
+      1 - t, 0,     0,     0, t,
+      0,     1 - t, 0,     0, t,
+      0,     0,     1 - t, 0, t,
+      0,     0,     0,     1, 0,
+    ];
+  }
+
+  private spawnItemDissolveParticle(): void {
+    if (!this.itemIcon) return;
+    const radius = Math.max(this.itemIconBaseWidth, this.itemIconBaseHeight, 16) * ITEM_PUNCH_SCALE_MAX * 0.5;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.sqrt(Math.random()) * radius;
+    const x = ITEM_ICON_X + Math.cos(angle) * dist;
+    const y = ITEM_ICON_Y + Math.sin(angle) * dist;
+    const dx = this.itemDissolveTarget.x - x;
+    const dy = this.itemDissolveTarget.y - y;
+    const len = Math.sqrt(dx * dx + dy * dy) + 1;
+    const speed = 45 + Math.random() * 70;
+    const maxLife = 0.45 + Math.random() * 0.35;
+    this.itemDissolveParticles.push({
+      x,
+      y,
+      vx: (dx / len) * speed + (Math.random() - 0.5) * 20,
+      vy: (dy / len) * speed - 20 - Math.random() * 35,
+      life: maxLife,
+      maxLife,
+      size: 1.2 + Math.random() * 2.2,
+    });
+  }
+
+  private updatePlacedItemEffect(dt: number): void {
+    if (this.itemPunchPhase === 'punch') {
+      if (!this.itemIcon) return;
+      this.itemPunchElapsed += dt;
+      const t = Math.min(1, this.itemPunchElapsed / ITEM_PUNCH_DURATION);
+      this.itemIcon.scale.set(1 + t * (ITEM_PUNCH_SCALE_MAX - 1));
+      this.setItemWhiten(t);
+      return;
+    }
+
+    if (this.itemPunchPhase !== 'dissolve' || !this.itemDissolveGfx) return;
+    const sec = dt / 1000;
+    this.itemDissolveElapsed += dt;
+    const dissolveT = Math.min(1, this.itemDissolveElapsed / ITEM_DISSOLVE_DURATION);
+    const targetSpawned = Math.floor(dissolveT * ITEM_DISSOLVE_PARTICLE_COUNT);
+    while (this.itemDissolveSpawned < targetSpawned) {
+      this.spawnItemDissolveParticle();
+      this.itemDissolveSpawned++;
+    }
+
+    if (this.itemIcon) {
+      const hold = Math.max(0, 1 - dissolveT * 1.35);
+      this.itemIcon.alpha = hold;
+      this.itemIcon.scale.set(ITEM_PUNCH_SCALE_MAX * (0.82 + hold * 0.18));
+    }
+
+    this.itemDissolveGfx.clear();
+
+    for (let i = this.itemDissolveParticles.length - 1; i >= 0; i--) {
+      const p = this.itemDissolveParticles[i];
+      p.life -= sec;
+      if (p.life <= 0) {
+        this.itemDissolveParticles.splice(i, 1);
+        continue;
+      }
+      const dx = this.itemDissolveTarget.x - p.x;
+      const dy = this.itemDissolveTarget.y - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+      const pull = 820 / dist;
+      p.vx += (dx / dist) * pull * sec;
+      p.vy += (dy / dist) * pull * sec;
+      p.vx *= 1.01;
+      p.vy *= 1.01;
+      p.x += p.vx * sec;
+      p.y += p.vy * sec;
+
+      const k = p.life / p.maxLife;
+      this.itemDissolveGfx.circle(p.x, p.y, p.size * k).fill({ color: 0xffffff, alpha: k });
+    }
+
+    if (
+      this.itemDissolveElapsed >= ITEM_DISSOLVE_DURATION &&
+      this.itemDissolveParticles.length === 0
+    ) {
+      this.itemPunchPhase = 'done';
+      if (this.itemIcon) this.itemIcon.visible = false;
+    }
   }
 
   private playActivationFX(): void {
@@ -415,6 +684,17 @@ export class Anvil {
     }
   }
 
+  /**
+   * Anvil 사용 후 *오른쪽으로* 흐르는 빛 트레일. 터널 방향을 시각적으로 안내.
+   * @param lengthPx 트레일 길이(px) — 보통 터널 width.
+   * @param durationMs 1.5s 기본.
+   */
+  triggerDirectionalTrail(lengthPx: number, durationMs: number = DIR_TRAIL_DEFAULT_MS): void {
+    this.dirTrailLength = Math.max(0, lengthPx);
+    this.dirTrailDuration = Math.max(1, durationMs);
+    this.dirTrailMs = this.dirTrailDuration;
+  }
+
   update(dt: number): void {
     this.timer += dt;
     const t = this.timer / 1000;
@@ -428,13 +708,68 @@ export class Anvil {
     }
     // Item icon float animation at gate center + 50px down
     if (this.itemIcon) {
-      const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
-      this.itemIcon.y = -47 + Math.sin(t * 3) * 2;
+      if (this.itemPunchPhase === 'idle') {
+        this.itemIcon.y = ITEM_ICON_Y + Math.sin(t * 3) * 2;
+      }
     }
+    this.updatePlacedItemEffect(dt);
 
     // FX019 spritesheet animation is driven by playActivationFX() via rAF.
     // update() must NOT advance frames independently — doing so races with
     // the rAF loop and can clear fxPlaying before onFxComplete fires.
+
+    // --- Light pillar (활성 시그널) ---------------------------------------
+    // 아이템 배치 위치에서 위로 4타일 솟는 빛기둥. 아래쪽 선명 → 위로 갈수록
+    // linear 페이드. 펄스는 halo outer ring 과 동기화 (t * 1.5) — 안빌 전체가
+    // 한 박자로 호흡. disabled / used 상태에선 그리지 않음.
+    if (this.lightPillar && !this.lightPillar.destroyed) {
+      this.lightPillar.clear();
+      if (!this.used && !this.disabled) {
+        const pulse = 1 + Math.sin(t * 1.5) * LIGHT_PILLAR_PULSE_AMP;
+        const baseY = LIGHT_PILLAR_BASE_Y;
+        const halfW = LIGHT_PILLAR_WIDTH_PX / 2;
+        const centerX = ITEM_ICON_X + LIGHT_PILLAR_X_OFFSET;
+        for (let i = 0; i < LIGHT_PILLAR_BANDS; i++) {
+          const tMid = (i + 0.5) / LIGHT_PILLAR_BANDS;     // 0(bottom) ~ 1(top)
+          const falloff = (1 - tMid) ** LIGHT_PILLAR_FALLOFF_EXP;
+          const alpha = LIGHT_PILLAR_BASE_ALPHA * pulse * falloff;
+          const y0 = baseY - ((i + 1) / LIGHT_PILLAR_BANDS) * LIGHT_PILLAR_HEIGHT_PX;
+          const y1 = baseY - (i / LIGHT_PILLAR_BANDS) * LIGHT_PILLAR_HEIGHT_PX;
+          this.lightPillar
+            .rect(centerX - halfW, y0, LIGHT_PILLAR_WIDTH_PX, y1 - y0)
+            .fill({ color: ANVIL_HALO_GLOW_COLOR, alpha });
+        }
+      }
+    }
+
+    // --- Directional trail (E) -------------------------------------------
+    // anvil 사용 후 *오른쪽으로* 흐르는 빛 트레일. 길이=tunnel width, 1.5s fade.
+    // bands 별 alpha falloff + 시간 fade-in/out 곱셈. 활성 안되면 clear.
+    if (this.dirTrail && !this.dirTrail.destroyed) {
+      this.dirTrail.clear();
+      if (this.dirTrailMs > 0 && this.dirTrailDuration > 0 && this.dirTrailLength > 0) {
+        this.dirTrailMs = Math.max(0, this.dirTrailMs - dt);
+        const lifeT = 1 - this.dirTrailMs / this.dirTrailDuration; // 0 → 1
+        // 시간 envelope: 앞 20% fade-in, 뒤 50% fade-out
+        let timeAlpha: number;
+        if (lifeT < 0.2) timeAlpha = lifeT / 0.2;
+        else if (lifeT > 0.5) timeAlpha = (1 - lifeT) / 0.5;
+        else timeAlpha = 1;
+        const baseY = LIGHT_PILLAR_BASE_Y;
+        const halfH = DIR_TRAIL_HEIGHT_PX / 2;
+        const startX = ITEM_ICON_X;
+        for (let i = 0; i < DIR_TRAIL_BANDS; i++) {
+          const tMid = (i + 0.5) / DIR_TRAIL_BANDS;     // 0(near anvil) → 1(far)
+          const falloff = (1 - tMid) ** 1.4;
+          const alpha = DIR_TRAIL_PEAK_ALPHA * timeAlpha * falloff;
+          const x0 = startX + (i / DIR_TRAIL_BANDS) * this.dirTrailLength;
+          const x1 = startX + ((i + 1) / DIR_TRAIL_BANDS) * this.dirTrailLength;
+          this.dirTrail
+            .rect(x0, baseY - halfH, x1 - x0, DIR_TRAIL_HEIGHT_PX)
+            .fill({ color: ANVIL_HALO_GLOW_COLOR, alpha });
+        }
+      }
+    }
 
     // --- Halo pulse (A3 affordance) --------------------------------------
     // Slow outer ring + faster inner shimmer. Strengthens on approach.

@@ -35,6 +35,7 @@ import { Spike } from '@entities/Spike';
 import { CrackedFloor } from '@entities/CrackedFloor';
 import { BreakableProp } from '@entities/BreakableProp';
 import { Building } from '@entities/Building';
+import { ItemDisplay } from '@entities/ItemDisplay';
 import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { GrowingWall } from '@entities/GrowingWall';
@@ -76,7 +77,7 @@ import { TutorialHint } from '@ui/TutorialHint';
 import { SFX } from '@audio/Sfx';
 import { BgmController } from '@audio/BgmController';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, addRecovery, grantBossStageJump, getDisplayName, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
 import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/memoryShards';
@@ -98,7 +99,6 @@ import { WallSlideDustManager } from '@effects/WallSlideDust';
 import { FootstepPuffManager } from '@effects/FootstepPuff';
 import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
 import { SurgeVfxManager } from '@effects/SurgeVfx';
-import { ComboFinisherBurstManager } from '@effects/ComboFinisherBurst';
 import { CriticalHighlightManager } from '@effects/CriticalHighlight';
 import { HitBloodSprayManager } from '@effects/HitBloodSpray';
 import { DiveLandImpactManager } from '@effects/DiveLandImpact';
@@ -235,6 +235,17 @@ export class ItemWorldScene extends Scene {
   readonly isItemWorld = true;
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
+  /**
+   * DEC-046 (2026-05-24): 가장 최근 보스 처치로 발생한 Recovery stage jump 결과.
+   * ReturnResult 화면이 dive 종료 시 읽어 *이름 진화 → Fragment 해금* 연출을 트리거.
+   * null = 이번 dive 동안 보스 처치 stage jump 미발생.
+   */
+  lastBossStageJump: {
+    stratumIndex: number;
+    newStage: number;
+    fragmentId: string;
+    itemName: string;
+  } | null = null;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
   private ldtkLoader: LdtkLoader | null = null;
@@ -275,6 +286,18 @@ export class ItemWorldScene extends Scene {
     row: number;
     layers: Container[];
   }> = [];
+  private cellVisualRecords = new Map<string, {
+    col: number;
+    row: number;
+    ldtkLevel: LdtkLevel;
+    roomX: number;
+    roomY: number;
+  }>();
+  private renderedCellVisuals = new Map<string, {
+    col: number;
+    row: number;
+    layers: Container[];
+  }>();
   private visibleCellWindowKey = '';
   /**
    * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
@@ -357,7 +380,6 @@ export class ItemWorldScene extends Scene {
   private footstepPuff!: FootstepPuffManager;
   private flaskBurst!: FlaskHealBurstManager;
   private surgeVfx!: SurgeVfxManager;
-  private comboFinisherBurst!: ComboFinisherBurstManager;
   private criticalHighlight!: CriticalHighlightManager;
   private hitBloodSpray!: HitBloodSprayManager;
   private diveLandImpact!: DiveLandImpactManager;
@@ -490,6 +512,8 @@ export class ItemWorldScene extends Scene {
   private lockedDoors: LockedDoor[] = [];
   /** 수동 배치 Building (LDtk Entity 'Building') — 시각 데코, 충돌 없음. */
   private buildings: Building[] = [];
+  /** ItemWorld 전용 — 현재 아이템 sprite 의 거대 표식. LDtk Entity 'ItemDisplay'. */
+  private itemDisplays: ItemDisplay[] = [];
   private cameraZones: {
     x: number; y: number; w: number; h: number;
     zoom: number; deadZoneX: number; deadZoneY: number;
@@ -501,10 +525,6 @@ export class ItemWorldScene extends Scene {
   private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
   private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
   private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
-  // Breakable tile (IntGrid 9) hit tracking ? 3 swings to destroy
-  private breakableHits: Map<string, number> = new Map(); // "tileCol,tileRow" → hits taken
-  private breakableHitThisSwing: Set<string> = new Set();
-  private breakableLastCombo = -1;
 
   // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
   private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" → memory template
@@ -682,11 +702,6 @@ export class ItemWorldScene extends Scene {
 
     // First-dive 온보딩: 첫 아이템계 보스를 처치하기 전에는 모든 아이템이 1지층만 갖는다.
     // 레어리티 무관 (Normal/Magic/Rare/...) 의 글로벌 게이트.
-    if (!sacredSave.isFirstItemWorldBossDefeated() && this.strataConfig.strata.length > 1) {
-      this.strataConfig = { strata: [this.strataConfig.strata[0]] };
-      Debug.log('[ItemWorld] First-boss onboarding: strata truncated to 1.');
-    }
-
     // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
     // Phase 1: 무기별 topologyOverride 가 있으면 stratum 의 토폴로지를 강제 교체.
     // Dev: ?topology=ring 같은 쿼리스트링이 있으면 그것이 최우선 (검증용).
@@ -927,7 +942,6 @@ export class ItemWorldScene extends Scene {
     this.footstepPuff = new FootstepPuffManager(this.entityLayer);
     this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
     this.surgeVfx = new SurgeVfxManager(this.entityLayer);
-    this.comboFinisherBurst = new ComboFinisherBurstManager(this.entityLayer);
     this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
     this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
     this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
@@ -1289,6 +1303,7 @@ export class ItemWorldScene extends Scene {
     this.player.savePrevPosition();
 
     // Camera
+    this.game.camera.setZoom(1.0);
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
     // LoreDisplay for Memory Rooms — uiContainer(native) 직속 (UI native 1단계)
@@ -1478,6 +1493,8 @@ export class ItemWorldScene extends Scene {
     this.roomTypeMap.clear();
     this.clearEnemies();
     this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — buildFullMap 가 다시 push
+    this.cellVisualRecords.clear();
+    this.renderedCellVisuals.clear();
     this.visibleCellWindowKey = '';
 
     // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
@@ -1667,50 +1684,18 @@ export class ItemWorldScene extends Scene {
             this.roomItemSpawners.set(`${col}:${absRow}`, list);
           }
         }
-        const inBounds = (t: { px: [number, number] }) =>
-          t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
-          t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
-        const wallTiles = ldtkLevel.wallTiles.filter(inBounds);
-        const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
-        const renderer = new LdtkRenderer();
-        // CSV Tileset is authoritative ? retag tiles to the CSV-derived atlas
-        // key so BG and WALL never collide on LDtk's shared __tilesetRelPath.
-        const bgAreaId = `iw_${this._themeSlug}_bg`;
-        const wallAreaId = `iw_${this._themeSlug}_wall`;
-        const wallTilesSub = substituteSolidGenericSprites(
-          wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
-        );
-        applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-        applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
-        applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
-        renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
-        renderer.bgLayer.position.set(roomX, roomY);
-        renderer.interiorLayer.position.set(roomX, roomY);
-        renderer.wallLayer.position.set(roomX, roomY);
-        renderer.specialLayer.position.set(roomX, roomY);
-        renderer.shadowLayer.position.set(roomX, roomY);
+        this.cellVisualRecords.set(`${col}:${absRow}`, {
+          col,
+          row: absRow,
+          ldtkLevel,
+          roomX,
+          roomY,
+        });
+
         // PIXI v8 cell culling — viewport 밖 cell 의 모든 sprite draw skip.
         // cullArea 는 local coords (position 적용 후 world 로 변환). 각 cell 의
         // local box = (0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX).
-        const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
-        renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
-        renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
-        renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
-        renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
-        renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
-        this.bgAggregate!.addChild(renderer.bgLayer);
-        this.interiorAggregate!.addChild(renderer.interiorLayer);
-        this.wallAggregate!.addChild(renderer.wallLayer);
-        this.specialAggregate!.addChild(renderer.specialLayer);
-        this.shadowAggregate!.addChild(renderer.shadowLayer);
         // 수동 visible toggle 그룹 — updateCellVisibility 가 매 프레임 viewport 검사.
-        this.cellLayerGroups.push({
-          col,
-          row: absRow,
-          layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
-        });
 
         // Hybrid procedural pass — populate grass/wood + spawn Tier B
         // BurnableProp entities inside LDtk BurnableZone rect entities.
@@ -1788,6 +1773,7 @@ export class ItemWorldScene extends Scene {
 
     // Insert map container into scene, then ensure parallax stays behind everything
     this.container.addChildAt(this.fullMapContainer, 0);
+    this.updateCellVisibility();
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
@@ -2048,6 +2034,8 @@ export class ItemWorldScene extends Scene {
       if (!wasCleared) {
         cell.cleared = true;
         this.roomsCleared++;
+        // DEC-046: 방 클리어 시 Recovery +0.3% 점진 누적.
+        addRecovery(this.item, 0.3);
         this.persistRoomState();
       }
       return;
@@ -4115,6 +4103,17 @@ export class ItemWorldScene extends Scene {
           this.entityLayer.addChild(anvil.container);
           break;
         }
+        case 'ItemDisplay': {
+          // ItemWorld 전용 — 진입한 아이템 sprite 를 Size 배율로 확대해 보여준다.
+          // Rotate=true 면 느린 자전 (의례적 톤). 호흡/부유/후광은 항상 활성.
+          const sizeRaw = (ent.fields['Size'] ?? ent.fields['size']) as number | undefined;
+          const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
+          const rotate = ((ent.fields['Rotate'] ?? ent.fields['rotate']) as boolean | undefined) ?? false;
+          const display = new ItemDisplay(ax, ay, scaleFactor, this.item, rotate);
+          this.itemDisplays.push(display);
+          this.entityLayer.addChild(display.container);
+          break;
+        }
         // Other entity types intentionally not handled in ItemWorldScene
       }
     }
@@ -4138,6 +4137,8 @@ export class ItemWorldScene extends Scene {
     this.lockedDoors = [];
     for (const e of this.buildings) e.destroy();
     this.buildings = [];
+    for (const e of this.itemDisplays) e.destroy();
+    this.itemDisplays = [];
     this.cameraZones = [];
     this.activeCameraZone = null;
     // Destroy memory shard visuals + particles
@@ -4223,18 +4224,40 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Locked doors ? reject animation timer
+    // Item displays — 호흡 펄스 (size 동적 변동)
+    for (const d of this.itemDisplays) d.update(dt);
+
+    // Locked doors ? reject animation timer + collision re-assert (2026-05-24 fix)
+    // ItemWorldScene 는 room 재진입 / 동적 grid 재구축으로 LockedDoor.injectCollision 의
+    // grid 셀이 유실될 수 있다. 매 프레임 ensureCollision() 로 idempotent 재주입 +
+    // direct AABB 충돌로 grid 미반영 케이스도 차단 (이중 안전).
     for (const door of this.lockedDoors) {
       door.update(dt);
+      if (!door.locked) continue;
+      door.ensureCollision(this.fullGrid);
+
+      // Direct AABB 충돌 — player 가 door 안에 들어가면 진입 방향으로 밀어냄.
+      const aabb = door.getHitAABB();
+      const px0 = this.player.x;
+      const py0 = this.player.y;
+      const pw = this.player.width;
+      const ph = this.player.height;
+      const overlapsX = px0 + pw > aabb.x && px0 < aabb.x + aabb.width;
+      const overlapsY = py0 + ph > aabb.y && py0 < aabb.y + aabb.height;
+      if (overlapsX && overlapsY) {
+        const playerCx = px0 + pw / 2;
+        const doorCx = aabb.x + aabb.width / 2;
+        // 좌우 중 더 가까운 면으로 밀어냄
+        if (playerCx < doorCx) {
+          this.player.x = aabb.x - pw;
+        } else {
+          this.player.x = aabb.x + aabb.width;
+        }
+      }
     }
 
-    // Player attack vs CrackedFloors / Switches / Breakables
+    // Player attack vs CrackedFloors / Switches / Containers
     if (this.player.isAttackActive()) {
-      // Reset breakable swing tracking on new combo step
-      if (this.player.comboIndex !== this.breakableLastCombo) {
-        this.breakableHitThisSwing.clear();
-        this.breakableLastCombo = this.player.comboIndex;
-      }
       const step = this.player.getAttackStep(this.player.comboIndex);
       if (step) {
         const hitbox = getAttackHitbox(
@@ -4271,8 +4294,6 @@ export class ItemWorldScene extends Scene {
             this.unlockDoorByIidLocal(sw.targetDoorIid);
           }
         }
-        // Breakable tiles (IntGrid 9) ? 3 hits to destroy → air(0)
-        this.checkAttackOnBreakables(hitbox);
         // Throwable containers — sword damage breaks them, except MetalCrate
         // which is immune (acid only).
         for (let i = this.containers.length - 1; i >= 0; i--) {
@@ -4293,52 +4314,10 @@ export class ItemWorldScene extends Scene {
           }
         }
       }
-    } else {
-      // Attack ended ? reset breakable swing tracking
-      if (this.breakableHitThisSwing.size > 0) {
-        this.breakableHitThisSwing.clear();
-        this.breakableLastCombo = -1;
-      }
     }
 
     // Camera zone tracking
     this.updateCameraZones();
-  }
-
-  /** Scan breakable tiles overlapping the attack hitbox. 3 SWINGS → air.
-   *  Each swing counts once per tile; subsequent frames of the same swing
-   *  are ignored so the player must land 3 distinct combo hits. */
-  private checkAttackOnBreakables(hitbox: { x: number; y: number; width: number; height: number }): void {
-    const T = TILE_SIZE;
-    const HITS_TO_BREAK = 3;
-    const l = Math.floor(hitbox.x / T);
-    const r = Math.floor((hitbox.x + hitbox.width - 1) / T);
-    const t = Math.floor(hitbox.y / T);
-    const b = Math.floor((hitbox.y + hitbox.height - 1) / T);
-    let broken = false;
-    for (let row = t; row <= b; row++) {
-      for (let col = l; col <= r; col++) {
-        const v = this.fullGrid[row]?.[col];
-        if (v !== 9) continue;
-        const key = `${col},${row}`;
-        if (this.breakableHitThisSwing.has(key)) continue; // already counted this swing
-        this.breakableHitThisSwing.add(key);
-        const hits = (this.breakableHits.get(key) ?? 0) + 1;
-        if (hits >= HITS_TO_BREAK) {
-          this.fullGrid[row][col] = 0;
-          this.breakableHits.delete(key);
-          broken = true;
-        } else {
-          this.breakableHits.set(key, hits);
-        }
-      }
-    }
-    if (broken) {
-      this.game.hitstopFrames += 4;
-      this.game.camera.shake(4);
-      this.screenFlash.flash(0xffffff, 0.3, 100);
-      this.rebuildRoomVisuals();
-    }
   }
 
   /** Re-render all room containers with updated fullGrid state. */
@@ -4371,6 +4350,13 @@ export class ItemWorldScene extends Scene {
 
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
+        this.cellVisualRecords.set(`${col}:${absRow}`, {
+          col,
+          row: absRow,
+          ldtkLevel,
+          roomX,
+          roomY,
+        });
 
         const inBounds = (t: { px: [number, number] }) =>
           t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
@@ -4413,11 +4399,9 @@ export class ItemWorldScene extends Scene {
         this.wallAggregate.addChild(renderer.wallLayer);
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
-        this.cellLayerGroups.push({
-          col,
-          row: absRow,
-          layers: [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer],
-        });
+        const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer];
+        this.cellLayerGroups.push({ col, row: absRow, layers });
+        this.renderedCellVisuals.set(`${col}:${absRow}`, { col, row: absRow, layers });
       }
     }
 
@@ -4427,7 +4411,7 @@ export class ItemWorldScene extends Scene {
   private destroyAggregateChildren(layer: Container): void {
     const children = layer.removeChildren();
     for (const child of children) {
-      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+      child.destroy({ children: true, texture: false, textureSource: false, context: true });
     }
   }
 
@@ -4903,9 +4887,11 @@ export class ItemWorldScene extends Scene {
         totalStrata: this.strataConfig.strata.length,
         isDeath: true,
       }, () => {
-        this.startExitFade();
+        // 사망 모달 accept → 즉시 월드 복귀. startExitFade(400ms) + LdtkWorld
+        // return fade-in(250ms) 누적이 "한참 머무는" 체감을 주므로 fade 건너뜀.
+        this.exitItemWorld();
       })) {
-        this.startExitFade();
+        this.exitItemWorld();
       }
       return;
     }
@@ -4932,7 +4918,6 @@ export class ItemWorldScene extends Scene {
         SFX.play('attack_hit');
         if (hit.heavy) {
           this.screenFlash.flashHit(true);
-          this.comboFinisherBurst.spawn(hit.hitX, hit.hitY, hit.dirX);
         }
         if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
           this.screenFlash.flashHit(true);
@@ -4999,6 +4984,11 @@ export class ItemWorldScene extends Scene {
           const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
           const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
           const leveled = addItemExp(this.item, killExp);
+          // DEC-046: 일반 적 처치 시 Recovery +0.1% 점진 누적 (호환 EXP 환산과 별개).
+          // 보스는 stage jump로 별도 처리되므로 일반 적만 적용.
+          if (!(enemy as any)._isBoss) {
+            addRecovery(this.item, 0.1);
+          }
           this.earnedExp += killExp;
           this.dmgNumbers.spawnEXP(
             enemy.x + enemy.width / 2, enemy.y - 16,
@@ -5232,6 +5222,29 @@ export class ItemWorldScene extends Scene {
 
         // Boss EXP is granted via normal kill EXP path (CSV Exp column = 1200).
         // No forced itemLevelUp() ? SSoT: Content_Stats_Enemy.csv
+
+        // DEC-046 (2026-05-24): 보스 처치 시 명시적 Recovery stage jump + Fragment 해금.
+        // 레어리티별 stage 수에 따라 stratumIndex 비례로 stageJumpTarget 산정.
+        // 결과는 this.lastBossStageJump 에 저장하여 ReturnResult 화면이 연출.
+        const totalStrata = this.strataConfig.strata.length;
+        const stageJumpResult = grantBossStageJump(
+          this.item,
+          this.currentStratumIndex,
+          totalStrata,
+        );
+        if (stageJumpResult.stageChanged) {
+          this.lastBossStageJump = {
+            stratumIndex: this.currentStratumIndex,
+            newStage: stageJumpResult.newStage,
+            fragmentId: stageJumpResult.fragmentId,
+            itemName: getDisplayName(this.item),
+          };
+          // 인게임 즉시 알림 — 다음 ReturnResult에서 전체 연출.
+          this.toast.show(
+            `▸ ${getDisplayName(this.item)}`,
+            0xffd700,
+          );
+        }
 
         // Boss clear heal: 30% maxHP (GDD HEL-03)
         const bossHeal = Math.floor(this.player.maxHp * 0.30);
@@ -5760,7 +5773,6 @@ export class ItemWorldScene extends Scene {
     this.wallSlideDust.update(dt);
     this.footstepPuff.update(dt);
     this.flaskBurst.update(dt);
-    this.comboFinisherBurst.update(dt);
     this.criticalHighlight.update(dt);
     this.hitBloodSpray.update(dt);
     this.diveLandImpact.update(dt);
@@ -7114,6 +7126,70 @@ export class ItemWorldScene extends Scene {
   /** 매 프레임 재사용 — GC 방지. filterArea + viewport 검사 공용. */
   private _viewportRect = new Rectangle(0, 0, 1, 1);
 
+  private renderCellVisual(key: string): void {
+    if (this.renderedCellVisuals.has(key)) return;
+    if (!this.bgAggregate || !this.interiorAggregate || !this.wallAggregate || !this.specialAggregate || !this.shadowAggregate) return;
+    const rec = this.cellVisualRecords.get(key);
+    if (!rec) return;
+
+    const { col, row: absRow, ldtkLevel, roomX, roomY } = rec;
+    const inBounds = (t: { px: [number, number] }) =>
+      t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
+      t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
+    const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
+    const wallTiles = ldtkLevel.wallTiles.filter((t) => {
+      if (!inBounds(t)) return false;
+      const tr = Math.floor(t.px[1] / TILE_SIZE);
+      const tc = Math.floor(t.px[0] / TILE_SIZE);
+      return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? TILE_WALL) !== TILE_AIR;
+    });
+    const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
+    const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
+    const renderer = new LdtkRenderer();
+    const bgAreaId = `iw_${this._themeSlug}_bg`;
+    const wallAreaId = `iw_${this._themeSlug}_wall`;
+    const wallTilesSub = substituteSolidGenericSprites(
+      wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
+    );
+    applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
+    applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
+    applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+    renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+    renderer.bgLayer.position.set(roomX, roomY);
+    renderer.interiorLayer.position.set(roomX, roomY);
+    renderer.wallLayer.position.set(roomX, roomY);
+    renderer.specialLayer.position.set(roomX, roomY);
+    renderer.shadowLayer.position.set(roomX, roomY);
+
+    const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
+    renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
+    renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
+    renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
+    renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
+    renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
+
+    this.bgAggregate.addChild(renderer.bgLayer);
+    this.interiorAggregate.addChild(renderer.interiorLayer);
+    this.wallAggregate.addChild(renderer.wallLayer);
+    this.specialAggregate.addChild(renderer.specialLayer);
+    this.shadowAggregate.addChild(renderer.shadowLayer);
+
+    const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer];
+    this.renderedCellVisuals.set(key, { col, row: absRow, layers });
+    this.cellLayerGroups.push({ col, row: absRow, layers });
+  }
+
+  private destroyCellVisual(key: string): void {
+    const rendered = this.renderedCellVisuals.get(key);
+    if (!rendered) return;
+    for (const layer of rendered.layers) {
+      if (layer.parent) layer.parent.removeChild(layer);
+      layer.destroy({ children: true, texture: false, textureSource: false, context: true });
+    }
+    this.renderedCellVisuals.delete(key);
+    this.cellLayerGroups = this.cellLayerGroups.filter((g) => g.layers !== rendered.layers);
+  }
+
   /**
    * 수동 cell culling (사용자 결정 2026-05-04 — Ancient 24 FPS 문제 대응).
    * 카메라 viewport ± 1 cell buffer 안의 cell 만 visible=true. 그 외 false.
@@ -7139,13 +7215,32 @@ export class ItemWorldScene extends Scene {
     const windowKey = `${minCol},${maxCol},${minRow},${maxRow}`;
     if (windowKey !== this.visibleCellWindowKey) {
       this.visibleCellWindowKey = windowKey;
-      for (const g of this.cellLayerGroups) {
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          this.renderCellVisual(`${col}:${row}`);
+        }
+      }
+
+      const destroyMinCol = minCol - 1;
+      const destroyMaxCol = maxCol + 1;
+      const destroyMinRow = minRow - 1;
+      const destroyMaxRow = maxRow + 1;
+      for (const [key, g] of Array.from(this.renderedCellVisuals)) {
         const visible =
           g.col >= minCol &&
           g.col <= maxCol &&
           g.row >= minRow &&
           g.row <= maxRow;
-        for (const layer of g.layers) layer.visible = visible;
+        if (
+          g.col < destroyMinCol ||
+          g.col > destroyMaxCol ||
+          g.row < destroyMinRow ||
+          g.row > destroyMaxRow
+        ) {
+          this.destroyCellVisual(key);
+        } else {
+          for (const layer of g.layers) layer.visible = visible;
+        }
       }
     }
     // Filter area culling — aggregate 의 filter 가 viewport 만 처리하도록 제한.

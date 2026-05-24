@@ -26,6 +26,17 @@ export interface MasterItem {
   sourceKey: string;
   rarity: string;
   description: string;
+  /**
+   * DEC-046 Name Evolution — 5단계 이름 (Stage 0~4).
+   * 모든 5칸이 채워져 있어야 함. 비어있으면 Stage 4 진명으로 fallback.
+   * Tutorial / Lore weapons는 5단계 모두 동일 (변화 없음).
+   */
+  nameStages: [string, string, string, string, string];
+  /**
+   * DEC-046 인물 카테고리 (Identity Category).
+   * Surveyor / BulkheadRepairman / CableBearer / DraftingArchivist / AbyssDiver / ... / Tutorial / LoreWeapon
+   */
+  identityCategory: string;
 }
 
 export const ITEM_MASTER: Map<string, MasterItem> = new Map();
@@ -46,14 +57,32 @@ function parseMasterCSV(raw: string): void {
 
     const nameKey = cols[2].trim();
     const descKey = cols[6].trim();
+    const stage0Key = (cols[7] ?? '').trim();
+    const stage1Key = (cols[8] ?? '').trim();
+    const stage2Key = (cols[9] ?? '').trim();
+    const stage3Key = (cols[10] ?? '').trim();
+    const stage4Key = (cols[11] ?? '').trim();
+    const identityCategory = (cols[12] ?? '').trim() || 'Unknown';
+
+    const fallback = t(nameKey);
+    const nameStages: [string, string, string, string, string] = [
+      stage0Key ? t(stage0Key) : fallback,
+      stage1Key ? t(stage1Key) : fallback,
+      stage2Key ? t(stage2Key) : fallback,
+      stage3Key ? t(stage3Key) : fallback,
+      stage4Key ? t(stage4Key) : fallback,
+    ];
+
     const entry: MasterItem = {
       itemId: cols[0].trim(),
       category: cols[1].trim() as ItemCategory,
-      name: t(nameKey),
+      name: fallback,
       sourceSheet: cols[3].trim(),
       sourceKey: cols[4].trim(),
       rarity: cols[5].trim(),
       description: t(descKey),
+      nameStages,
+      identityCategory,
     };
 
     ITEM_MASTER.set(entry.itemId, entry);
