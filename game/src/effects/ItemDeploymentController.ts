@@ -55,7 +55,7 @@ const TUNNEL_W_MIN  = 32;   // minimum tunnel depth if builder ref is absent
 const TUNNEL_H      = 320;  // px tunnel height (20 tiles: original 8 + 8 up + 4 down)
 const TUNNEL_Y_RAISE = 0;   // px: tunnel bottom flush with anvil Y
 const TUNNEL_END_INSET = 8;
-const LASER_DESATURATION_MS = 120;
+const LASER_DESATURATION_MS = 1000;
 // ExitGlow 시작 x = tunnelLeft + 이 offset. anvil + 인근 영역 회피하고 벽
 // 시작점부터 dust 출현. 사용자 결정 2026-05-24: 8 cell (128px).
 const EXIT_GLOW_X_OFFSET = 128;
@@ -228,7 +228,7 @@ export class ItemDeploymentController {
         break;
 
       case 'CameraReturn':
-        if (this.elapsed >= T.CameraReturn) this.enterState('TunnelPan');
+        if (this.elapsed >= T.CameraReturn) this.enterState('Deployed');
         break;
 
       case 'TunnelPan':
@@ -340,9 +340,7 @@ export class ItemDeploymentController {
       case 'TunnelPan': {
         // 카메라를 터널 끝(WallGate 위치)으로 redirect — 플레이어에게 진입
         // 방향 영화적 cue. isBlocking=true 이라 input lock 유지.
-        const panX = this.tunnelLeft + this.tunnelWidth - TUNNEL_END_INSET;
-        const panY = this.tunnelTop + TUNNEL_H / 2;
-        this.game.camera.target = { x: panX, y: panY };
+        this.game.camera.target = this.player;
         break;
       }
 

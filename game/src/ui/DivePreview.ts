@@ -165,7 +165,7 @@ export class DivePreview {
 
     // Stratum quick stat beside portrait. "Lv./F" abbreviations stay latin.
     const strata = STRATA_BY_RARITY[item.rarity] ?? 2;
-    const stratumInline = createUiText(`Lv.${item.level + 1}  ${strata}F`, { fontSize: 8, fill: 0x88ccff });
+    const stratumInline = createUiText(t('ui.dive.stratum_inline', { level: item.level + 1, strata }), { fontSize: 8, fill: 0x88ccff });
     stratumInline.x = textX;
     stratumInline.y = 58;
     this.panel.addChild(stratumInline);

@@ -24,6 +24,31 @@ interface ContainerGrabState {
   heldContainer: ThrowableContainer;
 }
 
+interface ContainerCarryState {
+  pullStartX: number;
+  pullStartY: number;
+  pullElapsedMs: number;
+  pullingContainer: ThrowableContainer | null;
+  heldContainer: ThrowableContainer | null;
+}
+
+interface ContainerGrabInputDeps {
+  input: {
+    isJustPressed(action: GameAction): boolean;
+    consumeJustPressed(action: GameAction): void;
+  };
+  player: Player;
+  arcTether: ArcTether | null;
+  state: ContainerCarryState;
+  findTarget: () => ThrowableContainer | null;
+}
+
+interface ContainerCarryUpdateDeps {
+  dtMs: number;
+  player: Player;
+  state: ContainerCarryState;
+}
+
 interface ArcTetherUpdateDeps {
   dtMs: number;
   player: Player;
@@ -43,6 +68,17 @@ interface ContainerPromptDeps {
 
 function isArcBoosted(container: ThrowableContainer): boolean {
   return container.kind === 'ChargedCrate' || container.kind === 'ChargedCell';
+}
+
+function releaseHeldContainer(state: ContainerCarryState, player: Player, arcTether: ArcTether | null): ContainerCarryState {
+  if (!state.heldContainer) return state;
+  const facing = player.facingRight ? 1 : -1;
+  state.heldContainer.release(facing * 160, -170);
+  arcTether?.hide();
+  return {
+    ...state,
+    heldContainer: null,
+  };
 }
 
 export function findNearestGrabbableContainer({
@@ -111,6 +147,68 @@ export function startContainerGrabPull(
     pullingContainer: target,
     heldContainer: target,
   };
+}
+
+export function updateContainerGrabInput({
+  input,
+  player,
+  arcTether,
+  state,
+  findTarget,
+}: ContainerGrabInputDeps): ContainerCarryState {
+  if (input.isJustPressed(GameAction.GRAB)) {
+    if (state.heldContainer) {
+      return state.pullingContainer ? state : releaseHeldContainer(state, player, arcTether);
+    }
+
+    const best = findTarget();
+    if (!best) return state;
+    return startContainerGrabPull(best, arcTether);
+  }
+
+  if (state.heldContainer && !state.pullingContainer && input.isJustPressed(GameAction.ATTACK)) {
+    const nextState = releaseHeldContainer(state, player, arcTether);
+    input.consumeJustPressed(GameAction.ATTACK);
+    return nextState;
+  }
+
+  return state;
+}
+
+export function updateHeldContainerCarry({
+  dtMs,
+  player,
+  state,
+}: ContainerCarryUpdateDeps): ContainerCarryState {
+  const h = state.heldContainer;
+  if (!h || h.destroyed) {
+    player.isLifting = false;
+    return state;
+  }
+
+  const targetX = player.x + (player.width - h.width) / 2;
+  const targetY = player.y - h.height - 2;
+  if (state.pullingContainer === h) {
+    const pullElapsedMs = state.pullElapsedMs + dtMs;
+    const pullDurationMs = 200;
+    const t = Math.min(1, pullElapsedMs / pullDurationMs);
+    const easeT = 1 - Math.pow(1 - t, 3);
+    h.x = state.pullStartX + (targetX - state.pullStartX) * easeT;
+    h.y = state.pullStartY + (targetY - state.pullStartY) * easeT;
+    state = {
+      ...state,
+      pullElapsedMs: t >= 1 ? 0 : pullElapsedMs,
+      pullingContainer: t >= 1 ? null : state.pullingContainer,
+    };
+  } else {
+    h.x = targetX;
+    h.y = targetY;
+  }
+
+  h.container.x = h.x;
+  h.container.y = h.y;
+  player.isLifting = true;
+  return state;
 }
 
 export function updateContainerArcTether({

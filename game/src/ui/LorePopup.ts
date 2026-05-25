@@ -245,7 +245,7 @@ export class LorePopup {
     this.panel.addChild(div);
 
     // 스탯 — ATK / Lv. abbrev kept latin per Q2.
-    const statLine = `ATK ${item.finalAtk}   Lv.${item.level}`;
+    const statLine = t('ui.lore.stat_line', { atk: item.finalAtk, level: item.level });
     const stat = createUiText(statLine, { fontSize: 8, fill: TEXT_PRIMARY });
     stat.x = 12;
     stat.y = 98;

@@ -779,7 +779,7 @@ export class WorldScene extends Scene {
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
     this.hud.update(dt);
-    this.hud.setFloorText(`Items:${this.inventory.items.length}`);
+    this.hud.setFloorText(t('ui.hud.items_count', { count: this.inventory.items.length }));
 
     // Damage numbers & Sakurai hit effects
     this.dmgNumbers.update(dt);

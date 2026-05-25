@@ -13,6 +13,8 @@ import type { InputManager } from '@core/InputManager';
 import type { GameAction } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
 import { HudConst } from '@data/constData';
+import { create9SlicePanel } from './ModalPanel';
+import type { UISkin } from './UISkin';
 
 const DISPLAY_DURATION = HudConst.Tutorial.DisplayDurationMs;
 const FADE_DURATION = HudConst.Tutorial.FadeDurationMs;
@@ -58,7 +60,7 @@ export class TutorialHint {
   private pulseTimer = 0;
   private fading = false;
 
-  constructor(input: InputManager, parent: Container) {
+  constructor(input: InputManager, parent: Container, private readonly skin: UISkin | null = null) {
     this.input = input;
     this.container = new Container();
     parent.addChild(this.container);
@@ -136,12 +138,19 @@ export class TutorialHint {
     halo.alpha = HALO_ALPHA_MIN;
     panel.addChild(halo);
 
-    // Background panel
-    const bg = new Graphics();
-    bg.roundRect(startX, 0, totalW, totalH, 4).fill({ color: BG_COLOR, alpha: BG_ALPHA });
-    bg.roundRect(startX, 0, totalW, totalH, 4)
-      .stroke({ color: ACCENT_COLOR, width: BORDER_W, alpha: BORDER_ALPHA });
-    panel.addChild(bg);
+    // Background panel: use the shared UISkin 9-slice frame when available.
+    const frame = this.skin?.isLoaded ? create9SlicePanel(this.skin, totalW, totalH) : null;
+    if (frame) {
+      frame.x = startX;
+      frame.y = 0;
+      panel.addChild(frame);
+    } else {
+      const bg = new Graphics();
+      bg.roundRect(startX, 0, totalW, totalH, 4).fill({ color: BG_COLOR, alpha: BG_ALPHA });
+      bg.roundRect(startX, 0, totalW, totalH, 4)
+        .stroke({ color: ACCENT_COLOR, width: BORDER_W, alpha: BORDER_ALPHA });
+      panel.addChild(bg);
+    }
 
     if (keyRowW > 0) {
       keyRow.x = startX + PAD_X;

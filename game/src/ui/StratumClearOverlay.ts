@@ -253,7 +253,7 @@ export class StratumClearOverlay {
     //   "ATK"=primary, old/arrow=secondary, new/diff=positive (or primary if no gain)
     const newColor = delta > 0 ? TEXT_POSITIVE : TEXT_PRIMARY;
     const spans: Array<{ text: string; color: number }> = [
-      { text: 'ATK ', color: TEXT_PRIMARY },
+      { text: `${t('ui.iw.row_atk')} `, color: TEXT_PRIMARY },
       { text: `${d.beforeAtk}`, color: TEXT_SECONDARY },
       { text: ' \u2192 ', color: TEXT_SECONDARY },
       { text: `${d.afterAtk}`, color: newColor },

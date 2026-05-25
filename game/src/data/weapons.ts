@@ -29,9 +29,8 @@ const TOPOLOGY_VALUES: ReadonlySet<string> = new Set<TopologyKind>([
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';
 
 /**
- * Canonical weapon type taxonomy (DEC-026). SSoT for both procedural
- * (Content_Stats_Weapon_List.csv) and lore (Content_Stats_Weapon_Lore.csv)
- * weapons. Keep this list in sync with any Type column entries in those CSVs.
+ * Canonical weapon type taxonomy (DEC-026). Keep this list in sync with
+ * Content_Stats_Weapon_List.csv Type column entries.
  */
 export type WeaponType =
   | 'Blade'

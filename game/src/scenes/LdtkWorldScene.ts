@@ -1,8 +1,8 @@
-/**
+﻿/**
  * LdtkWorldScene.ts
  *
  * World-space scene that loads hand-crafted LDtk levels instead of procedurally
- * generated rooms. Implements the World (?�험) space of the 3-Space separation
+ * generated rooms. Implements the World (??醫??? space of the 3-Space separation
  * model (Design_Architecture_2Space.md).
  *
  * Key differences from WorldScene:
@@ -36,7 +36,6 @@ import { GoldenMonster } from '@entities/GoldenMonster';
 import { createEnemy } from '@entities/EnemyFactory';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
-import { Altar } from '@entities/Altar';
 import { Anvil } from '@entities/Anvil';
 import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
 import { Switch } from '@entities/Switch';
@@ -55,7 +54,7 @@ import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
 import { GoldPickup } from '@entities/GoldPickup';
 import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
-import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
+import { COMBO_STEPS } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
 import { AreaTitle } from '@ui/AreaTitle';
 import { TITLE_FADE_OVERLAY_LABEL, TitleScene } from './TitleScene';
@@ -74,15 +73,14 @@ import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity } from '@items/ItemDrop';
 import { resolveBottomLeftPickupSpawn, resolveItemDropSpawn } from '@items/DropSpawn';
-import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
-import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
-import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle, DEMO_BLOCK_REDIVE, EXP_PER_LEVEL, getDisplayName } from '@items/ItemInstance';
+import { SWORD_DEFS, type WeaponDef } from '@data/weapons';
+import { createItem, calcInnocentBonus, itemLevelUp, resetItemForNextCycle, EXP_PER_LEVEL, getDisplayName } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
-import { ItemDeploymentController } from '@effects/ItemDeploymentController';
+import type { ItemDeploymentController } from '@effects/ItemDeploymentController';
 import { WallGate } from '@entities/WallGate';
 import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
@@ -164,9 +162,17 @@ import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import {
   findNearestGrabbableContainer as findNearestContainerForGrab,
   startContainerGrabPull,
+  updateContainerGrabInput,
   updateContainerArcTether,
+  updateHeldContainerCarry,
   updateContainerPrompt as updateContainerPromptUi,
 } from '@systems/ContainerInteraction';
+import {
+  snapPlayerToNearestSavePoint,
+  updateSavePointProximity,
+  type SavePointEntry,
+} from '@systems/SavePointInteraction';
+import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
 import { isEnemyKillHandled, markEnemyKillHandled } from '@systems/EntityRuntimeMeta';
 import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
 import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
@@ -178,6 +184,16 @@ import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
+import { WorldAltarController } from './world/WorldAltarController';
+import { AnvilPromptController } from './world/AnvilPromptController';
+import { AnvilPlacementController } from './world/AnvilPlacementController';
+import { createAnvilItemDeployment } from './world/AnvilDeploymentFactory';
+import {
+  placePlayerAtAnvilReturnPoint,
+  resolveAnvilTargetPoint,
+  snapshotAnvil,
+  type AnvilSnapshot,
+} from './world/AnvilReturnState';
 import { GiantBuilder, type GiantBuilderSnapshot } from '@entities/GiantBuilder';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
@@ -210,13 +226,13 @@ const FADE_DURATION = 200;
 const ITEM_WORLD_ENTRY_FADE_MS = 350;
 /**
  * Void touch sequence (Victor spec 2026-05-15):
- *   0–200 ms     — fade OUT (alpha 0 → 1)
- *   200 ms       — teleport player to last safe ground, force-grounded.
+ *   0??00 ms     ??fade OUT (alpha 0 ??1)
+ *   200 ms       ??teleport player to last safe ground, force-grounded.
  *                  (scene + camera continue to tick; only player input is
  *                  locked, so VFX / fluids / enemies keep simulating.)
- *   200–1200 ms  — hold black 1000 ms (deferred scene work window)
- *   1200–1700 ms — fade IN (alpha 1 → 0, 500 ms)
- *   1700–2200 ms — extra input-lock dwell (~500 ms reveal beat)
+ *   200??200 ms  ??hold black 1000 ms (deferred scene work window)
+ *   1200??700 ms ??fade IN (alpha 1 ??0, 500 ms)
+ *   1700??200 ms ??extra input-lock dwell (~500 ms reveal beat)
  * Total input lock = 2000 ms past the teleport tick.
  */
 const VOID_FADE_OUT_DURATION = 200;
@@ -225,8 +241,8 @@ const VOID_FADE_IN_DURATION = 500;
 const VOID_INPUT_LOCK_MS = 2000;
 const SAVE_INTERACT_DELAY_MS = 500;
 const FROZEN_RETURN_ARM_DISTANCE = 4 * TILE_SIZE;
-// FIRST_ANVIL_LEVEL_ID 폐기 (2026-05-24): 식별자 분기는 LDtk Anvil entity 의
-// RetireAfterFirstBoss field 로 데이터 기반 제어.
+// FIRST_ANVIL_LEVEL_ID ?????(2026-05-24): ??紐끒???釉뚯뫅???LDtk Anvil entity ??
+// RetireAfterFirstBoss field ????⑥щ턄???リ옇?↑???戮?꽑.
 const INVENTORY_KEY_HINT_ID = 'inventory_key';
 const INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID = 'inventory_key_after_first_item_world';
 const INVENTORY_KEY_AFTER_FIRST_IW_EVENT = '__inventoryKeyAfterFirstItemWorldShown';
@@ -245,8 +261,8 @@ type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
 /** Anything that can be attached to a moving GiantBuilder. The entity's
  *  visual `container` is reparented under builder.container at spawn time
- *  so the builder's transform carries it. World coords (x/y) — used by
- *  pickup/interaction hitbox tests — are recomputed each frame from
+ *  so the builder's transform carries it. World coords (x/y) ??used by
+ *  pickup/interaction hitbox tests ??are recomputed each frame from
  *  builder.container + (localX, localY). `isAlive` lets the sync loop
  *  drop dead refs (e.g. picked-up drops). */
 interface BuilderAttachable {
@@ -273,36 +289,36 @@ export class LdtkWorldScene extends Scene {
   private builderLoader!: LdtkLoader;
   private itemStratumLoader: LdtkLoader | null = null;
   /**
-   * 사용자 결정 (2026-05-03): "Open Inventory" tutorialHint 는 픽업 cutscene +
-   * EGO 대사가 모두 끝난 후 표시. firstEver 픽업 시 flag 만 set, update() 가
-   * 매 프레임 cutscene/dialogue 종료 검사 후 실제 표시.
+   * ??????롪퍒???(2026-05-03): "Open Inventory" tutorialHint ??????뵜 cutscene +
+   * EGO ????? 嶺뚮ㅄ維筌???硫명뀊 ????戮?뻣. firstEver ????뵜 ??flag 嶺?set, update() ?띠럾?
+   * 嶺??熬곣뫁???cutscene/dialogue ??リ턁筌??롪틵????????깆젷 ??戮?뻣.
    */
   private pendingInventoryHint: 'first_pickup' | 'first_iw_return' | null = null;
-  /** Drop-through 튜토리얼 1회 발사 가드. 사용자가 직접 dropthrough 하면 학습됐으니 발사 안 함. */
+  /** Drop-through ???リ퐛?洹먮봾??1???꾩룇裕뉑쾮??띠럾??? ?????? 嶺뚯쉳???dropthrough ??濡?듆 ???덈????紐???꾩룇裕뉑쾮????? */
   private dropThroughHintHandled = false;
-  /** 점프 튜토리얼 — 사용자가 화살표(MOVE_LEFT/RIGHT)로 처음 움직였을 때 1회 발사, JUMP 입력 시 dismiss. */
+  /** ??믨퀡?????リ퐛?洹먮봾?????????? ??븐슙???MOVE_LEFT/RIGHT)??嶺뚳퐣瑗????嶺뚯쉳??????1???꾩룇裕뉑쾮? JUMP ???놁졑 ??dismiss. */
   private jumpHintHandled = false;
-  /** 점프 hint 트리거 가드 — 사용자가 horizontal 이동 입력을 한 번이라도 누른 적 있는가. */
+  /** ??믨퀡??hint ?筌뤾봇遊뷸ㅀ??띠럾??????????? horizontal ????????놁졑?????뺢퀡????怨뺤┣ ?熬곣뱿???????덈츎?띠럾?. */
   private hasMovedHorizontally = false;
-  /** 첫 horizontal 입력 후 점프 hint 발사까지의 잔여 지연(ms). */
+  /** 嶺?horizontal ???놁졑 ????믨퀡??hint ?꾩룇裕뉑쾮??떐??????븐슜??嶺뚯솘???ms). */
   private jumpHintDelayMs = 2000;
-  /** 공격 튜토리얼 — 카메라 안에 적이 처음 등장하는 프레임에 1회 발사, ATTACK 입력 시 dismiss. */
+  /** ??ㅻ??????リ퐛?洹먮봾?????곸궠?筌?????고뱺 ??⑤챷逾?嶺뚳퐣瑗???繹먮냱???濡ル츎 ?熬곣뫁??熬곣뫖??1???꾩룇裕뉑쾮? ATTACK ???놁졑 ??dismiss. */
   private attackHintHandled = false;
-  /** 대시 튜토리얼 — Overworld_Level_36 진입 1초 후 발사, DASH 입력 시 dismiss. */
+  /** ???????リ퐛?洹먮봾????Overworld_Level_36 嶺뚯쉳???1?????꾩룇裕뉑쾮? DASH ???놁졑 ??dismiss. */
   private dashHintHandled = false;
-  /** Dash 룸 진입 후 hint 발사까지의 잔여 ms. -1 = 방 밖(리셋). */
+  /** Dash ??嶺뚯쉳?????hint ?꾩룇裕뉑쾮??떐??????븐슜??ms. -1 = ?????洹먮봾??. */
   private dashHintDelayMs = -1;
   private activeBuilder: GiantBuilder | null = null;
   private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
   private activeBuilderLevelId: string | null = null;
-  /** posY snapshot per builderLevelId — survives level transitions so re-entry
+  /** posY snapshot per builderLevelId ??survives level transitions so re-entry
    *  spawns the builder at its last position instead of restarting the route. */
   private readonly builderSavedPositions = new Map<string, number>();
   private readonly builderSavedStates = new Map<string, GiantBuilderSnapshot>();
   /**
    * Drive the builder's footstep camera shake even when mode is 'patrol'.
    * BuilderSpawner can force this on for patrol-style routes that still need
-   * the weighty "쿵" feedback.
+   * the weighty "?? feedback.
    */
   private builderShakeEnabled = false;
   // Per-session one-shot BuilderSpawner keys. Re-entries can park the builder
@@ -312,7 +328,7 @@ export class LdtkWorldScene extends Scene {
   // heavy "landing" shake on the exact frame it transitions to idle.
   private builderWasMoving = false;
   // Counts tile crossings so we can emit shakes on every other crossing
-  // (half the cadence of raw 16-px steps — slower, weightier rhythm).
+  // (half the cadence of raw 16-px steps ??slower, weightier rhythm).
   private builderStepCounter = 0;
   private builderCarrierVelocityY = 0;
   /** Current alpha for the BuilderInterior dissolve layer (0=hidden, 1=shown). */
@@ -400,22 +416,22 @@ export class LdtkWorldScene extends Scene {
    *  (for bob-animated entities) can be attached. */
   private builderAttachments: BuilderAttachment[] = [];
   private inventoryUI!: InventoryUI;
-  /** DEC-046 Identity Archive (인물 아카이브). 인벤토리 Z키 진입. */
+  /** DEC-046 Identity Archive (?筌뤾벳??熬곣뫖異?????. ?筌뤾퍒萸??ル벣遊?Z??嶺뚯쉳??? */
   private identityArchive!: IdentityArchive;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
-  // Title→game fade-in overlay (handed off from TitleScene via game.uiContainer).
+  // Title??몄뙰me fade-in overlay (handed off from TitleScene via game.uiContainer).
   private titleFadeInOverlay: Graphics | null = null;
   private titleFadeInTimer = 0;
   private readonly TITLE_FADE_IN_MS = 1400;
-  // Game-start intro sequence: fade-in → area title → reveal HUD.
+  // Game-start intro sequence: fade-in ??area title ??reveal HUD.
   // 'none' = skip sequence (e.g. pop return from sub-scenes).
   private introPhase: 'none' | 'fadeIn' | 'title' | 'awaitingHud' | 'done' = 'none';
-  /** Shaft_01 영화적 비트 — AreaTitle 종료 후 HUD 노출까지의 잔여 ms. */
+  /** Shaft_01 ??⑤???????????AreaTitle ??リ턁筌???HUD ?筌뤾쑵?긺뭐癒?뒩?????븐슜??ms. */
   private hudRevealTimer = 0;
   // Area title queued during intro fade-in; shown once the fade completes.
   private pendingAreaTitle: string | null = null;
-  // Edge detector: when areaTitle transitions active→inactive while HUD is
+  // Edge detector: when areaTitle transitions active??몄뱭active while HUD is
   // still hidden (intro), that's the signal to reveal HUD.
   private wasAreaTitleActive = false;
   private uiSkin: UISkin | null = null;
@@ -435,8 +451,8 @@ export class LdtkWorldScene extends Scene {
   private fadeOverlay!: Graphics;
   private pendingInventoryHintDelayMs = 0;
   /**
-   * ItemWorld 복귀 fade-in 전용 overlay. fadeOverlay 와 분리해 voidFade /
-   * level transition 과 race 발생 없이 독립 페이드. 0 = invisible, 1 = full black.
+   * ItemWorld ?곌랜踰? fade-in ?熬곣뫗??overlay. fadeOverlay ?? ?釉뚯뫊???voidFade /
+   * level transition ??race ?꾩룇裕뉑틦???怨몃턄 ???몃뎡 ??瑜곷턄?? 0 = invisible, 1 = full black.
    */
   private iwReturnFade!: Graphics;
   private iwReturnFadeMs = 0;
@@ -459,7 +475,7 @@ export class LdtkWorldScene extends Scene {
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
-  /** Gamepad hot-plug 토스트 unsubscribe — exit 시 호출. */
+  /** Gamepad hot-plug ??ル∥裕??unsubscribe ??exit ???筌뤾쑵?? */
   private _gpUnsub: (() => void) | null = null;
   /** Cooldown (ms) before another "No Weapon Equipped" toast can fire. */
   private noWeaponToastCooldown = 0;
@@ -492,7 +508,7 @@ export class LdtkWorldScene extends Scene {
   private egoCastChargeMs = 0;
   private containers: ThrowableContainer[] = [];
   /**
-   * ContainerSpawners with Maintain=true — re-emit containers whenever the
+   * ContainerSpawners with Maintain=true ??re-emit containers whenever the
    * live count in their rect drops below minCount. Cleared on room load.
    */
   private maintainedSpawners: Array<{
@@ -508,7 +524,7 @@ export class LdtkWorldScene extends Scene {
     /**
      * Containers this spawner emitted. Tracked so the refill rule (refill
      * only when *all* owned containers are gone) can ignore unrelated
-     * containers that happen to drift into the spawner rect — and so the
+     * containers that happen to drift into the spawner rect ??and so the
      * spawner's "current spawn count" is queryable as `owned.length` after
      * pruning destroyed entries.
      */
@@ -516,7 +532,7 @@ export class LdtkWorldScene extends Scene {
   }> = [];
   /** Maintained-spawner re-check interval (ms). */
   private static readonly MAINTAIN_CHECK_MS = 500;
-  /** Currently held container (Spelunky-style — one at a time). */
+  /** Currently held container (Spelunky-style ??one at a time). */
   private heldContainer: ThrowableContainer | null = null;
   private containerPrompt: Container | null = null;
   /**
@@ -528,7 +544,7 @@ export class LdtkWorldScene extends Scene {
   private pullStartX = 0;
   private pullStartY = 0;
   private pullElapsedMs = 0;
-  /** Arc Tether VFX — drives hover spark / pull arc / hold tether. */
+  /** Arc Tether VFX ??drives hover spark / pull arc / hold tether. */
   private arcTether: ArcTether | null = null;
   private prevPlayerInOtherFluid = false;
   private prevEnemyInOtherFluid: boolean[] = [];
@@ -552,15 +568,11 @@ export class LdtkWorldScene extends Scene {
 
   // Portal system
   private portals: Portal[] = [];
-  private altars: Altar[] = [];
+  private altarController!: WorldAltarController;
   private portalTransition: PortalTransition | null = null;
   private itemWorldTransition: ItemWorldTransitionController | null = null;
   private pendingPortalData: { rarity: Rarity; sourceType: PortalSourceType; sourceItem?: ItemInstance } | null = null;
   private pendingPortalEntity: Portal | null = null;
-  private altarSelectActive = false;
-  private altarSelectIndex = 0;
-  private activeAltar: Altar | null = null;
-  private altarUI: Container | null = null;
   /** When set, anvil UI is showing a re-dive confirmation for this cleared item. */
   private cyclePromptItem: ItemInstance | null = null;
   private cyclePromptUI: Container | null = null;
@@ -571,11 +583,11 @@ export class LdtkWorldScene extends Scene {
 
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
-  private anvilPrompt: Container | null = null;
-  private anvilDisabledPrompt: Container | null = null;
+  private anvilPrompts!: AnvilPromptController;
+  private anvilPlacement!: AnvilPlacementController;
   private anvilPromptSuppressMs = 0;
   private screenCrack: ScreenCrack | null = null;
-  private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
+  private memoryDive: MemoryDive | null = null; // ARCHIVED ??kept for type compat
   private diveTransitionActive = false;
   private collapseItem: ItemInstance | null = null;
   private itemDeployment: ItemDeploymentController | null = null;
@@ -603,7 +615,7 @@ export class LdtkWorldScene extends Scene {
   private activeWeaponPulse: WeaponPulse | null = null;
   private activeAnvilTether: AnvilTether | null = null;
   private pickupZoomOverride = 1.0;
-  /** Rustborn pre-pickup discovery — true while the proximity cutscene + dialogue is playing. Blocks pickup. */
+  /** Rustborn pre-pickup discovery ??true while the proximity cutscene + dialogue is playing. Blocks pickup. */
   private discoveryActive = false;
   /** Set once the discovery pulse starts; cleared after EGO_FIRST_WALK is dispatched. */
   private discoveryDialoguePending = false;
@@ -614,11 +626,11 @@ export class LdtkWorldScene extends Scene {
    * to it after clearing the item world, even though the anvil itself is
    * gone by then.
    */
-  private lastUsedAnvilPos: { x: number; y: number; width: number; height: number } | null = null;
+  private lastUsedAnvilPos: AnvilSnapshot | null = null;
   private lastUsedAnvilLevelId: string | null = null;
   private lastUsedAnvilItem: ItemInstance | null = null;
   private pendingFirstIwReturnHintHadFirstBossClear: boolean | null = null;
-  /** 직전 사용 anvil 의 RetireAfterFirstBoss field 값. retire-after-boss 분기 SSoT. */
+  /** 嶺뚯쉳???????anvil ??RetireAfterFirstBoss field ?? retire-after-boss ?釉뚯뫅??SSoT. */
   private lastUsedAnvilRetireAfterBoss = false;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
   private inItemTunnel = false;
@@ -629,12 +641,12 @@ export class LdtkWorldScene extends Scene {
   private fixedItemWorldItem: ItemInstance | null = null;
   private fixedItemWorldHadFirstBossClear = false;
 
-  // ── Debug warp (` 백틱 = 뷰포트 클릭 워프, Shift+M = 전 맵 클릭 워프) ────────
+  // ???? Debug warp (` ?꾩룄???= ???х뙴?????????怨뺣뒆, Shift+M = ??嶺????????怨뺣뒆) ????????????????
   private warpModeActive = false;
   private warpHintText: BitmapText | null = null;
   private warpClickHandler: ((e: PointerEvent) => void) | null = null;
 
-  // ── BGM dim 상태 — save 룸 진입 시 음악을 0 으로, 떠나면 풀 볼륨 복귀 ──────
+  // ???? BGM dim ??⑤객臾???save ??嶺뚯쉳???????????0 ??怨쀬Ŧ, ??ル봽?뚨춯??? ?곌램????곌랜踰? ????????????
   private bgmDimmedForSaveRoom = false;
 
   // Level tracking
@@ -651,15 +663,15 @@ export class LdtkWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private crackedFloors: CrackedFloor[] = [];
   private breakableProps: BreakableProp[] = [];
-  /** 수동 배치 Breakable (LDtk Entity 'Breakable') — 절차 생성 props 와 분리 추적. */
+  /** ??濡レ쭢 ?꾩룄???Breakable (LDtk Entity 'Breakable') ??????빵 ??諛댁뎽 props ?? ?釉뚯뫊???怨뺣뾼?? */
   private breakables: Breakable[] = [];
-  /** 수동 배치 Building (LDtk Entity 'Building') — 시각 데코, 충돌 없음. */
+  /** ??濡レ쭢 ?꾩룄???Building (LDtk Entity 'Building') ????蹂?뜜 ??⑥?쭨, ?寃몃쳳????怨몃쾳. */
   private buildings: Building[] = [];
   private secretWalls: SecretWall[] = [];
   private spikes: Spike[] = [];
   // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
   private updraftSystem!: UpdraftSystem;
-  /** Dynamic IntGrid state — frozen/burning/electric overlays. Reset per room. */
+  /** Dynamic IntGrid state ??frozen/burning/electric overlays. Reset per room. */
   private tileMutator = new TileMutator();
   /** Renders frozen/burning/electric overlays on top of static tile sprites. */
   private tileMutatorRenderer: TileMutatorRenderer | null = null;
@@ -672,7 +684,7 @@ export class LdtkWorldScene extends Scene {
   /** Ms remaining before input is restored (separate from fade animation
    *  so we can hold the lock past fade-in for the "natural reveal" beat). */
   private voidInputLockMs = 0;
-  /** True after the teleport tick has fired — prevents repeated teleports
+  /** True after the teleport tick has fired ??prevents repeated teleports
    *  if updateVoidFade gets called multiple times mid-phase. */
   private voidTeleported = false;
   private voidReturnLevelId = '';
@@ -692,14 +704,14 @@ export class LdtkWorldScene extends Scene {
   // Ending sequence
   private endingTriggers: EndingTrigger[] = [];
   private ending!: EndingSequence;
-  /** isDone 분기가 매 프레임 재진입해 replace 가 2회 발사되는 것을 막는 게이트. */
+  /** isDone ?釉뚯뫅?깃꼈泥? 嶺??熬곣뫁?????壤???뽱돵 replace ?띠럾? 2???꾩룇裕뉑쾮??濡ル츎 ?롪퍒???嶺뚮씭留???롪퍓???? */
   private endingTransitionStarted = false;
-  private savePoints: Array<{ x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container }> = [];
+  private savePoints: SavePointEntry[] = [];
   private saveDelayTimer = 0;
   private saveQueued = false;
   /**
-   * Exit Light Bleed ??�?가?�자리의 ?�린 구간(?�웃 방이 ?�는 �???주황 글로우�?
-   * ?�워 "?�곳??출구"?�는 공통 ?�각 ?�어�??�공?�다.
+   * Exit Light Bleed ?????띠럾???醫롫윪?袁ㅻ뎨?????醫롫윥????뚮뜆????醫롫윪???꾩렮維????醫롫윥???????낅슣????リ섣??β돦裕????
+   * ??醫롫윪??"??醫롫윞????怨쀫츇????醫롫윥????ㅻ쾹????醫롫윞????醫롫윪?됯막????醫롫윞???醫롫윥??
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    */
   private exitGlows: ExitGlow[] = [];
@@ -721,7 +733,7 @@ export class LdtkWorldScene extends Scene {
     prompt: Container | null;
   }> = [];
 
-  /** Pattern D (proximity-interaction) ?�우?????�이�??�빌/?�단 ?�합 관�? */
+  /** Pattern D (proximity-interaction) ??醫롫윪???????醫롫윪?議얜쐻???醫롫윥????醫롫윥????醫??? ??㉱?? */
   private proximity: ProximityRouter = new ProximityRouter();
 
   constructor(game: Game) {
@@ -730,19 +742,19 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Pattern D ?�들???�록. ?�선?�위 규약:
+   * Pattern D ??醫롫윥獄????醫롫윥餓? ??醫롫윪???醫롫윪???잙?裕뉔뜮?
    *   Altar(30) > Anvil(20) > SavePoint(10)
-   * ?�들?�는 `this.*` �?closure �?참조?��?�??�등�?불요.
+   * ??醫롫윥獄??醫롫윥??`this.*` ??closure ??嶺뚣볦굣???醫롫짗??????醫롫윥甕곕쵆???釉띾쐠??
    */
   private registerProximityHandlers(): void {
     const anvil: ProximityInteraction = {
       label: 'Anvil',
       priority: 20,
       canInteract: () => {
-        if (!this.anvil || this.altarSelectActive || !this.isPlayerNearAnvil()) return false;
+        if (!this.anvil || this.altarController.isSelectActive || !this.isPlayerNearAnvil()) return false;
         if (this.itemDeployment?.isActive) return false;
-        // Step 5 (2026-05-25): anvil 에 무기가 *남아있는* 상태 (IW 클리어 후 복귀)
-        // 면 회수 인터랙트 우선. retire(disabled)/used 와 무관.
+        // Step 5 (2026-05-25): anvil ????쒕뼬?깃꼈泥? *??貫????덈츎* ??⑤객臾?(IW ?????????곌랜踰?)
+        // 嶺???????筌뤿굛????곕콦 ??⑥ろ맖. retire(disabled)/used ?? ??쒕뼬?.
         if (this.anvil.hasItem()) return true;
         if (this.anvilPromptSuppressMs > 0) return false;
         return !this.anvil.used && !this.anvil.disabled;
@@ -760,7 +772,7 @@ export class LdtkWorldScene extends Scene {
       priority: 10,
       canInteract: () => {
         if (this.saveQueued) return false;
-        if (this.altarSelectActive) return false;
+        if (this.altarController.isSelectActive) return false;
         const pcx = this.player.x + this.player.width / 2;
         const pcy = this.player.y + this.player.height / 2;
         const RANGE = 32;
@@ -783,7 +795,7 @@ export class LdtkWorldScene extends Scene {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
 
-    // Detect the title→game fade handoff overlay BEFORE any UI is created.
+    // Detect the title??몄뙰me fade handoff overlay BEFORE any UI is created.
     // When present, every HUD/minimap will be created hidden so nothing
     // leaks above the black fade during async init frames. The overlay
     // itself is picked up below for fade-out in update().
@@ -793,9 +805,9 @@ export class LdtkWorldScene extends Scene {
       this.introPhase = 'fadeIn';
     }
 
-    // Fetch and parse LDtk project (multi-world — pick Overworld).
-    // cache:'no-store' + cache-bust query — 모든 캐시 (브라우저 / Vite / SW / proxy)
-    // 우회. 정적 파일이라 prod 영향 미미 (씬 init 1 회).
+    // Fetch and parse LDtk project (multi-world ??pick Overworld).
+    // cache:'no-store' + cache-bust query ??嶺뚮ㅄ維獄?嶺?흮??(??곗뒧???? / Vite / SW / proxy)
+    // ??⑥쥙?? ?筌먦끉?????逾?????prod ??⑤갭??亦껋꼶梨? (??init 1 ??.
     const cacheBust = `?t=${Date.now()}`;
     const json = await fetch(LDTK_PATH + cacheBust, { cache: 'no-store' }).then((r) => r.json()) as Record<string, unknown>;
     if (import.meta.env.DEV) {
@@ -806,16 +818,16 @@ export class LdtkWorldScene extends Scene {
       })();
       const layerCount = builderLvl1Raw?.layerInstances?.length ?? 0;
       // eslint-disable-next-line no-console
-      console.info(`[LDtk] fetched at ${new Date().toISOString()} — Builder_Level_1 layers=${layerCount}`);
+      console.info(`[LDtk] fetched at ${new Date().toISOString()} ??Builder_Level_1 layers=${layerCount}`);
     }
     this.loader = new LdtkLoader();
     this.loader.load(json, LDTK_WORLD_IDS);
 
-    // Builder world — separate loader so builder levels don't mix with navigation
+    // Builder world ??separate loader so builder levels don't mix with navigation
     this.builderLoader = new LdtkLoader();
     this.builderLoader.load(json, BUILDER_WORLD_ID);
 
-    // ItemStratum levels — only used for ghost overlay preview (same JSON, different world filter)
+    // ItemStratum levels ??only used for ghost overlay preview (same JSON, different world filter)
     this.itemStratumLoader = new LdtkLoader();
     this.itemStratumLoader.load(json, 'ItemStratum');
 
@@ -832,11 +844,11 @@ export class LdtkWorldScene extends Scene {
       this.gold = saveData.gold ?? 0;
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // 사용자 결정 (2026-05-03): Broken Sword 를 시작 시 자동 지급. 이전 Builder
-      // 안 ItemDrop 픽업 패턴 폐기. 첫 픽업 cutscene + "Open Inventory" hint
-      // 도 함께 폐기 (sacredSave flags 미리 set 으로 firstEver 분기 미진입).
-      // IW 보스 클리어 후 귀환 시 hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) 는
-      // 별도 플로우라 그대로 유지.
+      // ??????롪퍒???(2026-05-03): Broken Sword ????戮곗굚 ?????吏?嶺뚯솘??? ??怨몄쓧 Builder
+      // ??ItemDrop ????뵜 ?????????? 嶺?????뵜 cutscene + "Open Inventory" hint
+      // ????節띾쐾 ?????(sacredSave flags 亦껋꼶梨??set ??怨쀬Ŧ firstEver ?釉뚯뫅??亦껋꼶梨룟퐲??.
+      // IW ?곌랜????????????잙??????hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) ??
+      // ?곌랙?х뙴????夷??⑤벡逾??잙갭梨??????.
       this.inventory = new Inventory();
       const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
       const starterSword = createItem(starterDef, 'normal');
@@ -958,7 +970,7 @@ export class LdtkWorldScene extends Scene {
       this.renderer.interiorLayer.filters = [interiorFilter];
       this.renderer.shadowLayer.filters = [wallFilter];
 
-      // Builder-specific palette filters — same atlas, different rows.
+      // Builder-specific palette filters ??same atlas, different rows.
       // Lets the giant builder body read as cool steel against the warm
       // crimson shaft. Rim filter stays shared so the orange forge glow
       // still highlights the builder's silhouette.
@@ -1017,8 +1029,8 @@ export class LdtkWorldScene extends Scene {
     // Tile mutator overlay (fire/ice/electric VFX on top of static tile sprites).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
-    // Fluid layer — entity layer 앞에 위치. player/enemy 가 fluid 안에 들어가면
-    // 잠긴 부분이 자연스럽게 fluid 색으로 가려진다 (실제 잠수 효과).
+    // Fluid layer ??entity layer ??濡ロ뱺 ?熬곣뫚?? player/enemy ?띠럾? fluid ???고뱺 ???곗꽑?띠럾?嶺?
+    // ??ル맧???遊붋?釉뚯뫒?????????댁벀??fluid ??源녿さ???띠럾????깆땟??(???깆젷 ??ル∥????節뗪땁).
     this.fluidLayer = new Container();
     this.container.addChild(this.fluidLayer);
     this.fluidSystem = new FluidSystem(this.fluidLayer);
@@ -1063,8 +1075,8 @@ export class LdtkWorldScene extends Scene {
       );
     };
     this.entityLayer.addChild(this.player.container);
-    // Arc Tether — Spark-기질 시그니처 픽업 VFX. Player layer 와 같은 entityLayer 에
-    // 추가하되 player 보다 *뒤*에 add (검에서 뻗어나가는 톤을 위해 player 위에 그린다).
+    // Arc Tether ??Spark-?リ옇?ｅ퐲???蹂μ쟽???깊뱱 ????뵜 VFX. Player layer ?? ?띠룇?? entityLayer ??
+    // ?怨뺣뼺???濡モ뵹 player ?곌랜???*????add (?롪틵??????嶺뚮쵐???????????깅굵 ?熬곥굥??player ?熬곣뫖???잙갭梨???.
     if (!this.arcTether) {
       this.arcTether = new ArcTether();
       this.entityLayer.addChild(this.arcTether.container);
@@ -1089,7 +1101,7 @@ export class LdtkWorldScene extends Scene {
     this.fadeOverlay.alpha = 0;
     this.game.legacyUIContainer.addChild(this.fadeOverlay);
 
-    // ItemWorld 복귀 전용 fade-in overlay (fadeOverlay 위에 별도 레이어).
+    // ItemWorld ?곌랜踰? ?熬곣뫗??fade-in overlay (fadeOverlay ?熬곣뫖???곌랙?х뙴????깅턄??.
     this.iwReturnFade = new Graphics();
     this.iwReturnFade.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.iwReturnFade.alpha = 0;
@@ -1110,7 +1122,7 @@ export class LdtkWorldScene extends Scene {
       this.game.hudReady = true;
     }
 
-    // Area title banner — Elden Ring style. Rides on legacyUIContainer so it
+    // Area title banner ??Elden Ring style. Rides on legacyUIContainer so it
     // inherits uiScale with the rest of the overlay UI.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
@@ -1121,7 +1133,7 @@ export class LdtkWorldScene extends Scene {
     hudSkin.load().then(() => this.hud.applySkin(hudSkin))
       .catch((e) => {
         // eslint-disable-next-line no-console
-        console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
+        console.warn('[UISkin] load failed ??falling back to Graphics HUD:', e);
       });
 
     // Controls overlay (disabled)
@@ -1130,6 +1142,29 @@ export class LdtkWorldScene extends Scene {
 
     // Toast, damage numbers, hit sparks, screen flash
     this.toast = new ToastManager(this.game.legacyUIContainer);
+    this.anvilPrompts = new AnvilPromptController(this.game);
+    this.altarController = new WorldAltarController({
+      game: this.game,
+      player: this.player,
+      inventory: () => this.inventory,
+      toast: this.toast,
+      entityLayer: this.entityLayer,
+      spawnPortal: (x, y, rarity, sourceType, item) => this.spawnPortal(x, y, rarity, sourceType, item),
+      closeCyclePrompt: () => this.closeCyclePromptUI(),
+    });
+    this.anvilPlacement = new AnvilPlacementController({
+      getAnvil: () => this.anvil,
+      inventory: () => this.inventory,
+      inventoryUI: () => this.inventoryUI,
+      toast: this.toast,
+      requestTetherFadeOut: () => this.activeAnvilTether?.requestFadeOut(),
+      hidePrompts: () => this.hideAnvilPrompts(),
+      showCyclePrompt: (item) => {
+        this.cyclePromptItem = item;
+        this.drawCyclePromptUI(item);
+      },
+      placeItem: (item) => this.placeItemOnAnvil(item),
+    });
     this._gpUnsub = this._attachGamepadToast();
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
@@ -1153,7 +1188,7 @@ export class LdtkWorldScene extends Scene {
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShard = new EgoShardManager(this.entityLayer);
     this.egoShardPreview = new EgoShardPreview(this.entityLayer);
-    // Fluid evaporation → drop permanent residue on the floor cell.
+    // Fluid evaporation ??drop permanent residue on the floor cell.
     this.fluidSystem.onEvaporated = (gx, gy, type) => {
       if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
       const px = (gx + 0.5) * 16;
@@ -1161,7 +1196,7 @@ export class LdtkWorldScene extends Scene {
       this.fluidResidue.dropAt(type, px, py, 1.0);
     };
 
-    // ─── Arc Scan Cycle (R-NEW-031 v2) — 월드 씬 동일 처리 ─────────────────
+    // ?????? Arc Scan Cycle (R-NEW-031 v2) ????븐뼔援??????됰뎄 嶺뚳퐣瑗????????????????????????????????????
     this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
       const links: ArcLink[] = [];
       const r2 = radiusPx * radiusPx;
@@ -1250,7 +1285,7 @@ export class LdtkWorldScene extends Scene {
       }
     };
     // TileMutator emits steam events when hot-meets-wet cells mutate
-    // (magma→ice melt, acid+magma vapor). Convert cell coords → pixel.
+    // (magma??몄뱢e melt, acid+magma vapor). Convert cell coords ??pixel.
     this.tileMutator.onSteamEvent = (gx, gy) => {
       const px = (gx + 0.5) * 16;
       const py = (gy + 0.5) * 16;
@@ -1275,8 +1310,8 @@ export class LdtkWorldScene extends Scene {
       const py = (gy + 0.5) * 16;
       this.steamPuff.spawn(px, py, 0.8, PUFF_TINT_TOXIC);
     };
-    // R-NEW-001 Exothermic Steam: acid+water 발열 반응 — 강한 증기 + vertical
-    // burst. Horizontal 24px, vertical 64px 영향.
+    // R-NEW-001 Exothermic Steam: acid+water ?꾩룇裕뉓굢??꾩룇瑗?????띠룆踰ㅹ뇡?嶺뚯빘鍮볡뵳?+ vertical
+    // burst. Horizontal 24px, vertical 64px ??⑤갭??
     this.tileMutator.onAcidSteamBurst = (gx, gy) => {
       const cx = (gx + 0.5) * 16;
       const cy = (gy + 0.5) * 16;
@@ -1342,8 +1377,8 @@ export class LdtkWorldScene extends Scene {
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
-    // Pause menu (9-slice from UISkin) — uiContainer(native) 직속 (UI native 1단계).
-    // input 전달 — SELECT KEYBOARD 서브모달이 preset 즉시 적용.
+    // Pause menu (9-slice from UISkin) ??uiContainer(native) 嶺뚯쉳???(UI native 1??節띉?.
+    // input ?熬곣뫀堉???SELECT KEYBOARD ??類λ땹嶺뚮ㅄ維???preset 嶺뚯빖留????⑤챷??
     this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input);
     this.pauseMenu.onAction = (action) => {
       if (action === 'continue') { this.isPaused = false; }
@@ -1355,7 +1390,7 @@ export class LdtkWorldScene extends Scene {
     };
     this.game.uiContainer.addChild(this.pauseMenu.container);
 
-    // Character stats overlay (opened from pause menu STATUS) — uiContainer(native)
+    // Character stats overlay (opened from pause menu STATUS) ??uiContainer(native)
     this.characterStats = new CharacterStats(this.uiSkin, this.game.uiScale);
     this.characterStats.onVisibilityChanged = (vis) => {
       this.hud.container.visible = !vis;
@@ -1363,7 +1398,7 @@ export class LdtkWorldScene extends Scene {
     };
     this.game.uiContainer.addChild(this.characterStats.container);
 
-    // Death screen — uiContainer(native)
+    // Death screen ??uiContainer(native)
     this.deathScreen = new DeathScreen(this.uiSkin, this.game.uiScale);
     this.deathScreen.onRespawn = () => {
       // Reload from last save point
@@ -1372,36 +1407,36 @@ export class LdtkWorldScene extends Scene {
     };
     this.game.uiContainer.addChild(this.deathScreen.container);
 
-    // Tutorial hints — restore "already-seen" ids from save so loaded games
+    // Tutorial hints ??restore "already-seen" ids from save so loaded games
     // don't re-show hints the player already completed.
-    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
+    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer, this.uiSkin);
     if (saveData) this.tutorialHint.hydrate(saveData.completedTutorialHints);
 
-    // Ending sequence — EndingTrigger 터치 시 player 입력만 잠그고 환경은 계속
-    // 움직임. HUD 가시성은 Shaft_DemoEnd 룸 진입 시점에 별도로 hide 되므로 여기
-    // onStart 콜백은 비워둔다.
+    // Ending sequence ??EndingTrigger ??⑥?뭵 ??player ???놁졑嶺???ル맧??????삵렱?? ??ｌ뫒??
+    // ??嶺뚯쉳??? HUD ?띠럾???戮?뎽?? Shaft_DemoEnd ??嶺뚯쉳?????戮곗젍???곌랙?х뙴袁ｌ뿉?hide ?????????
+    // onStart ?袁⑸츊揶?? ??????븐뼔堉?
     this.ending = new EndingSequence({
       uiContainer: this.game.legacyUIContainer,
       camera: this.game.camera,
       input: this.game.input,
     });
 
-    // Inventory UI — uiContainer(native) 직속. InventoryUI 내부에서 scale.set(uiScale)
-    // 으로 640 좌표 레이아웃을 화면 채우는 크기로 보정. (UI native 마이그레이션 1단계)
+    // Inventory UI ??uiContainer(native) 嶺뚯쉳??? InventoryUI ?????????scale.set(uiScale)
+    // ??怨쀬Ŧ 640 ??レ뒭筌????깅턄?熬곣뫗?????븐뻼??嶺????????깃꼍???곌랜??? (UI native 嶺뚮씭??議용돥筌뤾퍔???怨력?1??節띉?
     this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
     this.inventoryUI.setSkin(this.uiSkin!);
     this.game.uiContainer.addChild(this.inventoryUI.container);
-    // 인벤토리/Anvil UI 열림 시 HUD + minimap 숨김 (사용자 결정 2026-05-24).
+    // ?筌뤾퍒萸??ル벣遊?Anvil UI ???????HUD + minimap ??? (??????롪퍒???2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
       this.hud.container.visible = !vis;
       if (this.minimap) this.minimap.visible = !vis;
     };
 
-    // DEC-046 Identity Archive — 인벤토리 Z키 (JUMP 액션) 진입.
+    // DEC-046 Identity Archive ???筌뤾퍒萸??ル벣遊?Z??(JUMP ???떷? 嶺뚯쉳???
     this.identityArchive = new IdentityArchive(this.inventory, this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.identityArchive.container);
 
-    // Sacred Pickup — LorePopup + DivePreview + LoreDisplay 모두 uiContainer(native) 직속 (UI native 1단계)
+    // Sacred Pickup ??LorePopup + DivePreview + LoreDisplay 嶺뚮ㅄ維筌?uiContainer(native) 嶺뚯쉳???(UI native 1??節띉?
     this.lorePopup = new LorePopup(this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.lorePopup.container);
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
@@ -1409,20 +1444,20 @@ export class LdtkWorldScene extends Scene {
     this.divePreview = new DivePreview(this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.divePreview.container);
 
-    // AcquireOverlay — relic / max HP+ ceremonial modal (vignette only, no panel box).
+    // AcquireOverlay ??relic / max HP+ ceremonial modal (vignette only, no panel box).
     this.acquireOverlay = new AcquireOverlay(this.game.uiScale);
     this.game.uiContainer.addChild(this.acquireOverlay.container);
 
-    // World Map overlay — uiContainer(native)
+    // World Map overlay ??uiContainer(native)
     this.worldMap = new WorldMapOverlay(this.uiSkin, this.game.uiScale);
     this.worldMap.setLoader(this.loader);
-    // identifier "Debug_*" prefix 도 안전망으로 함께 차단 — LDtk 에서 RoomType
-    // 태그가 빈 배열로 비어있는 Debug 룸이 클리어율에 섞여드는 것을 방지
-    // (2026-05-17: Debug_7/8/9 누수로 max 75% 에서 멈추던 버그 픽스).
+    // identifier "Debug_*" prefix ?????깆쓧嶺뚮씮鍮???뿉???節띾쐾 嶺뚢뼰維????LDtk ?????RoomType
+    // ??蹂μ쟽?띠럾? ???꾩룄?ｈ굢?몄뿉????닷젆???덈츎 Debug ?猷몄굣????????怨몃첎????濡レ뿰??類ｋ츎 ?롪퍒????꾩렮維?
+    // (2026-05-17: Debug_7/8/9 ?熬곣뫖?얍슖?max 75% ?????嶺뚮∥?????뺢퀗???????츩).
     this.worldMap.setRooms(this.loader.getWorldMap().filter(r =>
       r.roomType !== 'Debug' && r.roomType !== 'Cinematic' && !r.id.startsWith('Debug_')
     ));
-    // Shift+M 디버그 워프용: Debug 룸 포함(Cinematic 만 제외) 풀 리스트 별도 등록.
+    // Shift+M ??븐뼚?붷윜???怨뺣뒆?? Debug ??????Cinematic 嶺???戮곕뇶) ?? ?洹먮봾裕???곌랙?х뙴??繹먮굞夷?
     this.worldMap.setDebugRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Cinematic'));
     this.game.uiContainer.addChild(this.worldMap.container);
 
@@ -1469,7 +1504,7 @@ export class LdtkWorldScene extends Scene {
 
     this.initialized = true;
 
-    // Tier 3 ambient bed demo (Plan_Audio_Demo §3-1 #1A + #1C, DEC-040 §13-2.4 진척)
+    // Tier 3 ambient bed demo (Plan_Audio_Demo 筌?-1 #1A + #1C, DEC-040 筌?3-2.4 嶺뚯쉳?닺뜎?
     AmbientLayer.startWorldTier3Demo();
 
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
@@ -1481,9 +1516,9 @@ export class LdtkWorldScene extends Scene {
     this.container.visible = true;
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
     this.reattachPersistentUi();
-    // 월드 BGM — intro 1 회 → loop 반복. 5 초 fade-in 으로 부드러운 진입.
-    // ItemWorld 에서 pop 으로 돌아온 경우 BgmController 가 같은 trackKey 면
-    // no-op 하므로 안전하게 매번 호출.
+    // ??븐뼔援?BGM ??intro 1 ????loop ?꾩룇瑗?? 5 ??fade-in ??怨쀬Ŧ ?遊붋??類ㅼ몠??嶺뚯쉳???
+    // ItemWorld ?????pop ??怨쀬Ŧ ???????롪퍔???BgmController ?띠럾? ?띠룇?? trackKey 嶺?
+    // no-op ????????깆쓧???우벟 嶺뚮씞?뉓떋??筌뤾쑵??
     BgmController.play(
       'mus_world_main',
       { intro: 'mus_world_main_intro', loop: 'mus_world_main_loop' },
@@ -1515,8 +1550,8 @@ export class LdtkWorldScene extends Scene {
       const px = this.player.x;
       const py = this.player.y;
       this.worldVisualsReleasedForItemWorld = false;
-      // Step 4/5 (2026-05-25): loadLevel → spawnAnvilFromLdtk 가 새 Anvil 인스턴스를
-      // 만들어 placedItem sprite 가 사라진다. 백업 + 복원 (disabled bypass).
+      // Step 4/5 (2026-05-25): loadLevel ??spawnAnvilFromLdtk ?띠럾? ??Anvil ?筌뤾쑬裕??怨룸츩??
+      // 嶺뚮씭??キ??placedItem sprite ?띠럾? ????륁?熬곣뫀堉? ?꾩룄??캆?+ ?곌랜踰??(disabled bypass).
       const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
       this.loadLevel(levelId, 'down');
       if (preservedAnvilItem && this.anvil) {
@@ -1571,15 +1606,13 @@ export class LdtkWorldScene extends Scene {
 
   private detachSharedUiForItemWorld(): void {
     this.uiController.detachForItemWorld();
-    // 명시적 hide. detachForItemWorld가 부모에서 제거하지만, 일부 전환 프레임에서
-    // 잠깐 visible=true 상태로 다시 attach되는 경로를 대비한 방어적 처리.
+    // 嶺뚮ㅏ援???hide. detachForItemWorld?띠럾? ?遊붋嶺뚮ㅄ維곮굢????蹂ㅽ깴???嶺? ??? ?熬곥굦???熬곣뫁??熬곣뫖???
+    // ??ル맪??visible=true ??⑤객臾뜹슖????곕뻣 attach??濡ル츎 ?롪퍔?δ빳?꾨ご??????들뇡??꾩렮維쀥젆??嶺뚳퐣瑗??
     if (this.minimap) {
       if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
       this.minimap.visible = false;
     }
-    if (this.altarUI?.parent) {
-      this.altarUI.parent.removeChild(this.altarUI);
-    }
+    this.altarController.destroyUi();
   }
 
   private releaseWorldVisualsForItemWorld(): void {
@@ -1636,7 +1669,7 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
-   * structurally — runtime duck-typing checks for this method.
+   * structurally ??runtime duck-typing checks for this method.
    */
   getFeedbackContext(): {
     area: 'world' | 'itemworld';
@@ -1666,13 +1699,13 @@ export class LdtkWorldScene extends Scene {
     if (!this.initialized || !this.currentLevel) return;
 
 
-    // Feedback panel open — block scene update but keep toasts animating.
+    // Feedback panel open ??block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
       this.toast?.update(dt);
       return;
     }
 
-    // Title→game fade-in handoff overlay.
+    // Title??몄뙰me fade-in handoff overlay.
     if (this.titleFadeInOverlay) {
       this.titleFadeInTimer += dt;
       const t = Math.min(1, this.titleFadeInTimer / this.TITLE_FADE_IN_MS);
@@ -1694,9 +1727,9 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // HUD reveal: AreaTitle 이 inactive 되는 프레임에 5초 timer 를 시작해 Shaft_01
-    // 영화적 비트(거대 빌더가 누비는 대공동 - 잠시 침묵) 를 살린 뒤 HUD/미니맵 노출.
-    // 'awaitingHud' 상태 동안 위 강제 숨김 분기가 HUD 를 가린다.
+    // HUD reveal: AreaTitle ??inactive ??濡ル츎 ?熬곣뫁??熬곣뫖??5??timer ????戮곗굚??Shaft_01
+    // ??⑤?????????濾곌쑨?? ????臾덉쾸? ?熬곣뫂???????ㅻ쾳??- ??ル∥六??곸굹維?? ?????????HUD/亦껋꼶梨??먯춹??筌뤾쑵??
+    // 'awaitingHud' ??⑤객臾????덊닱 ???띠룆踰????? ?釉뚯뫅?깃꼈泥? HUD ???띠럾??源껎??
     const areaTitleActive = this.areaTitle.isActive;
     if (
       this.wasAreaTitleActive &&
@@ -1712,22 +1745,22 @@ export class LdtkWorldScene extends Scene {
         this.hud.container.visible = true;
         if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
         this.introPhase = 'done';
-        // FeedbackPanel hint / 점프 튜토리얼 등 글로벌 UI 가 HUD 노출과 동시에 등장.
+        // FeedbackPanel hint / ??믨퀡?????リ퐛?洹먮봾?????リ섣??β돦裕녻떋?UI ?띠럾? HUD ?筌뤾쑵??????덈뻣???繹먮냱??
         this.game.hudReady = true;
       }
     }
     this.wasAreaTitleActive = areaTitleActive;
 
-    // Ending sequence — 환경은 계속 update 되어야 하므로 early-return 하지 않는다.
-    // inputLocked 가 켜져 있어 player 만 멈춘다. isDone 시점에 한 번만 정리 +
-    // replace 한다 (import().then() 비동기 대기 중 동일 분기가 재진입해 두 번째
-    // replace 가 발사되면 EndingScene 이 fade-in 중 새 인스턴스로 즉시 교체되어
-    // 사용자에겐 "팝업"처럼 보이는 문제가 있었음).
+    // Ending sequence ?????삵렱?? ??ｌ뫒??update ??琉우꽑???????early-return ??? ???낅츎??
+    // inputLocked ?띠럾? ??밸츋鈺????곗꽑 player 嶺?嶺뚮∥???? isDone ??戮곗젍?????뺢퀡?꾢퐲??筌먲퐘遊?+
+    // replace ??類ｋ펲 (import().then() ???х뙴?꾨Ь?????繞????됰뎄 ?釉뚯뫅?깃꼈泥? ??壤???뽱돵 ???뺢퀡???
+    // replace ?띠럾? ?꾩룇裕뉑쾮??濡?듆 EndingScene ??fade-in 繞????筌뤾쑬裕??怨룸츩??嶺뚯빖留????흮???琉우꽑
+    // ???????좈뇦?"??諛몄뵜"嶺뚳퐣瑗???곌랜??????쒖굣?節낆쾸? ??????.
     //
-    // overlay dispose 는 EndingScene init/enter 가 끝난 *다음*에 한다.
-    // 이전엔 dispose 후 동적 import 가 resolve 되기 전 한 frame 갭에 worldSprite
-    // 의 이전 RT(빌더/player 가 그려진 게임 화면)가 노출되어 흰색 픽셀이
-    // 새어 보이는 증상이 있었음.
+    // overlay dispose ??EndingScene init/enter ?띠럾? ??硫명뀊 *???깅쾳*????類ｋ펲.
+    // ??怨몄쓧??dispose ?????됱쓤 import ?띠럾? resolve ???얄뵛 ????frame ????worldSprite
+    // ????怨몄쓧 RT(?????player ?띠럾? ?잙갭梨??彛??롪퍓?????븐뻼???띠럾? ?筌뤾쑵???琉우꽑 ??⑥ろ돰 ?????
+    // ???곗꽑 ?곌랜????嶺뚯빘鍮섉묾????????
     if (this.ending.isActive) {
       this.ending.update(dt);
       if (this.ending.isDone && !this.endingTransitionStarted) {
@@ -1766,7 +1799,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // TAB key → open character stats (same pattern as I=inventory, M=map)
+    // TAB key ??open character stats (same pattern as I=inventory, M=map)
     if (this.game.input.isJustPressed(GameAction.STATUS)) {
       this.game.input.consumeJustPressed(GameAction.STATUS);
       this.openCharacterStats();
@@ -1789,7 +1822,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Dialogue / Lore display — blocks gameplay while active
+    // Dialogue / Lore display ??blocks gameplay while active
     if (this.loreDisplay?.isActive) {
       this.loreDisplay.update(dt);
       this.player.savePrevPosition();
@@ -1825,9 +1858,9 @@ export class LdtkWorldScene extends Scene {
       // hint removed ??key prompts shown in HUD
     }
 
-    // 사용자 결정 (2026-05-03): "Open Inventory" hint 는 픽업 cutscene + EGO
-    // 대사가 모두 끝난 후 표시. pendingInventoryHint flag 가 set 되어 있으면
-    // 매 프레임 종료 조건 검사 후 표시.
+    // ??????롪퍒???(2026-05-03): "Open Inventory" hint ??????뵜 cutscene + EGO
+    // ????? 嶺뚮ㅄ維筌???硫명뀊 ????戮?뻣. pendingInventoryHint flag ?띠럾? set ??琉우꽑 ???깅さ嶺?
+    // 嶺??熬곣뫁?????リ턁筌??브퀗?쀦뤃??롪틵???????戮?뻣.
     if (this.pendingInventoryHint) {
       if (this.pendingInventoryHintDelayMs > 0) {
         this.pendingInventoryHintDelayMs = Math.max(0, this.pendingInventoryHintDelayMs - dt);
@@ -1851,15 +1884,15 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // 첫 platform 위 grounded → drop-through 튜토리얼 hint 1회 발사.
-    // 가드 플래그는 사용자가 직접 dropthrough 시에도 set 되므로 학습 후 재발사 안 됨.
-    // 모든 hint 는 학습 입력 감지 후 dismissAfter(1000ms) — 사용자가 실수로 키를 눌러도
-    // hint 가 1초간 유지되어 인지/무시할 수 있도록.
+    // 嶺?platform ??grounded ??drop-through ???リ퐛?洹먮봾??hint 1???꾩룇裕뉑쾮?
+    // ?띠럾???????뗥윜諛몄굡???????? 嶺뚯쉳???dropthrough ??戮?뱺??set ????????덈? ???????????
+    // 嶺뚮ㅄ維獄?hint ?????덈? ???놁졑 ?띠룆흮? ??dismissAfter(1000ms) ???????? ???곕빢????? ??????
+    // hint ?띠럾? 1?貫?껇??????琉우꽑 ?筌?/??쒕샍????????덉┣??
     const HINT_LINGER_MS = 1000;
 
-    // Drop-through 튜토리얼 — platform 위 grounded 시 tryShow. handled set 은
-    // consumeDropThroughEvent 분기에서만 — panel busy 로 발사 못 한 경우 다음 platform
-    // 진입 시 재시도 가능.
+    // Drop-through ???リ퐛?洹먮봾????platform ??grounded ??tryShow. handled set ??
+    // consumeDropThroughEvent ?釉뚯뫅?????ｇ춯???panel busy ???꾩룇裕뉑쾮?嶺????롪퍔??????깅쾳 platform
+    // 嶺뚯쉳???????????띠럾???
     if (!this.dropThroughHintHandled && this.player.isOnOneWayPlatform()) {
       this.tutorialHint.tryShow('hint_drop_through', {
         actions: [GameAction.LOOK_DOWN, GameAction.JUMP],
@@ -1868,9 +1901,9 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // 점프 튜토리얼 — 게임 시작 지점(playerSpawnLevelId) 에서 사용자가 화살표
-    // (MOVE_LEFT/RIGHT) 로 한 번이라도 움직인 후 2초 지연 후 발사. Shaft_01 등 다른
-    // 룸에서는 절대 발사하지 않는다. JUMP 입력 시 2초 linger 후 fade.
+    // ??믨퀡?????リ퐛?洹먮봾?????롪퍓?????戮곗굚 嶺뚯솘???playerSpawnLevelId) ??????????? ??븐슙???
+    // (MOVE_LEFT/RIGHT) ?????뺢퀡????怨뺤┣ ??嶺뚯쉳?????2??嶺뚯솘??????꾩룇裕뉑쾮? Shaft_01 ?????섎?
+    // ?猷몄굣???類ｋ츎 ??? ?꾩룇裕뉑쾮??? ???낅츎?? JUMP ???놁졑 ??2??linger ??fade.
     if (!this.jumpHintHandled) {
       const isInSpawnRoom = this.currentLevel?.identifier === this.playerSpawnLevelId;
       if (isInSpawnRoom && !this.hasMovedHorizontally
@@ -1895,8 +1928,8 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // 공격 튜토리얼 — 살아있는 적이 4타일 이내로 접근한 프레임에 1회 발사.
-    // dismiss 는 hint 가 표시 중일 때 ATTACK 입력 시. 4초 linger.
+    // ??ㅻ??????リ퐛?洹먮봾??????怨룻닡???덈츎 ??⑤챷逾?4???????亦끸넂????얜∥????熬곣뫁??熬곣뫖??1???꾩룇裕뉑쾮?
+    // dismiss ??hint ?띠럾? ??戮?뻣 繞벿살탳????ATTACK ???놁졑 ?? 4??linger.
     if (!this.attackHintHandled) {
       if (this.hasEnemyNearby()) {
         this.tutorialHint.tryShow('hint_attack', {
@@ -1912,8 +1945,8 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // 대시 튜토리얼 — Tutorial_Dash 진입 1초 후 발사. 룸을 떠나면 timer 리셋.
-    // 사용자 결정 2026-05-16 — 다른 룸에서는 절대 표시되지 않도록 단일 식별자만 허용.
+    // ???????リ퐛?洹먮봾????Tutorial_Dash 嶺뚯쉳???1?????꾩룇裕뉑쾮? ?猷몄굣????ル봽?뚨춯?timer ?洹먮봾??
+    // ??????롪퍒???2026-05-16 ?????섎??猷몄굣???類ｋ츎 ??? ??戮?뻣??? ???낆┣????關逾???紐끒???異????깅뮔.
     if (!this.dashHintHandled) {
       const inDashRoom = this.currentLevel?.identifier === 'Tutorial_Dash';
       if (inDashRoom) {
@@ -1953,7 +1986,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // ItemDeployment sequence — blocking states (all except Deployed) lock input
+    // ItemDeployment sequence ??blocking states (all except Deployed) lock input
     if (this.itemDeployment?.isBlocking) {
       this.itemDeployment.update(dt);
       this.anvil?.update(dt);
@@ -1967,7 +2000,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Legacy dive transition (archived — kept for FloorCollapse compatibility)
+    // Legacy dive transition (archived ??kept for FloorCollapse compatibility)
     if (this.diveTransitionActive) {
       this.player.vx = 0;
       this.player.vy = 0;
@@ -1984,14 +2017,14 @@ export class LdtkWorldScene extends Scene {
       this.screenCrack.update(dt);
     }
 
-    // Void fade in progress — input locked but the rest of the scene keeps
+    // Void fade in progress ??input locked but the rest of the scene keeps
     // simulating (fluid, particles, camera, enemies all tick normally).
     // updateVoidFade itself bumps the fade timer + force-grounds the player.
     if (this.voidDropActive) {
       this.updateVoidFade(dt);
     }
 
-    // ItemWorld 복귀 fade-in 진행 — 별도 overlay, 다른 fade 와 race 없음.
+    // ItemWorld ?곌랜踰? fade-in 嶺뚯쉳?듸쭛????곌랙?х뙴?overlay, ???섎?fade ?? race ??怨몃쾳.
     if (this.iwReturnFadeMs > 0) {
       this.iwReturnFadeMs = Math.max(0, this.iwReturnFadeMs - dt);
       this.iwReturnFade.alpha = this.iwReturnFadeMs / this.IW_RETURN_FADE_DURATION;
@@ -2009,19 +2042,19 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Altar selection UI (anvil now uses the unified InventoryUI in anvil mode)
-    if (this.altarSelectActive) {
+    if (this.altarController.isSelectActive) {
       this.hideAnvilPrompts();
       this.updateAltarInput();
       return;
     }
 
     // Debug warp:
-    //   Shift+M  → 모든 룸 풀 디테일 + 클릭 워프 모드로 월드맵 오픈
-    //   Backtick → 뷰포트 클릭 워프 토글 (현재 화면 안 임의 위치로 즉시 점프)
+    //   Shift+M  ??嶺뚮ㅄ維獄????? ??됀???+ ???????怨뺣뒆 嶺뚮ㅄ維獄?쑜????븐뼔援←춯????덊깯
+    //   Backtick ?????х뙴?????????怨뺣뒆 ??? (?熬곣뫗????븐뻼?????熬곣뫗踰??熬곣뫚?꾢슖?嶺뚯빖留????믨퀡??
     this.handleDebugWarp();
 
     // World Map toggle (M key) ??disabled inside item tunnels.
-    // Shift+M 은 위 handleDebugWarp 가 먼저 consume 하므로 여기 일반 M 분기엔 도달 안 함.
+    // Shift+M ?? ??handleDebugWarp ?띠럾? ?誘る닔? consume ???????????怨쀫틮 M ?釉뚯뫅????熬곣뫀堉?????
     this.uiController.handleWorldMapToggle({
       canToggle: !this.inItemTunnel,
       onBeforeOpen: () => {
@@ -2044,9 +2077,9 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // 사용자 결정 (2026-05-03): 첫 IW 보스 처치 전엔 인벤토리 잠금. INVENTORY
-    // 키 입력 시 Rustborn 보유 여부에 따라 Ego 대사 또는 'Locked' 토스트.
-    // shiftDown / inItemTunnel 분기는 기존 통과 (debug / 진입 컷신).
+    // ??????롪퍒???(2026-05-03): 嶺?IW ?곌랜???嶺뚳퐣瑗???熬곣뫖???筌뤾퍒萸??ル벣遊???ル맪?? INVENTORY
+    // ?????놁졑 ??Rustborn ?곌랜??? ???????⑤벡逾?Ego ???????裕?'Locked' ??ル∥裕??
+    // shiftDown / inItemTunnel ?釉뚯뫅????リ옇??????沅?(debug / 嶺뚯쉳??????폎??.
     if (
       !sacredSave.isFirstItemWorldBossDefeated() &&
       !this.inItemTunnel &&
@@ -2070,15 +2103,15 @@ export class LdtkWorldScene extends Scene {
     this.uiController.handleInventoryToggle({
       canToggle: !this.inItemTunnel && !this.game.input.shiftDown && sacredSave.isFirstItemWorldBossDefeated(),
       onToggled: () => {
-        // Broken Sword 픽업 전엔 인벤토리 토글을 "가이드 학습 완료"로 인정하지 않는다.
-        // 인벤토리에 줄 게 없는 시점에 I 를 누르는 건 대개 우발적 입력이고,
-        // 진짜 가이드는 첫 무기 픽업 직후에 처음 띄워야 의미가 있다.
+        // Broken Sword ????뵜 ?熬곣뫖???筌뤾퍒萸??ル벣遊??????"?띠럾????獄????덈? ?熬곣뫁?????筌뤾쑴???? ???낅츎??
+        // ?筌뤾퍒萸??ル벣遊??繞??????⑸츎 ??戮곗젍??I ???熬곣뱿???濾???????⑤벡六?????놁졑???굿?
+        // 嶺뚯쉳?닷퐲??띠럾????獄??嶺???쒕뼬??????뵜 嶺뚯쉳????嶺뚳퐣瑗???熬곣뫗???????띠럾? ???덈펲.
         if (!sacredSave.isFirstPickupDone()) return;
         this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
         this.hud.setItemKeyHighlight(false);
-        // 2026-05-18: tutorialHint.dismiss 는 *Rustborn 실제 착용 후* equip 분기에서만
-        // 실행한다. I 키만 누르면 인벤토리 보고 끄는 케이스 → 사용자가 튜토리얼을
-        // 잊는 문제. HUD pulse 는 여기서 멈추지만 hint 텍스트는 유지.
+        // 2026-05-18: tutorialHint.dismiss ??*Rustborn ???깆젷 嶺뚢뼰維???? equip ?釉뚯뫅?????ｇ춯?
+        // ???덈뺄??類ｋ펲. I ???댁떳 ?熬곣뱿??춯??筌뤾퍒萸??ル벣遊??곌랜????熬곣뫀裕???댟??怨룸츩 ???????? ???リ퐛?洹먮봾???
+        // ???낅츎 ??쒖굣?? HUD pulse ???????嶺뚮∥???됱??嶺?hint ???⑸츩?筌뤾퍓裕????.
       },
     });
 
@@ -2094,9 +2127,9 @@ export class LdtkWorldScene extends Scene {
       if (inventoryResult === 'confirmed_equipment_change') {
         this.updatePlayerAtk();
         this.hud.updateATK(this.player.atk);
-        // 2026-05-18: 튜토리얼 hint 는 *Rustborn 실제 착용 시점* 에만 dismiss.
-        // 사용자가 다른 무기로 갈아끼우는 케이스에선 hint 유지 — 튜토리얼 목적은
-        // "Rustborn 착용" 학습이므로 그 행동이 끝나야 학습 완료로 인정.
+        // 2026-05-18: ???リ퐛?洹먮봾??hint ??*Rustborn ???깆젷 嶺뚢뼰維????戮곗젍* ???異?dismiss.
+        // ?????? ???섎???쒕뼬?깃꼍???띠룆?녽뇡??源녿뮡????댟??怨룸츩?????hint ??? ?????リ퐛?洹먮봾??嶺뚮ㅄ維???
+        // "Rustborn 嶺뚢뼰維?? ???덈???????????怨뺤쭢????硫몃룎?????덈? ?熬곣뫁?룟슖??筌뤾쑴??
         const equipped = this.inventory.equipped;
         if (equipped?.def.id === 'sword_rustborn') {
           this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
@@ -2118,15 +2151,15 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Pattern D (proximity-interaction): ?�이�??�빌/?�단 ?�력 ?�점.
-    // 반드??player.update() ?�에 ?�행?�어??같�? ?�레???�스??방�???
-    // ?�들???�록?� registerProximityHandlers() 참조.
+    // Pattern D (proximity-interaction): ??醫롫윪?議얜쐻???醫롫윥????醫롫윥????醫롫윥????醫롫윪??
+    // ?꾩룇瑗띈キ??player.update() ??醫롫윪????醫?筌??醫롫윪????띠룇??? ??醫롫윥?????醫롫윪????꾩렮維????
+    // ??醫롫윥獄????醫롫윥餓???registerProximityHandlers() 嶺뚣볦굣??
     this.updateQueuedSave(dt);
 
     this.updateFrozenSnapshotPrompt();
     if (this.proximity.tryInteract(this.game.input)) return;
 
-    // Giant Builder — moving platform pattern.
+    // Giant Builder ??moving platform pattern.
     //   Builder container.y moves sub-pixel smooth (visual continuity).
     //   Stamp position is tile-aligned (physics stability) and only changes
     //   when the builder crosses a tile boundary. The player is carried
@@ -2140,9 +2173,9 @@ export class LdtkWorldScene extends Scene {
       // player wasn't carried" frame that looks like a jump in place.
       const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
-      // BuilderInterior / lightContainer / leg 는 scene container 의 별도 자식
-      // 이라 builder transform 을 직접 받지 않는다. position 만 매 프레임 따라
-      // 그려야 builder 와 함께 이동.
+      // BuilderInterior / lightContainer / leg ??scene container ???곌랙?х뙴????六?
+      // ?????builder transform ??嶺뚯쉳????꾩룇猷? ???낅츎?? position 嶺?嶺??熬곣뫁?????⑤벡逾?
+      // ?잙갭梨???builder ?? ??節띾쐾 ?????
       this.activeBuilder.builderInteriorLayer.position.copyFrom(this.activeBuilder.container.position);
       this.activeBuilder.lightContainer.position.copyFrom(this.activeBuilder.container.position);
       this.activeBuilder.legFrontLayer.position.copyFrom(this.activeBuilder.container.position);
@@ -2174,8 +2207,8 @@ export class LdtkWorldScene extends Scene {
       }
 
       // BuilderInterior dissolve: when the player overlaps interior IntGrid
-      // cells the layer fades in (alpha→1), revealing internal builder details.
-      // When the player leaves, it fades back out (alpha→0).
+      // cells the layer fades in (alpha??), revealing internal builder details.
+      // When the player leaves, it fades back out (alpha??).
       {
         const target = (this.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
           this.player.x, this.player.y, this.player.width, this.player.height,
@@ -2189,9 +2222,9 @@ export class LdtkWorldScene extends Scene {
         }
       }
 
-      // Cinematic builder (Shaft_01) — emit camera shakes to sell the weight
-      // of the descent. Rhythmic "쿵" every two tile crossings while moving,
-      // then a single heavy "쿠웅" on the frame the builder comes to rest.
+      // Cinematic builder (Shaft_01) ??emit camera shakes to sell the weight
+      // of the descent. Rhythmic "?? every two tile crossings while moving,
+      // then a single heavy "?臾믪쪠?? on the frame the builder comes to rest.
       // `builderShakeEnabled` lets patrol-mode builders opt in to the same
       // feedback (e.g. Shaft_DemoEnd's Builder_Level_2).
       if (this.activeBuilderMode === 'cinematic' || this.builderShakeEnabled) {
@@ -2213,12 +2246,12 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Player
-    // 직전 프레임의 playerOnBuilder 값을 onCarrier 로 전달해, 빌더 위
-    // grounding 이 lastSafeX/Y 갱신을 건너뛰도록 한다.
-    // 1틱 지연 버그 보정 (2026-05-24): 빌더 위 첫 착지 프레임에선 onCarrier 가
-    // 아직 false 라 lastSafe 가 *빌더 cell* 로 갱신되어, 낙사 복귀 시 빌더가
-    // 떠난 빈 공간으로 워프되는 문제가 있었다. update 전 lastSafe 를 스냅샷
-    // 떠 두고, post-snap 단계에서 *현재 프레임* playerOnBuilder=true 면 롤백.
+    // 嶺뚯쉳????熬곣뫁??熬곣뫗踰?playerOnBuilder ?띠룆???onCarrier ???熬곣뫀堉?? ???????
+    // grounding ??lastSafeX/Y ?띠룄????濾곌쑬????⑤베利꿨슖???類ｋ펲.
+    // 1??嶺뚯솘????뺢퀗????곌랜???(2026-05-24): ???????嶺?嶺뚢뼰維? ?熬곣뫁??熬곣뫖???onCarrier ?띠럾?
+    // ?熬곣뫗異?false ??lastSafe ?띠럾? *?????cell* ???띠룄????琉우꽑, ???뉙뀬 ?곌랜踰? ??????臾덉쾸?
+    // ??ル봽??????ㅻ????怨쀬Ŧ ??怨뺣뒆??濡ル츎 ??쒖굣?節낆쾸? ?????? update ??lastSafe ?????고돩??
+    // ??????? post-snap ??節띉?????*?熬곣뫗???熬곣뫁??? playerOnBuilder=true 嶺??β뼯?뉐첎?
     const wasPlayerOnBuilder = this.playerOnBuilder;
     const preUpdateLastSafeX = this.player.lastSafeX;
     const preUpdateLastSafeY = this.player.lastSafeY;
@@ -2230,7 +2263,7 @@ export class LdtkWorldScene extends Scene {
       this.builderOneWayDropThroughGraceMs = Math.max(0, this.builderOneWayDropThroughGraceMs - dt);
     }
 
-    // No-weapon attack feedback — Player flags the pulse, scene shows toast
+    // No-weapon attack feedback ??Player flags the pulse, scene shows toast
     // with cooldown so spamming C doesn't spam toasts.
     if (this.player.attackBlockedNoWeaponPulse) {
       this.player.attackBlockedNoWeaponPulse = false;
@@ -2243,7 +2276,7 @@ export class LdtkWorldScene extends Scene {
       this.noWeaponToastCooldown = Math.max(0, this.noWeaponToastCooldown - dt);
     }
 
-    // First time HP drops to/under 40% — surface a tutorial hint pointing at
+    // First time HP drops to/under 40% ??surface a tutorial hint pointing at
     // the heal key. Shared one-shot flag with ItemWorldScene.
     if (
       !isLowHpHealToastFired() &&
@@ -2266,16 +2299,16 @@ export class LdtkWorldScene extends Scene {
       : false;
     this.playerOnBuilder = this.activeBuilder ? (snappedToBuilder || this.isPlayerOnBuilderStamp()) : false;
     if (!this.playerOnBuilder) this.player.carrierVelocityY = 0;
-    // 낙사 판정 가드: 현재 프레임이 빌더 위로 끝났다면 player.update 가 갱신한
-    // lastSafeX/Y(=빌더 cell)를 되돌린다. 빌더는 world 가 아니므로 safe ground
-    // 자격 없음 — void 복귀는 오직 world 정적 타일 위 grounded 위치만 사용.
+    // ???뉙뀬 ??????띠럾??? ?熬곣뫗???熬곣뫁??熬곣뫗逾???????熬곣뫁夷???硫명뀬???좊듆 player.update ?띠럾? ?띠룄????
+    // lastSafeX/Y(=?????cell)????濡レ┝?源껎?? ??????world ?띠럾? ?熬곣뫀鍮띷쾬?빧??safe ground
+    // ???遊???怨몃쾳 ??void ?곌랜踰??????깆땋 world ?筌먦끉????????grounded ?熬곣뫚?꾤춯?????
     if (this.playerOnBuilder) {
       this.player.lastSafeX = preUpdateLastSafeX;
       this.player.lastSafeY = preUpdateLastSafeY;
     }
 
     // Volume check: is the player's AABB inside the builder's rectangle?
-    // (includes airborne — used for camera override that must persist on jump.)
+    // (includes airborne ??used for camera override that must persist on jump.)
     this.playerInBuilder = this.activeBuilder ? this.isPlayerInBuilderVolume() : false;
     if (
       this.player.isGrounded() &&
@@ -2288,7 +2321,7 @@ export class LdtkWorldScene extends Scene {
 
     // Visual sync: while riding, mirror the builder's render offset from its
     // tile-aligned stamp. Use container.y (integer) so the offset matches
-    // exactly what stampBuilder() sees — the player visual steps in lockstep
+    // exactly what stampBuilder() sees ??the player visual steps in lockstep
     // with the builder visual, no subpixel disagreement.
     if (this.playerOnBuilder && this.activeBuilder) {
       const by = this.activeBuilder.container.y;
@@ -2348,7 +2381,7 @@ export class LdtkWorldScene extends Scene {
 
     // Player attacks ??Sakurai full feedback chain
     if (this.player.isAttackActive()) {
-      // Locked door 가 player 와 enemy 사이에 있으면 hit 차단 — attack 이 door 를 투과 안 함.
+      // Locked door ?띠럾? player ?? enemy ????????깅さ嶺?hit 嶺뚢뼰維????attack ??door ??????????
       const targets = this.enemies
         .filter((e) => e.alive)
         .filter((e) => !this.isAttackBlockedByDoor(e)) as CombatEntity[];
@@ -2396,21 +2429,13 @@ export class LdtkWorldScene extends Scene {
         continue;
       }
       // Player attack deflects projectile
-      if (this.player.isAttackActive()) {
-        const step = this.player.getAttackStep(this.player.comboIndex);
-        if (step) {
-          const hitbox = getAttackHitbox(
-            this.player.x, this.player.y, this.player.width, this.player.height,
-            this.player.facingRight ?? true, step,
-          );
-          if (aabbOverlap(hitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
-            this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
-            proj.alive = false;
-            proj.destroy();
-            this.projectiles.splice(i, 1);
-            continue;
-          }
-        }
+      const attackHitbox = getActivePlayerAttackHitbox(this.player);
+      if (attackHitbox && aabbOverlap(attackHitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
+        this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
+        proj.alive = false;
+        proj.destroy();
+        this.projectiles.splice(i, 1);
+        continue;
       }
       if (!this.player.invincible && this.player.hp > 0) {
         const overlap = aabbOverlap(
@@ -2495,7 +2520,7 @@ export class LdtkWorldScene extends Scene {
 
     // Breakable props (sway animation)
     for (const bp of this.breakableProps) bp.update(dt);
-    // 수동 배치 Breakable (LDtk Entity).
+    // ??濡レ쭢 ?꾩룄???Breakable (LDtk Entity).
     for (const b of this.breakables) b.update(dt);
     // Decorative grass sway
     this.procDecorator?.update(dt);
@@ -2606,7 +2631,7 @@ export class LdtkWorldScene extends Scene {
             type: 'relic', iconKey: 'waterBreathing',
             name: t('ui.acquire.relic.waterBreathing.name'),
             usage: t('ui.acquire.relic.waterBreathing.usage'),
-            // No keyAction — passive ability
+            // No keyAction ??passive ability
             tint: 0x4488ff,
           });
         } else if (abilityName === 'wallJump') {
@@ -2626,9 +2651,9 @@ export class LdtkWorldScene extends Scene {
             keyAction: GameAction.JUMP,
           });
         } else if (abilityName === 'cheat') {
-          // DEC-010: ?�버�?치트 ?�릭.
-          // Gate: Debug_ 방에 배치 ???debug URL ?�라미터 ?�이???�근 불�?.
-          // ?�반 ?��??�게 ?�출?��? ?�음. 추�? gate 불필??
+          // DEC-010: ??醫롫윥?????곸궡瑗????醫롫윥??
+          // Gate: Debug_ ?꾩렮維쀨굢??꾩룄??????debug URL ??醫롫윥??덉쾵筌뤿굛????醫롫윪?????醫롫윞???釉띾쐣??.
+          // ??醫롫윥????醫롫짗????醫롫윞????醫롫윪???醫롫짗?? ??醫롫윪?? ?怨뺥넪?? gate ?釉띾쐡???
           this.player.abilities.cheat = true;
           this.updatePlayerAtk(); // re-applies +99999 via cheat branch
           this.player.hp = this.player.maxHp; // full heal to new cap
@@ -2679,11 +2704,12 @@ export class LdtkWorldScene extends Scene {
     // Dialogue / Lore triggers
     this.updateDialogueTriggers(dt);
 
-    // ── Ego dialogue triggers (code-driven, not LDtk) ──
+    // ???? Ego dialogue triggers (code-driven, not LDtk) ????
     this.updateEgoTriggers(dt);
 
     // Anvil interaction + attack hit detection
     this.updateAnvil(dt);
+    this.updateAltars(dt);
 
     // Locked door & switch attack detection + update
     this.checkAttackOnDoors();
@@ -2746,8 +2772,8 @@ export class LdtkWorldScene extends Scene {
     if (this.voidCooldown > 0) this.voidCooldown -= dt;
     this.checkVoidContact();
 
-    // Elemental tile hazards (magma · charged · acid · fire · thunder · burn)
-    // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+    // Elemental tile hazards (magma 鸚?charged 鸚?acid 鸚?fire 鸚?thunder 鸚?burn)
+    // GDD: Documents/System/System_World_TileSystem.md 筌?.6-2.13
     this.tickTileHazards(dt);
 
     // Updraft wind zones
@@ -2756,7 +2782,7 @@ export class LdtkWorldScene extends Scene {
     // Void fog particles (visual only)
     this.voidFogSystem.update(dt, this.collisionGrid, this.game.camera);
 
-    // Exit Light Bleed pulse + ?�레?�어 거리 기반 ?�께 ?�장.
+    // Exit Light Bleed pulse + ??醫롫윥???醫롫윪??濾곌쑨????リ옇?↑???醫롫윞????醫롫윪??
     if (this.exitGlows.length > 0) {
       const pcx = this.player.x + this.player.width / 2;
       const pcy = this.player.y + this.player.height / 2;
@@ -2769,23 +2795,23 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ??UP key near save point
     this.checkSavePoints();
 
-    // Shift+P 전역 리셋은 Game.ts 단에서 처리 — 어떤 씬에서도 작동.
+    // Shift+P ?熬곣뫖???洹먮봾??? Game.ts ??貫???嶺뚳퐣瑗??????????????類ｌ┣ ??얜Ŧ吏?
 
-    // Shift+I 전역 UI 토글은 Game.ts 에서 처리 — INVENTORY 가 거기서 consume 되므로
-    // 여기 인벤토리 토글 핸들러는 자동으로 통과한다.
+    // Shift+I ?熬곣뫖??UI ????? Game.ts ?????嶺뚳퐣瑗????INVENTORY ?띠럾? 濾곌쑨?쀧뵳??consume ?????
+    // ?????筌뤾퍒萸??ル벣遊???? ?筌뤾퍓援???????吏??怨쀬Ŧ ???沅??類ｋ펲.
 
     // Debug commands ??only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      // Shift+O — unified cheat toggle. ON: all relic abilities, maxHp/atk
-      // inflated to 99999, HP locked at ≥ 1 (immortal clamp). OFF: restore
+      // Shift+O ??unified cheat toggle. ON: all relic abilities, maxHp/atk
+      // inflated to 99999, HP locked at ??1 (immortal clamp). OFF: restore
       // the snapshot taken at toggle-on.
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         if (this.player.debugCheatActive) {
           this.player.disableCheatBundle();
-          this.toast.show('CHEAT OFF', 0x44ff44);
+          this.toast.show(t('toast.cheat_off'), 0x44ff44);
         } else {
           this.player.enableCheatBundle();
-          this.toast.show('CHEAT ON — relics + HP/ATK 99999 + immortal', 0xffaa00);
+          this.toast.show(t('toast.cheat_on'), 0xffaa00);
         }
       }
 
@@ -2802,26 +2828,26 @@ export class LdtkWorldScene extends Scene {
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) {
         this.debugThunderAtPlayer();
       }
-      // Digit 1/2/3 (without shift) — switch active enchant (Hades-style Boon swap).
+      // Digit 1/2/3 (without shift) ??switch active enchant (Hades-style Boon swap).
       if (!this.game.input.shiftDown) {
         if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE))    this.player.activeEnchant = 'fire';
         else if (this.game.input.isJustPressed(GameAction.DEBUG_ICE))    this.player.activeEnchant = 'ice';
         else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
       }
-      // Shift+G — spawn 4 debug containers near player (until LDtk Entity wiring lands).
+      // Shift+G ??spawn 4 debug containers near player (until LDtk Entity wiring lands).
       if (this.game.input.shiftDown && this.game.input.isJustPressedKeyCode('KeyG')) {
         this.debugSpawnContainers();
       }
     }
 
-    // ── Hold-and-release Cast (V / Y) — charge a shard, release to fire.
+    // ???? Hold-and-release Cast (V / Y) ??charge a shard, release to fire.
     // While held, render a trajectory preview matching the charged power.
     //
     // Shipping gate (Victor 2026-05-15): the shard cast ability is debug-only
     // for now. Without `?debug` in the URL we short-circuit the entire
     // charge / preview / fire flow so the action is invisible to players in
     // shipped builds. Pre-existing cooldown / preview state is also cleared
-    // each frame so a debug→shipping URL flip mid-session doesn't leave
+    // each frame so a debug??몄?ipping URL flip mid-session doesn't leave
     // ghost previews on screen.
     const _shardAbilityOn = new URLSearchParams(window.location.search).has('debug');
     if (!_shardAbilityOn) {
@@ -2852,7 +2878,7 @@ export class LdtkWorldScene extends Scene {
         },
       );
     } else if (!castDown && this.egoCastChargeMs > 0) {
-      // Released — fire shard with whatever charge accumulated.
+      // Released ??fire shard with whatever charge accumulated.
       if (canCast) {
         const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
         this.egoShard.spawn(launchX, launchY, vx, vy, this.player.activeEnchant);
@@ -2871,7 +2897,7 @@ export class LdtkWorldScene extends Scene {
       this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
     }
     // Tick all in-flight cooldowns. When one expires, the OLDEST living
-    // shard in the world is called back to the Ego sword — visually
+    // shard in the world is called back to the Ego sword ??visually
     // disappears with a ring burst. This keeps the world from accumulating
     // forgotten shards as the player keeps firing.
     {
@@ -2886,63 +2912,26 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // ── Grab / Throw (B / RB) — Arc Tether 원격 픽업 + Spelunky 던지기. ──
-    // 픽업 단계:
-    //   1) GRAB 입력 → findNearestGrabbableContainer (facing × cone × 6타일)
-    //   2) 후보 found → startGrabPull : pickUp() 즉시 호출 (held=true → no gravity)
-    //      + pullingContainer 설정 + arcTether.startPull(boosted)
-    //   3) 200ms 동안 컨테이너가 어깨로 ease-out 보간 (아래 held 위치 갱신 블록)
-    //   4) 보간 완료 → pullingContainer=null, arcTether → hold 페이즈
-    // 던지기 단계는 종전과 동일 — pull 진행 중에는 던지기 입력 무시.
-    if (this.game.input.isJustPressed(GameAction.GRAB)) {
-      if (this.heldContainer) {
-        if (!this.pullingContainer) {
-          const facing = this.player.facingRight ? 1 : -1;
-          this.heldContainer.release(facing * 160, -170);
-          this.heldContainer = null;
-          this.arcTether?.hide();
-        }
-      } else {
-        const best = this.findNearestGrabbableContainer();
-        if (best) this.startGrabPull(best);
-      }
-    } else if (this.heldContainer && !this.pullingContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
-      // 들고 있을 때만 ATTACK 도 throw. 검 휘두름이 같은 프레임에 발생하지 않도록
-      // 입력 consume. (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
-      const facing = this.player.facingRight ? 1 : -1;
-      this.heldContainer.release(facing * 160, -170);
-      this.heldContainer = null;
-      this.arcTether?.hide();
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-    }
-    // Held container tracks player. During the pull phase, lerp from spawn
-    // origin to the shoulder anchor with an ease-out so the crate visibly
-    // "flies in" along the arc rather than teleporting to the shoulder.
-    if (this.heldContainer && !this.heldContainer.destroyed) {
-      const h = this.heldContainer;
-      const targetX = this.player.x + (this.player.width - h.width) / 2;
-      const targetY = this.player.y - h.height - 2;
-      if (this.pullingContainer === h) {
-        this.pullElapsedMs += dt;
-        const PULL_DURATION_MS = 200;
-        const t = Math.min(1, this.pullElapsedMs / PULL_DURATION_MS);
-        const easeT = 1 - Math.pow(1 - t, 3);
-        h.x = this.pullStartX + (targetX - this.pullStartX) * easeT;
-        h.y = this.pullStartY + (targetY - this.pullStartY) * easeT;
-        if (t >= 1) {
-          this.pullingContainer = null;
-          this.pullElapsedMs = 0;
-        }
-      } else {
-        h.x = targetX;
-        h.y = targetY;
-      }
-      h.container.x = h.x;
-      h.container.y = h.y;
-      this.player.isLifting = true;
-    } else {
-      this.player.isLifting = false;
-    }
+    // ???? Grab / Throw (B / RB) ??Arc Tether ???遊?????뵜 + Spelunky ????? ????
+    // ????뵜 ??節띉?
+    //   1) GRAB ???놁졑 ??findNearestGrabbableContainer (facing ??cone ??6????
+    //   2) ?熬곣뫀沅?found ??startGrabPull : pickUp() 嶺뚯빖留???筌뤾쑵??(held=true ??no gravity)
+    //      + pullingContainer ???깆젧 + arcTether.startPull(boosted)
+    //   3) 200ms ???덊닱 ???쳜?????쀣깷泥? ???⑹턃??ease-out ?곌랜???(?熬곣뫁??held ?熬곣뫚???띠룄?????곕?餓?
+    //   4) ?곌랜????熬곣뫁????pullingContainer=null, arcTether ??hold ??瑜곷턄嶺?
+    // ???????節띉????リ턂??뤒????됰뎄 ??pull 嶺뚯쉳?듸쭛?繞벿살탳???????????놁졑 ??쒕샍??
+    this.applyContainerCarryState(updateContainerGrabInput({
+      input: this.game.input,
+      player: this.player,
+      arcTether: this.arcTether,
+      state: this.getContainerCarryState(),
+      findTarget: () => this.findNearestGrabbableContainer(),
+    }));
+    this.applyContainerCarryState(updateHeldContainerCarry({
+      dtMs: dt,
+      player: this.player,
+      state: this.getContainerCarryState(),
+    }));
     this.updateContainerPrompt();
     this.updateArcTether(dt);
 
@@ -2961,10 +2950,10 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Room transition detection — edge-based
+    // Room transition detection ??edge-based
     this.checkLevelEdges();
 
-    // Camera zone detection — check if player entered/exited a camera area
+    // Camera zone detection ??check if player entered/exited a camera area
     this.updateCameraZones();
 
     // HUD
@@ -2975,12 +2964,12 @@ export class LdtkWorldScene extends Scene {
     this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
     this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
 
-    // Boss HP bar ??교전 감�? 3�??�리�?
-    //  1) FSM ?�태 ?�이 (detect/chase/hit/...) ???�반 경우 커버
-    //  2) hp < maxHp ??Guardian ?� superArmor=true ???�격해??FSM ??hit ?�로
-    //     ?�이?��? ?�아 idle ??머무�????�다. ?��?지 기록??"맞았?? ??직접 증거.
-    //  3) bossActive(arena lock) ??보스�?진입 ?�간부???�시. ?�레?�어가 ?�직
-    //     ?��? 범위 밖이?�도 '갇혔?? ???�점??바�? ?�워 교전 컨텍?�트�?명시.
+    // Boss HP bar ????흮???띠룆??? 3????醫롫윥?怨⑸쐻?
+    //  1) FSM ??醫?繹???醫롫윪??(detect/chase/hit/...) ????醫롫윥???롪퍔?????ｋ걞??
+    //  2) hp < maxHp ??Guardian ???superArmor=true ????醫롫윞????FSM ??hit ??醫롫윥餓?
+    //     ??醫롫윪???醫롫짗?? ??醫롫윪??idle ???誘⑹굡甸??????醫롫윥?? ??醫롫짗??嶺뚯솘? ?リ옇?▽빳??"嶺뚮씮?면뇡?? ??嶺뚯쉳???嶺뚯빘鍮볠뤃?
+    //  3) bossActive(arena lock) ???곌랜???낅쐻?嶺뚯쉳?????醫롫윞?뚯늼寃?????醫롫윪?? ??醫롫윥???醫롫윪?됯막泥? ??醫롫윪壤?
+    //     ??醫롫짗?? ?뺢퀡????꾩룆????醫롫윥??'?띠룆???? ????醫롫윪????꾩룆??? ??醫롫윪????흮?????쳜???醫??猿껊쐻?嶺뚮ㅏ援??
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
     if (activeBoss) {
       const st = activeBoss.fsm.currentState;
@@ -3030,7 +3019,7 @@ export class LdtkWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // ItemDeployment Deployed-state: check player ∩ wallGate entrance each frame
+    // ItemDeployment Deployed-state: check player ??wallGate entrance each frame
     this.itemDeployment?.update(dt);
     if (this.ghostOverlay) {
       let plx: number | undefined;
@@ -3050,7 +3039,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Frozen snapshot: RGB split + grayscale — both grow with distance
+    // Frozen snapshot: RGB split + grayscale ??both grow with distance
     if (this.frozenPlayerSnapshot && this.player) {
       const dx   = this.player.container.x - this.frozenPlayerSnapshot.x;
       const dy   = this.player.container.y - this.frozenPlayerSnapshot.y;
@@ -3090,16 +3079,16 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Camera — deadzone follow + zoom lerp. Player is always in world coords.
+    // Camera ??deadzone follow + zoom lerp. Player is always in world coords.
     // While riding the builder, include visualYOffset so the camera tracks the
     // player's *visual* position. Without this, the physics +16 tile crossing
     // jump (see builder update above) propagates to the camera target and
-    // causes a "툭 툭" rocking as the camera snaps to each crossing.
+    // causes a "???? rocking as the camera snaps to each crossing.
     //
     // The offset is rounded to an integer pixel: a fractional target would
     // make the rounded camera renderY oscillate near .5 boundaries every
-    // frame, producing a rapid 1px "덜덜덜" shake. Tile-crossing cancellation
-    // still works because the offset is symmetric (~+8 → ~-8 at crossing).
+    // frame, producing a rapid 1px "??類ｌ맰?? shake. Tile-crossing cancellation
+    // still works because the offset is symmetric (~+8 ??~-8 at crossing).
     const cam = this.game.camera;
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2 + Math.round(this.player.visualYOffset);
@@ -3125,7 +3114,7 @@ export class LdtkWorldScene extends Scene {
 
     cam.update(dt);
 
-    // Parallax background scroll — frozen while dungeon atmosphere is active
+    // Parallax background scroll ??frozen while dungeon atmosphere is active
     if (!this.dungeonAtmosphereActive) {
       this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
     }
@@ -3146,8 +3135,8 @@ export class LdtkWorldScene extends Scene {
     const landedSpeed = p.consumeLandedEvent();
     if (landedSpeed !== null) {
       this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
-      // Land thud — 낙하 속도가 의미 있을 때만 (작은 점프 후 착지 noise 회피).
-      // 무거운 낙하일수록 slower playback (deeper pitch).
+      // Land thud ?????곕┃ ???쒖┣?띠럾? ??? ???깅굵 ???異?(??? ??믨퀡????嶺뚢뼰維? noise ??怨뺣룛).
+      // ??쒕뼬??????곕┃??源낅빢??slower playback (deeper pitch).
       if (landedSpeed > 120) {
         const t = Math.min(1, (landedSpeed - 120) / 380);
         SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
@@ -3195,7 +3184,7 @@ export class LdtkWorldScene extends Scene {
       const outDir = -wallSide;
       this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
     }
-    // Footstep puff on ground movement + sound. speed 0.92~1.08 무작위로 단조로움 감소.
+    // Footstep puff on ground movement + sound. speed 0.92~1.08 ??쒕샍??熬곣뫁夷???棺??륁뿉?? ?띠룆흮??
     if (this.footstepPuff.stepIfMoving(
       dt, p.isGrounded(),
       p.x + p.width / 2, p.y + p.height,
@@ -3225,11 +3214,11 @@ export class LdtkWorldScene extends Scene {
     if (waterT !== null) {
       const strength = waterT > 0 ? 1.0 : 0.8;
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
-      // Dynamic fluid surface ripple — 진입(+) 시 큰 임펄스, 탈출(-) 시 약한 반대 임펄스.
+      // Dynamic fluid surface ripple ??嶺뚯쉳???+) ?????熬곥굥??? ???뀀?-) ????????꾩룇瑗? ?熬곥굥???
       const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
-    // Non-water fluid (magma/oil/acid) entry/exit ripple — same impulse pattern
+    // Non-water fluid (magma/oil/acid) entry/exit ripple ??same impulse pattern
     // as water but no swim physics / oxygen handling (those are water-only).
     const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.collisionGrid);
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'magma';
@@ -3243,13 +3232,13 @@ export class LdtkWorldScene extends Scene {
       this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
       const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
-      // Magma entry → also emit a single steam puff (water-on-skin sizzle).
+      // Magma entry ??also emit a single steam puff (water-on-skin sizzle).
       if (inAnyOther && inMagma_) {
         this.steamPuff.spawn(p.x + p.width / 2, p.y + p.height, 1.2);
       }
       this.prevPlayerInOtherFluid = inAnyOther;
     }
-    // ── Residue trail timers (oil/acid/magma) ───────────────────────────
+    // ???? Residue trail timers (oil/acid/magma) ??????????????????????????????????????????????????????
     // Each timer = remaining ms during which the player's feet still leave
     // a residue blot. Touching the source fluid refreshes to full duration.
     // Oil additionally drives the slip debuff (Player.update reads it).
@@ -3270,7 +3259,7 @@ export class LdtkWorldScene extends Scene {
     else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
     p.prevInMagma = inMagma_;
 
-    // Water/Cyro 시각-only residue (2026-05-18).
+    // Water/Cyro ??蹂?뜜-only residue (2026-05-18).
     if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
     else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
 
@@ -3287,14 +3276,14 @@ export class LdtkWorldScene extends Scene {
     this.fluidResidue.emit('water', footX, footY, p.waterResidueRemainingMs > 0, grounded, p.waterResidueRemainingMs / WATER_RESIDUE_DURATION_MS);
     this.fluidResidue.emit('cyro',  footX, footY, p.cyroResidueRemainingMs > 0, grounded, p.cyroResidueRemainingMs / CYRO_RESIDUE_DURATION_MS);
 
-    // ── Residue contact effects: standing on a blot triggers the matching
+    // ???? Residue contact effects: standing on a blot triggers the matching
     // hazard. Oil = slip refresh. Acid = damage tick. Magma = burn DOT.
     // Burning oil blot = fire DOT + Burn refresh.
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
       refreshOilSlip: (_remainingMs) => {
-        // No-op (2026-05-17): residue blot → player 전이 차단. 플레이어가 자기
-        // 발자국 위를 걸으면 oilResidueRemainingMs 가 무한 refresh 되어 발바닥
-        // 기름이 영원히 안 사라지는 버그 픽스. TILE_OIL 원본 셀만 player 에 전이.
+        // No-op (2026-05-17): residue blot ??player ?熬곣뫗逾?嶺뚢뼰維?? ??????怨룹꽑?띠럾? ?????
+        // ?꾩룇裕?袁ｋ쨨??熬? 濾곌쑬梨??얠춺?oilResidueRemainingMs ?띠럾? ??쒕샑??refresh ??琉우꽑 ?꾩룇裕녻??
+        // ?リ옇?▼럴????⑤챷?????????륁?????뺢퀗???????츩. TILE_OIL ???沅???嶺?player ???熬곣뫗逾?
       },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;
@@ -3311,7 +3300,7 @@ export class LdtkWorldScene extends Scene {
           p.extinguishFireDebuffs();
           return;
         }
-        // Refresh Burn DOT (mirrors magma cell behavior — initial hit + 15s burn).
+        // Refresh Burn DOT (mirrors magma cell behavior ??initial hit + 15s burn).
         const wasBurning = (p.burnRemainingMs ?? 0) > 0;
         p.burnRemainingMs = 15000;
         if (!wasBurning && !p.invincible) {
@@ -3324,7 +3313,7 @@ export class LdtkWorldScene extends Scene {
           p.extinguishFireDebuffs();
           return;
         }
-        // Burning oil residue — same per-frame fire DOT as fire overlay.
+        // Burning oil residue ??same per-frame fire DOT as fire overlay.
         if (!p.invincible) {
           const dmg = Math.max(1, Math.floor(p.maxHp * 0.03 * (dt / 1000)));
           p.hp = Math.max(0, p.hp - dmg);
@@ -3340,15 +3329,15 @@ export class LdtkWorldScene extends Scene {
     if (p.consumeDropThroughEvent()) {
       this.builderOneWayDropThroughGraceMs = 260;
       this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
-      // 사용자가 직접 drop-through 학습 완료 — hint 가 표시 중이면 1초 후 자동 fade,
-      // 재발사 방지 위해 handled flag 도 set.
+      // ?????? 嶺뚯쉳???drop-through ???덈? ?熬곣뫁????hint ?띠럾? ??戮?뻣 繞벿살탳?醫묒춺?1???????吏?fade,
+      // ??????꾩렮維? ?熬곥굥??handled flag ??set.
       this.tutorialHint.dismissAfter('hint_drop_through', 1000);
       this.dropThroughHintHandled = true;
     }
     // Ice skid streak
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
 
-    // --- Enemies: ?�경 VFX ?�사??(water/ice + land/jump dust) ---
+    // --- Enemies: ??醫롫윞??VFX ??醫롫윪亦??(water/ice + land/jump dust) ---
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       if (!e.alive) continue;
@@ -3383,8 +3372,8 @@ export class LdtkWorldScene extends Scene {
       if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
       if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
 
-      // ── Residue contact effects: enemies share the player's residue
-      // hazard surface. Element multiplier applies — magma-affined enemies
+      // ???? Residue contact effects: enemies share the player's residue
+      // hazard surface. Element multiplier applies ??magma-affined enemies
       // shrug off the magma blot; fire-affined ignore burning oil; etc.
       // Burn DOT refresh is skipped when the source element has 0 multiplier.
       if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
@@ -3458,9 +3447,9 @@ export class LdtkWorldScene extends Scene {
     this.steamPuff.update(dt);
     this.fluidResidue.update(dt);
     this.waterBubbles.update(dt);
-    // ── Maintained spawners: refill when live count drops below minCount ──
+    // ???? Maintained spawners: refill when live count drops below minCount ????
     this.tickMaintainedSpawners(dt);
-    // ── Throwable containers: gravity tick + impact paint + stacking ──
+    // ???? Throwable containers: gravity tick + impact paint + stacking ????
     const isContainerFluidCell = (gx: number, gy: number): boolean => {
       const t = this.collisionGrid[gy]?.[gx] ?? 0;
       return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
@@ -3486,7 +3475,7 @@ export class LdtkWorldScene extends Scene {
       isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
       isMagmaCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 6,
       isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
-      // R-NEW-049/050/051/052/053: 신규 환경 노출 hook
+      // R-NEW-049/050/051/052/053: ??ル맪?????삵렱 ?筌뤾쑵??hook
       isWaterCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 2,
       isOilCell:   (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 11,
       isFrozenOrIceCell: (gx: number, gy: number) =>
@@ -3514,17 +3503,17 @@ export class LdtkWorldScene extends Scene {
       }
       this.applyContainerEffectToFluid(c);
     }
-    // ── Thrown container × enemy impact (one hit per throw) ──
+    // ???? Thrown container ??enemy impact (one hit per throw) ????
     this.checkThrownContainerEnemyHit();
-    // ── Player ↔ container collision (push / stack / block) ──
+    // ???? Player ??container collision (push / stack / block) ????
     this.resolvePlayerContainerCollision();
-    // ── Enemy ↔ container collision (stack / block, no damage) ──
+    // ???? Enemy ??container collision (stack / block, no damage) ????
     this.resolveEnemyContainerCollision();
-    // ── Container ↔ container overlap resolve (push or stop) ──
+    // ???? Container ??container overlap resolve (push or stop) ????
     this.resolveContainerContainerCollision();
     this.flushContainerFluidChanges();
 
-    // ── Ego Shards: flight tick + impact dispatch + retrieval scan ──
+    // ???? Ego Shards: flight tick + impact dispatch + retrieval scan ????
     this.egoShard.update(
       dt,
       (info) => this.onEgoShardImpact(info.x, info.y, info.element),
@@ -3538,7 +3527,7 @@ export class LdtkWorldScene extends Scene {
       (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
     );
     this.flushContainerFluidChanges();
-    // Wider retrieval hit-zone — 24px padding around the player AABB so
+    // Wider retrieval hit-zone ??24px padding around the player AABB so
     // shards stuck on adjacent walls / floor edges are easily grabbed.
     const pad = 24;
     const retrieved = this.egoShard.retrieveInAABB(
@@ -3558,11 +3547,11 @@ export class LdtkWorldScene extends Scene {
       }
       this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
     }
-    // FluidSpawner tick — injects fluid cells before the gravity pass so
+    // FluidSpawner tick ??injects fluid cells before the gravity pass so
     // newly-spawned cells immediately begin falling this frame.
     this.fluidSpawners.update(dt, this.collisionGrid, this.fluidSystem);
     this.fluidSystem.update(dt);
-    // Cellular gravity — water cells fall + spread to merge after mutations
+    // Cellular gravity ??water cells fall + spread to merge after mutations
     // (fire on water creates holes; gravity refills them from above).
     this.fluidSystem.gravityTick(this.collisionGrid, dt, this.tileMutator);
     this.fluidSpawners.pressureDrain(this.collisionGrid, this.fluidSystem);
@@ -3651,7 +3640,7 @@ export class LdtkWorldScene extends Scene {
     // Portals and altars are static, no interpolation needed
   }
 
-  /** GamepadManager 연결/분리 이벤트 → 토스트 (System_Input_Gamepad §8.1 Stage 3). */
+  /** GamepadManager ??⑤슡???釉뚯뫊?????繹??????ル∥裕??(System_Input_Gamepad 筌?.1 Stage 3). */
   private _attachGamepadToast(): () => void {
     const off1 = this.game.gamepad.onConnectEvent((brand) => {
       this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
@@ -3672,9 +3661,9 @@ export class LdtkWorldScene extends Scene {
     //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     // }
     // Close and detach modal overlays so they don't bleed into the next scene.
-    // (Previously: M/I 가 ?�린 �??�이?�계�?진입?�면 overlay 가 legacyUIContainer
-    //  ??그�?�??�아 ItemWorldScene ?�서 ?�을 ???�는 "stuck" ?�태가 ??)
-    if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
+    // (Previously: M/I ?띠럾? ??醫롫윥??????醫롫윪???醫롫윞?濡λ쐻?嶺뚯쉳????醫롫윥??overlay ?띠럾? legacyUIContainer
+    //  ???잙갭梨??????醫롫윪??ItemWorldScene ??醫롫윪????醫롫윪??????醫롫윥??"stuck" ??醫?繹?泥? ??)
+    this.altarController.destroyUi();
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
     if (this.itemWorldTransition) { this.itemWorldTransition.destroy(); this.itemWorldTransition = null; }
     if (this.pendingPortalEntity) { this.pendingPortalEntity.destroy(); this.pendingPortalEntity = null; }
@@ -3710,7 +3699,7 @@ export class LdtkWorldScene extends Scene {
     return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
   }
 
-  /** locked door 가 player center 와 entity center 사이에 끼어 있는지 — attack 차단용. */
+  /** locked door ?띠럾? player center ?? entity center ???????源낆꽑 ???덈츎嶺뚯솘? ??attack 嶺뚢뼰維??? */
   private isAttackBlockedByDoor(entity: { x: number; y: number; width: number; height: number }): boolean {
     if (this.lockedDoors.length === 0) return false;
     const px = this.player.x + this.player.width / 2;
@@ -3791,10 +3780,10 @@ export class LdtkWorldScene extends Scene {
         '', 'event', '', 'atk', 0,
       );
       door.injectCollision(this.collisionGrid);
-      // 사용자 피드백 2026-05-05: boss-lock door 의 시각 (16px×룸높이 brown bar)
-      // 이 룸 가장자리에 어두운 세로 기둥으로 노출돼 misplaced asset 처럼 보임.
-      // collision-only 로 처리 — 시각 숨김. 향후 arena 진입 폴리시 (energy
-      // barrier 등) 추가 시 여기서 다른 styled 시각 부착.
+      // ???????怨뺢덧??2026-05-05: boss-lock door ????蹂?뜜 (16px??낅쇀筌뤾퍓瑗??brown bar)
+      // ?????띠럾????袁ㅻ뎨??????筌???筌뤾퍔夷??リ옇?←땟??怨쀬Ŧ ?筌뤾쑵???misplaced asset 嶺뚳퐣瑗???곌랜???
+      // collision-only ??嶺뚳퐣瑗??????蹂?뜜 ???. ?繞??arena 嶺뚯쉳?????????(energy
+      // barrier ?? ?怨뺣뼺? ??????????섎?styled ??蹂?뜜 ?遊붋嶺?
       door.container.visible = false;
       this.bossLockDoors.push(door);
       this.entityLayer.addChild(door.container);
@@ -3810,7 +3799,7 @@ export class LdtkWorldScene extends Scene {
       door.destroy();
     }
     this.bossLockDoors = [];
-    // arena ?�제 = 보스 처치 직후?��?�?HP 바도 ?�린??
+    // arena ??醫롫윪??= ?곌랜???嶺뚳퐣瑗??嶺뚯쉳????醫롫짗????HP ?꾩룆?????醫롫윥???
     this.hud.hideBossHP();
     trackBossFight({
       phase: 'clear',
@@ -3905,7 +3894,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // HEL-05: Tiered healing drops (GDD §4.1)
+    // HEL-05: Tiered healing drops (GDD 筌?.1)
     const healDrop = resolveBottomLeftPickupSpawn(
       enemy.x + enemy.width / 2 - 8,
       enemy.y + enemy.height,
@@ -3950,7 +3939,7 @@ export class LdtkWorldScene extends Scene {
     // Collision grid ??deep copy so runtime modifications don't persist across reloads
     this.collisionGrid = level.collisionGrid.map(row => [...row]);
 
-    // Reset elemental tile overlays + burnable entities — frozen timers and
+    // Reset elemental tile overlays + burnable entities ??frozen timers and
     // entity registry from the previous room would otherwise leak across
     // rooms with different layouts.
     this.tileMutator.reset();
@@ -3968,10 +3957,10 @@ export class LdtkWorldScene extends Scene {
     this.pullElapsedMs = 0;
     this.arcTether?.hide();
 
-    // Hybrid procedural pass — populate grass/wood inside LDtk-painted
+    // Hybrid procedural pass ??populate grass/wood inside LDtk-painted
     // BurnableZone rect entities + spawn Tier B BurnableProp entities.
     // Density + seed come from entity fields.
-    // GDD: Documents/System/System_World_TileSystem.md §7
+    // GDD: Documents/System/System_World_TileSystem.md 筌?
     const burnableSpecs: BurnableEntitySpec[] = applyBurnableZones(this.collisionGrid, level.entities);
     for (const s of burnableSpecs) {
       const prop = new BurnableProp(s.id, s.gx, s.gy);
@@ -3985,12 +3974,12 @@ export class LdtkWorldScene extends Scene {
       Debug.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
     }
 
-    // Throwable Container entities — LDtk-placed Box props player can grab/throw.
+    // Throwable Container entities ??LDtk-placed Box props player can grab/throw.
     //   Entity type:  "Container"
     //   Fields:
-    //     Kind         (Enum or String) — Crate / OilDrum / WaterBarrel /
+    //     Kind         (Enum or String) ??Crate / OilDrum / WaterBarrel /
     //                                     MagmaCrucible / AcidVial
-    //     FluidVolume  (Integer, optional) — number of cells flooded on
+    //     FluidVolume  (Integer, optional) ??number of cells flooded on
     //                                        break. If omitted or < 0,
     //                                        falls back to spec default.
     // Position uses the entity's px[] top-left.
@@ -4002,8 +3991,8 @@ export class LdtkWorldScene extends Scene {
       const kindRaw = fields['Kind'];
       let kind = parseContainerKind(kindRaw);
       if (!kind) {
-        // Generic_A/B/C — World 룸은 temperament 컨텍스트가 없으므로 default
-        // (forge) 슬롯 풀에서 뽑힘. 룸별 톤이 필요하면 explicit Kind 사용.
+        // Generic_A/B/C ??World ?猷몄굣? temperament ???쳜????덈콦?띠럾? ??怨몃さ亦껋깢???default
+        // (forge) ???????????嶺뚮?理?? ?猷몄굡?????깅턄 ?熬곣뫗???濡?듆 explicit Kind ????
         const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
         if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
           kind = resolveContainerSlotKind(slotStr, null);
@@ -4011,7 +4000,7 @@ export class LdtkWorldScene extends Scene {
       }
       if (!kind) {
         // eslint-disable-next-line no-console
-        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) — invalid, skipped. Valid values: Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial / Generic_A / Generic_B / Generic_C`);
+        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) ??invalid, skipped. Valid values: Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial / Generic_A / Generic_B / Generic_C`);
         continue;
       }
       const fvRaw = fields['FluidVolume'];
@@ -4029,7 +4018,7 @@ export class LdtkWorldScene extends Scene {
       spawnLog.push(`  ${kind}@(${cx},${cy}) px=(${ent.px[0]},${ent.px[1]}) grid=(${ent.grid[0]},${ent.grid[1]}) vol=${c.fluidVolume}`);
       spawnedCount++;
     }
-    // ── ContainerSpawner entities — procedural fill (System_World_Container §12) ──
+    // ???? ContainerSpawner entities ??procedural fill (System_World_Container 筌?2) ????
     // Explicit Container entities are always honored first; spawners only
     // create boxes in *remaining* free cells (avoidEntity defaults to true).
     const spawnerEnts = level.entities.filter(e => e.type === 'ContainerSpawner');
@@ -4048,7 +4037,7 @@ export class LdtkWorldScene extends Scene {
     this.maintainedSpawners.length = 0;
     for (const spw of spawnerEnts) {
       const opts = readSpawnerEntity(spw);
-      // Debug overlay — outline the spawner rect so designers can sanity-
+      // Debug overlay ??outline the spawner rect so designers can sanity-
       // check coverage in-game without reloading LDtk. Gated by ?debug.
       if (debugOn) {
         const dbg = new Graphics();
@@ -4082,7 +4071,7 @@ export class LdtkWorldScene extends Scene {
       }
       // Register for runtime refill if Maintain=true. Refill check runs
       // every MAINTAIN_CHECK_MS in update(). `owned` starts as the initial
-      // spawn batch — refill targets only spawners whose owned list is
+      // spawn batch ??refill targets only spawners whose owned list is
       // fully depleted (all containers destroyed).
       if (opts.maintain && opts.pool.length > 0) {
         this.maintainedSpawners.push({
@@ -4099,7 +4088,7 @@ export class LdtkWorldScene extends Scene {
         });
       }
     }
-    // Settle all spawned containers in dependency order — bottom containers
+    // Settle all spawned containers in dependency order ??bottom containers
     // first so containers placed above them detect the proper resting
     // position. Loop is small (typically < 20) so cost is negligible.
     {
@@ -4117,30 +4106,30 @@ export class LdtkWorldScene extends Scene {
         });
       }
     }
-    // Always log how many Container entities were seen vs spawned + where —
+    // Always log how many Container entities were seen vs spawned + where ??
     // helps diagnose camera-out-of-view, off-grid, etc.
     // eslint-disable-next-line no-console
     Debug.log(`[Container] level="${level.identifier}" explicit=${spawnedCount}/${containerEnts.length} spawner=${spawnerSpawned} (from ${spawnerEnts.length} spawners)\n${spawnLog.join('\n')}`);
 
-    // Dynamic fluid — value=2 flood-fill + FluidVolume entity 매칭. 룸 전환 시 detach 후 재attach.
+    // Dynamic fluid ??value=2 flood-fill + FluidVolume entity 嶺뚮씞?됭눧? ???熬곥굦????detach ????μ짒tach.
     this.fluidSystem.attach(level);
-    // FluidSpawner entities — continuous emission sources (Container.md §12 sibling).
+    // FluidSpawner entities ??continuous emission sources (Container.md 筌?2 sibling).
     // Each tick injects 1 cell of the configured type at the spawn grid;
     // cellular gravity in FluidSystem then carries it downward.
     this.fluidSpawners.clear();
     this.fluidCrestFoam?.clear();
     for (const ent of level.entities) {
       if (ent.type !== 'FluidSpawner') continue;
-      // Expand rect → per-cell spawners. width=16,height=16 → 1 cell; wider
-      // rect → wider waterfall. Each cell ticks independently.
+      // Expand rect ??per-cell spawners. width=16,height=16 ??1 cell; wider
+      // rect ??wider waterfall. Each cell ticks independently.
       for (const opt of readFluidSpawnerEntities(ent)) this.fluidSpawners.add(opt);
     }
-    // 보스 HP �?초기?????�전 ?�벨?�서 ?�아?�을 가?�성(?�망·?�프 ?? 차단.
-    // ???�벨??보스방이�?activateBossLock ??update 루프?�서 ?�시 ?�시?�다.
+    // ?곌랜???HP ???貫?껆뵳??????醫롫윪????醫롫윥???醫롫윪????醫롫윪???醫롫윪???띠럾???醫롫윪????醫롫윥壤쎻뫗怡??醫????? 嶺뚢뼰維??
+    // ????醫롫윥????곌랜???덉낯?諭逾??activateBossLock ??update ?猷먮쳜???醫롫윪????醫롫윪????醫롫윪???醫롫윥??
     this.hud.hideBossHP();
 
     // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone).
-    // value=2 (water) 정적 sprite 는 dynamic FluidSystem 이 대신 표현하므로 제외.
+    // value=2 (water) ?筌먦끉??sprite ??dynamic FluidSystem ?????????ш껑???????戮곕뇶.
     this.renderer.clear();
     const filteredWalls = level.wallTiles.filter(t => {
       const col = Math.floor(t.px[0] / TILE_SIZE);
@@ -4148,7 +4137,7 @@ export class LdtkWorldScene extends Scene {
       const v = this.collisionGrid[row]?.[col] ?? 0;
       return v !== 0 && v !== 2;
     });
-    // Retag BG/WALL tiles to CSV-derived atlas — but ONLY if the tile's
+    // Retag BG/WALL tiles to CSV-derived atlas ??but ONLY if the tile's
     // current tilesetPath matches the LDtk default for that layer. Levels
     // that override the tileset (e.g. Builder with builder_01) keep theirs.
     const defaultWallTileset = 'atlas/world_01.png';
@@ -4248,6 +4237,7 @@ export class LdtkWorldScene extends Scene {
     this.clearEnemies();
     this.clearDrops();
     this.clearPortals();
+    this.clearAltars();
     for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
     this.relicMarkers = [];
     for (const sp of this.savePoints) {
@@ -4271,6 +4261,7 @@ export class LdtkWorldScene extends Scene {
       this.spawnEnemiesFromLdtk(level);
     }
     this.spawnAnvilFromLdtk(level);
+    this.spawnAltarsFromLdtk(level);
 
     // Spawn locked doors and switches
     this.spawnLockedDoors(level);
@@ -4298,9 +4289,9 @@ export class LdtkWorldScene extends Scene {
       this.spawnBuilderFromSpawner(level, builderSpawner);
     }
 
-    // HUD/minimap visibility — Shaft_DemoEnd 룸 안에서는 항상 가린다 (사용자
-    // 결정 2026-05-17). 워프 등으로 다른 룸으로 빠지면 intro 완료(hudReady) 시점
-    // 의 정상 가시성으로 복원한다.
+    // HUD/minimap visibility ??Shaft_DemoEnd ?????고뱺??類ｋ츎 ??疫??띠럾??源껎??(?????
+    // ?롪퍒???2026-05-17). ??怨뺣뒆 ?繹먮냱紐드슖????섎??猷몄굣???뿉???伊?嶺?intro ?熬곣뫁??hudReady) ??戮곗젍
+    // ???筌먦끆留??띠럾???戮?뎽??怨쀬Ŧ ?곌랜踰???類ｋ펲.
     if (level.identifier === 'Shaft_DemoEnd') {
       this.hud.container.visible = false;
       if (this.minimap) this.minimap.visible = false;
@@ -4309,7 +4300,7 @@ export class LdtkWorldScene extends Scene {
       if (this.minimap) this.minimap.visible = true;
     }
 
-    // Exit Light Bleed ???�웃 방이 ?�는 방향???�린 ?�??구간??주황 글로우.
+    // Exit Light Bleed ????醫롫윪???꾩렮維????醫롫윥???꾩렮維싧젆????醫롫윥????????뚮뜆????낅슣????リ섣??β돦裕??
     this.spawnExitGlows(level);
 
     // Settle player physics (gravity snap to floor) before camera snap
@@ -4344,8 +4335,8 @@ export class LdtkWorldScene extends Scene {
       this.worldMap.redraw();
     }
 
-    // BGM dim — save 포인트 있는 룸은 음악을 잠시 0 으로 페이드 (사용자 결정 2026-05-08).
-    // 진입: 800 ms 페이드 아웃. 떠남: 1500 ms 페이드 인.
+    // BGM dim ??save ????????덈츎 ?猷몄굣? ????????ル∥六?0 ??怨쀬Ŧ ??瑜곷턄??(??????롪퍒???2026-05-08).
+    // 嶺뚯쉳??? 800 ms ??瑜곷턄???熬곣뫗?? ??ル봽?? 1500 ms ??瑜곷턄????
     const isSaveRoom = this.savePoints.length > 0;
     if (isSaveRoom !== this.bgmDimmedForSaveRoom) {
       this.bgmDimmedForSaveRoom = isSaveRoom;
@@ -4487,8 +4478,8 @@ export class LdtkWorldScene extends Scene {
       this.doorCollisionGrids.set(door, this.collisionGrid);
       this.lockedDoors.push(door);
       this.entityLayer.addChild(door.container);
-      // 이미 unlocked 된 문 — spawn 직후 instant unlock 으로 caps(top/bottom) 만 남김.
-      // collision 도 즉시 0 으로 되돌려 진행 막힘 없음.
+      // ???? unlocked ??????spawn 嶺뚯쉳???instant unlock ??怨쀬Ŧ caps(top/bottom) 嶺????.
+      // collision ??嶺뚯빖留??0 ??怨쀬Ŧ ??濡レ┝??嶺뚯쉳?듸쭛?嶺뚮씭留????怨몃쾳.
       if (isAlreadyUnlocked) {
         door.unlock(this.collisionGrid, true);
       }
@@ -4633,13 +4624,8 @@ export class LdtkWorldScene extends Scene {
       this.lastDoorCheckCombo = this.player.comboIndex;
     }
 
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
       const door = this.lockedDoors[i];
@@ -4671,11 +4657,11 @@ export class LdtkWorldScene extends Scene {
       } else if (result === 'rejected') {
         this.doorRejectSet.add(door.iid);
         this.game.camera.shake(2);
-        // Stat door 만 stat 요구 toast — event/switch 는 shake 피드백만.
+        // Stat door 嶺?stat ??븐럥??toast ??event/switch ??shake ??怨뺢덧?꾩룄??퐲?
         if (door.unlockCondition === 'stat') {
           const threshold = door.statThreshold;
           const current = playerStats[door.statType] ?? 0;
-          // Resolve stat name via i18n so KO reads "공격력" instead of "ATK".
+          // Resolve stat name via i18n so KO reads "??ㅻ???? instead of "ATK".
           // Falls back to upper-cased type code if no translation key exists.
           const statKey = `stat.${door.statType.toLowerCase()}`;
           const statLabel = t(statKey);
@@ -4688,9 +4674,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Arc Tether 픽업 후보 탐색 — facing 방향 cone (반각 60°) × 최대 6 타일.
-   * LOOK_UP / LOOK_DOWN 누른 채로 GRAB 하면 cone 이 위/아래로 회전 (stack/위층 픽업).
-   * 인접 거리(< 24px)는 cone 밖이라도 무조건 후보로 채택 (기존 동작 호환).
+   * Arc Tether ????뵜 ?熬곣뫀沅????????facing ?꾩렮維싧젆?cone (?꾩룇瑗듣?60筌? ??嶺뚣끉裕? 6 ????
+   * LOOK_UP / LOOK_DOWN ?熬곣뱿??嶺??т빳?GRAB ??濡?듆 cone ?????熬곣뫁?뗥슖??????(stack/?熬곣뫖彛?????뵜).
+   * ?筌뤾쑴??濾곌쑨???< 24px)??cone ?꾩룆????怨뺤┣ ??쒕샍??롮퀪??熬곣뫀沅뽩슖?嶺??득틦?(?リ옇??????됱굚 ?筌뤿굞??.
    */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
     return findNearestContainerForGrab({
@@ -4708,6 +4694,24 @@ export class LdtkWorldScene extends Scene {
    */
   private startGrabPull(target: ThrowableContainer): void {
     const state = startContainerGrabPull(target, this.arcTether);
+    this.pullStartX = state.pullStartX;
+    this.pullStartY = state.pullStartY;
+    this.pullElapsedMs = state.pullElapsedMs;
+    this.pullingContainer = state.pullingContainer;
+    this.heldContainer = state.heldContainer;
+  }
+
+  private getContainerCarryState() {
+    return {
+      pullStartX: this.pullStartX,
+      pullStartY: this.pullStartY,
+      pullElapsedMs: this.pullElapsedMs,
+      pullingContainer: this.pullingContainer,
+      heldContainer: this.heldContainer,
+    };
+  }
+
+  private applyContainerCarryState(state: ReturnType<LdtkWorldScene['getContainerCarryState']>): void {
     this.pullStartX = state.pullStartX;
     this.pullStartY = state.pullStartY;
     this.pullElapsedMs = state.pullElapsedMs;
@@ -4774,74 +4778,21 @@ export class LdtkWorldScene extends Scene {
 
   /** Check if player is near a save point ??show hint, save on UP. */
   private checkSavePoints(): void {
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-    const RANGE = 32;
-
-    let nearSave = false;
-    let nearSavePt: { x: number; y: number } | null = null;
-    for (const sp of this.savePoints) {
-      const dx = Math.abs(pcx - sp.x);
-      const dy = Math.abs(pcy - sp.y);
-      if (dx < RANGE && dy < RANGE) {
-        nearSave = true;
-        nearSavePt = { x: sp.x, y: sp.y };
-        const a = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
-        sp.gfx.alpha = a;
-        if (sp.sprite) sp.sprite.alpha = a;
-        // Show context prompt ??convert world pos to native screen pos
-        if (sp.prompt) {
-          sp.prompt.visible = true;
-          const us = this.game.uiScale;
-          const cam = this.game.camera;
-          const sx = (sp.x - cam.renderX + GAME_WIDTH / 2) * us - sp.prompt.width / 2;
-          const sy = (sp.y - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
-          sp.prompt.x = Math.round(sx);
-          sp.prompt.y = Math.round(sy);
-        }
-
-        // ?�력 처리??update() ??save point ?�점 블록?�서 ?�행 (C/ATTACK, pre-player.update).
-      } else {
-        sp.gfx.alpha = 0.6;
-        if (sp.sprite) sp.sprite.alpha = 1.0;
-        if (sp.prompt) sp.prompt.visible = false;
-      }
-    }
-
-    if (nearSave) {
-      if (!this.saveHintShown) {
-        this.saveHintShown = true;
-      }
-      if (nearSavePt) this.savepointPulse.attach(nearSavePt.x, nearSavePt.y);
-    } else {
-      if (this.saveHintShown) this.saveHintShown = false;
-      this.savepointPulse.detach();
-    }
+    const result = updateSavePointProximity({
+      game: this.game,
+      player: this.player,
+      savePoints: this.savePoints,
+      savepointPulse: this.savepointPulse,
+      saveHintShown: this.saveHintShown,
+    });
+    this.saveHintShown = result.saveHintShown;
   }
 
   private saveHintShown = false;
 
   /** Place player next to the nearest save point in the current level. */
   private snapPlayerToSavePoint(): void {
-    if (this.savePoints.length === 0) return;
-    // Find closest save point
-    const pcx = this.player.x + this.player.width / 2;
-    let closest = this.savePoints[0];
-    let bestDist = Infinity;
-    for (const sp of this.savePoints) {
-      const d = Math.abs(sp.x - pcx);
-      if (d < bestDist) { bestDist = d; closest = sp; }
-    }
-    // Place player next to save point, on the ground
-    this.player.x = closest.x - this.player.width / 2;
-    this.player.y = closest.y - this.player.height;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-    this.game.camera.snap(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2,
-    );
+    snapPlayerToNearestSavePoint(this.player, this.savePoints, this.game);
   }
 
   private queueSave(): void {
@@ -5085,9 +5036,9 @@ export class LdtkWorldScene extends Scene {
   /**
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    *
-   * ?�평 ?��?(w/e): ??0 ?�는 gridW-1???�로�??�캔 ???�속 passable run 마다 글로우 1�?
-   * ?�직 ?��?(n/s): ??0 ?�는 gridH-1??가로로 ?�캔 ???�일.
-   * passable ?�정?� checkLevelEdges() ?� ?�일(빈칸 0 ?�는 �?2).
+   * ??醫?????醫롫짗??(w/e): ??0 ??醫롫윥??gridW-1????醫롫윥餓λ뛼????醫롫윪??????醫롫윪??passable run 嶺뚮씭????リ섣??β돦裕??1??
+   * ??醫롫윪壤???醫롫짗??(n/s): ??0 ??醫롫윥??gridH-1???띠럾??β돦裕녵빳???醫롫윪??????醫롫윪??
+   * passable ??醫롫윪????checkLevelEdges() ?????醫롫윪?????녻맱?0 ??醫롫윥????2).
    */
   private spawnExitGlows(level: LdtkLevel): void {
     const TS = 16;
@@ -5224,7 +5175,7 @@ export class LdtkWorldScene extends Scene {
    * Mirrors checkSpikeContact pattern but channels through TileHazards.applyTileHazards
    * so magma/charged/acid/fire/thunder/burn share one code path.
    *
-   * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+   * GDD: Documents/System/System_World_TileSystem.md 筌?.6-2.13
    */
   private tickTileHazards(dt: number): void {
     const room = this.player.roomData;
@@ -5233,13 +5184,13 @@ export class LdtkWorldScene extends Scene {
     // Advance frozen/burning/electric timers + oil-spread + passive interactions.
     this.tileMutator.tick(room, dt);
 
-    // Tick burnable entities (Tier B) — flame VFX + burnRemainingMs countdown.
+    // Tick burnable entities (Tier B) ??flame VFX + burnRemainingMs countdown.
     // Destroyed ones are unregistered + removed from scene graph.
     for (let i = this.burnableProps.length - 1; i >= 0; i--) {
       const p = this.burnableProps[i];
       p.update(dt);
       if (p.destroyed) {
-        // Drop ash remnant — only for props that were actually burnt out
+        // Drop ash remnant ??only for props that were actually burnt out
         // (still had burn remaining when they reached 0). Floor/free anchors
         // leave ash; ceiling props (curtains, vines) vanish without remnant
         // because falling ash would clip mid-air without a hanger.
@@ -5254,12 +5205,12 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Procedural grass clumps — fire ignition + chain to TILE_GRASS tiles.
+    // Procedural grass clumps ??fire ignition + chain to TILE_GRASS tiles.
     this.grassClumpFire.update(dt, this.tileMutator, this.collisionGrid, this.ashRemnant, 16);
 
     // BreakableProp ignition is driven by TileMutator.spreadOilFire (same
     // pipeline as BurnableProp / oil / wood / grass). Here we only handle
-    // the burn-out → shatter/drop transition for props that finished burning.
+    // the burn-out ??shatter/drop transition for props that finished burning.
     for (let i = this.breakableProps.length - 1; i >= 0; i--) {
       const bp = this.breakableProps[i];
       if (bp.destroyed) {
@@ -5280,13 +5231,13 @@ export class LdtkWorldScene extends Scene {
     // Render overlay for fire / ice / electric cell states.
     this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid, dt);
 
-    // Wall layer refresh — ice melted to water, wood/grass burned out, metal
+    // Wall layer refresh ??ice melted to water, wood/grass burned out, metal
     // corroded. rerenderTilemap reads the current collisionGrid and skips
     // tiles whose cell is now air or a fluid type (handled by LdtkRenderer).
     if (this.wallLayerDirty) {
       this.wallLayerDirty = false;
       this.rerenderTilemap();
-      // New water cells (from ice melt) need a fluid body — rebuild from grid.
+      // New water cells (from ice melt) need a fluid body ??rebuild from grid.
       this.fluidSystem.refreshFromGrid(this.collisionGrid);
     }
 
@@ -5376,7 +5327,7 @@ export class LdtkWorldScene extends Scene {
     // Enemy hazards (every alive enemy). Element multiplier scales raw
     // amount per source. Multiplier 0 = immune (skip). Otherwise damage
     // is floored at 1 so tiny-maxHp enemies still take chip damage from
-    // residue ticks (without the floor, maxHp×0.005 etc rounds to 0).
+    // residue ticks (without the floor, maxHp??.005 etc rounds to 0).
     // HP bar flashes + damage number floats on every applied tick so the
     // player sees the elemental damage land.
     for (const enemy of this.enemies) {
@@ -5435,11 +5386,11 @@ export class LdtkWorldScene extends Scene {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
       if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
-      // MetalCrate is immune to direct attack damage — only acid corrosion
+      // MetalCrate is immune to direct attack damage ??only acid corrosion
       // (handled in tickEnvironment) can dissolve it. The shard still gets
       // "stuck" (return true) so it can be retrieved like any wall hit.
       if (c.kind === 'MetalCrate') {
-        // R-NEW-054 Brittle Crate: ice/frozen 셀 위면 1 hit 즉파
+        // R-NEW-054 Brittle Crate: ice/frozen ?? ?熬곣벀??1 hit 嶺뚯빖留??
         const lx = Math.floor(c.colX / 16);
         const rx = Math.floor((c.colX + c.colW - 1) / 16);
         const by = Math.floor((c.colY + c.colH - 1) / 16);
@@ -5476,7 +5427,7 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Per-shard enemy-hit test. Returns true if the shard at (x, y) overlaps
-   * a living enemy's AABB — manager then transitions the shard to STUCK.
+   * a living enemy's AABB ??manager then transitions the shard to STUCK.
    * Damage + element status applied immediately. Killing an enemy with a
    * lodged shard auto-retrieves all shards inside its bounding box (Hades
    * Bloodstone return-on-kill).
@@ -5494,21 +5445,21 @@ export class LdtkWorldScene extends Scene {
       e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
       this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
       this.hitSparks.spawn(x, y, false, 0);
-      // Element side-effects — gated by multiplier > 0.
+      // Element side-effects ??gated by multiplier > 0.
       if (element === 'fire' && elemMult > 0) {
         e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
       } else if (element === 'ice' && elemMult > 0) {
-        // 2s 정식 빙결 — AI tick 중지 + vx=0 + 푸른 tint (Enemy.frozenRemainingMs).
+        // 2s ?筌먦끇六????썹뙼???AI tick 繞벿살탳? + vx=0 + ?筌뤾봇??tint (Enemy.frozenRemainingMs).
         e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
       } else if (element === 'thunder' && elemMult > 0) {
-        // 즉발 추가 데미지 + 적의 위치 셀이 도체 풀(water/metal/acid) 이면
-        // flood-fill thunder chain 트리거 — 단일 표적이 풀 위에 서있을 때
-        // 풀 전체 점등이라는 대형 시너지로 이어짐.
+        // 嶺뚯빖留㎬??怨뺣뼺? ???嶺뚯솘? + ??⑤챷踰??熬곣뫚???????熬곣뫕????(water/metal/acid) ?????
+        // flood-fill thunder chain ?筌뤾봇遊뷸ㅀ?????關逾???戮곗쓤???? ?熬곣뫖????戮곕엿????
+        // ?? ?熬곣뫕?????苡????????????類?꼸嶺뚯솘?????怨룹꽑嶺?
         e.hp -= Math.max(1, Math.floor(this.player.atk * 0.4 * elemMult));
         const room = this.player.roomData;
         if (room) {
-          // 2×2 corner-snap centered on enemy AABB center — keeps thunder
-          // chain footprint consistent with shard impact (2×2 cells).
+          // 2?? corner-snap centered on enemy AABB center ??keeps thunder
+          // chain footprint consistent with shard impact (2?? cells).
           const ax = Math.round((e.x + e.width / 2) / 16);
           const ay = Math.round((e.y + e.height / 2) / 16);
           const chainCells: Array<[number, number]> = [
@@ -5536,7 +5487,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Common container break VFX/SFX — propShatter chunks + breakable sound
+   * Common container break VFX/SFX ??propShatter chunks + breakable sound
    * + small camera shake. Mirrors the existing BreakableProp destruction
    * routine so containers feel like the same family.
    */
@@ -5545,7 +5496,7 @@ export class LdtkWorldScene extends Scene {
    * living enemy AABB. Triggered when the container is `wasThrown` and has
    * meaningful kinetic velocity (so a sitting crate that happens to touch
    * an enemy doesn't pop). Damage scales like a normal sword strike; the
-   * MetalCrate gets a 1.8× bonus (no paint, heavy-steel trade). Bosses
+   * MetalCrate gets a 1.8??bonus (no paint, heavy-steel trade). Bosses
    * take damage but skip stun (super-armor preserved).
    */
   private checkThrownContainerEnemyHit(): void {
@@ -5553,7 +5504,7 @@ export class LdtkWorldScene extends Scene {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
       if (!c.wasThrown || c.hasDealtImpact) continue;
-      // Velocity gate — keep low-energy contact (e.g. a crate barely
+      // Velocity gate ??keep low-energy contact (e.g. a crate barely
       // sliding over a stunned enemy) from auto-popping the throw.
       if (Math.abs(c.vx) < 60 && c.vy < 80) continue;
       const ax = c.colX, ay = c.colY, aw = c.colW, ah = c.colH;
@@ -5637,7 +5588,7 @@ export class LdtkWorldScene extends Scene {
         ? (ms.seed ^ ((performance.now() | 0) >>> 0))
         : ((performance.now() | 0) >>> 0);
       // Refill batch size = minCount~maxCount (matches the initial spawn
-      // distribution — "keep min" semantically guaranteed, max as ceiling).
+      // distribution ??"keep min" semantically guaranteed, max as ceiling).
       const refilled = runContainerSpawner({
         rect: ms.rect,
         collisionGrid: this.collisionGrid,
@@ -5682,7 +5633,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Resolve container ↔ container overlaps. When two containers occupy the
+   * Resolve container ??container overlaps. When two containers occupy the
    * same pixel space, push them apart along the smaller penetration axis.
    * Runs after player push so a pushed crate can shove another crate.
    */
@@ -5728,7 +5679,7 @@ export class LdtkWorldScene extends Scene {
   /**
    * Mirror of resolvePlayerContainerCollision for every alive enemy. Enemies
    * are blocked / stacked on containers exactly like the player, but cannot
-   * push containers (passive interaction — only the player has hands). No
+   * push containers (passive interaction ??only the player has hands). No
    * impact damage either: thrown-container damage is handled separately by
    * checkThrownContainerEnemyHit. Enemies that would clip into a container
    * from below push the container UP, mirroring the bury-fix on player.
@@ -5769,7 +5720,7 @@ export class LdtkWorldScene extends Scene {
   /**
    * Would the container's collision rect overlap a solid IntGrid cell if
    * its sprite origin were placed at `newX` (Y unchanged)? Used by the
-   * player-push + container-↔-container resolvers to gate horizontal
+   * player-push + container-??container resolvers to gate horizontal
    * movement, preventing crates from tunneling through walls.
    */
   private canContainerOccupyX(c: ThrowableContainer, newX: number, ignore: ThrowableContainer | null = null): boolean {
@@ -5816,7 +5767,7 @@ export class LdtkWorldScene extends Scene {
         if (p.getVy() > 0) p.vy = 0;
         p.forceGrounded();
       } else if (min === overlapBottom) {
-        // Container pressed down onto player head — push container UP.
+        // Container pressed down onto player head ??push container UP.
         c.y -= overlapBottom;
         if (c.vy > 0) c.vy = 0;
         c.container.x = c.x;
@@ -5847,7 +5798,7 @@ export class LdtkWorldScene extends Scene {
   /**
    * Apply container splash paint: fill a small cell radius around the impact
    * point with the container's fluid type. Cells that are currently solid
-   * (wall/wood/metal) are not painted — only AIR cells flip.
+   * (wall/wood/metal) are not painted ??only AIR cells flip.
    */
   private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
     const grid = this.collisionGrid;
@@ -5871,7 +5822,7 @@ export class LdtkWorldScene extends Scene {
     if (kind === 'MagmaCrucible') {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
     }
-    // R-NEW-011 Impact Solidification: WaterBarrel + magma → WALL 굳음
+    // R-NEW-011 Impact Solidification: WaterBarrel + magma ??WALL ?????
     if (kind === 'WaterBarrel') {
       let solidified = 0;
       for (let dy2 = -1; dy2 <= 1; dy2++) {
@@ -5890,7 +5841,7 @@ export class LdtkWorldScene extends Scene {
         this.containerFluidDirty = true;
       }
     }
-    // R-NEW-012 Acid Container Chain: AcidVial + 2-tile radius 컨테이너 가속
+    // R-NEW-012 Acid Container Chain: AcidVial + 2-tile radius ???쳜???????띠럾???
     if (kind === 'AcidVial') {
       const reachSq = 32 * 32;
       const cx = (gx + 0.5) * 16;
@@ -5997,9 +5948,9 @@ export class LdtkWorldScene extends Scene {
   /**
    * BFS-flood paint up to `quantity` cells starting from (sx, sy). Cells
    * that get overwritten:
-   *   air(0) · grass(16) · existing fluids (water/oil/acid/magma)
+   *   air(0) 鸚?grass(16) 鸚?existing fluids (water/oil/acid/magma)
    * Solid cells (wall/ice/breakable/metal/wood) block both paint and
-   * expansion — natural splash bounded by terrain. Painting magma over
+   * expansion ??natural splash bounded by terrain. Painting magma over
    * flammable neighbours immediately ignites them so the user sees fire
    * rather than waiting for the slower 600ms passive spread tick.
    */
@@ -6034,7 +5985,7 @@ export class LdtkWorldScene extends Scene {
         }
       }
     }
-    // Magma paint → immediately ignite adjacent flammable cells so the
+    // Magma paint ??immediately ignite adjacent flammable cells so the
     // user sees a chain reaction the same frame the container breaks.
     if (tile === 6) {
       for (const [px, py] of paintedCells) {
@@ -6046,7 +5997,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Debug helper — spawn a few containers near the player for testing.
+   * Debug helper ??spawn a few containers near the player for testing.
    * Bound to Shift+G via debug input until LDtk Entity spawning is wired.
    */
   private debugSpawnContainers(): void {
@@ -6061,8 +6012,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Ego Shard impact dispatcher — runs the element's effect at the impact
-   * point. Damage footprint = 2×2 cells whose shared corner is nearest to
+   * Ego Shard impact dispatcher ??runs the element's effect at the impact
+   * point. Damage footprint = 2?? cells whose shared corner is nearest to
    * the impact pixel (nearest-corner snap). Compact, picks the most-likely
    * intended 4 cells without overshooting into unrelated terrain.
    */
@@ -6105,19 +6056,19 @@ export class LdtkWorldScene extends Scene {
           }
           this.fluidSystem.refreshFromGrid(this.collisionGrid);
         } else if (t === 12 /* metal */) {
-          // R-NEW-019 Heat Metal: metal cell 유지 + 4s fire overlay
+          // R-NEW-019 Heat Metal: metal cell ??? + 4s fire overlay
           this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
         } else {
           this.tileMutator.tryIgnite(room, gx, gy);
         }
       }
-      // Residue ignite box matches the 2×2 cell footprint, anchored at the
+      // Residue ignite box matches the 2?? cell footprint, anchored at the
       // snap corner so it's centered exactly on the same 4 cells.
       this.fluidResidue.ignite(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize);
       // BreakableProp ignition happens inside `tryIgnite` above (BreakableProp
       // is registered as IgnitableEntity, same path as BurnableProp).
-      // Procedural grass clumps inside the impact cells → direct ignite
-      // (clumps are NOT TileMutator-registered yet — separate fire system).
+      // Procedural grass clumps inside the impact cells ??direct ignite
+      // (clumps are NOT TileMutator-registered yet ??separate fire system).
       if (fireCells.length > 0) {
         let minGx = fireCells[0][0], maxGx = fireCells[0][0];
         let minGy = fireCells[0][1], maxGy = fireCells[0][1];
@@ -6174,11 +6125,11 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * DEBUG Shift+1 — Fire enchant attack. Sweeps the hitbox AABB:
-   *   - oil/wood/grass cell → ignite (cascading via TileMutator)
-   *   - ice cell → melt to water (permanent)
-   *   - water cell → steam (cell → AIR)
-   *   - BurnableProp footprint → ignite entity (via tryIgnite fallback)
+   * DEBUG Shift+1 ??Fire enchant attack. Sweeps the hitbox AABB:
+   *   - oil/wood/grass cell ??ignite (cascading via TileMutator)
+   *   - ice cell ??melt to water (permanent)
+   *   - water cell ??steam (cell ??AIR)
+   *   - BurnableProp footprint ??ignite entity (via tryIgnite fallback)
    */
   private debugIgniteAtPlayer(): void {
     const room = this.player.roomData;
@@ -6201,19 +6152,19 @@ export class LdtkWorldScene extends Scene {
         if (this.tileMutator.tryIgnite(room, gx, gy)) actions++;
       }
     });
-    // Fire on oil residue → ignite the blot. Blots burn in place + emit fire DOT.
+    // Fire on oil residue ??ignite the blot. Blots burn in place + emit fire DOT.
     const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
     actions += igniteN;
     // eslint-disable-next-line no-console
     Debug.log(
       `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`,
     );
-    this.toast.show(`fire: ${actions}`, 0xff8844);
+    this.toast.show(t('toast.debug_fire', { count: actions }), 0xff8844);
   }
 
   /**
-   * DEBUG Shift+2 — Ice enchant attack. Sweeps the hitbox AABB:
-   *   - water/magma cell → freeze 15s (temp wall)
+   * DEBUG Shift+2 ??Ice enchant attack. Sweeps the hitbox AABB:
+   *   - water/magma cell ??freeze 15s (temp wall)
    */
   private debugFreezeAtPlayer(): void {
     const room = this.player.roomData;
@@ -6227,11 +6178,11 @@ export class LdtkWorldScene extends Scene {
     Debug.log(
       `[DebugIce] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) frozen=${frozen} total=${this.tileMutator.frozenCount}`,
     );
-    this.toast.show(`ice: ${frozen}`, 0x88ccff);
+    this.toast.show(t('toast.debug_ice', { count: frozen }), 0x88ccff);
   }
 
   /**
-   * DEBUG Shift+3 — Thunder enchant attack. Sweeps the hitbox AABB:
+   * DEBUG Shift+3 ??Thunder enchant attack. Sweeps the hitbox AABB:
    *   - For each conductor cell (water/metal/acid) not yet electric,
    *     flood-fill connected conductor body. Multiple disconnected pools
    *     in the hitbox all get lit. Per-pulse damage handled by TileHazards
@@ -6250,7 +6201,7 @@ export class LdtkWorldScene extends Scene {
     Debug.log(
       `[DebugThunder] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) lit=${totalLit} electric=${this.tileMutator.electricCount}`,
     );
-    this.toast.show(`thunder: ${totalLit}`, 0xffee44);
+    this.toast.show(t('toast.debug_thunder', { count: totalLit }), 0xffee44);
   }
 
   /** IntGrid void (value 10) -- fade out/in, return to last safe ground. */
@@ -6270,7 +6221,7 @@ export class LdtkWorldScene extends Scene {
     this.voidInputLockMs = VOID_INPUT_LOCK_MS;
     this.voidTeleported = false;
     this.fadeOverlay.alpha = 0;
-    // Soft input lock — player loses control immediately, but every other
+    // Soft input lock ??player loses control immediately, but every other
     // system (camera, fluid, particles, enemies) keeps simulating.
     this.game.input.inputLocked = true;
   }
@@ -6404,8 +6355,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * ItemWorld 복귀 페이드인 트리거 — 검은 overlay alpha 1 → 0.
-   * onComplete 콜백 3 경로(일반 portal / floor collapse / fixed level)에서 호출.
+   * ItemWorld ?곌랜踰? ??瑜곷턄??戮곕데 ?筌뤾봇遊뷸ㅀ????롪틵??? overlay alpha 1 ??0.
+   * onComplete ?袁⑸츊揶?3 ?롪퍔?δ빳???怨쀫틮 portal / floor collapse / fixed level)??????筌뤾쑵??
    */
   private startItemWorldReturnFadeIn(): void {
     this.normalizeWorldVisualsAfterItemWorldReturn();
@@ -6454,7 +6405,7 @@ export class LdtkWorldScene extends Scene {
       const t = Math.min(1, this.voidFadeTimer / VOID_FADE_OUT_DURATION);
       this.fadeOverlay.alpha = t;
       if (t >= 1) {
-        // Teleport at the moment of full black — player + scene swap is
+        // Teleport at the moment of full black ??player + scene swap is
         // invisible to the user. forceGrounded keeps the reveal landed.
         if (!this.voidTeleported) {
           this.performVoidTeleport();
@@ -6482,7 +6433,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Input lock outlasts fade-in by ~500 ms — natural reveal beat.
+    // Input lock outlasts fade-in by ~500 ms ??natural reveal beat.
     if (this.voidInputLockMs <= 0 && this.voidFadePhase === 'none') {
       this.voidDropActive = false;
       this.voidCooldown = 500;
@@ -6515,7 +6466,7 @@ export class LdtkWorldScene extends Scene {
     const entities = level.entities.filter(e => e.type === 'SecretWall');
     for (const ent of entities) {
       const key = `secret_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      // Already destroyed in a previous session — re-apply the break side
+      // Already destroyed in a previous session ??re-apply the break side
       // effects to the freshly-cloned level state (collisionGrid was restored
       // from LDtk's master IntGrid in loadLevel, and AutoTile sprites were
       // re-rendered). Without this, the invisible wall tile still blocks
@@ -6540,8 +6491,8 @@ export class LdtkWorldScene extends Scene {
             }
           }
         }
-        // 룸 재진입 — 이미 부서진 SecretWall 의 wall tile 만 다시 지우고 interior
-        // 데코는 유지 (preserveInterior). 6207 의 *최초 파괴* 경로와 동일 옵션.
+        // ????壤???????? ?遊붋??戮곗땟 SecretWall ??wall tile 嶺????곕뻣 嶺뚯솘???⑤슦??interior
+        // ??⑥?쭨????? (preserveInterior). 6207 ??*嶺뚣끉裕??????? ?롪퍔?δ빳?? ???됰뎄 ?????
         this.renderer.clearTilesInRect(topLeftX, topLeftY, ent.width, ent.height, { preserveInterior: true });
         continue;
       }
@@ -6571,18 +6522,14 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Player sword swing → container damage. Mirrors checkAttackOnSecretWalls
+   * Player sword swing ??container damage. Mirrors checkAttackOnSecretWalls
    * pattern: get current combo step hitbox, AABB-overlap each container,
-   * apply atk damage. On destroy → BFS fluid paint + container teardown.
+   * apply atk damage. On destroy ??BFS fluid paint + container teardown.
    */
   private checkAttackOnContainers(): void {
     if (!this.player.isAttackActive()) return;
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
     const dmg = Math.max(1, Math.floor(this.player.atk));
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
@@ -6606,13 +6553,8 @@ export class LdtkWorldScene extends Scene {
   private checkAttackOnSecretWalls(): void {
     if (!this.player.isAttackActive()) return;
 
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     const dirX = (this.player.facingRight ?? true) ? 1 : -1;
 
@@ -6633,8 +6575,8 @@ export class LdtkWorldScene extends Scene {
           item_id: wall.mode === 'item' ? ((wall as any)._itemId as string | undefined) : undefined,
         });
 
-        // Erase the AutoTile wall sprites at this position. interior 데코(파이프·라이트
-        // 등)는 벽 너머 공간을 채우는 시각 자산이므로 *보존* — preserveInterior=true.
+        // Erase the AutoTile wall sprites at this position. interior ??⑥?쭨(???逾??묐８竊???袁⑤콦
+        // ?????????????ㅻ????嶺???????蹂?뜜 ??????????*?곌랜??? ??preserveInterior=true.
         this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height, { preserveInterior: true });
 
         // Mode=Item: spawn item drop at wall center
@@ -6671,10 +6613,7 @@ export class LdtkWorldScene extends Scene {
     const master = getMasterItem(itemId);
     if (!master) {
       // Fallback: try direct weapon lookup for backwards compatibility
-      const loreDef = LORE_WEAPONS.get(itemId);
-      const def: WeaponDef = loreDef
-        ? loreWeaponToWeaponDef(loreDef)
-        : (SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0]);
+      const def: WeaponDef = SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0];
       const item = createItem(def, def.rarity);
       const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
       const drop = new ItemDropEntity(spawn.x, spawn.y, item);
@@ -6687,10 +6626,7 @@ export class LdtkWorldScene extends Scene {
     switch (master.category) {
       case 'weapon': {
         const key = master.sourceKey;
-        const loreDef = master.sourceSheet === 'Weapon_Lore' ? LORE_WEAPONS.get(key) : null;
-        const def: WeaponDef = loreDef
-          ? loreWeaponToWeaponDef(loreDef)
-          : (SWORD_DEFS.find(d => d.id === key) ?? SWORD_DEFS[0]);
+        const def: WeaponDef = SWORD_DEFS.find(d => d.id === key) ?? SWORD_DEFS[0];
         const item = createItem(def, def.rarity);
         const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
         const drop = new ItemDropEntity(spawn.x, spawn.y, item);
@@ -6700,8 +6636,8 @@ export class LdtkWorldScene extends Scene {
         break;
       }
       case 'currency': {
-        // Parse amount from the itemId suffix (e.g. "gold_500" → 500). Regex on
-        // master.name was locale-fragile — translators may not preserve "(N)".
+        // Parse amount from the itemId suffix (e.g. "gold_500" ??500). Regex on
+        // master.name was locale-fragile ??translators may not preserve "(N)".
         const idMatch = itemId.match(/_(\d+)$/);
         const amount = Math.max(1, Math.floor((idMatch ? parseInt(idMatch[1], 10) : 100) * 0.1));
         const gp = new GoldPickup(x, y, amount);
@@ -6912,13 +6848,8 @@ export class LdtkWorldScene extends Scene {
   private checkAttackOnCrackedFloors(): void {
     if (!this.player.isAttackActive()) return;
 
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
       const cf = this.crackedFloors[i];
@@ -6938,8 +6869,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * LDtk Entity 'Breakable' 직접 배치본 spawn — 사용자가 LDtk Editor 에서
-   * 'Sprite' enum 으로 카탈로그 ID 선택. 기본값 SignBoard_Save.
+   * LDtk Entity 'Breakable' 嶺뚯쉳????꾩룄??洹잜돦?spawn ???????? LDtk Editor ?????
+   * 'Sprite' enum ??怨쀬Ŧ ?곸궠?얏틦?れ뿉?蹂μ쟽 ID ??ルㅎ臾? ?リ옇???泥?SignBoard_Save.
    */
   private spawnBreakableEntitiesForLevel(level: LdtkLevel): void {
     for (const b of this.breakables) b.destroy();
@@ -6950,7 +6881,7 @@ export class LdtkWorldScene extends Scene {
       const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
         ? rawSprite
         : 'SignBoard_Save';
-      // LDtk px[0/1] 은 entity 의 pivot 점 좌표. Breakable 은 pivot=(0.5,1) 가정.
+      // LDtk px[0/1] ?? entity ??pivot ????レ뒭筌? Breakable ?? pivot=(0.5,1) ?띠럾???
       const b = new Breakable(ent.px[0], ent.px[1], spriteId);
       this.breakables.push(b);
       this.entityLayer.addChild(b.container);
@@ -6958,9 +6889,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * LDtk Entity 'Building' spawn — 시각 데코.
-   * 사용자가 LDtk Editor 의 tile picker 로 선택한 사각형(__tile)을
-   * 시트에서 잘라 그대로 배치. 충돌 없음. Pivot=(0.5,1) 가정 — 바닥 라인 정렬.
+   * LDtk Entity 'Building' spawn ????蹂?뜜 ??⑥?쭨.
+   * ?????? LDtk Editor ??tile picker ????ルㅎ臾???????__tile)??
+   * ???ル콦???????濡?뎄 ?잙갭梨????꾩룄??? ?寃몃쳳????怨몃쾳. Pivot=(0.5,1) ?띠럾??????꾩룆?????源녿데 ?筌먲퐣議?
    */
   private spawnBuildingEntitiesForLevel(level: LdtkLevel): void {
     for (const b of this.buildings) b.destroy();
@@ -6968,7 +6899,7 @@ export class LdtkWorldScene extends Scene {
     const ents = level.entities.filter(e => e.type === 'Building');
     for (const ent of ents) {
       if (!ent.tile || !ent.tile.tilesetPath) {
-        console.warn(`[Building] entity at (${ent.px[0]}, ${ent.px[1]}) has no tile — skipped. LDtk Editor 에서 tile 을 선택해 주십시오.`);
+        console.warn(`[Building] entity at (${ent.px[0]}, ${ent.px[1]}) has no tile ??skipped. LDtk Editor ?????tile ????ルㅎ臾???낅슣????戮곌텕.`);
         continue;
       }
       const b = new Building(
@@ -7027,23 +6958,17 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * 플레이어 공격 vs 수동 배치 Breakable Entity (LDtk).
-   * BreakableProp 와 동일한 shatter / drop / 카메라 흔들림 처리.
+   * ??????怨룹꽑 ??ㅻ???vs ??濡レ쭢 ?꾩룄???Breakable Entity (LDtk).
+   * BreakableProp ?? ???됰뎄??shatter / drop / ?곸궠?筌????븐뼔援??嶺뚳퐣瑗??
    */
   private checkAttackOnBreakableEntities(): void {
-    if (!this.player.isAttackActive()) return;
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     for (let i = this.breakables.length - 1; i >= 0; i--) {
       const b = this.breakables[i];
       if (b.destroyed) continue;
-      if (b.width === 0) continue; // texture 미로드 — 충돌 비활성.
+      if (b.width === 0) continue; // texture 亦껋꼶梨뜸빳?????寃몃쳳????????
       if (!aabbOverlap(hitbox, b.getAABB())) continue;
 
       const drop = b.break();
@@ -7055,7 +6980,7 @@ export class LdtkWorldScene extends Scene {
         b.getParticleColor(), b.getAccentColor(),
         b.getArtifactTexture(),
       );
-      // speed 1.0 / (1.0~1.5) → 길이 100~150% 랜덤 (반복감 감소).
+      // speed 1.0 / (1.0~1.5) ???ル梨??100~150% ??類ｌ몓 (?꾩룇瑗??泥??띠룆흮??.
       SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
       this.hitSparks.spawn(
         b.x + b.width / 2, b.y + b.height / 2,
@@ -7080,14 +7005,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   private checkAttackOnBreakableProps(): void {
-    if (!this.player.isAttackActive()) return;
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     for (let i = this.breakableProps.length - 1; i >= 0; i--) {
       const bp = this.breakableProps[i];
@@ -7099,7 +7018,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Shared destroy path for BreakableProp — invoked by sword hits and by fire
+   * Shared destroy path for BreakableProp ??invoked by sword hits and by fire
    * burn-out. `source` controls camera shake / hitstop / hit-spark (we skip
    * those for fire to avoid spurious feedback during ambient burns).
    *
@@ -7138,15 +7057,8 @@ export class LdtkWorldScene extends Scene {
   }
 
   private checkAttackOnSwitches(): void {
-    if (!this.player.isAttackActive()) return;
-
-    const step = this.player.getAttackStep(this.player.comboIndex);
-    if (!step) return;
-
-    const hitbox = getAttackHitbox(
-      this.player.x, this.player.y, this.player.width, this.player.height,
-      this.player.facingRight ?? true, step,
-    );
+    const hitbox = getActivePlayerAttackHitbox(this.player);
+    if (!hitbox) return;
 
     for (const sw of this.switches) {
       if (sw.activated) continue;
@@ -7180,7 +7092,7 @@ export class LdtkWorldScene extends Scene {
       this.entityLayer.addChild(enemy.container);
     }
 
-    // Boss entities ??Guardian (기억???�문??. Skip if already killed.
+    // Boss entities ??Guardian (?リ옇?ｅ젆????醫롫윥???. Skip if already killed.
     const bossEntities = level.entities.filter(e => e.type === 'Boss');
     for (const ent of bossEntities) {
       const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
@@ -7214,13 +7126,13 @@ export class LdtkWorldScene extends Scene {
           if (this.unlockedEvents.has(bossKey)) continue;
           enemy = createEnemy('Boss', enemyLevel);
           (enemy as any)._bossKey = bossKey;
-          // Arena lock ??direct 'Boss' ?�티??경로?� ?�일?�게 Enemy_Spawn 경로?�서??
-          // 보스�??�출??봉쇄?�다. ?�락 ???�레?�어가 교전 ??방에???�탈 가??
+          // Arena lock ??direct 'Boss' ??醫?????롪퍔?δ빳?????醫롫윪???醫롫윞??Enemy_Spawn ?롪퍔?δ빳??醫롫윪???
+          // ?곌랜???낅쐻???醫롫윪?????낅㎥???醫롫윥?? ??醫롫윥??????醫롫윥???醫롫윪?됯막泥? ??흮?????꾩렮維쀨굢????醫?繹??띠럾???
           this.activateBossLock(level, bossKey);
         } else {
           enemy = createEnemy(enemyType, enemyLevel);
         }
-        // 필드 GoldenMonster 처치 시 포탈 스폰 — 사용자 요청으로 비활성.
+        // ?熬곣뫀援?GoldenMonster 嶺뚳퐣瑗??????繹????덌폕 ?????????븐슙???怨쀬Ŧ ??????
         // if (enemy instanceof GoldenMonster) {
         //   enemy.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
         // }
@@ -7264,8 +7176,8 @@ export class LdtkWorldScene extends Scene {
 
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
-          // 사용자 결정 (2026-05-03): Broken Sword 는 시작 시 자동 지급되므로
-          // LDtk 측 ItemDrop 은 중복. skip + collected 처리해 재방문 시 재spawn 방지.
+          // ??????롪퍒???(2026-05-03): Broken Sword ????戮곗굚 ?????吏?嶺뚯솘??ル留㎫뵳釉껋쾵???
+          // LDtk 嶺?ItemDrop ?? 繞벿살탮?? skip + collected 嶺뚳퐣瑗?????揶쏅쵉??????ν꽢awn ?꾩렮維?.
           if (itemId === 'sword_broken') {
             this.collectedItems.add(itemKey);
             break;
@@ -7282,7 +7194,7 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'GameSaver': {
-          // Save point — pivot bottom-left, center the marker on entity
+          // Save point ??pivot bottom-left, center the marker on entity
           const spx = ent.px[0] + ent.width / 2;
           const spy = ent.px[1] - ent.height / 2;
           const floorY = ent.px[1]; // LDtk entity bottom = floor surface
@@ -7295,15 +7207,14 @@ export class LdtkWorldScene extends Scene {
           marker.x = spx;
           marker.y = spy;
           this.entityLayer.addChild(marker);
-          // Context prompt — rendered in uiContainer for crisp text
+          // Context prompt ??rendered in uiContainer for crisp text
           const us = this.game.uiScale;
           const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.save'), us);
           prompt.visible = false;
           this.game.uiContainer.addChild(prompt);
-          const entry: { x: number; y: number; gfx: Graphics; sprite?: Sprite; prompt?: Container } =
-            { x: spx, y: spy, gfx: marker, prompt };
+          const entry: SavePointEntry = { x: spx, y: spy, gfx: marker, prompt };
           this.savePoints.push(entry);
-          // Attach the totem sprite (save_point_01.png). Async load — until it
+          // Attach the totem sprite (save_point_01.png). Async load ??until it
           // resolves, the placeholder marker stays visible. Once loaded, hide
           // the marker so only the sprite is shown.
           //
@@ -7314,7 +7225,7 @@ export class LdtkWorldScene extends Scene {
           Assets.load<Texture>(assetPath('assets/sprites/save_point_01.png'))
             .then((tex) => {
               if (!tex) return;
-              if (!this.savePoints.includes(entry)) return; // stale — entry cleared
+              if (!this.savePoints.includes(entry)) return; // stale ??entry cleared
               if (!marker.parent) return;                   // marker already removed
               tex.source.scaleMode = 'nearest';
               const sp = new Sprite(tex);
@@ -7325,7 +7236,7 @@ export class LdtkWorldScene extends Scene {
               entry.sprite = sp;
               marker.visible = false;
             })
-            .catch(() => { /* sprite missing — keep placeholder marker */ });
+            .catch(() => { /* sprite missing ??keep placeholder marker */ });
           break;
         }
         case 'GoldPickup': {
@@ -7422,17 +7333,7 @@ export class LdtkWorldScene extends Scene {
    * Spawn altars from LDtk Altar entities. Falls back to random if none placed.
    */
   private spawnAltarsFromLdtk(level: LdtkLevel): void {
-    const altarEnts = level.entities.filter(e => e.type === 'Altar');
-
-    if (altarEnts.length > 0) {
-      for (const ent of altarEnts) {
-        const altar = new Altar(ent.px[0], ent.px[1]);
-        this.altars.push(altar);
-        this.entityLayer.addChild(altar.container);
-      }
-      return;
-    }
-    // No fallback ??only LDtk-placed altars in the world
+    this.altarController.spawnFromLdtk(level);
   }
 
   // ---------------------------------------------------------------------------
@@ -7451,15 +7352,15 @@ export class LdtkWorldScene extends Scene {
     // camera zones). Uses AABB overlap so the override persists while the
     // player is airborne (jumping) inside the builder.
     //
-    // Priority (사용자 결정 2026-05-03):
-    //   1) 에디터 zone (entireLevel=false, AABB 영역) — LDtk 에서 직접 배치한 zone.
-    //      에디터 측에서 겹치지 않게 배치하므로 first match 안전.
-    //   2) entireLevel zone — 레벨 전체 fallback.
-    // 두 단계 분리로 entireLevel 이 먼저 entity 추가되어도 에디터 zone 이 player
-    // AABB 안에 있으면 우선 채택.
+    // Priority (??????롪퍒???2026-05-03):
+    //   1) ??????zone (entireLevel=false, AABB ??⑤챶?? ??LDtk ?????嶺뚯쉳????꾩룄????zone.
+    //      ??????嶺뚋뀀룱????롪퍓??洹⑥?? ??袁⑹벟 ?꾩룄???????first match ???깆쓧.
+    //   2) entireLevel zone ?????뉖낵 ?熬곣뫕??fallback.
+    // ????節띉??釉뚯뫊?怨レ뿉?entireLevel ???誘る닔? entity ?怨뺣뼺???琉우꽑????????zone ??player
+    // AABB ???고뱺 ???깅さ嶺???⑥ろ맖 嶺??득틦?
     let insideZone: typeof this.cameraZones[number] | null = null;
     if (!this.playerInBuilder) {
-      // P1 — 에디터 zone (AABB 안)
+      // P1 ????????zone (AABB ??
       for (const zone of this.cameraZones) {
         if (zone.entireLevel) continue;
         if (pcx >= zone.x && pcx <= zone.x + zone.w &&
@@ -7468,7 +7369,7 @@ export class LdtkWorldScene extends Scene {
           break;
         }
       }
-      // P2 — entireLevel fallback
+      // P2 ??entireLevel fallback
       if (!insideZone) {
         for (const zone of this.cameraZones) {
           if (zone.entireLevel) {
@@ -7500,7 +7401,7 @@ export class LdtkWorldScene extends Scene {
 
   /**
    * Detect when the player crosses a level edge and find the adjacent level to
-   * transition into. Thresholds use ±4 px tolerance to give a comfortable feel.
+   * transition into. Thresholds use 筌? px tolerance to give a comfortable feel.
    */
   private checkLevelEdges(): void {
     if (this.transitionState !== 'none') return;
@@ -7720,16 +7621,16 @@ export class LdtkWorldScene extends Scene {
     this.applyBuilderVisualFilters(builder);
     builder.placeInLevel(builderX, spawnY);
     this.addBuilderToScene(builder, insertBeforeNaturalDecor);
-    // BuilderInterior 는 entityLayer 위에 별도 부착 — entity 보다 *앞* 에 그려져
-    // builder 외벽 안 디테일이 player/적을 occlude. position 은 매 프레임 builder
-    // container 와 동기화 (아래 update loop).
+    // BuilderInterior ??entityLayer ?熬곣뫖???곌랙?х뙴??遊붋嶺???entity ?곌랜???*?? ???잙갭梨???
+    // builder ?筌뤾퍒??????됀???源녿턄 player/??⑤챷諭?occlude. position ?? 嶺??熬곣뫁???builder
+    // container ?? ???욋뵛??(?熬곣뫁??update loop).
     this.container.addChild(builder.builderInteriorLayer);
     builder.builderInteriorLayer.position.copyFrom(builder.container.position);
-    // BuilderLight indicators 는 BuilderInterior 보다도 *위*. 광원이 내부 디테일
-    // 마저 뚫고 떠야 실제 표시등처럼 읽힌다.
+    // BuilderLight indicators ??BuilderInterior ?곌랜????*??. ??⑹탳??????? ??됀???
+    // 嶺뚮씭?? ???띉???ル∥?????깆젷 ??戮?뻣?繹먮냱?????????
     this.container.addChild(builder.lightContainer);
     builder.lightContainer.position.copyFrom(builder.container.position);
-    // Leg 는 가장 *앞*. 거대 빌더의 다리가 모든 전경 위로 떠야 실루엣이 강조된다.
+    // Leg ???띠럾???*??. 濾곌쑨?? ?????????섎뉴?띠럾? 嶺뚮ㅄ維獄??熬곥룓???熬곣뫁夷???ル∥?????쇳렩?影??턄 ?띠룆踰???類ｋ펲.
     this.container.addChild(builder.legFrontLayer);
     builder.legFrontLayer.position.copyFrom(builder.container.position);
 
@@ -7833,9 +7734,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   private carryPlayerWithBuilderY(deltaY: number): void {
-    // Drop-through 직후 프레임에서 빌더가 상승 중이라면 플레이어가 위로
-    // 끌려 올라가 platform 을 다시 뚫고 올라간다. dropThroughTimer 활성
-    // 동안은 carrier 동기화를 건너뛴다.
+    // Drop-through 嶺뚯쉳????熬곣뫁??熬곣뫖???????臾덉쾸? ??⑤챶諭?繞벿살탳???寃밸듆 ??????怨룹꽑?띠럾? ?熬곣뫁夷?
+    // ?????????낆쾸? platform ?????곕뻣 ???띉?????낆쾸熬곣뫀堉? dropThroughTimer ??戮?뎽
+    // ???덊닱?? carrier ???욋뵛??? 濾곌쑬???????
     if (this.player.dropThroughTimer > 0) return;
     const colOffX = (this.player.width - this.player.collisionW) / 2;
     const colOffY = this.player.height - this.player.collisionH;
@@ -7876,9 +7777,9 @@ export class LdtkWorldScene extends Scene {
     // A real jump should detach from the carrier. Snapping only while falling
     // or resting prevents the moving floor from stealing jump height.
     if (this.player.getVy() < -1) return false;
-    // Drop-through 활성 동안은 빌더 collisionGrid 의 platform(3) 셀을 발판
-    // 후보에서 빼야 한다. 그렇지 않으면 `y += 2` 직후 snap 이 platform top
-    // 으로 즉시 복귀시켜 DOWN+JUMP 이 항상 취소된다.
+    // Drop-through ??戮?뎽 ???덊닱?? ?????collisionGrid ??platform(3) ?????꾩룇裕??
+    // ?熬곣뫀沅????????섌뜮???類ｋ펲. ?잙갭梨?猿볦?? ???곷さ嶺?`y += 2` 嶺뚯쉳???snap ??platform top
+    // ??怨쀬Ŧ 嶺뚯빖留???곌랜踰???戮깅짉 DOWN+JUMP ????疫????쳛???類ｋ펲.
     if (this.player.dropThroughTimer > 0 || this.builderOneWayDropThroughGraceMs > 0) return false;
 
     const originX = Math.round(b.container.x / 16);
@@ -8004,32 +7905,32 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Debug 워프 핸들러 — update() 에서 매 프레임 호출.
-   *   ` (Backquote)  → 뷰포트 클릭 워프 모드 토글
-   *   Shift+M        → 전 맵 풀 디테일 + 룸 클릭 워프 모달
+   * Debug ??怨뺣뒆 ?筌뤾퍓援????update() ?????嶺??熬곣뫁????筌뤾쑵??
+   *   ` (Backquote)  ?????х뙴?????????怨뺣뒆 嶺뚮ㅄ維獄????
+   *   Shift+M        ????嶺??? ??됀???+ ?????????怨뺣뒆 嶺뚮ㅄ維??
    *
-   * `?debug=1` URL 플래그 가 있을 때만 활성. 일반 플레이어 실수 워프 방지.
-   * Shift+M 은 일반 M (월드맵) 보다 먼저 처리해 MAP 액션을 consume 한다.
+   * `?debug=1` URL ????뗥윜??띠럾? ???깅굵 ???異???戮?뎽. ??怨쀫틮 ??????怨룹꽑 ???곕빢 ??怨뺣뒆 ?꾩렮維?.
+   * Shift+M ?? ??怨쀫틮 M (??븐뼔援←춯? ?곌랜????誘る닔? 嶺뚳퐣瑗???MAP ???떷??consume ??類ｋ펲.
    */
   private handleDebugWarp(): void {
     if (!new URLSearchParams(window.location.search).has('debug')) return;
     const input = this.game.input;
 
-    // Shift+M → 전 맵 워프 모달
+    // Shift+M ????嶺???怨뺣뒆 嶺뚮ㅄ維??
     if (input.shiftDown && input.isJustPressed(GameAction.MAP) && !this.inItemTunnel) {
       input.consumeJustPressed(GameAction.MAP);
-      if (this.warpModeActive) this.toggleWarpMode(); // 백틱 모드와 충돌 방지
+      if (this.warpModeActive) this.toggleWarpMode(); // ?꾩룄???嶺뚮ㅄ維獄?? ?寃몃쳳???꾩렮維?
       this.openDebugWorldMap();
     }
 
-    // Backtick → 뷰포트 클릭 워프 토글
+    // Backtick ?????х뙴?????????怨뺣뒆 ???
     if (input.isRawKeyJustPressed('Backquote')) {
-      // 월드맵이 열려있으면 우선 닫기 (모달 충돌 방지)
+      // ??븐뼔援←춯?얜쾴?????????깅さ嶺???⑥ろ맖 ???뗢뵛 (嶺뚮ㅄ維???寃몃쳳???꾩렮維?)
       if (this.worldMap.visible) this.worldMap.close();
       this.toggleWarpMode();
     }
 
-    // ESC 로 워프 모드 해제 (월드맵 esc 와 별도 처리 — 월드맵이 닫혀있을 때만)
+    // ESC ????怨뺣뒆 嶺뚮ㅄ維獄???怨몄젷 (??븐뼔援←춯?esc ?? ?곌랙?х뙴?嶺뚳퐣瑗??????븐뼔援←춯?얜쾴????????깅굵 ???異?
     if (this.warpModeActive && !this.worldMap.visible
         && input.isJustPressed(GameAction.MENU)) {
       input.consumeJustPressed(GameAction.MENU);
@@ -8049,7 +7950,7 @@ export class LdtkWorldScene extends Scene {
     this.worldMap.onRoomClick = (roomId, localX, localY) => {
       this.worldMap.close();
       // If we opened debug warp from the death screen, revive in place so
-      // the warp destination is playable — otherwise the player would land
+      // the warp destination is playable ??otherwise the player would land
       // dead and the game-over UI would immediately re-cover the new room.
       if (this.gameOverActive) this.reviveFromGameOver();
       this.warpToRoom(roomId, Math.floor(localX), Math.floor(localY));
@@ -8059,7 +7960,7 @@ export class LdtkWorldScene extends Scene {
     if (this.minimap) this.minimap.visible = false;
   }
 
-  /** Clear death state without going through SaveManager — debug warp only. */
+  /** Clear death state without going through SaveManager ??debug warp only. */
   private reviveFromGameOver(): void {
     this.gameOverActive = false;
     if (this.gameOverOverlay?.parent) {
@@ -8076,7 +7977,7 @@ export class LdtkWorldScene extends Scene {
   private toggleWarpMode(): void {
     this.warpModeActive = !this.warpModeActive;
     if (this.warpModeActive) {
-      // HUD 상단 중앙에 라벨
+      // HUD ??⑤８堉?繞벿살탳?????怨뚮낵
       const us = this.game.uiScale;
       this.warpHintText = new BitmapText({
         text: t('ui.debug.warp_mode_hint'),
@@ -8086,7 +7987,7 @@ export class LdtkWorldScene extends Scene {
       this.warpHintText.y = 6 * us;
       this.game.uiContainer.addChild(this.warpHintText);
 
-      // 캔버스 클릭 핸들러
+      // 嶺???????????筌뤾퍓援??
       this.warpClickHandler = (e: PointerEvent) => this.warpToScreenClick(e);
       this.game.app.canvas.addEventListener('pointerdown', this.warpClickHandler);
       this.game.app.canvas.style.cursor = 'crosshair';
@@ -8110,12 +8011,12 @@ export class LdtkWorldScene extends Scene {
     const rect = canvas.getBoundingClientRect();
     const fractionX = (e.clientX - rect.left) / rect.width;
     const fractionY = (e.clientY - rect.top) / rect.height;
-    // 좌표 변환 — Game.ts 의 gameContainer 배치 식을 역산:
+    // ??レ뒭筌??곌떠?????Game.ts ??gameContainer ?꾩룄?????諭諭???亦?
     //   gameContainer.x = -cam.renderX + rtW/2  (rtW = GAME_WIDTH / zoom)
-    //   화면 중앙(fraction=0.5) → cam.renderX
-    //   따라서 level-local x = cam.renderX - rtW/2 + fraction × rtW
-    // cam.setBounds(0, 0, level.pxWid, level.pxHei) 로 cam 은 이미 level-local.
-    // currentLevel.worldX 는 빼지 않는다.
+    //   ??븐뻼??繞벿살탳??fraction=0.5) ??cam.renderX
+    //   ??⑤벡逾??level-local x = cam.renderX - rtW/2 + fraction ??rtW
+    // cam.setBounds(0, 0, level.pxWid, level.pxHei) ??cam ?? ???? level-local.
+    // currentLevel.worldX ?????? ???낅츎??
     const cam = this.game.camera;
     const rtW = GAME_WIDTH / cam.zoom;
     const rtH = GAME_HEIGHT / cam.zoom;
@@ -8209,8 +8110,8 @@ export class LdtkWorldScene extends Scene {
           const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
           const itemId = rawItemId.toLowerCase();
           if (!itemId) break;
-          // 사용자 결정 (2026-05-03): Broken Sword 시작 시 자동 지급. Builder 안
-          // ItemDrop 도 중복 — skip + collected 처리.
+          // ??????롪퍒???(2026-05-03): Broken Sword ??戮곗굚 ?????吏?嶺뚯솘??? Builder ??
+          // ItemDrop ??繞벿살탮????skip + collected 嶺뚳퐣瑗??
           if (itemId === 'sword_broken') {
             this.collectedItems.add(itemKey);
             break;
@@ -8218,7 +8119,7 @@ export class LdtkWorldScene extends Scene {
 
           // Snapshot all collections that spawnFixedItemAt may push into;
           // any collection that grew owns the new entity for attachment.
-          // Consumables don't spawn an entity (toast only) — those leave
+          // Consumables don't spawn an entity (toast only) ??those leave
           // every length unchanged and are silently skipped.
           const beforeDrops = this.drops.length;
           const beforeGold = this.goldPickups.length;
@@ -8244,7 +8145,7 @@ export class LdtkWorldScene extends Scene {
         }
         case 'Anvil': {
           // Builder-mounted anvil. Single-instance policy: if the host level
-          // already spawned an anvil via spawnAnvilFromLdtk, skip — no double
+          // already spawned an anvil via spawnAnvilFromLdtk, skip ??no double
           // anvil in the same room. Builder anvil reuses Anvil class so all
           // prompts / dialogue / IW entry routing work unchanged once the
           // attachment makes its world coords track the builder.
@@ -8254,7 +8155,7 @@ export class LdtkWorldScene extends Scene {
           anvil.retireAfterFirstBoss = retireFlag;
           this.anvil = anvil;
           this.currentAnvilIid = ent.iid;
-          // attachToBuilder reparents container.parent → builder.container,
+          // attachToBuilder reparents container.parent ??builder.container,
           // sets container.x/y to local coords. World x/y are then refreshed
           // each frame in syncBuilderAttachments() for prompt/interaction tests.
           this.attachToBuilder(builder, anvil, localX, localY, () => this.anvil === anvil);
@@ -8415,9 +8316,9 @@ export class LdtkWorldScene extends Scene {
           break;
         }
         case 'BuilderSprite': {
-          // LDtk Builder entity — 정적 데코레이션 sprite. tile (인스턴스 Tile field
-          // 또는 entity def 기본 tile) 의 native w×h 로 렌더 — entity bounds 32×32
-          // 에 맞추지 않음 (LDtk tileRenderMode = FullSizeUncropped 동작 모방).
+          // LDtk Builder entity ???筌먦끉????⑥?쭨???깅턄??sprite. tile (?筌뤾쑬裕??怨룸츩 Tile field
+          // ???裕?entity def ?リ옇???tile) ??native w????????????entity bounds 32??2
+          // ??嶺뚮씮???됱?? ???곷쾳 (LDtk tileRenderMode = FullSizeUncropped ???됱굚 嶺뚮ㅄ維揶?.
           // pivot = bottom-center (LDtk entity def: pivotX=0.5, pivotY=1).
           const tile = ent.tile;
           if (!tile || !tile.tilesetPath) break;
@@ -8433,8 +8334,8 @@ export class LdtkWorldScene extends Scene {
             sprite.anchor.set(0.5, 1);
             sprite.x = localX;
             sprite.y = localY;
-            // tile native 크기로 렌더. wallLayer 의 자식으로 추가해 builder body
-            // 와 동일한 PaletteSwap + RimLight 필터를 자동 상속 (별도 filter 지정 X).
+            // tile native ???깃꼍??????? wallLayer ?????六??怨쀬Ŧ ?怨뺣뼺???builder body
+            // ?? ???됰뎄??PaletteSwap + RimLight ?熬곥굤??????吏???⑤챶爰?(?곌랙?х뙴?filter 嶺뚯솘???X).
             builder.bodyLayers.wall.addChild(sprite);
           });
           break;
@@ -8483,7 +8384,7 @@ export class LdtkWorldScene extends Scene {
 
   /** Sync world coords (entity.x/y) of builder-attached entities so
    *  interaction hitboxes track the moving builder. The visual position is
-   *  handled by the parent builder.container transform — we only update
+   *  handled by the parent builder.container transform ??we only update
    *  the world-coord fields used by pickup/interaction logic. */
   private syncBuilderAttachments(): void {
     if (!this.activeBuilder || this.builderAttachments.length === 0) return;
@@ -8542,7 +8443,7 @@ export class LdtkWorldScene extends Scene {
     const a = this.player.abilities;
     this.characterStats.setData(
       this.inventory,
-      1, 0, 100,  // playerLevel, exp, maxExp — placeholder until growth system
+      1, 0, 100,  // playerLevel, exp, maxExp ??placeholder until growth system
       this.player.hp, this.player.maxHp,
       [a.dash, a.wallJump, a.doubleJump, false /* mist */, a.waterBreathing, false /* gravity */],
     );
@@ -8557,10 +8458,10 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.removeChildren();
     this.game.uiContainer.addChild(this.hud.container);
     if (this.minimap) this.game.uiContainer.addChild(this.minimap);
-    // ?�체력 경고 VFX(Flask R pulse, glow, vignette, HP bar pulse) 즉시 ?�거.
-    // gameOverActive=true ?�선 update() 가 early-return ?�여 hud.update(dt) 가
-    // ?�출?��? ?�으므�? ?�기??명시?�으�?초기?�하지 ?�으�?Game Over ?�면??
-    // ?�스 ?�상???�어붙�? �??�는??
+    // ??醫롫윪????롪퍔???VFX(Flask R pulse, glow, vignette, HP bar pulse) 嶺뚯빖留????醫롫윞??
+    // gameOverActive=true ??醫롫윪??update() ?띠럾? early-return ??醫롫윪??hud.update(dt) ?띠럾?
+    // ??醫롫윪???醫롫짗?? ??醫롫윪??뀁쾵??? ??醫롫윞???嶺뚮ㅏ援???醫롫윪???쐻??貫?껆뵳??醫???彛? ??醫롫윪???쐻?Game Over ??醫롫윥???
+    // ??醫롫윪????醫롫윪疫????醫롫윪?됯퉩寃???굲? ????醫롫윥???
     this.hud.resetLowHpEffects();
     const overlay = new Container();
 
@@ -8638,7 +8539,7 @@ export class LdtkWorldScene extends Scene {
     this.updatePlayerAtk();
     this.player.hp = this.player.maxHp;
     this.snapPlayerToSavePoint();
-    // ?�체력 경고 VFX(Flask R pulse, glow, HP bar pulse, vignette) ?�상 ?�거.
+    // ??醫롫윪????롪퍔???VFX(Flask R pulse, glow, HP bar pulse, vignette) ??醫롫윪疫???醫롫윞??
     this.hud.resetLowHpEffects();
     this.hud.updateHP(this.player.hp, this.player.maxHp);
   }
@@ -8754,6 +8655,7 @@ export class LdtkWorldScene extends Scene {
   private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean, delayMs = 0): void {
     const firstBossClearedThisRun = !hadFirstBossClear && sacredSave.isFirstItemWorldBossDefeated();
     if (!firstBossClearedThisRun) return;
+    if (!this.lastUsedAnvilRetireAfterBoss) return;
     if (this.unlockedEvents.has(INVENTORY_KEY_AFTER_FIRST_IW_EVENT)) return;
     if (this.anvil?.hasItem() || this.lastUsedAnvilItem) {
       this.pendingFirstIwReturnHintHadFirstBossClear = hadFirstBossClear;
@@ -8762,8 +8664,8 @@ export class LdtkWorldScene extends Scene {
 
     this.unlockedEvents.add(INVENTORY_KEY_AFTER_FIRST_IW_EVENT);
     this.hud.setItemKeyHighlight(true);
-    // 사용자 결정 (2026-05-03): hint 는 EGO 대사 (fireWorldReturnDialogue) 종료 후
-    // 표시. flag 만 set, update() 가 cutscene/dialogue 종료 검사 후 실제 표시.
+    // ??????롪퍒???(2026-05-03): hint ??EGO ????(fireWorldReturnDialogue) ??リ턁筌???
+    // ??戮?뻣. flag 嶺?set, update() ?띠럾? cutscene/dialogue ??リ턁筌??롪틵????????깆젷 ??戮?뻣.
     this.pendingInventoryHint = 'first_iw_return';
     this.pendingInventoryHintDelayMs = delayMs;
   }
@@ -8808,8 +8710,8 @@ export class LdtkWorldScene extends Scene {
       this.portalTransition = null;
     }
 
-    // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
-    // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
+    // ??븐뼔援???? push ????? (destroy ????. 嶺뚯쉳??????ル‘肉????λ?獄?EXP ???夷??
+    // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
     this.dmgNumbers?.clear();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
@@ -8819,7 +8721,7 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.startItemWorldReturnFadeIn();
       this.updatePlayerAtk();
-      // Mark global Item World tutorial as done — ONLY after the player
+      // Mark global Item World tutorial as done ??ONLY after the player
       // actually defeated the first IW boss. ESC / escape-altar exits before
       // the boss kill must keep the tutorial flag off so the 1-stratum 2x2
       // override and onboarding dialogue persist on re-entry.
@@ -8835,8 +8737,8 @@ export class LdtkWorldScene extends Scene {
         this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
       }
 
-      // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
-      // After the first IW boss clear, replace the standard "또 올 거야?"
+      // ???? Ego T14 / Anvil retirement (Playtest 2026-04-26) ????
+      // After the first IW boss clear, replace the standard "????濾곌쑨?ｉ뜮?"
       // line with the anvil-retired + inventory tutorial dialogue, then
       // disable the current anvil once the dialogue finishes. Otherwise the
       // T14 line plays once as before.
@@ -8850,7 +8752,7 @@ export class LdtkWorldScene extends Scene {
       } else {
         if (this.inventory.add(dungeonItem!)) {
           this.toast.show(
-            `Got ${getDisplayName(dungeonItem!)} [${dungeonItem!.rarity.toUpperCase()}]`,
+            t('toast.item_acquired', { name: getDisplayName(dungeonItem!), rarity: dungeonItem!.rarity.toUpperCase() }),
             0xffcc44,
           );
           this.sacredPickupFlow(
@@ -8884,20 +8786,20 @@ export class LdtkWorldScene extends Scene {
   private sacredPickupFlow(item: ItemInstance, wx: number, wy: number): void {
     // Ego wake (T01) is dispatched at the *end* of this function so the
     // wait loop sees the fully-populated activeWeaponPulse / lorePopupItem
-    // state — otherwise it can pass the gate before the cutscene starts
+    // state ??otherwise it can pass the gate before the cutscene starts
     // and fire dialogue on top of the pulse/popup.
 
-    // "처음 보는 ?�이?? ??�??�이?�과 ?�일?�게 T2 컷신(줌인 + ?�력 차단 +
-    // LorePopup ?��??�로 처리. ?��? �?def �??�시 주울 ?�는 ?�스/컷신 ?�이
-    // 조용???�벤?�리???�어간다 ??반복 ?�득?�서 리듬???��? ?�도�?
+    // "嶺뚳퐣瑗???곌랜?????醫롫윪??? ??????醫롫윪???醫롫윞????醫롫윪???醫롫윞??T2 ???폎??繞벿살뒩??+ ??醫롫윥??嶺뚢뼰維??+
+    // LorePopup ??醫롫짗????醫롫윥餓?嶺뚳퐣瑗?? ??醫롫짗?? ??def ????醫롫윪???낅슣?????醫롫윥????醫롫윪?????폎????醫롫윪??
+    // ?브퀗??????醫롫윥繹??醫롫윥?????醫롫윪?됯막泥롨쥈?ㅻ펲 ???꾩룇瑗????醫롫윥獄??醫롫윪???洹먮맧苡????醫롫짗?? ??醫롫윥?룰쐼??
     const firstEver = !sacredSave.isFirstPickupDone();
     const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
     if (firstEver) {
       sacredSave.markFirstPickupDone();
-      // 사용자 결정 (2026-05-03): "Open Inventory" first-pickup hint 폐기.
-      // Broken Sword 가 시작 시 자동 지급되어 firstEver 분기는 일반 케이스에선
-      // 도달하지 않지만, 다른 경로 (save reset 등) 안전 위해 hint 트리거 자체
-      // 제거. IW 보스 클리어 후 'first_iw_return' hint 는 별도 플로우라 유지.
+      // ??????롪퍒???(2026-05-03): "Open Inventory" first-pickup hint ?????
+      // Broken Sword ?띠럾? ??戮곗굚 ?????吏?嶺뚯솘??ル留㎫뵳??firstEver ?釉뚯뫅?????怨쀫틮 ??댟??怨룸츩?????
+      // ?熬곣뫀堉??? ???嶺? ???섎??롪퍔?δ빳?(save reset ?? ???깆쓧 ?熬곥굥??hint ?筌뤾봇遊뷸ㅀ??????
+      // ??蹂ㅽ깴. IW ?곌랜???????????'first_iw_return' hint ???곌랙?х뙴????夷??⑤벡逾????.
     }
 
     // Tear down any lingering pulse / tether so rapid pickups don't stack.
@@ -8905,9 +8807,9 @@ export class LdtkWorldScene extends Scene {
     if (this.activeAnvilTether) { this.activeAnvilTether.destroy(); this.activeAnvilTether = null; }
 
     if (isFirstSeen) {
-      // Rustborn은 사전 발견(discovery) 컷신에서 이미 T2_QUICK 펄스를 재생했으므로
-      // 픽업 시점의 T2 펄스는 생략하고 곧바로 LorePopup → EGO_WAKE 로 진입한다.
-      // 그 외 신규 아이템은 기존대로 2s T2_QUICK 펄스를 보여 준다.
+      // Rustborn?? ?????꾩룇裕꾤뙼?discovery) ???폎?????????? T2_QUICK ?熬곣뫖裕????繹???깅さ亦껋깢???
+      // ????뵜 ??戮곗젍??T2 ?熬곣뫖裕????紐꾩끋???겶????짋????LorePopup ??EGO_WAKE ??嶺뚯쉳????類ｋ펲.
+      // ??????ル맪???熬곣뫗逾??? ?リ옇??????2s T2_QUICK ?熬곣뫖裕???곌랜?삭굢?繞벿뮻??
       const isRustborn = item.def.id === 'sword_rustborn';
       const skipPulse = isRustborn && this.unlockedEvents.has(EGO_EVENT.FIRST_WALK);
       if (!skipPulse) {
@@ -8915,65 +8817,49 @@ export class LdtkWorldScene extends Scene {
         const pulse = new WeaponPulse(wx, wy, item.rarity, mode);
         this.entityLayer.addChild(pulse.container);
         pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
-        // Tether??LorePopup ?�힘 ?�후 지??모드�??�성?��?�??�스 중엔 발동?��? ?�음.
+        // Tether??LorePopup ??醫?????醫???嶺뚯솘???嶺뚮ㅄ維獄?쑚????醫롫윪???醫롫짗??????醫롫윪??繞벿살탳???꾩룇裕녺뙴??醫롫짗?? ??醫롫윪??
         pulse.start();
         this.activeWeaponPulse = pulse;
       }
     }
 
-    // Lore popup — open on first-seen items (or always-on setting).
+    // Lore popup ??open on first-seen items (or always-on setting).
     // Deferred behind the pulse (if any) so the cutscene completes first.
     // For already-seen items without the alwaysShowLore option this resolves
     // to a no-op in LorePopup.showIfNew().
     this.lorePopupItem = item;
 
-    // ── Ego wake dialogue (EGO_WAKE) 폐기 (사용자 결정 2026-05-03) ──
-    // 픽업 후 대사를 모두 없앤다. discovery 시점의 EGO_RUSTBORN_AWAKEN 으로
-    // Rustborn 인지·각성 메타포가 이미 봉합되었고, 픽업 후엔 게임 컨트롤로
-    // 즉시 복귀해야 호흡이 깔끔. EGO_EVENT.WAKE 표식만 한 번 set 해 다른
-    // 분기 (예: 무기 swap 시) 에서 "WAKE 이미 발생" 로 인식되도록 유지.
+    // ???? Ego wake dialogue (EGO_WAKE) ?????(??????롪퍒???2026-05-03) ????
+    // ????뵜 ??????? 嶺뚮ㅄ維筌???怨룸쭚?? discovery ??戮곗젍??EGO_RUSTBORN_AWAKEN ??怨쀬Ŧ
+    // Rustborn ?筌?鸚룸슗泥롦⑤㈇??嶺뚮∥????? ???? ??낅㎦????琉??? ????뵜 ?熬곣뫖???롪퍓??????쳜?猿낆뿉??댁Ŧ
+    // 嶺뚯빖留???곌랜踰???怨룻뒍 ?筌뤿굞逾??濚밸Ŧ?椰? EGO_EVENT.WAKE ??戮?뻤嶺?????set ?????섎?
+    // ?釉뚯뫅??(?? ??쒕뼬??swap ?? ?????"WAKE ???? ?꾩룇裕뉑틦? ???筌뤾쑬六??濡レ┣?????.
     if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
       this.unlockedEvents.add(EGO_EVENT.WAKE);
     }
   }
 
   /**
-   * ?�레?�어 ??가??가까운 ?�빌까�???벡터�??�석. ?�빌??찾�? 못하�?null.
+   * ??醫롫윥???醫롫윪?????띠럾????띠럾?濚밸Ŧ?????醫롫윥??명떐??뱀굲????뺢껴?㎬땻節낅쐻???醫롫윪?? ??醫롫윥???嶺뚢돦堉?? 嶺뚮쪇沅?뇡???null.
    *
-   * ?�빌 좌표�? Anvil ?�래?�는 container�?bottom-center pivot ?�로 그리므�?
-   * `anvil.x`???�각???�평 중앙, `anvil.y`???�각??바닥???�다.
-   * Tether ?�착?��? ?�빌??**top-center**(머리 ?��?�?�?가리켜??
-   * ?�선???�하??모서리�? ?�닌 ?�빌 �??기로 ?�연?�럽�?꽂힌??
+   * ??醫롫윥????レ뒭筌뤿떣?? Anvil ??醫롫윥???醫롫윥??container??bottom-center pivot ??醫롫윥餓??잙갭梨?怨?쾵???
+   * `anvil.x`????醫롫윞?????醫???繞벿살탳?? `anvil.y`????醫롫윞????꾩룆??????醫롫윥??
+   * Tether ??醫롫윪揶??醫롫짗?? ??醫롫윥???**top-center**(?誘⑹굡????醫롫짗???????띠럾??洹먮뵁猷??
+   * ??醫롫윪?????醫????嶺뚮ㅄ維곮땻?⑤뎨??? ??醫롫윥????醫롫윥??????リ옇?▽빳???醫롫윪???醫롫윥??먮쐻??臾롫옪???
    */
   private resolveAnvilTarget(fromX: number, fromY: number): { x: number; y: number } | null {
-    if (this.anvil) {
-      return { x: this.anvil.x, y: this.anvil.y - this.anvil.height };
-    }
-    if (this.currentLevel?.entities) {
-      let best: { d: number; x: number; y: number } | null = null;
-      for (const ent of this.currentLevel.entities) {
-        if (ent.type !== 'Anvil') continue;
-        // LDtk Anvil entity ??pivot ??bottom-center �??�정???�어
-        // ent.px[1] ???�각??바닥. top-center �??�어?�린??
-        const ex = ent.px[0];
-        const ey = ent.px[1] - ent.height;
-        const d = (ex - fromX) * (ex - fromX) + (ey - fromY) * (ey - fromY);
-        if (!best || d < best.d) best = { d, x: ex, y: ey };
-      }
-      if (best) return { x: best.x, y: best.y };
-    }
-    if (this.lastUsedAnvilPos) {
-      return {
-        x: this.lastUsedAnvilPos.x,
-        y: this.lastUsedAnvilPos.y - this.lastUsedAnvilPos.height,
-      };
-    }
-    return null;
+    return resolveAnvilTargetPoint(
+      this.anvil,
+      this.currentLevel,
+      this.lastUsedAnvilPos,
+      fromX,
+      fromY,
+    );
   }
 
   /**
-   * LorePopup ?�힘 ?�후 ?�출?�어 지??tether�??�성. ?�레?�어가 ?�빌??
-   * ?�달??openAnvilUI�??�출?�면 requestFadeOut?�로 ?�진 ?�멸?�다.
+   * LorePopup ??醫?????醫?????醫롫윪???醫롫윪??嶺뚯솘???tether????醫롫윪?? ??醫롫윥???醫롫윪?됯막泥? ??醫롫윥???
+   * ??醫롫윥???openAnvilUI????醫롫윪???醫롫윥??requestFadeOut??醫롫윥餓???醫롫윪壤???醫롫윥???醫롫윥??
    */
   private spawnPersistentAnvilTether(rarity: Rarity): void {
     const fromX = this.player.x + this.player.width / 2;
@@ -9029,20 +8915,20 @@ export class LdtkWorldScene extends Scene {
   private updateSacredPickup(dt: number): boolean {
     let blocking = false;
 
-    // ── Rustborn pre-pickup discovery ───────────────────────────────
+    // ???? Rustborn pre-pickup discovery ??????????????????????????????????????????????????????????????
     // When the player walks within 5 tiles of an un-encountered Rustborn drop,
     // freeze input, run a 2 s discovery pulse, then dispatch EGO_FIRST_WALK
     // (3 lines). Pickup itself is blocked until this completes; the existing
     // pickup flow then runs without the on-pickup T2 pulse and only fires
-    // EGO_WAKE (2 lines), matching the "approach → pulse → 3 lines → pickup
-    // → 2 lines" beat structure.
+    // EGO_WAKE (2 lines), matching the "approach ??pulse ??3 lines ??pickup
+    // ??2 lines" beat structure.
     if (
       !this.discoveryActive
       && !this.unlockedEvents.has(EGO_EVENT.FIRST_WALK)
       && this.loreDisplay && !this.loreDisplay.isActive
       && !this.activeWeaponPulse
     ) {
-      const PROXIMITY_PX = 80; // 5 tiles × 16
+      const PROXIMITY_PX = 80; // 5 tiles ??16
       const proxSq = PROXIMITY_PX * PROXIMITY_PX;
       const px = this.player.x + this.player.width / 2;
       const py = this.player.y + this.player.height / 2;
@@ -9074,7 +8960,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
     if (this.activeAnvilTether) {
-      // Endpoint�?�??�레???�레?�어 중심 ???�재 ?�빌 ?�치�?갱신.
+      // Endpoint??????醫롫윥?????醫롫윥???醫롫윪??繞벿살탳??????醫롫윪????醫롫윥????醫롫윪?洹쏅쐻??띠룄???
       const fx = this.player.x + this.player.width / 2;
       const fy = this.player.y + this.player.height / 2;
       const target = this.resolveAnvilTarget(fx, fy);
@@ -9095,8 +8981,8 @@ export class LdtkWorldScene extends Scene {
       const item = this.lorePopupItem;
       const shown = this.lorePopup.showIfNew(item, () => {
         this.activeLorePopupItem = null;
-        // 첫 Anvil 조우 시의 가이드 라인(persistent tether) 비활성화.
-        // 검 Ego 내러티브가 온보딩을 전달하므로 시각 가이드가 중복.
+        // 嶺?Anvil ?브퀗?????戮곕꺄 ?띠럾????獄???源녿데(persistent tether) ?????繹먮봿??
+        // ?롪틵? Ego ??????⑤벤?뤸뤆?쎛 ???산텠??諭諭??熬곣뫀堉???????蹂?뜜 ?띠럾????獄?쑚泥? 繞벿살탮??
         // if (!sacredSave.isFirstDiveDone()) {
         //   this.spawnPersistentAnvilTether(item.rarity);
         // }
@@ -9111,24 +8997,24 @@ export class LdtkWorldScene extends Scene {
     }
 
     if (this.lorePopup?.isBlocking()) {
-      // ?�?�머(?�력 ?�금)???�업?????�는 ?�안 ??�� 진행.
+      // ????醫롫윥????醫롫윥????醫롫윞??????醫롫윪驪??????醫롫윥????醫롫윪?????醫롫짗??嶺뚯쉳?듸쭛?
       this.lorePopup.update(dt);
       blocking = true;
       const input = this.game.input;
-      // 초기 1�??�력 ?�금???��??�에�?X ?�인??받는??
+      // ?貫?껆뵳?1????醫롫윥????醫롫윞?????醫롫짗????醫롫윪?됰맕??X ??醫롫윪????꾩룇猷???
       if (this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
         input.consumeJustPressed(GameAction.ATTACK);
         const item = this.activeLorePopupItem;
         if (item) this.lorePopup.confirm(item);
         else this.lorePopup.close();
       } else if (!this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        // ?�금 ?�안 ?�어??X ???�비???�른 루프(?? 공격)�??��? ?�도�?
+        // ??醫롫윞????醫롫윪????醫롫윪???X ????醫롫윥?????醫롫윥???猷먮쳜???? ??ㅻ???????醫롫짗?? ??醫롫윥?룰쐼??
         input.consumeJustPressed(GameAction.ATTACK);
       }
     }
 
-    // AcquireOverlay — relic / max HP+ ceremonial modal. Same pattern as LorePopup:
-    // 1000ms 입력 잠금 후 ATTACK 으로 dismiss. 잠금 중 ATTACK 은 소비만 하고 통과시키지 않음.
+    // AcquireOverlay ??relic / max HP+ ceremonial modal. Same pattern as LorePopup:
+    // 1000ms ???놁졑 ??ル맪????ATTACK ??怨쀬Ŧ dismiss. ??ル맪??繞?ATTACK ?? ????⑴춯????겶????沅???ろ뀞嶺뚯솘? ???곷쾳.
     if (this.updateAcquireOverlay(dt)) blocking = true;
 
     // Dive preview modal takes priority over other UI input.
@@ -9143,8 +9029,8 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Discovery — once the pulse finishes, dispatch Rustborn awaken dialogue
-    // (사용자 결정 2026-05-03: 기존 EGO_FIRST_WALK 대체).
+    // Discovery ??once the pulse finishes, dispatch Rustborn awaken dialogue
+    // (??????롪퍒???2026-05-03: ?リ옇???EGO_FIRST_WALK ??嶺?.
     if (this.discoveryDialoguePending && !this.activeWeaponPulse) {
       this.discoveryDialoguePending = false;
       this.loreDisplay?.showDialogue(EGO_RUSTBORN_AWAKEN, true);
@@ -9194,168 +9080,28 @@ export class LdtkWorldScene extends Scene {
   // ---------------------------------------------------------------------------
 
   private updateAltars(dt: number): void {
-    for (const altar of this.altars) {
-      altar.update(dt);
-
-      if (altar.used) {
-        altar.setShowHint(false);
-        continue;
-      }
-
-      const near = altar.overlaps(
-        this.player.x - 8, this.player.y - 8,
-        this.player.width + 16, this.player.height + 16,
-      );
-      altar.setShowHint(near);
-
-      if (altar.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.game.input.isJustPressed(GameAction.LOOK_UP) && !this.altarSelectActive) {
-          this.openAltarUI(altar);
-          return;
-        }
-      }
-    }
-  }
-
-  private openAltarUI(altar: Altar): void {
-    if (this.inventory.items.length === 0) {
-      this.toast.show(t('toast.no_items_to_offer'), 0xff4444);
-      return;
-    }
-    this.altarSelectActive = true;
-    this.altarSelectIndex = 0;
-    this.activeAltar = altar;
-    this.drawAltarUI();
+    this.altarController.updateAltars(dt);
   }
 
   /** Shared item-selection panel used by both Altar and Anvil. */
   private drawItemSelectUI(titleText: string, accentColor: number): void {
-    if (this.altarUI) {
-      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
-      this.altarUI.destroy({ children: true });
-      this.altarUI = null;
-    }
-
-    const items = this.inventory.items;
-    const ui = new Container();
-
-    const bg = new Graphics();
-    const panelW = 260;
-    const panelH = 20 + items.length * 12;
-    const px = Math.floor((GAME_WIDTH - panelW) / 2);
-    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: MODAL_BG_ALPHA });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: accentColor, width: 1 });
-    bg.x = px;
-    bg.y = py;
-    ui.addChild(bg);
-
-    const title = new BitmapText({
-      text: titleText,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: accentColor },
-    });
-    title.x = px + 6;
-    title.y = py + 4;
-    ui.addChild(title);
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const selected = i === this.altarSelectIndex;
-      const prefix = selected ? '> ' : '  ';
-      const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
-      const label = `${prefix}${getDisplayName(item)} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
-      const t = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffcc44 : 0xffffff },
-      });
-      t.x = px + 6;
-      t.y = py + 16 + i * 12;
-      ui.addChild(t);
-    }
-
-    this.altarUI = ui;
-    this.game.legacyUIContainer.addChild(ui);
+    this.altarController.drawItemSelectUI(titleText, accentColor);
   }
 
   private drawAltarUI(): void {
-    this.drawItemSelectUI('Offer item to altar:', 0xaaccff);
+    this.altarController.drawAltarUI();
   }
 
   private closeAltarUI(): void {
-    this.altarSelectActive = false;
-    this.activeAltar = null;
-    if (this.altarUI) {
-      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
-      this.altarUI.destroy({ children: true });
-      this.altarUI = null;
-    }
-    this.closeCyclePromptUI();
-  }
-
-  /** Shared input handler for item selection (Altar / Anvil). */
-  private updateItemSelectInput(
-    onConfirm: (item: ItemInstance) => void,
-    redrawFn: () => void,
-  ): void {
-    const input = this.game.input;
-    const items = this.inventory.items;
-
-    if (input.isJustPressed(GameAction.LOOK_UP)) {
-      this.altarSelectIndex = Math.max(0, this.altarSelectIndex - 1);
-      redrawFn();
-      return;
-    }
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-      this.altarSelectIndex = Math.min(items.length - 1, this.altarSelectIndex + 1);
-      redrawFn();
-      return;
-    }
-    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
-      const item = items[this.altarSelectIndex];
-      if (item) {
-        onConfirm(item);
-      } else {
-        this.closeAltarUI();
-      }
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
-      this.closeAltarUI();
-      return;
-    }
+    this.altarController.close();
   }
 
   private updateAltarInput(): void {
-    this.updateItemSelectInput(
-      (item) => {
-        // Starter-only weapons (e.g. the Broken Sword) have no item world ??
-        // altar must refuse to spawn a dive portal for them.
-        if (STARTER_ONLY_IDS.has(item.def.id)) {
-          this.toast.show(t('toast.cannot_dive_broken'), 0xff4444);
-          return;
-        }
-        // Demo build: block re-dive on fully cleared items (parity with anvil).
-        if (DEMO_BLOCK_REDIVE && isItemFullyCleared(item)) {
-          this.toast.show(t('toast.memory_exhausted'), 0xff8844);
-          this.closeAltarUI();
-          return;
-        }
-        if (this.activeAltar) {
-          const altar = this.activeAltar;
-          altar.used = true;
-          this.closeAltarUI();
-          this.spawnPortal(altar.x, altar.y - 20, item.rarity, 'altar', item);
-        } else {
-          this.closeAltarUI();
-        }
-      },
-      () => this.drawAltarUI(),
-    );
+    this.altarController.updateInput();
   }
 
   private clearAltars(): void {
-    for (const a of this.altars) a.destroy();
-    this.altars = [];
+    this.altarController.clear();
   }
 
   // ---------------------------------------------------------------------------
@@ -9368,14 +9114,7 @@ export class LdtkWorldScene extends Scene {
       this.anvil.destroy();
       this.anvil = null;
     }
-    if (this.anvilPrompt?.parent) {
-      this.anvilPrompt.parent.removeChild(this.anvilPrompt);
-      this.anvilPrompt = null;
-    }
-    if (this.anvilDisabledPrompt?.parent) {
-      this.anvilDisabledPrompt.parent.removeChild(this.anvilDisabledPrompt);
-      this.anvilDisabledPrompt = null;
-    }
+    this.anvilPrompts.destroy();
     this.currentAnvilIid = null;
 
     const anvilEnts = level.entities.filter(
@@ -9402,7 +9141,7 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  /** retireAfterFirstBoss=true 인 anvil 만 retire 상태로 spawn 가능. 데이터 기반. */
+  /** retireAfterFirstBoss=true ??anvil 嶺?retire ??⑤객臾뜹슖?spawn ?띠럾??? ??⑥щ턄???リ옇?↑? */
   private shouldSpawnAnvilDisabled(retireAfterFirstBoss: boolean): boolean {
     if (!retireAfterFirstBoss) return false;
     return this.hasBossClearForAnvilRetire();
@@ -9441,8 +9180,7 @@ export class LdtkWorldScene extends Scene {
       this.anvilPromptSuppressMs = Math.max(0, this.anvilPromptSuppressMs - dt);
     }
     if (!this.anvil) {
-      if (this.anvilPrompt) this.anvilPrompt.visible = false;
-      if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+      this.anvilPrompts.hideAll();
       return;
     }
     if (this.isAnvilRetiredByBossClear(this.anvil) && !this.anvil.disabled) {
@@ -9450,118 +9188,48 @@ export class LdtkWorldScene extends Scene {
     }
     if (this.itemDeployment?.isActive) {
       this.anvil.update(dt);
-      if (this.anvilPrompt) this.anvilPrompt.visible = false;
-      if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+      this.anvilPrompts.hideAll();
       return;
     }
     if ((this.anvil.used || this.anvil.disabled) && !this.anvil.hasItem()) {
       this.anvil.update(dt);
-      if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      this.anvilPrompts.hideAction();
       if (this.anvil.disabled && this.isPlayerNearAnvil()) {
-        this.showAnvilDisabledPrompt();
-      } else if (this.anvilDisabledPrompt) {
-        this.anvilDisabledPrompt.visible = false;
+        this.anvilPrompts.showDisabled(this.anvil);
+      } else {
+        this.anvilPrompts.hideDisabled();
       }
       return;
     }
 
     this.anvil.update(dt);
-    if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+    this.anvilPrompts.hideDisabled();
 
     const near = this.isPlayerNearAnvil();
-    this.anvil.setShowHint(false); // disable built-in hint ??use KeyPrompt instead
-
-    // KeyPrompt — create lazily, show/hide + position in uiContainer.
-    // Pattern A(Modal): C(ATTACK) 키로 인벤토리(Anvil 모드) 열기 → 아이템
-    // 선택 즉시 Item World 진입 (strike 단계 없음). 무기 장착 여부와 무관하게
-    // 다가가면 항상 prompt 를 띄워 "C 로 진행 가능"을 일관되게 알린다.
+    this.anvil.setShowHint(false);
     if (near && this.anvilPromptSuppressMs <= 0) {
       const promptKey = this.anvil.hasItem() ? 'prompt.acquire_item' : 'prompt.place_weapon';
-      if (!this.anvilPrompt || (this.anvilPrompt as any)._promptKey !== promptKey) {
-        if (this.anvilPrompt?.parent) this.anvilPrompt.parent.removeChild(this.anvilPrompt);
-        this.anvilPrompt?.destroy({ children: true });
-        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t(promptKey), this.game.uiScale);
-        (this.anvilPrompt as any)._promptKey = promptKey;
-      }
-      if (!this.anvilPrompt.parent) {
-        this.game.uiContainer.addChild(this.anvilPrompt);
-      }
-      this.anvilPrompt.visible = true;
-      const us = this.game.uiScale;
-      const cam = this.game.camera;
-      // Builder-mounted anvil 의 container.x/y 는 builder 로컬 좌표이므로
-      // 카메라 변환에 그대로 쓰면 화면 밖으로 빠진다. syncBuilderAttachments 가
-      // 매 프레임 갱신해 주는 anvil.x/y(월드 좌표)를 사용한다.
-      const ax = this.anvil.x;
-      const ay = this.anvil.y;
-      const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilPrompt.width / 2;
-      const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
-      this.anvilPrompt.x = Math.round(sx);
-      this.anvilPrompt.y = Math.round(sy);
-    } else if (this.anvilPrompt) {
-      this.anvilPrompt.visible = false;
+      this.anvilPrompts.showAction(this.anvil, promptKey);
+    } else {
+      this.anvilPrompts.hideAction();
     }
 
-    // ?�빌 UI ?�기??update() ?�입부???�점 분기?�서 처리?�다
-    // (player.update ?�에 C ?�력???�비?�야 ?�스?�을 막을 ???�음).
-    if (this.anvil.hasItem() && this.player.isAttackActive()) {
-      const step = this.player.getAttackStep(this.player.comboIndex);
-      if (step) {
-        const hitbox = getAttackHitbox(
-          this.player.x, this.player.y, this.player.width, this.player.height,
-          this.player.facingRight ?? true, step,
-        );
-        if (aabbOverlap(hitbox, this.anvil.getHitAABB())) {
-          this.triggerFloorCollapse();
-        }
-      }
+    const attackHitbox = getActivePlayerAttackHitbox(this.player);
+    if (this.anvil.hasItem() && attackHitbox && aabbOverlap(attackHitbox, this.anvil.getHitAABB())) {
+      this.triggerFloorCollapse();
     }
-  }
-
-  private showAnvilDisabledPrompt(): void {
-    if (!this.anvil) return;
-    if (!this.anvilDisabledPrompt) {
-      const us = this.game.uiScale;
-      const prompt = new Container();
-      const bg = new Graphics();
-      bg.roundRect(0, 0, 72 * us, 18 * us, 3 * us)
-        .fill({ color: 0x151515, alpha: 0.82 })
-        .stroke({ color: 0x777777, width: Math.max(1, us), alpha: 0.9 });
-      const label = createUiText(t('ui.world.disabled'), {
-        fontFamily: PIXEL_FONT, fontSize: 7 * us, fill: 0xb8b8b8,
-      });
-      label.x = Math.round((72 * us - label.width) / 2);
-      label.y = Math.round((18 * us - label.height) / 2);
-      prompt.addChild(bg, label);
-      this.anvilDisabledPrompt = prompt;
-    }
-    if (!this.anvilDisabledPrompt.parent) {
-      this.game.uiContainer.addChild(this.anvilDisabledPrompt);
-    }
-    this.anvilDisabledPrompt.visible = true;
-
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    // Builder-mounted anvil: container.x/y 는 로컬이라 카메라 좌표에 직접 못 쓴다.
-    const ax = this.anvil.x;
-    const ay = this.anvil.y;
-    const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.anvilDisabledPrompt.width / 2;
-    const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 56) * us;
-    this.anvilDisabledPrompt.x = Math.round(sx);
-    this.anvilDisabledPrompt.y = Math.round(sy);
   }
 
   private hideAnvilPrompts(): void {
-    if (this.anvilPrompt) this.anvilPrompt.visible = false;
-    if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+    this.anvilPrompts.hideAll();
   }
 
   /**
-   * Step 5 (2026-05-25) — Anvil 위 남아있는 무기 회수.
+   * Step 5 (2026-05-25) ??Anvil ????貫????덈츎 ??쒕뼬???????
    *
-   * 사용자 시나리오: "anvil 인터랙트 → 무기 anvil 에서 사라지고 인벤토리로 복귀".
-   * IW 클리어 후 자동 풀려 sceneManager.pop() 으로 돌아온 시점에 anvil 의 placedItem
-   * 이 그대로 남아 있다 → 인터랙트 시 inventory.add + clearPlacedItem.
+   * ???????類?룎?洹먮봿沅? "anvil ?筌뤿굛????곕콦 ????쒕뼬??anvil ?????????륁?????筌뤾퍒萸??ル벣遊뷴슖??곌랜踰?".
+   * IW ???????????吏?????sceneManager.pop() ??怨쀬Ŧ ????????戮곗젍??anvil ??placedItem
+   * ???잙갭梨?????貫?????덈펲 ???筌뤿굛????곕콦 ??inventory.add + clearPlacedItem.
    */
   private reclaimItemFromAnvil(): void {
     if (!this.anvil || !this.anvil.item) return;
@@ -9569,7 +9237,7 @@ export class LdtkWorldScene extends Scene {
     const alreadyInInventory = this.inventory.items.some(i => i.uid === item.uid);
     const added = alreadyInInventory || this.inventory.add(item);
     if (!added) {
-      this.toast.show('Inventory full', 0xff4444);
+      this.toast.show(t('toast.inventory_full'), 0xff4444);
       return;
     }
     this.anvil.clearPlacedItem();
@@ -9580,7 +9248,7 @@ export class LdtkWorldScene extends Scene {
     if (pendingHadFirstBossClear !== null) {
       this.showFirstItemWorldReturnInventoryHint(pendingHadFirstBossClear, 500);
     }
-    this.toast.show(`+ ${getDisplayName(item)}`, 0xffd35a);
+    this.toast.show(t('toast.item_returned', { name: getDisplayName(item) }), 0xffd35a);
   }
 
   /**
@@ -9589,44 +9257,7 @@ export class LdtkWorldScene extends Scene {
    * it on the anvil instead of equipping.
    */
   private openAnvilUI(): void {
-    // Playtest 2026-04-26: retired anvil ignores all approach interaction.
-    if (!this.anvil || this.anvil.disabled) return;
-    if (this.inventory.items.length === 0) {
-      this.toast.show(t('toast.no_items_to_place'), 0xff4444);
-      return;
-    }
-    // ?�레?�어가 ?�빌???�달 ???�내??tether ?�무 ?�료.
-    this.activeAnvilTether?.requestFadeOut();
-    // Hide the approach prompt while the inventory is open ??it would
-    // otherwise bleed through the translucent inventory overlay. If the
-    // player cancels, updateAnvil re-shows it on the next frame.
-    this.hideAnvilPrompts();
-    this.inventoryUI.openForAnvil((item) => {
-      // Cannot place equipped weapon on anvil
-      if (this.inventory.equipped?.uid === item.uid) {
-        this.toast.show(t('toast.unequip_first'), 0xff4444);
-        return;
-      }
-      // Starter-only weapons (e.g. the Broken Sword) have no item world ??
-      // they are story props, not dive-able loot. Block placement outright.
-      if (STARTER_ONLY_IDS.has(item.def.id)) {
-        this.toast.show(t('toast.cannot_dive_broken'), 0xff4444);
-        return;
-      }
-      // Fully cleared item — demo blocks re-dive (DEMO_BLOCK_REDIVE).
-      // In Phase 3+ full builds, fall through to the cycle-prompt overlay.
-      if (isItemFullyCleared(item)) {
-        if (DEMO_BLOCK_REDIVE) {
-          this.toast.show(t('toast.memory_exhausted'), 0xff8844);
-          this.inventoryUI.close();
-          return;
-        }
-        this.cyclePromptItem = item;
-        this.drawCyclePromptUI(item);
-        return;
-      }
-      this.placeItemOnAnvil(item);
-    });
+    this.anvilPlacement.open();
   }
 
   /** Shared "commit item to anvil" path. */
@@ -9635,15 +9266,15 @@ export class LdtkWorldScene extends Scene {
       this.inventoryUI.close();
       return;
     }
-    // 사용자 결정 2026-05-24: DivePreview 모달 제거. anvil UI 의 [C] Dive prompt 가 이미
-    // 확정 단계이므로 추가 모달은 redundant. 바로 dive transition 진입.
+    // ??????롪퍒???2026-05-24: DivePreview 嶺뚮ㅄ維????蹂ㅽ깴. anvil UI ??[C] Dive prompt ?띠럾? ????
+    // ?筌먦끉????節띉???????怨뺣뼺? 嶺뚮ㅄ維??? redundant. ?꾩룆?餓?dive transition 嶺뚯쉳???
     sacredSave.markFirstDiveDone();
     this.hideUiForAnvilDiveTransition();
     this.anvil.placeItem(item);
     this.collapseItem = item;
     this.lastUsedAnvilItem = item;
     this.inventoryUI.close();
-    // 공격 ?�계 ?�략 ???�이???�택 즉시 ?�이�?진입
+    // ??ㅻ?????醫롫윞????醫롫윥??????醫롫윪?????醫?繹?嶺뚯빖留????醫롫윪?議얜쐻?嶺뚯쉳???
     this.triggerFloorCollapse();
   }
 
@@ -9715,8 +9346,8 @@ export class LdtkWorldScene extends Scene {
     const item = this.cyclePromptItem;
     if (!item) return;
 
-    // Pattern A(Modal): C = ?�인, ESC = 취소. Z/X ??UI ?�서 ?�용 금�?
-    // (UI_Interaction_Patterns.md). Jump/Dash 게임 ?�션�?충돌?��? ?�도�?분리.
+    // Pattern A(Modal): C = ??醫롫윪?? ESC = ???쳛?? Z/X ??UI ??醫롫윪????醫롫윪???ル???
+    // (UI_Interaction_Patterns.md). Jump/Dash ?롪퍓?????醫롫윪??쇰쐻??寃몃쳳???醫롫짗?? ??醫롫윥?룰쐼???釉뚯뫊??
     if (input.isJustPressed(GameAction.ATTACK)) {
       // Confirm re-dive ??reset progress, close prompt, proceed to anvil strike
       resetItemForNextCycle(item);
@@ -9806,12 +9437,7 @@ export class LdtkWorldScene extends Scene {
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
-    this.lastUsedAnvilPos = {
-      x: this.anvil.x,
-      y: this.anvil.y,
-      width: this.anvil.width,
-      height: this.anvil.height,
-    };
+    this.lastUsedAnvilPos = snapshotAnvil(this.anvil);
     this.lastUsedAnvilLevelId = this.currentLevel?.identifier ?? null;
     this.lastUsedAnvilItem = this.collapseItem;
     this.lastUsedAnvilRetireAfterBoss = this.anvil.retireAfterFirstBoss;
@@ -9824,27 +9450,20 @@ export class LdtkWorldScene extends Scene {
     this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
 
     this.itemDeployment?.destroy();
-    this.itemDeployment = new ItemDeploymentController(
-      this.game,
-      this.player,
-      this.entityLayer,
-      () => this.enterItemWorldFromTunnel(),
-      this.activeBuilder,
-      (x, y) => this.hitSparks.spawn(x, y, true, 1),
-      (x, y, w, h) => { this.pendingTunnelParams = { x, y, w, h }; },
-      this.currentLevel.pxWid,
-      () => this.anvil?.getGatePivotWorld() ?? null,
-      this.deploymentFxLayer,
-      (active) => this.setLaserDesaturation(active),
-      () => this.anvil?.getPlacedItemWorld() ?? null,
-      () => this.anvil?.startPlacedItemPunch(),
-      (targetX, targetY) => this.anvil?.startPlacedItemDissolve(targetX, targetY),
-      () => {
-        // onItemAbsorbed — retire 는 *ItemWorld 보스 클리어* 가 트리거 (정책
-        // 원본). retireFirstAnvilAfterBossClear() 가 ItemWorld 복귀 시 처리.
-      },
-      () => this.showTunnelOpenDialogueAfterDeployment(),
-    );
+    this.itemDeployment = createAnvilItemDeployment({
+      game: this.game,
+      player: this.player,
+      entityLayer: this.entityLayer,
+      activeBuilder: this.activeBuilder,
+      deploymentFxLayer: this.deploymentFxLayer,
+      tunnelRightEdge: this.currentLevel.pxWid,
+      getAnvil: () => this.anvil,
+      enterItemWorld: () => this.enterItemWorldFromTunnel(),
+      spawnStrikeEffect: (x, y, strong, variant) => this.hitSparks.spawn(x, y, strong, variant),
+      setPendingTunnel: (x, y, w, h) => { this.pendingTunnelParams = { x, y, w, h }; },
+      setLaserDesaturation: (active) => this.setLaserDesaturation(active),
+      showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
+    });
     this.itemDeployment.start(this.anvil.x, this.anvil.y);
   }
 
@@ -9901,12 +9520,12 @@ export class LdtkWorldScene extends Scene {
       this.stampBuilder();
     }
 
-    // Anvil halo directional trail — 터널 방향 시각 안내 (E).
-    // 터널이 anvil.x 부터 오른쪽으로 clearW 만큼이라 길이 = clearW.
+    // Anvil halo directional trail ????⑤벚???꾩렮維싧젆???蹂?뜜 ???뉖? (E).
+    // ??⑤벚???anvil.x ?遊붋?????섎꿰춯?쏅윪???뿉?clearW 嶺뚮씭??칰??????ル梨??= clearW.
     this.anvil?.triggerDirectionalTrail(clearW);
 
-    // EGO_TUNNEL_OPEN — 첫 진입 1회 한정 발화 (H).
-    // Ghost overlay — schedule creation 400ms after tunnel opens (laser gone)
+    // EGO_TUNNEL_OPEN ??嶺?嶺뚯쉳???1????戮곗젧 ?꾩룇裕??(H).
+    // Ghost overlay ??schedule creation 400ms after tunnel opens (laser gone)
     // resolves visually before the dungeon silhouette bleeds through.
     if (this.collapseItem && !this.ghostOverlay && this.ghostPendingTimer < 0) {
       this.ghostPendingParams = { x, y, w: clearW, h };
@@ -9953,7 +9572,7 @@ export class LdtkWorldScene extends Scene {
     ghost.fadeTo(1, 0);
     this.ghostOverlay = ghost;
 
-    // Stamp ghost collision into world grid (non-zero tiles only — don't erase world walls outside tunnel).
+    // Stamp ghost collision into world grid (non-zero tiles only ??don't erase world walls outside tunnel).
     if (debugLevel) {
       const TILE = 16;
       const gx0 = Math.floor(ghost.container.x / TILE);
@@ -10097,7 +9716,7 @@ export class LdtkWorldScene extends Scene {
       );
       this.pendingTunnelParams = null;
     }
-    // Re-apply dungeon filter if still active — restore overwrote it.
+    // Re-apply dungeon filter if still active ??restore overwrote it.
     if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
       for (const target of this.dungeonAtmosphereTargets) {
         const cur = (target.filters as Filter[] | null) ?? [];
@@ -10150,7 +9769,7 @@ export class LdtkWorldScene extends Scene {
       this.frozenPlayerSnapshot = snap;
       this.frozenReturnInteractionArmed = false;
 
-      // Proximity handler — [C] near snapshot → Return to World confirm
+      // Proximity handler ??[C] near snapshot ??Return to World confirm
       if (!this.frozenSnapshotHandler) {
         const handler: ProximityInteraction = {
           label: 'frozen-return',
@@ -10169,20 +9788,20 @@ export class LdtkWorldScene extends Scene {
 
       // Prompt created eagerly so it's ready the moment player walks near
       if (!this.frozenSnapPromptContainer) {
-        const p = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Return', this.game.uiScale);
+        const p = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.return'), this.game.uiScale);
         p.visible = false;
         this.game.uiContainer.addChild(p);
         this.frozenSnapPromptContainer = p;
       }
     }
 
-    // Weapon float: anvil item icon 6× at center, in front of parallax
+    // Weapon float: anvil item icon 6??at center, in front of parallax
     // Move player to unfiltered vividLayer so it stays in color
     if (this.player?.container.parent === this.entityLayer) {
       this.vividLayer.addChild(this.player.container);
     }
 
-    // Apply to renderer sub-layers individually — parent-level filter on renderer.container
+    // Apply to renderer sub-layers individually ??parent-level filter on renderer.container
     // does not reliably composite through @pixi/tilemap children in PixiJS v8.
     const targets: Container[] = [
       this.renderer?.bgLayer,
@@ -10323,7 +9942,7 @@ export class LdtkWorldScene extends Scene {
       this.frozenSnapshotHandler = null;
     }
 
-    // White overlay: fade in 600ms → deactivate atmosphere → fade out 600ms
+    // White overlay: fade in 600ms ??deactivate atmosphere ??fade out 600ms
     const overlayGfx = new Graphics();
     overlayGfx.rect(0, 0, GAME_WIDTH * this.game.uiScale, GAME_HEIGHT * this.game.uiScale)
       .fill({ color: 0xffffff, alpha: 1 });
@@ -10336,7 +9955,7 @@ export class LdtkWorldScene extends Scene {
     let elapsed = 0;
     let phase: 'in' | 'out' = 'in';
 
-    // Store callback ref so we can remove it — app.ticker.add() returns the
+    // Store callback ref so we can remove it ??app.ticker.add() returns the
     // Ticker itself (not a listener), so ticker.destroy() would kill the entire loop.
     const onTick = (tk: { deltaMS: number }) => {
       elapsed += tk.deltaMS;
@@ -10451,7 +10070,7 @@ export class LdtkWorldScene extends Scene {
     // Remember where we came from so we can return after exiting Item World.
     this.preTunnelLevelId = this.currentLevel.identifier;
 
-    // ARCHIVED — tunnel descent disabled. Player enters Item World directly
+    // ARCHIVED ??tunnel descent disabled. Player enters Item World directly
     // after the anvil FX. To restore the tunnel flow, call
     // `this.completeFloorCollapseEntryViaTunnel()` instead of the line below.
     // this.completeFloorCollapseEntryViaTunnel();
@@ -10459,7 +10078,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * ARCHIVED — original tunnel descent entry.
+   * ARCHIVED ??original tunnel descent entry.
    *
    * Loads an `ItemTunnel_*` level (rarity-mapped) where the player walks down
    * to the bottom edge, which then triggers `enterItemWorldFromTunnel()`.
@@ -10560,8 +10179,8 @@ export class LdtkWorldScene extends Scene {
     const prevAtk = this.player.atk;
     const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
 
-    // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
-    // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
+    // ??븐뼔援???? push ????? (destroy ????. 嶺뚯쉳??????ル‘肉????λ?獄?EXP ???夷??
+    // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
     this.dmgNumbers?.clear();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
@@ -10572,7 +10191,7 @@ export class LdtkWorldScene extends Scene {
       this.game.sceneManager.pop();
       this.startItemWorldReturnFadeIn();
       this.updatePlayerAtk();
-      // Only set after first IW boss kill — see other onComplete site for rationale.
+      // Only set after first IW boss kill ??see other onComplete site for rationale.
       if (sacredSave.isFirstItemWorldBossDefeated()) {
         this.unlockedEvents.add('__itemWorldTutorialDone');
       }
@@ -10592,7 +10211,7 @@ export class LdtkWorldScene extends Scene {
         this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
       }
 
-      // ── Ego T14 / Anvil retirement (Playtest 2026-04-26) ──
+      // ???? Ego T14 / Anvil retirement (Playtest 2026-04-26) ????
       this.fireWorldReturnDialogue(targetItem.def.id);
       this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
 
@@ -10612,16 +10231,12 @@ export class LdtkWorldScene extends Scene {
    * missing (shouldn't happen in normal flow but keeps the scene coherent).
    */
   private placePlayerAtReturnPoint(): void {
-    const snap = this.lastUsedAnvilPos ?? (this.anvil
-      ? { x: this.anvil.x, y: this.anvil.y, width: this.anvil.width, height: this.anvil.height }
-      : null);
-    if (!snap) return;
-    this.player.x = snap.x + snap.width / 2 + 8;
-    this.player.y = snap.y - this.player.height;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-    this.game.camera.snap(this.player.x, this.player.y);
+    placePlayerAtAnvilReturnPoint(
+      this.player,
+      this.lastUsedAnvilPos,
+      this.anvil,
+      (x, y) => this.game.camera.snap(x, y),
+    );
   }
 
   private restoreWorldAtAnvilReturnPoint(resetAnvil: boolean): void {
@@ -10630,9 +10245,9 @@ export class LdtkWorldScene extends Scene {
     this.pendingLevelId = null;
     this.pendingDirection = null;
 
-    // Step 4/5 (2026-05-25): loadLevel → spawnAnvilFromLdtk 가 *새 Anvil 인스턴스* 를
-    // 생성하므로 placedItem 이 자동 사라짐. 사용자 시나리오 (anvil 위 무기 sprite 유지)
-    // 를 위해 *loadLevel 전 백업* + *후 복원*.
+    // Step 4/5 (2026-05-25): loadLevel ??spawnAnvilFromLdtk ?띠럾? *??Anvil ?筌뤾쑬裕??怨룸츩* ??
+    // ??諛댁뎽?????placedItem ?????吏?????륁?? ???????類?룎?洹먮봿沅?(anvil ????쒕뼬??sprite ???)
+    // ???熬곥굥??*loadLevel ???꾩룄??캆? + *???곌랜踰??.
     const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
 
     const returnLevelId = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId;
@@ -10645,9 +10260,9 @@ export class LdtkWorldScene extends Scene {
 
     if (resetAnvil && this.anvil) {
       this.anvil.used = false;
-      // anvil.item 은 placeItem() 으로 복원 — itemGfx/itemIcon sprite 도 재생성.
-      // 단 placeItem 은 disabled (retire) 상태면 early return — 첫 IW 보스 클리어 후
-      // anvil 이 retire spawn 되므로 disabled bypass 후 placeItem.
+      // anvil.item ?? placeItem() ??怨쀬Ŧ ?곌랜踰????itemGfx/itemIcon sprite ????繹??
+      // ??placeItem ?? disabled (retire) ??⑤객臾띄춯?early return ??嶺?IW ?곌랜???????????
+      // anvil ??retire spawn ?????disabled bypass ??placeItem.
       if (preservedAnvilItem) {
         const wasDisabled = this.anvil.disabled;
         this.anvil.disabled = false;
@@ -10682,7 +10297,7 @@ export class LdtkWorldScene extends Scene {
         this.game.sceneManager.pop();
         this.startItemWorldReturnFadeIn();
         this.updatePlayerAtk();
-        // Only set after first IW boss kill — see other onComplete site for rationale.
+        // Only set after first IW boss kill ??see other onComplete site for rationale.
         if (sacredSave.isFirstItemWorldBossDefeated()) {
           this.unlockedEvents.add('__itemWorldTutorialDone');
         }
@@ -10837,7 +10452,7 @@ export class LdtkWorldScene extends Scene {
   private worldMap!: WorldMapOverlay;
 
   /**
-   * Fixed-viewport HUD minimap (GDD System_UI_Minimap.md §1).
+   * Fixed-viewport HUD minimap (GDD System_UI_Minimap.md 筌?).
    * - Panel: 128x72 px (16:9). Position: top-right.
    * - Viewport: current room centered, +-3 cells shown.
    * - Background: alpha 0.6 black. Border: 1px #666666.
@@ -10884,8 +10499,8 @@ export class LdtkWorldScene extends Scene {
     this.minimapPW = PW;
     this.minimapPH = PH;
 
-    // Fog of war: visited + adjacent (outlined). Secret 방은 *방문 전 outline 비공개*
-    // — adjacentIds 에 추가되지 않게 필터. 방문 후엔 visited 분기에서 정상 렌더.
+    // Fog of war: visited + adjacent (outlined). Secret ?꾩렮維? *?꾩렮維뽪룇 ??outline ?????泥?
+    // ??adjacentIds ???怨뺣뼺???? ??袁⑹벟 ?熬곥굤?? ?꾩렮維뽪룇 ?熬곣뫖??visited ?釉뚯뫅???????筌먦끆留??????
     const visitedIds = this.visitedLevels;
     const clearedIds = this.clearedLevels;
     const adjacentIds = new Set<string>();
@@ -10895,7 +10510,7 @@ export class LdtkWorldScene extends Scene {
         for (const nb of level.neighbors) {
           if (visitedIds.has(nb)) continue;
           const nbLevel = this.loader.getLevel(nb);
-          if (nbLevel?.secret) continue;     // Secret 방 — adjacent 표시 제외
+          if (nbLevel?.secret) continue;     // Secret ????adjacent ??戮?뻣 ??戮곕뇶
           adjacentIds.add(nb);
         }
       }
@@ -10920,7 +10535,7 @@ export class LdtkWorldScene extends Scene {
       return { rx, ry, rw, rh, visible };
     };
 
-    // GDD tier colors (§1.4)
+    // GDD tier colors (筌?.4)
     const TIER_COLORS: Record<string, number> = {
       'Tier1': 0x4A8A4A, 'Tier2': 0x5A7A8C, 'Tier3': 0x4A3A2A,
       'Tier4': 0x2A4A6C, 'Tier5': 0x6A4A8C, 'Tier6': 0x4AACCC, 'Tier7': 0x8C2A2A,
@@ -11005,7 +10620,7 @@ export class LdtkWorldScene extends Scene {
       content.addChild(g);
     }
 
-    // Auto markers (GDD §2) ??save, boss, anvil
+    // Auto markers (GDD 筌?) ??save, boss, anvil
     for (const r of worldMap) {
       if (!visitedIds.has(r.id)) continue;
       if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
@@ -11037,7 +10652,7 @@ export class LdtkWorldScene extends Scene {
       }
     }
 
-    // Player dot (blinking) ??GDD §1.5
+    // Player dot (blinking) ??GDD 筌?.5
     // Drawn at origin; position updated every frame in update()
     {
       const dotSize = 3 * us;
@@ -11058,7 +10673,7 @@ export class LdtkWorldScene extends Scene {
     this.minimap.x = (515 + 6) * us;
     this.minimap.y = (6 + 5 - 3) * us;
 
-    // Opacity: 70% normal, 40% during combat (GDD §1.1)
+    // Opacity: 70% normal, 40% during combat (GDD 筌?.1)
     const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
     this.minimap.alpha = inCombat ? 0.4 : 0.7;
 
@@ -11124,20 +10739,20 @@ export class LdtkWorldScene extends Scene {
     this.drops = [];
   }
 
-  // ── Ego dialogue triggers ───────────────────────────────────────
+  // ???? Ego dialogue triggers ??????????????????????????????????????????????????????????????????????????????
   // Code-driven triggers for Rustborn Ego that can't be placed as LDtk entities.
 
   /**
-   * T02: First movement after Ego wake — non-blocking auto-close dialogue.
-   * T03: Anvil proximity hint — non-blocking.
-   * S01: Weapon swap — Rustborn unequipped.
+   * T02: First movement after Ego wake ??non-blocking auto-close dialogue.
+   * T03: Anvil proximity hint ??non-blocking.
+   * S01: Weapon swap ??Rustborn unequipped.
    */
   private updateEgoTriggers(_dt: number): void {
     if (!this.loreDisplay || this.loreDisplay.isActive) return;
 
-    // T02 (FIRST_WALK) — 이전에는 픽업 후 첫 이동 시 발화했으나, 신규 흐름에서는
-    // 픽업 직전 discovery 컷신(updateSacredPickup)이 EGO_FIRST_WALK 를 사용한다.
-    // 따라서 walk-trigger 는 제거됨. FIRST_WALK 키는 discovery 발화 표식으로 재사용.
+    // T02 (FIRST_WALK) ????怨몄쓧???裕?????뵜 ??嶺?????????꾩룇裕????깅さ?? ??ル맪????????????
+    // ????뵜 嶺뚯쉳???discovery ???폎??updateSacredPickup)??EGO_FIRST_WALK ???????類ｋ펲.
+    // ??⑤벡逾??walk-trigger ????蹂ㅽ깴?? FIRST_WALK ???노츎 discovery ?꾩룇裕????戮?뻤??怨쀬Ŧ ??亦??
 
     // T03: Anvil proximity (first time after Ego wake)
     if (
@@ -11156,15 +10771,15 @@ export class LdtkWorldScene extends Scene {
   }
 
   private retireFirstAnvilAfterBossClear(hadFirstBossClear: boolean): void {
-    // 2026-05-24 fix v2: lastUsedAnvilRetireAfterBoss 가드 제거.
-    // dive 시점 추적은 *dive 직전의 this.anvil 정체* (host vs builder) 에 따라
-    // 불안정. 복귀 시점의 *현재 anvil.retireAfterFirstBoss* 를 직접 보는 게
-    // 정책상 더 명확 — "retire flag true 인 anvil 은 보스 클리어 후 항상 disable".
+    // 2026-05-24 fix v2: lastUsedAnvilRetireAfterBoss ?띠럾?????蹂ㅽ깴.
+    // dive ??戮곗젍 ?怨뺣뾼??? *dive 嶺뚯쉳????this.anvil ?筌먦끆?? (host vs builder) ????⑤벡逾?
+    // ?釉띾쐠??? ?곌랜踰? ??戮곗젍??*?熬곣뫗??anvil.retireAfterFirstBoss* ??嶺뚯쉳????곌랜?????
+    // ?筌먦끉?????嶺뚮ㅏ援????"retire flag true ??anvil ?? ?곌랜?????????????疫?disable".
     if (!this.hasBossClearForAnvilRetire()) return;
     if (!this.lastUsedAnvilRetireAfterBoss) return;
     if (!this.anvil) return;
 
-    // Dialogue + EGO event 는 *최초 1회만* (hadFirstBossClear=false 일 때).
+    // Dialogue + EGO event ??*嶺뚣끉裕??1???異? (hadFirstBossClear=false ????.
     if (!hadFirstBossClear) {
       this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
@@ -11174,7 +10789,7 @@ export class LdtkWorldScene extends Scene {
     this.anvil.item = null;
     this.anvil.retireAfterFirstBoss = true;
     void this.anvil.setDisabled(true);
-    if (this.anvilPrompt) this.anvilPrompt.visible = false;
+    this.anvilPrompts.hideAll();
     if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
       this.inventoryUI.close();
     }
@@ -11185,8 +10800,8 @@ export class LdtkWorldScene extends Scene {
    *
    * Branches:
    *  - First IW boss already cleared & anvil-retired dialogue not yet shown
-   *      → EGO_ANVIL_RETIRED (replaces T14), then disables current anvil
-   *  - Otherwise, the standard T14 "또 올 거야?" line plays once
+   *      ??EGO_ANVIL_RETIRED (replaces T14), then disables current anvil
+   *  - Otherwise, the standard T14 "????濾곌쑨?ｉ뜮?" line plays once
    *
    * Both branches are gated to Ego-bearing weapons (currently Rustborn only).
    */
@@ -11201,11 +10816,11 @@ export class LdtkWorldScene extends Scene {
 
     if (anvilRetiring) {
       this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
-      // Suppress the T14 line permanently — anvil-retired replaces it.
+      // Suppress the T14 line permanently ??anvil-retired replaces it.
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-      // freeze=true — dialogue 동안 player 입력 잠금 (anvil 인터랙트 차단).
-      // setTimeout 짧게 (200ms) — 화면 전환/카메라 snap 직후 발화. 1000ms 갭 동안
-      // anvil 인터랙트 가능했던 사용자 피드백 (2026-05-02) 대응.
+      // freeze=true ??dialogue ???덊닱 player ???놁졑 ??ル맪??(anvil ?筌뤿굛????곕콦 嶺뚢뼰維??.
+      // setTimeout 嶺뚯쉧猷볢떋?(200ms) ????븐뻼???熬곥굦???곸궠?筌??snap 嶺뚯쉳????꾩룇裕?? 1000ms ?????덊닱
+      // anvil ?筌뤿굛????곕콦 ?띠럾??繞⑨쭛?????????怨뺢덧??(2026-05-02) ????
       setTimeout(async () => {
         if (this.loreDisplay && !this.loreDisplay.isActive) {
           await this.loreDisplay.showDialogue(getEgoAnvilRetired(), true);
@@ -11217,7 +10832,7 @@ export class LdtkWorldScene extends Scene {
 
     if (!this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)) {
       this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-      // freeze=true — dialogue 동안 anvil/이동 입력 차단.
+      // freeze=true ??dialogue ???덊닱 anvil/????????놁졑 嶺뚢뼰維??
       setTimeout(() => {
         if (!this.loreDisplay?.isActive) {
           void this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, true);
@@ -11241,10 +10856,10 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  // ── Dive transition (replaces MemoryDive) ─────────────────────────
-  // step 1: hitstop 10f + screen flash (공명)
+  // ???? Dive transition (replaces MemoryDive) ??????????????????????????????????????????????????
+  // step 1: hitstop 10f + screen flash (??ㅻ쾳筌?
   // step 2: color drain + iris shrink toward anvil center (800ms)
-  // step 3: black screen 500ms → scene switch
+  // step 3: black screen 500ms ??scene switch
 
   private diveOverlay: Graphics | null = null;
   private diveIris: Graphics | null = null;
@@ -11316,7 +10931,7 @@ export class LdtkWorldScene extends Scene {
       this.diveIris = null;
       this.diveTransitionActive = false;
 
-      // Reset zoom now — screen is fully black so player won't see the snap
+      // Reset zoom now ??screen is fully black so player won't see the snap
       this.game.camera.setZoom(1.0);
 
       // Enter item world

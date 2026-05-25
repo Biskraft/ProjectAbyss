@@ -1,5 +1,5 @@
 import { Container, Graphics, BitmapText } from 'pixi.js';
-import { type ItemInstance, RARITY_COLOR, DEMO_BLOCK_REDIVE, getDisplayName, getIdentityCategory, getCurrentStage } from '@items/ItemInstance';
+import { type ItemInstance, RARITY_COLOR, DEMO_BLOCK_REDIVE, getDisplayName, getCurrentStage, getIdentityCategory } from '@items/ItemInstance';
 import { getStageFragment } from '@data/fragments';
 import type { Inventory } from '@items/Inventory';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
@@ -7,7 +7,7 @@ import { ItemImage } from './ItemImage';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
-import { RARITY_DISPLAY_NAME, STARTER_ONLY_IDS } from '@data/weapons';
+import { STARTER_ONLY_IDS } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { generateRoomGraph, type RoomGraphData } from '@level/RoomGraph';
 import { archetypeFor } from '@level/RoomGraphArchetypes';
@@ -26,6 +26,20 @@ import { GameAction, actionKey } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
 import type { UISkin } from './UISkin';
 import { sacredSave } from '@save/PlayerSave';
+import {
+  FILTER_TABS,
+  itemMatchesFilter,
+  moveGridSelection,
+  nextFilterTab,
+  type FilterTab,
+  type GridDirection,
+} from './inventory/InventorySelection';
+import {
+  getFragmentStagesForRarity,
+  getInventoryRecoveryMeta,
+  getTotalFragmentsForRarity,
+} from './inventory/InventoryItemInfo';
+import { centeredPanelPosition, scrollThumbMetrics } from './inventory/InventoryLayout';
 
 // ── Layout (DEC-045) ──────────────────────────────────────────────────────────
 const PADDING_H = 8;
@@ -73,14 +87,6 @@ const COL_EQUIPPED_BAR = 0xff8c00;
 const COL_KEY = 0xffa41b; // brand key color
 
 // ── Filter tabs ───────────────────────────────────────────────────────────────
-type FilterTab = 'ALL' | 'WPN' | 'ARM' | 'ACC';
-const FILTER_TABS: FilterTab[] = ['ALL', 'WPN', 'ARM', 'ACC'];
-
-function itemMatchesFilter(item: ItemInstance, filter: FilterTab): boolean {
-  if (filter === 'ALL' || filter === 'WPN') return true;
-  return false; // ARM / ACC: future item types
-}
-
 // ── Public types ──────────────────────────────────────────────────────────────
 export interface PlayerStats {
   hp: number;
@@ -279,38 +285,25 @@ export class InventoryUI {
 
   cycleFilter(): void {
     if (this.anvilState === 'placed') return;
-    const idx = FILTER_TABS.indexOf(this.filter);
-    this.filter = FILTER_TABS[(idx + 1) % FILTER_TABS.length];
+    this.filter = nextFilterTab(this.filter);
     this.scrollRowOffset = 0;
     this.selectedIndex = this.filteredItems().length > 0 ? 0 : -1;
     this.refresh();
   }
 
-  navigate(dir: 'left' | 'right' | 'up' | 'down'): void {
+  navigate(dir: GridDirection): void {
     if (this.mode === 'anvil' && this.anvilState === 'placed') return;
     const count = this.filteredItems().length;
     if (count === 0) return;
-    if (this.selectedIndex < 0) {
-      this.selectedIndex = 0;
-    } else {
-      switch (dir) {
-        case 'left':
-          this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-          break;
-        case 'right':
-          this.selectedIndex = Math.min(count - 1, this.selectedIndex + 1);
-          break;
-        case 'up':
-          if (this.selectedIndex >= GRID_COLS) this.selectedIndex -= GRID_COLS;
-          break;
-        case 'down':
-          if (this.selectedIndex + GRID_COLS < count) this.selectedIndex += GRID_COLS;
-          break;
-      }
-    }
-    const row = Math.floor(this.selectedIndex / GRID_COLS);
-    if (row < this.scrollRowOffset) this.scrollRowOffset = row;
-    if (row >= this.scrollRowOffset + GRID_ROWS) this.scrollRowOffset = row - GRID_ROWS + 1;
+    const next = moveGridSelection(
+      { selectedIndex: this.selectedIndex, scrollRowOffset: this.scrollRowOffset },
+      dir,
+      count,
+      GRID_COLS,
+      GRID_ROWS,
+    );
+    this.selectedIndex = next.selectedIndex;
+    this.scrollRowOffset = next.scrollRowOffset;
     this.refresh();
   }
 
@@ -321,8 +314,9 @@ export class InventoryUI {
 
   // ── Main refresh ─────────────────────────────────────────────────────────────
   refresh(): void {
-    this.panel.x = Math.floor((GAME_WIDTH - PANEL_W) / 2);
-    this.panel.y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
+    const panelPos = centeredPanelPosition(GAME_WIDTH, GAME_HEIGHT, PANEL_W, PANEL_H);
+    this.panel.x = panelPos.x;
+    this.panel.y = panelPos.y;
 
     this.panelBg.clear();
     if (this.panelFrame) {
@@ -469,14 +463,11 @@ export class InventoryUI {
     }
 
     // Scroll indicator
-    const totalRows = Math.ceil(items.length / GRID_COLS);
-    if (totalRows > GRID_ROWS) {
-      const barH = GRID_ROWS * (CELL_H + CELL_GAP) - CELL_GAP;
-      const thumbH = Math.max(10, barH * (GRID_ROWS / totalRows));
-      const thumbY = (this.scrollRowOffset / (totalRows - GRID_ROWS)) * (barH - thumbH);
+    const thumb = scrollThumbMetrics(items.length, GRID_COLS, GRID_ROWS, CELL_H, CELL_GAP, this.scrollRowOffset);
+    if (thumb) {
       const scrollG = new Graphics();
-      scrollG.rect(GRID_W + 2, 0, 2, barH).fill({ color: COL_BORDER, alpha: 0.3 });
-      scrollG.rect(GRID_W + 2, thumbY, 2, thumbH).fill({ color: COL_DIM, alpha: 0.6 });
+      scrollG.rect(GRID_W + 2, 0, 2, thumb.barH).fill({ color: COL_BORDER, alpha: 0.3 });
+      scrollG.rect(GRID_W + 2, thumb.thumbY, 2, thumb.thumbH).fill({ color: COL_DIM, alpha: 0.6 });
       this.gridArea.addChild(scrollG);
     }
 
@@ -604,14 +595,8 @@ export class InventoryUI {
     y += 14;
 
     // 2. 레어리티 · 카테고리 · Recovery %
-    const rarityName = RARITY_DISPLAY_NAME[item.rarity] ?? item.rarity;
-    const category = getIdentityCategory(item);
-    const categoryLabel = category === 'Unknown'
-      ? t('ui.inventory.recovery_unknown')
-      : t(`ui.category.${category.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase()}`);
-    const recoveryPct = Math.floor(item.memoryRecovery);
     const meta = createUiText(
-      t('ui.inventory.recovery_meta', { rarity: rarityName, category: categoryLabel, pct: recoveryPct }),
+      getInventoryRecoveryMeta(item),
       { fontSize: 8, fill: COL_DIM },
     );
     meta.x = 4; meta.y = y;
@@ -648,11 +633,8 @@ export class InventoryUI {
     y += 5;
 
     // 5. 해금된 Memory Fragment 목록 (최대 4줄)
-    const totalFragmentsForRarity = { normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 4 }[item.rarity] ?? 1;
-    const stages = item.rarity === 'normal' ? [4]
-      : item.rarity === 'magic' ? [2, 4]
-      : item.rarity === 'rare' ? [1, 2, 4]
-      : [1, 2, 3, 4];
+    const totalFragmentsForRarity = getTotalFragmentsForRarity(item);
+    const stages = getFragmentStagesForRarity(item);
     let fragmentsShown = 0;
     for (const fragStage of stages) {
       if (fragmentsShown >= 4) break;
@@ -686,8 +668,8 @@ export class InventoryUI {
     // 6. Hints — key glyphs
     const isEquipped = this.inventory.equipped?.uid === item.uid;
     const hintPairs = isEquipped
-      ? [{ action: GameAction.MENU, label: 'Close' }]
-      : [{ action: GameAction.ATTACK, label: 'Equip' }, { action: GameAction.MENU, label: 'Close' }];
+      ? [{ action: GameAction.MENU, label: t('ui.inventory.action_close') }]
+      : [{ action: GameAction.ATTACK, label: t('ui.inventory.action_equip') }, { action: GameAction.MENU, label: t('ui.inventory.action_close') }];
     const hintRow = this.buildHintRow(hintPairs);
     hintRow.x = 4; hintRow.y = y;
     this.infoArea.addChild(hintRow);
@@ -744,7 +726,7 @@ export class InventoryUI {
         mY += 14;
 
         const recoveryPct = Math.floor(activeItem.memoryRecovery);
-        const recovText = createUiText(`Recovery ${recoveryPct}%`, { fontSize: 9, fill: COL_DIM });
+        const recovText = createUiText(t('ui.inventory.recovery_line', { pct: recoveryPct }), { fontSize: 9, fill: COL_DIM });
         recovText.x = metaX; recovText.y = mY;
         this.infoArea.addChild(recovText);
       }
@@ -786,7 +768,7 @@ export class InventoryUI {
 
       // 3. Recovery %
       const recoveryPct = Math.floor(item.memoryRecovery);
-      const recovText = createUiText(`Recovery ${recoveryPct}%`, { fontSize: 9, fill: COL_DIM });
+      const recovText = createUiText(t('ui.inventory.recovery_line', { pct: recoveryPct }), { fontSize: 9, fill: COL_DIM });
       recovText.x = metaX; recovText.y = mY;
       this.infoArea.addChild(recovText);
       // (중앙 "다이브/DIVE" 라벨 제거 — 사용자 결정 2026-05-24. RadialMap 시각 노이즈 방지.)
@@ -796,12 +778,12 @@ export class InventoryUI {
     // 사용자 결정 2026-05-24: 버튼 1.5배 (iconSize 15, fontSize 10) + Dive 노란 펄스.
     const hintPairs = hasItem
       ? [
-          { action: GameAction.ATTACK, label: 'Dive', labelColor: COL_KEY },
-          { action: GameAction.MENU,   label: 'Cancel' },
+          { action: GameAction.ATTACK, label: t('ui.inventory.action_dive'), labelColor: COL_KEY },
+          { action: GameAction.MENU,   label: t('ui.inventory.action_cancel') },
         ]
       : [
-          { action: GameAction.ATTACK, label: 'Place' },
-          { action: GameAction.MENU,   label: 'Back' },
+          { action: GameAction.ATTACK, label: t('ui.inventory.action_place') },
+          { action: GameAction.MENU,   label: t('ui.inventory.action_back') },
         ];
     const hintRow = this.buildHintRow(hintPairs, 15, 10);
     hintRow.x = 4;
@@ -850,19 +832,19 @@ export class InventoryUI {
     const lines: Array<{ label: string; value: string; key: boolean; alert?: boolean }> = [];
     // YOUR ATK = 현재 장착 무기 finalAtk (setPlayerStats 미주입 시에도 동작).
     const playerAtk = this.inventory.getWeaponAtk() || (this.playerStats?.atk ?? 0);
-    lines.push({ label: 'YOUR ATK', value: String(playerAtk || '—'), key: false });
+    lines.push({ label: t('ui.inventory.your_atk'), value: String(playerAtk || '—'), key: false });
 
     // MAX ATK — Recovery 100% 가정 + 현재 reDive 보너스 (recalcItemAtk 공식 미러)
     const reDiveBonus = 1 + (item.reDiveCount ?? 0) * 0.05;
     const maxAtk = Math.ceil((item.def.baseAtk ?? 0) * 1.5 * reDiveBonus);
-    lines.push({ label: 'MAX ATK', value: String(maxAtk || '—'), key: true, alert: playerAtk > 0 && playerAtk < maxAtk });
+    lines.push({ label: t('ui.inventory.max_atk'), value: String(maxAtk || '—'), key: true, alert: playerAtk > 0 && playerAtk < maxAtk });
 
     // MEMORY SHARD — 현재 / 최대 (rarity 별 slot 수)
     const maxShards = ({ normal: 2, magic: 3, rare: 4, legendary: 6, ancient: 8 } as const)[item.rarity] ?? 2;
     const curShards = item.innocents?.length ?? 0;
-    lines.push({ label: 'MEM SHARD', value: `${curShards}/${maxShards}`, key: true });
+    lines.push({ label: t('ui.inventory.mem_shard'), value: `${curShards}/${maxShards}`, key: true });
 
-    lines.push({ label: 'DIVES', value: String(item.reDiveCount ?? 0), key: false });
+    lines.push({ label: t('ui.inventory.dives'), value: String(item.reDiveCount ?? 0), key: false });
 
     // 4-stat row: 라벨 좌측 정렬 + 값 우측 정렬, baseline 동일, 행간 16.
     // label fontSize 8 / value fontSize 10 — 사용자 결정 2026-05-24 (겹침 방지).
@@ -1109,7 +1091,7 @@ export class InventoryUI {
 
     // HP
     const hpStr = stats ? `${stats.hp} / ${stats.maxHp}` : '—';
-    const hpL = createUiText('HP', { fontSize: 8, fill: COL_DIM });
+    const hpL = createUiText(t('ui.character.hp_label'), { fontSize: 8, fill: COL_DIM });
     const hpV = createUiText(hpStr, { fontSize: 8, fill: 0xee4444 });
     hpL.x = 2; hpL.y = y;
     hpV.x = W - hpV.width; hpV.y = y;

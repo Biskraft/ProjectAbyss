@@ -47,3 +47,8 @@
 - Daily: 최신순
 - Decisions: DEC 번호 내림차순 (최신 결정이 위)
 - 신규 항목 추가 시 본 인덱스의 해당 섹션도 동시 갱신
+
+## Agent Updates
+
+- [2026-05-26](daily/2026-05-26.md) - WorldPullIn Center Sink spec added to `game/docs/ui-components.html`: PixiJS RenderTexture snapshot + radial sprite pull-in transition, usage/performance/reduced-motion rules.
+- [2026-05-26](daily/2026-05-26.md) - Refactoring pass: extracted `WorldPullInTransitionController`, shared container grab/carry logic, save-point helpers, shared player attack hitbox helper, `WorldAltarController`, Anvil prompt/placement/deployment/return helpers, InventoryUI selection/item-info/layout helpers, HUD vitals/EXP helpers, and retired stale weapon-lore CSV validation references. Build passes.

@@ -3,7 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from '@ui/fonts';
 import { PORTAL_COLOR, type PortalSourceType } from '@entities/Portal';
 import type { Rarity } from '@data/weapons';
-import type { ItemInstance } from '@items/ItemInstance';
+import { getDisplayName, type ItemInstance } from '@items/ItemInstance';
+import { t } from '@i18n';
 
 /**
  * Portal entry transition effect (Sakurai-inspired).
@@ -80,10 +81,10 @@ export class PortalTransition {
 
     // Info text
     const label = sourceType === 'monster'
-      ? `??? [${rarity.toUpperCase()}]`
+      ? t('ui.portal.monster_source', { rarity: rarity.toUpperCase() })
       : sourceItem
-        ? `${sourceItem.def.name} Lv${sourceItem.level} [${rarity.toUpperCase()}]`
-        : `[${rarity.toUpperCase()}]`;
+        ? t('ui.portal.item_source', { name: getDisplayName(sourceItem), level: sourceItem.level, rarity: rarity.toUpperCase() })
+        : t('ui.portal.rarity_source', { rarity: rarity.toUpperCase() });
 
     this.infoText = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: this.color } });
     this.infoText.anchor.set(0.5);

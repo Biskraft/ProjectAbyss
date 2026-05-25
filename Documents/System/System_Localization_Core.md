@@ -1,207 +1,197 @@
-# System_Localization_Core.md — 로컬라이제이션 시스템
+﻿# System_Localization_Core.md ??濡쒖뺄?쇱씠?쒖씠???쒖뒪??
+## 援ы쁽 ?꾪솴 (Implementation Status)
 
-## 구현 현황 (Implementation Status)
+> 理쒓렐 ?낅뜲?댄듃: 2026-05-08 (Phase 2 LOC 醫낃껐. 311 ??SSoT, 紐⑤뱺 ?듭떖 UI 留덉씠洹몃젅?댁뀡 + LOC-10 寃利?媛??
+> 臾몄꽌 ?곹깭: `Phase 2 ??醫낃껐. LOC-08/09 (PauseMenu LANGUAGE ?좉? + navigator.language ?먮룞媛먯?) ??Phase 3 EA 吏꾩엯 ???⑥씪 鍮뚮뱶 ?밴꺽怨??④퍡 泥섎━`
+> 2-Space: ?꾩껜 (World / Item World ?숈씪 ?곸슜)
+> 湲곕뫁: ?꾩껜 (?명봽????1李?niche ?щ뜡??湲濡쒕쾶 ?꾨떖 ?뺤옣)
 
-> 최근 업데이트: 2026-05-08 (Phase 2 LOC 종결. 311 키 SSoT, 모든 핵심 UI 마이그레이션 + LOC-10 검증 가동)
-> 문서 상태: `Phase 2 — 종결. LOC-08/09 (PauseMenu LANGUAGE 토글 + navigator.language 자동감지) 는 Phase 3 EA 진입 시 단일 빌드 승격과 함께 처리`
-> 2-Space: 전체 (World / Item World 동일 적용)
-> 기둥: 전체 (인프라 — 1차 niche 팬덤의 글로벌 도달 확장)
-
-| 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
+| 湲곕뒫 ID | 遺꾨쪟 | 湲곕뒫紐?| ?곗꽑?쒖쐞 | 援ы쁽 ?곹깭 | 鍮꾧퀬 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| LOC-01 | 데이터 | Content_Localization.csv (통합 SSoT) | P1 | 완료 (2026-05-08) | 검 Ego 59행. ego.* 키 전 범위 커버 |
-| LOC-02 | 파이프라인 | csv_to_locale.mjs (CSV → JSON 변환) | P1 | 완료 (2026-05-08) | predev / prebuild 자동 실행 |
-| LOC-03 | 코드 | t(key, vars) 함수 + locale store | P1 | 완료 (2026-05-08) | game/src/i18n/index.ts. EN 폴백 + {var} 보간 |
-| LOC-04 | 데이터 | 게임 데이터 CSV NameKey/DescKey 마이그레이션 | P1 | 완료 (2026-05-08) | Weapon_Lore 5행 + Item_Master 45행 + MemoryShards 3행 모두 NameKey/DescKey 전환. 165 키 SSoT |
-| LOC-05 | 콘텐츠 | EgoDialogue.ts → Localization.csv 분리 | P1 | 완료 (2026-05-08) | 한국어 SSoT 유지, 영문 1패스 번역 첨부 |
-| LOC-06 | 빌드 | Vite 분기 빌드 (`vite build --mode en\|ko`) | P2 | 완료 (2026-05-08) | `npm run build:en` / `build:ko`, `__LOCALE__` define + `@i18n/active` alias |
-| LOC-07 | 코드 | BitmapFont 한국어 분기 (Text + Noto Sans KR) | P2 | 완료 (2026-05-08) | `createUiText()` 팩토리 + `localeFontsPlugin` (KO 빌드만 Noto Sans KR `<link>` 주입). LoreDisplay body 마이그레이션 완료. HUD/Toast/Tutorial 등 추가 사이트는 t() 전환과 함께 점진 |
-| LOC-08 | UI | PauseMenu LANGUAGE 행 + 토글 카드 | P2 | 대기 | Phase 3 단일 빌드 승격 시 |
-| LOC-09 | 코드 | navigator.language 자동 감지 + localStorage 영속 | P2 | 대기 | 첫 실행 1회만 |
-| LOC-10 | 검증 | validate.mjs 키 존재 검증 (NameKey ∈ Localization) | P2 | 완료 (2026-05-08) | V4 prebuild 단계: Item_Master/Weapon_Lore/MemoryShards 의 NameKey/DescKey 모두 Localization.csv 에 존재 검증. 위반 시 빌드 실패 |
-| LOC-11 | 정책 | Sheets/Content_Stats_Weapon_Lore.csv 한국어 5행 정리 | P0 | 완료 (2026-05-08) | NameKey/DescKey 마이그레이션과 통합. KR 원문은 Localization.csv ko 컬럼으로 이전 (SSoT 보존) |
+| LOC-01 | ?곗씠??| Content_Localization.csv (?듯빀 SSoT) | P1 | ?꾨즺 (2026-05-08) | 寃 Ego 59?? ego.* ????踰붿쐞 而ㅻ쾭 |
+| LOC-02 | ?뚯씠?꾨씪??| csv_to_locale.mjs (CSV ??JSON 蹂?? | P1 | ?꾨즺 (2026-05-08) | predev / prebuild ?먮룞 ?ㅽ뻾 |
+| LOC-03 | 肄붾뱶 | t(key, vars) ?⑥닔 + locale store | P1 | ?꾨즺 (2026-05-08) | game/src/i18n/index.ts. EN ?대갚 + {var} 蹂닿컙 |
+| LOC-04 | ?곗씠??| 寃뚯엫 ?곗씠??CSV NameKey/DescKey 留덉씠洹몃젅?댁뀡 | P1 | ?꾨즺 (2026-05-08) | Weapon_Lore 5??+ Item_Master 45??+ MemoryShards 3??紐⑤몢 NameKey/DescKey ?꾪솚. 165 ??SSoT |
+| LOC-05 | 肄섑뀗痢?| EgoDialogue.ts ??Localization.csv 遺꾨━ | P1 | ?꾨즺 (2026-05-08) | ?쒓뎅??SSoT ?좎?, ?곷Ц 1?⑥뒪 踰덉뿭 泥⑤? |
+| LOC-06 | 鍮뚮뱶 | Vite 遺꾧린 鍮뚮뱶 (`vite build --mode en\|ko`) | P2 | ?꾨즺 (2026-05-08) | `npm run build:en` / `build:ko`, `__LOCALE__` define + `@i18n/active` alias |
+| LOC-07 | 肄붾뱶 | BitmapFont ?쒓뎅??遺꾧린 (Text + Noto Sans KR) | P2 | ?꾨즺 (2026-05-08) | `createUiText()` ?⑺넗由?+ `localeFontsPlugin` (KO 鍮뚮뱶留?Noto Sans KR `<link>` 二쇱엯). LoreDisplay body 留덉씠洹몃젅?댁뀡 ?꾨즺. HUD/Toast/Tutorial ??異붽? ?ъ씠?몃뒗 t() ?꾪솚怨??④퍡 ?먯쭊 |
+| LOC-08 | UI | PauseMenu LANGUAGE ??+ ?좉? 移대뱶 | P2 | ?湲?| Phase 3 ?⑥씪 鍮뚮뱶 ?밴꺽 ??|
+| LOC-09 | 肄붾뱶 | navigator.language ?먮룞 媛먯? + localStorage ?곸냽 | P2 | ?湲?| 泥??ㅽ뻾 1?뚮쭔 |
+| LOC-10 | 寃利?| validate.mjs ??議댁옱 寃利?(NameKey ??Localization) | P2 | ?꾨즺 (2026-05-08) | V4 prebuild ?④퀎: Item_Master/Weapon_Lore/MemoryShards ??NameKey/DescKey 紐⑤몢 Localization.csv ??議댁옱 寃利? ?꾨컲 ??鍮뚮뱶 ?ㅽ뙣 |
+| LOC-11 | ?뺤콉 | Documents/Content/_archive/LoreWeapons_DEC023/ ?쒓뎅??5???뺣━ | P0 | ?꾨즺 (2026-05-08) | NameKey/DescKey 留덉씠洹몃젅?댁뀡怨??듯빀. KR ?먮Ц? Localization.csv ko 而щ읆?쇰줈 ?댁쟾 (SSoT 蹂댁〈) |
 
 ---
 
-## 0. 필수 참고 자료 (Mandatory References)
+## 0. ?꾩닔 李멸퀬 ?먮즺 (Mandatory References)
 
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 - Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 - Sheets Writing Rules: `Documents/Terms/Sheets_Writing_Rules.md`
 - Glossary: `Documents/Terms/Glossary.md`
-- 검 Ego 대사 원본: `game/src/data/EgoDialogue.ts`
-- BitmapFont 설치: `game/src/ui/fonts.ts`
-- CSV 검증 스크립트: `Sheets/tools/validate.mjs`
-- 가격 전략 메모리: project_steam_pricing_strategy (마케팅 SSoT 표현/금지 표현)
+- 寃 Ego ????먮낯: `game/src/data/EgoDialogue.ts`
+- BitmapFont ?ㅼ튂: `game/src/ui/fonts.ts`
+- CSV 寃利??ㅽ겕由쏀듃: `Sheets/tools/validate.mjs`
+- 媛寃??꾨왂 硫붾え由? project_steam_pricing_strategy (留덉???SSoT ?쒗쁽/湲덉? ?쒗쁽)
 
 ---
 
-## 1. 개요 (Overview)
+## 1. 媛쒖슂 (Overview)
 
-ECHORIS 로컬라이제이션 시스템은 한국어(KR)와 영어(EN) 두 언어의 게임 내 텍스트 출력을 단일 통합 CSV(`Sheets/Content_Localization.csv`)에서 관리하고, 빌드 시 JSON으로 변환해 런타임에 `t(key, vars)` 함수로 조회하는 인프라다. Phase 2 알파에서는 Vite 분기 빌드(VITE_LOCALE=en|ko)로 두 언어를 별도 dist로 산출하고, Phase 3 EA 진입 시점에 단일 빌드 + 런타임 전환으로 승격한다.
+ECHORIS 濡쒖뺄?쇱씠?쒖씠???쒖뒪?쒖? ?쒓뎅??KR)? ?곸뼱(EN) ???몄뼱??寃뚯엫 ???띿뒪??異쒕젰???⑥씪 ?듯빀 CSV(`Sheets/Content_Localization.csv`)?먯꽌 愿由ы븯怨? 鍮뚮뱶 ??JSON?쇰줈 蹂?섑빐 ?고??꾩뿉 `t(key, vars)` ?⑥닔濡?議고쉶?섎뒗 ?명봽?쇰떎. Phase 2 ?뚰뙆?먯꽌??Vite 遺꾧린 鍮뚮뱶(VITE_LOCALE=en|ko)濡????몄뼱瑜?蹂꾨룄 dist濡??곗텧?섍퀬, Phase 3 EA 吏꾩엯 ?쒖젏???⑥씪 鍮뚮뱶 + ?고????꾪솚?쇰줈 ?밴꺽?쒕떎.
 
-검 Ego 대사는 Victor가 한국어로 직접 작성한 톤·리듬·여백을 손실 없이 보존하기 위해 한국어를 SSoT로 유지하고, 영문은 1패스 번역물로 작성한다. 그 외 모든 게임 데이터(아이템·기억 단편·UI)는 영문이 SSoT다.
+寃 Ego ??щ뒗 Victor媛 ?쒓뎅?대줈 吏곸젒 ?묒꽦???ㅒ룸━??룹뿬諛깆쓣 ?먯떎 ?놁씠 蹂댁〈?섍린 ?꾪빐 ?쒓뎅?대? SSoT濡??좎??섍퀬, ?곷Ц? 1?⑥뒪 踰덉뿭臾쇰줈 ?묒꽦?쒕떎. 洹???紐⑤뱺 寃뚯엫 ?곗씠???꾩씠?쑣룰린???⑦렪쨌UI)???곷Ц??SSoT??
 
 ---
 
-## 2. 설계 의도 (Design Intent)
+## 2. ?ㅺ퀎 ?섎룄 (Design Intent)
 
-ECHORIS의 1차 niche(BLAME!/메이드 인 어비스 + 디스가이아 + Transistor 팬덤)는 한국어권과 영어권에 동시에 분포한다. 영문 단일 출시 시 한국 niche 코어(추정 5,000-15,000명)를 누락시키고, 한국어 단일 출시 시 글로벌 도달이 막힌다. 두 약속이 동시에 충족되어야 한다.
+ECHORIS??1李?niche(BLAME!/硫붿씠?????대퉬??+ ?붿뒪媛?댁븘 + Transistor ?щ뜡)???쒓뎅?닿텒怨??곸뼱沅뚯뿉 ?숈떆??遺꾪룷?쒕떎. ?곷Ц ?⑥씪 異쒖떆 ???쒓뎅 niche 肄붿뼱(異붿젙 5,000-15,000紐?瑜??꾨씫?쒗궎怨? ?쒓뎅???⑥씪 異쒖떆 ??湲濡쒕쾶 ?꾨떖??留됲엺?? ???쎌냽???숈떆??異⑹”?섏뼱???쒕떎.
 
-### 2.1 스파이크 정렬
+### 2.1 ?ㅽ뙆?댄겕 ?뺣젹
 
-i18n은 게임 메커닉이 아니라 인프라이므로 스파이크("아이템에 들어가면 그 안에 살아있는 세계가 있다")를 직접 강화하지 않는다. 대신 스파이크의 도달 범위를 확장한다. 검 Ego 대사가 한국어 톤으로 살아있고, 영문 번역물도 캐릭터 보이스를 보존하면, 양쪽 niche 모두에서 스파이크 경험이 손실 없이 전달된다.
+i18n? 寃뚯엫 硫붿빱?됱씠 ?꾨땲???명봽?쇱씠誘濡??ㅽ뙆?댄겕("?꾩씠?쒖뿉 ?ㅼ뼱媛硫?洹??덉뿉 ?댁븘?덈뒗 ?멸퀎媛 ?덈떎")瑜?吏곸젒 媛뺥솕?섏? ?딅뒗?? ????ㅽ뙆?댄겕???꾨떖 踰붿쐞瑜??뺤옣?쒕떎. 寃 Ego ??ш? ?쒓뎅???ㅼ쑝濡??댁븘?덇퀬, ?곷Ц 踰덉뿭臾쇰룄 罹먮┃??蹂댁씠?ㅻ? 蹂댁〈?섎㈃, ?묒そ niche 紐⑤몢?먯꽌 ?ㅽ뙆?댄겕 寃쏀뿕???먯떎 ?놁씠 ?꾨떖?쒕떎.
 
-스파이크 검증 통과 근거: q1 NO / q2 NO / q3 NO → 시스템 자체는 스파이크 중립, 그러나 부재 시 스파이크의 *도달 가능 인구*가 절반으로 축소되므로 P1 인프라로 분류한다.
+?ㅽ뙆?댄겕 寃利??듦낵 洹쇨굅: q1 NO / q2 NO / q3 NO ???쒖뒪???먯껜???ㅽ뙆?댄겕 以묐┰, 洹몃윭??遺?????ㅽ뙆?댄겕??*?꾨떖 媛???멸뎄*媛 ?덈컲?쇰줈 異뺤냼?섎?濡?P1 ?명봽?쇰줈 遺꾨쪟?쒕떎.
 
-### 2.2 Cursed Problem 식별 및 타협
-
-| 상충하는 약속 | 해결 방향 |
+### 2.2 Cursed Problem ?앸퀎 諛????
+| ?곸땐?섎뒗 ?쎌냽 | ?닿껐 諛⑺뼢 |
 | :--- | :--- |
-| 글로벌 영어권 1차 타깃 vs 한국 niche 코어 흡수 | 두 언어 동시 지원, 단 마케팅 페르소나는 영문 일관 (한국 정체성 비공개 유지) |
-| 1인 개발 시간 보존 vs 다국어 품질 | Phase 2 분기 빌드(7-8h)로 즉시 가동, Phase 3 승격(+6-8h)으로 점진 확장 |
-| 픽셀아트 통일성 vs CJK 폰트 가독성 | 영문은 BitmapFont 픽셀 폰트, 한국어는 PIXI.Text + Noto Sans KR. 픽셀 미감 약간 손해 수용 |
-| 검 Ego 캐릭터 보이스 보존 vs 다국어 번역 | 한국어 SSoT 유지, 영문은 톤 가이드 첨부 1패스 번역 |
+| 湲濡쒕쾶 ?곸뼱沅?1李??源?vs ?쒓뎅 niche 肄붿뼱 ?≪닔 | ???몄뼱 ?숈떆 吏?? ??留덉????섎Ⅴ?뚮굹???곷Ц ?쇨? (?쒓뎅 ?뺤껜??鍮꾧났媛??좎?) |
+| 1??媛쒕컻 ?쒓컙 蹂댁〈 vs ?ㅺ뎅???덉쭏 | Phase 2 遺꾧린 鍮뚮뱶(7-8h)濡?利됱떆 媛?? Phase 3 ?밴꺽(+6-8h)?쇰줈 ?먯쭊 ?뺤옣 |
+| ?쎌??꾪듃 ?듭씪??vs CJK ?고듃 媛?낆꽦 | ?곷Ц? BitmapFont ?쎌? ?고듃, ?쒓뎅?대뒗 PIXI.Text + Noto Sans KR. ?쎌? 誘멸컧 ?쎄컙 ?먰빐 ?섏슜 |
+| 寃 Ego 罹먮┃??蹂댁씠??蹂댁〈 vs ?ㅺ뎅??踰덉뿭 | ?쒓뎅??SSoT ?좎?, ?곷Ц? ??媛?대뱶 泥⑤? 1?⑥뒪 踰덉뿭 |
 
 ### 2.3 Risk & Reward
 
-i18n은 플레이어가 직접 행동하는 게임플레이가 아니라 메타 인프라다. 리스크/리턴은 개발자 측면에서 분석한다.
+i18n? ?뚮젅?댁뼱媛 吏곸젒 ?됰룞?섎뒗 寃뚯엫?뚮젅?닿? ?꾨땲??硫뷀? ?명봽?쇰떎. 由ъ뒪??由ы꽩? 媛쒕컻??痢〓㈃?먯꽌 遺꾩꽍?쒕떎.
 
-- 리스크: 1인 개발 시간 7-8h(Phase 2) + 6-8h(Phase 3) ≈ 2일. 시즌 신규 텍스트마다 양 언어 동기화 부담.
-- 리턴: 한국 1차 niche 코어 흡수 + Steam ZH-CN/JA 등 차후 확장의 인프라 기반 마련.
-- 최대 리스크 = 최대 리턴 순간: Phase 4 1.0 출시 시점, 양 언어 동시 출시로 한국 게임 미디어(인벤·디스이즈게임)와 글로벌 미디어 동시 노출.
-
----
-
-## 3. 메커닉 (Mechanics)
-
-### 3.1 빌드 시 메커닉
-
-```
-Sheets/Content_Localization.csv (Victor 편집, SSoT)
-    ↓ Sheets/tools/csv_to_locale.mjs (빌드 스크립트)
-game/src/i18n/locales/{en,ko}.json (런타임 산출물)
-    ↓ Vite import
-game/dist/ 번들에 포함
-```
-
-- 빌드 스크립트는 CSV 1행을 키-값 쌍으로 변환해 언어별 JSON에 기록한다.
-- 빈 셀이 있으면 빈 문자열이 아닌 *키 누락*으로 처리해 런타임 폴백을 강제한다.
-
-### 3.2 런타임 메커닉
-
-플레이어 또는 게임 시스템이 표시 텍스트를 요청할 때:
-
-1. `t('ui.pause.continue')` 호출
-2. 현재 locale(en 또는 ko)의 JSON에서 키 조회
-3. 누락 시 en JSON에서 폴백 조회
-4. en에도 누락 시 키 자체를 반환 (절대 빈 화면 방지)
-5. 변수 보간(`{amount}` 등) 적용 후 반환
-
-### 3.3 언어 전환 메커닉 (Phase 3 단일 빌드 승격 후)
-
-- Phase 2: VITE_LOCALE 빌드 시 inject. 사용자 전환 불가.
-- Phase 3 이후: PauseMenu의 `LANGUAGE` 행에서 EN ↔ KO 토글. 토글 시 모든 활성 PIXI Text/BitmapText 인스턴스를 `setText()`로 갱신하거나, 단순히 페이지를 리로드해 i18n state를 재초기화한다.
-
-### 3.4 폰트 메커닉
-
-- 영어 활성 시: `BitmapText` + `PressStart2P`/`Rajdhani` (라틴 픽셀 폰트, 현행)
-- 한국어 활성 시: `PIXI.Text` + `Noto Sans KR` 또는 `IBM Plex Sans KR` (Google Fonts CSS 로드)
-- 동일 코드 경로에서 `createUiText()` 팩토리가 locale에 따라 분기
+- 由ъ뒪?? 1??媛쒕컻 ?쒓컙 7-8h(Phase 2) + 6-8h(Phase 3) ??2?? ?쒖쫵 ?좉퇋 ?띿뒪?몃쭏?????몄뼱 ?숆린??遺??
+- 由ы꽩: ?쒓뎅 1李?niche 肄붿뼱 ?≪닔 + Steam ZH-CN/JA ??李⑦썑 ?뺤옣???명봽??湲곕컲 留덈젴.
+- 理쒕? 由ъ뒪??= 理쒕? 由ы꽩 ?쒓컙: Phase 4 1.0 異쒖떆 ?쒖젏, ???몄뼱 ?숈떆 異쒖떆濡??쒓뎅 寃뚯엫 誘몃뵒???몃깽쨌?붿뒪?댁쫰寃뚯엫)? 湲濡쒕쾶 誘몃뵒???숈떆 ?몄텧.
 
 ---
 
-## 4. 규칙 (Detailed Rules)
+## 3. 硫붿빱??(Mechanics)
 
-### 4.1 파일 구조 (신설)
+### 3.1 鍮뚮뱶 ??硫붿빱??
+```
+Sheets/Content_Localization.csv (Victor ?몄쭛, SSoT)
+    ??Sheets/tools/csv_to_locale.mjs (鍮뚮뱶 ?ㅽ겕由쏀듃)
+game/src/i18n/locales/{en,ko}.json (?고????곗텧臾?
+    ??Vite import
+game/dist/ 踰덈뱾???ы븿
+```
+
+- 鍮뚮뱶 ?ㅽ겕由쏀듃??CSV 1?됱쓣 ??媛??띿쑝濡?蹂?섑빐 ?몄뼱蹂?JSON??湲곕줉?쒕떎.
+- 鍮?????덉쑝硫?鍮?臾몄옄?댁씠 ?꾨땶 *???꾨씫*?쇰줈 泥섎━???고????대갚??媛뺤젣?쒕떎.
+
+### 3.2 ?고???硫붿빱??
+?뚮젅?댁뼱 ?먮뒗 寃뚯엫 ?쒖뒪?쒖씠 ?쒖떆 ?띿뒪?몃? ?붿껌????
+
+1. `t('ui.pause.continue')` ?몄텧
+2. ?꾩옱 locale(en ?먮뒗 ko)??JSON?먯꽌 ??議고쉶
+3. ?꾨씫 ??en JSON?먯꽌 ?대갚 議고쉶
+4. en?먮룄 ?꾨씫 ?????먯껜瑜?諛섑솚 (?덈? 鍮??붾㈃ 諛⑹?)
+5. 蹂??蹂닿컙(`{amount}` ?? ?곸슜 ??諛섑솚
+
+### 3.3 ?몄뼱 ?꾪솚 硫붿빱??(Phase 3 ?⑥씪 鍮뚮뱶 ?밴꺽 ??
+
+- Phase 2: VITE_LOCALE 鍮뚮뱶 ??inject. ?ъ슜???꾪솚 遺덇?.
+- Phase 3 ?댄썑: PauseMenu??`LANGUAGE` ?됱뿉??EN ??KO ?좉?. ?좉? ??紐⑤뱺 ?쒖꽦 PIXI Text/BitmapText ?몄뒪?댁뒪瑜?`setText()`濡?媛깆떊?섍굅?? ?⑥닚???섏씠吏瑜?由щ줈?쒗빐 i18n state瑜??ъ큹湲고솕?쒕떎.
+
+### 3.4 ?고듃 硫붿빱??
+- ?곸뼱 ?쒖꽦 ?? `BitmapText` + `PressStart2P`/`Rajdhani` (?쇳떞 ?쎌? ?고듃, ?꾪뻾)
+- ?쒓뎅???쒖꽦 ?? `PIXI.Text` + `Noto Sans KR` ?먮뒗 `IBM Plex Sans KR` (Google Fonts CSS 濡쒕뱶)
+- ?숈씪 肄붾뱶 寃쎈줈?먯꽌 `createUiText()` ?⑺넗由ш? locale???곕씪 遺꾧린
+
+---
+
+## 4. 洹쒖튃 (Detailed Rules)
+
+### 4.1 ?뚯씪 援ъ“ (?좎꽕)
 
 ```
 Sheets/
-├── Content_Localization.csv          # 단일 통합 SSoT
-└── tools/
-    └── csv_to_locale.mjs             # 빌드 시 CSV → JSON 변환
-
+?쒋?? Content_Localization.csv          # ?⑥씪 ?듯빀 SSoT
+?붴?? tools/
+    ?붴?? csv_to_locale.mjs             # 鍮뚮뱶 ??CSV ??JSON 蹂??
 game/src/i18n/
-├── index.ts                          # t(), getLocale(), setLocale()
-└── locales/                          # 빌드 산출물 (gitignore)
-    ├── en.json
-    └── ko.json
+?쒋?? index.ts                          # t(), getLocale(), setLocale()
+?붴?? locales/                          # 鍮뚮뱶 ?곗텧臾?(gitignore)
+    ?쒋?? en.json
+    ?붴?? ko.json
 ```
 
-### 4.2 Content_Localization.csv 스키마
-
-| 컬럼 | 타입 | 설명 |
+### 4.2 Content_Localization.csv ?ㅽ궎留?
+| 而щ읆 | ???| ?ㅻ챸 |
 | :--- | :--- | :--- |
-| `Key` | string | 점-구분 계층 키 (예: `ui.pause.continue`) |
-| `en` | string | 영어 표시 문자열. 검 Ego 대사 외 모든 항목의 SSoT |
-| `ko` | string | 한국어 표시 문자열. 검 Ego 대사의 SSoT |
-| `Note` | string (선택) | 번역가용 컨텍스트 메모. 빈 셀 허용 |
+| `Key` | string | ??援щ텇 怨꾩링 ??(?? `ui.pause.continue`) |
+| `en` | string | ?곸뼱 ?쒖떆 臾몄옄?? 寃 Ego ?????紐⑤뱺 ??ぉ??SSoT |
+| `ko` | string | ?쒓뎅???쒖떆 臾몄옄?? 寃 Ego ??ъ쓽 SSoT |
+| `Note` | string (?좏깮) | 踰덉뿭媛??而⑦뀓?ㅽ듃 硫붾え. 鍮?? ?덉슜 |
 
-CSV 작성 규칙:
-- 콤마 포함 텍스트는 큰따옴표로 감싸기
-- 줄바꿈은 `\n` 이스케이프 (CSV 파싱 안정성)
-- 키는 알파벳 소문자 + 숫자 + 점(`.`) + 언더스코어(`_`)만
-- 빈 셀 = 미번역. 런타임 폴백 발동
+CSV ?묒꽦 洹쒖튃:
+- 肄ㅻ쭏 ?ы븿 ?띿뒪?몃뒗 ?곕뵲?댄몴濡?媛먯떥湲?- 以꾨컮轅덉? `\n` ?댁뒪耳?댄봽 (CSV ?뚯떛 ?덉젙??
+- ?ㅻ뒗 ?뚰뙆踰??뚮Ц??+ ?レ옄 + ??`.`) + ?몃뜑?ㅼ퐫??`_`)留?- 鍮?? = 誘몃쾲?? ?고????대갚 諛쒕룞
 
-### 4.3 키 컨벤션
-
+### 4.3 ??而⑤깽??
 ```
 {namespace}.{component}.{item}[.{variant}]
 ```
 
-| 네임스페이스 | 용도 | 예시 |
+| ?ㅼ엫?ㅽ럹?댁뒪 | ?⑸룄 | ?덉떆 |
 | :--- | :--- | :--- |
-| `ui.*` | UI 라벨/버튼/메뉴 | `ui.pause.continue`, `ui.inventory.title` |
-| `toast.*` | 토스트 메시지 | `toast.boss_defeated`, `toast.gold_gained` |
-| `tutorial.*` | 튜토리얼 힌트 | `tutorial.open_inventory` |
-| `title.*` | 타이틀/엔딩 화면 | `title.subtitle`, `title.prompt` |
-| `ego.*` | 검 Ego 대사 (한국어 SSoT) | `ego.wake.0`, `ego.first_walk.0` |
-| `lore.*` | 짧은 lore 텍스트 (긴 산문은 별도 .md) | `lore.shaft_origin` |
-| `item.*` | 아이템 표시명/설명 | `item.sword_rustborn.name`, `item.sword_rustborn.desc` |
-| `memory_shard.*` | 기억 단편 표시명/설명 | `memory_shard.gladiator.name` |
-| `enemy.*` | 적/보스 표시명 | `enemy.pig_warrior.name` |
-| `itemworld.*` | 아이템계 전용 표기 | `itemworld.boss.general` |
+| `ui.*` | UI ?쇰꺼/踰꾪듉/硫붾돱 | `ui.pause.continue`, `ui.inventory.title` |
+| `toast.*` | ?좎뒪??硫붿떆吏 | `toast.boss_defeated`, `toast.gold_gained` |
+| `tutorial.*` | ?쒗넗由ъ뼹 ?뚰듃 | `tutorial.open_inventory` |
+| `title.*` | ??댄?/?붾뵫 ?붾㈃ | `title.subtitle`, `title.prompt` |
+| `ego.*` | 寃 Ego ???(?쒓뎅??SSoT) | `ego.wake.0`, `ego.first_walk.0` |
+| `lore.*` | 吏㏃? lore ?띿뒪??(湲??곕Ц? 蹂꾨룄 .md) | `lore.shaft_origin` |
+| `item.*` | ?꾩씠???쒖떆紐??ㅻ챸 | `item.sword_rustborn.name`, `item.sword_rustborn.desc` |
+| `memory_shard.*` | 湲곗뼲 ?⑦렪 ?쒖떆紐??ㅻ챸 | `memory_shard.gladiator.name` |
+| `enemy.*` | ??蹂댁뒪 ?쒖떆紐?| `enemy.pig_warrior.name` |
+| `itemworld.*` | ?꾩씠?쒓퀎 ?꾩슜 ?쒓린 | `itemworld.boss.general` |
 
-### 4.4 게임 데이터 CSV 마이그레이션 (LOC-04)
+### 4.4 寃뚯엫 ?곗씠??CSV 留덉씠洹몃젅?댁뀡 (LOC-04)
 
-기존 영문 표기 컬럼을 키 참조로 변경한다.
+湲곗〈 ?곷Ц ?쒓린 而щ읆????李몄“濡?蹂寃쏀븳??
 
-마이그레이션 전:
+留덉씠洹몃젅?댁뀡 ??
 ```
 Content_Item_Master.csv:
   ItemID,         Category, Name,     Description,           ATK
   sword_rustborn, Sword,    Rustborn, A rusted blade...,     5
 ```
 
-마이그레이션 후:
+留덉씠洹몃젅?댁뀡 ??
 ```
 Content_Item_Master.csv:
   ItemID,         Category, NameKey,                   DescKey,                   ATK
   sword_rustborn, Sword,    item.sword_rustborn.name,  item.sword_rustborn.desc,  5
 
-Content_Localization.csv (별도 파일):
+Content_Localization.csv (蹂꾨룄 ?뚯씪):
   Key,                       en,         ko
-  item.sword_rustborn.name,  Rustborn,   러스트본
-  item.sword_rustborn.desc,  A rusted blade...,  녹슨 칼날...
+  item.sword_rustborn.name,  Rustborn,   ?ъ뒪?몃낯
+  item.sword_rustborn.desc,  A rusted blade...,  ?뱀뒯 移쇰궇...
 ```
 
-대상 CSV:
-- `Sheets/Content_Item_Master.csv` (46행)
+???CSV:
+- `Sheets/Content_Item_Master.csv` (46??
 - `Sheets/Content_Stats_Weapon_List.csv`
-- `Sheets/Content_Stats_Weapon_Lore.csv` (한국어 5행 P0 정리 대상)
-- `Sheets/Content_MemoryShards.csv` (Name=ID 혼용 → `Id, NameKey, DescKey` 분리)
+- `Documents/Content/_archive/LoreWeapons_DEC023/` (?쒓뎅??5??P0 ?뺣━ ???
+- `Sheets/Content_MemoryShards.csv` (Name=ID ?쇱슜 ??`Id, NameKey, DescKey` 遺꾨━)
 
-### 4.5 검 Ego 대사 분리 (LOC-05) — 한국어 SSoT 유지
+### 4.5 寃 Ego ???遺꾨━ (LOC-05) ???쒓뎅??SSoT ?좎?
 
-`game/src/data/EgoDialogue.ts` 313줄 한국어 대사를 `Content_Localization.csv`의 `ego.*` 키로 이전한다. 한국어 셀은 *원본 그대로 복사*, 영문 셀은 1패스 번역(Claude/GPT-4 사전번역 + Victor 검수).
+`game/src/data/EgoDialogue.ts` 313以??쒓뎅????щ? `Content_Localization.csv`??`ego.*` ?ㅻ줈 ?댁쟾?쒕떎. ?쒓뎅???? *?먮낯 洹몃?濡?蹂듭궗*, ?곷Ц ?? 1?⑥뒪 踰덉뿭(Claude/GPT-4 ?ъ쟾踰덉뿭 + Victor 寃??.
 
-검 Ego 톤 가이드 (번역 시 첨부):
-- 호기심 + 빈정거림 + 과묵 사이의 비율 보존
-- 호칭 변화 추적 (master / 너 / 당신 등)
-- 줄임표 / 줄바꿈 / 행간 침묵 보존 (`\n\n`)
+寃 Ego ??媛?대뱶 (踰덉뿭 ??泥⑤?):
+- ?멸린??+ 鍮덉젙嫄곕┝ + 怨쇰У ?ъ씠??鍮꾩쑉 蹂댁〈
+- ?몄묶 蹂??異붿쟻 (master / ??/ ?뱀떊 ??
+- 以꾩엫??/ 以꾨컮轅?/ ?됯컙 移⑤У 蹂댁〈 (`\n\n`)
 
 ```typescript
-// EgoDialogue.ts 마이그레이션 후 패턴
+// EgoDialogue.ts 留덉씠洹몃젅?댁뀡 ???⑦꽩
 import { t } from '@i18n';
 
 export const EGO_WAKE = (): LoreLine[] => [
@@ -212,24 +202,24 @@ export const EGO_WAKE = (): LoreLine[] => [
 ];
 ```
 
-### 4.6 t() 함수 시그니처 및 폴백 체인
+### 4.6 t() ?⑥닔 ?쒓렇?덉쿂 諛??대갚 泥댁씤
 
 ```typescript
 export type Locale = 'en' | 'ko';
 
 export function t(key: string, vars?: Record<string, string | number>): string;
 export function getLocale(): Locale;
-export function setLocale(loc: Locale): void;  // Phase 3 이후 활성
+export function setLocale(loc: Locale): void;  // Phase 3 ?댄썑 ?쒖꽦
 ```
 
-폴백 체인:
-1. 현재 locale JSON에서 key 조회
-2. 누락 시 en JSON에서 조회
-3. en에도 누락 시 key 자체 반환
+?대갚 泥댁씤:
+1. ?꾩옱 locale JSON?먯꽌 key 議고쉶
+2. ?꾨씫 ??en JSON?먯꽌 議고쉶
+3. en?먮룄 ?꾨씫 ??key ?먯껜 諛섑솚
 
-변수 보간 형식: `{name}` 토큰을 `vars.name`으로 치환. 누락 토큰은 `{name}` 그대로 보존(디버그 가시성).
+蹂??蹂닿컙 ?뺤떇: `{name}` ?좏겙??`vars.name`?쇰줈 移섑솚. ?꾨씫 ?좏겙? `{name}` 洹몃?濡?蹂댁〈(?붾쾭洹?媛?쒖꽦).
 
-### 4.7 분기 빌드 (Phase 2, LOC-06)
+### 4.7 遺꾧린 鍮뚮뱶 (Phase 2, LOC-06)
 
 ```json
 // package.json scripts
@@ -239,7 +229,7 @@ export function setLocale(loc: Locale): void;  // Phase 3 이후 활성
 ```
 
 ```typescript
-// vite.config.ts (추가 부분)
+// vite.config.ts (異붽? 遺遺?
 const LOCALE = (process.env.VITE_LOCALE ?? 'en') as 'en' | 'ko';
 
 export default defineConfig({
@@ -250,26 +240,26 @@ export default defineConfig({
 });
 ```
 
-배포 매핑:
-- `echoris.io/play/` (글로벌 데모) = EN 빌드
-- 별도 도메인 또는 `echoris.io/ko/` (국내 테스트 채널) = KO 빌드
+諛고룷 留ㅽ븨:
+- `echoris.io/play/` (湲濡쒕쾶 ?곕え) = EN 鍮뚮뱶
+- 蹂꾨룄 ?꾨찓???먮뒗 `echoris.io/ko/` (援?궡 ?뚯뒪??梨꾨꼸) = KO 鍮뚮뱶
 
-분기 빌드 단계에서는 사용자가 게임 내에서 언어를 전환할 수 없다. 빌드 채널이 언어를 결정한다.
+遺꾧린 鍮뚮뱶 ?④퀎?먯꽌???ъ슜?먭? 寃뚯엫 ?댁뿉???몄뼱瑜??꾪솚?????녿떎. 鍮뚮뱶 梨꾨꼸???몄뼱瑜?寃곗젙?쒕떎.
 
-### 4.8 단일 빌드 + 런타임 전환 (Phase 3 승격, LOC-07~LOC-09)
+### 4.8 ?⑥씪 鍮뚮뱶 + ?고????꾪솚 (Phase 3 ?밴꺽, LOC-07~LOC-09)
 
-| 작업 | 변경 |
+| ?묒뾽 | 蹂寃?|
 | :--- | :--- |
-| `t()` locale 결정 | `__LOCALE__` 상수 → 런타임 store + localStorage |
-| 양쪽 JSON import | 한쪽만 inline → 양쪽 모두 import |
-| PauseMenu | LANGUAGE 행 추가 + 토글 카드 |
-| BitmapFont KO 분기 | `createUiText()` 팩토리에서 locale=ko 시 `Text` 사용 |
-| 첫 실행 자동 감지 | `navigator.language.startsWith('ko')` 체크 |
+| `t()` locale 寃곗젙 | `__LOCALE__` ?곸닔 ???고???store + localStorage |
+| ?묒そ JSON import | ?쒖そ留?inline ???묒そ 紐⑤몢 import |
+| PauseMenu | LANGUAGE ??異붽? + ?좉? 移대뱶 |
+| BitmapFont KO 遺꾧린 | `createUiText()` ?⑺넗由ъ뿉??locale=ko ??`Text` ?ъ슜 |
+| 泥??ㅽ뻾 ?먮룞 媛먯? | `navigator.language.startsWith('ko')` 泥댄겕 |
 
-### 4.9 폰트 폴백 (LOC-07)
+### 4.9 ?고듃 ?대갚 (LOC-07)
 
 ```typescript
-// game/src/ui/factories.ts (신설)
+// game/src/ui/factories.ts (?좎꽕)
 import { BitmapText, Text } from 'pixi.js';
 import { getLocale } from '@i18n';
 
@@ -284,153 +274,149 @@ export function createUiText(text: string, style: TextStyleLike): BitmapText | T
 }
 ```
 
-`game/index.html`에 KO 빌드 또는 KO locale 활성 시에만 Google Fonts CSS 로드:
+`game/index.html`??KO 鍮뚮뱶 ?먮뒗 KO locale ?쒖꽦 ?쒖뿉留?Google Fonts CSS 濡쒕뱶:
 
 ```html
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&display=swap" rel="stylesheet">
 ```
 
-### 4.10 검증 (LOC-10)
+### 4.10 寃利?(LOC-10)
 
-`Sheets/tools/validate.mjs`에 추가 규칙:
+`Sheets/tools/validate.mjs`??異붽? 洹쒖튃:
 
-- Content_Item_Master.csv의 NameKey/DescKey가 Content_Localization.csv에 모두 존재
-- Content_MemoryShards.csv의 NameKey/DescKey 존재
-- ego.* 키가 EgoDialogue.ts의 호출 위치 수와 일치
-- en/ko 셀 모두 빈 키는 V2 경고 (P1 대기)
+- Content_Item_Master.csv??NameKey/DescKey媛 Content_Localization.csv??紐⑤몢 議댁옱
+- Content_MemoryShards.csv??NameKey/DescKey 議댁옱
+- ego.* ?ㅺ? EgoDialogue.ts???몄텧 ?꾩튂 ?섏? ?쇱튂
+- en/ko ? 紐⑤몢 鍮??ㅻ뒗 V2 寃쎄퀬 (P1 ?湲?
 
 ---
 
-## 5. 데이터 & 파라미터 (Parameters)
+## 5. ?곗씠??& ?뚮씪誘명꽣 (Parameters)
 
 ### 5.1 SSoT CSV
 
-`Sheets/Content_Localization.csv` — 모든 표시 텍스트의 단일 SSoT.
+`Sheets/Content_Localization.csv` ??紐⑤뱺 ?쒖떆 ?띿뒪?몄쓽 ?⑥씪 SSoT.
 
-### 5.2 데이터 CSV (LOC-04 마이그레이션 대상)
+### 5.2 ?곗씠??CSV (LOC-04 留덉씠洹몃젅?댁뀡 ???
 
-- `Sheets/Content_Item_Master.csv` — Name/Description 컬럼 → NameKey/DescKey
-- `Sheets/Content_Stats_Weapon_List.csv` — 동일
-- `Sheets/Content_Stats_Weapon_Lore.csv` — 한국어 잔존 5행 즉시 정리
-- `Sheets/Content_MemoryShards.csv` — Name=ID 혼용 분리
+- `Sheets/Content_Item_Master.csv` ??Name/Description 而щ읆 ??NameKey/DescKey
+- `Sheets/Content_Stats_Weapon_List.csv` ???숈씪
+- `Documents/Content/_archive/LoreWeapons_DEC023/` ???쒓뎅???붿〈 5??利됱떆 ?뺣━
+- `Sheets/Content_MemoryShards.csv` ??Name=ID ?쇱슜 遺꾨━
 
-### 5.3 폰트 자산
+### 5.3 ?고듃 ?먯궛
 
-| 자산 | 라이센스 | 용도 |
+| ?먯궛 | ?쇱씠?쇱뒪 | ?⑸룄 |
 | :--- | :--- | :--- |
-| Press Start 2P (woff2 로컬) | SIL OFL | EN BitmapFont 픽셀 폰트 |
-| Rajdhani (Google Fonts CDN) | SIL OFL | EN UI 라틴 폰트 |
-| Cinzel (Google Fonts CDN) | SIL OFL | EN 타이틀/장식 |
-| Noto Sans KR (Google Fonts CDN) | SIL OFL | KO PIXI.Text 폴백 |
-| IBM Plex Sans KR (Google Fonts CDN, 대안) | SIL OFL | KO 대안 폰트 (Rajdhani 톤 매칭) |
+| Press Start 2P (woff2 濡쒖뺄) | SIL OFL | EN BitmapFont ?쎌? ?고듃 |
+| Rajdhani (Google Fonts CDN) | SIL OFL | EN UI ?쇳떞 ?고듃 |
+| Cinzel (Google Fonts CDN) | SIL OFL | EN ??댄?/?μ떇 |
+| Noto Sans KR (Google Fonts CDN) | SIL OFL | KO PIXI.Text ?대갚 |
+| IBM Plex Sans KR (Google Fonts CDN, ??? | SIL OFL | KO ????고듃 (Rajdhani ??留ㅼ묶) |
 
-CJK 폰트 라이센스는 모두 SIL OFL이라 상업 사용 안전. 서브셋팅은 Phase 4 폴리싱 단계에서 검토 (현재는 Google Fonts CDN 동적 로드로 충분).
+CJK ?고듃 ?쇱씠?쇱뒪??紐⑤몢 SIL OFL?대씪 ?곸뾽 ?ъ슜 ?덉쟾. ?쒕툕?뗮똿? Phase 4 ?대━???④퀎?먯꽌 寃??(?꾩옱??Google Fonts CDN ?숈쟻 濡쒕뱶濡?異⑸텇).
 
-### 5.4 작업 시간 추정 (1인 개발 기준)
+### 5.4 ?묒뾽 ?쒓컙 異붿젙 (1??媛쒕컻 湲곗?)
 
-| Phase | 작업 | 시간 |
+| Phase | ?묒뾽 | ?쒓컙 |
 | :--- | :--- | :---: |
-| Phase 2 즉시 | LOC-11 (Weapon_Lore 한국어 정리) | 0.5h |
-| Phase 2 즉시 | LOC-01 + LOC-02 (CSV + 변환 스크립트) | 2h |
-| Phase 2 즉시 | LOC-04 (데이터 CSV 마이그레이션) | 1.5h |
-| Phase 2 즉시 | LOC-03 (t() + locale store) | 1.5h |
-| Phase 2 즉시 | UI 80건 t() 호출 전환 | 2h |
-| Phase 2 즉시 | LOC-05 (검 Ego 분리 + 영문 번역 1패스) | 3-4h |
-| Phase 2 즉시 | LOC-06 (Vite 분기 빌드) | 0.5h |
-| **Phase 2 합계** | | **11-12h (~1.5-2일)** |
-| Phase 3 승격 | LOC-07 (BitmapFont 한국어 분기) | 1.5h |
-| Phase 3 승격 | LOC-08 (PauseMenu LANGUAGE 행) | 1h |
-| Phase 3 승격 | LOC-09 (자동 감지 + localStorage) | 1h |
-| Phase 3 승격 | LOC-10 (validate.mjs 키 존재 검증) | 1h |
-| Phase 3 승격 | 회귀 테스트 (양 언어 통독) | 2h |
-| **Phase 3 합계** | | **6-7h (~1일)** |
+| Phase 2 利됱떆 | LOC-11 (Weapon_Lore ?쒓뎅???뺣━) | 0.5h |
+| Phase 2 利됱떆 | LOC-01 + LOC-02 (CSV + 蹂???ㅽ겕由쏀듃) | 2h |
+| Phase 2 利됱떆 | LOC-04 (?곗씠??CSV 留덉씠洹몃젅?댁뀡) | 1.5h |
+| Phase 2 利됱떆 | LOC-03 (t() + locale store) | 1.5h |
+| Phase 2 利됱떆 | UI 80嫄?t() ?몄텧 ?꾪솚 | 2h |
+| Phase 2 利됱떆 | LOC-05 (寃 Ego 遺꾨━ + ?곷Ц 踰덉뿭 1?⑥뒪) | 3-4h |
+| Phase 2 利됱떆 | LOC-06 (Vite 遺꾧린 鍮뚮뱶) | 0.5h |
+| **Phase 2 ?⑷퀎** | | **11-12h (~1.5-2??** |
+| Phase 3 ?밴꺽 | LOC-07 (BitmapFont ?쒓뎅??遺꾧린) | 1.5h |
+| Phase 3 ?밴꺽 | LOC-08 (PauseMenu LANGUAGE ?? | 1h |
+| Phase 3 ?밴꺽 | LOC-09 (?먮룞 媛먯? + localStorage) | 1h |
+| Phase 3 ?밴꺽 | LOC-10 (validate.mjs ??議댁옱 寃利? | 1h |
+| Phase 3 ?밴꺽 | ?뚭? ?뚯뒪??(???몄뼱 ?듬룆) | 2h |
+| **Phase 3 ?⑷퀎** | | **6-7h (~1??** |
 
 ---
 
-## 6. 예외 처리 (Edge Cases)
+## 6. ?덉쇅 泥섎━ (Edge Cases)
 
-| 상황 | 처리 방식 |
+| ?곹솴 | 泥섎━ 諛⑹떇 |
 | :--- | :--- |
-| Content_Localization.csv에 key 누락 | t()가 en 폴백 → 그래도 누락이면 키 자체 반환. 게임 크래시 없음 |
-| en 셀은 있고 ko 셀은 빈 상태 | t()가 en 폴백 사용. 빈 화면 절대 방지 |
-| BitmapFont chars에 글리프 없는 문자 | KO 활성 시에는 PIXI.Text 분기로 우회. EN 활성 중 한글 입력은 발생하지 않음 (사용자 입력 텍스트 없음) |
-| 변수 보간 토큰 누락 (`{count}` 미전달) | 토큰 그대로 보존 (`{count}`)하여 디버그 가시성 확보 |
-| localStorage 미지원 환경 | `getLocale()`이 `navigator.language` 기반 1회 감지 후 메모리에만 보관. 다음 세션은 재감지 |
-| 첫 실행 시 navigator.language 비정상 (예: 빈 문자열) | EN 기본값 폴백 |
-| 분기 빌드(Phase 2)에서 사용자가 다른 언어 요청 | 해당 빌드 URL로 안내 (echoris.io/play/ vs 별도 채널). 게임 내 전환 미지원 |
-| 단일 빌드(Phase 3) 언어 전환 시 활성 PIXI Text 인스턴스 다수 | 페이지 리로드 또는 `i18nEvents.emit('locale-change')` 후 모든 Text가 `setText(t(key))` 재실행 |
-| 검 Ego 대사의 한국어 톤이 영문 1패스 번역으로 손실 | LOC-05의 톤 가이드 첨부 + Victor 검수 1회 + Phase 3에서 게임 전문 프리랜서 후편집 (Phase 4 1.0 추가) |
-| Sheets/Content_Stats_Weapon_Lore.csv 한국어 5행 미정리 시 | `feedback_english_only.md` 정책 위반. P0 즉시 정리 대상 |
-| CSV 빌드 스크립트 실패 (구문 오류 등) | 빌드 중단, dist 미생성. 기존 dist는 보존 (배포 안정성) |
-| EgoDialogue.ts와 Localization.csv 키 불일치 (마이그레이션 중 부분 적용) | validate.mjs가 빌드 차단. 부분 마이그레이션 PR은 머지 거부 |
+| Content_Localization.csv??key ?꾨씫 | t()媛 en ?대갚 ??洹몃옒???꾨씫?대㈃ ???먯껜 諛섑솚. 寃뚯엫 ?щ옒???놁쓬 |
+| en ?? ?덇퀬 ko ?? 鍮??곹깭 | t()媛 en ?대갚 ?ъ슜. 鍮??붾㈃ ?덈? 諛⑹? |
+| BitmapFont chars??湲由ы봽 ?녿뒗 臾몄옄 | KO ?쒖꽦 ?쒖뿉??PIXI.Text 遺꾧린濡??고쉶. EN ?쒖꽦 以??쒓? ?낅젰? 諛쒖깮?섏? ?딆쓬 (?ъ슜???낅젰 ?띿뒪???놁쓬) |
+| 蹂??蹂닿컙 ?좏겙 ?꾨씫 (`{count}` 誘몄쟾?? | ?좏겙 洹몃?濡?蹂댁〈 (`{count}`)?섏뿬 ?붾쾭洹?媛?쒖꽦 ?뺣낫 |
+| localStorage 誘몄????섍꼍 | `getLocale()`??`navigator.language` 湲곕컲 1??媛먯? ??硫붾え由ъ뿉留?蹂닿?. ?ㅼ쓬 ?몄뀡? ?ш컧吏 |
+| 泥??ㅽ뻾 ??navigator.language 鍮꾩젙??(?? 鍮?臾몄옄?? | EN 湲곕낯媛??대갚 |
+| 遺꾧린 鍮뚮뱶(Phase 2)?먯꽌 ?ъ슜?먭? ?ㅻⅨ ?몄뼱 ?붿껌 | ?대떦 鍮뚮뱶 URL濡??덈궡 (echoris.io/play/ vs 蹂꾨룄 梨꾨꼸). 寃뚯엫 ???꾪솚 誘몄???|
+| ?⑥씪 鍮뚮뱶(Phase 3) ?몄뼱 ?꾪솚 ???쒖꽦 PIXI Text ?몄뒪?댁뒪 ?ㅼ닔 | ?섏씠吏 由щ줈???먮뒗 `i18nEvents.emit('locale-change')` ??紐⑤뱺 Text媛 `setText(t(key))` ?ъ떎??|
+| 寃 Ego ??ъ쓽 ?쒓뎅???ㅼ씠 ?곷Ц 1?⑥뒪 踰덉뿭?쇰줈 ?먯떎 | LOC-05????媛?대뱶 泥⑤? + Victor 寃??1??+ Phase 3?먯꽌 寃뚯엫 ?꾨Ц ?꾨━?쒖꽌 ?꾪렪吏?(Phase 4 1.0 異붽?) |
+| Documents/Content/_archive/LoreWeapons_DEC023/ ?쒓뎅??5??誘몄젙由???| `feedback_english_only.md` ?뺤콉 ?꾨컲. P0 利됱떆 ?뺣━ ???|
+| CSV 鍮뚮뱶 ?ㅽ겕由쏀듃 ?ㅽ뙣 (援щЦ ?ㅻ쪟 ?? | 鍮뚮뱶 以묐떒, dist 誘몄깮?? 湲곗〈 dist??蹂댁〈 (諛고룷 ?덉젙?? |
+| EgoDialogue.ts? Localization.csv ??遺덉씪移?(留덉씠洹몃젅?댁뀡 以?遺遺??곸슜) | validate.mjs媛 鍮뚮뱶 李⑤떒. 遺遺?留덉씠洹몃젅?댁뀡 PR? 癒몄? 嫄곕? |
 
 ---
 
-## 7. 검증 체크리스트 (Acceptance Criteria)
+## 7. 寃利?泥댄겕由ъ뒪??(Acceptance Criteria)
 
-### 7.1 기능 검증
+### 7.1 湲곕뒫 寃利?
+- [ ] Content_Localization.csv??Key 1媛쒖뿉 en/ko ? 紐⑤몢 梨꾩썙吏??곹깭?먯꽌 t() ?몄텧 ???꾩옱 locale??留욌뒗 臾몄옄??諛섑솚
+- [ ] ko ? 鍮??ㅻ뒗 en ?대갚 臾몄옄??諛섑솚
+- [ ] en ???鍮??ㅻ뒗 ???먯껜 諛섑솚 (寃뚯엫 ?щ옒???놁쓬)
+- [ ] 蹂??蹂닿컙 `t('toast.gold_gained', { amount: 100 })` ??"+100 G" / "+100 G" ?뺤긽 異쒕젰
+- [ ] VITE_LOCALE=en 鍮뚮뱶??dist??ko.json???ы븿?섏? ?딆쓬 (踰덈뱾 ?덇컧 寃利?
+- [ ] VITE_LOCALE=ko 鍮뚮뱶??dist??en.json???ы븿?섏? ?딆쓬
+- [ ] csv_to_locale.mjs媛 ?좉퇋 ??異붽? ???먮룞 ?ъ깮?깅맖
+- [ ] validate.mjs媛 NameKey ??Localization.csv 寃利앹쓣 ?듦낵/?ㅽ뙣 ?뺥솗???먯젙
 
-- [ ] Content_Localization.csv의 Key 1개에 en/ko 셀 모두 채워진 상태에서 t() 호출 시 현재 locale에 맞는 문자열 반환
-- [ ] ko 셀 빈 키는 en 폴백 문자열 반환
-- [ ] en 셀도 빈 키는 키 자체 반환 (게임 크래시 없음)
-- [ ] 변수 보간 `t('toast.gold_gained', { amount: 100 })` → "+100 G" / "+100 G" 정상 출력
-- [ ] VITE_LOCALE=en 빌드의 dist에 ko.json이 포함되지 않음 (번들 절감 검증)
-- [ ] VITE_LOCALE=ko 빌드의 dist에 en.json이 포함되지 않음
-- [ ] csv_to_locale.mjs가 신규 키 추가 후 자동 재생성됨
-- [ ] validate.mjs가 NameKey ∈ Localization.csv 검증을 통과/실패 정확히 판정
+### 7.2 肄섑뀗痢?寃利?
+- [ ] EgoDialogue.ts ?몄텧??紐⑤몢 t() ?⑥닔濡??꾪솚??- [ ] EgoDialogue.ts???쒓뎅??string literal 0嫄?(紐⑤뱺 ?띿뒪?멸? Localization.csv濡??대룞)
+- [ ] Documents/Content/_archive/LoreWeapons_DEC023/???쒓뎅??0嫄?(Name/Description? ?곷Ц + Localization.csv ??
+- [ ] Sheets/Content_Item_Master.csv??紐⑤뱺 ?됱씠 NameKey/DescKey ?ъ슜 (援?Name/Description 而щ읆 ?쒓굅)
+- [ ] 寃 Ego ?곷Ц 踰덉뿭臾쇱씠 ??媛?대뱶 4??ぉ(?멸린??룸퉰?뺢굅由셋룰낵臾?鍮꾩쑉, ?몄묶, 以꾨컮轅? 移⑤У)??蹂댁〈
 
-### 7.2 콘텐츠 검증
+### 7.3 ?ъ슜??寃쏀뿕 寃利?(Phase 3 ?밴꺽 ??
 
-- [ ] EgoDialogue.ts 호출이 모두 t() 함수로 전환됨
-- [ ] EgoDialogue.ts에 한국어 string literal 0건 (모든 텍스트가 Localization.csv로 이동)
-- [ ] Sheets/Content_Stats_Weapon_Lore.csv에 한국어 0건 (Name/Description은 영문 + Localization.csv 키)
-- [ ] Sheets/Content_Item_Master.csv의 모든 행이 NameKey/DescKey 사용 (구 Name/Description 컬럼 제거)
-- [ ] 검 Ego 영문 번역물이 톤 가이드 4항목(호기심·빈정거림·과묵 비율, 호칭, 줄바꿈, 침묵)을 보존
+- [ ] PauseMenu??LANGUAGE ?됱뿉??EN/KO ?좉? 1珥??대궡 諛섏쁺
+- [ ] 泥??ㅽ뻾 ??navigator.language=ko-KR?대㈃ KO ?먮룞 ?쒖꽦, 洹??몃뒗 EN
+- [ ] ?ъ슜?먭? ??踰?KO瑜??좏깮?섎㈃ ?ㅼ쓬 ?몄뀡?먯꽌??localStorage ?곸냽?쇰줈 KO ?좎?
+- [ ] KO ?쒖꽦 ?곹깭?먯꽌 ?쒓???鍮??ш컖???놁씠 ?뺤긽 ?뚮뜑留?(Noto Sans KR 濡쒕뱶 ?뺤씤)
+- [ ] ?쎌??꾪듃 ?듭씪?? KO ?쒖꽦 ???쇰컲 Text濡?遺꾧린?섏뼱 ?쎌? 誘멸컧 ?쎄컙 ?먰빐??諛쏆븘?ㅼ씠???섏?
 
-### 7.3 사용자 경험 검증 (Phase 3 승격 후)
-
-- [ ] PauseMenu의 LANGUAGE 행에서 EN/KO 토글 1초 이내 반영
-- [ ] 첫 실행 시 navigator.language=ko-KR이면 KO 자동 활성, 그 외는 EN
-- [ ] 사용자가 한 번 KO를 선택하면 다음 세션에서도 localStorage 영속으로 KO 유지
-- [ ] KO 활성 상태에서 한글이 빈 사각형 없이 정상 렌더링 (Noto Sans KR 로드 확인)
-- [ ] 픽셀아트 통일성: KO 활성 시 일반 Text로 분기되어 픽셀 미감 약간 손해는 받아들이는 수준
-
-### 7.4 정책 정렬 검증
-
-- [ ] feedback_english_only.md: 게임 내 영문 SSoT 정책 — 검 Ego만 KR SSoT 예외, 그 외 모두 EN SSoT
-- [ ] project_target_market_global.md: 글로벌 영어권 1차 타깃 — 분기 빌드에서 echoris.io/play/ = EN 기본
-- [ ] user_persona_kr_community.md: KR 페르소나 비공개 — 게임 내 KR 지원 ≠ 한국 스튜디오 명시
-- [ ] project_steam_pricing_strategy.md: 마케팅 SSoT 표현 ("Browser demo · Full game on Steam") — Steam 페이지 EN/KR 모두 동일 카피 적용
+### 7.4 ?뺤콉 ?뺣젹 寃利?
+- [ ] feedback_english_only.md: 寃뚯엫 ???곷Ц SSoT ?뺤콉 ??寃 Ego留?KR SSoT ?덉쇅, 洹???紐⑤몢 EN SSoT
+- [ ] project_target_market_global.md: 湲濡쒕쾶 ?곸뼱沅?1李??源???遺꾧린 鍮뚮뱶?먯꽌 echoris.io/play/ = EN 湲곕낯
+- [ ] user_persona_kr_community.md: KR ?섎Ⅴ?뚮굹 鍮꾧났媛???寃뚯엫 ??KR 吏?????쒓뎅 ?ㅽ뒠?붿삤 紐낆떆
+- [ ] project_steam_pricing_strategy.md: 留덉???SSoT ?쒗쁽 ("Browser demo 쨌 Full game on Steam") ??Steam ?섏씠吏 EN/KR 紐⑤몢 ?숈씪 移댄뵾 ?곸슜
 
 ---
 
-## 8. 마이그레이션 패스 (Phase 2 → Phase 4)
+## 8. 留덉씠洹몃젅?댁뀡 ?⑥뒪 (Phase 2 ??Phase 4)
 
-| 시점 | 트리거 | 작업 | 비용 |
+| ?쒖젏 | ?몃━嫄?| ?묒뾽 | 鍮꾩슜 |
 | :--- | :--- | :--- | :---: |
-| Phase 2 즉시 | LOC-11 P0 정책 위반 | Weapon_Lore CSV 한국어 5행 정리 | 0.5h |
-| Phase 2 (1차 커밋) | 인프라 골격 | LOC-01 + LOC-02 + LOC-03 | 4h |
-| Phase 2 (2차 커밋) | 데이터 마이그레이션 | LOC-04 + UI t() 전환 | 3.5h |
-| Phase 2 (3차 커밋) | 검 Ego 분리 | LOC-05 | 3-4h |
-| Phase 2 (옵션 커밋) | 분기 빌드 가동 | LOC-06 | 0.5h |
-| Phase 3 EA 진입 6주 전 | 단일 빌드 승격 | LOC-07 + LOC-08 + LOC-09 + LOC-10 | 6-7h |
-| Phase 4 1.0 | 다국어 확장 | i18next 마이그레이션 + ZH-CN/RU/ES/PT-BR/JA 추가 | 별도 GDD |
+| Phase 2 利됱떆 | LOC-11 P0 ?뺤콉 ?꾨컲 | Weapon_Lore CSV ?쒓뎅??5???뺣━ | 0.5h |
+| Phase 2 (1李?而ㅻ컠) | ?명봽??怨④꺽 | LOC-01 + LOC-02 + LOC-03 | 4h |
+| Phase 2 (2李?而ㅻ컠) | ?곗씠??留덉씠洹몃젅?댁뀡 | LOC-04 + UI t() ?꾪솚 | 3.5h |
+| Phase 2 (3李?而ㅻ컠) | 寃 Ego 遺꾨━ | LOC-05 | 3-4h |
+| Phase 2 (?듭뀡 而ㅻ컠) | 遺꾧린 鍮뚮뱶 媛??| LOC-06 | 0.5h |
+| Phase 3 EA 吏꾩엯 6二???| ?⑥씪 鍮뚮뱶 ?밴꺽 | LOC-07 + LOC-08 + LOC-09 + LOC-10 | 6-7h |
+| Phase 4 1.0 | ?ㅺ뎅???뺤옣 | i18next 留덉씠洹몃젅?댁뀡 + ZH-CN/RU/ES/PT-BR/JA 異붽? | 蹂꾨룄 GDD |
 
 ---
 
-## 9. Phase 4+ 확장 (참조 — 본 문서 범위 외)
+## 9. Phase 4+ ?뺤옣 (李몄“ ??蹂?臾몄꽌 踰붿쐞 ??
 
-본 문서는 KR/EN 2언어에 한정한다. Phase 4 1.0 시점 추가 언어(ZH-CN, RU, ES-LATAM, PT-BR, JA, DE, FR, ZH-TW)는 별도 GDD로 분리 작성한다. 다음 항목들이 그 시점에 결정 대상:
+蹂?臾몄꽌??KR/EN 2?몄뼱???쒖젙?쒕떎. Phase 4 1.0 ?쒖젏 異붽? ?몄뼱(ZH-CN, RU, ES-LATAM, PT-BR, JA, DE, FR, ZH-TW)??蹂꾨룄 GDD濡?遺꾨━ ?묒꽦?쒕떎. ?ㅼ쓬 ??ぉ?ㅼ씠 洹??쒖젏??寃곗젙 ???
 
-- i18next 마이그레이션 (자체 t() → i18next 라이브러리)
-- 번역 플랫폼 도입 (Crowdin 또는 Weblate 자체호스팅)
-- 검 Ego 핵심 5언어 게임 전문 프리랜서 후편집 외주
-- CJK 폰트 서브셋팅 + 동적 로딩
-- LQA 핵심 5언어 외주
-- 시즌 운영 시 신규 텍스트 자동 번역 파이프라인 (git → Crowdin → AI 사전번역 → 인간 후편집 → 머지)
+- i18next 留덉씠洹몃젅?댁뀡 (?먯껜 t() ??i18next ?쇱씠釉뚮윭由?
+- 踰덉뿭 ?뚮옯???꾩엯 (Crowdin ?먮뒗 Weblate ?먯껜?몄뒪??
+- 寃 Ego ?듭떖 5?몄뼱 寃뚯엫 ?꾨Ц ?꾨━?쒖꽌 ?꾪렪吏??몄＜
+- CJK ?고듃 ?쒕툕?뗮똿 + ?숈쟻 濡쒕뵫
+- LQA ?듭떖 5?몄뼱 ?몄＜
+- ?쒖쫵 ?댁쁺 ???좉퇋 ?띿뒪???먮룞 踰덉뿭 ?뚯씠?꾨씪??(git ??Crowdin ??AI ?ъ쟾踰덉뿭 ???멸컙 ?꾪렪吏???癒몄?)
 
-상세 비용 추정 ~$9,000-10,500 (10언어 LLM+후편집 하이브리드 모델)은 메모리 `project_steam_pricing_strategy.md` 및 본 GDD 후속 확장본 참조.
+?곸꽭 鍮꾩슜 異붿젙 ~$9,000-10,500 (10?몄뼱 LLM+?꾪렪吏??섏씠釉뚮━??紐⑤뜽)? 硫붾え由?`project_steam_pricing_strategy.md` 諛?蹂?GDD ?꾩냽 ?뺤옣蹂?李몄“.
 
 ---
 
-소스 참조: `game/src/data/EgoDialogue.ts`, `game/src/ui/fonts.ts`, `Sheets/Content_*.csv`, `Sheets/tools/validate.mjs`, `game/vite.config.ts`
+?뚯뒪 李몄“: `game/src/data/EgoDialogue.ts`, `game/src/ui/fonts.ts`, `Sheets/Content_*.csv`, `Sheets/tools/validate.mjs`, `game/vite.config.ts`

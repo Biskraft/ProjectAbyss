@@ -15,7 +15,7 @@ import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, 
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
-import { Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
+import { Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
@@ -62,7 +62,7 @@ import { MemoryShardNPC } from '@entities/MemoryShardNPC';
 import { MemoryResident } from '@entities/MemoryResident';
 import { Trapdoor } from '@entities/Trapdoor';
 import { FloatingItemDrop } from '@entities/FloatingItemDrop';
-import { AbsorbParticles } from '@effects/AbsorbParticles';
+import { WorldPullInTransitionController } from '@effects/WorldPullInTransitionController';
 import { Anvil } from '@entities/Anvil';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -154,7 +154,9 @@ import { UpdraftSystem } from '@systems/UpdraftSystem';
 import {
   findNearestGrabbableContainer as findNearestContainerForGrab,
   startContainerGrabPull,
+  updateContainerGrabInput,
   updateContainerArcTether,
+  updateHeldContainerCarry,
   updateContainerPrompt as updateContainerPromptUi,
 } from '@systems/ContainerInteraction';
 import {
@@ -218,10 +220,10 @@ const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall' | 'absorbing' | 'dissolving';
 
-// DEC-039 Trapdoor 침강 시퀀스 타이밍 (ms).
-//   1) descent_pan   = 카메라 다운 패닝 (페이드 알파 0 → 1)
-//   2) descent_warp  = 텔레포트 직후 페이드 유지
-//   3) descent_in    = 페이드 알파 1 → 0 (다음 Plaza 천장 등장)
+// DEC-039 Trapdoor 移④컯 ?쒗????대컢 (ms).
+//   1) descent_pan   = 移대찓???ㅼ슫 ?⑤떇 (?섏씠???뚰뙆 0 ??1)
+//   2) descent_warp  = ?붾젅?ы듃 吏곹썑 ?섏씠???좎?
+//   3) descent_in    = ?섏씠???뚰뙆 1 ??0 (?ㅼ쓬 Plaza 泥쒖옣 ?깆옣)
 const DESCENT_PAN_MS = 800;
 const DESCENT_WARP_HOLD_MS = 200;
 const DESCENT_IN_MS = 400;
@@ -238,9 +240,9 @@ export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
   /**
-   * DEC-046 (2026-05-24): 가장 최근 보스 처치로 발생한 Recovery stage jump 결과.
-   * ReturnResult 화면이 dive 종료 시 읽어 *이름 진화 → Fragment 해금* 연출을 트리거.
-   * null = 이번 dive 동안 보스 처치 stage jump 미발생.
+   * DEC-046 (2026-05-24): 媛??理쒓렐 蹂댁뒪 泥섏튂濡?諛쒖깮??Recovery stage jump 寃곌낵.
+   * ReturnResult ?붾㈃??dive 醫낅즺 ???쎌뼱 *?대쫫 吏꾪솕 ??Fragment ?닿툑* ?곗텧???몃━嫄?
+   * null = ?대쾲 dive ?숈븞 蹂댁뒪 泥섏튂 stage jump 誘몃컻??
    */
   lastBossStageJump: {
     stratumIndex: number;
@@ -261,27 +263,27 @@ export class ItemWorldScene extends Scene {
   private healingPickups: HealingPickup[] = [];
   private goldPickups: GoldPickup[] = [];
   /**
-   * Room-key (`${col}:${absRow}`) → ItemSpawner entity 의 unified-grid pixel
-   * 위치 배열. buildFullMap 에서 LDtk 템플릿의 ItemSpawner 엔티티를 스캔해
-   * 채운다. spawnRoomRewards 가 룸 입장 시 이 목록 위치에 보상을 spawn.
-   * (2026-05-18 — 랜덤 위치 → designer-placed ItemSpawner 로 전환)
+   * Room-key (`${col}:${absRow}`) ??ItemSpawner entity ??unified-grid pixel
+   * ?꾩튂 諛곗뿴. buildFullMap ?먯꽌 LDtk ?쒗뵆由우쓽 ItemSpawner ?뷀떚?곕? ?ㅼ틪??
+   * 梨꾩슫?? spawnRoomRewards 媛 猷??낆옣 ????紐⑸줉 ?꾩튂??蹂댁긽??spawn.
+   * (2026-05-18 ???쒕뜡 ?꾩튂 ??designer-placed ItemSpawner 濡??꾪솚)
    */
   private roomItemSpawners: Map<string, Array<{ x: number; y: number }>> = new Map();
-  /** DEC-038 Town of Orphaned Shadows — hub Gatekeeper / shrine Librarian. */
+  /** DEC-038 Town of Orphaned Shadows ??hub Gatekeeper / shrine Librarian. */
   private memoryResidents: MemoryResident[] = [];
   /**
-   * 주민 전용 layer — fullMapContainer (grid) 바로 위, entityLayer (player/vfx)
-   * 바로 아래. 주민이 grid 위로는 보이지만 player/이펙트 뒤로 가도록 z 정렬.
-   * (사용자 요청 2026-05-02 — "주민 렌더링 순서를 grid 다음으로 올려")
+   * 二쇰? ?꾩슜 layer ??fullMapContainer (grid) 諛붾줈 ?? entityLayer (player/vfx)
+   * 諛붾줈 ?꾨옒. 二쇰???grid ?꾨줈??蹂댁씠吏留?player/?댄럺???ㅻ줈 媛?꾨줉 z ?뺣젹.
+   * (?ъ슜???붿껌 2026-05-02 ??"二쇰? ?뚮뜑留??쒖꽌瑜?grid ?ㅼ쓬?쇰줈 ?щ젮")
    */
   private residentsLayer!: Container;
-  /** Building layer — entityLayer 보다 뒤 (player 뒤로 렌더링). */
+  /** Building layer ??entityLayer 蹂대떎 ??(player ?ㅻ줈 ?뚮뜑留?. */
   private buildingLayer!: Container;
   /**
-   * 셀별 LdtkRenderer 4 layer (bg/wall/special/shadow) 그룹 — 매 프레임 viewport
-   * 검사 후 visible toggle 로 화면 밖 cell 의 draw 차단 (사용자 결정 2026-05-04,
-   * Rare+ 의 sprite 수만 대응). PIXI 자동 culling 이 filter/aggregate 트리에서
-   * 기대만큼 작동 안 해 명시 visible 로 강제.
+   * ?蹂?LdtkRenderer 4 layer (bg/wall/special/shadow) 洹몃９ ??留??꾨젅??viewport
+   * 寃????visible toggle 濡??붾㈃ 諛?cell ??draw 李⑤떒 (?ъ슜??寃곗젙 2026-05-04,
+   * Rare+ ??sprite ?섎쭔 ???. PIXI ?먮룞 culling ??filter/aggregate ?몃━?먯꽌
+   * 湲곕?留뚰겮 ?묐룞 ????紐낆떆 visible 濡?媛뺤젣.
    */
   private cellLayerGroups: Array<{
     col: number;
@@ -303,33 +305,33 @@ export class ItemWorldScene extends Scene {
   private runtimeSpawnedCells = new Set<string>();
   private visibleCellWindowKey = '';
   /**
-   * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
-   * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
+   * DEC-039 Trapdoor 移④컯. 蹂댁뒪 泥섏튂 ??蹂댁뒪 猷?諛붾떏 D ?꾩튂??spawn,
+   * 怨듦꺽 ???명꽣?숉듃濡??ㅼ쓬 Plaza 泥쒖옣?쇰줈 ?붾젅?ы듃 (留덉?留?吏痢듭? ?붾뱶 洹??.
    *
-   * 2026-05-25 Step 1: 최종 층 (descentToWorld=true) 에서는 Trapdoor 대신
-   * FloatingItemDrop 이 spawn 된다. 두 entity 는 동일 인터페이스 (isPlayerNear /
+   * 2026-05-25 Step 1: 理쒖쥌 痢?(descentToWorld=true) ?먯꽌??Trapdoor ???
+   * FloatingItemDrop ??spawn ?쒕떎. ??entity ???숈씪 ?명꽣?섏씠??(isPlayerNear /
    * activate / update / destroy / x / y / width / height / active / consumed).
    */
   private trapdoor: Trapdoor | FloatingItemDrop | null = null;
   /**
    * LDtk-placed Anvils inside ItemStratum levels. Acts as an in-world exit:
-   * approach → KeyPrompt → ATTACK opens EscapeConfirm (same flow as MENU/ESC).
+   * approach ??KeyPrompt ??ATTACK opens EscapeConfirm (same flow as MENU/ESC).
    * One Anvil class per instance (visual halo + sparks); built-in symbol prompt
    * is suppressed in favor of the standard KeyPrompt pattern.
    */
   private itemWorldAnvils: Anvil[] = [];
   private itemWorldAnvilPrompt: Container | null = null;
-  /** 침강 시퀀스 진행 누적 ms. transitionState='descent_fall' 동안만 갱신. */
+  /** 移④컯 ?쒗??吏꾪뻾 ?꾩쟻 ms. transitionState='descent_fall' ?숈븞留?媛깆떊. */
   private descentTimer = 0;
-  /** 텔레포트 완료 표식 — 시퀀스 중 한 번만 수행 보장. */
+  /** ?붾젅?ы듃 ?꾨즺 ?쒖떇 ???쒗??以???踰덈쭔 ?섑뻾 蹂댁옣. */
   private descentWarpDone = false;
-  /** 마지막 지층 보스 처치 후 = true. 침강 시퀀스 끝에서 월드 귀환으로 분기. */
+  /** 留덉?留?吏痢?蹂댁뒪 泥섏튂 ??= true. 移④컯 ?쒗???앹뿉???붾뱶 洹?섏쑝濡?遺꾧린. */
   private descentToWorld = false;
-  /** 카메라 다운 패닝 시작 시점 cam.y. */
+  /** 移대찓???ㅼ슫 ?⑤떇 ?쒖옉 ?쒖젏 cam.y. */
   private descentStartCamY = 0;
   /**
-   * Entry sequencing: 시작 룸의 Gatekeeper/Librarian + ambient 스폰을 입장 대사
-   * 완료까지 보류한다. true 가 되면 hub/shrine 분기가 정상 스폰을 수행.
+   * Entry sequencing: ?쒖옉 猷몄쓽 Gatekeeper/Librarian + ambient ?ㅽ룿???낆옣 ???
+   * ?꾨즺源뚯? 蹂대쪟?쒕떎. true 媛 ?섎㈃ hub/shrine 遺꾧린媛 ?뺤긽 ?ㅽ룿???섑뻾.
    */
   private startSpawnDone = false;
   private dropRng = new PRNG(99999);
@@ -341,20 +343,20 @@ export class ItemWorldScene extends Scene {
   private fluidSystemReady = false;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
-  /** Last frame's "player in non-water fluid (magma/oil/acid)" flag — used
+  /** Last frame's "player in non-water fluid (magma/oil/acid)" flag ??used
    *  for entry/exit splash + impulse parity with LdtkWorldScene. */
   private prevPlayerInOtherFluid = false;
   /** Same as above but per-enemy (index-aligned with this.enemies). */
   private prevEnemyInOtherFluid: boolean[] = [];
   /** Set when TileMutator mutates a wall tile (ice melt, metal corrode,
    *  oil/wood burnout, etc). Cleared in update() after a single fluid
-   *  refresh — coalesces many same-frame mutations into one rebuild. */
+   *  refresh ??coalesces many same-frame mutations into one rebuild. */
   private fluidGridDirty = false;
   /** Oxygen vignette + bar overlays (lazy-created on first submersion). */
   private oxygenOverlay: Graphics | null = null;
   private oxygenBar: Graphics | null = null;
   /**
-   * Mutation mask — covers air cells that used to be wood/grass/oil with a
+   * Mutation mask ??covers air cells that used to be wood/grass/oil with a
    * black rect so the wall sprite (which was baked into wallAggregate at
    * buildFullMap time) doesn't keep showing through after burnout. Mirrors
    * LdtkWorldScene's `rerenderTilemap` filter, but the ItemWorld aggregate
@@ -417,7 +419,7 @@ export class ItemWorldScene extends Scene {
   private hudSkin: UISkin | null = null;
   private itemWorldReduceVisualCost = false;
   private toast!: ToastManager;
-  /** Gamepad hot-plug 토스트 unsubscribe — destroy 시 호출. */
+  /** Gamepad hot-plug ?좎뒪??unsubscribe ??destroy ???몄텧. */
   private _gpUnsub: (() => void) | null = null;
   private tutorialHint!: TutorialHint;
   // A15: innocent capture seal orbs ? rise from capture point, home to player
@@ -447,12 +449,12 @@ export class ItemWorldScene extends Scene {
   // Unified grid (all strata combined)
   private earnedExp = 0;
   earnedGold = 0;
-  /** 아이템계 진입 시점의 보관된 골드 — HUD 표시는 baselineGold + earnedGold 누계. */
+  /** ?꾩씠?쒓퀎 吏꾩엯 ?쒖젏??蹂닿???怨⑤뱶 ??HUD ?쒖떆??baselineGold + earnedGold ?꾧퀎. */
   private baselineGold = 0;
   private roomsCleared = 0;
   private totalRooms = 0;
   private unifiedGrid!: UnifiedGridData;
-  /** Per-stratum graphs from the adapter — node.layout.x/y carry grid (col,row). */
+  /** Per-stratum graphs from the adapter ??node.layout.x/y carry grid (col,row). */
   private roomGraphs: RoomGraphData[] = [];
   // DEC-037 PR-B debug overlay (?debug=graph + Shift+2 toggle). Untouched by gameplay.
   private roomGraphDebugContainer: Container | null = null;
@@ -518,9 +520,9 @@ export class ItemWorldScene extends Scene {
   private growingWalls: GrowingWall[] = [];
   private switches: Switch[] = [];
   private lockedDoors: LockedDoor[] = [];
-  /** 수동 배치 Building (LDtk Entity 'Building') — 시각 데코, 충돌 없음. */
+  /** ?섎룞 諛곗튂 Building (LDtk Entity 'Building') ???쒓컖 ?곗퐫, 異⑸룎 ?놁쓬. */
   private buildings: Building[] = [];
-  /** ItemWorld 전용 — 현재 아이템 sprite 의 거대 표식. LDtk Entity 'ItemDisplay'. */
+  /** ItemWorld ?꾩슜 ???꾩옱 ?꾩씠??sprite ??嫄곕? ?쒖떇. LDtk Entity 'ItemDisplay'. */
   private itemDisplays: ItemDisplay[] = [];
   private cameraZones: {
     x: number; y: number; w: number; h: number;
@@ -530,18 +532,18 @@ export class ItemWorldScene extends Scene {
   }[] = [];
   private activeCameraZone: typeof this.cameraZones[number] | null = null;
   private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
-  private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" → LDtk roomType
-  private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" → live enemy count for clear tracking
+  private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" ??LDtk roomType
+  private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" ??live enemy count for clear tracking
   private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
 
   // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
-  private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" → memory template
+  private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" ??memory template
 
   /**
-   * Player entity spawn (DEC-038): LDtk Start 템플릿의 Player entity 가 권위.
-   * buildFullMap 가 각 stratum 의 startRoom ldtkLevel 에서 entity.type === 'Player'
-   * 를 찾아 stratumIndex 키로 캐시. init() 의 첫 스폰과, jumpToStratum 으로
-   * 지층을 내려갈 때(보스 처치 후 continue / stratum picker) 의 스폰 권위.
+   * Player entity spawn (DEC-038): LDtk Start ?쒗뵆由우쓽 Player entity 媛 沅뚯쐞.
+   * buildFullMap 媛 媛?stratum ??startRoom ldtkLevel ?먯꽌 entity.type === 'Player'
+   * 瑜?李얠븘 stratumIndex ?ㅻ줈 罹먯떆. init() ??泥??ㅽ룿怨? jumpToStratum ?쇰줈
+   * 吏痢듭쓣 ?대젮媛???蹂댁뒪 泥섏튂 ??continue / stratum picker) ???ㅽ룿 沅뚯쐞.
    */
   private playerSpawnByStratum: Map<number, { x: number; y: number }> = new Map();
   private memoryTriggers: Array<{
@@ -589,7 +591,7 @@ export class ItemWorldScene extends Scene {
   private stratumPickerPulseG: Graphics | null = null;
   private stratumPickerPulseRect: { x: number; y: number; w: number; h: number } | null = null;
 
-  // Onboarding — last line uses live keybindings via getter (preset-aware).
+  // Onboarding ??last line uses live keybindings via getter (preset-aware).
   private static getOnboardingMsgs(): string[] {
     return [
       t('ui.iw.onboarding_entered'),
@@ -606,12 +608,12 @@ export class ItemWorldScene extends Scene {
   /** Set to true if the global Item World tutorial has already been completed. */
   itemWorldTutorialDone = false;
 
-  // ── Ego dialogue state (per-entry, not saved) ──
+  // ?? Ego dialogue state (per-entry, not saved) ??
   private egoActive = false;          // true if current item has Ego
   private egoEntryCount = 0;          // how many times player entered this item's world
   private egoFlags = new Set<string>(); // fired triggers this entry (reset each entry)
   private entryDialogueStarted = false;
-  /** Passed from LdtkWorldScene — shared unlockedEvents for persistence. */
+  /** Passed from LdtkWorldScene ??shared unlockedEvents for persistence. */
   egoUnlockedEvents: Set<string> = new Set();
 
   constructor(game: Game, item: ItemInstance, inventory: Inventory, sourcePlayer: Player) {
@@ -622,21 +624,21 @@ export class ItemWorldScene extends Scene {
   }
 
   async init(): Promise<void> {
-    // Resolve visual theme from weapon definition (themeId: "T-HABITAT" → "habitat")
+    // Resolve visual theme from weapon definition (themeId: "T-HABITAT" ??"habitat")
     const themeSlug = (this.item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
     const ua = navigator.userAgent || '';
     this.itemWorldReduceVisualCost =
       /iPad|iPhone|iPod/.test(ua) ||
       (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
-    // ItemWorld 전용 적/주민/스위치 스프라이트를 entity 가 개별 Assets.load 로
-    // 부르기 전에 그룹 prefetch — 첫 진입 hitch 회피 (pixijs-references P1).
+    // ItemWorld ?꾩슜 ??二쇰?/?ㅼ쐞移??ㅽ봽?쇱씠?몃? entity 媛 媛쒕퀎 Assets.load 濡?
+    // 遺瑜닿린 ?꾩뿉 洹몃９ prefetch ??泥?吏꾩엯 hitch ?뚰뵾 (pixijs-references P1).
     void loadBundleOnce('item_world');
     const hudSkin = new UISkin();
     this.hudSkin = hudSkin;
     const hudSkinLoad = hudSkin.load().catch((e) => {
       // eslint-disable-next-line no-console
-      console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
+      console.warn('[UISkin] load failed ??falling back to Graphics HUD:', e);
     });
     // Lazy-load tilesets for this theme's palette rows
     const areaIds = [`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`];
@@ -695,7 +697,7 @@ export class ItemWorldScene extends Scene {
       Debug.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
-    // ── Ego init ──
+    // ?? Ego init ??
     this.egoActive = hasEgo(this.item.def.id);
     if (this.egoActive) {
       // Increment entry count
@@ -709,19 +711,19 @@ export class ItemWorldScene extends Scene {
 
     this.hitManager = new HitManager(this.game);
 
-    // First-dive 온보딩: 첫 아이템계 보스를 처치하기 전에는 모든 아이템이 1지층만 갖는다.
-    // 레어리티 무관 (Normal/Magic/Rare/...) 의 글로벌 게이트.
-    // DEC-037: Radial Ant Colony topology — RoomGraph 어댑터가 단일 경로.
-    // Phase 1: 무기별 topologyOverride 가 있으면 stratum 의 토폴로지를 강제 교체.
-    // Dev: ?topology=ring 같은 쿼리스트링이 있으면 그것이 최우선 (검증용).
+    // First-dive ?⑤낫?? 泥??꾩씠?쒓퀎 蹂댁뒪瑜?泥섏튂?섍린 ?꾩뿉??紐⑤뱺 ?꾩씠?쒖씠 1吏痢듬쭔 媛뽯뒗??
+    // ?덉뼱由ы떚 臾닿? (Normal/Magic/Rare/...) ??湲濡쒕쾶 寃뚯씠??
+    // DEC-037: Radial Ant Colony topology ??RoomGraph ?대뙌?곌? ?⑥씪 寃쎈줈.
+    // Phase 1: 臾닿린蹂?topologyOverride 媛 ?덉쑝硫?stratum ???좏뤃濡쒖?瑜?媛뺤젣 援먯껜.
+    // Dev: ?topology=ring 媛숈? 荑쇰━?ㅽ듃留곸씠 ?덉쑝硫?洹멸쾬??理쒖슦??(寃利앹슜).
     const urlTopologyRaw = new URLSearchParams(window.location.search)
       .get('topology')?.trim().toLowerCase() ?? '';
     const urlTopology: TopologyKind | undefined = TOPOLOGY_VALUES.has(urlTopologyRaw as TopologyKind)
       ? (urlTopologyRaw as TopologyKind)
       : undefined;
     if (urlTopology) Debug.log(`[ItemWorld] URL topology override: ${urlTopology}`);
-    // DEC-039 archetype 매핑 — 무기의 (주색, 부색) 기질 → 7 archetype 중 하나.
-    // 미지정 시 'zigzag' fallback. URL ?archetype= 으로 dev 측 강제 가능.
+    // DEC-039 archetype 留ㅽ븨 ??臾닿린??(二쇱깋, 遺?? 湲곗쭏 ??7 archetype 以??섎굹.
+    // 誘몄?????'zigzag' fallback. URL ?archetype= ?쇰줈 dev 痢?媛뺤젣 媛??
     const urlArchRaw = new URLSearchParams(window.location.search)
       .get('archetype')?.trim().toLowerCase() ?? '';
     const validArchetypes = new Set([
@@ -743,10 +745,10 @@ export class ItemWorldScene extends Scene {
     this.unifiedGrid = adapterResult.unifiedGrid;
     this.roomGraphs = adapterResult.graphs;
 
-    // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). Shift+2 토글.
+    // DEC-037 PR-B: optional graph debug overlay (?debug=1 ?먮뒗 ?debug=graph). Shift+2 ?좉?.
     this.maybeInitRoomGraphDebug();
 
-    // Dev: Shift+L = cycle ?topology= and reload (검증용 핫키).
+    // Dev: Shift+L = cycle ?topology= and reload (寃利앹슜 ?ロ궎).
     this.initTopologyCycleKey();
 
     // Pre-compute Memory Room placements per stratum (from CSV lookup)
@@ -845,7 +847,7 @@ export class ItemWorldScene extends Scene {
     {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
-      // DEC-039 안 A: parallax 도 통일 좌표 전체 크기로 설정.
+      // DEC-039 ??A: parallax ???듭씪 醫뚰몴 ?꾩껜 ?ш린濡??ㅼ젙.
       const totalCols = this.unifiedGrid.totalWidth;
       const totalRows = this.unifiedGrid.totalHeight;
       this.parallaxBG.setup(bgEntry, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, {
@@ -855,15 +857,15 @@ export class ItemWorldScene extends Scene {
       });
     }
 
-    // Building layer — fullMapContainer (platform/wall tile) 보다도 뒤로.
-    // fullMapContainer 가 addChildAt(0) 으로 강제 삽입되므로 단순 addChild 순서로는
-    // 뒤에 못 둠. sortableChildren + 음수 zIndex 로 강제.
+    // Building layer ??fullMapContainer (platform/wall tile) 蹂대떎???ㅻ줈.
+    // fullMapContainer 媛 addChildAt(0) ?쇰줈 媛뺤젣 ?쎌엯?섎?濡??⑥닚 addChild ?쒖꽌濡쒕뒗
+    // ?ㅼ뿉 紐??? sortableChildren + ?뚯닔 zIndex 濡?媛뺤젣.
     this.container.sortableChildren = true;
     this.buildingLayer = new Container();
     this.buildingLayer.zIndex = -1;
     this.container.addChild(this.buildingLayer);
 
-    // Residents layer — grid 위, entityLayer 아래. addChild 순서가 z 결정.
+    // Residents layer ??grid ?? entityLayer ?꾨옒. addChild ?쒖꽌媛 z 寃곗젙.
     this.residentsLayer = new Container();
     this.container.addChild(this.residentsLayer);
 
@@ -875,7 +877,7 @@ export class ItemWorldScene extends Scene {
     // Tile mutator overlay (fire/ice/electric VFX).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
-    // Dynamic fluid layer — flood-fill polygon mesh for water/oil/acid/magma
+    // Dynamic fluid layer ??flood-fill polygon mesh for water/oil/acid/magma
     // cells. Lives above the entity layer so fluid bodies cover the player
     // when submerged. Mirrors LdtkWorldScene wiring.
     this.fluidLayer = new Container();
@@ -888,7 +890,7 @@ export class ItemWorldScene extends Scene {
       this.fluidCrestFoam = new FluidCrestFoamManager(this.fluidLayer, _reduceMotion);
     }
 
-    // Above-fluid overlay — fire sprites + ember + smoke render here so
+    // Above-fluid overlay ??fire sprites + ember + smoke render here so
     // they appear OVER oil pools / water surface.
     this.aboveFluidLayer = new Container();
     this.container.addChild(this.aboveFluidLayer);
@@ -960,7 +962,7 @@ export class ItemWorldScene extends Scene {
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShard = new EgoShardManager(this.entityLayer);
     this.egoShardPreview = new EgoShardPreview(this.entityLayer);
-    // Fluid evaporation → drop residue stain (mirrors LdtkWorldScene).
+    // Fluid evaporation ??drop residue stain (mirrors LdtkWorldScene).
     this.fluidSystem.onEvaporated = (gx, gy, type) => {
       if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
       const px = (gx + 0.5) * 16;
@@ -968,11 +970,11 @@ export class ItemWorldScene extends Scene {
       this.fluidResidue.dropAt(type, px, py, 1.0);
     };
 
-    // ─── Arc Scan Cycle (R-NEW-031 v2) ──────────────────────────────────────
-    // charged FluidBody + electrified water FluidBody 가 주기적으로 주변
-    // 도체 (player / enemies / metal containers / water cells / metal cells)
-    // 를 검색해 전기선 연결 → 일정 시간 후 일제히 thunder 방전 + charged 상태
-    // 부여 + chain trigger.
+    // ??? Arc Scan Cycle (R-NEW-031 v2) ??????????????????????????????????????
+    // charged FluidBody + electrified water FluidBody 媛 二쇨린?곸쑝濡?二쇰?
+    // ?꾩껜 (player / enemies / metal containers / water cells / metal cells)
+    // 瑜?寃?됲빐 ?꾧린???곌껐 ???쇱젙 ?쒓컙 ???쇱젣??thunder 諛⑹쟾 + charged ?곹깭
+    // 遺??+ chain trigger.
     this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
       const links: ArcLink[] = [];
       const r2 = radiusPx * radiusPx;
@@ -1006,7 +1008,7 @@ export class ItemWorldScene extends Scene {
           links.push({ worldX: ccx, worldY: ccy, kind: 'container', ref: c });
         }
       }
-      // 4) Grid conductor cells (water / metal / acid) — origin 셀 자기 자신 제외.
+      // 4) Grid conductor cells (water / metal / acid) ??origin ? ?먭린 ?먯떊 ?쒖쇅.
       const ogx = Math.floor(originX / 16);
       const ogy = Math.floor(originY / 16);
       const radCells = Math.ceil(radiusPx / 16) + 1;
@@ -1030,7 +1032,7 @@ export class ItemWorldScene extends Scene {
           });
         }
       }
-      // 최대 6 link 로 제한 (VFX + discharge 비용 안정)
+      // 理쒕? 6 link 濡??쒗븳 (VFX + discharge 鍮꾩슜 ?덉젙)
       if (links.length > 6) {
         links.sort((a, b) => {
           const da = (a.worldX - originX) ** 2 + (a.worldY - originY) ** 2;
@@ -1055,11 +1057,11 @@ export class ItemWorldScene extends Scene {
           ent.chargedStateMs = Math.max(ent.chargedStateMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
           this.dmgNumbers.spawn(link.worldX, link.worldY - 8, dmg, false);
         } else if (link.kind === 'container') {
-          // Capacitor 충전 — 다음 thunder 적중 시 보너스 (필드는 추후 활용)
+          // Capacitor 異⑹쟾 ???ㅼ쓬 thunder ?곸쨷 ??蹂대꼫??(?꾨뱶??異뷀썑 ?쒖슜)
           const c = link.ref as { electricChargedMs?: number };
           if (c) c.electricChargedMs = Math.max(c.electricChargedMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
         } else if (link.kind === 'fluid' || link.kind === 'cell') {
-          // water / metal / acid 셀 → thunder chain BFS trigger.
+          // water / metal / acid ? ??thunder chain BFS trigger.
           const cellRef = link.ref as { gx: number; gy: number } | undefined;
           if (cellRef) {
             this.tileMutator.applyThunderChain(this.fullGrid, cellRef.gx, cellRef.gy);
@@ -1085,12 +1087,12 @@ export class ItemWorldScene extends Scene {
     this.tileMutator.onElectricAcidPulse = (gx, gy) => {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
     };
-    // R-NEW-001 Exothermic Steam: acid+water 발열 반응 — 강한 증기 + vertical
-    // burst. Horizontal 24px, vertical 64px 안 entity / 컨테이너 영향.
+    // R-NEW-001 Exothermic Steam: acid+water 諛쒖뿴 諛섏쓳 ??媛뺥븳 利앷린 + vertical
+    // burst. Horizontal 24px, vertical 64px ??entity / 而⑦뀒?대꼫 ?곹뼢.
     this.tileMutator.onAcidSteamBurst = (gx, gy) => {
       const cx = (gx + 0.5) * 16;
       const cy = (gy + 0.5) * 16;
-      // 강한 추가 증기 (onSteamEvent 의 표준 1.0 위에)
+      // 媛뺥븳 異붽? 利앷린 (onSteamEvent ???쒖? 1.0 ?꾩뿉)
       const steamBaseY = (gy + 1) * 16;
       this.steamPuff.spawn(cx, steamBaseY, 1.5);
       this.steamPuff.spawn(cx, steamBaseY - 22, 1.3);
@@ -1103,7 +1105,7 @@ export class ItemWorldScene extends Scene {
         const dy = (y - cy) / radiusY;
         return dx * dx + dy * dy < 1;
       };
-      // Player 데미지 + Burn
+      // Player ?곕?吏 + Burn
       const px = this.player.x + this.player.width / 2;
       const py = this.player.y + this.player.height / 2;
       if (inSteamBurst(px, py)) {
@@ -1112,7 +1114,7 @@ export class ItemWorldScene extends Scene {
         this.player.burnRemainingMs = Math.max(this.player.burnRemainingMs ?? 0, 5000);
         this.player.vy = Math.min(this.player.getVy(), -220);
       }
-      // Enemies 데미지 + Burn + 살짝 위로
+      // Enemies ?곕?吏 + Burn + ?댁쭩 ?꾨줈
       for (const e of this.enemies) {
         if (!e.alive) continue;
         const ex = e.x + e.width / 2;
@@ -1125,7 +1127,7 @@ export class ItemWorldScene extends Scene {
           this.dmgNumbers.spawn(ex, e.y - 8, dmg, false);
         }
       }
-      // 컨테이너 위로 상승 (3s steam lift)
+      // 而⑦뀒?대꼫 ?꾨줈 ?곸듅 (3s steam lift)
       for (const c of this.containers) {
         if (c.destroyed || c.held) continue;
         const ccx = c.colX + c.colW / 2;
@@ -1135,18 +1137,18 @@ export class ItemWorldScene extends Scene {
         }
       }
     };
-    // Wall-tile mutations (ice→water melt, acid→metal corrode, oil/wood
+    // Wall-tile mutations (ice?뭮ater melt, acid?뭢etal corrode, oil/wood
     // burnout) invalidate the static tile layer AND can introduce new
-    // fluid cells (ice melt → water). Coalesce same-frame events into a
+    // fluid cells (ice melt ??water). Coalesce same-frame events into a
     // single refresh in update().
     this.tileMutator.onWallTileChanged = (gx, gy, originalTile) => {
       this.fluidGridDirty = true;
       // If the mutation produced an air cell, paint over the baked-in
       // wall sprite that was aggregated at buildFullMap. New fluid cells
-      // (ice→water) don't need a mask — FluidSystem will draw over the
+      // (ice?뭮ater) don't need a mask ??FluidSystem will draw over the
       // wall sprite via the fluid mesh. OIL also doesn't need a mask
       // because its wall sprite was filtered out of the aggregate at
-      // bake time (isFluidHiddenTile) — masking would leave a fake
+      // bake time (isFluidHiddenTile) ??masking would leave a fake
       // residue rectangle where the fluid simply evaporated.
       const v = this.fullGrid[gy]?.[gx];
       if (v === 0 && originalTile !== TILE_OIL) {
@@ -1183,13 +1185,13 @@ export class ItemWorldScene extends Scene {
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
 
-    // 아이템계 진입 시점의 저장된 gold — HUD 가 외부 세계와 동일한 총액을 표시하도록.
-    // earnedGold 가 늘어날 때마다 baselineGold + earnedGold 로 갱신 (collectGold 분기 참조).
+    // ?꾩씠?쒓퀎 吏꾩엯 ?쒖젏????λ맂 gold ??HUD 媛 ?몃? ?멸퀎? ?숈씪??珥앹븸???쒖떆?섎룄濡?
+    // earnedGold 媛 ?섏뼱???뚮쭏??baselineGold + earnedGold 濡?媛깆떊 (collectGold 遺꾧린 李몄“).
     const savedData = SaveManager.load();
     this.baselineGold = savedData?.gold ?? 0;
     this.hud.updateGold(this.baselineGold);
 
-    // Area title banner — shows item name on entry.
+    // Area title banner ??shows item name on entry.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
     this.areaTitle.show(getDisplayName(this.item));
@@ -1221,7 +1223,7 @@ export class ItemWorldScene extends Scene {
 
     // Toast
     this.toast = new ToastManager(this.game.legacyUIContainer);
-    // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
+    // Gamepad hot-plug ???좎뒪??(System_Input_Gamepad 짠8.1 Stage 3).
     {
       const off1 = this.game.gamepad.onConnectEvent((brand) => {
         this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
@@ -1232,8 +1234,8 @@ export class ItemWorldScene extends Scene {
       this._gpUnsub = () => { off1(); off2(); };
     }
 
-    // Tutorial hint (used for low-HP heal cue, etc. — same UX as world scene)
-    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer);
+    // Tutorial hint (used for low-HP heal cue, etc. ??same UX as world scene)
+    this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer, this.hudSkin);
 
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
@@ -1250,9 +1252,9 @@ export class ItemWorldScene extends Scene {
     // Resolve FluidGeneric_A/B/C (17/18/19) -> concrete fluid tiles based on
     // this dive's weapon temperament (forge/iron/rust/spark/shadow). MUST run
     // before fluidSystem.attachGrid so flood-fill sees the resolved values.
-    // Spec: Documents/System/System_World_Fluid.md §3.4
+    // Spec: Documents/System/System_World_Fluid.md 짠3.4
     applyFluidGenericResolution(this.fullGrid, this.item.def.temperamentPrimary);
-    // Wire FluidSystem to the freshly built grid — flood-fills fluid bodies
+    // Wire FluidSystem to the freshly built grid ??flood-fills fluid bodies
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
     // since ItemWorld has no single LdtkLevel wrapper.
@@ -1262,7 +1264,7 @@ export class ItemWorldScene extends Scene {
     // adjusted to the unified grid). Spawner state cleared before
     // buildFullMap, so here we just proceed to settle containers.
     // Settle every container that buildFullMap spawned (explicit + spawner
-    // results combined) in dependency order — taller stacks land last.
+    // results combined) in dependency order ??taller stacks land last.
     {
       const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
         const t = this.fullGrid[gy]?.[gx] ?? 0;
@@ -1293,9 +1295,9 @@ export class ItemWorldScene extends Scene {
     );
     this.updateHudText();
 
-    // Spawn player. DEC-038: LDtk Start 템플릿의 Player entity 가 권위 — 있으면
-    // 그 위치(엔티티 pivot 은 LDtk 에서 bottom-center 가 표준)에 좌상단 정렬로
-    // 배치한다. 없으면 절차적 floor 탐색으로 폴백.
+    // Spawn player. DEC-038: LDtk Start ?쒗뵆由우쓽 Player entity 媛 沅뚯쐞 ???덉쑝硫?
+    // 洹??꾩튂(?뷀떚??pivot ? LDtk ?먯꽌 bottom-center 媛 ?쒖?)??醫뚯긽???뺣젹濡?
+    // 諛곗튂?쒕떎. ?놁쑝硫??덉감??floor ?먯깋?쇰줈 ?대갚.
     let spawnX: number;
     let spawnY: number;
     const initialLdtkSpawn = this.playerSpawnByStratum.get(this.currentStratumIndex);
@@ -1317,18 +1319,18 @@ export class ItemWorldScene extends Scene {
     this.game.camera.setZoom(1.0);
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
 
-    // LoreDisplay for Memory Rooms — uiContainer(native) 직속 (UI native 1단계)
+    // LoreDisplay for Memory Rooms ??uiContainer(native) 吏곸냽 (UI native 1?④퀎)
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
     this.game.uiContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
 
-    // ── Ego T04: landing dialogue ──
-    // 사용자 요청 (2026-05-02) — 타일 + 거주자 (Plaza Gatekeeper / ambient 20명)
-    // 가 먼저 렌더링된 후 대사가 등장해야 한다 (대사 중 빈 광장 인상 방지).
-    // 순서:
-    //   1) startSpawnDone=true 즉시 → spawnEnemiesInRoom 가 거주자 spawn
-    //   2) 한 박자 (500ms) 후 입장 대사 — player 가 광장 풍경을 인지한 후 발화
+    // ?? Ego T04: landing dialogue ??
+    // ?ъ슜???붿껌 (2026-05-02) ?????+ 嫄곗＜??(Plaza Gatekeeper / ambient 20紐?
+    // 媛 癒쇱? ?뚮뜑留곷맂 ????ш? ?깆옣?댁빞 ?쒕떎 (???以?鍮?愿묒옣 ?몄긽 諛⑹?).
+    // ?쒖꽌:
+    //   1) startSpawnDone=true 利됱떆 ??spawnEnemiesInRoom 媛 嫄곗＜??spawn
+    //   2) ??諛뺤옄 (500ms) ???낆옣 ?????player 媛 愿묒옣 ?띻꼍???몄?????諛쒗솕
     this.startSpawnDone = true;
     this.spawnedRooms.add(`${this.currentCol},${this.currentRow}`);
     this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
@@ -1390,7 +1392,7 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Build the full map for the current stratum state.
-   * Renders all room templates into a single continuous 2048×2048px grid.
+   * Renders all room templates into a single continuous 2048횞2048px grid.
    * Called from init() and on stratum transitions (replaces loadRoom).
    * Implements: System_ItemWorld_Core ? full-map rendering spec.
    */
@@ -1401,7 +1403,7 @@ export class ItemWorldScene extends Scene {
       this.fullMapContainer.destroy({ children: true }); // free GPU textures
     }
     // Reset elemental tile overlays (frozen/burning/electric) + burnable
-    // entity registry — old cell keys would otherwise leak into the freshly
+    // entity registry ??old cell keys would otherwise leak into the freshly
     // built fullGrid coordinates.
     this.tileMutator.reset();
     for (const p of this.burnableProps) p.destroy();
@@ -1497,9 +1499,9 @@ export class ItemWorldScene extends Scene {
     // Seal walls use the wall filter so their brick pattern reads in the
     // same dark-cool silhouette family as LDtk wall tiles.
     this.sealAggregate.filters = [this.wallPaletteFilter];
-    // PIXI v8 culling 활성 — Rare+ 의 sprite 폭증 (수만) 대응 (사용자 결정 2026-05-04).
-    // 각 cell layer 에 cullable=true + cullArea 가 viewport 검사. 부모는
-    // cullableChildren=true 로 자식 cull 검사 흐름 enable.
+    // PIXI v8 culling ?쒖꽦 ??Rare+ ??sprite ??쬆 (?섎쭔) ???(?ъ슜??寃곗젙 2026-05-04).
+    // 媛?cell layer ??cullable=true + cullArea 媛 viewport 寃?? 遺紐⑤뒗
+    // cullableChildren=true 濡??먯떇 cull 寃???먮쫫 enable.
     this.bgAggregate.cullableChildren = true;
     this.interiorAggregate.cullableChildren = true;
     this.wallAggregate.cullableChildren = true;
@@ -1508,20 +1510,20 @@ export class ItemWorldScene extends Scene {
     this.spawnedRooms.clear();
     this.roomTypeMap.clear();
     this.clearEnemies();
-    this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — buildFullMap 가 다시 push
+    this.cellLayerGroups = []; // ?섎룞 culling 洹몃９ 由ъ뀑 ??buildFullMap 媛 ?ㅼ떆 push
     this.cellVisualRecords.clear();
     this.renderedCellVisuals.clear();
     this.runtimeSpawnedCells.clear();
     this.visibleCellWindowKey = '';
 
-    // DEC-039 안 A: 통일 좌표계. 모든 지층의 모든 셀을 절대 absoluteRow 기반으로
-    // 한 번에 렌더링. fullGrid 도 totalWidth×totalHeight 로 확장. 플레이어는 워프
-    // 없이 unifiedGrid 전체를 자유롭게 이동.
+    // DEC-039 ??A: ?듭씪 醫뚰몴怨? 紐⑤뱺 吏痢듭쓽 紐⑤뱺 ????덈? absoluteRow 湲곕컲?쇰줈
+    // ??踰덉뿉 ?뚮뜑留? fullGrid ??totalWidth횞totalHeight 濡??뺤옣. ?뚮젅?댁뼱???뚰봽
+    // ?놁씠 unifiedGrid ?꾩껜瑜??먯쑀濡?쾶 ?대룞.
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
     Debug.log(`[ItemWorld] buildFullMap UNIFIED totalGrid=${totalCols}x${totalRows} strata=${this.unifiedGrid.strataOffsets.length} templates=${this.ldtkTemplates.length}`);
 
-    // Initialize full grid as solid (1) — unrendered regions remain impassable
+    // Initialize full grid as solid (1) ??unrendered regions remain impassable
     this.fullGrid = this.mapController.initFullGrid(totalCols, totalRows);
     this.sealedCells.clear();
 
@@ -1562,16 +1564,16 @@ export class ItemWorldScene extends Scene {
           }
         }
 
-        // DEC-039: Boss ('no_down') 셀은 LDtk 템플릿이 D opening 을 가지고
-        // 있더라도 collision 으로 강제 봉인. 자연 폴 다운 차단 — Trapdoor entity
-        // 만이 유일한 전이 수단.
+        // DEC-039: Boss ('no_down') ?? LDtk ?쒗뵆由우씠 D opening ??媛吏怨?
+        // ?덈뜑?쇰룄 collision ?쇰줈 媛뺤젣 遊됱씤. ?먯뿰 ???ㅼ슫 李⑤떒 ??Trapdoor entity
+        // 留뚯씠 ?좎씪???꾩씠 ?섎떒.
         //
-        // Plaza ('force_up' / LRUD) 는 천장이 자연 open 이므로 별도 seal 불필요.
-        // 위쪽 셀 (이전 stratum 보스) 가 'no_down' 으로 잠겨있어 양방향 통과는
-        // 차단되며, Trapdoor 가 뚫는 hole 만 일방 다이브 통로로 작동.
+        // Plaza ('force_up' / LRUD) ??泥쒖옣???먯뿰 open ?대?濡?蹂꾨룄 seal 遺덊븘??
+        // ?꾩そ ? (?댁쟾 stratum 蹂댁뒪) 媛 'no_down' ?쇰줈 ?좉꺼?덉뼱 ?묐갑???듦낵??
+        // 李⑤떒?섎ŉ, Trapdoor 媛 ?ル뒗 hole 留??쇰갑 ?ㅼ씠釉??듬줈濡??묐룞.
         //
-        // !cell.exits.up 분기는 plaza 가 force_up 으로 cell.exits.up=true 라
-        // 자동 no-op. 일반 셀이 그래프상 위쪽 연결 없으면 여전히 작동.
+        // !cell.exits.up 遺꾧린??plaza 媛 force_up ?쇰줈 cell.exits.up=true ??
+        // ?먮룞 no-op. ?쇰컲 ???洹몃옒?꾩긽 ?꾩そ ?곌껐 ?놁쑝硫??ъ쟾???묐룞.
         const SEAL = 2;
         if (!cell.exits.up) {
           for (let r = 0; r < SEAL; r++) {
@@ -1598,15 +1600,15 @@ export class ItemWorldScene extends Scene {
 
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
-        // Template-local cell origin → unified-grid cell offset for
+        // Template-local cell origin ??unified-grid cell offset for
         // Container / ContainerSpawner / FluidSpawner entity wiring.
         const offGx = roomX / 16;
         const offGy = roomY / 16;
-        // ── Container entity (explicit Kind or Generic_A/B/C slot) ──
-        // Kind=Crate/MetalCrate/OilDrum/... → 그대로 ThrowableContainer 생성
-        // Kind=Generic_A/B/C → temperamentPrimary 와 slot 매핑으로 실제 kind
-        //   resolve (ContainerPools.resolveContainerSlotKind). 무기 기질별로
-        //   다른 ContainerKind 가 자연스럽게 등장.
+        // ?? Container entity (explicit Kind or Generic_A/B/C slot) ??
+        // Kind=Crate/MetalCrate/OilDrum/... ??洹몃?濡?ThrowableContainer ?앹꽦
+        // Kind=Generic_A/B/C ??temperamentPrimary ? slot 留ㅽ븨?쇰줈 ?ㅼ젣 kind
+        //   resolve (ContainerPools.resolveContainerSlotKind). 臾닿린 湲곗쭏蹂꾨줈
+        //   ?ㅻⅨ ContainerKind 媛 ?먯뿰?ㅻ읇寃??깆옣.
         if (this.shouldEagerSpawnRuntimeEntities()) {
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'Container') continue;
@@ -1627,7 +1629,7 @@ export class ItemWorldScene extends Scene {
           this.containers.push(c);
           this.entityLayer.addChild(c.container);
         }
-        // ── ContainerSpawner entity (procedural fill, §12) ──
+        // ?? ContainerSpawner entity (procedural fill, 짠12) ??
         // Each spawner runs against the unified grid window covered by this
         // template, with explicit Containers already pushed marking
         // occupancy so they don't double up.
@@ -1644,7 +1646,7 @@ export class ItemWorldScene extends Scene {
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'ContainerSpawner') continue;
           const opts = readSpawnerEntity(ent, this.item.def.temperamentPrimary);
-          // Translate template-local rect → unified-grid pixel rect.
+          // Translate template-local rect ??unified-grid pixel rect.
           const rect = {
             x: opts.rect.x + roomX,
             y: opts.rect.y + roomY,
@@ -1673,8 +1675,8 @@ export class ItemWorldScene extends Scene {
             occupied.add(`${Math.floor(c.x / 16)},${Math.floor(c.y / 16)}`);
           }
         }
-        // ── FluidSpawner entity (continuous emission, §13) ──
-        // Template-local grid → unified grid via offGx/offGy.
+        // ?? FluidSpawner entity (continuous emission, 짠13) ??
+        // Template-local grid ??unified grid via offGx/offGy.
         for (const ent of ldtkLevel.entities) {
           if (ent.type !== 'FluidSpawner') continue;
           for (const opt of readFluidSpawnerEntities(ent, this.item.def.temperamentPrimary)) {
@@ -1686,10 +1688,10 @@ export class ItemWorldScene extends Scene {
             });
           }
         }
-        // ── ItemSpawner entity (reward spawn point, 2026-05-18) ──
-        // designer-placed 보상 위치. spawnRoomRewards 가 입장 시 각 위치마다
-        // gold/heal 1개씩 spawn. 데이터 (gold:heal 비율, drop table 등) 는 추후
-        // CSV 로 이전 예정 — 현재는 코드 내 상수 (REWARD_*).
+        // ?? ItemSpawner entity (reward spawn point, 2026-05-18) ??
+        // designer-placed 蹂댁긽 ?꾩튂. spawnRoomRewards 媛 ?낆옣 ??媛??꾩튂留덈떎
+        // gold/heal 1媛쒖뵫 spawn. ?곗씠??(gold:heal 鍮꾩쑉, drop table ?? ??異뷀썑
+        // CSV 濡??댁쟾 ?덉젙 ???꾩옱??肄붾뱶 ???곸닔 (REWARD_*).
         }
         {
           const list: Array<{ x: number; y: number }> = [];
@@ -1711,16 +1713,16 @@ export class ItemWorldScene extends Scene {
           roomY,
         });
 
-        // PIXI v8 cell culling — viewport 밖 cell 의 모든 sprite draw skip.
-        // cullArea 는 local coords (position 적용 후 world 로 변환). 각 cell 의
+        // PIXI v8 cell culling ??viewport 諛?cell ??紐⑤뱺 sprite draw skip.
+        // cullArea ??local coords (position ?곸슜 ??world 濡?蹂??. 媛?cell ??
         // local box = (0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX).
-        // 수동 visible toggle 그룹 — updateCellVisibility 가 매 프레임 viewport 검사.
+        // ?섎룞 visible toggle 洹몃９ ??updateCellVisibility 媛 留??꾨젅??viewport 寃??
 
-        // Hybrid procedural pass — populate grass/wood + spawn Tier B
+        // Hybrid procedural pass ??populate grass/wood + spawn Tier B
         // BurnableProp entities inside LDtk BurnableZone rect entities.
         // Operates on the fullGrid with the room's cell offset so each room's
         // zones land in their correct fullGrid coordinates.
-        // GDD: Documents/System/System_World_TileSystem.md §7
+        // GDD: Documents/System/System_World_TileSystem.md 짠7
         if (this.shouldEagerSpawnRuntimeEntities()) {
         const burnableSpecs: BurnableEntitySpec[] =
           applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
@@ -1735,9 +1737,9 @@ export class ItemWorldScene extends Scene {
         this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
         }
 
-        // DEC-039 안 A: stratum 0 의 startRoom Player entity 만 init() 첫 스폰에
-        // 사용. 다른 stratum 으로 워프하지 않으므로 별도 키 보관은 불필요하지만,
-        // 호환성을 위해 모든 stratum start 의 절대 좌표를 보관해 둔다.
+        // DEC-039 ??A: stratum 0 ??startRoom Player entity 留?init() 泥??ㅽ룿??
+        // ?ъ슜. ?ㅻⅨ stratum ?쇰줈 ?뚰봽?섏? ?딆쑝誘濡?蹂꾨룄 ??蹂닿?? 遺덊븘?뷀븯吏留?
+        // ?명솚?깆쓣 ?꾪빐 紐⑤뱺 stratum start ???덈? 醫뚰몴瑜?蹂닿????붾떎.
         const stratumStartMatch = this.unifiedGrid.stratumStartRooms?.find(
           s => s.col === col && s.absoluteRow === absRow,
         );
@@ -1761,7 +1763,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Radial layout 은 null 셀이 다수 — parallax BG 가 그대로 보이므로 dark seal 로 메움.
+    // Radial layout ? null ????ㅼ닔 ??parallax BG 媛 洹몃?濡?蹂댁씠誘濡?dark seal 濡?硫붿?.
     this.fillNullCellSeal(grid, totalCols, totalRows);
 
     this.addFullMapBoundaryCollision(totalCols, totalRows);
@@ -1827,8 +1829,8 @@ export class ItemWorldScene extends Scene {
       this.tileMutator.registerBurnable(bp);
     }
 
-    // DEC-039 안 A: 포털/exitTrigger 시스템 제거됨. 보스 처치 시 down exit 가
-    // 자연스럽게 다음 stratum 으로 이어지므로 별도 복원 로직 불필요.
+    // DEC-039 ??A: ?ы꽭/exitTrigger ?쒖뒪???쒓굅?? 蹂댁뒪 泥섏튂 ??down exit 媛
+    // ?먯뿰?ㅻ읇寃??ㅼ쓬 stratum ?쇰줈 ?댁뼱吏誘濡?蹂꾨룄 蹂듭썝 濡쒖쭅 遺덊븘??
   }
 
   private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, _size: number): void {
@@ -1836,7 +1838,7 @@ export class ItemWorldScene extends Scene {
     //
     // With pickTemplate(exact=true), the chosen template's door set should equal
     // cell.exits, so every cell is sealed only on directions where the template
-    // already has solid wall — making this a no-op in the happy path.
+    // already has solid wall ??making this a no-op in the happy path.
     //
     // If sealing actually flips any tile from non-solid to solid, that means
     // the template had a door the cell doesn't want (a coverage gap or a
@@ -1862,7 +1864,7 @@ export class ItemWorldScene extends Scene {
     const warnGhost = (dir: 'L' | 'R' | 'U' | 'D'): void => {
       // eslint-disable-next-line no-console
       console.warn(
-        `[ItemWorld] sealing ghost door ${dir} at cell (col=${cell.col}, row=${cell.absoluteRow}) — `
+        `[ItemWorld] sealing ghost door ${dir} at cell (col=${cell.col}, row=${cell.absoluteRow}) ??`
         + `template tag mismatch, no exact-match room available for this exit set.`,
       );
     };
@@ -1934,22 +1936,22 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Designer-placed ItemSpawner 위치에 보상을 드롭한다. (2026-05-18)
+   * Designer-placed ItemSpawner ?꾩튂??蹂댁긽???쒕∼?쒕떎. (2026-05-18)
    *
-   * 룰:
-   *   - 각 ItemSpawner 위치마다 gold or healing pickup 1개 (50:50 PRNG)
-   *   - Gold 금액 = base × rarityMul × (1 + stratumDepth × 0.2) — 무기 rarity 가
-   *     높을수록, stratum 깊을수록 점진 증가
-   *   - Heal pickup 은 player.maxHp 비례 (createForgeEmber 가 25% maxHP)
+   * 猷?
+   *   - 媛?ItemSpawner ?꾩튂留덈떎 gold or healing pickup 1媛?(50:50 PRNG)
+   *   - Gold 湲덉븸 = base 횞 rarityMul 횞 (1 + stratumDepth 횞 0.2) ??臾닿린 rarity 媛
+   *     ?믪쓣?섎줉, stratum 源딆쓣?섎줉 ?먯쭊 利앷?
+   *   - Heal pickup ? player.maxHp 鍮꾨? (createForgeEmber 媛 25% maxHP)
    *
-   * TODO: 보상 데이터 (gold 범위 / heal 종류 / 비율) 를 별도 CSV
-   *   (Sheets/Content_ItemWorld_Rewards.csv) 로 이전. 현재는 코드 상수.
+   * TODO: 蹂댁긽 ?곗씠??(gold 踰붿쐞 / heal 醫낅쪟 / 鍮꾩쑉) 瑜?蹂꾨룄 CSV
+   *   (Sheets/Content_ItemWorld_Rewards.csv) 濡??댁쟾. ?꾩옱??肄붾뱶 ?곸닔.
    */
   private spawnRoomRewards(col: number, row: number): void {
     const list = this.roomItemSpawners.get(`${col}:${row}`);
     if (!list || list.length === 0) return;
 
-    // Rarity → 보상 multiplier (TODO: CSV 로 이전).
+    // Rarity ??蹂댁긽 multiplier (TODO: CSV 濡??댁쟾).
     const RARITY_MUL: Record<string, number> = {
       normal: 1.0, magic: 1.3, rare: 1.6, legendary: 2.0, ancient: 2.5,
     };
@@ -1962,7 +1964,7 @@ export class ItemWorldScene extends Scene {
     for (let i = 0; i < list.length; i++) {
       const pt = list[i];
       if (rng.next() < 0.5) {
-        // Gold: base 50~150 × rarityMul × depthMul.
+        // Gold: base 50~150 횞 rarityMul 횞 depthMul.
         const goldBase = 50 + rng.nextInt(0, 100);
         const goldAmount = Math.max(1, Math.floor(goldBase * rarityMul * depthMul));
         const gp = new GoldPickup(pt.x, pt.y, goldAmount);
@@ -1970,12 +1972,12 @@ export class ItemWorldScene extends Scene {
         this.goldPickups.push(gp);
         this.entityLayer.addChild(gp.container);
       } else {
-        // Healing — Forge Ember (25% maxHP). Rarity 가 높으면 추가로 1개 더 spawn.
+        // Healing ??Forge Ember (25% maxHP). Rarity 媛 ?믪쑝硫?異붽?濡?1媛???spawn.
         const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
         this.healingPickups.push(heal);
         this.entityLayer.addChild(heal.container);
         if (rarityMul >= 2.0 && rng.next() < 0.5) {
-          // legendary/ancient 보너스 — 같은 spawner 에서 추가 ember 1개 약간 옆에.
+          // legendary/ancient 蹂대꼫????媛숈? spawner ?먯꽌 異붽? ember 1媛??쎄컙 ?놁뿉.
           const heal2 = createForgeEmber(pt.x + 8, pt.y, this.player.maxHp);
           this.healingPickups.push(heal2);
           this.entityLayer.addChild(heal2.container);
@@ -1992,26 +1994,26 @@ export class ItemWorldScene extends Scene {
     const cell = this.unifiedGrid.cells[row]?.[col];
     if (!cell) return;
 
-    // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) 은 안전
-    // 지대다. 적 스폰을 차단하고 즉시 cleared 처리해 HUD 카운터/재진입 흐름을
-    // 일반 클리어와 동일하게 유지한다. P0 invariant — 절대 적 1마리도 안 됨.
-    // 대신 거주자 그림자(Gatekeeper / Librarian) 1명을 결정론적으로 spawn.
+    // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) ? ?덉쟾
+    // 吏??? ???ㅽ룿??李⑤떒?섍퀬 利됱떆 cleared 泥섎━??HUD 移댁슫???ъ쭊???먮쫫??
+    // ?쇰컲 ?대━?댁? ?숈씪?섍쾶 ?좎??쒕떎. P0 invariant ???덈? ??1留덈━??????
+    // ???嫄곗＜??洹몃┝??Gatekeeper / Librarian) 1紐낆쓣 寃곗젙濡좎쟻?쇰줈 spawn.
     if (cell.role === 'hub' || cell.role === 'shrine') {
       const wasCleared = cell.cleared;
-      // Entry sequencing: 시작 룸은 입장 대사 완료까지 스폰 보류. cleared 마킹도
-      // 함께 보류하여 대사 후 명시 호출에서 정상 경로로 처리되도록 한다.
+      // Entry sequencing: ?쒖옉 猷몄? ?낆옣 ????꾨즺源뚯? ?ㅽ룿 蹂대쪟. cleared 留덊궧??
+      // ?④퍡 蹂대쪟?섏뿬 ?????紐낆떆 ?몄텧?먯꽌 ?뺤긽 寃쎈줈濡?泥섎━?섎룄濡??쒕떎.
       const isStartRoom = col === this.unifiedGrid.startRoom.col
         && row === this.unifiedGrid.startRoom.absoluteRow;
       if (isStartRoom && !this.startSpawnDone) return;
-      // DEC-039 안 A: fullGrid 가 통일 좌표라 row 그대로 사용.
+      // DEC-039 ??A: fullGrid 媛 ?듭씪 醫뚰몴??row 洹몃?濡??ъ슜.
       const offXHs = col * IW_ROOM_W_PX;
       const offYHs = row * IW_ROOM_H_PX;
       const roomTopRowHs = Math.floor(offYHs / TILE_SIZE);
       const roomTopColHs = Math.floor(offXHs / TILE_SIZE);
       const rawPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopColHs, roomTopRowHs);
-      // 2026-05-17: 문지기/주민/코어 보는 자는 *바닥 솔리드 위* 에만 spawn.
-      // computeSpawnPoints 는 below>=1 만 검사해 fluid (water/oil/magma/acid/cyro)
-      // 위 점도 포함시킨다. isSolid 로 wall/ice/breakable/metal/wood 만 허용.
+      // 2026-05-17: 臾몄?湲?二쇰?/肄붿뼱 蹂대뒗 ?먮뒗 *諛붾떏 ?붾━???? ?먮쭔 spawn.
+      // computeSpawnPoints ??below>=1 留?寃?ы빐 fluid (water/oil/magma/acid/cyro)
+      // ???먮룄 ?ы븿?쒗궓?? isSolid 濡?wall/ice/breakable/metal/wood 留??덉슜.
       const pointsHs = rawPoints.filter(pt => {
         const tcBelow = Math.floor(pt.x / TILE_SIZE);
         const trBelow = Math.floor(pt.y / TILE_SIZE);
@@ -2019,24 +2021,24 @@ export class ItemWorldScene extends Scene {
         return isSolid(belowTile);
       });
       if (pointsHs.length > 0) {
-        // 결정론 시드: itemUid + col + absRow → 같은 무기·같은 방이면 항상 동일 위치.
+        // 寃곗젙濡??쒕뱶: itemUid + col + absRow ??媛숈? 臾닿린쨌媛숈? 諛⑹씠硫???긽 ?숈씪 ?꾩튂.
         const rngHs = new PRNG(this.item.uid * 31337 + col * 199 + row * 73);
-        // 인덱스를 셔플해 인터랙티브 1명 + ambient N 명이 같은 점을 안 쓰게 함.
+        // ?몃뜳?ㅻ? ?뷀뵆???명꽣?숉떚釉?1紐?+ ambient N 紐낆씠 媛숈? ?먯쓣 ???곌쾶 ??
         const idxs = pointsHs.map((_, i) => i);
         for (let i = idxs.length - 1; i > 0; i--) {
           const j = rngHs.nextInt(0, i);
           [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
         }
-        // 사용자 결정 2026-05-25: 인터랙티브 거주자 (Gatekeeper / Archivist) 2명 spawn disable.
-        //   ambient 그림자 20명은 그대로 유지 (배경 분위기 보존).
+        // ?ъ슜??寃곗젙 2026-05-25: ?명꽣?숉떚釉?嫄곗＜??(Gatekeeper / Archivist) 2紐?spawn disable.
+        //   ambient 洹몃┝??20紐낆? 洹몃?濡??좎? (諛곌꼍 遺꾩쐞湲?蹂댁〈).
         // const mainPt = pointsHs[idxs[0]];
         // const mainType: ResidentType = cell.role === 'hub' ? 'gatekeeper' : 'archivist';
         // const main = new MemoryResident(mainPt.x, mainPt.y, mainType);
         // this.memoryResidents.push(main);
         // this.residentsLayer.addChild(main.container);
-        // Plaza 한정: 배경 그림자 20명. sprite 풀(64종) 에서 RNG 로 골라
-        // 다양성 확보. spawn point 풀이 작아도 wrap + 넓은 x-jitter + 미세
-        // y-jitter 로 겹침 회피.
+        // Plaza ?쒖젙: 諛곌꼍 洹몃┝??20紐? sprite ?(64醫? ?먯꽌 RNG 濡?怨⑤씪
+        // ?ㅼ뼇???뺣낫. spawn point ????묒븘??wrap + ?볦? x-jitter + 誘몄꽭
+        // y-jitter 濡?寃뱀묠 ?뚰뵾.
         if (cell.role === 'hub') {
           const ambientCount = 20;
           const poolLen = idxs.length;
@@ -2056,7 +2058,7 @@ export class ItemWorldScene extends Scene {
       if (!wasCleared) {
         cell.cleared = true;
         this.roomsCleared++;
-        // DEC-046: 방 클리어 시 Recovery +0.3% 점진 누적.
+        // DEC-046: 諛??대━????Recovery +0.3% ?먯쭊 ?꾩쟻.
         addRecovery(this.item, 0.3);
         this.persistRoomState();
       }
@@ -2100,7 +2102,7 @@ export class ItemWorldScene extends Scene {
     };
 
     const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
-    // DEC-039 안 A: fullGrid 가 통일 좌표계 — row 그대로 사용.
+    // DEC-039 ??A: fullGrid 媛 ?듭씪 醫뚰몴怨???row 洹몃?濡??ъ슜.
     const offX = col * IW_ROOM_W_PX;
     const offY = row * IW_ROOM_H_PX;
 
@@ -2128,12 +2130,12 @@ export class ItemWorldScene extends Scene {
 
     if (spawnPoints.length === 0 && !isBossRoom) return;
 
-    // 모든 room type 에 대해 ItemSpawner-placed 보상 처리 (no-op if 없음).
-    // 2026-05-18: 이전 random-position (corridor dead-end + Rest 1~2 heal) 폐기.
-    // Combat/Treasure/Boss 도 designer 가 ItemSpawner 페인트 시 함께 작동.
+    // 紐⑤뱺 room type ?????ItemSpawner-placed 蹂댁긽 泥섎━ (no-op if ?놁쓬).
+    // 2026-05-18: ?댁쟾 random-position (corridor dead-end + Rest 1~2 heal) ?먭린.
+    // Combat/Treasure/Boss ??designer 媛 ItemSpawner ?섏씤?????④퍡 ?묐룞.
     this.spawnRoomRewards(col, row);
 
-    // Corridor cell (DEC-037 chain-length variable pattern) — 이동 전용, 적 미스폰.
+    // Corridor cell (DEC-037 chain-length variable pattern) ???대룞 ?꾩슜, ??誘몄뒪??
     if (cell.kind === 'corridor') {
       if (!cell.cleared) {
         cell.cleared = true;
@@ -2143,9 +2145,9 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // ─── RoomType-specific branching ────────────────────────────────────────
+    // ??? RoomType-specific branching ????????????????????????????????????????
     // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
-    // Rest room — ItemSpawner 보상은 상단 spawnRoomRewards 가 이미 처리.
+    // Rest room ??ItemSpawner 蹂댁긽? ?곷떒 spawnRoomRewards 媛 ?대? 泥섎━.
     if (roomType === 'Rest') {
       if (!cell.cleared) {
         cell.cleared = true;
@@ -2177,7 +2179,7 @@ export class ItemWorldScene extends Scene {
       trackEnemy(gold);
       return;
     }
-    // ────────────────────────────────────────────────────────────────────────
+    // ????????????????????????????????????????????????????????????????????????
 
     // Boss room is a logical stratum-end role and must always spawn a boss.
     if (isBossRoom && spawnTable.boss) {
@@ -2265,8 +2267,8 @@ export class ItemWorldScene extends Scene {
             npc.x + npc.width / 2,
             npc.y + npc.height / 2,
           );
-          // DLG-10: Memory Shard 회상 — 첫 회상 시점에 한 번만 발화 (사용자
-          // 결정 2026-05-04). EGO_EVENT.SHARD_RECALL 표식으로 중복 차단.
+          // DLG-10: Memory Shard ?뚯긽 ??泥??뚯긽 ?쒖젏????踰덈쭔 諛쒗솕 (?ъ슜??
+          // 寃곗젙 2026-05-04). EGO_EVENT.SHARD_RECALL ?쒖떇?쇰줈 以묐났 李⑤떒.
           if (
             this.loreDisplay &&
             !this.egoUnlockedEvents.has(EGO_EVENT.SHARD_RECALL) &&
@@ -2304,12 +2306,12 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  // DEC-039 안 A: spawnBossPortal / restorePortalIfStratumCleared /
-  // getBossPortalFallbackPosition 제거됨. 보스 처치 후 down exit 가
-  // 다음 stratum 으로 자연스럽게 이어진다.
+  // DEC-039 ??A: spawnBossPortal / restorePortalIfStratumCleared /
+  // getBossPortalFallbackPosition ?쒓굅?? 蹂댁뒪 泥섏튂 ??down exit 媛
+  // ?ㅼ쓬 stratum ?쇰줈 ?먯뿰?ㅻ읇寃??댁뼱吏꾨떎.
 
   private getPlayerFloorSpawnPosition(col: number, absoluteRow: number): { x: number; y: number } {
-    // DEC-039 안 A: 통일 좌표계 — absoluteRow 직접 사용.
+    // DEC-039 ??A: ?듭씪 醫뚰몴怨???absoluteRow 吏곸젒 ?ъ슜.
     const roomLeftTile = col * IW_ROOM_W_TILES;
     const roomTopTile = absoluteRow * IW_ROOM_H_TILES;
     const roomLeftPx = col * IW_ROOM_W_PX;
@@ -2519,10 +2521,10 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Compute carve/seal rectangles in room-local tile coords.
-   * - carveRectsLocal: passable openings (fullGrid → 0) where the logical
+   * - carveRectsLocal: passable openings (fullGrid ??0) where the logical
    *   exit is required. Horizontal doors use the template's floor row so
    *   the player can walk through; vertical doors use the midpoint column.
-   * - sealRectsLocal: solid strips (fullGrid → 1) across the full edge when
+   * - sealRectsLocal: solid strips (fullGrid ??1) across the full edge when
    *   the direction has no exit, blocking any natural template openings.
    * Rectangles are `{c0, r0, cN, rN}` in room-local tile units.
    */
@@ -2543,7 +2545,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Paint code-generated seal walls with a mortar + 4×4 brick pattern per
+   * Paint code-generated seal walls with a mortar + 4횞4 brick pattern per
    * sealed cell. The luma variation (mortar ~0.21, bricks ~0.37?0.45) feeds
    * the palette filter so each brick maps to a different palette position,
    * producing a natural wall silhouette instead of a flat black hole.
@@ -2557,7 +2559,7 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Draw stone-brick blocks over sealed edge strips so players read them as
-   * solid walls, not holes. Each tile gets a mortar base + 4×4 brick grid
+   * solid walls, not holes. Each tile gets a mortar base + 4횞4 brick grid
    * with 4 stone color variations (matches addSealSprites palette).
    */
   private drawSealOverlays(
@@ -2573,7 +2575,7 @@ export class ItemWorldScene extends Scene {
    * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
    */
   private preSpawnNeighborRooms(curCol: number, curAbsRow: number): void {
-    // DEC-039 안 A: 통일 좌표계 — stratum 경계 클램프 없이 전체 unifiedGrid 범위로 검사.
+    // DEC-039 ??A: ?듭씪 醫뚰몴怨???stratum 寃쎄퀎 ?대옩???놁씠 ?꾩껜 unifiedGrid 踰붿쐞濡?寃??
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
     const directions = [
@@ -2621,12 +2623,12 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Find the center of the longest continuous horizontal flat floor inside a
-   * single 32×32 room, requiring at least `minLen` tiles in a row. The floor
+   * single 32횞32 room, requiring at least `minLen` tiles in a row. The floor
    * is a row where each tile has `fullGrid[r][c] === 0` (air) AND
    * `fullGrid[r+1][c] >= 1` (solid tile directly below).
    *
-   * Returns the world-pixel center (x = center tile × TILE + TILE/2, y = top
-   * of the row × TILE) of the best run, or null if no run of minLen exists.
+   * Returns the world-pixel center (x = center tile 횞 TILE + TILE/2, y = top
+   * of the row 횞 TILE) of the best run, or null if no run of minLen exists.
    * Prefers the row closer to the bottom of the room (where boss arenas feel
    * natural) and, within ties, the longest run.
    */
@@ -2671,7 +2673,7 @@ export class ItemWorldScene extends Scene {
     if (this.sealGfx?.parent) this.sealGfx.parent.removeChild(this.sealGfx);
     this.sealGfx = null;
 
-    // Pick room: LDtk template → code template → ChunkAssembler fallback
+    // Pick room: LDtk template ??code template ??ChunkAssembler fallback
     const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
     this.currentLdtkLevel = ldtkLevel;
     if (ldtkLevel && this.ldtkRenderer && this.atlas) {
@@ -2685,18 +2687,18 @@ export class ItemWorldScene extends Scene {
         const bgTiles = ldtkLevel.backgroundTiles;
         const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel);
         const shadowTiles = ldtkLevel.shadowTiles;
-        // SolidGeneric_A/B 셀의 sprite 를 *resolved 솔리드 타입* 의 world_01 sprite
-        // 로 치환 (2026-05-18). pre-resolution collisionGrid (값 21/22 살아있음)
-        // 기준으로 치환 후 *복사된* 배열을 renderLevel 에 전달.
+        // SolidGeneric_A/B ???sprite 瑜?*resolved ?붾━????? ??world_01 sprite
+        // 濡?移섑솚 (2026-05-18). pre-resolution collisionGrid (媛?21/22 ?댁븘?덉쓬)
+        // 湲곗??쇰줈 移섑솚 ??*蹂듭궗?? 諛곗뿴??renderLevel ???꾨떖.
         const wallTilesSub = substituteSolidGenericSprites(
           ldtkLevel.wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
         );
         applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
         applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
         applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
-        // 원본 collisionGrid 를 그대로 전달 — isFluidHiddenTile 의 `v === 17/18/19`
-        // 가 fluid placeholder sprite 를 숨긴다. SolidGeneric_A/B (21/22) 는 hide
-        // 대상 아님 — 위 substitute 단계에서 sprite 가 적절히 교체됨.
+        // ?먮낯 collisionGrid 瑜?洹몃?濡??꾨떖 ??isFluidHiddenTile ??`v === 17/18/19`
+        // 媛 fluid placeholder sprite 瑜??④릿?? SolidGeneric_A/B (21/22) ??hide
+        // ????꾨떂 ????substitute ?④퀎?먯꽌 sprite 媛 ?곸젅??援먯껜??
         this.ldtkRenderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
       }
       if (!this.ldtkRenderer.container.parent) {
@@ -2718,7 +2720,7 @@ export class ItemWorldScene extends Scene {
     this.sealUnusedExits(cell);
     this.player.roomData = this.roomData;
 
-    // Update camera bounds for current room size (template rooms are 32×16, legacy 60×34)
+    // Update camera bounds for current room size (template rooms are 32횞16, legacy 60횞34)
     // Camera bounds = single room (offset applied by entityLayer)
     this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE);
 
@@ -2742,7 +2744,7 @@ export class ItemWorldScene extends Scene {
     }
 
     const spawnSide = this.getOppositeDirection(enterFrom);
-    // Fixed spawn at standardized door positions (center of 32×32 room)
+    // Fixed spawn at standardized door positions (center of 32횞32 room)
     const DOOR_POS = 15; // tile 15 = center of row/col 14~17 range
     const rW = this.roomW;
     const rH = this.roomH;
@@ -2794,8 +2796,8 @@ export class ItemWorldScene extends Scene {
     const ldtkRoomType = this.currentLdtkLevel?.roomType ?? '';
     const isEndRoom = ldtkRoomType === 'Boss' || this.isStratumEndRoom(this.currentCol, this.currentRow);
 
-    // DEC-039 안 A: 포털 시스템 제거됨. dead loadRoom 함수의 잔재 — 호출되지
-    // 않으므로 추후 함수 통째로 정리 예정.
+    // DEC-039 ??A: ?ы꽭 ?쒖뒪???쒓굅?? dead loadRoom ?⑥닔???붿옱 ???몄텧?섏?
+    // ?딆쑝誘濡?異뷀썑 ?⑥닔 ?듭㎏濡??뺣━ ?덉젙.
     if (isEndRoom && !cell.cleared) {
       this.spawnBoss();
     }
@@ -2869,8 +2871,8 @@ export class ItemWorldScene extends Scene {
   private get roomH(): number { return this.roomData.length ?? ROOM_H; }
 
   /**
-   * Pick an LDtk template based on the cell's role → RoomType enum.
-   * Start room → "Start", boss room → "Boss", otherwise → "Combat" (with small
+   * Pick an LDtk template based on the cell's role ??RoomType enum.
+   * Start room ??"Start", boss room ??"Boss", otherwise ??"Combat" (with small
    * chance for Treasure/Rest/Puzzle on non-critical-path rooms).
    */
   private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
@@ -2906,21 +2908,21 @@ export class ItemWorldScene extends Scene {
     } else if (isBoss) {
       desiredType = 'Boss';
     } else if (cell.role === 'hub') {
-      // DEC-038 Town of Orphaned Shadows: hub = Plaza (광장). Start 템플릿
-      // 재사용 — Gatekeeper 가 머무는 안전 광장. 적 스폰 0 (spawnEnemiesInRoom).
+      // DEC-038 Town of Orphaned Shadows: hub = Plaza (愿묒옣). Start ?쒗뵆由?
+      // ?ъ궗????Gatekeeper 媛 癒몃Т???덉쟾 愿묒옣. ???ㅽ룿 0 (spawnEnemiesInRoom).
       desiredType = 'Start';
     } else if (cell.role === 'shrine') {
-      // DEC-038: shrine = Memorial (기념탑). Rest 템플릿 재사용 — Librarian 의
-      // 추모 공간. 적 스폰 0.
+      // DEC-038: shrine = Memorial (湲곕뀗??. Rest ?쒗뵆由??ъ궗????Librarian ??
+      // 異붾え 怨듦컙. ???ㅽ룿 0.
       desiredType = 'Rest';
     } else if (cell.kind === 'corridor') {
-      // DEC-037 chain-length variable pattern: 통로 셀은 Corridor 템플릿 강제.
-      // 매치 없으면 아래 fallback 단계에서 type 무시하고 exits 만 매치한다.
+      // DEC-037 chain-length variable pattern: ?듬줈 ?? Corridor ?쒗뵆由?媛뺤젣.
+      // 留ㅼ튂 ?놁쑝硫??꾨옒 fallback ?④퀎?먯꽌 type 臾댁떆?섍퀬 exits 留?留ㅼ튂?쒕떎.
       desiredType = 'Corridor';
     } else if (!cell.onCriticalPath) {
       // Off-path spoke: Combat-weighted (70% Combat / 15% Treasure / 15% Puzzle).
-      // DEC-038: Rest 15% 분기 제거 — Memorial(shrine)이 휴식 공간을 전담하므로
-      // off-path 에서 추가 Rest 가 나오면 휴식 분포가 두꺼워져 전투 리듬이 깨진다.
+      // DEC-038: Rest 15% 遺꾧린 ?쒓굅 ??Memorial(shrine)???댁떇 怨듦컙???꾨떞?섎?濡?
+      // off-path ?먯꽌 異붽? Rest 媛 ?섏삤硫??댁떇 遺꾪룷媛 ?먭볼?뚯졇 ?꾪닾 由щ벉??源⑥쭊??
       const roll = rng.next();
       if (roll < 0.15) desiredType = 'Treasure';
       else if (roll < 0.30) desiredType = 'Puzzle';
@@ -3020,10 +3022,10 @@ export class ItemWorldScene extends Scene {
     if (cell.exits.up) exits.push('U');
     if (cell.exits.down) exits.push('D');
     if (exits.length === 0) return null;
-    // exact=true: tag-based matching — template's door set must equal cell's
+    // exact=true: tag-based matching ??template's door set must equal cell's
     // exit set, so no "ghost doors" appear that lead to non-existent neighbors.
     // Falls back to superset internally if no exact-tag template exists.
-    // kind: DEC-037 corridor/room 교번 패턴 힌트 (RoomGraphAdapter 가 셀에 부여).
+    // kind: DEC-037 corridor/room 援먮쾲 ?⑦꽩 ?뚰듃 (RoomGraphAdapter 媛 ???遺??.
     return pickTemplate(exits, rng, true, cell.kind);
   }
 
@@ -3057,8 +3059,8 @@ export class ItemWorldScene extends Scene {
   private spawnBoss(): void {
     const floorY = (this.roomH - 3) * TILE_SIZE;
     const def = this.currentStratumDef;
-    // Boss01 = 24-frame atlas 기반 신규 보스 (idle / attack1 / jump / charge).
-    // Guardian 는 EnemyFactory 에 그대로 남아 있어 'Boss' 또는 'Guardian' 으로 폴백 가능.
+    // Boss01 = 24-frame atlas 湲곕컲 ?좉퇋 蹂댁뒪 (idle / attack1 / jump / charge).
+    // Guardian ??EnemyFactory ??洹몃?濡??⑥븘 ?덉뼱 'Boss' ?먮뒗 'Guardian' ?쇰줈 ?대갚 媛??
     const boss = createEnemy('Boss01') as Boss01;
     boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
     boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
@@ -3140,13 +3142,13 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * DEC-038 Town of Orphaned Shadows — 거주자 proximity 시 검 Ego 발화.
+   * DEC-038 Town of Orphaned Shadows ??嫄곗＜??proximity ??寃 Ego 諛쒗솕.
    *
-   * 로직:
-   *   - LoreDisplay 가 활성이면 무시 (중복 호출 방지).
-   *   - 거주자별로 entry 당 최대 1회 발화 (egoFlags 키로 dedupe — entry 시 reset).
-   *   - 단계: egoUnlockedEvents 에 *_SEEN 키 없으면 First, 있으면 Familiar.
-   *   - First 발화 시 *_SEEN 키 set → 다음 entry 부터 Familiar 분기.
+   * 濡쒖쭅:
+   *   - LoreDisplay 媛 ?쒖꽦?대㈃ 臾댁떆 (以묐났 ?몄텧 諛⑹?).
+   *   - 嫄곗＜?먮퀎濡?entry ??理쒕? 1??諛쒗솕 (egoFlags ?ㅻ줈 dedupe ??entry ??reset).
+   *   - ?④퀎: egoUnlockedEvents ??*_SEEN ???놁쑝硫?First, ?덉쑝硫?Familiar.
+   *   - First 諛쒗솕 ??*_SEEN ??set ???ㅼ쓬 entry 遺??Familiar 遺꾧린.
    */
   private updateResidentEgoTriggers(): void {
     if (!this.loreDisplay || this.loreDisplay.isActive) return;
@@ -3156,7 +3158,7 @@ export class ItemWorldScene extends Scene {
     const py = this.player.y + this.player.height / 2;
 
     for (const r of this.memoryResidents) {
-      if (r.type === 'ambient') continue; // 배경 그림자는 trigger 없음
+      if (r.type === 'ambient') continue; // 諛곌꼍 洹몃┝?먮뒗 trigger ?놁쓬
       const flagKey = r.type === 'gatekeeper' ? '__town_gk_fired' : '__town_arc_fired';
       if (this.egoFlags.has(flagKey)) continue;
       if (!r.isPlayerNear(px, py)) continue;
@@ -3174,7 +3176,7 @@ export class ItemWorldScene extends Scene {
       if (isFirst) this.egoUnlockedEvents.add(seenKey);
       this.egoFlags.add(flagKey);
       this.loreDisplay.showDialogue(lines, false);
-      return; // 한 프레임에 한 명만
+      return; // ???꾨젅?꾩뿉 ??紐낅쭔
     }
   }
 
@@ -3237,7 +3239,7 @@ export class ItemWorldScene extends Scene {
    * mirroring the LdtkWorldScene tickTileHazards but routed through this scene's
    * UI/feedback systems.
    *
-   * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+   * GDD: Documents/System/System_World_TileSystem.md 짠2.6-2.13
    */
   private tickTileHazards(dt: number): void {
     if (!this.fullGrid || !this.fullGrid.length) return;
@@ -3258,7 +3260,7 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Procedural grass clumps — fire ignition + chain to TILE_GRASS tiles.
+    // Procedural grass clumps ??fire ignition + chain to TILE_GRASS tiles.
     this.grassClumpFire.update(dt, this.tileMutator, this.fullGrid, this.ashRemnant, 16);
 
     // BreakableProp ignition runs through TileMutator.spreadOilFire (same as
@@ -3284,7 +3286,7 @@ export class ItemWorldScene extends Scene {
     // Render overlay for fire / ice / electric cell states.
     this.tileMutatorRenderer?.update(this.tileMutator, this.fullGrid, dt);
 
-    // Wall-tile mutation coalesced refresh — re-flood-fills fluid bodies
+    // Wall-tile mutation coalesced refresh ??re-flood-fills fluid bodies
     // so new water (from ice melt) or removed cells (oil burnout, metal
     // corrode) sync with the dynamic fluid mesh.
     if (this.fluidGridDirty) {
@@ -3292,7 +3294,7 @@ export class ItemWorldScene extends Scene {
       this.fluidSystem.refreshFromGrid(this.fullGrid, activeTileBounds);
     }
     // Dynamic fluid: spring physics + cellular gravity. Mirrors LdtkWorldScene.
-    // FluidSpawner tick (V1: World 만 active. ItemWorld 는 V2 까지 no-op).
+    // FluidSpawner tick (V1: World 留?active. ItemWorld ??V2 源뚯? no-op).
     this.fluidSpawners.update(dt, this.fullGrid, this.fluidSystem);
     this.fluidSystem.update(dt, activeTileBounds);
     this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator, activeTileBounds);
@@ -3395,7 +3397,7 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Shared destroy path for BreakableProp — sword break & fire burn-out. */
+  /** Shared destroy path for BreakableProp ??sword break & fire burn-out. */
   private destroyBreakablePropWithEffects(bp: BreakableProp, source: 'sword' | 'fire'): void {
     const drop = bp.break();
     if (source === 'sword') {
@@ -3464,15 +3466,15 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** DEBUG Shift+1 — Fire enchant sweep. See LdtkWorldScene for full spec. */
+  /** DEBUG Shift+1 ??Fire enchant sweep. See LdtkWorldScene for full spec. */
   private checkShardContainerHit(x: number, y: number): boolean {
     for (let i = this.containers.length - 1; i >= 0; i--) {
       const c = this.containers[i];
       if (c.destroyed || c.held) continue;
       if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
       if (c.kind === 'MetalCrate') {
-        // R-NEW-054 Brittle Crate: MetalCrate 가 ice/frozen 셀 위면 1 hit 즉파.
-        // footprint 의 *바로 아래 한 줄* (by+1) 검사 — 컨테이너 발판이 ice/frozen 이면 brittle.
+        // R-NEW-054 Brittle Crate: MetalCrate 媛 ice/frozen ? ?꾨㈃ 1 hit 利됲뙆.
+        // footprint ??*諛붾줈 ?꾨옒 ??以? (by+1) 寃????而⑦뀒?대꼫 諛쒗뙋??ice/frozen ?대㈃ brittle.
         const lx = Math.floor(c.colX / 16);
         const rx = Math.floor((c.colX + c.colW - 1) / 16);
         const by = Math.floor((c.colY + c.colH - 1) / 16);
@@ -3508,7 +3510,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Wall-tunnel guard for player-pushed containers — returns true only
+   * Wall-tunnel guard for player-pushed containers ??returns true only
    * when the container's collision rect at newX stays inside non-solid
    * cells. Mirror of LdtkWorldScene's identical helper.
    */
@@ -3589,7 +3591,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Shard ↔ Enemy hit test (ItemWorld). Mirror of LdtkWorldScene helper —
+   * Shard ??Enemy hit test (ItemWorld). Mirror of LdtkWorldScene helper ??
    * applies element side-effect + auto-retrieve on kill.
    */
   private checkShardEnemyHit(x: number, y: number, element: ShardElement): boolean {
@@ -3669,8 +3671,8 @@ export class ItemWorldScene extends Scene {
           if (!row) continue;
           const t = row[x] ?? -1;
           // Paint over: air / grass / any fluid (water/magma/oil/acid/charged/cyro).
-          // Solid cells block paint. charged (8) 포함 — ChargedCrate splash 가
-          // 기존 charged 풀 위 다시 칠해도 무해 (셀 값 그대로).
+          // Solid cells block paint. charged (8) ?ы븿 ??ChargedCrate splash 媛
+          // 湲곗〈 charged ? ???ㅼ떆 移좏빐??臾댄빐 (? 媛?洹몃?濡?.
           if (t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20) {
             row[x] = tile;
             painted++;
@@ -3686,7 +3688,7 @@ export class ItemWorldScene extends Scene {
         }
       }
     }
-    // Magma paint → ignite adjacent flammable cells immediately. Scan
+    // Magma paint ??ignite adjacent flammable cells immediately. Scan
     // radius scales with quantity so larger splashes also light a wider
     // ring of oil/wood/grass.
     if (tile === 6) {
@@ -3700,15 +3702,15 @@ export class ItemWorldScene extends Scene {
     if (kind === 'MagmaCrucible') {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
     }
-    // R-NEW-011 Impact Solidification: WaterBarrel 깨짐 → impact 반경 1 tile
-    // 안의 magma 셀들을 WALL 로 굳힘 + 강한 plasma 증기 + camera shake.
+    // R-NEW-011 Impact Solidification: WaterBarrel 源⑥쭚 ??impact 諛섍꼍 1 tile
+    // ?덉쓽 magma ??ㅼ쓣 WALL 濡?援논옒 + 媛뺥븳 plasma 利앷린 + camera shake.
     if (kind === 'WaterBarrel') {
       let solidified = 0;
       for (let dy2 = -1; dy2 <= 1; dy2++) {
         for (let dx2 = -1; dx2 <= 1; dx2++) {
           const nx = gx + dx2, ny = gy + dy2;
           if (grid[ny]?.[nx] === 6) {
-            grid[ny][nx] = 1; // WALL (굳은 magma)
+            grid[ny][nx] = 1; // WALL (援녹? magma)
             this.tileMutator.onWallTileChanged?.(nx, ny, 6);
             solidified++;
           }
@@ -3720,8 +3722,8 @@ export class ItemWorldScene extends Scene {
         this.containerFluidDirty = true;
       }
     }
-    // R-NEW-012 Acid Container Chain: AcidVial 깨짐 → 2-tile radius 안
-    // 다른 컨테이너의 acidExposureMs 가속 (도미노 파괴 setup).
+    // R-NEW-012 Acid Container Chain: AcidVial 源⑥쭚 ??2-tile radius ??
+    // ?ㅻⅨ 而⑦뀒?대꼫??acidExposureMs 媛??(?꾨????뚭눼 setup).
     if (kind === 'AcidVial') {
       const reachSq = 32 * 32;
       const cx = (gx + 0.5) * 16;
@@ -3841,7 +3843,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Ego Shard impact dispatcher for ItemWorld — same logic as LdtkWorldScene
+   * Ego Shard impact dispatcher for ItemWorld ??same logic as LdtkWorldScene
    * but reads/writes fullGrid instead of collisionGrid. fluidSystem branch
    * skipped because ItemWorld doesn't render fluid bodies.
    */
@@ -3870,12 +3872,12 @@ export class ItemWorldScene extends Scene {
           this.fluidSystem.removeCell(gx, gy);
           this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
         } else if (t === 13 && room[gy]) {
-          // R-NEW-003 Toxic Acid Flash: acid → AIR + 녹색 toxic 증기
+          // R-NEW-003 Toxic Acid Flash: acid ??AIR + ?뱀깋 toxic 利앷린
           room[gy][gx] = 0;
           this.fluidSystem.removeCell(gx, gy);
           this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4, PUFF_TINT_TOXIC);
         } else if (t === 6 && room[gy]) {
-          // R-NEW-020 Magma Surge: magma 1-tile 확장 (40% per AIR neighbor)
+          // R-NEW-020 Magma Surge: magma 1-tile ?뺤옣 (40% per AIR neighbor)
           const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
           for (const [nx, ny] of ns) {
             if ((room[ny]?.[nx] ?? -1) === 0 && Math.random() < 0.40) {
@@ -3884,7 +3886,7 @@ export class ItemWorldScene extends Scene {
           }
           this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
         } else if (t === 12) {
-          // R-NEW-019 Heat Metal: metal cell 유지 + 4s fire overlay
+          // R-NEW-019 Heat Metal: metal cell ?좎? + 4s fire overlay
           this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
         } else {
           this.tileMutator.tryIgnite(room, gx, gy);
@@ -3908,24 +3910,24 @@ export class ItemWorldScene extends Scene {
     } else if (element === 'ice') {
       for (const [gx, gy] of cells) {
         const t = (room[gy]?.[gx] ?? 0);
-        // R-NEW-021 Frozen Steel: metal cell → frozen WALL (Brittle 준비)
+        // R-NEW-021 Frozen Steel: metal cell ??frozen WALL (Brittle 以鍮?
         if (t === 12) this.tileMutator.tryFreezeMetal(room, gx, gy);
-        // R-NEW-048 Reinforced Ice: ice cell 에 Ice 재타격 시 강화 (단순 — 단지 시각 효과만)
-        // tryFreeze 는 water/magma/oil/acid/wood/grass 모두 지원
-        // (R-NEW-004/006/044/045 포함)
+        // R-NEW-048 Reinforced Ice: ice cell ??Ice ?ы?寃???媛뺥솕 (?⑥닚 ???⑥? ?쒓컖 ?④낵留?
+        // tryFreeze ??water/magma/oil/acid/wood/grass 紐⑤몢 吏??
+        // (R-NEW-004/006/044/045 ?ы븿)
         else this.tileMutator.tryFreeze(room, gx, gy);
       }
     } else if (element === 'thunder') {
       for (const [gx, gy] of cells) {
         const t = (room[gy]?.[gx] ?? 0);
-        // R-NEW-018 Magma Detonation: magma cell hit → 큰 plasma 폭발 + camera shake
+        // R-NEW-018 Magma Detonation: magma cell hit ????plasma ??컻 + camera shake
         if (t === 6) {
           this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0, PUFF_TINT_PLASMA);
           this.game.camera.shake(4);
           this.tileMutator.applyThunderChain(room, gx, gy);
           continue;
         }
-        // R-NEW-022 Shatter Pulse: ice cell hit → AIR + 약한 폭발 시각
+        // R-NEW-022 Shatter Pulse: ice cell hit ??AIR + ?쏀븳 ??컻 ?쒓컖
         if (t === 7 && room[gy]) {
           room[gy][gx] = 0;
           this.tileMutator.clearFrozen(gx, gy);
@@ -3934,8 +3936,8 @@ export class ItemWorldScene extends Scene {
           continue;
         }
         // R-NEW-046 Wooden Static / R-NEW-047 Grass Static:
-        // wood/grass 셀에 Thunder 적중 시 1.5s electric overlay 부여
-        // → tick 의 electric 만료 시점에 R-NEW-034 Static Ignition 발화
+        // wood/grass ???Thunder ?곸쨷 ??1.5s electric overlay 遺??
+        // ??tick ??electric 留뚮즺 ?쒖젏??R-NEW-034 Static Ignition 諛쒗솕
         if (t === 15 /* wood */ || t === 16 /* grass */) {
           this.tileMutator.giveElectricOverlay(gx, gy, 1500);
           continue;
@@ -3971,7 +3973,7 @@ export class ItemWorldScene extends Scene {
     Debug.log(`[DebugFire] actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`);
   }
 
-  /** DEBUG Shift+2 — Ice enchant sweep. */
+  /** DEBUG Shift+2 ??Ice enchant sweep. */
   private debugFreezeAtPlayer(): void {
     if (!this.fullGrid?.length) return;
     const hb = this.getDebugAttackHitbox();
@@ -3983,7 +3985,7 @@ export class ItemWorldScene extends Scene {
     Debug.log(`[DebugIce] frozen=${frozen} total=${this.tileMutator.frozenCount}`);
   }
 
-  /** DEBUG Shift+3 — Thunder enchant sweep. */
+  /** DEBUG Shift+3 ??Thunder enchant sweep. */
   private debugThunderAtPlayer(): void {
     if (!this.fullGrid?.length) return;
     const hb = this.getDebugAttackHitbox();
@@ -4121,7 +4123,7 @@ export class ItemWorldScene extends Scene {
   /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
   private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
     // Per-room iid prefix ? when the same template is reused in multiple rooms,
-    // we must keep entity iids unique so Switch→LockedDoor matching is room-scoped.
+    // we must keep entity iids unique so Switch?묹ockedDoor matching is room-scoped.
     const roomPrefix = `r${offX}_${offY}:`;
 
     for (const ent of level.entities) {
@@ -4131,7 +4133,7 @@ export class ItemWorldScene extends Scene {
       switch (ent.type) {
         case 'Building': {
           if (!ent.tile || !ent.tile.tilesetPath) {
-            console.warn(`[Building] entity at (${ax}, ${ay}) has no tile — skipped. LDtk Editor 에서 tile picker 로 사각형을 선택해 주십시오.`);
+            console.warn(`[Building] entity at (${ax}, ${ay}) has no tile ??skipped. LDtk Editor ?먯꽌 tile picker 濡??ш컖?뺤쓣 ?좏깮??二쇱떗?쒖삤.`);
             break;
           }
           const b = new Building(
@@ -4140,12 +4142,12 @@ export class ItemWorldScene extends Scene {
             ent.tile.src[0], ent.tile.src[1],
             ent.tile.w, ent.tile.h,
           );
-          // BG/wall SSoT 톤 매핑 — wall row 기준 (전경 데코 톤).
+          // BG/wall SSoT ??留ㅽ븨 ??wall row 湲곗? (?꾧꼍 ?곗퐫 ??.
           if (this.wallPaletteFilter) {
             b.container.filters = [this.wallPaletteFilter];
           }
           this.buildings.push(b);
-          // buildingLayer 로 추가 — entityLayer 보다 뒤라 player 뒤로 렌더링.
+          // buildingLayer 濡?異붽? ??entityLayer 蹂대떎 ?ㅻ씪 player ?ㅻ줈 ?뚮뜑留?
           this.buildingLayer.addChild(b.container);
           break;
         }
@@ -4220,9 +4222,9 @@ export class ItemWorldScene extends Scene {
           const anchorY = offY + ent.px[1] - ent.height / 2;
 
           // Build the Memory Shard visual ? legendary-tier but distinct:
-          //   - Larger than item drops (shard ? 16×16 vs item 8×8)
-          //   - Rotated diamond shape (45°) ? clear visual contrast vs sword's square
-          //   - Double outline (bright orange → pale gold)
+          //   - Larger than item drops (shard ? 16횞16 vs item 8횞8)
+          //   - Rotated diamond shape (45째) ? clear visual contrast vs sword's square
+          //   - Double outline (bright orange ??pale gold)
           //   - Wide radial glow
           //   - Orange particles that drift UP with horizontal sway
           const shardContainer = new Container();
@@ -4235,7 +4237,7 @@ export class ItemWorldScene extends Scene {
           shardContainer.addChild(glowGfx);
 
           const shardGfx = new Graphics();
-          // Rotated diamond = square rotated 45°. Draw as polygon.
+          // Rotated diamond = square rotated 45째. Draw as polygon.
           //   Points: top(0,-11) right(11,0) bottom(0,11) left(-11,0)
           shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).fill({ color: 0xff8000 });
           shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).stroke({ color: 0xffcc66, width: 1 });
@@ -4285,18 +4287,18 @@ export class ItemWorldScene extends Scene {
           break;
         }
         case 'Anvil': {
-          // ItemStratum 안의 Anvil = "맵 밖으로 나가기" 거점. Overworld Anvil 의
-          // place-weapon/strike 흐름은 사용하지 않고, 근접 시 KeyPrompt 를 띄워
-          // ATTACK 입력으로 EscapeConfirm(ESC 다이얼로그) 을 연다.
+          // ItemStratum ?덉쓽 Anvil = "留?諛뽰쑝濡??섍?湲? 嫄곗젏. Overworld Anvil ??
+          // place-weapon/strike ?먮쫫? ?ъ슜?섏? ?딄퀬, 洹쇱젒 ??KeyPrompt 瑜??꾩썙
+          // ATTACK ?낅젰?쇰줈 EscapeConfirm(ESC ?ㅼ씠?쇰줈洹? ???곕떎.
           const anvil = new Anvil(ax, ay, false);
-          anvil.setShowHint(false); // 자체 symbol prompt 비활성 — KeyPrompt 만 사용
+          anvil.setShowHint(false); // ?먯껜 symbol prompt 鍮꾪솢????KeyPrompt 留??ъ슜
           this.itemWorldAnvils.push(anvil);
           this.entityLayer.addChild(anvil.container);
           break;
         }
         case 'ItemDisplay': {
-          // ItemWorld 전용 — 진입한 아이템 sprite 를 Size 배율로 확대해 보여준다.
-          // Rotate=true 면 느린 자전 (의례적 톤). 호흡/부유/후광은 항상 활성.
+          // ItemWorld ?꾩슜 ??吏꾩엯???꾩씠??sprite 瑜?Size 諛곗쑉濡??뺣???蹂댁뿬以??
+          // Rotate=true 硫??먮┛ ?먯쟾 (?섎?????. ?명씉/遺???꾧킅? ??긽 ?쒖꽦.
           const sizeRaw = (ent.fields['Size'] ?? ent.fields['size']) as number | undefined;
           const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
           const rotate = ((ent.fields['Rotate'] ?? ent.fields['rotate']) as boolean | undefined) ?? false;
@@ -4344,12 +4346,12 @@ export class ItemWorldScene extends Scene {
     // DEC-038 Town residents
     for (const r of this.memoryResidents) r.destroy();
     this.memoryResidents = [];
-    // DEC-039 Trapdoor — buildFullMap 재실행 시 잔류 방지.
+    // DEC-039 Trapdoor ??buildFullMap ?ъ떎?????붾쪟 諛⑹?.
     if (this.trapdoor) {
       this.trapdoor.destroy();
       this.trapdoor = null;
     }
-    // ItemWorld exit-anvils — rebuild/stratum 전환 시 잔류 방지.
+    // ItemWorld exit-anvils ??rebuild/stratum ?꾪솚 ???붾쪟 諛⑹?.
     for (const a of this.itemWorldAnvils) a.destroy();
     this.itemWorldAnvils = [];
     this.destroyItemWorldAnvilPrompt();
@@ -4357,7 +4359,7 @@ export class ItemWorldScene extends Scene {
 
   /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
   private updateStaticEntities(dt: number): void {
-    // Elemental tile hazards (magma · charged · acid · fire · thunder · burn).
+    // Elemental tile hazards (magma 쨌 charged 쨌 acid 쨌 fire 쨌 thunder 쨌 burn).
     // Mutator must tick before hazard check so frozen reverts are visible this frame.
     this.tickTileHazards(dt);
 
@@ -4415,19 +4417,19 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Item displays — 호흡 펄스 (size 동적 변동)
+    // Item displays ???명씉 ?꾩뒪 (size ?숈쟻 蹂??
     for (const d of this.itemDisplays) d.update(dt);
 
     // Locked doors ? reject animation timer + collision re-assert (2026-05-24 fix)
-    // ItemWorldScene 는 room 재진입 / 동적 grid 재구축으로 LockedDoor.injectCollision 의
-    // grid 셀이 유실될 수 있다. 매 프레임 ensureCollision() 로 idempotent 재주입 +
-    // direct AABB 충돌로 grid 미반영 케이스도 차단 (이중 안전).
+    // ItemWorldScene ??room ?ъ쭊??/ ?숈쟻 grid ?ш뎄異뺤쑝濡?LockedDoor.injectCollision ??
+    // grid ????좎떎?????덈떎. 留??꾨젅??ensureCollision() 濡?idempotent ?ъ＜??+
+    // direct AABB 異⑸룎濡?grid 誘몃컲??耳?댁뒪??李⑤떒 (?댁쨷 ?덉쟾).
     for (const door of this.lockedDoors) {
       door.update(dt);
       if (!door.locked) continue;
       door.ensureCollision(this.fullGrid);
 
-      // Direct AABB 충돌 — player 가 door 안에 들어가면 진입 방향으로 밀어냄.
+      // Direct AABB 異⑸룎 ??player 媛 door ?덉뿉 ?ㅼ뼱媛硫?吏꾩엯 諛⑺뼢?쇰줈 諛?대깂.
       const aabb = door.getHitAABB();
       const px0 = this.player.x;
       const py0 = this.player.y;
@@ -4438,7 +4440,7 @@ export class ItemWorldScene extends Scene {
       if (overlapsX && overlapsY) {
         const playerCx = px0 + pw / 2;
         const doorCx = aabb.x + aabb.width / 2;
-        // 좌우 중 더 가까운 면으로 밀어냄
+        // 醫뚯슦 以???媛源뚯슫 硫댁쑝濡?諛?대깂
         if (playerCx < doorCx) {
           this.player.x = aabb.x - pw;
         } else {
@@ -4485,7 +4487,7 @@ export class ItemWorldScene extends Scene {
             this.unlockDoorByIidLocal(sw.targetDoorIid);
           }
         }
-        // Throwable containers — sword damage breaks them, except MetalCrate
+        // Throwable containers ??sword damage breaks them, except MetalCrate
         // which is immune (acid only).
         for (let i = this.containers.length - 1; i >= 0; i--) {
           const c = this.containers[i];
@@ -4523,7 +4525,7 @@ export class ItemWorldScene extends Scene {
     if (this.specialAggregate) this.destroyAggregateChildren(this.specialAggregate);
     this.destroyAggregateChildren(this.shadowAggregate);
     this.destroyAggregateChildren(this.sealAggregate);
-    this.cellLayerGroups = []; // 수동 culling 그룹 리셋 — 아래 loop 가 다시 push
+    this.cellLayerGroups = []; // ?섎룞 culling 洹몃９ 由ъ뀑 ???꾨옒 loop 媛 ?ㅼ떆 push
     this.visibleCellWindowKey = '';
 
     const grid = this.unifiedGrid;
@@ -4578,7 +4580,7 @@ export class ItemWorldScene extends Scene {
         renderer.wallLayer.position.set(roomX, roomY);
         renderer.specialLayer.position.set(roomX, roomY);
         renderer.shadowLayer.position.set(roomX, roomY);
-        // Cell culling — buildFullMap 과 동일 패턴 (사용자 결정 2026-05-04).
+        // Cell culling ??buildFullMap 怨??숈씪 ?⑦꽩 (?ъ슜??寃곗젙 2026-05-04).
         const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
         renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
         renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
@@ -4608,29 +4610,19 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Fill non-placed (null) cells in the radial layout with a dark seal block so the
-   * parallax background does not bleed through. Drawn into sealAggregate (wallPaletteFilter).
+   * Parallax is intentionally allowed to show through empty alignment cells.
    */
   private fillNullCellSeal(
     grid: UnifiedGridData,
     totalCols: number,
     totalRows: number,
   ): void {
-    if (!this.sealAggregate) return;
-    const gfx = new Graphics();
-    let count = 0;
-    for (let absRow = 0; absRow < totalRows; absRow++) {
-      for (let col = 0; col < totalCols; col++) {
-        if (grid.cells[absRow]?.[col]) continue;
-        gfx.rect(col * IW_ROOM_W_PX, absRow * IW_ROOM_H_PX, IW_ROOM_W_PX, IW_ROOM_H_PX);
-        count++;
-      }
-    }
-    if (count > 0) {
-      gfx.fill(0x101010);
-      this.sealAggregate.addChild(gfx);
-    } else {
-      gfx.destroy();
-    }
+    // Full-map ItemWorld layouts can contain empty alignment cells around the
+    // authored room graph. Painting those cells black makes the parallax look
+    // like broken rectangular chunks on some topologies, so leave them open.
+    void grid;
+    void totalCols;
+    void totalRows;
   }
 
   /** Unlock a door in this scene by its LDtk iid (mirrors LdtkWorldScene logic). */
@@ -4695,8 +4687,8 @@ export class ItemWorldScene extends Scene {
   enter(): void {
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
     this.entryFreezeTimer = ENTRY_FREEZE_MS;
-    // 월드 BGM 종료 — outro 1 회 재생 후 silence. Item World 자체 BGM 은
-    // 추후 mus_iw_lane_rust_loop 등 도착 시 BgmController.play 로 교체 예정.
+    // ?붾뱶 BGM 醫낅즺 ??outro 1 ???ъ깮 ??silence. Item World ?먯껜 BGM ?
+    // 異뷀썑 mus_iw_lane_rust_loop ???꾩갑 ??BgmController.play 濡?援먯껜 ?덉젙.
     BgmController.stop('mus_world_main_outro');
   }
 
@@ -4704,7 +4696,7 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
-   * structurally — runtime duck-typing checks for this method.
+   * structurally ??runtime duck-typing checks for this method.
    */
   getFeedbackContext(): {
     area: 'world' | 'itemworld';
@@ -4719,7 +4711,7 @@ export class ItemWorldScene extends Scene {
     const equipped = this.inventory?.equipped;
     return {
       area: 'itemworld',
-      // ItemWorld is procedural — no LDtk level_id.
+      // ItemWorld is procedural ??no LDtk level_id.
       level_id: undefined,
       room_col: Math.floor(cx / TILE_SIZE),
       room_row: Math.floor(cy / TILE_SIZE),
@@ -4733,7 +4725,7 @@ export class ItemWorldScene extends Scene {
   update(dt: number): void {
     if (!this.initialized) return;
 
-    // Feedback panel open — block scene update but keep toasts animating.
+    // Feedback panel open ??block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
       this.toast?.update(dt);
       return;
@@ -4794,11 +4786,11 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // ESC to toggle escape confirm. bossChoice 패널이 열려 있을 땐 여기서
-    // 가로채지 않고 아래 bossChoice 핸들러가 ESC 를 Exit Safely 로 처리하도록
-    // 양보한다 (Pattern A ? 해당 모달의 취소 키).
-    // post_clear_hold 동안 StratumClearOverlay 가 단일 키(C) 흐름을 책임지므로
-    // ESC 가 EscapeConfirm 팝업을 띄우지 않도록 가로챈다.
+    // ESC to toggle escape confirm. bossChoice ?⑤꼸???대젮 ?덉쓣 ???ш린??
+    // 媛濡쒖콈吏 ?딄퀬 ?꾨옒 bossChoice ?몃뱾?ш? ESC 瑜?Exit Safely 濡?泥섎━?섎룄濡?
+    // ?묐낫?쒕떎 (Pattern A ? ?대떦 紐⑤떖??痍⑥냼 ??.
+    // post_clear_hold ?숈븞 StratumClearOverlay 媛 ?⑥씪 ??C) ?먮쫫??梨낆엫吏誘濡?
+    // ESC 媛 EscapeConfirm ?앹뾽???꾩슦吏 ?딅룄濡?媛濡쒖콌??
     if (this.transitionState === 'post_clear_hold') {
       // fall through to the post_clear_hold handler below; do nothing here.
     } else if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
@@ -4806,8 +4798,8 @@ export class ItemWorldScene extends Scene {
         this.hideEscapeConfirm();
         return;
       }
-      // Pad B (CANCEL 동시 발화) 는 EscapeConfirm 을 *띄우지* 못한다.
-      // START · Escape 만 open 트리거 (사용자 요구 2026-05-17).
+      // Pad B (CANCEL ?숈떆 諛쒗솕) ??EscapeConfirm ??*?꾩슦吏* 紐삵븳??
+      // START 쨌 Escape 留?open ?몃━嫄?(?ъ슜???붽뎄 2026-05-17).
       if (!this.game.input.isJustPressed(GameAction.CANCEL)) {
         this.showEscapeConfirm();
       }
@@ -4827,8 +4819,8 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // 모달/전이 상태에서는 매 프레임 world-space 프롬프트를 숨겨
-    // 결과 패널 뒤에 "\u2191 Descend" 등이 잔존하는 것을 방지.
+    // 紐⑤떖/?꾩씠 ?곹깭?먯꽌??留??꾨젅??world-space ?꾨＼?꾪듃瑜??④꺼
+    // 寃곌낵 ?⑤꼸 ?ㅼ뿉 "\u2191 Descend" ?깆씠 ?붿〈?섎뒗 寃껋쓣 諛⑹?.
     if (this.shouldSuppressWorldPrompts()) {
       this.hideWorldPrompts();
     }
@@ -4836,9 +4828,9 @@ export class ItemWorldScene extends Scene {
     // A17 (playtest 2026-04-17): boss-kill choice panel. After a non-final
     // stratum boss, the portal would auto-advance; now the player explicitly
     // chooses CONTINUE (deeper) or EXIT (bank progress and leave).
-    // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=확인(Continue
-    // Deeper), ESC(MENU)=취소(Exit Safely). Z/X 는 UI 에서 사용 금지 ? 점프/
-    // 대시 액션과 근육 기억 충돌을 막기 위함.
+    // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=?뺤씤(Continue
+    // Deeper), ESC(MENU)=痍⑥냼(Exit Safely). Z/X ??UI ?먯꽌 ?ъ슜 湲덉? ? ?먰봽/
+    // ????≪뀡怨?洹쇱쑁 湲곗뼲 異⑸룎??留됯린 ?꾪븿.
     if (this.uiController.isBossChoiceVisible()) {
       if (this.game.input.isJustPressed(GameAction.ATTACK)) {
         this.hideBossChoice();
@@ -4866,8 +4858,8 @@ export class ItemWorldScene extends Scene {
 
     // World Map / Inventory are unavailable inside Item World ? surface a
     // short English toast so the player understands the key was recognised
-    // but intentionally disabled here. Shift+I 는 Game.ts 가 INVENTORY 를
-    // consume 해 전역 UI 토글로 사용 — 여기로 도달하지 않는다.
+    // but intentionally disabled here. Shift+I ??Game.ts 媛 INVENTORY 瑜?
+    // consume ???꾩뿭 UI ?좉?濡??ъ슜 ???ш린濡??꾨떖?섏? ?딅뒗??
     if (this.game.input.isJustPressed(GameAction.MAP)) {
       this.game.input.consumeJustPressed(GameAction.MAP);
       this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
@@ -4879,7 +4871,7 @@ export class ItemWorldScene extends Scene {
 
     this.player.update(dt);
 
-    // First time HP drops to/under 40% — surface a tutorial hint pointing at
+    // First time HP drops to/under 40% ??surface a tutorial hint pointing at
     // the heal key. Shared one-shot flag with LdtkWorldScene; survives scene
     // swaps in-session.
     if (
@@ -4909,24 +4901,24 @@ export class ItemWorldScene extends Scene {
       if (this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         if (this.player.debugCheatActive) {
           this.player.disableCheatBundle();
-          this.toast.show('CHEAT OFF', 0x44ff44);
+          this.toast.show(t('toast.cheat_off'), 0x44ff44);
         } else {
           this.player.enableCheatBundle();
-          this.toast.show('CHEAT ON — relics + HP/ATK 99999 + immortal', 0xffaa00);
+          this.toast.show(t('toast.cheat_on'), 0xffaa00);
         }
       }
       if (this.game.input.isJustPressedKeyCode('KeyG')) this.debugSpawnContainers();
     }
-    // 1/2/3 (no shift) → active enchant swap (Hades Boon style).
+    // 1/2/3 (no shift) ??active enchant swap (Hades Boon style).
     if (!this.game.input.shiftDown) {
       if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE))    this.player.activeEnchant = 'fire';
       else if (this.game.input.isJustPressed(GameAction.DEBUG_ICE))    this.player.activeEnchant = 'ice';
       else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
     }
 
-    // ── Hold-and-release Cast — debug-only ability (Victor 2026-05-15).
-    //   ?debug in URL → ability live (charge/preview/fire all enabled)
-    //   no ?debug     → ability fully suppressed, leftover state cleared
+    // ?? Hold-and-release Cast ??debug-only ability (Victor 2026-05-15).
+    //   ?debug in URL ??ability live (charge/preview/fire all enabled)
+    //   no ?debug     ??ability fully suppressed, leftover state cleared
     const _shardAbilityOn = new URLSearchParams(window.location.search).has('debug');
     if (!_shardAbilityOn) {
       this.egoCastChargeMs = 0;
@@ -4984,53 +4976,20 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // ── Grab / Throw (B / RB) — Arc Tether 원격 픽업 + Spelunky 던지기. ──
-    // LdtkWorldScene 와 동일 흐름. 자세한 주석은 LdtkWorldScene update() 참조.
-    if (this.game.input.isJustPressed(GameAction.GRAB)) {
-      if (this.heldContainer) {
-        if (!this.pullingContainer) {
-          const facing = this.player.facingRight ? 1 : -1;
-          this.heldContainer.release(facing * 160, -170);
-          this.heldContainer = null;
-          this.arcTether?.hide();
-        }
-      } else {
-        const best = this.findNearestGrabbableContainer();
-        if (best) this.startGrabPull(best);
-      }
-    } else if (this.heldContainer && !this.pullingContainer && this.game.input.isJustPressed(GameAction.ATTACK)) {
-      // (2026-05-17 — GRAB/ATTACK 양쪽으로 throw 가능)
-      const facing = this.player.facingRight ? 1 : -1;
-      this.heldContainer.release(facing * 160, -170);
-      this.heldContainer = null;
-      this.arcTether?.hide();
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-    }
-    if (this.heldContainer && !this.heldContainer.destroyed) {
-      const h = this.heldContainer;
-      const targetX = this.player.x + (this.player.width - h.width) / 2;
-      const targetY = this.player.y - h.height - 2;
-      if (this.pullingContainer === h) {
-        this.pullElapsedMs += dt;
-        const PULL_DURATION_MS = 200;
-        const t = Math.min(1, this.pullElapsedMs / PULL_DURATION_MS);
-        const easeT = 1 - Math.pow(1 - t, 3);
-        h.x = this.pullStartX + (targetX - this.pullStartX) * easeT;
-        h.y = this.pullStartY + (targetY - this.pullStartY) * easeT;
-        if (t >= 1) {
-          this.pullingContainer = null;
-          this.pullElapsedMs = 0;
-        }
-      } else {
-        h.x = targetX;
-        h.y = targetY;
-      }
-      h.container.x = h.x;
-      h.container.y = h.y;
-      this.player.isLifting = true;
-    } else {
-      this.player.isLifting = false;
-    }
+    // ?? Grab / Throw (B / RB) ??Arc Tether ?먭꺽 ?쎌뾽 + Spelunky ?섏?湲? ??
+    // LdtkWorldScene ? ?숈씪 ?먮쫫. ?먯꽭??二쇱꽍? LdtkWorldScene update() 李몄“.
+    this.applyContainerCarryState(updateContainerGrabInput({
+      input: this.game.input,
+      player: this.player,
+      arcTether: this.arcTether,
+      state: this.getContainerCarryState(),
+      findTarget: () => this.findNearestGrabbableContainer(),
+    }));
+    this.applyContainerCarryState(updateHeldContainerCarry({
+      dtMs: dt,
+      player: this.player,
+      state: this.getContainerCarryState(),
+    }));
     this.updateContainerPrompt();
     this.updateArcTether(dt);
 
@@ -5054,7 +5013,7 @@ export class ItemWorldScene extends Scene {
       trackItemWorldExit('death', this.currentStratumIndex);
       this.exitTracked = true;
 
-      // ── Ego T11: player death ──
+      // ?? Ego T11: player death ??
       this.fireEgoPlayerDeath();
 
       // Clear all UI overlays on death
@@ -5084,8 +5043,8 @@ export class ItemWorldScene extends Scene {
         totalStrata: this.strataConfig.strata.length,
         isDeath: true,
       }, () => {
-        // 사망 모달 accept → 즉시 월드 복귀. startExitFade(400ms) + LdtkWorld
-        // return fade-in(250ms) 누적이 "한참 머무는" 체감을 주므로 fade 건너뜀.
+        // ?щ쭩 紐⑤떖 accept ??利됱떆 ?붾뱶 蹂듦?. startExitFade(400ms) + LdtkWorld
+        // return fade-in(250ms) ?꾩쟻??"?쒖갭 癒몃Т?? 泥닿컧??二쇰?濡?fade 嫄대꼫?.
         this.exitItemWorld();
       })) {
         this.exitItemWorld();
@@ -5095,14 +5054,14 @@ export class ItemWorldScene extends Scene {
 
     // Update enemies
     for (const enemy of this.enemies) enemy.update(dt);
-    // DEC-038 Town residents — idle anim + proximity 진입 시 검 Ego 발화.
+    // DEC-038 Town residents ??idle anim + proximity 吏꾩엯 ??寃 Ego 諛쒗솕.
     for (const r of this.memoryResidents) r.update(dt);
     this.updateResidentEgoTriggers();
-    // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 인터랙트.
+    // DEC-039 Trapdoor ??idle anim + proximity prompt + ATTACK ?명꽣?숉듃.
     this.updateTrapdoor(dt);
-    // ItemWorld exit Anvil — proximity prompt + ATTACK 인터랙트로 ESC 다이얼로그.
+    // ItemWorld exit Anvil ??proximity prompt + ATTACK ?명꽣?숉듃濡?ESC ?ㅼ씠?쇰줈洹?
     this.updateItemWorldAnvils(dt);
-    // 수동 cell culling — viewport 밖 cell 의 4 layer 는 visible=false 로 draw skip.
+    // ?섎룞 cell culling ??viewport 諛?cell ??4 layer ??visible=false 濡?draw skip.
     this.updateCellVisibility();
 
     // Player attacks ? Sakurai full feedback chain
@@ -5129,7 +5088,7 @@ export class ItemWorldScene extends Scene {
       if (!enemy.alive && !isEnemyExpGranted(enemy)) {
         markEnemyExpGranted(enemy);
 
-        // ── Ego T06: first enemy kill ──
+        // ?? Ego T06: first enemy kill ??
         if (!(enemy instanceof MemoryShardNPC) && !(enemy as any)._isBoss) {
           this.fireEgoFirstKill();
         }
@@ -5181,8 +5140,8 @@ export class ItemWorldScene extends Scene {
           const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
           const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
           const leveled = addItemExp(this.item, killExp);
-          // DEC-046: 일반 적 처치 시 Recovery +0.1% 점진 누적 (호환 EXP 환산과 별개).
-          // 보스는 stage jump로 별도 처리되므로 일반 적만 적용.
+          // DEC-046: ?쇰컲 ??泥섏튂 ??Recovery +0.1% ?먯쭊 ?꾩쟻 (?명솚 EXP ?섏궛怨?蹂꾧컻).
+          // 蹂댁뒪??stage jump濡?蹂꾨룄 泥섎━?섎?濡??쇰컲 ?곷쭔 ?곸슜.
           if (!(enemy as any)._isBoss) {
             addRecovery(this.item, 0.1);
           }
@@ -5203,7 +5162,7 @@ export class ItemWorldScene extends Scene {
             });
           }
 
-          // HEL-05: Tiered healing drops (GDD §4.1)
+          // HEL-05: Tiered healing drops (GDD 짠4.1)
           const dropX = enemy.x + enemy.width / 2 - 8;
           const dropY = enemy.y + enemy.height;
           const isGolden = enemy instanceof GoldenMonster;
@@ -5219,7 +5178,7 @@ export class ItemWorldScene extends Scene {
             this.entityLayer.addChild(heal.container);
           }
 
-          // Gold drop on kill — confetti burst of mixed denominations.
+          // Gold drop on kill ??confetti burst of mixed denominations.
           const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.1);
           const goldAmount = isGolden ? baseGold * 3 : baseGold;
           if (goldAmount > 0) {
@@ -5273,7 +5232,7 @@ export class ItemWorldScene extends Scene {
       if (dx < 16 && dy < 16) {
         gp.collect();
         this.earnedGold += gp.amount;
-        // HUD 총액 갱신 — 외부 세계와 통일성 (baseline + earned).
+        // HUD 珥앹븸 媛깆떊 ???몃? ?멸퀎? ?듭씪??(baseline + earned).
         this.hud.updateGold(this.baselineGold + this.earnedGold);
         this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
         this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
@@ -5403,7 +5362,7 @@ export class ItemWorldScene extends Scene {
         cell.cleared = true;
 
         // Playtest 2026-04-26 #1: anvil retires after first IW boss clear
-        // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
+        // (any rarity, any weapon). One-shot ??repeat boss kills do nothing.
         if (!sacredSave.isFirstItemWorldBossDefeated()) {
           sacredSave.markFirstItemWorldBossDefeated();
           const unbuffed = removeBeginnerGraceFromStats({
@@ -5420,9 +5379,9 @@ export class ItemWorldScene extends Scene {
         // Boss EXP is granted via normal kill EXP path (CSV Exp column = 1200).
         // No forced itemLevelUp() ? SSoT: Content_Stats_Enemy.csv
 
-        // DEC-046 (2026-05-24): 보스 처치 시 명시적 Recovery stage jump + Fragment 해금.
-        // 레어리티별 stage 수에 따라 stratumIndex 비례로 stageJumpTarget 산정.
-        // 결과는 this.lastBossStageJump 에 저장하여 ReturnResult 화면이 연출.
+        // DEC-046 (2026-05-24): 蹂댁뒪 泥섏튂 ??紐낆떆??Recovery stage jump + Fragment ?닿툑.
+        // ?덉뼱由ы떚蹂?stage ?섏뿉 ?곕씪 stratumIndex 鍮꾨?濡?stageJumpTarget ?곗젙.
+        // 寃곌낵??this.lastBossStageJump ????ν븯??ReturnResult ?붾㈃???곗텧.
         const totalStrata = this.strataConfig.strata.length;
         const stageJumpResult = grantBossStageJump(
           this.item,
@@ -5436,9 +5395,9 @@ export class ItemWorldScene extends Scene {
             fragmentId: stageJumpResult.fragmentId,
             itemName: getDisplayName(this.item),
           };
-          // 인게임 즉시 알림 — 다음 ReturnResult에서 전체 연출.
+          // ?멸쾶??利됱떆 ?뚮┝ ???ㅼ쓬 ReturnResult?먯꽌 ?꾩껜 ?곗텧.
           this.toast.show(
-            `▸ ${getDisplayName(this.item)}`,
+            `??${getDisplayName(this.item)}`,
             0xffd700,
           );
         }
@@ -5486,17 +5445,17 @@ export class ItemWorldScene extends Scene {
           this.game.camera.shake(5);
         }, 160);
 
-        // ── DEC-039 안 D: Trapdoor 위치 미리 계산만 ──
-        // 보스 룸 D 출구는 'no_down' 태그로 영구 잠겼으므로 (RoomGraphAdapter)
-        // 자연 폴 다운은 발생하지 않는다. 대신 보스가 죽은 자리에 능동 인터랙트
-        // 포탈(Trapdoor) 을 띄운다.
+        // ?? DEC-039 ??D: Trapdoor ?꾩튂 誘몃━ 怨꾩궛留???
+        // 蹂댁뒪 猷?D 異쒓뎄??'no_down' ?쒓렇濡??곴뎄 ?좉꼈?쇰?濡?(RoomGraphAdapter)
+        // ?먯뿰 ???ㅼ슫? 諛쒖깮?섏? ?딅뒗?? ???蹂댁뒪媛 二쎌? ?먮━???λ룞 ?명꽣?숉듃
+        // ?ы깉(Trapdoor) ???꾩슫??
         //
-        // 사용자 요청 (2026-05-02): Trapdoor 는 Rustborn 의 보스 처치 대사가
-        // 끝난 후 spawn. 그러므로 위치/descentToWorld 만 미리 계산하고, 실제
-        // entity 생성은 dialogue 종료 후 spawnTrapdoorEntity() 콜백에서.
+        // ?ъ슜???붿껌 (2026-05-02): Trapdoor ??Rustborn ??蹂댁뒪 泥섏튂 ??ш?
+        // ?앸궃 ??spawn. 洹몃윭誘濡??꾩튂/descentToWorld 留?誘몃━ 怨꾩궛?섍퀬, ?ㅼ젣
+        // entity ?앹꽦? dialogue 醫낅즺 ??spawnTrapdoorEntity() 肄쒕갚?먯꽌.
         //
-        // 위치 보정 — enemy 픽셀 좌표 → cell 도출 → enemy 발 라인 아래로
-        // fullGrid 스캔해 floor 라인을 찾는다 (currentRow stale 회피).
+        // ?꾩튂 蹂댁젙 ??enemy ?쎌? 醫뚰몴 ??cell ?꾩텧 ??enemy 諛??쇱씤 ?꾨옒濡?
+        // fullGrid ?ㅼ틪??floor ?쇱씤??李얜뒗??(currentRow stale ?뚰뵾).
         let pendingTrapX = 0;
         let pendingTrapY = 0;
         let pendingDescentToWorld = false;
@@ -5523,14 +5482,14 @@ export class ItemWorldScene extends Scene {
           Debug.log(`[Trapdoor] queued at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) cell=(${bossCellCol},${bossCellRow}) descentToWorld=${pendingDescentToWorld}`);
         }
 
-        // Trapdoor entity 생성 콜백 — dialogue 종료 후 호출.
-        // Step 1 (2026-05-25): 최종 층 (pendingDescentToWorld=true) 에서는 Trapdoor 대신
-        // FloatingItemDrop spawn — 사용자 시나리오 "아이템 2배 확대 + 둥실둥실".
+        // Trapdoor entity ?앹꽦 肄쒕갚 ??dialogue 醫낅즺 ???몄텧.
+        // Step 1 (2026-05-25): 理쒖쥌 痢?(pendingDescentToWorld=true) ?먯꽌??Trapdoor ???
+        // FloatingItemDrop spawn ???ъ슜???쒕굹由ъ삤 "?꾩씠??2諛??뺣? + ?μ떎?μ떎".
         const spawnTrapdoorEntity = (): void => {
           if (this.trapdoor) return;
           if (pendingDescentToWorld) {
             this.trapdoor = new FloatingItemDrop(pendingTrapX, pendingTrapY, this.item);
-            // 사용자 결정 2026-05-25: spawn 즉시 grayscale + intensity 적용 (interact 전부터).
+            // ?ъ슜??寃곗젙 2026-05-25: spawn 利됱떆 grayscale + intensity ?곸슜 (interact ?꾨???.
             this.applyAbsorbFilter();
           } else {
             this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
@@ -5539,8 +5498,8 @@ export class ItemWorldScene extends Scene {
           this.descentToWorld = pendingDescentToWorld;
           this.toast.show(t('toast.trapdoor_opens'), 0xff7744);
           Debug.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) ${pendingDescentToWorld ? '(FloatingItemDrop)' : '(Trapdoor)'}`);
-          // DLG-11: Trapdoor 포탈 — 첫 spawn 시점에 한 번만 발화 (사용자
-          // 결정 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 표식으로 중복 차단.
+          // DLG-11: Trapdoor ?ы깉 ??泥?spawn ?쒖젏????踰덈쭔 諛쒗솕 (?ъ슜??
+          // 寃곗젙 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS ?쒖떇?쇰줈 以묐났 李⑤떒.
           if (
             this.loreDisplay &&
             !this.egoUnlockedEvents.has(EGO_EVENT.TRAPDOOR_THANKS) &&
@@ -5551,10 +5510,10 @@ export class ItemWorldScene extends Scene {
           }
         };
 
-        // ── Ego T12: boss killed dialogue ──
-        // First-clear (boss never killed before): clear FX → Ego dialogue
-        //   (freeze) → Trapdoor spawn. 사용자 요청 (2026-05-02) — Trapdoor 는
-        //   Rustborn 대사가 끝난 후 등장.
+        // ?? Ego T12: boss killed dialogue ??
+        // First-clear (boss never killed before): clear FX ??Ego dialogue
+        //   (freeze) ??Trapdoor spawn. ?ъ슜???붿껌 (2026-05-02) ??Trapdoor ??
+        //   Rustborn ??ш? ?앸궃 ???깆옣.
         const wasOnboarding = this.isFirstBossOnboarding();
         if (this.egoActive && wasOnboarding) {
           this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
@@ -5563,8 +5522,8 @@ export class ItemWorldScene extends Scene {
             spawnTrapdoorEntity();
           }, 2500);
         } else {
-          // Non-onboarding: ego dialogue 없음. 보스 처치 cinematic (BOSS DEFEATED
-          // 토스트 2.2초) 후 trapdoor spawn 으로 호흡 한 박자.
+          // Non-onboarding: ego dialogue ?놁쓬. 蹂댁뒪 泥섏튂 cinematic (BOSS DEFEATED
+          // ?좎뒪??2.2珥? ??trapdoor spawn ?쇰줈 ?명씉 ??諛뺤옄.
           setTimeout(() => {
             spawnTrapdoorEntity();
           }, 2500);
@@ -5573,19 +5532,19 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // DEC-039 안 A: 보스 처치 시 포털 워프 분기 제거됨. 플레이어는 down exit
-    // 으로 자연스럽게 다음 stratum 으로 걸어간다.
+    // DEC-039 ??A: 蹂댁뒪 泥섏튂 ???ы꽭 ?뚰봽 遺꾧린 ?쒓굅?? ?뚮젅?댁뼱??down exit
+    // ?쇰줈 ?먯뿰?ㅻ읇寃??ㅼ쓬 stratum ?쇰줈 嫄몄뼱媛꾨떎.
 
-    // DEC-039 안 A: 통일 좌표계 — totalGrid 전체로 clamp.
+    // DEC-039 ??A: ?듭씪 醫뚰몴怨???totalGrid ?꾩껜濡?clamp.
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
     const playerRoomCol = Math.max(0, Math.min(totalCols - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
     const playerAbsRow = Math.max(0, Math.min(totalRows - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     const roomKey = `${playerRoomCol},${playerAbsRow}`;
 
-    // DEC-039 안 A: stratum 경계 가로지르기 감지 — 셀이 바뀔 때마다 평가하고,
-    // stratumIndex 가 변하면 DEPTH 토스트 + progress 갱신. 재방문 시에도 토스트가
-    // 떠야 하므로 spawn-once 가드 바깥에 둔다.
+    // DEC-039 ??A: stratum 寃쎄퀎 媛濡쒖?瑜닿린 媛먯? ?????諛붾??뚮쭏???됯??섍퀬,
+    // stratumIndex 媛 蹂?섎㈃ DEPTH ?좎뒪??+ progress 媛깆떊. ?щ갑臾??쒖뿉???좎뒪?멸?
+    // ?좎빞 ?섎?濡?spawn-once 媛??諛붽묑???붾떎.
     const prevStratumIndex = this.currentStratumIndex;
     const cellAtCursor = this.unifiedGrid.cells[playerAbsRow]?.[playerRoomCol] ?? null;
     if (cellAtCursor && cellAtCursor.stratumIndex !== prevStratumIndex) {
@@ -5598,9 +5557,9 @@ export class ItemWorldScene extends Scene {
           this.progress.deepestUnlocked = this.currentStratumIndex;
         }
         this.progress.lastSafeStratum = this.currentStratumIndex;
-        // 사용자 결정 (2026-05-04): progress 영구 저장 — 사망 후 재진입 시 stratum
-        // picker 가 deepestUnlocked 까지 select 가능하게. 누락되면 picker 가 안 떠
-        // stratum 1 plaza 부터 시작 → 보스 hole 복구로 진행 막힘.
+        // ?ъ슜??寃곗젙 (2026-05-04): progress ?곴뎄 ??????щ쭩 ???ъ쭊????stratum
+        // picker 媛 deepestUnlocked 源뚯? select 媛?ν븯寃? ?꾨씫?섎㈃ picker 媛 ????
+        // stratum 1 plaza 遺???쒖옉 ??蹂댁뒪 hole 蹂듦뎄濡?吏꾪뻾 留됲옒.
         this.persistRoomState();
       }
     }
@@ -5625,7 +5584,7 @@ export class ItemWorldScene extends Scene {
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
 
-      // ── Ego T05: first monster visible (fire on first room with enemies) ──
+      // ?? Ego T05: first monster visible (fire on first room with enemies) ??
       if (this.enemies.length > 0) {
         this.fireEgoMonsterVisible();
       }
@@ -5644,10 +5603,10 @@ export class ItemWorldScene extends Scene {
     this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
     this.updateOxygenOverlay();
     this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
-    // Boss HP bar ? 교전 감지 2중 트리거.
-    //  1) FSM 상태 ≠ idle/death
-    //  2) hp < maxHp ? superArmor 보스는 타격해도 FSM 이 hit 으로 전이되지 않으므로
-    //     데미지 기록을 직접 본다.
+    // Boss HP bar ? 援먯쟾 媛먯? 2以??몃━嫄?
+    //  1) FSM ?곹깭 ??idle/death
+    //  2) hp < maxHp ? superArmor 蹂댁뒪???寃⑺빐??FSM ??hit ?쇰줈 ?꾩씠?섏? ?딆쑝誘濡?
+    //     ?곕?吏 湲곕줉??吏곸젒 蹂몃떎.
     const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
     if (activeBoss) {
       const st = activeBoss.fsm.currentState;
@@ -5675,7 +5634,7 @@ export class ItemWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // DEC-039 안 A: 플레이어를 통일 좌표 전체로 clamp.
+    // DEC-039 ??A: ?뚮젅?댁뼱瑜??듭씪 醫뚰몴 ?꾩껜濡?clamp.
     const mapW = this.unifiedGrid.totalWidth * IW_ROOM_W_PX;
     const mapH = this.unifiedGrid.totalHeight * IW_ROOM_H_PX;
     if (this.player.x < 0) this.player.x = 0;
@@ -5715,8 +5674,8 @@ export class ItemWorldScene extends Scene {
     const landedSpeed = p.consumeLandedEvent();
     if (landedSpeed !== null) {
       this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
-      // Land thud — 낙하 속도가 의미 있을 때만 (작은 점프 후 착지 noise 회피).
-      // 무거운 낙하일수록 slower playback (deeper pitch) 로 묵직한 느낌.
+      // Land thud ???숉븯 ?띾룄媛 ?섎? ?덉쓣 ?뚮쭔 (?묒? ?먰봽 ??李⑹? noise ?뚰뵾).
+      // 臾닿굅???숉븯?쇱닔濡?slower playback (deeper pitch) 濡?臾듭쭅???먮굦.
       if (landedSpeed > 120) {
         const t = Math.min(1, (landedSpeed - 120) / 380);
         SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
@@ -5790,13 +5749,13 @@ export class ItemWorldScene extends Scene {
       const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
       this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
     }
-    // ── Residue trail timers (oil/acid/magma) ───────────────────────────
+    // ?? Residue trail timers (oil/acid/magma) ???????????????????????????
     const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.fullGrid);
     const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'oil';
     const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'acid';
     const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'magma';
     const inCyro_  = isInCyro (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'cyro';
-    // Non-water fluid entry / exit splash — same impulse pattern as water.
+    // Non-water fluid entry / exit splash ??same impulse pattern as water.
     const inAnyOther = inMagma_ || inOil_ || inAcid_ || inCyro_;
     if (inAnyOther !== this.prevPlayerInOtherFluid) {
       const type: 'magma' | 'oil' | 'acid' | 'cyro' = inCyro_ ? 'cyro' : inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
@@ -5824,7 +5783,7 @@ export class ItemWorldScene extends Scene {
     else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
     p.prevInMagma = inMagma_;
 
-    // Water/Cyro 시각-only residue (2026-05-18).
+    // Water/Cyro ?쒓컖-only residue (2026-05-18).
     if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
     else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
 
@@ -5843,8 +5802,8 @@ export class ItemWorldScene extends Scene {
 
     this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
       refreshOilSlip: (_remainingMs) => {
-        // No-op (2026-05-17): residue blot → player 전이 차단. 발자국 자가-재오일
-        // 루프로 "발바닥 기름이 영원히 안 사라지던" 버그 픽스. TILE_OIL 원본만 전이.
+        // No-op (2026-05-17): residue blot ??player ?꾩씠 李⑤떒. 諛쒖옄援??먭?-?ъ삤??
+        // 猷⑦봽濡?"諛쒕컮??湲곕쫫???곸썝?????щ씪吏?? 踰꾧렇 ?쎌뒪. TILE_OIL ?먮낯留??꾩씠.
       },
       onAcidContact: () => {
         let acc = p.acidTickAccum ?? 0;
@@ -5887,7 +5846,7 @@ export class ItemWorldScene extends Scene {
     }
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
 
-    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
+    // --- Enemies: ?섍꼍 VFX ?ъ궗??(water/ice + land/jump dust) ---
     for (let i = 0; i < this.enemies.length; i++) {
       const e = this.enemies[i];
       if (!e.alive) continue;
@@ -5921,7 +5880,7 @@ export class ItemWorldScene extends Scene {
       if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
       if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
 
-      // Residue contact effects — element multiplier per source.
+      // Residue contact effects ??element multiplier per source.
       if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
       const eAcidM2  = e.elementMultiplier('acid');
       const eMagmaM2 = e.elementMultiplier('magma');
@@ -6010,7 +5969,7 @@ export class ItemWorldScene extends Scene {
       isAcidCell:  (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 13,
       isMagmaCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 6,
       isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
-      // R-NEW-049/050/051/052/053: 신규 환경 노출 hook
+      // R-NEW-049/050/051/052/053: ?좉퇋 ?섍꼍 ?몄텧 hook
       isWaterCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 2,
       isOilCell:   (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 11,
       isFrozenOrIceCell: (gx: number, gy: number) =>
@@ -6038,9 +5997,9 @@ export class ItemWorldScene extends Scene {
       }
       this.applyContainerEffectToFluid(c);
     }
-    // ── Thrown container × enemy impact (one hit per throw) ──
+    // ?? Thrown container 횞 enemy impact (one hit per throw) ??
     this.checkThrownContainerEnemyHit();
-    // ── Enemy ↔ container collision (stack / block, no damage) ──
+    // ?? Enemy ??container collision (stack / block, no damage) ??
     for (const e of this.enemies) {
       if (!e.alive) continue;
       for (const c of this.containers) {
@@ -6070,7 +6029,7 @@ export class ItemWorldScene extends Scene {
         }
       }
     }
-    // Player ↔ container resolve (same as world scene). Uses collision rect.
+    // Player ??container resolve (same as world scene). Uses collision rect.
     const p2 = this.player;
     for (const c of this.containers) {
       if (c.destroyed || c.held) continue;
@@ -6087,7 +6046,7 @@ export class ItemWorldScene extends Scene {
         if (p2.getVy() > 0) p2.vy = 0;
         p2.forceGrounded();
       } else if (min === overlapBottom) {
-        // Container above — push container UP (never bury player into floor).
+        // Container above ??push container UP (never bury player into floor).
         c.y -= overlapBottom;
         if (c.vy > 0) c.vy = 0;
         c.container.x = c.x;
@@ -6231,9 +6190,9 @@ export class ItemWorldScene extends Scene {
   private showStratumPicker(maxSelectable: number): void {
     this.stratumPickerVisible = true;
     this.stratumPickerMax = Math.max(1, Math.min(maxSelectable, this.strataConfig.strata.length));
-    // Default selection = deepest unlocked stratum (사용자 결정 2026-05-04).
-    // 사망 후 재진입 시 사용자가 ↓ 키 안 눌러도 가장 깊이 도달한 plaza 로 자동
-    // 가도록. stratum 1 default 였을 땐 보스 hole 복구로 진행 막혔음.
+    // Default selection = deepest unlocked stratum (?ъ슜??寃곗젙 2026-05-04).
+    // ?щ쭩 ???ъ쭊?????ъ슜?먭? ???????뚮윭??媛??源딆씠 ?꾨떖??plaza 濡??먮룞
+    // 媛?꾨줉. stratum 1 default ?????蹂댁뒪 hole 蹂듦뎄濡?吏꾪뻾 留됲삍??
     this.stratumPickerSelection = Math.min(
       this.progress.deepestUnlocked,
       this.stratumPickerMax - 1,
@@ -6307,7 +6266,7 @@ export class ItemWorldScene extends Scene {
     const listY = contentY + rowHeaderH;
     const detailX = listX + STRATUM_PICKER_LIST_W + 14;
 
-    this.addStratumPickerText(panel, 'MEMORY STRATA', listX, contentY, 7, STRATUM_PICKER_COL_MUTED);
+    this.addStratumPickerText(panel, t('iw.picker.memory_strata'), listX, contentY, 7, STRATUM_PICKER_COL_MUTED);
 
     for (let i = 0; i < totalStrata; i++) {
       const y = listY + i * (STRATUM_PICKER_ROW_H + STRATUM_PICKER_ROW_GAP);
@@ -6410,7 +6369,7 @@ export class ItemWorldScene extends Scene {
     const gateReady = cleared || !!this.progress.bossPortals?.[String(index)];
     const title = this.addStratumPickerText(parent, `STRATUM ${index + 1}`, x, y, 10, STRATUM_PICKER_COL_ACCENT);
     title.x = x;
-    this.addStratumPickerText(parent, 'Current re-entry point', x, y + 13, 7, STRATUM_PICKER_COL_MUTED, w);
+    this.addStratumPickerText(parent, t('iw.picker.current_reentry'), x, y + 13, 7, STRATUM_PICKER_COL_MUTED, w);
 
     const line = new Graphics();
     line.moveTo(x, y + 28);
@@ -6419,10 +6378,10 @@ export class ItemWorldScene extends Scene {
     parent.addChild(line);
 
     let sy = y + 36;
-    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Boss gate', gateReady ? 'Ready' : 'Uncleared', gateReady ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_MUTED);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Enemy HP', `x${def.hpMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, 'Enemy ATK', `x${def.atkMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, 'EXP', `x${def.expMultiplier.toFixed(1)}`, STRATUM_PICKER_COL_GOLD);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.boss_gate'), gateReady ? t('iw.picker.ready') : t('iw.picker.uncleared'), gateReady ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_MUTED);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.enemy_hp'), `x${def.hpMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.enemy_atk'), `x${def.atkMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
+    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.exp'), `x${def.expMultiplier.toFixed(1)}`, STRATUM_PICKER_COL_GOLD);
 
     this.drawStratumPickerDepthGauge(parent, x, y + h - 18, w);
   }
@@ -6464,11 +6423,11 @@ export class ItemWorldScene extends Scene {
     let cx = x;
     cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_LEFT));
     cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_RIGHT));
-    cx = this.addStratumPickerControlText(parent, 'Change', cx + 2, y + 3) + 12;
+    cx = this.addStratumPickerControlText(parent, t('iw.picker.change'), cx + 2, y + 3) + 12;
     cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.ATTACK));
-    cx = this.addStratumPickerControlText(parent, 'Enter', cx + 2, y + 3) + 12;
+    cx = this.addStratumPickerControlText(parent, t('iw.picker.enter'), cx + 2, y + 3) + 12;
     cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MENU));
-    this.addStratumPickerControlText(parent, 'Cancel', cx + 2, y + 3);
+    this.addStratumPickerControlText(parent, t('iw.picker.cancel'), cx + 2, y + 3);
   }
 
   private drawStratumPickerKey(parent: Container, x: number, y: number, label: string): number {
@@ -6572,15 +6531,15 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Stratum picker / Trapdoor 침강 시퀀스 결과를 적용해 플레이어를 해당 stratum
-   * 시작 셀(Plaza 천장 위치) 로 이동. DEC-039 안 D — Trapdoor 가 유일한 지층
-   * 전이 수단이며 본 메서드는 텔레포트만 수행 (페이드/카메라 패닝은 호출 측이
-   * 책임).
+   * Stratum picker / Trapdoor 移④컯 ?쒗??寃곌낵瑜??곸슜???뚮젅?댁뼱瑜??대떦 stratum
+   * ?쒖옉 ?(Plaza 泥쒖옣 ?꾩튂) 濡??대룞. DEC-039 ??D ??Trapdoor 媛 ?좎씪??吏痢?
+   * ?꾩씠 ?섎떒?대ŉ 蹂?硫붿꽌?쒕뒗 ?붾젅?ы듃留??섑뻾 (?섏씠??移대찓???⑤떇? ?몄텧 痢≪씠
+   * 梨낆엫).
    *
-   * 부수 효과:
-   *   - 이전 stratum 의 살아있는 적 정리 (다음 지층에 잔류 방지)
-   *   - DEPTH N / MAX 토스트 (Stratum 2+ 진입 시)
-   *   - progress.deepestUnlocked / lastSafeStratum 갱신
+   * 遺???④낵:
+   *   - ?댁쟾 stratum ???댁븘?덈뒗 ???뺣━ (?ㅼ쓬 吏痢듭뿉 ?붾쪟 諛⑹?)
+   *   - DEPTH N / MAX ?좎뒪??(Stratum 2+ 吏꾩엯 ??
+   *   - progress.deepestUnlocked / lastSafeStratum 媛깆떊
    */
   private jumpToStratum(stratumIndex: number): void {
     if (stratumIndex === this.currentStratumIndex) return;
@@ -6592,7 +6551,7 @@ export class ItemWorldScene extends Scene {
     const startRow = stratumStart?.absoluteRow ?? offset.rowOffset;
     const startCol = stratumStart?.col ?? 0;
 
-    // 이전 지층 잔류 적 정리 (Trapdoor 침강 후 다음 Plaza 에 따라가지 않도록).
+    // ?댁쟾 吏痢??붾쪟 ???뺣━ (Trapdoor 移④컯 ???ㅼ쓬 Plaza ???곕씪媛吏 ?딅룄濡?.
     this.clearEnemies();
 
     const prevStratum = this.currentStratumIndex;
@@ -6602,7 +6561,7 @@ export class ItemWorldScene extends Scene {
     this.currentRow = startRow;
     this.lastPreSpawnRoomKey = null;
 
-    // Progress 갱신 (deepest / last safe).
+    // Progress 媛깆떊 (deepest / last safe).
     if (stratumIndex > prevStratum) {
       if (this.progress.deepestUnlocked < stratumIndex) {
         this.progress.deepestUnlocked = stratumIndex;
@@ -6611,10 +6570,10 @@ export class ItemWorldScene extends Scene {
       this.persistRoomState();
     }
 
-    // 새 stratum 의 보스 처치 시 다음 Trapdoor 를 spawn 할 준비 — flag 리셋.
+    // ??stratum ??蹂댁뒪 泥섏튂 ???ㅼ쓬 Trapdoor 瑜?spawn ??以鍮???flag 由ъ뀑.
     this.descentToWorld = false;
 
-    // LDtk Plaza 의 Player entity 우선, 없으면 절차적 floor 탐색.
+    // LDtk Plaza ??Player entity ?곗꽑, ?놁쑝硫??덉감??floor ?먯깋.
     const ldtkSpawn = this.playerSpawnByStratum.get(stratumIndex);
     if (ldtkSpawn) {
       this.player.x = Math.round(ldtkSpawn.x - this.player.width / 2);
@@ -6630,16 +6589,16 @@ export class ItemWorldScene extends Scene {
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.restoreGameplayHud();
 
-    // Plaza 거주자 (Gatekeeper + ambient) 강제 spawn — jumpToStratum 직후 plaza
-    // 가 비어있는 문제 fix (사용자 결정 2026-05-04). 자동 stratum 감지 분기는 한
-    // 프레임 늦거나 spawnedRooms 캐시 때문에 trigger 안 될 수 있어 명시 호출.
+    // Plaza 嫄곗＜??(Gatekeeper + ambient) 媛뺤젣 spawn ??jumpToStratum 吏곹썑 plaza
+    // 媛 鍮꾩뼱?덈뒗 臾몄젣 fix (?ъ슜??寃곗젙 2026-05-04). ?먮룞 stratum 媛먯? 遺꾧린????
+    // ?꾨젅????굅??spawnedRooms 罹먯떆 ?뚮Ц??trigger ???????덉뼱 紐낆떆 ?몄텧.
     const hubKey = `${startCol},${startRow}`;
     if (!this.spawnedRooms.has(hubKey)) {
       this.spawnedRooms.add(hubKey);
       this.spawnEnemiesInRoom(startCol, startRow);
     }
 
-    // Stratum 2+ 진입 시 DEPTH 표기 (ULTRAKILL 패턴).
+    // Stratum 2+ 吏꾩엯 ??DEPTH ?쒓린 (ULTRAKILL ?⑦꽩).
     if (stratumIndex > 0) {
       const totalStrata = this.strataConfig.strata.length;
       this.toast.show(t('toast.depth', { n: stratumIndex + 1, total: totalStrata }), 0xff4488);
@@ -6662,11 +6621,11 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * 월드 공간(world-space)에 떠 있는 컨텍스트 프롬프트를 일괄 숨긴다.
-   * modal 패널(bossChoice / stratumClearPanel / escapeConfirm / post_clear_hold)이
-   * 활성화된 프레임에 update 루프가 early-return 하면, 프롬프트의 가시성
-   * 토글 분기에 도달하지 못해 마지막 visible=true 상태가 결과 패널 위에
-   * 잔존한다. 모달 진입 시점과 update 선두에서 이 함수를 호출해 방지.
+   * ?붾뱶 怨듦컙(world-space)?????덈뒗 而⑦뀓?ㅽ듃 ?꾨＼?꾪듃瑜??쇨큵 ?④릿??
+   * modal ?⑤꼸(bossChoice / stratumClearPanel / escapeConfirm / post_clear_hold)??
+   * ?쒖꽦?붾맂 ?꾨젅?꾩뿉 update 猷⑦봽媛 early-return ?섎㈃, ?꾨＼?꾪듃??媛?쒖꽦
+   * ?좉? 遺꾧린???꾨떖?섏? 紐삵빐 留덉?留?visible=true ?곹깭媛 寃곌낵 ?⑤꼸 ?꾩뿉
+   * ?붿〈?쒕떎. 紐⑤떖 吏꾩엯 ?쒖젏怨?update ?좊몢?먯꽌 ???⑥닔瑜??몄텧??諛⑹?.
    */
   private hideWorldPrompts(): void {
     this.uiController.hideWorldPrompts({
@@ -6674,7 +6633,7 @@ export class ItemWorldScene extends Scene {
     });
   }
 
-  /** 현재 프레임에서 world-space 프롬프트가 숨겨져 있어야 하는지 판정. */
+  /** ?꾩옱 ?꾨젅?꾩뿉??world-space ?꾨＼?꾪듃媛 ?④꺼???덉뼱???섎뒗吏 ?먯젙. */
   private shouldSuppressWorldPrompts(): boolean {
     return this.uiController.shouldSuppressWorldPrompts({
       hasStratumClearPanel: this.uiController.hasStratumClearPanel(),
@@ -6706,8 +6665,8 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
 
-    // 보스 처치 직후 떠있는 골드/EXP 플로팅 텍스트 제거. 오버레이가 게임플레이
-    // tick 을 멈추므로 timer 가 줄지 않아 영구 잔류한다 (P0).
+    // 蹂댁뒪 泥섏튂 吏곹썑 ?좎엳??怨⑤뱶/EXP ?뚮줈???띿뒪???쒓굅. ?ㅻ쾭?덉씠媛 寃뚯엫?뚮젅??
+    // tick ??硫덉텛誘濡?timer 媛 以꾩? ?딆븘 ?곴뎄 ?붾쪟?쒕떎 (P0).
     this.dmgNumbers?.clear();
 
     // Show unified stratum clear overlay (replaces BossChoice + StratumClearPanel + ReturnResult)
@@ -6723,7 +6682,7 @@ export class ItemWorldScene extends Scene {
     this.startPostClearHold();
   }
 
-  /** A6: show "+X% DMG (before → after)" when a stratum completes. Silent when atk did not change. */
+  /** A6: show "+X% DMG (before ??after)" when a stratum completes. Silent when atk did not change. */
   private _showA6DmgToast(beforeAtk: number, afterAtk: number): void {
     if (afterAtk <= beforeAtk || beforeAtk <= 0) return;
     const pct = Math.round(((afterAtk - beforeAtk) / beforeAtk) * 100);
@@ -6835,22 +6794,22 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Player 가 StratumClearOverlay 에서 Continue 선택 시 호출. DEC-039 안 D —
-   * 보스 룸 바닥을 물리 파괴하고 자유 낙하로 다음 plaza 천장을 통과해 도착.
-   * jumpToStratum 텔레포트는 폐기.
+   * Player 媛 StratumClearOverlay ?먯꽌 Continue ?좏깮 ???몄텧. DEC-039 ??D ??
+   * 蹂댁뒪 猷?諛붾떏??臾쇰━ ?뚭눼?섍퀬 ?먯쑀 ?숉븯濡??ㅼ쓬 plaza 泥쒖옣???듦낵???꾩갑.
+   * jumpToStratum ?붾젅?ы듃???먭린.
    *
-   * pendingTrapX/Y 는 startTrapdoorDescent 에서 stash 한 보스 시신 위치.
-   * currentStratumIndex 는 player 가 다음 plaza 셀에 들어가는 순간 update() 의
-   * 자동 stratum 감지 분기가 갱신 + DEPTH 토스트.
+   * pendingTrapX/Y ??startTrapdoorDescent ?먯꽌 stash ??蹂댁뒪 ?쒖떊 ?꾩튂.
+   * currentStratumIndex ??player 媛 ?ㅼ쓬 plaza ????ㅼ뼱媛???쒓컙 update() ??
+   * ?먮룞 stratum 媛먯? 遺꾧린媛 媛깆떊 + DEPTH ?좎뒪??
    */
   private _continueToNextStratum(): void {
-    // HUD 복원 (overlay 가 숨겼었음).
+    // HUD 蹂듭썝 (overlay 媛 ?④꼈?덉쓬).
     this.restoreGameplayHud();
     this.transitionState = 'none';
 
     this.breakBossFloor(this.pendingTrapX, this.pendingTrapY);
 
-    // 파괴 피드백.
+    // ?뚭눼 ?쇰뱶諛?
     this.screenFlash.flash(0xffaa22, 0.4, 200);
     this.game.camera.shake(7);
     this.game.hitstopFrames = 6;
@@ -6899,32 +6858,32 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Step 2 (2026-05-25) — 흡수 연출.
-   * gameContainer 에 ColorMatrixFilter (grayscale 100%) 적용 + filter alpha 0→0.5
-   * 로 1000ms tween. 종료 시 filter 제거 + startExitFade 호출.
+   * Step 2 (2026-05-25) ???≪닔 ?곗텧.
+   * gameContainer ??ColorMatrixFilter (grayscale 100%) ?곸슜 + filter alpha 0??.5
+   * 濡?1000ms tween. 醫낅즺 ??filter ?쒓굅 + startExitFade ?몄텧.
    *
-   * "intensity 0.5" 해석: filter 효과 강도 50% (원본↔grayscale blend 50:50).
+   * "intensity 0.5" ?댁꽍: filter ?④낵 媛뺣룄 50% (?먮낯?봥rayscale blend 50:50).
    */
   private absorbFilter: ColorMatrixFilter | null = null;
   private absorbTimer = 0;
-  private static readonly ABSORB_DURATION_MS = 1000; // 사용자 결정 2026-05-25 (3000 → 1000)
+  private static readonly ABSORB_DURATION_MS = 1000; // ?ъ슜??寃곗젙 2026-05-25 (3000 ??1000)
   /**
-   * grayscale + intensity 필터를 gameContainer + backgroundContainer 에 적용.
-   * 중복 추가 방지 (이미 있으면 alpha 만 보장).
-   * 사용자 결정 2026-05-25: FloatingItemDrop spawn 즉시 (interact 전부터) 호출.
+   * grayscale + intensity ?꾪꽣瑜?gameContainer + backgroundContainer ???곸슜.
+   * 以묐났 異붽? 諛⑹? (?대? ?덉쑝硫?alpha 留?蹂댁옣).
+   * ?ъ슜??寃곗젙 2026-05-25: FloatingItemDrop spawn 利됱떆 (interact ?꾨??? ?몄텧.
    */
   private applyAbsorbFilter(): void {
     if (!this.absorbFilter) {
       this.absorbFilter = new ColorMatrixFilter();
-      // 사용자 결정 2026-05-25: 완전 회색 (desaturate) + contrast 50%.
-      // brightness 제거 — 대비 낮춤이 의도.
+      // ?ъ슜??寃곗젙 2026-05-25: ?꾩쟾 ?뚯깋 (desaturate) + contrast 50%.
+      // brightness ?쒓굅 ???鍮???땄???섎룄.
       this.absorbFilter.desaturate();
       this.absorbFilter.contrast(0.5, true);
     }
     this.absorbFilter.alpha = 1;
-    // 사용자 결정 2026-05-25: 무기 + 캐릭터 (entityLayer 의 Player / FloatingItemDrop)
-    // 는 효과 영향 X → gameContainer 전체 X. *환경* 만 적용 = fullMapContainer
-    // (지형 aggregates) + backgroundContainer (parallax).
+    // ?ъ슜??寃곗젙 2026-05-25: 臾닿린 + 罹먮┃??(entityLayer ??Player / FloatingItemDrop)
+    // ???④낵 ?곹뼢 X ??gameContainer ?꾩껜 X. *?섍꼍* 留??곸슜 = fullMapContainer
+    // (吏??aggregates) + backgroundContainer (parallax).
     const fm = this.fullMapContainer;
     if (fm) {
       const fmFilters = (fm.filters as Filter[] | null) ?? [];
@@ -6942,133 +6901,69 @@ export class ItemWorldScene extends Scene {
   private startAbsorbSequence(): void {
     this.transitionState = 'absorbing';
     this.absorbTimer = 0;
-    // Filter 는 이미 FloatingItemDrop spawn 시 applyAbsorbFilter 로 적용됨.
-    // 안전망: 만약 미적용 상태 (재시작 등) 면 여기서 보장.
+    // Filter ???대? FloatingItemDrop spawn ??applyAbsorbFilter 濡??곸슜??
+    // ?덉쟾留? 留뚯빟 誘몄쟻???곹깭 (?ъ떆???? 硫??ш린??蹂댁옣.
     this.applyAbsorbFilter();
   }
 
   private updateAbsorbSequence(dt: number): void {
     if (this.transitionState !== 'absorbing' || !this.absorbFilter) return;
     this.absorbTimer += dt;
-    // 효과는 이미 startAbsorbSequence 에서 풀 적용 — timer 만 진행, hold 후 dissolve.
+    // ?④낵???대? startAbsorbSequence ?먯꽌 ? ?곸슜 ??timer 留?吏꾪뻾, hold ??dissolve.
     if (this.absorbTimer >= ItemWorldScene.ABSORB_DURATION_MS) {
       this.startDissolveSequence();
     }
   }
 
   /**
-   * Step 3 (2026-05-25) — 보스 룸 한정 per-tile dissolve.
-   *
-   * 사용자 정정 (2026-05-25): "ItemStratum_Level_6 해당 레벨의 타일만 각각 1개씩 흡수".
-   * → 현재 player/FloatingItemDrop 이 있는 *보스 룸 (cell)* 의 interior + wall layer
-   *    안의 *각 tile Sprite* 를 distance sort + stagger 로 scale/alpha 1→0 tween.
-   *
-   * 작동 범위:
-   *   - aggregates.children 중 FloatingItemDrop 좌표를 포함하는 room layer 만 선택
-   *   - 그 layer 의 children (개별 tile Sprite) 를 collect → distance 기준 정렬
-   *   - 가장 먼 tile = startMs 0, 가장 가까운 tile = startMs ~800ms
+   * Captures visible world layers into screen-space fragments, then pulls them
+   * into the item singularity in order: intgrid/world, background, character.
    */
-  private dissolveEntries: Array<{
-    target: Container;
-    startMs: number;
-    cx: number;
-  }> = [];
+  private worldPullInTransition: WorldPullInTransitionController | null = null;
   private dissolveTimer = 0;
-  private absorbParticles: AbsorbParticles | null = null;
-  private static readonly DISSOLVE_PER_CHILD_MS = 800;     // 사용자 결정 2026-05-25 (400 → 800, 2x)
-  private static readonly DISSOLVE_STAGGER_MAX_MS = 2400;  // 사용자 결정 2026-05-25 (1200 → 2400, 2x)
+
   private startDissolveSequence(): void {
     this.transitionState = 'dissolving';
     this.dissolveTimer = 0;
-    this.dissolveEntries.length = 0;
+    this.cleanupWorldPullIn(true);
 
-    // FloatingItemDrop 기준 좌표 (없으면 player 좌표).
-    const focusX = this.trapdoor?.x ?? (this.player.x + this.player.width / 2);
-    const focusY = this.trapdoor?.y ?? (this.player.y + this.player.height / 2);
-
-    // 보스 룸 식별 — focusX/Y 가 포함된 room layer 만 (interior + wall).
-    // bgAggregate 는 *룸 외부 배경* 까지 포함하므로 제외 (사용자 의도 "interior").
-    const aggregates: Array<Container | null> = [
-      this.interiorAggregate,
-      this.wallAggregate,
-    ];
-    const bossRoomLayers: Container[] = [];
-    for (const agg of aggregates) {
-      if (!agg) continue;
-      for (const child of agg.children as Container[]) {
-        const left = child.position.x;
-        const top = child.position.y;
-        const right = left + IW_ROOM_W_PX;
-        const bottom = top + IW_ROOM_H_PX;
-        if (focusX >= left && focusX < right && focusY >= top && focusY < bottom) {
-          bossRoomLayers.push(child);
-        }
-      }
-    }
-    if (bossRoomLayers.length === 0) {
+    const transition = this.createWorldPullInTransition();
+    this.worldPullInTransition = transition;
+    if (!transition.start()) {
       this.endDissolveSequence();
       return;
-    }
-
-    // 각 layer 의 children (개별 tile Sprite) 을 수집 + distance 계산.
-    const distances: Array<{ tile: Container; dist: number }> = [];
-    for (const layer of bossRoomLayers) {
-      for (const tile of layer.children as Container[]) {
-        // tile.position 은 layer 내부 좌표. world = layer.position + tile.position.
-        const tileWX = layer.position.x + tile.position.x + (tile.width || 16) / 2;
-        const tileWY = layer.position.y + tile.position.y + (tile.height || 16) / 2;
-        const dx = tileWX - focusX;
-        const dy = tileWY - focusY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        distances.push({ tile, dist });
-      }
-    }
-    if (distances.length === 0) {
-      this.endDissolveSequence();
-      return;
-    }
-
-    // 흡수 파티클 — FloatingItemDrop 중심으로 빨려들어감.
-    const targetCenterY = (this.trapdoor?.y ?? focusY) - ((this.trapdoor?.height ?? 64) / 2);
-    this.absorbParticles = new AbsorbParticles(focusX, targetCenterY);
-    this.entityLayer.addChild(this.absorbParticles.container);
-
-    // 정렬: 먼 거리 → 가까운 거리 (먼 곳부터 사라짐).
-    distances.sort((a, b) => b.dist - a.dist);
-    const maxIdx = distances.length - 1;
-    for (let i = 0; i < distances.length; i++) {
-      const startMs = (i / Math.max(1, maxIdx)) * ItemWorldScene.DISSOLVE_STAGGER_MAX_MS;
-      this.dissolveEntries.push({ target: distances[i].tile, startMs, cx: 0 });
     }
   }
 
   private updateDissolveSequence(dt: number): void {
     if (this.transitionState !== 'dissolving') return;
     this.dissolveTimer += dt;
-    let allDone = true;
-    for (const entry of this.dissolveEntries) {
-      const elapsed = this.dissolveTimer - entry.startMs;
-      if (elapsed < 0) {
-        allDone = false;
-        continue;
-      }
-      const t = Math.min(1, elapsed / ItemWorldScene.DISSOLVE_PER_CHILD_MS);
-      const s = 1 - t;
-      entry.target.scale.set(s);
-      entry.target.alpha = s;
-      if (t < 1) allDone = false;
-    }
-    // 흡수 파티클 — dissolve 진행 동안 spawn 지속, 끝나면 활성 off (잔여 입자만 fade out).
-    if (this.absorbParticles) {
-      this.absorbParticles.update(dt);
-    }
-    if (allDone) {
+    if (!this.worldPullInTransition || this.worldPullInTransition.update(dt)) {
       this.endDissolveSequence();
     }
   }
 
+  private cleanupWorldPullIn(restoreSources: boolean): void {
+    this.worldPullInTransition?.cleanup(restoreSources);
+  }
+
+  private createWorldPullInTransition(): WorldPullInTransitionController {
+    return new WorldPullInTransitionController(this.game, {
+      tilemapContainer: this.tilemap.container,
+      fullMapContainer: this.fullMapContainer,
+      bgAggregate: this.bgAggregate,
+      buildingLayer: this.buildingLayer,
+      residentsLayer: this.residentsLayer,
+      fluidLayer: this.fluidLayer,
+      aboveFluidLayer: this.aboveFluidLayer,
+      entityLayer: this.entityLayer,
+      playerContainer: this.player.container,
+      trapdoor: this.trapdoor,
+    });
+  }
+
   private endDissolveSequence(): void {
-    // grayscale filter 제거 (fullMapContainer + backgroundContainer).
+    // grayscale filter ?쒓굅 (fullMapContainer + backgroundContainer).
     if (this.absorbFilter) {
       const fm = this.fullMapContainer;
       if (fm) {
@@ -7077,24 +6972,20 @@ export class ItemWorldScene extends Scene {
       const bg = this.game.backgroundContainer;
       bg.filters = ((bg.filters as Filter[] | null) ?? []).filter(f => f !== this.absorbFilter);
     }
-    // 사용자 결정 2026-05-25: 무기 sprite 가 fade-out 중에도 visible 유지 →
-    // entityLayer (gameContainer 아래) 에서 fadeOverlay 의 부모 (uiContainer)
-    // 로 reparent. 좌표는 global → local 변환으로 보존. Step 4 에서 월드 anvil
-    // 까지 tween 으로 이어짐.
-    if (this.trapdoor && this.fadeOverlay.parent) {
+    // ?ъ슜??寃곗젙 2026-05-25: 臾닿린 sprite 媛 fade-out 以묒뿉??visible ?좎? ??
+    // entityLayer (gameContainer ?꾨옒) ?먯꽌 fadeOverlay ??遺紐?(uiContainer)
+    // 濡?reparent. 醫뚰몴??global ??local 蹂?섏쑝濡?蹂댁〈. Step 4 ?먯꽌 ?붾뱶 anvil
+    // 源뚯? tween ?쇰줈 ?댁뼱吏?
+    if (this.trapdoor && this.fadeOverlay.parent && !this.worldPullInTransition?.hasPromotedTrapdoor) {
       const c = this.trapdoor.container;
       const global = c.parent ? c.parent.toGlobal({ x: c.x, y: c.y }) : { x: c.x, y: c.y };
       const local = this.fadeOverlay.parent.toLocal(global);
       c.x = local.x;
       c.y = local.y;
-      this.fadeOverlay.parent.addChild(c); // 마지막 child = fadeOverlay 위
+      this.fadeOverlay.parent.addChild(c); // 留덉?留?child = fadeOverlay ??
     }
-    // 파티클 spawn 멈춤 — fade-out 진행 중 잔여 입자는 자동 사라짐. cleanup 은 destroy 에서.
-    if (this.absorbParticles) {
-      this.absorbParticles.setActive(false);
-      this.absorbParticles.destroy();
-      this.absorbParticles = null;
-    }
+    // ?뚰떚??spawn 硫덉땄 ??fade-out 吏꾪뻾 以??붿뿬 ?낆옄???먮룞 ?щ씪吏? cleanup ? destroy ?먯꽌.
+    this.cleanupWorldPullIn(false);
     this.startExitFade();
   }
 
@@ -7116,6 +7007,7 @@ export class ItemWorldScene extends Scene {
     this.sourcePlayer.hp = this.player.hp;
 
     this.hideEscapeConfirm();
+    this.cleanupWorldPullIn(true);
     if (this.miniMapContainer.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     // Clean up all UI owned by this scene
     this.hud.hideDepthGauge();
@@ -7205,15 +7097,15 @@ export class ItemWorldScene extends Scene {
         this.startExitFade();
       }
     }
-    // 'descent_fall' 분기 폐기 (DEC-039 물리 낙하 모델로 전환). transitionState
-    // 타입에는 호환을 위해 남아있지만 startTrapdoorDescent 가 더 이상 설정하지 않음.
+    // 'descent_fall' 遺꾧린 ?먭린 (DEC-039 臾쇰━ ?숉븯 紐⑤뜽濡??꾪솚). transitionState
+    // ??낆뿉???명솚???꾪빐 ?⑥븘?덉?留?startTrapdoorDescent 媛 ???댁긽 ?ㅼ젙?섏? ?딆쓬.
   }
 
   // ---------------------------------------------------------------------------
-  // DEC-039 Trapdoor 침강 시퀀스
+  // DEC-039 Trapdoor 移④컯 ?쒗??
   // ---------------------------------------------------------------------------
 
-  /** Arc Tether 픽업 후보 — 자세한 명세는 LdtkWorldScene.findNearestGrabbableContainer 참조. */
+  /** Arc Tether ?쎌뾽 ?꾨낫 ???먯꽭??紐낆꽭??LdtkWorldScene.findNearestGrabbableContainer 李몄“. */
   private findNearestGrabbableContainer(): ThrowableContainer | null {
     return findNearestContainerForGrab({
       player: this.player,
@@ -7224,6 +7116,24 @@ export class ItemWorldScene extends Scene {
 
   private startGrabPull(target: ThrowableContainer): void {
     const state = startContainerGrabPull(target, this.arcTether);
+    this.pullStartX = state.pullStartX;
+    this.pullStartY = state.pullStartY;
+    this.pullElapsedMs = state.pullElapsedMs;
+    this.pullingContainer = state.pullingContainer;
+    this.heldContainer = state.heldContainer;
+  }
+
+  private getContainerCarryState() {
+    return {
+      pullStartX: this.pullStartX,
+      pullStartY: this.pullStartY,
+      pullElapsedMs: this.pullElapsedMs,
+      pullingContainer: this.pullingContainer,
+      heldContainer: this.heldContainer,
+    };
+  }
+
+  private applyContainerCarryState(state: ReturnType<ItemWorldScene['getContainerCarryState']>): void {
     this.pullStartX = state.pullStartX;
     this.pullStartY = state.pullStartY;
     this.pullElapsedMs = state.pullElapsedMs;
@@ -7253,13 +7163,13 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * 매 프레임 — Trapdoor 의 idle 갱신 + KeyPrompt UI + ATTACK 입력 인터랙트.
+   * 留??꾨젅????Trapdoor ??idle 媛깆떊 + KeyPrompt UI + ATTACK ?낅젰 ?명꽣?숉듃.
    *
-   * KeyPrompt 는 Anvil/Save/Talk 표준 패턴:
+   * KeyPrompt ??Anvil/Save/Talk ?쒖? ?⑦꽩:
    *   - lazy create (KeyPrompt.createPrompt + game.uiScale)
-   *   - game.uiContainer 에 추가 (화면 좌표, world 변환 X)
-   *   - 매 프레임 trapdoor world 좌표 → screen 좌표 변환해 위치 갱신
-   * 이로써 Anvil 의 [C] Place Weapon 과 동일한 해상도/사이즈로 렌더.
+   *   - game.uiContainer ??異붽? (?붾㈃ 醫뚰몴, world 蹂??X)
+   *   - 留??꾨젅??trapdoor world 醫뚰몴 ??screen 醫뚰몴 蹂?섑빐 ?꾩튂 媛깆떊
+   * ?대줈??Anvil ??[C] Place Weapon 怨??숈씪???댁긽???ъ씠利덈줈 ?뚮뜑.
    */
   private trapdoorPrompt: Container | null = null;
   private updateTrapdoor(dt: number): void {
@@ -7278,7 +7188,7 @@ export class ItemWorldScene extends Scene {
     const near = td.isPlayerNear(px, py);
 
     if (near) {
-      // Step 1 (2026-05-25): 최종 층 FloatingItemDrop 은 "Absorb" prompt.
+      // Step 1 (2026-05-25): 理쒖쥌 痢?FloatingItemDrop ? "Absorb" prompt.
       const promptKey = td instanceof FloatingItemDrop ? 'prompt.absorb' : 'prompt.descend';
       this.showTrapdoorPromptAt(td.x, td.y - td.height, promptKey);
     } else {
@@ -7293,11 +7203,11 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** Anvil prompt 패턴 — uiContainer 에 lazy create + world→screen 변환. */
-  /** Prompt key — 'prompt.descend' (Trapdoor) 또는 'prompt.absorb' (FloatingItemDrop). */
+  /** Anvil prompt ?⑦꽩 ??uiContainer ??lazy create + world?뭩creen 蹂?? */
+  /** Prompt key ??'prompt.descend' (Trapdoor) ?먮뒗 'prompt.absorb' (FloatingItemDrop). */
   private trapdoorPromptKey: string = 'prompt.descend';
   private showTrapdoorPromptAt(worldX: number, worldY: number, promptKey = 'prompt.descend'): void {
-    // 라벨이 바뀌면 prompt 재생성.
+    // ?쇰꺼??諛붾뚮㈃ prompt ?ъ깮??
     if (this.trapdoorPrompt && this.trapdoorPromptKey !== promptKey) {
       if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
       this.trapdoorPrompt.destroy({ children: true });
@@ -7328,20 +7238,20 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * ItemStratum Anvil — proximity + KeyPrompt + ATTACK 인터랙트.
+   * ItemStratum Anvil ??proximity + KeyPrompt + ATTACK ?명꽣?숉듃.
    *
-   * Anvil 동작 = ESC 키와 동일: 다가가서 [C] 누르면 EscapeConfirm 모달이 열린다.
-   * 모달 안에서 ATTACK 한 번 더 누르면 startExitFade → exitItemWorld 로 월드 귀환.
+   * Anvil ?숈옉 = ESC ?ㅼ? ?숈씪: ?ㅺ?媛??[C] ?꾨Ⅴ硫?EscapeConfirm 紐⑤떖???대┛??
+   * 紐⑤떖 ?덉뿉??ATTACK ??踰????꾨Ⅴ硫?startExitFade ??exitItemWorld 濡??붾뱶 洹??
    *
-   * 인풋 충돌 방지: showEscapeConfirm 후 ATTACK 을 consume 해서 같은 프레임의
-   * EscapeConfirm 핸들러가 즉시 confirm 으로 폭주하지 않도록 한다.
+   * ?명뭼 異⑸룎 諛⑹?: showEscapeConfirm ??ATTACK ??consume ?댁꽌 媛숈? ?꾨젅?꾩쓽
+   * EscapeConfirm ?몃뱾?ш? 利됱떆 confirm ?쇰줈 ??＜?섏? ?딅룄濡??쒕떎.
    */
   private updateItemWorldAnvils(dt: number): void {
     if (this.itemWorldAnvils.length === 0) {
       this.hideItemWorldAnvilPrompt();
       return;
     }
-    // Modal/transition 진행 중에는 prompt 숨김 (다른 UI 위에 겹치지 않게).
+    // Modal/transition 吏꾪뻾 以묒뿉??prompt ?④? (?ㅻⅨ UI ?꾩뿉 寃뱀튂吏 ?딄쾶).
     const suppressed = this.shouldSuppressWorldPrompts()
       || this.uiController.isEscapeConfirmVisible()
       || this.transitionState !== 'none';
@@ -7366,7 +7276,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // World→screen prompt placement (Anvil/Save/Talk 표준 패턴).
+    // World?뭩creen prompt placement (Anvil/Save/Talk ?쒖? ?⑦꽩).
     if (!this.itemWorldAnvilPrompt) {
       this.itemWorldAnvilPrompt = KeyPrompt.createPrompt(
         actionKey(GameAction.ATTACK),
@@ -7415,17 +7325,17 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Trapdoor 인터랙트 진입.
+   * Trapdoor ?명꽣?숉듃 吏꾩엯.
    *
-   * StratumClearOverlay (레벨업/클리어 페이지) 를 *모든 지층에서* 표시한다.
-   *   - 중간 지층 (descentToWorld=false): isFinal=false, hasNextStratum=true.
-   *     Continue 선택 시 _continueToNextStratum 가 보스 룸 바닥을 물리 파괴 +
-   *     자유 낙하로 다음 plaza 도착.
-   *   - 마지막 지층 (descentToWorld=true): isFinal=true, hasNextStratum=false.
-   *     Continue 비활성, Exit 만 가능. Exit 선택 시 startExitFade 로 월드 귀환.
+   * StratumClearOverlay (?덈꺼???대━???섏씠吏) 瑜?*紐⑤뱺 吏痢듭뿉?? ?쒖떆?쒕떎.
+   *   - 以묎컙 吏痢?(descentToWorld=false): isFinal=false, hasNextStratum=true.
+   *     Continue ?좏깮 ??_continueToNextStratum 媛 蹂댁뒪 猷?諛붾떏??臾쇰━ ?뚭눼 +
+   *     ?먯쑀 ?숉븯濡??ㅼ쓬 plaza ?꾩갑.
+   *   - 留덉?留?吏痢?(descentToWorld=true): isFinal=true, hasNextStratum=false.
+   *     Continue 鍮꾪솢?? Exit 留?媛?? Exit ?좏깮 ??startExitFade 濡??붾뱶 洹??
    *
-   * 보스 시신 위치(tdX/Y) 는 Continue 시 hole 위치로 사용 — overlay 가 떠있는
-   * 동안 trapdoor entity 는 미리 dispose. pendingTrapX/Y 에 stash.
+   * 蹂댁뒪 ?쒖떊 ?꾩튂(tdX/Y) ??Continue ??hole ?꾩튂濡??ъ슜 ??overlay 媛 ?좎엳??
+   * ?숈븞 trapdoor entity ??誘몃━ dispose. pendingTrapX/Y ??stash.
    */
   private pendingTrapX = 0;
   private pendingTrapY = 0;
@@ -7435,12 +7345,17 @@ export class ItemWorldScene extends Scene {
     const td = this.trapdoor;
     this.pendingTrapX = td.x;
     this.pendingTrapY = td.y;
-    // 보스 셀 row — _continueToNextStratum 에서 hole rN 결정용.
+    // 蹂댁뒪 ? row ??_continueToNextStratum ?먯꽌 hole rN 寃곗젙??
     this.pendingTrapBossCellRow = Math.max(0,
       Math.floor((td.y - 1) / IW_ROOM_H_PX));
 
-    // overlay 떠있는 동안 trapdoor entity 는 시각 잔재 방지 위해 미리 dispose.
-    this.disposeTrapdoor();
+    // Final FloatingItemDrop is the singularity target; keep it alive through
+    // the whole pull-in so the world visibly collapses into the weapon.
+    if (!this.descentToWorld) {
+      this.disposeTrapdoor();
+    } else {
+      this.hideTrapdoorPrompt();
+    }
     this.dmgNumbers?.clear();
     this.toast.clear();
     this.hideWorldPrompts();
@@ -7449,13 +7364,13 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
 
-    // 마지막 지층 처리 — markItemCleared / progress / exitReason 설정.
+    // 留덉?留?吏痢?泥섎━ ??markItemCleared / progress / exitReason ?ㅼ젙.
     if (this.descentToWorld) {
       this.progressController.setExitReason('clear');
       markItemCleared(this.item);
       this.persistRoomState();
-      // Step 2 (2026-05-25): 흡수 연출 — grayscale 100% + intensity 0.5,
-      // 1000ms 동안 tween. 종료 후 startExitFade 자동 호출 (update 안에서).
+      // Step 2 (2026-05-25): ?≪닔 ?곗텧 ??grayscale 100% + intensity 0.5,
+      // 1000ms ?숈븞 tween. 醫낅즺 ??startExitFade ?먮룞 ?몄텧 (update ?덉뿉??.
       this.startAbsorbSequence();
       return;
     }
@@ -7473,41 +7388,41 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Trapdoor 인터랙트 시 보스 룸 바닥 → 다음 plaza 천장 사이를 뚫는다.
+   * Trapdoor ?명꽣?숉듃 ??蹂댁뒪 猷?諛붾떏 ???ㅼ쓬 plaza 泥쒖옣 ?ъ씠瑜??ル뒗??
    *
-   * 폭:
-   *   IW_DOOR_V_WIDTH (=4 타일) + 2 타일 여유 = 6 타일. trapdoor 의 X 가 셀
-   *   중앙(+/- 시신 오프셋) 이고 plaza 의 ceiling D-opening 위치도 mid-col 에
-   *   정렬되어 있어 player 가 자연 낙하 가능.
+   * ??
+   *   IW_DOOR_V_WIDTH (=4 ??? + 2 ????ъ쑀 = 6 ??? trapdoor ??X 媛 ?
+   *   以묒븰(+/- ?쒖떊 ?ㅽ봽?? ?닿퀬 plaza ??ceiling D-opening ?꾩튂??mid-col ??
+   *   ?뺣젹?섏뼱 ?덉뼱 player 媛 ?먯뿰 ?숉븯 媛??
    *
-   * 깊이 (보스 floor 시작 → plaza ceiling 끝, 측정 기반):
-   *   r0 = trapdoor.y / TILE_SIZE             (보스 floor 라인 = IW_DOOR_FLOOR_ROW 부근)
-   *   rN = (bossCellRow + 1) * H + IW_DOOR_DEPTH (다음 plaza 천장 strip 끝)
+   * 源딆씠 (蹂댁뒪 floor ?쒖옉 ??plaza ceiling ?? 痢≪젙 湲곕컲):
+   *   r0 = trapdoor.y / TILE_SIZE             (蹂댁뒪 floor ?쇱씤 = IW_DOOR_FLOOR_ROW 遺洹?
+   *   rN = (bossCellRow + 1) * H + IW_DOOR_DEPTH (?ㅼ쓬 plaza 泥쒖옣 strip ??
    *
-   *   = 보스 floor (IW_DOOR_DEPTH ~3 타일) + 다음 plaza ceiling (IW_DOOR_DEPTH ~3 타일)
-   *   = 약 6~8 타일 깊이. 다음 plaza 의 *내부 floor* 까지는 절대 뚫지 않으므로
-   *     player 는 plaza 천장 통과 직후 plaza 의 floor 위에 안착.
+   *   = 蹂댁뒪 floor (IW_DOOR_DEPTH ~3 ??? + ?ㅼ쓬 plaza ceiling (IW_DOOR_DEPTH ~3 ???
+   *   = ??6~8 ???源딆씠. ?ㅼ쓬 plaza ??*?대? floor* 源뚯????덈? ?レ? ?딆쑝誘濡?
+   *     player ??plaza 泥쒖옣 ?듦낵 吏곹썑 plaza ??floor ?꾩뿉 ?덉갑.
    *
-   * 시각 잔재 제거 (LDtk wall/shadow/deco/bg 타일):
-   *   각 aggregate 컨테이너에 'erase' blend mode Graphics 를 추가해 hole 영역의
-   *   픽셀을 destination-out 한다. 그 결과 hole 영역만 투명 → 그 뒤의 parallax
-   *   배경이 그대로 노출되어 "통로" 처럼 자연스럽게 보인다.
+   * ?쒓컖 ?붿옱 ?쒓굅 (LDtk wall/shadow/deco/bg ???:
+   *   媛?aggregate 而⑦뀒?대꼫??'erase' blend mode Graphics 瑜?異붽???hole ?곸뿭??
+   *   ?쎌???destination-out ?쒕떎. 洹?寃곌낵 hole ?곸뿭留??щ챸 ??洹??ㅼ쓽 parallax
+   *   諛곌꼍??洹몃?濡??몄텧?섏뼱 "?듬줈" 泥섎읆 ?먯뿰?ㅻ읇寃?蹂댁씤??
    */
   private breakBossFloor(tdX: number, tdY: number): void {
     if (!this.fullGrid || this.fullGrid.length === 0) return;
     const fullW = this.fullGrid[0]?.length ?? 0;
     const fullH = this.fullGrid.length;
 
-    // 폭 계산 — IW_DOOR_V_WIDTH 기반 + 1 타일 여유 좌우.
+    // ??怨꾩궛 ??IW_DOOR_V_WIDTH 湲곕컲 + 1 ????ъ쑀 醫뚯슦.
     const tdTileX = Math.floor(tdX / TILE_SIZE);
-    const halfW = Math.ceil(IW_DOOR_V_WIDTH / 2) + 1; // ±3
+    const halfW = Math.ceil(IW_DOOR_V_WIDTH / 2) + 1; // 짹3
     const c0 = Math.max(0, tdTileX - halfW);
     const cN = Math.min(fullW, tdTileX + halfW);
 
-    // 깊이 계산 — 보스 floor 시작 ~ 다음 plaza 천장 strip 끝.
-    // Plaza 출구 = LRU (사용자 결정 2026-05-03, force_up 적용 후) 로 천장 자연
-    // open. 따라서 hole 은 보스 floor strip + 다음 plaza 천장 strip (~3타일) 만
-    // 뚫으면 player 가 plaza 안으로 자유 낙하 → plaza floor 위에 자연 안착.
+    // 源딆씠 怨꾩궛 ??蹂댁뒪 floor ?쒖옉 ~ ?ㅼ쓬 plaza 泥쒖옣 strip ??
+    // Plaza 異쒓뎄 = LRU (?ъ슜??寃곗젙 2026-05-03, force_up ?곸슜 ?? 濡?泥쒖옣 ?먯뿰
+    // open. ?곕씪??hole ? 蹂댁뒪 floor strip + ?ㅼ쓬 plaza 泥쒖옣 strip (~3??? 留?
+    // ?レ쑝硫?player 媛 plaza ?덉쑝濡??먯쑀 ?숉븯 ??plaza floor ?꾩뿉 ?먯뿰 ?덉갑.
     const r0 = Math.max(0, Math.floor(tdY / TILE_SIZE));
     const bossCellRow = this.pendingTrapBossCellRow;
     const nextCellTopRow = (bossCellRow + 1) * IW_ROOM_H_TILES;
@@ -7519,8 +7434,8 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // 시각 잔재 제거 — erase blend mode 로 wall/shadow/deco/bg/struct/seal 모두
-    // hole 영역에서 destination-out. parallax 배경이 자연 노출.
+    // ?쒓컖 ?붿옱 ?쒓굅 ??erase blend mode 濡?wall/shadow/deco/bg/struct/seal 紐⑤몢
+    // hole ?곸뿭?먯꽌 destination-out. parallax 諛곌꼍???먯뿰 ?몄텧.
     const holePxX = c0 * TILE_SIZE;
     const holePxY = r0 * TILE_SIZE;
     const holePxW = (cN - c0) * TILE_SIZE;
@@ -7543,7 +7458,7 @@ export class ItemWorldScene extends Scene {
     Debug.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
   }
 
-  /** 매 프레임 재사용 — GC 방지. filterArea + viewport 검사 공용. */
+  /** 留??꾨젅???ъ궗????GC 諛⑹?. filterArea + viewport 寃??怨듭슜. */
   private _viewportRect = new Rectangle(0, 0, 1, 1);
 
   private renderCellVisual(key: string): void {
@@ -7611,19 +7526,19 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * 수동 cell culling (사용자 결정 2026-05-04 — Ancient 24 FPS 문제 대응).
-   * 카메라 viewport ± 1 cell buffer 안의 cell 만 visible=true. 그 외 false.
-   * PIXI 자동 culling 이 filter 트리에서 약해 명시 visible 로 강제.
+   * ?섎룞 cell culling (?ъ슜??寃곗젙 2026-05-04 ??Ancient 24 FPS 臾몄젣 ???.
+   * 移대찓??viewport 짹 1 cell buffer ?덉쓽 cell 留?visible=true. 洹???false.
+   * PIXI ?먮룞 culling ??filter ?몃━?먯꽌 ?쏀빐 紐낆떆 visible 濡?媛뺤젣.
    *
-   * 동시에 aggregate 의 filterArea 를 viewport 로 제한 (50→60 FPS 향상 목적,
-   * 사용자 결정 2026-05-04). filter 비용 = filterArea 픽셀 수에 비례. unifiedGrid
-   * 전체가 아닌 viewport 만 처리하도록 매 프레임 갱신.
+   * ?숈떆??aggregate ??filterArea 瑜?viewport 濡??쒗븳 (50??0 FPS ?μ긽 紐⑹쟻,
+   * ?ъ슜??寃곗젙 2026-05-04). filter 鍮꾩슜 = filterArea ?쎌? ?섏뿉 鍮꾨?. unifiedGrid
+   * ?꾩껜媛 ?꾨땶 viewport 留?泥섎━?섎룄濡?留??꾨젅??媛깆떊.
    */
   private updateCellVisibility(): void {
     const cam = this.game.camera;
     const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
     const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
-    // 1 cell 여유 — cell 경계 통과 시 깜빡임 방지.
+    // 1 cell ?ъ쑀 ??cell 寃쎄퀎 ?듦낵 ??源쒕묀??諛⑹?.
     const viewL = cam.renderX - halfW - IW_ROOM_W_PX;
     const viewR = cam.renderX + halfW + IW_ROOM_W_PX;
     const viewT = cam.renderY - halfH - IW_ROOM_H_PX;
@@ -7667,7 +7582,7 @@ export class ItemWorldScene extends Scene {
         this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
       }
     }
-    // Filter area culling — aggregate 의 filter 가 viewport 만 처리하도록 제한.
+    // Filter area culling ??aggregate ??filter 媛 viewport 留?泥섎━?섎룄濡??쒗븳.
     const fa = this._viewportRect;
     fa.x = viewL;
     fa.y = viewT;
@@ -7680,7 +7595,7 @@ export class ItemWorldScene extends Scene {
     if (this.sealAggregate) this.sealAggregate.filterArea = fa;
   }
 
-  /** Trapdoor entity 정리 + KeyPrompt UI 숨김 (uiContainer 잔류 방지). */
+  /** Trapdoor entity ?뺣━ + KeyPrompt UI ?④? (uiContainer ?붾쪟 諛⑹?). */
   private disposeTrapdoor(): void {
     this.hideTrapdoorPrompt();
     if (!this.trapdoor) return;
@@ -7690,10 +7605,10 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Repaint the mutation mask covering every air cell produced by tile
-   * burnout / corrode. Each entry is a 16×16 rect drawn above the wall
+   * burnout / corrode. Each entry is a 16횞16 rect drawn above the wall
    * aggregate. Color matches the AshRemnant dark tone (#1f1a16) instead of
    * pure black so the burnout site reads as "scorched residue" rather than
-   * a hole punched in the world. Lazy — only re-fills the Graphics when the
+   * a hole punched in the world. Lazy ??only re-fills the Graphics when the
    * cell set has actually changed.
    */
   private rebuildMutationMask(): void {
@@ -7704,7 +7619,7 @@ export class ItemWorldScene extends Scene {
       const ix = key.indexOf(',');
       const gx = +key.slice(0, ix);
       const gy = +key.slice(ix + 1);
-      // Sepia-charred tone — same palette as AshRemnantManager COLOR_ASH_DARK.
+      // Sepia-charred tone ??same palette as AshRemnantManager COLOR_ASH_DARK.
       // Reads as scorched residue, not a void.
       g.rect(gx * 16, gy * 16, 16, 16).fill({ color: 0x1f1a16, alpha: 0.92 });
     }
@@ -7732,7 +7647,7 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * Oxygen overlay — vignette + bottom-center bar shown while submerged
+   * Oxygen overlay ??vignette + bottom-center bar shown while submerged
    * (without the waterBreathing ability). Lazy-creates the Graphics on
    * first need. Direct mirror of LdtkWorldScene's implementation.
    */
@@ -7812,8 +7727,8 @@ export class ItemWorldScene extends Scene {
     this.areaTitle?.destroy();
     if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
-    // LowHpVignette 는 legacyUIContainer 에 attach 되므로 scene exit 시 반드시 destroy.
-    // 누락 시 저체력 사망 후 WORLD 로 복귀해도 붉은 vignette 이 그대로 남는 버그 발생.
+    // LowHpVignette ??legacyUIContainer ??attach ?섎?濡?scene exit ??諛섎뱶??destroy.
+    // ?꾨씫 ???泥대젰 ?щ쭩 ??WORLD 濡?蹂듦??대룄 遺됱? vignette ??洹몃?濡??⑤뒗 踰꾧렇 諛쒖깮.
     if (this.lowHpVignette) {
       this.lowHpVignette.destroy();
     }
@@ -7840,7 +7755,7 @@ export class ItemWorldScene extends Scene {
     // intentionally empty
   }
 
-  // ── DEC-037 PR-B: RoomGraph debug overlay ─────────────────────
+  // ?? DEC-037 PR-B: RoomGraph debug overlay ?????????????????????
   /**
    * If ?debug=graph is in the URL, generate a RoomGraph for every stratum
    * and build the debug overlay container. Hidden by default; F2 toggles.
@@ -7848,7 +7763,7 @@ export class ItemWorldScene extends Scene {
   private maybeInitRoomGraphDebug(): void {
     const params = new URLSearchParams(window.location.search);
     const dbg = params.get('debug');
-    // Enabled by ?debug=1 또는 ?debug=graph. Shift+2 토글.
+    // Enabled by ?debug=1 ?먮뒗 ?debug=graph. Shift+2 ?좉?.
     const enabled = dbg === '1' || (dbg?.includes('graph') ?? false);
     if (!enabled) return;
 
@@ -7895,7 +7810,7 @@ export class ItemWorldScene extends Scene {
     this.roomGraphDebugVisible = false;
   }
 
-  // ── Dev: Shift+L topology cycle ───────────────────────────────
+  // ?? Dev: Shift+L topology cycle ???????????????????????????????
   /**
    * Press Shift+L to cycle ?topology= through all kinds and reload the page.
    * Lets a single weapon validate every topology builder without CSV edits.
@@ -7922,7 +7837,7 @@ export class ItemWorldScene extends Scene {
       const next = TOPOLOGIES[(idx + 1) % TOPOLOGIES.length];
       params.set('topology', next);
       const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      Debug.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} → ${next}. Reloading...`);
+      Debug.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} ??${next}. Reloading...`);
       window.history.replaceState(null, '', url);
       window.location.reload();
     };
@@ -7969,7 +7884,7 @@ export class ItemWorldScene extends Scene {
     this.topologyLabel = null;
   }
 
-  // ── Ego dialogue helpers ──────────────────────────────────────
+  // ?? Ego dialogue helpers ??????????????????????????????????????
 
   /** Fire an Ego dialogue line if conditions are met. Returns true if fired. */
   private fireEgo(key: string, lines: import('@ui/LoreDisplay').LoreLine[], freeze = false): boolean {
@@ -8011,15 +7926,15 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * fireEgoEnter 의 await-able 변종. 발화한 대사가 있다면 그 종료까지 await.
-   * 대사 미발생(이미 발화·비활성·4 회차+) 시 즉시 resolve.
-   * 시작 룸 거주자 스폰을 대사 뒤로 미루기 위해 사용.
+   * fireEgoEnter ??await-able 蹂醫? 諛쒗솕????ш? ?덈떎硫?洹?醫낅즺源뚯? await.
+   * ???誘몃컻???대? 諛쒗솕쨌鍮꾪솢?굿? ?뚯감+) ??利됱떆 resolve.
+   * ?쒖옉 猷?嫄곗＜???ㅽ룿??????ㅻ줈 誘몃（湲??꾪빐 ?ъ슜.
    */
   async fireEgoEnterAsync(): Promise<void> {
     this.fireEgoEnter();
     const ld = this.loreDisplay;
     if (!ld?.isActive) return;
-    // showDialogue 자체 promise 를 잡지 못하므로 isActive 폴링.
+    // showDialogue ?먯껜 promise 瑜??≪? 紐삵븯誘濡?isActive ?대쭅.
     await new Promise<void>((resolve) => {
       const check = () => {
         if (!ld.isActive) resolve();
@@ -8067,7 +7982,7 @@ export class ItemWorldScene extends Scene {
     this.fireEgo('innocent_stable', EGO_INNOCENT_STABLE, false);
   }
 
-  // T10: Boss appear — removed
+  // T10: Boss appear ??removed
 
   /** T11: Player died and respawned. */
   fireEgoPlayerDeath(): void {
@@ -8075,7 +7990,7 @@ export class ItemWorldScene extends Scene {
     this.fireEgo('player_death', EGO_PLAYER_DEATH, false);
   }
 
-  /** T12: Boss killed — call AFTER reward UI is shown. */
+  /** T12: Boss killed ??call AFTER reward UI is shown. */
   fireEgoBossKilled(): void {
     if (this.isFirstBossOnboarding()) {
       this.fireEgo('boss_killed', EGO_BOSS_KILLED, true);
@@ -8084,7 +7999,7 @@ export class ItemWorldScene extends Scene {
     }
   }
 
-  /** S03: Stratum 2 clear — affinity max. */
+  /** S03: Stratum 2 clear ??affinity max. */
   fireEgoAffinityMax(): void {
     if (!this.egoUnlockedEvents.has(EGO_EVENT.AFFINITY_MAX)) {
       this.egoUnlockedEvents.add(EGO_EVENT.AFFINITY_MAX);

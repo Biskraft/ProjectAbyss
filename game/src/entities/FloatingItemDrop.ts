@@ -97,7 +97,7 @@ export class FloatingItemDrop {
   }
 
   isPlayerNear(px: number, py: number): boolean {
-    if (!this.active) return false;
+    if (!this.active || this.consumed) return false;
     const cx = this.x;
     const cy = this.y - this.height / 2;
     const dx = px - cx;
@@ -108,7 +108,6 @@ export class FloatingItemDrop {
   activate(): void {
     if (this.consumed) return;
     this.consumed = true;
-    this.active = false;
   }
 
   getAABB(): { x: number; y: number; width: number; height: number } {

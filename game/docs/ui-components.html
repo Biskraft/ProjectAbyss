@@ -449,6 +449,7 @@
     <a href="#radial-map">RadialMap (Shift+2)</a>
     <div class="group">World Effects</div>
     <a href="#fluid-spawner">FluidSpawner (waterfall)</a>
+    <a href="#world-pull-in">WorldPullIn (center sink)</a>
     <a href="#hit-effect">HitEffect (Hollow Knight)</a>
   </nav>
 </aside>
@@ -4065,6 +4066,277 @@
         <div class="t-body">⑥ <b><code>prefers-reduced-motion</code>:</b> 입자 비활성. crest/impact band(정적)는 유지</div>
         <div class="t-body">⑦ <b>예산:</b> spray 220 / streak 80 / impact 220 (씬당). spawner 평균 4~8개로 충분</div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       WorldPullIn — surrounding world collapses into center
+       ============================================================ -->
+  <section id="world-pull-in">
+    <h2>WorldPullIn — Center Sink <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">PixiJS recipe · RenderTexture snapshot + radial sprite displacement · 후보 구현: game/src/effects/WorldPullIn.ts</div>
+    <p>
+      화면 주변의 월드가 중심 특이점으로 빨려 들어가는 전환 연출. 아이템계 진입, 기억 회수, 붕괴 포털처럼
+      <b>세계의 좌표계가 접히는 순간</b>에 사용한다. 카메라 자체를 크게 흔드는 대신 월드 snapshot 조각을 중심으로 당겨,
+      UI/HUD는 안정적으로 남기고 배경만 붕괴시킨다.
+    </p>
+
+    <style>
+      .wpi-stage{
+        position:relative;
+        width:100%;
+        max-width:760px;
+        aspect-ratio:16/9;
+        overflow:hidden;
+        background:#05050d;
+        border:1px solid #2a2a40;
+        isolation:isolate;
+      }
+      .wpi-grid{
+        position:absolute;
+        inset:-10%;
+        display:grid;
+        grid-template-columns:repeat(10,1fr);
+        grid-template-rows:repeat(6,1fr);
+        transform:scale(1.08);
+        filter:saturate(0.88) contrast(1.05);
+      }
+      .wpi-cell{
+        position:relative;
+        background:
+          linear-gradient(135deg, rgba(44,72,86,.9), rgba(11,14,26,.95) 46%, rgba(86,54,28,.72)),
+          radial-gradient(circle at 70% 22%, rgba(255,164,27,.28), transparent 26%);
+        border:1px solid rgba(97,124,130,.12);
+        animation:wpi-collapse 3.2s cubic-bezier(.12,.88,.18,1) infinite;
+        animation-delay:calc(var(--r) * -0.07s + var(--c) * -0.035s);
+        transform-origin:center;
+      }
+      .wpi-cell::before{
+        content:"";
+        position:absolute;
+        inset:18% 12%;
+        border-top:1px solid rgba(188,208,224,.22);
+        border-left:1px solid rgba(255,164,27,.12);
+        opacity:.75;
+      }
+      .wpi-cell:nth-child(3n){background:
+        linear-gradient(135deg, rgba(24,38,47,.95), rgba(7,8,16,.98) 52%, rgba(66,36,22,.78)),
+        radial-gradient(circle at 22% 78%, rgba(0,206,209,.16), transparent 30%);
+      }
+      .wpi-cell:nth-child(5n){background:
+        linear-gradient(135deg, rgba(64,44,28,.88), rgba(11,12,18,.98) 48%, rgba(18,58,63,.68)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 9px);
+      }
+      .wpi-tunnel{
+        position:absolute;
+        inset:0;
+        background:
+          radial-gradient(circle at center, rgba(255,255,255,.18) 0 1.5%, rgba(255,164,27,.45) 2.5%, transparent 6%),
+          radial-gradient(circle at center, transparent 0 12%, rgba(0,0,0,.38) 38%, rgba(0,0,0,.86) 100%);
+        mix-blend-mode:screen;
+        pointer-events:none;
+        animation:wpi-vignette 3.2s ease-in-out infinite;
+        z-index:3;
+      }
+      .wpi-core{
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:70px;
+        height:70px;
+        margin:-35px 0 0 -35px;
+        border-radius:50%;
+        background:
+          radial-gradient(circle, #fff9d2 0 5%, #ffa41b 10%, #111220 34%, transparent 62%);
+        box-shadow:
+          0 0 18px rgba(255,164,27,.95),
+          0 0 54px rgba(0,206,209,.28),
+          inset 0 0 18px rgba(0,0,0,.95);
+        animation:wpi-core 3.2s ease-in-out infinite;
+        z-index:4;
+      }
+      .wpi-streak{
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:46%;
+        height:2px;
+        transform-origin:left center;
+        background:linear-gradient(90deg, transparent, rgba(255,164,27,.85), transparent);
+        filter:blur(.25px);
+        opacity:.78;
+        animation:wpi-streak 3.2s ease-in-out infinite;
+        z-index:2;
+      }
+      .wpi-streak.s1{transform:rotate(18deg)}
+      .wpi-streak.s2{transform:rotate(86deg)}
+      .wpi-streak.s3{transform:rotate(151deg)}
+      .wpi-streak.s4{transform:rotate(224deg)}
+      .wpi-streak.s5{transform:rotate(306deg)}
+      @keyframes wpi-collapse{
+        0%,14%{
+          transform:translate(0,0) scale(1) rotate(0deg);
+          opacity:1;
+        }
+        64%{
+          transform:
+            translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px))
+            scale(.22)
+            rotate(calc(var(--spin) * 1deg));
+          opacity:.86;
+        }
+        78%{
+          transform:
+            translate(calc(var(--dx) * 1.22px), calc(var(--dy) * 1.22px))
+            scale(.05)
+            rotate(calc(var(--spin) * 1.35deg));
+          opacity:0;
+        }
+        100%{
+          transform:translate(0,0) scale(1) rotate(0deg);
+          opacity:1;
+        }
+      }
+      @keyframes wpi-vignette{
+        0%,14%{opacity:.35;transform:scale(1)}
+        64%{opacity:.95;transform:scale(1.08)}
+        78%{opacity:1;transform:scale(1.16)}
+        100%{opacity:.35;transform:scale(1)}
+      }
+      @keyframes wpi-core{
+        0%,14%{transform:scale(.35);opacity:.45}
+        62%{transform:scale(1.2);opacity:1}
+        78%{transform:scale(1.65);opacity:.95}
+        100%{transform:scale(.35);opacity:.45}
+      }
+      @keyframes wpi-streak{
+        0%,18%{opacity:0;clip-path:inset(0 100% 0 0)}
+        54%{opacity:.8;clip-path:inset(0 0 0 18%)}
+        78%{opacity:0;clip-path:inset(0 0 0 76%)}
+        100%{opacity:0;clip-path:inset(0 100% 0 0)}
+      }
+      @media (prefers-reduced-motion: reduce){
+        .wpi-cell,.wpi-tunnel,.wpi-core,.wpi-streak{animation:none}
+      }
+    </style>
+
+    <div class="card">
+      <h3>Preview — 60-slice world collapse</h3>
+      <div class="meta">duration=3200ms · center=(camera center) · HUD layer excluded · reduced-motion fallback = static core</div>
+      <div class="stage center">
+        <div class="wpi-stage" aria-label="WorldPullIn center sink preview">
+          <div class="wpi-grid">
+            <span class="wpi-cell" style="--c:0;--r:0;--dx:345;--dy:190;--spin:-34"></span>
+            <span class="wpi-cell" style="--c:1;--r:0;--dx:268;--dy:188;--spin:-29"></span>
+            <span class="wpi-cell" style="--c:2;--r:0;--dx:192;--dy:184;--spin:-25"></span>
+            <span class="wpi-cell" style="--c:3;--r:0;--dx:116;--dy:176;--spin:-20"></span>
+            <span class="wpi-cell" style="--c:4;--r:0;--dx:42;--dy:168;--spin:-12"></span>
+            <span class="wpi-cell" style="--c:5;--r:0;--dx:-42;--dy:168;--spin:12"></span>
+            <span class="wpi-cell" style="--c:6;--r:0;--dx:-116;--dy:176;--spin:20"></span>
+            <span class="wpi-cell" style="--c:7;--r:0;--dx:-192;--dy:184;--spin:25"></span>
+            <span class="wpi-cell" style="--c:8;--r:0;--dx:-268;--dy:188;--spin:29"></span>
+            <span class="wpi-cell" style="--c:9;--r:0;--dx:-345;--dy:190;--spin:34"></span>
+            <span class="wpi-cell" style="--c:0;--r:1;--dx:344;--dy:112;--spin:-29"></span>
+            <span class="wpi-cell" style="--c:1;--r:1;--dx:266;--dy:108;--spin:-25"></span>
+            <span class="wpi-cell" style="--c:2;--r:1;--dx:188;--dy:104;--spin:-20"></span>
+            <span class="wpi-cell" style="--c:3;--r:1;--dx:112;--dy:96;--spin:-14"></span>
+            <span class="wpi-cell" style="--c:4;--r:1;--dx:38;--dy:88;--spin:-8"></span>
+            <span class="wpi-cell" style="--c:5;--r:1;--dx:-38;--dy:88;--spin:8"></span>
+            <span class="wpi-cell" style="--c:6;--r:1;--dx:-112;--dy:96;--spin:14"></span>
+            <span class="wpi-cell" style="--c:7;--r:1;--dx:-188;--dy:104;--spin:20"></span>
+            <span class="wpi-cell" style="--c:8;--r:1;--dx:-266;--dy:108;--spin:25"></span>
+            <span class="wpi-cell" style="--c:9;--r:1;--dx:-344;--dy:112;--spin:29"></span>
+            <span class="wpi-cell" style="--c:0;--r:2;--dx:342;--dy:38;--spin:-24"></span>
+            <span class="wpi-cell" style="--c:1;--r:2;--dx:264;--dy:34;--spin:-19"></span>
+            <span class="wpi-cell" style="--c:2;--r:2;--dx:186;--dy:30;--spin:-14"></span>
+            <span class="wpi-cell" style="--c:3;--r:2;--dx:110;--dy:24;--spin:-8"></span>
+            <span class="wpi-cell" style="--c:4;--r:2;--dx:36;--dy:18;--spin:-4"></span>
+            <span class="wpi-cell" style="--c:5;--r:2;--dx:-36;--dy:18;--spin:4"></span>
+            <span class="wpi-cell" style="--c:6;--r:2;--dx:-110;--dy:24;--spin:8"></span>
+            <span class="wpi-cell" style="--c:7;--r:2;--dx:-186;--dy:30;--spin:14"></span>
+            <span class="wpi-cell" style="--c:8;--r:2;--dx:-264;--dy:34;--spin:19"></span>
+            <span class="wpi-cell" style="--c:9;--r:2;--dx:-342;--dy:38;--spin:24"></span>
+            <span class="wpi-cell" style="--c:0;--r:3;--dx:342;--dy:-38;--spin:24"></span>
+            <span class="wpi-cell" style="--c:1;--r:3;--dx:264;--dy:-34;--spin:19"></span>
+            <span class="wpi-cell" style="--c:2;--r:3;--dx:186;--dy:-30;--spin:14"></span>
+            <span class="wpi-cell" style="--c:3;--r:3;--dx:110;--dy:-24;--spin:8"></span>
+            <span class="wpi-cell" style="--c:4;--r:3;--dx:36;--dy:-18;--spin:4"></span>
+            <span class="wpi-cell" style="--c:5;--r:3;--dx:-36;--dy:-18;--spin:-4"></span>
+            <span class="wpi-cell" style="--c:6;--r:3;--dx:-110;--dy:-24;--spin:-8"></span>
+            <span class="wpi-cell" style="--c:7;--r:3;--dx:-186;--dy:-30;--spin:-14"></span>
+            <span class="wpi-cell" style="--c:8;--r:3;--dx:-264;--dy:-34;--spin:-19"></span>
+            <span class="wpi-cell" style="--c:9;--r:3;--dx:-342;--dy:-38;--spin:-24"></span>
+            <span class="wpi-cell" style="--c:0;--r:4;--dx:344;--dy:-112;--spin:29"></span>
+            <span class="wpi-cell" style="--c:1;--r:4;--dx:266;--dy:-108;--spin:25"></span>
+            <span class="wpi-cell" style="--c:2;--r:4;--dx:188;--dy:-104;--spin:20"></span>
+            <span class="wpi-cell" style="--c:3;--r:4;--dx:112;--dy:-96;--spin:14"></span>
+            <span class="wpi-cell" style="--c:4;--r:4;--dx:38;--dy:-88;--spin:8"></span>
+            <span class="wpi-cell" style="--c:5;--r:4;--dx:-38;--dy:-88;--spin:-8"></span>
+            <span class="wpi-cell" style="--c:6;--r:4;--dx:-112;--dy:-96;--spin:-14"></span>
+            <span class="wpi-cell" style="--c:7;--r:4;--dx:-188;--dy:-104;--spin:-20"></span>
+            <span class="wpi-cell" style="--c:8;--r:4;--dx:-266;--dy:-108;--spin:-25"></span>
+            <span class="wpi-cell" style="--c:9;--r:4;--dx:-344;--dy:-112;--spin:-29"></span>
+            <span class="wpi-cell" style="--c:0;--r:5;--dx:345;--dy:-190;--spin:34"></span>
+            <span class="wpi-cell" style="--c:1;--r:5;--dx:268;--dy:-188;--spin:29"></span>
+            <span class="wpi-cell" style="--c:2;--r:5;--dx:192;--dy:-184;--spin:25"></span>
+            <span class="wpi-cell" style="--c:3;--r:5;--dx:116;--dy:-176;--spin:20"></span>
+            <span class="wpi-cell" style="--c:4;--r:5;--dx:42;--dy:-168;--spin:12"></span>
+            <span class="wpi-cell" style="--c:5;--r:5;--dx:-42;--dy:-168;--spin:-12"></span>
+            <span class="wpi-cell" style="--c:6;--r:5;--dx:-116;--dy:-176;--spin:-20"></span>
+            <span class="wpi-cell" style="--c:7;--r:5;--dx:-192;--dy:-184;--spin:-25"></span>
+            <span class="wpi-cell" style="--c:8;--r:5;--dx:-268;--dy:-188;--spin:-29"></span>
+            <span class="wpi-cell" style="--c:9;--r:5;--dx:-345;--dy:-190;--spin:-34"></span>
+          </div>
+          <i class="wpi-streak s1"></i><i class="wpi-streak s2"></i><i class="wpi-streak s3"></i><i class="wpi-streak s4"></i><i class="wpi-streak s5"></i>
+          <div class="wpi-tunnel"></div>
+          <div class="wpi-core"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>PixiJS implementation recipe</h3>
+      <div class="desc">
+        <b>Capture:</b> render world/background containers into one <code>RenderTexture</code>. HUD, modal, damage numbers are excluded.<br>
+        <b>Fragment:</b> create a fixed grid of cropped <code>Texture</code> frames from the snapshot, usually 10×6 or 12×7 at 640×360.<br>
+        <b>Pull:</b> each sprite stores its original center, vector to sink center, distance, and angle. Over 2.8-3.2s, ease radius toward 0, add small tangential spin, scale down, then fade.<br>
+        <b>Core:</b> draw a small additive Graphics core plus 5-8 radial streak sprites. This sells suction without warping UI text.
+      </div>
+      <pre style="margin:0;background:#05050d;border:1px solid var(--line);padding:12px;color:#d8d8e8;font-size:10px;line-height:1.55;overflow:auto"><code>const rt = RenderTexture.create({ width: viewW, height: viewH });
+renderer.render({ container: worldContainer, target: rt });
+
+for (const tile of tiles) {
+  const toCenter = {
+    x: center.x - tile.home.x,
+    y: center.y - tile.home.y,
+  };
+  tile.sprite.texture = new Texture({ source: rt.source, frame: tile.frame });
+  tile.sprite.position.copyFrom(tile.home);
+  tile.pull = toCenter;
+}
+
+ticker.add(({ deltaMS }) =&gt; {
+  const t = clamp01((elapsed += deltaMS) / 3000);
+  const e = easeInCubic(t);
+  for (const tile of tiles) {
+    tile.sprite.x = tile.home.x + tile.pull.x * e;
+    tile.sprite.y = tile.home.y + tile.pull.y * e;
+    tile.sprite.rotation = tile.baseAngle + tile.spin * e;
+    tile.sprite.scale.set(1 - 0.92 * e);
+    tile.sprite.alpha = 1 - smoothstep(0.72, 1, t);
+  }
+});</code></pre>
+    </div>
+
+    <div class="card">
+      <h3>Usage rules</h3>
+      <ul style="line-height:1.7;margin:8px 0 0">
+        <li><b>Use for:</b> item-world entry, memory recall, world collapse, one-way portal activation.</li>
+        <li><b>Do not use for:</b> normal hit impact, small pickup, menu open/close. The effect means spatial rupture.</li>
+        <li><b>Layer rule:</b> apply to world/background/effects layers only. UI and prompt layers stay readable.</li>
+        <li><b>Performance:</b> cap fragments at 84 sprites. Reuse sprites and RenderTexture; destroy after transition.</li>
+        <li><b>Accessibility:</b> if reduced motion is enabled, use a 300ms radial vignette + core flash only.</li>
+      </ul>
     </div>
   </section>
 

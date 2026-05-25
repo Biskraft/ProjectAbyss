@@ -188,7 +188,7 @@ export class CharacterStats {
     const labelW = 36;
 
     const lbl = new BitmapText({
-      text: 'ATK',
+      text: t('ui.inventory.atk_label'),
       style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: TEXT_SECONDARY },
     });
     lbl.x = PADDING;
@@ -218,7 +218,7 @@ export class CharacterStats {
     const labelW = 36;
 
     const lbl = new BitmapText({
-      text: 'HP',
+      text: t('ui.character.hp_label'),
       style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: TEXT_SECONDARY },
     });
     lbl.x = PADDING;
@@ -253,7 +253,7 @@ export class CharacterStats {
     const labelW = 36;
 
     const lbl = new BitmapText({
-      text: 'EXP',
+      text: t('ui.character.exp_label'),
       style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: TEXT_SECONDARY },
     });
     lbl.x = PADDING;
@@ -261,7 +261,7 @@ export class CharacterStats {
     parent.addChild(lbl);
 
     const lvNum = new BitmapText({
-      text: `Lv.${this.playerLevel}`,
+      text: t('ui.character.level_label', { level: this.playerLevel }),
       style: { fontFamily: PIXEL_FONT, fontSize: FONT_BODY, fill: TEXT_PRIMARY },
     });
     lvNum.x = PADDING + labelW;

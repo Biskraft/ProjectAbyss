@@ -18,6 +18,7 @@
 
 import type { RoomNode } from '@level/RoomGraph';
 import type { Temperament } from './memoryShards';
+import { t } from '@i18n';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,24 +40,24 @@ export interface District {
 // ---------------------------------------------------------------------------
 
 const PLAZA: District = {
-  name: 'Plaza',
-  short: 'Plaza',
+  name: t('ui.district.plaza.name'),
+  short: t('ui.district.plaza.short'),
   color: 0xff8000,
-  flavor: 'The bell-well at the heart of this memory.',
+  flavor: t('ui.district.plaza.flavor'),
 };
 
 const SANCTUM: District = {
-  name: 'Inner Sanctum',
-  short: 'Sanctum',
+  name: t('ui.district.sanctum.name'),
+  short: t('ui.district.sanctum.short'),
   color: 0xff4444,
-  flavor: 'Where the keeper of this memory still stands watch.',
+  flavor: t('ui.district.sanctum.flavor'),
 };
 
 const MEMORIAL: District = {
-  name: 'Old Well',
-  short: 'Memorial',
+  name: t('ui.district.memorial.name'),
+  short: t('ui.district.memorial.short'),
   color: 0x88ff88,
-  flavor: 'A quiet alcove off the plaza.',
+  flavor: t('ui.district.memorial.flavor'),
 };
 
 // ---------------------------------------------------------------------------
@@ -64,11 +65,11 @@ const MEMORIAL: District = {
 // ---------------------------------------------------------------------------
 
 const BRANCH_BY_TEMPERAMENT: Record<Temperament, District> = {
-  forge:  { name: 'Forge Quarter', short: 'Forge',  color: 0xff8a3c, flavor: 'Anvils ring through the ash.' },
-  iron:   { name: 'Iron Lane',     short: 'Iron',   color: 0x4cd6c1, flavor: 'Stone footings held against time.' },
-  rust:   { name: 'Rust Alley',    short: 'Rust',   color: 0x8a8a8a, flavor: 'A street the rain forgot.' },
-  spark:  { name: 'Spark Court',   short: 'Spark',  color: 0xfff5b0, flavor: 'Embers loose in the air.' },
-  shadow: { name: 'Shadow Den',    short: 'Shadow', color: 0x6b3a8a, flavor: 'Lanterns pulled low.' },
+  forge:  { name: t('ui.district.forge.name'),  short: t('ui.district.forge.short'),  color: 0xff8a3c, flavor: t('ui.district.forge.flavor') },
+  iron:   { name: t('ui.district.iron.name'),   short: t('ui.district.iron.short'),   color: 0x4cd6c1, flavor: t('ui.district.iron.flavor') },
+  rust:   { name: t('ui.district.rust.name'),   short: t('ui.district.rust.short'),   color: 0x8a8a8a, flavor: t('ui.district.rust.flavor') },
+  spark:  { name: t('ui.district.spark.name'),  short: t('ui.district.spark.short'),  color: 0xfff5b0, flavor: t('ui.district.spark.flavor') },
+  shadow: { name: t('ui.district.shadow.name'), short: t('ui.district.shadow.short'), color: 0x6b3a8a, flavor: t('ui.district.shadow.flavor') },
 };
 
 /** Cycle order for resolving any branchIndex deterministically. */

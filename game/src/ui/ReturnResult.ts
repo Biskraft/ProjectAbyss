@@ -16,6 +16,7 @@ import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_POSITIVE, TEXT_NEGATIVE, TEXT_ACCENT, TEXT_GOLD, FONT_TITLE, FONT_HINT, createModalPanel } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
+import { KeyPrompt } from './KeyPrompt';
 
 const PANEL_W = 400;
 const PANEL_H = 260;
@@ -143,13 +144,7 @@ export class ReturnResult {
     this.panel.addChild(bodyText);
 
     // Hint — BitmapText.
-    const hintText = new BitmapText({
-      text: t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }),
-      style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_ACCENT },
-    });
-    hintText.x = Math.floor((DEATH_PANEL_W - hintText.width) / 2);
-    hintText.y = DEATH_PANEL_H - 18;
-    this.panel.addChild(hintText);
+    this.addContinuePrompt(DEATH_PANEL_W, DEATH_PANEL_H - 22);
   }
 
   /** Success modal — 기존 dive complete 결과 (대규모 패널). */
@@ -230,7 +225,9 @@ export class ReturnResult {
     const atkDelta = r.item.finalAtk - r.prevAtk;
     const atkColor = atkDelta > 0 ? COL_POSITIVE : atkDelta < 0 ? COL_NEGATIVE : COL_NEUTRAL;
     const atkSign = atkDelta > 0 ? '+' : '';
-    const atkLabel = `ATK ${r.prevAtk} → ${r.item.finalAtk}${atkDelta !== 0 ? ` (${atkSign}${atkDelta})` : ''}`;
+    const atkLabel = atkDelta !== 0
+      ? t('ui.return.atk_delta', { prev: r.prevAtk, next: r.item.finalAtk, sign: atkSign, delta: atkDelta })
+      : t('ui.return.atk_line', { prev: r.prevAtk, next: r.item.finalAtk });
     this.addText(atkLabel, 16, y, atkColor, FONT_HINT);
     y += 14;
 
@@ -247,7 +244,19 @@ export class ReturnResult {
     this.addText(t('ui.return.enemies_defeated', { count: r.enemiesDefeated }), 16, y, COL_DIM, FONT_HINT); y += 14;
 
     // Action
-    this.addText(t('ui.return.continue_hint', { key: actionKey(GameAction.ATTACK) }), Math.floor((PANEL_W - 100) / 2), PANEL_H - 20, TEXT_ACCENT, FONT_HINT);
+    this.addContinuePrompt(PANEL_W, PANEL_H - 24);
+  }
+
+  private addContinuePrompt(panelW: number, y: number): void {
+    const row = new Container();
+    const icon = KeyPrompt.createKeyIcon(actionKey(GameAction.ATTACK), 14);
+    const label = createUiText(t('ui.acquire.continue'), { fontSize: FONT_HINT, fill: TEXT_ACCENT });
+    row.addChild(icon, label);
+    label.x = icon.width + 4;
+    label.y = Math.floor((icon.height - label.height) / 2);
+    row.x = Math.floor((panelW - row.width) / 2);
+    row.y = y;
+    this.panel.addChild(row);
   }
 
   private addText(text: string, x: number, y: number, color: number, fontSize: number): BitmapText | Text {

@@ -3,12 +3,17 @@
  *
  * Future extraction targets (deeply coupled to scene state, requires interface design):
  * - spawnLockedDoors / unlockDoors / unlockDoorByIid / checkAttackOnDoors
- * - checkSavePoints / snapPlayerToSavePoint / performSave
+ * - performSave
  * - spawnSecretWalls / checkAttackOnSecretWalls
  * - spawnSwitches / checkAttackOnSwitches
  * - spawnCrackedFloors / checkAttackOnCrackedFloors
- * - spawnAltarsFromLdtk / updateAltars / openAltarUI
  * - spawnAnvilFromLdtk / updateAnvil / openAnvilUI
+ *
+ * Already extracted to focused systems:
+ * - checkSavePoints / snapPlayerToSavePoint -> SavePointInteraction
+ * - repeated active player attack AABB resolution -> PlayerAttackHitbox
+ * - spawnAltarsFromLdtk / updateAltars / openAltarUI -> WorldAltarController
+ * - Anvil prompt creation/positioning -> AnvilPromptController
  *
  * These methods reference player, enemies, collisionGrid, entityLayer, game,
  * screenFlash, toast, hud, and many other scene-level objects. Extracting them

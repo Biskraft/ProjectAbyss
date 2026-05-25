@@ -65,10 +65,10 @@ const CURSOR_BLINK_MS = 500;
 const CURSOR_COLOR = 0xffa41b;
 const CATEGORY_BG_IDLE = 0x2a2a3e;
 const CATEGORY_BG_HOVER = 0x3a3a52;
-const CATEGORIES: Array<{ value: 'bug' | 'idea' | 'other'; label: string; key: string }> = [
-  { value: 'bug',   label: 'Bug 버그',   key: '1' },
-  { value: 'idea',  label: 'Idea 제안',  key: '2' },
-  { value: 'other', label: 'Other 기타', key: '3' },
+const CATEGORIES: Array<{ value: 'bug' | 'idea' | 'other'; labelKey: string; key: string }> = [
+  { value: 'bug',   labelKey: 'ui.feedback.category_bug',   key: '1' },
+  { value: 'idea',  labelKey: 'ui.feedback.category_idea',  key: '2' },
+  { value: 'other', labelKey: 'ui.feedback.category_other', key: '3' },
 ];
 
 export class FeedbackPanel {
@@ -247,7 +247,7 @@ export class FeedbackPanel {
       this.categoryBgs.push(bg);
 
       const label = new BitmapText({
-        text: cat.label,
+        text: t('ui.feedback.category_label', { key: cat.key, label: t(cat.labelKey) }),
         style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill: TEXT_SECONDARY },
       });
       label.x = bg.x + 8;

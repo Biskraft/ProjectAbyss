@@ -11,6 +11,8 @@ import { GameAction, actionKey } from '@core/InputManager';
 import { onDeviceChange } from '@core/input/InputDeviceTracker';
 import type { UISkin } from './UISkin';
 import { HudConst } from '@data/constData';
+import { hpBarColor, hpRatio, shouldPulseFlask } from './hud/HudVitals';
+import { expFillRatio, expFlashAlpha, expLevelBounce, expLevelLabel } from './hud/HudExp';
 
 // Base values at 640x360. Multiplied by uiScale for native resolution.
 const BASE_W = 640;
@@ -28,9 +30,6 @@ const BASE_BOSS_H = 8;
 
 const HP_BORDER_COLOR = 0x444444;
 const HP_BG_COLOR = 0x222222;
-const HP_COLOR_SAFE = 0x22aa22;
-const HP_COLOR_WARN = 0xaaaa22;
-const HP_COLOR_DANGER = 0xaa2222;
 const FLASK_FULL_COLOR = 0xff8833;
 const FLASK_EMPTY_COLOR = 0x444444;
 const FLASK_MAX_DISPLAY = 8;
@@ -576,7 +575,7 @@ export class HUD {
   }
 
   updateATK(atk: number): void {
-    const str = `ATK ${atk}`;
+    const str = t('ui.hud.atk', { atk });
     this.atkText.text = str;
     this.atkTextShadow.text = str;
   }
@@ -859,7 +858,7 @@ export class HUD {
       if (this.healFlashTimer <= 0) this.healFlashTimer = 0;
       this.redrawHpBar();
     }
-    const ratio = this.currentMaxHp > 0 ? this.currentHp / this.currentMaxHp : 1;
+    const ratio = hpRatio(this.currentHp, this.currentMaxHp);
     if (ratio > 0 && ratio < 0.25) {
       this.lowHpTimer = (this.lowHpTimer + dt) % LOW_HP_PULSE_PERIOD;
       this.redrawHpBar();
@@ -868,7 +867,7 @@ export class HUD {
     }
 
     // --- Flask [R] pulse: HP <= 40% → 키가 커졌다 작아졌다 + 뒤에 붉은 glow ring ---
-    if (ratio > 0 && ratio <= FLASK_LOW_HP_THRESHOLD) {
+    if (shouldPulseFlask(this.currentHp, this.currentMaxHp, this.flaskCurrent, FLASK_LOW_HP_THRESHOLD)) {
       this.flaskPulseTimer = (this.flaskPulseTimer + dt) % FLASK_PULSE_PERIOD;
       const phase = (this.flaskPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
       const pulse = 0.5 + 0.5 * Math.sin(phase); // 0..1
@@ -966,7 +965,7 @@ export class HUD {
     const W = this.HP_W;
     const H = this.HP_H;
     const maxHp = this.currentMaxHp || 1;
-    const ratio = Math.max(0, Math.min(1, this.currentHp / maxHp));
+    const ratio = hpRatio(this.currentHp, maxHp);
 
     g.rect(-this.s, -this.s, W + 2 * this.s, H + 2 * this.s).fill(HP_BORDER_COLOR);
     g.rect(0, 0, W, H).fill(HP_BG_COLOR);
@@ -984,7 +983,7 @@ export class HUD {
       if (x1 > x0) g.rect(x0, 0, x1 - x0, H).fill({ color: this.healFlashColor, alpha: flashAlpha * 0.9 });
     }
 
-    let hpColor = ratio > 0.5 ? HP_COLOR_SAFE : ratio > 0.25 ? HP_COLOR_WARN : HP_COLOR_DANGER;
+    const hpColor = hpBarColor(ratio, this.lowHpTimer, LOW_HP_PULSE_PERIOD);
     let fillAlpha = 1;
     if (ratio > 0 && ratio < 0.25 && this.lowHpTimer > 0) {
       const pulse = Math.sin((this.lowHpTimer / LOW_HP_PULSE_PERIOD) * Math.PI * 2);
@@ -1220,7 +1219,7 @@ export class HUD {
     this.expNameShadow.y = startY + s;
 
     // Level text (right of name)
-    const lvText = this.expIsMax ? 'Lv.MAX' : `Lv.${this.expLevel}`;
+    const lvText = expLevelLabel(this.expLevel, this.expIsMax);
     this.expLevelText.text = lvText;
     this.expLevelShadow.text = lvText;
     this.expLevelText.style.fill = this.expIsMax ? EXP_BAR_MAX_COLOR : TEXT_PRIMARY;
@@ -1236,7 +1235,7 @@ export class HUD {
     g.rect(startX, barY, barW, barH).fill(EXP_BG_COLOR);
 
     // EXP bar fill (lerped)
-    const fillW = barW * Math.max(0, Math.min(1, this.expDisplayRatio));
+    const fillW = barW * expFillRatio(this.expDisplayRatio);
     const barColor = this.expIsMax ? EXP_BAR_MAX_COLOR : EXP_BAR_COLOR;
     if (fillW > 0) {
       g.rect(startX, barY, fillW, barH).fill(barColor);
@@ -1244,10 +1243,10 @@ export class HUD {
 
     // Level-up flash overlay
     if (this.expLevelUpFlash > 0) {
-      const flashAlpha = this.expLevelUpFlash / EXP_LEVELUP_FLASH_DURATION;
+      const flashAlpha = expFlashAlpha(this.expLevelUpFlash, EXP_LEVELUP_FLASH_DURATION);
       g.rect(startX, barY, barW, barH).fill({ color: 0xffffff, alpha: flashAlpha * 0.8 });
       // Scale bounce on level text
-      const bounce = 1 + 0.3 * flashAlpha;
+      const bounce = expLevelBounce(flashAlpha);
       this.expLevelText.scale.set(bounce);
       this.expLevelShadow.scale.set(bounce);
     } else {
