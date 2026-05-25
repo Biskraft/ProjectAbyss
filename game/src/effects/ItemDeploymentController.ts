@@ -33,11 +33,12 @@ const T = {
   ItemZoomIn:     2300,  // zoom-in finishes before item punch starts
   ItemPunch:      4200,  // 1000ms grow/white + ~900ms disassemble/absorb
   CameraPullBack: 4700,  // zoom back out after absorption
-  WallDeployment: 6700,  // laser fires
-  CameraReturn:   7200,
+  // 사용자 결정 2026-05-25: WallDeployment 길이 2000→1000ms (레이저 발사 후 멈춤 1초로 단축).
+  WallDeployment: 5700,  // laser fires (이전 6700)
+  CameraReturn:   6200,  // 이전 7200
   // TunnelPan: 카메라가 터널 끝(WallGate)으로 1.2s 슬라이드 + 0.3s hold → Deployed.
   // 진입 방향 = pan 방향 = 플레이어가 가야 할 방향. 영화적 cue.
-  TunnelPan:      8700,
+  TunnelPan:      7700,  // 이전 8700
 } as const;
 
 // Elapsed threshold within ItemPunch state at which suck begins.
@@ -49,10 +50,10 @@ const SHAKE_COUNT = 4;
 const SHAKE_INTENSITY = 1.5;
 
 // Deployment tunnel geometry (tiles × 16 px).
-const TUNNEL_OFFSET = 0;    // tunnel starts at anvilX (world wall, not builder wall)
+const TUNNEL_OFFSET = 128;  // tunnel entrance 8 tiles right of anvil
 const TUNNEL_W_MIN  = 32;   // minimum tunnel depth if builder ref is absent
-const TUNNEL_H      = 128;  // px tunnel height (8 tiles)
-const TUNNEL_Y_RAISE = 64;  // px: place the tunnel 4 tiles above the anvil.
+const TUNNEL_H      = 320;  // px tunnel height (20 tiles: original 8 + 8 up + 4 down)
+const TUNNEL_Y_RAISE = 0;   // px: tunnel bottom flush with anvil Y
 const TUNNEL_END_INSET = 8;
 const LASER_DESATURATION_MS = 120;
 // ExitGlow 시작 x = tunnelLeft + 이 offset. anvil + 인근 영역 회피하고 벽
@@ -98,6 +99,10 @@ export class ItemDeploymentController {
     return this.state !== 'Idle' && this.state !== 'Deployed';
   }
 
+  get isActive(): boolean {
+    return this.state !== 'Idle';
+  }
+
   constructor(
     private readonly game: Game,
     private readonly player: Player,
@@ -116,6 +121,7 @@ export class ItemDeploymentController {
     private readonly onItemPunchStart: (() => void) | null = null,
     private readonly onItemDissolve: ((targetX: number, targetY: number) => void) | null = null,
     private readonly onItemAbsorbed: (() => void) | null = null,
+    private readonly onDeploymentReady: (() => void) | null = null,
   ) {}
 
   start(anvilX: number, anvilY: number): void {
@@ -212,7 +218,10 @@ export class ItemDeploymentController {
           this.laserDesaturationMs -= dt;
           if (this.laserDesaturationMs <= 0) this.setLaserDesaturation(false);
         }
-        if (!this.builder && !this.tunnelOpened && this.elapsed >= T.CameraPullBack + 700) {
+        if (!this.builder && !this.tunnelOpened && this.elapsed >= T.CameraPullBack + 200) {
+          this.openTunnelWithLaser();
+        }
+        if (this.builder && !this.tunnelOpened && this.elapsed >= T.CameraPullBack + 850) {
           this.openTunnelWithLaser();
         }
         if (this.elapsed >= T.WallDeployment) this.enterState('CameraReturn');
@@ -343,6 +352,7 @@ export class ItemDeploymentController {
         this.game.camera.target = this.player;
         this.stopHum(0.4);
         BgmController.setVolumeFactor(1.0, 500);
+        this.onDeploymentReady?.();
         // 터널 dust 트레일 — anvil sprite 너머 *벽 시작점* 부터 출현.
         // gradient glow band 는 비활성(showGlow=false) — 사용자 결정 2026-05-24:
         // anvil 톤과 잘 안 어울리므로 dust 만 유지.
@@ -374,20 +384,9 @@ export class ItemDeploymentController {
   // ── Synth hum (placeholder until builder_awaken_hum.ogg lands) ──────────
 
   private startHum(): void {
-    const ctx = AudioBus.getContext();
-    if (!ctx) return;
-    AudioBus.resume();
-
-    this.humGain = ctx.createGain();
-    this.humGain.gain.setValueAtTime(0, ctx.currentTime);
-    this.humGain.gain.linearRampToValueAtTime(0.055, ctx.currentTime + 0.4);
-    this.humGain.connect(ctx.destination);
-
-    this.humOsc = ctx.createOscillator();
-    this.humOsc.type = 'sawtooth';
-    this.humOsc.frequency.value = 82; // E2 — mechanical low hum
-    this.humOsc.connect(this.humGain);
-    this.humOsc.start();
+    // 사용자 결정 2026-05-25: anvil 발사 시 *부우우웅* placeholder hum 제거.
+    //   builder_awaken_hum.ogg 도착 시 여기서 SoundManager 호출로 교체 예정.
+    //   기존 sawtooth 82Hz hum 코드는 git history 에 보존.
   }
 
   private stopHum(fadeSec = 0.3): void {

@@ -1,4 +1,4 @@
-import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, ColorMatrixFilter, type Filter, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
@@ -59,8 +59,10 @@ import {
   EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
 } from '@data/EgoDialogue';
 import { MemoryShardNPC } from '@entities/MemoryShardNPC';
-import { MemoryResident, type ResidentType } from '@entities/MemoryResident';
+import { MemoryResident } from '@entities/MemoryResident';
 import { Trapdoor } from '@entities/Trapdoor';
+import { FloatingItemDrop } from '@entities/FloatingItemDrop';
+import { AbsorbParticles } from '@effects/AbsorbParticles';
 import { Anvil } from '@entities/Anvil';
 import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
@@ -214,7 +216,7 @@ const STRATUM_PICKER_COL_GOLD = 0xffd700;
 const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
 
 
-type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall';
+type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall' | 'absorbing' | 'dissolving';
 
 // DEC-039 Trapdoor 침강 시퀀스 타이밍 (ms).
 //   1) descent_pan   = 카메라 다운 패닝 (페이드 알파 0 → 1)
@@ -303,8 +305,12 @@ export class ItemWorldScene extends Scene {
   /**
    * DEC-039 Trapdoor 침강. 보스 처치 시 보스 룸 바닥 D 위치에 spawn,
    * 공격 키 인터랙트로 다음 Plaza 천장으로 텔레포트 (마지막 지층은 월드 귀환).
+   *
+   * 2026-05-25 Step 1: 최종 층 (descentToWorld=true) 에서는 Trapdoor 대신
+   * FloatingItemDrop 이 spawn 된다. 두 entity 는 동일 인터페이스 (isPlayerNear /
+   * activate / update / destroy / x / y / width / height / active / consumed).
    */
-  private trapdoor: Trapdoor | null = null;
+  private trapdoor: Trapdoor | FloatingItemDrop | null = null;
   /**
    * LDtk-placed Anvils inside ItemStratum levels. Acts as an in-world exit:
    * approach → KeyPrompt → ATTACK opens EscapeConfirm (same flow as MENU/ESC).
@@ -604,6 +610,7 @@ export class ItemWorldScene extends Scene {
   private egoActive = false;          // true if current item has Ego
   private egoEntryCount = 0;          // how many times player entered this item's world
   private egoFlags = new Set<string>(); // fired triggers this entry (reset each entry)
+  private entryDialogueStarted = false;
   /** Passed from LdtkWorldScene — shared unlockedEvents for persistence. */
   egoUnlockedEvents: Set<string> = new Set();
 
@@ -1185,7 +1192,7 @@ export class ItemWorldScene extends Scene {
     // Area title banner — shows item name on entry.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
-    this.areaTitle.show(this.item.def.name);
+    this.areaTitle.show(getDisplayName(this.item));
     this.uiController = new ItemWorldUiController(this.game);
     this.mapController = new ItemWorldMapController();
     this.spawnController = new ItemWorldSpawnController();
@@ -1278,7 +1285,7 @@ export class ItemWorldScene extends Scene {
     }
     // Initialize item EXP bar
     this.hud.showItemExp(
-      this.item.def.name,
+      getDisplayName(this.item),
       RARITY_COLOR[this.item.rarity],
       this.item.level,
       this.item.exp,
@@ -1325,10 +1332,6 @@ export class ItemWorldScene extends Scene {
     this.startSpawnDone = true;
     this.spawnedRooms.add(`${this.currentCol},${this.currentRow}`);
     this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
-    setTimeout(() => {
-      void this.fireEgoEnterAsync();
-    }, 500);
-
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
     const stratumLabel = t('iw.stratum_banner', { n: this.currentStratumIndex + 1 });
@@ -1340,6 +1343,15 @@ export class ItemWorldScene extends Scene {
     if (maxSelectable > 1) {
       this.showStratumPicker(maxSelectable);
     }
+  }
+
+  beginEntryDialogueAfterTransition(): void {
+    if (this.entryDialogueStarted) return;
+    this.entryDialogueStarted = true;
+    setTimeout(() => {
+      if (!this.initialized) return;
+      void this.fireEgoEnterAsync();
+    }, 250);
   }
 
   private countTotalRooms(): void {
@@ -2015,13 +2027,13 @@ export class ItemWorldScene extends Scene {
           const j = rngHs.nextInt(0, i);
           [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
         }
-        // 인터랙티브 거주자 1명 (Plaza→Gatekeeper / Archive→Archivist)
-        const mainPt = pointsHs[idxs[0]];
-        const mainType: ResidentType = cell.role === 'hub' ? 'gatekeeper' : 'archivist';
-        const main = new MemoryResident(mainPt.x, mainPt.y, mainType);
-        this.memoryResidents.push(main);
-        // residentsLayer — grid 위, entityLayer(player/vfx) 아래.
-        this.residentsLayer.addChild(main.container);
+        // 사용자 결정 2026-05-25: 인터랙티브 거주자 (Gatekeeper / Archivist) 2명 spawn disable.
+        //   ambient 그림자 20명은 그대로 유지 (배경 분위기 보존).
+        // const mainPt = pointsHs[idxs[0]];
+        // const mainType: ResidentType = cell.role === 'hub' ? 'gatekeeper' : 'archivist';
+        // const main = new MemoryResident(mainPt.x, mainPt.y, mainType);
+        // this.memoryResidents.push(main);
+        // this.residentsLayer.addChild(main.container);
         // Plaza 한정: 배경 그림자 20명. sprite 풀(64종) 에서 RNG 로 골라
         // 다양성 확보. spawn point 풀이 작아도 wrap + 넓은 x-jitter + 미세
         // y-jitter 로 겹침 회피.
@@ -4842,7 +4854,13 @@ export class ItemWorldScene extends Scene {
     }
 
     if (this.transitionState !== 'none') {
-      this.updateTransition(dt);
+      if (this.transitionState === 'absorbing') {
+        this.updateAbsorbSequence(dt);
+      } else if (this.transitionState === 'dissolving') {
+        this.updateDissolveSequence(dt);
+      } else {
+        this.updateTransition(dt);
+      }
       return;
     }
 
@@ -5506,13 +5524,21 @@ export class ItemWorldScene extends Scene {
         }
 
         // Trapdoor entity 생성 콜백 — dialogue 종료 후 호출.
+        // Step 1 (2026-05-25): 최종 층 (pendingDescentToWorld=true) 에서는 Trapdoor 대신
+        // FloatingItemDrop spawn — 사용자 시나리오 "아이템 2배 확대 + 둥실둥실".
         const spawnTrapdoorEntity = (): void => {
           if (this.trapdoor) return;
-          this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
+          if (pendingDescentToWorld) {
+            this.trapdoor = new FloatingItemDrop(pendingTrapX, pendingTrapY, this.item);
+            // 사용자 결정 2026-05-25: spawn 즉시 grayscale + intensity 적용 (interact 전부터).
+            this.applyAbsorbFilter();
+          } else {
+            this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
+          }
           this.entityLayer.addChild(this.trapdoor.container);
           this.descentToWorld = pendingDescentToWorld;
           this.toast.show(t('toast.trapdoor_opens'), 0xff7744);
-          Debug.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)})`);
+          Debug.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) ${pendingDescentToWorld ? '(FloatingItemDrop)' : '(Trapdoor)'}`);
           // DLG-11: Trapdoor 포탈 — 첫 spawn 시점에 한 번만 발화 (사용자
           // 결정 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 표식으로 중복 차단.
           if (
@@ -6153,7 +6179,7 @@ export class ItemWorldScene extends Scene {
       this.getClearedStrataFlags(),
     );
     this.hud.showItemExp(
-      this.item.def.name,
+      getDisplayName(this.item),
       RARITY_COLOR[this.item.rarity],
       this.item.level,
       this.item.exp,
@@ -6169,7 +6195,7 @@ export class ItemWorldScene extends Scene {
       ? ` ${formatActivePlayerBuffsDebug()}`
       : '';
     this.hud.setFloorText(
-      `${cycleTag}${this.item.def.name} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}${buffDbg}`
+      `${cycleTag}${getDisplayName(this.item)} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}${buffDbg}`
     );
 
     // Update depth gauge
@@ -6180,7 +6206,7 @@ export class ItemWorldScene extends Scene {
   private showEscapeConfirm(): void {
     this.uiController.showEscapeConfirm({
       hudSkin: this.hudSkin,
-      itemName: this.item.def.name,
+      itemName: getDisplayName(this.item),
       itemLevel: this.item.level,
       itemExp: this.item.exp,
       expPerLevel: EXP_PER_LEVEL,
@@ -6253,7 +6279,7 @@ export class ItemWorldScene extends Scene {
     const cycleTag = this.progress.cycle > 0 ? ` / CYCLE ${this.progress.cycle}` : '';
     this.addStratumPickerText(
       panel,
-      `${this.item.def.name} / ${this.item.rarity.toUpperCase()} / Lv.${this.item.level}${cycleTag}`,
+      `${getDisplayName(this.item)} / ${this.item.rarity.toUpperCase()} / Lv.${this.item.level}${cycleTag}`,
       STRATUM_PICKER_PAD,
       23,
       7,
@@ -6840,7 +6866,7 @@ export class ItemWorldScene extends Scene {
     this.progress.lastSafeStratum = this.currentStratumIndex;
     this.progressController.exitAfterBoss({
       currentStratumIndex: this.currentStratumIndex,
-      itemName: this.item.def.name,
+      itemName: getDisplayName(this.item),
       itemLevel: this.item.level,
     });
   }
@@ -6870,6 +6896,206 @@ export class ItemWorldScene extends Scene {
   private startExitFade(): void {
     this.transitionState = 'exit_fade';
     this.transitionTimer = FADE_DURATION * 2;
+  }
+
+  /**
+   * Step 2 (2026-05-25) — 흡수 연출.
+   * gameContainer 에 ColorMatrixFilter (grayscale 100%) 적용 + filter alpha 0→0.5
+   * 로 1000ms tween. 종료 시 filter 제거 + startExitFade 호출.
+   *
+   * "intensity 0.5" 해석: filter 효과 강도 50% (원본↔grayscale blend 50:50).
+   */
+  private absorbFilter: ColorMatrixFilter | null = null;
+  private absorbTimer = 0;
+  private static readonly ABSORB_DURATION_MS = 1000; // 사용자 결정 2026-05-25 (3000 → 1000)
+  /**
+   * grayscale + intensity 필터를 gameContainer + backgroundContainer 에 적용.
+   * 중복 추가 방지 (이미 있으면 alpha 만 보장).
+   * 사용자 결정 2026-05-25: FloatingItemDrop spawn 즉시 (interact 전부터) 호출.
+   */
+  private applyAbsorbFilter(): void {
+    if (!this.absorbFilter) {
+      this.absorbFilter = new ColorMatrixFilter();
+      // 사용자 결정 2026-05-25: 완전 회색 (desaturate) + contrast 50%.
+      // brightness 제거 — 대비 낮춤이 의도.
+      this.absorbFilter.desaturate();
+      this.absorbFilter.contrast(0.5, true);
+    }
+    this.absorbFilter.alpha = 1;
+    // 사용자 결정 2026-05-25: 무기 + 캐릭터 (entityLayer 의 Player / FloatingItemDrop)
+    // 는 효과 영향 X → gameContainer 전체 X. *환경* 만 적용 = fullMapContainer
+    // (지형 aggregates) + backgroundContainer (parallax).
+    const fm = this.fullMapContainer;
+    if (fm) {
+      const fmFilters = (fm.filters as Filter[] | null) ?? [];
+      if (!fmFilters.includes(this.absorbFilter)) {
+        fm.filters = [...fmFilters, this.absorbFilter];
+      }
+    }
+    const bg = this.game.backgroundContainer;
+    const bgFilters = (bg.filters as Filter[] | null) ?? [];
+    if (!bgFilters.includes(this.absorbFilter)) {
+      bg.filters = [...bgFilters, this.absorbFilter];
+    }
+  }
+
+  private startAbsorbSequence(): void {
+    this.transitionState = 'absorbing';
+    this.absorbTimer = 0;
+    // Filter 는 이미 FloatingItemDrop spawn 시 applyAbsorbFilter 로 적용됨.
+    // 안전망: 만약 미적용 상태 (재시작 등) 면 여기서 보장.
+    this.applyAbsorbFilter();
+  }
+
+  private updateAbsorbSequence(dt: number): void {
+    if (this.transitionState !== 'absorbing' || !this.absorbFilter) return;
+    this.absorbTimer += dt;
+    // 효과는 이미 startAbsorbSequence 에서 풀 적용 — timer 만 진행, hold 후 dissolve.
+    if (this.absorbTimer >= ItemWorldScene.ABSORB_DURATION_MS) {
+      this.startDissolveSequence();
+    }
+  }
+
+  /**
+   * Step 3 (2026-05-25) — 보스 룸 한정 per-tile dissolve.
+   *
+   * 사용자 정정 (2026-05-25): "ItemStratum_Level_6 해당 레벨의 타일만 각각 1개씩 흡수".
+   * → 현재 player/FloatingItemDrop 이 있는 *보스 룸 (cell)* 의 interior + wall layer
+   *    안의 *각 tile Sprite* 를 distance sort + stagger 로 scale/alpha 1→0 tween.
+   *
+   * 작동 범위:
+   *   - aggregates.children 중 FloatingItemDrop 좌표를 포함하는 room layer 만 선택
+   *   - 그 layer 의 children (개별 tile Sprite) 를 collect → distance 기준 정렬
+   *   - 가장 먼 tile = startMs 0, 가장 가까운 tile = startMs ~800ms
+   */
+  private dissolveEntries: Array<{
+    target: Container;
+    startMs: number;
+    cx: number;
+  }> = [];
+  private dissolveTimer = 0;
+  private absorbParticles: AbsorbParticles | null = null;
+  private static readonly DISSOLVE_PER_CHILD_MS = 800;     // 사용자 결정 2026-05-25 (400 → 800, 2x)
+  private static readonly DISSOLVE_STAGGER_MAX_MS = 2400;  // 사용자 결정 2026-05-25 (1200 → 2400, 2x)
+  private startDissolveSequence(): void {
+    this.transitionState = 'dissolving';
+    this.dissolveTimer = 0;
+    this.dissolveEntries.length = 0;
+
+    // FloatingItemDrop 기준 좌표 (없으면 player 좌표).
+    const focusX = this.trapdoor?.x ?? (this.player.x + this.player.width / 2);
+    const focusY = this.trapdoor?.y ?? (this.player.y + this.player.height / 2);
+
+    // 보스 룸 식별 — focusX/Y 가 포함된 room layer 만 (interior + wall).
+    // bgAggregate 는 *룸 외부 배경* 까지 포함하므로 제외 (사용자 의도 "interior").
+    const aggregates: Array<Container | null> = [
+      this.interiorAggregate,
+      this.wallAggregate,
+    ];
+    const bossRoomLayers: Container[] = [];
+    for (const agg of aggregates) {
+      if (!agg) continue;
+      for (const child of agg.children as Container[]) {
+        const left = child.position.x;
+        const top = child.position.y;
+        const right = left + IW_ROOM_W_PX;
+        const bottom = top + IW_ROOM_H_PX;
+        if (focusX >= left && focusX < right && focusY >= top && focusY < bottom) {
+          bossRoomLayers.push(child);
+        }
+      }
+    }
+    if (bossRoomLayers.length === 0) {
+      this.endDissolveSequence();
+      return;
+    }
+
+    // 각 layer 의 children (개별 tile Sprite) 을 수집 + distance 계산.
+    const distances: Array<{ tile: Container; dist: number }> = [];
+    for (const layer of bossRoomLayers) {
+      for (const tile of layer.children as Container[]) {
+        // tile.position 은 layer 내부 좌표. world = layer.position + tile.position.
+        const tileWX = layer.position.x + tile.position.x + (tile.width || 16) / 2;
+        const tileWY = layer.position.y + tile.position.y + (tile.height || 16) / 2;
+        const dx = tileWX - focusX;
+        const dy = tileWY - focusY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        distances.push({ tile, dist });
+      }
+    }
+    if (distances.length === 0) {
+      this.endDissolveSequence();
+      return;
+    }
+
+    // 흡수 파티클 — FloatingItemDrop 중심으로 빨려들어감.
+    const targetCenterY = (this.trapdoor?.y ?? focusY) - ((this.trapdoor?.height ?? 64) / 2);
+    this.absorbParticles = new AbsorbParticles(focusX, targetCenterY);
+    this.entityLayer.addChild(this.absorbParticles.container);
+
+    // 정렬: 먼 거리 → 가까운 거리 (먼 곳부터 사라짐).
+    distances.sort((a, b) => b.dist - a.dist);
+    const maxIdx = distances.length - 1;
+    for (let i = 0; i < distances.length; i++) {
+      const startMs = (i / Math.max(1, maxIdx)) * ItemWorldScene.DISSOLVE_STAGGER_MAX_MS;
+      this.dissolveEntries.push({ target: distances[i].tile, startMs, cx: 0 });
+    }
+  }
+
+  private updateDissolveSequence(dt: number): void {
+    if (this.transitionState !== 'dissolving') return;
+    this.dissolveTimer += dt;
+    let allDone = true;
+    for (const entry of this.dissolveEntries) {
+      const elapsed = this.dissolveTimer - entry.startMs;
+      if (elapsed < 0) {
+        allDone = false;
+        continue;
+      }
+      const t = Math.min(1, elapsed / ItemWorldScene.DISSOLVE_PER_CHILD_MS);
+      const s = 1 - t;
+      entry.target.scale.set(s);
+      entry.target.alpha = s;
+      if (t < 1) allDone = false;
+    }
+    // 흡수 파티클 — dissolve 진행 동안 spawn 지속, 끝나면 활성 off (잔여 입자만 fade out).
+    if (this.absorbParticles) {
+      this.absorbParticles.update(dt);
+    }
+    if (allDone) {
+      this.endDissolveSequence();
+    }
+  }
+
+  private endDissolveSequence(): void {
+    // grayscale filter 제거 (fullMapContainer + backgroundContainer).
+    if (this.absorbFilter) {
+      const fm = this.fullMapContainer;
+      if (fm) {
+        fm.filters = ((fm.filters as Filter[] | null) ?? []).filter(f => f !== this.absorbFilter);
+      }
+      const bg = this.game.backgroundContainer;
+      bg.filters = ((bg.filters as Filter[] | null) ?? []).filter(f => f !== this.absorbFilter);
+    }
+    // 사용자 결정 2026-05-25: 무기 sprite 가 fade-out 중에도 visible 유지 →
+    // entityLayer (gameContainer 아래) 에서 fadeOverlay 의 부모 (uiContainer)
+    // 로 reparent. 좌표는 global → local 변환으로 보존. Step 4 에서 월드 anvil
+    // 까지 tween 으로 이어짐.
+    if (this.trapdoor && this.fadeOverlay.parent) {
+      const c = this.trapdoor.container;
+      const global = c.parent ? c.parent.toGlobal({ x: c.x, y: c.y }) : { x: c.x, y: c.y };
+      const local = this.fadeOverlay.parent.toLocal(global);
+      c.x = local.x;
+      c.y = local.y;
+      this.fadeOverlay.parent.addChild(c); // 마지막 child = fadeOverlay 위
+    }
+    // 파티클 spawn 멈춤 — fade-out 진행 중 잔여 입자는 자동 사라짐. cleanup 은 destroy 에서.
+    if (this.absorbParticles) {
+      this.absorbParticles.setActive(false);
+      this.absorbParticles.destroy();
+      this.absorbParticles = null;
+    }
+    this.startExitFade();
   }
 
   /**
@@ -7052,7 +7278,9 @@ export class ItemWorldScene extends Scene {
     const near = td.isPlayerNear(px, py);
 
     if (near) {
-      this.showTrapdoorPromptAt(td.x, td.y - td.height);
+      // Step 1 (2026-05-25): 최종 층 FloatingItemDrop 은 "Absorb" prompt.
+      const promptKey = td instanceof FloatingItemDrop ? 'prompt.absorb' : 'prompt.descend';
+      this.showTrapdoorPromptAt(td.x, td.y - td.height, promptKey);
     } else {
       this.hideTrapdoorPrompt();
     }
@@ -7066,13 +7294,22 @@ export class ItemWorldScene extends Scene {
   }
 
   /** Anvil prompt 패턴 — uiContainer 에 lazy create + world→screen 변환. */
-  private showTrapdoorPromptAt(worldX: number, worldY: number): void {
+  /** Prompt key — 'prompt.descend' (Trapdoor) 또는 'prompt.absorb' (FloatingItemDrop). */
+  private trapdoorPromptKey: string = 'prompt.descend';
+  private showTrapdoorPromptAt(worldX: number, worldY: number, promptKey = 'prompt.descend'): void {
+    // 라벨이 바뀌면 prompt 재생성.
+    if (this.trapdoorPrompt && this.trapdoorPromptKey !== promptKey) {
+      if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
+      this.trapdoorPrompt.destroy({ children: true });
+      this.trapdoorPrompt = null;
+    }
     if (!this.trapdoorPrompt) {
       this.trapdoorPrompt = KeyPrompt.createPrompt(
         actionKey(GameAction.ATTACK),
-        t('prompt.descend'),
+        t(promptKey),
         this.game.uiScale,
       );
+      this.trapdoorPromptKey = promptKey;
     }
     if (!this.trapdoorPrompt.parent) {
       this.game.uiContainer.addChild(this.trapdoorPrompt);
@@ -7217,6 +7454,10 @@ export class ItemWorldScene extends Scene {
       this.progressController.setExitReason('clear');
       markItemCleared(this.item);
       this.persistRoomState();
+      // Step 2 (2026-05-25): 흡수 연출 — grayscale 100% + intensity 0.5,
+      // 1000ms 동안 tween. 종료 후 startExitFade 자동 호출 (update 안에서).
+      this.startAbsorbSequence();
+      return;
     }
 
     this.uiController.showStratumClearOverlay({

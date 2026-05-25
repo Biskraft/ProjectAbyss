@@ -1,4 +1,4 @@
-import { Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
+import { Container, Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
@@ -1485,9 +1485,46 @@ export class Player extends Entity implements CombatEntity {
    * not loaded yet). Used by DashAfterimageManager to clone the exact frame for
    * the afterimage trail so the silhouette matches the player's current pose.
    */
+  getWeaponTexture(): Texture | null {
+    if (!this.weaponSprite || this.weaponSprite.destroyed) return null;
+    return this.weaponSprite.texture;
+  }
+
   getCurrentErdaTexture(): import('pixi.js').Texture | null {
     if (!this.erdaSprite || this.erdaSprite.visible === false) return null;
     return this.erdaSprite.texture;
+  }
+
+  /**
+   * Returns a static Container that mirrors the player's current visual state —
+   * same sprite textures, transforms, and positions.  Caller positions the
+   * container in world space (set x/y to player.container.x / .y).
+   * Returned container shares textures (no deep clone) but owns its Sprites.
+   */
+  getFreezeSnapshot(): Container {
+    const root = new Container();
+
+    if (this.weaponSprite && !this.weaponSprite.destroyed && this.weaponSprite.visible) {
+      const w = new Sprite(this.weaponSprite.texture);
+      w.anchor.copyFrom(this.weaponSprite.anchor);
+      w.pivot.copyFrom(this.weaponSprite.pivot);
+      w.x        = this.weaponSprite.x;
+      w.y        = this.weaponSprite.y;
+      w.scale.copyFrom(this.weaponSprite.scale);
+      w.rotation = this.weaponSprite.rotation;
+      root.addChild(w);
+    }
+
+    if (this.erdaSprite && !this.erdaSprite.destroyed) {
+      const e = new Sprite(this.erdaSprite.texture);
+      e.anchor.copyFrom(this.erdaSprite.anchor);
+      e.x = this.erdaSprite.x;
+      e.y = this.erdaSprite.y;
+      e.scale.copyFrom(this.erdaSprite.scale);
+      root.addChild(e);
+    }
+
+    return root;
   }
 
   // --- VFX one-shot event consumers ---

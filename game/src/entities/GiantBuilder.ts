@@ -8,7 +8,7 @@
 
 import { Container, Graphics, Rectangle } from 'pixi.js';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel } from '@level/LdtkLoader';
+import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import type { Texture } from 'pixi.js';
 import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
@@ -99,6 +99,8 @@ export class GiantBuilder {
   private awakeningMode = false;
 
   private renderer: LdtkRenderer;
+  private atlases: Record<string, Texture>;
+  private wallTiles: LdtkTile[] = [];
   private legRig: LegRig;
   private footDust: LandingDustManager;
   private lights: BuilderLightDef[] = [];
@@ -227,6 +229,7 @@ export class GiantBuilder {
   ) {
     this.widthPx = level.pxWid;
     this.heightPx = level.pxHei;
+    this.atlases = atlases;
     this.widthTiles = Math.ceil(level.pxWid / TILE);
     this.heightTiles = Math.ceil(level.pxHei / TILE);
     this.collisionGrid = level.collisionGrid.map(r => [...r]);
@@ -240,6 +243,7 @@ export class GiantBuilder {
     applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
     applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles.filter(t => t.tilesetPath === defaultWallTileset));
     applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles.filter(t => t.tilesetPath === defaultWallTileset));
+    this.wallTiles = wallTiles;
 
     // BuilderInterior tiles are handled separately (dissolve layer) — exclude
     // them from the general interiorTiles merge so they don't render twice.
@@ -689,6 +693,15 @@ export class GiantBuilder {
         if (col < gridRow.length) gridRow[col] = 0;
       }
     }
+  }
+
+  restoreTunnelCells(cells: Array<{ row: number; col: number; value: number }>): void {
+    for (const cell of cells) {
+      const row = this.collisionGrid[cell.row];
+      if (!row || cell.col < 0 || cell.col >= row.length) continue;
+      row[cell.col] = cell.value;
+    }
+    this.renderer.rebuildWallLayer(this.wallTiles, this.atlases, this.collisionGrid);
   }
 
   update(dt: number): void {

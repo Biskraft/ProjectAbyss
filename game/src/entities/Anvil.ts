@@ -423,6 +423,23 @@ export class Anvil {
     this.refreshSymbolPrompt();
   }
 
+  clearPlacedItem(): void {
+    this.item = null;
+    this.used = false;
+    this.resetPlacedItemEffect();
+    if (this.itemGfx) {
+      this.container.removeChild(this.itemGfx);
+      this.itemGfx.destroy();
+      this.itemGfx = null;
+    }
+    if (this.itemIcon) {
+      this.container.removeChild(this.itemIcon);
+      this.itemIcon.destroy();
+      this.itemIcon = null;
+    }
+    this.refreshSymbolPrompt();
+  }
+
   private showItemIcon(item: ItemInstance): void {
     if (this.itemIcon) {
       this.container.removeChild(this.itemIcon);

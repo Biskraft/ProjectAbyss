@@ -23,7 +23,7 @@ import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
-import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { RARITY_COLOR, getDisplayName, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { sacredSave, getWeaponLore } from '@save/PlayerSave';
@@ -205,7 +205,8 @@ export class LorePopup {
     // 이름 (12px) — wordWrap to right edge so long KO names don't bleed past
     // the panel border.
     const HEADER_WRAP_W = W - TEXT_X - 12;
-    const nameText = createUiText(item.def.name, {
+    const displayName = getDisplayName(item);
+    const nameText = createUiText(displayName, {
       fontSize: 12, fill: rColor, wordWrap: true, wordWrapWidth: HEADER_WRAP_W,
     });
     nameText.x = TEXT_X;
@@ -223,7 +224,7 @@ export class LorePopup {
     // metrics differ from BitmapText pixel atlas) so we honor `node.height`
     // instead of a fixed line increment.
     const LORE_WRAP_W = W - TEXT_X - 12;
-    const lore = getWeaponLore(item.def.id, item.def.name, item.rarity);
+    const lore = getWeaponLore(item.def.id, displayName, item.rarity);
     let ly = 44;
     for (const line of lore) {
       const node = createUiText(line, {

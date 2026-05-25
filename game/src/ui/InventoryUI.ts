@@ -134,6 +134,18 @@ export class InventoryUI {
   private selectionPulseRect: { w: number; h: number } | null = null;
   private selectionPulseTimer = 0;
 
+  // 심연 노이즈 글리치 (지지직 효과) — 2026-05-25.
+  //   layers: drawStratumMinimap 가 카드별 noise Graphics 등록.
+  //   tick 이 증가하면 각 layer 의 seed 가 변경되어 noise 재롤.
+  private abyssNoiseLayers: Array<{
+    graphics: Graphics;
+    cardY: number; cardH: number; cardW: number;
+    top: number; bot: number;
+    baseSeed: number;
+  }> = [];
+  private abyssNoiseTimer = 0;
+  private abyssNoiseTick = 0;
+
   // ITEM MAP — generated room graphs, keyed by `${item.uid}:${stratumIndex}`.
   // Item 별로 시드 결정적이라 한 번 계산 후 캐시.
   private roomGraphCache = new Map<string, RoomGraphData | null>();
@@ -883,17 +895,42 @@ export class InventoryUI {
 
     // === Right: spec image 패턴 + 큰 사이즈 (이전 디자인 크기). ===
     //   - 5 row 모두 표시 (S1-S5), graphRowH 22 (이전 디자인 사이즈)
-    //   - 각 row: [S라벨] [hub ⋄] [좌2 진행 ◆] [보스/HERE ◈] [우3 미진행 ◇]
+    //   - 각 row: [S라벨] [hub ⋄] [좌N 진행 ◆] [보스/HERE ◈] [우N 미진행 ◇]
+    //   - 보스 = 진짜 중앙 cxMid 고정 (사용자 결정 2026-05-25)
+    //   - 좌우 노드 수는 stratum.nodeCount 에 비례 (맵 크기 = 노드 수)
     //   - 중앙 수직 dashed = DIVE path (S1→S5 전체)
-    const radialRowH = 22;          // 이전 디자인 크기 복원
+    const radialRowH = 22;
     const labelW = 14;
-    const hubX = graphX + labelW + 2;
+    const labelEndX = graphX + labelW + 2;     // S 라벨 우측 끝 (path 시작점)
     const dotsRight = graphX + graphW - 4;
-    const dotsArea = dotsRight - hubX;
-    const spacing = Math.min(14, dotsArea / 6); // 7 markers
-    const cxMid = hubX + 3 * spacing;
+    const cxMid = Math.floor((labelEndX + dotsRight) / 2);  // 진짜 중앙 = 보스 라인
     // 사용자 결정 2026-05-24: stratum layout 8px 위로 (YOUR ATK 라인과 정렬).
     const cy0 = baseY + Math.floor(radialRowH * 0.5) - 8;
+
+    // 사용자 결정 2026-05-25 v2: 5등급 모두 시각적으로 명확히 차별화.
+    //   실제 nodeCount (7~20) 는 차이가 미미해 sqrt 압축 후 다 cap 에 걸려 동일했음.
+    //   레어리티 → visualSide 직매핑으로 단순화. 행은 등급 내 stratum 모두 동일 길이.
+    //     Normal=1 / Magic=2 / Rare=3 / Legendary=4 / Ancient=5
+    //   총 노드 = hub + visualSide + boss → 3/4/5/6/7 노드
+    const RARITY_VISUAL_SIDE: Record<string, number> = {
+      normal: 1, magic: 2, rare: 3, legendary: 4, ancient: 5,
+    };
+    const visualSide = RARITY_VISUAL_SIDE[item.rarity] ?? 1;
+    const sideFor = (L: number): { leftN: number; rightN: number } => {
+      if (L > totalStrata) return { leftN: 0, rightN: 0 };
+      return { leftN: Math.ceil(visualSide / 2), rightN: Math.floor(visualSide / 2) };
+    };
+    // spacing 동적: 가장 긴 행이 좌·우 가용 공간 안에 들어오도록.
+    let maxLeft = 1;   // 최소 hub 1칸
+    let maxRight = 1;  // 우측 outline 최소 여백
+    for (let L = 1; L <= totalStrata; L++) {
+      const { leftN, rightN } = sideFor(L);
+      maxLeft = Math.max(maxLeft, leftN + 1);  // +1 = hub
+      maxRight = Math.max(maxRight, rightN);
+    }
+    const leftSpace = cxMid - labelEndX;
+    const rightSpace = dotsRight - cxMid;
+    const spacing = Math.max(9, Math.min(14, Math.min(leftSpace / maxLeft, rightSpace / Math.max(1, maxRight))));
 
     // 1) 중앙 수직 DIVE 점선 — 행 사이 빈 공간만 그림 (마름모 영역 skip).
     //    사용자 결정 2026-05-24: 마름모 안쪽으로 점선 투과 금지.
@@ -947,6 +984,10 @@ export class InventoryUI {
       sLabel.y = ry - 4;
       this.infoArea.addChild(sLabel);
 
+      // stratum 별 좌·우 노드 수 (사용자 결정 2026-05-25: nodeCount 비례)
+      const { leftN, rightN } = sideFor(L);
+      const hubX_L = cxMid - (leftN + 1) * spacing;  // 행별 hub 위치
+
       // 가로 path line — 마름모 영역 skip (사용자 결정 2026-05-24: outline 안쪽 투과 방지).
       const pathG = new Graphics();
       const pathColor = isAvail ? 0x6a4a20 : 0x3a3a44;
@@ -958,18 +999,18 @@ export class InventoryUI {
         }
       };
       const isFinalRow = isAvail && L === totalStrata;
-      const zones: { x: number; sz: number }[] = isAvail
-        ? [
-            { x: hubX,                  sz: 3 + 1 },                       // hub
-            { x: hubX + spacing,        sz: 4 + 1 },                       // 좌1
-            { x: hubX + 2 * spacing,    sz: 4 + 1 },                       // 좌2
-            { x: cxMid,                 sz: (isFinalRow ? 6.5 : 6) + 1 }, // 보스/HERE
-            { x: cxMid + spacing,       sz: 4 + 1 },                       // 우1
-            { x: cxMid + 2 * spacing,   sz: 4 + 1 },                       // 우2
-            { x: cxMid + 3 * spacing,   sz: 4 + 1 },                       // 우3
-          ]
-        : [{ x: cxMid, sz: 3.5 + 1 }];                                     // 잠금 중앙 ◇
-      let xs = hubX - 2;
+      const zones: { x: number; sz: number }[] = [];
+      if (isAvail) {
+        zones.push({ x: hubX_L, sz: 3 + 1 });
+        for (let i = 1; i <= leftN; i++) zones.push({ x: cxMid - i * spacing, sz: 4 + 1 });
+        zones.push({ x: cxMid, sz: (isFinalRow ? 6.5 : 6) + 1 });
+        for (let i = 1; i <= rightN; i++) zones.push({ x: cxMid + i * spacing, sz: 4 + 1 });
+        // zones 가 x 오름차순이 되도록 좌측 노드는 역순으로 들어갔으므로 정렬.
+        zones.sort((a, b) => a.x - b.x);
+      } else {
+        zones.push({ x: cxMid, sz: 3.5 + 1 });
+      }
+      let xs = labelEndX - 2;
       for (const z of zones) {
         drawHSeg(xs, z.x - z.sz);
         xs = z.x + z.sz;
@@ -988,14 +1029,14 @@ export class InventoryUI {
       }
 
       const nodeG = new Graphics();
-      // (a) Hub — 최좌측, 작은 흰색 ◆ (spawn)
+      // (a) Hub — 좌측 끝, 작은 흰색 ◆ (spawn)
       const hubSz = 3;
-      nodeG.poly([hubX, ry - hubSz, hubX + hubSz, ry, hubX, ry + hubSz, hubX - hubSz, ry])
+      nodeG.poly([hubX_L, ry - hubSz, hubX_L + hubSz, ry, hubX_L, ry + hubSz, hubX_L - hubSz, ry])
         .fill({ color: 0xcccccc, alpha: baseAlpha });
 
-      // (b) 좌측 2 노드 — fill orange (path 마커)
-      for (let i = 1; i <= 2; i++) {
-        const bx = hubX + i * spacing;
+      // (b) 좌측 leftN 노드 — fill orange (path 마커)
+      for (let i = 1; i <= leftN; i++) {
+        const bx = cxMid - i * spacing;
         const sz = 4;
         const diamond = [bx, ry - sz, bx + sz, ry, bx, ry + sz, bx - sz, ry];
         nodeG.poly(diamond).fill({ color: COL_KEY, alpha: baseAlpha });
@@ -1015,8 +1056,8 @@ export class InventoryUI {
           .fill({ color: 0x1a1a1a, alpha: baseAlpha });
       }
 
-      // (d) 우측 3 노드 — 미진행 outline
-      for (let i = 1; i <= 3; i++) {
+      // (d) 우측 rightN 노드 — 미진행 outline
+      for (let i = 1; i <= rightN; i++) {
         const bx = cxMid + i * spacing;
         const sz = 4;
         const diamond = [bx, ry - sz, bx + sz, ry, bx, ry + sz, bx - sz, ry];
@@ -1448,6 +1489,8 @@ export class InventoryUI {
    */
   private drawStratumMinimap(): void {
     // STRATUM column header is now drawn by drawTitle in anvil mode (spec.png 3-column layout).
+    // statusArea 가 drawRightColumn 에서 매번 clear 되므로 layers 도 reset.
+    this.abyssNoiseLayers = [];
     let y = 0;
     const W = STATUS_W - 6;
 
@@ -1471,15 +1514,17 @@ export class InventoryUI {
     // 2.5 카드 viewport (2026-05-25 사용자 결정).
     //   - 슬롯 0/1 = 풀 카드, 슬롯 2 = 절반 카드 (다음 stratum 있음 힌트)
     //   - 풀 카드 높이 = totalH * 0.4 (2.5 카드 fit)
-    //   - firstVisibleIdx = max(0, reached - 1) — 마지막 클리어 stratum 이 1번 칸
-    //     (사용자: "3층까지 깼으면 그게 1번칸")
+    //   - firstVisibleIdx = reached — 클리어 완료 시 다음 stratum 이 slot 0 으로 올라옴.
+    //     (사용자 결정 2026-05-25 v2: "층 클리어하면 다음 층이 slot 0")
+    //     S1 클리어(reached=1) → S2=slot0/S3=slot1/S4=slot2
+    //     S5까지 점진 이동 (reached=4 → S5=slot0)
     const totalH = PANEL_H - CONTENT_START_Y - 20;
     const cardGap = 4;
     const cardHFull = Math.floor((totalH - cardGap * 2) * 0.4);
     const cardHHalf = Math.floor(cardHFull * 0.5);
     const cardW = W;
 
-    const firstVisibleIdx = Math.max(0, Math.min(totalStrata - 1, reached - 1));
+    const firstVisibleIdx = Math.max(0, Math.min(totalStrata - 1, reached));
     const slotHeights = [cardHFull, cardHFull, cardHHalf];
 
     let cardY = y;
@@ -1492,6 +1537,7 @@ export class InventoryUI {
       const isNext = isAvailable && L === next && !isReached;
 
       const card = new Graphics();
+      let pendingNoise: { top: number; bot: number } | null = null;
       // 2026-05-25 사용자 결정: 카드 내부 border 전혀 없게 — 단 *현재 층(isNext)* 만 예외.
       //   BG = #161515 (벽과 동일) — 룸 사이가 벽으로 자연 연결.
       card.rect(0, cardY, cardW, cardH).fill({ color: 0x161515, alpha: isAvailable ? 1 : 0.6 });
@@ -1501,6 +1547,25 @@ export class InventoryUI {
       //   x = depth (왼→오), y = branchIndex (CP=중앙, L=위, R=아래, dead=±2)
       if (isAvailable) {
         this.renderStratumPixelMap(card, item, L - 1, cardY, cardH, cardW, isReached, isNext);
+      }
+
+      // 사용자 결정 2026-05-25 v4: 슬롯별 top/bottom intensity 매핑.
+      //   slot 0 = 위 0 / 아래 0          (클린)
+      //   slot 1 = 위 0.1 / 아래 0.8     (점진 증가)
+      //   slot 2 = 위 0.8 / 아래 1.0     (가득)
+      //   → 카드 경계에서 연속 (0.8 → 0.8). 세로 전체가 부드러운 그라디언트.
+      // v5 (2026-05-25): noise 를 별도 Graphics layer 로 분리해 *지지직 글리치* 애니메이션.
+      //   update() 의 abyssNoiseTick 가 증가하면 각 layer 의 seed 가 바뀌어 패턴 재롤.
+      {
+        const SLOT_INTENSITY: Array<{ top: number; bot: number }> = [
+          { top: 0,   bot: 0   },
+          { top: 0.1, bot: 0.8 },
+          { top: 0.8, bot: 1.0 },
+        ];
+        const { top, bot } = SLOT_INTENSITY[slot] ?? { top: 0, bot: 0 };
+        if (top > 0.001 || bot > 0.001) {
+          pendingNoise = { top, bot };
+        }
       }
 
       // 다음 층 outline — isAvailable 카드 회색 1px (룸 픽셀 위에 그림).
@@ -1513,6 +1578,15 @@ export class InventoryUI {
       }
       this.statusArea.addChild(card);
 
+      // noise layer — card *위* 에 (지지직 글리치가 outline 까지 살짝 덮음).
+      if (pendingNoise) {
+        const noiseG = new Graphics();
+        const baseSeed = (item.uid ?? 0) * 257 + stratumIdx;
+        this.drawAbyssNoise(noiseG, cardY, cardH, cardW, pendingNoise.top, pendingNoise.bot, baseSeed + this.abyssNoiseTick * 7919);
+        this.statusArea.addChild(noiseG);
+        this.abyssNoiseLayers.push({ graphics: noiseG, cardY, cardH, cardW, top: pendingNoise.top, bot: pendingNoise.bot, baseSeed });
+      }
+
       // L 라벨 — 우상단 (좌상단은 hub 룸이 차지). 카드 border 제거된 상태에서
       // 맵 위에 작은 overlay 로 표시. 절반 카드는 라벨만 보임 (clipped 효과).
       const labelColor = isNext ? COL_KEY : (isAvailable ? COL_DIM : COL_LOCKED);
@@ -1523,6 +1597,47 @@ export class InventoryUI {
 
       // 다음 슬롯 y 누적
       cardY += cardH + cardGap;
+    }
+  }
+
+  /**
+   * 심연 노이즈 — 카드 위에 픽셀 점 + 짧은 가로 글리치 흩뿌림.
+   * intensity 0~1 비례. seed 로 deterministic (같은 카드 = 같은 패턴).
+   *   - 점: 1×1 어두운 회색 ~ 약간 따뜻한 톤
+   *   - 가끔 1×2 가로 글리치 (스캔라인 단편)
+   */
+  private drawAbyssNoise(card: Graphics, cardY: number, cardH: number, cardW: number, topI: number, botI: number, seed: number): void {
+    let s = seed >>> 0;
+    const rand = (): number => {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 0xFFFFFFFF;
+    };
+    const area = cardW * cardH;
+    // 사용자 결정 2026-05-25 v4: 카드 내부 top→bot intensity 그라디언트.
+    //   각 점의 yNorm 위치에서 locI = lerp(top, bot, yNorm) → reject 샘플링.
+    const dotMax = Math.floor(area * 0.5);
+    for (let i = 0; i < dotMax; i++) {
+      const px = Math.floor(rand() * cardW);
+      const yNorm = rand();
+      const locI = topI + (botI - topI) * yNorm;
+      if (rand() > locI) continue;
+      const py = cardY + Math.floor(yNorm * cardH);
+      const r = rand();
+      const color = r < 0.7 ? 0x2a2828 : (r < 0.9 ? 0x3a302a : 0x4a3020);
+      const alpha = 0.5 + rand() * 0.4;
+      card.rect(px, py, 1, 1).fill({ color, alpha });
+    }
+    // 가로 글리치 — 짧은 1×N 선 (스캔라인 단편)
+    const glitchMax = Math.floor(area * 0.25);
+    for (let i = 0; i < glitchMax; i++) {
+      const px = Math.floor(rand() * cardW);
+      const yNorm = rand();
+      const locI = topI + (botI - topI) * yNorm;
+      if (rand() > locI) continue;
+      const py = cardY + Math.floor(yNorm * cardH);
+      const w = 2 + Math.floor(rand() * 4);
+      const color = rand() < 0.5 ? 0x3a3838 : 0x4a3a2a;
+      card.rect(px, py, w, 1).fill({ color, alpha: 0.45 + rand() * 0.35 });
     }
   }
 
@@ -1592,6 +1707,16 @@ export class InventoryUI {
         const pulse = 0.55 + 0.45 * Math.sin(t * Math.PI * 2 * 1.2);
         this.divePromptIcon.alpha = pulse;
         this.divePromptLabel.alpha = pulse;
+      }
+      // 심연 노이즈 지지직 글리치 — 60ms 마다 패턴 재롤.
+      this.abyssNoiseTimer += dt;
+      if (this.abyssNoiseTimer >= 60 && this.abyssNoiseLayers.length > 0) {
+        this.abyssNoiseTimer = 0;
+        this.abyssNoiseTick++;
+        for (const layer of this.abyssNoiseLayers) {
+          layer.graphics.clear();
+          this.drawAbyssNoise(layer.graphics, layer.cardY, layer.cardH, layer.cardW, layer.top, layer.bot, layer.baseSeed + this.abyssNoiseTick * 7919);
+        }
       }
     }
   }

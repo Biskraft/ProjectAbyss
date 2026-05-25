@@ -10,7 +10,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
-import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, type InnocentStatKey } from '@items/ItemInstance';
+import { type ItemInstance, RARITY_COLOR, calcInnocentBonus, getDisplayName, type InnocentStatKey } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { STRATA_BY_RARITY } from '@data/StrataConfig';
 import { getPlayerBaseStats } from '@data/playerStats';
@@ -74,7 +74,7 @@ export class ItemDetailView {
     const addDiv = () => { y += 2; lines.push({ text: '---DIV---', x: 0, y, color: 0, size: 0 }); y += 6; };
 
     // Header
-    add(item.def.name, 16, rarityColor, 12);
+    add(getDisplayName(item), 16, rarityColor, 12);
 
     // Meta
     const rarityName = RARITY_DISPLAY_NAME[item.rarity] ?? item.rarity;

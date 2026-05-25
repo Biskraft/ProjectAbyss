@@ -62,7 +62,8 @@ import { TITLE_FADE_OVERLAY_LABEL, TitleScene } from './TitleScene';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import {
-  MODAL_BG, MODAL_BG_ALPHA, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, FONT_HINT,
+  MODAL_BG, MODAL_BG_ALPHA, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, FONT_HINT,
+  create9SlicePanel,
 } from '@ui/ModalPanel';
 import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
@@ -75,7 +76,7 @@ import { ItemDropEntity } from '@items/ItemDrop';
 import { resolveBottomLeftPickupSpawn, resolveItemDropSpawn } from '@items/DropSpawn';
 import { SWORD_DEFS, STARTER_ONLY_IDS, type WeaponDef } from '@data/weapons';
 import { LORE_WEAPONS, loreWeaponToWeaponDef } from '@data/loreWeapons';
-import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle, DEMO_BLOCK_REDIVE } from '@items/ItemInstance';
+import { createItem, calcInnocentBonus, itemLevelUp, isItemFullyCleared, resetItemForNextCycle, DEMO_BLOCK_REDIVE, EXP_PER_LEVEL, getDisplayName } from '@items/ItemInstance';
 import { getPlayerBaseStats } from '@data/playerStats';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
@@ -108,6 +109,7 @@ import { LandingDustManager } from '@effects/LandingDust';
 import { DashAfterimageManager } from '@effects/DashAfterimage';
 import { DashBoostPuffManager } from '@effects/DashBoostPuff';
 import { DoubleJumpRingManager } from '@effects/DoubleJumpRing';
+import { RGBSplitFilter } from '@effects/RGBSplitFilter';
 import { WallJumpDustManager } from '@effects/WallJumpDust';
 import { JumpTakeoffPuffManager } from '@effects/JumpTakeoffPuff';
 import { WallSlideDustManager } from '@effects/WallSlideDust';
@@ -197,6 +199,7 @@ import { AmbientLayer } from '@audio/AmbientLayer';
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
+import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -204,6 +207,7 @@ import { BgmController } from '@audio/BgmController';
 
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
+const ITEM_WORLD_ENTRY_FADE_MS = 350;
 /**
  * Void touch sequence (Victor spec 2026-05-15):
  *   0–200 ms     — fade OUT (alpha 0 → 1)
@@ -220,6 +224,7 @@ const VOID_HOLD_DURATION = 1000;
 const VOID_FADE_IN_DURATION = 500;
 const VOID_INPUT_LOCK_MS = 2000;
 const SAVE_INTERACT_DELAY_MS = 500;
+const FROZEN_RETURN_ARM_DISTANCE = 4 * TILE_SIZE;
 // FIRST_ANVIL_LEVEL_ID 폐기 (2026-05-24): 식별자 분기는 LDtk Anvil entity 의
 // RetireAfterFirstBoss field 로 데이터 기반 제어.
 const INVENTORY_KEY_HINT_ID = 'inventory_key';
@@ -266,6 +271,7 @@ export class LdtkWorldScene extends Scene {
   // LDtk level data
   private loader!: LdtkLoader;
   private builderLoader!: LdtkLoader;
+  private itemStratumLoader: LdtkLoader | null = null;
   /**
    * 사용자 결정 (2026-05-03): "Open Inventory" tutorialHint 는 픽업 cutscene +
    * EGO 대사가 모두 끝난 후 표시. firstEver 픽업 시 flag 만 set, update() 가
@@ -352,12 +358,30 @@ export class LdtkWorldScene extends Scene {
   // Layers
   private entityLayer!: Container;
   private deploymentFxLayer!: Container;
+  private vividLayer!: Container;
   private fluidLayer!: Container;
   private fluidSystem!: FluidSystem;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
   private laserDesaturationFilter: ColorMatrixFilter | null = null;
   private readonly laserDesaturationPrevFilters = new Map<Container, Filter[] | null>();
+  private dungeonAtmosphereActive = false;
+  private dungeonAtmosphereFilter: ColorMatrixFilter | null = null;
+  private dungeonAtmosphereTargets: Container[] = [];
+  private builderInteriorHiddenForAtmosphere = false;
+  private builderBodyInteriorHiddenForAtmosphere = false;
+  private parallaxGrayFilter: ColorMatrixFilter | null = null;
+  private frozenPlayerSnapshot: Container | null = null;
+  private frozenSnapshotRGBFilter: RGBSplitFilter | null = null;
+  private frozenSnapshotGrayFilter: ColorMatrixFilter | null = null;
+  private pendingTunnelParams: { x: number; y: number; w: number; h: number } | null = null;
+  private frozenSnapshotHandler: ProximityInteraction | null = null;
+  private frozenSnapPromptContainer: Container | null = null;
+  private frozenSnapConfirmPanel: Container | null = null;
+  private frozenSnapConfirmOverlay: Graphics | null = null;
+  private frozenSnapConfirmOpen = false;
+  private frozenReturnInteractionArmed = false;
+  private frozenReturnTransitionActive = false;
 
   // Entities
   private player!: Player;
@@ -409,6 +433,7 @@ export class LdtkWorldScene extends Scene {
   private pendingPlayerTileY = 0;
   private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
+  private pendingInventoryHintDelayMs = 0;
   /**
    * ItemWorld 복귀 fade-in 전용 overlay. fadeOverlay 와 분리해 voidFade /
    * level transition 과 race 발생 없이 독립 페이드. 0 = invisible, 1 = full black.
@@ -548,11 +573,20 @@ export class LdtkWorldScene extends Scene {
   private anvil: Anvil | null = null;
   private anvilPrompt: Container | null = null;
   private anvilDisabledPrompt: Container | null = null;
+  private anvilPromptSuppressMs = 0;
   private screenCrack: ScreenCrack | null = null;
   private memoryDive: MemoryDive | null = null; // ARCHIVED — kept for type compat
   private diveTransitionActive = false;
   private collapseItem: ItemInstance | null = null;
   private itemDeployment: ItemDeploymentController | null = null;
+  private itemWorldEntryTransitionActive = false;
+  private worldVisualsReleasedForItemWorld = false;
+  private ghostOverlay: ItemWorldGhostOverlay | null = null;
+  private ghostPendingTimer = -1;
+  private ghostPendingParams: { x: number; y: number; w: number; h: number } | null = null;
+  private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
+  private deploymentTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
+  private builderTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private wallGate: WallGate | null = null;
   private anvilDiveUiHidden = false;
   private anvilDiveUiWasVisible = true;
@@ -582,6 +616,8 @@ export class LdtkWorldScene extends Scene {
    */
   private lastUsedAnvilPos: { x: number; y: number; width: number; height: number } | null = null;
   private lastUsedAnvilLevelId: string | null = null;
+  private lastUsedAnvilItem: ItemInstance | null = null;
+  private pendingFirstIwReturnHintHadFirstBossClear: boolean | null = null;
   /** 직전 사용 anvil 의 RetireAfterFirstBoss field 값. retire-after-boss 분기 SSoT. */
   private lastUsedAnvilRetireAfterBoss = false;
   /** True while player is inside an ItemTunnel level, heading to Item World. */
@@ -702,11 +738,22 @@ export class LdtkWorldScene extends Scene {
     const anvil: ProximityInteraction = {
       label: 'Anvil',
       priority: 20,
-      canInteract: () =>
-        !!this.anvil && !this.anvil.used && !this.anvil.disabled && !this.anvil.hasItem() &&
-        !this.altarSelectActive &&
-        this.isPlayerNearAnvil(),
-      onInteract: () => this.openAnvilUI(),
+      canInteract: () => {
+        if (!this.anvil || this.altarSelectActive || !this.isPlayerNearAnvil()) return false;
+        if (this.itemDeployment?.isActive) return false;
+        // Step 5 (2026-05-25): anvil 에 무기가 *남아있는* 상태 (IW 클리어 후 복귀)
+        // 면 회수 인터랙트 우선. retire(disabled)/used 와 무관.
+        if (this.anvil.hasItem()) return true;
+        if (this.anvilPromptSuppressMs > 0) return false;
+        return !this.anvil.used && !this.anvil.disabled;
+      },
+      onInteract: () => {
+        if (this.anvil?.hasItem()) {
+          this.reclaimItemFromAnvil();
+          return;
+        }
+        this.openAnvilUI();
+      },
     };
     const savePoint: ProximityInteraction = {
       label: 'SavePoint',
@@ -767,6 +814,10 @@ export class LdtkWorldScene extends Scene {
     // Builder world — separate loader so builder levels don't mix with navigation
     this.builderLoader = new LdtkLoader();
     this.builderLoader.load(json, BUILDER_WORLD_ID);
+
+    // ItemStratum levels — only used for ghost overlay preview (same JSON, different world filter)
+    this.itemStratumLoader = new LdtkLoader();
+    this.itemStratumLoader.load(json, 'ItemStratum');
 
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
@@ -985,6 +1036,9 @@ export class LdtkWorldScene extends Scene {
 
     this.deploymentFxLayer = new Container();
     this.container.addChild(this.deploymentFxLayer);
+
+    this.vividLayer = new Container();
+    this.container.addChild(this.vividLayer);
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
@@ -1456,6 +1510,36 @@ export class LdtkWorldScene extends Scene {
     }
     if (!this.currentLevel) return; // first init ??loadLevel handles setup
 
+    if (this.worldVisualsReleasedForItemWorld) {
+      const levelId = this.currentLevel.identifier;
+      const px = this.player.x;
+      const py = this.player.y;
+      this.worldVisualsReleasedForItemWorld = false;
+      // Step 4/5 (2026-05-25): loadLevel → spawnAnvilFromLdtk 가 새 Anvil 인스턴스를
+      // 만들어 placedItem sprite 가 사라진다. 백업 + 복원 (disabled bypass).
+      const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
+      this.loadLevel(levelId, 'down');
+      if (preservedAnvilItem && this.anvil) {
+        const wasDisabled = this.anvil.disabled;
+        this.anvil.disabled = false;
+        this.anvil.placeItem(preservedAnvilItem);
+        this.anvil.used = false;
+        this.anvil.disabled = wasDisabled;
+      }
+      this.player.x = px;
+      this.player.y = py;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.roomData = this.collisionGrid;
+      this.player.savePrevPosition();
+      this.updatePlayerAtk();
+      this.game.camera.snap(
+        this.player.x + this.player.width / 2,
+        this.player.y + this.player.height / 2,
+      );
+      return;
+    }
+
     // Clean up dive/collapse effect
     if (this.memoryDive) {
       this.memoryDive.destroy();
@@ -1527,6 +1611,12 @@ export class LdtkWorldScene extends Scene {
     this.itemPickupGlow.clear();
     this.relicAuraBurst.clear();
     this.dmgNumbers?.clear();
+    this.destroyGhostOverlay(true);
+    this.restoreDeploymentTunnel(true);
+    this.deactivateDungeonAtmosphere();
+    this.itemDeployment?.destroy();
+    this.itemDeployment = null;
+    this.worldVisualsReleasedForItemWorld = true;
   }
 
   private hideUiForAnvilDiveTransition(): void {
@@ -1739,13 +1829,16 @@ export class LdtkWorldScene extends Scene {
     // 대사가 모두 끝난 후 표시. pendingInventoryHint flag 가 set 되어 있으면
     // 매 프레임 종료 조건 검사 후 표시.
     if (this.pendingInventoryHint) {
+      if (this.pendingInventoryHintDelayMs > 0) {
+        this.pendingInventoryHintDelayMs = Math.max(0, this.pendingInventoryHintDelayMs - dt);
+      }
       const cutsceneBlocking =
         this.activeWeaponPulse?.isBlocking ||
         this.lorePopup?.isBlocking() ||
         this.lorePopupItem !== null ||
         this.acquireOverlay?.isBlocking() ||
         this.loreDisplay?.isActive;
-      if (!cutsceneBlocking) {
+      if (!cutsceneBlocking && this.pendingInventoryHintDelayMs <= 0) {
         const hintId = this.pendingInventoryHint === 'first_pickup'
           ? INVENTORY_KEY_HINT_ID
           : INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID;
@@ -1754,6 +1847,7 @@ export class LdtkWorldScene extends Scene {
           { keyLabel: actionKey(GameAction.INVENTORY), text: t('tutorial.open_inventory'), persistent: true },
         );
         this.pendingInventoryHint = null;
+        this.pendingInventoryHintDelayMs = 0;
       }
     }
 
@@ -2029,6 +2123,7 @@ export class LdtkWorldScene extends Scene {
     // ?�들???�록?� registerProximityHandlers() 참조.
     this.updateQueuedSave(dt);
 
+    this.updateFrozenSnapshotPrompt();
     if (this.proximity.tryInteract(this.game.input)) return;
 
     // Giant Builder — moving platform pattern.
@@ -2556,7 +2651,7 @@ export class LdtkWorldScene extends Scene {
       if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
         if (this.inventory.add(drop.item)) {
           this.game.stats.itemsCollected++;
-          this.toast.show(t('toast.item_acquired', { name: drop.item.def.name, rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
+          this.toast.show(t('toast.item_acquired', { name: getDisplayName(drop.item), rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
           // hint removed
           const key = (drop as any)._itemKey as string | undefined;
           if (key) this.collectedItems.add(key);
@@ -2937,6 +3032,63 @@ export class LdtkWorldScene extends Scene {
 
     // ItemDeployment Deployed-state: check player ∩ wallGate entrance each frame
     this.itemDeployment?.update(dt);
+    if (this.ghostOverlay) {
+      let plx: number | undefined;
+      let ply: number | undefined;
+      if (this.player) {
+        plx = this.player.container.x + this.player.width  / 2 - this.ghostOverlay.container.x;
+        ply = this.player.container.y + this.player.height     - this.ghostOverlay.container.y;
+      }
+      this.ghostOverlay.update(dt, plx, ply);
+    }
+    if (this.ghostPendingTimer >= 0 && !this.ghostOverlay && this.ghostPendingParams) {
+      this.ghostPendingTimer += dt;
+      if (this.ghostPendingTimer >= 400) {
+        this._buildGhostOverlay(this.ghostPendingParams);
+        this.ghostPendingTimer = -1;
+        this.ghostPendingParams = null;
+      }
+    }
+
+    // Frozen snapshot: RGB split + grayscale — both grow with distance
+    if (this.frozenPlayerSnapshot && this.player) {
+      const dx   = this.player.container.x - this.frozenPlayerSnapshot.x;
+      const dy   = this.player.container.y - this.frozenPlayerSnapshot.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (this.frozenSnapshotRGBFilter) {
+        this.frozenSnapshotRGBFilter.setOffset(Math.min(12, dist * 0.06));
+      }
+      if (this.frozenSnapshotGrayFilter) {
+        const t = Math.min(1, Math.max(0, (dist - 128) / 200));
+        const l = 0.2126, m = 0.7152, s = 0.0722;
+        this.frozenSnapshotGrayFilter.matrix = [
+          1-(1-l)*t, m*t,       s*t,       0, 0,
+          l*t,       1-(1-m)*t, s*t,       0, 0,
+          l*t,       m*t,       1-(1-s)*t, 0, 0,
+          0,         0,         0,         1, 0,
+        ];
+      }
+    }
+
+    // Frozen snapshot: confirm panel input
+    if (this.frozenSnapConfirmOpen) {
+      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
+        this.game.input.consumeJustPressed(GameAction.ATTACK);
+        this._hideFrozenReturnConfirm();
+        this._beginReturnToWorld();
+      } else if (
+        this.game.input.isJustPressed(GameAction.JUMP) ||
+        this.game.input.isJustPressed(GameAction.DASH) ||
+        this.game.input.isJustPressed(GameAction.MENU) ||
+        this.game.input.isJustPressed(GameAction.CANCEL)
+      ) {
+        this.game.input.consumeJustPressed(GameAction.JUMP);
+        this.game.input.consumeJustPressed(GameAction.DASH);
+        this.game.input.consumeJustPressed(GameAction.MENU);
+        this.game.input.consumeJustPressed(GameAction.CANCEL);
+        this._hideFrozenReturnConfirm();
+      }
+    }
 
     // Camera — deadzone follow + zoom lerp. Player is always in world coords.
     // While riding the builder, include visualYOffset so the camera tracks the
@@ -2973,8 +3125,10 @@ export class LdtkWorldScene extends Scene {
 
     cam.update(dt);
 
-    // Parallax background scroll
-    this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
+    // Parallax background scroll — frozen while dungeon atmosphere is active
+    if (!this.dungeonAtmosphereActive) {
+      this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
+    }
 
     // Oxygen overlay ??vignette + bar when submerged
     this.updateOxygenOverlay();
@@ -3528,6 +3682,9 @@ export class LdtkWorldScene extends Scene {
 
   override destroy(): void {
     this.setLaserDesaturation(false);
+    this.deactivateDungeonAtmosphere();
+    this.destroyGhostOverlay(true);
+    this.restoreDeploymentTunnel(true);
     this.itemDeployment?.destroy();
     this.itemDeployment = null;
     this.restoreUiAfterAnvilDiveTransition();
@@ -4584,6 +4741,35 @@ export class LdtkWorldScene extends Scene {
       findTarget: () => this.findNearestGrabbableContainer(),
       promptText: t('prompt.lift'),
     });
+  }
+
+  private updateFrozenSnapshotPrompt(): void {
+    const prompt = this.frozenSnapPromptContainer;
+    const snapshot = this.frozenPlayerSnapshot;
+    if (!prompt) return;
+    if (!snapshot || !this.player || this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) {
+      prompt.visible = false;
+      return;
+    }
+
+    const dx = this.player.container.x - snapshot.x;
+    const dy = this.player.container.y - snapshot.y;
+    const distSq = dx * dx + dy * dy;
+    const armDistanceSq = FROZEN_RETURN_ARM_DISTANCE * FROZEN_RETURN_ARM_DISTANCE;
+    if (!this.frozenReturnInteractionArmed && distSq >= armDistanceSq) {
+      this.frozenReturnInteractionArmed = true;
+    }
+    const near = this.frozenReturnInteractionArmed && distSq <= 64 * 64;
+    prompt.visible = near;
+    if (!near) return;
+
+    const us = this.game.uiScale;
+    const cam = this.game.camera;
+    const promptWorldY = snapshot.y - 48; // snapshot.y is the bottom of a 32px-tall player sprite.
+    const sx = (snapshot.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
+    const sy = (promptWorldY - cam.renderY + GAME_HEIGHT / 2) * us;
+    prompt.x = Math.round(sx);
+    prompt.y = Math.round(sy);
   }
 
   /** Check if player is near a save point ??show hint, save on UP. */
@@ -6222,8 +6408,42 @@ export class LdtkWorldScene extends Scene {
    * onComplete 콜백 3 경로(일반 portal / floor collapse / fixed level)에서 호출.
    */
   private startItemWorldReturnFadeIn(): void {
+    this.normalizeWorldVisualsAfterItemWorldReturn();
     this.iwReturnFadeMs = this.IW_RETURN_FADE_DURATION;
     this.iwReturnFade.alpha = 1;
+  }
+
+  private normalizeWorldVisualsAfterItemWorldReturn(): void {
+    this.deactivateDungeonAtmosphere();
+    this.destroyGhostOverlay(true);
+    this.restoreDeploymentTunnel(true);
+    this.pendingTunnelParams = null;
+    this.ghostPendingTimer = -1;
+    this.ghostPendingParams = null;
+    this.fadeOverlay.alpha = 0;
+    if (this.parallaxBG?.container) {
+      this.parallaxBG.container.alpha = 1;
+    }
+    const filteredLayers = [
+      this.renderer?.bgLayer,
+      this.renderer?.wallLayer,
+      this.renderer?.interiorLayer,
+      this.renderer?.shadowLayer,
+      this.renderer?.specialLayer,
+      this.entityLayer,
+      this.fluidLayer,
+      this.parallaxBG?.container,
+    ].filter((layer): layer is Container => !!layer);
+    for (const layer of filteredLayers) {
+      if (!layer.filters) continue;
+      const filters = layer.filters.filter(f =>
+        f !== this.dungeonAtmosphereFilter &&
+        f !== this.parallaxGrayFilter &&
+        f !== this.laserDesaturationFilter
+      );
+      layer.filters = filters.length ? filters : null;
+    }
+    this.laserDesaturationPrevFilters.clear();
   }
 
   private updateVoidFade(dt: number): void {
@@ -7965,6 +8185,7 @@ export class LdtkWorldScene extends Scene {
     );
     for (const prop of registered) this.tileMutator.registerBurnable(prop);
   }
+
   /** Walk a builder level's LDtk entities and spawn the gameplay objects
    *  that make sense inside a moving builder. Add new cases here for any
    *  entity type that needs to be supported (Anvil, GoldPickup, etc.). */
@@ -8530,16 +8751,21 @@ export class LdtkWorldScene extends Scene {
     this.itemWorldTransition.start(portal);
   }
 
-  private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean): void {
+  private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean, delayMs = 0): void {
     const firstBossClearedThisRun = !hadFirstBossClear && sacredSave.isFirstItemWorldBossDefeated();
     if (!firstBossClearedThisRun) return;
     if (this.unlockedEvents.has(INVENTORY_KEY_AFTER_FIRST_IW_EVENT)) return;
+    if (this.anvil?.hasItem() || this.lastUsedAnvilItem) {
+      this.pendingFirstIwReturnHintHadFirstBossClear = hadFirstBossClear;
+      return;
+    }
 
     this.unlockedEvents.add(INVENTORY_KEY_AFTER_FIRST_IW_EVENT);
     this.hud.setItemKeyHighlight(true);
     // 사용자 결정 (2026-05-03): hint 는 EGO 대사 (fireWorldReturnDialogue) 종료 후
     // 표시. flag 만 set, update() 가 cutscene/dialogue 종료 검사 후 실제 표시.
     this.pendingInventoryHint = 'first_iw_return';
+    this.pendingInventoryHintDelayMs = delayMs;
   }
 
   private completePendingPortalEntry(): void {
@@ -8582,11 +8808,6 @@ export class LdtkWorldScene extends Scene {
       this.portalTransition = null;
     }
 
-    // Hide world while in Item World and detach shared UI from global containers.
-    this.container.visible = false;
-    this.detachSharedUiForItemWorld();
-    this.releaseWorldVisualsForItemWorld();
-    this.game.camera.setZoom(1.0);
     // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
     // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
     this.dmgNumbers?.clear();
@@ -8624,12 +8845,12 @@ export class LdtkWorldScene extends Scene {
 
       if (isAltar) {
         if (targetItem.level > prevLevel) {
-          this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
+          this.toast.show(t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }), 0xff88ff);
         }
       } else {
         if (this.inventory.add(dungeonItem!)) {
           this.toast.show(
-            `Got ${dungeonItem!.def.name} [${dungeonItem!.rarity.toUpperCase()}]`,
+            `Got ${getDisplayName(dungeonItem!)} [${dungeonItem!.rarity.toUpperCase()}]`,
             0xffcc44,
           );
           this.sacredPickupFlow(
@@ -8644,7 +8865,12 @@ export class LdtkWorldScene extends Scene {
       }
     };
 
-    this.game.sceneManager.push(itemWorldScene, true);
+    void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
+      this.container.visible = false;
+      this.detachSharedUiForItemWorld();
+      this.releaseWorldVisualsForItemWorld();
+      this.game.camera.setZoom(1.0);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -9037,7 +9263,7 @@ export class LdtkWorldScene extends Scene {
       const selected = i === this.altarSelectIndex;
       const prefix = selected ? '> ' : '  ';
       const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
-      const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
+      const label = `${prefix}${getDisplayName(item)} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
       const t = new BitmapText({
         text: label,
         style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffcc44 : 0xffffff },
@@ -9211,6 +9437,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   private updateAnvil(dt: number): void {
+    if (this.anvilPromptSuppressMs > 0) {
+      this.anvilPromptSuppressMs = Math.max(0, this.anvilPromptSuppressMs - dt);
+    }
     if (!this.anvil) {
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
       if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
@@ -9219,7 +9448,13 @@ export class LdtkWorldScene extends Scene {
     if (this.isAnvilRetiredByBossClear(this.anvil) && !this.anvil.disabled) {
       void this.anvil.setDisabled(true);
     }
-    if (this.anvil.used || this.anvil.disabled) {
+    if (this.itemDeployment?.isActive) {
+      this.anvil.update(dt);
+      if (this.anvilPrompt) this.anvilPrompt.visible = false;
+      if (this.anvilDisabledPrompt) this.anvilDisabledPrompt.visible = false;
+      return;
+    }
+    if ((this.anvil.used || this.anvil.disabled) && !this.anvil.hasItem()) {
       this.anvil.update(dt);
       if (this.anvilPrompt) this.anvilPrompt.visible = false;
       if (this.anvil.disabled && this.isPlayerNearAnvil()) {
@@ -9240,9 +9475,13 @@ export class LdtkWorldScene extends Scene {
     // Pattern A(Modal): C(ATTACK) 키로 인벤토리(Anvil 모드) 열기 → 아이템
     // 선택 즉시 Item World 진입 (strike 단계 없음). 무기 장착 여부와 무관하게
     // 다가가면 항상 prompt 를 띄워 "C 로 진행 가능"을 일관되게 알린다.
-    if (near) {
-      if (!this.anvilPrompt) {
-        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.place_weapon'), this.game.uiScale);
+    if (near && this.anvilPromptSuppressMs <= 0) {
+      const promptKey = this.anvil.hasItem() ? 'prompt.acquire_item' : 'prompt.place_weapon';
+      if (!this.anvilPrompt || (this.anvilPrompt as any)._promptKey !== promptKey) {
+        if (this.anvilPrompt?.parent) this.anvilPrompt.parent.removeChild(this.anvilPrompt);
+        this.anvilPrompt?.destroy({ children: true });
+        this.anvilPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t(promptKey), this.game.uiScale);
+        (this.anvilPrompt as any)._promptKey = promptKey;
       }
       if (!this.anvilPrompt.parent) {
         this.game.uiContainer.addChild(this.anvilPrompt);
@@ -9318,6 +9557,33 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
+   * Step 5 (2026-05-25) — Anvil 위 남아있는 무기 회수.
+   *
+   * 사용자 시나리오: "anvil 인터랙트 → 무기 anvil 에서 사라지고 인벤토리로 복귀".
+   * IW 클리어 후 자동 풀려 sceneManager.pop() 으로 돌아온 시점에 anvil 의 placedItem
+   * 이 그대로 남아 있다 → 인터랙트 시 inventory.add + clearPlacedItem.
+   */
+  private reclaimItemFromAnvil(): void {
+    if (!this.anvil || !this.anvil.item) return;
+    const item = this.anvil.item;
+    const alreadyInInventory = this.inventory.items.some(i => i.uid === item.uid);
+    const added = alreadyInInventory || this.inventory.add(item);
+    if (!added) {
+      this.toast.show('Inventory full', 0xff4444);
+      return;
+    }
+    this.anvil.clearPlacedItem();
+    this.lastUsedAnvilItem = null;
+    this.anvilPromptSuppressMs = 1000;
+    const pendingHadFirstBossClear = this.pendingFirstIwReturnHintHadFirstBossClear;
+    this.pendingFirstIwReturnHintHadFirstBossClear = null;
+    if (pendingHadFirstBossClear !== null) {
+      this.showFirstItemWorldReturnInventoryHint(pendingHadFirstBossClear, 500);
+    }
+    this.toast.show(`+ ${getDisplayName(item)}`, 0xffd35a);
+  }
+
+  /**
    * Open the unified inventory UI in "anvil" mode. The player sees the same
    * grid inventory as the regular INVENTORY key but confirming an item places
    * it on the anvil instead of equipping.
@@ -9375,6 +9641,7 @@ export class LdtkWorldScene extends Scene {
     this.hideUiForAnvilDiveTransition();
     this.anvil.placeItem(item);
     this.collapseItem = item;
+    this.lastUsedAnvilItem = item;
     this.inventoryUI.close();
     // 공격 ?�계 ?�략 ???�이???�택 즉시 ?�이�?진입
     this.triggerFloorCollapse();
@@ -9410,7 +9677,7 @@ export class LdtkWorldScene extends Scene {
 
     const nextCycle = (item.worldProgress?.cycle ?? 0) + 1;
     const lines = [
-      `${item.def.name}`,
+      `${getDisplayName(item)}`,
       '',
       t('ui.cycle.dive_again_prompt'),
       t('ui.cycle.enemies_sharper'),
@@ -9546,6 +9813,7 @@ export class LdtkWorldScene extends Scene {
       height: this.anvil.height,
     };
     this.lastUsedAnvilLevelId = this.currentLevel?.identifier ?? null;
+    this.lastUsedAnvilItem = this.collapseItem;
     this.lastUsedAnvilRetireAfterBoss = this.anvil.retireAfterFirstBoss;
     this.preTunnelLevelId = this.currentLevel.identifier;
 
@@ -9563,7 +9831,7 @@ export class LdtkWorldScene extends Scene {
       () => this.enterItemWorldFromTunnel(),
       this.activeBuilder,
       (x, y) => this.hitSparks.spawn(x, y, true, 1),
-      (x, y, w, h) => this.openDeploymentTunnel(x, y, w, h),
+      (x, y, w, h) => { this.pendingTunnelParams = { x, y, w, h }; },
       this.currentLevel.pxWid,
       () => this.anvil?.getGatePivotWorld() ?? null,
       this.deploymentFxLayer,
@@ -9575,12 +9843,16 @@ export class LdtkWorldScene extends Scene {
         // onItemAbsorbed — retire 는 *ItemWorld 보스 클리어* 가 트리거 (정책
         // 원본). retireFirstAnvilAfterBossClear() 가 ItemWorld 복귀 시 처리.
       },
+      () => this.showTunnelOpenDialogueAfterDeployment(),
     );
     this.itemDeployment.start(this.anvil.x, this.anvil.y);
   }
 
   /** Clears world tiles and collision for the item-deployment tunnel. */
   private openDeploymentTunnel(x: number, y: number, w: number, h: number): void {
+    this.restoreGhostWorldCollision(false);
+    this.restoreDeploymentTunnel(false);
+
     const levelRight = this.currentLevel?.pxWid ?? x + w;
     const clearW = Math.max(w, levelRight - x);
 
@@ -9595,7 +9867,11 @@ export class LdtkWorldScene extends Scene {
       const gridRow = this.collisionGrid[row];
       if (!gridRow) continue;
       for (let col = col0; col <= col1; col++) {
-        if (col >= 0 && col < gridRow.length) gridRow[col] = 0;
+        if (col < 0 || col >= gridRow.length) continue;
+        if (gridRow[col] !== 0) {
+          this.deploymentTunnelRestoreCells.push({ row, col, value: gridRow[col] });
+          gridRow[col] = 0;
+        }
       }
     }
 
@@ -9604,6 +9880,22 @@ export class LdtkWorldScene extends Scene {
 
     // Also zero builder collisionGrid so stampBuilder won't re-fill the tunnel.
     if (this.activeBuilder) {
+      const localX = x - this.activeBuilder.container.x;
+      const localY = y - this.activeBuilder.container.y;
+      const bCol0 = Math.max(0, Math.floor(localX / TILE));
+      const bCol1 = this.activeBuilder.widthTiles - 1;
+      const bRow0 = Math.max(0, Math.floor(localY / TILE));
+      const bRow1 = Math.min(this.activeBuilder.heightTiles - 1, Math.floor((localY + h - 1) / TILE));
+      for (let row = bRow0; row <= bRow1; row++) {
+        const gridRow = this.activeBuilder.collisionGrid[row];
+        if (!gridRow) continue;
+        for (let col = bCol0; col <= bCol1; col++) {
+          if (col < 0 || col >= gridRow.length) continue;
+          if (gridRow[col] !== 0) {
+            this.builderTunnelRestoreCells.push({ row, col, value: gridRow[col] });
+          }
+        }
+      }
       this.activeBuilder.digTunnel(x, y, h);
       this.unstampBuilder();
       this.stampBuilder();
@@ -9614,11 +9906,152 @@ export class LdtkWorldScene extends Scene {
     this.anvil?.triggerDirectionalTrail(clearW);
 
     // EGO_TUNNEL_OPEN — 첫 진입 1회 한정 발화 (H).
-    const TUNNEL_OPEN_EGO_KEY = '__ego_tunnel_open_first';
-    if (!this.unlockedEvents.has(TUNNEL_OPEN_EGO_KEY)) {
-      this.unlockedEvents.add(TUNNEL_OPEN_EGO_KEY);
-      void this.loreDisplay?.showDialogue(EGO_TUNNEL_OPEN, false);
+    // Ghost overlay — schedule creation 400ms after tunnel opens (laser gone)
+    // resolves visually before the dungeon silhouette bleeds through.
+    if (this.collapseItem && !this.ghostOverlay && this.ghostPendingTimer < 0) {
+      this.ghostPendingParams = { x, y, w: clearW, h };
+      this.ghostPendingTimer = 0;
     }
+  }
+
+  private showTunnelOpenDialogueAfterDeployment(): void {
+    const TUNNEL_OPEN_EGO_KEY = '__ego_tunnel_open_first';
+    if (this.unlockedEvents.has(TUNNEL_OPEN_EGO_KEY)) return;
+    this.unlockedEvents.add(TUNNEL_OPEN_EGO_KEY);
+    void this.loreDisplay?.showDialogue(EGO_TUNNEL_OPEN, false);
+  }
+
+  private _buildGhostOverlay({ x, y, w, h }: { x: number; y: number; w: number; h: number }): void {
+    if (this.ghostOverlay || !this.collapseItem) return;
+    const ghost = new ItemWorldGhostOverlay();
+    const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
+    if (debugLevel) {
+      ghost.buildFromGrid(debugLevel.collisionGrid, debugLevel.gridW, debugLevel.gridH);
+      const displayEnt = debugLevel.entities.find(ent => ent.type === 'ItemDisplay');
+      if (displayEnt) {
+        const sizeRaw = (displayEnt.fields['Size'] ?? displayEnt.fields['size']) as number | undefined;
+        const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
+        const rotate = ((displayEnt.fields['Rotate'] ?? displayEnt.fields['rotate']) as boolean | undefined) ?? false;
+        ghost.addItemDisplay(displayEnt.px[0], displayEnt.px[1], this.collapseItem, scaleFactor, rotate);
+      }
+    } else {
+      ghost.build(this.collapseItem, 0);
+    }
+    ghost.container.x = x + w * 0.5 - ghost.builtPxW * 0.5 + 256;
+    ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
+    ghost.itemContainer.x = ghost.container.x;
+    ghost.itemContainer.y = ghost.container.y;
+    this.container.addChild(ghost.container);
+    this.container.addChild(ghost.itemContainer);
+    const rimFilter = new RimLightFilter({ color: 0x4499ff, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
+    const ghostFilters: Filter[] = [rimFilter];
+    if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
+      ghostFilters.push(this.dungeonAtmosphereFilter);
+      this.dungeonAtmosphereTargets.push(ghost.container);
+    }
+    ghost.container.filters = ghostFilters;
+    ghost.fadeTo(1, 0);
+    this.ghostOverlay = ghost;
+
+    // Stamp ghost collision into world grid (non-zero tiles only — don't erase world walls outside tunnel).
+    if (debugLevel) {
+      const TILE = 16;
+      const gx0 = Math.floor(ghost.container.x / TILE);
+      const gy0 = Math.floor(ghost.container.y / TILE);
+      for (let r = 0; r < debugLevel.gridH; r++) {
+        const worldRow = this.collisionGrid[gy0 + r];
+        if (!worldRow) continue;
+        for (let c = 0; c < debugLevel.gridW; c++) {
+          const t = debugLevel.collisionGrid[r]?.[c] ?? 0;
+          if (t === 0) continue;
+          const gc = gx0 + c;
+          if (gc >= 0 && gc < worldRow.length) {
+            this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
+            worldRow[gc] = t;
+          }
+        }
+      }
+    }
+  }
+
+  private destroyGhostOverlay(restoreCollision: boolean): void {
+    if (this.ghostOverlay) {
+      const ghostContainer = this.ghostOverlay.container;
+      this.dungeonAtmosphereTargets = this.dungeonAtmosphereTargets.filter(t => t !== ghostContainer);
+      this.ghostOverlay.destroy();
+      this.ghostOverlay = null;
+    }
+    this.ghostPendingTimer = -1;
+    this.ghostPendingParams = null;
+    if (restoreCollision) this.restoreGhostWorldCollision();
+  }
+
+  private restoreGhostWorldCollision(rerender = true): void {
+    if (this.ghostCollisionRestoreCells.length === 0) return;
+    for (let i = this.ghostCollisionRestoreCells.length - 1; i >= 0; i--) {
+      const cell = this.ghostCollisionRestoreCells[i];
+      const row = this.collisionGrid[cell.row];
+      if (!row || cell.col < 0 || cell.col >= row.length) continue;
+      row[cell.col] = cell.value;
+    }
+    this.ghostCollisionRestoreCells = [];
+    if (rerender) this.rerenderTilemap();
+  }
+
+  private restoreDeploymentTunnel(rerender = true): void {
+    if (this.deploymentTunnelRestoreCells.length > 0) {
+      for (let i = this.deploymentTunnelRestoreCells.length - 1; i >= 0; i--) {
+        const cell = this.deploymentTunnelRestoreCells[i];
+        const row = this.collisionGrid[cell.row];
+        if (!row || cell.col < 0 || cell.col >= row.length) continue;
+        row[cell.col] = cell.value;
+      }
+      this.deploymentTunnelRestoreCells = [];
+      if (rerender) this.rerenderTilemap();
+    }
+
+    if (this.activeBuilder && this.builderTunnelRestoreCells.length > 0) {
+      this.activeBuilder.restoreTunnelCells(this.builderTunnelRestoreCells);
+      this.builderTunnelRestoreCells = [];
+      this.unstampBuilder();
+      this.stampBuilder();
+    } else {
+      this.builderTunnelRestoreCells = [];
+    }
+  }
+
+  private cancelFrozenReturnDeploymentState(): void {
+    this.itemDeployment?.destroy();
+    this.itemDeployment = null;
+    this.game.input.inputLocked = false;
+    this.anvil?.clearPlacedItem();
+    if (this.anvil && !this.isAnvilRetiredByBossClear(this.anvil) && !(this.activeBuilder?.isMoving ?? false)) {
+      void this.anvil.setDisabled(false);
+    }
+    this.collapseItem = null;
+    this.destroyGhostOverlay(true);
+    this.restoreDeploymentTunnel(true);
+    this.pendingTunnelParams = null;
+    this.wallGate?.destroy();
+    this.wallGate = null;
+    this.player.roomData = this.collisionGrid;
+  }
+
+  private getBuilderAtmosphereTargets(): Container[] {
+    if (!this.activeBuilder) return [];
+    const b = this.activeBuilder;
+    return [
+      b.bodyLayers.bg,
+      b.bodyLayers.wall,
+      b.bodyLayers.shadow,
+      b.builderOutsideLayer,
+      b.decorator.naturalLayer,
+      b.decorator.artificialLayer,
+      b.decorator.structureLayer,
+      b.legBackLayer,
+      b.legFrontLayer,
+      b.lightContainer,
+    ];
   }
 
   private setLaserDesaturation(active: boolean): void {
@@ -9627,6 +10060,7 @@ export class LdtkWorldScene extends Scene {
       this.renderer?.container,
       this.entityLayer,
       this.fluidLayer,
+      ...this.getBuilderAtmosphereTargets(),
     ].filter((target): target is Container => !!target);
 
     if (active) {
@@ -9644,6 +10078,8 @@ export class LdtkWorldScene extends Scene {
         const next = prev ? [...prev, this.laserDesaturationFilter] : [this.laserDesaturationFilter];
         target.filters = next;
       }
+      // Laser burst: activate dungeon atmosphere (frozen snapshot + world grayscale)
+      this.activateDungeonAtmosphere();
       return;
     }
 
@@ -9651,6 +10087,338 @@ export class LdtkWorldScene extends Scene {
       target.filters = filters;
     }
     this.laserDesaturationPrevFilters.clear();
+    // Laser gone: open tunnel (clear tiles + schedule ghost overlay)
+    if (this.pendingTunnelParams) {
+      this.openDeploymentTunnel(
+        this.pendingTunnelParams.x,
+        this.pendingTunnelParams.y,
+        this.pendingTunnelParams.w,
+        this.pendingTunnelParams.h,
+      );
+      this.pendingTunnelParams = null;
+    }
+    // Re-apply dungeon filter if still active — restore overwrote it.
+    if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
+      for (const target of this.dungeonAtmosphereTargets) {
+        const cur = (target.filters as Filter[] | null) ?? [];
+        if (!cur.includes(this.dungeonAtmosphereFilter)) {
+          target.filters = [...cur, this.dungeonAtmosphereFilter];
+        }
+      }
+    }
+  }
+
+  private activateDungeonAtmosphere(): void {
+    if (this.dungeonAtmosphereActive) return;
+    this.dungeonAtmosphereActive = true;
+    this.restoreUiAfterAnvilDiveTransition();
+
+    if (!this.dungeonAtmosphereFilter) {
+      this.dungeonAtmosphereFilter = new ColorMatrixFilter();
+      this.dungeonAtmosphereFilter.desaturate();
+      this.dungeonAtmosphereFilter.contrast(1.5, true);
+    }
+
+    // Parallax: show as bright gray (scroll frozen separately in update())
+    if (!this.parallaxGrayFilter) {
+      this.parallaxGrayFilter = new ColorMatrixFilter();
+      this.parallaxGrayFilter.desaturate();
+      this.parallaxGrayFilter.brightness(2.2, true);
+    }
+    const parCur = (this.parallaxBG.container.filters as Filter[] | null) ?? [];
+    if (!parCur.includes(this.parallaxGrayFilter)) {
+      this.parallaxBG.container.filters = [...parCur, this.parallaxGrayFilter];
+    }
+    if (this.activeBuilder) {
+      this.activeBuilder.builderInteriorLayer.visible = false;
+      this.activeBuilder.bodyLayers.interior.visible = false;
+      this.builderInteriorHiddenForAtmosphere = true;
+      this.builderBodyInteriorHiddenForAtmosphere = true;
+    }
+
+    // Freeze snapshot: static copy of the player's current pose, stays in color
+    if (this.player && !this.frozenPlayerSnapshot) {
+      const snap = this.player.getFreezeSnapshot();
+      snap.x = this.player.container.x;
+      snap.y = this.player.container.y;
+      const rgb = new RGBSplitFilter();
+      const gray = new ColorMatrixFilter();
+      snap.filters = [rgb, gray];
+      this.frozenSnapshotRGBFilter = rgb;
+      this.frozenSnapshotGrayFilter = gray;
+      this.vividLayer.addChild(snap);
+      this.frozenPlayerSnapshot = snap;
+      this.frozenReturnInteractionArmed = false;
+
+      // Proximity handler — [C] near snapshot → Return to World confirm
+      if (!this.frozenSnapshotHandler) {
+        const handler: ProximityInteraction = {
+          label: 'frozen-return',
+          priority: 25,
+          canInteract: () => {
+            if (!this.frozenReturnInteractionArmed || !this.frozenPlayerSnapshot || !this.player || this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) return false;
+            const dx = this.player.container.x - this.frozenPlayerSnapshot.x;
+            const dy = this.player.container.y - this.frozenPlayerSnapshot.y;
+            return dx * dx + dy * dy <= 64 * 64;
+          },
+          onInteract: () => this._showFrozenReturnConfirm(),
+        };
+        this.frozenSnapshotHandler = handler;
+        this.proximity.register(handler);
+      }
+
+      // Prompt created eagerly so it's ready the moment player walks near
+      if (!this.frozenSnapPromptContainer) {
+        const p = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), 'Return', this.game.uiScale);
+        p.visible = false;
+        this.game.uiContainer.addChild(p);
+        this.frozenSnapPromptContainer = p;
+      }
+    }
+
+    // Weapon float: anvil item icon 6× at center, in front of parallax
+    // Move player to unfiltered vividLayer so it stays in color
+    if (this.player?.container.parent === this.entityLayer) {
+      this.vividLayer.addChild(this.player.container);
+    }
+
+    // Apply to renderer sub-layers individually — parent-level filter on renderer.container
+    // does not reliably composite through @pixi/tilemap children in PixiJS v8.
+    const targets: Container[] = [
+      this.renderer?.bgLayer,
+      this.renderer?.wallLayer,
+      this.renderer?.interiorLayer,
+      this.renderer?.shadowLayer,
+      this.renderer?.specialLayer,
+      this.procDecorator?.naturalLayer ?? null,
+      this.procDecorator?.artificialLayer ?? null,
+      this.procDecorator?.structureLayer ?? null,
+      this.entityLayer,
+      this.fluidLayer,
+      ...this.getBuilderAtmosphereTargets(),
+    ].filter((t): t is Container => !!t);
+
+    this.dungeonAtmosphereTargets = Array.from(new Set(targets));
+    for (const target of targets) {
+      const cur = (target.filters as Filter[] | null) ?? [];
+      if (!cur.includes(this.dungeonAtmosphereFilter)) {
+        target.filters = [...cur, this.dungeonAtmosphereFilter];
+      }
+    }
+  }
+
+  private _showFrozenReturnConfirm(): void {
+    if (this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) return;
+    this.restoreUiAfterAnvilDiveTransition();
+    this.frozenSnapConfirmOpen = true;
+
+    const W = 260;
+    const H = 72;
+    const panel = new Container();
+    const frame = this.uiSkin?.isLoaded ? create9SlicePanel(this.uiSkin, W, H) : null;
+    if (frame) {
+      panel.addChild(frame);
+    } else {
+      const bg = new Graphics();
+      bg.rect(0, 0, W, H).fill({ color: MODAL_BG, alpha: 0.95 });
+      bg.rect(0, 0, W, H).stroke({ color: MODAL_BORDER, width: 1 });
+      panel.addChild(bg);
+    }
+
+    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_PRIMARY });
+    title.x = 12;
+    title.y = 6;
+    panel.addChild(title);
+
+    const item = this.collapseItem;
+    const expInfo = createUiText(
+      t('ui.iw.leave_summary', {
+        name: item?.def.name ?? '-',
+        level: item?.level ?? 1,
+        exp: item?.exp ?? 0,
+        maxExp: EXP_PER_LEVEL,
+      }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x8fd6ff },
+    );
+    expInfo.x = 12;
+    expInfo.y = 20;
+    panel.addChild(expInfo);
+
+    const floorInfo = createUiText(
+      t('ui.iw.leave_rooms_summary', { cleared: 0, total: 0, exp: 0, gold: 0 }),
+      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
+    );
+    floorInfo.x = 12;
+    floorInfo.y = 33;
+    panel.addChild(floorInfo);
+
+    const KEY_SIZE = 12;
+    const LABEL_FONT = 8;
+    const controlsRow = new Container();
+    const yesBlock = new Container();
+    const atkIcon = KeyPrompt.createKeyIconForAction(GameAction.ATTACK, KEY_SIZE);
+    yesBlock.addChild(atkIcon);
+    const yesLabel = createUiText(t('ui.iw.leave_yes_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
+    yesLabel.x = KEY_SIZE + 4;
+    yesLabel.y = Math.floor((KEY_SIZE - yesLabel.height) / 2);
+    yesBlock.addChild(yesLabel);
+    controlsRow.addChild(yesBlock);
+
+    const noBlock = new Container();
+    const jumpIcon = KeyPrompt.createKeyIconForAction(GameAction.JUMP, KEY_SIZE);
+    noBlock.addChild(jumpIcon);
+    const slash = createUiText('/', { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
+    slash.x = KEY_SIZE + 2;
+    slash.y = Math.floor((KEY_SIZE - slash.height) / 2);
+    noBlock.addChild(slash);
+    const dashIcon = KeyPrompt.createKeyIconForAction(GameAction.DASH, KEY_SIZE);
+    dashIcon.x = slash.x + slash.width + 2;
+    noBlock.addChild(dashIcon);
+    const noLabel = createUiText(t('ui.iw.leave_no_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
+    noLabel.x = dashIcon.x + KEY_SIZE + 4;
+    noLabel.y = Math.floor((KEY_SIZE - noLabel.height) / 2);
+    noBlock.addChild(noLabel);
+    noBlock.x = yesBlock.width + 14;
+    controlsRow.addChild(noBlock);
+    controlsRow.x = 12;
+    controlsRow.y = 46;
+    panel.addChild(controlsRow);
+
+    panel.x = Math.floor((GAME_WIDTH - W) / 2);
+    panel.y = Math.floor((GAME_HEIGHT - H) / 2);
+    this.frozenSnapConfirmPanel = panel;
+    this.game.legacyUIContainer.addChild(panel);
+
+    if (this.frozenSnapPromptContainer) this.frozenSnapPromptContainer.visible = false;
+  }
+
+  private _hideFrozenReturnConfirm(): void {
+    this.frozenSnapConfirmOpen = false;
+    if (this.frozenSnapConfirmOverlay) {
+      this.frozenSnapConfirmOverlay.parent?.removeChild(this.frozenSnapConfirmOverlay);
+      this.frozenSnapConfirmOverlay.destroy();
+      this.frozenSnapConfirmOverlay = null;
+    }
+    if (this.frozenSnapConfirmPanel) {
+      this.frozenSnapConfirmPanel.parent?.removeChild(this.frozenSnapConfirmPanel);
+      this.frozenSnapConfirmPanel.destroy({ children: true });
+      this.frozenSnapConfirmPanel = null;
+    }
+  }
+
+  private _beginReturnToWorld(): void {
+    if (this.frozenReturnTransitionActive) return;
+    this.frozenReturnTransitionActive = true;
+    this.restoreUiAfterAnvilDiveTransition();
+    this._hideFrozenReturnConfirm();
+
+    // Clean up prompt and handler immediately
+    if (this.frozenSnapPromptContainer) {
+      this.frozenSnapPromptContainer.parent?.removeChild(this.frozenSnapPromptContainer);
+      this.frozenSnapPromptContainer.destroy({ children: true });
+      this.frozenSnapPromptContainer = null;
+    }
+    if (this.frozenSnapshotHandler) {
+      this.proximity.unregister(this.frozenSnapshotHandler);
+      this.frozenSnapshotHandler = null;
+    }
+
+    // White overlay: fade in 600ms → deactivate atmosphere → fade out 600ms
+    const overlayGfx = new Graphics();
+    overlayGfx.rect(0, 0, GAME_WIDTH * this.game.uiScale, GAME_HEIGHT * this.game.uiScale)
+      .fill({ color: 0xffffff, alpha: 1 });
+    overlayGfx.alpha = 0;
+    this.game.uiContainer.addChild(overlayGfx);
+
+    const FADE_IN = 600;
+    const FADE_OUT = 600;
+    const PEAK = 0.85;
+    let elapsed = 0;
+    let phase: 'in' | 'out' = 'in';
+
+    // Store callback ref so we can remove it — app.ticker.add() returns the
+    // Ticker itself (not a listener), so ticker.destroy() would kill the entire loop.
+    const onTick = (tk: { deltaMS: number }) => {
+      elapsed += tk.deltaMS;
+      if (phase === 'in') {
+        overlayGfx.alpha = Math.min(PEAK, (elapsed / FADE_IN) * PEAK);
+        if (elapsed >= FADE_IN) {
+          phase = 'out';
+          elapsed = 0;
+          overlayGfx.alpha = PEAK;
+          this.deactivateDungeonAtmosphere();
+          this.cancelFrozenReturnDeploymentState();
+        }
+      } else {
+        overlayGfx.alpha = PEAK * (1 - elapsed / FADE_OUT);
+        if (elapsed >= FADE_OUT) {
+          overlayGfx.alpha = 0;
+          overlayGfx.parent?.removeChild(overlayGfx);
+          overlayGfx.destroy();
+          this.game.app.ticker.remove(onTick);
+          this.frozenReturnTransitionActive = false;
+        }
+      }
+    };
+    this.game.app.ticker.add(onTick);
+  }
+
+  private deactivateDungeonAtmosphere(): void {
+    this.dungeonAtmosphereActive = false;
+    this.frozenReturnInteractionArmed = false;
+
+    // Clean up frozen snapshot interaction UI
+    if (this.frozenSnapshotHandler) {
+      this.proximity.unregister(this.frozenSnapshotHandler);
+      this.frozenSnapshotHandler = null;
+    }
+    if (this.frozenSnapPromptContainer) {
+      this.frozenSnapPromptContainer.parent?.removeChild(this.frozenSnapPromptContainer);
+      this.frozenSnapPromptContainer.destroy({ children: true });
+      this.frozenSnapPromptContainer = null;
+    }
+    this._hideFrozenReturnConfirm();
+
+    // Remove parallax gray filter
+    if (this.parallaxGrayFilter) {
+      const cur = this.parallaxBG.container.filters as Filter[] | null;
+      if (cur) {
+        const next = cur.filter(f => f !== this.parallaxGrayFilter);
+        this.parallaxBG.container.filters = next.length ? next : null;
+      }
+    }
+
+    // Destroy frozen snapshot
+    if (this.frozenPlayerSnapshot) {
+      this.frozenPlayerSnapshot.parent?.removeChild(this.frozenPlayerSnapshot);
+      this.frozenPlayerSnapshot.destroy({ children: true });
+      this.frozenPlayerSnapshot = null;
+    }
+    this.frozenSnapshotRGBFilter = null;
+    this.frozenSnapshotGrayFilter = null;
+
+    // Return player to entityLayer
+    if (this.player?.container.parent === this.vividLayer) {
+      this.entityLayer.addChild(this.player.container);
+    }
+
+    if (this.dungeonAtmosphereFilter) {
+      for (const target of this.dungeonAtmosphereTargets) {
+        const cur = target.filters as Filter[] | null;
+        if (!cur) continue;
+        const next = cur.filter(f => f !== this.dungeonAtmosphereFilter);
+        target.filters = next.length ? next : null;
+      }
+    }
+    if (this.builderInteriorHiddenForAtmosphere) {
+      this.activeBuilder?.builderInteriorLayer && (this.activeBuilder.builderInteriorLayer.visible = true);
+      this.builderInteriorHiddenForAtmosphere = false;
+    }
+    if (this.builderBodyInteriorHiddenForAtmosphere) {
+      this.activeBuilder?.bodyLayers.interior && (this.activeBuilder.bodyLayers.interior.visible = true);
+      this.builderBodyInteriorHiddenForAtmosphere = false;
+    }
+    this.dungeonAtmosphereTargets = [];
   }
 
   /** Rarity ??ItemTunnel level name mapping. */
@@ -9717,6 +10485,57 @@ export class LdtkWorldScene extends Scene {
     this.pendingLevelId = '__item_world__';
   }
 
+  private async pushItemWorldSceneWithEntryFade(itemWorldScene: ItemWorldScene, preparePush: () => void): Promise<void> {
+    if (this.itemWorldEntryTransitionActive) return;
+    this.itemWorldEntryTransitionActive = true;
+    this.game.input.inputLocked = true;
+
+    const overlay = new Graphics();
+    overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 1 });
+    overlay.alpha = 0;
+    this.game.feedbackOverlayContainer.addChild(overlay);
+
+    try {
+      await this.tweenItemWorldEntryOverlay(overlay, 0, 1, ITEM_WORLD_ENTRY_FADE_MS);
+      preparePush();
+      await this.game.sceneManager.push(itemWorldScene, true);
+      await this.tweenItemWorldEntryOverlay(overlay, 1, 0, ITEM_WORLD_ENTRY_FADE_MS);
+      itemWorldScene.beginEntryDialogueAfterTransition();
+    } finally {
+      overlay.parent?.removeChild(overlay);
+      overlay.destroy();
+      this.game.input.inputLocked = false;
+      this.itemWorldEntryTransitionActive = false;
+    }
+  }
+
+  private tweenItemWorldEntryOverlay(
+    overlay: Graphics,
+    from: number,
+    to: number,
+    durationMs: number,
+  ): Promise<void> {
+    overlay.alpha = from;
+    if (durationMs <= 0) {
+      overlay.alpha = to;
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      let elapsed = 0;
+      const onTick = (tk: { deltaMS: number }) => {
+        elapsed += tk.deltaMS;
+        const t = Math.min(1, elapsed / durationMs);
+        overlay.alpha = from + (to - from) * t;
+        if (t >= 1) {
+          overlay.alpha = to;
+          this.game.app.ticker.remove(onTick);
+          resolve();
+        }
+      };
+      this.game.app.ticker.add(onTick);
+    });
+  }
+
   /** Called when player reaches the end of an ItemTunnel ??enter Item World. */
   private enterItemWorldFromTunnel(): void {
     if (!this.collapseItem) return;
@@ -9741,9 +10560,6 @@ export class LdtkWorldScene extends Scene {
     const prevAtk = this.player.atk;
     const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
 
-    this.container.visible = false;
-    this.detachSharedUiForItemWorld();
-    this.releaseWorldVisualsForItemWorld();
     // 월드 씬은 push 로 유지 (destroy 안 됨). 직전에 떠있는 골드/EXP 플로팅
     // 텍스트는 update tick 정지로 영구 잔류하므로 명시 clear.
     this.dmgNumbers?.clear();
@@ -9770,7 +10586,7 @@ export class LdtkWorldScene extends Scene {
       }
 
       if (targetItem.level > prevLevel) {
-        this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
+        this.toast.show(t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }), 0xff88ff);
       }
       if (this.player.atk !== prevAtk) {
         this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
@@ -9782,7 +10598,12 @@ export class LdtkWorldScene extends Scene {
 
     };
 
-    this.game.sceneManager.push(itemWorldScene, true);
+    void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
+      this.container.visible = false;
+      this.detachSharedUiForItemWorld();
+      this.releaseWorldVisualsForItemWorld();
+      this.game.camera.setZoom(1.0);
+    });
   }
 
   /**
@@ -9808,16 +10629,32 @@ export class LdtkWorldScene extends Scene {
     this.transitionState = 'none';
     this.pendingLevelId = null;
     this.pendingDirection = null;
+
+    // Step 4/5 (2026-05-25): loadLevel → spawnAnvilFromLdtk 가 *새 Anvil 인스턴스* 를
+    // 생성하므로 placedItem 이 자동 사라짐. 사용자 시나리오 (anvil 위 무기 sprite 유지)
+    // 를 위해 *loadLevel 전 백업* + *후 복원*.
+    const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
+
     const returnLevelId = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId;
     if (returnLevelId) {
       this.loadLevel(returnLevelId, 'down');
+      this.worldVisualsReleasedForItemWorld = false;
     }
     this.preTunnelLevelId = null;
     this.collapseItem = null;
 
     if (resetAnvil && this.anvil) {
       this.anvil.used = false;
-      this.anvil.item = null;
+      // anvil.item 은 placeItem() 으로 복원 — itemGfx/itemIcon sprite 도 재생성.
+      // 단 placeItem 은 disabled (retire) 상태면 early return — 첫 IW 보스 클리어 후
+      // anvil 이 retire spawn 되므로 disabled bypass 후 placeItem.
+      if (preservedAnvilItem) {
+        const wasDisabled = this.anvil.disabled;
+        this.anvil.disabled = false;
+        this.anvil.placeItem(preservedAnvilItem);
+        this.anvil.used = false;
+        this.anvil.disabled = wasDisabled;
+      }
     }
 
     this.placePlayerAtReturnPoint();
@@ -9859,10 +10696,12 @@ export class LdtkWorldScene extends Scene {
         this.fireWorldReturnDialogue(item.def.id);
         this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
       };
-      this.container.visible = false;
-      this.detachSharedUiForItemWorld();
-      this.releaseWorldVisualsForItemWorld();
-      this.game.sceneManager.push(itemWorldScene, true);
+      void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
+        this.container.visible = false;
+        this.detachSharedUiForItemWorld();
+        this.releaseWorldVisualsForItemWorld();
+        this.game.camera.setZoom(1.0);
+      });
       return;
     }
 
@@ -9899,6 +10738,7 @@ export class LdtkWorldScene extends Scene {
     const returnLevel = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId ?? this.playerSpawnLevelId;
     this.preTunnelLevelId = null;
     this.loadLevel(returnLevel, 'down');
+    this.worldVisualsReleasedForItemWorld = false;
 
     // Place player next to the (possibly-removed) anvil snapshot.
     this.placePlayerAtReturnPoint();

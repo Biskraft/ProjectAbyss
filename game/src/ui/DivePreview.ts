@@ -16,7 +16,7 @@ import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ItemImage } from './ItemImage';
-import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { RARITY_COLOR, getDisplayName, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, createModalPanel } from './ModalPanel';
@@ -152,7 +152,7 @@ export class DivePreview {
     const textX = 12 + ICON_SIZE + 10;
 
     // Item name.
-    const nameText = createUiText(item.def.name, { fontSize: 12, fill: rColor });
+    const nameText = createUiText(getDisplayName(item), { fontSize: 12, fill: rColor });
     nameText.x = textX;
     nameText.y = 28;
     this.panel.addChild(nameText);
@@ -237,7 +237,7 @@ export class DivePreview {
     // and the badge/keys on the right don't get displaced. KO names long
     // enough to overflow are vanishingly rare with BOOST=0.
     const text = createUiText(
-      t('ui.dive.compact_strip', { name: item.def.name, strata }),
+      t('ui.dive.compact_strip', { name: getDisplayName(item), strata }),
       { fontSize: 8, fill: TEXT_PRIMARY },
     );
     text.x = 14 + 14 + 6;

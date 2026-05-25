@@ -29,18 +29,20 @@ export class ItemImage {
   private rarityColor: number;
   private defId: string;
 
-  constructor(item: ItemInstance, size = 48) {
+  constructor(item: ItemInstance, size = 48, showBorder = true) {
     this.size = size;
     this.rarityColor = RARITY_COLOR[item.rarity];
     this.defId = item.def.id;
 
     this.container = new Container();
 
-    // 1px 외곽선 — LoreDisplay portrait와 동일한 규칙.
+    // 1px 외곽선 — LoreDisplay portrait와 동일한 규칙. (showBorder=false 면 생략)
     this.border = new Graphics();
-    this.border.rect(-1, -1, size + 2, size + 2)
-      .stroke({ color: 0x556677, width: 1 });
-    this.container.addChild(this.border);
+    if (showBorder) {
+      this.border.rect(-1, -1, size + 2, size + 2)
+        .stroke({ color: 0x556677, width: 1 });
+      this.container.addChild(this.border);
+    }
 
     // Placeholder: 레어리티 색 바탕 + 내부 사각 + 대각 stripe 2줄.
     this.placeholder = new Graphics();

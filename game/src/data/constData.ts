@@ -100,7 +100,7 @@ export const PlayerConst = {
 
   // Base stats / hitbox
   BaseHp: reqPlayer('Player.Base.BaseHp'),
-  BaseAtk: reqPlayer('Player.Base.BaseAtk'),
+  // Player.Base.BaseAtk 제거 (2026-05-25, 사용자 결정). SSoT = Content_Stats_Character_Base.csv.
   BaseDef: reqPlayer('Player.Base.BaseDef'),
   CollisionW: reqPlayer('Player.Base.CollisionW'),
   CollisionH: reqPlayer('Player.Base.CollisionH'),

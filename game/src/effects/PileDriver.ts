@@ -1,10 +1,11 @@
 import { Container, Graphics } from 'pixi.js';
 import type { GiantBuilder } from '@entities/GiantBuilder';
 
-const EXTEND_MS = 150;
-const RETRACT_MS = 150;
-// Time between stroke starts (extend starts at 0, 600, 1200 ms).
-const STROKE_INTERVAL_MS = 600;
+const EXTEND_MS = 100;
+const RETRACT_MS = 100;
+// Time between stroke starts (extend starts at 0, 300, 600 ms).
+// WallDeployment is 1000ms, so the third impact must land before state exit.
+const STROKE_INTERVAL_MS = 300;
 const STRIKE_COUNT = 3;
 
 /**

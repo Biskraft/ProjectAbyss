@@ -202,12 +202,18 @@ export function createItem(def: WeaponDef, rarity?: Rarity): ItemInstance {
  * Legacy 필드 (level / finalAtk) 동시 갱신하여 외부 호환 유지.
  */
 export function recalcItemAtk(item: ItemInstance): void {
-  const recoveryRatio = 1.0 + item.memoryRecovery * 0.005;        // 0% → 1.0, 100% → 1.5
+  // 사용자 결정 2026-05-25: 데미지 곡선 완만화 (0.005 → 0.004 per Recovery %).
+  //   rustborn Lv4 (R=40%) = 35 × 1.16 = 41 (목표 40-45 범위 안)
+  //   Lv10 max (R=100%) = baseAtk × 1.4 (이전 1.5)
+  const recoveryRatio = 1.0 + item.memoryRecovery * 0.004;        // 0% → 1.0, 100% → 1.4
   const reDiveBonus = 1 + item.reDiveCount * 0.05;                // 0 → 1.0, 3 → 1.15
   item.effectiveAtk = Math.ceil(item.def.baseAtk * recoveryRatio * reDiveBonus);
   // Legacy 동기화
   item.finalAtk = item.effectiveAtk;
   item.level = Math.floor(item.memoryRecovery / 10);              // 0~10 호환 (Recovery 100% = Lv 10)
+  // 사용자 결정 2026-05-25: Recovery → Lv99 환산 롤백. 레벨업 진행감 망가짐.
+  //   기억(Recovery) 시스템은 *Stage/Fragment 진행* 용으로만 유지.
+  //   레벨업/EXP 게이지는 추후 별도 시스템으로 재설계 예정.
 }
 
 /**
@@ -222,7 +228,7 @@ export function addItemExp(item: ItemInstance, exp: number): boolean {
   item.memoryRecovery = Math.min(100, item.memoryRecovery + recoveryGain);
   const newStage = Math.floor(item.memoryRecovery / 25);
   recalcItemAtk(item);
-  return newStage > oldStage;  // Stage 변경 = "레벨업" 호환
+  return newStage > oldStage;  // Stage 변경 = "레벨업" 호환 (롤백 2026-05-25)
 }
 
 /**
