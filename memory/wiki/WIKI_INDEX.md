@@ -51,6 +51,7 @@
 
 ## Agent Updates
 
+- [2026-05-27](daily/2026-05-27.md) - Capped iPad/touch-Apple `uiScale` at 2 and deferred `item_world` startup preload; ItemWorld now awaits the bundle during entry fade.
 - [2026-05-26](daily/2026-05-26.md) - WorldPullIn Center Sink spec added to `game/docs/ui-components.html`: PixiJS RenderTexture snapshot + radial sprite pull-in transition, usage/performance/reduced-motion rules.
 - [2026-05-26](daily/2026-05-26.md) - Refactoring pass: extracted `WorldPullInTransitionController`, shared container grab/carry logic, save-point helpers, shared player attack hitbox helper, `WorldAltarController`, Anvil prompt/placement/deployment/return helpers, InventoryUI selection/item-info/layout helpers, HUD vitals/EXP helpers, and retired stale weapon-lore CSV validation references. Build passes.
 - [2026-05-26](daily/2026-05-26.md) - Added iPadOS Safari reduced GiantBuilder visual profile to avoid WebGL memory pressure after first builder encounter.

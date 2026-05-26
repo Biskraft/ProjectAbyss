@@ -633,7 +633,7 @@ export class ItemWorldScene extends Scene {
       (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
     // ItemWorld ?꾩슜 ??二쇰?/?ㅼ쐞移??ㅽ봽?쇱씠?몃? entity 媛 媛쒕퀎 Assets.load 濡?
     // 遺瑜닿린 ?꾩뿉 洹몃９ prefetch ??泥?吏꾩엯 hitch ?뚰뵾 (pixijs-references P1).
-    void loadBundleOnce('item_world');
+    await loadBundleOnce('item_world');
     const hudSkin = new UISkin();
     this.hudSkin = hudSkin;
     const hudSkinLoad = hudSkin.load().catch((e) => {

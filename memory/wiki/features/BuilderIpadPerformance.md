@@ -13,6 +13,9 @@ last_updated: 2026-05-26
 ## Current Rule
 
 - `game/src/utils/deviceProfile.ts` detects touch Apple devices and enables a reduced builder visual profile.
+- `game/src/Game.ts` caps `uiScale` at 2 on that profile so iPad Pro class devices do not allocate a 3x native canvas/render target.
+- `game/src/main.ts` skips startup preloading of the `item_world` bundle on that profile.
+- `game/src/scenes/ItemWorldScene.ts` awaits `loadBundleOnce('item_world')` during scene init, so deferred Item World assets load while the entry fade is already black.
 - `game/src/scenes/LdtkWorldScene.ts` passes `reducedVisualCost` to `GiantBuilder`.
 - `game/src/entities/GiantBuilder.ts` keeps collision, movement, legs, lights, and gameplay entities, but skips BuilderInterior/BuilderOutside/extra interior/decorator rendering and disables builder filter/glow passes on the reduced profile.
 
@@ -25,3 +28,4 @@ last_updated: 2026-05-26
 
 - 2026-05-26: `npx tsc --noEmit` passes.
 - 2026-05-26: `npm run build` from `game/` passes. Remaining warnings are the existing LDtk/CSV tileset divergence warnings.
+- 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after adding iPad `uiScale` cap and deferred Item World startup preload.
