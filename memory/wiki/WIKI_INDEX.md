@@ -25,7 +25,7 @@
 
 ## Features (기능 히스토리)
 
-- [BuilderIpadPerformance](features/BuilderIpadPerformance.md) - GiantBuilder reduced visual profile for iPadOS Safari WebGL memory pressure.
+- [BuilderIpadPerformance](features/BuilderIpadPerformance.md) - Rolled-back iPad reduced visual profile notes and future optimization cautions.
 - [BuilderEntranceVfx](features/BuilderEntranceVfx.md) - LDtk entrance marker for reusable room-opening light bleed and dust VFX.
 - [BuilderInteriorVisibility](features/BuilderInteriorVisibility.md) - BuilderInterior full-layer dissolve; circular reveal was removed.
 - [BuilderLegArt](features/BuilderLegArt.md) — GiantBuilder 다리 아트 파이프라인 (Pixi Graphics → ASE 슬라이스 스프라이트 아틀라스 전환)
@@ -53,7 +53,7 @@
 
 ## Agent Updates
 
-- [2026-05-27](daily/2026-05-27.md) - iPad/touch-Apple profile: `uiScale=1`, no startup bundle preload, restored parallax plus builder authored layers/color grading; leg/procedural art remains reduced.
+- [2026-05-27](daily/2026-05-27.md) - Rolled back iPad/touch-Apple reduced visual profile; all devices now use the normal visual path again.
 - [2026-05-27](daily/2026-05-27.md) - Added generic LDtk `BuilderEntrance`/`BuilderEntity` entrance VFX using `ExitGlow` light bleed and dust, including moving builder sync.
 - [2026-05-27](daily/2026-05-27.md) - Removed BuilderInterior circular reveal and restored full-layer dissolve only.
 - [2026-05-26](daily/2026-05-26.md) - WorldPullIn Center Sink spec added to `game/docs/ui-components.html`: PixiJS RenderTexture snapshot + radial sprite pull-in transition, usage/performance/reduced-motion rules.

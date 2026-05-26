@@ -216,7 +216,6 @@ import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
 import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
-import { shouldReduceVisualCost } from '@utils/deviceProfile';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -358,7 +357,6 @@ export class LdtkWorldScene extends Scene {
   private builderWallPaletteFilter: PaletteSwapFilter | null = null;
   private builderInteriorWallPaletteFilter: PaletteSwapFilter | null = null;
   private builderNaturalPaletteFilter: PaletteSwapFilter | null = null;
-  private reduceBuilderVisualCost = false;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
@@ -797,7 +795,6 @@ export class LdtkWorldScene extends Scene {
   async init(): Promise<void> {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
-    this.reduceBuilderVisualCost = shouldReduceVisualCost();
 
     // Detect the title??몄뙰me fade handoff overlay BEFORE any UI is created.
     // When present, every HUD/minimap will be created hidden so nothing
@@ -7646,7 +7643,6 @@ export class LdtkWorldScene extends Scene {
       'world_shaft_builder_bg',
       'world_shaft_builder_wall',
       { hostLevel, builderX, builderY: spawnY },
-      { reducedVisualCost: this.reduceBuilderVisualCost },
     );
 
     this.applyBuilderVisualFilters(builder);

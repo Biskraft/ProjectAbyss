@@ -417,7 +417,6 @@ export class ItemWorldScene extends Scene {
   private lowHpVignette!: LowHpVignetteManager;
   private screenFlash!: ScreenFlash;
   private hudSkin: UISkin | null = null;
-  private itemWorldReduceVisualCost = false;
   private toast!: ToastManager;
   /** Gamepad hot-plug ?좎뒪??unsubscribe ??destroy ???몄텧. */
   private _gpUnsub: (() => void) | null = null;
@@ -627,10 +626,6 @@ export class ItemWorldScene extends Scene {
     // Resolve visual theme from weapon definition (themeId: "T-HABITAT" ??"habitat")
     const themeSlug = (this.item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
-    const ua = navigator.userAgent || '';
-    this.itemWorldReduceVisualCost =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
     // ItemWorld ?꾩슜 ??二쇰?/?ㅼ쐞移??ㅽ봽?쇱씠?몃? entity 媛 媛쒕퀎 Assets.load 濡?
     // 遺瑜닿린 ?꾩뿉 洹몃９ prefetch ??泥?吏꾩엯 hitch ?뚰뵾 (pixijs-references P1).
     await loadBundleOnce('item_world');
@@ -1459,9 +1454,7 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
     const wallFilters: any[] = [this.wallPaletteFilter];
-    if (!this.itemWorldReduceVisualCost) {
-      wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 }));
-    }
+    wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 }));
     this.wallAggregate.filters = wallFilters;
     // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
@@ -1477,9 +1470,9 @@ export class ItemWorldScene extends Scene {
       tint: wallEntry.tint,
     };
     // Same palette filter as walls ? decorations get full depth gradient
-    this.decoAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.naturalPaletteFilter];
-    this.artificialDecoAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.wallPaletteFilter];
-    this.structAggregate.filters = this.itemWorldReduceVisualCost ? null : [this.wallPaletteFilter];
+    this.decoAggregate.filters = [this.naturalPaletteFilter];
+    this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
+    this.structAggregate.filters = [this.wallPaletteFilter];
 
     // Strata depth auto-transformation ? deeper = darker, more corroded
     const totalStrata = this.strataConfig.strata.length;

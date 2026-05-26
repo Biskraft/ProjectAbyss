@@ -16,7 +16,6 @@ import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 import { loadBundleOnce } from '@data/assetBundles';
 import { SFX } from '@audio/Sfx';
-import { shouldReduceVisualCost } from '@utils/deviceProfile';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -79,12 +78,10 @@ try {
   // 가 진행되어 첫 게임 진입 시 hitch 가 줄어든다 (pixijs-references P1).
   // fire-and-forget: 실패해도 entity 측 Assets.load 가 개별 fallback 처리.
   showStatus('Loading assets...');
-  if (!shouldReduceVisualCost()) {
-    await Promise.all([
-      loadBundleOnce('core'),
-      loadBundleOnce('item_world'),
-    ]);
-  }
+  await Promise.all([
+    loadBundleOnce('core'),
+    loadBundleOnce('item_world'),
+  ]);
 
   // Combat OGG cues 미리 register + decode — 첫 hit 무음 + Pixi sound race 회피.
   // 부팅 시점의 preload=true 는 play 호출과 시간 격리되어 있어 race 없음.

@@ -73,10 +73,6 @@ interface HostFootAnchorContext {
   builderY: number;
 }
 
-export interface GiantBuilderOptions {
-  reducedVisualCost?: boolean;
-}
-
 export class GiantBuilder {
   readonly container: Container;
   readonly collisionGrid: number[][];
@@ -101,8 +97,6 @@ export class GiantBuilder {
   private speed = 0;
   private loop = true;
   private awakeningMode = false;
-  private readonly reducedVisualCost: boolean;
-
   private renderer: LdtkRenderer;
   private atlases: Record<string, Texture>;
   private wallTiles: LdtkTile[] = [];
@@ -231,12 +225,10 @@ export class GiantBuilder {
     bgAreaId: string,
     wallAreaId: string,
     hostFootAnchor?: HostFootAnchorContext,
-    options: GiantBuilderOptions = {},
   ) {
     this.widthPx = level.pxWid;
     this.heightPx = level.pxHei;
     this.atlases = atlases;
-    this.reducedVisualCost = options.reducedVisualCost === true;
     this.widthTiles = Math.ceil(level.pxWid / TILE);
     this.heightTiles = Math.ceil(level.pxHei / TILE);
     this.collisionGrid = level.collisionGrid.map(r => [...r]);
@@ -282,7 +274,7 @@ export class GiantBuilder {
     // in the builder level. Back-layer legs render behind the body tilemap
     // (peek out around the body); legs with ForwardRender=true render in the
     // front layer to show the full leg silhouette in front of the body.
-    const mounts = this.reducedVisualCost ? [] : GiantBuilder.extractLegMounts(level);
+    const mounts = GiantBuilder.extractLegMounts(level);
     this.footDust = new LandingDustManager(this.container);
     this.legRig = new LegRig(mounts, (x, y, mount) => {
       if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
@@ -298,7 +290,7 @@ export class GiantBuilder {
     // settings so `updateFootAnchors()` can refresh anchors every frame.
     if (hostFootAnchor) {
       this.hostLevel = hostFootAnchor.hostLevel;
-      this.autoFootLegs = this.reducedVisualCost ? [] : GiantBuilder.extractAutoFootEntries(level);
+      this.autoFootLegs = GiantBuilder.extractAutoFootEntries(level);
       // Initial seed so the first rendered frame already shows the ray
       // result instead of the spawn-time fallback anchor.
       this.updateFootAnchors();
@@ -309,13 +301,11 @@ export class GiantBuilder {
     // builder tile layers so LDtk BuilderWall/BuilderInterior remains the
     // primary silhouette and decoration never sits on top of the body.
     this.decorator = new ProceduralDecorator();
-    if (!this.reducedVisualCost) {
-      this.decorator.generate(this.collisionGrid, hashString(level.identifier));
-      const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
-      this.container.addChildAt(this.decorator.structureLayer, wallIdx);
-      this.container.addChildAt(this.decorator.naturalLayer, wallIdx + 1);
-      this.container.addChildAt(this.decorator.artificialLayer, wallIdx + 2);
-    }
+    this.decorator.generate(this.collisionGrid, hashString(level.identifier));
+    const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
+    this.container.addChildAt(this.decorator.structureLayer, wallIdx);
+    this.container.addChildAt(this.decorator.naturalLayer, wallIdx + 1);
+    this.container.addChildAt(this.decorator.artificialLayer, wallIdx + 2);
     const interiorIdx = this.container.getChildIndex(this.renderer.interiorLayer);
     this.container.addChildAt(this.legRig.container, interiorIdx);
 
@@ -333,7 +323,7 @@ export class GiantBuilder {
       this.lightContainer.addChild(light.gfx);
     }
     // Bloom shader on all lights ??makes them glow like real indicators
-    if (!this.reducedVisualCost && this.lights.length > 0) {
+    if (this.lights.length > 0) {
       this.lightContainer.filters = [new GlowFilter({
         color: this.lights[0].color,
         radius: 10,

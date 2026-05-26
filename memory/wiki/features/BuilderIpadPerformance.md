@@ -1,6 +1,6 @@
 ---
 feature: GiantBuilder iPad Performance
-status: active
+status: rolled_back
 last_updated: 2026-05-27
 ---
 # GiantBuilder iPad Performance
@@ -12,21 +12,16 @@ last_updated: 2026-05-27
 
 ## Current Rule
 
-- `game/src/utils/deviceProfile.ts` detects touch Apple devices and enables a reduced builder visual profile.
-- `game/src/Game.ts` forces `uiScale` to 1 on that profile so iPad devices use the smallest world/UI render targets.
-- `game/src/main.ts` skips startup preloading of both `core` and `item_world` bundles on that profile; assets load on demand instead.
-- `game/src/scenes/ItemWorldScene.ts` awaits `loadBundleOnce('item_world')` during scene init, so deferred Item World assets load while the entry fade is already black.
-- `game/src/level/ParallaxBackground.ts` still loads normal parallax image layers on iPad; gradient-only mode was tried and removed because it made parallax disappear visually.
-- `game/src/scenes/LdtkWorldScene.ts` passes `reducedVisualCost` to `GiantBuilder`.
-- `game/src/entities/GiantBuilder.ts` keeps collision, movement, lights, gameplay entities, LDtk-authored interior/shadow/BuilderInterior/BuilderOutside layers, and palette/color grading on the reduced profile.
-- The reduced profile still omits procedural builder decoration, leg art, live auto-foot anchors, and the extra light glow filter pass.
-- `game/src/entities/LegRig.ts` does not load the builder leg atlas when there are no leg mounts, preventing unnecessary GPU texture allocation on the reduced profile.
+- The touch-Apple/iPad reduced visual profile is disabled and its device-profile helper was removed.
+- iPad now uses the same `uiScale`, startup bundle preload, GiantBuilder rendering, ItemWorld filters, parallax, leg art, procedural builder decoration, auto-foot anchors, and glow passes as other devices.
+- Prior reduced-profile attempts made builder visuals incomplete and still failed during builder encounters, so future iPad work should use structural rendering changes instead of deleting authored visual layers.
 
 ## Prevention
 
 - Do not remove authored builder tile layers or palette/color grading as an iPad optimization; those are part of the playable silhouette/readability baseline.
 - Do not add new full-builder filter passes or hidden duplicate builder tile layers without checking iPad Safari memory behavior.
 - Prefer gameplay-preserving reduced profiles for mobile Safari before adding another always-on render layer.
+- If iPad optimization resumes, prefer builder bake/batch/render-texture work over device-specific visual removal.
 
 ## Verification
 
@@ -36,3 +31,4 @@ last_updated: 2026-05-27
 - 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after escalating to `uiScale=1`, no startup bundle preload, gradient-only parallax, no builder shadow layer, and no builder leg art on the reduced profile.
 - 2026-05-27: parallax image layers restored on iPad; `npx tsc --noEmit` and `npm run build` from `game/` pass.
 - 2026-05-27: Builder LDtk-authored visual layers and palette/color grading restored on iPad; `npx tsc --noEmit` and `npm run build` from `game/` pass.
+- 2026-05-27: iPad reduced visual profile fully rolled back; `npx tsc --noEmit` and `npm run build` from `game/` pass.

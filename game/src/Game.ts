@@ -24,7 +24,6 @@ import { FpsCounter } from '@ui/FpsCounter';
 import { PerfMonitor } from '@utils/PerfMonitor';
 import { FeedbackPanel } from '@ui/FeedbackPanel';
 import { setDefaultUiScale } from '@ui/factories';
-import { shouldReduceVisualCost } from '@utils/deviceProfile';
 
 export const GAME_WIDTH = GameRenderConst.GameWidth;
 export const GAME_HEIGHT = GameRenderConst.GameHeight;
@@ -104,9 +103,7 @@ export class Game {
     const screenH = window.innerHeight;
     // Round up to maximize font quality — CSS scales down to fit window
     const requestedUiScale = Math.max(1, Math.round(Math.min(screenW / GAME_WIDTH, screenH / GAME_HEIGHT)));
-    this.uiScale = shouldReduceVisualCost()
-      ? 1
-      : requestedUiScale;
+    this.uiScale = requestedUiScale;
     // Plumb uiScale into the UI text factory so KO PIXI.Text nodes default to
     // the correct texture density and stay crisp inside scaled containers.
     setDefaultUiScale(this.uiScale);
