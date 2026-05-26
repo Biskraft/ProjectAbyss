@@ -73,6 +73,10 @@ interface HostFootAnchorContext {
   builderY: number;
 }
 
+export interface GiantBuilderOptions {
+  reducedVisualCost?: boolean;
+}
+
 export class GiantBuilder {
   readonly container: Container;
   readonly collisionGrid: number[][];
@@ -97,6 +101,7 @@ export class GiantBuilder {
   private speed = 0;
   private loop = true;
   private awakeningMode = false;
+  private readonly reducedVisualCost: boolean;
 
   private renderer: LdtkRenderer;
   private atlases: Record<string, Texture>;
@@ -194,7 +199,7 @@ export class GiantBuilder {
     return false;
   }
 
-  setLegFilters(filters: Container['filters']): void {
+  setLegFilters(filters: Container['filters'] | null): void {
     this.legRig.container.filters = filters ? [...filters] : filters;
     this.legRig.frontContainer.filters = filters ? [...filters] : filters;
   }
@@ -226,10 +231,12 @@ export class GiantBuilder {
     bgAreaId: string,
     wallAreaId: string,
     hostFootAnchor?: HostFootAnchorContext,
+    options: GiantBuilderOptions = {},
   ) {
     this.widthPx = level.pxWid;
     this.heightPx = level.pxHei;
     this.atlases = atlases;
+    this.reducedVisualCost = options.reducedVisualCost === true;
     this.widthTiles = Math.ceil(level.pxWid / TILE);
     this.heightTiles = Math.ceil(level.pxHei / TILE);
     this.collisionGrid = level.collisionGrid.map(r => [...r]);
@@ -249,16 +256,18 @@ export class GiantBuilder {
     // them from the general interiorTiles merge so they don't render twice.
     const builderInteriorTiles = level.extraTileLayers['BuilderInterior'] ?? [];
     const builderOutsideTiles = level.extraTileLayers['BuilderOutside'] ?? [];
-    const otherExtraLayers = Object.entries(level.extraTileLayers)
-      .filter(([k]) => k !== 'BuilderInterior' && k !== 'BuilderOutside')
-      .flatMap(([, v]) => v);
-    const interiorTiles = [...level.interiorTiles, ...otherExtraLayers];
+    const otherExtraLayers = this.reducedVisualCost
+      ? []
+      : Object.entries(level.extraTileLayers)
+        .filter(([k]) => k !== 'BuilderInterior' && k !== 'BuilderOutside')
+        .flatMap(([, v]) => v);
+    const interiorTiles = this.reducedVisualCost ? [] : [...level.interiorTiles, ...otherExtraLayers];
 
     this.renderer = new LdtkRenderer();
     this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases, undefined, this.collisionGrid, interiorTiles);
     this.container = this.renderer.container;
 
-    if (builderInteriorTiles.length > 0) {
+    if (!this.reducedVisualCost && builderInteriorTiles.length > 0) {
       this.renderer.renderBuilderInteriorLayer(builderInteriorTiles, atlases);
       for (const tile of builderInteriorTiles) {
         const col = Math.floor(tile.px[0] / TILE);
@@ -267,7 +276,7 @@ export class GiantBuilder {
       }
     }
 
-    if (builderOutsideTiles.length > 0) {
+    if (!this.reducedVisualCost && builderOutsideTiles.length > 0) {
       this.renderer.renderBuilderOutsideLayer(builderOutsideTiles, atlases);
     }
 
@@ -302,11 +311,13 @@ export class GiantBuilder {
     // builder tile layers so LDtk BuilderWall/BuilderInterior remains the
     // primary silhouette and decoration never sits on top of the body.
     this.decorator = new ProceduralDecorator();
-    this.decorator.generate(this.collisionGrid, hashString(level.identifier));
-    const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
-    this.container.addChildAt(this.decorator.structureLayer, wallIdx);
-    this.container.addChildAt(this.decorator.naturalLayer, wallIdx + 1);
-    this.container.addChildAt(this.decorator.artificialLayer, wallIdx + 2);
+    if (!this.reducedVisualCost) {
+      this.decorator.generate(this.collisionGrid, hashString(level.identifier));
+      const wallIdx = this.container.getChildIndex(this.renderer.wallLayer);
+      this.container.addChildAt(this.decorator.structureLayer, wallIdx);
+      this.container.addChildAt(this.decorator.naturalLayer, wallIdx + 1);
+      this.container.addChildAt(this.decorator.artificialLayer, wallIdx + 2);
+    }
     const interiorIdx = this.container.getChildIndex(this.renderer.interiorLayer);
     this.container.addChildAt(this.legRig.container, interiorIdx);
 
@@ -324,7 +335,7 @@ export class GiantBuilder {
       this.lightContainer.addChild(light.gfx);
     }
     // Bloom shader on all lights ??makes them glow like real indicators
-    if (this.lights.length > 0) {
+    if (!this.reducedVisualCost && this.lights.length > 0) {
       this.lightContainer.filters = [new GlowFilter({
         color: this.lights[0].color,
         radius: 10,

@@ -216,6 +216,7 @@ import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
 import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
+import { shouldReduceVisualCost } from '@utils/deviceProfile';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -357,6 +358,7 @@ export class LdtkWorldScene extends Scene {
   private builderWallPaletteFilter: PaletteSwapFilter | null = null;
   private builderInteriorWallPaletteFilter: PaletteSwapFilter | null = null;
   private builderNaturalPaletteFilter: PaletteSwapFilter | null = null;
+  private reduceBuilderVisualCost = false;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
@@ -794,6 +796,7 @@ export class LdtkWorldScene extends Scene {
   async init(): Promise<void> {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
+    this.reduceBuilderVisualCost = shouldReduceVisualCost();
 
     // Detect the title??몄뙰me fade handoff overlay BEFORE any UI is created.
     // When present, every HUD/minimap will be created hidden so nothing
@@ -7552,6 +7555,20 @@ export class LdtkWorldScene extends Scene {
   }
 
   private applyBuilderVisualFilters(builder: GiantBuilder): void {
+    if (this.reduceBuilderVisualCost) {
+      builder.decorator.naturalLayer.filters = null;
+      builder.decorator.artificialLayer.filters = null;
+      builder.decorator.structureLayer.filters = null;
+      builder.bodyLayers.bg.filters = null;
+      builder.bodyLayers.wall.filters = null;
+      builder.bodyLayers.interior.filters = null;
+      builder.bodyLayers.shadow.filters = null;
+      builder.builderInteriorLayer.filters = null;
+      builder.builderOutsideLayer.filters = null;
+      builder.setLegFilters(null);
+      return;
+    }
+
     if (this.builderWallPaletteFilter && this.builderNaturalPaletteFilter) {
       builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter];
       builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
@@ -7616,6 +7633,7 @@ export class LdtkWorldScene extends Scene {
       'world_shaft_builder_bg',
       'world_shaft_builder_wall',
       { hostLevel, builderX, builderY: spawnY },
+      { reducedVisualCost: this.reduceBuilderVisualCost },
     );
 
     this.applyBuilderVisualFilters(builder);
