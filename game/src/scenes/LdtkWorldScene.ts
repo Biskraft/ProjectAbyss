@@ -4208,7 +4208,7 @@ export class LdtkWorldScene extends Scene {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
-      }, { reducedVisualCost: this.reduceBuilderVisualCost });
+      });
     }
 
     // Camera bounds

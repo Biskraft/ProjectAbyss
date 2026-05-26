@@ -854,7 +854,7 @@ export class ItemWorldScene extends Scene {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
-      }, { reducedVisualCost: this.itemWorldReduceVisualCost });
+      });
     }
 
     // Building layer ??fullMapContainer (platform/wall tile) 蹂대떎???ㅻ줈.
