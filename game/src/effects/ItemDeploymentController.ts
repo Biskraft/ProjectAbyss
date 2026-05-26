@@ -33,8 +33,9 @@ const T = {
   ItemZoomIn:     2300,  // zoom-in finishes before item punch starts
   ItemPunch:      4200,  // 1000ms grow/white + ~900ms disassemble/absorb
   CameraPullBack: 4700,  // zoom back out after absorption
-  // 사용자 결정 2026-05-25: WallDeployment 길이 2000→1000ms (레이저 발사 후 멈춤 1초로 단축).
-  WallDeployment: 5700,  // laser fires (이전 6700)
+  // Fallback only; normal WallDeployment exit is measured from the actual
+  // laser burst so builder/non-builder timings both hold consistently.
+  WallDeployment: 5700,
   CameraReturn:   6200,  // 이전 7200
   // TunnelPan: 카메라가 터널 끝(WallGate)으로 1.2s 슬라이드 + 0.3s hold → Deployed.
   // 진입 방향 = pan 방향 = 플레이어가 가야 할 방향. 영화적 cue.
@@ -56,6 +57,7 @@ const TUNNEL_H      = 320;  // px tunnel height (20 tiles: original 8 + 8 up + 4
 const TUNNEL_Y_RAISE = 0;   // px: tunnel bottom flush with anvil Y
 const TUNNEL_END_INSET = 8;
 const LASER_DESATURATION_MS = 1000;
+const LASER_FIRE_FREEZE_MS = 2000;
 // ExitGlow 시작 x = tunnelLeft + 이 offset. anvil + 인근 영역 회피하고 벽
 // 시작점부터 dust 출현. 사용자 결정 2026-05-24: 8 cell (128px).
 const EXIT_GLOW_X_OFFSET = 128;
@@ -80,6 +82,7 @@ export class ItemDeploymentController {
   private laserDesaturationActive = false;
   private laserDesaturationMs = 0;
   private punchSuckTriggered = false;
+  private laserBurstElapsed = -1;
   // Item world coords — set in start().
   private anvilX = 0;
   private anvilY = 0;
@@ -131,6 +134,7 @@ export class ItemDeploymentController {
     this.laserDesaturationActive = false;
     this.laserDesaturationMs = 0;
     this.punchSuckTriggered = false;
+    this.laserBurstElapsed = -1;
     this.anvilX = anvilX;
     this.anvilY = anvilY;
     this.game.input.inputLocked = true;
@@ -224,7 +228,13 @@ export class ItemDeploymentController {
         if (this.builder && !this.tunnelOpened && this.elapsed >= T.CameraPullBack + 850) {
           this.openTunnelWithLaser();
         }
-        if (this.elapsed >= T.WallDeployment) this.enterState('CameraReturn');
+        if (this.laserBurstElapsed >= 0) {
+          if (this.elapsed >= this.laserBurstElapsed + LASER_FIRE_FREEZE_MS) {
+            this.enterState('CameraReturn');
+          }
+        } else if (this.elapsed >= T.WallDeployment) {
+          this.enterState('CameraReturn');
+        }
         break;
 
       case 'CameraReturn':
@@ -425,6 +435,7 @@ export class ItemDeploymentController {
   private openTunnelWithLaser(): void {
     if (this.tunnelOpened) return;
     this.tunnelOpened = true;
+    this.laserBurstElapsed = this.elapsed;
     this.anvilLaser?.burst();
     this.laserDesaturationMs = LASER_DESATURATION_MS;
     this.setLaserDesaturation(true);

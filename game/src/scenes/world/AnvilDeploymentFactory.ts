@@ -15,7 +15,7 @@ interface AnvilDeploymentDeps {
   getAnvil: () => Anvil | null;
   enterItemWorld: () => void;
   spawnStrikeEffect: (x: number, y: number, strong: boolean, variant: number) => void;
-  setPendingTunnel: (x: number, y: number, w: number, h: number) => void;
+  openTunnel: (x: number, y: number, w: number, h: number) => void;
   setLaserDesaturation: (active: boolean) => void;
   showTunnelOpenDialogue: () => void;
 }
@@ -28,7 +28,7 @@ export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploy
     deps.enterItemWorld,
     deps.activeBuilder,
     (x, y) => deps.spawnStrikeEffect(x, y, true, 1),
-    deps.setPendingTunnel,
+    deps.openTunnel,
     deps.tunnelRightEdge,
     () => deps.getAnvil()?.getGatePivotWorld() ?? null,
     deps.deploymentFxLayer,

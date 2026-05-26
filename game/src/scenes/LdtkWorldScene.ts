@@ -390,7 +390,7 @@ export class LdtkWorldScene extends Scene {
   private frozenPlayerSnapshot: Container | null = null;
   private frozenSnapshotRGBFilter: RGBSplitFilter | null = null;
   private frozenSnapshotGrayFilter: ColorMatrixFilter | null = null;
-  private pendingTunnelParams: { x: number; y: number; w: number; h: number } | null = null;
+  private pendingGhostTunnelParams: { x: number; y: number; w: number; h: number } | null = null;
   private frozenSnapshotHandler: ProximityInteraction | null = null;
   private frozenSnapPromptContainer: Container | null = null;
   private frozenSnapConfirmPanel: Container | null = null;
@@ -6395,7 +6395,7 @@ export class LdtkWorldScene extends Scene {
     this.deactivateDungeonAtmosphere();
     this.destroyGhostOverlay(true);
     this.restoreDeploymentTunnel(true);
-    this.pendingTunnelParams = null;
+    this.pendingGhostTunnelParams = null;
     this.ghostPendingTimer = -1;
     this.ghostPendingParams = null;
     this.fadeOverlay.alpha = 0;
@@ -9534,7 +9534,7 @@ export class LdtkWorldScene extends Scene {
       getAnvil: () => this.anvil,
       enterItemWorld: () => this.enterItemWorldFromTunnel(),
       spawnStrikeEffect: (x, y, strong, variant) => this.hitSparks.spawn(x, y, strong, variant),
-      setPendingTunnel: (x, y, w, h) => { this.pendingTunnelParams = { x, y, w, h }; },
+      openTunnel: (x, y, w, h) => this.openDeploymentTunnel(x, y, w, h, { scheduleGhost: false }),
       setLaserDesaturation: (active) => this.setLaserDesaturation(active),
       showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
     });
@@ -9542,7 +9542,13 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Clears world tiles and collision for the item-deployment tunnel. */
-  private openDeploymentTunnel(x: number, y: number, w: number, h: number): void {
+  private openDeploymentTunnel(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    options: { scheduleGhost?: boolean } = {},
+  ): void {
     this.restoreGhostWorldCollision(false);
     this.restoreDeploymentTunnel(false);
 
@@ -9598,11 +9604,18 @@ export class LdtkWorldScene extends Scene {
     // ??⑤벚???anvil.x ?遊붋?????섎꿰춯?쏅윪???뿉?clearW 嶺뚮씭??칰??????ル梨??= clearW.
     this.anvil?.triggerDirectionalTrail(clearW);
 
-    // EGO_TUNNEL_OPEN ??嶺?嶺뚯쉳???1????戮곗젧 ?꾩룇裕??(H).
-    // Ghost overlay ??schedule creation 400ms after tunnel opens (laser gone)
-    // resolves visually before the dungeon silhouette bleeds through.
+    // EGO_TUNNEL_OPEN is still delayed until deployment is ready; the ghost
+    // overlay may be deferred so IntGrid/tiles clear at laser burst time.
+    if (options.scheduleGhost ?? true) {
+      this.scheduleGhostOverlayForTunnel(x, y, clearW, h);
+    } else {
+      this.pendingGhostTunnelParams = { x, y, w: clearW, h };
+    }
+  }
+
+  private scheduleGhostOverlayForTunnel(x: number, y: number, w: number, h: number): void {
     if (this.collapseItem && !this.ghostOverlay && this.ghostPendingTimer < 0) {
-      this.ghostPendingParams = { x, y, w: clearW, h };
+      this.ghostPendingParams = { x, y, w, h };
       this.ghostPendingTimer = 0;
     }
   }
@@ -9724,7 +9737,7 @@ export class LdtkWorldScene extends Scene {
     this.collapseItem = null;
     this.destroyGhostOverlay(true);
     this.restoreDeploymentTunnel(true);
-    this.pendingTunnelParams = null;
+    this.pendingGhostTunnelParams = null;
     this.wallGate?.destroy();
     this.wallGate = null;
     this.player.roomData = this.collisionGrid;
@@ -9780,15 +9793,16 @@ export class LdtkWorldScene extends Scene {
       target.filters = filters;
     }
     this.laserDesaturationPrevFilters.clear();
-    // Laser gone: open tunnel (clear tiles + schedule ghost overlay)
-    if (this.pendingTunnelParams) {
-      this.openDeploymentTunnel(
-        this.pendingTunnelParams.x,
-        this.pendingTunnelParams.y,
-        this.pendingTunnelParams.w,
-        this.pendingTunnelParams.h,
+    // Laser gone: geometry was cleared at burst time; only schedule the ghost
+    // overlay after the grayscale flash releases.
+    if (this.pendingGhostTunnelParams) {
+      this.scheduleGhostOverlayForTunnel(
+        this.pendingGhostTunnelParams.x,
+        this.pendingGhostTunnelParams.y,
+        this.pendingGhostTunnelParams.w,
+        this.pendingGhostTunnelParams.h,
       );
-      this.pendingTunnelParams = null;
+      this.pendingGhostTunnelParams = null;
     }
     // Re-apply dungeon filter if still active ??restore overwrote it.
     if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
