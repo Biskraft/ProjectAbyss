@@ -105,10 +105,10 @@ export class ExitGlow {
   private dir: ExitGlowDir;
 
   /** 에지 선분의 양 끝점 (월드 좌표). setPlayer 거리 계산용. */
-  private ax: number;
-  private ay: number;
-  private bx: number;
-  private by: number;
+  private ax = 0;
+  private ay = 0;
+  private bx = 0;
+  private by = 0;
 
   private particles: DustParticle[] = [];
 
@@ -145,8 +145,6 @@ export class ExitGlow {
     this.dustReach = Math.max(16, opts.dustReachPx ?? DUST_REACH);
     this.evenSpread = opts.evenSpread ?? false;
     this.container = new Container();
-    this.container.x = x;
-    this.container.y = y;
     this.container.blendMode = 'add';
 
     this.gfx = new Graphics();
@@ -157,20 +155,25 @@ export class ExitGlow {
     this.dustGfx.alpha = 0;
     this.container.addChild(this.dustGfx);
 
-    // Compute edge segment endpoints in world space.
-    this.ax = x;
-    this.ay = y;
-    if (dir === 'right' || dir === 'left') {
-      this.bx = x;
-      this.by = y + span;
-    } else {
-      this.bx = x + span;
-      this.by = y;
-    }
+    this.setAnchor(x, y);
 
     this.spawnInitialParticles();
     this.draw(this.pulseBase);
     this.drawDust();
+  }
+
+  setAnchor(x: number, y: number): void {
+    this.container.x = x;
+    this.container.y = y;
+    this.ax = x;
+    this.ay = y;
+    if (this.dir === 'right' || this.dir === 'left') {
+      this.bx = x;
+      this.by = y + this.span;
+    } else {
+      this.bx = x + this.span;
+      this.by = y;
+    }
   }
 
   /**

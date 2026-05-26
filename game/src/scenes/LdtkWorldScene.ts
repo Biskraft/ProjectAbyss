@@ -717,6 +717,7 @@ export class LdtkWorldScene extends Scene {
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    */
   private exitGlows: ExitGlow[] = [];
+  private builderEntranceGlows: ExitGlow[] = [];
   /** Events that have been triggered globally (persists across level loads). */
   private unlockedEvents: Set<string> = new Set();
 
@@ -2221,8 +2222,9 @@ export class LdtkWorldScene extends Scene {
           if (Math.abs(this.builderInteriorAlpha - targetAlpha) < 0.01) {
             this.builderInteriorAlpha = targetAlpha;
           }
-          this.activeBuilder.builderInteriorLayer.alpha = this.builderInteriorAlpha;
         }
+        this.activeBuilder.builderInteriorLayer.alpha = this.builderInteriorAlpha;
+        this.setBuilderEntranceGlowAlpha(this.builderInteriorAlpha);
       }
 
 
@@ -5101,6 +5103,30 @@ export class LdtkWorldScene extends Scene {
         (cs, cl) => ({ x: cs * TS, y: 0, span: cl * TS }),
       );
     }
+
+    for (const ent of level.entities) {
+      if (!this.isEntranceVfxEntity(ent)) continue;
+      const spec = this.getEntranceGlowSpec(ent);
+      const glow = new ExitGlow(spec.dir, spec.x, spec.y, spec.span);
+      this.entityLayer.addChild(glow.container);
+      this.exitGlows.push(glow);
+    }
+  }
+
+  private isEntranceVfxEntity(ent: LdtkEntity): boolean {
+    const type = ent.type.toLowerCase();
+    return type === 'builderentrance' || type === 'builderentity';
+  }
+
+  private getEntranceGlowSpec(ent: LdtkEntity): { dir: ExitGlowDir; x: number; y: number; span: number } {
+    const rightField = ent.fields.RightSide ?? ent.fields.rightSide;
+    const rightSide = typeof rightField === 'boolean' ? rightField : false;
+    return {
+      dir: rightSide ? 'left' : 'right',
+      x: ent.px[0] + (rightSide ? ent.width : 0),
+      y: ent.px[1] - ent.height,
+      span: Math.max(TILE_SIZE, ent.height),
+    };
   }
 
   private spawnSpikes(level: LdtkLevel): void {
@@ -8361,6 +8387,39 @@ export class LdtkWorldScene extends Scene {
           });
           break;
         }
+        case 'BuilderEntrance':
+        case 'builderEntrance':
+        case 'BuilderEntity':
+        case 'builderEntity': {
+          const spec = this.getEntranceGlowSpec(ent);
+          const glow = new ExitGlow(spec.dir, bx0 + spec.x, by0 + spec.y, spec.span);
+          this.entityLayer.addChild(glow.container);
+          this.exitGlows.push(glow);
+          this.builderEntranceGlows.push(glow);
+          const attachedGlow: BuilderAttachable = {
+            x: bx0 + spec.x,
+            y: by0 + spec.y,
+            container: glow.container,
+          };
+          this.attachToBuilder(
+            builder,
+            attachedGlow,
+            spec.x,
+            spec.y,
+            () => this.builderEntranceGlows.includes(glow),
+            {
+              reparent: false,
+              sync: (entity, bx, by, lx, ly) => {
+                const x = bx + lx;
+                const y = by + ly;
+                entity.x = x;
+                entity.y = y;
+                glow.setAnchor(x, y);
+              },
+            },
+          );
+          break;
+        }
         // Future entity types: Anvil, ...
         // Each case spawns the entity at (wx, wy) and pushes a
         // BuilderAttachment with isAlive pointing at the owning collection.
@@ -8426,11 +8485,23 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
+  private setBuilderEntranceGlowAlpha(alpha: number): void {
+    for (const glow of this.builderEntranceGlows) {
+      glow.container.alpha = alpha;
+    }
+  }
+
   private clearBuilder(): void {
     if (this.activeBuilder && this.activeBuilderLevelId) {
       this.builderSavedPositions.set(this.activeBuilderLevelId, this.activeBuilder.posY);
       this.builderSavedStates.set(this.activeBuilderLevelId, this.activeBuilder.createSnapshot());
     }
+    for (const glow of this.builderEntranceGlows) {
+      const idx = this.exitGlows.indexOf(glow);
+      if (idx >= 0) this.exitGlows.splice(idx, 1);
+      glow.destroy();
+    }
+    this.builderEntranceGlows = [];
     this.unstampBuilder();
     this.playerOnBuilder = false;
     this.playerInBuilder = false;

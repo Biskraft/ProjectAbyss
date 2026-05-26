@@ -26,6 +26,7 @@
 ## Features (기능 히스토리)
 
 - [BuilderIpadPerformance](features/BuilderIpadPerformance.md) - GiantBuilder reduced visual profile for iPadOS Safari WebGL memory pressure.
+- [BuilderEntranceVfx](features/BuilderEntranceVfx.md) - LDtk entrance marker for reusable room-opening light bleed and dust VFX.
 - [BuilderInteriorVisibility](features/BuilderInteriorVisibility.md) - BuilderInterior full-layer dissolve; circular reveal was removed.
 - [BuilderLegArt](features/BuilderLegArt.md) — GiantBuilder 다리 아트 파이프라인 (Pixi Graphics → ASE 슬라이스 스프라이트 아틀라스 전환)
 - [FeedbackSystem](features/FeedbackSystem.md) — F-key 인게임 피드백 채널
@@ -53,6 +54,7 @@
 ## Agent Updates
 
 - [2026-05-27](daily/2026-05-27.md) - Aggressive iPad/touch-Apple memory profile: `uiScale=1`, no startup bundle preload, gradient-only parallax, no reduced-profile builder shadow/leg art.
+- [2026-05-27](daily/2026-05-27.md) - Added generic LDtk `BuilderEntrance`/`BuilderEntity` entrance VFX using `ExitGlow` light bleed and dust, including moving builder sync.
 - [2026-05-27](daily/2026-05-27.md) - Removed BuilderInterior circular reveal and restored full-layer dissolve only.
 - [2026-05-26](daily/2026-05-26.md) - WorldPullIn Center Sink spec added to `game/docs/ui-components.html`: PixiJS RenderTexture snapshot + radial sprite pull-in transition, usage/performance/reduced-motion rules.
 - [2026-05-26](daily/2026-05-26.md) - Refactoring pass: extracted `WorldPullInTransitionController`, shared container grab/carry logic, save-point helpers, shared player attack hitbox helper, `WorldAltarController`, Anvil prompt/placement/deployment/return helpers, InventoryUI selection/item-info/layout helpers, HUD vitals/EXP helpers, and retired stale weapon-lore CSV validation references. Build passes.

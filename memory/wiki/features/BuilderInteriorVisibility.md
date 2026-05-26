@@ -10,12 +10,13 @@ last_updated: 2026-05-27
 - `GiantBuilder` computes BuilderInterior IntGrid cells for overlap checks.
 - `LdtkWorldScene` keeps BuilderInterior visible as an occluder until the player actually overlaps a BuilderInterior cell.
 - On overlap, the whole BuilderInterior layer dissolves away; it fades back in after the player leaves those cells.
+- Builder-mounted `BuilderEntrance`/`BuilderEntity` VFX uses the same dissolve alpha, so entrances disappear with their builder interior.
 - Do not add the 2026-05-27 circular player reveal mask back without a new visual direction. It was removed because the next readability pass will use a different approach.
 
 ## Implementation Notes
 
 - `game/src/entities/GiantBuilder.ts`: owns `isPlayerInInteriorCells`.
-- `game/src/scenes/LdtkWorldScene.ts`: owns the full-layer dissolve alpha.
+- `game/src/scenes/LdtkWorldScene.ts`: owns the full-layer dissolve alpha and applies it to builder-mounted entrance glows.
 - There is no overlap hint layer and no circular reveal mask.
 
 ## Verification
