@@ -60,8 +60,8 @@ export class LdtkRenderer {
 
   /**
    * BuilderInterior layer ??populated by renderBuilderInteriorLayer().
-   * Hidden (alpha=0) by default; the scene dissolves it to 1 when the player
-   * overlaps BuilderInterior IntGrid cells, revealing internal builder details.
+   * The host scene renders it as an occluder and fades the whole layer out
+   * when the player overlaps BuilderInterior IntGrid cells.
    */
   readonly builderInteriorLayer: Container;
 

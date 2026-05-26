@@ -22,6 +22,10 @@ interface ImageLayerState {
   tileH: number;
 }
 
+interface ParallaxSetupOptions {
+  reducedVisualCost?: boolean;
+}
+
 // Margin around viewport so the TilingSprite fully covers all subpixel positions.
 const VIEW_MARGIN = 64;
 export class ParallaxBackground {
@@ -57,6 +61,7 @@ export class ParallaxBackground {
     levelW: number,
     levelH: number,
     paletteAtlas?: { texture: Texture; rowCount: number; row: number },
+    options: ParallaxSetupOptions = {},
   ): Promise<void> {
     this.clear();
 
@@ -71,6 +76,11 @@ export class ParallaxBackground {
     this.gradientSprite.x = 0;
     this.gradientSprite.y = 0;
     this.gradientLayer.addChild(this.gradientSprite);
+
+    if (options.reducedVisualCost) {
+      this.isReady = true;
+      return;
+    }
 
     // L1: Far image
     if (entry.parallaxImage) {

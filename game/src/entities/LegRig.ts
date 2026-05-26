@@ -220,6 +220,11 @@ export class LegRig {
     this.plantedFoot = this.mounts.map(() => null);
     this.swingStartFoot = this.mounts.map(() => null);
 
+    if (this.mounts.length === 0) {
+      this.ready = true;
+      return;
+    }
+
     // Atlas may already be loaded (boot preloaded) ??build sprites synchronously
     // in that case so the very first update() shows full legs. Otherwise kick
     // off async load and populate when the texture arrives.

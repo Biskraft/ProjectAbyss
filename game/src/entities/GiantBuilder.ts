@@ -158,8 +158,8 @@ export class GiantBuilder {
     };
   }
 
-  /** The BuilderInterior dissolve layer. Alpha is 0 (hidden) by default and
-   *  lerped to 1 by the scene when the player overlaps interior cells. */
+  /** BuilderInterior dissolve layer. The scene fades this out when the player
+   *  overlaps interior cells. */
   get builderInteriorLayer(): Container {
     return this.renderer.builderInteriorLayer;
   }
@@ -244,7 +244,7 @@ export class GiantBuilder {
 
     const bgTiles = [...level.backgroundTiles];
     const wallTiles = [...level.wallTiles];
-    const shadowTiles = [...level.shadowTiles];
+    const shadowTiles = this.reducedVisualCost ? [] : [...level.shadowTiles];
     const defaultWallTileset = 'atlas/world_01.png';
     const defaultBgTileset = 'atlas/world_01.png';
     applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
@@ -284,7 +284,7 @@ export class GiantBuilder {
     // in the builder level. Back-layer legs render behind the body tilemap
     // (peek out around the body); legs with ForwardRender=true render in the
     // front layer to show the full leg silhouette in front of the body.
-    const mounts = GiantBuilder.extractLegMounts(level);
+    const mounts = this.reducedVisualCost ? [] : GiantBuilder.extractLegMounts(level);
     this.footDust = new LandingDustManager(this.container);
     this.legRig = new LegRig(mounts, (x, y, mount) => {
       if (Math.abs(Math.cos(mount.angle)) < 0.55) return;
@@ -300,7 +300,7 @@ export class GiantBuilder {
     // settings so `updateFootAnchors()` can refresh anchors every frame.
     if (hostFootAnchor) {
       this.hostLevel = hostFootAnchor.hostLevel;
-      this.autoFootLegs = GiantBuilder.extractAutoFootEntries(level);
+      this.autoFootLegs = this.reducedVisualCost ? [] : GiantBuilder.extractAutoFootEntries(level);
       // Initial seed so the first rendered frame already shows the ray
       // result instead of the spawn-time fallback anchor.
       this.updateFootAnchors();

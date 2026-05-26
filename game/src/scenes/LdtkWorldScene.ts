@@ -2209,21 +2209,22 @@ export class LdtkWorldScene extends Scene {
         }
       }
 
-      // BuilderInterior dissolve: when the player overlaps interior IntGrid
-      // cells the layer fades in (alpha??), revealing internal builder details.
-      // When the player leaves, it fades back out (alpha??).
       {
-        const target = (this.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
-          this.player.x, this.player.y, this.player.width, this.player.height,
-        )) ? 0 : 1;
-        if (this.builderInteriorAlpha !== target) {
-          this.builderInteriorAlpha += (target - this.builderInteriorAlpha) * 0.08;
-          if (Math.abs(this.builderInteriorAlpha - target) < 0.01) {
-            this.builderInteriorAlpha = target;
+        const targetAlpha = this.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
+          this.player.x,
+          this.player.y,
+          this.player.width,
+          this.player.height,
+        ) ? 0 : 1;
+        if (this.builderInteriorAlpha !== targetAlpha) {
+          this.builderInteriorAlpha += (targetAlpha - this.builderInteriorAlpha) * 0.08;
+          if (Math.abs(this.builderInteriorAlpha - targetAlpha) < 0.01) {
+            this.builderInteriorAlpha = targetAlpha;
           }
           this.activeBuilder.builderInteriorLayer.alpha = this.builderInteriorAlpha;
         }
       }
+
 
       // Cinematic builder (Shaft_01) ??emit camera shakes to sell the weight
       // of the descent. Rhythmic "?? every two tile crossings while moving,
@@ -4205,7 +4206,7 @@ export class LdtkWorldScene extends Scene {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
-      });
+      }, { reducedVisualCost: this.reduceBuilderVisualCost });
     }
 
     // Camera bounds
@@ -7644,6 +7645,8 @@ export class LdtkWorldScene extends Scene {
     // container ?? ???욋뵛??(?熬곣뫁??update loop).
     this.container.addChild(builder.builderInteriorLayer);
     builder.builderInteriorLayer.position.copyFrom(builder.container.position);
+    builder.builderInteriorLayer.alpha = 1;
+    this.builderInteriorAlpha = 1;
     // BuilderLight indicators ??BuilderInterior ?곌랜????*??. ??⑹탳??????? ??됀???
     // 嶺뚮씭?? ???띉???ル∥?????깆젷 ??戮?뻣?繹먮냱?????????
     this.container.addChild(builder.lightContainer);

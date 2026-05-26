@@ -1,7 +1,7 @@
 ---
 feature: GiantBuilder iPad Performance
 status: active
-last_updated: 2026-05-26
+last_updated: 2026-05-27
 ---
 # GiantBuilder iPad Performance
 
@@ -13,11 +13,13 @@ last_updated: 2026-05-26
 ## Current Rule
 
 - `game/src/utils/deviceProfile.ts` detects touch Apple devices and enables a reduced builder visual profile.
-- `game/src/Game.ts` caps `uiScale` at 2 on that profile so iPad Pro class devices do not allocate a 3x native canvas/render target.
-- `game/src/main.ts` skips startup preloading of the `item_world` bundle on that profile.
+- `game/src/Game.ts` forces `uiScale` to 1 on that profile so iPad devices use the smallest world/UI render targets.
+- `game/src/main.ts` skips startup preloading of both `core` and `item_world` bundles on that profile; assets load on demand instead.
 - `game/src/scenes/ItemWorldScene.ts` awaits `loadBundleOnce('item_world')` during scene init, so deferred Item World assets load while the entry fade is already black.
+- `game/src/level/ParallaxBackground.ts` uses gradient-only parallax on that profile and does not load parallax image textures.
 - `game/src/scenes/LdtkWorldScene.ts` passes `reducedVisualCost` to `GiantBuilder`.
-- `game/src/entities/GiantBuilder.ts` keeps collision, movement, legs, lights, and gameplay entities, but skips BuilderInterior/BuilderOutside/extra interior/decorator rendering and disables builder filter/glow passes on the reduced profile.
+- `game/src/entities/GiantBuilder.ts` keeps collision, movement, lights, and gameplay entities, but skips BuilderInterior/BuilderOutside/extra interior/decorator/shadow rendering, disables builder filter/glow passes, and omits leg art on the reduced profile.
+- `game/src/entities/LegRig.ts` does not load the builder leg atlas when there are no leg mounts, preventing unnecessary GPU texture allocation on the reduced profile.
 
 ## Prevention
 
@@ -29,3 +31,4 @@ last_updated: 2026-05-26
 - 2026-05-26: `npx tsc --noEmit` passes.
 - 2026-05-26: `npm run build` from `game/` passes. Remaining warnings are the existing LDtk/CSV tileset divergence warnings.
 - 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after adding iPad `uiScale` cap and deferred Item World startup preload.
+- 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after escalating to `uiScale=1`, no startup bundle preload, gradient-only parallax, no builder shadow layer, and no builder leg art on the reduced profile.

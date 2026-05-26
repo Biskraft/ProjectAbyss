@@ -105,7 +105,7 @@ export class Game {
     // Round up to maximize font quality — CSS scales down to fit window
     const requestedUiScale = Math.max(1, Math.round(Math.min(screenW / GAME_WIDTH, screenH / GAME_HEIGHT)));
     this.uiScale = shouldReduceVisualCost()
-      ? Math.min(requestedUiScale, 2)
+      ? 1
       : requestedUiScale;
     // Plumb uiScale into the UI text factory so KO PIXI.Text nodes default to
     // the correct texture density and stay crisp inside scaled containers.
