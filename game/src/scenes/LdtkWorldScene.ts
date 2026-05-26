@@ -7582,20 +7582,6 @@ export class LdtkWorldScene extends Scene {
   }
 
   private applyBuilderVisualFilters(builder: GiantBuilder): void {
-    if (this.reduceBuilderVisualCost) {
-      builder.decorator.naturalLayer.filters = null;
-      builder.decorator.artificialLayer.filters = null;
-      builder.decorator.structureLayer.filters = null;
-      builder.bodyLayers.bg.filters = null;
-      builder.bodyLayers.wall.filters = null;
-      builder.bodyLayers.interior.filters = null;
-      builder.bodyLayers.shadow.filters = null;
-      builder.builderInteriorLayer.filters = null;
-      builder.builderOutsideLayer.filters = null;
-      builder.setLegFilters(null);
-      return;
-    }
-
     if (this.builderWallPaletteFilter && this.builderNaturalPaletteFilter) {
       builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter];
       builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];

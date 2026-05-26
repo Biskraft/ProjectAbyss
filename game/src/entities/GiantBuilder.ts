@@ -244,7 +244,7 @@ export class GiantBuilder {
 
     const bgTiles = [...level.backgroundTiles];
     const wallTiles = [...level.wallTiles];
-    const shadowTiles = this.reducedVisualCost ? [] : [...level.shadowTiles];
+    const shadowTiles = [...level.shadowTiles];
     const defaultWallTileset = 'atlas/world_01.png';
     const defaultBgTileset = 'atlas/world_01.png';
     applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
@@ -256,18 +256,16 @@ export class GiantBuilder {
     // them from the general interiorTiles merge so they don't render twice.
     const builderInteriorTiles = level.extraTileLayers['BuilderInterior'] ?? [];
     const builderOutsideTiles = level.extraTileLayers['BuilderOutside'] ?? [];
-    const otherExtraLayers = this.reducedVisualCost
-      ? []
-      : Object.entries(level.extraTileLayers)
-        .filter(([k]) => k !== 'BuilderInterior' && k !== 'BuilderOutside')
-        .flatMap(([, v]) => v);
-    const interiorTiles = this.reducedVisualCost ? [] : [...level.interiorTiles, ...otherExtraLayers];
+    const otherExtraLayers = Object.entries(level.extraTileLayers)
+      .filter(([k]) => k !== 'BuilderInterior' && k !== 'BuilderOutside')
+      .flatMap(([, v]) => v);
+    const interiorTiles = [...level.interiorTiles, ...otherExtraLayers];
 
     this.renderer = new LdtkRenderer();
     this.renderer.renderLevel(bgTiles, wallTiles, shadowTiles, atlases, undefined, this.collisionGrid, interiorTiles);
     this.container = this.renderer.container;
 
-    if (!this.reducedVisualCost && builderInteriorTiles.length > 0) {
+    if (builderInteriorTiles.length > 0) {
       this.renderer.renderBuilderInteriorLayer(builderInteriorTiles, atlases);
       for (const tile of builderInteriorTiles) {
         const col = Math.floor(tile.px[0] / TILE);
@@ -276,7 +274,7 @@ export class GiantBuilder {
       }
     }
 
-    if (!this.reducedVisualCost && builderOutsideTiles.length > 0) {
+    if (builderOutsideTiles.length > 0) {
       this.renderer.renderBuilderOutsideLayer(builderOutsideTiles, atlases);
     }
 

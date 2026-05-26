@@ -18,11 +18,13 @@ last_updated: 2026-05-27
 - `game/src/scenes/ItemWorldScene.ts` awaits `loadBundleOnce('item_world')` during scene init, so deferred Item World assets load while the entry fade is already black.
 - `game/src/level/ParallaxBackground.ts` still loads normal parallax image layers on iPad; gradient-only mode was tried and removed because it made parallax disappear visually.
 - `game/src/scenes/LdtkWorldScene.ts` passes `reducedVisualCost` to `GiantBuilder`.
-- `game/src/entities/GiantBuilder.ts` keeps collision, movement, lights, and gameplay entities, but skips BuilderInterior/BuilderOutside/extra interior/decorator/shadow rendering, disables builder filter/glow passes, and omits leg art on the reduced profile.
+- `game/src/entities/GiantBuilder.ts` keeps collision, movement, lights, gameplay entities, LDtk-authored interior/shadow/BuilderInterior/BuilderOutside layers, and palette/color grading on the reduced profile.
+- The reduced profile still omits procedural builder decoration, leg art, live auto-foot anchors, and the extra light glow filter pass.
 - `game/src/entities/LegRig.ts` does not load the builder leg atlas when there are no leg mounts, preventing unnecessary GPU texture allocation on the reduced profile.
 
 ## Prevention
 
+- Do not remove authored builder tile layers or palette/color grading as an iPad optimization; those are part of the playable silhouette/readability baseline.
 - Do not add new full-builder filter passes or hidden duplicate builder tile layers without checking iPad Safari memory behavior.
 - Prefer gameplay-preserving reduced profiles for mobile Safari before adding another always-on render layer.
 
@@ -33,3 +35,4 @@ last_updated: 2026-05-27
 - 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after adding iPad `uiScale` cap and deferred Item World startup preload.
 - 2026-05-27: `npx tsc --noEmit` and `npm run build` from `game/` pass after escalating to `uiScale=1`, no startup bundle preload, gradient-only parallax, no builder shadow layer, and no builder leg art on the reduced profile.
 - 2026-05-27: parallax image layers restored on iPad; `npx tsc --noEmit` and `npm run build` from `game/` pass.
+- 2026-05-27: Builder LDtk-authored visual layers and palette/color grading restored on iPad; `npx tsc --noEmit` and `npm run build` from `game/` pass.

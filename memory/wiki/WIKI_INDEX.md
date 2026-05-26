@@ -53,7 +53,7 @@
 
 ## Agent Updates
 
-- [2026-05-27](daily/2026-05-27.md) - Aggressive iPad/touch-Apple memory profile: `uiScale=1`, no startup bundle preload, restored normal parallax, no reduced-profile builder shadow/leg art.
+- [2026-05-27](daily/2026-05-27.md) - iPad/touch-Apple profile: `uiScale=1`, no startup bundle preload, restored parallax plus builder authored layers/color grading; leg/procedural art remains reduced.
 - [2026-05-27](daily/2026-05-27.md) - Added generic LDtk `BuilderEntrance`/`BuilderEntity` entrance VFX using `ExitGlow` light bleed and dust, including moving builder sync.
 - [2026-05-27](daily/2026-05-27.md) - Removed BuilderInterior circular reveal and restored full-layer dissolve only.
 - [2026-05-26](daily/2026-05-26.md) - WorldPullIn Center Sink spec added to `game/docs/ui-components.html`: PixiJS RenderTexture snapshot + radial sprite pull-in transition, usage/performance/reduced-motion rules.
