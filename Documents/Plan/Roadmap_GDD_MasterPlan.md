@@ -140,7 +140,7 @@
 
 | ID | 문서명 | 상태 | 빌드 | 비고 |
 |:---|:-------|:-----|:-----|:-----|
-| SYS-INC-01 | Memory Shard Core | Done | - | 4분류 12종, 야생/복종. 디스가이아 `Specialist.md`, `Memory Shard Town.md` 참고 |
+| ~~SYS-INC-01~~ | ~~Memory Shard Core (Memory Recovery Core, DEC-046)~~ | 📦 archived 2026-05-28 | - | NarrativeWorldReset 라운드로 분리. `System/_Archive/NarrativeWorldReset_2026-05-28/System_Memory_Core.md` |
 
 ### 2.10 적 & AI (Enemy) - 3개 (2 Done + 1 NEW)
 
@@ -218,6 +218,7 @@
 | CNT-STR-001 | Story Synopsis (전체 시놉시스) | Done | - | §1.4 + §8 분리 (2026-05-22) |
 | CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준, 2026-05-20) | Done | - | Magic 등급 2지층 샘플. 격벽 측량사 도구. BLAME!/대공동 톤 정합 |
 | ~~CNT-ITM-002~~ | ~~Item Narrative: First Sword~~ | ~~Done~~ | - | ❌ 폐기 2026-05-20 (판타지 톤 — 파일 삭제) |
+| CNT-ITM-005 | Item Narrative: 리거의 놓지 않은 줄 (The Rigger's Held Line, 2026-05-28) | Done | - | Legendary 등급 4지층 샘플. Era 1 Builder Rigger. Forge 기질. CNT-ITM-003 Network Fragment 양방향 결합 |
 | CNT-01 | **Weapon List** | **NEW** | **B0** | 5종(검/대검/단검/활/지팡이) x 5레어리티 = 25개 무기 상세. CSV 연동 |
 | CNT-02 | **Armor & Accessory List** | **NEW** | **B1** | 방어구/악세서리 목록, 세트 효과 |
 | CNT-03 | **Memory Shard Catalog** | **NEW** | **B1** | 12종 기억 단편 상세 (행동 패턴, 스탯 보너스, 출현 조건) |

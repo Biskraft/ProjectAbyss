@@ -249,6 +249,7 @@
   @media (max-width: 900px){
     body{grid-template-columns:1fr}
     aside{position:relative;height:auto}
+    main{width:100%;max-width:none;min-width:0;padding:24px 16px}
     .grid-2{grid-template-columns:1fr}
   }
 
@@ -392,6 +393,133 @@
     display:flex;flex-direction:column;align-items:stretch;
   }
   .inv-scrollbar-thumb{flex:none;background:#4a4a6a}
+
+  /* ===================================================
+     Weapon3DPreview — low-poly PS2 / pixel-buffer sword
+     =================================================== */
+  .weapon3d-stage{
+    position:relative;
+    min-height:390px;
+    display:grid;
+    grid-template-columns:minmax(260px,1fr) 260px;
+    border:1px solid var(--line);
+    background:
+      linear-gradient(180deg,rgba(255,164,27,0.08),transparent 34%),
+      radial-gradient(circle at 50% 42%,rgba(255,204,102,0.16),transparent 34%),
+      #050506;
+    overflow:hidden;
+  }
+  .weapon3d-stage::before{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+    background-size:18px 18px;
+    opacity:.35;
+    pointer-events:none;
+  }
+  .weapon3d-stage::after{
+    content:"";
+    position:absolute;inset:0;
+    box-shadow:inset 0 0 70px rgba(0,0,0,.85);
+    pointer-events:none;
+  }
+  .weapon3d-canvas-wrap{
+    position:relative;
+    min-height:390px;
+    z-index:1;
+  }
+  .weapon3d-canvas-wrap canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    cursor:grab;
+  }
+  .weapon3d-canvas-wrap canvas:active{cursor:grabbing}
+  .weapon3d-fallback{
+    position:absolute;left:18px;right:18px;bottom:18px;
+    display:none;
+    padding:8px 10px;
+    border:1px solid rgba(255,68,68,.5);
+    background:rgba(0,0,0,.75);
+    color:#ffb0b0;
+    font-size:10px;
+    line-height:1.5;
+  }
+  .weapon3d-stage.is-error .weapon3d-fallback{display:block}
+  .weapon3d-panel{
+    position:relative;
+    z-index:1;
+    border-left:1px solid rgba(255,164,27,.26);
+    background:linear-gradient(180deg,rgba(12,9,7,.86),rgba(8,8,12,.88));
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    gap:16px;
+  }
+  .weapon3d-kicker{
+    color:#ffd699;
+    font-size:8px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+  }
+  .weapon3d-title{
+    margin-top:6px;
+    color:#fff;
+    font-family:var(--font-title-display);
+    font-size:19px;
+    line-height:1.12;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    text-shadow:0 0 12px rgba(255,164,27,.38);
+  }
+  .weapon3d-sub{
+    margin-top:8px;
+    color:var(--text-secondary);
+    font-size:10px;
+    line-height:1.6;
+  }
+  .weapon3d-swatches{
+    display:flex;
+    gap:5px;
+    margin:14px 0 0;
+  }
+  .weapon3d-swatch{
+    width:28px;
+    height:12px;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .weapon3d-spec{
+    display:grid;
+    gap:7px;
+  }
+  .weapon3d-spec-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    padding-bottom:6px;
+    font-size:9px;
+  }
+  .weapon3d-spec-row span:first-child{color:var(--muted)}
+  .weapon3d-spec-row span:last-child{color:#f3d19b;text-align:right}
+  .weapon3d-note{
+    color:#8f8f9f;
+    font-size:9px;
+    line-height:1.55;
+  }
+  @media (max-width: 760px){
+    .weapon3d-stage{grid-template-columns:1fr}
+    .weapon3d-panel{border-left:none;border-top:1px solid rgba(255,164,27,.26)}
+    .weapon3d-panel,.weapon3d-canvas-wrap{min-width:0}
+    .weapon3d-canvas-wrap{min-height:330px}
+  }
 </style>
 </head>
 <body>
@@ -421,6 +549,7 @@
     <a href="#hud">HUD</a>
     <a href="#inventory">InventoryUI (+ Anvil Mode)</a>
     <a href="#item-detail">ItemDetailView</a>
+    <a href="#weapon-3d-preview">Weapon3DPreview</a>
     <a href="#character-stats">CharacterStats</a>
     <a href="#save-load">SaveLoadUI</a>
     <a href="#pause-menu">PauseMenu</a>
@@ -1564,6 +1693,46 @@
           <div class="slot" style="width:18px;height:18px">●</div>
           <div class="slot" style="width:18px;height:18px">○</div>
           <div class="slot" style="width:18px;height:18px">○</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="weapon-3d-preview">
+    <h2>Weapon3DPreview <span class="pill organism">ORGANISM</span></h2>
+    <div class="src">Prototype · Three.js low-poly weapon render · 후보 사용처: ItemDetailView / AcquireOverlay / Anvil</div>
+    <p>2D 전투 판정은 유지하고, 무기 상세/획득/단조 화면에서만 쓰는 3D 무기 프리뷰 후보. 저해상도 WebGL 버퍼를 CSS로 확대해 도트처럼 보이게 한다.</p>
+
+    <div class="card">
+      <h3>Rustborn Test Blade — PS2 Pixel Buffer</h3>
+      <div class="meta">flat-shaded mesh · 144p-ish render target · nearest upscale · pointer drag rotation</div>
+      <div class="weapon3d-stage" data-weapon3d>
+        <div class="weapon3d-canvas-wrap">
+          <canvas aria-label="Low-poly pixel-style 3D sword preview"></canvas>
+          <div class="weapon3d-fallback">Three.js 프리뷰를 불러오지 못했습니다. 네트워크가 막힌 환경이면 CDN 모듈 대신 로컬 번들로 전환해야 합니다.</div>
+        </div>
+
+        <div class="weapon3d-panel">
+          <div>
+            <div class="weapon3d-kicker">THREE.JS PROTOTYPE</div>
+            <div class="weapon3d-title">RUSTBORN<br>TEST BLADE</div>
+            <div class="weapon3d-sub">픽셀 아트 위에 얹는 저폴리 무기 실험. 실제 게임 판정과 전투 리치는 이 프리뷰와 분리한다.</div>
+            <div class="weapon3d-swatches" aria-label="weapon palette">
+              <span class="weapon3d-swatch" style="background:#d8d2b8"></span>
+              <span class="weapon3d-swatch" style="background:#7e8890"></span>
+              <span class="weapon3d-swatch" style="background:#9b4e24"></span>
+              <span class="weapon3d-swatch" style="background:#221a16"></span>
+            </div>
+          </div>
+
+          <div class="weapon3d-spec">
+            <div class="weapon3d-spec-row"><span>RENDER</span><span>LOW BUFFER</span></div>
+            <div class="weapon3d-spec-row"><span>SHADING</span><span>FLAT FACETS</span></div>
+            <div class="weapon3d-spec-row"><span>TEXTURE</span><span>16PX PATCHES</span></div>
+            <div class="weapon3d-spec-row"><span>ROLE</span><span>UI PREVIEW</span></div>
+          </div>
+
+          <div class="weapon3d-note">후보 룰: 장비/획득/단조 화면 전용. 인게임 플레이어 무기는 기존 2D 실루엣과 히트박스를 우선한다.</div>
         </div>
       </div>
     </div>
@@ -5419,5 +5588,236 @@ ticker.add(({ deltaMS }) =&gt; {
   </footer>
 </main>
 
+<script type="module">
+(async function(){
+  const root = document.querySelector('[data-weapon3d]');
+  if (!root) return;
+
+  let THREE;
+  try {
+    THREE = await import('https://unpkg.com/three@0.164.1/build/three.module.js');
+  } catch (error) {
+    root.classList.add('is-error');
+    console.warn('[Weapon3DPreview] Three.js module load failed', error);
+    return;
+  }
+
+  const canvas = root.querySelector('canvas');
+  const wrap = root.querySelector('.weapon3d-canvas-wrap');
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias:false,
+    alpha:true,
+    powerPreference:'high-performance',
+    preserveDrawingBuffer:true,
+  });
+  renderer.setPixelRatio(1);
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 40);
+  camera.position.set(0, 0.45, 7.4);
+  camera.lookAt(0, 0.35, 0);
+
+  scene.add(new THREE.HemisphereLight(0xffe8c0, 0x11121c, 1.8));
+  const key = new THREE.DirectionalLight(0xffd48a, 2.15);
+  key.position.set(2.5, 3.2, 4.8);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x8fd8ff, 1.1);
+  rim.position.set(-3.6, 1.4, -2.8);
+  scene.add(rim);
+
+  function makePixelTexture(base, blocks){
+    const c = document.createElement('canvas');
+    c.width = 16;
+    c.height = 32;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, c.width, c.height);
+    for (const block of blocks) {
+      ctx.fillStyle = block[4];
+      ctx.fillRect(block[0], block[1], block[2], block[3]);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  const bladeTex = makePixelTexture('#c8c8bb', [
+    [0,0,3,32,'#7e8890'], [13,0,3,32,'#eef0d8'],
+    [5,3,2,5,'#ffffff'], [8,8,2,4,'#9a9a8b'],
+    [3,16,3,3,'#a45a2a'], [9,23,2,3,'#5f4d3c'],
+  ]);
+  const gripTex = makePixelTexture('#2a1913', [
+    [0,0,16,3,'#4f2616'], [0,7,16,2,'#9b4e24'],
+    [0,15,16,2,'#4f2616'], [0,24,16,3,'#9b4e24'],
+  ]);
+
+  const bladeMat = new THREE.MeshLambertMaterial({ color:0xd8d2b8, map:bladeTex, flatShading:true });
+  const bladeDarkMat = new THREE.MeshLambertMaterial({ color:0x6f7780, flatShading:true });
+  const bladeLightMat = new THREE.MeshLambertMaterial({ color:0xf0edd2, flatShading:true });
+  const rustMat = new THREE.MeshLambertMaterial({ color:0x9b4e24, flatShading:true });
+  const darkRustMat = new THREE.MeshLambertMaterial({ color:0x4a2417, flatShading:true });
+  const guardMat = new THREE.MeshLambertMaterial({ color:0x5a3420, flatShading:true });
+  const gripMat = new THREE.MeshLambertMaterial({ color:0xffffff, map:gripTex, flatShading:true });
+  const blackMat = new THREE.MeshLambertMaterial({ color:0x181512, flatShading:true });
+
+  function box(w,h,d,mat,x,y,z){
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d,1,1,1), mat);
+    mesh.position.set(x || 0, y || 0, z || 0);
+    return mesh;
+  }
+
+  function createSword(){
+    const sword = new THREE.Group();
+    sword.add(box(0.36, 2.62, 0.12, bladeMat, 0, 0.72, 0));
+    sword.add(box(0.07, 2.52, 0.145, bladeLightMat, 0.02, 0.74, 0.015));
+    sword.add(box(0.075, 2.46, 0.135, bladeDarkMat, -0.22, 0.69, -0.01));
+    sword.add(box(0.055, 2.4, 0.135, bladeDarkMat, 0.22, 0.68, -0.01));
+
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.66, 4, 1, false), bladeMat);
+    tip.position.y = 2.35;
+    tip.rotation.y = Math.PI / 4;
+    sword.add(tip);
+
+    const guard = box(1.22, 0.17, 0.32, guardMat, 0, -0.66, 0);
+    guard.rotation.z = -0.05;
+    sword.add(guard);
+    sword.add(box(0.28, 0.22, 0.36, darkRustMat, 0, -0.64, 0.01));
+    sword.add(box(0.24, 0.86, 0.24, gripMat, 0, -1.14, 0));
+    sword.add(box(0.44, 0.24, 0.34, guardMat, 0, -1.68, 0));
+    sword.add(box(0.23, 0.08, 0.38, blackMat, 0, -1.52, 0.01));
+
+    const chips = [
+      [-0.08, 1.82, .08, .12, rustMat], [0.13, 1.26, .07, .09, darkRustMat],
+      [-0.15, .42, .08, .08, rustMat], [0.08, .02, .07, .12, darkRustMat],
+      [0.02, 2.06, .05, .07, bladeLightMat], [-0.02, -0.18, .05, .08, rustMat],
+    ];
+    for (const [x,y,w,h,mat] of chips) {
+      const chip = box(w, h, 0.028, mat, x, y, 0.086);
+      sword.add(chip);
+    }
+
+    const edgeNotches = [
+      [-0.25, 1.55], [0.255, 0.96], [-0.25, 0.14], [0.255, 1.82],
+    ];
+    for (const [x,y] of edgeNotches) {
+      const notch = box(0.08, 0.09, 0.15, blackMat, x, y, 0.02);
+      notch.rotation.z = x < 0 ? -0.5 : 0.5;
+      sword.add(notch);
+    }
+
+    sword.rotation.z = -0.26;
+    sword.scale.setScalar(1.16);
+    return sword;
+  }
+
+  const sword = createSword();
+  scene.add(sword);
+
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(1.62, 12),
+    new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.42, depthWrite:false })
+  );
+  shadow.position.set(0, -1.82, -0.2);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.scale.z = 0.3;
+  scene.add(shadow);
+
+  const emberMat = new THREE.MeshBasicMaterial({ color:0xffa41b, transparent:true, opacity:0.62 });
+  const embers = [];
+  for (let i = 0; i < 22; i++) {
+    const ember = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.025), emberMat.clone());
+    ember.userData = {
+      phase:Math.random() * Math.PI * 2,
+      radius:1.2 + Math.random() * 1.8,
+      speed:0.25 + Math.random() * 0.38,
+      y:-1.25 + Math.random() * 3.5,
+    };
+    embers.push(ember);
+    scene.add(ember);
+  }
+
+  let targetYaw = -0.45;
+  let targetPitch = -0.08;
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  let active = true;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  canvas.addEventListener('pointerdown', (event) => {
+    dragging = true;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    const dx = event.clientX - lastX;
+    const dy = event.clientY - lastY;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    targetYaw += dx * 0.014;
+    targetPitch = Math.max(-0.7, Math.min(0.55, targetPitch + dy * 0.008));
+  });
+  function endDrag(event){
+    dragging = false;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  const ro = new ResizeObserver(() => resize());
+  ro.observe(wrap);
+  function resize(){
+    const rect = wrap.getBoundingClientRect();
+    const renderW = Math.max(128, Math.min(240, Math.floor(rect.width * 0.44)));
+    const renderH = Math.max(128, Math.min(210, Math.floor(rect.height * 0.44)));
+    renderer.setSize(renderW, renderH, false);
+    camera.aspect = renderW / renderH;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      active = entries[0] ? entries[0].isIntersecting : true;
+    }, { threshold:0.05 });
+    io.observe(root);
+  }
+
+  let lastT = performance.now();
+  function tick(now){
+    const dt = Math.min(48, now - lastT);
+    lastT = now;
+
+    if (active) {
+      if (!dragging && !reducedMotion) targetYaw += dt * 0.00028;
+      sword.rotation.y += (targetYaw - sword.rotation.y) * 0.08;
+      sword.rotation.x += (targetPitch - sword.rotation.x) * 0.08;
+      sword.rotation.z = -0.26 + Math.sin(now * 0.0014) * 0.025;
+      sword.position.y = Math.round(Math.sin(now * 0.0019) * 2) / 95;
+
+      for (const ember of embers) {
+        const u = ember.userData;
+        const a = u.phase + now * 0.001 * u.speed;
+        ember.position.set(Math.cos(a) * u.radius, u.y + Math.sin(a * 1.7) * 0.18, Math.sin(a) * 0.5 - 0.8);
+        ember.material.opacity = 0.22 + (Math.sin(a * 2.0) + 1) * 0.2;
+      }
+
+      renderer.render(scene, camera);
+      root.dataset.rendered = 'true';
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
 </body>
 </html>

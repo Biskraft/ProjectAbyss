@@ -38,10 +38,10 @@ Prefer appending concise updates to an existing relevant page. Create a new page
 
 ## High-Priority Current Context
 
-- `DEC-036`: Memory Shard / Core Memory / Identity Trait / five Temperaments replaced the older Innocent-style model.
+- `DEC-036`: 📦 narrative-system 통합 결정 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`.
 - `DEC-037`: Item World radial hub-and-spoke topology is partially obsolete; keep the RoomGraph data structure context, but follow `DEC-039` for topology behavior.
 - `DEC-039`: Item World uses a vertical dive graph: Plaza above, Boss below, manual trapdoor descent after boss clear.
-- `DEC-038`: Item World is the Town of Orphaned Shadows. Plaza and Archive are safe zones; avoid enemy spawn there.
+- `DEC-038`: 📦 Item World narrative theming archived 2026-05-28. Plaza and Archive remain mechanic safe zones; avoid enemy spawn there.
 - `DEC-040`: Audio uses `@pixi/sound`; do not reintroduce Howler.js.
 - `DEC-041`: Fluid crest foam uses CSV SSoT and the separated foam manager approach.
 - Localization SSoT is `Sheets/Content_Localization.csv`; do not hardcode player-facing game text in code.

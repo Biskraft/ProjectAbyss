@@ -27,7 +27,8 @@ interface Puff {
 
 const PUFF_LIFE_MIN = 520;
 const PUFF_LIFE_MAX = 820;
-const PUFFS_PER_BURST = 4;
+const PUFFS_PER_BURST = 3;
+const MAX_PUFFS = 80;
 const COLOR_PUFF = 0xe6f0f5;
 const COLOR_PUFF_RIM = 0xffffff;
 
@@ -58,7 +59,9 @@ export class SteamPuffManager {
     const s = Math.max(0.5, Math.min(2.0, strength));
     const bodyColor = tint?.body ?? COLOR_PUFF;
     const rimColor  = tint?.rim  ?? COLOR_PUFF_RIM;
-    for (let i = 0; i < PUFFS_PER_BURST; i++) {
+    const count = Math.min(PUFFS_PER_BURST, Math.max(0, MAX_PUFFS - this.puffs.length));
+    if (count <= 0) return;
+    for (let i = 0; i < count; i++) {
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.5;
       const speed = (30 + Math.random() * 40) * s;
       const gfx = new Graphics();

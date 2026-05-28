@@ -5,7 +5,7 @@
  * factor relative to the camera. Gradient is baked from CSV palette stops.
  */
 
-import { Container, Sprite, TilingSprite, Texture, Assets } from 'pixi.js';
+import { Container, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { sampleRow, unpack } from '@effects/PaletteSwapFilter';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
@@ -15,14 +15,16 @@ import { ParallaxConst } from '@data/constData';
 
 interface ImageLayerState {
   container: Container;
-  sprite: TilingSprite;
+  sprites: Sprite[];
   factor: number;
   baseScale: number;
   tileW: number;
   tileH: number;
+  cols: number;
+  rows: number;
 }
 
-// Margin around viewport so the TilingSprite fully covers all subpixel positions.
+// Margin around viewport so the parallax fully covers all subpixel positions.
 const VIEW_MARGIN = 64;
 export class ParallaxBackground {
   readonly container: Container;
@@ -122,20 +124,28 @@ export class ParallaxBackground {
       this.gradientSprite.y = 0;
     }
 
-    // Layers live in a fixed screen-space background render target. Only the
-    // texture pattern scrolls, so camera zoom cannot change the parallax scale.
+    // Layers live in a fixed screen-space background render target. We move a
+    // small grid of normal Sprites instead of using TilingSprite/repeat sampler:
+    // that path can expose opaque square artifacts in shipping browser builds.
     for (const layer of this.imageLayers) {
       const px = cameraX + this.offsetX;
       const py = cameraY + this.offsetY;
-      if (layer.sprite.tileScale.x !== layer.baseScale || layer.sprite.tileScale.y !== layer.baseScale) {
-        layer.sprite.tileScale.set(layer.baseScale, layer.baseScale);
-      }
-      layer.sprite.x = -VIEW_MARGIN;
-      layer.sprite.y = -VIEW_MARGIN;
       const tx = -px * layer.factor;
       const ty = -py * layer.factor;
-      layer.sprite.tilePosition.x = ((tx % layer.tileW) + layer.tileW) % layer.tileW;
-      layer.sprite.tilePosition.y = ((ty % layer.tileH) + layer.tileH) % layer.tileH;
+      const startX = -VIEW_MARGIN - layer.tileW + this.wrapOffset(tx, layer.tileW);
+      const startY = -VIEW_MARGIN - layer.tileH + this.wrapOffset(ty, layer.tileH);
+
+      let i = 0;
+      for (let row = 0; row < layer.rows; row++) {
+        for (let col = 0; col < layer.cols; col++) {
+          const sprite = layer.sprites[i++];
+          if (sprite.scale.x !== layer.baseScale || sprite.scale.y !== layer.baseScale) {
+            sprite.scale.set(layer.baseScale, layer.baseScale);
+          }
+          sprite.x = startX + col * layer.tileW;
+          sprite.y = startY + row * layer.tileH;
+        }
+      }
     }
   }
 
@@ -171,32 +181,33 @@ export class ParallaxBackground {
     try {
       const tex = await Assets.load<Texture>(assetPath(`assets/parallax/${imageName}.png`));
       tex.source.scaleMode = 'nearest';
-      tex.source.addressMode = 'repeat';
+      tex.source.addressMode = 'clamp-to-edge';
       tex.source.style.update();
 
       const fitScale = (360 / tex.height) * 1.5;
       const tileW = Math.max(1, tex.width * fitScale);
       const tileH = Math.max(1, tex.height * fitScale);
 
-      // Viewport-sized TilingSprite. Scrolling is done via tilePosition so the
-      // filter framebuffer stays small (avoids GPU max-texture clamping that
-      // caused tearing on large maps).
       const spriteW = GAME_WIDTH + VIEW_MARGIN * 2;
       const spriteH = GAME_HEIGHT + VIEW_MARGIN * 2;
+      const cols = Math.ceil(spriteW / tileW) + 2;
+      const rows = Math.ceil(spriteH / tileH) + 2;
 
-      const ts = new TilingSprite({
-        texture: tex,
-        width: spriteW,
-        height: spriteH,
-      });
-      ts.tileScale.set(fitScale, fitScale);
-      ts.x = -VIEW_MARGIN;
-      ts.y = -VIEW_MARGIN;
-
+      const sprites: Sprite[] = [];
       const layerContainer = new Container();
-      layerContainer.addChild(ts);
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const sprite = new Sprite(tex);
+          sprite.scale.set(fitScale, fitScale);
+          sprite.x = -VIEW_MARGIN - tileW + col * tileW;
+          sprite.y = -VIEW_MARGIN - tileH + row * tileH;
+          sprites.push(sprite);
+          layerContainer.addChild(sprite);
+        }
+      }
 
       if (paletteAtlas) {
+        layerContainer.filterArea = new Rectangle(-VIEW_MARGIN, -VIEW_MARGIN, spriteW, spriteH);
         layerContainer.filters = [
           new PaletteSwapFilter({
             paletteTex: paletteAtlas.texture,
@@ -214,15 +225,21 @@ export class ParallaxBackground {
       this.container.addChild(layerContainer);
       this.imageLayers.push({
         container: layerContainer,
-        sprite: ts,
+        sprites,
         factor,
         baseScale: fitScale,
         tileW,
         tileH,
+        cols,
+        rows,
       });
     } catch {
       // Image not found — skip this layer
     }
+  }
+
+  private wrapOffset(value: number, period: number): number {
+    return ((value % period) + period) % period;
   }
 
   // ---------------------------------------------------------------------------

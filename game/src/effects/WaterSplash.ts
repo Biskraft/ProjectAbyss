@@ -25,7 +25,9 @@ interface Crown {
 
 const CROWN_LIFE = 260;
 const DROP_LIFE = 520;
-const DROP_COUNT = 9;
+const DROP_COUNT = 6;
+const MAX_CROWNS = 24;
+const MAX_DROPS = 96;
 
 interface SplashPalette { drop: number; crown: number; }
 const PALETTE_WATER: SplashPalette = { drop: 0x9bd6e8, crown: 0xd5f0ff };
@@ -65,21 +67,25 @@ export class WaterSplashManager {
     const s = Math.max(0.6, Math.min(1.5, strength));
     const palette = paletteFor(fluidType);
 
-    const crown = new Graphics();
-    crown.x = x; crown.y = surfaceY;
-    this.parent.addChild(crown);
-    this.crowns.push({
-      gfx: crown,
-      life: CROWN_LIFE,
-      maxLife: CROWN_LIFE,
-      startR: 6 * s,
-      endR: 36 * s,
-      palette,
-    });
+    if (this.crowns.length < MAX_CROWNS) {
+      const crown = new Graphics();
+      crown.x = x; crown.y = surfaceY;
+      this.parent.addChild(crown);
+      this.crowns.push({
+        gfx: crown,
+        life: CROWN_LIFE,
+        maxLife: CROWN_LIFE,
+        startR: 6 * s,
+        endR: 36 * s,
+        palette,
+      });
+    }
 
-    for (let i = 0; i < DROP_COUNT; i++) {
+    const dropCount = Math.min(DROP_COUNT, Math.max(0, MAX_DROPS - this.drops.length));
+    for (let i = 0; i < dropCount; i++) {
       // Upper half arc
-      const angle = -Math.PI / 2 + (i / (DROP_COUNT - 1) - 0.5) * Math.PI * 1.1;
+      const arcT = dropCount <= 1 ? 0.5 : i / (dropCount - 1);
+      const angle = -Math.PI / 2 + (arcT - 0.5) * Math.PI * 1.1;
       const speed = 130 + Math.random() * 140;
       const gfx = new Graphics();
       const size = 1.5 + Math.random() * 1.8;

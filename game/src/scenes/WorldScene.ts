@@ -1010,7 +1010,9 @@ export class WorldScene extends Scene {
     this.container.visible = false;
     this.detachSharedUiForItemWorld();
 
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
+      entryCorridor: true,
+    });
     itemWorldScene.onComplete = () => {
       this.game.sceneManager.pop();
       this.updatePlayerAtk();

@@ -693,6 +693,166 @@
     .ref-card{grid-template-columns:1fr}
     .ref-demo{width:100%;height:180px}
   }
+
+  /* ====================================================================== */
+  /* WEATHER (Rain & Snow)  — CSS approximation of WeatherSystem            */
+  /* ====================================================================== */
+  .weather-demo{
+    position:relative;width:100%;height:170px;overflow:hidden;
+    background:linear-gradient(180deg,#0a1018 0%,#101820 60%,#0a0e14 100%);
+    border:1px dashed var(--line);border-radius:2px;
+  }
+  /* Faux cavern silhouette: a low arch (open sky above, building roof bottom-right) */
+  .weather-demo .terrain{
+    position:absolute;left:0;right:0;bottom:0;height:62%;
+    background:linear-gradient(180deg,transparent 0,transparent 24px,#1a1f28 24px),
+               radial-gradient(ellipse 70% 70% at 50% 100%, #2a2f3a 0%, #14181f 60%, transparent 100%);
+  }
+  .weather-demo .roof{
+    position:absolute;right:14px;bottom:46%;width:90px;height:14px;
+    background:#3a2e22;border-top:2px solid #553a26;
+    box-shadow:0 0 0 1px #1a1208 inset;
+  }
+  .weather-demo .roof::before{
+    content:'INDOOR';position:absolute;left:50%;top:18px;transform:translateX(-50%);
+    font-family:ui-monospace,monospace;font-size:8px;letter-spacing:2px;color:#a07050;
+  }
+  .weather-demo .openlbl{
+    position:absolute;left:14px;top:8px;
+    font-family:ui-monospace,monospace;font-size:8px;letter-spacing:2px;color:#5a7a98;
+  }
+
+  /* RAIN streaks */
+  .weather-demo.rain .drop{
+    position:absolute;top:-18px;width:1px;height:10px;
+    background:linear-gradient(180deg,transparent,#c4cdd8);
+    opacity:0.55;transform:rotate(8deg);transform-origin:top center;
+    animation:wx-rain 0.7s linear infinite;
+  }
+  .weather-demo.rain .drop.near{
+    width:2px;height:14px;opacity:0.7;
+    background:linear-gradient(180deg,transparent,#dde4ee);
+  }
+  .weather-demo.rain .drop.far{
+    opacity:0.35;background:linear-gradient(180deg,transparent,#8a98a8);
+  }
+  @keyframes wx-rain{
+    0%{transform:translateY(-10px) rotate(8deg)}
+    100%{transform:translateY(190px) rotate(8deg)}
+  }
+  .weather-demo.rain .splash{
+    position:absolute;bottom:38%;height:1px;background:#b8c4d4;
+    opacity:0;animation:wx-splash 1.4s linear infinite;
+  }
+  @keyframes wx-splash{
+    0%,86%{opacity:0;width:0}
+    88%{opacity:0.6;width:3px;transform:translateX(-1px)}
+    100%{opacity:0;width:8px;transform:translateX(-4px)}
+  }
+
+  /* SNOW motes */
+  .weather-demo.snow .flake{
+    position:absolute;top:-6px;width:2px;height:2px;background:#e8dcc4;
+    opacity:0.78;border-radius:50%;
+    animation:wx-snow-fall 5.5s linear infinite, wx-snow-wob 2.4s ease-in-out infinite alternate;
+  }
+  .weather-demo.snow .flake.far{
+    width:1px;height:1px;background:#c8bea4;opacity:0.42;
+    animation-duration:7.5s, 3.2s;
+  }
+  @keyframes wx-snow-fall{
+    0%{transform:translateY(-6px)}
+    100%{transform:translateY(175px)}
+  }
+  @keyframes wx-snow-wob{
+    0%{margin-left:-6px}
+    100%{margin-left:6px}
+  }
+
+  /* ===== Interactive WeatherSystem playground ===== */
+  .wx-stage{
+    position:relative;width:100%;height:220px;
+    background:linear-gradient(180deg,#0a1018 0%,#101820 60%,#0a0e14 100%);
+    border:1px dashed var(--line);border-radius:2px;overflow:hidden;
+    image-rendering:pixelated;
+    user-select:none;cursor:default;
+  }
+  .wx-stage .wx-floor{
+    position:absolute;left:0;right:0;bottom:0;height:36px;
+    background:linear-gradient(180deg,#1a1f28 0%,#0f1218 100%);
+    border-top:1px solid #2a3140;
+  }
+  .wx-stage .wx-roof{
+    position:absolute;
+    background:#3a2e22;border-top:2px solid #553a26;
+    box-shadow:0 0 0 1px #1a1208 inset, 0 4px 12px rgba(0,0,0,0.4);
+    cursor:grab;
+    display:flex;align-items:center;justify-content:center;
+    font-family:ui-monospace,monospace;font-size:8px;letter-spacing:2px;
+    color:#cfa080;
+    touch-action:none;
+  }
+  .wx-stage .wx-roof.dragging{cursor:grabbing;outline:1px dashed #ffaa44}
+  .wx-stage .wx-cover-band{
+    position:absolute;left:0;right:0;
+    background:repeating-linear-gradient(135deg,
+      rgba(255,170,68,0.05) 0 6px,
+      rgba(255,170,68,0.10) 6px 12px);
+    border-top:1px dashed rgba(255,170,68,0.35);
+    border-bottom:1px dashed rgba(255,170,68,0.35);
+    pointer-events:none;
+  }
+  .wx-stage .wx-cover-band .cb-lbl{
+    position:absolute;top:2px;left:6px;
+    font-family:ui-monospace,monospace;font-size:8px;letter-spacing:1px;
+    color:rgba(255,170,68,0.7);
+  }
+  .wx-stage .wx-overlay{
+    position:absolute;left:8px;top:6px;
+    font-family:ui-monospace,monospace;font-size:9px;letter-spacing:1px;
+    color:#7a8a9c;pointer-events:none;
+  }
+  .wx-stage .wx-readout{
+    position:absolute;right:8px;top:6px;
+    font-family:ui-monospace,monospace;font-size:9px;letter-spacing:1px;
+    color:#7a8a9c;pointer-events:none;
+  }
+  .wx-stage canvas{
+    position:absolute;inset:0;width:100%;height:100%;
+    pointer-events:none;
+  }
+
+  .wx-controls{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px 18px;margin-top:12px;padding:12px 14px;
+    background:#0a0a14;border:1px solid var(--line);border-radius:2px;
+  }
+  .wx-controls .ctrl{display:flex;flex-direction:column;gap:4px;font-size:11px}
+  .wx-controls .ctrl label{
+    display:flex;justify-content:space-between;align-items:center;
+    color:var(--text-secondary);font-family:ui-monospace,monospace;font-size:10px;
+    letter-spacing:1px;text-transform:uppercase;
+  }
+  .wx-controls .ctrl label .val{color:var(--text-accent);font-weight:700}
+  .wx-controls .ctrl input[type=range]{width:100%;accent-color:#00ced1}
+  .wx-controls .mode-row{
+    grid-column:1 / -1;display:flex;gap:8px;align-items:center;
+    font-family:ui-monospace,monospace;font-size:10px;letter-spacing:1px;
+  }
+  .wx-controls .mode-row .mlbl{color:var(--text-secondary);margin-right:4px}
+  .wx-controls .mode-row button{
+    background:#14141f;color:var(--text-secondary);
+    border:1px solid var(--line);font-family:ui-monospace,monospace;
+    font-size:11px;letter-spacing:2px;padding:4px 14px;cursor:pointer;
+    border-radius:2px;
+  }
+  .wx-controls .mode-row button.active{
+    background:rgba(0,206,209,0.15);color:var(--text-accent);
+    border-color:var(--text-accent);
+  }
+  .wx-controls .mode-row .hint{
+    margin-left:auto;color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0;
+  }
 </style>
 </head>
 <body>
@@ -709,6 +869,7 @@
     <a href="#filters">Filters</a>
     <a href="#mesh">Mesh & Shaders</a>
     <a href="#particles">Particles</a>
+    <a href="#weather">Weather (Rain/Snow)</a>
     <a href="#spine">Spine 2D</a>
 
     <div class="group">performance</div>
@@ -1028,6 +1189,572 @@
     <div class="apply"><b>적용 후보:</b> HitSpark / DeathParticles / Trapdoor ember / Anvil spark / 보스 처치 burst — 모두 JSON 으로 변경 가능</div>
   </div>
 </section>
+
+<!-- ============================ WEATHER ============================ -->
+
+<section id="weather">
+  <h2>Weather (Rain &amp; Snow)</h2>
+  <div class="src">game/src/effects/WeatherSystem.ts · IntGrid-aware</div>
+  <p>
+    위령(Requiem) 톤의 환경 베일. 비/눈 입자가 카메라 상단에서 스폰되고 IntGrid 의 solid 셀에 충돌하면 사라진다.
+    Spawn 시점에 컬럼 위쪽을 스캔해 <b>실내 컬럼(지붕 덮인 곳)</b> 은 자동 배제 — 넓은 공동 안에 작은 건물이 있어도 그 안엔 비가 내리지 않는다.
+    Content_Direction.md §1 위령 톤 정합: 차가운 블루그레이 streak / 본·세피아 톤의 눈 / 약한 splash tick — 화려한 weather VFX 가 아니라 색을 가라앉히는 *장막*.
+  </p>
+
+  <div class="card">
+    <h3>WeatherSystem — Rain mode</h3>
+    <div class="meta">
+      <code>game/src/effects/WeatherSystem.ts</code> · <code>pixi.js v8 Graphics</code>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      단일 <code>Graphics</code> 객체에 매 프레임 입자/splash 를 immediate-mode 로 그린다.
+      Sprite 풀 없음 — 입자 수가 적고 (rain 220 / snow 140 cap), 한 draw call 로 끝난다.
+      파라미터: <code>mode</code> · <code>intensity</code> (0..1) · <code>wind</code> (-1..1) · <code>collision.grid</code> · <code>coverageCheckTiles</code> (덮임 검사 깊이).
+      <br><br>
+      <b>IntGrid 충돌:</b> 각 입자가 매 tick <code>grid[row][col]</code> 을 1회 샘플. <code>isSolid(v)</code> 기본값은 <code>v !== 0 &amp;&amp; v !== 10</code> (empty 와 void 만 통과). 충돌 시 비는 surface 에 splash tick, 눈은 그냥 소멸.
+      <br><br>
+      <b>실내 차단:</b> spawn 마다 컬럼 상단 N tile 을 스캔해 solid 가 있으면 입자 생성 자체를 스킵. 카메라 바로 위의 지붕 1–3 tile 검사로 건물 안엔 비 없음, 동굴 천장은 멀리 떨어져 있으면 비 통과.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사 (RAIN)</span>
+      <div class="weather-demo rain" style="width:100%;max-width:520px;">
+        <span class="openlbl">OPEN CAVERN ↑</span>
+        <div class="terrain"></div>
+        <div class="roof"></div>
+        <!-- Far layer drops (slower / dimmer) -->
+        <span class="drop far" style="left:6%;animation-delay:-0.10s"></span>
+        <span class="drop far" style="left:14%;animation-delay:-0.45s"></span>
+        <span class="drop far" style="left:22%;animation-delay:-0.30s"></span>
+        <span class="drop far" style="left:30%;animation-delay:-0.55s"></span>
+        <span class="drop far" style="left:38%;animation-delay:-0.20s"></span>
+        <span class="drop far" style="left:46%;animation-delay:-0.65s"></span>
+        <span class="drop far" style="left:54%;animation-delay:-0.05s"></span>
+        <span class="drop far" style="left:62%;animation-delay:-0.40s"></span>
+        <!-- Near layer drops (brighter / longer) -->
+        <span class="drop near" style="left:10%;animation-delay:-0.25s"></span>
+        <span class="drop near" style="left:24%;animation-delay:-0.60s"></span>
+        <span class="drop near" style="left:42%;animation-delay:-0.15s"></span>
+        <span class="drop near" style="left:56%;animation-delay:-0.50s"></span>
+        <!-- Splash ticks where drops meet the ground (open area only) -->
+        <span class="splash" style="left:10%;animation-delay:-0.5s"></span>
+        <span class="splash" style="left:24%;animation-delay:-1.1s"></span>
+        <span class="splash" style="left:42%;animation-delay:-0.2s"></span>
+        <span class="splash" style="left:56%;animation-delay:-0.8s"></span>
+      </div>
+    </div>
+    <pre><span class="cmt">// LdtkWorldScene.ts / ItemWorldScene.ts</span>
+<span class="kw">import</span> { WeatherSystem } <span class="kw">from</span> <span class="str">'@/effects/WeatherSystem'</span>;
+
+<span class="cmt">// On level enter:</span>
+<span class="kw">this</span>.weather = <span class="kw">new</span> <span class="fn">WeatherSystem</span>({
+  mode: <span class="str">'rain'</span>,
+  intensity: <span class="num-lit">0.7</span>,           <span class="cmt">// 0..1</span>
+  wind: <span class="num-lit">-0.18</span>,             <span class="cmt">// drift to the left</span>
+  coverageCheckTiles: <span class="num-lit">3</span>,   <span class="cmt">// roof scan depth</span>
+  collision: {
+    grid: level.collisionGrid,
+    tileSize: TILE_SIZE,
+    originX: level.worldX,
+    originY: level.worldY,
+  },
+});
+<span class="kw">this</span>.weatherLayer.<span class="fn">addChild</span>(<span class="kw">this</span>.weather.container);
+
+<span class="cmt">// Per tick:</span>
+<span class="kw">this</span>.weather.<span class="fn">update</span>(dtMs, <span class="kw">this</span>.camera.<span class="fn">getView</span>());
+
+<span class="cmt">// On level exit:</span>
+<span class="kw">this</span>.weather.<span class="fn">destroy</span>();</pre>
+    <div class="apply">
+      <b>적용 후보:</b>
+      Shaft_01 / 02 plaza 상층 (지붕 부서진 천장 빛기둥 사이 비) ·
+      그림자 마을 옥외 (DEC-038, 위령 톤 +1) ·
+      Trapdoor 침강 직후 ambient (위령 stage 진입 cue) ·
+      특정 Memory Shard 회상 시퀀스 (Rustborn 의 마지막 발화 직후) ·
+      ItemWorld 보스방 외곽 (지층 ↑ 갈수록 강도 ↑)
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>WeatherSystem — Snow mode</h3>
+    <div class="meta">
+      <code>game/src/effects/WeatherSystem.ts</code> · 동일 시스템 / <code>mode: 'snow'</code>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-mid">IMPACT MID</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P2</span>
+    </div>
+    <div class="desc">
+      동일 collision 로직, 다른 motion: 느린 수직 낙하 + sine 좌우 wobble. splash 없음 — 조용히 흡수.
+      색은 본·세피아 톤 (<code>#c8bea4</code> / <code>#e8dcc4</code>) 으로 breakable_01 출하 SSoT (DEC actual_art_style) 와 정합.
+      비보다 입자 수가 적고 (cap 140) 속도가 1/10 수준이라 부담 더 낮음.
+    </div>
+    <div class="demo">
+      <span class="lbl-tag">DEMO · CSS 모사 (SNOW)</span>
+      <div class="weather-demo snow" style="width:100%;max-width:520px;">
+        <span class="openlbl">OPEN CAVERN ↑</span>
+        <div class="terrain"></div>
+        <div class="roof"></div>
+        <span class="flake" style="left:8%;animation-delay:-1.0s"></span>
+        <span class="flake" style="left:18%;animation-delay:-3.0s"></span>
+        <span class="flake" style="left:28%;animation-delay:-2.2s"></span>
+        <span class="flake" style="left:38%;animation-delay:-4.5s"></span>
+        <span class="flake" style="left:48%;animation-delay:-1.6s"></span>
+        <span class="flake" style="left:58%;animation-delay:-3.8s"></span>
+        <span class="flake far" style="left:12%;animation-delay:-5.5s"></span>
+        <span class="flake far" style="left:22%;animation-delay:-0.8s"></span>
+        <span class="flake far" style="left:32%;animation-delay:-2.7s"></span>
+        <span class="flake far" style="left:42%;animation-delay:-6.1s"></span>
+        <span class="flake far" style="left:52%;animation-delay:-1.9s"></span>
+        <span class="flake far" style="left:62%;animation-delay:-4.0s"></span>
+        <span class="flake" style="left:70%;animation-delay:-2.5s"></span>
+        <span class="flake far" style="left:78%;animation-delay:-3.3s"></span>
+      </div>
+    </div>
+    <pre><span class="cmt">// Hot-swap mode without re-creating the system:</span>
+<span class="kw">this</span>.weather.<span class="fn">setMode</span>(<span class="str">'snow'</span>);
+<span class="kw">this</span>.weather.<span class="fn">setIntensity</span>(<span class="num-lit">0.45</span>);
+<span class="kw">this</span>.weather.<span class="fn">setWind</span>(<span class="num-lit">0.05</span>);
+
+<span class="cmt">// Or rebind a different level's collision grid:</span>
+<span class="kw">this</span>.weather.<span class="fn">setCollision</span>({
+  grid: nextLevel.collisionGrid,
+  tileSize: TILE_SIZE,
+  originX: nextLevel.worldX,
+  originY: nextLevel.worldY,
+});</pre>
+    <div class="apply">
+      <b>적용 후보:</b>
+      Stage 5 결말 A (천도) 직전 환경 — <i>"a requiem you walk through"</i> 의 시각 닫힘 ·
+      The Shaft 심층의 정전기적 입자 (눈이 아닌 ash 로 색만 변경 가능) ·
+      그림자 마을 외곽 야간 cue (DEC-038) ·
+      특정 Rustborn 침묵 비트 (Stage 0 깨어남)
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>IntGrid 충돌 / 실내 차단 로직 요약</h3>
+    <div class="meta">
+      <code>WeatherSystem.isCoveredAbove()</code> + per-tick <code>grid[row][col]</code> 샘플
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      입자는 두 단계로 IntGrid 와 상호작용한다.
+      <br><br>
+      <b>(A) Spawn-time coverage check:</b> spawn 좌표의 컬럼을 위로 <code>coverageCheckTiles</code> 줄 만큼 스캔. solid 셀이 있으면 그 컬럼은 *덮여 있음* 으로 보고 입자 자체를 생성하지 않는다.
+      카메라 바로 위 1–3 tile 만 검사하므로 동굴의 멀리 떨어진 천장은 통과시키고, 가까운 건물 지붕만 차단한다.
+      <br><br>
+      <b>(B) Per-tick collision:</b> 살아 있는 입자는 매 tick 자기 셀의 IntGrid 값을 본다. <code>isSolid(v)</code> 가 true 면 위치 row 의 surface (top edge) 좌표로 splash 를 남기고 소멸 (비) / 그냥 소멸 (눈).
+      기본 <code>isSolid</code> 는 <code>v !== 0 &amp;&amp; v !== 10</code> 이라 water (2) / one-way (3) / updraft (4) 도 막힘. 필요 시 옵션으로 override 가능 (<code>collision.isSolid</code>).
+      <br><br>
+      비용: spawn rate × coverageCheckTiles 의 행 스캔 + 입자당 1 회 grid 룩업. 220 입자 + 480 spawn/s × 3 tile = 초당 ~1.6k 의 단순 정수 인덱싱. 무시 가능.
+    </div>
+    <table class="matrix">
+      <tr><th>상황</th><th>컬럼 상단 검사</th><th>결과</th></tr>
+      <tr><td>넓은 공동 한가운데 (천장 멀리)</td><td class="center">3 tile 내 solid 없음</td><td class="center" style="color:var(--text-positive)">비/눈 ●</td></tr>
+      <tr><td>공동 안 건물 지붕 아래</td><td class="center">1–2 tile 위 solid</td><td class="center" style="color:var(--text-negative)">차단 ✕</td></tr>
+      <tr><td>좁은 동굴 천장 바로 아래</td><td class="center">1 tile 위 solid</td><td class="center" style="color:var(--text-negative)">차단 ✕</td></tr>
+      <tr><td>건물 지붕 가장자리 (지붕 끝)</td><td class="center">컬럼별로 다름</td><td class="center">자연스러운 경계</td></tr>
+      <tr><td>지붕 위 (옥상)</td><td class="center">검사 범위 비어 있음</td><td class="center" style="color:var(--text-positive)">비/눈 ●</td></tr>
+    </table>
+    <div class="apply">
+      <b>튜닝 노트:</b>
+      <code>coverageCheckTiles = 0</code> 으로 차단을 끄면 입자는 어디서나 spawn 되고 충돌만 IntGrid 로 처리 — 좁은 동굴 안에서 천장 아래 빛샘 효과가 필요할 때.
+      <code>= 6+</code> 으로 키우면 큰 동굴 천장도 차단 — 진짜 야외 공간에서만 비가 내리는 모드.
+      카메라가 지붕 위로 올라가면 다시 비가 보이도록 즉시 전환됨 (state 캐시 없음, 매 spawn 재계산).
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Interactive Playground — Streak / Density / Indoor 이동</h3>
+    <div class="meta">
+      <code>WeatherSystem.setStreakLength / setRainIntensity / setSnowIntensity / setCoverageMask</code>
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      실제 <code>WeatherSystem</code> 의 spawn/step/draw 루프를 동일 알고리즘으로 Canvas2D 에 재구현한 라이브 데모.
+      <b>INDOOR 박스를 드래그</b>해서 위치를 옮기면 coverage check 가 즉시 재계산된다.
+      슬라이더: 빗줄기 길이 (1–20px) · 비 밀도 · 눈 밀도 · 바람 · coverage 거리.
+      모드 전환 시에도 양쪽 밀도는 독립적으로 유지된다 (setRainIntensity / setSnowIntensity).
+    </div>
+
+    <div class="wx-stage" id="wx-stage">
+      <div class="wx-floor"></div>
+      <div class="wx-cover-band" id="wx-cover-band"><span class="cb-lbl">COVERAGE SCAN</span></div>
+      <div class="wx-roof" id="wx-roof">INDOOR ⇲ DRAG</div>
+      <canvas id="wx-canvas" width="520" height="220"></canvas>
+      <span class="wx-overlay">OPEN CAVERN ↑ &nbsp; (drag roof to test coverage)</span>
+      <span class="wx-readout" id="wx-readout">— particles · — splashes</span>
+    </div>
+
+    <div class="wx-controls" id="wx-controls">
+      <div class="mode-row">
+        <span class="mlbl">MODE</span>
+        <button data-mode="rain" class="active">RAIN</button>
+        <button data-mode="snow">SNOW</button>
+        <span class="hint">— mode switch keeps each density independently</span>
+      </div>
+      <div class="ctrl">
+        <label>Streak Length <span class="val" id="wx-val-streak">6 px</span></label>
+        <input type="range" id="wx-streak" min="1" max="20" value="6" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Streak Width <span class="val" id="wx-val-streakw">0.8 px</span></label>
+        <input type="range" id="wx-streak-width" min="25" max="400" value="80" step="5">
+      </div>
+      <div class="ctrl">
+        <label>Coverage Distance <span class="val" id="wx-val-cov">3 tiles</span></label>
+        <input type="range" id="wx-coverage" min="0" max="10" value="3" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Rain Density <span class="val" id="wx-val-rain">0.70</span></label>
+        <input type="range" id="wx-rain-density" min="0" max="100" value="70" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Snow Density <span class="val" id="wx-val-snow">0.50</span></label>
+        <input type="range" id="wx-snow-density" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Wind <span class="val" id="wx-val-wind">-0.18</span></label>
+        <input type="range" id="wx-wind" min="-100" max="100" value="-18" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Roof Width <span class="val" id="wx-val-roofw">130 px</span></label>
+        <input type="range" id="wx-roof-width" min="40" max="320" value="130" step="2">
+      </div>
+    </div>
+
+    <pre><span class="cmt">// All four playground knobs map 1:1 to WeatherSystem API</span>
+weather.<span class="fn">setStreakLength</span>(streakPx);            <span class="cmt">// 빗줄기 길이</span>
+weather.<span class="fn">setStreakWidth</span>(widthPx);              <span class="cmt">// 빗줄기 굵기 (0.5~3 권장)</span>
+weather.<span class="fn">setRainIntensity</span>(rainDensity);        <span class="cmt">// 비 밀도</span>
+weather.<span class="fn">setSnowIntensity</span>(snowDensity);        <span class="cmt">// 눈 밀도</span>
+weather.<span class="fn">setCoverageCheckTiles</span>(distance);      <span class="cmt">// indoor 검사 깊이</span>
+
+<span class="cmt">// Dynamic indoor — replace the IntGrid scan with a custom rect mask.</span>
+<span class="cmt">// Equivalent to "moving the roof at runtime" in the playground.</span>
+weather.<span class="fn">setCoverageMask</span>((x, y) =&gt; {
+  <span class="kw">const</span> dy = (roof.y + roof.h) - y;
+  <span class="kw">return</span> dy &gt;= <span class="num-lit">0</span> &amp;&amp; dy &lt;= coverageDistance * tileSize
+      &amp;&amp; x &gt;= roof.x &amp;&amp; x &lt;= roof.x + roof.w;
+});
+
+<span class="cmt">// Revert to default IntGrid-based coverage check:</span>
+weather.<span class="fn">setCoverageMask</span>(<span class="kw">null</span>);</pre>
+    <div class="apply">
+      <b>적용 시나리오:</b>
+      Stage 4 직면 직전 점진적 강도 상승 (<code>setRainIntensity</code> tween 0→1) ·
+      Rustborn 침묵 비트에서 streak 단축 (<code>setStreakLength(3)</code>) →
+      Stage 5 풀이에서 streak 확장 + 바람 강화 (정서 가속 cue) ·
+      Echo-Bearer 무덤 위 동적 비 차단 (<code>setCoverageMask</code> 으로 무덤 위 origin 지정)
+    </div>
+  </div>
+</section>
+
+<!-- Weather playground simulation — mirrors WeatherSystem.ts behaviour -->
+<script>
+(function(){
+  const stage = document.getElementById('wx-stage');
+  if (!stage) return;
+  const canvas = document.getElementById('wx-canvas');
+  const ctx = canvas.getContext('2d');
+  const roofEl = document.getElementById('wx-roof');
+  const coverBand = document.getElementById('wx-cover-band');
+  const readout = document.getElementById('wx-readout');
+
+  let W = canvas.width, H = canvas.height;
+  const TILE = 12; // demo-scale "tile" in pixels
+
+  // ---- Responsive canvas sizing (crisp 1:1 device pixels) ----
+  function resizeCanvas() {
+    const rect = stage.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cssW = Math.max(1, Math.round(rect.width));
+    const cssH = Math.max(1, Math.round(rect.height));
+    const backW = Math.round(cssW * dpr);
+    const backH = Math.round(cssH * dpr);
+    if (canvas.width !== backW || canvas.height !== backH) {
+      canvas.width = backW;
+      canvas.height = backH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    W = cssW;
+    H = cssH;
+  }
+  resizeCanvas();
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(resizeCanvas).observe(stage);
+  } else {
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  const state = {
+    mode: 'rain',
+    streakLength: 6,
+    streakWidth: 0.8,
+    rainIntensity: 0.70,
+    snowIntensity: 0.50,
+    wind: -0.18,
+    coverageTiles: 3,
+    roof: { x: 260, y: 90, w: 130, h: 16 },
+    maxParticles: { rain: 320, snow: 200 },
+  };
+
+  const particles = [];
+  const splashes = [];
+  let spawnAccum = 0;
+
+  function isCovered(x, y) {
+    // Mirrors WeatherSystem.setCoverageMask: rectangular indoor region.
+    const r = state.roof;
+    if (x < r.x || x > r.x + r.w) return false;
+    const dy = (r.y + r.h) - y;
+    return dy >= 0 && dy <= state.coverageTiles * TILE;
+  }
+
+  function spawn(dt) {
+    const isRain = state.mode === 'rain';
+    const intensity = isRain ? state.rainIntensity : state.snowIntensity;
+    if (intensity <= 0) return;
+    const baseRate = isRain ? 480 : 110;
+    spawnAccum += baseRate * intensity * dt;
+    const want = Math.floor(spawnAccum);
+    spawnAccum -= want;
+    const cap = isRain ? state.maxParticles.rain : state.maxParticles.snow;
+    const pad = isRain ? 80 : 30;
+    for (let i = 0; i < want; i++) {
+      if (particles.length >= cap) break;
+      const x = -pad + Math.random() * (W + pad * 2);
+      const y = -16 - Math.random() * (isRain ? 36 : 12);
+      if (isCovered(x, y)) continue;
+      particles.push(makeParticle(x, y, isRain));
+    }
+  }
+
+  function makeParticle(x, y, isRain) {
+    if (isRain) {
+      const layer = Math.random() < 0.65 ? 0 : 1;
+      const speed = layer === 1 ? (320 + Math.random() * 90) : (220 + Math.random() * 60);
+      return {
+        x, y,
+        vx: state.wind * speed * 0.45,
+        vy: speed,
+        size: layer === 1 ? 2 : 1,
+        alpha: layer === 1 ? 0.55 : 0.32,
+        layer, phase: 0,
+      };
+    }
+    const layer = Math.random() < 0.55 ? 0 : 1;
+    const speed = layer === 1 ? (30 + Math.random() * 18) : (16 + Math.random() * 10);
+    return {
+      x, y,
+      vx: state.wind * speed * 2.5,
+      vy: speed,
+      size: layer === 1 ? 2 : 1,
+      alpha: layer === 1 ? 0.78 : 0.42,
+      layer, phase: Math.random() * Math.PI * 2,
+    };
+  }
+
+  function step(dt) {
+    const isRain = state.mode === 'rain';
+    const r = state.roof;
+    const floorY = H - 36;
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      if (!isRain) {
+        p.phase += 1.6 * dt;
+        const wob = Math.sin(p.phase) * (p.layer === 1 ? 22 : 12);
+        p.x += (p.vx + wob) * dt;
+      } else {
+        p.x += p.vx * dt;
+      }
+      p.y += p.vy * dt;
+
+      // Per-tick collision against roof (top edge) — mirrors IntGrid check.
+      if (p.y >= r.y && p.y <= r.y + r.h && p.x >= r.x && p.x <= r.x + r.w) {
+        if (isRain) splashes.push({ x: p.x, y: r.y, life: 220, max: 220 });
+        particles.splice(i, 1); continue;
+      }
+      // Floor collision
+      if (p.y >= floorY) {
+        if (isRain) splashes.push({ x: p.x, y: floorY, life: 220, max: 220 });
+        particles.splice(i, 1); continue;
+      }
+      // Off-screen cull
+      if (p.x < -240 || p.x > W + 240 || p.y > H + 8) {
+        particles.splice(i, 1);
+      }
+    }
+    for (let i = splashes.length - 1; i >= 0; i--) {
+      splashes[i].life -= dt * 1000;
+      if (splashes[i].life <= 0) splashes.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const isRain = state.mode === 'rain';
+    const cFar = isRain ? '#8a98a8' : '#c8bea4';
+    const cNear = isRain ? '#c4cdd8' : '#e8dcc4';
+    for (const p of particles) {
+      const color = p.layer === 1 ? cNear : cFar;
+      ctx.globalAlpha = p.alpha;
+      if (!isRain) {
+        ctx.fillStyle = color;
+        ctx.fillRect(p.x | 0, p.y | 0, p.size, p.size);
+      } else {
+        const len = p.layer === 1 ? state.streakLength + 2 : state.streakLength;
+        const width = p.layer === 1 ? state.streakWidth + 0.5 : state.streakWidth;
+        const inv = 1 / Math.max(1, p.vy);
+        const dx = p.vx * inv * len;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo((p.x | 0) + 0.5, (p.y | 0) + 0.5);
+        ctx.lineTo(((p.x + dx) | 0) + 0.5, ((p.y + len) | 0) + 0.5);
+        ctx.stroke();
+      }
+    }
+    if (isRain) {
+      ctx.fillStyle = '#b8c4d4';
+      for (const s of splashes) {
+        const r = s.life / s.max;
+        const w = Math.max(1, Math.floor(3 + (1 - r) * 5));
+        ctx.globalAlpha = r * 0.55;
+        ctx.fillRect(((s.x - w / 2) | 0), s.y | 0, w, 1);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function layoutRoof() {
+    roofEl.style.left = state.roof.x + 'px';
+    roofEl.style.top = state.roof.y + 'px';
+    roofEl.style.width = state.roof.w + 'px';
+    roofEl.style.height = state.roof.h + 'px';
+    const bandTop = Math.max(0, state.roof.y + state.roof.h - state.coverageTiles * TILE);
+    const bandH = (state.roof.y + state.roof.h) - bandTop;
+    coverBand.style.top = bandTop + 'px';
+    coverBand.style.height = bandH + 'px';
+    coverBand.style.display = state.coverageTiles > 0 ? 'block' : 'none';
+  }
+
+  // ------- Drag the roof -------
+  let drag = null;
+  function getStageCoords(ev) {
+    const rect = stage.getBoundingClientRect();
+    return {
+      x: ev.clientX - rect.left,
+      y: ev.clientY - rect.top,
+    };
+  }
+  roofEl.addEventListener('pointerdown', function(ev){
+    const p = getStageCoords(ev);
+    drag = { dx: p.x - state.roof.x, dy: p.y - state.roof.y };
+    roofEl.classList.add('dragging');
+    roofEl.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  roofEl.addEventListener('pointermove', function(ev){
+    if (!drag) return;
+    const p = getStageCoords(ev);
+    state.roof.x = Math.max(0, Math.min(W - state.roof.w, p.x - drag.dx));
+    state.roof.y = Math.max(0, Math.min(H - 48 - state.roof.h, p.y - drag.dy));
+    layoutRoof();
+  });
+  function endDrag(ev){
+    if (!drag) return;
+    drag = null;
+    roofEl.classList.remove('dragging');
+    if (ev && ev.pointerId != null) try { roofEl.releasePointerCapture(ev.pointerId); } catch(_){}
+  }
+  roofEl.addEventListener('pointerup', endDrag);
+  roofEl.addEventListener('pointercancel', endDrag);
+
+  // ------- Bind controls -------
+  function bind(id, onChange){
+    const el = document.getElementById(id);
+    el.addEventListener('input', function(){ onChange(parseFloat(el.value), el); });
+  }
+  bind('wx-streak', function(v){
+    state.streakLength = v;
+    document.getElementById('wx-val-streak').textContent = v + ' px';
+  });
+  bind('wx-streak-width', function(v){
+    state.streakWidth = v / 100;
+    document.getElementById('wx-val-streakw').textContent = state.streakWidth.toFixed(2) + ' px';
+  });
+  bind('wx-coverage', function(v){
+    state.coverageTiles = v;
+    document.getElementById('wx-val-cov').textContent = v + ' tiles';
+    layoutRoof();
+  });
+  bind('wx-rain-density', function(v){
+    state.rainIntensity = v / 100;
+    document.getElementById('wx-val-rain').textContent = state.rainIntensity.toFixed(2);
+  });
+  bind('wx-snow-density', function(v){
+    state.snowIntensity = v / 100;
+    document.getElementById('wx-val-snow').textContent = state.snowIntensity.toFixed(2);
+  });
+  bind('wx-wind', function(v){
+    state.wind = v / 100;
+    document.getElementById('wx-val-wind').textContent = state.wind.toFixed(2);
+  });
+  bind('wx-roof-width', function(v){
+    state.roof.w = v;
+    document.getElementById('wx-val-roofw').textContent = v + ' px';
+    state.roof.x = Math.min(state.roof.x, W - state.roof.w);
+    layoutRoof();
+  });
+  // Mode buttons
+  const modeButtons = document.querySelectorAll('#wx-controls .mode-row button');
+  modeButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.mode = btn.getAttribute('data-mode');
+      particles.length = 0;
+      splashes.length = 0;
+      modeButtons.forEach(function(b){ b.classList.toggle('active', b === btn); });
+    });
+  });
+
+  layoutRoof();
+
+  // ------- RAF loop -------
+  let last = performance.now();
+  let readoutAccum = 0;
+  function frame(now){
+    const dtMs = Math.min(50, now - last);
+    last = now;
+    const dt = dtMs / 1000;
+    spawn(dt);
+    step(dt);
+    draw();
+    readoutAccum += dtMs;
+    if (readoutAccum > 120) {
+      readout.textContent = particles.length + ' particles · ' + splashes.length + ' splashes';
+      readoutAccum = 0;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
 
 <section id="spine">
   <h2>Spine 2D Animation</h2>

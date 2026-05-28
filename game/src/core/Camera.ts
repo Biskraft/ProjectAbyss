@@ -16,6 +16,7 @@ export class Camera {
   zoom = 1.0;
   private targetZoom = 1.0;
   private zoomSpeed = CameraConst.ZoomSpeed;
+  private zoomLock: number | null = null;
 
   // Look Ahead (horizontal — facing direction)
   lookAheadDistance = CameraConst.LookAheadDistance;
@@ -69,16 +70,35 @@ export class Camera {
   }
 
   /** Instantly set zoom level (no lerp) */
-  setZoom(value: number): void {
+  setZoom(value: number, opts: { bypassLock?: boolean } = {}): void {
     const clamped = Math.max(0.01, Math.min(4.0, value));
+    if (this.zoomLock !== null && !opts.bypassLock) {
+      this.zoom = this.zoomLock;
+      this.targetZoom = this.zoomLock;
+      return;
+    }
+    if (this.zoomLock !== null && opts.bypassLock) {
+      this.zoomLock = clamped;
+    }
     this.zoom = clamped;
     this.targetZoom = clamped;
   }
 
   /** Smoothly transition to target zoom */
   zoomTo(target: number, lerp?: number): void {
-    this.targetZoom = Math.max(0.01, Math.min(4.0, target));
+    this.targetZoom = this.zoomLock ?? Math.max(0.01, Math.min(4.0, target));
     if (lerp !== undefined) this.zoomSpeed = lerp;
+  }
+
+  lockZoom(value: number): void {
+    const clamped = Math.max(0.01, Math.min(4.0, value));
+    this.zoomLock = clamped;
+    this.zoom = clamped;
+    this.targetZoom = clamped;
+  }
+
+  unlockZoom(): void {
+    this.zoomLock = null;
   }
 
   /** Instantly set look-ahead to its final value (no lerp) */
@@ -141,6 +161,10 @@ export class Camera {
   }
 
   update(dt: number): void {
+    if (this.zoomLock !== null) {
+      this.zoom = this.zoomLock;
+      this.targetZoom = this.zoomLock;
+    }
     if (!this.target) return;
 
     const dtFactor = dt / 16.6667;

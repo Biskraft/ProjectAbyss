@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
 
-type LaserPhase = 'hold' | 'burst' | 'decay' | 'done';
+type LaserPhase = 'hold' | 'burst' | 'max_hold' | 'decay' | 'done';
 
 interface BeamParticle {
   x: number;
@@ -16,6 +16,7 @@ interface BeamParticle {
 
 const HOLD_THICKNESS = 1.5;
 const MAX_BURST_HALF_WIDTH = 55;
+const MAX_BURST_HOLD_MS = 1000;
 const BURST_GROWTH_PER_MS = 1.1;
 const DECAY_PER_MS = 0.13;
 const SOURCE_TAPER_PIXELS = 38;
@@ -33,6 +34,7 @@ export class AnvilGateLaser {
   private readonly length: number;
   private phase: LaserPhase = 'hold';
   private holdElapsed = 0;
+  private maxHoldElapsed = 0;
   private beamHalfWidth = HOLD_THICKNESS;
   private flash = 0;
   private impactGlow = 0;
@@ -68,13 +70,27 @@ export class AnvilGateLaser {
       this.impactGlow = Math.min(0.45, this.holdElapsed / 1000 * 0.7);
     } else if (this.phase === 'burst') {
       this.beamHalfWidth = Math.min(MAX_BURST_HALF_WIDTH, this.beamHalfWidth + dtMs * BURST_GROWTH_PER_MS);
-      this.flash = Math.max(0, this.flash - dtMs * 0.007);
-      this.sourceBurst = Math.max(0, this.sourceBurst - dtMs * 0.0045);
+      this.flash = Math.max(0.24, this.flash - dtMs * 0.007);
+      this.sourceBurst = Math.max(0.5, this.sourceBurst - dtMs * 0.0045);
       this.shake = Math.max(0, this.shake - dtMs * 0.005);
-      this.impactGlow = Math.max(0, this.impactGlow - dtMs * 0.003);
-      if (this.flash <= 0) this.phase = 'decay';
+      this.impactGlow = Math.max(0.75, this.impactGlow - dtMs * 0.003);
+      if (this.beamHalfWidth >= MAX_BURST_HALF_WIDTH) {
+        this.beamHalfWidth = MAX_BURST_HALF_WIDTH;
+        this.maxHoldElapsed = 0;
+        this.phase = 'max_hold';
+      }
+    } else if (this.phase === 'max_hold') {
+      this.maxHoldElapsed += dtMs;
+      this.beamHalfWidth = MAX_BURST_HALF_WIDTH;
+      const pulse = (Math.sin(performance.now() * 0.08) + 1) * 0.5;
+      this.flash = 0.14 + pulse * 0.08;
+      this.sourceBurst = 0.36 + pulse * 0.14;
+      this.shake = Math.max(0, this.shake - dtMs * 0.006);
+      this.impactGlow = 0.72 + pulse * 0.16;
+      if (this.maxHoldElapsed >= MAX_BURST_HOLD_MS) this.phase = 'decay';
     } else if (this.phase === 'decay') {
       this.beamHalfWidth = Math.max(0, this.beamHalfWidth - dtMs * DECAY_PER_MS);
+      this.flash = Math.max(0, this.flash - dtMs * 0.004);
       this.impactGlow = Math.max(0, this.impactGlow - dtMs * 0.0015);
       this.sourceBurst = Math.max(0, this.sourceBurst - dtMs * 0.002);
       if (this.beamHalfWidth <= 0) this.phase = 'done';
@@ -87,6 +103,7 @@ export class AnvilGateLaser {
   burst(): void {
     if (this.phase !== 'hold') return;
     this.phase = 'burst';
+    this.maxHoldElapsed = 0;
     this.flash = 1;
     this.sourceBurst = 1;
     this.shake = 18;
@@ -95,8 +112,9 @@ export class AnvilGateLaser {
   }
 
   consumeShake(): number {
-    if (this.phase !== 'burst') return 0;
-    return this.shake * 0.18;
+    if (this.phase === 'burst') return this.shake * 0.18;
+    if (this.phase === 'max_hold') return this.shake * 0.08;
+    return 0;
   }
 
   private spawnParticle(): void {

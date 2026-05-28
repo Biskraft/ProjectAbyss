@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveX, resolveY, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveXPixelStep, resolveYPixelStep, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
@@ -109,7 +109,11 @@ const SLASH_FX_ERDA_REF_Y = 16;
 const ERDA_FRAME_W = 32;
 const ERDA_FRAME_H = 32;
 const ERDA_ATTACK_GROUND_START = 18;
-const ERDA_ATTACK_AIR_START = 22;
+const ERDA_ATTACK2_GROUND_START = 22;
+const ERDA_ATTACK_AIR_START = 26;
+const ERDA_AIM_START = 30;
+const ERDA_AIM_JUMP_FRAME = 34;
+const ERDA_LIFT_START = 35;
 const ERDA_ATTACK_FRAME_COUNT = 4;
 const COMBO3_SLASH_SCALE_X = 1.35;
 
@@ -424,6 +428,8 @@ export class Player extends Entity implements CombatEntity {
 
   // Physics
   private grounded = false;
+  private moveRemainderX = 0;
+  private moveRemainderY = 0;
 
   // Coyote time & jump buffer
   private coyoteTimer = 0;
@@ -550,10 +556,7 @@ export class Player extends Entity implements CombatEntity {
     this.fsm.addState({
       name: 'jump',
       enter: () => {
-        this.vy = JUMP_VELOCITY + this.carrierVelocityY;
         this.grounded = false;
-        // Variable jump height — 이 시간 안에 JUMP 떼면 상승속도 절반 컷.
-        this.varJumpTimer = VAR_JUMP_TIME;
       },
       update: (dt) => this.stateAir(dt),
     });
@@ -712,27 +715,18 @@ export class Player extends Entity implements CombatEntity {
       // Wall Jump: touching wall + jump → kick off opposite direction
       else if (!this.isLifting && this.wallSliding && this.touchingWallDir !== 0) {
         const kickDir = -this.touchingWallDir; // +1 = kicked to right, -1 = kicked to left
-        this.vx = kickDir * WALL_JUMP_VX;
-        this.vy = WALL_JUMP_VY;
-        this.facingRight = this.touchingWallDir < 0; // face away from wall
-        this.wallJumpCooldown = WALL_JUMP_COOLDOWN;
-        this.wallSliding = false;
-        this.touchingWallDir = 0;
+        this.startWallJumpMotion(kickDir);
         // VFX: wall-jump kick event
         this._justWallJumped = true;
         this._wallJumpDir = kickDir;
-        this.fsm.transition('jump');
       }
       // Double Jump: in air + no coyote + ability unlocked + not used yet
       // Reset vy to 0 first so the jump height is consistent regardless of
       // whether the player is rising or falling when they press jump.
       else if (!this.isLifting && !this.grounded && this.coyoteTimer <= 0 && this.abilities.doubleJump && this.doubleJumpAvailable) {
-        this.vy = 0;
-        this.vy = JUMP_VELOCITY * 0.85;
-        this.doubleJumpAvailable = false;
+        this.startDoubleJumpMotion();
         // VFX: double-jump event
         this._justDoubleJumped = true;
-        this.fsm.transition('jump');
       } else {
         this.jumpBufferTimer = JUMP_BUFFER;
       }
@@ -943,8 +937,8 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Slow horizontal movement in water
-    const moveX = this.vx * waterMult * dtSec;
-    const moveY = this.vy * dtSec;
+    const moveX = this.consumePixelMoveX(this.vx * waterMult * dtSec);
+    const moveY = this.consumePixelMoveY(this.vy * dtSec);
     const colOffX = (this.width - this.collisionW) / 2;   // center horizontally
     const colOffY = this.height - this.collisionH;         // anchor at feet
 
@@ -967,7 +961,7 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    const rx = resolveX(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveX, this.roomData);
+    const rx = resolveXPixelStep(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveX, this.roomData);
     this.x = rx.x - colOffX;
     if (rx.collided) this.vx = 0;
 
@@ -980,7 +974,7 @@ export class Player extends Entity implements CombatEntity {
       if (cornerX !== null) this.x = cornerX - colOffX;
     }
 
-    const ry = resolveY(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData, this.dropThroughTimer > 0);
+    const ry = resolveYPixelStep(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData, this.dropThroughTimer > 0);
     this.y = ry.y - colOffY;
     // Grid grounded OR scene-supplied "standing on container" flag. The
     // sticky flag is set each frame by the scene's container-collision
@@ -1134,6 +1128,49 @@ export class Player extends Entity implements CombatEntity {
     return this.cyroSlowRemainingMs > 0 ? 1 - CYRO_FROZEN_SLOW_PCT : 1;
   }
 
+  private consumePixelMoveX(amount: number): number {
+    this.moveRemainderX += amount;
+    const move = Math.round(this.moveRemainderX);
+    if (move !== 0) this.moveRemainderX -= move;
+    return move;
+  }
+
+  private consumePixelMoveY(amount: number): number {
+    this.moveRemainderY += amount;
+    const move = Math.round(this.moveRemainderY);
+    if (move !== 0) this.moveRemainderY -= move;
+    return move;
+  }
+
+  private startJumpMotion(vy: number): void {
+    this.vy = vy;
+    this.grounded = false;
+    this.extraGroundedSticky = false;
+    this.varJumpTimer = VAR_JUMP_TIME;
+    this.fsm.transition('jump');
+  }
+
+  private startGroundJumpMotion(): void {
+    // Riding solids carry the player separately; only inherit upward carrier
+    // motion so a descending platform cannot steal jump height.
+    this.startJumpMotion(JUMP_VELOCITY + Math.min(0, this.carrierVelocityY));
+  }
+
+  private startDoubleJumpMotion(): void {
+    this.vy = 0;
+    this.doubleJumpAvailable = false;
+    this.startJumpMotion(JUMP_VELOCITY * 0.85);
+  }
+
+  private startWallJumpMotion(kickDir: number): void {
+    this.vx = kickDir * WALL_JUMP_VX;
+    this.facingRight = kickDir > 0;
+    this.wallJumpCooldown = WALL_JUMP_COOLDOWN;
+    this.wallSliding = false;
+    this.touchingWallDir = 0;
+    this.startJumpMotion(WALL_JUMP_VY);
+  }
+
   private tryJump(): boolean {
     const canJump = this.grounded || this.coyoteTimer > 0;
     const wantsJump = this.jumpBufferTimer > 0;
@@ -1142,9 +1179,7 @@ export class Player extends Entity implements CombatEntity {
       // If already in jump state, this is a buffered double-jump, not a ground re-jump
       if (!this.isLifting && this.fsm.currentState === 'jump' && this.abilities.doubleJump && this.doubleJumpAvailable) {
         this.jumpBufferTimer = 0;
-        this.vy = 0;
-        this.vy = JUMP_VELOCITY * 0.85;
-        this.doubleJumpAvailable = false;
+        this.startDoubleJumpMotion();
         this._justDoubleJumped = true;
         // 더블 점프 — speed 약간 빠르게 (피치 ↑) 로 차별화.
         SFX.play('jump', 0, { speed: 1.1 });
@@ -1156,7 +1191,7 @@ export class Player extends Entity implements CombatEntity {
       this._justJumpedGround = true;
       // 지면 점프 — speed 0.95~1.05 무작위 (단조로움 감소).
       SFX.play('jump', 0, { speed: 0.95 + Math.random() * 0.1 });
-      this.fsm.transition('jump');
+      this.startGroundJumpMotion();
       return true;
     }
     return false;
@@ -1747,8 +1782,9 @@ export class Player extends Entity implements CombatEntity {
       // pixel-perfect — 주변 업스케일 파이프라인(worldRT nearest)과 일치.
       tex.source.scaleMode = 'nearest';
 
-      // 아틀라스 가로 22프레임(32×32) 을 sub-rect 텍스처로 분할.
-      // idle 0..3 / jump 4..7 / running 8..15 / dash 16..17 / attack1 18..21. 모두 같은 source 공유.
+      // 32×32 frame atlas. attack2 adds four frames after attack1:
+      // attack1=18..21, attack2=22..25, attack_air=26..29,
+      // aim=30..33, aim_jump=34, lift=35..38.
       this.erdaFrames = [];
       const frameCount = Math.floor(tex.width / ERDA_FRAME_W);
       for (let i = 0; i < frameCount; i++) {
@@ -2052,10 +2088,10 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Lift override — while carrying a throwable container. 4-frame lift
-    // animation at indices 31~34 (Aseprite tag `lift`, 1-indexed 32~35).
-    // Walk cycle when |vx| > 10, hold frame 31 when stationary. Takes
+    // animation at indices 35~38 (Aseprite tag `lift`, shifted +4).
+    // Walk cycle when |vx| > 10, hold frame 35 when stationary. Takes
     // precedence over aim because hands are full.
-    if (this.isLifting && this.erdaFrames.length > 34) {
+    if (this.isLifting && this.erdaFrames.length >= ERDA_LIFT_START + 4) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'lift') {
         this.erdaAnim = 'lift';
@@ -2074,27 +2110,28 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      this.erdaSprite.texture = this.erdaFrames[31 + this.erdaAnimFrame];
+      this.erdaSprite.texture = this.erdaFrames[ERDA_LIFT_START + this.erdaAnimFrame];
       this.erdaPrevGrounded = this.grounded;
       return;
     }
 
     // Aim override — while charging an Ego Shard. 4-frame aim animation
-    // at indices 26~29. When the player is moving (|vx| > 10), cycle the
-    // 4 frames as a walk-aim shuffle. When stationary, hold frame 26
+    // at indices 30~33. When the player is moving (|vx| > 10), cycle the
+    // 4 frames as a walk-aim shuffle. When stationary, hold frame 30
     // (steady aim). Higher priority than idle/run/jump but below dash.
-    if (this.isAiming && this.erdaFrames.length > 29) {
+    if (this.isAiming && this.erdaFrames.length >= ERDA_AIM_START + 4) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'aim') {
         this.erdaAnim = 'aim';
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      // Mid-air aim — dedicated `aim_jump` frame. Atlas slot 31 (1-indexed
-       // per Aseprite UI) = array index 30. Falls back to the steady aim
-       // pose (frame 26) when the atlas hasn't been updated.
+      // Mid-air aim — dedicated `aim_jump` frame. Falls back to the steady
+      // aim pose when the atlas hasn't been updated.
       if (!this.grounded) {
-        const airIdx = this.erdaFrames.length > 30 ? 30 : 26;
+        const airIdx = this.erdaFrames.length > ERDA_AIM_JUMP_FRAME
+          ? ERDA_AIM_JUMP_FRAME
+          : ERDA_AIM_START;
         this.erdaSprite.texture = this.erdaFrames[airIdx];
         this.erdaPrevGrounded = this.grounded;
         return;
@@ -2111,13 +2148,14 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      this.erdaSprite.texture = this.erdaFrames[26 + this.erdaAnimFrame];
+      this.erdaSprite.texture = this.erdaFrames[ERDA_AIM_START + this.erdaAnimFrame];
       this.erdaPrevGrounded = this.grounded;
       return;
     }
 
-    // Attack — FSM state === 'attack' 진입 시 attackTimer 진행률로 18..21 스크럽.
-    // 매 콤보 스텝의 startAttack() 에서 attackTimer 가 total 로 리셋되므로 각 타격마다 18→21 재생.
+    // Attack — each combo step scrubs a 4-frame attack strip from progress.
+    // Grounded 1타/2타 use attack1, grounded 3타 uses attack2.
+    // Airborne attacks always use attack_air so the finisher does not pop to a ground pose.
     if (fsmState === 'attack') {
       // 2→3 pause(preAttackDelay) 동안 직전 frame + weapon pose hold.
       // attackTimer 가 0 이라 아래 progress 계산이 0.9999 로 튀어 frame jump 발생 — 가드로 차단.
@@ -2137,9 +2175,12 @@ export class Player extends Entity implements CombatEntity {
       const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
       const forwardIdx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
       const idx = this.comboIndex === 1 ? ERDA_ATTACK_FRAME_COUNT - 1 - forwardIdx : forwardIdx;
-      const attackStart = (!this.grounded && this.erdaFrames.length >= ERDA_ATTACK_AIR_START + ERDA_ATTACK_FRAME_COUNT)
-        ? ERDA_ATTACK_AIR_START
-        : ERDA_ATTACK_GROUND_START;
+      const attackStart =
+        !this.grounded && this.erdaFrames.length >= ERDA_ATTACK_AIR_START + ERDA_ATTACK_FRAME_COUNT
+          ? ERDA_ATTACK_AIR_START
+          : this.comboIndex === 2 && this.erdaFrames.length >= ERDA_ATTACK2_GROUND_START + ERDA_ATTACK_FRAME_COUNT
+            ? ERDA_ATTACK2_GROUND_START
+            : ERDA_ATTACK_GROUND_START;
       this.erdaAnimFrame = idx;
       this.erdaSprite.texture = this.erdaFrames[attackStart + idx];
       this.updateAttackWeaponPose(idx);

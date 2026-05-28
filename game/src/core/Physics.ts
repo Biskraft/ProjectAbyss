@@ -357,6 +357,107 @@ export function resolveY(
 }
 
 /**
+ * Celeste/TowerFall-style integer pixel sweep for actor X movement.
+ *
+ * Callers can keep float velocity/acceleration, but should convert the
+ * accumulated displacement to an integer pixel delta before calling this.
+ * Sweeping one pixel at a time prevents jump/fall tunneling when frame time
+ * spikes push a single-frame movement across more than one tile edge.
+ */
+export function resolveXPixelStep(
+  x: number, y: number, width: number, height: number,
+  dx: number, roomData: number[][],
+): { x: number; collided: boolean; moved: number } {
+  const move = Math.trunc(dx);
+  if (move === 0) return { x, collided: false, moved: 0 };
+
+  const sign = move > 0 ? 1 : -1;
+  let curX = x;
+  let remaining = Math.abs(move);
+
+  while (remaining > 0) {
+    const nextX = curX + sign;
+    const leadX = sign > 0 ? nextX + width : nextX;
+    const topTile = Math.floor(y / TILE_SIZE);
+    const bottomTile = Math.floor((y + height - 1) / TILE_SIZE);
+    const checkCol = Math.floor(leadX / TILE_SIZE);
+
+    let blocked = false;
+    for (let row = topTile; row <= bottomTile; row++) {
+      if (isSolid(getTile(roomData, checkCol, row))) {
+        blocked = true;
+        break;
+      }
+    }
+    if (blocked) {
+      const hitX = sign > 0
+        ? checkCol * TILE_SIZE - width
+        : (checkCol + 1) * TILE_SIZE;
+      return { x: hitX, collided: true, moved: hitX - x };
+    }
+
+    curX = nextX;
+    remaining--;
+  }
+
+  return { x: curX, collided: false, moved: curX - x };
+}
+
+/**
+ * Celeste/TowerFall-style integer pixel sweep for actor Y movement.
+ * Keeps the existing one-way platform semantics while avoiding skipped floors
+ * and ceilings during high fall speed or low frame-rate jump frames.
+ */
+export function resolveYPixelStep(
+  x: number, y: number, width: number, height: number,
+  dy: number, roomData: number[][], ignoreOneWay = false,
+): { y: number; grounded: boolean; collided: boolean; moved: number } {
+  const move = Math.trunc(dy);
+  if (move === 0) {
+    const grounded = resolveY(x, y, width, height, 0, roomData, ignoreOneWay).grounded;
+    return { y, grounded, collided: false, moved: 0 };
+  }
+
+  const sign = move > 0 ? 1 : -1;
+  let curY = y;
+  let remaining = Math.abs(move);
+
+  while (remaining > 0) {
+    const nextY = curY + sign;
+    const leadY = sign > 0 ? nextY + height : nextY;
+    const leftTile = Math.floor(x / TILE_SIZE);
+    const rightTile = Math.floor((x + width - 1) / TILE_SIZE);
+    const checkRow = Math.floor(leadY / TILE_SIZE);
+
+    for (let col = leftTile; col <= rightTile; col++) {
+      const tile = getTile(roomData, col, checkRow);
+
+      if (isSolid(tile)) {
+        const hitY = sign > 0
+          ? checkRow * TILE_SIZE - height
+          : (checkRow + 1) * TILE_SIZE;
+        return { y: hitY, grounded: sign > 0, collided: true, moved: hitY - y };
+      }
+
+      if (isOneWay(tile) && sign > 0 && !ignoreOneWay) {
+        const platformTop = checkRow * TILE_SIZE;
+        const feetBefore = curY + height;
+        const feetAfter = nextY + height;
+        if (feetBefore <= platformTop + 1 && feetAfter >= platformTop) {
+          const landedY = platformTop - height;
+          return { y: landedY, grounded: true, collided: true, moved: landedY - y };
+        }
+      }
+    }
+
+    curY = nextY;
+    remaining--;
+  }
+
+  return { y: curY, grounded: false, collided: false, moved: curY - y };
+}
+
+/**
  * Corner correction for upward movement (vy<0) — "ledge grab" QoL helper.
  * When the player's head is about to clip a ceiling tile at a corner, and the
  * overlap with the obstacle is within `tolerance`, nudge the player

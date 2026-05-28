@@ -111,6 +111,8 @@ export class TileMutator {
   static readonly CYRO_WOOD_FREEZE_CHANCE = 0.06;     // R-NEW-CYRO-005 Wood Frost auto (was 0.03)
   static readonly CYRO_GRASS_WITHER_CHANCE = 0.05;    // R-NEW-CYRO-006 Grass Wither cryo (was 0.02)
   static readonly CYRO_BURST_SOLIDIFY_MAX_CELLS = 8;  // R-NEW-CYRO-001 Cryo Burst
+  static readonly PASSIVE_STEAM_VFX_MAX_PER_FRAME = 8;
+  static readonly PASSIVE_STEAM_BURST_VFX_MAX_PER_FRAME = 2;
 
   // === State maps (cell-keyed) ===
   private frozen = new Map<number, FrozenState>();
@@ -125,6 +127,8 @@ export class TileMutator {
   // Accumulators for discrete tick events
   private oilSpreadAccum = 0;
   private autoInteractAccum = 0;
+  private passiveSteamVfxThisFrame = 0;
+  private passiveSteamBurstVfxThisFrame = 0;
 
   /**
    * Optional callback the scene registers to receive cell-level steam events
@@ -212,6 +216,7 @@ export class TileMutator {
     this.burnableEntities.length = 0;
     this.oilSpreadAccum = 0;
     this.autoInteractAccum = 0;
+    this.resetPassiveVfxBudget();
   }
 
   // ============================================================
@@ -520,10 +525,32 @@ export class TileMutator {
 
     // 5) Passive cell-cell interactions (corrosion / vapor / melt / freeze)
     this.autoInteractAccum += dtMs;
+    this.resetPassiveVfxBudget();
     while (this.autoInteractAccum >= TileMutator.AUTO_INTERACT_INTERVAL_MS) {
       this.autoInteractAccum -= TileMutator.AUTO_INTERACT_INTERVAL_MS;
       this.tickPassiveInteractions(roomData, bounds);
+    }
   }
+
+  private resetPassiveVfxBudget(): void {
+    this.passiveSteamVfxThisFrame = 0;
+    this.passiveSteamBurstVfxThisFrame = 0;
+  }
+
+  private emitPassiveSteamEvent(gx: number, gy: number): boolean {
+    if (!this.onSteamEvent) return false;
+    if (this.passiveSteamVfxThisFrame >= TileMutator.PASSIVE_STEAM_VFX_MAX_PER_FRAME) return false;
+    this.passiveSteamVfxThisFrame++;
+    this.onSteamEvent(gx, gy);
+    return true;
+  }
+
+  private emitPassiveSteamBurst(gx: number, gy: number): boolean {
+    if (!this.onSteamBurst) return false;
+    if (this.passiveSteamBurstVfxThisFrame >= TileMutator.PASSIVE_STEAM_BURST_VFX_MAX_PER_FRAME) return false;
+    this.passiveSteamBurstVfxThisFrame++;
+    this.onSteamBurst(gx, gy);
+    return true;
   }
 
   /**
@@ -663,7 +690,7 @@ export class TileMutator {
           if (this.hasNeighbour(roomData, gx, gy, TILE_WATER) &&
               Math.random() < TileMutator.ACID_WATER_STEAM_CHANCE) {
             row[gx] = TILE_AIR;
-            this.onSteamEvent?.(gx, gy);
+            this.emitPassiveSteamEvent(gx, gy);
             this.onAcidSteamBurst?.(gx, gy);
             this.onWallTileChanged?.(gx, gy, TILE_ACID);
             continue;
@@ -672,7 +699,7 @@ export class TileMutator {
           if (this.neighbourMatches(roomData, gx, gy, TILE_MAGMA) &&
               Math.random() < TileMutator.ACID_MAGMA_VAPOR_CHANCE) {
             row[gx] = TILE_AIR;
-            this.onSteamEvent?.(gx, gy);
+            this.emitPassiveSteamEvent(gx, gy);
             this.onWallTileChanged?.(gx, gy, TILE_ACID);
             continue;
           }
@@ -688,8 +715,8 @@ export class TileMutator {
           if (this.neighbourMatches(roomData, gx, gy, TILE_MAGMA) &&
               Math.random() < TileMutator.WATER_MAGMA_BURST_CHANCE) {
             row[gx] = TILE_AIR;
-            this.onSteamEvent?.(gx, gy);
-            this.onSteamBurst?.(gx, gy);
+            this.emitPassiveSteamEvent(gx, gy);
+            this.emitPassiveSteamBurst(gx, gy);
             this.onWallTileChanged?.(gx, gy, TILE_WATER);
             const magmaCells: Array<[number, number]> = [
               [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
@@ -729,8 +756,8 @@ export class TileMutator {
         else if (t === TILE_CYRO) {
           if (this.neighbourMatches(roomData, gx, gy, TILE_MAGMA)) {
             row[gx] = TILE_AIR;
-            this.onSteamEvent?.(gx, gy);
-            this.onSteamBurst?.(gx, gy);
+            this.emitPassiveSteamEvent(gx, gy);
+            this.emitPassiveSteamBurst(gx, gy);
             this.onWallTileChanged?.(gx, gy, TILE_CYRO);
             const magmaCells: Array<[number, number]> = [
               [gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1],
@@ -799,7 +826,7 @@ export class TileMutator {
       const nx = n[0], ny = n[1];
       if (getTile(roomData, nx, ny) === want && roomData[ny] && Math.random() < chance) {
         roomData[ny][nx] = to;
-        this.onSteamEvent?.(nx, ny);
+        this.emitPassiveSteamEvent(nx, ny);
         this.onWallTileChanged?.(nx, ny, want);
       }
     }

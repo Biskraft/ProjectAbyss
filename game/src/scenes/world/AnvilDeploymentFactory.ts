@@ -4,6 +4,7 @@ import type { Player } from '@entities/Player';
 import type { Anvil } from '@entities/Anvil';
 import type { GiantBuilder } from '@entities/GiantBuilder';
 import { ItemDeploymentController } from '@effects/ItemDeploymentController';
+import type { AABB } from '@core/Physics';
 
 interface AnvilDeploymentDeps {
   game: Game;
@@ -18,6 +19,7 @@ interface AnvilDeploymentDeps {
   openTunnel: (x: number, y: number, w: number, h: number) => void;
   setLaserDesaturation: (active: boolean) => void;
   showTunnelOpenDialogue: () => void;
+  getEntranceAABB?: () => AABB | null;
 }
 
 export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploymentController {
@@ -40,5 +42,6 @@ export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploy
       // Retirement is decided after Item World return, not at absorption time.
     },
     deps.showTunnelOpenDialogue,
+    deps.getEntranceAABB ?? null,
   );
 }

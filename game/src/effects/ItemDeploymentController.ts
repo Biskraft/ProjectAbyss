@@ -7,7 +7,7 @@ import { PileDriver } from '@effects/PileDriver';
 import { AnvilGateLaser } from '@effects/AnvilGateLaser';
 import { ItemWorldLeakageLayer } from '@effects/ItemWorldLeakageLayer';
 import { ExitGlow } from '@effects/ExitGlow';
-import { aabbOverlap } from '@core/Physics';
+import { aabbOverlap, type AABB } from '@core/Physics';
 import { BgmController } from '@audio/BgmController';
 import { AudioBus } from '@audio/AudioBus';
 
@@ -125,6 +125,7 @@ export class ItemDeploymentController {
     private readonly onItemDissolve: ((targetX: number, targetY: number) => void) | null = null,
     private readonly onItemAbsorbed: (() => void) | null = null,
     private readonly onDeploymentReady: (() => void) | null = null,
+    private readonly getEntranceAABB: (() => AABB | null) | null = null,
   ) {}
 
   start(anvilX: number, anvilY: number): void {
@@ -278,6 +279,7 @@ export class ItemDeploymentController {
           this.wallGate?.destroy();
           this.wallGate = null;
           this.state = 'Idle';
+          this.game.camera.unlockZoom();
           this.game.input.inputLocked = false;
           this.onPushScene();
         }
@@ -439,6 +441,7 @@ export class ItemDeploymentController {
     this.anvilLaser?.burst();
     this.laserDesaturationMs = LASER_DESATURATION_MS;
     this.setLaserDesaturation(true);
+    this.game.camera.lockZoom(1.0);
     this.game.camera.shake(14);
     this.onOpenTunnel?.(this.tunnelLeft, this.tunnelTop, this.tunnelWidth, TUNNEL_H);
     this.leakageLayer?.startFade();
@@ -453,11 +456,12 @@ export class ItemDeploymentController {
   // ── Overlap check ────────────────────────────────────────────────────────
 
   private checkEntrance(): void {
-    if (!this.wallGate) return;
+    const entrance = this.getEntranceAABB ? this.getEntranceAABB() : this.wallGate?.getEntranceAABB();
+    if (!entrance) return;
     const p = this.player;
     if (aabbOverlap(
       { x: p.x, y: p.y, width: p.width, height: p.height },
-      this.wallGate.getEntranceAABB(),
+      entrance,
     )) {
       this.enterState('EnteringWorld');
     }
@@ -474,6 +478,7 @@ export class ItemDeploymentController {
     this.anvilLaser?.destroy();
     this.anvilLaser = null;
     this.setLaserDesaturation(false);
+    this.game.camera.unlockZoom();
     this.leakageLayer?.destroy();
     this.leakageLayer = null;
     this.tunnelExitGlow?.destroy();

@@ -65,21 +65,63 @@ html, body {
 }
 .slide:last-child { page-break-after: auto; }
 
-/* ===================== SCREEN PREVIEW ===================== */
+/* ===================== SCREEN / PRESENTATION MODE ===================== */
 @media screen {
-  html, body { background: #08080A; }
+  html, body {
+    background: #000;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
   .deck {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
-    gap: 40px;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
   }
   .slide {
-    /* Lighter shadow on screen — 60px blur on 20 elements was the main paint cost. */
-    box-shadow: 0 6px 24px rgba(0,0,0,0.6);
-    border: 1px solid #1a1a1f;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    display: none !important;
+    box-shadow: none;
+    border: none;
+    content-visibility: visible;
   }
+  .slide.active { display: flex !important; }
+
+  /* Slide counter overlay (bottom-right) */
+  .deck-counter {
+    position: fixed;
+    bottom: 14px;
+    right: 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.32);
+    z-index: 9999;
+    pointer-events: none;
+    user-select: none;
+  }
+  /* Hint overlay (auto-fades) */
+  .deck-hint {
+    position: fixed;
+    bottom: 14px;
+    left: 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.28);
+    z-index: 9999;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.6s ease;
+  }
+  .deck-hint.dim { opacity: 0; }
 }
 
 @media print {
@@ -1367,6 +1409,107 @@ html, body {
 </section>
 
 </div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  if (slides.length === 0) return;
+
+  let current = 0;
+
+  const counter = document.createElement('div');
+  counter.className = 'deck-counter';
+  document.body.appendChild(counter);
+
+  const hint = document.createElement('div');
+  hint.className = 'deck-hint';
+  hint.textContent = '← → / SPACE  ·  F = FULLSCREEN  ·  HOME / END';
+  document.body.appendChild(hint);
+
+  let hintTimer = null;
+  function flashHint() {
+    hint.classList.remove('dim');
+    if (hintTimer) clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hint.classList.add('dim'), 2400);
+  }
+
+  function updateScale() {
+    const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.documentElement.style.setProperty('--slide-scale', String(scale));
+  }
+
+  function show(i) {
+    if (i < 0) i = 0;
+    if (i >= slides.length) i = slides.length - 1;
+    if (slides[current]) slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    counter.textContent = (current + 1).toString().padStart(2, '0') + ' / ' + slides.length.toString().padStart(2, '0');
+    if (history.replaceState) {
+      history.replaceState(null, '', '#s' + (current + 1));
+    } else {
+      location.hash = 's' + (current + 1);
+    }
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    const k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') {
+      e.preventDefault(); next(); flashHint();
+    } else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp' || k === 'Backspace') {
+      e.preventDefault(); prev(); flashHint();
+    } else if (k === 'Home') {
+      e.preventDefault(); show(0); flashHint();
+    } else if (k === 'End') {
+      e.preventDefault(); show(slides.length - 1); flashHint();
+    } else if (k === 'f' || k === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    } else if (k === 'Escape') {
+      // browser handles exiting fullscreen
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.closest && e.target.closest('a')) return;
+    next();
+    flashHint();
+  });
+
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    prev();
+    flashHint();
+  });
+
+  window.addEventListener('resize', updateScale);
+  window.addEventListener('hashchange', function () {
+    const m = (location.hash || '').match(/s(\d+)/);
+    if (m) {
+      const idx = parseInt(m[1], 10) - 1;
+      if (idx !== current) show(idx);
+    }
+  });
+
+  // Init
+  updateScale();
+  const initialMatch = (location.hash || '').match(/s(\d+)/);
+  const initial = initialMatch ? parseInt(initialMatch[1], 10) - 1 : 0;
+  show(isFinite(initial) && initial >= 0 ? initial : 0);
+  flashHint();
+})();
+</script>
 
 </body>
 </html>

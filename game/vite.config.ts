@@ -92,7 +92,11 @@ function summarizeBuilderLevels(ldtkPath: string): string {
 // the `@i18n/active` alias and as the `__LOCALE__` global string at build time.
 // See Documents/System/System_Localization_Core.md §4.7.
 function resolveLocale(mode: string): 'en' | 'ko' {
-  return mode === 'ko' ? 'ko' : 'en';
+  return mode.includes('ko') ? 'ko' : 'en';
+}
+
+function isOfflineMode(mode: string): boolean {
+  return mode.includes('offline');
 }
 
 /**
@@ -117,10 +121,28 @@ function localeFontsPlugin(locale: 'en' | 'ko'): Plugin {
   };
 }
 
+/**
+ * Offline desktop builds must not depend on web roots or remote analytics/font
+ * endpoints. Keep this transform mode-scoped so the normal web build is
+ * unchanged.
+ */
+function offlineIndexPlugin(enabled: boolean): Plugin {
+  return {
+    name: 'echoris-offline-index',
+    transformIndexHtml(html) {
+      if (!enabled) return html;
+      return html
+        .replace(/\s*<link href="https:\/\/fonts\.googleapis\.com[^"]+" rel="stylesheet">\s*/g, '\n')
+        .replace(/\s*<!-- Google tag \(gtag\.js\) -->\s*<script async src="https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=[^"]+"><\/script>\s*<script>[\s\S]*?gtag\('config', 'G-GECC9GCRHG'\);\s*<\/script>\s*/g, '\n');
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const LOCALE = resolveLocale(mode);
+  const OFFLINE = isOfflineMode(mode);
   return {
-    plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin(), localeFontsPlugin(LOCALE)],
+    plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin(), localeFontsPlugin(LOCALE), offlineIndexPlugin(OFFLINE)],
     define: {
       __LOCALE__: JSON.stringify(LOCALE),
     },
@@ -150,7 +172,7 @@ export default defineConfig(({ mode }) => {
         allow: [path.resolve(__dirname)],
       },
     },
-    base: '/play/',
+    base: OFFLINE ? './' : '/play/',
     build: {
       target: 'ES2022',
       rollupOptions: {

@@ -25,6 +25,17 @@ export function getItemWorldTemplatesIfReady(): LdtkLevel[] | null {
   return pool;
 }
 
+/**
+ * Seed the shared pool from an LDtk project that was already parsed elsewhere.
+ * This avoids a second World_ProjectAbyss.ldtk fetch when the player enters
+ * Item World from the overworld.
+ */
+export function seedItemWorldTemplates(templates: LdtkLevel[]): void {
+  if (pool || loadPromise || templates.length === 0) return;
+  pool = templates;
+  loadPromise = Promise.resolve(templates);
+}
+
 /** Lazy load + cache. 여러 번 호출해도 한 번만 fetch. */
 export function prepareItemWorldTemplates(): Promise<LdtkLevel[]> {
   if (pool) return Promise.resolve(pool);

@@ -1,4 +1,4 @@
-import { Container, Graphics, BitmapText, Assets, ColorMatrixFilter, type Filter, type Texture } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, ColorMatrixFilter, Sprite, type Filter, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
@@ -12,9 +12,9 @@ import { archetypeFor } from '@level/RoomGraphArchetypes';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
-import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
+import { getItemWorldTemplatesIfReady, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import { Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
@@ -213,12 +213,80 @@ const STRATUM_PICKER_COL_POSITIVE = 0x44ff44;
 const STRATUM_PICKER_COL_LOCKED = 0x666666;
 const STRATUM_PICKER_COL_GOLD = 0xffd700;
 
+interface ItemWorldSceneOptions {
+  entryCorridor?: boolean;
+}
+
+interface EntryCorridorTileVisual {
+  node: Container;
+  cx: number;
+  cy: number;
+  reveal: number;
+  target: boolean;
+}
+
+interface EntryCorridorComposite {
+  grid: number[][];
+  levels: LdtkLevel[];
+  offsetsPx: number[];
+  widthPx: number;
+  heightPx: number;
+}
+
+const ENTRY_CORRIDOR_LEVEL_ID = 'ItemStratum_Corridor';
+const ENTRY_CORRIDOR_LEVEL_PREFIX = 'ItemStratum_Corridor_';
+const ENTRY_CORRIDOR_OPENING_COUNT = 3;
+const ENTRY_CORRIDOR_RANDOM_TAIL_COUNT = 10;
+const ENTRY_CORRIDOR_START_COL = 1;
+const ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX = TILE_SIZE * 7;
+const ENTRY_CORRIDOR_TILE_REVEAL_MS = 180;
+const ENTRY_CORRIDOR_CONTRAST = 0.5;
+const ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS = 2.2;
+
 // SurfaceOverlay is now spot-based, so it can run in item world without
 // producing long diagonal shadow/stain streaks.
 const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
 
 
 type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall' | 'absorbing' | 'dissolving';
+
+function cloneLdtkTile(tile: LdtkTile): LdtkTile {
+  return {
+    ...tile,
+    px: [tile.px[0], tile.px[1]],
+    src: [tile.src[0], tile.src[1]],
+  };
+}
+
+function cloneLdtkLevel(level: LdtkLevel): LdtkLevel {
+  return {
+    ...level,
+    collisionGrid: level.collisionGrid.map(row => [...row]),
+    backgroundTiles: level.backgroundTiles.map(cloneLdtkTile),
+    wallTiles: level.wallTiles.map(cloneLdtkTile),
+    interiorTiles: level.interiorTiles.map(cloneLdtkTile),
+    extraTileLayers: Object.fromEntries(
+      Object.entries(level.extraTileLayers).map(([key, tiles]) => [key, tiles.map(cloneLdtkTile)]),
+    ),
+    shadowTiles: level.shadowTiles.map(cloneLdtkTile),
+    entities: level.entities.map(entity => ({
+      ...entity,
+      px: [entity.px[0], entity.px[1]],
+      grid: [entity.grid[0], entity.grid[1]],
+      fields: { ...entity.fields },
+    })),
+    neighbors: [...level.neighbors],
+    dirNeighbors: Object.fromEntries(
+      Object.entries(level.dirNeighbors).map(([key, ids]) => [key, [...ids]]),
+    ),
+    doorAnchors: { ...level.doorAnchors },
+    exits: [...level.exits],
+  };
+}
+
+function cloneLdtkLevels(levels: LdtkLevel[]): LdtkLevel[] {
+  return levels.map(cloneLdtkLevel);
+}
 
 // DEC-039 Trapdoor 移④컯 ?쒗????대컢 (ms).
 //   1) descent_pan   = 移대찓???ㅼ슫 ?⑤떇 (?섏씠???뚰뙆 0 ??1)
@@ -252,7 +320,6 @@ export class ItemWorldScene extends Scene {
   } | null = null;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
-  private ldtkLoader: LdtkLoader | null = null;
   private ldtkRenderer: LdtkRenderer | null = null;
   private ldtkTemplates: LdtkLevel[] = [];
   private outsideRenderer: LdtkRenderer | null = null;
@@ -427,6 +494,7 @@ export class ItemWorldScene extends Scene {
   private item: ItemInstance;
   private inventory: Inventory;
   private sourcePlayer: Player;
+  private readonly sceneOptions: ItemWorldSceneOptions;
 
   // Memory Strata state
   private strataConfig!: StrataConfig;
@@ -468,6 +536,17 @@ export class ItemWorldScene extends Scene {
   private roomData: number[][] = [];
   private rng!: PRNG;
   private entryFreezeTimer = ENTRY_FREEZE_MS;
+  private entryCorridorActive = false;
+  private entryCorridorGrid: number[][] | null = null;
+  private entryCorridorLevel: LdtkLevel | null = null;
+  private entryCorridorContainer: Container | null = null;
+  private entryCorridorTiles: EntryCorridorTileVisual[] = [];
+  private entryCorridorHiddenTargets: Array<{ target: Container; visible: boolean }> = [];
+  private entryCorridorBackgroundFilters: Filter[] | null = null;
+  private entryCorridorDialoguePending = false;
+  private entryCorridorBottomExitY = 0;
+  private entryCorridorWidthPx = 0;
+  private entryCorridorHeightPx = 0;
 
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
@@ -615,11 +694,18 @@ export class ItemWorldScene extends Scene {
   /** Passed from LdtkWorldScene ??shared unlockedEvents for persistence. */
   egoUnlockedEvents: Set<string> = new Set();
 
-  constructor(game: Game, item: ItemInstance, inventory: Inventory, sourcePlayer: Player) {
+  constructor(
+    game: Game,
+    item: ItemInstance,
+    inventory: Inventory,
+    sourcePlayer: Player,
+    options: ItemWorldSceneOptions = {},
+  ) {
     super(game);
     this.item = item;
     this.inventory = inventory;
     this.sourcePlayer = sourcePlayer;
+    this.sceneOptions = options;
   }
 
   async init(): Promise<void> {
@@ -643,10 +729,10 @@ export class ItemWorldScene extends Scene {
       Object.values(this.atlases)[0] ??
       null;
     try {
-      const json = await fetch(assetPath('assets/World_ProjectAbyss.ldtk')).then(r => r.json());
-      this.ldtkLoader = new LdtkLoader();
-      this.ldtkLoader.load(json, 'ItemStratum');
-      this.ldtkTemplates = this.ldtkLoader.getLevelIds().map(id => this.ldtkLoader!.getLevel(id)!);
+      const cachedTemplates = getItemWorldTemplatesIfReady() ?? await prepareItemWorldTemplates();
+      // ItemWorldScene retags LDtk tile paths per item theme, so keep the
+      // shared template pool immutable across entries.
+      this.ldtkTemplates = cloneLdtkLevels(cachedTemplates);
       this.ldtkRenderer = new LdtkRenderer();
 
       // Manual Tiles layers (e.g. Buildings) reference tilesets that aren't
@@ -1089,9 +1175,7 @@ export class ItemWorldScene extends Scene {
       const cy = (gy + 0.5) * 16;
       // 媛뺥븳 異붽? 利앷린 (onSteamEvent ???쒖? 1.0 ?꾩뿉)
       const steamBaseY = (gy + 1) * 16;
-      this.steamPuff.spawn(cx, steamBaseY, 1.5);
-      this.steamPuff.spawn(cx, steamBaseY - 22, 1.3);
-      this.steamPuff.spawn(cx, steamBaseY - 44, 1.1);
+      this.steamPuff.spawn(cx, steamBaseY - 12, 1.1, PUFF_TINT_TOXIC);
       this.game.camera.shake(2);
       const radiusX = 24;
       const radiusY = 64;
@@ -1313,12 +1397,22 @@ export class ItemWorldScene extends Scene {
     // Camera
     this.game.camera.setZoom(1.0);
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+    if (this.sceneOptions.entryCorridor) {
+      this.activateEntryCorridor();
+    }
 
     // LoreDisplay for Memory Rooms ??uiContainer(native) 吏곸냽 (UI native 1?④퀎)
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
     this.game.uiContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
+    if (!this.entryCorridorActive) {
+      this.startItemWorldGameplayAfterEntry();
+    }
+  }
+
+  private startItemWorldGameplayAfterEntry(): void {
+    if (this.startSpawnDone) return;
 
     // ?? Ego T04: landing dialogue ??
     // ?ъ슜???붿껌 (2026-05-02) ?????+ 嫄곗＜??(Plaza Gatekeeper / ambient 20紐?
@@ -1343,12 +1437,427 @@ export class ItemWorldScene extends Scene {
   }
 
   beginEntryDialogueAfterTransition(): void {
+    if (this.entryCorridorActive) {
+      this.entryCorridorDialoguePending = true;
+      return;
+    }
     if (this.entryDialogueStarted) return;
     this.entryDialogueStarted = true;
     setTimeout(() => {
       if (!this.initialized) return;
       void this.fireEgoEnterAsync();
     }, 250);
+  }
+
+  private activateEntryCorridor(): void {
+    const levels = this.getEntryCorridorLevels();
+    if (levels.length === 0) {
+      console.warn(`[ItemWorld] Missing LDtk entry corridor "${ENTRY_CORRIDOR_LEVEL_PREFIX}*"; starting directly in ItemStratum.`);
+      return;
+    }
+
+    const composite = this.buildEntryCorridorComposite(levels);
+    this.entryCorridorLevel = composite.levels[0] ?? null;
+    this.entryCorridorGrid = composite.grid;
+    this.entryCorridorWidthPx = composite.widthPx;
+    this.entryCorridorHeightPx = composite.heightPx;
+    this.entryCorridorBottomExitY = this.findEntryCorridorBottomExitY(composite.grid);
+    this.entryCorridorContainer = this.createEntryCorridorVisuals(composite);
+    this.container.addChildAt(this.entryCorridorContainer, Math.min(1, this.container.children.length));
+    this.suppressWorldForEntryCorridor();
+
+    const spawn = this.findEntryCorridorLeftSpawn(composite.grid);
+    this.roomData = composite.grid;
+    this.player.roomData = composite.grid;
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.facingRight = true;
+    this.player.savePrevPosition();
+
+    this.entryFreezeTimer = 0;
+    this.entryCorridorActive = true;
+    this.game.camera.setBounds(
+      0,
+      0,
+      composite.widthPx,
+      composite.heightPx,
+    );
+    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+    this.game.camera.target = {
+      x: this.player.x + this.player.width / 2,
+      y: this.player.y + this.player.height / 2,
+    };
+    this.updateEntryCorridorTileReveal(0);
+  }
+
+  private isEntryCorridorTemplateIdentifier(identifier: string): boolean {
+    return identifier === ENTRY_CORRIDOR_LEVEL_ID || this.getEntryCorridorLevelNumber(identifier) !== null;
+  }
+
+  private getEntryCorridorLevels(): LdtkLevel[] {
+    const numbered = this.ldtkTemplates
+      .map(level => ({ level, num: this.getEntryCorridorLevelNumber(level.identifier) }))
+      .filter((entry): entry is { level: LdtkLevel; num: number } => entry.num !== null);
+
+    if (numbered.length === 0) {
+      const legacy = this.ldtkTemplates.find(level => level.identifier === ENTRY_CORRIDOR_LEVEL_ID);
+      return legacy ? [legacy] : [];
+    }
+
+    const byNum = new Map<number, LdtkLevel>();
+    for (const entry of numbered) byNum.set(entry.num, entry.level);
+
+    const rng = new PRNG(this.item.uid * 20011 + this.currentStratumIndex * 353 + 91);
+    const opening = rng.shuffle(
+      Array.from({ length: ENTRY_CORRIDOR_OPENING_COUNT }, (_, i) => i + 1)
+        .map(num => byNum.get(num))
+        .filter((level): level is LdtkLevel => !!level),
+    );
+
+    const randomPool = numbered
+      .filter(entry => entry.num > ENTRY_CORRIDOR_OPENING_COUNT)
+      .sort((a, b) => a.num - b.num)
+      .map(entry => entry.level);
+    const tail = this.pickEntryCorridorRandomTail(randomPool, rng);
+    return [...opening, ...tail];
+  }
+
+  private getEntryCorridorLevelNumber(identifier: string): number | null {
+    if (!identifier.startsWith(ENTRY_CORRIDOR_LEVEL_PREFIX)) return null;
+    const raw = identifier.slice(ENTRY_CORRIDOR_LEVEL_PREFIX.length);
+    if (!/^\d+$/.test(raw)) return null;
+    const n = Number(raw);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  }
+
+  private pickEntryCorridorRandomTail(pool: LdtkLevel[], rng: PRNG): LdtkLevel[] {
+    if (pool.length === 0) return [];
+    const tail: LdtkLevel[] = [];
+    while (tail.length < ENTRY_CORRIDOR_RANDOM_TAIL_COUNT) {
+      const cycle = rng.shuffle([...pool]);
+      for (const level of cycle) {
+        tail.push(level);
+        if (tail.length >= ENTRY_CORRIDOR_RANDOM_TAIL_COUNT) break;
+      }
+    }
+    return tail;
+  }
+
+  private buildEntryCorridorComposite(levels: LdtkLevel[]): EntryCorridorComposite {
+    const widths = levels.map(level => Math.max(
+      1,
+      Math.ceil(level.pxWid / TILE_SIZE),
+      level.collisionGrid[0]?.length ?? 0,
+    ));
+    const heights = levels.map(level => Math.max(
+      1,
+      Math.ceil(level.pxHei / TILE_SIZE),
+      level.collisionGrid.length,
+    ));
+    const totalCols = widths.reduce((sum, w) => sum + w, 0);
+    const totalRows = Math.max(...heights);
+    const grid = Array.from({ length: totalRows }, () => Array<number>(totalCols).fill(TILE_AIR));
+    const offsetsPx: number[] = [];
+
+    let offsetCol = 0;
+    for (let i = 0; i < levels.length; i++) {
+      const level = levels[i];
+      const width = widths[i];
+      offsetsPx.push(offsetCol * TILE_SIZE);
+      for (let row = 0; row < heights[i]; row++) {
+        const srcRow = level.collisionGrid[row];
+        for (let col = 0; col < width; col++) {
+          grid[row][offsetCol + col] = srcRow?.[col] ?? TILE_AIR;
+        }
+      }
+      offsetCol += width;
+    }
+
+    return {
+      grid,
+      levels,
+      offsetsPx,
+      widthPx: totalCols * TILE_SIZE,
+      heightPx: totalRows * TILE_SIZE,
+    };
+  }
+
+  private createEntryCorridorVisuals(composite: EntryCorridorComposite): Container {
+    this.entryCorridorTiles = [];
+    const root = new Container();
+    root.eventMode = 'none';
+    root.zIndex = -0.5;
+
+    const renderer = new LdtkRenderer();
+    const wallTiles = composite.levels.flatMap((level, i) =>
+      this.offsetEntryCorridorTiles(level.wallTiles, composite.offsetsPx[i] ?? 0));
+    const wallTilesSub = substituteSolidGenericSprites(
+      wallTiles, composite.grid, this.item.def.temperamentPrimary,
+    );
+    renderer.renderLevel([], wallTilesSub, [], this.atlases, undefined, composite.grid, []);
+    root.addChild(renderer.container);
+
+    const registerPlatformNode = (node: Container): void => {
+      if (node instanceof Sprite) {
+        node.tint = 0x000000;
+        node.alpha = 1;
+      }
+      const cx = node.x + TILE_SIZE / 2;
+      const cy = node.y + TILE_SIZE / 2;
+      node.pivot.set(TILE_SIZE / 2, TILE_SIZE / 2);
+      node.position.set(cx, cy);
+      node.scale.set(0);
+      this.entryCorridorTiles.push({ node, cx, cy, reveal: 0, target: false });
+    };
+
+    for (const child of renderer.wallLayer.children) registerPlatformNode(child as Container);
+    for (const child of renderer.specialLayer.children) registerPlatformNode(child as Container);
+
+    if (this.entryCorridorTiles.length === 0) {
+      this.addFallbackEntryCorridorPlatforms(root, composite.grid);
+    }
+
+    const filter = new ColorMatrixFilter();
+    filter.desaturate();
+    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
+    root.filters = [filter];
+
+    return root;
+  }
+
+  private offsetEntryCorridorTiles(tiles: LdtkTile[], offsetX: number): LdtkTile[] {
+    return tiles.map(tile => ({
+      ...tile,
+      px: [tile.px[0] + offsetX, tile.px[1]],
+      src: [tile.src[0], tile.src[1]],
+    }));
+  }
+
+  private addFallbackEntryCorridorPlatforms(root: Container, grid: number[][]): void {
+    const tileLayer = new Container();
+    root.addChild(tileLayer);
+    for (let r = 0; r < grid.length; r++) {
+      const row = grid[r];
+      for (let c = 0; c < row.length; c++) {
+        if (!isSolid(row[c])) continue;
+        const gfx = new Graphics();
+        gfx.rect(-TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE)
+          .fill({ color: 0x000000, alpha: 1 });
+        gfx.position.set(c * TILE_SIZE + TILE_SIZE / 2, r * TILE_SIZE + TILE_SIZE / 2);
+        gfx.scale.set(0);
+        tileLayer.addChild(gfx);
+        this.entryCorridorTiles.push({
+          node: gfx,
+          cx: gfx.x,
+          cy: gfx.y,
+          reveal: 0,
+          target: false,
+        });
+      }
+    }
+  }
+
+  private suppressWorldForEntryCorridor(): void {
+    this.entryCorridorHiddenTargets = [];
+    const hide = (target: Container | null | undefined): void => {
+      if (!target) return;
+      this.entryCorridorHiddenTargets.push({ target, visible: target.visible });
+      target.visible = false;
+    };
+
+    hide(this.tilemap.container);
+    hide(this.fullMapContainer);
+    hide(this.buildingLayer);
+    hide(this.residentsLayer);
+    hide(this.fluidLayer);
+    hide(this.aboveFluidLayer);
+    for (const child of this.entityLayer.children) {
+      if (child === this.player.container) continue;
+      hide(child as Container);
+    }
+
+    this.parallaxBG.container.visible = true;
+    this.applyEntryCorridorBackgroundFilter();
+    this.hud.container.visible = false;
+    this.hud.hideBossHP();
+  }
+
+  private restoreWorldAfterEntryCorridor(): void {
+    for (const state of this.entryCorridorHiddenTargets) {
+      state.target.visible = state.visible;
+    }
+    this.entryCorridorHiddenTargets = [];
+    this.parallaxBG.container.visible = true;
+    this.restoreEntryCorridorBackgroundFilter();
+  }
+
+  private applyEntryCorridorBackgroundFilter(): void {
+    if (this.entryCorridorBackgroundFilters !== null) return;
+    this.entryCorridorBackgroundFilters = [...(this.game.backgroundContainer.filters ?? [])];
+    const filter = new ColorMatrixFilter();
+    filter.desaturate();
+    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
+    filter.brightness(ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS, true);
+    this.game.backgroundContainer.filters = [...this.entryCorridorBackgroundFilters, filter];
+  }
+
+  private restoreEntryCorridorBackgroundFilter(): void {
+    if (this.entryCorridorBackgroundFilters === null) return;
+    this.game.backgroundContainer.filters = this.entryCorridorBackgroundFilters;
+    this.entryCorridorBackgroundFilters = null;
+  }
+
+  private updateEntryCorridor(dt: number): void {
+    this.player.update(dt);
+    this.updateEntryCorridorTileReveal(dt);
+    this.updateMovementVfx(dt);
+    this.dmgNumbers.update(dt);
+    this.screenFlash.update(dt);
+
+    const playerCenterX = this.player.x + this.player.width / 2;
+    const bottomReached = this.player.isGrounded()
+      && this.entryCorridorBottomExitY > 0
+      && this.player.y + this.player.height >= this.entryCorridorBottomExitY - 1;
+    if (bottomReached) {
+      this.completeEntryCorridor();
+      return;
+    }
+
+    this.game.camera.target = {
+      x: playerCenterX,
+      y: this.player.y + this.player.height / 2,
+    };
+    this.game.camera.update(dt);
+  }
+
+  private updateEntryCorridorTileReveal(dt: number): void {
+    const px = this.player.x + this.player.width / 2;
+    const py = this.player.y + this.player.height / 2;
+    const radiusSq = ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX * ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX;
+    const step = ENTRY_CORRIDOR_TILE_REVEAL_MS <= 0 ? 1 : dt / ENTRY_CORRIDOR_TILE_REVEAL_MS;
+
+    for (const tile of this.entryCorridorTiles) {
+      if (!tile.target) {
+        const dx = tile.cx - px;
+        const dy = tile.cy - py;
+        if (dx * dx + dy * dy <= radiusSq) tile.target = true;
+      }
+      if (!tile.target || tile.reveal >= 1) continue;
+      tile.reveal = Math.min(1, tile.reveal + step);
+      const eased = 1 - Math.pow(1 - tile.reveal, 3);
+      tile.node.scale.set(eased);
+    }
+  }
+
+  private completeEntryCorridor(): void {
+    this.entryCorridorActive = false;
+    this.entryCorridorLevel = null;
+    this.entryCorridorGrid = null;
+    this.roomData = this.fullGrid;
+    this.player.roomData = this.fullGrid;
+    this.restoreWorldAfterEntryCorridor();
+    this.destroyEntryCorridorVisuals();
+
+    const spawn = this.findStartRoomEntrySpawn();
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
+    this.player.vx = 0;
+    this.player.vy = 60;
+    this.player.savePrevPosition();
+
+    this.game.camera.setBounds(
+      0,
+      0,
+      this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
+      this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
+    );
+    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+    this.game.camera.target = {
+      x: this.player.x + this.player.width / 2,
+      y: this.player.y + this.player.height / 2,
+    };
+    this.entryFreezeTimer = 0;
+    this.restoreGameplayHud();
+    this.startItemWorldGameplayAfterEntry();
+
+    if (this.entryCorridorDialoguePending) {
+      this.entryCorridorDialoguePending = false;
+      this.beginEntryDialogueAfterTransition();
+    }
+  }
+
+  private findEntryCorridorLeftSpawn(grid: number[][]): { x: number; y: number } {
+    const gridW = grid[0]?.length ?? 0;
+    const gridH = grid.length;
+    const maxCol = Math.min(gridW - 1, ENTRY_CORRIDOR_START_COL + 5);
+
+    for (let col = ENTRY_CORRIDOR_START_COL; col <= maxCol; col++) {
+      for (let row = 1; row < gridH - 1; row++) {
+        if (isSolid(grid[row][col]) || !isSolid(grid[row + 1][col])) continue;
+        const centerX = col * TILE_SIZE + TILE_SIZE / 2;
+        const floorY = (row + 1) * TILE_SIZE;
+        const x = Math.round(centerX - this.player.width / 2);
+        const y = Math.round(floorY - this.player.height - 2);
+        if (this.isAabbClearInGrid(grid, x, y, this.player.width, this.player.height)) {
+          return { x, y };
+        }
+      }
+    }
+
+    const fallbackFloorY = Math.max(TILE_SIZE * 2, this.findEntryCorridorBottomExitY(grid) - TILE_SIZE * 12);
+    return {
+      x: Math.round(ENTRY_CORRIDOR_START_COL * TILE_SIZE + TILE_SIZE / 2 - this.player.width / 2),
+      y: Math.round(fallbackFloorY - this.player.height - 2),
+    };
+  }
+
+  private findEntryCorridorBottomExitY(grid: number[][]): number {
+    // Exit only when the player falls to the corridor's bottom boundary.
+    // Authored low platforms inside the corridor are playable surfaces, not
+    // handoff floors.
+    return grid.length * TILE_SIZE;
+  }
+
+  private findStartRoomEntrySpawn(): { x: number; y: number } {
+    const ldtkSpawn = this.playerSpawnByStratum.get(this.currentStratumIndex);
+    if (ldtkSpawn) {
+      return {
+        x: Math.round(ldtkSpawn.x - this.player.width / 2),
+        y: Math.round(ldtkSpawn.y - this.player.height),
+      };
+    }
+    return this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
+  }
+
+  private isAabbClearInGrid(grid: number[][], x: number, y: number, w: number, h: number): boolean {
+    const left = Math.floor(x / TILE_SIZE);
+    const right = Math.floor((x + w - 1) / TILE_SIZE);
+    const top = Math.floor(y / TILE_SIZE);
+    const bottom = Math.floor((y + h - 1) / TILE_SIZE);
+    for (let row = top; row <= bottom; row++) {
+      for (let col = left; col <= right; col++) {
+        if (isSolid(grid[row]?.[col] ?? TILE_WALL)) return false;
+      }
+    }
+    return true;
+  }
+
+  private destroyEntryCorridorVisuals(): void {
+    if (this.entryCorridorContainer) {
+      if (this.entryCorridorContainer.parent) {
+        this.entryCorridorContainer.parent.removeChild(this.entryCorridorContainer);
+      }
+      this.entryCorridorContainer.destroy({ children: true });
+      this.entryCorridorContainer = null;
+    }
+    this.entryCorridorTiles = [];
+    this.entryCorridorLevel = null;
+    this.entryCorridorGrid = null;
+    this.entryCorridorBottomExitY = 0;
+    this.entryCorridorWidthPx = 0;
+    this.entryCorridorHeightPx = 0;
   }
 
   private countTotalRooms(): void {
@@ -2888,7 +3397,11 @@ export class ItemWorldScene extends Scene {
     // Exclude memory room templates from the random pool so they only appear
     // where explicitly placed above. LDtk editor may capitalize the prefix
     // ("Memory_*") ? match case-insensitively.
-    const pool = this.ldtkTemplates.filter(t => !/^memory_/i.test(t.identifier));
+    const pool = this.ldtkTemplates.filter(t =>
+      !/^memory_/i.test(t.identifier) &&
+      t.roomType !== 'Cinematic' &&
+      !this.isEntryCorridorTemplateIdentifier(t.identifier)
+    );
 
     // Determine desired RoomType based on cell role
     let desiredType: string;
@@ -4704,8 +5217,7 @@ export class ItemWorldScene extends Scene {
     const equipped = this.inventory?.equipped;
     return {
       area: 'itemworld',
-      // ItemWorld is procedural ??no LDtk level_id.
-      level_id: undefined,
+      level_id: this.entryCorridorActive ? ENTRY_CORRIDOR_LEVEL_ID : undefined,
       room_col: Math.floor(cx / TILE_SIZE),
       room_row: Math.floor(cy / TILE_SIZE),
       equipped_weapon_id: equipped?.def.id ?? undefined,
@@ -4759,6 +5271,11 @@ export class ItemWorldScene extends Scene {
       this.loreDisplay.update(dt);
       // Sync prev position so render interpolation doesn't cause jitter
       this.player.savePrevPosition();
+      return;
+    }
+
+    if (this.entryCorridorActive) {
+      this.updateEntryCorridor(dt);
       return;
     }
 
@@ -7704,6 +8221,10 @@ export class ItemWorldScene extends Scene {
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
+    this.entryCorridorActive = false;
+    this.restoreWorldAfterEntryCorridor();
+    this.destroyEntryCorridorVisuals();
+    if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.destroyTrapdoorPrompt();
     this.destroyItemWorldAnvilPrompt();
     this.clearStaticEntities();

@@ -270,7 +270,7 @@ export class Game {
             const zoomIn = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketLeft');
             const zoomOut = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketRight');
             if (zoomIn || zoomOut) {
-              this.camera.setZoom(this.camera.zoom + (zoomIn ? 0.1 : -0.1));
+              this.camera.setZoom(this.camera.zoom + (zoomIn ? 0.1 : -0.1), { bypassLock: true });
               const toast = (this.sceneManager.active as { toast?: { show: (msg: string, color?: number) => void } } | null)?.toast;
               toast?.show(`Zoom ${this.camera.zoom.toFixed(1)}x`, 0xffa41b);
             }

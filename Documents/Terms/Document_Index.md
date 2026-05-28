@@ -67,13 +67,12 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 설명 |
 | :--- | :--- | :--- | :--- | :--- |
-| T-01 | Project Vision | `Terms/Project_Vision_Abyss.md` | ✅ 완료 | 3대 기둥, 핵심 판타지, 톤 & 매너, 금지 규칙, 타겟 유저, 플랫폼 전략 |
+| ~~T-01~~ | ~~Project Vision~~ | `Terms/_archive/NarrativeWorldReset_2026-05-28/Project_Vision_Abyss.md` | 📦 archived 2026-05-28 (근본 재정의 라운드) | ~~3대 기둥, 핵심 판타지, 톤 & 매너, 금지 규칙~~ |
 | T-02 | GDD Writing Rules | `Terms/GDD_Writing_Rules.md` | ✅ 완료 | 5단계 구조, 네이밍, 마크다운 규칙 |
-| T-03 | Glossary | `Terms/Glossary.md` | ✅ 완료 | 공식 용어 사전 |
+| T-03 | Glossary | `Terms/Glossary.md` | 🔄 NarrativeWorldReset 정리 완료 (2026-05-28) | 공식 용어 사전. 내러티브 lore + DEC-036/046 narrative-system 용어는 `Terms/_archive/NarrativeWorldReset_2026-05-28/Glossary_Narrative_Excerpt_2026-05-28.md` 로 분리. |
 | T-04 | Document Index | `Terms/Document_Index.md` | 🔄 진행 중 | 이 문서 |
 | T-05 | GDD Roles | `Terms/GDD_Roles.md` | ✅ 완료 | 수석 게임 디자이너 역할, 책임, 협업 프로토콜 |
 | T-06 | Sheets Writing Rules | `Terms/Sheets_Writing_Rules.md` | ✅ 완료 | CSV 데이터 시트 작성 규칙, ID 체계, SSoT |
-| T-07 | Workflow (Fina Deliverables) | `Terms/Workflow_Fina_Deliverables.md` | ✅ 완료 | 외부 시나리오 작가 Fina 산출물 위치·표기·검수 워크플로우 (WFL-FINA-001, 2026-05-24) |
 
 ---
 
@@ -91,12 +90,14 @@ graph TD
 | D-09 | Combat Design Philosophy | `Design/Design_Combat_Philosophy.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-10 | Level Design Standards | `Design/Design_Level_Standards.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | D-11 | Progression & Reward Design | `Design/Design_Progression_Reward.md` | ✅ 완료 | 전체 | 전체 |
-| D-12 | Narrative & Worldbuilding | `Design/Design_Narrative_Worldbuilding.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
+| ~~D-12~~ | ~~Narrative & Worldbuilding~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_Worldbuilding.md` | 📦 archived 2026-05-28 | World+IW | 탐험+야리코미 |
 | D-13 | WorldLayout GridVania Analysis | `Design/WorldLayout_GridVania_Analysis.md` | ✅ 완료 | World | 탐험 |
 | D-14 | Monetization Strategy | `Design/Design_Monetization_Strategy.md` | ✅ 완료 | 전체 | 전체 |
-| D-15 | Art Direction | `Design/Design_Art_Direction.md` | ✅ 완료 | 전체 | 전체 |
+| ~~D-15~~ | ~~Art Direction~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Art_Direction_2026-05-28.md` | 📦 archived 2026-05-28 (NarrativeWorldReset 2차 라운드) | 전체 | 전체 |
 | D-16 | Art Animation Spec | `Design/Design_Art_AnimationSpec.md` | ✅ 완료 | 전체 | 전체 |
 | D-17 | Tutorial & Environmental Teaching | `Design/Design_Tutorial_EnvironmentalTeaching.md` | ✅ 완료 | World | 탐험 |
+| ~~D-18~~ | ~~Narrative / Story Design Methodology (Master)~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_StoryDesign_Methodology.md` | 📦 archived 2026-05-28 | 전체 | 전체 |
+| ~~D-19~~ | ~~Narrative Book Integration Guide~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_BookIntegration_Guide.md` | 📦 archived 2026-05-28 | 전체 | 전체 |
 
 **D-09 Combat Design Philosophy 범위:**
 - 전투 미학: 타격감(Juice)의 3요소 (히트스탑, 화면흔들림, 넉백) 설계 원칙
@@ -112,17 +113,7 @@ graph TD
 - 드랍 설계 원칙: 직접 드랍 vs 제작 소재, 레어리티별 기대감 곡선
 - 파워 판타지 밸런스: 강해지는 느낌 vs 도전의 유지, 수치 인플레이션 관리
 
-**D-12 Narrative & Worldbuilding 범위:**
-- 핵심 원칙: "아이템이 곧 서사 매체" — 아이템계에 들어가면 아이템의 역사가 몬스터/지형/NPC로 구현
-- 아이템 서사 구조: 기원(Creator/Purpose/History/Fate) → 아이템계의 테마 결정
-- 레어리티 = 서사 깊이: Normal(일상) → Magic(사연) → Rare(사건) → Legendary(역사) → Ancient(신화)
-- 테마 풀 시스템: 무기 카테고리 × 기원 테마 × 레어리티로 절차적 서사 생성
-- 환경 서사 7대 원칙: 씬>플롯, 정보 제거, 묵시적 서사, 40초 법칙, 환경 일관성, 시선 차단, Fire/Ember
-- 서사 전달: 환경 서사(지형/분위기) 최우선, 유령 NPC 대사(3문장 이하), 플레이버 텍스트
-- NPC 대사 설계: 신호/잡음 이론, 기억 단편 어투 차별화, "빈 시간" 설계
-- 세계관 톤: 고딕 비극(고등급) + 경쾌한 야리코미(저등급) 이중 톤
-- 월드-아이템계 수직 서사: 월드(현재) → 아이템계(과거) → 월드 복귀(이해)
-- "심연(Abyss)" 미스터리: 모든 Ancient 아이템의 최심층 지층이 같은 곳을 가리킨다
+**~~D-12 Narrative & Worldbuilding~~ 범위:** 📦 archived 2026-05-28 → `Documents/Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_Worldbuilding.md`
 
 
 ---
@@ -247,9 +238,9 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-INR-01 | Item Narrative Template | `System/System_ItemNarrative_Template.md` | ✅ 완료 | IW | 야리코미 |
-| SYS-INR-02 | Environment Pool | `System/System_ItemNarrative_EnvironmentPool.md` | ✅ 완료 | IW | 야리코미 |
-| SYS-INR-03 | Monster Pool | `System/System_ItemNarrative_MonsterPool.md` | ✅ 완료 | IW | 야리코미 |
+| ~~SYS-INR-01~~ | ~~Item Narrative Template~~ | `System/_archive/NarrativeWorldReset_2026-05-28/System_ItemNarrative_Template.md` | 📦 archived 2026-05-28 | IW | 야리코미 |
+| ~~SYS-INR-02~~ | ~~Environment Pool~~ | `System/_archive/NarrativeWorldReset_2026-05-28/System_ItemNarrative_EnvironmentPool.md` | 📦 archived 2026-05-28 | IW | 야리코미 |
+| ~~SYS-INR-03~~ | ~~Monster Pool~~ | `System/_archive/NarrativeWorldReset_2026-05-28/System_ItemNarrative_MonsterPool.md` | 📦 archived 2026-05-28 | IW | 야리코미 |
 
 ### 3.8 퀘스트 서사 시스템 (Quest Narrative)
 
@@ -269,7 +260,7 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 | 2-Space | 기둥 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| SYS-INC-01 | Memory Shard Core | `System/System_Memory Shard_Core.md` | ✅ 완료 | IW | 야리코미 |
+| ~~SYS-INC-01~~ | ~~Memory Shard Core (Memory Recovery Core, DEC-046)~~ | `System/_Archive/NarrativeWorldReset_2026-05-28/System_Memory_Core.md` | 📦 archived 2026-05-28 (NarrativeWorldReset) | IW | 야리코미 |
 | SYS-INC-02 | ~~Memory Shard Farm~~ | `System/System_Memory Shard_Farm.md` | ❌ DEPRECATED | Hub | 야리코미 |
 | ~~SYS-INC-03~~ | ~~Dual Memory Shard~~ | ~~`System/System_Memory Shard_Dual.md`~~ | ❌ DEPRECATED | — | — |
 
@@ -362,17 +353,29 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
-| CNT-00 | World Bible | `Content/Content_World_Bible.md` | ✅ 완료 |
-| CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 완료 |
-| CNT-STR-001 | Story Synopsis (전체 시놉시스) | `Content/Content_Story_Synopsis.md` | ✅ 완료 |
-| CNT-NME-001 | Project Name Etymology (Fina, 2026-05-24) | `Content/Content_Project_Name_Etymology.md` | ✅ 완료 |
-| CNT-ITM-001 | Item Narrative: 측량사의 에코 쐐기 (신규 기준 예시) | `Content/Content_Item_Narrative_SurveyorEchoWedge.md` | ✅ 완료 |
+| ~~CNT-00~~ | ~~World Bible~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_World_Bible.md` | 📦 archived 2026-05-28 (근본 재정의 라운드) |
+| ~~CNT-DIR-001~~ | ~~Direction (테마 · 시놉시스 · 내러티브 SSoT)~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction.md` | 📦 archived 2026-05-28 |
+| ~~CNT-DIR-002~~ | ~~Direction Seed Analysis~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction_SeedAnalysis.md` | 📦 archived 2026-05-28 |
+| ~~CNT-EXP-001~~ | ~~첫 30분 경험 플로우~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_First30Min_ExperienceFlow.md` | 📦 archived 2026-05-28 |
+| ~~CNT-STR-001~~ | ~~Story Synopsis (전체 시놉시스)~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Story_Synopsis.md` | 📦 archived 2026-05-28 |
+| ~~CNT-STR-LEGACY~~ | ~~Synopsis 2026-05-23 (legacy)~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Synopsis_2026-05-23.md` | 📦 archived 2026-05-28 |
+| ~~CNT-RBN-001~~ | ~~Rustborn Onboarding Sequence~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Rustborn_Onboarding_Sequence.md` | 📦 archived 2026-05-28 |
+| **VICTOR-AUTH-01** | **Victor Authored Excerpts (1차 자료 verbatim 보존)** | `Content/_archive/NarrativeWorldReset_2026-05-28/victor_original/Victor_Authored_Excerpts_2026-05-28.md` | 🔒 분리 보존 2026-05-28 |
+| CNT-NME-001 | Project Name Etymology | `Content/_archive/Fina_collaboration_2026-05-27/Content_Project_Name_Etymology.md` | 📦 archived 2026-05-27 |
+| ~~CNT-ITM-001~~ | ~~Item Narrative: 측량사의 에코 쐐기~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_SurveyorEchoWedge.md` | 📦 archived 2026-05-28 (근본 재정의 대기) |
+| ~~CNT-ITM-002~~ | ~~Item Narrative: 수리공의 고요한 망치~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_PatchwrightQuietMallet.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-003~~ | ~~Item Narrative: 냉동실의 침묵자~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_ColdroomQuietener.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-004~~ | ~~Item Narrative: 수로 감청 장철~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_CisternListenerLongIron.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-005~~ | ~~Item Narrative: 리거의 놓지 않은 줄~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_RiggersHeldLine.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-006~~ | ~~Item Narrative: 들린 것이 답한 공명기~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_ResonatorThatHeardBack.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-SET-001~~ | ~~Item Narrative Set 2026-05-27~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_Set_2026-05-27.md` | 📦 archived 2026-05-28 |
+| ~~CNT-ITM-SET-002~~ | ~~Item Narrative Set 2026-05-28 v2~~ | `Content/_archive/ItemNarrative_FoundationRework_2026-05-28/Content_Item_Narrative_Set_2026-05-28_v2.md` | 📦 archived 2026-05-28 |
 | ~~CNT-ITM-001 (구판)~~ | ~~Item Narrative: 할아버지의 부엌칼~~ | ~~`Content/Content_Item_Narrative_GrandfatherKitchenKnife.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |
 | ~~CNT-ITM-002 (구판)~~ | ~~Item Narrative: First Sword~~ | ~~`Content/Content_Item_Narrative_FirstSword.md`~~ | ❌ 폐기 2026-05-20 (판타지 톤 디버전스) |
-| CNT-01 | Weapon List | `Content/Content_Weapon_List.md` | ✅ 완료 |
+| ~~CNT-01~~ | ~~Weapon List~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Weapon_List_2026-05-28.md` | 📦 archived 2026-05-28 (NarrativeWorldReset 2차 라운드 — 무기 표시명/세계관 해석 narrative 결 격리. 수치 SSoT 은 `Sheets/Content_Stats_Weapon_List.csv`) |
 | CNT-02 | Armor & Accessory List | `Content/Content_Armor_List.md` | ⬜ 제작 필요 |
 | CNT-03 | Memory Shard Catalog | `Content/Content_Memory Shard_Catalog.md` | ⬜ 제작 필요 |
-| CNT-04 | Monster Bestiary | `Content/Content_Monster_Bestiary.md` | ✅ 완료 |
+| ~~CNT-04~~ | ~~Monster Bestiary~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Monster_Bestiary.md` | 📦 archived 2026-05-28 |
 | CNT-05 | Zone & Biome List | `Content/Content_Zone_List.md` | ⬜ 제작 필요 |
 | CNT-06 | Skill List | `Content/Content_Skill_List.md` | ⬜ 제작 필요 |
 | CNT-07 | Boss List | `Content/Content_Boss_List.md` | ⬜ 제작 필요 |
@@ -455,6 +458,7 @@ graph TD
 | RES-VRT-02 | Vertical Movement Relics | `Research/Research_Vertical_Movement_Relics.md` | 수직 이동 렐릭 |
 | RES-KPI-01 | ECHORIS KPI Critical Analysis | `Research/ECHORIS_KPI_CriticalAnalysis.md` | ECHORIS KPI 비판적 분석 |
 | RES-RT-01 | Room Transition Readability | `Research/RoomTransition_Readability_Research.md` | 방 전환부 가독성 (출구 오인 문제 해결) |
+| ~~RES-MN-01~~ | ~~Metroidvania × Deep Narrative Compatibility~~ | `Research/_archive/NarrativeWorldReset_2026-05-28/Research_Metroidvania_DeepNarrative_Compatibility.md` | 📦 archived 2026-05-28 (NarrativeWorldReset 2차 — 2026-05-28 Established 동일자 즉시 분리) |
 
 ---
 
@@ -590,7 +594,7 @@ graph LR
 
 | 순서 | 문서 | 상태 | 이유 |
 | :--- | :--- | :--- | :--- |
-| 15 | D-12 Narrative & Worldbuilding | ✅ | 콘텐츠 확장 전 세계관 원칙 (환경 서사 7대 원칙 보강 완료) |
+| 15 | ~~D-12 Narrative & Worldbuilding~~ | 📦 archived 2026-05-28 | NarrativeWorldReset 라운드로 분리 보존 |
 | 16 | SYS-WLD-01 Map Structure | ⬜ | 7개 층위 수직 연결 |
 | 17 | SYS-WLD-02 Zone Design | ⬜ | 구역별 바이옴 설계 |
 | 18 | SYS-WLD-03 Ability Gating | ⬜ | 능력 게이트 설계 |

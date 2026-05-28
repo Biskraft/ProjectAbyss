@@ -141,6 +141,8 @@ import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
 import { ParallaxBackground } from '@level/ParallaxBackground';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
+import { seedItemWorldTemplates, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
+import { loadBundleOnce } from '@data/assetBundles';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
@@ -181,6 +183,7 @@ import { BurnableProp } from '@entities/BurnableProp';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { TutorialHint } from '@ui/TutorialHint';
 import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
+import { WeatherSystem, type WeatherDynamicCollider, type WeatherMode } from '@effects/WeatherSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
@@ -321,8 +324,8 @@ export class LdtkWorldScene extends Scene {
    * the weighty "?? feedback.
    */
   private builderShakeEnabled = false;
-  // Per-session one-shot BuilderSpawner keys. Re-entries can park the builder
-  // at the route end without replaying the movement.
+  // Per-session one-shot BuilderSpawner keys. Once triggered, re-entries keep
+  // restoring the live route snapshot; only missing snapshots may park at end.
   private builderSpawnerRunOnceKeys = new Set<string>();
   // Tracks the builder's moving state across frames so we can emit a single
   // heavy "landing" shake on the exact frame it transitions to idle.
@@ -335,6 +338,7 @@ export class LdtkWorldScene extends Scene {
   private builderInteriorAlpha = 1;
   /** Cells in host collisionGrid currently overwritten by builder, packed as row * gridWidth + col. Only cells that were 0 are stamped. */
   private builderStamps: number[] = [];
+  private readonly builderStampSet = new Set<number>();
   private builderStampOriginX: number | null = null;
   private builderStampOriginY: number | null = null;
   /** True if, after last physics step, the player was grounded on a builder-stamped tile. Used to carry the player vertically with the builder. */
@@ -361,6 +365,7 @@ export class LdtkWorldScene extends Scene {
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
+  private readonly itemWorldPrestreamTasks = new Map<string, Promise<void>>();
   private currentLevel!: LdtkLevel;
   private collisionGrid: number[][] = [];
   private cameraZones: {
@@ -373,12 +378,15 @@ export class LdtkWorldScene extends Scene {
 
   // Layers
   private entityLayer!: Container;
+  private weatherLayer!: Container;
   private deploymentFxLayer!: Container;
   private vividLayer!: Container;
   private fluidLayer!: Container;
   private fluidSystem!: FluidSystem;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
+  private weather: WeatherSystem | null = null;
+  private weatherBuilderCollider: WeatherDynamicCollider | null = null;
   private laserDesaturationFilter: ColorMatrixFilter | null = null;
   private readonly laserDesaturationPrevFilters = new Map<Container, Filter[] | null>();
   private dungeonAtmosphereActive = false;
@@ -597,6 +605,12 @@ export class LdtkWorldScene extends Scene {
   private ghostPendingTimer = -1;
   private ghostPendingParams: { x: number; y: number; w: number; h: number } | null = null;
   private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
+  private ghostStreamRestore: {
+    rowLengths: number[];
+    rowCount: number;
+    cameraBounds: { left: number; top: number; right: number; bottom: number } | null;
+  } | null = null;
+  private itemWorldStreamEntranceAabb: { x: number; y: number; width: number; height: number } | null = null;
   private deploymentTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private builderTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private wallGate: WallGate | null = null;
@@ -831,6 +845,7 @@ export class LdtkWorldScene extends Scene {
     // ItemStratum levels ??only used for ghost overlay preview (same JSON, different world filter)
     this.itemStratumLoader = new LdtkLoader();
     this.itemStratumLoader.load(json, 'ItemStratum');
+    seedItemWorldTemplates(this.itemStratumLoader.getLevelIds().map(id => this.itemStratumLoader!.getLevel(id)!));
 
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
@@ -1046,6 +1061,9 @@ export class LdtkWorldScene extends Scene {
     const aboveFluidLayer = new Container();
     this.container.addChild(aboveFluidLayer);
     this.tileMutatorRenderer.setAboveFluidLayer(aboveFluidLayer);
+
+    this.weatherLayer = new Container();
+    this.container.addChild(this.weatherLayer);
 
     this.deploymentFxLayer = new Container();
     this.container.addChild(this.deploymentFxLayer);
@@ -1317,9 +1335,7 @@ export class LdtkWorldScene extends Scene {
       const cx = (gx + 0.5) * 16;
       const cy = (gy + 0.5) * 16;
       const steamBaseY = (gy + 1) * 16;
-      this.steamPuff.spawn(cx, steamBaseY, 1.5);
-      this.steamPuff.spawn(cx, steamBaseY - 22, 1.3);
-      this.steamPuff.spawn(cx, steamBaseY - 44, 1.1);
+      this.steamPuff.spawn(cx, steamBaseY - 12, 1.1, PUFF_TINT_TOXIC);
       this.game.camera.shake(2);
       const radiusX = 24;
       const radiusY = 64;
@@ -1641,12 +1657,14 @@ export class LdtkWorldScene extends Scene {
     this.fluidSpawners.clear();
     this.fluidCrestFoam.clear();
     this.fluidResidue.clear();
+    this.weather?.destroy();
+    this.weather = null;
     this.updraftSystem.clear();
     this.itemPickupGlow.clear();
     this.relicAuraBurst.clear();
     this.dmgNumbers?.clear();
-    this.destroyGhostOverlay(true);
-    this.restoreDeploymentTunnel(true);
+    this.destroyGhostOverlay(true, false);
+    this.restoreDeploymentTunnel(false);
     this.deactivateDungeonAtmosphere();
     this.itemDeployment?.destroy();
     this.itemDeployment = null;
@@ -1783,6 +1801,7 @@ export class LdtkWorldScene extends Scene {
 
     if (this.updateAcquireOverlay(dt)) {
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       this.hitSparks.update(dt);
       this.propShatter.update(dt);
       this.screenFlash.update(dt);
@@ -1828,6 +1847,7 @@ export class LdtkWorldScene extends Scene {
       this.loreDisplay.update(dt);
       this.player.savePrevPosition();
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       return;
     }
 
@@ -1844,6 +1864,7 @@ export class LdtkWorldScene extends Scene {
         this.game.camera.setZoom(this.pickupZoomOverride);
       }
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       this.hitSparks.update(dt);
       this.propShatter.update(dt);
       this.screenFlash.update(dt);
@@ -1974,6 +1995,7 @@ export class LdtkWorldScene extends Scene {
     if (this.itemWorldTransition) {
       this.itemWorldTransition.update(dt);
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       return;
     }
 
@@ -1981,6 +2003,7 @@ export class LdtkWorldScene extends Scene {
     if (this.portalTransition) {
       this.portalTransition.update(dt);
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       if (this.portalTransition.isDone) {
         this.completePendingPortalEntry();
       }
@@ -1995,6 +2018,7 @@ export class LdtkWorldScene extends Scene {
       this.player.vy = 0;
       this.player.savePrevPosition();
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       this.hitSparks.update(dt);
       this.propShatter.update(dt);
       this.screenFlash.update(dt);
@@ -2007,6 +2031,7 @@ export class LdtkWorldScene extends Scene {
       this.player.vy = 0;
       this.player.savePrevPosition();
       this.game.camera.update(dt);
+      this.updateWeather(dt);
       this.hitSparks.update(dt);
       this.propShatter.update(dt);
       this.screenFlash.update(dt);
@@ -3116,6 +3141,7 @@ export class LdtkWorldScene extends Scene {
       : 0;
 
     cam.update(dt);
+    this.updateWeather(dt);
 
     // Parallax background scroll ??frozen while dungeon atmosphere is active
     if (!this.dungeonAtmosphereActive) {
@@ -3679,6 +3705,8 @@ export class LdtkWorldScene extends Scene {
     this.restoreDeploymentTunnel(true);
     this.itemDeployment?.destroy();
     this.itemDeployment = null;
+    this.weather?.destroy();
+    this.weather = null;
     this.restoreUiAfterAnvilDiveTransition();
     this.clearBuilder();
     this.parallaxBG?.destroy();
@@ -3919,6 +3947,94 @@ export class LdtkWorldScene extends Scene {
     return p.has('debug');
   })();
 
+  private configureWeatherForLevel(level: LdtkLevel): void {
+    this.weather?.destroy();
+    this.weather = null;
+
+    const weatherEnts = level.entities.filter(e => e.type === 'Weather');
+    const ent = weatherEnts[0];
+    if (!ent) return;
+
+    const fields = ent.fields ?? {};
+    const mode = this.readWeatherMode(fields['WeatherType']);
+    const density = this.readWeatherNumber(fields, 'Density', 0.5, 0, 1);
+    const wind = this.readWeatherNumber(fields, 'Wind', mode === 'rain' ? -0.18 : 0, -1, 1);
+    const streakLength = this.readWeatherNumber(fields, 'StreakLength', 6, 1, 64);
+    const streakWidth = this.readWeatherNumber(fields, 'StreakWidth', 0.8, 0.25, 8);
+
+    this.weather = new WeatherSystem({
+      mode,
+      intensity: density,
+      wind,
+      streakLength,
+      streakWidth,
+      coverageCheckTiles: 3,
+      collision: {
+        grid: this.collisionGrid,
+        tileSize: TILE_SIZE,
+        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
+        ignoreCell: (col, row) => this.isBuilderStampedCell(col, row),
+      },
+    });
+    this.weatherLayer.addChild(this.weather.container);
+
+    if (weatherEnts.length > 1) {
+      console.warn(`[Weather] level="${level.identifier}" has ${weatherEnts.length} Weather entities; using the first one.`);
+    }
+    if (LdtkWorldScene.debugMode) {
+      Debug.log(`[Weather] level="${level.identifier}" mode=${mode} density=${density} wind=${wind} streak=${streakLength}/${streakWidth}`);
+    }
+  }
+
+  private readWeatherMode(value: unknown): WeatherMode {
+    return typeof value === 'string' && value.toLowerCase() === 'snow' ? 'snow' : 'rain';
+  }
+
+  private readWeatherNumber(
+    fields: Record<string, unknown>,
+    key: string,
+    fallback: number,
+    min: number,
+    max: number,
+  ): number {
+    const raw = fields[key];
+    const parsed = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : fallback;
+    const value = Number.isFinite(parsed) ? parsed : fallback;
+    return Math.max(min, Math.min(max, value));
+  }
+
+  private updateWeather(dt: number): void {
+    if (!this.weather) return;
+    this.weather.setDynamicColliders(this.getWeatherDynamicColliders());
+    const cam = this.game.camera;
+    const width = GAME_WIDTH / cam.zoom;
+    const height = GAME_HEIGHT / cam.zoom;
+    this.weather.update(dt, {
+      x: cam.renderX - width / 2,
+      y: cam.renderY - height / 2,
+      width,
+      height,
+    });
+  }
+
+  private getWeatherDynamicColliders(): WeatherDynamicCollider[] {
+    const b = this.activeBuilder;
+    if (!b) return [];
+    if (!this.weatherBuilderCollider) {
+      this.weatherBuilderCollider = {
+        grid: b.collisionGrid,
+        tileSize: TILE_SIZE,
+        originX: b.container.x,
+        originY: b.container.y,
+        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
+      };
+    }
+    this.weatherBuilderCollider.grid = b.collisionGrid;
+    this.weatherBuilderCollider.originX = b.container.x;
+    this.weatherBuilderCollider.originY = b.container.y;
+    return [this.weatherBuilderCollider];
+  }
+
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): boolean {
     // Debug rooms (RoomType=Debug) only accessible with ?debug in URL
     if (this.loader.getLevel(levelId)?.roomType === 'Debug' && !LdtkWorldScene.debugMode) {
@@ -4127,6 +4243,7 @@ export class LdtkWorldScene extends Scene {
       // rect ??wider waterfall. Each cell ticks independently.
       for (const opt of readFluidSpawnerEntities(ent)) this.fluidSpawners.add(opt);
     }
+    this.configureWeatherForLevel(level);
     // ?곌랜???HP ???貫?껆뵳??????醫롫윪????醫롫윥???醫롫윪????醫롫윪???醫롫윪???띠럾???醫롫윪????醫롫윥壤쎻뫗怡??醫????? 嶺뚢뼰維??
     // ????醫롫윥????곌랜???덉낯?諭逾??activateBossLock ??update ?猷먮쳜???醫롫윪????醫롫윪????醫롫윪???醫롫윥??
     this.hud.hideBossHP();
@@ -7432,6 +7549,10 @@ export class LdtkWorldScene extends Scene {
    */
   private checkLevelEdges(): void {
     if (this.transitionState !== 'none') return;
+    if (this.itemDeployment?.isActive) {
+      this.startItemWorldCorridorFromWorldRightEdge();
+      return;
+    }
 
     const px = this.player.x;
     const py = this.player.y;
@@ -7485,9 +7606,24 @@ export class LdtkWorldScene extends Scene {
     Debug.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
     const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
     Debug.log(`[EdgeTransition] ??neighborId=${neighborId}`);
-    if (!neighborId) return;
+    if (!neighborId) {
+      if (direction === 'right' && this.startItemWorldCorridorFromWorldRightEdge()) return;
+      return;
+    }
 
     this.startTransition(direction, neighborId);
+  }
+
+  private startItemWorldCorridorFromWorldRightEdge(): boolean {
+    if (!this.collapseItem || this.inItemTunnel || this.itemWorldEntryTransitionActive) return false;
+    const levelRight = this.currentLevel?.pxWid ?? 0;
+    if (levelRight <= 0) return false;
+    const playerRight = this.player.x + this.player.width;
+    if (playerRight < levelRight - TILE_SIZE) return false;
+
+    this.prestreamItemWorldEntry(this.collapseItem, 'world-right-edge');
+    this.startTransition('right', '__item_world__');
+    return true;
   }
 
   private getNeighborInDirection(
@@ -7663,7 +7799,8 @@ export class LdtkWorldScene extends Scene {
     this.container.addChild(builder.legFrontLayer);
     builder.legFrontLayer.position.copyFrom(builder.container.position);
 
-    if (autoStart && !alreadyPlayed && (savedState || savedY === undefined)) {
+    const shouldBuildRoute = autoStart && (savedState || (!alreadyPlayed && savedY === undefined));
+    if (shouldBuildRoute) {
       builder.setRoute([
         { y: startY, waitMs: startWaitMs },
         { y: endY,   waitMs: endWaitMs },
@@ -7718,7 +7855,9 @@ export class LdtkWorldScene extends Scene {
         if (c < 0 || c >= gridW) continue;
         if (hostRow[c] === 0) {
           hostRow[c] = v;
-          this.builderStamps.push(r * gridW + c);
+          const stamp = r * gridW + c;
+          this.builderStamps.push(stamp);
+          this.builderStampSet.add(stamp);
         }
       }
     }
@@ -7736,8 +7875,14 @@ export class LdtkWorldScene extends Scene {
       if (row) row[c] = 0;
     }
     this.builderStamps.length = 0;
+    this.builderStampSet.clear();
     this.builderStampOriginX = null;
     this.builderStampOriginY = null;
+  }
+
+  private isBuilderStampedCell(col: number, row: number): boolean {
+    const gridW = this.collisionGrid[0]?.length ?? 0;
+    return gridW > 0 && this.builderStampSet.has(row * gridW + col);
   }
 
   /**
@@ -7902,7 +8047,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   private getBuilderStampSet(): Set<number> {
-    return new Set(this.builderStamps);
+    return this.builderStampSet;
   }
 
   private isStaticSolidCell(col: number, row: number, builderStampSet: Set<number>): boolean {
@@ -8485,6 +8630,8 @@ export class LdtkWorldScene extends Scene {
     }
     this.builderEntranceGlows = [];
     this.unstampBuilder();
+    this.weather?.clearDynamicColliders();
+    this.weatherBuilderCollider = null;
     this.playerOnBuilder = false;
     this.playerInBuilder = false;
     if (this.activeBuilder) {
@@ -8775,6 +8922,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
+    this.prestreamItemWorldEntry(targetItem, 'portal-entry');
     const prevLevel = targetItem.level;
     const prevAtk = this.player.atk;
     const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
@@ -8788,7 +8936,9 @@ export class LdtkWorldScene extends Scene {
     // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
     this.dmgNumbers?.clear();
 
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
+      entryCorridor: true,
+    });
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
@@ -8846,7 +8996,7 @@ export class LdtkWorldScene extends Scene {
       this.detachSharedUiForItemWorld();
       this.releaseWorldVisualsForItemWorld();
       this.game.camera.setZoom(1.0);
-    });
+    }, { alreadyBlack: true, revealMs: 240 });
   }
 
   // ---------------------------------------------------------------------------
@@ -9537,6 +9687,7 @@ export class LdtkWorldScene extends Scene {
       openTunnel: (x, y, w, h) => this.openDeploymentTunnel(x, y, w, h, { scheduleGhost: false }),
       setLaserDesaturation: (active) => this.setLaserDesaturation(active),
       showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
+      getEntranceAABB: () => this.itemWorldStreamEntranceAabb,
     });
     this.itemDeployment.start(this.anvil.x, this.anvil.y);
   }
@@ -9647,6 +9798,7 @@ export class LdtkWorldScene extends Scene {
     ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
     ghost.itemContainer.x = ghost.container.x;
     ghost.itemContainer.y = ghost.container.y;
+    this.extendWorldForGhostStream(ghost);
     this.container.addChild(ghost.container);
     this.container.addChild(ghost.itemContainer);
     const rimFilter = new RimLightFilter({ color: 0x4499ff, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
@@ -9659,7 +9811,16 @@ export class LdtkWorldScene extends Scene {
     ghost.fadeTo(1, 0);
     this.ghostOverlay = ghost;
 
-    // Stamp ghost collision into world grid (non-zero tiles only ??don't erase world walls outside tunnel).
+    const triggerX = ghost.container.x + ghost.builtPxW * 0.68;
+    this.itemWorldStreamEntranceAabb = {
+      x: triggerX - 24,
+      y: ghost.container.y,
+      width: 48,
+      height: ghost.builtPxH,
+    };
+
+    // Stamp ghost collision into the streamed extension. Inside the ghost room,
+    // air must be real air so the player can walk into the ItemStratum preview.
     if (debugLevel) {
       const TILE = 16;
       const gx0 = Math.floor(ghost.container.x / TILE);
@@ -9669,10 +9830,11 @@ export class LdtkWorldScene extends Scene {
         if (!worldRow) continue;
         for (let c = 0; c < debugLevel.gridW; c++) {
           const t = debugLevel.collisionGrid[r]?.[c] ?? 0;
-          if (t === 0) continue;
           const gc = gx0 + c;
           if (gc >= 0 && gc < worldRow.length) {
-            this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
+            if (!this.isGhostStreamExtendedCell(gy0 + r, gc)) {
+              this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
+            }
             worldRow[gc] = t;
           }
         }
@@ -9680,7 +9842,42 @@ export class LdtkWorldScene extends Scene {
     }
   }
 
-  private destroyGhostOverlay(restoreCollision: boolean): void {
+  private extendWorldForGhostStream(ghost: ItemWorldGhostOverlay): void {
+    if (this.ghostStreamRestore) return;
+
+    const tile = TILE_SIZE;
+    const rightPx = Math.ceil(ghost.container.x + ghost.builtPxW + tile * 2);
+    const bottomPx = Math.ceil(ghost.container.y + ghost.builtPxH + tile * 2);
+    const requiredCols = Math.max(this.collisionGrid[0]?.length ?? 0, Math.ceil(rightPx / tile));
+    const requiredRows = Math.max(this.collisionGrid.length, Math.ceil(bottomPx / tile));
+
+    this.ghostStreamRestore = {
+      rowLengths: this.collisionGrid.map(row => row.length),
+      rowCount: this.collisionGrid.length,
+      cameraBounds: this.game.camera.bounds ? { ...this.game.camera.bounds } : null,
+    };
+
+    for (let row = 0; row < requiredRows; row++) {
+      if (!this.collisionGrid[row]) this.collisionGrid[row] = [];
+      while (this.collisionGrid[row].length < requiredCols) {
+        this.collisionGrid[row].push(TILE_WALL);
+      }
+    }
+
+    this.player.roomData = this.collisionGrid;
+    const streamRight = Math.max(this.currentLevel.pxWid, requiredCols * tile);
+    const streamBottom = Math.max(this.currentLevel.pxHei, requiredRows * tile);
+    this.game.camera.setBounds(0, 0, streamRight, streamBottom);
+  }
+
+  private isGhostStreamExtendedCell(row: number, col: number): boolean {
+    const restore = this.ghostStreamRestore;
+    if (!restore) return false;
+    if (row >= restore.rowCount) return true;
+    return col >= (restore.rowLengths[row] ?? 0);
+  }
+
+  private destroyGhostOverlay(restoreCollision: boolean, rerender = true): void {
     if (this.ghostOverlay) {
       const ghostContainer = this.ghostOverlay.container;
       this.dungeonAtmosphereTargets = this.dungeonAtmosphereTargets.filter(t => t !== ghostContainer);
@@ -9689,19 +9886,49 @@ export class LdtkWorldScene extends Scene {
     }
     this.ghostPendingTimer = -1;
     this.ghostPendingParams = null;
-    if (restoreCollision) this.restoreGhostWorldCollision();
+    if (restoreCollision) this.restoreGhostWorldCollision(rerender);
+    else this.clearGhostStreamState(false);
   }
 
   private restoreGhostWorldCollision(rerender = true): void {
-    if (this.ghostCollisionRestoreCells.length === 0) return;
-    for (let i = this.ghostCollisionRestoreCells.length - 1; i >= 0; i--) {
-      const cell = this.ghostCollisionRestoreCells[i];
-      const row = this.collisionGrid[cell.row];
-      if (!row || cell.col < 0 || cell.col >= row.length) continue;
-      row[cell.col] = cell.value;
+    if (this.ghostCollisionRestoreCells.length > 0) {
+      for (let i = this.ghostCollisionRestoreCells.length - 1; i >= 0; i--) {
+        const cell = this.ghostCollisionRestoreCells[i];
+        const row = this.collisionGrid[cell.row];
+        if (!row || cell.col < 0 || cell.col >= row.length) continue;
+        row[cell.col] = cell.value;
+      }
+      this.ghostCollisionRestoreCells = [];
     }
-    this.ghostCollisionRestoreCells = [];
+    this.clearGhostStreamState(true);
     if (rerender) this.rerenderTilemap();
+  }
+
+  private clearGhostStreamState(restoreGrid: boolean): void {
+    this.itemWorldStreamEntranceAabb = null;
+    const restore = this.ghostStreamRestore;
+    if (!restore) return;
+
+    if (restoreGrid) {
+      this.collisionGrid.length = restore.rowCount;
+      for (let row = 0; row < restore.rowCount; row++) {
+        const length = restore.rowLengths[row] ?? this.collisionGrid[row]?.length ?? 0;
+        if (this.collisionGrid[row]) this.collisionGrid[row].length = length;
+      }
+      this.player.roomData = this.collisionGrid;
+    }
+
+    if (restore.cameraBounds) {
+      this.game.camera.setBounds(
+        restore.cameraBounds.left,
+        restore.cameraBounds.top,
+        restore.cameraBounds.right,
+        restore.cameraBounds.bottom,
+      );
+    } else {
+      this.game.camera.clearBounds();
+    }
+    this.ghostStreamRestore = null;
   }
 
   private restoreDeploymentTunnel(rerender = true): void {
@@ -10128,6 +10355,64 @@ export class LdtkWorldScene extends Scene {
     this.dungeonAtmosphereTargets = [];
   }
 
+  private getItemWorldThemeSlug(item: ItemInstance): string {
+    return (item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
+  }
+
+  private prestreamItemWorldEntry(item: ItemInstance, reason: string): void {
+    const themeSlug = this.getItemWorldThemeSlug(item);
+    const cached = this.itemWorldPrestreamTasks.get(themeSlug);
+    if (cached) return;
+
+    const startedAt = performance.now();
+    const task = this.loadItemWorldEntryAssets(item, themeSlug, reason, startedAt)
+      .catch((err) => {
+        this.itemWorldPrestreamTasks.delete(themeSlug);
+        console.warn(`[ItemWorld] entry prestream failed (${reason}, theme=${themeSlug}):`, err);
+      });
+    this.itemWorldPrestreamTasks.set(themeSlug, task);
+  }
+
+  private async loadItemWorldEntryAssets(
+    item: ItemInstance,
+    themeSlug: string,
+    reason: string,
+    startedAt: number,
+  ): Promise<void> {
+    const templatesPromise = prepareItemWorldTemplates();
+    await Promise.all([
+      loadBundleOnce('item_world'),
+      ensureAreaTilesetsLoaded([`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`], this.atlases),
+      templatesPromise.then(templates => this.preloadItemWorldExtraTilesets(templates)),
+    ]);
+    Debug.log(
+      `[ItemWorld] entry prestream ready reason=${reason} item=${item.def.id} theme=${themeSlug} ms=${Math.round(performance.now() - startedAt)}`,
+    );
+  }
+
+  private async preloadItemWorldExtraTilesets(templates: LdtkLevel[]): Promise<void> {
+    const extraTilesets = new Set<string>();
+    for (const level of templates) {
+      for (const tiles of Object.values(level.extraTileLayers)) {
+        for (const tile of tiles) {
+          if (tile.tilesetPath) extraTilesets.add(tile.tilesetPath);
+        }
+      }
+    }
+
+    await Promise.all(
+      Array.from(extraTilesets)
+        .filter(relPath => !this.atlases[relPath])
+        .map(async (relPath) => {
+          try {
+            this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
+          } catch (err) {
+            console.warn(`[ItemWorld] failed to prestream extra tileset "${relPath}":`, err);
+          }
+        }),
+    );
+  }
+
   /** Rarity ??ItemTunnel level name mapping. */
   private static readonly TUNNEL_BY_RARITY: Record<Rarity, string> = {
     normal: 'ItemTunnel_01',
@@ -10145,6 +10430,7 @@ export class LdtkWorldScene extends Scene {
    */
   private completeFloorCollapseEntry(): void {
     if (!this.collapseItem) return;
+    this.prestreamItemWorldEntry(this.collapseItem, 'anvil-complete');
 
     // Clean up dive/collapse/crack effects
     if (this.screenCrack) {
@@ -10175,6 +10461,7 @@ export class LdtkWorldScene extends Scene {
    */
   private completeFloorCollapseEntryViaTunnel(): void {
     if (!this.collapseItem) return;
+    this.prestreamItemWorldEntry(this.collapseItem, 'item-tunnel-load');
     this.inItemTunnel = true;
     if (this.minimap) this.minimap.visible = false;
 
@@ -10186,27 +10473,34 @@ export class LdtkWorldScene extends Scene {
 
   /** Fade out at the bottom of the tunnel, then enter Item World. */
   private startTunnelExitTransition(): void {
+    if (this.collapseItem) this.prestreamItemWorldEntry(this.collapseItem, 'item-tunnel-exit');
     this.transitionState = 'fade_out';
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = 'down';
     this.pendingLevelId = '__item_world__';
   }
 
-  private async pushItemWorldSceneWithEntryFade(itemWorldScene: ItemWorldScene, preparePush: () => void): Promise<void> {
+  private async pushItemWorldSceneWithEntryFade(
+    itemWorldScene: ItemWorldScene,
+    preparePush: () => void,
+    options: { alreadyBlack?: boolean; revealMs?: number } = {},
+  ): Promise<void> {
     if (this.itemWorldEntryTransitionActive) return;
     this.itemWorldEntryTransitionActive = true;
     this.game.input.inputLocked = true;
 
     const overlay = new Graphics();
     overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 1 });
-    overlay.alpha = 0;
+    overlay.alpha = options.alreadyBlack ? 1 : 0;
     this.game.feedbackOverlayContainer.addChild(overlay);
 
     try {
-      await this.tweenItemWorldEntryOverlay(overlay, 0, 1, ITEM_WORLD_ENTRY_FADE_MS);
+      if (!options.alreadyBlack) {
+        await this.tweenItemWorldEntryOverlay(overlay, 0, 1, ITEM_WORLD_ENTRY_FADE_MS);
+      }
       preparePush();
       await this.game.sceneManager.push(itemWorldScene, true);
-      await this.tweenItemWorldEntryOverlay(overlay, 1, 0, ITEM_WORLD_ENTRY_FADE_MS);
+      await this.tweenItemWorldEntryOverlay(overlay, 1, 0, options.revealMs ?? ITEM_WORLD_ENTRY_FADE_MS);
       itemWorldScene.beginEntryDialogueAfterTransition();
     } finally {
       overlay.parent?.removeChild(overlay);
@@ -10249,6 +10543,7 @@ export class LdtkWorldScene extends Scene {
     this.restoreUiAfterAnvilDiveTransition();
 
     const targetItem = this.collapseItem;
+    this.prestreamItemWorldEntry(targetItem, 'entry-final');
 
     // Hand-crafted item world (disabled ??using procedural generation by rarity)
     // if (!targetItem.fixedLevelId) {
@@ -10271,7 +10566,9 @@ export class LdtkWorldScene extends Scene {
     // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
     this.dmgNumbers?.clear();
 
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player);
+    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
+      entryCorridor: true,
+    });
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
     itemWorldScene.onComplete = () => {
@@ -10377,7 +10674,9 @@ export class LdtkWorldScene extends Scene {
       // Fallback to procedural
       this.collapseItem = item;
       const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
-      const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player);
+      const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player, {
+        entryCorridor: true,
+      });
       itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
       itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
       itemWorldScene.onComplete = () => {
@@ -10404,7 +10703,7 @@ export class LdtkWorldScene extends Scene {
         this.detachSharedUiForItemWorld();
         this.releaseWorldVisualsForItemWorld();
         this.game.camera.setZoom(1.0);
-      });
+      }, { alreadyBlack: true, revealMs: 240 });
       return;
     }
 
@@ -10954,6 +11253,8 @@ export class LdtkWorldScene extends Scene {
 
   private runDiveTransition(): void {
     if (!this.anvil || !this.collapseItem) return;
+
+    this.prestreamItemWorldEntry(this.collapseItem, 'anvil-dive');
 
     const anvilTargetX = this.anvil.x;
     const anvilTargetY = this.anvil.y - this.anvil.height / 2;
