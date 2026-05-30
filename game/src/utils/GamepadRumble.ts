@@ -21,7 +21,11 @@ let lastRumbleAt = 0;
  * are still clamped to [0,1] after multiplication, so values > 1 just push
  * weak rumbles closer to max instead of overshooting.
  */
-const RUMBLE_INTENSITY = 4.0;
+let rumbleIntensity = 4.0;
+
+export function setRumbleIntensityMultiplier(value: number): void {
+  rumbleIntensity = Math.max(0, Math.min(4, value));
+}
 
 export function rumbleGamepad(durationMs: number, weak = 0.35, strong = 0.75): void {
   if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
@@ -32,8 +36,8 @@ export function rumbleGamepad(durationMs: number, weak = 0.35, strong = 0.75): v
 
   const effect: RumbleEffect = {
     duration: Math.max(1, durationMs),
-    weakMagnitude: Math.max(0, Math.min(1, weak * RUMBLE_INTENSITY)),
-    strongMagnitude: Math.max(0, Math.min(1, strong * RUMBLE_INTENSITY)),
+    weakMagnitude: Math.max(0, Math.min(1, weak * rumbleIntensity)),
+    strongMagnitude: Math.max(0, Math.min(1, strong * rumbleIntensity)),
   };
 
   for (const pad of navigator.getGamepads() as Array<RumblePad | null>) {

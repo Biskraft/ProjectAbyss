@@ -79,7 +79,8 @@ export class AnvilPromptController {
   private positionPrompt(prompt: Container, anvil: Anvil, yOffset: number): void {
     const us = this.game.uiScale;
     const cam = this.game.camera;
-    const sx = (anvil.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
+    const anchor = anvil.getFloorPlateCenterWorld();
+    const sx = (anchor.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
     const sy = (anvil.y - cam.renderY + GAME_HEIGHT / 2 + yOffset) * us;
     prompt.x = Math.round(sx);
     prompt.y = Math.round(sy);

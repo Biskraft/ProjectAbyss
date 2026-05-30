@@ -16,6 +16,7 @@ import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
 import { loadBundleOnce } from '@data/assetBundles';
 import { SFX } from '@audio/Sfx';
+import { loadAndApplySettings } from '@core/SettingsStore';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -64,6 +65,10 @@ try {
   showStatus('Initializing game...');
   const game = new Game();
   await game.init();
+
+  // Apply persisted options before any BGM/ambient cue or scene UI is created.
+  const settings = loadAndApplySettings();
+  game.applySettings(settings);
 
   // Phase 1.B.5 — ?debug 일 때 dynamic texture 생성 추적 (spike 원인 식별용).
   if (new URLSearchParams(window.location.search).has('debug')) {

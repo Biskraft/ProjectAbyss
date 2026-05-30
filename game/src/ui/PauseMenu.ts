@@ -6,7 +6,7 @@
  */
 
 import { Container, Graphics, BitmapText, Text } from 'pixi.js';
-import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
@@ -23,9 +23,17 @@ import {
 import type { UISkin } from './UISkin';
 import type { InputManager, PresetName } from '@core/InputManager';
 import { toggleFullscreen, isFullscreenActive } from '@core/Fullscreen';
+import { AudioBus, type AudioChannel } from '@audio/AudioBus';
+import {
+  applySettingsData,
+  loadSettings,
+  saveAudio,
+  saveSettings,
+  type SettingsData,
+} from '@core/SettingsStore';
 
 const PANEL_W = 200;
-const PANEL_H = 156;
+const PANEL_H = 174;
 const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
 const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
 const ITEM_START_Y = 36;
@@ -46,9 +54,8 @@ type MenuItem = { labelKey: string; action: string; color?: number };
 
 const MENU_ITEMS: MenuItem[] = [
   { labelKey: 'ui.pause.continue', action: 'continue' },
-  { labelKey: 'ui.pause.fullscreen_off', action: 'fullscreen' },
+  { labelKey: 'ui.pause.settings', action: 'settings' },
   { labelKey: 'ui.pause.status', action: 'status' },
-  { labelKey: 'ui.pause.select_keyboard', action: 'select_keyboard' },
   { labelKey: 'ui.pause.quit_to_title', action: 'quit', color: COL_DANGER },
 ];
 
@@ -72,6 +79,107 @@ const PRESET_PANEL_H = 156;
 const PRESET_ROW_H = 28;
 const PRESET_ROW_PAD_X = 10;
 const PRESET_LIST_Y = 30;
+
+// 오디오 설정 서브모달 — AUDIO 항목에서 진입. AudioBus 5채널(master + bgm/ambient/
+// sfx/voice) 볼륨을 좌우(◀▶)로 ±10% 조정, 즉시 적용 + SettingsStore 저장.
+// 컴포넌트는 preset selector 와 동일 카논(createModalPanel/drawSelectionRow/chevron/text).
+type AudioRow =
+  | { kind: 'master'; labelKey: string }
+  | { kind: 'channel'; channel: AudioChannel; labelKey: string };
+
+const AUDIO_ROWS: AudioRow[] = [
+  { kind: 'master',  labelKey: 'ui.settings.audio.master' },
+  { kind: 'channel', channel: 'bgm',     labelKey: 'ui.settings.audio.bgm' },
+  { kind: 'channel', channel: 'ambient', labelKey: 'ui.settings.audio.ambient' },
+  { kind: 'channel', channel: 'sfx',     labelKey: 'ui.settings.audio.sfx' },
+  { kind: 'channel', channel: 'voice',   labelKey: 'ui.settings.audio.voice' },
+];
+
+const AUDIO_PANEL_W = 240;
+const AUDIO_PANEL_H = 178;
+const AUDIO_ROW_H = 22;
+const AUDIO_ROW_PAD_X = 12;
+const AUDIO_LIST_Y = 30;
+
+type SettingsTab = 'gameplay' | 'display' | 'audio' | 'controls';
+type SettingsRowId =
+  | 'language'
+  | 'window_mode'
+  | 'scale'
+  | 'scale_filter'
+  | 'shake'
+  | 'show_fps'
+  | 'audio_master'
+  | 'audio_bgm'
+  | 'audio_ambient'
+  | 'audio_sfx'
+  | 'audio_voice'
+  | 'keyboard_preset'
+  | 'rumble'
+  | 'back';
+
+interface SettingsRow {
+  id: SettingsRowId;
+  labelKey: string;
+}
+
+const SETTINGS_TABS: Array<{ id: SettingsTab; labelKey: string }> = [
+  { id: 'gameplay', labelKey: 'ui.settings.tab.gameplay' },
+  { id: 'display', labelKey: 'ui.settings.tab.display' },
+  { id: 'audio', labelKey: 'ui.settings.tab.audio' },
+  { id: 'controls', labelKey: 'ui.settings.tab.controls' },
+];
+
+const SETTINGS_PANEL_W = 300;
+const SETTINGS_PANEL_H = 226;
+const SETTINGS_ROW_H = 18;
+const SETTINGS_ROW_PAD_X = 12;
+const SETTINGS_TAB_Y = 30;
+const SETTINGS_LIST_Y = 56;
+
+const GAMEPLAY_ROWS: SettingsRow[] = [
+  { id: 'language', labelKey: 'ui.settings.gameplay.language' },
+  { id: 'back', labelKey: 'ui.settings.back' },
+];
+
+const DISPLAY_ROWS: SettingsRow[] = [
+  { id: 'window_mode', labelKey: 'ui.settings.display.window_mode' },
+  { id: 'scale', labelKey: 'ui.settings.display.scale' },
+  { id: 'scale_filter', labelKey: 'ui.settings.display.scale_filter' },
+  { id: 'shake', labelKey: 'ui.settings.display.shake' },
+  { id: 'show_fps', labelKey: 'ui.settings.display.show_fps' },
+  { id: 'back', labelKey: 'ui.settings.back' },
+];
+
+const SETTINGS_AUDIO_ROWS: SettingsRow[] = [
+  { id: 'audio_master', labelKey: 'ui.settings.audio.master' },
+  { id: 'audio_bgm', labelKey: 'ui.settings.audio.bgm' },
+  { id: 'audio_ambient', labelKey: 'ui.settings.audio.ambient' },
+  { id: 'audio_sfx', labelKey: 'ui.settings.audio.sfx' },
+  { id: 'audio_voice', labelKey: 'ui.settings.audio.voice' },
+  { id: 'back', labelKey: 'ui.settings.back' },
+];
+
+const CONTROLS_ROWS: SettingsRow[] = [
+  { id: 'keyboard_preset', labelKey: 'ui.settings.controls.keyboard_preset' },
+  { id: 'rumble', labelKey: 'ui.settings.controls.rumble' },
+  { id: 'back', labelKey: 'ui.settings.back' },
+];
+
+/** 채널/마스터 볼륨 읽기 (0..1). */
+function getRowVol(row: AudioRow): number {
+  return row.kind === 'master' ? AudioBus.getMasterVolume() : AudioBus.getChannelVolume(row.channel);
+}
+/** 채널/마스터 볼륨 쓰기 (0..1). */
+function setRowVol(row: AudioRow, v01: number): void {
+  if (row.kind === 'master') AudioBus.setMasterVolume(v01);
+  else AudioBus.setChannelVolume(row.channel, v01);
+}
+
+function cycle<const T extends string>(values: readonly T[], current: T, dir: number): T {
+  const idx = Math.max(0, values.indexOf(current));
+  return values[(idx + dir + values.length) % values.length];
+}
 
 export class PauseMenu {
   readonly container: Container;
@@ -105,6 +213,23 @@ export class PauseMenu {
   private presetPulseRowY = 0;
   private input: InputManager | null = null;
 
+  // Audio settings (sub-modal)
+  private audioActive = false;
+  private audioIndex = 0;
+  private audioPanel: Container | null = null;
+  private audioPulseG: Graphics | null = null;
+  private audioPulseTimer = 0;
+
+  // GDD settings menu (4 tabs)
+  private settingsActive = false;
+  private settingsTabIndex = 0;
+  private settingsIndex = 0; // 0 = tab row, 1..n = rows
+  private settingsPanel: Container | null = null;
+  private settingsPulseG: Graphics | null = null;
+  private settingsPulseTimer = 0;
+  private settingsPulseRect = { w: 0, h: 0 };
+  private settings = loadSettings();
+
   /** Callback: 'continue' | 'status' | 'quit_confirmed' */
   onAction: ((action: string) => void) | null = null;
 
@@ -113,7 +238,7 @@ export class PauseMenu {
 
   /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale.
    *  inputManager 는 SELECT KEYBOARD 서브모달에서 preset 즉시 적용/현재 preset 조회용. */
-  constructor(skin?: UISkin | null, uiScale: number = 1, input?: InputManager | null) {
+  constructor(skin?: UISkin | null, uiScale: number = 1, input?: InputManager | null, private readonly game?: Game | null) {
     this.skin = skin ?? null;
     this.input = input ?? null;
     this.container = new Container();
@@ -194,6 +319,7 @@ export class PauseMenu {
   }
 
   open(): void {
+    this.settings = loadSettings();
     this.buildPanel(); // Rebuild with latest skin state
     this.visible = true;
     this.container.visible = true;
@@ -208,6 +334,8 @@ export class PauseMenu {
     this.container.visible = false;
     this.hideConfirm();
     this.hidePresetSelector();
+    this.hideSettings();
+    this.hideAudioSettings();
   }
 
   navigate(dir: 'up' | 'down' | 'left' | 'right'): void {
@@ -222,6 +350,18 @@ export class PauseMenu {
       if (dir === 'up') this.presetIndex = (this.presetIndex - 1 + PRESETS_DATA.length) % PRESETS_DATA.length;
       if (dir === 'down') this.presetIndex = (this.presetIndex + 1) % PRESETS_DATA.length;
       this.drawPresetSelector();
+      return;
+    }
+    if (this.settingsActive) {
+      this.navigateSettings(dir);
+      return;
+    }
+    if (this.audioActive) {
+      if (dir === 'up') this.audioIndex = (this.audioIndex - 1 + AUDIO_ROWS.length) % AUDIO_ROWS.length;
+      if (dir === 'down') this.audioIndex = (this.audioIndex + 1) % AUDIO_ROWS.length;
+      if (dir === 'left') this.adjustAudio(-1);
+      if (dir === 'right') this.adjustAudio(1);
+      this.drawAudioSettings();
       return;
     }
     if (dir === 'up') this.selectedIndex = (this.selectedIndex - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
@@ -250,6 +390,16 @@ export class PauseMenu {
       return;
     }
 
+    if (this.settingsActive) {
+      this.confirmSettings();
+      return;
+    }
+
+    if (this.audioActive) {
+      // 오디오 서브모달에서 C 는 무동작 — 조정은 ◀▶, 닫기는 ESC.
+      return;
+    }
+
     const action = MENU_ITEMS[this.selectedIndex].action;
     if (action === 'quit') {
       this.showConfirm();
@@ -257,6 +407,10 @@ export class PauseMenu {
     }
     if (action === 'select_keyboard') {
       this.showPresetSelector();
+      return;
+    }
+    if (action === 'settings') {
+      this.showSettings();
       return;
     }
     if (action === 'fullscreen') {
@@ -292,6 +446,14 @@ export class PauseMenu {
     }
     if (this.presetActive) {
       this.hidePresetSelector();
+      return;
+    }
+    if (this.settingsActive) {
+      this.hideSettings();
+      return;
+    }
+    if (this.audioActive) {
+      this.hideAudioSettings();
       return;
     }
     this.close();
@@ -343,6 +505,14 @@ export class PauseMenu {
     if (this.presetActive && this.presetPulseG) {
       this.presetPulseTimer += dt;
       this.redrawPresetPulse();
+    }
+    if (this.settingsActive && this.settingsPulseG) {
+      this.settingsPulseTimer += dt;
+      this.redrawSettingsPulse();
+    }
+    if (this.audioActive && this.audioPulseG) {
+      this.audioPulseTimer += dt;
+      this.redrawAudioPulse();
     }
   }
 
@@ -477,7 +647,12 @@ export class PauseMenu {
       this.presetPanel = null;
     }
     this.presetPulseG = null;
-    if (this.selectionPulseG) this.selectionPulseG.alpha = 1;
+    if (this.settingsActive) {
+      if (this.selectionPulseG) this.selectionPulseG.alpha = 0.15;
+      this.drawSettings();
+    } else if (this.selectionPulseG) {
+      this.selectionPulseG.alpha = 1;
+    }
   }
 
   private drawPresetSelector(): void {
@@ -595,5 +770,457 @@ export class PauseMenu {
     const rowW = PRESET_PANEL_W - PRESET_ROW_PAD_X * 2;
     this.presetPulseG.clear();
     drawSelectionPulse(this.presetPulseG, rowW, PRESET_ROW_H, a, 'soft');
+  }
+
+  // ── Audio settings ───────────────────────────────────────────────────────────
+
+  // -- GDD settings menu -------------------------------------------------------
+
+  private showSettings(): void {
+    this.settings = loadSettings();
+    this.settingsActive = true;
+    this.settingsTabIndex = 0;
+    this.settingsIndex = 0;
+    this.drawSettings();
+  }
+
+  private hideSettings(): void {
+    this.settingsActive = false;
+    if (this.settingsPanel) {
+      this.container.removeChild(this.settingsPanel);
+      this.settingsPanel.destroy({ children: true });
+      this.settingsPanel = null;
+    }
+    this.settingsPulseG = null;
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 1;
+  }
+
+  private activeSettingsTab(): SettingsTab {
+    return SETTINGS_TABS[this.settingsTabIndex]?.id ?? 'gameplay';
+  }
+
+  private settingsRows(): SettingsRow[] {
+    switch (this.activeSettingsTab()) {
+      case 'display': return DISPLAY_ROWS;
+      case 'audio': return SETTINGS_AUDIO_ROWS;
+      case 'controls': return CONTROLS_ROWS;
+      default: return GAMEPLAY_ROWS;
+    }
+  }
+
+  private navigateSettings(dir: 'up' | 'down' | 'left' | 'right'): void {
+    const rows = this.settingsRows();
+    const maxIndex = rows.length;
+    if (dir === 'up') this.settingsIndex = (this.settingsIndex - 1 + maxIndex + 1) % (maxIndex + 1);
+    if (dir === 'down') this.settingsIndex = (this.settingsIndex + 1) % (maxIndex + 1);
+    if (dir === 'left' || dir === 'right') {
+      if (this.settingsIndex === 0) this.switchSettingsTab(dir === 'right' ? 1 : -1);
+      else this.adjustSettingsRow(rows[this.settingsIndex - 1], dir === 'right' ? 1 : -1);
+    }
+    this.drawSettings();
+  }
+
+  private confirmSettings(): void {
+    if (this.settingsIndex === 0) {
+      this.switchSettingsTab(1);
+      this.drawSettings();
+      return;
+    }
+    const row = this.settingsRows()[this.settingsIndex - 1];
+    if (!row) return;
+    if (row.id === 'back') {
+      this.hideSettings();
+      return;
+    }
+    if (row.id === 'keyboard_preset') {
+      this.showPresetSelector();
+      return;
+    }
+    if (row.id === 'window_mode') {
+      this.toggleWindowMode();
+      return;
+    }
+    if (this.isAudioRow(row.id)) {
+      this.toggleAudioMute(row.id);
+      this.persistSettings();
+      this.drawSettings();
+      return;
+    }
+    this.adjustSettingsRow(row, 1);
+    this.drawSettings();
+  }
+
+  private switchSettingsTab(dir: number): void {
+    this.settingsTabIndex = (this.settingsTabIndex + dir + SETTINGS_TABS.length) % SETTINGS_TABS.length;
+    this.settingsIndex = 0;
+  }
+
+  private adjustSettingsRow(row: SettingsRow, dir: number): void {
+    switch (row.id) {
+      case 'language':
+        this.settings.gameplay.language = cycle(['ko', 'en'] as const, this.settings.gameplay.language, dir);
+        break;
+      case 'scale':
+        this.settings.display.scale = cycle(['auto', '1x', '2x', '3x'] as const, this.settings.display.scale, dir);
+        break;
+      case 'scale_filter':
+        this.settings.display.scaleFilter = cycle(['sharp', 'smooth'] as const, this.settings.display.scaleFilter, dir);
+        break;
+      case 'shake':
+        this.settings.display.shake = cycle(['off', 'low', 'full'] as const, this.settings.display.shake, dir);
+        break;
+      case 'show_fps':
+        this.settings.display.showFps = !this.settings.display.showFps;
+        break;
+      case 'rumble':
+        this.settings.controls.rumble = cycle(['off', 'low', 'full'] as const, this.settings.controls.rumble, dir);
+        break;
+      case 'window_mode':
+        this.toggleWindowMode();
+        return;
+      default:
+        if (this.isAudioRow(row.id)) this.adjustSettingsAudio(row.id, dir);
+        else return;
+    }
+    this.persistSettings();
+  }
+
+  private toggleWindowMode(): void {
+    toggleFullscreen().then(() => {
+      this.settings.display.windowMode = isFullscreenActive() ? 'fullscreen' : 'windowed';
+      this.persistSettings();
+      if (this.settingsActive) this.drawSettings();
+      this.refreshFullscreenLabel();
+    });
+  }
+
+  private persistSettings(): void {
+    applySettingsData(this.settings);
+    this.game?.applySettings(this.settings);
+    saveSettings(this.settings);
+  }
+
+  private drawSettings(): void {
+    if (this.settingsPanel) {
+      this.container.removeChild(this.settingsPanel);
+      this.settingsPanel.destroy({ children: true });
+    }
+
+    const cw = SETTINGS_PANEL_W;
+    const ch = SETTINGS_PANEL_H;
+    const cx = Math.floor((GAME_WIDTH - cw) / 2);
+    const cy = Math.floor((GAME_HEIGHT - ch) / 2);
+    const rows = this.settingsRows();
+
+    this.settingsPanel = new Container();
+    this.settingsPanel.x = cx;
+    this.settingsPanel.y = cy;
+
+    const { panel } = createModalPanel(this.skin, cw, ch);
+    this.settingsPanel.addChild(panel);
+
+    const title = createUiText(t('ui.settings.title'), { fontSize: 10, fill: COL_TEXT });
+    title.x = Math.floor((cw - title.width) / 2);
+    title.y = 8;
+    panel.addChild(title);
+
+    const divider = new Graphics();
+    divider.moveTo(12, 24); divider.lineTo(cw - 12, 24);
+    divider.stroke({ width: 1, color: COL_BORDER });
+    panel.addChild(divider);
+
+    const rowW = cw - SETTINGS_ROW_PAD_X * 2;
+    let pulseY = SETTINGS_TAB_Y - 3;
+    let pulseH = SETTINGS_ROW_H - 2;
+
+    if (this.settingsIndex === 0) {
+      const rowBg = new Graphics();
+      rowBg.x = SETTINGS_ROW_PAD_X;
+      rowBg.y = pulseY;
+      drawSelectionRow(rowBg, rowW, pulseH, 'soft');
+      panel.addChild(rowBg);
+    }
+
+    const tabGap = 6;
+    const tabW = Math.floor((rowW - tabGap * (SETTINGS_TABS.length - 1)) / SETTINGS_TABS.length);
+    for (let i = 0; i < SETTINGS_TABS.length; i++) {
+      const tab = SETTINGS_TABS[i];
+      const active = i === this.settingsTabIndex;
+      const label = createUiText(t(tab.labelKey), { fontSize: 7, fill: active ? COL_ACCENT : COL_DIM });
+      const tx = SETTINGS_ROW_PAD_X + i * (tabW + tabGap);
+      label.x = tx + Math.floor((tabW - label.width) / 2);
+      label.y = SETTINGS_TAB_Y + 2;
+      panel.addChild(label);
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const isSel = this.settingsIndex === i + 1;
+      const rowY = SETTINGS_LIST_Y + i * SETTINGS_ROW_H;
+      if (isSel) {
+        const rowBg = new Graphics();
+        rowBg.x = SETTINGS_ROW_PAD_X;
+        rowBg.y = rowY;
+        drawSelectionRow(rowBg, rowW, SETTINGS_ROW_H - 2, 'soft');
+        panel.addChild(rowBg);
+        pulseY = rowY;
+        pulseH = SETTINGS_ROW_H - 2;
+      }
+
+      const label = createUiText(t(row.labelKey), { fontSize: 8, fill: isSel ? COL_TEXT : COL_DIM });
+      label.x = SETTINGS_ROW_PAD_X + 8;
+      label.y = rowY + 4;
+      panel.addChild(label);
+
+      const valueText = this.settingsValue(row);
+      if (valueText) {
+        const value = createUiText(valueText, { fontSize: 8, fill: isSel ? COL_TEXT : COL_DIM });
+        value.x = SETTINGS_ROW_PAD_X + rowW - value.width - 8;
+        value.y = rowY + 4;
+        panel.addChild(value);
+      }
+    }
+
+    const hintKey = this.settingsIndex === 0 ? 'ui.settings.tab_hint' : 'ui.settings.hint';
+    const hint = createUiText(t(hintKey), { fontSize: 7, fill: COL_DIM });
+    hint.x = Math.floor((cw - hint.width) / 2);
+    hint.y = ch - 14;
+    panel.addChild(hint);
+
+    this.settingsPulseG = new Graphics();
+    this.settingsPulseG.x = SETTINGS_ROW_PAD_X;
+    this.settingsPulseG.y = pulseY;
+    this.settingsPulseRect = { w: rowW, h: pulseH };
+    panel.addChild(this.settingsPulseG);
+    this.settingsPulseTimer = 0;
+    this.redrawSettingsPulse();
+
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 0.15;
+    this.container.addChild(this.settingsPanel);
+  }
+
+  private redrawSettingsPulse(): void {
+    if (!this.settingsPulseG) return;
+    const tSec = this.settingsPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.75 + 0.25 * Math.sin(tSec * Math.PI * 2 * 0.8));
+    this.settingsPulseG.clear();
+    drawSelectionPulse(this.settingsPulseG, this.settingsPulseRect.w, this.settingsPulseRect.h, a, 'soft');
+  }
+
+  private settingsValue(row: SettingsRow): string {
+    switch (row.id) {
+      case 'language':
+        return t(this.settings.gameplay.language === 'ko' ? 'ui.settings.value.ko' : 'ui.settings.value.en');
+      case 'window_mode':
+        return t(isFullscreenActive() ? 'ui.settings.value.fullscreen' : 'ui.settings.value.windowed');
+      case 'scale':
+        return t(`ui.settings.value.${this.settings.display.scale}`);
+      case 'scale_filter':
+        return t(this.settings.display.scaleFilter === 'sharp' ? 'ui.settings.value.sharp' : 'ui.settings.value.smooth');
+      case 'shake':
+        return t(`ui.settings.value.${this.settings.display.shake}`);
+      case 'show_fps':
+        return t(this.settings.display.showFps ? 'ui.settings.value.on' : 'ui.settings.value.off');
+      case 'keyboard_preset':
+        return t(PRESETS_DATA.find(p => p.name === this.input?.currentPreset)?.labelKey ?? 'ui.pause.preset_modern_label');
+      case 'rumble':
+        return t(`ui.settings.value.${this.settings.controls.rumble}`);
+      case 'back':
+        return '';
+      default:
+        if (this.isAudioRow(row.id)) return this.audioSettingValue(row.id);
+        return '';
+    }
+  }
+
+  private isAudioRow(id: SettingsRowId): id is Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'> {
+    return id === 'audio_master' || id === 'audio_bgm' || id === 'audio_ambient' || id === 'audio_sfx' || id === 'audio_voice';
+  }
+
+  private audioSettingValue(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>): string {
+    const pct = Math.round(this.audioVolume(id) * 100);
+    return this.audioMuted(id) ? `${pct} ${t('ui.settings.value.muted')}` : String(pct);
+  }
+
+  private audioVolume(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>): number {
+    switch (id) {
+      case 'audio_master': return this.settings.audio.master;
+      case 'audio_bgm': return this.settings.audio.bgm;
+      case 'audio_ambient': return this.settings.audio.ambient;
+      case 'audio_sfx': return this.settings.audio.sfx;
+      case 'audio_voice': return this.settings.audio.voice;
+    }
+  }
+
+  private audioMuted(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>): boolean {
+    switch (id) {
+      case 'audio_master': return this.settings.audio.masterMuted;
+      case 'audio_bgm': return this.settings.audio.bgmMuted;
+      case 'audio_ambient': return this.settings.audio.ambientMuted;
+      case 'audio_sfx': return this.settings.audio.sfxMuted;
+      case 'audio_voice': return this.settings.audio.voiceMuted;
+    }
+  }
+
+  private setAudioVolume(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>, value: number): void {
+    switch (id) {
+      case 'audio_master': this.settings.audio.master = value; break;
+      case 'audio_bgm': this.settings.audio.bgm = value; break;
+      case 'audio_ambient': this.settings.audio.ambient = value; break;
+      case 'audio_sfx': this.settings.audio.sfx = value; break;
+      case 'audio_voice': this.settings.audio.voice = value; break;
+    }
+  }
+
+  private toggleAudioMute(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>): void {
+    switch (id) {
+      case 'audio_master': this.settings.audio.masterMuted = !this.settings.audio.masterMuted; break;
+      case 'audio_bgm': this.settings.audio.bgmMuted = !this.settings.audio.bgmMuted; break;
+      case 'audio_ambient': this.settings.audio.ambientMuted = !this.settings.audio.ambientMuted; break;
+      case 'audio_sfx': this.settings.audio.sfxMuted = !this.settings.audio.sfxMuted; break;
+      case 'audio_voice': this.settings.audio.voiceMuted = !this.settings.audio.voiceMuted; break;
+    }
+  }
+
+  private adjustSettingsAudio(id: Extract<SettingsRowId, 'audio_master' | 'audio_bgm' | 'audio_ambient' | 'audio_sfx' | 'audio_voice'>, dir: number): void {
+    const curPct = Math.round(this.audioVolume(id) * 100);
+    const snapped = Math.round(curPct / 10) * 10;
+    const nextPct = Math.max(0, Math.min(100, snapped + dir * 10));
+    this.setAudioVolume(id, nextPct / 100);
+  }
+
+  private showAudioSettings(): void {
+    this.audioActive = true;
+    this.audioIndex = 0;
+    this.drawAudioSettings();
+  }
+
+  private hideAudioSettings(): void {
+    this.audioActive = false;
+    if (this.audioPanel) {
+      this.container.removeChild(this.audioPanel);
+      this.audioPanel.destroy({ children: true });
+      this.audioPanel = null;
+    }
+    this.audioPulseG = null;
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 1;
+  }
+
+  /** ◀▶ 로 선택 채널 볼륨을 10% 단위로 조정 — 즉시 적용 + 영속 저장. */
+  private adjustAudio(dir: number): void {
+    const row = AUDIO_ROWS[this.audioIndex];
+    const curPct = Math.round(getRowVol(row) * 100);
+    const snapped = Math.round(curPct / 10) * 10;
+    const nextPct = Math.max(0, Math.min(100, snapped + dir * 10));
+    setRowVol(row, nextPct / 100);
+    saveAudio();
+  }
+
+  private drawAudioSettings(): void {
+    if (this.audioPanel) {
+      this.container.removeChild(this.audioPanel);
+      this.audioPanel.destroy({ children: true });
+    }
+
+    const cw = AUDIO_PANEL_W;
+    const ch = AUDIO_PANEL_H;
+    const cx = Math.floor((GAME_WIDTH - cw) / 2);
+    const cy = Math.floor((GAME_HEIGHT - ch) / 2);
+
+    this.audioPanel = new Container();
+    this.audioPanel.x = cx;
+    this.audioPanel.y = cy;
+
+    // 9-slice 패널 — Pause/Preset 와 동일 카논.
+    const { panel } = createModalPanel(this.skin, cw, ch);
+    this.audioPanel.addChild(panel);
+
+    // Title
+    const title = createUiText(t('ui.settings.audio.title'), { fontSize: 10, fill: COL_TEXT });
+    title.x = Math.floor((cw - title.width) / 2);
+    title.y = 8;
+    panel.addChild(title);
+
+    // Divider
+    const divider = new Graphics();
+    divider.moveTo(12, 22); divider.lineTo(cw - 12, 22);
+    divider.stroke({ width: 1, color: COL_BORDER });
+    panel.addChild(divider);
+
+    const rowW = cw - AUDIO_ROW_PAD_X * 2;
+    let selectedRowY = 0;
+
+    for (let i = 0; i < AUDIO_ROWS.length; i++) {
+      const row = AUDIO_ROWS[i];
+      const isSel = i === this.audioIndex;
+      const rowY = AUDIO_LIST_Y + i * AUDIO_ROW_H;
+
+      // Selection background — 선택 row 만 orange canonical (soft tier).
+      if (isSel) {
+        const rowBg = new Graphics();
+        rowBg.x = AUDIO_ROW_PAD_X;
+        rowBg.y = rowY;
+        drawSelectionRow(rowBg, rowW, AUDIO_ROW_H - 2, 'soft');
+        panel.addChild(rowBg);
+        selectedRowY = rowY;
+
+        // ◀ ▶ chevrons — 선택 row 에만, 값 양옆에 조정 affordance.
+        const chL = new BitmapText({
+          text: '◀',
+          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_ACCENT },
+        });
+        chL.x = AUDIO_ROW_PAD_X + rowW - 54;
+        chL.y = rowY + 4;
+        panel.addChild(chL);
+        const chR = new BitmapText({
+          text: '▶',
+          style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: COL_ACCENT },
+        });
+        chR.x = AUDIO_ROW_PAD_X + rowW - 10;
+        chR.y = rowY + 4;
+        panel.addChild(chR);
+      }
+
+      // Label (left)
+      const label = createUiText(t(row.labelKey), { fontSize: 8, fill: isSel ? COL_TEXT : COL_DIM });
+      label.x = AUDIO_ROW_PAD_X + 6;
+      label.y = rowY + 4;
+      panel.addChild(label);
+
+      // Value 0..100 (right, centered between chevrons)
+      const pct = Math.round(getRowVol(row) * 100);
+      const value = createUiText(String(pct), { fontSize: 8, fill: isSel ? COL_TEXT : COL_DIM });
+      value.x = AUDIO_ROW_PAD_X + rowW - 32 - Math.floor(value.width / 2);
+      value.y = rowY + 4;
+      panel.addChild(value);
+    }
+
+    // Bottom hint (◀▶ ADJUST  ESC BACK)
+    const hint = createUiText(t('ui.settings.audio.hint'), { fontSize: 8, fill: COL_DIM });
+    hint.x = Math.floor((cw - hint.width) / 2);
+    hint.y = ch - 14;
+    panel.addChild(hint);
+
+    // Pulse halo on the selected row (last child so it overlays)
+    this.audioPulseG = new Graphics();
+    this.audioPulseG.x = AUDIO_ROW_PAD_X;
+    this.audioPulseG.y = selectedRowY;
+    panel.addChild(this.audioPulseG);
+    this.audioPulseTimer = 0;
+    this.redrawAudioPulse();
+
+    // 메뉴 row pulse 음소거 (confirm/preset 처럼).
+    if (this.selectionPulseG) this.selectionPulseG.alpha = 0.15;
+
+    this.container.addChild(this.audioPanel);
+  }
+
+  private redrawAudioPulse(): void {
+    if (!this.audioPulseG) return;
+    const t = this.audioPulseTimer / 1000;
+    const a = ROW_SELECTED_GLOW_ALPHA * (0.75 + 0.25 * Math.sin(t * Math.PI * 2 * 0.8));
+    const rowW = AUDIO_PANEL_W - AUDIO_ROW_PAD_X * 2;
+    this.audioPulseG.clear();
+    drawSelectionPulse(this.audioPulseG, rowW, AUDIO_ROW_H - 2, a, 'soft');
   }
 }

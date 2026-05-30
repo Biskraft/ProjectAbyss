@@ -34,6 +34,7 @@ export class Camera {
 
   // Bounds
   bounds: { left: number; top: number; right: number; bottom: number } | null = null;
+  private renderBoundsPadding = 0;
 
   // Shake (Sakurai: directional shake sells impact direction)
   private shakeIntensity = 0;
@@ -43,6 +44,7 @@ export class Camera {
   private shakeOffsetY = 0;
   private shakeBiasX = 0; // directional bias [-1, 1]
   private shakeBiasY = 0;
+  private shakeMultiplier = 1;
 
   // Target
   target: { x: number; y: number } | null = null;
@@ -55,12 +57,14 @@ export class Camera {
     this.viewportH = viewportH;
   }
 
-  setBounds(left: number, top: number, right: number, bottom: number): void {
+  setBounds(left: number, top: number, right: number, bottom: number, renderPadding = 0): void {
     this.bounds = { left, top, right, bottom };
+    this.renderBoundsPadding = Math.max(0, renderPadding);
   }
 
   clearBounds(): void {
     this.bounds = null;
+    this.renderBoundsPadding = 0;
   }
 
   get isShaking(): boolean {
@@ -140,8 +144,9 @@ export class Camera {
   }
 
   shake(intensity: number): void {
-    if (intensity > this.shakeIntensity) {
-      this.shakeIntensity = intensity;
+    const adjusted = intensity * this.shakeMultiplier;
+    if (adjusted > this.shakeIntensity) {
+      this.shakeIntensity = adjusted;
       this.shakeBiasX = 0;
       this.shakeBiasY = 0;
     }
@@ -152,11 +157,23 @@ export class Camera {
    * Feels like the hit pushes the camera.
    */
   shakeDirectional(intensity: number, dirX: number, dirY: number): void {
-    if (intensity > this.shakeIntensity) {
-      this.shakeIntensity = intensity;
+    const adjusted = intensity * this.shakeMultiplier;
+    if (adjusted > this.shakeIntensity) {
+      this.shakeIntensity = adjusted;
       const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
       this.shakeBiasX = (dirX / len) * CameraConst.ShakeBiasScale;
       this.shakeBiasY = (dirY / len) * CameraConst.ShakeBiasScale;
+    }
+  }
+
+  setShakeMultiplier(value: number): void {
+    this.shakeMultiplier = Math.max(0, Math.min(1, value));
+    if (this.shakeMultiplier <= 0) {
+      this.shakeIntensity = 0;
+      this.shakeOffsetX = 0;
+      this.shakeOffsetY = 0;
+      this.shakeBiasX = 0;
+      this.shakeBiasY = 0;
     }
   }
 
@@ -254,10 +271,30 @@ export class Camera {
   }
 
   get renderX(): number {
-    return this.x + this.currentLookAheadX + this.shakeOffsetX;
+    return this.clampRenderX(this.x + this.currentLookAheadX + this.shakeOffsetX);
   }
 
   get renderY(): number {
-    return this.y + this.currentLookAheadY + this.shakeOffsetY;
+    return this.clampRenderY(this.y + this.currentLookAheadY + this.shakeOffsetY);
+  }
+
+  private clampRenderX(value: number): number {
+    if (!this.bounds || this.renderBoundsPadding <= 0) return value;
+    const halfW = (this.viewportW / 2) / this.zoom;
+    const left = this.bounds.left - this.renderBoundsPadding;
+    const right = this.bounds.right + this.renderBoundsPadding;
+    const minX = left + halfW;
+    const maxX = right - halfW;
+    return minX >= maxX ? (left + right) / 2 : Math.max(minX, Math.min(maxX, value));
+  }
+
+  private clampRenderY(value: number): number {
+    if (!this.bounds || this.renderBoundsPadding <= 0) return value;
+    const halfH = (this.viewportH / 2) / this.zoom;
+    const top = this.bounds.top - this.renderBoundsPadding;
+    const bottom = this.bounds.bottom + this.renderBoundsPadding;
+    const minY = top + halfH;
+    const maxY = bottom - halfH;
+    return minY >= maxY ? (top + bottom) / 2 : Math.max(minY, Math.min(maxY, value));
   }
 }

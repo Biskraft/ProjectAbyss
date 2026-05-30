@@ -15,7 +15,7 @@
  * (Design_Tutorial_EnvironmentalTeaching §Symbol Prompt).
  */
 
-import { Container, Graphics, Sprite, Texture, Assets, Rectangle, ColorMatrixFilter } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -38,8 +38,9 @@ const LIGHT_PILLAR_BANDS = 12;
 const LIGHT_PILLAR_BASE_ALPHA = 0.80;
 const LIGHT_PILLAR_PULSE_AMP = 0.15;
 const LIGHT_PILLAR_FALLOFF_EXP = 1.5; // 클수록 위쪽이 빨리 사라짐
-/** 아이템 배치 위치(ITEM_ICON_X) 기준 추가 x 오프셋 (px). anvil sprite 시각 중심 정렬. */
-const LIGHT_PILLAR_X_OFFSET = 4;
+const ANVIL_CENTER_FX_X_OFFSET = 16;
+const ANVIL_GATE_FX_X_NUDGE = -3;
+const ANVIL_FLOOR_PLATE_CENTER_X_ADJUST = 1;
 /** 빛기둥 *시작*(바닥) Y 좌표 — anvil container local. anvil entity.y 는 floor 면
  *  이라 플랫폼 상단(= floor 위 16px)에서 시작하려면 local y = -16. */
 const LIGHT_PILLAR_BASE_Y = -16;
@@ -75,24 +76,25 @@ interface Spark {
   maxLife: number;
 }
 
-interface ItemDissolveParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-}
-
 const SPARK_SPAWN_INTERVAL = 180; // ms between idle sparks
 const MAX_SPARKS = 8;
-const ITEM_ICON_X = -3;
 const ITEM_ICON_Y = -47;
 const ITEM_PUNCH_DURATION = 1000;
-const ITEM_PUNCH_SCALE_MAX = 2.25;
-const ITEM_DISSOLVE_DURATION = 850;
-const ITEM_DISSOLVE_PARTICLE_COUNT = 64;
+const ITEM_PUNCH_SCALE_MAX = 5;
+const ITEM_MOVE_TO_LASER_DURATION = 1400;
+
+function gateFxX(x: number): number {
+  return x + ANVIL_GATE_FX_X_NUDGE;
+}
+
+function floorPlateCenterX(): number {
+  return gateFxX(ANVIL_CENTER_FX_X_OFFSET) + ANVIL_FLOOR_PLATE_CENTER_X_ADJUST;
+}
+
+function smoothstep01(value: number): number {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+}
 
 /**
  * Build a small hammer pictogram (no language text) — points at the strike action.
@@ -167,16 +169,11 @@ export class Anvil {
   private fxFrameIndex = 0;
   private fxPlaying = false;
   private itemIcon: Sprite | null = null;
-  private itemIconBaseWidth = 0;
-  private itemIconBaseHeight = 0;
-  private itemPunchFilter: ColorMatrixFilter | null = null;
-  private itemPunchPhase: 'idle' | 'punch' | 'dissolve' | 'done' = 'idle';
+  private itemPunchPhase: 'idle' | 'punch' | 'move' | 'done' = 'idle';
   private itemPunchElapsed = 0;
-  private itemDissolveTarget = { x: 0, y: 0 };
-  private itemDissolveGfx: Graphics | null = null;
-  private itemDissolveParticles: ItemDissolveParticle[] = [];
-  private itemDissolveElapsed = 0;
-  private itemDissolveSpawned = 0;
+  private itemMoveStart = { x: floorPlateCenterX(), y: ITEM_ICON_Y };
+  private itemMoveTarget = { x: 0, y: 0 };
+  private itemMoveElapsed = 0;
   /** Called when FX animation completes — scene uses this to trigger warp. */
   onFxComplete: (() => void) | null = null;
 
@@ -210,7 +207,7 @@ export class Anvil {
     })];
     this.container.addChild(this.halo);
 
-    // 빛기둥 — 아이템 배치 위치(ITEM_ICON_X, ITEM_ICON_Y)에서 위로 4타일 솟음.
+    // Light pillar rises from the floor plate center.
     // halo 와 같은 시점에 add → anvil sprite 뒤. blendMode 'add' 로 빛 합성.
     this.lightPillar = new Graphics();
     this.lightPillar.blendMode = 'add';
@@ -238,6 +235,7 @@ export class Anvil {
     this.hintContainer = this.buildSymbolPrompt();
     this.hintContainer.visible = false;
     // Anchor prompt so it sits above the anvil top
+    this.hintContainer.x = floorPlateCenterX();
     this.hintContainer.y = -this.height - 16;
     this.container.addChild(this.hintContainer);
   }
@@ -298,8 +296,15 @@ export class Anvil {
   getGatePivotWorld(): { x: number; y: number } | null {
     if (!this.anvilSprite || !this.gatePivotLocal) return null;
     return {
-      x: this.x + this.gatePivotLocal.x - this.anvilSprite.width * this.anvilSprite.anchor.x,
+      x: this.x + this.gatePivotLocal.x - this.anvilSprite.width * this.anvilSprite.anchor.x + ANVIL_GATE_FX_X_NUDGE,
       y: this.y + this.gatePivotLocal.y - this.anvilSprite.height * this.anvilSprite.anchor.y,
+    };
+  }
+
+  getFloorPlateCenterWorld(): { x: number; y: number } {
+    return {
+      x: this.x + floorPlateCenterX(),
+      y: this.y - this.height,
     };
   }
 
@@ -409,6 +414,7 @@ export class Anvil {
 
     const color = RARITY_COLOR[item.rarity];
     this.itemGfx = new Graphics();
+    this.itemGfx.x = floorPlateCenterX();
     this.itemGfx.rect(-6, -this.height - 8, 12, 5).fill(color);
     this.itemGfx.rect(-4, -this.height - 11, 2, 4).fill(color);
     this.container.addChild(this.itemGfx);
@@ -452,11 +458,8 @@ export class Anvil {
       tex.source.scaleMode = 'nearest';
       const icon = new Sprite(tex);
       icon.anchor.set(0.5, 0.5);
-      // Gate center + 50px down offset
-      icon.x = ITEM_ICON_X;
+      icon.x = floorPlateCenterX();
       icon.y = ITEM_ICON_Y;
-      this.itemIconBaseWidth = icon.width;
-      this.itemIconBaseHeight = icon.height;
       this.itemIcon = icon;
       this.container.addChild(icon);
     }).catch(() => { /* no icon available */ });
@@ -474,84 +477,46 @@ export class Anvil {
     if (!this.itemIcon) return;
     if (this.itemGfx) this.itemGfx.visible = false;
     this.itemIcon.visible = true;
-    this.itemIcon.x = ITEM_ICON_X;
+    this.itemIcon.x = floorPlateCenterX();
     this.itemIcon.y = ITEM_ICON_Y;
     this.itemIcon.alpha = 1;
     this.itemIcon.scale.set(1);
-    this.itemPunchFilter = new ColorMatrixFilter();
-    this.itemIcon.filters = [this.itemPunchFilter];
+    this.itemIcon.filters = [];
     this.itemPunchPhase = 'punch';
     this.itemPunchElapsed = 0;
   }
 
-  startPlacedItemDissolve(worldTargetX: number, worldTargetY: number): void {
-    if (!this.itemIcon || this.itemPunchPhase !== 'punch') return;
-    this.itemPunchPhase = 'dissolve';
-    this.itemDissolveTarget = {
+  startPlacedItemMoveToLaser(worldTargetX: number, worldTargetY: number): void {
+    if (!this.itemIcon) return;
+    if (this.itemGfx) this.itemGfx.visible = false;
+    this.itemPunchPhase = 'move';
+    this.itemMoveStart = {
+      x: this.itemIcon.x,
+      y: this.itemIcon.y,
+    };
+    this.itemMoveTarget = {
       x: worldTargetX - this.x,
       y: worldTargetY - this.y,
     };
     this.itemIcon.visible = true;
-    this.itemDissolveElapsed = 0;
-    this.itemDissolveSpawned = 0;
-    this.itemDissolveParticles = [];
-    if (!this.itemDissolveGfx) {
-      this.itemDissolveGfx = new Graphics();
-      this.container.addChild(this.itemDissolveGfx);
-    }
-    this.itemDissolveGfx.clear();
+    this.itemIcon.alpha = 1;
+    this.itemIcon.filters = [];
+    this.itemMoveElapsed = 0;
   }
 
   private resetPlacedItemEffect(): void {
     this.itemPunchPhase = 'idle';
     this.itemPunchElapsed = 0;
-    this.itemDissolveParticles = [];
-    this.itemDissolveElapsed = 0;
-    this.itemDissolveSpawned = 0;
-    if (this.itemDissolveGfx) {
-      this.itemDissolveGfx.clear();
-    }
+    this.itemMoveElapsed = 0;
     if (this.itemIcon) {
       this.itemIcon.visible = true;
       this.itemIcon.alpha = 1;
+      this.itemIcon.x = floorPlateCenterX();
+      this.itemIcon.y = ITEM_ICON_Y;
       this.itemIcon.scale.set(1);
       this.itemIcon.filters = [];
     }
     if (this.itemGfx) this.itemGfx.visible = true;
-    this.itemPunchFilter = null;
-  }
-
-  private setItemWhiten(t: number): void {
-    if (!this.itemPunchFilter) return;
-    this.itemPunchFilter.matrix = [
-      1 - t, 0,     0,     0, t,
-      0,     1 - t, 0,     0, t,
-      0,     0,     1 - t, 0, t,
-      0,     0,     0,     1, 0,
-    ];
-  }
-
-  private spawnItemDissolveParticle(): void {
-    if (!this.itemIcon) return;
-    const radius = Math.max(this.itemIconBaseWidth, this.itemIconBaseHeight, 16) * ITEM_PUNCH_SCALE_MAX * 0.5;
-    const angle = Math.random() * Math.PI * 2;
-    const dist = Math.sqrt(Math.random()) * radius;
-    const x = ITEM_ICON_X + Math.cos(angle) * dist;
-    const y = ITEM_ICON_Y + Math.sin(angle) * dist;
-    const dx = this.itemDissolveTarget.x - x;
-    const dy = this.itemDissolveTarget.y - y;
-    const len = Math.sqrt(dx * dx + dy * dy) + 1;
-    const speed = 45 + Math.random() * 70;
-    const maxLife = 0.45 + Math.random() * 0.35;
-    this.itemDissolveParticles.push({
-      x,
-      y,
-      vx: (dx / len) * speed + (Math.random() - 0.5) * 20,
-      vy: (dy / len) * speed - 20 - Math.random() * 35,
-      life: maxLife,
-      maxLife,
-      size: 1.2 + Math.random() * 2.2,
-    });
   }
 
   private updatePlacedItemEffect(dt: number): void {
@@ -560,56 +525,21 @@ export class Anvil {
       this.itemPunchElapsed += dt;
       const t = Math.min(1, this.itemPunchElapsed / ITEM_PUNCH_DURATION);
       this.itemIcon.scale.set(1 + t * (ITEM_PUNCH_SCALE_MAX - 1));
-      this.setItemWhiten(t);
       return;
     }
 
-    if (this.itemPunchPhase !== 'dissolve' || !this.itemDissolveGfx) return;
-    const sec = dt / 1000;
-    this.itemDissolveElapsed += dt;
-    const dissolveT = Math.min(1, this.itemDissolveElapsed / ITEM_DISSOLVE_DURATION);
-    const targetSpawned = Math.floor(dissolveT * ITEM_DISSOLVE_PARTICLE_COUNT);
-    while (this.itemDissolveSpawned < targetSpawned) {
-      this.spawnItemDissolveParticle();
-      this.itemDissolveSpawned++;
-    }
+    if (this.itemPunchPhase !== 'move' || !this.itemIcon) return;
+    this.itemMoveElapsed += dt;
+    const t = Math.min(1, this.itemMoveElapsed / ITEM_MOVE_TO_LASER_DURATION);
+    const eased = smoothstep01(t);
+    this.itemIcon.x = this.itemMoveStart.x + (this.itemMoveTarget.x - this.itemMoveStart.x) * eased;
+    this.itemIcon.y = this.itemMoveStart.y + (this.itemMoveTarget.y - this.itemMoveStart.y) * eased;
+    this.itemIcon.alpha = 1;
+    this.itemIcon.scale.set(1 + eased * (ITEM_PUNCH_SCALE_MAX - 1));
 
-    if (this.itemIcon) {
-      const hold = Math.max(0, 1 - dissolveT * 1.35);
-      this.itemIcon.alpha = hold;
-      this.itemIcon.scale.set(ITEM_PUNCH_SCALE_MAX * (0.82 + hold * 0.18));
-    }
-
-    this.itemDissolveGfx.clear();
-
-    for (let i = this.itemDissolveParticles.length - 1; i >= 0; i--) {
-      const p = this.itemDissolveParticles[i];
-      p.life -= sec;
-      if (p.life <= 0) {
-        this.itemDissolveParticles.splice(i, 1);
-        continue;
-      }
-      const dx = this.itemDissolveTarget.x - p.x;
-      const dy = this.itemDissolveTarget.y - p.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) + 1;
-      const pull = 820 / dist;
-      p.vx += (dx / dist) * pull * sec;
-      p.vy += (dy / dist) * pull * sec;
-      p.vx *= 1.01;
-      p.vy *= 1.01;
-      p.x += p.vx * sec;
-      p.y += p.vy * sec;
-
-      const k = p.life / p.maxLife;
-      this.itemDissolveGfx.circle(p.x, p.y, p.size * k).fill({ color: 0xffffff, alpha: k });
-    }
-
-    if (
-      this.itemDissolveElapsed >= ITEM_DISSOLVE_DURATION &&
-      this.itemDissolveParticles.length === 0
-    ) {
+    if (this.itemMoveElapsed >= ITEM_MOVE_TO_LASER_DURATION) {
       this.itemPunchPhase = 'done';
-      if (this.itemIcon) this.itemIcon.visible = false;
+      this.itemIcon.visible = false;
     }
   }
 
@@ -623,7 +553,7 @@ export class Anvil {
     this.fxSprite = new Sprite(this.fxFrames[0]);
     this.fxSprite.anchor.set(0.5, 0.5);
     const spriteH = this.anvilSprite ? this.anvilSprite.height : this.height;
-    this.fxSprite.x = -3;
+    this.fxSprite.x = floorPlateCenterX();
     this.fxSprite.y = -47;
     this.fxSprite.scale.set(0.84);
     this.fxSprite.blendMode = 'add';
@@ -745,7 +675,7 @@ export class Anvil {
         const pulse = 1 + Math.sin(t * 1.5) * LIGHT_PILLAR_PULSE_AMP;
         const baseY = LIGHT_PILLAR_BASE_Y;
         const halfW = LIGHT_PILLAR_WIDTH_PX / 2;
-        const centerX = ITEM_ICON_X + LIGHT_PILLAR_X_OFFSET;
+        const centerX = floorPlateCenterX();
         for (let i = 0; i < LIGHT_PILLAR_BANDS; i++) {
           const tMid = (i + 0.5) / LIGHT_PILLAR_BANDS;     // 0(bottom) ~ 1(top)
           const falloff = (1 - tMid) ** LIGHT_PILLAR_FALLOFF_EXP;
@@ -774,7 +704,7 @@ export class Anvil {
         else timeAlpha = 1;
         const baseY = LIGHT_PILLAR_BASE_Y;
         const halfH = DIR_TRAIL_HEIGHT_PX / 2;
-        const startX = ITEM_ICON_X;
+        const startX = floorPlateCenterX();
         for (let i = 0; i < DIR_TRAIL_BANDS; i++) {
           const tMid = (i + 0.5) / DIR_TRAIL_BANDS;     // 0(near anvil) → 1(far)
           const falloff = (1 - tMid) ** 1.4;
@@ -801,10 +731,10 @@ export class Anvil {
       const innerA = (0.22 + Math.sin(t * 3.2) * 0.13) * strongMul;
       const haloY = -this.height - 1;
       this.halo
-        .circle(0, haloY, outerR)
+        .circle(gateFxX(ANVIL_CENTER_FX_X_OFFSET), haloY, outerR)
         .fill({ color: 0xffaa66, alpha: Math.max(0, outerA) });
       this.halo
-        .circle(0, haloY, innerR)
+        .circle(gateFxX(ANVIL_CENTER_FX_X_OFFSET), haloY, innerR)
         .fill({ color: 0xffffcc, alpha: Math.max(0, innerA) });
     }
 
@@ -850,7 +780,7 @@ export class Anvil {
     const color = Math.random() < 0.3 ? 0xffffff : 0xffaa44;
     g.rect(0, 0, 1, 1).fill(color);
     // Spawn from the anvil top face, slight horizontal jitter
-    g.x = (Math.random() - 0.5) * 10;
+    g.x = gateFxX(ANVIL_CENTER_FX_X_OFFSET) + (Math.random() - 0.5) * 10;
     g.y = -this.height - 1;
     this.particleLayer.addChild(g);
     const maxLife = 500 + Math.random() * 300;

@@ -2,7 +2,10 @@
  * areaPalettes.ts — Area palette DB loaded from CSV at build time.
  *
  * SSoT: Sheets/Content_System_Area_Palette.csv
- * CSV columns: AreaID,Name,Layer,Brightness,Tint,DepthBias,DepthCenter,Stops,Description
+ * CSV columns: AreaID,Name,Layer,Brightness,Tint,DepthBias,DepthCenter,Stops,
+ *   Description,Tileset,ParallaxImage,ParallaxFactor,ParallaxImageMid,
+ *   ParallaxFactorMid,ParallaxImageNear,ParallaxFactorNear,Weather,
+ *   WeatherDensity,WeatherAscend,WeatherBreathing,WeatherSparks,WeatherProfile
  *
  * Stops inline format:
  *   "0.00:3a1a28|0.20:6a2a3a|..."  (t:hex pairs separated by |)
@@ -15,6 +18,7 @@
 import csvText from '../../../Sheets/Content_System_Area_Palette.csv?raw';
 import { Assets, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { type WeatherMode, type StratumProfile } from '@effects/WeatherSystem';
 import {
   type PaletteStop,
   type PaletteDefinition,
@@ -51,6 +55,37 @@ export interface AreaPaletteEntry {
   parallaxImageNear: string;
   /** Parallax near scroll factor. */
   parallaxFactorNear: number;
+  /**
+   * Ambient weather for this area. 'stratum' = Item Stratum residue-drift
+   * field (cyan motes rise, amber sparks converge, breathing haze); 'none' =
+   * no palette-driven weather. SSoT: CSV `Weather` column. Item-world areas
+   * (iw_*) carry 'stratum'; World / Builder areas carry 'none'.
+   */
+  weather: WeatherMode | 'none';
+  /**
+   * Per-area weather tuning (SSoT: CSV `WeatherDensity` / `WeatherAscend` /
+   * `WeatherBreathing` / `WeatherSparks`). Lets each map dial its own feel —
+   * e.g. iw_echo runs dense + spark-heavy, iw_coolant runs slow + still.
+   * Ignored when `weather === 'none'`. Maps 1:1 onto WeatherOptions:
+   * `{ stratumIntensity: density, ascendSpeed, breathing, memorySparks }`.
+   */
+  weatherParams: {
+    /** Mote density 0..1 → WeatherOptions.stratumIntensity. */
+    density: number;
+    /** Rise speed 0..1 → WeatherOptions.ascendSpeed. */
+    ascendSpeed: number;
+    /** Breathing haze pulse → WeatherOptions.breathing. */
+    breathing: boolean;
+    /** Amber memory sparks → WeatherOptions.memorySparks. */
+    memorySparks: boolean;
+  };
+  /**
+   * Stratum particle flavor (distortion-first echo of the area material).
+   * SSoT: CSV `WeatherProfile`. ash (Forge/magma falling black ash) / cyro/cryo
+   * (Iron rising frost) / spark (Spark static) / rust (corrosion drift) /
+   * shadow (oil drips) / residue (canonical cyan echo, default). → WeatherOptions.stratumProfile.
+   */
+  weatherProfile: StratumProfile;
 }
 
 /** Parsed area palette entries, keyed by AreaID. */
@@ -84,6 +119,32 @@ function splitCsvLine(line: string): string[] {
 function parseHex(s: string): number {
   const trimmed = s.trim().replace(/^0x/i, '');
   return parseInt(trimmed, 16);
+}
+
+function parseWeather(raw: string | undefined): WeatherMode | 'none' {
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === 'rain' || v === 'snow' || v === 'stratum') return v;
+  return 'none';
+}
+
+function parseUnit(raw: string | undefined, fallback: number): number {
+  const n = parseFloat((raw ?? '').trim());
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(1, n));
+}
+
+function parseBool(raw: string | undefined, fallback: boolean): boolean {
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === 'true' || v === '1' || v === 'yes') return true;
+  if (v === 'false' || v === '0' || v === 'no') return false;
+  return fallback;
+}
+
+function parseProfile(raw: string | undefined): StratumProfile {
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === 'cyro') return 'cryo';
+  if (v === 'ash' || v === 'cryo' || v === 'spark' || v === 'rust' || v === 'shadow' || v === 'residue') return v;
+  return 'residue';
 }
 
 function parseStops(raw: string): PaletteStop[] {
@@ -120,6 +181,14 @@ for (let i = 1; i < lines.length; i++) {
     parallaxFactorMid: parseFloat(cols[13]) || 0.25,
     parallaxImageNear: (cols[14] ?? '').trim(),
     parallaxFactorNear: parseFloat(cols[15]) || 0.45,
+    weather: parseWeather(cols[16]),
+    weatherParams: {
+      density: parseUnit(cols[17], 0.6),
+      ascendSpeed: parseUnit(cols[18], 0.5),
+      breathing: parseBool(cols[19], true),
+      memorySparks: parseBool(cols[20], true),
+    },
+    weatherProfile: parseProfile(cols[21]),
   };
   AREA_PALETTES.set(entry.id, entry);
 }

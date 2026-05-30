@@ -1,8 +1,9 @@
 # ECHORIS — 최초 데모 공개까지 로드맵
 
+> **SUPERSEDED 2026-05-31:** 본 문서의 Build 0-3 구조는 `Plan/Roadmap_Master_Integrated.md` (PLN-MASTER) §4-6으로 통합되었다. Build 단계별 상세 구현/검증 항목은 본 문서를 계속 참조하되, 진행 기준선은 마스터 로드맵을 따른다.
 > 작성일: 2026-03-29
 > 작성자: PM (Claude)
-> 상태: Draft
+> 상태: SUPERSEDED (Build 상세 참조용 보존)
 
 ---
 

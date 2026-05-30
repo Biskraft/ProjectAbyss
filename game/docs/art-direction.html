@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — 비주얼 디렉션 / Visual Bible</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* --- Source Key Palette (game_key_color.jpg / SSoT) --- */
+  --arctic:    #F1F6F4;
+  --mint:      #D9E8E2;
+  --forsythia: #FFC801;  /* primary amber */
+  --saffron:   #FF9932;  /* warm amber deep */
+  --nocturnal: #114C5A;  /* teal */
+  --noir:      #172B36;  /* oceanic noir */
+  /* --- Derived ECHORIS canon tones --- */
+  --abyss:     #0B1418;  /* deep black */
+  --grey:      #3C4750;  /* industrial grey */
+  --cyan:      #46C9C2;  /* cyan residue / echo glow */
+  --auburn:    #B14B2C;  /* auburn anchor (hair, 5% 시선 닻) */
+
+  --ink:       #C9D6D2;
+  --ink-dim:   #7C8C8E;
+  --line:      rgba(70,201,194,0.16);
+  --line-warm: rgba(255,200,1,0.20);
+
+  --f-display: 'Anton', sans-serif;
+  --f-body:    'IBM Plex Sans KR', sans-serif;
+  --f-mono:    'Space Mono', monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--abyss);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-weight:300;
+  line-height:1.7;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+img{display:block;max-width:100%}
+.px{image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* --- background atmosphere: blueprint grid + grain + vignette --- */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    linear-gradient(rgba(70,201,194,0.035) 1px,transparent 1px) 0 0/100% 56px,
+    linear-gradient(90deg,rgba(70,201,194,0.035) 1px,transparent 1px) 0 0/56px 100%,
+    radial-gradient(ellipse 120% 80% at 50% -10%, #1a3340 0%, var(--abyss) 60%);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;gap:1.4rem;
+  padding:14px 28px;
+  background:linear-gradient(180deg,rgba(11,20,24,0.96),rgba(11,20,24,0.7) 70%,transparent);
+  backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line);
+}
+nav .brand{font-family:var(--f-display);font-size:1.15rem;letter-spacing:3px;color:var(--forsythia)}
+nav .brand b{color:var(--ink)}
+nav .links{display:flex;gap:1.1rem;margin-left:auto;flex-wrap:wrap}
+nav a{
+  font-family:var(--f-mono);font-size:.66rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--ink-dim);text-decoration:none;padding:4px 0;position:relative;transition:color .25s;
+}
+nav a:hover{color:var(--cyan)}
+nav a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--cyan);transition:width .25s}
+nav a:hover::after{width:100%}
+@media(max-width:880px){nav .links{display:none}}
+
+/* ---------- shared layout ---------- */
+section{padding:120px 7vw;max-width:1500px;margin:0 auto;position:relative}
+.eyebrow{
+  font-family:var(--f-mono);font-size:.7rem;letter-spacing:4px;text-transform:uppercase;
+  color:var(--cyan);display:flex;align-items:center;gap:12px;margin-bottom:22px;
+}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--cyan)}
+h2{
+  font-family:var(--f-display);font-weight:400;line-height:.95;
+  font-size:clamp(2.4rem,6vw,5rem);letter-spacing:1px;color:var(--ink);
+  margin-bottom:8px;text-transform:uppercase;
+}
+h2 .accent{color:var(--forsythia)}
+.lead{max-width:760px;color:var(--ink-dim);font-size:1.02rem;margin-bottom:48px;font-weight:300}
+.lead b{color:var(--ink);font-weight:500}
+h3{font-family:var(--f-mono);font-weight:700;font-size:.92rem;letter-spacing:2px;text-transform:uppercase;color:var(--forsythia);margin-bottom:18px}
+.mono{font-family:var(--f-mono)}
+
+/* ---------- HERO ---------- */
+.hero{
+  min-height:100vh;display:grid;grid-template-columns:1.25fr .75fr;align-items:center;gap:4vw;
+  padding-top:120px;max-width:1600px;
+}
+.hero-copy .kicker{font-family:var(--f-mono);font-size:.72rem;letter-spacing:5px;color:var(--cyan);text-transform:uppercase;margin-bottom:28px}
+.hero h1{
+  font-family:var(--f-display);font-weight:400;font-size:clamp(4rem,15vw,13rem);line-height:.82;
+  letter-spacing:2px;color:var(--arctic);text-transform:uppercase;
+  text-shadow:0 0 60px rgba(70,201,194,0.25);
+}
+.hero h1 .o{color:var(--forsythia);text-shadow:0 0 50px rgba(255,200,1,0.45)}
+.hero .sub{font-family:var(--f-display);font-size:clamp(1rem,2.4vw,1.7rem);letter-spacing:8px;color:var(--ink-dim);margin:18px 0 36px;text-transform:uppercase}
+.logline{
+  border-left:2px solid var(--forsythia);padding:14px 0 14px 22px;max-width:620px;
+  font-size:1.05rem;color:var(--ink);font-weight:300;
+}
+.logline em{color:var(--cyan);font-style:normal;font-weight:500}
+.hero-meta{display:flex;gap:30px;margin-top:40px;flex-wrap:wrap}
+.hero-meta div{font-family:var(--f-mono);font-size:.7rem;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase}
+.hero-meta b{display:block;color:var(--forsythia);font-size:1.05rem;letter-spacing:2px;margin-top:4px}
+.keyvis{position:relative}
+.keyvis img{
+  width:100%;border:1px solid var(--line);
+  filter:contrast(1.05) saturate(1.05);
+  box-shadow:0 30px 90px rgba(0,0,0,.7), 0 0 0 1px rgba(70,201,194,.1);
+}
+.keyvis .tag{
+  position:absolute;bottom:-1px;left:-1px;background:var(--forsythia);color:var(--abyss);
+  font-family:var(--f-mono);font-size:.62rem;font-weight:700;letter-spacing:1px;padding:6px 12px;text-transform:uppercase;
+}
+.keyvis .corner{position:absolute;width:18px;height:18px;border:2px solid var(--cyan)}
+.keyvis .corner.tl{top:-6px;left:-6px;border-right:0;border-bottom:0}
+.keyvis .corner.br{bottom:-6px;right:-6px;border-left:0;border-top:0}
+@media(max-width:980px){.hero{grid-template-columns:1fr;gap:50px}.keyvis{max-width:420px}}
+
+/* ---------- key palette ---------- */
+.swatch-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--line)}
+.swatch{position:relative;aspect-ratio:.62;display:flex;flex-direction:column;justify-content:space-between;padding:16px 14px;overflow:hidden}
+.swatch .ratio{font-family:var(--f-mono);font-size:.66rem;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.swatch .ratio::before{content:"◐";font-size:.8rem}
+.swatch .name{font-family:var(--f-body);font-weight:600;font-size:.92rem;line-height:1.2}
+.swatch .hex{font-family:var(--f-mono);font-size:.82rem;font-weight:700;letter-spacing:1px}
+.swatch .role{font-family:var(--f-mono);font-size:.58rem;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-top:3px}
+@media(max-width:880px){.swatch-grid{grid-template-columns:repeat(2,1fr)}}
+
+.role-band{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:1px;background:var(--line)}
+.role-band .rb{background:var(--noir);padding:18px 16px}
+.role-band .rb .lbl{font-family:var(--f-mono);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+.role-band .rb .chip{display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:7px;border:1px solid rgba(255,255,255,.2)}
+.role-band .rb p{font-size:.86rem;color:var(--ink-dim);margin-top:6px}
+.role-band .rb strong{color:var(--ink);font-weight:600}
+@media(max-width:880px){.role-band{grid-template-columns:repeat(2,1fr)}}
+
+.source-row{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center;margin-top:60px}
+.source-row img{border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.source-row .cap{font-family:var(--f-mono);font-size:.72rem;letter-spacing:1px;color:var(--ink-dim);line-height:1.9}
+.source-row .cap b{color:var(--forsythia)}
+@media(max-width:880px){.source-row{grid-template-columns:1fr}}
+
+/* ---------- generic card grid ---------- */
+.cards{display:grid;gap:1px;background:var(--line)}
+.card{background:var(--noir);padding:28px;position:relative}
+.card .idx{font-family:var(--f-mono);font-size:.62rem;color:var(--cyan);letter-spacing:2px}
+.card h4{font-family:var(--f-body);font-weight:600;font-size:1.15rem;margin:8px 0 4px;color:var(--ink)}
+.card .meta{font-family:var(--f-mono);font-size:.66rem;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;margin-bottom:14px}
+.card p{font-size:.9rem;color:var(--ink-dim)}
+.card p b{color:var(--ink);font-weight:500}
+
+/* ---------- saturation ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+@media(max-width:880px){.two{grid-template-columns:1fr}}
+.sat-block{margin-bottom:30px}
+.sat-label{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px}
+.sat-bar{height:54px;border:1px solid var(--line);position:relative}
+.sat-env{background:linear-gradient(90deg,#1c2a31,#2f3c42,#455058,#566169)}
+.sat-amber{background:linear-gradient(90deg,#3a3422,#7a6320,#c79a10,#FFC801)}
+.sat-cyan{background:linear-gradient(90deg,#1d2f33,#235055,#2f8f8c,#46C9C2)}
+.sat-auburn{background:linear-gradient(90deg,#2b211c,#5e3424,#8c3e28,#B14B2C)}
+.sat-bar .pin{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--arctic)}
+.sat-bar .pin span{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--f-mono);font-size:.56rem;color:var(--arctic);white-space:nowrap}
+.sat-rule{font-size:.9rem;color:var(--ink-dim);margin-top:6px}
+.sat-rule b{color:var(--ink)}
+
+/* ---------- contrast ---------- */
+.value-ramp{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);margin-bottom:8px}
+.value-ramp div{aspect-ratio:2.4;display:flex;align-items:flex-end;padding:8px;font-family:var(--f-mono);font-size:.58rem;letter-spacing:1px}
+.cratio{margin-top:14px}
+.cratio .row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.cratio .row .nm{flex:0 0 150px;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.5px;color:var(--ink)}
+.cratio .row .track{flex:1;height:18px;background:rgba(255,255,255,.05);position:relative;overflow:hidden}
+.cratio .row .fill{height:100%;background:linear-gradient(90deg,var(--nocturnal),var(--cyan))}
+.cratio .row .val{flex:0 0 70px;font-family:var(--f-mono);font-size:.72rem;font-weight:700;color:var(--forsythia);text-align:right}
+
+/* silhouette test */
+.sil-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:40px}
+.sil{background:#05090b;padding:24px;text-align:center}
+.sil img{margin:0 auto 14px;filter:brightness(0);height:90px;width:auto;object-fit:contain}
+.sil .nm{font-family:var(--f-mono);font-size:.62rem;letter-spacing:1px;color:var(--cyan);text-transform:uppercase}
+.sil .sc{font-family:var(--f-mono);font-size:.56rem;color:var(--ink-dim);margin-top:4px}
+@media(max-width:880px){.sil-row{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- 3-axis ---------- */
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.axis{padding:34px 26px;position:relative;overflow:hidden}
+.axis.world{background:linear-gradient(160deg,#1a2229,#0c1316)}
+.axis.builder{background:linear-gradient(160deg,#241d10,#120d05)}
+.axis.strat{background:linear-gradient(160deg,#0e2a2c,#071618)}
+.axis .num{font-family:var(--f-display);font-size:3.2rem;line-height:1;opacity:.18}
+.axis.world .num{color:var(--grey)}
+.axis.builder .num{color:var(--forsythia)}
+.axis.strat .num{color:var(--cyan)}
+.axis h4{font-family:var(--f-display);font-weight:400;font-size:1.5rem;letter-spacing:2px;text-transform:uppercase;margin:6px 0 2px}
+.axis.world h4{color:#9aa6ac}.axis.builder h4{color:var(--forsythia)}.axis.strat h4{color:var(--cyan)}
+.axis .ko{font-family:var(--f-mono);font-size:.66rem;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;margin-bottom:20px}
+.axis dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.82rem}
+.axis dt{font-family:var(--f-mono);font-size:.58rem;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-dim);padding-top:2px}
+.axis dd{color:var(--ink)}
+.axis .emo{margin-top:22px;font-family:var(--f-display);letter-spacing:3px;font-size:1.1rem}
+.axis.world .emo{color:#9aa6ac}.axis.builder .emo{color:var(--saffron)}.axis.strat .emo{color:var(--cyan)}
+@media(max-width:980px){.axes{grid-template-columns:1fr}}
+
+/* ---------- tone distribution chart ---------- */
+.tone-chart{margin-top:20px}
+.tone-row{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:center;margin-bottom:12px}
+.tone-row .scene{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.5px;color:var(--ink);text-transform:uppercase}
+.tone-row .bar{display:flex;height:30px;border:1px solid rgba(255,255,255,.07)}
+.tone-row .bar span{height:100%;transition:filter .2s}
+.tone-row .bar span:hover{filter:brightness(1.3)}
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin:30px 0 4px}
+.legend div{font-family:var(--f-mono);font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);display:flex;align-items:center;gap:8px}
+.legend i{width:13px;height:13px;display:inline-block;border:1px solid rgba(255,255,255,.15)}
+@media(max-width:680px){.tone-row{grid-template-columns:1fr;gap:6px}}
+
+/* ---------- character ---------- */
+.char-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line)}
+.char{background:var(--noir);padding:26px;display:flex;gap:22px;align-items:flex-start}
+.char .port{flex:0 0 84px;width:84px;height:84px;background:#0a1417;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.char .port img{width:72px;height:72px;object-fit:contain}
+.char .port.glyph{font-family:var(--f-display);font-size:2.2rem;color:var(--cyan);opacity:.5}
+.char .info h4{font-family:var(--f-body);font-weight:600;font-size:1.1rem;color:var(--ink)}
+.char .info .ko{font-family:var(--f-mono);font-size:.62rem;letter-spacing:1px;color:var(--forsythia);text-transform:uppercase;margin-bottom:10px}
+.char .info p{font-size:.86rem;color:var(--ink-dim)}
+.char .info .swatches{display:flex;gap:6px;margin-top:12px}
+.char .info .swatches span{width:20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.2)}
+@media(max-width:880px){.char-grid{grid-template-columns:1fr}}
+
+.affinity{margin-top:50px;display:grid;grid-template-columns:1fr auto 1fr;gap:30px;align-items:center;
+  border:1px solid var(--line-warm);padding:34px;background:linear-gradient(135deg,rgba(255,200,1,.04),rgba(70,201,194,.04))}
+.affinity .who{text-align:center}
+.affinity .who img{width:96px;height:96px;margin:0 auto 12px;border:1px solid var(--line);background:#0a1417}
+.affinity .who .nm{font-family:var(--f-display);letter-spacing:2px;font-size:1.2rem}
+.affinity .vs{font-family:var(--f-mono);font-size:.8rem;color:var(--cyan);text-align:center;letter-spacing:2px}
+.affinity .vs b{display:block;font-family:var(--f-display);font-size:2rem;color:var(--forsythia);letter-spacing:0}
+.affinity .note{grid-column:1/-1;text-align:center;font-size:.9rem;color:var(--ink-dim);margin-top:6px}
+.affinity .note b{color:var(--ink)}
+@media(max-width:680px){.affinity{grid-template-columns:1fr}}
+
+/* ---------- backgrounds / parallax ---------- */
+.parallax-stack{position:relative;border:1px solid var(--line);background:#070d10;height:360px;overflow:hidden;margin-bottom:24px}
+.parallax-stack img{position:absolute;left:0;right:0;width:100%;height:100%;object-fit:cover;object-position:bottom}
+.parallax-stack .pf{opacity:.45;filter:brightness(.6)}
+.parallax-stack .pm{opacity:.7;filter:brightness(.8)}
+.parallax-stack .pn{opacity:1}
+.parallax-stack .lay{position:absolute;font-family:var(--f-mono);font-size:.58rem;letter-spacing:1px;color:var(--cyan);background:rgba(7,13,16,.8);padding:3px 8px;text-transform:uppercase}
+.builder-row{display:grid;grid-template-columns:.8fr 1.2fr;gap:36px;align-items:center;margin-top:24px}
+.builder-row .bimg{background:#070d10;border:1px solid var(--line);padding:24px;display:flex;justify-content:center}
+.builder-row .bimg img{max-height:340px;width:auto;filter:drop-shadow(0 0 30px rgba(70,201,194,.15))}
+@media(max-width:880px){.builder-row{grid-template-columns:1fr}}
+
+/* ---------- swords ---------- */
+.sword-rail{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.sword{background:radial-gradient(ellipse at center,#0f1c20,#070d10);padding:26px 14px;text-align:center;position:relative}
+.sword img{height:96px;width:auto;margin:0 auto 16px;image-rendering:pixelated;filter:drop-shadow(0 0 12px var(--gl,transparent))}
+.sword .tier{font-family:var(--f-mono);font-size:.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.sword .mult{font-family:var(--f-mono);font-size:.58rem;color:var(--ink-dim);margin-top:3px}
+@media(max-width:880px){.sword-rail{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:520px){.sword-rail{grid-template-columns:repeat(2,1fr)}}
+
+.nokswi{margin-top:46px}
+.nok-track{display:flex;border:1px solid var(--line);overflow:hidden}
+.nok-track .stage{flex:1;padding:18px 12px;border-right:1px solid var(--line);position:relative;
+  background:linear-gradient(180deg,transparent,rgba(70,201,194,.03))}
+.nok-track .stage:last-child{border-right:0}
+.nok-track .stage .n{font-family:var(--f-display);font-size:1.4rem;color:var(--cyan);opacity:calc(.3 + var(--w,0) * .7)}
+.nok-track .stage .t{font-family:var(--f-mono);font-size:.58rem;letter-spacing:.5px;text-transform:uppercase;color:var(--ink);margin:6px 0}
+.nok-track .stage .e{font-size:.7rem;color:var(--ink-dim);font-style:italic}
+.nok-track .stage .glow{height:3px;margin-top:10px;background:linear-gradient(90deg,var(--auburn),var(--forsythia),var(--cyan));opacity:var(--w,0)}
+@media(max-width:880px){.nok-track{flex-wrap:wrap}.nok-track .stage{flex:1 1 33%}}
+
+/* ---------- UI ---------- */
+.ui-row{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.ui-row .uimg{background:repeating-conic-gradient(#0c1417 0% 25%,#0a1115 0% 50%) 0/24px 24px;border:1px solid var(--line);padding:30px;display:flex;justify-content:center}
+.ui-row .uimg img{max-width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 14px rgba(255,200,1,.2))}
+@media(max-width:880px){.ui-row{grid-template-columns:1fr}}
+.ui-timeline{margin-top:50px}
+.ui-timeline .t{display:grid;grid-template-columns:90px 1fr;gap:20px;padding:14px 0;border-bottom:1px solid var(--line)}
+.ui-timeline .t .min{font-family:var(--f-display);font-size:1.4rem;color:var(--forsythia);letter-spacing:1px}
+.ui-timeline .t .d{font-size:.9rem;color:var(--ink-dim);align-self:center}
+.ui-timeline .t .d b{color:var(--ink)}
+
+/* channel table */
+.chan{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin-top:24px}
+.chan .c{background:var(--noir);padding:22px}
+.chan .c .k{font-family:var(--f-mono);font-size:.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--cyan)}
+.chan .c h4{font-family:var(--f-body);font-weight:600;font-size:1rem;margin:6px 0 8px;color:var(--ink)}
+.chan .c p{font-size:.82rem;color:var(--ink-dim)}
+@media(max-width:880px){.chan{grid-template-columns:1fr}}
+
+/* footer */
+footer{padding:80px 7vw 60px;border-top:1px solid var(--line);text-align:center}
+footer .big{font-family:var(--f-display);font-size:clamp(2rem,8vw,5rem);letter-spacing:3px;color:var(--noir);
+  -webkit-text-stroke:1px var(--grey);text-transform:uppercase}
+footer p{font-family:var(--f-mono);font-size:.66rem;letter-spacing:2px;color:var(--ink-dim);margin-top:18px;text-transform:uppercase}
+
+/* reveal animation */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">ECHORIS<b>/</b>비주얼 디렉션</span>
+  <div class="links">
+    <a href="#palette">Key Color</a>
+    <a href="#saturation">Saturation</a>
+    <a href="#contrast">Contrast</a>
+    <a href="#axes">3-Zone</a>
+    <a href="#tone">Tone Mix</a>
+    <a href="#character">Character</a>
+    <a href="#world">World</a>
+    <a href="#weapon">Weapon</a>
+    <a href="#ui">UI</a>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero" style="padding-left:7vw;padding-right:7vw;margin:0 auto">
+  <div class="hero-copy reveal">
+    <div class="kicker">Art Direction Bible · D-15 · v3 · 2026.05.30</div>
+    <h1>ECH<span class="o">O</span>RIS</h1>
+    <div class="sub">VISUAL DIRECTION</div>
+    <div class="logline">
+      끝없이 자라는 <em>메가 스트럭처</em>에서 자기 이름조차 잊은 채 깨어난 에르다가,
+      잊혀진 자들이 무기에 응결한 마지막 한 마디 <em>300개</em>를 운반하며 —
+      결국 자기 자신에게 응답하기까지.
+    </div>
+    <div class="hero-meta">
+      <div>Genre<b>Side-scroll Metroidvania</b></div>
+      <div>Tone<b>恨 · 情 · 응결</b></div>
+      <div>Reference<b>BLAME! / Nihei</b></div>
+      <div>Render<b>Pixel · WebGL</b></div>
+    </div>
+  </div>
+  <div class="keyvis reveal">
+    <span class="corner tl"></span><span class="corner br"></span>
+    <img src="../public/assets/portraits/Bisk_pixel_art_portrait_of_a_quiet_sci-fi_female_warrior_pers_3911b6c3-edbb-4ff4-b188-039b381ff795_3.png" alt="에르다 키 비주얼">
+    <span class="tag">KEY VISUAL · ERDA</span>
+  </div>
+</header>
+
+<!-- ================= KEY PALETTE ================= -->
+<section id="palette" class="reveal">
+  <div class="eyebrow">01 · Key Color / SSoT Palette</div>
+  <h2>키 <span class="accent">컬러</span></h2>
+  <p class="lead">
+    팔레트의 단일 진실 원천은 <b>game_key_color.jpg</b>. 호박(Amber)과 청록(Teal)의 듀얼리티가
+    작품 전체의 따뜻한 축과 차가운 축을 가른다. 모든 신규 자산은 이 6톤 위에서만 채색하며,
+    각 톤은 <b>WCAG 명도 대비비</b>를 동반해 가독성 게이트를 통과한다.
+  </p>
+
+  <div class="swatch-grid">
+    <div class="swatch" style="background:var(--arctic);color:#16323b">
+      <div class="ratio">19.23:1</div>
+      <div><div class="name">Arctic Powder</div><div class="hex">#F1F6F4</div><div class="role">UI 텍스트 · 하이라이트</div></div>
+    </div>
+    <div class="swatch" style="background:var(--forsythia);color:#16323b">
+      <div class="ratio">13.51:1</div>
+      <div><div class="name">Forsythia</div><div class="hex">#FFC801</div><div class="role">PRIMARY · 호박 액센트</div></div>
+    </div>
+    <div class="swatch" style="background:var(--nocturnal);color:var(--forsythia)">
+      <div class="ratio">9.52:1</div>
+      <div><div class="name">Nocturnal Exp.</div><div class="hex">#114C5A</div><div class="role">청록 베이스 · 정체성</div></div>
+    </div>
+    <div class="swatch" style="background:var(--mint);color:#16323b">
+      <div class="ratio">16.59:1</div>
+      <div><div class="name">Mystic Mint</div><div class="hex">#D9E8E2</div><div class="role">잔향 하이라이트</div></div>
+    </div>
+    <div class="swatch" style="background:var(--saffron);color:#16323b">
+      <div class="ratio">9.85:1</div>
+      <div><div class="name">Deep Saffron</div><div class="hex">#FF9932</div><div class="role">포지 발열 · 경고</div></div>
+    </div>
+    <div class="swatch" style="background:var(--noir);color:var(--forsythia)">
+      <div class="ratio">14.63:1</div>
+      <div><div class="name">Oceanic Noir</div><div class="hex">#172B36</div><div class="role">패널 · 심연 베이스</div></div>
+    </div>
+  </div>
+
+  <div class="role-band">
+    <div class="rb"><div class="lbl">Anchor / 시선 닻</div><p><span class="chip" style="background:var(--auburn)"></span><strong>Auburn Red</strong> #B14B2C</p><p>에르다 머리카락. 전 화면 5% 고정 — 1순위 초점.</p></div>
+    <div class="rb"><div class="lbl">Warm / 따뜻한 축</div><p><span class="chip" style="background:var(--forsythia)"></span><strong>Amber</strong> 호박</p><p>UI · 포지 · 안식 · 응답의 온기.</p></div>
+    <div class="rb"><div class="lbl">Cold / 차가운 축</div><p><span class="chip" style="background:var(--cyan)"></span><strong>Cyan Residue</strong> #46C9C2</p><p>에코 잔향 · 눈 발광 · 비물질 위상.</p></div>
+    <div class="rb"><div class="lbl">Mass / 무관심</div><p><span class="chip" style="background:var(--grey)"></span><strong>Industrial Grey</strong> #3C4750</p><p>메가 스트럭처 · 빌더 · 시공의 무관심.</p></div>
+  </div>
+
+  <div class="source-row">
+    <img src="../../Documents/Content/Image/game_key_color.jpg" alt="키 컬러 원본">
+    <div class="cap">
+      <b>// SOURCE OF TRUTH</b><br>
+      원본 키 컬러 시트. 좌측 페이지는 6톤 + 대비비,<br>
+      하단 두 컷은 라이트/다크 무드 적용 예시.<br><br>
+      <b>// RULE</b><br>
+      신규 자산은 6톤 외 임의 색 도입 금지.<br>
+      Auburn · Cyan Residue 두 파생 톤만 캐논 추가.<br>
+      채도 높은 외곽 발광은 아이템(레어리티) 전용.
+    </div>
+  </div>
+</section>
+
+<!-- ================= SATURATION ================= -->
+<section id="saturation" class="reveal">
+  <div class="eyebrow">02 · Saturation / 채도 방향성</div>
+  <h2>채도 <span class="accent">전략</span></h2>
+  <p class="lead">
+    핵심 규칙 — <b>환경은 저채도, 액센트는 고채도</b>. 메가 스트럭처는 무채에 가까운 회색으로
+    눌러 두고, 채도 에너지는 오직 시선을 끌어야 할 요소(머리카락 닻 · 포지 발열 · 에코 잔향 · 레어리티 글로우)에만 집중한다.
+    채도를 절제할수록 한 점의 고채도가 폭발한다.
+  </p>
+
+  <div class="two">
+    <div>
+      <h3>// 환경 — 저채도 억제</h3>
+      <div class="sat-block">
+        <div class="sat-label"><span>Industrial Grey</span><span>S 4% → 14%</span></div>
+        <div class="sat-bar sat-env"><div class="pin" style="left:24%"><span>탐험 기본값</span></div></div>
+        <div class="sat-rule">메가 스트럭처 전역. <b>의미 현저성</b>(건축 형태)으로 시선을 끌고 색은 죽인다.</div>
+      </div>
+    </div>
+    <div>
+      <h3>// 액센트 — 고채도 폭발</h3>
+      <div class="sat-block">
+        <div class="sat-label"><span>Amber 호박</span><span>S 100%</span></div>
+        <div class="sat-bar sat-amber"><div class="pin" style="left:88%"><span>포지 격발</span></div></div>
+        <div class="sat-rule">포지 · UI · 안식. 환경 회색과 최대 채도 격차.</div>
+      </div>
+      <div class="sat-block">
+        <div class="sat-label"><span>Cyan Residue 잔향</span><span>S 64%</span></div>
+        <div class="sat-bar sat-cyan"><div class="pin" style="left:78%"><span>에코 위상</span></div></div>
+        <div class="sat-rule">아이템계 심층일수록 채도 ↑ — 비물질화 신호.</div>
+      </div>
+      <div class="sat-block">
+        <div class="sat-label"><span>Auburn 닻</span><span>S 60% · 면적 5%</span></div>
+        <div class="sat-bar sat-auburn"><div class="pin" style="left:72%"><span>머리카락</span></div></div>
+        <div class="sat-rule">면적은 작게, 채도는 높게 — 전 화면 1순위 초점.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTRAST ================= -->
+<section id="contrast" class="reveal">
+  <div class="eyebrow">03 · Contrast / 대비 방향성</div>
+  <h2>대비 & <span class="accent">명도</span></h2>
+  <p class="lead">
+    채색에 앞서 <b>흑백 명도 골격</b>을 먼저 확정한다(Bacher / Framed Ink). 전역은
+    <b>로키(low-key)</b> — 어둠이 화면을 지배하고, 포지 발열·에코 발광 같은 국소 지점만 고대비로 튄다.
+    아래는 제작 표준인 3톤 명도 램프와, 키 팔레트의 실측 대비비다.
+  </p>
+
+  <div class="two">
+    <div>
+      <h3>// 3-Tone Value Ramp (제작 1단계)</h3>
+      <div class="value-ramp">
+        <div style="background:#05090b;color:#5a6a6e">SHADOW</div>
+        <div style="background:#16242b;color:#7c8c8e">DARK</div>
+        <div style="background:#2f3c42;color:#aab6b8">MID</div>
+        <div style="background:#7c8c8e;color:#0b1418">LIGHT</div>
+        <div style="background:var(--forsythia);color:#16323b">ACCENT</div>
+      </div>
+      <p class="sat-rule" style="margin-top:14px">3톤 흑백 썸네일 → 실루엣 검수 → 채색 → 강조색 닻. <b>역순 금지</b>.</p>
+    </div>
+    <div>
+      <h3>// 측정 대비비 (vs Oceanic Noir)</h3>
+      <div class="cratio">
+        <div class="row"><span class="nm">Arctic Powder</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">19.23</span></div>
+        <div class="row"><span class="nm">Mystic Mint</span><span class="track"><span class="fill" style="width:86%"></span></span><span class="val">16.59</span></div>
+        <div class="row"><span class="nm">Forsythia</span><span class="track"><span class="fill" style="width:70%"></span></span><span class="val">13.51</span></div>
+        <div class="row"><span class="nm">Deep Saffron</span><span class="track"><span class="fill" style="width:51%"></span></span><span class="val">9.85</span></div>
+        <div class="row"><span class="nm">Nocturnal Exp.</span><span class="track"><span class="fill" style="width:49%"></span></span><span class="val">9.52</span></div>
+      </div>
+      <p class="sat-rule" style="margin-top:10px">전 톤 AA(4.5:1) 상회 — 픽셀 가독성 보장.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:60px">// 실루엣 가독성 게이트 — 검은 형상만으로 분리되는가</h3>
+  <div class="sil-row">
+    <div class="sil"><img class="px" src="../public/assets/sprites/builder_sprite_01.png" alt=""><div class="nm">Builder</div><div class="sc">메가 스트럭처 · 1:40</div></div>
+    <div class="sil"><img class="px" src="../public/assets/characters/boss_01_atlas.png" alt="" style="object-position:left"><div class="nm">Mecha</div><div class="sc">전투 적 · 65px</div></div>
+    <div class="sil"><img class="px" src="../public/assets/characters/erda_atlas.png" alt="" style="object-position:left"><div class="nm">Erda</div><div class="sc">주인공 · 32px</div></div>
+    <div class="sil"><img class="px" src="../public/assets/items/sword_ancient.png" alt=""><div class="nm">Sword</div><div class="sc">무기 · 채널 분리</div></div>
+  </div>
+</section>
+
+<!-- ================= 3 AXES ================= -->
+<section id="axes" class="reveal">
+  <div class="eyebrow">04 · 3-Zone Differentiation</div>
+  <h2>3축 시각 <span class="accent">차별화</span></h2>
+  <p class="lead">
+    플레이어가 한 프레임만 보고도 <b>World · Builder · Item Stratum</b> 중 무엇인지 1초 안에
+    분류할 수 있어야 한다. 축이 바뀔 때 색만이 아니라 <b>공간·선·형태·움직임·사운드</b>를 동시에 뒤집는다.
+  </p>
+
+  <div class="axes">
+    <div class="axis world">
+      <div class="num">01</div>
+      <h4>World</h4>
+      <div class="ko">메가 스트럭처 — 외부 탐험</div>
+      <dl>
+        <dt>공간</dt><dd>딥 스페이스 · 3층 패럴랙스</dd>
+        <dt>색</dt><dd>Industrial Grey + Deep Black</dd>
+        <dt>색온</dt><dd>차가움 (중성 회색)</dd>
+        <dt>선</dt><dd>수직 격자 · 직선 (질서)</dd>
+        <dt>리듬</dt><dd>느린 거대 펄스 (시공 박자)</dd>
+        <dt>사운드</dt><dd>시공 굉음 · 저역 지배</dd>
+      </dl>
+      <div class="emo">외경 · 고독 (恨)</div>
+    </div>
+    <div class="axis builder">
+      <div class="num">02</div>
+      <h4>Builder</h4>
+      <div class="ko">빌더 내부 — 포지 / 안식</div>
+      <dl>
+        <dt>공간</dt><dd>리미티드 · 낮은 천장 · z축 압축</dd>
+        <dt>색</dt><dd>어두운 청-회색 + Amber 점광</dd>
+        <dt>색온</dt><dd>따뜻함 (호박 침투)</dd>
+        <dt>선</dt><dd>곡선 · 유기 (내장 · 둥지)</dd>
+        <dt>리듬</dt><dd>감쇠 굉음 + 단조 망치</dd>
+        <dt>사운드</dt><dd>먹먹한 굉음 + 죽 끓음</dd>
+      </dl>
+      <div class="emo">안도 · 온기 (情)</div>
+    </div>
+    <div class="axis strat">
+      <div class="num">03</div>
+      <h4>Item Stratum</h4>
+      <div class="ko">에코 내부 위상 — 다이브</div>
+      <dl>
+        <dt>공간</dt><dd>앰비규어스 · 무중력 부유</dd>
+        <dt>색</dt><dd>Cyan Residue 발광 + Amber 조각</dd>
+        <dt>색온</dt><dd>비물질 한색 (청록)</dd>
+        <dt>선</dt><dd>불규칙 · 해체 · 부드러운 가장자리</dd>
+        <dt>리듬</dt><dd>정적 + 느린 표류 (보스 시 가속)</dd>
+        <dt>사운드</dt><dd>굉음 부재 + 잔향 + 한 음성</dd>
+      </dl>
+      <div class="emo">응답 · 비물질</div>
+    </div>
+  </div>
+
+  <div class="chan">
+    <div class="c"><div class="k">불변 닻 #1</div><h4>붉 5% (에르다 머리)</h4><p>세 축 어디서나 화면의 시선 1순위. 전환 중 방향 상실을 막는 연속성.</p></div>
+    <div class="c"><div class="k">불변 닻 #2</div><h4>호박 실 (Amber thread)</h4><p>World 점광 → Builder 안식 → Stratum 조각으로 형태만 바뀌며 끊기지 않는다.</p></div>
+    <div class="c"><div class="k">전환 설계</div><h4>경계에서 최대 강도</h4><p>포지 격발(중앙 전환)이 가장 자주·강하게 겪는 경계 — 컬러 스크립트의 정점.</p></div>
+  </div>
+</section>
+
+<!-- ================= TONE DISTRIBUTION ================= -->
+<section id="tone" class="reveal">
+  <div class="eyebrow">05 · Tone Mix / 톤 비중</div>
+  <h2>화면별 톤 <span class="accent">비중</span></h2>
+  <p class="lead">
+    각 구역의 5톤 면적 분포. 붉은색은 <b>모든 화면에 5% 이상</b> — 에르다의 머리카락이 시각 닻으로 항상 박혀 있다.
+    이 정적 분포가 시간축 강도 곡선(평행 구조)의 기준선이 된다.
+  </p>
+
+  <div class="legend">
+    <div><i style="background:var(--grey)"></i>회색</div>
+    <div><i style="background:var(--cyan)"></i>청록</div>
+    <div><i style="background:var(--forsythia)"></i>호박</div>
+    <div><i style="background:#05090b"></i>흑</div>
+    <div><i style="background:var(--auburn)"></i>붉</div>
+  </div>
+
+  <div class="tone-chart" id="toneChart"></div>
+</section>
+
+<!-- ================= CHARACTER ================= -->
+<section id="character" class="reveal">
+  <div class="eyebrow">06 · Character Canon</div>
+  <h2>캐릭터 <span class="accent">캐논</span></h2>
+  <p class="lead">
+    핵심 결정 — 에르다와 러스트본이 <b>같은 결</b>(붉은-갈색 머리 · 청록 눈)이다. 이 시각 친연성이
+    진엔딩의 통찰(에르다도 누군가의 에코였다)을 캐릭터 디자인 자체로 운반한다.
+  </p>
+
+  <div class="char-grid">
+    <div class="char">
+      <div class="port"><img src="../public/assets/portraits/erda.png" alt="에르다" class="px"></div>
+      <div class="info">
+        <h4>에르다 <span class="ko">Erda</span></h4>
+        <div class="ko">주인공 · Sculpted Avatar</div>
+        <p>붉은-갈색 머리 · 청록 눈 · 주근깨 · 어두운 청-회색 천 + 구리/녹슨 디테일. 차분, 거의 무표정 — 의도된 침묵. 빌더 대비 <b>1:40</b> 스케일.</p>
+        <div class="swatches"><span style="background:var(--auburn)"></span><span style="background:var(--cyan)"></span><span style="background:var(--grey)"></span><span style="background:var(--saffron)"></span></div>
+      </div>
+    </div>
+    <div class="char">
+      <div class="port"><img src="../public/assets/portraits/rustborn.png" alt="러스트본" class="px"></div>
+      <div class="info">
+        <h4>러스트본 <span class="ko">Rustborn</span></h4>
+        <div class="ko">첫 에코 · 검 안의 한 음성</div>
+        <p>에르다와 동일 결, <b>부식이 더 진행된 버전</b>. 청록 눈에 미세한 호박색 발광 — 에코 내부에서만. 그녀를 보는 시선에 슬픔.</p>
+        <div class="swatches"><span style="background:var(--auburn)"></span><span style="background:var(--cyan)"></span><span style="background:var(--forsythia)"></span></div>
+      </div>
+    </div>
+    <div class="char">
+      <div class="port glyph">默</div>
+      <div class="info">
+        <h4>묵정 <span class="ko">Mukjeong</span></h4>
+        <div class="ko">인덱서 지도자 · 입체 빌런</div>
+        <p>가장 어두운 의례 천 + 모자 (silhouette 구별). 한쪽 다리에 시공 단위 응결재가 자람 — 걸음새 비대칭. 지팡이로 다리를 두드리는 박자.</p>
+        <div class="swatches"><span style="background:#05090b"></span><span style="background:var(--grey)"></span><span style="background:var(--saffron)"></span></div>
+      </div>
+    </div>
+    <div class="char">
+      <div class="port glyph">露</div>
+      <div class="info">
+        <h4>노다 <span class="ko">Roda</span></h4>
+        <div class="ko">단조소 노인 · 정 멘토</div>
+        <p>굽은 등, 한쪽 귀 먼 노인. 청-회색 천 + <b>호박 앞치마</b>(포지 빛 반사). 식기·죽 그릇이 정 device. 사라짐 비트 — 자세 그대로 페이드.</p>
+        <div class="swatches"><span style="background:var(--grey)"></span><span style="background:var(--forsythia)"></span></div>
+      </div>
+    </div>
+    <div class="char">
+      <div class="port glyph">伊</div>
+      <div class="info">
+        <h4>이리 <span class="ko">Iri</span></h4>
+        <div class="ko">거울 동료 · Foil</div>
+        <p>에르다와 같은 공동 출신 — 머리·눈 결 유사(거울 구조). 의례 검은 천 한 자락. 무릎 꿇는 자세 모션. 등재의 길을 택한 또 하나의 응답.</p>
+        <div class="swatches"><span style="background:var(--auburn)"></span><span style="background:var(--cyan)"></span><span style="background:#05090b"></span></div>
+      </div>
+    </div>
+    <div class="char">
+      <div class="port glyph">律</div>
+      <div class="info">
+        <h4>율 <span class="ko">Yul</span></h4>
+        <div class="ko">마을 아이 · 興 운반자</div>
+        <p>작은 실루엣. <b>밝은 톤 한 점</b>(어린 생기) — 잔존자 무채색 군에서 유일한 채도. 발목 응결재 흉터(옷에 가림, 본인만 만짐).</p>
+        <div class="swatches"><span style="background:#9fd6a0"></span><span style="background:var(--grey)"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="affinity">
+    <div class="who"><img src="../public/assets/portraits/erda.png" alt="에르다" class="px"><div class="nm">ERDA</div></div>
+    <div class="vs"><b>≈</b>시각 친연성</div>
+    <div class="who"><img src="../public/assets/portraits/rustborn.png" alt="러스트본" class="px"><div class="nm">RUSTBORN</div></div>
+    <div class="note">두 인물의 닮음은 우연이 아니다 — <b>한 고리의 한 항으로 이어지는 자기 자신</b>의 시각화. 첫 플레이는 자각하지 못하고, 두 번째 플레이에서 회수된다.</div>
+  </div>
+</section>
+
+<!-- ================= WORLD / BACKGROUND ================= -->
+<section id="world" class="reveal">
+  <div class="eyebrow">07 · World / Backgrounds</div>
+  <h2>배경 & <span class="accent">메가 스트럭처</span></h2>
+  <p class="lead">
+    배경은 BLAME! 식 <b>거대 수직 구조</b>를 3층 패럴랙스로 운반한다. 빌더는 인간형 메카가 아니라
+    <b>움직이는 산업 건축물</b> — 한 마리가 곧 작은 도시 규모. 얼굴도 시선도 의도도 없는 무관심 그 자체.
+  </p>
+
+  <div class="parallax-stack">
+    <img class="pf" src="../public/assets/parallax/parallax_far.png" alt="far">
+    <img class="pm" src="../public/assets/parallax/parallax_mid.png" alt="mid">
+    <img class="pn" src="../public/assets/parallax/parallax_near.png" alt="near">
+    <span class="lay" style="top:12px;left:12px">FAR — 멀리 시공 영역 윤곽</span>
+    <span class="lay" style="top:40px;left:12px">MID — 한 빌더의 작업 첨탑</span>
+    <span class="lay" style="top:68px;left:12px">NEAR — 검은 실루엣 + 연결 다리</span>
+  </div>
+
+  <div class="builder-row">
+    <div class="bimg"><img class="px" src="../public/assets/sprites/builder_sprite_01.png" alt="빌더"></div>
+    <div>
+      <h3>// Builder — 무지능 시공자</h3>
+      <p style="color:var(--ink-dim);font-size:.95rem">
+        부피 우세의 산업 건축물. 파이프·패널·벤트·벙커의 무수한 디테일이 통일된 어두운 회색으로 눌린다.
+        적색 시공 광원은 <b style="color:var(--ink)">적이 아니라 작업 신호</b>로 점광 산점.
+        격파 불가 — 한 박자 멈춤만 가능한 <b style="color:var(--ink)">환경적 위협</b>이다.
+      </p>
+      <div class="chan" style="margin-top:24px">
+        <div class="c"><div class="k">형태 심리</div><h4>수직 부피</h4><p>= 압도 · 무관심한 거대 권력.</p></div>
+        <div class="c"><div class="k">광원</div><h4>적색 점광</h4><p>= 작업 시그니파이어 (적대 아님).</p></div>
+        <div class="c"><div class="k">움직임</div><h4>느린 펄스</h4><p>= 시공 박자. 추격 없음.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WEAPON ================= -->
+<section id="weapon" class="reveal">
+  <div class="eyebrow">08 · Weapon / 검의 진행</div>
+  <h2>무기 & <span class="accent">레어리티</span></h2>
+  <p class="lead">
+    시작 무기는 <b>러스트본의 검</b> — 그의 자기 잔존이자 진엔딩의 시드. 레어리티 5등급은
+    Diablo 식 색 체계를 따르되, 채도 높은 <b>외곽 발광은 아이템 전용 채널</b>로 환경 색과 분리한다.
+    청록 위상 안에서도 녹색 Ancient 검이 또렷이 떠오른다.
+  </p>
+
+  <div class="sword-rail">
+    <div class="sword" style="--gl:#7a5230"><img src="../public/assets/items/sword_rustborn.png" alt=""><div class="tier" style="color:#FFFFFF">Normal</div><div class="mult">러스트본 · ×1.0</div></div>
+    <div class="sword" style="--gl:#6969FF"><img src="../public/assets/items/sword_magic.png" alt=""><div class="tier" style="color:#6969FF">Magic</div><div class="mult">×1.3 · 2지층</div></div>
+    <div class="sword" style="--gl:#FFFF00"><img src="../public/assets/items/sword_rare.png" alt=""><div class="tier" style="color:#FFFF00">Rare</div><div class="mult">×1.7 · 3지층</div></div>
+    <div class="sword" style="--gl:#FF8000"><img src="../public/assets/items/sword_legendary.png" alt=""><div class="tier" style="color:#FF8000">Legendary</div><div class="mult">×2.2 · 4지층</div></div>
+    <div class="sword" style="--gl:#00FF00"><img src="../public/assets/items/sword_ancient.png" alt=""><div class="tier" style="color:#00FF00">Ancient</div><div class="mult">×3.0 · 심연</div></div>
+    <div class="sword" style="--gl:#3a4a50"><img src="../public/assets/items/sword_broken.png" alt=""><div class="tier" style="color:#7c8c8e">Broken</div><div class="mult">잔존자 흔적</div></div>
+  </div>
+
+  <div class="nokswi">
+    <h3>// 녹쇠 7단계 — 검 자체의 각성 (UI 없이 칼날 발광만으로 진행 파악)</h3>
+    <div class="nok-track">
+      <div class="stage" style="--w:.0"><div class="n">1</div><div class="t">도구</div><div class="e">진동만</div><div class="glow"></div></div>
+      <div class="stage" style="--w:.15"><div class="n">2</div><div class="t">질문</div><div class="e">호박 줄무늬 발현</div><div class="glow"></div></div>
+      <div class="stage" style="--w:.33"><div class="n">3</div><div class="t">타인 관찰</div><div class="e">청록 후광 추가</div><div class="glow"></div></div>
+      <div class="stage" style="--w:.5"><div class="n">4</div><div class="t">감각 인식</div><div class="e">줄무늬 굵어짐</div><div class="glow"></div></div>
+      <div class="stage" style="--w:.67"><div class="n">5</div><div class="t">감정 폭발</div><div class="e">칼날 따뜻한 발광</div><div class="glow"></div></div>
+      <div class="stage" style="--w:.85"><div class="n">6</div><div class="t">부분 이해</div><div class="e">청록+호박 혼합</div><div class="glow"></div></div>
+      <div class="stage" style="--w:1"><div class="n">7</div><div class="t">감정 수용</div><div class="e">합창처럼 살아 있음</div><div class="glow"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= UI ================= -->
+<section id="ui" class="reveal">
+  <div class="eyebrow">09 · UI / HUD</div>
+  <h2>UI — 호박색 <span class="accent">브루탈리스트</span></h2>
+  <p class="lead">
+    현 HUD의 결을 그대로 확장 — <b>호박색 윤곽 + 검은 패널 + 다이아몬드 기하학 픽셀</b>.
+    모던 트랜지션 부재, 픽셀 비트맵 폰트. 이 호박색이 작품 전체 따뜻한 축의 기준값이다.
+  </p>
+
+  <div class="ui-row">
+    <div class="uimg"><img src="../public/assets/ui/ui_hud_01_atlas.png" alt="HUD 아틀라스"></div>
+    <div>
+      <h3>// 점진 노출 — UI 부재 = 자기 부재</h3>
+      <p style="color:var(--ink-dim);font-size:.92rem">
+        UI는 에르다의 자기 회복과 평행하게 등장한다. 시작 3분은 입력 프롬프트 한 줄만,
+        이름·HP·에코 인덱스가 서사 비트에 맞춰 차례로 켜진다. <b style="color:var(--ink)">Ludonarrative 일관성</b>의 핵심.
+      </p>
+      <div class="ui-timeline">
+        <div class="t"><div class="min">0:00</div><div class="d">UI 거의 부재. <b>입력 프롬프트 한 줄</b>만.</div></div>
+        <div class="t"><div class="min">10:00</div><div class="d">러스트본 후 — 이름 <b>"에르다"</b> 첫 노출 (5초).</div></div>
+        <div class="t"><div class="min">16:00</div><div class="d">HP 인디케이터 첫 노출.</div></div>
+        <div class="t"><div class="min">18:00</div><div class="d">에코 인덱스 <b>"1/300"</b> — 검 각인과 동기.</div></div>
+        <div class="t"><div class="min">28:00</div><div class="d">풀 메뉴 (인벤토리·맵·옵션).</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:60px">// 식별 채널 분리 — 한 채널을 한 요소 군이 점유</h3>
+  <div class="chan">
+    <div class="c"><div class="k">환경 (3축)</div><h4>색온 + 형태 + 모션</h4><p>World/Builder/Stratum을 동시 다중 컴포넌트로.</p></div>
+    <div class="c"><div class="k">아이템 (레어리티)</div><h4>외곽 채도 글로우</h4><p>소형 오브젝트 한정 — 환경 색과 충돌 회피.</p></div>
+    <div class="c"><div class="k">적 카테고리</div><h4>실루엣 + 스케일</h4><p>색이 아닌 형태·크기로 구분 (채널 포화 방지).</p></div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">들리지 않은 자</div>
+  <p>ECHORIS Visual Direction · D-15 v3 · SSoT: game_key_color.jpg · Documents/Design/Design_Art_Direction.md</p>
+</footer>
+
+<script>
+// ---- tone distribution chart (from §2.3) ----
+const TONE = [
+  ["일반 메가 스트럭처 탐험", [50,5,10,30,5]],
+  ["빌더 내부 (식은)",        [30,5,15,45,5]],
+  ["빌더 내부 (작동)",        [25,5,30,30,10]],
+  ["에코 내부 위상",          [5,40,30,20,5]],
+  ["인덱서 의례장",           [55,10,5,25,5]],
+  ["안식처",                  [15,10,55,15,5]],
+];
+const COLORS = ["#3C4750","#46C9C2","#FFC801","#05090b","#B14B2C"];
+const chart = document.getElementById("toneChart");
+TONE.forEach(([name,vals])=>{
+  const row=document.createElement("div");row.className="tone-row";
+  const bar=vals.map((v,i)=>`<span style="width:${v}%;background:${COLORS[i]}" title="${v}%"></span>`).join("");
+  row.innerHTML=`<div class="scene">${name}</div><div class="bar">${bar}</div>`;
+  chart.appendChild(row);
+});
+
+// ---- scroll reveal ----
+const io=new IntersectionObserver((es)=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});
+},{threshold:0.08});
+document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+// hero immediate
+requestAnimationFrame(()=>document.querySelectorAll(".hero .reveal").forEach((el,i)=>{
+  setTimeout(()=>el.classList.add("in"), 120*i);
+}));
+</script>
+</body>
+</html>

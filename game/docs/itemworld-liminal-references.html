@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ECHORIS — 아이템계 리미널 인지 레퍼런스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d18; --panel-bg:#14141f; --line:#232336; --muted:#7c7c95;
+    --text-primary:#fff; --text-secondary:#aaa;
+    --text-accent:#00ced1; --text-gold:#ffd700; --text-warning:#ffcc44; --text-orange:#ff8c00;
+    --cyan:#3fd8e0; --amber:#ffb347;
+    --font-ui:'Rajdhani',system-ui,sans-serif;
+    --font-title-display:'Cinzel',serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-ui);font-weight:500}
+  main{padding:28px 36px;max-width:1280px;margin:0 auto}
+
+  header.page{margin-bottom:24px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  header.page h1{font-family:var(--font-title-display);font-size:28px;margin:0 0 6px;letter-spacing:3px}
+  header.page p{color:var(--text-secondary);margin:0 0 4px;font-size:13px;line-height:1.6}
+  header.page .note{margin-top:12px;padding:10px 14px;background:var(--panel-bg);border-left:3px solid var(--text-warning);font-size:12px;color:#ddd;line-height:1.6}
+  header.page .note b{color:var(--text-warning)}
+  header.page a{color:var(--text-accent);text-decoration:none}
+
+  .layout{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+
+  /* ===== STAGE ===== */
+  .stage-wrap{position:relative}
+  .stage{
+    position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line);
+    border-radius:3px;overflow:hidden;background:#04060a;
+  }
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;transition:filter .25s ease}
+  .stage .zone-tag{
+    position:absolute;top:10px;left:12px;z-index:30;font-family:ui-monospace,monospace;
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:2px;
+    background:rgba(0,0,0,.5);border:1px solid var(--line);color:var(--muted);pointer-events:none;
+  }
+
+  /* overlay layers */
+  .ov{position:absolute;inset:0;z-index:10;pointer-events:none;display:none}
+  .ov.on{display:block}
+  .ov-vignette{background:radial-gradient(ellipse at center,transparent 38%,rgba(2,4,8,.55) 82%,rgba(2,4,8,.92) 100%)}
+  .ov-scan{
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.55) 0 1px,rgba(0,0,0,0) 1px 3px);
+    opacity:.92;
+  }
+  .ov-scan::after{
+    content:'';position:absolute;left:0;right:0;height:20%;
+    background:linear-gradient(rgba(120,230,238,.18),rgba(120,230,238,0));
+    animation:scanroll 4s linear infinite;
+  }
+  @keyframes scanroll{from{top:-20%}to{top:100%}}
+  .ov-grain{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity:.22;mix-blend-mode:overlay;animation:grain .4s steps(3) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}33%{transform:translate(-6px,4px)}66%{transform:translate(5px,-5px)}100%{transform:translate(-3px,2px)}
+  }
+
+  /* glitch burst on the stage container */
+  .stage.glitch canvas{animation:glitchshift 1.7s steps(1) infinite}
+  @keyframes glitchshift{
+    0%,66%,100%{transform:translate(0,0)}
+    68%{transform:translate(-11px,0)}
+    71%{transform:translate(12px,-3px)}
+    74%{transform:translate(-7px,2px)}
+    77%{transform:translate(9px,0)}
+    80%{transform:translate(-4px,0)}
+    83%{transform:translate(0,0)}
+  }
+  /* glitch tear overlay — visible RGB band jump during burst */
+  .ov-glitch{
+    position:absolute;inset:0;z-index:11;pointer-events:none;
+    background:linear-gradient(rgba(255,30,80,.0) 0 46%,rgba(255,30,80,.35) 46% 48%,rgba(30,235,255,.35) 50% 52%,rgba(255,30,80,.0) 54% 100%);
+    mix-blend-mode:screen;opacity:0;
+  }
+  .stage.glitch .ov-glitch{animation:glitchband 1.7s steps(1) infinite}
+  @keyframes glitchband{
+    0%,66%,100%{opacity:0;transform:translateY(0)}
+    68%{opacity:1;transform:translateY(-30%)}
+    74%{opacity:1;transform:translateY(28%)}
+    80%{opacity:1;transform:translateY(-10%)}
+    83%{opacity:0;transform:translateY(0)}
+  }
+
+  /* ===== CONTROLS ===== */
+  .panel{background:var(--panel-bg);border:1px solid var(--line);border-radius:3px;padding:16px 16px 18px}
+  .panel h2{font-family:var(--font-title-display);font-size:15px;margin:0 0 10px;letter-spacing:1px}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .presets button{
+    font-family:var(--font-ui);font-weight:700;font-size:11px;letter-spacing:.5px;
+    background:#0a0a14;color:var(--text-secondary);border:1px solid var(--line);
+    border-radius:2px;padding:6px 10px;cursor:pointer;transition:.15s;
+  }
+  .presets button:hover{color:var(--text-accent);border-color:var(--text-accent)}
+  .presets button.ab{color:var(--amber);border-color:#5a4420}
+  .presets button.ab.cy{color:var(--cyan);border-color:#1f5a5e}
+
+  .grp{margin-bottom:12px}
+  .grp .glabel{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin:8px 0 6px;border-bottom:1px dashed var(--line);padding-bottom:3px}
+  .opt{display:flex;gap:9px;align-items:flex-start;padding:5px 4px;border-radius:2px;cursor:pointer}
+  .opt:hover{background:#0a0a14}
+  .opt input{margin-top:2px;width:15px;height:15px;accent-color:var(--cyan);flex-shrink:0;cursor:pointer}
+  .opt .txt{font-size:12px;line-height:1.35}
+  .opt .txt b{color:var(--text-primary);font-weight:700}
+  .opt .txt span{display:block;color:var(--muted);font-size:10px;margin-top:1px}
+  .opt.gp{opacity:.5}
+  .opt.gp .txt b{text-decoration:line-through}
+
+  .audio-gate{margin-top:6px;font-size:10px;color:var(--muted)}
+  .audio-gate button{background:#0a0a14;color:var(--text-accent);border:1px solid var(--line);border-radius:2px;padding:4px 9px;cursor:pointer;font-family:var(--font-ui);font-size:10px}
+
+  /* legend */
+  section.legend{margin-top:30px}
+  section.legend h2{font-family:var(--font-title-display);font-size:18px;letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  table.matrix{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+  table.matrix th,table.matrix td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  table.matrix th{background:#0a0a14;color:var(--text-secondary);font-weight:700}
+  table.matrix code{font-family:ui-monospace,monospace;background:#0a0a14;color:var(--text-orange);padding:1px 5px;border-radius:2px;font-size:10px}
+  table.matrix .ex{color:var(--muted)}
+  footer.page{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+  <header class="page">
+    <h1>아이템계 리미널 인지 레퍼런스</h1>
+    <p>아이템계(Item Stratum)를 현실(World / Builder)과 절대 혼동하지 않게 만드는 <b>매체 레이어(post-process) 전환</b> 카탈로그. 영화 백룸이 노클립 순간 색·그레인·사운드 규칙을 한꺼번에 바꾸듯, 같은 화면 콘텐츠 위에 매체 도장을 찍어 위상을 각인한다.</p>
+    <p>체크박스로 효과를 개별 토글하여 조합을 실시간 비교한다. 좌측 스테이지의 콘텐츠(기둥·인물·발광체)는 고정이고, 효과만으로 "다른 위상"이 만들어지는지 검증한다.</p>
+    <div class="note"><b>게임플레이 영향 효과 제외.</b> 중력·낙하 속도·이동 등 플레이를 바꾸는 요소는 본 페이지에 포함하지 않는다. 시각·사운드 post-process만 수록한다. 설계 정합: <a href="../../Documents/Design/Design_Art_Direction.md">D-15 §15</a> 3축 시각 차별화.</div>
+  </header>
+
+  <div class="layout">
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <div class="ov ov-vignette" data-ov="vignette"></div>
+        <div class="ov ov-scan" data-ov="scanline"></div>
+        <div class="ov ov-grain" data-ov="grain"></div>
+        <div class="ov-glitch"></div>
+        <div class="zone-tag" id="zoneTag">현실 (효과 없음)</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>효과 토글</h2>
+      <div class="presets">
+        <button class="ab" id="pReal">현실 (World)</button>
+        <button class="ab cy" id="pStratum">아이템계 (시그니처)</button>
+        <button id="pAll">전체 켜기</button>
+        <button id="pNone">전체 끄기</button>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">색 · 그레이딩</div>
+        <label class="opt"><input type="checkbox" data-fx="duotone"><span class="txt"><b>듀오톤 색 압축</b><span>5톤 → 청록·호박 편향. 단일 프레임 각인</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="flatten"><span class="txt"><b>채도 평탄화 (무방향 평면광)</b><span>그림자·방향광 제거 = 무시간감</span></span></label>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">매체 질감</div>
+        <label class="opt"><input type="checkbox" data-fx="grain"><span class="txt"><b>필름 그레인</b><span>"녹화본/기억" 질감</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="scanline"><span class="txt"><b>스캔라인 / CRT</b><span>재생 중인 데이터 결</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="vignette"><span class="txt"><b>비네트</b><span>가장자리 보이드 소실 (무경계)</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="bloom"><span class="txt"><b>블룸</b><span>발광체 번짐 (청록·호박)</span></span></label>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">위상 불안정</div>
+        <label class="opt"><input type="checkbox" data-fx="aberration"><span class="txt"><b>색수차 (RGB 분리)</b><span>가장자리 채널 분리</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="glitch"><span class="txt"><b>글리치 버스트</b><span>주기적 슬라이스 교란</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="trail"><span class="txt"><b>잔상 / 모션 스미어</b><span>움직임이 잔재를 남김 (잔향)</span></span></label>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">공간 · 부재</div>
+        <label class="opt"><input type="checkbox" data-fx="particles"><span class="txt"><b>정지 부유 입자</b><span>떨어지지 않고 멈춰 떠도는 먼지 (비/눈의 부재)</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="loopbg"><span class="txt"><b>무한 반복 배경</b><span>지평선·랜드마크 없는 이음매 루프</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="dof"><span class="txt"><b>원경 흐림</b><span>해소되지 않는 먼 구조 (DOF)</span></span></label>
+        <label class="opt"><input type="checkbox" data-fx="glyphs"><span class="txt"><b>부유 음성 글리프</b><span>죽은 자의 마지막 한 마디 (다이제틱)</span></span></label>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">사운드 (보너스)</div>
+        <label class="opt"><input type="checkbox" data-fx="silence"><span class="txt"><b>굉음 → 정적</b><span>시공 굉음 차단 + 단일 지속 험. 가장 본능적 신호</span></span></label>
+        <div class="audio-gate">브라우저 정책상 먼저 활성화 필요 → <button id="audioEnable">사운드 활성화</button> <span id="audioState">(꺼짐)</span></div>
+      </div>
+
+      <div class="grp">
+        <div class="glabel">참고 — 제외됨</div>
+        <label class="opt gp"><span style="width:15px;flex-shrink:0"></span><span class="txt"><b>약화된 중력 / 체공 변경</b><span>게임플레이 영향 → 제외</span></span></label>
+      </div>
+    </div>
+  </div>
+
+  <section class="legend">
+    <h2>효과 → 구현 매핑</h2>
+    <table class="matrix">
+      <thead><tr><th>효과</th><th>리미널 속성</th><th>PixiJS v8 구현</th><th>D-15 연결</th></tr></thead>
+      <tbody>
+        <tr><td>듀오톤 색 압축</td><td>익숙함+잘못됨</td><td><code>ColorMatrixFilter</code> / LUT 셰이더</td><td class="ex">§15.1 지배 색</td></tr>
+        <tr><td>채도 평탄화</td><td>무시간</td><td><code>ColorMatrixFilter</code> (contrast/sat↓)</td><td class="ex">§15.1 명도·평면광</td></tr>
+        <tr><td>필름 그레인</td><td>녹화본 질감</td><td><code>NoiseFilter</code></td><td class="ex">§E 기억 결</td></tr>
+        <tr><td>스캔라인 / CRT</td><td>재생 데이터</td><td>pixi-filters <code>CRTFilter</code></td><td class="ex">§E 홀로그램</td></tr>
+        <tr><td>비네트</td><td>무경계</td><td>커스텀 Filter / radial</td><td class="ex">§15 앰비규어스</td></tr>
+        <tr><td>블룸</td><td>비물질 발광</td><td>pixi-filters <code>AdvancedBloomFilter</code></td><td class="ex">§15.2 호박·청록 닻</td></tr>
+        <tr><td>색수차</td><td>위상 불안정</td><td>pixi-filters <code>RGBSplitFilter</code></td><td class="ex">§15.1 비물질</td></tr>
+        <tr><td>글리치 버스트</td><td>잘못됨</td><td>pixi-filters <code>GlitchFilter</code></td><td class="ex">§E 피격 글리치</td></tr>
+        <tr><td>잔상 / 스미어</td><td>잔향</td><td>누적 알파 버퍼 (no-clear)</td><td class="ex">§5.2 잔향</td></tr>
+        <tr><td>정지 부유 입자</td><td>무시간·비어있음</td><td>Particle + 부유 모션</td><td class="ex">§5.1 부유 입자</td></tr>
+        <tr><td>무한 반복 배경</td><td>무한·무출구</td><td>TilingSprite 루프</td><td class="ex">§15.1 앰비규어스</td></tr>
+        <tr><td>원경 흐림</td><td>해소 불가</td><td><code>BlurFilter</code> (far layer)</td><td class="ex">§15.1 공간</td></tr>
+        <tr><td>부유 음성 글리프</td><td>익숙함+잘못됨</td><td>BitmapText + 부유</td><td class="ex">§5.2 잔재 음성</td></tr>
+        <tr><td>굉음 → 정적</td><td>무시간·부재</td><td>WebAudio 믹스 전환</td><td class="ex">§15.1 사운드 닻</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="page">
+    ECHORIS 내부 레퍼런스 · Canvas2D + CSS/SVG 오버레이로 실제 PixiJS 결과물을 근사. 색수차는 drop-shadow 근사치(실게임은 채널 분리). · 게임플레이 영향 효과 제외 · 정합: Documents/Design/Design_Art_Direction.md §15
+  </footer>
+</main>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const zoneTag = document.getElementById('zoneTag');
+
+  const fx = {
+    duotone:false, flatten:false, grain:false, scanline:false, vignette:false,
+    bloom:false, aberration:false, glitch:false, trail:false,
+    particles:false, loopbg:false, dof:false, glyphs:false, silence:false
+  };
+
+  // ---- responsive backing store (1:1 device pixels) ----
+  let W=0,H=0,dpr=1;
+  function resize(){
+    const r = stage.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.max(2, Math.round(r.width));
+    H = Math.max(2, Math.round(r.height));
+    cv.width = W*dpr; cv.height = H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  // ---- scene state ----
+  const motes = Array.from({length:70},()=>({
+    x:Math.random(),y:Math.random(),
+    s:0.4+Math.random()*1.6, ph:Math.random()*Math.PI*2,
+    amp:0.002+Math.random()*0.006, sp:0.2+Math.random()*0.5,
+    cyan:Math.random()<0.78
+  }));
+  const glyphPool = ['…','나도','들리고','싶었어','—','人','˙','¦','◌','።','⌁'];
+  const glyphs = Array.from({length:16},()=>({
+    x:Math.random(),y:Math.random(),t:glyphPool[(Math.random()*glyphPool.length)|0],
+    a:0.45+Math.random()*0.4, dr:(Math.random()-0.5)*0.01, sp:0.15+Math.random()*0.4, ph:Math.random()*6
+  }));
+
+  function drawPillar(x,w,h,base,top,blur){
+    if(blur){ctx.filter='blur(6px)';}
+    const g=ctx.createLinearGradient(0,H-h,0,H);
+    g.addColorStop(0,top); g.addColorStop(1,base);
+    ctx.fillStyle=g;
+    ctx.fillRect(x, H-h, w, h);
+    // panel lines
+    ctx.fillStyle='rgba(0,0,0,0.28)';
+    for(let yy=H-h+10; yy<H-6; yy+=16){ ctx.fillRect(x+3,yy,w-6,2); }
+    if(blur){ctx.filter='none';}
+  }
+
+  function render(t){
+    const time=t/1000;
+
+    // base clear or trail
+    if(fx.trail){ ctx.fillStyle='rgba(4,6,10,0.08)'; ctx.fillRect(0,0,W,H); }
+    else{
+      const bg=ctx.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0,'#06121a'); bg.addColorStop(0.6,'#04090f'); bg.addColorStop(1,'#020406');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    }
+
+    // ---- far layer (industrial pillars) ----
+    const scroll = fx.loopbg ? (time*46)%140 : 0;
+    if(fx.loopbg){
+      for(let i=-1;i<Math.ceil(W/140)+1;i++){
+        const x=i*140 - scroll;
+        drawPillar(x+24, 84, H*0.78, '#0b1c26', '#1f4954', fx.dof);
+      }
+    }else{
+      drawPillar(W*0.10, 70, H*0.66, '#0b1820','#132a32', fx.dof);
+      drawPillar(W*0.70, 90, H*0.78, '#0a161d','#11252c', fx.dof);
+      drawPillar(W*0.52, 46, H*0.5,  '#0a141a','#0f2026', fx.dof);
+    }
+
+    // ---- mid pillars (sharp) ----
+    drawPillar(W*0.30, 110, H*0.84, '#0c1a22','#1b3a44', false);
+    drawPillar(W*0.86, 130, H*0.92, '#0b1820','#17333c', false);
+
+    // ground line (orientation anchor)
+    ctx.fillStyle='#0a161c'; ctx.fillRect(0,H-26,W,26);
+    ctx.fillStyle='rgba(63,216,224,0.10)'; ctx.fillRect(0,H-26,W,2);
+
+    // ---- floating echo fragments (content) ----
+    for(let i=0;i<7;i++){
+      const fxp = (0.16+i*0.11);
+      const fyp = 0.30 + Math.sin(time*0.4+i)*0.04 + (i%3)*0.08;
+      const px=W*fxp, py=H*fyp, s=10+(i%3)*6;
+      ctx.save();
+      if(fx.bloom){ctx.shadowBlur=22;ctx.shadowColor='rgba(63,216,224,0.9)';}
+      ctx.globalAlpha=0.85;
+      ctx.fillStyle = (i%4===0)?'rgba(255,179,71,0.9)':'rgba(120,224,232,0.85)';
+      ctx.translate(px,py); ctx.rotate(Math.sin(time*0.2+i)*0.2);
+      ctx.fillRect(-s/2,-s/2,s,s*0.5);
+      ctx.restore();
+    }
+
+    // ---- amber warmth core (anchor) ----
+    ctx.save();
+    if(fx.bloom){ctx.shadowBlur=40;ctx.shadowColor='rgba(255,179,71,0.95)';}
+    const cg=ctx.createRadialGradient(W*0.5,H*0.42,2,W*0.5,H*0.42,fx.bloom?70:46);
+    cg.addColorStop(0,'rgba(255,196,120,0.95)'); cg.addColorStop(1,'rgba(255,179,71,0)');
+    ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(W*0.5,H*0.42,fx.bloom?70:46,0,7); ctx.fill();
+    ctx.restore();
+
+    // ---- suspended particles ----
+    if(fx.particles){
+      for(const m of motes){
+        const mx=m.x*W + Math.sin(time*m.sp+m.ph)*(m.amp*W);
+        const my=m.y*H + Math.cos(time*m.sp*0.7+m.ph)*(m.amp*H);
+        ctx.globalAlpha=0.5;
+        ctx.fillStyle=m.cyan?'rgba(140,230,238,0.8)':'rgba(255,196,120,0.7)';
+        ctx.fillRect(mx,my,m.s,m.s);
+      }
+      ctx.globalAlpha=1;
+    }
+
+    // ---- floating voice glyphs ----
+    if(fx.glyphs){
+      ctx.font="700 19px 'Rajdhani',sans-serif"; ctx.textAlign='center';
+      ctx.shadowBlur=10; ctx.shadowColor='rgba(120,235,240,0.9)';
+      for(const gp of glyphs){
+        const gx=(gp.x + Math.sin(time*0.05+gp.ph)*0.02)*W;
+        const gy=((gp.y + time*0.005*gp.sp)%1)*H;
+        ctx.globalAlpha=gp.a*(0.7+0.3*Math.sin(time*0.6+gp.ph));
+        ctx.fillStyle='rgba(175,245,250,0.95)';
+        ctx.fillText(gp.t,gx,gy);
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='start';
+    }
+
+    // ---- character (red-hair anchor §15.2) ----
+    const chx=W*0.5-9, chy=H-26-40;
+    ctx.fillStyle='#1a1320'; ctx.fillRect(chx,chy+12,18,28);     // body
+    ctx.fillStyle='#2a2030'; ctx.fillRect(chx+1,chy+24,7,16);    // leg shade
+    ctx.fillStyle='#caa07a'; ctx.fillRect(chx+4,chy+6,10,8);     // face
+    ctx.fillStyle='#b5482a'; ctx.fillRect(chx+2,chy,14,8);       // auburn hair (red anchor)
+    ctx.fillStyle='#b5482a'; ctx.fillRect(chx,chy+4,3,7);
+    ctx.fillStyle='#2f9aa0'; ctx.fillRect(chx+5,chy+8,2,2);      // cyan eye
+
+    // ---- canvas-filter chain (duotone / flatten / aberration) ----
+    let f=[];
+    if(fx.duotone) f.push('saturate(0.35) sepia(0.6) hue-rotate(130deg) brightness(1.04) contrast(1.18)');
+    if(fx.flatten) f.push('contrast(0.66) saturate(0.45) brightness(1.16)');
+    if(fx.aberration) f.push('drop-shadow(3px 0 0 rgba(255,30,80,.8)) drop-shadow(-3px 0 0 rgba(30,235,255,.8))');
+    cv.style.filter = f.length? f.join(' ') : 'none';
+
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+
+  // ---- wiring ----
+  function applyOverlays(){
+    document.querySelectorAll('.ov').forEach(o=>{
+      o.classList.toggle('on', !!fx[o.dataset.ov]);
+    });
+    stage.classList.toggle('glitch', fx.glitch);
+    // zone tag
+    const anyStratum = fx.duotone||fx.grain||fx.scanline||fx.vignette||fx.bloom||fx.aberration||fx.glitch||fx.trail||fx.particles||fx.loopbg||fx.glyphs||fx.silence||fx.flatten||fx.dof;
+    zoneTag.textContent = anyStratum ? '아이템계 (Item Stratum)' : '현실 (효과 없음)';
+    zoneTag.style.color = anyStratum ? 'var(--cyan)' : 'var(--muted)';
+    zoneTag.style.borderColor = anyStratum ? '#1f5a5e' : 'var(--line)';
+  }
+  function syncChecks(){
+    document.querySelectorAll('input[data-fx]').forEach(c=>{ c.checked=!!fx[c.dataset.fx]; });
+  }
+  document.querySelectorAll('input[data-fx]').forEach(c=>{
+    c.addEventListener('change',()=>{
+      fx[c.dataset.fx]=c.checked;
+      if(c.dataset.fx==='silence') updateAudio();
+      applyOverlays();
+    });
+  });
+
+  function setAll(v){ Object.keys(fx).forEach(k=>{ if(k!=='silence'||audioReady) fx[k]=v; else fx[k]=false; }); }
+  document.getElementById('pAll').onclick=()=>{ Object.keys(fx).forEach(k=>fx[k]=true); if(!audioReady)fx.silence=false; syncChecks();applyOverlays();updateAudio(); };
+  document.getElementById('pNone').onclick=()=>{ Object.keys(fx).forEach(k=>fx[k]=false); syncChecks();applyOverlays();updateAudio(); };
+  document.getElementById('pReal').onclick=()=>{ Object.keys(fx).forEach(k=>fx[k]=false); syncChecks();applyOverlays();updateAudio(); };
+  document.getElementById('pStratum').onclick=()=>{
+    Object.keys(fx).forEach(k=>fx[k]=false);
+    ['duotone','grain','vignette','bloom','particles'].forEach(k=>fx[k]=true);
+    if(audioReady) fx.silence=true;
+    syncChecks();applyOverlays();updateAudio();
+  };
+
+  // ---- audio (gated) ----
+  let actx=null, audioReady=false, rumble=null, rumGain=null, humGain=null;
+  document.getElementById('audioEnable').onclick=()=>{
+    if(audioReady) return;
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    // low rumble (현실 굉음) — brown-ish noise via buffer
+    const bufLen=actx.sampleRate*2, buf=actx.createBuffer(1,bufLen,actx.sampleRate), d=buf.getChannelData(0);
+    let last=0; for(let i=0;i<bufLen;i++){ const wn=Math.random()*2-1; d[i]=(last+0.02*wn)/1.02; last=d[i]; d[i]*=3.2; }
+    rumble=actx.createBufferSource(); rumble.buffer=buf; rumble.loop=true;
+    const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=180;
+    rumGain=actx.createGain(); rumGain.gain.value=0.18;
+    rumble.connect(lp).connect(rumGain).connect(actx.destination); rumble.start();
+    // sustained hum (아이템계 정적)
+    const osc=actx.createOscillator(); osc.type='sine'; osc.frequency.value=72;
+    humGain=actx.createGain(); humGain.gain.value=0.0;
+    osc.connect(humGain).connect(actx.destination); osc.start();
+    audioReady=true;
+    document.getElementById('audioState').textContent='(켜짐)';
+    updateAudio();
+  };
+  function updateAudio(){
+    if(!audioReady) return;
+    const silent=fx.silence; // true = 아이템계 정적
+    rumGain.gain.setTargetAtTime(silent?0.0:0.18, actx.currentTime, 0.15);
+    humGain.gain.setTargetAtTime(silent?0.05:0.0, actx.currentTime, 0.2);
+  }
+
+  applyOverlays();
+})();
+</script>
+</body>
+</html>

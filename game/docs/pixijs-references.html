@@ -870,6 +870,7 @@
     <a href="#mesh">Mesh & Shaders</a>
     <a href="#particles">Particles</a>
     <a href="#weather">Weather (Rain/Snow)</a>
+    <a href="#wx-stratum">↳ Item Stratum 잔향</a>
     <a href="#spine">Spine 2D</a>
 
     <div class="group">performance</div>
@@ -899,6 +900,9 @@
 
     <div class="group">priorities</div>
     <a href="#roadmap">Roadmap</a>
+
+    <div class="group">linked demos</div>
+    <a href="itemworld-liminal-references.html">아이템계 리미널 인지 ↗</a>
   </nav>
 </aside>
 
@@ -1463,6 +1467,82 @@ weather.<span class="fn">setCoverageMask</span>(<span class="kw">null</span>);</
       Echo-Bearer 무덤 위 동적 비 차단 (<code>setCoverageMask</code> 으로 무덤 위 origin 지정)
     </div>
   </div>
+
+  <div class="card" id="wx-stratum">
+    <h3>아이템계 전용 — 잔향 부유 (Residue Drift)</h3>
+    <div class="meta">
+      <code>제안: game/src/effects/StratumAtmosphere.ts</code> · <code>pixi.js v8 Graphics</code> · 비/눈과 반대 방향
+    </div>
+    <div class="pill-row">
+      <span class="pill impact-hi">IMPACT HIGH</span>
+      <span class="pill cost-lo">COST LOW</span>
+      <span class="pill pri">P1</span>
+    </div>
+    <div class="desc">
+      월드의 날씨가 <b>떨어진다</b>면(중력·IntGrid·시공 굉음), 아이템계의 "날씨" 는 <b>떨어지지 않는다</b>.
+      입자가 천천히 <b>상승·부유</b>하고, 따뜻한 기억 불씨가 한 점(에코 코어)으로 <b>응결</b>하며, 청록 안개가 한 호흡으로 <b>명멸</b>한다.
+      이 셋이 동시에 작동해 다이브 직후 "아 — 아이템계구나" 를 즉시 인지시킨다. 리미널 4속성(익숙함·비어있음·무시간·무한)을 날씨 한 겹으로 운반한다.
+      <br><br>
+      <b>방향 반전 = 1순위 신호:</b> 같은 입자라도 <b>위로</b> 흐르면 물리가 "잘못됐다" 는 가장 본능적 단서가 된다.
+      색은 청록 발광(월드의 블루그레이 비 / 세피아 눈과 대비), 호흡 명멸이 시공 굉음의 부재를 <b>시각 호흡</b> 으로 대체한다.
+      <br><br>
+      <b>구성 4층:</b>
+      ① 상승 잔향 motes (청록, 느린 상승 + sine sway) ·
+      ② 부유 정지층 (거의 멈춘 입자 — 무시간) ·
+      ③ 기억 불씨 (호박, 코어로 수렴·응결 후 재생성) ·
+      ④ 호흡 안개 (청록 radial haze, 0.5Hz 명멸).
+      옵션: 음성 글리프 (죽은 자의 마지막 한 마디 — 다이제틱, 희소).
+      <br><br>
+      <b>IntGrid 불필요:</b> 물리 날씨가 아니라 위상의 ambient field 이므로 천장/실내 차단 로직이 없다. 코어 attractor 로 수렴/상승만 계산 — 비/눈보다 가볍다.
+    </div>
+
+    <div class="wx-stage" id="rd-stage" style="image-rendering:auto">
+      <canvas id="rd-canvas" width="520" height="220" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+      <span class="wx-overlay">ITEM STRATUM ↑ &nbsp; 입자가 떨어지지 않고 상승·부유한다</span>
+      <span class="wx-readout" id="rd-readout">— motes</span>
+    </div>
+
+    <div class="wx-controls" id="rd-controls">
+      <div class="mode-row">
+        <span class="mlbl">FIELD</span>
+        <button id="rd-breath" class="active">BREATHING 안개</button>
+        <button id="rd-sparks" class="active">MEMORY 불씨</button>
+        <button id="rd-glyphs">VOICE 글리프</button>
+        <span class="hint">— 비/눈과 반대로 입자가 상승한다</span>
+      </div>
+      <div class="ctrl">
+        <label>Density <span class="val" id="rd-val-d">0.60</span></label>
+        <input type="range" id="rd-density" min="0" max="100" value="60" step="1">
+      </div>
+      <div class="ctrl">
+        <label>Ascend Speed <span class="val" id="rd-val-s">0.50</span></label>
+        <input type="range" id="rd-speed" min="0" max="100" value="50" step="1">
+      </div>
+    </div>
+
+    <pre><span class="cmt">// 제안 API — WeatherSystem 와 별도 ambient field</span>
+<span class="kw">import</span> { StratumAtmosphere } <span class="kw">from</span> <span class="str">'@/effects/StratumAtmosphere'</span>;
+
+<span class="kw">this</span>.atmo = <span class="kw">new</span> <span class="fn">StratumAtmosphere</span>({
+  density: <span class="num-lit">0.6</span>,            <span class="cmt">// mote 수 (0..1)</span>
+  ascendSpeed: <span class="num-lit">0.5</span>,        <span class="cmt">// 상승 속도 — 양수 = 위로</span>
+  breathing: <span class="kw">true</span>,           <span class="cmt">// 0.5Hz 호흡 명멸 (굉음 부재 대체)</span>
+  memorySparks: <span class="kw">true</span>,        <span class="cmt">// 호박 불씨 코어 수렴</span>
+  coreAnchor: { x: <span class="num-lit">0.5</span>, y: <span class="num-lit">0.32</span> }, <span class="cmt">// 에코 코어 (수렴점)</span>
+  voiceGlyphs: <span class="kw">false</span>,        <span class="cmt">// 다이제틱 음성 글자 (희소)</span>
+});
+<span class="kw">this</span>.atmoLayer.<span class="fn">addChild</span>(<span class="kw">this</span>.atmo.container);
+<span class="kw">this</span>.atmo.<span class="fn">update</span>(dtMs);   <span class="cmt">// IntGrid 불필요 — 카메라 view 만</span></pre>
+
+    <div class="apply">
+      <b>적용:</b>
+      모든 아이템계 지층 진입 직후 (Trapdoor 침강 → 잔향 부유 fade-in = "아이템계 도착" cue) ·
+      지층이 깊어질수록 density↑ / ascendSpeed↓ (심층일수록 더 정지·비물질) ·
+      에코 보스방은 호흡 안개 진폭↑ (코어가 가까움) ·
+      Rustborn 등 특이 에코는 memorySparks 밀도↑ (의식 응결).
+      D-15 §15 (3축 차별화) · §5.1 에코 내부 위상 정합.
+    </div>
+  </div>
 </section>
 
 <!-- Weather playground simulation — mirrors WeatherSystem.ts behaviour -->
@@ -1753,6 +1833,100 @@ weather.<span class="fn">setCoverageMask</span>(<span class="kw">null</span>);</
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- Item Stratum "Residue Drift" ambient field demo -->
+<script>
+(function(){
+  const stage=document.getElementById('rd-stage'); if(!stage) return;
+  const cv=document.getElementById('rd-canvas'); const ctx=cv.getContext('2d');
+  const readout=document.getElementById('rd-readout');
+  let W=cv.width,H=cv.height,dpr=1;
+  function resize(){
+    const r=stage.getBoundingClientRect();
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=Math.max(2,Math.round(r.width)); H=Math.max(2,Math.round(r.height));
+    cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  const opt={density:0.6,speed:0.5,breath:true,sparks:true,glyphs:false};
+  const CORE={x:0.5,y:0.32};
+  const MAXM=120, MAXS=14;
+  let motes=[], sparks=[], glyphs=[];
+  const glyphPool=['…','나도','들리고','싶었어','—','◌','˙'];
+  function mkMote(){return {x:Math.random(),y:Math.random(),r:0.6+Math.random()*1.9,sway:0.2+Math.random()*0.8,ph:Math.random()*6,rise:0.3+Math.random()*0.9,still:Math.random()<0.25};}
+  function mkSpark(){return {x:Math.random(),y:0.7+Math.random()*0.4,ph:Math.random()*6,r:1.2+Math.random()*1.6};}
+  function rebuild(){
+    motes=Array.from({length:Math.round(MAXM*opt.density)},mkMote);
+    sparks=Array.from({length:Math.round(MAXS*opt.density)},mkSpark);
+    if(!glyphs.length) glyphs=Array.from({length:7},()=>({x:Math.random(),y:Math.random(),t:glyphPool[(Math.random()*glyphPool.length)|0],ph:Math.random()*6,sp:0.5+Math.random()*0.8}));
+  }
+
+  function render(t){
+    const time=t/1000;
+    // background
+    const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#04141a'); bg.addColorStop(1,'#02080c');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    // breathing fog (cyan radial pulse — replaces the 굉음 with a visual breath)
+    const breathe = opt.breath ? (0.5+0.5*Math.sin(time*0.5)) : 0.5;
+    const cx=W*CORE.x, cy=H*CORE.y;
+    const fogR=(0.55+breathe*0.45)*Math.max(W,H)*0.62;
+    const fg=ctx.createRadialGradient(cx,cy,3,cx,cy,fogR);
+    fg.addColorStop(0,'rgba(63,216,224,'+(0.08+breathe*0.10).toFixed(3)+')');
+    fg.addColorStop(1,'rgba(63,216,224,0)');
+    ctx.fillStyle=fg; ctx.fillRect(0,0,W,H);
+
+    // ascending cyan motes (+ suspended still layer)
+    ctx.shadowBlur=6; ctx.shadowColor='rgba(120,230,238,0.85)';
+    ctx.fillStyle='rgba(155,238,243,0.9)';
+    for(const m of motes){
+      const dy=(m.still?0.0003:m.rise*0.0016)*(0.35+opt.speed);
+      m.y-=dy; if(m.y<-0.05){ m.y=1.05; m.x=Math.random(); }
+      const sx=m.x*W+Math.sin(time*m.sway+m.ph)*10, sy=m.y*H;
+      ctx.globalAlpha=(m.still?0.4:0.72)*(0.7+0.3*Math.sin(time+m.ph));
+      ctx.beginPath(); ctx.arc(sx,sy,m.r,0,7); ctx.fill();
+    }
+
+    // memory sparks (amber) converging to the echo core, then re-seed
+    if(opt.sparks){
+      ctx.shadowColor='rgba(255,179,71,0.9)'; ctx.shadowBlur=10; ctx.fillStyle='rgba(255,198,123,0.95)';
+      const k=0.0009*(1+opt.speed);
+      for(const s of sparks){
+        s.x+=(CORE.x-s.x)*k; s.y+=(CORE.y-s.y)*k;
+        if(Math.hypot(s.x-CORE.x,s.y-CORE.y)<0.02) Object.assign(s,mkSpark());
+        ctx.globalAlpha=0.6+0.4*Math.sin(time*1.2+s.ph);
+        ctx.beginPath(); ctx.arc(s.x*W,s.y*H,s.r,0,7); ctx.fill();
+      }
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+
+    // voice glyphs (diegetic last words, drifting up)
+    if(opt.glyphs){
+      ctx.font="700 15px 'Rajdhani',sans-serif"; ctx.textAlign='center';
+      ctx.shadowBlur=8; ctx.shadowColor='rgba(120,235,240,0.8)'; ctx.fillStyle='rgba(180,246,250,0.95)';
+      for(const g of glyphs){
+        g.y-=g.sp*0.0011*(0.35+opt.speed); if(g.y<-0.05){ g.y=1.05; g.x=Math.random(); }
+        ctx.globalAlpha=0.4+0.3*Math.sin(time*0.8+g.ph);
+        ctx.fillText(g.t,(g.x+Math.sin(time*0.1+g.ph)*0.02)*W,g.y*H);
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.textAlign='start';
+    }
+
+    if(readout) readout.textContent=motes.length+' motes ↑ · '+(opt.sparks?sparks.length:0)+' sparks · breath '+(opt.breath?'on':'off');
+    requestAnimationFrame(render);
+  }
+  rebuild(); requestAnimationFrame(render);
+
+  // controls
+  const dD=document.getElementById('rd-density'), vD=document.getElementById('rd-val-d');
+  const dS=document.getElementById('rd-speed'), vS=document.getElementById('rd-val-s');
+  dD.oninput=()=>{ opt.density=dD.value/100; vD.textContent=opt.density.toFixed(2); rebuild(); };
+  dS.oninput=()=>{ opt.speed=dS.value/100; vS.textContent=opt.speed.toFixed(2); };
+  function tog(id,key){ const b=document.getElementById(id); if(!b) return; b.onclick=()=>{ opt[key]=!opt[key]; b.classList.toggle('active',opt[key]); }; }
+  tog('rd-breath','breath'); tog('rd-sparks','sparks'); tog('rd-glyphs','glyphs');
 })();
 </script>
 

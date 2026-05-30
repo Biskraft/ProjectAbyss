@@ -155,7 +155,7 @@ export class Player extends Entity implements CombatEntity {
    *   - land   : 프레임 6 → 7, 짧은 착지 복구 (각 150ms)
    *   - dash   : 프레임 16 → 17 (startup 30ms + linger 120ms)
    *   - attack : 프레임 18..21, 진행률 기반 스크럽 (step.totalFrames*FRAME_MS 에 맞춰 4프레임 분할)
-   * idle ↔ run 은 지상에서 |vx| 기준으로 매 프레임 스위칭.
+   * idle/run switches on grounded locomotion intent or actual velocity.
    * 공중 진입/착지는 grounded 엣지로 트리거.
    * dash / attack 은 FSM state 감지로 진입/이탈.
    */
@@ -1019,7 +1019,7 @@ export class Player extends Entity implements CombatEntity {
     // State transitions based on grounded
     if (state === 'jump' || state === 'fall') {
       if (this.grounded) {
-        this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');
+        this.fsm.transition(this.getGroundMovementState());
       } else if (state === 'jump' && this.vy > 0) {
         this.fsm.transition('fall');
       }
@@ -1085,9 +1085,30 @@ export class Player extends Entity implements CombatEntity {
 
   // --- Ground states ---
 
+  private getHorizontalInputDirection(): number {
+    const input = this.game.input;
+    let inputX = 0;
+    if (input.isDown(GameAction.MOVE_LEFT)) inputX -= 1;
+    if (input.isDown(GameAction.MOVE_RIGHT)) inputX += 1;
+    return inputX;
+  }
+
+  private isGroundLocomotionActive(): boolean {
+    // Collision can zero vx while the player is still pressing into a wall.
+    // Keep locomotion visuals/state active from intent as well as actual speed.
+    return this.grounded && (this.getHorizontalInputDirection() !== 0 || Math.abs(this.vx) > 10);
+  }
+
+  private getGroundMovementState(): 'idle' | 'run' {
+    return this.isGroundLocomotionActive() ? 'run' : 'idle';
+  }
+
+  private getGroundOrAirAnimationState(): 'idle' | 'run' | 'air' {
+    return this.grounded ? this.getGroundMovementState() : 'air';
+  }
+
   private applyHorizontalInput(dt: number, speedMult = 1): void {
     const dtSec = dt / 1000;
-    const input = this.game.input;
     const targetSpeed = MOVE_SPEED * speedMult * this.getCyroMoveMultiplier();
 
     // Ice (IntGrid 7): near-zero friction. Acceleration and deceleration are
@@ -1105,9 +1126,7 @@ export class Player extends Entity implements CombatEntity {
     const airMul = this.grounded ? 1.0 : AIR_ACCEL_MULT;
     const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60) * frictionMul * airMul;
 
-    let inputX = 0;
-    if (input.isDown(GameAction.MOVE_LEFT)) inputX -= 1;
-    if (input.isDown(GameAction.MOVE_RIGHT)) inputX += 1;
+    const inputX = this.getHorizontalInputDirection();
 
     if (inputX !== 0) {
       const target = inputX * targetSpeed;
@@ -1201,14 +1220,14 @@ export class Player extends Entity implements CombatEntity {
     this.applyHorizontalInput(dt, (this.isAiming || this.isLifting) ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
-    if (Math.abs(this.vx) > 10) this.fsm.transition('run');
+    if (this.isGroundLocomotionActive()) this.fsm.transition('run');
   }
 
   private stateRun(dt: number): void {
     this.applyHorizontalInput(dt, (this.isAiming || this.isLifting) ? 0.5 : 1);
     if (this.tryJump()) return;
     if (!this.grounded) { this.fsm.transition('fall'); return; }
-    if (Math.abs(this.vx) < 10) this.fsm.transition('idle');
+    if (!this.isGroundLocomotionActive()) this.fsm.transition('idle');
   }
 
   private stateAir(dt: number): void {
@@ -1274,7 +1293,7 @@ export class Player extends Entity implements CombatEntity {
       this.vx = this.dashDirX * MOVE_SPEED * 0.5 * this.getCyroMoveMultiplier();
       // groundDashDelayTimer 는 FSM dash.exit 에서 통합 처리 (중단 경로 커버).
       if (this.grounded) {
-        this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');
+        this.fsm.transition(this.getGroundMovementState());
       } else {
         // 지상 대시가 공중에서 끝났다면 공중 대시도 소진 — ledge-drop 연쇄 방지.
         if (this.dashStartedGrounded) {
@@ -1488,7 +1507,7 @@ export class Player extends Entity implements CombatEntity {
 
       // Return to movement state
       if (this.grounded) {
-        this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');
+        this.fsm.transition(this.getGroundMovementState());
       } else {
         this.fsm.transition('fall');
       }
@@ -1652,9 +1671,21 @@ export class Player extends Entity implements CombatEntity {
    * must re-flag each frame to keep the player on the container.
    */
   private extraGroundedSticky = false;
-  forceGrounded(): void {
+  forceGrounded(snapPose = false): void {
     this.extraGroundedSticky = true;
     this.grounded = true;
+    if (snapPose) {
+      const groundState = this.getGroundMovementState();
+      if (this.fsm.currentState === 'jump' || this.fsm.currentState === 'fall') {
+        this.fsm.transition(groundState);
+      }
+      if (this.erdaAnim === 'takeoff' || this.erdaAnim === 'air' || this.erdaAnim === 'land') {
+        this.erdaAnim = groundState;
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      this.erdaPrevGrounded = true;
+    }
   }
 
   /**
@@ -1759,7 +1790,7 @@ export class Player extends Entity implements CombatEntity {
     this.vx *= 0.9;
     if (this._hitstunTimer <= 0) {
       if (this.grounded) {
-        this.fsm.transition(Math.abs(this.vx) > 10 ? 'run' : 'idle');
+        this.fsm.transition(this.getGroundMovementState());
       } else {
         this.fsm.transition('fall');
       }
@@ -2067,7 +2098,7 @@ export class Player extends Entity implements CombatEntity {
     }
     if (this.erdaAnim === 'dash') {
       // dash 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
-      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
@@ -2077,20 +2108,20 @@ export class Player extends Entity implements CombatEntity {
     // idle/run animation branch never fires — visually frozen on the last
     // aim/lift frame.
     if (!this.isAiming && this.erdaAnim === 'aim') {
-      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
     if (!this.isLifting && this.erdaAnim === 'lift') {
-      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
 
     // Lift override — while carrying a throwable container. 4-frame lift
     // animation at indices 35~38 (Aseprite tag `lift`, shifted +4).
-    // Walk cycle when |vx| > 10, hold frame 35 when stationary. Takes
-    // precedence over aim because hands are full.
+    // Walk cycle when ground locomotion is active; hold frame 35 when stationary.
+    // Takes precedence over aim because hands are full.
     if (this.isLifting && this.erdaFrames.length >= ERDA_LIFT_START + 4) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'lift') {
@@ -2098,7 +2129,7 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      const moving = Math.abs(this.vx) > 10 && this.grounded;
+      const moving = this.isGroundLocomotionActive();
       if (moving) {
         this.erdaAnimTimer += dt;
         const LIFT_WALK_FRAME_MS = 110;
@@ -2116,9 +2147,9 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Aim override — while charging an Ego Shard. 4-frame aim animation
-    // at indices 30~33. When the player is moving (|vx| > 10), cycle the
-    // 4 frames as a walk-aim shuffle. When stationary, hold frame 30
-    // (steady aim). Higher priority than idle/run/jump but below dash.
+    // at indices 30~33. When ground locomotion is active, cycle the 4 frames
+    // as a walk-aim shuffle. When stationary, hold frame 30 (steady aim).
+    // Higher priority than idle/run/jump but below dash.
     if (this.isAiming && this.erdaFrames.length >= ERDA_AIM_START + 4) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'aim') {
@@ -2136,7 +2167,7 @@ export class Player extends Entity implements CombatEntity {
         this.erdaPrevGrounded = this.grounded;
         return;
       }
-      const moving = Math.abs(this.vx) > 10;
+      const moving = this.isGroundLocomotionActive();
       if (moving) {
         this.erdaAnimTimer += dt;
         const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ≈ 440ms cycle
@@ -2200,7 +2231,7 @@ export class Player extends Entity implements CombatEntity {
     }
     if (this.erdaAnim === 'attack') {
       // attack 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
-      this.erdaAnim = this.grounded ? (Math.abs(this.vx) > 10 ? 'run' : 'idle') : 'air';
+      this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
@@ -2224,9 +2255,9 @@ export class Player extends Entity implements CombatEntity {
     }
     this.erdaPrevGrounded = this.grounded;
 
-    // 지상 상태에서 |vx| 로 idle ↔ run 전환. 공중/착지 시퀀스엔 개입하지 않음.
+    // Grounded idle/run switches from locomotion intent or velocity.
     if (this.grounded && (this.erdaAnim === 'idle' || this.erdaAnim === 'run')) {
-      const desired: 'idle' | 'run' = Math.abs(this.vx) > 10 ? 'run' : 'idle';
+      const desired = this.getGroundMovementState();
       if (desired !== this.erdaAnim) {
         this.erdaAnim = desired;
         this.erdaAnimFrame = 0;
@@ -2253,7 +2284,7 @@ export class Player extends Entity implements CombatEntity {
       case 'land': {
         // 반응성 우선: 좌우 이동이 걸리면 land 를 끊고 run 으로 점프컷.
         // 재점프는 다음 프레임 grounded 엣지가 takeoff 로 자동 전이시킴.
-        if (Math.abs(this.vx) > 10) {
+        if (this.isGroundLocomotionActive()) {
           this.erdaAnim = 'run';
           this.erdaAnimFrame = 0;
           this.erdaAnimTimer = 0;

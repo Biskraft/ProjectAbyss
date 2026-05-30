@@ -6,10 +6,12 @@ import { WallGate } from '@entities/WallGate';
 import { PileDriver } from '@effects/PileDriver';
 import { AnvilGateLaser } from '@effects/AnvilGateLaser';
 import { ItemWorldLeakageLayer } from '@effects/ItemWorldLeakageLayer';
+import { ItemWorldForgeBirth } from '@effects/ItemWorldForgeBirth';
 import { ExitGlow } from '@effects/ExitGlow';
 import { aabbOverlap, type AABB } from '@core/Physics';
 import { BgmController } from '@audio/BgmController';
 import { AudioBus } from '@audio/AudioBus';
+import type { ItemInstance } from '@items/ItemInstance';
 
 type DeployState =
   | 'Idle'
@@ -31,8 +33,8 @@ const T = {
   ItemInserted:    500,
   Awakening:      1500,
   ItemZoomIn:     2300,  // zoom-in finishes before item punch starts
-  ItemPunch:      4200,  // 1000ms grow/white + ~900ms disassemble/absorb
-  CameraPullBack: 4700,  // zoom back out after absorption
+  ItemPunch:      4200,  // placed item grows and travels to the laser entrance
+  CameraPullBack: 4700,  // zoom back out after the item reaches the laser entrance
   // Fallback only; normal WallDeployment exit is measured from the actual
   // laser burst so builder/non-builder timings both hold consistently.
   WallDeployment: 5700,
@@ -41,9 +43,6 @@ const T = {
   // 진입 방향 = pan 방향 = 플레이어가 가야 할 방향. 영화적 cue.
   TunnelPan:      7700,  // 이전 8700
 } as const;
-
-// Elapsed threshold within ItemPunch state at which suck begins.
-const PUNCH_SUCK_OFFSET = 1000; // ms after entering ItemPunch
 
 // Awakening shakes: 4 pulses starting at T.ItemInserted, 250 ms apart.
 const SHAKE_INTERVAL = 250;
@@ -58,6 +57,11 @@ const TUNNEL_Y_RAISE = 0;   // px: tunnel bottom flush with anvil Y
 const TUNNEL_END_INSET = 8;
 const LASER_DESATURATION_MS = 1000;
 const LASER_FIRE_FREEZE_MS = 2000;
+const SCREEN_GLASS_CRACK_MS = 980;
+const ITEM_BIRTH_LASER_FRONT_OFFSET = 48;
+const ITEM_MOVE_TO_LASER_DURATION = 1400;
+const LASER_CAMERA_PAN_OFFSET_PX = 20 * 16;
+const LASER_CAMERA_RETURN_DELAY_MS = 500;
 // ExitGlow 시작 x = tunnelLeft + 이 offset. anvil + 인근 영역 회피하고 벽
 // 시작점부터 dust 출현. 사용자 결정 2026-05-24: 8 cell (128px).
 const EXIT_GLOW_X_OFFSET = 128;
@@ -73,6 +77,11 @@ export class ItemDeploymentController {
   private humGain: GainNode | null = null;
   private pileDriver: PileDriver | null = null;
   private anvilLaser: AnvilGateLaser | null = null;
+  private itemBirthFx: ItemWorldForgeBirth | null = null;
+  private screenGlassCrack: Graphics | null = null;
+  private screenGlassCrackMs = -1;
+  private screenGlassOriginX = GAME_WIDTH * 0.5;
+  private screenGlassOriginY = GAME_HEIGHT * 0.5;
   private leakageLayer: ItemWorldLeakageLayer | null = null;
   /** 터널 안쪽 면(좌측 벽)에서 *오른쪽으로* 새어 나오는 빛. 'left' dir 라
    *  glow 가 rightward bleed + dust 입자가 inward(우측)로 부유. Deployed 진입
@@ -81,14 +90,15 @@ export class ItemDeploymentController {
   private tunnelOpened = false;
   private laserDesaturationActive = false;
   private laserDesaturationMs = 0;
-  private punchSuckTriggered = false;
   private laserBurstElapsed = -1;
+  private laserCameraTarget: { x: number; y: number } | null = null;
+  private laserCameraReturnDelayMs = -1;
+  private laserCameraReturned = false;
+  private laserPiecesReleased = false;
+  private itemBirthRevealed = false;
   // Item world coords — set in start().
   private anvilX = 0;
   private anvilY = 0;
-  // Gate pivot world coords — set in enterState('ItemPunch'), used for suck target.
-  private itemPunchOriginX = 0;
-  private itemPunchOriginY = 0;
   // Tunnel world coords — set in start(), used by WallDeployment and onOpenTunnel.
   private tunnelLeft  = 0;
   private tunnelTop   = 0;
@@ -104,6 +114,12 @@ export class ItemDeploymentController {
 
   get isActive(): boolean {
     return this.state !== 'Idle';
+  }
+
+  releaseItemBirthPieces(): void {
+    if (this.laserPiecesReleased) return;
+    this.itemBirthFx?.releaseFloatingPieces();
+    this.laserPiecesReleased = true;
   }
 
   constructor(
@@ -122,10 +138,12 @@ export class ItemDeploymentController {
     private readonly getItemFocus: (() => { x: number; y: number } | null) | null = null,
     /** Starts the punch/white animation on the item icon already placed on the anvil. */
     private readonly onItemPunchStart: (() => void) | null = null,
-    private readonly onItemDissolve: ((targetX: number, targetY: number) => void) | null = null,
+    private readonly onItemMoveToLaser: ((targetX: number, targetY: number) => void) | null = null,
     private readonly onItemAbsorbed: (() => void) | null = null,
     private readonly onDeploymentReady: (() => void) | null = null,
     private readonly getEntranceAABB: (() => AABB | null) | null = null,
+    private readonly getBirthItem: (() => ItemInstance | null) | null = null,
+    private readonly itemBirthLayer: Container | null = null,
   ) {}
 
   start(anvilX: number, anvilY: number): void {
@@ -134,8 +152,12 @@ export class ItemDeploymentController {
     this.tunnelOpened = false;
     this.laserDesaturationActive = false;
     this.laserDesaturationMs = 0;
-    this.punchSuckTriggered = false;
     this.laserBurstElapsed = -1;
+    this.laserCameraTarget = null;
+    this.laserCameraReturnDelayMs = -1;
+    this.laserCameraReturned = false;
+    this.laserPiecesReleased = false;
+    this.itemBirthRevealed = false;
     this.anvilX = anvilX;
     this.anvilY = anvilY;
     this.game.input.inputLocked = true;
@@ -176,6 +198,8 @@ export class ItemDeploymentController {
     }
 
     this.leakageLayer?.update(dt);
+    this.itemBirthFx?.update(dt);
+    this.updateScreenGlassCrack(dt);
 
     switch (this.state) {
       case 'ItemInserted':
@@ -200,10 +224,9 @@ export class ItemDeploymentController {
         break;
 
       case 'ItemPunch':
-        if (!this.punchSuckTriggered && this.elapsed >= T.ItemZoomIn + PUNCH_SUCK_OFFSET) {
-          this.punchSuckTriggered = true;
-          // Suck upward into the machine body (64px above gate pivot).
-          this.onItemDissolve?.(this.itemPunchOriginX, this.itemPunchOriginY - 64);
+        if (!this.itemBirthRevealed && this.elapsed >= T.ItemZoomIn + ITEM_MOVE_TO_LASER_DURATION) {
+          this.itemBirthFx?.revealItem();
+          this.itemBirthRevealed = true;
         }
         if (this.elapsed >= T.ItemPunch) this.enterState('CameraPullBack');
         break;
@@ -215,6 +238,7 @@ export class ItemDeploymentController {
       case 'WallDeployment':
         this.pileDriver?.update(dt);
         this.anvilLaser?.update(dt);
+        this.updateLaserCameraReturn(dt);
         {
           const shake = this.anvilLaser?.consumeShake() ?? 0;
           if (shake > 0) this.game.camera.shake(shake);
@@ -276,6 +300,9 @@ export class ItemDeploymentController {
           this.tunnelExitGlow = null;
           this.leakageLayer?.destroy();
           this.leakageLayer = null;
+          this.itemBirthFx?.destroy();
+          this.itemBirthFx = null;
+          this.destroyScreenGlassCrack();
           this.wallGate?.destroy();
           this.wallGate = null;
           this.state = 'Idle';
@@ -297,21 +324,24 @@ export class ItemDeploymentController {
         break;
 
       case 'ItemZoomIn':
-        // Temporarily redirect camera to the item so zoom-in frames correctly.
-        this.game.camera.target = this.getItemFocus?.() ?? { x: this.anvilX, y: this.anvilY };
+        // Temporarily redirect camera to the forged item birth point so zoom-in frames correctly.
+        this.game.camera.target = this.getItemBirthFocus();
         this.game.camera.zoomTo(2.5, 0.1);
+        this.startItemBirthFx();
         break;
 
       case 'ItemPunch': {
-        // Use gate pivot (= where the item icon sits) as the effect origin.
-        const pivot = this.getItemFocus?.() ?? { x: this.anvilX, y: this.anvilY - 47 };
-        this.itemPunchOriginX = pivot.x;
-        this.itemPunchOriginY = pivot.y;
         this.onItemPunchStart?.();
+        const focus = this.getItemBirthFocus();
+        this.onItemMoveToLaser?.(focus.x, focus.y);
         break;
       }
 
       case 'CameraPullBack':
+        if (!this.itemBirthRevealed) {
+          this.itemBirthFx?.revealItem();
+          this.itemBirthRevealed = true;
+        }
         this.onItemAbsorbed?.();
         // Restore camera follow target to player before zooming out.
         this.game.camera.target = this.player;
@@ -341,6 +371,7 @@ export class ItemDeploymentController {
         break;
 
       case 'CameraReturn':
+        this.returnLaserCameraToPlayer();
         this.pileDriver?.destroy();
         this.pileDriver = null;
         this.anvilLaser?.destroy();
@@ -439,6 +470,10 @@ export class ItemDeploymentController {
     this.tunnelOpened = true;
     this.laserBurstElapsed = this.elapsed;
     this.anvilLaser?.burst();
+    this.itemBirthFx?.strike();
+    // this.startScreenGlassCrack();
+    this.startLaserCameraPan();
+    this.game.hitstopFrames = Math.max(this.game.hitstopFrames, 8);
     this.laserDesaturationMs = LASER_DESATURATION_MS;
     this.setLaserDesaturation(true);
     this.game.camera.lockZoom(1.0);
@@ -481,10 +516,13 @@ export class ItemDeploymentController {
     this.game.camera.unlockZoom();
     this.leakageLayer?.destroy();
     this.leakageLayer = null;
+    this.itemBirthFx?.destroy();
+    this.itemBirthFx = null;
+    this.destroyScreenGlassCrack();
     this.tunnelExitGlow?.destroy();
     this.tunnelExitGlow = null;
     // Restore camera target if destroyed mid-zoom-in sequence.
-    if (this.state === 'ItemZoomIn' || this.state === 'ItemPunch') {
+    if (this.state === 'ItemZoomIn' || this.state === 'ItemPunch' || this.laserCameraTarget) {
       this.game.camera.target = this.player;
     }
     if (this.fadeOverlay?.parent) {
@@ -495,5 +533,151 @@ export class ItemDeploymentController {
     this.wallGate?.destroy();
     this.wallGate = null;
     this.state = 'Idle';
+  }
+
+  private startItemBirthFx(): void {
+    if (this.itemBirthFx) return;
+    const item = this.getBirthItem?.();
+    if (!item) return;
+    const focus = this.getItemBirthFocus();
+    const targetInsetX = 64;
+    const targetInsetY = 42;
+    const targetWidth = Math.max(96, this.tunnelWidth - targetInsetX - 24);
+    const targetHeight = Math.max(96, TUNNEL_H - targetInsetY * 2);
+    this.itemBirthFx = new ItemWorldForgeBirth({
+      item,
+      x: focus.x,
+      y: focus.y,
+      targetX: this.tunnelLeft + targetInsetX,
+      targetY: this.tunnelTop + targetInsetY,
+      targetWidth,
+      targetHeight,
+    });
+    (this.itemBirthLayer ?? this.entityLayer).addChild(this.itemBirthFx.container);
+    this.itemBirthFx.start(false);
+  }
+
+  private startScreenGlassCrack(): void {
+    this.destroyScreenGlassCrack();
+    const focus = this.getItemBirthFocus();
+    const zoom = this.game.camera.zoom;
+    this.screenGlassOriginX = Math.round((focus.x - this.game.camera.renderX) * zoom + GAME_WIDTH / 2);
+    this.screenGlassOriginY = Math.round((focus.y - this.game.camera.renderY) * zoom + GAME_HEIGHT / 2);
+    this.screenGlassCrack = new Graphics();
+    this.screenGlassCrack.eventMode = 'none';
+    this.game.feedbackOverlayContainer.addChild(this.screenGlassCrack);
+    this.screenGlassCrackMs = 0;
+    this.drawScreenGlassCrack();
+  }
+
+  private getItemBirthFocus(): { x: number; y: number } {
+    const laserOrigin = this.getLaserOrigin?.();
+    if (laserOrigin) {
+      return {
+        x: laserOrigin.x + ITEM_BIRTH_LASER_FRONT_OFFSET,
+        y: laserOrigin.y,
+      };
+    }
+    return this.getItemFocus?.() ?? { x: this.anvilX, y: this.anvilY - 47 };
+  }
+
+  private getPlayerCameraCenter(): { x: number; y: number } {
+    return {
+      x: this.player.x + this.player.width / 2,
+      y: this.player.y + this.player.height / 2,
+    };
+  }
+
+  private startLaserCameraPan(): void {
+    this.laserCameraTarget = {
+      x: this.game.camera.x + LASER_CAMERA_PAN_OFFSET_PX,
+      y: this.game.camera.y,
+    };
+    this.laserCameraReturnDelayMs = -1;
+    this.laserCameraReturned = false;
+    this.game.camera.setLookAhead(0);
+    this.game.camera.lookDirection = 0;
+    this.game.camera.target = this.laserCameraTarget;
+  }
+
+  private updateLaserCameraReturn(dt: number): void {
+    if (!this.laserCameraTarget || this.laserCameraReturned || !this.anvilLaser?.isDone) return;
+    this.laserCameraReturnDelayMs = Math.max(0, this.laserCameraReturnDelayMs) + dt;
+    if (this.laserCameraReturnDelayMs >= LASER_CAMERA_RETURN_DELAY_MS) {
+      this.returnLaserCameraToPlayer();
+    }
+  }
+
+  private returnLaserCameraToPlayer(): void {
+    if (this.laserCameraReturned) return;
+    this.game.camera.target = this.getPlayerCameraCenter();
+    this.laserCameraTarget = null;
+    this.laserCameraReturnDelayMs = -1;
+    this.laserCameraReturned = true;
+  }
+
+  private updateScreenGlassCrack(dt: number): void {
+    if (!this.screenGlassCrack || this.screenGlassCrackMs < 0) return;
+    this.screenGlassCrackMs += dt;
+    if (this.screenGlassCrackMs >= SCREEN_GLASS_CRACK_MS) {
+      this.destroyScreenGlassCrack();
+      return;
+    }
+    this.drawScreenGlassCrack();
+  }
+
+  private drawScreenGlassCrack(): void {
+    if (!this.screenGlassCrack) return;
+    const t = Math.min(1, this.screenGlassCrackMs / SCREEN_GLASS_CRACK_MS);
+    const spread = Math.min(1, t / 0.45);
+    const fade = t < 0.72 ? 1 : Math.max(0, 1 - (t - 0.72) / 0.28);
+    const ox = Math.max(0, Math.min(GAME_WIDTH, this.screenGlassOriginX));
+    const oy = Math.max(0, Math.min(GAME_HEIGHT, this.screenGlassOriginY));
+    const g = this.screenGlassCrack;
+    g.clear();
+
+    g.rect(ox, 0, Math.max(0, GAME_WIDTH - ox), GAME_HEIGHT)
+      .fill({ color: 0x020307, alpha: 0.06 * fade * spread });
+
+    for (let i = 0; i < 12; i++) {
+      const k = i / 11;
+      const angle = -0.84 + k * 1.68 + Math.sin(i * 8.23) * 0.07;
+      const len = (GAME_WIDTH - ox + 80 + (i % 3) * 48) * spread;
+      const midX = ox + len * (0.32 + (i % 4) * 0.035);
+      const midY = oy + Math.sin(angle) * len * 0.22 + (i % 2 ? 10 : -10) * spread;
+      const x1 = ox + Math.cos(angle) * len;
+      const y1 = oy + Math.sin(angle) * len;
+      g.moveTo(ox, oy)
+        .lineTo(midX, midY)
+        .lineTo(x1, y1)
+        .stroke({ color: 0xffffff, width: 1.2 + spread * 1.1, alpha: 0.86 * fade });
+      g.moveTo(ox, oy)
+        .lineTo(midX, midY)
+        .lineTo(x1, y1)
+        .stroke({ color: 0x61d6ff, width: 5 + spread * 8, alpha: 0.12 * fade });
+      if (i % 3 === 1) {
+        const forkX = midX + 28 * spread;
+        const forkY = midY + (i % 2 === 0 ? -34 : 34) * spread;
+        g.moveTo(midX, midY)
+          .lineTo(forkX, forkY)
+          .stroke({ color: 0xffffff, width: 0.9 + spread, alpha: 0.55 * fade });
+      }
+    }
+
+    const slitW = 18 + spread * 34;
+    g.poly([
+      ox + 8 * spread, oy - 10,
+      GAME_WIDTH, oy - 34 * spread,
+      GAME_WIDTH, oy + 34 * spread,
+      ox + slitW, oy + 10,
+    ]).fill({ color: 0x000000, alpha: 0.12 * fade * spread });
+  }
+
+  private destroyScreenGlassCrack(): void {
+    this.screenGlassCrackMs = -1;
+    if (!this.screenGlassCrack) return;
+    this.screenGlassCrack.parent?.removeChild(this.screenGlassCrack);
+    this.screenGlassCrack.destroy();
+    this.screenGlassCrack = null;
   }
 }

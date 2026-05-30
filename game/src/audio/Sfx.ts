@@ -72,6 +72,10 @@ class SfxSystem {
   /** AudioBus 에 등록된 asset id 트래킹 — 중복 add() 방어. */
   private registeredAssets = new Set<string>();
 
+  constructor() {
+    AudioBus.onSettingsChanged(() => this.applyMasterGain());
+  }
+
   /** Shared AudioContext from @pixi/sound; falls back to a self-owned context only in legacy paths. */
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;

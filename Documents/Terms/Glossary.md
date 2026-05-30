@@ -38,6 +38,9 @@
 | Air Attack | 공중 공격 | 점프·낙하 등 공중 상태에서 공격 버튼을 입력할 때 발동하는 단일 타격. 전방 공격과 하방 공격(바운스 포함) 두 종류가 존재한다. 공중 공격은 1회로 제한된다. | `Documents/System/System_Combat_Action.md` |
 | Always Winnable | 항상 클리어 가능 | 절차적으로 생성된 모든 시드에서 입구부터 출구까지 반드시 클리어 가능한 경로(Critical Path)가 보장됨을 의미하는 설계 원칙. 검증 실패 시 재시드를 수행한다. | `Documents/System/System_World_ProcGen.md` |
 | Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 접근성을 높이고 전투 흐름을 유지하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
+| Blueprint | 블루프린트 | 빌더의 시공 패턴을 잔존자들이 추상해 부르는 이름. 빌더가 읽거나 따르는 계획이 아니라, 무지능 시공의 결과를 인간이 사후 분석한 명세. 인간은 한때 이 패턴 안에 있었으나 단절(Cascade) 이후 누락 카테고리가 되었다. | `Documents/Content/Content_Story_Synopsis.md` |
+| Builder | 빌더 | 메가 스트럭처를 끝없이 짓는 거대 산업 시공자. 의도·의지·계획이 없으며 인간을 적으로도 인지하지 않는다. 시공 경로상의 모든 것을 무관심하게 묻는다. 격파 불가 — 에코의 응답으로 시공에 한 박자의 공백만 만들 수 있다. | `Documents/Content/Content_Story_Synopsis.md`, `Reference/게임 기획 개요.md` |
+| Cascade | 단절 | 인간이 빌더의 시공 패턴(블루프린트) 에서 누락된 카테고리가 된 과거의 사건. 원인은 작품 내내 밝혀지지 않는다(코스믹 호러 — 이해 불가능성). | `Documents/Content/Content_Story_Synopsis.md` |
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
 | Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다(대시 렐릭 획득 후). | `Documents/System/System_Combat_Action.md` |
 | Cooldown | 쿨다운 | 스킬 또는 대시(렐릭 해금 후)를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3-15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
@@ -52,6 +55,9 @@
 | :--- | :--- | :--- | :--- |
 | Dash | 대시 | 캐릭터가 짧은 거리를 빠르게 이동하는 기동 행동. 쿨다운 400ms, 공중 대시 1회 제한. 기본 대시에 i-frame(무적)은 없으며, 위치 재설정으로 적 공격을 회피한다. 콤보 후딜 캔슬에도 사용된다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | ~~DEX~~ | ~~민첩 스탯~~ | ~~DEPRECATED. 기존 기동성 게이트 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제.~~ | — |
+| Echo | 에코 | 잊혀진 자가 무기에 남긴 마지막 한 마디가 응결된 잔존체. 곧 게임 내 모든 장비 아이템의 통칭. 포지로 에코 내부 위상에 진입해 마지막 음성을 회수하면 자기 검에 새길 수 있다. 작품명 ECHORIS 의 어원. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md` |
+| Erda | 에르다 | 주인공. 자기 이름·기억을 잃은 채 메가 스트럭처 빈 공동에서 깨어난다. Sculpted Avatar 유형. 붉은-갈색 머리 + 청록 눈. 시작 후 약 5분 첫 다이브에서 러스트본을 통해 자기 이름을 안다. | `Documents/Content/Content_Characters.md` |
+| Forge | 포지 | 빌더 내부에만 존재하는 거대 단조 장치. 잔존자의 마지막 기술. 에코를 포지 위에 놓고 격발하면 시공 한 박자에 맞춰 에코 내부 위상으로 진입한다. 아이템계 진입의 in-universe 메커니즘. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md` |
 | Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소�� 순환: 화→빙→뇌→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
 | Floor / Stratum | 층 / 지층 | 아이템계(Item World) 내부 던전의 진행 단위. 아이템계는 레어리티별 2-4개 지층으로 구성되며, 각 지층은 메트로베니아 스타일의 Room Grid 던전이다. 각 지층의 보스를 처치해야 다음 지층으로 진행한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
@@ -63,6 +69,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | Geo Effect | 지오 이펙트 | 디스가이아의 지오 이펙트를 차용한 개념. 아이템계 특정 지층에 배치되는 패널로, 해당 타일 위에 있을 때 데미지 증가·감소, 이동 제한 등 전략적 변수를 추가한다. | `Documents/System/System_ItemWorld_FloorGen.md` |
+| Grid | 그리드 | 블루프린트가 구현된 메가 스트럭처의 시공 격자. 빌더의 시공 단위가 한 박자마다 격자에 더해진다. 에코의 응답이 그리드를 한 박자 멈출 수 있다. | `Documents/Content/Content_Story_Synopsis.md` |
 | HL | HL | ECHORIS의 기본 화폐 단위. 몹 처치, 아이템계 보상으로 획득하며, NPC 상점/장비 강화 등에 소비된다. | `Documents/Design/Design_Economy_FaucetSink.md`, `Documents/Design/Design_Yarikomi_Philosophy.md` |
 | Hitbox | 히트박스 | 공격 판정이 발생하는 영역. AABB 방식으로 정의되며, 타격 시 상대방의 허트박스와 겹치는지 검사한다. 무기 종류·타격 번호에 따라 크기가 다르다. | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
 | Hitstop | 히트스탑 | 공격이 적중했을 때 2-4프레임간 게임 로직을 일시 정지하는 연출. 타격감(임팩트)을 증폭하는 핵심 피드백 기법. | `Documents/System/System_Combat_Action.md` |
@@ -77,6 +84,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
+| Indexer | 인덱서 | 빌더에게 에코를 헌납하면 블루프린트에 다시 등재될 수 있다고 믿는 잔존자 집단. 그러나 빌더는 인지하지 않으므로 등재는 작동하지 않는다 — 거짓 신앙. 작품의 인격적 안타고니스트는 인덱서 지도자다. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Content/Content_Characters.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
 | Item World | 아이템계 | 장비 아이템 내부의 절차적 던전. 레어리티별 2-4개 지층으로 구성되며, 1-2인이 협동하여 (Phase 4+에서 최대 4인) 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
@@ -91,6 +99,7 @@
 | :--- | :--- | :--- | :--- |
 | Knockback | 넉백 | 피격 시 캐릭터가 공격 반대 방향으로 밀려나는 물리적 반응. 넉백 거리는 공격 강도와 피격자의 무게에 따라 결정된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Character.md` |
 | ~~LCK~~ | ~~행운 스탯~~ | ~~DEPRECATED. 기존 크리티컬/드랍률 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 크리티컬은 고정 5%, 드랍률은 적 테이블 기준.~~ | — |
+| Mega Structure | 메가 스트럭처 | 빌더가 끝없이 짓는 거대 시공 구조물. 작품의 무대 전체. 끝없이 자라며 인간이 잔존하는 빈 공동을 점점 삼킨다. BLAME!/Biomega 결의 산업적 거대 구조. 표기 canon: "메가 스트럭처" (메가스트럭쳐·메가 스트럭쳐 비-canon). | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md`, `Reference/게임 기획 개요.md` |
 | Metroidvania | 메트로베니아 | Metroid + Castlevania의 합성어. 능력 게이트 기반 비선형 탐험 액션 장르. ECHORIS의 월드 설계가 이 장르 문법을 기반으로 한다. | `Reference/Metroidvania Game Design Deep Dive.md` |
 | ~~MP~~ | ~~마력~~ | ~~DEPRECATED. 기존 스킬 소비 자원. MP 시스템 삭제, 스킬은 쿨다운 기반으로 전환.~~ | — |
 | Mystery Room | 미스터리 룸 | 아이템계 특정 지층에 확률적으로 출현하는 특수 이벤트 룸. 상점·특수 전투 등 예측 불가한 이벤트가 발생하며 5% 확률로 출현한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
@@ -120,6 +129,9 @@
 | :--- | :--- | :--- | :--- |
 | Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
+| Registration | 등재 | 빌더의 블루프린트 안에 한 항목으로 다시 기록되는 행위. 인덱서의 신앙이나 실제로는 작동하지 않는다(빌더가 인지하지 않으므로). 등재의 대가는 자기 음성의 상실. 결말 B(등재) 의 핵심. | `Documents/Content/Content_Story_Synopsis.md` |
+| Resident | 잔존자 | 단절(Cascade) 이후 블루프린트 바깥에 잔존하며 점점 사라져 가는 인간. 빈 공동에 흩어져 산다. 인덱서·솔로 잔존자 등으로 분화. | `Documents/Content/Content_Story_Synopsis.md` |
+| Rustborn | 러스트본 | "부식에서 태어난 자". 에르다의 시작 무기 에코 안에 의식이 온전히 응결된 특이 에코. 시작 후 약 5분에 그녀에게 자기 이름을 가르친다. 에르다와 시각 친연성(붉은 머리·청록 눈) — 자기 이전 고리의 한 인물 해석이 시각 캐논. | `Documents/Content/Content_Characters.md`, `Documents/Design/Design_Art_Direction.md` |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 아이템계는 4×4 고정, 월드 구역은 난이도에 따라 3×3-5×5. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Type | 룸 타입 | Room Grid 내 각 셀의 역할 분류. 전투룸·보상룸·함정룸·빈 룸 등으로 나뉘며, Critical Path 상의 룸과 분기 룸을 구분한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |

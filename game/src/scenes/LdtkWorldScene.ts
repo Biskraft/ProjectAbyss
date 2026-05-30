@@ -26,7 +26,7 @@ import { aabbOverlap, isOneWay, isSolid } from '@core/Physics';
 import { LdtkLoader } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
-import { createBoundsGuard } from '@level/BoundsGuard';
+import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX, visualBoundsBleedArea } from '@level/VisualBoundsBleed';
 import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { Ghost } from '@entities/Ghost';
@@ -347,7 +347,6 @@ export class LdtkWorldScene extends Scene {
   private playerInBuilder = false;
   private builderOneWayDropThroughGraceMs = 0;
   private renderer!: LdtkRenderer;
-  private boundsGuard: Graphics | null = null;
   private procDecorator: ProceduralDecorator | null = null;
   private _extraDecorators: ProceduralDecorator[] = [];
   private wallPaletteFilter: PaletteSwapFilter | null = null;
@@ -602,6 +601,9 @@ export class LdtkWorldScene extends Scene {
   private itemWorldEntryTransitionActive = false;
   private worldVisualsReleasedForItemWorld = false;
   private ghostOverlay: ItemWorldGhostOverlay | null = null;
+  private ghostRevealLastPlayerX: number | null = null;
+  private ghostRevealLastPlayerY: number | null = null;
+  private ghostRevealActivated = false;
   private ghostPendingTimer = -1;
   private ghostPendingParams: { x: number; y: number; w: number; h: number } | null = null;
   private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
@@ -1396,7 +1398,7 @@ export class LdtkWorldScene extends Scene {
 
     // Pause menu (9-slice from UISkin) ??uiContainer(native) 嶺뚯쉳???(UI native 1??節띉?.
     // input ?熬곣뫀堉???SELECT KEYBOARD ??類λ땹嶺뚮ㅄ維???preset 嶺뚯빖留????⑤챷??
-    this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input);
+    this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input, this.game);
     this.pauseMenu.onAction = (action) => {
       if (action === 'continue') { this.isPaused = false; }
       else if (action === 'status') { this.openCharacterStats(); }
@@ -1883,6 +1885,8 @@ export class LdtkWorldScene extends Scene {
     // ??????롪퍒???(2026-05-03): "Open Inventory" hint ??????뵜 cutscene + EGO
     // ????? 嶺뚮ㅄ維筌???硫명뀊 ????戮?뻣. pendingInventoryHint flag ?띠럾? set ??琉우꽑 ???깅さ嶺?
     // 嶺??熬곣뫁?????リ턁筌??브퀗?쀦뤃??롪틵???????戮?뻣.
+    this.clearInventoryTutorialHintIfRustbornEquipped();
+
     if (this.pendingInventoryHint) {
       if (this.pendingInventoryHintDelayMs > 0) {
         this.pendingInventoryHintDelayMs = Math.max(0, this.pendingInventoryHintDelayMs - dt);
@@ -2156,11 +2160,7 @@ export class LdtkWorldScene extends Scene {
         // 2026-05-18: ???リ퐛?洹먮봾??hint ??*Rustborn ???깆젷 嶺뚢뼰維????戮곗젍* ???異?dismiss.
         // ?????? ???섎???쒕뼬?깃꼍???띠룆?녽뇡??源녿뮡????댟??怨룸츩?????hint ??? ?????リ퐛?洹먮봾??嶺뚮ㅄ維???
         // "Rustborn 嶺뚢뼰維?? ???덈???????????怨뺤쭢????硫몃룎?????덈? ?熬곣뫁?룟슖??筌뤾쑴??
-        const equipped = this.inventory.equipped;
-        if (equipped?.def.id === 'sword_rustborn') {
-          this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
-          this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
-        }
+        this.clearInventoryTutorialHintIfRustbornEquipped();
       }
       return; // Pause game while inventory open
     }
@@ -2285,6 +2285,9 @@ export class LdtkWorldScene extends Scene {
     const preUpdateLastSafeY = this.player.lastSafeY;
     this.player.onCarrier = wasPlayerOnBuilder;
     this.player.carrierVelocityY = wasPlayerOnBuilder ? this.builderCarrierVelocityY : 0;
+    if (this.isPlayerStandingOnContainerTop()) {
+      this.player.forceGrounded(true);
+    }
     this.player.update(dt);
     this.resolvePlayerAgainstLockedDoors();
     if (this.builderOneWayDropThroughGraceMs > 0) {
@@ -3053,10 +3056,22 @@ export class LdtkWorldScene extends Scene {
       let plx: number | undefined;
       let ply: number | undefined;
       if (this.player) {
-        plx = this.player.container.x + this.player.width  / 2 - this.ghostOverlay.container.x;
-        ply = this.player.container.y + this.player.height     - this.ghostOverlay.container.y;
+        const playerWorldX = this.player.container.x + this.player.width / 2;
+        const playerWorldY = this.player.container.y + this.player.height;
+        plx = playerWorldX - this.ghostOverlay.container.x;
+        ply = playerWorldY - this.ghostOverlay.container.y;
+        if (this.ghostRevealLastPlayerX !== null && this.ghostRevealLastPlayerY !== null) {
+          const dx = playerWorldX - this.ghostRevealLastPlayerX;
+          const dy = playerWorldY - this.ghostRevealLastPlayerY;
+          if (dx * dx + dy * dy > 1) {
+            this.ghostRevealActivated = true;
+            this.itemDeployment?.releaseItemBirthPieces();
+          }
+        }
+        this.ghostRevealLastPlayerX = playerWorldX;
+        this.ghostRevealLastPlayerY = playerWorldY;
       }
-      this.ghostOverlay.update(dt, plx, ply);
+      this.ghostOverlay.update(dt, plx, ply, this.ghostRevealActivated);
     }
     if (this.ghostPendingTimer >= 0 && !this.ghostOverlay && this.ghostPendingParams) {
       this.ghostPendingTimer += dt;
@@ -3121,7 +3136,7 @@ export class LdtkWorldScene extends Scene {
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2 + Math.round(this.player.visualYOffset);
 
-    cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei);
+    cam.setBounds(0, 0, this.currentLevel.pxWid, this.currentLevel.pxHei, VISUAL_BOUNDS_BLEED_PX);
     cam.target = { x: cx, y: cy };
 
     // Vertical look: hold UP/DOWN while idle to peek after a delay
@@ -3661,7 +3676,6 @@ export class LdtkWorldScene extends Scene {
 
   render(alpha: number): void {
     if (!this.initialized) return;
-    if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     // During post-transition snap, disable interpolation to prevent 1-frame jitter
     const a = this.postTransitionSnapFrames > 0 ? 1 : alpha;
     this.player.render(a);
@@ -4271,8 +4285,23 @@ export class LdtkWorldScene extends Scene {
     const allExtraTiles = Object.values(level.extraTileLayers).flat();
     const combinedInterior = level.interiorTiles.concat(allExtraTiles);
     this.renderer.renderLevel(level.backgroundTiles, filteredWalls, level.shadowTiles, this.atlases, undefined, this.collisionGrid, combinedInterior);
-    this.boundsGuard = createBoundsGuard(level.pxWid, level.pxHei, 0x192433);
-    this.renderer.container.addChildAt(this.boundsGuard, 0);
+    addLdtkVisualBoundsBleed({
+      target: {
+        bgLayer: this.renderer.bgLayer,
+        interiorLayer: this.renderer.interiorLayer,
+        wallLayer: this.renderer.wallLayer,
+        specialLayer: this.renderer.specialLayer,
+        shadowLayer: this.renderer.shadowLayer,
+      },
+      atlases: this.atlases,
+      boundsWidth: level.pxWid,
+      boundsHeight: level.pxHei,
+      bgTiles: level.backgroundTiles,
+      wallTiles: filteredWalls,
+      shadowTiles: level.shadowTiles,
+      interiorTiles: combinedInterior,
+      collisionGrid: this.collisionGrid,
+    });
     this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
@@ -4326,7 +4355,7 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Camera bounds
-    this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei);
+    this.game.camera.setBounds(0, 0, level.pxWid, level.pxHei, VISUAL_BOUNDS_BLEED_PX);
 
 
     // Area title on entry. During the intro fade-in we must defer the banner
@@ -5909,7 +5938,7 @@ export class LdtkWorldScene extends Scene {
         // Stand on physical top of the container (= cy0).
         p.y = cy0 - p.height;
         if (p.getVy() > 0) p.vy = 0;
-        p.forceGrounded();
+        p.forceGrounded(true);
       } else if (min === overlapBottom) {
         // Container pressed down onto player head ??push container UP.
         c.y -= overlapBottom;
@@ -5937,6 +5966,24 @@ export class LdtkWorldScene extends Scene {
         p.x = cx1;
       }
     }
+  }
+
+  private isPlayerStandingOnContainerTop(): boolean {
+    const p = this.player;
+    const feetY = p.y + p.height;
+    const prevFeetY = p.prevY + p.height;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      const cx0 = c.colX;
+      const cx1 = c.colX + c.colW;
+      const topY = c.colY;
+      const horizontallySupported = p.x + p.width > cx0 + 1 && p.x < cx1 - 1;
+      if (!horizontallySupported) continue;
+      const feetAtTop = feetY >= topY - 2 && feetY <= topY + 2;
+      const cameFromAbove = prevFeetY <= topY + 4;
+      if (feetAtTop && cameFromAbove && p.getVy() >= -1) return true;
+    }
+    return false;
   }
 
   /**
@@ -8022,15 +8069,14 @@ export class LdtkWorldScene extends Scene {
     return false;
   }
 
-  private resolvePlayerSolidOverlapAfterBuilder(stampDeltaY: number): boolean {
+  private resolvePlayerSolidOverlap(
+    preferredDirs: Array<{ x: number; y: number }>,
+    maxDist = TILE_SIZE,
+  ): boolean {
     if (!this.playerCollisionOverlapsSolidAt(this.player.x, this.player.y)) return false;
 
-    const verticalFirst = stampDeltaY < 0
-      ? [{ x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }]
-      : [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
-
-    for (let dist = 1; dist <= TILE_SIZE; dist++) {
-      for (const dir of verticalFirst) {
+    for (let dist = 1; dist <= maxDist; dist++) {
+      for (const dir of preferredDirs) {
         const nextX = this.player.x + dir.x * dist;
         const nextY = this.player.y + dir.y * dist;
         if (this.playerCollisionOverlapsSolidAt(nextX, nextY)) continue;
@@ -8044,6 +8090,32 @@ export class LdtkWorldScene extends Scene {
     }
 
     return false;
+  }
+
+  private resolvePlayerSolidOverlapAfterBuilder(stampDeltaY: number): boolean {
+    const verticalFirst = stampDeltaY < 0
+      ? [{ x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }]
+      : [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
+    return this.resolvePlayerSolidOverlap(verticalFirst);
+  }
+
+  private resolvePlayerSolidOverlapAfterGhostTile(tileCol: number, tileRow: number): boolean {
+    const tileCx = tileCol * TILE_SIZE + TILE_SIZE / 2;
+    const tileTop = tileRow * TILE_SIZE;
+    const playerCx = this.player.x + this.player.width / 2;
+    const playerMidY = this.player.y + this.player.height / 2;
+    const awayX = playerCx >= tileCx ? 1 : -1;
+    const towardX = -awayX;
+
+    const preferredDirs = tileTop >= playerMidY
+      ? [{ x: 0, y: -1 }, { x: awayX, y: 0 }, { x: towardX, y: 0 }, { x: 0, y: 1 }]
+      : [{ x: awayX, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }, { x: towardX, y: 0 }];
+
+    const resolved = this.resolvePlayerSolidOverlap(preferredDirs, TILE_SIZE * 2);
+    if (resolved && this.player.vy > 0 && this.player.y + this.player.height <= tileTop + TILE_SIZE) {
+      this.player.vy = 0;
+    }
+    return resolved;
   }
 
   private getBuilderStampSet(): Set<number> {
@@ -8891,6 +8963,19 @@ export class LdtkWorldScene extends Scene {
     this.pendingInventoryHintDelayMs = delayMs;
   }
 
+  private clearInventoryTutorialHintIfRustbornEquipped(): void {
+    if (this.inventory.equipped?.def.id !== 'sword_rustborn') return;
+
+    this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
+    this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
+    if (this.pendingInventoryHint === 'first_pickup' || this.pendingInventoryHint === 'first_iw_return') {
+      this.pendingInventoryHint = null;
+      this.pendingInventoryHintDelayMs = 0;
+    }
+    this.pendingFirstIwReturnHintHadFirstBossClear = null;
+    this.hud.setItemKeyHighlight(false);
+  }
+
   private completePendingPortalEntry(): void {
     const data = this.pendingPortalData;
     if (!data) return;
@@ -9608,6 +9693,17 @@ export class LdtkWorldScene extends Scene {
       return (grid[row]?.[col] ?? 0) !== 0;
     });
     this.renderer.rebuildWallLayer(filteredTiles, this.atlases, this.collisionGrid);
+    addLdtkVisualBoundsBleed({
+      target: {
+        wallLayer: this.renderer.wallLayer,
+        specialLayer: this.renderer.specialLayer,
+      },
+      atlases: this.atlases,
+      boundsWidth: this.currentLevel.pxWid,
+      boundsHeight: this.currentLevel.pxHei,
+      wallTiles: filteredTiles,
+      collisionGrid: this.collisionGrid,
+    });
     this.applyTerrainFilterAreas(this.currentLevel.pxWid, this.currentLevel.pxHei);
   }
 
@@ -9640,7 +9736,7 @@ export class LdtkWorldScene extends Scene {
     // almost black while unfiltered sprites remain. Pin the filter/bounds area
     // in each layer's local level coordinates so camera movement cannot affect
     // the computed filter input.
-    const area = new Rectangle(0, 0, width, height);
+    const area = visualBoundsBleedArea(width, height);
     const apply = (layer?: Container | null) => {
       if (!layer) return;
       layer.filterArea = area;
@@ -9798,9 +9894,12 @@ export class LdtkWorldScene extends Scene {
     ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
     ghost.itemContainer.x = ghost.container.x;
     ghost.itemContainer.y = ghost.container.y;
+    const laserOrigin = this.anvil?.getGatePivotWorld();
+    ghost.setShardSourceWorld((laserOrigin?.x ?? x) + 48, laserOrigin?.y ?? y + h * 0.5);
     this.extendWorldForGhostStream(ghost);
-    this.container.addChild(ghost.container);
-    this.container.addChild(ghost.itemContainer);
+    const entityLayerIndex = this.container.getChildIndex(this.entityLayer);
+    this.container.addChildAt(ghost.container, entityLayerIndex);
+    this.container.addChildAt(ghost.itemContainer, entityLayerIndex + 1);
     const rimFilter = new RimLightFilter({ color: 0x4499ff, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
     const ghostFilters: Filter[] = [rimFilter];
     if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
@@ -9819,27 +9918,42 @@ export class LdtkWorldScene extends Scene {
       height: ghost.builtPxH,
     };
 
-    // Stamp ghost collision into the streamed extension. Inside the ghost room,
-    // air must be real air so the player can walk into the ItemStratum preview.
-    if (debugLevel) {
-      const TILE = 16;
-      const gx0 = Math.floor(ghost.container.x / TILE);
-      const gy0 = Math.floor(ghost.container.y / TILE);
-      for (let r = 0; r < debugLevel.gridH; r++) {
-        const worldRow = this.collisionGrid[gy0 + r];
-        if (!worldRow) continue;
-        for (let c = 0; c < debugLevel.gridW; c++) {
-          const t = debugLevel.collisionGrid[r]?.[c] ?? 0;
-          const gc = gx0 + c;
-          if (gc >= 0 && gc < worldRow.length) {
-            if (!this.isGhostStreamExtendedCell(gy0 + r, gc)) {
-              this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
-            }
-            worldRow[gc] = t;
-          }
+    this.prepareGhostWorldCollision(ghost);
+    this.ghostRevealLastPlayerX = this.player.container.x + this.player.width / 2;
+    this.ghostRevealLastPlayerY = this.player.container.y + this.player.height;
+    this.ghostRevealActivated = false;
+  }
+
+  private prepareGhostWorldCollision(ghost: ItemWorldGhostOverlay): void {
+    const sourceGrid = ghost.getCollisionGrid();
+    const TILE = 16;
+    const gx0 = Math.floor(ghost.container.x / TILE);
+    const gy0 = Math.floor(ghost.container.y / TILE);
+    for (let r = 0; r < sourceGrid.length; r++) {
+      const worldRow = this.collisionGrid[gy0 + r];
+      if (!worldRow) continue;
+      const sourceRow = sourceGrid[r] ?? [];
+      for (let c = 0; c < sourceRow.length; c++) {
+        const gc = gx0 + c;
+        if (gc < 0 || gc >= worldRow.length) continue;
+        if (!this.isGhostStreamExtendedCell(gy0 + r, gc)) {
+          this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
         }
+        worldRow[gc] = 0;
       }
     }
+    ghost.setTileBuildCallback((col, row, value) => this.stampGhostCollisionTile(ghost, col, row, value));
+    this.player.roomData = this.collisionGrid;
+  }
+
+  private stampGhostCollisionTile(ghost: ItemWorldGhostOverlay, col: number, row: number, value: number): void {
+    const TILE = 16;
+    const gy = Math.floor(ghost.container.y / TILE) + row;
+    const gx = Math.floor(ghost.container.x / TILE) + col;
+    const worldRow = this.collisionGrid[gy];
+    if (!worldRow || gx < 0 || gx >= worldRow.length) return;
+    worldRow[gx] = value;
+    if (isSolid(value)) this.resolvePlayerSolidOverlapAfterGhostTile(gx, gy);
   }
 
   private extendWorldForGhostStream(ghost: ItemWorldGhostOverlay): void {
@@ -9867,7 +9981,7 @@ export class LdtkWorldScene extends Scene {
     this.player.roomData = this.collisionGrid;
     const streamRight = Math.max(this.currentLevel.pxWid, requiredCols * tile);
     const streamBottom = Math.max(this.currentLevel.pxHei, requiredRows * tile);
-    this.game.camera.setBounds(0, 0, streamRight, streamBottom);
+    this.game.camera.setBounds(0, 0, streamRight, streamBottom, VISUAL_BOUNDS_BLEED_PX);
   }
 
   private isGhostStreamExtendedCell(row: number, col: number): boolean {
@@ -9886,6 +10000,9 @@ export class LdtkWorldScene extends Scene {
     }
     this.ghostPendingTimer = -1;
     this.ghostPendingParams = null;
+    this.ghostRevealLastPlayerX = null;
+    this.ghostRevealLastPlayerY = null;
+    this.ghostRevealActivated = false;
     if (restoreCollision) this.restoreGhostWorldCollision(rerender);
     else this.clearGhostStreamState(false);
   }
@@ -9924,6 +10041,7 @@ export class LdtkWorldScene extends Scene {
         restore.cameraBounds.top,
         restore.cameraBounds.right,
         restore.cameraBounds.bottom,
+        VISUAL_BOUNDS_BLEED_PX,
       );
     } else {
       this.game.camera.clearBounds();
@@ -11174,11 +11292,17 @@ export class LdtkWorldScene extends Scene {
 
     this.anvil.used = false;
     this.anvil.item = null;
+    this.lastUsedAnvilItem = null;
     this.anvil.retireAfterFirstBoss = true;
     void this.anvil.setDisabled(true);
     this.anvilPrompts.hideAll();
     if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
       this.inventoryUI.close();
+    }
+    const pendingHadFirstBossClear = this.pendingFirstIwReturnHintHadFirstBossClear;
+    this.pendingFirstIwReturnHintHadFirstBossClear = null;
+    if (pendingHadFirstBossClear !== null) {
+      this.showFirstItemWorldReturnInventoryHint(pendingHadFirstBossClear, 500);
     }
   }
 

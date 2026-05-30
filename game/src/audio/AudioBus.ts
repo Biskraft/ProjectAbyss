@@ -38,6 +38,14 @@ interface ChannelState {
   muted: boolean;
 }
 
+type SettingsChangeListener = () => void;
+
+interface ActiveInstance {
+  instance: IMediaInstance;
+  channel: AudioChannel;
+  base: number;
+}
+
 /** Default channel volumes match LUFS targets in System_Audio_Direction §11-1. */
 const DEFAULT_CHANNEL_STATE: Record<AudioChannel, ChannelState> = {
   bgm:     { volume: 0.55, muted: false },
@@ -46,7 +54,7 @@ const DEFAULT_CHANNEL_STATE: Record<AudioChannel, ChannelState> = {
   voice:   { volume: 0.70, muted: false },
 };
 
-const DEFAULT_MASTER_VOLUME = 0.7;
+const DEFAULT_MASTER_VOLUME = 1.0;
 
 // ---------------------------------------------------------------------------
 // Implementation
@@ -61,11 +69,55 @@ class AudioBusImpl {
   };
   private masterVolume = DEFAULT_MASTER_VOLUME;
   private masterMuted = false;
+  private activeInstances = new Set<ActiveInstance>();
+  private settingsListeners = new Set<SettingsChangeListener>();
 
   /** Effective volume for a single play call. */
   private effective(channel: AudioChannel, base: number): number {
     if (this.masterMuted || this.channels[channel].muted) return 0;
     return clamp01(this.masterVolume) * clamp01(this.channels[channel].volume) * clamp01(base);
+  }
+
+  private notifySettingsChanged(): void {
+    this.refreshActiveInstances();
+    for (const listener of this.settingsListeners) {
+      try { listener(); } catch { /* Keep audio settings fanout isolated. */ }
+    }
+  }
+
+  private refreshActiveInstances(): void {
+    for (const active of [...this.activeInstances]) {
+      try {
+        active.instance.set('volume', this.effective(active.channel, active.base));
+      } catch {
+        this.activeInstances.delete(active);
+      }
+    }
+  }
+
+  private trackInstance(instance: IMediaInstance, channel: AudioChannel, base: number): IMediaInstance {
+    const active: ActiveInstance = { instance, channel, base: clamp01(base) };
+    this.activeInstances.add(active);
+
+    const remove = (): void => {
+      this.activeInstances.delete(active);
+    };
+    instance.once('end', remove);
+    instance.once('stop', remove);
+    instance.set('volume', this.effective(channel, base));
+    return instance;
+  }
+
+  private trackPlayResult(
+    result: IMediaInstance | Promise<IMediaInstance>,
+    channel: AudioChannel,
+    base: number,
+  ): IMediaInstance | undefined {
+    if (isMediaInstance(result)) return this.trackInstance(result, channel, base);
+    void result
+      .then(instance => this.trackInstance(instance, channel, base))
+      .catch(() => {});
+    return undefined;
   }
 
   /**
@@ -131,9 +183,9 @@ class AudioBusImpl {
     // options.volume 명시 호출은 직접값 우선 (디버그/테스트 경로 보존).
     const base = options.volume ?? getEventMix(id);
     const eff = this.effective(channel, base);
-    if (eff <= 0) return undefined;
+    if (eff <= 0 && options.loop !== true) return undefined;
     const result = sound.play(id, { ...options, volume: eff });
-    return isMediaInstance(result) ? result : undefined;
+    return this.trackPlayResult(result, channel, base);
   }
 
   /**
@@ -148,9 +200,9 @@ class AudioBusImpl {
   ): Promise<IMediaInstance | undefined> {
     const base = options.volume ?? getEventMix(id);
     const eff = this.effective(channel, base);
-    if (eff <= 0) return undefined;
+    if (eff <= 0 && options.loop !== true) return undefined;
     const result = await sound.play(id, { ...options, volume: eff });
-    return isMediaInstance(result) ? result : undefined;
+    return this.trackInstance(result, channel, base);
   }
 
   /** Stop every instance of a sound by id. */
@@ -169,19 +221,29 @@ class AudioBusImpl {
   // -- Channel & master controls (Settings UI hooks) -----------------------
 
   setChannelVolume(channel: AudioChannel, volume: number): void {
-    this.channels[channel].volume = clamp01(volume);
+    const next = clamp01(volume);
+    if (this.channels[channel].volume === next) return;
+    this.channels[channel].volume = next;
+    this.notifySettingsChanged();
   }
 
   setChannelMuted(channel: AudioChannel, muted: boolean): void {
+    if (this.channels[channel].muted === muted) return;
     this.channels[channel].muted = muted;
+    this.notifySettingsChanged();
   }
 
   setMasterVolume(volume: number): void {
-    this.masterVolume = clamp01(volume);
+    const next = clamp01(volume);
+    if (this.masterVolume === next) return;
+    this.masterVolume = next;
+    this.notifySettingsChanged();
   }
 
   setMasterMuted(muted: boolean): void {
+    if (this.masterMuted === muted) return;
     this.masterMuted = muted;
+    this.notifySettingsChanged();
   }
 
   getChannelVolume(channel: AudioChannel): number {
@@ -207,6 +269,11 @@ class AudioBusImpl {
    */
   legacySynthGain(): number {
     return this.effective('sfx', 1.0);
+  }
+
+  onSettingsChanged(listener: SettingsChangeListener): () => void {
+    this.settingsListeners.add(listener);
+    return () => this.settingsListeners.delete(listener);
   }
 }
 

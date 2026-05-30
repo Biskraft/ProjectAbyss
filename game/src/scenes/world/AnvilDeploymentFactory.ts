@@ -37,11 +37,13 @@ export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploy
     deps.setLaserDesaturation,
     () => deps.getAnvil()?.getPlacedItemWorld() ?? null,
     () => deps.getAnvil()?.startPlacedItemPunch(),
-    (targetX, targetY) => deps.getAnvil()?.startPlacedItemDissolve(targetX, targetY),
+    (targetX, targetY) => deps.getAnvil()?.startPlacedItemMoveToLaser(targetX, targetY),
     () => {
       // Retirement is decided after Item World return, not at absorption time.
     },
     deps.showTunnelOpenDialogue,
     deps.getEntranceAABB ?? null,
+    () => deps.getAnvil()?.item ?? null,
+    deps.deploymentFxLayer,
   );
 }

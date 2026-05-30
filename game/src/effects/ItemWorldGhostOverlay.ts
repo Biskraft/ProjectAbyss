@@ -9,7 +9,8 @@ const TILE_PX = 16;
 const HALF_TILE = TILE_PX / 2;
 const REVEAL_RADIUS = 6 * TILE_PX;       // 6 tiles
 const REVEAL_RADIUS_SQ = REVEAL_RADIUS * REVEAL_RADIUS;
-const SCALE_RATE_PER_MS = 1 / 200;       // 0→1 in 200ms per tile
+const TILE_REVEAL_INTERVAL_MS = 36;
+const SCALE_RATE_PER_MS = 1 / 400;       // 0→1 in 400ms per tile
 
 // Wall silhouette colors — near-black, just enough hue to read as "dungeon"
 const COLOR_WALL = 0x07071a;
@@ -17,10 +18,18 @@ const COLOR_PLAT = 0x0c0c24;
 
 interface TileEntry {
   gfx: Graphics;
+  col: number;
+  row: number;
+  value: number;
   cx: number;  // tile center x in container-local space
   cy: number;  // tile center y in container-local space
+  fromX: number;
+  fromY: number;
+  spin: number;
   scale: number;
+  queued: boolean;
   revealed: boolean;
+  collisionStamped: boolean;
 }
 
 interface GhostItemDisplay {
@@ -48,7 +57,7 @@ interface GhostItemParticle {
  * dungeon silhouette blended over the current world.
  *
  * Tiles are invisible (scale=0) until the player walks within 4 tiles of them,
- * at which point they pop in (scale 0→1 over 200ms) individually.
+ * at which point they pop in (scale 0→1 over 400ms) individually.
  *
  * Lifecycle:
  *   1. new ItemWorldGhostOverlay()
@@ -77,6 +86,10 @@ export class ItemWorldGhostOverlay {
   private _fadeSpeed   = 0;
   private tiles: TileEntry[] = [];
   private itemDisplays: GhostItemDisplay[] = [];
+  private collisionGrid: number[][] = [];
+  private buildQueue: TileEntry[] = [];
+  private buildQueueElapsed = 0;
+  private tileBuildCallback: ((col: number, row: number, value: number) => void) | null = null;
 
   constructor() {
     this.container = new Container();
@@ -93,15 +106,21 @@ export class ItemWorldGhostOverlay {
     this._clearItemDisplays();
     this.container.removeChildren();
     this.tiles = [];
+    this.buildQueue = [];
+    this.buildQueueElapsed = 0;
+    this.collisionGrid = [];
     this.builtPxW = gridW * TILE_PX;
     this.builtPxH = gridH * TILE_PX;
 
     for (let r = 0; r < gridH; r++) {
+      const sourceRow: number[] = [];
       for (let c = 0; c < gridW; c++) {
         const t = grid[r]?.[c] ?? 0;
+        sourceRow.push(t);
         if (t === 0) continue;
-        this._addTile(c, r, t === 3 ? COLOR_PLAT : COLOR_WALL);
+        this._addTile(c, r, t, t === 3 ? COLOR_PLAT : COLOR_WALL);
       }
+      this.collisionGrid.push(sourceRow);
     }
   }
 
@@ -112,6 +131,9 @@ export class ItemWorldGhostOverlay {
     this._clearItemDisplays();
     this.container.removeChildren();
     this.tiles = [];
+    this.buildQueue = [];
+    this.buildQueueElapsed = 0;
+    this.collisionGrid = [];
 
     const seed = (item.uid * 1000 + stratumIndex * 7919) >>> 0;
     const iwGrid = generateItemWorldGrid(3, 3, seed);
@@ -120,6 +142,7 @@ export class ItemWorldGhostOverlay {
 
     const rng = new PRNG(seed ^ 0x9E3779B9);
     const tiles = resolveTiles(startCell.template.grid, rng);
+    this.collisionGrid = tiles.map(row => [...row]);
 
     this.builtPxW = TEMPLATE_W * TILE_PX;
     this.builtPxH = TEMPLATE_H * TILE_PX;
@@ -128,12 +151,33 @@ export class ItemWorldGhostOverlay {
       for (let c = 0; c < TEMPLATE_W; c++) {
         const t = tiles[r]?.[c] ?? 1;
         if (t === 0) continue;
-        this._addTile(c, r, t === 3 ? COLOR_PLAT : COLOR_WALL);
+        this._addTile(c, r, t, t === 3 ? COLOR_PLAT : COLOR_WALL);
       }
     }
   }
 
-  private _addTile(col: number, row: number, color: number): void {
+  setShardSourceWorld(worldX: number, worldY: number): void {
+    const sourceX = worldX - this.container.x;
+    const sourceY = worldY - this.container.y;
+    for (const tile of this.tiles) {
+      const scatterX = ((tile.col * 37 + tile.row * 11) % 17 - 8) * 5;
+      const scatterY = ((tile.col * 13 + tile.row * 29) % 13 - 6) * 4;
+      tile.fromX = sourceX - tile.cx + scatterX;
+      tile.fromY = sourceY - tile.cy + scatterY;
+      tile.spin = ((tile.col + tile.row) % 2 === 0 ? 1 : -1) *
+        (0.5 + ((tile.col * 5 + tile.row * 3) % 7) * 0.1);
+    }
+  }
+
+  setTileBuildCallback(callback: ((col: number, row: number, value: number) => void) | null): void {
+    this.tileBuildCallback = callback;
+  }
+
+  getCollisionGrid(): number[][] {
+    return this.collisionGrid;
+  }
+
+  private _addTile(col: number, row: number, value: number, color: number): void {
     const gfx = new Graphics();
     gfx.rect(0, 0, TILE_PX, TILE_PX).fill({ color });
     gfx.pivot.set(HALF_TILE, HALF_TILE);
@@ -143,10 +187,18 @@ export class ItemWorldGhostOverlay {
     this.container.addChild(gfx);
     this.tiles.push({
       gfx,
+      col,
+      row,
+      value,
       cx: col * TILE_PX + HALF_TILE,
       cy: row * TILE_PX + HALF_TILE,
+      fromX: -72 - (col % 6) * 6,
+      fromY: ((row % 7) - 3) * 7,
+      spin: ((col + row) % 2 === 0 ? 1 : -1) * (0.35 + ((col * 5 + row * 3) % 5) * 0.08),
       scale: 0,
+      queued: false,
       revealed: false,
+      collisionStamped: false,
     });
   }
 
@@ -203,7 +255,7 @@ export class ItemWorldGhostOverlay {
    * playerLocalX/Y: player position in this container's local space.
    * Tiles within 4 tiles of the player reveal themselves (scale 0→1).
    */
-  update(dt: number, playerLocalX?: number, playerLocalY?: number): void {
+  update(dt: number, playerLocalX?: number, playerLocalY?: number, revealEnabled = true): void {
     // Container alpha fade
     if (this.container.alpha !== this._targetAlpha) {
       const next = this.container.alpha + this._fadeSpeed * dt;
@@ -225,26 +277,70 @@ export class ItemWorldGhostOverlay {
     }
 
     // Per-tile proximity reveal + scale animation
-    if (playerLocalX === undefined || playerLocalY === undefined) return;
-    const step = SCALE_RATE_PER_MS * dt;
-    for (const tile of this.tiles) {
-      if (!tile.revealed) {
+    if (revealEnabled && playerLocalX !== undefined && playerLocalY !== undefined) {
+      let queuedAny = false;
+      for (const tile of this.tiles) {
+        if (tile.revealed || tile.queued) continue;
         const dx = playerLocalX - tile.cx;
         const dy = playerLocalY - tile.cy;
         if (dx * dx + dy * dy <= REVEAL_RADIUS_SQ) {
-          tile.revealed = true;
+          tile.queued = true;
+          this.buildQueue.push(tile);
+          queuedAny = true;
         }
       }
-      if (tile.revealed && tile.scale < 1) {
-        tile.scale = Math.min(1, tile.scale + step);
-        tile.gfx.scale.set(tile.scale);
+      if (queuedAny) {
+        this.buildQueue.sort((a, b) =>
+          this._tileRevealPriority(a, playerLocalX, playerLocalY) -
+          this._tileRevealPriority(b, playerLocalX, playerLocalY)
+        );
+        if (this.buildQueueElapsed <= 0) this.buildQueueElapsed = TILE_REVEAL_INTERVAL_MS;
+      }
+      this.buildQueueElapsed += dt;
+      if (this.buildQueueElapsed >= TILE_REVEAL_INTERVAL_MS && this.buildQueue.length > 0) {
+        this.buildQueueElapsed = 0;
+        this._revealNextQueuedTile();
       }
     }
+
+    const step = SCALE_RATE_PER_MS * dt;
+    for (const tile of this.tiles) {
+      if (tile.revealed && tile.scale < 1) {
+        tile.scale = Math.min(1, tile.scale + step);
+      }
+      if (tile.revealed) {
+        const settle = tile.scale * tile.scale * (3 - 2 * tile.scale);
+        const inv = 1 - settle;
+        tile.gfx.x = tile.cx + tile.fromX * inv;
+        tile.gfx.y = tile.cy + tile.fromY * inv;
+        tile.gfx.rotation = tile.spin * inv;
+        tile.gfx.alpha = 0.55 + settle * 0.45;
+        tile.gfx.scale.set(tile.scale);
+        if (tile.scale >= 1 && !tile.collisionStamped) {
+          tile.collisionStamped = true;
+          this.tileBuildCallback?.(tile.col, tile.row, tile.value);
+        }
+      }
+    }
+  }
+
+  private _tileRevealPriority(tile: TileEntry, playerLocalX: number, playerLocalY: number): number {
+    const ahead = Math.max(0, tile.cx - playerLocalX);
+    const behindPenalty = tile.cx < playerLocalX - TILE_PX ? 180 : 0;
+    return behindPenalty + ahead * 0.35 + Math.abs(tile.cy - playerLocalY) * 0.65 + tile.row * 0.02;
+  }
+
+  private _revealNextQueuedTile(): void {
+    const tile = this.buildQueue.shift();
+    if (!tile) return;
+    tile.revealed = true;
   }
 
   destroy(): void {
     this._clearItemDisplays();
     this.tiles = [];
+    this.buildQueue = [];
+    this.tileBuildCallback = null;
     this.itemContainer.parent?.removeChild(this.itemContainer);
     this.itemContainer.destroy({ children: true });
     this.container.parent?.removeChild(this.container);

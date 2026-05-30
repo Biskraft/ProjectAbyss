@@ -93,7 +93,7 @@ graph TD
 | ~~D-12~~ | ~~Narrative & Worldbuilding~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_Worldbuilding.md` | 📦 archived 2026-05-28 | World+IW | 탐험+야리코미 |
 | D-13 | WorldLayout GridVania Analysis | `Design/WorldLayout_GridVania_Analysis.md` | ✅ 완료 | World | 탐험 |
 | D-14 | Monetization Strategy | `Design/Design_Monetization_Strategy.md` | ✅ 완료 | 전체 | 전체 |
-| ~~D-15~~ | ~~Art Direction~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Art_Direction_2026-05-28.md` | 📦 archived 2026-05-28 (NarrativeWorldReset 2차 라운드) | 전체 | 전체 |
+| D-15 | Art Direction | `Design/Design_Art_Direction.md` | ✅ 활성 (2026-05-29 재정립, 실 자산 기반 v2) | 전체 | 전체 |
 | D-16 | Art Animation Spec | `Design/Design_Art_AnimationSpec.md` | ✅ 완료 | 전체 | 전체 |
 | D-17 | Tutorial & Environmental Teaching | `Design/Design_Tutorial_EnvironmentalTeaching.md` | ✅ 완료 | World | 탐험 |
 | ~~D-18~~ | ~~Narrative / Story Design Methodology (Master)~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_StoryDesign_Methodology.md` | 📦 archived 2026-05-28 | 전체 | 전체 |
@@ -353,6 +353,9 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
+| CNT-STR-001 | Story Synopsis (시놉시스) | `Content/Content_Story_Synopsis.md` | ✅ 활성 (2026-05-29, NarrativeWorldReset 후속 라운드 SSoT) |
+| CNT-CHR-001 | Characters (에르다·인덱서 지도자·러스트본) | `Content/Content_Characters.md` | ✅ 활성 (2026-05-29) |
+| CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 활성 (2026-05-29) |
 | ~~CNT-00~~ | ~~World Bible~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_World_Bible.md` | 📦 archived 2026-05-28 (근본 재정의 라운드) |
 | ~~CNT-DIR-001~~ | ~~Direction (테마 · 시놉시스 · 내러티브 SSoT)~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction.md` | 📦 archived 2026-05-28 |
 | ~~CNT-DIR-002~~ | ~~Direction Seed Analysis~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction_SeedAnalysis.md` | 📦 archived 2026-05-28 |
@@ -466,12 +469,14 @@ graph TD
 
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
-| PLN-01 | Development Roadmap | `Plan/Development_Roadmap.md` | 🔄 진행 중 |
+| PLN-MASTER | Integrated Master Roadmap (통합 SSoT) | `Plan/Roadmap_Master_Integrated.md` | ✅ 활성 SSoT (2026-05-31) |
+| PLN-SPEC | Content & Feature Master Spec (전체 콘텐츠·기능 스펙) | `Plan/Spec_Content_Feature_Master.md` | ✅ 1차 초안 (2026-05-31) |
+| PLN-01 | Development Roadmap | `Plan/Development_Roadmap.md` | 📦 SUPERSEDED → PLN-MASTER |
 | PLN-02 | P1 Status Dashboard | `Plan/Project_Status_Dashboard_P1.md` | 🔄 진행 중 |
 | PLN-03 | GameDesign Agent TaskList | `Plan/GameDesign_Agent_TaskList.md` | 🔄 진행 중 |
 | PLN-04 | Phase1 Implementation Priority | `Plan/Phase1_Implementation_Priority.md` | 🔄 진행 중 |
 | PLN-05 | Prototype ItemWorld Entry FloorCollapse | `Plan/Prototype_ItemWorldEntry_FloorCollapse.md` | 🔄 진행 중 |
-| PLN-06 | Roadmap To Demo | `Plan/Roadmap_To_Demo.md` | 🔄 진행 중 |
+| PLN-06 | Roadmap To Demo | `Plan/Roadmap_To_Demo.md` | 📦 SUPERSEDED → PLN-MASTER (Build 상세 참조용) |
 | PLN-07 | Task Dialogue Implementation | `Plan/Task_Dialogue_Implementation.md` | 🔄 진행 중 |
 | PLN-08 | Task NightWork Brief | `Plan/Task_NightWork_Brief.md` | 🔄 진행 중 |
 | PLN-09 | Plan MemoryRoom Phase0 | `Plan/Plan_MemoryRoom_Phase0.md` | 🔄 진행 중 |

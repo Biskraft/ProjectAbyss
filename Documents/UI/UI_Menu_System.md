@@ -14,7 +14,7 @@
 | 7-11 | 사망 화면 (Death Screen) | P0 | 미구현 | HP <= 0, 세이브 포인트 복귀 |
 | 7-1 | 타이틀 화면 (Title Screen) | P1 | 미구현 | 로고 + PRESS ANY KEY + 패럴랙스 배경 |
 | 7-2 | 메인 메뉴 (Main Menu) | P1 | 미구현 | NEW GAME / CONTINUE / SETTINGS |
-| 7-5 | 오디오 설정 (Audio Settings) | P1 | 미구현 | BGM/SFX 슬라이더, Howler.js, 설정 메뉴 탭에 통합 |
+| 7-5 | 설정 메뉴 (Settings) | P1~P2 | 미구현 | 4탭(GAMEPLAY/DISPLAY/AUDIO/CONTROLS). AUDIO 5채널(`AudioBus`, @pixi/sound). 항목 카탈로그: `System_Settings_Options.md` |
 
 ---
 
@@ -408,17 +408,21 @@ y=208 │    Return to World save point.     │  <- #AAAAAA, fontSize 7
 
 부모 컨텍스트(MAIN_MENU 또는 PAUSE)를 기록하여 ESC/BACK 시 올바른 화면으로 복귀한다.
 
+> **옵션 항목 카탈로그 SSoT:** 각 탭에 들어가는 *설정 항목의 내용·범위·기본값·우선순위*는 `Documents/System/System_Settings_Options.md` 가 정의한다. 본 문서는 탭의 **레이아웃·위젯·조작**(chrome)만 다룬다.
+
 #### 탭 구조
 
 ```
-┌─────────────────────────────────────────────────┐
-│  [< Arrow]  AUDIO  |  DISPLAY (P2)  |  CONTROLS (P2)  [Arrow >]  │
-│ ─────────────────────────────────────────────── │
-│  [탭별 콘텐츠 영역]                              │
-│                                                 │
-│  BACK                                           │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ [<]  GAMEPLAY  |  DISPLAY  |  AUDIO  |  CONTROLS  [>]          │
+│ ───────────────────────────────────────────────────────────── │
+│  [탭별 콘텐츠 영역]                                            │
+│                                                               │
+│  BACK                                                         │
+└───────────────────────────────────────────────────────────────┘
 ```
+
+> **탭 우선순위:** AUDIO(P1) · GAMEPLAY/DISPLAY/CONTROLS(P2~P3). 미구현 탭은 회색(#333333) 비활성 표시. 항목별 P 등급은 카탈로그 §8 참조.
 
 | 속성 | 값 |
 |:-----|:---|
@@ -436,20 +440,25 @@ y=208 │    Return to World save point.     │  <- #AAAAAA, fontSize 7
 
 #### 3.5.1 AUDIO 탭 (P1)
 
+> **5채널 정합 (2026-05-30):** 코드(`game/src/audio/AudioBus.ts`)는 master + bgm/ambient/sfx/voice 5채널을 보유한다. 아래 BGM/SFX 2슬라이더는 초기 안이었으며, **카탈로그(`System_Settings_Options.md` §3.3)의 5슬라이더 + 채널 음소거**로 확장한다. 슬라이더 위젯 스펙(아래)은 그대로 5개 항목에 적용한다.
+
 ```
 x=180                                      x=460
   |                                           |
 y=90  ┌─────────────────────────────────────┐
-      │  [ AUDIO ] | DISPLAY | CONTROLS     │  <- 탭 행
+      │  GAMEPLAY | DISPLAY | [ AUDIO ] | CONTROLS │  <- 탭 행
       │ ─────────────────────────────────── │
-y=116 │  BGM Volume                         │
-      │  [████████░░]  80                   │  <- 슬라이더
-y=140 │  SFX Volume                         │
-      │  [██████████]  100                  │  <- 슬라이더
+y=112 │  Master Volume   [██████████] 100   │
+y=132 │  BGM Volume      [█████░░░░░]  55   │
+y=152 │  Ambient Volume  [██░░░░░░░░]  23   │
+y=172 │  SFX Volume      [████████░░]  80   │
+y=192 │  Voice Volume    [███████░░░]  70   │
       │                                     │
 y=240 │  BACK                               │
 y=270 └─────────────────────────────────────┘
 ```
+
+> 기본값은 `AudioBus.DEFAULT_CHANNEL_STATE`(SSoT): master 100 / bgm 55 / ambient 23 / sfx 80 / voice 70. 채널별 음소거 토글은 카탈로그 §3.3 참조.
 
 **슬라이더 상세:**
 
@@ -464,46 +473,59 @@ y=270 └───────────────────────�
 | 값 표시 | 슬라이더 오른쪽 4px, fontSize 7, #FFFFFF |
 | 범위 | 0 ~ 100 (정수) |
 | Arrow Left/Right 조정 단위 | 10 |
-| BGM 기본값 | 80 |
-| SFX 기본값 | 100 |
-| 저장 위치 | localStorage ('echoris_bgm_vol', 'echoris_sfx_vol') |
-| 즉시 적용 | Arrow 키 입력마다 Howler.js 볼륨 즉시 갱신 |
+| 채널 기본값 | master 100 / bgm 55 / ambient 23 / sfx 80 / voice 70 (`AudioBus.DEFAULT_CHANNEL_STATE` SSoT) |
+| 저장 위치 | localStorage (카탈로그 §4 통합 스키마 `echoris_settings.audio` 권장) |
+| 즉시 적용 | Arrow 키 입력마다 `AudioBus.setChannelVolume`/`setMasterVolume` 즉시 갱신 |
 
-**Howler.js 연동:**
+**AudioBus 연동 (DEC-040 — `@pixi/sound`, Howler.js 아님):**
 
 ```
-// BGM 볼륨 적용 (0~1 범위로 정규화)
-Howler.volume(bgmValue / 100);  // 전체 볼륨
-// SFX 별도 Howler 그룹을 사용하는 경우:
-sfxGroup.volume(sfxValue / 100);
+// 0~100 슬라이더 값을 0~1 로 정규화하여 채널/마스터에 반영
+AudioBus.setMasterVolume(masterValue / 100);
+AudioBus.setChannelVolume('bgm', bgmValue / 100);
+AudioBus.setChannelVolume('ambient', ambientValue / 100);
+AudioBus.setChannelVolume('sfx', sfxValue / 100);
+AudioBus.setChannelVolume('voice', voiceValue / 100);
 ```
 
 **슬라이더 조작 흐름:**
 
-1. Arrow Up/Down으로 BGM/SFX 항목 간 이동
-2. 항목 선택(Z 또는 자동 포커스) 상태에서 Arrow Left/Right로 값 조정
-3. 값 변경 즉시 Howler.js 볼륨에 반영 (프리뷰)
+1. Arrow Up/Down으로 채널 항목(Master/BGM/Ambient/SFX/Voice) 간 이동
+2. 항목 선택(Z 또는 자동 포커스) 상태에서 Arrow Left/Right로 값 조정 (10단위)
+3. 값 변경 즉시 `AudioBus` 볼륨에 반영 (프리뷰). SFX 조정 시 짧은 효과음 1회 프리뷰 권장
 4. ESC 또는 BACK 선택 시 변경사항 자동 저장 (localStorage)
 
-#### 3.5.2 DISPLAY 탭 (P2 — 자리 표시자)
+#### 3.5.2 DISPLAY 탭 (P2)
+
+항목 정의: `System_Settings_Options.md` §3.2 (창 모드, 화면 배율 픽셀 퍼펙트, 스케일 필터, 스크린 셰이크 강도, 밝기, 패럴랙스 토글, VFX 밀도, FPS 표시). 위젯은 cycle(좌우 화살표)·slider·toggle 혼합.
 
 ```
-│  [ AUDIO ] | [DISPLAY] | CONTROLS     │
-│ ─────────────────────────────────── │
-│                                       │
-│      Coming Soon                      │  <- fontSize 8, #666666, 중앙
-│                                       │
+│  GAMEPLAY | [DISPLAY] | AUDIO | CONTROLS │
+│ ─────────────────────────────────────── │
+│  Window Mode      < Windowed >           │  <- cycle
+│  Scale            < Auto >               │  <- cycle (Pixel Perfect)
+│  Screen Shake     [████░░] Full          │  <- slider (Off/Low/Full)
+│  Parallax BG      [ On ]                 │  <- toggle
+│  ...                                     │
 ```
 
-#### 3.5.3 CONTROLS 탭 (P2 — 자리 표시자)
+#### 3.5.3 CONTROLS 탭 (P2)
+
+항목 정의: `System_Settings_Options.md` §3.4 (키보드/게임패드 리바인딩, 진동 강도, 패드 글리프, 데드존, 기본값 복원). 리바인딩은 액션 선택 → 키 입력 대기 → 충돌 검사 흐름.
 
 ```
-│  [ AUDIO ] | DISPLAY | [CONTROLS]     │
-│ ─────────────────────────────────── │
-│                                       │
-│      Coming Soon                      │  <- fontSize 8, #666666, 중앙
-│                                       │
+│  GAMEPLAY | DISPLAY | AUDIO | [CONTROLS] │
+│ ─────────────────────────────────────── │
+│  Jump      [ Z ]        (A)              │  <- keybind (kb / pad)
+│  Attack    [ C ]        (X)              │
+│  Dash      [ X ]        (RT)             │
+│  Rumble    [████░░] Full                 │  <- slider
+│  > Restore Defaults                      │
 ```
+
+#### 3.5.4 GAMEPLAY 탭 (P2 — 신규)
+
+항목 정의: `System_Settings_Options.md` §3.1 (언어 EN/KO, 데미지 수치, 튜토리얼 힌트, 미니맵/HUD 표시, 자동 일시정지). 언어는 cycle, 나머지는 toggle/cycle.
 
 #### BACK 동작
 

@@ -43,6 +43,7 @@ interface ScheduledSegment {
 
 interface ActiveBgm {
   trackKey: string;
+  mixEventId: string;
   loopBuffer: AudioBuffer;
   segments: ScheduledSegment[];
   /** 다음 loop iteration 예약 timer. */
@@ -60,12 +61,17 @@ class BgmControllerImpl {
   private buffers = new Map<string, AudioBuffer>();
   private active: ActiveBgm | null = null;
   private playRequestId = 0;
+  private volumeFactor = 1;
   /**
    * endTrack 으로 schedule 된 outro source. active 와 무관하게 살아있으므로
    * 새 play() 진입 시 별도 정리하지 않으면 outro 와 새 트랙이 동시 재생된다
    * (ItemWorld 왕복 시 중복 BGM 의 root cause).
    */
   private pendingOutro: { node: AudioBufferSourceNode; gain: GainNode } | null = null;
+
+  constructor() {
+    AudioBus.onSettingsChanged(() => this.refreshAudioSettings());
+  }
 
   /**
    * 트랙 시작. 같은 trackKey 이미 활성 중이면 no-op.
@@ -91,21 +97,32 @@ class BgmControllerImpl {
    * ms 동안 linearRampToValueAtTime 으로 부드럽게 이동.
    */
   setVolumeFactor(factor: number, ms: number): void {
-    if (!this.active || !this.ctx || !this.masterGain) return;
-    const ctx = this.ctx;
-    const target = this.active.baseGain * Math.max(0, Math.min(1, factor));
-    const now = ctx.currentTime;
-    const cur = this.masterGain.gain.value;
-    this.masterGain.gain.cancelScheduledValues(now);
-    this.masterGain.gain.setValueAtTime(cur, now);
-    this.masterGain.gain.linearRampToValueAtTime(target, now + Math.max(0, ms) / 1000);
+    this.volumeFactor = clamp01(factor);
+    this.rampActiveGain(ms);
   }
 
   getActiveKey(): string | null {
     return this.active?.trackKey ?? null;
   }
 
+  refreshAudioSettings(): void {
+    if (!this.active) return;
+    this.active.baseGain = this.computeBaseGain(this.active.mixEventId);
+    this.rampActiveGain(30);
+  }
+
   // ── private ────────────────────────────────────────────────────────────────
+
+  private rampActiveGain(ms: number): void {
+    if (!this.active || !this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const target = this.active.baseGain * this.volumeFactor;
+    const cur = this.masterGain.gain.value;
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setValueAtTime(cur, now);
+    this.masterGain.gain.linearRampToValueAtTime(target, now + Math.max(0, ms) / 1000);
+  }
 
   private async startTrack(trackKey: string, track: BgmTrack, opts: PlayOpts | undefined, requestId: number): Promise<void> {
     // 진행 중인 segments 와 pending outro 모두 즉시 끊는다. outro 까지 청소하지
@@ -137,6 +154,7 @@ class BgmControllerImpl {
 
     this.active = {
       trackKey,
+      mixEventId: track.loop,
       loopBuffer: loopBuf,
       segments: [],
       chainTimer: null,
@@ -144,12 +162,13 @@ class BgmControllerImpl {
     };
 
     // master gain ramp — fadeInMs.
+    const targetGain = baseGain * this.volumeFactor;
     master.gain.cancelScheduledValues(ctx.currentTime);
     if (opts?.fadeInMs && opts.fadeInMs > 0) {
       master.gain.setValueAtTime(0, startTime);
-      master.gain.linearRampToValueAtTime(baseGain, startTime + opts.fadeInMs / 1000);
+      master.gain.linearRampToValueAtTime(targetGain, startTime + opts.fadeInMs / 1000);
     } else {
-      master.gain.setValueAtTime(baseGain, startTime);
+      master.gain.setValueAtTime(targetGain, startTime);
     }
 
     // intro 스케줄 (있으면). intro 끝부분 XFADE 만큼 fade-out 으로 다음 loop 와 crossfade.

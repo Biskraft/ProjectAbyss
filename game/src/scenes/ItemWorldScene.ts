@@ -3,7 +3,7 @@ import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
 import { TilemapRenderer } from '@level/TilemapRenderer';
-import { createBoundsGuard } from '@level/BoundsGuard';
+import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX } from '@level/VisualBoundsBleed';
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
 import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
@@ -16,7 +16,7 @@ import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { getItemWorldTemplatesIfReady, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import { Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
+import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, isOneWay, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
@@ -139,6 +139,7 @@ import {
   ensureAreaTilesetsLoaded,
   applyAreaTilesetToLdtkTiles,
 } from '@data/areaPalettes';
+import { WeatherSystem, type StratumProfileInput } from '@effects/WeatherSystem';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import {
   trackItemWorldEnter,
@@ -242,6 +243,8 @@ const ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX = TILE_SIZE * 7;
 const ENTRY_CORRIDOR_TILE_REVEAL_MS = 180;
 const ENTRY_CORRIDOR_CONTRAST = 0.5;
 const ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS = 2.2;
+const ENTRY_CORRIDOR_COLOR_HOLD_MS = 1000;
+const ENTRY_CORRIDOR_COLOR_RESTORE_MS = 1000;
 
 // SurfaceOverlay is now spot-based, so it can run in item world without
 // producing long diagonal shadow/stain streaks.
@@ -406,6 +409,8 @@ export class ItemWorldScene extends Scene {
   private entityLayer!: Container;
   private fluidLayer!: Container;
   private aboveFluidLayer!: Container;
+  private weatherLayer!: Container;
+  private weather: WeatherSystem | null = null;
   private fluidSystem!: FluidSystem;
   private fluidSystemReady = false;
   private fluidSpawners!: FluidSpawnerManager;
@@ -547,13 +552,15 @@ export class ItemWorldScene extends Scene {
   private entryCorridorBottomExitY = 0;
   private entryCorridorWidthPx = 0;
   private entryCorridorHeightPx = 0;
+  private entryCorridorColorRestoreFilter: ColorMatrixFilter | null = null;
+  private entryCorridorColorRestoreTargets: Container[] = [];
+  private entryCorridorColorRestoreElapsed = 0;
 
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
   /** Cells written by door-mask seal (code-generated walls, not LDtk). */
   private sealedCells = new Set<string>();
   private fullMapContainer: Container | null = null;
-  private boundsGuard: Graphics | null = null;
   /** Palette-swap filter for background tiles (production default). */
   private bgPaletteFilter!: PaletteSwapFilter;
   /** Palette-swap filter for wall + shadow tiles (dark, cool row). */
@@ -977,6 +984,12 @@ export class ItemWorldScene extends Scene {
     this.container.addChild(this.aboveFluidLayer);
     this.tileMutatorRenderer.setAboveFluidLayer(this.aboveFluidLayer);
 
+    // Item Stratum ambient weather (residue drift) — driven by the area
+    // palette's Weather/WeatherParams columns. Topmost world-space layer so
+    // motes + breathing haze read over terrain/entities (below HUD).
+    this.weatherLayer = new Container();
+    this.container.addChild(this.weatherLayer);
+
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
 
@@ -1333,6 +1346,7 @@ export class ItemWorldScene extends Scene {
     // before fluidSystem.attachGrid so flood-fill sees the resolved values.
     // Spec: Documents/System/System_World_Fluid.md 짠3.4
     applyFluidGenericResolution(this.fullGrid, this.item.def.temperamentPrimary);
+    this.initStratumWeather();
     // Wire FluidSystem to the freshly built grid ??flood-fills fluid bodies
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
@@ -1483,6 +1497,7 @@ export class ItemWorldScene extends Scene {
       0,
       composite.widthPx,
       composite.heightPx,
+      VISUAL_BOUNDS_BLEED_PX,
     );
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.game.camera.target = {
@@ -1597,6 +1612,17 @@ export class ItemWorldScene extends Scene {
       wallTiles, composite.grid, this.item.def.temperamentPrimary,
     );
     renderer.renderLevel([], wallTilesSub, [], this.atlases, undefined, composite.grid, []);
+    addLdtkVisualBoundsBleed({
+      target: {
+        wallLayer: renderer.wallLayer,
+        specialLayer: renderer.specialLayer,
+      },
+      atlases: this.atlases,
+      boundsWidth: composite.widthPx,
+      boundsHeight: composite.heightPx,
+      wallTiles: wallTilesSub,
+      collisionGrid: composite.grid,
+    });
     root.addChild(renderer.container);
 
     const registerPlatformNode = (node: Container): void => {
@@ -1684,13 +1710,14 @@ export class ItemWorldScene extends Scene {
     this.hud.hideBossHP();
   }
 
-  private restoreWorldAfterEntryCorridor(): void {
+  private restoreWorldAfterEntryCorridor(startColorRestore = true): void {
     for (const state of this.entryCorridorHiddenTargets) {
       state.target.visible = state.visible;
     }
     this.entryCorridorHiddenTargets = [];
     this.parallaxBG.container.visible = true;
     this.restoreEntryCorridorBackgroundFilter();
+    if (startColorRestore) this.startEntryCorridorColorRestore();
   }
 
   private applyEntryCorridorBackgroundFilter(): void {
@@ -1709,7 +1736,69 @@ export class ItemWorldScene extends Scene {
     this.entryCorridorBackgroundFilters = null;
   }
 
+  private startEntryCorridorColorRestore(): void {
+    this.clearEntryCorridorColorRestore();
+    const filter = new ColorMatrixFilter();
+    filter.desaturate();
+    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
+    filter.alpha = 1;
+
+    const targets = this.getEntryCorridorColorRestoreTargets();
+    for (const target of targets) {
+      const current = (target.filters as Filter[] | null) ?? [];
+      if (!current.includes(filter)) target.filters = [...current, filter];
+    }
+
+    this.entryCorridorColorRestoreFilter = filter;
+    this.entryCorridorColorRestoreTargets = targets;
+    this.entryCorridorColorRestoreElapsed = 0;
+  }
+
+  private getEntryCorridorColorRestoreTargets(): Container[] {
+    const seen = new Set<Container>();
+    const targets: Array<Container | null | undefined> = [
+      this.fullMapContainer,
+      this.tilemap?.container,
+      this.buildingLayer,
+      this.residentsLayer,
+      this.fluidLayer,
+      this.aboveFluidLayer,
+      this.entityLayer,
+      this.weatherLayer,
+      this.game.backgroundContainer,
+    ];
+    return targets.filter((target): target is Container => {
+      if (!target || seen.has(target)) return false;
+      seen.add(target);
+      return true;
+    });
+  }
+
+  private updateEntryCorridorColorRestore(dt: number): void {
+    if (!this.entryCorridorColorRestoreFilter) return;
+    this.entryCorridorColorRestoreElapsed += dt;
+    const restoreElapsed = Math.max(0, this.entryCorridorColorRestoreElapsed - ENTRY_CORRIDOR_COLOR_HOLD_MS);
+    const t = Math.min(1, restoreElapsed / ENTRY_CORRIDOR_COLOR_RESTORE_MS);
+    this.entryCorridorColorRestoreFilter.alpha = 1 - t;
+    if (t >= 1) this.clearEntryCorridorColorRestore();
+  }
+
+  private clearEntryCorridorColorRestore(): void {
+    const filter = this.entryCorridorColorRestoreFilter;
+    if (!filter) return;
+    for (const target of this.entryCorridorColorRestoreTargets) {
+      const next = ((target.filters as Filter[] | null) ?? []).filter(f => f !== filter);
+      target.filters = next.length > 0 ? next : null;
+    }
+    this.entryCorridorColorRestoreFilter = null;
+    this.entryCorridorColorRestoreTargets = [];
+    this.entryCorridorColorRestoreElapsed = 0;
+  }
+
   private updateEntryCorridor(dt: number): void {
+    if (this.isPlayerStandingOnContainerTop()) {
+      this.player.forceGrounded(true);
+    }
     this.player.update(dt);
     this.updateEntryCorridorTileReveal(dt);
     this.updateMovementVfx(dt);
@@ -1772,6 +1861,7 @@ export class ItemWorldScene extends Scene {
       0,
       this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
       this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
+      VISUAL_BOUNDS_BLEED_PX,
     );
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
     this.game.camera.target = {
@@ -1924,12 +2014,6 @@ export class ItemWorldScene extends Scene {
     this.arcTether?.hide();
     this.roomItemSpawners.clear();
     this.fullMapContainer = new Container();
-    this.boundsGuard = createBoundsGuard(
-      this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
-      this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
-      0x192433,
-    );
-    this.fullMapContainer.addChild(this.boundsGuard);
     // Create aggregate layer containers so the palette filter spans the
     // entire map in ONE pass (continuous gradient across all rooms).
     this.bgAggregate = new Container();
@@ -2303,7 +2387,7 @@ export class ItemWorldScene extends Scene {
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
-    this.game.camera.setBounds(0, 0, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX);
+    this.game.camera.setBounds(0, 0, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, VISUAL_BOUNDS_BLEED_PX);
 
     this.persistRoomState();
     this.drawMiniMap();
@@ -3202,6 +3286,23 @@ export class ItemWorldScene extends Scene {
         // 媛 fluid placeholder sprite 瑜??④릿?? SolidGeneric_A/B (21/22) ??hide
         // ????꾨떂 ????substitute ?④퀎?먯꽌 sprite 媛 ?곸젅??援먯껜??
         this.ldtkRenderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
+        addLdtkVisualBoundsBleed({
+          target: {
+            bgLayer: this.ldtkRenderer.bgLayer,
+            interiorLayer: this.ldtkRenderer.interiorLayer,
+            wallLayer: this.ldtkRenderer.wallLayer,
+            specialLayer: this.ldtkRenderer.specialLayer,
+            shadowLayer: this.ldtkRenderer.shadowLayer,
+          },
+          atlases: this.atlases,
+          boundsWidth: ldtkLevel.pxWid,
+          boundsHeight: ldtkLevel.pxHei,
+          bgTiles,
+          wallTiles: wallTilesSub,
+          shadowTiles,
+          interiorTiles,
+          collisionGrid: ldtkLevel.collisionGrid,
+        });
       }
       if (!this.ldtkRenderer.container.parent) {
         this.container.addChildAt(this.ldtkRenderer.container, 0);
@@ -3224,7 +3325,7 @@ export class ItemWorldScene extends Scene {
 
     // Update camera bounds for current room size (template rooms are 32횞16, legacy 60횞34)
     // Camera bounds = single room (offset applied by entityLayer)
-    this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE);
+    this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE, VISUAL_BOUNDS_BLEED_PX);
 
     // Update stratum context from cell
     const prevStratumIndex = this.currentStratumIndex;
@@ -5098,7 +5199,26 @@ export class ItemWorldScene extends Scene {
         this.wallAggregate.addChild(renderer.wallLayer);
         this.specialAggregate?.addChild(renderer.specialLayer);
         this.shadowAggregate.addChild(renderer.shadowLayer);
-        const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer];
+        const bleedLayers = addLdtkVisualBoundsBleed({
+          target: {
+            bgLayer: this.bgAggregate,
+            interiorLayer: this.interiorAggregate,
+            wallLayer: this.wallAggregate,
+            specialLayer: this.specialAggregate,
+            shadowLayer: this.shadowAggregate,
+          },
+          atlases: this.atlases,
+          boundsWidth: totalCols * IW_ROOM_W_PX,
+          boundsHeight: totalRows * IW_ROOM_H_PX,
+          bgTiles,
+          wallTiles: wallTilesSub,
+          shadowTiles,
+          interiorTiles,
+          collisionGrid: ldtkLevel.collisionGrid,
+          offsetX: roomX,
+          offsetY: roomY,
+        });
+        const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer, ...bleedLayers];
         this.cellLayerGroups.push({ col, row: absRow, layers });
         this.renderedCellVisuals.set(`${col}:${absRow}`, { col, row: absRow, layers });
       }
@@ -5229,6 +5349,11 @@ export class ItemWorldScene extends Scene {
 
   update(dt: number): void {
     if (!this.initialized) return;
+
+    // Ambient stratum weather animates in every state (gameplay, modals,
+    // transitions) so the residue field never freezes mid-dive.
+    this.updateWeather(dt);
+    this.updateEntryCorridorColorRestore(dt);
 
     // Feedback panel open ??block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
@@ -5379,6 +5504,9 @@ export class ItemWorldScene extends Scene {
       this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
     }
 
+    if (this.isPlayerStandingOnContainerTop()) {
+      this.player.forceGrounded(true);
+    }
     this.player.update(dt);
 
     // First time HP drops to/under 40% ??surface a tutorial hint pointing at
@@ -6554,7 +6682,7 @@ export class ItemWorldScene extends Scene {
       if (min === overlapTop) {
         p2.y = cy0 - p2.height;
         if (p2.getVy() > 0) p2.vy = 0;
-        p2.forceGrounded();
+        p2.forceGrounded(true);
       } else if (min === overlapBottom) {
         // Container above ??push container UP (never bury player into floor).
         c.y -= overlapBottom;
@@ -7457,6 +7585,24 @@ export class ItemWorldScene extends Scene {
     this.worldPullInTransition?.cleanup(restoreSources);
   }
 
+  private isPlayerStandingOnContainerTop(): boolean {
+    const p = this.player;
+    const feetY = p.y + p.height;
+    const prevFeetY = p.prevY + p.height;
+    for (const c of this.containers) {
+      if (c.destroyed || c.held) continue;
+      const cx0 = c.colX;
+      const cx1 = c.colX + c.colW;
+      const topY = c.colY;
+      const horizontallySupported = p.x + p.width > cx0 + 1 && p.x < cx1 - 1;
+      if (!horizontallySupported) continue;
+      const feetAtTop = feetY >= topY - 2 && feetY <= topY + 2;
+      const cameFromAbove = prevFeetY <= topY + 4;
+      if (feetAtTop && cameFromAbove && p.getVy() >= -1) return true;
+    }
+    return false;
+  }
+
   private createWorldPullInTransition(): WorldPullInTransitionController {
     return new WorldPullInTransitionController(this.game, {
       tilemapContainer: this.tilemap.container,
@@ -7800,8 +7946,9 @@ export class ItemWorldScene extends Scene {
     this.itemWorldAnvilPrompt.visible = true;
     const us = this.game.uiScale;
     const cam = this.game.camera;
-    const ax = nearest.container.x;
-    const ay = nearest.container.y - nearest.height;
+    const anchor = nearest.getFloorPlateCenterWorld();
+    const ax = anchor.x;
+    const ay = anchor.y;
     const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.itemWorldAnvilPrompt.width / 2;
     const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 24) * us;
     this.itemWorldAnvilPrompt.x = Math.round(sx);
@@ -8019,7 +8166,26 @@ export class ItemWorldScene extends Scene {
     this.specialAggregate.addChild(renderer.specialLayer);
     this.shadowAggregate.addChild(renderer.shadowLayer);
 
-    const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer];
+    const bleedLayers = addLdtkVisualBoundsBleed({
+      target: {
+        bgLayer: this.bgAggregate,
+        interiorLayer: this.interiorAggregate,
+        wallLayer: this.wallAggregate,
+        specialLayer: this.specialAggregate,
+        shadowLayer: this.shadowAggregate,
+      },
+      atlases: this.atlases,
+      boundsWidth: this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
+      boundsHeight: this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
+      bgTiles,
+      wallTiles: wallTilesSub,
+      shadowTiles,
+      interiorTiles,
+      collisionGrid: ldtkLevel.collisionGrid,
+      offsetX: roomX,
+      offsetY: roomY,
+    });
+    const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer, ...bleedLayers];
     this.renderedCellVisuals.set(key, { col, row: absRow, layers });
     this.cellLayerGroups.push({ col, row: absRow, layers });
   }
@@ -8209,7 +8375,6 @@ export class ItemWorldScene extends Scene {
 
   render(alpha: number): void {
     if (!this.initialized) return;
-    if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     this.player.render(alpha);
     for (const enemy of this.enemies) enemy.render(alpha);
     const cam = this.game.camera;
@@ -8222,7 +8387,8 @@ export class ItemWorldScene extends Scene {
     this.toast.clear();
     this.uiController.destroy();
     this.entryCorridorActive = false;
-    this.restoreWorldAfterEntryCorridor();
+    this.clearEntryCorridorColorRestore();
+    this.restoreWorldAfterEntryCorridor(false);
     this.destroyEntryCorridorVisuals();
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.destroyTrapdoorPrompt();
@@ -8255,9 +8421,72 @@ export class ItemWorldScene extends Scene {
   }
 
   override destroy(): void {
+    this.clearEntryCorridorColorRestore();
+    this.restoreEntryCorridorBackgroundFilter();
+    this.weather?.destroy();
+    this.weather = null;
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
     super.destroy();
+  }
+
+  /**
+   * Create material-specific Item World weather for the current theme.
+   * Reads the area palette (`iw_<theme>_bg`): only areas tagged Weather=stratum
+   * get a field, and its WeatherParams (density / ascend / sparks) drive the
+   * look per map. The weapon temperament controls the weird weather material
+   * first (forge ash, iron cyro, spark static, rust corrosion, shadow oil);
+   * the area WeatherProfile is only a fallback for untagged weapons. The full
+   * map IntGrid is bound as collision so particles stop on authored terrain.
+   * Breathing haze is disabled here because full-screen color pulsing is
+   * visually noisy in Item World.
+   */
+  private initStratumWeather(): void {
+    this.weather?.destroy();
+    this.weather = null;
+    const areaId = `iw_${this._themeSlug}_bg`;
+    const entry = getAreaPaletteAtlas().rowIndex.has(areaId) ? getAreaPalette(areaId) : null;
+    if (!entry || entry.weather !== 'stratum') return;
+    const p = entry.weatherParams;
+    this.weather = new WeatherSystem({
+      mode: 'stratum',
+      stratumIntensity: p.density,
+      ascendSpeed: p.ascendSpeed,
+      breathing: false,
+      memorySparks: p.memorySparks,
+      stratumProfile: this.resolveItemWorldWeatherProfile(entry.weatherProfile),
+      coverageCheckTiles: 0,
+      collision: {
+        grid: this.fullGrid,
+        tileSize: TILE_SIZE,
+        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
+      },
+    });
+    this.weatherLayer.addChild(this.weather.container);
+  }
+
+  private resolveItemWorldWeatherProfile(fallback: StratumProfileInput): StratumProfileInput {
+    switch (this.item.def.temperamentPrimary) {
+      case 'forge': return 'ash';
+      case 'iron': return 'cyro';
+      case 'rust': return 'rust';
+      case 'spark': return 'spark';
+      case 'shadow': return 'shadow';
+      default: return fallback;
+    }
+  }
+
+  private updateWeather(dt: number): void {
+    if (!this.weather) return;
+    const cam = this.game.camera;
+    const width = GAME_WIDTH / cam.zoom;
+    const height = GAME_HEIGHT / cam.zoom;
+    this.weather.update(dt, {
+      x: cam.renderX - width / 2,
+      y: cam.renderY - height / 2,
+      width,
+      height,
+    });
   }
 
   /**

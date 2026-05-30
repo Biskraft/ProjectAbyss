@@ -24,6 +24,8 @@ import { FpsCounter } from '@ui/FpsCounter';
 import { PerfMonitor } from '@utils/PerfMonitor';
 import { FeedbackPanel } from '@ui/FeedbackPanel';
 import { setDefaultUiScale } from '@ui/factories';
+import type { ControlsSettings, DisplayScale, DisplaySettings, ScaleFilter, SettingsData } from '@core/SettingsStore';
+import { setRumbleIntensityMultiplier } from '@utils/GamepadRumble';
 
 export const GAME_WIDTH = GameRenderConst.GameWidth;
 export const GAME_HEIGHT = GameRenderConst.GameHeight;
@@ -96,6 +98,8 @@ export class Game {
   private prevRTW = 0;
   private prevRTH = 0;
   private fpsCounter!: FpsCounter;
+  private displayScaleMode: DisplayScale = 'auto';
+  private scaleFilter: ScaleFilter = 'sharp';
 
   async init(): Promise<void> {
     // Compute integer pixel scale for native resolution
@@ -171,7 +175,7 @@ export class Game {
       antialias: false,
     });
     this.backgroundSprite = new Sprite(this.backgroundRT);
-    this.backgroundSprite.texture.source.scaleMode = 'nearest';
+    this.backgroundSprite.texture.source.scaleMode = this.textureScaleMode();
     this.backgroundSprite.scale.set(this.uiScale);
     this.app.stage.addChild(this.backgroundSprite);
 
@@ -189,7 +193,7 @@ export class Game {
 
     // World sprite: scales 640x360 RT up to native resolution
     this.worldSprite = new Sprite(this.worldRT);
-    this.worldSprite.texture.source.scaleMode = 'nearest';
+    this.worldSprite.texture.source.scaleMode = this.textureScaleMode();
     this.worldSprite.scale.set(this.uiScale);
     this.app.stage.addChild(this.worldSprite);
 
@@ -314,7 +318,7 @@ export class Game {
           resolution: 1,
           antialias: false,
         });
-        this.worldRT.source.scaleMode = 'nearest';
+        this.worldRT.source.scaleMode = this.textureScaleMode();
         this.worldSprite.texture = this.worldRT;
         this.prevRTW = rtW;
         this.prevRTH = rtH;
@@ -372,13 +376,71 @@ export class Game {
 
     // uiScale is locked at init — renderer/fonts/HUD are all built for that scale.
     // Only CSS changes to fit the window.
-    const displayScale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    const fitScale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
+    const requestedScale = this.displayScaleNumber();
+    const displayScale = requestedScale === null ? fitScale : Math.min(fitScale, requestedScale);
     canvas.style.width = `${Math.floor(GAME_WIDTH * displayScale)}px`;
     canvas.style.height = `${Math.floor(GAME_HEIGHT * displayScale)}px`;
-    canvas.style.imageRendering = 'pixelated';
+    canvas.style.imageRendering = this.scaleFilter === 'sharp' ? 'pixelated' : 'auto';
   }
 
   generateTexture(container: Container) {
     return this.renderer.generateTexture(container);
+  }
+
+  applySettings(settings: SettingsData): void {
+    this.applyDisplaySettings(settings.display);
+    this.applyControlsSettings(settings.controls);
+  }
+
+  applyDisplaySettings(settings: DisplaySettings): void {
+    this.displayScaleMode = settings.scale;
+    this.scaleFilter = settings.scaleFilter;
+    this.camera?.setShakeMultiplier(shakeMultiplier(settings.shake));
+    Debug.infoVisible = settings.showFps;
+    if (this.fpsCounter) this.fpsCounter.container.visible = settings.showFps;
+    this.applyScaleFilterToRenderTargets();
+    if (this.app?.canvas) this.handleResize();
+  }
+
+  applyControlsSettings(settings: ControlsSettings): void {
+    setRumbleIntensityMultiplier(rumbleMultiplier(settings.rumble));
+  }
+
+  private textureScaleMode(): 'nearest' | 'linear' {
+    return this.scaleFilter === 'sharp' ? 'nearest' : 'linear';
+  }
+
+  private applyScaleFilterToRenderTargets(): void {
+    const mode = this.textureScaleMode();
+    if (this.backgroundRT?.source) this.backgroundRT.source.scaleMode = mode;
+    if (this.worldRT?.source) this.worldRT.source.scaleMode = mode;
+    if (this.backgroundSprite?.texture?.source) this.backgroundSprite.texture.source.scaleMode = mode;
+    if (this.worldSprite?.texture?.source) this.worldSprite.texture.source.scaleMode = mode;
+  }
+
+  private displayScaleNumber(): number | null {
+    switch (this.displayScaleMode) {
+      case '1x': return 1;
+      case '2x': return 2;
+      case '3x': return 3;
+      default: return null;
+    }
+  }
+}
+
+function shakeMultiplier(level: DisplaySettings['shake']): number {
+  switch (level) {
+    case 'off': return 0;
+    case 'low': return 0.5;
+    default: return 1;
+  }
+}
+
+function rumbleMultiplier(level: ControlsSettings['rumble']): number {
+  switch (level) {
+    case 'off': return 0;
+    case 'low': return 1.5;
+    default: return 4;
   }
 }
