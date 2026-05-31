@@ -96,6 +96,7 @@ graph TD
 | D-15 | Art Direction | `Design/Design_Art_Direction.md` | ✅ 활성 (2026-05-29 재정립, 실 자산 기반 v2) | 전체 | 전체 |
 | D-16 | Art Animation Spec | `Design/Design_Art_AnimationSpec.md` | ✅ 완료 | 전체 | 전체 |
 | D-17 | Tutorial & Environmental Teaching | `Design/Design_Tutorial_EnvironmentalTeaching.md` | ✅ 완료 | World | 탐험 |
+| D-20 | World Master (월드 통합 SSoT) | `Design/Design_World_Master.md` | ✅ 활성 (2026-05-31, v3 통합 SSoT) | World | 탐험 |
 | ~~D-18~~ | ~~Narrative / Story Design Methodology (Master)~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_StoryDesign_Methodology.md` | 📦 archived 2026-05-28 | 전체 | 전체 |
 | ~~D-19~~ | ~~Narrative Book Integration Guide~~ | `Design/_archive/NarrativeWorldReset_2026-05-28/Design_Narrative_BookIntegration_Guide.md` | 📦 archived 2026-05-28 | 전체 | 전체 |
 
@@ -409,6 +410,7 @@ graph TD
 | ID | 문서명 | 경로 | 주제 |
 | :--- | :--- | :--- | :--- |
 | RES-IDX | Research Index | `Research/RESEARCH_INDEX.md` | 20개 리서치 1줄 요약 |
+| RES-REF-DIGEST | Metroidvania·ActionRPG Reference Digest | `Research/Reference_Metroidvania_ActionRPG_Digest.md` | 콘텐츠 볼륨 벤치마크 12종 + 설계 패턴 (스펙 수치 근거) |
 | RES-DG-00 | Disgaea IW Research Summary | `Research/Disgaea_ItemWorld_Research_Summary.md` | 메타 인덱스 |
 | RES-DG-01 | Disgaea IW Core Mechanics | `Research/Disgaea_ItemWorld_CoreMechanics.md` | 아이템계 기본 구조 |
 | RES-DG-02 | Disgaea IW Memory Shard System | `Research/Disgaea_ItemWorld_Memory ShardSystem.md` | 기억 단편 시스템 |
@@ -416,6 +418,7 @@ graph TD
 | RES-DG-04 | Disgaea IW Procedural Gen | `Research/Disgaea_ItemWorld_ProceduralGeneration.md` | 절차적 생성 |
 | RES-DG-05 | Disgaea IW UX Patterns | `Research/Disgaea_ItemWorld_UXPatterns.md` | UX 설계 패턴 |
 | RES-MV-01 | Metroidvania Map & Gate | `Research/Metroidvania_MapStructure_GateDesign.md` | 맵 구조/게이트 설계 |
+| RES-MV-WT-01 | Metroidvania World Themes & Zone Types | `Research/Research_Metroidvania_WorldThemes.md` | 월드 테마·구역 종류·수직 구조·다양성 원칙 (D-20 보강) |
 | RES-CMB-01 | SideScrolling Combat | `Research/SideScrolling_Combat_System_Research.md` | 전투 시스템 |
 | RES-NET-01 | Online Coop Netcode | `Research/OnlineCoop_Netcode_Research.md` | 네트워크 아키텍처 |
 | RES-PCG-01 | World ProcGen | `Research/ProceduralGeneration_World_Research.md` | 절차적 생성 |
@@ -470,7 +473,12 @@ graph TD
 | ID | 문서명 | 경로 | 상태 |
 | :--- | :--- | :--- | :--- |
 | PLN-MASTER | Integrated Master Roadmap (통합 SSoT) | `Plan/Roadmap_Master_Integrated.md` | ✅ 활성 SSoT (2026-05-31) |
-| PLN-SPEC | Content & Feature Master Spec (전체 콘텐츠·기능 스펙) | `Plan/Spec_Content_Feature_Master.md` | ✅ 1차 초안 (2026-05-31) |
+| PLN-SPEC | Content & Feature Master Spec (전체 콘텐츠·기능 스펙) | `Plan/Spec/Spec_Content_Feature_Master.md` | ✅ 2차 (2026-05-31, 레퍼런스 검증) |
+| PLN-CHECKLIST | Spec Selection Checklist (스펙 결정 추적기) | `Plan/Spec/Spec_Selection_Checklist.md` | ✅ 활성 (2026-05-31) |
+| PLN-RELIC | Relic Catalog (전체 렐릭 종합 카탈로그) | `Plan/Spec/Spec_Relic_Catalog.md` | ✅ 활성 (2026-05-31) |
+| PLN-IWPROG | Item World Progression Systems (아이템계 진행 시스템 — 렐릭과 분리) | `Plan/Spec/Spec_ItemWorld_Progression.md` | ✅ 활성 (2026-05-31) |
+| PLN-SKILL | Skill System Spec (스킬 18종 상세) | `Plan/Spec/Spec_Skill_System.md` | ✅ 활성 (2026-05-31) |
+| PLN-SHOP | Shop & Economy Spec (상점·경제 상세) | `Plan/Spec/Spec_Shop_Economy.md` | ✅ 활성 (2026-05-31) |
 | PLN-01 | Development Roadmap | `Plan/Development_Roadmap.md` | 📦 SUPERSEDED → PLN-MASTER |
 | PLN-02 | P1 Status Dashboard | `Plan/Project_Status_Dashboard_P1.md` | 🔄 진행 중 |
 | PLN-03 | GameDesign Agent TaskList | `Plan/GameDesign_Agent_TaskList.md` | 🔄 진행 중 |

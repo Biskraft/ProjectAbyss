@@ -245,6 +245,7 @@ const ENTRY_CORRIDOR_CONTRAST = 0.5;
 const ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS = 2.2;
 const ENTRY_CORRIDOR_COLOR_HOLD_MS = 1000;
 const ENTRY_CORRIDOR_COLOR_RESTORE_MS = 1000;
+const ITEM_WORLD_DEFAULT_LDTK_TILESET = 'atlas/world_01.png';
 
 // SurfaceOverlay is now spot-based, so it can run in item world without
 // producing long diagonal shadow/stain streaks.
@@ -289,6 +290,23 @@ function cloneLdtkLevel(level: LdtkLevel): LdtkLevel {
 
 function cloneLdtkLevels(levels: LdtkLevel[]): LdtkLevel[] {
   return levels.map(cloneLdtkLevel);
+}
+
+function collectLdtkTilesetPaths(levels: LdtkLevel[]): Set<string> {
+  const paths = new Set<string>();
+  const addTiles = (tiles: readonly LdtkTile[]) => {
+    for (const tile of tiles) {
+      if (tile.tilesetPath) paths.add(tile.tilesetPath);
+    }
+  };
+  for (const level of levels) {
+    addTiles(level.backgroundTiles);
+    addTiles(level.wallTiles);
+    addTiles(level.interiorTiles);
+    addTiles(level.shadowTiles);
+    for (const tiles of Object.values(level.extraTileLayers)) addTiles(tiles);
+  }
+  return paths;
 }
 
 // DEC-039 Trapdoor 移④컯 ?쒗????대컢 (ms).
@@ -585,7 +603,7 @@ export class ItemWorldScene extends Scene {
   private artificialDecoAggregate: Container | null = null;
   private structAggregate: Container | null = null;
   private _procDecoEnabled = false;
-  private _themeSlug = 'habitat';
+  private _themeSlug = 'foundry';
   private parallaxBG!: ParallaxBackground;
 
   // Updraft (IntGrid value 4) ? particles + force handled per-frame
@@ -716,8 +734,9 @@ export class ItemWorldScene extends Scene {
   }
 
   async init(): Promise<void> {
-    // Resolve visual theme from weapon definition (themeId: "T-HABITAT" ??"habitat")
-    const themeSlug = (this.item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
+    // Resolve visual theme from weapon definition (themeId: "T-FOUNDRY" → "foundry").
+    // 5기질 테마만 유효 (foundry/command/malfunction/coolant/echo). 미정의 시 foundry 폴백.
+    const themeSlug = (this.item.def.themeId ?? 'T-FOUNDRY').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
     // ItemWorld ?꾩슜 ??二쇰?/?ㅼ쐞移??ㅽ봽?쇱씠?몃? entity 媛 媛쒕퀎 Assets.load 濡?
     // 遺瑜닿린 ?꾩뿉 洹몃９ prefetch ??泥?吏꾩엯 hitch ?뚰뵾 (pixijs-references P1).
@@ -742,19 +761,12 @@ export class ItemWorldScene extends Scene {
       this.ldtkTemplates = cloneLdtkLevels(cachedTemplates);
       this.ldtkRenderer = new LdtkRenderer();
 
-      // Manual Tiles layers (e.g. Buildings) reference tilesets that aren't
-      // covered by area palettes. Load any tilesetPath used by extraTileLayers
-      // so buildSprite can resolve them.
-      const extraTilesetPaths = new Set<string>();
-      for (const lvl of this.ldtkTemplates) {
-        for (const tiles of Object.values(lvl.extraTileLayers)) {
-          for (const t of tiles) {
-            if (t.tilesetPath) extraTilesetPaths.add(t.tilesetPath);
-          }
-        }
-      }
+      // Load authored LDtk tilesets that are not covered by area palettes.
+      // ItemStratum can intentionally use atlas/itemstratum_01.png on normal
+      // wall/background layers, so this must include more than extra layers.
+      const authoredTilesetPaths = collectLdtkTilesetPaths(this.ldtkTemplates);
       await Promise.all(
-        Array.from(extraTilesetPaths).map(async (relPath) => {
+        Array.from(authoredTilesetPaths).map(async (relPath) => {
           if (this.atlases[relPath]) return;
           try {
             this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
@@ -882,10 +894,10 @@ export class ItemWorldScene extends Scene {
       const bgId = `iw_${this._themeSlug}_bg`;
       const wallId = `iw_${this._themeSlug}_wall`;
       const bgEntry = getAreaPalette(
-        getAreaPaletteAtlas().rowIndex.has(bgId) ? bgId : 'iw_habitat_bg',
+        getAreaPaletteAtlas().rowIndex.has(bgId) ? bgId : 'iw_foundry_bg',
       );
       const wallEntry = getAreaPalette(
-        getAreaPaletteAtlas().rowIndex.has(wallId) ? wallId : 'iw_habitat_wall',
+        getAreaPaletteAtlas().rowIndex.has(wallId) ? wallId : 'iw_foundry_wall',
       );
       const atlas = getAreaPaletteAtlas();
       this.bgPaletteFilter = new PaletteSwapFilter({
@@ -2047,7 +2059,7 @@ export class ItemWorldScene extends Scene {
     this.fullMapContainer.addChild(this.sealAggregate);
     this.bgAggregate.filters = [this.bgPaletteFilter];
     const wallFilters: any[] = [this.wallPaletteFilter];
-    wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16 }));
+    wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16, direction: 'bottom' }));
     this.wallAggregate.filters = wallFilters;
     // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
     // are gameplay-critical and must not be swept into the biome palette.
@@ -3251,6 +3263,12 @@ export class ItemWorldScene extends Scene {
     return filter ? tiles.filter(filter) : tiles;
   }
 
+  private applyItemWorldAreaTileset(areaId: string, tiles: LdtkTile[]): void {
+    const defaultAuthoredTiles = tiles.filter(tile =>
+      !tile.tilesetPath || tile.tilesetPath === ITEM_WORLD_DEFAULT_LDTK_TILESET);
+    applyAreaTilesetToLdtkTiles(areaId, defaultAuthoredTiles);
+  }
+
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const cell = this.getCurrentCell();
     const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
@@ -3279,9 +3297,9 @@ export class ItemWorldScene extends Scene {
         const wallTilesSub = substituteSolidGenericSprites(
           ldtkLevel.wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
         );
-        applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-        applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
-        applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+        this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
+        this.applyItemWorldAreaTileset(wallAreaId, wallTilesSub);
+        this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
         // ?먮낯 collisionGrid 瑜?洹몃?濡??꾨떖 ??isFluidHiddenTile ??`v === 17/18/19`
         // 媛 fluid placeholder sprite 瑜??④릿?? SolidGeneric_A/B (21/22) ??hide
         // ????꾨떂 ????substitute ?④퀎?먯꽌 sprite 媛 ?곸젅??援먯껜??
@@ -5174,9 +5192,9 @@ export class ItemWorldScene extends Scene {
         {
           const bgAreaId = `iw_${this._themeSlug}_bg`;
           const wallAreaId = `iw_${this._themeSlug}_wall`;
-          applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-          applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles);
-          applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+          this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
+          this.applyItemWorldAreaTileset(wallAreaId, wallTiles);
+          this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
         }
         const wallTilesSub = substituteSolidGenericSprites(
           wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
@@ -8143,9 +8161,9 @@ export class ItemWorldScene extends Scene {
     const wallTilesSub = substituteSolidGenericSprites(
       wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
     );
-    applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles);
-    applyAreaTilesetToLdtkTiles(wallAreaId, wallTilesSub);
-    applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles);
+    this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
+    this.applyItemWorldAreaTileset(wallAreaId, wallTilesSub);
+    this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
     renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
     renderer.bgLayer.position.set(roomX, roomY);
     renderer.interiorLayer.position.set(roomX, roomY);
@@ -8432,14 +8450,11 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Create material-specific Item World weather for the current theme.
-   * Reads the area palette (`iw_<theme>_bg`): only areas tagged Weather=stratum
-   * get a field, and its WeatherParams (density / ascend / sparks) drive the
-   * look per map. The weapon temperament controls the weird weather material
-   * first (forge ash, iron cyro, spark static, rust corrosion, shadow oil);
-   * the area WeatherProfile is only a fallback for untagged weapons. The full
-   * map IntGrid is bound as collision so particles stop on authored terrain.
-   * Breathing haze is disabled here because full-screen color pulsing is
-   * visually noisy in Item World.
+   * `Weather=stratum` now means a weapon-colored rain/snow variant, not a
+   * separate floating field. Forge becomes ash snow, iron/cyro becomes pale
+   * snow, rust becomes acid rain, spark becomes electric rain, and shadow
+   * becomes oil rain. The full map IntGrid is bound as collision so every
+   * droplet/flock stops on authored terrain.
    */
   private initStratumWeather(): void {
     this.weather?.destroy();
@@ -8451,9 +8466,6 @@ export class ItemWorldScene extends Scene {
     this.weather = new WeatherSystem({
       mode: 'stratum',
       stratumIntensity: p.density,
-      ascendSpeed: p.ascendSpeed,
-      breathing: false,
-      memorySparks: p.memorySparks,
       stratumProfile: this.resolveItemWorldWeatherProfile(entry.weatherProfile),
       coverageCheckTiles: 0,
       collision: {

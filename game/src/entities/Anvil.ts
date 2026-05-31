@@ -19,7 +19,6 @@ import { Container, Graphics, Sprite, Texture, Assets, Rectangle } from 'pixi.js
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
-import { RARITY_COLOR } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
 import { GlowFilter } from '@effects/GlowFilter';
 
@@ -162,7 +161,6 @@ export class Anvil {
   private particleLayer: Container;
   private sparks: Spark[] = [];
   private sparkCooldown = 0;
-  private itemGfx: Graphics | null = null;
   private fxSprite: Sprite | null = null;
   private fxFrames: Texture[] = [];
   private fxTimer = 0;
@@ -401,23 +399,11 @@ export class Anvil {
     if (this.hammerIcon) this.hammerIcon.visible = placed;
   }
 
-  /** Place a weapon on the anvil. Shows a small colored rect on top. */
+  /** Place a weapon on the anvil and show its actual item icon. */
   placeItem(item: ItemInstance): void {
     if (this.disabled) return;
     this.item = item;
-
-    if (this.itemGfx) {
-      this.container.removeChild(this.itemGfx);
-      this.itemGfx.destroy();
-    }
     this.resetPlacedItemEffect();
-
-    const color = RARITY_COLOR[item.rarity];
-    this.itemGfx = new Graphics();
-    this.itemGfx.x = floorPlateCenterX();
-    this.itemGfx.rect(-6, -this.height - 8, 12, 5).fill(color);
-    this.itemGfx.rect(-4, -this.height - 11, 2, 4).fill(color);
-    this.container.addChild(this.itemGfx);
 
     this.showItemIcon(item);
 
@@ -433,11 +419,6 @@ export class Anvil {
     this.item = null;
     this.used = false;
     this.resetPlacedItemEffect();
-    if (this.itemGfx) {
-      this.container.removeChild(this.itemGfx);
-      this.itemGfx.destroy();
-      this.itemGfx = null;
-    }
     if (this.itemIcon) {
       this.container.removeChild(this.itemIcon);
       this.itemIcon.destroy();
@@ -475,7 +456,6 @@ export class Anvil {
 
   startPlacedItemPunch(): void {
     if (!this.itemIcon) return;
-    if (this.itemGfx) this.itemGfx.visible = false;
     this.itemIcon.visible = true;
     this.itemIcon.x = floorPlateCenterX();
     this.itemIcon.y = ITEM_ICON_Y;
@@ -488,7 +468,6 @@ export class Anvil {
 
   startPlacedItemMoveToLaser(worldTargetX: number, worldTargetY: number): void {
     if (!this.itemIcon) return;
-    if (this.itemGfx) this.itemGfx.visible = false;
     this.itemPunchPhase = 'move';
     this.itemMoveStart = {
       x: this.itemIcon.x,
@@ -504,6 +483,13 @@ export class Anvil {
     this.itemMoveElapsed = 0;
   }
 
+  finishPlacedItemAsWorld(): void {
+    if (!this.itemIcon) return;
+    this.itemPunchPhase = 'done';
+    this.itemIcon.visible = false;
+    this.itemIcon.alpha = 0;
+  }
+
   private resetPlacedItemEffect(): void {
     this.itemPunchPhase = 'idle';
     this.itemPunchElapsed = 0;
@@ -516,7 +502,6 @@ export class Anvil {
       this.itemIcon.scale.set(1);
       this.itemIcon.filters = [];
     }
-    if (this.itemGfx) this.itemGfx.visible = true;
   }
 
   private updatePlacedItemEffect(dt: number): void {
@@ -649,10 +634,6 @@ export class Anvil {
     // Body gentle breathing
     this.gfx.alpha = 0.9 + Math.sin(t * 2) * 0.1;
 
-    // Item glow when placed
-    if (this.itemGfx) {
-      this.itemGfx.alpha = 0.8 + Math.sin(t * 4) * 0.2;
-    }
     // Item icon float animation at gate center + 50px down
     if (this.itemIcon) {
       if (this.itemPunchPhase === 'idle') {

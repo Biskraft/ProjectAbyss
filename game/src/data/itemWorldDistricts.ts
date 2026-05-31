@@ -67,8 +67,8 @@ const MEMORIAL: District = {
 const BRANCH_BY_TEMPERAMENT: Record<Temperament, District> = {
   forge:  { name: t('ui.district.forge.name'),  short: t('ui.district.forge.short'),  color: 0xff8a3c, flavor: t('ui.district.forge.flavor') },
   iron:   { name: t('ui.district.iron.name'),   short: t('ui.district.iron.short'),   color: 0x4cd6c1, flavor: t('ui.district.iron.flavor') },
-  rust:   { name: t('ui.district.rust.name'),   short: t('ui.district.rust.short'),   color: 0x8a8a8a, flavor: t('ui.district.rust.flavor') },
-  spark:  { name: t('ui.district.spark.name'),  short: t('ui.district.spark.short'),  color: 0xfff5b0, flavor: t('ui.district.spark.flavor') },
+  rust:   { name: t('ui.district.rust.name'),   short: t('ui.district.rust.short'),   color: 0x88cc44, flavor: t('ui.district.rust.flavor') },
+  spark:  { name: t('ui.district.spark.name'),  short: t('ui.district.spark.short'),  color: 0x6aa0e8, flavor: t('ui.district.spark.flavor') },
   shadow: { name: t('ui.district.shadow.name'), short: t('ui.district.shadow.short'), color: 0x6b3a8a, flavor: t('ui.district.shadow.flavor') },
 };
 

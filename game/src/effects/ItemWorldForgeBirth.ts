@@ -62,6 +62,7 @@ const SHARD_VANISH_EXTRA_X_MAX = 136;
 const SHARD_DUPLICATE_RATIO = 1.0;
 const SHARD_RELEASE_DELAY_MUL = 1.25;
 const SHARD_SHRINK_START_T = 0.8;
+const SHARD_FLOAT_SPREAD_MUL = 0.62;
 const VOID_BLACK = 0x030409;
 
 function clamp01(v: number): number {
@@ -358,8 +359,10 @@ export class ItemWorldForgeBirth {
         const dy = cy - this.options.y;
         const angle = Math.atan2(dy, dx || 1) + rng.nextFloat(-0.75, 0.75);
         const burst = rng.nextFloat(38, 88) + Math.max(0, dx) * 0.22;
-        const floatX = cx + Math.cos(angle) * burst + rng.nextFloat(18, 54);
-        const floatY = cy + Math.sin(angle) * burst - rng.nextFloat(22, 58);
+        const scatteredX = cx + Math.cos(angle) * burst + rng.nextFloat(18, 54);
+        const scatteredY = cy + Math.sin(angle) * burst - rng.nextFloat(22, 58);
+        const floatX = this.options.x + (scatteredX - this.options.x) * SHARD_FLOAT_SPREAD_MUL;
+        const floatY = this.options.y + (scatteredY - this.options.y) * SHARD_FLOAT_SPREAD_MUL;
         const target = targets.length > 0 ? targets[idx % targets.length] : null;
         const targetX = target ? target.shardX : this.options.targetX + this.options.targetWidth * rng.nextFloat(0.2, 0.75);
         const targetY = target ? target.shardY : this.options.targetY + this.options.targetHeight * rng.nextFloat(0.45, 0.75);

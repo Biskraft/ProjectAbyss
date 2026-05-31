@@ -566,6 +566,258 @@ export function tryLedgeSnap(
   return targetY;
 }
 
+export interface SlopeSegment2x1 {
+  x0: number;
+  x1: number;
+  yLeft: number;
+  yRight: number;
+  dir: 'upRight' | 'upLeft';
+}
+
+function slopeFloorYAt(slope: SlopeSegment2x1, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - slope.x0) / (slope.x1 - slope.x0)));
+  return slope.yLeft + (slope.yRight - slope.yLeft) * t;
+}
+
+function isSurfaceTile(roomData: number[][], col: number, row: number): boolean {
+  return isSolid(getTile(roomData, col, row)) && !isSolid(getTile(roomData, col, row - 1));
+}
+
+function buildUpRightSlope(roomData: number[][], startCol: number, lowRow: number): SlopeSegment2x1 | null {
+  const highRow = lowRow - 1;
+  if (!isSurfaceTile(roomData, startCol, lowRow)) return null;
+  if (!isSurfaceTile(roomData, startCol + 1, lowRow)) return null;
+  if (!isSurfaceTile(roomData, startCol + 2, highRow)) return null;
+  if (isSolid(getTile(roomData, startCol, highRow))) return null;
+  if (isSolid(getTile(roomData, startCol + 1, highRow))) return null;
+  return {
+    x0: startCol * TILE_SIZE,
+    x1: (startCol + 2) * TILE_SIZE,
+    yLeft: lowRow * TILE_SIZE,
+    yRight: highRow * TILE_SIZE,
+    dir: 'upRight',
+  };
+}
+
+function buildUpLeftSlope(roomData: number[][], startCol: number, lowRow: number): SlopeSegment2x1 | null {
+  const highRow = lowRow - 1;
+  if (!isSurfaceTile(roomData, startCol - 1, highRow)) return null;
+  if (!isSurfaceTile(roomData, startCol, lowRow)) return null;
+  if (!isSurfaceTile(roomData, startCol + 1, lowRow)) return null;
+  if (isSolid(getTile(roomData, startCol, highRow))) return null;
+  if (isSolid(getTile(roomData, startCol + 1, highRow))) return null;
+  return {
+    x0: startCol * TILE_SIZE,
+    x1: (startCol + 2) * TILE_SIZE,
+    yLeft: highRow * TILE_SIZE,
+    yRight: lowRow * TILE_SIZE,
+    dir: 'upLeft',
+  };
+}
+
+/**
+ * Finds a player-only virtual 2x1 slope under a foot sample.
+ *
+ * The source IntGrid stays unchanged. A segment is inferred only when two
+ * low flat surface cells lead into/out of a one-tile higher surface:
+ *   - upRight: low, low, high
+ *   - upLeft:  high, low, low
+ */
+export function findSlope2x1AtFoot(
+  footX: number,
+  feetY: number,
+  roomData: number[][],
+  snapDistancePx: number,
+): SlopeSegment2x1 | null {
+  const footCol = Math.floor(footX / TILE_SIZE);
+  const feetRow = Math.floor(feetY / TILE_SIZE);
+  let best: { slope: SlopeSegment2x1; distance: number } | null = null;
+
+  for (let startCol = footCol - 2; startCol <= footCol; startCol++) {
+    const x0 = startCol * TILE_SIZE;
+    const x1 = (startCol + 2) * TILE_SIZE;
+    if (footX < x0 || footX > x1) continue;
+
+    for (let lowRow = feetRow - 2; lowRow <= feetRow + 2; lowRow++) {
+      const candidates = [
+        buildUpRightSlope(roomData, startCol, lowRow),
+        buildUpLeftSlope(roomData, startCol, lowRow),
+      ];
+      for (const slope of candidates) {
+        if (!slope) continue;
+        const floorY = slopeFloorYAt(slope, footX);
+        const distance = Math.abs(feetY - floorY);
+        if (distance > snapDistancePx) continue;
+        if (!best || distance < best.distance) best = { slope, distance };
+      }
+    }
+  }
+
+  return best?.slope ?? null;
+}
+
+function overlapsSolidAabb(
+  x: number, y: number, width: number, height: number,
+  roomData: number[][],
+): boolean {
+  const left = Math.floor(x / TILE_SIZE);
+  const right = Math.floor((x + width - 1) / TILE_SIZE);
+  const top = Math.floor(y / TILE_SIZE);
+  const bottom = Math.floor((y + height - 1) / TILE_SIZE);
+  for (let row = top; row <= bottom; row++) {
+    for (let col = left; col <= right; col++) {
+      if (isSolid(getTile(roomData, col, row))) return true;
+    }
+  }
+  return false;
+}
+
+function isSlopeSupportCell(slope: SlopeSegment2x1, col: number, row: number): boolean {
+  const startCol = Math.floor(slope.x0 / TILE_SIZE);
+  const endCol = Math.floor(slope.x1 / TILE_SIZE);
+  const lowRow = Math.floor(Math.max(slope.yLeft, slope.yRight) / TILE_SIZE);
+  const highRow = Math.floor(Math.min(slope.yLeft, slope.yRight) / TILE_SIZE);
+
+  if (row === lowRow && col >= startCol && col <= endCol - 1) return true;
+  if (slope.dir === 'upRight' && row === highRow && col === endCol) return true;
+  if (slope.dir === 'upLeft' && row === highRow && col === startCol - 1) return true;
+  return false;
+}
+
+function overlapsSolidAabbWithSlopeSupport(
+  x: number, y: number, width: number, height: number,
+  roomData: number[][], slope: SlopeSegment2x1,
+): boolean {
+  const left = Math.floor(x / TILE_SIZE);
+  const right = Math.floor((x + width - 1) / TILE_SIZE);
+  const top = Math.floor(y / TILE_SIZE);
+  const bottom = Math.floor((y + height - 1) / TILE_SIZE);
+  for (let row = top; row <= bottom; row++) {
+    for (let col = left; col <= right; col++) {
+      if (!isSolid(getTile(roomData, col, row))) continue;
+      if (isSlopeSupportCell(slope, col, row)) continue;
+      return true;
+    }
+  }
+  return false;
+}
+
+export function resolveXPixelStepWithSlopes2x1(
+  x: number, y: number, width: number, height: number,
+  dx: number, roomData: number[][], slopeSnapDistancePx: number,
+): { x: number; y: number; collided: boolean; moved: number; onSlope: boolean } {
+  const move = Math.trunc(dx);
+  if (move === 0) {
+    const footX = x + width / 2;
+    const slope = findSlope2x1AtFoot(footX, y + height, roomData, slopeSnapDistancePx);
+    if (!slope) return { x, y, collided: false, moved: 0, onSlope: false };
+    const slopeY = slopeFloorYAt(slope, footX) - height;
+    if (overlapsSolidAabbWithSlopeSupport(x, slopeY, width, height, roomData, slope)) {
+      return { x, y, collided: false, moved: 0, onSlope: false };
+    }
+    return { x, y: slopeY, collided: false, moved: 0, onSlope: true };
+  }
+
+  const sign = move > 0 ? 1 : -1;
+  let curX = x;
+  let curY = y;
+  let remaining = Math.abs(move);
+  let onSlope = false;
+
+  while (remaining > 0) {
+    const nextX = curX + sign;
+    let nextY = curY;
+    const footX = sign > 0 ? nextX + width : nextX;
+    const slope = findSlope2x1AtFoot(footX, curY + height, roomData, slopeSnapDistancePx);
+    if (slope) nextY = slopeFloorYAt(slope, footX) - height;
+
+    const blocked = slope
+      ? overlapsSolidAabbWithSlopeSupport(nextX, nextY, width, height, roomData, slope)
+      : overlapsSolidAabb(nextX, nextY, width, height, roomData);
+    if (blocked) {
+      return { x: curX, y: curY, collided: true, moved: curX - x, onSlope };
+    }
+
+    curX = nextX;
+    curY = nextY;
+    onSlope = onSlope || !!slope;
+    remaining--;
+  }
+
+  return { x: curX, y: curY, collided: false, moved: curX - x, onSlope };
+}
+
+export function resolveYPixelStepWithSlopes2x1(
+  x: number, y: number, width: number, height: number,
+  dy: number, roomData: number[][], ignoreOneWay = false, slopeSnapDistancePx = 2,
+): { y: number; grounded: boolean; collided: boolean; moved: number; onSlope: boolean } {
+  const move = Math.trunc(dy);
+  const footX = x + width / 2;
+
+  if (move === 0) {
+    const slope = findSlope2x1AtFoot(footX, y + height, roomData, slopeSnapDistancePx);
+    if (slope) {
+      const slopeY = slopeFloorYAt(slope, footX) - height;
+      if (!overlapsSolidAabbWithSlopeSupport(x, slopeY, width, height, roomData, slope)) {
+        return { y: slopeY, grounded: true, collided: false, moved: slopeY - y, onSlope: true };
+      }
+    }
+    const grounded = resolveY(x, y, width, height, 0, roomData, ignoreOneWay).grounded;
+    return { y, grounded, collided: false, moved: 0, onSlope: false };
+  }
+
+  if (move < 0) {
+    const result = resolveYPixelStep(x, y, width, height, dy, roomData, ignoreOneWay);
+    return { ...result, onSlope: false };
+  }
+
+  let curY = y;
+  let remaining = move;
+
+  while (remaining > 0) {
+    const nextY = curY + 1;
+    const feetBefore = curY + height;
+    const feetAfter = nextY + height;
+    const slope = findSlope2x1AtFoot(footX, feetAfter, roomData, slopeSnapDistancePx);
+    if (slope) {
+      const floorY = slopeFloorYAt(slope, footX);
+      if (feetBefore <= floorY + 1 && feetAfter >= floorY) {
+        const landedY = floorY - height;
+        if (!overlapsSolidAabbWithSlopeSupport(x, landedY, width, height, roomData, slope)) {
+          return { y: landedY, grounded: true, collided: true, moved: landedY - y, onSlope: true };
+        }
+      }
+    }
+
+    const leadY = nextY + height;
+    const leftTile = Math.floor(x / TILE_SIZE);
+    const rightTile = Math.floor((x + width - 1) / TILE_SIZE);
+    const checkRow = Math.floor(leadY / TILE_SIZE);
+
+    for (let col = leftTile; col <= rightTile; col++) {
+      const tile = getTile(roomData, col, checkRow);
+
+      if (isSolid(tile)) {
+        const hitY = checkRow * TILE_SIZE - height;
+        return { y: hitY, grounded: true, collided: true, moved: hitY - y, onSlope: false };
+      }
+
+      if (isOneWay(tile) && !ignoreOneWay) {
+        const platformTop = checkRow * TILE_SIZE;
+        if (feetBefore <= platformTop + 1 && feetAfter >= platformTop) {
+          const landedY = platformTop - height;
+          return { y: landedY, grounded: true, collided: true, moved: landedY - y, onSlope: false };
+        }
+      }
+    }
+
+    curY = nextY;
+    remaining--;
+  }
+
+  return { y: curY, grounded: false, collided: false, moved: curY - y, onSlope: false };
+}
+
 /**
  * Dash corner correction — 대시 중 수평 진행이 벽에 막힐 때 세로로 살짝 밀어 통과시키는 보정.
  *

@@ -14,14 +14,14 @@
 - Weather renders in a world-space `weatherLayer` above fluid/above-fluid VFX and below deployment/vivid layers.
 - The camera view passed to `WeatherSystem.update` is level-local (`renderX/renderY`, `GAME_WIDTH / zoom`, `GAME_HEIGHT / zoom`), matching the rest of `LdtkWorldScene` coordinates.
 
-## Item World Stratum Weather
+## Item World Weather
 
 - `ItemWorldScene` creates `WeatherSystem` with `mode='stratum'` after the unified `fullGrid` has been built and generic fluid cells have been resolved.
-- Item World stratum weather must bind the full IntGrid as collision (`isSolid(tile) || isOneWay(tile)`), so ash/cyro/spark/rust/shadow particles stop on authored terrain instead of floating through rooms.
+- `mode='stratum'` is not a separate floating/rising field. It is a set of rain/snow variants that reuse the same spawn, movement, IntGrid collision, and rain splash code as normal weather.
+- Item World weather must bind the full IntGrid as collision (`isSolid(tile) || isOneWay(tile)`), so all rain/snow particles stop on authored terrain.
 - Weapon `temperamentPrimary` overrides the area palette profile for weather identity: `forge -> ash`, `iron -> cyro`, `rust -> rust`, `spark -> spark`, `shadow -> shadow`. Use area `WeatherProfile` only as fallback for untagged weapons.
-- `Sheets/Content_System_Area_Palette.csv` `WeatherProfile` drives material identity: `ash` = falling black forge ash, `cyro`/`cryo` = rising frost, `spark` = jittering static, `rust` = settling corrosion flecks, `shadow` = black oil drips, `residue` = canonical echo shards.
-- Rising profiles such as cyro must spawn from visible air just above floor/one-way surfaces, not from below the viewport; spawning below the floor causes immediate IntGrid collision culling and makes the snow disappear.
-- Item World passes `breathing=false`; keep full-screen fog disabled there and express weather through local particles/sparks only.
+- `Sheets/Content_System_Area_Palette.csv` `WeatherProfile` drives material identity: `ash` = black forge ash snow, `cyro`/`cryo` = pale cold snow, `spark` = electric rain, `rust` = acid rain, `shadow` = black oil rain, `residue` = cyan echo snow.
+- Do not reintroduce bottom-spawn/rising cyro snow, full-screen breathing fog, converging sparks, or other floating stratum fields. Item World weather should read as recognizable precipitation first, then as weapon material through palette and tuning.
 
 ## Rain Streak Collision
 

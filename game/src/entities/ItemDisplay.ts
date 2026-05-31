@@ -68,11 +68,13 @@ const SPARKLE_DRIFT_AMPLITUDE_PX = 6;
 type Temperament = 'forge' | 'iron' | 'rust' | 'spark' | 'shadow';
 
 /** 기질별 색 — itemWorldDistricts.ts BRANCH_BY_TEMPERAMENT 와 동일 SSoT. */
+// 기질↔색 1:1 (2026-05-31). 테마 그라디언트 dominant 와 정렬:
+// forge=magma주황 / iron=water·ice청록 / rust=acid산성녹 / spark=thunder일렉트릭블루 / shadow=oil자주.
 const TEMPERAMENT_COLOR: Record<Temperament, number> = {
   forge: 0xff8a3c,
   iron: 0x4cd6c1,
-  rust: 0x8a8a8a,
-  spark: 0xfff5b0,
+  rust: 0x88cc44,
+  spark: 0x6aa0e8,
   shadow: 0x6b3a8a,
 };
 

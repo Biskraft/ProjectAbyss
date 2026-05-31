@@ -65,6 +65,13 @@ interface MapMarker {
   label?: string; // e.g. "ATK 30"
 }
 
+export interface WorldMapDynamicGrid {
+  roomId: string;
+  worldX: number;
+  worldY: number;
+  grid: number[][];
+}
+
 function getTierColor(id: string): number {
   for (const key of Object.keys(TIER_COLORS)) {
     if (id.startsWith(key)) return TIER_COLORS[key];
@@ -104,6 +111,8 @@ export class WorldMapOverlay {
   // Blinking elements
   private currentRoomGfx: Graphics | null = null;
   private playerDot: Graphics | null = null;
+  private dynamicGridLayer: Graphics | null = null;
+  private dynamicGrids: WorldMapDynamicGrid[] = [];
 
   /**
    * Debug 모드: true 면 모든 룸을 visited 처리해 전체 맵 표시 + 룸 클릭 가능.
@@ -172,6 +181,11 @@ export class WorldMapOverlay {
     this.markers = markers;
   }
 
+  setDynamicGrids(grids: WorldMapDynamicGrid[]): void {
+    this.dynamicGrids = grids;
+    if (this.visible) this.drawDynamicGridLayer();
+  }
+
   toggle(): void {
     if (this.visible) {
       this.close();
@@ -203,6 +217,7 @@ export class WorldMapOverlay {
   update(dt: number): void {
     if (!this.visible) return;
     this.blinkTimer += dt;
+    this.drawDynamicGridLayer();
 
     // Blink current room border
     if (this.currentRoomGfx) {
@@ -226,6 +241,7 @@ export class WorldMapOverlay {
     this.mapContainer.removeChildren();
     this.currentRoomGfx = null;
     this.playerDot = null;
+    this.dynamicGridLayer = null;
 
     // Debug(Shift+M) 모드면 풀 리스트(Debug 룸 포함)로 그려 워프 클릭이 가능하게 한다.
     const renderList = this.debugMode && this.debugRooms.length > 0 ? this.debugRooms : this.rooms;
@@ -271,6 +287,7 @@ export class WorldMapOverlay {
     }
 
     // Draw rooms
+    const visibleRoomRects: Array<{ room: WorldMapRoom; rx: number; ry: number; rw: number; rh: number }> = [];
     for (const r of renderList) {
       const rx = offsetX + (r.x - minX) * scale;
       const ry = offsetY + (r.y - minY) * scale;
@@ -280,6 +297,9 @@ export class WorldMapOverlay {
       const isCurrent = r.id === this.currentLevelId;
       // Debug 모드는 모든 룸을 visited 로 강제 (가지 않은 룸도 풀 디테일 렌더).
       const visited = this.debugMode || this.visitedLevels.has(r.id);
+      if (visited || isCurrent) {
+        visibleRoomRects.push({ room: r, rx, ry, rw, rh });
+      }
 
       const g = new Graphics();
 
@@ -359,10 +379,14 @@ export class WorldMapOverlay {
         });
       }
 
-      // Draw markers for visited rooms
-      if (visited || isCurrent) {
-        this.drawMarkers(r, rx, ry, rw, rh);
-      }
+    }
+
+    this.dynamicGridLayer = new Graphics();
+    this.mapContainer.addChild(this.dynamicGridLayer);
+    this.drawDynamicGridLayer();
+
+    for (const rect of visibleRoomRects) {
+      this.drawMarkers(rect.room, rect.rx, rect.ry, rect.rw, rect.rh);
     }
 
     // Player dot (positioned in update())
@@ -403,6 +427,50 @@ export class WorldMapOverlay {
 
     // Legend
     this.drawLegend();
+  }
+
+  private drawDynamicGridLayer(): void {
+    const layer = this.dynamicGridLayer;
+    if (!layer) return;
+    layer.clear();
+
+    for (const overlay of this.dynamicGrids) {
+      if (!this.debugMode && !this.visitedLevels.has(overlay.roomId)) continue;
+      const grid = overlay.grid;
+      const gridH = grid.length;
+      const gridW = grid[0]?.length ?? 0;
+      if (gridH === 0 || gridW === 0) continue;
+
+      const tileW = Math.max(0.5, 16 * this.projScale);
+      const tileH = Math.max(0.5, 16 * this.projScale);
+      const baseX = this.projOffsetX + (overlay.worldX - this.projMinX) * this.projScale;
+      const baseY = this.projOffsetY + (overlay.worldY - this.projMinY) * this.projScale;
+
+      for (let ty = 0; ty < gridH; ty++) {
+        const row = grid[ty];
+        if (!row) continue;
+        for (let tx = 0; tx < gridW; tx++) {
+          const v = row[tx] ?? 0;
+          if (v === 0) continue;
+          const px = baseX + tx * tileW;
+          const py = baseY + ty * tileH;
+          let tileColor = 0x7f96aa;
+          let tileAlpha = 0.9;
+          if (v === 2) {
+            tileColor = 0x2f66cc;
+            tileAlpha = 0.55;
+          } else if (v === 3) {
+            tileColor = 0x9bb0bd;
+            tileAlpha = 0.65;
+          } else if (v === 5) {
+            tileColor = 0xcc3333;
+          } else if (v !== 1 && v !== 7 && v !== 9 && v !== 12 && v !== 15) {
+            tileAlpha = 0.5;
+          }
+          layer.rect(px, py, tileW, tileH).fill({ color: tileColor, alpha: tileAlpha });
+        }
+      }
+    }
   }
 
   /** Check if a room is adjacent to any visited room (Fog of War: OUTLINED state) */

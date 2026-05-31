@@ -1,6 +1,6 @@
-// Rim-light filter: detects the top edge of opaque pixels (solid surface)
-// and adds a configurable bright highlight line. Works by comparing
-// the current pixel's alpha with the pixel directly above it.
+// Rim-light filter: detects an exposed edge of opaque pixels and adds a
+// configurable bright highlight line. By default it catches top edges; callers
+// can flip it to bottom edges for scenes lit from below.
 
 import { Filter, GlProgram, UniformGroup } from 'pixi.js';
 
@@ -41,7 +41,8 @@ uniform sampler2D uTexture;
 uniform vec3  uRimColor;
 uniform float uRimAlpha;
 uniform float uRimThickness;
-uniform float uTopGuardPixels;
+uniform float uEdgeGuardPixels;
+uniform float uRimDirection;
 
 void main() {
   vec4 src = texture(uTexture, vTextureCoord);
@@ -51,27 +52,23 @@ void main() {
   }
 
   float stepY = vTexelSize.y;
-  // 2026-05-20: 텍스처 *상단 경계 밖* 을 샘플하면 alpha=0 으로 잡혀 rim 이 잘못
-  // 발화하는 문제 — 진짜 월드 상단 (위에 콘텐츠 없는 자리) 까지 흰선이 생긴다.
-  // 샘플 좌표 y 가 stepY 미만 (= 위로 1 픽셀 샘플 시 0 미만) 이면 rim 스킵.
-  if (vTextureCoord.y < stepY * max(1.0, uTopGuardPixels)) {
+  float dir = uRimDirection >= 0.0 ? 1.0 : -1.0;
+  float guard = stepY * max(1.0, uEdgeGuardPixels);
+  if ((dir < 0.0 && vTextureCoord.y < guard) || (dir > 0.0 && vTextureCoord.y > 1.0 - guard)) {
     finalColor = src;
     return;
   }
   float rimStrength = 0.0;
 
-  // Sample 1px above
-  float a1 = texture(uTexture, vTextureCoord - vec2(0.0, stepY)).a;
+  float a1 = texture(uTexture, vTextureCoord + vec2(0.0, dir * stepY)).a;
   if (a1 < 0.1) {
     rimStrength = 1.0;
   } else if (uRimThickness > 1.0) {
-    // Sample 2px above
-    float a2 = texture(uTexture, vTextureCoord - vec2(0.0, 2.0 * stepY)).a;
+    float a2 = texture(uTexture, vTextureCoord + vec2(0.0, dir * 2.0 * stepY)).a;
     if (a2 < 0.1) {
       rimStrength = 0.5;
     } else if (uRimThickness > 2.0) {
-      // Sample 3px above
-      float a3 = texture(uTexture, vTextureCoord - vec2(0.0, 3.0 * stepY)).a;
+      float a3 = texture(uTexture, vTextureCoord + vec2(0.0, dir * 3.0 * stepY)).a;
       if (a3 < 0.1) {
         rimStrength = 0.33;
       }
@@ -82,6 +79,8 @@ void main() {
 }
 `;
 
+export type RimLightDirection = 'top' | 'bottom';
+
 export interface RimLightOptions {
   /** Rim highlight color as 0xRRGGBB. Default 0xFF4422 (warm red). */
   color?: number;
@@ -89,7 +88,11 @@ export interface RimLightOptions {
   alpha?: number;
   /** Rim thickness in pixels (1..3). Default 1. */
   thickness?: number;
-  /** Suppress rim detection this many input pixels from the top edge. Default 1. */
+  /** Exposed edge to highlight. Default 'top'. */
+  direction?: RimLightDirection;
+  /** Suppress rim detection this many input pixels from the sampled edge. Default 1. */
+  edgeGuardPixels?: number;
+  /** Legacy alias for edgeGuardPixels. */
   topGuardPixels?: number;
 }
 
@@ -101,6 +104,8 @@ export class RimLightFilter extends Filter {
       ((c >> 8) & 0xff) / 255,
       (c & 0xff) / 255,
     ]);
+    const direction: RimLightDirection = opts.direction ?? 'top';
+    const edgeGuardPixels = opts.edgeGuardPixels ?? opts.topGuardPixels ?? 1;
 
     const glProgram = GlProgram.from({ vertex, fragment, name: 'rim-light' });
 
@@ -108,7 +113,8 @@ export class RimLightFilter extends Filter {
       uRimColor: { value: rgb, type: 'vec3<f32>' },
       uRimAlpha: { value: opts.alpha ?? 0.5, type: 'f32' },
       uRimThickness: { value: opts.thickness ?? 1, type: 'f32' },
-      uTopGuardPixels: { value: Math.max(1, opts.topGuardPixels ?? 1), type: 'f32' },
+      uEdgeGuardPixels: { value: Math.max(1, edgeGuardPixels), type: 'f32' },
+      uRimDirection: { value: direction === 'bottom' ? 1 : -1, type: 'f32' },
     });
 
     super({
@@ -137,8 +143,17 @@ export class RimLightFilter extends Filter {
     uniforms.uRimThickness = Math.max(1, Math.min(3, thickness));
   }
 
-  setTopGuardPixels(pixels: number): void {
+  setEdgeGuardPixels(pixels: number): void {
     const uniforms = (this.resources.rimUniforms as any).uniforms;
-    uniforms.uTopGuardPixels = Math.max(1, pixels);
+    uniforms.uEdgeGuardPixels = Math.max(1, pixels);
+  }
+
+  setTopGuardPixels(pixels: number): void {
+    this.setEdgeGuardPixels(pixels);
+  }
+
+  setDirection(direction: RimLightDirection): void {
+    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    uniforms.uRimDirection = direction === 'bottom' ? 1 : -1;
   }
 }

@@ -17,6 +17,8 @@ last_updated: 2026-05-27
 
 - `game/src/entities/GiantBuilder.ts`: owns `isPlayerInInteriorCells`.
 - `game/src/scenes/LdtkWorldScene.ts`: owns the full-layer dissolve alpha and applies it to builder-mounted entrance glows.
+- `LdtkWorldScene` draws the active builder's current `collisionGrid` into a dedicated HUD minimap layer each frame. Use the builder grid directly so movement and runtime tunnel edits stay visible without redrawing the whole minimap.
+- The `M` world map receives the same dynamic builder grid as a `WorldMapOverlay` dynamic layer, but only for rooms already in `visitedLevels`; do not leak builder layout into unvisited or adjacent-outline rooms.
 - There is no overlap hint layer and no circular reveal mask.
 
 ## Verification

@@ -17,7 +17,7 @@
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, ColorMatrixFilter, type Filter } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, RenderTexture, ColorMatrixFilter, type Filter } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
@@ -48,7 +48,7 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { SecretWall } from '@entities/SecretWall';
 import { getMasterItem } from '@data/itemMaster';
 import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, TILE_UPDRAFT, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
+import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, TILE_UPDRAFT, TILE_SPIKE, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { HealthShard } from '@entities/HealthShard';
 import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
@@ -80,7 +80,7 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
-import type { ItemDeploymentController } from '@effects/ItemDeploymentController';
+import type { ItemDeploymentController, ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
 import { WallGate } from '@entities/WallGate';
 import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
@@ -153,7 +153,7 @@ import {
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
 import { brandLabel } from '@core/input/padGlyphs';
-import { WorldMapOverlay } from '@ui/WorldMapOverlay';
+import { WorldMapOverlay, type WorldMapDynamicGrid } from '@ui/WorldMapOverlay';
 
 import { PIXEL_FONT } from '@ui/fonts';
 import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
@@ -220,6 +220,17 @@ import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
 import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
 
+type GhostBirthOptions = NonNullable<ItemDeploymentTunnelOpenOptions['ghostBirth']>;
+type GhostTunnelParams = { x: number; y: number; w: number; h: number; ghostBirth?: GhostBirthOptions | null };
+interface ItemWorldGrowthSnapshot {
+  container: Container;
+  backgroundTexture: RenderTexture;
+  worldTexture: RenderTexture;
+  itemSprite: Sprite | null;
+  elapsedMs: number;
+  durationMs: number;
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -227,6 +238,17 @@ import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 const ITEM_WORLD_ENTRY_FADE_MS = 350;
+const ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE = 64;
+const ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES = -12;
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function growthScaleCurve(value: number): number {
+  const t = clamp01(value);
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
 /**
  * Void touch sequence (Victor spec 2026-05-15):
  *   0??00 ms     ??fade OUT (alpha 0 ??1)
@@ -397,7 +419,7 @@ export class LdtkWorldScene extends Scene {
   private frozenPlayerSnapshot: Container | null = null;
   private frozenSnapshotRGBFilter: RGBSplitFilter | null = null;
   private frozenSnapshotGrayFilter: ColorMatrixFilter | null = null;
-  private pendingGhostTunnelParams: { x: number; y: number; w: number; h: number } | null = null;
+  private pendingGhostTunnelParams: GhostTunnelParams | null = null;
   private frozenSnapshotHandler: ProximityInteraction | null = null;
   private frozenSnapPromptContainer: Container | null = null;
   private frozenSnapConfirmPanel: Container | null = null;
@@ -453,6 +475,7 @@ export class LdtkWorldScene extends Scene {
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
   private pendingLevelId: string | null = null;
+  private pendingItemWorldEntryCorridor = true;
   private pendingPlayerTileY = 0;
   private pendingPlayerTileX = 0;
   private fadeOverlay!: Graphics;
@@ -605,7 +628,9 @@ export class LdtkWorldScene extends Scene {
   private ghostRevealLastPlayerY: number | null = null;
   private ghostRevealActivated = false;
   private ghostPendingTimer = -1;
-  private ghostPendingParams: { x: number; y: number; w: number; h: number } | null = null;
+  private ghostPendingParams: GhostTunnelParams | null = null;
+  private itemWorldGrowthSnapshot: ItemWorldGrowthSnapshot | null = null;
+  private readonly itemWorldGrowthHiddenTargets: Array<{ target: Container; visible: boolean }> = [];
   private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private ghostStreamRestore: {
     rowLengths: number[];
@@ -613,6 +638,7 @@ export class LdtkWorldScene extends Scene {
     cameraBounds: { left: number; top: number; right: number; bottom: number } | null;
   } | null = null;
   private itemWorldStreamEntranceAabb: { x: number; y: number; width: number; height: number } | null = null;
+  private itemWorldStreamStartPoint: { x: number; y: number } | null = null;
   private deploymentTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private builderTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
   private wallGate: WallGate | null = null;
@@ -2014,7 +2040,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // ItemDeployment sequence ??blocking states (all except Deployed) lock input
+    // ItemDeployment only blocks during the final handoff fade; growth plays during normal gameplay.
     if (this.itemDeployment?.isBlocking) {
       this.itemDeployment.update(dt);
       this.anvil?.update(dt);
@@ -2090,6 +2116,7 @@ export class LdtkWorldScene extends Scene {
       onBeforeOpen: () => {
         this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
         this.worldMap.setMarkers(this.collectMapMarkers());
+        this.syncWorldMapDynamicGrids();
         if (this.currentLevel) {
           this.worldMap.setPlayerPosition(
             this.player.x + this.currentLevel.worldX,
@@ -2100,6 +2127,7 @@ export class LdtkWorldScene extends Scene {
     });
     if (this.worldMap.visible && this.currentLevel) {
       this.hideAnvilPrompts();
+      this.syncWorldMapDynamicGrids();
       this.uiController.updateWorldMap({
         dt,
         playerWorldX: this.player.x + this.currentLevel.worldX,
@@ -3029,6 +3057,7 @@ export class LdtkWorldScene extends Scene {
     // Minimap: real-time dot tracking + blink + combat opacity
     if (this.minimap && this.minimap.visible && this.currentLevel) {
       this.minimapBlinkTimer = (this.minimapBlinkTimer + dt) % 800;
+      this.updateMinimapBuilderLayer();
       if (this.minimapDot) {
         this.minimapDot.alpha = this.minimapBlinkTimer < 400 ? 1.0 : 0.3;
         const dotSize = 3 * this.game.uiScale;
@@ -3050,8 +3079,9 @@ export class LdtkWorldScene extends Scene {
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // ItemDeployment Deployed-state: check player ??wallGate entrance each frame
+    // ItemDeployment cinematic-state update: growth, player pull, and final handoff fade.
     this.itemDeployment?.update(dt);
+    this.updateItemWorldGrowthSnapshot(dt);
     if (this.ghostOverlay) {
       let plx: number | undefined;
       let ply: number | undefined;
@@ -4481,6 +4511,7 @@ export class LdtkWorldScene extends Scene {
     if (this.worldMap?.visible) {
       this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
       this.worldMap.setMarkers(this.collectMapMarkers());
+      this.syncWorldMapDynamicGrids();
       this.worldMap.redraw();
     }
 
@@ -4927,6 +4958,10 @@ export class LdtkWorldScene extends Scene {
 
   /** Check if player is near a save point ??show hint, save on UP. */
   private checkSavePoints(): void {
+    if (this.itemDeployment?.isActive) {
+      this.hideSavePointUiForItemDeployment();
+      return;
+    }
     const result = updateSavePointProximity({
       game: this.game,
       player: this.player,
@@ -4938,6 +4973,16 @@ export class LdtkWorldScene extends Scene {
   }
 
   private saveHintShown = false;
+
+  private hideSavePointUiForItemDeployment(): void {
+    this.saveHintShown = false;
+    this.savepointPulse?.clear();
+    for (const sp of this.savePoints) {
+      sp.gfx.alpha = 0.6;
+      if (sp.sprite) sp.sprite.alpha = 1.0;
+      if (sp.prompt) sp.prompt.visible = false;
+    }
+  }
 
   /** Place player next to the nearest save point in the current level. */
   private snapPlayerToSavePoint(): void {
@@ -7669,6 +7714,7 @@ export class LdtkWorldScene extends Scene {
     if (playerRight < levelRight - TILE_SIZE) return false;
 
     this.prestreamItemWorldEntry(this.collapseItem, 'world-right-edge');
+    this.pendingItemWorldEntryCorridor = !(this.itemDeployment?.isActive);
     this.startTransition('right', '__item_world__');
     return true;
   }
@@ -7689,6 +7735,7 @@ export class LdtkWorldScene extends Scene {
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = direction;
     this.pendingLevelId = levelId;
+    if (levelId !== '__item_world__') this.pendingItemWorldEntryCorridor = true;
     // Remember player's WORLD position for spawn hint in next room
     this.pendingPlayerTileY = Math.floor((this.currentLevel.worldY + this.player.y + this.player.height / 2) / TILE_SIZE);
     this.pendingPlayerTileX = Math.floor((this.currentLevel.worldX + this.player.x + this.player.width / 2) / TILE_SIZE);
@@ -7705,7 +7752,9 @@ export class LdtkWorldScene extends Scene {
           this.fadeOverlay.alpha = 0;
           this.pendingDirection = null;
           this.pendingLevelId = null;
-          this.enterItemWorldFromTunnel();
+          const entryCorridor = this.pendingItemWorldEntryCorridor;
+          this.pendingItemWorldEntryCorridor = true;
+          this.enterItemWorldFromTunnel({ entryCorridor });
           return;
         }
         if (this.pendingLevelId) {
@@ -8099,25 +8148,6 @@ export class LdtkWorldScene extends Scene {
     return this.resolvePlayerSolidOverlap(verticalFirst);
   }
 
-  private resolvePlayerSolidOverlapAfterGhostTile(tileCol: number, tileRow: number): boolean {
-    const tileCx = tileCol * TILE_SIZE + TILE_SIZE / 2;
-    const tileTop = tileRow * TILE_SIZE;
-    const playerCx = this.player.x + this.player.width / 2;
-    const playerMidY = this.player.y + this.player.height / 2;
-    const awayX = playerCx >= tileCx ? 1 : -1;
-    const towardX = -awayX;
-
-    const preferredDirs = tileTop >= playerMidY
-      ? [{ x: 0, y: -1 }, { x: awayX, y: 0 }, { x: towardX, y: 0 }, { x: 0, y: 1 }]
-      : [{ x: awayX, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 }, { x: towardX, y: 0 }];
-
-    const resolved = this.resolvePlayerSolidOverlap(preferredDirs, TILE_SIZE * 2);
-    if (resolved && this.player.vy > 0 && this.player.y + this.player.height <= tileTop + TILE_SIZE) {
-      this.player.vy = 0;
-    }
-    return resolved;
-  }
-
   private getBuilderStampSet(): Set<number> {
     return this.builderStampSet;
   }
@@ -8187,6 +8217,7 @@ export class LdtkWorldScene extends Scene {
   private openDebugWorldMap(): void {
     this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
     this.worldMap.setMarkers(this.collectMapMarkers());
+    this.syncWorldMapDynamicGrids();
     if (this.currentLevel) {
       this.worldMap.setPlayerPosition(
         this.player.x + this.currentLevel.worldX,
@@ -9754,6 +9785,10 @@ export class LdtkWorldScene extends Scene {
   private triggerFloorCollapse(): void {
     if (!this.anvil || !this.collapseItem) return;
 
+    this.hideAnvilPrompts();
+    this.hideSavePointUiForItemDeployment();
+    this.hideUiForAnvilDiveTransition();
+
     this.anvil.used = true;
     this.anvil.setShowHint(false);
 
@@ -9778,12 +9813,14 @@ export class LdtkWorldScene extends Scene {
       deploymentFxLayer: this.deploymentFxLayer,
       tunnelRightEdge: this.currentLevel.pxWid,
       getAnvil: () => this.anvil,
-      enterItemWorld: () => this.enterItemWorldFromTunnel(),
+      enterItemWorld: () => this.enterItemWorldFromTunnel({ entryCorridor: false }),
       spawnStrikeEffect: (x, y, strong, variant) => this.hitSparks.spawn(x, y, strong, variant),
-      openTunnel: (x, y, w, h) => this.openDeploymentTunnel(x, y, w, h, { scheduleGhost: false }),
+      openTunnel: (x, y, w, h, options) => this.openDeploymentTunnel(x, y, w, h, options ?? { scheduleGhost: false }),
       setLaserDesaturation: (active) => this.setLaserDesaturation(active),
       showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
       getEntranceAABB: () => this.itemWorldStreamEntranceAabb,
+      getPlatformStart: () => this.itemWorldStreamStartPoint,
+      getPlatformVisualStart: () => this.getItemWorldStreamVisualStartPoint(),
     });
     this.itemDeployment.start(this.anvil.x, this.anvil.y);
   }
@@ -9794,8 +9831,12 @@ export class LdtkWorldScene extends Scene {
     y: number,
     w: number,
     h: number,
-    options: { scheduleGhost?: boolean } = {},
+    options: ItemDeploymentTunnelOpenOptions = {},
   ): void {
+    if (options.ghostBirth) {
+      this.startItemWorldGrowthSnapshot(options.ghostBirth);
+    }
+    this.itemWorldStreamStartPoint = null;
     this.restoreGhostWorldCollision(false);
     this.restoreDeploymentTunnel(false);
 
@@ -9849,22 +9890,198 @@ export class LdtkWorldScene extends Scene {
 
     // Anvil halo directional trail ????⑤벚???꾩렮維싧젆???蹂?뜜 ???뉖? (E).
     // ??⑤벚???anvil.x ?遊붋?????섎꿰춯?쏅윪???뿉?clearW 嶺뚮씭??칰??????ル梨??= clearW.
-    this.anvil?.triggerDirectionalTrail(clearW);
+    if (options.triggerDirectionalTrail ?? true) {
+      this.anvil?.triggerDirectionalTrail(clearW);
+    }
 
-    // EGO_TUNNEL_OPEN is still delayed until deployment is ready; the ghost
-    // overlay may be deferred so IntGrid/tiles clear at laser burst time.
+    // Default growth pairs the static world snapshot with the streamed ghost room so the item grid becomes walkable.
     if (options.scheduleGhost ?? true) {
-      this.scheduleGhostOverlayForTunnel(x, y, clearW, h);
-    } else {
-      this.pendingGhostTunnelParams = { x, y, w: clearW, h };
+      this.scheduleGhostOverlayForTunnel(x, y, clearW, h, options.ghostBirth ?? null);
+    } else if (!options.ghostBirth) {
+      this.pendingGhostTunnelParams = { x, y, w: clearW, h, ghostBirth: options.ghostBirth ?? null };
     }
   }
 
-  private scheduleGhostOverlayForTunnel(x: number, y: number, w: number, h: number): void {
+  private scheduleGhostOverlayForTunnel(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    ghostBirth: GhostBirthOptions | null = null,
+  ): void {
     if (this.collapseItem && !this.ghostOverlay && this.ghostPendingTimer < 0) {
-      this.ghostPendingParams = { x, y, w, h };
+      if (ghostBirth) {
+        this._buildGhostOverlay({ x, y, w, h, ghostBirth });
+        return;
+      }
+      this.ghostPendingParams = { x, y, w, h, ghostBirth };
       this.ghostPendingTimer = 0;
     }
+  }
+
+  private startItemWorldGrowthSnapshot(options: GhostBirthOptions): void {
+    this.destroyItemWorldGrowthSnapshot(true);
+
+    const backgroundTexture = RenderTexture.create({
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      resolution: 1,
+      antialias: false,
+    });
+    backgroundTexture.source.scaleMode = 'nearest';
+    this.game.renderer.render({
+      container: this.game.backgroundContainer,
+      target: backgroundTexture,
+      clear: true,
+      clearColor: [0, 0, 0, 0],
+    });
+
+    const worldTexture = this.captureItemWorldGrowthWorldTexture();
+    const root = new Container();
+    root.eventMode = 'none';
+
+    const bg = new Sprite(backgroundTexture);
+    bg.texture.source.scaleMode = 'nearest';
+    root.addChild(bg);
+
+    const world = new Sprite(worldTexture);
+    world.texture.source.scaleMode = 'nearest';
+    root.addChild(world);
+
+    const originScreenX = Math.round(options.originX - this.game.camera.renderX + GAME_WIDTH / 2);
+    const originScreenY = Math.round(options.originY - this.game.camera.renderY + GAME_HEIGHT / 2);
+    const pivotWorldX = options.pivotX ?? options.originX;
+    const pivotWorldY = options.pivotY ?? options.originY;
+    const pivotScreenX = Math.round(pivotWorldX - this.game.camera.renderX + GAME_WIDTH / 2);
+    const pivotScreenY = Math.round(pivotWorldY - this.game.camera.renderY + GAME_HEIGHT / 2);
+    root.pivot.set(pivotScreenX, pivotScreenY);
+    root.position.set(pivotWorldX, pivotWorldY);
+    root.scale.set(1);
+
+    const entityIndex = this.container.getChildIndex(this.entityLayer);
+    this.container.addChildAt(root, Math.max(0, entityIndex));
+
+    this.itemWorldGrowthSnapshot = {
+      container: root,
+      backgroundTexture,
+      worldTexture,
+      itemSprite: null,
+      elapsedMs: 0,
+      durationMs: Math.max(1, options.durationMs),
+    };
+    this.addItemWorldGrowthSnapshotItemSprite(originScreenX, originScreenY);
+    this.hideItemWorldGrowthSourceVisuals();
+  }
+
+  private captureItemWorldGrowthWorldTexture(): RenderTexture {
+    const rt = RenderTexture.create({
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      resolution: 1,
+      antialias: false,
+    });
+    rt.source.scaleMode = 'nearest';
+
+    const playerWasVisible = this.player.container.visible;
+    const gc = this.game.gameContainer;
+    const prev = { x: gc.x, y: gc.y, sx: gc.scale.x, sy: gc.scale.y };
+    try {
+      this.player.container.visible = false;
+      gc.scale.set(1);
+      gc.x = Math.round(-this.game.camera.renderX + GAME_WIDTH / 2);
+      gc.y = Math.round(-this.game.camera.renderY + GAME_HEIGHT / 2);
+      this.game.renderer.render({
+        container: gc,
+        target: rt,
+        clear: true,
+        clearColor: [0, 0, 0, 0],
+      });
+    } finally {
+      this.player.container.visible = playerWasVisible;
+      gc.x = prev.x;
+      gc.y = prev.y;
+      gc.scale.set(prev.sx, prev.sy);
+    }
+    return rt;
+  }
+
+  private addItemWorldGrowthSnapshotItemSprite(originScreenX: number, originScreenY: number): void {
+    const snapshot = this.itemWorldGrowthSnapshot;
+    const item = this.collapseItem;
+    if (!snapshot || !item) return;
+
+    const attach = (texture: Texture) => {
+      if (this.itemWorldGrowthSnapshot !== snapshot || snapshot.container.destroyed) return;
+      texture.source.scaleMode = 'nearest';
+      snapshot.itemSprite?.destroy();
+      const sprite = new Sprite(texture);
+      sprite.anchor.set(0.5);
+      sprite.x = originScreenX;
+      sprite.y = originScreenY;
+      snapshot.itemSprite = sprite;
+      snapshot.container.addChild(sprite);
+    };
+
+    const url = assetPath(`assets/items/${item.def.id}.png`);
+    const cached = Assets.get(url);
+    if (cached instanceof Texture) {
+      attach(cached);
+      return;
+    }
+    void Assets.load<Texture>(url).then(attach).catch(() => {
+      // Missing item art should not break the world-growth snapshot.
+    });
+  }
+
+  private hideItemWorldGrowthSourceVisuals(): void {
+    const hide = (target?: Container | null) => {
+      if (!target || this.itemWorldGrowthHiddenTargets.some(state => state.target === target)) return;
+      this.itemWorldGrowthHiddenTargets.push({ target, visible: target.visible });
+      target.visible = false;
+    };
+
+    hide(this.game.backgroundContainer);
+    hide(this.renderer?.container);
+    hide(this.fluidLayer);
+    hide(this.weatherLayer);
+    hide(this.deploymentFxLayer);
+    hide(this.vividLayer);
+    hide(this.activeBuilder?.builderInteriorLayer);
+    hide(this.activeBuilder?.lightContainer);
+    hide(this.activeBuilder?.legBackLayer);
+    hide(this.activeBuilder?.legFrontLayer);
+
+    for (const child of this.entityLayer.children) {
+      if (child === this.player.container) continue;
+      hide(child as Container);
+    }
+  }
+
+  private updateItemWorldGrowthSnapshot(dt: number): void {
+    const snapshot = this.itemWorldGrowthSnapshot;
+    if (!snapshot) return;
+    snapshot.elapsedMs = Math.min(snapshot.durationMs, snapshot.elapsedMs + dt);
+    const t = clamp01(snapshot.elapsedMs / snapshot.durationMs);
+    const scale = 1 + growthScaleCurve(t) * (ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE - 1);
+    snapshot.container.scale.set(scale);
+  }
+
+  private destroyItemWorldGrowthSnapshot(restoreSources: boolean): void {
+    const snapshot = this.itemWorldGrowthSnapshot;
+    if (snapshot) {
+      snapshot.container.parent?.removeChild(snapshot.container);
+      snapshot.container.destroy({ children: true });
+      snapshot.backgroundTexture.destroy(true);
+      snapshot.worldTexture.destroy(true);
+      this.itemWorldGrowthSnapshot = null;
+    }
+    if (restoreSources) {
+      for (let i = this.itemWorldGrowthHiddenTargets.length - 1; i >= 0; i--) {
+        const state = this.itemWorldGrowthHiddenTargets[i];
+        if (!state.target.destroyed) state.target.visible = state.visible;
+      }
+    }
+    this.itemWorldGrowthHiddenTargets.length = 0;
   }
 
   private showTunnelOpenDialogueAfterDeployment(): void {
@@ -9874,7 +10091,7 @@ export class LdtkWorldScene extends Scene {
     void this.loreDisplay?.showDialogue(EGO_TUNNEL_OPEN, false);
   }
 
-  private _buildGhostOverlay({ x, y, w, h }: { x: number; y: number; w: number; h: number }): void {
+  private _buildGhostOverlay({ x, y, w, h, ghostBirth }: GhostTunnelParams): void {
     if (this.ghostOverlay || !this.collapseItem) return;
     const ghost = new ItemWorldGhostOverlay();
     const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
@@ -9890,27 +10107,38 @@ export class LdtkWorldScene extends Scene {
     } else {
       ghost.build(this.collapseItem, 0);
     }
-    ghost.container.x = x + w * 0.5 - ghost.builtPxW * 0.5 + 256;
-    ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
+    if (ghostBirth) {
+      const pos = this.resolveGrowthGhostPosition(ghost, ghostBirth);
+      ghost.container.x = pos.x;
+      ghost.container.y = pos.y;
+    } else {
+      ghost.container.x = x + w * 0.5 - ghost.builtPxW * 0.5 + 256;
+      ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
+    }
     ghost.itemContainer.x = ghost.container.x;
     ghost.itemContainer.y = ghost.container.y;
     const laserOrigin = this.anvil?.getGatePivotWorld();
-    ghost.setShardSourceWorld((laserOrigin?.x ?? x) + 48, laserOrigin?.y ?? y + h * 0.5);
+    const sourceX = ghostBirth?.originX ?? (laserOrigin?.x ?? x) + 48;
+    const sourceY = ghostBirth?.originY ?? laserOrigin?.y ?? y + h * 0.5;
+    ghost.setShardSourceWorld(sourceX, sourceY);
     this.extendWorldForGhostStream(ghost);
     const entityLayerIndex = this.container.getChildIndex(this.entityLayer);
     this.container.addChildAt(ghost.container, entityLayerIndex);
     this.container.addChildAt(ghost.itemContainer, entityLayerIndex + 1);
-    const rimFilter = new RimLightFilter({ color: 0x4499ff, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
+    const rimFilter = new RimLightFilter({ color: ghost.getTilePalette().rim, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
     const ghostFilters: Filter[] = [rimFilter];
     if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
       ghostFilters.push(this.dungeonAtmosphereFilter);
       this.dungeonAtmosphereTargets.push(ghost.container);
     }
     ghost.container.filters = ghostFilters;
+    ghost.applyItemPalette(this.collapseItem, palette => rimFilter.setColor(palette.rim));
     ghost.fadeTo(1, 0);
     this.ghostOverlay = ghost;
 
-    const triggerX = ghost.container.x + ghost.builtPxW * 0.68;
+    const triggerX = ghostBirth?.entranceAtEnd
+      ? ghost.container.x + ghost.builtPxW - 32
+      : ghost.container.x + ghost.builtPxW * 0.68;
     this.itemWorldStreamEntranceAabb = {
       x: triggerX - 24,
       y: ghost.container.y,
@@ -9919,9 +10147,96 @@ export class LdtkWorldScene extends Scene {
     };
 
     this.prepareGhostWorldCollision(ghost);
+    this.itemWorldStreamStartPoint = this.resolveGhostPlatformStart(ghost);
+    if (ghostBirth) {
+      ghost.beginScaleBirthFromPivot(
+        ghostBirth.pivotX ?? ghostBirth.originX,
+        ghostBirth.pivotY ?? ghostBirth.originY,
+        ghostBirth.durationMs,
+      );
+    }
     this.ghostRevealLastPlayerX = this.player.container.x + this.player.width / 2;
     this.ghostRevealLastPlayerY = this.player.container.y + this.player.height;
     this.ghostRevealActivated = false;
+  }
+
+  private resolveGrowthGhostPosition(
+    ghost: ItemWorldGhostOverlay,
+    ghostBirth: GhostBirthOptions,
+  ): { x: number; y: number } {
+    const x = this.snapWorldCoordToTile(
+      ghostBirth.originX - ghost.builtPxW * 0.5 + ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES * TILE_SIZE,
+    );
+    const y = this.snapWorldCoordToTile(ghostBirth.originY - ghost.builtPxH * 0.5);
+    return {
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+    };
+  }
+
+  private snapWorldCoordToTile(value: number): number {
+    return Math.round(value / TILE_SIZE) * TILE_SIZE;
+  }
+
+  private resolveGhostPlatformStart(ghost: ItemWorldGhostOverlay): { x: number; y: number } | null {
+    const grid = ghost.getCollisionGrid();
+    const playerFloorY = this.player.y + this.player.height;
+    const preferredX = ghost.container.x + TILE_SIZE * 4;
+    let best: { x: number; y: number; score: number } | null = null;
+
+    for (let row = 0; row < grid.length - 1; row++) {
+      const cells = grid[row] ?? [];
+      const below = grid[row + 1] ?? [];
+      for (let col = 0; col < cells.length; col++) {
+        if ((cells[col] ?? TILE_WALL) !== TILE_AIR) continue;
+        const floorTile = below[col] ?? TILE_AIR;
+        if (!isSolid(floorTile) && !isOneWay(floorTile)) continue;
+
+        const floorY = ghost.container.y + (row + 1) * TILE_SIZE;
+        const centerX = ghost.container.x + col * TILE_SIZE + TILE_SIZE / 2;
+        const x = Math.round(centerX - this.player.width / 2);
+        const y = Math.round(floorY - this.player.height);
+        if (!this.isGhostPlayerPlacementClear(grid, x - ghost.container.x, y - ghost.container.y)) continue;
+
+        const score =
+          Math.abs(floorY - playerFloorY) * 2.0 +
+          Math.abs(centerX - preferredX) * 0.45 +
+          col * 8;
+        if (!best || score < best.score) {
+          best = { x, y, score };
+        }
+      }
+    }
+
+    return best ? { x: best.x, y: best.y } : null;
+  }
+
+  private getItemWorldStreamVisualStartPoint(): { x: number; y: number } | null {
+    const start = this.itemWorldStreamStartPoint;
+    if (!start || !this.ghostOverlay) return start;
+    const foot = this.ghostOverlay.projectFinalWorldPointToCurrentBirth(
+      start.x + this.player.width / 2,
+      start.y + this.player.height,
+    );
+    return {
+      x: Math.round(foot.x - this.player.width / 2),
+      y: Math.round(foot.y - this.player.height),
+    };
+  }
+
+  private isGhostPlayerPlacementClear(grid: number[][], localX: number, localY: number): boolean {
+    const leftCol = Math.floor(localX / TILE_SIZE);
+    const rightCol = Math.floor((localX + this.player.width - 1) / TILE_SIZE);
+    const topRow = Math.floor(localY / TILE_SIZE);
+    const bottomRow = Math.floor((localY + this.player.height - 1) / TILE_SIZE);
+    for (let row = topRow; row <= bottomRow; row++) {
+      if (row < 0 || row >= grid.length) return false;
+      for (let col = leftCol; col <= rightCol; col++) {
+        if (col < 0 || col >= (grid[row]?.length ?? 0)) return false;
+        if (isSolid(grid[row]?.[col] ?? TILE_WALL)) return false;
+      }
+    }
+    return true;
   }
 
   private prepareGhostWorldCollision(ghost: ItemWorldGhostOverlay): void {
@@ -9929,6 +10244,7 @@ export class LdtkWorldScene extends Scene {
     const TILE = 16;
     const gx0 = Math.floor(ghost.container.x / TILE);
     const gy0 = Math.floor(ghost.container.y / TILE);
+    let playerMayNeedResolve = false;
     for (let r = 0; r < sourceGrid.length; r++) {
       const worldRow = this.collisionGrid[gy0 + r];
       if (!worldRow) continue;
@@ -9939,21 +10255,16 @@ export class LdtkWorldScene extends Scene {
         if (!this.isGhostStreamExtendedCell(gy0 + r, gc)) {
           this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
         }
-        worldRow[gc] = 0;
+        const value = sourceRow[c] ?? 0;
+        worldRow[gc] = value;
+        playerMayNeedResolve ||= isSolid(value);
       }
     }
-    ghost.setTileBuildCallback((col, row, value) => this.stampGhostCollisionTile(ghost, col, row, value));
+    ghost.setTileBuildCallback(null);
     this.player.roomData = this.collisionGrid;
-  }
-
-  private stampGhostCollisionTile(ghost: ItemWorldGhostOverlay, col: number, row: number, value: number): void {
-    const TILE = 16;
-    const gy = Math.floor(ghost.container.y / TILE) + row;
-    const gx = Math.floor(ghost.container.x / TILE) + col;
-    const worldRow = this.collisionGrid[gy];
-    if (!worldRow || gx < 0 || gx >= worldRow.length) return;
-    worldRow[gx] = value;
-    if (isSolid(value)) this.resolvePlayerSolidOverlapAfterGhostTile(gx, gy);
+    if (playerMayNeedResolve) {
+      this.resolvePlayerSolidOverlap([{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }], TILE_SIZE * 2);
+    }
   }
 
   private extendWorldForGhostStream(ghost: ItemWorldGhostOverlay): void {
@@ -9992,6 +10303,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   private destroyGhostOverlay(restoreCollision: boolean, rerender = true): void {
+    this.destroyItemWorldGrowthSnapshot(true);
     if (this.ghostOverlay) {
       const ghostContainer = this.ghostOverlay.container;
       this.dungeonAtmosphereTargets = this.dungeonAtmosphereTargets.filter(t => t !== ghostContainer);
@@ -10003,6 +10315,7 @@ export class LdtkWorldScene extends Scene {
     this.ghostRevealLastPlayerX = null;
     this.ghostRevealLastPlayerY = null;
     this.ghostRevealActivated = false;
+    this.itemWorldStreamStartPoint = null;
     if (restoreCollision) this.restoreGhostWorldCollision(rerender);
     else this.clearGhostStreamState(false);
   }
@@ -10023,6 +10336,7 @@ export class LdtkWorldScene extends Scene {
 
   private clearGhostStreamState(restoreGrid: boolean): void {
     this.itemWorldStreamEntranceAabb = null;
+    this.itemWorldStreamStartPoint = null;
     const restore = this.ghostStreamRestore;
     if (!restore) return;
 
@@ -10146,6 +10460,7 @@ export class LdtkWorldScene extends Scene {
         this.pendingGhostTunnelParams.y,
         this.pendingGhostTunnelParams.w,
         this.pendingGhostTunnelParams.h,
+        this.pendingGhostTunnelParams.ghostBirth ?? null,
       );
       this.pendingGhostTunnelParams = null;
     }
@@ -10501,20 +10816,27 @@ export class LdtkWorldScene extends Scene {
     await Promise.all([
       loadBundleOnce('item_world'),
       ensureAreaTilesetsLoaded([`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`], this.atlases),
-      templatesPromise.then(templates => this.preloadItemWorldExtraTilesets(templates)),
+      templatesPromise.then(templates => this.preloadItemWorldAuthoredTilesets(templates)),
     ]);
     Debug.log(
       `[ItemWorld] entry prestream ready reason=${reason} item=${item.def.id} theme=${themeSlug} ms=${Math.round(performance.now() - startedAt)}`,
     );
   }
 
-  private async preloadItemWorldExtraTilesets(templates: LdtkLevel[]): Promise<void> {
+  private async preloadItemWorldAuthoredTilesets(templates: LdtkLevel[]): Promise<void> {
     const extraTilesets = new Set<string>();
+    const addTiles = (tiles: readonly { tilesetPath: string | null }[]) => {
+      for (const tile of tiles) {
+        if (tile.tilesetPath) extraTilesets.add(tile.tilesetPath);
+      }
+    };
     for (const level of templates) {
+      addTiles(level.backgroundTiles);
+      addTiles(level.wallTiles);
+      addTiles(level.interiorTiles);
+      addTiles(level.shadowTiles);
       for (const tiles of Object.values(level.extraTileLayers)) {
-        for (const tile of tiles) {
-          if (tile.tilesetPath) extraTilesets.add(tile.tilesetPath);
-        }
+        addTiles(tiles);
       }
     }
 
@@ -10525,7 +10847,7 @@ export class LdtkWorldScene extends Scene {
           try {
             this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
           } catch (err) {
-            console.warn(`[ItemWorld] failed to prestream extra tileset "${relPath}":`, err);
+            console.warn(`[ItemWorld] failed to prestream authored tileset "${relPath}":`, err);
           }
         }),
     );
@@ -10596,6 +10918,7 @@ export class LdtkWorldScene extends Scene {
     this.transitionTimer = FADE_DURATION;
     this.pendingDirection = 'down';
     this.pendingLevelId = '__item_world__';
+    this.pendingItemWorldEntryCorridor = true;
   }
 
   private async pushItemWorldSceneWithEntryFade(
@@ -10656,9 +10979,10 @@ export class LdtkWorldScene extends Scene {
   }
 
   /** Called when player reaches the end of an ItemTunnel ??enter Item World. */
-  private enterItemWorldFromTunnel(): void {
+  private enterItemWorldFromTunnel(options: { entryCorridor?: boolean } = {}): void {
     if (!this.collapseItem) return;
     this.restoreUiAfterAnvilDiveTransition();
+    const entryCorridor = options.entryCorridor ?? true;
 
     const targetItem = this.collapseItem;
     this.prestreamItemWorldEntry(targetItem, 'entry-final');
@@ -10685,7 +11009,7 @@ export class LdtkWorldScene extends Scene {
     this.dmgNumbers?.clear();
 
     const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
-      entryCorridor: true,
+      entryCorridor,
     });
     itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
     itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
@@ -10763,7 +11087,7 @@ export class LdtkWorldScene extends Scene {
 
     if (resetAnvil && this.anvil) {
       this.anvil.used = false;
-      // anvil.item ?? placeItem() ??怨쀬Ŧ ?곌랜踰????itemGfx/itemIcon sprite ????繹??
+      // Re-run placeItem() so the anvil restores its placed item icon after level reload.
       // ??placeItem ?? disabled (retire) ??⑤객臾띄춯?early return ??嶺?IW ?곌랜???????????
       // anvil ??retire spawn ?????disabled bypass ??placeItem.
       if (preservedAnvilItem) {
@@ -10954,6 +11278,7 @@ export class LdtkWorldScene extends Scene {
   private minimapScaleY = 1;
   private minimapPW = 0;
   private minimapPH = 0;
+  private minimapBuilderLayer: Graphics | null = null;
   private worldMap!: WorldMapOverlay;
 
   /**
@@ -10972,6 +11297,7 @@ export class LdtkWorldScene extends Scene {
     }
     this.minimap = new Container();
     this.minimapDot = null;
+    this.minimapBuilderLayer = null;
 
     if (!this.currentLevel) return;
 
@@ -11125,6 +11451,10 @@ export class LdtkWorldScene extends Scene {
       content.addChild(g);
     }
 
+    this.minimapBuilderLayer = new Graphics();
+    content.addChild(this.minimapBuilderLayer);
+    this.updateMinimapBuilderLayer();
+
     // Auto markers (GDD 筌?) ??save, boss, anvil
     for (const r of worldMap) {
       if (!visitedIds.has(r.id)) continue;
@@ -11189,6 +11519,81 @@ export class LdtkWorldScene extends Scene {
     }
 
     this.game.uiContainer.addChild(this.minimap);
+  }
+
+  private updateMinimapBuilderLayer(): void {
+    const g = this.minimapBuilderLayer;
+    if (!g) return;
+    g.clear();
+
+    const builder = this.activeBuilder;
+    if (!builder || !this.currentLevel || this.minimapPW <= 0 || this.minimapPH <= 0) return;
+
+    const originWorldX = this.currentLevel.worldX + builder.container.x;
+    const originWorldY = this.currentLevel.worldY + builder.container.y;
+    const viewRight = this.minimapVpLeft + this.minimapPW / this.minimapScaleX;
+    const viewBottom = this.minimapVpTop + this.minimapPH / this.minimapScaleY;
+    const builderRight = originWorldX + builder.widthPx;
+    const builderBottom = originWorldY + builder.heightPx;
+    if (
+      builderRight < this.minimapVpLeft ||
+      originWorldX > viewRight ||
+      builderBottom < this.minimapVpTop ||
+      originWorldY > viewBottom
+    ) {
+      return;
+    }
+
+    const tileW = Math.max(0.5, TILE_SIZE * this.minimapScaleX);
+    const tileH = Math.max(0.5, TILE_SIZE * this.minimapScaleY);
+    const col0 = Math.max(0, Math.floor((this.minimapVpLeft - originWorldX) / TILE_SIZE));
+    const col1 = Math.min(builder.widthTiles - 1, Math.ceil((viewRight - originWorldX) / TILE_SIZE));
+    const row0 = Math.max(0, Math.floor((this.minimapVpTop - originWorldY) / TILE_SIZE));
+    const row1 = Math.min(builder.heightTiles - 1, Math.ceil((viewBottom - originWorldY) / TILE_SIZE));
+    const baseX = (originWorldX - this.minimapVpLeft) * this.minimapScaleX;
+    const baseY = (originWorldY - this.minimapVpTop) * this.minimapScaleY;
+
+    for (let ty = row0; ty <= row1; ty++) {
+      const row = builder.collisionGrid[ty];
+      if (!row) continue;
+      for (let tx = col0; tx <= col1; tx++) {
+        const v = row[tx] ?? 0;
+        if (v === 0) continue;
+        const px = baseX + tx * tileW;
+        const py = baseY + ty * tileH;
+        let tileColor = 0x7f96aa;
+        let tileAlpha = 0.9;
+        if (v === TILE_WATER) {
+          tileColor = 0x2f66cc;
+          tileAlpha = 0.55;
+        } else if (isOneWay(v)) {
+          tileColor = 0x9bb0bd;
+          tileAlpha = 0.65;
+        } else if (v === TILE_SPIKE) {
+          tileColor = 0xcc3333;
+        } else if (!isSolid(v)) {
+          tileAlpha = 0.5;
+        }
+        g.rect(px, py, tileW, tileH).fill({ color: tileColor, alpha: tileAlpha });
+      }
+    }
+  }
+
+  private syncWorldMapDynamicGrids(): void {
+    this.worldMap?.setDynamicGrids(this.collectWorldMapDynamicGrids());
+  }
+
+  private collectWorldMapDynamicGrids(): WorldMapDynamicGrid[] {
+    const builder = this.activeBuilder;
+    const level = this.currentLevel;
+    if (!builder || !level) return [];
+    if (!this.visitedLevels.has(level.identifier)) return [];
+    return [{
+      roomId: level.identifier,
+      worldX: level.worldX + builder.container.x,
+      worldY: level.worldY + builder.container.y,
+      grid: builder.collisionGrid,
+    }];
   }
 
   // ---------------------------------------------------------------------------

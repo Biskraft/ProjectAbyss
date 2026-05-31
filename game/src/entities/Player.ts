@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveXPixelStep, resolveYPixelStep, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveXPixelStep, resolveYPixelStep, resolveXPixelStepWithSlopes2x1, resolveYPixelStepWithSlopes2x1, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
@@ -39,6 +39,8 @@ const WALL_JUMP_VY = -Math.sqrt(2 * GRAVITY * 56); // derived: ~70% of normal ju
 const WALL_JUMP_COOLDOWN = PlayerConst.WallJumpCooldownMs;
 const WALL_CHECK_DIST = PlayerConst.WallCheckDist;
 const LEDGE_TOLERANCE = PlayerConst.LedgeTolerance;
+const SLOPE_2X1_GROUND_SNAP_PX = 4;
+const SLOPE_2X1_DASH_CAPTURE_PX = 8;
 
 const VAR_JUMP_TIME = PlayerConst.VarJumpTimeMs;
 const VAR_JUMP_CUT_MULT = PlayerConst.VarJumpCutMult;
@@ -942,27 +944,51 @@ export class Player extends Entity implements CombatEntity {
     const colOffX = (this.width - this.collisionW) / 2;   // center horizontally
     const colOffY = this.height - this.collisionH;         // anchor at feet
 
-    // Ledge grab / corner correction 계열 보정.
-    // - 대시 중: 진행 방향 벽의 top-only/bottom-only 끝자락을 8px 이내로 세로 nudge.
-    // - 일반 이동: 살짝 낮은 ledge 에 발끝이 걸리면 8px 이내에서 위로 끌어올려 통과.
-    if (moveX !== 0) {
+    // 2x1 virtual slopes are player-only overlays inferred from the IntGrid.
+    // Non-slope ledges still fall back to the older snap/corner correction.
+    const physX = this.x + colOffX;
+    const physY = this.y + colOffY;
+    const slopeEligible =
+      state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge' &&
+      (state === 'dash' || this.grounded || this.vy >= 0);
+    const slopeSnapPx = state === 'dash' ? SLOPE_2X1_DASH_CAPTURE_PX : SLOPE_2X1_GROUND_SNAP_PX;
+
+    let rx = slopeEligible
+      ? resolveXPixelStepWithSlopes2x1(
+        physX, physY, this.collisionW, this.collisionH,
+        moveX, this.roomData, slopeSnapPx,
+      )
+      : {
+        ...resolveXPixelStep(physX, physY, this.collisionW, this.collisionH, moveX, this.roomData),
+        y: physY,
+        onSlope: false,
+      };
+
+    // Keep the old snap/corner helpers as fallback for non-2x1 geometry.
+    if (rx.collided && !rx.onSlope && moveX !== 0) {
+      let correctedY: number | null = null;
       if (state === 'dash') {
-        const dashY = tryDashCornerCorrect(
-          this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
+        correctedY = tryDashCornerCorrect(
+          physX, physY, this.collisionW, this.collisionH,
           moveX, this.roomData, DASH_CORNER_TOLERANCE,
         );
-        if (dashY !== null) this.y = dashY - colOffY;
       } else {
-        const snapY = tryLedgeSnap(
-          this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
+        correctedY = tryLedgeSnap(
+          physX, physY, this.collisionW, this.collisionH,
           moveX, this.roomData, LEDGE_TOLERANCE,
         );
-        if (snapY !== null) this.y = snapY - colOffY;
+      }
+      if (correctedY !== null) {
+        rx = {
+          ...resolveXPixelStep(physX, correctedY, this.collisionW, this.collisionH, moveX, this.roomData),
+          y: correctedY,
+          onSlope: false,
+        };
       }
     }
 
-    const rx = resolveXPixelStep(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveX, this.roomData);
     this.x = rx.x - colOffX;
+    this.y = rx.y - colOffY;
     if (rx.collided) this.vx = 0;
 
     // 상승 중 천장 코너에 살짝 걸리면 8px 이내에서 수평으로 밀어 통과.
@@ -974,14 +1000,25 @@ export class Player extends Entity implements CombatEntity {
       if (cornerX !== null) this.x = cornerX - colOffX;
     }
 
-    const ry = resolveYPixelStep(this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH, moveY, this.roomData, this.dropThroughTimer > 0);
+    const ry = slopeEligible
+      ? resolveYPixelStepWithSlopes2x1(
+        this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
+        moveY, this.roomData, this.dropThroughTimer > 0, slopeSnapPx,
+      )
+      : {
+        ...resolveYPixelStep(
+          this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
+          moveY, this.roomData, this.dropThroughTimer > 0,
+        ),
+        onSlope: false,
+      };
     this.y = ry.y - colOffY;
     // Grid grounded OR scene-supplied "standing on container" flag. The
     // sticky flag is set each frame by the scene's container-collision
     // resolve; we read it here so animation + jump checks behave as if
     // the player is on solid ground.
-    this.grounded = ry.grounded || this.extraGroundedSticky;
-    if (ry.collided) {
+    this.grounded = ry.grounded || rx.onSlope || this.extraGroundedSticky;
+    if (ry.collided || rx.onSlope || ry.onSlope) {
       if (this.vy > 0) this.vy = 0;
       if (this.vy < 0) this.vy = 0;
     }
@@ -1522,6 +1559,21 @@ export class Player extends Entity implements CombatEntity {
     this.slashToIdx = -1;
     // Clear any pending 2→3 pause so an interrupted swing doesn't carry it over.
     this.preAttackDelay = 0;
+  }
+
+  forceMovementControlReady(): void {
+    if (this.fsm.currentState === 'death' || this.fsm.currentState === 'hit') return;
+    this.attackActive = false;
+    this.attackHasActivated = false;
+    this.attackQueued = false;
+    this.attackTimer = 0;
+    this.comboWindowTimer = 0;
+    this.endLagTimer = 0;
+    this.preAttackDelay = 0;
+    this.attackSprite.visible = false;
+    if (this.slashSprite) this.slashSprite.visible = false;
+    this.slashToIdx = -1;
+    this.fsm.transition(this.grounded ? this.getGroundMovementState() : 'fall');
   }
 
   /** Whether the attack hitbox is currently active (for HitManager to check) */

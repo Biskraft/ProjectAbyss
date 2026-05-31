@@ -12,17 +12,6 @@ body {
   font-weight: 300; font-size: 13px; cursor: crosshair;
   display: flex; flex-direction: column; height: 100vh; overflow: hidden;
 }
-/* ── Grid overlay ── */
-body::before {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-  background: repeating-linear-gradient(to right, rgba(26,58,58,.15) 0 1px, transparent 1px 80px),
-              repeating-linear-gradient(to bottom, rgba(26,58,58,.15) 0 1px, transparent 1px 80px);
-}
-/* ── Scanlines ── */
-body::after {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
-  background: repeating-linear-gradient(to bottom, transparent 0 1px, rgba(0,0,0,.03) 1px 2px);
-}
 /* ── Layout ── */
 .toolbar {
   display: flex; gap: 12px; padding: 8px 12px; background: #101014;
@@ -165,10 +154,15 @@ body::after {
   <select id="areaSelect" onchange="selectPair(this.value)">
     <option value="">-- SELECT AREA --</option>
   </select>
-  <label>WALL Tileset<input type="file" id="wallTilesetInput" accept="image/*"></label>
-  <button class="btn" onclick="wallTilesetInput.click()">world_01</button>
-  <label>BG Tileset<input type="file" id="bgTilesetInput" accept="image/*"></label>
-  <button class="btn" onclick="bgTilesetInput.click()">SunnyLand</button>
+  <label>WALL Tileset</label>
+  <select id="wallTilesetSelect" onchange="selectWallTileset(this.value)"></select>
+  <input type="file" id="atlasDirInput" accept="image/png" multiple style="display:none">
+  <button class="btn" onclick="loadAtlasDirectory()">Load Atlas PNGs</button>
+  <label>LDtk<input type="file" id="ldtkInput" accept=".ldtk,.json,application/json"></label>
+  <button class="btn" onclick="ldtkInput.click()">Load LDtk</button>
+  <select id="levelSelect" onchange="selectPreviewLevel(this.value)">
+    <option value="__embedded_level34__">ItemStratum/ItemStratum_Level_34</option>
+  </select>
   <div style="flex:1"></div>
   <button class="btn" onclick="reloadFromDisk()">Reload from Disk</button>
   <button class="btn primary" onclick="copyCSV()">Copy CSV</button>
@@ -190,6 +184,7 @@ body::after {
   <span>DROP CSV HERE</span>
 </div>
 
+<script src="palette-editor-data.js"></script>
 <script>
 // ── Inline map data: ItemStratum_Level_0 (512x256) ──
 const MAP_W = 512, MAP_H = 256, TILE = 16;
@@ -202,7 +197,12 @@ let csvEntries = [];
 let csvHeader = '';
 let selectedPairId = null;
 let wallTilesetImg = null;
-let bgTilesetImg = null;
+let wallTilesetName = 'itemstratum_01';
+let wallTilesetOptions = ['builder_01.png', 'itemstratum_01.png', 'world_01.png', 'world_interior_01.png'];
+let wallTilesetCache = new Map();
+let previewMap = null;
+let ldtkPreviewMaps = [];
+let inlinePreviewMap = null;
 
 // ── Palette math (mirrors PaletteSwapFilter.ts) ──
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -354,6 +354,102 @@ function selectPair(base) {
   renderEditor();
 }
 
+function tilesetNameFromFile(fileName) {
+  return (fileName || '').replace(/\.png$/i, '');
+}
+
+function tilesetFileFromName(name) {
+  const base = tilesetNameFromFile(name);
+  return base ? base + '.png' : '';
+}
+
+function tilesetNameFromRelPath(relPath) {
+  const fileName = (relPath || '').split(/[\\/]/).pop();
+  return tilesetNameFromFile(fileName);
+}
+
+function isAllowedWallTileset(name) {
+  const fileName = tilesetFileFromName(name).toLowerCase();
+  return wallTilesetOptions.some(file => file.toLowerCase() === fileName);
+}
+
+function sortTilesetFiles(files) {
+  return [...new Set(files.map(tilesetFileFromName).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function populateWallTilesetSelect() {
+  const sel = document.getElementById('wallTilesetSelect');
+  if (!sel) return;
+  const current = isAllowedWallTileset(wallTilesetName) ? wallTilesetName : tilesetNameFromFile(wallTilesetOptions[0]);
+  sel.innerHTML = '';
+  for (const fileName of wallTilesetOptions) {
+    const opt = document.createElement('option');
+    opt.value = tilesetNameFromFile(fileName);
+    opt.textContent = fileName;
+    sel.appendChild(opt);
+  }
+  wallTilesetName = current;
+  sel.value = current;
+}
+
+function embeddedPreviewMap() {
+  const embedded = window.PALETTE_EDITOR_EMBEDDED && window.PALETTE_EDITOR_EMBEDDED.map;
+  if (embedded) return embedded;
+  return null;
+}
+
+function currentPreviewMap() {
+  if (previewMap) return previewMap;
+  const embedded = embeddedPreviewMap();
+  if (embedded) return embedded;
+  if (inlinePreviewMap) return inlinePreviewMap;
+  const gridW = Math.floor(MAP_W / TILE);
+  const gridH = Math.floor(MAP_H / TILE);
+  const solid = new Uint8Array(gridW * gridH);
+  for (const tile of WALL_TILES) {
+    const x = Math.floor(tile.px[0] / TILE);
+    const y = Math.floor(tile.px[1] / TILE);
+    if (x >= 0 && y >= 0 && x < gridW && y < gridH) solid[y * gridW + x] = 1;
+  }
+  const bgTiles = buildSyntheticBgTiles(solid, gridW, gridH, TILE);
+  inlinePreviewMap = {
+    key: 'inline',
+    label: 'Inline ItemStratum fallback',
+    w: MAP_W,
+    h: MAP_H,
+    tile: TILE,
+    bgTiles: bgTiles.length > 0 ? bgTiles : BG_TILES,
+    wallTiles: WALL_TILES,
+  };
+  return inlinePreviewMap;
+}
+
+function previewScaleFor(map) {
+  return map.w >= 720 || map.h >= 384 ? 2 : 3;
+}
+
+function selectPreviewLevel(key) {
+  if (key === '__embedded_level34__') {
+    previewMap = null;
+    renderEditor();
+    selectWallTileset(wallTilesetName, { quiet: true });
+    status('Preview map: ItemStratum/ItemStratum_Level_34', true);
+    return;
+  }
+  const next = ldtkPreviewMaps.find(m => m.key === key);
+  previewMap = next || null;
+  const sel = document.getElementById('levelSelect');
+  if (sel) sel.value = previewMap ? previewMap.key : '';
+  if (previewMap && isAllowedWallTileset(previewMap.wallTilesetName)) {
+    wallTilesetName = previewMap.wallTilesetName;
+    populateWallTilesetSelect();
+  }
+  renderEditor();
+  selectWallTileset(wallTilesetName, { quiet: true });
+  status(previewMap ? 'Preview map: ' + previewMap.label : 'Preview map: inline fallback', true);
+}
+
 // ── Editor ──
 function findEntry(base, layer) {
   return csvEntries.find(e => getPairBase(e.id) === base && e.layer === layer);
@@ -362,11 +458,13 @@ function findEntry(base, layer) {
 function renderEditor() {
   const previewPane = document.getElementById('previewPane');
   const controlsPane = document.getElementById('controlsPane');
+  const map = currentPreviewMap();
+  const scale = previewScaleFor(map);
   const bgEntry = findEntry(selectedPairId, 'BG');
   const wallEntry = findEntry(selectedPairId, 'WALL');
 
   previewPane.innerHTML =
-    '<div class="preview-wrap"><canvas id="previewCanvas" width="' + MAP_W + '" height="' + MAP_H + '" style="width:' + (MAP_W * 3) + 'px;height:' + (MAP_H * 3) + 'px"></canvas></div>';
+    '<div class="preview-wrap"><canvas id="previewCanvas" width="' + map.w + '" height="' + map.h + '" style="width:' + (map.w * scale) + 'px;height:' + (map.h * scale) + 'px"></canvas></div>';
 
   let ctrl = '';
   if (bgEntry) ctrl += renderGradientSection(bgEntry, 'BG');
@@ -618,23 +716,56 @@ function renderGradientBars() {
 function renderPreview() {
   const canvas = document.getElementById('previewCanvas');
   if (!canvas) return;
+  const map = currentPreviewMap();
+  if (canvas.width !== map.w) canvas.width = map.w;
+  if (canvas.height !== map.h) canvas.height = map.h;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, MAP_W, MAP_H);
+  ctx.fillRect(0, 0, map.w, map.h);
 
   const bgEntry = findEntry(selectedPairId, 'BG');
   const wallEntry = findEntry(selectedPairId, 'WALL');
 
-  if (bgEntry) renderPaletteLayer(ctx, BG_TILES, bgTilesetImg, bgEntry);
-  if (wallEntry) renderPaletteLayer(ctx, WALL_TILES, wallTilesetImg, wallEntry);
+  if (bgEntry) renderBackgroundGradient(ctx, bgEntry, map);
+  if (wallEntry) renderPaletteLayer(ctx, map.wallTiles, wallTilesetImg, wallEntry, map);
 
   ctx.font = '10px Rajdhani, sans-serif';
   ctx.fillStyle = '#4A8A8A';
-  ctx.fillText('BG:' + (bgEntry ? 'OK' : 'NONE') + (bgTilesetImg ? '+TEX' : '') +
-    '  WALL:' + (wallEntry ? 'OK' : 'NONE') + (wallTilesetImg ? '+TEX' : ''), 4, MAP_H - 4);
+  ctx.fillText('BG:' + (bgEntry ? 'OK' : 'NONE') +
+    '  WALL:' + (wallEntry ? 'OK' : 'NONE') + (wallTilesetImg ? '+TEX:' + wallTilesetName : '') +
+    '  MAP:' + map.label, 4, map.h - 4);
 }
 
-function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
+function renderBackgroundGradient(ctx, entry, map) {
+  const lut = buildLUT(entry.stops);
+  const brightness = entry.brightness;
+  const depthBias = entry.depthBias;
+  const depthCenter = entry.depthCenter;
+  const tintR = ((entry.tint >> 16) & 0xff) / 255;
+  const tintG = ((entry.tint >> 8) & 0xff) / 255;
+  const tintB = (entry.tint & 0xff) / 255;
+
+  const img = ctx.createImageData(map.w, map.h);
+  for (let y = 0; y < map.h; y++) {
+    const screenY = (y + 0.5) / map.h;
+    const depthShift = (screenY - depthCenter) * depthBias;
+    const biased = Math.max(0, Math.min(1, 0.5 + depthShift));
+    const idx = Math.round(biased * 255) * 3;
+    const r = Math.min(255, lut[idx] * brightness * tintR);
+    const g = Math.min(255, lut[idx + 1] * brightness * tintG);
+    const b = Math.min(255, lut[idx + 2] * brightness * tintB);
+    for (let x = 0; x < map.w; x++) {
+      const i = (y * map.w + x) * 4;
+      img.data[i] = r;
+      img.data[i + 1] = g;
+      img.data[i + 2] = b;
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function renderPaletteLayer(ctx, tiles, tilesetImg, entry, map) {
   const lut = buildLUT(entry.stops);
   const brightness = entry.brightness;
   const depthBias = entry.depthBias;
@@ -656,35 +787,41 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
 
   if (!tilesetImg) {
     for (const tile of tiles) {
-      const screenY = (tile.px[1] + TILE / 2) / MAP_H;
-      const [r, g, b] = samplePalette(0.5, screenY);
-      ctx.fillStyle = packHex(r, g, b);
-      ctx.fillRect(tile.px[0], tile.px[1], TILE, TILE);
+      const x0 = tile.px[0];
+      const y0 = tile.px[1];
+      for (let yy = 0; yy < map.tile; yy++) {
+        const y = y0 + yy;
+        const screenY = (y + 0.5) / map.h;
+        const [r, g, b] = samplePalette(0.5, screenY);
+        ctx.fillStyle = packHex(r, g, b);
+        ctx.fillRect(x0, y, map.tile, 1);
+      }
     }
     return;
   }
 
   try {
     const off = document.createElement('canvas');
-    off.width = MAP_W; off.height = MAP_H;
+    off.width = map.w; off.height = map.h;
     const offCtx = off.getContext('2d');
     offCtx.fillStyle = '#808080';
-    for (const tile of tiles) offCtx.fillRect(tile.px[0], tile.px[1], TILE, TILE);
+    for (const tile of tiles) offCtx.fillRect(tile.px[0], tile.px[1], map.tile, map.tile);
     for (const tile of tiles) {
+      if (tile.synth) continue;
       offCtx.save();
       const fx = (tile.f & 1) ? -1 : 1;
       const fy = (tile.f & 2) ? -1 : 1;
-      offCtx.translate(tile.px[0] + (fx < 0 ? TILE : 0), tile.px[1] + (fy < 0 ? TILE : 0));
+      offCtx.translate(tile.px[0] + (fx < 0 ? map.tile : 0), tile.px[1] + (fy < 0 ? map.tile : 0));
       offCtx.scale(fx, fy);
-      offCtx.drawImage(tilesetImg, tile.src[0], tile.src[1], TILE, TILE, 0, 0, TILE, TILE);
+      offCtx.drawImage(tilesetImg, tile.src[0], tile.src[1], map.tile, map.tile, 0, 0, map.tile, map.tile);
       offCtx.restore();
     }
-    const imgData = offCtx.getImageData(0, 0, MAP_W, MAP_H);
+    const imgData = offCtx.getImageData(0, 0, map.w, map.h);
     const d = imgData.data;
-    for (let y = 0; y < MAP_H; y++) {
-      const screenY = y / MAP_H;
-      for (let x = 0; x < MAP_W; x++) {
-        const i = (y * MAP_W + x) * 4;
+    for (let y = 0; y < map.h; y++) {
+      const screenY = y / map.h;
+      for (let x = 0; x < map.w; x++) {
+        const i = (y * map.w + x) * 4;
         if (d[i + 3] === 0) continue;
         const luma = (d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722) / 255;
         const [r, g, b] = samplePalette(luma, screenY);
@@ -696,10 +833,15 @@ function renderPaletteLayer(ctx, tiles, tilesetImg, entry) {
   } catch (e) {
     console.error('[palette-editor] renderPaletteLayer failed:', e);
     for (const tile of tiles) {
-      const screenY = (tile.px[1] + TILE / 2) / MAP_H;
-      const [r, g, b] = samplePalette(0.5, screenY);
-      ctx.fillStyle = packHex(r, g, b);
-      ctx.fillRect(tile.px[0], tile.px[1], TILE, TILE);
+      const x0 = tile.px[0];
+      const y0 = tile.px[1];
+      for (let yy = 0; yy < map.tile; yy++) {
+        const y = y0 + yy;
+        const screenY = (y + 0.5) / map.h;
+        const [r, g, b] = samplePalette(0.5, screenY);
+        ctx.fillStyle = packHex(r, g, b);
+        ctx.fillRect(x0, y, map.tile, 1);
+      }
     }
   }
 }
@@ -713,38 +855,21 @@ function status(msg, ok) {
 
 // ── localStorage persistence ──
 const LS_CSV = 'echoris_palette_csv';
-const LS_WALL = 'echoris_palette_wall_tileset';
-const LS_BG = 'echoris_palette_bg_tileset';
+const LS_WALL_NAME = 'echoris_palette_wall_tileset_name';
 
 function saveCSVToStorage(text) {
   try { localStorage.setItem(LS_CSV, text); } catch(e) { /* quota */ }
-}
-function saveTilesetToStorage(key, file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try { localStorage.setItem(key, reader.result); } catch(e) { /* quota */ }
-  };
-  reader.readAsDataURL(file);
-}
-function loadImageFromDataURL(dataURL) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = dataURL;
-  });
 }
 async function restoreFromStorage() {
   let restored = 0;
   const csvText = localStorage.getItem(LS_CSV);
   if (csvText) { loadCSV(csvText); restored++; }
-  const wallData = localStorage.getItem(LS_WALL);
-  if (wallData) {
-    try { wallTilesetImg = await loadImageFromDataURL(wallData); restored++; } catch(e) {}
-  }
-  const bgData = localStorage.getItem(LS_BG);
-  if (bgData) {
-    try { bgTilesetImg = await loadImageFromDataURL(bgData); restored++; } catch(e) {}
+  const storedWall = localStorage.getItem(LS_WALL_NAME);
+  if (storedWall && isAllowedWallTileset(storedWall)) {
+    wallTilesetName = storedWall;
+    populateWallTilesetSelect();
+    selectWallTileset(storedWall, { quiet: true });
+    restored++;
   }
   if (restored > 0) {
     status('Restored ' + restored + ' item(s) from last session', true);
@@ -754,7 +879,22 @@ async function restoreFromStorage() {
 
 // ── Disk auto-load (works when served via dev server; fails silently on file://) ──
 const CSV_DISK_PATH = '../Sheets/Content_System_Area_Palette.csv';
-const ATLAS_DISK_DIR = '../game/public/assets/atlas/';
+const ATLAS_DISK_DIRS = [
+  '../game/public/assets/atlas/',
+  '/assets/atlas/',
+  '/play/assets/atlas/',
+  'http://127.0.0.1:5173/play/assets/atlas/',
+  'http://localhost:5173/play/assets/atlas/',
+];
+const LDTK_DISK_PATHS = [
+  '../game/public/assets/World_ProjectAbyss.ldtk',
+  '/assets/World_ProjectAbyss.ldtk',
+  '/play/assets/World_ProjectAbyss.ldtk',
+  'http://127.0.0.1:5173/assets/World_ProjectAbyss.ldtk',
+  'http://127.0.0.1:5173/play/assets/World_ProjectAbyss.ldtk',
+  'http://localhost:5173/assets/World_ProjectAbyss.ldtk',
+  'http://localhost:5173/play/assets/World_ProjectAbyss.ldtk',
+];
 
 function loadImageFromBlob(blob) {
   return new Promise((resolve, reject) => {
@@ -765,7 +905,176 @@ function loadImageFromBlob(blob) {
   });
 }
 
+function loadImageFromSrc(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image load failed: ' + file.name));
+    };
+    img.src = url;
+  });
+}
+
+function normalizeTile(tile, fallbackTileSize) {
+  return {
+    px: tile.px || [0, 0],
+    src: tile.src || [0, 0],
+    f: tile.f || 0,
+    synth: !!tile.synth,
+    tileSize: fallbackTileSize,
+  };
+}
+
+function findPreviewIntGridLayer(level) {
+  const layers = level.layerInstances || [];
+  return layers.find(li => li.__identifier === 'Collisions' && li.__type === 'IntGrid' && li.intGridCsv) ||
+    layers.find(li => li.__type === 'IntGrid' && li.intGridCsv);
+}
+
+function solidGridFromIntGrid(layer, tileSize) {
+  const gridW = layer.__cWid || 0;
+  const gridH = layer.__cHei || 0;
+  const solid = new Uint8Array(gridW * gridH);
+  const csv = layer.intGridCsv || [];
+  for (let i = 0; i < Math.min(csv.length, solid.length); i++) {
+    if (csv[i]) solid[i] = 1;
+  }
+  for (const tile of layer.autoLayerTiles || []) {
+    const x = Math.floor((tile.px?.[0] || 0) / tileSize);
+    const y = Math.floor((tile.px?.[1] || 0) / tileSize);
+    if (x >= 0 && y >= 0 && x < gridW && y < gridH) solid[y * gridW + x] = 1;
+  }
+  return { solid, gridW, gridH };
+}
+
+function buildSyntheticBgTiles(solid, gridW, gridH, tileSize) {
+  const tiles = [];
+  for (let y = 0; y < gridH; y++) {
+    let first = -1;
+    let last = -1;
+    for (let x = 0; x < gridW; x++) {
+      if (!solid[y * gridW + x]) continue;
+      if (first < 0) first = x;
+      last = x;
+    }
+    if (first < 0 || last - first < 2) continue;
+    for (let x = first + 1; x < last; x++) {
+      if (solid[y * gridW + x]) continue;
+      tiles.push({ px: [x * tileSize, y * tileSize], src: [0, 0], f: 0, synth: true });
+    }
+  }
+  return tiles;
+}
+
+function buildSolidFallbackTiles(solid, gridW, gridH, tileSize) {
+  const tiles = [];
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      if (!solid[y * gridW + x]) continue;
+      tiles.push({ px: [x * tileSize, y * tileSize], src: [0, 0], f: 0, synth: true });
+    }
+  }
+  return tiles;
+}
+
+function buildPreviewMapFromLevel(worldName, level, layer) {
+  const tileSize = layer.__gridSize || 16;
+  const { solid, gridW, gridH } = solidGridFromIntGrid(layer, tileSize);
+  const autoTiles = (layer.autoLayerTiles || []).map(t => normalizeTile(t, tileSize));
+  return {
+    key: worldName + '/' + level.identifier,
+    world: worldName,
+    level: level.identifier,
+    label: worldName + '/' + level.identifier,
+    w: level.pxWid || gridW * tileSize,
+    h: level.pxHei || gridH * tileSize,
+    tile: tileSize,
+    wallTilesetName: tilesetNameFromRelPath(layer.__tilesetRelPath),
+    bgTiles: buildSyntheticBgTiles(solid, gridW, gridH, tileSize),
+    wallTiles: autoTiles.length > 0 ? autoTiles : buildSolidFallbackTiles(solid, gridW, gridH, tileSize),
+  };
+}
+
+function extractPreviewMapsFromLdtk(ldtk) {
+  const worldEntries = (ldtk.worlds && ldtk.worlds.length > 0)
+    ? ldtk.worlds.map(w => ({ name: w.identifier || 'World', levels: w.levels || [] }))
+    : [{ name: 'World', levels: ldtk.levels || [] }];
+  const maps = [];
+  for (const world of worldEntries) {
+    for (const level of world.levels) {
+      const layer = findPreviewIntGridLayer(level);
+      if (!layer) continue;
+      const nonZero = (layer.intGridCsv || []).some(v => !!v);
+      if (!nonZero && !(layer.autoLayerTiles || []).length) continue;
+      maps.push(buildPreviewMapFromLevel(world.name, level, layer));
+    }
+  }
+  return maps;
+}
+
+function populateLevelSelect() {
+  const sel = document.getElementById('levelSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="__embedded_level34__">ItemStratum/ItemStratum_Level_34</option>';
+  for (const map of ldtkPreviewMaps) {
+    const opt = document.createElement('option');
+    opt.value = map.key;
+    opt.textContent = map.label + ' (' + map.w + 'x' + map.h + ')';
+    sel.appendChild(opt);
+  }
+  sel.value = previewMap ? previewMap.key : '__embedded_level34__';
+}
+
+function pickDefaultPreviewMap(maps, previousKey) {
+  return maps.find(m => m.key === previousKey) ||
+    maps.find(m => m.key === 'ItemStratum/ItemStratum_Level_34') ||
+    maps.find(m => m.world === 'ItemStratum') ||
+    maps[0] ||
+    null;
+}
+
+function loadLdtk(text, sourceLabel) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    status('LDtk load failed: invalid JSON', false);
+    return false;
+  }
+  const previousKey = previewMap ? previewMap.key : '';
+  const maps = extractPreviewMapsFromLdtk(data);
+  if (maps.length === 0) {
+    status('LDtk load failed: no IntGrid levels found', false);
+    return false;
+  }
+  ldtkPreviewMaps = maps;
+  previewMap = pickDefaultPreviewMap(maps, previousKey);
+  if (previewMap && isAllowedWallTileset(previewMap.wallTilesetName)) wallTilesetName = previewMap.wallTilesetName;
+  populateWallTilesetSelect();
+  populateLevelSelect();
+  if (selectedPairId) renderEditor();
+  selectWallTileset(wallTilesetName, { quiet: true });
+  status('LDtk loaded from ' + sourceLabel + ': ' + maps.length + ' IntGrid levels', true);
+  return true;
+}
+
 async function tryFetchCsvFromDisk(bustCache) {
+  if (location.protocol === 'file:') return null;
   try {
     const url = CSV_DISK_PATH + (bustCache ? '?_=' + Date.now() : '');
     const res = await fetch(url);
@@ -774,56 +1083,198 @@ async function tryFetchCsvFromDisk(bustCache) {
   } catch (e) { return null; }
 }
 
-async function tryFetchTilesetFromDisk(name) {
-  if (!name) return null;
-  try {
-    const res = await fetch(ATLAS_DISK_DIR + name + '.png');
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await loadImageFromBlob(blob);
-  } catch (e) { return null; }
+async function tryFetchLdtkFromDisk(bustCache) {
+  if (location.protocol === 'file:') return null;
+  for (const path of LDTK_DISK_PATHS) {
+    try {
+      const url = path + (bustCache ? '?_=' + Date.now() : '');
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      return await res.text();
+    } catch (e) {
+      // Try the next path. file:// cannot fetch relative project files.
+    }
+  }
+  return null;
 }
 
-async function autoLoadTilesetsFromDisk() {
-  // Pick the first BG/WALL entry's tileset name as the preview default
-  const bgName = (csvEntries.find(e => e.layer === 'BG' && e.tileset) || {}).tileset;
-  const wallName = (csvEntries.find(e => e.layer === 'WALL' && e.tileset) || {}).tileset;
-  const [bgImg, wallImg] = await Promise.all([
-    tryFetchTilesetFromDisk(bgName),
-    tryFetchTilesetFromDisk(wallName),
-  ]);
+async function tryFetchTilesetFromDisk(name) {
+  if (!name) return null;
+  if (location.protocol === 'file:') return null;
+  const fileName = tilesetFileFromName(name);
+  for (const dir of ATLAS_DISK_DIRS) {
+    try {
+      const res = await fetch(dir + fileName);
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      return await loadImageFromBlob(blob);
+    } catch (e) {
+      // Try the next path.
+    }
+  }
+  return null;
+}
+
+function preferredWallTilesetName() {
+  if (previewMap && isAllowedWallTileset(previewMap.wallTilesetName)) return previewMap.wallTilesetName;
+  if (isAllowedWallTileset(wallTilesetName)) return wallTilesetName;
+  const wallEntry = selectedPairId ? findEntry(selectedPairId, 'WALL') : null;
+  if (wallEntry && isAllowedWallTileset(wallEntry.tileset)) return wallEntry.tileset;
+  return tilesetNameFromFile(wallTilesetOptions[0]);
+}
+
+async function selectWallTileset(name, opts = {}) {
+  const nextName = tilesetNameFromFile(name);
+  if (!isAllowedWallTileset(nextName)) {
+    if (!opts.quiet) status('WALL tileset rejected: only atlas 256x256 PNGs are allowed', false);
+    return false;
+  }
+
+  wallTilesetName = nextName;
+  try { localStorage.setItem(LS_WALL_NAME, wallTilesetName); } catch(e) {}
+  const sel = document.getElementById('wallTilesetSelect');
+  if (sel && sel.value !== wallTilesetName) sel.value = wallTilesetName;
+
+  const cached = wallTilesetCache.get(wallTilesetName);
+  if (cached) {
+    wallTilesetImg = cached;
+    renderPreview();
+    if (!opts.quiet) status('WALL tileset: ' + tilesetFileFromName(wallTilesetName), true);
+    return true;
+  }
+
+  const img = await tryFetchTilesetFromDisk(wallTilesetName);
+  if (wallTilesetName !== nextName) return false;
+  wallTilesetImg = img;
+  renderPreview();
+  if (!opts.quiet) {
+    status(img
+      ? 'WALL tileset: ' + tilesetFileFromName(wallTilesetName)
+      : 'WALL tileset selected; use Load Atlas PNGs on file:// to texture it', !!img);
+  }
+  return !!img;
+}
+
+async function autoLoadWallTilesetFromDisk() {
+  populateWallTilesetSelect();
+  const before = wallTilesetImg;
+  await selectWallTileset(preferredWallTilesetName(), { quiet: true });
+  return wallTilesetImg && wallTilesetImg !== before ? 1 : 0;
+}
+
+async function loadEmbeddedWallTilesets() {
+  const embedded = window.PALETTE_EDITOR_EMBEDDED && window.PALETTE_EDITOR_EMBEDDED.wallTilesets;
+  if (!embedded) return 0;
+
   let loaded = 0;
-  if (bgImg) { bgTilesetImg = bgImg; loaded++; }
-  if (wallImg) { wallTilesetImg = wallImg; loaded++; }
+  const files = [];
+  for (const [name, src] of Object.entries(embedded)) {
+    try {
+      const img = await loadImageFromSrc(src);
+      if (img.width !== 256 || img.height !== 256) continue;
+      wallTilesetCache.set(name, img);
+      files.push(tilesetFileFromName(name));
+      loaded++;
+    } catch (e) {
+      console.warn('[palette-editor] embedded atlas load failed:', name, e);
+    }
+  }
+
+  if (files.length > 0) {
+    wallTilesetOptions = sortTilesetFiles(files);
+    populateWallTilesetSelect();
+    const embeddedMap = embeddedPreviewMap();
+    if (embeddedMap && isAllowedWallTileset(embeddedMap.wallTilesetName)) {
+      wallTilesetName = embeddedMap.wallTilesetName;
+    }
+    await selectWallTileset(preferredWallTilesetName(), { quiet: true });
+  }
   return loaded;
 }
 
+function isTopLevelAtlasFile(file) {
+  const rel = file.webkitRelativePath || '';
+  return !rel || rel.split('/').filter(Boolean).length <= 2;
+}
+
+async function loadAtlasFiles(files, sourceLabel) {
+  const loaded = [];
+  const loadedNames = [];
+  for (const file of files) {
+    if (!/\.png$/i.test(file.name) || !isTopLevelAtlasFile(file)) continue;
+    try {
+      const img = await loadImageFromFile(file);
+      if (img.width !== 256 || img.height !== 256) continue;
+      const fileName = tilesetFileFromName(file.name);
+      loaded.push([tilesetNameFromFile(fileName), img]);
+      loadedNames.push(fileName);
+    } catch (e) {
+      console.warn('[palette-editor] skipped atlas file:', file.name, e);
+    }
+  }
+
+  if (loaded.length === 0) {
+    status('No 256x256 PNG tilesets found in ' + sourceLabel, false);
+    return false;
+  }
+
+  for (const [name, img] of loaded) wallTilesetCache.set(name, img);
+  wallTilesetOptions = sortTilesetFiles(loadedNames);
+  populateWallTilesetSelect();
+  await selectWallTileset(preferredWallTilesetName(), { quiet: true });
+  status('Loaded ' + loaded.length + ' WALL tileset(s) from ' + sourceLabel, true);
+  return true;
+}
+
+async function loadAtlasDirectory() {
+  document.getElementById('atlasDirInput').click();
+}
+
 async function reloadFromDisk() {
-  const text = await tryFetchCsvFromDisk(true);
-  if (!text) {
-    status('Reload failed: disk fetch unavailable (file:// blocks fetch — serve via dev server)', false);
+  if (location.protocol === 'file:') {
+    status('file:// uses embedded ItemStratum_Level_34; use Load LDtk/Load Atlas PNGs to override', true);
+    if (csvEntries.length > 0) renderPreview();
     return;
   }
-  loadCSV(text);
-  saveCSVToStorage(text);
-  const tilesetsLoaded = await autoLoadTilesetsFromDisk();
-  status('Reloaded from disk (' + csvEntries.length + ' entries, ' + tilesetsLoaded + ' tilesets)', true);
+  const text = await tryFetchCsvFromDisk(true);
+  let csvLoaded = false;
+  let tilesetsLoaded = 0;
+  if (text) {
+    loadCSV(text);
+    saveCSVToStorage(text);
+    csvLoaded = true;
+    tilesetsLoaded = await autoLoadWallTilesetFromDisk();
+  }
+  const ldtkText = await tryFetchLdtkFromDisk(true);
+  const ldtkLoaded = ldtkText ? loadLdtk(ldtkText, 'disk') : false;
+  if (!csvLoaded && !ldtkLoaded) {
+    status('Reload failed: disk fetch unavailable (file:// needs Load CSV/Load LDtk or dev server)', false);
+    return;
+  }
+  status('Reloaded from disk (' +
+    (csvLoaded ? csvEntries.length + ' entries, ' + tilesetsLoaded + ' wall tilesets' : 'CSV unavailable') +
+    ', ' + (ldtkLoaded ? ldtkPreviewMaps.length + ' LDtk levels' : 'LDtk unavailable') + ')', true);
   if (csvEntries.length > 0) renderPreview();
 }
 
 async function initEditor() {
+  populateWallTilesetSelect();
+  populateLevelSelect();
+  await loadEmbeddedWallTilesets();
   // 1. Try disk first (dev server)
   const diskCsv = await tryFetchCsvFromDisk(false);
   if (diskCsv) {
     loadCSV(diskCsv);
     saveCSVToStorage(diskCsv);
-    const tilesetsLoaded = await autoLoadTilesetsFromDisk();
-    status('Auto-loaded from disk (' + csvEntries.length + ' entries, ' + tilesetsLoaded + ' tilesets)', true);
+    const tilesetsLoaded = await autoLoadWallTilesetFromDisk();
+    status('Auto-loaded from disk (' + csvEntries.length + ' entries, ' + tilesetsLoaded + ' wall tilesets)', true);
     if (csvEntries.length > 0) renderPreview();
-    return;
+  } else {
+    // 2. Fallback: localStorage
+    await restoreFromStorage();
   }
-  // 2. Fallback: localStorage
-  await restoreFromStorage();
+  const diskLdtk = await tryFetchLdtkFromDisk(false);
+  if (diskLdtk) loadLdtk(diskLdtk, 'disk');
 }
 
 // ── File handlers ──
@@ -832,21 +1283,15 @@ document.getElementById('csvInput').addEventListener('change', e => {
   if (!file) return;
   file.text().then(text => { loadCSV(text); saveCSVToStorage(text); });
 });
-document.getElementById('wallTilesetInput').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  saveTilesetToStorage(LS_WALL, file);
-  const img = new Image();
-  img.onload = () => { wallTilesetImg = img; status('WALL tileset loaded', true); renderPreview(); };
-  img.src = URL.createObjectURL(file);
+document.getElementById('atlasDirInput').addEventListener('change', e => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+  loadAtlasFiles(files, 'selected atlas files');
 });
-document.getElementById('bgTilesetInput').addEventListener('change', e => {
+document.getElementById('ldtkInput').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
-  saveTilesetToStorage(LS_BG, file);
-  const img = new Image();
-  img.onload = () => { bgTilesetImg = img; status('BG tileset loaded', true); renderPreview(); };
-  img.src = URL.createObjectURL(file);
+  file.text().then(text => loadLdtk(text, file.name));
 });
 
 // ── Drag & drop ──
@@ -858,6 +1303,11 @@ document.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file && file.name.endsWith('.csv')) {
     file.text().then(text => { loadCSV(text); saveCSVToStorage(text); });
+  } else if (file && (file.name.endsWith('.ldtk') || file.name.endsWith('.json'))) {
+    file.text().then(text => loadLdtk(text, file.name));
+  } else {
+    const pngFiles = Array.from(e.dataTransfer.files || []).filter(f => /\.png$/i.test(f.name));
+    if (pngFiles.length > 0) loadAtlasFiles(pngFiles, 'dropped PNGs');
   }
 });
 

@@ -5,6 +5,7 @@
 - [VisualBoundsBleed](features/VisualBoundsBleed.md) - Render-only edge bleed for camera shake overscan.
 - [OfflineWindowsBuild](features/OfflineWindowsBuild.md) - Windows Electron offline demo build and packaging rules.
 - [ItemWorldEntryCorridor](features/ItemWorldEntryCorridor.md) - Item World entry corridor sequencing and spawn handoff rules.
+- [ItemWorldSpawning](features/ItemWorldSpawning.md) - Procedural Item World enemy spawn floor rules.
 - [PlayerMovement](features/PlayerMovement.md) - Player jump/movement physics invariants and tuning notes.
 - [SettingsOptions](features/SettingsOptions.md) - Runtime options menu, persistence, and currently wired settings.
 

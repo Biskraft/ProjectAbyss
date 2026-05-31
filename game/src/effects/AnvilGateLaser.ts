@@ -21,7 +21,7 @@ const BURST_GROWTH_PER_MS = 1.1;
 const DECAY_PER_MS = 0.13;
 const SOURCE_TAPER_PIXELS = 38;
 
-export class AnvilGateLaser {
+export class LegacyAnvilGateLaser {
   readonly container = new Container();
 
   private readonly sourceLight = new Graphics();

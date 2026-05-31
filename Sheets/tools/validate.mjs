@@ -37,16 +37,11 @@ const MEMORY_SHARDS_CSV = resolve(ROOT, 'Sheets', 'Content_MemoryShards.csv');
 const REQUIRED_AREA_IDS = [
   'world_shaft_bg',
   'world_shaft_wall',
-  // 11 theme-based pairs (DEC-030: rarity 5-pair → theme 11-pair)
-  'iw_habitat_bg',      'iw_habitat_wall',
-  'iw_security_bg',     'iw_security_wall',
+  // 5 temperament theme pairs (6 generic themes 제거 2026-05-31: habitat/security/
+  // biozone/archive/logistics/breach → foundry/command/malfunction/coolant/echo 치환).
   'iw_foundry_bg',      'iw_foundry_wall',
-  'iw_biozone_bg',      'iw_biozone_wall',
-  'iw_archive_bg',      'iw_archive_wall',
-  'iw_logistics_bg',    'iw_logistics_wall',
   'iw_command_bg',      'iw_command_wall',
   'iw_malfunction_bg',  'iw_malfunction_wall',
-  'iw_breach_bg',       'iw_breach_wall',
   'iw_coolant_bg',      'iw_coolant_wall',
   'iw_echo_bg',         'iw_echo_wall',
 ];
@@ -375,6 +370,30 @@ if (existsSync(FLUID_TYPES_CSV)) {
       }
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// V8 — Content_Stats_Enemy.csv Attribute column.
+// "모든 몬스터는 속성을 가진다" (System_Enemy_MonsterArchetype.md §1.1 명제 2 / §1.3 제약 5).
+// Attribute 컬럼 필수. 값은 6 fluid 중 하나이거나 blank(빈 값 = 지층 테마 폴백).
+// ---------------------------------------------------------------------------
+const ENEMY_CSV = resolve(ROOT, 'Sheets', 'Content_Stats_Enemy.csv');
+if (existsSync(ENEMY_CSV)) {
+  const { header, rows } = parseSimpleCsv(readFileSync(ENEMY_CSV, 'utf8'));
+  if (!header.includes('Attribute')) {
+    pushErr('V8', 'Content_Stats_Enemy.csv missing required "Attribute" column (모든 몬스터는 속성을 가진다 — §1.1 명제 2)');
+  } else {
+    const VALID_FLUIDS = new Set(['water', 'magma', 'oil', 'acid', 'charged', 'cyro']);
+    for (const row of rows) {
+      const id = `${row.Type || '(no type)'}:${row.Level || '?'}`;
+      const v = (row.Attribute || '').trim().toLowerCase();
+      if (v !== '' && !VALID_FLUIDS.has(v)) {
+        pushErr('V8', `Enemy "${id}" Attribute="${v}" — expected water/magma/oil/acid/charged/cyro or blank(theme fallback)`);
+      }
+    }
+  }
+} else {
+  pushWarn('V8', `Content_Stats_Enemy.csv not found (skipped): ${ENEMY_CSV}`);
 }
 
 // ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@
  *
  * Per user direction 2026-05-17:
  *   - Wishlist primary CTA + "Wishlist on Steam" line omitted.
- *   - Two clickable CTAs: Community Discord + Follow on X.
+ *   - Three clickable CTAs: Steam Page + Community Discord + Follow on X.
  *   - Any keyboard key returns to the title (CTA clicks fire external links
  *     and do *not* leave this scene).
  *
@@ -23,6 +23,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TitleScene } from './TitleScene';
 import type { Game } from '../Game';
 
+const STEAM_URL   = 'https://store.steampowered.com/app/4756940/ECHORIS/';
 const DISCORD_URL = 'https://discord.gg/nqEcnZbS2c';
 const X_URL       = 'https://x.com/Strata_Forge';
 
@@ -147,6 +148,7 @@ export class EndingScene extends Scene {
     const ctaGap = 10 * s;
 
     const defs = [
+      { label: t('ending.cta_steam'),   url: STEAM_URL },
       { label: t('ending.cta_discord'), url: DISCORD_URL },
       { label: t('ending.cta_x'),       url: X_URL },
     ];

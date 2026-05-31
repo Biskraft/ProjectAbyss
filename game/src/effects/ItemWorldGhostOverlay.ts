@@ -10,11 +10,36 @@ const HALF_TILE = TILE_PX / 2;
 const REVEAL_RADIUS = 6 * TILE_PX;       // 6 tiles
 const REVEAL_RADIUS_SQ = REVEAL_RADIUS * REVEAL_RADIUS;
 const TILE_REVEAL_INTERVAL_MS = 36;
+const SCALE_BIRTH_START_SCALE = 1 / 16;  // 1px cells grow into final 16px cells.
+const SCALE_BIRTH_ITEM_FINAL_SCALE = 64;
+const SCALE_BIRTH_TILE_ALPHA_FULL_SCALE = 0.18;
+const SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS = 1000;
 const SCALE_RATE_PER_MS = 1 / 400;       // 0→1 in 400ms per tile
 
 // Wall silhouette colors — near-black, just enough hue to read as "dungeon"
-const COLOR_WALL = 0x07071a;
-const COLOR_PLAT = 0x0c0c24;
+export interface GhostTilePalette {
+  wall: number;
+  platform: number;
+  highlight: number;
+  rim: number;
+  particle: number;
+}
+
+const DEFAULT_TILE_PALETTE: GhostTilePalette = {
+  wall: 0x07071a,
+  platform: 0x0c0c24,
+  highlight: 0x4499ff,
+  rim: 0x4499ff,
+  particle: 0xffb84a,
+};
+
+type TileKind = 'wall' | 'platform';
+
+interface Rgb {
+  r: number;
+  g: number;
+  b: number;
+}
 
 interface TileEntry {
   gfx: Graphics;
@@ -26,6 +51,7 @@ interface TileEntry {
   fromX: number;
   fromY: number;
   spin: number;
+  kind: TileKind;
   scale: number;
   queued: boolean;
   revealed: boolean;
@@ -50,6 +76,146 @@ interface GhostItemParticle {
   size: number;
   phase: number;
   color: number;
+}
+
+interface ScaleBirthState {
+  finalX: number;
+  finalY: number;
+  originX: number;
+  originY: number;
+  pivotLocalX: number;
+  pivotLocalY: number;
+  elapsedMs: number;
+  durationMs: number;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function growthScaleCurve(value: number): number {
+  const t = clamp01(value);
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+function grayTint(value: number): number {
+  const v = Math.round(255 * (1 - clamp01(value)));
+  return (v << 16) | (v << 8) | v;
+}
+
+function toRgb(color: number): Rgb {
+  return {
+    r: (color >> 16) & 0xff,
+    g: (color >> 8) & 0xff,
+    b: color & 0xff,
+  };
+}
+
+function fromRgb({ r, g, b }: Rgb): number {
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+}
+
+function mixColor(a: number, b: number, t: number): number {
+  const ca = toRgb(a);
+  const cb = toRgb(b);
+  return fromRgb({
+    r: ca.r + (cb.r - ca.r) * t,
+    g: ca.g + (cb.g - ca.g) * t,
+    b: ca.b + (cb.b - ca.b) * t,
+  });
+}
+
+function scaleColor(color: number, scale: number): number {
+  const c = toRgb(color);
+  return fromRgb({
+    r: Math.max(0, Math.min(255, c.r * scale)),
+    g: Math.max(0, Math.min(255, c.g * scale)),
+    b: Math.max(0, Math.min(255, c.b * scale)),
+  });
+}
+
+function luma(c: Rgb): number {
+  return c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+}
+
+function saturation(c: Rgb): number {
+  const max = Math.max(c.r, c.g, c.b);
+  const min = Math.min(c.r, c.g, c.b);
+  return max <= 0 ? 0 : (max - min) / max;
+}
+
+function paletteFromMaterial(material: number): GhostTilePalette {
+  const sat = saturation(toRgb(material));
+  const wall = mixColor(scaleColor(material, 0.28), 0x03040a, 0.42);
+  const platform = mixColor(scaleColor(material, 0.38), 0x050512, 0.28);
+  const highlight = mixColor(scaleColor(material, 0.95), 0xffffff, sat < 0.12 ? 0.28 : 0.18);
+  const rim = mixColor(highlight, 0xffffff, 0.16);
+  return {
+    wall,
+    platform,
+    highlight,
+    rim,
+    particle: mixColor(highlight, 0xffb84a, 0.25),
+  };
+}
+
+async function extractItemPalette(item: ItemInstance): Promise<GhostTilePalette | null> {
+  if (typeof document === 'undefined' || typeof Image === 'undefined') return null;
+  const image = await loadPaletteImage(assetPath(`assets/items/${item.def.id}.png`));
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  if (width <= 0 || height <= 0) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(image, 0, 0);
+  const pixels = ctx.getImageData(0, 0, width, height).data;
+  const buckets = new Map<string, { r: number; g: number; b: number; count: number }>();
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const alpha = pixels[i + 3];
+    if (alpha < 64) continue;
+    const color = { r: pixels[i], g: pixels[i + 1], b: pixels[i + 2] };
+    const lum = luma(color);
+    if (lum < 24 || lum > 246) continue;
+    const key = `${color.r >> 4},${color.g >> 4},${color.b >> 4}`;
+    const bucket = buckets.get(key) ?? { r: 0, g: 0, b: 0, count: 0 };
+    const weight = alpha / 255;
+    bucket.r += color.r * weight;
+    bucket.g += color.g * weight;
+    bucket.b += color.b * weight;
+    bucket.count += weight;
+    buckets.set(key, bucket);
+  }
+
+  let best: { color: number; score: number } | null = null;
+  for (const bucket of buckets.values()) {
+    if (bucket.count <= 0) continue;
+    const avg = {
+      r: bucket.r / bucket.count,
+      g: bucket.g / bucket.count,
+      b: bucket.b / bucket.count,
+    };
+    const lum = luma(avg);
+    const sat = saturation(avg);
+    const score = bucket.count * (0.75 + sat * 0.85) * (lum > 220 ? 0.55 : 1);
+    if (!best || score > best.score) best = { color: fromRgb(avg), score };
+  }
+
+  return best ? paletteFromMaterial(best.color) : null;
+}
+
+function loadPaletteImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load ${src}`));
+    image.src = src;
+  });
 }
 
 /**
@@ -90,6 +256,9 @@ export class ItemWorldGhostOverlay {
   private buildQueue: TileEntry[] = [];
   private buildQueueElapsed = 0;
   private tileBuildCallback: ((col: number, row: number, value: number) => void) | null = null;
+  private scaleBirth: ScaleBirthState | null = null;
+  private tilePalette: GhostTilePalette = DEFAULT_TILE_PALETTE;
+  private paletteRequestId = 0;
 
   constructor() {
     this.container = new Container();
@@ -118,7 +287,7 @@ export class ItemWorldGhostOverlay {
         const t = grid[r]?.[c] ?? 0;
         sourceRow.push(t);
         if (t === 0) continue;
-        this._addTile(c, r, t, t === 3 ? COLOR_PLAT : COLOR_WALL);
+        this._addTile(c, r, t, t === 3 ? 'platform' : 'wall');
       }
       this.collisionGrid.push(sourceRow);
     }
@@ -151,7 +320,7 @@ export class ItemWorldGhostOverlay {
       for (let c = 0; c < TEMPLATE_W; c++) {
         const t = tiles[r]?.[c] ?? 1;
         if (t === 0) continue;
-        this._addTile(c, r, t, t === 3 ? COLOR_PLAT : COLOR_WALL);
+        this._addTile(c, r, t, t === 3 ? 'platform' : 'wall');
       }
     }
   }
@@ -177,15 +346,87 @@ export class ItemWorldGhostOverlay {
     return this.collisionGrid;
   }
 
-  private _addTile(col: number, row: number, value: number, color: number): void {
+  applyItemPalette(item: ItemInstance, onPalette?: (palette: GhostTilePalette) => void): void {
+    const requestId = ++this.paletteRequestId;
+    void extractItemPalette(item).then((palette) => {
+      if (!palette || requestId !== this.paletteRequestId || this.container.destroyed) return;
+      this.tilePalette = palette;
+      this.redrawAllTiles();
+      this.redrawAllParticles();
+      onPalette?.(palette);
+    }).catch(() => {
+      // Missing or unreadable item art should keep the default ghost palette.
+    });
+  }
+
+  getTilePalette(): GhostTilePalette {
+    return this.tilePalette;
+  }
+
+  revealAllTiles(): void {
+    this.buildQueue = [];
+    this.buildQueueElapsed = 0;
+    for (const tile of this.tiles) {
+      tile.queued = false;
+      tile.revealed = true;
+      tile.collisionStamped = true;
+      tile.scale = 1;
+      tile.gfx.x = tile.cx;
+      tile.gfx.y = tile.cy;
+      tile.gfx.rotation = 0;
+      tile.gfx.alpha = 1;
+      tile.gfx.scale.set(1);
+    }
+  }
+
+  beginScaleBirth(originWorldX: number, originWorldY: number, durationMs: number): void {
+    this.beginScaleBirthFromPivot(originWorldX, originWorldY, durationMs);
+  }
+
+  beginScaleBirthFromPivot(
+    pivotWorldX: number,
+    pivotWorldY: number,
+    durationMs: number,
+  ): void {
+    this.revealAllTiles();
+    for (const display of this.itemDisplays) {
+      display.scaleFactor = Math.max(display.scaleFactor, SCALE_BIRTH_ITEM_FINAL_SCALE);
+    }
+    this.scaleBirth = {
+      finalX: this.container.x,
+      finalY: this.container.y,
+      originX: pivotWorldX,
+      originY: pivotWorldY,
+      pivotLocalX: pivotWorldX - this.container.x,
+      pivotLocalY: pivotWorldY - this.container.y,
+      elapsedMs: 0,
+      durationMs: Math.max(1, durationMs),
+    };
+    this.applyScaleBirthTransform(0);
+    const initialTileAlpha = this.getScaleBirthTileAlpha();
+    for (const tile of this.tiles) tile.gfx.alpha = initialTileAlpha;
+  }
+
+  projectFinalWorldPointToCurrentBirth(finalWorldX: number, finalWorldY: number): { x: number; y: number } {
+    if (!this.scaleBirth) return { x: finalWorldX, y: finalWorldY };
+    const birth = this.scaleBirth;
+    const localX = finalWorldX - birth.finalX;
+    const localY = finalWorldY - birth.finalY;
+    const scale = this.container.scale.x;
+    return {
+      x: birth.originX + (localX - birth.pivotLocalX) * scale,
+      y: birth.originY + (localY - birth.pivotLocalY) * scale,
+    };
+  }
+
+  private _addTile(col: number, row: number, value: number, kind: TileKind): void {
     const gfx = new Graphics();
-    gfx.rect(0, 0, TILE_PX, TILE_PX).fill({ color });
     gfx.pivot.set(HALF_TILE, HALF_TILE);
     gfx.x = col * TILE_PX + HALF_TILE;
     gfx.y = row * TILE_PX + HALF_TILE;
     gfx.scale.set(0);
     this.container.addChild(gfx);
-    this.tiles.push({
+    const entry: TileEntry = {
       gfx,
       col,
       row,
@@ -195,11 +436,14 @@ export class ItemWorldGhostOverlay {
       fromX: -72 - (col % 6) * 6,
       fromY: ((row % 7) - 3) * 7,
       spin: ((col + row) % 2 === 0 ? 1 : -1) * (0.35 + ((col * 5 + row * 3) % 5) * 0.08),
+      kind,
       scale: 0,
       queued: false,
       revealed: false,
       collisionStamped: false,
-    });
+    };
+    this.drawTile(entry);
+    this.tiles.push(entry);
   }
 
   addItemDisplay(x: number, y: number, item: ItemInstance, scaleFactor = 4, rotate = false): void {
@@ -265,15 +509,18 @@ export class ItemWorldGhostOverlay {
       this.itemContainer.alpha = this.container.alpha;
     }
 
+    this.updateScaleBirth(dt);
+
     for (const display of this.itemDisplays) {
       display.elapsedMs += dt;
       this._updateConstructionParticles(display, dt);
       if (display.sprite) {
         const phase = display.elapsedMs * 0.0025;
-        const pulse = 1 + 0.1 * (Math.sin(phase) * Math.sin(phase));
+        const pulse = this.scaleBirth ? 1 : 1 + 0.1 * (Math.sin(phase) * Math.sin(phase));
         display.sprite.scale.set(display.scaleFactor * pulse);
         if (display.rotate) display.sprite.rotation += dt * 0.00015;
       }
+      this.applyScaleBirthItemTint(display);
     }
 
     // Per-tile proximity reveal + scale animation
@@ -314,13 +561,67 @@ export class ItemWorldGhostOverlay {
         tile.gfx.x = tile.cx + tile.fromX * inv;
         tile.gfx.y = tile.cy + tile.fromY * inv;
         tile.gfx.rotation = tile.spin * inv;
-        tile.gfx.alpha = 0.55 + settle * 0.45;
+        tile.gfx.alpha = this.scaleBirth
+          ? this.getScaleBirthTileAlpha()
+          : 0.55 + settle * 0.45;
         tile.gfx.scale.set(tile.scale);
         if (tile.scale >= 1 && !tile.collisionStamped) {
           tile.collisionStamped = true;
           this.tileBuildCallback?.(tile.col, tile.row, tile.value);
         }
       }
+    }
+  }
+
+  private updateScaleBirth(dt: number): void {
+    if (!this.scaleBirth) return;
+    this.scaleBirth.elapsedMs += dt;
+    const t = clamp01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
+    this.applyScaleBirthTransform(t);
+    if (t >= 1) {
+      const birth = this.scaleBirth;
+      this.scaleBirth = null;
+      this.container.pivot.set(0, 0);
+      this.container.scale.set(1);
+      this.container.position.set(birth.finalX, birth.finalY);
+      this.itemContainer.pivot.set(0, 0);
+      this.itemContainer.scale.set(1);
+      this.itemContainer.position.set(birth.finalX, birth.finalY);
+      this.itemContainer.visible = false;
+    }
+  }
+
+  private applyScaleBirthTransform(t: number): void {
+    if (!this.scaleBirth) return;
+    const birth = this.scaleBirth;
+    const scale = SCALE_BIRTH_START_SCALE + growthScaleCurve(t) * (1 - SCALE_BIRTH_START_SCALE);
+    this.container.pivot.set(birth.pivotLocalX, birth.pivotLocalY);
+    this.container.position.set(birth.originX, birth.originY);
+    this.container.scale.set(scale);
+    this.itemContainer.pivot.set(birth.pivotLocalX, birth.pivotLocalY);
+    this.itemContainer.position.set(birth.originX, birth.originY);
+    this.itemContainer.scale.set(scale);
+  }
+
+  private getScaleBirthTileAlpha(): number {
+    if (!this.scaleBirth) return 1;
+    const visibleElapsed = this.scaleBirth.elapsedMs - SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS;
+    if (visibleElapsed <= 0) return 0;
+    const visibleDuration = Math.max(1, this.scaleBirth.durationMs - SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS);
+    const t = clamp01(visibleElapsed / visibleDuration);
+    const groupScale = SCALE_BIRTH_START_SCALE + growthScaleCurve(t) * (1 - SCALE_BIRTH_START_SCALE);
+    return clamp01((groupScale - SCALE_BIRTH_START_SCALE) /
+      (SCALE_BIRTH_TILE_ALPHA_FULL_SCALE - SCALE_BIRTH_START_SCALE));
+  }
+
+  private applyScaleBirthItemTint(display: GhostItemDisplay): void {
+    if (!this.scaleBirth) return;
+    const t = clamp01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
+    const darkT = clamp01((t - 0.62) / 0.38);
+    display.container.alpha = 1 - darkT * 0.85;
+    display.particleLayer.alpha = (1 - darkT) * 0.22;
+    if (display.sprite) {
+      display.sprite.tint = grayTint(darkT);
     }
   }
 
@@ -348,7 +649,7 @@ export class ItemWorldGhostOverlay {
   }
 
   private _createConstructionParticles(display: GhostItemDisplay): void {
-    const colors = [0xfff1a0, 0xffb84a, 0x66d9ff, 0xffffff];
+    const colors = [this.tilePalette.highlight, this.tilePalette.particle, this.tilePalette.rim, 0xffffff];
     const count = 56;
     for (let i = 0; i < count; i++) {
       const t = i / count;
@@ -365,6 +666,28 @@ export class ItemWorldGhostOverlay {
         phase: (i * 53) % 1000,
         color: colors[i % colors.length],
       });
+    }
+  }
+
+  private redrawAllTiles(): void {
+    for (const tile of this.tiles) this.drawTile(tile);
+  }
+
+  private drawTile(tile: TileEntry): void {
+    const base = tile.kind === 'platform' ? this.tilePalette.platform : this.tilePalette.wall;
+    tile.gfx.clear();
+    tile.gfx.rect(0, 0, TILE_PX, TILE_PX).fill({ color: base, alpha: 1 });
+  }
+
+  private redrawAllParticles(): void {
+    for (const display of this.itemDisplays) {
+      const colors = [this.tilePalette.highlight, this.tilePalette.particle, this.tilePalette.rim, 0xffffff];
+      for (let i = 0; i < display.particles.length; i++) {
+        const particle = display.particles[i];
+        particle.color = colors[i % colors.length];
+        particle.gfx.clear();
+        particle.gfx.circle(0, 0, particle.size).fill({ color: particle.color, alpha: 1 });
+      }
     }
   }
 

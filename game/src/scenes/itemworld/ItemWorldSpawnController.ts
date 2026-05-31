@@ -4,6 +4,13 @@ import {
   TILE_SIZE,
   IW_ROOM_W_TILES, IW_ROOM_H_TILES,
 } from './ItemWorldMapController';
+import { isOneWay, isSolid } from '@core/Physics';
+
+const MIN_ENEMY_SPAWN_FLOOR_LEN = 8;
+
+function isEnemySpawnFloor(tile: number): boolean {
+  return isSolid(tile) || isOneWay(tile);
+}
 
 /**
  * Handles enemy/entity factory methods and geometry queries for ItemWorldScene.
@@ -37,7 +44,7 @@ export class ItemWorldSpawnController {
         const tc = roomTopCol + localCol;
         const here = fullGrid[tr]?.[tc] ?? 1;
         const below = fullGrid[tr + 1]?.[tc] ?? 1;
-        const isFloor = here === 0 && below >= 1;
+        const isFloor = here === 0 && isEnemySpawnFloor(below);
 
         if (isFloor) {
           if (runStart < 0) runStart = tc;
@@ -63,11 +70,11 @@ export class ItemWorldSpawnController {
   }
 
   /**
-   * Compute valid spawn positions (air tile with solid below) in a room region.
+   * Compute valid spawn positions (air tile with solid/platform below) in a room region.
    *
-   * Spawns are restricted to flat floor runs of MIN_FLAT_LEN tiles or longer
-   * — short ledges and uneven terrain are skipped so enemies always have room
-   * to maneuver and don't get stranded on 1-2 tile islands.
+   * Spawns are restricted to flat floor/platform runs of 8 IntGrid cells or longer.
+   * Short ledges, fluids, hazards, and uneven terrain are skipped so enemies
+   * always have room to maneuver and don't get stranded.
    *
    * Returns array of world-space positions.
    */
@@ -76,7 +83,6 @@ export class ItemWorldSpawnController {
     roomTopCol: number,
     roomTopRow: number,
   ): Array<{ x: number; y: number }> {
-    const MIN_FLAT_LEN = 6;
     const spawnPoints: Array<{ x: number; y: number }> = [];
 
     // Inset 2 tiles from room edges so enemies don't spawn flush against walls.
@@ -93,7 +99,7 @@ export class ItemWorldSpawnController {
       let runStart = -1;
       let runLen = 0;
       const flush = () => {
-        if (runLen >= MIN_FLAT_LEN) {
+        if (runLen >= MIN_ENEMY_SPAWN_FLOOR_LEN) {
           for (let c = runStart; c < runStart + runLen; c++) {
             if (c >= colStart && c < colEnd) {
               spawnPoints.push({ x: c * TILE_SIZE, y: (tr + 1) * TILE_SIZE });
@@ -107,7 +113,7 @@ export class ItemWorldSpawnController {
       for (let tc = roomTopCol; tc < roomTopCol + IW_ROOM_W_TILES; tc++) {
         const here = fullGrid[tr]?.[tc] ?? 1;
         const below = fullGrid[tr + 1]?.[tc] ?? 1;
-        const isFloor = here === 0 && below >= 1;
+        const isFloor = here === 0 && isEnemySpawnFloor(below);
         if (isFloor) {
           if (runStart < 0) runStart = tc;
           runLen++;
