@@ -247,10 +247,7 @@ export class InventoryUI {
       if (this.anvilState === 'selecting') {
         const item = this.filteredItems()[this.selectedIndex];
         if (!item) return;
-        if (STARTER_ONLY_IDS.has(item.def.id)) return;
-        if (DEMO_BLOCK_REDIVE && item.worldProgress?.cleared === true) return;
-        if (this.inventory.equipped?.uid === item.uid) {
-          if (sacredSave.isFirstDiveDone()) return;
+        if (this.inventory.equipped?.uid === item.uid && !sacredSave.isFirstDiveDone()) {
           // 2026-05-24: 무기 미장착 차단. fallback 무기 있을 때만 anvil 배치 허용.
           const fallback = this.inventory.items.find(i => i.uid !== item.uid);
           if (!fallback) return; // 다른 무기 없으면 anvil 배치 거부
@@ -1650,6 +1647,7 @@ export class InventoryUI {
     this.anvilItem = null;
     this.anvilState = 'selecting';
     this.onSelect?.(item);
+    if (this.visible) this.refresh();
   }
 
   // ── Update loop ───────────────────────────────────────────────────────────────

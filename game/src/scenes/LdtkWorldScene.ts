@@ -17,7 +17,7 @@
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, RenderTexture, ColorMatrixFilter, type Filter } from 'pixi.js';
+import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, RenderTexture, ColorMatrixFilter, BlurFilter, type Filter } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
@@ -25,6 +25,7 @@ import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRoute
 import { aabbOverlap, isOneWay, isSolid } from '@core/Physics';
 import { LdtkLoader, isLdtkWallSlope2x1Tile } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
+import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
 import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX, visualBoundsBleedArea } from '@level/VisualBoundsBleed';
 import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
@@ -80,7 +81,7 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
 import { PortalTransition } from '@effects/PortalTransition';
 import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
-import type { ItemDeploymentController, ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
+import type { ItemDeploymentController, ItemDeploymentStreamWorldOptions, ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
 import { WallGate } from '@entities/WallGate';
 import { ScreenCrack } from '@effects/ScreenCrack';
 import { MemoryDive } from '@effects/MemoryDive';
@@ -98,7 +99,7 @@ import { t } from '@i18n';
 import { createUiText } from '@ui/factories';
 import {
   EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_RUSTBORN_AWAKEN, EGO_TUNNEL_OPEN,
+  EGO_RUSTBORN_AWAKEN,
   EGO_WORLD_RETURN, EGO_INVENTORY_LOCKED, getEgoAnvilRetired, EGO_EVENT, hasEgo,
 } from '@data/EgoDialogue';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -221,7 +222,15 @@ import { BgmController } from '@audio/BgmController';
 import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
 
 type GhostBirthOptions = NonNullable<ItemDeploymentTunnelOpenOptions['ghostBirth']>;
-type GhostTunnelParams = { x: number; y: number; w: number; h: number; ghostBirth?: GhostBirthOptions | null };
+type GhostTunnelParams = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  ghostBirth?: GhostBirthOptions | null;
+  streamReady?: boolean;
+  prewarm?: boolean;
+};
 interface ItemWorldGrowthSnapshot {
   container: Container;
   backgroundTexture: RenderTexture;
@@ -238,6 +247,9 @@ interface ItemWorldGrowthSnapshot {
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 const ITEM_WORLD_ENTRY_FADE_MS = 350;
+/** 앤빌 디플로이 줌인 배경 blur — 램프 시간(ms)과 최대 세기. */
+const DEPLOY_BLUR_RAMP_MS = 1200;
+const DEPLOY_BLUR_MAX_STRENGTH = 10;
 const ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE = 64;
 const ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES = -12;
 
@@ -403,6 +415,7 @@ export class LdtkWorldScene extends Scene {
   private deploymentFxLayer!: Container;
   private vividLayer!: Container;
   private fluidLayer!: Container;
+  private collisionDebug!: CollisionDebugOverlay;
   private fluidSystem!: FluidSystem;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
@@ -410,6 +423,11 @@ export class LdtkWorldScene extends Scene {
   private weatherBuilderCollider: WeatherDynamicCollider | null = null;
   private laserDesaturationFilter: ColorMatrixFilter | null = null;
   private readonly laserDesaturationPrevFilters = new Map<Container, Filter[] | null>();
+  /** 앤빌 디플로이 줌인 중 배경+아이템 픽셀을 가리는 blur (사용자 요청 2026-06-02). */
+  private deployBlurFilter: BlurFilter | null = null;
+  private deployBlurActive = false;
+  /** blur 점진 램프 경과(ms). 줌이 진행되며 0→MAX 로 세기 증가. */
+  private deployBlurElapsed = 0;
   private dungeonAtmosphereActive = false;
   private dungeonAtmosphereFilter: ColorMatrixFilter | null = null;
   private dungeonAtmosphereTargets: Container[] = [];
@@ -632,6 +650,7 @@ export class LdtkWorldScene extends Scene {
   private itemWorldGrowthSnapshot: ItemWorldGrowthSnapshot | null = null;
   private readonly itemWorldGrowthHiddenTargets: Array<{ target: Container; visible: boolean }> = [];
   private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
+  private worldCollisionRestoreGrid: number[][] | null = null;
   private ghostStreamRestore: {
     rowLengths: number[];
     rowCount: number;
@@ -1098,6 +1117,13 @@ export class LdtkWorldScene extends Scene {
 
     this.vividLayer = new Container();
     this.container.addChild(this.vividLayer);
+
+    // Shift+I 충돌 디버그 오버레이 — 월드 셀/AABB 는 월드 레이어, 진단 라벨은 화면 레이어.
+    // hud 는 app.stage 직속(FpsCounter 와 동일) — uiContainer.visible 토글(아이템계
+    // 진입 anvil dive 등)에 영향받지 않고 항상 최상단에 또렷이 표시되도록.
+    this.collisionDebug = new CollisionDebugOverlay(this.game.uiScale);
+    this.container.addChild(this.collisionDebug.container);
+    this.game.app.stage.addChild(this.collisionDebug.hud);
 
     // Updraft system (shared physics + particles)
     this.updraftSystem = new UpdraftSystem(this.entityLayer);
@@ -1745,6 +1771,8 @@ export class LdtkWorldScene extends Scene {
     // Guard: init() is async ??game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
+    // 앤빌 디플로이 줌인/성장 중 배경+아이템 blur 점진 적용 (early-return 들보다 먼저).
+    this.updateDeployBackgroundBlur(dt);
 
     // Feedback panel open ??block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
@@ -2314,7 +2342,7 @@ export class LdtkWorldScene extends Scene {
     this.player.onCarrier = wasPlayerOnBuilder;
     this.player.carrierVelocityY = wasPlayerOnBuilder ? this.builderCarrierVelocityY : 0;
     if (this.isPlayerStandingOnContainerTop()) {
-      this.player.forceGrounded(true);
+      this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
     this.resolvePlayerAgainstLockedDoors();
@@ -2388,7 +2416,6 @@ export class LdtkWorldScene extends Scene {
     } else {
       this.player.visualYOffset = 0;
     }
-
     // Check drowning
     if (this.player.drowned && !this.gameOverActive) {
       this.player.hp = 0;
@@ -3711,6 +3738,20 @@ export class LdtkWorldScene extends Scene {
     this.player.render(a);
     for (const enemy of this.enemies) enemy.render(a);
     // Portals and altars are static, no interpolation needed
+    const p = this.player;
+    const colOffX = (p.width - p.collisionW) / 2;
+    const colOffY = p.height - p.collisionH;
+    // 이동 빌더가 활성이면 그 자체 충돌 그리드도 넘겨 'builder-surface' 바닥을 시각화.
+    const b = this.activeBuilder;
+    const builderGrid = b ? {
+      grid: b.collisionGrid,
+      originTileX: Math.round(b.container.x / 16),
+      originTileY: Math.round(b.container.y / 16),
+    } : undefined;
+    this.collisionDebug.update(this.collisionGrid, this.game.camera, {
+      x: p.x + colOffX, y: p.y + colOffY, w: p.collisionW, h: p.collisionH,
+      grounded: p.isGrounded(), source: p.groundSource, detail: p.groundSourceDetail,
+    }, builderGrid);
   }
 
   /** GamepadManager ??⑤슡???釉뚯뫊?????繹??????ル∥裕??(System_Input_Gamepad 筌?.1 Stage 3). */
@@ -3737,6 +3778,10 @@ export class LdtkWorldScene extends Scene {
     // (Previously: M/I ?띠럾? ??醫롫윥??????醫롫윪???醫롫윞?濡λ쐻?嶺뚯쉳????醫롫윥??overlay ?띠럾? legacyUIContainer
     //  ???잙갭梨??????醫롫윪??ItemWorldScene ??醫롫윪????醫롫윪??????醫롫윥??"stuck" ??醫?繹?泥? ??)
     this.altarController.destroyUi();
+    // 디플로이 blur 가 패럴럭스(씬 외부 지속)에 잔류하지 않도록 제거.
+    this.clearDeployBlur();
+    // 백그라운드로 내려가는 동안 진단 라벨이 화면에 잔류하지 않도록 숨김.
+    if (this.collisionDebug) this.collisionDebug.hud.visible = false;
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
     if (this.itemWorldTransition) { this.itemWorldTransition.destroy(); this.itemWorldTransition = null; }
     if (this.pendingPortalEntity) { this.pendingPortalEntity.destroy(); this.pendingPortalEntity = null; }
@@ -3755,7 +3800,13 @@ export class LdtkWorldScene extends Scene {
     this.clearBuilder();
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
+    // blur 를 타깃에서 제거 (backgroundContainer 는 씬 외부 지속 — renderer.destroy 전에).
+    this.clearDeployBlur();
+    this.deployBlurFilter?.destroy();
+    this.deployBlurFilter = null;
     this.renderer?.destroy();
+    // hud 는 game.uiContainer(씬 외부) 자식이라 super.destroy() 가 정리하지 않음 — 직접 해제.
+    this.collisionDebug?.hud.destroy({ children: true });
     super.destroy();
   }
 
@@ -4739,7 +4790,7 @@ export class LdtkWorldScene extends Scene {
         this.player.y += dy;
         this.player.prevY += dy;
         this.player.vy = 0;
-        if (dy < 0) this.player.forceGrounded();
+        if (dy < 0) this.player.forceGrounded(false, 'locked-door');
       }
     }
   }
@@ -5984,7 +6035,7 @@ export class LdtkWorldScene extends Scene {
         // Stand on physical top of the container (= cy0).
         p.y = cy0 - p.height;
         if (p.getVy() > 0) p.vy = 0;
-        p.forceGrounded(true);
+        p.forceGrounded(true, 'container');
       } else if (min === overlapBottom) {
         // Container pressed down onto player head ??push container UP.
         c.y -= overlapBottom;
@@ -6580,7 +6631,7 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.roomData = this.collisionGrid;
     this.player.savePrevPosition();
-    this.player.forceGrounded(); // sticky-grounded for this + next frame
+    this.player.forceGrounded(false, 'void-fade'); // sticky-grounded for this + next frame
     // FSM nudge so the reveal frame shows idle/land pose, not 'fall'.
     if ((this.player.fsm as any).currentState !== 'idle') {
       try { (this.player.fsm as any).transition('idle'); } catch {}
@@ -6655,7 +6706,7 @@ export class LdtkWorldScene extends Scene {
       this.fadeOverlay.alpha = 1;
       // Keep stamping forceGrounded so player FSM doesn't fall mid-hold
       // (gravity would have already been integrated this frame).
-      this.player.forceGrounded();
+      this.player.forceGrounded(false, 'void-fade');
       if (this.voidFadeTimer >= VOID_HOLD_DURATION) {
         this.voidFadePhase = 'in';
         this.voidFadeTimer = 0;
@@ -6663,7 +6714,7 @@ export class LdtkWorldScene extends Scene {
     } else if (this.voidFadePhase === 'in') {
       const t = Math.min(1, this.voidFadeTimer / VOID_FADE_IN_DURATION);
       this.fadeOverlay.alpha = 1 - t;
-      this.player.forceGrounded();
+      this.player.forceGrounded(false, 'void-fade');
       if (t >= 1) {
         this.fadeOverlay.alpha = 0;
         this.voidFadePhase = 'none';
@@ -7643,7 +7694,6 @@ export class LdtkWorldScene extends Scene {
   private checkLevelEdges(): void {
     if (this.transitionState !== 'none') return;
     if (this.itemDeployment?.isActive) {
-      this.startItemWorldCorridorFromWorldRightEdge();
       return;
     }
 
@@ -8042,9 +8092,21 @@ export class LdtkWorldScene extends Scene {
     if (collided && deltaY < 0 && this.player.vy < 0) this.player.vy = 0;
   }
 
+  /** 아이템계 진입 연출(딥/포탈/필링/엔트리 페이드/아이템 디플로이 성장)이 진행 중인가. */
+  private isItemWorldEntryCinematicActive(): boolean {
+    return (
+      this.itemWorldTransition !== null ||
+      this.portalTransition !== null ||
+      this.itemWorldEntryTransitionActive ||
+      (this.itemDeployment?.isActive ?? false)
+    );
+  }
+
   private snapPlayerToBuilderSurface(): boolean {
     const b = this.activeBuilder;
     if (!b) return false;
+    // 아이템계 진입 연출 중에는 빌더 표면 스냅을 전부 끈다 (사용자 요청 2026-06-02).
+    if (this.isItemWorldEntryCinematicActive()) return false;
     // A real jump should detach from the carrier. Snapping only while falling
     // or resting prevents the moving floor from stealing jump height.
     if (this.player.getVy() < -1) return false;
@@ -8096,7 +8158,7 @@ export class LdtkWorldScene extends Scene {
       this.player.prevY += delta;
     }
     if (this.player.vy > 0) this.player.vy = 0;
-    this.player.forceGrounded();
+    this.player.forceGrounded(false, 'builder-surface');
     return true;
   }
 
@@ -9598,6 +9660,8 @@ export class LdtkWorldScene extends Scene {
    * it on the anvil instead of equipping.
    */
   private openAnvilUI(): void {
+    this.restoreUiAfterAnvilDiveTransition();
+    this.game.uiContainer.visible = true;
     this.anvilPlacement.open();
   }
 
@@ -9610,11 +9674,11 @@ export class LdtkWorldScene extends Scene {
     // ??????롪퍒???2026-05-24: DivePreview 嶺뚮ㅄ維????蹂ㅽ깴. anvil UI ??[C] Dive prompt ?띠럾? ????
     // ?筌먦끉????節띉???????怨뺣뼺? 嶺뚮ㅄ維??? redundant. ?꾩룆?餓?dive transition 嶺뚯쉳???
     sacredSave.markFirstDiveDone();
-    this.hideUiForAnvilDiveTransition();
     this.anvil.placeItem(item);
     this.collapseItem = item;
     this.lastUsedAnvilItem = item;
     this.inventoryUI.close();
+    this.hideUiForAnvilDiveTransition();
     // ??ㅻ?????醫롫윞????醫롫윥??????醫롫윪?????醫?繹?嶺뚯빖留????醫롫윪?議얜쐻?嶺뚯쉳???
     this.triggerFloorCollapse();
   }
@@ -9819,6 +9883,8 @@ export class LdtkWorldScene extends Scene {
       openTunnel: (x, y, w, h, options) => this.openDeploymentTunnel(x, y, w, h, options ?? { scheduleGhost: false }),
       setLaserDesaturation: (active) => this.setLaserDesaturation(active),
       showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
+      prepareStreamWorld: (options) => this.prepareItemWorldStreamLevel36(options),
+      loadStreamWorld: (options) => this.loadItemWorldStreamLevel36(options),
       getEntranceAABB: () => this.itemWorldStreamEntranceAabb,
       getPlatformStart: () => this.itemWorldStreamStartPoint,
       getPlatformVisualStart: () => this.getItemWorldStreamVisualStartPoint(),
@@ -9894,6 +9960,8 @@ export class LdtkWorldScene extends Scene {
     if (options.triggerDirectionalTrail ?? true) {
       this.anvil?.triggerDirectionalTrail(clearW);
     }
+
+    this.clearWorldCollisionForItemDeployment();
 
     // Default growth pairs the static world snapshot with the streamed ghost room so the item grid becomes walkable.
     if (options.scheduleGhost ?? true) {
@@ -10086,20 +10154,105 @@ export class LdtkWorldScene extends Scene {
   }
 
   private showTunnelOpenDialogueAfterDeployment(): void {
-    const TUNNEL_OPEN_EGO_KEY = '__ego_tunnel_open_first';
-    if (this.unlockedEvents.has(TUNNEL_OPEN_EGO_KEY)) return;
-    this.unlockedEvents.add(TUNNEL_OPEN_EGO_KEY);
-    void this.loreDisplay?.showDialogue(EGO_TUNNEL_OPEN, false);
+    // EGO_TUNNEL_OPEN 다이얼로그 트리거 제거 (사용자 요청 2026-06-02).
+    // 첫 회 앤빌 디플로이 직후 이 대사가 hideUiForAnvilDiveTransition 로 UI 가
+    // 숨겨진 채 활성화되어, 화면엔 안 보이지만 loreDisplay.isActive early-return
+    // (update 1892) 이 플레이어를 대사 자동표시 시간(~3초) 동안 잠그던 문제.
+    // 첫 회에만 발생한 것도 '__ego_tunnel_open_first' 게이트 때문. 트리거 자체 제거.
   }
 
-  private _buildGhostOverlay({ x, y, w, h, ghostBirth }: GhostTunnelParams): void {
-    if (this.ghostOverlay || !this.collapseItem) return;
+  private prepareItemWorldStreamLevel36(options: ItemDeploymentStreamWorldOptions): { x: number; y: number } | null {
+    const level = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
+    if (!level) {
+      this.itemWorldStreamStartPoint = null;
+      return null;
+    }
+
+    const pos = this.resolveGrowthGhostPositionForSize(
+      level.gridW * TILE_SIZE,
+      level.gridH * TILE_SIZE,
+      {
+        originX: options.originX,
+        originY: options.originY,
+        pivotX: options.originX,
+        pivotY: options.originY,
+        durationMs: 1,
+        entranceAtEnd: true,
+      },
+    );
+    const start = this.resolveGhostPlayerStartAt(pos.x, pos.y, level, level.collisionGrid);
+    this.itemWorldStreamStartPoint = start;
+    if (!this.ghostOverlay && this.collapseItem) {
+      this._buildGhostOverlay({
+        x: options.tunnelX,
+        y: options.tunnelY,
+        w: options.tunnelW,
+        h: options.tunnelH,
+        ghostBirth: {
+          originX: options.originX,
+          originY: options.originY,
+          pivotX: options.originX,
+          pivotY: options.originY,
+          durationMs: 1,
+          entranceAtEnd: true,
+        },
+        prewarm: true,
+      });
+      this.itemWorldStreamStartPoint = start;
+    }
+    return start;
+  }
+
+  private getItemWorldStreamVisualStartPoint(): { x: number; y: number } | null {
+    const start = this.itemWorldStreamStartPoint;
+    const snapshot = this.itemWorldGrowthSnapshot;
+    if (!start || !snapshot) return start;
+
+    const t = clamp01(snapshot.elapsedMs / Math.max(1, snapshot.durationMs));
+    const scale = (1 / ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE) +
+      growthScaleCurve(t) * (1 - 1 / ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE);
+    const pivotX = snapshot.container.x;
+    const pivotY = snapshot.container.y;
+    const footX = start.x + this.player.width / 2;
+    const footY = start.y + this.player.height;
+    return {
+      x: Math.round(pivotX + (footX - pivotX) * scale - this.player.width / 2),
+      y: Math.round(pivotY + (footY - pivotY) * scale - this.player.height),
+    };
+  }
+
+  private loadItemWorldStreamLevel36(options: ItemDeploymentStreamWorldOptions): { x: number; y: number } | null {
+    return this._buildGhostOverlay({
+      x: options.tunnelX,
+      y: options.tunnelY,
+      w: options.tunnelW,
+      h: options.tunnelH,
+      ghostBirth: {
+        originX: options.originX,
+        originY: options.originY,
+        pivotX: options.originX,
+        pivotY: options.originY,
+        durationMs: 1,
+        entranceAtEnd: true,
+      },
+      streamReady: true,
+    });
+  }
+
+  private _buildGhostOverlay({ x, y, w, h, ghostBirth, streamReady = false, prewarm = false }: GhostTunnelParams): { x: number; y: number } | null {
+    if (this.ghostOverlay) {
+      if (streamReady) {
+        return this.activatePrebuiltGhostOverlayForStream();
+      }
+      return this.itemWorldStreamStartPoint;
+    }
+    if (!this.collapseItem) return this.itemWorldStreamStartPoint;
     const ghost = new ItemWorldGhostOverlay();
     const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
     if (debugLevel) {
       ghost.buildFromGrid(debugLevel.collisionGrid, debugLevel.gridW, debugLevel.gridH);
       const displayEnt = debugLevel.entities.find(ent => ent.type === 'ItemDisplay');
-      if (displayEnt) {
+      if (displayEnt && !streamReady) {
         const sizeRaw = (displayEnt.fields['Size'] ?? displayEnt.fields['size']) as number | undefined;
         const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
         const rotate = ((displayEnt.fields['Rotate'] ?? displayEnt.fields['rotate']) as boolean | undefined) ?? false;
@@ -10134,7 +10287,7 @@ export class LdtkWorldScene extends Scene {
     }
     ghost.container.filters = ghostFilters;
     ghost.applyItemPalette(this.collapseItem, palette => rimFilter.setColor(palette.rim));
-    ghost.fadeTo(1, 0);
+    ghost.fadeTo(prewarm ? 0 : 1, 0);
     this.ghostOverlay = ghost;
 
     const triggerX = ghostBirth?.entranceAtEnd
@@ -10147,28 +10300,59 @@ export class LdtkWorldScene extends Scene {
       height: ghost.builtPxH,
     };
 
-    this.prepareGhostWorldCollision(ghost);
-    this.itemWorldStreamStartPoint = this.resolveGhostPlatformStart(ghost);
-    if (ghostBirth) {
+    if (streamReady || !ghostBirth) {
+      this.itemWorldStreamStartPoint = this.activatePrebuiltGhostOverlayForStream();
+    } else {
+      this.itemWorldStreamStartPoint = prewarm
+        ? this.resolveGhostPlayerStart(ghost, debugLevel)
+        : null;
+    }
+    if (ghostBirth && !streamReady && !prewarm) {
       ghost.beginScaleBirthFromPivot(
         ghostBirth.pivotX ?? ghostBirth.originX,
         ghostBirth.pivotY ?? ghostBirth.originY,
         ghostBirth.durationMs,
       );
     }
-    this.ghostRevealLastPlayerX = this.player.container.x + this.player.width / 2;
-    this.ghostRevealLastPlayerY = this.player.container.y + this.player.height;
+    this.ghostRevealLastPlayerX = null;
+    this.ghostRevealLastPlayerY = null;
     this.ghostRevealActivated = false;
+    return this.itemWorldStreamStartPoint;
+  }
+
+  private activatePrebuiltGhostOverlayForStream(): { x: number; y: number } | null {
+    const ghost = this.ghostOverlay;
+    if (!ghost) return this.itemWorldStreamStartPoint;
+
+    const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
+    this.prepareGhostWorldCollision(ghost);
+    const start = this.resolveGhostPlayerStart(ghost, debugLevel);
+    this.itemWorldStreamStartPoint = start;
+    if (start) {
+      const footX = start.x + this.player.width / 2 - ghost.container.x;
+      const footY = start.y + this.player.height - ghost.container.y;
+      ghost.revealTilesNear(footX, footY, 6 * TILE_SIZE, true);
+    }
+    ghost.fadeTo(1, 0);
+    return start;
   }
 
   private resolveGrowthGhostPosition(
     ghost: ItemWorldGhostOverlay,
     ghostBirth: GhostBirthOptions,
   ): { x: number; y: number } {
+    return this.resolveGrowthGhostPositionForSize(ghost.builtPxW, ghost.builtPxH, ghostBirth);
+  }
+
+  private resolveGrowthGhostPositionForSize(
+    builtPxW: number,
+    builtPxH: number,
+    ghostBirth: GhostBirthOptions,
+  ): { x: number; y: number } {
     const x = this.snapWorldCoordToTile(
-      ghostBirth.originX - ghost.builtPxW * 0.5 + ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES * TILE_SIZE,
+      ghostBirth.originX - builtPxW * 0.5 + ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES * TILE_SIZE,
     );
-    const y = this.snapWorldCoordToTile(ghostBirth.originY - ghost.builtPxH * 0.5);
+    const y = this.snapWorldCoordToTile(ghostBirth.originY - builtPxH * 0.5);
     return {
       x: Math.max(0, x),
       y: Math.max(0, y),
@@ -10179,93 +10363,58 @@ export class LdtkWorldScene extends Scene {
     return Math.round(value / TILE_SIZE) * TILE_SIZE;
   }
 
-  private resolveGhostPlatformStart(ghost: ItemWorldGhostOverlay): { x: number; y: number } | null {
-    const grid = ghost.getCollisionGrid();
-    const playerFloorY = this.player.y + this.player.height;
-    const preferredX = ghost.container.x + TILE_SIZE * 4;
-    let best: { x: number; y: number; score: number } | null = null;
+  private resolveGhostPlayerStart(ghost: ItemWorldGhostOverlay, level: LdtkLevel | null | undefined): { x: number; y: number } | null {
+    return this.resolveGhostPlayerStartAt(ghost.container.x, ghost.container.y, level, ghost.getCollisionGrid());
+  }
 
+  private resolveGhostPlayerStartAt(
+    worldX: number,
+    worldY: number,
+    level: LdtkLevel | null | undefined,
+    grid: number[][],
+  ): { x: number; y: number } | null {
+    const playerEntity = level?.entities.find(ent => ent.type === 'Player');
+    if (playerEntity) {
+      return {
+        x: Math.round(worldX + playerEntity.px[0]),
+        y: Math.round(worldY + playerEntity.px[1] - this.player.height),
+      };
+    }
+
+    const col = Math.max(1, Math.floor((grid[0]?.length ?? 1) * 0.16));
     for (let row = 0; row < grid.length - 1; row++) {
-      const cells = grid[row] ?? [];
-      const below = grid[row + 1] ?? [];
-      for (let col = 0; col < cells.length; col++) {
-        if ((cells[col] ?? TILE_WALL) !== TILE_AIR) continue;
-        const floorTile = below[col] ?? TILE_AIR;
-        if (!isSolid(floorTile) && !isOneWay(floorTile)) continue;
-
-        const floorY = ghost.container.y + (row + 1) * TILE_SIZE;
-        const centerX = ghost.container.x + col * TILE_SIZE + TILE_SIZE / 2;
-        const x = Math.round(centerX - this.player.width / 2);
-        const y = Math.round(floorY - this.player.height);
-        if (!this.isGhostPlayerPlacementClear(grid, x - ghost.container.x, y - ghost.container.y)) continue;
-
-        const score =
-          Math.abs(floorY - playerFloorY) * 2.0 +
-          Math.abs(centerX - preferredX) * 0.45 +
-          col * 8;
-        if (!best || score < best.score) {
-          best = { x, y, score };
-        }
-      }
+      if ((grid[row]?.[col] ?? TILE_WALL) !== TILE_AIR) continue;
+      const below = grid[row + 1]?.[col] ?? TILE_AIR;
+      if (!isSolid(below) && !isOneWay(below)) continue;
+      return {
+        x: Math.round(worldX + col * TILE_SIZE),
+        y: Math.round(worldY + (row + 1) * TILE_SIZE - this.player.height),
+      };
     }
-
-    return best ? { x: best.x, y: best.y } : null;
-  }
-
-  private getItemWorldStreamVisualStartPoint(): { x: number; y: number } | null {
-    const start = this.itemWorldStreamStartPoint;
-    if (!start || !this.ghostOverlay) return start;
-    const foot = this.ghostOverlay.projectFinalWorldPointToCurrentBirth(
-      start.x + this.player.width / 2,
-      start.y + this.player.height,
-    );
-    return {
-      x: Math.round(foot.x - this.player.width / 2),
-      y: Math.round(foot.y - this.player.height),
-    };
-  }
-
-  private isGhostPlayerPlacementClear(grid: number[][], localX: number, localY: number): boolean {
-    const leftCol = Math.floor(localX / TILE_SIZE);
-    const rightCol = Math.floor((localX + this.player.width - 1) / TILE_SIZE);
-    const topRow = Math.floor(localY / TILE_SIZE);
-    const bottomRow = Math.floor((localY + this.player.height - 1) / TILE_SIZE);
-    for (let row = topRow; row <= bottomRow; row++) {
-      if (row < 0 || row >= grid.length) return false;
-      for (let col = leftCol; col <= rightCol; col++) {
-        if (col < 0 || col >= (grid[row]?.length ?? 0)) return false;
-        if (isSolid(grid[row]?.[col] ?? TILE_WALL)) return false;
-      }
-    }
-    return true;
+    return null;
   }
 
   private prepareGhostWorldCollision(ghost: ItemWorldGhostOverlay): void {
     const sourceGrid = ghost.getCollisionGrid();
-    const TILE = 16;
-    const gx0 = Math.floor(ghost.container.x / TILE);
-    const gy0 = Math.floor(ghost.container.y / TILE);
-    let playerMayNeedResolve = false;
+    const gx0 = Math.floor(ghost.container.x / TILE_SIZE);
+    const gy0 = Math.floor(ghost.container.y / TILE_SIZE);
+
     for (let r = 0; r < sourceGrid.length; r++) {
-      const worldRow = this.collisionGrid[gy0 + r];
+      const worldRowIndex = gy0 + r;
+      const worldRow = this.collisionGrid[worldRowIndex];
       if (!worldRow) continue;
       const sourceRow = sourceGrid[r] ?? [];
       for (let c = 0; c < sourceRow.length; c++) {
         const gc = gx0 + c;
         if (gc < 0 || gc >= worldRow.length) continue;
-        if (!this.isGhostStreamExtendedCell(gy0 + r, gc)) {
-          this.ghostCollisionRestoreCells.push({ row: gy0 + r, col: gc, value: worldRow[gc] });
+        if (!this.isGhostStreamExtendedCell(worldRowIndex, gc)) {
+          this.ghostCollisionRestoreCells.push({ row: worldRowIndex, col: gc, value: worldRow[gc] });
         }
-        const value = sourceRow[c] ?? 0;
-        worldRow[gc] = value;
-        playerMayNeedResolve ||= isSolid(value);
+        worldRow[gc] = sourceRow[c] ?? TILE_AIR;
       }
     }
     ghost.setTileBuildCallback(null);
     this.player.roomData = this.collisionGrid;
-    if (playerMayNeedResolve) {
-      this.resolvePlayerSolidOverlap([{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }], TILE_SIZE * 2);
-    }
   }
 
   private extendWorldForGhostStream(ghost: ItemWorldGhostOverlay): void {
@@ -10286,7 +10435,7 @@ export class LdtkWorldScene extends Scene {
     for (let row = 0; row < requiredRows; row++) {
       if (!this.collisionGrid[row]) this.collisionGrid[row] = [];
       while (this.collisionGrid[row].length < requiredCols) {
-        this.collisionGrid[row].push(TILE_WALL);
+        this.collisionGrid[row].push(TILE_AIR);
       }
     }
 
@@ -10332,7 +10481,29 @@ export class LdtkWorldScene extends Scene {
       this.ghostCollisionRestoreCells = [];
     }
     this.clearGhostStreamState(true);
+    this.restoreWorldCollisionForItemDeployment();
     if (rerender) this.rerenderTilemap();
+  }
+
+  private clearWorldCollisionForItemDeployment(): void {
+    if (this.worldCollisionRestoreGrid) return;
+    this.worldCollisionRestoreGrid = this.collisionGrid.map(row => [...row]);
+    for (const row of this.collisionGrid) {
+      row.fill(TILE_AIR);
+    }
+    this.player.roomData = this.collisionGrid;
+  }
+
+  private restoreWorldCollisionForItemDeployment(): void {
+    const restore = this.worldCollisionRestoreGrid;
+    if (!restore) return;
+
+    this.collisionGrid.length = restore.length;
+    for (let row = 0; row < restore.length; row++) {
+      this.collisionGrid[row] = [...restore[row]];
+    }
+    this.worldCollisionRestoreGrid = null;
+    this.player.roomData = this.collisionGrid;
   }
 
   private clearGhostStreamState(restoreGrid: boolean): void {
@@ -10418,6 +10589,68 @@ export class LdtkWorldScene extends Scene {
       b.legFrontLayer,
       b.lightContainer,
     ];
+  }
+
+  /** blur 대상: 패럴럭스 배경 + 월드 타일 + 엔티티 + 유체 + 디플로이 FX(성장 아이템 sprite). */
+  private deployBlurTargets(): Container[] {
+    return [
+      this.game.backgroundContainer,
+      this.renderer?.container,
+      this.entityLayer,
+      this.fluidLayer,
+      this.deploymentFxLayer,
+    ].filter((t): t is Container => !!t);
+  }
+
+  private setDeployBlurOnTargets(active: boolean): void {
+    const blur = this.deployBlurFilter;
+    if (!blur) return;
+    for (const target of this.deployBlurTargets()) {
+      const cur = (target.filters as Filter[] | null) ?? [];
+      const arr: Filter[] = Array.isArray(cur) ? [...cur] : [cur];
+      if (active) {
+        if (!arr.includes(blur)) target.filters = [...arr, blur];
+      } else {
+        const next = arr.filter(f => f !== blur);
+        target.filters = next.length ? next : null;
+      }
+    }
+  }
+
+  /**
+   * 앤빌 디플로이 줌인/성장 동안 배경 + 성장 아이템 sprite 에 blur 를 점진적으로 얹어
+   * 확대된 픽셀이 도드라지지 않게 한다. itemDeployment.isGrowing 에 동기화하고,
+   * 세기를 0→MAX 로 램프해 "줌이 되면서 점진적으로" 들어오게 한다.
+   * 기존 필터 보존을 위해 blur 인스턴스만 append/remove (palette/desat 와 공존).
+   */
+  private updateDeployBackgroundBlur(dt: number): void {
+    const growing = this.itemDeployment?.isGrowing ?? false;
+    if (growing) {
+      if (!this.deployBlurFilter) {
+        this.deployBlurFilter = new BlurFilter({ strength: 0, quality: 4 });
+      }
+      if (!this.deployBlurActive) {
+        this.deployBlurElapsed = 0;
+        this.deployBlurFilter.strength = 0;
+        this.setDeployBlurOnTargets(true);
+        this.deployBlurActive = true;
+      }
+      this.deployBlurElapsed += dt;
+      const t = Math.min(1, this.deployBlurElapsed / DEPLOY_BLUR_RAMP_MS);
+      const eased = t * t * (3 - 2 * t); // smoothstep
+      this.deployBlurFilter.strength = DEPLOY_BLUR_MAX_STRENGTH * eased;
+    } else if (this.deployBlurActive) {
+      this.setDeployBlurOnTargets(false);
+      this.deployBlurActive = false;
+      this.deployBlurElapsed = 0;
+    }
+  }
+
+  /** 디플로이 blur 를 타깃에서 강제 제거. 패럴럭스/배경은 씬 외부 지속이라 exit/destroy 시 필수. */
+  private clearDeployBlur(): void {
+    if (this.deployBlurFilter) this.setDeployBlurOnTargets(false);
+    this.deployBlurActive = false;
+    this.deployBlurElapsed = 0;
   }
 
   private setLaserDesaturation(active: boolean): void {

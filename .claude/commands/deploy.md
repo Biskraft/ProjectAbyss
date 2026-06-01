@@ -40,7 +40,11 @@ ECHORIS 웹 빌드를 GitHub Pages에 배포합니다.
 
 ### 7. 배포 검증
 - **게임:** `curl -s https://echoris.io/ | grep "script.*src"` 로 JS 해시가 최신인지 확인. HTTP 200 응답 확인.
-- **GDD:** `curl -s -o /dev/null -w "%{http_code}" https://<vercel-domain>/` 로 HTTP 200 확인.
+- **GDD:** `https://level-deesign-for-pvp.vercel.app` (ECHORIS GDD, 위장 도메인 — 이름·오타 유지). 확인 항목:
+  - 홈 200: `curl -sL -o /dev/null -w "%{http_code}" https://level-deesign-for-pvp.vercel.app/`
+  - 신규 문서 노출 200: `https://level-deesign-for-pvp.vercel.app/Content/Content_Story_Synopsis/` (자동 nav 작동 확인)
+  - 기밀 차단 404: `https://level-deesign-for-pvp.vercel.app/Content/Content_Victor_LifeLog_Synthesis/` (mkdocs exclude_docs)
+  - 인증 보호 미리보기(`*-victor-9894s-projects.vercel.app`)는 401 — 반드시 위 공개 도메인 사용.
 
 ## 주의사항
 

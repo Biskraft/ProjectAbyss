@@ -656,6 +656,27 @@ export function findSlope2x1AtFoot(
   return best?.slope ?? null;
 }
 
+/**
+ * Debug 전용 — 셀 범위 [c0..c1] × [r0..r1] 와 겹치는 모든 가상 2x1 슬로프 세그먼트를
+ * 수집한다. 각 (startCol, lowRow) 조합당 upRight/upLeft 후보를 1회씩만 시도하므로
+ * 중복은 발생하지 않는다. CollisionDebugOverlay 의 경사면 표시에 사용.
+ */
+export function collectSlopes2x1(
+  roomData: number[][], c0: number, r0: number, c1: number, r1: number,
+): SlopeSegment2x1[] {
+  const out: SlopeSegment2x1[] = [];
+  // startCol 은 세그먼트 좌측 셀 — 좌측 2칸 패딩으로 부분 가시 슬로프도 포함.
+  for (let startCol = c0 - 2; startCol <= c1; startCol++) {
+    for (let lowRow = r0 - 1; lowRow <= r1 + 1; lowRow++) {
+      const up = buildUpRightSlope(roomData, startCol, lowRow);
+      if (up) out.push(up);
+      const ul = buildUpLeftSlope(roomData, startCol, lowRow);
+      if (ul) out.push(ul);
+    }
+  }
+  return out;
+}
+
 function overlapsSolidAabb(
   x: number, y: number, width: number, height: number,
   roomData: number[][],

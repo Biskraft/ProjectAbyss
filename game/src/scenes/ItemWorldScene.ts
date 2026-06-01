@@ -7,6 +7,7 @@ import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX } from '@level/VisualB
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
 import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
+import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
 import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
 import { archetypeFor } from '@level/RoomGraphArchetypes';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
@@ -425,6 +426,7 @@ export class ItemWorldScene extends Scene {
   private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
+  private collisionDebug!: CollisionDebugOverlay;
   private fluidLayer!: Container;
   private aboveFluidLayer!: Container;
   private weatherLayer!: Container;
@@ -973,6 +975,13 @@ export class ItemWorldScene extends Scene {
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
     this.grassClumpFire.setFireLayer(this.entityLayer);
+
+    // Shift+I 충돌 디버그 오버레이 — 월드 셀/AABB 는 월드 레이어, 진단 라벨은 화면 레이어.
+    // hud 는 app.stage 직속(FpsCounter 와 동일) — uiContainer.visible 토글에 영향받지
+    // 않고 항상 최상단에 또렷이 표시되도록.
+    this.collisionDebug = new CollisionDebugOverlay(this.game.uiScale);
+    this.container.addChild(this.collisionDebug.container);
+    this.game.app.stage.addChild(this.collisionDebug.hud);
 
     // Tile mutator overlay (fire/ice/electric VFX).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
@@ -1809,7 +1818,7 @@ export class ItemWorldScene extends Scene {
 
   private updateEntryCorridor(dt: number): void {
     if (this.isPlayerStandingOnContainerTop()) {
-      this.player.forceGrounded(true);
+      this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
     this.updateEntryCorridorTileReveal(dt);
@@ -5524,7 +5533,7 @@ export class ItemWorldScene extends Scene {
     }
 
     if (this.isPlayerStandingOnContainerTop()) {
-      this.player.forceGrounded(true);
+      this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
 
@@ -6701,7 +6710,7 @@ export class ItemWorldScene extends Scene {
       if (min === overlapTop) {
         p2.y = cy0 - p2.height;
         if (p2.getVy() > 0) p2.vy = 0;
-        p2.forceGrounded(true);
+        p2.forceGrounded(true, 'container');
       } else if (min === overlapBottom) {
         // Container above ??push container UP (never bury player into floor).
         c.y -= overlapBottom;
@@ -8399,6 +8408,13 @@ export class ItemWorldScene extends Scene {
     for (const enemy of this.enemies) enemy.render(alpha);
     const cam = this.game.camera;
     this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
+    const p = this.player;
+    const colOffX = (p.width - p.collisionW) / 2;
+    const colOffY = p.height - p.collisionH;
+    this.collisionDebug.update(this.roomData, cam, {
+      x: p.x + colOffX, y: p.y + colOffY, w: p.collisionW, h: p.collisionH,
+      grounded: p.isGrounded(), source: p.groundSource, detail: p.groundSourceDetail,
+    });
   }
 
   exit(): void {
@@ -8406,6 +8422,7 @@ export class ItemWorldScene extends Scene {
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
+    if (this.collisionDebug) this.collisionDebug.hud.visible = false;
     this.entryCorridorActive = false;
     this.clearEntryCorridorColorRestore();
     this.restoreWorldAfterEntryCorridor(false);
@@ -8447,6 +8464,8 @@ export class ItemWorldScene extends Scene {
     this.weather = null;
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
+    // hud 는 game.uiContainer(씬 외부) 자식이라 super.destroy() 가 정리하지 않음 — 직접 해제.
+    this.collisionDebug?.hud.destroy({ children: true });
     super.destroy();
   }
 

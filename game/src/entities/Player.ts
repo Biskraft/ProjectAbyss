@@ -430,6 +430,13 @@ export class Player extends Entity implements CombatEntity {
 
   // Physics
   private grounded = false;
+  /** Debug (Shift+I): 이번 프레임 접지 지지 소스. 'grid'|'slope'|'none' 또는
+   *  씬이 forceGrounded 로 넘긴 라벨('container'|'builder'|'locked-door'|'void-fade' 등). */
+  groundSource = 'none';
+  /** Debug: groundSource==='grid' 일 때 발밑 셀 좌표=타일id 목록. */
+  groundSourceDetail = '';
+  /** 씬 forceGrounded 가 넘긴 라벨 (extraGroundedSticky 가 true 일 때 groundSource 로 노출). */
+  private extraGroundedLabel = 'scene';
   private moveRemainderX = 0;
   private moveRemainderY = 0;
 
@@ -698,7 +705,7 @@ export class Player extends Entity implements CombatEntity {
     // Jump buffer: register press
     if (this.game.input.isJustPressed(GameAction.JUMP)) {
       // Down + Jump = drop through one-way platform (no jump)
-      if (this.grounded && this.game.input.isDown(GameAction.LOOK_DOWN)) {
+      if (this.game.input.isDown(GameAction.LOOK_DOWN) && this.isOnOneWayPlatform()) {
         this.dropThroughTimer = Player.DROP_THROUGH_MS;
         this.y += 2;
         this.grounded = false;
@@ -1018,6 +1025,21 @@ export class Player extends Entity implements CombatEntity {
     // resolve; we read it here so animation + jump checks behave as if
     // the player is on solid ground.
     this.grounded = ry.grounded || rx.onSlope || this.extraGroundedSticky;
+    // Debug (Shift+I): 발밑을 떠받치는 충돌 소스의 정체를 기록. 우선순위는
+    // grounded 평가 순서(grid > slope > scene flag)와 동일.
+    if (ry.grounded) {
+      this.groundSource = 'grid';
+      this.groundSourceDetail = this.sampleFloorTiles(colOffX, colOffY);
+    } else if (rx.onSlope || ry.onSlope) {
+      this.groundSource = 'slope';
+      this.groundSourceDetail = '';
+    } else if (this.extraGroundedSticky) {
+      this.groundSource = this.extraGroundedLabel;
+      this.groundSourceDetail = '';
+    } else {
+      this.groundSource = 'none';
+      this.groundSourceDetail = '';
+    }
     if (ry.collided || rx.onSlope || ry.onSlope) {
       if (this.vy > 0) this.vy = 0;
       if (this.vy < 0) this.vy = 0;
@@ -1700,6 +1722,23 @@ export class Player extends Entity implements CombatEntity {
   /** Wall contact side: -1 = wall on left, +1 = wall on right, 0 = none. */
   wallContactDir(): number { return this.touchingWallDir; }
 
+  /**
+   * Debug: 발밑(feetRow) 셀들을 그리드에서 샘플해 "col,row=tileId" 목록으로 반환.
+   * groundSource==='grid' 일 때 어떤 타일이 떠받치는지 식별용.
+   */
+  private sampleFloorTiles(colOffX: number, colOffY: number): string {
+    const T = 16;
+    const feetRow = Math.floor((this.y + colOffY + this.collisionH) / T);
+    const leftCol = Math.floor((this.x + colOffX) / T);
+    const rightCol = Math.floor((this.x + colOffX + this.collisionW - 1) / T);
+    const parts: string[] = [];
+    for (let col = leftCol; col <= rightCol; col++) {
+      const t = this.roomData[feetRow]?.[col] ?? 1;
+      parts.push(`${col},${feetRow}=${t}`);
+    }
+    return parts.join(' ');
+  }
+
   /** FSM state probes for VFX driving. */
   isSurgeCharging(): boolean { return this.fsm.currentState === 'surge_charge'; }
   isSurgeFlying(): boolean { return this.fsm.currentState === 'surge_fly'; }
@@ -1723,8 +1762,9 @@ export class Player extends Entity implements CombatEntity {
    * must re-flag each frame to keep the player on the container.
    */
   private extraGroundedSticky = false;
-  forceGrounded(snapPose = false): void {
+  forceGrounded(snapPose = false, source = 'scene'): void {
     this.extraGroundedSticky = true;
+    this.extraGroundedLabel = source;
     this.grounded = true;
     if (snapPose) {
       const groundState = this.getGroundMovementState();

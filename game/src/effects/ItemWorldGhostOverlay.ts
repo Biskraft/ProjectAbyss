@@ -363,6 +363,29 @@ export class ItemWorldGhostOverlay {
     return this.tilePalette;
   }
 
+  revealTilesNear(playerLocalX: number, playerLocalY: number, radiusPx = REVEAL_RADIUS, immediate = false): void {
+    const radiusSq = radiusPx * radiusPx;
+    for (const tile of this.tiles) {
+      const dx = playerLocalX - tile.cx;
+      const dy = playerLocalY - tile.cy;
+      if (dx * dx + dy * dy > radiusSq) continue;
+      tile.queued = false;
+      tile.revealed = true;
+      tile.collisionStamped = true;
+      if (immediate) {
+        tile.scale = 1;
+        tile.gfx.x = tile.cx;
+        tile.gfx.y = tile.cy;
+        tile.gfx.rotation = 0;
+        tile.gfx.alpha = 1;
+        tile.gfx.scale.set(1);
+      }
+    }
+    if (this.buildQueue.length > 0) {
+      this.buildQueue = this.buildQueue.filter(tile => !tile.revealed);
+    }
+  }
+
   revealAllTiles(): void {
     this.buildQueue = [];
     this.buildQueueElapsed = 0;

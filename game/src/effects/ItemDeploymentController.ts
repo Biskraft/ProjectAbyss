@@ -27,6 +27,15 @@ export interface ItemDeploymentTunnelOpenOptions {
   };
 }
 
+export interface ItemDeploymentStreamWorldOptions {
+  tunnelX: number;
+  tunnelY: number;
+  tunnelW: number;
+  tunnelH: number;
+  originX: number;
+  originY: number;
+}
+
 type DeployState =
   | 'Idle'
   | 'ItemInserted'
@@ -89,7 +98,10 @@ type GrowthDeployState =
   | 'EnteringWorld';
 
 const GROWTH_ANTICIPATION_MS = 500;
-const GROWTH_PLAYER_READY_MS = 4400;
+// 앤빌 디플로이 성장+자동이동+입력잠금 길이. 줌인 직후 이 시간만큼 플레이어가
+// 잠긴다. 사용자 요청(2026-06-02): 줌인 후 곧장 제어가 돌아오도록 4400 → 1500 단축.
+// (성장 비주얼·플레이어 자동이동·ghost birth durationMs 가 모두 이 값에 종속.)
+const GROWTH_PLAYER_READY_MS = 1500;
 const GROWTH_PLATFORM_READY_MS = GROWTH_PLAYER_READY_MS;
 
 function clamp01(value: number): number {
@@ -132,6 +144,13 @@ export class ItemDeploymentController {
     return this.state !== 'Idle';
   }
 
+  /** 줌인/성장 시네마틱 진행 중(Deployed 로 제어가 돌아오기 전). 배경 blur 게이트. */
+  get isGrowing(): boolean {
+    return this.state === 'Anticipation'
+      || this.state === 'GrowingWorld'
+      || this.state === 'PlatformReady';
+  }
+
   releaseItemBirthPieces(): void {
     // The reference growth sequence has no laser-broken floating shard phase.
   }
@@ -153,6 +172,8 @@ export class ItemDeploymentController {
     private readonly onItemMoveToLaser: ((targetX: number, targetY: number) => void) | null = null,
     private readonly onItemAbsorbed: (() => void) | null = null,
     private readonly onDeploymentReady: (() => void) | null = null,
+    private readonly onPrepareStreamWorld: ((options: ItemDeploymentStreamWorldOptions) => { x: number; y: number } | null) | null = null,
+    private readonly onLoadStreamWorld: ((options: ItemDeploymentStreamWorldOptions) => { x: number; y: number } | null) | null = null,
     private readonly getEntranceAABB: (() => AABB | null) | null = null,
     private readonly getPlatformStart: (() => { x: number; y: number } | null) | null = null,
     private readonly getPlatformVisualStart: (() => { x: number; y: number } | null) | null = null,
@@ -180,7 +201,8 @@ export class ItemDeploymentController {
     this.anvilY = anvilY;
     this.game.input.inputLocked = true;
     this.game.camera.target = this.player;
-    this.game.camera.zoomTo(1.0, 0.05);
+    // 줌 속도 1/2 (사용자 요청 2026-06-02): lerp 0.05 → 0.025.
+    this.game.camera.zoomTo(1.0, 0.025);
 
     this.tunnelLeft = anvilX + TUNNEL_OFFSET;
     this.tunnelBottom = anvilY - TUNNEL_Y_RAISE;
@@ -204,7 +226,7 @@ export class ItemDeploymentController {
     }
 
     if (this.state === 'GrowingWorld' || this.state === 'PlatformReady') {
-      this.updatePlayerMoveToPlatform();
+      this.updatePlayerMoveToStreamStart();
     }
 
     switch (this.state) {
@@ -302,10 +324,12 @@ export class ItemDeploymentController {
   private startReferenceWorldGrowth(): void {
     if (this.tunnelOpened) return;
     this.tunnelOpened = true;
-    this.game.camera.setZoom(1.0);
+    // 줌 속도 1/2 (사용자 요청 2026-06-02): 즉시 setZoom 스냅을 부드러운 zoomTo 로 교체해
+    // 시작부터의 half-speed 줌이 끊기지 않고 이어지도록.
+    this.game.camera.zoomTo(1.0, 0.025);
     const origin = this.getItemGrowthOrigin();
     this.onOpenTunnel?.(this.tunnelLeft, this.tunnelTop, this.tunnelWidth, TUNNEL_H, {
-      scheduleGhost: true,
+      scheduleGhost: false,
       triggerDirectionalTrail: false,
       ghostBirth: {
         originX: origin.x,
@@ -317,7 +341,18 @@ export class ItemDeploymentController {
         entranceAtEnd: true,
       },
     });
-    this.beginPlayerMoveToPlatform(origin.x, origin.y);
+    const previewStart = this.onPrepareStreamWorld?.({
+      tunnelX: this.tunnelLeft,
+      tunnelY: this.tunnelTop,
+      tunnelW: this.tunnelWidth,
+      tunnelH: TUNNEL_H,
+      originX: origin.x,
+      originY: origin.y,
+    }) ?? this.getPlatformStart?.();
+    this.playerStartX = this.player.x;
+    this.playerStartY = this.player.y;
+    this.playerTargetX = Math.round(previewStart?.x ?? origin.x - this.player.width / 2);
+    this.playerTargetY = Math.round(previewStart?.y ?? origin.y - this.player.height / 2);
     this.itemAbsorbed = true;
     this.onItemAbsorbed?.();
     BgmController.setVolumeFactor(0.65, 300);
@@ -328,6 +363,17 @@ export class ItemDeploymentController {
       this.itemAbsorbed = true;
       this.onItemAbsorbed?.();
     }
+    const origin = this.getItemGrowthOrigin();
+    const platformStart = this.onLoadStreamWorld?.({
+      tunnelX: this.tunnelLeft,
+      tunnelY: this.tunnelTop,
+      tunnelW: this.tunnelWidth,
+      tunnelH: TUNNEL_H,
+      originX: origin.x,
+      originY: origin.y,
+    }) ?? this.getPlatformStart?.();
+    this.playerTargetX = Math.round(platformStart?.x ?? origin.x - this.player.width / 2);
+    this.playerTargetY = Math.round(platformStart?.y ?? origin.y - this.player.height / 2);
     this.player.x = this.playerTargetX;
     this.player.y = this.playerTargetY;
     this.player.container.alpha = 1;
@@ -341,16 +387,7 @@ export class ItemDeploymentController {
     return this.getItemFocus?.() ?? { x: this.anvilX, y: this.anvilY - 47 };
   }
 
-  private beginPlayerMoveToPlatform(fallbackCenterX: number, fallbackCenterY: number): void {
-    const platformStart = this.getPlatformStart?.();
-    this.playerStartX = this.player.x;
-    this.playerStartY = this.player.y;
-    this.playerTargetX = Math.round(platformStart?.x ?? fallbackCenterX - this.player.width / 2);
-    this.playerTargetY = Math.round(platformStart?.y ?? fallbackCenterY - this.player.height / 2);
-    this.player.container.alpha = 1;
-  }
-
-  private updatePlayerMoveToPlatform(): void {
+  private updatePlayerMoveToStreamStart(): void {
     const t = clamp01(this.elapsed / GROWTH_PLAYER_READY_MS);
     const moveT = growthScaleCurve(t);
     const visualTarget = this.getPlatformVisualStart?.();

@@ -2,11 +2,12 @@
 
 > **준거 상위 (Authority):** T-03
 > **문서 ID:** PLN-SPEC
-> **최근 업데이트:** 2026-05-31
-> **문서 상태:** 2차 (레퍼런스 검증 — 점진 업데이트 전제)
+> **최근 업데이트:** 2026-06-01
+> **문서 상태:** 4차 (스킬·경제 스펙 + 문서 인프라 종결 — 설계 스펙 대부분 확정, 잔여는 CSV 발주·구현)
 > **상위 문서:** `Plan/Roadmap_Master_Integrated.md` (PLN-MASTER)
-> **근거 문서:** `Research/Reference_Metroidvania_ActionRPG_Digest.md` (RES-REF-DIGEST), `Plan/Spec/Spec_Selection_Checklist.md` (PLN-CHECKLIST)
-> **변경 이력:** 본 문서 말미 §17 참조 (안1 → 안2 변경점).
+> **하위 스펙:** PLN-RELIC(렐릭 11) · PLN-SKILL(스킬 18) · PLN-SHOP(상점/경제) · PLN-IWPROG(아이템계 진행) · PLN-CHECKLIST(결정 추적)
+> **근거 문서:** `Research/Reference_Metroidvania_ActionRPG_Digest.md` (RES-REF-DIGEST)
+> **변경 이력:** 본 문서 말미 §17 참조 (안1 → 안4).
 
 ---
 
@@ -234,11 +235,16 @@ EnemyFactory + StateMachine 재사용. 아키타입 1개 = AI 1세트. 층위 �
 - diveAttack 정식 렐릭으로 인벤토리 UI 노출.
 - 확장 렐릭(심연의 날개·덩굴의 기억)·구조 분석기 캐논 제외. 안개 변신 폐기(판타지 톤 충돌).
 
-### 8.4 D-GATE
+### 8.4 D-GATE (2026-06-01 확정)
 
-구역 격벽(D-20 §3 게이트)은 코어 이동 렐릭으로 잠근다: 대시(거주 구역)/벽 타기+ATK(공장층)/INT(환승역)/이단 점프(봉인된 하부)/수중 호흡(침수 서브). 빌더 전용 4종은 구역 격벽이 아니라 Critical Path상 빌더 조우에 배분. 반중력은 부유 컨테이너 발판 게이트.
+D-GATE 확정안의 SSoT는 **D-20 §4.2**(World Master)다. 두 설계 원칙으로 확정:
 
-> **D-20 vs v3 렐릭 정합 필요:** D-20 §4.2 렐릭 목록은 구판 명칭(역중력 포함, surge/diveAttack 누락)이다. v3·코드 실측은 surge(상승 비행, 역중력 대체)·diveAttack(구현됨)이며 역중력은 폐기. D-20 §4.2의 "역중력(반전 상승)"은 surge로 매핑하고, D-20 렐릭 목록을 코어 6(대시/벽점프/이단점프/수중호흡/surge/diveAttack)으로 갱신 필요. (PLN-RELIC §7.0)
+1. **빌더 스파이크 선행** — 빌더 동사 5종을 미니 5분(Z1)부터 매 전반 구역에 하나씩 배치: 점착 클램프(Z1) → 제어 노드(Z2) → 극성 부츠(Z3) → 공명 펄스(Z4) → 반중력(Z4). 평면 보행 구간을 없애 빌더 상호작용을 진행 척추로.
+2. **SotN 개방형 페이싱** — 11렐릭 전부 전반(Z1~급강하, ~57%) 완성, 반중력을 Z4 인버전 capstone으로. 후반 Z5-7(43%)은 신규 능력 없이 full kit + 반중력 백트래킹 자유시간(급상승 Act 3).
+
+배치 요약 (상세·근거는 D-20 §4.2): Z1 대시(시작)·수중호흡·점착클램프 / Z2 제어노드·이단점프 / Z3 극성부츠·벽점프(+ATK) / Z4 공명펄스·surge·반중력 / 급강하 diveAttack / Z5 INT 봉인 게이트(자유시간 개방).
+
+> **D-20 정합 완료(2026-06-01):** 구판 D-20 §4.2의 역중력 표기·surge/diveAttack 누락은 해소됨. D-20 렐릭 목록을 코어 6(대시/벽점프/이단점프/수중호흡/surge/diveAttack)으로 갱신, 역중력→반중력·극성 부츠 분할 흡수 반영 완료. (PLN-RELIC §7.0)
 
 ---
 
@@ -413,15 +419,16 @@ CSV ThemeID 기준 이미 정의됨: T-HABITAT, T-MALFUNCTION, T-FOUNDRY, T-COMM
 
 ## 16. 선행 결정 / 의존 (Open Decisions)
 
-| ID | 항목 | 블로커 |
+| ID | 항목 | 상태 / 블로커 |
 | :--- | :--- | :--- |
-| D-GATE | 두 게이트 종류 배분: 구역 격벽(코어 5, D-20 §3) + 빌더 조우(빌더 4종+반중력). D-20 §4.2 역중력→surge 정합 | SYS-WLD-03 + D-20 갱신 |
-| D-NARR | 내러티브 캐논 (캐릭터/지명/아이템 서사) | 2026-05-29 리셋 라운드 종결 대기 |
-| D-ARMOR | 방어구 6슬롯 스탯 분배 + 세트 효과 | CSV + SYS-EQP 확장 |
-| D-SHARD | 기억 단편 12-15종 행동 수정자 정의 | SYS-INC-01 재정의 |
-| D-SKILL | 스킬 16-20종 풀 + 무기 내장 매핑 | CSV + SYS 미작성 |
+| D-GATE | 두 게이트 종류 배분: 구역 격벽(코어 5, D-20 §3) + 빌더 조우(빌더 4종+반중력). D-20 §4.2 역중력→surge 정합 | **미해결 (임계 경로 1순위).** SYS-WLD-03 + D-20 갱신 |
+| D-NARR | 내러티브 캐논 (캐릭터/지명/아이템 서사) | **종결 (2026-05-29 v3 라운드).** 노다/율 등 잔존자 NPC + 검 Ego(녹쇠) 재도입, 에르다 0줄 유지. [[project_dnarr_mentor_resolution]] |
+| D-SKILL | 스킬 16-20종 풀 + 무기 내장 매핑 | **스펙 완료 → `Plan/Spec/Spec_Skill_System.md`(PLN-SKILL, 18종/4슬롯).** 잔여: CSV 수치 발주 |
+| D-SHOP | 상점 공간/골드 소비처/벤더 | **스펙 완료 → `Plan/Spec/Spec_Shop_Economy.md`(PLN-SHOP).** 잔여: 가격 CSV 발주 |
+| D-ARMOR | 방어구 7슬롯 스탯 분배 + 세트 효과 | 미해결. CSV + SYS-EQP 확장 |
+| D-SHARD | 기억 단편 12-15종 행동 수정자 정의 | 미해결. SYS-INC-01 재정의 + CSV |
 
-> **Note:** 본 스펙의 수량은 제작 목표선이며 확정 발주서가 아니다. 각 항목은 해당 SYS 문서에서 상세 규칙으로 확정한 뒤 CSV에 수치 SSoT로 기입한다. 내러티브 의존 항목(D-NARR)은 리셋 라운드 종결 전까지 구조 자리표시자로 둔다.
+> **Note:** 본 스펙의 수량은 제작 목표선이며 확정 발주서가 아니다. 각 항목은 해당 SYS 문서/Spec에서 상세 규칙으로 확정한 뒤 CSV에 수치 SSoT로 기입한다. 2026-06-01 기준 설계 스펙은 D-GATE/D-ARMOR/D-SHARD를 제외하고 대부분 종결됐고, 잔여 격차는 CSV 수치 발주와 코드 구현으로 이동했다(§17 안4, PLN-MASTER §12 다음 마일스톤).
 
 ---
 
@@ -462,9 +469,18 @@ CSV ThemeID 기준 이미 정의됨: T-HABITAT, T-MALFUNCTION, T-FOUNDRY, T-COMM
 - 아이템계 깊이→해금/에코 영속화는 렐릭에서 분리해 PLN-IWPROG로 이관.
 - 빌더 전용 4종 Critical Path 필수 배분 확정.
 
-### 다음 안 (안4) 예정 작업
+### 안4 (2026-06-01, 스킬·경제 스펙 + 문서 인프라 종결)
 
-- 무기 6종 + 방어구 7슬롯 구체 수치표 도출(CSV 발주 직전 단계).
-- 기억 단편 12-15종 행동 수정자 풀 초안(밸런스 값 포함).
-- 스킬 16-20 풀 초안(슬롯/쿨다운/무기 연동 매핑).
-- D-GATE 격벽 배치 비교안(11렐릭 x 7층위).
+- **스킬 스펙 종결:** `Plan/Spec/Spec_Skill_System.md`(PLN-SKILL) 신설 — 18종, 4슬롯(A 프로토콜 / B 트래버스 / C 댐프너 / D 레저넌스), 쿨다운 단일 기본, 슬롯 D만 히트충전. D-SKILL 설계 종결, 잔여는 CSV 수치.
+- **경제·상점 스펙 종결:** `Plan/Spec/Spec_Shop_Economy.md`(PLN-SHOP) 신설 — 6 벤더(노다/율 + 잔존자 4), 골드 소비처(수리/복종/승급, D-07), 거래소 미채택. 상점 공간은 D-20 §5.1 잔존자 마을로 지정.
+- **D-NARR 종결:** 2026-05-29 v3 내러티브 라운드가 멘토/잔존자 NPC를 재도입(노다=정 멘토, 율/이리/묵정 + 검 Ego 녹쇠 7단계 + 러스트본). 2026-04-19 Killy 오마주 금지는 SUPERSEDED. 단 주인공 에르다 본인 0줄(침묵)은 DEC-033 무수정 유지. deprecated_terms §3 갱신 완료.
+- **문서 계층 정합성 시스템 구축:** T-07 권위 맵 + `준거 상위(Authority)` 선언 + authority_index.mjs 역인덱스/전파 + gdd-integrity-checker Layer 6(계층) + 일일 원격 무결성 루틴(3am KST). 상위 문서 갱신 시 하위 정합 검증 자동화.
+- **전체 정합성 스윕 완료:** 6스탯→3스탯, 틸드/스마트따옴표/GFM Alert 일괄 정합, 인코딩 손상 3문서 복구, D-20 v3(상승/7구역) vs SYS-WLD 역드리프트 정합, mkdocs 자동 nav + 기밀 제외.
+
+### 다음 안 (안5) 예정 작업 — CSV 수치 발주 단계
+
+- 스킬 18종 수치표(슬롯/쿨다운/효과/무기 연동) → `Sheets/Content_Skills.csv` 발주.
+- 상점 가격·골드 소비처 파라미터 → `Sheets/Economy_FaucetSink_Params.csv` 발주.
+- 무기 6종(Blade 외) + 방어구 7슬롯 구체 수치표 도출.
+- 기억 단편 12-15종 행동 수정자 풀 + 밸런스 값(D-SHARD).
+- D-GATE 격벽 배치 비교안(11렐릭 x 7구역) → Victor 승인.

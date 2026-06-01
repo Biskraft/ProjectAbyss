@@ -138,7 +138,7 @@
 
 | 문서 | 갱신 | 상태 |
 | :--- | :--- | :--- |
-| `Design/Design_World_Master.md` §4.2 | 11렐릭 D-GATE 배치표 + 역중력 재정의 + §3 Z5 게이트(극성 부츠) + §128 카운트 | ✅ 완료 |
+| `Design/Design_World_Master.md` §4.2 | D-GATE **확정(2026-06-01)** — 빌더 5분 후크 + SotN 개방형. 11렐릭 전반 완성(Z1~급강하 ~57%), 반중력 Z4 인버전 capstone, 극성 부츠 Z3, INT 게이트 Z5 이동, 후반 Z5-7 자유시간 | ✅ 완료 |
 | `Terms/Glossary.md` Ability Gate | 캐논 11 + SSoT 링크 + 역중력 재정의 | ✅ 완료 |
 | `CLAUDE.md` 능력 게이트 항 | 캐논 11(코어 6 LOCKED + 빌더 4 + 반중력) + SSoT 링크 | ✅ 완료 |
 | `Plan/Spec/Spec_Selection_Checklist.md` §E, D-GATE | "5렐릭 재배치" → 캐논 11 배치(§4.2 참조) | ✅ 완료 |

@@ -198,11 +198,13 @@ export class WorldUiController {
 
     if (input.isJustPressed(GameAction.ATTACK)) {
       const wasAnvilMode = inventoryUI.isAnvilMode();
+      input.consumeJustPressed(GameAction.ATTACK);
       inventoryUI.confirmSelected();
       if (!wasAnvilMode) return 'confirmed_equipment_change';
     }
 
     if (input.isJustPressed(GameAction.MENU)) {
+      input.consumeJustPressed(GameAction.MENU);
       if (inventoryUI.isAnvilMode()) {
         inventoryUI.cancelAnvil();
       } else {

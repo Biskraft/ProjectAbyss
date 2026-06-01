@@ -3,7 +3,7 @@ import type { Game } from '../../Game';
 import type { Player } from '@entities/Player';
 import type { Anvil } from '@entities/Anvil';
 import type { GiantBuilder } from '@entities/GiantBuilder';
-import { ItemDeploymentController, type ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
+import { ItemDeploymentController, type ItemDeploymentStreamWorldOptions, type ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
 import type { AABB } from '@core/Physics';
 
 interface AnvilDeploymentDeps {
@@ -19,6 +19,8 @@ interface AnvilDeploymentDeps {
   openTunnel: (x: number, y: number, w: number, h: number, options?: ItemDeploymentTunnelOpenOptions) => void;
   setLaserDesaturation: (active: boolean) => void;
   showTunnelOpenDialogue: () => void;
+  prepareStreamWorld?: (options: ItemDeploymentStreamWorldOptions) => { x: number; y: number } | null;
+  loadStreamWorld?: (options: ItemDeploymentStreamWorldOptions) => { x: number; y: number } | null;
   getEntranceAABB?: () => AABB | null;
   getPlatformStart?: () => { x: number; y: number } | null;
   getPlatformVisualStart?: () => { x: number; y: number } | null;
@@ -42,6 +44,8 @@ export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploy
     (targetX, targetY) => deps.getAnvil()?.startPlacedItemMoveToLaser(targetX, targetY),
     () => deps.getAnvil()?.finishPlacedItemAsWorld(),
     deps.showTunnelOpenDialogue,
+    deps.prepareStreamWorld ?? null,
+    deps.loadStreamWorld ?? null,
     deps.getEntranceAABB ?? null,
     deps.getPlatformStart ?? null,
     deps.getPlatformVisualStart ?? null,
