@@ -1,5 +1,7 @@
 # 아이템계 보스 시스템 (Item World Boss System) — SYS-IW-03
 
+> **준거 상위 (Authority):** T-03, D-05
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`

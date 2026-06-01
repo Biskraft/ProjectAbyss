@@ -1,5 +1,6 @@
 # 장비 복원 경로 시스템 (Equipment Recovery Path System) — SYS-EQP-03
 
+> **준거 상위 (Authority):** T-03, D-11
 > **2026-05-24 전면 재작성 (DEC-046).** 이전 버전의 *아이템 레벨 0-99 / 보스 처치 영구 ATK +N / 레어리티 승급 (피티 시스템)* 메커닉은 모두 폐기되었다. 장비 성장은 *강화* 가 아니라 *기억 복원* 으로 재정의되었다.
 
 ## 구현 현황 (Implementation Status)

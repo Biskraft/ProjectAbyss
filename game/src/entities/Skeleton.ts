@@ -1,7 +1,7 @@
 import { Assets, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { Enemy } from './Enemy';
 import { GlowFilter } from '@effects/GlowFilter';
-import { isSolid } from '@core/Physics';
+import { hasGroundSupportAtFoot } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
 
 const TILE_SIZE = 16;
@@ -237,10 +237,9 @@ export class Skeleton extends Enemy {
         if (this.x < this.spawnX - this.patrolRangePx) this.patrolDir = 1;
 
         // Reverse at platform edge (ground enemies don't fall during patrol)
-        const feetCol = Math.floor((this.x + this.width / 2 + this.patrolDir * 8) / TILE_SIZE);
-        const feetRow = Math.floor((this.y + this.height) / TILE_SIZE);
-        const belowTile = this.roomData[feetRow]?.[feetCol] ?? 0;
-        if (!isSolid(belowTile) && belowTile !== 3) { // no floor ahead
+        const probeX = this.x + this.width / 2 + this.patrolDir * 8;
+        const feetY = this.y + this.height;
+        if (!hasGroundSupportAtFoot(probeX, feetY, this.roomData)) {
           this.patrolDir *= -1;
           this.vx = this.patrolDir * patrolSpeed;
         }

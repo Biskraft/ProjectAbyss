@@ -1,5 +1,7 @@
 # UI_HUD_Layout.md — HUD 레이아웃
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 | 항목 | 상태 |

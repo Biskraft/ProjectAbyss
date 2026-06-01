@@ -1,6 +1,7 @@
 # ECHORIS 스킬 시스템 상세 스펙 (Skill System Spec)
 
 > **문서 ID:** PLN-SKILL
+> **준거 상위 (Authority):** T-03, D-09, SYS-CMB-01
 > **최근 업데이트:** 2026-05-31
 > **상위:** PLN-SPEC §11. 근거: `Research/SkillSystem_ActionRPG_Research.md`, 신규 레퍼런스 조사(Hades/Dead Cells/Castlevania/Disgaea/HK/ARPG), 코드 감사.
 > **수치 SSoT(예정):** `Sheets/Content_Skills.csv` (미생성 — 본 스펙으로 발주).

@@ -2,6 +2,7 @@
 
 # WorldLayout GridVania 분석 — ECHORIS
 
+> **준거 상위 (Authority):** T-03
 > 분석 대상: `game/public/assets/World_ProjectAbyss_Layout.ldtk`
 > 분석 기준일: 2026-03-26
 > 작성자: Level Designer

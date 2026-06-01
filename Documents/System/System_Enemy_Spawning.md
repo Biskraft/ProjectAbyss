@@ -1,5 +1,6 @@
 # System_Enemy_Spawning.md — 적 스폰 시스템
 
+> **준거 상위 (Authority):** T-03, D-09
 > **작성 기준:** 코드 역기획서 (Code-First Reverse GDD)
 > **소스 파일:** `game/src/data/itemWorldSpawnTable.ts`, `game/src/data/enemyStats.ts`, `game/src/scenes/ItemWorldScene.ts` (spawnEnemiesInRoom)
 > **데이터 SSoT:** `Sheets/Content_ItemWorld_SpawnTable.csv`, `Sheets/Content_Stats_Enemy.csv`

@@ -1,5 +1,6 @@
 # ECHORIS 스펙 선정 체크리스트 (Spec Selection Checklist)
 
+> **준거 상위 (Authority):** T-03
 > **문서 ID:** PLN-CHECKLIST
 > **최근 업데이트:** 2026-05-31
 > **용도:** 모든 콘텐츠·시스템 스펙 차원의 결정 추적기. 각 항목의 확정/부분/공백 상태 + 레퍼런스 권장값 + 보유 문서.
@@ -61,7 +62,7 @@
 | 매크로 토폴로지 | C | 수직 척추 + 가지 (7층위 + 역상승 T1) | System_World_MapStructure (골격) |
 | 층위 수 | C | 7 + 역상승 1 (인디 Target 밴드 8-10 부합) | System_World_MapStructure |
 | 층위 지명/테마 | D | 내러티브 캐논 대기 (D-NARR). 자리표시자 T1-T7 | archived |
-| 능력 게이트 배치 (D-GATE) | D | 안개변신 폐기로 5렐릭 x 격벽 재매핑 필요 | System_World_AbilityGating (재정의) |
+| 능력 게이트 배치 (D-GATE) | C | 캐논 11렐릭 × 7층위 배치 완료(2026-06-01). Design_World_Master §4.2 D-GATE 배치표. 코드 게이팅 반영만 잔여 | Design_World_Master §4.2, PLN-RELIC |
 | 스탯 게이트 배치 | G | 권장: 레어리티 색상 연동, ATK/INT 축 교번, 한 게이트 단일 축 | System_World_StatGating |
 | Room 크기 | C | 60x34 타일, 평균 2-3분 | System_World_MapStructure |
 | 빠른 이동 노드 밀도 | G | 권장: 티어당 1개, 클리어 후, 출구 배치 | 미작성 |
@@ -80,10 +81,10 @@
 | waterBreathing | C | 구현됨 (해금형) | 코드 |
 | surge | C | 구현됨. 역류 분출 상승 비행 (GDD 역중력 자리 대체) | 코드 |
 | diveAttack | C | 구현됨. 하강 공격. 렐릭 분류 미정 | 코드 |
-| 역중력 (anti-gravity / Gravity Core R-V04) | D | 미구현·보류(P3). 사유는 충돌 시스템 비용 + 서사 앵커 불명확 (SotN 카피 아님 — 중력 톤은 sci-fi 정합). "빌더 이상 구역" 재프레임 또는 surge/Phase Drill 대체 | D-GATE / PLN-RELIC M-GRAV |
-| 벽 타기(등반) vs 벽 점프 | D | 코드는 점프. 등반 추가 도입 여부 결정 | D-GATE |
-| 렐릭-격벽 매핑 | D | D-GATE. 코드 실측 5렐릭 대상. surge를 T4 중반/T1 상승에 배치 | System_World_AbilityGating |
-| 6번째 렐릭 여부 | D | diveAttack 렐릭 승격 여부 포함. 위상/축소 금지 | Digest §3.1 |
+| 역중력 → 재정의 | C | 플레이어 중력 반전(R-V04) 보류. 기능은 **반중력**(사물·유체, Z2) + **극성 부츠**(빌더 천장 보행, Z5)로 분할 흡수. 상승 게이트는 surge | PLN-RELIC §2.2 |
+| 벽 타기(등반) vs 벽 점프 | D | 코드는 점프. 별도 "벽 등반" 추가 도입 여부 (잔여) | PLN-RELIC §8 |
+| 렐릭-격벽 매핑 | C | 캐논 11 × 7층위 배치 완료(2026-06-01). surge=Z4 상승 정점/T1 | Design_World_Master §4.2 |
+| 6번째 렐릭 여부 | C | diveAttack 정식 렐릭 승격(UI 노출), 캐논 코어 6에 포함 | PLN-RELIC §1 |
 
 ## F. 적
 
@@ -211,7 +212,7 @@
 
 | 순위 | 결정 ID | 항목 | 차단하는 후행 작업 |
 | :--- | :--- | :--- | :--- |
-| 1 | D-GATE | 5렐릭 x 격벽 재배치 | 7층위 발주, 진행 순서 |
+| 1 | ~~D-GATE~~ ✅ | 캐논 11렐릭 × 7층위 배치 완료(§4.2). 코드 게이팅 반영만 잔여 | 7층위 발주, 진행 순서 |
 | 2 | D-STATGATE | 스탯 게이트 색상/축 규칙 | 강화 순환 배치 |
 | 3 | D-NARR | 내러티브 캐논 종결 | 모든 명칭/테마/서사 |
 | 4 | D-BOSSAI | 아이템계 보스 AI | 아이템계 루프 완성, 진행 보스 |

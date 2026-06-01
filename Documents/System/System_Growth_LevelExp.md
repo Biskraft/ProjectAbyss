@@ -1,5 +1,7 @@
 # 레벨과 경험치 시스템 (Level & Experience System) — SYS-LVL-02
 
+> **준거 상위 (Authority):** T-03, D-11
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-03-26

@@ -1,5 +1,6 @@
 # ECHORIS — 비주얼 디렉션 (Art Direction) v3
 
+> **준거 상위 (Authority):** T-03
 > 문서 ID: D-15
 > 작성일: 2026-05-29 (실 자산 분석 기반 재정립) / 2026-05-30 (레퍼런스 기반 방법론 강화)
 > 정합: CNT-STR-001, CNT-CHR-001, CNT-EXP-001, 그리고 현 빌드의 실제 sprite·portrait 자산

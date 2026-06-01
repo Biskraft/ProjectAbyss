@@ -1,5 +1,6 @@
 # HUD 마스터플랜 - 레이아웃 다이어그램 + 수치 체크리스트
 
+> **준거 상위 (Authority):** T-03
 > **작성일:** 2026-04-13
 > **베이스 해상도:** 640x360 (3x @1080p = 1920x1080)
 > **리서치 근거:** `Documents/Research/UX_Layout_Sizing_Research.md`, `Documents/Research/ReferenceGame_UI_UX_Research.md`

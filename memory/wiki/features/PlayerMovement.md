@@ -15,8 +15,17 @@
 
 ## 2x1 Virtual Slopes
 
-- `game/src/core/Physics.ts` infers player-only 2x1 virtual slopes from unchanged IntGrid surfaces: low/low/high or high/low/low. This is a runtime overlay, not a new IntGrid tile value.
+- `game/src/core/Physics.ts` infers 2x1 virtual slopes from unchanged IntGrid surfaces: low/low/high or high/low/low. This is a runtime overlay, not a new IntGrid tile value.
 - Only 2-tile horizontal / 1-tile vertical ramps are automatic. Do not auto-generate 1x1 45-degree slopes; if they are needed later, gate them behind explicit LDtk markup or a separate rule.
 - `game/src/entities/Player.ts` routes walking, running, ground dash, and air dash through the 2x1 slope-aware pixel sweep. Dive and Surge flight stay on the normal resolver; upward jump takeoff does not stick back to the slope.
+- `game/src/entities/Enemy.ts` keeps ground-type enemies on normal pixel collision first and only falls back to the 2x1 slope-aware X sweep when a horizontal move would otherwise collide. Flying enemies stay on normal wall-only movement. Enemy jump takeoff disables slope stickiness once `vy < 0`; falling and grounded movement may land/capture on slopes.
+- In `Enemy.update()`, compute the Y pixel sweep after wall-blocked jump logic. Wall jump AI can assign a new negative `vy` during X collision handling, and precomputing `moveY` before that makes the monster fail to leave the ground.
+- Enemy wall-block jump timers must not reset on frames where pixel remainder rounds horizontal movement to 0 while AI still has horizontal intent. Skeleton speed can produce alternating `moveX` 1/0 frames; use an ahead-wall probe on 0px frames so the 150ms wall-block threshold still accumulates.
+- Wall-block navigation jumps keep a short horizontal carry timer. Without it, the X collision that triggered the jump zeros `vx`, and ground enemy AI does not reapply horizontal chase while airborne, so the monster jumps vertically in place instead of clearing the ledge.
+- Ground enemy patrol edge probes use `hasGroundSupportAtFoot()` so Skeleton and GoldenMonster do not treat a slope segment as a missing floor.
 - Existing ledge snap and dash corner correction remain fallback behavior for non-2x1 geometry.
 - While descending a 2x1 slope, the player AABB can overlap the high-side support cell behind the actor. The slope resolver intentionally ignores the inferred slope support/cap cells for wall blocking; otherwise downward traversal fails even though upward traversal works.
+- `game/public/assets/World_ProjectAbyss.ldtk` has the matching visual autotile in `Collisions` -> `Walls`, rule `uid=2156`. Its pattern is `[0,0,-1,-1,-1,1,1,1,0]` with `flipX=true` and stamp tiles `[70,71]`, so it only paints wall-value low/low/high or high/low/low 2x1 slopes. Do not broaden it back to the older one-corner pattern, or 1x1 corners will receive 30-degree slope art.
+- The `uid=2156` slope stamp tiles intentionally render over air cells. Runtime wall-tile filters in `LdtkWorldScene` and `ItemWorldScene` must preserve `isLdtkWallSlope2x1Tile()` before checking `collisionGrid[row][col] !== 0`; otherwise every slope visual is culled even though the LDtk `autoLayerTiles` cache contains it.
+- `game/src/level/ProceduralDecorator.ts` suppresses all procedural edge decorations on inferred 2x1 slope support cells. Grass/moss/surface-overlay/micro passes are grid-edge based and will produce right-angle artifacts if they are allowed on the low/low/high or high/low/low support cells.
+- `game/src/systems/BreakablePropSpawner.ts` excludes 2x1 slope support cells from procedural breakable prop floor candidates. Do not place breakable props on the virtual slope footprint.

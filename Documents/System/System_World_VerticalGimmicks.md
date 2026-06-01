@@ -1,5 +1,7 @@
 # 수직 이동 기믹 시스템 (Vertical Traversal Gimmicks)
 
+> **준거 상위 (Authority):** T-03, D-20, D-04
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-04-15

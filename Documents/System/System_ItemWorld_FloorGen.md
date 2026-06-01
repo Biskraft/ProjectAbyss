@@ -1,5 +1,7 @@
 # 아이템계 기억의 지층 생성 시스템 (Item World Memory Strata Generation System)
 
+> **준거 상위 (Authority):** T-03, D-05
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Definition: `Documents/Terms/Project_Vision_Abyss.md `

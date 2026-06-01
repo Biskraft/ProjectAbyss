@@ -1,5 +1,7 @@
 # 레벨 디자인 규격 (Level Design Standards)
 
+> **준거 상위 (Authority):** T-03
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`

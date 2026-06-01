@@ -1,5 +1,7 @@
 # 미니맵 시스템 (Minimap System)
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-04-12

@@ -1,5 +1,6 @@
 # UI_SacredPickup.md — 아이템 획득 · 앵빌 · 다이브 UX
 
+> **준거 상위 (Authority):** T-03
 > **작성 기준:** 설계 명세 (Spec-First GDD)
 > **근거 리서치:** `Documents/Research/ItemWorldEntry_NaturalOnboarding_Research.md` §7 "Sacred Pickup" 권장안 + §8 반복 진입 단축
 > **보조 리서치:** `Documents/Research/Zelda_Onboarding_Evolution_Research.md` (T-시리즈 비교 근거)

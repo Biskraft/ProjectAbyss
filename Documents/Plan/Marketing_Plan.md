@@ -1,5 +1,6 @@
 # ECHORIS 마케팅 플랜 — Strata Forge
 
+> **준거 상위 (Authority):** T-03
 > **최근 업데이트:** 2026-04-15
 > **문서 상태:** `Draft`
 > **작성:** Business Director

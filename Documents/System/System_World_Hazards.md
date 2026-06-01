@@ -1,5 +1,6 @@
 # System_World_Hazards.md — 월드 위험 요소 시스템
 
+> **준거 상위 (Authority):** T-03, D-20, D-04
 > **작성 기준:** 코드 역기획서 (Code-First Reverse GDD)
 > **소스 파일:** `game/src/entities/Spike.ts`, `game/src/entities/GrowingWall.ts`, `game/src/entities/CrackedFloor.ts`, `game/src/entities/CollapsingPlatform.ts`, `game/src/entities/Updraft.ts`
 > **필수 참고:** `Documents/Terms/Project_Vision_Abyss.md`, `Documents/Terms/GDD_Writing_Rules.md`

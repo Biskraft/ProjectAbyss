@@ -158,6 +158,18 @@ export interface LdtkTile {
    * Interior from world_interior_01.png). Null if the layer has no assigned tileset.
    */
   tilesetPath: string | null;
+  /** LDtk source tile id (`t`). Kept for narrow runtime filtering. */
+  tileId?: number;
+  /** LDtk auto-rule uid (`d[0]`) when the tile came from an auto-rule. */
+  ruleUid?: number | null;
+  /** LDtk destination cell id (`d[1]`) when present. */
+  coordId?: number | null;
+}
+
+export const LDTK_WALL_SLOPE_2X1_RULE_UID = 2156;
+
+export function isLdtkWallSlope2x1Tile(tile: Pick<LdtkTile, 'ruleUid'>): boolean {
+  return tile.ruleUid === LDTK_WALL_SLOPE_2X1_RULE_UID;
 }
 
 /** An entity instance placed in the Entities layer. */
@@ -226,7 +238,7 @@ interface RawLdtkAutoTile {
   f: number;
   t: number;
   a?: number;
-  // d: [layerDefUid, coordId] — present in file but not used by loader
+  d?: [number, number];
 }
 
 interface RawLdtkEntityInstance {
@@ -658,6 +670,9 @@ export class LdtkLoader {
       f: t.f,
       a: t.a ?? 1,
       tilesetPath,
+      tileId: t.t,
+      ruleUid: t.d?.[0] ?? null,
+      coordId: t.d?.[1] ?? null,
     }));
   }
 

@@ -13,7 +13,7 @@ import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAss
 import type { RoomCell } from '@level/RoomGrid';
 import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
+import { isLdtkWallSlope2x1Tile, type LdtkLevel, type LdtkTile } from '@level/LdtkLoader';
 import { getItemWorldTemplatesIfReady, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import { Texture as PixiTexture, Rectangle } from 'pixi.js';
 import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, isOneWay, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
@@ -5184,6 +5184,7 @@ export class ItemWorldScene extends Scene {
           if (!inBounds(t)) return false;
           const tr = Math.floor(t.px[1] / TILE_SIZE);
           const tc = Math.floor(t.px[0] / TILE_SIZE);
+          if (isLdtkWallSlope2x1Tile(t)) return true;
           return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? 1) !== 0;
         });
         const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
@@ -8151,6 +8152,7 @@ export class ItemWorldScene extends Scene {
       if (!inBounds(t)) return false;
       const tr = Math.floor(t.px[1] / TILE_SIZE);
       const tc = Math.floor(t.px[0] / TILE_SIZE);
+      if (isLdtkWallSlope2x1Tile(t)) return true;
       return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? TILE_WALL) !== TILE_AIR;
     });
     const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);

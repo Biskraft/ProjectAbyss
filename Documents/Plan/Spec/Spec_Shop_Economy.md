@@ -1,6 +1,7 @@
 # ECHORIS 상점·경제 상세 스펙 (Shop & Economy Spec)
 
 > **문서 ID:** PLN-SHOP
+> **준거 상위 (Authority):** T-03, D-07, D-20
 > **최근 업데이트:** 2026-05-31
 > **상위:** PLN-SPEC §14.5. 근거: `Design/Design_Economy_FaucetSink.md`(D-07), `Design/Design_World_Master.md`(D-20 §5.1), 신규 레퍼런스 조사(HK/Bloodstained/Castlevania/Ori/Dark Souls/Blasphemous), 코드 감사.
 > **수치 SSoT(예정):** `Sheets/Economy_FaucetSink_Params.csv` (미생성 — 본 스펙으로 발주).

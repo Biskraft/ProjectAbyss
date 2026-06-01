@@ -1,5 +1,6 @@
 # Healing HUD UI 기획서
 
+> **준거 상위 (Authority):** T-03
 > **최근 업데이트:** 2026-04-13
 > **문서 상태:** Draft
 > **관련 시스템:** `System_Healing_Recovery.md`

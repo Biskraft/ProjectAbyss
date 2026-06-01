@@ -1,5 +1,6 @@
 # 아이템계 깊이 표시기 (Item World Depth Gauge)
 
+> **준거 상위 (Authority):** T-03
 > **최근 업데이트:** 2026-04-14
 > **문서 상태:** Draft
 > **관련:** `UI/UI_Minimap.md` (아이템계 미니맵 없음 — Spelunky 모델)

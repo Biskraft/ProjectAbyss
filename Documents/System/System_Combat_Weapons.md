@@ -1,5 +1,7 @@
 # 무기 시스템 (Combat Weapons System)
 
+> **준거 상위 (Authority):** T-03, D-09
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-04-18 (DEC-026: 7종 체계 + sci-fi 리네이밍)

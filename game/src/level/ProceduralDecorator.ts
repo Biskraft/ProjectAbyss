@@ -16,6 +16,7 @@ import {
   dripTrail, rivetLine, rustBloom,
 } from './ProceduralPrimitives';
 import { DecoratorConst } from '@data/constData';
+import { isSlope2x1SupportCell } from '@core/Physics';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -446,6 +447,7 @@ export class ProceduralDecorator {
       for (let col = 0; col < cols; col++) {
         const val = grid[row][col];
         if (!isSolid(val)) continue;
+        if (isSlope2x1SupportCell(grid, col, row)) continue;
         // No deco on walls directly bordering an updraft channel.
         if (isNearUpdraft(row, col)) continue;
 

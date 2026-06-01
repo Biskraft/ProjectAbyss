@@ -1,5 +1,7 @@
 # System_Player_Abilities.md — 플레이어 능력 시스템
 
+> **준거 상위 (Authority):** T-03, D-09
+
 ## 구현 현황 (Implementation Status)
 
 | 능력 | 구현 상태 | 해금 조건 |

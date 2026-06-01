@@ -1,5 +1,6 @@
 # 구현 작업서: 적 수직 추적 (Enemy Vertical Chase)
 
+> **준거 상위 (Authority):** T-03
 > **상태:** 미구현
 > **우선순위:** P0
 > **관련 기획:** `System_Enemy_AI.md` §2.2-A

@@ -23,7 +23,7 @@ import { Debug } from '@core/Debug';
 import { GameAction, actionKey } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
 import { aabbOverlap, isOneWay, isSolid } from '@core/Physics';
-import { LdtkLoader } from '@level/LdtkLoader';
+import { LdtkLoader, isLdtkWallSlope2x1Tile } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
 import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX, visualBoundsBleedArea } from '@level/VisualBoundsBleed';
@@ -4299,6 +4299,7 @@ export class LdtkWorldScene extends Scene {
       const col = Math.floor(t.px[0] / TILE_SIZE);
       const row = Math.floor(t.px[1] / TILE_SIZE);
       const v = this.collisionGrid[row]?.[col] ?? 0;
+      if (isLdtkWallSlope2x1Tile(t)) return true;
       return v !== 0 && v !== 2;
     });
     // Retag BG/WALL tiles to CSV-derived atlas ??but ONLY if the tile's
@@ -9720,8 +9721,8 @@ export class LdtkWorldScene extends Scene {
     const filteredTiles = this.currentLevel.wallTiles.filter(t => {
       const col = Math.floor(t.px[0] / TILE_SIZE);
       const row = Math.floor(t.px[1] / TILE_SIZE);
-      // Keep tile only if collision cell is still solid (1) or water (2)
-      return (grid[row]?.[col] ?? 0) !== 0;
+      // Keep slope stamps even when their visual tile sits over an air cell.
+      return isLdtkWallSlope2x1Tile(t) || (grid[row]?.[col] ?? 0) !== 0;
     });
     this.renderer.rebuildWallLayer(filteredTiles, this.atlases, this.collisionGrid);
     addLdtkVisualBoundsBleed({

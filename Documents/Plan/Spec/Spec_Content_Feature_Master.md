@@ -1,5 +1,6 @@
 # ECHORIS 콘텐츠·기능 마스터 스펙 (Content & Feature Master Spec)
 
+> **준거 상위 (Authority):** T-03
 > **문서 ID:** PLN-SPEC
 > **최근 업데이트:** 2026-05-31
 > **문서 상태:** 2차 (레퍼런스 검증 — 점진 업데이트 전제)

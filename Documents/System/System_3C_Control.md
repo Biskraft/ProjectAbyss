@@ -1,5 +1,7 @@
 # 조작 체계 (Control System)
 
+> **준거 상위 (Authority):** T-03, D-09
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`

@@ -1,5 +1,6 @@
 # ECHORIS GDD 문서 인덱스 (Document Index)
 
+> **준거 상위 (Authority):** T-03
 > **최근 업데이트:** 2026-04-15
 > **문서 상태:** `작성 중 (Draft)`
 
@@ -73,6 +74,7 @@ graph TD
 | T-04 | Document Index | `Terms/Document_Index.md` | 🔄 진행 중 | 이 문서 |
 | T-05 | GDD Roles | `Terms/GDD_Roles.md` | ✅ 완료 | 수석 게임 디자이너 역할, 책임, 협업 프로토콜 |
 | T-06 | Sheets Writing Rules | `Terms/Sheets_Writing_Rules.md` | ✅ 완료 | CSV 데이터 시트 작성 규칙, ID 체계, SSoT |
+| T-07 | Document Authority Map | `Terms/Document_Authority_Map.md` | ✅ 활성 (2026-06-01) | 계층 정합성 시스템 backbone. 상위→하위 권위, 의존 선언 규약, Layer 6 |
 
 ---
 

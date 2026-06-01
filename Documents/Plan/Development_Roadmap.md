@@ -1,5 +1,6 @@
 # ECHORIS: 전체 개발 로드맵 (Development Roadmap)
 
+> **준거 상위 (Authority):** T-03
 > **SUPERSEDED 2026-05-31:** 본 문서는 `Plan/Roadmap_Master_Integrated.md` (PLN-MASTER)로 통합 대체되었다. 충돌 시 마스터 로드맵이 우선한다. 본 문서는 Phase 0-1 초기 기획 이력으로만 보존한다.
 > **최근 업데이트:** 2026-03-25
 > **문서 상태:** `SUPERSEDED (이력 보존)`

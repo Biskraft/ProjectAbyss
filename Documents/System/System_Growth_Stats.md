@@ -1,5 +1,7 @@
 # 성장 스탯 시스템 (Growth Stats System)
 
+> **준거 상위 (Authority):** T-03, D-11
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-03-23

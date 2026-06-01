@@ -14,6 +14,7 @@
  */
 
 import { BreakableProp, pickVariant } from '@entities/BreakableProp';
+import { isSlope2x1SupportCell } from '@core/Physics';
 
 const TILE = 16;
 const MAX_PROPS = 6;
@@ -66,6 +67,12 @@ export function spawnBreakableProps(
       if (!isEmpty(g(row, col)) || !isEmpty(g(row, col + 1))) continue;
       if (!isFloor(g(row + 1, col)) || !isFloor(g(row + 1, col + 1))) continue;
       if (!isEmpty(g(row - 1, col)) || !isEmpty(g(row - 1, col + 1))) continue;
+      if (
+        isSlope2x1SupportCell(grid, col, row + 1) ||
+        isSlope2x1SupportCell(grid, col + 1, row + 1)
+      ) {
+        continue;
+      }
 
       // No hazards nearby
       if (g(row, col) === 5 || g(row, col) === 10) continue;

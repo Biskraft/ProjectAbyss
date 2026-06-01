@@ -1,5 +1,7 @@
 # UI_Notifications.md — 알림 시스템
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 | 항목 | 상태 |

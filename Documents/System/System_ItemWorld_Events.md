@@ -2,6 +2,8 @@
 
 # 아이템계 미스터리 룸 & 이벤트 시스템 (Item World Mystery Rooms & Events) — SYS-IW-05
 
+> **준거 상위 (Authority):** T-03, D-05
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`

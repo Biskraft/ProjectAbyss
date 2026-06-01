@@ -1,5 +1,7 @@
 # UI_Inventory.md — 인벤토리 UI
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 | 항목 | 상태 |

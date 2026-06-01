@@ -1,5 +1,7 @@
 # 타일 체계 시스템 (World Tile System)
 
+> **준거 상위 (Authority):** T-03, D-20, D-04
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-05-11

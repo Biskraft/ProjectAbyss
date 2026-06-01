@@ -1,6 +1,16 @@
 import { Graphics, Sprite } from 'pixi.js';
 import { Entity } from './Entity';
-import { resolveX, resolveY, isInWater, isOnIce } from '@core/Physics';
+import {
+  resolveX,
+  resolveY,
+  resolveXPixelStep,
+  resolveYPixelStep,
+  resolveXPixelStepWithSlopes2x1,
+  resolveYPixelStepWithSlopes2x1,
+  isInWater,
+  isOnIce,
+  isSolid,
+} from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
@@ -11,6 +21,7 @@ import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
 const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
 const TILE_SIZE = 16;
+const ENEMY_SLOPE_2X1_SNAP_PX = 4;
 
 /**
  * Chase 시 선회 hysteresis + cooldown + 관성 정지 (사용자 결정 2026-05-04, Q1+Q3).
@@ -104,6 +115,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   // Physics
   protected grounded = false;
+  private moveRemainderX = 0;
+  private moveRemainderY = 0;
 
   // Environment state (for VFX: WaterSplash / WaterBubbles / IceSkidStreak).
   // Player 와 동일한 의미를 유지한다:
@@ -148,6 +161,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private static readonly WALL_BLOCK_THRESHOLD = EnemyConst.WallBlockThresholdMs;
   private static readonly JUMP_COOLDOWN = EnemyConst.JumpCooldownMs;
   private jumpCooldownTimer = 0;
+  private navJumpCarryDir: 1 | -1 = 1;
+  private navJumpCarryTimer = 0;
 
   // Target reference
   target: CombatEntity | null = null;
@@ -283,23 +298,55 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.grounded = false;
     } else {
       // Ground enemies: gravity + full collision (wall, platform, one-way).
+      if (this.navJumpCarryTimer > 0) {
+        this.navJumpCarryTimer = Math.max(0, this.navJumpCarryTimer - dt);
+        if (this.grounded || this.fsm.currentState === 'hit' || this.fsm.currentState === 'death') {
+          this.navJumpCarryTimer = 0;
+        } else if (this.vy < 80) {
+          this.vx = this.navJumpCarryDir * Math.max(Math.abs(this.vx), this.moveSpeed);
+        }
+      }
+
       this.vy += GRAVITY * dtSec;
       if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
+      if (this.grounded && this.vy < -1) this.grounded = false;
 
       if (this.roomData.length > 0) {
-        const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec * cyroMoveMult, this.roomData);
+        const intendedVx = this.vx;
+        const horizontalIntent = Math.abs(intendedVx) > 1;
+        const moveX = this.consumePixelMoveX(intendedVx * dtSec * cyroMoveMult);
+        const slopeEligibleX = this.grounded || this.vy >= 0;
+        let rx = {
+          ...resolveXPixelStep(this.x, this.y, this.width, this.height, moveX, this.roomData),
+          y: this.y,
+          onSlope: false,
+        };
+        if (rx.collided && slopeEligibleX && moveX !== 0) {
+          rx = resolveXPixelStepWithSlopes2x1(
+            this.x, this.y, this.width, this.height,
+            moveX, this.roomData, ENEMY_SLOPE_2X1_SNAP_PX,
+          );
+        }
         this.x = rx.x;
+        this.y = rx.y;
+
+        const moveDir: 1 | -1 = intendedVx > 0 ? 1 : -1;
+        const wallBlocked = horizontalIntent &&
+          (rx.collided || (moveX === 0 && this.isWallBlockedAhead(moveDir)));
 
         // Wall-blocked jump: scan wall height, jump just enough to clear it
-        if (rx.collided && this.vx !== 0) {
+        if (wallBlocked) {
           this.vx = 0;
           if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0) {
             this.wallBlockedTimer += dt;
             if (this.wallBlockedTimer >= Enemy.WALL_BLOCK_THRESHOLD) {
-              const wallHeight = this.scanWallHeight();
+              const wallHeight = this.scanWallHeight(moveDir);
               if (wallHeight > 0 && wallHeight <= this.jumpTiles) {
                 const jumpHeight = (wallHeight + 1) * TILE_SIZE;
                 this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
+                this.grounded = false;
+                this.navJumpCarryDir = moveDir;
+                this.navJumpCarryTimer = 450;
                 this.wallBlockedTimer = 0;
                 this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
               } else {
@@ -312,13 +359,29 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
           this.wallBlockedTimer = 0;
         }
         if (rx.collided) this.vx = 0;
+        if (this.navJumpCarryTimer > 0 && this.vy < 80) {
+          this.vx = this.navJumpCarryDir * Math.max(Math.abs(this.vx), this.moveSpeed);
+        }
 
-        const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec, this.roomData);
+        const moveY = this.consumePixelMoveY(this.vy * dtSec);
+        const slopeEligibleY = this.grounded || this.vy >= 0;
+        const ry = slopeEligibleY
+          ? resolveYPixelStepWithSlopes2x1(
+            this.x, this.y, this.width, this.height,
+            moveY, this.roomData, false, ENEMY_SLOPE_2X1_SNAP_PX,
+          )
+          : {
+            ...resolveYPixelStep(this.x, this.y, this.width, this.height, moveY, this.roomData),
+            onSlope: false,
+          };
         this.y = ry.y;
-        this.grounded = ry.grounded;
+        const upwardMotion = moveY < 0 || this.vy < -1;
+        const groundedBySlope = !upwardMotion && (rx.onSlope || ry.onSlope);
+        this.grounded = ry.grounded || groundedBySlope;
         if (ry.collided) {
-          if (this.vy > 0) this.vy = 0;
-          if (this.vy < 0) this.vy = 0;
+          this.vy = 0;
+        } else if ((rx.onSlope || ry.onSlope) && this.vy > 0) {
+          this.vy = 0;
         }
       }
     }
@@ -567,6 +630,20 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.turnPauseMs = 0;
   }
 
+  private consumePixelMoveX(amount: number): number {
+    this.moveRemainderX += amount;
+    const move = Math.round(this.moveRemainderX);
+    if (move !== 0) this.moveRemainderX -= move;
+    return move;
+  }
+
+  private consumePixelMoveY(amount: number): number {
+    this.moveRemainderY += amount;
+    const move = Math.round(this.moveRemainderY);
+    if (move !== 0) this.moveRemainderY -= move;
+    return move;
+  }
+
   /**
    * Flying enemy: move toward target in both X and Y (direct line).
    * Wall collision handled by the base update()'s resolveX/Y for flying.
@@ -680,10 +757,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    * Scan the wall in front of the enemy to measure its height in tiles.
    * Returns 0 if no wall, or the number of solid tiles stacked vertically.
    */
-  private scanWallHeight(): number {
+  private scanWallHeight(dir: 1 | -1 = this.facingRight ? 1 : -1): number {
     if (this.roomData.length === 0) return 0;
     const TILE = 16;
-    const dir = this.facingRight ? 1 : -1;
     // Check column in front of the enemy
     const checkCol = dir > 0
       ? Math.floor((this.x + this.width + 2) / TILE)
@@ -697,13 +773,25 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     // Count solid tiles upward from feet level
     let height = 0;
     for (let row = feetRow; row >= 0; row--) {
-      if (this.roomData[row]?.[checkCol] === 1) {
+      if (isSolid(this.roomData[row]?.[checkCol] ?? 1)) {
         height++;
       } else {
         break; // found air — wall ends here
       }
     }
     return height;
+  }
+
+  private isWallBlockedAhead(dir: 1 | -1): boolean {
+    if (this.roomData.length === 0) return false;
+    const leadX = dir > 0 ? this.x + this.width + 1 : this.x - 1;
+    const checkCol = Math.floor(leadX / TILE_SIZE);
+    const topRow = Math.floor(this.y / TILE_SIZE);
+    const bottomRow = Math.floor((this.y + this.height - 1) / TILE_SIZE);
+    for (let row = topRow; row <= bottomRow; row++) {
+      if (isSolid(this.roomData[row]?.[checkCol] ?? 1)) return true;
+    }
+    return false;
   }
 
   protected stateHitUpdate(dt: number): void {

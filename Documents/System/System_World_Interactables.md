@@ -1,5 +1,6 @@
 # System_World_Interactables.md — 월드 상호작용 오브젝트 시스템
 
+> **준거 상위 (Authority):** T-03, D-20, D-04
 > **작성 기준:** 코드 역기획서 (Code-First Reverse GDD)
 > **소스 파일:** `game/src/entities/Anvil.ts`, `game/src/entities/Altar.ts`, `game/src/entities/Portal.ts`, `game/src/entities/Switch.ts`, `game/src/entities/LockedDoor.ts`
 > **필수 참고:** `Documents/Terms/Project_Vision_Abyss.md`, `Documents/Terms/GDD_Writing_Rules.md`

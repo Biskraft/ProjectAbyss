@@ -1,5 +1,7 @@
 # 분석 및 텔레메트리 시스템 (SYS-TEL-01)
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 > 최근 업데이트: 2026-04-21

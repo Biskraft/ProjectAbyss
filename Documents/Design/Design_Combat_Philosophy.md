@@ -1,5 +1,7 @@
 # 전투 설계 철학 (Combat Design Philosophy)
 
+> **준거 상위 (Authority):** T-03
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Vision: `Documents/Terms/Project_Vision_Abyss.md`

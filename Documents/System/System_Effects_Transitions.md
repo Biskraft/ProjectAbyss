@@ -1,5 +1,6 @@
 # System_Effects_Transitions.md — 이펙트 및 씬 전환 시스템
 
+> **준거 상위 (Authority):** T-03
 > **작성 기준:** 코드 역기획서 (Code-First Reverse GDD)
 > **소스 파일:** `game/src/effects/MemoryDive.ts`, `game/src/effects/PortalTransition.ts`, `game/src/effects/FloorCollapse.ts`, `game/src/effects/ScreenFlash.ts`, `game/src/effects/HitSpark.ts`
 > **필수 참고:** `Documents/Terms/Project_Vision_Abyss.md`, `Documents/Terms/GDD_Writing_Rules.md`

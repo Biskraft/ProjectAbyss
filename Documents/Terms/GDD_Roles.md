@@ -1,5 +1,7 @@
 # GDD 역할 정의 (GDD Roles)
 
+> **준거 상위 (Authority):** T-03
+
 ## 정체성 (Identity)
 
 * Role: 수석 게임 디자이너 (Lead Game Designer)

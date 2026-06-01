@@ -1,5 +1,7 @@
 # 캐릭터 물리 & 상태 머신 (Character Physics & State Machine)
 
+> **준거 상위 (Authority):** T-03, D-09
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-04-08

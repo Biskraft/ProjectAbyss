@@ -1,5 +1,7 @@
 # 월드 절차적 생성 시스템 (World Procedural Generation System)
 
+> **준거 상위 (Authority):** T-03, D-20, D-10
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 * Project Definition: `Documents/Terms/Project_Vision_Abyss.md`
@@ -10,7 +12,8 @@
 
 ## 구현 현황 (Implementation Status)
 
-> **최근 업데이트:** 2026-03-23
+> **최근 업데이트:** 2026-06-01
+> v3 정합 (D-20 §7): 구역명/상승 축 갱신, 알고리즘 유지
 > **문서 상태:** `작성 중 (Draft)`
 > **2-Space:** World
 > **기둥:** 탐험
@@ -43,7 +46,7 @@ ECHORIS의 월드 생성은 **핸드크래프트의 감성과 절차적 생성�
 | 매크로 (Macro)      | 핸드크래프트   | 층위 배치, 층위 간 연결, 내러티브 흐름     | 월하의 야상곡 (성 구조 고정 배치)         |
 | 마이크로 (Micro)    | 절차적 생성    | 층위 내부 Room Grid, Chunk 배치, 오브젝트  | 스펠렁키 (4x4 Grid), 데드셀 (PCG 파이프라인) |
 
-- **매크로 계층**: 7개 층위(중앙 성채, 연구소 폐허, 빙결 보존소, 지하 수로, 묘지/카타콤, 천공의 정원, 심연의 구)의 위치와 연결 관계는 모든 시드에서 동일하다. 탐험의 방향성과 내러티브 흐름을 보장한다.
+- **매크로 계층**: 7개 구역(침수 바닥층, 무너진 거주 구역, 거대 공장층, 무너진 환승역, 봉인된 하부, 대 안치소, 정상 — 관제정)의 위치와 연결 관계는 모든 시드에서 동일하다. 탐험의 방향성과 내러티브 흐름을 보장한다.
 - **마이크로 계층**: 각 층위 내부의 Room 배치, Room 내 Chunk 조합, 적/아이템/함정 배치는 시드에 의해 절차적으로 생성된다. 리플레이 가치를 제공한다.
 
 ### 1-3. 문제-해결 점검 (Cursed Problem Check)
@@ -83,14 +86,13 @@ flowchart TD
 서버에 저장된 층위 연결 그래프(Zone Connectivity Graph)를 로드한다. 이 그래프는 모든 시드에서 동일하다.
 
 ```mermaid
-graph LR
-    CK["중앙 성채\n(Central Keep)"] --- ML["연구소 폐허\n(Ruined Lab)"]
-    CK --- IC["빙결 보존소\n(Glacial Archive)"]
-    CK --- UW["지하 수로\n(Underground Waterway)"]
-    UW --- CT["묘지/카타콤\n(Catacombs)"]
-    ML --- ST["천공의 정원\n(Celestial Garden)"]
-    CT --- AB["심연의 구\n(Abyss)"]
-    ST --- AB
+graph BT
+    DF["침수 바닥층\n(the Drowned Floor)"] --- CW["무너진 거주 구역\n(the Collapsed Wards)"]
+    CW --- GW["거대 공장층\n(the Great Works)"]
+    GW --- BC["무너진 환승역\n(the Broken Concourse)"]
+    BC -. "급강하 (추락)" .-> SU["봉인된 하부\n(the Sealed Underworks)"]
+    SU --- GI["대 안치소\n(the Great Internment)"]
+    GI --- CR["정상 — 관제정\n(the Crown)"]
 ```
 
 - **Action**: 서버가 시드를 결정하고, 매크로 그래프를 로드한다.
@@ -185,13 +187,13 @@ Critical Path와 비경로 Room에 각각 Type을 배정한다. Room Type은 해
 
 | 바이옴 ID          | 층위명          | 최소 Chunk 수 | 특수 Chunk                        |
 | :------------------ | :-------------- | :-----------: | :-------------------------------- |
-| castle_interior     | 중앙 성채       |      40       | 왕좌실, 무기고, 대회랑            |
-| arcane              | 연구소 폐허     |      40       | 마법진, 포탈 방, 실험실           |
-| ice                 | 빙결 보존소     |      40       | 빙벽, 미끄러운 바닥, 고드름 함정  |
-| water               | 지하 수로       |      40       | 수중 통로, 수문, 급류             |
-| dark                | 묘지/카타콤     |      40       | 석관, 함정 통로, 은밀한 방        |
-| sky                 | 천공의 정원     |      40       | 부유 발판, 강풍 구간, 전망대      |
-| void                | 심연의 구       |      50       | 불안정 지형, 공허 구간, 보스 아레나 |
+| drowned_floor       | 침수 바닥층     |      40       | 침수 갱도, 폐기물 처리장, 녹슨 격자 |
+| collapsed_wards     | 무너진 거주 구역 |      40       | 아파트 협곡, 시장 골목, 잔존자 마을 |
+| great_works         | 거대 공장층     |      40       | 조립 라인, 활성 용광로, 컨베이어 통로 |
+| broken_concourse    | 무너진 환승역   |      40       | 거대 대합실, 침수 승강장, 끊긴 선로 |
+| sealed_underworks   | 봉인된 하부     |      40       | 격리 감방동, 빌더 핵, 글리치 구역  |
+| great_internment    | 대 안치소       |      40       | 안치 포드 본당, 산 얼굴 회랑, 송신탑 제단 |
+| crown               | 정상 — 관제정   |      50       | 외부 발판, 관제 시설, 빈 옥좌의 방 |
 
 - 각 바이옴의 Chunk 풀은 최소 수량 이상을 확보해야 반복감을 방지한다.
 - 특수 Chunk는 해당 바이옴에서만 출현한다.
@@ -226,7 +228,7 @@ Critical Path와 비경로 Room에 각각 Type을 배정한다. Room Type은 해
 
 생성 완료 후 다음 검증을 실행한다.
 
-1. 시작 지점(중앙 성채 입구)에서 최종 보스(심연의 구)까지 경로가 존재하는지 BFS로 확인한다.
+1. 시작 지점(침수 바닥층 입구)에서 최종 보스(정상 관제정)까지 경로가 존재하는지 BFS로 확인한다.
 2. 경로 상의 모든 능력 게이트에 대해, 해당 능력의 획득 지점이 경로상 이전에 존재하는지 확인한다.
 3. 각 층위 내부의 Critical Path가 Type 0 Room에 의해 차단되지 않았는지 확인한다.
 4. 검증 실패 시 현재 시드를 폐기하고 시드 값을 +1 증가시켜 재생성한다.
@@ -250,49 +252,49 @@ world_procgen:
     type: "server_fixed"     # 서버에서 시드 고정
     reseed_max_retry: 10     # 재시드 최대 시도 횟수
 
-  # 층위 정의
+  # 구역 정의 (D-20 §3, 상승 순)
   zones:
-    central_keep:
-      display_name: "중앙 성채 (Central Keep)"
+    drowned_floor:
+      display_name: "침수 바닥층 (the Drowned Floor)"
       grid_size: "4x4"
       difficulty: 1
-      biome: "castle_interior"
+      biome: "drowned_floor"
       is_start_zone: true
-    magic_lab:
-      display_name: "연구소 폐허 (Ruined Lab)"
+    collapsed_wards:
+      display_name: "무너진 거주 구역 (the Collapsed Wards)"
       grid_size: "4x3"
       difficulty: 3
-      biome: "arcane"
+      biome: "collapsed_wards"
       is_start_zone: false
-    ice_cavern:
-      display_name: "빙결 보존소 (Glacial Archive)"
+    great_works:
+      display_name: "거대 공장층 (the Great Works)"
       grid_size: "3x4"
       difficulty: 3
-      biome: "ice"
+      biome: "great_works"
       is_start_zone: false
-    underground_waterway:
-      display_name: "지하 수로 (Underground Waterway)"
+    broken_concourse:
+      display_name: "무너진 환승역 (the Broken Concourse)"
       grid_size: "5x3"
       difficulty: 2
-      biome: "water"
+      biome: "broken_concourse"
       is_start_zone: false
-    catacombs:
-      display_name: "묘지/카타콤 (Catacombs)"
+    sealed_underworks:
+      display_name: "봉인된 하부 (the Sealed Underworks)"
       grid_size: "4x4"
       difficulty: 2
-      biome: "dark"
+      biome: "sealed_underworks"
       is_start_zone: false
-    sky_tower:
-      display_name: "천공의 정원 (Celestial Garden)"
+    great_internment:
+      display_name: "대 안치소 (the Great Internment)"
       grid_size: "3x5"
       difficulty: 4
-      biome: "sky"
+      biome: "great_internment"
       is_start_zone: false
-    abyss:
-      display_name: "심연의 구 (Abyss)"
+    crown:
+      display_name: "정상 — 관제정 (the Crown)"
       grid_size: "5x5"
       difficulty: 5
-      biome: "void"
+      biome: "crown"
       is_start_zone: false
 
   # 적 배치 밀도 (난이도별 전투 타일 비율)
@@ -330,7 +332,7 @@ world_procgen:
   # Chunk 풀 최소 요구 수량
   min_chunk_pool_size:
     default: 40
-    void: 50                 # 심연의 구는 50개 이상
+    crown: 50                # 정상 관제정은 50개 이상
 ```
 
 ---
@@ -381,7 +383,7 @@ world_procgen:
 
 ## 검증 기준 (Verification Checklist)
 
-* [ ] 모든 시드에서 시작 지점(중앙 성채)에서 최종 보스(심연의 구)까지 경로가 존재한다
+* [ ] 모든 시드에서 시작 지점(침수 바닥층)에서 최종 보스(정상 관제정)까지 경로가 존재한다
 * [ ] Critical Path 위에 능력 게이트가 배치되지 않는다
 * [ ] 각 층위의 Room Grid 크기가 파라미터 범위 내이다
 * [ ] 바이옴별 Chunk 풀이 최소 수량 이상 확보되어 있다

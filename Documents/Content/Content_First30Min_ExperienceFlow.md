@@ -1,5 +1,6 @@
 # ECHORIS — 첫 30분 경험 플로우
 
+> **준거 상위 (Authority):** T-03, D-20
 > 문서 ID: CNT-EXP-001 (NarrativeWorldReset 후속 라운드 첫 활성 경험 플로우)
 > 작성일: 2026-05-28
 > 정합: CNT-STR-001 (시놉시스), CNT-CHR-001 (캐릭터)

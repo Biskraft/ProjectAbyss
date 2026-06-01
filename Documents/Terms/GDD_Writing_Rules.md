@@ -1,5 +1,7 @@
 # ECHORIS: GDD 작성 표준 가이드 (GDD Writing Standards)
 
+> **준거 상위 (Authority):** T-03
+
 본 문서는 ECHORIS의 기획서가 "문서이자 데이터베이스"로 기능하기 위한 작성 규칙을 정의합니다. 레퍼런스 분석(GDC 강연, 사쿠라이 인사이트, GMTK 등)과 실전 GDD 사례를 기반으로 합니다.
 
 ---

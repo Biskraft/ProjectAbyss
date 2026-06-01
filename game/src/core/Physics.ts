@@ -684,6 +684,35 @@ function isSlopeSupportCell(slope: SlopeSegment2x1, col: number, row: number): b
   return false;
 }
 
+export function isSlope2x1SupportCell(roomData: number[][], col: number, row: number): boolean {
+  for (let startCol = col - 2; startCol <= col + 1; startCol++) {
+    for (let lowRow = row; lowRow <= row + 1; lowRow++) {
+      const candidates = [
+        buildUpRightSlope(roomData, startCol, lowRow),
+        buildUpLeftSlope(roomData, startCol, lowRow),
+      ];
+      for (const slope of candidates) {
+        if (slope && isSlopeSupportCell(slope, col, row)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function hasGroundSupportAtFoot(
+  footX: number,
+  feetY: number,
+  roomData: number[][],
+  ignoreOneWay = false,
+  slopeSnapDistancePx = 4,
+): boolean {
+  if (findSlope2x1AtFoot(footX, feetY, roomData, slopeSnapDistancePx)) return true;
+  const col = Math.floor(footX / TILE_SIZE);
+  const row = Math.floor(feetY / TILE_SIZE);
+  const tile = getTile(roomData, col, row);
+  return isSolid(tile) || (isOneWay(tile) && !ignoreOneWay);
+}
+
 function overlapsSolidAabbWithSlopeSupport(
   x: number, y: number, width: number, height: number,
   roomData: number[][], slope: SlopeSegment2x1,

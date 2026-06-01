@@ -1,5 +1,7 @@
 # D-01: 2-Space Architecture (공간 분리 모델 설계 철학)
 
+> **준거 상위 (Authority):** T-03
+
 ## 0. 필수 참고 자료 (Mandatory References)
 
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md` (3대 기둥, 2-Space, 핵심 판타지, 금지 규칙)

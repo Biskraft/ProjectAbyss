@@ -1,199 +1,199 @@
-﻿# ECHORIS 湲곗닠 ?ㅽ깮 (Project Tech Stack)
+# ECHORIS 기술 스택 (Project Tech Stack)
 
-## 援ы쁽 ?꾪솴 (Implementation Status)
+## 구현 현황 (Implementation Status)
 
-> **理쒓렐 ?낅뜲?댄듃:** 2026-04-17
-> **臾몄꽌 ?곹깭:** `?묒꽦 以?(Draft)`
-> **沅뚯쐞 ?꾩튂:** ??臾몄꽌媛 ECHORIS 湲곗닠 ?ㅽ깮??SSoT?대ŉ, `CLAUDE.md`???붿빟 ?뚯씠釉붿? ??臾몄꽌?먯꽌 ?뚯깮?⑸땲??
+> **최근 업데이트:** 2026-04-17
+> **문서 상태:** `작성 중 (Draft)`
+> **권위 위치:** 이 문서가 ECHORIS 기술 스택의 SSoT이며, `CLAUDE.md`의 요약 테이블은 이 문서에서 파생됩니다.
 
 ---
 
-## 0. ?꾩닔 李멸퀬 ?먮즺 (Mandatory References)
+## 0. 필수 참고 자료 (Mandatory References)
 
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
 - Document Index: `Documents/Terms/Document_Index.md`
 - Sheets Writing Rules: `Documents/Terms/Sheets_Writing_Rules.md`
 - Performance Budget: `Documents/System/System_Performance_Budget.md`
-- Game Overview: `Reference/寃뚯엫 湲고쉷 媛쒖슂.md`
+- Game Overview: `Reference/게임 기획 개요.md`
 
 ---
 
-## 1. ?대씪?댁뼵???ㅽ깮 (Client Stack)
+## 1. 클라이언트 스택 (Client Stack)
 
-| 遺꾨쪟         | 湲곗닠             | 踰꾩쟾     | ?⑸룄                                                                 |
+| 분류         | 기술             | 버전     | 용도                                                                 |
 | :----------- | :--------------- | :------- | :------------------------------------------------------------------- |
-| ?뚮뜑??      | PixiJS           | ^8.6.6   | 2D ?뚮뜑留?(WebGL ?곗꽑, WebGPU ???                                  |
-| ??쇰㏊       | @pixi/tilemap    | ^4.1.0   | LDtk ????덉씠???뚮뜑留?(Auto/IntGrid)                               |
-| ?몄뼱         | TypeScript       | ^5.7.0   | 硫붿씤 ?몄뼱. `strict` 紐⑤뱶, `@core/*`/`@scenes/*` path alias           |
-| 鍮뚮뱶         | Vite             | ^6.0.0   | 媛쒕컻 ?쒕쾭 + ?꾨줈?뺤뀡 踰덈뱾. `?raw` ?꾪룷?몃줈 CSV ?몃씪??踰덈뱾           |
-| ?ㅻ뵒??      | Howler.js        | (?덉젙)   | BGM/SFX ?ъ깮 (Phase 2 ?꾩엯 ?덉젙)                                     |
-| ?낅젰         | ?먯껜 援ы쁽        | -        | KeyboardInput + KEY_CHAR_TO_CODE fallback (?쒓? IME ???            |
-| ?먯뀑 濡쒕뜑    | ?먯껜 援ы쁽 (`@core/AssetLoader`) | -        | `assetPath()`濡?`BASE_URL` ?댁냼 (GitHub Pages / 濡쒖뺄 dev ?명솚)       |
+| 렌더러       | PixiJS           | ^8.6.6   | 2D 렌더링 (WebGL 우선, WebGPU 대응)                                  |
+| 타일맵       | @pixi/tilemap    | ^4.1.0   | LDtk 타일 레이어 렌더링 (Auto/IntGrid)                               |
+| 언어         | TypeScript       | ^5.7.0   | 메인 언어. `strict` 모드, `@core/*`/`@scenes/*` path alias           |
+| 빌드         | Vite             | ^6.0.0   | 개발 서버 + 프로덕션 번들. `?raw` 임포트로 CSV 인라인 번들           |
+| 오디오       | Howler.js        | (예정)   | BGM/SFX 재생 (Phase 2 도입 예정)                                     |
+| 입력         | 자체 구현        | -        | KeyboardInput + KEY_CHAR_TO_CODE fallback (한글 IME 대응)            |
+| 에셋 로더    | 자체 구현 (`@core/AssetLoader`) | -        | `assetPath()`로 `BASE_URL` 해소 (GitHub Pages / 로컬 dev 호환)       |
 
-### 二쇱슂 ?붾젆?좊━
+### 주요 디렉토리
 
 ```
 game/
-?쒋?? src/
-??  ?쒋?? core/          # AssetLoader, Input, Events, FrameClock
-??  ?쒋?? scenes/        # LdtkWorldScene, ItemWorldScene, BootScene
-??  ?쒋?? effects/       # PaletteSwapFilter, HitStop, ScreenShake
-??  ?쒋?? data/          # CSV 濡쒕뜑 (areaPalettes, weaponLore, ...)
-??  ?쒋?? entities/      # Player, Enemy, Memory Shard
-??  ?붴?? ui/            # HUD, DepthGauge, LoreDisplay
-?쒋?? public/assets/     # ?뺤쟻 ?먯뀑 (atlas/, ldtk ?놁씠 public 吏곸냽)
-?붴?? dist/              # `npx vite build` 異쒕젰
+├── src/
+│   ├── core/          # AssetLoader, Input, Events, FrameClock
+│   ├── scenes/        # LdtkWorldScene, ItemWorldScene, BootScene
+│   ├── effects/       # PaletteSwapFilter, HitStop, ScreenShake
+│   ├── data/          # CSV 로더 (areaPalettes, weaponLore, ...)
+│   ├── entities/      # Player, Enemy, Memory Shard
+│   └── ui/            # HUD, DepthGauge, LoreDisplay
+├── public/assets/     # 정적 에셋 (atlas/, ldtk 없이 public 직속)
+└── dist/              # `npx vite build` 출력
 ```
 
 ---
 
-## 2. ?덈꺼 ?먮뵒??(Level Editor)
+## 2. 레벨 에디터 (Level Editor)
 
-| ??ぉ          | ?댁슜                                                                                        |
+| 항목          | 내용                                                                                        |
 | :------------ | :------------------------------------------------------------------------------------------ |
-| ?꾧뎄          | **LDtk (Level Designer Toolkit)** ??`world_layout: GridVania` Multi-World 紐⑤뱶              |
-| ?꾨줈?앺듃      | `game/public/assets/World_ProjectAbyss.ldtk`                                                |
-| ?덉씠??洹쒖빟   | BG(Background) / Walls(IntGrid+Auto) / Shadow / Entities                                    |
-| ?뷀떚???ㅼ씠諛?| PascalCase (`PlayerSpawn`, `SavePoint`, `ItemDrop` ??. ?꾨뱶 key/enum??PascalCase          |
-| ?고????뚯꽌   | ?먯껜 援ы쁽 (`@core/LdtkLoader`). Tiled? ?ъ슜?섏? ?딆쓬 (`CLAUDE.md` 援??쒓린???먭린 ?덉젙)     |
-| 硫?곗썡??     | 媛?Level??`worldX/worldY` 醫뚰몴濡?World Map 援ъ꽦. ???꾩씠??Neighbour ?뷀듃由?湲곕컲           |
+| 도구          | **LDtk (Level Designer Toolkit)** — `world_layout: GridVania` Multi-World 모드              |
+| 프로젝트      | `game/public/assets/World_ProjectAbyss.ldtk`                                                |
+| 레이어 규약   | BG(Background) / Walls(IntGrid+Auto) / Shadow / Entities                                    |
+| 엔티티 네이밍 | PascalCase (`PlayerSpawn`, `SavePoint`, `ItemDrop` 등). 필드 key/enum도 PascalCase          |
+| 런타임 파서   | 자체 구현 (`@core/LdtkLoader`). Tiled은 사용하지 않음 (`CLAUDE.md` 구 표기는 폐기 예정)     |
+| 멀티월드      | 각 Level의 `worldX/worldY` 좌표로 World Map 구성. 씬 전이는 Neighbour 엔트리 기반           |
 
-### ??쇱뀑 沅뚯쐞??洹쒖튃 (Tileset Authority)
+### 타일셋 권위성 규칙 (Tileset Authority)
 
-- **LDtk??`__tilesetRelPath`??李몄“?⑹씠硫? ?ㅼ젣 ?뚮뜑留???쇱뀑? CSV `Content_System_Area_Palette.csv`??`Tileset` 而щ읆??寃곗젙?⑸땲??* (DEC-024).
-- ?고??꾩뿉??`aliasAreaTilesetForLdtkTiles(areaId, tiles, atlases)`媛 CSV 吏???꾪??쇱뒪瑜?LDtk媛 湲곕??섎뒗 寃쎈줈?먮룄 蹂꾩묶 ?깅줉?⑸땲??
-- ?뺣텇??LDtk ?뚯씪???섏젙?섏? ?딄퀬 CSV ??以꾨쭔 諛붽퓭 諛붿씠????쇱뀑??援먯껜?????덉뒿?덈떎.
+- **LDtk의 `__tilesetRelPath`는 참조용이며, 실제 렌더링 타일셋은 CSV `Content_System_Area_Palette.csv`의 `Tileset` 컬럼이 결정합니다** (DEC-024).
+- 런타임에서 `aliasAreaTilesetForLdtkTiles(areaId, tiles, atlases)`가 CSV 지정 아틀라스를 LDtk가 기대하는 경로에도 별칭 등록합니다.
+- 덕분에 LDtk 파일을 수정하지 않고 CSV 한 줄만 바꿔 바이옴 타일셋을 교체할 수 있습니다.
 
 ---
 
-## 3. ?곗씠??SSoT / CSV ?뚯씠?꾨씪??(Content Pipeline)
+## 3. 데이터 SSoT / CSV 파이프라인 (Content Pipeline)
 
-### ?먯튃: ?곗씠?곕뒗 ?꾨? CSV, 肄붾뱶??由щ뜑留??뚯쑀
+### 원칙: 데이터는 전부 CSV, 코드는 리더만 소유
 
-紐⑤뱺 肄섑뀗痢??ㅽ꺈, ?쒕∼, ?붾젅?? 濡쒖뼱, ?ㅽ룿 ?뚯씠釉???`Sheets/`??CSV??湲곕줉?섎ŉ, TypeScript??`?raw` ?꾪룷?몃줈 鍮뚮뱶??꾩뿉 踰덈뱾?⑸땲?? CastleDB/Google Sheets ?ㅽ??쇱쓽 愿怨꾪삎 李몄“瑜?CSV濡?援ы쁽?⑸땲??
+모든 콘텐츠(스탯, 드롭, 팔레트, 로어, 스폰 테이블)는 `Sheets/`의 CSV에 기록되며, TypeScript는 `?raw` 임포트로 빌드타임에 번들됩니다. CastleDB/Google Sheets 스타일의 관계형 참조를 CSV로 구현합니다.
 
-### ?꾩옱 ?쒗듃 紐⑸줉 (`Sheets/`)
+### 현재 시트 목록 (`Sheets/`)
 
-| ?뚯씪                                       | ??븷                                      |
+| 파일                                       | 역할                                      |
 | :----------------------------------------- | :---------------------------------------- |
-| `Content_System_Area_Palette.csv`          | 諛붿씠???붾젅??+ ??쇱뀑 (沅뚯쐞)             |
-| `Content_System_Damage_Formula.csv`        | ?곕?吏 怨듭떇 ?곸닔                          |
-| `Content_Stats_Character_Base.csv`         | ?뚮젅?댁뼱 湲곕낯 ?ㅽ꺈                        |
-| `Content_Stats_Enemy.csv`                  | ???ㅽ꺈 ?뚯씠釉?                           |
-| `Content_Stats_Weapon_List.csv`            | 臾닿린 紐⑸줉 (100醫?紐⑺몴)                    |
-| `Documents/Content/_archive/LoreWeapons_DEC023/` | DEC-023 weapon lore archive (CSV/runtime path retired) |
-| `Content_Rarity.csv`                       | ?덉뼱由ы떚 諛곗쑉 / 湲곗뼲 ?⑦렪 ?щ’ / 吏痢???  |
-| `Content_Combat_Combo.csv`                 | 肄ㅻ낫 ?쇱슦??                              |
-| `Content_Memory Shards.csv`                    | 湲곗뼲 ?⑦렪 醫낅쪟/?④낵                        |
-| `Content_Item_DropRate.csv`                | ?쒕∼ ?뺣쪧 ?뚯씠釉?                         |
-| `Content_Item_Growth.csv`                  | ?꾩씠??EXP ?깆옣 怨≪꽑                      |
-| `Content_ItemWorld_MemoryRooms.csv`        | 湲곗뼲??諛??쒗뵆由?                         |
-| `Content_ItemWorld_SpawnTable.csv`         | ?꾩씠?쒓퀎 ?ㅽ룿 ?뚯씠釉?                     |
-| `Content_StrataConfig.csv`                 | 吏痢듬퀎 ?뚮씪誘명꽣                           |
-| `LoreTexts/` (?대뜑)                        | 臾닿린/?섍꼍/紐ъ뒪??濡쒖뼱 蹂몃Ц (Markdown)     |
+| `Content_System_Area_Palette.csv`          | 바이옴 팔레트 + 타일셋 (권위)             |
+| `Content_System_Damage_Formula.csv`        | 데미지 공식 상수                          |
+| `Content_Stats_Character_Base.csv`         | 플레이어 기본 스탯                        |
+| `Content_Stats_Enemy.csv`                  | 적 스탯 테이블                            |
+| `Content_Stats_Weapon_List.csv`            | 무기 목록 (100종 목표)                    |
+| `Content_Stats_Weapon_Lore.csv`            | 무기 로어 메타 (하이브리드, 본문은 MD)    |
+| `Content_Rarity.csv`                       | 레어리티 배율 / 기억 단편 슬롯 / 지층 수   |
+| `Content_Combat_Combo.csv`                 | 콤보 라우팅                               |
+| `Content_Memory Shards.csv`                    | 기억 단편 종류/효과                        |
+| `Content_Item_DropRate.csv`                | 드롭 확률 테이블                          |
+| `Content_Item_Growth.csv`                  | 아이템 EXP 성장 곡선                      |
+| `Content_ItemWorld_MemoryRooms.csv`        | 기억의 방 템플릿                          |
+| `Content_ItemWorld_SpawnTable.csv`         | 아이템계 스폰 테이블                      |
+| `Content_StrataConfig.csv`                 | 지층별 파라미터                           |
+| `LoreTexts/` (폴더)                        | 무기/환경/몬스터 로어 본문 (Markdown)     |
 
-### ?섏씠釉뚮━???꾨왂 (CSV + Markdown)
+### 하이브리드 전략 (CSV + Markdown)
 
-- **CSV**: ?レ옄/ID/enum ??寃利?媛?ν븳 援ъ“???곗씠??
-- **Markdown** (`Sheets/LoreTexts/*.md`): 湲??쒖닠臾??ㅺ뎅??濡쒖뼱 蹂몃Ц
-- CSV?먯꽌 `LoreKey` 而щ읆?쇰줈 MD ?뚯씪??李몄“?⑸땲??(DEC-023).
+- **CSV**: 숫자/ID/enum 등 검증 가능한 구조화 데이터
+- **Markdown** (`Sheets/LoreTexts/*.md`): 긴 서술문/다국어 로어 본문
+- CSV에서 `LoreKey` 컬럼으로 MD 파일을 참조합니다 (DEC-023).
 
-### ?몃씪???щ㎎ (Sheets_Writing_Rules)
+### 인라인 포맷 (Sheets_Writing_Rules)
 
-- ?붾젅???ㅽ넲: `"0.00:3a1a28|0.20:6a2a3a|..."` (t:hex pairs, `|` 援щ텇)
-- 諛곗뿴: `"a;b;c"` (?몃?肄쒕줎 援щ텇)
-- 二쇱꽍 而щ읆: `Description` 留덉?留?而щ읆?쇰줈 怨좎젙
+- 팔레트 스톱: `"0.00:3a1a28|0.20:6a2a3a|..."` (t:hex pairs, `|` 구분)
+- 배열: `"a;b;c"` (세미콜론 구분)
+- 주석 컬럼: `Description` 마지막 컬럼으로 고정
 
 ---
 
-## 4. 鍮꾩＜???뚮뜑留??뚯씠?꾨씪??(Visual Pipeline)
+## 4. 비주얼 렌더링 파이프라인 (Visual Pipeline)
 
-| ?④퀎              | 援ъ꽦?붿냼                     | ?ㅻ챸                                                                 |
+| 단계              | 구성요소                     | 설명                                                                 |
 | :---------------- | :--------------------------- | :------------------------------------------------------------------- |
-| ?붾젅???ㅼ솑       | `effects/PaletteSwapFilter`  | 1D LUT (256횞N ?꾪??쇱뒪). 諛붿씠?대퀎 row ?몃뜳?ㅻ줈 ?ㅼ떆媛??됱“ 蹂寃?    |
-| ?붾젅???꾪??쇱뒪   | `getAreaPaletteAtlas()`      | 紐⑤뱺 AreaID瑜????μ쓽 GPU ?띿뒪泥섎줈 ?⑦궧 (Dead Cells ?ㅽ???         |
-| 硫???꾪??쇱뒪     | `ensureAreaTilesetsLoaded()` | ?뚮젅?댁뼱媛 吏꾩엯??諛붿씠?댁쓽 ??쇱뀑留?lazy 濡쒕뱶 (DEC-022)              |
-| ??쇱뀑 蹂꾩묶       | `aliasAreaTilesetForLdtkTiles()` | CSV 沅뚯쐞 留ㅼ빱?덉쬁 (DEC-024)                                         |
-| ?곸뒪 洹몃씪?붿뼵??  | PaletteSwapFilter uniform    | `depthBias` + `depthCenter`濡??섏쭅 吏꾪뻾???곕Ⅸ 紐낅룄 蹂??            |
-| ?덉씠??遺꾨━       | BG/WALL AreaID ?댁쨷??       | `world_shaft_bg` vs `world_shaft_wall`濡?諛곌꼍-踰??붾젅???낅┰         |
-| ?덊듃?ㅽ넲/?곗씠??  | `effects/HitStop`, `ScreenShake` | ?꾪닾 ?寃⑷컧 ?듭떖 (Design_Combat_HitFeedback)                     |
+| 팔레트 스왑       | `effects/PaletteSwapFilter`  | 1D LUT (256×N 아틀라스). 바이옴별 row 인덱스로 실시간 색조 변경     |
+| 팔레트 아틀라스   | `getAreaPaletteAtlas()`      | 모든 AreaID를 한 장의 GPU 텍스처로 패킹 (Dead Cells 스타일)         |
+| 멀티 아틀라스     | `ensureAreaTilesetsLoaded()` | 플레이어가 진입한 바이옴의 타일셋만 lazy 로드 (DEC-022)              |
+| 타일셋 별칭       | `aliasAreaTilesetForLdtkTiles()` | CSV 권위 매커니즘 (DEC-024)                                         |
+| 뎁스 그라디언트   | PaletteSwapFilter uniform    | `depthBias` + `depthCenter`로 수직 진행에 따른 명도 변화             |
+| 레이어 분리       | BG/WALL AreaID 이중화        | `world_shaft_bg` vs `world_shaft_wall`로 배경-벽 팔레트 독립         |
+| 히트스톱/셰이크   | `effects/HitStop`, `ScreenShake` | 전투 타격감 핵심 (Design_Combat_HitFeedback)                     |
 
 ---
 
-## 5. 鍮뚮뱶 & 諛고룷 (Build & Deploy)
+## 5. 빌드 & 배포 (Build & Deploy)
 
-### 5.1 寃뚯엫 ?대씪?댁뼵????GitHub Pages (echoris.io)
+### 5.1 게임 클라이언트 → GitHub Pages (echoris.io)
 
-| ?④퀎       | 紐낅졊/?뚯씪                                | 異쒕젰                      |
+| 단계       | 명령/파일                                | 출력                      |
 | :--------- | :--------------------------------------- | :------------------------ |
-| ???泥댄겕  | `cd game && npx tsc --noEmit`            | ?먮윭 0 ?꾩닔               |
-| 鍮뚮뱶       | `cd game && npx vite build`              | `game/dist/` (~806KB)     |
-| ?뚰겕?뚮줈??| `.github/workflows/deploy.yml`           | `game/dist ??site/play/`  |
-| ?꾨찓??    | `public/CNAME` ??`echoris.io`            | Cloudflare DNS            |
-| ?몃━嫄?    | `git push origin main`                   | GitHub Actions ?먮룞 ?ㅽ뻾  |
+| 타입 체크  | `cd game && npx tsc --noEmit`            | 에러 0 필수               |
+| 빌드       | `cd game && npx vite build`              | `game/dist/` (~806KB)     |
+| 워크플로우 | `.github/workflows/deploy.yml`           | `game/dist → site/play/`  |
+| 도메인     | `public/CNAME` → `echoris.io`            | Cloudflare DNS            |
+| 트리거     | `git push origin main`                   | GitHub Actions 자동 실행  |
 
-- **二쇱쓽:** gh-pages 釉뚮옖移섎뒗 ?ъ슜?섏? ?딆뒿?덈떎. `build_type: workflow`濡?Actions媛 artifact瑜?Pages??吏곸젒 寃뚯떆?⑸땲??
-- `npx gh-pages` CLI??Windows??LDtk backup 湲??뚯씪紐?臾몄젣濡??ъ슜 湲덉??낅땲??
+- **주의:** gh-pages 브랜치는 사용하지 않습니다. `build_type: workflow`로 Actions가 artifact를 Pages에 직접 게시합니다.
+- `npx gh-pages` CLI는 Windows의 LDtk backup 긴 파일명 문제로 사용 금지입니다.
 
-### 5.2 GDD 臾몄꽌 ?ъ씠????Vercel (MkDocs)
+### 5.2 GDD 문서 사이트 → Vercel (MkDocs)
 
-| ??ぉ       | 媛?                                                      |
+| 항목       | 값                                                       |
 | :--------- | :------------------------------------------------------- |
-| ?앹꽦湲?    | MkDocs Material (>=9.5)                                  |
-| ?ㅼ젙       | `mkdocs.yml` (docs_dir: `Documents`)                     |
-| ?몄뒪??    | Vercel (`vercel.json` ??`uv pip install` + `mkdocs build`) |
-| 異쒕젰       | `site/`                                                  |
-| ?섏〈??    | `requirements.txt` (mkdocs>=1.6, mkdocs-material>=9.5)   |
+| 생성기     | MkDocs Material (>=9.5)                                  |
+| 설정       | `mkdocs.yml` (docs_dir: `Documents`)                     |
+| 호스팅     | Vercel (`vercel.json` → `uv pip install` + `mkdocs build`) |
+| 출력       | `site/`                                                  |
+| 의존성     | `requirements.txt` (mkdocs>=1.6, mkdocs-material>=9.5)   |
 | URL        | https://level-deesign-for-pvp.vercel.app                 |
 
 ---
 
-## 6. ?대? ?꾧뎄 (Internal Tools)
+## 6. 내부 도구 (Internal Tools)
 
-| ?ㅽ겕由쏀듃                                          | ??븷                                   |
+| 스크립트                                          | 역할                                   |
 | :------------------------------------------------ | :------------------------------------- |
-| `Tools/annotate_atlas.py` (?덉젙)                  | ?꾪??쇱뒪 ????몃뜳??二쇱꽍              |
-| `Tools/compose_tileset.py` (?덉젙)                 | ?먮낯 ????대?吏 ??寃뚯엫 ?꾪??쇱뒪 ?⑹꽦 |
-| `Tools/extract_used_tiles.py` (?덉젙)              | LDtk?먯꽌 ?ㅼ젣 ?ъ슜 ??쇰쭔 異붿텧         |
-| `Reference/wiki_to_md.py`                         | ?꾪궎 XML ?ㅽ봽 ??Markdown 蹂??        |
-| `Reference/wiki_to_md_robust.py`                  | ?꾪궎 蹂???덉젙??踰꾩쟾                  |
+| `Tools/annotate_atlas.py` (예정)                  | 아틀라스 타일 인덱스 주석              |
+| `Tools/compose_tileset.py` (예정)                 | 원본 타일 이미지 → 게임 아틀라스 합성 |
+| `Tools/extract_used_tiles.py` (예정)              | LDtk에서 실제 사용 타일만 추출         |
+| `Reference/wiki_to_md.py`                         | 위키 XML 덤프 → Markdown 변환         |
+| `Reference/wiki_to_md_robust.py`                  | 위키 변환 안정화 버전                  |
 
 ---
 
-## 7. ?쒕쾭 ?ㅽ깮 (Future ??Phase 3+)
+## 7. 서버 스택 (Future — Phase 3+)
 
-?꾩옱 Phase 1~2???꾩쟻?쇰줈 ?대씪?댁뼵???⑤룆 ?숈옉?대ŉ, ?쒕쾭??Phase 3 (肄붿샃 踰좏?) ?쒖옉 ???꾩엯?⑸땲??
+현재 Phase 1~2는 전적으로 클라이언트 단독 동작이며, 서버는 Phase 3 (코옵 베타) 시작 시 도입합니다.
 
-| 遺꾨쪟       | 湲곗닠        | ?⑸룄                                    |
+| 분류       | 기술        | 용도                                    |
 | :--------- | :---------- | :-------------------------------------- |
-| ?고???    | Node.js     | 寃뚯엫 ?쒕쾭 (珥덇린 ?꾨줈?좏???             |
-| ?듭떊       | WebSocket   | ?ㅼ떆媛??곹깭 ?숆린??                     |
-| 硫붿씤 DB    | PostgreSQL  | 怨꾩젙/?몃깽?좊━/吏꾪뻾??                   |
-| 罹먯떆       | Redis       | ?몄뀡/留ㅼ튂 ?곹깭                          |
-| ?⑸쪟 諛⑹떇  | URL 留곹겕    | ?몃? 濡쒕퉬 ?녿뒗 invite-by-link (DEC-017) |
+| 런타임     | Node.js     | 게임 서버 (초기 프로토타입)             |
+| 통신       | WebSocket   | 실시간 상태 동기화                      |
+| 메인 DB    | PostgreSQL  | 계정/인벤토리/진행도                    |
+| 캐시       | Redis       | 세션/매치 상태                          |
+| 합류 방식  | URL 링크    | 외부 로비 없는 invite-by-link (DEC-017) |
 
-?곸꽭 ?ㅺ퀎??`Documents/Research/TwoPlayerNetcode_Architecture_Research.md`, `Documents/Research/URLJoin_CoopSession_Research.md`, `Documents/Research/SaveSync_CoopSession_Research.md` 李몄“.
+상세 설계는 `Documents/Research/TwoPlayerNetcode_Architecture_Research.md`, `Documents/Research/URLJoin_CoopSession_Research.md`, `Documents/Research/SaveSync_CoopSession_Research.md` 참조.
 
 ---
 
-## 8. 媛쒕컻 ?섍꼍 (Dev Environment)
+## 8. 개발 환경 (Dev Environment)
 
-| ??ぉ          | 媛?                                                      |
+| 항목          | 값                                                       |
 | :------------ | :------------------------------------------------------- |
-| OS (沅뚯옣)     | Windows 11 / macOS (Vite dev??OS 臾닿?)                  |
-| Shell         | bash (Git Bash on Windows) ??PowerShell? CP949 ?몄퐫??二쇱쓽 |
-| Node          | 20.x (GitHub Actions? ?숈씪)                             |
-| Python        | 3.11+ (MkDocs/?꾧뎄 ?ㅽ겕由쏀듃)                             |
-| Git           | 蹂몄꽑 釉뚮옖移?`main`, force push 湲덉?                       |
-| IDE           | VS Code + LDtk ?뺤옣                                      |
+| OS (권장)     | Windows 11 / macOS (Vite dev는 OS 무관)                  |
+| Shell         | bash (Git Bash on Windows) — PowerShell은 CP949 인코딩 주의 |
+| Node          | 20.x (GitHub Actions와 동일)                             |
+| Python        | 3.11+ (MkDocs/도구 스크립트)                             |
+| Git           | 본선 브랜치 `main`, force push 금지                       |
+| IDE           | VS Code + LDtk 확장                                      |
 
 ---
 
-## 9. 愿???섏궗寃곗젙 (Related Decisions)
+## 9. 관련 의사결정 (Related Decisions)
 
-| 踰덊샇    | ?쒕ぉ                                  | ?꾩튂                                      |
+| 번호    | 제목                                  | 위치                                      |
 | :------ | :------------------------------------ | :---------------------------------------- |
-| DEC-021 | Dead Cells 洹몃젅?댁뒪耳???붾젅???뺤떇?? | `memory/wiki/decisions/DEC-021.md`        |
-| DEC-022 | 硫???꾪??쇱뒪 lazy 濡쒕뵫               | `memory/wiki/decisions/DEC-022.md`        |
-| DEC-023 | CSV + Markdown ?섏씠釉뚮━??濡쒖뼱        | `memory/wiki/decisions/DEC-023.md`        |
-| DEC-024 | CSV Tileset 而щ읆 沅뚯쐞 (LDtk 蹂꾩묶)     | `memory/wiki/decisions/DEC-024.md`        |
+| DEC-021 | Dead Cells 그레이스케일 팔레트 정식화  | `memory/wiki/decisions/DEC-021.md`        |
+| DEC-022 | 멀티 아틀라스 lazy 로딩               | `memory/wiki/decisions/DEC-022.md`        |
+| DEC-023 | CSV + Markdown 하이브리드 로어        | `memory/wiki/decisions/DEC-023.md`        |
+| DEC-024 | CSV Tileset 컬럼 권위 (LDtk 별칭)     | `memory/wiki/decisions/DEC-024.md`        |

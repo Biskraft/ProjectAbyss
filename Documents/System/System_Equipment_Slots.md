@@ -1,5 +1,7 @@
 # 장비 슬롯 시스템 (Equipment Slots System)
 
+> **준거 상위 (Authority):** T-03, D-11
+
 ## 구현 현황 (Implementation Status)
 
 > 최근 업데이트: 2026-04-18

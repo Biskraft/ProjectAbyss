@@ -1,5 +1,6 @@
 # System: Audio Direction
 
+> **준거 상위 (Authority):** T-03
 > **참조 문서:**
 > - `Documents/Terms/Project_Vision_Abyss.md` — 3대 기둥, 2-Space, 스파이크
 > - `Documents/Design/Design_Architecture_2Space.md` — 공간별 감정 프로파일

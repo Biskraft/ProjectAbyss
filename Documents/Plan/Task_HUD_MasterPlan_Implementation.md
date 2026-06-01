@@ -1,5 +1,6 @@
 # HUD 마스터플랜 구현 작업 지시서
 
+> **준거 상위 (Authority):** T-03
 > **작성일:** 2026-04-13
 > **대상:** AI Programmer Agent
 > **설계 문서:** `Documents/UI/UI_HUD_MasterPlan.md`

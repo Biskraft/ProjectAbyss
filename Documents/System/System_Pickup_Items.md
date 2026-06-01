@@ -1,5 +1,6 @@
 # System_Pickup_Items.md — 획득물 아이템 시스템
 
+> **준거 상위 (Authority):** T-03, D-09
 > **작성 기준:** 코드 역기획서 (Code-First Reverse GDD)
 > **소스 파일:** `game/src/entities/HealingPickup.ts`, `game/src/entities/HealthShard.ts`, `game/src/entities/GoldPickup.ts`, `game/src/items/ItemDrop.ts`
 > **필수 참고:** `Documents/Terms/Project_Vision_Abyss.md`, `Documents/Terms/GDD_Writing_Rules.md`

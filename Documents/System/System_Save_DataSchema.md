@@ -1,5 +1,7 @@
 # System_Save_DataSchema.md — 세이브 데이터 스키마
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 | 항목 | 상태 |

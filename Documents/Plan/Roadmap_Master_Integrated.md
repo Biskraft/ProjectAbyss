@@ -1,5 +1,6 @@
 # ECHORIS 통합 마스터 로드맵 (Integrated Master Roadmap)
 
+> **준거 상위 (Authority):** T-03
 > **문서 ID:** PLN-MASTER
 > **최근 업데이트:** 2026-05-31
 > **문서 상태:** 활성 SSoT

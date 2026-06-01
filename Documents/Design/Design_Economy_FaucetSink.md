@@ -1,5 +1,7 @@
 # 경제 설계 철학: 수도꼭지와 배수구 (Economy Philosophy: Faucet & Sink) — D-07
 
+> **준거 상위 (Authority):** T-03
+
 ## 구현 현황 (Implementation Status)
 
 > 최근 업데이트: 2026-03-29

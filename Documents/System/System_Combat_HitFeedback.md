@@ -1,5 +1,7 @@
 # 타격 피드백 시스템 (Hit Feedback System)
 
+> **준거 상위 (Authority):** T-03, D-09
+
 ## 구현 현황 (Implementation Status)
 
 > **최근 업데이트:** 2026-03-25
