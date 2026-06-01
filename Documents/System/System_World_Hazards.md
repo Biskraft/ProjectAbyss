@@ -62,7 +62,7 @@
 대기 → GROW_INTERVAL(8000ms, ±50% 랜덤) 후 성장 시작
 성장 활성 → GROW_DURATION(3000ms) 동안 좌우 각 1타일 확장
    확장 애니메이션: 500ms 동안 alpha 0.3→0.8 진행
-성장 종료 → 확장 타일 충돌 제거, 다음 대기 시작 (GROW_INTERVAL * 0.8~1.2)
+성장 종료 → 확장 타일 충돌 제거, 다음 대기 시작 (GROW_INTERVAL * 0.8-1.2)
 ```
 
 **행동 2 — 슬라임 스폰:**
@@ -188,8 +188,8 @@ damage = player.maxHp * 0.20
 ### GrowingWall 성장 타이머
 
 ```
-초기: GROW_INTERVAL * random(0.5, 1.0) = 4000~8000ms
-재시작: GROW_INTERVAL * random(0.8, 1.2) = 6400~9600ms
+초기: GROW_INTERVAL * random(0.5, 1.0) = 4000-8000ms
+재시작: GROW_INTERVAL * random(0.8, 1.2) = 6400-9600ms
 ```
 
 ### Updraft 속도 클램프

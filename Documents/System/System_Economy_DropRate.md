@@ -4,10 +4,11 @@
 
 ## 구현 현황 (Implementation Status)
 
-> 최근 업데이트: 2026-04-15
+> 최근 업데이트: 2026-06-01
 > 문서 상태: `작성 중 (Draft)`
 > 2-Space: 전체 (World + Item World)
 > 기둥: 야리코미 / 멀티플레이
+> 3스탯 정합: LCK 폐기, 크리 5% 고정 + 기억 단편
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
 | :--- | :--- | :--- | :---: | :--- | :--- |
@@ -18,7 +19,7 @@
 | ECO-03-1 | 피티 | Legendary 피티 카운터 | P1 | 대기 | 소프트+하드 피티 |
 | ECO-03-2 | 피티 | Ancient 피티 카운터 | P1 | 대기 | 서버 영구 저장 |
 | ECO-03-3 | 피티 | 기억 단편 피티 카운터 | P1 | 대기 | 40회 하드 피티 |
-| ECO-03-4 | 피티 | LCK 스탯 드롭률 보정 | P2 | 대기 | 최대 2배 상한 |
+| ~~ECO-03-4~~ | ~~피티~~ | ~~LCK 스탯 드롭률 보정~~ | — | ❌ 폐기 | DEC-003: LCK 폐기. 드롭 보정은 기억 단편(파밍형)으로 대체 |
 | ECO-04-1 | Gold | Gold Faucet (월드/아이템계) | P0 | 대기 | HL 명칭 사용 |
 | ECO-04-2 | Gold | Gold Sink (대장간/상점) | P0 | 대기 | 기억 단편 복종 비용 포함 |
 | ECO-05-1 | 기억 단편 | 기억 단편 드롭 규칙 | P1 | 대기 | 야생 상태로만 드롭 |
@@ -65,7 +66,7 @@ ECHORIS의 이코노미는 다음 한 가지 문제를 해결하기 위해 존�
 | 문제 | 선택한 방향 |
 | :--- | :--- |
 | 파밍 무한성 vs 인플레이션 방지 | 아이템계 내 HL Sink(기억 단편 복종 비용) + 기억의 파편 소비로 흡수 |
-| 희귀 드롭의 희귀성 vs 플레이어 좌절 방지 | 피티 카운터(소프트+하드) + LCK 스탯 보정 레이어 |
+| 희귀 드롭의 희귀성 vs 플레이어 좌절 방지 | 피티 카운터(소프트+하드) + 기억 단편(파밍형) 드롭 보정 레이어 |
 | 파티 보상 공유 vs 파밍 개인 동기 | 개인 인스턴스 드롭 (분배 아님, 인원당 독립 롤) |
 
 ### 1.4 리스크와 보상
@@ -152,7 +153,7 @@ drop_pool_activation:
 ```yaml
 item_world_rarity_distribution:
   # 각 열은 해당 지층에서의 레어리티 비중 (%)
-  #             월드   지층1  지층2~3  지층4   심연
+  #             월드   지층1  지층2-3  지층4   심연
   Normal:      [ 60,   50,    30,      15,      5  ]
   Magic:       [ 25,   30,    35,      25,     15  ]
   Rare:        [ 10,   15,    25,      35,     30  ]
@@ -221,7 +222,7 @@ Gold의 공식 명칭은 HL이다. 모든 유입 경로는 수동 플레이 전�
 ```yaml
 gold_faucet:
   world:
-    enemy_drop:     "처치당 HL_Enemy_Base (레어리티 보정 ×1.0~2.5)"
+    enemy_drop:     "처치당 HL_Enemy_Base (레어리티 보정 ×1.0-2.5)"
     boss_reward:    "보스 처치 시 HL_Boss_Reward (구역 보스 별도 테이블)"
     item_sell:      "상점 매각: 장비 레어리티 × HL_Sell_Rate"
 
@@ -363,8 +364,8 @@ boss_drop_table:
       - "Rare 2개"
       - "Legendary 1개 (30% 확률)"
     dedicated_drop:
-      count:    "1~2종"
-      rate:     0.15   # 15~25%
+      count:    "1-2종"
+      rate:     0.15   # 15-25%
       # 해당 보스에서만 드롭되는 Legendary 전용 아이템
 
   item_world_general:    # 아이템 장군 (지층 1 보스, 10/20/40/50층)
@@ -481,11 +482,11 @@ ECHORIS는 두 파밍 경로를 병존시킨다.
 
 ```yaml
 zone_specialized_pool:
-  # 해당 구역에서 특화 스탯 고정 옵션 Legendary 드롭 가능
-  underground_waterway:  "DEX 특화"
-  frozen_cave:           "VIT 특화"
-  catacomb:              "LCK 특화"
-  sky_tower:             "SPD 특화"
+  # 해당 구역에서 특화 스탯 고정 옵션 Legendary 드롭 가능 (3스탯 체계)
+  underground_waterway:  "ATK 특화"
+  frozen_cave:           "HP 특화"
+  catacomb:              "기억 단편(파밍형) 특화"   # DEC-003: LCK 폐기, 파밍형 기억 단편으로 대체
+  sky_tower:             "INT 특화"
   # 구체 구역명은 월드 설계 문서에 종속
 ```
 
@@ -536,24 +537,26 @@ pity_counter_persistence:
   season_reset:         "Phase 4 시즌 도입 시 결정 (현재: 이월 유지 권장)"
 ```
 
-### 8.2 LCK 스탯 드롭률 보정
+### 8.2 기억 단편 드롭률 보정
 
-LCK 스탯은 장비 기억 단편(Lucky 타입)로 획득하며 드롭률에 곱셈 보정을 적용한다.
+> **DEC-003 정합:** LCK 스탯은 폐기되었다. 드롭률 보정은 LCK가 아니라 파밍형 기억 단편(Lucky 타입) 보너스의 합산으로 적용한다. 보정값은 곱셈 배율로 레어리티 가중치(`base_rarity_weight`)에 적용된다.
+
+파밍형 기억 단편를 장착하면 드롭률에 곱셈 보정을 적용한다. 보정 총량은 장착 기억 단편 보너스(`Memory Shard_Drop_Bonus`)의 합으로 산출하며 상한이 존재한다.
 
 ```yaml
-lck_drop_bonus:
-  formula: "P_actual(rarity) = P_base(rarity) × (1 + LCK × 0.001)"
-  cap:     2.0   # 최대 2배 상한 (LCK 1000 초과분 무효)
+memory_shard_drop_bonus:
+  formula: "P_actual(rarity) = P_base(rarity) × (1 + Memory Shard_Drop_Bonus)"
+  cap:     2.0   # 최대 2배 상한 (보너스 합산 1.0 초과분 무효)
   examples:
-    LCK_0:   "Ancient 1.0% (기준)"
-    LCK_100: "Ancient 1.1% (+10%)"
-    LCK_500: "Ancient 1.5% (+50%)"
-    LCK_999: "Ancient ~2.0% (상한)"
+    bonus_0.0:  "Ancient 1.0% (기준)"
+    bonus_0.1:  "Ancient 1.1% (+10%)"
+    bonus_0.5:  "Ancient 1.5% (+50%)"
+    bonus_1.0:  "Ancient ~2.0% (상한)"
 
-memory shard_lck_bonus:
-  base_rate: 0.05   # 기억 단편 기본 드롭 5%
-  LCK_500:   0.075  # 7.5%
-  LCK_999:   0.10   # 10% (상한)
+memory_shard_self_drop_bonus:
+  base_rate:  0.05   # 기억 단편 기본 드롭 5%
+  bonus_0.5:  0.075  # 7.5%
+  bonus_1.0:  0.10   # 10% (상한)
 ```
 
 ---
@@ -604,7 +607,7 @@ party_drop_bonus:
 | 아이템계 중 접속 끊김 | 현재 지층 진행 상태 서버 유지. 재접속 시 해당 런 지층 시작점에서 재개. |
 | 피티 카운터 동기화 실패 | 마지막 확인된 카운터 값 사용. 과소 보정 방향으로 안전 처리. |
 | 보스 드롭 미생성 버그 | 보장 드롭 미발생 시 다음 보스 처치에 누적 적용 (피티와 별개). |
-| LCK가 캡(999)을 초과하는 기억 단편 조합 | 캡 초과분 무효. 실효 LCK는 999로 고정. |
+| 드롭 보정 보너스가 캡(+100%)을 초과하는 기억 단편 조합 | 캡 초과분 무효. 실효 보정은 ×2.0으로 고정. |
 | Ancient 귀속 아이템 분해 시 | 분해 불가 (UI에서 비활성화). 단, 플레이어 명시 확인 후에만 허용 가능 (Phase 2 결정). |
 
 ---

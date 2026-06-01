@@ -1,13 +1,13 @@
 # Design_ChemicalReactions_Implementation_Plan.md — 전체 구현 계획
 
 > **상태:** V1 통합 구현 계획 (2026-05-16)
-> **범위:** 54 신규 반응 (R-NEW-001~054 = Agent C 15 + Matrix 39) 일괄 구현 + 기존 16 디버전스 정정
+> **범위:** 54 신규 반응 (R-NEW-001-054 = Agent C 15 + Matrix 39) 일괄 구현 + 기존 16 디버전스 정정
 > **권위 SSoT:** `Documents/System/System_World_ChemicalReactions.md`
 > **데이터 입력:**
 > - `Documents/Design/Design_ChemicalReactions_FullMatrix.md` (54 후보 매트릭스 + 점수)
 > - `Documents/Design/Design_World_ChemicalReactions_Roadmap.md` (Tier 1/2/3 분류)
-> - `Documents/System/_temp_ChemicalReactions_NewDesign.md` (R-NEW-001~015 12 필드 명세)
-> - `Documents/System/_temp_ChemicalReactions_Matrix39_Design.md` (R-NEW-016~054 12 필드 명세 — 작성 중, Agent 위임)
+> - `Documents/System/_temp_ChemicalReactions_NewDesign.md` (R-NEW-001-015 12 필드 명세)
+> - `Documents/System/_temp_ChemicalReactions_Matrix39_Design.md` (R-NEW-016-054 12 필드 명세 — 작성 중, Agent 위임)
 > **사용자 의지:** 모두 한 번에 진행 — Tier 1/2/3 동시 사이클
 
 ---
@@ -18,10 +18,10 @@
 
 | 카테고리 | 개수 | 출처 | 비고 |
 | :--- | :-: | :--- | :--- |
-| **신규 반응 — Tier 1** (강력 5/5/5) | 13 | R-NEW-001~007/011/013 + Matrix 16~020 | 데모 V1 |
-| **신규 반응 — Tier 1-2 후보** (13-14) | 8 | R-NEW-021~030 | V1 |
-| **신규 반응 — Tier 2** (10-12) | 13 | R-NEW-031~042 | V1.0 |
-| **신규 반응 — Tier 3** (7-9 + 자동 emergent) | 20 | R-NEW-043~054 + emergent | V2 |
+| **신규 반응 — Tier 1** (강력 5/5/5) | 13 | R-NEW-001-007/011/013 + Matrix 16-020 | 데모 V1 |
+| **신규 반응 — Tier 1-2 후보** (13-14) | 8 | R-NEW-021-030 | V1 |
+| **신규 반응 — Tier 2** (10-12) | 13 | R-NEW-031-042 | V1.0 |
+| **신규 반응 — Tier 3** (7-9 + 자동 emergent) | 20 | R-NEW-043-054 + emergent | V2 |
 | **Layer 1 디버전스 정정** | 16 | Agent B DocAudit | 문서 동기화 |
 | **Phase 3 카드 등록** | 3 (NM-02/03/07) | Combat_*.md orphan | V2-V3 |
 
@@ -199,7 +199,7 @@ CSV / TS 코드 카탈로그 확장.
 | 작업 | 위치 | 비고 |
 | :--- | :--- | :--- |
 | 16 Layer 1 디버전스 정정 | TileSystem.md / Fluid.md / Container.md / Combat_*.md | Agent B 의 DIV-C-* 목록 |
-| `System_World_ChemicalReactions.md` §4-§6 매트릭스 표 row 추가 | SSoT | R-NEW-001~054 row |
+| `System_World_ChemicalReactions.md` §4-§6 매트릭스 표 row 추가 | SSoT | R-NEW-001-054 row |
 | `Design_ItemWorld_Themes.md` §2.3 emergent 표 갱신 | Themes | 5 기질 시그니처 emergent |
 | `gdd-integrity-checker §16` 룰 확장 | skill | 54 신규 ID 자동 검증 |
 | 임시 파일 3건 archive | `memory/wiki/audits/2026-05-16_chemical_reactions/` | _temp_*.md 보존 |
@@ -412,7 +412,7 @@ WP2/3/4/5 의 *낮은 점수 반응* 순차 추가 — 각 ~10 분.
 
 사용자 컨펌 후 다음 순서로 실행:
 
-1. **Agent 결과 통합** — `_temp_ChemicalReactions_Matrix39_Design.md` (현재 작성 중) 의 R-NEW-016~054 12 필드 명세 통합
+1. **Agent 결과 통합** — `_temp_ChemicalReactions_Matrix39_Design.md` (현재 작성 중) 의 R-NEW-016-054 12 필드 명세 통합
 2. **WP1 인프라 작업 시작** — TS 컴파일 0 에러 유지하며 점진적 변경
 3. **각 WP 사이클** — 작업 → TS 검증 → 테스트 룸 검증 → 다음 WP
 4. **WP10 통합 QA** — 전체 회귀

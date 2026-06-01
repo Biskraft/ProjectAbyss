@@ -86,7 +86,7 @@
 #### 로고 글로우 애니메이션
 
 - 로고 스프라이트 주위에 청록색 (#00CED1) 외곽선 글로우를 렌더링
-- 글로우 강도: 0.0~0.6을 3.0초 주기로 진동 (로고는 항상 불투명)
+- 글로우 강도: 0.0-0.6을 3.0초 주기로 진동 (로고는 항상 불투명)
 - PixiJS BlurFilter를 사용하거나, 스프라이트 1px 확장 복사본에 알파 적용
 
 #### 진입 시퀀스
@@ -480,7 +480,7 @@ y=270 └───────────────────────�
 **AudioBus 연동 (DEC-040 — `@pixi/sound`, Howler.js 아님):**
 
 ```
-// 0~100 슬라이더 값을 0~1 로 정규화하여 채널/마스터에 반영
+// 0-100 슬라이더 값을 0-1 로 정규화하여 채널/마스터에 반영
 AudioBus.setMasterVolume(masterValue / 100);
 AudioBus.setChannelVolume('bgm', bgmValue / 100);
 AudioBus.setChannelVolume('ambient', ambientValue / 100);

@@ -433,7 +433,7 @@ CSV ThemeID 기준 이미 정의됨: T-HABITAT, T-MALFUNCTION, T-FOUNDRY, T-COMM
 
 | 항목 | 안1 | 안2 (교정) | 근거 |
 | :--- | :--- | :--- | :--- |
-| 적 아키타입 | 7종 신규 정의 | 11종 이미 정의됨(A-01~10), 8 핵심 AI 구현 | EnemyDesign_MobArchetype_Research |
+| 적 아키타입 | 7종 신규 정의 | 11종 이미 정의됨(A-01-10), 8 핵심 AI 구현 | EnemyDesign_MobArchetype_Research |
 | 적 종류 1.0 | 36-42 | 30-50 (Target 밴드 유지) | Digest §2 |
 | 보스 1.0 | 16-18 | 메인 8-12 + 서브 4-8 = 12-20 | Digest §2 |
 | 드랍률 | 미기재 | 55/20/7/2.5/0.5 + no_drop 15% (확정값) | Content_Rarity CSV |

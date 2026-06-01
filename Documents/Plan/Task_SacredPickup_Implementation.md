@@ -98,7 +98,7 @@ incrementDive(id: string): number;  // 반환 = 갱신 후 누적값
 - `GlowFilter(color, outerStrength)` 부착, 색상 = `RARITY_COLOR[rarity]`
 - 레어리티별 halo 크기 (§3.11): Normal 8 / Magic 12 / Rare 16 / Legendary 20 / Ancient 24
 - 파티클 스폰율 (§3.2): 2/3/4/6/8 per second
-- 파티클: 1–3px 사각형, 위로 상승 vy=-(10~25)px/s, 생존 600–1400ms 랜덤
+- 파티클: 1–3px 사각형, 위로 상승 vy=-(10-25)px/s, 생존 600–1400ms 랜덤
 
 ### Task 6: 무기 맥동 컷신 (T2/S4)
 

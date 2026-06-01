@@ -74,7 +74,7 @@
 |----|-------------------|------|--------|-----------|------|------|
 | R-023 | Fire attack × WATER cell | WATER → AIR, removeCell, steam (scene VFX) | AABB 셀 sweep, priority 'steam' | `TileHazards.ts:236-239` | 100% (priority sweep) | scene 측 onSteamEvent 같은 별도 콜이 attack 경로엔 없음. removeCell 만. |
 | R-024 | Fire attack × ICE cell | ICE → WATER (영구) | AABB 셀 sweep, priority 'melt' | `TileHazards.ts:240-241`, `TileMutator.ts:187-193` | 100% | onWallTileChanged 발화 |
-| R-025 | Fire attack × OIL/WOOD/GRASS cell | 점화 (strong burn, 9000~15000 ms) | AABB 셀 sweep, priority 'ignite' | `TileHazards.ts:243-246`, `TileMutator.ts:199-210` | `BURN_DURATION_BY_TILE` (`TileMutator.ts:38-42`); fallback `BURN_DURATION_MS = 9000` (`:65`) | strong=true 마크 |
+| R-025 | Fire attack × OIL/WOOD/GRASS cell | 점화 (strong burn, 9000-15000 ms) | AABB 셀 sweep, priority 'ignite' | `TileHazards.ts:243-246`, `TileMutator.ts:199-210` | `BURN_DURATION_BY_TILE` (`TileMutator.ts:38-42`); fallback `BURN_DURATION_MS = 9000` (`:65`) | strong=true 마크 |
 | R-026 | Fire attack × BurnableProp footprint | prop.ignite() (catalog burnMs) | tryIgnite fallback | `TileMutator.ts:206-210`, `BurnableProp.ts:159-165` | `BURNABLE_CATALOG[*].burnMs` (`:44-65`) | WoodCrate 12500, BranchPile 4000, Bush 10000, Curtain 6000, Vine 4500 |
 | R-027 | Fire attack hitbox × oil residue blot | blot → burning (4000 ms) | AABB 점 포함 | `FluidResidue.ts:269-279`, `LdtkWorldScene.ts:5052-5053` | `OIL_BURN_LIFE_MS = 4000` (`:47`) | igniteN 카운트 반환 |
 | R-028 | Ice attack × WATER cell | tryFreeze (15 s WALL) | AABB 첫 매치 (findCellInAABB) | `TileHazards.ts:261-262` | `FREEZE_DURATION_MS = 15000` (`TileMutator.ts:64`) | priority water > magma |

@@ -105,7 +105,7 @@ ECHORIS 의 IntGrid 16 종 중 *화학 상호작용 가능* 한 8 종을 1차 �
 | 기호 | 의미 |
 | :-: | :-- |
 | ✅ | 코드에 정의됨 (System_World_ChemicalReactions.md §4-§6) |
-| 🆕 | Agent C 제안 R-NEW-001~015 (Roadmap.md) |
+| 🆕 | Agent C 제안 R-NEW-001-015 (Roadmap.md) |
 | ⚪ | 본 매트릭스 신규 후보 (§3-§6 부재 채움) |
 | **굵게** | 5/5/5 강력 후보 (Tier 1) |
 | ⬛ | 거절 (시각/gameplay 정당화 불가) |
@@ -333,7 +333,7 @@ ECHORIS 의 IntGrid 16 종 중 *화학 상호작용 가능* 한 8 종을 1차 �
 ## 9. 다음 단계
 
 1. **사용자 검토** — 매트릭스 + ⚪ 신규 후보 39개 + 거절 15개 + Tier 1 강력 후보 8개에 대한 채택/조정 의견
-2. **승인 후 깊은 명세** — 채택된 후보별 12 필드 명세 (Agent C 의 R-NEW-001~015 패턴 동일) → Roadmap.md 의 Tier 1/2/3 갱신
+2. **승인 후 깊은 명세** — 채택된 후보별 12 필드 명세 (Agent C 의 R-NEW-001-015 패턴 동일) → Roadmap.md 의 Tier 1/2/3 갱신
 3. **System_World_ChemicalReactions.md §4-§6 표 확장** — 채택된 신규 ID 부여 (R-NEW-016 부터 연속)
 4. **Design_ItemWorld_Themes.md §2.3** — 새 emergent 추가 시 5 테마 시그니처 갱신
 5. **gdd-integrity-checker §16** — 신규 반응 ID 자동 검증 룰 갱신

@@ -71,7 +71,7 @@ ECHORIS는 코드, 내러티브, 문서 세 축이 서로 다른 속도로 전�
 | GDD 문서 완료 | 38/78 |
 | CSV 시트 완료 | 4/11 |
 | 미작성 핵심 시스템 문서 | SubWeapon, StatusEffects, GeoEffects, Multi x4, Economy Resources, Save&Warp, Secrets, VerticalGimmicks, Hazards, Interactables |
-| stale 로드맵/플랜 | 17건 (PLN-01~17 대부분 정체) |
+| stale 로드맵/플랜 | 17건 (PLN-01-17 대부분 정체) |
 | 일일 무결성 검사 | 원격 루틴 가동 (trig_01GTCuewtMDdKcmKbSJeqek4) |
 
 판정: 문서 정체의 상당수는 코드가 문서를 추월해 발생한 역드리프트다. 우선순위는 미작성 신규 문서보다, 구현된 시스템의 문서 동기화와 stale 로드맵 정리다.
@@ -216,7 +216,7 @@ Phase 정의는 CLAUDE.md 기준을 따른다. Phase 1(프로토타입) 종결 =
 | M3-NET-3 | URL 링크 파티 합류 (1-2인 아이템계) |
 | M3-NET-4 | 고스트 메시지 (월드 비동기 소셜) |
 
-선행 문서: SYS-MP-01~04, D-06 Online Principles, SYS-ECO-01 Resources (전부 미작성).
+선행 문서: SYS-MP-01-04, D-06 Online Principles, SYS-ECO-01 Resources (전부 미작성).
 
 ---
 
@@ -243,7 +243,7 @@ C1-3 StatGate 연출 ───────────────────�
 Build 0 ──▶ Build 1 (온보딩) ──▶ Build 2 (콘텐츠+게이트) ──▶ Build 3 (i18n+공개)
                                        │
 SYS-WLD-01/04 + Memory Shard 문서 ─────┘ (Phase 2 선행)
-SYS-MP-01~04 문서 ──────────────────────────────▶ 멀티플레이 (Build 3+)
+SYS-MP-01-04 문서 ──────────────────────────────▶ 멀티플레이 (Build 3+)
 ```
 
 핵심 임계 경로: N1-1 → N1-4 → C1-2 → Build 0. 내러티브 충돌 결정이 전체 임계 경로의 출발점이다.

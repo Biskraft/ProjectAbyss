@@ -96,7 +96,7 @@
 | 문서 | 준거 상위 |
 | :--- | :--- |
 | D-20 World Master | T-03, D-01, D-04, D-13 |
-| SYS-WLD-01~11 | T-03, D-20, D-04, D-10 |
+| SYS-WLD-01-11 | T-03, D-20, D-04, D-10 |
 | SYS-CMB-* | T-03, D-09, D-01 |
 | SYS-ECO-*, PLN-SHOP | T-03, D-07, D-20 |
 | PLN-RELIC | T-03, D-20, CLAUDE.md(렐릭) |

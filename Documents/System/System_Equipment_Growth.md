@@ -16,7 +16,7 @@
 | EGP-02-A  | 진행     | 보스 처치 → Memory Fragment 해금 + Recovery 점프 |    P0 | 대기         | 영구 ATK +N 폐기. SYS-MEM-01 §2.3                         |
 | EGP-02-B  | 진행     | 일반 활동 → Recovery 점진 누적              |    P0    | 대기         | 0.1-1% 누적, 다음 보스까지 게이지                         |
 | EGP-03-A  | effective stat | Recovery 기반 스탯 자동 산정          |    P0    | 대기         | `effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier` |
-| EGP-04-A  | 이름     | Stage별 이름 진화 (Name Evolution)          |    P0    | 대기         | nameStage0~4 5단계                                        |
+| EGP-04-A  | 이름     | Stage별 이름 진화 (Name Evolution)          |    P0    | 대기         | nameStage0-4 5단계                                        |
 | EGP-05-A  | 컬렉션   | Identity Archive 인물 아카이브               |    P0    | 대기         | 무기 컬렉션과 별도. 인물 단위 진행도                      |
 | EGP-06-A  | 재방문   | Re-Dive (100% 복원 후 재진입)               |    P1    | 대기         | 다른 해석의 Fragment + effective stat +5% per 회차        |
 | EGP-07-A  | UI       | Recovery 게이지 + Fragment 컬렉션 UI         |    P0    | 대기         | UI_Inventory §3.5 / UI_Identity_Archive 신규              |
@@ -102,14 +102,14 @@ ECHORIS의 장비는 *드랍된 잠재력의 씨앗* 이 아니라 *처음부터
 
 ### 2.1. 단일 진행 축
 
-장비 아이템의 성장은 단일 축 `Memory Recovery (0~100)` 으로 통합된다. 모든 효과(스탯, 이름, 결, 컬렉션)는 이 단일 게이지에서 파생된다.
+장비 아이템의 성장은 단일 축 `Memory Recovery (0-100)` 으로 통합된다. 모든 효과(스탯, 이름, 결, 컬렉션)는 이 단일 게이지에서 파생된다.
 
 ```
 모든 진행 → memoryRecovery += delta
   ↓
 [자동 파생]
   ├─ effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier
-  ├─ currentStage = floor(Recovery / 25)  (0~4)
+  ├─ currentStage = floor(Recovery / 25)  (0-4)
   ├─ displayName = item.nameStage[currentStage]
   └─ activeTraits = unlockedFragments.map(f => f.identityTrait)
 ```
@@ -534,7 +534,7 @@ effectiveAtk = ceil(baseAtk × (1.0 + Recovery × 0.005) × (1 + reDive × 0.05)
 | 아이템계 코어 (SYS-IW-01) | 보스 처치 이벤트, 일반 적 처치/방 클리어 이벤트, 환경 오브젝트 이벤트 | `System_ItemWorld_Core.md` |
 | 장비 레어리티 (SYS-EQP-01) | `rarityMultiplier`, 레어리티별 지층 수 | `System_Equipment_Rarity.md` |
 | 장비 슬롯 (SYS-EQP-02) | `baseStats`, 장비 착용/해제 상태 | `System_Equipment_Slots.md` |
-| 콘텐츠 시트 | `nameStage0~4`, Fragment 텍스트, 결 정의 | `Sheets/Content_Item_Master.csv`, `Sheets/LoreTexts/Fragments/` |
+| 콘텐츠 시트 | `nameStage0-4`, Fragment 텍스트, 결 정의 | `Sheets/Content_Item_Master.csv`, `Sheets/LoreTexts/Fragments/` |
 
 ### 6.2. 이 시스템이 제공하는 것 (Outputs)
 
@@ -672,7 +672,7 @@ consumes:
 
 **다음 단계:**
 1. `Sheets/Content_Stats_Weapon_List.csv` baseStats × 2.0 일괄 상향
-2. `Sheets/Content_Item_Master.csv` 에 `nameStage0~4` 5개 컬럼 추가 + 측량사의 에코 쐐기 5단계 이름 등록
+2. `Sheets/Content_Item_Master.csv` 에 `nameStage0-4` 5개 컬럼 추가 + 측량사의 에코 쐐기 5단계 이름 등록
 3. `Sheets/Content_ConstData.csv` 에 `Item.Recovery.*` 그룹 신규 등록
 4. `Documents/UI/UI_Identity_Archive.md` 신규 작성
 5. `Documents/System/System_ItemNarrative_Template.md` Stage별 검 Ego 대사 가이드 추가

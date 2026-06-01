@@ -68,7 +68,7 @@
 | AUD-22 | AMB | Rustborn 친밀도 단계별 환경 미세 변주 | P3 | 대기 | DEC-033 친밀도 0→3 |
 | AUD-23 | SFX | 메모리 코어 펄스 5색 기질 (Forgotten 격파 / Recalled 장착) | P0 | 대기 | DEC-036 SSoT. §3-4 표 |
 
-> **마일스톤 가시화:** `@pixi/sound` 통합(P0 선결) → AUD-01~10 P0 10건이 Phase 2 알파 게이트의 사운드 측 통과 기준이다. 자산 1차 제작은 ElevenLabs Sound Effects + ElevenLabs Music (AI 100%, DEC-040 §결정 4).
+> **마일스톤 가시화:** `@pixi/sound` 통합(P0 선결) → AUD-01-10 P0 10건이 Phase 2 알파 게이트의 사운드 측 통과 기준이다. 자산 1차 제작은 ElevenLabs Sound Effects + ElevenLabs Music (AI 100%, DEC-040 §결정 4).
 
 ---
 
@@ -428,7 +428,7 @@ Layer C: 근접 트리거 (Proximity Triggers)
 
 ## 4. 검 Ego 사인음 (Rustborn Sting)
 
-> **DEC-033 청각 채널 + DEC-040 §결정 2.** Rustborn은 *말하는 무기*이지만 Phase 1~2 동안 보이스 액팅을 도입하지 않는다. Ego의 발화는 **타이핑 SFX (Undertale 패턴)** + 사인음으로만 표현된다. 정식 보이스 캐스팅은 Phase 3 베타 진입 시 재검토.
+> **DEC-033 청각 채널 + DEC-040 §결정 2.** Rustborn은 *말하는 무기*이지만 Phase 1-2 동안 보이스 액팅을 도입하지 않는다. Ego의 발화는 **타이핑 SFX (Undertale 패턴)** + 사인음으로만 표현된다. 정식 보이스 캐스팅은 Phase 3 베타 진입 시 재검토.
 
 > **타이핑 SFX 음색:** 금속성(forged, hard edge). 검의 물질적 본질을 청각화. 5색 기질(Forge/Iron/Rust/Spark/Shadow)별 음색 분리는 DEC-040 후속 결정으로 미정 — 현재는 *단일 금속 톤* 사용.
 
@@ -650,7 +650,7 @@ Phase C: 1.5초 세이브 포인트 환경 페이드인
 
 ### 7-3. Phase 2 후반 무기 6종 (백로그)
 
-`Documents/Plan/Phase2_RnD_MasterList.md` I-28~33. SFX 명세는 무기 구현 시점에 본 문서 §7.3 갱신 예정.
+`Documents/Plan/Phase2_RnD_MasterList.md` I-28-33. SFX 명세는 무기 구현 시점에 본 문서 §7.3 갱신 예정.
 
 | 무기 | 슬래시 방향 | 임팩트 방향 | 특수 SFX |
 |:---|:---|:---|:---|
@@ -900,7 +900,7 @@ P8: UI SFX
 
 ### 12-3. 에셋 수 예산
 
-**Phase 2 알파 P0 게이트 (AUD-01~10, AUD-23):**
+**Phase 2 알파 P0 게이트 (AUD-01-10, AUD-23):**
 
 | 카테고리 | 에셋 수 | 예상 크기 |
 |:---|:---|:---|
@@ -934,7 +934,7 @@ P8: UI SFX
 | `asset_path` | `game/public/` 기준 상대 경로. 또는 `synth` (WebAudio 직접 합성 큐) |
 | `trigger_location` | 코드 호출지 (file:line) 또는 의미 식별자. 다중 호출지는 `;` 로 구분 |
 | `status` | `live` (자산 + 코드 모두 가동) / `synth` (코드 가동, 자산 미생성) / `pending` (자산·코드 모두 TODO) |
-| `mix_volume` | 0.0~1.0 선형 게인. 자산 원본 대비 믹스다운 비율. **이 CSV 가 곧 게임 내부 믹서.** OS·헤드폰 마스터 볼륨이 외부 게인을 처리하므로 이 컬럼은 *상대 우선순위* 만 표현 (1.0 = 원본, 0.5 = -6dB 상당). >1.0 금지 (피크 클리핑) |
+| `mix_volume` | 0.0-1.0 선형 게인. 자산 원본 대비 믹스다운 비율. **이 CSV 가 곧 게임 내부 믹서.** OS·헤드폰 마스터 볼륨이 외부 게인을 처리하므로 이 컬럼은 *상대 우선순위* 만 표현 (1.0 = 원본, 0.5 = -6dB 상당). >1.0 금지 (피크 클리핑) |
 | `notes` | DEC 참조, 변주 수, 믹스 메모 등 |
 
 **현 상태 요약 (2026-05-05):**
@@ -996,7 +996,7 @@ CSV 가 게임 내부 믹서 — 별도 UI 도구를 만들지 않는다. 사유
 
 ### 13-2. @pixi/sound 마이그레이션 계획 (DEC-040)
 
-**Phase 2 P0 작업으로 격상.** 모든 신규 P0 에셋(AUD-01~10)은 `@pixi/sound` 인프라가 선행되어야 도입 가능하다.
+**Phase 2 P0 작업으로 격상.** 모든 신규 P0 에셋(AUD-01-10)은 `@pixi/sound` 인프라가 선행되어야 도입 가능하다.
 
 ```
 [마이그레이션 순서 — DEC-040 §다음 액션]
@@ -1047,9 +1047,9 @@ CSV 가 게임 내부 믹서 — 별도 UI 도구를 만들지 않는다. 사유
 | 카테고리 | 1차 도구 | 비고 |
 |:---|:---|:---|
 | SFX (전체) | ElevenLabs Sound Effects (2024) | 프롬프트 기반 생성. 라이선스 약관 검토 후 채택 |
-| BGM | ElevenLabs Music (2025) | 외주 작곡 0 (Phase 1~2) |
-| 검 Ego 보이스 | Phase 1~2 = 타이핑 SFX. Phase 3 베타 = 정식 캐스팅 검토 (ElevenLabs Voice 또는 인간 외주) | 동일 플랫폼 통합 가능 |
-| 핵심 트랙 (타이틀/아이템계 진입 테마) | Phase 1~2 AI. 베타 시장 신호 후 인간 외주 교체 검토 | DEC-040 후속 결정 미정 |
+| BGM | ElevenLabs Music (2025) | 외주 작곡 0 (Phase 1-2) |
+| 검 Ego 보이스 | Phase 1-2 = 타이핑 SFX. Phase 3 베타 = 정식 캐스팅 검토 (ElevenLabs Voice 또는 인간 외주) | 동일 플랫폼 통합 가능 |
+| 핵심 트랙 (타이틀/아이템계 진입 테마) | Phase 1-2 AI. 베타 시장 신호 후 인간 외주 교체 검토 | DEC-040 후속 결정 미정 |
 
 **금지:** Suno/Udio 등 학습 데이터 분쟁 진행 중인 플랫폼 사용 금지. 라이선스 안정성 우선.
 

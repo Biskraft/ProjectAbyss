@@ -58,7 +58,7 @@ Agent A 의 전수조사에 따라 ECHORIS 의 화학 반응 시스템은 총 **
 | **fire overlay DPS** | `maxHp × 3% × dt/s` + Burn 10s refresh | `TileHazards.ts:81-82` `FIRE_DPS_PCT = 0.03` / `FIRE_BURN_REFRESH_MS = 10000` | AABB+2px 인플레이션 |
 | **thunder pulse** | `maxHp × 50%` 단발 | `TileHazards.ts:83` `THUNDER_HIT_PCT = 0.50` | ⚠️ 보스 한방 setup. 문서 8% 는 legacy |
 | **Burn DOT** | `maxHp × 2%` per **5,000 ms** | `TileHazards.ts:84-85` `BURN_TICK_PCT = 0.02` / `BURN_TICK_MS = 5000` | ⚠️ 코드 주석 "1s" 와 자가-모순 |
-| **frozen 지속** | 15,000 ms | `TileMutator.ts:64` `FREEZE_DURATION_MS = 15000` | "shippable" — Combat 측 1.5~2s spec 무시 |
+| **frozen 지속** | 15,000 ms | `TileMutator.ts:64` `FREEZE_DURATION_MS = 15000` | "shippable" — Combat 측 1.5-2s spec 무시 |
 | **burn 기본 지속** | 9,000 ms (fallback) / 15,000 ms (OIL/WOOD) / 10,000 ms (GRASS) | `TileMutator.ts:38-42`, `:65` | Combat 측 spec 3s 무시 |
 | **electric overlay** | 2,500 ms | `TileMutator.ts:66` `ELECTRIC_DURATION_MS = 2500` | — |
 
@@ -79,7 +79,7 @@ Agent A 의 전수조사에 따라 ECHORIS 의 화학 반응 시스템은 총 **
 | DIV-C-19 | Charged 뇌 펄스 | 8% | **`THUNDER_HIT_PCT = 50%`** 와 동일 메커니즘 |
 | DIV-C-20 | Thunder 풀 펄스 | 8% | **50%** (보스 한방 setup) |
 | DIV-C-33 | TileSystem.md 자가-모순 oil burn 1.8s vs 15s | — | **15 s** |
-| DIV-C-03~07 | BurnableProp burnMs (§7.2.2 outdated) | 800-2500 ms | **§3.0.2 = 코드** (4000-12500 ms) |
+| DIV-C-03-07 | BurnableProp burnMs (§7.2.2 outdated) | 800-2500 ms | **§3.0.2 = 코드** (4000-12500 ms) |
 
 **Layer 2 (시각만):** 8건 — 본 문서 §7 자세히.
 **Layer 3 (주석):** 5건 — 본 문서 §7 자세히.
@@ -190,7 +190,7 @@ Agent B 의 디버전스 (a) Orphan Spec / (b) Undocumented / (c) 수치 불일�
 | DIV-B-01 | magma 영구 fire source | **본 문서 §4.1 으로 문서화 완료** |
 | DIV-B-02 | aabbNearBurningProp 인접 데미지 | **본 문서 §3.1 fire overlay 행 + 코드 참조 완료** |
 | DIV-C-01 | oil residue 5000ms | TileSystem.md / Fluid.md §6.4 정정 (5000ms 로) |
-| DIV-C-03~07 | BurnableProp burnMs §7.2.2 outdated | TileSystem.md §7.2.2 *삭제 또는 §3.0.2 와 통합* |
+| DIV-C-03-07 | BurnableProp burnMs §7.2.2 outdated | TileSystem.md §7.2.2 *삭제 또는 §3.0.2 와 통합* |
 | DIV-C-11 | Burn tick 5s | TileSystem.md / Fluid.md 정정 (5s 로) |
 | DIV-C-12 | Burn DOT 0.02 | Combat_Elements.md 정정 (0.02 로) |
 | DIV-C-13 | Burn 기본 지속 9-15s | Combat_Damage.md / Combat_Elements.md 정정 + *cell 종 별 분리 명시* |

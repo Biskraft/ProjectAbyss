@@ -656,3 +656,105 @@ graph LR
 | Content | 8 | 0 | 0 | 8 |
 | CSV | 11 | 4 | 0 | 7 |
 | **합계** | **78** | **38** | **1** | **39** |
+
+
+---
+
+## 99. 미등록 신규 문서 (자동 수집 2026-06-01)
+
+> Layer 2 등록 누락 일괄 수집. 카테고리/상태는 추후 정식 분류.
+
+| ID | 문서명 | 경로 | 상태 |
+| :--- | :--- | :--- | :--- |
+| CNT-ECO-001 | Content_Echo_Narratives_Batch01 | `Content/Content_Echo_Narratives_Batch01.md` | ⬜ 분류 필요 |
+| CNT-CHT-001 | Content_Indexer_Chant_Pool | `Content/Content_Indexer_Chant_Pool.md` | ⬜ 분류 필요 |
+| CNT-NPC-001 | Content_Resident_NPC_Lines | `Content/Content_Resident_NPC_Lines.md` | ⬜ 분류 필요 |
+| CNT-VLL-01 | Content_Victor_LifeLog_Synthesis | `Content/Content_Victor_LifeLog_Synthesis.md` | ⬜ 분류 필요 |
+| - | Localization_Reconciliation_Note | `Content/Localization_Reconciliation_Note.md` | ⬜ 분류 필요 |
+| - | Design_Character_Pipeline | `Design/Design_Character_Pipeline.md` | ⬜ 분류 필요 |
+| - | Design_ChemicalReactions_FullMatrix | `Design/Design_ChemicalReactions_FullMatrix.md` | ⬜ 분류 필요 |
+| - | Design_ChemicalReactions_Implementation_Plan | `Design/Design_ChemicalReactions_Implementation_Plan.md` | ⬜ 분류 필요 |
+| DES-IW-DIVE-01 | Design_ItemWorld_DeepDive | `Design/Design_ItemWorld_DeepDive.md` | ⬜ 분류 필요 |
+| - | Design_ItemWorld_Deployment_Plan_v1 | `Design/Design_ItemWorld_Deployment_Plan_v1.md` | ⬜ 분류 필요 |
+| DES-IW-LMN-01 | Design_ItemWorld_Liminal | `Design/Design_ItemWorld_Liminal.md` | ⬜ 분류 필요 |
+| D-16 | Design_ItemWorld_ResonanceSigil | `Design/Design_ItemWorld_ResonanceSigil.md` | ⬜ 분류 필요 |
+| - | Design_PixiJS_Reflection_Catalog | `Design/Design_PixiJS_Reflection_Catalog.md` | ⬜ 분류 필요 |
+| - | Design_World_ChemicalReactions_Roadmap | `Design/Design_World_ChemicalReactions_Roadmap.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-04-17 | `Feedback/Playtest_2026-04-17.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-04-26 | `Feedback/Playtest_2026-04-26.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-04-27 | `Feedback/Playtest_2026-04-27.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-04-29 | `Feedback/Playtest_2026-04-29.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-05-04 | `Feedback/Playtest_2026-05-04.md` | ⬜ 분류 필요 |
+| - | Playtest_2026-05-23 | `Feedback/Playtest_2026-05-23.md` | ⬜ 분류 필요 |
+| - | Marketing_Wishlist_SNS_Roadmap | `Plan/Marketing_Wishlist_SNS_Roadmap.md` | ⬜ 분류 필요 |
+| - | Phase2_RnD_MasterList | `Plan/Phase2_RnD_MasterList.md` | ⬜ 분류 필요 |
+| - | Plan_ProceduralDecorator_Structural_Overhaul | `Plan/Plan_ProceduralDecorator_Structural_Overhaul.md` | ⬜ 분류 필요 |
+| - | Plan_ProceduralDecorator_ThemeDecos | `Plan/Plan_ProceduralDecorator_ThemeDecos.md` | ⬜ 분류 필요 |
+| - | Task-2026-04 | `Plan/Task-2026-04.md` | ⬜ 분류 필요 |
+| - | Task_202605 | `Plan/Task_202605.md` | ⬜ 분류 필요 |
+| - | Task_Inventory_Implementation | `Plan/Task_Inventory_Implementation.md` | ⬜ 분류 필요 |
+| - | Task_SacredPickup_Implementation | `Plan/Task_SacredPickup_Implementation.md` | ⬜ 분류 필요 |
+| PLN-VARCO | VARCO_GameAI_Application | `Plan/VARCO_GameAI_Application.md` | ⬜ 분류 필요 |
+| - | CoopSynergy_ItemWorld_Research | `Research/CoopSynergy_ItemWorld_Research.md` | ⬜ 분류 필요 |
+| - | DeadCells_GrayscalePalette_Research | `Research/DeadCells_GrayscalePalette_Research.md` | ⬜ 분류 필요 |
+| - | Disgaea_ItemWorld_InnocentSystem | `Research/Disgaea_ItemWorld_InnocentSystem.md` | ⬜ 분류 필요 |
+| - | EnemyNPC_DesignPatterns_Integrated_Research | `Research/EnemyNPC_DesignPatterns_Integrated_Research.md` | ⬜ 분류 필요 |
+| - | GiantBuilder_MovingLevel_Research | `Research/GiantBuilder_MovingLevel_Research.md` | ⬜ 분류 필요 |
+| - | HealingSystem_Recovery_Research | `Research/HealingSystem_Recovery_Research.md` | ⬜ 분류 필요 |
+| - | InnocentBalance_BehavioralModifier_Research | `Research/InnocentBalance_BehavioralModifier_Research.md` | ⬜ 분류 필요 |
+| - | Innocent_Classification_Balance_Research | `Research/Innocent_Classification_Balance_Research.md` | ⬜ 분류 필요 |
+| - | Innocent_Combat_Behavior_Research | `Research/Innocent_Combat_Behavior_Research.md` | ⬜ 분류 필요 |
+| - | Innocent_Growth_Economy_Research | `Research/Innocent_Growth_Economy_Research.md` | ⬜ 분류 필요 |
+| - | Innocent_Multiplayer_Social_Research | `Research/Innocent_Multiplayer_Social_Research.md` | ⬜ 분류 필요 |
+| - | Innocent_Narrative_Worldbuilding_Research | `Research/Innocent_Narrative_Worldbuilding_Research.md` | ⬜ 분류 필요 |
+| - | Inventory_ItemInfo_UI_Research | `Research/Inventory_ItemInfo_UI_Research.md` | ⬜ 분류 필요 |
+| - | Inventory_Layout_StateVisual_Research | `Research/Inventory_Layout_StateVisual_Research.md` | ⬜ 분류 필요 |
+| - | Inventory_Onboarding_UX_Research | `Research/Inventory_Onboarding_UX_Research.md` | ⬜ 분류 필요 |
+| - | ItemDiversity_NonWeapon_FullSurvey_Research | `Research/ItemDiversity_NonWeapon_FullSurvey_Research.md` | ⬜ 분류 필요 |
+| - | ItemTypes_FullSurvey_Research | `Research/ItemTypes_FullSurvey_Research.md` | ⬜ 분류 필요 |
+| - | ItemWorldEntry_NaturalOnboarding_Research | `Research/ItemWorldEntry_NaturalOnboarding_Research.md` | ⬜ 분류 필요 |
+| - | ItemWorld_AntColony_Topology_Research | `Research/ItemWorld_AntColony_Topology_Research.md` | ⬜ 분류 필요 |
+| - | KanaisCube_AnvilSlot_UX_Research | `Research/KanaisCube_AnvilSlot_UX_Research.md` | ⬜ 분류 필요 |
+| - | KeyRemapping_ControlCustomize_Research | `Research/KeyRemapping_ControlCustomize_Research.md` | ⬜ 분류 필요 |
+| - | Metroidvania_SpikeAbility_Research | `Research/Metroidvania_SpikeAbility_Research.md` | ⬜ 분류 필요 |
+| - | MouseKeyboard_2DSidescroller_ControlScheme_Research | `Research/MouseKeyboard_2DSidescroller_ControlScheme_Research.md` | ⬜ 분류 필요 |
+| - | OpeningScene_BuilderReveal_Research | `Research/OpeningScene_BuilderReveal_Research.md` | ⬜ 분류 필요 |
+| - | Player_Growth_System_Research | `Research/Player_Growth_System_Research.md` | ⬜ 분류 필요 |
+| - | ProceduralDecor_ThemePreset_Research | `Research/ProceduralDecor_ThemePreset_Research.md` | ⬜ 분류 필요 |
+| - | RainWorld_ArtStyle_VisualAnalysis | `Research/RainWorld_ArtStyle_VisualAnalysis.md` | ⬜ 분류 필요 |
+| - | RainWorld_ProceduralEffects_Research | `Research/RainWorld_ProceduralEffects_Research.md` | ⬜ 분류 필요 |
+| - | RainWorld_RegionDecor_DetailedAnalysis | `Research/RainWorld_RegionDecor_DetailedAnalysis.md` | ⬜ 분류 필요 |
+| - | ReferenceGame_UI_UX_Research | `Research/ReferenceGame_UI_UX_Research.md` | ⬜ 분류 필요 |
+| - | Research_Accessibility | `Research/Research_Accessibility.md` | ⬜ 분류 필요 |
+| - | Research_HUD_UI_ReferenceGames_Analysis | `Research/Research_HUD_UI_ReferenceGames_Analysis.md` | ⬜ 분류 필요 |
+| RES-LMN-01 | Research_LiminalSpace_FullSurvey | `Research/Research_LiminalSpace_FullSurvey.md` | ⬜ 분류 필요 |
+| - | Research_UI_Component_MasterList | `Research/Research_UI_Component_MasterList.md` | ⬜ 분류 필요 |
+| - | RoomComposition_ThemeLayerCount_Research | `Research/RoomComposition_ThemeLayerCount_Research.md` | ⬜ 분류 필요 |
+| - | SaveSync_CoopSession_Research | `Research/SaveSync_CoopSession_Research.md` | ⬜ 분류 필요 |
+| - | Shop_Reference_Survey | `Research/Shop_Reference_Survey.md` | ⬜ 분류 필요 |
+| - | TwoPlayerNetcode_Architecture_Research | `Research/TwoPlayerNetcode_Architecture_Research.md` | ⬜ 분류 필요 |
+| - | URLJoin_CoopSession_Research | `Research/URLJoin_CoopSession_Research.md` | ⬜ 분류 필요 |
+| - | UX_Layout_Sizing_Research | `Research/UX_Layout_Sizing_Research.md` | ⬜ 분류 필요 |
+| - | WeaponDiversity_300Weapons_Research | `Research/WeaponDiversity_300Weapons_Research.md` | ⬜ 분류 필요 |
+| - | Zelda_Onboarding_Evolution_Research | `Research/Zelda_Onboarding_Evolution_Research.md` | ⬜ 분류 필요 |
+| - | System_Analytics_Dashboard | `System/System_Analytics_Dashboard.md` | ⬜ 분류 필요 |
+| SYS-ENM-ARC | System_Enemy_MonsterArchetype | `System/System_Enemy_MonsterArchetype.md` | ⬜ 분류 필요 |
+| - | System_Input_Gamepad | `System/System_Input_Gamepad.md` | ⬜ 분류 필요 |
+| - | System_Settings_Options | `System/System_Settings_Options.md` | ⬜ 분류 필요 |
+| - | System_Shop | `System/System_Shop.md` | ⬜ 분류 필요 |
+| - | System_World_ChemicalReactions | `System/System_World_ChemicalReactions.md` | ⬜ 분류 필요 |
+| - | System_World_ChemicalReactions_TestCases | `System/System_World_ChemicalReactions_TestCases.md` | ⬜ 분류 필요 |
+| - | System_World_Container | `System/System_World_Container.md` | ⬜ 분류 필요 |
+| - | System_World_Fluid | `System/System_World_Fluid.md` | ⬜ 분류 필요 |
+| - | _temp_ChemicalReactions_CodeAudit | `System/_temp_ChemicalReactions_CodeAudit.md` | ⬜ 분류 필요 |
+| - | _temp_ChemicalReactions_DocAudit | `System/_temp_ChemicalReactions_DocAudit.md` | ⬜ 분류 필요 |
+| - | _temp_ChemicalReactions_NewDesign | `System/_temp_ChemicalReactions_NewDesign.md` | ⬜ 분류 필요 |
+| - | Game_Narrative_Design_Guide | `Terms/Game_Narrative_Design_Guide.md` | ⬜ 분류 필요 |
+| - | Project_TechStack | `Terms/Project_TechStack.md` | ⬜ 분류 필요 |
+| T-03 | Project_Vision_ECHORIS | `Terms/Project_Vision_ECHORIS.md` | ⬜ 분류 필요 |
+| - | UI_Character_Stats | `UI/UI_Character_Stats.md` | ⬜ 분류 필요 |
+| - | UI_Interaction_Patterns | `UI/UI_Interaction_Patterns.md` | ⬜ 분류 필요 |
+| - | UI_ItemWorld_ReturnResult | `UI/UI_ItemWorld_ReturnResult.md` | ⬜ 분류 필요 |
+| - | UI_Menu_System | `UI/UI_Menu_System.md` | ⬜ 분류 필요 |
+| - | UI_SaveLoad | `UI/UI_SaveLoad.md` | ⬜ 분류 필요 |
+| - | index | `index.md` | ⬜ 분류 필요 |

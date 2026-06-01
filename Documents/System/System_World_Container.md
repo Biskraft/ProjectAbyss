@@ -367,8 +367,8 @@ rerenderTilemap()                            // 정적 wall sprite 갱신
 | Bias | 후보 셀 | 패턴 |
 | :--- | :--- | :--- |
 | **Floor** | rect 안에서 *바로 아래 셀이 솔리드* 인 셀 | 바닥에 한 줄 늘어선 박스 |
-| **Stack** | Floor 후보 1개 선택 후 그 위로 1~3 칸 누적 | 적층 박스 더미 (창고 모티프) |
-| **Cluster** | Floor 후보 중 N개 선택, 인접 셀에 0~2 추가 | 부근에 무리지어 흩어진 배치 (광역 시설 모티프) |
+| **Stack** | Floor 후보 1개 선택 후 그 위로 1-3 칸 누적 | 적층 박스 더미 (창고 모티프) |
+| **Cluster** | Floor 후보 중 N개 선택, 인접 셀에 0-2 추가 | 부근에 무리지어 흩어진 배치 (광역 시설 모티프) |
 
 **알고리즘 의사코드 (Floor 예시):**
 
@@ -418,7 +418,7 @@ for i in 0..count-1:
 
 ### 12.6 Spawner 와 절차적 룸 생성 통합
 
-아이템계 절차적 룸 (Phase 2 후속) 은 *Room Template* 단위로 LDtk 에 정의되어 있다. Template 내부에 1~3 개의 ContainerSpawner entity 를 미리 깔아두면, 룸이 인스턴스화될 때마다 Spawner 가 자동 발화되어 *같은 template 도 매번 다른 컨테이너 분포* 를 얻는다.
+아이템계 절차적 룸 (Phase 2 후속) 은 *Room Template* 단위로 LDtk 에 정의되어 있다. Template 내부에 1-3 개의 ContainerSpawner entity 를 미리 깔아두면, 룸이 인스턴스화될 때마다 Spawner 가 자동 발화되어 *같은 template 도 매번 다른 컨테이너 분포* 를 얻는다.
 
 기존 절차적 시스템과의 책임 분리:
 

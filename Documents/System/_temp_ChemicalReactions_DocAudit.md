@@ -143,8 +143,8 @@
 | DIV-C-10 | **Magma Burn 지속** | TileSystem.md §3.0 (line 258) = **15 s** | TileHazards.ts:73 `MAGMA_BURN_DURATION_MS = 15000` ✓ 일치 | — |
 | DIV-C-11 | **Burn tick 간격** | TileSystem.md §3.0 (line 258) = **1.0 s** | TileHazards.ts:85 `BURN_TICK_MS = 5000` — **5초** | **Layer 1** (5배 차이. 코드 주석 line 174 "2% maxHp / 1s" 와 BURN_TICK_MS 의 5000 자체가 자가모순) |
 | DIV-C-12 | **Burn DOT 비율** | TileSystem.md §3.0 (line 258) = `maxHp × 2%` / Combat_Damage §4.2 (line 656) = **0.02** / Combat_Elements §3.2 (line 169) = **0.03** | TileHazards.ts:84 `BURN_TICK_PCT = 0.02` | **Layer 1** (Combat_Elements 단독 0.03 — 다른 모든 문서/코드와 1.5× 차이) |
-| DIV-C-13 | **Burn 기본 지속시간 (Combat 측 elemental params)** | Combat_Damage §4.2 (line 655) = **3 s** / Combat_Elements §3.2 (line 168) = **3.0 s** | TileHazards.ts:73 magma burn 15 s. TileMutator.ts:65 `BURN_DURATION_MS = 9000` | **Layer 1** (Combat 측 SSoT 와 World 측 SSoT 가 3 s vs 9~15 s 로 3~5배 차이 — 동일 "Burn 상태이상" 정의가 두 시스템에서 다름) |
-| DIV-C-14 | **Freeze 지속시간** | Combat_Damage §4.2 (line 657) = **1.5 s** / Combat_Elements §3.2 (line 181) = **2.0 s** | TileMutator.ts:64 `FREEZE_DURATION_MS = 15000` (15 s, "shippable") | **Layer 1** (Combat 측 1.5~2 s vs World 측 15 s — 10배 차이. World 측 의도된 길이라는 코멘트 (line 61-63) 와 별개로 Combat 측 미동기화) |
+| DIV-C-13 | **Burn 기본 지속시간 (Combat 측 elemental params)** | Combat_Damage §4.2 (line 655) = **3 s** / Combat_Elements §3.2 (line 168) = **3.0 s** | TileHazards.ts:73 magma burn 15 s. TileMutator.ts:65 `BURN_DURATION_MS = 9000` | **Layer 1** (Combat 측 SSoT 와 World 측 SSoT 가 3 s vs 9-15 s 로 3-5배 차이 — 동일 "Burn 상태이상" 정의가 두 시스템에서 다름) |
+| DIV-C-14 | **Freeze 지속시간** | Combat_Damage §4.2 (line 657) = **1.5 s** / Combat_Elements §3.2 (line 181) = **2.0 s** | TileMutator.ts:64 `FREEZE_DURATION_MS = 15000` (15 s, "shippable") | **Layer 1** (Combat 측 1.5-2 s vs World 측 15 s — 10배 차이. World 측 의도된 길이라는 코멘트 (line 61-63) 와 별개로 Combat 측 미동기화) |
 | DIV-C-15 | **Shock 지속시간** | Combat_Damage §4.2 (line 659) = **2 s** / Combat_Elements §3.2 (line 195) = **2.5 s** | TileMutator.ts:66 `ELECTRIC_DURATION_MS = 2500` (2.5 s) | Layer 2 (Combat_Damage 의 2 s 가 outdated; 코드 = Combat_Elements = 2.5 s) |
 | DIV-C-16 | **Shock speed reduction** | Combat_Damage §4.2 (line 660) = **0.30** / Combat_Elements §3.2 (line 195) = **0.40** | 코드: Shock 상태이상 자체 미구현 (Grep: 'shock' 0건 in game/src) | Layer 1 (Shock 상태이상이 코드에 미구현이지만 GDD 두 곳 수치 불일치) |
 | DIV-C-17 | **Acid tick** | TileSystem.md §3.0 = `0.5%/0.1s` / Fluid.md §6.3 line 333 동일 | TileHazards.ts:77-78 `ACID_TICK_PCT = 0.005`, `ACID_TICK_MS = 100` ✓ 일치 | — |
@@ -174,7 +174,7 @@
 ### 3.1 NM-01: **Damage Formula CSV 부재** — Layer 1
 - 요구: `Sheets/Content_System_Damage_Formula.csv` (사용자 인용)
 - 현실: 파일 부재. 데미지 공식 SSoT 가 (a) GDD §4.2 yaml 블록 (b) TileHazards.ts 코드 상수 (c) Content_ConstData.csv 로 **3분산**
-- 영향: BURN/FREEZE/ACID/THUNDER 수치를 추적하려면 3 출처를 모두 봐야 함. DIV-C-11~16 의 디버전스 원인
+- 영향: BURN/FREEZE/ACID/THUNDER 수치를 추적하려면 3 출처를 모두 봐야 함. DIV-C-11-16 의 디버전스 원인
 
 ### 3.2 NM-02: **Shock 상태이상 코드 미구현** — Layer 1
 - 문서: Combat_Damage.md §3, Combat_Elements.md §3.2 가 Shock 상세 정의
@@ -226,7 +226,7 @@
 모든 DIV-C-* 행은 `파일.ts:line 상수명 = 값` 형식으로 코드 출처 명시. `TileMutator.ts:64-75`, `TileHazards.ts:72-85`, `FluidResidue.ts:44-47`, `BurnableProp.ts:46-62`, `ThrowableContainer.ts:788-815` 직접 Read/Grep 결과 사용. 자매 에이전트 산출물 (`_temp_ChemicalReactions_CodeAudit.md`) 참조 0건.
 
 ### 4.3 검증 3: 디버전스 우선순위가 Layer 분류와 일치 — **PASS**
-- **Layer 1 (게임플레이 영향):** DIV-A-01, DIV-B-01, DIV-B-02, DIV-C-01, DIV-C-03~07, DIV-C-11~14, DIV-C-16, DIV-C-18~20, DIV-C-33 — 총 16건. 모두 *플레이어 체감 데미지·DOT·잔존시간* 영향
+- **Layer 1 (게임플레이 영향):** DIV-A-01, DIV-B-01, DIV-B-02, DIV-C-01, DIV-C-03-07, DIV-C-11-14, DIV-C-16, DIV-C-18-20, DIV-C-33 — 총 16건. 모두 *플레이어 체감 데미지·DOT·잔존시간* 영향
 - **Layer 2 (시각만):** DIV-A-02, DIV-A-05, DIV-A-06, DIV-B-03, DIV-B-06, DIV-B-08, DIV-C-15, DIV-C-32 — 총 8건
 - **Layer 3 (주석·SSoT 톤):** DIV-A-03, DIV-A-04, DIV-B-04, DIV-B-05, DIV-B-07 — 총 5건
 

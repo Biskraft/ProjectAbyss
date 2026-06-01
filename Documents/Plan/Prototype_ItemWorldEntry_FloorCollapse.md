@@ -111,13 +111,13 @@ FloorCollapse {
 **붕괴 시퀀스 (1.5초):**
 
 ```
-Phase 1: cracking (0~0.4초)
+Phase 1: cracking (0-0.4초)
   - 히트스탑 6프레임 (Game.hitstopFrames = 6)
   - 카메라 shake (intensity = 3)
   - 붕괴 범위 내 바닥 타일에 균열 오버레이 스프라이트 표시
   - 모루 아래 2×2 영역은 제외 (보존 타일)
 
-Phase 2: collapsing (0.4~0.8초)
+Phase 2: collapsing (0.4-0.8초)
   - 바깥 타일부터 안쪽으로 순차 제거:
     for each ring from outermost to innermost:
       - roomData[row][col] = 0 (충돌 즉시 해제)
@@ -149,7 +149,7 @@ function isPreservedTile(col: number, row: number, anvilCol: number, anvilRow: n
 // 초기 vy = -50~-100 (살짝 위로 튀었다 떨어짐)
 // gravity 적용
 // 화면 밖으로 나가면 제거
-// Graphics.drawRect(0, 0, 8, 8) × 2~3개 per tile
+// Graphics.drawRect(0, 0, 8, 8) × 2-3개 per tile
 ```
 
 **레어리티별 반경:**

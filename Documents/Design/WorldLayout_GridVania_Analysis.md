@@ -182,13 +182,13 @@ depth=0 레이어 기준으로 분석한다.
 
 [Cross_roads (0,256, 2×2)]
   ↔ North : Entrance ★
-  ↔ West  : Water_supply (-512,0) → Y 범위 일부 겹침 (256~512 vs 0~512) ★
+  ↔ West  : Water_supply (-512,0) → Y 범위 일부 겹침 (256-512 vs 0-512) ★
   ↔ East  : Shop_entrance (512,256) → X=512 경계 일치 ★
   ↔ South : Sewers2 (256,1024) → Y 불일치 (768 vs 1024) — 직접 연결 없음
 
 [Water_supply (-512,0, 2×2)]
-  ↔ East  : Entrance (0,0) → X=0 경계, Y 범위 일치 (0~256 vs 0~512 겹침) ★
-  ↔ East  : Cross_roads → X=0 경계, Y 범위 (256~512) 겹침 ★
+  ↔ East  : Entrance (0,0) → X=0 경계, Y 범위 일치 (0-256 vs 0-512 겹침) ★
+  ↔ East  : Cross_roads → X=0 경계, Y 범위 (256-512) 겹침 ★
   ↔ West  : Ossuary (-1024,0) → X=-512 경계 일치 ★
 
 [Ossuary (-1024,0, 2×3)]
@@ -196,8 +196,8 @@ depth=0 레이어 기준으로 분석한다.
 
 [Garden (512,-256, 2×2)]
   ↔ East  : Large_water (1024,-256) → X=1024 경계 일치 ★
-  ↔ South : Shop_entrance (512,256) → Y=256 경계 일치, X=512~768 ★
-  ↔ South : Pit (768,256) → Y=256 경계, X=768~1024 ★
+  ↔ South : Shop_entrance (512,256) → Y=256 경계 일치, X=512-768 ★
+  ↔ South : Pit (768,256) → Y=256 경계, X=768-1024 ★
 
 [Large_water (1024,-256, 2×2)]
   ↔ West  : Garden ★
@@ -206,7 +206,7 @@ depth=0 레이어 기준으로 분석한다.
 
 [The_tower (1536,-256, 1×3)]
   ↔ West  : Large_water ★
-  ↔ South : Boss_room (1536,512) → Y=512 경계, X=1536~1792 일치 ★
+  ↔ South : Boss_room (1536,512) → Y=512 경계, X=1536-1792 일치 ★
 
 [Shop_entrance (512,256, 1×1)]
   ↔ North : Garden ★
@@ -230,12 +230,12 @@ depth=0 레이어 기준으로 분석한다.
 
 [Sewers1 (512,512, 1×2)]
   ↔ North : Shop_entrance ★
-  ↔ South : The_ponds → Y=768 경계, X=512~768 ★
+  ↔ South : The_ponds → Y=768 경계, X=512-768 ★
 
 [The_ponds (768,768, 3×1)]
   ↔ West  : Sewers1 → X=768 부분 경계 ★
-  ↔ South : Sewers2 (256,1024) → Y=1024 경계, X=768~1024 겹침 ★
-  ↔ South : Flooded_rooms (1024,1024) → Y=1024, X=1024~1536 ★
+  ↔ South : Sewers2 (256,1024) → Y=1024 경계, X=768-1024 겹침 ★
+  ↔ South : Flooded_rooms (1024,1024) → Y=1024, X=1024-1536 ★
 
 [Sewers2 (256,1024, 2×2)]
   ↔ North : The_ponds 일부 ★
@@ -249,7 +249,7 @@ depth=0 레이어 기준으로 분석한다.
 
 [Boss_room (1536,512, 2×3)]
   ↔ North : The_tower (Y=512 vs The_tower bottom Y=-256+768=512) ★
-  ↔ West  : Hidden_cave (X=1536, Y=256~768 겹침) ★
+  ↔ West  : Hidden_cave (X=1536, Y=256-768 겹침) ★
 ```
 
 ### 연결 그래프 요약

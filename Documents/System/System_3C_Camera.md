@@ -293,7 +293,7 @@ camera:
   tile_size: 16                # 1 타일 크기 (px)
 
   # --- Follow Mode ---
-  follow_lerp: 0.08            # 추적 보간 비율 (0~1, 프레임 독립)
+  follow_lerp: 0.08            # 추적 보간 비율 (0-1, 프레임 독립)
   dead_zone_x: 32              # 데드존 반폭 (px)
   dead_zone_y: 24              # 데드존 반높이 (px)
 

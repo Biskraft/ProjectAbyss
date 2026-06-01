@@ -47,13 +47,13 @@ Phase 0 (기획 보완)     ──▶  Phase 1 (MVP 프로토타입)  ──▶ 
 [완료] SYS-WLD-05 World ProcGen     ← MVP 충분 (Room Grid + Chunk)
 [완료] SYS-IW-02 IW Floor Gen       ← MVP 충분 (지층 생성 파이프라인)
 
-[완료] SYS-LVL-01 Stat System       ← ✅ ATK/INT/HP 3스탯, Lv 1~10 성장 공식
+[완료] SYS-LVL-01 Stat System       ← ✅ ATK/INT/HP 3스탯, Lv 1-10 성장 공식
 [완료] SYS-EQP-01 Equipment Slots   ← ✅ 무기 1슬롯, 착용/해제, 스탯 합산
 [완료] SYS-EQP-02 Rarity System     ← ✅ 5등급 배율, 드랍 확률, 아이템계 지층 수
 [완료] SYS-MON-01 Enemy AI          ← ✅ Skeleton/Ghost 2종, 7-state FSM
 [완료] SYS-CMB-03 Weapons & Slots   ← ✅ 검 3타 콤보, 히트박스, 8카테고리
 
-[완료] Content_Stats_Character_Base.csv   ← ✅ Lv 1~10 기본 스탯
+[완료] Content_Stats_Character_Base.csv   ← ✅ Lv 1-10 기본 스탯
 [완료] Content_Stats_Weapon_List.csv      ← ✅ 검 5레어리티
 [완료] Content_System_Damage_Formula.csv  ← ✅ 3타입 계수
 ```

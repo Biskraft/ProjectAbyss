@@ -110,7 +110,7 @@
 |:--|:--|:--|:--|:--|:--|:--|:--|
 | 마스터 볼륨 | slider | 0 ~ 100 (10단위) | 100 | P1 | 존재 | `echoris_vol_master` | `AudioBus` masterVolume |
 | BGM 볼륨 | slider | 0 ~ 100 | 55 | P1 | 존재 | `echoris_vol_bgm` | `DEFAULT_CHANNEL_STATE.bgm=0.55` |
-| 환경음 (Ambient) | slider | 0 ~ 100 | 22~23 | P1 | 존재 | `echoris_vol_ambient` | `ambient=0.225` (2026-05-05 청취 검증) |
+| 환경음 (Ambient) | slider | 0 ~ 100 | 22-23 | P1 | 존재 | `echoris_vol_ambient` | `ambient=0.225` (2026-05-05 청취 검증) |
 | 효과음 (SFX) | slider | 0 ~ 100 | 80 | P1 | 존재 | `echoris_vol_sfx` | `sfx=0.80` |
 | 음성 (Voice) | slider | 0 ~ 100 | 70 | P2 | 존재 | `echoris_vol_voice` | `voice=0.70` |
 | 채널 음소거 | toggle | 채널별 Mute | Off | P2 | 존재 | `echoris_mute_<ch>` | `AudioBus` muted 플래그 활용 |
@@ -124,7 +124,7 @@
 
 | 항목 | 타입 | 값 / 범위 | 기본값 | 우선 | 백킹 | localStorage 키 | 비고 |
 |:--|:--|:--|:--|:--|:--|:--|:--|
-| 키보드 리바인딩 | keybind | 액션별 키 1~2개 | 아래 기본 매핑 | P2 | 신규 | `echoris_keybinds` | 충돌 검사 필수. 기본 복원 버튼 제공 |
+| 키보드 리바인딩 | keybind | 액션별 키 1-2개 | 아래 기본 매핑 | P2 | 신규 | `echoris_keybinds` | 충돌 검사 필수. 기본 복원 버튼 제공 |
 | 게임패드 리바인딩 | keybind | 액션별 패드 버튼 | 아래 기본 매핑 | P3 | 신규 | `echoris_padbinds` | 표준 게임패드 매핑(`gamepadStandard.ts`) |
 | 진동 강도 (Rumble) | slider | Off / Low / Full | Full | P2 | 부분 | `echoris_rumble` | `utils/GamepadRumble`. Hollow Knight 선례 |
 | 패드 글리프 스타일 | cycle | Auto / Xbox / PlayStation / Nintendo | Auto | P3 | 부분 | `echoris_pad_glyph` | `core/input/padGlyphs.ts` |

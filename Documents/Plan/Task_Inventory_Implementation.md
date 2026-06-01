@@ -104,7 +104,7 @@ export type Memory ShardState = 'empty' | 'wild' | 'subdued';
 export interface Memory ShardSlot {
   state: Memory ShardState;
   defId?: string;          // 'atk_boost', 'hp_boost', …
-  level?: number;           // 1~9
+  level?: number;           // 1-9
   bonus?: { atk?: number; int?: number; hp?: number };
 }
 
@@ -150,7 +150,7 @@ strataProgress: {
 
 **레이아웃 (스펙 §3.6):**
 - 오버레이: `0x000000` alpha 0.85 (전체 화면)
-- 패널: 400×(240~320 유동) 중앙, 배경 `0x1A1A2E` alpha 0.98, 테두리 = **레어리티 색 2px**
+- 패널: 400×(240-320 유동) 중앙, 배경 `0x1A1A2E` alpha 0.98, 테두리 = **레어리티 색 2px**
 - 섹션 (위→아래):
   1. 헤더 — 아이템명 12px 레어리티 색
   2. 메타 — `{RARITY} Lv.{n} Cycle:{c} CLR`

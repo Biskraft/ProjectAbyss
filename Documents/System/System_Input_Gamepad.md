@@ -37,10 +37,10 @@
 | GP-05-B    | 리매핑       | Hold ↔ Toggle 변환 옵션                     |    P1    | 📅 대기      | 접근성 Intermediate                              |
 | GP-05-C    | 리매핑       | 사용자 정의 localStorage 저장               |    P0    | 📅 대기      | XAG 표준                                         |
 | GP-06-A    | 진동         | dual-rumble (피격/단조열/보스)              |    P1    | 📅 대기      | Phase 2 후반                                     |
-| GP-06-B    | 진동         | 글로벌 강도 슬라이더 (0.0~1.0)              |    P1    | 📅 대기      | HK v1.5+ 표준                                    |
+| GP-06-B    | 진동         | 글로벌 강도 슬라이더 (0.0-1.0)              |    P1    | 📅 대기      | HK v1.5+ 표준                                    |
 | GP-06-C    | 진동         | trigger-rumble (Chrome 113+ 한정)           |    P3    | 📅 대기      | Phase 4 옵션                                     |
 | GP-07-A    | UI           | 키↔패드 매핑 동시 표기 (Goodboy Galaxy 형식) |    P0    | 📅 대기      | 조작 가이드·HUD                                  |
-| GP-07-B    | UI           | 버튼 글리프 자동 전환 (Xbox/PS/Switch)       |    P0    | 📅 대기      | 입력 모드 디바운스 100~250ms                     |
+| GP-07-B    | UI           | 버튼 글리프 자동 전환 (Xbox/PS/Switch)       |    P0    | 📅 대기      | 입력 모드 디바운스 100-250ms                     |
 | GP-07-C    | UI           | UI 메뉴 D-Pad/좌스틱 네비게이션              |    P1    | 📅 대기      | 접근성 + 글로벌 표준                             |
 | GP-08-A    | 검증         | Xbox + 8BitDo + DualSense × Chrome/Edge/FF | P0    | 📅 대기      | 3종 × 3브라우저 매트릭스                         |
 | GP-08-B    | 검증         | Steam Deck 호환 체크리스트                   |    P1    | 📅 대기      | udev 권한 + Steam Input 폴백                      |
@@ -270,7 +270,7 @@ function detectBrand(id: string): ControllerBrand {
 
 ### 5.2. 글로벌 강도 슬라이더 (필수)
 
-- 옵션 메뉴에 *진동 강도 0~100%* 슬라이더 노출
+- 옵션 메뉴에 *진동 강도 0-100%* 슬라이더 노출
 - 각 이벤트의 strong/weak 값에 슬라이더 값 곱
 - HK v1.5+ 표준 [확인함]
 
@@ -291,7 +291,7 @@ function detectBrand(id: string): ControllerBrand {
 |:---|:---|:---:|
 | Basic | 풀 리매핑 (모든 액션, 키↔패드) | **P0** |
 | Basic | Hold ↔ Toggle 변환 옵션 | **P1** |
-| Basic | Deadzone 슬라이더 (0.0~0.40) | **P1** |
+| Basic | Deadzone 슬라이더 (0.0-0.40) | **P1** |
 | Basic | 버튼 라벨 자동 전환 + 강제 오버라이드 | **P0** |
 | Basic | 사용자 정의 저장 (`localStorage`) | **P0** |
 | Intermediate | 한 손 모드 (점프=L1+R1 동시 → 단일 버튼 우회) | **P2** |
@@ -346,7 +346,7 @@ function detectBrand(id: string): ControllerBrand {
 
 - 조작 가이드 페이지: 액션마다 *키보드 + 패드* 두 줄 병기
 - HUD 키 프롬프트: 마지막 입력 디바이스 기준 글리프 자동 전환
-- 디바운스 윈도우: 100~250ms (HK/Hades/Dead Cells 표준) [추측임]
+- 디바운스 윈도우: 100-250ms (HK/Hades/Dead Cells 표준) [추측임]
 
 ### 8.2. 버튼 글리프 표시 룰
 

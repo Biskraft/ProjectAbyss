@@ -4,7 +4,8 @@
 
 ## 구현 현황 (Implementation Status)
 
-> **최근 업데이트:** 2026-03-26
+> **최근 업데이트:** 2026-06-01
+> 3스탯 정합 (DEC-003): 6스탯→ATK/INT/HP
 > **문서 상태:** `작성 완료 (Complete)`
 > **2-Space:** World (표준), Item World (0.7배)
 > **기둥:** 메트로베니아 탐험 (스탯 게이트), 아이템계 야리코미, 온라인 멀티플레이
@@ -102,18 +103,18 @@ BaseStat(Level) = BaseStat(Level-1) + StatGrowth(Level)
 
 **MVP Lv1-10 기본값** (Sheets/Content_Stats_Character_Base.csv):
 
-| Lv  | HP  | MP  | STR | INT | DEX | VIT | SPD | LCK | ExpToNext |
-| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | --------: |
-| 1   | 100 | 100 | 10  | 8   | 9   | 10  | 8   | 5   | 100       |
-| 2   | 115 | 108 | 12  | 10  | 11  | 12  | 9   | 6   | 150       |
-| 3   | 132 | 116 | 14  | 12  | 13  | 14  | 10  | 7   | 225       |
-| 4   | 150 | 124 | 16  | 14  | 15  | 16  | 11  | 8   | 340       |
-| 5   | 170 | 132 | 18  | 16  | 17  | 18  | 13  | 9   | 500       |
-| 6   | 192 | 140 | 20  | 18  | 19  | 20  | 14  | 10  | 720       |
-| 7   | 216 | 148 | 22  | 20  | 21  | 22  | 15  | 11  | 1000      |
-| 8   | 242 | 156 | 24  | 22  | 23  | 24  | 17  | 12  | 1400      |
-| 9   | 270 | 164 | 27  | 24  | 25  | 27  | 18  | 13  | 1900      |
-| 10  | 300 | 172 | 30  | 27  | 28  | 30  | 20  | 14  | 0         |
+| Lv  | ATK | INT | HP (MaxHP) | ExpToNext |
+| :-- | :-- | :-- | :--------- | --------: |
+| 1   | 10  | 8   | 100        | 100       |
+| 2   | 12  | 10  | 115        | 150       |
+| 3   | 14  | 12  | 132        | 225       |
+| 4   | 16  | 14  | 150        | 340       |
+| 5   | 18  | 16  | 170        | 500       |
+| 6   | 20  | 18  | 192        | 720       |
+| 7   | 22  | 20  | 216        | 1000      |
+| 8   | 24  | 22  | 242        | 1400      |
+| 9   | 27  | 24  | 270        | 1900      |
+| 10  | 30  | 27  | 300        | 0         |
 
 **MVP 성장 패턴:** 각 스탯이 매 레벨마다 일정량 증가 (선형). Phase 2에서 곡선 적용.
 
@@ -131,7 +132,7 @@ FinalStat = BaseStat + EquipStat + Memory ShardBonus
 
 **예시 (Lv1, Normal 검, 기억 단편 없음):**
 ```
-FinalSTR = 10 + (10 × 1.0) + 0 = 20
+FinalATK = 10 + (10 × 1.0) + 0 = 20
 ```
 
 ### 2.2. 경험치 수집 시스템
@@ -184,7 +185,7 @@ ExpToNext = (Level × 100) + (Level^2 × 50)
 > **2026-05-24 변경:** 기존 아이템 레벨(0-99) 시스템은 폐기. **Memory Recovery % (0-100)** 으로 전면 대체.
 > SSoT: `Documents/System/System_Memory_Core.md` (SYS-MEM-01) / `Documents/System/System_Equipment_Growth.md` (SYS-EQP-03)
 
-아이템 진행은 *캐릭터 레벨과 독립* 으로 운영된다. 단일 진행 게이지인 Memory Recovery (0~100%) 가 모든 진행을 표현한다.
+아이템 진행은 *캐릭터 레벨과 독립* 으로 운영된다. 단일 진행 게이지인 Memory Recovery (0-100%) 가 모든 진행을 표현한다.
 
 #### Recovery 증가 경로 요약
 
@@ -227,9 +228,7 @@ effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier × (1 
 **설계 예정:** 특정 FinalStat 임계값을 넘어야 새 구역/능력 개방.
 
 예시 (확정 수치 아님):
-- STR ≥ 50: 아이언 스킨 파괴
-- VIT ≥ 60: 용암 환경 저항
-- DEX ≥ 45: 고속 함정 회피
+- ATK ≥ 50: 물리 장벽 파괴
 - INT ≥ 40: 마법 봉인 해제
 
 ---
@@ -314,7 +313,7 @@ effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier × (1 
 ### 4.2. 스탯 게이트 해금 플로우 (Phase 2)
 
 ```
-[FinalSTR ≥ GateRequirement?]
+[FinalATK ≥ GateRequirement?]
            ↓ YES
     [게이트 해제 이펙트]
            ↓
@@ -356,8 +355,8 @@ effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier × (1 
 ### 5.1. System_Growth_Stats.md와의 연동
 
 - **BaseStat 공급:** 이 문서의 레벨 테이블이 System_Growth_Stats.md §2.2 FinalStat 공식의 첫 항목(BaseStat)을 결정.
-- **기본 스탯:** ATK/INT/HP가 레벨과 함께 상승. DEF/RES는 장비에서 직접 제공.
-- **참고:** 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK)은 ATK/INT/HP 3스탯으로 대체. System_Growth_Stats.md 참조.
+- **기본 스탯:** ATK/INT/HP가 레벨과 함께 상승. DEF는 장비에서 직접 제공.
+- **참고:** 기존 6대 스탯(STR/INT/DEX/VIT/SPD/LCK)은 ATK/INT/HP 3스탯으로 대체 (DEC-003). STR→ATK, VIT→HP. DEX/SPD는 무기 고정, LCK는 크리티컬 5% 고정 + 기억 단편, MP는 폐기(쿨다운 스킬). System_Growth_Stats.md 참조.
 
 ### 5.2. Design_Progression_Reward.md와의 연동
 
@@ -452,7 +451,7 @@ effectiveStat = baseStat × (0.4 + Recovery × 0.006) × rarityMultiplier × (1 
   → Lv1 상태에서 튜토리얼 완료 (5분)
   → 월드 1-1 구역 탐험, 적 처치 (EXP 누적)
   → 약 7분 플레이 후 EXP 100 수집 → Lv2 달성
-  → BaseStat 상승 (STR: 10→12, HP: 100→115)
+  → BaseStat 상승 (ATK: 10→12, HP: 100→115)
   → FinalStat 재계산. 데미지 수치 체감 변화
   → Lv3, Lv4 진행 (각 10분, 15분 소요)
   → 세션 종료 시점: Lv4, 약 750/1315 EXP

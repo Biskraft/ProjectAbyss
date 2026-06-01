@@ -766,7 +766,7 @@ memory shard_gladiator:
   type: memory shard_wild
   display_name: "Gladiator"
   memory shard_type: stat_boost     # 스탯형 기억 단편 (기본형)
-  effect_when_tamed: "STR +X (레벨에 따라 결정)"
+  effect_when_tamed: "ATK +X (레벨에 따라 결정)"
 
   # 기본 스탯
   stats:

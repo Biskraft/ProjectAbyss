@@ -95,7 +95,7 @@ PC 키보드와 게임패드 모두에서 직관적이고 접근성 높은 전�
 graph TD
     subgraph "입력 계층 (Input Layer)"
         ATK[기본 공격 버튼]
-        SK[스킬 슬롯 1~4]
+        SK[스킬 슬롯 1-4]
         DSH[대시 버튼]
     end
 

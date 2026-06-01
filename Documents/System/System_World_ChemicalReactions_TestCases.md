@@ -194,7 +194,7 @@
 3. *ice enchant × acid* → R-NEW-006 Frozen Acid
 4. *AcidVial 1 던지기* → R-NEW-012 도미노 (다른 AcidVial 가속)
 
-### 4.3 Iron_Test_Room (R-NEW-017/021/049~054 검증)
+### 4.3 Iron_Test_Room (R-NEW-017/021/049-054 검증)
 
 ```
 - ice 2×4 발판

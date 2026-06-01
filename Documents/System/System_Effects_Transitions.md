@@ -42,9 +42,9 @@
 
 ```
 Phase 0: ritual     0 ~ 400ms
-Phase 1: dissolve   400 ~ 1200ms  (내부 timer 0~800ms)
-Phase 2: absorb     1200 ~ 2000ms (내부 timer 0~800ms)
-Phase 3: flash      2000 ~ 2500ms (내부 timer 0~500ms)
+Phase 1: dissolve   400 ~ 1200ms  (내부 timer 0-800ms)
+Phase 2: absorb     1200 ~ 2000ms (내부 timer 0-800ms)
+Phase 3: flash      2000 ~ 2500ms (내부 timer 0-500ms)
 Phase 4: done       → shouldTransition = true → 씬 전환
 ```
 
@@ -79,7 +79,7 @@ Phase 4: done       → shouldTransition = true → 씬 전환
   내부 흰색 링 (alpha 0.3 → 0, 점차 소멸)
 - 수렴 와선 12개: 바깥 반경 → 포탈 안쪽으로 나선형
   회전 속도 가속: timer * 0.004 * (1 + progress)
-- 수렴 파티클: 50% 확률, 무기 주변 100~200px에서 스폰, 중심으로 이동
+- 수렴 파티클: 50% 확률, 무기 주변 100-200px에서 스폰, 중심으로 이동
 - phase 종료 시: onScreenFlash(rarityColor, 0.8), onHitstop(6프레임)
 - 카메라 쉐이크: intensity = 5 * progress (최대 5px)
 ```
@@ -196,10 +196,10 @@ row: [anvilRow, anvilRow+1]
 
 **데브리(파편) 물리:**
 ```
-스폰: 각 타일 붕괴마다 2~4개
-초기 속도: vx = ±40px/s, vy = -(50~130)px/s (위로 튀어오름)
+스폰: 각 타일 붕괴마다 2-4개
+초기 속도: vx = ±40px/s, vy = -(50-130)px/s (위로 튀어오름)
 중력: +400 px/s² (적용됨)
-수명: 800~1200ms
+수명: 800-1200ms
 alpha: life / 800 (선형 감쇠)
 ```
 
@@ -207,7 +207,7 @@ alpha: life / 800 (선형 감쇠)
 ```
 30% 확률로 매 프레임 스폰
 위치: (anvilCol ± radiusX/2) * TILE_SIZE
-속도: vx = ±10px/s, vy = -(30~70)px/s (위로 상승)
+속도: vx = ±10px/s, vy = -(30-70)px/s (위로 상승)
 중력 없음 (데브리와 다름)
 ```
 
@@ -268,7 +268,7 @@ heavy=true:  7개 (SPARK_COUNT_HEAVY)
 
 각 스파크:
   각도 = (i / count) * 2π + 노이즈 ±0.8rad
-  속도 = SPARK_SPEED * speedMult * 0.6~1.4 (= 108~252 / 151~353 px/s)
+  속도 = SPARK_SPEED * speedMult * 0.6-1.4 (= 108-252 / 151-353 px/s)
   knockback 방향 바이어스: angle += dirX * 0.4
 
 시각 구조 (사쿠라이 원칙):
@@ -283,7 +283,7 @@ heavy=true:  7개 (SPARK_COUNT_HEAVY)
   x += vx * dtSec, y += vy * dtSec
   alpha = life / maxLife (선형 감쇠)
   scale = 0.5 + (life / maxLife) * 0.5 (수축)
-수명: SPARK_LIFE * 0.7~1.6 = 126~288ms
+수명: SPARK_LIFE * 0.7-1.6 = 126-288ms
 ```
 
 ---
@@ -318,8 +318,8 @@ alpha(t) = initialAlpha * (t / duration)^k   (k ≈ 1, 근사적으로 지수)
 speedBase = 180 px/s
 speedMultHeavy = 1.4
 velocityRange = [0.6, 1.4]
-lightRange: 108~252 px/s
-heavyRange: 151~353 px/s
+lightRange: 108-252 px/s
+heavyRange: 151-353 px/s
 ```
 
 ---

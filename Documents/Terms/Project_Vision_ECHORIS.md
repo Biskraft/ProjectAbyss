@@ -7,9 +7,12 @@
 > **타겟:** 탐험과 파밍을 즐기는 코어~미드코어 유저
 > **레퍼런스:** BLAME!/Biomega(세계관·스케일) + 디스가이아(아이템계/야리코미) + 월하의 야상곡(탐험/전투) + 스펠렁키(절차 생성) + 한정흥(정서 구조)
 > **작성일:** 2026-03-23 / **최신화:** 2026-06-01 (2차 역추적: §5 기억 시스템·§6 장비 성장·§7 순환을 **DEC-046 Memory Recovery 캐논**으로 동기화. 직전 1차 갱신의 §0·§3 서사·월드 v3와 §5·§6 강화 단편이 내부 모순이었던 것을 해소. 아카이브 비전 `Project_Vision_Abyss.md` 병합 완료)
+> 정합: 3스탯 + D-20 v3 월드
 > **근거:** DEC-042(한정흥), **DEC-046(Memory Recovery / Identity Archive, 2026-05-24 — DEC-036 5색 기질 Memory Shard 전면 폐기)**, DEC-026(7무기/10슬롯/5레어리티), DEC-037(RoomGraph), DEC-039(레어리티 단일 다이브), DEC-040(@pixi/sound), 시놉시스 v3(CNT-STR-001), Design_World_Master(D-20), Spec_Relic_Catalog(PLN-RELIC), System_Equipment_Growth(SYS-EQP-03, Recovery SSoT).
 >
 > ⚠️ **SSoT 경고:** Recovery 진행 규칙의 본래 SSoT였던 `System_Memory_Core.md`(SYS-MEM-01)는 2026-05-28 NarrativeWorldReset로 `Documents/System/_Archive/`에 격리되었다. 현재 활성 SSoT는 `System_Equipment_Growth.md`(SYS-EQP-03)다. 메모리 코어 복원 또는 SSoT 재지정이 필요한 미해결 항목.
+
+> **준거 상위 (Authority):** T-03, D-01
 
 ---
 
@@ -112,7 +115,7 @@
 | **핵심 목적**   | 탐험, 능력 획득, 스토리, 대장간/상점 (세이브 포인트) | 아이템 강화, 야리코미                          |
 | **인원**        | 솔로(1인)                                            | 1 ~ 4인                                        |
 | **맵 유형**     | 핸드크래프트 + 절차적 혼합                           | 완전 절차적 생성                               |
-| **진행 방식**   | 능력 게이트 (메트로베니아)                           | 지층 클리어 (레어리티별 2~4 지층)              |
+| **진행 방식**   | 능력 게이트 (메트로베니아)                           | 지층 클리어 (레어리티별 2-4 지층)              |
 | **사망 페널티** | 세이브 포인트 복귀                                   | 진행 지층 손실 (탈출 아이템 미사용 시)         |
 | **고유 자원**   | 능력 렐릭, 맵 데이터, 월드 소재                      | Memory Recovery, Memory Fragment, 정체성 결 |
 
@@ -125,7 +128,7 @@
 │  - 능력 게이트        │     │  - 기억 복원(Recovery)     │
 │  - 보스/미니보스      │     │  - 지층별 보스            │
 │  - 아이템 획득        │     │  - 순환 진입 (월드 경유)    │
-│  - 스탯 게이트        │     │  - 1~4인 협동             │
+│  - 스탯 게이트        │     │  - 1-4인 협동             │
 │  - 세이브 포인트      │     │  (URL 링크로 파티 합류)    │
 │    (대장간/상점)      │◀────│                           │
 └─────────────────────┘     └─────────────────────────┘
@@ -230,12 +233,12 @@ Room Grid 내부는 템플릿 조립       │R13│R14│R15│R16│
 | 항목          | 사양                                                                                          |
 | :------------ | :-------------------------------------------------------------------------------------------- |
 | 지층 수       | 레어리티별: Normal 1 / Magic 2 / Rare 3 / Legendary 4 / Ancient 4 + 심연 (DEC-039 단일 다이브 기준) |
-| 토폴로지      | 방사형 RoomGraph (DEC-037, hub_spoke / Ancient = multi_hub). 지층당 노드 7~20. SSoT: `Sheets/Content_StrataConfig.csv` |
+| 토폴로지      | 방사형 RoomGraph (DEC-037, hub_spoke / Ancient = multi_hub). 지층당 노드 7-20. SSoT: `Sheets/Content_StrataConfig.csv` |
 | 테마          | 5기질(forge/iron/rust/spark/shadow). 무기 기질이 fluid·container·날씨를 자동 바인딩 |
 | 보스          | 각 지층 보스 처치 시 다음(더 깊은) 지층 개방. 최심 지층 클리어 = 월드 세이브 포인트 귀환 |
 | 탈출          | Mr. Gency Exit (200 HL 소모품) 또는 지층 클리어                                               |
 | 시드          | `hash(itemID + 지층)` → 동일 아이템의 동일 지층은 항상 같은 맵                             |
-| 인원          | 1~2인 (Phase 3) / 최대 4인 (Phase 4+). 파티 리더의 아이템에 진입                             |
+| 인원          | 1-2인 (Phase 3) / 최대 4인 (Phase 4+). 파티 리더의 아이템에 진입                             |
 | 순환 진입     | 아이템계 획득 아이템은 월드 귀환 후 해당 아이템계에 재진입 (중첩 진입 없음)                  |
 | 하강 축       | 다이브는 지층을 **아래로** 내려감 (3축 원칙 — `Design_Level_Standards`). 깊을수록 위험·보상↑ |
 
@@ -268,7 +271,7 @@ Room Grid 내부는 템플릿 조립       │R13│R14│R15│R16│
 
 | 위치 | 처치 보상 (DEC-046) |
 | :--- | :--- |
-| 각 지층 보스 (Tier 1~4) | Memory Fragment 1개 해금(Identity Archive 영구 등록) + Recovery 단계 점프(Stage +1) + 이름 진화 + 정체성 결(Identity Trait) 가동 |
+| 각 지층 보스 (Tier 1-4) | Memory Fragment 1개 해금(Identity Archive 영구 등록) + Recovery 단계 점프(Stage +1) + 이름 진화 + 정체성 결(Identity Trait) 가동 |
 | Ancient 심연 보스 | Re-Dive 영역 개방. 같은 인생의 다른 해석 단편 + Network Fragment(인물 관계 1차 자료) |
 
 > 보스 디자인 SSoT: `System_ItemWorld_Boss`. 디스가이아 장군/왕/신/대신 티어는 *명칭 차용*이며, 구조는 레어리티 지층에 매핑된다. **폐기(DEC-046):** 보스 영구 스탯 +N, 핵심 기억(Core Memory), 레어리티 승급 기회.
@@ -301,7 +304,7 @@ Room Grid 내부는 템플릿 조립       │R13│R14│R15│R16│
 > **"이 무기를 한 번 더 두드리면 다음 단계로 올라간다"는 강화의 언어다.**
 > **"이 사람의 다음 페이지를 보면 또 한 면이 드러난다"는 복원의 언어다.** ECHORIS는 후자를 택한다.
 
-### 5.2 단일 진행 축 — Memory Recovery (0~100%)
+### 5.2 단일 진행 축 — Memory Recovery (0-100%)
 
 장비 성장은 **단일 게이지 Memory Recovery**로 통합된다. 모든 효과(스탯, 이름, 정체성 결, 컬렉션)가 이 게이지에서 자동 파생된다.
 
@@ -343,7 +346,7 @@ Stage 4 = 진명(True Name) 확정 = 그 인생의 *Fire 모멘트* 문장 해�
 
 - 무기 첫 획득 → `[Unknown]` 등록. Stage 1 도달 → 직업 분류. Stage 4 도달 → 진명 + 전체 Fragment 표시.
 - 인물은 18개 카테고리(측량사/수리공/잠수사 등)로 분류. 카테고리 5인 100% 복원 시 **Echo Chord** 해금, 30인 이상 시 **Era Echo** 해금.
-- 규모: 300인 × 4 Fragment + Re-Dive + Network = 약 5,000개 텍스트 컬렉션. 100% 도달 200~400시간(야리코미).
+- 규모: 300인 × 4 Fragment + Re-Dive + Network = 약 5,000개 텍스트 컬렉션. 100% 도달 200-400시간(야리코미).
 
 ### 5.6 Re-Dive (재다이브) — 무한 야리코미
 
@@ -511,7 +514,7 @@ Stage 4 = 진명(True Name) 확정 = 그 인생의 *Fire 모멘트* 문장 해�
 
 | 요소        | 구현                              |
 | :---------- | :-------------------------------- |
-| 히트스탑    | 타격 시 2~4프레임 정지 (타격감)   |
+| 히트스탑    | 타격 시 2-4프레임 정지 (타격감)   |
 | 화면 흔들림 | 강공격/보스 공격 시 카메라 쉐이크 |
 | 넉백        | 피격 시 밀려남 (무게 기반)        |
 | 이펙트      | 타격 스파크, 원소별 이펙트        |
@@ -536,22 +539,22 @@ Stage 4 = 진명(True Name) 확정 = 그 인생의 *Fire 모멘트* 문장 해�
 ### 11.2 성장 공식
 
 ```
-Final_ATK = Base_ATK + Equipment_ATK + Shard_ATK_Bonus
-Final_INT = Base_INT + Equipment_INT + Shard_INT_Bonus
+Final_ATK = Base_ATK + Equipment_ATK
+Final_INT = Base_INT + Equipment_INT
 Final_DEF = Equipment_DEF + Buff_DEF
 Final_RES = Equipment_RES + Buff_RES
-Final_MaxHP = Base_HP + Level_Bonus_HP + Shard_HP_Bonus
+Final_MaxHP = Base_HP + Level_Bonus_HP + Equipment_HP
 
-- Base_ATK: 캐릭터 기본 공격력, Base_INT: 캐릭터 기본 지력
-- Equipment_ATK/INT: 장비 ATK/INT × 레어리티 배율
-- Shard_ATK_Bonus: Gladiator(Forge) 합산, Shard_INT_Bonus: Tutor(Spark) 합산
+- Base_ATK: 캐릭터 기본 공격력, Base_INT: 캐릭터 기본 지력 (3스탯 ATK/INT/HP, DEC-003)
+- Equipment_ATK/INT/HP: 장비 effective stat (Memory Recovery 기반, §5.2 `effectiveStat` 공식)
+- 크리티컬/드랍률/이동속도 등 부가 보정은 정체성 결(Identity Trait, DEC-046)이 담당
 ```
 
 ### 11.3 데미지 공식
 
 ```
-물리 데미지 = (ATK × 스킬 배율 - DEF × 0.5) × 크리티컬 배율 × 랜덤(0.9~1.1)
-원소 데미지 = (INT × 원소 배율 - RES × 0.5) × 크리티컬 배율 × 랜덤(0.9~1.1)
+물리 데미지 = (ATK × 스킬 배율 - DEF × 0.5) × 크리티컬 배율 × 랜덤(0.9-1.1)
+원소 데미지 = (INT × 원소 배율 - RES × 0.5) × 크리티컬 배율 × 랜덤(0.9-1.1)
 
 - 최소 데미지: 1 (0 이하 방지)
 - 크리티컬 배율: 고정 1.5x
@@ -625,9 +628,9 @@ Final_MaxHP = Base_HP + Level_Bonus_HP + Shard_HP_Bonus
 
 7. 장비 시스템 (10슬롯, 레어리티)
 8. 기억 복원 시스템 (Recovery 게이지 + Memory Fragment + 정체성 결 + Identity Archive)
-9. 스탯 게이트 + 능력 게이트 (2~3개)
-10. 월드 2~3개 구역 연결
-11. 보스 1~2개
+9. 스탯 게이트 + 능력 게이트 (2-3개)
+10. 월드 2-3개 구역 연결
+11. 보스 1-2개
 12. 세이브/워프 시스템
 ```
 
@@ -636,7 +639,7 @@ Final_MaxHP = Base_HP + Level_Bonus_HP + Shard_HP_Bonus
 ```
 [목표: 파티 플레이와 무한 파밍이 작동하는가?]
 
-13. WebSocket 멀티플레이 (2~4인)
+13. WebSocket 멀티플레이 (2-4인)
 14. 아이템계 전 지층(레어리티별) + Ancient 심연 완성
 15. Identity Archive 인물 컬렉션 + Re-Dive + Network Fragment
 16. ~~허브~~ DEPRECATED — 대장간/상점은 월드 세이브 포인트로 통합
@@ -689,7 +692,7 @@ Final_MaxHP = Base_HP + Level_Bonus_HP + Shard_HP_Bonus
 | 메트로베니아        | Metroid + Castlevania. 능력 게이트 기반 비선형 탐험 액션                                    |
 | 스탯 게이트         | 장비 ATK 또는 INT가 특정 수치 이상일 때 열리는 진행 장벽 (ATK/INT 이중 게이트)              |
 | 능력 게이트         | 특정 능력(이단점프, 반중력 등 렐릭) 획득 시 열리는 진행 장벽                                |
-| Memory Recovery     | 장비 성장의 단일 게이지(0~100%). 100% = 한 사람의 인생 완전 복원. effective stat 파생. (DEC-046)   |
+| Memory Recovery     | 장비 성장의 단일 게이지(0-100%). 100% = 한 사람의 인생 완전 복원. effective stat 파생. (DEC-046)   |
 | Memory Fragment     | 지층 보스 처치 시 해금되는 한 문장. 보상의 서사적 본체. Identity Archive에 영구 등록. (DEC-046)     |
 | 정체성 결 (Identity Trait) | Fragment에 귀속된 무기의 본질적 효과. 무기의 모든 효과는 가동 결의 합. 상시 가동. (DEC-046)   |
 | Identity Archive    | 무기가 아닌 *사람*을 모으는 컬렉션. 18개 카테고리. 야리코미의 정서적 핵심. (DEC-046)               |

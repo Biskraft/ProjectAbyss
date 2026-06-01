@@ -642,8 +642,8 @@ boss_scaling:
     exp_reward: 600
 
   tier_3_god:
-    hp_multiplier: 9.0      # 8.0~10.0 범위
-    atk_multiplier: 3.25    # 3.0~3.5 범위
+    hp_multiplier: 9.0      # 8.0-10.0 범위
+    atk_multiplier: 3.25    # 3.0-3.5 범위
     size_multiplier: 1.9
     exp_reward: 600
 
@@ -778,10 +778,10 @@ boss_rewards:
 
   # 기억 단편 드랍 레벨 범위 (기억 단편에는 레어리티 없음, 레벨만 존재)
   memory shard_drop_level_range:
-    general:  [1, 15]      # Lv.1~15
-    king:     [10, 30]     # Lv.10~30
-    god:      [25, 60]     # Lv.25~60
-    overlord: [50, 100]    # Lv.50~100
+    general:  [1, 15]      # Lv.1-15
+    king:     [10, 30]     # Lv.10-30
+    god:      [25, 60]     # Lv.25-60
+    overlord: [50, 100]    # Lv.50-100
 
   # 레어리티 승급 기회 (대신 처치 시만, Phase 2)
   rarity_upgrade_chance:

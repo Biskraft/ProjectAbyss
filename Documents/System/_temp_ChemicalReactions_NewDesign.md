@@ -43,7 +43,7 @@
 **7. 1차 niche 정렬 점수:** 4 / 5
 > Noita의 "산성 물이 물에 희석된다" 동작과 직접 대응. BLAME!의 거대 시설 내 화학 냉각수 라인이 산성 오염 구역을 점진적으로 중화한다는 세계관 정당화.
 **8. 5색 기질 정체성:** Rust (산성 라보) — acid 가 자연 중화되는 것을 막으려면 water 차단이 필요. Rust 룸 디자인의 핵심 변수.
-**9. 시각 효과:** 변환 셀에서 작은 초록 거품 파티클 2~3개 위로 솟음 (`#88CC44` → `#7297E5` 페이드 틱). 색상 전환 자체가 시각 신호.
+**9. 시각 효과:** 변환 셀에서 작은 초록 거품 파티클 2-3개 위로 솟음 (`#88CC44` → `#7297E5` 페이드 틱). 색상 전환 자체가 시각 신호.
 **10. 디자인 의도:** acid 풀이 물 소스에 인접하면 *시간이 지나면서 자연 중화*된다. 디자이너는 "acid 풀 왼쪽에 water 소스를 흘려놓으면 플레이어가 기다리거나 빠르게 통과해야 한다"는 타이밍 트랩을 설계할 수 있다. 역으로 water 흐름을 차단(ice 동결, metal 댐)하면 acid 풀이 유지된다.
 **11. 구현 위치:** `TileMutator.ts:tickPassiveInteractions` — acid 블록 내 `else if (t === TILE_ACID)` 분기에 추가. `maybeMutateNeighbour(roomData, gx, gy, TILE_WATER, TILE_WATER, 0.03)` 형태 — 단, 출력이 acid → water 이므로 자기 자신 셀(`row[gx]`)을 변환하는 별도 헬퍼 필요 (8줄).
 **12. 구현 비용:** LOC ~12 (헬퍼 `maybeMutateSelfIfNeighbour` 신규 ~8줄 + 호출 4줄). 자산 추가 없음. CSV 1 row 추가 (`System_World_TileSystem.md §3.2` 자동 상호작용 표).
@@ -79,7 +79,7 @@
 **7. 1차 niche 정렬 점수:** 5 / 5
 > Noita의 "acid 에 불을 붙이면 독성 연기가 발생한다" 직접 대응. BLAME!의 연구 시설 화학사고 씬. "살아있는 세계" — 플레이어가 처음 실수로 acid 에 fire 를 쓸 때 독성 구름이 터지면서 위험을 학습.
 **8. 5색 기질 정체성:** Rust (산성 라보의 사고 연출) — Rust 룸의 시그니처 사고. 디자이너가 의도적으로 fire trap + acid pool 조합으로 "독성 사고 룸" 을 설계할 수 있다.
-**9. 시각 효과:** 연두색-황색 연기 파티클 버스트 (`#CCDD44` → fade). 2~3 프레임 flash. 기존 `SteamPuffManager` 를 색상 파라미터만 바꿔 재사용 (`tintColor: 0xCCDD44`). SFX: 산성 sizzle 2배 강도.
+**9. 시각 효과:** 연두색-황색 연기 파티클 버스트 (`#CCDD44` → fade). 2-3 프레임 flash. 기존 `SteamPuffManager` 를 색상 파라미터만 바꿔 재사용 (`tintColor: 0xCCDD44`). SFX: 산성 sizzle 2배 강도.
 **10. 디자인 의도:** fire 인챈트가 acid 풀에 쓸 때 "예상치 못한 역효과" 를 연출. 플레이어가 화염 검사인 경우 acid 풀을 fire 로 태우려다 독에 당하는 서프라이즈 발생. Noita 의 "잘못된 연금술" 경험. 동시에 fire 를 acid 에 쓰면 acid 제거 효과도 있어 의도적 활용도 가능.
 **11. 구현 위치:** `TileHazards.ts:applyFireAttack` — water 증기화 분기 직후. `isAcid(tile)` 체크 추가, AIR 전환 + `onSteamEvent`(green tint 파라미터) + 인접 엔티티 타격. 현재 `applyFireAttack` 은 `fluidSystem` 포인터를 받으므로 콜백 추가로 장면 측 acid 데미지 발동 가능.
 **12. 구현 비용:** LOC ~18 (`applyFireAttack` 내 acid 분기 ~10줄 + `SteamPuffManager` tint 파라미터 지원 ~8줄). SFX: 기존 acid_drip sfx 재사용 + pitch shift. 자산 추가 없음.
@@ -169,7 +169,7 @@
 **7. 1차 niche 정렬 점수:** 3 / 5
 > "기름과 산이 섞이면 검은 탄화 잔존물이 생긴다" — 현실 화학의 간략화. BLAME!의 "시설 바닥에 쌓인 정체불명의 검은 물질" 모티프. 다소 설명이 필요한 반응이므로 점수 3.
 **8. 5색 기질 정체성:** Shadow (기름 + 산의 교차 지점) — Shadow 룸에서 acid 풀과 oil 풀이 맞닿으면 통로를 막는 검은 덩어리가 생성. 동적 미로 변화.
-**9. 시각 효과:** WALL 전환 셀 색상: 짙은 검정-갈색 (`#1A1208`). `onWallTileChanged` 콜백으로 특수 슬러지 타일 렌더링. 부글거리는 작은 파티클 1~2개.
+**9. 시각 효과:** WALL 전환 셀 색상: 짙은 검정-갈색 (`#1A1208`). `onWallTileChanged` 콜백으로 특수 슬러지 타일 렌더링. 부글거리는 작은 파티클 1-2개.
 **10. 디자인 의도:** oil 과 acid 를 같은 구역에 두면 자연스럽게 경로가 막히는 현상. 디자이너가 "oil + acid 를 혼합하면 막힌다" 는 규칙을 미로 설계에 활용 가능. 플레이어가 의도적으로 oil 을 acid 에 던져 경로를 봉쇄하거나 open 상태를 유지하기 위해 acid 를 제거하는 선택을 해야 한다.
 **11. 구현 위치:** `TileMutator.ts:tickPassiveInteractions` — `else if (t === TILE_OIL)` 분기 내 acid 이웃 감지. 자기 자신 셀을 WALL 로 변환하는 `maybeSolidifySelfIfNeighbour` 헬퍼 (~10줄). 슬러지 이동속도 감소는 Player.ts 의 oil slip 코드 참조 후 별도 `isSludge` 오버레이 Map 추가 가능 (Phase 2).
 **12. 구현 비용:** LOC ~14 (헬퍼 10줄 + 호출 4줄). 이동속도 감소 오버레이는 Tier 2 이후 추가.

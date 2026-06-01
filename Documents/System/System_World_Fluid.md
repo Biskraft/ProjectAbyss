@@ -576,12 +576,12 @@ LDtk 의 entity ref field 표현 — Phase 2 event 시스템과 동기화.
 | 컬럼 | 의미 | water | lava | magma | oil | acid |
 | :--- | :--- | :-: | :-: | :-: | :-: | :-: |
 | `foam_color` | 포말 색 (`#RRGGBB`) | `#D5F0FF` | `#FFD89A` | `#FFE0A0` | `#C0865A` | `#DDF6A8` |
-| `foam_density` | 0~1 강도 | 1.0 | 0.7 | 0.5 | 0.15 | 0.9 |
+| `foam_density` | 0-1 강도 | 1.0 | 0.7 | 0.5 | 0.15 | 0.9 |
 
 **구현:**
 - **Crest band (정적):** `FluidSpawnerManager.repaintVisual` 에서 segment 상단에 3 레이어 `rect` (outer halo / mid band / top spine). alpha = `0.18·0.55·0.85 × density × flow`.
 - **Side spray (입자):** `FluidCrestFoam.ts` — 좌우 모서리에서 분출되는 점, life 480ms, soft gravity 240. `ceilingFed` 시 수평 jet.
-- **Streak highlight (입자):** 본체 내부에서 흘러내리는 작은 도트, life 700ms, vy 110~190.
+- **Streak highlight (입자):** 본체 내부에서 흘러내리는 작은 도트, life 700ms, vy 110-190.
 
 **가드 규칙:**
 
@@ -592,7 +592,7 @@ LDtk 의 entity ref field 표현 — Phase 2 event 시스템과 동기화.
 | 높이 < 32px | streak highlight 비활성 |
 | `prefers-reduced-motion` | 입자 비활성. crest band(정적)는 유지 |
 
-**예산:** 씬당 spray budget 80 / streak budget 60. spawner 평균 4~8개 환경에서 < 0.5 ms/frame.
+**예산:** 씬당 spray budget 80 / streak budget 60. spawner 평균 4-8개 환경에서 < 0.5 ms/frame.
 
 **Validate.mjs V7:** `foam_color` 형식 (`#RRGGBB`) + `foam_density` ∈ [0,1] 빌드 시 검증.
 

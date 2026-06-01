@@ -246,7 +246,7 @@ Gate_Threshold = (Base_Stat + Equip_Stat_MVP) + (EquipStat_IW_1clearCycle * 1.5)
 
 [아이템계 진입]
   └─> 해당 층위의 장비 아이템 진입
-       └─> 지층 클리어 (1~2회)
+       └─> 지층 클리어 (1-2회)
             └─> 장비 강화 + ATK 증가
                  └─> [월드로 복귀]
 

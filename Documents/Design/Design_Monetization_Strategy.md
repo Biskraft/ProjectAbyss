@@ -81,14 +81,14 @@ monetization_model:
 
   web:
     price: 0
-    content_gate: "Tier 1~2, 아이템계 Normal~Rare 레어리티, 1지층"
+    content_gate: "Tier 1-2, 아이템계 Normal~Rare 레어리티, 1지층"
     purpose: "바이럴 마케팅 엔진. 스파이크(아이템계 진입) 체험 제공"
     save_system: "웹 계정 세이브 (로컬 + 서버 선택)"
     conversion_hook: "Legendary 첫 드랍 시 Steam 전환 유도 메시지"
 
   steam:
     price_usd: 15  # 범위: $15~$20, 초기 EA는 $15
-    content_gate: "전체 콘텐츠 (Tier 1~7, 전 레어리티, 전 멀티플레이)"
+    content_gate: "전체 콘텐츠 (Tier 1-7, 전 레어리티, 전 멀티플레이)"
     purpose: "주 수익원. 야리코미 끝까지 제공"
     save_transfer: "웹 세이브 원클릭 Steam 이전"
     post_launch_dlc: "출시 후 DLC 확장팩 (옵션)"
@@ -379,7 +379,7 @@ phase_2:
   monetization: "Steam 위시리스트 수집 (무료)"
   focus: "바이럴 퍼널 동작 검증"
   deliverables:
-    - "웹 버전 공개 (Tier 1~2, 아이템계 1지층)"
+    - "웹 버전 공개 (Tier 1-2, 아이템계 1지층)"
     - "URL 공유 시스템 구현 (즉시 플레이)"
     - "Steam 페이지 공개 (스크린샷, 트레일러, 설명)"
     - "전환 트리거 메시지 구현 (CT-01 ~ CT-03)"
@@ -396,7 +396,7 @@ phase_3:
   monetization: "Steam EA 판매 ($15 USD)"
   focus: "첫 수익 회수 + 세이브 이전 검증"
   deliverables:
-    - "Steam EA 출시 (Tier 1~5, 아이템계 3지층, 2인 협동)"
+    - "Steam EA 출시 (Tier 1-5, 아이템계 3지층, 2인 협동)"
     - "웹 → Steam 세이브 이전 시스템"
     - "아이템계 URL 초대 시스템 (Phase 3 2인 협동과 연동)"
   pricing:
@@ -415,7 +415,7 @@ phase_4:
   monetization: "Steam 정식 출시 ($15~$20) + DLC 확장팩"
   focus: "장기 수익 구조 확립"
   deliverables:
-    - "Steam 정식 출시 (전체 콘텐츠: Tier 1~7, 전 레어리티, Act 1~4)"
+    - "Steam 정식 출시 (전체 콘텐츠: Tier 1-7, 전 레어리티, Act 1-4)"
     - "EA → 정식 업그레이드 (가격 차 없음)"
     - "첫 DLC 확장팩 기획 착수 (신규 층위 또는 아이템계 테마)"
   dlc_roadmap:
