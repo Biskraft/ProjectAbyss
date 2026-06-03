@@ -358,7 +358,10 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | CNT-STR-001 | Story Synopsis (시놉시스) | `Content/Content_Story_Synopsis.md` | ✅ 활성 (2026-05-29, NarrativeWorldReset 후속 라운드 SSoT) |
 | CNT-CHR-001 | Characters (에르다·인덱서 지도자·러스트본) | `Content/Content_Characters.md` | ✅ 활성 (2026-05-29) |
-| CNT-EXP-001 | 첫 30분 경험 플로우 | `Content/Content_First30Min_ExperienceFlow.md` | ✅ 활성 (2026-05-29) |
+| CNT-PROG | 플레이 진행 마스터 (챕터 단위 SSoT) | `Content/Content_Progression_Master.md` | ✅ 활성 (2026-06-03, Ch.0~7 + 급강하 막간) |
+| CNT-CH0 | Ch.0 프롤로그 (상세 비트시트) | `Content/Content_Ch0_Prologue.md` | ✅ 활성 (2026-06-03, CNT-EXP-001 §0막 흡수) |
+| CNT-CH1 | Ch.1 침수 바닥층 (상세 비트시트) | `Content/Content_Ch1_DrownedFloor.md` | ✅ 활성 (2026-06-03, CNT-EXP-001 §1~§9 흡수) |
+| ~~CNT-EXP-001~~ | ~~첫 30분 경험 플로우~~ → CNT-CH0 + CNT-CH1 로 흡수 후 삭제 | (삭제됨 2026-06-03, git 이력) | 🗑️ 흡수·삭제 (내용은 CNT-CH0/CNT-CH1) |
 | ~~CNT-00~~ | ~~World Bible~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_World_Bible.md` | 📦 archived 2026-05-28 (근본 재정의 라운드) |
 | ~~CNT-DIR-001~~ | ~~Direction (테마 · 시놉시스 · 내러티브 SSoT)~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction.md` | 📦 archived 2026-05-28 |
 | ~~CNT-DIR-002~~ | ~~Direction Seed Analysis~~ | `Content/_archive/NarrativeWorldReset_2026-05-28/Content_Direction_SeedAnalysis.md` | 📦 archived 2026-05-28 |

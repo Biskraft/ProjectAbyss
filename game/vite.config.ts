@@ -99,6 +99,8 @@ function isOfflineMode(mode: string): boolean {
   return mode.includes('offline');
 }
 
+const SCENE_CHUNK_WARNING_LIMIT_KB = 1024;
+
 /**
  * Inject Noto Sans KR Google Fonts link tag into index.html for KO builds.
  * EN builds keep the smaller Cinzel/Rajdhani-only payload — see
@@ -186,7 +188,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      chunkSizeWarningLimit: 750,
+      chunkSizeWarningLimit: SCENE_CHUNK_WARNING_LIMIT_KB,
     },
   };
 });

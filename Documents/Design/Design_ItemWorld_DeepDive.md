@@ -240,7 +240,7 @@
 **효과:** "내려왔다" 감각 누적. 메트로베니아 단일 세계 정체성.
 **ECHORIS 적용 비용:** 중간. 천장/배경 레이어에 *위 지층 그림자* 한 장만 깔아도 효과.
 
-### P3. 영구 마을 + 휘발 다이브 (Persistent Hub + Volatile Dive)
+### P3. 영구 마을 + 휘발 다이브 (Persistent Base + Volatile Dive)
 **원형:** Hades / Steamworld Dig 2 / Dome Keeper / Dark Souls Firelink
 **메커니즘:** 거점 1개 영구 + 다이브 결과 누적. 마을 NPC·시각 상태가 다이브 함수로 변화.
 **효과:** "내가 이 무기에서 누적으로 무엇을 했는가" 가 마을에 시각화.

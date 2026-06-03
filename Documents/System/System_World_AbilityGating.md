@@ -194,7 +194,7 @@
 | **Level Design (Design_Level_Standards)** | 참조 | 게이트 수치 (타일, 높이, 물리) | 게이트 배치 기준값 |
 | **Map Structure** | 출력 | `gateUnlocked: Gate[]` | 해금된 게이트 목록 |
 | **Progression (World System)** | 출력 | `areaCompletion%` | 층위별 탐험 완료도 |
-| **Item World** | 입력 | `isAncientItemActive` | (구 역중력 활성 조건. surge는 월드 획득 렐릭이므로 본 입력과 무관 — 잔여 정리 대상) |
+| **Item World** | 입력 | `isAncientItemActive` | (구 역중력→폐기(반중력/극성부츠 재정의). surge는 월드 획득 렐릭이므로 본 입력과 무관 — 레거시 잔여 정리 대상) |
 
 ### 5-2. 시스템 상호작용
 

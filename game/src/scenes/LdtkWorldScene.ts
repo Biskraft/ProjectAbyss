@@ -2,7 +2,7 @@
  * LdtkWorldScene.ts
  *
  * World-space scene that loads hand-crafted LDtk levels instead of procedurally
- * generated rooms. Implements the World (??醫??? space of the 3-Space separation
+ * generated rooms. Implements the World space of the 3-Space separation
  * model (Design_Architecture_2Space.md).
  *
  * Key differences from WorldScene:
@@ -10,140 +10,60 @@
  *  - LdtkLoader parses the project; LdtkRenderer draws the tiles.
  *  - Room data comes from level.collisionGrid (same 2D format the Player uses).
  *  - Room transitions use world-space coordinates and level.neighbors.
- *  - Variable level sizes ??camera bounds are set per level.
+ *  - Variable level sizes — camera bounds are set per level.
  *  - Player spawn position read from the LDtk "Player" entity.
  *
  * All combat, portal, altar, inventory, and game-over systems are copied
  * faithfully from WorldScene.ts.
  */
 
-import { Container, Graphics, BitmapText, Assets, Texture, Sprite, Rectangle, RenderTexture, ColorMatrixFilter, BlurFilter, type Filter } from 'pixi.js';
+import { Container, Graphics, Assets, Texture, Rectangle } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
-import { GameAction, actionKey } from '@core/InputManager';
+import { GameAction } from '@core/InputManager';
 import { ProximityRouter, type ProximityInteraction } from '@core/ProximityRouter';
 import { aabbOverlap, isOneWay, isSolid } from '@core/Physics';
+import { CameraZoneRuntime } from '@core/CameraZoneRuntime';
 import { LdtkLoader, isLdtkWallSlope2x1Tile } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
-import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX, visualBoundsBleedArea } from '@level/VisualBoundsBleed';
-import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
-import { Skeleton } from '@entities/Skeleton';
-import { Ghost } from '@entities/Ghost';
-import { Slime } from '@entities/Slime';
-import { Boss01 } from '@entities/Boss01';
-import { GoldenMonster } from '@entities/GoldenMonster';
-import { createEnemy } from '@entities/EnemyFactory';
-import { Projectile } from '@entities/Projectile';
-import { Portal, type PortalSourceType } from '@entities/Portal';
-import { Anvil } from '@entities/Anvil';
-import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
-import { Switch } from '@entities/Switch';
-import { GrowingWall } from '@entities/GrowingWall';
-import { CrackedFloor } from '@entities/CrackedFloor';
-import { BreakableProp, type PropDrop } from '@entities/BreakableProp';
-import { Breakable, isBreakableSpriteId, type BreakableSpriteId } from '@entities/Breakable';
-import { Building } from '@entities/Building';
-import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
-import { SecretWall } from '@entities/SecretWall';
-import { getMasterItem } from '@data/itemMaster';
-import { Spike } from '@entities/Spike';
-import { isInUpdraft, isInSpike, isInVoid, isWater, isIce, getTile, TILE_AIR, TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, TILE_UPDRAFT, TILE_SPIKE, isInMagma, isInOil, isInAcid, isInCyro } from '@core/Physics';
-import { CollapsingPlatform } from '@entities/CollapsingPlatform';
-import { HealthShard } from '@entities/HealthShard';
-import { HealingPickup, createEmberShard, createForgeEmber } from '@entities/HealingPickup';
-import { GoldPickup } from '@entities/GoldPickup';
-import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
+import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX } from '@level/VisualBoundsBleed';
+import { Player } from '@entities/Player';
+import type { Portal, PortalSourceType } from '@entities/Portal';
+import type { Anvil } from '@entities/Anvil';
+import { TILE_WALL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, TILE_SPIKE } from '@core/Physics';
+import { HitManager } from '@combat/HitManager';
 import { COMBO_STEPS } from '@combat/CombatData';
 import { HUD } from '@ui/HUD';
 import { AreaTitle } from '@ui/AreaTitle';
-import { TITLE_FADE_OVERLAY_LABEL, TitleScene } from './TitleScene';
+import { TitleScene } from './TitleScene';
 import { UISkin } from '@ui/UISkin';
-import { KeyPrompt } from '@ui/KeyPrompt';
-import {
-  MODAL_BG, MODAL_BG_ALPHA, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, FONT_HINT,
-  create9SlicePanel,
-} from '@ui/ModalPanel';
-import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { InventoryUI } from '@ui/InventoryUI';
 import { IdentityArchive } from '@ui/IdentityArchive';
 import { PauseMenu } from '@ui/PauseMenu';
 import { CharacterStats } from '@ui/CharacterStats';
-import { DeathScreen, type DeathStats } from '@ui/DeathScreen';
+import { DeathScreen } from '@ui/DeathScreen';
+import { OxygenOverlay } from '@ui/OxygenOverlay';
+import { attachGamepadToast } from '@ui/GamepadToastBinding';
+import { BossHpRuntime } from '@ui/BossHpRuntime';
 import { Inventory } from '@items/Inventory';
-import { ItemDropEntity } from '@items/ItemDrop';
-import { resolveBottomLeftPickupSpawn, resolveItemDropSpawn } from '@items/DropSpawn';
-import { SWORD_DEFS, type WeaponDef } from '@data/weapons';
-import { createItem, calcInnocentBonus, itemLevelUp, resetItemForNextCycle, EXP_PER_LEVEL, getDisplayName } from '@items/ItemInstance';
-import { getPlayerBaseStats } from '@data/playerStats';
+import { SWORD_DEFS } from '@data/weapons';
+import { createItem } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
-import { ItemWorldScene } from './ItemWorldScene';
-import { PortalTransition } from '@effects/PortalTransition';
-import { ItemWorldTransitionController } from '@effects/ItemWorldTransitionController';
-import type { ItemDeploymentController, ItemDeploymentStreamWorldOptions, ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
-import { WallGate } from '@entities/WallGate';
-import { ScreenCrack } from '@effects/ScreenCrack';
-import { MemoryDive } from '@effects/MemoryDive';
-import { WeaponPulse } from '@effects/WeaponPulse';
-import { AnvilTether } from '@effects/AnvilTether';
-import { ArcTether } from '@effects/ArcTether';
-import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import { LorePopup } from '@ui/LorePopup';
-import { AcquireOverlay, type AcquireConfig } from '@ui/AcquireOverlay';
-import { LoreDisplay, type LoreLine } from '@ui/LoreDisplay';
+import { LoreDisplay } from '@ui/LoreDisplay';
 import { DivePreview } from '@ui/DivePreview';
-import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
-import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
+import { sacredSave } from '@save/PlayerSave';
 import { t } from '@i18n';
-import { createUiText } from '@ui/factories';
 import {
-  EGO_WAKE, EGO_FIRST_WALK, EGO_ANVIL, EGO_WEAPON_SWAP,
-  EGO_RUSTBORN_AWAKEN,
-  EGO_WORLD_RETURN, EGO_INVENTORY_LOCKED, getEgoAnvilRetired, EGO_EVENT, hasEgo,
+  EGO_INVENTORY_LOCKED,
 } from '@data/EgoDialogue';
-import { HitSparkManager } from '@effects/HitSpark';
-import { PropShatterManager } from '@effects/PropShatter';
-import { LandingDustManager } from '@effects/LandingDust';
-import { DashAfterimageManager } from '@effects/DashAfterimage';
-import { DashBoostPuffManager } from '@effects/DashBoostPuff';
-import { DoubleJumpRingManager } from '@effects/DoubleJumpRing';
-import { RGBSplitFilter } from '@effects/RGBSplitFilter';
-import { WallJumpDustManager } from '@effects/WallJumpDust';
-import { JumpTakeoffPuffManager } from '@effects/JumpTakeoffPuff';
-import { WallSlideDustManager } from '@effects/WallSlideDust';
-import { FootstepPuffManager } from '@effects/FootstepPuff';
-import { FlaskHealBurstManager } from '@effects/FlaskHealBurst';
-import { SurgeVfxManager } from '@effects/SurgeVfx';
-import { CriticalHighlightManager } from '@effects/CriticalHighlight';
-import { HitBloodSprayManager } from '@effects/HitBloodSpray';
-import { DiveLandImpactManager } from '@effects/DiveLandImpact';
-import { WaterSplashManager } from '@effects/WaterSplash';
-import { WaterBubblesManager } from '@effects/WaterBubbles';
-import { SteamPuffManager, PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/SteamPuff';
-import { AshRemnantManager } from '@effects/AshRemnant';
-import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
-import { FluidResidueManager } from '@effects/FluidResidue';
-import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
-import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
-import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
-import { resolveContainerSlotKind } from '@data/ContainerPools';
-import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
-import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
-import { DropThroughDustManager } from '@effects/DropThroughDust';
-import { IceSkidStreakManager } from '@effects/IceSkidStreak';
-import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
-import { RelicAuraBurstManager } from '@effects/RelicAuraBurst';
-import { SavepointPulseManager } from '@effects/SavepointPulse';
-import { LowHpVignetteManager } from '@effects/LowHpVignette';
-import { getRarityConfig } from '@data/rarityConfig';
-import { ScreenFlash } from '@effects/ScreenFlash';
-import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
-import { RimLightFilter } from '@effects/RimLightFilter';
+import { PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/SteamPuff';
+import { ThrowableContainer } from '@entities/ThrowableContainer';
 import { ParallaxBackground } from '@level/ParallaxBackground';
-import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
-import { seedItemWorldTemplates, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
-import { loadBundleOnce } from '@data/assetBundles';
+import { hashString } from '@level/ProceduralDecorator';
+import { seedItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
@@ -153,92 +73,179 @@ import {
 } from '@data/areaPalettes';
 import { SaveManager } from '@utils/SaveManager';
 import { ToastManager } from '@ui/Toast';
-import { brandLabel } from '@core/input/padGlyphs';
-import { WorldMapOverlay, type WorldMapDynamicGrid } from '@ui/WorldMapOverlay';
+import type { WorldMapOverlay } from '@ui/WorldMapOverlay';
 
 import { PIXEL_FONT } from '@ui/fonts';
-import { EndingSequence, type EndingTrigger } from '@systems/EndingSequence';
-import { UpdraftSystem } from '@systems/UpdraftSystem';
-import { VoidFogSystem } from '@systems/VoidFogSystem';
-import { TileMutator } from '@systems/TileMutator';
-import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
+import type { TileMutator } from '@systems/TileMutator';
 import {
   findNearestGrabbableContainer as findNearestContainerForGrab,
-  startContainerGrabPull,
-  updateContainerGrabInput,
-  updateContainerArcTether,
-  updateHeldContainerCarry,
-  updateContainerPrompt as updateContainerPromptUi,
 } from '@systems/ContainerInteraction';
-import {
-  snapPlayerToNearestSavePoint,
-  updateSavePointProximity,
-  type SavePointEntry,
-} from '@systems/SavePointInteraction';
 import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
 import { isEnemyKillHandled, markEnemyKillHandled } from '@systems/EntityRuntimeMeta';
 import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
-import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
-import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
-import { BurnableProp } from '@entities/BurnableProp';
-import { DamageNumberManager } from '@ui/DamageNumber';
+import { hazardToElement } from '@combat/ElementAffinity';
 import { TutorialHint } from '@ui/TutorialHint';
+import { LowHpHealHintRuntime } from '@ui/LowHpHealHintRuntime';
 import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
-import { WeatherSystem, type WeatherDynamicCollider, type WeatherMode } from '@effects/WeatherSystem';
 import { PRNG } from '@utils/PRNG';
 import { WorldUiController } from './world/WorldUiController';
 import { WorldTransitionController } from './world/WorldTransitionController';
+import { WorldPlayerSpawnRuntime } from './world/WorldPlayerSpawnRuntime';
 import { WorldAltarController } from './world/WorldAltarController';
 import { AnvilPromptController } from './world/AnvilPromptController';
 import { AnvilPlacementController } from './world/AnvilPlacementController';
-import { createAnvilItemDeployment } from './world/AnvilDeploymentFactory';
+import { ItemWorldEntryStreamRuntime } from './world/ItemWorldEntryStreamRuntime';
+import { ItemWorldGrowthSnapshotController } from './world/ItemWorldGrowthSnapshotController';
+import { ItemWorldGhostCollisionRuntime } from './world/ItemWorldGhostCollisionRuntime';
+import { ItemWorldEntryPreloader } from './world/ItemWorldEntryPreloader';
+import { ItemWorldEntryPushTransition } from './world/ItemWorldEntryPushTransition';
+import { WorldItemWorldSceneFlowRuntime } from './world/WorldItemWorldSceneFlowRuntime';
+import { InventoryTutorialHintRuntime } from './world/InventoryTutorialHintRuntime';
+import { ItemDeploymentTunnelRuntime } from './world/ItemDeploymentTunnelRuntime';
+import { ItemWorldGhostStreamRuntime } from './world/ItemWorldGhostStreamRuntime';
+import { FixedItemWorldRuntime } from './world/FixedItemWorldRuntime';
+import { WorldFixedItemWorldFlowRuntime } from './world/WorldFixedItemWorldFlowRuntime';
+import { WorldAnvilItemWorldFlowRuntime } from './world/WorldAnvilItemWorldFlowRuntime';
+import { WorldAnvilReturnFlowRuntime } from './world/WorldAnvilReturnFlowRuntime';
+import { WorldPortalItemWorldFlowRuntime } from './world/WorldPortalItemWorldFlowRuntime';
+import { PortalEntryRuntime } from './world/PortalEntryRuntime';
+import { AnvilItemWorldReturnState } from './world/AnvilReturnState';
+import { ItemWorldTransitionRuntime } from './world/ItemWorldTransitionRuntime';
+import { PortalRuntime } from './world/PortalRuntime';
+import { SavePointRuntime } from './world/SavePointRuntime';
+import { WorldSaveRuntime } from './world/WorldSaveRuntime';
+import { WorldMinimapRuntime } from './world/WorldMinimapRuntime';
+import { WorldMapRuntime } from './world/WorldMapRuntime';
+import { WorldDebugWarpRuntime } from './world/WorldDebugWarpRuntime';
+import { WorldGameOverRuntime } from './world/WorldGameOverRuntime';
+import { SaveRoomAudioRuntime } from './world/SaveRoomAudioRuntime';
+import { AnvilCyclePromptRuntime } from './world/AnvilCyclePromptRuntime';
+import { WorldTutorialHintRuntime } from './world/WorldTutorialHintRuntime';
+import { WorldDeployBlurRuntime } from './world/WorldDeployBlurRuntime';
+import { WorldLaserDesaturationRuntime } from './world/WorldLaserDesaturationRuntime';
+import { WorldNoWeaponFeedbackRuntime } from './world/WorldNoWeaponFeedbackRuntime';
+import { ItemWorldReturnFadeRuntime } from './world/ItemWorldReturnFadeRuntime';
+import { WorldIntroHandoffRuntime } from './world/WorldIntroHandoffRuntime';
+import { WorldBossLockRuntime } from './world/WorldBossLockRuntime';
+import { WorldEndingRuntime } from './world/WorldEndingRuntime';
+import { WorldDialogueTriggerRuntime } from './world/WorldDialogueTriggerRuntime';
+import { WorldVoidRuntime } from './world/WorldVoidRuntime';
+import { WorldVoidReturnRuntime } from './world/WorldVoidReturnRuntime';
+import { WorldExitGlowRuntime } from './world/WorldExitGlowRuntime';
 import {
-  placePlayerAtAnvilReturnPoint,
-  resolveAnvilTargetPoint,
-  snapshotAnvil,
-  type AnvilSnapshot,
-} from './world/AnvilReturnState';
-import { GiantBuilder, type GiantBuilderSnapshot } from '@entities/GiantBuilder';
+  WorldEdgeTransitionRuntime,
+} from './world/WorldEdgeTransitionRuntime';
+import { WorldEdgeTransitionFlowRuntime } from './world/WorldEdgeTransitionFlowRuntime';
+import { WorldAnvilRetirementRuntime } from './world/WorldAnvilRetirementRuntime';
+import { WorldAnvilInteractionRuntime } from './world/WorldAnvilInteractionRuntime';
+import { WorldAnvilSpawnRuntime } from './world/WorldAnvilSpawnRuntime';
+import { WorldAnvilItemRuntime } from './world/WorldAnvilItemRuntime';
+import { WorldAnvilDeploymentRuntime } from './world/WorldAnvilDeploymentRuntime';
+import { WorldItemDeploymentTunnelFlowRuntime } from './world/WorldItemDeploymentTunnelFlowRuntime';
+import { WorldItemDeploymentAtmosphereFlowRuntime } from './world/WorldItemDeploymentAtmosphereFlowRuntime';
+import { WorldAcquireOverlayRuntime } from './world/WorldAcquireOverlayRuntime';
+import { WorldFrozenReturnRuntime } from './world/WorldFrozenReturnRuntime';
+import { WorldAnvilDiveUiRuntime } from './world/WorldAnvilDiveUiRuntime';
+import { WorldCameraInputRuntime } from './world/WorldCameraInputRuntime';
+import { WorldDungeonAtmosphereRuntime } from './world/WorldDungeonAtmosphereRuntime';
+import { WorldFrozenSnapshotRuntime } from './world/WorldFrozenSnapshotRuntime';
+import { WorldBuilderStampRuntime } from './world/WorldBuilderStampRuntime';
+import { WorldBuilderPlayerCollisionRuntime } from './world/WorldBuilderPlayerCollisionRuntime';
+import { WorldBuilderStepFeedbackRuntime } from './world/WorldBuilderStepFeedbackRuntime';
+import { WorldBuilderInteriorVisibilityRuntime } from './world/WorldBuilderInteriorVisibilityRuntime';
+import { WorldBuilderPlayerStateRuntime } from './world/WorldBuilderPlayerStateRuntime';
+import { WorldBuilderPersistenceRuntime } from './world/WorldBuilderPersistenceRuntime';
+import { WorldBuilderAttachmentRuntime } from './world/WorldBuilderAttachmentRuntime';
+import { WorldBuilderWeatherRuntime } from './world/WorldBuilderWeatherRuntime';
+import { WorldWeatherRuntime } from './world/WorldWeatherRuntime';
+import { WorldTerrainPaletteRuntime } from './world/WorldTerrainPaletteRuntime';
+import { WorldUpdraftRuntime } from './world/WorldUpdraftRuntime';
+import { WorldVoidFogRuntime } from './world/WorldVoidFogRuntime';
+import { WorldSpawnState } from './world/WorldSpawnState';
+import { WorldBuilderVisualFilterRuntime } from './world/WorldBuilderVisualFilterRuntime';
+import { WorldBuilderLayerRuntime } from './world/WorldBuilderLayerRuntime';
+import { WorldBuilderSpawnerRuntime } from './world/WorldBuilderSpawnerRuntime';
+import { WorldBuilderGrassRuntime } from './world/WorldBuilderGrassRuntime';
+import { WorldBuilderSpriteRuntime } from './world/WorldBuilderSpriteRuntime';
+import { WorldBuilderItemRuntime } from './world/WorldBuilderItemRuntime';
+import { WorldBuilderStaticEntityRuntime } from './world/WorldBuilderStaticEntityRuntime';
+import { WorldBuilderDoorSwitchRuntime } from './world/WorldBuilderDoorSwitchRuntime';
+import { WorldBuilderEntranceRuntime } from './world/WorldBuilderEntranceRuntime';
+import { WorldMaintainedContainerSpawnerRuntime } from './world/WorldMaintainedContainerSpawnerRuntime';
+import { WorldContainerSpawnRuntime } from './world/WorldContainerSpawnRuntime';
+import { WorldPickupRuntime } from './world/WorldPickupRuntime';
+import { WorldRelicPickupRuntime } from './world/WorldRelicPickupRuntime';
+import { WorldItemDropRuntime } from './world/WorldItemDropRuntime';
+import { WorldHandPlacedItemRuntime } from './world/WorldHandPlacedItemRuntime';
+import { WorldFixedItemSpawnRuntime } from './world/WorldFixedItemSpawnRuntime';
+import { WorldProjectileRuntime } from './world/WorldProjectileRuntime';
+import { WorldEnemyRegistry } from './world/WorldEnemyRegistry';
+import { WorldEnemyKillRuntime } from './world/WorldEnemyKillRuntime';
+import { WorldEnemySpawnRuntime } from './world/WorldEnemySpawnRuntime';
+import { WorldContainerRegistry } from './world/WorldContainerRegistry';
+import { WorldSpikeRegistry } from './world/WorldSpikeRegistry';
+import { WorldSpikeRuntime } from './world/WorldSpikeRuntime';
+import { WorldBreakableRegistry } from './world/WorldBreakableRegistry';
+import { WorldBreakableRuntime } from './world/WorldBreakableRuntime';
+import { WorldBuildingRegistry } from './world/WorldBuildingRegistry';
+import { WorldBuildingRuntime } from './world/WorldBuildingRuntime';
+import { WorldCollapsingPlatformRegistry } from './world/WorldCollapsingPlatformRegistry';
+import { WorldCollapsingPlatformRuntime } from './world/WorldCollapsingPlatformRuntime';
+import { WorldBurnablePropRegistry } from './world/WorldBurnablePropRegistry';
+import { WorldBurnablePropRuntime } from './world/WorldBurnablePropRuntime';
+import { WorldBreakablePropRegistry } from './world/WorldBreakablePropRegistry';
+import { WorldBreakablePropRuntime } from './world/WorldBreakablePropRuntime';
+import { WorldSecretWallRegistry } from './world/WorldSecretWallRegistry';
+import { WorldCrackedFloorRegistry } from './world/WorldCrackedFloorRegistry';
+import { WorldCrackedFloorRuntime } from './world/WorldCrackedFloorRuntime';
+import { WorldGrowingWallRegistry } from './world/WorldGrowingWallRegistry';
+import { WorldGrowingWallRuntime } from './world/WorldGrowingWallRuntime';
+import { WorldDoorSwitchRegistry } from './world/WorldDoorSwitchRegistry';
+import { WorldDoorSwitchSpawnRuntime } from './world/WorldDoorSwitchSpawnRuntime';
+import { WorldDoorSwitchInteractionRuntime } from './world/WorldDoorSwitchInteractionRuntime';
+import { WorldProgressState } from './world/WorldProgressState';
+import { WorldDoorAttackState } from './world/WorldDoorAttackState';
+import { WorldFluidContactState } from './world/WorldFluidContactState';
+import { WorldSolidifiedWallOverlay } from './world/WorldSolidifiedWallOverlay';
+import { WorldProceduralDecorRuntime } from './world/WorldProceduralDecorRuntime';
+import { WorldCollisionGridRuntime } from './world/WorldCollisionGridRuntime';
+import { WorldFluidRuntime } from './world/WorldFluidRuntime';
+import { WorldFluidFeedbackRuntime } from './world/WorldFluidFeedbackRuntime';
+import { WorldTileMutationRuntime } from './world/WorldTileMutationRuntime';
+import { WorldContainerCarryRuntime } from './world/WorldContainerCarryRuntime';
+import { WorldPickupVfxRuntime } from './world/WorldPickupVfxRuntime';
+import { WorldContainerPhysicsRuntime } from './world/WorldContainerPhysicsRuntime';
+import { ContainerDestructionRuntime } from './shared/ContainerDestructionRuntime';
+import { WorldContainerFluidRuntime } from './world/WorldContainerFluidRuntime';
+import { WorldContainerAttackRuntime } from './world/WorldContainerAttackRuntime';
+import { WorldSecretWallRuntime } from './world/WorldSecretWallRuntime';
+import { WorldPlayerImpactRuntime } from './world/WorldPlayerImpactRuntime';
+import { WorldMovementVfxRuntime } from './world/WorldMovementVfxRuntime';
+import { WorldCombatFeedbackRuntime } from './world/WorldCombatFeedbackRuntime';
+import { WorldStatusFeedbackRuntime } from './world/WorldStatusFeedbackRuntime';
+import { WorldGrassFireRuntime } from './world/WorldGrassFireRuntime';
+import { EgoShardRuntime } from '@effects/EgoShardRuntime';
+import { WorldEgoShardCastRuntime } from './world/WorldEgoShardCastRuntime';
+import { WorldEgoShardCombatRuntime } from './world/WorldEgoShardCombatRuntime';
+import { WorldEgoShardProjectileRuntime } from './world/WorldEgoShardProjectileRuntime';
+import { WorldEgoShardImpactRuntime } from './world/WorldEgoShardImpactRuntime';
+import { WorldEgoDialogueRuntime } from './world/WorldEgoDialogueRuntime';
+import { WorldSacredPickupState } from './world/WorldSacredPickupState';
+import { WorldSacredPickupRuntime } from './world/WorldSacredPickupRuntime';
+import { WorldPlayerProgressionState } from './world/WorldPlayerProgressionState';
+import { WorldPlayerStatRuntime } from './world/WorldPlayerStatRuntime';
+import { WorldItemWorldEntryState } from './world/WorldItemWorldEntryState';
+import { WorldItemDeploymentCollisionRuntime } from './world/WorldItemDeploymentCollisionRuntime';
+import { GiantBuilder } from '@entities/GiantBuilder';
 import type { Rarity } from '@data/weapons';
 import type { Enemy } from '@entities/Enemy';
 import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
-import {
-  trackPlayerDeath,
-  trackSave,
-  trackEnemyKill,
-  trackGateBreak,
-  trackRelicAcquire,
-  trackItemLevelUp,
-  trackBossFight,
-  trackItemDrop,
-  trackSecretWallBreak,
-} from '@utils/Analytics';
+import { trackPlayerDeath } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 import { AmbientLayer } from '@audio/AmbientLayer';
 import { SFX } from '@audio/Sfx';
-import { rumbleGamepad } from '@utils/GamepadRumble';
 import { BgmController } from '@audio/BgmController';
-import { ItemWorldGhostOverlay } from '@effects/ItemWorldGhostOverlay';
-
-type GhostBirthOptions = NonNullable<ItemDeploymentTunnelOpenOptions['ghostBirth']>;
-type GhostTunnelParams = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  ghostBirth?: GhostBirthOptions | null;
-  streamReady?: boolean;
-  prewarm?: boolean;
-};
-interface ItemWorldGrowthSnapshot {
-  container: Container;
-  backgroundTexture: RenderTexture;
-  worldTexture: RenderTexture;
-  itemSprite: Sprite | null;
-  elapsedMs: number;
-  durationMs: number;
-}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -246,75 +253,19 @@ interface ItemWorldGrowthSnapshot {
 
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
-const ITEM_WORLD_ENTRY_FADE_MS = 350;
-/** 앤빌 디플로이 줌인 배경 blur — 램프 시간(ms)과 최대 세기. */
-const DEPLOY_BLUR_RAMP_MS = 1200;
-const DEPLOY_BLUR_MAX_STRENGTH = 10;
-const ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE = 64;
-const ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES = -12;
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function growthScaleCurve(value: number): number {
-  const t = clamp01(value);
-  return t * t * t * (t * (t * 6 - 15) + 10);
-}
-/**
- * Void touch sequence (Victor spec 2026-05-15):
- *   0??00 ms     ??fade OUT (alpha 0 ??1)
- *   200 ms       ??teleport player to last safe ground, force-grounded.
- *                  (scene + camera continue to tick; only player input is
- *                  locked, so VFX / fluids / enemies keep simulating.)
- *   200??200 ms  ??hold black 1000 ms (deferred scene work window)
- *   1200??700 ms ??fade IN (alpha 1 ??0, 500 ms)
- *   1700??200 ms ??extra input-lock dwell (~500 ms reveal beat)
- * Total input lock = 2000 ms past the teleport tick.
- */
-const VOID_FADE_OUT_DURATION = 200;
-const VOID_HOLD_DURATION = 1000;
-const VOID_FADE_IN_DURATION = 500;
-const VOID_INPUT_LOCK_MS = 2000;
-const SAVE_INTERACT_DELAY_MS = 500;
 const FROZEN_RETURN_ARM_DISTANCE = 4 * TILE_SIZE;
-// FIRST_ANVIL_LEVEL_ID ?????(2026-05-24): ??紐끒???釉뚯뫅???LDtk Anvil entity ??
-// RetireAfterFirstBoss field ????⑥щ턄???リ옇?↑???戮?꽑.
-const INVENTORY_KEY_HINT_ID = 'inventory_key';
-const INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID = 'inventory_key_after_first_item_world';
-const INVENTORY_KEY_AFTER_FIRST_IW_EVENT = '__inventoryKeyAfterFirstItemWorldShown';
-
+// FIRST_ANVIL_LEVEL_ID 제거 (2026-05-24): LDtk Anvil entity 의
+// RetireAfterFirstBoss field 로 첫 앤빌 여부를 판정하도록 대체.
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
-// ItemTunnel world was removed from the LDtk project; tunnel descent flow
-// is archived (enterItemWorldFromTunnel() is called directly after anvil FX).
+// ItemTunnel world was removed from the LDtk project; tunnel descent flow is
+// archived in WorldAnvilItemWorldFlowRuntime while the default anvil FX enters
+// Item World directly.
 const LDTK_WORLD_IDS: string[] = ['Overworld'];
 const BUILDER_WORLD_ID = 'Builder';
-// AreaIDs used by the overworld ??Content_System_Area_Palette.csv's Tileset
+// AreaIDs used by the overworld — Content_System_Area_Palette.csv's Tileset
 // column drives which atlases get loaded for this scene.
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
-
-type TransitionState = 'none' | 'fade_out' | 'fade_in';
-
-/** Anything that can be attached to a moving GiantBuilder. The entity's
- *  visual `container` is reparented under builder.container at spawn time
- *  so the builder's transform carries it. World coords (x/y) ??used by
- *  pickup/interaction hitbox tests ??are recomputed each frame from
- *  builder.container + (localX, localY). `isAlive` lets the sync loop
- *  drop dead refs (e.g. picked-up drops). */
-interface BuilderAttachable {
-  x: number;
-  y: number;
-  container: Container;
-  baseY?: number;
-}
-interface BuilderAttachment {
-  entity: BuilderAttachable;
-  localX: number;
-  localY: number;
-  isAlive: () => boolean;
-  sync?: (entity: BuilderAttachable, builderX: number, builderY: number, localX: number, localY: number) => void;
-}
 
 // ---------------------------------------------------------------------------
 // LdtkWorldScene
@@ -325,89 +276,65 @@ export class LdtkWorldScene extends Scene {
   private loader!: LdtkLoader;
   private builderLoader!: LdtkLoader;
   private itemStratumLoader: LdtkLoader | null = null;
-  /**
-   * ??????롪퍒???(2026-05-03): "Open Inventory" tutorialHint ??????뵜 cutscene +
-   * EGO ????? 嶺뚮ㅄ維筌???硫명뀊 ????戮?뻣. firstEver ????뵜 ??flag 嶺?set, update() ?띠럾?
-   * 嶺??熬곣뫁???cutscene/dialogue ??リ턁筌??롪틵????????깆젷 ??戮?뻣.
-   */
-  private pendingInventoryHint: 'first_pickup' | 'first_iw_return' | null = null;
-  /** Drop-through ???リ퐛?洹먮봾??1???꾩룇裕뉑쾮??띠럾??? ?????? 嶺뚯쉳???dropthrough ??濡?듆 ???덈????紐???꾩룇裕뉑쾮????? */
-  private dropThroughHintHandled = false;
-  /** ??믨퀡?????リ퐛?洹먮봾?????????? ??븐슙???MOVE_LEFT/RIGHT)??嶺뚳퐣瑗????嶺뚯쉳??????1???꾩룇裕뉑쾮? JUMP ???놁졑 ??dismiss. */
-  private jumpHintHandled = false;
-  /** ??믨퀡??hint ?筌뤾봇遊뷸ㅀ??띠럾??????????? horizontal ????????놁졑?????뺢퀡????怨뺤┣ ?熬곣뱿???????덈츎?띠럾?. */
-  private hasMovedHorizontally = false;
-  /** 嶺?horizontal ???놁졑 ????믨퀡??hint ?꾩룇裕뉑쾮??떐??????븐슜??嶺뚯솘???ms). */
-  private jumpHintDelayMs = 2000;
-  /** ??ㅻ??????リ퐛?洹먮봾?????곸궠?筌?????고뱺 ??⑤챷逾?嶺뚳퐣瑗???繹먮냱???濡ル츎 ?熬곣뫁??熬곣뫖??1???꾩룇裕뉑쾮? ATTACK ???놁졑 ??dismiss. */
-  private attackHintHandled = false;
-  /** ???????リ퐛?洹먮봾????Overworld_Level_36 嶺뚯쉳???1?????꾩룇裕뉑쾮? DASH ???놁졑 ??dismiss. */
-  private dashHintHandled = false;
-  /** Dash ??嶺뚯쉳?????hint ?꾩룇裕뉑쾮??떐??????븐슜??ms. -1 = ?????洹먮봾??. */
-  private dashHintDelayMs = -1;
   private activeBuilder: GiantBuilder | null = null;
-  private activeBuilderMode: 'cinematic' | 'patrol' | null = null;
-  private activeBuilderLevelId: string | null = null;
-  /** posY snapshot per builderLevelId ??survives level transitions so re-entry
-   *  spawns the builder at its last position instead of restarting the route. */
-  private readonly builderSavedPositions = new Map<string, number>();
-  private readonly builderSavedStates = new Map<string, GiantBuilderSnapshot>();
+  private readonly collisionGridRuntime = new WorldCollisionGridRuntime();
+  private readonly builderPersistenceRuntime = new WorldBuilderPersistenceRuntime();
   /**
    * Drive the builder's footstep camera shake even when mode is 'patrol'.
    * BuilderSpawner can force this on for patrol-style routes that still need
-   * the weighty "?? feedback.
+   * the weighty "쿵" feedback.
    */
-  private builderShakeEnabled = false;
-  // Per-session one-shot BuilderSpawner keys. Once triggered, re-entries keep
-  // restoring the live route snapshot; only missing snapshots may park at end.
-  private builderSpawnerRunOnceKeys = new Set<string>();
-  // Tracks the builder's moving state across frames so we can emit a single
-  // heavy "landing" shake on the exact frame it transitions to idle.
-  private builderWasMoving = false;
-  // Counts tile crossings so we can emit shakes on every other crossing
-  // (half the cadence of raw 16-px steps ??slower, weightier rhythm).
-  private builderStepCounter = 0;
-  private builderCarrierVelocityY = 0;
-  /** Current alpha for the BuilderInterior dissolve layer (0=hidden, 1=shown). */
-  private builderInteriorAlpha = 1;
-  /** Cells in host collisionGrid currently overwritten by builder, packed as row * gridWidth + col. Only cells that were 0 are stamped. */
-  private builderStamps: number[] = [];
-  private readonly builderStampSet = new Set<number>();
-  private builderStampOriginX: number | null = null;
-  private builderStampOriginY: number | null = null;
-  /** True if, after last physics step, the player was grounded on a builder-stamped tile. Used to carry the player vertically with the builder. */
-  private playerOnBuilder = false;
-  /** True if the player's AABB overlaps the builder's world-space rectangle (airborne too). Used for camera override. */
-  private playerInBuilder = false;
-  private builderOneWayDropThroughGraceMs = 0;
+  private readonly builderStepFeedbackRuntime = new WorldBuilderStepFeedbackRuntime();
+  private readonly builderPlayerStateRuntime = new WorldBuilderPlayerStateRuntime();
+  private readonly builderInteriorVisibilityRuntime = new WorldBuilderInteriorVisibilityRuntime();
+  private readonly builderStampRuntime = new WorldBuilderStampRuntime();
+  private readonly builderPlayerCollisionRuntime = new WorldBuilderPlayerCollisionRuntime({
+    getPlayer: () => this.player,
+    getCollisionGrid: () => this.collisionGrid,
+    getActiveBuilder: () => this.activeBuilder,
+    getStampSet: () => this.builderStampRuntime.activeStampSet,
+    hasOneWayDropThroughGrace: () => this.builderPlayerStateRuntime.hasOneWayDropThroughGrace,
+    isEntryCinematicActive: () => this.isItemWorldEntryCinematicActive(),
+  });
   private renderer!: LdtkRenderer;
-  private procDecorator: ProceduralDecorator | null = null;
-  private _extraDecorators: ProceduralDecorator[] = [];
-  private wallPaletteFilter: PaletteSwapFilter | null = null;
-  private naturalPaletteFilter: PaletteSwapFilter | null = null;
-  private wallRimFilter: RimLightFilter | null = null;
-  private bgPaletteFilter: PaletteSwapFilter | null = null;
-  private interiorPaletteFilter: PaletteSwapFilter | null = null;
-  // Builder-specific palette filters (cool steel tone, contrasts the host's
-  // crimson shaft). Built alongside the host filters in init().
-  private builderBgPaletteFilter: PaletteSwapFilter | null = null;
-  private builderWallPaletteFilter: PaletteSwapFilter | null = null;
-  private builderInteriorWallPaletteFilter: PaletteSwapFilter | null = null;
-  private builderNaturalPaletteFilter: PaletteSwapFilter | null = null;
+  private readonly proceduralDecorRuntime = new WorldProceduralDecorRuntime();
+  private readonly terrainPaletteRuntime = new WorldTerrainPaletteRuntime();
+  private readonly builderVisualFilterRuntime = new WorldBuilderVisualFilterRuntime();
+  private readonly builderLayerRuntime = new WorldBuilderLayerRuntime();
+  private readonly builderSpawnerRuntime = new WorldBuilderSpawnerRuntime();
+  private readonly builderGrassRuntime = new WorldBuilderGrassRuntime();
+  private readonly builderSpriteRuntime = new WorldBuilderSpriteRuntime();
+  private builderItemRuntime!: WorldBuilderItemRuntime;
+  private builderStaticEntityRuntime!: WorldBuilderStaticEntityRuntime;
+  private builderDoorSwitchRuntime!: WorldBuilderDoorSwitchRuntime;
+  private builderEntranceRuntime!: WorldBuilderEntranceRuntime;
   private parallaxBG!: ParallaxBackground;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
-  private readonly itemWorldPrestreamTasks = new Map<string, Promise<void>>();
+  private itemWorldEntryPreloader!: ItemWorldEntryPreloader;
   private currentLevel!: LdtkLevel;
-  private collisionGrid: number[][] = [];
-  private cameraZones: {
-    x: number; y: number; w: number; h: number;
-    zoom: number; deadZoneX: number; deadZoneY: number;
-    lookAheadDistance: number; followLerp: number; zoomLerp: number;
-    entireLevel: boolean;
-  }[] = [];
-  private activeCameraZone: typeof this.cameraZones[number] | null = null;
+  private cameraZoneRuntime!: CameraZoneRuntime;
+
+  private get collisionGrid(): number[][] {
+    return this.collisionGridRuntime.grid;
+  }
+
+  private get fluidSystem() {
+    return this.worldFluidRuntime.system;
+  }
+
+  private get fluidSpawners() {
+    return this.worldFluidRuntime.spawners;
+  }
+
+  private get fluidCrestFoam() {
+    return this.worldFluidRuntime.crestFoam;
+  }
+
+  private get fluidResidue() {
+    return this.worldFluidRuntime.residue;
+  }
 
   // Layers
   private entityLayer!: Container;
@@ -416,434 +343,1159 @@ export class LdtkWorldScene extends Scene {
   private vividLayer!: Container;
   private fluidLayer!: Container;
   private collisionDebug!: CollisionDebugOverlay;
-  private fluidSystem!: FluidSystem;
-  private fluidSpawners!: FluidSpawnerManager;
-  private fluidCrestFoam!: FluidCrestFoamManager;
-  private weather: WeatherSystem | null = null;
-  private weatherBuilderCollider: WeatherDynamicCollider | null = null;
-  private laserDesaturationFilter: ColorMatrixFilter | null = null;
-  private readonly laserDesaturationPrevFilters = new Map<Container, Filter[] | null>();
-  /** 앤빌 디플로이 줌인 중 배경+아이템 픽셀을 가리는 blur (사용자 요청 2026-06-02). */
-  private deployBlurFilter: BlurFilter | null = null;
-  private deployBlurActive = false;
-  /** blur 점진 램프 경과(ms). 줌이 진행되며 0→MAX 로 세기 증가. */
-  private deployBlurElapsed = 0;
-  private dungeonAtmosphereActive = false;
-  private dungeonAtmosphereFilter: ColorMatrixFilter | null = null;
-  private dungeonAtmosphereTargets: Container[] = [];
-  private builderInteriorHiddenForAtmosphere = false;
-  private builderBodyInteriorHiddenForAtmosphere = false;
-  private parallaxGrayFilter: ColorMatrixFilter | null = null;
-  private frozenPlayerSnapshot: Container | null = null;
-  private frozenSnapshotRGBFilter: RGBSplitFilter | null = null;
-  private frozenSnapshotGrayFilter: ColorMatrixFilter | null = null;
-  private pendingGhostTunnelParams: GhostTunnelParams | null = null;
-  private frozenSnapshotHandler: ProximityInteraction | null = null;
-  private frozenSnapPromptContainer: Container | null = null;
-  private frozenSnapConfirmPanel: Container | null = null;
-  private frozenSnapConfirmOverlay: Graphics | null = null;
-  private frozenSnapConfirmOpen = false;
-  private frozenReturnInteractionArmed = false;
-  private frozenReturnTransitionActive = false;
+  private readonly worldFluidRuntime = new WorldFluidRuntime();
+  private readonly builderWeatherRuntime = new WorldBuilderWeatherRuntime();
+  private worldWeatherRuntime!: WorldWeatherRuntime;
+  private laserDesaturationRuntime!: WorldLaserDesaturationRuntime;
+  private deployBlurRuntime!: WorldDeployBlurRuntime;
+  private dungeonAtmosphereRuntime!: WorldDungeonAtmosphereRuntime;
+  private readonly frozenSnapshotRuntime = new WorldFrozenSnapshotRuntime();
+  private frozenReturnRuntime!: WorldFrozenReturnRuntime;
 
   // Entities
   private player!: Player;
-  private enemies: Enemy<string>[] = [];
-  private projectiles: Projectile[] = [];
+  private readonly worldEnemyRegistry = new WorldEnemyRegistry();
+  private worldEnemySpawnRuntime!: WorldEnemySpawnRuntime;
   private hitManager!: HitManager;
   private dropRng!: PRNG;
 
   // Items
   private inventory!: Inventory;
-  private drops: ItemDropEntity[] = [];
+  private worldItemDropRuntime!: WorldItemDropRuntime;
+  private worldFixedItemSpawnRuntime!: WorldFixedItemSpawnRuntime;
+  private worldHandPlacedItemRuntime!: WorldHandPlacedItemRuntime;
+  private worldProjectileRuntime!: WorldProjectileRuntime;
   /** Entities that ride the active GiantBuilder. Each frame their world
    *  coords are recomputed from the builder's current position so pickup /
    *  interaction hitboxes (which use world coords) stay in sync with the
    *  visual. Anything with `x`, `y`, `container` and an optional `baseY`
    *  (for bob-animated entities) can be attached. */
-  private builderAttachments: BuilderAttachment[] = [];
+  private readonly builderAttachmentRuntime = new WorldBuilderAttachmentRuntime();
   private inventoryUI!: InventoryUI;
-  /** DEC-046 Identity Archive (?筌뤾벳??熬곣뫖異?????. ?筌뤾퍒萸??ル벣遊?Z??嶺뚯쉳??? */
+  /** DEC-046 Identity Archive (장비 정체성 기록 보관). JUMP 키로 연다. */
   private identityArchive!: IdentityArchive;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
-  // Title??몄뙰me fade-in overlay (handed off from TitleScene via game.uiContainer).
-  private titleFadeInOverlay: Graphics | null = null;
-  private titleFadeInTimer = 0;
-  private readonly TITLE_FADE_IN_MS = 1400;
-  // Game-start intro sequence: fade-in ??area title ??reveal HUD.
-  // 'none' = skip sequence (e.g. pop return from sub-scenes).
-  private introPhase: 'none' | 'fadeIn' | 'title' | 'awaitingHud' | 'done' = 'none';
-  /** Shaft_01 ??⑤???????????AreaTitle ??リ턁筌???HUD ?筌뤾쑵?긺뭐癒?뒩?????븐슜??ms. */
-  private hudRevealTimer = 0;
-  // Area title queued during intro fade-in; shown once the fade completes.
-  private pendingAreaTitle: string | null = null;
-  // Edge detector: when areaTitle transitions active??몄뱭active while HUD is
-  // still hidden (intro), that's the signal to reveal HUD.
-  private wasAreaTitleActive = false;
+  private introHandoffRuntime!: WorldIntroHandoffRuntime;
   private uiSkin: UISkin | null = null;
-  private controlsOverlay!: ControlsOverlay;
   private pauseMenu!: PauseMenu;
   private characterStats!: CharacterStats;
   private deathScreen!: DeathScreen;
-  private isPaused = false;
 
   // Room transition
-  private transitionState: TransitionState = 'none';
-  private transitionTimer = 0;
-  private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
-  private pendingLevelId: string | null = null;
-  private pendingItemWorldEntryCorridor = true;
-  private pendingPlayerTileY = 0;
-  private pendingPlayerTileX = 0;
+  private edgeTransitionRuntime!: WorldEdgeTransitionRuntime;
+  private edgeTransitionFlowRuntime!: WorldEdgeTransitionFlowRuntime;
   private fadeOverlay!: Graphics;
-  private pendingInventoryHintDelayMs = 0;
-  /**
-   * ItemWorld ?곌랜踰? fade-in ?熬곣뫗??overlay. fadeOverlay ?? ?釉뚯뫊???voidFade /
-   * level transition ??race ?꾩룇裕뉑틦???怨몃턄 ???몃뎡 ??瑜곷턄?? 0 = invisible, 1 = full black.
-   */
-  private iwReturnFade!: Graphics;
-  private iwReturnFadeMs = 0;
-  private readonly IW_RETURN_FADE_DURATION = 500;
-  private postTransitionSnapFrames = 0;  // force camera snap for N frames after transition
-  private lookHoldTimer = 0; // ms holding UP/DOWN while idle
+  private itemWorldReturnFade!: ItemWorldReturnFadeRuntime;
+  private readonly cameraInputRuntime = new WorldCameraInputRuntime();
 
-  // Boss lock
-  private bossActive = false;
-  private bossLockDoors: LockedDoor[] = [];
-  /** Telemetry: boss_id captured when arena lock engages so clear event matches start. */
-  private bossLockId = '';
-  private bossLockLevelId = '';
+  private bossLockRuntime!: WorldBossLockRuntime;
 
   // Tutorial hints
   private tutorialHint!: TutorialHint;
+  private worldTutorialHints!: WorldTutorialHintRuntime;
+  private lowHpHealHint!: LowHpHealHintRuntime;
+  private inventoryTutorialHint!: InventoryTutorialHintRuntime;
   private uiController!: WorldUiController;
   private transitionController!: WorldTransitionController;
-  private playerSpawnLevelId = '';
+  private worldPlayerSpawnRuntime!: WorldPlayerSpawnRuntime;
+  private worldMapRuntime!: WorldMapRuntime;
+  private worldMinimap!: WorldMinimapRuntime;
+  private debugWarpRuntime!: WorldDebugWarpRuntime;
+  private readonly saveRoomAudioRuntime = new SaveRoomAudioRuntime();
+  private worldSaveRuntime!: WorldSaveRuntime;
+  private worldSpawnState!: WorldSpawnState;
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
-  /** Gamepad hot-plug ??ル∥裕??unsubscribe ??exit ???筌뤾쑵?? */
+  /** Gamepad hot-plug 구독 해제용 unsubscribe — exit 시 호출. */
   private _gpUnsub: (() => void) | null = null;
-  /** Cooldown (ms) before another "No Weapon Equipped" toast can fire. */
-  private noWeaponToastCooldown = 0;
+  private noWeaponFeedbackRuntime!: WorldNoWeaponFeedbackRuntime;
+  private bossHpRuntime!: BossHpRuntime;
 
-  private dmgNumbers!: DamageNumberManager;
-  private hitSparks!: HitSparkManager;
-  private propShatter!: PropShatterManager;
-  private containerFluidDirty = false;
-  private landingDust!: LandingDustManager;
-  private dashAfterimage!: DashAfterimageManager;
-  private dashBoostPuff!: DashBoostPuffManager;
-  private doubleJumpRing!: DoubleJumpRingManager;
-  private wallJumpDust!: WallJumpDustManager;
-  private jumpTakeoff!: JumpTakeoffPuffManager;
-  private wallSlideDust!: WallSlideDustManager;
-  private footstepPuff!: FootstepPuffManager;
-  private flaskBurst!: FlaskHealBurstManager;
-  private surgeVfx!: SurgeVfxManager;
-  private criticalHighlight!: CriticalHighlightManager;
-  private hitBloodSpray!: HitBloodSprayManager;
-  private diveLandImpact!: DiveLandImpactManager;
-  private waterSplash!: WaterSplashManager;
-  private steamPuff!: SteamPuffManager;
-  private ashRemnant!: AshRemnantManager;
-  private grassClumpFire = new GrassClumpFireSystem();
-  private fluidResidue!: FluidResidueManager;
-  private egoShard!: EgoShardManager;
-  private egoShardPreview!: EgoShardPreview;
-  /** Time the player has been holding CAST this charge (ms). 0 = not charging. */
-  private egoCastChargeMs = 0;
-  private containers: ThrowableContainer[] = [];
-  /**
-   * ContainerSpawners with Maintain=true ??re-emit containers whenever the
-   * live count in their rect drops below minCount. Cleared on room load.
-   */
-  private maintainedSpawners: Array<{
-    rect: { x: number; y: number; w: number; h: number };
-    pool: ReturnType<typeof readSpawnerEntity>['pool'];
-    minCount: number;
-    maxCount: number;
-    bias: ReturnType<typeof readSpawnerEntity>['bias'];
-    seed: number;
-    avoidEntity: boolean;
-    fluidVolumeOverride: number;
-    checkAccum: number;
-    /**
-     * Containers this spawner emitted. Tracked so the refill rule (refill
-     * only when *all* owned containers are gone) can ignore unrelated
-     * containers that happen to drift into the spawner rect ??and so the
-     * spawner's "current spawn count" is queryable as `owned.length` after
-     * pruning destroyed entries.
-     */
-    owned: ThrowableContainer[];
-  }> = [];
-  /** Maintained-spawner re-check interval (ms). */
-  private static readonly MAINTAIN_CHECK_MS = 500;
-  /** Currently held container (Spelunky-style ??one at a time). */
-  private heldContainer: ThrowableContainer | null = null;
-  private containerPrompt: Container | null = null;
-  /**
-   * Container currently being *pulled* by the arc tether toward the player's
-   * shoulder. Equals heldContainer during the 200 ms pull animation, then
-   * clears to null while heldContainer stays set (hold phase).
-   */
-  private pullingContainer: ThrowableContainer | null = null;
-  private pullStartX = 0;
-  private pullStartY = 0;
-  private pullElapsedMs = 0;
-  /** Arc Tether VFX ??drives hover spark / pull arc / hold tether. */
-  private arcTether: ArcTether | null = null;
-  private prevPlayerInOtherFluid = false;
-  private prevEnemyInOtherFluid: boolean[] = [];
-  /** Set true when a TileMutator mutation invalidates the wall layer sprites. */
-  private wallLayerDirty = false;
-  /** Runtime WALL cells that do not have LDtk baked wall sprites, currently hardened magma. */
-  private solidifiedWallGfx: Graphics | null = null;
-  private solidifiedWallCells: Set<string> = new Set();
-  private waterBubbles!: WaterBubblesManager;
-  private dropThroughDust!: DropThroughDustManager;
-  private iceSkidStreak!: IceSkidStreakManager;
-  private itemPickupGlow!: ItemPickupGlowManager;
-  private relicAuraBurst!: RelicAuraBurstManager;
-  private savepointPulse!: SavepointPulseManager;
-  private lowHpVignette!: LowHpVignetteManager;
-  private screenFlash!: ScreenFlash;
+  private readonly combatFeedbackRuntime = new WorldCombatFeedbackRuntime();
+  private readonly movementVfxRuntime = new WorldMovementVfxRuntime();
+  private readonly grassFireRuntime = new WorldGrassFireRuntime();
+  private readonly egoShardRuntime = new EgoShardRuntime();
+  private readonly itemWorldEntryStream = new ItemWorldEntryStreamRuntime();
+  private worldEnemyKillRuntime!: WorldEnemyKillRuntime;
+  private worldEgoShardCastRuntime!: WorldEgoShardCastRuntime;
+  private worldEgoShardCombatRuntime!: WorldEgoShardCombatRuntime;
+  private worldEgoShardProjectileRuntime!: WorldEgoShardProjectileRuntime;
+  private worldEgoShardImpactRuntime!: WorldEgoShardImpactRuntime;
+  private readonly worldContainerRegistry = new WorldContainerRegistry();
+  private maintainedContainerSpawnerRuntime!: WorldMaintainedContainerSpawnerRuntime;
+  private worldContainerSpawnRuntime!: WorldContainerSpawnRuntime;
+  private readonly worldContainerCarryRuntime = new WorldContainerCarryRuntime();
+  private worldContainerDestructionRuntime!: ContainerDestructionRuntime;
+  private worldContainerFluidRuntime!: WorldContainerFluidRuntime;
+  private worldContainerPhysicsRuntime!: WorldContainerPhysicsRuntime;
+  private worldContainerAttackRuntime!: WorldContainerAttackRuntime;
+  private readonly worldFluidContactState = new WorldFluidContactState();
+  private worldFluidFeedbackRuntime!: WorldFluidFeedbackRuntime;
+  private readonly solidifiedWallOverlay = new WorldSolidifiedWallOverlay(TILE_SIZE);
+  private readonly pickupVfxRuntime = new WorldPickupVfxRuntime();
+  private readonly statusFeedbackRuntime = new WorldStatusFeedbackRuntime();
+  private worldPlayerImpactRuntime!: WorldPlayerImpactRuntime;
+  private savePointRuntime!: SavePointRuntime;
 
   // Game Over
-  private gameOverOverlay: Container | null = null;
-  private gameOverActive = false;
+  private gameOverRuntime!: WorldGameOverRuntime;
 
   // Portal system
-  private portals: Portal[] = [];
+  private portalRuntime!: PortalRuntime;
+  private readonly portalEntryRuntime = new PortalEntryRuntime();
   private altarController!: WorldAltarController;
-  private portalTransition: PortalTransition | null = null;
-  private itemWorldTransition: ItemWorldTransitionController | null = null;
-  private pendingPortalData: { rarity: Rarity; sourceType: PortalSourceType; sourceItem?: ItemInstance } | null = null;
-  private pendingPortalEntity: Portal | null = null;
-  /** When set, anvil UI is showing a re-dive confirmation for this cleared item. */
-  private cyclePromptItem: ItemInstance | null = null;
-  private cyclePromptUI: Container | null = null;
+  private itemWorldTransitionRuntime!: ItemWorldTransitionRuntime;
+  private anvilCyclePrompt!: AnvilCyclePromptRuntime;
 
   // Oxygen HUD
-  private oxygenOverlay: Graphics | null = null;
-  private oxygenBar: Graphics | null = null;
+  private oxygenOverlay!: OxygenOverlay;
+
+  private get minimap(): Container | null {
+    return this.worldMinimap?.container ?? null;
+  }
+
+  private get worldMap(): WorldMapOverlay {
+    return this.worldMapRuntime.overlay;
+  }
 
   // Anvil + Floor Collapse system
   private anvil: Anvil | null = null;
   private anvilPrompts!: AnvilPromptController;
   private anvilPlacement!: AnvilPlacementController;
-  private anvilPromptSuppressMs = 0;
-  private screenCrack: ScreenCrack | null = null;
-  private memoryDive: MemoryDive | null = null; // ARCHIVED ??kept for type compat
-  private diveTransitionActive = false;
-  private collapseItem: ItemInstance | null = null;
-  private itemDeployment: ItemDeploymentController | null = null;
-  private itemWorldEntryTransitionActive = false;
-  private worldVisualsReleasedForItemWorld = false;
-  private ghostOverlay: ItemWorldGhostOverlay | null = null;
-  private ghostRevealLastPlayerX: number | null = null;
-  private ghostRevealLastPlayerY: number | null = null;
-  private ghostRevealActivated = false;
-  private ghostPendingTimer = -1;
-  private ghostPendingParams: GhostTunnelParams | null = null;
-  private itemWorldGrowthSnapshot: ItemWorldGrowthSnapshot | null = null;
-  private readonly itemWorldGrowthHiddenTargets: Array<{ target: Container; visible: boolean }> = [];
-  private ghostCollisionRestoreCells: Array<{ row: number; col: number; value: number }> = [];
-  private worldCollisionRestoreGrid: number[][] | null = null;
-  private ghostStreamRestore: {
-    rowLengths: number[];
-    rowCount: number;
-    cameraBounds: { left: number; top: number; right: number; bottom: number } | null;
-  } | null = null;
-  private itemWorldStreamEntranceAabb: { x: number; y: number; width: number; height: number } | null = null;
-  private itemWorldStreamStartPoint: { x: number; y: number } | null = null;
-  private deploymentTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
-  private builderTunnelRestoreCells: Array<{ row: number; col: number; value: number }> = [];
-  private wallGate: WallGate | null = null;
-  private anvilDiveUiHidden = false;
-  private anvilDiveUiWasVisible = true;
+  private anvilRetirementRuntime!: WorldAnvilRetirementRuntime;
+  private anvilInteractionRuntime!: WorldAnvilInteractionRuntime;
+  private anvilSpawnRuntime!: WorldAnvilSpawnRuntime;
+  private anvilItemRuntime!: WorldAnvilItemRuntime;
+  private anvilDeploymentRuntime!: WorldAnvilDeploymentRuntime;
+  private readonly itemWorldEntryState = new WorldItemWorldEntryState();
+  private itemWorldEntryTransition!: ItemWorldEntryPushTransition;
+  private itemWorldSceneFlowRuntime!: WorldItemWorldSceneFlowRuntime;
+  private itemWorldGrowthSnapshot!: ItemWorldGrowthSnapshotController;
+  private itemWorldGhostCollision!: ItemWorldGhostCollisionRuntime;
+  private itemWorldGhostStream!: ItemWorldGhostStreamRuntime;
+  private itemDeploymentTunnelRuntime!: ItemDeploymentTunnelRuntime;
+  private itemDeploymentTunnelFlowRuntime!: WorldItemDeploymentTunnelFlowRuntime;
+  private itemDeploymentAtmosphereFlowRuntime!: WorldItemDeploymentAtmosphereFlowRuntime;
+  private readonly itemDeploymentCollisionRuntime = new WorldItemDeploymentCollisionRuntime();
+  private readonly fixedItemWorld = new FixedItemWorldRuntime();
+  private fixedItemWorldFlowRuntime!: WorldFixedItemWorldFlowRuntime;
+  private anvilItemWorldFlowRuntime!: WorldAnvilItemWorldFlowRuntime;
+  private anvilReturnFlowRuntime!: WorldAnvilReturnFlowRuntime;
+  private portalItemWorldFlowRuntime!: WorldPortalItemWorldFlowRuntime;
+  private anvilDiveUiRuntime!: WorldAnvilDiveUiRuntime;
 
-  // Sacred Pickup ??weapon pickup cutscene + lore popup + dive preview.
+  // Sacred Pickup — weapon pickup cutscene + lore popup + dive preview.
   private lorePopup: LorePopup | null = null;
-  /** Item awaiting its LorePopup (set by sacredPickupFlow, consumed once pulse finishes). */
-  private lorePopupItem: ItemInstance | null = null;
-  /** Item currently displayed by LorePopup (used by confirm key handler). */
-  private activeLorePopupItem: ItemInstance | null = null;
   private divePreview: DivePreview | null = null;
   /** Ceremonial overlay for relic / max HP+ acquisition. Replaces former toast.showBig. */
-  private acquireOverlay: AcquireOverlay | null = null;
-  private activeWeaponPulse: WeaponPulse | null = null;
-  private activeAnvilTether: AnvilTether | null = null;
-  private pickupZoomOverride = 1.0;
-  /** Rustborn pre-pickup discovery ??true while the proximity cutscene + dialogue is playing. Blocks pickup. */
-  private discoveryActive = false;
-  /** Set once the discovery pulse starts; cleared after EGO_FIRST_WALK is dispatched. */
-  private discoveryDialoguePending = false;
-  /** LDtk iid of the currently-spawned anvil (null when no anvil exists). */
-  private currentAnvilIid: string | null = null;
-  /**
-   * Snapshot of the used anvil's position so the player can be returned next
-   * to it after clearing the item world, even though the anvil itself is
-   * gone by then.
-   */
-  private lastUsedAnvilPos: AnvilSnapshot | null = null;
-  private lastUsedAnvilLevelId: string | null = null;
-  private lastUsedAnvilItem: ItemInstance | null = null;
-  private pendingFirstIwReturnHintHadFirstBossClear: boolean | null = null;
-  /** 嶺뚯쉳???????anvil ??RetireAfterFirstBoss field ?? retire-after-boss ?釉뚯뫅??SSoT. */
-  private lastUsedAnvilRetireAfterBoss = false;
-  /** True while player is inside an ItemTunnel level, heading to Item World. */
-  private inItemTunnel = false;
-  /** The level to return to after exiting Item World via tunnel. */
-  private preTunnelLevelId: string | null = null;
-  /** True while inside a fixed (hand-crafted) item world level. */
-  private inFixedItemWorld = false;
-  private fixedItemWorldItem: ItemInstance | null = null;
-  private fixedItemWorldHadFirstBossClear = false;
+  private acquireOverlayRuntime!: WorldAcquireOverlayRuntime;
+  private readonly sacredPickupState = new WorldSacredPickupState();
+  private sacredPickupRuntime!: WorldSacredPickupRuntime;
+  private readonly anvilReturnState = new AnvilItemWorldReturnState();
 
-  // ???? Debug warp (` ?꾩룄???= ???х뙴?????????怨뺣뒆, Shift+M = ??嶺????????怨뺣뒆) ????????????????
-  private warpModeActive = false;
-  private warpHintText: BitmapText | null = null;
-  private warpClickHandler: ((e: PointerEvent) => void) | null = null;
-
-  // ???? BGM dim ??⑤객臾???save ??嶺뚯쉳???????????0 ??怨쀬Ŧ, ??ル봽?뚨춯??? ?곌램????곌랜踰? ????????????
-  private bgmDimmedForSaveRoom = false;
-
-  // Level tracking
-  private visitedLevels: Set<string> = new Set(); // entered at least once ??revealed on minimap
-  private clearedLevels: Set<string> = new Set();
-  private collectedItems: Set<string> = new Set();
-  private collectedRelics: Set<string> = new Set();
-  private relicMarkers: Array<{ gfx: Graphics; abilityName: string; relicKey: string }> = [];
-  private lockedDoors: LockedDoor[] = [];
-  private switches: Switch[] = [];
-  private doorCollisionGrids = new WeakMap<LockedDoor, number[][]>();
-  private switchCollisionGrids = new WeakMap<Switch, number[][]>();
-  private collapsingPlatformCollisionGrids = new WeakMap<CollapsingPlatform, number[][]>();
-  private growingWalls: GrowingWall[] = [];
-  private crackedFloors: CrackedFloor[] = [];
-  private breakableProps: BreakableProp[] = [];
-  /** ??濡レ쭢 ?꾩룄???Breakable (LDtk Entity 'Breakable') ??????빵 ??諛댁뎽 props ?? ?釉뚯뫊???怨뺣뾼?? */
-  private breakables: Breakable[] = [];
-  /** ??濡レ쭢 ?꾩룄???Building (LDtk Entity 'Building') ????蹂?뜜 ??⑥?쭨, ?寃몃쳳????怨몃쾳. */
-  private buildings: Building[] = [];
-  private secretWalls: SecretWall[] = [];
-  private spikes: Spike[] = [];
-  // Updraft: IntGrid value 4 ??handled in applyUpdrafts()
-  private updraftSystem!: UpdraftSystem;
-  /** Dynamic IntGrid state ??frozen/burning/electric overlays. Reset per room. */
-  private tileMutator = new TileMutator();
-  /** Renders frozen/burning/electric overlays on top of static tile sprites. */
-  private tileMutatorRenderer: TileMutatorRenderer | null = null;
+  private readonly worldProgressState = new WorldProgressState();
+  private readonly worldDoorSwitchRegistry = new WorldDoorSwitchRegistry();
+  private worldDoorSwitchSpawnRuntime!: WorldDoorSwitchSpawnRuntime;
+  private worldDoorSwitchInteractionRuntime!: WorldDoorSwitchInteractionRuntime;
+  private readonly worldDoorAttackState = new WorldDoorAttackState();
+  private readonly worldCollapsingPlatformRegistry = new WorldCollapsingPlatformRegistry();
+  private worldCollapsingPlatformRuntime!: WorldCollapsingPlatformRuntime;
+  private readonly worldGrowingWallRegistry = new WorldGrowingWallRegistry();
+  private worldGrowingWallRuntime!: WorldGrowingWallRuntime;
+  private readonly worldCrackedFloorRegistry = new WorldCrackedFloorRegistry();
+  private worldCrackedFloorRuntime!: WorldCrackedFloorRuntime;
+  private readonly worldBreakablePropRegistry = new WorldBreakablePropRegistry();
+  private worldBreakablePropRuntime!: WorldBreakablePropRuntime;
+  /** 핸드 플레이스 Breakable (LDtk Entity 'Breakable') 레지스트리. 부서지는 props 와 그 런타임을 관리. */
+  private readonly worldBreakableRegistry = new WorldBreakableRegistry();
+  private worldBreakableRuntime!: WorldBreakableRuntime;
+  /** 핸드 플레이스 Building (LDtk Entity 'Building') 레지스트리. 건물 진입/표시를 관리. */
+  private readonly worldBuildingRegistry = new WorldBuildingRegistry();
+  private worldBuildingRuntime!: WorldBuildingRuntime;
+  private readonly worldSecretWallRegistry = new WorldSecretWallRegistry();
+  private worldSecretWallRuntime!: WorldSecretWallRuntime;
+  private readonly worldSpikeRegistry = new WorldSpikeRegistry();
+  private worldSpikeRuntime!: WorldSpikeRuntime;
+  // Updraft: IntGrid value 4 — handled in WorldUpdraftRuntime
+  private readonly worldUpdraftRuntime = new WorldUpdraftRuntime();
+  /** Dynamic IntGrid state and overlay renderer for frozen/burning/electric cells. */
+  private readonly worldTileMutationRuntime = new WorldTileMutationRuntime();
   /** Tier B burnable entities spawned by BurnableZonePass. Reset per room. */
-  private burnableProps: BurnableProp[] = [];
-  // Void: IntGrid value 10 -- short fade out/in and return to last safe ground.
-  private voidDropActive = false;
-  private voidFadePhase: 'none' | 'out' | 'hold' | 'in' = 'none';
-  private voidFadeTimer = 0;
-  /** Ms remaining before input is restored (separate from fade animation
-   *  so we can hold the lock past fade-in for the "natural reveal" beat). */
-  private voidInputLockMs = 0;
-  /** True after the teleport tick has fired ??prevents repeated teleports
-   *  if updateVoidFade gets called multiple times mid-phase. */
-  private voidTeleported = false;
-  private voidReturnLevelId = '';
-  private voidReturnX = 0;
-  private voidReturnY = 0;
-  private lastWorldSafeLevelId = '';
-  private lastWorldSafeX = 0;
-  private lastWorldSafeY = 0;
-  private voidFogSystem!: VoidFogSystem;
-  private collapsingPlatforms: CollapsingPlatform[] = [];
-  private healthShards: HealthShard[] = [];
-  private healingPickups: HealingPickup[] = [];
-  private goldPickups: GoldPickup[] = [];
-  private gold = 0;
-  private healthShardBonus = 0;
+  private readonly worldBurnablePropRegistry = new WorldBurnablePropRegistry();
+  private worldBurnablePropRuntime!: WorldBurnablePropRuntime;
+  private voidRuntime!: WorldVoidRuntime;
+  private voidReturnRuntime!: WorldVoidReturnRuntime;
+  private readonly voidFogRuntime = new WorldVoidFogRuntime();
+  private worldPickupRuntime!: WorldPickupRuntime;
+  private worldRelicPickupRuntime!: WorldRelicPickupRuntime;
+  private readonly worldPlayerProgressionState = new WorldPlayerProgressionState();
+  private worldPlayerStatRuntime!: WorldPlayerStatRuntime;
 
-  // Ending sequence
-  private endingTriggers: EndingTrigger[] = [];
-  private ending!: EndingSequence;
-  /** isDone ?釉뚯뫅?깃꼈泥? 嶺??熬곣뫁?????壤???뽱돵 replace ?띠럾? 2???꾩룇裕뉑쾮??濡ル츎 ?롪퍒???嶺뚮씭留???롪퍓???? */
-  private endingTransitionStarted = false;
-  private savePoints: SavePointEntry[] = [];
-  private saveDelayTimer = 0;
-  private saveQueued = false;
+  private endingRuntime!: WorldEndingRuntime;
   /**
-   * Exit Light Bleed ?????띠럾???醫롫윪?袁ㅻ뎨?????醫롫윥????뚮뜆????醫롫윪???꾩렮維????醫롫윥???????낅슣????リ섣??β돦裕????
-   * ??醫롫윪??"??醫롫윞????怨쀫츇????醫롫윥????ㅻ쾹????醫롫윞????醫롫윪?됯막????醫롫윞???醫롫윥??
+   * Exit Light Bleed — 다음 방으로 이어지는 출구 방향으로 빛이 새어 나오게 하여
+   * 플레이어가 진행 방향을 읽도록 돕는 가독성 효과.
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    */
-  private exitGlows: ExitGlow[] = [];
-  private builderEntranceGlows: ExitGlow[] = [];
-  /** Events that have been triggered globally (persists across level loads). */
-  private unlockedEvents: Set<string> = new Set();
-
-  // Dialogue / Lore triggers from LDtk entities
+  private exitGlowRuntime!: WorldExitGlowRuntime;
   private loreDisplay: LoreDisplay | null = null;
-  private dialogueTriggers: Array<{
-    x: number; y: number; w: number; h: number;
-    lines: LoreLine[];
-    triggerType: 'area' | 'interact';
-    once: boolean;
-    freezePlayer: boolean;
-    eventName: string | null;
-    active: boolean;    // player currently inside trigger zone
-    fired: boolean;     // for once-only triggers
-    cooldown: number;   // ms remaining before re-trigger (once=false only)
-    prompt: Container | null;
-  }> = [];
+  private dialogueTriggerRuntime!: WorldDialogueTriggerRuntime;
+  private worldEgoDialogueRuntime!: WorldEgoDialogueRuntime;
 
-  /** Pattern D (proximity-interaction) ??醫롫윪???????醫롫윪?議얜쐻???醫롫윥????醫롫윥????醫??? ??㉱?? */
+  /** Pattern D (proximity-interaction) — 근접 상호작용 우선순위 라우터. */
   private proximity: ProximityRouter = new ProximityRouter();
+
+  private get enemies(): Enemy<string>[] {
+    return this.worldEnemyRegistry.enemies;
+  }
+
+  private get containers(): ThrowableContainer[] {
+    return this.worldContainerRegistry.containers;
+  }
+
+  private get heldContainer(): ThrowableContainer | null {
+    return this.worldContainerCarryRuntime.heldContainer;
+  }
+
+  private get flaskBurst() { return this.movementVfxRuntime.flaskBurst; }
+  private get criticalHighlight() { return this.movementVfxRuntime.criticalHighlight; }
+  private get hitBloodSpray() { return this.movementVfxRuntime.hitBloodSpray; }
+  private get waterBubbles() { return this.movementVfxRuntime.waterBubbles; }
+  private get steamPuff() { return this.movementVfxRuntime.steamPuff; }
+  private get dropThroughDust() { return this.movementVfxRuntime.dropThroughDust; }
+  private get iceSkidStreak() { return this.movementVfxRuntime.iceSkidStreak; }
+
+  private get dmgNumbers() { return this.combatFeedbackRuntime.damageNumbers; }
+  private get hitSparks() { return this.combatFeedbackRuntime.hitSparks; }
+  private get propShatter() { return this.combatFeedbackRuntime.propShatter; }
+  private get screenFlash() { return this.combatFeedbackRuntime.screenFlash; }
+  private get savepointPulse() { return this.statusFeedbackRuntime.savepointPulse; }
+
+  private get itemPickupGlow() {
+    return this.pickupVfxRuntime.itemGlow;
+  }
+
+  private get relicAuraBurst() {
+    return this.pickupVfxRuntime.relicAura;
+  }
+
+  private get tileMutator(): TileMutator {
+    return this.worldTileMutationRuntime.mutator;
+  }
+
+  private get visitedLevels(): Set<string> {
+    return this.worldProgressState.visitedLevels;
+  }
+
+  private get clearedLevels(): Set<string> {
+    return this.worldProgressState.clearedLevels;
+  }
+
+  private get collectedItems(): Set<string> {
+    return this.worldProgressState.collectedItems;
+  }
+
+  private get collectedRelics(): Set<string> {
+    return this.worldProgressState.collectedRelics;
+  }
+
+  private get unlockedEvents(): Set<string> {
+    return this.worldProgressState.unlockedEvents;
+  }
 
   constructor(game: Game) {
     super(game);
+    this.wireCoreAndAnvilRuntimes();
+    this.wireEnvironmentRuntimes();
+    this.wirePickupAndBuilderItemRuntimes();
+    this.wireTerrainRuntimes();
+    this.wireItemWorldFlowRuntimes();
+    this.wireCombatAndTransitionRuntimes();
     this.registerProximityHandlers();
   }
 
+  private wireCoreAndAnvilRuntimes(): void {
+    this.oxygenOverlay = new OxygenOverlay(this.game);
+    this.anvilDiveUiRuntime = new WorldAnvilDiveUiRuntime(this.game.uiContainer);
+    this.anvilRetirementRuntime = new WorldAnvilRetirementRuntime({
+      getUnlockedEvents: () => this.unlockedEvents,
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      getAnvil: () => this.anvil,
+      getReturnRetireAfterFirstBoss: () => this.anvilReturnState.retireAfterFirstBoss,
+      clearReturnItem: () => this.anvilReturnState.setItem(null),
+      hidePrompts: () => this.anvilPrompts.hideAll(),
+      closeAnvilInventoryIfOpen: () => {
+        if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
+          this.inventoryUI.close();
+        }
+      },
+      flushInventoryHint: () => this.inventoryTutorialHint.flushDeferredFirstItemWorldReturnHint(500),
+    });
+    this.worldFluidFeedbackRuntime = new WorldFluidFeedbackRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemies,
+      getCollisionGrid: () => this.collisionGrid,
+      getFluidSystem: () => this.fluidSystem,
+      getFluidSpawners: () => this.fluidSpawners,
+      getFluidResidue: () => this.fluidResidue,
+      getContactState: () => this.worldFluidContactState,
+      getDamageNumbers: () => this.dmgNumbers,
+      getLandingDust: () => this.movementVfxRuntime.landingDust,
+      getJumpTakeoff: () => this.movementVfxRuntime.jumpTakeoff,
+      getSteamPuff: () => this.movementVfxRuntime.steamPuff,
+      getWaterBubbles: () => this.movementVfxRuntime.waterBubbles,
+      getWaterSplash: () => this.movementVfxRuntime.waterSplash,
+      getIceSkidStreak: () => this.movementVfxRuntime.iceSkidStreak,
+    });
+    this.worldSaveRuntime = new WorldSaveRuntime({
+      getPlayer: () => this.player,
+      getLevelId: () => this.currentLevel?.identifier ?? this.worldSpawnState.currentLevelId,
+      getInventory: () => this.inventory,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getCollectedRelics: () => this.collectedRelics,
+      getCollectedItems: () => this.collectedItems,
+      getVisitedLevels: () => this.visitedLevels,
+      getClearedLevels: () => this.clearedLevels,
+      getGold: () => this.worldPlayerProgressionState.gold,
+      getPlaytimeMs: () => this.game.stats.playTimeMs,
+      getHealthShardBonus: () => this.worldPlayerProgressionState.healthShardBonus,
+      getCompletedTutorialHints: () => this.tutorialHint.getCompletedIds(),
+      flashSaveFeedback: () => this.screenFlash.flash(0x44ffaa, 0.3, 200),
+      setHitstopFrames: (frames) => { this.game.hitstopFrames = frames; },
+      pulseNearestSavePoint: () => this.savePointRuntime.pulseNearest(),
+      showToast: (message, color) => this.toast.show(message, color),
+      updateHud: (hp, maxHp, gold) => {
+        this.hud.updateHP(hp, maxHp);
+        this.hud.updateGold(gold);
+      },
+    });
+    this.worldPlayerStatRuntime = new WorldPlayerStatRuntime({
+      getPlayer: () => this.player,
+      getInventory: () => this.inventory,
+      getHealthShardBonus: () => this.worldPlayerProgressionState.healthShardBonus,
+    });
+    this.worldEnemyKillRuntime = new WorldEnemyKillRuntime({
+      incrementEnemiesKilled: () => { this.game.stats.enemiesKilled++; },
+      unlockDoorByIid: (iid) => this.worldDoorSwitchInteractionRuntime.unlockDoorByIid(iid),
+      getUnlockedEvents: () => this.unlockedEvents,
+      flashBossKill: () => this.screenFlash.flash(0xffd700, 0.5, 300),
+      setHitstopFrames: (frames) => { this.game.hitstopFrames = frames; },
+      deactivateBossLock: () => this.bossLockRuntime.deactivate(),
+      getFixedItemWorldItem: () => this.fixedItemWorldFlowRuntime.currentItem,
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      markFirstItemWorldBossDefeated: () => sacredSave.markFirstItemWorldBossDefeated(),
+      syncPlayerStats: () => this.worldPlayerStatRuntime.sync(),
+      showBigToast: (message, color) => this.toast.showBig(message, color),
+      isSceneInitialized: () => this.initialized,
+      spawnPortal: (x, y, rarity, sourceType, item) => this.spawnPortal(x, y, rarity, sourceType, item),
+      getCollisionGrid: () => this.collisionGrid,
+      getPlayerMaxHp: () => this.player.maxHp,
+      rollDrop: () => this.dropRng.next(),
+      addGoldPickup: (pickup) => this.worldPickupRuntime.addGoldPickup(pickup),
+      addHealingPickup: (pickup) => this.worldPickupRuntime.addHealingPickup(pickup),
+    });
+    this.anvilInteractionRuntime = new WorldAnvilInteractionRuntime({
+      getAnvil: () => this.anvil,
+      getPlayer: () => this.player,
+      getPrompts: () => this.anvilPrompts ?? null,
+      isRetiredByBossClear: (anvil) => this.anvilRetirementRuntime.isRetiredByBossClear(anvil),
+      isDeploymentActive: () => !!this.itemWorldEntryState.deployment?.isActive,
+      triggerFloorCollapse: () => this.anvilDeploymentRuntime.triggerFloorCollapse(),
+    });
+    this.anvilSpawnRuntime = new WorldAnvilSpawnRuntime({
+      getAnvil: () => this.anvil,
+      setAnvil: (anvil) => { this.anvil = anvil; },
+      getEntityLayer: () => this.entityLayer,
+      getPrompts: () => this.anvilPrompts ?? null,
+      readRetireAfterBossFlag: (ent) => this.anvilRetirementRuntime.readRetireAfterBossFlag(ent),
+      shouldSpawnDisabled: (retireAfterFirstBoss) => this.anvilRetirementRuntime.shouldSpawnDisabled(retireAfterFirstBoss),
+    });
+    this.anvilItemRuntime = new WorldAnvilItemRuntime({
+      getAnvil: () => this.anvil,
+      getInventory: () => this.inventory,
+      closeInventory: () => this.inventoryUI.close(),
+      openAnvilPlacement: () => this.anvilPlacement.open(),
+      setEntryItem: (item) => { this.itemWorldEntryState.item = item; },
+      setReturnItem: (item) => this.anvilReturnState.setItem(item),
+      suppressPrompts: (durationMs) => this.anvilPrompts.suppress(durationMs),
+      showToast: (message, color) => this.toast.show(message, color),
+      flushInventoryHint: (delayMs) => this.inventoryTutorialHint.flushDeferredFirstItemWorldReturnHint(delayMs),
+      restoreUiAfterDiveTransition: () => this.anvilDiveUiRuntime.restore(),
+      setSharedUiVisible: (visible) => { this.game.uiContainer.visible = visible; },
+      hideUiForDiveTransition: () => this.anvilDiveUiRuntime.hide(),
+      markFirstDiveDone: () => sacredSave.markFirstDiveDone(),
+      triggerFloorCollapse: () => this.anvilDeploymentRuntime.triggerFloorCollapse(),
+    });
+    this.anvilDeploymentRuntime = new WorldAnvilDeploymentRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getActiveBuilder: () => this.activeBuilder,
+      getDeploymentFxLayer: () => this.deploymentFxLayer,
+      getTunnelRightEdge: () => this.currentLevel.pxWid,
+      getAnvil: () => this.anvil,
+      getItem: () => this.itemWorldEntryState.item,
+      getCurrentLevelId: () => this.currentLevel?.identifier ?? null,
+      hidePrompts: () => this.anvilInteractionRuntime.hidePrompts(),
+      hideSavePoint: () => this.savePointRuntime.hideForItemDeployment(),
+      hideUiForDiveTransition: () => this.anvilDiveUiRuntime.hide(),
+      recordReturnState: (anvil, levelId, item) => this.anvilReturnState.record(anvil, levelId, item),
+      setPreTunnelLevelId: (levelId) => { this.itemWorldEntryState.preTunnelLevelId = levelId; },
+      incrementDive: (itemDefId) => sacredSave.incrementDive(itemDefId),
+      destroyDeployment: () => this.itemWorldEntryState.destroyDeployment(),
+      setDeployment: (deployment) => { this.itemWorldEntryState.deployment = deployment; },
+      enterItemWorld: () => this.anvilItemWorldFlowRuntime.enterFromTunnel({ entryCorridor: false }),
+      spawnStrikeEffect: (x, y, strong, variant) => this.hitSparks.spawn(x, y, strong, variant),
+      openTunnel: (x, y, w, h, options) => this.itemDeploymentTunnelFlowRuntime.openDeploymentTunnel(x, y, w, h, options ?? { scheduleGhost: false }),
+      setLaserDesaturation: (active) => this.itemDeploymentAtmosphereFlowRuntime.setLaserDesaturation(active),
+      showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
+      prepareStreamWorld: (options) => this.itemWorldGhostStream.prepareLevel36(options),
+      loadStreamWorld: (options) => this.itemWorldGhostStream.loadLevel36(options),
+      getEntranceAABB: () => this.itemWorldGhostStream.getEntranceAABB(),
+      getPlatformStart: () => this.itemWorldGhostStream.getPlatformStart(),
+      getPlatformVisualStart: () => this.itemWorldGhostStream.getPlatformVisualStart(this.itemWorldGrowthSnapshot.getProjection()),
+    });
+    this.worldWeatherRuntime = new WorldWeatherRuntime({
+      game: this.game,
+      tileSize: TILE_SIZE,
+      debug: LdtkWorldScene.debugMode,
+      getWeatherLayer: () => this.weatherLayer,
+      getCollisionGrid: () => this.collisionGrid,
+      getDynamicColliders: () => this.builderWeatherRuntime.getDynamicColliders(this.activeBuilder),
+      isIgnoredCell: (col, row) => this.builderStampRuntime.isStampedCell(col, row, this.collisionGrid),
+    });
+  }
+
+  private wireEnvironmentRuntimes(): void {
+    this.maintainedContainerSpawnerRuntime = new WorldMaintainedContainerSpawnerRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      getContainers: () => this.containers,
+      getEntityLayer: () => this.entityLayer,
+    });
+    this.worldContainerSpawnRuntime = new WorldContainerSpawnRuntime({
+      registry: this.worldContainerRegistry,
+      maintainedSpawnerRuntime: this.maintainedContainerSpawnerRuntime,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      isDebugMode: () => LdtkWorldScene.debugMode,
+    });
+    this.worldContainerDestructionRuntime = new ContainerDestructionRuntime({
+      game: this.game,
+      getPropShatter: () => this.propShatter,
+    });
+    this.worldContainerFluidRuntime = new WorldContainerFluidRuntime({
+      game: this.game,
+      getCollisionGrid: () => this.collisionGrid,
+      getTileMutator: () => this.tileMutator,
+      getFluidSystem: () => this.fluidSystem,
+      getContainers: () => this.containers,
+      getEnemies: () => this.enemies,
+      getSteamPuff: () => this.steamPuff,
+      rerenderTilemap: () => this.rerenderTilemap(),
+    });
+    this.worldContainerPhysicsRuntime = new WorldContainerPhysicsRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemies,
+      getContainers: () => this.containers,
+      getCollisionGrid: () => this.collisionGrid,
+      getTileMutator: () => this.tileMutator,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      paintContainerImpact: (kind, gx, gy, volume) => this.worldContainerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      applyContainerEffectToFluid: (container) => this.worldContainerFluidRuntime.applyContainerEffect(container),
+      destroyContainerWithVFX: (container) => this.worldContainerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.worldContainerRegistry.removeAt(index),
+      flushContainerFluidChanges: () => this.worldContainerFluidRuntime.flush(),
+    });
+    this.worldContainerAttackRuntime = new WorldContainerAttackRuntime({
+      getPlayer: () => this.player,
+      getContainers: () => this.containers,
+      getHitSparks: () => this.hitSparks,
+      paintContainerImpact: (kind, gx, gy, volume) => this.worldContainerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      destroyContainerWithVFX: (container) => this.worldContainerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.worldContainerRegistry.removeAt(index),
+    });
+    this.worldPlayerImpactRuntime = new WorldPlayerImpactRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemies,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+      shatterGrowingWallsOnSurge: (playerBox) => this.worldGrowingWallRuntime.shatterOnSurge(playerBox),
+      shatterCrackedFloorsOnSurge: (playerBox) => this.worldCrackedFloorRuntime.shatterOnSurge(playerBox),
+      shatterCrackedFloorsOnLanding: (px, py, radius) => this.worldCrackedFloorRuntime.shatterOnLanding(px, py, radius),
+      shatterGrowingWallsOnLanding: (px, py, radius) => this.worldGrowingWallRuntime.shatterOnLanding(px, py, radius),
+    });
+    this.worldEgoShardCombatRuntime = new WorldEgoShardCombatRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemies,
+      getContainers: () => this.containers,
+      getCollisionGrid: () => this.collisionGrid,
+      getTileMutator: () => this.tileMutator,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      retrieveShardsInAABB: (x, y, width, height) => this.egoShardRuntime.retrieveInAABB(x, y, width, height),
+      paintContainerImpact: (kind, gx, gy, volume) => this.worldContainerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      destroyContainerWithVFX: (container) => this.worldContainerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.worldContainerRegistry.removeAt(index),
+    });
+    this.worldEgoShardImpactRuntime = new WorldEgoShardImpactRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getRoom: () => this.player.roomData,
+      getCollisionGrid: () => this.collisionGrid,
+      getTileMutator: () => this.tileMutator,
+      getFluidSystem: () => this.fluidSystem,
+      getFluidResidue: () => this.fluidResidue,
+      getSteamPuff: () => this.steamPuff,
+      igniteGrassInCellAABB: (minGx, minGy, maxGx, maxGy) => this.grassFireRuntime.igniteInCellAABB(minGx, minGy, maxGx, maxGy),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.worldEgoShardProjectileRuntime = new WorldEgoShardProjectileRuntime({
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEgoShardRuntime: () => this.egoShardRuntime,
+      onImpact: (x, y, element) => this.worldEgoShardImpactRuntime.handleImpact(x, y, element),
+      checkHit: (x, y, element) => this.worldEgoShardCombatRuntime.checkHit(x, y, element),
+      flushContainerFluidChanges: () => this.worldContainerFluidRuntime.flush(),
+    });
+    this.worldEgoShardCastRuntime = new WorldEgoShardCastRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEgoShardRuntime: () => this.egoShardRuntime,
+      hasHeldContainer: () => !!this.heldContainer,
+    });
+  }
+
+  private wirePickupAndBuilderItemRuntimes(): void {
+    this.worldPickupRuntime = new WorldPickupRuntime({
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getDamageNumbers: () => this.dmgNumbers,
+      getItemPickupGlow: () => this.itemPickupGlow,
+      getScreenFlash: () => this.screenFlash,
+      showToast: (message, color) => this.toast.show(message, color),
+      addGold: (amount) => {
+        this.worldPlayerProgressionState.addGold(amount);
+      },
+      addCollectedItem: (key) => {
+        this.collectedItems.add(key);
+      },
+    });
+    this.worldRelicPickupRuntime = new WorldRelicPickupRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getRelicAuraBurst: () => this.relicAuraBurst,
+      getScreenFlash: () => this.screenFlash,
+      getCurrentLevelId: () => this.currentLevel?.identifier,
+      getAcquireOverlayRuntime: () => this.acquireOverlayRuntime,
+      addCollectedRelic: (key) => this.collectedRelics.add(key),
+      addHealthShardBonus: (amount) => this.worldPlayerProgressionState.addHealthShardBonus(amount),
+      updatePlayerAtk: () => this.worldPlayerStatRuntime.sync(),
+      showBigToast: (message, color) => this.toast.showBig(message, color),
+    });
+    this.worldItemDropRuntime = new WorldItemDropRuntime({
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getInventory: () => this.inventory,
+      recordItemCollectedStat: () => { this.game.stats.itemsCollected++; },
+      showToast: (message, color) => this.toast.show(message, color),
+      addCollectedItem: (key) => this.collectedItems.add(key),
+      spawnItemPickupGlow: (x, y, tint) => this.itemPickupGlow.spawn(x, y, tint),
+      startSacredPickup: (item, x, y) => this.sacredPickupRuntime.startPickup(item, x, y),
+    });
+    this.worldFixedItemSpawnRuntime = new WorldFixedItemSpawnRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      addItemDrop: (drop) => this.worldItemDropRuntime.add(drop),
+      addGoldPickup: (pickup) => this.worldPickupRuntime.addGoldPickup(pickup),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.builderItemRuntime = new WorldBuilderItemRuntime({
+      attachments: this.builderAttachmentRuntime,
+      fixedItemSpawn: this.worldFixedItemSpawnRuntime,
+      itemDrops: this.worldItemDropRuntime,
+      pickups: this.worldPickupRuntime,
+      hasCollectedItem: (key) => this.collectedItems.has(key),
+      addCollectedItem: (key) => this.collectedItems.add(key),
+    });
+    this.builderStaticEntityRuntime = new WorldBuilderStaticEntityRuntime({
+      attachments: this.builderAttachmentRuntime,
+      getEntityLayer: () => this.entityLayer,
+      spikeRegistry: this.worldSpikeRegistry,
+      breakableRegistry: this.worldBreakableRegistry,
+      collapsingPlatformRegistry: this.worldCollapsingPlatformRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+    });
+    this.builderDoorSwitchRuntime = new WorldBuilderDoorSwitchRuntime({
+      attachments: this.builderAttachmentRuntime,
+      getEntityLayer: () => this.entityLayer,
+      registry: this.worldDoorSwitchRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+    });
+    this.worldHandPlacedItemRuntime = new WorldHandPlacedItemRuntime({
+      hasCollectedItem: (key) => this.collectedItems.has(key),
+      addCollectedItem: (key) => this.collectedItems.add(key),
+      spawnFixedItem: (x, y, itemId, itemKey) => this.worldFixedItemSpawnRuntime.spawn(x, y, itemId, itemKey),
+    });
+  }
+
+  private wireTerrainRuntimes(): void {
+    this.worldSecretWallRuntime = new WorldSecretWallRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getRenderer: () => this.renderer,
+      getRegistry: () => this.worldSecretWallRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getCurrentLevelId: () => this.currentLevel?.identifier,
+      addItemDrop: (drop) => this.worldItemDropRuntime.add(drop),
+      spawnFixedItem: (x, y, itemId) => this.worldFixedItemSpawnRuntime.spawn(x, y, itemId),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.worldCrackedFloorRuntime = new WorldCrackedFloorRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldCrackedFloorRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getScreenFlash: () => this.screenFlash,
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.worldGrowingWallRuntime = new WorldGrowingWallRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldGrowingWallRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+      addSpawnedSlime: (slime) => this.worldEnemyRegistry.add(slime, this.entityLayer),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.worldSpikeRuntime = new WorldSpikeRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldSpikeRegistry,
+      getHud: () => this.hud,
+      getScreenFlash: () => this.screenFlash,
+      getDamageNumbers: () => this.dmgNumbers,
+    });
+    this.worldBreakableRuntime = new WorldBreakableRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldBreakableRegistry,
+      getPropShatter: () => this.propShatter,
+      getHitSparks: () => this.hitSparks,
+      addGoldPickup: (pickup) => this.worldPickupRuntime.addGoldPickup(pickup),
+    });
+    this.worldBuildingRuntime = new WorldBuildingRuntime({
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldBuildingRegistry,
+    });
+    this.worldBreakablePropRuntime = new WorldBreakablePropRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldBreakablePropRegistry,
+      getTileMutator: () => this.tileMutator,
+      getPropShatter: () => this.propShatter,
+      getHitSparks: () => this.hitSparks,
+      findEdgePassage: (grid, direction, preferred) => this.transitionController.findEdgePassage(grid, direction, preferred),
+      addGoldPickup: (pickup) => this.worldPickupRuntime.addGoldPickup(pickup),
+    });
+    this.worldCollapsingPlatformRuntime = new WorldCollapsingPlatformRuntime({
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldCollapsingPlatformRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+      refreshBuilderGrid: (grid) => this.builderStampRuntime.refreshIfBuilderGrid(
+        this.activeBuilder,
+        grid,
+        this.collisionGrid,
+      ),
+    });
+    this.worldBurnablePropRuntime = new WorldBurnablePropRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldBurnablePropRegistry,
+      getTileMutator: () => this.tileMutator,
+      spawnAsh: (cx, baseY, footprintW) => this.grassFireRuntime.spawnAsh(cx, baseY, footprintW),
+      isDebugMode: () => LdtkWorldScene.debugMode,
+    });
+    this.worldDoorSwitchSpawnRuntime = new WorldDoorSwitchSpawnRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      getRegistry: () => this.worldDoorSwitchRegistry,
+      getUnlockedEvents: () => this.unlockedEvents,
+    });
+    this.worldDoorSwitchInteractionRuntime = new WorldDoorSwitchInteractionRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getRegistry: () => this.worldDoorSwitchRegistry,
+      getAttackState: () => this.worldDoorAttackState,
+      getScreenFlash: () => this.screenFlash,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getCurrentLevelId: () => this.currentLevel?.identifier,
+      refreshBuilderGrid: (grid) => this.builderStampRuntime.refreshIfBuilderGrid(
+        this.activeBuilder,
+        grid,
+        this.collisionGrid,
+      ),
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.worldProjectileRuntime = new WorldProjectileRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getEnemies: () => this.enemies,
+      getActiveAttackHitbox: () => getActivePlayerAttackHitbox(this.player),
+      getHud: () => this.hud,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+    });
+  }
+
+  private wireItemWorldFlowRuntimes(): void {
+    this.itemWorldEntryPreloader = new ItemWorldEntryPreloader(this.atlases);
+    this.itemWorldEntryTransition = new ItemWorldEntryPushTransition(this.game);
+    this.anvilReturnFlowRuntime = new WorldAnvilReturnFlowRuntime({
+      entryState: this.itemWorldEntryState,
+      returnState: this.anvilReturnState,
+      getAnvil: () => this.anvil,
+      getPlayer: () => this.player,
+      snapCamera: (x, y) => this.game.camera.snap(x, y),
+      resetEdgeTransition: () => this.edgeTransitionRuntime.reset(),
+      loadLevel: (levelId, enterFrom) => {
+        this.loadLevel(levelId, enterFrom);
+      },
+    });
+    this.itemWorldSceneFlowRuntime = new WorldItemWorldSceneFlowRuntime({
+      game: this.game,
+      getInventory: () => this.inventory,
+      getPlayer: () => this.player,
+      getUnlockedEvents: () => this.unlockedEvents,
+      preloader: this.itemWorldEntryPreloader,
+      pushTransition: this.itemWorldEntryTransition,
+      preparePush: () => {
+        this.container.visible = false;
+        this.detachSharedUiForItemWorld();
+        this.releaseWorldVisualsForItemWorld();
+        this.game.camera.setZoom(1.0);
+      },
+      restoreWorldAtAnvilReturnPoint: (resetAnvil) => this.anvilReturnFlowRuntime.restoreWorldAtReturnPoint(resetAnvil),
+      startItemWorldReturnFadeIn: () => this.startItemWorldReturnFadeIn(),
+      updatePlayerAtk: () => this.worldPlayerStatRuntime.sync(),
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      showFirstItemWorldReturnInventoryHint: (hadFirstBossClear) => {
+        this.inventoryTutorialHint.requestFirstItemWorldReturnHint(hadFirstBossClear);
+      },
+      onEarnedGold: (amount) => {
+        this.worldPlayerProgressionState.addGold(amount);
+        this.toast.show(t('toast.gold_gain', { amount }), 0xffd700);
+      },
+    });
+    this.fixedItemWorldFlowRuntime = new WorldFixedItemWorldFlowRuntime({
+      fixedItemWorld: this.fixedItemWorld,
+      itemWorldSceneFlow: this.itemWorldSceneFlowRuntime,
+      restoreUiAfterDiveTransition: () => this.anvilDiveUiRuntime.restore(),
+      hasLevel: (levelId) => !!this.loader.getLevel(levelId),
+      loadLevel: (levelId, enterFrom) => {
+        this.loadLevel(levelId, enterFrom);
+      },
+      setEntryItem: (item) => {
+        this.itemWorldEntryState.item = item;
+      },
+      clearEntryItem: () => this.itemWorldEntryState.clearItem(),
+      setInTunnel: (inTunnel) => {
+        this.itemWorldEntryState.inTunnel = inTunnel;
+      },
+      getAnvilReturnLevelId: () => this.anvilReturnState.returnLevelId,
+      getPreTunnelLevelId: () => this.itemWorldEntryState.preTunnelLevelId,
+      clearPreTunnelLevelId: () => {
+        this.itemWorldEntryState.preTunnelLevelId = null;
+      },
+      getFallbackLevelId: () => this.worldSpawnState.currentLevelId,
+      setWorldVisualsReleased: (released) => {
+        this.itemWorldEntryState.worldVisualsReleased = released;
+      },
+      resetEdgeTransition: () => this.edgeTransitionRuntime.reset(),
+      placePlayerAtReturnPoint: () => this.anvilReturnFlowRuntime.placePlayerAtReturnPoint(),
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      getUnlockedEvents: () => this.unlockedEvents,
+      showFirstItemWorldReturnInventoryHint: (hadFirstBossClear) => {
+        this.inventoryTutorialHint.requestFirstItemWorldReturnHint(hadFirstBossClear);
+      },
+      fireWorldReturnDialogue: (weaponDefId) => this.worldEgoDialogueRuntime.fireWorldReturnDialogue(weaponDefId),
+      retireAfterBossClear: (hadFirstBossClear) => {
+        this.anvilRetirementRuntime.retireAfterBossClear(hadFirstBossClear);
+      },
+    });
+    this.anvilItemWorldFlowRuntime = new WorldAnvilItemWorldFlowRuntime({
+      itemWorldSceneFlow: this.itemWorldSceneFlowRuntime,
+      fixedItemWorldFlow: this.fixedItemWorldFlowRuntime,
+      getEntryItem: () => this.itemWorldEntryState.item,
+      getPlayer: () => this.player,
+      getCurrentLevelId: () => this.currentLevel?.identifier ?? null,
+      setPreTunnelLevelId: (levelId) => {
+        this.itemWorldEntryState.preTunnelLevelId = levelId;
+      },
+      setInTunnel: (inTunnel) => {
+        this.itemWorldEntryState.inTunnel = inTunnel;
+      },
+      hideMinimap: () => {
+        if (this.minimap) this.minimap.visible = false;
+      },
+      hasLevel: (levelId) => !!this.loader.getLevel(levelId),
+      loadLevel: (levelId, enterFrom) => {
+        this.loadLevel(levelId, enterFrom);
+      },
+      restoreUiAfterDiveTransition: () => this.anvilDiveUiRuntime.restore(),
+      clearDamageNumbers: () => this.combatFeedbackRuntime.clearDamageNumbers(),
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      showToast: (message, color) => this.toast.show(message, color),
+      fireWorldReturnDialogue: (weaponDefId) => this.worldEgoDialogueRuntime.fireWorldReturnDialogue(weaponDefId),
+      retireAfterBossClear: (hadFirstBossClear) => {
+        this.anvilRetirementRuntime.retireAfterBossClear(hadFirstBossClear);
+      },
+    });
+    this.portalItemWorldFlowRuntime = new WorldPortalItemWorldFlowRuntime({
+      portalEntryRuntime: this.portalEntryRuntime,
+      fixedItemWorldFlow: this.fixedItemWorldFlowRuntime,
+      itemWorldSceneFlow: this.itemWorldSceneFlowRuntime,
+      getInventory: () => this.inventory,
+      getPlayer: () => this.player,
+      clearDamageNumbers: () => this.combatFeedbackRuntime.clearDamageNumbers(),
+      showToast: (message, color) => this.toast.show(message, color),
+      sacredPickupFlow: (item, x, y) => this.sacredPickupRuntime.startPickup(item, x, y),
+      fireWorldReturnDialogue: (weaponDefId) => this.worldEgoDialogueRuntime.fireWorldReturnDialogue(weaponDefId),
+      retireAfterBossClear: (hadFirstBossClear) => {
+        this.anvilRetirementRuntime.retireAfterBossClear(hadFirstBossClear);
+      },
+    });
+    this.itemWorldGrowthSnapshot = new ItemWorldGrowthSnapshotController({
+      game: this.game,
+      sceneContainer: this.container,
+      getEntityLayer: () => this.entityLayer,
+      getPlayer: () => this.player,
+      getItem: () => this.itemWorldEntryState.item,
+      getHiddenTargets: () => [
+        this.renderer?.container,
+        this.fluidLayer,
+        this.weatherLayer,
+        this.deploymentFxLayer,
+        this.vividLayer,
+        ...this.builderLayerRuntime.getAuxiliaryTargets(this.activeBuilder),
+      ],
+    });
+    this.deployBlurRuntime = new WorldDeployBlurRuntime({
+      getTargets: () => [
+        this.game.backgroundContainer,
+        this.renderer?.container,
+        this.entityLayer,
+        this.fluidLayer,
+        this.deploymentFxLayer,
+      ].filter((target): target is Container => !!target),
+    });
+    this.dungeonAtmosphereRuntime = new WorldDungeonAtmosphereRuntime({
+      getParallaxContainer: () => this.parallaxBG?.container ?? null,
+      getFilterTargets: () => [
+        this.renderer?.bgLayer,
+        this.renderer?.wallLayer,
+        this.renderer?.interiorLayer,
+        this.renderer?.shadowLayer,
+        this.renderer?.specialLayer,
+        this.proceduralDecorRuntime.naturalLayer,
+        this.proceduralDecorRuntime.artificialLayer,
+        this.proceduralDecorRuntime.structureLayer,
+        this.entityLayer,
+        this.fluidLayer,
+        ...this.getBuilderAtmosphereTargets(),
+      ].filter((target): target is Container => !!target),
+      getBuilderInteriorTargets: () => this.builderLayerRuntime.getInteriorTargets(this.activeBuilder),
+    });
+    this.laserDesaturationRuntime = new WorldLaserDesaturationRuntime({
+      getTargets: () => [
+        this.game.backgroundContainer,
+        this.renderer?.container,
+        this.entityLayer,
+        this.fluidLayer,
+        ...this.getBuilderAtmosphereTargets(),
+      ].filter((target): target is Container => !!target),
+    });
+  }
+
+  private wireCombatAndTransitionRuntimes(): void {
+    this.noWeaponFeedbackRuntime = new WorldNoWeaponFeedbackRuntime({
+      getPlayer: () => this.player,
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.cameraZoneRuntime = new CameraZoneRuntime({
+      camera: this.game.camera,
+      getPlayerCenter: () => ({
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+      }),
+      suppressZones: () => this.builderPlayerStateRuntime.isInBuilder,
+      preferSpecificZones: true,
+    });
+    this.bossLockRuntime = new WorldBossLockRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      getEntityLayer: () => this.entityLayer,
+      hideBossHp: () => this.hud.hideBossHP(),
+    });
+    this.worldEnemySpawnRuntime = new WorldEnemySpawnRuntime({
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getUnlockedEvents: () => this.unlockedEvents,
+      addEnemy: (enemy) => this.worldEnemyRegistry.add(enemy, this.entityLayer),
+      activateBossLock: (level, bossKey) => this.bossLockRuntime.activate(level, bossKey),
+    });
+    this.bossHpRuntime = new BossHpRuntime({
+      getHud: () => this.hud,
+      getEnemies: () => this.enemies,
+      defaultBossName: 'GUARDIAN',
+      isExtraEngaged: () => this.bossLockRuntime.isActive,
+    });
+    this.endingRuntime = new WorldEndingRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+    });
+    this.dialogueTriggerRuntime = new WorldDialogueTriggerRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getLoreDisplay: () => this.loreDisplay,
+      getUnlockedEvents: () => this.unlockedEvents,
+    });
+    this.worldEgoDialogueRuntime = new WorldEgoDialogueRuntime({
+      getPlayer: () => this.player,
+      getAnvil: () => this.anvil,
+      getLoreDisplay: () => this.loreDisplay,
+      getUnlockedEvents: () => this.unlockedEvents,
+    });
+    this.voidReturnRuntime = new WorldVoidReturnRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getCurrentLevel: () => this.currentLevel ?? null,
+      getActiveBuilder: () => this.activeBuilder,
+      getBuilderStampSet: () => this.builderStampRuntime.activeStampSet,
+      getLastSafePosition: () => this.voidRuntime.getLastSafePosition(),
+      loadLevel: (levelId, enterDirection) => this.loadLevel(levelId, enterDirection),
+    });
+    this.voidRuntime = new WorldVoidRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getFadeOverlay: () => this.fadeOverlay,
+      getCurrentLevelId: () => this.currentLevel?.identifier ?? null,
+      getFallbackLevelId: () => this.worldSpawnState.currentLevelId,
+      resolveReturnPoint: () => this.voidReturnRuntime.resolveReturnPoint(),
+      teleportTo: (levelId, x, y) => this.voidReturnRuntime.teleportTo(levelId, x, y),
+    });
+    this.exitGlowRuntime = new WorldExitGlowRuntime({
+      getEntityLayer: () => this.entityLayer,
+      getPlayerCenter: () => ({
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+      }),
+    });
+    this.builderEntranceRuntime = new WorldBuilderEntranceRuntime({
+      attachments: this.builderAttachmentRuntime,
+      exitGlowRuntime: this.exitGlowRuntime,
+    });
+    this.edgeTransitionRuntime = new WorldEdgeTransitionRuntime({
+      getFadeOverlay: () => this.fadeOverlay,
+      fadeDurationMs: FADE_DURATION,
+    });
+    this.acquireOverlayRuntime = new WorldAcquireOverlayRuntime({
+      game: this.game,
+      getHudContainer: () => this.hud.container,
+      getMinimapContainer: () => this.minimap,
+      isInItemTunnel: () => this.itemWorldEntryState.inTunnel,
+    });
+    this.sacredPickupRuntime = new WorldSacredPickupRuntime({
+      game: this.game,
+      state: this.sacredPickupState,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getItemDrops: () => this.worldItemDropRuntime.itemDrops,
+      getLoreDisplay: () => this.loreDisplay,
+      getLorePopup: () => this.lorePopup,
+      getDivePreview: () => this.divePreview,
+      acquireOverlayRuntime: this.acquireOverlayRuntime,
+      resolveAnvilTarget: (fromX, fromY) => this.anvilReturnState.resolveTarget(this.anvil, this.currentLevel, fromX, fromY),
+    });
+    this.frozenReturnRuntime = new WorldFrozenReturnRuntime({
+      game: this.game,
+      proximity: this.proximity,
+      getPlayerContainer: () => this.player?.container ?? null,
+      getSnapshot: () => this.frozenSnapshotRuntime.snapshot,
+      getUiSkin: () => this.uiSkin,
+      getItem: () => this.itemWorldEntryState.item,
+      restoreUi: () => this.anvilDiveUiRuntime.restore(),
+      deactivateAtmosphere: () => this.itemDeploymentAtmosphereFlowRuntime.deactivateDungeonAtmosphere(),
+      cancelDeploymentState: () => this.cancelFrozenReturnDeploymentState(),
+      armDistancePx: FROZEN_RETURN_ARM_DISTANCE,
+    });
+    this.introHandoffRuntime = new WorldIntroHandoffRuntime({
+      game: this.game,
+      isInItemTunnel: () => this.itemWorldEntryState.inTunnel,
+      setMinimapVisible: (visible) => {
+        this.worldMinimap?.setVisible(visible);
+      },
+    });
+    this.itemWorldGhostCollision = new ItemWorldGhostCollisionRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      setPlayerRoomData: (grid) => {
+        this.player.roomData = grid;
+      },
+      camera: this.game.camera,
+      getCurrentLevelSize: () => ({
+        pxWid: this.currentLevel?.pxWid ?? 0,
+        pxHei: this.currentLevel?.pxHei ?? 0,
+      }),
+      tileSize: TILE_SIZE,
+      visualBoundsBleedPx: VISUAL_BOUNDS_BLEED_PX,
+    });
+    this.itemWorldGhostStream = new ItemWorldGhostStreamRuntime({
+      sceneContainer: this.container,
+      getEntityLayer: () => this.entityLayer,
+      streamRuntime: this.itemWorldEntryStream,
+      collisionRuntime: this.itemWorldGhostCollision,
+      getDeploymentScope: () => this.itemDeploymentCollisionRuntime.currentScope,
+      getItem: () => this.itemWorldEntryState.item,
+      getLevel36: () => this.itemStratumLoader?.getLevel('ItemStratum_Level_36'),
+      getPlayer: () => this.player,
+      getLaserOrigin: () => this.anvil?.getGatePivotWorld(),
+      isDungeonAtmosphereActive: () => this.dungeonAtmosphereRuntime.isActive,
+      getDungeonAtmosphereFilter: () => this.dungeonAtmosphereRuntime.filter,
+      addDungeonAtmosphereTarget: (target) => this.dungeonAtmosphereRuntime.addTarget(target),
+      removeDungeonAtmosphereTarget: (target) => this.dungeonAtmosphereRuntime.removeTarget(target),
+      tileSize: TILE_SIZE,
+    });
+    this.itemDeploymentTunnelRuntime = new ItemDeploymentTunnelRuntime({
+      getCollisionGrid: () => this.collisionGrid,
+      getRenderer: () => this.renderer,
+      getActiveBuilder: () => this.activeBuilder,
+      builderStampRuntime: this.builderStampRuntime,
+      rerenderTilemap: () => this.rerenderTilemap(),
+      tileSize: TILE_SIZE,
+    });
+    this.itemDeploymentTunnelFlowRuntime = new WorldItemDeploymentTunnelFlowRuntime({
+      getAnvil: () => this.anvil,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getLevelRightPx: (fallback) => this.currentLevel?.pxWid ?? fallback,
+      getGrowthSnapshot: () => this.itemWorldGrowthSnapshot,
+      getGhostStream: () => this.itemWorldGhostStream,
+      getTunnelRuntime: () => this.itemDeploymentTunnelRuntime,
+      getCollisionRuntime: () => this.itemDeploymentCollisionRuntime,
+      setPendingGhostTunnelParams: (params) => {
+        this.itemWorldEntryState.pendingGhostTunnelParams = params;
+      },
+      rerenderTilemap: () => this.rerenderTilemap(),
+    });
+    this.itemDeploymentAtmosphereFlowRuntime = new WorldItemDeploymentAtmosphereFlowRuntime({
+      getLaserDesaturationRuntime: () => this.laserDesaturationRuntime,
+      getDungeonAtmosphereRuntime: () => this.dungeonAtmosphereRuntime,
+      getFrozenSnapshotRuntime: () => this.frozenSnapshotRuntime,
+      getFrozenReturnRuntime: () => this.frozenReturnRuntime,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getVividLayer: () => this.vividLayer,
+      restoreUiAfterDiveTransition: () => this.anvilDiveUiRuntime.restore(),
+      getPendingGhostTunnelParams: () => this.itemWorldEntryState.pendingGhostTunnelParams,
+      clearPendingGhostTunnelParams: () => {
+        this.itemWorldEntryState.pendingGhostTunnelParams = null;
+      },
+      scheduleGhostTunnel: (params) => {
+        this.itemWorldGhostStream.scheduleForTunnel(
+          params.x,
+          params.y,
+          params.w,
+          params.h,
+          params.ghostBirth ?? null,
+        );
+      },
+    });
+    this.itemWorldTransitionRuntime = new ItemWorldTransitionRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getRealityGroups: () => [
+        [this.parallaxBG?.container],
+        [this.renderer?.bgLayer, this.renderer?.interiorLayer],
+        [
+          this.renderer?.wallLayer,
+          this.renderer?.specialLayer,
+          this.renderer?.shadowLayer,
+          this.solidifiedWallOverlay.graphics,
+          this.fluidLayer,
+          this.proceduralDecorRuntime.naturalLayer,
+          this.proceduralDecorRuntime.artificialLayer,
+          this.proceduralDecorRuntime.structureLayer,
+        ],
+      ],
+      getFxLayer: () => this.entityLayer,
+      getOverlayLayer: () => this.game.legacyUIContainer,
+    });
+    this.portalRuntime = new PortalRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      showToast: (message, color) => this.toast.show(message, color),
+      onEnter: (portal) => this.enterPortal(portal),
+    });
+  }
+
   /**
-   * Pattern D ??醫롫윥獄????醫롫윥餓? ??醫롫윪???醫롫윪???잙?裕뉔뜮?
+   * Pattern D 근접 상호작용 우선순위:
    *   Altar(30) > Anvil(20) > SavePoint(10)
-   * ??醫롫윥獄??醫롫윥??`this.*` ??closure ??嶺뚣볦굣???醫롫짗??????醫롫윥甕곕쵆???釉띾쐠??
+   * 핸들러는 `this.*` 를 closure 로 캡처해 등록한다.
    */
   private registerProximityHandlers(): void {
     const anvil: ProximityInteraction = {
       label: 'Anvil',
       priority: 20,
       canInteract: () => {
-        if (!this.anvil || this.altarController.isSelectActive || !this.isPlayerNearAnvil()) return false;
-        if (this.itemDeployment?.isActive) return false;
-        // Step 5 (2026-05-25): anvil ????쒕뼬?깃꼈泥? *??貫????덈츎* ??⑤객臾?(IW ?????????곌랜踰?)
-        // 嶺???????筌뤿굛????곕콦 ??⑥ろ맖. retire(disabled)/used ?? ??쒕뼬?.
+        if (!this.anvil || this.altarController.isSelectActive || !this.anvilInteractionRuntime.isPlayerNearAnvil()) return false;
+        if (this.itemWorldEntryState.deployment?.isActive) return false;
+        // Step 5 (2026-05-25): anvil 이 아이템을 들고 있으면 *항상 재진입 가능* 한 프롬프트(IW 재다이브 진입점)
+        // 그 외에는 사용 여부를 따른다. retire(disabled)/used 면 비활성.
         if (this.anvil.hasItem()) return true;
-        if (this.anvilPromptSuppressMs > 0) return false;
+        if (this.anvilInteractionRuntime.isPromptSuppressed) return false;
         return !this.anvil.used && !this.anvil.disabled;
       },
       onInteract: () => {
         if (this.anvil?.hasItem()) {
-          this.reclaimItemFromAnvil();
+          this.anvilItemRuntime.reclaimItem();
           return;
         }
-        this.openAnvilUI();
+        this.anvilItemRuntime.openInventory();
       },
     };
     const savePoint: ProximityInteraction = {
       label: 'SavePoint',
       priority: 10,
       canInteract: () => {
-        if (this.saveQueued) return false;
+        if (this.savePointRuntime?.isSaveQueued) return false;
         if (this.altarController.isSelectActive) return false;
-        const pcx = this.player.x + this.player.width / 2;
-        const pcy = this.player.y + this.player.height / 2;
-        const RANGE = 32;
-        for (const sp of this.savePoints) {
-          if (Math.abs(pcx - sp.x) < RANGE && Math.abs(pcy - sp.y) < RANGE) return true;
-        }
-        return false;
+        return this.savePointRuntime?.isPlayerNear() ?? false;
       },
-      onInteract: () => this.queueSave(),
+      onInteract: () => this.savePointRuntime.queueSave(),
     };
     this.proximity.register(anvil);
     this.proximity.register(savePoint);
@@ -857,19 +1509,13 @@ export class LdtkWorldScene extends Scene {
     this.hitManager = new HitManager(this.game);
     this.dropRng = new PRNG(99999);
 
-    // Detect the title??몄뙰me fade handoff overlay BEFORE any UI is created.
-    // When present, every HUD/minimap will be created hidden so nothing
-    // leaks above the black fade during async init frames. The overlay
-    // itself is picked up below for fade-out in update().
-    const introHandoff = this.game.uiContainer.getChildByLabel(TITLE_FADE_OVERLAY_LABEL);
-    const startHidden = introHandoff instanceof Graphics;
-    if (startHidden) {
-      this.introPhase = 'fadeIn';
-    }
+    // Detect the title-scene fade handoff before UI creation so HUD/minimap
+    // can stay hidden during async init frames.
+    const startHidden = this.introHandoffRuntime.captureTitleHandoff();
 
-    // Fetch and parse LDtk project (multi-world ??pick Overworld).
-    // cache:'no-store' + cache-bust query ??嶺뚮ㅄ維獄?嶺?흮??(??곗뒧???? / Vite / SW / proxy)
-    // ??⑥쥙?? ?筌먦끉?????逾?????prod ??⑤갭??亦껋꼶梨? (??init 1 ??.
+    // Fetch and parse LDtk project (multi-world — pick Overworld).
+    // cache:'no-store' + cache-bust query 로 캐시된 옛 데이터(브라우저 / Vite / SW / proxy)
+    // 를 우회해 항상 최신 .ldtk 를 받는다. prod 빌드에서도 동일 (init 1회).
     const cacheBust = `?t=${Date.now()}`;
     const json = await fetch(LDTK_PATH + cacheBust, { cache: 'no-store' }).then((r) => r.json()) as Record<string, unknown>;
     if (import.meta.env.DEV) {
@@ -880,16 +1526,16 @@ export class LdtkWorldScene extends Scene {
       })();
       const layerCount = builderLvl1Raw?.layerInstances?.length ?? 0;
       // eslint-disable-next-line no-console
-      console.info(`[LDtk] fetched at ${new Date().toISOString()} ??Builder_Level_1 layers=${layerCount}`);
+      console.info(`[LDtk] fetched at ${new Date().toISOString()} — Builder_Level_1 layers=${layerCount}`);
     }
     this.loader = new LdtkLoader();
     this.loader.load(json, LDTK_WORLD_IDS);
 
-    // Builder world ??separate loader so builder levels don't mix with navigation
+    // Builder world — separate loader so builder levels don't mix with navigation
     this.builderLoader = new LdtkLoader();
     this.builderLoader.load(json, BUILDER_WORLD_ID);
 
-    // ItemStratum levels ??only used for ghost overlay preview (same JSON, different world filter)
+    // ItemStratum levels — only used for ghost overlay preview (same JSON, different world filter)
     this.itemStratumLoader = new LdtkLoader();
     this.itemStratumLoader.load(json, 'ItemStratum');
     seedItemWorldTemplates(this.itemStratumLoader.getLevelIds().map(id => this.itemStratumLoader!.getLevel(id)!));
@@ -897,21 +1543,17 @@ export class LdtkWorldScene extends Scene {
     // Load save or create fresh inventory
     const saveData = SaveManager.load();
     if (saveData) {
-      if (this.introPhase === 'fadeIn') this.introPhase = 'none';
+      this.introHandoffRuntime.skipIntroSequence();
       this.inventory = SaveManager.loadInventory(saveData);
-      this.unlockedEvents = new Set(saveData.unlockedEvents);
-      this.collectedRelics = new Set(saveData.collectedRelics);
-      this.collectedItems = new Set(saveData.collectedItems);
-      this.visitedLevels = new Set(saveData.visitedLevels ?? []);
-      this.clearedLevels = new Set(saveData.clearedLevels);
-      this.gold = saveData.gold ?? 0;
+      this.worldProgressState.replaceFromSave(saveData);
+      this.worldPlayerProgressionState.replaceFromSave(saveData);
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // ??????롪퍒???(2026-05-03): Broken Sword ????戮곗굚 ?????吏?嶺뚯솘??? ??怨몄쓧 Builder
-      // ??ItemDrop ????뵜 ?????????? 嶺?????뵜 cutscene + "Open Inventory" hint
-      // ????節띾쐾 ?????(sacredSave flags 亦껋꼶梨??set ??怨쀬Ŧ firstEver ?釉뚯뫅??亦껋꼶梨룟퐲??.
-      // IW ?곌랜????????????잙??????hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) ??
-      // ?곌랙?х뙴????夷??⑤벡逾??잙갭梨??????.
+      // 신규 세이브 (2026-05-03): Broken Sword 를 들고 시작. 인벤토리에 넣고 장착하면 Builder
+      // 의 ItemDrop 픽업 컷신과 동일한 픽업 cutscene + "Open Inventory" hint
+      // 흐름을 탄다 (sacredSave flags 를 set 하여 firstEver 픽업으로 처리).
+      // IW 진입 전까지 인벤토리 키 hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) 는
+      // 첫 픽업 직후 인벤토리를 열도록 유도한다.
       this.inventory = new Inventory();
       const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
       const starterSword = createItem(starterDef, 'normal');
@@ -964,150 +1606,50 @@ export class LdtkWorldScene extends Scene {
       this.atlases['atlas/world_01.png'] ??
       Object.values(this.atlases)[0];
 
-    // Parallax background ??behind everything
+    // Parallax background — behind everything
     this.parallaxBG = new ParallaxBackground();
     this.game.backgroundContainer.addChild(this.parallaxBG.container);
 
-    // LDtk renderer ??tiles only, no entity markers in production
+    // LDtk renderer — tiles only, no entity markers in production
     this.renderer = new LdtkRenderer();
     this.container.addChild(this.renderer.container);
-    this.solidifiedWallGfx = new Graphics();
-    this.renderer.container.addChild(this.solidifiedWallGfx);
+    this.solidifiedWallOverlay.attach(this.renderer.container);
 
-    // Dead Cells-style palette swap filter ??production default.
+    // Dead Cells-style palette swap filter — production default.
     // Data-driven via Sheets/Content_System_Area_Palette.csv: rows for
     // "world_shaft_bg" / "world_shaft_wall" supply stops + depth/brightness
     // params. Atlas is a single shared GPU texture with one row per AreaID.
     // See: Documents/Research/DeadCells_GrayscalePalette_Research.md
-    {
-      const atlas = getAreaPaletteAtlas();
-      const bgEntry = getAreaPalette('world_shaft_bg');
-      const wallEntry = getAreaPalette('world_shaft_wall');
-      const bgFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(bgEntry.id),
-        strength: 1.0,
-        depthBias: bgEntry.depthBias,
-        depthCenter: bgEntry.depthCenter,
-        brightness: bgEntry.brightness,
-        tint: bgEntry.tint,
-      });
-      this.bgPaletteFilter = bgFilter;
-      const wallFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(wallEntry.id),
-        strength: 1.0,
-        depthBias: wallEntry.depthBias,
-        depthCenter: wallEntry.depthCenter,
-        brightness: wallEntry.brightness,
-        tint: wallEntry.tint,
-      });
-      this.wallPaletteFilter = wallFilter;
-      this.naturalPaletteFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(wallEntry.id),
-        strength: 0.5,
-        depthBias: wallEntry.depthBias,
-        depthCenter: wallEntry.depthCenter,
-        brightness: wallEntry.brightness,
-        tint: wallEntry.tint,
-      });
-      const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 1.0, thickness: 3, topGuardPixels: 16 });
-      this.wallRimFilter = rimFilter;
-      const interiorFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(bgEntry.id),
-        strength: 1.0,
-        depthBias: bgEntry.depthBias,
-        depthCenter: bgEntry.depthCenter,
-        brightness: (bgEntry.brightness ?? 1.0) * 0.65,
-        tint: bgEntry.tint,
-      });
-      this.interiorPaletteFilter = interiorFilter;
-      this.renderer.bgLayer.filters = [bgFilter];
-      this.renderer.wallLayer.filters = [wallFilter, rimFilter];
-      this.renderer.interiorLayer.filters = [interiorFilter];
-      this.renderer.shadowLayer.filters = [wallFilter];
-
-      // Builder-specific palette filters ??same atlas, different rows.
-      // Lets the giant builder body read as cool steel against the warm
-      // crimson shaft. Rim filter stays shared so the orange forge glow
-      // still highlights the builder's silhouette.
-      const builderBgEntry = getAreaPalette('world_shaft_builder_bg');
-      const builderWallEntry = getAreaPalette('world_shaft_builder_wall');
-      this.builderBgPaletteFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(builderBgEntry.id),
-        strength: 1.0,
-        depthBias: builderBgEntry.depthBias,
-        depthCenter: builderBgEntry.depthCenter,
-        brightness: builderBgEntry.brightness,
-        tint: builderBgEntry.tint,
-      });
-      this.builderWallPaletteFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(builderWallEntry.id),
-        strength: 1.0,
-        depthBias: builderWallEntry.depthBias,
-        depthCenter: builderWallEntry.depthCenter,
-        brightness: builderWallEntry.brightness,
-        tint: builderWallEntry.tint,
-      });
-      // BuilderInterior uses the same wall palette row as BuilderWall. Builder
-      // palette rows keep DepthBias at 0 in CSV so split LDtk layers do not
-      // drift in brightness while the whole builder moves as one body.
-      this.builderInteriorWallPaletteFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(builderWallEntry.id),
-        strength: 1.0,
-        depthBias: builderWallEntry.depthBias,
-        depthCenter: builderWallEntry.depthCenter,
-        brightness: builderWallEntry.brightness,
-        tint: builderWallEntry.tint,
-      });
-      this.builderNaturalPaletteFilter = new PaletteSwapFilter({
-        paletteTex: atlas.texture,
-        rowCount: atlas.rowCount,
-        row: getAreaPaletteRow(builderWallEntry.id),
-        strength: 0.5,
-        depthBias: builderWallEntry.depthBias,
-        depthCenter: builderWallEntry.depthCenter,
-        brightness: builderWallEntry.brightness,
-        tint: builderWallEntry.tint,
-      });
-    }
+    this.terrainPaletteRuntime.initializeRenderer(this.renderer);
+    this.builderVisualFilterRuntime.initialize(getAreaPaletteAtlas());
 
     // Entity layer (enemies, drops, portals, altars)
     this.entityLayer = new Container();
     this.container.addChild(this.entityLayer);
-    this.grassClumpFire.setFireLayer(this.entityLayer);
+    this.grassFireRuntime.initialize(this.entityLayer);
 
     // Tile mutator overlay (fire/ice/electric VFX on top of static tile sprites).
-    this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
+    this.worldTileMutationRuntime.initializeRenderer(this.entityLayer);
 
-    // Fluid layer ??entity layer ??濡ロ뱺 ?熬곣뫚?? player/enemy ?띠럾? fluid ???고뱺 ???곗꽑?띠럾?嶺?
-    // ??ル맧???遊붋?釉뚯뫒?????????댁벀??fluid ??源녿さ???띠럾????깆땟??(???깆젷 ??ル∥????節뗪땁).
+    // Fluid layer — entity layer 보다 뒤에 둬서 player/enemy 가 fluid 위에 그려져 보이게 한다.
+    // 단 잔류 잉크는 더 뒤에 깔리도록 fluid 와 별개로 다룬다 (잔류는 별도 레이어).
     this.fluidLayer = new Container();
     this.container.addChild(this.fluidLayer);
-    this.fluidSystem = new FluidSystem(this.fluidLayer);
     // FluidSpawner debug overlay lives above entity layer so designers see
     // the source cell even when fluid covers it. ?debug gates visibility.
     const _fsDebug = new URLSearchParams(window.location.search).has('debug');
-    this.fluidSpawners = new FluidSpawnerManager(this.fluidLayer, _fsDebug ? this.entityLayer : null);
     const _reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    this.fluidCrestFoam = new FluidCrestFoamManager(this.fluidLayer, _reduceMotion);
+    this.worldFluidRuntime.initializeFluidLayer({
+      fluidLayer: this.fluidLayer,
+      entityLayer: this.entityLayer,
+      debug: _fsDebug,
+      reduceMotion: _reduceMotion,
+    });
     // Oil flame tongues need to render ABOVE the fluid polygon, so we give
     // the mutator renderer a Graphics child of a container drawn after fluid.
     const aboveFluidLayer = new Container();
     this.container.addChild(aboveFluidLayer);
-    this.tileMutatorRenderer.setAboveFluidLayer(aboveFluidLayer);
+    this.worldTileMutationRuntime.setAboveFluidLayer(aboveFluidLayer);
 
     this.weatherLayer = new Container();
     this.container.addChild(this.weatherLayer);
@@ -1126,9 +1668,9 @@ export class LdtkWorldScene extends Scene {
     this.game.app.stage.addChild(this.collisionDebug.hud);
 
     // Updraft system (shared physics + particles)
-    this.updraftSystem = new UpdraftSystem(this.entityLayer);
+    this.worldUpdraftRuntime.initialize(this.entityLayer);
     // Void fog particles (black mist rising from void tiles)
-    this.voidFogSystem = new VoidFogSystem(this.entityLayer);
+    this.voidFogRuntime.initialize(this.entityLayer);
 
     // Player
     this.player = new Player(this.game);
@@ -1148,12 +1690,9 @@ export class LdtkWorldScene extends Scene {
       );
     };
     this.entityLayer.addChild(this.player.container);
-    // Arc Tether ??Spark-?リ옇?ｅ퐲???蹂μ쟽???깊뱱 ????뵜 VFX. Player layer ?? ?띠룇?? entityLayer ??
-    // ?怨뺣뼺???濡モ뵹 player ?곌랜???*????add (?롪틵??????嶺뚮쵐???????????깅굵 ?熬곥굥??player ?熬곣뫖???잙갭梨???.
-    if (!this.arcTether) {
-      this.arcTether = new ArcTether();
-      this.entityLayer.addChild(this.arcTether.container);
-    }
+    // Arc Tether — Spark 인첸트로 발동하는 전기 픽업 VFX. Player layer 위, entityLayer 에
+    // 그대로 두되 player 진입 *뒤에* add (그래야 픽업 글로우가 player 위로 그려진다).
+    this.worldContainerCarryRuntime.initialize(this.entityLayer);
     if (saveData) {
       this.player.hp = saveData.player.hp;
       this.player.maxHp = saveData.player.maxHp;
@@ -1164,41 +1703,30 @@ export class LdtkWorldScene extends Scene {
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
       this.player.abilities.cheat = saveData.abilities.cheat ?? false;
-      this.healthShardBonus = saveData.healthShardBonus ?? 0;
+      this.worldPlayerProgressionState.setHealthShardBonus(saveData.healthShardBonus ?? 0);
     }
-    this.updatePlayerAtk();
+    this.worldPlayerStatRuntime.sync();
 
-    // Fade overlay ??on stage (camera-independent) so it always covers the full screen
+    // Fade overlay — on stage (camera-independent) so it always covers the full screen
     this.fadeOverlay = new Graphics();
     this.fadeOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
     this.fadeOverlay.alpha = 0;
     this.game.legacyUIContainer.addChild(this.fadeOverlay);
 
-    // ItemWorld ?곌랜踰? ?熬곣뫗??fade-in overlay (fadeOverlay ?熬곣뫖???곌랙?х뙴????깅턄??.
-    this.iwReturnFade = new Graphics();
-    this.iwReturnFade.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
-    this.iwReturnFade.alpha = 0;
-    this.game.legacyUIContainer.addChild(this.iwReturnFade);
+    this.itemWorldReturnFade = new ItemWorldReturnFadeRuntime(this.game);
 
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
-    // Hide HUD immediately during the intro sequence so it can't flash above
-    // the fade overlay while async init is still running. Revealed after
-    // the area title completes. Mirror to Game.hudReady so global UI (e.g.
-    // FeedbackPanel hint) follows the same gate.
-    if (startHidden && !saveData) {
-      this.hud.container.visible = false;
-      this.game.hudReady = false;
-    } else {
-      this.game.hudReady = true;
-    }
+    this.introHandoffRuntime.bindHud(this.hud);
+    this.introHandoffRuntime.applyInitialHudGate(startHidden && !saveData);
 
-    // Area title banner ??Elden Ring style. Rides on legacyUIContainer so it
+    // Area title banner — Elden Ring style. Rides on legacyUIContainer so it
     // inherits uiScale with the rest of the overlay UI.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
+    this.introHandoffRuntime.bindAreaTitle(this.areaTitle);
 
     // Load & apply UI skin (async, non-blocking)
     const hudSkin = new UISkin();
@@ -1206,16 +1734,20 @@ export class LdtkWorldScene extends Scene {
     hudSkin.load().then(() => this.hud.applySkin(hudSkin))
       .catch((e) => {
         // eslint-disable-next-line no-console
-        console.warn('[UISkin] load failed ??falling back to Graphics HUD:', e);
+        console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
       });
-
-    // Controls overlay (disabled)
-    // this.controlsOverlay = new ControlsOverlay();
-    // this.game.legacyUIContainer.addChild(this.controlsOverlay.container);
 
     // Toast, damage numbers, hit sparks, screen flash
     this.toast = new ToastManager(this.game.legacyUIContainer);
     this.anvilPrompts = new AnvilPromptController(this.game);
+    this.anvilCyclePrompt = new AnvilCyclePromptRuntime({
+      game: this.game,
+      showToast: (message, color) => this.toast.show(message, color),
+      placeItem: (item) => this.anvilItemRuntime.placeItem(item),
+      refreshAnvilInventory: () => this.inventoryUI.refresh(),
+      reopenAltarSelect: () => this.altarController.drawItemSelectUI('Offer item to altar:', 0xaaccff),
+      isAnvilInventoryOpen: () => this.inventoryUI.visible && this.inventoryUI.isAnvilMode(),
+    });
     this.altarController = new WorldAltarController({
       game: this.game,
       player: this.player,
@@ -1223,45 +1755,30 @@ export class LdtkWorldScene extends Scene {
       toast: this.toast,
       entityLayer: this.entityLayer,
       spawnPortal: (x, y, rarity, sourceType, item) => this.spawnPortal(x, y, rarity, sourceType, item),
-      closeCyclePrompt: () => this.closeCyclePromptUI(),
+      closeCyclePrompt: () => this.anvilCyclePrompt.close(),
     });
     this.anvilPlacement = new AnvilPlacementController({
       getAnvil: () => this.anvil,
       inventory: () => this.inventory,
       inventoryUI: () => this.inventoryUI,
       toast: this.toast,
-      requestTetherFadeOut: () => this.activeAnvilTether?.requestFadeOut(),
-      hidePrompts: () => this.hideAnvilPrompts(),
-      showCyclePrompt: (item) => {
-        this.cyclePromptItem = item;
-        this.drawCyclePromptUI(item);
-      },
-      placeItem: (item) => this.placeItemOnAnvil(item),
+      requestTetherFadeOut: () => this.sacredPickupRuntime.requestTetherFadeOut(),
+      hidePrompts: () => this.anvilInteractionRuntime.hidePrompts(),
+      showCyclePrompt: (item) => this.anvilCyclePrompt.open(item),
+      placeItem: (item) => this.anvilItemRuntime.placeItem(item),
     });
-    this._gpUnsub = this._attachGamepadToast();
-    this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
-    this.hitSparks = new HitSparkManager(this.entityLayer);
-    this.propShatter = new PropShatterManager(this.entityLayer);
-    this.landingDust = new LandingDustManager(this.entityLayer);
-    this.dashAfterimage = new DashAfterimageManager(this.entityLayer);
-    this.dashBoostPuff = new DashBoostPuffManager(this.entityLayer);
-    this.doubleJumpRing = new DoubleJumpRingManager(this.entityLayer);
-    this.wallJumpDust = new WallJumpDustManager(this.entityLayer);
-    this.jumpTakeoff = new JumpTakeoffPuffManager(this.entityLayer);
-    this.wallSlideDust = new WallSlideDustManager(this.entityLayer);
-    this.footstepPuff = new FootstepPuffManager(this.entityLayer);
-    this.flaskBurst = new FlaskHealBurstManager(this.entityLayer);
-    this.surgeVfx = new SurgeVfxManager(this.entityLayer);
-    this.criticalHighlight = new CriticalHighlightManager(this.entityLayer);
-    this.hitBloodSpray = new HitBloodSprayManager(this.entityLayer);
-    this.diveLandImpact = new DiveLandImpactManager(this.entityLayer);
-    this.waterSplash = new WaterSplashManager(this.entityLayer);
-    this.steamPuff = new SteamPuffManager(this.entityLayer);
-    this.ashRemnant = new AshRemnantManager(this.entityLayer);
-    this.fluidResidue = new FluidResidueManager(this.entityLayer);
-    this.egoShard = new EgoShardManager(this.entityLayer);
-    this.egoShardPreview = new EgoShardPreview(this.entityLayer);
-    // Fluid evaporation ??drop permanent residue on the floor cell.
+    this._gpUnsub = attachGamepadToast(this.game, this.toast);
+    this.combatFeedbackRuntime.initialize({
+      uiContainer: this.game.uiContainer,
+      legacyUiContainer: this.game.legacyUIContainer,
+      camera: this.game.camera,
+      uiScale: this.game.uiScale,
+      entityLayer: this.entityLayer,
+    });
+    this.movementVfxRuntime.initialize(this.entityLayer);
+    this.worldFluidRuntime.initializeResidue(this.entityLayer);
+    this.egoShardRuntime.initialize(this.entityLayer);
+    // Fluid evaporation — drop permanent residue on the floor cell.
     this.fluidSystem.onEvaporated = (gx, gy, type) => {
       if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
       const px = (gx + 0.5) * 16;
@@ -1269,7 +1786,7 @@ export class LdtkWorldScene extends Scene {
       this.fluidResidue.dropAt(type, px, py, 1.0);
     };
 
-    // ?????? Arc Scan Cycle (R-NEW-031 v2) ????븐뼔援??????됰뎄 嶺뚳퐣瑗????????????????????????????????????
+    // ── Arc Scan Cycle (R-NEW-031 v2): 원점에서 반경 내 엔티티/타일을 스캔해 아크 링크를 만든다. ──
     this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
       const links: ArcLink[] = [];
       const r2 = radiusPx * radiusPx;
@@ -1358,7 +1875,7 @@ export class LdtkWorldScene extends Scene {
       }
     };
     // TileMutator emits steam events when hot-meets-wet cells mutate
-    // (magma??몄뱢e melt, acid+magma vapor). Convert cell coords ??pixel.
+    // (magma+ice melt, acid+magma vapor). Convert cell coords — pixel.
     this.tileMutator.onSteamEvent = (gx, gy) => {
       const px = (gx + 0.5) * 16;
       const py = (gy + 0.5) * 16;
@@ -1383,8 +1900,8 @@ export class LdtkWorldScene extends Scene {
       const py = (gy + 0.5) * 16;
       this.steamPuff.spawn(px, py, 0.8, PUFF_TINT_TOXIC);
     };
-    // R-NEW-001 Exothermic Steam: acid+water ?꾩룇裕뉓굢??꾩룇瑗?????띠룆踰ㅹ뇡?嶺뚯빘鍮볡뵳?+ vertical
-    // burst. Horizontal 24px, vertical 64px ??⑤갭??
+    // R-NEW-001 Exothermic Steam: acid+water 가 만나면 발열 증기 — horizontal + vertical
+    // burst. Horizontal 24px, vertical 64px 규모.
     this.tileMutator.onAcidSteamBurst = (gx, gy) => {
       const cx = (gx + 0.5) * 16;
       const cy = (gy + 0.5) * 16;
@@ -1432,36 +1949,36 @@ export class LdtkWorldScene extends Scene {
     // per frame into a single rerenderTilemap call.
     this.tileMutator.onWallTileChanged = (gx, gy, originalTile) => {
       if (this.collisionGrid[gy]?.[gx] === TILE_WALL && originalTile === TILE_MAGMA) {
-        this.solidifiedWallCells.add(`${gx},${gy}`);
-        this.rebuildSolidifiedWallOverlay();
+        this.solidifiedWallOverlay.addCell(gx, gy, this.collisionGrid);
       }
-      this.wallLayerDirty = true;
+      this.worldTileMutationRuntime.markWallLayerDirty();
     };
-    this.waterBubbles = new WaterBubblesManager(this.entityLayer);
-    this.dropThroughDust = new DropThroughDustManager(this.entityLayer);
-    this.iceSkidStreak = new IceSkidStreakManager(this.entityLayer);
-    this.itemPickupGlow = new ItemPickupGlowManager(this.entityLayer);
-    this.relicAuraBurst = new RelicAuraBurstManager(this.entityLayer);
-    this.savepointPulse = new SavepointPulseManager(this.entityLayer);
-    this.lowHpVignette = new LowHpVignetteManager(this.game.legacyUIContainer);
-    this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
-    this.screenFlash = new ScreenFlash();
-    this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
+    this.pickupVfxRuntime.initialize(this.entityLayer);
+    this.statusFeedbackRuntime.initialize({
+      entityLayer: this.entityLayer,
+      legacyUiContainer: this.game.legacyUIContainer,
+      viewportWidth: GAME_WIDTH,
+      viewportHeight: GAME_HEIGHT,
+    });
+    this.savePointRuntime = new SavePointRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      savepointPulse: this.savepointPulse,
+      onSave: () => this.worldSaveRuntime.save(),
+    });
 
-    // Pause menu (9-slice from UISkin) ??uiContainer(native) 嶺뚯쉳???(UI native 1??節띉?.
-    // input ?熬곣뫀堉???SELECT KEYBOARD ??類λ땹嶺뚮ㅄ維???preset 嶺뚯빖留????⑤챷??
+    // Pause menu (9-slice from UISkin) — uiContainer(native) 자식 (UI native 1배 스케일).
+    // input 콜백으로 SELECT KEYBOARD 등 입력 preset 을 받는다.
     this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input, this.game);
     this.pauseMenu.onAction = (action) => {
-      if (action === 'continue') { this.isPaused = false; }
-      else if (action === 'status') { this.openCharacterStats(); }
+      if (action === 'status') { this.openCharacterStats(); }
       else if (action === 'quit_confirmed') {
-        this.isPaused = false;
         this.game.sceneManager.replace(new TitleScene(this.game));
       }
     };
     this.game.uiContainer.addChild(this.pauseMenu.container);
 
-    // Character stats overlay (opened from pause menu STATUS) ??uiContainer(native)
+    // Character stats overlay (opened from pause menu STATUS) — uiContainer(native)
     this.characterStats = new CharacterStats(this.uiSkin, this.game.uiScale);
     this.characterStats.onVisibilityChanged = (vis) => {
       this.hud.container.visible = !vis;
@@ -1469,45 +1986,56 @@ export class LdtkWorldScene extends Scene {
     };
     this.game.uiContainer.addChild(this.characterStats.container);
 
-    // Death screen ??uiContainer(native)
+    // Death screen — uiContainer(native)
     this.deathScreen = new DeathScreen(this.uiSkin, this.game.uiScale);
     this.deathScreen.onRespawn = () => {
       // Reload from last save point
-      this.loadLevel(this.playerSpawnLevelId, 'down');
+      this.loadLevel(this.worldSpawnState.currentLevelId, 'down');
       this.player.hp = this.player.maxHp;
     };
     this.game.uiContainer.addChild(this.deathScreen.container);
 
-    // Tutorial hints ??restore "already-seen" ids from save so loaded games
+    // Tutorial hints — restore "already-seen" ids from save so loaded games
     // don't re-show hints the player already completed.
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer, this.uiSkin);
     if (saveData) this.tutorialHint.hydrate(saveData.completedTutorialHints);
-
-    // Ending sequence ??EndingTrigger ??⑥?뭵 ??player ???놁졑嶺???ル맧??????삵렱?? ??ｌ뫒??
-    // ??嶺뚯쉳??? HUD ?띠럾???戮?뎽?? Shaft_DemoEnd ??嶺뚯쉳?????戮곗젍???곌랙?х뙴袁ｌ뿉?hide ?????????
-    // onStart ?袁⑸츊揶?? ??????븐뼔堉?
-    this.ending = new EndingSequence({
-      uiContainer: this.game.legacyUIContainer,
-      camera: this.game.camera,
-      input: this.game.input,
+    this.worldTutorialHints = new WorldTutorialHintRuntime({
+      game: this.game,
+      tutorialHint: this.tutorialHint,
+      getPlayer: () => this.player,
+      getCurrentLevelId: () => this.currentLevel?.identifier ?? null,
+      getPlayerSpawnLevelId: () => this.worldSpawnState.currentLevelId,
+      hasEnemyNearby: () => this.worldEnemyRegistry.hasAliveWithin(this.player.x, this.player.y, 4 * TILE_SIZE),
+    });
+    this.lowHpHealHint = new LowHpHealHintRuntime({
+      tutorialHint: this.tutorialHint,
+      getHp: () => ({ hp: this.player.hp, maxHp: this.player.maxHp }),
+    });
+    this.inventoryTutorialHint = new InventoryTutorialHintRuntime({
+      tutorialHint: this.tutorialHint,
+      getInventory: () => this.inventory,
+      hud: this.hud,
+      getUnlockedEvents: () => this.unlockedEvents,
+      getRetireAfterFirstBoss: () => this.anvilReturnState.retireAfterFirstBoss,
+      hasBlockingAnvilItem: () => !!(this.anvil?.hasItem() || this.anvilReturnState.hasItem),
     });
 
-    // Inventory UI ??uiContainer(native) 嶺뚯쉳??? InventoryUI ?????????scale.set(uiScale)
-    // ??怨쀬Ŧ 640 ??レ뒭筌????깅턄?熬곣뫗?????븐뻼??嶺????????깃꼍???곌랜??? (UI native 嶺뚮씭??議용돥筌뤾퍔???怨력?1??節띉?
+    // Inventory UI — uiContainer(native) 자식. InventoryUI 내부에서 scale.set(uiScale)
+    // 하므로 640 기준 레이아웃이 화면에 맞게 스케일된다 (UI native 컨테이너는 스케일 1배).
     this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
     this.inventoryUI.setSkin(this.uiSkin!);
     this.game.uiContainer.addChild(this.inventoryUI.container);
-    // ?筌뤾퍒萸??ル벣遊?Anvil UI ???????HUD + minimap ??? (??????롪퍒???2026-05-24).
+    // 인벤토리 열림/닫힘에 맞춰 Anvil UI 처럼 HUD + minimap 토글 (신규 추가 2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
       this.hud.container.visible = !vis;
       if (this.minimap) this.minimap.visible = !vis;
     };
 
-    // DEC-046 Identity Archive ???筌뤾퍒萸??ル벣遊?Z??(JUMP ???떷? 嶺뚯쉳???
+    // DEC-046 Identity Archive — 인벤토리와 별도. JUMP 키로 연다.
     this.identityArchive = new IdentityArchive(this.inventory, this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.identityArchive.container);
 
-    // Sacred Pickup ??LorePopup + DivePreview + LoreDisplay 嶺뚮ㅄ維筌?uiContainer(native) 嶺뚯쉳???(UI native 1??節띉?
+    // Sacred Pickup — LorePopup + DivePreview + LoreDisplay 모두 uiContainer(native) 자식 (UI native 1배 스케일).
     this.lorePopup = new LorePopup(this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.lorePopup.container);
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
@@ -1515,24 +2043,90 @@ export class LdtkWorldScene extends Scene {
     this.divePreview = new DivePreview(this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.divePreview.container);
 
-    // AcquireOverlay ??relic / max HP+ ceremonial modal (vignette only, no panel box).
-    this.acquireOverlay = new AcquireOverlay(this.game.uiScale);
-    this.game.uiContainer.addChild(this.acquireOverlay.container);
+    // AcquireOverlay — relic / max HP+ ceremonial modal (vignette only, no panel box).
+    this.acquireOverlayRuntime.attach();
 
-    // World Map overlay ??uiContainer(native)
-    this.worldMap = new WorldMapOverlay(this.uiSkin, this.game.uiScale);
-    this.worldMap.setLoader(this.loader);
-    // identifier "Debug_*" prefix ?????깆쓧嶺뚮씮鍮???뿉???節띾쐾 嶺뚢뼰維????LDtk ?????RoomType
-    // ??蹂μ쟽?띠럾? ???꾩룄?ｈ굢?몄뿉????닷젆???덈츎 Debug ?猷몄굣????????怨몃첎????濡レ뿰??類ｋ츎 ?롪퍒????꾩렮維?
-    // (2026-05-17: Debug_7/8/9 ?熬곣뫖?얍슖?max 75% ?????嶺뚮∥?????뺢퀗???????츩).
-    this.worldMap.setRooms(this.loader.getWorldMap().filter(r =>
-      r.roomType !== 'Debug' && r.roomType !== 'Cinematic' && !r.id.startsWith('Debug_')
-    ));
-    // Shift+M ??븐뼚?붷윜???怨뺣뒆?? Debug ??????Cinematic 嶺???戮곕뇶) ?? ?洹먮봾裕???곌랙?х뙴??繹먮굞夷?
-    this.worldMap.setDebugRooms(this.loader.getWorldMap().filter(r => r.roomType !== 'Cinematic'));
+    this.worldMapRuntime = new WorldMapRuntime({
+      loader: this.loader,
+      skin: this.uiSkin,
+      uiScale: this.game.uiScale,
+      getVisitedLevels: () => this.visitedLevels,
+      getCurrentLevel: () => this.currentLevel ?? null,
+      getPlayer: () => this.player,
+      getActiveBuilder: () => this.activeBuilder,
+    });
     this.game.uiContainer.addChild(this.worldMap.container);
+    this.worldMinimap = new WorldMinimapRuntime({
+      game: this.game,
+      loader: this.loader,
+      getCurrentLevel: () => this.currentLevel ?? null,
+      getPlayer: () => this.player,
+      getVisitedLevels: () => this.visitedLevels,
+      getClearedLevels: () => this.clearedLevels,
+      getEnemies: () => this.enemies,
+      getActiveBuilder: () => this.activeBuilder,
+      isIntroHidden: () => this.introHandoffRuntime.isMinimapIntroHidden,
+    });
+    this.gameOverRuntime = new WorldGameOverRuntime({
+      game: this.game,
+      hud: this.hud,
+      getMinimap: () => this.minimap,
+      onRespawn: () => this.respawnPlayer(),
+    });
+    this.debugWarpRuntime = new WorldDebugWarpRuntime({
+      game: this.game,
+      toast: this.toast,
+      worldMapRuntime: this.worldMapRuntime,
+      getCurrentLevel: () => this.currentLevel ?? null,
+      getPlayer: () => this.player,
+      isInItemTunnel: () => this.itemWorldEntryState.inTunnel,
+      isGameOverActive: () => this.gameOverRuntime.isActive,
+      reviveFromGameOver: () => this.reviveFromGameOver(),
+      loadLevel: (roomId) => { this.loadLevel(roomId, 'down'); },
+      setHudVisible: (visible) => { this.hud.container.visible = visible; },
+      setMinimapVisible: (visible) => { this.worldMinimap.setVisible(visible); },
+    });
 
     this.transitionController = new WorldTransitionController();
+    this.worldPlayerSpawnRuntime = new WorldPlayerSpawnRuntime({
+      transitionController: this.transitionController,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.collisionGrid,
+      getPendingPlayerTileX: () => this.edgeTransitionRuntime.pendingPlayerTileX,
+      getPendingPlayerTileY: () => this.edgeTransitionRuntime.pendingPlayerTileY,
+      recordSafePosition: (x, y) => this.voidRuntime.recordSafePosition(x, y),
+    });
+    this.edgeTransitionFlowRuntime = new WorldEdgeTransitionFlowRuntime({
+      loader: this.loader,
+      transitionController: this.transitionController,
+      edgeTransitionRuntime: this.edgeTransitionRuntime,
+      getPlayer: () => this.player,
+      getCurrentLevel: () => this.currentLevel ?? null,
+      getCollisionGrid: () => this.collisionGrid,
+      getEntryItem: () => this.itemWorldEntryState.item,
+      isDeploymentActive: () => !!this.itemWorldEntryState.deployment?.isActive,
+      isInTunnel: () => this.itemWorldEntryState.inTunnel,
+      isEntryTransitionActive: () => this.itemWorldEntryTransition.isActive,
+      isDebugMode: () => LdtkWorldScene.debugMode,
+      prestreamItemWorldEntry: (item, reason) => this.itemWorldSceneFlowRuntime.prestream(item, reason),
+      enterItemWorld: (entryCorridor) => {
+        this.anvilItemWorldFlowRuntime.enterFromTunnel({ entryCorridor });
+      },
+      loadLevelForTransition: (levelId, enterFrom) => {
+        const prevCamX = this.game.camera.renderX;
+        const prevCamY = this.game.camera.renderY;
+        this.loadLevel(levelId, enterFrom);
+        this.parallaxBG.onRoomTransition(prevCamX, prevCamY, this.game.camera.renderX, this.game.camera.renderY);
+        this.player.savePrevPosition();
+        for (const e of this.enemies) e.savePrevPosition();
+      },
+    });
+    this.worldSpawnState = new WorldSpawnState({
+      loader: this.loader,
+      transitionController: this.transitionController,
+      fallbackLevelId: FALLBACK_ENTRANCE_LEVEL,
+      isDebugMode: () => LdtkWorldScene.debugMode,
+    });
     this.uiController = new WorldUiController(this.game, {
       hud: this.hud,
       pauseMenu: this.pauseMenu,
@@ -1542,35 +2136,28 @@ export class LdtkWorldScene extends Scene {
       identityArchive: this.identityArchive,
       worldMap: this.worldMap,
       toast: this.toast,
-      minimap: this.minimap,
+      getMinimap: () => this.minimap,
       fadeOverlay: this.fadeOverlay,
     });
-
-    // Stash the handoff overlay for the fade-out tween in update().
-    // (introPhase was already set at the top of init() via startHidden.)
-    if (introHandoff instanceof Graphics) {
-      this.titleFadeInOverlay = introHandoff;
-      this.titleFadeInTimer = 0;
-    }
 
     // Spawn level: prefer the saved level, but fall back if the LDtk project
     // changed since the save was written. A stale save level used to leave the
     // scene initialized with only HUD visible and no currentLevel.
-    this.playerSpawnLevelId = this.resolveSpawnLevelId(saveData?.levelId);
-    if (!this.loadLevel(this.playerSpawnLevelId, 'down')) {
-      const fallbackLevelId = this.findPlayerSpawnLevel();
-      if (fallbackLevelId !== this.playerSpawnLevelId) {
+    this.worldSpawnState.setCurrentLevelId(this.worldSpawnState.resolveLevelId(saveData?.levelId));
+    if (!this.loadLevel(this.worldSpawnState.currentLevelId, 'down')) {
+      const fallbackLevelId = this.worldSpawnState.findFallbackLevelId();
+      if (fallbackLevelId !== this.worldSpawnState.currentLevelId) {
         console.warn(
-          `[LdtkWorldScene] Failed to load spawn level "${this.playerSpawnLevelId}", falling back to "${fallbackLevelId}"`,
+          `[LdtkWorldScene] Failed to load spawn level "${this.worldSpawnState.currentLevelId}", falling back to "${fallbackLevelId}"`,
         );
-        this.playerSpawnLevelId = fallbackLevelId;
-        this.loadLevel(this.playerSpawnLevelId, 'down');
+        this.worldSpawnState.setCurrentLevelId(fallbackLevelId);
+        this.loadLevel(this.worldSpawnState.currentLevelId, 'down');
       }
     }
 
     // If loading from save, snap player to save point
-    if (saveData && this.savePoints.length > 0) {
-      this.snapPlayerToSavePoint();
+    if (saveData && this.savePointRuntime.hasAny) {
+      this.savePointRuntime.snapPlayerToNearest();
     }
 
     this.initialized = true;
@@ -1579,7 +2166,7 @@ export class LdtkWorldScene extends Scene {
     AmbientLayer.startWorldTier3Demo();
 
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
-    // update() ??fires once per session with auto-dismiss. No unconditional
+    // update() — fires once per session with auto-dismiss. No unconditional
     // toast here so returning from item world doesn't re-spam controls.
   }
 
@@ -1587,9 +2174,9 @@ export class LdtkWorldScene extends Scene {
     this.container.visible = true;
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
     this.reattachPersistentUi();
-    // ??븐뼔援?BGM ??intro 1 ????loop ?꾩룇瑗?? 5 ??fade-in ??怨쀬Ŧ ?遊붋??類ㅼ몠??嶺뚯쉳???
-    // ItemWorld ?????pop ??怨쀬Ŧ ???????롪퍔???BgmController ?띠럾? ?띠룇?? trackKey 嶺?
-    // no-op ????????깆쓧???우벟 嶺뚮씞?뉓떋??筌뤾쑵??
+    // 월드 BGM — intro 1회 후 loop. 5초 fade-in 으로 부드럽게 전환된다.
+    // ItemWorld 등에서 pop 으로 돌아오면 BgmController 가 이미 같은 trackKey 라
+    // no-op 이므로 재생이 끊기지 않는다.
     BgmController.play(
       'mus_world_main',
       { intro: 'mus_world_main_intro', loop: 'mus_world_main_loop' },
@@ -1599,31 +2186,25 @@ export class LdtkWorldScene extends Scene {
     // On pop return from sub-scenes (ItemWorld) the current level is still
     // the one the player left from, so no banner replay is needed.
     this.uiController.enter({
-      showMinimap: !this.inItemTunnel,
-      goldBelowMinimap: !this.inItemTunnel,
+      showMinimap: !this.itemWorldEntryState.inTunnel,
+      goldBelowMinimap: !this.itemWorldEntryState.inTunnel,
       playerHp: this.player.hp,
       playerMaxHp: this.player.maxHp,
       highlightItemKey:
         this.unlockedEvents.has('__itemWorldTutorialDone')
         && !this.unlockedEvents.has('__itemKeyPressedAfterItemWorld'),
     });
-    // Hide HUD + minimap until the Shaft_01 area title completes. Covers
-    // both the initial intro ('fadeIn') and the post-fade 'title' waiting
-    // state (player may roam non-Shaft rooms before first entering Shaft_01).
-    if (this.introPhase === 'fadeIn' || this.introPhase === 'title' || this.introPhase === 'awaitingHud') {
-      this.hud.container.visible = false;
-      if (this.minimap) this.minimap.visible = false;
-    }
-    if (!this.currentLevel) return; // first init ??loadLevel handles setup
+    this.introHandoffRuntime.hideHudForIntroIfNeeded();
+    if (!this.currentLevel) return; // first init — loadLevel handles setup
 
-    if (this.worldVisualsReleasedForItemWorld) {
+    if (this.itemWorldEntryState.worldVisualsReleased) {
       const levelId = this.currentLevel.identifier;
       const px = this.player.x;
       const py = this.player.y;
-      this.worldVisualsReleasedForItemWorld = false;
-      // Step 4/5 (2026-05-25): loadLevel ??spawnAnvilFromLdtk ?띠럾? ??Anvil ?筌뤾쑬裕??怨룸츩??
-      // 嶺뚮씭??キ??placedItem sprite ?띠럾? ????륁?熬곣뫀堉? ?꾩룄??캆?+ ?곌랜踰??(disabled bypass).
-      const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
+      this.itemWorldEntryState.worldVisualsReleased = false;
+      // Step 4/5 (2026-05-25): loadLevel 의 spawnAnvilFromLdtk 가 새 Anvil 을 생성하므로
+      // 그 전에 placedItem sprite 를 복원해 둔다. 아이템 + 진입점 복원 (disabled bypass).
+      const preservedAnvilItem = this.anvilReturnState.getPreservedItem(this.anvil, this.itemWorldEntryState.item);
       this.loadLevel(levelId, 'down');
       if (preservedAnvilItem && this.anvil) {
         const wasDisabled = this.anvil.disabled;
@@ -1638,7 +2219,7 @@ export class LdtkWorldScene extends Scene {
       this.player.vy = 0;
       this.player.roomData = this.collisionGrid;
       this.player.savePrevPosition();
-      this.updatePlayerAtk();
+      this.worldPlayerStatRuntime.sync();
       this.game.camera.snap(
         this.player.x + this.player.width / 2,
         this.player.y + this.player.height / 2,
@@ -1646,19 +2227,13 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Clean up dive/collapse effect
-    if (this.memoryDive) {
-      this.memoryDive.destroy();
-      this.memoryDive = null;
-    }
     // Re-sync collision grid and tilemap (deep copy to restore original state)
-    this.collisionGrid = this.currentLevel.collisionGrid.map(row => [...row]);
+    this.collisionGridRuntime.cloneFrom(this.currentLevel.collisionGrid);
     this.player.roomData = this.collisionGrid;
-    this.solidifiedWallCells.clear();
-    this.rebuildSolidifiedWallOverlay();
+    this.solidifiedWallOverlay.clear();
     this.rerenderTilemap();
 
-    this.updatePlayerAtk();
+    this.worldPlayerStatRuntime.sync();
     this.game.camera.snap(
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
@@ -1677,12 +2252,9 @@ export class LdtkWorldScene extends Scene {
 
   private detachSharedUiForItemWorld(): void {
     this.uiController.detachForItemWorld();
-    // 嶺뚮ㅏ援???hide. detachForItemWorld?띠럾? ?遊붋嶺뚮ㅄ維곮굢????蹂ㅽ깴???嶺? ??? ?熬곥굦???熬곣뫁??熬곣뫖???
-    // ??ル맪??visible=true ??⑤객臾뜹슖????곕뻣 attach??濡ル츎 ?롪퍔?δ빳?꾨ご??????들뇡??꾩렮維쀥젆??嶺뚳퐣瑗??
-    if (this.minimap) {
-      if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
-      this.minimap.visible = false;
-    }
+    // 미니맵도 hide. detachForItemWorld 가 월드 공유 UI 를 떼지만, 미니맵은 별도로 다뤄야
+    // 하므로 visible=true 인 채로 두면 attach 복원 시점에 어긋나므로 여기서 명시적으로 detach.
+    this.worldMinimap.detach();
     this.altarController.destroyUi();
   }
 
@@ -1693,56 +2265,26 @@ export class LdtkWorldScene extends Scene {
     // flow calls loadLevel(), which rebuilds these layers from LDtk data.
     this.clearBuilder();
     this.renderer.clear();
-    if (this.procDecorator) {
-      if (this.procDecorator.naturalLayer.parent) this.procDecorator.naturalLayer.parent.removeChild(this.procDecorator.naturalLayer);
-      if (this.procDecorator.artificialLayer.parent) this.procDecorator.artificialLayer.parent.removeChild(this.procDecorator.artificialLayer);
-      if (this.procDecorator.structureLayer.parent) this.procDecorator.structureLayer.parent.removeChild(this.procDecorator.structureLayer);
-      this.procDecorator.clear();
-    }
-    for (const d of this._extraDecorators) {
-      if (d.naturalLayer.parent) d.naturalLayer.parent.removeChild(d.naturalLayer);
-      if (d.artificialLayer.parent) d.artificialLayer.parent.removeChild(d.artificialLayer);
-      if (d.structureLayer.parent) d.structureLayer.parent.removeChild(d.structureLayer);
-      d.clear();
-    }
-    this._extraDecorators = [];
-    this.grassClumpFire.clear();
-    this.fluidSystem.detach();
-    this.fluidSpawners.clear();
-    this.fluidCrestFoam.clear();
-    this.fluidResidue.clear();
-    this.weather?.destroy();
-    this.weather = null;
-    this.updraftSystem.clear();
-    this.itemPickupGlow.clear();
-    this.relicAuraBurst.clear();
-    this.dmgNumbers?.clear();
-    this.destroyGhostOverlay(true, false);
-    this.restoreDeploymentTunnel(false);
-    this.deactivateDungeonAtmosphere();
-    this.itemDeployment?.destroy();
-    this.itemDeployment = null;
-    this.worldVisualsReleasedForItemWorld = true;
-  }
-
-  private hideUiForAnvilDiveTransition(): void {
-    if (this.anvilDiveUiHidden) return;
-    this.anvilDiveUiWasVisible = this.game.uiContainer.visible;
-    this.game.uiContainer.visible = false;
-    this.anvilDiveUiHidden = true;
-  }
-
-  private restoreUiAfterAnvilDiveTransition(): void {
-    if (!this.anvilDiveUiHidden) return;
-    this.game.uiContainer.visible = this.anvilDiveUiWasVisible;
-    this.anvilDiveUiHidden = false;
+    this.proceduralDecorRuntime.clearAll();
+    this.grassFireRuntime.clearGrass();
+    this.worldFluidRuntime.releaseWorldVisualsForItemWorld();
+    this.worldWeatherRuntime.destroy();
+    this.worldUpdraftRuntime.clear();
+    this.voidFogRuntime.clear();
+    this.pickupVfxRuntime.clear();
+    this.combatFeedbackRuntime.clearDamageNumbers();
+    this.itemDeploymentTunnelFlowRuntime.destroyGhostOverlay(true, false);
+    this.itemDeploymentTunnelFlowRuntime.restoreDeploymentTunnel(false);
+    this.itemDeploymentAtmosphereFlowRuntime.deactivateDungeonAtmosphere();
+    this.itemWorldEntryState.destroyDeployment();
+    this.itemWorldEntryState.worldVisualsReleased = true;
   }
 
   private initialized = false;
 
   /**
    * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
-   * structurally ??runtime duck-typing checks for this method.
+   * structurally — runtime duck-typing checks for this method.
    */
   getFeedbackContext(): {
     area: 'world' | 'itemworld';
@@ -1768,99 +2310,25 @@ export class LdtkWorldScene extends Scene {
   }
 
   update(dt: number): void {
-    // Guard: init() is async ??game loop may call update() before it completes
+    // Guard: init() is async — game loop may call update() before it completes
     if (!this.initialized || !this.currentLevel) return;
 
-    // 앤빌 디플로이 줌인/성장 중 배경+아이템 blur 점진 적용 (early-return 들보다 먼저).
-    this.updateDeployBackgroundBlur(dt);
+    this.deployBlurRuntime.update(dt, this.itemWorldEntryState.deployment?.isGrowing ?? false);
 
-    // Feedback panel open ??block scene update but keep toasts animating.
+    // Feedback panel open — block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
       this.toast?.update(dt);
       return;
     }
 
-    // Title??몄뙰me fade-in handoff overlay.
-    if (this.titleFadeInOverlay) {
-      this.titleFadeInTimer += dt;
-      const t = Math.min(1, this.titleFadeInTimer / this.TITLE_FADE_IN_MS);
-      this.titleFadeInOverlay.alpha = 1 - t;
-      if (t >= 1) {
-        this.titleFadeInOverlay.parent?.removeChild(this.titleFadeInOverlay);
-        this.titleFadeInOverlay.destroy();
-        this.titleFadeInOverlay = null;
-        // Screen is now visible. Flush any queued area title and advance to
-        // the waiting-for-title phase. HUD stays hidden until the Shaft_01
-        // title actually completes (see edge detector below).
-        if (this.introPhase === 'fadeIn') {
-          this.introPhase = 'title';
-          if (this.pendingAreaTitle) {
-            this.areaTitle.show(this.pendingAreaTitle);
-            this.pendingAreaTitle = null;
-          }
-        }
-      }
-    }
+    this.introHandoffRuntime.update(dt);
 
-    // HUD reveal: AreaTitle ??inactive ??濡ル츎 ?熬곣뫁??熬곣뫖??5??timer ????戮곗굚??Shaft_01
-    // ??⑤?????????濾곌쑨?? ????臾덉쾸? ?熬곣뫂???????ㅻ쾳??- ??ル∥六??곸굹維?? ?????????HUD/亦껋꼶梨??먯춹??筌뤾쑵??
-    // 'awaitingHud' ??⑤객臾????덊닱 ???띠룆踰????? ?釉뚯뫅?깃꼈泥? HUD ???띠럾??源껎??
-    const areaTitleActive = this.areaTitle.isActive;
-    if (
-      this.wasAreaTitleActive &&
-      !areaTitleActive &&
-      this.introPhase === 'title'
-    ) {
-      this.introPhase = 'awaitingHud';
-      this.hudRevealTimer = 5000;
-    }
-    if (this.introPhase === 'awaitingHud') {
-      this.hudRevealTimer -= dt;
-      if (this.hudRevealTimer <= 0) {
-        this.hud.container.visible = true;
-        if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
-        this.introPhase = 'done';
-        // FeedbackPanel hint / ??믨퀡?????リ퐛?洹먮봾?????リ섣??β돦裕녻떋?UI ?띠럾? HUD ?筌뤾쑵??????덈뻣???繹먮냱??
-        this.game.hudReady = true;
-      }
-    }
-    this.wasAreaTitleActive = areaTitleActive;
+    if (this.endingRuntime.update(dt)) return;
 
-    // Ending sequence ?????삵렱?? ??ｌ뫒??update ??琉우꽑???????early-return ??? ???낅츎??
-    // inputLocked ?띠럾? ??밸츋鈺????곗꽑 player 嶺?嶺뚮∥???? isDone ??戮곗젍?????뺢퀡?꾢퐲??筌먲퐘遊?+
-    // replace ??類ｋ펲 (import().then() ???х뙴?꾨Ь?????繞????됰뎄 ?釉뚯뫅?깃꼈泥? ??壤???뽱돵 ???뺢퀡???
-    // replace ?띠럾? ?꾩룇裕뉑쾮??濡?듆 EndingScene ??fade-in 繞????筌뤾쑬裕??怨룸츩??嶺뚯빖留????흮???琉우꽑
-    // ???????좈뇦?"??諛몄뵜"嶺뚳퐣瑗???곌랜??????쒖굣?節낆쾸? ??????.
-    //
-    // overlay dispose ??EndingScene init/enter ?띠럾? ??硫명뀊 *???깅쾳*????類ｋ펲.
-    // ??怨몄쓧??dispose ?????됱쓤 import ?띠럾? resolve ???얄뵛 ????frame ????worldSprite
-    // ????怨몄쓧 RT(?????player ?띠럾? ?잙갭梨??彛??롪퍓?????븐뻼???띠럾? ?筌뤾쑵???琉우꽑 ??⑥ろ돰 ?????
-    // ???곗꽑 ?곌랜????嶺뚯빘鍮섉묾????????
-    if (this.ending.isActive) {
-      this.ending.update(dt);
-      if (this.ending.isDone && !this.endingTransitionStarted) {
-        this.endingTransitionStarted = true;
-        this.game.camera.setZoom(1.0);
-        this.game.camera.clearBounds();
-        SaveManager.deleteSave();
-        this.game.input.inputLocked = false;
-        const endingRef = this.ending;
-        const game = this.game;
-        import('./EndingScene').then(async ({ EndingScene }) => {
-          await game.sceneManager.replace(new EndingScene(game));
-          endingRef.dispose();
-        });
-        return;
-      }
-      if (this.endingTransitionStarted) return;
-    }
-
-    if (this.updateAcquireOverlay(dt)) {
+    if (this.acquireOverlayRuntime.update(dt)) {
       this.game.camera.update(dt);
-      this.updateWeather(dt);
-      this.hitSparks.update(dt);
-      this.propShatter.update(dt);
-      this.screenFlash.update(dt);
+      this.worldWeatherRuntime.update(dt);
+      this.combatFeedbackRuntime.updateImpactOnly(dt);
       return;
     }
 
@@ -1875,7 +2343,7 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // TAB key ??open character stats (same pattern as I=inventory, M=map)
+    // TAB key — open character stats (same pattern as I=inventory, M=map)
     if (this.game.input.isJustPressed(GameAction.STATUS)) {
       this.game.input.consumeJustPressed(GameAction.STATUS);
       this.openCharacterStats();
@@ -1884,26 +2352,24 @@ export class LdtkWorldScene extends Scene {
 
     // Debug warp must remain reachable from death/game-over UI, which can
     // early-return through handlePauseAndDeath before normal gameplay input.
-    if (this.deathScreen?.visible || this.gameOverActive) {
-      this.handleDebugWarp();
+    if (this.deathScreen?.visible || this.gameOverRuntime.isActive) {
+      this.debugWarpRuntime.update();
     }
 
     const pauseOrDeath = this.uiController.handlePauseAndDeath({
       dt,
-      canOpenPause: !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible && !this.acquireOverlay?.isBlocking(),
-      onPauseOpened: () => { this.isPaused = true; },
-      onPauseClosed: () => { this.isPaused = false; },
+      canOpenPause: !this.inventoryUI.visible && !this.worldMap.visible && !(this.lorePopup as any)?.visible && !this.acquireOverlayRuntime.isBlocking,
     });
     if (pauseOrDeath !== 'none') {
       return;
     }
 
-    // Dialogue / Lore display ??blocks gameplay while active
+    // Dialogue / Lore display — blocks gameplay while active
     if (this.loreDisplay?.isActive) {
       this.loreDisplay.update(dt);
       this.player.savePrevPosition();
       this.game.camera.update(dt);
-      this.updateWeather(dt);
+      this.worldWeatherRuntime.update(dt);
       return;
     }
 
@@ -1913,17 +2379,12 @@ export class LdtkWorldScene extends Scene {
     // Sacred Pickup cutscene + LorePopup + DivePreview. When blocking, abort
     // gameplay input for this frame (player stays put, camera override still
     // applied below).
-    const sacredBlocking = this.updateSacredPickup(dt);
+    const sacredBlocking = this.sacredPickupRuntime.update(dt);
     if (sacredBlocking) {
-      // T2 cutscene drives camera zoom via onZoom callback.
-      if (this.activeWeaponPulse?.isBlocking) {
-        this.game.camera.setZoom(this.pickupZoomOverride);
-      }
+      this.sacredPickupRuntime.applyCameraZoomOverride();
       this.game.camera.update(dt);
-      this.updateWeather(dt);
-      this.hitSparks.update(dt);
-      this.propShatter.update(dt);
-      this.screenFlash.update(dt);
+      this.worldWeatherRuntime.update(dt);
+      this.combatFeedbackRuntime.updateImpactOnly(dt);
       // Keep LoreDisplay alive during sacred pickup blocking (Ego T01 dialogue)
       if (this.loreDisplay?.isActive) {
         this.loreDisplay.update(dt);
@@ -1931,231 +2392,73 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Tutorial hints ??only show after dialogue finishes
-    if (this.currentLevel?.identifier === this.playerSpawnLevelId) {
-      // hint removed ??key prompts shown in HUD
+    // Tutorial hints — only show after dialogue finishes
+    if (this.currentLevel?.identifier === this.worldSpawnState.currentLevelId) {
+      // hint removed — key prompts shown in HUD
     }
 
-    // ??????롪퍒???(2026-05-03): "Open Inventory" hint ??????뵜 cutscene + EGO
-    // ????? 嶺뚮ㅄ維筌???硫명뀊 ????戮?뻣. pendingInventoryHint flag ?띠럾? set ??琉우꽑 ???깅さ嶺?
-    // 嶺??熬곣뫁?????リ턁筌??브퀗?쀦뤃??롪틵???????戮?뻣.
-    this.clearInventoryTutorialHintIfRustbornEquipped();
+    // Open Inventory hints wait until pickup/world-return dialogue and cutscenes finish.
+    this.inventoryTutorialHint.clearIfRustbornEquipped();
+    this.inventoryTutorialHint.update(dt, this.sacredPickupRuntime.isInventoryHintBlocked());
 
-    if (this.pendingInventoryHint) {
-      if (this.pendingInventoryHintDelayMs > 0) {
-        this.pendingInventoryHintDelayMs = Math.max(0, this.pendingInventoryHintDelayMs - dt);
-      }
-      const cutsceneBlocking =
-        this.activeWeaponPulse?.isBlocking ||
-        this.lorePopup?.isBlocking() ||
-        this.lorePopupItem !== null ||
-        this.acquireOverlay?.isBlocking() ||
-        this.loreDisplay?.isActive;
-      if (!cutsceneBlocking && this.pendingInventoryHintDelayMs <= 0) {
-        const hintId = this.pendingInventoryHint === 'first_pickup'
-          ? INVENTORY_KEY_HINT_ID
-          : INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID;
-        this.tutorialHint.tryShow(
-          hintId,
-          { keyLabel: actionKey(GameAction.INVENTORY), text: t('tutorial.open_inventory'), persistent: true },
-        );
-        this.pendingInventoryHint = null;
-        this.pendingInventoryHintDelayMs = 0;
-      }
-    }
-
-    // 嶺?platform ??grounded ??drop-through ???リ퐛?洹먮봾??hint 1???꾩룇裕뉑쾮?
-    // ?띠럾???????뗥윜諛몄굡???????? 嶺뚯쉳???dropthrough ??戮?뱺??set ????????덈? ???????????
-    // 嶺뚮ㅄ維獄?hint ?????덈? ???놁졑 ?띠룆흮? ??dismissAfter(1000ms) ???????? ???곕빢????? ??????
-    // hint ?띠럾? 1?貫?껇??????琉우꽑 ?筌?/??쒕샍????????덉┣??
-    const HINT_LINGER_MS = 1000;
-
-    // Drop-through ???リ퐛?洹먮봾????platform ??grounded ??tryShow. handled set ??
-    // consumeDropThroughEvent ?釉뚯뫅?????ｇ춯???panel busy ???꾩룇裕뉑쾮?嶺????롪퍔??????깅쾳 platform
-    // 嶺뚯쉳???????????띠럾???
-    if (!this.dropThroughHintHandled && this.player.isOnOneWayPlatform()) {
-      this.tutorialHint.tryShow('hint_drop_through', {
-        actions: [GameAction.LOOK_DOWN, GameAction.JUMP],
-        text: t('tutorial.drop_through'),
-        persistent: true,
-      });
-    }
-
-    // ??믨퀡?????リ퐛?洹먮봾?????롪퍓?????戮곗굚 嶺뚯솘???playerSpawnLevelId) ??????????? ??븐슙???
-    // (MOVE_LEFT/RIGHT) ?????뺢퀡????怨뺤┣ ??嶺뚯쉳?????2??嶺뚯솘??????꾩룇裕뉑쾮? Shaft_01 ?????섎?
-    // ?猷몄굣???類ｋ츎 ??? ?꾩룇裕뉑쾮??? ???낅츎?? JUMP ???놁졑 ??2??linger ??fade.
-    if (!this.jumpHintHandled) {
-      const isInSpawnRoom = this.currentLevel?.identifier === this.playerSpawnLevelId;
-      if (isInSpawnRoom && !this.hasMovedHorizontally
-          && (this.game.input.isDown(GameAction.MOVE_LEFT)
-            || this.game.input.isDown(GameAction.MOVE_RIGHT))) {
-        this.hasMovedHorizontally = true;
-      }
-      if (this.hasMovedHorizontally && this.jumpHintDelayMs > 0) {
-        this.jumpHintDelayMs -= dt;
-      }
-      if (isInSpawnRoom && this.hasMovedHorizontally && this.jumpHintDelayMs <= 0) {
-        this.tutorialHint.tryShow('hint_jump', {
-          actions: [GameAction.JUMP],
-          text: t('tutorial.jump'),
-          persistent: true,
-        });
-      }
-      if (this.tutorialHint.isShowing('hint_jump')
-          && this.game.input.isJustPressed(GameAction.JUMP)) {
-        this.tutorialHint.dismissAfter('hint_jump', HINT_LINGER_MS);
-        this.jumpHintHandled = true;
-      }
-    }
-
-    // ??ㅻ??????リ퐛?洹먮봾??????怨룻닡???덈츎 ??⑤챷逾?4???????亦끸넂????얜∥????熬곣뫁??熬곣뫖??1???꾩룇裕뉑쾮?
-    // dismiss ??hint ?띠럾? ??戮?뻣 繞벿살탳????ATTACK ???놁졑 ?? 4??linger.
-    if (!this.attackHintHandled) {
-      if (this.hasEnemyNearby()) {
-        this.tutorialHint.tryShow('hint_attack', {
-          actions: [GameAction.ATTACK],
-          text: t('tutorial.attack'),
-          persistent: true,
-        });
-      }
-      if (this.tutorialHint.isShowing('hint_attack')
-          && this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.tutorialHint.dismissAfter('hint_attack', HINT_LINGER_MS);
-        this.attackHintHandled = true;
-      }
-    }
-
-    // ???????リ퐛?洹먮봾????Tutorial_Dash 嶺뚯쉳???1?????꾩룇裕뉑쾮? ?猷몄굣????ル봽?뚨춯?timer ?洹먮봾??
-    // ??????롪퍒???2026-05-16 ?????섎??猷몄굣???類ｋ츎 ??? ??戮?뻣??? ???낆┣????關逾???紐끒???異????깅뮔.
-    if (!this.dashHintHandled) {
-      const inDashRoom = this.currentLevel?.identifier === 'Tutorial_Dash';
-      if (inDashRoom) {
-        if (this.dashHintDelayMs < 0) this.dashHintDelayMs = 1000;
-        else if (this.dashHintDelayMs > 0) this.dashHintDelayMs -= dt;
-        if (this.dashHintDelayMs <= 0) {
-          this.tutorialHint.tryShow('hint_dash', {
-            actions: [GameAction.DASH],
-            text: t('tutorial.dash'),
-            persistent: true,
-          });
-        }
-      } else {
-        this.dashHintDelayMs = -1;
-      }
-      if (this.tutorialHint.isShowing('hint_dash')
-          && this.game.input.isJustPressed(GameAction.DASH)) {
-        this.tutorialHint.dismissAfter('hint_dash', HINT_LINGER_MS);
-        this.dashHintHandled = true;
-      }
-    }
+    // One-time movement/combat tutorial hints.
+    this.worldTutorialHints.update(dt);
 
     // Item World transition playing
-    if (this.itemWorldTransition) {
-      this.itemWorldTransition.update(dt);
+    if (this.itemWorldTransitionRuntime.update(dt)) {
       this.game.camera.update(dt);
-      this.updateWeather(dt);
-      return;
-    }
-
-    // Legacy portal transition playing
-    if (this.portalTransition) {
-      this.portalTransition.update(dt);
-      this.game.camera.update(dt);
-      this.updateWeather(dt);
-      if (this.portalTransition.isDone) {
-        this.completePendingPortalEntry();
-      }
+      this.worldWeatherRuntime.update(dt);
       return;
     }
 
     // ItemDeployment only blocks during the final handoff fade; growth plays during normal gameplay.
-    if (this.itemDeployment?.isBlocking) {
-      this.itemDeployment.update(dt);
+    if (this.itemWorldEntryState.deployment?.isBlocking) {
+      this.itemWorldEntryState.deployment.update(dt);
       this.anvil?.update(dt);
       this.player.vx = 0;
       this.player.vy = 0;
       this.player.savePrevPosition();
       this.game.camera.update(dt);
-      this.updateWeather(dt);
-      this.hitSparks.update(dt);
-      this.propShatter.update(dt);
-      this.screenFlash.update(dt);
+      this.worldWeatherRuntime.update(dt);
+      this.combatFeedbackRuntime.updateImpactOnly(dt);
       return;
     }
 
-    // Legacy dive transition (archived ??kept for FloorCollapse compatibility)
-    if (this.diveTransitionActive) {
-      this.player.vx = 0;
-      this.player.vy = 0;
-      this.player.savePrevPosition();
-      this.game.camera.update(dt);
-      this.updateWeather(dt);
-      this.hitSparks.update(dt);
-      this.propShatter.update(dt);
-      this.screenFlash.update(dt);
-      return;
+    // Void fade locks input while the rest of the scene keeps simulating.
+    if (this.voidRuntime.isActive) {
+      this.voidRuntime.update(dt);
     }
 
-    // Screen crack effect update
-    if (this.screenCrack && !this.screenCrack.isDone) {
-      this.screenCrack.update(dt);
-    }
-
-    // Void fade in progress ??input locked but the rest of the scene keeps
-    // simulating (fluid, particles, camera, enemies all tick normally).
-    // updateVoidFade itself bumps the fade timer + force-grounds the player.
-    if (this.voidDropActive) {
-      this.updateVoidFade(dt);
-    }
-
-    // ItemWorld ?곌랜踰? fade-in 嶺뚯쉳?듸쭛????곌랙?х뙴?overlay, ???섎?fade ?? race ??怨몃쾳.
-    if (this.iwReturnFadeMs > 0) {
-      this.iwReturnFadeMs = Math.max(0, this.iwReturnFadeMs - dt);
-      this.iwReturnFade.alpha = this.iwReturnFadeMs / this.IW_RETURN_FADE_DURATION;
-    }
+    this.itemWorldReturnFade.update(dt);
 
     // Game Over state
-    if (this.gameOverActive) {
-      if (
-        this.game.input.isJustPressed(GameAction.ATTACK) ||
-        this.game.input.isJustPressed(GameAction.JUMP)
-      ) {
-        this.respawnPlayer();
-      }
+    if (this.gameOverRuntime.updateInput()) {
       return;
     }
 
     // Altar selection UI (anvil now uses the unified InventoryUI in anvil mode)
     if (this.altarController.isSelectActive) {
-      this.hideAnvilPrompts();
-      this.updateAltarInput();
+      this.anvilInteractionRuntime.hidePrompts();
+      this.altarController.updateInput();
       return;
     }
 
     // Debug warp:
-    //   Shift+M  ??嶺뚮ㅄ維獄????? ??됀???+ ???????怨뺣뒆 嶺뚮ㅄ維獄?쑜????븐뼔援←춯????덊깯
-    //   Backtick ?????х뙴?????????怨뺣뒆 ??? (?熬곣뫗????븐뻼?????熬곣뫗踰??熬곣뫚?꾢슖?嶺뚯빖留????믨퀡??
-    this.handleDebugWarp();
+    //   Shift+M  — 월드맵 위에서 + 방향키로 월드맵 디버그 워프
+    //   Backtick — 정체성 디버그 워프 (개발용 빠른 이동)
+    this.debugWarpRuntime.update();
 
-    // World Map toggle (M key) ??disabled inside item tunnels.
-    // Shift+M ?? ??handleDebugWarp ?띠럾? ?誘る닔? consume ???????????怨쀫틮 M ?釉뚯뫅????熬곣뫀堉?????
+    // World Map toggle (M key) — disabled inside item tunnels.
+    // Shift+M 은 위 handleDebugWarp 가 먼저 consume 하므로 일반 M 토글과 충돌하지 않는다.
     this.uiController.handleWorldMapToggle({
-      canToggle: !this.inItemTunnel,
+      canToggle: !this.itemWorldEntryState.inTunnel,
       onBeforeOpen: () => {
-        this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
-        this.worldMap.setMarkers(this.collectMapMarkers());
-        this.syncWorldMapDynamicGrids();
-        if (this.currentLevel) {
-          this.worldMap.setPlayerPosition(
-            this.player.x + this.currentLevel.worldX,
-            this.player.y + this.currentLevel.worldY,
-          );
-        }
+        this.worldMapRuntime.syncForOpen();
       },
     });
     if (this.worldMap.visible && this.currentLevel) {
-      this.hideAnvilPrompts();
-      this.syncWorldMapDynamicGrids();
+      this.anvilInteractionRuntime.hidePrompts();
+      this.worldMapRuntime.syncDynamicGrids();
       this.uiController.updateWorldMap({
         dt,
         playerWorldX: this.player.x + this.currentLevel.worldX,
@@ -2163,12 +2466,12 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // ??????롪퍒???(2026-05-03): 嶺?IW ?곌랜???嶺뚳퐣瑗???熬곣뫖???筌뤾퍒萸??ル벣遊???ル맪?? INVENTORY
-    // ?????놁졑 ??Rustborn ?곌랜??? ???????⑤벡逾?Ego ???????裕?'Locked' ??ル∥裕??
-    // shiftDown / inItemTunnel ?釉뚯뫅????リ옇??????沅?(debug / 嶺뚯쉳??????폎??.
+    // 신규 추가 (2026-05-03): 첫 IW 보스 전까지 인벤토리 진입을 막아 INVENTORY
+    // 키를 누르면 Rustborn 진입 전이면 Ego 대사 또는 'Locked' 토스트를 띄운다.
+    // shiftDown / inItemTunnel 일 때는 이 차단을 건너뛴다 (debug / 자식 씬 보호).
     if (
       !sacredSave.isFirstItemWorldBossDefeated() &&
-      !this.inItemTunnel &&
+      !this.itemWorldEntryState.inTunnel &&
       !this.game.input.shiftDown &&
       !this.inventoryUI.visible &&
       this.game.input.isJustPressed(GameAction.INVENTORY)
@@ -2185,63 +2488,66 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Inventory UI toggle ??disabled inside item tunnels, Shift+I is debug
+    // Inventory UI toggle — disabled inside item tunnels, Shift+I is debug
     this.uiController.handleInventoryToggle({
-      canToggle: !this.inItemTunnel && !this.game.input.shiftDown && sacredSave.isFirstItemWorldBossDefeated(),
+      canToggle: !this.itemWorldEntryState.inTunnel && !this.game.input.shiftDown && sacredSave.isFirstItemWorldBossDefeated(),
       onToggled: () => {
-        // Broken Sword ????뵜 ?熬곣뫖???筌뤾퍒萸??ル벣遊??????"?띠럾????獄????덈? ?熬곣뫁?????筌뤾쑴???? ???낅츎??
-        // ?筌뤾퍒萸??ル벣遊??繞??????⑸츎 ??戮곗젍??I ???熬곣뱿???濾???????⑤벡六?????놁졑???굿?
-        // 嶺뚯쉳?닷퐲??띠럾????獄??嶺???쒕뼬??????뵜 嶺뚯쉳????嶺뚳퐣瑗???熬곣뫗???????띠럾? ???덈펲.
+        // Broken Sword 픽업 직후 인벤토리에서 "들고 있는 것을 장착" 하라는 흐름을 안내한다.
+        // 인벤토리를 처음 여는 단계라 I 키 입력을 추적해 픽업 직후 흐름인지 판단한다.
+        // 첫 다이브 전까지 들고 있는 무기를 장착하도록 인벤토리 진입을 유도한다.
         if (!sacredSave.isFirstPickupDone()) return;
         this.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
         this.hud.setItemKeyHighlight(false);
-        // 2026-05-18: tutorialHint.dismiss ??*Rustborn ???깆젷 嶺뚢뼰維???? equip ?釉뚯뫅?????ｇ춯?
-        // ???덈뺄??類ｋ펲. I ???댁떳 ?熬곣뱿??춯??筌뤾퍒萸??ル벣遊??곌랜????熬곣뫀裕???댟??怨룸츩 ???????? ???リ퐛?洹먮봾???
-        // ???낅츎 ??쒖굣?? HUD pulse ???????嶺뚮∥???됱??嶺?hint ???⑸츩?筌뤾퍓裕????.
+        // 2026-05-18: tutorialHint.dismiss 는 *Rustborn 장비를 실제로 equip 했을 때*만 호출.
+        // 아니면 멈춘다. I 키 입력만으로 인벤토리 진입했다면 토글 닫힘이라 픽업 흐름은 유지한다.
+        // 첫 장착 전까지 HUD pulse 를 유지하므로 hint 를 임의로 끄지 않는다.
       },
     });
 
     if (this.inventoryUI.visible) {
-      this.hideAnvilPrompts();
+      this.anvilInteractionRuntime.hidePrompts();
       this.inventoryUI.update(dt); // selection pulse animation (runs even behind cycle prompt)
       // Re-dive confirmation prompt overlays the inventory (anvil mode only)
-      if (this.cyclePromptItem) {
-        this.updateCyclePromptInput();
+      if (this.anvilCyclePrompt.hasActivePrompt) {
+        this.anvilCyclePrompt.updateInput();
         return;
       }
+      const previousWeaponDefId = this.inventory.equipped?.def.id ?? null;
       const inventoryResult = this.uiController.handleInventoryInput();
       if (inventoryResult === 'confirmed_equipment_change') {
-        this.updatePlayerAtk();
+        const currentWeaponDefId = this.inventory.equipped?.def.id ?? null;
+        this.worldEgoDialogueRuntime.notifyWeaponSwap(previousWeaponDefId, currentWeaponDefId);
+        this.worldPlayerStatRuntime.sync();
         this.hud.updateATK(this.player.atk);
-        // 2026-05-18: ???リ퐛?洹먮봾??hint ??*Rustborn ???깆젷 嶺뚢뼰維????戮곗젍* ???異?dismiss.
-        // ?????? ???섎???쒕뼬?깃꼍???띠룆?녽뇡??源녿뮡????댟??怨룸츩?????hint ??? ?????リ퐛?洹먮봾??嶺뚮ㅄ維???
-        // "Rustborn 嶺뚢뼰維?? ???덈???????????怨뺤쭢????硫몃룎?????덈? ?熬곣뫁?룟슖??筌뤾쑴??
-        this.clearInventoryTutorialHintIfRustbornEquipped();
+        // 2026-05-18: 인벤토리 hint 는 *Rustborn 장비를 실제로 장착한 직후*에만 dismiss.
+        // 그 외에는 무기 교체만으로는 끄지 않으므로 토글 닫힘과 무관하게 hint 가 유지된다.
+        // "Rustborn 장착" 이 핵심 조건이므로 그 외 무기로는 끄지 않는다.
+        this.inventoryTutorialHint.clearIfRustbornEquipped();
       }
       return; // Pause game while inventory open
     }
 
     // Room transition fade
-    if (this.transitionState !== 'none') {
-      this.updateTransition(dt);
+    if (this.edgeTransitionRuntime.isActive) {
+      const completed = this.edgeTransitionFlowRuntime.update(dt);
 
-      if (this.transitionState as string !== 'none') return;
+      if (!completed) return;
       // Transition just ended
-      this.postTransitionSnapFrames = 15; // ~250ms snap after fade ends
+      this.cameraInputRuntime.armPostTransitionSnap();
       this.player.savePrevPosition();
       for (const e of this.enemies) e.savePrevPosition();
       return;
     }
 
-    // Pattern D (proximity-interaction): ??醫롫윪?議얜쐻???醫롫윥????醫롫윥????醫롫윥????醫롫윪??
-    // ?꾩룇瑗띈キ??player.update() ??醫롫윪????醫?筌??醫롫윪????띠룇??? ??醫롫윥?????醫롫윪????꾩렮維????
-    // ??醫롫윥獄????醫롫윥餓???registerProximityHandlers() 嶺뚣볦굣??
-    this.updateQueuedSave(dt);
+    // Pattern D (proximity-interaction): 근접 상호작용 우선순위 처리.
+    // 먼저 player.update() 전에 세이브 큐 등 근접 프롬프트를 갱신하고
+    // 근접 상호작용은 registerProximityHandlers() 에서 등록한다.
+    this.savePointRuntime.updateQueuedSave(dt);
 
-    this.updateFrozenSnapshotPrompt();
+    this.frozenReturnRuntime.updatePrompt();
     if (this.proximity.tryInteract(this.game.input)) return;
 
-    // Giant Builder ??moving platform pattern.
+    // Giant Builder — moving platform pattern.
     //   Builder container.y moves sub-pixel smooth (visual continuity).
     //   Stamp position is tile-aligned (physics stability) and only changes
     //   when the builder crosses a tile boundary. The player is carried
@@ -2249,175 +2555,130 @@ export class LdtkWorldScene extends Scene {
     //   The visual sub-pixel remainder is applied to the player as a render
     //   offset so they appear glued to the builder smoothly.
     if (this.activeBuilder) {
-      // Stamp math MUST mirror stampBuilder(), which reads container.y
+      // Stamp math MUST mirror WorldBuilderStampRuntime.stamp(), which reads container.y
       // (integer). Using posY (float) here would disagree at the half-pixel
       // boundary where Math.round flips, producing a "stamp jumped but
       // player wasn't carried" frame that looks like a jump in place.
       const prevStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       this.activeBuilder.update(dt);
-      // BuilderInterior / lightContainer / leg ??scene container ???곌랙?х뙴????六?
-      // ?????builder transform ??嶺뚯쉳????꾩룇猷? ???낅츎?? position 嶺?嶺??熬곣뫁?????⑤벡逾?
-      // ?잙갭梨???builder ?? ??節띾쐾 ?????
-      this.activeBuilder.builderInteriorLayer.position.copyFrom(this.activeBuilder.container.position);
-      this.activeBuilder.lightContainer.position.copyFrom(this.activeBuilder.container.position);
-      this.activeBuilder.legFrontLayer.position.copyFrom(this.activeBuilder.container.position);
-      this.builderCarrierVelocityY = dt > 0 ? this.activeBuilder.lastDeltaY / (dt / 1000) : 0;
-      this.maintainLockedDoorCollisions();
+      this.builderLayerRuntime.sync(this.activeBuilder);
+      this.builderPlayerStateRuntime.setCarrierVelocityY(
+        dt > 0 ? this.activeBuilder.lastDeltaY / (dt / 1000) : 0,
+      );
+      this.worldDoorSwitchInteractionRuntime.maintainCollisions();
       const newStampY = Math.round(this.activeBuilder.container.y / 16) * 16;
       const stampDelta = newStampY - prevStampY;
-      if (this.playerOnBuilder && stampDelta !== 0) {
-        this.carryPlayerWithBuilderY(stampDelta);
+      if (this.builderPlayerStateRuntime.isOnBuilder && stampDelta !== 0) {
+        this.builderPlayerCollisionRuntime.carryPlayerWithBuilderY(stampDelta);
       }
-      const nextStampX = Math.round(this.activeBuilder.container.x / 16);
-      const nextStampY = Math.round(this.activeBuilder.container.y / 16);
-      if (this.builderStampOriginX !== nextStampX || this.builderStampOriginY !== nextStampY) {
-        this.unstampBuilder();
-        this.stampBuilder();
+      if (this.builderStampRuntime.hasOriginChanged(this.activeBuilder)) {
+        this.builderStampRuntime.restamp(this.activeBuilder, this.collisionGrid);
       }
       this.syncBuilderAttachments();
-      if (this.playerOnBuilder) {
-        this.resolvePlayerSolidOverlapAfterBuilder(stampDelta);
+      if (this.builderPlayerStateRuntime.isOnBuilder) {
+        this.builderPlayerCollisionRuntime.resolvePlayerSolidOverlapAfterBuilder(stampDelta);
       }
 
       const nowMoving = this.activeBuilder.isMoving;
 
       if (this.anvil && !this.anvil.used) {
-        const shouldDisableAnvil = nowMoving || this.isAnvilRetiredByBossClear(this.anvil);
+        const shouldDisableAnvil = nowMoving || this.anvilRetirementRuntime.isRetiredByBossClear(this.anvil);
         if (this.anvil.disabled !== shouldDisableAnvil) {
           void this.anvil.setDisabled(shouldDisableAnvil);
         }
       }
 
       {
-        const targetAlpha = this.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
+        const hidden = this.builderPlayerCollisionRuntime.isPlayerInBuilderVolume() && this.activeBuilder.isPlayerInInteriorCells(
           this.player.x,
           this.player.y,
           this.player.width,
           this.player.height,
-        ) ? 0 : 1;
-        if (this.builderInteriorAlpha !== targetAlpha) {
-          this.builderInteriorAlpha += (targetAlpha - this.builderInteriorAlpha) * 0.08;
-          if (Math.abs(this.builderInteriorAlpha - targetAlpha) < 0.01) {
-            this.builderInteriorAlpha = targetAlpha;
-          }
-        }
-        this.activeBuilder.builderInteriorLayer.alpha = this.builderInteriorAlpha;
-        this.setBuilderEntranceGlowAlpha(this.builderInteriorAlpha);
+        );
+        this.builderInteriorVisibilityRuntime.update({
+          builder: this.activeBuilder,
+          hidden,
+          setEntranceGlowAlpha: (alpha) => this.setBuilderEntranceGlowAlpha(alpha),
+        });
       }
 
 
-      // Cinematic builder (Shaft_01) ??emit camera shakes to sell the weight
-      // of the descent. Rhythmic "?? every two tile crossings while moving,
-      // then a single heavy "?臾믪쪠?? on the frame the builder comes to rest.
-      // `builderShakeEnabled` lets patrol-mode builders opt in to the same
-      // feedback (e.g. Shaft_DemoEnd's Builder_Level_2).
-      if (this.activeBuilderMode === 'cinematic' || this.builderShakeEnabled) {
-        if (nowMoving && stampDelta !== 0) {
-          this.builderStepCounter++;
-          if (this.builderStepCounter % 2 === 0) {
-            this.game.camera.shake(6);
-          }
-        }
-        if (this.builderWasMoving && !nowMoving) {
-          this.game.camera.shake(18);
-          this.builderStepCounter = 0;
-        }
-        this.builderWasMoving = nowMoving;
-      }
+      this.builderStepFeedbackRuntime.update({
+        cinematic: this.builderPersistenceRuntime.isActiveCinematic,
+        moving: nowMoving,
+        stampDelta,
+        shake: (strength) => this.game.camera.shake(strength),
+      });
     } else {
-      this.builderCarrierVelocityY = 0;
-      this.maintainLockedDoorCollisions();
+      this.builderPlayerStateRuntime.clearCarrierVelocity();
+      this.worldDoorSwitchInteractionRuntime.maintainCollisions();
     }
 
     // Player
-    // 嶺뚯쉳????熬곣뫁??熬곣뫗踰?playerOnBuilder ?띠룆???onCarrier ???熬곣뫀堉?? ???????
-    // grounding ??lastSafeX/Y ?띠룄????濾곌쑬????⑤베利꿨슖???類ｋ펲.
-    // 1??嶺뚯솘????뺢퀗????곌랜???(2026-05-24): ???????嶺?嶺뚢뼰維? ?熬곣뫁??熬곣뫖???onCarrier ?띠럾?
-    // ?熬곣뫗異?false ??lastSafe ?띠럾? *?????cell* ???띠룄????琉우꽑, ???뉙뀬 ?곌랜踰? ??????臾덉쾸?
-    // ??ル봽??????ㅻ????怨쀬Ŧ ??怨뺣뒆??濡ル츎 ??쒖굣?節낆쾸? ?????? update ??lastSafe ?????고돩??
-    // ??????? post-snap ??節띉?????*?熬곣뫗???熬곣뫁??? playerOnBuilder=true 嶺??β뼯?뉐첎?
-    const wasPlayerOnBuilder = this.playerOnBuilder;
+    // 빌더 위에 있으면 playerOnBuilder 와 onCarrier 를 갱신해 캐리어
+    // grounding 과 lastSafeX/Y 처리를 일관되게 한다.
+    // 1차 수정 시도 (2026-05-24): 매 프레임 빌더 위에서 onCarrier 가
+    // false 면 lastSafe 를 *현재 cell* 로 잡으려다, 빌더가 진입한 직후 빈 칸
+    // 위를 밟는 순간 잘못된 safe 위치가 잡히는 문제가 있었음. 이번 update 에서 lastSafe 를 보존해
+    // post-snap 단계에서도 *직전 값*을 유지, playerOnBuilder=true 면 되돌린다.
+    const wasPlayerOnBuilder = this.builderPlayerStateRuntime.beginPlayerUpdate(this.player);
     const preUpdateLastSafeX = this.player.lastSafeX;
     const preUpdateLastSafeY = this.player.lastSafeY;
-    this.player.onCarrier = wasPlayerOnBuilder;
-    this.player.carrierVelocityY = wasPlayerOnBuilder ? this.builderCarrierVelocityY : 0;
-    if (this.isPlayerStandingOnContainerTop()) {
+    if (this.worldContainerPhysicsRuntime.isPlayerStandingOnTop()) {
       this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
-    this.resolvePlayerAgainstLockedDoors();
-    if (this.builderOneWayDropThroughGraceMs > 0) {
-      this.builderOneWayDropThroughGraceMs = Math.max(0, this.builderOneWayDropThroughGraceMs - dt);
-    }
+    this.worldDoorSwitchInteractionRuntime.resolvePlayerCollision();
+    this.builderPlayerStateRuntime.update(dt);
 
-    // No-weapon attack feedback ??Player flags the pulse, scene shows toast
-    // with cooldown so spamming C doesn't spam toasts.
-    if (this.player.attackBlockedNoWeaponPulse) {
-      this.player.attackBlockedNoWeaponPulse = false;
-      if (this.noWeaponToastCooldown <= 0) {
-        this.toast.show(t('toast.no_weapon'), 0xFFA41B);
-        this.noWeaponToastCooldown = 1500;
-      }
-    }
-    if (this.noWeaponToastCooldown > 0) {
-      this.noWeaponToastCooldown = Math.max(0, this.noWeaponToastCooldown - dt);
-    }
+    this.noWeaponFeedbackRuntime.update(dt);
 
-    // First time HP drops to/under 40% ??surface a tutorial hint pointing at
-    // the heal key. Shared one-shot flag with ItemWorldScene.
-    if (
-      !isLowHpHealToastFired() &&
-      this.player.maxHp > 0 &&
-      this.player.hp > 0 &&
-      this.player.hp / this.player.maxHp <= 0.4
-    ) {
-      markLowHpHealToastFired();
-      this.tutorialHint.tryShow('low_hp_heal', {
-        keyLabel: actionKey(GameAction.FLASK),
-        text: t('tutorial.heal'),
-      });
-    }
+    this.lowHpHealHint.update();
 
     // After physics: keep riders aligned to the builder's tile-quantized
     // collision surface. This prevents the moving stamp from slowly burying
     // or dropping the player through the carried floor.
-    const snappedToBuilder = this.activeBuilder && (wasPlayerOnBuilder || this.isPlayerInBuilderVolume())
-      ? this.snapPlayerToBuilderSurface()
+    const snappedToBuilder = this.activeBuilder && (wasPlayerOnBuilder || this.builderPlayerCollisionRuntime.isPlayerInBuilderVolume())
+      ? this.builderPlayerCollisionRuntime.snapPlayerToBuilderSurface()
       : false;
-    this.playerOnBuilder = this.activeBuilder ? (snappedToBuilder || this.isPlayerOnBuilderStamp()) : false;
-    if (!this.playerOnBuilder) this.player.carrierVelocityY = 0;
-    // ???뉙뀬 ??????띠럾??? ?熬곣뫗???熬곣뫁??熬곣뫗逾???????熬곣뫁夷???硫명뀬???좊듆 player.update ?띠럾? ?띠룄????
-    // lastSafeX/Y(=?????cell)????濡レ┝?源껎?? ??????world ?띠럾? ?熬곣뫀鍮띷쾬?빧??safe ground
-    // ???遊???怨몃쾳 ??void ?곌랜踰??????깆땋 world ?筌먦끉????????grounded ?熬곣뫚?꾤춯?????
-    if (this.playerOnBuilder) {
+    this.builderPlayerStateRuntime.setOnBuilder(
+      this.player,
+      this.activeBuilder ? (snappedToBuilder || this.builderStampRuntime.isPlayerOnStamp(this.player, this.collisionGrid)) : false,
+    );
+    // 직전 safe 값을 유지한다. 빌더 위에 머무는 동안 player.update 가 잡은
+    // lastSafeX/Y(=현재 cell)로 덮어쓰면, 빌더 밖 world 를 밟지 않은 채 safe ground
+    // 로 오인해 void 진입 시 잘못된 world 위치로 복귀하므로 grounded 판정을 보정한다.
+    if (this.builderPlayerStateRuntime.isOnBuilder) {
       this.player.lastSafeX = preUpdateLastSafeX;
       this.player.lastSafeY = preUpdateLastSafeY;
     }
 
     // Volume check: is the player's AABB inside the builder's rectangle?
-    // (includes airborne ??used for camera override that must persist on jump.)
-    this.playerInBuilder = this.activeBuilder ? this.isPlayerInBuilderVolume() : false;
+    // (includes airborne — used for camera override that must persist on jump.)
+    this.builderPlayerStateRuntime.setInBuilder(
+      this.activeBuilder ? this.builderPlayerCollisionRuntime.isPlayerInBuilderVolume() : false,
+    );
     if (
       this.player.isGrounded() &&
-      !this.playerOnBuilder &&
-      !this.playerInBuilder &&
-      this.isWorldFloorUnderPlayerAt(this.player.x, this.player.y)
+      !this.builderPlayerStateRuntime.isOnBuilder &&
+      !this.builderPlayerStateRuntime.isInBuilder &&
+      this.voidReturnRuntime.isWorldFloorUnderPlayerAt(this.player.x, this.player.y)
     ) {
-      this.recordLastWorldSafePosition(this.player.x, this.player.y);
+      this.voidRuntime.recordSafePosition(this.player.x, this.player.y);
     }
 
     // Visual sync: while riding, mirror the builder's render offset from its
     // tile-aligned stamp. Use container.y (integer) so the offset matches
-    // exactly what stampBuilder() sees ??the player visual steps in lockstep
+    // exactly what WorldBuilderStampRuntime.stamp() sees — the player visual steps in lockstep
     // with the builder visual, no subpixel disagreement.
-    if (this.playerOnBuilder && this.activeBuilder) {
+    if (this.builderPlayerStateRuntime.isOnBuilder && this.activeBuilder) {
       const by = this.activeBuilder.container.y;
       this.player.visualYOffset = by - Math.round(by / 16) * 16;
     } else {
       this.player.visualYOffset = 0;
     }
     // Check drowning
-    if (this.player.drowned && !this.gameOverActive) {
+    if (this.player.drowned && !this.gameOverRuntime.isActive) {
       this.player.hp = 0;
       this.player.lastDamageSource = 'drown';
       this.player.onDeath();
@@ -2425,25 +2686,25 @@ export class LdtkWorldScene extends Scene {
       this.screenFlash.flashDamage(true);
       trackPlayerDeath({
         area: 'world',
-        level_id: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+        level_id: this.currentLevel?.identifier ?? this.worldSpawnState.currentLevelId,
         room_col: Math.floor((this.player.x + this.player.width / 2) / TILE_SIZE),
         room_row: Math.floor((this.player.y + this.player.height / 2) / TILE_SIZE),
         enemy_type: 'drown',
       });
-      this.showGameOver();
+      this.gameOverRuntime.show();
       return;
     }
 
     // Check player death
-    if (this.player.isDead && !this.gameOverActive) {
+    if (this.player.isDead && !this.gameOverRuntime.isActive) {
       trackPlayerDeath({
         area: 'world',
-        level_id: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
+        level_id: this.currentLevel?.identifier ?? this.worldSpawnState.currentLevelId,
         room_col: Math.floor((this.player.x + this.player.width / 2) / TILE_SIZE),
         room_row: Math.floor((this.player.y + this.player.height / 2) / TILE_SIZE),
         enemy_type: this.player.lastDamageSource,
       });
-      this.showGameOver();
+      this.gameOverRuntime.show();
       return;
     }
 
@@ -2455,22 +2716,21 @@ export class LdtkWorldScene extends Scene {
 
       // Track which enemies were alive before combat resolution
       if (wasAlive && !enemy.alive) {
-        // died during enemy.update() (e.g. DOT) ??handle drop now
-        this.handleEnemyKill(enemy);
+        // died during enemy.update() (e.g. DOT) — handle drop now
+        this.worldEnemyKillRuntime.handle(enemy);
       }
 
       if (enemy.shouldRemove) {
-        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
-        this.enemies.splice(i, 1);
+        this.worldEnemyRegistry.removeAt(i);
       }
     }
 
-    // Player attacks ??Sakurai full feedback chain
+    // Player attacks — Sakurai full feedback chain
     if (this.player.isAttackActive()) {
-      // Locked door ?띠럾? player ?? enemy ????????깅さ嶺?hit 嶺뚢뼰維????attack ??door ??????????
+      // Locked door 는 player 와 enemy 사이를 막으므로 hit 대상에서 빼고 attack 이 door 를 관통하지 않게 한다.
       const targets = this.enemies
         .filter((e) => e.alive)
-        .filter((e) => !this.isAttackBlockedByDoor(e)) as CombatEntity[];
+        .filter((e) => !this.worldDoorSwitchInteractionRuntime.isAttackBlocked(e)) as CombatEntity[];
       const hits = this.hitManager.checkHits(
         this.player,
         this.player.comboIndex,
@@ -2489,78 +2749,14 @@ export class LdtkWorldScene extends Scene {
       for (const enemy of this.enemies) {
         if (!enemy.alive && !enemy.shouldRemove && !isEnemyKillHandled(enemy)) {
           markEnemyKillHandled(enemy);
-          this.handleEnemyKill(enemy);
+          this.worldEnemyKillRuntime.handle(enemy);
         }
       }
     }
 
-    // Collect Ghost projectiles
-    for (const enemy of this.enemies) {
-      if (enemy instanceof Ghost && enemy.alive) {
-        for (const proj of enemy.pendingProjectiles) {
-          this.projectiles.push(proj);
-          this.entityLayer.addChild(proj.container);
-        }
-        enemy.pendingProjectiles.length = 0;
-      }
-    }
+    this.worldProjectileRuntime.update(dt);
 
-    // Update projectiles ??player attack can destroy them
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const proj = this.projectiles[i];
-      proj.update(dt);
-      if (!proj.alive) {
-        proj.destroy();
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      // Player attack deflects projectile
-      const attackHitbox = getActivePlayerAttackHitbox(this.player);
-      if (attackHitbox && aabbOverlap(attackHitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
-        this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
-        proj.alive = false;
-        proj.destroy();
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      if (!this.player.invincible && this.player.hp > 0) {
-        const overlap = aabbOverlap(
-          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
-          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
-        );
-        if (overlap) {
-          const dir = proj.vx > 0 ? 1 : -1;
-          const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
-          this.player.onHit(dir * 80, -40, 150);
-          this.player.lastDamageSource = 'projectile';
-          this.player.hp -= dmg;
-          this.hud.flashDamage();
-          this.player.invincible = true;
-          this.player.invincibleTimer = 1000;
-          this.player.startVibrate(3, 4, true);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 2;
-          this.game.camera.shakeDirectional(2, dir, -0.2);
-          this.screenFlash.flashDamage(false);
-          const hitX = this.player.x + this.player.width / 2;
-          const hitY = this.player.y + this.player.height * 0.4;
-          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
-          this.hitSparks.spawn(hitX, hitY, false, -dir);
-          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-          proj.alive = false;
-          proj.destroy();
-          this.projectiles.splice(i, 1);
-        }
-      }
-    }
-
-    // Enemy contact damage ??all enemies deal damage on body overlap
+    // Enemy contact damage — all enemies deal damage on body overlap
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       if (this.player.invincible || this.player.hp <= 0) continue;
@@ -2605,181 +2801,19 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Breakable props (sway animation)
-    for (const bp of this.breakableProps) bp.update(dt);
-    // ??濡レ쭢 ?꾩룄???Breakable (LDtk Entity).
-    for (const b of this.breakables) b.update(dt);
+    this.worldBreakablePropRuntime.update(dt);
+    // 핸드 플레이스 Breakable (LDtk Entity).
+    this.worldBreakableRuntime.update(dt);
     // Decorative grass sway
-    this.procDecorator?.update(dt);
+    this.proceduralDecorRuntime.update(dt);
 
-    // Gold pickups
-    for (let i = this.goldPickups.length - 1; i >= 0; i--) {
-      const gp = this.goldPickups[i];
-      if (gp.collected) continue;
-      gp.update(dt);
-      const dx = Math.abs((this.player.x + this.player.width / 2) - (gp.x + gp.width / 2));
-      const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
-      if (dx < 16 && dy < 16) {
-        // LDtk-placed pickups have _key for permanent collection state.
-        // Monster drops have no _key ??collected once on pickup but not persisted.
-        const key = (gp as any)._key as string | undefined;
-        if (key) this.collectedItems.add(key);
-        gp.collect();
-        this.gold += gp.amount;
-        this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
-        this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
-        gp.destroy();
-        this.goldPickups.splice(i, 1);
-      }
-    }
+    this.worldPickupRuntime.update(dt);
+    this.worldRelicPickupRuntime.update(dt);
 
-    // Healing pickups
-    for (let i = this.healingPickups.length - 1; i >= 0; i--) {
-      const hp = this.healingPickups[i];
-      if (hp.collected) continue;
-      hp.update(dt);
-      const dx = Math.abs((this.player.x + this.player.width / 2) - (hp.x + hp.width / 2));
-      const dy = Math.abs((this.player.y + this.player.height / 2) - (hp.y + hp.height / 2));
-      if (dx < 16 && dy < 16) {
-        const key = (hp as any)._key as string | undefined;
-        if (key) this.collectedItems.add(key);
-        hp.collect();
-        const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
-        this.screenFlash.flash(0x44ff44, 0.3, 150);
-        this.toast.show(t('toast.hp_gain', { amount: healed }), 0x44ff44);
-        hp.destroy();
-        this.healingPickups.splice(i, 1);
-      }
-    }
-
-    // Health Shard pickups
-    for (let i = this.healthShards.length - 1; i >= 0; i--) {
-      const shard = this.healthShards[i];
-      if (shard.collected) continue;
-      shard.update(dt);
-      const dx = Math.abs((this.player.x + this.player.width / 2) - (shard.x + shard.width / 2));
-      const dy = Math.abs((this.player.y + this.player.height / 2) - (shard.y + shard.height / 2));
-      if (dx < 16 && dy < 16) {
-        const key = (shard as any)._key as string;
-        this.collectedRelics.add(key);
-        shard.collect();
-        this.healthShardBonus += shard.hpBonus;
-        this.updatePlayerAtk(); // recalc maxHp with shard bonus
-        this.player.hp = this.player.maxHp; // full heal on pickup
-        this.game.hitstopFrames = 8;
-        this.screenFlash.flash(0xff4488, 0.4, 200);
-        this.game.camera.shake(4);
-        this.showAcquireOverlay({
-          type: 'hp',
-          name: t('ui.acquire.hp.name', { amount: shard.hpBonus }),
-          description: t('ui.acquire.hp.description'),
-        });
-        shard.destroy();
-        this.healthShards.splice(i, 1);
-      }
-    }
-
-    // Ability Relic pickups
-    for (let i = this.relicMarkers.length - 1; i >= 0; i--) {
-      const { gfx, abilityName, relicKey } = this.relicMarkers[i];
-      const dx = Math.abs((this.player.x + this.player.width / 2) - gfx.x);
-      const dy = Math.abs((this.player.y + this.player.height / 2) - gfx.y);
-      if (dx < 16 && dy < 16) {
-        this.collectedRelics.add(relicKey);
-        trackRelicAcquire(abilityName, this.currentLevel?.identifier);
-        if (abilityName === 'dash') {
-          this.player.abilities.dash = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'dash',
-            name: t('ui.acquire.relic.dash.name'),
-            usage: t('ui.acquire.relic.dash.usage', { key: '{key}' }),
-            keyAction: GameAction.DASH,
-          });
-        } else if (abilityName === 'diveAttack') {
-          this.player.abilities.diveAttack = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'diveAttack',
-            name: t('ui.acquire.relic.diveAttack.name'),
-            usage: t('ui.acquire.relic.diveAttack.usage', { key: '{key}' }),
-            keyAction: GameAction.ATTACK,
-          });
-        } else if (abilityName === 'surge') {
-          this.player.abilities.surge = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'surge',
-            name: t('ui.acquire.relic.surge.name'),
-            usage: t('ui.acquire.relic.surge.usage', { key: '{key}' }),
-            keyAction: GameAction.JUMP,
-          });
-        } else if (abilityName === 'waterBreathing') {
-          this.player.abilities.waterBreathing = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'waterBreathing',
-            name: t('ui.acquire.relic.waterBreathing.name'),
-            usage: t('ui.acquire.relic.waterBreathing.usage'),
-            // No keyAction ??passive ability
-            tint: 0x4488ff,
-          });
-        } else if (abilityName === 'wallJump') {
-          this.player.abilities.wallJump = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'wallJump',
-            name: t('ui.acquire.relic.wallJump.name'),
-            usage: t('ui.acquire.relic.wallJump.usage', { key: '{key}' }),
-            keyAction: GameAction.JUMP,
-          });
-        } else if (abilityName === 'doubleJump') {
-          this.player.abilities.doubleJump = true;
-          this.showAcquireOverlay({
-            type: 'relic', iconKey: 'doubleJump',
-            name: t('ui.acquire.relic.doubleJump.name'),
-            usage: t('ui.acquire.relic.doubleJump.usage', { key: '{key}' }),
-            keyAction: GameAction.JUMP,
-          });
-        } else if (abilityName === 'cheat') {
-          // DEC-010: ??醫롫윥?????곸궡瑗????醫롫윥??
-          // Gate: Debug_ ?꾩렮維쀨굢??꾩룄??????debug URL ??醫롫윥??덉쾵筌뤿굛????醫롫윪?????醫롫윞???釉띾쐣??.
-          // ??醫롫윥????醫롫짗????醫롫윞????醫롫윪???醫롫짗?? ??醫롫윪?? ?怨뺥넪?? gate ?釉띾쐡???
-          this.player.abilities.cheat = true;
-          this.updatePlayerAtk(); // re-applies +99999 via cheat branch
-          this.player.hp = this.player.maxHp; // full heal to new cap
-          this.toast.showBig(t('toast.cheat_atk_hp'), 0xff00ff);
-        }
-        this.game.hitstopFrames = 8;
-        this.game.camera.shake(3);
-        // Batch E: relic aura burst ??tinted per ability family
-        const relicTint = abilityName === 'waterBreathing' ? 0x4488ff : 0xffd700;
-        this.relicAuraBurst.spawn(gfx.x, gfx.y, relicTint);
-        if (gfx.parent) gfx.parent.removeChild(gfx);
-        this.relicMarkers.splice(i, 1);
-      }
-    }
-
-    // Item pickups
-    for (let i = this.drops.length - 1; i >= 0; i--) {
-      const drop = this.drops[i];
-      drop.update(dt);
-      if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.inventory.add(drop.item)) {
-          this.game.stats.itemsCollected++;
-          this.toast.show(t('toast.item_acquired', { name: getDisplayName(drop.item), rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
-          // hint removed
-          const key = (drop as any)._itemKey as string | undefined;
-          if (key) this.collectedItems.add(key);
-          const pickedItem = drop.item;
-          const pickupX = drop.x;
-          const pickupY = drop.y;
-          // Batch E: rarity-tinted pickup glow
-          this.itemPickupGlow.spawn(pickupX, pickupY, getRarityConfig(pickedItem.rarity).fxTint);
-          drop.destroy();
-          this.drops.splice(i, 1);
-          this.sacredPickupFlow(pickedItem, pickupX, pickupY);
-        }
-      }
-    }
+    this.worldItemDropRuntime.update(dt);
 
     // Level cleared
-    const aliveCount = this.enemies.filter((e) => e.alive).length;
+    const aliveCount = this.worldEnemyRegistry.aliveCount();
     if (aliveCount === 0) {
       const id = this.currentLevel.identifier;
       if (!this.clearedLevels.has(id)) {
@@ -2788,108 +2822,67 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Dialogue / Lore triggers
-    this.updateDialogueTriggers(dt);
+    this.dialogueTriggerRuntime.update(dt);
 
-    // ???? Ego dialogue triggers (code-driven, not LDtk) ????
-    this.updateEgoTriggers(dt);
+    // ── Ego dialogue triggers (code-driven, not LDtk) ──
+    this.worldEgoDialogueRuntime.update(dt);
 
     // Anvil interaction + attack hit detection
-    this.updateAnvil(dt);
-    this.updateAltars(dt);
+    this.anvilInteractionRuntime.update(dt);
+    this.altarController.updateAltars(dt);
 
     // Locked door & switch attack detection + update
-    this.checkAttackOnDoors();
-    this.checkAttackOnSwitches();
-    this.checkAttackOnCrackedFloors();
-    this.checkAttackOnBreakableProps();
-    this.checkAttackOnSecretWalls();
-    this.checkAttackOnBreakableEntities();
-    this.checkAttackOnContainers();
-    for (const door of this.lockedDoors) door.update(dt);
-    for (const wall of this.growingWalls) {
-      wall.update(dt);
-      // Pick up spawned slimes
-      for (const slime of wall.pendingSlimes) {
-        slime.roomData = this.collisionGrid;
-        slime.target = this.player;
-        this.enemies.push(slime);
-        this.entityLayer.addChild(slime.container);
-      }
-      wall.pendingSlimes.length = 0;
-    }
+    this.worldDoorSwitchInteractionRuntime.checkDoorAttack();
+    this.worldDoorSwitchInteractionRuntime.checkSwitchAttack();
+    this.worldCrackedFloorRuntime.checkAttack();
+    this.worldBreakablePropRuntime.checkAttack();
+    this.worldSecretWallRuntime.checkAttack();
+    this.worldBreakableRuntime.checkAttack();
+    this.worldContainerAttackRuntime.checkAttack();
+    this.worldDoorSwitchInteractionRuntime.updateDoors(dt);
+    this.worldGrowingWallRuntime.update(dt);
 
-    // Dive attack landing ??area damage + cracked floor check
-    if (this.player.diveLanded) {
-      this.handleDiveLanding();
-    }
+    this.worldPlayerImpactRuntime.update();
 
-    // Surge flight ??break walls/floors on contact
-    if (this.player.surgeActive) {
-      this.handleSurgeContact();
-    }
-
-    // Collapsing platforms ??check if player is standing on them
-    for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
-      const cp = this.collapsingPlatforms[i];
-      const wasSolid = (cp as any).state !== 'collapsed' && (cp as any).state !== 'respawning';
-      const beforeState = (cp as any).state as string;
-      cp.update(dt);
-      const afterState = (cp as any).state as string;
-      if (beforeState !== afterState) {
-        this.refreshBuilderStampForGrid(this.getCollapsingPlatformCollisionGrid(cp));
-      }
-      if (cp.isPlayerOnTop(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        cp.startShake();
-      }
-      // Save permanent collapse for non-respawning platforms
-      const isCollapsed = (cp as any).state === 'collapsed';
-      if (wasSolid && isCollapsed && !(cp as any)._respawns) {
-        const key = (cp as any)._key as string;
-        if (key) this.unlockedEvents.add(key);
-        cp.destroy();
-        this.collapsingPlatforms.splice(i, 1);
-      }
-    }
+    this.worldCollapsingPlatformRuntime.update(dt);
 
     // Spike hazard contact
-    this.checkSpikeContact();
+    this.worldSpikeRuntime.checkContact();
 
     // Void contact check (sequence handled by early-return above)
-    if (this.voidCooldown > 0) this.voidCooldown -= dt;
-    this.checkVoidContact();
+    this.voidRuntime.updateCooldown(dt);
+    this.voidRuntime.checkContact();
 
     // Elemental tile hazards (magma 鸚?charged 鸚?acid 鸚?fire 鸚?thunder 鸚?burn)
     // GDD: Documents/System/System_World_TileSystem.md 筌?.6-2.13
     this.tickTileHazards(dt);
 
     // Updraft wind zones
-    this.applyUpdrafts(dt);
+    this.worldUpdraftRuntime.update({
+      dt,
+      player: this.player,
+      baseGrid: this.player.roomData,
+      camera: this.game.camera,
+      activeBuilder: this.activeBuilder,
+    });
 
     // Void fog particles (visual only)
-    this.voidFogSystem.update(dt, this.collisionGrid, this.game.camera);
+    this.voidFogRuntime.update(dt, this.collisionGrid, this.game.camera);
 
-    // Exit Light Bleed pulse + ??醫롫윥???醫롫윪??濾곌쑨????リ옇?↑???醫롫윞????醫롫윪??
-    if (this.exitGlows.length > 0) {
-      const pcx = this.player.x + this.player.width / 2;
-      const pcy = this.player.y + this.player.height / 2;
-      for (const g of this.exitGlows) {
-        g.setPlayer(pcx, pcy);
-        g.update(dt);
-      }
-    }
+    this.exitGlowRuntime.update(dt);
 
-    // Save point interaction ??UP key near save point
-    this.checkSavePoints();
+    // Save point interaction — UP key near save point
+    this.savePointRuntime.updateProximity(this.itemWorldEntryState.deployment?.isActive ?? false);
 
-    // Shift+P ?熬곣뫖???洹먮봾??? Game.ts ??貫???嶺뚳퐣瑗??????????????類ｌ┣ ??얜Ŧ吏?
+    // Shift+P 디버그 워프는 Game.ts 측에서 먼저 처리하므로 여기서는 다루지 않는다.
 
-    // Shift+I ?熬곣뫖??UI ????? Game.ts ?????嶺뚳퐣瑗????INVENTORY ?띠럾? 濾곌쑨?쀧뵳??consume ?????
-    // ?????筌뤾퍒萸??ル벣遊???? ?筌뤾퍓援???????吏??怨쀬Ŧ ???沅??類ｋ펲.
+    // Shift+I 디버그 UI 토글은 Game.ts 에서 먼저 처리하므로 INVENTORY 를 미리 consume 하여
+    // 인벤토리 진입과 충돌하지 않게 한다.
 
-    // Debug commands ??only active with ?debug=1 in URL
+    // Debug commands — only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      // Shift+O ??unified cheat toggle. ON: all relic abilities, maxHp/atk
-      // inflated to 99999, HP locked at ??1 (immortal clamp). OFF: restore
+      // Shift+O — unified cheat toggle. ON: all relic abilities, maxHp/atk
+      // inflated to 99999, HP locked at >=1 (immortal clamp). OFF: restore
       // the snapshot taken at toggle-on.
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         if (this.player.debugCheatActive) {
@@ -2904,173 +2897,70 @@ export class LdtkWorldScene extends Scene {
       // Shift+1 = Ignite plant/oil/wood at player feet + 4-neighbours.
       // Verifies grass/wood/oil propagation (TileMutator) without enchant system.
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_FIRE)) {
-        this.debugIgniteAtPlayer();
+        this.worldEgoShardImpactRuntime.debugIgniteAtPlayer();
       }
       // Shift+2 = Freeze water/magma at player + 4-neighbours (3s temp wall).
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_ICE)) {
-        this.debugFreezeAtPlayer();
+        this.worldEgoShardImpactRuntime.debugFreezeAtPlayer();
       }
       // Shift+3 = Thunder chain at player + 4-neighbours (water/metal/acid flood-fill).
       if (this.game.input.shiftDown && this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) {
-        this.debugThunderAtPlayer();
+        this.worldEgoShardImpactRuntime.debugThunderAtPlayer();
       }
-      // Digit 1/2/3 (without shift) ??switch active enchant (Hades-style Boon swap).
+      // Digit 1/2/3 (without shift) — switch active enchant (Hades-style Boon swap).
       if (!this.game.input.shiftDown) {
         if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE))    this.player.activeEnchant = 'fire';
         else if (this.game.input.isJustPressed(GameAction.DEBUG_ICE))    this.player.activeEnchant = 'ice';
         else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
       }
-      // Shift+G ??spawn 4 debug containers near player (until LDtk Entity wiring lands).
+      // Shift+G — spawn 4 debug containers near player (until LDtk Entity wiring lands).
       if (this.game.input.shiftDown && this.game.input.isJustPressedKeyCode('KeyG')) {
-        this.debugSpawnContainers();
+        this.worldContainerSpawnRuntime.debugSpawnNear(this.player.x, this.player.y);
       }
     }
 
-    // ???? Hold-and-release Cast (V / Y) ??charge a shard, release to fire.
-    // While held, render a trajectory preview matching the charged power.
-    //
-    // Shipping gate (Victor 2026-05-15): the shard cast ability is debug-only
-    // for now. Without `?debug` in the URL we short-circuit the entire
-    // charge / preview / fire flow so the action is invisible to players in
-    // shipped builds. Pre-existing cooldown / preview state is also cleared
-    // each frame so a debug??몄?ipping URL flip mid-session doesn't leave
-    // ghost previews on screen.
-    const _shardAbilityOn = new URLSearchParams(window.location.search).has('debug');
-    if (!_shardAbilityOn) {
-      this.egoCastChargeMs = 0;
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    }
-    const castDown = _shardAbilityOn && !this.heldContainer && this.game.input.isDown(GameAction.CAST);
-    const canCast = _shardAbilityOn && !this.heldContainer && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
-    const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
-    // Launch from the aim-pose gun muzzle. The aim sprite extends the gun
-    // ~14 px past the player's body center; launchY sits at the arm/shoulder
-    // line where the gun is held, raised by 5 px to match the sprite.
-    const launchX = this.player.x + this.player.width / 2 + facing * 14;
-    const launchY = this.player.y + this.player.height * 0.38 - 5;
-    if (castDown && canCast) {
-      this.egoCastChargeMs = Math.min(this.egoCastChargeMs + dt, CAST_CHARGE_MAX_MS);
-      this.player.isAiming = true;
-      const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
-      const grid = this.collisionGrid;
-      this.egoShardPreview.show(
-        launchX, launchY, vx, vy, this.player.activeEnchant,
-        (x, y) => {
-          const gx = Math.floor(x / 16);
-          const gy = Math.floor(y / 16);
-          const t = grid[gy]?.[gx] ?? 0;
-          return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-        },
-      );
-    } else if (!castDown && this.egoCastChargeMs > 0) {
-      // Released ??fire shard with whatever charge accumulated.
-      if (canCast) {
-        const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
-        this.egoShard.spawn(launchX, launchY, vx, vy, this.player.activeEnchant);
-        this.player.egoShardCount--;
-        this.player.shardCooldowns.push(SHARD_RECOVERY_MS);
-        this.player.egoCastCooldownMs = CAST_MIN_GAP_MS;
-      }
-      this.egoCastChargeMs = 0;
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    } else {
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    }
-    if (this.player.egoCastCooldownMs > 0) {
-      this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
-    }
-    // Tick all in-flight cooldowns. When one expires, the OLDEST living
-    // shard in the world is called back to the Ego sword ??visually
-    // disappears with a ring burst. This keeps the world from accumulating
-    // forgotten shards as the player keeps firing.
-    {
-      const cd = this.player.shardCooldowns;
-      for (let i = cd.length - 1; i >= 0; i--) {
-        cd[i] -= dt;
-        if (cd[i] <= 0) {
-          cd.splice(i, 1);
-          this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
-          this.egoShard.removeOldestShard();
-        }
-      }
-    }
+    this.worldEgoShardCastRuntime.update(dt);
 
-    // ???? Grab / Throw (B / RB) ??Arc Tether ???遊?????뵜 + Spelunky ????? ????
-    // ????뵜 ??節띉?
-    //   1) GRAB ???놁졑 ??findNearestGrabbableContainer (facing ??cone ??6????
-    //   2) ?熬곣뫀沅?found ??startGrabPull : pickUp() 嶺뚯빖留???筌뤾쑵??(held=true ??no gravity)
-    //      + pullingContainer ???깆젧 + arcTether.startPull(boosted)
-    //   3) 200ms ???덊닱 ???쳜?????쀣깷泥? ???⑹턃??ease-out ?곌랜???(?熬곣뫁??held ?熬곣뫚???띠룄?????곕?餓?
-    //   4) ?곌랜????熬곣뫁????pullingContainer=null, arcTether ??hold ??瑜곷턄嶺?
-    // ???????節띉????リ턂??뤒????됰뎄 ??pull 嶺뚯쉳?듸쭛?繞벿살탳???????????놁졑 ??쒕샍??
-    this.applyContainerCarryState(updateContainerGrabInput({
-      input: this.game.input,
-      player: this.player,
-      arcTether: this.arcTether,
-      state: this.getContainerCarryState(),
-      findTarget: () => this.findNearestGrabbableContainer(),
-    }));
-    this.applyContainerCarryState(updateHeldContainerCarry({
+    // ── Grab / Throw (B / RB) — Arc Tether 로 끌어당기는 픽업 + Spelunky 식 들기 ──
+    // 동작 순서:
+    //   1) GRAB 입력 시 findNearestGrabbableContainer (facing 콘, 6칸)
+    //   2) 찾으면 startGrabPull : pickUp() 으로 든다 (held=true 면 no gravity)
+    //      + pullingContainer 지정 + arcTether.startPull(boosted)
+    //   3) 200ms 동안 끌어당김 — ease-out 진입 (그 동안 held 가 유지된다)
+    //   4) 진입 끝나면 pullingContainer=null, arcTether 의 hold 를 끊는다.
+    // 그래서 멀리 있는 컨테이너도 pull 시점에 자연스럽게 손에 들어오게 한다.
+    this.worldContainerCarryRuntime.update({
       dtMs: dt,
+      game: this.game,
       player: this.player,
-      state: this.getContainerCarryState(),
-    }));
-    this.updateContainerPrompt();
-    this.updateArcTether(dt);
+      findTarget: () => findNearestContainerForGrab({
+        player: this.player,
+        containers: this.containers,
+        input: this.game.input,
+      }),
+      promptText: t('prompt.lift'),
+    });
 
     // Portal interactions
-    this.updatePortals(dt);
+    this.portalRuntime.update(dt);
 
-    // Ending trigger check
-    if (!this.ending.isActive) {
-      const pcx = this.player.x + this.player.width / 2;
-      const pcy = this.player.y + this.player.height / 2;
-      this.ending.checkTrigger(pcx, pcy, this.endingTriggers);
-      if (this.ending.isActive) {
-        this.player.vx = 0;
-        this.player.vy = 0;
-        this.player.savePrevPosition();
-      }
-    }
+    this.endingRuntime.checkTrigger();
 
-    // Room transition detection ??edge-based
-    this.checkLevelEdges();
+    // Room transition detection — edge-based
+    this.edgeTransitionFlowRuntime.checkLevelEdges();
 
-    // Camera zone detection ??check if player entered/exited a camera area
-    this.updateCameraZones();
+    // Camera zone detection: check if player entered/exited a camera area.
+    this.cameraZoneRuntime.update();
 
     // HUD
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
-    this.hud.updateGold(this.gold);
+    this.hud.updateGold(this.worldPlayerProgressionState.gold);
     this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
     this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
 
-    // Boss HP bar ????흮???띠룆??? 3????醫롫윥?怨⑸쐻?
-    //  1) FSM ??醫?繹???醫롫윪??(detect/chase/hit/...) ????醫롫윥???롪퍔?????ｋ걞??
-    //  2) hp < maxHp ??Guardian ???superArmor=true ????醫롫윞????FSM ??hit ??醫롫윥餓?
-    //     ??醫롫윪???醫롫짗?? ??醫롫윪??idle ???誘⑹굡甸??????醫롫윥?? ??醫롫짗??嶺뚯솘? ?リ옇?▽빳??"嶺뚮씮?면뇡?? ??嶺뚯쉳???嶺뚯빘鍮볠뤃?
-    //  3) bossActive(arena lock) ???곌랜???낅쐻?嶺뚯쉳?????醫롫윞?뚯늼寃?????醫롫윪?? ??醫롫윥???醫롫윪?됯막泥? ??醫롫윪壤?
-    //     ??醫롫짗?? ?뺢퀡????꾩룆????醫롫윥??'?띠룆???? ????醫롫윪????꾩룆??? ??醫롫윪????흮?????쳜???醫??猿껊쐻?嶺뚮ㅏ援??
-    const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
-    if (activeBoss) {
-      const st = activeBoss.fsm.currentState;
-      const fsmEngaged = st !== null && st !== 'idle' && st !== 'death';
-      const wasHit = activeBoss.hp < activeBoss.maxHp;
-      const engaged = fsmEngaged || wasHit || this.bossActive;
-      if (engaged) {
-        if (!(activeBoss as any)._bossBarShown) {
-          (activeBoss as any)._bossBarShown = true;
-          const name = (activeBoss as any).enemyType ?? 'GUARDIAN';
-          this.hud.showBossHP(name, activeBoss.hp, activeBoss.maxHp);
-        }
-        this.hud.updateBossHP(activeBoss.hp);
-      }
-    }
+    this.bossHpRuntime.update();
 
     this.hud.update(dt);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
@@ -3078,117 +2968,37 @@ export class LdtkWorldScene extends Scene {
     this.areaTitle.update(dt);
 
     // Hide minimap + adjust gold in item tunnel
-    if (this.inItemTunnel && this.minimap) this.minimap.visible = false;
-    this.hud.setGoldBelowMinimap(!this.inItemTunnel && !!this.minimap?.visible);
+    if (this.itemWorldEntryState.inTunnel) this.worldMinimap.setVisible(false);
+    this.hud.setGoldBelowMinimap(!this.itemWorldEntryState.inTunnel && this.worldMinimap.isVisible);
 
     // Minimap: real-time dot tracking + blink + combat opacity
-    if (this.minimap && this.minimap.visible && this.currentLevel) {
-      this.minimapBlinkTimer = (this.minimapBlinkTimer + dt) % 800;
-      this.updateMinimapBuilderLayer();
-      if (this.minimapDot) {
-        this.minimapDot.alpha = this.minimapBlinkTimer < 400 ? 1.0 : 0.3;
-        const dotSize = 3 * this.game.uiScale;
-        const px = Math.min(this.minimapPW - dotSize, Math.max(dotSize, (this.player.x + this.currentLevel.worldX - this.minimapVpLeft) * this.minimapScaleX));
-        const py = Math.min(this.minimapPH - dotSize, Math.max(dotSize, (this.player.y + this.currentLevel.worldY - this.minimapVpTop) * this.minimapScaleY));
-        this.minimapDot.x = px - dotSize / 2;
-        this.minimapDot.y = py - dotSize / 2;
-      }
-      const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
-      this.minimap.alpha = inCombat ? 0.4 : 0.7;
-    }
+    this.worldMinimap.update(dt);
 
     // Damage numbers & Sakurai hit effects
-    this.dmgNumbers.update(dt);
-    this.hitSparks.update(dt);
-    this.propShatter.update(dt);
-    this.screenFlash.update(dt);
+    this.combatFeedbackRuntime.update(dt);
 
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
     // ItemDeployment cinematic-state update: growth, player pull, and final handoff fade.
-    this.itemDeployment?.update(dt);
-    this.updateItemWorldGrowthSnapshot(dt);
-    if (this.ghostOverlay) {
-      let plx: number | undefined;
-      let ply: number | undefined;
-      if (this.player) {
-        const playerWorldX = this.player.container.x + this.player.width / 2;
-        const playerWorldY = this.player.container.y + this.player.height;
-        plx = playerWorldX - this.ghostOverlay.container.x;
-        ply = playerWorldY - this.ghostOverlay.container.y;
-        if (this.ghostRevealLastPlayerX !== null && this.ghostRevealLastPlayerY !== null) {
-          const dx = playerWorldX - this.ghostRevealLastPlayerX;
-          const dy = playerWorldY - this.ghostRevealLastPlayerY;
-          if (dx * dx + dy * dy > 1) {
-            this.ghostRevealActivated = true;
-            this.itemDeployment?.releaseItemBirthPieces();
-          }
-        }
-        this.ghostRevealLastPlayerX = playerWorldX;
-        this.ghostRevealLastPlayerY = playerWorldY;
-      }
-      this.ghostOverlay.update(dt, plx, ply, this.ghostRevealActivated);
-    }
-    if (this.ghostPendingTimer >= 0 && !this.ghostOverlay && this.ghostPendingParams) {
-      this.ghostPendingTimer += dt;
-      if (this.ghostPendingTimer >= 400) {
-        this._buildGhostOverlay(this.ghostPendingParams);
-        this.ghostPendingTimer = -1;
-        this.ghostPendingParams = null;
-      }
-    }
+    this.itemWorldEntryState.deployment?.update(dt);
+    this.itemWorldGrowthSnapshot.update(dt);
+    this.itemWorldGhostStream.update(dt, () => this.itemWorldEntryState.deployment?.releaseItemBirthPieces());
 
-    // Frozen snapshot: RGB split + grayscale ??both grow with distance
-    if (this.frozenPlayerSnapshot && this.player) {
-      const dx   = this.player.container.x - this.frozenPlayerSnapshot.x;
-      const dy   = this.player.container.y - this.frozenPlayerSnapshot.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (this.frozenSnapshotRGBFilter) {
-        this.frozenSnapshotRGBFilter.setOffset(Math.min(12, dist * 0.06));
-      }
-      if (this.frozenSnapshotGrayFilter) {
-        const t = Math.min(1, Math.max(0, (dist - 128) / 200));
-        const l = 0.2126, m = 0.7152, s = 0.0722;
-        this.frozenSnapshotGrayFilter.matrix = [
-          1-(1-l)*t, m*t,       s*t,       0, 0,
-          l*t,       1-(1-m)*t, s*t,       0, 0,
-          l*t,       m*t,       1-(1-s)*t, 0, 0,
-          0,         0,         0,         1, 0,
-        ];
-      }
-    }
+    this.frozenSnapshotRuntime.update(this.player);
 
-    // Frozen snapshot: confirm panel input
-    if (this.frozenSnapConfirmOpen) {
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.game.input.consumeJustPressed(GameAction.ATTACK);
-        this._hideFrozenReturnConfirm();
-        this._beginReturnToWorld();
-      } else if (
-        this.game.input.isJustPressed(GameAction.JUMP) ||
-        this.game.input.isJustPressed(GameAction.DASH) ||
-        this.game.input.isJustPressed(GameAction.MENU) ||
-        this.game.input.isJustPressed(GameAction.CANCEL)
-      ) {
-        this.game.input.consumeJustPressed(GameAction.JUMP);
-        this.game.input.consumeJustPressed(GameAction.DASH);
-        this.game.input.consumeJustPressed(GameAction.MENU);
-        this.game.input.consumeJustPressed(GameAction.CANCEL);
-        this._hideFrozenReturnConfirm();
-      }
-    }
+    this.frozenReturnRuntime.updateConfirmInput();
 
-    // Camera ??deadzone follow + zoom lerp. Player is always in world coords.
+    // Camera — deadzone follow + zoom lerp. Player is always in world coords.
     // While riding the builder, include visualYOffset so the camera tracks the
     // player's *visual* position. Without this, the physics +16 tile crossing
     // jump (see builder update above) propagates to the camera target and
-    // causes a "???? rocking as the camera snaps to each crossing.
+    // causes a "튀는" rocking as the camera snaps to each crossing.
     //
     // The offset is rounded to an integer pixel: a fractional target would
     // make the rounded camera renderY oscillate near .5 boundaries every
-    // frame, producing a rapid 1px "??類ｌ맰?? shake. Tile-crossing cancellation
-    // still works because the offset is symmetric (~+8 ??~-8 at crossing).
+    // frame, producing a rapid 1px "지터" shake. Tile-crossing cancellation
+    // still works because the offset is symmetric (~+8 — ~-8 at crossing).
     const cam = this.game.camera;
     const cx = this.player.x + this.player.width / 2;
     const cy = this.player.y + this.player.height / 2 + Math.round(this.player.visualYOffset);
@@ -3201,329 +3011,48 @@ export class LdtkWorldScene extends Scene {
       && Math.abs(this.player.vx) < 1 && this.player.hp > 0;
     const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
     const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
-    const wantLook = playerIdle && (lookUp || lookDown);
-    if (wantLook) {
-      this.lookHoldTimer += dt;
-    } else {
-      this.lookHoldTimer = 0;
-    }
-    const LOOK_HOLD_THRESHOLD = 400; // ms before peek activates
-    cam.lookDirection = (wantLook && this.lookHoldTimer >= LOOK_HOLD_THRESHOLD)
-      ? (lookUp ? -1 : 1)
-      : 0;
+    cam.lookDirection = this.cameraInputRuntime.updateLookDirection({
+      dtMs: dt,
+      playerIdle,
+      lookUp,
+      lookDown,
+    });
 
     cam.update(dt);
-    this.updateWeather(dt);
+    this.worldWeatherRuntime.update(dt);
 
-    // Parallax background scroll ??frozen while dungeon atmosphere is active
-    if (!this.dungeonAtmosphereActive) {
+    // Parallax background scroll — frozen while dungeon atmosphere is active
+    if (!this.dungeonAtmosphereRuntime.isActive) {
       this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
     }
 
-    // Oxygen overlay ??vignette + bar when submerged
-    this.updateOxygenOverlay();
+    // Oxygen overlay — vignette + bar when submerged
+    this.oxygenOverlay.update(this.player);
   }
 
   /**
-   * Drain player VFX one-shot events and tick the per-frame trails
-   * (landing dust / dash afterimage / dash boost / double jump / wall jump).
-   * Called each frame after player.update().
+   * Coordinates movement/environment VFX after player.update().
+   * Player kinematic and fluid/residue feedback are delegated; scene-local logic
+   * still owns drop-through tutorial hooks and manager update ordering.
    */
   private updateMovementVfx(dt: number): void {
     const p = this.player;
 
-    // Landing dust ??on grounded edge
-    const landedSpeed = p.consumeLandedEvent();
-    if (landedSpeed !== null) {
-      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
-      // Land thud ?????곕┃ ???쒖┣?띠럾? ??? ???깅굵 ???異?(??? ??믨퀡????嶺뚢뼰維? noise ??怨뺣룛).
-      // ??쒕뼬??????곕┃??源낅빢??slower playback (deeper pitch).
-      if (landedSpeed > 120) {
-        const t = Math.min(1, (landedSpeed - 120) / 380);
-        SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
-      }
-    }
+    this.movementVfxRuntime.updatePlayerKinematicFeedback(dt, p);
+    this.worldFluidFeedbackRuntime.updatePlayer(dt);
 
-    // Dash boost puff ??on dash start
-    const dashDir = p.consumeDashedEvent();
-    if (dashDir !== null) {
-      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
-    }
-
-    // Double jump ring ??on mid-air second jump
-    if (p.consumeDoubleJumpEvent()) {
-      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-
-    // Wall jump dust ??wall side = -kickDir
-    const kickDir = p.consumeWallJumpEvent();
-    if (kickDir !== null) {
-      const wallX = kickDir > 0 ? p.x : p.x + p.width;
-      const wallY = p.y + p.height * 0.45;
-      this.wallJumpDust.spawn(wallX, wallY, kickDir);
-    }
-
-    // Dash afterimage trail ??continuous while dashing
-    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
-      x: p.x, y: p.y, w: p.width, h: p.height,
-      facingRight: p.facingRight,
-      texture: p.getCurrentErdaTexture(),
-      spriteCenterX: p.x + p.width / 2,
-      spriteFootY: p.y + p.height,
-    }));
-
-    // --- Batch B ---
-    // Ground takeoff puff
-    if (p.consumeGroundJumpEvent()) {
-      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-    // (Drop-through handled in Batch D section below)
-    // Wall slide continuous dust
-    if (p.isWallSliding()) {
-      const wallSide = p.wallContactDir(); // -1 left, +1 right
-      const wallX = wallSide < 0 ? p.x : p.x + p.width;
-      const outDir = -wallSide;
-      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
-    }
-    // Footstep puff on ground movement + sound. speed 0.92~1.08 ??쒕샍??熬곣뫁夷???棺??륁뿉?? ?띠룆흮??
-    if (this.footstepPuff.stepIfMoving(
-      dt, p.isGrounded(),
-      p.x + p.width / 2, p.y + p.height,
-      p.getVx(), p.facingRight,
-    )) {
-      SFX.play('footstep', 0, { speed: 0.92 + Math.random() * 0.16 });
-    }
-    // Surge VFX ??drive by state
-    if (p.isSurgeCharging()) {
-      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
-    } else if (p.isSurgeFlying()) {
-      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
-    } else {
-      this.surgeVfx.idleTick(dt);
-    }
-
-    // --- Batch D ---
-    // Dive landing impact ??fires on diveLanded OR any fast fall land
-    if (p.diveLanded) {
-      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
-    } else if (landedSpeed !== null && landedSpeed > 520) {
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
-    }
-    // Water enter/exit splash
-    const waterT = p.consumeWaterTransitionEvent();
-    if (waterT !== null) {
-      const strength = waterT > 0 ? 1.0 : 0.8;
-      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
-      // Dynamic fluid surface ripple ??嶺뚯쉳???+) ?????熬곥굥??? ???뀀?-) ????????꾩룇瑗? ?熬곥굥???
-      const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
-      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
-    }
-    // Non-water fluid (magma/oil/acid) entry/exit ripple ??same impulse pattern
-    // as water but no swim physics / oxygen handling (those are water-only).
-    const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.collisionGrid);
-    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'magma';
-    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'oil';
-    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'acid';
-    const inCyro_  = isInCyro (p.x, p.y, p.width, p.height, this.collisionGrid) || playerWaterfallType === 'cyro';
-    const inAnyOther = inMagma_ || inOil_ || inAcid_ || inCyro_;
-    if (inAnyOther !== this.prevPlayerInOtherFluid) {
-      const type: 'magma' | 'oil' | 'acid' | 'cyro' = inCyro_ ? 'cyro' : inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
-      const strength = inAnyOther ? 1.0 : 0.8;
-      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
-      const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
-      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
-      // Magma entry ??also emit a single steam puff (water-on-skin sizzle).
-      if (inAnyOther && inMagma_) {
-        this.steamPuff.spawn(p.x + p.width / 2, p.y + p.height, 1.2);
-      }
-      this.prevPlayerInOtherFluid = inAnyOther;
-    }
-    // ???? Residue trail timers (oil/acid/magma) ??????????????????????????????????????????????????????
-    // Each timer = remaining ms during which the player's feet still leave
-    // a residue blot. Touching the source fluid refreshes to full duration.
-    // Oil additionally drives the slip debuff (Player.update reads it).
-    if (inOil_) {
-      p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-      p.oilResidueRemainingMs = OIL_RESIDUE_DURATION_MS;
-    } else {
-      if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
-      if (p.oilResidueRemainingMs > 0) p.oilResidueRemainingMs = Math.max(0, p.oilResidueRemainingMs - dt);
-    }
-    p.prevInOil = inOil_;
-
-    if (inAcid_) p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
-    else if (p.acidResidueRemainingMs > 0) p.acidResidueRemainingMs = Math.max(0, p.acidResidueRemainingMs - dt);
-    p.prevInAcid = inAcid_;
-
-    if (inMagma_) p.magmaResidueRemainingMs = MAGMA_RESIDUE_DURATION_MS;
-    else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
-    p.prevInMagma = inMagma_;
-
-    // Water/Cyro ??蹂?뜜-only residue (2026-05-18).
-    if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
-    else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
-
-    if (inCyro_) p.cyroResidueRemainingMs = CYRO_RESIDUE_DURATION_MS;
-    else if (p.cyroResidueRemainingMs > 0) p.cyroResidueRemainingMs = Math.max(0, p.cyroResidueRemainingMs - dt);
-    p.prevInCyro = inCyro_;
-
-    const footX = p.x + p.width / 2;
-    const footY = p.y + p.height;
-    const grounded = p.isGrounded();
-    this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('water', footX, footY, p.waterResidueRemainingMs > 0, grounded, p.waterResidueRemainingMs / WATER_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('cyro',  footX, footY, p.cyroResidueRemainingMs > 0, grounded, p.cyroResidueRemainingMs / CYRO_RESIDUE_DURATION_MS);
-
-    // ???? Residue contact effects: standing on a blot triggers the matching
-    // hazard. Oil = slip refresh. Acid = damage tick. Magma = burn DOT.
-    // Burning oil blot = fire DOT + Burn refresh.
-    this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: (_remainingMs) => {
-        // No-op (2026-05-17): residue blot ??player ?熬곣뫗逾?嶺뚢뼰維?? ??????怨룹꽑?띠럾? ?????
-        // ?꾩룇裕?袁ｋ쨨??熬? 濾곌쑬梨??얠춺?oilResidueRemainingMs ?띠럾? ??쒕샑??refresh ??琉우꽑 ?꾩룇裕녻??
-        // ?リ옇?▼럴????⑤챷?????????륁?????뺢퀗???????츩. TILE_OIL ???沅???嶺?player ???熬곣뫗逾?
-      },
-      onAcidContact: () => {
-        let acc = p.acidTickAccum ?? 0;
-        acc += dt;
-        while (acc >= 100 /* ACID_TICK_MS */) {
-          acc -= 100;
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.005));
-          if (!p.invincible) p.hp = Math.max(0, p.hp - dmg);
-        }
-        p.acidTickAccum = acc;
-      },
-      onMagmaContact: () => {
-        if (p.inWater) {
-          p.extinguishFireDebuffs();
-          return;
-        }
-        // Refresh Burn DOT (mirrors magma cell behavior ??initial hit + 15s burn).
-        const wasBurning = (p.burnRemainingMs ?? 0) > 0;
-        p.burnRemainingMs = 15000;
-        if (!wasBurning && !p.invincible) {
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.02));
-          p.hp = Math.max(0, p.hp - dmg);
-        }
-      },
-      onFireContact: () => {
-        if (p.inWater) {
-          p.extinguishFireDebuffs();
-          return;
-        }
-        // Burning oil residue ??same per-frame fire DOT as fire overlay.
-        if (!p.invincible) {
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.03 * (dt / 1000)));
-          p.hp = Math.max(0, p.hp - dmg);
-        }
-        // Refresh Burn DOT so the player keeps cooking after stepping off.
-        p.burnRemainingMs = Math.max(p.burnRemainingMs ?? 0, 10000);
-      },
-    });
-    if (p.inWater) p.extinguishFireDebuffs();
-    // Continuous rising bubbles while submerged
-    this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
     // Drop-through dust streak
     if (p.consumeDropThroughEvent()) {
-      this.builderOneWayDropThroughGraceMs = 260;
+      this.builderPlayerStateRuntime.startDropThroughGrace();
       this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
-      // ?????? 嶺뚯쉳???drop-through ???덈? ?熬곣뫁????hint ?띠럾? ??戮?뻣 繞벿살탳?醫묒춺?1???????吏?fade,
-      // ??????꾩렮維? ?熬곥굥??handled flag ??set.
-      this.tutorialHint.dismissAfter('hint_drop_through', 1000);
-      this.dropThroughHintHandled = true;
+      // ── 첫 drop-through 직후엔 관련 hint 를 잠깐 보여주고 1초 뒤 fade,
+      // 이후에는 handled flag 를 set.
+      this.worldTutorialHints.handleDropThroughEvent();
     }
     // Ice skid streak
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
 
-    // --- Enemies: ??醫롫윞??VFX ??醫롫윪亦??(water/ice + land/jump dust) ---
-    for (let i = 0; i < this.enemies.length; i++) {
-      const e = this.enemies[i];
-      if (!e.alive) continue;
-      const ex = e.x + e.width / 2;
-      const ey = e.y + e.height;
-      if (e.waterTransition !== 0) {
-        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength, 'water');
-        const impulseVy = e.waterTransition > 0 ? 150 : -100;
-        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
-      }
-      // Magma / oil / acid entry-exit splash (same as player handler).
-      const inOther = isInMagma(e.x, e.y, e.width, e.height, this.collisionGrid)
-                   || isInOil  (e.x, e.y, e.width, e.height, this.collisionGrid)
-                   || isInAcid (e.x, e.y, e.width, e.height, this.collisionGrid);
-      const prevOther = this.prevEnemyInOtherFluid[i] ?? false;
-      if (inOther !== prevOther) {
-        // Pick the fluid actually under the enemy for splash color.
-        let type: 'magma' | 'oil' | 'acid' = 'magma';
-        if (isInOil (e.x, e.y, e.width, e.height, this.collisionGrid)) type = 'oil';
-        else if (isInAcid(e.x, e.y, e.width, e.height, this.collisionGrid)) type = 'acid';
-        const strength = inOther ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength, type);
-        const impulseVy = inOther ? 150 : -100;
-        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
-        this.prevEnemyInOtherFluid[i] = inOther;
-      }
-      const key = `enemy_${i}`;
-      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
-      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
-      const eLanded = e.consumeLandedEvent();
-      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
-      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
-
-      // ???? Residue contact effects: enemies share the player's residue
-      // hazard surface. Element multiplier applies ??magma-affined enemies
-      // shrug off the magma blot; fire-affined ignore burning oil; etc.
-      // Burn DOT refresh is skipped when the source element has 0 multiplier.
-      if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
-      const eAcidM  = e.elementMultiplier('acid');
-      const eMagmaM = e.elementMultiplier('magma');
-      const eFireM  = e.elementMultiplier('fire');
-      this.fluidResidue.applyEffects(e.x, e.y, e.width, e.height, {
-        refreshOilSlip: (remainingMs) => {
-          e.oilSlipRemainingMs = Math.max(e.oilSlipRemainingMs, remainingMs);
-        },
-        onAcidContact: () => {
-          if (eAcidM <= 0) return;
-          let acc = e.acidTickAccum;
-          acc += dt;
-          let totalDmg = 0;
-          while (acc >= 100) {
-            acc -= 100;
-            const dmg = Math.max(1, Math.floor(e.maxHp * 0.005 * eAcidM));
-            e.hp = Math.max(0, e.hp - dmg);
-            totalDmg += dmg;
-          }
-          e.acidTickAccum = acc;
-          if (totalDmg > 0) {
-            e.showHpBarFlash();
-            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, totalDmg, false);
-          }
-          if (e.hp <= 0) e.onDeath();
-        },
-        onMagmaContact: () => {
-          if (eMagmaM <= 0) return;
-          const wasBurning = e.burnRemainingMs > 0;
-          e.burnRemainingMs = 15000;
-          if (!wasBurning) {
-            const dmg = Math.max(1, Math.floor(e.maxHp * 0.02 * eMagmaM));
-            e.hp = Math.max(0, e.hp - dmg);
-            e.showHpBarFlash();
-            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, false);
-            if (e.hp <= 0) e.onDeath();
-          }
-        },
-        onFireContact: () => {
-          if (eFireM <= 0) return;
-          const dmg = Math.max(1, Math.floor(e.maxHp * 0.03 * eFireM * (dt / 1000)));
-          e.hp = Math.max(0, e.hp - dmg);
-          e.burnRemainingMs = Math.max(e.burnRemainingMs, 10000);
-          if (e.hp <= 0) e.onDeath();
-        },
-      });
-    }
+    this.worldFluidFeedbackRuntime.updateEnemies(dt);
 
     // --- Batch C ---
     // Player hit blood spray
@@ -3533,208 +3062,33 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Tick all particle managers
-    this.landingDust.update(dt);
-    this.dashBoostPuff.update(dt);
-    this.doubleJumpRing.update(dt);
-    this.wallJumpDust.update(dt);
-    this.jumpTakeoff.update(dt);
-    this.wallSlideDust.update(dt);
-    this.footstepPuff.update(dt);
-    this.flaskBurst.update(dt);
-    this.criticalHighlight.update(dt);
-    this.hitBloodSpray.update(dt);
-    this.diveLandImpact.update(dt);
-    this.waterSplash.update(dt);
-    this.steamPuff.update(dt);
+    this.movementVfxRuntime.updateCharacterFeedback(dt);
     this.fluidResidue.update(dt);
     this.waterBubbles.update(dt);
-    // ???? Maintained spawners: refill when live count drops below minCount ????
-    this.tickMaintainedSpawners(dt);
-    // ???? Throwable containers: gravity tick + impact paint + stacking ????
-    const isContainerFluidCell = (gx: number, gy: number): boolean => {
-      const t = this.collisionGrid[gy]?.[gx] ?? 0;
-      return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-    };
-    const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-      const t = this.collisionGrid[gy]?.[gx] ?? 0;
-      if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-      return c.isWoodFamily() && isContainerFluidCell(gx, gy);
-    };
-    const containerOverlapsFluid = (c: ThrowableContainer): boolean => {
-      const left = Math.floor(c.colX / 16);
-      const right = Math.floor((c.colX + c.colW - 1) / 16);
-      const top = Math.floor(c.colY / 16);
-      const bottom = Math.floor((c.colY + c.colH - 1) / 16);
-      for (let gy = top; gy <= bottom; gy++) {
-        for (let gx = left; gx <= right; gx++) {
-          if (isContainerFluidCell(gx, gy)) return true;
-        }
-      }
-      return false;
-    };
-    const env = {
-      isAcidCell:  (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 13,
-      isMagmaCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 6,
-      isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
-      // R-NEW-049/050/051/052/053: ??ル맪?????삵렱 ?筌뤾쑵??hook
-      isWaterCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 2,
-      isOilCell:   (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 11,
-      isFrozenOrIceCell: (gx: number, gy: number) =>
-        (this.collisionGrid[gy]?.[gx] ?? 0) === 7 || this.tileMutator.isFrozen(gx, gy),
-      isChargedCell: (gx: number, gy: number) => (this.collisionGrid[gy]?.[gx] ?? 0) === 8,
-    };
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      const envImpact = c.tickEnvironment(dt, env);
-      if (envImpact) {
-        if (containerOverlapsFluid(c)) {
-          this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
-        }
-        this.applyContainerEffectToFluid(c);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        continue;
-      }
-      const impact = c.update(dt, isContainerSolidCellFor(c), this.containers, isContainerFluidCell);
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        continue;
-      }
-      this.applyContainerEffectToFluid(c);
-    }
-    // ???? Thrown container ??enemy impact (one hit per throw) ????
-    this.checkThrownContainerEnemyHit();
-    // ???? Player ??container collision (push / stack / block) ????
-    this.resolvePlayerContainerCollision();
-    // ???? Enemy ??container collision (stack / block, no damage) ????
-    this.resolveEnemyContainerCollision();
-    // ???? Container ??container overlap resolve (push or stop) ????
-    this.resolveContainerContainerCollision();
-    this.flushContainerFluidChanges();
+    // ── Maintained spawners: refill when live count drops below minCount ──
+    this.maintainedContainerSpawnerRuntime.update(dt);
+    this.worldContainerPhysicsRuntime.update(dt);
 
-    // ???? Ego Shards: flight tick + impact dispatch + retrieval scan ????
-    this.egoShard.update(
-      dt,
-      (info) => this.onEgoShardImpact(info.x, info.y, info.element),
-      (x, y) => {
-        const gx = Math.floor(x / 16);
-        const gy = Math.floor(y / 16);
-        const row = this.collisionGrid[gy];
-        const t = row?.[gx] ?? 0;
-        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-      },
-      (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
-    );
-    this.flushContainerFluidChanges();
-    // Wider retrieval hit-zone ??24px padding around the player AABB so
-    // shards stuck on adjacent walls / floor edges are easily grabbed.
-    const pad = 24;
-    const retrieved = this.egoShard.retrieveInAABB(
-      this.player.x - pad,
-      this.player.y - pad,
-      this.player.width + pad * 2,
-      this.player.height + pad * 2,
-    );
-    // Each manually-retrieved shard consumes one cooldown entry (whichever
-    // has the most time remaining, so the player saves the biggest wait).
-    for (let i = 0; i < retrieved; i++) {
-      const cd = this.player.shardCooldowns;
-      if (cd.length > 0) {
-        let maxIdx = 0;
-        for (let j = 1; j < cd.length; j++) if (cd[j] > cd[maxIdx]) maxIdx = j;
-        cd.splice(maxIdx, 1);
-      }
-      this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
-    }
-    // FluidSpawner tick ??injects fluid cells before the gravity pass so
+    this.worldEgoShardProjectileRuntime.update(dt);
+    // FluidSpawner tick — injects fluid cells before the gravity pass so
     // newly-spawned cells immediately begin falling this frame.
     this.fluidSpawners.update(dt, this.collisionGrid, this.fluidSystem);
     this.fluidSystem.update(dt);
-    // Cellular gravity ??water cells fall + spread to merge after mutations
+    // Cellular gravity — water cells fall + spread to merge after mutations
     // (fire on water creates holes; gravity refills them from above).
     this.fluidSystem.gravityTick(this.collisionGrid, dt, this.tileMutator);
     this.fluidSpawners.pressureDrain(this.collisionGrid, this.fluidSystem);
     this.fluidCrestFoam.update(dt, this.fluidSpawners.getActiveSegments(this.collisionGrid));
-    this.dropThroughDust.update(dt);
-    this.iceSkidStreak.update(dt);
-    this.itemPickupGlow.update(dt);
-    this.relicAuraBurst.update(dt);
-    this.savepointPulse.update(dt);
+    this.movementVfxRuntime.updateLate(dt);
+    this.pickupVfxRuntime.update(dt);
     const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 0;
-    this.lowHpVignette.update(dt, hpRatio);
-  }
-
-  private updateOxygenOverlay(): void {
-    const ratio = this.player.oxygenRatio;
-    const submerged = this.player.submerged && !this.player.abilities.waterBreathing;
-
-    // Vignette overlay
-    if (submerged && ratio < 1) {
-      if (!this.oxygenOverlay) {
-        this.oxygenOverlay = new Graphics();
-        this.oxygenOverlay.eventMode = 'none';
-        this.game.legacyUIContainer.addChild(this.oxygenOverlay);
-      }
-
-      this.oxygenOverlay.clear();
-      // Blue ??red vignette based on oxygen
-      const color = ratio > 0.5 ? 0x1122aa : ratio > 0.25 ? 0x882244 : 0xaa2222;
-      const intensity = (1 - ratio) * 0.5;
-      // Pulse effect when low
-      const pulse = ratio < 0.5 ? Math.sin(Date.now() * (ratio < 0.15 ? 0.015 : 0.008)) * 0.1 : 0;
-      const alpha = Math.min(0.6, intensity + pulse);
-
-      // Draw border vignette
-      this.oxygenOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-        .fill({ color, alpha });
-      // Clear center to create vignette effect
-      const cx = GAME_WIDTH / 2;
-      const cy = GAME_HEIGHT / 2;
-      const r = GAME_WIDTH * 0.35 * (0.5 + ratio * 0.5);
-      this.oxygenOverlay.circle(cx, cy, r).cut();
-
-      this.oxygenOverlay.visible = true;
-    } else {
-      if (this.oxygenOverlay) {
-        this.oxygenOverlay.visible = false;
-      }
-    }
-
-    // Oxygen bar (bottom center, only when submerged)
-    if (submerged && ratio < 1) {
-      if (!this.oxygenBar) {
-        this.oxygenBar = new Graphics();
-        this.oxygenBar.eventMode = 'none';
-        this.game.legacyUIContainer.addChild(this.oxygenBar);
-      }
-
-      this.oxygenBar.clear();
-      const barW = 60;
-      const barH = 4;
-      const bx = GAME_WIDTH / 2 - barW / 2;
-      const by = GAME_HEIGHT - 20;
-      // BG
-      this.oxygenBar.rect(bx, by, barW, barH).fill({ color: 0x111133, alpha: 0.7 });
-      // Fill
-      const fillColor = ratio > 0.5 ? 0x4488ff : ratio > 0.25 ? 0xff8844 : 0xff2222;
-      this.oxygenBar.rect(bx, by, barW * ratio, barH).fill(fillColor);
-      // Border
-      this.oxygenBar.rect(bx, by, barW, barH).stroke({ color: 0x446688, width: 0.5 });
-
-      this.oxygenBar.visible = true;
-    } else {
-      if (this.oxygenBar) {
-        this.oxygenBar.visible = false;
-      }
-    }
+    this.statusFeedbackRuntime.update(dt, hpRatio);
   }
 
   render(alpha: number): void {
     if (!this.initialized) return;
     // During post-transition snap, disable interpolation to prevent 1-frame jitter
-    const a = this.postTransitionSnapFrames > 0 ? 1 : alpha;
+    const a = this.cameraInputRuntime.resolveRenderAlpha(alpha);
     this.player.render(a);
     for (const enemy of this.enemies) enemy.render(a);
     // Portals and altars are static, no interpolation needed
@@ -3754,61 +3108,69 @@ export class LdtkWorldScene extends Scene {
     }, builderGrid);
   }
 
-  /** GamepadManager ??⑤슡???釉뚯뫊?????繹??????ル∥裕??(System_Input_Gamepad 筌?.1 Stage 3). */
-  private _attachGamepadToast(): () => void {
-    const off1 = this.game.gamepad.onConnectEvent((brand) => {
-      this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
-    });
-    const off2 = this.game.gamepad.onDisconnectEvent(() => {
-      this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
-    });
-    return () => { off1(); off2(); };
-  }
-
   exit(): void {
-    this.restoreUiAfterAnvilDiveTransition();
+    this.anvilDiveUiRuntime.restore();
     if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
-    // if (this.controlsOverlay?.container.parent) {
-    //   this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
-    // }
+    this.anvilCyclePrompt?.destroy();
     // Close and detach modal overlays so they don't bleed into the next scene.
-    // (Previously: M/I ?띠럾? ??醫롫윥??????醫롫윪???醫롫윞?濡λ쐻?嶺뚯쉳????醫롫윥??overlay ?띠럾? legacyUIContainer
-    //  ???잙갭梨??????醫롫윪??ItemWorldScene ??醫롫윪????醫롫윪??????醫롫윥??"stuck" ??醫?繹?泥? ??)
+    // (Previously: M/I 를 열어둔 채 씬을 전환하면 overlay 가 legacyUIContainer
+    //  에 남아 ItemWorldScene 위로 "stuck" 상태로 떠 있었다.)
     this.altarController.destroyUi();
-    // 디플로이 blur 가 패럴럭스(씬 외부 지속)에 잔류하지 않도록 제거.
-    this.clearDeployBlur();
+    this.deployBlurRuntime.clear();
+    this.dialogueTriggerRuntime.clear();
     // 백그라운드로 내려가는 동안 진단 라벨이 화면에 잔류하지 않도록 숨김.
     if (this.collisionDebug) this.collisionDebug.hud.visible = false;
-    if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
-    if (this.itemWorldTransition) { this.itemWorldTransition.destroy(); this.itemWorldTransition = null; }
-    if (this.pendingPortalEntity) { this.pendingPortalEntity.destroy(); this.pendingPortalEntity = null; }
+    this.oxygenOverlay.hide();
+    this.itemWorldTransitionRuntime.destroy();
+    this.portalRuntime.clear();
+    this.portalEntryRuntime.clear();
+    this.debugWarpRuntime?.destroy();
+    this.gameOverRuntime?.destroy();
+    this.acquireOverlayRuntime.destroy();
+    this.frozenReturnRuntime.destroy();
   }
 
   override destroy(): void {
-    this.setLaserDesaturation(false);
-    this.deactivateDungeonAtmosphere();
-    this.destroyGhostOverlay(true);
-    this.restoreDeploymentTunnel(true);
-    this.itemDeployment?.destroy();
-    this.itemDeployment = null;
-    this.weather?.destroy();
-    this.weather = null;
-    this.restoreUiAfterAnvilDiveTransition();
+    this.itemDeploymentAtmosphereFlowRuntime.setLaserDesaturation(false);
+    this.itemDeploymentAtmosphereFlowRuntime.deactivateDungeonAtmosphere();
+    this.itemDeploymentTunnelFlowRuntime.destroyGhostOverlay(true);
+    this.itemDeploymentTunnelFlowRuntime.restoreDeploymentTunnel(true);
+    this.itemWorldEntryState.destroyDeployment();
+    this.anvilCyclePrompt?.destroy();
+    this.itemWorldTransitionRuntime.destroy();
+    this.portalRuntime.clear();
+    this.portalEntryRuntime.clear();
+    this.debugWarpRuntime?.destroy();
+    this.gameOverRuntime?.destroy();
+    this.acquireOverlayRuntime.destroy();
+    this.frozenReturnRuntime.destroy();
+    this.dungeonAtmosphereRuntime.destroy();
+    this.oxygenOverlay.destroy();
+    this.itemWorldReturnFade?.destroy();
+    this.introHandoffRuntime.destroy();
+    this.endingRuntime.destroy();
+    this.dialogueTriggerRuntime.clear();
+    this.worldWeatherRuntime.destroy();
+    this.worldUpdraftRuntime.destroy();
+    this.voidFogRuntime.destroy();
+    this.anvilDiveUiRuntime.restore();
     this.clearBuilder();
     this.parallaxBG?.destroy();
-    this.dmgNumbers?.clear();
-    // blur 를 타깃에서 제거 (backgroundContainer 는 씬 외부 지속 — renderer.destroy 전에).
-    this.clearDeployBlur();
-    this.deployBlurFilter?.destroy();
-    this.deployBlurFilter = null;
+    this.combatFeedbackRuntime.clearDamageNumbers();
+    this.deployBlurRuntime.destroy();
     this.renderer?.destroy();
     // hud 는 game.uiContainer(씬 외부) 자식이라 super.destroy() 가 정리하지 않음 — 직접 해제.
     this.collisionDebug?.hud.destroy({ children: true });
     super.destroy();
   }
+
+  private static readonly debugMode = (() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.has('debug');
+  })();
 
   // ---------------------------------------------------------------------------
   // Level loading
@@ -3821,315 +3183,6 @@ export class LdtkWorldScene extends Scene {
    * @param enterDirection - Direction from which the player arrives, used to
    *                         place the player on the opposite edge.
    */
-  private findPlayerSpawnLevel(): string {
-    return this.transitionController.findPlayerSpawnLevel(this.loader, FALLBACK_ENTRANCE_LEVEL);
-  }
-
-  /** locked door ?띠럾? player center ?? entity center ???????源낆꽑 ???덈츎嶺뚯솘? ??attack 嶺뚢뼰維??? */
-  private isAttackBlockedByDoor(entity: { x: number; y: number; width: number; height: number }): boolean {
-    if (this.lockedDoors.length === 0) return false;
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height / 2;
-    const ex = entity.x + entity.width / 2;
-    const ey = entity.y + entity.height / 2;
-    const xMin = Math.min(px, ex);
-    const xMax = Math.max(px, ex);
-    const yMin = Math.min(py, ey);
-    const yMax = Math.max(py, ey);
-    for (const door of this.lockedDoors) {
-      if (!door.locked) continue;
-      const a = door.getHitAABB();
-      if (a.x + a.width < xMin || a.x > xMax) continue;
-      if (a.y + a.height < yMin || a.y > yMax) continue;
-      return true;
-    }
-    return false;
-  }
-
-  /** Returns true when at least one alive enemy is within 4 tiles (64px) of the player. */
-  private hasEnemyNearby(): boolean {
-    if (!this.enemies || this.enemies.length === 0) return false;
-    const RANGE = 4 * 16; // 4 tiles
-    const px = this.player.x;
-    const py = this.player.y;
-    for (const e of this.enemies) {
-      if (!e.alive) continue;
-      if (Math.abs(e.x - px) < RANGE && Math.abs(e.y - py) < RANGE) return true;
-    }
-    return false;
-  }
-
-  private canLoadWorldLevel(levelId: string | null | undefined): levelId is string {
-    if (!levelId) return false;
-    const level = this.loader.getLevel(levelId);
-    if (!level) return false;
-    return level.roomType !== 'Debug' || LdtkWorldScene.debugMode;
-  }
-
-  private resolveSpawnLevelId(savedLevelId: string | null | undefined): string {
-    if (this.canLoadWorldLevel(savedLevelId)) return savedLevelId;
-    const fallbackLevelId = this.findPlayerSpawnLevel();
-    if (savedLevelId) {
-      console.warn(
-        `[LdtkWorldScene] Saved level "${savedLevelId}" is missing or inaccessible; using "${fallbackLevelId}"`,
-      );
-    }
-    return fallbackLevelId;
-  }
-
-  /** Seal level exits with temporary collision doors when boss fight starts. */
-  private activateBossLock(level: LdtkLevel, bossId: string = 'unknown'): void {
-    if (this.bossActive) return; // already locked; avoid double start event
-    this.bossActive = true;
-    this.bossLockId = bossId;
-    this.bossLockLevelId = level.identifier;
-    trackBossFight({
-      phase: 'start',
-      area: 'world',
-      boss_id: bossId,
-      level_id: level.identifier,
-    });
-    // Create barrier doors at each edge opening
-    const w = level.pxWid;
-    const h = level.pxHei;
-    const doorThick = 16;
-    const positions = [
-      { x: doorThick / 2, y: h / 2, dw: doorThick, dh: h },           // left
-      { x: w - doorThick / 2, y: h / 2, dw: doorThick, dh: h },       // right
-      { x: w / 2, y: doorThick, dw: w, dh: doorThick },               // top (pivot bottom-center)
-      { x: w / 2, y: h, dw: w, dh: doorThick },                       // bottom
-    ];
-    for (const pos of positions) {
-      const door = new LockedDoor(
-        pos.x, pos.y + pos.dh / 2, // adjust for bottom-center pivot
-        pos.dw, pos.dh,
-        '', 'event', '', 'atk', 0,
-      );
-      door.injectCollision(this.collisionGrid);
-      // ???????怨뺢덧??2026-05-05: boss-lock door ????蹂?뜜 (16px??낅쇀筌뤾퍓瑗??brown bar)
-      // ?????띠럾????袁ㅻ뎨??????筌???筌뤾퍔夷??リ옇?←땟??怨쀬Ŧ ?筌뤾쑵???misplaced asset 嶺뚳퐣瑗???곌랜???
-      // collision-only ??嶺뚳퐣瑗??????蹂?뜜 ???. ?繞??arena 嶺뚯쉳?????????(energy
-      // barrier ?? ?怨뺣뼺? ??????????섎?styled ??蹂?뜜 ?遊붋嶺?
-      door.container.visible = false;
-      this.bossLockDoors.push(door);
-      this.entityLayer.addChild(door.container);
-    }
-  }
-
-  /** Remove boss lock doors when boss is defeated. */
-  private deactivateBossLock(): void {
-    if (!this.bossActive) return;
-    this.bossActive = false;
-    for (const door of this.bossLockDoors) {
-      door.unlock(this.collisionGrid);
-      door.destroy();
-    }
-    this.bossLockDoors = [];
-    // arena ??醫롫윪??= ?곌랜???嶺뚳퐣瑗??嶺뚯쉳????醫롫짗????HP ?꾩룆?????醫롫윥???
-    this.hud.hideBossHP();
-    trackBossFight({
-      phase: 'clear',
-      area: 'world',
-      boss_id: this.bossLockId || 'unknown',
-      level_id: this.bossLockLevelId || undefined,
-    });
-    this.bossLockId = '';
-    this.bossLockLevelId = '';
-  }
-
-  private handleEnemyKill(enemy: Enemy<string>): void {
-    this.game.stats.enemiesKilled++;
-
-    // Analytics: enemy kill distribution
-    trackEnemyKill({
-      area: 'world',
-      enemy_type: enemy.constructor.name.toLowerCase(),
-      is_boss: !!(enemy as any)._isBoss,
-      is_elite: enemy instanceof GoldenMonster,
-    });
-
-    // Unlock linked LockedDoors if this enemy had targets
-    const unlockIids = (enemy as any)._unlockTargetIids as string[] | undefined;
-    if (unlockIids) {
-      for (const iid of unlockIids) {
-        this.unlockDoorByIid(iid);
-      }
-    }
-    if ((enemy as any)._isBoss) {
-      const bossX = enemy.x + enemy.width / 2;
-      const bossY = enemy.y + enemy.height - 4;
-
-      // Mark boss as permanently killed
-      const bossKey = (enemy as any)._bossKey as string;
-      if (bossKey) this.unlockedEvents.add(bossKey);
-
-      // Gold flash on boss kill + unlock arena
-      this.screenFlash.flash(0xffd700, 0.5, 300);
-      this.game.hitstopFrames = 12;
-      if (this.bossActive) this.deactivateBossLock();
-
-      // Level up item if inside fixed item world
-      if (this.fixedItemWorldItem) {
-        if (!sacredSave.isFirstItemWorldBossDefeated()) {
-          sacredSave.markFirstItemWorldBossDefeated();
-        }
-
-        const rarity = this.fixedItemWorldItem.rarity;
-        const sourceItem = this.fixedItemWorldItem;
-        const prevAtk = this.fixedItemWorldItem.finalAtk;
-        itemLevelUp(this.fixedItemWorldItem);
-        trackItemLevelUp({
-          source: 'itemworld_boss',
-          item_rarity: rarity,
-          new_level: this.fixedItemWorldItem.level,
-        });
-        this.updatePlayerAtk();
-        const atkGain = this.fixedItemWorldItem.finalAtk - prevAtk;
-        if (atkGain > 0) {
-          this.toast.showBig(t('toast.atk_gain', { amount: atkGain }), 0xffd700);
-        }
-
-        // Spawn portal after delay
-        setTimeout(async () => {
-          if (!this.initialized) return;
-          this.spawnPortal(bossX, bossY, rarity, 'altar', sourceItem);
-        }, 1500);
-      } else {
-        // World boss (test) ??no portal, just big toast
-        this.toast.showBig(t('toast.boss_defeated_excl'), 0xffd700);
-      }
-    } else if (enemy instanceof Slime) {
-      // setTimeout(() => this.dialogueManager.fireEvent('first_slime_kill'), 1000);
-    } else if (enemy instanceof Skeleton) {
-      // setTimeout(() => this.dialogueManager.fireEvent('first_skeleton_kill'), 1000);
-    }
-    // Gold drop on kill (Elden Ring style ??items are hand-placed, not monster drops)
-    const isGolden = enemy instanceof GoldenMonster;
-    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.1);
-    const goldAmount = isGolden ? baseGold * 3 : baseGold;
-    if (goldAmount > 0) {
-      const burst = resolveBottomLeftPickupSpawn(
-        enemy.x + enemy.width / 2 - 8,
-        enemy.y + enemy.height,
-        this.collisionGrid,
-      );
-      for (const gp of GoldPickup.spawnBurst(burst.x, burst.y, goldAmount)) {
-        gp.roomData = this.collisionGrid;
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
-      }
-    }
-
-    // HEL-05: Tiered healing drops (GDD 筌?.1)
-    const healDrop = resolveBottomLeftPickupSpawn(
-      enemy.x + enemy.width / 2 - 8,
-      enemy.y + enemy.height,
-      this.collisionGrid,
-    );
-    if (isGolden && this.dropRng.next() < 0.5) {
-      const heal = createForgeEmber(healDrop.x, healDrop.y, this.player.maxHp);
-      this.healingPickups.push(heal);
-      this.entityLayer.addChild(heal.container);
-    } else if (!isGolden && this.dropRng.next() < 0.2) {
-      const heal = createEmberShard(healDrop.x, healDrop.y, this.player.maxHp);
-      this.healingPickups.push(heal);
-      this.entityLayer.addChild(heal.container);
-    }
-  }
-
-  private static readonly debugMode = (() => {
-    const p = new URLSearchParams(window.location.search);
-    return p.has('debug');
-  })();
-
-  private configureWeatherForLevel(level: LdtkLevel): void {
-    this.weather?.destroy();
-    this.weather = null;
-
-    const weatherEnts = level.entities.filter(e => e.type === 'Weather');
-    const ent = weatherEnts[0];
-    if (!ent) return;
-
-    const fields = ent.fields ?? {};
-    const mode = this.readWeatherMode(fields['WeatherType']);
-    const density = this.readWeatherNumber(fields, 'Density', 0.5, 0, 1);
-    const wind = this.readWeatherNumber(fields, 'Wind', mode === 'rain' ? -0.18 : 0, -1, 1);
-    const streakLength = this.readWeatherNumber(fields, 'StreakLength', 6, 1, 64);
-    const streakWidth = this.readWeatherNumber(fields, 'StreakWidth', 0.8, 0.25, 8);
-
-    this.weather = new WeatherSystem({
-      mode,
-      intensity: density,
-      wind,
-      streakLength,
-      streakWidth,
-      coverageCheckTiles: 3,
-      collision: {
-        grid: this.collisionGrid,
-        tileSize: TILE_SIZE,
-        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
-        ignoreCell: (col, row) => this.isBuilderStampedCell(col, row),
-      },
-    });
-    this.weatherLayer.addChild(this.weather.container);
-
-    if (weatherEnts.length > 1) {
-      console.warn(`[Weather] level="${level.identifier}" has ${weatherEnts.length} Weather entities; using the first one.`);
-    }
-    if (LdtkWorldScene.debugMode) {
-      Debug.log(`[Weather] level="${level.identifier}" mode=${mode} density=${density} wind=${wind} streak=${streakLength}/${streakWidth}`);
-    }
-  }
-
-  private readWeatherMode(value: unknown): WeatherMode {
-    return typeof value === 'string' && value.toLowerCase() === 'snow' ? 'snow' : 'rain';
-  }
-
-  private readWeatherNumber(
-    fields: Record<string, unknown>,
-    key: string,
-    fallback: number,
-    min: number,
-    max: number,
-  ): number {
-    const raw = fields[key];
-    const parsed = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : fallback;
-    const value = Number.isFinite(parsed) ? parsed : fallback;
-    return Math.max(min, Math.min(max, value));
-  }
-
-  private updateWeather(dt: number): void {
-    if (!this.weather) return;
-    this.weather.setDynamicColliders(this.getWeatherDynamicColliders());
-    const cam = this.game.camera;
-    const width = GAME_WIDTH / cam.zoom;
-    const height = GAME_HEIGHT / cam.zoom;
-    this.weather.update(dt, {
-      x: cam.renderX - width / 2,
-      y: cam.renderY - height / 2,
-      width,
-      height,
-    });
-  }
-
-  private getWeatherDynamicColliders(): WeatherDynamicCollider[] {
-    const b = this.activeBuilder;
-    if (!b) return [];
-    if (!this.weatherBuilderCollider) {
-      this.weatherBuilderCollider = {
-        grid: b.collisionGrid,
-        tileSize: TILE_SIZE,
-        originX: b.container.x,
-        originY: b.container.y,
-        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
-      };
-    }
-    this.weatherBuilderCollider.grid = b.collisionGrid;
-    this.weatherBuilderCollider.originX = b.container.x;
-    this.weatherBuilderCollider.originY = b.container.y;
-    return [this.weatherBuilderCollider];
-  }
-
   private loadLevel(levelId: string, enterDirection: 'left' | 'right' | 'up' | 'down'): boolean {
     // Debug rooms (RoomType=Debug) only accessible with ?debug in URL
     if (this.loader.getLevel(levelId)?.roomType === 'Debug' && !LdtkWorldScene.debugMode) {
@@ -4150,201 +3203,32 @@ export class LdtkWorldScene extends Scene {
     this.currentLevel = level;
     this.visitedLevels.add(level.identifier);
 
-    // Collision grid ??deep copy so runtime modifications don't persist across reloads
-    this.collisionGrid = level.collisionGrid.map(row => [...row]);
+    // Collision grid — deep copy so runtime modifications don't persist across reloads
+    this.collisionGridRuntime.cloneFrom(level.collisionGrid);
 
-    // Reset elemental tile overlays + burnable entities ??frozen timers and
+    // Reset elemental tile overlays + burnable entities — frozen timers and
     // entity registry from the previous room would otherwise leak across
     // rooms with different layouts.
-    this.tileMutator.reset();
-    for (const p of this.burnableProps) p.destroy();
-    this.burnableProps.length = 0;
-    this.ashRemnant?.clear();
-    this.fluidResidue?.clear();
-    this.egoShard?.clear();
-    this.solidifiedWallCells.clear();
-    this.rebuildSolidifiedWallOverlay();
-    for (const c of this.containers) c.destroy();
-    this.containers.length = 0;
-    this.heldContainer = null;
-    this.pullingContainer = null;
-    this.pullElapsedMs = 0;
-    this.arcTether?.hide();
+    this.worldTileMutationRuntime.reset();
+    this.worldBurnablePropRuntime.clear();
+    this.grassFireRuntime.clearAsh();
+    this.worldFluidRuntime.clearResidue();
+    this.egoShardRuntime.clear();
+    this.solidifiedWallOverlay.clear();
+    this.worldContainerRegistry.clear();
+    this.worldContainerCarryRuntime.reset();
 
-    // Hybrid procedural pass ??populate grass/wood inside LDtk-painted
-    // BurnableZone rect entities + spawn Tier B BurnableProp entities.
-    // Density + seed come from entity fields.
-    // GDD: Documents/System/System_World_TileSystem.md 筌?
-    const burnableSpecs: BurnableEntitySpec[] = applyBurnableZones(this.collisionGrid, level.entities);
-    for (const s of burnableSpecs) {
-      const prop = new BurnableProp(s.id, s.gx, s.gy);
-      this.burnableProps.push(prop);
-      this.tileMutator.registerBurnable(prop);
-      this.entityLayer.addChild(prop.container);
-    }
-    if (LdtkWorldScene.debugMode) {
-      const zoneCount = level.entities.filter(e => e.type === 'BurnableZone').length;
-      // eslint-disable-next-line no-console
-      Debug.log(`[BurnableZone] level="${level.identifier}" zones=${zoneCount} props=${burnableSpecs.length}`);
-    }
+    this.worldBurnablePropRuntime.spawnFromBurnableZones(level);
+    this.worldContainerSpawnRuntime.spawnForLevel(level);
 
-    // Throwable Container entities ??LDtk-placed Box props player can grab/throw.
-    //   Entity type:  "Container"
-    //   Fields:
-    //     Kind         (Enum or String) ??Crate / OilDrum / WaterBarrel /
-    //                                     MagmaCrucible / AcidVial
-    //     FluidVolume  (Integer, optional) ??number of cells flooded on
-    //                                        break. If omitted or < 0,
-    //                                        falls back to spec default.
-    // Position uses the entity's px[] top-left.
-    const containerEnts = level.entities.filter(e => e.type === 'Container');
-    let spawnedCount = 0;
-    const spawnLog: string[] = [];
-    for (const ent of containerEnts) {
-      const fields = ent.fields ?? {};
-      const kindRaw = fields['Kind'];
-      let kind = parseContainerKind(kindRaw);
-      if (!kind) {
-        // Generic_A/B/C ??World ?猷몄굣? temperament ???쳜????덈콦?띠럾? ??怨몃さ亦껋깢???default
-        // (forge) ???????????嶺뚮?理?? ?猷몄굡?????깅턄 ?熬곣뫗???濡?듆 explicit Kind ????
-        const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
-        if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
-          kind = resolveContainerSlotKind(slotStr, null);
-        }
-      }
-      if (!kind) {
-        // eslint-disable-next-line no-console
-        console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${ent.px[0]}, ${ent.px[1]}) ??invalid, skipped. Valid values: Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial / Generic_A / Generic_B / Generic_C`);
-        continue;
-      }
-      const fvRaw = fields['FluidVolume'];
-      const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
-      // Use the entity's GRID position (cell coords) for a pivot-independent
-      // top-left. LDtk's `px` depends on the entity definition's pivot
-      // (center vs top-left) which we can't see from the loader; `grid`
-      // is always the cell containing the entity, so `grid * 16` is the
-      // unambiguous top-left of the cell.
-      const cx = ent.grid[0] * 16;
-      const cy = ent.grid[1] * 16;
-      const c = new ThrowableContainer(kind, cx, cy, fluidVolume);
-      this.containers.push(c);
-      this.entityLayer.addChild(c.container);
-      spawnLog.push(`  ${kind}@(${cx},${cy}) px=(${ent.px[0]},${ent.px[1]}) grid=(${ent.grid[0]},${ent.grid[1]}) vol=${c.fluidVolume}`);
-      spawnedCount++;
-    }
-    // ???? ContainerSpawner entities ??procedural fill (System_World_Container 筌?2) ????
-    // Explicit Container entities are always honored first; spawners only
-    // create boxes in *remaining* free cells (avoidEntity defaults to true).
-    const spawnerEnts = level.entities.filter(e => e.type === 'ContainerSpawner');
-    let spawnerSpawned = 0;
-    const occupiedCells = new Set<string>();
-    for (const c of this.containers) {
-      const gx0 = Math.floor(c.x / 16);
-      const gx1 = Math.floor((c.x + c.spec.width - 1) / 16);
-      const gy0 = Math.floor(c.y / 16);
-      const gy1 = Math.floor((c.y + c.spec.height - 1) / 16);
-      for (let gy = gy0; gy <= gy1; gy++) {
-        for (let gx = gx0; gx <= gx1; gx++) occupiedCells.add(`${gx},${gy}`);
-      }
-    }
-    const debugOn = new URLSearchParams(window.location.search).has('debug');
-    this.maintainedSpawners.length = 0;
-    for (const spw of spawnerEnts) {
-      const opts = readSpawnerEntity(spw);
-      // Debug overlay ??outline the spawner rect so designers can sanity-
-      // check coverage in-game without reloading LDtk. Gated by ?debug.
-      if (debugOn) {
-        const dbg = new Graphics();
-        dbg.rect(opts.rect.x, opts.rect.y, opts.rect.w, opts.rect.h)
-          .stroke({ color: 0xff44ff, width: 1, alpha: 0.8 });
-        this.entityLayer.addChild(dbg);
-      }
-      // Auto-seed when entity asks for non-deterministic: stable per level so
-      // re-entries give the same layout. -1 stays -1 (truly random).
-      const autoSeed = opts.seed >= 0
-        ? opts.seed
-        : (level.identifier.split('').reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 0));
-      const spawned = runContainerSpawner({
-        rect: opts.rect,
-        collisionGrid: this.collisionGrid,
-        existing: this.containers,
-        occupiedCells,
-        pool: opts.pool,
-        minCount: opts.minCount,
-        maxCount: opts.maxCount,
-        bias: opts.bias,
-        seed: opts.seed >= 0 ? opts.seed : autoSeed,
-        avoidEntity: opts.avoidEntity,
-        fluidVolumeOverride: opts.fluidVolumeOverride,
-      });
-      for (const c of spawned) {
-        this.containers.push(c);
-        this.entityLayer.addChild(c.container);
-        occupiedCells.add(`${Math.floor(c.x / 16)},${Math.floor(c.y / 16)}`);
-        spawnerSpawned++;
-      }
-      // Register for runtime refill if Maintain=true. Refill check runs
-      // every MAINTAIN_CHECK_MS in update(). `owned` starts as the initial
-      // spawn batch ??refill targets only spawners whose owned list is
-      // fully depleted (all containers destroyed).
-      if (opts.maintain && opts.pool.length > 0) {
-        this.maintainedSpawners.push({
-          rect: opts.rect,
-          pool: opts.pool,
-          minCount: opts.minCount,
-          maxCount: opts.maxCount,
-          bias: opts.bias,
-          seed: opts.seed,
-          avoidEntity: opts.avoidEntity,
-          fluidVolumeOverride: opts.fluidVolumeOverride,
-          checkAccum: 0,
-          owned: [...spawned],
-        });
-      }
-    }
-    // Settle all spawned containers in dependency order ??bottom containers
-    // first so containers placed above them detect the proper resting
-    // position. Loop is small (typically < 20) so cost is negligible.
-    {
-      const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-        const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-        return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
-      };
-      const sorted = [...this.containers].sort((a, b) => b.y - a.y);
-      for (const c of sorted) {
-        if (c.skipSettle) continue; // Drop-bias containers fall naturally.
-        c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
-          const t = this.collisionGrid[gy]?.[gx] ?? 0;
-          return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-        });
-      }
-    }
-    // Always log how many Container entities were seen vs spawned + where ??
-    // helps diagnose camera-out-of-view, off-grid, etc.
-    // eslint-disable-next-line no-console
-    Debug.log(`[Container] level="${level.identifier}" explicit=${spawnedCount}/${containerEnts.length} spawner=${spawnerSpawned} (from ${spawnerEnts.length} spawners)\n${spawnLog.join('\n')}`);
-
-    // Dynamic fluid ??value=2 flood-fill + FluidVolume entity 嶺뚮씞?됭눧? ???熬곥굦????detach ????μ짒tach.
-    this.fluidSystem.attach(level);
-    // FluidSpawner entities ??continuous emission sources (Container.md 筌?2 sibling).
-    // Each tick injects 1 cell of the configured type at the spawn grid;
-    // cellular gravity in FluidSystem then carries it downward.
-    this.fluidSpawners.clear();
-    this.fluidCrestFoam?.clear();
-    for (const ent of level.entities) {
-      if (ent.type !== 'FluidSpawner') continue;
-      // Expand rect ??per-cell spawners. width=16,height=16 ??1 cell; wider
-      // rect ??wider waterfall. Each cell ticks independently.
-      for (const opt of readFluidSpawnerEntities(ent)) this.fluidSpawners.add(opt);
-    }
-    this.configureWeatherForLevel(level);
-    // ?곌랜???HP ???貫?껆뵳??????醫롫윪????醫롫윥???醫롫윪????醫롫윪???醫롫윪???띠럾???醫롫윪????醫롫윥壤쎻뫗怡??醫????? 嶺뚢뼰維??
-    // ????醫롫윥????곌랜???덉낯?諭逾??activateBossLock ??update ?猷먮쳜???醫롫윪????醫롫윪????醫롫윪???醫롫윥??
+    this.worldFluidRuntime.attachLevel(level);
+    this.worldWeatherRuntime.configureForLevel(level);
+    // 보스 HP 바를 숨긴다. 새 방 진입 시 이전 방의 보스 락 상태를 끄고
+    // 이후 진입한 방에서 activateBossLock 이 update 로 다시 켜도록 한다.
     this.hud.hideBossHP();
 
-    // Render tiles ??filter wall tiles by collision grid (destroyed tiles stay gone).
-    // value=2 (water) ?筌먦끉??sprite ??dynamic FluidSystem ?????????ш껑???????戮곕뇶.
+    // Render tiles — filter wall tiles by collision grid (destroyed tiles stay gone).
+    // value=2 (water) 인 셀의 sprite 는 dynamic FluidSystem 이 그리므로 정적 렌더에서 건너뛴다.
     this.renderer.clear();
     const filteredWalls = level.wallTiles.filter(t => {
       const col = Math.floor(t.px[0] / TILE_SIZE);
@@ -4353,7 +3237,7 @@ export class LdtkWorldScene extends Scene {
       if (isLdtkWallSlope2x1Tile(t)) return true;
       return v !== 0 && v !== 2;
     });
-    // Retag BG/WALL tiles to CSV-derived atlas ??but ONLY if the tile's
+    // Retag BG/WALL tiles to CSV-derived atlas — but ONLY if the tile's
     // current tilesetPath matches the LDtk default for that layer. Levels
     // that override the tileset (e.g. Builder with builder_01) keep theirs.
     const defaultWallTileset = 'atlas/world_01.png';
@@ -4384,47 +3268,31 @@ export class LdtkWorldScene extends Scene {
       interiorTiles: combinedInterior,
       collisionGrid: this.collisionGrid,
     });
-    this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
+    this.terrainPaletteRuntime.applyWorldFilterAreas(level.pxWid, level.pxHei, this.renderer, this.proceduralDecorRuntime);
 
     // Procedural decorations (always on; ?noproc to disable, ?theme=X for testing)
     if (!new URLSearchParams(window.location.search).has('noproc')) {
-      // Clear previous
-      if (this.procDecorator) {
-        if (this.procDecorator.naturalLayer.parent) this.procDecorator.naturalLayer.parent.removeChild(this.procDecorator.naturalLayer);
-        if (this.procDecorator.artificialLayer.parent) this.procDecorator.artificialLayer.parent.removeChild(this.procDecorator.artificialLayer);
-        if (this.procDecorator.structureLayer.parent) this.procDecorator.structureLayer.parent.removeChild(this.procDecorator.structureLayer);
-      }
-      for (const old of this._extraDecorators) {
-        if (old.naturalLayer.parent) old.naturalLayer.parent.removeChild(old.naturalLayer);
-        if (old.artificialLayer.parent) old.artificialLayer.parent.removeChild(old.artificialLayer);
-        if (old.structureLayer.parent) old.structureLayer.parent.removeChild(old.structureLayer);
-      }
-      this._extraDecorators = [];
-
-      this.procDecorator ??= new ProceduralDecorator();
+      const procDecorator = this.proceduralDecorRuntime.preparePrimary();
       // Only apply theme if explicitly requested via URL (?theme=T-FOUNDRY)
       const themeParam = new URLSearchParams(window.location.search).get('theme');
-      if (themeParam) this.procDecorator.setTheme(themeParam);
-      this.procDecorator.clear();
-      this.grassClumpFire.clear();
-      this.procDecorator.generate(this.collisionGrid, hashString(level.identifier));
-      for (const prop of this.grassClumpFire.register(this.procDecorator.getGrassClumpsWithCells())) {
+      if (themeParam) procDecorator.setTheme(themeParam);
+      procDecorator.clear();
+      this.grassFireRuntime.clearGrass();
+      procDecorator.generate(this.collisionGrid, hashString(level.identifier));
+      for (const prop of this.grassFireRuntime.registerProceduralClumps(procDecorator.getGrassClumpsWithCells())) {
         this.tileMutator.registerBurnable(prop);
       }
-      if (this.wallPaletteFilter) {
-        this.procDecorator.naturalLayer.filters = [this.naturalPaletteFilter!];
-        this.procDecorator.artificialLayer.filters = [this.wallPaletteFilter];
-        this.procDecorator.structureLayer.filters = [this.wallPaletteFilter];
-        this.applyTerrainFilterAreas(level.pxWid, level.pxHei);
+      if (this.terrainPaletteRuntime.applyProceduralDecorFilters(this.proceduralDecorRuntime)) {
+        this.terrainPaletteRuntime.applyWorldFilterAreas(level.pxWid, level.pxHei, this.renderer, this.proceduralDecorRuntime);
       }
       const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
-      this.renderer.container.addChildAt(this.procDecorator.structureLayer, structIdx);
+      this.renderer.container.addChildAt(procDecorator.structureLayer, structIdx);
       const detailIdx = this.renderer.container.getChildIndex(this.renderer.shadowLayer);
-      this.renderer.container.addChildAt(this.procDecorator.naturalLayer, detailIdx);
-      this.renderer.container.addChildAt(this.procDecorator.artificialLayer, detailIdx + 1);
+      this.renderer.container.addChildAt(procDecorator.naturalLayer, detailIdx);
+      this.renderer.container.addChildAt(procDecorator.artificialLayer, detailIdx + 1);
     }
 
-    // Parallax background ??only rebuild on first load (skip on room transitions
+    // Parallax background — only rebuild on first load (skip on room transitions
     // within the same area to prevent jarring position resets).
     if (!this.parallaxBG.isReady) {
       const bgEntry = getAreaPalette('world_shaft_bg');
@@ -4443,11 +3311,7 @@ export class LdtkWorldScene extends Scene {
     // Area title on entry. During the intro fade-in we must defer the banner
     // until the screen is actually visible, otherwise it plays behind black.
     if (level.identifier === 'Shaft_01') {
-      if (this.introPhase === 'fadeIn') {
-        this.pendingAreaTitle = t('area.the_shaft');
-      } else {
-        this.areaTitle.show(t('area.the_shaft'));
-      }
+      this.introHandoffRuntime.showOrQueueAreaTitle(t('area.the_shaft'));
     }
 
     // Patch collisionGrid for already-unlocked SecretWalls/CrackedFloors
@@ -4455,74 +3319,53 @@ export class LdtkWorldScene extends Scene {
     // an entry passage, so any wall the player already broke (e.g. re-entering
     // via a SecretWall passage) must be cleared first or the player spawns on
     // the wrong edge and floats in empty space.
-    this.spawnCrackedFloors(level);
-    this.spawnSecretWalls(level);
-    this.spawnBreakablePropsForLevel(level);
-    this.spawnBreakableEntitiesForLevel(level);
-    this.spawnBuildingEntitiesForLevel(level);
+    this.worldCrackedFloorRuntime.spawn(level);
+    this.worldSecretWallRuntime.spawn(level);
+    this.worldBreakablePropRuntime.spawnForLevel(level);
+    this.worldBreakableRuntime.spawn(level);
+    this.worldBuildingRuntime.spawn(level);
 
     // Place player
-    this.placePlayer(level, enterDirection);
+    this.worldPlayerSpawnRuntime.place(level, enterDirection);
 
     // Spawn enemies (skip for Shop rooms)
-    this.clearEnemies();
-    this.clearDrops();
-    this.clearPortals();
-    this.clearAltars();
-    for (const r of this.relicMarkers) { if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx); }
-    this.relicMarkers = [];
-    for (const sp of this.savePoints) {
-      if (sp.gfx.parent) sp.gfx.parent.removeChild(sp.gfx);
-      if (sp.sprite?.parent) sp.sprite.parent.removeChild(sp.sprite);
-      if (sp.prompt?.parent) sp.prompt.parent.removeChild(sp.prompt);
-    }
-    this.savePoints = [];
-    this.saveHintShown = false;
-    for (const g of this.exitGlows) g.destroy();
-    this.exitGlows = [];
-    for (const sh of this.healthShards) sh.destroy();
-    this.healthShards = [];
-    for (const hp of this.healingPickups) hp.destroy();
-    this.healingPickups = [];
-    for (const gp of this.goldPickups) gp.destroy();
-    this.goldPickups = [];
-    this.endingTriggers = [];
+    this.worldEnemyRegistry.clear();
+    this.worldProjectileRuntime.clear();
+    this.worldItemDropRuntime.clear();
+    this.portalRuntime.clear();
+    this.altarController.clear();
+    this.savePointRuntime.loadLevel(level, this.entityLayer);
+    this.exitGlowRuntime.clearAll();
+    this.worldRelicPickupRuntime.loadLevel(level, this.collectedRelics);
+    this.worldPickupRuntime.loadLevel(level, this.collisionGrid, this.collectedItems);
+    this.endingRuntime.loadLevel(level);
 
     if (level.roomType !== 'Shop') {
-      this.spawnEnemiesFromLdtk(level);
+      this.worldEnemySpawnRuntime.spawnFromLevel(level);
     }
-    this.spawnAnvilFromLdtk(level);
-    this.spawnAltarsFromLdtk(level);
+    this.anvilSpawnRuntime.spawnFromLdtk(level);
+    this.altarController.spawnFromLdtk(level);
 
     // Spawn locked doors and switches
-    this.spawnLockedDoors(level);
-    this.spawnSwitches(level);
-    this.spawnGrowingWalls(level);
-    this.spawnSpikes(level);
-    this.spawnCollapsingPlatforms(level);
-    this.spawnDialogueTriggers(level);
+    this.worldDoorSwitchSpawnRuntime.spawnDoors(level);
+    this.worldDoorSwitchSpawnRuntime.spawnSwitches(level);
+    this.worldGrowingWallRuntime.spawn(level);
+    this.worldSpikeRuntime.spawn(level);
+    this.worldCollapsingPlatformRuntime.spawn(level);
+    this.dialogueTriggerRuntime.loadLevel(level);
 
-    // Camera: reset zones and defaults before entity processing
-    const cam = this.game.camera;
-    this.cameraZones = [];
-    this.activeCameraZone = null;
-    cam.deadZoneX = 32;
-    cam.deadZoneY = 24;
-    cam.lookAheadDistance = 0;
-    cam.followLerp = 0.08;
-    cam.zoomTo(1.0);
+    this.cameraZoneRuntime.loadLevel(level, { resetToDefaults: true });
 
-    // Process other LDtk entities (Items, GameSaver, Camera zones, etc.)
-    this.processLdtkEntities(level);
+    this.worldHandPlacedItemRuntime.loadLevel(level);
 
     const builderSpawner = level.entities.find((e) => e.type === 'BuilderSpawner' && e.fields.Enabled !== false);
     if (builderSpawner) {
       this.spawnBuilderFromSpawner(level, builderSpawner);
     }
 
-    // HUD/minimap visibility ??Shaft_DemoEnd ?????고뱺??類ｋ츎 ??疫??띠럾??源껎??(?????
-    // ?롪퍒???2026-05-17). ??怨뺣뒆 ?繹먮냱紐드슖????섎??猷몄굣???뿉???伊?嶺?intro ?熬곣뫁??hudReady) ??戮곗젍
-    // ???筌먦끆留??띠럾???戮?뎽??怨쀬Ŧ ?곌랜踰???類ｋ펲.
+    // HUD/minimap visibility — Shaft_DemoEnd 에서는 숨긴다 (엔딩
+    // 연출 2026-05-17). 그 외에는 인트로가 끝나 hudReady 가 되면 intro 직후
+    // 다시 표시한다.
     if (level.identifier === 'Shaft_DemoEnd') {
       this.hud.container.visible = false;
       if (this.minimap) this.minimap.visible = false;
@@ -4531,8 +3374,8 @@ export class LdtkWorldScene extends Scene {
       if (this.minimap) this.minimap.visible = true;
     }
 
-    // Exit Light Bleed ????醫롫윪???꾩렮維????醫롫윥???꾩렮維싧젆????醫롫윥????????뚮뜆????낅슣????リ섣??β돦裕??
-    this.spawnExitGlows(level);
+    // Exit Light Bleed — 출구 방향 빛 번짐 효과를 현재 방에 맞게 로드한다.
+    this.exitGlowRuntime.loadLevel(level);
 
     // Settle player physics (gravity snap to floor) before camera snap
     for (let i = 0; i < 5; i++) {
@@ -4542,6 +3385,7 @@ export class LdtkWorldScene extends Scene {
     this.player.vy = 0;
     this.player.savePrevPosition();
 
+    const cam = this.game.camera;
     const camX = this.player.x + this.player.width / 2;
     const camY = this.player.y + this.player.height / 2;
     cam.target = { x: camX, y: camY };
@@ -4551,8 +3395,8 @@ export class LdtkWorldScene extends Scene {
     cam.update(16.667);
 
     // Update minimap + world map (skip in item tunnel)
-    if (!this.inItemTunnel) {
-      this.drawMinimap();
+    if (!this.itemWorldEntryState.inTunnel) {
+      this.worldMinimap.draw();
     } else if (this.minimap) {
       this.minimap.visible = false;
     }
@@ -4560,892 +3404,43 @@ export class LdtkWorldScene extends Scene {
     if (this.worldMap?.visible && this.minimap) {
       this.minimap.visible = false;
     }
-    if (this.worldMap?.visible) {
-      this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
-      this.worldMap.setMarkers(this.collectMapMarkers());
-      this.syncWorldMapDynamicGrids();
-      this.worldMap.redraw();
-    }
+    this.worldMapRuntime.syncVisibleRedraw();
 
-    // BGM dim ??save ????????덈츎 ?猷몄굣? ????????ル∥六?0 ??怨쀬Ŧ ??瑜곷턄??(??????롪퍒???2026-05-08).
-    // 嶺뚯쉳??? 800 ms ??瑜곷턄???熬곣뫗?? ??ル봽?? 1500 ms ??瑜곷턄????
-    const isSaveRoom = this.savePoints.length > 0;
-    if (isSaveRoom !== this.bgmDimmedForSaveRoom) {
-      this.bgmDimmedForSaveRoom = isSaveRoom;
-      BgmController.setVolumeFactor(isSaveRoom ? 0 : 1, isSaveRoom ? 800 : 1500);
-    }
+    this.saveRoomAudioRuntime.syncForLevel(this.savePointRuntime.hasAny);
 
     return true;
-  }
-
-  /**
-   * Position the player in the freshly loaded level.
-   * Priority:
-   *  1. If entering from a specific direction, place on the opposite edge.
-   *  2. Otherwise use the LDtk "Player" entity spawn point.
-   *  3. Fallback: center-bottom of the level.
-   */
-  private placePlayer(level: LdtkLevel, enterFrom: 'left' | 'right' | 'up' | 'down'): void {
-    const pw = this.player.width;
-    const ph = this.player.height;
-    // Use the RUNTIME collisionGrid (this.collisionGrid), not the LDtk master
-    // (level.collisionGrid). The runtime grid has been patched for already-
-    // broken SecretWalls / CrackedFloors by spawnSecretWalls/spawnCrackedFloors
-    // above; using the master would treat broken passages as solid and spawn
-    // the player inside a wall on re-entry.
-    const grid = this.collisionGrid;
-
-    let spawnX: number;
-    let spawnY: number;
-
-    // pendingPlayerTileY/X are in WORLD tile coords. Convert to this level's local tiles.
-    const hintRow = this.pendingPlayerTileY - Math.floor(level.worldY / TILE_SIZE);
-    const hintCol = this.pendingPlayerTileX - Math.floor(level.worldX / TILE_SIZE);
-
-    // GridVania: find the closest open passage on the entry edge to where
-    // the player was in the previous room.
-    // Spawn 3 tiles inward from the edge to avoid immediately re-triggering
-    // the transition back to the previous room.
-    const INSET = 2 * TILE_SIZE;
-
-    switch (enterFrom) {
-      case 'left': {
-        const passageY = this.findEdgePassage(grid, 'left', hintRow);
-        spawnX = INSET;
-        spawnY = this.snapToFloor(grid, Math.floor(INSET / TILE_SIZE), passageY, ph);
-        break;
-      }
-      case 'right': {
-        const passageY = this.findEdgePassage(grid, 'right', hintRow);
-        spawnX = level.pxWid - INSET - pw;
-        spawnY = this.snapToFloor(grid, level.gridW - 3, passageY, ph);
-        break;
-      }
-      case 'up': {
-        const passageX = this.findEdgePassage(grid, 'up', hintCol);
-        spawnX = passageX * TILE_SIZE;
-        spawnY = INSET;
-        break;
-      }
-      case 'down':
-      default: {
-        const playerEntity = level.entities.find((e) => e.type === 'Player');
-        if (playerEntity) {
-          spawnX = playerEntity.px[0];
-          spawnY = playerEntity.px[1] - ph;
-        } else {
-          const passageX = this.findEdgePassage(grid, 'down', hintCol);
-          spawnX = passageX * TILE_SIZE;
-          spawnY = level.pxHei - INSET - ph;
-        }
-        break;
-      }
-    }
-
-    this.player.x = spawnX;
-    this.player.y = spawnY;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.roomData = this.collisionGrid;
-    this.player.savePrevPosition();
-    this.recordLastWorldSafePosition(spawnX, spawnY);
-  }
-
-  /**
-   * Find the tile coordinate of an open passage (0) on the given edge.
-   * For left/right edges: returns the Y tile row of the passage.
-   * For up/down edges: returns the X tile column of the passage.
-   * Falls back to the middle of the edge if no passage found.
-   */
-  /**
-   * From a passage row, scan downward to find the floor, then place entity
-   * directly on top of it. Prevents spawning inside the floor.
-   */
-  private snapToFloor(grid: number[][], tileX: number, passageRow: number, entityHeight: number): number {
-    return this.transitionController.snapToFloor(grid, tileX, passageRow, entityHeight);
-  }
-
-  private findEdgePassage(grid: number[][], edge: 'left' | 'right' | 'up' | 'down', hintTile = -1): number {
-    return this.transitionController.findEdgePassage(grid, edge, hintTile);
-  }
-
-  private findFloorY(grid: number[][], tileX: number, entityHeight: number): number {
-    return this.transitionController.findFloorY(grid, tileX, entityHeight);
   }
 
   // ---------------------------------------------------------------------------
   // Enemy spawning
   // ---------------------------------------------------------------------------
 
-  private spawnLockedDoors(level: LdtkLevel): void {
-    // Clean up previous doors
-    for (const door of this.lockedDoors) door.destroy();
-    this.lockedDoors = [];
-
-    const doorEntities = level.entities.filter(e => e.type === 'LockedDoor');
-    for (const ent of doorEntities) {
-      // LDtk field names are PascalCase; enum values are PascalCase too
-      const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
-      const unlockCondition = rawCondition.toLowerCase() as UnlockCondition || 'event';
-      const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
-      const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
-      const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
-
-      // Build a persistent key for tracking unlocked state
-      const doorKey = unlockCondition === 'event'
-        ? unlockEvent
-        : ent.iid; // use entity IID as unique key
-      const isAlreadyUnlocked = this.unlockedEvents.has(doorKey);
-
-      const door = new LockedDoor(
-        ent.px[0], ent.px[1],
-        ent.width, ent.height,
-        ent.iid,
-        unlockCondition,
-        unlockCondition === 'event' ? unlockEvent : doorKey,
-        statType,
-        statThreshold,
-      );
-      door.injectCollision(this.collisionGrid);
-      this.doorCollisionGrids.set(door, this.collisionGrid);
-      this.lockedDoors.push(door);
-      this.entityLayer.addChild(door.container);
-      // ???? unlocked ??????spawn 嶺뚯쉳???instant unlock ??怨쀬Ŧ caps(top/bottom) 嶺????.
-      // collision ??嶺뚯빖留??0 ??怨쀬Ŧ ??濡レ┝??嶺뚯쉳?듸쭛?嶺뚮씭留????怨몃쾳.
-      if (isAlreadyUnlocked) {
-        door.unlock(this.collisionGrid, true);
-      }
-    }
-  }
-
-  private getDoorCollisionGrid(door: LockedDoor): number[][] {
-    return this.doorCollisionGrids.get(door) ?? this.collisionGrid;
-  }
-
-  private getSwitchCollisionGrid(sw: Switch): number[][] {
-    return this.switchCollisionGrids.get(sw) ?? this.collisionGrid;
-  }
-
-  private getCollapsingPlatformCollisionGrid(cp: CollapsingPlatform): number[][] {
-    return this.collapsingPlatformCollisionGrids.get(cp) ?? this.collisionGrid;
-  }
-
-  private refreshBuilderStampForGrid(grid: number[][]): void {
-    if (!this.activeBuilder || grid !== this.activeBuilder.collisionGrid) return;
-    this.unstampBuilder();
-    this.stampBuilder();
-  }
-
-  private maintainLockedDoorCollisions(): void {
-    let builderGridChanged = false;
-    for (const door of this.lockedDoors) {
-      if (!door.locked) continue;
-      const grid = this.getDoorCollisionGrid(door);
-      const changed = door.ensureCollision(grid);
-      builderGridChanged ||= changed && !!this.activeBuilder && grid === this.activeBuilder.collisionGrid;
-    }
-    if (builderGridChanged && this.activeBuilder) {
-      this.refreshBuilderStampForGrid(this.activeBuilder.collisionGrid);
-    }
-  }
-
-  private resolvePlayerAgainstLockedDoors(): void {
-    for (const door of this.lockedDoors) {
-      if (!door.locked) continue;
-      const a = door.getHitAABB();
-      const px0 = this.player.x;
-      const py0 = this.player.y;
-      const px1 = px0 + this.player.width;
-      const py1 = py0 + this.player.height;
-      if (px1 <= a.x || px0 >= a.x + a.width || py1 <= a.y || py0 >= a.y + a.height) continue;
-
-      const prevX0 = this.player.prevX;
-      const prevY0 = this.player.prevY;
-      const prevX1 = prevX0 + this.player.width;
-      const prevY1 = prevY0 + this.player.height;
-
-      let dx = 0;
-      let dy = 0;
-      if (prevX1 <= a.x) dx = a.x - px1;
-      else if (prevX0 >= a.x + a.width) dx = a.x + a.width - px0;
-      else if (prevY1 <= a.y) dy = a.y - py1;
-      else if (prevY0 >= a.y + a.height) dy = a.y + a.height - py0;
-      else {
-        const pushLeft = a.x - px1;
-        const pushRight = a.x + a.width - px0;
-        const pushUp = a.y - py1;
-        const pushDown = a.y + a.height - py0;
-        const bestX = Math.abs(pushLeft) < Math.abs(pushRight) ? pushLeft : pushRight;
-        const bestY = Math.abs(pushUp) < Math.abs(pushDown) ? pushUp : pushDown;
-        if (Math.abs(bestX) < Math.abs(bestY)) dx = bestX;
-        else dy = bestY;
-      }
-
-      if (dx !== 0) {
-        this.player.x += dx;
-        this.player.prevX += dx;
-        this.player.vx = 0;
-      }
-      if (dy !== 0) {
-        this.player.y += dy;
-        this.player.prevY += dy;
-        this.player.vy = 0;
-        if (dy < 0) this.player.forceGrounded(false, 'locked-door');
-      }
-    }
-  }
-
   /** Unlock all doors matching the given event name. */
   unlockDoors(eventName: string): void {
-    this.unlockedEvents.add(eventName);
-    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
-      const door = this.lockedDoors[i];
-      if (door.unlockEvent === eventName) {
-        const grid = this.getDoorCollisionGrid(door);
-        door.unlock(grid);
-        this.refreshBuilderStampForGrid(grid);
-        trackGateBreak({
-          gate_type: 'event',
-          level_id: this.currentLevel?.identifier,
-        });
-      }
-    }
-  }
-
-  /** Unlock a single door by its LDtk entity IID. */
-  private unlockDoorByIid(iid: string): void {
-    this.unlockedEvents.add(iid);
-    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
-      const door = this.lockedDoors[i];
-      if (door.iid === iid) {
-        const grid = this.getDoorCollisionGrid(door);
-        door.unlock(grid);
-        this.refreshBuilderStampForGrid(grid);
-        trackGateBreak({
-          gate_type: door.unlockCondition === 'switch' ? 'switch' : 'event',
-          level_id: this.currentLevel?.identifier,
-        });
-        // Break effect
-        this.game.camera.shake(6);
-        rumbleGamepad(180, 0.6, 1.0);
-        this.screenFlash.flashHit(true);
-        this.toast.show(t('toast.gate_opened'), 0x44ffaa);
-        return;
-      }
-    }
-  }
-
-  /** Track doors already rejected during current attack to prevent spam. */
-  private doorRejectSet = new Set<string>();
-  private lastDoorCheckCombo = -1;
-
-  /** Check player attack against locked doors (stat conditions only). */
-  private checkAttackOnDoors(): void {
-    if (!this.player.isAttackActive()) {
-      // Reset reject tracking when attack ends
-      if (this.doorRejectSet.size > 0) {
-        this.doorRejectSet.clear();
-        this.lastDoorCheckCombo = -1;
-      }
-      return;
-    }
-
-    // Reset on new combo hit
-    if (this.player.comboIndex !== this.lastDoorCheckCombo) {
-      this.doorRejectSet.clear();
-      this.lastDoorCheckCombo = this.player.comboIndex;
-    }
-
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
-      const door = this.lockedDoors[i];
-      if (!door.locked) continue;
-      if (this.doorRejectSet.has(door.iid)) continue; // already rejected this attack
-      if (!aabbOverlap(hitbox, door.getHitAABB())) continue;
-
-      const playerStats: Record<string, number> = {
-        atk: this.player.atk,
-        def: this.player.def,
-      };
-
-      const grid = this.getDoorCollisionGrid(door);
-      const result = door.tryAttackUnlock(playerStats, grid);
-
-      if (result === 'unlocked') {
-        this.refreshBuilderStampForGrid(grid);
-        this.unlockedEvents.add(door.iid);
-        trackGateBreak({
-          gate_type: 'stat',
-          stat_type: door.statType,
-          stat_threshold: door.statThreshold,
-          level_id: this.currentLevel?.identifier,
-        });
-        this.game.camera.shake(6);
-        rumbleGamepad(180, 0.6, 1.0);
-        this.screenFlash.flashHit(true);
-        this.toast.show(t('toast.gate_destroyed'), 0x44ffaa);
-      } else if (result === 'rejected') {
-        this.doorRejectSet.add(door.iid);
-        this.game.camera.shake(2);
-        // Stat door 嶺?stat ??븐럥??toast ??event/switch ??shake ??怨뺢덧?꾩룄??퐲?
-        if (door.unlockCondition === 'stat') {
-          const threshold = door.statThreshold;
-          const current = playerStats[door.statType] ?? 0;
-          // Resolve stat name via i18n so KO reads "??ㅻ???? instead of "ATK".
-          // Falls back to upper-cased type code if no translation key exists.
-          const statKey = `stat.${door.statType.toLowerCase()}`;
-          const statLabel = t(statKey);
-          const statText = (statLabel === statKey) ? door.statType.toUpperCase() : statLabel;
-          this.toast.show(t('toast.stat_gate_locked', { stat: statText, current: current, required: threshold }), 0xff4444);
-        }
-        break;
-      }
-    }
+    this.worldDoorSwitchInteractionRuntime.unlockDoors(eventName);
   }
 
   /**
-   * Arc Tether ????뵜 ?熬곣뫀沅????????facing ?꾩렮維싧젆?cone (?꾩룇瑗듣?60筌? ??嶺뚣끉裕? 6 ????
-   * LOOK_UP / LOOK_DOWN ?熬곣뱿??嶺??т빳?GRAB ??濡?듆 cone ?????熬곣뫁?뗥슖??????(stack/?熬곣뫖彛?????뵜).
-   * ?筌뤾쑴??濾곌쑨???< 24px)??cone ?꾩룆????怨뺤┣ ??쒕샍??롮퀪??熬곣뫀沅뽩슖?嶺??득틦?(?リ옇??????됱굚 ?筌뤿굞??.
+   * Arc Tether 픽업 대상을 찾을 때 player facing 방향 cone (약 60도, 반경 6칸) 안에서 고른다.
+   * LOOK_UP / LOOK_DOWN 입력 시 그 방향으로 GRAB 콘을 회전한다 (stack/들기 픽업).
+   * 가까운 컨테이너(< 24px)는 cone 밖이어도 우선 잡는다 (방향 무관 근접 잡기).
    */
-  private findNearestGrabbableContainer(): ThrowableContainer | null {
-    return findNearestContainerForGrab({
-      player: this.player,
-      containers: this.containers,
-      input: this.game.input,
-    });
-  }
-
-  /**
-   * Begin a tethered pull on `target`. Marks the container as held immediately
-   * (suspends gravity + own collision), records spawn origin for lerp, and
-   * triggers the arc VFX + zap SFX. The 200 ms ease-out lerp runs in the
-   * held-position block of update().
-   */
-  private startGrabPull(target: ThrowableContainer): void {
-    const state = startContainerGrabPull(target, this.arcTether);
-    this.pullStartX = state.pullStartX;
-    this.pullStartY = state.pullStartY;
-    this.pullElapsedMs = state.pullElapsedMs;
-    this.pullingContainer = state.pullingContainer;
-    this.heldContainer = state.heldContainer;
-  }
-
-  private getContainerCarryState() {
-    return {
-      pullStartX: this.pullStartX,
-      pullStartY: this.pullStartY,
-      pullElapsedMs: this.pullElapsedMs,
-      pullingContainer: this.pullingContainer,
-      heldContainer: this.heldContainer,
-    };
-  }
-
-  private applyContainerCarryState(state: ReturnType<LdtkWorldScene['getContainerCarryState']>): void {
-    this.pullStartX = state.pullStartX;
-    this.pullStartY = state.pullStartY;
-    this.pullElapsedMs = state.pullElapsedMs;
-    this.pullingContainer = state.pullingContainer;
-    this.heldContainer = state.heldContainer;
-  }
-
-  /**
-   * Drive arc tether visibility + phase per frame.
-   *   - heldContainer + pullingContainer : pull (started by startGrabPull)
-   *   - heldContainer + no pulling       : hold (thin tether + breathing pulse)
-   *   - no held + hover target           : hover (small sparks above target)
-   *   - none                              : hidden
-   */
-  private updateArcTether(dtMs: number): void {
-    updateContainerArcTether({
-      dtMs,
-      player: this.player,
-      arcTether: this.arcTether,
-      heldContainer: this.heldContainer,
-      pullingContainer: this.pullingContainer,
-      findHover: () => this.findNearestGrabbableContainer(),
-    });
-  }
-
-  private updateContainerPrompt(): void {
-    this.containerPrompt = updateContainerPromptUi({
-      game: this.game,
-      prompt: this.containerPrompt,
-      heldContainer: this.heldContainer,
-      findTarget: () => this.findNearestGrabbableContainer(),
-      promptText: t('prompt.lift'),
-    });
-  }
-
-  private updateFrozenSnapshotPrompt(): void {
-    const prompt = this.frozenSnapPromptContainer;
-    const snapshot = this.frozenPlayerSnapshot;
-    if (!prompt) return;
-    if (!snapshot || !this.player || this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) {
-      prompt.visible = false;
-      return;
-    }
-
-    const dx = this.player.container.x - snapshot.x;
-    const dy = this.player.container.y - snapshot.y;
-    const distSq = dx * dx + dy * dy;
-    const armDistanceSq = FROZEN_RETURN_ARM_DISTANCE * FROZEN_RETURN_ARM_DISTANCE;
-    if (!this.frozenReturnInteractionArmed && distSq >= armDistanceSq) {
-      this.frozenReturnInteractionArmed = true;
-    }
-    const near = this.frozenReturnInteractionArmed && distSq <= 64 * 64;
-    prompt.visible = near;
-    if (!near) return;
-
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    const promptWorldY = snapshot.y - 48; // snapshot.y is the bottom of a 32px-tall player sprite.
-    const sx = (snapshot.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
-    const sy = (promptWorldY - cam.renderY + GAME_HEIGHT / 2) * us;
-    prompt.x = Math.round(sx);
-    prompt.y = Math.round(sy);
-  }
-
-  /** Check if player is near a save point ??show hint, save on UP. */
-  private checkSavePoints(): void {
-    if (this.itemDeployment?.isActive) {
-      this.hideSavePointUiForItemDeployment();
-      return;
-    }
-    const result = updateSavePointProximity({
-      game: this.game,
-      player: this.player,
-      savePoints: this.savePoints,
-      savepointPulse: this.savepointPulse,
-      saveHintShown: this.saveHintShown,
-    });
-    this.saveHintShown = result.saveHintShown;
-  }
-
-  private saveHintShown = false;
-
-  private hideSavePointUiForItemDeployment(): void {
-    this.saveHintShown = false;
-    this.savepointPulse?.clear();
-    for (const sp of this.savePoints) {
-      sp.gfx.alpha = 0.6;
-      if (sp.sprite) sp.sprite.alpha = 1.0;
-      if (sp.prompt) sp.prompt.visible = false;
-    }
-  }
-
-  /** Place player next to the nearest save point in the current level. */
-  private snapPlayerToSavePoint(): void {
-    snapPlayerToNearestSavePoint(this.player, this.savePoints, this.game);
-  }
-
-  private queueSave(): void {
-    if (this.saveQueued) return;
-    this.saveQueued = true;
-    this.saveDelayTimer = SAVE_INTERACT_DELAY_MS;
-  }
-
-  private updateQueuedSave(dt: number): void {
-    if (!this.saveQueued) return;
-    this.saveDelayTimer -= dt;
-    if (this.saveDelayTimer > 0) return;
-
-    this.saveQueued = false;
-    this.saveDelayTimer = 0;
-    this.performSave();
-  }
-
-  private performSave(): void {
-    // Full heal + Flask refill at save point (GDD HEL-04)
-    this.player.hp = this.player.maxHp;
-    this.player.flaskCharges = this.player.flaskMaxCharges;
-
-    // Visual feedback
-    this.screenFlash.flash(0x44ffaa, 0.3, 200);
-    this.game.hitstopFrames = 4;
-    // Batch E: pulse ring at nearest savepoint
-    {
-      const pcx = this.player.x + this.player.width / 2;
-      let closest = this.savePoints[0];
-      let bestDist = Infinity;
-      for (const sp of this.savePoints) {
-        const d = Math.abs(sp.x - pcx);
-        if (d < bestDist) { bestDist = d; closest = sp; }
-      }
-      if (closest) this.savepointPulse.pulse(closest.x, closest.y);
-    }
-
-    SaveManager.save({
-      player: {
-        hp: this.player.hp,
-        maxHp: this.player.maxHp,
-        atk: this.player.atk,
-        def: this.player.def,
-      },
-      levelId: this.currentLevel?.identifier ?? this.playerSpawnLevelId,
-      inventory: this.inventory,
-      abilities: { ...this.player.abilities },
-      unlockedEvents: this.unlockedEvents,
-      collectedRelics: this.collectedRelics,
-      collectedItems: this.collectedItems,
-      visitedLevels: this.visitedLevels,
-      clearedLevels: this.clearedLevels,
-      gold: this.gold,
-      playtime: this.game.stats.playTimeMs,
-      healthShardBonus: this.healthShardBonus,
-      completedTutorialHints: this.tutorialHint.getCompletedIds(),
-    });
-    this.toast.show(t('toast.game_saved'), 0x44ffaa);
-    trackSave(
-      this.currentLevel?.identifier ?? this.playerSpawnLevelId,
-      Math.floor(this.game.stats.playTimeMs / 1000),
-    );
-    // Heal to full on save
-    this.player.hp = this.player.maxHp;
-    this.hud.updateHP(this.player.hp, this.player.maxHp);
-    this.hud.updateGold(this.gold);
-  }
-
-  private spawnCollapsingPlatforms(level: LdtkLevel): void {
-    for (const cp of this.collapsingPlatforms) cp.destroy();
-    this.collapsingPlatforms = [];
-
-    const entities = level.entities.filter(e => e.type === 'CollapsingPlatform');
-    for (const ent of entities) {
-      const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
-      const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
-      const key = `cplat_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-
-      // Non-respawning platform already collapsed ??skip
-      if (!respawns && this.unlockedEvents.has(key)) continue;
-
-      const cp = new CollapsingPlatform(
-        ent.px[0], ent.px[1], ent.width, ent.height,
-        respawns, respawnTime,
-      );
-      (cp as any)._key = key;
-      (cp as any)._respawns = respawns;
-      cp.injectCollision(this.collisionGrid);
-      this.collapsingPlatformCollisionGrids.set(cp, this.collisionGrid);
-      this.collapsingPlatforms.push(cp);
-      this.entityLayer.addChild(cp.container);
-    }
-  }
-
   /**
    * Spawn Dialogue and Memory triggers from LDtk entities.
    */
-  private spawnDialogueTriggers(level: LdtkLevel): void {
-    for (const t of this.dialogueTriggers) {
-      if (t.prompt?.parent) t.prompt.parent.removeChild(t.prompt);
-    }
-    this.dialogueTriggers = [];
-
-    const TRIGGER_W = 48;
-    const TRIGGER_H = 48;
-
-    for (const ent of level.entities.filter(e => e.type === 'Dialogue')) {
-      const text = (ent.fields['text'] ?? '') as string;
-      if (!text) continue;
-      const speaker = (ent.fields['speaker'] ?? undefined) as string | undefined;
-      const portrait = (ent.fields['portrait'] ?? undefined) as string | undefined;
-      const speakerColor = (ent.fields['speakerColor'] ?? undefined) as number | undefined;
-      const triggerType = ((ent.fields['triggerType'] ?? 'area') as string) === 'interact' ? 'interact' as const : 'area' as const;
-      const once = (ent.fields['once'] ?? true) as boolean;
-      const autoCloseMs = (ent.fields['autoCloseMs'] ?? 0) as number;
-      const eventName = (ent.fields['eventName'] ?? null) as string | null;
-      const freezePlayer = (ent.fields['freezePlayer'] ?? true) as boolean;
-
-      const eventKey = eventName ?? `dialogue_${level.identifier}_${ent.iid}`;
-      if (once && this.unlockedEvents.has(eventKey)) continue;
-
-      const line: LoreLine = {
-        text,
-        speaker,
-        portrait,
-        speakerColor,
-        autoCloseMs: autoCloseMs > 0 ? autoCloseMs : undefined,
-      };
-
-      const trigger = {
-        x: ent.px[0] - TRIGGER_W / 2,
-        y: ent.px[1] - TRIGGER_H,
-        w: TRIGGER_W,
-        h: TRIGGER_H,
-        lines: [line],
-        triggerType,
-        once,
-        freezePlayer,
-        eventName: eventKey,
-        active: false,
-        fired: false,
-        cooldown: 0,
-        prompt: null as Container | null,
-      };
-
-      if (triggerType === 'interact') {
-        const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.talk'), this.game.uiScale);
-        prompt.visible = false;
-        this.game.uiContainer.addChild(prompt);
-        trigger.prompt = prompt;
-      }
-
-      this.dialogueTriggers.push(trigger);
-    }
-
-    for (const ent of level.entities.filter(e => e.type === 'Memory')) {
-      const text = (ent.fields['text'] ?? '') as string;
-      if (!text) continue;
-      const speaker = (ent.fields['speaker'] ?? undefined) as string | undefined;
-      const portrait = (ent.fields['portrait'] ?? undefined) as string | undefined;
-
-      const eventKey = `memory_${level.identifier}_${ent.iid}`;
-      if (this.unlockedEvents.has(eventKey)) continue;
-
-      this.dialogueTriggers.push({
-        x: ent.px[0] - TRIGGER_W / 2,
-        y: ent.px[1] - TRIGGER_H,
-        w: TRIGGER_W,
-        h: TRIGGER_H,
-        lines: [{ text, speaker, portrait }],
-        triggerType: 'area',
-        once: true,
-        freezePlayer: true,
-        eventName: eventKey,
-        active: false,
-        fired: false,
-        cooldown: 0,
-        prompt: null,
-      });
-    }
-  }
-
-  /** Check dialogue triggers each frame. */
-  private updateDialogueTriggers(dt: number): void {
-    if (!this.loreDisplay) return;
-    if (this.loreDisplay.isActive) {
-      this.loreDisplay.update(dt);
-      return;
-    }
-
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-
-    for (const t of this.dialogueTriggers) {
-      if (t.fired) continue;
-      if (t.cooldown > 0) { t.cooldown -= dt; continue; }
-      const inside = pcx >= t.x && pcx < t.x + t.w && pcy >= t.y && pcy < t.y + t.h;
-
-      if (t.triggerType === 'area') {
-        if (inside && !t.active) {
-          t.active = true;
-          this.loreDisplay.showDialogue(t.lines, t.freezePlayer);
-          if (t.once) {
-            t.fired = true;
-            if (t.eventName) this.unlockedEvents.add(t.eventName);
-          } else {
-            t.cooldown = 1000;
-          }
-          break;
-        }
-        if (!inside && t.active) t.active = false;
-      } else {
-        if (t.prompt) {
-          t.prompt.visible = inside;
-          if (inside) {
-            const us = this.game.uiScale;
-            const cam = this.game.camera;
-            const sx = (t.x + t.w / 2 - cam.renderX + GAME_WIDTH / 2) * us - t.prompt.width / 2;
-            const sy = (t.y - cam.renderY + GAME_HEIGHT / 2 - 16) * us;
-            t.prompt.x = Math.round(sx);
-            t.prompt.y = Math.round(sy);
-          }
-        }
-        if (inside && this.game.input.isJustPressed(GameAction.ATTACK)) {
-          this.game.input.consumeJustPressed(GameAction.ATTACK);
-          this.loreDisplay.showDialogue(t.lines, t.freezePlayer);
-          if (t.once) {
-            t.fired = true;
-            if (t.eventName) this.unlockedEvents.add(t.eventName);
-            if (t.prompt?.parent) { t.prompt.parent.removeChild(t.prompt); t.prompt = null; }
-          } else {
-            t.cooldown = 1000;
-          }
-          break;
-        }
-      }
-    }
-  }
-
   /**
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    *
-   * ??醫?????醫롫짗??(w/e): ??0 ??醫롫윥??gridW-1????醫롫윥餓λ뛼????醫롫윪??????醫롫윪??passable run 嶺뚮씭????リ섣??β돦裕??1??
-   * ??醫롫윪壤???醫롫짗??(n/s): ??0 ??醫롫윥??gridH-1???띠럾??β돦裕녵빳???醫롫윪??????醫롫윪??
-   * passable ??醫롫윪????checkLevelEdges() ?????醫롫윪?????녻맱?0 ??醫롫윥????2).
+   * 가로 모서리 (w/e): col 0 또는 gridW-1 에서 위아래로 passable run 을 찾아 1칸 이상이면 통과 가능.
+   * 세로 모서리 (n/s): row 0 또는 gridH-1 에서 좌우로 passable 한지 검사한다.
+   * passable 판정은 checkLevelEdges() 가 사용한다 (값 0 또는 2).
    */
-  private spawnExitGlows(level: LdtkLevel): void {
-    const TS = 16;
-    const grid = level.collisionGrid;
-    const W = level.gridW;
-    const H = level.gridH;
-    const passable = (t: number | undefined) => t === 0 || t === 2;
-
-    const hasNeighbor = (dir: 'n' | 's' | 'e' | 'w') =>
-      (level.dirNeighbors[dir]?.length ?? 0) > 0;
-
-    const addRuns = (
-      dir: ExitGlowDir,
-      count: number,
-      isPassableAt: (i: number) => boolean,
-      toWorld: (runStart: number, runLen: number) => { x: number; y: number; span: number },
-    ) => {
-      let i = 0;
-      while (i < count) {
-        if (!isPassableAt(i)) { i++; continue; }
-        let j = i;
-        while (j < count && isPassableAt(j)) j++;
-        const { x, y, span } = toWorld(i, j - i);
-        const glow = new ExitGlow(dir, x, y, span);
-        this.entityLayer.addChild(glow.container);
-        this.exitGlows.push(glow);
-        i = j;
-      }
-    };
-
-    // Right edge: column W-1, rows 0..H-1
-    if (hasNeighbor('e')) {
-      addRuns('right', H,
-        (r) => passable(grid[r]?.[W - 1]),
-        (rs, rl) => ({ x: W * TS, y: rs * TS, span: rl * TS }),
-      );
-    }
-    // Left edge: column 0
-    if (hasNeighbor('w')) {
-      addRuns('left', H,
-        (r) => passable(grid[r]?.[0]),
-        (rs, rl) => ({ x: 0, y: rs * TS, span: rl * TS }),
-      );
-    }
-    // Bottom edge: row H-1
-    if (hasNeighbor('s')) {
-      addRuns('down', W,
-        (c) => passable(grid[H - 1]?.[c]),
-        (cs, cl) => ({ x: cs * TS, y: H * TS, span: cl * TS }),
-      );
-    }
-    // Top edge: row 0
-    if (hasNeighbor('n')) {
-      addRuns('up', W,
-        (c) => passable(grid[0]?.[c]),
-        (cs, cl) => ({ x: cs * TS, y: 0, span: cl * TS }),
-      );
-    }
-
-    for (const ent of level.entities) {
-      if (!this.isEntranceVfxEntity(ent)) continue;
-      const spec = this.getEntranceGlowSpec(ent);
-      const glow = new ExitGlow(spec.dir, spec.x, spec.y, spec.span);
-      this.entityLayer.addChild(glow.container);
-      this.exitGlows.push(glow);
-    }
-  }
-
-  private isEntranceVfxEntity(ent: LdtkEntity): boolean {
-    const type = ent.type.toLowerCase();
-    return type === 'builderentrance' || type === 'builderentity';
-  }
-
-  private getEntranceGlowSpec(ent: LdtkEntity): { dir: ExitGlowDir; x: number; y: number; span: number } {
-    const rightField = ent.fields.RightSide ?? ent.fields.rightSide;
-    const rightSide = typeof rightField === 'boolean' ? rightField : false;
-    return {
-      dir: rightSide ? 'left' : 'right',
-      x: ent.px[0] + (rightSide ? ent.width : 0),
-      y: ent.px[1] - ent.height,
-      span: Math.max(TILE_SIZE, ent.height),
-    };
-  }
-
-  private spawnSpikes(level: LdtkLevel): void {
-    for (const sp of this.spikes) sp.destroy();
-    this.spikes = [];
-
-    const spikeEnts = level.entities.filter(e => e.type === 'Spike');
-    for (const ent of spikeEnts) {
-      const spike = new Spike(ent.px[0], ent.px[1], ent.width, ent.height);
-      this.spikes.push(spike);
-      this.entityLayer.addChild(spike.container);
-    }
-  }
-
-  /** Apply updraft force when player stands on IntGrid value 4, + render particles */
-  private applyUpdrafts(dt: number): void {
-    // Use player's active roomData (builder grid when riding, host grid otherwise)
-    this.updraftSystem.update(dt, this.player, this.player.roomData, this.game.camera, this.getBuilderUpdraftChannels());
-  }
-
-  private getBuilderUpdraftChannels(): Array<{ grid: number[][]; x: number; y: number }> {
-    if (!this.activeBuilder) return [];
-    return [{
-      grid: this.activeBuilder.collisionGrid,
-      x: this.activeBuilder.container.x,
-      y: this.activeBuilder.container.y,
-    }];
-  }
-
-  /** Check player overlap with spikes ??damage + teleport to last safe ground. */
-  /** IntGrid spike (value 5) check ??replaces Entity-based Spike AABB loop. */
-  private checkSpikeContact(): void {
-    if (this.player.invincible || this.player.hp <= 0) return;
-
-    const inTileSpike = isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData);
-    const playerBox = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-    const inEntitySpike = this.spikes.some(spike => aabbOverlap(playerBox, spike.getAABB()));
-    if (!inTileSpike && !inEntitySpike) return;
-
-    // 20% max HP damage
-    const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
-    this.player.lastDamageSource = 'spike';
-    this.player.hp -= dmg;
-    this.hud.flashDamage();
-    this.player.invincible = true;
-    this.player.invincibleTimer = 1000;
-
-    // Feedback ??strong hitstop for spike pain
-    this.game.hitstopFrames = 16;
-    this.game.camera.shake(5);
-    rumbleGamepad(160, 0.55, 1.0);
-    this.screenFlash.flashDamage(true);
-    this.player.triggerFlash();
-    this.dmgNumbers.spawn(
-      this.player.x + this.player.width / 2,
-      this.player.y - 8, dmg, true,
-    );
-
-    // Teleport to last safe ground
-    this.player.x = this.player.lastSafeX;
-    this.player.y = this.player.lastSafeY;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-
-    if (this.player.hp <= 0) {
-      this.player.hp = 0;
-      this.player.onDeath();
-      this.game.hitstopFrames = 8;
-      this.screenFlash.flashDamage(true);
-    }
-  }
-
   /**
    * Per-frame tile hazard tick: TileMutator state + DOT on player & enemies.
-   * Mirrors checkSpikeContact pattern but channels through TileHazards.applyTileHazards
+   * Mirrors the spike-runtime hazard pattern but channels through TileHazards.applyTileHazards
    * so magma/charged/acid/fire/thunder/burn share one code path.
    *
-   * GDD: Documents/System/System_World_TileSystem.md 筌?.6-2.13
+   * GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
    */
   private tickTileHazards(dt: number): void {
     const room = this.player.roomData;
@@ -5454,60 +3449,22 @@ export class LdtkWorldScene extends Scene {
     // Advance frozen/burning/electric timers + oil-spread + passive interactions.
     this.tileMutator.tick(room, dt);
 
-    // Tick burnable entities (Tier B) ??flame VFX + burnRemainingMs countdown.
-    // Destroyed ones are unregistered + removed from scene graph.
-    for (let i = this.burnableProps.length - 1; i >= 0; i--) {
-      const p = this.burnableProps[i];
-      p.update(dt);
-      if (p.destroyed) {
-        // Drop ash remnant ??only for props that were actually burnt out
-        // (still had burn remaining when they reached 0). Floor/free anchors
-        // leave ash; ceiling props (curtains, vines) vanish without remnant
-        // because falling ash would clip mid-air without a hanger.
-        if (p.spec.anchor !== 'ceiling') {
-          const cx = p.x + p.width / 2;
-          const baseY = p.y + p.height - 1;
-          this.ashRemnant.spawn(cx, baseY, p.width);
-        }
-        this.tileMutator.unregisterBurnable(p);
-        p.destroy();
-        this.burnableProps.splice(i, 1);
-      }
-    }
+    this.worldBurnablePropRuntime.update(dt);
 
-    // Procedural grass clumps ??fire ignition + chain to TILE_GRASS tiles.
-    this.grassClumpFire.update(dt, this.tileMutator, this.collisionGrid, this.ashRemnant, 16);
+    // Procedural grass clumps — fire ignition + chain to TILE_GRASS tiles.
+    this.grassFireRuntime.update(dt, this.tileMutator, this.collisionGrid, TILE_SIZE);
 
-    // BreakableProp ignition is driven by TileMutator.spreadOilFire (same
-    // pipeline as BurnableProp / oil / wood / grass). Here we only handle
-    // the burn-out ??shatter/drop transition for props that finished burning.
-    for (let i = this.breakableProps.length - 1; i >= 0; i--) {
-      const bp = this.breakableProps[i];
-      if (bp.destroyed) {
-        this.tileMutator.unregisterBurnable(bp);
-        this.breakableProps.splice(i, 1);
-        continue;
-      }
-      if (bp.burnedOut) {
-        this.tileMutator.unregisterBurnable(bp);
-        this.destroyBreakablePropWithEffects(bp, 'fire');
-        this.breakableProps.splice(i, 1);
-      }
-    }
-
-    // Advance timed-fade ash remnants (grass clump leftovers fade out).
-    this.ashRemnant.update(dt);
+    this.worldBreakablePropRuntime.cleanupBurnedOut();
 
     // Render overlay for fire / ice / electric cell states.
-    this.tileMutatorRenderer?.update(this.tileMutator, this.collisionGrid, dt);
+    this.worldTileMutationRuntime.updateRenderer(this.collisionGrid, dt);
 
-    // Wall layer refresh ??ice melted to water, wood/grass burned out, metal
+    // Wall layer refresh — ice melted to water, wood/grass burned out, metal
     // corroded. rerenderTilemap reads the current collisionGrid and skips
     // tiles whose cell is now air or a fluid type (handled by LdtkRenderer).
-    if (this.wallLayerDirty) {
-      this.wallLayerDirty = false;
+    if (this.worldTileMutationRuntime.consumeWallLayerDirty()) {
       this.rerenderTilemap();
-      // New water cells (from ice melt) need a fluid body ??rebuild from grid.
+      // New water cells (from ice melt) need a fluid body — rebuild from grid.
       this.fluidSystem.refreshFromGrid(this.collisionGrid);
     }
 
@@ -5597,7 +3554,7 @@ export class LdtkWorldScene extends Scene {
     // Enemy hazards (every alive enemy). Element multiplier scales raw
     // amount per source. Multiplier 0 = immune (skip). Otherwise damage
     // is floored at 1 so tiny-maxHp enemies still take chip damage from
-    // residue ticks (without the floor, maxHp??.005 etc rounds to 0).
+    // residue ticks (without the floor, maxHp*0.005 etc rounds to 0).
     // HP bar flashes + damage number floats on every applied tick so the
     // player sees the elemental damage land.
     for (const enemy of this.enemies) {
@@ -5620,1045 +3577,19 @@ export class LdtkWorldScene extends Scene {
   getTileMutator(): TileMutator { return this.tileMutator; }
 
   /**
-   * DEBUG: ignite the player's feet cell + 4-neighbours. Tries every adjacent
-   * cell so it works regardless of which side the player is touching the
-   * flammable terrain (e.g. standing next to a grass patch).
-   *
-   * URL-gated: only callable when ?debug is present. Bound to KeyF.
-   */
-  /**
-   * Compute the elemental attack hitbox AABB.
-   * Covers player AABB expanded 8px each side + 24px sword reach in facing
-   * direction. Vertical extension reaches the floor cell BELOW feet (so ice
-   * underfoot is hit) and ceiling cell ABOVE head (Vine entities).
-   */
-  private getDebugAttackHitbox(): { ax: number; ay: number; aw: number; ah: number } {
-    const reach = 24;
-    const expand = 8;
-    const ax = this.player.facingRight
-      ? this.player.x - expand
-      : this.player.x - expand - reach;
-    return {
-      ax,
-      ay: this.player.y - expand,
-      aw: this.player.width + expand * 2 + reach,
-      ah: this.player.height + expand * 2 + 8, // extra +8 below so floor cells reliably hit
-    };
-  }
-
-  /**
-   * Per-shard container-hit test. Returns true if the shard at (x, y)
-   * overlaps any container AABB. Applies takeAttack damage and breaks
-   * the container on kill (BFS-paint via paintContainerImpact).
-   */
-  private checkShardContainerHit(x: number, y: number): boolean {
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      if (c.destroyed || c.held) continue;
-      if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
-      // MetalCrate is immune to direct attack damage ??only acid corrosion
-      // (handled in tickEnvironment) can dissolve it. The shard still gets
-      // "stuck" (return true) so it can be retrieved like any wall hit.
-      if (c.kind === 'MetalCrate') {
-        // R-NEW-054 Brittle Crate: ice/frozen ?? ?熬곣벀??1 hit 嶺뚯빖留??
-        const lx = Math.floor(c.colX / 16);
-        const rx = Math.floor((c.colX + c.colW - 1) / 16);
-        const by = Math.floor((c.colY + c.colH - 1) / 16);
-        let isBrittle = false;
-        for (let gx = lx; gx <= rx; gx++) {
-          const below = this.collisionGrid[by + 1]?.[gx];
-          if (below === 7 /* ice */ || this.tileMutator.isFrozen(gx, by + 1)) {
-            isBrittle = true; break;
-          }
-        }
-        if (isBrittle) {
-          const impact = c.shatterBrittle();
-          this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-          if (impact) {
-            this.destroyContainerWithVFX(c);
-            this.containers.splice(i, 1);
-          }
-          return true;
-        }
-        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-        return true;
-      }
-      const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
-      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Per-shard enemy-hit test. Returns true if the shard at (x, y) overlaps
-   * a living enemy's AABB ??manager then transitions the shard to STUCK.
-   * Damage + element status applied immediately. Killing an enemy with a
-   * lodged shard auto-retrieves all shards inside its bounding box (Hades
-   * Bloodstone return-on-kill).
-   */
-  private checkShardEnemyHit(x: number, y: number, element: ShardElement): boolean {
-    for (const e of this.enemies) {
-      if (!e.alive) continue;
-      if (x < e.x || x > e.x + e.width || y < e.y || y > e.y + e.height) continue;
-      // Element multiplier applies to BOTH the base shard hit damage and to
-      // the element-specific status (fire-affined enemies ignore Burn, ice-
-      // affined ignore Freeze, thunder-affined ignore chain pulse).
-      const elemMult = e.elementMultiplier(element as ElementAffinity);
-      const baseDmg = Math.max(1, Math.floor(this.player.atk * 0.6 * elemMult));
-      if (elemMult > 0) e.hp -= baseDmg;
-      e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
-      this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
-      this.hitSparks.spawn(x, y, false, 0);
-      // Element side-effects ??gated by multiplier > 0.
-      if (element === 'fire' && elemMult > 0) {
-        e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
-      } else if (element === 'ice' && elemMult > 0) {
-        // 2s ?筌먦끇六????썹뙼???AI tick 繞벿살탳? + vx=0 + ?筌뤾봇??tint (Enemy.frozenRemainingMs).
-        e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
-      } else if (element === 'thunder' && elemMult > 0) {
-        // 嶺뚯빖留㎬??怨뺣뼺? ???嶺뚯솘? + ??⑤챷踰??熬곣뫚???????熬곣뫕????(water/metal/acid) ?????
-        // flood-fill thunder chain ?筌뤾봇遊뷸ㅀ?????關逾???戮곗쓤???? ?熬곣뫖????戮곕엿????
-        // ?? ?熬곣뫕?????苡????????????類?꼸嶺뚯솘?????怨룹꽑嶺?
-        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.4 * elemMult));
-        const room = this.player.roomData;
-        if (room) {
-          // 2?? corner-snap centered on enemy AABB center ??keeps thunder
-          // chain footprint consistent with shard impact (2?? cells).
-          const ax = Math.round((e.x + e.width / 2) / 16);
-          const ay = Math.round((e.y + e.height / 2) / 16);
-          const chainCells: Array<[number, number]> = [
-            [ax - 1, ay - 1], [ax, ay - 1],
-            [ax - 1, ay],     [ax, ay],
-          ];
-          for (const [nx, ny] of chainCells) {
-            if (this.tileMutator.isElectric(nx, ny)) continue;
-            this.tileMutator.applyThunderChain(room, nx, ny);
-          }
-        }
-      }
-      if (e.hp <= 0) {
-        e.hp = 0;
-        e.onDeath();
-        // Auto-retrieve any lodged shards inside the dying enemy's AABB.
-        const got = this.egoShard.retrieveInAABB(e.x, e.y, e.width, e.height);
-        if (got > 0) {
-          this.player.egoShardCount = Math.min(this.player.egoShardCount + got, 99);
-        }
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Common container break VFX/SFX ??propShatter chunks + breakable sound
-   * + small camera shake. Mirrors the existing BreakableProp destruction
-   * routine so containers feel like the same family.
-   */
-  /**
-   * Thrown containers deal a single impact hit on first contact with any
-   * living enemy AABB. Triggered when the container is `wasThrown` and has
-   * meaningful kinetic velocity (so a sitting crate that happens to touch
-   * an enemy doesn't pop). Damage scales like a normal sword strike; the
-   * MetalCrate gets a 1.8??bonus (no paint, heavy-steel trade). Bosses
-   * take damage but skip stun (super-armor preserved).
-   */
-  private checkThrownContainerEnemyHit(): void {
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      if (c.destroyed || c.held) continue;
-      if (!c.wasThrown || c.hasDealtImpact) continue;
-      // Velocity gate ??keep low-energy contact (e.g. a crate barely
-      // sliding over a stunned enemy) from auto-popping the throw.
-      if (Math.abs(c.vx) < 60 && c.vy < 80) continue;
-      const ax = c.colX, ay = c.colY, aw = c.colW, ah = c.colH;
-      for (const e of this.enemies) {
-        if (!e.alive) continue;
-        if (ax + aw <= e.x || ax >= e.x + e.width) continue;
-        if (ay + ah <= e.y || ay >= e.y + e.height) continue;
-        const baseDmg = Math.max(2, Math.floor(this.player.atk));
-        const mult = c.kind === 'MetalCrate' ? 1.8 : 1.0;
-        const dmg = Math.max(1, Math.floor(baseDmg * mult));
-        e.hp -= dmg;
-        const dir = c.vx >= 0 ? 1 : -1;
-        // Bosses keep super-armor (no stun), but still take damage and
-        // a soft knockback that respects the throw direction.
-        const isBoss = (e as any)._isBoss === true;
-        if (isBoss) {
-          e.onHit(dir * 60, -40, 0);
-        } else {
-          e.onHit(dir * 220, -160, 400);
-        }
-        this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, c.kind === 'MetalCrate');
-        this.hitSparks.spawn(ax + aw / 2, ay + ah / 2, true, 0);
-        if (e.hp <= 0) {
-          e.hp = 0;
-          e.onDeath();
-        }
-        c.hasDealtImpact = true;
-        // Paint + destroy the container at the hit point.
-        const impactGx = Math.floor((ax + aw / 2) / 16);
-        const impactGy = Math.floor((ay + ah / 2) / 16);
-        if (c.spec.paintTile !== 0 && c.fluidVolume > 0) {
-          this.paintContainerImpact(c.kind, impactGx, impactGy, c.fluidVolume);
-        }
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        break;
-      }
-    }
-  }
-
-  /**
-   * Maintained-spawner refill pass. For every spawner with Maintain=true,
-   * count live containers inside its rect and emit shortfall back up to
-   * minCount when the player destroys boxes. Throttled by MAINTAIN_CHECK_MS
-   * so we don't recompute every frame.
-   */
-  private tickMaintainedSpawners(dtMs: number): void {
-    if (this.maintainedSpawners.length === 0) return;
-    for (const ms of this.maintainedSpawners) {
-      ms.checkAccum += dtMs;
-      if (ms.checkAccum < LdtkWorldScene.MAINTAIN_CHECK_MS) continue;
-      ms.checkAccum = 0;
-
-      // Prune destroyed containers from the owned set. `owned.length` after
-      // this is the spawner's current spawn count.
-      for (let i = ms.owned.length - 1; i >= 0; i--) {
-        if (ms.owned[i].destroyed) ms.owned.splice(i, 1);
-      }
-      // Refill rule (user spec): only when *all* owned containers are gone.
-      // Partial losses are left alone so destroying one box doesn't force
-      // an immediate replacement.
-      if (ms.owned.length > 0) continue;
-
-      // Build occupancy map of all live containers globally so the refill
-      // placement doesn't collide with boxes outside the rect either.
-      const occupiedCells = new Set<string>();
-      for (const c of this.containers) {
-        if (c.destroyed) continue;
-        const gx0 = Math.floor(c.x / 16);
-        const gx1 = Math.floor((c.x + c.spec.width - 1) / 16);
-        const gy0 = Math.floor(c.y / 16);
-        const gy1 = Math.floor((c.y + c.spec.height - 1) / 16);
-        for (let gy = gy0; gy <= gy1; gy++) {
-          for (let gx = gx0; gx <= gx1; gx++) occupiedCells.add(`${gx},${gy}`);
-        }
-      }
-
-      // Non-deterministic refill seed so successive depletions don't land
-      // in identical spots.
-      const refillSeed = ms.seed >= 0
-        ? (ms.seed ^ ((performance.now() | 0) >>> 0))
-        : ((performance.now() | 0) >>> 0);
-      // Refill batch size = minCount~maxCount (matches the initial spawn
-      // distribution ??"keep min" semantically guaranteed, max as ceiling).
-      const refilled = runContainerSpawner({
-        rect: ms.rect,
-        collisionGrid: this.collisionGrid,
-        existing: this.containers,
-        occupiedCells,
-        pool: ms.pool,
-        minCount: ms.minCount,
-        maxCount: ms.maxCount,
-        bias: ms.bias,
-        seed: refillSeed,
-        avoidEntity: ms.avoidEntity,
-        fluidVolumeOverride: ms.fluidVolumeOverride,
-      });
-      if (refilled.length === 0) continue;
-      const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-        const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-        return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
-      };
-      for (const c of refilled) {
-        this.containers.push(c);
-        this.entityLayer.addChild(c.container);
-        if (!c.skipSettle) c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
-          const t = this.collisionGrid[gy]?.[gx] ?? 0;
-          return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-        });
-        ms.owned.push(c);
-      }
-    }
-  }
-
-  private destroyContainerWithVFX(c: ThrowableContainer): void {
-    this.propShatter.spawn(
-      c.x, c.y, c.spec.width, c.spec.height,
-      c.getShatterColor(), c.getShatterAccent(),
-      c.getShatterTexture(),
-    );
-    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-    this.game.hitstopFrames += 3;
-    this.game.camera.shake(2);
-    c.destroy();
-  }
-
-  /**
-   * Resolve container ??container overlaps. When two containers occupy the
-   * same pixel space, push them apart along the smaller penetration axis.
-   * Runs after player push so a pushed crate can shove another crate.
-   */
-  private resolveContainerContainerCollision(): void {
-    const cs = this.containers;
-    for (let i = 0; i < cs.length; i++) {
-      const a = cs[i];
-      if (a.destroyed || a.held) continue;
-      for (let j = i + 1; j < cs.length; j++) {
-        const b = cs[j];
-        if (b.destroyed || b.held) continue;
-        // Use collision rects (inset-aware), not sprite frames.
-        const ax0 = a.colX, ay0 = a.colY, ax1 = a.colX + a.colW, ay1 = a.colY + a.colH;
-        const bx0 = b.colX, by0 = b.colY, bx1 = b.colX + b.colW, by1 = b.colY + b.colH;
-        if (ax1 <= bx0 || ax0 >= bx1 || ay1 <= by0 || ay0 >= by1) continue;
-        const overlapL = ax1 - bx0;
-        const overlapR = bx1 - ax0;
-        const aCenter = ax0 + (ax1 - ax0) / 2;
-        const bCenter = bx0 + (bx1 - bx0) / 2;
-        if (aCenter <= bCenter) {
-          const ax = a.x - overlapL * 0.5;
-          const bx = b.x + overlapL * 0.5;
-          if (this.canContainerOccupyX(a, ax, b)) a.x = ax; else a.vx = 0;
-          if (this.canContainerOccupyX(b, bx, a)) b.x = bx; else b.vx = 0;
-        } else {
-          const ax = a.x + overlapR * 0.5;
-          const bx = b.x - overlapR * 0.5;
-          if (this.canContainerOccupyX(a, ax, b)) a.x = ax; else a.vx = 0;
-          if (this.canContainerOccupyX(b, bx, a)) b.x = bx; else b.vx = 0;
-        }
-        a.container.x = a.x; a.container.y = a.y;
-        b.container.x = b.x; b.container.y = b.y;
-      }
-    }
-  }
-
-  /**
-   * Resolve player AABB vs every container AABB. Smallest penetration axis
-   * decides: horizontal contact pushes the container (passing the player's
-   * vx through) or stops the player; vertical contact lets the player stand
-   * on top or get bonked from below.
-   */
-  /**
-   * Mirror of resolvePlayerContainerCollision for every alive enemy. Enemies
-   * are blocked / stacked on containers exactly like the player, but cannot
-   * push containers (passive interaction ??only the player has hands). No
-   * impact damage either: thrown-container damage is handled separately by
-   * checkThrownContainerEnemyHit. Enemies that would clip into a container
-   * from below push the container UP, mirroring the bury-fix on player.
-   */
-  private resolveEnemyContainerCollision(): void {
-    for (const e of this.enemies) {
-      if (!e.alive) continue;
-      for (const c of this.containers) {
-        if (c.destroyed || c.held) continue;
-        const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
-        const ex0 = e.x, ey0 = e.y, ex1 = e.x + e.width, ey1 = e.y + e.height;
-        if (ex1 <= cx0 || ex0 >= cx1 || ey1 <= cy0 || ey0 >= cy1) continue;
-        const overlapLeft   = ex1 - cx0;
-        const overlapRight  = cx1 - ex0;
-        const overlapTop    = ey1 - cy0;
-        const overlapBottom = cy1 - ey0;
-        const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-        if (min === overlapTop) {
-          e.y = cy0 - e.height;
-          if (e.vy > 0) e.vy = 0;
-        } else if (min === overlapBottom) {
-          c.y -= overlapBottom;
-          if (c.vy > 0) c.vy = 0;
-          c.container.x = c.x;
-          c.container.y = c.y;
-          if (e.vy < 0) e.vy = 0;
-        } else if (min === overlapLeft) {
-          e.x = cx0 - e.width;
-          if (e.vx > 0) e.vx = 0;
-        } else if (min === overlapRight) {
-          e.x = cx1;
-          if (e.vx < 0) e.vx = 0;
-        }
-      }
-    }
-  }
-
-  /**
-   * Would the container's collision rect overlap a solid IntGrid cell if
-   * its sprite origin were placed at `newX` (Y unchanged)? Used by the
-   * player-push + container-??container resolvers to gate horizontal
-   * movement, preventing crates from tunneling through walls.
-   */
-  private canContainerOccupyX(c: ThrowableContainer, newX: number, ignore: ThrowableContainer | null = null): boolean {
-    const inset = c.spec.collisionInset;
-    const colX = newX + inset.left;
-    const colW = c.colW;
-    const colY = c.colY;
-    const colH = c.colH;
-    const lgx = Math.floor(colX / 16);
-    const rgx = Math.floor((colX + colW - 1) / 16);
-    const tgy = Math.floor(colY / 16);
-    const bgy = Math.floor((colY + colH - 1) / 16);
-    for (let gy = tgy; gy <= bgy; gy++) {
-      for (let gx = lgx; gx <= rgx; gx++) {
-        const t = this.collisionGrid[gy]?.[gx] ?? 0;
-        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return false;
-      }
-    }
-    for (const o of this.containers) {
-      if (o === c || o === ignore || o.destroyed || o.held) continue;
-      if (colX + colW <= o.colX || colX >= o.colX + o.colW) continue;
-      if (colY + colH <= o.colY || colY >= o.colY + o.colH) continue;
-      return false;
-    }
-    return true;
-  }
-
-  private resolvePlayerContainerCollision(): void {
-    const p = this.player;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      // Use container's collision rect (sprite frame minus inset).
-      const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
-      const px0 = p.x, py0 = p.y, px1 = p.x + p.width, py1 = p.y + p.height;
-      if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
-      const overlapLeft   = px1 - cx0;
-      const overlapRight  = cx1 - px0;
-      const overlapTop    = py1 - cy0;
-      const overlapBottom = cy1 - py0;
-      const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-      if (min === overlapTop) {
-        // Stand on physical top of the container (= cy0).
-        p.y = cy0 - p.height;
-        if (p.getVy() > 0) p.vy = 0;
-        p.forceGrounded(true, 'container');
-      } else if (min === overlapBottom) {
-        // Container pressed down onto player head ??push container UP.
-        c.y -= overlapBottom;
-        if (c.vy > 0) c.vy = 0;
-        c.container.x = c.x;
-        c.container.y = c.y;
-        if (p.getVy() < 0) p.vy = 0;
-      } else if (min === overlapLeft) {
-        if (Math.abs(p.getVx()) > 20) {
-          const newX = c.x + Math.max(0, overlapLeft - 1);
-          if (this.canContainerOccupyX(c, newX)) {
-            c.x = newX;
-            c.container.x = c.x;
-          }
-        }
-        p.x = cx0 - p.width;
-      } else if (min === overlapRight) {
-        if (Math.abs(p.getVx()) > 20) {
-          const newX = c.x - Math.max(0, overlapRight - 1);
-          if (this.canContainerOccupyX(c, newX)) {
-            c.x = newX;
-            c.container.x = c.x;
-          }
-        }
-        p.x = cx1;
-      }
-    }
-  }
-
-  private isPlayerStandingOnContainerTop(): boolean {
-    const p = this.player;
-    const feetY = p.y + p.height;
-    const prevFeetY = p.prevY + p.height;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      const cx0 = c.colX;
-      const cx1 = c.colX + c.colW;
-      const topY = c.colY;
-      const horizontallySupported = p.x + p.width > cx0 + 1 && p.x < cx1 - 1;
-      if (!horizontallySupported) continue;
-      const feetAtTop = feetY >= topY - 2 && feetY <= topY + 2;
-      const cameFromAbove = prevFeetY <= topY + 4;
-      if (feetAtTop && cameFromAbove && p.getVy() >= -1) return true;
-    }
-    return false;
-  }
-
-  /**
-   * Apply container splash paint: fill a small cell radius around the impact
-   * point with the container's fluid type. Cells that are currently solid
-   * (wall/wood/metal) are not painted ??only AIR cells flip.
-   */
-  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
-    const grid = this.collisionGrid;
-    const tile: number = (() => {
-      switch (kind) {
-        case 'OilDrum':       return 11;
-        case 'WaterBarrel':   return 2;
-        case 'MagmaCrucible': return 6;
-        case 'AcidVial':      return 13;
-        case 'ChargedCrate':  return 8;
-        case 'ChargedCell':   return 8;
-        case 'CyroCanister':  return 20;
-        case 'Crate':         return 0;
-        case 'MetalCrate':    return 0;
-      }
-    })();
-    if (tile > 0 && quantity > 0) {
-      this.paintFluidSplash(grid, gx, gy, tile, quantity);
-      this.containerFluidDirty = true;
-    }
-    if (kind === 'MagmaCrucible') {
-      this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
-    }
-    // R-NEW-011 Impact Solidification: WaterBarrel + magma ??WALL ?????
-    if (kind === 'WaterBarrel') {
-      let solidified = 0;
-      for (let dy2 = -1; dy2 <= 1; dy2++) {
-        for (let dx2 = -1; dx2 <= 1; dx2++) {
-          const nx = gx + dx2, ny = gy + dy2;
-          if (grid[ny]?.[nx] === 6) {
-            grid[ny][nx] = 1;
-            this.tileMutator.onWallTileChanged?.(nx, ny, 6);
-            solidified++;
-          }
-        }
-      }
-      if (solidified > 0) {
-        this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0);
-        this.game.camera.shake(4);
-        this.containerFluidDirty = true;
-      }
-    }
-    // R-NEW-012 Acid Container Chain: AcidVial + 2-tile radius ???쳜???????띠럾???
-    if (kind === 'AcidVial') {
-      const reachSq = 32 * 32;
-      const cx = (gx + 0.5) * 16;
-      const cy = (gy + 0.5) * 16;
-      for (const other of this.containers) {
-        if (other.destroyed) continue;
-        const dx = (other.colX + other.colW / 2) - cx;
-        const dy = (other.colY + other.colH / 2) - cy;
-        if (dx * dx + dy * dy < reachSq) {
-          other.acidExposureMs += 1000;
-        }
-      }
-    }
-  }
-
-  private flushContainerFluidChanges(): void {
-    if (!this.containerFluidDirty) return;
-    this.containerFluidDirty = false;
-    this.fluidSystem.refreshFromGrid(this.collisionGrid);
-    this.rerenderTilemap();
-  }
-
-  private applyContainerEffectToFluid(c: ThrowableContainer): void {
-    if (
-      c.kind === 'OilDrum' ||
-      c.kind === 'WaterBarrel' ||
-      c.kind === 'Crate' ||
-      c.kind === 'MetalCrate'
-    ) return;
-    const grid = this.collisionGrid;
-    const left = Math.floor(c.colX / 16);
-    const right = Math.floor((c.colX + c.colW - 1) / 16);
-    const foot = Math.floor((c.colY + c.colH) / 16);
-    let changed = false;
-    let shocked = false;
-    for (let gy = foot - 1; gy <= foot; gy++) {
-      for (let gx = left; gx <= right; gx++) {
-        const row = grid[gy];
-        if (!row) continue;
-        const t = row[gx] ?? -1;
-        if (t !== 2 && t !== 6 && t !== 8 && t !== 11 && t !== 13 && t !== 20) continue;
-        switch (c.kind) {
-          case 'MagmaCrucible':
-            this.tileMutator.tryIgniteOverlayOnly(gx, gy, 1800);
-            this.tileMutator.tryIgnite(grid, gx, gy);
-            this.tileMutator.tryIgnite(grid, gx + 1, gy);
-            this.tileMutator.tryIgnite(grid, gx - 1, gy);
-            this.tileMutator.tryIgnite(grid, gx, gy + 1);
-            this.tileMutator.tryIgnite(grid, gx, gy - 1);
-            break;
-          case 'AcidVial':
-            this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
-            break;
-          case 'ChargedCrate':
-          case 'ChargedCell':
-            if (this.tileMutator.applyThunderChain(grid, gx, gy) === 0 && t === 11) {
-              this.tileMutator.onElectricInsulated?.(gx, gy);
-            }
-            shocked = true;
-            break;
-          case 'CyroCanister':
-            changed = this.freezeConnectedFluidFrom(grid, gx, gy) || changed;
-            break;
-        }
-      }
-    }
-    if (changed) this.containerFluidDirty = true;
-    if (changed && c.kind === 'CyroCanister') this.freezeEnemiesInFrozenCells(4000);
-    void shocked;
-  }
-
-  private freezeConnectedFluidFrom(grid: number[][], sx: number, sy: number): boolean {
-    const seed = grid[sy]?.[sx] ?? -1;
-    if (seed !== 2 && seed !== 6 && seed !== 8 && seed !== 11 && seed !== 13 && seed !== 20) return false;
-    const W = grid[0]?.length ?? 0;
-    if (!W) return false;
-    const visited = new Set<number>();
-    const queue: Array<[number, number]> = [[sx, sy]];
-    const key = (gx: number, gy: number) => gy * W + gx;
-    let changed = false;
-    while (queue.length) {
-      const [gx, gy] = queue.shift()!;
-      const k = key(gx, gy);
-      if (visited.has(k)) continue;
-      visited.add(k);
-      if ((grid[gy]?.[gx] ?? -1) !== seed) continue;
-      changed = this.tileMutator.tryFreeze(grid, gx, gy) || changed;
-      queue.push([gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]);
-    }
-    return changed;
-  }
-
-  private freezeEnemiesInFrozenCells(durationMs: number): void {
-    for (const enemy of this.enemies) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
-      if (!this.tileMutator.aabbHasOverlay(enemy.x, enemy.y, enemy.width, enemy.height, 'frozen')) continue;
-      enemy.frozenRemainingMs = Math.max(enemy.frozenRemainingMs ?? 0, durationMs);
-      enemy.vx = 0;
-      enemy.vy = 0;
-      enemy.showHpBarFlash();
-    }
-  }
-
-  /**
-   * BFS-flood paint up to `quantity` cells starting from (sx, sy). Cells
-   * that get overwritten:
-   *   air(0) 鸚?grass(16) 鸚?existing fluids (water/oil/acid/magma)
-   * Solid cells (wall/ice/breakable/metal/wood) block both paint and
-   * expansion ??natural splash bounded by terrain. Painting magma over
-   * flammable neighbours immediately ignites them so the user sees fire
-   * rather than waiting for the slower 600ms passive spread tick.
-   */
-  private paintFluidSplash(grid: number[][], sx: number, sy: number, tile: number, quantity: number): void {
-    if (quantity <= 0) return;
-    const W = grid[0]?.length ?? 0;
-    if (!W) return;
-    const isPaintable = (t: number) =>
-      t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-    const key = (x: number, y: number) => y * W + x;
-    const visited = new Set<number>();
-    const queue: Array<[number, number]> = [[sx, sy]];
-    visited.add(key(sx, sy));
-    let painted = 0;
-    const paintedCells: Array<[number, number]> = [];
-    while (queue.length > 0 && painted < quantity) {
-      const [x, y] = queue.shift()!;
-      const row = grid[y];
-      if (!row) continue;
-      const t = row[x] ?? -1;
-      if (isPaintable(t)) {
-        row[x] = tile;
-        painted++;
-        paintedCells.push([x, y]);
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = x + dx, ny = y + dy;
-          const k = key(nx, ny);
-          if (!visited.has(k)) {
-            visited.add(k);
-            queue.push([nx, ny]);
-          }
-        }
-      }
-    }
-    // Magma paint ??immediately ignite adjacent flammable cells so the
-    // user sees a chain reaction the same frame the container breaks.
-    if (tile === 6) {
-      for (const [px, py] of paintedCells) {
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          this.tileMutator.tryIgnite(grid, px + dx, py + dy);
-        }
-      }
-    }
-  }
-
-  /**
-   * Debug helper ??spawn a few containers near the player for testing.
-   * Bound to Shift+G via debug input until LDtk Entity spawning is wired.
-   */
-  private debugSpawnContainers(): void {
-    const baseX = Math.floor(this.player.x / 16) * 16 + 32;
-    const baseY = Math.floor(this.player.y / 16) * 16;
-    const kinds: ContainerKind[] = ['OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
-    for (let i = 0; i < kinds.length; i++) {
-      const c = new ThrowableContainer(kinds[i], baseX + i * 20, baseY);
-      this.containers.push(c);
-      this.entityLayer.addChild(c.container);
-    }
-  }
-
-  /**
-   * Ego Shard impact dispatcher ??runs the element's effect at the impact
-   * point. Damage footprint = 2?? cells whose shared corner is nearest to
-   * the impact pixel (nearest-corner snap). Compact, picks the most-likely
-   * intended 4 cells without overshooting into unrelated terrain.
-   */
-  private onEgoShardImpact(px: number, py: number, element: ShardElement): void {
-    const room = this.player.roomData;
-    if (!room) return;
-    const ax = Math.round(px / 16);   // grid corner nearest the impact pixel
-    const ay = Math.round(py / 16);
-    const cells: Array<[number, number]> = [
-      [ax - 1, ay - 1], [ax, ay - 1],
-      [ax - 1, ay],     [ax, ay],
-    ];
-    if (element === 'fire') {
-      const fireHitSize = 24;
-      const fireHalf = fireHitSize / 2;
-      const fireCells: Array<[number, number]> = [];
-      this.forEachCellInAABB(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize, (gx, gy) => {
-        if (room[gy]?.[gx] === undefined) return;
-        fireCells.push([gx, gy]);
-      });
-      for (const [gx, gy] of fireCells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        if (t === 7 /* ice */) this.tileMutator.tryMeltIce(room, gx, gy);
-        else if (t === 2 /* water */ && room[gy]) {
-          room[gy][gx] = 0;
-          this.fluidSystem.removeCell(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
-        } else if (t === 13 /* acid */ && room[gy]) {
-          // R-NEW-003 Toxic Acid Flash
-          room[gy][gx] = 0;
-          this.fluidSystem.removeCell(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4, PUFF_TINT_TOXIC);
-        } else if (t === 6 /* magma */ && room[gy]) {
-          // R-NEW-020 Magma Surge
-          const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
-          for (const [nx, ny] of ns) {
-            if ((room[ny]?.[nx] ?? -1) === 0 && Math.random() < 0.40) {
-              room[ny][nx] = 6;
-            }
-          }
-          this.fluidSystem.refreshFromGrid(this.collisionGrid);
-        } else if (t === 12 /* metal */) {
-          // R-NEW-019 Heat Metal: metal cell ??? + 4s fire overlay
-          this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
-        } else {
-          this.tileMutator.tryIgnite(room, gx, gy);
-        }
-      }
-      // Residue ignite box matches the 2?? cell footprint, anchored at the
-      // snap corner so it's centered exactly on the same 4 cells.
-      this.fluidResidue.ignite(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize);
-      // BreakableProp ignition happens inside `tryIgnite` above (BreakableProp
-      // is registered as IgnitableEntity, same path as BurnableProp).
-      // Procedural grass clumps inside the impact cells ??direct ignite
-      // (clumps are NOT TileMutator-registered yet ??separate fire system).
-      if (fireCells.length > 0) {
-        let minGx = fireCells[0][0], maxGx = fireCells[0][0];
-        let minGy = fireCells[0][1], maxGy = fireCells[0][1];
-        for (const [gx, gy] of fireCells) {
-          minGx = Math.min(minGx, gx);
-          maxGx = Math.max(maxGx, gx);
-          minGy = Math.min(minGy, gy);
-          maxGy = Math.max(maxGy, gy);
-        }
-        this.grassClumpFire.igniteInCellAABB(minGx, minGy, maxGx, maxGy);
-      }
-    } else if (element === 'ice') {
-      for (const [gx, gy] of cells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        if (t === 12 /* metal */) this.tileMutator.tryFreezeMetal(room, gx, gy);
-        else this.tileMutator.tryFreeze(room, gx, gy);
-      }
-    } else if (element === 'thunder') {
-      for (const [gx, gy] of cells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        if (t === 6 /* magma */) {
-          // R-NEW-018 Magma Detonation
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0, PUFF_TINT_PLASMA);
-          this.game.camera.shake(4);
-          this.tileMutator.applyThunderChain(room, gx, gy);
-          continue;
-        }
-        if (t === 7 /* ice */ && room[gy]) {
-          // R-NEW-022 Shatter Pulse
-          room[gy][gx] = 0;
-          this.tileMutator.clearFrozen(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4);
-          this.game.camera.shake(2);
-          continue;
-        }
-        if (this.tileMutator.isElectric(gx, gy)) continue;
-        this.tileMutator.applyThunderChain(room, gx, gy);
-      }
-    }
-  }
-
-  /** Iterate every grid cell overlapped by an AABB. */
-  private forEachCellInAABB(
-    ax: number, ay: number, aw: number, ah: number,
-    cb: (gx: number, gy: number) => void,
-  ): void {
-    const lx = Math.floor(ax / 16);
-    const rx = Math.floor((ax + aw - 1) / 16);
-    const ty = Math.floor(ay / 16);
-    const by = Math.floor((ay + ah - 1) / 16);
-    for (let gy = ty; gy <= by; gy++) {
-      for (let gx = lx; gx <= rx; gx++) cb(gx, gy);
-    }
-  }
-
-  /**
-   * DEBUG Shift+1 ??Fire enchant attack. Sweeps the hitbox AABB:
-   *   - oil/wood/grass cell ??ignite (cascading via TileMutator)
-   *   - ice cell ??melt to water (permanent)
-   *   - water cell ??steam (cell ??AIR)
-   *   - BurnableProp footprint ??ignite entity (via tryIgnite fallback)
-   */
-  private debugIgniteAtPlayer(): void {
-    const room = this.player.roomData;
-    if (!room) return;
-    const hb = this.getDebugAttackHitbox();
-    let actions = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      const tile = getTile(room, gx, gy);
-      if (isIce(tile)) {
-        if (this.tileMutator.tryMeltIce(room, gx, gy)) actions++;
-      } else if (isWater(tile)) {
-        if (room[gy]) {
-          room[gy][gx] = TILE_AIR;
-          this.fluidSystem.removeCell(gx, gy); // sync fluid body
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
-          actions++;
-        }
-      } else {
-        // flammable tile OR BurnableProp footprint
-        if (this.tileMutator.tryIgnite(room, gx, gy)) actions++;
-      }
-    });
-    // Fire on oil residue ??ignite the blot. Blots burn in place + emit fire DOT.
-    const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
-    actions += igniteN;
-    // eslint-disable-next-line no-console
-    Debug.log(
-      `[DebugFire] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`,
-    );
-    this.toast.show(t('toast.debug_fire', { count: actions }), 0xff8844);
-  }
-
-  /**
-   * DEBUG Shift+2 ??Ice enchant attack. Sweeps the hitbox AABB:
-   *   - water/magma cell ??freeze 15s (temp wall)
-   */
-  private debugFreezeAtPlayer(): void {
-    const room = this.player.roomData;
-    if (!room) return;
-    const hb = this.getDebugAttackHitbox();
-    let frozen = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      if (this.tileMutator.tryFreeze(room, gx, gy)) frozen++;
-    });
-    // eslint-disable-next-line no-console
-    Debug.log(
-      `[DebugIce] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) frozen=${frozen} total=${this.tileMutator.frozenCount}`,
-    );
-    this.toast.show(t('toast.debug_ice', { count: frozen }), 0x88ccff);
-  }
-
-  /**
-   * DEBUG Shift+3 ??Thunder enchant attack. Sweeps the hitbox AABB:
-   *   - For each conductor cell (water/metal/acid) not yet electric,
-   *     flood-fill connected conductor body. Multiple disconnected pools
-   *     in the hitbox all get lit. Per-pulse damage handled by TileHazards
-   *     transition detection (prevInElectric).
-   */
-  private debugThunderAtPlayer(): void {
-    const room = this.player.roomData;
-    if (!room) return;
-    const hb = this.getDebugAttackHitbox();
-    let totalLit = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      if (this.tileMutator.isElectric(gx, gy)) return;
-      totalLit += this.tileMutator.applyThunderChain(room, gx, gy);
-    });
-    // eslint-disable-next-line no-console
-    Debug.log(
-      `[DebugThunder] hitbox=(${hb.ax},${hb.ay},${hb.aw},${hb.ah}) lit=${totalLit} electric=${this.tileMutator.electricCount}`,
-    );
-    this.toast.show(t('toast.debug_thunder', { count: totalLit }), 0xffee44);
-  }
-
-  /** IntGrid void (value 10) -- fade out/in, return to last safe ground. */
-  private voidCooldown = 0;
-
-  private checkVoidContact(): void {
-    if (this.voidDropActive || this.voidCooldown > 0 || this.player.hp <= 0) return;
-    if (!isInVoid(this.player.x, this.player.y, this.player.width, this.player.height, this.player.roomData)) return;
-
-    const returnPoint = this.resolveWorldOnlyVoidReturnPoint();
-    this.voidDropActive = true;
-    this.voidReturnLevelId = this.lastWorldSafeLevelId || this.currentLevel?.identifier || this.playerSpawnLevelId;
-    this.voidReturnX = returnPoint.x;
-    this.voidReturnY = returnPoint.y;
-    this.voidFadePhase = 'out';
-    this.voidFadeTimer = 0;
-    this.voidInputLockMs = VOID_INPUT_LOCK_MS;
-    this.voidTeleported = false;
-    this.fadeOverlay.alpha = 0;
-    // Soft input lock ??player loses control immediately, but every other
-    // system (camera, fluid, particles, enemies) keeps simulating.
-    this.game.input.inputLocked = true;
-  }
-
-  private recordLastWorldSafePosition(x: number, y: number): void {
-    this.lastWorldSafeLevelId = this.currentLevel?.identifier ?? this.playerSpawnLevelId;
-    this.lastWorldSafeX = x;
-    this.lastWorldSafeY = y;
-  }
-
-  private resolveWorldOnlyVoidReturnPoint(): { x: number; y: number } {
-    const x = this.lastWorldSafeX;
-    const y = this.lastWorldSafeY;
-    if (this.isWorldFloorUnderPlayerAt(x, y)) return { x, y };
-    const nearest = this.findNearestWorldFloorSpawn(x, y);
-    if (nearest) return nearest;
-    const playerEntity = this.currentLevel?.entities.find((e) => e.type === 'Player');
-    if (playerEntity) {
-      return { x: playerEntity.px[0], y: playerEntity.px[1] - this.player.height };
-    }
-    return { x: this.player.x, y: this.player.y };
-  }
-
-  private isWorldFloorUnderPlayerAt(x: number, y: number): boolean {
-    if (this.isAabbInsideActiveBuilderVolume(x, y, this.player.width, this.player.height)) return false;
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridW <= 0) return false;
-    const stampSet = this.getBuilderStampSet();
-    const footRow = Math.floor((y + this.player.height + 1) / TILE_SIZE);
-    const leftCol = Math.floor(x / TILE_SIZE);
-    const rightCol = Math.floor((x + this.player.width - 1) / TILE_SIZE);
-    for (let col = leftCol; col <= rightCol; col++) {
-      if (this.isWorldFloorCell(col, footRow, stampSet)) return true;
-    }
-    return false;
-  }
-
-  private findNearestWorldFloorSpawn(x: number, y: number): { x: number; y: number } | null {
-    const gridH = this.collisionGrid.length;
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridH <= 0 || gridW <= 0) return null;
-
-    const stampSet = this.getBuilderStampSet();
-    const targetX = x + this.player.width / 2;
-    const targetY = y + this.player.height;
-    let best: { x: number; y: number; d2: number } | null = null;
-
-    for (let row = 0; row < gridH; row++) {
-      for (let col = 0; col < gridW; col++) {
-        if (!this.isWorldFloorCell(col, row, stampSet)) continue;
-        const candidateX = col * TILE_SIZE + TILE_SIZE / 2 - this.player.width / 2;
-        const candidateY = row * TILE_SIZE - this.player.height;
-        if (this.isAabbInsideActiveBuilderVolume(candidateX, candidateY, this.player.width, this.player.height)) continue;
-        if (!this.isWorldBodyClearAt(candidateX, candidateY, stampSet)) continue;
-        const dx = candidateX + this.player.width / 2 - targetX;
-        const dy = candidateY + this.player.height - targetY;
-        const d2 = dx * dx + dy * dy;
-        if (!best || d2 < best.d2) best = { x: candidateX, y: candidateY, d2 };
-      }
-    }
-
-    return best ? { x: best.x, y: best.y } : null;
-  }
-
-  private isWorldFloorCell(col: number, row: number, builderStampSet: Set<number>): boolean {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridW <= 0) return false;
-    if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return false;
-    if (builderStampSet.has(row * gridW + col)) return false;
-    const tile = this.collisionGrid[row]?.[col] ?? TILE_AIR;
-    return isSolid(tile) || isOneWay(tile);
-  }
-
-  private isWorldBodyClearAt(x: number, y: number, builderStampSet: Set<number>): boolean {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridW <= 0) return false;
-    const leftCol = Math.floor(x / TILE_SIZE);
-    const rightCol = Math.floor((x + this.player.width - 1) / TILE_SIZE);
-    const topRow = Math.floor(y / TILE_SIZE);
-    const bottomRow = Math.floor((y + this.player.height - 1) / TILE_SIZE);
-    for (let row = topRow; row <= bottomRow; row++) {
-      for (let col = leftCol; col <= rightCol; col++) {
-        if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return false;
-        if (builderStampSet.has(row * gridW + col)) continue;
-        const tile = this.collisionGrid[row]?.[col] ?? TILE_WALL;
-        if (isSolid(tile)) return false;
-      }
-    }
-    return true;
-  }
-
-  private isAabbInsideActiveBuilderVolume(x: number, y: number, w: number, h: number): boolean {
-    const b = this.activeBuilder;
-    if (!b) return false;
-    const bx = b.container.x;
-    const by = b.container.y;
-    const bw = b.widthTiles * TILE_SIZE;
-    const bh = b.heightTiles * TILE_SIZE;
-    return aabbOverlap(
-      { x, y, width: w, height: h },
-      { x: bx, y: by, width: bw, height: bh },
-    );
-  }
-
-  /**
-   * Snap the player to last safe ground + (re)load level if it differs.
-   * Forces a landed pose so the reveal doesn't show the player floating.
-   */
-  private performVoidTeleport(): void {
-    const sameLevel = this.currentLevel?.identifier === this.voidReturnLevelId;
-    if (!sameLevel) {
-      this.loadLevel(this.voidReturnLevelId, 'down');
-    }
-    this.player.x = this.voidReturnX;
-    this.player.y = this.voidReturnY;
-    this.player.lastSafeX = this.voidReturnX;
-    this.player.lastSafeY = this.voidReturnY;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.roomData = this.collisionGrid;
-    this.player.savePrevPosition();
-    this.player.forceGrounded(false, 'void-fade'); // sticky-grounded for this + next frame
-    // FSM nudge so the reveal frame shows idle/land pose, not 'fall'.
-    if ((this.player.fsm as any).currentState !== 'idle') {
-      try { (this.player.fsm as any).transition('idle'); } catch {}
-    }
-    this.game.camera.snap(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2,
-    );
-  }
-
-  /**
-   * ItemWorld ?곌랜踰? ??瑜곷턄??戮곕데 ?筌뤾봇遊뷸ㅀ????롪틵??? overlay alpha 1 ??0.
-   * onComplete ?袁⑸츊揶?3 ?롪퍔?δ빳???怨쀫틮 portal / floor collapse / fixed level)??????筌뤾쑵??
+   * ItemWorld 진입 시 덮은 검은 화면에서 복귀하며 overlay alpha 1 — 0.
+   * onComplete 에서 진입처(portal / floor collapse / fixed level)를 정리한다.
    */
   private startItemWorldReturnFadeIn(): void {
     this.normalizeWorldVisualsAfterItemWorldReturn();
-    this.iwReturnFadeMs = this.IW_RETURN_FADE_DURATION;
-    this.iwReturnFade.alpha = 1;
+    this.itemWorldReturnFade.start();
   }
 
   private normalizeWorldVisualsAfterItemWorldReturn(): void {
-    this.deactivateDungeonAtmosphere();
-    this.destroyGhostOverlay(true);
-    this.restoreDeploymentTunnel(true);
-    this.pendingGhostTunnelParams = null;
-    this.ghostPendingTimer = -1;
-    this.ghostPendingParams = null;
+    this.itemDeploymentAtmosphereFlowRuntime.deactivateDungeonAtmosphere();
+    this.itemDeploymentTunnelFlowRuntime.destroyGhostOverlay(true);
+    this.itemDeploymentTunnelFlowRuntime.restoreDeploymentTunnel(true);
+    this.itemWorldEntryState.pendingGhostTunnelParams = null;
     this.fadeOverlay.alpha = 0;
     if (this.parallaxBG?.container) {
       this.parallaxBG.container.alpha = 1;
@@ -6675,1167 +3606,9 @@ export class LdtkWorldScene extends Scene {
     ].filter((layer): layer is Container => !!layer);
     for (const layer of filteredLayers) {
       if (!layer.filters) continue;
-      const filters = layer.filters.filter(f =>
-        f !== this.dungeonAtmosphereFilter &&
-        f !== this.parallaxGrayFilter &&
-        f !== this.laserDesaturationFilter
-      );
-      layer.filters = filters.length ? filters : null;
+      this.dungeonAtmosphereRuntime.removeKnownFiltersFrom([layer]);
     }
-    this.laserDesaturationPrevFilters.clear();
-  }
-
-  private updateVoidFade(dt: number): void {
-    if (this.voidInputLockMs > 0) this.voidInputLockMs = Math.max(0, this.voidInputLockMs - dt);
-    this.voidFadeTimer += dt;
-
-    if (this.voidFadePhase === 'out') {
-      const t = Math.min(1, this.voidFadeTimer / VOID_FADE_OUT_DURATION);
-      this.fadeOverlay.alpha = t;
-      if (t >= 1) {
-        // Teleport at the moment of full black ??player + scene swap is
-        // invisible to the user. forceGrounded keeps the reveal landed.
-        if (!this.voidTeleported) {
-          this.performVoidTeleport();
-          this.voidTeleported = true;
-        }
-        this.voidFadePhase = 'hold';
-        this.voidFadeTimer = 0;
-      }
-    } else if (this.voidFadePhase === 'hold') {
-      this.fadeOverlay.alpha = 1;
-      // Keep stamping forceGrounded so player FSM doesn't fall mid-hold
-      // (gravity would have already been integrated this frame).
-      this.player.forceGrounded(false, 'void-fade');
-      if (this.voidFadeTimer >= VOID_HOLD_DURATION) {
-        this.voidFadePhase = 'in';
-        this.voidFadeTimer = 0;
-      }
-    } else if (this.voidFadePhase === 'in') {
-      const t = Math.min(1, this.voidFadeTimer / VOID_FADE_IN_DURATION);
-      this.fadeOverlay.alpha = 1 - t;
-      this.player.forceGrounded(false, 'void-fade');
-      if (t >= 1) {
-        this.fadeOverlay.alpha = 0;
-        this.voidFadePhase = 'none';
-      }
-    }
-
-    // Input lock outlasts fade-in by ~500 ms ??natural reveal beat.
-    if (this.voidInputLockMs <= 0 && this.voidFadePhase === 'none') {
-      this.voidDropActive = false;
-      this.voidCooldown = 500;
-      this.game.input.inputLocked = false;
-    }
-  }
-
-  private spawnCrackedFloors(level: LdtkLevel): void {
-    for (const cf of this.crackedFloors) cf.destroy();
-    this.crackedFloors = [];
-
-    const entities = level.entities.filter(e => e.type === 'CrackedFloor');
-    for (const ent of entities) {
-      const key = `crack_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      // Already destroyed in a previous session
-      if (this.unlockedEvents.has(key)) continue;
-
-      const cf = new CrackedFloor(ent.px[0], ent.px[1], ent.width, ent.height);
-      (cf as any)._key = key;
-      cf.injectCollision(this.collisionGrid);
-      this.crackedFloors.push(cf);
-      this.entityLayer.addChild(cf.container);
-    }
-  }
-
-  private spawnSecretWalls(level: LdtkLevel): void {
-    for (const sw of this.secretWalls) sw.destroy();
-    this.secretWalls = [];
-
-    const entities = level.entities.filter(e => e.type === 'SecretWall');
-    for (const ent of entities) {
-      const key = `secret_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      // Already destroyed in a previous session ??re-apply the break side
-      // effects to the freshly-cloned level state (collisionGrid was restored
-      // from LDtk's master IntGrid in loadLevel, and AutoTile sprites were
-      // re-rendered). Without this, the invisible wall tile still blocks
-      // the player and traps them on re-entry.
-      if (this.unlockedEvents.has(key)) {
-        // LDtk SecretWall pivot = [0,1] (bottom-left). Convert to top-left
-        // to match SecretWall constructor / recordCollision math.
-        const topLeftX = ent.px[0];
-        const topLeftY = ent.px[1] - ent.height;
-        const startCol = Math.floor(topLeftX / 16);
-        const startRow = Math.floor(topLeftY / 16);
-        const cols = Math.ceil(ent.width / 16);
-        const rows = Math.ceil(ent.height / 16);
-        const gridH = this.collisionGrid.length;
-        const gridW = gridH > 0 ? this.collisionGrid[0].length : 0;
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const gr = startRow + r;
-            const gc = startCol + c;
-            if (gr >= 0 && gr < gridH && gc >= 0 && gc < gridW) {
-              this.collisionGrid[gr][gc] = 0;
-            }
-          }
-        }
-        // ????壤???????? ?遊붋??戮곗땟 SecretWall ??wall tile 嶺????곕뻣 嶺뚯솘???⑤슦??interior
-        // ??⑥?쭨????? (preserveInterior). 6207 ??*嶺뚣끉裕??????? ?롪퍔?δ빳?? ???됰뎄 ?????
-        this.renderer.clearTilesInRect(topLeftX, topLeftY, ent.width, ent.height, { preserveInterior: true });
-        continue;
-      }
-
-      const mode = ((ent.fields['Mode'] ?? 'Item') as string).toLowerCase() as 'item' | 'passage';
-      const hintAlpha = (ent.fields['HintAlpha'] as number) ?? 0.08;
-      // LDtk enum uses PascalCase (Sword_rustborn), master sheet uses lowercase (sword_rustborn)
-      const rawItemId = (ent.fields['ItemId'] as string) ?? null;
-      const itemId = rawItemId ? rawItemId.toLowerCase() : null;
-
-      const wall = new SecretWall({
-        x: ent.px[0],
-        y: ent.px[1],
-        width: ent.width,
-        height: ent.height,
-        mode,
-        hintAlpha,
-      });
-      (wall as any)._key = key;
-      (wall as any)._itemId = itemId;
-      // IntGrid is already solid(1) ??just record which cells to clear on break
-      wall.recordCollision(this.collisionGrid);
-      this.secretWalls.push(wall);
-      // Add to wallLayer so PaletteSwapFilter applies to hint cracks
-      this.renderer.wallLayer.addChild(wall.container);
-    }
-  }
-
-  /**
-   * Player sword swing ??container damage. Mirrors checkAttackOnSecretWalls
-   * pattern: get current combo step hitbox, AABB-overlap each container,
-   * apply atk damage. On destroy ??BFS fluid paint + container teardown.
-   */
-  private checkAttackOnContainers(): void {
-    if (!this.player.isAttackActive()) return;
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-    const dmg = Math.max(1, Math.floor(this.player.atk));
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      if (c.destroyed || c.held) continue;
-      const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-      if (!aabbOverlap(hitbox, cBox)) continue;
-      if (c.kind === 'MetalCrate') {
-        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-        continue;
-      }
-      const impact = c.takeAttack(dmg);
-      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-      }
-    }
-  }
-
-  private checkAttackOnSecretWalls(): void {
-    if (!this.player.isAttackActive()) return;
-
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    const dirX = (this.player.facingRight ?? true) ? 1 : -1;
-
-    for (let i = this.secretWalls.length - 1; i >= 0; i--) {
-      const wall = this.secretWalls[i];
-      if (wall.destroyed) continue;
-      if (!aabbOverlap(hitbox, wall.getHitAABB())) continue;
-
-      // Break the wall
-      if (wall.break(this.collisionGrid, this.game, dirX)) {
-        const key = (wall as any)._key as string;
-        if (key) this.unlockedEvents.add(key);
-
-        // TEL-19: Track secret wall discovery (fires once per wall, proxy for exploration depth).
-        trackSecretWallBreak({
-          mode: wall.mode,
-          level_id: this.currentLevel?.identifier,
-          item_id: wall.mode === 'item' ? ((wall as any)._itemId as string | undefined) : undefined,
-        });
-
-        // Erase the AutoTile wall sprites at this position. interior ??⑥?쭨(???逾??묐８竊???袁⑤콦
-        // ?????????????ㅻ????嶺???????蹂?뜜 ??????????*?곌랜??? ??preserveInterior=true.
-        this.renderer.clearTilesInRect(wall.x, wall.y, wall.width, wall.height, { preserveInterior: true });
-
-        // Mode=Item: spawn item drop at wall center
-        if (wall.mode === 'item') {
-          const itemId = (wall as any)._itemId as string | null;
-          if (itemId) {
-            this.spawnFixedItemAt(wall.centerX, wall.centerY, itemId);
-          } else {
-            // No ItemId set ??random weapon drop (minimum Rare)
-            const pool = SWORD_DEFS.filter(d => d.rarity !== 'normal');
-            const def = pool[Math.floor(Math.random() * pool.length)] ?? SWORD_DEFS[0];
-            const item = createItem(def, def.rarity);
-            const spawn = resolveItemDropSpawn(wall.centerX, wall.centerY, this.collisionGrid);
-            const drop = new ItemDropEntity(spawn.x, spawn.y, item);
-            this.drops.push(drop);
-            this.entityLayer.addChild(drop.container);
-          }
-          this.toast.show(t('toast.secret_found'), 0xffd700);
-        } else {
-          this.toast.show(t('toast.path_opened'), 0x44ffaa);
-        }
-
-        wall.destroy();
-        this.secretWalls.splice(i, 1);
-      }
-    }
-  }
-
-  /**
-   * Spawn an item by master ItemID. Handles weapons, currency, consumables.
-   * Uses Content_Item_Master.csv as the unified registry.
-   */
-  private spawnFixedItemAt(x: number, y: number, itemId: string, itemKey?: string): void {
-    const master = getMasterItem(itemId);
-    if (!master) {
-      // Fallback: try direct weapon lookup for backwards compatibility
-      const def: WeaponDef = SWORD_DEFS.find(d => d.id === itemId) ?? SWORD_DEFS[0];
-      const item = createItem(def, def.rarity);
-      const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
-      const drop = new ItemDropEntity(spawn.x, spawn.y, item);
-      if (itemKey) (drop as any)._itemKey = itemKey;
-      this.drops.push(drop);
-      this.entityLayer.addChild(drop.container);
-      return;
-    }
-
-    switch (master.category) {
-      case 'weapon': {
-        const key = master.sourceKey;
-        const def: WeaponDef = SWORD_DEFS.find(d => d.id === key) ?? SWORD_DEFS[0];
-        const item = createItem(def, def.rarity);
-        const spawn = resolveItemDropSpawn(x, y, this.collisionGrid);
-        const drop = new ItemDropEntity(spawn.x, spawn.y, item);
-        if (itemKey) (drop as any)._itemKey = itemKey;
-        this.drops.push(drop);
-        this.entityLayer.addChild(drop.container);
-        break;
-      }
-      case 'currency': {
-        // Parse amount from the itemId suffix (e.g. "gold_500" ??500). Regex on
-        // master.name was locale-fragile ??translators may not preserve "(N)".
-        const idMatch = itemId.match(/_(\d+)$/);
-        const amount = Math.max(1, Math.floor((idMatch ? parseInt(idMatch[1], 10) : 100) * 0.1));
-        const gp = new GoldPickup(x, y, amount);
-        gp.enableTerrainPhysics(this.collisionGrid);
-        if (itemKey) (gp as any)._key = itemKey;
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
-        break;
-      }
-      case 'consumable': {
-        this.toast.show(t('toast.consumable_acquired', { name: master.name }), 0x44ff88);
-        break;
-      }
-      default:
-        break;
-    }
-  }
-
-  /** Handle dive attack landing ??area damage + cracked floor shatter. */
-  /** Surge flight ??break GrowingWalls and CrackedFloors on body contact. */
-  private handleSurgeContact(): void {
-    const pBox = {
-      x: this.player.x, y: this.player.y,
-      width: this.player.width, height: this.player.height,
-    };
-
-    // Break growing walls
-    for (let i = this.growingWalls.length - 1; i >= 0; i--) {
-      const wall = this.growingWalls[i];
-      if (wall.destroyed) continue;
-      if (aabbOverlap(pBox, wall.getAABB())) {
-        wall.shatter(this.collisionGrid);
-        const key = (wall as any)._key as string;
-        if (key) this.unlockedEvents.add(key);
-        this.game.hitstopFrames += 4;
-        this.screenFlash.flash(0xffffff, 0.4, 150);
-        this.game.camera.shake(8);
-        this.toast.show(t('toast.wall_shattered'), 0xffaa44);
-        for (let j = 0; j < 6; j++) {
-          this.hitSparks.spawn(
-            wall.x + Math.random() * wall.width,
-            wall.y + Math.random() * wall.height,
-            true, 0,
-          );
-        }
-        wall.destroy();
-        this.growingWalls.splice(i, 1);
-      }
-    }
-
-    // Break cracked floors
-    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
-      const cf = this.crackedFloors[i];
-      if (cf.destroyed) continue;
-      if (aabbOverlap(pBox, cf.getAABB())) {
-        cf.shatter(this.collisionGrid);
-        const key = (cf as any)._key as string;
-        if (key) this.unlockedEvents.add(key);
-        this.game.hitstopFrames += 4;
-        this.screenFlash.flash(0xffffff, 0.4, 150);
-        this.game.camera.shake(10);
-        this.toast.show(t('toast.floor_destroyed'), 0xffaa44);
-        cf.destroy();
-        this.crackedFloors.splice(i, 1);
-      }
-    }
-  }
-
-  private handleDiveLanding(): void {
-    const dist = this.player.diveFallDistance;
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height;
-
-    // Damage tier based on fall distance
-    let dmgMult: number;
-    let radius: number;
-    if (dist > 128) {
-      dmgMult = 2.5; radius = 32;
-    } else if (dist > 64) {
-      dmgMult = 1.5; radius = 24;
-    } else {
-      dmgMult = 1.0; radius = 16;
-    }
-
-    // Camera shake + hitstop proportional to fall distance
-    const shakeIntensity = Math.min(8, 3 + dist / 32);
-    this.game.camera.shake(shakeIntensity);
-    this.game.hitstopFrames = dist > 128 ? 8 : dist > 64 ? 6 : 4;
-    this.screenFlash.flashHit(dist > 64);
-
-    // Dust particles at landing point
-    for (let i = 0; i < 4; i++) {
-      this.hitSparks.spawn(px + (Math.random() - 0.5) * radius, py - 4, dist > 64, 0);
-    }
-
-    // Area damage to enemies
-    const impactBox = { x: px - radius, y: py - 8, width: radius * 2, height: 16 };
-    const dmg = Math.floor(this.player.atk * dmgMult);
-    for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
-      const enemyBox = { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height };
-      if (aabbOverlap(impactBox, enemyBox)) {
-        enemy.hp -= dmg;
-        enemy.onHit(0, -80, 200);
-        if (enemy.hp <= 0) {
-          enemy.hp = 0;
-          enemy.onDeath();
-        }
-        this.dmgNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, true);
-        this.hitSparks.spawn(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, true, 0);
-      }
-    }
-
-    // Shatter cracked floors
-    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
-      const cf = this.crackedFloors[i];
-      if (cf.destroyed) continue;
-      const cfBox = cf.getAABB();
-      // Check if landing point is on or near the cracked floor
-      const landBox = { x: px - radius, y: py - 4, width: radius * 2, height: 8 };
-      if (aabbOverlap(landBox, cfBox)) {
-        cf.shatter(this.collisionGrid);
-        const key = (cf as any)._key as string;
-        if (key) this.unlockedEvents.add(key);
-        // Extra effects for floor break
-        this.game.hitstopFrames += 4;
-        this.screenFlash.flash(0xffffff, 0.4, 150);
-        this.game.camera.shake(10);
-        this.toast.show(t('toast.floor_destroyed'), 0xffaa44);
-        cf.destroy();
-        this.crackedFloors.splice(i, 1);
-      }
-    }
-
-    // Shatter growing walls
-    const wallBox = { x: px - radius, y: py - 12, width: radius * 2, height: 16 };
-    for (let i = this.growingWalls.length - 1; i >= 0; i--) {
-      const wall = this.growingWalls[i];
-      if (wall.destroyed) continue;
-      if (aabbOverlap(wallBox, wall.getAABB())) {
-        wall.shatter(this.collisionGrid);
-        const wkey = (wall as any)._key as string;
-        if (wkey) this.unlockedEvents.add(wkey);
-        this.game.hitstopFrames += 4;
-        this.screenFlash.flash(0xffffff, 0.4, 150);
-        this.game.camera.shake(10);
-        this.toast.show(t('toast.wall_shattered'), 0xffaa44);
-        // Spawn debris particles
-        for (let j = 0; j < 6; j++) {
-          this.hitSparks.spawn(
-            wall.x + Math.random() * wall.width,
-            wall.y + Math.random() * wall.height,
-            true, 0,
-          );
-        }
-        wall.destroy();
-        this.growingWalls.splice(i, 1);
-      }
-    }
-  }
-
-  private spawnGrowingWalls(level: LdtkLevel): void {
-    for (const wall of this.growingWalls) wall.destroy();
-    this.growingWalls = [];
-
-    const wallEntities = level.entities.filter(e => e.type === 'GrowingWall');
-    for (const ent of wallEntities) {
-      const key = `gwall_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      if (this.unlockedEvents.has(key)) continue; // already destroyed
-
-      const wall = new GrowingWall(ent.px[0], ent.px[1], ent.width, ent.height);
-      (wall as any)._key = key;
-      wall.injectCollision(this.collisionGrid);
-      this.growingWalls.push(wall);
-      this.entityLayer.addChild(wall.container);
-    }
-  }
-
-  private spawnSwitches(level: LdtkLevel): void {
-    for (const sw of this.switches) sw.destroy();
-    this.switches = [];
-
-    const switchEntities = level.entities.filter(e => e.type === 'Switch');
-    for (const ent of switchEntities) {
-      // targetDoor / TargetDoor is an EntityRef: { entityIid: "...", ... } or null
-      const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
-      if (!ref?.entityIid) continue;
-
-      const sw = new Switch(
-        ent.px[0], ent.px[1],
-        ent.width, ent.height,
-        ref.entityIid,
-      );
-      // Already activated ??skip collision injection, just show as broken
-      if (this.unlockedEvents.has(ref.entityIid)) {
-        sw.activate(this.collisionGrid);
-      } else {
-        sw.injectCollision(this.collisionGrid);
-      }
-      this.switchCollisionGrids.set(sw, this.collisionGrid);
-      this.switches.push(sw);
-      this.entityLayer.addChild(sw.container);
-    }
-  }
-
-  /** Check player attack against switches. */
-  /** Check player attack against cracked floors/walls ??normal attack can break them. */
-  private checkAttackOnCrackedFloors(): void {
-    if (!this.player.isAttackActive()) return;
-
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
-      const cf = this.crackedFloors[i];
-      if (cf.destroyed) continue;
-      if (!aabbOverlap(hitbox, cf.getAABB())) continue;
-
-      cf.shatter(this.collisionGrid);
-      const key = (cf as any)._key as string;
-      if (key) this.unlockedEvents.add(key);
-      this.game.hitstopFrames += 4;
-      this.screenFlash.flash(0xffffff, 0.4, 150);
-      this.game.camera.shake(6);
-      this.toast.show(t('toast.wall_destroyed'), 0xffaa44);
-      cf.destroy();
-      this.crackedFloors.splice(i, 1);
-    }
-  }
-
-  /**
-   * LDtk Entity 'Breakable' 嶺뚯쉳????꾩룄??洹잜돦?spawn ???????? LDtk Editor ?????
-   * 'Sprite' enum ??怨쀬Ŧ ?곸궠?얏틦?れ뿉?蹂μ쟽 ID ??ルㅎ臾? ?リ옇???泥?SignBoard_Save.
-   */
-  private spawnBreakableEntitiesForLevel(level: LdtkLevel): void {
-    for (const b of this.breakables) b.destroy();
-    this.breakables = [];
-    const ents = level.entities.filter(e => e.type === 'Breakable');
-    for (const ent of ents) {
-      const rawSprite = (ent.fields['Sprite'] ?? ent.fields['sprite']) as string | undefined;
-      const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
-        ? rawSprite
-        : 'SignBoard_Save';
-      // LDtk px[0/1] ?? entity ??pivot ????レ뒭筌? Breakable ?? pivot=(0.5,1) ?띠럾???
-      const b = new Breakable(ent.px[0], ent.px[1], spriteId);
-      this.breakables.push(b);
-      this.entityLayer.addChild(b.container);
-    }
-  }
-
-  /**
-   * LDtk Entity 'Building' spawn ????蹂?뜜 ??⑥?쭨.
-   * ?????? LDtk Editor ??tile picker ????ルㅎ臾???????__tile)??
-   * ???ル콦???????濡?뎄 ?잙갭梨????꾩룄??? ?寃몃쳳????怨몃쾳. Pivot=(0.5,1) ?띠럾??????꾩룆?????源녿데 ?筌먲퐣議?
-   */
-  private spawnBuildingEntitiesForLevel(level: LdtkLevel): void {
-    for (const b of this.buildings) b.destroy();
-    this.buildings = [];
-    const ents = level.entities.filter(e => e.type === 'Building');
-    for (const ent of ents) {
-      if (!ent.tile || !ent.tile.tilesetPath) {
-        console.warn(`[Building] entity at (${ent.px[0]}, ${ent.px[1]}) has no tile ??skipped. LDtk Editor ?????tile ????ルㅎ臾???낅슣????戮곌텕.`);
-        continue;
-      }
-      const b = new Building(
-        ent.px[0],
-        ent.px[1],
-        ent.tile.tilesetPath,
-        ent.tile.src[0],
-        ent.tile.src[1],
-        ent.tile.w,
-        ent.tile.h,
-      );
-      this.buildings.push(b);
-      this.entityLayer.addChild(b.container);
-    }
-  }
-
-  private spawnBreakablePropsForLevel(level: LdtkLevel): void {
-    for (const bp of this.breakableProps) bp.destroy();
-    this.breakableProps = [];
-
-    // Reserve an 8-tile radius around save points and room entries so the
-    // player has clean ground to land/save without props blocking the read.
-    const exclude = new Set<string>();
-    const RADIUS = 8;
-    const addRadius = (col: number, row: number) => {
-      for (let dr = -RADIUS; dr <= RADIUS; dr++) {
-        for (let dc = -RADIUS; dc <= RADIUS; dc++) {
-          exclude.add(`${col + dc},${row + dr}`);
-        }
-      }
-    };
-    for (const ent of level.entities) {
-      if (ent.type === 'GameSaver' || ent.type === 'Player') {
-        const col = Math.floor(ent.px[0] / TILE_SIZE);
-        const row = Math.floor(ent.px[1] / TILE_SIZE);
-        addRadius(col, row);
-      }
-    }
-    const grid = this.collisionGrid;
-    const cols = grid[0]?.length ?? 0;
-    const rows = grid.length;
-    const lp = this.findEdgePassage(grid, 'left',  -1); if (lp >= 0) addRadius(0,        lp);
-    const rp = this.findEdgePassage(grid, 'right', -1); if (rp >= 0) addRadius(cols - 1, rp);
-    const up = this.findEdgePassage(grid, 'up',    -1); if (up >= 0) addRadius(up, 0);
-    const dp = this.findEdgePassage(grid, 'down',  -1); if (dp >= 0) addRadius(dp, rows - 1);
-
-    const seed = hashString(level.identifier + '_props');
-    const props = spawnBreakableProps(this.collisionGrid, seed, false, exclude);
-    for (const prop of props) {
-      this.breakableProps.push(prop);
-      this.entityLayer.addChild(prop.container);
-      // Register with TileMutator so cell-level fire propagation can ignite
-      // this prop the same way BurnableProp / oil / wood / grass tiles chain.
-      this.tileMutator.registerBurnable(prop);
-    }
-  }
-
-  /**
-   * ??????怨룹꽑 ??ㅻ???vs ??濡レ쭢 ?꾩룄???Breakable Entity (LDtk).
-   * BreakableProp ?? ???됰뎄??shatter / drop / ?곸궠?筌????븐뼔援??嶺뚳퐣瑗??
-   */
-  private checkAttackOnBreakableEntities(): void {
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    for (let i = this.breakables.length - 1; i >= 0; i--) {
-      const b = this.breakables[i];
-      if (b.destroyed) continue;
-      if (b.width === 0) continue; // texture 亦껋꼶梨뜸빳?????寃몃쳳????????
-      if (!aabbOverlap(hitbox, b.getAABB())) continue;
-
-      const drop = b.break();
-      this.game.hitstopFrames += 4;
-      this.game.camera.shake(4);
-
-      this.propShatter.spawn(
-        b.x, b.y, b.width, b.height,
-        b.getParticleColor(), b.getAccentColor(),
-        b.getArtifactTexture(),
-      );
-      // speed 1.0 / (1.0~1.5) ???ル梨??100~150% ??類ｌ몓 (?꾩룇瑗??泥??띠룆흮??.
-      SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-      this.hitSparks.spawn(
-        b.x + b.width / 2, b.y + b.height / 2,
-        false, this.player.facingRight ? 1 : -1,
-      );
-
-      if (drop.type === 'gold' && drop.amount > 0) {
-        const burstX = b.x + b.width / 2 - 8;
-        const burstY = b.y + b.height;
-        for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-          gp.roomData = this.collisionGrid;
-          this.goldPickups.push(gp);
-          this.entityLayer.addChild(gp.container);
-        }
-      } else if (drop.type === 'flask') {
-        this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
-      }
-
-      b.destroy();
-      this.breakables.splice(i, 1);
-    }
-  }
-
-  private checkAttackOnBreakableProps(): void {
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    for (let i = this.breakableProps.length - 1; i >= 0; i--) {
-      const bp = this.breakableProps[i];
-      if (bp.destroyed) continue;
-      if (!aabbOverlap(hitbox, bp.getAABB())) continue;
-      this.destroyBreakablePropWithEffects(bp, 'sword');
-      this.breakableProps.splice(i, 1);
-    }
-  }
-
-  /**
-   * Shared destroy path for BreakableProp ??invoked by sword hits and by fire
-   * burn-out. `source` controls camera shake / hitstop / hit-spark (we skip
-   * those for fire to avoid spurious feedback during ambient burns).
-   *
-   * Caller is responsible for splicing the prop out of `this.breakableProps`.
-   */
-  private destroyBreakablePropWithEffects(bp: BreakableProp, source: 'sword' | 'fire'): void {
-    const drop = bp.break();
-    if (source === 'sword') {
-      this.game.hitstopFrames += 4;
-      this.game.camera.shake(4);
-    }
-    this.propShatter.spawn(
-      bp.x, bp.y, bp.width, bp.height,
-      bp.getParticleColor(), bp.getAccentColor(),
-      bp.getArtifactTexture(),
-    );
-    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-    if (source === 'sword') {
-      this.hitSparks.spawn(
-        bp.x + bp.width / 2, bp.y + bp.height / 2,
-        false, this.player.facingRight ? 1 : -1,
-      );
-    }
-    if (drop.type === 'gold' && drop.amount > 0) {
-      const burstX = bp.x + bp.width / 2 - 8;
-      const burstY = bp.y + bp.height;
-      for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-        gp.roomData = this.collisionGrid;
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
-      }
-    } else if (drop.type === 'flask') {
-      this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
-    }
-    bp.destroy();
-  }
-
-  private checkAttackOnSwitches(): void {
-    const hitbox = getActivePlayerAttackHitbox(this.player);
-    if (!hitbox) return;
-
-    for (const sw of this.switches) {
-      if (sw.activated) continue;
-      if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
-
-      const grid = this.getSwitchCollisionGrid(sw);
-      if (sw.activate(grid)) {
-        this.refreshBuilderStampForGrid(grid);
-        this.game.camera.shake(3);
-        this.screenFlash.flashHit(false);
-        this.unlockDoorByIid(sw.targetDoorIid);
-        this.toast.show(t('toast.switch_destroyed'), 0x44ffaa);
-      }
-    }
-  }
-
-  /**
-   * Spawn enemies from LDtk Enemy_Spawn entities. Falls back to random
-   * spawning if no Enemy_Spawn entities are placed in the level.
-   */
-  private spawnEnemiesFromLdtk(level: LdtkLevel): void {
-    // Direct entity types (Slime, Boss, etc.) ??spawn without Enemy_Spawn wrapper
-    const directEnemies = level.entities.filter(e => e.type === 'Slime');
-    for (const ent of directEnemies) {
-      const enemy = new Slime();
-      enemy.x = ent.px[0];
-      enemy.y = ent.px[1] - enemy.height;
-      enemy.roomData = this.collisionGrid;
-      enemy.target = this.player;
-      this.enemies.push(enemy);
-      this.entityLayer.addChild(enemy.container);
-    }
-
-    // Boss entities ??Guardian (?リ옇?ｅ젆????醫롫윥???. Skip if already killed.
-    const bossEntities = level.entities.filter(e => e.type === 'Boss');
-    for (const ent of bossEntities) {
-      const bossKey = `boss_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-      if (this.unlockedEvents.has(bossKey)) continue; // already killed permanently
-
-      const boss = new Boss01();
-      (boss as any)._isBoss = true;
-      (boss as any)._bossKey = bossKey;
-      boss.x = ent.px[0] - boss.width / 2;
-      boss.y = ent.px[1] - boss.height;
-      boss.roomData = this.collisionGrid;
-      boss.target = this.player;
-      this.enemies.push(boss);
-      this.entityLayer.addChild(boss.container);
-
-      // Activate boss lock ??seal exits with temporary doors
-      this.activateBossLock(level, bossKey);
-    }
-
-    const spawners = level.entities.filter(e => e.type === 'Enemy_Spawn');
-
-    if (spawners.length > 0) {
-      for (const spawner of spawners) {
-        const enemyType = (spawner.fields['type'] as string) ?? 'Skeleton';
-        const enemyLevel = (spawner.fields['level'] as number) ?? 1;
-
-        // Boss type needs special handling (bossKey + skip if killed)
-        let enemy: Enemy<string>;
-        if (enemyType === 'Boss') {
-          const bossKey = `boss_${level.identifier}_${spawner.px[0]}_${spawner.px[1]}`;
-          if (this.unlockedEvents.has(bossKey)) continue;
-          enemy = createEnemy('Boss', enemyLevel);
-          (enemy as any)._bossKey = bossKey;
-          // Arena lock ??direct 'Boss' ??醫?????롪퍔?δ빳?????醫롫윪???醫롫윞??Enemy_Spawn ?롪퍔?δ빳??醫롫윪???
-          // ?곌랜???낅쐻???醫롫윪?????낅㎥???醫롫윥?? ??醫롫윥??????醫롫윥???醫롫윪?됯막泥? ??흮?????꾩렮維쀨굢????醫?繹??띠럾???
-          this.activateBossLock(level, bossKey);
-        } else {
-          enemy = createEnemy(enemyType, enemyLevel);
-        }
-        // ?熬곣뫀援?GoldenMonster 嶺뚳퐣瑗??????繹????덌폕 ?????????븐슙???怨쀬Ŧ ??????
-        // if (enemy instanceof GoldenMonster) {
-        //   enemy.onDeathCallback = (x, y, rarity) => this.spawnPortal(x, y, rarity, 'monster');
-        // }
-        enemy.x = spawner.px[0];
-        enemy.y = spawner.px[1] - enemy.height;
-        enemy.roomData = this.collisionGrid;
-        enemy.target = this.player;
-
-        // Link to LockedDoors ??killing this enemy unlocks target doors
-        const targetField = spawner.fields['TargetDoor'] ?? spawner.fields['targetDoor'];
-        const targetRefs: string[] = [];
-        if (Array.isArray(targetField)) {
-          for (const ref of targetField) {
-            if (ref?.entityIid) targetRefs.push(ref.entityIid);
-          }
-        } else if (targetField && (targetField as any).entityIid) {
-          targetRefs.push((targetField as any).entityIid);
-        }
-        if (targetRefs.length > 0) {
-          (enemy as any)._unlockTargetIids = targetRefs;
-        }
-
-        this.enemies.push(enemy);
-        this.entityLayer.addChild(enemy.container);
-      }
-      return;
-    }
-    // No fallback ??only LDtk-placed enemies spawn in the world
-  }
-
-  /**
-   * Convert LDtk entity instances into gameplay objects.
-   * Player entity is handled separately in placePlayer().
-   */
-  private processLdtkEntities(level: LdtkLevel): void {
-    for (const ent of level.entities) {
-      switch (ent.type) {
-        case 'Item': {
-          const itemKey = `${level.identifier}:${ent.px[0]},${ent.px[1]}`;
-          if (this.collectedItems.has(itemKey)) break;
-
-          const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
-          const itemId = rawItemId.toLowerCase();
-          // ??????롪퍒???(2026-05-03): Broken Sword ????戮곗굚 ?????吏?嶺뚯솘??ル留㎫뵳釉껋쾵???
-          // LDtk 嶺?ItemDrop ?? 繞벿살탮?? skip + collected 嶺뚳퐣瑗?????揶쏅쵉??????ν꽢awn ?꾩렮維?.
-          if (itemId === 'sword_broken') {
-            this.collectedItems.add(itemKey);
-            break;
-          }
-          // Use unified spawnFixedItemAt which handles weapons, currency,
-          // consumables via Content_Item_Master.csv lookup.
-          this.spawnFixedItemAt(ent.px[0], ent.px[1], itemId, itemKey);
-          trackItemDrop({
-            source: 'hand_placed',
-            item_id: itemId,
-            item_rarity: getMasterItem(itemId)?.rarity ?? 'normal',
-            level_id: level.identifier,
-          });
-          break;
-        }
-        case 'GameSaver': {
-          // Save point ??pivot bottom-left, center the marker on entity
-          const spx = ent.px[0] + ent.width / 2;
-          const spy = ent.px[1] - ent.height / 2;
-          const floorY = ent.px[1]; // LDtk entity bottom = floor surface
-          const marker = new Graphics();
-          marker.rect(-12, -12, 24, 24).fill({ color: 0x2244cc, alpha: 0.85 });
-          marker.rect(-12, -12, 24, 24).stroke({ color: 0x3366ff, width: 2 });
-          // Pulsing diamond inside
-          marker.moveTo(0, -7).lineTo(7, 0).lineTo(0, 7).lineTo(-7, 0).closePath()
-            .fill({ color: 0x88aaff, alpha: 0.5 });
-          marker.x = spx;
-          marker.y = spy;
-          this.entityLayer.addChild(marker);
-          // Context prompt ??rendered in uiContainer for crisp text
-          const us = this.game.uiScale;
-          const prompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.save'), us);
-          prompt.visible = false;
-          this.game.uiContainer.addChild(prompt);
-          const entry: SavePointEntry = { x: spx, y: spy, gfx: marker, prompt };
-          this.savePoints.push(entry);
-          // Attach the totem sprite (save_point_01.png). Async load ??until it
-          // resolves, the placeholder marker stays visible. Once loaded, hide
-          // the marker so only the sprite is shown.
-          //
-          // Guard: if the entry was already cleared by a level transition (or
-          // the marker was detached), drop the load result. Without this, late-
-          // arriving textures attach orphan sprites to entityLayer and pile up
-          // across levels.
-          Assets.load<Texture>(assetPath('assets/sprites/save_point_01.png'))
-            .then((tex) => {
-              if (!tex) return;
-              if (!this.savePoints.includes(entry)) return; // stale ??entry cleared
-              if (!marker.parent) return;                   // marker already removed
-              tex.source.scaleMode = 'nearest';
-              const sp = new Sprite(tex);
-              sp.anchor.set(0.5, 1); // bottom-center: totem base sits on floor
-              sp.x = spx;
-              sp.y = floorY;
-              this.entityLayer.addChild(sp);
-              entry.sprite = sp;
-              marker.visible = false;
-            })
-            .catch(() => { /* sprite missing ??keep placeholder marker */ });
-          break;
-        }
-        case 'GoldPickup': {
-          const goldKey = `gold_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-          if (this.collectedItems.has(goldKey)) break;
-          const amount = Math.max(1, Math.floor(((ent.fields['Amount'] ?? ent.fields['amount'] ?? 10) as number) * 0.1));
-          const gp = new GoldPickup(ent.px[0], ent.px[1], amount);
-          gp.enableTerrainPhysics(this.collisionGrid);
-          (gp as any)._key = goldKey;
-          this.goldPickups.push(gp);
-          this.entityLayer.addChild(gp.container);
-          break;
-        }
-        case 'HealingPickup': {
-          const healKey = `heal_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-          if (this.collectedItems.has(healKey)) break;
-          const healAmount = (ent.fields['HealAmount'] ?? ent.fields['healAmount'] ?? 30) as number;
-          const heal = new HealingPickup(ent.px[0], ent.px[1], healAmount);
-          (heal as any)._key = healKey;
-          this.healingPickups.push(heal);
-          this.entityLayer.addChild(heal.container);
-          break;
-        }
-        case 'HealthShard': {
-          const shardKey = `shard_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-          if (this.collectedRelics.has(shardKey)) break;
-          const hpBonus = (ent.fields['HpBonus'] ?? ent.fields['hpBonus'] ?? 10) as number;
-          const shard = new HealthShard(ent.px[0], ent.px[1], hpBonus);
-          (shard as any)._key = shardKey;
-          this.healthShards.push(shard);
-          this.entityLayer.addChild(shard.container);
-          break;
-        }
-        case 'AbilityRelic': {
-          // Ability pickup ??golden glowing marker
-          const abilityName = ent.fields['ability'] as string ?? 'wallJump';
-          const relicKey = `relic_${level.identifier}_${ent.px[0]}_${ent.px[1]}`;
-          if (!this.collectedRelics.has(relicKey)) {
-            const relic = new Graphics();
-            relic.circle(0, 0, 8).fill({ color: 0xffd700, alpha: 0.8 });
-            relic.circle(0, 0, 5).fill({ color: 0xffffff, alpha: 0.6 });
-            relic.x = ent.px[0];
-            relic.y = ent.px[1];
-            this.entityLayer.addChild(relic);
-            this.relicMarkers.push({ gfx: relic, abilityName, relicKey });
-          }
-          break;
-        }
-        case 'SecretArea': {
-          // TODO: secret area trigger with jingle
-          break;
-        }
-        case 'EndingTrigger': {
-          this.endingTriggers.push({
-            x: ent.px[0],
-            y: ent.px[1] - ent.height,
-            w: ent.width,
-            h: ent.height,
-          });
-          break;
-        }
-        case 'Teleport': {
-          // TODO: teleport to destination entity
-          break;
-        }
-        case 'Exit': {
-          // Exits are handled by edge detection, not entity interaction
-          break;
-        }
-        case 'Camera': {
-          // Pivot bottom-left
-          this.cameraZones.push({
-            x: ent.px[0],
-            y: ent.px[1] - ent.height,
-            w: ent.width,
-            h: ent.height,
-            zoom: ent.fields['zoom'] as number ?? 1.0,
-            deadZoneX: ent.fields['deadZoneX'] as number ?? 32,
-            deadZoneY: ent.fields['deadZoneY'] as number ?? 24,
-            lookAheadDistance: ent.fields['lookAheadDistance'] as number ?? 0,
-            followLerp: ent.fields['followLerp'] as number ?? 0.08,
-            zoomLerp: ent.fields['zoomLerp'] as number ?? 0.05,
-            entireLevel: ent.fields['entireLevel'] as boolean ?? false,
-          });
-          break;
-        }
-        // Player handled in placePlayer()
-        // Ladder removed
-      }
-    }
-  }
-
-  /**
-   * Spawn altars from LDtk Altar entities. Falls back to random if none placed.
-   */
-  private spawnAltarsFromLdtk(level: LdtkLevel): void {
-    this.altarController.spawnFromLdtk(level);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Room transition ??edge detection
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Check if player is inside a Camera zone and apply/restore settings with lerp.
-   */
-  private updateCameraZones(): void {
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-    const cam = this.game.camera;
-
-    // Being inside the Giant Builder's volume forces zoom 1.0 (ignore level
-    // camera zones). Uses AABB overlap so the override persists while the
-    // player is airborne (jumping) inside the builder.
-    //
-    // Priority (??????롪퍒???2026-05-03):
-    //   1) ??????zone (entireLevel=false, AABB ??⑤챶?? ??LDtk ?????嶺뚯쉳????꾩룄????zone.
-    //      ??????嶺뚋뀀룱????롪퍓??洹⑥?? ??袁⑹벟 ?꾩룄???????first match ???깆쓧.
-    //   2) entireLevel zone ?????뉖낵 ?熬곣뫕??fallback.
-    // ????節띉??釉뚯뫊?怨レ뿉?entireLevel ???誘る닔? entity ?怨뺣뼺???琉우꽑????????zone ??player
-    // AABB ???고뱺 ???깅さ嶺???⑥ろ맖 嶺??득틦?
-    let insideZone: typeof this.cameraZones[number] | null = null;
-    if (!this.playerInBuilder) {
-      // P1 ????????zone (AABB ??
-      for (const zone of this.cameraZones) {
-        if (zone.entireLevel) continue;
-        if (pcx >= zone.x && pcx <= zone.x + zone.w &&
-            pcy >= zone.y && pcy <= zone.y + zone.h) {
-          insideZone = zone;
-          break;
-        }
-      }
-      // P2 ??entireLevel fallback
-      if (!insideZone) {
-        for (const zone of this.cameraZones) {
-          if (zone.entireLevel) {
-            insideZone = zone;
-            break;
-          }
-        }
-      }
-    }
-
-    if (insideZone && insideZone !== this.activeCameraZone) {
-      // Entered a new camera zone ??apply with lerp
-      this.activeCameraZone = insideZone;
-      cam.deadZoneX = insideZone.deadZoneX;
-      cam.deadZoneY = insideZone.deadZoneY;
-      cam.lookAheadDistance = insideZone.lookAheadDistance;
-      cam.followLerp = insideZone.followLerp;
-      cam.zoomTo(insideZone.zoom, insideZone.zoomLerp);
-    } else if (!insideZone && this.activeCameraZone) {
-      // Exited all camera zones ??restore defaults with lerp
-      this.activeCameraZone = null;
-      cam.deadZoneX = 32;
-      cam.deadZoneY = 24;
-      cam.lookAheadDistance = 0;
-      cam.followLerp = 0.08;
-      cam.zoomTo(1.0, 0.05);
-    }
-  }
-
-  /**
-   * Detect when the player crosses a level edge and find the adjacent level to
-   * transition into. Thresholds use 筌? px tolerance to give a comfortable feel.
-   */
-  private checkLevelEdges(): void {
-    if (this.transitionState !== 'none') return;
-    if (this.itemDeployment?.isActive) {
-      return;
-    }
-
-    const px = this.player.x;
-    const py = this.player.y;
-    const pw = this.player.width;
-    const ph = this.player.height;
-    const level = this.currentLevel;
-    const grid = this.collisionGrid;
-
-    let direction: 'left' | 'right' | 'up' | 'down' | null = null;
-
-    // GridVania transition: detect player near open edge tiles (0 = passage)
-    // Check right edge: player near right side + last column has open tiles
-    const playerTileY = Math.floor((py + ph / 2) / TILE_SIZE);
-    const playerTileX = Math.floor((px + pw / 2) / TILE_SIZE);
-
-    // Edge tile is passable if empty (0) or water (2)
-    const passable = (tile: number | undefined) => tile === 0 || tile === 2;
-
-    if (px + pw > level.pxWid - TILE_SIZE) {
-      const edgeCol = level.gridW - 1;
-      if (playerTileY >= 0 && playerTileY < level.gridH && passable(grid[playerTileY]?.[edgeCol])) {
-        direction = 'right';
-      }
-    } else if (px < TILE_SIZE) {
-      if (playerTileY >= 0 && playerTileY < level.gridH && passable(grid[playerTileY]?.[0])) {
-        direction = 'left';
-      }
-    } else if (py + ph > level.pxHei - TILE_SIZE) {
-      const edgeRow = level.gridH - 1;
-      if (playerTileX >= 0 && playerTileX < level.gridW && passable(grid[edgeRow]?.[playerTileX])) {
-        direction = 'down';
-      }
-    } else if (py < TILE_SIZE) {
-      if (playerTileX >= 0 && playerTileX < level.gridW && passable(grid[0]?.[playerTileX])) {
-        direction = 'up';
-      }
-    }
-
-    if (direction === null) return;
-
-    // In a tunnel: reaching the bottom edge ??warp to Item World
-    if (this.inItemTunnel && direction === 'down') {
-      this.startTunnelExitTransition();
-      return;
-    }
-
-    // Pass player's world position (center) so we pick the correct neighbor
-    // when multiple neighbors share the same edge (e.g. two rooms to the right)
-    const playerWorldX = this.currentLevel.worldX + px + pw / 2;
-    const playerWorldY = this.currentLevel.worldY + py + ph / 2;
-    Debug.log(`[EdgeTransition] dir=${direction} level=${level.identifier} localY=${py.toFixed(0)} worldY=${playerWorldY.toFixed(0)} candidates=${JSON.stringify(this.currentLevel.dirNeighbors[{left:'w',right:'e',up:'n',down:'s'}[direction]])}`);
-    const neighborId = this.getNeighborInDirection(direction, playerWorldX, playerWorldY);
-    Debug.log(`[EdgeTransition] ??neighborId=${neighborId}`);
-    if (!neighborId) {
-      if (direction === 'right' && this.startItemWorldCorridorFromWorldRightEdge()) return;
-      return;
-    }
-
-    this.startTransition(direction, neighborId);
-  }
-
-  private startItemWorldCorridorFromWorldRightEdge(): boolean {
-    if (!this.collapseItem || this.inItemTunnel || this.itemWorldEntryTransitionActive) return false;
-    const levelRight = this.currentLevel?.pxWid ?? 0;
-    if (levelRight <= 0) return false;
-    const playerRight = this.player.x + this.player.width;
-    if (playerRight < levelRight - TILE_SIZE) return false;
-
-    this.prestreamItemWorldEntry(this.collapseItem, 'world-right-edge');
-    this.pendingItemWorldEntryCorridor = !(this.itemDeployment?.isActive);
-    this.startTransition('right', '__item_world__');
-    return true;
-  }
-
-  private getNeighborInDirection(
-    direction: 'left' | 'right' | 'up' | 'down',
-    playerWorldX: number,
-    playerWorldY: number,
-  ): string | null {
-    return this.transitionController.getNeighborInDirection(
-      this.loader, this.currentLevel, direction, playerWorldX, playerWorldY, LdtkWorldScene.debugMode,
-    );
-  }
-
-  private startTransition(direction: 'left' | 'right' | 'up' | 'down', levelId: string): void {
-    const cam = this.game.camera;
-    this.transitionState = 'fade_out';
-    this.transitionTimer = FADE_DURATION;
-    this.pendingDirection = direction;
-    this.pendingLevelId = levelId;
-    if (levelId !== '__item_world__') this.pendingItemWorldEntryCorridor = true;
-    // Remember player's WORLD position for spawn hint in next room
-    this.pendingPlayerTileY = Math.floor((this.currentLevel.worldY + this.player.y + this.player.height / 2) / TILE_SIZE);
-    this.pendingPlayerTileX = Math.floor((this.currentLevel.worldX + this.player.x + this.player.width / 2) / TILE_SIZE);
-  }
-
-  private updateTransition(dt: number): void {
-    this.transitionTimer -= dt;
-    if (this.transitionState === 'fade_out') {
-      this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        if (this.pendingLevelId === '__item_world__') {
-          // Tunnel exit ??enter Item World (no fade_in, scene push handles it)
-          this.transitionState = 'none';
-          this.fadeOverlay.alpha = 0;
-          this.pendingDirection = null;
-          this.pendingLevelId = null;
-          const entryCorridor = this.pendingItemWorldEntryCorridor;
-          this.pendingItemWorldEntryCorridor = true;
-          this.enterItemWorldFromTunnel({ entryCorridor });
-          return;
-        }
-        if (this.pendingLevelId) {
-          const prevCamX = this.game.camera.renderX;
-          const prevCamY = this.game.camera.renderY;
-          const opposite: Record<string, 'left'|'right'|'up'|'down'> = {
-            left: 'right', right: 'left', up: 'down', down: 'up',
-          };
-          const enterFrom = opposite[this.pendingDirection!] ?? 'down';
-          this.loadLevel(this.pendingLevelId, enterFrom);
-          this.parallaxBG.onRoomTransition(prevCamX, prevCamY, this.game.camera.renderX, this.game.camera.renderY);
-          this.player.savePrevPosition();
-          for (const e of this.enemies) e.savePrevPosition();
-        }
-        this.transitionState = 'fade_in';
-        this.transitionTimer = FADE_DURATION;
-        this.fadeOverlay.alpha = 1;
-      }
-    } else if (this.transitionState === 'fade_in') {
-      this.fadeOverlay.alpha = Math.max(0, this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        this.transitionState = 'none';
-        this.fadeOverlay.alpha = 0;
-        this.pendingDirection = null;
-        this.pendingLevelId = null;
-        // Sync all entity prev positions to prevent render interpolation jitter
-        this.player.savePrevPosition();
-        for (const e of this.enemies) e.savePrevPosition();
-      }
-    }
+    this.laserDesaturationRuntime.removeFromTargets(filteredLayers);
   }
 
   // ---------------------------------------------------------------------------
@@ -7846,467 +3619,73 @@ export class LdtkWorldScene extends Scene {
   // Giant Builder
   // ---------------------------------------------------------------------------
 
-  private readStringField(entity: LdtkEntity, key: string, fallback: string): string {
-    const value = entity.fields[key];
-    return typeof value === 'string' && value.length > 0 ? value : fallback;
-  }
-
-  private readNumberField(entity: LdtkEntity, key: string, fallback: number): number {
-    const value = entity.fields[key];
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-  }
-
-  private readBoolField(entity: LdtkEntity, key: string, fallback: boolean): boolean {
-    const value = entity.fields[key];
-    return typeof value === 'boolean' ? value : fallback;
-  }
-
-  private applyBuilderVisualFilters(builder: GiantBuilder): void {
-    if (this.builderWallPaletteFilter && this.builderNaturalPaletteFilter) {
-      builder.decorator.naturalLayer.filters    = [this.builderNaturalPaletteFilter];
-      builder.decorator.artificialLayer.filters = [this.builderWallPaletteFilter];
-      builder.decorator.structureLayer.filters  = [this.builderWallPaletteFilter];
-    }
-
-    if (this.builderBgPaletteFilter && this.builderWallPaletteFilter && this.builderInteriorWallPaletteFilter && this.wallRimFilter) {
-      builder.bodyLayers.bg.filters           = [this.builderBgPaletteFilter];
-      builder.bodyLayers.wall.filters         = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.bodyLayers.interior.filters     = [this.builderBgPaletteFilter];
-      builder.bodyLayers.shadow.filters       = [this.builderWallPaletteFilter];
-      builder.builderInteriorLayer.filters    = [this.builderInteriorWallPaletteFilter];
-      builder.builderOutsideLayer.filters     = [this.builderWallPaletteFilter, this.wallRimFilter];
-      builder.setLegFilters([this.builderWallPaletteFilter, this.wallRimFilter]);
-      builder.pinFilterBounds();
-    }
-  }
-
-  private addBuilderToScene(builder: GiantBuilder, insertBeforeNaturalDecor: boolean): void {
-    if (insertBeforeNaturalDecor && this.procDecorator) {
-      const insertIdx = this.renderer.container.getChildIndex(this.renderer.shadowLayer);
-      this.renderer.container.addChildAt(builder.container, insertIdx);
-    } else {
-      this.renderer.container.addChild(builder.container);
-    }
-  }
-
   private spawnBuilderFromSpawner(hostLevel: LdtkLevel, spawner: LdtkEntity): void {
-    const builderLevelId = this.readStringField(spawner, 'BuilderLevelId', 'Builder_Level_1');
+    const builderLevelId = this.builderSpawnerRuntime.readLevelId(spawner);
     const builderLevel = this.builderLoader.getLevel(builderLevelId);
     if (!builderLevel) return;
 
-    const anchor = this.readStringField(spawner, 'Anchor', 'Entity');
-    const offsetPx = this.readNumberField(spawner, 'OffsetCellsX', 0) * TILE_SIZE;
-    const startY = this.readNumberField(spawner, 'StartYCells', Math.round(spawner.px[1] / TILE_SIZE)) * TILE_SIZE;
-    const endY = this.readNumberField(spawner, 'EndYCells', Math.round(spawner.px[1] / TILE_SIZE)) * TILE_SIZE;
-    const speed = Math.max(0, this.readNumberField(spawner, 'Speed', 33));
-    const loop = this.readBoolField(spawner, 'Loop', false);
-    const autoStart = this.readBoolField(spawner, 'AutoStart', true);
-    const skipInitialWait = this.readBoolField(spawner, 'SkipInitialWait', false);
-    const cameraShake = this.readBoolField(spawner, 'CameraShake', false);
-    const runOnceKey = this.readStringField(spawner, 'RunOnceKey', '');
-    const replayAtEnd = this.readBoolField(spawner, 'ReplayAtEnd', false);
-    const startWaitMs = Math.max(0, this.readNumberField(spawner, 'StartWaitMs', 0));
-    const endWaitMs = Math.max(0, this.readNumberField(spawner, 'EndWaitMs', 0));
-    const insertBeforeNaturalDecor = this.readBoolField(spawner, 'InsertBeforeNaturalDecor', true);
-    const alreadyPlayed = runOnceKey.length > 0 && this.builderSpawnerRunOnceKeys.has(runOnceKey);
-    const savedState = this.builderSavedStates.get(builderLevelId);
-    const savedY = this.builderSavedPositions.get(builderLevelId);
-    const spawnY = savedState?.posY ?? savedY ?? (alreadyPlayed && replayAtEnd ? endY : startY);
-
-    let builderX = spawner.px[0] + offsetPx;
-    if (anchor === 'LeftWall') {
-      builderX = offsetPx;
-    } else if (anchor === 'RightWall') {
-      builderX = hostLevel.pxWid - builderLevel.pxWid - offsetPx;
-    }
+    const config = this.builderSpawnerRuntime.resolveConfig(spawner, hostLevel, builderLevel);
+    const spawnState = this.builderPersistenceRuntime.resolveSpawnState(
+      config.builderLevelId,
+      config.runOnceKey,
+      config.replayAtEnd,
+      config.startY,
+      config.endY,
+    );
+    const { savedState, spawnY } = spawnState;
 
     const builder = new GiantBuilder(
       builderLevel,
       this.atlases,
       'world_shaft_builder_bg',
       'world_shaft_builder_wall',
-      { hostLevel, builderX, builderY: spawnY },
+      { hostLevel, builderX: config.builderX, builderY: spawnY },
     );
 
-    this.applyBuilderVisualFilters(builder);
-    builder.placeInLevel(builderX, spawnY);
-    this.addBuilderToScene(builder, insertBeforeNaturalDecor);
-    // BuilderInterior ??entityLayer ?熬곣뫖???곌랙?х뙴??遊붋嶺???entity ?곌랜???*?? ???잙갭梨???
-    // builder ?筌뤾퍒??????됀???源녿턄 player/??⑤챷諭?occlude. position ?? 嶺??熬곣뫁???builder
-    // container ?? ???욋뵛??(?熬곣뫁??update loop).
-    this.container.addChild(builder.builderInteriorLayer);
-    builder.builderInteriorLayer.position.copyFrom(builder.container.position);
-    builder.builderInteriorLayer.alpha = 1;
-    this.builderInteriorAlpha = 1;
-    // BuilderLight indicators ??BuilderInterior ?곌랜????*??. ??⑹탳??????? ??됀???
-    // 嶺뚮씭?? ???띉???ル∥?????깆젷 ??戮?뻣?繹먮냱?????????
-    this.container.addChild(builder.lightContainer);
-    builder.lightContainer.position.copyFrom(builder.container.position);
-    // Leg ???띠럾???*??. 濾곌쑨?? ?????????섎뉴?띠럾? 嶺뚮ㅄ維獄??熬곥룓???熬곣뫁夷???ル∥?????쇳렩?影??턄 ?띠룆踰???類ｋ펲.
-    this.container.addChild(builder.legFrontLayer);
-    builder.legFrontLayer.position.copyFrom(builder.container.position);
+    this.builderVisualFilterRuntime.apply(builder, this.terrainPaletteRuntime.rimFilter);
+    builder.placeInLevel(config.builderX, spawnY);
+    this.builderLayerRuntime.attachBody(
+      this.renderer.container,
+      this.renderer.shadowLayer,
+      builder,
+      config.insertBeforeNaturalDecor && this.proceduralDecorRuntime.hasPrimary,
+    );
+    this.builderLayerRuntime.attach(this.container, builder);
+    this.builderInteriorVisibilityRuntime.reset(builder);
 
-    const shouldBuildRoute = autoStart && (savedState || (!alreadyPlayed && savedY === undefined));
+    const shouldBuildRoute = this.builderSpawnerRuntime.shouldBuildRoute(config, spawnState);
     if (shouldBuildRoute) {
-      builder.setRoute([
-        { y: startY, waitMs: startWaitMs },
-        { y: endY,   waitMs: endWaitMs },
-      ], speed, loop);
+      builder.setRoute(this.builderSpawnerRuntime.createRoute(config), config.speed, config.loop);
       if (savedState) {
         builder.restoreSnapshot(savedState);
-      } else if (skipInitialWait) {
+      } else if (config.skipInitialWait) {
         builder.skipInitialWait();
       }
-      if (runOnceKey.length > 0) this.builderSpawnerRunOnceKeys.add(runOnceKey);
+      this.builderPersistenceRuntime.markRunOnce(config.runOnceKey);
     } else if (savedState) {
       builder.restoreSnapshot(savedState);
     }
 
     this.activeBuilder = builder;
-    this.activeBuilderLevelId = builderLevelId;
-    this.activeBuilderMode = cameraShake ? 'cinematic' : 'patrol';
-    this.builderShakeEnabled = cameraShake;
-    this.builderWasMoving = false;
-    this.builderStepCounter = 0;
+    this.builderPersistenceRuntime.setActive(config.builderLevelId, config.cameraShake ? 'cinematic' : 'patrol');
+    this.builderStepFeedbackRuntime.reset(config.cameraShake);
 
-    this.spawnBuilderEntities(builderLevel, builderLevelId, builder);
-    this.registerBuilderGrassClumps(builder);
+    this.spawnBuilderEntities(builderLevel, config.builderLevelId, builder);
+    this.builderGrassRuntime.register(builder, this.grassFireRuntime.system, this.tileMutator);
   }
 
-  /**
-   * Stamp the active builder's solid tiles into the host collisionGrid.
-   *
-   * Only cells where the host grid is EMPTY (0) get stamped, so runtime
-   * terrain changes (broken walls, open doors) and special tiles (updraft,
-   * spikes) are preserved. Stamped cells are recorded so they can be
-   * restored when the builder crosses a tile boundary by unstampBuilder().
-   */
-  private stampBuilder(): void {
-    const b = this.activeBuilder;
-    if (!b) return;
-    const tileOriginX = Math.round(b.container.x / 16);
-    const tileOriginY = Math.round(b.container.y / 16);
-    const gridH = this.collisionGrid.length;
-    const gridW = gridH > 0 ? this.collisionGrid[0].length : 0;
-    for (let br = 0; br < b.heightTiles; br++) {
-      const r = tileOriginY + br;
-      if (r < 0 || r >= gridH) continue;
-      const bRow = b.collisionGrid[br];
-      const hostRow = this.collisionGrid[r];
-      if (!bRow || !hostRow) continue;
-      for (let bc = 0; bc < b.widthTiles; bc++) {
-        const v = bRow[bc];
-        if (!v) continue;
-        if (v === TILE_UPDRAFT) continue;
-        const c = tileOriginX + bc;
-        if (c < 0 || c >= gridW) continue;
-        if (hostRow[c] === 0) {
-          hostRow[c] = v;
-          const stamp = r * gridW + c;
-          this.builderStamps.push(stamp);
-          this.builderStampSet.add(stamp);
-        }
-      }
-    }
-    this.builderStampOriginX = tileOriginX;
-    this.builderStampOriginY = tileOriginY;
-  }
-
-  /** Restore cells previously stamped by the builder back to empty (0). */
-  private unstampBuilder(): void {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    for (const stamp of this.builderStamps) {
-      const r = gridW > 0 ? Math.floor(stamp / gridW) : 0;
-      const c = gridW > 0 ? stamp - r * gridW : 0;
-      const row = this.collisionGrid[r];
-      if (row) row[c] = 0;
-    }
-    this.builderStamps.length = 0;
-    this.builderStampSet.clear();
-    this.builderStampOriginX = null;
-    this.builderStampOriginY = null;
-  }
-
-  private isBuilderStampedCell(col: number, row: number): boolean {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    return gridW > 0 && this.builderStampSet.has(row * gridW + col);
-  }
-
-  /**
-   * After physics: is the player standing on a tile that the builder
-   * currently stamps? Used to carry them with the builder on the next
-   * frame's vertical movement.
-   */
-  private isPlayerOnBuilderStamp(): boolean {
-    if (this.builderStamps.length === 0) return false;
-    if (!this.player.isGrounded()) return false;
-    const feetY = this.player.y + this.player.height;
-    const footRow = Math.floor((feetY + 1) / 16);
-    const leftCol = Math.floor(this.player.x / 16);
-    const rightCol = Math.floor((this.player.x + this.player.width - 1) / 16);
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridW <= 0) return false;
-    for (const stamp of this.builderStamps) {
-      const r = Math.floor(stamp / gridW);
-      const c = stamp - r * gridW;
-      if (r === footRow && c >= leftCol && c <= rightCol) return true;
-    }
-    return false;
-  }
-
-  private carryPlayerWithBuilderY(deltaY: number): void {
-    // Drop-through 嶺뚯쉳????熬곣뫁??熬곣뫖???????臾덉쾸? ??⑤챶諭?繞벿살탳???寃밸듆 ??????怨룹꽑?띠럾? ?熬곣뫁夷?
-    // ?????????낆쾸? platform ?????곕뻣 ???띉?????낆쾸熬곣뫀堉? dropThroughTimer ??戮?뎽
-    // ???덊닱?? carrier ???욋뵛??? 濾곌쑬???????
-    if (this.player.dropThroughTimer > 0) return;
-    const colOffX = (this.player.width - this.player.collisionW) / 2;
-    const colOffY = this.player.height - this.player.collisionH;
-    const x = this.player.x + colOffX;
-    const y = this.player.y + colOffY;
-    const w = this.player.collisionW;
-    const h = this.player.collisionH;
-    const nextY = y + deltaY;
-    const leadY = deltaY > 0 ? nextY + h : nextY;
-    const checkRow = Math.floor(leadY / TILE_SIZE);
-    const leftCol = Math.floor(x / TILE_SIZE);
-    const rightCol = Math.floor((x + w - 1) / TILE_SIZE);
-    const stampSet = this.getBuilderStampSet();
-
-    let resolvedY = nextY;
-    let collided = false;
-    for (let col = leftCol; col <= rightCol; col++) {
-      if (!this.isStaticSolidCell(col, checkRow, stampSet)) continue;
-      resolvedY = deltaY > 0
-        ? checkRow * TILE_SIZE - h
-        : (checkRow + 1) * TILE_SIZE;
-      collided = true;
-      break;
-    }
-
-    const spriteY = resolvedY - colOffY;
-    const applied = spriteY - this.player.y;
-    if (Math.abs(applied) > 0.001) {
-      this.player.y = spriteY;
-      this.player.prevY += applied;
-    }
-    if (collided && deltaY < 0 && this.player.vy < 0) this.player.vy = 0;
-  }
 
   /** 아이템계 진입 연출(딥/포탈/필링/엔트리 페이드/아이템 디플로이 성장)이 진행 중인가. */
   private isItemWorldEntryCinematicActive(): boolean {
     return (
-      this.itemWorldTransition !== null ||
-      this.portalTransition !== null ||
-      this.itemWorldEntryTransitionActive ||
-      (this.itemDeployment?.isActive ?? false)
+      this.itemWorldTransitionRuntime.isActive ||
+      this.itemWorldEntryTransition.isActive ||
+      (this.itemWorldEntryState.deployment?.isActive ?? false)
     );
   }
-
-  private snapPlayerToBuilderSurface(): boolean {
-    const b = this.activeBuilder;
-    if (!b) return false;
-    // 아이템계 진입 연출 중에는 빌더 표면 스냅을 전부 끈다 (사용자 요청 2026-06-02).
-    if (this.isItemWorldEntryCinematicActive()) return false;
-    // A real jump should detach from the carrier. Snapping only while falling
-    // or resting prevents the moving floor from stealing jump height.
-    if (this.player.getVy() < -1) return false;
-    // Drop-through ??戮?뎽 ???덊닱?? ?????collisionGrid ??platform(3) ?????꾩룇裕??
-    // ?熬곣뫀沅????????섌뜮???類ｋ펲. ?잙갭梨?猿볦?? ???곷さ嶺?`y += 2` 嶺뚯쉳???snap ??platform top
-    // ??怨쀬Ŧ 嶺뚯빖留???곌랜踰???戮깅짉 DOWN+JUMP ????疫????쳛???類ｋ펲.
-    if (this.player.dropThroughTimer > 0 || this.builderOneWayDropThroughGraceMs > 0) return false;
-
-    const originX = Math.round(b.container.x / 16);
-    const originY = Math.round(b.container.y / 16);
-    const leftCol = Math.max(0, Math.floor(this.player.x / 16) - originX);
-    const rightCol = Math.min(b.widthTiles - 1, Math.floor((this.player.x + this.player.width - 1) / 16) - originX);
-    if (rightCol < leftCol) return false;
-
-    const feetY = this.player.y + this.player.height;
-    const prevFeetY = this.player.prevY + this.player.height;
-    let bestTopY: number | null = null;
-    let bestDist = Infinity;
-    for (let br = 0; br < b.heightTiles; br++) {
-      for (let bc = leftCol; bc <= rightCol; bc++) {
-        const tile = b.collisionGrid[br]?.[bc] ?? 0;
-        if (!isSolid(tile) && !isOneWay(tile)) continue;
-        const above = br > 0 ? (b.collisionGrid[br - 1]?.[bc] ?? 0) : 0;
-        if (above !== 0) continue;
-        const topY = (originY + br) * 16;
-        if (isOneWay(tile)) {
-          // Moving one-way platforms can cross the player's feet between
-          // tile-stamp updates and the normal resolveY "feetBefore" test.
-          // Accept the platform only from above/near-above, never during a
-          // jump-up from below or an intentional drop-through.
-          const cameFromAbove = prevFeetY <= topY + TILE_SIZE;
-          const nearLandingBand = feetY >= topY - 2 && feetY <= topY + TILE_SIZE * 1.5;
-          if (!cameFromAbove || !nearLandingBand) continue;
-        }
-        const dist = Math.abs(topY - feetY);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestTopY = topY;
-        }
-      }
-    }
-    if (bestTopY === null || bestDist > 24) return false;
-
-    const nextY = bestTopY - this.player.height;
-    if (this.playerCollisionOverlapsSolidAt(this.player.x, nextY)) return false;
-    const delta = nextY - this.player.y;
-    if (Math.abs(delta) > 0.001) {
-      this.player.y = nextY;
-      this.player.prevY += delta;
-    }
-    if (this.player.vy > 0) this.player.vy = 0;
-    this.player.forceGrounded(false, 'builder-surface');
-    return true;
-  }
-
-  private playerCollisionOverlapsSolidAt(playerX: number, playerY: number): boolean {
-    const colOffX = (this.player.width - this.player.collisionW) / 2;
-    const colOffY = this.player.height - this.player.collisionH;
-    const x = playerX + colOffX;
-    const y = playerY + colOffY;
-    const w = this.player.collisionW;
-    const h = this.player.collisionH;
-    const leftCol = Math.floor(x / TILE_SIZE);
-    const rightCol = Math.floor((x + w - 1) / TILE_SIZE);
-    const topRow = Math.floor(y / TILE_SIZE);
-    const bottomRow = Math.floor((y + h - 1) / TILE_SIZE);
-    for (let row = topRow; row <= bottomRow; row++) {
-      for (let col = leftCol; col <= rightCol; col++) {
-        if (isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL)) return true;
-      }
-    }
-    return false;
-  }
-
-  private resolvePlayerSolidOverlap(
-    preferredDirs: Array<{ x: number; y: number }>,
-    maxDist = TILE_SIZE,
-  ): boolean {
-    if (!this.playerCollisionOverlapsSolidAt(this.player.x, this.player.y)) return false;
-
-    for (let dist = 1; dist <= maxDist; dist++) {
-      for (const dir of preferredDirs) {
-        const nextX = this.player.x + dir.x * dist;
-        const nextY = this.player.y + dir.y * dist;
-        if (this.playerCollisionOverlapsSolidAt(nextX, nextY)) continue;
-        this.player.prevX += nextX - this.player.x;
-        this.player.prevY += nextY - this.player.y;
-        this.player.x = nextX;
-        this.player.y = nextY;
-        if (dir.y !== 0) this.player.vy = 0;
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private resolvePlayerSolidOverlapAfterBuilder(stampDeltaY: number): boolean {
-    const verticalFirst = stampDeltaY < 0
-      ? [{ x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }]
-      : [{ x: 0, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
-    return this.resolvePlayerSolidOverlap(verticalFirst);
-  }
-
-  private getBuilderStampSet(): Set<number> {
-    return this.builderStampSet;
-  }
-
-  private isStaticSolidCell(col: number, row: number, builderStampSet: Set<number>): boolean {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
-    if (gridW <= 0) return true;
-    if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return true;
-    if (builderStampSet.has(row * gridW + col)) return false;
-    return isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL);
-  }
-
-  /**
-   * AABB overlap between the player and the builder's world-space rectangle.
-   * Used for the camera override so it persists while the player is airborne
-   * inside the builder (jumping, double-jumping, etc.).
-   */
-  private isPlayerInBuilderVolume(): boolean {
-    const b = this.activeBuilder;
-    if (!b) return false;
-    const bx = b.container.x;
-    const by = b.container.y;
-    const px = this.player.x;
-    const py = this.player.y;
-    return (
-      px + this.player.width  > bx &&
-      px                      < bx + b.widthPx &&
-      py + this.player.height > by &&
-      py                      < by + b.heightPx
-    );
-  }
-
-  /**
-   * Debug ??怨뺣뒆 ?筌뤾퍓援????update() ?????嶺??熬곣뫁????筌뤾쑵??
-   *   ` (Backquote)  ?????х뙴?????????怨뺣뒆 嶺뚮ㅄ維獄????
-   *   Shift+M        ????嶺??? ??됀???+ ?????????怨뺣뒆 嶺뚮ㅄ維??
-   *
-   * `?debug=1` URL ????뗥윜??띠럾? ???깅굵 ???異???戮?뎽. ??怨쀫틮 ??????怨룹꽑 ???곕빢 ??怨뺣뒆 ?꾩렮維?.
-   * Shift+M ?? ??怨쀫틮 M (??븐뼔援←춯? ?곌랜????誘る닔? 嶺뚳퐣瑗???MAP ???떷??consume ??類ｋ펲.
-   */
-  private handleDebugWarp(): void {
-    if (!new URLSearchParams(window.location.search).has('debug')) return;
-    const input = this.game.input;
-
-    // Shift+M ????嶺???怨뺣뒆 嶺뚮ㅄ維??
-    if (input.shiftDown && input.isJustPressed(GameAction.MAP) && !this.inItemTunnel) {
-      input.consumeJustPressed(GameAction.MAP);
-      if (this.warpModeActive) this.toggleWarpMode(); // ?꾩룄???嶺뚮ㅄ維獄?? ?寃몃쳳???꾩렮維?
-      this.openDebugWorldMap();
-    }
-
-    // Backtick ?????х뙴?????????怨뺣뒆 ???
-    if (input.isRawKeyJustPressed('Backquote')) {
-      // ??븐뼔援←춯?얜쾴?????????깅さ嶺???⑥ろ맖 ???뗢뵛 (嶺뚮ㅄ維???寃몃쳳???꾩렮維?)
-      if (this.worldMap.visible) this.worldMap.close();
-      this.toggleWarpMode();
-    }
-
-    // ESC ????怨뺣뒆 嶺뚮ㅄ維獄???怨몄젷 (??븐뼔援←춯?esc ?? ?곌랙?х뙴?嶺뚳퐣瑗??????븐뼔援←춯?얜쾴????????깅굵 ???異?
-    if (this.warpModeActive && !this.worldMap.visible
-        && input.isJustPressed(GameAction.MENU)) {
-      input.consumeJustPressed(GameAction.MENU);
-      this.toggleWarpMode();
-    }
-  }
-
-  private openDebugWorldMap(): void {
-    this.worldMap.setExplorationState(this.visitedLevels, this.currentLevel?.identifier ?? '');
-    this.worldMap.setMarkers(this.collectMapMarkers());
-    this.syncWorldMapDynamicGrids();
-    if (this.currentLevel) {
-      this.worldMap.setPlayerPosition(
-        this.player.x + this.currentLevel.worldX,
-        this.player.y + this.currentLevel.worldY,
-      );
-    }
-    this.worldMap.onRoomClick = (roomId, localX, localY) => {
-      this.worldMap.close();
-      // If we opened debug warp from the death screen, revive in place so
-      // the warp destination is playable ??otherwise the player would land
-      // dead and the game-over UI would immediately re-cover the new room.
-      if (this.gameOverActive) this.reviveFromGameOver();
-      this.warpToRoom(roomId, Math.floor(localX), Math.floor(localY));
-    };
-    this.worldMap.openDebug();
-    this.hud.container.visible = false;
-    if (this.minimap) this.minimap.visible = false;
-  }
-
-  /** Clear death state without going through SaveManager ??debug warp only. */
+  /** Clear death state without going through SaveManager — debug warp only. */
   private reviveFromGameOver(): void {
-    this.gameOverActive = false;
-    if (this.gameOverOverlay?.parent) {
-      this.gameOverOverlay.parent.removeChild(this.gameOverOverlay);
-    }
-    this.gameOverOverlay = null;
+    this.gameOverRuntime.clear();
     this.player.hp = this.player.maxHp;
     this.player.isDead = false;
     this.player.drowned = false;
@@ -8314,664 +3693,110 @@ export class LdtkWorldScene extends Scene {
     if (this.minimap) this.minimap.visible = true;
   }
 
-  private toggleWarpMode(): void {
-    this.warpModeActive = !this.warpModeActive;
-    if (this.warpModeActive) {
-      // HUD ??⑤８堉?繞벿살탳?????怨뚮낵
-      const us = this.game.uiScale;
-      this.warpHintText = new BitmapText({
-        text: t('ui.debug.warp_mode_hint'),
-        style: { fontFamily: PIXEL_FONT, fontSize: 8 * us, fill: 0xffe060 },
-      });
-      this.warpHintText.x = Math.floor((this.game.app.canvas.width - this.warpHintText.width) / 2);
-      this.warpHintText.y = 6 * us;
-      this.game.uiContainer.addChild(this.warpHintText);
-
-      // 嶺???????????筌뤾퍓援??
-      this.warpClickHandler = (e: PointerEvent) => this.warpToScreenClick(e);
-      this.game.app.canvas.addEventListener('pointerdown', this.warpClickHandler);
-      this.game.app.canvas.style.cursor = 'crosshair';
-    } else {
-      if (this.warpHintText && this.warpHintText.parent) {
-        this.warpHintText.parent.removeChild(this.warpHintText);
-        this.warpHintText.destroy();
-        this.warpHintText = null;
-      }
-      if (this.warpClickHandler) {
-        this.game.app.canvas.removeEventListener('pointerdown', this.warpClickHandler);
-        this.warpClickHandler = null;
-      }
-      this.game.app.canvas.style.cursor = '';
-    }
-  }
-
-  private warpToScreenClick(e: PointerEvent): void {
-    if (!this.currentLevel) return;
-    const canvas = this.game.app.canvas;
-    const rect = canvas.getBoundingClientRect();
-    const fractionX = (e.clientX - rect.left) / rect.width;
-    const fractionY = (e.clientY - rect.top) / rect.height;
-    // ??レ뒭筌??곌떠?????Game.ts ??gameContainer ?꾩룄?????諭諭???亦?
-    //   gameContainer.x = -cam.renderX + rtW/2  (rtW = GAME_WIDTH / zoom)
-    //   ??븐뻼??繞벿살탳??fraction=0.5) ??cam.renderX
-    //   ??⑤벡逾??level-local x = cam.renderX - rtW/2 + fraction ??rtW
-    // cam.setBounds(0, 0, level.pxWid, level.pxHei) ??cam ?? ???? level-local.
-    // currentLevel.worldX ?????? ???낅츎??
-    const cam = this.game.camera;
-    const rtW = GAME_WIDTH / cam.zoom;
-    const rtH = GAME_HEIGHT / cam.zoom;
-    const localX = cam.renderX - rtW / 2 + fractionX * rtW;
-    const localY = cam.renderY - rtH / 2 + fractionY * rtH;
-    this.warpPlayerToLocal(localX, localY);
-    this.toast.show(t('toast.warped'), 0xffe060);
-  }
-
-  private warpToRoom(roomId: string, localX: number, localY: number): void {
-    if (this.currentLevel?.identifier !== roomId) {
-      this.loadLevel(roomId, 'down');
-    }
-    this.warpPlayerToLocal(localX, localY);
-    this.hud.container.visible = true;
-    if (this.minimap) this.minimap.visible = true;
-    this.toast.show(t('toast.warped_to', { room: roomId }), 0xffe060);
-  }
-
-  private warpPlayerToLocal(clickX: number, clickY: number): void {
-    if (!this.currentLevel) return;
-    const grid = this.currentLevel.collisionGrid;
-    const TS = 16;
-    const col = Math.floor(clickX / TS);
-    const startRow = Math.floor(clickY / TS);
-    const maxRow = grid.length - 1;
-
-    let footY = clickY;
-    if (col >= 0 && grid[0] && col < grid[0].length) {
-      for (let r = Math.max(0, startRow); r <= maxRow; r++) {
-        const cell = grid[r]?.[col] ?? 0;
-        if (cell === 1) {
-          footY = r * TS + 1;
-          break;
-        }
-      }
-    }
-
-    this.player.x = clickX - this.player.width / 2;
-    this.player.y = footY - this.player.height;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-
-    for (let i = 0; i < 5; i++) {
-      this.player.update(16.667);
-    }
-
-    this.game.camera.snap(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2,
-    );
-  }
-
   // ---------------------------------------------------------------------------
   // Giant Builder
   // ---------------------------------------------------------------------------
 
-  private registerBuilderGrassClumps(builder: GiantBuilder): void {
-    const registered = this.grassClumpFire.registerWithCellResolver(
-      builder.decorator.getGrassClumpsWithCells(),
-      (clump) => {
-        const bx = Math.round(builder.container.x / 16);
-        const by = Math.round(builder.container.y / 16);
-        return { gx: bx + clump.gx, gy: by + clump.gy };
-      },
-    );
-    for (const prop of registered) this.tileMutator.registerBurnable(prop);
-  }
-
-  /** Walk a builder level's LDtk entities and spawn the gameplay objects
-   *  that make sense inside a moving builder. Add new cases here for any
-   *  entity type that needs to be supported (Anvil, GoldPickup, etc.). */
+  /** Walk a builder level's LDtk entities and delegate gameplay objects
+   *  that make sense inside a moving builder. */
   private spawnBuilderEntities(
     builderLevel: LdtkLevel,
     builderLevelId: string,
     builder: GiantBuilder,
   ): void {
-    const bx0 = builder.container.x;
-    const by0 = builder.container.y;
     for (const ent of builderLevel.entities) {
-      const localX = ent.px[0];
-      const localY = ent.px[1];
-      const wx = bx0 + localX;
-      const wy = by0 + localY;
-
-      switch (ent.type) {
-        case 'Item': {
-          const itemKey = `${builderLevelId}:${localX},${localY}`;
-          if (this.collectedItems.has(itemKey)) break;
-          const rawItemId = (ent.fields['ItemId'] ?? ent.fields['itemId'] ?? ent.fields['itemID'] ?? '') as string;
-          const itemId = rawItemId.toLowerCase();
-          if (!itemId) break;
-          // ??????롪퍒???(2026-05-03): Broken Sword ??戮곗굚 ?????吏?嶺뚯솘??? Builder ??
-          // ItemDrop ??繞벿살탮????skip + collected 嶺뚳퐣瑗??
-          if (itemId === 'sword_broken') {
-            this.collectedItems.add(itemKey);
-            break;
-          }
-
-          // Snapshot all collections that spawnFixedItemAt may push into;
-          // any collection that grew owns the new entity for attachment.
-          // Consumables don't spawn an entity (toast only) ??those leave
-          // every length unchanged and are silently skipped.
-          const beforeDrops = this.drops.length;
-          const beforeGold = this.goldPickups.length;
-          const beforeHeal = this.healingPickups.length;
-          this.spawnFixedItemAt(wx, wy, itemId, itemKey);
-
-          if (this.drops.length > beforeDrops) {
-            const drop = this.drops[this.drops.length - 1];
-            // ItemDropEntity lifts visuals 8px above the bottom-center
-            // pivot in its constructor; mirror that here so builder-
-            // attached drops aren't half-buried after re-anchoring.
-            const liftedLocalY = localY - 8;
-            this.attachToBuilder(builder, drop, localX, liftedLocalY, () => this.drops.includes(drop));
-            drop.baseY = liftedLocalY;
-          } else if (this.goldPickups.length > beforeGold) {
-            const gp = this.goldPickups[this.goldPickups.length - 1];
-            this.attachToBuilder(builder, gp, gp.x - bx0, gp.y - by0, () => this.goldPickups.includes(gp));
-          } else if (this.healingPickups.length > beforeHeal) {
-            const hp = this.healingPickups[this.healingPickups.length - 1];
-            this.attachToBuilder(builder, hp, hp.x - bx0, hp.y - by0, () => this.healingPickups.includes(hp));
-          }
-          break;
-        }
-        case 'Anvil': {
-          // Builder-mounted anvil. Single-instance policy: if the host level
-          // already spawned an anvil via spawnAnvilFromLdtk, skip ??no double
-          // anvil in the same room. Builder anvil reuses Anvil class so all
-          // prompts / dialogue / IW entry routing work unchanged once the
-          // attachment makes its world coords track the builder.
-          if (this.anvil) break;
-          const retireFlag = this.readAnvilRetireAfterBossFlag(ent);
-          const anvil = new Anvil(wx, wy, this.shouldSpawnAnvilDisabled(retireFlag));
-          anvil.retireAfterFirstBoss = retireFlag;
-          this.anvil = anvil;
-          this.currentAnvilIid = ent.iid;
-          // attachToBuilder reparents container.parent ??builder.container,
-          // sets container.x/y to local coords. World x/y are then refreshed
-          // each frame in syncBuilderAttachments() for prompt/interaction tests.
-          this.attachToBuilder(builder, anvil, localX, localY, () => this.anvil === anvil);
-          break;
-        }
-        case 'LockedDoor': {
-          const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
-          const unlockCondition = (rawCondition.toLowerCase() as UnlockCondition) || 'event';
-          const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
-          const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
-          const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
-          const doorKey = unlockCondition === 'event' ? unlockEvent : ent.iid;
-          const isAlreadyUnlocked = this.unlockedEvents.has(doorKey);
-          const door = new LockedDoor(
-            localX, localY,
-            ent.width, ent.height,
-            ent.iid,
-            unlockCondition,
-            unlockCondition === 'event' ? unlockEvent : doorKey,
-            statType,
-            statThreshold,
-          );
-          door.injectCollision(builder.collisionGrid);
-          this.doorCollisionGrids.set(door, builder.collisionGrid);
-          if (isAlreadyUnlocked) door.unlock(builder.collisionGrid, true);
-          this.lockedDoors.push(door);
-          this.entityLayer.addChild(door.container);
-          this.attachToBuilder(
-            builder,
-            door,
-            door.container.x,
-            door.container.y,
-            () => this.lockedDoors.includes(door),
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                entity.x = bx + lx;
-                entity.y = by + ly;
-                entity.container.x = entity.x;
-                entity.container.y = entity.y;
-              },
-            },
-          );
-          break;
-        }
-        case 'Switch': {
-          const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
-          if (!ref?.entityIid) break;
-          const sw = new Switch(localX, localY, ent.width, ent.height, ref.entityIid);
-          if (this.unlockedEvents.has(ref.entityIid)) {
-            sw.activate(builder.collisionGrid);
-          } else {
-            sw.injectCollision(builder.collisionGrid);
-          }
-          this.switchCollisionGrids.set(sw, builder.collisionGrid);
-          this.switches.push(sw);
-          this.entityLayer.addChild(sw.container);
-          this.attachToBuilder(
-            builder,
-            sw,
-            sw.container.x,
-            sw.container.y,
-            () => this.switches.includes(sw),
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                entity.x = bx + lx;
-                entity.y = by + ly;
-                entity.container.x = entity.x;
-                entity.container.y = entity.y;
-              },
-            },
-          );
-          break;
-        }
-        case 'Spike': {
-          const spike = new Spike(localX, localY, ent.width, ent.height);
-          this.spikes.push(spike);
-          this.entityLayer.addChild(spike.container);
-          this.attachToBuilder(
-            builder,
-            spike,
-            spike.container.x,
-            spike.container.y,
-            () => this.spikes.includes(spike),
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                entity.x = bx + lx;
-                entity.y = by + ly;
-                entity.container.x = entity.x;
-                entity.container.y = entity.y;
-              },
-            },
-          );
-          break;
-        }
-        case 'Breakable': {
-          const rawSprite = (ent.fields['Sprite'] ?? ent.fields['sprite']) as string | undefined;
-          const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
-            ? rawSprite
-            : 'SignBoard_Save';
-          const breakable = new Breakable(localX, localY, spriteId);
-          this.breakables.push(breakable);
-          this.entityLayer.addChild(breakable.container);
-          this.attachToBuilder(
-            builder,
-            breakable,
-            localX,
-            localY,
-            () => this.breakables.includes(breakable) && !breakable.destroyed,
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                entity.container.x = bx + lx;
-                entity.container.y = by + ly;
-                entity.x = entity.container.x;
-                entity.y = entity.container.y;
-                const b = entity as Breakable;
-                if (b.width > 0) {
-                  b.x = b.container.x - b.width / 2;
-                  b.y = b.container.y - b.height;
-                }
-              },
-            },
-          );
-          break;
-        }
-        case 'CollapsingPlatform': {
-          const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
-          const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
-          const key = `cplat_${builderLevelId}_${localX}_${localY}`;
-          if (!respawns && this.unlockedEvents.has(key)) break;
-
-          const cp = new CollapsingPlatform(localX, localY, ent.width, ent.height, respawns, respawnTime);
-          (cp as any)._key = key;
-          (cp as any)._respawns = respawns;
-          cp.injectCollision(builder.collisionGrid);
-          this.collapsingPlatformCollisionGrids.set(cp, builder.collisionGrid);
-          this.collapsingPlatforms.push(cp);
-          this.entityLayer.addChild(cp.container);
-          this.attachToBuilder(
-            builder,
-            cp,
-            cp.container.x,
-            cp.container.y,
-            () => this.collapsingPlatforms.includes(cp),
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                entity.x = bx + lx;
-                entity.y = by + ly;
-                entity.container.x = entity.x;
-                entity.container.y = entity.y;
-              },
-            },
-          );
-          break;
-        }
-        case 'BuilderSprite': {
-          // LDtk Builder entity ???筌먦끉????⑥?쭨???깅턄??sprite. tile (?筌뤾쑬裕??怨룸츩 Tile field
-          // ???裕?entity def ?リ옇???tile) ??native w????????????entity bounds 32??2
-          // ??嶺뚮씮???됱?? ???곷쾳 (LDtk tileRenderMode = FullSizeUncropped ???됱굚 嶺뚮ㅄ維揶?.
-          // pivot = bottom-center (LDtk entity def: pivotX=0.5, pivotY=1).
-          const tile = ent.tile;
-          if (!tile || !tile.tilesetPath) break;
-          const url = assetPath(`assets/${tile.tilesetPath}`);
-          Assets.load<Texture>(url).then((tex) => {
-            if (!tex) return;
-            tex.source.scaleMode = 'nearest';
-            const frameTex = new Texture({
-              source: tex.source,
-              frame: new Rectangle(tile.src[0], tile.src[1], tile.w, tile.h),
-            });
-            const sprite = new Sprite(frameTex);
-            sprite.anchor.set(0.5, 1);
-            sprite.x = localX;
-            sprite.y = localY;
-            // tile native ???깃꼍??????? wallLayer ?????六??怨쀬Ŧ ?怨뺣뼺???builder body
-            // ?? ???됰뎄??PaletteSwap + RimLight ?熬곥굤??????吏???⑤챶爰?(?곌랙?х뙴?filter 嶺뚯솘???X).
-            builder.bodyLayers.wall.addChild(sprite);
-          });
-          break;
-        }
-        case 'BuilderEntrance':
-        case 'builderEntrance':
-        case 'BuilderEntity':
-        case 'builderEntity': {
-          const spec = this.getEntranceGlowSpec(ent);
-          const glow = new ExitGlow(spec.dir, bx0 + spec.x, by0 + spec.y, spec.span);
-          this.entityLayer.addChild(glow.container);
-          this.exitGlows.push(glow);
-          this.builderEntranceGlows.push(glow);
-          const attachedGlow: BuilderAttachable = {
-            x: bx0 + spec.x,
-            y: by0 + spec.y,
-            container: glow.container,
-          };
-          this.attachToBuilder(
-            builder,
-            attachedGlow,
-            spec.x,
-            spec.y,
-            () => this.builderEntranceGlows.includes(glow),
-            {
-              reparent: false,
-              sync: (entity, bx, by, lx, ly) => {
-                const x = bx + lx;
-                const y = by + ly;
-                entity.x = x;
-                entity.y = y;
-                glow.setAnchor(x, y);
-              },
-            },
-          );
-          break;
-        }
-        // Future entity types: Anvil, ...
-        // Each case spawns the entity at (wx, wy) and pushes a
-        // BuilderAttachment with isAlive pointing at the owning collection.
-        default:
-          break;
-      }
+      if (this.builderItemRuntime.spawnIfItem(builderLevelId, builder, ent)) continue;
+      if (this.builderStaticEntityRuntime.spawnIfStaticEntity(builderLevelId, builder, ent)) continue;
+      if (this.builderDoorSwitchRuntime.spawnIfDoorSwitch(builder, ent)) continue;
+      if (this.builderEntranceRuntime.spawnIfEntrance(builder, ent)) continue;
+      if (this.anvilSpawnRuntime.spawnBuilderMounted(builder, ent, this.builderAttachmentRuntime)) continue;
+      if (this.builderSpriteRuntime.spawnIfSprite(builder, ent)) continue;
     }
-  }
-
-  /** Reparent a freshly-spawned entity under the builder's container and
-   *  register a BuilderAttachment so its world coords (x/y) follow the
-   *  builder each frame via syncBuilderAttachments(). */
-  private attachToBuilder(
-    builder: GiantBuilder,
-    entity: BuilderAttachable,
-    localX: number,
-    localY: number,
-    isAlive: () => boolean,
-    options: {
-      reparent?: boolean;
-      sync?: (entity: BuilderAttachable, builderX: number, builderY: number, localX: number, localY: number) => void;
-    } = {},
-  ): void {
-    const reparent = options.reparent ?? true;
-    if (reparent) {
-      if (entity.container.parent) {
-        entity.container.parent.removeChild(entity.container);
-      }
-      builder.container.addChild(entity.container);
-      entity.container.x = localX;
-      entity.container.y = localY;
-      if (typeof entity.baseY === 'number') {
-        entity.baseY = localY;
-      }
-      this.builderAttachments.push({ entity, localX, localY, isAlive, sync: options.sync });
-      return;
-    }
-
-    options.sync?.(entity, builder.container.x, builder.container.y, localX, localY);
-    this.builderAttachments.push({ entity, localX, localY, isAlive, sync: options.sync });
   }
 
   /** Sync world coords (entity.x/y) of builder-attached entities so
    *  interaction hitboxes track the moving builder. The visual position is
-   *  handled by the parent builder.container transform ??we only update
+   *  handled by the parent builder.container transform — we only update
    *  the world-coord fields used by pickup/interaction logic. */
   private syncBuilderAttachments(): void {
-    if (!this.activeBuilder || this.builderAttachments.length === 0) return;
-    const bx = this.activeBuilder.container.x;
-    const by = this.activeBuilder.container.y;
-    for (let i = this.builderAttachments.length - 1; i >= 0; i--) {
-      const a = this.builderAttachments[i];
-      if (!a.isAlive()) {
-        this.builderAttachments.splice(i, 1);
-        continue;
-      }
-      if (a.sync) {
-        a.sync(a.entity, bx, by, a.localX, a.localY);
-      } else {
-        a.entity.x = bx + a.localX;
-        a.entity.y = by + a.localY;
-      }
-    }
+    this.builderAttachmentRuntime.sync(this.activeBuilder);
   }
 
   private setBuilderEntranceGlowAlpha(alpha: number): void {
-    for (const glow of this.builderEntranceGlows) {
-      glow.container.alpha = alpha;
-    }
+    this.exitGlowRuntime.setBuilderEntranceGlowAlpha(alpha);
   }
 
   private clearBuilder(): void {
-    if (this.activeBuilder && this.activeBuilderLevelId) {
-      this.builderSavedPositions.set(this.activeBuilderLevelId, this.activeBuilder.posY);
-      this.builderSavedStates.set(this.activeBuilderLevelId, this.activeBuilder.createSnapshot());
-    }
-    for (const glow of this.builderEntranceGlows) {
-      const idx = this.exitGlows.indexOf(glow);
-      if (idx >= 0) this.exitGlows.splice(idx, 1);
-      glow.destroy();
-    }
-    this.builderEntranceGlows = [];
-    this.unstampBuilder();
-    this.weather?.clearDynamicColliders();
-    this.weatherBuilderCollider = null;
-    this.playerOnBuilder = false;
-    this.playerInBuilder = false;
+    this.builderPersistenceRuntime.saveActive(this.activeBuilder);
+    this.exitGlowRuntime.clearBuilderEntranceGlows();
+    this.builderStampRuntime.unstamp(this.collisionGrid);
+    this.worldWeatherRuntime.clearDynamicColliders();
+    this.builderWeatherRuntime.clear();
+    this.builderPlayerStateRuntime.reset();
     if (this.activeBuilder) {
-      const interior = this.activeBuilder.builderInteriorLayer;
-      if (interior.parent) interior.parent.removeChild(interior);
-      interior.destroy({ children: true });
-      const lights = this.activeBuilder.lightContainer;
-      if (lights.parent) lights.parent.removeChild(lights);
-      lights.destroy({ children: true });
-      const legBack = this.activeBuilder.legBackLayer;
-      if (legBack.parent) legBack.parent.removeChild(legBack);
-      legBack.destroy({ children: true });
-      const legFront = this.activeBuilder.legFrontLayer;
-      if (legFront.parent) legFront.parent.removeChild(legFront);
-      legFront.destroy({ children: true });
+      this.builderLayerRuntime.destroy(this.activeBuilder);
       this.activeBuilder.destroy();
       this.activeBuilder = null;
     }
-    this.activeBuilderLevelId = null;
-    this.activeBuilderMode = null;
-    this.builderShakeEnabled = false;
-    this.builderWasMoving = false;
-    this.builderInteriorAlpha = 1;
-    // Attached entities themselves are cleared with the level via their
-    // owning collections (this.drops, etc.); just drop our tracking refs.
-    this.builderAttachments = [];
+    this.builderPersistenceRuntime.clearActive();
+    this.builderStepFeedbackRuntime.reset();
+    this.builderInteriorVisibilityRuntime.reset();
+    this.builderAttachmentRuntime.clear();
   }
 
   private openCharacterStats(): void {
     const a = this.player.abilities;
     this.characterStats.setData(
       this.inventory,
-      1, 0, 100,  // playerLevel, exp, maxExp ??placeholder until growth system
+      1, 0, 100,  // playerLevel, exp, maxExp — placeholder until growth system
       this.player.hp, this.player.maxHp,
       [a.dash, a.wallJump, a.doubleJump, false /* mist */, a.waterBreathing, false /* gravity */],
     );
     this.characterStats.show();
     this.pauseMenu.close();
-    this.isPaused = false;
-  }
-
-  private showGameOver(): void {
-    this.gameOverActive = true;
-    // Clear floating UI (damage numbers, prompts) on death
-    this.game.uiContainer.removeChildren();
-    this.game.uiContainer.addChild(this.hud.container);
-    if (this.minimap) this.game.uiContainer.addChild(this.minimap);
-    // ??醫롫윪????롪퍔???VFX(Flask R pulse, glow, vignette, HP bar pulse) 嶺뚯빖留????醫롫윞??
-    // gameOverActive=true ??醫롫윪??update() ?띠럾? early-return ??醫롫윪??hud.update(dt) ?띠럾?
-    // ??醫롫윪???醫롫짗?? ??醫롫윪??뀁쾵??? ??醫롫윞???嶺뚮ㅏ援???醫롫윪???쐻??貫?껆뵳??醫???彛? ??醫롫윪???쐻?Game Over ??醫롫윥???
-    // ??醫롫윪????醫롫윪疫????醫롫윪?됯퉩寃???굲? ????醫롫윥???
-    this.hud.resetLowHpEffects();
-    const overlay = new Container();
-
-    // Desaturated dark overlay
-    const bg = new Graphics();
-    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x111111, alpha: 0.8 });
-    overlay.addChild(bg);
-
-    const title = createUiText(t('ui.death.youdied_world'), {
-      fontFamily: PIXEL_FONT, fontSize: 14, fill: 0xff2222,
-    });
-    title.anchor.set(0.5);
-    title.x = GAME_WIDTH / 2;
-    title.y = GAME_HEIGHT / 2 - 20;
-    overlay.addChild(title);
-
-    const hint = createUiText(
-      t('ui.death.return_save_point', { jump: actionKey(GameAction.JUMP), dash: actionKey(GameAction.DASH) }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x888888 },
-    );
-    hint.anchor.set(0.5);
-    hint.x = GAME_WIDTH / 2;
-    hint.y = GAME_HEIGHT / 2 + 10;
-    overlay.addChild(hint);
-
-    this.gameOverOverlay = overlay;
-    this.game.legacyUIContainer.addChild(overlay);
   }
 
   private respawnPlayer(): void {
-    this.gameOverActive = false;
-    if (this.gameOverOverlay?.parent) {
-      this.gameOverOverlay.parent.removeChild(this.gameOverOverlay);
-    }
-    this.gameOverOverlay = null;
+    this.gameOverRuntime.clear();
 
     // Clear fixed item world / tunnel state
-    this.inFixedItemWorld = false;
-    this.fixedItemWorldItem = null;
-    this.fixedItemWorldHadFirstBossClear = false;
-    this.inItemTunnel = false;
-    this.collapseItem = null;
+    this.fixedItemWorldFlowRuntime.clear();
+    this.itemWorldEntryState.inTunnel = false;
+    this.itemWorldEntryState.clearItem();
 
-    // Load save data ??return to last save point
+    // Load save data — return to last save point
     const saveData = SaveManager.load();
     if (saveData) {
       // Restore inventory and progress from save
       this.inventory = SaveManager.loadInventory(saveData);
       this.inventoryUI.setInventory(this.inventory);
-      this.unlockedEvents = new Set(saveData.unlockedEvents);
-      this.collectedRelics = new Set(saveData.collectedRelics);
-      this.collectedItems = new Set(saveData.collectedItems);
-      this.visitedLevels = new Set(saveData.visitedLevels ?? []);
-      this.clearedLevels = new Set(saveData.clearedLevels);
+      this.worldProgressState.replaceFromSave(saveData);
       this.player.abilities.dash = saveData.abilities.dash;
       this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
       this.player.abilities.surge = saveData.abilities.surge ?? false;
       this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
       this.player.abilities.wallJump = saveData.abilities.wallJump;
       this.player.abilities.doubleJump = saveData.abilities.doubleJump;
-      this.healthShardBonus = saveData.healthShardBonus ?? 0;
-      const respawnLevelId = this.resolveSpawnLevelId(saveData.levelId);
-      this.playerSpawnLevelId = respawnLevelId;
+      this.worldPlayerProgressionState.setHealthShardBonus(saveData.healthShardBonus ?? 0);
+      const respawnLevelId = this.worldSpawnState.resolveLevelId(saveData.levelId);
+      this.worldSpawnState.setCurrentLevelId(respawnLevelId);
       this.loadLevel(respawnLevelId, 'down');
     } else {
-      // No save ??return to spawn level
-      this.healthShardBonus = 0;
-      const respawnLevelId = this.resolveSpawnLevelId(this.playerSpawnLevelId);
-      this.playerSpawnLevelId = respawnLevelId;
+      // No save — return to spawn level
+      this.worldPlayerProgressionState.setHealthShardBonus(0);
+      const respawnLevelId = this.worldSpawnState.resolveLevelId(this.worldSpawnState.currentLevelId);
+      this.worldSpawnState.setCurrentLevelId(respawnLevelId);
       this.loadLevel(respawnLevelId, 'down');
     }
 
     // Full HP restore + snap to save point
     this.player.respawn();
-    this.updatePlayerAtk();
+    this.worldPlayerStatRuntime.sync();
     this.player.hp = this.player.maxHp;
-    this.snapPlayerToSavePoint();
-    // ??醫롫윪????롪퍔???VFX(Flask R pulse, glow, HP bar pulse, vignette) ??醫롫윪疫???醫롫윞??
+    this.savePointRuntime.snapPlayerToNearest();
+    // 복귀 후 HP VFX(Flask R pulse, glow, HP bar pulse, vignette) 를 리셋한다.
     this.hud.resetLowHpEffects();
     this.hud.updateHP(this.player.hp, this.player.maxHp);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Inventory UI
-  // ---------------------------------------------------------------------------
-
-  private updatePlayerAtk(): void {
-    // Base stats from CSV (SSoT: Sheets/Content_Stats_Character_Base.csv)
-    const base = getPlayerBaseStats(1); // Lv1 for now (no player leveling yet)
-    const weaponAtk = this.inventory.getWeaponAtk();
-
-    // Innocent bonus ATK ??flat bonus from all subdued/wild innocent 'atk' slots
-    const equippedItem = this.inventory.equipped;
-    const innocentAtk = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'atk')) : 0;
-
-    // DEBUG cheat relic ??flat +99999 on top of everything
-    const cheatBonus = this.player.abilities.cheat ? 99999 : 0;
-
-    const buffedStats = applyPlayerStatBuffs({
-      atk: base.atk + weaponAtk + innocentAtk + cheatBonus,
-      def: base.def + (equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'def')) : 0),
-    });
-    this.player.atk = buffedStats.atk;
-
-    // Sync equipped weapon properties for FX + attack hitbox scaling.
-    this.player.equippedWeaponId = equippedItem ? equippedItem.def.id : null;
-    this.player.equippedWeaponType = equippedItem ? equippedItem.def.type : null;
-    this.player.equippedRarity = equippedItem ? equippedItem.rarity : null;
-    this.player.attackHitboxMul = equippedItem
-      ? equippedItem.def.hitboxW / BASE_HITBOX_W
-      : 1;
-
-    // DEF: base from CSV + innocent bonus
-    this.player.def = buffedStats.def;
-
-    // MaxHP: base from CSV + HealthShard bonus + innocent bonus + cheat
-    const innocentHp = equippedItem ? Math.floor(calcInnocentBonus(equippedItem, 'hp')) : 0;
-    const newMaxHp = base.hp + this.healthShardBonus + innocentHp + cheatBonus;
-    if (newMaxHp !== this.player.maxHp) {
-      const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
-      this.player.maxHp = newMaxHp;
-      this.player.hp = Math.round(newMaxHp * hpRatio);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -8985,798 +3810,22 @@ export class LdtkWorldScene extends Scene {
     sourceType: PortalSourceType,
     sourceItem?: ItemInstance,
   ): void {
-    const portal = new Portal(x, y, rarity, sourceType, sourceItem);
-    this.portals.push(portal);
-    this.entityLayer.addChild(portal.container);
-
-    // Spawn effects (Sakurai: Stop for Big Moments)
-    this.game.hitstopFrames += portal.spawnHitstop;
-    this.game.camera.shake(portal.spawnShake);
-
-    if (rarity !== 'normal') {
-      this.toast.show(t('toast.portal_appeared', { rarity: rarity.toUpperCase() }), 0xffcc44);
-    }
-    // hint removed
+    this.portalRuntime.spawn(x, y, rarity, sourceType, sourceItem);
   }
 
   private enterPortal(portal: Portal): void {
-    this.closeAltarUI();
+    this.altarController.close();
 
-    const idx = this.portals.indexOf(portal);
-    if (idx >= 0) this.portals.splice(idx, 1);
+    this.portalRuntime.detach(portal);
     portal.setShowHint(false);
 
-    this.pendingPortalData = {
-      rarity: portal.rarity,
-      sourceType: portal.sourceType,
-      sourceItem: portal.sourceItem,
-    };
-    this.pendingPortalEntity = portal;
+    this.portalEntryRuntime.begin(portal);
 
-    this.itemWorldTransition = new ItemWorldTransitionController({
-      game: this.game,
-      player: this.player,
-      layers: {
-        realityGroups: [
-          [this.parallaxBG?.container],
-          [this.renderer?.bgLayer, this.renderer?.interiorLayer],
-          [
-            this.renderer?.wallLayer,
-            this.renderer?.specialLayer,
-            this.renderer?.shadowLayer,
-            this.solidifiedWallGfx,
-            this.fluidLayer,
-            this.procDecorator?.naturalLayer,
-            this.procDecorator?.artificialLayer,
-            this.procDecorator?.structureLayer,
-          ],
-        ],
-        fxLayer: this.entityLayer,
-        overlayLayer: this.game.legacyUIContainer,
-      },
-      onComplete: () => this.completePendingPortalEntry(),
-    });
-    this.itemWorldTransition.start(portal);
-  }
-
-  private showFirstItemWorldReturnInventoryHint(hadFirstBossClear: boolean, delayMs = 0): void {
-    const firstBossClearedThisRun = !hadFirstBossClear && sacredSave.isFirstItemWorldBossDefeated();
-    if (!firstBossClearedThisRun) return;
-    if (!this.lastUsedAnvilRetireAfterBoss) return;
-    if (this.unlockedEvents.has(INVENTORY_KEY_AFTER_FIRST_IW_EVENT)) return;
-    if (this.anvil?.hasItem() || this.lastUsedAnvilItem) {
-      this.pendingFirstIwReturnHintHadFirstBossClear = hadFirstBossClear;
-      return;
-    }
-
-    this.unlockedEvents.add(INVENTORY_KEY_AFTER_FIRST_IW_EVENT);
-    this.hud.setItemKeyHighlight(true);
-    // ??????롪퍒???(2026-05-03): hint ??EGO ????(fireWorldReturnDialogue) ??リ턁筌???
-    // ??戮?뻣. flag 嶺?set, update() ?띠럾? cutscene/dialogue ??リ턁筌??롪틵????????깆젷 ??戮?뻣.
-    this.pendingInventoryHint = 'first_iw_return';
-    this.pendingInventoryHintDelayMs = delayMs;
-  }
-
-  private clearInventoryTutorialHintIfRustbornEquipped(): void {
-    if (this.inventory.equipped?.def.id !== 'sword_rustborn') return;
-
-    this.tutorialHint.dismiss(INVENTORY_KEY_HINT_ID);
-    this.tutorialHint.dismiss(INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID);
-    if (this.pendingInventoryHint === 'first_pickup' || this.pendingInventoryHint === 'first_iw_return') {
-      this.pendingInventoryHint = null;
-      this.pendingInventoryHintDelayMs = 0;
-    }
-    this.pendingFirstIwReturnHintHadFirstBossClear = null;
-    this.hud.setItemKeyHighlight(false);
-  }
-
-  private completePendingPortalEntry(): void {
-    const data = this.pendingPortalData;
-    if (!data) return;
-    this.pendingPortalData = null;
-
-    if (this.itemWorldTransition) {
-      const transition = this.itemWorldTransition;
-      this.itemWorldTransition = null;
-      transition.destroy();
-    }
-    if (this.pendingPortalEntity) {
-      this.pendingPortalEntity.destroy();
-      this.pendingPortalEntity = null;
-    }
-
-    // In fixed item world ??portal = return to forge
-    if (this.inFixedItemWorld) {
-      this.exitFixedItemWorld();
-      return;
-    }
-
-    const isAltar = data.sourceType === 'altar';
-
-    let dungeonItem: ItemInstance | undefined;
-    if (!isAltar) {
-      const defs = SWORD_DEFS.filter((d) => d.rarity === data.rarity);
-      const def = defs.length > 0 ? defs[0] : SWORD_DEFS[0];
-      dungeonItem = createItem(def, data.rarity);
-    }
-
-    const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
-    this.prestreamItemWorldEntry(targetItem, 'portal-entry');
-    const prevLevel = targetItem.level;
-    const prevAtk = this.player.atk;
-    const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
-
-    if (this.portalTransition) {
-      this.portalTransition.destroy();
-      this.portalTransition = null;
-    }
-
-    // ??븐뼔援???? push ????? (destroy ????. 嶺뚯쉳??????ル‘肉????λ?獄?EXP ???夷??
-    // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
-    this.dmgNumbers?.clear();
-
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
-      entryCorridor: true,
-    });
-    itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
-    itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
-    itemWorldScene.onComplete = () => {
-      this.game.sceneManager.pop();
-      this.startItemWorldReturnFadeIn();
-      this.updatePlayerAtk();
-      // Mark global Item World tutorial as done ??ONLY after the player
-      // actually defeated the first IW boss. ESC / escape-altar exits before
-      // the boss kill must keep the tutorial flag off so the 1-stratum 2x2
-      // override and onboarding dialogue persist on re-entry.
-      if (sacredSave.isFirstItemWorldBossDefeated()) {
-        this.unlockedEvents.add('__itemWorldTutorialDone');
-      }
-      // Second and final inventory cue: only after the first IW boss clear.
-      this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
-
-      // Collect earned gold from Item World
-      if (itemWorldScene.earnedGold > 0) {
-        this.gold += itemWorldScene.earnedGold;
-        this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
-      }
-
-      // ???? Ego T14 / Anvil retirement (Playtest 2026-04-26) ????
-      // After the first IW boss clear, replace the standard "????濾곌쑨?ｉ뜮?"
-      // line with the anvil-retired + inventory tutorial dialogue, then
-      // disable the current anvil once the dialogue finishes. Otherwise the
-      // T14 line plays once as before.
-      this.fireWorldReturnDialogue(targetItem.def.id);
-      this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
-
-      if (isAltar) {
-        if (targetItem.level > prevLevel) {
-          this.toast.show(t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }), 0xff88ff);
-        }
-      } else {
-        if (this.inventory.add(dungeonItem!)) {
-          this.toast.show(
-            t('toast.item_acquired', { name: getDisplayName(dungeonItem!), rarity: dungeonItem!.rarity.toUpperCase() }),
-            0xffcc44,
-          );
-          this.sacredPickupFlow(
-            dungeonItem!,
-            this.player.x + this.player.width / 2,
-            this.player.y + this.player.height / 2,
-          );
-        }
-      }
-      if (this.player.atk !== prevAtk) {
-        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
-      }
-    };
-
-    void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
-      this.container.visible = false;
-      this.detachSharedUiForItemWorld();
-      this.releaseWorldVisualsForItemWorld();
-      this.game.camera.setZoom(1.0);
-    }, { alreadyBlack: true, revealMs: 240 });
+    this.itemWorldTransitionRuntime.start(portal, () => this.portalItemWorldFlowRuntime.completePendingEntry());
   }
 
   // ---------------------------------------------------------------------------
-  // Sacred Pickup flow
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Dispatch the appropriate pickup cutscene tier based on sacredSave flags.
-   * Starter-only items are silently marked seen without VFX.
-   */
-  private sacredPickupFlow(item: ItemInstance, wx: number, wy: number): void {
-    // Ego wake (T01) is dispatched at the *end* of this function so the
-    // wait loop sees the fully-populated activeWeaponPulse / lorePopupItem
-    // state ??otherwise it can pass the gate before the cutscene starts
-    // and fire dialogue on top of the pulse/popup.
-
-    // "嶺뚳퐣瑗???곌랜?????醫롫윪??? ??????醫롫윪???醫롫윞????醫롫윪???醫롫윞??T2 ???폎??繞벿살뒩??+ ??醫롫윥??嶺뚢뼰維??+
-    // LorePopup ??醫롫짗????醫롫윥餓?嶺뚳퐣瑗?? ??醫롫짗?? ??def ????醫롫윪???낅슣?????醫롫윥????醫롫윪?????폎????醫롫윪??
-    // ?브퀗??????醫롫윥繹??醫롫윥?????醫롫윪?됯막泥롨쥈?ㅻ펲 ???꾩룇瑗????醫롫윥獄??醫롫윪???洹먮맧苡????醫롫짗?? ??醫롫윥?룰쐼??
-    const firstEver = !sacredSave.isFirstPickupDone();
-    const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
-    if (firstEver) {
-      sacredSave.markFirstPickupDone();
-      // ??????롪퍒???(2026-05-03): "Open Inventory" first-pickup hint ?????
-      // Broken Sword ?띠럾? ??戮곗굚 ?????吏?嶺뚯솘??ル留㎫뵳??firstEver ?釉뚯뫅?????怨쀫틮 ??댟??怨룸츩?????
-      // ?熬곣뫀堉??? ???嶺? ???섎??롪퍔?δ빳?(save reset ?? ???깆쓧 ?熬곥굥??hint ?筌뤾봇遊뷸ㅀ??????
-      // ??蹂ㅽ깴. IW ?곌랜???????????'first_iw_return' hint ???곌랙?х뙴????夷??⑤벡逾????.
-    }
-
-    // Tear down any lingering pulse / tether so rapid pickups don't stack.
-    if (this.activeWeaponPulse) { this.activeWeaponPulse.destroy(); this.activeWeaponPulse = null; }
-    if (this.activeAnvilTether) { this.activeAnvilTether.destroy(); this.activeAnvilTether = null; }
-
-    if (isFirstSeen) {
-      // Rustborn?? ?????꾩룇裕꾤뙼?discovery) ???폎?????????? T2_QUICK ?熬곣뫖裕????繹???깅さ亦껋깢???
-      // ????뵜 ??戮곗젍??T2 ?熬곣뫖裕????紐꾩끋???겶????짋????LorePopup ??EGO_WAKE ??嶺뚯쉳????類ｋ펲.
-      // ??????ル맪???熬곣뫗逾??? ?リ옇??????2s T2_QUICK ?熬곣뫖裕???곌랜?삭굢?繞벿뮻??
-      const isRustborn = item.def.id === 'sword_rustborn';
-      const skipPulse = isRustborn && this.unlockedEvents.has(EGO_EVENT.FIRST_WALK);
-      if (!skipPulse) {
-        const mode = isRustborn ? 'T2_FULL_CUTSCENE' : 'T2_QUICK_CUTSCENE';
-        const pulse = new WeaponPulse(wx, wy, item.rarity, mode);
-        this.entityLayer.addChild(pulse.container);
-        pulse.onZoom = (scale) => { this.pickupZoomOverride = scale; };
-        // Tether??LorePopup ??醫?????醫???嶺뚯솘???嶺뚮ㅄ維獄?쑚????醫롫윪???醫롫짗??????醫롫윪??繞벿살탳???꾩룇裕녺뙴??醫롫짗?? ??醫롫윪??
-        pulse.start();
-        this.activeWeaponPulse = pulse;
-      }
-    }
-
-    // Lore popup ??open on first-seen items (or always-on setting).
-    // Deferred behind the pulse (if any) so the cutscene completes first.
-    // For already-seen items without the alwaysShowLore option this resolves
-    // to a no-op in LorePopup.showIfNew().
-    this.lorePopupItem = item;
-
-    // ???? Ego wake dialogue (EGO_WAKE) ?????(??????롪퍒???2026-05-03) ????
-    // ????뵜 ??????? 嶺뚮ㅄ維筌???怨룸쭚?? discovery ??戮곗젍??EGO_RUSTBORN_AWAKEN ??怨쀬Ŧ
-    // Rustborn ?筌?鸚룸슗泥롦⑤㈇??嶺뚮∥????? ???? ??낅㎦????琉??? ????뵜 ?熬곣뫖???롪퍓??????쳜?猿낆뿉??댁Ŧ
-    // 嶺뚯빖留???곌랜踰???怨룻뒍 ?筌뤿굞逾??濚밸Ŧ?椰? EGO_EVENT.WAKE ??戮?뻤嶺?????set ?????섎?
-    // ?釉뚯뫅??(?? ??쒕뼬??swap ?? ?????"WAKE ???? ?꾩룇裕뉑틦? ???筌뤾쑬六??濡レ┣?????.
-    if (!this.unlockedEvents.has(EGO_EVENT.WAKE) && hasEgo(item.def.id)) {
-      this.unlockedEvents.add(EGO_EVENT.WAKE);
-    }
-  }
-
-  /**
-   * ??醫롫윥???醫롫윪?????띠럾????띠럾?濚밸Ŧ?????醫롫윥??명떐??뱀굲????뺢껴?㎬땻節낅쐻???醫롫윪?? ??醫롫윥???嶺뚢돦堉?? 嶺뚮쪇沅?뇡???null.
-   *
-   * ??醫롫윥????レ뒭筌뤿떣?? Anvil ??醫롫윥???醫롫윥??container??bottom-center pivot ??醫롫윥餓??잙갭梨?怨?쾵???
-   * `anvil.x`????醫롫윞?????醫???繞벿살탳?? `anvil.y`????醫롫윞????꾩룆??????醫롫윥??
-   * Tether ??醫롫윪揶??醫롫짗?? ??醫롫윥???**top-center**(?誘⑹굡????醫롫짗???????띠럾??洹먮뵁猷??
-   * ??醫롫윪?????醫????嶺뚮ㅄ維곮땻?⑤뎨??? ??醫롫윥????醫롫윥??????リ옇?▽빳???醫롫윪???醫롫윥??먮쐻??臾롫옪???
-   */
-  private resolveAnvilTarget(fromX: number, fromY: number): { x: number; y: number } | null {
-    return resolveAnvilTargetPoint(
-      this.anvil,
-      this.currentLevel,
-      this.lastUsedAnvilPos,
-      fromX,
-      fromY,
-    );
-  }
-
-  /**
-   * LorePopup ??醫?????醫?????醫롫윪???醫롫윪??嶺뚯솘???tether????醫롫윪?? ??醫롫윥???醫롫윪?됯막泥? ??醫롫윥???
-   * ??醫롫윥???openAnvilUI????醫롫윪???醫롫윥??requestFadeOut??醫롫윥餓???醫롫윪壤???醫롫윥???醫롫윥??
-   */
-  private spawnPersistentAnvilTether(rarity: Rarity): void {
-    const fromX = this.player.x + this.player.width / 2;
-    const fromY = this.player.y + this.player.height / 2;
-    const target = this.resolveAnvilTarget(fromX, fromY);
-    if (!target) return;
-
-    if (this.activeAnvilTether) {
-      this.activeAnvilTether.destroy();
-      this.activeAnvilTether = null;
-    }
-    const tether = new AnvilTether(fromX, fromY, target.x, target.y, rarity);
-    this.entityLayer.addChild(tether.container);
-    this.activeAnvilTether = tether;
-  }
-
-  private showAcquireOverlay(config: AcquireConfig): void {
-    if (!this.acquireOverlay) {
-      this.acquireOverlay = new AcquireOverlay(this.game.uiScale);
-    }
-    const overlayContainer = this.acquireOverlay.container;
-    if (overlayContainer.parent !== this.game.uiContainer) {
-      if (overlayContainer.parent) overlayContainer.parent.removeChild(overlayContainer);
-      this.game.uiContainer.addChild(overlayContainer);
-    }
-    this.game.uiContainer.setChildIndex(overlayContainer, this.game.uiContainer.children.length - 1);
-    this.hud.container.visible = false;
-    if (this.minimap) this.minimap.visible = false;
-    this.acquireOverlay.show(config, () => {
-      if (!this.game.hudReady) return;
-      this.hud.container.visible = true;
-      if (this.minimap && !this.inItemTunnel) this.minimap.visible = true;
-    });
-  }
-
-  private updateAcquireOverlay(dt: number): boolean {
-    if (!this.acquireOverlay?.isBlocking()) return false;
-    this.acquireOverlay.update(dt);
-    const input = this.game.input;
-    if (this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
-      this.acquireOverlay.confirm();
-    } else if (!this.acquireOverlay.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
-    }
-    return true;
-  }
-
-  /**
-   * Advance pulse + tether. Returns true while input must remain blocked for
-   * this frame (i.e. T2 cutscene or LorePopup is up).
-   */
-  private updateSacredPickup(dt: number): boolean {
-    let blocking = false;
-
-    // ???? Rustborn pre-pickup discovery ??????????????????????????????????????????????????????????????
-    // When the player walks within 5 tiles of an un-encountered Rustborn drop,
-    // freeze input, run a 2 s discovery pulse, then dispatch EGO_FIRST_WALK
-    // (3 lines). Pickup itself is blocked until this completes; the existing
-    // pickup flow then runs without the on-pickup T2 pulse and only fires
-    // EGO_WAKE (2 lines), matching the "approach ??pulse ??3 lines ??pickup
-    // ??2 lines" beat structure.
-    if (
-      !this.discoveryActive
-      && !this.unlockedEvents.has(EGO_EVENT.FIRST_WALK)
-      && this.loreDisplay && !this.loreDisplay.isActive
-      && !this.activeWeaponPulse
-    ) {
-      const PROXIMITY_PX = 80; // 5 tiles ??16
-      const proxSq = PROXIMITY_PX * PROXIMITY_PX;
-      const px = this.player.x + this.player.width / 2;
-      const py = this.player.y + this.player.height / 2;
-      for (const drop of this.drops) {
-        if (drop.item.def.id !== 'sword_rustborn') continue;
-        const dx = px - drop.x;
-        const dy = py - drop.y;
-        if (dx * dx + dy * dy > proxSq) continue;
-
-        this.discoveryActive = true;
-        this.discoveryDialoguePending = true;
-        this.unlockedEvents.add(EGO_EVENT.FIRST_WALK);
-        const pulse = new WeaponPulse(drop.x, drop.y, drop.item.rarity, 'T2_QUICK_CUTSCENE');
-        this.entityLayer.addChild(pulse.container);
-        pulse.onZoom = (s) => { this.pickupZoomOverride = s; };
-        pulse.start();
-        this.activeWeaponPulse = pulse;
-        break;
-      }
-    }
-
-    if (this.activeWeaponPulse) {
-      this.activeWeaponPulse.update(dt);
-      if (this.activeWeaponPulse.isBlocking) blocking = true;
-      if (this.activeWeaponPulse.isDone) {
-        this.activeWeaponPulse.destroy();
-        this.activeWeaponPulse = null;
-        this.pickupZoomOverride = 1.0;
-      }
-    }
-    if (this.activeAnvilTether) {
-      // Endpoint??????醫롫윥?????醫롫윥???醫롫윪??繞벿살탳??????醫롫윪????醫롫윥????醫롫윪?洹쏅쐻??띠룄???
-      const fx = this.player.x + this.player.width / 2;
-      const fy = this.player.y + this.player.height / 2;
-      const target = this.resolveAnvilTarget(fx, fy);
-      if (target) {
-        this.activeAnvilTether.setEndpoints(fx, fy, target.x, target.y);
-      }
-      this.activeAnvilTether.update(dt);
-      if (this.activeAnvilTether.isDone) {
-        this.activeAnvilTether.destroy();
-        this.activeAnvilTether = null;
-      }
-    }
-
-    // Once the pulse finishes (or immediately for S4), open LorePopup for
-    // items not yet seen. Cache the item so the confirm key-handler below
-    // knows which defId to mark as seen on close.
-    if (this.lorePopupItem && !this.activeWeaponPulse && this.lorePopup) {
-      const item = this.lorePopupItem;
-      const shown = this.lorePopup.showIfNew(item, () => {
-        this.activeLorePopupItem = null;
-        // 嶺?Anvil ?브퀗?????戮곕꺄 ?띠럾????獄???源녿데(persistent tether) ?????繹먮봿??
-        // ?롪틵? Ego ??????⑤벤?뤸뤆?쎛 ???산텠??諭諭??熬곣뫀堉???????蹂?뜜 ?띠럾????獄?쑚泥? 繞벿살탮??
-        // if (!sacredSave.isFirstDiveDone()) {
-        //   this.spawnPersistentAnvilTether(item.rarity);
-        // }
-      });
-      if (shown) {
-        this.activeLorePopupItem = item;
-      } else {
-        sacredSave.markItemSeen(item.def.id);
-        this.activeLorePopupItem = null;
-      }
-      this.lorePopupItem = null;
-    }
-
-    if (this.lorePopup?.isBlocking()) {
-      // ????醫롫윥????醫롫윥????醫롫윞??????醫롫윪驪??????醫롫윥????醫롫윪?????醫롫짗??嶺뚯쉳?듸쭛?
-      this.lorePopup.update(dt);
-      blocking = true;
-      const input = this.game.input;
-      // ?貫?껆뵳?1????醫롫윥????醫롫윞?????醫롫짗????醫롫윪?됰맕??X ??醫롫윪????꾩룇猷???
-      if (this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        input.consumeJustPressed(GameAction.ATTACK);
-        const item = this.activeLorePopupItem;
-        if (item) this.lorePopup.confirm(item);
-        else this.lorePopup.close();
-      } else if (!this.lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-        // ??醫롫윞????醫롫윪????醫롫윪???X ????醫롫윥?????醫롫윥???猷먮쳜???? ??ㅻ???????醫롫짗?? ??醫롫윥?룰쐼??
-        input.consumeJustPressed(GameAction.ATTACK);
-      }
-    }
-
-    // AcquireOverlay ??relic / max HP+ ceremonial modal. Same pattern as LorePopup:
-    // 1000ms ???놁졑 ??ル맪????ATTACK ??怨쀬Ŧ dismiss. ??ル맪??繞?ATTACK ?? ????⑴춯????겶????沅???ろ뀞嶺뚯솘? ???곷쾳.
-    if (this.updateAcquireOverlay(dt)) blocking = true;
-
-    // Dive preview modal takes priority over other UI input.
-    if (this.divePreview?.isBlocking()) {
-      blocking = true;
-      const input = this.game.input;
-      if (input.isJustPressed(GameAction.ATTACK)) {
-        input.consumeJustPressed(GameAction.ATTACK);
-        this.divePreview.confirm();
-      } else if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
-        this.divePreview.cancel();
-      }
-    }
-
-    // Discovery ??once the pulse finishes, dispatch Rustborn awaken dialogue
-    // (??????롪퍒???2026-05-03: ?リ옇???EGO_FIRST_WALK ??嶺?.
-    if (this.discoveryDialoguePending && !this.activeWeaponPulse) {
-      this.discoveryDialoguePending = false;
-      this.loreDisplay?.showDialogue(EGO_RUSTBORN_AWAKEN, true);
-    }
-
-    // Discovery stays "active" (blocks pickup) until both pulse + dialogue end.
-    if (this.discoveryActive) {
-      const dialogueDone = !this.discoveryDialoguePending && !this.loreDisplay?.isActive;
-      if (this.activeWeaponPulse || !dialogueDone) {
-        blocking = true;
-      } else {
-        this.discoveryActive = false;
-      }
-    }
-
-    return blocking;
-  }
-
-  /** Returns true if player entered a portal this frame */
-  private updatePortals(dt: number): boolean {
-    for (const portal of this.portals) {
-      portal.update(dt);
-
-      const near = portal.overlaps(
-        this.player.x - 8, this.player.y - 8,
-        this.player.width + 16, this.player.height + 16,
-      );
-      portal.setShowHint(near);
-
-      if (portal.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
-          this.enterPortal(portal);
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private clearPortals(): void {
-    for (const p of this.portals) p.destroy();
-    this.portals = [];
-  }
-
-  // ---------------------------------------------------------------------------
-  // Altar System
-  // ---------------------------------------------------------------------------
-
-  private updateAltars(dt: number): void {
-    this.altarController.updateAltars(dt);
-  }
-
-  /** Shared item-selection panel used by both Altar and Anvil. */
-  private drawItemSelectUI(titleText: string, accentColor: number): void {
-    this.altarController.drawItemSelectUI(titleText, accentColor);
-  }
-
-  private drawAltarUI(): void {
-    this.altarController.drawAltarUI();
-  }
-
-  private closeAltarUI(): void {
-    this.altarController.close();
-  }
-
-  private updateAltarInput(): void {
-    this.altarController.updateInput();
-  }
-
-  private clearAltars(): void {
-    this.altarController.clear();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Anvil + Floor Collapse System
-  // ---------------------------------------------------------------------------
-
-  private spawnAnvilFromLdtk(level: LdtkLevel): void {
-    // Clean up existing anvil
-    if (this.anvil) {
-      this.anvil.destroy();
-      this.anvil = null;
-    }
-    this.anvilPrompts.destroy();
-    this.currentAnvilIid = null;
-
-    const anvilEnts = level.entities.filter(
-      e => e.type === 'Anvil',
-    );
-    if (anvilEnts.length > 0) {
-      const ent = anvilEnts[0]; // One anvil per level
-      const retireFlag = this.readAnvilRetireAfterBossFlag(ent);
-      this.anvil = new Anvil(ent.px[0], ent.px[1], this.shouldSpawnAnvilDisabled(retireFlag));
-      this.anvil.retireAfterFirstBoss = retireFlag;
-      this.currentAnvilIid = ent.iid;
-      this.entityLayer.addChildAt(this.anvil.container, 0);
-      return;
-    }
-
-    // Prototype fallback: spawn anvil at first altar position
-    const altarEnts = level.entities.filter(e => e.type === 'Altar');
-    if (altarEnts.length > 0) {
-      console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" ??using first Altar position as fallback`);
-      const ent = altarEnts[0];
-      this.anvil = new Anvil(ent.px[0], ent.px[1], false);
-      this.currentAnvilIid = ent.iid;
-      this.entityLayer.addChildAt(this.anvil.container, 0);
-    }
-  }
-
-  /** retireAfterFirstBoss=true ??anvil 嶺?retire ??⑤객臾뜹슖?spawn ?띠럾??? ??⑥щ턄???リ옇?↑? */
-  private shouldSpawnAnvilDisabled(retireAfterFirstBoss: boolean): boolean {
-    if (!retireAfterFirstBoss) return false;
-    return this.hasBossClearForAnvilRetire();
-  }
-
-  private hasBossClearForAnvilRetire(): boolean {
-    if (this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)) return true;
-    if (sacredSave.isFirstItemWorldBossDefeated()) return true;
-    for (const event of this.unlockedEvents) {
-      if (event.startsWith('boss_')) return true;
-    }
-    return false;
-  }
-
-  private isAnvilRetiredByBossClear(anvil: Anvil | null): boolean {
-    return !!anvil?.retireAfterFirstBoss && this.hasBossClearForAnvilRetire();
-  }
-
-  private readAnvilRetireAfterBossFlag(ent: LdtkEntity): boolean {
-    return (ent.fields['RetireAfterFirstBoss'] as boolean | undefined) ?? false;
-  }
-
-  private isPlayerNearAnvil(): boolean {
-    if (!this.anvil) return false;
-    const promptRange = 16;
-    return this.anvil.overlaps(
-      this.player.x - promptRange,
-      this.player.y - promptRange,
-      this.player.width + promptRange * 2,
-      this.player.height + promptRange * 2,
-    );
-  }
-
-  private updateAnvil(dt: number): void {
-    if (this.anvilPromptSuppressMs > 0) {
-      this.anvilPromptSuppressMs = Math.max(0, this.anvilPromptSuppressMs - dt);
-    }
-    if (!this.anvil) {
-      this.anvilPrompts.hideAll();
-      return;
-    }
-    if (this.isAnvilRetiredByBossClear(this.anvil) && !this.anvil.disabled) {
-      void this.anvil.setDisabled(true);
-    }
-    if (this.itemDeployment?.isActive) {
-      this.anvil.update(dt);
-      this.anvilPrompts.hideAll();
-      return;
-    }
-    if ((this.anvil.used || this.anvil.disabled) && !this.anvil.hasItem()) {
-      this.anvil.update(dt);
-      this.anvilPrompts.hideAction();
-      if (this.anvil.disabled && this.isPlayerNearAnvil()) {
-        this.anvilPrompts.showDisabled(this.anvil);
-      } else {
-        this.anvilPrompts.hideDisabled();
-      }
-      return;
-    }
-
-    this.anvil.update(dt);
-    this.anvilPrompts.hideDisabled();
-
-    const near = this.isPlayerNearAnvil();
-    this.anvil.setShowHint(false);
-    if (near && this.anvilPromptSuppressMs <= 0) {
-      const promptKey = this.anvil.hasItem() ? 'prompt.acquire_item' : 'prompt.place_weapon';
-      this.anvilPrompts.showAction(this.anvil, promptKey);
-    } else {
-      this.anvilPrompts.hideAction();
-    }
-
-    const attackHitbox = getActivePlayerAttackHitbox(this.player);
-    if (this.anvil.hasItem() && attackHitbox && aabbOverlap(attackHitbox, this.anvil.getHitAABB())) {
-      this.triggerFloorCollapse();
-    }
-  }
-
-  private hideAnvilPrompts(): void {
-    this.anvilPrompts.hideAll();
-  }
-
-  /**
-   * Step 5 (2026-05-25) ??Anvil ????貫????덈츎 ??쒕뼬???????
-   *
-   * ???????類?룎?洹먮봿沅? "anvil ?筌뤿굛????곕콦 ????쒕뼬??anvil ?????????륁?????筌뤾퍒萸??ル벣遊뷴슖??곌랜踰?".
-   * IW ???????????吏?????sceneManager.pop() ??怨쀬Ŧ ????????戮곗젍??anvil ??placedItem
-   * ???잙갭梨?????貫?????덈펲 ???筌뤿굛????곕콦 ??inventory.add + clearPlacedItem.
-   */
-  private reclaimItemFromAnvil(): void {
-    if (!this.anvil || !this.anvil.item) return;
-    const item = this.anvil.item;
-    const alreadyInInventory = this.inventory.items.some(i => i.uid === item.uid);
-    const added = alreadyInInventory || this.inventory.add(item);
-    if (!added) {
-      this.toast.show(t('toast.inventory_full'), 0xff4444);
-      return;
-    }
-    this.anvil.clearPlacedItem();
-    this.lastUsedAnvilItem = null;
-    this.anvilPromptSuppressMs = 1000;
-    const pendingHadFirstBossClear = this.pendingFirstIwReturnHintHadFirstBossClear;
-    this.pendingFirstIwReturnHintHadFirstBossClear = null;
-    if (pendingHadFirstBossClear !== null) {
-      this.showFirstItemWorldReturnInventoryHint(pendingHadFirstBossClear, 500);
-    }
-    this.toast.show(t('toast.item_returned', { name: getDisplayName(item) }), 0xffd35a);
-  }
-
-  /**
-   * Open the unified inventory UI in "anvil" mode. The player sees the same
-   * grid inventory as the regular INVENTORY key but confirming an item places
-   * it on the anvil instead of equipping.
-   */
-  private openAnvilUI(): void {
-    this.restoreUiAfterAnvilDiveTransition();
-    this.game.uiContainer.visible = true;
-    this.anvilPlacement.open();
-  }
-
-  /** Shared "commit item to anvil" path. */
-  private placeItemOnAnvil(item: ItemInstance): void {
-    if (!this.anvil) {
-      this.inventoryUI.close();
-      return;
-    }
-    // ??????롪퍒???2026-05-24: DivePreview 嶺뚮ㅄ維????蹂ㅽ깴. anvil UI ??[C] Dive prompt ?띠럾? ????
-    // ?筌먦끉????節띉???????怨뺣뼺? 嶺뚮ㅄ維??? redundant. ?꾩룆?餓?dive transition 嶺뚯쉳???
-    sacredSave.markFirstDiveDone();
-    this.anvil.placeItem(item);
-    this.collapseItem = item;
-    this.lastUsedAnvilItem = item;
-    this.inventoryUI.close();
-    this.hideUiForAnvilDiveTransition();
-    // ??ㅻ?????醫롫윞????醫롫윥??????醫롫윪?????醫?繹?嶺뚯빖留????醫롫윪?議얜쐻?嶺뚯쉳???
-    this.triggerFloorCollapse();
-  }
-
-  private drawCyclePromptUI(item: ItemInstance): void {
-    if (this.cyclePromptUI) {
-      if (this.cyclePromptUI.parent) this.cyclePromptUI.parent.removeChild(this.cyclePromptUI);
-      this.cyclePromptUI.destroy({ children: true });
-      this.cyclePromptUI = null;
-    }
-
-    const ui = new Container();
-    const panelW = 220;
-    const panelH = 80;
-    const px = Math.floor((GAME_WIDTH - panelW) / 2);
-    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-
-    const bg = new Graphics();
-    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.96 });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: 0xff8844, width: 1 });
-    bg.x = px;
-    bg.y = py;
-    ui.addChild(bg);
-
-    const title = new BitmapText({
-      text: t('ui.cycle.already_echoed'),
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xff8844 },
-    });
-    title.x = px + 8;
-    title.y = py + 6;
-    ui.addChild(title);
-
-    const nextCycle = (item.worldProgress?.cycle ?? 0) + 1;
-    const lines = [
-      `${getDisplayName(item)}`,
-      '',
-      t('ui.cycle.dive_again_prompt'),
-      t('ui.cycle.enemies_sharper'),
-      '',
-      t('ui.cycle.label', { n: nextCycle }),
-      '',
-      `[${actionKey(GameAction.ATTACK)}] ${t('ui.cycle.dive_action')}   [${actionKey(GameAction.MENU)}] ${t('ui.cycle.cancel_action')}`,
-    ];
-    for (let i = 0; i < lines.length; i++) {
-      const fill = i === 0 ? TEXT_WARNING : i === lines.length - 1 ? TEXT_SECONDARY : TEXT_PRIMARY;
-      const tx = new BitmapText({
-        text: lines[i],
-        style: { fontFamily: PIXEL_FONT, fontSize: FONT_HINT, fill },
-      });
-      tx.x = px + 8;
-      tx.y = py + 18 + i * 8;
-      ui.addChild(tx);
-    }
-
-    this.cyclePromptUI = ui;
-    this.game.legacyUIContainer.addChild(ui);
-  }
-
-  private closeCyclePromptUI(): void {
-    this.cyclePromptItem = null;
-    if (this.cyclePromptUI) {
-      if (this.cyclePromptUI.parent) this.cyclePromptUI.parent.removeChild(this.cyclePromptUI);
-      this.cyclePromptUI.destroy({ children: true });
-      this.cyclePromptUI = null;
-    }
-  }
-
-  private updateCyclePromptInput(): void {
-    const input = this.game.input;
-    const item = this.cyclePromptItem;
-    if (!item) return;
-
-    // Pattern A(Modal): C = ??醫롫윪?? ESC = ???쳛?? Z/X ??UI ??醫롫윪????醫롫윪???ル???
-    // (UI_Interaction_Patterns.md). Jump/Dash ?롪퍓?????醫롫윪??쇰쐻??寃몃쳳???醫롫짗?? ??醫롫윥?룰쐼???釉뚯뫊??
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      // Confirm re-dive ??reset progress, close prompt, proceed to anvil strike
-      resetItemForNextCycle(item);
-      this.closeCyclePromptUI();
-      this.toast.show(t('toast.cycle_rewind', { n: item.worldProgress?.cycle ?? 0 }), 0xff8844);
-      this.placeItemOnAnvil(item);
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU)) {
-      // Cancel ??return to the item select UI.
-      // Anvil path uses the unified InventoryUI (already open in anvil mode),
-      // while the altar path uses the legacy drawItemSelectUI overlay.
-      this.closeCyclePromptUI();
-      if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
-        this.inventoryUI.refresh();
-      } else {
-        this.drawItemSelectUI('Offer item to altar:', 0xaaccff);
-      }
-      return;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Ending sequence ??delegated to EndingSequence class
+  // Ending sequence — delegated to EndingSequence class
   // ---------------------------------------------------------------------------
 
   private rerenderTilemap(): void {
@@ -9800,2294 +3849,33 @@ export class LdtkWorldScene extends Scene {
       wallTiles: filteredTiles,
       collisionGrid: this.collisionGrid,
     });
-    this.applyTerrainFilterAreas(this.currentLevel.pxWid, this.currentLevel.pxHei);
-  }
-
-  /**
-   * Runtime solidification can create WALL cells where LDtk has no baked wall
-   * auto-tile. Draw those cells explicitly so hardened magma is opaque.
-   */
-  private rebuildSolidifiedWallOverlay(): void {
-    const g = this.solidifiedWallGfx;
-    if (!g) return;
-    g.clear();
-    for (const key of this.solidifiedWallCells) {
-      const ix = key.indexOf(',');
-      const gx = +key.slice(0, ix);
-      const gy = +key.slice(ix + 1);
-      if (this.collisionGrid[gy]?.[gx] !== TILE_WALL) continue;
-      const x = gx * TILE_SIZE;
-      const y = gy * TILE_SIZE;
-      g.rect(x, y, TILE_SIZE, TILE_SIZE).fill({ color: 0x2b2520, alpha: 1 });
-      g.rect(x, y, TILE_SIZE, 2).fill({ color: 0x8a4c2b, alpha: 1 });
-      g.rect(x + 2, y + 4, TILE_SIZE - 4, 1).fill({ color: 0x4d382c, alpha: 0.9 });
-      g.rect(x + 1, y + TILE_SIZE - 2, TILE_SIZE - 2, 1).fill({ color: 0x171310, alpha: 0.85 });
-    }
-  }
-
-  private applyTerrainFilterAreas(width: number, height: number): void {
-    // Pixi's automatic filter bounds can drift when filtered world layers are
-    // rendered into the camera RT under a translated parent. The failure mode
-    // is severe: palette-filtered terrain disappears and the screen looks
-    // almost black while unfiltered sprites remain. Pin the filter/bounds area
-    // in each layer's local level coordinates so camera movement cannot affect
-    // the computed filter input.
-    const area = visualBoundsBleedArea(width, height);
-    const apply = (layer?: Container | null) => {
-      if (!layer) return;
-      layer.filterArea = area;
-      layer.boundsArea = area;
-    };
-    apply(this.renderer.bgLayer);
-    apply(this.renderer.wallLayer);
-    apply(this.renderer.interiorLayer);
-    apply(this.renderer.shadowLayer);
-    apply(this.procDecorator?.naturalLayer);
-    apply(this.procDecorator?.artificialLayer);
-    apply(this.procDecorator?.structureLayer);
-  }
-
-  private triggerFloorCollapse(): void {
-    if (!this.anvil || !this.collapseItem) return;
-
-    this.hideAnvilPrompts();
-    this.hideSavePointUiForItemDeployment();
-    this.hideUiForAnvilDiveTransition();
-
-    this.anvil.used = true;
-    this.anvil.setShowHint(false);
-
-    this.lastUsedAnvilPos = snapshotAnvil(this.anvil);
-    this.lastUsedAnvilLevelId = this.currentLevel?.identifier ?? null;
-    this.lastUsedAnvilItem = this.collapseItem;
-    this.lastUsedAnvilRetireAfterBoss = this.anvil.retireAfterFirstBoss;
-    this.preTunnelLevelId = this.currentLevel.identifier;
-
-    sacredSave.incrementDive(this.collapseItem.def.id);
-
-    this.game.hitstopFrames = 8;
-    this.game.camera.shake(3);
-    this.hitSparks.spawn(this.anvil.x, this.anvil.y - 10, true, 0);
-
-    this.itemDeployment?.destroy();
-    this.itemDeployment = createAnvilItemDeployment({
-      game: this.game,
-      player: this.player,
-      entityLayer: this.entityLayer,
-      activeBuilder: this.activeBuilder,
-      deploymentFxLayer: this.deploymentFxLayer,
-      tunnelRightEdge: this.currentLevel.pxWid,
-      getAnvil: () => this.anvil,
-      enterItemWorld: () => this.enterItemWorldFromTunnel({ entryCorridor: false }),
-      spawnStrikeEffect: (x, y, strong, variant) => this.hitSparks.spawn(x, y, strong, variant),
-      openTunnel: (x, y, w, h, options) => this.openDeploymentTunnel(x, y, w, h, options ?? { scheduleGhost: false }),
-      setLaserDesaturation: (active) => this.setLaserDesaturation(active),
-      showTunnelOpenDialogue: () => this.showTunnelOpenDialogueAfterDeployment(),
-      prepareStreamWorld: (options) => this.prepareItemWorldStreamLevel36(options),
-      loadStreamWorld: (options) => this.loadItemWorldStreamLevel36(options),
-      getEntranceAABB: () => this.itemWorldStreamEntranceAabb,
-      getPlatformStart: () => this.itemWorldStreamStartPoint,
-      getPlatformVisualStart: () => this.getItemWorldStreamVisualStartPoint(),
-    });
-    this.itemDeployment.start(this.anvil.x, this.anvil.y);
-  }
-
-  /** Clears world tiles and collision for the item-deployment tunnel. */
-  private openDeploymentTunnel(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    options: ItemDeploymentTunnelOpenOptions = {},
-  ): void {
-    if (options.ghostBirth) {
-      this.startItemWorldGrowthSnapshot(options.ghostBirth);
-    }
-    this.itemWorldStreamStartPoint = null;
-    this.restoreGhostWorldCollision(false);
-    this.restoreDeploymentTunnel(false);
-
-    const levelRight = this.currentLevel?.pxWid ?? x + w;
-    const clearW = Math.max(w, levelRight - x);
-
-    const TILE = 16;
-    const col0 = Math.floor(x / TILE);
-    const col1 = Math.floor((x + clearW - 1) / TILE);
-    const row0 = Math.floor(y / TILE);
-    const row1 = Math.floor((y + h - 1) / TILE);
-
-    // Zero world collision cells in tunnel area.
-    for (let row = row0; row <= row1; row++) {
-      const gridRow = this.collisionGrid[row];
-      if (!gridRow) continue;
-      for (let col = col0; col <= col1; col++) {
-        if (col < 0 || col >= gridRow.length) continue;
-        if (gridRow[col] !== 0) {
-          this.deploymentTunnelRestoreCells.push({ row, col, value: gridRow[col] });
-          gridRow[col] = 0;
-        }
-      }
-    }
-
-    // Remove world renderer tiles in tunnel area.
-    this.renderer.clearTilesInRect(x, y, clearW, h, { preserveInterior: true });
-
-    // Also zero builder collisionGrid so stampBuilder won't re-fill the tunnel.
-    if (this.activeBuilder) {
-      const localX = x - this.activeBuilder.container.x;
-      const localY = y - this.activeBuilder.container.y;
-      const bCol0 = Math.max(0, Math.floor(localX / TILE));
-      const bCol1 = this.activeBuilder.widthTiles - 1;
-      const bRow0 = Math.max(0, Math.floor(localY / TILE));
-      const bRow1 = Math.min(this.activeBuilder.heightTiles - 1, Math.floor((localY + h - 1) / TILE));
-      for (let row = bRow0; row <= bRow1; row++) {
-        const gridRow = this.activeBuilder.collisionGrid[row];
-        if (!gridRow) continue;
-        for (let col = bCol0; col <= bCol1; col++) {
-          if (col < 0 || col >= gridRow.length) continue;
-          if (gridRow[col] !== 0) {
-            this.builderTunnelRestoreCells.push({ row, col, value: gridRow[col] });
-          }
-        }
-      }
-      this.activeBuilder.digTunnel(x, y, h);
-      this.unstampBuilder();
-      this.stampBuilder();
-    }
-
-    // Anvil halo directional trail ????⑤벚???꾩렮維싧젆???蹂?뜜 ???뉖? (E).
-    // ??⑤벚???anvil.x ?遊붋?????섎꿰춯?쏅윪???뿉?clearW 嶺뚮씭??칰??????ル梨??= clearW.
-    if (options.triggerDirectionalTrail ?? true) {
-      this.anvil?.triggerDirectionalTrail(clearW);
-    }
-
-    this.clearWorldCollisionForItemDeployment();
-
-    // Default growth pairs the static world snapshot with the streamed ghost room so the item grid becomes walkable.
-    if (options.scheduleGhost ?? true) {
-      this.scheduleGhostOverlayForTunnel(x, y, clearW, h, options.ghostBirth ?? null);
-    } else if (!options.ghostBirth) {
-      this.pendingGhostTunnelParams = { x, y, w: clearW, h, ghostBirth: options.ghostBirth ?? null };
-    }
-  }
-
-  private scheduleGhostOverlayForTunnel(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    ghostBirth: GhostBirthOptions | null = null,
-  ): void {
-    if (this.collapseItem && !this.ghostOverlay && this.ghostPendingTimer < 0) {
-      if (ghostBirth) {
-        this._buildGhostOverlay({ x, y, w, h, ghostBirth });
-        return;
-      }
-      this.ghostPendingParams = { x, y, w, h, ghostBirth };
-      this.ghostPendingTimer = 0;
-    }
-  }
-
-  private startItemWorldGrowthSnapshot(options: GhostBirthOptions): void {
-    this.destroyItemWorldGrowthSnapshot(true);
-
-    const backgroundTexture = RenderTexture.create({
-      width: GAME_WIDTH,
-      height: GAME_HEIGHT,
-      resolution: 1,
-      antialias: false,
-    });
-    backgroundTexture.source.scaleMode = 'nearest';
-    this.game.renderer.render({
-      container: this.game.backgroundContainer,
-      target: backgroundTexture,
-      clear: true,
-      clearColor: [0, 0, 0, 0],
-    });
-
-    const worldTexture = this.captureItemWorldGrowthWorldTexture();
-    const root = new Container();
-    root.eventMode = 'none';
-
-    const bg = new Sprite(backgroundTexture);
-    bg.texture.source.scaleMode = 'nearest';
-    root.addChild(bg);
-
-    const world = new Sprite(worldTexture);
-    world.texture.source.scaleMode = 'nearest';
-    root.addChild(world);
-
-    const originScreenX = Math.round(options.originX - this.game.camera.renderX + GAME_WIDTH / 2);
-    const originScreenY = Math.round(options.originY - this.game.camera.renderY + GAME_HEIGHT / 2);
-    const pivotWorldX = options.pivotX ?? options.originX;
-    const pivotWorldY = options.pivotY ?? options.originY;
-    const pivotScreenX = Math.round(pivotWorldX - this.game.camera.renderX + GAME_WIDTH / 2);
-    const pivotScreenY = Math.round(pivotWorldY - this.game.camera.renderY + GAME_HEIGHT / 2);
-    root.pivot.set(pivotScreenX, pivotScreenY);
-    root.position.set(pivotWorldX, pivotWorldY);
-    root.scale.set(1);
-
-    const entityIndex = this.container.getChildIndex(this.entityLayer);
-    this.container.addChildAt(root, Math.max(0, entityIndex));
-
-    this.itemWorldGrowthSnapshot = {
-      container: root,
-      backgroundTexture,
-      worldTexture,
-      itemSprite: null,
-      elapsedMs: 0,
-      durationMs: Math.max(1, options.durationMs),
-    };
-    this.addItemWorldGrowthSnapshotItemSprite(originScreenX, originScreenY);
-    this.hideItemWorldGrowthSourceVisuals();
-  }
-
-  private captureItemWorldGrowthWorldTexture(): RenderTexture {
-    const rt = RenderTexture.create({
-      width: GAME_WIDTH,
-      height: GAME_HEIGHT,
-      resolution: 1,
-      antialias: false,
-    });
-    rt.source.scaleMode = 'nearest';
-
-    const playerWasVisible = this.player.container.visible;
-    const gc = this.game.gameContainer;
-    const prev = { x: gc.x, y: gc.y, sx: gc.scale.x, sy: gc.scale.y };
-    try {
-      this.player.container.visible = false;
-      gc.scale.set(1);
-      gc.x = Math.round(-this.game.camera.renderX + GAME_WIDTH / 2);
-      gc.y = Math.round(-this.game.camera.renderY + GAME_HEIGHT / 2);
-      this.game.renderer.render({
-        container: gc,
-        target: rt,
-        clear: true,
-        clearColor: [0, 0, 0, 0],
-      });
-    } finally {
-      this.player.container.visible = playerWasVisible;
-      gc.x = prev.x;
-      gc.y = prev.y;
-      gc.scale.set(prev.sx, prev.sy);
-    }
-    return rt;
-  }
-
-  private addItemWorldGrowthSnapshotItemSprite(originScreenX: number, originScreenY: number): void {
-    const snapshot = this.itemWorldGrowthSnapshot;
-    const item = this.collapseItem;
-    if (!snapshot || !item) return;
-
-    const attach = (texture: Texture) => {
-      if (this.itemWorldGrowthSnapshot !== snapshot || snapshot.container.destroyed) return;
-      texture.source.scaleMode = 'nearest';
-      snapshot.itemSprite?.destroy();
-      const sprite = new Sprite(texture);
-      sprite.anchor.set(0.5);
-      sprite.x = originScreenX;
-      sprite.y = originScreenY;
-      snapshot.itemSprite = sprite;
-      snapshot.container.addChild(sprite);
-    };
-
-    const url = assetPath(`assets/items/${item.def.id}.png`);
-    const cached = Assets.get(url);
-    if (cached instanceof Texture) {
-      attach(cached);
-      return;
-    }
-    void Assets.load<Texture>(url).then(attach).catch(() => {
-      // Missing item art should not break the world-growth snapshot.
-    });
-  }
-
-  private hideItemWorldGrowthSourceVisuals(): void {
-    const hide = (target?: Container | null) => {
-      if (!target || this.itemWorldGrowthHiddenTargets.some(state => state.target === target)) return;
-      this.itemWorldGrowthHiddenTargets.push({ target, visible: target.visible });
-      target.visible = false;
-    };
-
-    hide(this.game.backgroundContainer);
-    hide(this.renderer?.container);
-    hide(this.fluidLayer);
-    hide(this.weatherLayer);
-    hide(this.deploymentFxLayer);
-    hide(this.vividLayer);
-    hide(this.activeBuilder?.builderInteriorLayer);
-    hide(this.activeBuilder?.lightContainer);
-    hide(this.activeBuilder?.legBackLayer);
-    hide(this.activeBuilder?.legFrontLayer);
-
-    for (const child of this.entityLayer.children) {
-      if (child === this.player.container) continue;
-      hide(child as Container);
-    }
-  }
-
-  private updateItemWorldGrowthSnapshot(dt: number): void {
-    const snapshot = this.itemWorldGrowthSnapshot;
-    if (!snapshot) return;
-    snapshot.elapsedMs = Math.min(snapshot.durationMs, snapshot.elapsedMs + dt);
-    const t = clamp01(snapshot.elapsedMs / snapshot.durationMs);
-    const scale = 1 + growthScaleCurve(t) * (ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE - 1);
-    snapshot.container.scale.set(scale);
-  }
-
-  private destroyItemWorldGrowthSnapshot(restoreSources: boolean): void {
-    const snapshot = this.itemWorldGrowthSnapshot;
-    if (snapshot) {
-      snapshot.container.parent?.removeChild(snapshot.container);
-      snapshot.container.destroy({ children: true });
-      snapshot.backgroundTexture.destroy(true);
-      snapshot.worldTexture.destroy(true);
-      this.itemWorldGrowthSnapshot = null;
-    }
-    if (restoreSources) {
-      for (let i = this.itemWorldGrowthHiddenTargets.length - 1; i >= 0; i--) {
-        const state = this.itemWorldGrowthHiddenTargets[i];
-        if (!state.target.destroyed) state.target.visible = state.visible;
-      }
-    }
-    this.itemWorldGrowthHiddenTargets.length = 0;
+    this.terrainPaletteRuntime.applyWorldFilterAreas(this.currentLevel.pxWid, this.currentLevel.pxHei, this.renderer, this.proceduralDecorRuntime);
   }
 
   private showTunnelOpenDialogueAfterDeployment(): void {
     // EGO_TUNNEL_OPEN 다이얼로그 트리거 제거 (사용자 요청 2026-06-02).
-    // 첫 회 앤빌 디플로이 직후 이 대사가 hideUiForAnvilDiveTransition 로 UI 가
+    // 첫 회 앤빌 디플로이 직후 이 대사가 anvilDiveUiRuntime.hide() 로 UI 가
     // 숨겨진 채 활성화되어, 화면엔 안 보이지만 loreDisplay.isActive early-return
     // (update 1892) 이 플레이어를 대사 자동표시 시간(~3초) 동안 잠그던 문제.
     // 첫 회에만 발생한 것도 '__ego_tunnel_open_first' 게이트 때문. 트리거 자체 제거.
   }
 
-  private prepareItemWorldStreamLevel36(options: ItemDeploymentStreamWorldOptions): { x: number; y: number } | null {
-    const level = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
-    if (!level) {
-      this.itemWorldStreamStartPoint = null;
-      return null;
-    }
-
-    const pos = this.resolveGrowthGhostPositionForSize(
-      level.gridW * TILE_SIZE,
-      level.gridH * TILE_SIZE,
-      {
-        originX: options.originX,
-        originY: options.originY,
-        pivotX: options.originX,
-        pivotY: options.originY,
-        durationMs: 1,
-        entranceAtEnd: true,
-      },
-    );
-    const start = this.resolveGhostPlayerStartAt(pos.x, pos.y, level, level.collisionGrid);
-    this.itemWorldStreamStartPoint = start;
-    if (!this.ghostOverlay && this.collapseItem) {
-      this._buildGhostOverlay({
-        x: options.tunnelX,
-        y: options.tunnelY,
-        w: options.tunnelW,
-        h: options.tunnelH,
-        ghostBirth: {
-          originX: options.originX,
-          originY: options.originY,
-          pivotX: options.originX,
-          pivotY: options.originY,
-          durationMs: 1,
-          entranceAtEnd: true,
-        },
-        prewarm: true,
-      });
-      this.itemWorldStreamStartPoint = start;
-    }
-    return start;
-  }
-
-  private getItemWorldStreamVisualStartPoint(): { x: number; y: number } | null {
-    const start = this.itemWorldStreamStartPoint;
-    const snapshot = this.itemWorldGrowthSnapshot;
-    if (!start || !snapshot) return start;
-
-    const t = clamp01(snapshot.elapsedMs / Math.max(1, snapshot.durationMs));
-    const scale = (1 / ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE) +
-      growthScaleCurve(t) * (1 - 1 / ITEM_WORLD_GROWTH_SNAPSHOT_END_SCALE);
-    const pivotX = snapshot.container.x;
-    const pivotY = snapshot.container.y;
-    const footX = start.x + this.player.width / 2;
-    const footY = start.y + this.player.height;
-    return {
-      x: Math.round(pivotX + (footX - pivotX) * scale - this.player.width / 2),
-      y: Math.round(pivotY + (footY - pivotY) * scale - this.player.height),
-    };
-  }
-
-  private loadItemWorldStreamLevel36(options: ItemDeploymentStreamWorldOptions): { x: number; y: number } | null {
-    return this._buildGhostOverlay({
-      x: options.tunnelX,
-      y: options.tunnelY,
-      w: options.tunnelW,
-      h: options.tunnelH,
-      ghostBirth: {
-        originX: options.originX,
-        originY: options.originY,
-        pivotX: options.originX,
-        pivotY: options.originY,
-        durationMs: 1,
-        entranceAtEnd: true,
-      },
-      streamReady: true,
-    });
-  }
-
-  private _buildGhostOverlay({ x, y, w, h, ghostBirth, streamReady = false, prewarm = false }: GhostTunnelParams): { x: number; y: number } | null {
-    if (this.ghostOverlay) {
-      if (streamReady) {
-        return this.activatePrebuiltGhostOverlayForStream();
-      }
-      return this.itemWorldStreamStartPoint;
-    }
-    if (!this.collapseItem) return this.itemWorldStreamStartPoint;
-    const ghost = new ItemWorldGhostOverlay();
-    const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
-    if (debugLevel) {
-      ghost.buildFromGrid(debugLevel.collisionGrid, debugLevel.gridW, debugLevel.gridH);
-      const displayEnt = debugLevel.entities.find(ent => ent.type === 'ItemDisplay');
-      if (displayEnt && !streamReady) {
-        const sizeRaw = (displayEnt.fields['Size'] ?? displayEnt.fields['size']) as number | undefined;
-        const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
-        const rotate = ((displayEnt.fields['Rotate'] ?? displayEnt.fields['rotate']) as boolean | undefined) ?? false;
-        ghost.addItemDisplay(displayEnt.px[0], displayEnt.px[1], this.collapseItem, scaleFactor, rotate);
-      }
-    } else {
-      ghost.build(this.collapseItem, 0);
-    }
-    if (ghostBirth) {
-      const pos = this.resolveGrowthGhostPosition(ghost, ghostBirth);
-      ghost.container.x = pos.x;
-      ghost.container.y = pos.y;
-    } else {
-      ghost.container.x = x + w * 0.5 - ghost.builtPxW * 0.5 + 256;
-      ghost.container.y = y + h * 0.5 - ghost.builtPxH * 0.5 - 48;
-    }
-    ghost.itemContainer.x = ghost.container.x;
-    ghost.itemContainer.y = ghost.container.y;
-    const laserOrigin = this.anvil?.getGatePivotWorld();
-    const sourceX = ghostBirth?.originX ?? (laserOrigin?.x ?? x) + 48;
-    const sourceY = ghostBirth?.originY ?? laserOrigin?.y ?? y + h * 0.5;
-    ghost.setShardSourceWorld(sourceX, sourceY);
-    this.extendWorldForGhostStream(ghost);
-    const entityLayerIndex = this.container.getChildIndex(this.entityLayer);
-    this.container.addChildAt(ghost.container, entityLayerIndex);
-    this.container.addChildAt(ghost.itemContainer, entityLayerIndex + 1);
-    const rimFilter = new RimLightFilter({ color: ghost.getTilePalette().rim, alpha: 0.9, thickness: 2, topGuardPixels: 2 });
-    const ghostFilters: Filter[] = [rimFilter];
-    if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
-      ghostFilters.push(this.dungeonAtmosphereFilter);
-      this.dungeonAtmosphereTargets.push(ghost.container);
-    }
-    ghost.container.filters = ghostFilters;
-    ghost.applyItemPalette(this.collapseItem, palette => rimFilter.setColor(palette.rim));
-    ghost.fadeTo(prewarm ? 0 : 1, 0);
-    this.ghostOverlay = ghost;
-
-    const triggerX = ghostBirth?.entranceAtEnd
-      ? ghost.container.x + ghost.builtPxW - 32
-      : ghost.container.x + ghost.builtPxW * 0.68;
-    this.itemWorldStreamEntranceAabb = {
-      x: triggerX - 24,
-      y: ghost.container.y,
-      width: 48,
-      height: ghost.builtPxH,
-    };
-
-    if (streamReady || !ghostBirth) {
-      this.itemWorldStreamStartPoint = this.activatePrebuiltGhostOverlayForStream();
-    } else {
-      this.itemWorldStreamStartPoint = prewarm
-        ? this.resolveGhostPlayerStart(ghost, debugLevel)
-        : null;
-    }
-    if (ghostBirth && !streamReady && !prewarm) {
-      ghost.beginScaleBirthFromPivot(
-        ghostBirth.pivotX ?? ghostBirth.originX,
-        ghostBirth.pivotY ?? ghostBirth.originY,
-        ghostBirth.durationMs,
-      );
-    }
-    this.ghostRevealLastPlayerX = null;
-    this.ghostRevealLastPlayerY = null;
-    this.ghostRevealActivated = false;
-    return this.itemWorldStreamStartPoint;
-  }
-
-  private activatePrebuiltGhostOverlayForStream(): { x: number; y: number } | null {
-    const ghost = this.ghostOverlay;
-    if (!ghost) return this.itemWorldStreamStartPoint;
-
-    const debugLevel = this.itemStratumLoader?.getLevel('ItemStratum_Level_36');
-    this.prepareGhostWorldCollision(ghost);
-    const start = this.resolveGhostPlayerStart(ghost, debugLevel);
-    this.itemWorldStreamStartPoint = start;
-    if (start) {
-      const footX = start.x + this.player.width / 2 - ghost.container.x;
-      const footY = start.y + this.player.height - ghost.container.y;
-      ghost.revealTilesNear(footX, footY, 6 * TILE_SIZE, true);
-    }
-    ghost.fadeTo(1, 0);
-    return start;
-  }
-
-  private resolveGrowthGhostPosition(
-    ghost: ItemWorldGhostOverlay,
-    ghostBirth: GhostBirthOptions,
-  ): { x: number; y: number } {
-    return this.resolveGrowthGhostPositionForSize(ghost.builtPxW, ghost.builtPxH, ghostBirth);
-  }
-
-  private resolveGrowthGhostPositionForSize(
-    builtPxW: number,
-    builtPxH: number,
-    ghostBirth: GhostBirthOptions,
-  ): { x: number; y: number } {
-    const x = this.snapWorldCoordToTile(
-      ghostBirth.originX - builtPxW * 0.5 + ITEM_WORLD_GROWTH_GHOST_X_OFFSET_TILES * TILE_SIZE,
-    );
-    const y = this.snapWorldCoordToTile(ghostBirth.originY - builtPxH * 0.5);
-    return {
-      x: Math.max(0, x),
-      y: Math.max(0, y),
-    };
-  }
-
-  private snapWorldCoordToTile(value: number): number {
-    return Math.round(value / TILE_SIZE) * TILE_SIZE;
-  }
-
-  private resolveGhostPlayerStart(ghost: ItemWorldGhostOverlay, level: LdtkLevel | null | undefined): { x: number; y: number } | null {
-    return this.resolveGhostPlayerStartAt(ghost.container.x, ghost.container.y, level, ghost.getCollisionGrid());
-  }
-
-  private resolveGhostPlayerStartAt(
-    worldX: number,
-    worldY: number,
-    level: LdtkLevel | null | undefined,
-    grid: number[][],
-  ): { x: number; y: number } | null {
-    const playerEntity = level?.entities.find(ent => ent.type === 'Player');
-    if (playerEntity) {
-      return {
-        x: Math.round(worldX + playerEntity.px[0]),
-        y: Math.round(worldY + playerEntity.px[1] - this.player.height),
-      };
-    }
-
-    const col = Math.max(1, Math.floor((grid[0]?.length ?? 1) * 0.16));
-    for (let row = 0; row < grid.length - 1; row++) {
-      if ((grid[row]?.[col] ?? TILE_WALL) !== TILE_AIR) continue;
-      const below = grid[row + 1]?.[col] ?? TILE_AIR;
-      if (!isSolid(below) && !isOneWay(below)) continue;
-      return {
-        x: Math.round(worldX + col * TILE_SIZE),
-        y: Math.round(worldY + (row + 1) * TILE_SIZE - this.player.height),
-      };
-    }
-    return null;
-  }
-
-  private prepareGhostWorldCollision(ghost: ItemWorldGhostOverlay): void {
-    const sourceGrid = ghost.getCollisionGrid();
-    const gx0 = Math.floor(ghost.container.x / TILE_SIZE);
-    const gy0 = Math.floor(ghost.container.y / TILE_SIZE);
-
-    for (let r = 0; r < sourceGrid.length; r++) {
-      const worldRowIndex = gy0 + r;
-      const worldRow = this.collisionGrid[worldRowIndex];
-      if (!worldRow) continue;
-      const sourceRow = sourceGrid[r] ?? [];
-      for (let c = 0; c < sourceRow.length; c++) {
-        const gc = gx0 + c;
-        if (gc < 0 || gc >= worldRow.length) continue;
-        if (!this.isGhostStreamExtendedCell(worldRowIndex, gc)) {
-          this.ghostCollisionRestoreCells.push({ row: worldRowIndex, col: gc, value: worldRow[gc] });
-        }
-        worldRow[gc] = sourceRow[c] ?? TILE_AIR;
-      }
-    }
-    ghost.setTileBuildCallback(null);
-    this.player.roomData = this.collisionGrid;
-  }
-
-  private extendWorldForGhostStream(ghost: ItemWorldGhostOverlay): void {
-    if (this.ghostStreamRestore) return;
-
-    const tile = TILE_SIZE;
-    const rightPx = Math.ceil(ghost.container.x + ghost.builtPxW + tile * 2);
-    const bottomPx = Math.ceil(ghost.container.y + ghost.builtPxH + tile * 2);
-    const requiredCols = Math.max(this.collisionGrid[0]?.length ?? 0, Math.ceil(rightPx / tile));
-    const requiredRows = Math.max(this.collisionGrid.length, Math.ceil(bottomPx / tile));
-
-    this.ghostStreamRestore = {
-      rowLengths: this.collisionGrid.map(row => row.length),
-      rowCount: this.collisionGrid.length,
-      cameraBounds: this.game.camera.bounds ? { ...this.game.camera.bounds } : null,
-    };
-
-    for (let row = 0; row < requiredRows; row++) {
-      if (!this.collisionGrid[row]) this.collisionGrid[row] = [];
-      while (this.collisionGrid[row].length < requiredCols) {
-        this.collisionGrid[row].push(TILE_AIR);
-      }
-    }
-
-    this.player.roomData = this.collisionGrid;
-    const streamRight = Math.max(this.currentLevel.pxWid, requiredCols * tile);
-    const streamBottom = Math.max(this.currentLevel.pxHei, requiredRows * tile);
-    this.game.camera.setBounds(0, 0, streamRight, streamBottom, VISUAL_BOUNDS_BLEED_PX);
-  }
-
-  private isGhostStreamExtendedCell(row: number, col: number): boolean {
-    const restore = this.ghostStreamRestore;
-    if (!restore) return false;
-    if (row >= restore.rowCount) return true;
-    return col >= (restore.rowLengths[row] ?? 0);
-  }
-
-  private destroyGhostOverlay(restoreCollision: boolean, rerender = true): void {
-    this.destroyItemWorldGrowthSnapshot(true);
-    if (this.ghostOverlay) {
-      const ghostContainer = this.ghostOverlay.container;
-      this.dungeonAtmosphereTargets = this.dungeonAtmosphereTargets.filter(t => t !== ghostContainer);
-      this.ghostOverlay.destroy();
-      this.ghostOverlay = null;
-    }
-    this.ghostPendingTimer = -1;
-    this.ghostPendingParams = null;
-    this.ghostRevealLastPlayerX = null;
-    this.ghostRevealLastPlayerY = null;
-    this.ghostRevealActivated = false;
-    this.itemWorldStreamStartPoint = null;
-    if (restoreCollision) this.restoreGhostWorldCollision(rerender);
-    else this.clearGhostStreamState(false);
-  }
-
-  private restoreGhostWorldCollision(rerender = true): void {
-    if (this.ghostCollisionRestoreCells.length > 0) {
-      for (let i = this.ghostCollisionRestoreCells.length - 1; i >= 0; i--) {
-        const cell = this.ghostCollisionRestoreCells[i];
-        const row = this.collisionGrid[cell.row];
-        if (!row || cell.col < 0 || cell.col >= row.length) continue;
-        row[cell.col] = cell.value;
-      }
-      this.ghostCollisionRestoreCells = [];
-    }
-    this.clearGhostStreamState(true);
-    this.restoreWorldCollisionForItemDeployment();
-    if (rerender) this.rerenderTilemap();
-  }
-
-  private clearWorldCollisionForItemDeployment(): void {
-    if (this.worldCollisionRestoreGrid) return;
-    this.worldCollisionRestoreGrid = this.collisionGrid.map(row => [...row]);
-    for (const row of this.collisionGrid) {
-      row.fill(TILE_AIR);
-    }
-    this.player.roomData = this.collisionGrid;
-  }
-
-  private restoreWorldCollisionForItemDeployment(): void {
-    const restore = this.worldCollisionRestoreGrid;
-    if (!restore) return;
-
-    this.collisionGrid.length = restore.length;
-    for (let row = 0; row < restore.length; row++) {
-      this.collisionGrid[row] = [...restore[row]];
-    }
-    this.worldCollisionRestoreGrid = null;
-    this.player.roomData = this.collisionGrid;
-  }
-
-  private clearGhostStreamState(restoreGrid: boolean): void {
-    this.itemWorldStreamEntranceAabb = null;
-    this.itemWorldStreamStartPoint = null;
-    const restore = this.ghostStreamRestore;
-    if (!restore) return;
-
-    if (restoreGrid) {
-      this.collisionGrid.length = restore.rowCount;
-      for (let row = 0; row < restore.rowCount; row++) {
-        const length = restore.rowLengths[row] ?? this.collisionGrid[row]?.length ?? 0;
-        if (this.collisionGrid[row]) this.collisionGrid[row].length = length;
-      }
-      this.player.roomData = this.collisionGrid;
-    }
-
-    if (restore.cameraBounds) {
-      this.game.camera.setBounds(
-        restore.cameraBounds.left,
-        restore.cameraBounds.top,
-        restore.cameraBounds.right,
-        restore.cameraBounds.bottom,
-        VISUAL_BOUNDS_BLEED_PX,
-      );
-    } else {
-      this.game.camera.clearBounds();
-    }
-    this.ghostStreamRestore = null;
-  }
-
-  private restoreDeploymentTunnel(rerender = true): void {
-    if (this.deploymentTunnelRestoreCells.length > 0) {
-      for (let i = this.deploymentTunnelRestoreCells.length - 1; i >= 0; i--) {
-        const cell = this.deploymentTunnelRestoreCells[i];
-        const row = this.collisionGrid[cell.row];
-        if (!row || cell.col < 0 || cell.col >= row.length) continue;
-        row[cell.col] = cell.value;
-      }
-      this.deploymentTunnelRestoreCells = [];
-      if (rerender) this.rerenderTilemap();
-    }
-
-    if (this.activeBuilder && this.builderTunnelRestoreCells.length > 0) {
-      this.activeBuilder.restoreTunnelCells(this.builderTunnelRestoreCells);
-      this.builderTunnelRestoreCells = [];
-      this.unstampBuilder();
-      this.stampBuilder();
-    } else {
-      this.builderTunnelRestoreCells = [];
-    }
-  }
-
   private cancelFrozenReturnDeploymentState(): void {
-    this.itemDeployment?.destroy();
-    this.itemDeployment = null;
+    this.itemWorldEntryState.destroyDeployment();
     this.game.input.inputLocked = false;
     this.anvil?.clearPlacedItem();
-    if (this.anvil && !this.isAnvilRetiredByBossClear(this.anvil) && !(this.activeBuilder?.isMoving ?? false)) {
+    if (this.anvil && !this.anvilRetirementRuntime.isRetiredByBossClear(this.anvil) && !(this.activeBuilder?.isMoving ?? false)) {
       void this.anvil.setDisabled(false);
     }
-    this.collapseItem = null;
-    this.destroyGhostOverlay(true);
-    this.restoreDeploymentTunnel(true);
-    this.pendingGhostTunnelParams = null;
-    this.wallGate?.destroy();
-    this.wallGate = null;
+    this.itemWorldEntryState.clearItem();
+    this.itemDeploymentTunnelFlowRuntime.destroyGhostOverlay(true);
+    this.itemDeploymentTunnelFlowRuntime.restoreDeploymentTunnel(true);
+    this.itemWorldEntryState.pendingGhostTunnelParams = null;
     this.player.roomData = this.collisionGrid;
   }
 
   private getBuilderAtmosphereTargets(): Container[] {
-    if (!this.activeBuilder) return [];
-    const b = this.activeBuilder;
-    return [
-      b.bodyLayers.bg,
-      b.bodyLayers.wall,
-      b.bodyLayers.shadow,
-      b.builderOutsideLayer,
-      b.decorator.naturalLayer,
-      b.decorator.artificialLayer,
-      b.decorator.structureLayer,
-      b.legBackLayer,
-      b.legFrontLayer,
-      b.lightContainer,
-    ];
+    return this.builderLayerRuntime.getAtmosphereTargets(this.activeBuilder);
   }
 
-  /** blur 대상: 패럴럭스 배경 + 월드 타일 + 엔티티 + 유체 + 디플로이 FX(성장 아이템 sprite). */
-  private deployBlurTargets(): Container[] {
-    return [
-      this.game.backgroundContainer,
-      this.renderer?.container,
-      this.entityLayer,
-      this.fluidLayer,
-      this.deploymentFxLayer,
-    ].filter((t): t is Container => !!t);
-  }
-
-  private setDeployBlurOnTargets(active: boolean): void {
-    const blur = this.deployBlurFilter;
-    if (!blur) return;
-    for (const target of this.deployBlurTargets()) {
-      const cur = (target.filters as Filter[] | null) ?? [];
-      const arr: Filter[] = Array.isArray(cur) ? [...cur] : [cur];
-      if (active) {
-        if (!arr.includes(blur)) target.filters = [...arr, blur];
-      } else {
-        const next = arr.filter(f => f !== blur);
-        target.filters = next.length ? next : null;
-      }
-    }
-  }
-
-  /**
-   * 앤빌 디플로이 줌인/성장 동안 배경 + 성장 아이템 sprite 에 blur 를 점진적으로 얹어
-   * 확대된 픽셀이 도드라지지 않게 한다. itemDeployment.isGrowing 에 동기화하고,
-   * 세기를 0→MAX 로 램프해 "줌이 되면서 점진적으로" 들어오게 한다.
-   * 기존 필터 보존을 위해 blur 인스턴스만 append/remove (palette/desat 와 공존).
-   */
-  private updateDeployBackgroundBlur(dt: number): void {
-    const growing = this.itemDeployment?.isGrowing ?? false;
-    if (growing) {
-      if (!this.deployBlurFilter) {
-        this.deployBlurFilter = new BlurFilter({ strength: 0, quality: 4 });
-      }
-      if (!this.deployBlurActive) {
-        this.deployBlurElapsed = 0;
-        this.deployBlurFilter.strength = 0;
-        this.setDeployBlurOnTargets(true);
-        this.deployBlurActive = true;
-      }
-      this.deployBlurElapsed += dt;
-      const t = Math.min(1, this.deployBlurElapsed / DEPLOY_BLUR_RAMP_MS);
-      const eased = t * t * (3 - 2 * t); // smoothstep
-      this.deployBlurFilter.strength = DEPLOY_BLUR_MAX_STRENGTH * eased;
-    } else if (this.deployBlurActive) {
-      this.setDeployBlurOnTargets(false);
-      this.deployBlurActive = false;
-      this.deployBlurElapsed = 0;
-    }
-  }
-
-  /** 디플로이 blur 를 타깃에서 강제 제거. 패럴럭스/배경은 씬 외부 지속이라 exit/destroy 시 필수. */
-  private clearDeployBlur(): void {
-    if (this.deployBlurFilter) this.setDeployBlurOnTargets(false);
-    this.deployBlurActive = false;
-    this.deployBlurElapsed = 0;
-  }
-
-  private setLaserDesaturation(active: boolean): void {
-    const targets = [
-      this.game.backgroundContainer,
-      this.renderer?.container,
-      this.entityLayer,
-      this.fluidLayer,
-      ...this.getBuilderAtmosphereTargets(),
-    ].filter((target): target is Container => !!target);
-
-    if (active) {
-      if (!this.laserDesaturationFilter) {
-        this.laserDesaturationFilter = new ColorMatrixFilter();
-        this.laserDesaturationFilter.desaturate();
-        this.laserDesaturationFilter.contrast(1.5, true);
-      }
-      for (const target of targets) {
-        if (target === this.deploymentFxLayer) continue;
-        if (!this.laserDesaturationPrevFilters.has(target)) {
-          this.laserDesaturationPrevFilters.set(target, target.filters ? [...target.filters] : null);
-        }
-        const prev = this.laserDesaturationPrevFilters.get(target);
-        const next = prev ? [...prev, this.laserDesaturationFilter] : [this.laserDesaturationFilter];
-        target.filters = next;
-      }
-      // Laser burst: activate dungeon atmosphere (frozen snapshot + world grayscale)
-      this.activateDungeonAtmosphere();
-      return;
-    }
-
-    for (const [target, filters] of this.laserDesaturationPrevFilters) {
-      target.filters = filters;
-    }
-    this.laserDesaturationPrevFilters.clear();
-    // Laser gone: geometry was cleared at burst time; only schedule the ghost
-    // overlay after the grayscale flash releases.
-    if (this.pendingGhostTunnelParams) {
-      this.scheduleGhostOverlayForTunnel(
-        this.pendingGhostTunnelParams.x,
-        this.pendingGhostTunnelParams.y,
-        this.pendingGhostTunnelParams.w,
-        this.pendingGhostTunnelParams.h,
-        this.pendingGhostTunnelParams.ghostBirth ?? null,
-      );
-      this.pendingGhostTunnelParams = null;
-    }
-    // Re-apply dungeon filter if still active ??restore overwrote it.
-    if (this.dungeonAtmosphereActive && this.dungeonAtmosphereFilter) {
-      for (const target of this.dungeonAtmosphereTargets) {
-        const cur = (target.filters as Filter[] | null) ?? [];
-        if (!cur.includes(this.dungeonAtmosphereFilter)) {
-          target.filters = [...cur, this.dungeonAtmosphereFilter];
-        }
-      }
-    }
-  }
-
-  private activateDungeonAtmosphere(): void {
-    if (this.dungeonAtmosphereActive) return;
-    this.dungeonAtmosphereActive = true;
-    this.restoreUiAfterAnvilDiveTransition();
-
-    if (!this.dungeonAtmosphereFilter) {
-      this.dungeonAtmosphereFilter = new ColorMatrixFilter();
-      this.dungeonAtmosphereFilter.desaturate();
-      this.dungeonAtmosphereFilter.contrast(1.5, true);
-    }
-
-    // Parallax: show as bright gray (scroll frozen separately in update())
-    if (!this.parallaxGrayFilter) {
-      this.parallaxGrayFilter = new ColorMatrixFilter();
-      this.parallaxGrayFilter.desaturate();
-      this.parallaxGrayFilter.brightness(2.2, true);
-    }
-    const parCur = (this.parallaxBG.container.filters as Filter[] | null) ?? [];
-    if (!parCur.includes(this.parallaxGrayFilter)) {
-      this.parallaxBG.container.filters = [...parCur, this.parallaxGrayFilter];
-    }
-    if (this.activeBuilder) {
-      this.activeBuilder.builderInteriorLayer.visible = false;
-      this.activeBuilder.bodyLayers.interior.visible = false;
-      this.builderInteriorHiddenForAtmosphere = true;
-      this.builderBodyInteriorHiddenForAtmosphere = true;
-    }
-
-    // Freeze snapshot: static copy of the player's current pose, stays in color
-    if (this.player && !this.frozenPlayerSnapshot) {
-      const snap = this.player.getFreezeSnapshot();
-      snap.x = this.player.container.x;
-      snap.y = this.player.container.y;
-      const rgb = new RGBSplitFilter();
-      const gray = new ColorMatrixFilter();
-      snap.filters = [rgb, gray];
-      this.frozenSnapshotRGBFilter = rgb;
-      this.frozenSnapshotGrayFilter = gray;
-      this.vividLayer.addChild(snap);
-      this.frozenPlayerSnapshot = snap;
-      this.frozenReturnInteractionArmed = false;
-
-      // Proximity handler ??[C] near snapshot ??Return to World confirm
-      if (!this.frozenSnapshotHandler) {
-        const handler: ProximityInteraction = {
-          label: 'frozen-return',
-          priority: 25,
-          canInteract: () => {
-            if (!this.frozenReturnInteractionArmed || !this.frozenPlayerSnapshot || !this.player || this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) return false;
-            const dx = this.player.container.x - this.frozenPlayerSnapshot.x;
-            const dy = this.player.container.y - this.frozenPlayerSnapshot.y;
-            return dx * dx + dy * dy <= 64 * 64;
-          },
-          onInteract: () => this._showFrozenReturnConfirm(),
-        };
-        this.frozenSnapshotHandler = handler;
-        this.proximity.register(handler);
-      }
-
-      // Prompt created eagerly so it's ready the moment player walks near
-      if (!this.frozenSnapPromptContainer) {
-        const p = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t('prompt.return'), this.game.uiScale);
-        p.visible = false;
-        this.game.uiContainer.addChild(p);
-        this.frozenSnapPromptContainer = p;
-      }
-    }
-
-    // Weapon float: anvil item icon 6??at center, in front of parallax
-    // Move player to unfiltered vividLayer so it stays in color
-    if (this.player?.container.parent === this.entityLayer) {
-      this.vividLayer.addChild(this.player.container);
-    }
-
-    // Apply to renderer sub-layers individually ??parent-level filter on renderer.container
-    // does not reliably composite through @pixi/tilemap children in PixiJS v8.
-    const targets: Container[] = [
-      this.renderer?.bgLayer,
-      this.renderer?.wallLayer,
-      this.renderer?.interiorLayer,
-      this.renderer?.shadowLayer,
-      this.renderer?.specialLayer,
-      this.procDecorator?.naturalLayer ?? null,
-      this.procDecorator?.artificialLayer ?? null,
-      this.procDecorator?.structureLayer ?? null,
-      this.entityLayer,
-      this.fluidLayer,
-      ...this.getBuilderAtmosphereTargets(),
-    ].filter((t): t is Container => !!t);
-
-    this.dungeonAtmosphereTargets = Array.from(new Set(targets));
-    for (const target of targets) {
-      const cur = (target.filters as Filter[] | null) ?? [];
-      if (!cur.includes(this.dungeonAtmosphereFilter)) {
-        target.filters = [...cur, this.dungeonAtmosphereFilter];
-      }
-    }
-  }
-
-  private _showFrozenReturnConfirm(): void {
-    if (this.frozenSnapConfirmOpen || this.frozenReturnTransitionActive) return;
-    this.restoreUiAfterAnvilDiveTransition();
-    this.frozenSnapConfirmOpen = true;
-
-    const W = 260;
-    const H = 72;
-    const panel = new Container();
-    const frame = this.uiSkin?.isLoaded ? create9SlicePanel(this.uiSkin, W, H) : null;
-    if (frame) {
-      panel.addChild(frame);
-    } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, W, H).fill({ color: MODAL_BG, alpha: 0.95 });
-      bg.rect(0, 0, W, H).stroke({ color: MODAL_BORDER, width: 1 });
-      panel.addChild(bg);
-    }
-
-    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_PRIMARY });
-    title.x = 12;
-    title.y = 6;
-    panel.addChild(title);
-
-    const item = this.collapseItem;
-    const expInfo = createUiText(
-      t('ui.iw.leave_summary', {
-        name: item?.def.name ?? '-',
-        level: item?.level ?? 1,
-        exp: item?.exp ?? 0,
-        maxExp: EXP_PER_LEVEL,
-      }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0x8fd6ff },
-    );
-    expInfo.x = 12;
-    expInfo.y = 20;
-    panel.addChild(expInfo);
-
-    const floorInfo = createUiText(
-      t('ui.iw.leave_rooms_summary', { cleared: 0, total: 0, exp: 0, gold: 0 }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
-    );
-    floorInfo.x = 12;
-    floorInfo.y = 33;
-    panel.addChild(floorInfo);
-
-    const KEY_SIZE = 12;
-    const LABEL_FONT = 8;
-    const controlsRow = new Container();
-    const yesBlock = new Container();
-    const atkIcon = KeyPrompt.createKeyIconForAction(GameAction.ATTACK, KEY_SIZE);
-    yesBlock.addChild(atkIcon);
-    const yesLabel = createUiText(t('ui.iw.leave_yes_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    yesLabel.x = KEY_SIZE + 4;
-    yesLabel.y = Math.floor((KEY_SIZE - yesLabel.height) / 2);
-    yesBlock.addChild(yesLabel);
-    controlsRow.addChild(yesBlock);
-
-    const noBlock = new Container();
-    const jumpIcon = KeyPrompt.createKeyIconForAction(GameAction.JUMP, KEY_SIZE);
-    noBlock.addChild(jumpIcon);
-    const slash = createUiText('/', { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    slash.x = KEY_SIZE + 2;
-    slash.y = Math.floor((KEY_SIZE - slash.height) / 2);
-    noBlock.addChild(slash);
-    const dashIcon = KeyPrompt.createKeyIconForAction(GameAction.DASH, KEY_SIZE);
-    dashIcon.x = slash.x + slash.width + 2;
-    noBlock.addChild(dashIcon);
-    const noLabel = createUiText(t('ui.iw.leave_no_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    noLabel.x = dashIcon.x + KEY_SIZE + 4;
-    noLabel.y = Math.floor((KEY_SIZE - noLabel.height) / 2);
-    noBlock.addChild(noLabel);
-    noBlock.x = yesBlock.width + 14;
-    controlsRow.addChild(noBlock);
-    controlsRow.x = 12;
-    controlsRow.y = 46;
-    panel.addChild(controlsRow);
-
-    panel.x = Math.floor((GAME_WIDTH - W) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - H) / 2);
-    this.frozenSnapConfirmPanel = panel;
-    this.game.legacyUIContainer.addChild(panel);
-
-    if (this.frozenSnapPromptContainer) this.frozenSnapPromptContainer.visible = false;
-  }
-
-  private _hideFrozenReturnConfirm(): void {
-    this.frozenSnapConfirmOpen = false;
-    if (this.frozenSnapConfirmOverlay) {
-      this.frozenSnapConfirmOverlay.parent?.removeChild(this.frozenSnapConfirmOverlay);
-      this.frozenSnapConfirmOverlay.destroy();
-      this.frozenSnapConfirmOverlay = null;
-    }
-    if (this.frozenSnapConfirmPanel) {
-      this.frozenSnapConfirmPanel.parent?.removeChild(this.frozenSnapConfirmPanel);
-      this.frozenSnapConfirmPanel.destroy({ children: true });
-      this.frozenSnapConfirmPanel = null;
-    }
-  }
-
-  private _beginReturnToWorld(): void {
-    if (this.frozenReturnTransitionActive) return;
-    this.frozenReturnTransitionActive = true;
-    this.restoreUiAfterAnvilDiveTransition();
-    this._hideFrozenReturnConfirm();
-
-    // Clean up prompt and handler immediately
-    if (this.frozenSnapPromptContainer) {
-      this.frozenSnapPromptContainer.parent?.removeChild(this.frozenSnapPromptContainer);
-      this.frozenSnapPromptContainer.destroy({ children: true });
-      this.frozenSnapPromptContainer = null;
-    }
-    if (this.frozenSnapshotHandler) {
-      this.proximity.unregister(this.frozenSnapshotHandler);
-      this.frozenSnapshotHandler = null;
-    }
-
-    // White overlay: fade in 600ms ??deactivate atmosphere ??fade out 600ms
-    const overlayGfx = new Graphics();
-    overlayGfx.rect(0, 0, GAME_WIDTH * this.game.uiScale, GAME_HEIGHT * this.game.uiScale)
-      .fill({ color: 0xffffff, alpha: 1 });
-    overlayGfx.alpha = 0;
-    this.game.uiContainer.addChild(overlayGfx);
-
-    const FADE_IN = 600;
-    const FADE_OUT = 600;
-    const PEAK = 0.85;
-    let elapsed = 0;
-    let phase: 'in' | 'out' = 'in';
-
-    // Store callback ref so we can remove it ??app.ticker.add() returns the
-    // Ticker itself (not a listener), so ticker.destroy() would kill the entire loop.
-    const onTick = (tk: { deltaMS: number }) => {
-      elapsed += tk.deltaMS;
-      if (phase === 'in') {
-        overlayGfx.alpha = Math.min(PEAK, (elapsed / FADE_IN) * PEAK);
-        if (elapsed >= FADE_IN) {
-          phase = 'out';
-          elapsed = 0;
-          overlayGfx.alpha = PEAK;
-          this.deactivateDungeonAtmosphere();
-          this.cancelFrozenReturnDeploymentState();
-        }
-      } else {
-        overlayGfx.alpha = PEAK * (1 - elapsed / FADE_OUT);
-        if (elapsed >= FADE_OUT) {
-          overlayGfx.alpha = 0;
-          overlayGfx.parent?.removeChild(overlayGfx);
-          overlayGfx.destroy();
-          this.game.app.ticker.remove(onTick);
-          this.frozenReturnTransitionActive = false;
-        }
-      }
-    };
-    this.game.app.ticker.add(onTick);
-  }
-
-  private deactivateDungeonAtmosphere(): void {
-    this.dungeonAtmosphereActive = false;
-    this.frozenReturnInteractionArmed = false;
-
-    // Clean up frozen snapshot interaction UI
-    if (this.frozenSnapshotHandler) {
-      this.proximity.unregister(this.frozenSnapshotHandler);
-      this.frozenSnapshotHandler = null;
-    }
-    if (this.frozenSnapPromptContainer) {
-      this.frozenSnapPromptContainer.parent?.removeChild(this.frozenSnapPromptContainer);
-      this.frozenSnapPromptContainer.destroy({ children: true });
-      this.frozenSnapPromptContainer = null;
-    }
-    this._hideFrozenReturnConfirm();
-
-    // Remove parallax gray filter
-    if (this.parallaxGrayFilter) {
-      const cur = this.parallaxBG.container.filters as Filter[] | null;
-      if (cur) {
-        const next = cur.filter(f => f !== this.parallaxGrayFilter);
-        this.parallaxBG.container.filters = next.length ? next : null;
-      }
-    }
-
-    // Destroy frozen snapshot
-    if (this.frozenPlayerSnapshot) {
-      this.frozenPlayerSnapshot.parent?.removeChild(this.frozenPlayerSnapshot);
-      this.frozenPlayerSnapshot.destroy({ children: true });
-      this.frozenPlayerSnapshot = null;
-    }
-    this.frozenSnapshotRGBFilter = null;
-    this.frozenSnapshotGrayFilter = null;
-
-    // Return player to entityLayer
-    if (this.player?.container.parent === this.vividLayer) {
-      this.entityLayer.addChild(this.player.container);
-    }
-
-    if (this.dungeonAtmosphereFilter) {
-      for (const target of this.dungeonAtmosphereTargets) {
-        const cur = target.filters as Filter[] | null;
-        if (!cur) continue;
-        const next = cur.filter(f => f !== this.dungeonAtmosphereFilter);
-        target.filters = next.length ? next : null;
-      }
-    }
-    if (this.builderInteriorHiddenForAtmosphere) {
-      this.activeBuilder?.builderInteriorLayer && (this.activeBuilder.builderInteriorLayer.visible = true);
-      this.builderInteriorHiddenForAtmosphere = false;
-    }
-    if (this.builderBodyInteriorHiddenForAtmosphere) {
-      this.activeBuilder?.bodyLayers.interior && (this.activeBuilder.bodyLayers.interior.visible = true);
-      this.builderBodyInteriorHiddenForAtmosphere = false;
-    }
-    this.dungeonAtmosphereTargets = [];
-  }
-
-  private getItemWorldThemeSlug(item: ItemInstance): string {
-    return (item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
-  }
-
-  private prestreamItemWorldEntry(item: ItemInstance, reason: string): void {
-    const themeSlug = this.getItemWorldThemeSlug(item);
-    const cached = this.itemWorldPrestreamTasks.get(themeSlug);
-    if (cached) return;
-
-    const startedAt = performance.now();
-    const task = this.loadItemWorldEntryAssets(item, themeSlug, reason, startedAt)
-      .catch((err) => {
-        this.itemWorldPrestreamTasks.delete(themeSlug);
-        console.warn(`[ItemWorld] entry prestream failed (${reason}, theme=${themeSlug}):`, err);
-      });
-    this.itemWorldPrestreamTasks.set(themeSlug, task);
-  }
-
-  private async loadItemWorldEntryAssets(
-    item: ItemInstance,
-    themeSlug: string,
-    reason: string,
-    startedAt: number,
-  ): Promise<void> {
-    const templatesPromise = prepareItemWorldTemplates();
-    await Promise.all([
-      loadBundleOnce('item_world'),
-      ensureAreaTilesetsLoaded([`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`], this.atlases),
-      templatesPromise.then(templates => this.preloadItemWorldAuthoredTilesets(templates)),
-    ]);
-    Debug.log(
-      `[ItemWorld] entry prestream ready reason=${reason} item=${item.def.id} theme=${themeSlug} ms=${Math.round(performance.now() - startedAt)}`,
-    );
-  }
-
-  private async preloadItemWorldAuthoredTilesets(templates: LdtkLevel[]): Promise<void> {
-    const extraTilesets = new Set<string>();
-    const addTiles = (tiles: readonly { tilesetPath: string | null }[]) => {
-      for (const tile of tiles) {
-        if (tile.tilesetPath) extraTilesets.add(tile.tilesetPath);
-      }
-    };
-    for (const level of templates) {
-      addTiles(level.backgroundTiles);
-      addTiles(level.wallTiles);
-      addTiles(level.interiorTiles);
-      addTiles(level.shadowTiles);
-      for (const tiles of Object.values(level.extraTileLayers)) {
-        addTiles(tiles);
-      }
-    }
-
-    await Promise.all(
-      Array.from(extraTilesets)
-        .filter(relPath => !this.atlases[relPath])
-        .map(async (relPath) => {
-          try {
-            this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
-          } catch (err) {
-            console.warn(`[ItemWorld] failed to prestream authored tileset "${relPath}":`, err);
-          }
-        }),
-    );
-  }
-
-  /** Rarity ??ItemTunnel level name mapping. */
-  private static readonly TUNNEL_BY_RARITY: Record<Rarity, string> = {
-    normal: 'ItemTunnel_01',
-    magic: 'ItemTunnel_02',
-    rare: 'ItemTunnel_03',
-    legendary: 'ItemTunnel_04',
-    ancient: 'ItemTunnel_05',
-  };
-
-  /** After floor collapse fade-out, proceed to Item World.
-   *
-   * Currently skips the tunnel descent and jumps straight into Item World
-   * after the anvil FX. The tunnel flow is preserved in
-   * `completeFloorCollapseEntryViaTunnel()` (archived) for future restoration.
-   */
-  private completeFloorCollapseEntry(): void {
-    if (!this.collapseItem) return;
-    this.prestreamItemWorldEntry(this.collapseItem, 'anvil-complete');
-
-    // Clean up dive/collapse/crack effects
-    if (this.screenCrack) {
-      this.screenCrack.destroy();
-      this.screenCrack = null;
-    }
-    if (this.memoryDive) {
-      this.memoryDive.destroy();
-      this.memoryDive = null;
-    }
-    // Remember where we came from so we can return after exiting Item World.
-    this.preTunnelLevelId = this.currentLevel.identifier;
-
-    // ARCHIVED ??tunnel descent disabled. Player enters Item World directly
-    // after the anvil FX. To restore the tunnel flow, call
-    // `this.completeFloorCollapseEntryViaTunnel()` instead of the line below.
-    // this.completeFloorCollapseEntryViaTunnel();
-    this.enterItemWorldFromTunnel();
-  }
-
-  /**
-   * ARCHIVED ??original tunnel descent entry.
-   *
-   * Loads an `ItemTunnel_*` level (rarity-mapped) where the player walks down
-   * to the bottom edge, which then triggers `enterItemWorldFromTunnel()`.
-   * Kept intact so the tunnel presentation can be re-enabled by swapping the
-   * call site in `completeFloorCollapseEntry()`.
-   */
-  private completeFloorCollapseEntryViaTunnel(): void {
-    if (!this.collapseItem) return;
-    this.prestreamItemWorldEntry(this.collapseItem, 'item-tunnel-load');
-    this.inItemTunnel = true;
-    if (this.minimap) this.minimap.visible = false;
-
-    const tunnelId = LdtkWorldScene.TUNNEL_BY_RARITY[this.collapseItem.rarity];
-    const tunnelExists = this.loader.getLevel(tunnelId);
-    const targetTunnel = tunnelExists ? tunnelId : 'ItemTunnel_01';
-    this.loadLevel(targetTunnel, 'up');
-  }
-
-  /** Fade out at the bottom of the tunnel, then enter Item World. */
-  private startTunnelExitTransition(): void {
-    if (this.collapseItem) this.prestreamItemWorldEntry(this.collapseItem, 'item-tunnel-exit');
-    this.transitionState = 'fade_out';
-    this.transitionTimer = FADE_DURATION;
-    this.pendingDirection = 'down';
-    this.pendingLevelId = '__item_world__';
-    this.pendingItemWorldEntryCorridor = true;
-  }
-
-  private async pushItemWorldSceneWithEntryFade(
-    itemWorldScene: ItemWorldScene,
-    preparePush: () => void,
-    options: { alreadyBlack?: boolean; revealMs?: number } = {},
-  ): Promise<void> {
-    if (this.itemWorldEntryTransitionActive) return;
-    this.itemWorldEntryTransitionActive = true;
-    this.game.input.inputLocked = true;
-
-    const overlay = new Graphics();
-    overlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 1 });
-    overlay.alpha = options.alreadyBlack ? 1 : 0;
-    this.game.feedbackOverlayContainer.addChild(overlay);
-
-    try {
-      if (!options.alreadyBlack) {
-        await this.tweenItemWorldEntryOverlay(overlay, 0, 1, ITEM_WORLD_ENTRY_FADE_MS);
-      }
-      preparePush();
-      await this.game.sceneManager.push(itemWorldScene, true);
-      await this.tweenItemWorldEntryOverlay(overlay, 1, 0, options.revealMs ?? ITEM_WORLD_ENTRY_FADE_MS);
-      itemWorldScene.beginEntryDialogueAfterTransition();
-    } finally {
-      overlay.parent?.removeChild(overlay);
-      overlay.destroy();
-      this.game.input.inputLocked = false;
-      this.itemWorldEntryTransitionActive = false;
-    }
-  }
-
-  private tweenItemWorldEntryOverlay(
-    overlay: Graphics,
-    from: number,
-    to: number,
-    durationMs: number,
-  ): Promise<void> {
-    overlay.alpha = from;
-    if (durationMs <= 0) {
-      overlay.alpha = to;
-      return Promise.resolve();
-    }
-    return new Promise(resolve => {
-      let elapsed = 0;
-      const onTick = (tk: { deltaMS: number }) => {
-        elapsed += tk.deltaMS;
-        const t = Math.min(1, elapsed / durationMs);
-        overlay.alpha = from + (to - from) * t;
-        if (t >= 1) {
-          overlay.alpha = to;
-          this.game.app.ticker.remove(onTick);
-          resolve();
-        }
-      };
-      this.game.app.ticker.add(onTick);
-    });
-  }
-
-  /** Called when player reaches the end of an ItemTunnel ??enter Item World. */
-  private enterItemWorldFromTunnel(options: { entryCorridor?: boolean } = {}): void {
-    if (!this.collapseItem) return;
-    this.restoreUiAfterAnvilDiveTransition();
-    const entryCorridor = options.entryCorridor ?? true;
-
-    const targetItem = this.collapseItem;
-    this.prestreamItemWorldEntry(targetItem, 'entry-final');
-
-    // Hand-crafted item world (disabled ??using procedural generation by rarity)
-    // if (!targetItem.fixedLevelId) {
-    //   targetItem.fixedLevelId = 'ItemWorld_FirstSword';
-    // }
-    // this.enterFixedItemWorld(targetItem);
-    // return;
-
-    // Fixed level override (if set on item)
-    if (targetItem.fixedLevelId) {
-      this.enterFixedItemWorld(targetItem);
-      return;
-    }
-
-    const prevLevel = targetItem.level;
-    const prevAtk = this.player.atk;
-    const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
-
-    // ??븐뼔援???? push ????? (destroy ????. 嶺뚯쉳??????ル‘肉????λ?獄?EXP ???夷??
-    // ???⑸츩?筌뤾퍓裕?update tick ?筌?????⑤?????븐뼚泥?????嶺뚮ㅏ援??clear.
-    this.dmgNumbers?.clear();
-
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
-      entryCorridor,
-    });
-    itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
-    itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
-    itemWorldScene.onComplete = () => {
-      this.restoreWorldAtAnvilReturnPoint(true);
-      this.game.sceneManager.pop();
-      this.startItemWorldReturnFadeIn();
-      this.updatePlayerAtk();
-      // Only set after first IW boss kill ??see other onComplete site for rationale.
-      if (sacredSave.isFirstItemWorldBossDefeated()) {
-        this.unlockedEvents.add('__itemWorldTutorialDone');
-      }
-      // Second and final inventory cue: only after the first IW boss clear.
-      this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
-
-      // Collect earned gold from Item World
-      if (itemWorldScene.earnedGold > 0) {
-        this.gold += itemWorldScene.earnedGold;
-        this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
-      }
-
-      if (targetItem.level > prevLevel) {
-        this.toast.show(t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }), 0xff88ff);
-      }
-      if (this.player.atk !== prevAtk) {
-        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
-      }
-
-      // ???? Ego T14 / Anvil retirement (Playtest 2026-04-26) ????
-      this.fireWorldReturnDialogue(targetItem.def.id);
-      this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
-
-    };
-
-    void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
-      this.container.visible = false;
-      this.detachSharedUiForItemWorld();
-      this.releaseWorldVisualsForItemWorld();
-      this.game.camera.setZoom(1.0);
-    });
-  }
-
-  /**
-   * Position the player at the used-anvil snapshot after returning from the
-   * item world. Falls back to the current anvil position if the snapshot is
-   * missing (shouldn't happen in normal flow but keeps the scene coherent).
-   */
-  private placePlayerAtReturnPoint(): void {
-    placePlayerAtAnvilReturnPoint(
-      this.player,
-      this.lastUsedAnvilPos,
-      this.anvil,
-      (x, y) => this.game.camera.snap(x, y),
-    );
-  }
-
-  private restoreWorldAtAnvilReturnPoint(resetAnvil: boolean): void {
-    this.inItemTunnel = false;
-    this.transitionState = 'none';
-    this.pendingLevelId = null;
-    this.pendingDirection = null;
-
-    // Step 4/5 (2026-05-25): loadLevel ??spawnAnvilFromLdtk ?띠럾? *??Anvil ?筌뤾쑬裕??怨룸츩* ??
-    // ??諛댁뎽?????placedItem ?????吏?????륁?? ???????類?룎?洹먮봿沅?(anvil ????쒕뼬??sprite ???)
-    // ???熬곥굥??*loadLevel ???꾩룄??캆? + *???곌랜踰??.
-    const preservedAnvilItem = this.anvil?.item ?? this.lastUsedAnvilItem ?? this.collapseItem;
-
-    const returnLevelId = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId;
-    if (returnLevelId) {
-      this.loadLevel(returnLevelId, 'down');
-      this.worldVisualsReleasedForItemWorld = false;
-    }
-    this.preTunnelLevelId = null;
-    this.collapseItem = null;
-
-    if (resetAnvil && this.anvil) {
-      this.anvil.used = false;
-      // Re-run placeItem() so the anvil restores its placed item icon after level reload.
-      // ??placeItem ?? disabled (retire) ??⑤객臾띄춯?early return ??嶺?IW ?곌랜???????????
-      // anvil ??retire spawn ?????disabled bypass ??placeItem.
-      if (preservedAnvilItem) {
-        const wasDisabled = this.anvil.disabled;
-        this.anvil.disabled = false;
-        this.anvil.placeItem(preservedAnvilItem);
-        this.anvil.used = false;
-        this.anvil.disabled = wasDisabled;
-      }
-    }
-
-    this.placePlayerAtReturnPoint();
-  }
-
-  /**
-   * Enter a hand-crafted item world level (fixedLevelId).
-   * Uses the same LdtkWorldScene level loading ??player spawns at Player entity.
-   * Navigates back via portal or edge transition.
-   */
-  private enterFixedItemWorld(item: ItemInstance): void {
-    this.restoreUiAfterAnvilDiveTransition();
-    const levelId = item.fixedLevelId!;
-    const level = this.loader.getLevel(levelId);
-    if (!level) {
-      console.error(`[LdtkWorldScene] Fixed item world level not found: "${levelId}"`);
-      // Fallback to procedural
-      this.collapseItem = item;
-      const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
-      const itemWorldScene = new ItemWorldScene(this.game, item, this.inventory, this.player, {
-        entryCorridor: true,
-      });
-      itemWorldScene.itemWorldTutorialDone = this.unlockedEvents.has('__itemWorldTutorialDone');
-      itemWorldScene.egoUnlockedEvents = this.unlockedEvents;
-      itemWorldScene.onComplete = () => {
-        this.restoreWorldAtAnvilReturnPoint(false);
-        this.game.sceneManager.pop();
-        this.startItemWorldReturnFadeIn();
-        this.updatePlayerAtk();
-        // Only set after first IW boss kill ??see other onComplete site for rationale.
-        if (sacredSave.isFirstItemWorldBossDefeated()) {
-          this.unlockedEvents.add('__itemWorldTutorialDone');
-        }
-        // Second and final inventory cue: only after the first IW boss clear.
-        this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
-        // Collect earned gold from Item World
-        if (itemWorldScene.earnedGold > 0) {
-          this.gold += itemWorldScene.earnedGold;
-          this.toast.show(t('toast.gold_gain', { amount: itemWorldScene.earnedGold }), 0xffd700);
-        }
-        this.fireWorldReturnDialogue(item.def.id);
-        this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
-      };
-      void this.pushItemWorldSceneWithEntryFade(itemWorldScene, () => {
-        this.container.visible = false;
-        this.detachSharedUiForItemWorld();
-        this.releaseWorldVisualsForItemWorld();
-        this.game.camera.setZoom(1.0);
-      }, { alreadyBlack: true, revealMs: 240 });
-      return;
-    }
-
-    // Track that we're in a fixed item world (for return logic)
-    this.inFixedItemWorld = true;
-    this.fixedItemWorldItem = item;
-    this.fixedItemWorldHadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
-
-    // Load the hand-crafted level ??'down' uses Player entity spawn
-    this.inItemTunnel = false;
-    this.loadLevel(levelId, 'down');
-  }
-
-  /** Exit fixed item world ??return to the forge room. */
-  private exitFixedItemWorld(): void {
-    if (this.portalTransition) {
-      this.portalTransition.destroy();
-      this.portalTransition = null;
-    }
-
-    const completedItem = this.fixedItemWorldItem;
-    const hadFirstBossClear = this.fixedItemWorldHadFirstBossClear;
-    this.inFixedItemWorld = false;
-    this.fixedItemWorldItem = null;
-    this.fixedItemWorldHadFirstBossClear = false;
-    this.collapseItem = null;
-
-    // Return to the anvil's original level. `preTunnelLevelId` can be
-    // dirtied by edge transitions; the anvil snapshot is the authoritative
-    // return point for item-world exits.
-    this.transitionState = 'none';
-    this.pendingLevelId = null;
-    this.pendingDirection = null;
-    const returnLevel = this.lastUsedAnvilLevelId ?? this.preTunnelLevelId ?? this.playerSpawnLevelId;
-    this.preTunnelLevelId = null;
-    this.loadLevel(returnLevel, 'down');
-    this.worldVisualsReleasedForItemWorld = false;
-
-    // Place player next to the (possibly-removed) anvil snapshot.
-    this.placePlayerAtReturnPoint();
-
-    if (sacredSave.isFirstItemWorldBossDefeated()) {
-      this.unlockedEvents.add('__itemWorldTutorialDone');
-    }
-    this.showFirstItemWorldReturnInventoryHint(hadFirstBossClear);
-    if (completedItem) {
-      this.fireWorldReturnDialogue(completedItem.def.id);
-    }
-    this.retireFirstAnvilAfterBossClear(hadFirstBossClear);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Narrative event chains
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Fire a narrative event. Handles chained events:
-   * - echo_shelved ??marta_note_complete (with silhouette)
-   */
-  async fireNarrativeEvent(eventName: string): Promise<void> {
-    // await this.dialogueManager.fireEvent(eventName);
-
-    // // Chain: after Marta's note, fire silhouette event
-    // if (eventName === 'echo_shelved') {
-    //   await this.showSeraSilhouette();
-    // }
-  }
-
-  /**
-   * T-12: Sera silhouette sequence.
-   * 1. Echo vibrates (player sprite shakes 1s)
-   * 2. Silhouette appears on rooftop
-   * 3. "...Who was that?" dialogue
-   * 4. Silhouette fades out
-   */
-  private async showSeraSilhouette(): Promise<void> {
-    // 1. Echo vibration ??shake player for 1 second
-    this.player.startVibrate(2, 60, false); // amplitude=2px, 60 frames ??1s
-
-    await this.delay(1000);
-
-    // 2. Draw silhouette above the scene (rooftop position relative to player)
-    const silhouette = new Graphics();
-    // Simple dark figure: head (circle) + body (rect)
-    silhouette.circle(0, -20, 5).fill({ color: 0x111122, alpha: 0.7 });
-    silhouette.rect(-4, -15, 8, 18).fill({ color: 0x111122, alpha: 0.7 });
-    silhouette.x = this.player.x + 60;
-    silhouette.y = this.player.y - 48;
-    silhouette.alpha = 0.6;
-    this.entityLayer.addChild(silhouette);
-
-    // 3. Fire the dialogue
-    // await this.dialogueManager.fireEvent('marta_note_complete');
-
-    // 4. Fade out silhouette
-    const fadeMs = 500;
-    const startAlpha = silhouette.alpha;
-    const startTime = performance.now();
-    await new Promise<void>((resolve) => {
-      const fadeStep = () => {
-        const elapsed = performance.now() - startTime;
-        const t = Math.min(1, elapsed / fadeMs);
-        silhouette.alpha = startAlpha * (1 - t);
-        if (t >= 1) {
-          if (silhouette.parent) silhouette.parent.removeChild(silhouette);
-          silhouette.destroy();
-          resolve();
-        } else {
-          requestAnimationFrame(fadeStep);
-        }
-      };
-      requestAnimationFrame(fadeStep);
-    });
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Minimap
-  // ---------------------------------------------------------------------------
-
-  private minimap: Container | null = null;
-  private minimapDot: Graphics | null = null;
-  private minimapBlinkTimer = 0;
-  private minimapVpLeft = 0;
-  private minimapVpTop = 0;
-  private minimapScaleX = 1;
-  private minimapScaleY = 1;
-  private minimapPW = 0;
-  private minimapPH = 0;
-  private minimapBuilderLayer: Graphics | null = null;
-  private worldMap!: WorldMapOverlay;
-
-  /**
-   * Fixed-viewport HUD minimap (GDD System_UI_Minimap.md 筌?).
-   * - Panel: 128x72 px (16:9). Position: top-right.
-   * - Viewport: current room centered, +-3 cells shown.
-   * - Background: alpha 0.6 black. Border: 1px #666666.
-   * - Current room: white 2px border + blinking player dot.
-   * - Visited: tier theme color. Adjacent: dim. Undiscovered: hidden.
-   * - Cleared: visited + check. Markers: save(red), boss(orange), anvil(gold).
-   * - Opacity: 70% normal, 40% during combat.
-   */
-  private drawMinimap(): void {
-    if (this.minimap) {
-      if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
-    }
-    this.minimap = new Container();
-    this.minimapDot = null;
-    this.minimapBuilderLayer = null;
-
-    if (!this.currentLevel) return;
-
-    const worldMap = this.loader.getWorldMap()
-      .filter(r => r.roomType !== 'Debug' && r.roomType !== 'Cinematic' && !r.id.startsWith('Debug_'));
-    if (worldMap.length === 0) return;
-
-    // Panel size matches skin hud_map_frame inner area (center: 112x60 at 640x360)
-    const us = this.game.uiScale;
-    const PW = 112 * us;
-    const PH = 60 * us;
-
-    // Viewport: 16:9 world-space window centered on current room.
-    // 5 cells wide (~3840px) to show more surrounding rooms comfortably.
-    const VP_W = 3840;
-    const VP_H = VP_W * (PH / PW); // maintain 16:9 -> 1296
-
-    const curCX = this.currentLevel.worldX + this.currentLevel.pxWid / 2;
-    const curCY = this.currentLevel.worldY + this.currentLevel.pxHei / 2;
-    const vpLeft = curCX - VP_W / 2;
-    const vpTop  = curCY - VP_H / 2;
-    const scaleX = PW / VP_W;
-    const scaleY = PH / VP_H;
-
-    // Cache for real-time dot tracking in update()
-    this.minimapVpLeft = vpLeft;
-    this.minimapVpTop = vpTop;
-    this.minimapScaleX = scaleX;
-    this.minimapScaleY = scaleY;
-    this.minimapPW = PW;
-    this.minimapPH = PH;
-
-    // Fog of war: visited + adjacent (outlined). Secret ?꾩렮維? *?꾩렮維뽪룇 ??outline ?????泥?
-    // ??adjacentIds ???怨뺣뼺???? ??袁⑹벟 ?熬곥굤?? ?꾩렮維뽪룇 ?熬곣뫖??visited ?釉뚯뫅???????筌먦끆留??????
-    const visitedIds = this.visitedLevels;
-    const clearedIds = this.clearedLevels;
-    const adjacentIds = new Set<string>();
-    for (const id of visitedIds) {
-      const level = this.loader.getLevel(id);
-      if (level) {
-        for (const nb of level.neighbors) {
-          if (visitedIds.has(nb)) continue;
-          const nbLevel = this.loader.getLevel(nb);
-          if (nbLevel?.secret) continue;     // Secret ????adjacent ??戮?뻣 ??戮곕뇶
-          adjacentIds.add(nb);
-        }
-      }
-    }
-
-    // No background ??skin hud_map_frame provides the panel chrome
-
-    const content = new Container();
-    // Clip content to panel bounds (rooms keep correct proportions)
-    const clipMask = new Graphics();
-    clipMask.rect(0, 0, PW, PH).fill(0xffffff);
-    this.minimap.addChild(clipMask);
-    content.mask = clipMask;
-
-    // Helper: project world rect to panel coords (no clamping ??mask handles overflow)
-    const project = (r: { x: number; y: number; w: number; h: number }) => {
-      const rx = (r.x - vpLeft) * scaleX;
-      const ry = (r.y - vpTop) * scaleY;
-      const rw = Math.max(1, r.w * scaleX);
-      const rh = Math.max(1, r.h * scaleY);
-      const visible = rx + rw > 0 && rx < PW && ry + rh > 0 && ry < PH;
-      return { rx, ry, rw, rh, visible };
-    };
-
-    // GDD tier colors (筌?.4)
-    const TIER_COLORS: Record<string, number> = {
-      'Tier1': 0x4A8A4A, 'Tier2': 0x5A7A8C, 'Tier3': 0x4A3A2A,
-      'Tier4': 0x2A4A6C, 'Tier5': 0x6A4A8C, 'Tier6': 0x4AACCC, 'Tier7': 0x8C2A2A,
-    };
-    const DEFAULT_TIER_COLOR = 0x5A7A8C;
-
-    // Infer tier from level id prefix (e.g. "Tier2_CentralHall")
-    const getTierColor = (id: string): number => {
-      for (const key of Object.keys(TIER_COLORS)) {
-        if (id.startsWith(key)) return TIER_COLORS[key];
-      }
-      return DEFAULT_TIER_COLOR;
-    };
-
-    // Draw rooms ??visited rooms show internal tile structure
-    for (const r of worldMap) {
-      if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
-      if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
-
-      const isCurrent = r.id === this.currentLevel.identifier;
-      const visited = visitedIds.has(r.id);
-      const cleared = clearedIds.has(r.id);
-      const adjacent = adjacentIds.has(r.id);
-      if (!isCurrent && !visited && !adjacent) continue;
-
-      const p = project(r);
-      if (!p.visible) continue;
-
-      const g = new Graphics();
-
-      if (isCurrent || visited) {
-        const tierColor = getTierColor(r.id);
-        const level = this.loader.getLevel(r.id);
-
-        if (level && level.collisionGrid.length > 0) {
-          // Render tile-level detail for visited rooms
-          const grid = level.collisionGrid;
-          const gridH = grid.length;
-          const gridW = grid[0]?.length ?? 0;
-          const tileW = p.rw / gridW;
-          const tileH = p.rh / gridH;
-
-          // Background (air = dark)
-          g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: 0x111118, alpha: isCurrent ? 0.9 : 0.7 });
-
-          // Solid tiles
-          for (let ty = 0; ty < gridH; ty++) {
-            for (let tx = 0; tx < gridW; tx++) {
-              const v = grid[ty][tx];
-              if (v === 0) continue; // air ??skip
-              const px = p.rx + tx * tileW;
-              const py = p.ry + ty * tileH;
-              const tw = Math.max(0.5, tileW);
-              const th = Math.max(0.5, tileH);
-              let tileColor = tierColor;
-              let tileAlpha = isCurrent ? 0.9 : 0.7;
-              if (v === 1) { tileColor = tierColor; } // wall
-              else if (v === 2) { tileColor = 0x2244aa; tileAlpha = 0.5; } // water
-              else if (v === 3) { tileColor = tierColor; tileAlpha *= 0.6; } // platform
-              else if (v === 5) { tileColor = 0xcc3333; } // spike
-              else { tileColor = tierColor; tileAlpha *= 0.5; } // other
-              g.rect(px, py, tw, th).fill({ color: tileColor, alpha: tileAlpha });
-            }
-          }
-        } else {
-          // Fallback: solid fill
-          g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: tierColor, alpha: isCurrent ? 1.0 : 0.8 });
-        }
-
-        if (visited) {
-          g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0x556688, width: us });
-        }
-      } else {
-        // Adjacent/outlined: dim outline only
-        g.rect(p.rx, p.ry, p.rw, p.rh).fill({ color: 0x333344, alpha: 0.4 });
-      }
-
-      // Current room: white border
-      if (isCurrent) {
-        g.rect(p.rx, p.ry, p.rw, p.rh).stroke({ color: 0xffffff, width: 2 * us });
-      }
-      content.addChild(g);
-    }
-
-    this.minimapBuilderLayer = new Graphics();
-    content.addChild(this.minimapBuilderLayer);
-    this.updateMinimapBuilderLayer();
-
-    // Auto markers (GDD 筌?) ??save, boss, anvil
-    for (const r of worldMap) {
-      if (!visitedIds.has(r.id)) continue;
-      if (r.x + r.w < vpLeft || r.x > vpLeft + VP_W) continue;
-      if (r.y + r.h < vpTop  || r.y > vpTop + VP_H) continue;
-      const level = this.loader.getLevel(r.id);
-      if (!level) continue;
-
-      const mx = Math.min(PW - 2 * us, Math.max(2 * us, (r.x - vpLeft) * scaleX + (r.w * scaleX) / 2));
-      const my = Math.min(PH - 2 * us, Math.max(2 * us, (r.y - vpTop) * scaleY + (r.h * scaleY) / 2));
-
-      // Save point: red circle
-      if (level.entities.some(e => e.type === 'GameSaver')) {
-        const marker = new Graphics();
-        marker.circle(mx, my, 2 * us).fill(0xff4444);
-        content.addChild(marker);
-      }
-      // Anvil: gold circle
-      if (level.entities.some(e => e.type === 'Anvil' || e.type === 'ItemTunnelEntrance')) {
-        const marker = new Graphics();
-        marker.circle(mx + 3 * us, my, 1.5 * us).fill(0xffd700);
-        content.addChild(marker);
-      }
-      // Boss room: orange/gray circle
-      if (level.entities.some(e => e.type === 'Boss' || e.type === 'BossSpawn')) {
-        const defeated = clearedIds.has(r.id);
-        const marker = new Graphics();
-        marker.circle(mx, my - 3 * us, 2 * us).fill(defeated ? 0x666666 : 0xff8800);
-        content.addChild(marker);
-      }
-    }
-
-    // Player dot (blinking) ??GDD 筌?.5
-    // Drawn at origin; position updated every frame in update()
-    {
-      const dotSize = 3 * us;
-      const dot = new Graphics();
-      dot.rect(0, 0, dotSize, dotSize).fill(0xffffff);
-      const px = Math.min(PW - dotSize, Math.max(dotSize, (this.player.x + this.currentLevel.worldX - vpLeft) * scaleX));
-      const py = Math.min(PH - dotSize, Math.max(dotSize, (this.player.y + this.currentLevel.worldY - vpTop) * scaleY));
-      dot.x = px - dotSize / 2;
-      dot.y = py - dotSize / 2;
-      this.minimapDot = dot;
-      content.addChild(dot);
-    }
-
-    this.minimap.addChild(content);
-
-    // Position: inside skin hud_map_frame (bounds x=515,y=6, center x=6,y=5)
-    this.minimap.scale.set(1);
-    this.minimap.x = (515 + 6) * us;
-    this.minimap.y = (6 + 5 - 3) * us;
-
-    // Opacity: 70% normal, 40% during combat (GDD 筌?.1)
-    const inCombat = this.enemies.some(e => e.hp > 0 && !e.shouldRemove);
-    this.minimap.alpha = inCombat ? 0.4 : 0.7;
-
-    // Keep minimap hidden during the intro fade-in/title sequence. Revealed
-    // together with the HUD once the area title completes.
-    if (this.introPhase === 'fadeIn' || this.introPhase === 'title') {
-      this.minimap.visible = false;
-    }
-
-    this.game.uiContainer.addChild(this.minimap);
-  }
-
-  private updateMinimapBuilderLayer(): void {
-    const g = this.minimapBuilderLayer;
-    if (!g) return;
-    g.clear();
-
-    const builder = this.activeBuilder;
-    if (!builder || !this.currentLevel || this.minimapPW <= 0 || this.minimapPH <= 0) return;
-
-    const originWorldX = this.currentLevel.worldX + builder.container.x;
-    const originWorldY = this.currentLevel.worldY + builder.container.y;
-    const viewRight = this.minimapVpLeft + this.minimapPW / this.minimapScaleX;
-    const viewBottom = this.minimapVpTop + this.minimapPH / this.minimapScaleY;
-    const builderRight = originWorldX + builder.widthPx;
-    const builderBottom = originWorldY + builder.heightPx;
-    if (
-      builderRight < this.minimapVpLeft ||
-      originWorldX > viewRight ||
-      builderBottom < this.minimapVpTop ||
-      originWorldY > viewBottom
-    ) {
-      return;
-    }
-
-    const tileW = Math.max(0.5, TILE_SIZE * this.minimapScaleX);
-    const tileH = Math.max(0.5, TILE_SIZE * this.minimapScaleY);
-    const col0 = Math.max(0, Math.floor((this.minimapVpLeft - originWorldX) / TILE_SIZE));
-    const col1 = Math.min(builder.widthTiles - 1, Math.ceil((viewRight - originWorldX) / TILE_SIZE));
-    const row0 = Math.max(0, Math.floor((this.minimapVpTop - originWorldY) / TILE_SIZE));
-    const row1 = Math.min(builder.heightTiles - 1, Math.ceil((viewBottom - originWorldY) / TILE_SIZE));
-    const baseX = (originWorldX - this.minimapVpLeft) * this.minimapScaleX;
-    const baseY = (originWorldY - this.minimapVpTop) * this.minimapScaleY;
-
-    for (let ty = row0; ty <= row1; ty++) {
-      const row = builder.collisionGrid[ty];
-      if (!row) continue;
-      for (let tx = col0; tx <= col1; tx++) {
-        const v = row[tx] ?? 0;
-        if (v === 0) continue;
-        const px = baseX + tx * tileW;
-        const py = baseY + ty * tileH;
-        let tileColor = 0x7f96aa;
-        let tileAlpha = 0.9;
-        if (v === TILE_WATER) {
-          tileColor = 0x2f66cc;
-          tileAlpha = 0.55;
-        } else if (isOneWay(v)) {
-          tileColor = 0x9bb0bd;
-          tileAlpha = 0.65;
-        } else if (v === TILE_SPIKE) {
-          tileColor = 0xcc3333;
-        } else if (!isSolid(v)) {
-          tileAlpha = 0.5;
-        }
-        g.rect(px, py, tileW, tileH).fill({ color: tileColor, alpha: tileAlpha });
-      }
-    }
-  }
-
-  private syncWorldMapDynamicGrids(): void {
-    this.worldMap?.setDynamicGrids(this.collectWorldMapDynamicGrids());
-  }
-
-  private collectWorldMapDynamicGrids(): WorldMapDynamicGrid[] {
-    const builder = this.activeBuilder;
-    const level = this.currentLevel;
-    if (!builder || !level) return [];
-    if (!this.visitedLevels.has(level.identifier)) return [];
-    return [{
-      roomId: level.identifier,
-      worldX: level.worldX + builder.container.x,
-      worldY: level.worldY + builder.container.y,
-      grid: builder.collisionGrid,
-    }];
-  }
-
-  // ---------------------------------------------------------------------------
-  // World Map markers
-  // ---------------------------------------------------------------------------
-
-  private collectMapMarkers(): { roomId: string; type: 'save' | 'anvil' | 'boss' | 'gate'; label?: string }[] {
-    const markers: { roomId: string; type: 'save' | 'anvil' | 'boss' | 'gate'; label?: string }[] = [];
-
-    for (const id of this.visitedLevels) {
-      const level = this.loader.getLevel(id);
-      if (!level) continue;
-
-      for (const e of level.entities) {
-        if (e.type === 'GameSaver') {
-          markers.push({ roomId: id, type: 'save' });
-        } else if (e.type === 'Anvil') {
-          markers.push({ roomId: id, type: 'anvil' });
-        } else if (e.type === 'Enemy_Spawn') {
-          const enemyType = (e.fields['type'] as string) ?? '';
-          if (enemyType === 'Boss') {
-            markers.push({ roomId: id, type: 'boss' });
-          }
-        } else if (e.type === 'LockedDoor') {
-          const condition = (e.fields['UnlockCondition'] as string) ?? '';
-          if (condition === 'Stat') {
-            const statType = (e.fields['StatType'] as string) ?? 'atk';
-            const threshold = (e.fields['StatThreshold'] as number) ?? 0;
-            markers.push({ roomId: id, type: 'gate', label: `${statType.toUpperCase()} ${threshold}` });
-          }
-        }
-      }
-    }
-
-    return markers;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Entity cleanup helpers
-  // ---------------------------------------------------------------------------
-
-  private clearEnemies(): void {
-    for (const e of this.enemies) {
-      if (e.container.parent) e.container.parent.removeChild(e.container);
-    }
-    this.enemies = [];
-    for (const p of this.projectiles) p.destroy();
-    this.projectiles = [];
-  }
-
-  private clearDrops(): void {
-    for (const d of this.drops) d.destroy();
-    this.drops = [];
-  }
-
-  // ???? Ego dialogue triggers ??????????????????????????????????????????????????????????????????????????????
-  // Code-driven triggers for Rustborn Ego that can't be placed as LDtk entities.
-
-  /**
-   * T02: First movement after Ego wake ??non-blocking auto-close dialogue.
-   * T03: Anvil proximity hint ??non-blocking.
-   * S01: Weapon swap ??Rustborn unequipped.
-   */
-  private updateEgoTriggers(_dt: number): void {
-    if (!this.loreDisplay || this.loreDisplay.isActive) return;
-
-    // T02 (FIRST_WALK) ????怨몄쓧???裕?????뵜 ??嶺?????????꾩룇裕????깅さ?? ??ル맪????????????
-    // ????뵜 嶺뚯쉳???discovery ???폎??updateSacredPickup)??EGO_FIRST_WALK ???????類ｋ펲.
-    // ??⑤벡逾??walk-trigger ????蹂ㅽ깴?? FIRST_WALK ???노츎 discovery ?꾩룇裕????戮?뻤??怨쀬Ŧ ??亦??
-
-    // T03: Anvil proximity (first time after Ego wake)
-    if (
-      this.anvil
-      && this.unlockedEvents.has(EGO_EVENT.WAKE)
-      && !this.unlockedEvents.has(EGO_EVENT.ANVIL_HINT)
-    ) {
-      const dx = (this.player.x + this.player.width / 2) - this.anvil.x;
-      const dy = (this.player.y + this.player.height / 2) - (this.anvil.y - this.anvil.height / 2);
-      if (dx * dx + dy * dy < 60 * 60) {
-        this.unlockedEvents.add(EGO_EVENT.ANVIL_HINT);
-        this.loreDisplay.showDialogue(EGO_ANVIL, false);
-        return;
-      }
-    }
-  }
-
-  private retireFirstAnvilAfterBossClear(hadFirstBossClear: boolean): void {
-    // 2026-05-24 fix v2: lastUsedAnvilRetireAfterBoss ?띠럾?????蹂ㅽ깴.
-    // dive ??戮곗젍 ?怨뺣뾼??? *dive 嶺뚯쉳????this.anvil ?筌먦끆?? (host vs builder) ????⑤벡逾?
-    // ?釉띾쐠??? ?곌랜踰? ??戮곗젍??*?熬곣뫗??anvil.retireAfterFirstBoss* ??嶺뚯쉳????곌랜?????
-    // ?筌먦끉?????嶺뚮ㅏ援????"retire flag true ??anvil ?? ?곌랜?????????????疫?disable".
-    if (!this.hasBossClearForAnvilRetire()) return;
-    if (!this.lastUsedAnvilRetireAfterBoss) return;
-    if (!this.anvil) return;
-
-    // Dialogue + EGO event ??*嶺뚣끉裕??1???異? (hadFirstBossClear=false ????.
-    if (!hadFirstBossClear) {
-      this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
-      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-    }
-
-    this.anvil.used = false;
-    this.anvil.item = null;
-    this.lastUsedAnvilItem = null;
-    this.anvil.retireAfterFirstBoss = true;
-    void this.anvil.setDisabled(true);
-    this.anvilPrompts.hideAll();
-    if (this.inventoryUI.visible && this.inventoryUI.isAnvilMode()) {
-      this.inventoryUI.close();
-    }
-    const pendingHadFirstBossClear = this.pendingFirstIwReturnHintHadFirstBossClear;
-    this.pendingFirstIwReturnHintHadFirstBossClear = null;
-    if (pendingHadFirstBossClear !== null) {
-      this.showFirstItemWorldReturnInventoryHint(pendingHadFirstBossClear, 500);
-    }
-  }
-
-  /**
-   * Fire the appropriate dialogue on world return after exiting Item World.
-   *
-   * Branches:
-   *  - First IW boss already cleared & anvil-retired dialogue not yet shown
-   *      ??EGO_ANVIL_RETIRED (replaces T14), then disables current anvil
-   *  - Otherwise, the standard T14 "????濾곌쑨?ｉ뜮?" line plays once
-   *
-   * Both branches are gated to Ego-bearing weapons (currently Rustborn only).
-   */
-  private fireWorldReturnDialogue(weaponDefId: string): void {
-    if (!hasEgo(weaponDefId)) return;
-
-    const anvilRetiring = (
-      sacredSave.isFirstItemWorldBossDefeated()
-      && (this.anvil?.retireAfterFirstBoss ?? false)
-      && !this.unlockedEvents.has(EGO_EVENT.ANVIL_RETIRED)
-    );
-
-    if (anvilRetiring) {
-      this.unlockedEvents.add(EGO_EVENT.ANVIL_RETIRED);
-      // Suppress the T14 line permanently ??anvil-retired replaces it.
-      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-      // freeze=true ??dialogue ???덊닱 player ???놁졑 ??ル맪??(anvil ?筌뤿굛????곕콦 嶺뚢뼰維??.
-      // setTimeout 嶺뚯쉧猷볢떋?(200ms) ????븐뻼???熬곥굦???곸궠?筌??snap 嶺뚯쉳????꾩룇裕?? 1000ms ?????덊닱
-      // anvil ?筌뤿굛????곕콦 ?띠럾??繞⑨쭛?????????怨뺢덧??(2026-05-02) ????
-      setTimeout(async () => {
-        if (this.loreDisplay && !this.loreDisplay.isActive) {
-          await this.loreDisplay.showDialogue(getEgoAnvilRetired(), true);
-        }
-        await this.anvil?.setDisabled(true);
-      }, 200);
-      return;
-    }
-
-    if (!this.unlockedEvents.has(EGO_EVENT.WORLD_RETURN)) {
-      this.unlockedEvents.add(EGO_EVENT.WORLD_RETURN);
-      // freeze=true ??dialogue ???덊닱 anvil/????????놁졑 嶺뚢뼰維??
-      setTimeout(() => {
-        if (!this.loreDisplay?.isActive) {
-          void this.loreDisplay?.showDialogue(EGO_WORLD_RETURN, true);
-        }
-      }, 200);
-    }
-  }
-
-  /**
-   * S01: Call when player equips a weapon that is NOT an Ego weapon,
-   * while previously having an Ego weapon equipped.
-   * Should be called from equipWeapon() or inventory UI confirm.
-   */
-  fireEgoWeaponSwap(): void {
-    if (
-      this.loreDisplay
-      && !this.unlockedEvents.has(EGO_EVENT.WEAPON_SWAP)
-    ) {
-      this.unlockedEvents.add(EGO_EVENT.WEAPON_SWAP);
-      this.loreDisplay.showDialogue(EGO_WEAPON_SWAP, false);
-    }
-  }
-
-  // ???? Dive transition (replaces MemoryDive) ??????????????????????????????????????????????????
-  // step 1: hitstop 10f + screen flash (??ㅻ쾳筌?
-  // step 2: color drain + iris shrink toward anvil center (800ms)
-  // step 3: black screen 500ms ??scene switch
-
-  private diveOverlay: Graphics | null = null;
-  private diveIris: Graphics | null = null;
-
-  private runDiveTransition(): void {
-    if (!this.anvil || !this.collapseItem) return;
-
-    this.prestreamItemWorldEntry(this.collapseItem, 'anvil-dive');
-
-    const anvilTargetX = this.anvil.x;
-    const anvilTargetY = this.anvil.y - this.anvil.height / 2;
-    this.itemWorldTransition = new ItemWorldTransitionController({
-      game: this.game,
-      player: this.player,
-      layers: {
-        realityGroups: [
-          [this.parallaxBG?.container],
-          [this.renderer?.bgLayer, this.renderer?.interiorLayer],
-          [
-            this.renderer?.wallLayer,
-            this.renderer?.specialLayer,
-            this.renderer?.shadowLayer,
-            this.solidifiedWallGfx,
-            this.fluidLayer,
-            this.procDecorator?.naturalLayer,
-            this.procDecorator?.artificialLayer,
-            this.procDecorator?.structureLayer,
-          ],
-        ],
-        fxLayer: this.entityLayer,
-        overlayLayer: this.game.legacyUIContainer,
-      },
-      onComplete: () => {
-        if (this.itemWorldTransition) {
-          const transition = this.itemWorldTransition;
-          this.itemWorldTransition = null;
-          transition.destroy();
-        }
-        this.diveTransitionActive = false;
-        this.game.camera.setZoom(1.0);
-        this.completeFloorCollapseEntry();
-      },
-    });
-    this.itemWorldTransition.start({
-      x: anvilTargetX,
-      y: anvilTargetY,
-      rarity: this.collapseItem.rarity,
-      container: this.anvil.container,
-    });
-  }
-
-  private stepDiveBlackout(): void {
-    // Full black screen
-    if (this.diveOverlay) {
-      this.diveOverlay.clear();
-      this.diveOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-        .fill({ color: 0x000000, alpha: 1 });
-    }
-    if (this.diveIris) {
-      this.diveIris.clear();
-      this.diveIris.rect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-        .fill({ color: 0x000000, alpha: 1 });
-    }
-
-    // Hold black for 500ms, then transition
-    setTimeout(() => {
-      // Cleanup overlays
-      if (this.diveOverlay?.parent) this.diveOverlay.parent.removeChild(this.diveOverlay);
-      if (this.diveIris?.parent) this.diveIris.parent.removeChild(this.diveIris);
-      this.diveOverlay = null;
-      this.diveIris = null;
-      this.diveTransitionActive = false;
-
-      // Reset zoom now ??screen is fully black so player won't see the snap
-      this.game.camera.setZoom(1.0);
-
-      // Enter item world
-      this.completeFloorCollapseEntry();
-    }, 500);
-  }
 }

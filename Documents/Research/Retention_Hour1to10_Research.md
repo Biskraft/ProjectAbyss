@@ -7,7 +7,7 @@
 ## 0. 필수 참고 자료
 
 - Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
-- 첫 30분 경험: `Documents/Content/Content_First30Min_ExperienceFlow.md`
+- 진행 Ch.0~1 (구 첫 30분): `Documents/Content/Content_Ch1_DrownedFloor.md` (CNT-CH1) · `Content_Progression_Master.md` (CNT-PROG)
 - 핵심 순환 구조: `Documents/Design/Design_CoreLoop_Circulation.md`
 - 야리코미 철학: `Documents/Design/Design_Yarikomi_Philosophy.md`
 - 성장과 보상 철학: `Documents/Design/Design_Progression_Reward.md`

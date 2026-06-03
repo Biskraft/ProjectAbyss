@@ -51,13 +51,13 @@
 
 ### 1-3. 2-Space별 카메라 규칙이 다른 이유 (Why Per-Space Rules)
 
-ECHORIS는 3개의 공간(World, Item Dungeon, Hub)을 가진다. 각 공간의 목적이 다르므로 카메라 규칙도 달라야 한다.
+ECHORIS는 2-Space(World, Item World)와 월드 내 거점(잔존자 마을 세이브 포인트)을 가진다. 각 공간의 목적이 다르므로 카메라 규칙도 달라야 한다.
 
 | 2-Space          | 목적               | 카메라 특성                                      |
 | :--------------- | :----------------- | :----------------------------------------------- |
 | World (월드)     | 탐험 + 전투        | Follow Mode 기본, Room Transition 활성, Look Ahead 활성 |
-| Item Dungeon     | 고밀도 전투 + 파밍 | 줌 아웃 가능, 멀티플레이 카메라 활성, 빠른 Shake  |
-| Hub (거점)       | 사교 + 준비        | 고정 카메라 또는 넓은 시야, Shake 비활성           |
+| Item World       | 고밀도 전투 + 파밍 | 줌 아웃 가능, 멀티플레이 카메라 활성, 빠른 Shake  |
+| 거점 (마을 세이브) | 준비 + 강화      | 고정 카메라 또는 넓은 시야, Shake 비활성           |
 
 ### 1-4. 저주받은 문제 점검 (Cursed Problem Check)
 
@@ -271,7 +271,7 @@ clampedY = clamp(camera.y, bounds.top + halfViewH, bounds.bottom - halfViewH)
 
 ### 3-8. 아이템계 vs 월드 카메라 차이 (Item Dungeon vs World Camera)
 
-| 항목               | World (월드)          | Item Dungeon (아이템계)    |
+| 항목               | World (월드)          | Item World   (아이템계)    |
 | :----------------- | :-------------------- | :------------------------- |
 | 기본 모드          | Follow (솔로)        | MultiPlayer (파티 기반)    |
 | Look Ahead         | 활성                  | 활성                       |

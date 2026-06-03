@@ -105,7 +105,7 @@
 | **추가 참조** | `System/System_ItemWorld_Core.md` |
 | **범위** | 미스터리 룸 종류, 스폰 확률, 이벤트 목록, 보상 테이블 |
 
-### ~~B-2. SYS-LVL-04 — 전��� 시스템~~ (스코프 축소로 삭제)
+### ~~B-2. SYS-LVL-04 — 전투 시스템~~ (스코프 축소로 삭제)
 
 > 아이템 성장은 아이템계 지층 클리어(`System_ItemWorld_Core.md`)와 기억 단편(`System_Memory Shard_Core.md`)로 관리합니다.
 

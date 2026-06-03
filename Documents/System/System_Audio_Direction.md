@@ -12,7 +12,7 @@
 > - `Documents/Research/AudioDirection_SoundDesign_Research.md` — 사운드 디자인 기초 리서치
 > - `Documents/Research/ItemWorldVisual_MemoryTheme_Research.md` — 10개 기억 테마 오디오 무드
 > - `Documents/Research/WebGameFeel_Optimization_Research.md` — Web Audio 레이턴시 분석
-> - `memory/wiki/decisions/DEC-033-Sword-Ego.md` — 검 Ego 단독 화자 원칙
+> - `memory/wiki/decisions/DEC-033-Blade-Ego.md` — 검 Ego 단독 화자 원칙
 > - `memory/wiki/decisions/DEC-036-Memory-Shard-System.md` — 기억 단편 시스템(이노센트 폐기)
 > - `memory/wiki/decisions/DEC-038-Town-of-Orphaned-Shadows.md` — 그림자 마을
 > - `memory/wiki/decisions/DEC-039-Item-World-Continuous-Dive.md` — 수직 딥 다이브 + Trapdoor

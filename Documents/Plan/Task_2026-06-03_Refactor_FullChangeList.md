@@ -1,0 +1,629 @@
+# Refactor complete file list
+
+Date: 2026-06-03
+Source: git status --short
+
+## Summary
+
+- Total changed files: 535
+- ` D`: 9
+- ` M`: 73
+- `A `: 452
+- `AM`: 1
+
+## Status ` D` (9)
+
+- `Documents/Plan/Task_202605.md`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 5\354\233\224 10\354\235\274 \354\230\244\355\233\204 07_47_27.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 5\354\233\224 22\354\235\274 \354\230\244\355\233\204 06_59_44.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 5\354\233\224 22\354\235\274 \354\230\244\355\233\204 07_03_34.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 5\354\233\224 23\354\235\274 \354\230\244\354\240\204 12_28_51.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 6\354\233\224 1\354\235\274 \354\230\244\355\233\204 08_26_34.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 6\354\233\224 2\354\235\274 \354\230\244\354\240\204 02_16_31.png`
+- `game/public/assets/sprites/_archive/ChatGPT Image 2026\353\205\204 6\354\233\224 2\354\235\274 \354\230\244\354\240\204 02_23_07.png`
+- `game/src/scenes/world/WorldInteractionController.ts`
+
+## Status ` M` (73)
+
+- `Documents/Content/Content_Characters.md`
+- `Documents/Content/Content_First30Min_ExperienceFlow.md`
+- `Documents/Content/Content_Story_Synopsis.md`
+- `Documents/Design/Design_Art_AnimationSpec.md`
+- `Documents/Design/Design_Art_Direction.md`
+- `Documents/Design/Design_Combat_Philosophy.md`
+- `Documents/Design/Design_CoreLoop_Circulation.md`
+- `Documents/Design/Design_Economy_FaucetSink.md`
+- `Documents/Design/Design_ItemWorld_DeepDive.md`
+- `Documents/Design/Design_Level_Standards.md`
+- `Documents/Design/Design_Monetization_Strategy.md`
+- `Documents/Design/Design_Progression_Reward.md`
+- `Documents/Design/Design_World_Master.md`
+- `Documents/Design/WorldLayout_GridVania_Analysis.md`
+- `Documents/Plan/Development_Roadmap.md`
+- `Documents/Plan/GameDesign_Agent_TaskList.md`
+- `Documents/Plan/Marketing_Plan.md`
+- `Documents/Plan/Phase2_RnD_MasterList.md`
+- `Documents/Plan/Project_Status_Dashboard_P1.md`
+- `Documents/Plan/Roadmap_GDD_MasterPlan.md`
+- `Documents/Plan/Spec/Spec_Content_Feature_Master.md`
+- `Documents/Plan/Spec/Spec_ItemWorld_Progression.md`
+- `Documents/Research/BLAME_Killy.md`
+- `Documents/Research/ItemDiversity_NonWeapon_FullSurvey_Research.md`
+- `Documents/Research/ItemWorldEntry_NaturalOnboarding_Research.md`
+- `Documents/Research/Player_Growth_System_Research.md`
+- `Documents/Research/ProceduralDecor_ThemePreset_Research.md`
+- `Documents/Research/RainWorld_ProceduralEffects_Research.md`
+- `Documents/System/System_3C_Camera.md`
+- `Documents/System/System_3C_Character.md`
+- `Documents/System/System_3C_Control.md`
+- `Documents/System/System_Audio_Direction.md`
+- `Documents/System/System_Combat_Action.md`
+- `Documents/System/System_Combat_Damage.md`
+- `Documents/System/System_Combat_HitFeedback.md`
+- `Documents/System/System_Growth_LevelExp.md`
+- `Documents/System/System_Growth_Stats.md`
+- `Documents/System/System_ItemWorld_Boss.md`
+- `Documents/System/System_ItemWorld_Core.md`
+- `Documents/System/System_ItemWorld_FloorGen.md`
+- `Documents/System/System_World_AbilityGating.md`
+- `Documents/System/System_World_VerticalGimmicks.md`
+- `Documents/Terms/GDD_Writing_Rules.md`
+- `Documents/Terms/Glossary.md`
+- `Documents/Terms/Sheets_Writing_Rules.md`
+- `Documents/UI/UI_Character_Stats.md`
+- `Documents/UI/UI_Healing_HUD.md`
+- `Documents/UI/UI_HUD_MasterPlan.md`
+- `Documents/UI/UI_ItemWorld_DepthGauge.md`
+- `game/index.html`
+- `game/public/assets/World_ProjectAbyss.ldtk`
+- `game/src/audio/AmbientLayer.ts`
+- `game/src/effects/ItemDeploymentController.ts`
+- `game/src/entities/CollapsingPlatform.ts`
+- `game/src/entities/Ghost.ts`
+- `game/src/scenes/itemworld/ItemWorldMapController.ts`
+- `game/src/scenes/itemworld/ItemWorldUiController.ts`
+- `game/src/scenes/ItemWorldScene.ts`
+- `game/src/scenes/LdtkWorldScene.ts`
+- `game/src/scenes/world/AnvilDeploymentFactory.ts`
+- `game/src/scenes/world/AnvilPromptController.ts`
+- `game/src/scenes/world/AnvilReturnState.ts`
+- `game/src/scenes/world/WorldUiController.ts`
+- `game/src/scenes/WorldScene.ts`
+- `game/src/ui/ItemDetailView.ts`
+- `game/vite.config.ts`
+- `memory/wiki/daily/2026-06-02.md`
+- `memory/wiki/features/BuilderInteriorVisibility.md`
+- `memory/wiki/features/ItemWorldEntryCorridor.md`
+- `memory/wiki/features/ItemWorldEntryStreaming.md`
+- `memory/wiki/features/OfflineWindowsBuild.md`
+- `memory/wiki/WIKI_INDEX.md`
+- `Sheets/tools/validate.mjs`
+
+## Status `A ` (452)
+
+- `Documents/Plan/Task_2026-05.md`
+- `game/public/assets/sprites/anvil_gate_02.aseprite`
+- `game/public/assets/sprites/anvil_gate_02_atlas.json`
+- `game/public/assets/sprites/anvil_gate_02_atlas.png`
+- `game/src/core/CameraZoneRuntime.ts`
+- `game/src/effects/ItemDeploymentTypes.ts`
+- `game/src/effects/ItemWorldEntrySequence.ts`
+- `game/src/effects/LegacyLaserItemDeploymentController.ts`
+- `game/src/level/LdtkTilesetPaths.ts`
+- `game/src/level/RuntimeCollisionScope.ts`
+- `game/src/scenes/itemworld/ItemWorldAbsorbDissolveRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldAnvilRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldBossChoiceRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldBoundaryVisualRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldBreakablePropRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldBurnablePropRegistry.ts`
+- `game/src/scenes/itemworld/ItemWorldCameraRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldCaptureOrbRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldCellVisualRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerCarryRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerDestructionRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerFluidRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerPhysicsRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerPromptRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldContainerRegistry.ts`
+- `game/src/scenes/itemworld/ItemWorldDebugInputRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldDevOverlayRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEgoDialogueRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEgoShardCastRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEgoShardCombatRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEgoShardImpactRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEgoShardProjectileRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEnemyCombatRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEnemyContactRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEnemyEncounterRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEnemyRegistry.ts`
+- `game/src/scenes/itemworld/ItemWorldEnemySpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryCorridorLayout.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryCorridorRevealRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryCorridorState.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryCorridorVisibilityRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryCorridorVisualRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldEntryGateState.ts`
+- `game/src/scenes/itemworld/ItemWorldEscapeRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldExitFadeRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldExitTelemetryState.ts`
+- `game/src/scenes/itemworld/ItemWorldFlowState.ts`
+- `game/src/scenes/itemworld/ItemWorldFullGridRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldFullMapLayerRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldHudRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldMemoryRoomPlacementRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldMemoryShardSpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldMemoryTriggerRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldMovementVfxRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldNeighborPreSpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldOnboardingRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldPickupRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldPlayerSpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldProceduralDecorRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldProjectileRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldResidentRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomClearRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomRewardSpawner.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomSpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomSpawnState.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomStateRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomTransitionRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRoomTypeRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldRunStats.ts`
+- `game/src/scenes/itemworld/ItemWorldRuntimeCellSpawner.ts`
+- `game/src/scenes/itemworld/ItemWorldSafeRoomResidentSpawnRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldStaticEntityRegistry.ts`
+- `game/src/scenes/itemworld/ItemWorldStaticEntityRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldStaticEntitySpawner.ts`
+- `game/src/scenes/itemworld/ItemWorldStratumClearPanelRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldStratumClearRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldStratumPickerRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldStratumStartSnapshot.ts`
+- `game/src/scenes/itemworld/ItemWorldTemplatePickerRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldTileHazardRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldTrapdoorDescentRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldTrapdoorRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldTrapdoorState.ts`
+- `game/src/scenes/itemworld/ItemWorldUnavailableInputRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldWeatherRuntime.ts`
+- `game/src/scenes/itemworld/ItemWorldWorldPromptRuntime.ts`
+- `game/src/scenes/world/AnvilCyclePromptRuntime.ts`
+- `game/src/scenes/world/FixedItemWorldRuntime.ts`
+- `game/src/scenes/world/InventoryTutorialHintRuntime.ts`
+- `game/src/scenes/world/ItemDeploymentTunnelRuntime.ts`
+- `game/src/scenes/world/ItemWorldEntryPreloader.ts`
+- `game/src/scenes/world/ItemWorldEntryPushTransition.ts`
+- `game/src/scenes/world/ItemWorldEntryStreamRuntime.ts`
+- `game/src/scenes/world/ItemWorldGhostCollisionRuntime.ts`
+- `game/src/scenes/world/ItemWorldGhostRevealRuntime.ts`
+- `game/src/scenes/world/ItemWorldGhostStreamOverlay.ts`
+- `game/src/scenes/world/ItemWorldGhostStreamRuntime.ts`
+- `game/src/scenes/world/ItemWorldGrowthSnapshotController.ts`
+- `game/src/scenes/world/ItemWorldReturnFadeRuntime.ts`
+- `game/src/scenes/world/ItemWorldTransitionRuntime.ts`
+- `game/src/scenes/world/PortalEntryRuntime.ts`
+- `game/src/scenes/world/PortalRuntime.ts`
+- `game/src/scenes/world/SavePointRuntime.ts`
+- `game/src/scenes/world/SaveRoomAudioRuntime.ts`
+- `game/src/scenes/world/WorldAcquireOverlayRuntime.ts`
+- `game/src/scenes/world/WorldAnvilDeploymentRuntime.ts`
+- `game/src/scenes/world/WorldAnvilDiveUiRuntime.ts`
+- `game/src/scenes/world/WorldAnvilInteractionRuntime.ts`
+- `game/src/scenes/world/WorldAnvilItemRuntime.ts`
+- `game/src/scenes/world/WorldAnvilItemWorldFlowRuntime.ts`
+- `game/src/scenes/world/WorldAnvilRetirementRuntime.ts`
+- `game/src/scenes/world/WorldAnvilReturnFlowRuntime.ts`
+- `game/src/scenes/world/WorldAnvilSpawnRuntime.ts`
+- `game/src/scenes/world/WorldBossLockRuntime.ts`
+- `game/src/scenes/world/WorldBreakablePropRegistry.ts`
+- `game/src/scenes/world/WorldBreakablePropRuntime.ts`
+- `game/src/scenes/world/WorldBreakableRegistry.ts`
+- `game/src/scenes/world/WorldBreakableRuntime.ts`
+- `game/src/scenes/world/WorldBuilderAttachmentRuntime.ts`
+- `game/src/scenes/world/WorldBuilderDoorSwitchRuntime.ts`
+- `game/src/scenes/world/WorldBuilderEntranceRuntime.ts`
+- `game/src/scenes/world/WorldBuilderGrassRuntime.ts`
+- `game/src/scenes/world/WorldBuilderInteriorVisibilityRuntime.ts`
+- `game/src/scenes/world/WorldBuilderItemRuntime.ts`
+- `game/src/scenes/world/WorldBuilderLayerRuntime.ts`
+- `game/src/scenes/world/WorldBuilderPersistenceRuntime.ts`
+- `game/src/scenes/world/WorldBuilderPlayerStateRuntime.ts`
+- `game/src/scenes/world/WorldBuilderSpawnerRuntime.ts`
+- `game/src/scenes/world/WorldBuilderSpriteRuntime.ts`
+- `game/src/scenes/world/WorldBuilderStampRuntime.ts`
+- `game/src/scenes/world/WorldBuilderStaticEntityRuntime.ts`
+- `game/src/scenes/world/WorldBuilderStepFeedbackRuntime.ts`
+- `game/src/scenes/world/WorldBuilderVisualFilterRuntime.ts`
+- `game/src/scenes/world/WorldBuilderWeatherRuntime.ts`
+- `game/src/scenes/world/WorldBuildingRegistry.ts`
+- `game/src/scenes/world/WorldBuildingRuntime.ts`
+- `game/src/scenes/world/WorldBurnablePropRegistry.ts`
+- `game/src/scenes/world/WorldBurnablePropRuntime.ts`
+- `game/src/scenes/world/WorldCameraInputRuntime.ts`
+- `game/src/scenes/world/WorldCollapsingPlatformRegistry.ts`
+- `game/src/scenes/world/WorldCollapsingPlatformRuntime.ts`
+- `game/src/scenes/world/WorldCollisionGridRuntime.ts`
+- `game/src/scenes/world/WorldCombatFeedbackRuntime.ts`
+- `game/src/scenes/world/WorldContainerAttackRuntime.ts`
+- `game/src/scenes/world/WorldContainerCarryRuntime.ts`
+- `game/src/scenes/world/WorldContainerDestructionRuntime.ts`
+- `game/src/scenes/world/WorldContainerFluidRuntime.ts`
+- `game/src/scenes/world/WorldContainerPhysicsRuntime.ts`
+- `game/src/scenes/world/WorldContainerRegistry.ts`
+- `game/src/scenes/world/WorldContainerSpawnRuntime.ts`
+- `game/src/scenes/world/WorldCrackedFloorRegistry.ts`
+- `game/src/scenes/world/WorldCrackedFloorRuntime.ts`
+- `game/src/scenes/world/WorldDebugWarpRuntime.ts`
+- `game/src/scenes/world/WorldDeployBlurRuntime.ts`
+- `game/src/scenes/world/WorldDialogueTriggerRuntime.ts`
+- `game/src/scenes/world/WorldDoorAttackState.ts`
+- `game/src/scenes/world/WorldDoorSwitchInteractionRuntime.ts`
+- `game/src/scenes/world/WorldDoorSwitchRegistry.ts`
+- `game/src/scenes/world/WorldDoorSwitchSpawnRuntime.ts`
+- `game/src/scenes/world/WorldDungeonAtmosphereRuntime.ts`
+- `game/src/scenes/world/WorldEdgeTransitionFlowRuntime.ts`
+- `game/src/scenes/world/WorldEdgeTransitionRuntime.ts`
+- `game/src/scenes/world/WorldEgoDialogueRuntime.ts`
+- `game/src/scenes/world/WorldEgoShardCastRuntime.ts`
+- `game/src/scenes/world/WorldEgoShardCombatRuntime.ts`
+- `game/src/scenes/world/WorldEgoShardImpactRuntime.ts`
+- `game/src/scenes/world/WorldEgoShardProjectileRuntime.ts`
+- `game/src/scenes/world/WorldEgoShardRuntime.ts`
+- `game/src/scenes/world/WorldEndingRuntime.ts`
+- `game/src/scenes/world/WorldEnemyKillRuntime.ts`
+- `game/src/scenes/world/WorldEnemyRegistry.ts`
+- `game/src/scenes/world/WorldEnemySpawnRuntime.ts`
+- `game/src/scenes/world/WorldExitGlowRuntime.ts`
+- `game/src/scenes/world/WorldFixedItemSpawnRuntime.ts`
+- `game/src/scenes/world/WorldFixedItemWorldFlowRuntime.ts`
+- `game/src/scenes/world/WorldFluidContactState.ts`
+- `game/src/scenes/world/WorldFluidFeedbackRuntime.ts`
+- `game/src/scenes/world/WorldFluidRuntime.ts`
+- `game/src/scenes/world/WorldFrozenReturnRuntime.ts`
+- `game/src/scenes/world/WorldFrozenSnapshotRuntime.ts`
+- `game/src/scenes/world/WorldGameOverRuntime.ts`
+- `game/src/scenes/world/WorldGrassFireRuntime.ts`
+- `game/src/scenes/world/WorldGrowingWallRegistry.ts`
+- `game/src/scenes/world/WorldGrowingWallRuntime.ts`
+- `game/src/scenes/world/WorldHandPlacedItemRuntime.ts`
+- `game/src/scenes/world/WorldIntroHandoffRuntime.ts`
+- `game/src/scenes/world/WorldItemDeploymentAtmosphereFlowRuntime.ts`
+- `game/src/scenes/world/WorldItemDeploymentCollisionRuntime.ts`
+- `game/src/scenes/world/WorldItemDeploymentTunnelFlowRuntime.ts`
+- `game/src/scenes/world/WorldItemDropRuntime.ts`
+- `game/src/scenes/world/WorldItemWorldEntryState.ts`
+- `game/src/scenes/world/WorldItemWorldSceneFlowRuntime.ts`
+- `game/src/scenes/world/WorldLaserDesaturationRuntime.ts`
+- `game/src/scenes/world/WorldMaintainedContainerSpawnerRuntime.ts`
+- `game/src/scenes/world/WorldMapRuntime.ts`
+- `game/src/scenes/world/WorldMinimapRuntime.ts`
+- `game/src/scenes/world/WorldMovementVfxRuntime.ts`
+- `game/src/scenes/world/WorldNoWeaponFeedbackRuntime.ts`
+- `game/src/scenes/world/WorldPickupRuntime.ts`
+- `game/src/scenes/world/WorldPickupVfxRuntime.ts`
+- `game/src/scenes/world/WorldPlayerImpactRuntime.ts`
+- `game/src/scenes/world/WorldPlayerProgressionState.ts`
+- `game/src/scenes/world/WorldPlayerSpawnRuntime.ts`
+- `game/src/scenes/world/WorldPlayerStatRuntime.ts`
+- `game/src/scenes/world/WorldPortalItemWorldFlowRuntime.ts`
+- `game/src/scenes/world/WorldProceduralDecorRuntime.ts`
+- `game/src/scenes/world/WorldProgressState.ts`
+- `game/src/scenes/world/WorldProjectileRuntime.ts`
+- `game/src/scenes/world/WorldRelicPickupRuntime.ts`
+- `game/src/scenes/world/WorldSacredPickupRuntime.ts`
+- `game/src/scenes/world/WorldSacredPickupState.ts`
+- `game/src/scenes/world/WorldSaveRuntime.ts`
+- `game/src/scenes/world/WorldSecretWallRegistry.ts`
+- `game/src/scenes/world/WorldSecretWallRuntime.ts`
+- `game/src/scenes/world/WorldSolidifiedWallOverlay.ts`
+- `game/src/scenes/world/WorldSpawnState.ts`
+- `game/src/scenes/world/WorldSpikeRegistry.ts`
+- `game/src/scenes/world/WorldSpikeRuntime.ts`
+- `game/src/scenes/world/WorldStatusFeedbackRuntime.ts`
+- `game/src/scenes/world/WorldTerrainPaletteRuntime.ts`
+- `game/src/scenes/world/WorldTileMutationRuntime.ts`
+- `game/src/scenes/world/WorldTutorialHintRuntime.ts`
+- `game/src/scenes/world/WorldUpdraftRuntime.ts`
+- `game/src/scenes/world/WorldVoidFogRuntime.ts`
+- `game/src/scenes/world/WorldVoidReturnRuntime.ts`
+- `game/src/scenes/world/WorldVoidRuntime.ts`
+- `game/src/scenes/world/WorldWeatherRuntime.ts`
+- `game/src/ui/BossHpRuntime.ts`
+- `game/src/ui/GamepadToastBinding.ts`
+- `game/src/ui/ItemWorldLeaveConfirmPanel.ts`
+- `game/src/ui/LowHpHealHintRuntime.ts`
+- `game/src/ui/OxygenOverlay.ts`
+- `memory/wiki/daily/2026-06-03.md`
+- `memory/wiki/decisions/DEC-042-Official-Runtime-Collision-Scope.md`
+- `memory/wiki/decisions/DEC-043-Prologue-Playable-Dive.md`
+- `memory/wiki/decisions/DEC-044-Faction-Visual-Identity.md`
+- `memory/wiki/features/AnvilCyclePromptRuntime.md`
+- `memory/wiki/features/AnvilPromptController.md`
+- `memory/wiki/features/ArchivedDiveTransitionCleanup.md`
+- `memory/wiki/features/AreaPaletteValidation.md`
+- `memory/wiki/features/BossHpRuntime.md`
+- `memory/wiki/features/BuildChunkBudget.md`
+- `memory/wiki/features/CameraZoneRuntime.md`
+- `memory/wiki/features/InventoryTutorialHintRuntime.md`
+- `memory/wiki/features/ItemWorldAbsorbDissolveRuntime.md`
+- `memory/wiki/features/ItemWorldAnvilRuntime.md`
+- `memory/wiki/features/ItemWorldBossChoiceRuntime.md`
+- `memory/wiki/features/ItemWorldBoundaryVisualRuntime.md`
+- `memory/wiki/features/ItemWorldBreakablePropRuntime.md`
+- `memory/wiki/features/ItemWorldBurnablePropRegistry.md`
+- `memory/wiki/features/ItemWorldCameraRuntime.md`
+- `memory/wiki/features/ItemWorldCaptureOrbRuntime.md`
+- `memory/wiki/features/ItemWorldCellVisualRuntime.md`
+- `memory/wiki/features/ItemWorldContainerCarryRuntime.md`
+- `memory/wiki/features/ItemWorldContainerDestructionRuntime.md`
+- `memory/wiki/features/ItemWorldContainerFluidRuntime.md`
+- `memory/wiki/features/ItemWorldContainerPhysicsRuntime.md`
+- `memory/wiki/features/ItemWorldContainerPromptRuntime.md`
+- `memory/wiki/features/ItemWorldContainerRegistry.md`
+- `memory/wiki/features/ItemWorldDebugInputRuntime.md`
+- `memory/wiki/features/ItemWorldDevOverlayRuntime.md`
+- `memory/wiki/features/ItemWorldEgoDialogueRuntime.md`
+- `memory/wiki/features/ItemWorldEgoShardCastRuntime.md`
+- `memory/wiki/features/ItemWorldEgoShardCombatRuntime.md`
+- `memory/wiki/features/ItemWorldEgoShardImpactRuntime.md`
+- `memory/wiki/features/ItemWorldEgoShardProjectileRuntime.md`
+- `memory/wiki/features/ItemWorldEnemyCombatRuntime.md`
+- `memory/wiki/features/ItemWorldEnemyContactRuntime.md`
+- `memory/wiki/features/ItemWorldEnemyEncounterRuntime.md`
+- `memory/wiki/features/ItemWorldEnemyRegistry.md`
+- `memory/wiki/features/ItemWorldEnemySpawnRuntime.md`
+- `memory/wiki/features/ItemWorldEntryCorridorLayout.md`
+- `memory/wiki/features/ItemWorldEntryCorridorRevealRuntime.md`
+- `memory/wiki/features/ItemWorldEntryCorridorState.md`
+- `memory/wiki/features/ItemWorldEntryCorridorVisibilityRuntime.md`
+- `memory/wiki/features/ItemWorldEntryCorridorVisualRuntime.md`
+- `memory/wiki/features/ItemWorldEntryGateState.md`
+- `memory/wiki/features/ItemWorldEscapeRuntime.md`
+- `memory/wiki/features/ItemWorldExitFadeRuntime.md`
+- `memory/wiki/features/ItemWorldExitTelemetryState.md`
+- `memory/wiki/features/ItemWorldFlowState.md`
+- `memory/wiki/features/ItemWorldFullGridRuntime.md`
+- `memory/wiki/features/ItemWorldFullMapLayerRuntime.md`
+- `memory/wiki/features/ItemWorldFullMapRuntimePath.md`
+- `memory/wiki/features/ItemWorldHudRuntime.md`
+- `memory/wiki/features/ItemWorldMemoryRoomPlacementRuntime.md`
+- `memory/wiki/features/ItemWorldMemoryShardSpawnRuntime.md`
+- `memory/wiki/features/ItemWorldMemoryTriggerRuntime.md`
+- `memory/wiki/features/ItemWorldMovementVfxRuntime.md`
+- `memory/wiki/features/ItemWorldNeighborPreSpawnRuntime.md`
+- `memory/wiki/features/ItemWorldOnboardingRuntime.md`
+- `memory/wiki/features/ItemWorldPickupRuntime.md`
+- `memory/wiki/features/ItemWorldPlayerSpawnRuntime.md`
+- `memory/wiki/features/ItemWorldProceduralDecorRuntime.md`
+- `memory/wiki/features/ItemWorldProjectileRuntime.md`
+- `memory/wiki/features/ItemWorldResidentRuntime.md`
+- `memory/wiki/features/ItemWorldReturnFadeRuntime.md`
+- `memory/wiki/features/ItemWorldRoomClearRuntime.md`
+- `memory/wiki/features/ItemWorldRoomRewardSpawner.md`
+- `memory/wiki/features/ItemWorldRoomSpawnRuntime.md`
+- `memory/wiki/features/ItemWorldRoomSpawnState.md`
+- `memory/wiki/features/ItemWorldRoomStateRuntime.md`
+- `memory/wiki/features/ItemWorldRoomTransitionRuntime.md`
+- `memory/wiki/features/ItemWorldRoomTypeRuntime.md`
+- `memory/wiki/features/ItemWorldRunStats.md`
+- `memory/wiki/features/ItemWorldRuntimeCellSpawner.md`
+- `memory/wiki/features/ItemWorldSafeRoomResidentSpawnRuntime.md`
+- `memory/wiki/features/ItemWorldStaticEntityRegistry.md`
+- `memory/wiki/features/ItemWorldStaticEntityRuntime.md`
+- `memory/wiki/features/ItemWorldStaticEntitySpawner.md`
+- `memory/wiki/features/ItemWorldStratumClearPanelRuntime.md`
+- `memory/wiki/features/ItemWorldStratumClearRuntime.md`
+- `memory/wiki/features/ItemWorldStratumPickerRuntime.md`
+- `memory/wiki/features/ItemWorldStratumStartSnapshot.md`
+- `memory/wiki/features/ItemWorldTemplatePickerRuntime.md`
+- `memory/wiki/features/ItemWorldTileHazardRuntime.md`
+- `memory/wiki/features/ItemWorldTrapdoorDescentRuntime.md`
+- `memory/wiki/features/ItemWorldTrapdoorRuntime.md`
+- `memory/wiki/features/ItemWorldTrapdoorState.md`
+- `memory/wiki/features/ItemWorldUnavailableInputRuntime.md`
+- `memory/wiki/features/ItemWorldWeatherRuntime.md`
+- `memory/wiki/features/ItemWorldWorldPromptRuntime.md`
+- `memory/wiki/features/OxygenOverlay.md`
+- `memory/wiki/features/SavePointRuntime.md`
+- `memory/wiki/features/SharedUiBindings.md`
+- `memory/wiki/features/WorldAcquireOverlayRuntime.md`
+- `memory/wiki/features/WorldAnvilDeploymentRuntime.md`
+- `memory/wiki/features/WorldAnvilDiveUiRuntime.md`
+- `memory/wiki/features/WorldAnvilInteractionRuntime.md`
+- `memory/wiki/features/WorldAnvilItemRuntime.md`
+- `memory/wiki/features/WorldAnvilItemWorldFlowRuntime.md`
+- `memory/wiki/features/WorldAnvilRetirementRuntime.md`
+- `memory/wiki/features/WorldAnvilReturnFlowRuntime.md`
+- `memory/wiki/features/WorldAnvilSpawnRuntime.md`
+- `memory/wiki/features/WorldBossLockRuntime.md`
+- `memory/wiki/features/WorldBreakablePropRegistry.md`
+- `memory/wiki/features/WorldBreakablePropRuntime.md`
+- `memory/wiki/features/WorldBreakableRegistry.md`
+- `memory/wiki/features/WorldBreakableRuntime.md`
+- `memory/wiki/features/WorldBuilderAttachmentRuntime.md`
+- `memory/wiki/features/WorldBuilderDoorSwitchRuntime.md`
+- `memory/wiki/features/WorldBuilderEntranceRuntime.md`
+- `memory/wiki/features/WorldBuilderGrassRuntime.md`
+- `memory/wiki/features/WorldBuilderInteriorVisibilityRuntime.md`
+- `memory/wiki/features/WorldBuilderItemRuntime.md`
+- `memory/wiki/features/WorldBuilderLayerRuntime.md`
+- `memory/wiki/features/WorldBuilderPersistenceRuntime.md`
+- `memory/wiki/features/WorldBuilderPlayerStateRuntime.md`
+- `memory/wiki/features/WorldBuilderSpawnerRuntime.md`
+- `memory/wiki/features/WorldBuilderSpriteRuntime.md`
+- `memory/wiki/features/WorldBuilderStampRuntime.md`
+- `memory/wiki/features/WorldBuilderStaticEntityRuntime.md`
+- `memory/wiki/features/WorldBuilderStepFeedbackRuntime.md`
+- `memory/wiki/features/WorldBuilderVisualFilterRuntime.md`
+- `memory/wiki/features/WorldBuilderWeatherRuntime.md`
+- `memory/wiki/features/WorldBuildingRegistry.md`
+- `memory/wiki/features/WorldBuildingRuntime.md`
+- `memory/wiki/features/WorldBurnablePropRegistry.md`
+- `memory/wiki/features/WorldBurnablePropRuntime.md`
+- `memory/wiki/features/WorldCameraInputRuntime.md`
+- `memory/wiki/features/WorldCollapsingPlatformRegistry.md`
+- `memory/wiki/features/WorldCollapsingPlatformRuntime.md`
+- `memory/wiki/features/WorldCollisionGridRuntime.md`
+- `memory/wiki/features/WorldCombatFeedbackRuntime.md`
+- `memory/wiki/features/WorldContainerAttackRuntime.md`
+- `memory/wiki/features/WorldContainerCarryRuntime.md`
+- `memory/wiki/features/WorldContainerDestructionRuntime.md`
+- `memory/wiki/features/WorldContainerFluidRuntime.md`
+- `memory/wiki/features/WorldContainerPhysicsRuntime.md`
+- `memory/wiki/features/WorldContainerRegistry.md`
+- `memory/wiki/features/WorldContainerSpawnRuntime.md`
+- `memory/wiki/features/WorldCrackedFloorRegistry.md`
+- `memory/wiki/features/WorldCrackedFloorRuntime.md`
+- `memory/wiki/features/WorldDebugWarpRuntime.md`
+- `memory/wiki/features/WorldDeployBlurRuntime.md`
+- `memory/wiki/features/WorldDialogueTriggerRuntime.md`
+- `memory/wiki/features/WorldDoorAttackState.md`
+- `memory/wiki/features/WorldDoorSwitchInteractionRuntime.md`
+- `memory/wiki/features/WorldDoorSwitchRegistry.md`
+- `memory/wiki/features/WorldDoorSwitchSpawnRuntime.md`
+- `memory/wiki/features/WorldDungeonAtmosphereRuntime.md`
+- `memory/wiki/features/WorldEdgeTransitionFlowRuntime.md`
+- `memory/wiki/features/WorldEdgeTransitionRuntime.md`
+- `memory/wiki/features/WorldEgoShardCastRuntime.md`
+- `memory/wiki/features/WorldEgoShardCombatRuntime.md`
+- `memory/wiki/features/WorldEgoShardImpactRuntime.md`
+- `memory/wiki/features/WorldEgoShardProjectileRuntime.md`
+- `memory/wiki/features/WorldEgoShardRuntime.md`
+- `memory/wiki/features/WorldEndingRuntime.md`
+- `memory/wiki/features/WorldEnemyKillRuntime.md`
+- `memory/wiki/features/WorldEnemyRegistry.md`
+- `memory/wiki/features/WorldEnemySpawnRuntime.md`
+- `memory/wiki/features/WorldExitGlowRuntime.md`
+- `memory/wiki/features/WorldFixedItemSpawnRuntime.md`
+- `memory/wiki/features/WorldFixedItemWorldFlowRuntime.md`
+- `memory/wiki/features/WorldFluidContactState.md`
+- `memory/wiki/features/WorldFluidFeedbackRuntime.md`
+- `memory/wiki/features/WorldFluidRuntime.md`
+- `memory/wiki/features/WorldFrozenReturnRuntime.md`
+- `memory/wiki/features/WorldFrozenSnapshotRuntime.md`
+- `memory/wiki/features/WorldGameOverRuntime.md`
+- `memory/wiki/features/WorldGrassFireRuntime.md`
+- `memory/wiki/features/WorldGrowingWallRegistry.md`
+- `memory/wiki/features/WorldGrowingWallRuntime.md`
+- `memory/wiki/features/WorldHandPlacedItemRuntime.md`
+- `memory/wiki/features/WorldIntroHandoffRuntime.md`
+- `memory/wiki/features/WorldItemDeploymentAtmosphereFlowRuntime.md`
+- `memory/wiki/features/WorldItemDeploymentCollisionRuntime.md`
+- `memory/wiki/features/WorldItemDeploymentTunnelFlowRuntime.md`
+- `memory/wiki/features/WorldItemDropRuntime.md`
+- `memory/wiki/features/WorldItemWorldEntryState.md`
+- `memory/wiki/features/WorldItemWorldSceneFlowRuntime.md`
+- `memory/wiki/features/WorldLaserDesaturationRuntime.md`
+- `memory/wiki/features/WorldMaintainedContainerSpawnerRuntime.md`
+- `memory/wiki/features/WorldMapRuntime.md`
+- `memory/wiki/features/WorldMinimapRuntime.md`
+- `memory/wiki/features/WorldMovementVfxRuntime.md`
+- `memory/wiki/features/WorldNoWeaponFeedbackRuntime.md`
+- `memory/wiki/features/WorldPickupRuntime.md`
+- `memory/wiki/features/WorldPickupVfxRuntime.md`
+- `memory/wiki/features/WorldPlayerImpactRuntime.md`
+- `memory/wiki/features/WorldPlayerProgressionState.md`
+- `memory/wiki/features/WorldPlayerSpawnRuntime.md`
+- `memory/wiki/features/WorldPlayerStatRuntime.md`
+- `memory/wiki/features/WorldPortalItemWorldFlowRuntime.md`
+- `memory/wiki/features/WorldProceduralDecorRuntime.md`
+- `memory/wiki/features/WorldProgressState.md`
+- `memory/wiki/features/WorldProjectileRuntime.md`
+- `memory/wiki/features/WorldRelicPickupRuntime.md`
+- `memory/wiki/features/WorldSacredPickupRuntime.md`
+- `memory/wiki/features/WorldSacredPickupState.md`
+- `memory/wiki/features/WorldSaveRuntime.md`
+- `memory/wiki/features/WorldSecretWallRegistry.md`
+- `memory/wiki/features/WorldSecretWallRuntime.md`
+- `memory/wiki/features/WorldSolidifiedWallOverlay.md`
+- `memory/wiki/features/WorldSpawnState.md`
+- `memory/wiki/features/WorldSpikeRegistry.md`
+- `memory/wiki/features/WorldSpikeRuntime.md`
+- `memory/wiki/features/WorldStatusFeedbackRuntime.md`
+- `memory/wiki/features/WorldTerrainPaletteRuntime.md`
+- `memory/wiki/features/WorldTileMutationRuntime.md`
+- `memory/wiki/features/WorldTransitionController.md`
+- `memory/wiki/features/WorldTutorialHintRuntime.md`
+- `memory/wiki/features/WorldUiController.md`
+- `memory/wiki/features/WorldUpdraftRuntime.md`
+- `memory/wiki/features/WorldVoidFogRuntime.md`
+- `memory/wiki/features/WorldVoidReturnRuntime.md`
+- `memory/wiki/features/WorldVoidRuntime.md`
+- `memory/wiki/features/WorldWeatherRuntime.md`
+- `tools/image-to-pixel/image-to-pixel.js`
+- `tools/image-to-pixel/index.html`
+- `tools/image-to-pixel/README.md`
+
+## Status `AM` (1)
+
+- `Documents/Plan/Task_2026-06.md`
+
+
+
+1. 게임 코드 구조 리팩토링 (핵심)
+
+- game/src/scenes/ 중심으로 시스템을 런타임
+  단위로 완전 분해.
+- game/src/scenes/world에 141개 런타임/상태
+  모듈 추가.
+- game/src/scenes/itemworld에 76개 런타임 모
+  듈 추가.
+- 대표 패턴: *Runtime.ts, *Registry.ts,*State.ts, *FlowRuntime.ts,*TransitionRuntime.ts 등으로 기능 분리.
+- 제거: 기존 단일 제어 지점 성격의 game/src/
+  scenes/world/WorldInteractionController.ts
+  삭제.
+- 대형 파일 정리:
+  - game/src/scenes/ItemWorldScene.ts
+  - game/src/scenes/LdtkWorldScene.ts
+  - game/src/scenes/WorldScene.ts
+    에 대한 대규모 리팩토링으로 새 런타임
+    호출 구조에 맞게 정렬.
+
+2. 시스템/코어/효과 레이어 분리
+
+- game/src/core/CameraZoneRuntime.ts
+- game/src/level/RuntimeCollisionScope.ts,LdtkTilesetPaths.ts
+- game/src/effects/ItemDeploymentTypes.ts,ItemWorldEntrySequence.ts,LegacyLaserItemDeploymentController.ts
+- game/src/entities/audio/ui 쪽 럼타임/보조
+  유틸 추가:
+  - BossHpRuntime, GamepadToastBinding,
+    LowHpHealHintRuntime, OxygenOverlay,
+    ItemWorldLeaveConfirmPanel 등.
+
+3. 아이템월드·월드 전반 시스템 확장
+
+- 아이템월드: 진입/추적/구조 생성/전이/보상/
+  적/오브젝트/맵/이펙트/입력/입구/탈출/테마
+  등 기능별 런타임 추가.
+- 월드: 상호작용, 건축/배치/충돌/문/적/총알/
+  파괴/트랩/환경/시각보정/미니맵/탈출/엔드/
+  게임오버/저장/상태/카메라 등 거의 모든 기
+  능을 런타임으로 세분화.
+- 덕분에 모듈 단위 유지보수성이 크게 올라가
+  고, 후속 기능 추가 시 의존성이 덜 얽히는
+  구조로 바뀜.
+
+4. 자산·툴·빌드 파이프라인
+
+- 새 아틀라스 자산 추가: game/public/assets/
+  sprites/anvil_gate_02*
+- 사용되지 않는(또는 정리 대상) 스프라이트아카이브 PNG 7개 삭제.
+- game/public/assets/World_ProjectAbyss.ldtk
+  갱신.
+- Sheets/tools/validate.mjs 보강.
+- tools/image-to-pixel/* 신규 유틸 추가.
+- game/vite.config.ts 및 오프라인 빌드/패키
+  징 흐름 정비.
+
+5. 문서/지식 베이스 정합화(AGENTS 규칙 준수
+   반영)
+
+- memory/wiki/decisions에 3개 신규 의사결정
+  문서 추가:
+  - DEC-042, DEC-043, DEC-044
+- memory/wiki/features에 217개 신규 기능 문
+  서 추가.
+- memory/wiki/WIKI_INDEX.md 갱신.
+- memory/wiki/daily/2026-06-03.md 추가,2026-06-02 갱신.
+- Documents(Design/Plan/System/UI/Research/
+  Terms) 대규모 동기화.

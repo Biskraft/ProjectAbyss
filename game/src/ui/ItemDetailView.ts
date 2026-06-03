@@ -50,10 +50,10 @@ export class ItemDetailView {
     this.panel.addChild(this.contentContainer);
   }
 
-  show(item: ItemInstance): void {
+  show(item: ItemInstance, playerLevel = 1): void {
     this.visible = true;
     this.container.visible = true;
-    this.draw(item);
+    this.draw(item, playerLevel);
   }
 
   hide(): void {
@@ -61,7 +61,7 @@ export class ItemDetailView {
     this.container.visible = false;
   }
 
-  private draw(item: ItemInstance): void {
+  private draw(item: ItemInstance, playerLevel: number): void {
     const rarityColor = RARITY_COLOR[item.rarity] ?? COL_TEXT;
     let y = 12;
     const lines: { text: string; x: number; y: number; color: number; size: number }[] = [];
@@ -90,7 +90,7 @@ export class ItemDetailView {
 
     // Stats
     add(t('ui.detail.stats'), 16, COL_DIM, 7);
-    const base = getPlayerBaseStats(1); // TODO: pass actual player level
+    const base = getPlayerBaseStats(playerLevel);
     const bonusAtk = calcInnocentBonus(item, 'atk' as InnocentStatKey);
     const bonusHp = calcInnocentBonus(item, 'hp' as InnocentStatKey);
     add(t('ui.detail.atk_full', {

@@ -139,5 +139,5 @@
 |:-----|:-----|:-----|
 | 스파이크 리뷰 | `Documents/Research/SpikeReview_PostRedesign_2026-04-05.md` | 설계 축소 결과 평가 |
 | 스파이크 분석 | `Documents/Research/SpikeFeature_CompetitiveAnalysis_Research.md` | 경쟁 환경 분석 |
-| 첫 30분 플로우 | `Documents/Content/Content_First30Min_ExperienceFlow.md` | 플레이어 경험 시나리오 |
+| 진행 Ch.0~1 (구 첫 30분) | `Documents/Content/Content_Ch1_DrownedFloor.md` (CNT-CH1) · `Content_Progression_Master.md` (CNT-PROG) | 플레이어 경험 시나리오 |
 | 수익화 전략 | `Documents/Design/Design_Monetization_Strategy.md` | 웹 무료 + Steam 프리미엄 |

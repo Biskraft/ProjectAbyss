@@ -58,7 +58,7 @@
 | Echo | 에코 | 잊혀진 자가 무기에 남긴 마지막 한 마디가 응결된 잔존체. 곧 게임 내 모든 장비 아이템의 통칭. 포지로 에코 내부 위상에 진입해 마지막 음성을 회수하면 자기 검에 새길 수 있다. 작품명 ECHORIS 의 어원. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md` |
 | Erda | 에르다 | 주인공. 자기 이름·기억을 잃은 채 메가 스트럭처 빈 공동에서 깨어난다. Sculpted Avatar 유형. 붉은-갈색 머리 + 청록 눈. 시작 후 약 5분 첫 다이브에서 러스트본을 통해 자기 이름을 안다. | `Documents/Content/Content_Characters.md` |
 | Forge | 포지 | 빌더 내부에만 존재하는 거대 단조 장치. 잔존자의 마지막 기술. 에코를 포지 위에 놓고 격발하면 시공 한 박자에 맞춰 에코 내부 위상으로 진입한다. 아이템계 진입의 in-universe 메커니즘. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md` |
-| Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소�� 순환: 화→빙→뇌→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
+| Enchant | 인챈트 | 에코로 무기를 두드려 원소를 입히는 행위. 전투 중 1초 모션으로 원소 전환 가능 (↑+공격). 해금된 원소의 순환: 화→빙→뇌→무→화. 인챈트된 무기의 모든 공격에 해당 원소 적용. 피격 취약 1초 = 리스크. | `Documents/System/System_Combat_Action.md` |
 | Equipment Slot | 장비 슬롯 | 캐릭터가 장착 가능한 아이템 슬롯의 종류. 무기·보조무기·머리·갑옷·망토·장신구(x2) 총 7슬롯으로 구성된다. 슬롯별로 아이템 유형이 고정된다. | `Reference/게임 기획 개요.md` |
 | Floor / Stratum | 층 / 지층 | 아이템계(Item World) 내부 던전의 진행 단위. 아이템계는 레어리티별 2-4개 지층으로 구성되며, 각 지층은 메트로베니아 스타일의 Room Grid 던전이다. 각 지층의 보스를 처치해야 다음 지층으로 진행한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
@@ -89,7 +89,7 @@
 | INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
 | Item World | 아이템계 | 장비 아이템 내부의 절차적 던전. 레어리티별 2-4개 지층으로 구성되며, 1-2인이 협동하여 (Phase 4+에서 최대 4인) 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
 
-> 📦 아이템계 보스 narrative 명칭 행 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`. 보스 등급은 Tier 1~4 로 mechanic 라벨링 예정.
+> 📦 아이템계 보스 narrative 명칭 행 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`. 보스 등급은 Tier 1-4 로 mechanic 라벨링 예정.
 
 ---
 
@@ -199,7 +199,7 @@
 
 | 스탯 | 게이트 유형 | 예시 장벽 |
 | :--- | :--- | :--- |
-| ATK | 물리 장�� | 금이 간 벽 파괴, 바리케��드 돌파, 중문/쇠사슬/바위 |
+| ATK | 물리 장벽 | 금이 간 벽 파괴, 바리케이드드 돌파, 중문/쇠사슬/바위 |
 | INT | 마법 봉인 | 룬 문양 장벽, 마법 봉인 문, 아케인 잠금장치, 룬 퍼즐 |
 
 > **설계 변경:** 기존 6대 스탯 게이트(STR/INT/DEX/VIT/SPD/LCK)는 ATK/INT 이중 게이트로 재설계. ATK는 물리 장벽(파괴), INT는 마법 봉인(해제). 기동성/환경 저항/시간 제한 등은 능력 게이트나 환경 퍼즐로 재설계 예정.
@@ -208,5 +208,5 @@
 
 ## 아이템계 보스 빠른 참조
 
-> 📦 보스 등급 narrative 명칭 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`. Tier 1~4 mechanic 라벨로 재정의 대기.
+> 📦 보스 등급 narrative 명칭 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`. Tier 1-4 mechanic 라벨로 재정의 대기.
 > 단편/슬롯/레어리티 승급 보상도 동일 라운드로 분리 보존.

@@ -13,7 +13,7 @@
 * 전투 설계 철학: `Documents/Design/Design_Combat_Philosophy.md`
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`
 * 타격 피드백: `Documents/System/System_Combat_HitFeedback.md`
-* 첫 30분 경험 흐름: `Documents/Content/Content_First30Min_ExperienceFlow.md` (CNT-EXP-001) — Screen 13 그림자 검사 보스 확정 스펙
+* 첫 보스 내러티브 맥락: `Documents/Content/Content_Ch1_DrownedFloor.md` (CNT-CH1, B8 첫 다이브 전투) — ⚠️ 그림자 검사 보스 수치(HP/ATK) SSoT 는 본 문서로 이관 필요. 구 "CNT-EXP-001 Screen 13" 은 흡수·삭제됨(해당 라벨은 이전부터 부재 — staleness).
 * ~~첫 아이템 서사: `Documents/Content/Content_Item_Narrative_FirstSword.md` (CNT-ITM-002) — 그림자 검사 내러티브 근거~~ **DEPRECATED 2026-05-20 (판타지 톤 — 파일 삭제). 첫 보스 내러티브 재작성 대기.**
 * 아이템 서사 신규 기준: `Documents/Content/Content_Item_Narrative_SurveyorEchoWedge.md` (CNT-ITM-001 신판) — 첫 보스 내러티브 재작성 시 포맷 참조
 * 보스 디자인 리서치: `Documents/Research/BossDesign_SideScrolling_Research.md`
@@ -31,7 +31,7 @@
 | 기능 ID    | 분류       | 기능명                                                         | 우선순위 | 구현 상태 | 비고                                                  |
 | :--------- | :--------- | :------------------------------------------------------------- | :------: | :-------- | :---------------------------------------------------- |
 | IWB-01-A   | 코어       | 4단계 보스 계층 정의 (장군/왕/신/대신)                         |    P1    | 대기      | SYS-IW-01 보스 등급 테이블과 동기화                   |
-| IWB-01-B   | 코어       | 첫 보스 참조 명세 — 그림자 검사 (Shadow Swordsman)             |    P0    | 대기      | CNT-EXP-001 Screen 13 확정 스펙. 섹션 2.9 참조        |
+| IWB-01-B   | 코어       | 첫 보스 참조 명세 — 그림자 검사 (Shadow Swordsman)             |    P0    | 대기      | 본 문서 §2.9 확정 스펙 (구 CNT-EXP-001 Screen 13 흡수)  |
 | IWB-02-A   | FSM        | 보스 AI 상태 머신 (IDLE/ENGAGE/ATTACK/STAGGER/PHASE_CHANGE/DEAD) |    P1    | 대기      | 6상태 FSM                                             |
 | IWB-02-B   | BT         | 패턴 선택 행동 트리 (Behavior Tree)                            |    P1    | 대기      | 가중 랜덤 풀에서 선택                                 |
 | IWB-03-A   | 패턴       | 6분류 × 25서브 패턴 정의                                       |    P1    | 대기      | 근접/돌진/투사체/장판/소환/특수                        |
@@ -150,11 +150,11 @@
 
 | 무기 카테고리 | 장군 본체 | 왕 본체 | 신 본체 | 대신 본체 |
 | :--- | :--- | :--- | :--- | :--- |
-| 검류 (Sword) | 갑옷 입은 기사 실루엣 | 쌍검 무사 | 기억의 검성 | 심연의 검 화신 |
-| 대검류 (Greatsword) | 무거운 석상 | 지진의 거인 | 붕괴의 신 | 세계를 부수는 자 |
-| 단검류 (Dagger) | 그림자 암살자 | 쌍단검의 영 | 기억의 자객 | 심연의 그림자 |
-| 활류 (Bow) | 이름 없는 궁수 | 백발 명사수 | 운명의 화살 | 허공에 새겨진 화살비 |
-| 마법지팡이 (Staff) | 부유하는 마법진 | 마술의 군주 | 주문의 신 | 의지의 구체 |
+| 검류 (Blade) | 갑옷 입은 기사 실루엣 | 쌍검 무사 | 기억의 검성 | 심연의 검 화신 |
+| 대검류 (Cleaver) | 무거운 석상 | 지진의 거인 | 붕괴의 신 | 세계를 부수는 자 |
+| 단검류 (Shiv) | 그림자 암살자 | 쌍단검의 영 | 기억의 자객 | 심연의 그림자 |
+| 활류 (Railbow) | 이름 없는 궁수 | 백발 명사수 | 운명의 화살 | 허공에 새겨진 화살비 |
+| 마법에미터 (Emitter) | 부유하는 마법진 | 마술의 군주 | 주문의 신 | 의지의 구체 |
 
 > 본체 템플릿 정의: `Sheets/Content_ItemWorld_BossTemplate.csv` 참조 (Phase 2 제작)
 
@@ -458,18 +458,18 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 ### 2.9. 첫 보스 참조 명세: 그림자 검사 (Shadow Swordsman) — P0
 
 > **내러티브 상태 (2026-05-20):** 구판 CNT-ITM-002(격벽 틈에서 꺼낸 낡은 검) 폐기 — 판타지 톤 디버전스. 본 보스의 *전투 메커니즘*은 유지하되, *서사 래퍼*(외형 설명 "용병의 전투 방식이 그대로 반영된 실루엣", 드랍 "닳은 여행 표지", kill_visual 문장)는 BLAME!/대공동 세계관 톤으로 **재작성 대기**. 신규 기준 예시는 `CNT-ITM-001 신판 (SurveyorEchoWedge)` 참조.
-> **내러티브 참조 (구):** ~~`CNT-ITM-002` §3.1 보스 오버라이드~~ / `CNT-EXP-001` Screen 13 (수치 SSoT는 유지)
+> **내러티브 참조:** ~~`CNT-ITM-002` §3.1~~ / ~~`CNT-EXP-001` Screen 13~~ (흡수·삭제). 서사 맥락 = `CNT-CH1` B8. 수치 SSoT = 본 문서.
 > **등급:** Tier 1 — 아이템 장군 (기억의 수문장)
 > **출현 아이템 (구):** ~~격벽 틈에서 꺼낸 낡은 검~~ — 튜토리얼 첫 아이템 재명명 대기
 
-이 섹션은 CNT-EXP-001 Screen 13에 확정된 그림자 검사 보스의 구현 명세다. 모듈형 보스 시스템(섹션 2.2)의 Tier 1 인스턴스이며, 최초 아이템계 진입 특례(SYS-IW-01 §2.3)가 동시 적용된다.
+이 섹션은 그림자 검사 보스의 구현 명세이자 수치 SSoT다(구 CNT-EXP-001 Screen 13 흡수·삭제). 모듈형 보스 시스템(섹션 2.2)의 Tier 1 인스턴스이며, 최초 아이템계 진입 특례(SYS-IW-01 §2.3)가 동시 적용된다.
 
 #### 전투 수치 (확정)
 
 | 항목 | 값 | 근거 |
 | :--- | :--- | :--- |
-| Boss HP | `SHADOW_BOSS_HP` (파라미터 참조) | CNT-EXP-001 Screen 13. 에르다 ATK 기준 6히트 처치 목표 |
-| Boss ATK | `SHADOW_BOSS_ATK` (파라미터 참조) | CNT-EXP-001 Screen 13. 에르다 HP 기준 8히트 사망 — 학습 여유 보장 |
+| Boss HP | `SHADOW_BOSS_HP` (파라미터 참조) | 본 문서 SSoT. 에르다 ATK 기준 6히트 처치 목표 |
+| Boss ATK | `SHADOW_BOSS_ATK` (파라미터 참조) | 본 문서 SSoT. 에르다 HP 기준 8히트 사망 — 학습 여유 보장 |
 | 에르다 기준 ATK | `SHADOW_ERDA_BASE_ATK` (파라미터 참조) | 첫 진입 시점 기본값 (장비 무강화, 무원소) |
 | 에르다 기준 HP | `SHADOW_ERDA_BASE_HP` (파라미터 참조) | 동 시점 기본값 |
 | 솔로 고정 | 1인 전용 (첫 아이템계 특례) | SYS-IW-01 §2.3 — 첫 진입 멀티 불가 |
@@ -478,14 +478,14 @@ HP 증가와 별도로 인원 수에 따라 패턴 조합이 변화한다.
 
 | 레이어 | 값 |
 | :--- | :--- |
-| 본체 템플릿 | 검류(Sword) × Tier 1 = 갑옷 입은 기사 실루엣 (섹션 2.2 본체 템플릿 표) |
+| 본체 템플릿 | 검류(Blade) × Tier 1 = 갑옷 입은 기사 실루엣 (섹션 2.2 본체 템플릿 표) |
 | 외형 오버라이드 | **그림자 검사** — 얼굴 없음. 용병의 전투 방식이 그대로 반영된 실루엣 |
 | 수식어 | MOD-08 없음 (Unmodified) 고정 — 첫 도전. 변형 요소 배제 |
 | 아레나 변형 | ARN-01 평지형 (Open) 고정 — 장애물 없는 순수 패턴 학습 환경 |
 
 #### 패턴 명세 (2패턴 고정)
 
-CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패턴으로 학습 가능성 최대화.
+본 문서 §2.9 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패턴으로 학습 가능성 최대화.
 
 | 패턴 ID | 명칭 | 서술 | 텔레그래프 | 회피 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -504,7 +504,7 @@ CNT-EXP-001 Screen 13 확정. 가중 랜덤 아님 — 첫 보스는 고정 2패
 | 보스 HP | 사망 직전 수치 유지 (리셋 없음) |
 | 횟수 제한 | 없음 |
 
-> **내러티브 근거:** 튜토리얼 첫 아이템(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 First Sword 한정. 이후 자기 무기로 진입하면 정상 규칙 적용. *(2026-05-20: 구 "격벽 틈에서 꺼낸 낡은 검" 명칭 폐기. 첫 아이템 재명명 대기.)*
+> **내러티브 근거:** 튜토리얼 첫 아이템(Magic 등급)의 기억이 에르다를 추방하지 않고 붙잡아둔다. 이 특례는 First Blade 한정. 이후 자기 무기로 진입하면 정상 규칙 적용. *(2026-05-20: 구 "격벽 틈에서 꺼낸 낡은 검" 명칭 폐기. 첫 아이템 재명명 대기.)*
 
 #### 보스 처치 결과
 
@@ -517,12 +517,12 @@ shadow_swordsman_clear:
   permanent_bonus:
     stat: ATK
     value: "+SHADOW_CLEAR_ATK_BONUS"  # 파라미터 참조: 8
-    display: "Old Sword — ATK +8 (Permanent)"
+    display: "Old Blade — ATK +8 (Permanent)"
     timing: "처치 후 1초 뒤 화면 중앙 큰 텍스트 + 효과음"
   # 에르다 대사 없음 — 행동/환경 묘사만 (신판 CNT-ITM-001 F-12 정합)
 ```
 
-> **SSoT 주의:** 위 수치(HP 80, ATK 12, ATK +8)는 CNT-EXP-001 Screen 13이 SSoT다. 이 섹션은 참조 요약이며, 값 변경 시 CNT-EXP-001을 먼저 수정하고 이 섹션을 동기화한다.
+> **SSoT 주의:** 위 수치(HP 80, ATK 12, ATK +8)는 **본 문서(System_ItemWorld_Boss)가 SSoT**다 (구 CNT-EXP-001 Screen 13 흡수·삭제). 값 변경 시 본 문서를 수정한다. 서사 맥락은 CNT-CH1 B8.
 
 ---
 
@@ -655,7 +655,7 @@ boss_scaling:
 ```
 
 ```yaml
-# 그림자 검사 (Shadow Swordsman) — CNT-EXP-001 Screen 13 SSoT 참조
+# 그림자 검사 (Shadow Swordsman) — System_ItemWorld_Boss SSoT
 shadow_swordsman:
   SHADOW_BOSS_HP: 80              # 그림자 검사 HP
   SHADOW_BOSS_ATK: 12             # 그림자 검사 ATK
@@ -663,7 +663,7 @@ shadow_swordsman:
   SHADOW_ERDA_BASE_HP: 100        # 에르다 첫 진입 기준 HP
   SHADOW_CLEAR_ATK_BONUS: 8       # 처치 보상 영구 ATK 증가
   SHADOW_DEATH_HP_RECOVERY: 0.50  # 사망 시 HP 50% 회복
-  # 주의: 이 값은 CNT-EXP-001이 SSoT. 변경 시 CNT-EXP-001 먼저 수정
+  # 주의: 이 값은 본 문서(System_ItemWorld_Boss)가 SSoT
 ```
 
 #### 수평 스케일링 공식 — 아이템 레벨 연동
@@ -922,7 +922,7 @@ checksum 함수: isComboFeasible(activePatterns[], arenaLayout)
 
 **처리:**
 - 이전 도전에서 3회 이상 반복 등장한 패턴의 가중치를 ×0.7로 임시 감소 (세션 내 한정)
-- 세션 종료(허브 귀환) 시 가중치 원복
+- 세션 종료(세이브 포인트 귀환) 시 가중치 원복
 - 이 조정은 학습된 플레이어가 더 다양한 패턴을 경험하게 하는 "숙달 보상 신선함 시스템"이다
 
 ---

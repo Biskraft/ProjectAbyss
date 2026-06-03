@@ -275,7 +275,7 @@ Ossuary ── Water_supply ── Entrance ── Cross_roads ── Shop_entra
 
 | 엔티티 | 위치 (grid) | 상세 |
 |:-------|:-----------|:-----|
-| Player | [18, 10] | 초기 인벤토리: Ammo x?, Bow / HP=10 |
+| Player | [18, 10] | 초기 인벤토리: Ammo x?, Railbow / HP=10 |
 | Item: HL | [28, 10] | count=100 |
 | Item: Healing_potion | [3, 5] | count=1 |
 | Item: Ammo | [7, 5] | count=5 |

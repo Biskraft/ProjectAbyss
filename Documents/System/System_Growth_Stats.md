@@ -356,7 +356,7 @@ example_lv1_no_equip:
 ```
 
 ```yaml
-# Lv 5, Normal �� (ATK+10) 장착, 기억 단편 ��음 기준 (3스탯 체계)
+# Lv 5, Normal 무기 (ATK+10) 장착, 기억 단편 없음 기준 (3스탯 체계)
 example_lv5_normal_sword:
   level: 5
   BaseStat:

@@ -3,7 +3,8 @@ import type { Game } from '../../Game';
 import type { Player } from '@entities/Player';
 import type { Anvil } from '@entities/Anvil';
 import type { GiantBuilder } from '@entities/GiantBuilder';
-import { ItemDeploymentController, type ItemDeploymentStreamWorldOptions, type ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentController';
+import { ItemWorldEntrySequence } from '@effects/ItemWorldEntrySequence';
+import type { ItemDeploymentStreamWorldOptions, ItemDeploymentTunnelOpenOptions } from '@effects/ItemDeploymentTypes';
 import type { AABB } from '@core/Physics';
 
 interface AnvilDeploymentDeps {
@@ -26,8 +27,8 @@ interface AnvilDeploymentDeps {
   getPlatformVisualStart?: () => { x: number; y: number } | null;
 }
 
-export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemDeploymentController {
-  return new ItemDeploymentController(
+export function createAnvilItemDeployment(deps: AnvilDeploymentDeps): ItemWorldEntrySequence {
+  return new ItemWorldEntrySequence(
     deps.game,
     deps.player,
     deps.entityLayer,

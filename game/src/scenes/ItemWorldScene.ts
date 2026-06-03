@@ -1,93 +1,59 @@
-import { Container, Graphics, BitmapText, Assets, ColorMatrixFilter, Sprite, type Filter, type Texture } from 'pixi.js';
+﻿import { Container, Graphics, BitmapText, Assets, type Texture } from 'pixi.js';
 import { Scene } from '@core/Scene';
 import { Debug } from '@core/Debug';
 import { SaveManager } from '@utils/SaveManager';
+import { CameraZoneRuntime } from '@core/CameraZoneRuntime';
 import { TilemapRenderer } from '@level/TilemapRenderer';
-import { addLdtkVisualBoundsBleed, VISUAL_BOUNDS_BLEED_PX } from '@level/VisualBoundsBleed';
+import { VISUAL_BOUNDS_BLEED_PX } from '@level/VisualBoundsBleed';
 import { type UnifiedGridData, type UnifiedRoomCell } from '@level/RoomGrid';
 import type { RoomGraphData } from '@level/RoomGraph';
-import { createRoomGraphDebugOverlay } from '@level/RoomGraphDebugOverlay';
 import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
 import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
 import { archetypeFor } from '@level/RoomGraphArchetypes';
-import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
-import type { RoomCell } from '@level/RoomGrid';
-import { pickTemplate, resolveTiles, TEMPLATE_W, TEMPLATE_H, type RoomTemplate, type ExitDir } from '@level/ItemWorldTemplates';
 import { LdtkRenderer } from '@level/LdtkRenderer';
-import { isLdtkWallSlope2x1Tile, type LdtkLevel, type LdtkTile } from '@level/LdtkLoader';
+import { type LdtkLevel, type LdtkTile } from '@level/LdtkLoader';
+import { collectLdtkTilesetPaths } from '@level/LdtkTilesetPaths';
 import { getItemWorldTemplatesIfReady, prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import { Texture as PixiTexture, Rectangle } from 'pixi.js';
-import { aabbOverlap, isInUpdraft, isInSpike, isWater, isIce, getTile, isSolid, isOneWay, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID, isInOil, isInMagma, isInAcid, isInCyro } from '@core/Physics';
+import { isInUpdraft, isSolid, TILE_AIR, TILE_WALL, TILE_OIL, TILE_MAGMA, TILE_WATER, TILE_METAL, TILE_ACID } from '@core/Physics';
 import { TileMutator } from '@systems/TileMutator';
 import { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
-import { applyTileHazards, CYRO_FROZEN_MS, CYRO_TICK_MS, CYRO_TICK_PCT, MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
-import { hazardToElement, type ElementAffinity } from '@combat/ElementAffinity';
-import { applyBurnableZones, type BurnableEntitySpec } from '@level/BurnableZonePass';
-import { BurnableProp } from '@entities/BurnableProp';
-import { GameAction, actionKey } from '@core/InputManager';
-import { Player, OIL_SLIP_DURATION_MS, OIL_RESIDUE_DURATION_MS, ACID_RESIDUE_DURATION_MS, MAGMA_RESIDUE_DURATION_MS, WATER_RESIDUE_DURATION_MS, CYRO_RESIDUE_DURATION_MS, EGO_SHARD_MAX, SHARD_RECOVERY_MS } from '@entities/Player';
-import { Ghost } from '@entities/Ghost';
-import { Boss01 } from '@entities/Boss01';
-import { GoldenMonster } from '@entities/GoldenMonster';
-import { createEnemy } from '@entities/EnemyFactory';
-import { HealingPickup, createEmberShard, createForgeEmber, createAnvilFlame } from '@entities/HealingPickup';
-import { GoldPickup } from '@entities/GoldPickup';
-import { Spike } from '@entities/Spike';
-import { CrackedFloor } from '@entities/CrackedFloor';
-import { BreakableProp } from '@entities/BreakableProp';
-import { Building } from '@entities/Building';
-import { ItemDisplay } from '@entities/ItemDisplay';
-import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
-import { CollapsingPlatform } from '@entities/CollapsingPlatform';
-import { GrowingWall } from '@entities/GrowingWall';
-import { Switch } from '@entities/Switch';
-import { LockedDoor, type UnlockCondition } from '@entities/LockedDoor';
-import { COMBO_STEPS, getAttackHitbox } from '@combat/CombatData';
-import { loadSpawnTable, getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
+import { MAGMA_BURN_DURATION_MS } from '@systems/TileHazards';
+import { GameAction } from '@core/InputManager';
+import { Player } from '@entities/Player';
+import { createAnvilFlame } from '@entities/HealingPickup';
+import { loadSpawnTable } from '@data/itemWorldSpawnTable';
 import { getEnemyStats } from '@data/enemyStats';
-import { getMemoryRoom } from '@data/memoryRoomTable';
 import { LoreDisplay } from '@ui/LoreDisplay';
 import { t } from '@i18n';
 import {
-  EGO_IW_ENTER, EGO_MONSTER_FIRST, EGO_FIRST_KILL, EGO_ROOM_CLEAR,
-  EGO_INNOCENT_FOUND, EGO_INNOCENT_STABLE,
-  EGO_PLAYER_DEATH, EGO_BOSS_KILLED,
-  EGO_REENTRY_2, EGO_REENTRY_2_BOSS, EGO_REENTRY_3,
-  EGO_SWAP_RETURN, EGO_AFFINITY_MAX,
-  EGO_GATEKEEPER_FIRST, EGO_GATEKEEPER_FAMILIAR,
-  EGO_ARCHIVIST_FIRST, EGO_ARCHIVIST_FAMILIAR,
-  EGO_SHARD_RECALL, EGO_TRAPDOOR_THANKS,
-  EGO_EVENT, hasEgo, egoEntryKey, getEgoEntryCount,
+  EGO_TRAPDOOR_THANKS,
+  EGO_BOSS_KILLED,
+  EGO_EVENT,
 } from '@data/EgoDialogue';
-import { MemoryShardNPC } from '@entities/MemoryShardNPC';
-import { MemoryResident } from '@entities/MemoryResident';
 import { Trapdoor } from '@entities/Trapdoor';
 import { FloatingItemDrop } from '@entities/FloatingItemDrop';
-import { WorldPullInTransitionController } from '@effects/WorldPullInTransitionController';
-import { Anvil } from '@entities/Anvil';
-import { Projectile } from '@entities/Projectile';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { AreaTitle } from '@ui/AreaTitle';
 import { UISkin } from '@ui/UISkin';
 import { KeyPrompt } from '@ui/KeyPrompt';
-import { ControlsOverlay } from '@ui/ControlsOverlay';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { ToastManager } from '@ui/Toast';
-import { brandLabel } from '@core/input/padGlyphs';
+import { OxygenOverlay } from '@ui/OxygenOverlay';
+import { attachGamepadToast } from '@ui/GamepadToastBinding';
+import { BossHpRuntime } from '@ui/BossHpRuntime';
 import { TutorialHint } from '@ui/TutorialHint';
+import { LowHpHealHintRuntime } from '@ui/LowHpHealHintRuntime';
 import { SFX } from '@audio/Sfx';
 import { BgmController } from '@audio/BgmController';
 import { PRNG } from '@utils/PRNG';
-import { addItemExp, getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, EXP_PER_LEVEL, addInnocent, canAddInnocent, RARITY_COLOR, addRecovery, grantBossStageJump, getDisplayName, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
-import { sacredSave, isLowHpHealToastFired, markLowHpHealToastFired } from '@save/PlayerSave';
-import { formatActivePlayerBuffsDebug, removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
-import { INNOCENT_SPAWN_CHANCE, createRandomInnocent } from '@data/memoryShards';
+import { getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, RARITY_COLOR, grantBossStageJump, getDisplayName, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
+import { sacredSave } from '@save/PlayerSave';
+import { removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, TOPOLOGY_VALUES, type StrataConfig, type StratumDef, type TopologyKind } from '@data/StrataConfig';
-import type { Enemy } from '@entities/Enemy';
-import type { CombatEntity } from '@combat/HitManager';
 import { ArcTether } from '@effects/ArcTether';
 import { HitSparkManager } from '@effects/HitSpark';
 import { PropShatterManager } from '@effects/PropShatter';
@@ -111,149 +77,137 @@ import { SteamPuffManager, PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/St
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import { FluidResidueManager } from '@effects/FluidResidue';
-import { FluidSystem, type ArcLink, type FluidCellBounds } from '@effects/FluidSystem';
-import { applyFluidGenericResolution, substituteSolidGenericSprites } from '@data/ItemWorldFluidMapping';
-import { FluidSpawnerManager, readFluidSpawnerEntities } from '@systems/FluidSpawner';
+import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
+import { applyFluidGenericResolution } from '@data/ItemWorldFluidMapping';
+import { FluidSpawnerManager } from '@systems/FluidSpawner';
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
-import { EgoShardManager, EgoShardPreview, CAST_MIN_GAP_MS, CAST_CHARGE_MAX_MS, getShardVelocity, type ShardElement } from '@effects/EgoShard';
-import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
-import { resolveContainerSlotKind } from '@data/ContainerPools';
-import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
+import { EgoShardRuntime } from '@effects/EgoShardRuntime';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
 import { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { ScreenFlash } from '@effects/ScreenFlash';
-import {
-  create9SlicePanel,
-  drawSelectionPulse,
-  drawSelectionRow,
-  ROW_CHEVRON_COLOR,
-  ROW_SELECTED_GLOW_ALPHA,
-} from '@ui/ModalPanel';
 import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
-import { RimLightFilter } from '@effects/RimLightFilter';
 import {
   getAreaPalette,
   getAreaPaletteAtlas,
   getAreaPaletteRow,
   ensureAreaTilesetsLoaded,
-  applyAreaTilesetToLdtkTiles,
 } from '@data/areaPalettes';
-import { WeatherSystem, type StratumProfileInput } from '@effects/WeatherSystem';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
 import {
   trackItemWorldEnter,
   trackItemWorldExit,
   trackItemWorldFloorClear,
   trackPlayerDeath,
-  trackEnemyKill,
-  trackItemLevelUp,
 } from '@utils/Analytics';
 import { assetPath } from '@core/AssetLoader';
 import { loadBundleOnce } from '@data/assetBundles';
 import { UpdraftSystem } from '@systems/UpdraftSystem';
-import {
-  findNearestGrabbableContainer as findNearestContainerForGrab,
-  startContainerGrabPull,
-  updateContainerGrabInput,
-  updateContainerArcTether,
-  updateHeldContainerCarry,
-  updateContainerPrompt as updateContainerPromptUi,
-} from '@systems/ContainerInteraction';
-import {
-  getEnemyRoomKey,
-  isEnemyExpGranted,
-  markEnemyExpGranted,
-  setEnemyRoomKey,
-} from '@systems/EntityRuntimeMeta';
-import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
+import { hashString } from '@level/ProceduralDecorator';
 import { ParallaxBackground } from '@level/ParallaxBackground';
 import { ItemWorldConst } from '@data/constData';
 import { ItemWorldUiController } from './itemworld/ItemWorldUiController';
 import { ItemWorldProgressController } from './itemworld/ItemWorldProgressController';
+import { ItemWorldRoomTransitionRuntime } from './itemworld/ItemWorldRoomTransitionRuntime';
+import { ItemWorldAbsorbDissolveRuntime } from './itemworld/ItemWorldAbsorbDissolveRuntime';
+import { ItemWorldEntryCorridorVisibilityRuntime } from './itemworld/ItemWorldEntryCorridorVisibilityRuntime';
+import { ItemWorldEntryCorridorRevealRuntime } from './itemworld/ItemWorldEntryCorridorRevealRuntime';
+import { ItemWorldEntryCorridorVisualRuntime } from './itemworld/ItemWorldEntryCorridorVisualRuntime';
+import { ItemWorldEntryCorridorState } from './itemworld/ItemWorldEntryCorridorState';
+import { ItemWorldRunStats } from './itemworld/ItemWorldRunStats';
+import { ItemWorldFlowState } from './itemworld/ItemWorldFlowState';
+import { ItemWorldStratumStartSnapshot } from './itemworld/ItemWorldStratumStartSnapshot';
+import { ItemWorldEntryGateState } from './itemworld/ItemWorldEntryGateState';
+import { ItemWorldTrapdoorState } from './itemworld/ItemWorldTrapdoorState';
+import { ItemWorldExitTelemetryState } from './itemworld/ItemWorldExitTelemetryState';
+import { ItemWorldTrapdoorDescentRuntime } from './itemworld/ItemWorldTrapdoorDescentRuntime';
+import { ItemWorldEgoDialogueRuntime } from './itemworld/ItemWorldEgoDialogueRuntime';
+import { ItemWorldCaptureOrbRuntime } from './itemworld/ItemWorldCaptureOrbRuntime';
+import { ItemWorldDevOverlayRuntime } from './itemworld/ItemWorldDevOverlayRuntime';
+import { ItemWorldDebugInputRuntime } from './itemworld/ItemWorldDebugInputRuntime';
+import { ItemWorldWeatherRuntime } from './itemworld/ItemWorldWeatherRuntime';
+import { ItemWorldStratumPickerRuntime } from './itemworld/ItemWorldStratumPickerRuntime';
+import { ItemWorldAnvilRuntime } from './itemworld/ItemWorldAnvilRuntime';
+import { ItemWorldTrapdoorRuntime } from './itemworld/ItemWorldTrapdoorRuntime';
+import { ItemWorldHudRuntime } from './itemworld/ItemWorldHudRuntime';
+import { ItemWorldCameraRuntime } from './itemworld/ItemWorldCameraRuntime';
+import { ItemWorldContainerCarryRuntime } from './itemworld/ItemWorldContainerCarryRuntime';
+import { ItemWorldContainerRegistry } from './itemworld/ItemWorldContainerRegistry';
+import { ItemWorldOnboardingRuntime } from './itemworld/ItemWorldOnboardingRuntime';
+import { ItemWorldEscapeRuntime } from './itemworld/ItemWorldEscapeRuntime';
+import { ItemWorldBossChoiceRuntime } from './itemworld/ItemWorldBossChoiceRuntime';
+import { ItemWorldStratumClearRuntime } from './itemworld/ItemWorldStratumClearRuntime';
+import { ItemWorldStratumClearPanelRuntime } from './itemworld/ItemWorldStratumClearPanelRuntime';
+import { ItemWorldExitFadeRuntime } from './itemworld/ItemWorldExitFadeRuntime';
+import { ItemWorldEgoShardCastRuntime } from './itemworld/ItemWorldEgoShardCastRuntime';
+import { ItemWorldEgoShardProjectileRuntime } from './itemworld/ItemWorldEgoShardProjectileRuntime';
+import { ItemWorldEgoShardCombatRuntime } from './itemworld/ItemWorldEgoShardCombatRuntime';
+import { ItemWorldUnavailableInputRuntime } from './itemworld/ItemWorldUnavailableInputRuntime';
+import { ItemWorldMovementVfxRuntime } from './itemworld/ItemWorldMovementVfxRuntime';
+import { ItemWorldContainerPhysicsRuntime } from './itemworld/ItemWorldContainerPhysicsRuntime';
+import { ItemWorldPickupRuntime } from './itemworld/ItemWorldPickupRuntime';
+import { ItemWorldProjectileRuntime } from './itemworld/ItemWorldProjectileRuntime';
+import { ItemWorldEnemyContactRuntime } from './itemworld/ItemWorldEnemyContactRuntime';
+import { ItemWorldStaticEntityRuntime } from './itemworld/ItemWorldStaticEntityRuntime';
+import { ItemWorldMemoryTriggerRuntime } from './itemworld/ItemWorldMemoryTriggerRuntime';
+import { ItemWorldResidentRuntime } from './itemworld/ItemWorldResidentRuntime';
+import { ItemWorldEnemyCombatRuntime } from './itemworld/ItemWorldEnemyCombatRuntime';
+import { ItemWorldTileHazardRuntime } from './itemworld/ItemWorldTileHazardRuntime';
+import { ItemWorldContainerFluidRuntime } from './itemworld/ItemWorldContainerFluidRuntime';
+import { ItemWorldEgoShardImpactRuntime } from './itemworld/ItemWorldEgoShardImpactRuntime';
+import { ItemWorldRuntimeCellSpawner } from './itemworld/ItemWorldRuntimeCellSpawner';
+import { ItemWorldCellVisualRuntime } from './itemworld/ItemWorldCellVisualRuntime';
+import { ItemWorldTemplatePickerRuntime } from './itemworld/ItemWorldTemplatePickerRuntime';
+import { ItemWorldFullGridRuntime } from './itemworld/ItemWorldFullGridRuntime';
+import { ItemWorldFullMapLayerRuntime } from './itemworld/ItemWorldFullMapLayerRuntime';
+import { ItemWorldBoundaryVisualRuntime } from './itemworld/ItemWorldBoundaryVisualRuntime';
+import { ItemWorldRoomStateRuntime } from './itemworld/ItemWorldRoomStateRuntime';
+import { ItemWorldProceduralDecorRuntime } from './itemworld/ItemWorldProceduralDecorRuntime';
+import { ItemWorldPlayerSpawnRuntime } from './itemworld/ItemWorldPlayerSpawnRuntime';
+import { ItemWorldRoomTypeRuntime } from './itemworld/ItemWorldRoomTypeRuntime';
+import { ItemWorldMemoryRoomPlacementRuntime } from './itemworld/ItemWorldMemoryRoomPlacementRuntime';
+import { ItemWorldNeighborPreSpawnRuntime } from './itemworld/ItemWorldNeighborPreSpawnRuntime';
+import { ItemWorldRoomSpawnRuntime } from './itemworld/ItemWorldRoomSpawnRuntime';
+import { ItemWorldRoomSpawnState } from './itemworld/ItemWorldRoomSpawnState';
+import { ItemWorldEnemyRegistry } from './itemworld/ItemWorldEnemyRegistry';
+import { ItemWorldStaticEntitySpawner } from './itemworld/ItemWorldStaticEntitySpawner';
+import { ItemWorldStaticEntityRegistry } from './itemworld/ItemWorldStaticEntityRegistry';
+import { ItemWorldBurnablePropRegistry } from './itemworld/ItemWorldBurnablePropRegistry';
+import { ItemWorldRoomRewardSpawner } from './itemworld/ItemWorldRoomRewardSpawner';
+import { ItemWorldBreakablePropRuntime } from './itemworld/ItemWorldBreakablePropRuntime';
+import { ContainerDestructionRuntime } from './shared/ContainerDestructionRuntime';
+import { ItemWorldEnemySpawnRuntime } from './itemworld/ItemWorldEnemySpawnRuntime';
+import { ItemWorldEnemyEncounterRuntime } from './itemworld/ItemWorldEnemyEncounterRuntime';
+import { ItemWorldRoomClearRuntime } from './itemworld/ItemWorldRoomClearRuntime';
+import { ItemWorldMemoryShardSpawnRuntime } from './itemworld/ItemWorldMemoryShardSpawnRuntime';
+import { ItemWorldSafeRoomResidentSpawnRuntime } from './itemworld/ItemWorldSafeRoomResidentSpawnRuntime';
 import {
-  ItemWorldMapController,
+  ENTRY_CORRIDOR_LEVEL_ID,
+  ENTRY_CORRIDOR_LEVEL_PREFIX,
+  buildEntryCorridorComposite,
+  findEntryCorridorBottomExitY,
+  findEntryCorridorLeftSpawn,
+  selectEntryCorridorLevels,
+} from './itemworld/ItemWorldEntryCorridorLayout';
+import {
   TILE_SIZE as IW_TILE_SIZE,
   IW_GRID_W, IW_GRID_H,
   IW_ROOM_W_TILES, IW_ROOM_H_TILES,
   IW_ROOM_W_PX, IW_ROOM_H_PX,
-  IW_DOOR_DEPTH, IW_DOOR_H_HEIGHT, IW_DOOR_V_WIDTH, IW_DOOR_FLOOR_ROW,
-  IW_BOUNDARY_THICKNESS,
-  SEAL_DEPTH,
-  type DoorMask,
+  IW_DOOR_FLOOR_ROW,
 } from './itemworld/ItemWorldMapController';
 import { ItemWorldSpawnController } from './itemworld/ItemWorldSpawnController';
 
 const TILE_SIZE = IW_TILE_SIZE;
-const ROOM_W = 60;
-const ROOM_H = 34;
 const FADE_DURATION = 200;
 // SSoT: Sheets/Content_ConstData.csv (ItemWorld.Entry.*, ItemWorld.Exp.*)
 const ENTRY_FREEZE_MS = ItemWorldConst.EntryFreezeMs;
-const BASE_EXP_PER_ROOM = ItemWorldConst.BaseExpPerRoom;
-const BASE_BOSS_BONUS_EXP = ItemWorldConst.BossBonusExp;
 const BASE_EXP_PER_KILL = ItemWorldConst.BaseExpPerKill;
-const BASE_EXP_ROOM_PASS = ItemWorldConst.BaseExpRoomPass;
-
-const STRATUM_PICKER_W = 560;
-const STRATUM_PICKER_PAD = 12;
-const STRATUM_PICKER_ROW_H = 18;
-const STRATUM_PICKER_ROW_GAP = 2;
-const STRATUM_PICKER_LIST_W = 342;
-const STRATUM_PICKER_DETAIL_W = 174;
-const STRATUM_PICKER_HEADER_H = 32;
-const STRATUM_PICKER_FOOTER_H = 24;
-const STRATUM_PICKER_BADGE_W = 34;
-const STRATUM_PICKER_RIGHT_BADGE_W = 34;
-const STRATUM_PICKER_COL_TEXT = 0xcccccc;
-const STRATUM_PICKER_COL_DIM = 0xaaaaaa;
-const STRATUM_PICKER_COL_MUTED = 0x777777;
-const STRATUM_PICKER_COL_BORDER = 0x4a4a6a;
-const STRATUM_PICKER_COL_ACCENT = 0x00ced1;
-const STRATUM_PICKER_COL_POSITIVE = 0x44ff44;
-const STRATUM_PICKER_COL_LOCKED = 0x666666;
-const STRATUM_PICKER_COL_GOLD = 0xffd700;
 
 interface ItemWorldSceneOptions {
   entryCorridor?: boolean;
 }
-
-interface EntryCorridorTileVisual {
-  node: Container;
-  cx: number;
-  cy: number;
-  reveal: number;
-  target: boolean;
-}
-
-interface EntryCorridorComposite {
-  grid: number[][];
-  levels: LdtkLevel[];
-  offsetsPx: number[];
-  widthPx: number;
-  heightPx: number;
-}
-
-const ENTRY_CORRIDOR_LEVEL_ID = 'ItemStratum_Corridor';
-const ENTRY_CORRIDOR_LEVEL_PREFIX = 'ItemStratum_Corridor_';
-const ENTRY_CORRIDOR_OPENING_COUNT = 3;
-const ENTRY_CORRIDOR_RANDOM_TAIL_COUNT = 10;
-const ENTRY_CORRIDOR_START_COL = 1;
-const ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX = TILE_SIZE * 7;
-const ENTRY_CORRIDOR_TILE_REVEAL_MS = 180;
-const ENTRY_CORRIDOR_CONTRAST = 0.5;
-const ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS = 2.2;
-const ENTRY_CORRIDOR_COLOR_HOLD_MS = 1000;
-const ENTRY_CORRIDOR_COLOR_RESTORE_MS = 1000;
-const ITEM_WORLD_DEFAULT_LDTK_TILESET = 'atlas/world_01.png';
-
-// SurfaceOverlay is now spot-based, so it can run in item world without
-// producing long diagonal shadow/stain streaks.
-const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
-
-
-type TransitionState = 'none' | 'fade_out' | 'fade_in' | 'exit_fade' | 'post_clear_hold' | 'descent_fall' | 'absorbing' | 'dissolving';
 
 function cloneLdtkTile(tile: LdtkTile): LdtkTile {
   return {
@@ -293,33 +247,6 @@ function cloneLdtkLevels(levels: LdtkLevel[]): LdtkLevel[] {
   return levels.map(cloneLdtkLevel);
 }
 
-function collectLdtkTilesetPaths(levels: LdtkLevel[]): Set<string> {
-  const paths = new Set<string>();
-  const addTiles = (tiles: readonly LdtkTile[]) => {
-    for (const tile of tiles) {
-      if (tile.tilesetPath) paths.add(tile.tilesetPath);
-    }
-  };
-  for (const level of levels) {
-    addTiles(level.backgroundTiles);
-    addTiles(level.wallTiles);
-    addTiles(level.interiorTiles);
-    addTiles(level.shadowTiles);
-    for (const tiles of Object.values(level.extraTileLayers)) addTiles(tiles);
-  }
-  return paths;
-}
-
-// DEC-039 Trapdoor 移④컯 ?쒗????대컢 (ms).
-//   1) descent_pan   = 移대찓???ㅼ슫 ?⑤떇 (?섏씠???뚰뙆 0 ??1)
-//   2) descent_warp  = ?붾젅?ы듃 吏곹썑 ?섏씠???좎?
-//   3) descent_in    = ?섏씠???뚰뙆 1 ??0 (?ㅼ쓬 Plaza 泥쒖옣 ?깆옣)
-const DESCENT_PAN_MS = 800;
-const DESCENT_WARP_HOLD_MS = 200;
-const DESCENT_IN_MS = 400;
-const DESCENT_TOTAL_MS = DESCENT_PAN_MS + DESCENT_WARP_HOLD_MS + DESCENT_IN_MS;
-const DESCENT_CAMERA_DROP_PX = 96;
-
 export class ItemWorldScene extends Scene {
   /**
    * Production-safe scene-type marker. FeedbackPanel reads this to log the
@@ -330,9 +257,9 @@ export class ItemWorldScene extends Scene {
   private tilemap!: TilemapRenderer;
   private atlas: Texture | null = null;
   /**
-   * DEC-046 (2026-05-24): 媛??理쒓렐 蹂댁뒪 泥섏튂濡?諛쒖깮??Recovery stage jump 寃곌낵.
-   * ReturnResult ?붾㈃??dive 醫낅즺 ???쎌뼱 *?대쫫 吏꾪솕 ??Fragment ?닿툑* ?곗텧???몃━嫄?
-   * null = ?대쾲 dive ?숈븞 蹂댁뒪 泥섏튂 stage jump 誘몃컻??
+   * DEC-046 (2026-05-24): 보스 처치로 발생한 Recovery stage jump 정보.
+   * ReturnResult 로 dive 결과와 함께 전달되어 Fragment 획득을 처리한다.
+   * null = 이번 dive 에서 stage jump 가 발생하지 않음.
    */
   lastBossStageJump: {
     stratumIndex: number;
@@ -347,82 +274,56 @@ export class ItemWorldScene extends Scene {
   private outsideRenderer: LdtkRenderer | null = null;
   private outsideLevel: LdtkLevel | null = null;
   private player!: Player;
-  private enemies: Enemy<string>[] = [];
-  private projectiles: Projectile[] = [];
-  private healingPickups: HealingPickup[] = [];
-  private goldPickups: GoldPickup[] = [];
+  private readonly enemyRegistry = new ItemWorldEnemyRegistry();
   /**
-   * Room-key (`${col}:${absRow}`) ??ItemSpawner entity ??unified-grid pixel
-   * ?꾩튂 諛곗뿴. buildFullMap ?먯꽌 LDtk ?쒗뵆由우쓽 ItemSpawner ?뷀떚?곕? ?ㅼ틪??
-   * 梨꾩슫?? spawnRoomRewards 媛 猷??낆옣 ????紐⑸줉 ?꾩튂??蹂댁긽??spawn.
-   * (2026-05-18 ???쒕뜡 ?꾩튂 ??designer-placed ItemSpawner 濡??꾪솚)
-   */
-  private roomItemSpawners: Map<string, Array<{ x: number; y: number }>> = new Map();
-  /** DEC-038 Town of Orphaned Shadows ??hub Gatekeeper / shrine Librarian. */
-  private memoryResidents: MemoryResident[] = [];
-  /**
-   * 二쇰? ?꾩슜 layer ??fullMapContainer (grid) 諛붾줈 ?? entityLayer (player/vfx)
-   * 諛붾줈 ?꾨옒. 二쇰???grid ?꾨줈??蹂댁씠吏留?player/?댄럺???ㅻ줈 媛?꾨줉 z ?뺣젹.
-   * (?ъ슜???붿껌 2026-05-02 ??"二쇰? ?뚮뜑留??쒖꽌瑜?grid ?ㅼ쓬?쇰줈 ?щ젮")
+   * 월드-스페이스 layer 는 fullMapContainer(grid) 와
+   * entityLayer(player/vfx) 로 나뉘다. grid 보다 위, entityLayer 보다 아래의 z 순서를 가진다.
+   * (Residents 는 grid 위에 깔린다.)
    */
   private residentsLayer!: Container;
-  /** Building layer ??entityLayer 蹂대떎 ??(player ?ㅻ줈 ?뚮뜑留?. */
+  /** Building layer — entityLayer 아래의 platform/wall 타일 컨테이너. */
   private buildingLayer!: Container;
   /**
-   * ?蹂?LdtkRenderer 4 layer (bg/wall/special/shadow) 洹몃９ ??留??꾨젅??viewport
-   * 寃????visible toggle 濡??붾㈃ 諛?cell ??draw 李⑤떒 (?ъ슜??寃곗젙 2026-05-04,
-   * Rare+ ??sprite ?섎쭔 ???. PIXI ?먮룞 culling ??filter/aggregate ?몃━?먯꽌
-   * 湲곕?留뚰겮 ?묐룞 ????紐낆떆 visible 濡?媛뺤젣.
-   */
-  private cellLayerGroups: Array<{
-    col: number;
-    row: number;
-    layers: Container[];
-  }> = [];
-  private cellVisualRecords = new Map<string, {
-    col: number;
-    row: number;
-    ldtkLevel: LdtkLevel;
-    roomX: number;
-    roomY: number;
-  }>();
-  private renderedCellVisuals = new Map<string, {
-    col: number;
-    row: number;
-    layers: Container[];
-  }>();
-  private runtimeSpawnedCells = new Set<string>();
-  private visibleCellWindowKey = '';
+   * LdtkRenderer 4 layer (bg/wall/special/shadow) 를 viewport 기준 cell 단위로
+   * visible toggle 하여 화면 밖 cell 의 draw 를 건너뛴다 (2026-05-04,
+   * Rare+ 대형 맵 성능 대응). PIXI 자체 culling/filter/aggregate 와 함께 동작한다.
+   * cell 단위 visible 제어 런타임.
+  */
+  private cellVisualRuntime!: ItemWorldCellVisualRuntime;
+  private templatePickerRuntime!: ItemWorldTemplatePickerRuntime;
+  private fullGridRuntime!: ItemWorldFullGridRuntime;
+  private fullMapLayerRuntime!: ItemWorldFullMapLayerRuntime;
+  private boundaryVisualRuntime!: ItemWorldBoundaryVisualRuntime;
+  private roomStateRuntime!: ItemWorldRoomStateRuntime;
+  private proceduralDecorRuntime!: ItemWorldProceduralDecorRuntime;
+  private playerSpawnRuntime!: ItemWorldPlayerSpawnRuntime;
+  private roomTypeRuntime!: ItemWorldRoomTypeRuntime;
+  private memoryRoomPlacementRuntime!: ItemWorldMemoryRoomPlacementRuntime;
+  private neighborPreSpawnRuntime!: ItemWorldNeighborPreSpawnRuntime;
+  private roomSpawnRuntime!: ItemWorldRoomSpawnRuntime;
   /**
-   * DEC-039 Trapdoor 移④컯. 蹂댁뒪 泥섏튂 ??蹂댁뒪 猷?諛붾떏 D ?꾩튂??spawn,
-   * 怨듦꺽 ???명꽣?숉듃濡??ㅼ쓬 Plaza 泥쒖옣?쇰줈 ?붾젅?ы듃 (留덉?留?吏痢듭? ?붾뱶 洹??.
+   * DEC-039 Trapdoor: 보스 처치 시 D-down 위치에 spawn,
+   * 플레이어 접근 시 다음 Plaza 로 하강하는 출구 (구 portal 대체).
    *
-   * 2026-05-25 Step 1: 理쒖쥌 痢?(descentToWorld=true) ?먯꽌??Trapdoor ???
-   * FloatingItemDrop ??spawn ?쒕떎. ??entity ???숈씪 ?명꽣?섏씠??(isPlayerNear /
+   * 2026-05-25 Step 1: 최종 지층 보스 처치(descentToWorld=true) 시 Trapdoor 대신
+   * FloatingItemDrop 을 spawn 한다. 두 entity 는 동일한 인터페이스(isPlayerNear /
    * activate / update / destroy / x / y / width / height / active / consumed).
    */
   private trapdoor: Trapdoor | FloatingItemDrop | null = null;
   /**
    * LDtk-placed Anvils inside ItemStratum levels. Acts as an in-world exit:
-   * approach ??KeyPrompt ??ATTACK opens EscapeConfirm (same flow as MENU/ESC).
+   * approach — KeyPrompt — ATTACK opens EscapeConfirm (same flow as MENU/ESC).
    * One Anvil class per instance (visual halo + sparks); built-in symbol prompt
    * is suppressed in favor of the standard KeyPrompt pattern.
    */
-  private itemWorldAnvils: Anvil[] = [];
-  private itemWorldAnvilPrompt: Container | null = null;
-  /** 移④컯 ?쒗??吏꾪뻾 ?꾩쟻 ms. transitionState='descent_fall' ?숈븞留?媛깆떊. */
-  private descentTimer = 0;
-  /** ?붾젅?ы듃 ?꾨즺 ?쒖떇 ???쒗??以???踰덈쭔 ?섑뻾 蹂댁옣. */
-  private descentWarpDone = false;
-  /** 留덉?留?吏痢?蹂댁뒪 泥섏튂 ??= true. 移④컯 ?쒗???앹뿉???붾뱶 洹?섏쑝濡?遺꾧린. */
-  private descentToWorld = false;
-  /** 移대찓???ㅼ슫 ?⑤떇 ?쒖옉 ?쒖젏 cam.y. */
-  private descentStartCamY = 0;
+  private itemWorldAnvilRuntime!: ItemWorldAnvilRuntime;
+  /** 트랩도어 하강 진행 상태 = true. 보스 처치 시 하강 인터랙션 상태를 보관한다. */
+  private readonly trapdoorState = new ItemWorldTrapdoorState();
   /**
-   * Entry sequencing: ?쒖옉 猷몄쓽 Gatekeeper/Librarian + ambient ?ㅽ룿???낆옣 ???
-   * ?꾨즺源뚯? 蹂대쪟?쒕떎. true 媛 ?섎㈃ hub/shrine 遺꾧린媛 ?뺤긽 ?ㅽ룿???섑뻾.
+   * Entry sequencing: 진입 시 Gatekeeper/Librarian + ambient 연출을 위한 게이트 상태.
+   * 일정 시간 동안 입력을 막고(freeze), 이후 게임플레이를 시작한다.
    */
-  private startSpawnDone = false;
+  private readonly entryGateState = new ItemWorldEntryGateState(ENTRY_FREEZE_MS);
   private dropRng = new PRNG(99999);
   private hitManager!: HitManager;
   private entityLayer!: Container;
@@ -430,47 +331,21 @@ export class ItemWorldScene extends Scene {
   private fluidLayer!: Container;
   private aboveFluidLayer!: Container;
   private weatherLayer!: Container;
-  private weather: WeatherSystem | null = null;
+  private weatherRuntime!: ItemWorldWeatherRuntime;
   private fluidSystem!: FluidSystem;
   private fluidSystemReady = false;
   private fluidSpawners!: FluidSpawnerManager;
   private fluidCrestFoam!: FluidCrestFoamManager;
-  /** Last frame's "player in non-water fluid (magma/oil/acid)" flag ??used
-   *  for entry/exit splash + impulse parity with LdtkWorldScene. */
-  private prevPlayerInOtherFluid = false;
-  /** Same as above but per-enemy (index-aligned with this.enemies). */
-  private prevEnemyInOtherFluid: boolean[] = [];
-  /** Set when TileMutator mutates a wall tile (ice melt, metal corrode,
-   *  oil/wood burnout, etc). Cleared in update() after a single fluid
-   *  refresh ??coalesces many same-frame mutations into one rebuild. */
-  private fluidGridDirty = false;
   /** Oxygen vignette + bar overlays (lazy-created on first submersion). */
-  private oxygenOverlay: Graphics | null = null;
-  private oxygenBar: Graphics | null = null;
-  /**
-   * Mutation mask ??covers air cells that used to be wood/grass/oil with a
-   * black rect so the wall sprite (which was baked into wallAggregate at
-   * buildFullMap time) doesn't keep showing through after burnout. Mirrors
-   * LdtkWorldScene's `rerenderTilemap` filter, but the ItemWorld aggregate
-   * pipeline isn't per-cell, so a paint-over mask is the cheap parity.
-   */
-  private mutationMaskGfx: Graphics | null = null;
-  /** Air cells produced by TileMutator burnout / corrode (key = "gx,gy"). */
-  private mutatedCells: Set<string> = new Set();
-  /** New WALL cells produced after aggregate bake, currently hardened magma. */
-  private solidifiedWallGfx: Graphics | null = null;
-  private solidifiedWallCells: Set<string> = new Set();
+  private oxygenOverlay!: OxygenOverlay;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
   private uiController!: ItemWorldUiController;
   private progressController!: ItemWorldProgressController;
-  private mapController!: ItemWorldMapController;
   private spawnController!: ItemWorldSpawnController;
-  private controlsOverlay!: ControlsOverlay;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
   private propShatter!: PropShatterManager;
-  private containerFluidDirty = false;
   private deathParticles!: DeathParticleManager;
   private landingDust!: LandingDustManager;
   private dashAfterimage!: DashAfterimageManager;
@@ -490,96 +365,87 @@ export class ItemWorldScene extends Scene {
   private ashRemnant!: AshRemnantManager;
   private grassClumpFire = new GrassClumpFireSystem();
   private fluidResidue!: FluidResidueManager;
-  private egoShard!: EgoShardManager;
-  private egoShardPreview!: EgoShardPreview;
-  private egoCastChargeMs = 0;
-  private containers: ThrowableContainer[] = [];
-  private heldContainer: ThrowableContainer | null = null;
-  private containerPrompt: Container | null = null;
-  /** Arc Tether pull animation state (mirrors LdtkWorldScene). */
-  private pullingContainer: ThrowableContainer | null = null;
-  private pullStartX = 0;
-  private pullStartY = 0;
-  private pullElapsedMs = 0;
+  private readonly egoShardRuntime = new EgoShardRuntime();
+  private egoShardCastRuntime!: ItemWorldEgoShardCastRuntime;
+  private egoShardProjectileRuntime!: ItemWorldEgoShardProjectileRuntime;
+  private egoShardCombatRuntime!: ItemWorldEgoShardCombatRuntime;
+  private unavailableInputRuntime!: ItemWorldUnavailableInputRuntime;
+  private readonly containerRegistry = new ItemWorldContainerRegistry();
+  private containerCarryRuntime!: ItemWorldContainerCarryRuntime;
   private arcTether: ArcTether | null = null;
   private waterBubbles!: WaterBubblesManager;
   private dropThroughDust!: DropThroughDustManager;
   private iceSkidStreak!: IceSkidStreakManager;
   private itemPickupGlow!: ItemPickupGlowManager;
   private lowHpVignette!: LowHpVignetteManager;
+  private movementVfxRuntime!: ItemWorldMovementVfxRuntime;
+  private containerPhysicsRuntime!: ItemWorldContainerPhysicsRuntime;
+  private pickupRuntime!: ItemWorldPickupRuntime;
+  private projectileRuntime!: ItemWorldProjectileRuntime;
+  private enemyContactRuntime!: ItemWorldEnemyContactRuntime;
+  private staticEntityRuntime!: ItemWorldStaticEntityRuntime;
+  private memoryTriggerRuntime!: ItemWorldMemoryTriggerRuntime;
+  private residentRuntime!: ItemWorldResidentRuntime;
+  private enemyCombatRuntime!: ItemWorldEnemyCombatRuntime;
+  private tileHazardRuntime!: ItemWorldTileHazardRuntime;
+  private containerFluidRuntime!: ItemWorldContainerFluidRuntime;
+  private egoShardImpactRuntime!: ItemWorldEgoShardImpactRuntime;
+  private runtimeCellSpawner!: ItemWorldRuntimeCellSpawner;
+  private staticEntitySpawner!: ItemWorldStaticEntitySpawner;
+  private roomRewardSpawner!: ItemWorldRoomRewardSpawner;
+  private breakablePropRuntime!: ItemWorldBreakablePropRuntime;
+  private containerDestructionRuntime!: ContainerDestructionRuntime;
+  private enemySpawnRuntime!: ItemWorldEnemySpawnRuntime;
+  private enemyEncounterRuntime!: ItemWorldEnemyEncounterRuntime;
+  private roomClearRuntime!: ItemWorldRoomClearRuntime;
+  private memoryShardSpawnRuntime!: ItemWorldMemoryShardSpawnRuntime;
+  private safeRoomResidentSpawnRuntime!: ItemWorldSafeRoomResidentSpawnRuntime;
   private screenFlash!: ScreenFlash;
   private hudSkin: UISkin | null = null;
   private toast!: ToastManager;
-  /** Gamepad hot-plug ?좎뒪??unsubscribe ??destroy ???몄텧. */
+  /** Gamepad hot-plug 토스트 unsubscribe (destroy 시 호출). */
   private _gpUnsub: (() => void) | null = null;
   private tutorialHint!: TutorialHint;
-  // A15: innocent capture seal orbs ? rise from capture point, home to player
-  private captureOrbs: { gfx: Graphics; x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
+  private lowHpHealHint!: LowHpHealHintRuntime;
+  private captureOrbRuntime!: ItemWorldCaptureOrbRuntime;
+  private hudRuntime!: ItemWorldHudRuntime;
+  private onboardingRuntime!: ItemWorldOnboardingRuntime;
+  private escapeRuntime!: ItemWorldEscapeRuntime;
+  private bossChoiceRuntime!: ItemWorldBossChoiceRuntime;
+  private stratumClearRuntime!: ItemWorldStratumClearRuntime;
+  private stratumClearPanelRuntime!: ItemWorldStratumClearPanelRuntime;
+  private exitFadeRuntime!: ItemWorldExitFadeRuntime;
   // Item being explored
-  private item: ItemInstance;
-  private inventory: Inventory;
-  private sourcePlayer: Player;
-  private readonly sceneOptions: ItemWorldSceneOptions;
+  private item!: ItemInstance;
+  private inventory!: Inventory;
+  private sourcePlayer!: Player;
+  private sceneOptions!: ItemWorldSceneOptions;
 
   // Memory Strata state
   private strataConfig!: StrataConfig;
   private currentStratumIndex = 0;
   private currentStratumDef!: StratumDef;
   private progress!: ItemWorldProgress;
-  // A6 (playtest 2026-04-17): captured item.finalAtk at the start of each
-  // stratum so we can show "+X% DMG" when the stratum is cleared.
-  private stratumStartAtk = 0;
-  // A16 (playtest 2026-04-17): additional before-stratum snapshot for the
-  // stratum-clear before/after panel.
-  private stratumStartLevel = 0;
-  private stratumStartInnocentCount = 0;
-
-  // Last non-boss room coords for first-entry respawn
-  private lastSafeRoomCol = 0;
-  private lastSafeRoomRow = 0;
+  private readonly stratumStartSnapshot = new ItemWorldStratumStartSnapshot();
 
   // Unified grid (all strata combined)
-  private earnedExp = 0;
-  earnedGold = 0;
-  /** ?꾩씠?쒓퀎 吏꾩엯 ?쒖젏??蹂닿???怨⑤뱶 ??HUD ?쒖떆??baselineGold + earnedGold ?꾧퀎. */
-  private baselineGold = 0;
-  private roomsCleared = 0;
-  private totalRooms = 0;
+  private readonly runStats = new ItemWorldRunStats();
   private unifiedGrid!: UnifiedGridData;
-  /** Per-stratum graphs from the adapter ??node.layout.x/y carry grid (col,row). */
+  /** Per-stratum graphs from the adapter — node.layout.x/y carry grid (col,row). */
   private roomGraphs: RoomGraphData[] = [];
-  // DEC-037 PR-B debug overlay (?debug=graph + Shift+2 toggle). Untouched by gameplay.
-  private roomGraphDebugContainer: Container | null = null;
-  private roomGraphDebugVisible = false;
-  private roomGraphDebugKeyHandler: ((e: KeyboardEvent) => void) | null = null;
-  // Dev: Shift+L cycles ?topology= and reloads. Validation aid for 10 topologies on a single weapon.
-  private topologyCycleKeyHandler: ((e: KeyboardEvent) => void) | null = null;
-  // Dev: persistent label showing the active topology source + name (always visible).
-  private topologyLabel: BitmapText | null = null;
+  private devOverlayRuntime!: ItemWorldDevOverlayRuntime;
+  private debugInputRuntime!: ItemWorldDebugInputRuntime;
   private currentCol = 0;
   private currentRow = 0; // absolute row in unified grid
   private roomData: number[][] = [];
   private rng!: PRNG;
-  private entryFreezeTimer = ENTRY_FREEZE_MS;
-  private entryCorridorActive = false;
-  private entryCorridorGrid: number[][] | null = null;
-  private entryCorridorLevel: LdtkLevel | null = null;
-  private entryCorridorContainer: Container | null = null;
-  private entryCorridorTiles: EntryCorridorTileVisual[] = [];
-  private entryCorridorHiddenTargets: Array<{ target: Container; visible: boolean }> = [];
-  private entryCorridorBackgroundFilters: Filter[] | null = null;
-  private entryCorridorDialoguePending = false;
-  private entryCorridorBottomExitY = 0;
-  private entryCorridorWidthPx = 0;
-  private entryCorridorHeightPx = 0;
-  private entryCorridorColorRestoreFilter: ColorMatrixFilter | null = null;
-  private entryCorridorColorRestoreTargets: Container[] = [];
-  private entryCorridorColorRestoreElapsed = 0;
+  private readonly entryCorridorState = new ItemWorldEntryCorridorState();
+  private entryCorridorVisibilityRuntime!: ItemWorldEntryCorridorVisibilityRuntime;
+  private entryCorridorRevealRuntime!: ItemWorldEntryCorridorRevealRuntime;
+  private entryCorridorVisualRuntime!: ItemWorldEntryCorridorVisualRuntime;
 
   // Full-map rendering (all rooms rendered into one continuous grid)
   private fullGrid: number[][] = [];
-  /** Cells written by door-mask seal (code-generated walls, not LDtk). */
-  private sealedCells = new Set<string>();
   private fullMapContainer: Container | null = null;
   /** Palette-swap filter for background tiles (production default). */
   private bgPaletteFilter!: PaletteSwapFilter;
@@ -614,112 +480,44 @@ export class ItemWorldScene extends Scene {
   private tileMutator = new TileMutator();
   /** Renders frozen/burning/electric overlays on top of static tile sprites. */
   private tileMutatorRenderer: TileMutatorRenderer | null = null;
-  /** Tier B burnable entities spawned by BurnableZonePass. Reset per floor. */
-  private burnableProps: BurnableProp[] = [];
+  private readonly burnablePropRegistry = new ItemWorldBurnablePropRegistry();
 
-  // LDtk-placed static entities (Option A: 7 hazard/puzzle types)
-  private spikes: Spike[] = [];
-  private crackedFloors: CrackedFloor[] = [];
-  private breakableProps: BreakableProp[] = [];
-  private collapsingPlatforms: CollapsingPlatform[] = [];
-  private growingWalls: GrowingWall[] = [];
-  private switches: Switch[] = [];
-  private lockedDoors: LockedDoor[] = [];
-  /** ?섎룞 諛곗튂 Building (LDtk Entity 'Building') ???쒓컖 ?곗퐫, 異⑸룎 ?놁쓬. */
-  private buildings: Building[] = [];
-  /** ItemWorld ?꾩슜 ???꾩옱 ?꾩씠??sprite ??嫄곕? ?쒖떇. LDtk Entity 'ItemDisplay'. */
-  private itemDisplays: ItemDisplay[] = [];
-  private cameraZones: {
-    x: number; y: number; w: number; h: number;
-    zoom: number; deadZoneX: number; deadZoneY: number;
-    lookAheadDistance: number; followLerp: number; zoomLerp: number;
-    entireLevel: boolean;
-  }[] = [];
-  private activeCameraZone: typeof this.cameraZones[number] | null = null;
-  private spawnedRooms: Set<string> = new Set(); // tracks which rooms have spawned enemies
-  private roomTypeMap: Map<string, string> = new Map(); // "col:absRow" ??LDtk roomType
-  private roomEnemyCount: Map<string, number> = new Map(); // "col,absRow" ??live enemy count for clear tracking
-  private lastPreSpawnRoomKey: string | null = null; // last room that triggered preSpawnNeighborRooms
+  private readonly staticEntityRegistry = new ItemWorldStaticEntityRegistry();
+  private cameraZoneRuntime!: CameraZoneRuntime;
+  private bossHpRuntime!: BossHpRuntime;
+  private readonly roomSpawnState = new ItemWorldRoomSpawnState();
 
-  // Memory Room (Phase 0: lore pause rooms). Populated in init() for the current item.
-  private memoryRoomPlacements: Map<string, LdtkLevel> = new Map(); // "col:absRow" ??memory template
-
-  /**
-   * Player entity spawn (DEC-038): LDtk Start ?쒗뵆由우쓽 Player entity 媛 沅뚯쐞.
-   * buildFullMap 媛 媛?stratum ??startRoom ldtkLevel ?먯꽌 entity.type === 'Player'
-   * 瑜?李얠븘 stratumIndex ?ㅻ줈 罹먯떆. init() ??泥??ㅽ룿怨? jumpToStratum ?쇰줈
-   * 吏痢듭쓣 ?대젮媛???蹂댁뒪 泥섏튂 ??continue / stratum picker) ???ㅽ룿 沅뚯쐞.
-   */
-  private playerSpawnByStratum: Map<number, { x: number; y: number }> = new Map();
-  private memoryTriggers: Array<{
-    x: number; y: number; w: number; h: number;
-    text: string;
-    speaker?: string;
-    portrait?: string;
-    active: boolean; // currently inside the trigger ? reset on exit to allow re-read
-    // Visual (legendary-tier crystal, distinct from sword drops)
-    anchorX: number; anchorY: number;           // visual anchor world pos
-    container: Container;                        // holds glow + shard + particles
-    shardGfx: Graphics;                          // rotated diamond
-    glowGfx: Graphics;                           // outer radial glow
-    particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; gfx: Graphics }>;
-    spawnTimer: number;
-    pulseTimer: number;
-    bobTimer: number;
-  }> = [];
   private loreDisplay: LoreDisplay | null = null;
 
   // Room transition
-  private transitionState: TransitionState = 'none';
-  private lookHoldTimer = 0;
-  private transitionTimer = 0;
-  private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+  private readonly flowState = new ItemWorldFlowState();
+  private roomTransitionRuntime!: ItemWorldRoomTransitionRuntime;
+  private trapdoorRuntime!: ItemWorldTrapdoorRuntime;
+  private trapdoorDescentRuntime!: ItemWorldTrapdoorDescentRuntime;
+  private absorbDissolveRuntime!: ItemWorldAbsorbDissolveRuntime;
+  private cameraRuntime!: ItemWorldCameraRuntime;
+  private egoDialogueRuntime!: ItemWorldEgoDialogueRuntime;
 
-  private exitTracked = false;
+  private readonly exitTelemetryState = new ItemWorldExitTelemetryState();
   private fadeOverlay!: Graphics;
-  private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
-
-  // Door markers
-  private doorMarkers: Graphics[] = [];
-
-  // Minimap
-  private miniMapContainer!: Container;
 
   // Escape confirm dialog
 
   // Stratum picker (shown on entry when player has unlocked >1 stratum)
-  private stratumPicker: Container | null = null;
-  private stratumPickerVisible = false;
-  private stratumPickerSelection = 0;
-  private stratumPickerMax = 0;
-  private stratumPickerPulseTimer = 0;
-  private stratumPickerPulseG: Graphics | null = null;
-  private stratumPickerPulseRect: { x: number; y: number; w: number; h: number } | null = null;
+  private stratumPickerRuntime!: ItemWorldStratumPickerRuntime;
 
-  // Onboarding ??last line uses live keybindings via getter (preset-aware).
-  private static getOnboardingMsgs(): string[] {
-    return [
-      t('ui.iw.onboarding_entered'),
-      t('ui.iw.onboarding_descend'),
-      t('ui.iw.onboarding_controls', {
-        menu: actionKey(GameAction.MENU),
-        jump: actionKey(GameAction.JUMP),
-      }),
-    ];
-  }
   // Callback when done
   onComplete: (() => void) | null = null;
 
   /** Set to true if the global Item World tutorial has already been completed. */
   itemWorldTutorialDone = false;
 
-  // ?? Ego dialogue state (per-entry, not saved) ??
-  private egoActive = false;          // true if current item has Ego
-  private egoEntryCount = 0;          // how many times player entered this item's world
-  private egoFlags = new Set<string>(); // fired triggers this entry (reset each entry)
-  private entryDialogueStarted = false;
-  /** Passed from LdtkWorldScene ??shared unlockedEvents for persistence. */
+  /** Passed from LdtkWorldScene — shared unlockedEvents for persistence. */
   egoUnlockedEvents: Set<string> = new Set();
+
+  get earnedGold(): number {
+    return this.runStats.earnedGold;
+  }
 
   constructor(
     game: Game,
@@ -733,21 +531,528 @@ export class ItemWorldScene extends Scene {
     this.inventory = inventory;
     this.sourcePlayer = sourcePlayer;
     this.sceneOptions = options;
+    this.wireTransitionAndCameraRuntimes();
+    this.wireStratumAndPanelRuntimes();
+    this.wireMemoryAndTriggerRuntimes();
+    this.wireRoomStateAndSpawnRuntimes();
+    this.wireEnemyAndHudRuntimes();
+  }
+
+  private wireTransitionAndCameraRuntimes(): void {
+    this.oxygenOverlay = new OxygenOverlay(this.game);
+    this.roomTransitionRuntime = new ItemWorldRoomTransitionRuntime({
+      getFadeOverlay: () => this.fadeOverlay,
+      fadeDurationMs: FADE_DURATION,
+    });
+    this.cameraRuntime = new ItemWorldCameraRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getMapSizePx: () => ({
+        width: this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
+        height: this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
+      }),
+    });
+    this.containerCarryRuntime = new ItemWorldContainerCarryRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getContainers: () => this.containerRegistry.containers,
+      getArcTether: () => this.arcTether,
+    });
+    this.trapdoorRuntime = new ItemWorldTrapdoorRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getTrapdoor: () => this.trapdoor,
+      isInteractionSuppressed: () => (
+        this.flowState.isActive
+        || this.roomTransitionRuntime.isActive
+      ),
+      onActivate: () => this.startTrapdoorDescent(),
+    });
+    this.trapdoorDescentRuntime = new ItemWorldTrapdoorDescentRuntime();
+    this.itemWorldAnvilRuntime = new ItemWorldAnvilRuntime({
+      game: this.game,
+      getEntityLayer: () => this.entityLayer,
+      getPlayer: () => this.player,
+      isInteractionSuppressed: () => (
+        this.shouldSuppressWorldPrompts()
+        || this.escapeRuntime.isVisible()
+        || this.flowState.isActive
+        || this.roomTransitionRuntime.isActive
+      ),
+      onReturnRequest: () => this.escapeRuntime.show(),
+    });
+    this.hudRuntime = new ItemWorldHudRuntime({
+      getHud: () => this.hud,
+      getItem: () => this.item,
+      getProgress: () => this.progress,
+      getStrataConfig: () => this.strataConfig,
+      getUnifiedGrid: () => this.unifiedGrid,
+      getCurrentStratumIndex: () => this.currentStratumIndex,
+      getEarnedExp: () => this.runStats.earnedExp,
+    });
+    this.onboardingRuntime = new ItemWorldOnboardingRuntime({
+      game: this.game,
+      getUiController: () => this.uiController,
+      getHudSkin: () => this.hudSkin,
+    });
+    this.escapeRuntime = new ItemWorldEscapeRuntime({
+      game: this.game,
+      getUiController: () => this.uiController,
+      getHudSkin: () => this.hudSkin,
+      getItem: () => this.item,
+      getRoomsCleared: () => this.runStats.roomsCleared,
+      getTotalRooms: () => this.runStats.totalRooms,
+      getEarnedExp: () => this.runStats.earnedExp,
+      getEarnedGold: () => this.runStats.earnedGold,
+      getTransitionState: () => this.flowState.value,
+      onExitConfirmed: () => this.startExitFade(),
+    });
+    this.bossChoiceRuntime = new ItemWorldBossChoiceRuntime({
+      game: this.game,
+      getUiController: () => this.uiController,
+      getHudSkin: () => this.hudSkin,
+      onContinue: () => this._continueToNextStratum(),
+      onExit: () => this._exitAfterBoss(),
+    });
+    this.stratumClearRuntime = new ItemWorldStratumClearRuntime({
+      game: this.game,
+      getUiController: () => this.uiController,
+      getItem: () => this.item,
+      getBeforeAtk: () => this.stratumStartSnapshot.atk,
+      getAfterAtk: () => this.item.finalAtk,
+      getBeforeInnocents: () => this.stratumStartSnapshot.innocentCount,
+      getAfterInnocents: () => this.item.innocents.length,
+      onHoldStarted: () => this.startPostClearHold(),
+      onContinue: () => this._continueToNextStratum(),
+      onExit: () => {
+        this.cleanupForReturnResult();
+        this.startExitFade();
+      },
+    });
+  }
+
+  private wireStratumAndPanelRuntimes(): void {
+    this.stratumClearPanelRuntime = new ItemWorldStratumClearPanelRuntime({
+      game: this.game,
+      getUiController: () => this.uiController,
+      getHudSkin: () => this.hudSkin,
+    });
+    this.exitFadeRuntime = new ItemWorldExitFadeRuntime({
+      getFadeOverlay: () => this.fadeOverlay,
+      durationMs: FADE_DURATION * 2,
+    });
+    this.egoShardCastRuntime = new ItemWorldEgoShardCastRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.fullGrid,
+      getEgoShardRuntime: () => this.egoShardRuntime,
+      hasHeldContainer: () => this.containerCarryRuntime.hasHeldContainer(),
+    });
+    this.egoShardCombatRuntime = new ItemWorldEgoShardCombatRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getContainers: () => this.containerRegistry.containers,
+      getFullGrid: () => this.fullGrid,
+      getTileMutator: () => this.tileMutator,
+      getShardManager: () => this.egoShardRuntime.managerInstance,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+    });
+    this.egoShardProjectileRuntime = new ItemWorldEgoShardProjectileRuntime({
+      getPlayer: () => this.player,
+      getCollisionGrid: () => this.fullGrid,
+      getEgoShardRuntime: () => this.egoShardRuntime,
+      onImpact: (x, y, element) => this.egoShardImpactRuntime.handleImpact(x, y, element),
+      checkHit: (x, y, element) => this.egoShardCombatRuntime.checkHit(x, y, element),
+      flushContainerFluidChanges: () => this.containerFluidRuntime.flush(),
+    });
+    this.unavailableInputRuntime = new ItemWorldUnavailableInputRuntime({
+      game: this.game,
+      showToast: (message, color) => this.toast.show(message, color),
+    });
+    this.absorbDissolveRuntime = new ItemWorldAbsorbDissolveRuntime({
+      game: this.game,
+      getTilemapContainer: () => this.tilemap.container,
+      getFullMapContainer: () => this.fullMapContainer,
+      getBgAggregate: () => this.bgAggregate,
+      getBuildingLayer: () => this.buildingLayer,
+      getResidentsLayer: () => this.residentsLayer,
+      getFluidLayer: () => this.fluidLayer,
+      getAboveFluidLayer: () => this.aboveFluidLayer,
+      getEntityLayer: () => this.entityLayer,
+      getPlayerContainer: () => this.player.container,
+      getTrapdoor: () => this.trapdoor,
+      getFadeOverlayParent: () => this.fadeOverlay.parent ?? null,
+      onComplete: () => this.startExitFade(),
+    });
+    this.entryCorridorVisibilityRuntime = new ItemWorldEntryCorridorVisibilityRuntime({
+      game: this.game,
+      getHideTargets: () => [
+        this.tilemap.container,
+        this.fullMapContainer,
+        this.buildingLayer,
+        this.residentsLayer,
+        this.fluidLayer,
+        this.aboveFluidLayer,
+        ...this.entityLayer.children.map(child => child as Container),
+      ],
+      getColorRestoreTargets: () => [
+        this.fullMapContainer,
+        this.tilemap?.container,
+        this.buildingLayer,
+        this.residentsLayer,
+        this.fluidLayer,
+        this.aboveFluidLayer,
+        this.entityLayer,
+        this.weatherLayer,
+        this.game.backgroundContainer,
+      ],
+      getPlayerContainer: () => this.player.container,
+      getParallaxContainer: () => this.parallaxBG.container,
+      hideHud: () => {
+        this.hud.container.visible = false;
+        this.hud.hideBossHP();
+      },
+    });
+    this.entryCorridorRevealRuntime = new ItemWorldEntryCorridorRevealRuntime({
+      tileSize: TILE_SIZE,
+      revealRadiusPx: TILE_SIZE * 7,
+      revealMs: 180,
+    });
+    this.entryCorridorVisualRuntime = new ItemWorldEntryCorridorVisualRuntime({
+      atlases: this.atlases,
+      revealRuntime: this.entryCorridorRevealRuntime,
+      tileSize: TILE_SIZE,
+      getTemperament: () => this.item.def.temperamentPrimary,
+    });
+    this.captureOrbRuntime = new ItemWorldCaptureOrbRuntime({
+      getEntityLayer: () => this.entityLayer,
+      getTargetCenter: () => ({
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+      }),
+      flashOnArrival: () => this.screenFlash.flash(0xaaeeff, 0.2, 90),
+    });
+    this.egoDialogueRuntime = new ItemWorldEgoDialogueRuntime({
+      getLoreDisplay: () => this.loreDisplay,
+      getUnlockedEvents: () => this.egoUnlockedEvents,
+    });
+  }
+
+  private wireMemoryAndTriggerRuntimes(): void {
+    this.memoryTriggerRuntime = new ItemWorldMemoryTriggerRuntime({
+      getEntityLayer: () => this.entityLayer,
+      getPlayer: () => this.player,
+      getLoreDisplay: () => this.loreDisplay,
+    });
+    this.residentRuntime = new ItemWorldResidentRuntime({
+      getResidentsLayer: () => this.residentsLayer,
+      getPlayer: () => this.player,
+      getLoreDisplay: () => this.loreDisplay,
+      getEgoFlags: () => this.egoDialogueRuntime.getFlags(),
+      getEgoUnlockedEvents: () => this.egoUnlockedEvents,
+    });
+    this.safeRoomResidentSpawnRuntime = new ItemWorldSafeRoomResidentSpawnRuntime({
+      getItemUid: () => this.item.uid,
+      getFullGrid: () => this.fullGrid,
+      createPrng: (seed) => new PRNG(seed),
+      getSpawnController: () => this.spawnController,
+      getResidentRuntime: () => this.residentRuntime,
+    });
+    this.enemyCombatRuntime = new ItemWorldEnemyCombatRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getHitManager: () => this.hitManager,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+      getDeathParticles: () => this.deathParticles,
+      getHud: () => this.hud,
+      getItem: () => this.item,
+      getExpMultiplier: () => this.currentStratumDef.expMultiplier,
+      getRoomEnemyCount: () => this.roomSpawnState.roomEnemyCount,
+      getUnifiedGrid: () => this.unifiedGrid,
+      getRoomData: () => this.roomData,
+      baseExpPerKill: BASE_EXP_PER_KILL,
+      fireEgoFirstKill: () => this.egoDialogueRuntime.fireFirstKill(),
+      addEarnedExp: (amount) => this.runStats.addEarnedExp(amount),
+      incrementRoomsCleared: () => this.runStats.incrementRoomsCleared(),
+      persistRoomState: () => this.persistRoomState(),
+      rollDrop: () => this.dropRng.next(),
+      addHealingPickup: (pickup) => this.pickupRuntime.addHealingPickup(pickup),
+      addGoldPickup: (pickup) => this.pickupRuntime.addGoldPickup(pickup),
+    });
+    this.tileHazardRuntime = new ItemWorldTileHazardRuntime({
+      game: this.game,
+      getFullGrid: () => this.fullGrid,
+      getCurrentRoom: () => ({ col: this.currentCol, row: this.currentRow }),
+      getTileMutator: () => this.tileMutator,
+      getTileMutatorRenderer: () => this.tileMutatorRenderer,
+      getBurnableProps: () => this.burnablePropRegistry.props,
+      getBreakableProps: () => this.staticEntityRegistry.breakableProps,
+      getAshRemnant: () => this.ashRemnant,
+      getGrassClumpFire: () => this.grassClumpFire,
+      getFluidSystem: () => this.fluidSystem,
+      getFluidSpawners: () => this.fluidSpawners,
+      getFluidCrestFoam: () => this.fluidCrestFoam,
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getHud: () => this.hud,
+      getDamageNumbers: () => this.dmgNumbers,
+      getScreenFlash: () => this.screenFlash,
+      destroyBreakablePropWithEffects: (prop, source) => this.breakablePropRuntime.destroyWithEffects(prop, source),
+    });
+    this.containerFluidRuntime = new ItemWorldContainerFluidRuntime({
+      game: this.game,
+      getFullGrid: () => this.fullGrid,
+      getTileMutator: () => this.tileMutator,
+      getFluidSystem: () => this.fluidSystem,
+      getActiveTileBounds: () => this.tileHazardRuntime.getActiveTileBounds(),
+      getContainers: () => this.containerRegistry.containers,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getSteamPuff: () => this.steamPuff,
+    });
+    this.egoShardImpactRuntime = new ItemWorldEgoShardImpactRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getFullGrid: () => this.fullGrid,
+      getTileMutator: () => this.tileMutator,
+      getFluidSystem: () => this.fluidSystem,
+      getActiveTileBounds: () => this.tileHazardRuntime.getActiveTileBounds(),
+      getSteamPuff: () => this.steamPuff,
+      getFluidResidue: () => this.fluidResidue,
+      getGrassClumpFire: () => this.grassClumpFire,
+    });
+    this.memoryRoomPlacementRuntime = new ItemWorldMemoryRoomPlacementRuntime({
+      isStratumEndRoom: (col, absRow) => this.isStratumEndRoom(col, absRow),
+    });
+    this.templatePickerRuntime = new ItemWorldTemplatePickerRuntime({
+      getTemplates: () => this.ldtkTemplates,
+      getMemoryRoomPlacements: () => this.memoryRoomPlacementRuntime.getPlacements(),
+      getStartRoom: () => this.unifiedGrid.startRoom,
+      isStratumEndRoom: (col, absRow) => this.isStratumEndRoom(col, absRow),
+    });
+    this.fullGridRuntime = new ItemWorldFullGridRuntime();
+    this.fullMapLayerRuntime = new ItemWorldFullMapLayerRuntime();
+    this.boundaryVisualRuntime = new ItemWorldBoundaryVisualRuntime();
+  }
+
+  private wireRoomStateAndSpawnRuntimes(): void {
+    this.roomStateRuntime = new ItemWorldRoomStateRuntime();
+    this.playerSpawnRuntime = new ItemWorldPlayerSpawnRuntime({
+      getFullGrid: () => this.fullGrid,
+      getPlayerSize: () => ({ width: this.player.width, height: this.player.height }),
+      computeSpawnPoints: (grid, roomLeftTile, roomTopTile) => (
+        this.spawnController.computeSpawnPoints(grid, roomLeftTile, roomTopTile)
+      ),
+    });
+    this.roomTypeRuntime = new ItemWorldRoomTypeRuntime({
+      isStratumEndRoom: (col, absRow) => this.isStratumEndRoom(col, absRow),
+    });
+    this.neighborPreSpawnRuntime = new ItemWorldNeighborPreSpawnRuntime({
+      getUnifiedGrid: () => this.unifiedGrid,
+      getSpawnedRooms: () => this.roomSpawnState.spawnedRooms,
+      getEnemyCount: () => this.enemyRegistry.enemies.length,
+      spawnRuntimeCell: (col, absRow) => this.runtimeCellSpawner.spawnForCell(col, absRow),
+      spawnEnemiesInRoom: (col, absRow) => this.spawnEnemiesInRoom(col, absRow),
+      getRoomDebugLabel: (col, absRow) => this.roomTypeRuntime.getDebugLabel(col, absRow),
+      persistRoomState: () => this.persistRoomState(),
+    });
+    this.roomSpawnRuntime = new ItemWorldRoomSpawnRuntime({
+      getUnifiedGrid: () => this.unifiedGrid,
+      isStartSpawnDone: () => this.entryGateState.startSpawnDone,
+      isStratumEndRoom: (col, absRow) => this.isStratumEndRoom(col, absRow),
+      spawnAmbientForSafeRoom: (role, col, absRow) => {
+        this.safeRoomResidentSpawnRuntime.spawnAmbientForRoom(role, col, absRow);
+      },
+      markCleared: (cell, recoveryBonus) => this.roomClearRuntime.markCleared(cell, recoveryBonus),
+      hasMemoryRoom: (col, absRow) => this.memoryRoomPlacementRuntime.has(col, absRow),
+      getRoomType: (col, absRow) => this.roomTypeRuntime.get(col, absRow),
+      createSpawnContext: (col, absRow, isBossRoom) => this.enemySpawnRuntime.createContext(col, absRow, isBossRoom),
+      spawnRoomRewards: (col, absRow) => this.roomRewardSpawner.spawnForRoom(col, absRow),
+      spawnEncounter: (args) => this.enemyEncounterRuntime.spawnForRoom(args),
+    });
+    this.proceduralDecorRuntime = new ItemWorldProceduralDecorRuntime({
+      getNaturalAggregate: () => this.decoAggregate,
+      getArtificialAggregate: () => this.artificialDecoAggregate,
+      getStructureAggregate: () => this.structAggregate,
+      getGrassClumpFire: () => this.grassClumpFire,
+      getTileMutator: () => this.tileMutator,
+    });
+    this.cellVisualRuntime = new ItemWorldCellVisualRuntime({
+      getFullGrid: () => this.fullGrid,
+      getAtlases: () => this.atlases,
+      getThemeSlug: () => this._themeSlug,
+      getTemperament: () => this.item.def.temperamentPrimary,
+      getMapSize: () => ({
+        totalCols: this.unifiedGrid.totalWidth,
+        totalRows: this.unifiedGrid.totalHeight,
+      }),
+      getAggregates: () => ({
+        bg: this.bgAggregate,
+        interior: this.interiorAggregate,
+        wall: this.wallAggregate,
+        special: this.specialAggregate,
+        shadow: this.shadowAggregate,
+        seal: this.sealAggregate,
+      }),
+    });
+    this.runtimeCellSpawner = new ItemWorldRuntimeCellSpawner({
+      getCellRecord: (key) => this.cellVisualRuntime.getRecord(key),
+      getFullGrid: () => this.fullGrid,
+      getContainers: () => this.containerRegistry.containers,
+      getBurnableProps: () => this.burnablePropRegistry.props,
+      getFluidSpawners: () => this.fluidSpawners,
+      getTileMutator: () => this.tileMutator,
+      getEntityLayer: () => this.entityLayer,
+      getTemperament: () => this.item.def.temperamentPrimary,
+      getItemUid: () => this.item.uid,
+      spawnStaticEntitiesForRoom: (level, roomX, roomY) => this.staticEntitySpawner.spawnForRoom(level, roomX, roomY),
+    });
+    this.staticEntitySpawner = new ItemWorldStaticEntitySpawner({
+      getFullGrid: () => this.fullGrid,
+      getEntityLayer: () => this.entityLayer,
+      getBuildingLayer: () => this.buildingLayer,
+      getWallPaletteFilter: () => this.wallPaletteFilter,
+      getItem: () => this.item,
+      getBuildings: () => this.staticEntityRegistry.buildings,
+      getSpikes: () => this.staticEntityRegistry.spikes,
+      getCrackedFloors: () => this.staticEntityRegistry.crackedFloors,
+      getCollapsingPlatforms: () => this.staticEntityRegistry.collapsingPlatforms,
+      getGrowingWalls: () => this.staticEntityRegistry.growingWalls,
+      getSwitches: () => this.staticEntityRegistry.switches,
+      getLockedDoors: () => this.staticEntityRegistry.lockedDoors,
+      getItemDisplays: () => this.staticEntityRegistry.itemDisplays,
+      spawnMemoryFromEntity: (entity, offX, offY) => {
+        this.memoryTriggerRuntime.spawnFromEntity(entity, offX, offY);
+      },
+      addCameraZone: (zone) => this.cameraZoneRuntime.addZone(zone),
+      spawnAnvil: (x, y) => {
+        this.itemWorldAnvilRuntime.spawn(x, y);
+      },
+    });
+    this.roomRewardSpawner = new ItemWorldRoomRewardSpawner({
+      getUnifiedGrid: () => this.unifiedGrid,
+      getItem: () => this.item,
+      getPlayerMaxHp: () => this.player.maxHp,
+      getRoomData: () => this.roomData,
+      addHealingPickup: (pickup) => this.pickupRuntime.addHealingPickup(pickup),
+      addGoldPickup: (pickup) => this.pickupRuntime.addGoldPickup(pickup),
+    });
+    this.breakablePropRuntime = new ItemWorldBreakablePropRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getRoomData: () => this.roomData,
+      getEntityLayer: () => this.entityLayer,
+      getBreakableProps: () => this.staticEntityRegistry.breakableProps,
+      addGoldPickup: (pickup) => this.pickupRuntime.addGoldPickup(pickup),
+      getPropShatter: () => this.propShatter,
+      getHitSparks: () => this.hitSparks,
+      getTileMutator: () => this.tileMutator,
+    });
+    this.containerDestructionRuntime = new ContainerDestructionRuntime({
+      game: this.game,
+      getPropShatter: () => this.propShatter,
+    });
+  }
+
+  private wireEnemyAndHudRuntimes(): void {
+    this.enemySpawnRuntime = new ItemWorldEnemySpawnRuntime({
+      getFullGrid: () => this.fullGrid,
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getEntityLayer: () => this.entityLayer,
+      getRoomEnemyCount: () => this.roomSpawnState.roomEnemyCount,
+      getSpawnController: () => this.spawnController,
+    });
+    this.enemyEncounterRuntime = new ItemWorldEnemyEncounterRuntime({
+      getItem: () => this.item,
+      getCycle: () => this.progress?.cycle ?? 0,
+      getStrataConfig: () => this.strataConfig,
+      getStartRoom: () => this.unifiedGrid.startRoom,
+      getSpawnController: () => this.spawnController,
+      getEnemySpawnRuntime: () => this.enemySpawnRuntime,
+      getMemoryShardSpawnRuntime: () => this.memoryShardSpawnRuntime,
+    });
+    this.roomClearRuntime = new ItemWorldRoomClearRuntime({
+      getItem: () => this.item,
+      incrementRoomsCleared: () => this.runStats.incrementRoomsCleared(),
+      persistRoomState: () => this.persistRoomState(),
+    });
+    this.memoryShardSpawnRuntime = new ItemWorldMemoryShardSpawnRuntime({
+      getItem: () => this.item,
+      getDamageNumbers: () => this.dmgNumbers,
+      updateHudText: () => this.hudRuntime.updateText(),
+      getScreenFlash: () => this.screenFlash,
+      getCaptureOrbRuntime: () => this.captureOrbRuntime,
+      getLoreDisplay: () => this.loreDisplay,
+      getEgoUnlockedEvents: () => this.egoUnlockedEvents,
+      getEnemySpawnRuntime: () => this.enemySpawnRuntime,
+    });
+    this.devOverlayRuntime = new ItemWorldDevOverlayRuntime({
+      game: this.game,
+      getRoomGraphs: () => this.roomGraphs,
+      getItemRarity: () => this.item.rarity,
+      getItemUid: () => this.item.uid,
+      getWeaponTopologyOverride: () => this.item.def.topologyOverride,
+      getStrataConfig: () => this.strataConfig,
+    });
+    this.debugInputRuntime = new ItemWorldDebugInputRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getContainers: () => this.containerRegistry.containers,
+      showToast: (message, color) => this.toast.show(message, color),
+      onDebugIgniteAtPlayer: () => this.egoShardImpactRuntime.debugIgniteAtPlayer(),
+      onDebugFreezeAtPlayer: () => this.egoShardImpactRuntime.debugFreezeAtPlayer(),
+      onDebugThunderAtPlayer: () => this.egoShardImpactRuntime.debugThunderAtPlayer(),
+    });
+    this.weatherRuntime = new ItemWorldWeatherRuntime({
+      game: this.game,
+      tileSize: TILE_SIZE,
+      getWeatherLayer: () => this.weatherLayer,
+      getThemeSlug: () => this._themeSlug,
+      getFullGrid: () => this.fullGrid,
+      getTemperament: () => this.item.def.temperamentPrimary,
+    });
+    this.stratumPickerRuntime = new ItemWorldStratumPickerRuntime({
+      game: this.game,
+      getHudSkin: () => this.hudSkin,
+      getItem: () => this.item,
+      getProgress: () => this.progress,
+      getStrataConfig: () => this.strataConfig,
+      getClearedStrataFlags: () => this.hudRuntime.getClearedStrataFlags(),
+      onPick: (stratumIndex) => this.jumpToStratum(stratumIndex),
+    });
+    this.cameraZoneRuntime = new CameraZoneRuntime({
+      camera: this.game.camera,
+      getPlayerCenter: () => ({
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+      }),
+    });
+    this.bossHpRuntime = new BossHpRuntime({
+      getHud: () => this.hud,
+      getEnemies: () => this.enemyRegistry.enemies,
+      defaultBossName: t('ui.hud.boss_default'),
+    });
   }
 
   async init(): Promise<void> {
-    // Resolve visual theme from weapon definition (themeId: "T-FOUNDRY" → "foundry").
-    // 5기질 테마만 유효 (foundry/command/malfunction/coolant/echo). 미정의 시 foundry 폴백.
+    // Resolve visual theme from weapon definition (themeId: "T-FOUNDRY" -> "foundry").
+    // 5종 테마 슬러그(foundry/command/malfunction/coolant/echo). 매칭 실패 시 foundry 폴백.
     const themeSlug = (this.item.def.themeId ?? 'T-FOUNDRY').toLowerCase().replace('t-', '');
     this._themeSlug = themeSlug;
-    // ItemWorld ?꾩슜 ??二쇰?/?ㅼ쐞移??ㅽ봽?쇱씠?몃? entity 媛 媛쒕퀎 Assets.load 濡?
-    // 遺瑜닿린 ?꾩뿉 洹몃９ prefetch ??泥?吏꾩엯 hitch ?뚰뵾 (pixijs-references P1).
+    // ItemWorld 테마 타일셋/UI 스킨 등 entity 에셋을 Assets.load 로
+    // 먼저 prefetch 하여 진입 시 hitch 를 방지한다 (pixijs-references P1).
     await loadBundleOnce('item_world');
     const hudSkin = new UISkin();
     this.hudSkin = hudSkin;
     const hudSkinLoad = hudSkin.load().catch((e) => {
       // eslint-disable-next-line no-console
-      console.warn('[UISkin] load failed ??falling back to Graphics HUD:', e);
+      console.warn('[UISkin] load failed — falling back to Graphics HUD:', e);
     });
     // Lazy-load tilesets for this theme's palette rows
     const areaIds = [`iw_${themeSlug}_bg`, `iw_${themeSlug}_wall`];
@@ -799,13 +1104,7 @@ export class ItemWorldScene extends Scene {
       Debug.log('[ItemWorld] Re-dive: progress reset for cycle', this.progress.cycle);
     }
 
-    // ?? Ego init ??
-    this.egoActive = hasEgo(this.item.def.id);
-    if (this.egoActive) {
-      // Increment entry count
-      this.egoEntryCount = getEgoEntryCount(this.egoUnlockedEvents) + 1;
-      this.egoUnlockedEvents.add(egoEntryKey(this.egoEntryCount));
-    }
+    this.egoDialogueRuntime.init(this.item.def.id);
     this.rng = new PRNG(this.item.uid * 1000);
 
     // Analytics: item world entry
@@ -813,19 +1112,19 @@ export class ItemWorldScene extends Scene {
 
     this.hitManager = new HitManager(this.game);
 
-    // First-dive ?⑤낫?? 泥??꾩씠?쒓퀎 蹂댁뒪瑜?泥섏튂?섍린 ?꾩뿉??紐⑤뱺 ?꾩씠?쒖씠 1吏痢듬쭔 媛뽯뒗??
-    // ?덉뼱由ы떚 臾닿? (Normal/Magic/Rare/...) ??湲濡쒕쾶 寃뚯씠??
-    // DEC-037: Radial Ant Colony topology ??RoomGraph ?대뙌?곌? ?⑥씪 寃쎈줈.
-    // Phase 1: 臾닿린蹂?topologyOverride 媛 ?덉쑝硫?stratum ???좏뤃濡쒖?瑜?媛뺤젣 援먯껜.
-    // Dev: ?topology=ring 媛숈? 荑쇰━?ㅽ듃留곸씠 ?덉쑝硫?洹멸쾬??理쒖슦??(寃利앹슜).
+    // First-dive 진입 시 토폴로지/아키타입을 결정하고 unifiedGrid 를 생성한다.
+    // 레어리티(Normal/Magic/Rare/...) 별 지층 수가 다르다.
+    // DEC-037: Radial Ant Colony topology 를 RoomGraph 로 생성한다.
+    // Phase 1: 무기 정의의 topologyOverride 가 있으면 우선, 없으면 stratum 별 기본값.
+    // Dev: ?topology=ring 등 URL 파라미터로 강제 지정 가능.
     const urlTopologyRaw = new URLSearchParams(window.location.search)
       .get('topology')?.trim().toLowerCase() ?? '';
     const urlTopology: TopologyKind | undefined = TOPOLOGY_VALUES.has(urlTopologyRaw as TopologyKind)
       ? (urlTopologyRaw as TopologyKind)
       : undefined;
     if (urlTopology) Debug.log(`[ItemWorld] URL topology override: ${urlTopology}`);
-    // DEC-039 archetype 留ㅽ븨 ??臾닿린??(二쇱깋, 遺?? 湲곗쭏 ??7 archetype 以??섎굹.
-    // 誘몄?????'zigzag' fallback. URL ?archetype= ?쇰줈 dev 痢?媛뺤젣 媛??
+    // DEC-039 archetype: 무기 기질(temperament) 조합으로 7 archetype 중 하나를 선택.
+    // 매칭 실패 시 'zigzag' fallback. URL ?archetype= 로 dev 오버라이드 가능.
     const urlArchRaw = new URLSearchParams(window.location.search)
       .get('archetype')?.trim().toLowerCase() ?? '';
     const validArchetypes = new Set([
@@ -843,18 +1142,22 @@ export class ItemWorldScene extends Scene {
     );
 
     // Dev: persistent topology label (top-left). Shows which source picked the topology.
-    this.initTopologyLabel(urlTopology);
     this.unifiedGrid = adapterResult.unifiedGrid;
     this.roomGraphs = adapterResult.graphs;
+    this.devOverlayRuntime.init(urlTopology);
 
-    // DEC-037 PR-B: optional graph debug overlay (?debug=1 ?먮뒗 ?debug=graph). Shift+2 ?좉?.
-    this.maybeInitRoomGraphDebug();
+    // DEC-037 PR-B: optional graph debug overlay (?debug=1 또는 ?debug=graph). Shift+2 토글.
 
-    // Dev: Shift+L = cycle ?topology= and reload (寃利앹슜 ?ロ궎).
-    this.initTopologyCycleKey();
+    // Dev: Shift+L = cycle ?topology= and reload (디버그 전용).
 
-    // Pre-compute Memory Room placements per stratum (from CSV lookup)
-    this.computeMemoryRoomPlacements();
+    // Pre-compute Memory Room placements per stratum (from CSV lookup).
+    this.memoryRoomPlacementRuntime.compute({
+      templates: this.ldtkTemplates,
+      unifiedGrid: this.unifiedGrid,
+      strataCount: this.strataConfig.strata.length,
+      weaponId: this.item.def.id,
+      itemUid: this.item.uid,
+    });
 
     // Determine starting position based on progress
     const startStratumIndex = Math.min(
@@ -876,9 +1179,7 @@ export class ItemWorldScene extends Scene {
     const startCell = this.unifiedGrid.cells[this.currentRow][this.currentCol];
     this.currentStratumIndex = startCell?.stratumIndex ?? 0;
     this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    this.stratumStartAtk = this.item.finalAtk;
-    this.stratumStartLevel = this.item.level;
-    this.stratumStartInnocentCount = this.item.innocents.length;
+    this.stratumStartSnapshot.capture(this.item);
 
     // Tilemap
     this.tilemap = new TilemapRenderer(TILE_SIZE);
@@ -949,7 +1250,7 @@ export class ItemWorldScene extends Scene {
     {
       const bgEntry = getAreaPalette(`iw_${this._themeSlug}_bg`);
       const atlas = getAreaPaletteAtlas();
-      // DEC-039 ??A: parallax ???듭씪 醫뚰몴 ?꾩껜 ?ш린濡??ㅼ젙.
+      // DEC-039 — A: parallax 배경을 unifiedGrid 전체 크기에 맞춘다.
       const totalCols = this.unifiedGrid.totalWidth;
       const totalRows = this.unifiedGrid.totalHeight;
       this.parallaxBG.setup(bgEntry, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, {
@@ -959,15 +1260,15 @@ export class ItemWorldScene extends Scene {
       });
     }
 
-    // Building layer ??fullMapContainer (platform/wall tile) 蹂대떎???ㅻ줈.
-    // fullMapContainer 媛 addChildAt(0) ?쇰줈 媛뺤젣 ?쎌엯?섎?濡??⑥닚 addChild ?쒖꽌濡쒕뒗
-    // ?ㅼ뿉 紐??? sortableChildren + ?뚯닔 zIndex 濡?媛뺤젣.
+    // Building layer = fullMapContainer (platform/wall tile) 를 담는다.
+    // fullMapContainer 는 addChildAt(0) 대신 zIndex 로 정렬되도록 addChild 한다.
+    // 컨테이너 sortableChildren + zIndex 로 z 순서를 제어한다.
     this.container.sortableChildren = true;
     this.buildingLayer = new Container();
     this.buildingLayer.zIndex = -1;
     this.container.addChild(this.buildingLayer);
 
-    // Residents layer ??grid ?? entityLayer ?꾨옒. addChild ?쒖꽌媛 z 寃곗젙.
+    // Residents layer — grid 위, entityLayer 아래에 addChild 하여 z 순서를 맞춘다.
     this.residentsLayer = new Container();
     this.container.addChild(this.residentsLayer);
 
@@ -976,9 +1277,9 @@ export class ItemWorldScene extends Scene {
     this.container.addChild(this.entityLayer);
     this.grassClumpFire.setFireLayer(this.entityLayer);
 
-    // Shift+I 충돌 디버그 오버레이 — 월드 셀/AABB 는 월드 레이어, 진단 라벨은 화면 레이어.
-    // hud 는 app.stage 직속(FpsCounter 와 동일) — uiContainer.visible 토글에 영향받지
-    // 않고 항상 최상단에 또렷이 표시되도록.
+    // Shift+I 등 디버그 입력으로 충돌/AABB 디버그 오버레이를 토글한다.
+    // hud 는 app.stage 에 붙어 FpsCounter 와 함께 uiContainer.visible 과 무관하게 표시된다.
+    // 디버그 전용.
     this.collisionDebug = new CollisionDebugOverlay(this.game.uiScale);
     this.container.addChild(this.collisionDebug.container);
     this.game.app.stage.addChild(this.collisionDebug.hud);
@@ -986,7 +1287,7 @@ export class ItemWorldScene extends Scene {
     // Tile mutator overlay (fire/ice/electric VFX).
     this.tileMutatorRenderer = new TileMutatorRenderer(this.entityLayer);
 
-    // Dynamic fluid layer ??flood-fill polygon mesh for water/oil/acid/magma
+    // Dynamic fluid layer — flood-fill polygon mesh for water/oil/acid/magma
     // cells. Lives above the entity layer so fluid bodies cover the player
     // when submerged. Mirrors LdtkWorldScene wiring.
     this.fluidLayer = new Container();
@@ -999,7 +1300,7 @@ export class ItemWorldScene extends Scene {
       this.fluidCrestFoam = new FluidCrestFoamManager(this.fluidLayer, _reduceMotion);
     }
 
-    // Above-fluid overlay ??fire sprites + ember + smoke render here so
+    // Above-fluid overlay — fire sprites + ember + smoke render here so
     // they appear OVER oil pools / water surface.
     this.aboveFluidLayer = new Container();
     this.container.addChild(this.aboveFluidLayer);
@@ -1075,9 +1376,8 @@ export class ItemWorldScene extends Scene {
     this.steamPuff = new SteamPuffManager(this.entityLayer);
     this.ashRemnant = new AshRemnantManager(this.entityLayer);
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
-    this.egoShard = new EgoShardManager(this.entityLayer);
-    this.egoShardPreview = new EgoShardPreview(this.entityLayer);
-    // Fluid evaporation ??drop residue stain (mirrors LdtkWorldScene).
+    this.egoShardRuntime.initialize(this.entityLayer);
+    // Fluid evaporation — drop residue stain (mirrors LdtkWorldScene).
     this.fluidSystem.onEvaporated = (gx, gy, type) => {
       if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
       const px = (gx + 0.5) * 16;
@@ -1085,11 +1385,11 @@ export class ItemWorldScene extends Scene {
       this.fluidResidue.dropAt(type, px, py, 1.0);
     };
 
-    // ??? Arc Scan Cycle (R-NEW-031 v2) ??????????????????????????????????????
-    // charged FluidBody + electrified water FluidBody 媛 二쇨린?곸쑝濡?二쇰?
-    // ?꾩껜 (player / enemies / metal containers / water cells / metal cells)
-    // 瑜?寃?됲빐 ?꾧린???곌껐 ???쇱젙 ?쒓컙 ???쇱젣??thunder 諛⑹쟾 + charged ?곹깭
-    // 遺??+ chain trigger.
+    // ----- Arc Scan Cycle (R-NEW-031 v2) ----------------------------------
+    // charged FluidBody + electrified water FluidBody 가 주변 도체를
+    // 스캔한다 (player / enemies / metal containers / water cells / metal cells)
+    // 반경 내 도체에 thunder chain + charged 버프를 적용하고
+    // VFX + chain trigger 한다.
     this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
       const links: ArcLink[] = [];
       const r2 = radiusPx * radiusPx;
@@ -1103,7 +1403,7 @@ export class ItemWorldScene extends Scene {
         }
       }
       // 2) Enemies
-      for (const e of this.enemies) {
+      for (const e of this.enemyRegistry.enemies) {
         if (!e.alive) continue;
         const ex = e.x + e.width / 2;
         const ey = e.y + e.height / 2;
@@ -1113,7 +1413,7 @@ export class ItemWorldScene extends Scene {
         }
       }
       // 3) Metal containers (MetalCrate)
-      for (const c of this.containers) {
+      for (const c of this.containerRegistry.containers) {
         if (c.destroyed || c.held) continue;
         if (c.kind !== 'MetalCrate') continue;
         const ccx = c.colX + c.colW / 2;
@@ -1123,7 +1423,7 @@ export class ItemWorldScene extends Scene {
           links.push({ worldX: ccx, worldY: ccy, kind: 'container', ref: c });
         }
       }
-      // 4) Grid conductor cells (water / metal / acid) ??origin ? ?먭린 ?먯떊 ?쒖쇅.
+      // 4) Grid conductor cells (water / metal / acid) — origin 주변 셀 스캔
       const ogx = Math.floor(originX / 16);
       const ogy = Math.floor(originY / 16);
       const radCells = Math.ceil(radiusPx / 16) + 1;
@@ -1147,7 +1447,7 @@ export class ItemWorldScene extends Scene {
           });
         }
       }
-      // 理쒕? 6 link 濡??쒗븳 (VFX + discharge 鍮꾩슜 ?덉젙)
+      // 가장 가까운 6 link 로 제한한다 (VFX + discharge 비용 절감).
       if (links.length > 6) {
         links.sort((a, b) => {
           const da = (a.worldX - originX) ** 2 + (a.worldY - originY) ** 2;
@@ -1172,11 +1472,11 @@ export class ItemWorldScene extends Scene {
           ent.chargedStateMs = Math.max(ent.chargedStateMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
           this.dmgNumbers.spawn(link.worldX, link.worldY - 8, dmg, false);
         } else if (link.kind === 'container') {
-          // Capacitor 異⑹쟾 ???ㅼ쓬 thunder ?곸쨷 ??蹂대꼫??(?꾨뱶??異뷀썑 ?쒖슜)
+          // Capacitor 도 충전 상태로 만들어 thunder 전파 대상에 포함한다 (도체 취급).
           const c = link.ref as { electricChargedMs?: number };
           if (c) c.electricChargedMs = Math.max(c.electricChargedMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
         } else if (link.kind === 'fluid' || link.kind === 'cell') {
-          // water / metal / acid ? ??thunder chain BFS trigger.
+          // water / metal / acid 셀 — thunder chain BFS trigger.
           const cellRef = link.ref as { gx: number; gy: number } | undefined;
           if (cellRef) {
             this.tileMutator.applyThunderChain(this.fullGrid, cellRef.gx, cellRef.gy);
@@ -1202,12 +1502,12 @@ export class ItemWorldScene extends Scene {
     this.tileMutator.onElectricAcidPulse = (gx, gy) => {
       this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
     };
-    // R-NEW-001 Exothermic Steam: acid+water 諛쒖뿴 諛섏쓳 ??媛뺥븳 利앷린 + vertical
-    // burst. Horizontal 24px, vertical 64px ??entity / 而⑦뀒?대꼫 ?곹뼢.
+    // R-NEW-001 Exothermic Steam: acid+water 반응으로 독성 증기 폭발(steam burst) + vertical
+    // burst. Horizontal 24px, vertical 64px 범위의 entity / 컨테이너에 영향.
     this.tileMutator.onAcidSteamBurst = (gx, gy) => {
       const cx = (gx + 0.5) * 16;
       const cy = (gy + 0.5) * 16;
-      // 媛뺥븳 異붽? 利앷린 (onSteamEvent ???쒖? 1.0 ?꾩뿉)
+      // 발생 위치에서 독성 증기(steam) 분출 (onSteamEvent 보다 강한 1.0 강도).
       const steamBaseY = (gy + 1) * 16;
       this.steamPuff.spawn(cx, steamBaseY - 12, 1.1, PUFF_TINT_TOXIC);
       this.game.camera.shake(2);
@@ -1218,7 +1518,7 @@ export class ItemWorldScene extends Scene {
         const dy = (y - cy) / radiusY;
         return dx * dx + dy * dy < 1;
       };
-      // Player ?곕?吏 + Burn
+      // Player 데미지 + Burn
       const px = this.player.x + this.player.width / 2;
       const py = this.player.y + this.player.height / 2;
       if (inSteamBurst(px, py)) {
@@ -1227,8 +1527,8 @@ export class ItemWorldScene extends Scene {
         this.player.burnRemainingMs = Math.max(this.player.burnRemainingMs ?? 0, 5000);
         this.player.vy = Math.min(this.player.getVy(), -220);
       }
-      // Enemies ?곕?吏 + Burn + ?댁쭩 ?꾨줈
-      for (const e of this.enemies) {
+      // Enemies 데미지 + Burn + 넓백.
+      for (const e of this.enemyRegistry.enemies) {
         if (!e.alive) continue;
         const ex = e.x + e.width / 2;
         const ey = e.y + e.height / 2;
@@ -1240,8 +1540,8 @@ export class ItemWorldScene extends Scene {
           this.dmgNumbers.spawn(ex, e.y - 8, dmg, false);
         }
       }
-      // 而⑦뀒?대꼫 ?꾨줈 ?곸듅 (3s steam lift)
-      for (const c of this.containers) {
+      // 주변 컨테이너 부양 (3s steam lift)
+      for (const c of this.containerRegistry.containers) {
         if (c.destroyed || c.held) continue;
         const ccx = c.colX + c.colW / 2;
         const ccy = c.colY + c.colH / 2;
@@ -1250,26 +1550,24 @@ export class ItemWorldScene extends Scene {
         }
       }
     };
-    // Wall-tile mutations (ice?뭮ater melt, acid?뭢etal corrode, oil/wood
+    // Wall-tile mutations (ice -> 물로 melt, acid -> 벽 corrode, oil/wood
     // burnout) invalidate the static tile layer AND can introduce new
-    // fluid cells (ice melt ??water). Coalesce same-frame events into a
+    // fluid cells (ice melt -> water). Coalesce same-frame events into a
     // single refresh in update().
     this.tileMutator.onWallTileChanged = (gx, gy, originalTile) => {
-      this.fluidGridDirty = true;
+      this.tileHazardRuntime.markFluidGridDirty();
       // If the mutation produced an air cell, paint over the baked-in
       // wall sprite that was aggregated at buildFullMap. New fluid cells
-      // (ice?뭮ater) don't need a mask ??FluidSystem will draw over the
+      // (ice 가 녹은 물) don't need a mask — FluidSystem will draw over the
       // wall sprite via the fluid mesh. OIL also doesn't need a mask
       // because its wall sprite was filtered out of the aggregate at
-      // bake time (isFluidHiddenTile) ??masking would leave a fake
+      // bake time (isFluidHiddenTile) — masking would leave a fake
       // residue rectangle where the fluid simply evaporated.
       const v = this.fullGrid[gy]?.[gx];
       if (v === 0 && originalTile !== TILE_OIL) {
-        this.mutatedCells.add(`${gx},${gy}`);
-        this.rebuildMutationMask();
+        this.fullMapLayerRuntime.markAirMutation(gx, gy);
       } else if (v === TILE_WALL && originalTile === TILE_MAGMA) {
-        this.solidifiedWallCells.add(`${gx},${gy}`);
-        this.rebuildSolidifiedWallOverlay();
+        this.fullMapLayerRuntime.markSolidifiedWall(gx, gy, this.fullGrid, TILE_WALL);
       }
     };
     this.waterBubbles = new WaterBubblesManager(this.entityLayer);
@@ -1278,6 +1576,104 @@ export class ItemWorldScene extends Scene {
     this.itemPickupGlow = new ItemPickupGlowManager(this.entityLayer);
     this.lowHpVignette = new LowHpVignetteManager(this.game.legacyUIContainer);
     this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
+    this.movementVfxRuntime = new ItemWorldMovementVfxRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getFullGrid: () => this.fullGrid,
+      getFluidSystem: () => this.fluidSystem,
+      getFluidSpawners: () => this.fluidSpawners,
+      getDamageNumbers: () => this.dmgNumbers,
+      managers: {
+        landingDust: this.landingDust,
+        dashAfterimage: this.dashAfterimage,
+        dashBoostPuff: this.dashBoostPuff,
+        doubleJumpRing: this.doubleJumpRing,
+        wallJumpDust: this.wallJumpDust,
+        jumpTakeoff: this.jumpTakeoff,
+        wallSlideDust: this.wallSlideDust,
+        footstepPuff: this.footstepPuff,
+        surgeVfx: this.surgeVfx,
+        hitBloodSpray: this.hitBloodSpray,
+        diveLandImpact: this.diveLandImpact,
+        waterSplash: this.waterSplash,
+        fluidResidue: this.fluidResidue,
+        waterBubbles: this.waterBubbles,
+        dropThroughDust: this.dropThroughDust,
+        iceSkidStreak: this.iceSkidStreak,
+        flaskBurst: this.flaskBurst,
+        criticalHighlight: this.criticalHighlight,
+        steamPuff: this.steamPuff,
+      },
+    });
+    this.containerPhysicsRuntime = new ItemWorldContainerPhysicsRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getContainers: () => this.containerRegistry.containers,
+      getFullGrid: () => this.fullGrid,
+      getTileMutator: () => this.tileMutator,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      applyContainerEffectToFluid: (container) => this.containerFluidRuntime.applyContainerEffect(container),
+      destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+      flushContainerFluidChanges: () => this.containerFluidRuntime.flush(),
+    });
+    this.pickupRuntime = new ItemWorldPickupRuntime({
+      getPlayer: () => this.player,
+      getEntityLayer: () => this.entityLayer,
+      getDamageNumbers: () => this.dmgNumbers,
+      getItemPickupGlow: () => this.itemPickupGlow,
+      getScreenFlash: () => this.screenFlash,
+      showToast: (message, color) => this.toast.show(message, color),
+      onGoldCollected: (amount) => {
+        this.runStats.addEarnedGold(amount);
+        this.hud.updateGold(this.runStats.displayGold);
+      },
+    });
+    this.projectileRuntime = new ItemWorldProjectileRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getEntityLayer: () => this.entityLayer,
+      getHud: () => this.hud,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+    });
+    this.enemyContactRuntime = new ItemWorldEnemyContactRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getHud: () => this.hud,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+    });
+    this.staticEntityRuntime = new ItemWorldStaticEntityRuntime({
+      game: this.game,
+      getPlayer: () => this.player,
+      getFullGrid: () => this.fullGrid,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getEntityLayer: () => this.entityLayer,
+      getCollapsingPlatforms: () => this.staticEntityRegistry.collapsingPlatforms,
+      getGrowingWalls: () => this.staticEntityRegistry.growingWalls,
+      getItemDisplays: () => this.staticEntityRegistry.itemDisplays,
+      getLockedDoors: () => this.staticEntityRegistry.lockedDoors,
+      getCrackedFloors: () => this.staticEntityRegistry.crackedFloors,
+      getBreakableProps: () => this.staticEntityRegistry.breakableProps,
+      getSwitches: () => this.staticEntityRegistry.switches,
+      getContainers: () => this.containerRegistry.containers,
+      getHud: () => this.hud,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      getScreenFlash: () => this.screenFlash,
+      showToast: (message, color) => this.toast.show(message, color),
+      tickTileHazards: (dt) => this.tileHazardRuntime.update(dt),
+      destroyBreakablePropWithEffects: (prop, reason) => this.breakablePropRuntime.destroyWithEffects(prop, reason),
+      paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
+      destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+      updateCameraZones: () => this.cameraZoneRuntime.update(),
+    });
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
 
@@ -1287,36 +1683,30 @@ export class ItemWorldScene extends Scene {
     this.fadeOverlay.alpha = 0;
     this.container.addChild(this.fadeOverlay);
 
-    // Minimap ? disabled (Spelunky-style blind exploration).
-    // Container still exists for legacy code paths but is never rendered.
-    this.miniMapContainer = new Container();
-    this.miniMapContainer.visible = false;
-
     // HUD
     this.hud = new HUD(this.game.uiScale);
     this.hud.setMinimapFrameVisible(false);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
 
-    // ?꾩씠?쒓퀎 吏꾩엯 ?쒖젏????λ맂 gold ??HUD 媛 ?몃? ?멸퀎? ?숈씪??珥앹븸???쒖떆?섎룄濡?
-    // earnedGold 媛 ?섏뼱???뚮쭏??baselineGold + earnedGold 濡?媛깆떊 (collectGold 遺꾧린 李몄“).
+    // 세이브 데이터의 gold 를 HUD 배이스라인으로 설정한다.
+    // earnedGold 는 런 중 누적되어 baselineGold + earnedGold 로 표시된다(collectGold 경로).
     const savedData = SaveManager.load();
-    this.baselineGold = savedData?.gold ?? 0;
-    this.hud.updateGold(this.baselineGold);
+    this.runStats.setBaselineGold(savedData?.gold ?? 0);
+    this.hud.updateGold(this.runStats.baselineGold);
 
-    // Area title banner ??shows item name on entry.
+    // Area title banner — shows item name on entry.
     this.areaTitle = new AreaTitle();
     this.game.legacyUIContainer.addChild(this.areaTitle.container);
     this.areaTitle.show(getDisplayName(this.item));
     this.uiController = new ItemWorldUiController(this.game);
-    this.mapController = new ItemWorldMapController();
     this.spawnController = new ItemWorldSpawnController();
     this.progressController = new ItemWorldProgressController({
       jumpToStratum: (stratumIndex) => this.jumpToStratum(stratumIndex),
       persistRoomState: () => this.persistRoomState(),
-      showBossChoice: (nextStratumIndex) => this.showBossChoice(nextStratumIndex),
+      showBossChoice: (nextStratumIndex) => this.bossChoiceRuntime.show(nextStratumIndex),
       showA6DmgToast: (beforeAtk, afterAtk) => this._showA6DmgToast(beforeAtk, afterAtk),
-      showStratumClearPanel: (snapshot, isFinal) => this._showStratumClearPanel(snapshot, isFinal),
+      showStratumClearPanel: (snapshot, isFinal) => this.stratumClearPanelRuntime.show(snapshot, isFinal),
       startPostClearHold: () => this.startPostClearHold(),
       startExitFade: () => this.startExitFade(),
       showToast: (message, color) => this.toast.show(message, color),
@@ -1330,25 +1720,17 @@ export class ItemWorldScene extends Scene {
       this.game.sceneManager.pop();
     });
 
-    // Controls overlay (disabled)
-    this.controlsOverlay = new ControlsOverlay();
-    this.controlsOverlay.container.visible = false;
-
     // Toast
     this.toast = new ToastManager(this.game.legacyUIContainer);
-    // Gamepad hot-plug ???좎뒪??(System_Input_Gamepad 짠8.1 Stage 3).
-    {
-      const off1 = this.game.gamepad.onConnectEvent((brand) => {
-        this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
-      });
-      const off2 = this.game.gamepad.onDisconnectEvent(() => {
-        this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
-      });
-      this._gpUnsub = () => { off1(); off2(); };
-    }
+    // Gamepad hot-plug 토스트 (System_Input_Gamepad Stage 3).
+    this._gpUnsub = attachGamepadToast(this.game, this.toast);
 
-    // Tutorial hint (used for low-HP heal cue, etc. ??same UX as world scene)
+    // Tutorial hint (used for low-HP heal cue, etc. — same UX as world scene)
     this.tutorialHint = new TutorialHint(this.game.input, this.game.legacyUIContainer, this.hudSkin);
+    this.lowHpHealHint = new LowHpHealHintRuntime({
+      tutorialHint: this.tutorialHint,
+      getHp: () => ({ hp: this.player.hp, maxHp: this.player.maxHp }),
+    });
 
     // Restore persistent exploration state & count rooms
     this.restoreRoomState();
@@ -1359,72 +1741,37 @@ export class ItemWorldScene extends Scene {
     // placement loop pushes into fluidSpawners as templates are placed.
     this.fluidSpawners.clear();
     this.fluidCrestFoam?.clear();
-    this.containers.length = 0; // reset across stratum reloads
+    this.containerRegistry.reset(); // reset across stratum reloads
     this.fluidSystemReady = false;
     this.buildFullMap();
     // Resolve FluidGeneric_A/B/C (17/18/19) -> concrete fluid tiles based on
     // this dive's weapon temperament (forge/iron/rust/spark/shadow). MUST run
     // before fluidSystem.attachGrid so flood-fill sees the resolved values.
-    // Spec: Documents/System/System_World_Fluid.md 짠3.4
+    // Spec: Documents/System/System_World_Fluid.md
     applyFluidGenericResolution(this.fullGrid, this.item.def.temperamentPrimary);
-    this.initStratumWeather();
-    // Wire FluidSystem to the freshly built grid ??flood-fills fluid bodies
+    this.weatherRuntime.init();
+    // Wire FluidSystem to the freshly built grid — flood-fills fluid bodies
     // for every water/oil/acid/magma cell that any room template placed.
     // Mirrors LdtkWorldScene's per-level attach but uses the unified grid
     // since ItemWorld has no single LdtkLevel wrapper.
-    this.fluidSystem.attachGrid(this.fullGrid, [], this.getActiveTileBounds());
+    this.fluidSystem.attachGrid(this.fullGrid, [], this.tileHazardRuntime.getActiveTileBounds());
     this.fluidSystemReady = true;
     // FluidSpawner wiring happens per-room inside buildFullMap (offsets
     // adjusted to the unified grid). Spawner state cleared before
     // buildFullMap, so here we just proceed to settle containers.
-    // Settle every container that buildFullMap spawned (explicit + spawner
-    // results combined) in dependency order ??taller stacks land last.
-    {
-      const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-        const t = this.fullGrid[gy]?.[gx] ?? 0;
-        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-        return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
-      };
-      const sorted = [...this.containers].sort((a, b) => b.y - a.y);
-      for (const c of sorted) {
-        if (c.skipSettle) continue; // Drop-bias containers fall naturally.
-        c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
-          const t = this.fullGrid[gy]?.[gx] ?? 0;
-          return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-        });
-      }
-    }
-    // Initialize depth gauge
-    {
-      const n = this.strataConfig.strata.length;
-      this.hud.showDepthGauge(n, this.currentStratumIndex, new Array(n).fill(false));
-    }
-    // Initialize item EXP bar
-    this.hud.showItemExp(
-      getDisplayName(this.item),
-      RARITY_COLOR[this.item.rarity],
-      this.item.level,
-      this.item.exp,
-      EXP_PER_LEVEL,
-    );
-    this.updateHudText();
+    this.containerRegistry.settleAll(this.fullGrid);
+    this.hudRuntime.showGameplayHud();
 
-    // Spawn player. DEC-038: LDtk Start ?쒗뵆由우쓽 Player entity 媛 沅뚯쐞 ???덉쑝硫?
-    // 洹??꾩튂(?뷀떚??pivot ? LDtk ?먯꽌 bottom-center 媛 ?쒖?)??醫뚯긽???뺣젹濡?
-    // 諛곗튂?쒕떎. ?놁쑝硫??덉감??floor ?먯깋?쇰줈 ?대갚.
-    let spawnX: number;
-    let spawnY: number;
-    const initialLdtkSpawn = this.playerSpawnByStratum.get(this.currentStratumIndex);
-    if (initialLdtkSpawn) {
-      spawnX = Math.round(initialLdtkSpawn.x - this.player.width / 2);
-      spawnY = Math.round(initialLdtkSpawn.y - this.player.height);
-    } else {
-      const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
-      spawnX = spawn.x;
-      spawnY = spawn.y;
-    }
-    this.player.x = spawnX;
-    this.player.y = spawnY;
+    // Spawn player. DEC-038: LDtk Start 마커가 있으면 Player entity 스폰 위치로 사용.
+    // Player pivot 은 LDtk bottom-center 기준이므로 동기화한다.
+    // 진입 시 가장 가까운 floor 위에 배치한다.
+    const initialSpawn = this.playerSpawnRuntime.resolveForRoom(
+      this.currentStratumIndex,
+      this.currentCol,
+      this.currentRow,
+    );
+    this.player.x = initialSpawn.x;
+    this.player.y = initialSpawn.y;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
@@ -1436,27 +1783,26 @@ export class ItemWorldScene extends Scene {
       this.activateEntryCorridor();
     }
 
-    // LoreDisplay for Memory Rooms ??uiContainer(native) 吏곸냽 (UI native 1?④퀎)
+    // LoreDisplay for Memory Rooms — uiContainer(native) 에 추가 (UI native 1).
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
     this.game.uiContainer.addChild(this.loreDisplay.container);
 
     this.initialized = true;
-    if (!this.entryCorridorActive) {
+    if (!this.entryCorridorState.active) {
       this.startItemWorldGameplayAfterEntry();
     }
   }
 
   private startItemWorldGameplayAfterEntry(): void {
-    if (this.startSpawnDone) return;
+    if (!this.entryGateState.tryMarkStartSpawnDone()) return;
 
-    // ?? Ego T04: landing dialogue ??
-    // ?ъ슜???붿껌 (2026-05-02) ?????+ 嫄곗＜??(Plaza Gatekeeper / ambient 20紐?
-    // 媛 癒쇱? ?뚮뜑留곷맂 ????ш? ?깆옣?댁빞 ?쒕떎 (???以?鍮?愿묒옣 ?몄긽 諛⑹?).
-    // ?쒖꽌:
-    //   1) startSpawnDone=true 利됱떆 ??spawnEnemiesInRoom 媛 嫄곗＜??spawn
-    //   2) ??諛뺤옄 (500ms) ???낆옣 ?????player 媛 愿묒옣 ?띻꼍???몄?????諛쒗솕
-    this.startSpawnDone = true;
-    this.spawnedRooms.add(`${this.currentCol},${this.currentRow}`);
+    // ----- Ego T04: landing dialogue -----
+    // 진입(2026-05-02): Plaza Gatekeeper / ambient 연출과 함께
+    // landing dialogue 를 발화한다 (자아 대사).
+    // 순서:
+    //   1) startSpawnDone=true 로 마킹 후 spawnEnemiesInRoom 으로 현재 방을 spawn
+    //   2) 일정 freeze(500ms) 후 player 입력을 받는다.
+    this.roomSpawnState.markSpawned(`${this.currentCol},${this.currentRow}`);
     this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
@@ -1467,17 +1813,16 @@ export class ItemWorldScene extends Scene {
     const totalStrata = this.strataConfig.strata.length;
     const maxSelectable = Math.min(this.progress.deepestUnlocked + 1, totalStrata);
     if (maxSelectable > 1) {
-      this.showStratumPicker(maxSelectable);
+      this.stratumPickerRuntime.show(maxSelectable);
     }
   }
 
   beginEntryDialogueAfterTransition(): void {
-    if (this.entryCorridorActive) {
-      this.entryCorridorDialoguePending = true;
+    if (this.entryCorridorState.active) {
+      this.entryCorridorState.requestDialogueAfterCompletion();
       return;
     }
-    if (this.entryDialogueStarted) return;
-    this.entryDialogueStarted = true;
+    if (!this.egoDialogueRuntime.tryMarkEntryDialogueStarted()) return;
     setTimeout(() => {
       if (!this.initialized) return;
       void this.fireEgoEnterAsync();
@@ -1485,23 +1830,25 @@ export class ItemWorldScene extends Scene {
   }
 
   private activateEntryCorridor(): void {
-    const levels = this.getEntryCorridorLevels();
+    const levels = selectEntryCorridorLevels(this.ldtkTemplates, this.item.uid, this.currentStratumIndex);
     if (levels.length === 0) {
       console.warn(`[ItemWorld] Missing LDtk entry corridor "${ENTRY_CORRIDOR_LEVEL_PREFIX}*"; starting directly in ItemStratum.`);
       return;
     }
 
-    const composite = this.buildEntryCorridorComposite(levels);
-    this.entryCorridorLevel = composite.levels[0] ?? null;
-    this.entryCorridorGrid = composite.grid;
-    this.entryCorridorWidthPx = composite.widthPx;
-    this.entryCorridorHeightPx = composite.heightPx;
-    this.entryCorridorBottomExitY = this.findEntryCorridorBottomExitY(composite.grid);
-    this.entryCorridorContainer = this.createEntryCorridorVisuals(composite);
-    this.container.addChildAt(this.entryCorridorContainer, Math.min(1, this.container.children.length));
-    this.suppressWorldForEntryCorridor();
+    const composite = buildEntryCorridorComposite(levels, TILE_SIZE);
+    const bottomExitY = findEntryCorridorBottomExitY(composite.grid, TILE_SIZE);
+    const corridorVisuals = this.entryCorridorVisualRuntime.create(composite);
+    this.container.addChildAt(corridorVisuals, Math.min(1, this.container.children.length));
+    this.entryCorridorVisibilityRuntime.suppressWorld();
 
-    const spawn = this.findEntryCorridorLeftSpawn(composite.grid);
+    const spawn = findEntryCorridorLeftSpawn({
+      grid: composite.grid,
+      tileSize: TILE_SIZE,
+      playerWidth: this.player.width,
+      playerHeight: this.player.height,
+      isAabbClear: (x, y, w, h) => this.isAabbClearInGrid(composite.grid, x, y, w, h),
+    });
     this.roomData = composite.grid;
     this.player.roomData = composite.grid;
     this.player.x = spawn.x;
@@ -1511,8 +1858,8 @@ export class ItemWorldScene extends Scene {
     this.player.facingRight = true;
     this.player.savePrevPosition();
 
-    this.entryFreezeTimer = 0;
-    this.entryCorridorActive = true;
+    this.entryGateState.clearFreeze();
+    this.entryCorridorState.activate(bottomExitY);
     this.game.camera.setBounds(
       0,
       0,
@@ -1528,296 +1875,8 @@ export class ItemWorldScene extends Scene {
     this.updateEntryCorridorTileReveal(0);
   }
 
-  private isEntryCorridorTemplateIdentifier(identifier: string): boolean {
-    return identifier === ENTRY_CORRIDOR_LEVEL_ID || this.getEntryCorridorLevelNumber(identifier) !== null;
-  }
-
-  private getEntryCorridorLevels(): LdtkLevel[] {
-    const numbered = this.ldtkTemplates
-      .map(level => ({ level, num: this.getEntryCorridorLevelNumber(level.identifier) }))
-      .filter((entry): entry is { level: LdtkLevel; num: number } => entry.num !== null);
-
-    if (numbered.length === 0) {
-      const legacy = this.ldtkTemplates.find(level => level.identifier === ENTRY_CORRIDOR_LEVEL_ID);
-      return legacy ? [legacy] : [];
-    }
-
-    const byNum = new Map<number, LdtkLevel>();
-    for (const entry of numbered) byNum.set(entry.num, entry.level);
-
-    const rng = new PRNG(this.item.uid * 20011 + this.currentStratumIndex * 353 + 91);
-    const opening = rng.shuffle(
-      Array.from({ length: ENTRY_CORRIDOR_OPENING_COUNT }, (_, i) => i + 1)
-        .map(num => byNum.get(num))
-        .filter((level): level is LdtkLevel => !!level),
-    );
-
-    const randomPool = numbered
-      .filter(entry => entry.num > ENTRY_CORRIDOR_OPENING_COUNT)
-      .sort((a, b) => a.num - b.num)
-      .map(entry => entry.level);
-    const tail = this.pickEntryCorridorRandomTail(randomPool, rng);
-    return [...opening, ...tail];
-  }
-
-  private getEntryCorridorLevelNumber(identifier: string): number | null {
-    if (!identifier.startsWith(ENTRY_CORRIDOR_LEVEL_PREFIX)) return null;
-    const raw = identifier.slice(ENTRY_CORRIDOR_LEVEL_PREFIX.length);
-    if (!/^\d+$/.test(raw)) return null;
-    const n = Number(raw);
-    return Number.isInteger(n) && n > 0 ? n : null;
-  }
-
-  private pickEntryCorridorRandomTail(pool: LdtkLevel[], rng: PRNG): LdtkLevel[] {
-    if (pool.length === 0) return [];
-    const tail: LdtkLevel[] = [];
-    while (tail.length < ENTRY_CORRIDOR_RANDOM_TAIL_COUNT) {
-      const cycle = rng.shuffle([...pool]);
-      for (const level of cycle) {
-        tail.push(level);
-        if (tail.length >= ENTRY_CORRIDOR_RANDOM_TAIL_COUNT) break;
-      }
-    }
-    return tail;
-  }
-
-  private buildEntryCorridorComposite(levels: LdtkLevel[]): EntryCorridorComposite {
-    const widths = levels.map(level => Math.max(
-      1,
-      Math.ceil(level.pxWid / TILE_SIZE),
-      level.collisionGrid[0]?.length ?? 0,
-    ));
-    const heights = levels.map(level => Math.max(
-      1,
-      Math.ceil(level.pxHei / TILE_SIZE),
-      level.collisionGrid.length,
-    ));
-    const totalCols = widths.reduce((sum, w) => sum + w, 0);
-    const totalRows = Math.max(...heights);
-    const grid = Array.from({ length: totalRows }, () => Array<number>(totalCols).fill(TILE_AIR));
-    const offsetsPx: number[] = [];
-
-    let offsetCol = 0;
-    for (let i = 0; i < levels.length; i++) {
-      const level = levels[i];
-      const width = widths[i];
-      offsetsPx.push(offsetCol * TILE_SIZE);
-      for (let row = 0; row < heights[i]; row++) {
-        const srcRow = level.collisionGrid[row];
-        for (let col = 0; col < width; col++) {
-          grid[row][offsetCol + col] = srcRow?.[col] ?? TILE_AIR;
-        }
-      }
-      offsetCol += width;
-    }
-
-    return {
-      grid,
-      levels,
-      offsetsPx,
-      widthPx: totalCols * TILE_SIZE,
-      heightPx: totalRows * TILE_SIZE,
-    };
-  }
-
-  private createEntryCorridorVisuals(composite: EntryCorridorComposite): Container {
-    this.entryCorridorTiles = [];
-    const root = new Container();
-    root.eventMode = 'none';
-    root.zIndex = -0.5;
-
-    const renderer = new LdtkRenderer();
-    const wallTiles = composite.levels.flatMap((level, i) =>
-      this.offsetEntryCorridorTiles(level.wallTiles, composite.offsetsPx[i] ?? 0));
-    const wallTilesSub = substituteSolidGenericSprites(
-      wallTiles, composite.grid, this.item.def.temperamentPrimary,
-    );
-    renderer.renderLevel([], wallTilesSub, [], this.atlases, undefined, composite.grid, []);
-    addLdtkVisualBoundsBleed({
-      target: {
-        wallLayer: renderer.wallLayer,
-        specialLayer: renderer.specialLayer,
-      },
-      atlases: this.atlases,
-      boundsWidth: composite.widthPx,
-      boundsHeight: composite.heightPx,
-      wallTiles: wallTilesSub,
-      collisionGrid: composite.grid,
-    });
-    root.addChild(renderer.container);
-
-    const registerPlatformNode = (node: Container): void => {
-      if (node instanceof Sprite) {
-        node.tint = 0x000000;
-        node.alpha = 1;
-      }
-      const cx = node.x + TILE_SIZE / 2;
-      const cy = node.y + TILE_SIZE / 2;
-      node.pivot.set(TILE_SIZE / 2, TILE_SIZE / 2);
-      node.position.set(cx, cy);
-      node.scale.set(0);
-      this.entryCorridorTiles.push({ node, cx, cy, reveal: 0, target: false });
-    };
-
-    for (const child of renderer.wallLayer.children) registerPlatformNode(child as Container);
-    for (const child of renderer.specialLayer.children) registerPlatformNode(child as Container);
-
-    if (this.entryCorridorTiles.length === 0) {
-      this.addFallbackEntryCorridorPlatforms(root, composite.grid);
-    }
-
-    const filter = new ColorMatrixFilter();
-    filter.desaturate();
-    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
-    root.filters = [filter];
-
-    return root;
-  }
-
-  private offsetEntryCorridorTiles(tiles: LdtkTile[], offsetX: number): LdtkTile[] {
-    return tiles.map(tile => ({
-      ...tile,
-      px: [tile.px[0] + offsetX, tile.px[1]],
-      src: [tile.src[0], tile.src[1]],
-    }));
-  }
-
-  private addFallbackEntryCorridorPlatforms(root: Container, grid: number[][]): void {
-    const tileLayer = new Container();
-    root.addChild(tileLayer);
-    for (let r = 0; r < grid.length; r++) {
-      const row = grid[r];
-      for (let c = 0; c < row.length; c++) {
-        if (!isSolid(row[c])) continue;
-        const gfx = new Graphics();
-        gfx.rect(-TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE)
-          .fill({ color: 0x000000, alpha: 1 });
-        gfx.position.set(c * TILE_SIZE + TILE_SIZE / 2, r * TILE_SIZE + TILE_SIZE / 2);
-        gfx.scale.set(0);
-        tileLayer.addChild(gfx);
-        this.entryCorridorTiles.push({
-          node: gfx,
-          cx: gfx.x,
-          cy: gfx.y,
-          reveal: 0,
-          target: false,
-        });
-      }
-    }
-  }
-
-  private suppressWorldForEntryCorridor(): void {
-    this.entryCorridorHiddenTargets = [];
-    const hide = (target: Container | null | undefined): void => {
-      if (!target) return;
-      this.entryCorridorHiddenTargets.push({ target, visible: target.visible });
-      target.visible = false;
-    };
-
-    hide(this.tilemap.container);
-    hide(this.fullMapContainer);
-    hide(this.buildingLayer);
-    hide(this.residentsLayer);
-    hide(this.fluidLayer);
-    hide(this.aboveFluidLayer);
-    for (const child of this.entityLayer.children) {
-      if (child === this.player.container) continue;
-      hide(child as Container);
-    }
-
-    this.parallaxBG.container.visible = true;
-    this.applyEntryCorridorBackgroundFilter();
-    this.hud.container.visible = false;
-    this.hud.hideBossHP();
-  }
-
-  private restoreWorldAfterEntryCorridor(startColorRestore = true): void {
-    for (const state of this.entryCorridorHiddenTargets) {
-      state.target.visible = state.visible;
-    }
-    this.entryCorridorHiddenTargets = [];
-    this.parallaxBG.container.visible = true;
-    this.restoreEntryCorridorBackgroundFilter();
-    if (startColorRestore) this.startEntryCorridorColorRestore();
-  }
-
-  private applyEntryCorridorBackgroundFilter(): void {
-    if (this.entryCorridorBackgroundFilters !== null) return;
-    this.entryCorridorBackgroundFilters = [...(this.game.backgroundContainer.filters ?? [])];
-    const filter = new ColorMatrixFilter();
-    filter.desaturate();
-    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
-    filter.brightness(ENTRY_CORRIDOR_BACKGROUND_BRIGHTNESS, true);
-    this.game.backgroundContainer.filters = [...this.entryCorridorBackgroundFilters, filter];
-  }
-
-  private restoreEntryCorridorBackgroundFilter(): void {
-    if (this.entryCorridorBackgroundFilters === null) return;
-    this.game.backgroundContainer.filters = this.entryCorridorBackgroundFilters;
-    this.entryCorridorBackgroundFilters = null;
-  }
-
-  private startEntryCorridorColorRestore(): void {
-    this.clearEntryCorridorColorRestore();
-    const filter = new ColorMatrixFilter();
-    filter.desaturate();
-    filter.contrast(ENTRY_CORRIDOR_CONTRAST, true);
-    filter.alpha = 1;
-
-    const targets = this.getEntryCorridorColorRestoreTargets();
-    for (const target of targets) {
-      const current = (target.filters as Filter[] | null) ?? [];
-      if (!current.includes(filter)) target.filters = [...current, filter];
-    }
-
-    this.entryCorridorColorRestoreFilter = filter;
-    this.entryCorridorColorRestoreTargets = targets;
-    this.entryCorridorColorRestoreElapsed = 0;
-  }
-
-  private getEntryCorridorColorRestoreTargets(): Container[] {
-    const seen = new Set<Container>();
-    const targets: Array<Container | null | undefined> = [
-      this.fullMapContainer,
-      this.tilemap?.container,
-      this.buildingLayer,
-      this.residentsLayer,
-      this.fluidLayer,
-      this.aboveFluidLayer,
-      this.entityLayer,
-      this.weatherLayer,
-      this.game.backgroundContainer,
-    ];
-    return targets.filter((target): target is Container => {
-      if (!target || seen.has(target)) return false;
-      seen.add(target);
-      return true;
-    });
-  }
-
-  private updateEntryCorridorColorRestore(dt: number): void {
-    if (!this.entryCorridorColorRestoreFilter) return;
-    this.entryCorridorColorRestoreElapsed += dt;
-    const restoreElapsed = Math.max(0, this.entryCorridorColorRestoreElapsed - ENTRY_CORRIDOR_COLOR_HOLD_MS);
-    const t = Math.min(1, restoreElapsed / ENTRY_CORRIDOR_COLOR_RESTORE_MS);
-    this.entryCorridorColorRestoreFilter.alpha = 1 - t;
-    if (t >= 1) this.clearEntryCorridorColorRestore();
-  }
-
-  private clearEntryCorridorColorRestore(): void {
-    const filter = this.entryCorridorColorRestoreFilter;
-    if (!filter) return;
-    for (const target of this.entryCorridorColorRestoreTargets) {
-      const next = ((target.filters as Filter[] | null) ?? []).filter(f => f !== filter);
-      target.filters = next.length > 0 ? next : null;
-    }
-    this.entryCorridorColorRestoreFilter = null;
-    this.entryCorridorColorRestoreTargets = [];
-    this.entryCorridorColorRestoreElapsed = 0;
-  }
-
   private updateEntryCorridor(dt: number): void {
-    if (this.isPlayerStandingOnContainerTop()) {
+    if (this.containerRegistry.isPlayerStandingOnTop(this.player)) {
       this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
@@ -1828,8 +1887,8 @@ export class ItemWorldScene extends Scene {
 
     const playerCenterX = this.player.x + this.player.width / 2;
     const bottomReached = this.player.isGrounded()
-      && this.entryCorridorBottomExitY > 0
-      && this.player.y + this.player.height >= this.entryCorridorBottomExitY - 1;
+      && this.entryCorridorState.bottomExitY > 0
+      && this.player.y + this.player.height >= this.entryCorridorState.bottomExitY - 1;
     if (bottomReached) {
       this.completeEntryCorridor();
       return;
@@ -1845,32 +1904,21 @@ export class ItemWorldScene extends Scene {
   private updateEntryCorridorTileReveal(dt: number): void {
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y + this.player.height / 2;
-    const radiusSq = ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX * ENTRY_CORRIDOR_TILE_REVEAL_RADIUS_PX;
-    const step = ENTRY_CORRIDOR_TILE_REVEAL_MS <= 0 ? 1 : dt / ENTRY_CORRIDOR_TILE_REVEAL_MS;
-
-    for (const tile of this.entryCorridorTiles) {
-      if (!tile.target) {
-        const dx = tile.cx - px;
-        const dy = tile.cy - py;
-        if (dx * dx + dy * dy <= radiusSq) tile.target = true;
-      }
-      if (!tile.target || tile.reveal >= 1) continue;
-      tile.reveal = Math.min(1, tile.reveal + step);
-      const eased = 1 - Math.pow(1 - tile.reveal, 3);
-      tile.node.scale.set(eased);
-    }
+    this.entryCorridorRevealRuntime.update(dt, px, py);
   }
 
   private completeEntryCorridor(): void {
-    this.entryCorridorActive = false;
-    this.entryCorridorLevel = null;
-    this.entryCorridorGrid = null;
+    this.entryCorridorState.complete();
     this.roomData = this.fullGrid;
     this.player.roomData = this.fullGrid;
-    this.restoreWorldAfterEntryCorridor();
-    this.destroyEntryCorridorVisuals();
+    this.entryCorridorVisibilityRuntime.restoreWorld();
+    this.entryCorridorVisualRuntime.destroy();
 
-    const spawn = this.findStartRoomEntrySpawn();
+    const spawn = this.playerSpawnRuntime.resolveForRoom(
+      this.currentStratumIndex,
+      this.currentCol,
+      this.currentRow,
+    );
     this.player.x = spawn.x;
     this.player.y = spawn.y;
     this.player.vx = 0;
@@ -1889,57 +1937,13 @@ export class ItemWorldScene extends Scene {
       x: this.player.x + this.player.width / 2,
       y: this.player.y + this.player.height / 2,
     };
-    this.entryFreezeTimer = 0;
-    this.restoreGameplayHud();
+    this.entryGateState.clearFreeze();
+    this.hudRuntime.showGameplayHud();
     this.startItemWorldGameplayAfterEntry();
 
-    if (this.entryCorridorDialoguePending) {
-      this.entryCorridorDialoguePending = false;
+    if (this.entryCorridorState.consumeDialogueAfterCompletion()) {
       this.beginEntryDialogueAfterTransition();
     }
-  }
-
-  private findEntryCorridorLeftSpawn(grid: number[][]): { x: number; y: number } {
-    const gridW = grid[0]?.length ?? 0;
-    const gridH = grid.length;
-    const maxCol = Math.min(gridW - 1, ENTRY_CORRIDOR_START_COL + 5);
-
-    for (let col = ENTRY_CORRIDOR_START_COL; col <= maxCol; col++) {
-      for (let row = 1; row < gridH - 1; row++) {
-        if (isSolid(grid[row][col]) || !isSolid(grid[row + 1][col])) continue;
-        const centerX = col * TILE_SIZE + TILE_SIZE / 2;
-        const floorY = (row + 1) * TILE_SIZE;
-        const x = Math.round(centerX - this.player.width / 2);
-        const y = Math.round(floorY - this.player.height - 2);
-        if (this.isAabbClearInGrid(grid, x, y, this.player.width, this.player.height)) {
-          return { x, y };
-        }
-      }
-    }
-
-    const fallbackFloorY = Math.max(TILE_SIZE * 2, this.findEntryCorridorBottomExitY(grid) - TILE_SIZE * 12);
-    return {
-      x: Math.round(ENTRY_CORRIDOR_START_COL * TILE_SIZE + TILE_SIZE / 2 - this.player.width / 2),
-      y: Math.round(fallbackFloorY - this.player.height - 2),
-    };
-  }
-
-  private findEntryCorridorBottomExitY(grid: number[][]): number {
-    // Exit only when the player falls to the corridor's bottom boundary.
-    // Authored low platforms inside the corridor are playable surfaces, not
-    // handoff floors.
-    return grid.length * TILE_SIZE;
-  }
-
-  private findStartRoomEntrySpawn(): { x: number; y: number } {
-    const ldtkSpawn = this.playerSpawnByStratum.get(this.currentStratumIndex);
-    if (ldtkSpawn) {
-      return {
-        x: Math.round(ldtkSpawn.x - this.player.width / 2),
-        y: Math.round(ldtkSpawn.y - this.player.height),
-      };
-    }
-    return this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
   }
 
   private isAabbClearInGrid(grid: number[][], x: number, y: number, w: number, h: number): boolean {
@@ -1955,41 +1959,25 @@ export class ItemWorldScene extends Scene {
     return true;
   }
 
-  private destroyEntryCorridorVisuals(): void {
-    if (this.entryCorridorContainer) {
-      if (this.entryCorridorContainer.parent) {
-        this.entryCorridorContainer.parent.removeChild(this.entryCorridorContainer);
-      }
-      this.entryCorridorContainer.destroy({ children: true });
-      this.entryCorridorContainer = null;
-    }
-    this.entryCorridorTiles = [];
-    this.entryCorridorLevel = null;
-    this.entryCorridorGrid = null;
-    this.entryCorridorBottomExitY = 0;
-    this.entryCorridorWidthPx = 0;
-    this.entryCorridorHeightPx = 0;
-  }
-
   private countTotalRooms(): void {
-    this.totalRooms = this.mapController.countTotalRooms(this.unifiedGrid);
+    this.runStats.setTotalRooms(this.roomStateRuntime.countTotalRooms(this.unifiedGrid));
   }
 
   private getCell(col: number, row: number): UnifiedRoomCell | null {
-    return this.mapController.getCell(this.unifiedGrid, col, row);
+    return this.roomStateRuntime.getCell(this.unifiedGrid, col, row);
   }
 
   private getCurrentCell(): UnifiedRoomCell {
-    return this.mapController.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
+    return this.roomStateRuntime.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
   }
 
   private restoreRoomState(): void {
-    const restored = this.mapController.restoreRoomState(this.unifiedGrid, this.progress, this.spawnedRooms);
-    this.roomsCleared = restored.roomsCleared;
+    const restored = this.roomStateRuntime.restoreRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
+    this.runStats.setRoomsCleared(restored.roomsCleared);
   }
 
   private persistRoomState(): void {
-    this.mapController.persistRoomState(this.unifiedGrid, this.progress, this.spawnedRooms);
+    this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
   }
 
   /** Check if a cell is a stratum end room (boss room) */
@@ -2007,133 +1995,61 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Build the full map for the current stratum state.
-   * Renders all room templates into a single continuous 2048횞2048px grid.
+   * Renders all room templates into a single continuous 2048x2048px grid.
    * Called from init() and on stratum transitions (replaces loadRoom).
    * Implements: System_ItemWorld_Core ? full-map rendering spec.
    */
   private buildFullMap(): void {
-    // Clear previous full map
-    if (this.fullMapContainer?.parent) {
-      this.fullMapContainer.parent.removeChild(this.fullMapContainer);
-      this.fullMapContainer.destroy({ children: true }); // free GPU textures
-    }
     // Reset elemental tile overlays (frozen/burning/electric) + burnable
-    // entity registry ??old cell keys would otherwise leak into the freshly
+    // entity registry — old cell keys would otherwise leak into the freshly
     // built fullGrid coordinates.
     this.tileMutator.reset();
-    for (const p of this.burnableProps) p.destroy();
-    this.burnableProps.length = 0;
+    this.burnablePropRegistry.clear();
     this.ashRemnant?.clear();
     this.grassClumpFire.clear();
     this.fluidResidue?.clear();
-    this.egoShard?.clear();
-    for (const c of this.containers) c.destroy();
-    this.containers.length = 0;
-    this.heldContainer = null;
-    this.pullingContainer = null;
-    this.pullElapsedMs = 0;
-    this.arcTether?.hide();
-    this.roomItemSpawners.clear();
-    this.fullMapContainer = new Container();
-    // Create aggregate layer containers so the palette filter spans the
-    // entire map in ONE pass (continuous gradient across all rooms).
-    this.bgAggregate = new Container();
-    this.interiorAggregate = new Container();
-    this.wallAggregate = new Container();
-    this.specialAggregate = new Container();
-    this.shadowAggregate = new Container();
-    this.sealAggregate = new Container();
-    // Render order: bg -> LDtk interior/buildings -> structDeco -> walls -> special(hazards) -> naturalDeco -> artificialDeco -> shadows -> seal
-    this.decoAggregate = new Container();         // natural detail (grass/roots) ? above walls
-    this.artificialDecoAggregate = new Container(); // artificial detail (wiring/sensors) ? above walls
-    this.structAggregate = new Container();        // structure (beams/concrete) ? behind walls
-    this.fullMapContainer.addChild(this.bgAggregate);
-    this.fullMapContainer.addChild(this.interiorAggregate);
-    this.fullMapContainer.addChild(this.structAggregate);
-    this.fullMapContainer.addChild(this.wallAggregate);
-    // Mutation mask sits directly above the wall aggregate so burnout / corrode
-    // cells can hide their baked-in wall sprite without re-aggregating.
-    if (!this.mutationMaskGfx) this.mutationMaskGfx = new Graphics();
-    this.mutationMaskGfx.clear();
-    this.mutatedCells.clear();
-    this.fullMapContainer.addChild(this.mutationMaskGfx);
-    if (!this.solidifiedWallGfx) this.solidifiedWallGfx = new Graphics();
-    this.solidifiedWallGfx.clear();
-    this.solidifiedWallCells.clear();
-    this.fullMapContainer.addChild(this.solidifiedWallGfx);
-    this.fullMapContainer.addChild(this.specialAggregate);
-    this.fullMapContainer.addChild(this.decoAggregate);
-    this.fullMapContainer.addChild(this.artificialDecoAggregate);
-    this.fullMapContainer.addChild(this.shadowAggregate);
-    this.fullMapContainer.addChild(this.sealAggregate);
-    this.bgAggregate.filters = [this.bgPaletteFilter];
-    const wallFilters: any[] = [this.wallPaletteFilter];
-    wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16, direction: 'bottom' }));
-    this.wallAggregate.filters = wallFilters;
-    // specialAggregate: NO filter ? hazard color cues (water/spike/updraft)
-    // are gameplay-critical and must not be swept into the biome palette.
-    // Decoration filter ? reduced strength so natural colors show through
-    const wallEntry = getAreaPalette(`iw_${this._themeSlug}_wall`);
-    const baseOpts = {
-      paletteTex: getAreaPaletteAtlas().texture,
-      rowCount: getAreaPaletteAtlas().rowCount,
-      row: getAreaPaletteRow(wallEntry.id),
-      depthBias: wallEntry.depthBias,
-      depthCenter: wallEntry.depthCenter,
-      brightness: wallEntry.brightness,
-      tint: wallEntry.tint,
-    };
-    // Same palette filter as walls ? decorations get full depth gradient
-    this.decoAggregate.filters = [this.naturalPaletteFilter];
-    this.artificialDecoAggregate.filters = [this.wallPaletteFilter];
-    this.structAggregate.filters = [this.wallPaletteFilter];
+    this.egoShardRuntime.clear();
+    this.containerRegistry.clear();
+    this.containerCarryRuntime.reset();
+    this.roomRewardSpawner.clearSpawnerPoints();
 
-    // Strata depth auto-transformation ? deeper = darker, more corroded
+    // Strata depth auto-transformation: deeper = darker, more corroded.
     const totalStrata = this.strataConfig.strata.length;
     const depthRatio = totalStrata > 1 ? this.currentStratumIndex / (totalStrata - 1) : 0;
-    // Darken palette as depth increases
-    this.bgPaletteFilter.setBrightness(
-      (this.bgPaletteFilter as any).resources.paletteUniforms.uniforms.uBrightness * (1.0 - depthRatio * 0.3),
-    );
-    this.wallPaletteFilter.setBrightness(
-      (this.wallPaletteFilter as any).resources.paletteUniforms.uniforms.uBrightness * (1.0 - depthRatio * 0.25),
-    );
-    // Strengthen depth gradient deeper down
-    this.bgPaletteFilter.setDepthBias(
-      (this.bgPaletteFilter as any).resources.paletteUniforms.uniforms.uDepthBias + depthRatio * 0.15,
-    );
-    this.shadowAggregate.filters = [this.wallPaletteFilter];
-    // Seal walls use the wall filter so their brick pattern reads in the
-    // same dark-cool silhouette family as LDtk wall tiles.
-    this.sealAggregate.filters = [this.wallPaletteFilter];
-    // PIXI v8 culling ?쒖꽦 ??Rare+ ??sprite ??쬆 (?섎쭔) ???(?ъ슜??寃곗젙 2026-05-04).
-    // 媛?cell layer ??cullable=true + cullArea 媛 viewport 寃?? 遺紐⑤뒗
-    // cullableChildren=true 濡??먯떇 cull 寃???먮쫫 enable.
-    this.bgAggregate.cullableChildren = true;
-    this.interiorAggregate.cullableChildren = true;
-    this.wallAggregate.cullableChildren = true;
-    this.specialAggregate!.cullableChildren = true;
-    this.shadowAggregate.cullableChildren = true;
-    this.spawnedRooms.clear();
-    this.roomTypeMap.clear();
+    const layers = this.fullMapLayerRuntime.rebuild({
+      previousContainer: this.fullMapContainer,
+      bgPaletteFilter: this.bgPaletteFilter,
+      wallPaletteFilter: this.wallPaletteFilter,
+      naturalPaletteFilter: this.naturalPaletteFilter,
+      depthRatio,
+    });
+    this.fullMapContainer = layers.fullMapContainer;
+    this.bgAggregate = layers.bgAggregate;
+    this.interiorAggregate = layers.interiorAggregate;
+    this.wallAggregate = layers.wallAggregate;
+    this.specialAggregate = layers.specialAggregate;
+    this.shadowAggregate = layers.shadowAggregate;
+    this.sealAggregate = layers.sealAggregate;
+    this.decoAggregate = layers.decoAggregate;
+    this.artificialDecoAggregate = layers.artificialDecoAggregate;
+    this.structAggregate = layers.structAggregate;
+    this.roomSpawnState.clearSpawnedRooms();
+    this.roomTypeRuntime.clear();
     this.clearEnemies();
-    this.cellLayerGroups = []; // ?섎룞 culling 洹몃９ 由ъ뀑 ??buildFullMap 媛 ?ㅼ떆 push
-    this.cellVisualRecords.clear();
-    this.renderedCellVisuals.clear();
-    this.runtimeSpawnedCells.clear();
-    this.visibleCellWindowKey = '';
+    this.playerSpawnRuntime.clear();
+    this.cellVisualRuntime.clearRecords();
+    this.cellVisualRuntime.resetRenderedState();
+    this.runtimeCellSpawner.clearSpawnedCells();
 
-    // DEC-039 ??A: ?듭씪 醫뚰몴怨? 紐⑤뱺 吏痢듭쓽 紐⑤뱺 ????덈? absoluteRow 湲곕컲?쇰줈
-    // ??踰덉뿉 ?뚮뜑留? fullGrid ??totalWidth횞totalHeight 濡??뺤옣. ?뚮젅?댁뼱???뚰봽
-    // ?놁씠 unifiedGrid ?꾩껜瑜??먯쑀濡?쾶 ?대룞.
+    // DEC-039 — A: 통합 그리드는 strata 를 absoluteRow 로 이어붙인다.
+    // fullGrid 의 totalWidth x totalHeight 로 전체 크기를 잡는다.
+    // unifiedGrid 기준으로 처리한다.
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
     Debug.log(`[ItemWorld] buildFullMap UNIFIED totalGrid=${totalCols}x${totalRows} strata=${this.unifiedGrid.strataOffsets.length} templates=${this.ldtkTemplates.length}`);
 
-    // Initialize full grid as solid (1) ??unrendered regions remain impassable
-    this.fullGrid = this.mapController.initFullGrid(totalCols, totalRows);
-    this.sealedCells.clear();
-
+    // Initialize full grid as solid (1) — unrendered regions remain impassable
+    this.fullGrid = this.fullGridRuntime.createInitialGrid(totalCols, totalRows);
     // Clear any previously spawned static entities (rebuild = fresh world)
     this.clearStaticEntities();
 
@@ -2149,170 +2065,12 @@ export class ItemWorldScene extends Scene {
         const ldtkLevel = this.pickLdtkTemplate(cell, rng);
         if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
 
-        // Boss/start are logical roles from RoomGrid. The LDtk template may be
-        // a visual fallback for the same exit mask, so do not let its RoomType
-        // erase required gameplay roles like boss spawning.
-        const logicalRoomType = this.isStratumEndRoom(col, absRow)
-          ? 'Boss'
-          : cell.onCriticalPath
-            ? 'Combat'
-          : ldtkLevel.roomType ?? 'Combat';
-        this.roomTypeMap.set(`${col}:${absRow}`, logicalRoomType);
-        const roomGrid = ldtkLevel.collisionGrid;
-        const roomH = roomGrid.length;
-        const roomW = roomGrid[0]?.length ?? 0;
-
-        // Copy room collision data into fullGrid at ABSOLUTE offset
-        const offR = absRow * IW_ROOM_H_TILES;
-        const offC = col * IW_ROOM_W_TILES;
-        for (let tr = 0; tr < roomH && tr < IW_ROOM_H_TILES; tr++) {
-          for (let tc = 0; tc < roomW && tc < IW_ROOM_W_TILES; tc++) {
-            this.fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
-          }
-        }
-
-        // DEC-039: Boss ('no_down') ?? LDtk ?쒗뵆由우씠 D opening ??媛吏怨?
-        // ?덈뜑?쇰룄 collision ?쇰줈 媛뺤젣 遊됱씤. ?먯뿰 ???ㅼ슫 李⑤떒 ??Trapdoor entity
-        // 留뚯씠 ?좎씪???꾩씠 ?섎떒.
-        //
-        // Plaza ('force_up' / LRUD) ??泥쒖옣???먯뿰 open ?대?濡?蹂꾨룄 seal 遺덊븘??
-        // ?꾩そ ? (?댁쟾 stratum 蹂댁뒪) 媛 'no_down' ?쇰줈 ?좉꺼?덉뼱 ?묐갑???듦낵??
-        // 李⑤떒?섎ŉ, Trapdoor 媛 ?ル뒗 hole 留??쇰갑 ?ㅼ씠釉??듬줈濡??묐룞.
-        //
-        // !cell.exits.up 遺꾧린??plaza 媛 force_up ?쇰줈 cell.exits.up=true ??
-        // ?먮룞 no-op. ?쇰컲 ???洹몃옒?꾩긽 ?꾩そ ?곌껐 ?놁쑝硫??ъ쟾???묐룞.
-        const SEAL = 2;
-        if (!cell.exits.up) {
-          for (let r = 0; r < SEAL; r++) {
-            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
-              const gr = offR + r;
-              const gc = offC + c;
-              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
-                this.fullGrid[gr][gc] = 1;
-              }
-            }
-          }
-        }
-        if (!cell.exits.down) {
-          for (let r = IW_ROOM_H_TILES - SEAL; r < IW_ROOM_H_TILES; r++) {
-            for (let c = 0; c < IW_ROOM_W_TILES; c++) {
-              const gr = offR + r;
-              const gc = offC + c;
-              if (gr >= 0 && gr < this.fullGrid.length && gc >= 0 && gc < (this.fullGrid[0]?.length ?? 0)) {
-                this.fullGrid[gr][gc] = 1;
-              }
-            }
-          }
-        }
-
+        this.roomTypeRuntime.assign(cell, ldtkLevel, col, absRow);
+        this.fullGridRuntime.applyRoomCollision(this.fullGrid, cell, ldtkLevel, col, absRow);
         const roomX = col * IW_ROOM_W_PX;
         const roomY = absRow * IW_ROOM_H_PX;
-        // Template-local cell origin ??unified-grid cell offset for
-        // Container / ContainerSpawner / FluidSpawner entity wiring.
-        const offGx = roomX / 16;
-        const offGy = roomY / 16;
-        // ?? Container entity (explicit Kind or Generic_A/B/C slot) ??
-        // Kind=Crate/MetalCrate/OilDrum/... ??洹몃?濡?ThrowableContainer ?앹꽦
-        // Kind=Generic_A/B/C ??temperamentPrimary ? slot 留ㅽ븨?쇰줈 ?ㅼ젣 kind
-        //   resolve (ContainerPools.resolveContainerSlotKind). 臾닿린 湲곗쭏蹂꾨줈
-        //   ?ㅻⅨ ContainerKind 媛 ?먯뿰?ㅻ읇寃??깆옣.
-        if (this.shouldEagerSpawnRuntimeEntities()) {
-        for (const ent of ldtkLevel.entities) {
-          if (ent.type !== 'Container') continue;
-          const kindRaw = ent.fields?.['Kind'];
-          let kind = parseContainerKind(kindRaw);
-          if (!kind) {
-            const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
-            if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
-              kind = resolveContainerSlotKind(slotStr, this.item.def.temperamentPrimary);
-            }
-          }
-          if (!kind) continue;
-          const fvRaw = ent.fields?.['FluidVolume'];
-          const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
-          const cx = (ent.grid[0] + offGx) * 16;
-          const cy = (ent.grid[1] + offGy) * 16;
-          const c = new ThrowableContainer(kind, cx, cy, fluidVolume);
-          this.containers.push(c);
-          this.entityLayer.addChild(c.container);
-        }
-        // ?? ContainerSpawner entity (procedural fill, 짠12) ??
-        // Each spawner runs against the unified grid window covered by this
-        // template, with explicit Containers already pushed marking
-        // occupancy so they don't double up.
-        const occupied = new Set<string>();
-        for (const c of this.containers) {
-          const gx0 = Math.floor(c.x / 16);
-          const gx1 = Math.floor((c.x + c.spec.width - 1) / 16);
-          const gy0 = Math.floor(c.y / 16);
-          const gy1 = Math.floor((c.y + c.spec.height - 1) / 16);
-          for (let gy = gy0; gy <= gy1; gy++) {
-            for (let gx = gx0; gx <= gx1; gx++) occupied.add(`${gx},${gy}`);
-          }
-        }
-        for (const ent of ldtkLevel.entities) {
-          if (ent.type !== 'ContainerSpawner') continue;
-          const opts = readSpawnerEntity(ent, this.item.def.temperamentPrimary);
-          // Translate template-local rect ??unified-grid pixel rect.
-          const rect = {
-            x: opts.rect.x + roomX,
-            y: opts.rect.y + roomY,
-            w: opts.rect.w,
-            h: opts.rect.h,
-          };
-          // Deterministic per-room seed when entity asks for "any".
-          const autoSeed = opts.seed >= 0 ? opts.seed
-            : (((this.item.uid | 0) * 73856093) ^ (col * 19349663) ^ (absRow * 83492791)) | 0;
-          const spawned = runContainerSpawner({
-            rect,
-            collisionGrid: this.fullGrid,
-            existing: this.containers,
-            occupiedCells: occupied,
-            pool: opts.pool,
-            minCount: opts.minCount,
-            maxCount: opts.maxCount,
-            bias: opts.bias,
-            seed: autoSeed,
-            avoidEntity: opts.avoidEntity,
-            fluidVolumeOverride: opts.fluidVolumeOverride,
-          });
-          for (const c of spawned) {
-            this.containers.push(c);
-            this.entityLayer.addChild(c.container);
-            occupied.add(`${Math.floor(c.x / 16)},${Math.floor(c.y / 16)}`);
-          }
-        }
-        // ?? FluidSpawner entity (continuous emission, 짠13) ??
-        // Template-local grid ??unified grid via offGx/offGy.
-        for (const ent of ldtkLevel.entities) {
-          if (ent.type !== 'FluidSpawner') continue;
-          for (const opt of readFluidSpawnerEntities(ent, this.item.def.temperamentPrimary)) {
-            this.fluidSpawners.add({
-              gx: opt.gx + offGx,
-              gy: opt.gy + offGy,
-              type: opt.type,
-              intervalMs: opt.intervalMs,
-            });
-          }
-        }
-        // ?? ItemSpawner entity (reward spawn point, 2026-05-18) ??
-        // designer-placed 蹂댁긽 ?꾩튂. spawnRoomRewards 媛 ?낆옣 ??媛??꾩튂留덈떎
-        // gold/heal 1媛쒖뵫 spawn. ?곗씠??(gold:heal 鍮꾩쑉, drop table ?? ??異뷀썑
-        // CSV 濡??댁쟾 ?덉젙 ???꾩옱??肄붾뱶 ???곸닔 (REWARD_*).
-        }
-        {
-          const list: Array<{ x: number; y: number }> = [];
-          for (const ent of ldtkLevel.entities) {
-            if (ent.type !== 'ItemSpawner') continue;
-            const sx = (ent.grid[0] + offGx) * 16;
-            const sy = (ent.grid[1] + offGy) * 16;
-            list.push({ x: sx, y: sy });
-          }
-          if (list.length > 0) {
-            this.roomItemSpawners.set(`${col}:${absRow}`, list);
-          }
-        }
-        this.cellVisualRecords.set(`${col}:${absRow}`, {
+        this.roomRewardSpawner.captureSpawnersForRoom(ldtkLevel, col, absRow, roomX, roomY);
+        this.cellVisualRuntime.setRecord({
           col,
           row: absRow,
           ldtkLevel,
@@ -2320,45 +2078,15 @@ export class ItemWorldScene extends Scene {
           roomY,
         });
 
-        // PIXI v8 cell culling ??viewport 諛?cell ??紐⑤뱺 sprite draw skip.
-        // cullArea ??local coords (position ?곸슜 ??world 濡?蹂??. 媛?cell ??
+        // PIXI v8 cell culling — viewport 밖 cell 의 sprite draw skip.
+        // cullArea 는 local coords (position 과 무관한 world 기준이 아님). 각 cell 의
         // local box = (0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX).
-        // ?섎룞 visible toggle 洹몃９ ??updateCellVisibility 媛 留??꾨젅??viewport 寃??
+        // visible toggle 은 updateCellVisibility 가 viewport 기준으로 처리한다.
 
-        // Hybrid procedural pass ??populate grass/wood + spawn Tier B
-        // BurnableProp entities inside LDtk BurnableZone rect entities.
-        // Operates on the fullGrid with the room's cell offset so each room's
-        // zones land in their correct fullGrid coordinates.
-        // GDD: Documents/System/System_World_TileSystem.md 짠7
-        if (this.shouldEagerSpawnRuntimeEntities()) {
-        const burnableSpecs: BurnableEntitySpec[] =
-          applyBurnableZones(this.fullGrid, ldtkLevel.entities, 16, roomX, roomY);
-        for (const s of burnableSpecs) {
-          const prop = new BurnableProp(s.id, s.gx, s.gy);
-          this.burnableProps.push(prop);
-          this.tileMutator.registerBurnable(prop);
-          this.entityLayer.addChild(prop.container);
-        }
-
-        // Spawn LDtk-placed static entities for this room (with world offset)
-        this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
-        }
-
-        // DEC-039 ??A: stratum 0 ??startRoom Player entity 留?init() 泥??ㅽ룿??
-        // ?ъ슜. ?ㅻⅨ stratum ?쇰줈 ?뚰봽?섏? ?딆쑝誘濡?蹂꾨룄 ??蹂닿?? 遺덊븘?뷀븯吏留?
-        // ?명솚?깆쓣 ?꾪빐 紐⑤뱺 stratum start ???덈? 醫뚰몴瑜?蹂닿????붾떎.
-        const stratumStartMatch = this.unifiedGrid.stratumStartRooms?.find(
-          s => s.col === col && s.absoluteRow === absRow,
-        );
-        if (stratumStartMatch) {
-          const playerEnt = ldtkLevel.entities.find(e => e.type === 'Player');
-          if (playerEnt) {
-            this.playerSpawnByStratum.set(stratumStartMatch.stratumIndex, {
-              x: playerEnt.px[0] + roomX,
-              y: playerEnt.px[1] + roomY,
-            });
-          }
-        }
+        // DEC-039 — A: stratum 0 의 startRoom Player entity 는 init() 에서 처리.
+        // 다른 stratum 은 jumpToStratum 에서 처리한다.
+        // stratum start 좌표를 기록해 둔다.
+        this.playerSpawnRuntime.captureFromRoom(this.unifiedGrid, ldtkLevel, col, absRow, roomX, roomY);
 
         roomCount++;
         // Mark start room as visited
@@ -2370,40 +2098,21 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // Radial layout ? null ????ㅼ닔 ??parallax BG 媛 洹몃?濡?蹂댁씠誘濡?dark seal 濡?硫붿?.
-    this.fillNullCellSeal(grid, totalCols, totalRows);
+    this.fullGridRuntime.addBoundaryCollision(this.fullGrid, totalCols, totalRows);
+    this.boundaryVisualRuntime.addBoundaryFrame(this.sealAggregate, totalCols, totalRows);
 
-    this.addFullMapBoundaryCollision(totalCols, totalRows);
-    this.addFullMapBoundaryVisuals(totalCols, totalRows);
-
-    // Procedural decorations generated from the final LDtk-authored fullGrid.
-    if (this._procDecoEnabled) {
-      const decorator = new ProceduralDecorator({
-        // Item world: 1/4 density of world decorations
-        maxDecorations: 12,
-        maxStructures: 4,
-        density: undefined,       // will be overridden by setTheme (then scaled)
-        structureDensity: undefined,
-        surfaceOverlayEnabled: ITEM_WORLD_SURFACE_OVERLAY_ENABLED,
-      });
-      decorator.setTheme(this.item.def.themeId ?? 'T-HABITAT');
-      // Scale density to 1/4 for item world
-      decorator.boostDensity(-0.75 * decorator.getDensity());
-      // Strata depth boosts decoration density
-      decorator.boostDensity(depthRatio * 0.05);
-      const seed = this.item.uid * 10000 + this.currentStratumIndex * 7919 + 777;
-      decorator.generate(this.fullGrid, seed);
-      this.decoAggregate!.addChild(decorator.naturalLayer);
-      this.artificialDecoAggregate!.addChild(decorator.artificialLayer);
-      this.structAggregate!.addChild(decorator.structureLayer);
-      for (const prop of this.grassClumpFire.register(decorator.getGrassClumpsWithCells())) {
-        this.tileMutator.registerBurnable(prop);
-      }
-    }
+    this.proceduralDecorRuntime.generate({
+      enabled: this._procDecoEnabled,
+      fullGrid: this.fullGrid,
+      themeId: this.item.def.themeId,
+      itemUid: this.item.uid,
+      currentStratumIndex: this.currentStratumIndex,
+      depthRatio,
+    });
 
     // Insert map container into scene, then ensure parallax stays behind everything
     this.container.addChildAt(this.fullMapContainer, 0);
-    this.spawnRuntimeForCell(this.currentCol, this.currentRow);
+    this.runtimeCellSpawner.spawnForCell(this.currentCol, this.currentRow);
     this.updateCellVisibility();
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
@@ -2411,1407 +2120,38 @@ export class ItemWorldScene extends Scene {
     this.game.camera.setBounds(0, 0, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, VISUAL_BOUNDS_BLEED_PX);
 
     this.persistRoomState();
-    this.drawMiniMap();
+    this.breakablePropRuntime.resetAndSpawnProcedural({
+      currentStratumIndex: this.currentStratumIndex,
+      itemIdLength: this.item.def.id.length,
+      currentCol: this.currentCol,
+      currentRow: this.currentRow,
+    });
 
-    // Breakable props (procedural, item world variants).
-    // Reserve an 8-tile radius around the player's start room center so
-    // entry/landing isn't cluttered by destructibles.
-    for (const bp of this.breakableProps) bp.destroy();
-    this.breakableProps = [];
-    const bpSeed = (this.currentStratumIndex + 1) * 0x1337 + (this.item.def.id.length * 7);
-    const bpExclude = new Set<string>();
-    const RADIUS = 8;
-    const startCol = this.currentCol * IW_ROOM_W_TILES + Math.floor(IW_ROOM_W_TILES / 2);
-    const startRow = this.currentRow * IW_ROOM_H_TILES + IW_DOOR_FLOOR_ROW;
-    for (let dr = -RADIUS; dr <= RADIUS; dr++) {
-      for (let dc = -RADIUS; dc <= RADIUS; dc++) {
-        bpExclude.add(`${startCol + dc},${startRow + dr}`);
-      }
-    }
-    const bpList = spawnBreakableProps(this.fullGrid, bpSeed, true, bpExclude);
-    for (const bp of bpList) {
-      this.breakableProps.push(bp);
-      this.entityLayer.addChild(bp.container);
-      // Register so TileMutator.spreadOilFire can ignite via cell adjacency.
-      this.tileMutator.registerBurnable(bp);
-    }
-
-    // DEC-039 ??A: ?ы꽭/exitTrigger ?쒖뒪???쒓굅?? 蹂댁뒪 泥섏튂 ??down exit 媛
-    // ?먯뿰?ㅻ읇寃??ㅼ쓬 stratum ?쇰줈 ?댁뼱吏誘濡?蹂꾨룄 蹂듭썝 濡쒖쭅 遺덊븘??
-  }
-
-  private sealCellExits(cell: UnifiedRoomCell, offC: number, offR: number, _size: number): void {
-    // Safety net for tag-based template matching.
-    //
-    // With pickTemplate(exact=true), the chosen template's door set should equal
-    // cell.exits, so every cell is sealed only on directions where the template
-    // already has solid wall ??making this a no-op in the happy path.
-    //
-    // If sealing actually flips any tile from non-solid to solid, that means
-    // the template had a door the cell doesn't want (a coverage gap or a
-    // mistagged template). We log it once per direction so missing tag
-    // categories surface during playtest.
-    const grid = this.fullGrid;
-    const SEAL = SEAL_DEPTH;
-    const FULL_H = grid.length;
-    const FULL_W = grid[0]?.length ?? 0;
-    const size = _size;
-
-    const sealRect = (r0: number, r1: number, c0: number, c1: number): boolean => {
-      let touched = false;
-      for (let r = r0; r < r1 && r < FULL_H; r++) {
-        for (let c = c0; c < c1 && c < FULL_W; c++) {
-          if (grid[r][c] !== 1) touched = true;
-          grid[r][c] = 1;
-        }
-      }
-      return touched;
-    };
-
-    const warnGhost = (dir: 'L' | 'R' | 'U' | 'D'): void => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[ItemWorld] sealing ghost door ${dir} at cell (col=${cell.col}, row=${cell.absoluteRow}) ??`
-        + `template tag mismatch, no exact-match room available for this exit set.`,
-      );
-    };
-
-    if (!cell.exits.left) {
-      if (sealRect(offR, offR + size, offC, offC + SEAL)) warnGhost('L');
-    }
-    if (!cell.exits.right) {
-      if (sealRect(offR, offR + size, offC + size - SEAL, offC + size)) warnGhost('R');
-    }
-    if (!cell.exits.up) {
-      if (sealRect(offR, offR + SEAL, offC, offC + size)) warnGhost('U');
-    }
-    if (!cell.exits.down) {
-      if (sealRect(offR + size - SEAL, offR + size, offC, offC + size)) warnGhost('D');
-    }
-  }
-
-  /** Draw the outer frame of the active stratum so boundaries read as walls. */
-  private addFullMapBoundaryVisuals(gridW: number, gridH: number): void {
-    if (!this.sealAggregate) return;
-
-    const layer = new Container();
-    const fullW = gridW * IW_ROOM_W_PX;
-    const fullH = gridH * IW_ROOM_H_PX;
-    const thickness = IW_BOUNDARY_THICKNESS * TILE_SIZE;
-    const frame = new Graphics();
-    this.drawBoundaryWall(frame, 0, 0, fullW, thickness);
-    this.drawBoundaryWall(frame, 0, fullH - thickness, fullW, thickness);
-    this.drawBoundaryWall(frame, 0, 0, thickness, fullH);
-    this.drawBoundaryWall(frame, fullW - thickness, 0, thickness, fullH);
-    layer.addChild(frame);
-
-    this.sealAggregate.addChild(layer);
-  }
-
-  private addFullMapBoundaryCollision(gridW: number, gridH: number): void {
-    const widthTiles = gridW * IW_ROOM_W_TILES;
-    const heightTiles = gridH * IW_ROOM_H_TILES;
-    const thickness = IW_BOUNDARY_THICKNESS;
-    for (let r = 0; r < heightTiles; r++) {
-      for (let c = 0; c < widthTiles; c++) {
-        const onBoundary = r < thickness
-          || r >= heightTiles - thickness
-          || c < thickness
-          || c >= widthTiles - thickness;
-        if (onBoundary && this.fullGrid[r]?.[c] !== undefined) {
-          this.fullGrid[r][c] = 1;
-        }
-      }
-    }
-  }
-
-  private drawBoundaryWall(gfx: Graphics, x: number, y: number, w: number, h: number): void {
-    const mortar = 0x3f4148;
-    const colors = [0x5c6068, 0x686c74, 0x52565f, 0x747881];
-    gfx.rect(x, y, w, h).fill(mortar);
-    for (let py = y; py < y + h; py += 8) {
-      const row = Math.floor((py - y) / 8);
-      const offset = row % 2 === 0 ? 0 : 8;
-      for (let px = x - offset; px < x + w; px += 16) {
-        const bx = Math.max(x, px + 1);
-        const bw = Math.min(px + 15, x + w) - bx;
-        if (bw <= 0) continue;
-        const color = colors[(row * 5 + Math.floor(px / 16)) % colors.length];
-        gfx.rect(bx, py + 1, bw, 6).fill(color);
-      }
-    }
-  }
-
-  /**
-   * Designer-placed ItemSpawner ?꾩튂??蹂댁긽???쒕∼?쒕떎. (2026-05-18)
-   *
-   * 猷?
-   *   - 媛?ItemSpawner ?꾩튂留덈떎 gold or healing pickup 1媛?(50:50 PRNG)
-   *   - Gold 湲덉븸 = base 횞 rarityMul 횞 (1 + stratumDepth 횞 0.2) ??臾닿린 rarity 媛
-   *     ?믪쓣?섎줉, stratum 源딆쓣?섎줉 ?먯쭊 利앷?
-   *   - Heal pickup ? player.maxHp 鍮꾨? (createForgeEmber 媛 25% maxHP)
-   *
-   * TODO: 蹂댁긽 ?곗씠??(gold 踰붿쐞 / heal 醫낅쪟 / 鍮꾩쑉) 瑜?蹂꾨룄 CSV
-   *   (Sheets/Content_ItemWorld_Rewards.csv) 濡??댁쟾. ?꾩옱??肄붾뱶 ?곸닔.
-   */
-  private spawnRoomRewards(col: number, row: number): void {
-    const list = this.roomItemSpawners.get(`${col}:${row}`);
-    if (!list || list.length === 0) return;
-
-    // Rarity ??蹂댁긽 multiplier (TODO: CSV 濡??댁쟾).
-    const RARITY_MUL: Record<string, number> = {
-      normal: 1.0, magic: 1.3, rare: 1.6, legendary: 2.0, ancient: 2.5,
-    };
-    const rarityMul = RARITY_MUL[this.item.rarity] ?? 1.0;
-    const cell = this.unifiedGrid.cells[row]?.[col];
-    const stratumDepth = cell?.stratumIndex ?? 0;
-    const depthMul = 1 + stratumDepth * 0.2;
-
-    const rng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 7777);
-    for (let i = 0; i < list.length; i++) {
-      const pt = list[i];
-      if (rng.next() < 0.5) {
-        // Gold: base 50~150 횞 rarityMul 횞 depthMul.
-        const goldBase = 50 + rng.nextInt(0, 100);
-        const goldAmount = Math.max(1, Math.floor(goldBase * rarityMul * depthMul));
-        const gp = new GoldPickup(pt.x, pt.y, goldAmount);
-        gp.enableTerrainPhysics(this.roomData);
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
-      } else {
-        // Healing ??Forge Ember (25% maxHP). Rarity 媛 ?믪쑝硫?異붽?濡?1媛???spawn.
-        const heal = createForgeEmber(pt.x, pt.y, this.player.maxHp);
-        this.healingPickups.push(heal);
-        this.entityLayer.addChild(heal.container);
-        if (rarityMul >= 2.0 && rng.next() < 0.5) {
-          // legendary/ancient 蹂대꼫????媛숈? spawner ?먯꽌 異붽? ember 1媛??쎄컙 ?놁뿉.
-          const heal2 = createForgeEmber(pt.x + 8, pt.y, this.player.maxHp);
-          this.healingPickups.push(heal2);
-          this.entityLayer.addChild(heal2.container);
-        }
-      }
-    }
+    // DEC-039 — A: exitTrigger 대신 down exit 를 사용한다.
+    // stratum 경계를 넘으면 down exit 로 처리한다.
   }
 
   /**
    * Spawn enemies in the given room cell (lazy ? triggered on first player entry).
-   * Replaces the per-room spawnEnemies() used in loadRoom().
+   * Full-map room spawning: the legacy per-room loadRoom path was removed.
    */
   private spawnEnemiesInRoom(col: number, row: number): void {
-    const cell = this.unifiedGrid.cells[row]?.[col];
-    if (!cell) return;
-
-    // DEC-038 Town of Orphaned Shadows: hub(Plaza) / shrine(Memorial) ? ?덉쟾
-    // 吏??? ???ㅽ룿??李⑤떒?섍퀬 利됱떆 cleared 泥섎━??HUD 移댁슫???ъ쭊???먮쫫??
-    // ?쇰컲 ?대━?댁? ?숈씪?섍쾶 ?좎??쒕떎. P0 invariant ???덈? ??1留덈━??????
-    // ???嫄곗＜??洹몃┝??Gatekeeper / Librarian) 1紐낆쓣 寃곗젙濡좎쟻?쇰줈 spawn.
-    if (cell.role === 'hub' || cell.role === 'shrine') {
-      const wasCleared = cell.cleared;
-      // Entry sequencing: ?쒖옉 猷몄? ?낆옣 ????꾨즺源뚯? ?ㅽ룿 蹂대쪟. cleared 留덊궧??
-      // ?④퍡 蹂대쪟?섏뿬 ?????紐낆떆 ?몄텧?먯꽌 ?뺤긽 寃쎈줈濡?泥섎━?섎룄濡??쒕떎.
-      const isStartRoom = col === this.unifiedGrid.startRoom.col
-        && row === this.unifiedGrid.startRoom.absoluteRow;
-      if (isStartRoom && !this.startSpawnDone) return;
-      // DEC-039 ??A: fullGrid 媛 ?듭씪 醫뚰몴??row 洹몃?濡??ъ슜.
-      const offXHs = col * IW_ROOM_W_PX;
-      const offYHs = row * IW_ROOM_H_PX;
-      const roomTopRowHs = Math.floor(offYHs / TILE_SIZE);
-      const roomTopColHs = Math.floor(offXHs / TILE_SIZE);
-      const rawPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopColHs, roomTopRowHs);
-      // 2026-05-17: 臾몄?湲?二쇰?/肄붿뼱 蹂대뒗 ?먮뒗 *諛붾떏 ?붾━???? ?먮쭔 spawn.
-      // computeSpawnPoints ??below>=1 留?寃?ы빐 fluid (water/oil/magma/acid/cyro)
-      // ???먮룄 ?ы븿?쒗궓?? isSolid 濡?wall/ice/breakable/metal/wood 留??덉슜.
-      const pointsHs = rawPoints.filter(pt => {
-        const tcBelow = Math.floor(pt.x / TILE_SIZE);
-        const trBelow = Math.floor(pt.y / TILE_SIZE);
-        const belowTile = this.fullGrid[trBelow]?.[tcBelow] ?? TILE_AIR;
-        return isSolid(belowTile);
-      });
-      if (pointsHs.length > 0) {
-        // 寃곗젙濡??쒕뱶: itemUid + col + absRow ??媛숈? 臾닿린쨌媛숈? 諛⑹씠硫???긽 ?숈씪 ?꾩튂.
-        const rngHs = new PRNG(this.item.uid * 31337 + col * 199 + row * 73);
-        // ?몃뜳?ㅻ? ?뷀뵆???명꽣?숉떚釉?1紐?+ ambient N 紐낆씠 媛숈? ?먯쓣 ???곌쾶 ??
-        const idxs = pointsHs.map((_, i) => i);
-        for (let i = idxs.length - 1; i > 0; i--) {
-          const j = rngHs.nextInt(0, i);
-          [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
-        }
-        // ?ъ슜??寃곗젙 2026-05-25: ?명꽣?숉떚釉?嫄곗＜??(Gatekeeper / Archivist) 2紐?spawn disable.
-        //   ambient 洹몃┝??20紐낆? 洹몃?濡??좎? (諛곌꼍 遺꾩쐞湲?蹂댁〈).
-        // const mainPt = pointsHs[idxs[0]];
-        // const mainType: ResidentType = cell.role === 'hub' ? 'gatekeeper' : 'archivist';
-        // const main = new MemoryResident(mainPt.x, mainPt.y, mainType);
-        // this.memoryResidents.push(main);
-        // this.residentsLayer.addChild(main.container);
-        // Plaza ?쒖젙: 諛곌꼍 洹몃┝??20紐? sprite ?(64醫? ?먯꽌 RNG 濡?怨⑤씪
-        // ?ㅼ뼇???뺣낫. spawn point ????묒븘??wrap + ?볦? x-jitter + 誘몄꽭
-        // y-jitter 濡?寃뱀묠 ?뚰뵾.
-        if (cell.role === 'hub') {
-          const ambientCount = 20;
-          const poolLen = idxs.length;
-          for (let i = 0; i < ambientCount; i++) {
-            const k = poolLen > 1 ? 1 + (i % (poolLen - 1)) : 0;
-            const apt = pointsHs[idxs[k]];
-            const lap = poolLen > 1 ? Math.floor(i / (poolLen - 1)) : i;
-            const jx = lap > 0 ? rngHs.nextInt(-20, 20) : rngHs.nextInt(-4, 4);
-            const jy = rngHs.nextInt(-2, 2);
-            const variant = rngHs.nextInt(0, 63);
-            const ambient = new MemoryResident(apt.x + jx, apt.y + jy, 'ambient', variant);
-            this.memoryResidents.push(ambient);
-            this.residentsLayer.addChild(ambient.container);
-          }
-        }
-      }
-      if (!wasCleared) {
-        cell.cleared = true;
-        this.roomsCleared++;
-        // DEC-046: 諛??대━????Recovery +0.3% ?먯쭊 ?꾩쟻.
-        addRecovery(this.item, 0.3);
-        this.persistRoomState();
-      }
-      return;
-    }
-
-    if (cell.cleared) return;
-
-    // Stratum start room ? safe zone, no monsters. Mark cleared so re-entry
-    // skips the spawn path entirely.
-    const si = cell.stratumIndex ?? 0;
-    const stratumStartCell = this.unifiedGrid.stratumStartRooms?.[si];
-    if (stratumStartCell &&
-        stratumStartCell.col === col &&
-        stratumStartCell.absoluteRow === row) {
-      if (!cell.cleared) {
-        cell.cleared = true;
-        this.roomsCleared++;
-        this.persistRoomState();
-      }
-      return;
-    }
-
-    // Memory Room ? lore pause, no enemies. Mark as cleared to keep it empty,
-    // mirroring the normal clear path (counter bump + persist). HUD refreshes
-    // automatically every frame via update()'s updateHudText() call.
-    if (this.memoryRoomPlacements.has(`${col}:${row}`)) {
-      if (!cell.cleared) {
-        cell.cleared = true;
-        this.roomsCleared++;
-        this.persistRoomState();
-      }
-      return;
-    }
-
-    const roomKey = `${col},${row}`;
-    // Helper to tag a freshly-spawned enemy with its room and bump live count
-    const trackEnemy = (e: Enemy<string>) => {
-      setEnemyRoomKey(e, roomKey);
-      this.roomEnemyCount.set(roomKey, (this.roomEnemyCount.get(roomKey) ?? 0) + 1);
-    };
-
-    const stratumDef = this.strataConfig.strata[cell.stratumIndex ?? 0];
-    // DEC-039 ??A: fullGrid 媛 ?듭씪 醫뚰몴怨???row 洹몃?濡??ъ슜.
-    const offX = col * IW_ROOM_W_PX;
-    const offY = row * IW_ROOM_H_PX;
-
-    const dist = Math.abs(col - this.unifiedGrid.startRoom.col)
-               + Math.abs(row - this.unifiedGrid.startRoom.absoluteRow);
-    const distScale = 1 + dist * 0.1;
-
-    const roomTopRow = Math.floor(offY / TILE_SIZE);
-    const roomTopCol = Math.floor(offX / TILE_SIZE);
-    const spawnPoints = this.spawnController.computeSpawnPoints(this.fullGrid, roomTopCol, roomTopRow);
-
-    const pickSpawn = (rng: PRNG, entityH: number) => {
-      const pt = spawnPoints[rng.nextInt(0, spawnPoints.length - 1)];
-      return { x: pt.x, y: pt.y - entityH };
-    };
-
-    const roomType = this.roomTypeMap.get(`${col}:${row}`) ?? 'Combat';
-    const isBossRoom = roomType === 'Boss' || this.isStratumEndRoom(col, row);
-    const stratumIndex = (cell.stratumIndex ?? 0) + 1; // 1-based for CSV
-    const spawnTable = getSpawnTable(this.item.rarity, stratumIndex);
-
-    // Cycle scaling ? bump CSV level by +cycle so each replay uses the next
-    // row in Content_Stats_Enemy.csv (CSV jump is the "1 level stronger" feel).
-    const cycle = this.progress?.cycle ?? 0;
-
-    if (spawnPoints.length === 0 && !isBossRoom) return;
-
-    // 紐⑤뱺 room type ?????ItemSpawner-placed 蹂댁긽 泥섎━ (no-op if ?놁쓬).
-    // 2026-05-18: ?댁쟾 random-position (corridor dead-end + Rest 1~2 heal) ?먭린.
-    // Combat/Treasure/Boss ??designer 媛 ItemSpawner ?섏씤?????④퍡 ?묐룞.
-    this.spawnRoomRewards(col, row);
-
-    // Corridor cell (DEC-037 chain-length variable pattern) ???대룞 ?꾩슜, ??誘몄뒪??
-    if (cell.kind === 'corridor') {
-      if (!cell.cleared) {
-        cell.cleared = true;
-        this.roomsCleared++;
-        this.persistRoomState();
-      }
-      return;
-    }
-
-    // ??? RoomType-specific branching ????????????????????????????????????????
-    // Rest / Puzzle rooms carry zero enemies ? they break the combat rhythm.
-    // Rest room ??ItemSpawner 蹂댁긽? ?곷떒 spawnRoomRewards 媛 ?대? 泥섎━.
-    if (roomType === 'Rest') {
-      if (!cell.cleared) {
-        cell.cleared = true;
-        this.roomsCleared++;
-        this.persistRoomState();
-      }
-      return;
-    }
-
-    if (roomType === 'Puzzle') {
-      // Puzzle content (switches / locked doors) lives in the LDtk template.
-      // Spawn nothing; do NOT auto-clear ? solving the puzzle clears it.
-      return;
-    }
-
-    // Treasure room ? 1 GoldenMonster as an elite encounter.
-    if (roomType === 'Treasure') {
-      const gold = this.createEnemyFromType('GoldenMonster', 1 + cycle);
-      gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul));
-      gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul));
-      const goldRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33 + 99);
-      const sp = pickSpawn(goldRng, gold.height);
-      gold.x = sp.x;
-      gold.y = sp.y;
-      gold.roomData = this.fullGrid;
-      gold.target = this.player;
-      this.enemies.push(gold);
-      this.entityLayer.addChild(gold.container);
-      trackEnemy(gold);
-      return;
-    }
-    // ????????????????????????????????????????????????????????????????????????
-
-    // Boss room is a logical stratum-end role and must always spawn a boss.
-    if (isBossRoom && spawnTable.boss) {
-      const bossEntry = spawnTable.boss;
-      const boss = this.createEnemyFromType(bossEntry.enemyType, bossEntry.level + cycle);
-      (boss as any)._isBoss = true;
-      // Multiply CSV-based stats by stratum boss multipliers + distance scaling
-      boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
-      boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul * distScale));
-      const bossRng = new PRNG(this.item.uid * 999 + col * 77 + row * 33);
-      // Prefer the center of a 16-tile continuous flat floor; fall back to
-      // a random valid spawn point if no such run exists.
-      const flat = this.findFlatFloorCenter(roomTopCol, roomTopRow, 16);
-      let sp: { x: number; y: number };
-      if (flat) {
-        sp = { x: flat.x - boss.width / 2, y: flat.y - boss.height };
-      } else if (spawnPoints.length > 0) {
-        sp = pickSpawn(bossRng, boss.height);
-      } else {
-        sp = {
-          x: offX + IW_ROOM_W_PX / 2 - boss.width / 2,
-          y: offY + IW_ROOM_H_PX / 2 - boss.height,
-        };
-      }
-      boss.x = sp.x;
-      boss.y = sp.y;
-      boss.roomData = this.fullGrid;
-      boss.target = this.player;
-      this.enemies.push(boss);
-      this.entityLayer.addChild(boss.container);
-      trackEnemy(boss);
-      return;
-    }
-
-    // Normal room ? spawn from weighted table.
-    // Single-entry weighted pick per room: CSV weights sum to 100 per
-    // (rarity,stratum) group with per-entry deltas (10..70), which matches
-    // pickWeightedEnemy's "pick one" semantics. GoldenMonster's 10% weight
-    // should only trigger 10% of the time, not every room.
-    const normalEntries = spawnTable.normal;
-    if (normalEntries.length === 0) return;
-
-    const pickSeed = this.item.uid * 999 + col * 77 + row * 33;
-    const pickRng = new PRNG(pickSeed);
-    const picked = pickWeightedEnemy(normalEntries, pickRng.next());
-    if (!picked) return;
-
-    // Count roll for the picked entry
-    const countSeed = pickSeed + picked.enemyType.charCodeAt(0) * 17;
-    const countRng = new PRNG(countSeed);
-    const range = picked.maxCount - picked.minCount;
-    const rolledCount = range > 0
-      ? picked.minCount + countRng.nextInt(0, range)
-      : picked.minCount;
-
-    let spawnIndex = 0;
-    for (let i = 0; i < rolledCount; i++) {
-      const spawnRng = new PRNG(pickSeed + spawnIndex);
-      spawnIndex++;
-
-      // 15% chance to spawn an MemoryShardNPC instead of a regular enemy
-      const innocentRoll = spawnRng.next();
-      if (innocentRoll < INNOCENT_SPAWN_CHANCE && canAddInnocent(this.item)) {
-        const seedForArchetype = this.item.uid + col * 13 + row * 7 + spawnIndex;
-        const innocent = createRandomInnocent(seedForArchetype, cell.stratumIndex ?? 0);
-
-        const npc = new MemoryShardNPC();
-        npc.innocent = innocent;
-        npc.onSubdued = () => {
-          innocent.isSubdued = true;
-          addInnocent(this.item, innocent);
-          this.dmgNumbers.spawnSpecial(
-            npc.x + npc.width / 2, npc.y - 16,
-            `${innocent.name} +${innocent.value} ${innocent.stat}`, 0xffdd44,
-          );
-          this.updateHudText();
-          // A15 (playtest 2026-04-17): capture ceremony.
-          // - Cyan screen flash (matches innocent aesthetic, distinct from kill)
-          // - Capture SFX (rising sweep + crystal ping)
-          // - Seal orb VFX that rises from the innocent and implodes toward the
-          //   player, representing "sealed into the item".
-          this.screenFlash.flash(0x88ddff, 0.35, 180);
-          SFX.play('capture');
-          this.spawnCaptureOrb(
-            npc.x + npc.width / 2,
-            npc.y + npc.height / 2,
-          );
-          // DLG-10: Memory Shard ?뚯긽 ??泥??뚯긽 ?쒖젏????踰덈쭔 諛쒗솕 (?ъ슜??
-          // 寃곗젙 2026-05-04). EGO_EVENT.SHARD_RECALL ?쒖떇?쇰줈 以묐났 李⑤떒.
-          if (
-            this.loreDisplay &&
-            !this.egoUnlockedEvents.has(EGO_EVENT.SHARD_RECALL) &&
-            !this.loreDisplay.isActive
-          ) {
-            this.egoUnlockedEvents.add(EGO_EVENT.SHARD_RECALL);
-            void this.loreDisplay.showDialogue(EGO_SHARD_RECALL, false);
-          }
-        };
-
-        const sp = pickSpawn(spawnRng, npc.height);
-        npc.x = sp.x;
-        npc.y = sp.y;
-        npc.roomData = this.fullGrid;
-        npc.target = this.player;
-        this.enemies.push(npc);
-        this.entityLayer.addChild(npc.container);
-        trackEnemy(npc);
-        continue;
-      }
-
-      // Spawn the picked entry's enemy type
-      const enemy = this.createEnemyFromType(picked.enemyType, picked.level + cycle);
-      // Multiply CSV-based stats by stratum + distance scaling
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * stratumDef.hpMul * distScale));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * stratumDef.atkMul * distScale));
-      const sp = pickSpawn(spawnRng, enemy.height);
-      enemy.x = sp.x;
-      enemy.y = sp.y;
-      enemy.roomData = this.fullGrid;
-      enemy.target = this.player;
-      this.enemies.push(enemy);
-      this.entityLayer.addChild(enemy.container);
-      trackEnemy(enemy);
-    }
+    this.roomSpawnRuntime.spawnForRoom(col, row);
   }
+  // DEC-039 — A: spawnBossPortal / restorePortalIfStratumCleared /
+  // getBossPortalFallbackPosition 은 제거됨. down exit 로 대체.
+  // stratum 전환은 down exit 로 처리한다.
 
-  // DEC-039 ??A: spawnBossPortal / restorePortalIfStratumCleared /
-  // getBossPortalFallbackPosition ?쒓굅?? 蹂댁뒪 泥섏튂 ??down exit 媛
-  // ?ㅼ쓬 stratum ?쇰줈 ?먯뿰?ㅻ읇寃??댁뼱吏꾨떎.
-
-  private getPlayerFloorSpawnPosition(col: number, absoluteRow: number): { x: number; y: number } {
-    // DEC-039 ??A: ?듭씪 醫뚰몴怨???absoluteRow 吏곸젒 ?ъ슜.
-    const roomLeftTile = col * IW_ROOM_W_TILES;
-    const roomTopTile = absoluteRow * IW_ROOM_H_TILES;
-    const roomLeftPx = col * IW_ROOM_W_PX;
-    const roomRightPx = roomLeftPx + IW_ROOM_W_PX;
-    const roomTopPx = absoluteRow * IW_ROOM_H_PX;
-    const roomBottomPx = roomTopPx + IW_ROOM_H_PX;
-    const targetCenterX = roomLeftPx + IW_ROOM_W_PX / 2;
-
-    const floor = this.findPlayerSpawnFloor(roomLeftTile, roomTopTile, targetCenterX, roomBottomPx);
-    const spawnCenterX = floor?.x ?? targetCenterX;
-    const floorY = floor?.y ?? (roomTopPx + IW_ROOM_H_PX / 2);
-    const minX = roomLeftPx + TILE_SIZE;
-    const maxX = roomRightPx - TILE_SIZE - this.player.width;
-
-    return {
-      x: Math.round(Math.max(minX, Math.min(maxX, spawnCenterX - this.player.width / 2))),
-      y: Math.round(Math.max(roomTopPx + TILE_SIZE, floorY - this.player.height)),
-    };
-  }
-
-  private findPlayerSpawnFloor(
-    roomLeftTile: number,
-    roomTopTile: number,
-    targetCenterX: number,
-    roomBottomPx: number,
-  ): { x: number; y: number } | null {
-    let best: { x: number; y: number; score: number } | null = null;
-    const chooseBetter = (
-      current: { x: number; y: number; score: number } | null,
-      centerX: number,
-      floorY: number,
-    ): { x: number; y: number; score: number } => {
-      const horizontal = Math.abs(centerX - targetCenterX);
-      const verticalPenalty = Math.max(0, roomBottomPx - floorY) * 0.25;
-      const score = horizontal + verticalPenalty;
-      if (!current || score < current.score) return { x: centerX, y: floorY, score };
-      return current;
-    };
-
-    // Prefer established enemy-spawn floors: flat enough and inset from walls.
-    for (const pt of this.spawnController.computeSpawnPoints(this.fullGrid, roomLeftTile, roomTopTile)) {
-      best = chooseBetter(best, pt.x + TILE_SIZE / 2, pt.y);
-    }
-    if (best) return { x: best.x, y: best.y };
-
-    // Fallback for unusual templates: any air tile with solid below.
-    const colStart = roomLeftTile + 1;
-    const colEnd = roomLeftTile + IW_ROOM_W_TILES - 1;
-    const rowStart = roomTopTile + 1;
-    const rowEnd = roomTopTile + IW_ROOM_H_TILES - 1;
-    for (let tr = rowStart; tr < rowEnd; tr++) {
-      for (let tc = colStart; tc < colEnd; tc++) {
-        const here = this.fullGrid[tr]?.[tc] ?? 1;
-        const below = this.fullGrid[tr + 1]?.[tc] ?? 1;
-        if (here === 0 && below >= 1) {
-          best = chooseBetter(best, tc * TILE_SIZE + TILE_SIZE / 2, (tr + 1) * TILE_SIZE);
-        }
-      }
-    }
-    return best ? { x: best.x, y: best.y } : null;
-  }
-
-  /**
-   * Check if the player has entered any Memory Room trigger area. Shows the
-   * dialogue once per entry; the trigger resets to "inactive" when the player
-   * leaves the area, so re-reading is possible (AC5).
-   */
-  private checkMemoryTriggers(dt: number = 16): void {
-    // Animate every memory shard (bob, pulse, particles) regardless of dialogue state
-    for (const t of this.memoryTriggers) {
-      // Bob up/down
-      t.bobTimer += dt;
-      const bobOffset = Math.sin(t.bobTimer * 0.0025) * 2;
-      t.container.y = t.anchorY + bobOffset;
-
-      // Pulse scale + glow alpha
-      t.pulseTimer += dt;
-      const pulse = Math.sin(t.pulseTimer * 0.004);
-      const scale = 1.0 + pulse * 0.18;
-      t.shardGfx.scale.set(scale);
-      t.shardGfx.rotation = Math.sin(t.pulseTimer * 0.002) * 0.08; // gentle rotation sway
-      t.glowGfx.alpha = 0.7 + pulse * 0.3;
-
-      // Particle spawn (3 per cycle, 400ms interval)
-      t.spawnTimer -= dt;
-      if (t.spawnTimer <= 0) {
-        t.spawnTimer = 400;
-        for (let i = 0; i < 3; i++) {
-          const pgfx = new Graphics();
-          const size = 1 + Math.random() * 1.5;
-          pgfx.rect(-size / 2, -size / 2, size, size)
-            .fill({ color: i % 2 === 0 ? 0xff8000 : 0xffcc66 });
-          const px = (Math.random() - 0.5) * 16;
-          const py = 4 + Math.random() * 4;
-          pgfx.x = px;
-          pgfx.y = py;
-          t.container.addChild(pgfx);
-          const maxLife = 900 + Math.random() * 500;
-          t.particles.push({
-            x: px, y: py,
-            vx: (Math.random() - 0.5) * 20,
-            vy: -(20 + Math.random() * 20),
-            life: maxLife, maxLife,
-            gfx: pgfx,
-          });
-        }
-      }
-
-      // Update existing particles
-      for (let i = t.particles.length - 1; i >= 0; i--) {
-        const p = t.particles[i];
-        p.life -= dt;
-        p.x += p.vx * (dt / 1000) + Math.sin(p.life * 0.01) * 0.3;
-        p.y += p.vy * (dt / 1000);
-        p.gfx.x = p.x;
-        p.gfx.y = p.y;
-        p.gfx.alpha = Math.max(0, p.life / p.maxLife) * 0.9;
-        if (p.life <= 0) {
-          if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-          t.particles.splice(i, 1);
-        }
-      }
-    }
-
-    // Dialogue trigger check
-    if (!this.loreDisplay) return;
-    if (this.loreDisplay.isActive) return;
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-    for (const t of this.memoryTriggers) {
-      const inside = pcx >= t.x && pcx < t.x + t.w && pcy >= t.y && pcy < t.y + t.h;
-      if (inside && !t.active) {
-        t.active = true;
-        this.loreDisplay.showDialogue([{
-          text: t.text,
-          speaker: t.speaker,
-          portrait: t.portrait,
-        }], false);
-        break;
-      }
-      if (!inside && t.active) {
-        t.active = false;
-      }
-    }
-  }
-
-  /**
-   * Memory Room placement ? for each stratum that has a memory room configured
-   * for the current weapon (Sheets/Content_ItemWorld_MemoryRooms.csv), reserve
-   * a branch cell in that stratum so the template is inserted deterministically
-   * into the procedural grid.
-   *
-   * Prefers off-critical-path rooms. Falls back to any non-boss, non-start cell.
-   */
-  private computeMemoryRoomPlacements(): void {
-    this.memoryRoomPlacements.clear();
-    if (!this.ldtkTemplates || this.ldtkTemplates.length === 0) return;
-
-    const weaponId = this.item.def.id;
-    for (let si = 0; si < this.strataConfig.strata.length; si++) {
-      const roomName = getMemoryRoom(weaponId, si);
-      if (!roomName) continue;
-      const template = this.ldtkTemplates.find(t => t.identifier === roomName);
-      if (!template) {
-        console.warn(`[ItemWorld] Memory room template "${roomName}" not found for ${weaponId} stratum ${si}`);
-        continue;
-      }
-
-      const offset = this.unifiedGrid.strataOffsets[si];
-      if (!offset) continue;
-      const height = offset.height;
-
-      const startCol = this.unifiedGrid.startRoom.col;
-      const startAbsRow = this.unifiedGrid.startRoom.absoluteRow;
-
-      // First pass: prefer off-critical-path branch rooms
-      const branchCandidates: { col: number; absRow: number }[] = [];
-      // Second pass fallback: any non-boss, non-start cell
-      const anyCandidates: { col: number; absRow: number }[] = [];
-
-      for (let localRow = 0; localRow < height; localRow++) {
-        for (let col = 0; col < this.unifiedGrid.totalWidth; col++) {
-          const absRow = offset.rowOffset + localRow;
-          const cell = this.unifiedGrid.cells[absRow]?.[col];
-          if (!cell) continue;
-          if (this.isStratumEndRoom(col, absRow)) continue;
-          if (col === startCol && absRow === startAbsRow) continue;
-          if (!cell.onCriticalPath) branchCandidates.push({ col, absRow });
-          anyCandidates.push({ col, absRow });
-        }
-      }
-
-      const pool = branchCandidates.length > 0 ? branchCandidates : anyCandidates;
-      if (pool.length === 0) continue;
-
-      const rng = new PRNG(this.item.uid * 131 + si * 7 + 13);
-      const picked = pool[rng.nextInt(0, pool.length - 1)];
-      const key = `${picked.col}:${picked.absRow}`;
-      this.memoryRoomPlacements.set(key, template);
-      Debug.log(`[ItemWorld] Memory room placement stratum=${si} weapon=${weaponId} cell=(${picked.col},${picked.absRow}) template=${roomName}`);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Door mask ? auto-carve exits + auto-seal unused edges, driven by cell.exits
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Compute carve/seal rectangles in room-local tile coords.
-   * - carveRectsLocal: passable openings (fullGrid ??0) where the logical
-   *   exit is required. Horizontal doors use the template's floor row so
-   *   the player can walk through; vertical doors use the midpoint column.
-   * - sealRectsLocal: solid strips (fullGrid ??1) across the full edge when
-   *   the direction has no exit, blocking any natural template openings.
-   * Rectangles are `{c0, r0, cN, rN}` in room-local tile units.
-   */
-  private computeDoorMask(cell: UnifiedRoomCell | null, ldtkLevel: LdtkLevel): DoorMask {
-    return this.mapController.computeDoorMask(cell, ldtkLevel);
-  }
-
-  private applyDoorMaskToFullGrid(mask: DoorMask, offR: number, offC: number): void {
-    this.mapController.applyDoorMaskToFullGrid(mask, this.fullGrid, this.sealedCells, offR, offC);
-  }
-
-  private filterWallTilesByCarves<T extends { px: [number, number] }>(
-    wallTiles: T[],
-    carveRectsLocal: DoorMask['carveRectsLocal'],
-    collisionGrid?: number[][],
-  ): T[] {
-    return this.mapController.filterWallTilesByCarves(wallTiles, carveRectsLocal, collisionGrid);
-  }
-
-  /**
-   * Paint code-generated seal walls with a mortar + 4횞4 brick pattern per
-   * sealed cell. The luma variation (mortar ~0.21, bricks ~0.37?0.45) feeds
-   * the palette filter so each brick maps to a different palette position,
-   * producing a natural wall silhouette instead of a flat black hole.
-   * When the palette filter is off, the pattern still reads as a stone wall.
-   * LDtk template tiles render as-is.
-   */
-  private drawUniformWalls(roomContainer: Container, offR: number, offC: number): void {
-    this.mapController.drawUniformWalls(roomContainer, this.sealedCells, offR, offC);
-  }
-
-
-  /**
-   * Draw stone-brick blocks over sealed edge strips so players read them as
-   * solid walls, not holes. Each tile gets a mortar base + 4횞4 brick grid
-   * with 4 stone color variations (matches addSealSprites palette).
-   */
-  private drawSealOverlays(
-    roomContainer: Container,
-    sealRectsLocal: DoorMask['sealRectsLocal'],
-  ): void {
-    this.mapController.drawSealOverlays(roomContainer, sealRectsLocal);
-  }
-
-  /**
-   * Pre-spawn enemies in the 4 neighboring rooms (N/S/E/W) of the given local
-   * room coordinates so the player never sees a "pop-in" when crossing a doorway.
-   * Skips already-spawned, out-of-bounds, and out-of-stratum rooms.
-   */
-  private preSpawnNeighborRooms(curCol: number, curAbsRow: number): void {
-    // DEC-039 ??A: ?듭씪 醫뚰몴怨???stratum 寃쎄퀎 ?대옩???놁씠 ?꾩껜 unifiedGrid 踰붿쐞濡?寃??
-    const totalCols = this.unifiedGrid.totalWidth;
-    const totalRows = this.unifiedGrid.totalHeight;
-    const directions = [
-      { dc: -1, dr: 0, name: 'W' },
-      { dc: 1, dr: 0, name: 'E' },
-      { dc: 0, dr: -1, name: 'N' },
-      { dc: 0, dr: 1, name: 'S' },
-    ];
-    Debug.log(`[ItemWorld] preSpawnNeighborRooms from (${curCol},${curAbsRow}) totalGrid=${totalCols}x${totalRows}`);
-    let spawnedCount = 0;
-    let skippedBounds = 0;
-    let skippedSpawned = 0;
-    let skippedNullCell = 0;
-    for (const { dc, dr, name } of directions) {
-      const ncLocal = curCol + dc;
-      const nrAbs = curAbsRow + dr;
-      if (ncLocal < 0 || ncLocal >= totalCols || nrAbs < 0 || nrAbs >= totalRows) {
-        Debug.log(`  [${name}] skip: out of bounds (${ncLocal},${nrAbs})`);
-        skippedBounds++;
-        continue;
-      }
-      const nKey = `${ncLocal},${nrAbs}`;
-      if (this.spawnedRooms.has(nKey)) {
-        Debug.log(`  [${name}] skip: already spawned ${nKey}`);
-        skippedSpawned++;
-        continue;
-      }
-      const nCell = this.unifiedGrid.cells[nrAbs]?.[ncLocal];
-      if (!nCell) {
-        Debug.log(`  [${name}] skip: null cell ${nKey}`);
-        skippedNullCell++;
-        continue;
-      }
-      this.spawnRuntimeForCell(ncLocal, nrAbs);
-      this.spawnedRooms.add(nKey);
-      const beforeCount = this.enemies.length;
-      this.spawnEnemiesInRoom(ncLocal, nrAbs);
-      const spawned = this.enemies.length - beforeCount;
-      Debug.log(`  [${name}] spawned ${spawned} enemies in ${nKey} (roomType=${this.roomTypeMap.get(`${ncLocal}:${nrAbs}`) ?? '?'}, cleared=${nCell.cleared})`);
-      spawnedCount++;
-    }
-    Debug.log(`[ItemWorld] preSpawn result: ${spawnedCount} rooms spawned, ${skippedBounds} bounds, ${skippedSpawned} already, ${skippedNullCell} null`);
-    this.persistRoomState();
-  }
-
-  /**
-   * Find the center of the longest continuous horizontal flat floor inside a
-   * single 32횞32 room, requiring at least `minLen` tiles in a row. The floor
-   * is a row where each tile has `fullGrid[r][c] === 0` (air) AND
-   * `fullGrid[r+1][c] >= 1` (solid tile directly below).
-   *
-   * Returns the world-pixel center (x = center tile 횞 TILE + TILE/2, y = top
-   * of the row 횞 TILE) of the best run, or null if no run of minLen exists.
-   * Prefers the row closer to the bottom of the room (where boss arenas feel
-   * natural) and, within ties, the longest run.
-   */
-  private findFlatFloorCenter(
-    roomTopCol: number,
-    roomTopRow: number,
-    minLen: number,
-  ): { x: number; y: number } | null {
-    return this.spawnController.findFlatFloorCenter(this.fullGrid, roomTopCol, roomTopRow, minLen);
-  }
-
-  private createEnemyFromType(type: string, level: number): Enemy<string> {
-    const enemy = this.spawnController.createEnemyFromType(type, level);
-    this.applyCycleScaling(enemy);
-    return enemy;
-  }
-
-  /**
-   * Replaced by direct level bump (cycle added to spawn level in spawnEnemiesInRoom).
-   * Kept as a no-op so existing call sites in createEnemyFromType remain intact.
-   */
-  private applyCycleScaling(_enemy: Enemy<string>): void {
-    // No-op ? cycle scaling now happens via level bump at spawn time.
-  }
-
-  private getInteriorTilesForRoom(
-    ldtkLevel: LdtkLevel,
-    filter?: (tile: LdtkTile) => boolean,
-  ): LdtkTile[] {
-    const tiles = [
-      ...ldtkLevel.interiorTiles,
-      ...Object.values(ldtkLevel.extraTileLayers).flat(),
-    ];
-    return filter ? tiles.filter(filter) : tiles;
-  }
-
-  private applyItemWorldAreaTileset(areaId: string, tiles: LdtkTile[]): void {
-    const defaultAuthoredTiles = tiles.filter(tile =>
-      !tile.tilesetPath || tile.tilesetPath === ITEM_WORLD_DEFAULT_LDTK_TILESET);
-    applyAreaTilesetToLdtkTiles(areaId, defaultAuthoredTiles);
-  }
-
-  private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
-    const cell = this.getCurrentCell();
-    const roomRng = new PRNG(this.item.uid * 10000 + this.currentCol * 100 + this.currentRow);
-
-    // Clear previous seal BEFORE creating new one
-    if (this.sealGfx?.parent) this.sealGfx.parent.removeChild(this.sealGfx);
-    this.sealGfx = null;
-
-    // Pick room: LDtk template ??code template ??ChunkAssembler fallback
-    const ldtkLevel = this.pickLdtkTemplate(cell, roomRng);
-    this.currentLdtkLevel = ldtkLevel;
-    if (ldtkLevel && this.ldtkRenderer && this.atlas) {
-      // Use LDtk hand-crafted template with tile rendering
-      this.roomData = ldtkLevel.collisionGrid.map(row => [...row]);
-      this.tilemap.container.visible = false;
-      this.ldtkRenderer.clear();
-      {
-        const bgAreaId = `iw_${this._themeSlug}_bg`;
-        const wallAreaId = `iw_${this._themeSlug}_wall`;
-        const bgTiles = ldtkLevel.backgroundTiles;
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel);
-        const shadowTiles = ldtkLevel.shadowTiles;
-        // SolidGeneric_A/B ???sprite 瑜?*resolved ?붾━????? ??world_01 sprite
-        // 濡?移섑솚 (2026-05-18). pre-resolution collisionGrid (媛?21/22 ?댁븘?덉쓬)
-        // 湲곗??쇰줈 移섑솚 ??*蹂듭궗?? 諛곗뿴??renderLevel ???꾨떖.
-        const wallTilesSub = substituteSolidGenericSprites(
-          ldtkLevel.wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
-        );
-        this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
-        this.applyItemWorldAreaTileset(wallAreaId, wallTilesSub);
-        this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
-        // ?먮낯 collisionGrid 瑜?洹몃?濡??꾨떖 ??isFluidHiddenTile ??`v === 17/18/19`
-        // 媛 fluid placeholder sprite 瑜??④릿?? SolidGeneric_A/B (21/22) ??hide
-        // ????꾨떂 ????substitute ?④퀎?먯꽌 sprite 媛 ?곸젅??援먯껜??
-        this.ldtkRenderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
-        addLdtkVisualBoundsBleed({
-          target: {
-            bgLayer: this.ldtkRenderer.bgLayer,
-            interiorLayer: this.ldtkRenderer.interiorLayer,
-            wallLayer: this.ldtkRenderer.wallLayer,
-            specialLayer: this.ldtkRenderer.specialLayer,
-            shadowLayer: this.ldtkRenderer.shadowLayer,
-          },
-          atlases: this.atlases,
-          boundsWidth: ldtkLevel.pxWid,
-          boundsHeight: ldtkLevel.pxHei,
-          bgTiles,
-          wallTiles: wallTilesSub,
-          shadowTiles,
-          interiorTiles,
-          collisionGrid: ldtkLevel.collisionGrid,
-        });
-      }
-      if (!this.ldtkRenderer.container.parent) {
-        this.container.addChildAt(this.ldtkRenderer.container, 0);
-      }
-    } else {
-      // Code template or ChunkAssembler fallback
-      const template = this.pickTemplateForCell(cell, roomRng);
-      if (template) {
-        this.roomData = resolveTiles(template.grid, roomRng);
-      } else {
-        this.roomData = assembleRoom(cell, roomRng);
-      }
-      if (this.ldtkRenderer) this.ldtkRenderer.clear();
-      this.tilemap.container.visible = true;
-      this.tilemap.loadRoom(this.roomData);
-    }
-    // Seal passages that don't connect to a neighbor cell
-    this.sealUnusedExits(cell);
-    this.player.roomData = this.roomData;
-
-    // Update camera bounds for current room size (template rooms are 32횞16, legacy 60횞34)
-    // Camera bounds = single room (offset applied by entityLayer)
-    this.game.camera.setBounds(0, 0, this.roomW * TILE_SIZE, this.roomH * TILE_SIZE, VISUAL_BOUNDS_BLEED_PX);
-
-    // Update stratum context from cell
-    const prevStratumIndex = this.currentStratumIndex;
-    this.currentStratumIndex = cell.stratumIndex;
-    this.currentStratumDef = this.strataConfig.strata[this.currentStratumIndex];
-    this.tilemap.setTheme(this.currentStratumDef.theme);
-
-    // Stratum change toast
-    if (prevStratumIndex !== this.currentStratumIndex) {
-      this.toast.show(t('toast.stratum_deeper', { n: this.currentStratumIndex + 1 }), 0xff4488);
-
-      // Update progress on stratum descent
-      if (this.currentStratumIndex > prevStratumIndex) {
-        if (this.progress.deepestUnlocked < this.currentStratumIndex) {
-          this.progress.deepestUnlocked = this.currentStratumIndex;
-        }
-        this.progress.lastSafeStratum = this.currentStratumIndex;
-      }
-    }
-
-    const spawnSide = this.getOppositeDirection(enterFrom);
-    // Fixed spawn at standardized door positions (center of 32횞32 room)
-    const DOOR_POS = 15; // tile 15 = center of row/col 14~17 range
-    const rW = this.roomW;
-    const rH = this.roomH;
-    let spawnX: number, spawnY: number;
-    switch (spawnSide) {
-      case 'left':  spawnX = 2 * TILE_SIZE;          spawnY = DOOR_POS * TILE_SIZE; break;
-      case 'right': spawnX = (rW - 3) * TILE_SIZE;   spawnY = DOOR_POS * TILE_SIZE; break;
-      case 'up':    spawnX = DOOR_POS * TILE_SIZE;    spawnY = 2 * TILE_SIZE;        break;
-      case 'down': default: spawnX = DOOR_POS * TILE_SIZE; spawnY = (rH - 3) * TILE_SIZE; break;
-    }
-
-    // Snap spawnY to the nearest air-above-solid tile in the spawn column so
-    // the player never lands inside a wall or in a void hole when an LDtk
-    // template doesn't have a floor at the canonical door height. Searches
-    // outward from the candidate row.
-    const spawnCol = Math.floor((spawnX + this.player.width / 2) / TILE_SIZE);
-    const candidateRow = Math.floor((spawnY + this.player.height) / TILE_SIZE);
-    for (let d = 0; d < rH; d++) {
-      const rows = d === 0 ? [candidateRow] : [candidateRow + d, candidateRow - d];
-      let found = -1;
-      for (const tr of rows) {
-        if (tr < 1 || tr >= rH - 1) continue;
-        const here = this.roomData[tr]?.[spawnCol] ?? 1;
-        const below = this.roomData[tr + 1]?.[spawnCol] ?? 1;
-        if (here === 0 && below >= 1) { found = tr; break; }
-      }
-      if (found >= 0) { spawnY = (found + 1) * TILE_SIZE - this.player.height; break; }
-    }
-
-    this.player.x = spawnX;
-    this.player.y = spawnY;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
-
-    // Generate door triggers based on actual room dimensions
-    this.doorTriggers = this.buildDoorTriggers(cell);
-    this.clearEnemies();
-    // Note: sealGfx is cleared at TOP of loadRoom before sealUnusedExits creates new one
-
-    if (!cell.cleared) {
-      this.spawnEnemies();
-    }
-
-    // Door markers disabled ? LDtk passages are visible in the tilemap
-    // this.drawDoorMarkers(cell);
-
-    // Boss room ? check LDtk roomType, fallback to stratum end room
-    const ldtkRoomType = this.currentLdtkLevel?.roomType ?? '';
-    const isEndRoom = ldtkRoomType === 'Boss' || this.isStratumEndRoom(this.currentCol, this.currentRow);
-
-    // DEC-039 ??A: ?ы꽭 ?쒖뒪???쒓굅?? dead loadRoom ?⑥닔???붿옱 ???몄텧?섏?
-    // ?딆쑝誘濡?異뷀썑 ?⑥닔 ?듭㎏濡??뺣━ ?덉젙.
-    if (isEndRoom && !cell.cleared) {
-      this.spawnBoss();
-    }
-
-    this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
-    cell.visited = true;
-    this.persistRoomState();
-    this.drawMiniMap();
-  }
-
-  /** Build door triggers matching actual room size + template door positions */
-  private buildDoorTriggers(cell: UnifiedRoomCell): Array<{ x: number; y: number; width: number; height: number; direction: 'left'|'right'|'up'|'down' }> {
-    const triggers: Array<{ x: number; y: number; width: number; height: number; direction: 'left'|'right'|'up'|'down' }> = [];
-    const rW = this.roomW;
-    const rH = this.roomH;
-    const grid = this.roomData;
-    const T = TILE_SIZE;
-    const doorThick = 2 * T;
-    const doorLen = 6 * T;
-
-    // Fixed door positions at center (tiles 13~18)
-    const DOOR_START = 13 * T;
-    const DOOR_SIZE = 6 * T;
-
-    if (cell.exits.left) {
-      triggers.push({ x: 0, y: DOOR_START, width: T, height: DOOR_SIZE, direction: 'left' });
-    }
-    if (cell.exits.right) {
-      triggers.push({ x: (rW - 1) * T, y: DOOR_START, width: T, height: DOOR_SIZE, direction: 'right' });
-    }
-    if (cell.exits.up) {
-      triggers.push({ x: DOOR_START, y: 0, width: DOOR_SIZE, height: T, direction: 'up' });
-    }
-    if (cell.exits.down) {
-      triggers.push({ x: DOOR_START, y: (rH - 1) * T, width: DOOR_SIZE, height: T, direction: 'down' });
-    }
-    return triggers;
-  }
-
-  private sealGfx: Container | Graphics | null = null;
-  private currentLdtkLevel: LdtkLevel | null = null;
-
-  private sealUnusedExits(cell: UnifiedRoomCell): void {
-    const changed = this.mapController.sealUnusedExits(cell, this.roomData);
-    if (changed.length > 0) {
-      const sealContainer = this.mapController.addSealSprites(changed);
-      if (sealContainer) {
-        this.sealGfx = sealContainer;
-        this.container.addChild(sealContainer);
-      }
-    }
-  }
-
-  /** Find open tile (0) on a room edge closest to hint position. Returns row for L/R, col for U/D. */
-  private findEdgeOpen(grid: number[][], edge: 'left'|'right'|'up'|'down', hint = -1): number {
-    return this.mapController.findEdgeOpen(grid, edge, hint);
-  }
-
-  /** Find floor Y in current room at given tile column */
-  private findFloorY(tileX: number): number {
-    const grid = this.roomData;
-    const cx = Math.max(0, Math.min(tileX, (grid[0]?.length ?? 1) - 1));
-    for (let row = grid.length - 1; row >= 0; row--) {
-      if (grid[row][cx] >= 1) return row * TILE_SIZE - this.player.height;
-    }
-    return (grid.length - 2) * TILE_SIZE - this.player.height;
-  }
-
-  /** Current room dimensions in tiles (varies with template vs legacy) */
-  private get roomW(): number { return this.roomData[0]?.length ?? ROOM_W; }
-  private get roomH(): number { return this.roomData.length ?? ROOM_H; }
-
-  /**
-   * Pick an LDtk template based on the cell's role ??RoomType enum.
-   * Start room ??"Start", boss room ??"Boss", otherwise ??"Combat" (with small
-   * chance for Treasure/Rest/Puzzle on non-critical-path rooms).
-   */
   private pickLdtkTemplate(cell: UnifiedRoomCell | null, rng: PRNG): LdtkLevel | null {
-    if (this.ldtkTemplates.length === 0) return null;
-    if (!cell) return null;
-
-    const required = this.getRequiredExits(cell);
-
-    // Memory Room placement overrides procedural selection only when its
-    // authored LDtk openings already match the logical room exits.
-    const placed = this.memoryRoomPlacements.get(`${cell.col}:${cell.absoluteRow}`);
-    if (placed) {
-      if (this.sameExitSet(placed.exits, required)) return placed;
-      console.warn(
-        `[ItemWorld] memory room ${placed.identifier} exits=${this.formatExits(placed.exits)} `
-        + `does not match cell exits=${this.formatExits(required)} at (${cell.col},${cell.absoluteRow}); using normal template.`,
-      );
-    }
-
-    // Exclude memory room templates from the random pool so they only appear
-    // where explicitly placed above. LDtk editor may capitalize the prefix
-    // ("Memory_*") ? match case-insensitively.
-    const pool = this.ldtkTemplates.filter(t =>
-      !/^memory_/i.test(t.identifier) &&
-      t.roomType !== 'Cinematic' &&
-      !this.isEntryCorridorTemplateIdentifier(t.identifier)
-    );
-
-    // Determine desired RoomType based on cell role
-    let desiredType: string;
-    const isStart = cell.col === this.unifiedGrid.startRoom.col
-      && cell.absoluteRow === this.unifiedGrid.startRoom.absoluteRow;
-    const isBoss = this.isStratumEndRoom(cell.col, cell.absoluteRow);
-
-    if (isStart) {
-      desiredType = 'Start';
-    } else if (isBoss) {
-      desiredType = 'Boss';
-    } else if (cell.role === 'hub') {
-      // DEC-038 Town of Orphaned Shadows: hub = Plaza (愿묒옣). Start ?쒗뵆由?
-      // ?ъ궗????Gatekeeper 媛 癒몃Т???덉쟾 愿묒옣. ???ㅽ룿 0 (spawnEnemiesInRoom).
-      desiredType = 'Start';
-    } else if (cell.role === 'shrine') {
-      // DEC-038: shrine = Memorial (湲곕뀗??. Rest ?쒗뵆由??ъ궗????Librarian ??
-      // 異붾え 怨듦컙. ???ㅽ룿 0.
-      desiredType = 'Rest';
-    } else if (cell.kind === 'corridor') {
-      // DEC-037 chain-length variable pattern: ?듬줈 ?? Corridor ?쒗뵆由?媛뺤젣.
-      // 留ㅼ튂 ?놁쑝硫??꾨옒 fallback ?④퀎?먯꽌 type 臾댁떆?섍퀬 exits 留?留ㅼ튂?쒕떎.
-      desiredType = 'Corridor';
-    } else if (!cell.onCriticalPath) {
-      // Off-path spoke: Combat-weighted (70% Combat / 15% Treasure / 15% Puzzle).
-      // DEC-038: Rest 15% 遺꾧린 ?쒓굅 ??Memorial(shrine)???댁떇 怨듦컙???꾨떞?섎?濡?
-      // off-path ?먯꽌 異붽? Rest 媛 ?섏삤硫??댁떇 遺꾪룷媛 ?먭볼?뚯졇 ?꾪닾 由щ벉??源⑥쭊??
-      const roll = rng.next();
-      if (roll < 0.15) desiredType = 'Treasure';
-      else if (roll < 0.30) desiredType = 'Puzzle';
-      else desiredType = 'Combat';
-    } else {
-      desiredType = 'Combat';
-    }
-
-    const exactByType = pool.filter(t => t.roomType === desiredType && this.sameExitSet(t.exits, required));
-    if (exactByType.length > 0) {
-      return exactByType[rng.nextInt(0, exactByType.length - 1)];
-    }
-
-    // Boss cells must remain visually distinct. Other cells prefer exit
-    // correctness so the authored openings match the generated route.
-    const roleIsMandatory = desiredType === 'Boss';
-    if (roleIsMandatory) {
-      const roleTemplates = pool.filter(t => t.roomType === desiredType);
-      if (roleTemplates.length > 0) {
-        const rankedRoleTemplates = [...roleTemplates].sort((a, b) =>
-          this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required),
-        );
-        const fallback = rankedRoleTemplates[0];
-        console.warn(
-          `[ItemWorld] no exact LDtk template for required role=${desiredType} exits=${this.formatExits(required)} `
-          + `at (${cell.col},${cell.absoluteRow}); using ${fallback.identifier} exits=${this.formatExits(fallback.exits)}.`,
-        );
-        return fallback;
-      }
-    }
-
-    const exactAnyType = pool.filter(t => this.sameExitSet(t.exits, required));
-    if (exactAnyType.length > 0) {
-      console.warn(
-        `[ItemWorld] no exact LDtk template for type=${desiredType} exits=${this.formatExits(required)} `
-        + `at (${cell.col},${cell.absoluteRow}); using another room type.`,
-      );
-      return exactAnyType[rng.nextInt(0, exactAnyType.length - 1)];
-    }
-
-    const fallbackPool = pool.length > 0 ? pool : this.ldtkTemplates;
-    const ranked = [...fallbackPool].sort((a, b) =>
-      this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required),
-    );
-    const fallback = ranked[0] ?? null;
-    if (!fallback) return null;
-
-    console.warn(
-      `[ItemWorld] Missing LDtk ItemStratum template exits=${this.formatExits(required)} `
-      + `type=${desiredType} at (${cell.col},${cell.absoluteRow}); `
-      + `fallback=${fallback.identifier} exits=${this.formatExits(fallback.exits)}. `
-      + `Author this exit combination in LDtk to remove the fallback.`,
-    );
-    return fallback;
+    return this.templatePickerRuntime.pick(cell, rng);
   }
-
-  private getRequiredExits(cell: UnifiedRoomCell): ExitDir[] {
-    const exits: ExitDir[] = [];
-    if (cell.exits.left) exits.push('L');
-    if (cell.exits.right) exits.push('R');
-    if (cell.exits.up) exits.push('U');
-    if (cell.exits.down) exits.push('D');
-    return exits;
-  }
-
-  private sameExitSet(a: readonly ExitDir[], b: readonly ExitDir[]): boolean {
-    if (a.length !== b.length) return false;
-    const bSet = new Set(b);
-    return a.every(d => bSet.has(d));
-  }
-
-  private exitMatchScore(candidate: readonly ExitDir[], required: readonly ExitDir[]): number {
-    const candSet = new Set(candidate);
-    const reqSet = new Set(required);
-    let matches = 0;
-    let extras = 0;
-    let missing = 0;
-    for (const d of reqSet) {
-      if (candSet.has(d)) matches++;
-      else missing++;
-    }
-    for (const d of candSet) {
-      if (!reqSet.has(d)) extras++;
-    }
-    return matches * 10 - missing * 6 - extras * 2;
-  }
-
-  private formatExits(exits: readonly ExitDir[]): string {
-    return exits.length > 0 ? exits.join('') : 'none';
-  }
-
-  /** Map cell exits to template exits and pick a matching template */
-  private pickTemplateForCell(cell: UnifiedRoomCell, rng: PRNG): RoomTemplate | null {
-    const exits: ExitDir[] = [];
-    if (cell.exits.left) exits.push('L');
-    if (cell.exits.right) exits.push('R');
-    if (cell.exits.up) exits.push('U');
-    if (cell.exits.down) exits.push('D');
-    if (exits.length === 0) return null;
-    // exact=true: tag-based matching ??template's door set must equal cell's
-    // exit set, so no "ghost doors" appear that lead to non-existent neighbors.
-    // Falls back to superset internally if no exact-tag template exists.
-    // kind: DEC-037 corridor/room 援먮쾲 ?⑦꽩 ?뚰듃 (RoomGraphAdapter 媛 ???遺??.
-    return pickTemplate(exits, rng, true, cell.kind);
-  }
-
-  private spawnEnemies(): void {
-    const floorY = (this.roomH - 3) * TILE_SIZE;
-    const def = this.currentStratumDef;
-    // Distance from the unified start room
-    const dist = Math.abs(this.currentCol - this.unifiedGrid.startRoom.col)
-               + Math.abs(this.currentRow - this.unifiedGrid.startRoom.absoluteRow);
-    const count = 2 + Math.floor(dist * 0.5) + def.enemyCountBonus;
-    // Distance scaling: +10% HP/ATK per tile from start
-    const distScale = 1 + dist * 0.1;
-
-    for (let i = 0; i < count; i++) {
-      const spawnRng = new PRNG(this.item.uid * 999 + this.currentCol * 77 + this.currentRow * 33 + i);
-      const isGhost = spawnRng.next() < 0.3;
-      const enemy = createEnemy(isGhost ? 'Ghost' : 'Skeleton');
-      // Multiply CSV-based stats (from constructor applyStats) by stratum + dist
-      enemy.hp = enemy.maxHp = Math.max(1, Math.floor(enemy.hp * def.hpMul * distScale));
-      enemy.atk = Math.max(1, Math.floor(enemy.atk * def.atkMul * distScale));
-
-      enemy.x = spawnRng.nextInt(4, this.roomW - 5) * TILE_SIZE;
-      enemy.y = floorY - enemy.height;
-      enemy.roomData = this.roomData;
-      enemy.target = this.player;
-      this.enemies.push(enemy);
-      this.entityLayer.addChild(enemy.container);
-    }
-  }
-
-  private spawnBoss(): void {
-    const floorY = (this.roomH - 3) * TILE_SIZE;
-    const def = this.currentStratumDef;
-    // Boss01 = 24-frame atlas 湲곕컲 ?좉퇋 蹂댁뒪 (idle / attack1 / jump / charge).
-    // Guardian ??EnemyFactory ??洹몃?濡??⑥븘 ?덉뼱 'Boss' ?먮뒗 'Guardian' ?쇰줈 ?대갚 媛??
-    const boss = createEnemy('Boss01') as Boss01;
-    boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * def.bossHpMul));
-    boss.atk = Math.max(1, Math.floor(boss.atk * def.bossAtkMul));
-    boss.x = (this.roomW / 2) * TILE_SIZE;
-    boss.y = floorY - boss.height;
-    boss.roomData = this.roomData;
-    boss.target = this.player;
-    (boss as any)._isBoss = true;
-    this.enemies.push(boss);
-    this.entityLayer.addChild(boss.container);
-    // Boss HP bar shown when boss detects player (in update loop)
-  }
-
-  private drawDoorMarkers(cell: RoomCell): void {
-    for (const m of this.doorMarkers) {
-      if (m.parent) m.parent.removeChild(m);
-    }
-    this.doorMarkers = [];
-
-    const doorH = 4 * TILE_SIZE;
-    const markerW = 4;
-
-    if (cell.exits.left) {
-      const marker = new Graphics();
-      marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.x = 0;
-      marker.y = 6 * TILE_SIZE;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-
-    if (cell.exits.right) {
-      const marker = new Graphics();
-      marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.x = (this.roomW - 1) * TILE_SIZE;
-      marker.y = 6 * TILE_SIZE;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-
-    if (cell.exits.down) {
-      const cx = Math.floor(this.roomW / 2) * TILE_SIZE;
-      const marker = new Graphics();
-      marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(TILE_SIZE, markerW, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = cx - TILE_SIZE;
-      marker.y = (this.roomH - 1) * TILE_SIZE - markerW;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-
-    if (cell.exits.up) {
-      const cx = Math.floor(this.roomW / 2) * TILE_SIZE;
-      const marker = new Graphics();
-      marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(TILE_SIZE, -6, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = cx - TILE_SIZE;
-      marker.y = 0;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-  }
-
   private clearEnemies(): void {
-    for (const e of this.enemies) {
-      if (e.container.parent) e.container.parent.removeChild(e.container);
-    }
-    this.enemies = [];
-    for (const p of this.projectiles) p.destroy();
-    this.projectiles = [];
-    for (const hp of this.healingPickups) hp.destroy();
-    this.healingPickups = [];
-    for (const gp of this.goldPickups) gp.destroy();
-    this.goldPickups = [];
-    for (const r of this.memoryResidents) r.destroy();
-    this.memoryResidents = [];
+    this.enemyRegistry.clear();
+    this.projectileRuntime.clear();
+    this.pickupRuntime.clear();
+    this.residentRuntime.clear();
     // Reset pre-spawn cascade tracker so new stratum's neighbors get pre-spawned
-    this.lastPreSpawnRoomKey = null;
-  }
-
-  /**
-   * DEC-038 Town of Orphaned Shadows ??嫄곗＜??proximity ??寃 Ego 諛쒗솕.
-   *
-   * 濡쒖쭅:
-   *   - LoreDisplay 媛 ?쒖꽦?대㈃ 臾댁떆 (以묐났 ?몄텧 諛⑹?).
-   *   - 嫄곗＜?먮퀎濡?entry ??理쒕? 1??諛쒗솕 (egoFlags ?ㅻ줈 dedupe ??entry ??reset).
-   *   - ?④퀎: egoUnlockedEvents ??*_SEEN ???놁쑝硫?First, ?덉쑝硫?Familiar.
-   *   - First 諛쒗솕 ??*_SEEN ??set ???ㅼ쓬 entry 遺??Familiar 遺꾧린.
-   */
-  private updateResidentEgoTriggers(): void {
-    if (!this.loreDisplay || this.loreDisplay.isActive) return;
-    if (this.memoryResidents.length === 0) return;
-
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height / 2;
-
-    for (const r of this.memoryResidents) {
-      if (r.type === 'ambient') continue; // 諛곌꼍 洹몃┝?먮뒗 trigger ?놁쓬
-      const flagKey = r.type === 'gatekeeper' ? '__town_gk_fired' : '__town_arc_fired';
-      if (this.egoFlags.has(flagKey)) continue;
-      if (!r.isPlayerNear(px, py)) continue;
-
-      const seenKey = r.type === 'gatekeeper'
-        ? EGO_EVENT.GATEKEEPER_SEEN
-        : EGO_EVENT.ARCHIVIST_SEEN;
-      const isFirst = !this.egoUnlockedEvents.has(seenKey);
-      let lines;
-      if (r.type === 'gatekeeper') {
-        lines = isFirst ? EGO_GATEKEEPER_FIRST : EGO_GATEKEEPER_FAMILIAR;
-      } else {
-        lines = isFirst ? EGO_ARCHIVIST_FIRST : EGO_ARCHIVIST_FAMILIAR;
-      }
-      if (isFirst) this.egoUnlockedEvents.add(seenKey);
-      this.egoFlags.add(flagKey);
-      this.loreDisplay.showDialogue(lines, false);
-      return; // ???꾨젅?꾩뿉 ??紐낅쭔
-    }
+    this.roomSpawnState.resetNeighborPreSpawn();
   }
 
   /** Apply updraft force when player stands on IntGrid value 4, + render particles */
@@ -3819,1530 +2159,27 @@ export class ItemWorldScene extends Scene {
     this.updraftSystem.update(dt, this.player, this.fullGrid, this.game.camera);
   }
 
-  private getActiveTileBounds(roomBuffer = 2): FluidCellBounds {
-    const gridH = this.fullGrid.length;
-    const gridW = this.fullGrid[0]?.length ?? 0;
-    if (!gridH || !gridW) return { minGx: 0, minGy: 0, maxGx: 0, maxGy: 0 };
-
-    const cam = this.game.camera;
-    const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
-    const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
-    const padX = IW_ROOM_W_PX * roomBuffer;
-    const padY = IW_ROOM_H_PX * roomBuffer;
-    const viewL = cam.renderX - halfW - padX;
-    const viewR = cam.renderX + halfW + padX;
-    const viewT = cam.renderY - halfH - padY;
-    const viewB = cam.renderY + halfH + padY;
-
-    const fallbackCx = this.currentCol * IW_ROOM_W_TILES + Math.floor(IW_ROOM_W_TILES / 2);
-    const fallbackCy = this.currentRow * IW_ROOM_H_TILES + Math.floor(IW_ROOM_H_TILES / 2);
-    const fallbackMinGx = fallbackCx - IW_ROOM_W_TILES * roomBuffer;
-    const fallbackMaxGx = fallbackCx + IW_ROOM_W_TILES * roomBuffer;
-    const fallbackMinGy = fallbackCy - IW_ROOM_H_TILES * roomBuffer;
-    const fallbackMaxGy = fallbackCy + IW_ROOM_H_TILES * roomBuffer;
-    const minGx = Math.min(
-      Number.isFinite(viewL) ? Math.floor(viewL / TILE_SIZE) : fallbackMinGx,
-      fallbackMinGx,
-    );
-    const maxGx = Math.max(
-      Number.isFinite(viewR) ? Math.ceil(viewR / TILE_SIZE) : fallbackMaxGx,
-      fallbackMaxGx,
-    );
-    const minGy = Math.min(
-      Number.isFinite(viewT) ? Math.floor(viewT / TILE_SIZE) : fallbackMinGy,
-      fallbackMinGy,
-    );
-    const maxGy = Math.max(
-      Number.isFinite(viewB) ? Math.ceil(viewB / TILE_SIZE) : fallbackMaxGy,
-      fallbackMaxGy,
-    );
-    return {
-      minGx: Math.max(0, minGx),
-      minGy: Math.max(0, minGy),
-      maxGx: Math.min(gridW - 1, maxGx),
-      maxGy: Math.min(gridH - 1, maxGy),
-    };
-  }
-
-  // ---------------------------------------------------------------------------
-  // LDtk-placed static entities (Option A: hazards + puzzles + camera zones)
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Per-frame elemental tile hazards. Operates on fullGrid (procedural concat),
-   * mirroring the LdtkWorldScene tickTileHazards but routed through this scene's
-   * UI/feedback systems.
-   *
-   * GDD: Documents/System/System_World_TileSystem.md 짠2.6-2.13
-   */
-  private tickTileHazards(dt: number): void {
-    if (!this.fullGrid || !this.fullGrid.length) return;
-    const activeTileBounds = this.getActiveTileBounds();
-    this.tileMutator.tick(this.fullGrid, dt, activeTileBounds);
-
-    // Tier B burnable entities: animation tick + destroy cleanup.
-    for (let i = this.burnableProps.length - 1; i >= 0; i--) {
-      const p = this.burnableProps[i];
-      p.update(dt);
-      if (p.destroyed) {
-        if (p.spec.anchor !== 'ceiling') {
-          this.ashRemnant.spawn(p.x + p.width / 2, p.y + p.height - 1, p.width);
-        }
-        this.tileMutator.unregisterBurnable(p);
-        p.destroy();
-        this.burnableProps.splice(i, 1);
-      }
-    }
-
-    // Procedural grass clumps ??fire ignition + chain to TILE_GRASS tiles.
-    this.grassClumpFire.update(dt, this.tileMutator, this.fullGrid, this.ashRemnant, 16);
-
-    // BreakableProp ignition runs through TileMutator.spreadOilFire (same as
-    // BurnableProp / oil / wood / grass). Here we only handle burn-out
-    // transition into the shatter/drop path.
-    for (let i = this.breakableProps.length - 1; i >= 0; i--) {
-      const bp = this.breakableProps[i];
-      if (bp.destroyed) {
-        this.tileMutator.unregisterBurnable(bp);
-        this.breakableProps.splice(i, 1);
-        continue;
-      }
-      if (bp.burnedOut) {
-        this.tileMutator.unregisterBurnable(bp);
-        this.destroyBreakablePropWithEffects(bp, 'fire');
-        this.breakableProps.splice(i, 1);
-      }
-    }
-
-    // Advance timed-fade ash remnants (grass clump leftovers fade out).
-    this.ashRemnant.update(dt);
-
-    // Render overlay for fire / ice / electric cell states.
-    this.tileMutatorRenderer?.update(this.tileMutator, this.fullGrid, dt);
-
-    // Wall-tile mutation coalesced refresh ??re-flood-fills fluid bodies
-    // so new water (from ice melt) or removed cells (oil burnout, metal
-    // corrode) sync with the dynamic fluid mesh.
-    if (this.fluidGridDirty) {
-      this.fluidGridDirty = false;
-      this.fluidSystem.refreshFromGrid(this.fullGrid, activeTileBounds);
-    }
-    // Dynamic fluid: spring physics + cellular gravity. Mirrors LdtkWorldScene.
-    // FluidSpawner tick (V1: World 留?active. ItemWorld ??V2 源뚯? no-op).
-    this.fluidSpawners.update(dt, this.fullGrid, this.fluidSystem);
-    this.fluidSystem.update(dt, activeTileBounds);
-    this.fluidSystem.gravityTick(this.fullGrid, dt, this.tileMutator, activeTileBounds);
-    this.fluidSpawners.pressureDrain(this.fullGrid, this.fluidSystem);
-    this.fluidCrestFoam.update(dt, this.fluidSpawners.getActiveSegments(this.fullGrid));
-
-    if (this.player.hp > 0) {
-      applyTileHazards(this.player, this.fullGrid, this.tileMutator, dt, {
-        onDamage: (amount, src) => {
-          if (this.player.invincible) return;
-          const dmg = Math.max(1, Math.floor(amount));
-          this.player.hp -= dmg;
-          this.player.lastDamageSource = src;
-          this.hud.flashDamage();
-          this.dmgNumbers.spawn(
-            this.player.x + this.player.width / 2,
-            this.player.y - 8, dmg, src === 'thunder',
-          );
-          if (src === 'thunder') {
-            this.game.camera.shake(6);
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          } else if (src === 'magma' || src === 'fire') {
-            this.game.camera.shake(2);
-          }
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            this.screenFlash.flashDamage(true);
-          }
-        },
-        onBurnApplied: () => this.player.triggerFlash(),
-      });
-      const waterfallType = this.fluidSpawners.queryFluidAtAabb(
-        this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid,
-      );
-      if (waterfallType === 'water') {
-        this.player.extinguishFireDebuffs();
-      } else if (waterfallType === 'acid' && !this.player.invincible) {
-        let acc = this.player.acidTickAccum ?? 0;
-        acc += dt;
-        while (acc >= 100) {
-          acc -= 100;
-          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.005));
-          this.player.hp -= dmg;
-          this.player.lastDamageSource = 'acid';
-          this.hud.flashDamage();
-          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
-        }
-        this.player.acidTickAccum = acc;
-      } else if (waterfallType === 'magma') {
-        const wasBurning = (this.player.burnRemainingMs ?? 0) > 0;
-        this.player.burnRemainingMs = MAGMA_BURN_DURATION_MS;
-        if (!wasBurning && !this.player.invincible) {
-          const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.10));
-          this.player.hp -= dmg;
-          this.player.lastDamageSource = 'magma';
-          this.hud.flashDamage();
-          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
-          this.game.camera.shake(2);
-          this.player.triggerFlash();
-        }
-      } else if (waterfallType === 'cyro') {
-        this.player.extinguishFireDebuffs();
-        this.player.cyroSlowRemainingMs = CYRO_FROZEN_MS;
-        let acc = this.player.cyroTickAccum ?? 0;
-        acc += dt;
-        while (acc >= CYRO_TICK_MS) {
-          acc -= CYRO_TICK_MS;
-          if (!this.player.invincible) {
-            const dmg = Math.max(1, Math.floor(this.player.maxHp * CYRO_TICK_PCT));
-            this.player.hp -= dmg;
-            this.player.lastDamageSource = 'cyro';
-            this.hud.flashDamage();
-            this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y - 8, dmg, false);
-          }
-        }
-        this.player.cyroTickAccum = acc;
-      }
-      if (this.player.hp <= 0) {
-        this.player.hp = 0;
-        this.player.onDeath();
-        this.screenFlash.flashDamage(true);
-      }
-    }
-
-    for (const enemy of this.enemies) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
-      applyTileHazards(enemy, this.fullGrid, this.tileMutator, dt, {
-        onDamage: (amount, src) => {
-          const mult = enemy.elementMultiplier(hazardToElement(src));
-          if (mult <= 0) return;
-          const dmg = Math.max(1, Math.floor(amount * mult));
-          enemy.hp -= dmg;
-          enemy.showHpBarFlash();
-          this.dmgNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, src === 'thunder');
-          if (enemy.hp <= 0) { enemy.hp = 0; enemy.onDeath(); }
-        },
-      });
-    }
-  }
-
-  /** Shared destroy path for BreakableProp ??sword break & fire burn-out. */
-  private destroyBreakablePropWithEffects(bp: BreakableProp, source: 'sword' | 'fire'): void {
-    const drop = bp.break();
-    if (source === 'sword') {
-      this.game.hitstopFrames += 4;
-      this.game.camera.shake(4);
-    }
-    this.propShatter.spawn(
-      bp.x, bp.y, bp.width, bp.height,
-      bp.getParticleColor(), bp.getAccentColor(),
-      bp.getArtifactTexture(),
-    );
-    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-    if (source === 'sword') {
-      this.hitSparks.spawn(
-        bp.x + bp.width / 2, bp.y + bp.height / 2,
-        false, this.player.facingRight ? 1 : -1,
-      );
-    }
-    if (drop.type === 'gold' && drop.amount > 0) {
-      const burstX = bp.x + bp.width / 2 - 8;
-      const burstY = bp.y + bp.height;
-      for (const gp of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-        gp.roomData = this.roomData;
-        this.goldPickups.push(gp);
-        this.entityLayer.addChild(gp.container);
-      }
-    } else if (drop.type === 'flask') {
-      this.player.flaskCharges = Math.min(this.player.flaskCharges + 1, this.player.flaskMaxCharges);
-    }
-    bp.destroy();
-  }
-
-
-  /** Public accessor for attack hooks. */
-  getTileMutator(): TileMutator { return this.tileMutator; }
-
-  /**
-   * DEBUG: ignite cells around the player. Bound to KeyF when ?debug is set.
-   * Verifies fire propagation through grass/oil/wood without the enchant system.
-   */
-  /** Compute the elemental attack hitbox AABB (player AABB + 8px expansion + 24px reach forward). */
-  private getDebugAttackHitbox(): { ax: number; ay: number; aw: number; ah: number } {
-    const reach = 24;
-    const expand = 8;
-    const ax = this.player.facingRight
-      ? this.player.x - expand
-      : this.player.x - expand - reach;
-    return {
-      ax,
-      ay: this.player.y - expand,
-      aw: this.player.width + expand * 2 + reach,
-      ah: this.player.height + expand * 2 + 8,
-    };
-  }
-
-  private forEachCellInAABB(
-    ax: number, ay: number, aw: number, ah: number,
-    cb: (gx: number, gy: number) => void,
-  ): void {
-    const lx = Math.floor(ax / 16);
-    const rx = Math.floor((ax + aw - 1) / 16);
-    const ty = Math.floor(ay / 16);
-    const by = Math.floor((ay + ah - 1) / 16);
-    for (let gy = ty; gy <= by; gy++) {
-      for (let gx = lx; gx <= rx; gx++) cb(gx, gy);
-    }
-  }
-
-  /** DEBUG Shift+1 ??Fire enchant sweep. See LdtkWorldScene for full spec. */
-  private checkShardContainerHit(x: number, y: number): boolean {
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      if (c.destroyed || c.held) continue;
-      if (x < c.colX || x > c.colX + c.colW || y < c.colY || y > c.colY + c.colH) continue;
-      if (c.kind === 'MetalCrate') {
-        // R-NEW-054 Brittle Crate: MetalCrate 媛 ice/frozen ? ?꾨㈃ 1 hit 利됲뙆.
-        // footprint ??*諛붾줈 ?꾨옒 ??以? (by+1) 寃????而⑦뀒?대꼫 諛쒗뙋??ice/frozen ?대㈃ brittle.
-        const lx = Math.floor(c.colX / 16);
-        const rx = Math.floor((c.colX + c.colW - 1) / 16);
-        const by = Math.floor((c.colY + c.colH - 1) / 16);
-        let isBrittle = false;
-        for (let gx = lx; gx <= rx; gx++) {
-          const below = this.fullGrid[by + 1]?.[gx];
-          if (below === 7 /* ice */ || this.tileMutator.isFrozen(gx, by + 1)) {
-            isBrittle = true; break;
-          }
-        }
-        if (isBrittle) {
-          const impact = c.shatterBrittle();
-          this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-          if (impact) {
-            this.destroyContainerWithVFX(c);
-            this.containers.splice(i, 1);
-          }
-          return true;
-        }
-        this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-        return true;
-      }
-      const impact = c.takeAttack(Math.max(2, Math.floor(this.player.atk * 0.6)));
-      this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Wall-tunnel guard for player-pushed containers ??returns true only
-   * when the container's collision rect at newX stays inside non-solid
-   * cells. Mirror of LdtkWorldScene's identical helper.
-   */
-  private canContainerOccupyX(c: ThrowableContainer, newX: number): boolean {
-    const inset = c.spec.collisionInset;
-    const colX = newX + inset.left;
-    const colW = c.colW;
-    const colY = c.colY;
-    const colH = c.colH;
-    const lgx = Math.floor(colX / 16);
-    const rgx = Math.floor((colX + colW - 1) / 16);
-    const tgy = Math.floor(colY / 16);
-    const bgy = Math.floor((colY + colH - 1) / 16);
-    for (let gy = tgy; gy <= bgy; gy++) {
-      for (let gx = lgx; gx <= rgx; gx++) {
-        const t = this.fullGrid[gy]?.[gx] ?? 0;
-        if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return false;
-      }
-    }
-    for (const o of this.containers) {
-      if (o === c || o.destroyed || o.held) continue;
-      if (colX + colW <= o.colX || colX >= o.colX + o.colW) continue;
-      if (colY + colH <= o.colY || colY >= o.colY + o.colH) continue;
-      return false;
-    }
-    return true;
-  }
-
-  private checkThrownContainerEnemyHit(): void {
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      if (c.destroyed || c.held) continue;
-      if (!c.wasThrown || c.hasDealtImpact) continue;
-      if (Math.abs(c.vx) < 60 && c.vy < 80) continue;
-      const ax = c.colX, ay = c.colY, aw = c.colW, ah = c.colH;
-      for (const e of this.enemies) {
-        if (!e.alive) continue;
-        if (ax + aw <= e.x || ax >= e.x + e.width) continue;
-        if (ay + ah <= e.y || ay >= e.y + e.height) continue;
-        const baseDmg = Math.max(2, Math.floor(this.player.atk));
-        const mult = c.kind === 'MetalCrate' ? 1.8 : 1.0;
-        const dmg = Math.max(1, Math.floor(baseDmg * mult));
-        e.hp -= dmg;
-        const dir = c.vx >= 0 ? 1 : -1;
-        const isBoss = (e as any)._isBoss === true;
-        if (isBoss) e.onHit(dir * 60, -40, 0);
-        else        e.onHit(dir * 220, -160, 400);
-        this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, c.kind === 'MetalCrate');
-        this.hitSparks.spawn(ax + aw / 2, ay + ah / 2, true, 0);
-        if (e.hp <= 0) {
-          e.hp = 0;
-          e.onDeath();
-        }
-        c.hasDealtImpact = true;
-        const impactGx = Math.floor((ax + aw / 2) / 16);
-        const impactGy = Math.floor((ay + ah / 2) / 16);
-        if (c.spec.paintTile !== 0 && c.fluidVolume > 0) {
-          this.paintContainerImpact(c.kind, impactGx, impactGy, c.fluidVolume);
-        }
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        break;
-      }
-    }
-  }
-
-  /** Same VFX/SFX bundle as LdtkWorldScene container break. */
-  private destroyContainerWithVFX(c: ThrowableContainer): void {
-    this.propShatter.spawn(
-      c.x, c.y, c.spec.width, c.spec.height,
-      c.getShatterColor(), c.getShatterAccent(),
-      c.getShatterTexture(),
-    );
-    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-    this.game.hitstopFrames += 3;
-    this.game.camera.shake(2);
-    c.destroy();
-  }
-
-  /**
-   * Shard ??Enemy hit test (ItemWorld). Mirror of LdtkWorldScene helper ??
-   * applies element side-effect + auto-retrieve on kill.
-   */
-  private checkShardEnemyHit(x: number, y: number, element: ShardElement): boolean {
-    for (const e of this.enemies) {
-      if (!e.alive) continue;
-      if (x < e.x || x > e.x + e.width || y < e.y || y > e.y + e.height) continue;
-      const elemMult = e.elementMultiplier(element as ElementAffinity);
-      const baseDmg = Math.max(1, Math.floor(this.player.atk * 0.6 * elemMult));
-      if (elemMult > 0) e.hp -= baseDmg;
-      e.onHit(this.player.facingRight ? 60 : -60, -40, 160);
-      this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, baseDmg, false);
-      this.hitSparks.spawn(x, y, false, 0);
-      if (element === 'fire' && elemMult > 0) {
-        e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 8000);
-      } else if (element === 'ice' && elemMult > 0) {
-        e.frozenRemainingMs = Math.max(e.frozenRemainingMs ?? 0, 2000);
-      } else if (element === 'thunder' && elemMult > 0) {
-        e.hp -= Math.max(1, Math.floor(this.player.atk * 0.4 * elemMult));
-        const room = this.fullGrid;
-        if (room?.length) {
-          const gx = Math.floor((e.x + e.width / 2) / 16);
-          const gy = Math.floor((e.y + e.height / 2) / 16);
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const nx = gx + dx, ny = gy + dy;
-              if (this.tileMutator.isElectric(nx, ny)) continue;
-              this.tileMutator.applyThunderChain(room, nx, ny);
-            }
-          }
-        }
-      }
-      if (e.hp <= 0) {
-        e.hp = 0;
-        e.onDeath();
-        const got = this.egoShard.retrieveInAABB(e.x, e.y, e.width, e.height);
-        if (got > 0) {
-          this.player.egoShardCount = Math.min(this.player.egoShardCount + got, 99);
-        }
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Container splash paint at impact cell. Mutates fullGrid + (since
-   * FluidSystem integration) refreshes the fluid body mesh so the painted
-   * fluid cells get the dynamic surface / wave visuals. Magma paint also
-   * ignites adjacent flammable cells.
-   */
-  private paintContainerImpact(kind: ContainerKind, gx: number, gy: number, quantity: number): void {
-    const grid = this.fullGrid;
-    const tile: number = (() => {
-      switch (kind) {
-        case 'OilDrum':       return 11;
-        case 'WaterBarrel':   return 2;
-        case 'MagmaCrucible': return 6;
-        case 'AcidVial':      return 13;
-        case 'ChargedCrate':  return 8;
-        case 'ChargedCell':   return 8;
-        case 'CyroCanister':  return 20;
-        case 'Crate':         return 0;
-        case 'MetalCrate':    return 0;
-      }
-    })();
-    if (tile > 0 && quantity > 0) {
-      const W = grid[0]?.length ?? 0;
-      if (W) {
-        const key = (x: number, y: number) => y * W + x;
-        const visited = new Set<number>();
-        const queue: Array<[number, number]> = [[gx, gy]];
-        visited.add(key(gx, gy));
-        let painted = 0;
-        while (queue.length > 0 && painted < quantity) {
-          const [x, y] = queue.shift()!;
-          const row = grid[y];
-          if (!row) continue;
-          const t = row[x] ?? -1;
-          // Paint over: air / grass / any fluid (water/magma/oil/acid/charged/cyro).
-          // Solid cells block paint. charged (8) ?ы븿 ??ChargedCrate splash 媛
-          // 湲곗〈 charged ? ???ㅼ떆 移좏빐??臾댄빐 (? 媛?洹몃?濡?.
-          if (t === 0 || t === 16 || t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20) {
-            row[x] = tile;
-            painted++;
-            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-              const nx = x + dx, ny = y + dy;
-              const k = key(nx, ny);
-              if (!visited.has(k)) {
-                visited.add(k);
-                queue.push([nx, ny]);
-              }
-            }
-          }
-        }
-      }
-    }
-    // Magma paint ??ignite adjacent flammable cells immediately. Scan
-    // radius scales with quantity so larger splashes also light a wider
-    // ring of oil/wood/grass.
-    if (tile === 6) {
-      const r = Math.max(2, Math.ceil(Math.sqrt(quantity)) + 1);
-      for (let dy2 = -r; dy2 <= r; dy2++) {
-        for (let dx2 = -r; dx2 <= r; dx2++) {
-          this.tileMutator.tryIgnite(grid, gx + dx2, gy + dy2);
-        }
-      }
-    }
-    if (kind === 'MagmaCrucible') {
-      this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.6);
-    }
-    // R-NEW-011 Impact Solidification: WaterBarrel 源⑥쭚 ??impact 諛섍꼍 1 tile
-    // ?덉쓽 magma ??ㅼ쓣 WALL 濡?援논옒 + 媛뺥븳 plasma 利앷린 + camera shake.
-    if (kind === 'WaterBarrel') {
-      let solidified = 0;
-      for (let dy2 = -1; dy2 <= 1; dy2++) {
-        for (let dx2 = -1; dx2 <= 1; dx2++) {
-          const nx = gx + dx2, ny = gy + dy2;
-          if (grid[ny]?.[nx] === 6) {
-            grid[ny][nx] = 1; // WALL (援녹? magma)
-            this.tileMutator.onWallTileChanged?.(nx, ny, 6);
-            solidified++;
-          }
-        }
-      }
-      if (solidified > 0) {
-        this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0);
-        this.game.camera.shake(4);
-        this.containerFluidDirty = true;
-      }
-    }
-    // R-NEW-012 Acid Container Chain: AcidVial 源⑥쭚 ??2-tile radius ??
-    // ?ㅻⅨ 而⑦뀒?대꼫??acidExposureMs 媛??(?꾨????뚭눼 setup).
-    if (kind === 'AcidVial') {
-      const reachSq = 32 * 32;
-      const cx = (gx + 0.5) * 16;
-      const cy = (gy + 0.5) * 16;
-      for (const other of this.containers) {
-        if (other.destroyed) continue;
-        const dx = (other.colX + other.colW / 2) - cx;
-        const dy = (other.colY + other.colH / 2) - cy;
-        if (dx * dx + dy * dy < reachSq) {
-          other.acidExposureMs += 1000;
-        }
-      }
-    }
-    // Refresh fluid mesh so the newly-painted cells get dynamic surface.
-    if (tile === 2 || tile === 6 || tile === 11 || tile === 13) {
-      this.containerFluidDirty = true;
-    }
-  }
-
-  private flushContainerFluidChanges(): void {
-    if (!this.containerFluidDirty) return;
-    this.containerFluidDirty = false;
-    this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
-  }
-
-  private applyContainerEffectToFluid(c: ThrowableContainer): void {
-    if (
-      c.kind === 'OilDrum' ||
-      c.kind === 'WaterBarrel' ||
-      c.kind === 'Crate' ||
-      c.kind === 'MetalCrate'
-    ) return;
-    const grid = this.fullGrid;
-    const left = Math.floor(c.colX / 16);
-    const right = Math.floor((c.colX + c.colW - 1) / 16);
-    const foot = Math.floor((c.colY + c.colH) / 16);
-    let changed = false;
-    let shocked = false;
-    for (let gy = foot - 1; gy <= foot; gy++) {
-      for (let gx = left; gx <= right; gx++) {
-        const row = grid[gy];
-        if (!row) continue;
-        const t = row[gx] ?? -1;
-        if (t !== 2 && t !== 6 && t !== 8 && t !== 11 && t !== 13 && t !== 20) continue;
-        switch (c.kind) {
-          case 'MagmaCrucible':
-            this.tileMutator.tryIgniteOverlayOnly(gx, gy, 1800);
-            this.tileMutator.tryIgnite(grid, gx, gy);
-            this.tileMutator.tryIgnite(grid, gx + 1, gy);
-            this.tileMutator.tryIgnite(grid, gx - 1, gy);
-            this.tileMutator.tryIgnite(grid, gx, gy + 1);
-            this.tileMutator.tryIgnite(grid, gx, gy - 1);
-            break;
-          case 'AcidVial':
-            this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
-            break;
-          case 'ChargedCrate':
-          case 'ChargedCell':
-            if (this.tileMutator.applyThunderChain(grid, gx, gy) === 0 && t === 11) {
-              this.tileMutator.onElectricInsulated?.(gx, gy);
-            }
-            shocked = true;
-            break;
-          case 'CyroCanister':
-            changed = this.freezeConnectedFluidFrom(grid, gx, gy) || changed;
-            break;
-        }
-      }
-    }
-    if (changed) this.containerFluidDirty = true;
-    if (changed && c.kind === 'CyroCanister') this.freezeEnemiesInFrozenCells(4000);
-    void shocked;
-  }
-
-  private freezeConnectedFluidFrom(grid: number[][], sx: number, sy: number): boolean {
-    const seed = grid[sy]?.[sx] ?? -1;
-    if (seed !== 2 && seed !== 6 && seed !== 8 && seed !== 11 && seed !== 13 && seed !== 20) return false;
-    const W = grid[0]?.length ?? 0;
-    if (!W) return false;
-    const visited = new Set<number>();
-    const queue: Array<[number, number]> = [[sx, sy]];
-    const key = (gx: number, gy: number) => gy * W + gx;
-    let changed = false;
-    while (queue.length) {
-      const [gx, gy] = queue.shift()!;
-      const k = key(gx, gy);
-      if (visited.has(k)) continue;
-      visited.add(k);
-      if ((grid[gy]?.[gx] ?? -1) !== seed) continue;
-      changed = this.tileMutator.tryFreeze(grid, gx, gy) || changed;
-      queue.push([gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]);
-    }
-    return changed;
-  }
-
-  private freezeEnemiesInFrozenCells(durationMs: number): void {
-    for (const enemy of this.enemies) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
-      if (!this.tileMutator.aabbHasOverlay(enemy.x, enemy.y, enemy.width, enemy.height, 'frozen')) continue;
-      enemy.frozenRemainingMs = Math.max(enemy.frozenRemainingMs ?? 0, durationMs);
-      enemy.vx = 0;
-      enemy.vy = 0;
-      enemy.showHpBarFlash();
-    }
-  }
-
-  /** Spawn 4 debug containers near player. Shift+G binding under ?debug. */
-  private debugSpawnContainers(): void {
-    const baseX = Math.floor(this.player.x / 16) * 16 + 32;
-    const baseY = Math.floor(this.player.y / 16) * 16;
-    const kinds: ContainerKind[] = ['OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
-    for (let i = 0; i < kinds.length; i++) {
-      const c = new ThrowableContainer(kinds[i], baseX + i * 20, baseY);
-      this.containers.push(c);
-      this.entityLayer.addChild(c.container);
-    }
-  }
-
-  /**
-   * Ego Shard impact dispatcher for ItemWorld ??same logic as LdtkWorldScene
-   * but reads/writes fullGrid instead of collisionGrid. fluidSystem branch
-   * skipped because ItemWorld doesn't render fluid bodies.
-   */
-  private onEgoShardImpact(px: number, py: number, element: ShardElement): void {
-    const room = this.fullGrid;
-    if (!room?.length) return;
-    const ax = Math.round(px / 16);
-    const ay = Math.round(py / 16);
-    const cells: Array<[number, number]> = [
-      [ax - 1, ay - 1], [ax, ay - 1],
-      [ax - 1, ay],     [ax, ay],
-    ];
-    if (element === 'fire') {
-      const fireHitSize = 24;
-      const fireHalf = fireHitSize / 2;
-      const fireCells: Array<[number, number]> = [];
-      this.forEachCellInAABB(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize, (gx, gy) => {
-        if (room[gy]?.[gx] === undefined) return;
-        fireCells.push([gx, gy]);
-      });
-      for (const [gx, gy] of fireCells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        if (t === 7) this.tileMutator.tryMeltIce(room, gx, gy);
-        else if (t === 2 && room[gy]) {
-          room[gy][gx] = 0;
-          this.fluidSystem.removeCell(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
-        } else if (t === 13 && room[gy]) {
-          // R-NEW-003 Toxic Acid Flash: acid ??AIR + ?뱀깋 toxic 利앷린
-          room[gy][gx] = 0;
-          this.fluidSystem.removeCell(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4, PUFF_TINT_TOXIC);
-        } else if (t === 6 && room[gy]) {
-          // R-NEW-020 Magma Surge: magma 1-tile ?뺤옣 (40% per AIR neighbor)
-          const ns: Array<[number, number]> = [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]];
-          for (const [nx, ny] of ns) {
-            if ((room[ny]?.[nx] ?? -1) === 0 && Math.random() < 0.40) {
-              room[ny][nx] = 6;
-            }
-          }
-          this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
-        } else if (t === 12) {
-          // R-NEW-019 Heat Metal: metal cell ?좎? + 4s fire overlay
-          this.tileMutator.tryIgniteOverlayOnly(gx, gy, 4000);
-        } else {
-          this.tileMutator.tryIgnite(room, gx, gy);
-        }
-      }
-      this.fluidResidue.ignite(px - fireHalf, py - fireHalf, fireHitSize, fireHitSize);
-      // BreakableProp ignition happens inside `tryIgnite` above (registered
-      // as IgnitableEntity, same chain pipeline as BurnableProp).
-      // Procedural grass clumps still use their own fire system.
-      if (fireCells.length > 0) {
-        let minGx = fireCells[0][0], maxGx = fireCells[0][0];
-        let minGy = fireCells[0][1], maxGy = fireCells[0][1];
-        for (const [gx, gy] of fireCells) {
-          minGx = Math.min(minGx, gx);
-          maxGx = Math.max(maxGx, gx);
-          minGy = Math.min(minGy, gy);
-          maxGy = Math.max(maxGy, gy);
-        }
-        this.grassClumpFire.igniteInCellAABB(minGx, minGy, maxGx, maxGy);
-      }
-    } else if (element === 'ice') {
-      for (const [gx, gy] of cells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        // R-NEW-021 Frozen Steel: metal cell ??frozen WALL (Brittle 以鍮?
-        if (t === 12) this.tileMutator.tryFreezeMetal(room, gx, gy);
-        // R-NEW-048 Reinforced Ice: ice cell ??Ice ?ы?寃???媛뺥솕 (?⑥닚 ???⑥? ?쒓컖 ?④낵留?
-        // tryFreeze ??water/magma/oil/acid/wood/grass 紐⑤몢 吏??
-        // (R-NEW-004/006/044/045 ?ы븿)
-        else this.tileMutator.tryFreeze(room, gx, gy);
-      }
-    } else if (element === 'thunder') {
-      for (const [gx, gy] of cells) {
-        const t = (room[gy]?.[gx] ?? 0);
-        // R-NEW-018 Magma Detonation: magma cell hit ????plasma ??컻 + camera shake
-        if (t === 6) {
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 2.0, PUFF_TINT_PLASMA);
-          this.game.camera.shake(4);
-          this.tileMutator.applyThunderChain(room, gx, gy);
-          continue;
-        }
-        // R-NEW-022 Shatter Pulse: ice cell hit ??AIR + ?쏀븳 ??컻 ?쒓컖
-        if (t === 7 && room[gy]) {
-          room[gy][gx] = 0;
-          this.tileMutator.clearFrozen(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.4);
-          this.game.camera.shake(2);
-          continue;
-        }
-        // R-NEW-046 Wooden Static / R-NEW-047 Grass Static:
-        // wood/grass ???Thunder ?곸쨷 ??1.5s electric overlay 遺??
-        // ??tick ??electric 留뚮즺 ?쒖젏??R-NEW-034 Static Ignition 諛쒗솕
-        if (t === 15 /* wood */ || t === 16 /* grass */) {
-          this.tileMutator.giveElectricOverlay(gx, gy, 1500);
-          continue;
-        }
-        if (this.tileMutator.isElectric(gx, gy)) continue;
-        this.tileMutator.applyThunderChain(room, gx, gy);
-      }
-    }
-  }
-
-  private debugIgniteAtPlayer(): void {
-    if (!this.fullGrid?.length) return;
-    const hb = this.getDebugAttackHitbox();
-    let actions = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      const tile = getTile(this.fullGrid, gx, gy);
-      if (isIce(tile)) {
-        if (this.tileMutator.tryMeltIce(this.fullGrid, gx, gy)) actions++;
-      } else if (isWater(tile)) {
-        if (this.fullGrid[gy]) {
-          this.fullGrid[gy][gx] = TILE_AIR;
-          this.fluidSystem.removeCell(gx, gy);
-          this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.2);
-          actions++;
-        }
-      } else {
-        if (this.tileMutator.tryIgnite(this.fullGrid, gx, gy)) actions++;
-      }
-    });
-    const igniteN = this.fluidResidue.ignite(hb.ax, hb.ay, hb.aw, hb.ah);
-    actions += igniteN;
-    // eslint-disable-next-line no-console
-    Debug.log(`[DebugFire] actions=${actions} burning=${this.tileMutator.burningCount} residueIgnited=${igniteN}`);
-  }
-
-  /** DEBUG Shift+2 ??Ice enchant sweep. */
-  private debugFreezeAtPlayer(): void {
-    if (!this.fullGrid?.length) return;
-    const hb = this.getDebugAttackHitbox();
-    let frozen = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      if (this.tileMutator.tryFreeze(this.fullGrid, gx, gy)) frozen++;
-    });
-    // eslint-disable-next-line no-console
-    Debug.log(`[DebugIce] frozen=${frozen} total=${this.tileMutator.frozenCount}`);
-  }
-
-  /** DEBUG Shift+3 ??Thunder enchant sweep. */
-  private debugThunderAtPlayer(): void {
-    if (!this.fullGrid?.length) return;
-    const hb = this.getDebugAttackHitbox();
-    let totalLit = 0;
-    this.forEachCellInAABB(hb.ax, hb.ay, hb.aw, hb.ah, (gx, gy) => {
-      if (this.tileMutator.isElectric(gx, gy)) return;
-      totalLit += this.tileMutator.applyThunderChain(this.fullGrid, gx, gy);
-    });
-    // eslint-disable-next-line no-console
-    Debug.log(`[DebugThunder] lit=${totalLit} electric=${this.tileMutator.electricCount}`);
-  }
-
-  private shouldEagerSpawnRuntimeEntities(): boolean {
-    return false;
-  }
-
-  private spawnRuntimeForCell(col: number, absRow: number): void {
-    const key = `${col}:${absRow}`;
-    if (this.runtimeSpawnedCells.has(key)) return;
-    const rec = this.cellVisualRecords.get(key);
-    if (!rec) return;
-    this.runtimeSpawnedCells.add(key);
-
-    const { ldtkLevel, roomX, roomY } = rec;
-    const offGx = roomX / TILE_SIZE;
-    const offGy = roomY / TILE_SIZE;
-    const beforeContainers = this.containers.length;
-
-    for (const ent of ldtkLevel.entities) {
-      if (ent.type !== 'Container') continue;
-      const kindRaw = ent.fields?.['Kind'];
-      let kind = parseContainerKind(kindRaw);
-      if (!kind) {
-        const slotStr = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
-        if (slotStr === 'generic_a' || slotStr === 'generic_b' || slotStr === 'generic_c') {
-          kind = resolveContainerSlotKind(slotStr, this.item.def.temperamentPrimary);
-        }
-      }
-      if (!kind) continue;
-      const fvRaw = ent.fields?.['FluidVolume'];
-      const fluidVolume = typeof fvRaw === 'number' && fvRaw >= 0 ? Math.floor(fvRaw) : undefined;
-      const c = new ThrowableContainer(
-        kind,
-        (ent.grid[0] + offGx) * TILE_SIZE,
-        (ent.grid[1] + offGy) * TILE_SIZE,
-        fluidVolume,
-      );
-      this.containers.push(c);
-      this.entityLayer.addChild(c.container);
-    }
-
-    const occupied = new Set<string>();
-    for (const c of this.containers) {
-      const gx0 = Math.floor(c.x / TILE_SIZE);
-      const gx1 = Math.floor((c.x + c.spec.width - 1) / TILE_SIZE);
-      const gy0 = Math.floor(c.y / TILE_SIZE);
-      const gy1 = Math.floor((c.y + c.spec.height - 1) / TILE_SIZE);
-      for (let gy = gy0; gy <= gy1; gy++) {
-        for (let gx = gx0; gx <= gx1; gx++) occupied.add(`${gx},${gy}`);
-      }
-    }
-    for (const ent of ldtkLevel.entities) {
-      if (ent.type !== 'ContainerSpawner') continue;
-      const opts = readSpawnerEntity(ent, this.item.def.temperamentPrimary);
-      const rect = {
-        x: opts.rect.x + roomX,
-        y: opts.rect.y + roomY,
-        w: opts.rect.w,
-        h: opts.rect.h,
-      };
-      const autoSeed = opts.seed >= 0 ? opts.seed
-        : (((this.item.uid | 0) * 73856093) ^ (col * 19349663) ^ (absRow * 83492791)) | 0;
-      const spawned = runContainerSpawner({
-        rect,
-        collisionGrid: this.fullGrid,
-        existing: this.containers,
-        occupiedCells: occupied,
-        pool: opts.pool,
-        minCount: opts.minCount,
-        maxCount: opts.maxCount,
-        bias: opts.bias,
-        seed: autoSeed,
-        avoidEntity: opts.avoidEntity,
-        fluidVolumeOverride: opts.fluidVolumeOverride,
-      });
-      for (const c of spawned) {
-        this.containers.push(c);
-        this.entityLayer.addChild(c.container);
-        occupied.add(`${Math.floor(c.x / TILE_SIZE)},${Math.floor(c.y / TILE_SIZE)}`);
-      }
-    }
-
-    for (const ent of ldtkLevel.entities) {
-      if (ent.type !== 'FluidSpawner') continue;
-      for (const opt of readFluidSpawnerEntities(ent, this.item.def.temperamentPrimary)) {
-        this.fluidSpawners.add({
-          gx: opt.gx + offGx,
-          gy: opt.gy + offGy,
-          type: opt.type,
-          intervalMs: opt.intervalMs,
-        });
-      }
-    }
-
-    const burnableSpecs: BurnableEntitySpec[] =
-      applyBurnableZones(this.fullGrid, ldtkLevel.entities, TILE_SIZE, roomX, roomY);
-    for (const s of burnableSpecs) {
-      const prop = new BurnableProp(s.id, s.gx, s.gy);
-      this.burnableProps.push(prop);
-      this.tileMutator.registerBurnable(prop);
-      this.entityLayer.addChild(prop.container);
-    }
-
-    this.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
-    this.settleContainersFrom(beforeContainers);
-  }
-
-  private settleContainersFrom(startIndex: number): void {
-    if (startIndex >= this.containers.length) return;
-    const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-      const t = this.fullGrid[gy]?.[gx] ?? 0;
-      if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-      return c.isWoodFamily() && (t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20);
-    };
-    const sorted = this.containers.slice(startIndex).sort((a, b) => b.y - a.y);
-    for (const c of sorted) {
-      if (c.skipSettle) continue;
-      c.settleAtSpawn(isContainerSolidCellFor(c), this.containers, 1024, (gx, gy) => {
-        const t = this.fullGrid[gy]?.[gx] ?? 0;
-        return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-      });
-    }
-  }
-
-  /** Spawn hazard/puzzle entities from a room template, offset to fullGrid space. */
-  private spawnStaticEntitiesForRoom(level: LdtkLevel, offX: number, offY: number): void {
-    // Per-room iid prefix ? when the same template is reused in multiple rooms,
-    // we must keep entity iids unique so Switch?묹ockedDoor matching is room-scoped.
-    const roomPrefix = `r${offX}_${offY}:`;
-
-    for (const ent of level.entities) {
-      const ax = ent.px[0] + offX;
-      const ay = ent.px[1] + offY;
-
-      switch (ent.type) {
-        case 'Building': {
-          if (!ent.tile || !ent.tile.tilesetPath) {
-            console.warn(`[Building] entity at (${ax}, ${ay}) has no tile ??skipped. LDtk Editor ?먯꽌 tile picker 濡??ш컖?뺤쓣 ?좏깮??二쇱떗?쒖삤.`);
-            break;
-          }
-          const b = new Building(
-            ax, ay,
-            ent.tile.tilesetPath,
-            ent.tile.src[0], ent.tile.src[1],
-            ent.tile.w, ent.tile.h,
-          );
-          // BG/wall SSoT ??留ㅽ븨 ??wall row 湲곗? (?꾧꼍 ?곗퐫 ??.
-          if (this.wallPaletteFilter) {
-            b.container.filters = [this.wallPaletteFilter];
-          }
-          this.buildings.push(b);
-          // buildingLayer 濡?異붽? ??entityLayer 蹂대떎 ?ㅻ씪 player ?ㅻ줈 ?뚮뜑留?
-          this.buildingLayer.addChild(b.container);
-          break;
-        }
-        case 'Spike': {
-          const spike = new Spike(ax, ay, ent.width, ent.height);
-          this.spikes.push(spike);
-          this.entityLayer.addChild(spike.container);
-          break;
-        }
-        case 'CrackedFloor': {
-          const cf = new CrackedFloor(ax, ay, ent.width, ent.height);
-          cf.injectCollision(this.fullGrid);
-          this.crackedFloors.push(cf);
-          this.entityLayer.addChild(cf.container);
-          break;
-        }
-        case 'CollapsingPlatform': {
-          const respawns = (ent.fields['Respawn'] ?? ent.fields['respawn'] ?? true) as boolean;
-          const respawnTime = (ent.fields['RespawnTime'] ?? ent.fields['respawnTime'] ?? 3.0) as number;
-          const cp = new CollapsingPlatform(ax, ay, ent.width, ent.height, respawns, respawnTime);
-          cp.injectCollision(this.fullGrid);
-          this.collapsingPlatforms.push(cp);
-          this.entityLayer.addChild(cp.container);
-          break;
-        }
-        case 'GrowingWall': {
-          const wall = new GrowingWall(ax, ay, ent.width, ent.height);
-          wall.injectCollision(this.fullGrid);
-          this.growingWalls.push(wall);
-          this.entityLayer.addChild(wall.container);
-          break;
-        }
-        case 'Switch': {
-          const ref = (ent.fields['TargetDoor'] ?? ent.fields['targetDoor']) as { entityIid: string } | null;
-          if (!ref?.entityIid) break;
-          // Remap target iid to room-scoped iid (matches room's LockedDoor)
-          const targetIid = roomPrefix + ref.entityIid;
-          const sw = new Switch(ax, ay, ent.width, ent.height, targetIid);
-          sw.injectCollision(this.fullGrid);
-          this.switches.push(sw);
-          this.entityLayer.addChild(sw.container);
-          break;
-        }
-        case 'LockedDoor': {
-          const rawCondition = (ent.fields['UnlockCondition'] as string) || (ent.fields['unlockCondition'] as string) || '';
-          const unlockCondition = (rawCondition.toLowerCase() as UnlockCondition) || 'event';
-          const unlockEvent = (ent.fields['unlockEvent'] as string) || '';
-          const statType = ((ent.fields['StatType'] as string) || (ent.fields['statType'] as string) || 'atk').toLowerCase();
-          const statThreshold = (ent.fields['StatThreshold'] as number) ?? (ent.fields['statThreshold'] as number) ?? 0;
-          // Room-scoped iid so multi-room template reuse doesn't cause cross-room unlocks
-          const scopedIid = roomPrefix + ent.iid;
-          const door = new LockedDoor(
-            ax, ay, ent.width, ent.height,
-            scopedIid,
-            unlockCondition,
-            unlockCondition === 'event' ? unlockEvent : scopedIid,
-            statType,
-            statThreshold,
-          );
-          door.injectCollision(this.fullGrid);
-          this.lockedDoors.push(door);
-          this.entityLayer.addChild(door.container);
-          break;
-        }
-        case 'Memory': {
-          const text = (ent.fields['text'] as string) ?? '';
-          if (!text) break;
-          const speaker = (ent.fields['speaker'] as string) || undefined;
-          const portrait = (ent.fields['portrait'] as string) || undefined;
-          // Anchor the visual at the entity pivot (LDtk Memory pivot is bottom-left)
-          const anchorX = offX + ent.px[0] + ent.width / 2;
-          const anchorY = offY + ent.px[1] - ent.height / 2;
-
-          // Build the Memory Shard visual ? legendary-tier but distinct:
-          //   - Larger than item drops (shard ? 16횞16 vs item 8횞8)
-          //   - Rotated diamond shape (45째) ? clear visual contrast vs sword's square
-          //   - Double outline (bright orange ??pale gold)
-          //   - Wide radial glow
-          //   - Orange particles that drift UP with horizontal sway
-          const shardContainer = new Container();
-          shardContainer.x = anchorX;
-          shardContainer.y = anchorY;
-
-          const glowGfx = new Graphics();
-          glowGfx.circle(0, 0, 24).fill({ color: 0xff8000, alpha: 0.22 });
-          glowGfx.circle(0, 0, 14).fill({ color: 0xffaa33, alpha: 0.35 });
-          shardContainer.addChild(glowGfx);
-
-          const shardGfx = new Graphics();
-          // Rotated diamond = square rotated 45째. Draw as polygon.
-          //   Points: top(0,-11) right(11,0) bottom(0,11) left(-11,0)
-          shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).fill({ color: 0xff8000 });
-          shardGfx.poly([0, -11, 11, 0, 0, 11, -11, 0]).stroke({ color: 0xffcc66, width: 1 });
-          // Inner bright diamond
-          shardGfx.poly([0, -6, 6, 0, 0, 6, -6, 0]).fill({ color: 0xffe6b3, alpha: 0.85 });
-          // Tiny white center pip
-          shardGfx.poly([0, -2, 2, 0, 0, 2, -2, 0]).fill({ color: 0xffffff });
-          shardContainer.addChild(shardGfx);
-
-          this.entityLayer.addChild(shardContainer);
-
-          this.memoryTriggers.push({
-            x: anchorX - 20,
-            y: anchorY - 20,
-            w: 40,
-            h: 40,
-            text,
-            speaker,
-            portrait,
-            active: false,
-            anchorX,
-            anchorY,
-            container: shardContainer,
-            shardGfx,
-            glowGfx,
-            particles: [],
-            spawnTimer: Math.random() * 300,
-            pulseTimer: Math.random() * 2000,
-            bobTimer: Math.random() * 3000,
-          });
-          break;
-        }
-        case 'Camera': {
-          this.cameraZones.push({
-            x: ax,
-            y: ay - ent.height,
-            w: ent.width,
-            h: ent.height,
-            zoom: (ent.fields['zoom'] as number) ?? 1.0,
-            deadZoneX: (ent.fields['deadZoneX'] as number) ?? 32,
-            deadZoneY: (ent.fields['deadZoneY'] as number) ?? 24,
-            lookAheadDistance: (ent.fields['lookAheadDistance'] as number) ?? 0,
-            followLerp: (ent.fields['followLerp'] as number) ?? 0.08,
-            zoomLerp: (ent.fields['zoomLerp'] as number) ?? 0.05,
-            entireLevel: (ent.fields['entireLevel'] as boolean) ?? false,
-          });
-          break;
-        }
-        case 'Anvil': {
-          // ItemStratum ?덉쓽 Anvil = "留?諛뽰쑝濡??섍?湲? 嫄곗젏. Overworld Anvil ??
-          // place-weapon/strike ?먮쫫? ?ъ슜?섏? ?딄퀬, 洹쇱젒 ??KeyPrompt 瑜??꾩썙
-          // ATTACK ?낅젰?쇰줈 EscapeConfirm(ESC ?ㅼ씠?쇰줈洹? ???곕떎.
-          const anvil = new Anvil(ax, ay, false);
-          anvil.setShowHint(false); // ?먯껜 symbol prompt 鍮꾪솢????KeyPrompt 留??ъ슜
-          this.itemWorldAnvils.push(anvil);
-          this.entityLayer.addChild(anvil.container);
-          break;
-        }
-        case 'ItemDisplay': {
-          // ItemWorld ?꾩슜 ??吏꾩엯???꾩씠??sprite 瑜?Size 諛곗쑉濡??뺣???蹂댁뿬以??
-          // Rotate=true 硫??먮┛ ?먯쟾 (?섎?????. ?명씉/遺???꾧킅? ??긽 ?쒖꽦.
-          const sizeRaw = (ent.fields['Size'] ?? ent.fields['size']) as number | undefined;
-          const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
-          const rotate = ((ent.fields['Rotate'] ?? ent.fields['rotate']) as boolean | undefined) ?? false;
-          const display = new ItemDisplay(ax, ay, scaleFactor, this.item, rotate);
-          this.itemDisplays.push(display);
-          this.entityLayer.addChild(display.container);
-          break;
-        }
-        // Other entity types intentionally not handled in ItemWorldScene
-      }
-    }
-  }
-
   /** Destroy and clear all LDtk-placed static entities. Called on rebuild + exit. */
   private clearStaticEntities(): void {
-    for (const e of this.spikes) e.destroy();
-    this.spikes = [];
-    for (const e of this.crackedFloors) e.destroy();
-    this.crackedFloors = [];
-    for (const e of this.breakableProps) e.destroy();
-    this.breakableProps = [];
-    for (const e of this.collapsingPlatforms) e.destroy();
-    this.collapsingPlatforms = [];
-    for (const e of this.growingWalls) e.destroy();
-    this.growingWalls = [];
-    for (const e of this.switches) e.destroy();
-    this.switches = [];
-    for (const e of this.lockedDoors) e.destroy();
-    this.lockedDoors = [];
-    for (const e of this.buildings) e.destroy();
-    this.buildings = [];
-    for (const e of this.itemDisplays) e.destroy();
-    this.itemDisplays = [];
-    this.cameraZones = [];
-    this.activeCameraZone = null;
-    // Destroy memory shard visuals + particles
-    for (const t of this.memoryTriggers) {
-      for (const p of t.particles) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      }
-      t.particles = [];
-      if (t.container.parent) t.container.parent.removeChild(t.container);
-    }
-    this.memoryTriggers = [];
-    // DEC-038 Town residents
-    for (const r of this.memoryResidents) r.destroy();
-    this.memoryResidents = [];
-    // DEC-039 Trapdoor ??buildFullMap ?ъ떎?????붾쪟 諛⑹?.
+    this.staticEntityRegistry.clear();
+    this.cameraZoneRuntime.clear();
+    this.memoryTriggerRuntime.clear();
+    this.residentRuntime.clear();
+    // DEC-039 Trapdoor 도 buildFullMap 시 함께 정리한다.
     if (this.trapdoor) {
+      this.trapdoorRuntime.hidePrompt();
       this.trapdoor.destroy();
       this.trapdoor = null;
     }
-    // ItemWorld exit-anvils ??rebuild/stratum ?꾪솚 ???붾쪟 諛⑹?.
-    for (const a of this.itemWorldAnvils) a.destroy();
-    this.itemWorldAnvils = [];
-    this.destroyItemWorldAnvilPrompt();
-  }
-
-  /** Per-frame: IntGrid spike check + collapsing platforms + entity update logic. */
-  private updateStaticEntities(dt: number): void {
-    // Elemental tile hazards (magma 쨌 charged 쨌 acid 쨌 fire 쨌 thunder 쨌 burn).
-    // Mutator must tick before hazard check so frozen reverts are visible this frame.
-    this.tickTileHazards(dt);
-
-    // IntGrid spike (value 5) ? contact damage + safe-ground respawn.
-    // Replaces the old Entity-based Spike AABB check with fullGrid tile scan.
-    if (!this.player.invincible && this.player.hp > 0) {
-      if (isInSpike(this.player.x, this.player.y, this.player.width, this.player.height, this.fullGrid)) {
-        const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.2));
-        this.player.lastDamageSource = 'spike';
-        this.player.hp -= dmg;
-        this.hud.flashDamage();
-        this.player.invincible = true;
-        this.player.invincibleTimer = 1000;
-        this.game.hitstopFrames = 16;
-        this.game.camera.shake(5);
-        this.screenFlash.flashDamage(true);
-        this.player.triggerFlash();
-        this.dmgNumbers.spawn(
-          this.player.x + this.player.width / 2,
-          this.player.y - 8, dmg, true,
-        );
-        this.player.x = this.player.lastSafeX;
-        this.player.y = this.player.lastSafeY;
-        this.player.vx = 0;
-        this.player.vy = 0;
-        this.player.savePrevPosition();
-        if (this.player.hp <= 0) {
-          this.player.hp = 0;
-          this.player.onDeath();
-        }
-      }
-    }
-
-    // Collapsing platforms ? shake when stood on, may collapse + respawn
-    for (let i = this.collapsingPlatforms.length - 1; i >= 0; i--) {
-      const cp = this.collapsingPlatforms[i];
-      cp.update(dt);
-      if (cp.isPlayerOnTop(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        cp.startShake();
-      }
-    }
-
-    // Growing walls ? pulse, grow/shrink cycle, slime/dust spawn
-    for (const wall of this.growingWalls) {
-      wall.update(dt);
-      // Promote any pending slimes spawned by the wall into the enemy list
-      if (wall.pendingSlimes.length > 0) {
-        for (const slime of wall.pendingSlimes) {
-          slime.roomData = this.fullGrid;
-          slime.target = this.player;
-          this.enemies.push(slime);
-          this.entityLayer.addChild(slime.container);
-        }
-        wall.pendingSlimes.length = 0;
-      }
-    }
-
-    // Item displays ???명씉 ?꾩뒪 (size ?숈쟻 蹂??
-    for (const d of this.itemDisplays) d.update(dt);
-
-    // Locked doors ? reject animation timer + collision re-assert (2026-05-24 fix)
-    // ItemWorldScene ??room ?ъ쭊??/ ?숈쟻 grid ?ш뎄異뺤쑝濡?LockedDoor.injectCollision ??
-    // grid ????좎떎?????덈떎. 留??꾨젅??ensureCollision() 濡?idempotent ?ъ＜??+
-    // direct AABB 異⑸룎濡?grid 誘몃컲??耳?댁뒪??李⑤떒 (?댁쨷 ?덉쟾).
-    for (const door of this.lockedDoors) {
-      door.update(dt);
-      if (!door.locked) continue;
-      door.ensureCollision(this.fullGrid);
-
-      // Direct AABB 異⑸룎 ??player 媛 door ?덉뿉 ?ㅼ뼱媛硫?吏꾩엯 諛⑺뼢?쇰줈 諛?대깂.
-      const aabb = door.getHitAABB();
-      const px0 = this.player.x;
-      const py0 = this.player.y;
-      const pw = this.player.width;
-      const ph = this.player.height;
-      const overlapsX = px0 + pw > aabb.x && px0 < aabb.x + aabb.width;
-      const overlapsY = py0 + ph > aabb.y && py0 < aabb.y + aabb.height;
-      if (overlapsX && overlapsY) {
-        const playerCx = px0 + pw / 2;
-        const doorCx = aabb.x + aabb.width / 2;
-        // 醫뚯슦 以???媛源뚯슫 硫댁쑝濡?諛?대깂
-        if (playerCx < doorCx) {
-          this.player.x = aabb.x - pw;
-        } else {
-          this.player.x = aabb.x + aabb.width;
-        }
-      }
-    }
-
-    // Player attack vs CrackedFloors / Switches / Containers
-    if (this.player.isAttackActive()) {
-      const step = this.player.getAttackStep(this.player.comboIndex);
-      if (step) {
-        const hitbox = getAttackHitbox(
-          this.player.x, this.player.y, this.player.width, this.player.height,
-          this.player.facingRight ?? true, step,
-        );
-        // Cracked floors
-        for (let i = this.crackedFloors.length - 1; i >= 0; i--) {
-          const cf = this.crackedFloors[i];
-          if (cf.destroyed) continue;
-          if (!aabbOverlap(hitbox, cf.getAABB())) continue;
-          cf.shatter(this.fullGrid);
-          this.game.hitstopFrames += 4;
-          this.screenFlash.flash(0xffffff, 0.4, 150);
-          this.game.camera.shake(6);
-          cf.destroy();
-          this.crackedFloors.splice(i, 1);
-        }
-        // Breakable props
-        for (let i = this.breakableProps.length - 1; i >= 0; i--) {
-          const bp = this.breakableProps[i];
-          if (bp.destroyed) continue;
-          if (!aabbOverlap(hitbox, bp.getAABB())) continue;
-          this.destroyBreakablePropWithEffects(bp, 'sword');
-          this.breakableProps.splice(i, 1);
-        }
-        // Switches
-        for (const sw of this.switches) {
-          if (sw.activated) continue;
-          if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
-          if (sw.activate(this.fullGrid)) {
-            this.game.camera.shake(3);
-            this.screenFlash.flashHit(false);
-            this.unlockDoorByIidLocal(sw.targetDoorIid);
-          }
-        }
-        // Throwable containers ??sword damage breaks them, except MetalCrate
-        // which is immune (acid only).
-        for (let i = this.containers.length - 1; i >= 0; i--) {
-          const c = this.containers[i];
-          if (c.destroyed || c.held) continue;
-          const cBox = { x: c.colX, y: c.colY, width: c.colW, height: c.colH };
-          if (!aabbOverlap(hitbox, cBox)) continue;
-          if (c.kind === 'MetalCrate') {
-            this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-            continue;
-          }
-          const impact = c.takeAttack(Math.max(1, Math.floor(this.player.atk)));
-          this.hitSparks.spawn(c.colX + c.colW / 2, c.colY + c.colH / 2, true, 0);
-          if (impact) {
-            this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-            this.destroyContainerWithVFX(c);
-            this.containers.splice(i, 1);
-          }
-        }
-      }
-    }
-
-    // Camera zone tracking
-    this.updateCameraZones();
-  }
-
-  /** Re-render all room containers with updated fullGrid state. */
-  private rebuildRoomVisuals(): void {
-    if (!this.fullMapContainer || !this.atlas) return;
-    if (!this.bgAggregate || !this.wallAggregate || !this.shadowAggregate || !this.sealAggregate) return;
-    // Clear aggregate children (preserves the aggregate containers and their
-    // palette filters, so the continuous gradient is maintained).
-    this.destroyAggregateChildren(this.bgAggregate);
-    if (this.interiorAggregate) this.destroyAggregateChildren(this.interiorAggregate);
-    this.destroyAggregateChildren(this.wallAggregate);
-    if (this.specialAggregate) this.destroyAggregateChildren(this.specialAggregate);
-    this.destroyAggregateChildren(this.shadowAggregate);
-    this.destroyAggregateChildren(this.sealAggregate);
-    this.cellLayerGroups = []; // ?섎룞 culling 洹몃９ 由ъ뀑 ???꾨옒 loop 媛 ?ㅼ떆 push
-    this.visibleCellWindowKey = '';
-
-    const grid = this.unifiedGrid;
-    const totalCols = grid.totalWidth;
-    const totalRows = grid.totalHeight;
-
-    for (let absRow = 0; absRow < totalRows; absRow++) {
-      for (let col = 0; col < totalCols; col++) {
-        const cell = grid.cells[absRow]?.[col];
-        if (!cell) continue;
-
-        const rng = new PRNG(this.item.uid * 10000 + col * 100 + absRow);
-        const ldtkLevel = this.pickLdtkTemplate(cell, rng);
-        if (!ldtkLevel || !this.ldtkRenderer || !this.atlas) continue;
-
-        const roomX = col * IW_ROOM_W_PX;
-        const roomY = absRow * IW_ROOM_H_PX;
-        this.cellVisualRecords.set(`${col}:${absRow}`, {
-          col,
-          row: absRow,
-          ldtkLevel,
-          roomX,
-          roomY,
-        });
-
-        const inBounds = (t: { px: [number, number] }) =>
-          t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
-          t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-        const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
-        const wallTiles = ldtkLevel.wallTiles.filter((t) => {
-          if (!inBounds(t)) return false;
-          const tr = Math.floor(t.px[1] / TILE_SIZE);
-          const tc = Math.floor(t.px[0] / TILE_SIZE);
-          if (isLdtkWallSlope2x1Tile(t)) return true;
-          return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? 1) !== 0;
-        });
-        const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-        const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
-        const renderer = new LdtkRenderer();
-        {
-          const bgAreaId = `iw_${this._themeSlug}_bg`;
-          const wallAreaId = `iw_${this._themeSlug}_wall`;
-          this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
-          this.applyItemWorldAreaTileset(wallAreaId, wallTiles);
-          this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
-        }
-        const wallTilesSub = substituteSolidGenericSprites(
-          wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
-        );
-        renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
-        renderer.bgLayer.position.set(roomX, roomY);
-        renderer.interiorLayer.position.set(roomX, roomY);
-        renderer.wallLayer.position.set(roomX, roomY);
-        renderer.specialLayer.position.set(roomX, roomY);
-        renderer.shadowLayer.position.set(roomX, roomY);
-        // Cell culling ??buildFullMap 怨??숈씪 ?⑦꽩 (?ъ슜??寃곗젙 2026-05-04).
-        const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
-        renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
-        renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
-        renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
-        renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
-        renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
-        this.bgAggregate.addChild(renderer.bgLayer);
-        this.interiorAggregate?.addChild(renderer.interiorLayer);
-        this.wallAggregate.addChild(renderer.wallLayer);
-        this.specialAggregate?.addChild(renderer.specialLayer);
-        this.shadowAggregate.addChild(renderer.shadowLayer);
-        const bleedLayers = addLdtkVisualBoundsBleed({
-          target: {
-            bgLayer: this.bgAggregate,
-            interiorLayer: this.interiorAggregate,
-            wallLayer: this.wallAggregate,
-            specialLayer: this.specialAggregate,
-            shadowLayer: this.shadowAggregate,
-          },
-          atlases: this.atlases,
-          boundsWidth: totalCols * IW_ROOM_W_PX,
-          boundsHeight: totalRows * IW_ROOM_H_PX,
-          bgTiles,
-          wallTiles: wallTilesSub,
-          shadowTiles,
-          interiorTiles,
-          collisionGrid: ldtkLevel.collisionGrid,
-          offsetX: roomX,
-          offsetY: roomY,
-        });
-        const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer, ...bleedLayers];
-        this.cellLayerGroups.push({ col, row: absRow, layers });
-        this.renderedCellVisuals.set(`${col}:${absRow}`, { col, row: absRow, layers });
-      }
-    }
-
-    this.fillNullCellSeal(grid, totalCols, totalRows);
-  }
-
-  private destroyAggregateChildren(layer: Container): void {
-    const children = layer.removeChildren();
-    for (const child of children) {
-      child.destroy({ children: true, texture: false, textureSource: false, context: true });
-    }
-  }
-
-  /**
-   * Fill non-placed (null) cells in the radial layout with a dark seal block so the
-   * Parallax is intentionally allowed to show through empty alignment cells.
-   */
-  private fillNullCellSeal(
-    grid: UnifiedGridData,
-    totalCols: number,
-    totalRows: number,
-  ): void {
-    // Full-map ItemWorld layouts can contain empty alignment cells around the
-    // authored room graph. Painting those cells black makes the parallax look
-    // like broken rectangular chunks on some topologies, so leave them open.
-    void grid;
-    void totalCols;
-    void totalRows;
-  }
-
-  /** Unlock a door in this scene by its LDtk iid (mirrors LdtkWorldScene logic). */
-  private unlockDoorByIidLocal(iid: string): void {
-    for (let i = this.lockedDoors.length - 1; i >= 0; i--) {
-      const door = this.lockedDoors[i];
-      if (door.iid === iid) {
-        door.unlock(this.fullGrid);
-        this.game.camera.shake(6);
-        this.screenFlash.flashHit(true);
-        this.toast.show(t('toast.gate_opened'), 0x44ffaa);
-        door.destroy();
-        this.lockedDoors.splice(i, 1);
-        return;
-      }
-    }
-  }
-
-  /** Apply Camera entity zoom/dead-zone settings when player enters a zone. */
-  private updateCameraZones(): void {
-    if (this.cameraZones.length === 0 && !this.activeCameraZone) return;
-    const pcx = this.player.x + this.player.width / 2;
-    const pcy = this.player.y + this.player.height / 2;
-    const cam = this.game.camera;
-
-    let insideZone: typeof this.cameraZones[number] | null = null;
-    for (const zone of this.cameraZones) {
-      if (zone.entireLevel ||
-          (pcx >= zone.x && pcx <= zone.x + zone.w &&
-           pcy >= zone.y && pcy <= zone.y + zone.h)) {
-        insideZone = zone;
-        break;
-      }
-    }
-
-    if (insideZone && insideZone !== this.activeCameraZone) {
-      this.activeCameraZone = insideZone;
-      cam.deadZoneX = insideZone.deadZoneX;
-      cam.deadZoneY = insideZone.deadZoneY;
-      cam.lookAheadDistance = insideZone.lookAheadDistance;
-      cam.followLerp = insideZone.followLerp;
-      cam.zoomTo(insideZone.zoom, insideZone.zoomLerp);
-    } else if (!insideZone && this.activeCameraZone) {
-      this.activeCameraZone = null;
-      cam.deadZoneX = 32;
-      cam.deadZoneY = 24;
-      cam.lookAheadDistance = 0;
-      cam.followLerp = 0.08;
-      cam.zoomTo(1.0, 0.05);
-    }
-  }
-
-  private getOppositeDirection(dir: 'left' | 'right' | 'up' | 'down'): 'left' | 'right' | 'up' | 'down' {
-    switch (dir) {
-      case 'left': return 'right';
-      case 'right': return 'left';
-      case 'up': return 'down';
-      case 'down': return 'up';
-    }
+    // ItemWorld exit-anvils 도 rebuild/stratum 전환 시 함께 정리한다.
+    this.itemWorldAnvilRuntime.clear();
   }
 
   enter(): void {
     if (this.parallaxBG) this.parallaxBG.container.visible = true;
-    this.entryFreezeTimer = ENTRY_FREEZE_MS;
-    // ?붾뱶 BGM 醫낅즺 ??outro 1 ???ъ깮 ??silence. Item World ?먯껜 BGM ?
-    // 異뷀썑 mus_iw_lane_rust_loop ???꾩갑 ??BgmController.play 濡?援먯껜 ?덉젙.
+    this.entryGateState.restartFreeze();
+    // 월드 BGM 의 outro 1 회 재생 후 silence. Item World 의 BGM
+    // (mus_iw_lane_rust_loop) 은 별도 BgmController.play 로 재생한다.
     BgmController.stop('mus_world_main_outro');
   }
 
@@ -5350,7 +2187,7 @@ export class ItemWorldScene extends Scene {
 
   /**
    * Snapshot for FeedbackPanel auto-context. Implements IFeedbackContextProvider
-   * structurally ??runtime duck-typing checks for this method.
+   * structurally — runtime duck-typing checks for this method.
    */
   getFeedbackContext(): {
     area: 'world' | 'itemworld';
@@ -5365,7 +2202,7 @@ export class ItemWorldScene extends Scene {
     const equipped = this.inventory?.equipped;
     return {
       area: 'itemworld',
-      level_id: this.entryCorridorActive ? ENTRY_CORRIDOR_LEVEL_ID : undefined,
+      level_id: this.entryCorridorState.active ? ENTRY_CORRIDOR_LEVEL_ID : undefined,
       room_col: Math.floor(cx / TILE_SIZE),
       room_row: Math.floor(cy / TILE_SIZE),
       equipped_weapon_id: equipped?.def.id ?? undefined,
@@ -5380,10 +2217,10 @@ export class ItemWorldScene extends Scene {
 
     // Ambient stratum weather animates in every state (gameplay, modals,
     // transitions) so the residue field never freezes mid-dive.
-    this.updateWeather(dt);
-    this.updateEntryCorridorColorRestore(dt);
+    this.weatherRuntime.update(dt);
+    this.entryCorridorVisibilityRuntime.updateColorRestore(dt);
 
-    // Feedback panel open ??block scene update but keep toasts animating.
+    // Feedback panel open — block scene update but keep toasts animating.
     if (this.game.feedbackOpen) {
       this.toast?.update(dt);
       return;
@@ -5404,18 +2241,13 @@ export class ItemWorldScene extends Scene {
     this.hud.setDebugInfoVisible(Debug.infoVisible);
 
     // Onboarding blocks gameplay
-    if (!this.uiController.isOnboardingDone()) {
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.advanceOnboarding();
-      }
+    if (this.onboardingRuntime.updateBlockingInput()) {
       return;
     }
 
     // Stratum picker blocks gameplay
-    if (this.stratumPickerVisible) {
-      this.stratumPickerPulseTimer += dt;
-      this.redrawStratumPickerPulse();
-      this.handleStratumPickerInput();
+    if (this.stratumPickerRuntime.isVisible) {
+      this.stratumPickerRuntime.update(dt);
       return;
     }
 
@@ -5427,18 +2259,17 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    if (this.entryCorridorActive) {
+    if (this.entryCorridorState.active) {
       this.updateEntryCorridor(dt);
       return;
     }
 
-    if (this.entryFreezeTimer > 0) {
-      this.entryFreezeTimer = Math.max(0, this.entryFreezeTimer - dt);
+    if (this.entryGateState.tickFreeze(dt)) {
       this.player.vx = 0;
       this.player.vy = 0;
       this.player.savePrevPosition();
       this.hud.update(dt);
-      this.updateHudText();
+      this.hudRuntime.updateText();
       this.dmgNumbers.update(dt);
       this.screenFlash.update(dt);
       this.game.camera.target = {
@@ -5449,41 +2280,11 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // ESC to toggle escape confirm. bossChoice ?⑤꼸???대젮 ?덉쓣 ???ш린??
-    // 媛濡쒖콈吏 ?딄퀬 ?꾨옒 bossChoice ?몃뱾?ш? ESC 瑜?Exit Safely 濡?泥섎━?섎룄濡?
-    // ?묐낫?쒕떎 (Pattern A ? ?대떦 紐⑤떖??痍⑥냼 ??.
-    // post_clear_hold ?숈븞 StratumClearOverlay 媛 ?⑥씪 ??C) ?먮쫫??梨낆엫吏誘濡?
-    // ESC 媛 EscapeConfirm ?앹뾽???꾩슦吏 ?딅룄濡?媛濡쒖콌??
-    if (this.transitionState === 'post_clear_hold') {
-      // fall through to the post_clear_hold handler below; do nothing here.
-    } else if (!this.uiController.isBossChoiceVisible() && this.game.input.isJustPressed(GameAction.MENU)) {
-      if (this.uiController.isEscapeConfirmVisible()) {
-        this.hideEscapeConfirm();
-        return;
-      }
-      // Pad B (CANCEL ?숈떆 諛쒗솕) ??EscapeConfirm ??*?꾩슦吏* 紐삵븳??
-      // START 쨌 Escape 留?open ?몃━嫄?(?ъ슜???붽뎄 2026-05-17).
-      if (!this.game.input.isJustPressed(GameAction.CANCEL)) {
-        this.showEscapeConfirm();
-      }
+    if (this.escapeRuntime.updateInput()) {
       return;
     }
 
-    if (this.uiController.isEscapeConfirmVisible()) {
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.hideEscapeConfirm();
-        this.startExitFade();
-        return;
-      }
-      if (this.game.input.isJustPressed(GameAction.DASH) ||
-          this.game.input.isJustPressed(GameAction.JUMP)) {
-        this.hideEscapeConfirm();
-      }
-      return;
-    }
-
-    // 紐⑤떖/?꾩씠 ?곹깭?먯꽌??留??꾨젅??world-space ?꾨＼?꾪듃瑜??④꺼
-    // 寃곌낵 ?⑤꼸 ?ㅼ뿉 "\u2191 Descend" ?깆씠 ?붿〈?섎뒗 寃껋쓣 諛⑹?.
+    // Hide world prompts while modal/transition flows suppress interaction prompts.
     if (this.shouldSuppressWorldPrompts()) {
       this.hideWorldPrompts();
     }
@@ -5491,179 +2292,60 @@ export class ItemWorldScene extends Scene {
     // A17 (playtest 2026-04-17): boss-kill choice panel. After a non-final
     // stratum boss, the portal would auto-advance; now the player explicitly
     // chooses CONTINUE (deeper) or EXIT (bank progress and leave).
-    // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=?뺤씤(Continue
-    // Deeper), ESC(MENU)=痍⑥냼(Exit Safely). Z/X ??UI ?먯꽌 ?ъ슜 湲덉? ? ?먰봽/
-    // ????≪뀡怨?洹쇱쑁 湲곗뼲 異⑸룎??留됯린 ?꾪븿.
-    if (this.uiController.isBossChoiceVisible()) {
-      if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.hideBossChoice();
-        this._continueToNextStratum();
-        return;
-      }
-      if (this.game.input.isJustPressed(GameAction.MENU)) {
-        this.hideBossChoice();
-        this._exitAfterBoss();
-        return;
-      }
+    // Pattern A(Modal, UI_Interaction_Patterns.md): C(ATTACK)=Continue
+    // Deeper), ESC(MENU)=Exit Safely). Z/X 등 다른 UI 입력은 무시한다.
+    // 선택 전에는 게임플레이를 멈춘다.
+    if (this.bossChoiceRuntime.updateInput()) {
       return;
     }
 
-    if (this.transitionState !== 'none') {
-      if (this.transitionState === 'absorbing') {
-        this.updateAbsorbSequence(dt);
-      } else if (this.transitionState === 'dissolving') {
-        this.updateDissolveSequence(dt);
-      } else {
-        this.updateTransition(dt);
-      }
+    if (this.roomTransitionRuntime.isActive) {
+      this.roomTransitionRuntime.update(dt, {
+        placePlayerInRoom: (col, row) => this.placePlayerForRoomTransition(col, row),
+      });
+      return;
+    }
+
+    if (this.absorbDissolveRuntime.isActive) {
+      this.absorbDissolveRuntime.update(dt);
+      return;
+    }
+
+    if (this.flowState.isActive) {
+      this.updateTransition(dt);
       return;
     }
 
     // World Map / Inventory are unavailable inside Item World ? surface a
     // short English toast so the player understands the key was recognised
-    // but intentionally disabled here. Shift+I ??Game.ts 媛 INVENTORY 瑜?
-    // consume ???꾩뿭 UI ?좉?濡??ъ슜 ???ш린濡??꾨떖?섏? ?딅뒗??
-    if (this.game.input.isJustPressed(GameAction.MAP)) {
-      this.game.input.consumeJustPressed(GameAction.MAP);
-      this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
-    }
-    if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
-      this.game.input.consumeJustPressed(GameAction.INVENTORY);
-      this.toast.show(t('toast.currently_unavailable'), 0xaaaaaa);
-    }
+    // but intentionally disabled here. Shift+I 는 Game.ts 에서 INVENTORY 로
+    // consume 되어 UI 가 열리지 않는다.
+    this.unavailableInputRuntime.update();
 
-    if (this.isPlayerStandingOnContainerTop()) {
+    if (this.containerRegistry.isPlayerStandingOnTop(this.player)) {
       this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
 
-    // First time HP drops to/under 40% ??surface a tutorial hint pointing at
-    // the heal key. Shared one-shot flag with LdtkWorldScene; survives scene
-    // swaps in-session.
-    if (
-      !isLowHpHealToastFired() &&
-      this.player.maxHp > 0 &&
-      this.player.hp > 0 &&
-      this.player.hp / this.player.maxHp <= 0.4
-    ) {
-      markLowHpHealToastFired();
-      this.tutorialHint.tryShow('low_hp_heal', {
-        keyLabel: actionKey(GameAction.FLASK),
-        text: t('tutorial.heal'),
-      });
-    }
+    this.lowHpHealHint.update();
     this.tutorialHint.update(dt);
 
     // Updraft wind zones (IntGrid value 4 in fullGrid)
     this.applyUpdrafts(dt);
 
-    // DEBUG: Shift+1/2/3 = Fire / Ice / Thunder, Shift+O = unified cheat
-    // bundle (all relics + HP/ATK 99999 + immortal). ?debug URL gated.
-    const debugOn = new URLSearchParams(window.location.search).has('debug');
-    if (debugOn && this.game.input.shiftDown) {
-      if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE)) this.debugIgniteAtPlayer();
-      if (this.game.input.isJustPressed(GameAction.DEBUG_ICE)) this.debugFreezeAtPlayer();
-      if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.debugThunderAtPlayer();
-      if (this.game.input.isJustPressed(GameAction.DEBUG_CHEAT)) {
-        if (this.player.debugCheatActive) {
-          this.player.disableCheatBundle();
-          this.toast.show(t('toast.cheat_off'), 0x44ff44);
-        } else {
-          this.player.enableCheatBundle();
-          this.toast.show(t('toast.cheat_on'), 0xffaa00);
-        }
-      }
-      if (this.game.input.isJustPressedKeyCode('KeyG')) this.debugSpawnContainers();
-    }
-    // 1/2/3 (no shift) ??active enchant swap (Hades Boon style).
-    if (!this.game.input.shiftDown) {
-      if (this.game.input.isJustPressed(GameAction.DEBUG_FIRE))    this.player.activeEnchant = 'fire';
-      else if (this.game.input.isJustPressed(GameAction.DEBUG_ICE))    this.player.activeEnchant = 'ice';
-      else if (this.game.input.isJustPressed(GameAction.DEBUG_THUNDER)) this.player.activeEnchant = 'thunder';
-    }
+    this.debugInputRuntime.update();
 
-    // ?? Hold-and-release Cast ??debug-only ability (Victor 2026-05-15).
-    //   ?debug in URL ??ability live (charge/preview/fire all enabled)
-    //   no ?debug     ??ability fully suppressed, leftover state cleared
-    const _shardAbilityOn = new URLSearchParams(window.location.search).has('debug');
-    if (!_shardAbilityOn) {
-      this.egoCastChargeMs = 0;
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    }
-    const castDown = _shardAbilityOn && !this.heldContainer && this.game.input.isDown(GameAction.CAST);
-    const canCast = _shardAbilityOn && !this.heldContainer && this.player.egoCastCooldownMs <= 0 && this.player.egoShardCount > 0;
-    const facing: -1 | 1 = this.player.facingRight ? 1 : -1;
-    const launchX = this.player.x + this.player.width / 2 + facing * 14;
-    const launchY = this.player.y + this.player.height * 0.38 - 5;
-    if (castDown && canCast) {
-      this.egoCastChargeMs = Math.min(this.egoCastChargeMs + dt, CAST_CHARGE_MAX_MS);
-      this.player.isAiming = true;
-      const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
-      const grid = this.fullGrid;
-      this.egoShardPreview.show(
-        launchX, launchY, vx, vy, this.player.activeEnchant,
-        (x, y) => {
-          const gx = Math.floor(x / 16);
-          const gy = Math.floor(y / 16);
-          const t = grid[gy]?.[gx] ?? 0;
-          return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-        },
-      );
-    } else if (!castDown && this.egoCastChargeMs > 0) {
-      if (canCast) {
-        const { vx, vy } = getShardVelocity(this.egoCastChargeMs, facing);
-        this.egoShard.spawn(launchX, launchY, vx, vy, this.player.activeEnchant);
-        this.player.egoShardCount--;
-        this.player.shardCooldowns.push(SHARD_RECOVERY_MS);
-        this.player.egoCastCooldownMs = CAST_MIN_GAP_MS;
-      }
-      this.egoCastChargeMs = 0;
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    } else {
-      this.egoShardPreview.hide();
-      this.player.isAiming = false;
-    }
-    if (this.player.egoCastCooldownMs > 0) {
-      this.player.egoCastCooldownMs = Math.max(0, this.player.egoCastCooldownMs - dt);
-    }
-    // Tick recovery queue (persists across rooms). On expiry the oldest
-    // living world-shard is called back with a ring burst.
-    {
-      const cd = this.player.shardCooldowns;
-      for (let i = cd.length - 1; i >= 0; i--) {
-        cd[i] -= dt;
-        if (cd[i] <= 0) {
-          cd.splice(i, 1);
-          this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
-          this.egoShard.removeOldestShard();
-        }
-      }
-    }
+    this.egoShardCastRuntime.update(dt);
 
-    // ?? Grab / Throw (B / RB) ??Arc Tether ?먭꺽 ?쎌뾽 + Spelunky ?섏?湲? ??
-    // LdtkWorldScene ? ?숈씪 ?먮쫫. ?먯꽭??二쇱꽍? LdtkWorldScene update() 李몄“.
-    this.applyContainerCarryState(updateContainerGrabInput({
-      input: this.game.input,
-      player: this.player,
-      arcTether: this.arcTether,
-      state: this.getContainerCarryState(),
-      findTarget: () => this.findNearestGrabbableContainer(),
-    }));
-    this.applyContainerCarryState(updateHeldContainerCarry({
-      dtMs: dt,
-      player: this.player,
-      state: this.getContainerCarryState(),
-    }));
-    this.updateContainerPrompt();
-    this.updateArcTether(dt);
+    // ----- Grab / Throw (B / RB) — Arc Tether + Spelunky 스타일 -----
+    // LdtkWorldScene 과 동일한 로직을 LdtkWorldScene update() 에서 공유한다.
+    this.containerCarryRuntime.update(dt);
 
     // LDtk-placed static entities (spikes, cracked floors, switches, etc.)
-    this.updateStaticEntities(dt);
+    this.staticEntityRuntime.update(dt);
 
     // Memory Room triggers ? animate shards + show dialogue on entry
-    this.checkMemoryTriggers(dt);
+    this.memoryTriggerRuntime.update(dt);
 
     if (this.player.isDead) {
 
@@ -5677,9 +2359,9 @@ export class ItemWorldScene extends Scene {
       });
       this.progressController.setExitReason('death');
       trackItemWorldExit('death', this.currentStratumIndex);
-      this.exitTracked = true;
+      this.exitTelemetryState.markExitTracked();
 
-      // ?? Ego T11: player death ??
+      // ----- Ego T11: player death -----
       this.fireEgoPlayerDeath();
 
       // Clear all UI overlays on death
@@ -5688,8 +2370,7 @@ export class ItemWorldScene extends Scene {
       this.game.uiContainer.addChild(this.hud.container);
 
       // Death penalty: lose 30% earned EXP, drop back one stratum
-      const penalty = Math.floor(this.earnedExp * 0.3);
-      this.earnedExp = Math.max(0, this.earnedExp - penalty);
+      this.runStats.applyExpPenalty(0.3);
       if (this.currentStratumIndex > 0) {
         this.progress.lastSafeStratum = this.currentStratumIndex - 1;
       }
@@ -5700,17 +2381,17 @@ export class ItemWorldScene extends Scene {
       this.cleanupForReturnResult();
       if (!this.uiController.showReturnResult({
         item: this.item,
-        prevLevel: this.stratumStartLevel,
-        prevAtk: this.stratumStartAtk,
+        prevLevel: this.stratumStartSnapshot.level,
+        prevAtk: this.stratumStartSnapshot.atk,
         goldEarned: 0,
-        enemiesDefeated: this.enemies.filter(e => !e.alive).length,
-        innocentsCaptured: this.item.innocents.length - this.stratumStartInnocentCount,
+        enemiesDefeated: this.enemyRegistry.defeatedCount(),
+        innocentsCaptured: this.stratumStartSnapshot.innocentsCapturedBy(this.item),
         strataCleared: this.currentStratumIndex,
         totalStrata: this.strataConfig.strata.length,
         isDeath: true,
       }, () => {
-        // ?щ쭩 紐⑤떖 accept ??利됱떆 ?붾뱶 蹂듦?. startExitFade(400ms) + LdtkWorld
-        // return fade-in(250ms) ?꾩쟻??"?쒖갭 癒몃Т?? 泥닿컧??二쇰?濡?fade 嫄대꼫?.
+        // accept 콜백: ReturnResult 닫힌 뒤 아이템 월드를 종료한다. startExitFade(400ms) + LdtkWorld
+        // return fade-in(250ms) 으로 자연스럽게 fade 전환한다.
         this.exitItemWorld();
       })) {
         this.exitItemWorld();
@@ -5718,309 +2399,31 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    // Update enemies
-    for (const enemy of this.enemies) enemy.update(dt);
-    // DEC-038 Town residents ??idle anim + proximity 吏꾩엯 ??寃 Ego 諛쒗솕.
-    for (const r of this.memoryResidents) r.update(dt);
-    this.updateResidentEgoTriggers();
-    // DEC-039 Trapdoor ??idle anim + proximity prompt + ATTACK ?명꽣?숉듃.
-    this.updateTrapdoor(dt);
-    // ItemWorld exit Anvil ??proximity prompt + ATTACK ?명꽣?숉듃濡?ESC ?ㅼ씠?쇰줈洹?
-    this.updateItemWorldAnvils(dt);
-    // ?섎룞 cell culling ??viewport 諛?cell ??4 layer ??visible=false 濡?draw skip.
+    this.enemyRegistry.update(dt);
+    // DEC-038 Town residents — idle anim + proximity 시 Ego 대사를 발화.
+    this.residentRuntime.update(dt);
+    // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 상호작용.
+    this.trapdoorRuntime.update(dt);
+    // ItemWorld exit Anvil — proximity prompt + ATTACK 상호작용, ESC 로도 종료한다.
+    this.itemWorldAnvilRuntime.update(dt);
+    // cell culling — viewport 밖 cell 의 4 layer 를 visible=false 로 draw skip.
     this.updateCellVisibility();
 
-    // Player attacks ? Sakurai full feedback chain
-    if (this.player.isAttackActive()) {
-      const targets = this.enemies.filter(e => e.alive) as CombatEntity[];
-      const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
-      for (const hit of hits) {
-        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
-        this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-        SFX.play('attack_hit');
-        if (hit.heavy) {
-          this.screenFlash.flashHit(true);
-        }
-        if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
-          this.screenFlash.flashHit(true);
-          this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
-        }
-      }
-    }
-
-    // Check for kills AFTER combat (checkHits may have set alive=false)
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const enemy = this.enemies[i];
-      if (!enemy.alive && !isEnemyExpGranted(enemy)) {
-        markEnemyExpGranted(enemy);
-
-        // ?? Ego T06: first enemy kill ??
-        if (!(enemy instanceof MemoryShardNPC) && !(enemy as any)._isBoss) {
-          this.fireEgoFirstKill();
-        }
-
-        // Analytics: enemy kill distribution (excludes Innocents ? capture, not kill)
-        if (!(enemy instanceof MemoryShardNPC)) {
-          trackEnemyKill({
-            area: 'itemworld',
-            enemy_type: enemy.constructor.name.toLowerCase(),
-            is_boss: !!(enemy as any)._isBoss,
-            is_elite: enemy instanceof GoldenMonster,
-          });
-        }
-
-        // A11: enhanced death burst. Innocents are "captured" (A15 handles
-        // them separately) so skip the burst for them to avoid double-fx.
-        if (!(enemy instanceof MemoryShardNPC)) {
-          const heavy = !!(enemy as any)._isBoss;
-          this.deathParticles.spawn(
-            enemy.x + enemy.width / 2,
-            enemy.y + enemy.height / 2,
-            heavy,
-          );
-        }
-
-        // Decrement room enemy count; if it reaches zero, mark room cleared
-        const rk = getEnemyRoomKey(enemy);
-        if (rk) {
-          const remaining = (this.roomEnemyCount.get(rk) ?? 1) - 1;
-          if (remaining <= 0) {
-            this.roomEnemyCount.delete(rk);
-            const [colStr, rowStr] = rk.split(',');
-            const c = parseInt(colStr, 10);
-            const r = parseInt(rowStr, 10);
-            const clearedCell = this.unifiedGrid.cells[r]?.[c];
-            if (clearedCell && !clearedCell.cleared) {
-              clearedCell.cleared = true;
-              this.roomsCleared++;
-              this.persistRoomState();
-            }
-          } else {
-            this.roomEnemyCount.set(rk, remaining);
-          }
-        }
-
-        if (!(enemy instanceof MemoryShardNPC)) {
-          // CSV-driven kill EXP (Sheets/Content_Stats_Enemy.csv -> Exp column).
-          // Falls back to BASE_EXP_PER_KILL if the enemy lacks an exp value.
-          const baseExp = enemy.exp > 0 ? enemy.exp : BASE_EXP_PER_KILL;
-          const killExp = Math.floor(baseExp * this.currentStratumDef.expMultiplier);
-          const leveled = addItemExp(this.item, killExp);
-          // DEC-046: ?쇰컲 ??泥섏튂 ??Recovery +0.1% ?먯쭊 ?꾩쟻 (?명솚 EXP ?섏궛怨?蹂꾧컻).
-          // 蹂댁뒪??stage jump濡?蹂꾨룄 泥섎━?섎?濡??쇰컲 ?곷쭔 ?곸슜.
-          if (!(enemy as any)._isBoss) {
-            addRecovery(this.item, 0.1);
-          }
-          this.earnedExp += killExp;
-          this.dmgNumbers.spawnEXP(
-            enemy.x + enemy.width / 2, enemy.y - 16,
-            `+${killExp} EXP`,
-          );
-          // Update EXP bar with lerp animation
-          this.hud.updateItemExp(this.item.level, this.item.exp, EXP_PER_LEVEL, leveled);
-          // A2: auditory reward on in-run level up (pairs with EXP bar flash)
-          if (leveled) {
-            SFX.play('upgrade');
-            trackItemLevelUp({
-              source: 'itemworld_exp',
-              item_rarity: this.item.rarity,
-              new_level: this.item.level,
-            });
-          }
-
-          // HEL-05: Tiered healing drops (GDD 짠4.1)
-          const dropX = enemy.x + enemy.width / 2 - 8;
-          const dropY = enemy.y + enemy.height;
-          const isGolden = enemy instanceof GoldenMonster;
-          if (isGolden && this.dropRng.next() < 0.5) {
-            // Elite: 50% Forge Ember (25% maxHP)
-            const heal = createForgeEmber(dropX, dropY, this.player.maxHp);
-            this.healingPickups.push(heal);
-            this.entityLayer.addChild(heal.container);
-          } else if (!isGolden && this.dropRng.next() < 0.2) {
-            // Normal: 20% Ember Shard (10% maxHP)
-            const heal = createEmberShard(dropX, dropY, this.player.maxHp);
-            this.healingPickups.push(heal);
-            this.entityLayer.addChild(heal.container);
-          }
-
-          // Gold drop on kill ??confetti burst of mixed denominations.
-          const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.1);
-          const goldAmount = isGolden ? baseGold * 3 : baseGold;
-          if (goldAmount > 0) {
-            for (const gp of GoldPickup.spawnBurst(dropX, dropY, goldAmount)) {
-              gp.roomData = this.roomData;
-              this.goldPickups.push(gp);
-              this.entityLayer.addChild(gp.container);
-            }
-          }
-        }
-      }
-      if (enemy.shouldRemove) {
-        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
-        this.enemies.splice(i, 1);
-      }
-    }
-
-    // Healing pickups ? collect on overlap
-    for (let i = this.healingPickups.length - 1; i >= 0; i--) {
-      const hp = this.healingPickups[i];
-      if (hp.collected) {
-        hp.destroy();
-        this.healingPickups.splice(i, 1);
-        continue;
-      }
-      hp.update(dt);
-      const dx = Math.abs((this.player.x + this.player.width / 2) - (hp.x + hp.width / 2));
-      const dy = Math.abs((this.player.y + this.player.height / 2) - (hp.y + hp.height / 2));
-      if (dx < 16 && dy < 16) {
-        const healed = Math.min(hp.healAmount, this.player.maxHp - this.player.hp);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + hp.healAmount);
-        this.screenFlash.flash(0x44ff44, 0.3, 150);
-        if (healed > 0) this.toast.show(t('toast.hp_gain', { amount: healed }), 0x44ff44);
-        this.itemPickupGlow.spawn(hp.x + hp.width / 2, hp.y + hp.height / 2, 0x44ff44);
-        hp.collect();
-        hp.destroy();
-        this.healingPickups.splice(i, 1);
-      }
-    }
+    this.enemyCombatRuntime.updatePlayerAttack();
+    this.enemyCombatRuntime.processDefeatedEnemies();
+    this.pickupRuntime.updateHealing(dt);
 
     // Breakable props (sway animation)
-    for (const bp of this.breakableProps) bp.update(dt);
+    for (const bp of this.staticEntityRegistry.breakableProps) bp.update(dt);
 
-    // Gold pickups ? collect on overlap
-    for (let i = this.goldPickups.length - 1; i >= 0; i--) {
-      const gp = this.goldPickups[i];
-      if (gp.collected) continue;
-      gp.update(dt);
-      const dx = Math.abs((this.player.x + this.player.width / 2) - (gp.x + gp.width / 2));
-      const dy = Math.abs((this.player.y + this.player.height / 2) - (gp.y + gp.height / 2));
-      if (dx < 16 && dy < 16) {
-        gp.collect();
-        this.earnedGold += gp.amount;
-        // HUD 珥앹븸 媛깆떊 ???몃? ?멸퀎? ?듭씪??(baseline + earned).
-        this.hud.updateGold(this.baselineGold + this.earnedGold);
-        this.dmgNumbers.spawnEXP(gp.x + gp.width / 2, gp.y - 16, `+${gp.amount} G`);
-        this.itemPickupGlow.spawn(gp.x + gp.width / 2, gp.y + gp.height / 2, 0xffd700);
-        gp.destroy();
-        this.goldPickups.splice(i, 1);
-      }
-    }
+    this.pickupRuntime.updateGold(dt);
+    this.projectileRuntime.update(dt);
 
-    // Collect Ghost projectiles
-    for (const enemy of this.enemies) {
-      if (enemy instanceof Ghost && enemy.alive) {
-        for (const proj of enemy.pendingProjectiles) {
-          this.projectiles.push(proj);
-          this.entityLayer.addChild(proj.container);
-        }
-        enemy.pendingProjectiles.length = 0;
-      }
-    }
-
-    // Update projectiles ? player attack can destroy them
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const proj = this.projectiles[i];
-      proj.update(dt);
-      if (!proj.alive) {
-        proj.destroy();
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      // Player attack deflects projectile
-      if (this.player.isAttackActive()) {
-        const step = this.player.getAttackStep(this.player.comboIndex);
-        if (step) {
-          const hitbox = getAttackHitbox(
-            this.player.x, this.player.y, this.player.width, this.player.height,
-            this.player.facingRight ?? true, step,
-          );
-          if (aabbOverlap(hitbox, { x: proj.x, y: proj.y, width: proj.width, height: proj.height })) {
-            this.hitSparks.spawn(proj.x + proj.width / 2, proj.y + proj.height / 2, true, proj.vx > 0 ? -1 : 1);
-            proj.alive = false;
-            proj.destroy();
-            this.projectiles.splice(i, 1);
-            continue;
-          }
-        }
-      }
-      if (!this.player.invincible && this.player.hp > 0) {
-        const overlap = aabbOverlap(
-          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
-          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
-        );
-        if (overlap) {
-          const dir = proj.vx > 0 ? 1 : -1;
-          const dmg = Math.max(1, Math.floor(proj.atk - this.player.def * 0.5));
-          this.player.onHit(dir * 80, -40, 150);
-          this.player.lastDamageSource = 'projectile';
-          this.player.hp -= dmg;
-          this.hud.flashDamage();
-          this.player.invincible = true;
-          this.player.invincibleTimer = 1000;
-          this.player.startVibrate(3, 4, true);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 2;
-          this.game.camera.shakeDirectional(2, dir, -0.2);
-          this.screenFlash.flashDamage(false);
-          this.hitSparks.spawn(this.player.x + this.player.width / 2, this.player.y + this.player.height * 0.4, false, -dir);
-          this.dmgNumbers.spawn(this.player.x + this.player.width / 2, this.player.y + this.player.height * 0.4 - 8, dmg, false);
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-          proj.alive = false;
-          proj.destroy();
-          this.projectiles.splice(i, 1);
-        }
-      }
-    }
-
-    // Enemy contact damage ? all enemies deal damage on body overlap
-    for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
-      if (this.player.invincible || this.player.hp <= 0) continue;
-
-      const overlap = aabbOverlap(
-        { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
-        { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height },
-      );
-      if (!overlap) continue;
-
-      const dir = enemy.x + enemy.width / 2 > this.player.x + this.player.width / 2 ? -1 : 1;
-      const dmg = Math.max(1, Math.floor(enemy.atk - this.player.def * 0.5));
-      this.player.onHit(dir * 100, -50, 200);
-      this.player.lastDamageSource = enemy.constructor.name.toLowerCase();
-      this.player.hp -= dmg;
-      this.hud.flashDamage();
-      this.player.invincible = true;
-      this.player.invincibleTimer = 1000;
-
-      // Sakurai feedback
-      this.player.startVibrate(4, 5, true);
-      this.player.triggerFlash();
-      this.game.hitstopFrames = 3;
-      this.game.camera.shakeDirectional(3, -dir, -0.3);
-      this.screenFlash.flashDamage(dmg > 20);
-      const hitX = this.player.x + this.player.width / 2;
-      const hitY = this.player.y + this.player.height * 0.4;
-      this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
-      this.hitSparks.spawn(hitX, hitY, false, dir);
-
-      if (this.player.hp <= 0) {
-        this.player.hp = 0;
-        this.player.onDeath();
-        this.game.hitstopFrames = 8;
-        this.screenFlash.flashDamage(true);
-      }
-      break;
-    }
+    this.enemyContactRuntime.update();
 
     // Boss killed check ? spawn exit portal at boss death location
     // Check ALL dead bosses regardless of exitTrigger state
-    for (const enemy of this.enemies) {
+    for (const enemy of this.enemyRegistry.enemies) {
       if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
         (enemy as any)._portalSpawned = true;
         this.hud.hideBossHP();
@@ -6028,7 +2431,7 @@ export class ItemWorldScene extends Scene {
         cell.cleared = true;
 
         // Playtest 2026-04-26 #1: anvil retires after first IW boss clear
-        // (any rarity, any weapon). One-shot ??repeat boss kills do nothing.
+        // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
         if (!sacredSave.isFirstItemWorldBossDefeated()) {
           sacredSave.markFirstItemWorldBossDefeated();
           const unbuffed = removeBeginnerGraceFromStats({
@@ -6045,9 +2448,9 @@ export class ItemWorldScene extends Scene {
         // Boss EXP is granted via normal kill EXP path (CSV Exp column = 1200).
         // No forced itemLevelUp() ? SSoT: Content_Stats_Enemy.csv
 
-        // DEC-046 (2026-05-24): 蹂댁뒪 泥섏튂 ??紐낆떆??Recovery stage jump + Fragment ?닿툑.
-        // ?덉뼱由ы떚蹂?stage ?섏뿉 ?곕씪 stratumIndex 鍮꾨?濡?stageJumpTarget ?곗젙.
-        // 寃곌낵??this.lastBossStageJump ????ν븯??ReturnResult ?붾㈃???곗텧.
+        // DEC-046 (2026-05-24): 보스 처치 시 Recovery stage jump + Fragment 획득을 처리한다.
+        // stage 가 바뀔면 stratumIndex 와 stageJumpTarget 을 기록한다.
+        // this.lastBossStageJump 에 저장해 ReturnResult 에서 표시한다.
         const totalStrata = this.strataConfig.strata.length;
         const stageJumpResult = grantBossStageJump(
           this.item,
@@ -6061,7 +2464,7 @@ export class ItemWorldScene extends Scene {
             fragmentId: stageJumpResult.fragmentId,
             itemName: getDisplayName(this.item),
           };
-          // ?멸쾶??利됱떆 ?뚮┝ ???ㅼ쓬 ReturnResult?먯꽌 ?꾩껜 ?곗텧.
+          // 토스트로 Fragment 획득을 알린다 (ReturnResult 와 연동).
           this.toast.show(
             `??${getDisplayName(this.item)}`,
             0xffd700,
@@ -6080,8 +2483,7 @@ export class ItemWorldScene extends Scene {
         const anvilX = enemy.x + enemy.width / 2 - 8;
         const anvilY = enemy.y + enemy.height;
         const anvil = createAnvilFlame(anvilX, anvilY, this.player.maxHp);
-        this.healingPickups.push(anvil);
-        this.entityLayer.addChild(anvil.container);
+        this.pickupRuntime.addHealingPickup(anvil);
 
         const px = enemy.x + enemy.width / 2;
         const py = enemy.y + enemy.height;
@@ -6111,17 +2513,17 @@ export class ItemWorldScene extends Scene {
           this.game.camera.shake(5);
         }, 160);
 
-        // ?? DEC-039 ??D: Trapdoor ?꾩튂 誘몃━ 怨꾩궛留???
-        // 蹂댁뒪 猷?D 異쒓뎄??'no_down' ?쒓렇濡??곴뎄 ?좉꼈?쇰?濡?(RoomGraphAdapter)
-        // ?먯뿰 ???ㅼ슫? 諛쒖깮?섏? ?딅뒗?? ???蹂댁뒪媛 二쎌? ?먮━???λ룞 ?명꽣?숉듃
-        // ?ы깉(Trapdoor) ???꾩슫??
+        // ----- DEC-039 — D: Trapdoor 처리 -----
+        // D-down 이 'no_down' 으로 표시된 방(RoomGraphAdapter)
+        // 에서는 하강이 불가하므로 Trapdoor 대신 다른 출구를 사용한다.
+        // (Trapdoor) 처리.
         //
-        // ?ъ슜???붿껌 (2026-05-02): Trapdoor ??Rustborn ??蹂댁뒪 泥섏튂 ??ш?
-        // ?앸궃 ??spawn. 洹몃윭誘濡??꾩튂/descentToWorld 留?誘몃━ 怨꾩궛?섍퀬, ?ㅼ젣
-        // entity ?앹꽦? dialogue 醫낅즺 ??spawnTrapdoorEntity() 肄쒕갚?먯꽌.
+        // 진입(2026-05-02): Trapdoor 는 Rustborn 등 보스 처치
+        // 위치에 spawn. descentToWorld 면 최종 지층이므로 FloatingItemDrop 으로 스폰.
+        // entity 가 dialogue 후 spawnTrapdoorEntity() 로 생성된다.
         //
-        // ?꾩튂 蹂댁젙 ??enemy ?쎌? 醫뚰몴 ??cell ?꾩텧 ??enemy 諛??쇱씤 ?꾨옒濡?
-        // fullGrid ?ㅼ틪??floor ?쇱씤??李얜뒗??(currentRow stale ?뚰뵾).
+        // enemy 가 죽은 cell 의 enemy 위치를 기준으로
+        // fullGrid 의 floor 를 찾아 배치한다 (currentRow stale 방지).
         let pendingTrapX = 0;
         let pendingTrapY = 0;
         let pendingDescentToWorld = false;
@@ -6148,24 +2550,24 @@ export class ItemWorldScene extends Scene {
           Debug.log(`[Trapdoor] queued at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) cell=(${bossCellCol},${bossCellRow}) descentToWorld=${pendingDescentToWorld}`);
         }
 
-        // Trapdoor entity ?앹꽦 肄쒕갚 ??dialogue 醫낅즺 ???몄텧.
-        // Step 1 (2026-05-25): 理쒖쥌 痢?(pendingDescentToWorld=true) ?먯꽌??Trapdoor ???
-        // FloatingItemDrop spawn ???ъ슜???쒕굹由ъ삤 "?꾩씠??2諛??뺣? + ?μ떎?μ떎".
+        // Trapdoor entity 는 dialogue 후 생성된다.
+        // Step 1 (2026-05-25): 최종 지층 보스 처치(pendingDescentToWorld=true) 시 Trapdoor 대신
+        // FloatingItemDrop spawn 한다.
         const spawnTrapdoorEntity = (): void => {
           if (this.trapdoor) return;
           if (pendingDescentToWorld) {
             this.trapdoor = new FloatingItemDrop(pendingTrapX, pendingTrapY, this.item);
-            // ?ъ슜??寃곗젙 2026-05-25: spawn 利됱떆 grayscale + intensity ?곸슜 (interact ?꾨???.
-            this.applyAbsorbFilter();
+            // 2026-05-25: spawn 시 grayscale + intensity 필터를 준비한다 (interact 시 적용).
+            this.absorbDissolveRuntime.prepareFilter();
           } else {
             this.trapdoor = new Trapdoor(pendingTrapX, pendingTrapY);
           }
           this.entityLayer.addChild(this.trapdoor.container);
-          this.descentToWorld = pendingDescentToWorld;
+          this.trapdoorState.setDescentToWorld(pendingDescentToWorld);
           this.toast.show(t('toast.trapdoor_opens'), 0xff7744);
           Debug.log(`[Trapdoor] spawned post-dialogue at (${pendingTrapX.toFixed(0)}, ${pendingTrapY.toFixed(0)}) ${pendingDescentToWorld ? '(FloatingItemDrop)' : '(Trapdoor)'}`);
-          // DLG-11: Trapdoor ?ы깉 ??泥?spawn ?쒖젏????踰덈쭔 諛쒗솕 (?ъ슜??
-          // 寃곗젙 2026-05-04). EGO_EVENT.TRAPDOOR_THANKS ?쒖떇?쇰줈 以묐났 李⑤떒.
+          // DLG-11: Trapdoor spawn 직후 자아 대사를 발화한다
+          // (2026-05-04). EGO_EVENT.TRAPDOOR_THANKS 를 한 번만 발화한다.
           if (
             this.loreDisplay &&
             !this.egoUnlockedEvents.has(EGO_EVENT.TRAPDOOR_THANKS) &&
@@ -6176,20 +2578,20 @@ export class ItemWorldScene extends Scene {
           }
         };
 
-        // ?? Ego T12: boss killed dialogue ??
-        // First-clear (boss never killed before): clear FX ??Ego dialogue
-        //   (freeze) ??Trapdoor spawn. ?ъ슜???붿껌 (2026-05-02) ??Trapdoor ??
-        //   Rustborn ??ш? ?앸궃 ???깆옣.
+        // ----- Ego T12: boss killed dialogue -----
+        // First-clear (boss never killed before): clear FX -> Ego dialogue
+        //   (freeze) -> Trapdoor spawn. 진입(2026-05-02) 의 Trapdoor 는
+        //   Rustborn 보스 처치 후 생성된다.
         const wasOnboarding = this.isFirstBossOnboarding();
-        if (this.egoActive && wasOnboarding) {
+        if (wasOnboarding) {
           this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
           setTimeout(async () => {
             await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
             spawnTrapdoorEntity();
           }, 2500);
         } else {
-          // Non-onboarding: ego dialogue ?놁쓬. 蹂댁뒪 泥섏튂 cinematic (BOSS DEFEATED
-          // ?좎뒪??2.2珥? ??trapdoor spawn ?쇰줈 ?명씉 ??諛뺤옄.
+          // Non-onboarding: ego dialogue 없이 cinematic (BOSS DEFEATED
+          // 2.2초) 후 trapdoor spawn 한다.
           setTimeout(() => {
             spawnTrapdoorEntity();
           }, 2500);
@@ -6198,19 +2600,19 @@ export class ItemWorldScene extends Scene {
       }
     }
 
-    // DEC-039 ??A: 蹂댁뒪 泥섏튂 ???ы꽭 ?뚰봽 遺꾧린 ?쒓굅?? ?뚮젅?댁뼱??down exit
-    // ?쇰줈 ?먯뿰?ㅻ읇寃??ㅼ쓬 stratum ?쇰줈 嫄몄뼱媛꾨떎.
+    // DEC-039 — A: 플레이어가 stratum 경계를 넘으면 down exit
+    // 로 다음 stratum 으로 전환한다.
 
-    // DEC-039 ??A: ?듭씪 醫뚰몴怨???totalGrid ?꾩껜濡?clamp.
+    // DEC-039 — A: 플레이어 좌표를 totalGrid 범위로 clamp.
     const totalCols = this.unifiedGrid.totalWidth;
     const totalRows = this.unifiedGrid.totalHeight;
     const playerRoomCol = Math.max(0, Math.min(totalCols - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
     const playerAbsRow = Math.max(0, Math.min(totalRows - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     const roomKey = `${playerRoomCol},${playerAbsRow}`;
 
-    // DEC-039 ??A: stratum 寃쎄퀎 媛濡쒖?瑜닿린 媛먯? ?????諛붾??뚮쭏???됯??섍퀬,
-    // stratumIndex 媛 蹂?섎㈃ DEPTH ?좎뒪??+ progress 媛깆떊. ?щ갑臾??쒖뿉???좎뒪?멸?
-    // ?좎빞 ?섎?濡?spawn-once 媛??諛붽묑???붾떎.
+    // DEC-039 — A: stratum 전환 시 토스트로 알리고
+    // stratumIndex 갱신 + DEPTH 표시 + progress 저장.
+    // spawn-once 가드로 중복 spawn 을 막는다.
     const prevStratumIndex = this.currentStratumIndex;
     const cellAtCursor = this.unifiedGrid.cells[playerAbsRow]?.[playerRoomCol] ?? null;
     if (cellAtCursor && cellAtCursor.stratumIndex !== prevStratumIndex) {
@@ -6223,43 +2625,34 @@ export class ItemWorldScene extends Scene {
           this.progress.deepestUnlocked = this.currentStratumIndex;
         }
         this.progress.lastSafeStratum = this.currentStratumIndex;
-        // ?ъ슜??寃곗젙 (2026-05-04): progress ?곴뎄 ??????щ쭩 ???ъ쭊????stratum
-        // picker 媛 deepestUnlocked 源뚯? select 媛?ν븯寃? ?꾨씫?섎㈃ picker 媛 ????
-        // stratum 1 plaza 遺???쒖옉 ??蹂댁뒪 hole 蹂듦뎄濡?吏꾪뻾 留됲옒.
+        // (2026-05-04): progress 가 갱신되면 stratum
+        // picker 의 deepestUnlocked 선택 범위가 늘어난다.
+        // stratum 1 plaza 로의 hole 진행을 막지 않는다.
         this.persistRoomState();
       }
     }
 
     // Spawn enemies in this room if not yet spawned (first-ever visit)
-    if (!this.spawnedRooms.has(roomKey)) {
-      this.spawnedRooms.add(roomKey);
+    if (!this.roomSpawnState.hasSpawned(roomKey)) {
+      this.roomSpawnState.markSpawned(roomKey);
       this.currentCol = playerRoomCol;
       this.currentRow = playerAbsRow;
       const enteredCell = this.getCurrentCell();
       if (enteredCell) {
         enteredCell.visited = true;
         this.persistRoomState();
-        this.drawMiniMap();
-        // Track last non-boss / non-stratum-start room for first-entry respawn
-        const sOff = this.unifiedGrid.strataOffsets[this.currentStratumIndex];
-        const isStratumStart = sOff && playerAbsRow === sOff.rowOffset && enteredCell.onCriticalPath;
-        if (!isStratumStart && !this.isStratumEndRoom(this.currentCol, this.currentRow)) {
-          this.lastSafeRoomCol = this.currentCol;
-          this.lastSafeRoomRow = this.currentRow;
-        }
       }
       this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
 
-      // ?? Ego T05: first monster visible (fire on first room with enemies) ??
-      if (this.enemies.length > 0) {
+      // ----- Ego T05: first monster visible (fire on first room with enemies) -----
+      if (this.enemyRegistry.hasAny()) {
         this.fireEgoMonsterVisible();
       }
     }
 
     // Pre-spawn neighbors whenever player enters a DIFFERENT room.
-    if (this.lastPreSpawnRoomKey !== roomKey) {
-      this.lastPreSpawnRoomKey = roomKey;
-      this.preSpawnNeighborRooms(playerRoomCol, playerAbsRow);
+    if (this.roomSpawnState.shouldPreSpawnNeighbors(roomKey)) {
+      this.neighborPreSpawnRuntime.preSpawn(playerRoomCol, playerAbsRow);
     }
 
     // HUD, damage numbers, toast & Sakurai effects
@@ -6267,507 +2660,35 @@ export class ItemWorldScene extends Scene {
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
     this.hud.setBurnStatus(this.player.burnRemainingMs ?? 0, MAGMA_BURN_DURATION_MS);
-    this.updateOxygenOverlay();
+    this.oxygenOverlay.update(this.player);
     this.hud.setEgoShards(this.player.egoShardCount, 3, this.player.activeEnchant);
-    // Boss HP bar ? 援먯쟾 媛먯? 2以??몃━嫄?
-    //  1) FSM ?곹깭 ??idle/death
-    //  2) hp < maxHp ? superArmor 蹂댁뒪???寃⑺빐??FSM ??hit ?쇰줈 ?꾩씠?섏? ?딆쑝誘濡?
-    //     ?곕?吏 湲곕줉??吏곸젒 蹂몃떎.
-    const activeBoss = this.enemies.find(e => (e as any)._isBoss && e.alive);
-    if (activeBoss) {
-      const st = activeBoss.fsm.currentState;
-      const fsmEngaged = st !== null && st !== 'idle' && st !== 'death';
-      const wasHit = activeBoss.hp < activeBoss.maxHp;
-      const engaged = fsmEngaged || wasHit;
-      if (engaged && !(activeBoss as any)._bossBarShown) {
-        (activeBoss as any)._bossBarShown = true;
-        this.hud.showBossHP((activeBoss as any).enemyType ?? t('ui.hud.boss_default'), activeBoss.hp, activeBoss.maxHp);
-      }
-      if ((activeBoss as any)._bossBarShown) {
-        this.hud.updateBossHP(activeBoss.hp);
-      }
-    }
+    // Boss HP bar — 다음 2 조건일 때 표시한다.
+    //  1) FSM 상태가 idle/death 가 아님
+    //  2) hp < maxHp 또는 superArmor 중. FSM 의 hit 상태에서도 표시한다.
+    //     보스 데미지 시 표시한다.
+    this.bossHpRuntime.update();
     this.hud.update(dt);
-    this.updateHudText();
+    this.hudRuntime.updateText();
     this.dmgNumbers.update(dt);
     this.hitSparks.update(dt);
     this.propShatter.update(dt);
     this.deathParticles.update(dt);
-    this.updateCaptureOrbs(dt);
-    this._updateStratumClearPanel(dt);
+    this.captureOrbRuntime.update(dt);
+    this.stratumClearPanelRuntime.updateInput();
     this.screenFlash.update(dt);
 
     // Movement VFX (consume player one-shot events + trail updates)
     this.updateMovementVfx(dt);
 
-    // DEC-039 ??A: ?뚮젅?댁뼱瑜??듭씪 醫뚰몴 ?꾩껜濡?clamp.
-    const mapW = this.unifiedGrid.totalWidth * IW_ROOM_W_PX;
-    const mapH = this.unifiedGrid.totalHeight * IW_ROOM_H_PX;
-    if (this.player.x < 0) this.player.x = 0;
-    if (this.player.y < 0) this.player.y = 0;
-    if (this.player.x > mapW - this.player.width) this.player.x = mapW - this.player.width;
-    if (this.player.y > mapH - this.player.height) this.player.y = mapH - this.player.height;
-
-    // Camera
-    this.game.camera.target = {
-      x: this.player.x + this.player.width / 2,
-      y: this.player.y + this.player.height / 2,
-    };
-    const playerIdle = this.player.fsm.currentState === 'idle'
-      && Math.abs(this.player.vx) < 1 && this.player.hp > 0;
-    const lookUp = this.game.input.isDown(GameAction.LOOK_UP);
-    const lookDown = this.game.input.isDown(GameAction.LOOK_DOWN);
-    const wantLook = playerIdle && (lookUp || lookDown);
-    if (wantLook) {
-      this.lookHoldTimer += dt;
-    } else {
-      this.lookHoldTimer = 0;
-    }
-    const LOOK_HOLD_THRESHOLD = 400;
-    this.game.camera.lookDirection = (wantLook && this.lookHoldTimer >= LOOK_HOLD_THRESHOLD)
-      ? (lookUp ? -1 : 1)
-      : 0;
-    this.game.camera.update(dt);
+    // DEC-039 — A: 카메라를 totalGrid 범위로 clamp.
+    this.cameraRuntime.update(dt);
   }
 
-  /**
-   * Drain player VFX one-shot events and tick the per-frame trails
-   * (landing dust / dash afterimage / dash boost / double jump / wall jump).
-   */
   private updateMovementVfx(dt: number): void {
-    const p = this.player;
+    this.movementVfxRuntime.update(dt);
 
-    const landedSpeed = p.consumeLandedEvent();
-    if (landedSpeed !== null) {
-      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
-      // Land thud ???숉븯 ?띾룄媛 ?섎? ?덉쓣 ?뚮쭔 (?묒? ?먰봽 ??李⑹? noise ?뚰뵾).
-      // 臾닿굅???숉븯?쇱닔濡?slower playback (deeper pitch) 濡?臾듭쭅???먮굦.
-      if (landedSpeed > 120) {
-        const t = Math.min(1, (landedSpeed - 120) / 380);
-        SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
-      }
-    }
-    const dashDir = p.consumeDashedEvent();
-    if (dashDir !== null) {
-      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
-    }
-    if (p.consumeDoubleJumpEvent()) {
-      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-    const kickDir = p.consumeWallJumpEvent();
-    if (kickDir !== null) {
-      const wallX = kickDir > 0 ? p.x : p.x + p.width;
-      const wallY = p.y + p.height * 0.45;
-      this.wallJumpDust.spawn(wallX, wallY, kickDir);
-    }
-
-    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
-      x: p.x, y: p.y, w: p.width, h: p.height,
-      facingRight: p.facingRight,
-      texture: p.getCurrentErdaTexture(),
-      spriteCenterX: p.x + p.width / 2,
-      spriteFootY: p.y + p.height,
-    }));
-
-    // --- Batch B ---
-    if (p.consumeGroundJumpEvent()) {
-      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-    // (Drop-through handled in Batch D section below)
-    if (p.isWallSliding()) {
-      const wallSide = p.wallContactDir();
-      const wallX = wallSide < 0 ? p.x : p.x + p.width;
-      const outDir = -wallSide;
-      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
-    }
-    if (this.footstepPuff.stepIfMoving(
-      dt, p.isGrounded(),
-      p.x + p.width / 2, p.y + p.height,
-      p.getVx(), p.facingRight,
-    )) {
-      SFX.play('footstep', 0, { speed: 0.92 + Math.random() * 0.16 });
-    }
-    if (p.isSurgeCharging()) {
-      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
-    } else if (p.isSurgeFlying()) {
-      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
-    } else {
-      this.surgeVfx.idleTick(dt);
-    }
-
-    // --- Batch C ---
-    const hitDir = p.consumePlayerHitEvent();
-    if (hitDir !== null) {
-      this.hitBloodSpray.spawn(p.x + p.width / 2, p.y + p.height * 0.4, hitDir);
-    }
-
-    // --- Batch D ---
-    if (p.diveLanded) {
-      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
-    } else if (landedSpeed !== null && landedSpeed > 520) {
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
-    }
-    const waterT = p.consumeWaterTransitionEvent();
-    if (waterT !== null) {
-      const strength = waterT > 0 ? 1.0 : 0.8;
-      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength);
-      const impulseVy = waterT > 0 ? Math.max(80, p.getVy()) : -120;
-      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
-    }
-    // ?? Residue trail timers (oil/acid/magma) ???????????????????????????
-    const playerWaterfallType = this.fluidSpawners.queryFluidAtAabb(p.x, p.y, p.width, p.height, this.fullGrid);
-    const inOil_   = isInOil  (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'oil';
-    const inAcid_  = isInAcid (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'acid';
-    const inMagma_ = isInMagma(p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'magma';
-    const inCyro_  = isInCyro (p.x, p.y, p.width, p.height, this.fullGrid) || playerWaterfallType === 'cyro';
-    // Non-water fluid entry / exit splash ??same impulse pattern as water.
-    const inAnyOther = inMagma_ || inOil_ || inAcid_ || inCyro_;
-    if (inAnyOther !== this.prevPlayerInOtherFluid) {
-      const type: 'magma' | 'oil' | 'acid' | 'cyro' = inCyro_ ? 'cyro' : inOil_ ? 'oil' : inAcid_ ? 'acid' : 'magma';
-      const strength = inAnyOther ? 1.0 : 0.8;
-      this.waterSplash.spawn(p.x + p.width / 2, p.y + p.height, strength, type);
-      const impulseVy = inAnyOther ? Math.max(80, p.getVy()) : -120;
-      this.fluidSystem.applyImpulse(p.x + p.width / 2, p.y + p.height, impulseVy);
-      if (inAnyOther && inMagma_) {
-        this.steamPuff.spawn(p.x + p.width / 2, p.y + p.height, 1.2);
-      }
-      this.prevPlayerInOtherFluid = inAnyOther;
-    }
-    if (inOil_) {
-      p.oilSlipRemainingMs = OIL_SLIP_DURATION_MS;
-      p.oilResidueRemainingMs = OIL_RESIDUE_DURATION_MS;
-    } else {
-      if (p.oilSlipRemainingMs > 0) p.oilSlipRemainingMs = Math.max(0, p.oilSlipRemainingMs - dt);
-      if (p.oilResidueRemainingMs > 0) p.oilResidueRemainingMs = Math.max(0, p.oilResidueRemainingMs - dt);
-    }
-    p.prevInOil = inOil_;
-    if (inAcid_)  p.acidResidueRemainingMs = ACID_RESIDUE_DURATION_MS;
-    else if (p.acidResidueRemainingMs > 0) p.acidResidueRemainingMs = Math.max(0, p.acidResidueRemainingMs - dt);
-    p.prevInAcid = inAcid_;
-    if (inMagma_) p.magmaResidueRemainingMs = MAGMA_RESIDUE_DURATION_MS;
-    else if (p.magmaResidueRemainingMs > 0) p.magmaResidueRemainingMs = Math.max(0, p.magmaResidueRemainingMs - dt);
-    p.prevInMagma = inMagma_;
-
-    // Water/Cyro ?쒓컖-only residue (2026-05-18).
-    if (p.inWater) p.waterResidueRemainingMs = WATER_RESIDUE_DURATION_MS;
-    else if (p.waterResidueRemainingMs > 0) p.waterResidueRemainingMs = Math.max(0, p.waterResidueRemainingMs - dt);
-
-    if (inCyro_) p.cyroResidueRemainingMs = CYRO_RESIDUE_DURATION_MS;
-    else if (p.cyroResidueRemainingMs > 0) p.cyroResidueRemainingMs = Math.max(0, p.cyroResidueRemainingMs - dt);
-    p.prevInCyro = inCyro_;
-
-    const footX = p.x + p.width / 2;
-    const footY = p.y + p.height;
-    const grounded = p.isGrounded();
-    this.fluidResidue.emit('oil',   footX, footY, p.oilResidueRemainingMs > 0, grounded, p.oilResidueRemainingMs / OIL_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('acid',  footX, footY, p.acidResidueRemainingMs > 0, grounded, p.acidResidueRemainingMs / ACID_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('magma', footX, footY, p.magmaResidueRemainingMs > 0, grounded, p.magmaResidueRemainingMs / MAGMA_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('water', footX, footY, p.waterResidueRemainingMs > 0, grounded, p.waterResidueRemainingMs / WATER_RESIDUE_DURATION_MS);
-    this.fluidResidue.emit('cyro',  footX, footY, p.cyroResidueRemainingMs > 0, grounded, p.cyroResidueRemainingMs / CYRO_RESIDUE_DURATION_MS);
-
-    this.fluidResidue.applyEffects(p.x, p.y, p.width, p.height, {
-      refreshOilSlip: (_remainingMs) => {
-        // No-op (2026-05-17): residue blot ??player ?꾩씠 李⑤떒. 諛쒖옄援??먭?-?ъ삤??
-        // 猷⑦봽濡?"諛쒕컮??湲곕쫫???곸썝?????щ씪吏?? 踰꾧렇 ?쎌뒪. TILE_OIL ?먮낯留??꾩씠.
-      },
-      onAcidContact: () => {
-        let acc = p.acidTickAccum ?? 0;
-        acc += dt;
-        while (acc >= 100) {
-          acc -= 100;
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.005));
-          if (!p.invincible) p.hp = Math.max(0, p.hp - dmg);
-        }
-        p.acidTickAccum = acc;
-      },
-      onMagmaContact: () => {
-        if (p.inWater) {
-          p.extinguishFireDebuffs();
-          return;
-        }
-        const wasBurning = (p.burnRemainingMs ?? 0) > 0;
-        p.burnRemainingMs = 15000;
-        if (!wasBurning && !p.invincible) {
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.02));
-          p.hp = Math.max(0, p.hp - dmg);
-        }
-      },
-      onFireContact: () => {
-        if (p.inWater) {
-          p.extinguishFireDebuffs();
-          return;
-        }
-        if (!p.invincible) {
-          const dmg = Math.max(1, Math.floor(p.maxHp * 0.03 * (dt / 1000)));
-          p.hp = Math.max(0, p.hp - dmg);
-        }
-        p.burnRemainingMs = Math.max(p.burnRemainingMs ?? 0, 10000);
-      },
-    });
-    if (p.inWater) p.extinguishFireDebuffs();
-    this.waterBubbles.emit(p.x + p.width / 2, p.y + p.height * 0.35, dt, p.submerged);
-    if (p.consumeDropThroughEvent()) {
-      this.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
-    }
-    this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
-
-    // --- Enemies: ?섍꼍 VFX ?ъ궗??(water/ice + land/jump dust) ---
-    for (let i = 0; i < this.enemies.length; i++) {
-      const e = this.enemies[i];
-      if (!e.alive) continue;
-      const ex = e.x + e.width / 2;
-      const ey = e.y + e.height;
-      if (e.waterTransition !== 0) {
-        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength, 'water');
-        const impulseVy = e.waterTransition > 0 ? 150 : -100;
-        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
-      }
-      // Non-water fluid transition for enemies (magma/oil/acid).
-      const eInOther = isInMagma(e.x, e.y, e.width, e.height, this.fullGrid)
-                    || isInOil  (e.x, e.y, e.width, e.height, this.fullGrid)
-                    || isInAcid (e.x, e.y, e.width, e.height, this.fullGrid);
-      const ePrevOther = this.prevEnemyInOtherFluid[i] ?? false;
-      if (eInOther !== ePrevOther) {
-        let type: 'magma' | 'oil' | 'acid' = 'magma';
-        if (isInOil (e.x, e.y, e.width, e.height, this.fullGrid)) type = 'oil';
-        else if (isInAcid(e.x, e.y, e.width, e.height, this.fullGrid)) type = 'acid';
-        const strength = eInOther ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength, type);
-        const impulseVy = eInOther ? 150 : -100;
-        this.fluidSystem.applyImpulse(ex, ey, impulseVy);
-        this.prevEnemyInOtherFluid[i] = eInOther;
-      }
-      const key = `enemy_${i}`;
-      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
-      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
-      const eLanded = e.consumeLandedEvent();
-      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
-      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
-
-      // Residue contact effects ??element multiplier per source.
-      if (e.oilSlipRemainingMs > 0) e.oilSlipRemainingMs = Math.max(0, e.oilSlipRemainingMs - dt);
-      const eAcidM2  = e.elementMultiplier('acid');
-      const eMagmaM2 = e.elementMultiplier('magma');
-      const eFireM2  = e.elementMultiplier('fire');
-      this.fluidResidue.applyEffects(e.x, e.y, e.width, e.height, {
-        refreshOilSlip: (remainingMs) => {
-          e.oilSlipRemainingMs = Math.max(e.oilSlipRemainingMs, remainingMs);
-        },
-        onAcidContact: () => {
-          if (eAcidM2 <= 0) return;
-          let acc = e.acidTickAccum;
-          acc += dt;
-          let totalDmg = 0;
-          while (acc >= 100) {
-            acc -= 100;
-            const dmg = Math.max(1, Math.floor(e.maxHp * 0.005 * eAcidM2));
-            e.hp = Math.max(0, e.hp - dmg);
-            totalDmg += dmg;
-          }
-          e.acidTickAccum = acc;
-          if (totalDmg > 0) {
-            e.showHpBarFlash();
-            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, totalDmg, false);
-          }
-          if (e.hp <= 0) e.onDeath();
-        },
-        onMagmaContact: () => {
-          if (eMagmaM2 <= 0) return;
-          const wasBurning = e.burnRemainingMs > 0;
-          e.burnRemainingMs = 15000;
-          if (!wasBurning) {
-            const dmg = Math.max(1, Math.floor(e.maxHp * 0.02 * eMagmaM2));
-            e.hp = Math.max(0, e.hp - dmg);
-            e.showHpBarFlash();
-            this.dmgNumbers.spawn(e.x + e.width / 2, e.y - 8, dmg, false);
-            if (e.hp <= 0) e.onDeath();
-          }
-        },
-        onFireContact: () => {
-          if (eFireM2 <= 0) return;
-          const dmg = Math.max(1, Math.floor(e.maxHp * 0.03 * eFireM2 * (dt / 1000)));
-          e.hp = Math.max(0, e.hp - dmg);
-          e.burnRemainingMs = Math.max(e.burnRemainingMs, 10000);
-          if (e.hp <= 0) e.onDeath();
-        },
-      });
-    }
-
-    this.landingDust.update(dt);
-    this.dashBoostPuff.update(dt);
-    this.doubleJumpRing.update(dt);
-    this.wallJumpDust.update(dt);
-    this.jumpTakeoff.update(dt);
-    this.wallSlideDust.update(dt);
-    this.footstepPuff.update(dt);
-    this.flaskBurst.update(dt);
-    this.criticalHighlight.update(dt);
-    this.hitBloodSpray.update(dt);
-    this.diveLandImpact.update(dt);
-    this.waterSplash.update(dt);
-    this.steamPuff.update(dt);
-    this.fluidResidue.update(dt);
-    // Throwable containers: gravity + impact paint (ItemWorld uses fullGrid).
-    const isContainerFluidCell = (gx: number, gy: number): boolean => {
-      const t = this.fullGrid[gy]?.[gx] ?? 0;
-      return t === 2 || t === 6 || t === 8 || t === 11 || t === 13 || t === 20;
-    };
-    const isContainerSolidCellFor = (c: ThrowableContainer) => (gx: number, gy: number): boolean => {
-      const t = this.fullGrid[gy]?.[gx] ?? 0;
-      if (t === 1 || t === 3 || t === 7 || t === 9 || t === 12 || t === 15) return true;
-      return c.isWoodFamily() && isContainerFluidCell(gx, gy);
-    };
-    const containerOverlapsFluid = (c: ThrowableContainer): boolean => {
-      const left = Math.floor(c.colX / 16);
-      const right = Math.floor((c.colX + c.colW - 1) / 16);
-      const top = Math.floor(c.colY / 16);
-      const bottom = Math.floor((c.colY + c.colH - 1) / 16);
-      for (let gy = top; gy <= bottom; gy++) {
-        for (let gx = left; gx <= right; gx++) {
-          if (isContainerFluidCell(gx, gy)) return true;
-        }
-      }
-      return false;
-    };
-    const env = {
-      isAcidCell:  (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 13,
-      isMagmaCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 6,
-      isFireCell:  (gx: number, gy: number) => this.tileMutator.aabbHasOverlay(gx * 16, gy * 16, 16, 16, 'fire'),
-      // R-NEW-049/050/051/052/053: ?좉퇋 ?섍꼍 ?몄텧 hook
-      isWaterCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 2,
-      isOilCell:   (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 11,
-      isFrozenOrIceCell: (gx: number, gy: number) =>
-        (this.fullGrid[gy]?.[gx] ?? 0) === 7 || this.tileMutator.isFrozen(gx, gy),
-      isChargedCell: (gx: number, gy: number) => (this.fullGrid[gy]?.[gx] ?? 0) === 8,
-    };
-    for (let i = this.containers.length - 1; i >= 0; i--) {
-      const c = this.containers[i];
-      const envImpact = c.tickEnvironment(dt, env);
-      if (envImpact) {
-        if (containerOverlapsFluid(c)) {
-          this.paintContainerImpact(c.kind, envImpact.gx, envImpact.gy, c.fluidVolume);
-        }
-        this.applyContainerEffectToFluid(c);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        continue;
-      }
-      const impact = c.update(dt, isContainerSolidCellFor(c), this.containers, isContainerFluidCell);
-      if (impact) {
-        this.paintContainerImpact(c.kind, impact.gx, impact.gy, c.fluidVolume);
-        this.destroyContainerWithVFX(c);
-        this.containers.splice(i, 1);
-        continue;
-      }
-      this.applyContainerEffectToFluid(c);
-    }
-    // ?? Thrown container 횞 enemy impact (one hit per throw) ??
-    this.checkThrownContainerEnemyHit();
-    // ?? Enemy ??container collision (stack / block, no damage) ??
-    for (const e of this.enemies) {
-      if (!e.alive) continue;
-      for (const c of this.containers) {
-        if (c.destroyed || c.held) continue;
-        const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
-        const ex0 = e.x, ey0 = e.y, ex1 = e.x + e.width, ey1 = e.y + e.height;
-        if (ex1 <= cx0 || ex0 >= cx1 || ey1 <= cy0 || ey0 >= cy1) continue;
-        const oL = ex1 - cx0;
-        const oR = cx1 - ex0;
-        const oT = ey1 - cy0;
-        const oB = cy1 - ey0;
-        const minE = Math.min(oL, oR, oT, oB);
-        if (minE === oT) {
-          e.y = cy0 - e.height;
-          if (e.vy > 0) e.vy = 0;
-        } else if (minE === oB) {
-          c.y -= oB;
-          if (c.vy > 0) c.vy = 0;
-          c.container.x = c.x; c.container.y = c.y;
-          if (e.vy < 0) e.vy = 0;
-        } else if (minE === oL) {
-          e.x = cx0 - e.width;
-          if (e.vx > 0) e.vx = 0;
-        } else if (minE === oR) {
-          e.x = cx1;
-          if (e.vx < 0) e.vx = 0;
-        }
-      }
-    }
-    // Player ??container resolve (same as world scene). Uses collision rect.
-    const p2 = this.player;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      const cx0 = c.colX, cy0 = c.colY, cx1 = c.colX + c.colW, cy1 = c.colY + c.colH;
-      const px0 = p2.x, py0 = p2.y, px1 = p2.x + p2.width, py1 = p2.y + p2.height;
-      if (px1 <= cx0 || px0 >= cx1 || py1 <= cy0 || py0 >= cy1) continue;
-      const overlapLeft   = px1 - cx0;
-      const overlapRight  = cx1 - px0;
-      const overlapTop    = py1 - cy0;
-      const overlapBottom = cy1 - py0;
-      const min = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-      if (min === overlapTop) {
-        p2.y = cy0 - p2.height;
-        if (p2.getVy() > 0) p2.vy = 0;
-        p2.forceGrounded(true, 'container');
-      } else if (min === overlapBottom) {
-        // Container above ??push container UP (never bury player into floor).
-        c.y -= overlapBottom;
-        if (c.vy > 0) c.vy = 0;
-        c.container.x = c.x;
-        c.container.y = c.y;
-        if (p2.getVy() < 0) p2.vy = 0;
-      } else if (min === overlapLeft) {
-        if (Math.abs(p2.getVx()) > 20) {
-          const newX = c.x + Math.max(0, overlapLeft - 1);
-          if (this.canContainerOccupyX(c, newX)) {
-            c.x = newX;
-            c.container.x = c.x;
-          }
-        }
-        p2.x = cx0 - p2.width;
-      } else if (min === overlapRight) {
-        if (Math.abs(p2.getVx()) > 20) {
-          const newX = c.x - Math.max(0, overlapRight - 1);
-          if (this.canContainerOccupyX(c, newX)) {
-            c.x = newX;
-            c.container.x = c.x;
-          }
-        }
-        p2.x = cx1;
-      }
-    }
-    this.flushContainerFluidChanges();
-    // Ego shards: flight + impact + retrieval (uses fullGrid for solid check).
-    this.egoShard.update(
-      dt,
-      (info) => this.onEgoShardImpact(info.x, info.y, info.element),
-      (x, y) => {
-        const gx = Math.floor(x / 16);
-        const gy = Math.floor(y / 16);
-        const t = this.fullGrid[gy]?.[gx] ?? 0;
-        return t === 1 || t === 7 || t === 9 || t === 12 || t === 15;
-      },
-      (x, y, element) => this.checkShardEnemyHit(x, y, element) || this.checkShardContainerHit(x, y),
-    );
-    this.flushContainerFluidChanges();
-    const pad = 24;
-    const retrieved = this.egoShard.retrieveInAABB(
-      this.player.x - pad,
-      this.player.y - pad,
-      this.player.width + pad * 2,
-      this.player.height + pad * 2,
-    );
-    for (let i = 0; i < retrieved; i++) {
-      const cd = this.player.shardCooldowns;
-      if (cd.length > 0) {
-        let maxIdx = 0;
-        for (let j = 1; j < cd.length; j++) if (cd[j] > cd[maxIdx]) maxIdx = j;
-        cd.splice(maxIdx, 1);
-      }
-      this.player.egoShardCount = Math.min(this.player.egoShardCount + 1, EGO_SHARD_MAX);
-    }
+    this.containerPhysicsRuntime.update(dt);
+    this.egoShardProjectileRuntime.update(dt);
     this.waterBubbles.update(dt);
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
@@ -6776,437 +2697,11 @@ export class ItemWorldScene extends Scene {
     this.lowHpVignette.update(dt, hpRatio);
   }
 
-  private getClearedStrataFlags(): boolean[] {
-    const totalStrata = this.strataConfig.strata.length;
-    const cleared: boolean[] = [];
-    for (let i = 0; i < totalStrata; i++) {
-      const endRoom = this.unifiedGrid.stratumEndRooms.find(e => e.stratumIndex === i);
-      if (endRoom) {
-        const cell = this.unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
-        cleared.push(
-          (cell?.cleared ?? false) ||
-          !!this.progress.bossPortals?.[String(i)] ||
-          this.progress.deepestUnlocked > i,
-        );
-      } else {
-        cleared.push(false);
-      }
-    }
-    return cleared;
-  }
-
-  private restoreGameplayHud(): void {
-    this.hud.container.visible = true;
-    this.hud.hideBossHP();
-    this.hud.showDepthGauge(
-      this.strataConfig.strata.length,
-      this.currentStratumIndex,
-      this.getClearedStrataFlags(),
-    );
-    this.hud.showItemExp(
-      getDisplayName(this.item),
-      RARITY_COLOR[this.item.rarity],
-      this.item.level,
-      this.item.exp,
-      EXP_PER_LEVEL,
-    );
-    this.updateHudText();
-  }
-
-  private updateHudText(): void {
-    const cycleTag = this.progress.cycle > 0 ? `C${this.progress.cycle} ` : '';
-    const dbg = `[r=${this.item.rarity} cy=${this.progress.cycle} deep=${this.progress.deepestUnlocked} clr=${this.progress.clearedRooms.length}]`;
-    const buffDbg = new URLSearchParams(window.location.search).get('debug') === '1'
-      ? ` ${formatActivePlayerBuffsDebug()}`
-      : '';
-    this.hud.setFloorText(
-      `${cycleTag}${getDisplayName(this.item)} Lv${this.item.level} EXP:${this.item.exp}/${EXP_PER_LEVEL} +${this.earnedExp} ${dbg}${buffDbg}`
-    );
-
-    // Update depth gauge
-    const cleared = this.getClearedStrataFlags();
-    this.hud.updateDepthGauge(this.currentStratumIndex, cleared);
-  }
-
-  private showEscapeConfirm(): void {
-    this.uiController.showEscapeConfirm({
-      hudSkin: this.hudSkin,
-      itemName: getDisplayName(this.item),
-      itemLevel: this.item.level,
-      itemExp: this.item.exp,
-      expPerLevel: EXP_PER_LEVEL,
-      roomsCleared: this.roomsCleared,
-      totalRooms: this.totalRooms,
-      earnedExp: this.earnedExp,
-      earnedGold: this.earnedGold,
-      prompts: {
-        exitPrompt: null,
-      },
-    });
-  }
-
-  private hideEscapeConfirm(): void {
-    this.uiController.hideEscapeConfirm();
-  }
-
   // ---------------------------------------------------------------------------
   // Stratum picker ? choose starting stratum on re-entry (after first clear)
   // ---------------------------------------------------------------------------
 
-  private showStratumPicker(maxSelectable: number): void {
-    this.stratumPickerVisible = true;
-    this.stratumPickerMax = Math.max(1, Math.min(maxSelectable, this.strataConfig.strata.length));
-    // Default selection = deepest unlocked stratum (?ъ슜??寃곗젙 2026-05-04).
-    // ?щ쭩 ???ъ쭊?????ъ슜?먭? ???????뚮윭??媛??源딆씠 ?꾨떖??plaza 濡??먮룞
-    // 媛?꾨줉. stratum 1 default ?????蹂댁뒪 hole 蹂듦뎄濡?吏꾪뻾 留됲삍??
-    this.stratumPickerSelection = Math.min(
-      this.progress.deepestUnlocked,
-      this.stratumPickerMax - 1,
-    );
-    this.stratumPickerPulseTimer = 0;
-    this.drawStratumPicker();
-  }
 
-  private drawStratumPicker(): void {
-    if (this.stratumPicker?.parent) {
-      this.stratumPicker.parent.removeChild(this.stratumPicker);
-    }
-    this.stratumPicker?.destroy({ children: true });
-    this.stratumPickerPulseG = null;
-    this.stratumPickerPulseRect = null;
-
-    const totalStrata = this.strataConfig.strata.length;
-    const rowHeaderH = 12;
-    const rowsH = totalStrata * STRATUM_PICKER_ROW_H + Math.max(0, totalStrata - 1) * STRATUM_PICKER_ROW_GAP;
-    const contentH = Math.max(104, rowHeaderH + rowsH);
-    const panelH = STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H + 6 + contentH + 8 + STRATUM_PICKER_FOOTER_H + STRATUM_PICKER_PAD;
-
-    const root = new Container();
-    const dim = new Graphics();
-    dim.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.5 });
-    root.addChild(dim);
-
-    const panel = new Container();
-    panel.x = Math.floor((GAME_WIDTH - STRATUM_PICKER_W) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
-    root.addChild(panel);
-
-    const frame = this.hudSkin?.isLoaded ? create9SlicePanel(this.hudSkin, STRATUM_PICKER_W, panelH) : null;
-    if (frame) { panel.addChild(frame); } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, STRATUM_PICKER_W, panelH).fill({ color: 0x1a1a2e, alpha: 0.96 });
-      bg.rect(0, 0, STRATUM_PICKER_W, panelH).stroke({ color: STRATUM_PICKER_COL_BORDER, width: 1 });
-      panel.addChild(bg);
-    }
-
-    const rarityColor = RARITY_COLOR[this.item.rarity] ?? 0xffffff;
-    this.addStratumPickerText(panel, 'SELECT ITEM WORLD START', STRATUM_PICKER_PAD, 8, 10, 0xffffff);
-    const cycleTag = this.progress.cycle > 0 ? ` / CYCLE ${this.progress.cycle}` : '';
-    this.addStratumPickerText(
-      panel,
-      `${getDisplayName(this.item)} / ${this.item.rarity.toUpperCase()} / Lv.${this.item.level}${cycleTag}`,
-      STRATUM_PICKER_PAD,
-      23,
-      7,
-      rarityColor,
-      360,
-    );
-    const depthText = this.addStratumPickerText(
-      panel,
-      `${this.stratumPickerMax} / ${totalStrata} STRATA`,
-      0,
-      23,
-      7,
-      STRATUM_PICKER_COL_ACCENT,
-    );
-    depthText.x = STRATUM_PICKER_W - STRATUM_PICKER_PAD - depthText.width;
-
-    const headerLine = new Graphics();
-    headerLine.moveTo(STRATUM_PICKER_PAD, STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H - 1);
-    headerLine.lineTo(STRATUM_PICKER_W - STRATUM_PICKER_PAD, STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H - 1);
-    headerLine.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
-    panel.addChild(headerLine);
-
-    const contentY = STRATUM_PICKER_PAD + STRATUM_PICKER_HEADER_H + 6;
-    const listX = STRATUM_PICKER_PAD;
-    const listY = contentY + rowHeaderH;
-    const detailX = listX + STRATUM_PICKER_LIST_W + 14;
-
-    this.addStratumPickerText(panel, t('iw.picker.memory_strata'), listX, contentY, 7, STRATUM_PICKER_COL_MUTED);
-
-    for (let i = 0; i < totalStrata; i++) {
-      const y = listY + i * (STRATUM_PICKER_ROW_H + STRATUM_PICKER_ROW_GAP);
-      this.drawStratumPickerRow(panel, i, listX, y, STRATUM_PICKER_LIST_W);
-    }
-
-    const selectedY = listY + this.stratumPickerSelection * (STRATUM_PICKER_ROW_H + STRATUM_PICKER_ROW_GAP);
-    this.stratumPickerPulseG = new Graphics();
-    this.stratumPickerPulseG.x = listX;
-    this.stratumPickerPulseG.y = selectedY;
-    panel.addChild(this.stratumPickerPulseG);
-    this.stratumPickerPulseRect = { x: listX, y: selectedY, w: STRATUM_PICKER_LIST_W, h: STRATUM_PICKER_ROW_H };
-    this.redrawStratumPickerPulse();
-
-    const detailDivider = new Graphics();
-    detailDivider.moveTo(detailX - 9, contentY);
-    detailDivider.lineTo(detailX - 9, contentY + contentH - 2);
-    detailDivider.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
-    panel.addChild(detailDivider);
-
-    this.drawStratumPickerDetail(panel, detailX, contentY, STRATUM_PICKER_DETAIL_W, contentH);
-
-    const footerLine = new Graphics();
-    const footerY = panelH - STRATUM_PICKER_PAD - STRATUM_PICKER_FOOTER_H - 2;
-    footerLine.moveTo(STRATUM_PICKER_PAD, footerY);
-    footerLine.lineTo(STRATUM_PICKER_W - STRATUM_PICKER_PAD, footerY);
-    footerLine.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
-    panel.addChild(footerLine);
-    this.drawStratumPickerControls(panel, STRATUM_PICKER_PAD, footerY + 8);
-
-    this.stratumPicker = root;
-    this.game.legacyUIContainer.addChild(root);
-  }
-
-  private drawStratumPickerRow(parent: Container, index: number, x: number, y: number, w: number): void {
-    const isSelected = index === this.stratumPickerSelection;
-    const isLocked = index >= this.stratumPickerMax;
-    const cleared = this.getClearedStrataFlags()[index] ?? false;
-    const stratumDef = this.strataConfig.strata[index];
-    const row = new Graphics();
-    row.x = x;
-    row.y = y;
-
-    if (isSelected) {
-      drawSelectionRow(row, w, STRATUM_PICKER_ROW_H);
-    } else if (isLocked) {
-      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).fill({ color: 0x000000, alpha: 0.18 });
-      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).stroke({ color: 0x2a2a3e, width: 1, alpha: 0.7 });
-    } else if (cleared) {
-      row.rect(0, 0, w, STRATUM_PICKER_ROW_H).fill({ color: STRATUM_PICKER_COL_POSITIVE, alpha: 0.05 });
-    }
-    parent.addChild(row);
-
-    if (isSelected) {
-      const left = new BitmapText({ text: '\u25B6', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR } });
-      left.x = x + 4;
-      left.y = y + 4;
-      parent.addChild(left);
-      const right = new BitmapText({ text: '\u25C0', style: { fontFamily: PIXEL_FONT, fontSize: 10, fill: ROW_CHEVRON_COLOR } });
-      right.x = x + w - 11;
-      right.y = y + 4;
-      parent.addChild(right);
-    }
-
-    const leftBadge = isLocked
-      ? t('iw.picker.lock')
-      : (isSelected ? t('iw.picker.start') : (cleared ? t('iw.picker.clear') : t('iw.picker.open')));
-    const leftBadgeColor = isLocked ? STRATUM_PICKER_COL_LOCKED : (cleared && !isSelected ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_ACCENT);
-    this.drawStratumPickerBadge(parent, x + 20, y + 3, STRATUM_PICKER_BADGE_W, leftBadge, leftBadgeColor, isLocked);
-
-    const nameColor = isLocked
-      ? STRATUM_PICKER_COL_MUTED
-      : isSelected
-        ? 0xffffff
-        : cleared
-          ? STRATUM_PICKER_COL_POSITIVE
-          : STRATUM_PICKER_COL_DIM;
-    const suffix = isLocked ? 'Locked' : cleared ? 'Gate Restored' : 'Open';
-    this.addStratumPickerText(parent, `Stratum ${index + 1} - ${suffix}`, x + 60, y + 5, 8, nameColor, 150);
-
-    this.addStratumPickerText(
-      parent,
-      `HP x${stratumDef.hpMul.toFixed(1)}`,
-      x + w - 98,
-      y + 5,
-      7,
-      isLocked ? STRATUM_PICKER_COL_MUTED : STRATUM_PICKER_COL_TEXT,
-      54,
-    );
-
-    const rightBadge = isLocked ? 'LOCK' : (cleared ? 'GATE' : 'OPEN');
-    const rightBadgeColor = isLocked ? STRATUM_PICKER_COL_LOCKED : (cleared ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_ACCENT);
-    this.drawStratumPickerBadge(parent, x + w - 42, y + 3, STRATUM_PICKER_RIGHT_BADGE_W, rightBadge, rightBadgeColor, isLocked);
-  }
-
-  private drawStratumPickerDetail(parent: Container, x: number, y: number, w: number, h: number): void {
-    const index = this.stratumPickerSelection;
-    const def = this.strataConfig.strata[index];
-    const cleared = this.getClearedStrataFlags()[index] ?? false;
-    const gateReady = cleared || !!this.progress.bossPortals?.[String(index)];
-    const title = this.addStratumPickerText(parent, `STRATUM ${index + 1}`, x, y, 10, STRATUM_PICKER_COL_ACCENT);
-    title.x = x;
-    this.addStratumPickerText(parent, t('iw.picker.current_reentry'), x, y + 13, 7, STRATUM_PICKER_COL_MUTED, w);
-
-    const line = new Graphics();
-    line.moveTo(x, y + 28);
-    line.lineTo(x + w, y + 28);
-    line.stroke({ width: 1, color: STRATUM_PICKER_COL_BORDER });
-    parent.addChild(line);
-
-    let sy = y + 36;
-    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.boss_gate'), gateReady ? t('iw.picker.ready') : t('iw.picker.uncleared'), gateReady ? STRATUM_PICKER_COL_POSITIVE : STRATUM_PICKER_COL_MUTED);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.enemy_hp'), `x${def.hpMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.enemy_atk'), `x${def.atkMul.toFixed(1)}`, STRATUM_PICKER_COL_TEXT);
-    sy = this.drawStratumPickerStat(parent, x, sy, w, t('iw.picker.exp'), `x${def.expMultiplier.toFixed(1)}`, STRATUM_PICKER_COL_GOLD);
-
-    this.drawStratumPickerDepthGauge(parent, x, y + h - 18, w);
-  }
-
-  private drawStratumPickerStat(parent: Container, x: number, y: number, w: number, label: string, value: string, valueColor: number): number {
-    this.addStratumPickerText(parent, label, x, y, 8, STRATUM_PICKER_COL_DIM, Math.floor(w * 0.58));
-    const valueText = this.addStratumPickerText(parent, value, 0, y, 8, valueColor, Math.floor(w * 0.42));
-    valueText.x = x + w - valueText.width;
-    return y + 13;
-  }
-
-  private drawStratumPickerDepthGauge(parent: Container, x: number, y: number, w: number): void {
-    const total = this.strataConfig.strata.length;
-    if (total <= 0) return;
-    const gap = 3;
-    const segW = Math.max(10, Math.floor((w - gap * (total - 1)) / total));
-    const cleared = this.getClearedStrataFlags();
-    const gauge = new Graphics();
-    for (let i = 0; i < total; i++) {
-      const sx = x + i * (segW + gap);
-      const locked = i >= this.stratumPickerMax;
-      const selected = i === this.stratumPickerSelection;
-      const color = selected
-        ? STRATUM_PICKER_COL_ACCENT
-        : cleared[i]
-          ? STRATUM_PICKER_COL_POSITIVE
-          : locked
-            ? STRATUM_PICKER_COL_LOCKED
-            : STRATUM_PICKER_COL_DIM;
-      gauge.rect(sx, y, segW, 7).fill({ color, alpha: locked ? 0.42 : 0.85 });
-      if (selected) {
-        gauge.rect(sx - 1, y - 1, segW + 2, 9).stroke({ color: 0xffffff, width: 1, alpha: 0.75 });
-      }
-    }
-    parent.addChild(gauge);
-  }
-
-  private drawStratumPickerControls(parent: Container, x: number, y: number): void {
-    let cx = x;
-    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_LEFT));
-    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MOVE_RIGHT));
-    cx = this.addStratumPickerControlText(parent, t('iw.picker.change'), cx + 2, y + 3) + 12;
-    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.ATTACK));
-    cx = this.addStratumPickerControlText(parent, t('iw.picker.enter'), cx + 2, y + 3) + 12;
-    cx = this.drawStratumPickerKey(parent, cx, y, actionKey(GameAction.MENU));
-    this.addStratumPickerControlText(parent, t('iw.picker.cancel'), cx + 2, y + 3);
-  }
-
-  private drawStratumPickerKey(parent: Container, x: number, y: number, label: string): number {
-    const w = Math.max(14, label.length * 6 + 8);
-    const keyBg = new Graphics();
-    keyBg.roundRect(x, y, w, 14, 2)
-      .fill({ color: 0x1a1a1a, alpha: 0.85 })
-      .stroke({ color: STRATUM_PICKER_COL_LOCKED, width: 1 });
-    parent.addChild(keyBg);
-    const text = this.addStratumPickerText(parent, label, x, y + 3, 8, 0xffffff, w - 4);
-    text.x = x + Math.floor((w - text.width) / 2);
-    return x + w + 4;
-  }
-
-  private addStratumPickerControlText(parent: Container, text: string, x: number, y: number): number {
-    const label = this.addStratumPickerText(parent, text, x, y, 8, STRATUM_PICKER_COL_DIM);
-    return x + label.width;
-  }
-
-  private drawStratumPickerBadge(parent: Container, x: number, y: number, w: number, text: string, color: number, outlineOnly = false): void {
-    const badge = new Graphics();
-    if (outlineOnly) {
-      badge.roundRect(x, y, w, 12, 2).stroke({ color, width: 1 });
-    } else {
-      badge.roundRect(x, y, w, 12, 2).fill(color);
-    }
-    parent.addChild(badge);
-
-    const label = this.addStratumPickerText(parent, text, x, y + 2, 7, outlineOnly ? color : 0x000000, w - 4);
-    label.x = x + Math.floor((w - label.width) / 2);
-  }
-
-  private addStratumPickerText(parent: Container, text: string, x: number, y: number, size: number, fill: number, maxW?: number): BitmapText {
-    const label = new BitmapText({
-      text,
-      style: { fontFamily: PIXEL_FONT, fontSize: size, fill },
-    });
-    label.x = x;
-    label.y = y;
-    if (maxW && label.width > maxW) {
-      const scale = Math.max(0.55, maxW / label.width);
-      label.scale.set(scale, scale);
-    }
-    parent.addChild(label);
-    return label;
-  }
-
-  private redrawStratumPickerPulse(): void {
-    if (!this.stratumPickerPulseG || !this.stratumPickerPulseRect) return;
-    const t = this.stratumPickerPulseTimer / 1000;
-    const a = ROW_SELECTED_GLOW_ALPHA * (0.65 + 0.35 * Math.sin(t * Math.PI * 2 * 1.4));
-    this.stratumPickerPulseG.clear();
-    drawSelectionPulse(this.stratumPickerPulseG, this.stratumPickerPulseRect.w, this.stratumPickerPulseRect.h, a);
-  }
-
-  private hideStratumPicker(): void {
-    this.stratumPickerVisible = false;
-    if (this.stratumPicker?.parent) {
-      this.stratumPicker.parent.removeChild(this.stratumPicker);
-    }
-    this.stratumPicker?.destroy({ children: true });
-    this.stratumPicker = null;
-    this.stratumPickerPulseG = null;
-    this.stratumPickerPulseRect = null;
-  }
-
-  private handleStratumPickerInput(): void {
-    const input = this.game.input;
-
-    if (input.isJustPressed(GameAction.MOVE_LEFT)) {
-      this.stratumPickerSelection = (this.stratumPickerSelection - 1 + this.stratumPickerMax) % this.stratumPickerMax;
-      this.drawStratumPicker();
-      return;
-    }
-    if (input.isJustPressed(GameAction.MOVE_RIGHT)) {
-      this.stratumPickerSelection = (this.stratumPickerSelection + 1) % this.stratumPickerMax;
-      this.drawStratumPicker();
-      return;
-    }
-    if (input.isJustPressed(GameAction.LOOK_UP)) {
-      this.stratumPickerSelection = (this.stratumPickerSelection - 1 + this.stratumPickerMax) % this.stratumPickerMax;
-      this.drawStratumPicker();
-      return;
-    }
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-      this.stratumPickerSelection = (this.stratumPickerSelection + 1) % this.stratumPickerMax;
-      this.drawStratumPicker();
-      return;
-    }
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      const picked = this.stratumPickerSelection;
-      this.hideStratumPicker();
-      this.jumpToStratum(picked);
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
-      // Cancel ? keep default starting stratum
-      this.hideStratumPicker();
-      return;
-    }
-  }
-
-  /**
-   * Stratum picker / Trapdoor 移④컯 ?쒗??寃곌낵瑜??곸슜???뚮젅?댁뼱瑜??대떦 stratum
-   * ?쒖옉 ?(Plaza 泥쒖옣 ?꾩튂) 濡??대룞. DEC-039 ??D ??Trapdoor 媛 ?좎씪??吏痢?
-   * ?꾩씠 ?섎떒?대ŉ 蹂?硫붿꽌?쒕뒗 ?붾젅?ы듃留??섑뻾 (?섏씠??移대찓???⑤떇? ?몄텧 痢≪씠
-   * 梨낆엫).
-   *
-   * 遺???④낵:
-   *   - ?댁쟾 stratum ???댁븘?덈뒗 ???뺣━ (?ㅼ쓬 吏痢듭뿉 ?붾쪟 諛⑹?)
-   *   - DEPTH N / MAX ?좎뒪??(Stratum 2+ 吏꾩엯 ??
-   *   - progress.deepestUnlocked / lastSafeStratum 媛깆떊
-   */
   private jumpToStratum(stratumIndex: number): void {
     if (stratumIndex === this.currentStratumIndex) return;
     if (stratumIndex < 0 || stratumIndex >= this.strataConfig.strata.length) return;
@@ -7217,7 +2712,7 @@ export class ItemWorldScene extends Scene {
     const startRow = stratumStart?.absoluteRow ?? offset.rowOffset;
     const startCol = stratumStart?.col ?? 0;
 
-    // ?댁쟾 吏痢??붾쪟 ???뺣━ (Trapdoor 移④컯 ???ㅼ쓬 Plaza ???곕씪媛吏 ?딅룄濡?.
+    // 적/Trapdoor 등을 정리한다 (Trapdoor 는 보스 처치 후 Plaza 진입 시 정리).
     this.clearEnemies();
 
     const prevStratum = this.currentStratumIndex;
@@ -7225,9 +2720,9 @@ export class ItemWorldScene extends Scene {
     this.currentStratumDef = this.strataConfig.strata[stratumIndex];
     this.currentCol = startCol;
     this.currentRow = startRow;
-    this.lastPreSpawnRoomKey = null;
+    this.roomSpawnState.resetNeighborPreSpawn();
 
-    // Progress 媛깆떊 (deepest / last safe).
+    // Progress 갱신 (deepest / last safe).
     if (stratumIndex > prevStratum) {
       if (this.progress.deepestUnlocked < stratumIndex) {
         this.progress.deepestUnlocked = stratumIndex;
@@ -7236,74 +2731,62 @@ export class ItemWorldScene extends Scene {
       this.persistRoomState();
     }
 
-    // ??stratum ??蹂댁뒪 泥섏튂 ???ㅼ쓬 Trapdoor 瑜?spawn ??以鍮???flag 由ъ뀑.
-    this.descentToWorld = false;
+    // 새 stratum 진입 시 Trapdoor spawn 관련 flag 를 초기화한다.
+    this.trapdoorState.resetForStratum();
 
-    // LDtk Plaza ??Player entity ?곗꽑, ?놁쑝硫??덉감??floor ?먯깋.
-    const ldtkSpawn = this.playerSpawnByStratum.get(stratumIndex);
-    if (ldtkSpawn) {
-      this.player.x = Math.round(ldtkSpawn.x - this.player.width / 2);
-      this.player.y = Math.round(ldtkSpawn.y - this.player.height);
-    } else {
-      const spawn = this.getPlayerFloorSpawnPosition(startCol, startRow);
-      this.player.x = spawn.x;
-      this.player.y = spawn.y;
-    }
+    const spawn = this.playerSpawnRuntime.resolveForRoom(
+      stratumIndex,
+      startCol,
+      startRow,
+    );
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
     this.player.vx = 0;
     this.player.vy = 0;
     this.player.savePrevPosition();
     this.game.camera.snap(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
-    this.restoreGameplayHud();
+    this.hudRuntime.showGameplayHud();
 
-    // Plaza 嫄곗＜??(Gatekeeper + ambient) 媛뺤젣 spawn ??jumpToStratum 吏곹썑 plaza
-    // 媛 鍮꾩뼱?덈뒗 臾몄젣 fix (?ъ슜??寃곗젙 2026-05-04). ?먮룞 stratum 媛먯? 遺꾧린????
-    // ?꾨젅????굅??spawnedRooms 罹먯떆 ?뚮Ц??trigger ???????덉뼱 紐낆떆 ?몄텧.
+    // Plaza 연출(Gatekeeper + ambient) 의 spawn 을 jumpToStratum 에서 plaza
+    // 진입 시 보장하는 fix (2026-05-04). 새 stratum 진입 시
+    // spawnedRooms 트리거를 보장한다.
     const hubKey = `${startCol},${startRow}`;
-    if (!this.spawnedRooms.has(hubKey)) {
-      this.spawnedRooms.add(hubKey);
+    if (!this.roomSpawnState.hasSpawned(hubKey)) {
+      this.roomSpawnState.markSpawned(hubKey);
       this.spawnEnemiesInRoom(startCol, startRow);
     }
 
-    // Stratum 2+ 吏꾩엯 ??DEPTH ?쒓린 (ULTRAKILL ?⑦꽩).
+    // Stratum 2+ 진입 시 DEPTH 토스트 (ULTRAKILL 스타일).
     if (stratumIndex > 0) {
       const totalStrata = this.strataConfig.strata.length;
       this.toast.show(t('toast.depth', { n: stratumIndex + 1, total: totalStrata }), 0xff4488);
     }
   }
 
-  // --- Onboarding ---
-  private showOnboarding(): void {
-    this.uiController.startOnboarding({
-      hudSkin: this.hudSkin,
-      messages: ItemWorldScene.getOnboardingMsgs(),
-    });
-  }
-
-  private advanceOnboarding(): void {
-    this.uiController.advanceOnboarding({
-      hudSkin: this.hudSkin,
-      messages: ItemWorldScene.getOnboardingMsgs(),
-    });
-  }
-
   /**
-   * ?붾뱶 怨듦컙(world-space)?????덈뒗 而⑦뀓?ㅽ듃 ?꾨＼?꾪듃瑜??쇨큵 ?④릿??
-   * modal ?⑤꼸(bossChoice / stratumClearPanel / escapeConfirm / post_clear_hold)??
-   * ?쒖꽦?붾맂 ?꾨젅?꾩뿉 update 猷⑦봽媛 early-return ?섎㈃, ?꾨＼?꾪듃??媛?쒖꽦
-   * ?좉? 遺꾧린???꾨떖?섏? 紐삵빐 留덉?留?visible=true ?곹깭媛 寃곌낵 ?⑤꼸 ?꾩뿉
-   * ?붿〈?쒕떎. 紐⑤떖 吏꾩엯 ?쒖젏怨?update ?좊몢?먯꽌 ???⑥닔瑜??몄텧??諛⑹?.
+   * 월드-스페이스 prompt 를 숨긴다.
+   * modal (bossChoice / stratumClearPanel / escapeConfirm / post_clear_hold) 중이거나
+   * 전환 중에는 update 가 early-return 하므로 prompt 를 숨긴다.
+   * 그렇지 않으면 prompt 가 visible=true 인 채로 남는다.
+   * 매 update 마다 호출한다.
    */
   private hideWorldPrompts(): void {
     this.uiController.hideWorldPrompts({
       exitPrompt: null,
     });
+    this.trapdoorRuntime.hidePrompt();
+    this.itemWorldAnvilRuntime.hidePrompt();
   }
 
-  /** ?꾩옱 ?꾨젅?꾩뿉??world-space ?꾨＼?꾪듃媛 ?④꺼???덉뼱???섎뒗吏 ?먯젙. */
+  /** 월드-스페이스 prompt 를 숨겨야 하는지 (modal/전환 상태 기준) 판정한다. */
   private shouldSuppressWorldPrompts(): boolean {
     return this.uiController.shouldSuppressWorldPrompts({
       hasStratumClearPanel: this.uiController.hasStratumClearPanel(),
-      transitionState: this.transitionState,
+      transitionState: this.roomTransitionRuntime.isActive
+        ? this.roomTransitionRuntime.suppressionState
+        : this.absorbDissolveRuntime.isActive
+          ? this.absorbDissolveRuntime.suppressionState
+          : this.flowState.value,
     });
   }
 
@@ -7331,24 +2814,14 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
 
-    // 蹂댁뒪 泥섏튂 吏곹썑 ?좎엳??怨⑤뱶/EXP ?뚮줈???띿뒪???쒓굅. ?ㅻ쾭?덉씠媛 寃뚯엫?뚮젅??
-    // tick ??硫덉텛誘濡?timer 媛 以꾩? ?딆븘 ?곴뎄 ?붾쪟?쒕떎 (P0).
+    // EXP 등 누적값을 처리한다.
+    // tick 후 timer 를 정리한다 (P0).
     this.dmgNumbers?.clear();
 
-    // Show unified stratum clear overlay (replaces BossChoice + StratumClearPanel + ReturnResult)
-    this.uiController.showStratumClearOverlay({
-      item: this.item,
-      beforeAtk: this.stratumStartAtk,
-      afterAtk: this.item.finalAtk,
-      beforeInnocents: this.stratumStartInnocentCount,
-      afterInnocents: this.item.innocents.length,
-      isFinal,
-      hasNextStratum,
-    });
-    this.startPostClearHold();
+    this.stratumClearRuntime.showOverlay(isFinal, hasNextStratum);
   }
 
-  /** A6: show "+X% DMG (before ??after)" when a stratum completes. Silent when atk did not change. */
+  /** A6: show "+X% DMG (before -> after)" when a stratum completes. Silent when atk did not change. */
   private _showA6DmgToast(beforeAtk: number, afterAtk: number): void {
     if (afterAtk <= beforeAtk || beforeAtk <= 0) return;
     const pct = Math.round(((afterAtk - beforeAtk) / beforeAtk) * 100);
@@ -7357,125 +2830,36 @@ export class ItemWorldScene extends Scene {
   }
 
   /**
-   * A16 (playtest 2026-04-17): structured before/after stats panel shown on
-   * stratum clear. Displays ATK, item Lv, and Innocent count deltas side-by-
-   * side. The toast stack gives a running log, but this panel gives a single
-   * readable "progress snapshot" the player can parse at a glance.
-   */
-  private _showStratumClearPanel(
-    snap: { beforeAtk: number; afterAtk: number; beforeLevel: number; afterLevel: number; beforeInnocents: number; afterInnocents: number },
-    isFinal: boolean,
-  ): void {
-    this.uiController.showStratumClearPanel({
-      beforeAtk: snap.beforeAtk,
-      afterAtk: snap.afterAtk,
-      beforeLevel: snap.beforeLevel,
-      afterLevel: snap.afterLevel,
-      beforeInnocents: snap.beforeInnocents,
-      afterInnocents: snap.afterInnocents,
-    }, this.hudSkin, isFinal);
-  }
-
-  private _updateStratumClearPanel(_dt: number): void {
-    const confirmPressed = this.game.input.isJustPressed(GameAction.ATTACK);
-    this.uiController.updateStratumClearPanel(confirmPressed);
-    if (confirmPressed && !this.uiController.hasStratumClearPanel()) {
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-    }
-  }
-
-
-  /**
-   * A15: Spawn a seal orb at the capture position. The orb briefly rises, then
-   * homes toward the player while shrinking ? reads as "sealed into the weapon".
-   * Pure VFX, no hit logic. Parented under entityLayer so world-space transform
-   * matches the player, making the homing motion accurate under camera moves.
-   */
-  private spawnCaptureOrb(x: number, y: number): void {
-    // Outer glow + inner core
-    const gfx = new Graphics();
-    gfx.circle(0, 0, 5).fill({ color: 0x88ddff, alpha: 0.35 });
-    gfx.circle(0, 0, 3).fill({ color: 0xffffff, alpha: 0.9 });
-    gfx.x = x;
-    gfx.y = y;
-    this.entityLayer.addChild(gfx);
-    // Initial upward drift (40 px/s), gravity is handled in update via homing.
-    this.captureOrbs.push({
-      gfx, x, y, vx: 0, vy: -40,
-      life: 520, maxLife: 520,
-    });
-  }
-
-  private updateCaptureOrbs(dt: number): void {
-    if (this.captureOrbs.length === 0) return;
-    const dtSec = dt / 1000;
-    const targetX = this.player.x + this.player.width / 2;
-    const targetY = this.player.y + this.player.height / 2;
-    for (let i = this.captureOrbs.length - 1; i >= 0; i--) {
-      const o = this.captureOrbs[i];
-      o.life -= dt;
-      const k = Math.max(0, o.life / o.maxLife);
-      // In the last 70% of lifetime, blend drift into homing toward player.
-      // Early: float up. Late: accelerate toward player.
-      const homeBlend = 1 - k; // 0..1
-      const dx = targetX - o.x;
-      const dy = targetY - o.y;
-      const dist = Math.max(1, Math.hypot(dx, dy));
-      const homeSpeed = 240 * homeBlend;
-      o.vx = o.vx * 0.9 + (dx / dist) * homeSpeed * homeBlend;
-      o.vy = o.vy * 0.9 + (dy / dist) * homeSpeed * homeBlend - 30 * k; // still a bit of rise early
-      o.x += o.vx * dtSec;
-      o.y += o.vy * dtSec;
-      o.gfx.x = o.x;
-      o.gfx.y = o.y;
-      // Shrink + fade-in-fade-out (hold alpha, shrink at the end)
-      const s = 0.6 + k * 0.4;
-      o.gfx.scale.set(s);
-      o.gfx.alpha = k > 0.1 ? 1 : k / 0.1;
-      if (o.life <= 0 || dist < 6) {
-        // Implode flash on arrival
-        this.screenFlash.flash(0xaaeeff, 0.2, 90);
-        if (o.gfx.parent) o.gfx.parent.removeChild(o.gfx);
-        o.gfx.destroy();
-        this.captureOrbs.splice(i, 1);
-      }
-    }
-  }
-
-  /**
-   * A17 (playtest 2026-04-17): after a non-final stratum boss, offer the
-   * player a choice ? Continue deeper, or Exit safely with progress banked.
-   * Previously the portal auto-advanced, which felt like the player had no
-   * agency over their run length.
-   */
-  private showBossChoice(nextStratumIndex: number): void {
-    this.uiController.showBossChoice({
-      hudSkin: this.hudSkin,
-      nextStratumIndex,
-    });
-  }
-
-  private hideBossChoice(): void {
-    this.uiController.hideBossChoice();
-  }
-
-  /**
-   * Player 媛 StratumClearOverlay ?먯꽌 Continue ?좏깮 ???몄텧. DEC-039 ??D ??
-   * 蹂댁뒪 猷?諛붾떏??臾쇰━ ?뚭눼?섍퀬 ?먯쑀 ?숉븯濡??ㅼ쓬 plaza 泥쒖옣???듦낵???꾩갑.
-   * jumpToStratum ?붾젅?ы듃???먭린.
+   * Player 가 StratumClearOverlay 에서 Continue 를 선택했을 때 (DEC-039 — D).
+   * 다음 plaza 로 하강하고 jumpToStratum 한다.
+   * jumpToStratum 한다.
    *
-   * pendingTrapX/Y ??startTrapdoorDescent ?먯꽌 stash ??蹂댁뒪 ?쒖떊 ?꾩튂.
-   * currentStratumIndex ??player 媛 ?ㅼ쓬 plaza ????ㅼ뼱媛???쒓컙 update() ??
-   * ?먮룞 stratum 媛먯? 遺꾧린媛 媛깆떊 + DEPTH ?좎뒪??
+   * pendingTrapX/Y 는 startTrapdoorDescent 에서 stash 한다.
+   * currentStratumIndex / player 위치를 plaza 로 갱신하고 update() 에서
+   * 다음 stratum 으로 진행 + DEPTH 표시.
    */
   private _continueToNextStratum(): void {
-    // HUD 蹂듭썝 (overlay 媛 ?④꼈?덉쓬).
-    this.restoreGameplayHud();
-    this.transitionState = 'none';
+    // HUD 표시 (overlay 정리 후).
+    this.hudRuntime.showGameplayHud();
+    this.flowState.reset();
 
-    this.breakBossFloor(this.pendingTrapX, this.pendingTrapY);
+    this.trapdoorDescentRuntime.punchBossFloorHole({
+      fullGrid: this.fullGrid,
+      trapdoorX: this.trapdoorState.pendingDescentSnapshot.trapdoorX,
+      trapdoorY: this.trapdoorState.pendingDescentSnapshot.trapdoorY,
+      bossCellRow: this.trapdoorState.pendingDescentSnapshot.bossCellRow,
+      aggregates: {
+        wall: this.wallAggregate,
+        shadow: this.shadowAggregate,
+        naturalDeco: this.decoAggregate,
+        artificialDeco: this.artificialDecoAggregate,
+        structure: this.structAggregate,
+        background: this.bgAggregate,
+        seal: this.sealAggregate,
+      },
+    });
 
-    // ?뚭눼 ?쇰뱶諛?
+    // 클리어 연출.
     this.screenFlash.flash(0xffaa22, 0.4, 200);
     this.game.camera.shake(7);
     this.game.hitstopFrames = 6;
@@ -7506,171 +2890,25 @@ export class ItemWorldScene extends Scene {
     this.uiController.hideWorldPrompts({ exitPrompt: null });
     // Hide stratum clear panel if still showing
     if (this.uiController.hasStratumClearPanel()) {
-      this.uiController.updateStratumClearPanel(true);
+      this.stratumClearPanelRuntime.forceClose();
     }
     // Hide boss choice if showing
-    if (this.uiController.isBossChoiceVisible()) {
-      this.uiController.hideBossChoice();
+    if (this.bossChoiceRuntime.isVisible()) {
+      this.bossChoiceRuntime.hide();
     }
     // Hide escape confirm if showing
-    if (this.uiController.isEscapeConfirmVisible()) {
-      this.uiController.hideEscapeConfirm();
+    if (this.escapeRuntime.isVisible()) {
+      this.escapeRuntime.hide();
     }
   }
 
   private startExitFade(): void {
-    this.transitionState = 'exit_fade';
-    this.transitionTimer = FADE_DURATION * 2;
-  }
-
-  /**
-   * Step 2 (2026-05-25) ???≪닔 ?곗텧.
-   * gameContainer ??ColorMatrixFilter (grayscale 100%) ?곸슜 + filter alpha 0??.5
-   * 濡?1000ms tween. 醫낅즺 ??filter ?쒓굅 + startExitFade ?몄텧.
-   *
-   * "intensity 0.5" ?댁꽍: filter ?④낵 媛뺣룄 50% (?먮낯?봥rayscale blend 50:50).
-   */
-  private absorbFilter: ColorMatrixFilter | null = null;
-  private absorbTimer = 0;
-  private static readonly ABSORB_DURATION_MS = 1000; // ?ъ슜??寃곗젙 2026-05-25 (3000 ??1000)
-  /**
-   * grayscale + intensity ?꾪꽣瑜?gameContainer + backgroundContainer ???곸슜.
-   * 以묐났 異붽? 諛⑹? (?대? ?덉쑝硫?alpha 留?蹂댁옣).
-   * ?ъ슜??寃곗젙 2026-05-25: FloatingItemDrop spawn 利됱떆 (interact ?꾨??? ?몄텧.
-   */
-  private applyAbsorbFilter(): void {
-    if (!this.absorbFilter) {
-      this.absorbFilter = new ColorMatrixFilter();
-      // ?ъ슜??寃곗젙 2026-05-25: ?꾩쟾 ?뚯깋 (desaturate) + contrast 50%.
-      // brightness ?쒓굅 ???鍮???땄???섎룄.
-      this.absorbFilter.desaturate();
-      this.absorbFilter.contrast(0.5, true);
-    }
-    this.absorbFilter.alpha = 1;
-    // ?ъ슜??寃곗젙 2026-05-25: 臾닿린 + 罹먮┃??(entityLayer ??Player / FloatingItemDrop)
-    // ???④낵 ?곹뼢 X ??gameContainer ?꾩껜 X. *?섍꼍* 留??곸슜 = fullMapContainer
-    // (吏??aggregates) + backgroundContainer (parallax).
-    const fm = this.fullMapContainer;
-    if (fm) {
-      const fmFilters = (fm.filters as Filter[] | null) ?? [];
-      if (!fmFilters.includes(this.absorbFilter)) {
-        fm.filters = [...fmFilters, this.absorbFilter];
-      }
-    }
-    const bg = this.game.backgroundContainer;
-    const bgFilters = (bg.filters as Filter[] | null) ?? [];
-    if (!bgFilters.includes(this.absorbFilter)) {
-      bg.filters = [...bgFilters, this.absorbFilter];
-    }
+    this.flowState.startExitFade();
+    this.exitFadeRuntime.start();
   }
 
   private startAbsorbSequence(): void {
-    this.transitionState = 'absorbing';
-    this.absorbTimer = 0;
-    // Filter ???대? FloatingItemDrop spawn ??applyAbsorbFilter 濡??곸슜??
-    // ?덉쟾留? 留뚯빟 誘몄쟻???곹깭 (?ъ떆???? 硫??ш린??蹂댁옣.
-    this.applyAbsorbFilter();
-  }
-
-  private updateAbsorbSequence(dt: number): void {
-    if (this.transitionState !== 'absorbing' || !this.absorbFilter) return;
-    this.absorbTimer += dt;
-    // ?④낵???대? startAbsorbSequence ?먯꽌 ? ?곸슜 ??timer 留?吏꾪뻾, hold ??dissolve.
-    if (this.absorbTimer >= ItemWorldScene.ABSORB_DURATION_MS) {
-      this.startDissolveSequence();
-    }
-  }
-
-  /**
-   * Captures visible world layers into screen-space fragments, then pulls them
-   * into the item singularity in order: intgrid/world, background, character.
-   */
-  private worldPullInTransition: WorldPullInTransitionController | null = null;
-  private dissolveTimer = 0;
-
-  private startDissolveSequence(): void {
-    this.transitionState = 'dissolving';
-    this.dissolveTimer = 0;
-    this.cleanupWorldPullIn(true);
-
-    const transition = this.createWorldPullInTransition();
-    this.worldPullInTransition = transition;
-    if (!transition.start()) {
-      this.endDissolveSequence();
-      return;
-    }
-  }
-
-  private updateDissolveSequence(dt: number): void {
-    if (this.transitionState !== 'dissolving') return;
-    this.dissolveTimer += dt;
-    if (!this.worldPullInTransition || this.worldPullInTransition.update(dt)) {
-      this.endDissolveSequence();
-    }
-  }
-
-  private cleanupWorldPullIn(restoreSources: boolean): void {
-    this.worldPullInTransition?.cleanup(restoreSources);
-  }
-
-  private isPlayerStandingOnContainerTop(): boolean {
-    const p = this.player;
-    const feetY = p.y + p.height;
-    const prevFeetY = p.prevY + p.height;
-    for (const c of this.containers) {
-      if (c.destroyed || c.held) continue;
-      const cx0 = c.colX;
-      const cx1 = c.colX + c.colW;
-      const topY = c.colY;
-      const horizontallySupported = p.x + p.width > cx0 + 1 && p.x < cx1 - 1;
-      if (!horizontallySupported) continue;
-      const feetAtTop = feetY >= topY - 2 && feetY <= topY + 2;
-      const cameFromAbove = prevFeetY <= topY + 4;
-      if (feetAtTop && cameFromAbove && p.getVy() >= -1) return true;
-    }
-    return false;
-  }
-
-  private createWorldPullInTransition(): WorldPullInTransitionController {
-    return new WorldPullInTransitionController(this.game, {
-      tilemapContainer: this.tilemap.container,
-      fullMapContainer: this.fullMapContainer,
-      bgAggregate: this.bgAggregate,
-      buildingLayer: this.buildingLayer,
-      residentsLayer: this.residentsLayer,
-      fluidLayer: this.fluidLayer,
-      aboveFluidLayer: this.aboveFluidLayer,
-      entityLayer: this.entityLayer,
-      playerContainer: this.player.container,
-      trapdoor: this.trapdoor,
-    });
-  }
-
-  private endDissolveSequence(): void {
-    // grayscale filter ?쒓굅 (fullMapContainer + backgroundContainer).
-    if (this.absorbFilter) {
-      const fm = this.fullMapContainer;
-      if (fm) {
-        fm.filters = ((fm.filters as Filter[] | null) ?? []).filter(f => f !== this.absorbFilter);
-      }
-      const bg = this.game.backgroundContainer;
-      bg.filters = ((bg.filters as Filter[] | null) ?? []).filter(f => f !== this.absorbFilter);
-    }
-    // ?ъ슜??寃곗젙 2026-05-25: 臾닿린 sprite 媛 fade-out 以묒뿉??visible ?좎? ??
-    // entityLayer (gameContainer ?꾨옒) ?먯꽌 fadeOverlay ??遺紐?(uiContainer)
-    // 濡?reparent. 醫뚰몴??global ??local 蹂?섏쑝濡?蹂댁〈. Step 4 ?먯꽌 ?붾뱶 anvil
-    // 源뚯? tween ?쇰줈 ?댁뼱吏?
-    if (this.trapdoor && this.fadeOverlay.parent && !this.worldPullInTransition?.hasPromotedTrapdoor) {
-      const c = this.trapdoor.container;
-      const global = c.parent ? c.parent.toGlobal({ x: c.x, y: c.y }) : { x: c.x, y: c.y };
-      const local = this.fadeOverlay.parent.toLocal(global);
-      c.x = local.x;
-      c.y = local.y;
-      this.fadeOverlay.parent.addChild(c); // 留덉?留?child = fadeOverlay ??
-    }
-    // ?뚰떚??spawn 硫덉땄 ??fade-out 吏꾪뻾 以??붿뿬 ?낆옄???먮룞 ?щ씪吏? cleanup ? destroy ?먯꽌.
-    this.cleanupWorldPullIn(false);
-    this.startExitFade();
+    this.absorbDissolveRuntime.start();
   }
 
   /**
@@ -7678,21 +2916,19 @@ export class ItemWorldScene extends Scene {
    * then kick off the exit fade.
    */
   private startPostClearHold(): void {
-    this.transitionState = 'post_clear_hold';
-    this.transitionTimer = 0; // not timer-based; waits for panel confirm
+    this.flowState.startPostClearHold();
   }
 
   private exitItemWorld(): void {
     // Analytics: guard against double-fire (death path tracks exit earlier)
-    if (!this.exitTracked) {
+    if (this.exitTelemetryState.tryMarkExitTracked()) {
       trackItemWorldExit(this.progressController.getExitReason(), this.currentStratumIndex);
     }
 
     this.sourcePlayer.hp = this.player.hp;
 
-    this.hideEscapeConfirm();
-    this.cleanupWorldPullIn(true);
-    if (this.miniMapContainer.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
+    this.escapeRuntime.hide();
+    this.absorbDissolveRuntime.cleanup(true);
     // Clean up all UI owned by this scene
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
@@ -7704,342 +2940,54 @@ export class ItemWorldScene extends Scene {
     this.onComplete?.();
   }
 
-  private checkDoorTriggers(): void {
-    const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-    for (const trigger of this.doorTriggers) {
-      if (aabbOverlap(pb, trigger)) {
-        const nextCol = this.currentCol + (trigger.direction === 'right' ? 1 : trigger.direction === 'left' ? -1 : 0);
-        const nextRow = this.currentRow + (trigger.direction === 'down' ? 1 : trigger.direction === 'up' ? -1 : 0);
-        const nextCell = this.getCell(nextCol, nextRow);
-        if (nextCell && nextCell.type !== 0) {
-          this.startTransition(trigger.direction, nextCol, nextRow);
-          return;
-        }
-      }
-    }
-  }
-
-  private startTransition(direction: 'left' | 'right' | 'up' | 'down', nextCol: number, nextRow: number): void {
-    // Grant pass-through EXP if room wasn't cleared (skipping enemies)
-    const cell = this.getCurrentCell();
-    if (!cell.cleared) {
-      // Room pass EXP removed ? only monster kills grant EXP
-    }
-
-    this.transitionState = 'fade_out';
-    this.transitionTimer = FADE_DURATION;
-    this.pendingDirection = direction;
-    this.currentCol = nextCol;
-    this.currentRow = nextRow;
+  private placePlayerForRoomTransition(col: number, row: number): void {
+    const spawn = this.playerSpawnRuntime.resolveFloorSpawn(col, row);
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.savePrevPosition();
   }
 
   private updateTransition(dt: number): void {
-    this.transitionTimer -= dt;
-    if (this.transitionState === 'fade_out') {
-      this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        const spawn = this.getPlayerFloorSpawnPosition(this.currentCol, this.currentRow);
-        this.player.x = spawn.x;
-        this.player.y = spawn.y;
-        this.player.vx = 0;
-        this.player.vy = 0;
-        this.player.savePrevPosition();
-        this.transitionState = 'fade_in';
-        this.transitionTimer = FADE_DURATION;
-        this.fadeOverlay.alpha = 1;
-      }
-    } else if (this.transitionState === 'fade_in') {
-      this.fadeOverlay.alpha = Math.max(0, this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        this.transitionState = 'none';
-        this.fadeOverlay.alpha = 0;
-        this.pendingDirection = null;
-      }
-    } else if (this.transitionState === 'exit_fade') {
-      const duration = FADE_DURATION * 2;
-      this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / duration);
-      if (this.transitionTimer <= 0) {
-        this.transitionState = 'none';
+    if (this.flowState.isExitFade) {
+      if (this.exitFadeRuntime.update(dt)) {
+        this.flowState.reset();
         this.exitItemWorld();
       }
-    } else if (this.transitionState === 'post_clear_hold') {
-      // Unified overlay handles animation + input.
-      const atkPressed = this.game.input.isJustPressed(GameAction.ATTACK);
-      const menuPressed = this.game.input.isJustPressed(GameAction.MENU);
-      this.uiController.updateStratumClearOverlay(dt, atkPressed, menuPressed);
-
-      const choice = this.uiController.getStratumClearChoice();
-      if (choice === 'continue') {
-        if (atkPressed) this.game.input.consumeJustPressed(GameAction.ATTACK);
-        this.uiController.destroyStratumClearOverlayPublic();
-        this._continueToNextStratum();
-      } else if (choice === 'exit') {
-        if (menuPressed) this.game.input.consumeJustPressed(GameAction.MENU);
-        if (atkPressed) this.game.input.consumeJustPressed(GameAction.ATTACK);
-        this.uiController.destroyStratumClearOverlayPublic();
-        this.cleanupForReturnResult();
-        this.startExitFade();
-      }
+    } else if (this.flowState.isPostClearHold) {
+      this.stratumClearRuntime.updateHold(dt);
     }
-    // 'descent_fall' 遺꾧린 ?먭린 (DEC-039 臾쇰━ ?숉븯 紐⑤뜽濡??꾪솚). transitionState
-    // ??낆뿉???명솚???꾪빐 ?⑥븘?덉?留?startTrapdoorDescent 媛 ???댁긽 ?ㅼ젙?섏? ?딆쓬.
   }
 
   // ---------------------------------------------------------------------------
-  // DEC-039 Trapdoor 移④컯 ?쒗??
+  // DEC-039 Trapdoor — 보스 처치 후 다음 지층 하강 출구.
   // ---------------------------------------------------------------------------
 
-  /** Arc Tether ?쎌뾽 ?꾨낫 ???먯꽭??紐낆꽭??LdtkWorldScene.findNearestGrabbableContainer 李몄“. */
-  private findNearestGrabbableContainer(): ThrowableContainer | null {
-    return findNearestContainerForGrab({
-      player: this.player,
-      containers: this.containers,
-      input: this.game.input,
-    });
-  }
-
-  private startGrabPull(target: ThrowableContainer): void {
-    const state = startContainerGrabPull(target, this.arcTether);
-    this.pullStartX = state.pullStartX;
-    this.pullStartY = state.pullStartY;
-    this.pullElapsedMs = state.pullElapsedMs;
-    this.pullingContainer = state.pullingContainer;
-    this.heldContainer = state.heldContainer;
-  }
-
-  private getContainerCarryState() {
-    return {
-      pullStartX: this.pullStartX,
-      pullStartY: this.pullStartY,
-      pullElapsedMs: this.pullElapsedMs,
-      pullingContainer: this.pullingContainer,
-      heldContainer: this.heldContainer,
-    };
-  }
-
-  private applyContainerCarryState(state: ReturnType<ItemWorldScene['getContainerCarryState']>): void {
-    this.pullStartX = state.pullStartX;
-    this.pullStartY = state.pullStartY;
-    this.pullElapsedMs = state.pullElapsedMs;
-    this.pullingContainer = state.pullingContainer;
-    this.heldContainer = state.heldContainer;
-  }
-
-  private updateArcTether(dtMs: number): void {
-    updateContainerArcTether({
-      dtMs,
-      player: this.player,
-      arcTether: this.arcTether,
-      heldContainer: this.heldContainer,
-      pullingContainer: this.pullingContainer,
-      findHover: () => this.findNearestGrabbableContainer(),
-    });
-  }
-
-  private updateContainerPrompt(): void {
-    this.containerPrompt = updateContainerPromptUi({
-      game: this.game,
-      prompt: this.containerPrompt,
-      heldContainer: this.heldContainer,
-      findTarget: () => this.findNearestGrabbableContainer(),
-      promptText: t('prompt.lift'),
-    });
-  }
-
   /**
-   * 留??꾨젅????Trapdoor ??idle 媛깆떊 + KeyPrompt UI + ATTACK ?낅젰 ?명꽣?숉듃.
+   * Trapdoor 상호작용으로 하강을 시작한다.
    *
-   * KeyPrompt ??Anvil/Save/Talk ?쒖? ?⑦꽩:
-   *   - lazy create (KeyPrompt.createPrompt + game.uiScale)
-   *   - game.uiContainer ??異붽? (?붾㈃ 醫뚰몴, world 蹂??X)
-   *   - 留??꾨젅??trapdoor world 醫뚰몴 ??screen 醫뚰몴 蹂?섑빐 ?꾩튂 媛깆떊
-   * ?대줈??Anvil ??[C] Place Weapon 怨??숈씪???댁긽???ъ씠利덈줈 ?뚮뜑.
+   * StratumClearOverlay (지층 클리어) 를 두 경우로 분기한다.
+   *   - 중간 지층(descentToWorld=false): isFinal=false, hasNextStratum=true.
+   *     Continue 시 _continueToNextStratum 으로 다음 지층 하강 +
+   *     다음 plaza 로 진행한다.
+   *   - 최종 지층(descentToWorld=true): isFinal=true, hasNextStratum=false.
+   *     Continue 가 곧 Exit. Exit 선택 시 startExitFade 한다.
+   *
+   * Continue 시 hole 좌표(tdX/Y) 로 overlay 를 정리하고
+   * trapdoor entity 를 dispose 한다. pendingTrapX/Y 는 stash.
    */
-  private trapdoorPrompt: Container | null = null;
-  private updateTrapdoor(dt: number): void {
-    const td = this.trapdoor;
-    if (!td) {
-      this.hideTrapdoorPrompt();
-      return;
-    }
-    td.update(dt);
-    if (!td.active || this.transitionState !== 'none') {
-      this.hideTrapdoorPrompt();
-      return;
-    }
-    const px = this.player.x + this.player.width / 2;
-    const py = this.player.y + this.player.height / 2;
-    const near = td.isPlayerNear(px, py);
-
-    if (near) {
-      // Step 1 (2026-05-25): 理쒖쥌 痢?FloatingItemDrop ? "Absorb" prompt.
-      const promptKey = td instanceof FloatingItemDrop ? 'prompt.absorb' : 'prompt.descend';
-      this.showTrapdoorPromptAt(td.x, td.y - td.height, promptKey);
-    } else {
-      this.hideTrapdoorPrompt();
-    }
-
-    if (near && this.game.input.isJustPressed(GameAction.ATTACK)) {
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-      td.activate();
-      this.hideTrapdoorPrompt();
-      this.startTrapdoorDescent();
-    }
-  }
-
-  /** Anvil prompt ?⑦꽩 ??uiContainer ??lazy create + world?뭩creen 蹂?? */
-  /** Prompt key ??'prompt.descend' (Trapdoor) ?먮뒗 'prompt.absorb' (FloatingItemDrop). */
-  private trapdoorPromptKey: string = 'prompt.descend';
-  private showTrapdoorPromptAt(worldX: number, worldY: number, promptKey = 'prompt.descend'): void {
-    // ?쇰꺼??諛붾뚮㈃ prompt ?ъ깮??
-    if (this.trapdoorPrompt && this.trapdoorPromptKey !== promptKey) {
-      if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
-      this.trapdoorPrompt.destroy({ children: true });
-      this.trapdoorPrompt = null;
-    }
-    if (!this.trapdoorPrompt) {
-      this.trapdoorPrompt = KeyPrompt.createPrompt(
-        actionKey(GameAction.ATTACK),
-        t(promptKey),
-        this.game.uiScale,
-      );
-      this.trapdoorPromptKey = promptKey;
-    }
-    if (!this.trapdoorPrompt.parent) {
-      this.game.uiContainer.addChild(this.trapdoorPrompt);
-    }
-    this.trapdoorPrompt.visible = true;
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    const sx = (worldX - cam.renderX + GAME_WIDTH / 2) * us - this.trapdoorPrompt.width / 2;
-    const sy = (worldY - cam.renderY + GAME_HEIGHT / 2 - 24) * us;
-    this.trapdoorPrompt.x = Math.round(sx);
-    this.trapdoorPrompt.y = Math.round(sy);
-  }
-
-  private hideTrapdoorPrompt(): void {
-    if (this.trapdoorPrompt) this.trapdoorPrompt.visible = false;
-  }
-
-  /**
-   * ItemStratum Anvil ??proximity + KeyPrompt + ATTACK ?명꽣?숉듃.
-   *
-   * Anvil ?숈옉 = ESC ?ㅼ? ?숈씪: ?ㅺ?媛??[C] ?꾨Ⅴ硫?EscapeConfirm 紐⑤떖???대┛??
-   * 紐⑤떖 ?덉뿉??ATTACK ??踰????꾨Ⅴ硫?startExitFade ??exitItemWorld 濡??붾뱶 洹??
-   *
-   * ?명뭼 異⑸룎 諛⑹?: showEscapeConfirm ??ATTACK ??consume ?댁꽌 媛숈? ?꾨젅?꾩쓽
-   * EscapeConfirm ?몃뱾?ш? 利됱떆 confirm ?쇰줈 ??＜?섏? ?딅룄濡??쒕떎.
-   */
-  private updateItemWorldAnvils(dt: number): void {
-    if (this.itemWorldAnvils.length === 0) {
-      this.hideItemWorldAnvilPrompt();
-      return;
-    }
-    // Modal/transition 吏꾪뻾 以묒뿉??prompt ?④? (?ㅻⅨ UI ?꾩뿉 寃뱀튂吏 ?딄쾶).
-    const suppressed = this.shouldSuppressWorldPrompts()
-      || this.uiController.isEscapeConfirmVisible()
-      || this.transitionState !== 'none';
-
-    let nearest: Anvil | null = null;
-    for (const a of this.itemWorldAnvils) {
-      a.update(dt);
-      if (suppressed) continue;
-      const promptRange = 16;
-      if (a.overlaps(
-        this.player.x - promptRange,
-        this.player.y - promptRange,
-        this.player.width + promptRange * 2,
-        this.player.height + promptRange * 2,
-      )) {
-        nearest = a;
-      }
-    }
-
-    if (!nearest) {
-      this.hideItemWorldAnvilPrompt();
-      return;
-    }
-
-    // World?뭩creen prompt placement (Anvil/Save/Talk ?쒖? ?⑦꽩).
-    if (!this.itemWorldAnvilPrompt) {
-      this.itemWorldAnvilPrompt = KeyPrompt.createPrompt(
-        actionKey(GameAction.ATTACK),
-        t('prompt.return'),
-        this.game.uiScale,
-      );
-    }
-    if (!this.itemWorldAnvilPrompt.parent) {
-      this.game.uiContainer.addChild(this.itemWorldAnvilPrompt);
-    }
-    this.itemWorldAnvilPrompt.visible = true;
-    const us = this.game.uiScale;
-    const cam = this.game.camera;
-    const anchor = nearest.getFloorPlateCenterWorld();
-    const ax = anchor.x;
-    const ay = anchor.y;
-    const sx = (ax - cam.renderX + GAME_WIDTH / 2) * us - this.itemWorldAnvilPrompt.width / 2;
-    const sy = (ay - cam.renderY + GAME_HEIGHT / 2 - 24) * us;
-    this.itemWorldAnvilPrompt.x = Math.round(sx);
-    this.itemWorldAnvilPrompt.y = Math.round(sy);
-
-    if (this.game.input.isJustPressed(GameAction.ATTACK)) {
-      this.game.input.consumeJustPressed(GameAction.ATTACK);
-      this.hideItemWorldAnvilPrompt();
-      this.showEscapeConfirm();
-    }
-  }
-
-  private hideItemWorldAnvilPrompt(): void {
-    if (this.itemWorldAnvilPrompt) this.itemWorldAnvilPrompt.visible = false;
-  }
-
-  private destroyItemWorldAnvilPrompt(): void {
-    if (!this.itemWorldAnvilPrompt) return;
-    if (this.itemWorldAnvilPrompt.parent) {
-      this.itemWorldAnvilPrompt.parent.removeChild(this.itemWorldAnvilPrompt);
-    }
-    this.itemWorldAnvilPrompt.destroy({ children: true });
-    this.itemWorldAnvilPrompt = null;
-  }
-
-  private destroyTrapdoorPrompt(): void {
-    if (!this.trapdoorPrompt) return;
-    if (this.trapdoorPrompt.parent) this.trapdoorPrompt.parent.removeChild(this.trapdoorPrompt);
-    this.trapdoorPrompt.destroy({ children: true });
-    this.trapdoorPrompt = null;
-  }
-
-  /**
-   * Trapdoor ?명꽣?숉듃 吏꾩엯.
-   *
-   * StratumClearOverlay (?덈꺼???대━???섏씠吏) 瑜?*紐⑤뱺 吏痢듭뿉?? ?쒖떆?쒕떎.
-   *   - 以묎컙 吏痢?(descentToWorld=false): isFinal=false, hasNextStratum=true.
-   *     Continue ?좏깮 ??_continueToNextStratum 媛 蹂댁뒪 猷?諛붾떏??臾쇰━ ?뚭눼 +
-   *     ?먯쑀 ?숉븯濡??ㅼ쓬 plaza ?꾩갑.
-   *   - 留덉?留?吏痢?(descentToWorld=true): isFinal=true, hasNextStratum=false.
-   *     Continue 鍮꾪솢?? Exit 留?媛?? Exit ?좏깮 ??startExitFade 濡??붾뱶 洹??
-   *
-   * 蹂댁뒪 ?쒖떊 ?꾩튂(tdX/Y) ??Continue ??hole ?꾩튂濡??ъ슜 ??overlay 媛 ?좎엳??
-   * ?숈븞 trapdoor entity ??誘몃━ dispose. pendingTrapX/Y ??stash.
-   */
-  private pendingTrapX = 0;
-  private pendingTrapY = 0;
-  private pendingTrapBossCellRow = 0;
   private startTrapdoorDescent(): void {
     if (!this.trapdoor) return;
     const td = this.trapdoor;
-    this.pendingTrapX = td.x;
-    this.pendingTrapY = td.y;
-    // 蹂댁뒪 ? row ??_continueToNextStratum ?먯꽌 hole rN 寃곗젙??
-    this.pendingTrapBossCellRow = Math.max(0,
-      Math.floor((td.y - 1) / IW_ROOM_H_PX));
+    this.trapdoorState.captureDescentFromTrapdoor(td, IW_ROOM_H_PX);
 
     // Final FloatingItemDrop is the singularity target; keep it alive through
     // the whole pull-in so the world visibly collapses into the weapon.
-    if (!this.descentToWorld) {
+    if (!this.trapdoorState.descentToWorld) {
       this.disposeTrapdoor();
     } else {
-      this.hideTrapdoorPrompt();
+      this.trapdoorRuntime.hidePrompt();
     }
     this.dmgNumbers?.clear();
     this.toast.clear();
@@ -8049,363 +2997,55 @@ export class ItemWorldScene extends Scene {
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
 
-    // 留덉?留?吏痢?泥섎━ ??markItemCleared / progress / exitReason ?ㅼ젙.
-    if (this.descentToWorld) {
+    // 최종 지층이면 markItemCleared / progress / exitReason 을 처리한다.
+    if (this.trapdoorState.descentToWorld) {
       this.progressController.setExitReason('clear');
       markItemCleared(this.item);
       this.persistRoomState();
-      // Step 2 (2026-05-25): ?≪닔 ?곗텧 ??grayscale 100% + intensity 0.5,
-      // 1000ms ?숈븞 tween. 醫낅즺 ??startExitFade ?먮룞 ?몄텧 (update ?덉뿉??.
+      // Step 2 (2026-05-25): 흡수 연출 grayscale 100% + intensity 0.5,
+      // 1000ms tween. 이후 startExitFade 한다 (update 에서 진행).
       this.startAbsorbSequence();
       return;
     }
 
-    this.uiController.showStratumClearOverlay({
-      item: this.item,
-      beforeAtk: this.stratumStartAtk,
-      afterAtk: this.item.finalAtk,
-      beforeInnocents: this.stratumStartInnocentCount,
-      afterInnocents: this.item.innocents.length,
-      isFinal: this.descentToWorld,
-      hasNextStratum: !this.descentToWorld,
-    });
-    this.startPostClearHold();
+    this.stratumClearRuntime.showOverlay(this.trapdoorState.descentToWorld, !this.trapdoorState.descentToWorld);
   }
 
   /**
-   * Trapdoor ?명꽣?숉듃 ??蹂댁뒪 猷?諛붾떏 ???ㅼ쓬 plaza 泥쒖옣 ?ъ씠瑜??ル뒗??
+   * cell culling (2026-05-04 — Ancient 24 FPS 대응).
+   * viewport + 1 cell buffer 안의 cell 만 visible=true, 나머지는 false.
+   * PIXI 자체 culling/filter 와 함께 cell 단위 visible 을 제어한다.
    *
-   * ??
-   *   IW_DOOR_V_WIDTH (=4 ??? + 2 ????ъ쑀 = 6 ??? trapdoor ??X 媛 ?
-   *   以묒븰(+/- ?쒖떊 ?ㅽ봽?? ?닿퀬 plaza ??ceiling D-opening ?꾩튂??mid-col ??
-   *   ?뺣젹?섏뼱 ?덉뼱 player 媛 ?먯뿰 ?숉븯 媛??
-   *
-   * 源딆씠 (蹂댁뒪 floor ?쒖옉 ??plaza ceiling ?? 痢≪젙 湲곕컲):
-   *   r0 = trapdoor.y / TILE_SIZE             (蹂댁뒪 floor ?쇱씤 = IW_DOOR_FLOOR_ROW 遺洹?
-   *   rN = (bossCellRow + 1) * H + IW_DOOR_DEPTH (?ㅼ쓬 plaza 泥쒖옣 strip ??
-   *
-   *   = 蹂댁뒪 floor (IW_DOOR_DEPTH ~3 ??? + ?ㅼ쓬 plaza ceiling (IW_DOOR_DEPTH ~3 ???
-   *   = ??6~8 ???源딆씠. ?ㅼ쓬 plaza ??*?대? floor* 源뚯????덈? ?レ? ?딆쑝誘濡?
-   *     player ??plaza 泥쒖옣 ?듦낵 吏곹썑 plaza ??floor ?꾩뿉 ?덉갑.
-   *
-   * ?쒓컖 ?붿옱 ?쒓굅 (LDtk wall/shadow/deco/bg ???:
-   *   媛?aggregate 而⑦뀒?대꼫??'erase' blend mode Graphics 瑜?異붽???hole ?곸뿭??
-   *   ?쎌???destination-out ?쒕떎. 洹?寃곌낵 hole ?곸뿭留??щ챸 ??洹??ㅼ쓽 parallax
-   *   諛곌꼍??洹몃?濡??몄텧?섏뼱 "?듬줈" 泥섎읆 ?먯뿰?ㅻ읇寃?蹂댁씤??
-   */
-  private breakBossFloor(tdX: number, tdY: number): void {
-    if (!this.fullGrid || this.fullGrid.length === 0) return;
-    const fullW = this.fullGrid[0]?.length ?? 0;
-    const fullH = this.fullGrid.length;
-
-    // ??怨꾩궛 ??IW_DOOR_V_WIDTH 湲곕컲 + 1 ????ъ쑀 醫뚯슦.
-    const tdTileX = Math.floor(tdX / TILE_SIZE);
-    const halfW = Math.ceil(IW_DOOR_V_WIDTH / 2) + 1; // 짹3
-    const c0 = Math.max(0, tdTileX - halfW);
-    const cN = Math.min(fullW, tdTileX + halfW);
-
-    // 源딆씠 怨꾩궛 ??蹂댁뒪 floor ?쒖옉 ~ ?ㅼ쓬 plaza 泥쒖옣 strip ??
-    // Plaza 異쒓뎄 = LRU (?ъ슜??寃곗젙 2026-05-03, force_up ?곸슜 ?? 濡?泥쒖옣 ?먯뿰
-    // open. ?곕씪??hole ? 蹂댁뒪 floor strip + ?ㅼ쓬 plaza 泥쒖옣 strip (~3??? 留?
-    // ?レ쑝硫?player 媛 plaza ?덉쑝濡??먯쑀 ?숉븯 ??plaza floor ?꾩뿉 ?먯뿰 ?덉갑.
-    const r0 = Math.max(0, Math.floor(tdY / TILE_SIZE));
-    const bossCellRow = this.pendingTrapBossCellRow;
-    const nextCellTopRow = (bossCellRow + 1) * IW_ROOM_H_TILES;
-    const rN = Math.min(fullH, nextCellTopRow + IW_DOOR_DEPTH);
-
-    for (let r = r0; r < rN; r++) {
-      for (let c = c0; c < cN; c++) {
-        this.fullGrid[r][c] = 0;
-      }
-    }
-
-    // ?쒓컖 ?붿옱 ?쒓굅 ??erase blend mode 濡?wall/shadow/deco/bg/struct/seal 紐⑤몢
-    // hole ?곸뿭?먯꽌 destination-out. parallax 諛곌꼍???먯뿰 ?몄텧.
-    const holePxX = c0 * TILE_SIZE;
-    const holePxY = r0 * TILE_SIZE;
-    const holePxW = (cN - c0) * TILE_SIZE;
-    const holePxH = (rN - r0) * TILE_SIZE;
-    const eraseAt = (parent: Container | null | undefined): void => {
-      if (!parent) return;
-      const g = new Graphics();
-      g.rect(holePxX, holePxY, holePxW, holePxH).fill(0xffffff);
-      g.blendMode = 'erase';
-      parent.addChild(g);
-    };
-    eraseAt(this.wallAggregate);
-    eraseAt(this.shadowAggregate);
-    eraseAt(this.decoAggregate);
-    eraseAt(this.artificialDecoAggregate);
-    eraseAt(this.structAggregate);
-    eraseAt(this.bgAggregate);
-    eraseAt(this.sealAggregate);
-
-    Debug.log(`[Trapdoor] hole punched: cols ${c0}..${cN} rows ${r0}..${rN} bossCellRow=${bossCellRow} nextCellTop=${nextCellTopRow}`);
-  }
-
-  /** 留??꾨젅???ъ궗????GC 諛⑹?. filterArea + viewport 寃??怨듭슜. */
-  private _viewportRect = new Rectangle(0, 0, 1, 1);
-
-  private renderCellVisual(key: string): void {
-    if (this.renderedCellVisuals.has(key)) return;
-    if (!this.bgAggregate || !this.interiorAggregate || !this.wallAggregate || !this.specialAggregate || !this.shadowAggregate) return;
-    const rec = this.cellVisualRecords.get(key);
-    if (!rec) return;
-
-    const { col, row: absRow, ldtkLevel, roomX, roomY } = rec;
-    const inBounds = (t: { px: [number, number] }) =>
-      t.px[0] >= 0 && t.px[0] < IW_ROOM_W_PX &&
-      t.px[1] >= 0 && t.px[1] < IW_ROOM_H_PX;
-    const bgTiles = ldtkLevel.backgroundTiles.filter(inBounds);
-    const wallTiles = ldtkLevel.wallTiles.filter((t) => {
-      if (!inBounds(t)) return false;
-      const tr = Math.floor(t.px[1] / TILE_SIZE);
-      const tc = Math.floor(t.px[0] / TILE_SIZE);
-      if (isLdtkWallSlope2x1Tile(t)) return true;
-      return (this.fullGrid[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? TILE_WALL) !== TILE_AIR;
-    });
-    const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
-    const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
-    const renderer = new LdtkRenderer();
-    const bgAreaId = `iw_${this._themeSlug}_bg`;
-    const wallAreaId = `iw_${this._themeSlug}_wall`;
-    const wallTilesSub = substituteSolidGenericSprites(
-      wallTiles, ldtkLevel.collisionGrid, this.item.def.temperamentPrimary,
-    );
-    this.applyItemWorldAreaTileset(bgAreaId, bgTiles);
-    this.applyItemWorldAreaTileset(wallAreaId, wallTilesSub);
-    this.applyItemWorldAreaTileset(wallAreaId, shadowTiles);
-    renderer.renderLevel(bgTiles, wallTilesSub, shadowTiles, this.atlases, undefined, ldtkLevel.collisionGrid, interiorTiles);
-    renderer.bgLayer.position.set(roomX, roomY);
-    renderer.interiorLayer.position.set(roomX, roomY);
-    renderer.wallLayer.position.set(roomX, roomY);
-    renderer.specialLayer.position.set(roomX, roomY);
-    renderer.shadowLayer.position.set(roomX, roomY);
-
-    const cellRect = new Rectangle(0, 0, IW_ROOM_W_PX, IW_ROOM_H_PX);
-    renderer.bgLayer.cullable = true;       renderer.bgLayer.cullArea = cellRect;
-    renderer.interiorLayer.cullable = true; renderer.interiorLayer.cullArea = cellRect;
-    renderer.wallLayer.cullable = true;     renderer.wallLayer.cullArea = cellRect;
-    renderer.specialLayer.cullable = true;  renderer.specialLayer.cullArea = cellRect;
-    renderer.shadowLayer.cullable = true;   renderer.shadowLayer.cullArea = cellRect;
-
-    this.bgAggregate.addChild(renderer.bgLayer);
-    this.interiorAggregate.addChild(renderer.interiorLayer);
-    this.wallAggregate.addChild(renderer.wallLayer);
-    this.specialAggregate.addChild(renderer.specialLayer);
-    this.shadowAggregate.addChild(renderer.shadowLayer);
-
-    const bleedLayers = addLdtkVisualBoundsBleed({
-      target: {
-        bgLayer: this.bgAggregate,
-        interiorLayer: this.interiorAggregate,
-        wallLayer: this.wallAggregate,
-        specialLayer: this.specialAggregate,
-        shadowLayer: this.shadowAggregate,
-      },
-      atlases: this.atlases,
-      boundsWidth: this.unifiedGrid.totalWidth * IW_ROOM_W_PX,
-      boundsHeight: this.unifiedGrid.totalHeight * IW_ROOM_H_PX,
-      bgTiles,
-      wallTiles: wallTilesSub,
-      shadowTiles,
-      interiorTiles,
-      collisionGrid: ldtkLevel.collisionGrid,
-      offsetX: roomX,
-      offsetY: roomY,
-    });
-    const layers = [renderer.bgLayer, renderer.interiorLayer, renderer.wallLayer, renderer.specialLayer, renderer.shadowLayer, ...bleedLayers];
-    this.renderedCellVisuals.set(key, { col, row: absRow, layers });
-    this.cellLayerGroups.push({ col, row: absRow, layers });
-  }
-
-  private destroyCellVisual(key: string): void {
-    const rendered = this.renderedCellVisuals.get(key);
-    if (!rendered) return;
-    for (const layer of rendered.layers) {
-      if (layer.parent) layer.parent.removeChild(layer);
-      layer.destroy({ children: true, texture: false, textureSource: false, context: true });
-    }
-    this.renderedCellVisuals.delete(key);
-    this.cellLayerGroups = this.cellLayerGroups.filter((g) => g.layers !== rendered.layers);
-  }
-
-  /**
-   * ?섎룞 cell culling (?ъ슜??寃곗젙 2026-05-04 ??Ancient 24 FPS 臾몄젣 ???.
-   * 移대찓??viewport 짹 1 cell buffer ?덉쓽 cell 留?visible=true. 洹???false.
-   * PIXI ?먮룞 culling ??filter ?몃━?먯꽌 ?쏀빐 紐낆떆 visible 濡?媛뺤젣.
-   *
-   * ?숈떆??aggregate ??filterArea 瑜?viewport 濡??쒗븳 (50??0 FPS ?μ긽 紐⑹쟻,
-   * ?ъ슜??寃곗젙 2026-05-04). filter 鍮꾩슜 = filterArea ?쎌? ?섏뿉 鍮꾨?. unifiedGrid
-   * ?꾩껜媛 ?꾨땶 viewport 留?泥섎━?섎룄濡?留??꾨젅??媛깆떊.
+   * aggregate 의 filterArea 를 viewport 로 제한한다 (50->60 FPS 대응,
+   * 2026-05-04). filter 없음 = filterArea 도 없음. unifiedGrid
+   * 기준으로 viewport 안의 cell 만 처리한다.
    */
   private updateCellVisibility(): void {
-    const cam = this.game.camera;
-    const halfW = (GAME_WIDTH / cam.zoom) * 0.5;
-    const halfH = (GAME_HEIGHT / cam.zoom) * 0.5;
-    // 1 cell ?ъ쑀 ??cell 寃쎄퀎 ?듦낵 ??源쒕묀??諛⑹?.
-    const viewL = cam.renderX - halfW - IW_ROOM_W_PX;
-    const viewR = cam.renderX + halfW + IW_ROOM_W_PX;
-    const viewT = cam.renderY - halfH - IW_ROOM_H_PX;
-    const viewB = cam.renderY + halfH + IW_ROOM_H_PX;
-    const minCol = Math.floor(viewL / IW_ROOM_W_PX);
-    const maxCol = Math.floor(viewR / IW_ROOM_W_PX);
-    const minRow = Math.floor(viewT / IW_ROOM_H_PX);
-    const maxRow = Math.floor(viewB / IW_ROOM_H_PX);
-    const windowKey = `${minCol},${maxCol},${minRow},${maxRow}`;
-    if (windowKey !== this.visibleCellWindowKey) {
-      this.visibleCellWindowKey = windowKey;
-      for (let row = minRow; row <= maxRow; row++) {
-        for (let col = minCol; col <= maxCol; col++) {
-          this.spawnRuntimeForCell(col, row);
-          this.renderCellVisual(`${col}:${row}`);
+    this.cellVisualRuntime.updateVisibility({
+      camera: this.game.camera,
+      viewportWidth: GAME_WIDTH,
+      viewportHeight: GAME_HEIGHT,
+      spawnForCell: (col, row) => this.runtimeCellSpawner.spawnForCell(col, row),
+      onWindowChanged: () => {
+        if (this.fluidSystemReady) {
+          this.fluidSystem.refreshFromGrid(this.fullGrid, this.tileHazardRuntime.getActiveTileBounds());
         }
-      }
-
-      const destroyMinCol = minCol - 1;
-      const destroyMaxCol = maxCol + 1;
-      const destroyMinRow = minRow - 1;
-      const destroyMaxRow = maxRow + 1;
-      for (const [key, g] of Array.from(this.renderedCellVisuals)) {
-        const visible =
-          g.col >= minCol &&
-          g.col <= maxCol &&
-          g.row >= minRow &&
-          g.row <= maxRow;
-        if (
-          g.col < destroyMinCol ||
-          g.col > destroyMaxCol ||
-          g.row < destroyMinRow ||
-          g.row > destroyMaxRow
-        ) {
-          this.destroyCellVisual(key);
-        } else {
-          for (const layer of g.layers) layer.visible = visible;
-        }
-      }
-      if (this.fluidSystemReady) {
-        this.fluidSystem.refreshFromGrid(this.fullGrid, this.getActiveTileBounds());
-      }
-    }
-    // Filter area culling ??aggregate ??filter 媛 viewport 留?泥섎━?섎룄濡??쒗븳.
-    const fa = this._viewportRect;
-    fa.x = viewL;
-    fa.y = viewT;
-    fa.width = viewR - viewL;
-    fa.height = viewB - viewT;
-    if (this.bgAggregate) this.bgAggregate.filterArea = fa;
-    if (this.interiorAggregate) this.interiorAggregate.filterArea = fa;
-    if (this.wallAggregate) this.wallAggregate.filterArea = fa;
-    if (this.shadowAggregate) this.shadowAggregate.filterArea = fa;
-    if (this.sealAggregate) this.sealAggregate.filterArea = fa;
+      },
+    });
   }
 
-  /** Trapdoor entity ?뺣━ + KeyPrompt UI ?④? (uiContainer ?붾쪟 諛⑹?). */
+  /** Trapdoor entity + KeyPrompt UI 를 정리한다 (uiContainer 에서 제거). */
   private disposeTrapdoor(): void {
-    this.hideTrapdoorPrompt();
+    this.trapdoorRuntime.hidePrompt();
     if (!this.trapdoor) return;
     this.trapdoor.destroy();
     this.trapdoor = null;
   }
 
-  /**
-   * Repaint the mutation mask covering every air cell produced by tile
-   * burnout / corrode. Each entry is a 16횞16 rect drawn above the wall
-   * aggregate. Color matches the AshRemnant dark tone (#1f1a16) instead of
-   * pure black so the burnout site reads as "scorched residue" rather than
-   * a hole punched in the world. Lazy ??only re-fills the Graphics when the
-   * cell set has actually changed.
-   */
-  private rebuildMutationMask(): void {
-    const g = this.mutationMaskGfx;
-    if (!g) return;
-    g.clear();
-    for (const key of this.mutatedCells) {
-      const ix = key.indexOf(',');
-      const gx = +key.slice(0, ix);
-      const gy = +key.slice(ix + 1);
-      // Sepia-charred tone ??same palette as AshRemnantManager COLOR_ASH_DARK.
-      // Reads as scorched residue, not a void.
-      g.rect(gx * 16, gy * 16, 16, 16).fill({ color: 0x1f1a16, alpha: 0.92 });
-    }
-  }
-
-  /**
-   * ItemWorld bakes walls into an aggregate, so runtime WALL creation needs a
-   * small overlay. Used by water+magma Steam Burst hardened magma.
-   */
-  private rebuildSolidifiedWallOverlay(): void {
-    const g = this.solidifiedWallGfx;
-    if (!g) return;
-    g.clear();
-    for (const key of this.solidifiedWallCells) {
-      const ix = key.indexOf(',');
-      const gx = +key.slice(0, ix);
-      const gy = +key.slice(ix + 1);
-      if (this.fullGrid[gy]?.[gx] !== TILE_WALL) continue;
-      const x = gx * 16;
-      const y = gy * 16;
-      g.rect(x, y, 16, 16).fill({ color: 0x2b2520, alpha: 1 });
-      g.rect(x, y, 16, 2).fill({ color: 0x7a4a2a, alpha: 0.95 });
-      g.rect(x + 2, y + 4, 12, 1).fill({ color: 0x4a3528, alpha: 0.8 });
-    }
-  }
-
-  /**
-   * Oxygen overlay ??vignette + bottom-center bar shown while submerged
-   * (without the waterBreathing ability). Lazy-creates the Graphics on
-   * first need. Direct mirror of LdtkWorldScene's implementation.
-   */
-  private updateOxygenOverlay(): void {
-    const ratio = this.player.oxygenRatio;
-    const submerged = this.player.submerged && !this.player.abilities.waterBreathing;
-
-    if (submerged && ratio < 1) {
-      if (!this.oxygenOverlay) {
-        this.oxygenOverlay = new Graphics();
-        this.oxygenOverlay.eventMode = 'none';
-        this.game.legacyUIContainer.addChild(this.oxygenOverlay);
-      }
-      this.oxygenOverlay.clear();
-      const color = ratio > 0.5 ? 0x1122aa : ratio > 0.25 ? 0x882244 : 0xaa2222;
-      const intensity = (1 - ratio) * 0.5;
-      const pulse = ratio < 0.5 ? Math.sin(Date.now() * (ratio < 0.15 ? 0.015 : 0.008)) * 0.1 : 0;
-      const alpha = Math.min(0.6, intensity + pulse);
-      this.oxygenOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color, alpha });
-      const cx = GAME_WIDTH / 2;
-      const cy = GAME_HEIGHT / 2;
-      const r = GAME_WIDTH * 0.35 * (0.5 + ratio * 0.5);
-      this.oxygenOverlay.circle(cx, cy, r).cut();
-      this.oxygenOverlay.visible = true;
-    } else if (this.oxygenOverlay) {
-      this.oxygenOverlay.visible = false;
-    }
-
-    if (submerged && ratio < 1) {
-      if (!this.oxygenBar) {
-        this.oxygenBar = new Graphics();
-        this.oxygenBar.eventMode = 'none';
-        this.game.legacyUIContainer.addChild(this.oxygenBar);
-      }
-      this.oxygenBar.clear();
-      const barW = 60;
-      const barH = 4;
-      const bx = GAME_WIDTH / 2 - barW / 2;
-      const by = GAME_HEIGHT - 20;
-      this.oxygenBar.rect(bx, by, barW, barH).fill({ color: 0x111133, alpha: 0.7 });
-      const fillColor = ratio > 0.5 ? 0x4488ff : ratio > 0.25 ? 0xff8844 : 0xff2222;
-      this.oxygenBar.rect(bx, by, barW * ratio, barH).fill(fillColor);
-      this.oxygenBar.rect(bx, by, barW, barH).stroke({ color: 0x446688, width: 0.5 });
-      this.oxygenBar.visible = true;
-    } else if (this.oxygenBar) {
-      this.oxygenBar.visible = false;
-    }
-  }
-
   render(alpha: number): void {
     if (!this.initialized) return;
     this.player.render(alpha);
-    for (const enemy of this.enemies) enemy.render(alpha);
+    this.enemyRegistry.render(alpha);
     const cam = this.game.camera;
     this.parallaxBG.updateScroll(cam.renderX, cam.renderY);
     const p = this.player;
@@ -8422,14 +3062,17 @@ export class ItemWorldScene extends Scene {
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
     this.toast.clear();
     this.uiController.destroy();
+    this.containerCarryRuntime.destroy();
     if (this.collisionDebug) this.collisionDebug.hud.visible = false;
-    this.entryCorridorActive = false;
-    this.clearEntryCorridorColorRestore();
-    this.restoreWorldAfterEntryCorridor(false);
-    this.destroyEntryCorridorVisuals();
+    this.entryCorridorState.reset();
+    this.entryCorridorVisibilityRuntime.clearColorRestore();
+    this.entryCorridorVisibilityRuntime.restoreWorld(false);
+    this.entryCorridorVisualRuntime.destroy();
     if (this.parallaxBG) this.parallaxBG.container.visible = false;
-    this.destroyTrapdoorPrompt();
-    this.destroyItemWorldAnvilPrompt();
+    this.absorbDissolveRuntime.cleanup(true);
+    this.trapdoorRuntime.destroy();
+    this.itemWorldAnvilRuntime.clear();
+    this.captureOrbRuntime.clear();
     this.clearStaticEntities();
     if (this.loreDisplay) {
       this.loreDisplay.close();
@@ -8438,348 +3081,83 @@ export class ItemWorldScene extends Scene {
       }
       this.loreDisplay = null;
     }
-    if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
     if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
     if (this.areaTitle?.container.parent) this.areaTitle.container.parent.removeChild(this.areaTitle.container);
     this.areaTitle?.destroy();
-    if (this.controlsOverlay?.container.parent) this.controlsOverlay.container.parent.removeChild(this.controlsOverlay.container);
     if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
-    // LowHpVignette ??legacyUIContainer ??attach ?섎?濡?scene exit ??諛섎뱶??destroy.
-    // ?꾨씫 ???泥대젰 ?щ쭩 ??WORLD 濡?蹂듦??대룄 遺됱? vignette ??洹몃?濡??⑤뒗 踰꾧렇 諛쒖깮.
+    // LowHpVignette 는 legacyUIContainer 에 attach 되므로 scene exit 시 직접 destroy.
+    // WORLD 복귀 시 vignette 가 남지 않도록 정리한다.
     if (this.lowHpVignette) {
       this.lowHpVignette.destroy();
     }
     if (this.tutorialHint) {
       this.tutorialHint.destroy();
     }
-    this.destroyRoomGraphDebug();
-    this.destroyTopologyCycleKey();
-    this.destroyTopologyLabel();
+    this.devOverlayRuntime.destroy();
+    this.weatherRuntime.destroy();
+    this.stratumPickerRuntime.destroy();
   }
 
   override destroy(): void {
-    this.clearEntryCorridorColorRestore();
-    this.restoreEntryCorridorBackgroundFilter();
-    this.weather?.destroy();
-    this.weather = null;
+    this.entryCorridorVisibilityRuntime.clearColorRestore();
+    this.entryCorridorVisibilityRuntime.restoreBackgroundFilter();
+    this.weatherRuntime.destroy();
+    this.oxygenOverlay.destroy();
+    this.devOverlayRuntime.destroy();
+    this.captureOrbRuntime.clear();
+    this.stratumPickerRuntime.destroy();
+    this.containerCarryRuntime.destroy();
+    this.itemWorldAnvilRuntime.destroy();
     this.parallaxBG?.destroy();
     this.dmgNumbers?.clear();
-    // hud 는 game.uiContainer(씬 외부) 자식이라 super.destroy() 가 정리하지 않음 — 직접 해제.
+    // hud 는 game.uiContainer(공유) 라서 super.destroy() 가 처리하므로 여기서는 제외한다.
     this.collisionDebug?.hud.destroy({ children: true });
     super.destroy();
   }
 
-  /**
-   * Create material-specific Item World weather for the current theme.
-   * `Weather=stratum` now means a weapon-colored rain/snow variant, not a
-   * separate floating field. Forge becomes ash snow, iron/cyro becomes pale
-   * snow, rust becomes acid rain, spark becomes electric rain, and shadow
-   * becomes oil rain. The full map IntGrid is bound as collision so every
-   * droplet/flock stops on authored terrain.
-   */
-  private initStratumWeather(): void {
-    this.weather?.destroy();
-    this.weather = null;
-    const areaId = `iw_${this._themeSlug}_bg`;
-    const entry = getAreaPaletteAtlas().rowIndex.has(areaId) ? getAreaPalette(areaId) : null;
-    if (!entry || entry.weather !== 'stratum') return;
-    const p = entry.weatherParams;
-    this.weather = new WeatherSystem({
-      mode: 'stratum',
-      stratumIntensity: p.density,
-      stratumProfile: this.resolveItemWorldWeatherProfile(entry.weatherProfile),
-      coverageCheckTiles: 0,
-      collision: {
-        grid: this.fullGrid,
-        tileSize: TILE_SIZE,
-        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
-      },
-    });
-    this.weatherLayer.addChild(this.weather.container);
-  }
+  // ----- Ego dialogue helpers -----
 
-  private resolveItemWorldWeatherProfile(fallback: StratumProfileInput): StratumProfileInput {
-    switch (this.item.def.temperamentPrimary) {
-      case 'forge': return 'ash';
-      case 'iron': return 'cyro';
-      case 'rust': return 'rust';
-      case 'spark': return 'spark';
-      case 'shadow': return 'shadow';
-      default: return fallback;
-    }
-  }
-
-  private updateWeather(dt: number): void {
-    if (!this.weather) return;
-    const cam = this.game.camera;
-    const width = GAME_WIDTH / cam.zoom;
-    const height = GAME_HEIGHT / cam.zoom;
-    this.weather.update(dt, {
-      x: cam.renderX - width / 2,
-      y: cam.renderY - height / 2,
-      width,
-      height,
-    });
-  }
-
-  /**
-   * Minimap rendering ? disabled for Spelunky-style blind exploration.
-   * Kept as a no-op so existing call sites (buildFullMap, room transition,
-   * lazy spawn) remain valid without branching.
-   */
-  private drawMiniMap(): void {
-    // intentionally empty
-  }
-
-  // ?? DEC-037 PR-B: RoomGraph debug overlay ?????????????????????
-  /**
-   * If ?debug=graph is in the URL, generate a RoomGraph for every stratum
-   * and build the debug overlay container. Hidden by default; F2 toggles.
-   */
-  private maybeInitRoomGraphDebug(): void {
-    const params = new URLSearchParams(window.location.search);
-    const dbg = params.get('debug');
-    // Enabled by ?debug=1 ?먮뒗 ?debug=graph. Shift+2 ?좉?.
-    const enabled = dbg === '1' || (dbg?.includes('graph') ?? false);
-    if (!enabled) return;
-
-    // Reuse adapter-built graphs so layout.x/y reflects actual grid placements.
-    const graphs = this.roomGraphs;
-    if (graphs.length === 0) return;
-
-    const canvas = this.game.app.canvas;
-    this.roomGraphDebugContainer = createRoomGraphDebugOverlay(
-      graphs,
-      this.item.rarity,
-      this.item.uid,
-      canvas.width,
-      canvas.height,
-    );
-    this.roomGraphDebugContainer.visible = false;
-    // Attach to uiContainer (unscaled native) so the debug overlay covers the
-    // full screen rather than the virtual 640x360 viewport.
-    this.game.uiContainer.addChild(this.roomGraphDebugContainer);
-
-    this.roomGraphDebugKeyHandler = (e: KeyboardEvent) => {
-      // Shift+2 (Digit2 key with shift). Code 'Digit2' is keyboard-layout independent.
-      if (e.code !== 'Digit2' || !e.shiftKey) return;
-      e.preventDefault();
-      this.roomGraphDebugVisible = !this.roomGraphDebugVisible;
-      if (this.roomGraphDebugContainer) {
-        this.roomGraphDebugContainer.visible = this.roomGraphDebugVisible;
-      }
-    };
-    window.addEventListener('keydown', this.roomGraphDebugKeyHandler, true);
-    Debug.log(`[RoomGraph debug] mounted ${graphs.length} stratum graph(s). Press Shift+2 to toggle.`);
-  }
-
-  private destroyRoomGraphDebug(): void {
-    if (this.roomGraphDebugKeyHandler) {
-      window.removeEventListener('keydown', this.roomGraphDebugKeyHandler, true);
-      this.roomGraphDebugKeyHandler = null;
-    }
-    if (this.roomGraphDebugContainer?.parent) {
-      this.roomGraphDebugContainer.parent.removeChild(this.roomGraphDebugContainer);
-    }
-    this.roomGraphDebugContainer?.destroy({ children: true });
-    this.roomGraphDebugContainer = null;
-    this.roomGraphDebugVisible = false;
-  }
-
-  // ?? Dev: Shift+L topology cycle ???????????????????????????????
-  /**
-   * Press Shift+L to cycle ?topology= through all kinds and reload the page.
-   * Lets a single weapon validate every topology builder without CSV edits.
-   * After reload the player must re-enter the item world manually.
-   */
-  private initTopologyCycleKey(): void {
-    const TOPOLOGIES: TopologyKind[] = [
-      'hub_spoke', 'multi_hub',
-      'linear_right',
-      'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
-      'two_arc_pocketed',
-    ];
-    this.topologyCycleKeyHandler = (e: KeyboardEvent) => {
-      // Diagnostic: log every Shift-modified L press to verify reachability.
-      if (e.code === 'KeyL' && e.shiftKey) {
-        Debug.log('[ItemWorld] Shift+L caught.');
-      }
-      if (e.code !== 'KeyL' || !e.shiftKey) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      const params = new URLSearchParams(window.location.search);
-      const cur = (params.get('topology') ?? '').trim().toLowerCase();
-      const idx = TOPOLOGIES.indexOf(cur as TopologyKind);
-      const next = TOPOLOGIES[(idx + 1) % TOPOLOGIES.length];
-      params.set('topology', next);
-      const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      Debug.log(`[ItemWorld] Topology cycle: ${cur || '(none)'} ??${next}. Reloading...`);
-      window.history.replaceState(null, '', url);
-      window.location.reload();
-    };
-    window.addEventListener('keydown', this.topologyCycleKeyHandler, true);
-    Debug.log('[ItemWorld] Shift+L ready: cycle ?topology= through 8 kinds (page reload).');
-  }
-
-  private destroyTopologyCycleKey(): void {
-    if (this.topologyCycleKeyHandler) {
-      window.removeEventListener('keydown', this.topologyCycleKeyHandler, true);
-      this.topologyCycleKeyHandler = null;
-    }
-  }
-
-  /**
-   * Dev: Always-visible label at top-left showing which topology is active and
-   * where it came from (URL > weapon override > stratum default).
-   */
-  private initTopologyLabel(urlTopology: TopologyKind | undefined): void {
-    let source: 'URL' | 'WEAPON' | 'STRATUM';
-    let text: string;
-    if (urlTopology) {
-      source = 'URL';
-      text = urlTopology;
-    } else if (this.item.def.topologyOverride) {
-      source = 'WEAPON';
-      text = this.item.def.topologyOverride;
-    } else {
-      source = 'STRATUM';
-      text = this.strataConfig.strata.map(s => s.topology).join('/');
-    }
-    this.topologyLabel = new BitmapText({
-      text: `TOPO[${source}]: ${text}`,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xFFA41B },
-    });
-    this.topologyLabel.x = 4;
-    this.topologyLabel.y = 4;
-    this.game.uiContainer.addChild(this.topologyLabel);
-  }
-
-  private destroyTopologyLabel(): void {
-    if (this.topologyLabel?.parent) this.topologyLabel.parent.removeChild(this.topologyLabel);
-    this.topologyLabel?.destroy();
-    this.topologyLabel = null;
-  }
-
-  // ?? Ego dialogue helpers ??????????????????????????????????????
-
-  /** Fire an Ego dialogue line if conditions are met. Returns true if fired. */
-  private fireEgo(key: string, lines: import('@ui/LoreDisplay').LoreLine[], freeze = false): boolean {
-    if (!this.egoActive) return false;
-    if (this.egoFlags.has(key)) return false;
-    if (this.loreDisplay?.isActive) return false;
-    this.egoFlags.add(key);
-    this.loreDisplay?.showDialogue(lines, freeze);
-    return true;
-  }
-
-  /**
-   * True while the player is still in the first-clear onboarding window for
-   * this Ego item (boss not yet killed). Once BOSS_KILLED is persisted, this
-   * flips to false and subsequent re-entries use decay dialogue instead.
-   * Used so ESC-exit + re-entry doesn't drop onboarding mid-tutorial.
-   */
   private isFirstBossOnboarding(): boolean {
-    return this.egoActive && !this.egoUnlockedEvents.has(EGO_EVENT.BOSS_KILLED);
+    return this.egoDialogueRuntime.isFirstBossOnboarding();
   }
 
-  /** T04: Called after floor start / landing. */
   fireEgoEnter(): void {
-    if (this.isFirstBossOnboarding()) {
-      this.fireEgo('iw_enter', EGO_IW_ENTER, true);
-    } else if (this.egoEntryCount === 2) {
-      // Check S02: weapon swap return
-      if (this.egoUnlockedEvents.has(EGO_EVENT.WEAPON_SWAP)
-        && !this.egoUnlockedEvents.has(EGO_EVENT.SWAP_RETURN)) {
-        this.egoUnlockedEvents.add(EGO_EVENT.SWAP_RETURN);
-        this.fireEgo('swap_return', EGO_SWAP_RETURN, false);
-      } else {
-        this.fireEgo('reentry_2', EGO_REENTRY_2, false);
-      }
-    } else if (this.egoEntryCount === 3) {
-      this.fireEgo('reentry_3', EGO_REENTRY_3, false);
-    }
-    // 4+ : silence
+    this.egoDialogueRuntime.fireEnter();
   }
 
-  /**
-   * fireEgoEnter ??await-able 蹂醫? 諛쒗솕????ш? ?덈떎硫?洹?醫낅즺源뚯? await.
-   * ???誘몃컻???대? 諛쒗솕쨌鍮꾪솢?굿? ?뚯감+) ??利됱떆 resolve.
-   * ?쒖옉 猷?嫄곗＜???ㅽ룿??????ㅻ줈 誘몃（湲??꾪빐 ?ъ슜.
-   */
   async fireEgoEnterAsync(): Promise<void> {
-    this.fireEgoEnter();
-    const ld = this.loreDisplay;
-    if (!ld?.isActive) return;
-    // showDialogue ?먯껜 promise 瑜??≪? 紐삵븯誘濡?isActive ?대쭅.
-    await new Promise<void>((resolve) => {
-      const check = () => {
-        if (!ld.isActive) resolve();
-        else setTimeout(check, 100);
-      };
-      check();
-    });
+    await this.egoDialogueRuntime.fireEnterAsync();
   }
 
-  /** T05: First distortion monster visible on camera. */
   fireEgoMonsterVisible(): void {
-    if (!this.isFirstBossOnboarding()) return;
-    this.fireEgo('monster_first', EGO_MONSTER_FIRST, false);
+    this.egoDialogueRuntime.fireMonsterVisible();
   }
 
-  /** T06: First enemy killed this entry (1s delay). */
   fireEgoFirstKill(): void {
-    if (!this.isFirstBossOnboarding()) return;
-    if (this.egoFlags.has('first_kill')) return;
-    this.egoFlags.add('first_kill');
-    setTimeout(() => {
-      if (!this.loreDisplay?.isActive) {
-        this.loreDisplay?.showDialogue(EGO_FIRST_KILL, false);
-      }
-    }, 1000);
+    this.egoDialogueRuntime.fireFirstKill();
   }
 
-  /** T07: Room clear (3rd room in first entry). */
   fireEgoRoomClear(roomIndex: number): void {
-    if (!this.isFirstBossOnboarding()) return;
-    if (roomIndex >= 2) { // 0-indexed, room 3 = index 2
-      this.fireEgo('room_clear', EGO_ROOM_CLEAR, false);
-    }
+    this.egoDialogueRuntime.fireRoomClear(roomIndex);
   }
 
-  /** T08: Innocent NPC visible on camera for the first time. */
   fireEgoInnocentFound(): void {
-    if (!this.isFirstBossOnboarding()) return;
-    this.fireEgo('innocent_found', EGO_INNOCENT_FOUND, false);
+    this.egoDialogueRuntime.fireInnocentFound();
   }
 
-  /** T09: Innocent stabilized. */
   fireEgoInnocentStable(): void {
-    if (!this.isFirstBossOnboarding()) return;
-    this.fireEgo('innocent_stable', EGO_INNOCENT_STABLE, false);
+    this.egoDialogueRuntime.fireInnocentStable();
   }
 
-  // T10: Boss appear ??removed
-
-  /** T11: Player died and respawned. */
   fireEgoPlayerDeath(): void {
-    if (!this.isFirstBossOnboarding()) return;
-    this.fireEgo('player_death', EGO_PLAYER_DEATH, false);
+    this.egoDialogueRuntime.firePlayerDeath();
   }
 
-  /** T12: Boss killed ??call AFTER reward UI is shown. */
   fireEgoBossKilled(): void {
-    if (this.isFirstBossOnboarding()) {
-      this.fireEgo('boss_killed', EGO_BOSS_KILLED, true);
-    } else if (this.egoEntryCount === 2) {
-      this.fireEgo('reentry_2_boss', EGO_REENTRY_2_BOSS, false);
-    }
+    this.egoDialogueRuntime.fireBossKilled();
   }
 
-  /** S03: Stratum 2 clear ??affinity max. */
   fireEgoAffinityMax(): void {
-    if (!this.egoUnlockedEvents.has(EGO_EVENT.AFFINITY_MAX)) {
-      this.egoUnlockedEvents.add(EGO_EVENT.AFFINITY_MAX);
-      this.fireEgo('affinity_max', EGO_AFFINITY_MAX, true);
-    }
+    this.egoDialogueRuntime.fireAffinityMax();
   }
 }

@@ -30,7 +30,7 @@
 핵심 루프가 재미있는지 Victor 본인이 확인한다.
 
 ### 범위
-`Content_First30Min_ExperienceFlow.md` (22개 스크린) 완전 구현.
+`Content_Progression_Master.md` (CNT-PROG) Ch.0~Ch.1 (구 First30Min 22 스크린) 완전 구현.
 
 ### 구현 목록
 

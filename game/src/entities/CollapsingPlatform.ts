@@ -126,6 +126,10 @@ export class CollapsingPlatform {
     }
   }
 
+  getState(): PlatformState {
+    return this.state;
+  }
+
   private collapse(): void {
     this.state = 'collapsed';
     this.container.visible = false;

@@ -98,10 +98,10 @@
 
 지층 번호는 게이지가 담당. 텍스트에서 **제거**.
 
-기존: `"S1 First Sword Lv5 EXP:120/300"`
-변경: `"First Sword Lv5 EXP:180/300"`
+기존: `"S1 First Blade Lv5 EXP:120/300"`
+변경: `"First Blade Lv5 EXP:180/300"`
 
-재사이클 시: `"C2 First Sword Lv5 EXP:180/300"` (Cycle만 표시)
+재사이클 시: `"C2 First Blade Lv5 EXP:180/300"` (Cycle만 표시)
 
 ---
 
@@ -122,7 +122,7 @@
 │                                             │
 │                                             │
 │                                 G 150       │
-│ First Sword Lv5 EXP:180/300                │ y=350
+│ First Blade Lv5 EXP:180/300                │ y=350
 └─────────────────────────────────────────────┘
 ```
 

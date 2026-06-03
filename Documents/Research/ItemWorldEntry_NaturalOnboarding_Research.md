@@ -637,7 +637,7 @@ ECHORIS는 다른 게임과 구조적으로 다르다:
 
 [0:30] 진행 경로상 **바닥에 Normal Blade가 배치**되어 있음.
        ==> 배치 아이템 연출:
-       - 아이템이 바��에 놓인 상태로 레어리티 색상(Normal=#FFFFFF) glow 발산
+       - 아이템이 바닥에 놓인 상태로 레어리티 색상(Normal=#FFFFFF) glow 발산
        - 미세한 파티클이 아이템 위로 상승
        - 접근하면 **자동 획득** (별도 입력 불필요)
 
@@ -747,7 +747,7 @@ ECHORIS는 다른 게임과 구조적으로 다르다:
 | Tether (빛의 선) | 에르다 위치 -> 가장 가까운 앵빌(세이브 포인트) 방향으로 빛의 선이 뻗어나감 |
 | Tether 시각 | 레어리티 색상 반투명 선 (두께 1-2px). 발사 후 0.4초간 밝게 -> 점선 잔상으로 감쇄 |
 | Tether 잔상 | 점선 형태로 앵빌 도달까지 화면에 유지. 앵빌 접근 시 수렴하며 소멸 |
-| ��빌이 시야 밖일 때 | Tether가 화면 가장자리 방향으로 뻗어���감 (방향 표시 역할) |
+| 앤빌이 시야 밖일 때 | Tether가 화면 가장자리 방향으로 뻗어나감 (방향 표시 역할) |
 | 최초 진입 한정 | 첫 아이템계 진입 전에만 Tether 연출 재생. 이후 획득에서는 맥동만 재생 (Tether 생략) |
 | PixiJS 구현 | `Graphics.lineTo()` + alpha tween + dashed line shader |
 
@@ -780,13 +780,13 @@ ECHORIS는 다른 게임과 구조적으로 다르다:
 ### 7.5 플레이어 심리 여정 (Player Emotional Journey)
 
 ```
-[0:00-0:05] "이 검 좀 볼품없네. 이동이랑 공격 이���게 하는거구나" (학습 + 부족함 인식)
+[0:00-0:05] "이 검 좀 볼품없네. 이동이랑 공격 이렇게 하는거구나" (학습 + 부족함 인식)
 [0:15-0:30] "적은 잡히는데 좀 약하다. 더 좋은 무기 없나?" (욕구 형성)
 [0:30]      "어? 저기 바닥에 뭔가 빛나는 게 있다!" (glow 이펙트 -> 호기심)
 [0:30-0:32] (자동 획득) "오 새 무기다! 이름이랑 설명이 나온다"
             "forgotten echoes... Memory Strata 2 Floors... 뭔가 안에 있나?" (Lore = Preview)
-[0:35]      [X] 닫음. "우와 무기가 빛나면서 저��으로 선이 뻗어나간다!" (맥동 + Tether)
-[0:35-0:45] "선이 가리키는 쪽으��� 가보자" (공간적 유도)
+[0:35]      [X] 닫음. "우와 무기가 빛나면서 저절로 선이 뻗어나간다!" (맥동 + Tether)
+[0:35-0:45] "선이 가리키는 쪽으로 가보자" (공간적 유도)
             새 무기로 적 처치 -- "확실히 강하다!" (성장 체감)
 [0:45]      "저기 앵빌이다. 선이 여기로 연결됐구나" (발견)
 [0:47]      [E] 앵빌 오픈. "DIVE? 이 무기 안으로 들어갈 수 있나?" (이해)
@@ -992,8 +992,8 @@ Sacred Pickup 플로우:
 
 - "Show, don't tell" -- Environmental Storytelling (GDC 2010, Harvey Smith)
 - "The first 5 minutes" -- Player Onboarding (Extra Credits)
-- "Player Agency in Transitions" -- 플레이���가 전환을 **선택**할 때 vs **당할** 때의 감정 차이
-- "Consent Moment" -- UX 패턴: 파괴적/��가역적 행위 전 명시적 확인
+- "Player Agency in Transitions" -- 플레이어가 전환을 **선택**할 때 vs **당할** 때의 감정 차이
+- "Consent Moment" -- UX 패턴: 파괴적/비가역적 행위 전 명시적 확인
 - "Engaging Players Through Ritual" -- Gamedeveloper.com, 의식적 행위의 사고방식 전환 효과
 - "Adding Weight to Your Game Design Part 2: Anticipation" -- Gamedeveloper.com, 기대감 설계
 - "Environmental Storytelling in Video Games" -- gamedesignskills.com

@@ -11,8 +11,22 @@ export class AnvilPromptController {
   private actionPrompt: Container | null = null;
   private disabledPrompt: Container | null = null;
   private actionPromptKey = '';
+  private suppressMs = 0;
 
   constructor(private readonly game: Game) {}
+
+  get isSuppressed(): boolean {
+    return this.suppressMs > 0;
+  }
+
+  suppress(durationMs: number): void {
+    this.suppressMs = Math.max(this.suppressMs, durationMs);
+  }
+
+  updateSuppression(dtMs: number): void {
+    if (this.suppressMs <= 0) return;
+    this.suppressMs = Math.max(0, this.suppressMs - dtMs);
+  }
 
   showAction(anvil: Anvil, promptKey: string): void {
     if (!this.actionPrompt || this.actionPromptKey !== promptKey) {
@@ -74,6 +88,7 @@ export class AnvilPromptController {
     this.disabledPrompt?.destroy({ children: true });
     this.disabledPrompt = null;
     this.actionPromptKey = '';
+    this.suppressMs = 0;
   }
 
   private positionPrompt(prompt: Container, anvil: Anvil, yOffset: number): void {

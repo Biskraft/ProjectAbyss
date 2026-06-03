@@ -23,7 +23,7 @@ export class Ghost extends Enemy {
   /** Glow filter applied to the atlas sprite — kept as a field so update()
    *  can modulate its intensity each frame for the slow pulse. */
   private orangeGlow: OrangeGlowFilter | null = null;
-  /** Spawned projectiles — scene must read and manage these */
+  /** Spawned projectiles — WorldProjectileRuntime drains and manages these. */
   pendingProjectiles: Projectile[] = [];
 
   constructor(level = 1) {

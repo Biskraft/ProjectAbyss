@@ -7,13 +7,13 @@
 > **최근 업데이트:** 2026-04-13
 > **문서 상태:** Draft
 > **리서치:** `Research/SilentTutorial_EnvironmentalTeaching_Research.md` (9개 게임 분석, 8패턴 카탈로그)
-> **콘텐츠:** `Content/Content_First30Min_ExperienceFlow.md` (첫 30분 v3)
+> **콘텐츠:** `Content/Content_Ch1_DrownedFloor.md` (CNT-CH1, 구 첫 30분) · `Content/Content_Progression_Master.md` (CNT-PROG)
 > **기둥:** 탐험
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
 |:---|:---|:---|:---:|:---|:---|
 | TUT-01 | 원칙 | 에르다 0-발화 + 검 Ego 발화 규칙 | P0 | ⬜ | 에르다 대사 없음, 검 Ego 대사 허용 (DEC-033) |
-| TUT-02 | 첫 30분 | 스크린별 교습 패턴 매핑 | P0 | ⬜ | CNT-EXP-001과 동기화 |
+| TUT-02 | Ch.1 | 비트별 교습 패턴 매핑 | P0 | ⬜ | CNT-CH1과 동기화 |
 | TUT-03 | Phase 1+ | 신규 능력 도입 교습 규칙 | P1 | ⬜ | 렐릭 해금 시 환경 교습 |
 | TUT-04 | 아이템계 | 절차적 생성 내 교습 보장 | P1 | ⬜ | 첫 방 고정, RoomType 순서 |
 
@@ -137,7 +137,7 @@
 
 ## 2. 첫 30분 패턴 매핑 (요약)
 
-상세 흐름: `Content/Content_First30Min_ExperienceFlow.md` (SSoT)
+상세 흐름: `Content/Content_Ch1_DrownedFloor.md` (CNT-CH1, SSoT) · `Content/Content_Progression_Master.md` (CNT-PROG). (아래 "스크린" 표는 구 22-스크린 판 매핑 — 비트(B1~B12) 기준으로 갱신 필요.)
 
 | 스크린 | 교습 목표 | 패턴 | 핵심 장치 |
 |:---|:---|:---|:---|
@@ -204,7 +204,7 @@
 ## 5. 참고 문서
 
 - `Research/SilentTutorial_EnvironmentalTeaching_Research.md` - 9개 게임 분석, 8패턴 카탈로그 원본
-- `Content/Content_First30Min_ExperienceFlow.md` (CNT-EXP-001) - 첫 30분 v3 (SSoT)
+- `Content/Content_Ch1_DrownedFloor.md` (CNT-CH1) - Ch.1 침수 바닥층 (구 첫 30분, SSoT)
 - `System_World_TileSystem.md` - 타일별 교습 고려사항 (spike 리스폰, charged DoT 등)
 - `System_World_AbilityGating.md` - 렐릭 해금 순서 (교습 레이어링 순서와 연동)
 - `System_ItemWorld_FloorGen.md` - RoomType별 콘텐츠 정의 (§7)

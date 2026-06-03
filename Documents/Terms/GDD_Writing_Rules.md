@@ -499,7 +499,7 @@ UI 중분류:
 | Inventory | 인벤토리 | (단일 문서) |
 | Map | 맵 UI | (단일 문서) |
 | ItemWorld | 아이템계 UI | (단일 문서) |
-| ~~Memory ShardFarm~~ | ~~이노��트 목장 UI~~ | ~~(단일 문서) — DEPRECATED~~ |
+| ~~Memory ShardFarm~~ | ~~이노센트 목장 UI~~ | ~~(단일 문서) — DEPRECATED~~ |
 | PartyMatching | 파티/매칭 UI | (단일 문서) |
 
 Content 중분류:

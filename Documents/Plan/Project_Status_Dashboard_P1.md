@@ -238,14 +238,14 @@
 | ~~STAT-02-C~~ | ~~MaxMP 산출 공식~~ | DEPRECATED — MP 시스템 삭제 |
 | STAT-03-B | 캐릭터 레벨업 경험치 | 아이템 레벨이 주요 성장축 |
 | ~~STAT-04-C~~ | ~~DEX → 명중/회피~~ | DEPRECATED — DEX 삭제, 회피는 대시 위치 이탈 |
-| ~~STAT-04-D~~ | ~~VIT → MaxHP/DEF~~ | DEPRECATED — VIT 삭제, HP는 레벨 기��� |
+| ~~STAT-04-D~~ | ~~VIT → MaxHP/DEF~~ | DEPRECATED — VIT 삭제, HP는 레벨 기반 |
 | CHR-08-B | 원웨이 플랫폼 하강 | 하방 입력+점프로 플랫폼 통과 |
 
 ### 🔧 부분 구현 (8개)
 
 | ID | 기능 | 남은 작업 |
 | :--- | :--- | :--- |
-| DMG-02-A | 크리티컬 확률 | 고��� 5% + 기억 단편 보정 (Phase 2) |
+| DMG-02-A | 크리티컬 확률 | 고정 5% + 기억 단편 보정 (Phase 2) |
 | DMG-02-B | 크리티컬 배율 | 고정 1.5x 배율 적용 |
 | ENM-01-B | 화면 밖 비활성화 | 틱 최적화 확인/구현 |
 | ENM-02-C | Line of Sight | 장애물 차단 판정 추가 |

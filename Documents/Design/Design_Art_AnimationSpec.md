@@ -16,7 +16,7 @@
 | ANI-CH-3 | 캐릭터 | 에르다 피격/사망 (HitReact/Death) | P0 | 대기 | Phase 1 전투 검증 |
 | ANI-CH-4 | 캐릭터 | 에르다 대시/벽 이동 (Dash/WallSlide/WallJump) | P1 | 대기 | Phase 1-B |
 | ANI-CH-5 | 캐릭터 | 에르다 에코 동작 (EchoFire/EchoScan) | P1 | 대기 | Phase 1-C |
-| ANI-WP-1 | 무기 | 무기별 공격 변형 (Greatsword/Dagger/Bow/Staff) | P2 | 대기 | Phase 2 레이어 분리 후 |
+| ANI-WP-1 | 무기 | 무기별 공격 변형 (Blade/Cleaver/Shiv/Harpoon/Chain/Railbow/Emitter) | P2 | 대기 | Phase 2 레이어 분리 후 |
 | ANI-EN-1 | 적 | 소형 적 1종 완성 애니메이션 | P0 | 대기 | Phase 1 전투 루프 |
 | ANI-EN-2 | 적 | Skeleton/Slime/Ghost 고유 애니메이션 | P1 | 대기 | Phase 1-C |
 | ANI-EN-3 | 적 | GoldenMonster/SparkBat/CinderImp/Memory Shard | P2 | 대기 | Phase 2 |
@@ -374,11 +374,11 @@ vfx_itemworld_entry_vortex_full.png
 
 | 무기 | 캔버스 | 프레임 수 | 방향 | 잔상 |
 |:-----|:------:|:--------:|:----:|:----:|
-| Sword | 64×32 px | 4f | 호형 45도 | 없음 |
-| Greatsword (Build 1+) | 96×48 px | 5f | 호형 90도 | 없음 |
-| Dagger (Build 1+) | 48×16 px | 3f | 직선 | 잔상 2장 |
-| Staff (Build 1+) | 32×64 px | 5f | 수직 + 원소 VFX | 없음 |
-| Bow (Build 1+) | 화살 스프라이트 별도 | - | - | - |
+| Blade | 64×32 px | 4f | 호형 45도 | 없음 |
+| Cleaver (Build 1+) | 96×48 px | 5f | 호형 90도 | 없음 |
+| Shiv (Build 1+) | 48×16 px | 3f | 직선 | 잔상 2장 |
+| Emitter (Build 1+) | 32×64 px | 5f | 수직 + 원소 VFX | 없음 |
+| Railbow (Build 1+) | 화살 스프라이트 별도 | - | - | - |
 
 트레일 알파값: 100% → 0% 선형 감쇠. 마지막 2프레임은 50% 이하. 급격한 소멸(pop-off) 금지.
 
@@ -473,30 +473,30 @@ Blasphemous 레퍼런스 기반 픽셀아트 아웃라인 규칙.
 
 ## 10. 5종 무기별 공격 프레임 상세
 
-5종 무기는 각각 다른 공격 리듬을 갖는다. Phase 1은 Sword 단일 통합 시트. Phase 2부터 레이어 분리.
+5종 무기는 각각 다른 공격 리듬을 갖는다. Phase 1은 Blade 단일 통합 시트. Phase 2부터 레이어 분리.
 
 | 무기 | 예비 프레임 | 행동 프레임 | 회복 프레임 | 특이사항 |
 | :--- | :---: | :---: | :---: | :--- |
-| Sword | 1f | 2f | 1f | 표준. 균형 잡힌 속도 |
-| Greatsword | 3f | 2f | 3f | 무거운 스윙. 큰 예비동작 필수 |
-| Dagger | 1f | 1f | 1f | 빠른 스텝인. 잔상 이펙트 강조 |
-| Bow | 2f | 1f (릴리스) | 2f | 당기기 포즈 별도. 화살 스프라이트 필요 |
-| Staff | 2f | 2f (차징) | 1f | 에코 시너지 시각화. 원소 VFX 중심 |
+| Blade | 1f | 2f | 1f | 표준. 균형 잡힌 속도 |
+| Cleaver | 3f | 2f | 3f | 무거운 스윙. 큰 예비동작 필수 |
+| Shiv | 1f | 1f | 1f | 빠른 스텝인. 잔상 이펙트 강조 |
+| Railbow | 2f | 1f (릴리스) | 2f | 당기기 포즈 별도. 화살 스프라이트 필요 |
+| Emitter | 2f | 2f (차징) | 1f | 에코 시너지 시각화. 원소 VFX 중심 |
 
 **무기별 VFX 크기 연동:**
-- Greatsword: 슬래시 VFX를 에르다 스프라이트보다 2배 이상 크게 제작. 공격 범위가 넓으므로
-- Dagger: VFX 대신 잔상(afterimage) 처리로 속도감 표현. 슬래시 VFX 없음
-- Staff: 원소 VFX가 공격의 핵심 시각적 주체. 슬래시 트레일보다 원소 파티클 우선
+- Cleaver: 슬래시 VFX를 에르다 스프라이트보다 2배 이상 크게 제작. 공격 범위가 넓으므로
+- Shiv: VFX 대신 잔상(afterimage) 처리로 속도감 표현. 슬래시 VFX 없음
+- Emitter: 원소 VFX가 공격의 핵심 시각적 주체. 슬래시 트레일보다 원소 파티클 우선
 
 **예비동작 텔레그래프 의도:**
 
 | 무기 | 시각적 텔레그래프 |
 | :--- | :--- |
-| Sword | 검을 뒤로 당기는 동작 명확 |
-| Greatsword | 크게 뒤로 젖히기 + 지면 충격 파티클 |
-| Dagger | 몸이 앞으로 기우는 자세 + 잔상 시작 |
-| Bow | 활을 당기는 포즈 (draw pose) 별도 스프라이트 |
-| Staff | 지팡이 끝에 원소 에너지 응집 VFX |
+| Blade | 검을 뒤로 당기는 동작 명확 |
+| Cleaver | 크게 뒤로 젖히기 + 지면 충격 파티클 |
+| Shiv | 몸이 앞으로 기우는 자세 + 잔상 시작 |
+| Railbow | 활을 당기는 포즈 (draw pose) 별도 스프라이트 |
+| Emitter | 지팡이 끝에 원소 에너지 응집 VFX |
 
 ---
 
@@ -577,7 +577,7 @@ Phase 1 목표: "핵심 루프가 재미있는가?" 검증.
 | 적 2-7번 | 1종 스프라이트에 색상 변경만 적용 |
 | 보스 | 적 스프라이트 2배 스케일 임시 사용 |
 | 모든 VFX | 현재 코드 Graphics 방식 유지 |
-| 무기 종류별 | Sword 단일 스프라이트로 전체 무기 임시 대응 |
+| 무기 종류별 | Blade 단일 스프라이트로 전체 무기 임시 대응 |
 
 ### 12.3. 애니메이션 우선순위 로드맵
 

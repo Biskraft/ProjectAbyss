@@ -19,7 +19,7 @@ interface WorldUiControllerDeps {
   identityArchive: IdentityArchive | null;
   worldMap: WorldMapOverlay;
   toast: ToastManager;
-  minimap: Container | null;
+  getMinimap: () => Container | null;
   fadeOverlay: Graphics | null;
 }
 
@@ -34,8 +34,8 @@ interface EnterOptions {
 interface PauseDeathOptions {
   dt: number;
   canOpenPause: boolean;
-  onPauseOpened: () => void;
-  onPauseClosed: () => void;
+  onPauseOpened?: () => void;
+  onPauseClosed?: () => void;
 }
 
 interface WorldMapToggleOptions {
@@ -63,7 +63,8 @@ export class WorldUiController {
   ) {}
 
   enter(options: EnterOptions): void {
-    const { hud, minimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
+    const { hud, getMinimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
+    const minimap = getMinimap();
 
     if (!hud.container.parent) this.game.uiContainer.addChild(hud.container);
     hud.container.visible = true;
@@ -92,7 +93,8 @@ export class WorldUiController {
   }
 
   detachForItemWorld(): void {
-    const { hud, minimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
+    const { hud, getMinimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
+    const minimap = getMinimap();
 
     if (hud.container.parent) {
       hud.container.parent.removeChild(hud.container);
@@ -120,7 +122,8 @@ export class WorldUiController {
 
   handleWorldMapToggle(options: WorldMapToggleOptions): boolean {
     const input = this.game.input;
-    const { worldMap, hud, minimap } = this.deps;
+    const { worldMap, hud, getMinimap } = this.deps;
+    const minimap = getMinimap();
 
     if (!options.canToggle || !input.isJustPressed(GameAction.MAP)) return false;
 
@@ -222,7 +225,7 @@ export class WorldUiController {
     if (pauseMenu.visible) {
       if (input.isJustPressed(GameAction.MENU)) {
         pauseMenu.cancel();
-        options.onPauseClosed();
+        options.onPauseClosed?.();
       } else if (input.isJustPressed(GameAction.LOOK_UP)) {
         pauseMenu.navigate('up');
       } else if (input.isJustPressed(GameAction.LOOK_DOWN)) {
@@ -242,7 +245,7 @@ export class WorldUiController {
         && !input.isJustPressed(GameAction.CANCEL) && options.canOpenPause) {
       // CANCEL 동시 발화 = pad B 입력. B 는 모달 close 전용으로 두고 pause
       // open 은 차단한다 (START / Escape 만 pause 토글).
-      options.onPauseOpened();
+      options.onPauseOpened?.();
       pauseMenu.open();
       return 'pause';
     }
@@ -257,7 +260,8 @@ export class WorldUiController {
   }
 
   destroy(): void {
-    const { hud, pauseMenu, deathScreen, tutorialHint, inventoryUI, worldMap, fadeOverlay, minimap } = this.deps;
+    const { hud, pauseMenu, deathScreen, tutorialHint, inventoryUI, worldMap, fadeOverlay, getMinimap } = this.deps;
+    const minimap = getMinimap();
 
     tutorialHint.destroy();
     if (hud.container.parent) hud.container.parent.removeChild(hud.container);

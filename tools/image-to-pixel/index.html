@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Image-to-Pixel — ECHORIS 스프라이트 변환기</title>
+<style>
+  :root { --bg:#1b1b1e; --panel:#26262b; --line:#3a3a42; --fg:#e8e8ea; --accent:#e07a5f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, sans-serif; }
+  header { padding:14px 18px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:16px; }
+  header span { color:#9a9aa2; font-size:12px; }
+  .wrap { display:flex; gap:18px; padding:18px; flex-wrap:wrap; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .controls { width:300px; }
+  .controls label { display:block; margin:12px 0 4px; font-size:12px; color:#b8b8bf; }
+  .controls input, .controls select, .controls textarea {
+    width:100%; background:#1b1b1e; color:var(--fg); border:1px solid var(--line);
+    border-radius:5px; padding:7px 8px; font:13px monospace;
+  }
+  .controls textarea { resize:vertical; min-height:48px; }
+  .row { display:flex; gap:8px; align-items:center; }
+  .row output { min-width:34px; text-align:right; color:var(--accent); font:13px monospace; }
+  #drop { border:2px dashed var(--line); border-radius:8px; padding:26px; text-align:center;
+    color:#9a9aa2; cursor:pointer; margin-bottom:12px; }
+  #drop.hover { border-color:var(--accent); color:var(--accent); }
+  button { width:100%; margin-top:14px; padding:9px; background:var(--accent); color:#1b1b1e;
+    border:0; border-radius:6px; font-weight:700; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  .stage { flex:1; min-width:320px; display:flex; gap:18px; flex-wrap:wrap; }
+  .view { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .view h3 { margin:0 0 8px; font-size:12px; color:#b8b8bf; font-weight:600; }
+  canvas { image-rendering:pixelated; background:
+    repeating-conic-gradient(#2c2c33 0% 25%, #232329 0% 50%) 0/16px 16px; border-radius:4px; }
+  .meta { color:#9a9aa2; font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Image-to-Pixel — ECHORIS 스프라이트 변환기</h1>
+  <span>Tezumie/Image-to-Pixel (MIT) · 로컬 전용 · 인터넷 불필요</span>
+</header>
+
+<div class="wrap">
+  <div class="panel controls">
+    <div id="drop">이미지를 드롭하거나 클릭해서 선택<br><small>PNG / JPG / WebP</small></div>
+    <input type="file" id="file" accept="image/*" hidden />
+
+    <label>가로 픽셀 수 (width)</label>
+    <div class="row">
+      <input type="range" id="width" min="8" max="256" step="1" value="32" />
+      <output id="widthOut">32</output>
+    </div>
+
+    <label>해상도 (resolution)</label>
+    <select id="resolution">
+      <option value="pixel">pixel — 실제 축소 (게임 에셋용 권장)</option>
+      <option value="original">original — 원본 크기로 픽셀화 (미리보기용)</option>
+    </select>
+
+    <label>디더링 (dither)</label>
+    <select id="dither">
+      <option value="none">none</option>
+      <option value="Floyd-Steinberg">Floyd-Steinberg</option>
+      <option value="ordered">ordered</option>
+      <option value="2x2 Bayer">2x2 Bayer</option>
+      <option value="4x4 Bayer">4x4 Bayer</option>
+    </select>
+
+    <label>디더 강도 (strength 0-100)</label>
+    <div class="row">
+      <input type="range" id="strength" min="0" max="100" step="1" value="0" />
+      <output id="strengthOut">0</output>
+    </div>
+
+    <label>팔레트 (Lospec 슬러그 또는 비움)</label>
+    <input type="text" id="paletteName" placeholder="예: rgbg-36, oil-6, na16 (비우면 커스텀/원본)" />
+
+    <label>커스텀 팔레트 (hex, 줄/쉼표 구분 · 슬러그 비울 때만)</label>
+    <textarea id="paletteList" placeholder="#1b1b1e&#10;#f4f1de&#10;#e07a5f"></textarea>
+
+    <button id="run">변환</button>
+    <button id="download" class="ghost">PNG 다운로드</button>
+  </div>
+
+  <div class="stage">
+    <div class="view">
+      <h3>원본</h3>
+      <canvas id="src"></canvas>
+      <div class="meta" id="srcMeta">—</div>
+    </div>
+    <div class="view">
+      <h3>결과</h3>
+      <canvas id="out"></canvas>
+      <div class="meta" id="outMeta">—</div>
+    </div>
+  </div>
+</div>
+
+<script src="image-to-pixel.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let srcImage = null, lastCanvas = null;
+
+  // 슬라이더 라벨 동기화
+  for (const k of ['width','strength']) {
+    $(k).addEventListener('input', () => $(k+'Out').textContent = $(k).value);
+  }
+
+  // 파일 입력 (드롭 + 클릭)
+  const drop = $('drop');
+  drop.addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', (e) => loadFile(e.target.files[0]));
+  ['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.add('hover');
+  }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.remove('hover');
+  }));
+  drop.addEventListener('drop', (e) => loadFile(e.dataTransfer.files[0]));
+
+  function loadFile(file) {
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      srcImage = img;
+      const c = $('src'); c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      $('srcMeta').textContent = `${img.width} × ${img.height}px`;
+      run();
+    };
+    img.src = URL.createObjectURL(file);
+  }
+
+  function parsePalette() {
+    const slug = $('paletteName').value.trim();
+    if (slug) return slug; // Lospec 슬러그 우선
+    const list = $('paletteList').value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+    return list.length ? list : null; // 비우면 원본 색
+  }
+
+  async function run() {
+    if (!srcImage) { alert('먼저 이미지를 불러오세요.'); return; }
+    try {
+      const canvas = await pixelate({
+        image: srcImage,
+        width: parseInt($('width').value, 10),
+        dither: $('dither').value,
+        strength: parseInt($('strength').value, 10),
+        palette: parsePalette(),
+        resolution: $('resolution').value,
+      });
+      lastCanvas = canvas;
+      const out = $('out');
+      out.width = canvas.width; out.height = canvas.height;
+      out.getContext('2d').clearRect(0,0,out.width,out.height);
+      out.getContext('2d').drawImage(canvas, 0, 0);
+      // pixel 모드 결과는 작아서 화면용으로 확대 표시
+      const scale = $('resolution').value === 'pixel' ? Math.max(1, Math.floor(256 / canvas.width)) : 1;
+      out.style.width = (canvas.width * scale) + 'px';
+      out.style.height = (canvas.height * scale) + 'px';
+      $('outMeta').textContent = `${canvas.width} × ${canvas.height}px (표시 ${scale}배 확대)`;
+    } catch (err) {
+      $('outMeta').textContent = '오류: ' + err.message;
+      console.error(err);
+    }
+  }
+
+  $('run').addEventListener('click', run);
+  $('download').addEventListener('click', () => {
+    if (!lastCanvas) { alert('먼저 변환하세요.'); return; }
+    const a = document.createElement('a');
+    a.download = `pixel_${lastCanvas.width}px.png`;
+    a.href = lastCanvas.toDataURL('image/png');
+    a.click();
+  });
+</script>
+</body>
+</html>

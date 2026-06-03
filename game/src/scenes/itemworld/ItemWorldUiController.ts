@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import {
   create9SlicePanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY,
   TEXT_DELTA_POSITIVE, TEXT_DELTA_NEGATIVE, TEXT_DELTA_NEUTRAL,
-  TEXT_INFO_WARM, TEXT_INFO_COOL, TEXT_LABEL_MUTED, TEXT_BOSS_TITLE, TEXT_INFO,
+  TEXT_INFO_WARM, TEXT_LABEL_MUTED, TEXT_BOSS_TITLE, TEXT_INFO,
 } from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
 import { createUiText } from '@ui/factories';
@@ -11,7 +11,7 @@ import type { UISkin } from '@ui/UISkin';
 import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
 import { StratumClearOverlay, type StratumClearData } from '@ui/StratumClearOverlay';
 import { GameAction, actionKey } from '@core/InputManager';
-import { KeyPrompt } from '@ui/KeyPrompt';
+import { createItemWorldLeaveConfirmPanel } from '@ui/ItemWorldLeaveConfirmPanel';
 import type { Game } from '../../Game';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../Game';
 
@@ -252,96 +252,12 @@ export class ItemWorldUiController {
     this.escapeConfirmVisible = true;
     this.hideWorldPrompts(options.prompts);
 
-    const panelW = 260;
-    const panelH = 72;
-    const panel = new Container();
-    const frame = options.hudSkin?.isLoaded ? create9SlicePanel(options.hudSkin, panelW, panelH) : null;
-    if (frame) {
-      panel.addChild(frame);
-    } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.95 });
-      bg.rect(0, 0, panelW, panelH).stroke({ color: MODAL_BORDER, width: 1 });
-      panel.addChild(bg);
-    }
-
-    const title = createUiText(t('ui.iw.leave_question'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_PRIMARY });
-    title.x = 12;
-    title.y = 6;
-    panel.addChild(title);
-
-    const expInfo = createUiText(
-      t('ui.iw.leave_summary', {
-        name: options.itemName,
-        level: options.itemLevel,
-        exp: options.itemExp,
-        maxExp: options.expPerLevel,
-      }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_INFO_COOL },
-    );
-    expInfo.x = 12;
-    expInfo.y = 20;
-    panel.addChild(expInfo);
-
-    const floorInfo = createUiText(
-      t('ui.iw.leave_rooms_summary', {
-        cleared: options.roomsCleared,
-        total: options.totalRooms,
-        exp: options.earnedExp,
-        gold: options.earnedGold,
-      }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: TEXT_SECONDARY },
-    );
-    floorInfo.x = 12;
-    floorInfo.y = 33;
-    panel.addChild(floorInfo);
+    const panel = createItemWorldLeaveConfirmPanel(options);
 
     // 사용자 결정 2026-05-25: 키 텍스트 [X]/[A/RT] 를 KeyPrompt 글리프 박스로 교체.
     //   v2: yes/no 양쪽 글리프 사이즈 통일 = 12 (CONTEXT 14 와 기존 10 의 중간).
     //   - 예    = ATTACK glyph + 라벨
     //   - 아니오 = JUMP glyph + "/" + DASH glyph + 라벨 (둘 다 활성)
-    const KEY_SIZE = 12;
-    const LABEL_FONT = 8;
-    const controlsRow = new Container();
-
-    const yesBlock = new Container();
-    const atkIcon = KeyPrompt.createKeyIconForAction(GameAction.ATTACK, KEY_SIZE);
-    atkIcon.x = 0; atkIcon.y = 0;
-    yesBlock.addChild(atkIcon);
-    const yesLabel = createUiText(t('ui.iw.leave_yes_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    yesLabel.x = KEY_SIZE + 4;
-    yesLabel.y = Math.floor((KEY_SIZE - yesLabel.height) / 2);
-    yesBlock.addChild(yesLabel);
-    yesBlock.x = 0; yesBlock.y = 0;
-    controlsRow.addChild(yesBlock);
-
-    const noBlock = new Container();
-    const jumpIcon = KeyPrompt.createKeyIconForAction(GameAction.JUMP, KEY_SIZE);
-    jumpIcon.x = 0; jumpIcon.y = 0;
-    noBlock.addChild(jumpIcon);
-    const slash = createUiText('/', { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    slash.x = KEY_SIZE + 2;
-    slash.y = Math.floor((KEY_SIZE - slash.height) / 2);
-    noBlock.addChild(slash);
-    const dashIcon = KeyPrompt.createKeyIconForAction(GameAction.DASH, KEY_SIZE);
-    dashIcon.x = slash.x + slash.width + 2;
-    dashIcon.y = 0;
-    noBlock.addChild(dashIcon);
-    const noLabel = createUiText(t('ui.iw.leave_no_label'), { fontFamily: PIXEL_FONT, fontSize: LABEL_FONT, fill: TEXT_SECONDARY });
-    noLabel.x = dashIcon.x + KEY_SIZE + 4;
-    noLabel.y = Math.floor((KEY_SIZE - noLabel.height) / 2);
-    noBlock.addChild(noLabel);
-    noBlock.x = yesBlock.width + 14;
-    noBlock.y = 0;
-    controlsRow.addChild(noBlock);
-
-    controlsRow.x = 12;
-    controlsRow.y = 46;
-    panel.addChild(controlsRow);
-
-    panel.x = Math.floor((GAME_WIDTH - panelW) / 2);
-    panel.y = Math.floor((GAME_HEIGHT - panelH) / 2);
-
     this.escapeConfirm = panel;
     this.game.legacyUIContainer.addChild(panel);
   }

@@ -198,7 +198,7 @@ Steam 위시리스트 등록
 ```
 아이템 강화 완료 시
 → "결과 공유" 버튼 → 이미지 자동 생성
-→ "Rusty Sword Lv.1 → Legendary Blade Lv.47" 비포/애프터
+→ "Rusty Blade Lv.1 → Legendary Blade Lv.47" 비포/애프터
 → X/Discord에 공유 → 야리코미 자랑 문화
 ```
 

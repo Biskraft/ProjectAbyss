@@ -292,7 +292,7 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 #### GDD-NEW-04: 무기 시스템 MVP (`System/System_Combat_Weapons.md`)
 
 **MVP에 필요한 범위만:**
-- 검 (Sword) 1종만 정의
+- 블레이드 (Blade) 1종만 정의
   - 기본 공격 모션 3타 (속도, 사거리, 히트박스 크기)
   - 공중 공격 모션
   - 기본 ATK 스탯
@@ -316,6 +316,8 @@ M1.1 ──▶ M1.2 ──▶ M1.3 ──▶ M1.4 ──▶ M1.5 ──▶ M1.6
 
 ### 2. 추가 작성 필요한 CSV (4개)
 
+> **STALE (PLN-01 폐기 · PLN-MASTER 대체):** 아래 6스탯 CSV는 3스탯(ATK/INT/HP, DEC-003) 전환 전 역사 기록.
+
 #### CSV-01: `Sheets/Content_Stats_Character_Base.csv`
 ```
 Level,HP,STR,INT,DEX,VIT,SPD,LCK,ExpToNext
@@ -328,8 +330,8 @@ Level,HP,STR,INT,DEX,VIT,SPD,LCK,ExpToNext
 #### CSV-02: `Sheets/Content_Stats_Weapon_List.csv`
 ```
 WeaponID,Name,Type,Rarity,BaseATK,AtkSpeed,Range,HitboxW,HitboxH
-sword_normal_01,시작의 검,Sword,Normal,15,1.0,48,40,32
-sword_magic_01,강철 장검,Sword,Magic,20,1.0,48,40,32
+sword_normal_01,시작의 검,Blade,Normal,15,1.0,48,40,32
+sword_magic_01,강철 장검,Blade,Magic,20,1.0,48,40,32
 ...
 ```
 

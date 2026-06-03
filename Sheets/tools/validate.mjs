@@ -46,6 +46,16 @@ const REQUIRED_AREA_IDS = [
   'iw_echo_bg',         'iw_echo_wall',
 ];
 
+// LDtk-authored override tilesets are intentionally not represented as area
+// palette rows. Scenes preserve and preload these paths directly instead of
+// retagging them through Content_System_Area_Palette.csv.
+const AUTHORED_LDTK_TILESET_PATHS = new Set([
+  'sprites/builder_sprite_01.png',
+  'atlas/builder_01.png',
+  'atlas/world_interior_01.png',
+  'atlas/itemstratum_01.png',
+]);
+
 // ---------------------------------------------------------------------------
 // CSV parser — quoted-field aware (Stops column contains embedded commas)
 // ---------------------------------------------------------------------------
@@ -146,6 +156,13 @@ if (!existsSync(CSV_PATH)) {
       const csvAsPaths = new Set([...csvTilesets].map(t => `atlas/${t}.png`));
       for (const p of ldtkPaths) {
         if (!csvAsPaths.has(p)) {
+          if (AUTHORED_LDTK_TILESET_PATHS.has(p)) {
+            const assetPath = resolve(ROOT, 'game', 'public', 'assets', p);
+            if (!existsSync(assetPath)) {
+              pushErr('V3', `LDtk authored tileset "${p}" is allowlisted but missing file: ${assetPath}`);
+            }
+            continue;
+          }
           pushWarn('V3', `LDtk uses "${p}" but no CSV row declares it (code retag will override — verify intent)`);
         }
       }

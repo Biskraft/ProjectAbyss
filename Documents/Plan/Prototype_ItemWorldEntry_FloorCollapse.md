@@ -11,7 +11,7 @@
 | :--- | :--- |
 | 작성일 | 2026-03-28 |
 | 목표 | 프로그래머가 바로 코딩할 수 있는 수준의 기술 명세 |
-| 관련 GDD | `System_ItemWorld_Core.md` § 2.1, `Content_First30Min_ExperienceFlow.md` Screen 9 |
+| 관련 GDD | `System_ItemWorld_Core.md` § 2.1, `Content_Ch1_DrownedFloor.md` (CNT-CH1, B5 식은 포지 첫 다이브) |
 | 예상 작업량 | 2-3일 (1인 기준) |
 
 ---

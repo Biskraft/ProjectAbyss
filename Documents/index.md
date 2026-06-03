@@ -16,8 +16,8 @@ Detailed system specifications: 3C (Camera/Character/Control), combat, equipment
 ### [UI](UI/UI_HUD_Layout.md)
 UI/UX specifications for HUD layout, inventory, minimap, depth gauge, and notification systems.
 
-### [Content](Content/Content_First30Min_ExperienceFlow.md)
-Content design: experience flow, bestiary, weapon catalog, world bible, and item narratives.
+### [Content](Content/Content_Progression_Master.md)
+Content design: progression master (chapters), experience flow, bestiary, weapon catalog, world bible, and item narratives.
 
 ### [Research](Research/RESEARCH_INDEX.md)
 55+ research documents across combat, item world, level design, economy, multiplayer, UX, and player experience.

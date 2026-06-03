@@ -349,7 +349,7 @@ Phase 1에서는 Blade 슬롯 1개만 표시하고, 하단에 다음을 표시�
 | 2 | wall_climb | `Wall Climb` | 벽 타기 |
 | 3 | double_jump | `Double Jump` | 이단 점프 |
 | 4 | water | `Water Breath` | 수중 호흡 |
-| 5 | gravity | `Rev. Gravity` | 역중력 |
+| 5 | antigravity | `Anti-Gravity` | 반중력 |
 
 > 2026-05-18: 안개 변신 (Mist Form) 슬롯 폐기 — SotN Mist Form 카피 우려. 5 렐릭으로 축소.
 

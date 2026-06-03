@@ -39,12 +39,12 @@ ID와 헤더가 과도하게 길어지는 것을 방지하기 위해 다음의 �
 | 분류 | 원문 (Original) | 줄임말 (Abbreviation) |
 | :--- | :--- | :--- |
 | 장비 카테고리 | Weapon / Armor / Accessory | Weapon / Armor / Acc |
-| 무기 타입 | Sword / Greatsword / Dagger / Bow / Staff | Sword / GS / Dagger / Bow / Staff |
+| 무기 타입 | Blade / Cleaver / Shiv / Harpoon / Chain / Railbow / Emitter | Blade / Cleaver / Shiv / Harpoon / Chain / Railbow / Emitter |
 | 기본 스탯 | Attack / Intelligence / Hit Points | ATK / INT / HP |
 | 파생 스탯 | Defense / Resistance | DEF / RES |
 | 레어리티 | Normal / Magic / Rare / Legendary / Ancient | Normal / Magic / Rare / Legendary / Ancient (줄이지 않음) |
 | 전투 | Attack Speed / Hitbox Width / Hitbox Height / Multiplier | AtkSpeed / HitboxW / HitboxH / Mult |
-| 공간 | World / Item World / Hub | World / IW / Hub |
+| 공간 | World / Item World | World / IW |
 | 몬스터 | Monster / Skeleton / Ghost | Mon / Skel / Ghost |
 | 기억 단편 | Memory Shard | Inn |
 | 레벨 생성 | Room / Template / Biome / Difficulty | Room / Tmpl / Biome / Diff |

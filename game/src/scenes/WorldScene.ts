@@ -53,7 +53,7 @@ import { LowHpVignetteManager } from '@effects/LowHpVignette';
 import { getRarityConfig } from '@data/rarityConfig';
 import { ScreenFlash } from '@effects/ScreenFlash';
 import { ToastManager } from '@ui/Toast';
-import { brandLabel } from '@core/input/padGlyphs';
+import { attachGamepadToast } from '@ui/GamepadToastBinding';
 import { PIXEL_FONT } from '@ui/fonts';
 import { DamageNumberManager } from '@ui/DamageNumber';
 import { SFX } from '@audio/Sfx';
@@ -210,15 +210,7 @@ export class WorldScene extends Scene {
     // Toast, damage numbers & Sakurai hit effects
     this.toast = new ToastManager(this.game.legacyUIContainer);
     // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
-    {
-      const off1 = this.game.gamepad.onConnectEvent((brand) => {
-        this.toast.show(t('toast.gamepad_connected', { brand: brandLabel(brand) }), 0x88ddff);
-      });
-      const off2 = this.game.gamepad.onDisconnectEvent(() => {
-        this.toast.show(t('toast.gamepad_disconnected'), 0xffaa44);
-      });
-      this._gpUnsub = () => { off1(); off2(); };
-    }
+    this._gpUnsub = attachGamepadToast(this.game, this.toast);
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
     this.deathParticles = new DeathParticleManager(this.entityLayer);

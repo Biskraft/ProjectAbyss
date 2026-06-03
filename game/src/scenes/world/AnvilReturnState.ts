@@ -1,6 +1,7 @@
 import type { Anvil } from '@entities/Anvil';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
+import type { ItemInstance } from '@items/ItemInstance';
 
 export interface AnvilSnapshot {
   x: number;
@@ -66,4 +67,55 @@ export function placePlayerAtAnvilReturnPoint(
   player.vy = 0;
   player.savePrevPosition();
   snapCamera(player.x, player.y);
+}
+
+export class AnvilItemWorldReturnState {
+  private snapshot: AnvilSnapshot | null = null;
+  private levelId: string | null = null;
+  private item: ItemInstance | null = null;
+  private retireAfterBoss = false;
+
+  get currentItem(): ItemInstance | null {
+    return this.item;
+  }
+
+  get returnLevelId(): string | null {
+    return this.levelId;
+  }
+
+  get retireAfterFirstBoss(): boolean {
+    return this.retireAfterBoss;
+  }
+
+  get hasItem(): boolean {
+    return this.item !== null;
+  }
+
+  record(anvil: Anvil, levelId: string | null, item: ItemInstance | null): void {
+    this.snapshot = snapshotAnvil(anvil);
+    this.levelId = levelId;
+    this.item = item;
+    this.retireAfterBoss = anvil.retireAfterFirstBoss;
+  }
+
+  setItem(item: ItemInstance | null): void {
+    this.item = item;
+  }
+
+  getPreservedItem(anvil: Anvil | null, fallback: ItemInstance | null): ItemInstance | null {
+    return anvil?.item ?? this.item ?? fallback;
+  }
+
+  resolveTarget(
+    anvil: Anvil | null,
+    currentLevel: LdtkLevel | null,
+    fromX: number,
+    fromY: number,
+  ): { x: number; y: number } | null {
+    return resolveAnvilTargetPoint(anvil, currentLevel, this.snapshot, fromX, fromY);
+  }
+
+  placePlayer(player: Player, anvil: Anvil | null, snapCamera: (x: number, y: number) => void): void {
+    placePlayerAtAnvilReturnPoint(player, this.snapshot, anvil, snapCamera);
+  }
 }

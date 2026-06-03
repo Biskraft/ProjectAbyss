@@ -202,7 +202,7 @@
 | 6회 이상 | 초단축 (0.3초) | 바닥 즉시 열림 → 낙하만 |
 | 설정에서 스킵 ON | 즉시 (0.1초) | 페이드 전환 |
 
-> **DEPRECATED (2026-04-05):** 재귀적 진입 연출은 삭제. 아이템��� 진입은 항상 월드에서 수행하며 기본 시퀀스만 사용.
+> **DEPRECATED (2026-04-05):** 재귀적 진입 연출은 삭제. 아이템계 진입은 항상 월드에서 수행하며 기본 시퀀스만 사용.
 
 #### ItemWorldProgress 데이터 구조
 
@@ -217,7 +217,7 @@ ItemWorldProgress {
   visitedRooms:     RoomId[]      // 현재 지층 방문 방 (지층 전환 시 초기화)
   seed:             number        // 현재 지층 생성 시드
   escapeAltarFound: boolean       // 탈출 제단 발견 여부
-  // recursionDepth: DEPRECATED — 재귀적 중첩 ��입 삭제. 아이템계 진입은 항상 월드에서만 가능
+  // recursionDepth: DEPRECATED — 재귀적 중첩 진입 삭제. 아이템계 진입은 항상 월드에서만 가능
   partyId:          string | null
 }
 ```
@@ -293,7 +293,7 @@ ItemWorldProgress {
 | 아이템 보존 | 항상 (획득 전리품도 보존) |
 | 보스 보너스 | 보존 (영구 스탯 증가는 취소 불가) |
 
-#### 첫 아이템계 진입 특례 (CNT-EXP-001 Screen 13)
+#### 첫 아이템계 진입 특례 (CNT-CH1 B8 첫 다이브)
 
 | 항목 | 특례 규칙 | 정상 규칙과 차이 |
 | :--- | :--- | :--- |
