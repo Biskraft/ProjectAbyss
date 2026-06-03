@@ -41,20 +41,30 @@ jobs:
         run: npx tsc --noEmit
 
       # Channel mapping (System_Localization_Core.md §4.7):
-      #   echoris.io/play/ = EN (global default)
-      #   echoris.io/ko/   = KO (KR test channel)
-      - name: Build game (EN, /play/)
+      #   echoris.io/play/ = Vertical Slice (frozen, vertical-slice branch) — public demo
+      #   echoris.io/main/ = Current build (main, EN) — latest dev
+      #   echoris.io/ko/   = Current build (KO, KR test channel)
+      - name: Build game (current main, EN → /main/)
         working-directory: game
-        run: npx vite build --mode en
+        run: npx vite build --mode en --base /main/
 
-      - name: Build game (KO, /ko/)
+      - name: Build game (current main, KO → /ko/)
         working-directory: game
         run: npx vite build --mode ko --outDir dist-ko --base /ko/
 
+      - name: Build vertical slice (frozen → /play/) from vertical-slice branch
+        run: |
+          git fetch origin vertical-slice:vertical-slice
+          git worktree add ../slice vertical-slice
+          cd ../slice/game
+          npm install
+          npx vite build --mode en --base /play/
+
       - name: Assemble site
         run: |
-          mkdir -p site/play site/ko
-          cp -r game/dist/* site/play/
+          mkdir -p site/play site/main site/ko
+          cp -r ../slice/game/dist/* site/play/
+          cp -r game/dist/* site/main/
           cp -r game/dist-ko/* site/ko/
           cp website/index.html site/
           cp -r website/assets site/

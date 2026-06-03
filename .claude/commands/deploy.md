@@ -39,7 +39,9 @@ ECHORIS 웹 빌드를 GitHub Pages에 배포합니다.
 - **GDD:** Vercel 배포는 push 시 자동. 별도 확인 불필요.
 
 ### 7. 배포 검증
-- **게임:** `curl -s https://echoris.io/ | grep "script.*src"` 로 JS 해시가 최신인지 확인. HTTP 200 응답 확인.
+- **게임:** 채널 분리 — `/main`=현재 빌드(main 최신), `/play`=버티컬 슬라이스(동결, vertical-slice 브랜치), `/ko`=현재 KO.
+  - 현재 빌드 검증: `curl -sL https://echoris.io/main/ | grep -oE 'index-[A-Za-z0-9_-]+\.js'` 로 JS 해시가 **이번 빌드와 일치**하는지 확인. HTTP 200.
+  - 슬라이스 불변 확인: `curl -sL -o /dev/null -w "%{http_code}" https://echoris.io/play/` = 200 (해시는 슬라이스 고정값이라 안 바뀜).
 - **GDD:** `https://level-deesign-for-pvp.vercel.app` (ECHORIS GDD, 위장 도메인 — 이름·오타 유지). 확인 항목:
   - 홈 200: `curl -sL -o /dev/null -w "%{http_code}" https://level-deesign-for-pvp.vercel.app/`
   - 신규 문서 노출 200: `https://level-deesign-for-pvp.vercel.app/Content/Content_Story_Synopsis/` (자동 nav 작동 확인)
