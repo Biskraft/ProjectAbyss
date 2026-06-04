@@ -25,7 +25,8 @@ const TUNNEL_H = 320;
 const TUNNEL_Y_RAISE = 0;
 
 const GROWTH_ANTICIPATION_MS = 500;
-const GROWTH_PLAYER_READY_MS = 1500;
+// 무기로 들어가는 연출 길이 2배(1500→3000) — 아이템으로 빨려드는 느낌을 길게.
+const GROWTH_PLAYER_READY_MS = 3000;
 const GROWTH_PLATFORM_READY_MS = GROWTH_PLAYER_READY_MS;
 
 function clamp01(value: number): number {
@@ -254,16 +255,23 @@ export class ItemWorldEntrySequence {
     this.tunnelOpened = true;
     this.game.camera.zoomTo(1.0, 0.025);
     const origin = this.getItemGrowthOrigin();
+    // 줌(성장) pivot = 무기(item focus) 위치 — 월드가 무기 지점으로 수렴하며
+    // "무기 속으로 들어가는" 느낌. 무기 image(itemSprite)가 origin 에 배치되므로
+    // pivot 을 origin 에 맞춰야 무기가 고정 초점으로 남는다.
+    // (pivot 은 scale-birth + 성장 스냅샷 양쪽의 확대 중심.)
+    const pivotX = origin.x;
+    const pivotY = origin.y;
     this.onOpenTunnel?.(this.tunnelLeft, this.tunnelTop, this.tunnelWidth, TUNNEL_H, {
       scheduleGhost: false,
       triggerDirectionalTrail: false,
       ghostBirth: {
         originX: origin.x,
         originY: origin.y,
-        pivotX: origin.x,
-        pivotY: origin.y,
+        pivotX,
+        pivotY,
         durationMs: GROWTH_PLAYER_READY_MS,
-        revealAll: true,
+        // 바닥을 미리 조립하지 않는다 — 플레이어가 움직이며 proximity 로 조립.
+        revealAll: false,
         entranceAtEnd: true,
       },
     });

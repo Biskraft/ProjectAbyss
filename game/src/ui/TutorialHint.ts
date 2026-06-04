@@ -14,6 +14,7 @@ import type { GameAction } from '@core/InputManager';
 import { trackTutorialStep } from '@utils/Analytics';
 import { HudConst } from '@data/constData';
 import { create9SlicePanel } from './ModalPanel';
+import { applyLayoutToContainer } from './HUD';
 import type { UISkin } from './UISkin';
 
 const DISPLAY_DURATION = HudConst.Tutorial.DisplayDurationMs;
@@ -63,7 +64,12 @@ export class TutorialHint {
   constructor(input: InputManager, parent: Container, private readonly skin: UISkin | null = null) {
     this.input = input;
     this.container = new Container();
-    parent.addChild(this.container);
+    // Layout-editable wrapper (HUD tool, id 'tutorialHint'). parent is the
+    // uiScale-scaled legacyUIContainer, so override units are base-640 (mult 1).
+    const layoutWrap = new Container();
+    layoutWrap.addChild(this.container);
+    parent.addChild(layoutWrap);
+    applyLayoutToContainer(layoutWrap, 'tutorialHint', 1);
   }
 
   /**

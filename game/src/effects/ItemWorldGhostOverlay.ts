@@ -9,12 +9,12 @@ const TILE_PX = 16;
 const HALF_TILE = TILE_PX / 2;
 const REVEAL_RADIUS = 6 * TILE_PX;       // 6 tiles
 const REVEAL_RADIUS_SQ = REVEAL_RADIUS * REVEAL_RADIUS;
-const TILE_REVEAL_INTERVAL_MS = 36;
+const TILE_REVEAL_INTERVAL_MS = 18;      // 조립 속도 2배 (구 36)
 const SCALE_BIRTH_START_SCALE = 1 / 16;  // 1px cells grow into final 16px cells.
 const SCALE_BIRTH_ITEM_FINAL_SCALE = 64;
 const SCALE_BIRTH_TILE_ALPHA_FULL_SCALE = 0.18;
 const SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS = 1000;
-const SCALE_RATE_PER_MS = 1 / 400;       // 0→1 in 400ms per tile
+const SCALE_RATE_PER_MS = 1 / 200;       // 0→1 in 200ms per tile (조립 속도 2배, 구 1/400)
 
 // Wall silhouette colors — near-black, just enough hue to read as "dungeon"
 export interface GhostTilePalette {
@@ -410,8 +410,11 @@ export class ItemWorldGhostOverlay {
     pivotWorldX: number,
     pivotWorldY: number,
     durationMs: number,
+    revealAll = true,
   ): void {
-    this.revealAllTiles();
+    // revealAll=false 면 바닥을 미리 조립하지 않고, 플레이어가 다가가며
+    // proximity 로 타일이 조립된다.
+    if (revealAll) this.revealAllTiles();
     for (const display of this.itemDisplays) {
       display.scaleFactor = Math.max(display.scaleFactor, SCALE_BIRTH_ITEM_FINAL_SCALE);
     }

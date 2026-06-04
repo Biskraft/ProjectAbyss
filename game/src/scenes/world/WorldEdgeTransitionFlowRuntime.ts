@@ -2,6 +2,7 @@ import { Debug } from '@core/Debug';
 import type { Player } from '@entities/Player';
 import type { ItemInstance } from '@items/ItemInstance';
 import type { LdtkLoader, LdtkLevel } from '@level/LdtkLoader';
+import { sacredSave } from '@save/PlayerSave';
 import {
   ITEM_WORLD_TRANSITION_LEVEL_ID,
   WorldEdgeTransitionRuntime,
@@ -10,6 +11,15 @@ import {
 import type { WorldTransitionController } from './WorldTransitionController';
 
 const TILE_SIZE = 16;
+
+// Prologue stratum is a strict one-way chain: 01→(right)→02→(down)→03→(left)→04.
+// Only the forward edge is allowed; 04 (no entry) blocks all transitions (the
+// prologue-end sequence takes over there). Active only while scene='prologue'.
+const PROLOGUE_FORWARD_DIR: Record<string, WorldEdgeTransitionDirection> = {
+  ItemStratum_Prologue_01: 'right',
+  ItemStratum_Prologue_02: 'down',
+  ItemStratum_Prologue_03: 'left',
+};
 
 const LDTK_DIRECTION_KEY: Record<WorldEdgeTransitionDirection, 'w' | 'e' | 'n' | 's'> = {
   left: 'w',
@@ -53,6 +63,11 @@ export class WorldEdgeTransitionFlowRuntime {
     const grid = this.deps.getCollisionGrid();
     const direction = this.detectDirection(player, level, grid);
     if (direction === null) return;
+
+    // Prologue chain: forward-only (no backtrack / branch); 04 blocks all.
+    if (sacredSave.getScene() === 'prologue' && level.identifier.startsWith('ItemStratum_Prologue_')) {
+      if (direction !== PROLOGUE_FORWARD_DIR[level.identifier]) return;
+    }
 
     if (this.deps.isInTunnel() && direction === 'down') {
       this.startTunnelExitTransition();

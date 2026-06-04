@@ -106,12 +106,6 @@ export const PlayerConst = {
   CollisionH: reqPlayer('Player.Base.CollisionH'),
 } as const;
 
-/** Player buff tuning. */
-export const BuffConst = {
-  BeginnerGraceAtkFlat: reqConst('Buff.BeginnerGrace.AtkFlat'),
-  BeginnerGraceDefFlat: reqConst('Buff.BeginnerGrace.DefFlat'),
-} as const;
-
 /** Combat formula / feel constants — flat across damage/crit/combo/hitstop/hitbox/i-frames/shake/knockback/hit-point. */
 export const CombatConst = {
   DefFactor: reqConst('Combat.Damage.DefFactor'),

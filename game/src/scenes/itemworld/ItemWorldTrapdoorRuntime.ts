@@ -43,6 +43,8 @@ export class ItemWorldTrapdoorRuntime {
     if (near) {
       const promptKey = trapdoor instanceof FloatingItemDrop ? 'prompt.absorb' : 'prompt.descend';
       this.prompt.show(trapdoor.x, trapdoor.y - trapdoor.height, promptKey);
+      // Prompt up → player ignores its ATTACK press (interact, don't swing).
+      this.deps.game.input.markInteractionPrompt();
     } else {
       this.prompt.hide();
     }

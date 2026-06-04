@@ -9,6 +9,7 @@
 * Glossary: `Documents/Terms/Glossary.md`
 * 아이템계 코어: `Documents/System/System_ItemWorld_Core.md` (SYS-IW-01) — 진입 규칙, 탈출 메커니즘, 보상 체계, 멀티플레이 HP 스케일링 SSoT
 * 지층 생성: `Documents/System/System_ItemWorld_FloorGen.md` (SYS-IW-02) — 보스 방 배치 알고리즘
+* 보스 아키타입 (분류 SSoT): `Documents/System/System_Enemy_BossArchetype.md` (SYS-ENM-BARC) — 보스 등급 계층·형태·6 패턴 아키타입의 공유 분류 SSoT. 본 문서는 아이템계 보스 인스턴스
 * 적 AI 기반: `Documents/System/System_Enemy_AI.md` — 기본 FSM 구조. 보스 FSM은 이를 대체하며 Patrol/Chase/Retreat 상태를 제거하고 PHASE_CHANGE를 추가한다
 * 전투 설계 철학: `Documents/Design/Design_Combat_Philosophy.md`
 * 데미지 시스템: `Documents/System/System_Combat_Damage.md`

@@ -5,8 +5,11 @@ import type { TutorialHint } from '@ui/TutorialHint';
 import type { Game } from '../../Game';
 
 const HINT_LINGER_MS = 1000;
-const INITIAL_JUMP_HINT_DELAY_MS = 2000;
-const DASH_ROOM_HINT_DELAY_MS = 1000;
+const TILE_SIZE = 16;
+// 점프 힌트는 아이템계 다이브 직전 — 세이브 포인트 우측 클라이밍 구간(col ≥ 36)에서
+// 플랫폼 위로 올라섰을 때(feet row ≤ 20) 표시한다.
+const JUMP_HINT_MIN_COL = 36;
+const JUMP_HINT_MAX_FEET_ROW = 20;
 
 interface WorldTutorialHintRuntimeDeps {
   game: Game;
@@ -20,11 +23,7 @@ interface WorldTutorialHintRuntimeDeps {
 export class WorldTutorialHintRuntime {
   private dropThroughHintHandled = false;
   private jumpHintHandled = false;
-  private hasMovedHorizontally = false;
-  private jumpHintDelayMs = INITIAL_JUMP_HINT_DELAY_MS;
   private attackHintHandled = false;
-  private dashHintHandled = false;
-  private dashHintDelayMs = -1;
 
   constructor(private readonly deps: WorldTutorialHintRuntimeDeps) {}
 
@@ -43,18 +42,14 @@ export class WorldTutorialHintRuntime {
     }
 
     if (!this.jumpHintHandled) {
+      // 아이템계 다이브 직전 — 세이브 포인트 우측 클라이밍 구간(col ≥ 36)에서
+      // 플랫폼 위로 올라섰을 때 점프 힌트 표시.
       const isInSpawnRoom = currentLevelId === spawnLevelId;
-      if (
-        isInSpawnRoom &&
-        !this.hasMovedHorizontally &&
-        (input.isDown(GameAction.MOVE_LEFT) || input.isDown(GameAction.MOVE_RIGHT))
-      ) {
-        this.hasMovedHorizontally = true;
-      }
-      if (this.hasMovedHorizontally && this.jumpHintDelayMs > 0) {
-        this.jumpHintDelayMs -= dt;
-      }
-      if (isInSpawnRoom && this.hasMovedHorizontally && this.jumpHintDelayMs <= 0) {
+      const playerCol = Math.floor((player.x + player.width / 2) / TILE_SIZE);
+      const playerFeetRow = Math.floor((player.y + player.height) / TILE_SIZE);
+      const climbedAtDiveApproach =
+        isInSpawnRoom && playerCol >= JUMP_HINT_MIN_COL && playerFeetRow <= JUMP_HINT_MAX_FEET_ROW;
+      if (climbedAtDiveApproach) {
         this.deps.tutorialHint.tryShow('hint_jump', {
           actions: [GameAction.JUMP],
           text: t('tutorial.jump'),
@@ -81,26 +76,6 @@ export class WorldTutorialHintRuntime {
       }
     }
 
-    if (!this.dashHintHandled) {
-      const inDashRoom = currentLevelId === 'Tutorial_Dash';
-      if (inDashRoom) {
-        if (this.dashHintDelayMs < 0) this.dashHintDelayMs = DASH_ROOM_HINT_DELAY_MS;
-        else if (this.dashHintDelayMs > 0) this.dashHintDelayMs -= dt;
-        if (this.dashHintDelayMs <= 0) {
-          this.deps.tutorialHint.tryShow('hint_dash', {
-            actions: [GameAction.DASH],
-            text: t('tutorial.dash'),
-            persistent: true,
-          });
-        }
-      } else {
-        this.dashHintDelayMs = -1;
-      }
-      if (this.deps.tutorialHint.isShowing('hint_dash') && input.isJustPressed(GameAction.DASH)) {
-        this.deps.tutorialHint.dismissAfter('hint_dash', HINT_LINGER_MS);
-        this.dashHintHandled = true;
-      }
-    }
   }
 
   handleDropThroughEvent(): void {

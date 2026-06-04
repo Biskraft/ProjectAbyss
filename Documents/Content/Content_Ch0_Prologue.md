@@ -26,6 +26,8 @@
 
 ---
 
+> **구현 플로우차트는 §8 참조** (씬·레벨·트리거 단위).
+
 ## 1. 비트 시퀀스
 
 > Half-Life 콜드 오픈: 재앙 전 짧은 플레이 가능 구간 → 재앙 → 먼 미래 깨어남. 시간 라벨은 참고용(구조 권위는 CNT-PROG).
@@ -132,3 +134,79 @@ P6 백업 기상 = Ch.1 (침수 바닥층) 의 오프닝. 손에 쥔 검 = 러�
 2. P2 다이브 위상 1지층 레벨(약한 적 배치 + 출구).
 3. P2.1~P3 말소자 등장·위상 찢기 연출 사양(정적·사운드 부재·왜곡).
 4. P5 동료 에코 산란 연출(흩어진 에코 서브라인 시드).
+
+---
+
+## 8. 구현 플로우차트 (씬·레벨)
+
+> 코드 실측 기반(2026-06-04). 랩·고정 아이템계·Start_Room 은 모두 `LdtkWorldScene` 안의 LDtk 레벨이며 **절차 생성 없이 직접 로드**된다(`WorldFixedItemWorldFlowRuntime` → `loadLevel`). 컷신만 별도 씬.
+
+### 8.1 흐름도
+
+```mermaid
+flowchart TD
+    NG([뉴 게임 / 프롤로그 시작]) --> P01
+
+    subgraph LWS["LdtkWorldScene (단일 씬 — 랩 → 고정 아이템계 → Start_Room)"]
+      direction TB
+      P01["Prologue_01 — 연구 시설(랩)<br/>P0-P1 일상·도보. 절차 데코 없음<br/>(NO_PROCEDURAL_DECOR_LEVELS)"]
+      P01 --> ANV{"Anvil 인터랙트 → 다이브 격발<br/>WorldAnvilItemWorldFlowRuntime"}
+      ANV -->|"FixedItemWorldRuntime.begin<br/>item.fixedLevelId = ItemStratum_Prologue_01<br/>loadLevel(…, 'down')"| DIVE[/"다이브 전환 연출"/]
+
+      DIVE --> IS01["ItemStratum_Prologue_01<br/>P2 착지 + 전투 튜토리얼(약한 적)"]
+      IS01 -->|"edge transition(하단/측면)<br/>WorldEdgeTransitionRuntime"| IS02["ItemStratum_Prologue_02<br/>전투(고정 배치)"]
+      IS02 -->|edge| IS03["ItemStratum_Prologue_03<br/>전투(고정 배치)"]
+      IS03 -->|edge| IS04["ItemStratum_Prologue_04<br/>도달 트리거 존"]
+
+      IS04 --> ERS{"04 도달 → 말소자 등장<br/>(P2.1 비교전 흰색 호러)<br/>[신규 PrologueTrigger]"}
+      ERS --> TEAR[/"화면 연출: 말소자가 위상 찢음<br/>(P3 The Sin · 조작 불능)"/]
+    end
+
+    TEAR -->|"sceneManager.push(PrologueCutsceneScene)<br/>[신규 씬]"| CUT
+
+    subgraph PCS["PrologueCutsceneScene (신규 별도 씬 — EndingScene 패턴)"]
+      direction TB
+      CUT["전체 월드 줌인 컷신<br/>P4 말소자 대규모·동료 지워짐 → P5 Cascade(시설 파괴)<br/>메가 스트럭처 와이드 → (암전, 수천 년) → 작은 공동으로 줌인"]
+    end
+
+    CUT -->|"컷신 종료 → sceneManager.replace(LdtkWorldScene)<br/>loadLevel(Start_Room_01)"| SR
+
+    subgraph LWS2["LdtkWorldScene (Ch.1 시작)"]
+      SR["Start_Room_01 — 침수 바닥층<br/>P6 백업 기상: 에르다 누워있음 → 일어섬"]
+    end
+
+    SR --> CH1([Ch.1 침수 바닥층 진행 → CNT-CH1])
+```
+
+### 8.2 노드 상세
+
+| 노드 | 씬 | LDtk 레벨 | 진입 트리거 | 렌더 | CNT-CH0 비트 | 신규/기존 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 랩 | LdtkWorldScene | `Prologue_01` | 뉴 게임 | 핸드크래프트, 절차 데코 없음 | P0-P1 | 기존(레벨 존재) |
+| 다이브 격발 | LdtkWorldScene | — | Anvil 인터랙트 | 다이브 전환 연출 | P2 진입 | 기존(Anvil·Fixed flow) |
+| 1지층 | LdtkWorldScene | `ItemStratum_Prologue_01` | `fixedLevelId` 로드 | 고정 레벨 직접 로드, **랜덤 없음** | P2 전투 | 기존(레벨 존재) |
+| 2~3지층 | LdtkWorldScene | `ItemStratum_Prologue_02/03` | edge transition | 고정 배치 그대로 | P2 전투 | 기존(레벨 존재) |
+| 4지층 | LdtkWorldScene | `ItemStratum_Prologue_04` | edge transition | 고정 배치 + 도달 트리거 존 | P2.1 직전 | 기존 레벨 + **신규 트리거** |
+| 말소자 등장 | LdtkWorldScene | `ItemStratum_Prologue_04` | 04 도달 트리거 | 흰색 언캐니 호러 스폰(비교전) | P2.1 | **신규** |
+| 위상 찢김 | LdtkWorldScene | — | 말소자 연출 종료 | 화면 왜곡·조작 불능 | P3 | **신규 연출** |
+| 줌인 컷신 | **PrologueCutsceneScene** | — | push (씬 전환) | 월드 와이드 → 줌인, Cascade | P4-P5 + 암전 | **신규 씬** |
+| 기상 | LdtkWorldScene | `Start_Room_01` | 컷신 종료 → replace+loadLevel | 에르다 누워있음 → 일어섬 | P6 | 기존 레벨 + **신규 기상 상태** |
+
+### 8.3 신규 제작 항목
+
+1. **PrologueTrigger (04 도달):** `ItemStratum_Prologue_04` 에 LDtk 트리거 존 1개. 진입 시 (a) 일반 출구/edge 비활성, (b) 말소자 스폰, (c) 비교전 위협 시퀀스 시작. (참조: 기존 `WorldDialogueTriggerRuntime`/`WorldBossLockRuntime` 패턴.)
+2. **말소자 스폰 + 위협 연출(P2.1~P3):** 비교전. 흰색 언캐니 호러 등장(`Design_Art_Direction §14.4`) → 위상 찢김 화면 연출(왜곡·조작 불능). 전투 AI 불필요.
+3. **PrologueCutsceneScene (신규 씬):** `EndingScene` 을 패턴 모델로. 전체 월드 와이드 → 줌인(메가 스트럭처 형성·Cascade) → 암전(수천 년) → 작은 공동으로 줌인. 종료 시 `sceneManager.replace(new LdtkWorldScene(...))` + `loadLevel('Start_Room_01')`. (줌 기법은 기존 `ItemWorldGrowthSnapshotController` 의 RenderTexture 캡처+스케일 재사용 가능.)
+4. **Start_Room_01 기상 상태:** 에르다 누워있는 스폰 포즈 → 첫 입력 시 일어섬(P6). 옵션 B 사운드 콜드 오픈(검 속 러스트본 잔향 "에르다...") 동반.
+
+### 8.4 LDtk 오서링 요구사항
+
+- `ItemStratum_Prologue_01→02→03→04` 는 ItemStratum 월드에서 **edge transition 으로 연결되도록 인접 배치**(또는 각 레벨 출구가 다음 레벨로 연결). 4지층은 **단방향**(되돌아가기 차단) 권장 — Cascade 직전 긴장.
+- 4지층에 PrologueTrigger 존 + 말소자 스폰 포인트 1개.
+- `Prologue_01` 에 Anvil 엔티티 1개(기존). 다이브 아이템의 `fixedLevelId = ItemStratum_Prologue_01`.
+
+### 8.5 미해결 / 확인 필요
+
+- **01→04 이동 방식:** edge transition(인접 레벨) 가정. trapdoor/portal 중첩 방식을 원하면 변경 — 현재 fixed flow 는 단일 레벨 진입만 검증됨(다지층 fixed 연쇄는 신규 검증 필요).
+- **컷신 "줌인" 대상:** 메가 스트럭처 와이드에서 *작은 공동(Start_Room)* 으로 줌인 = Opening 옵션 C 의 시네마틱. 와이드 소스 아트 필요(또는 절차 합성).
+- **씬 전환 방식:** 컷신 → Start_Room 은 `replace`(LdtkWorldScene 재생성) vs 동일 씬 내 `loadLevel`. 백업 기상이 새 게임 상태이므로 `replace` 권장.

@@ -27,6 +27,7 @@ interface ItemWorldStaticEntitySpawnerDeps {
   getLockedDoors: () => LockedDoor[];
   getItemDisplays: () => ItemDisplay[];
   spawnMemoryFromEntity: (entity: LdtkEntity, offX: number, offY: number) => void;
+  registerPrologueEndTrigger: (entity: LdtkEntity, offX: number, offY: number) => void;
   addCameraZone: (zone: CameraZone) => void;
   spawnAnvil: (x: number, y: number) => void;
 }
@@ -65,6 +66,11 @@ export class ItemWorldStaticEntitySpawner {
           break;
         case 'Memory':
           this.deps.spawnMemoryFromEntity(entity, offX, offY);
+          break;
+        case 'Trigger':
+          if (entity.fields['TriggerName'] === 'prologue_end') {
+            this.deps.registerPrologueEndTrigger(entity, offX, offY);
+          }
           break;
         case 'Camera':
           this.spawnCameraZone(entity, ax, ay);

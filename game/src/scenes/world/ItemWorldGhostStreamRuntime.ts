@@ -260,6 +260,7 @@ export class ItemWorldGhostStreamRuntime {
         ghostBirth.pivotX ?? ghostBirth.originX,
         ghostBirth.pivotY ?? ghostBirth.originY,
         ghostBirth.durationMs,
+        ghostBirth.revealAll ?? true,
       );
     }
     this.revealRuntime.reset();

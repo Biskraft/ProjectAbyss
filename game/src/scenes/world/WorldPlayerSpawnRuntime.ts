@@ -1,5 +1,6 @@
 import type { Player } from '@entities/Player';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { sacredSave } from '@save/PlayerSave';
 import type { WorldTransitionController } from './WorldTransitionController';
 
 const TILE_SIZE = 16;
@@ -52,7 +53,11 @@ export class WorldPlayerSpawnRuntime {
       }
       case 'down':
       default: {
-        const playerEntity = level.entities.find((e) => e.type === 'Player');
+        // Pick the Player spawn tagged for the current scene (LDtk Player.Scene),
+        // e.g. 'prologue' vs 'chapter01'; fall back to the first spawn.
+        const spawns = level.entities.filter((e) => e.type === 'Player');
+        const scene = sacredSave.getScene();
+        const playerEntity = spawns.find((e) => e.fields['Scene'] === scene) ?? spawns[0];
         if (playerEntity) {
           spawnX = playerEntity.px[0];
           spawnY = playerEntity.px[1] - ph;

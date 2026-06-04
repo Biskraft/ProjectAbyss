@@ -14,6 +14,7 @@ import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { installBitmapFont } from '@ui/fonts';
+import { loadHudLayout } from '@ui/HUD';
 import { loadBundleOnce } from '@data/assetBundles';
 import { SFX } from '@audio/Sfx';
 import { loadAndApplySettings } from '@core/SettingsStore';
@@ -86,6 +87,9 @@ try {
   await Promise.all([
     loadBundleOnce('core'),
     loadBundleOnce('item_world'),
+    // HUD layout override (hud-tool). Resolves before any HUD is constructed
+    // (HUD scenes are pushed later, on world entry).
+    loadHudLayout(),
   ]);
 
   // Combat OGG cues 미리 register + decode — 첫 hit 무음 + Pixi sound race 회피.

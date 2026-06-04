@@ -25,6 +25,17 @@ import { GlowFilter } from '@effects/GlowFilter';
 /** Anvil halo glow — brand key color orange (#FFA41B 2026-05-20). */
 const ANVIL_HALO_GLOW_COLOR = 0xffa41b;
 
+// anvil_gate_02 atlas — 3 frames (640×360 each), bottom-center on the floor.
+//   frame 0 = active  (white-hot glowing gate)   → !used && !disabled
+//   frame 1 = used    (dark sealed gate, opaque) → used && !disabled
+//   frame 2 = retired (ruined collapsed gate)    → disabled
+// Content fills ~360×224 of the frame; scaled so its height ≈ the old
+// anvil_gate_01 art (192px). Anchor = frame-0 content bottom-center so the
+// gate sits on the floor centered on the entity.
+const GATE_SPRITE_SCALE = 0.86;
+const GATE_CONTENT_ANCHOR_X = 305.5 / 640; // frame0 content x-center
+const GATE_CONTENT_ANCHOR_Y = 343 / 360;   // frame0 content bottom
+
 // Light pillar — anvil 플랫폼 표면에서 위로 솟는 빛기둥. 활성 anvil 의 식별 시그널.
 // disabled 상태에선 표시하지 않음 (update 게이트).
 // 바닥은 거의 불투명, 위로 갈수록 빠르게 (^1.5) 페이드 — 빛이 위쪽으로 흩어지는 느낌.
@@ -183,6 +194,9 @@ export class Anvil {
 
   private anvilSprite: Sprite | null = null;
   private gatePivotLocal: { x: number; y: number } | null = null;
+  /** Cached gate-state textures: [0]=active, [1]=used, [2]=retired. */
+  private gateFrames: Texture[] = [];
+  private lastGateFrameIndex = -1;
 
   constructor(x: number, y: number, disabled = false) {
     this.x = x;
@@ -260,20 +274,27 @@ export class Anvil {
     try {
       this.gatePivotLocal = null;
 
-      const atlas = await fetch(assetPath('assets/sprites/anvil_gate_01_atlas.json'))
+      const atlas = await fetch(assetPath('assets/sprites/anvil_gate_02_atlas.json'))
         .then(r => r.json()) as AsepriteAtlas;
-      const frame = atlas.frames[this.disabled ? 1 : 0]?.frame ?? atlas.frames[0]?.frame;
-      if (!frame) throw new Error('anvil_gate_01_atlas.json has no frame');
+      const frame0 = atlas.frames[0]?.frame;
+      if (!frame0) throw new Error('anvil_gate_02_atlas.json has no frame');
 
       const tex = await Assets.load<Texture>(assetPath(`assets/sprites/${atlas.meta.image}`));
       tex.source.scaleMode = 'nearest';
-      const sprite = new Sprite(new Texture({
+
+      // Slice every frame once so we can swap state without reloading.
+      this.gateFrames = atlas.frames.map(f => new Texture({
         source: tex.source,
-        frame: new Rectangle(frame.x, frame.y, frame.w, frame.h),
+        frame: new Rectangle(f.frame.x, f.frame.y, f.frame.w, f.frame.h),
       }));
-      sprite.anchor.set(0.5, 1); // bottom-center pivot
+
+      const idx = this.gateFrameIndexForState();
+      const sprite = new Sprite(this.gateFrames[idx]);
+      sprite.anchor.set(GATE_CONTENT_ANCHOR_X, GATE_CONTENT_ANCHOR_Y);
+      sprite.scale.set(GATE_SPRITE_SCALE);
       this.anvilSprite = sprite;
-      this.gatePivotLocal = this.readGatePivotLocal(atlas, frame.w, frame.h);
+      this.lastGateFrameIndex = idx;
+      this.gatePivotLocal = this.readGatePivotLocal(atlas, frame0.w, frame0.h);
       this.gfx.visible = false;
       this.container.addChildAt(sprite, this.container.getChildIndex(this.gfx));
     } catch {
@@ -281,14 +302,34 @@ export class Anvil {
     }
   }
 
+  /** Frame index for the current lifecycle state (active / used / retired). */
+  private gateFrameIndexForState(): number {
+    if (this.disabled) return 2;
+    if (this.used) return 1;
+    return 0;
+  }
+
+  /** Swap the displayed gate texture when the lifecycle state changes. */
+  private refreshGateFrame(): void {
+    if (!this.anvilSprite || this.gateFrames.length === 0) return;
+    const idx = Math.min(this.gateFrameIndexForState(), this.gateFrames.length - 1);
+    if (idx === this.lastGateFrameIndex) return;
+    this.lastGateFrameIndex = idx;
+    this.anvilSprite.texture = this.gateFrames[idx];
+  }
+
+  // Gate pivot is the portal-hole center used to anchor the entry laser FX.
+  // Returned in *rendered* (scaled) space to match anvilSprite.width in
+  // getGatePivotWorld(). Fallback is mid/lower-center, never the frame edge.
   private readGatePivotLocal(atlas: AsepriteAtlas, frameW: number, frameH: number): { x: number; y: number } {
     const key = atlas.meta.slices?.[0]?.keys?.[0];
-    if (!key) return { x: frameW, y: Math.floor(frameH * 0.5) };
-    const pivot = key.pivot ?? { x: Math.floor(key.bounds.w * 0.5), y: Math.floor(key.bounds.h * 0.5) };
-    return {
-      x: key.bounds.x + pivot.x,
-      y: key.bounds.y + pivot.y,
-    };
+    const raw = key
+      ? {
+          x: key.bounds.x + (key.pivot?.x ?? Math.floor(key.bounds.w * 0.5)),
+          y: key.bounds.y + (key.pivot?.y ?? Math.floor(key.bounds.h * 0.5)),
+        }
+      : { x: Math.floor(frameW * 0.5), y: Math.floor(frameH * 0.55) };
+    return { x: raw.x * GATE_SPRITE_SCALE, y: raw.y * GATE_SPRITE_SCALE };
   }
 
   getGatePivotWorld(): { x: number; y: number } | null {
@@ -314,12 +355,9 @@ export class Anvil {
   async setDisabled(disabled: boolean): Promise<void> {
     if (this.disabled === disabled) return;
     this.disabled = disabled;
-    if (this.anvilSprite) {
-      this.container.removeChild(this.anvilSprite);
-      this.anvilSprite.destroy();
-      this.anvilSprite = null;
-    }
-    await this.loadAnvilSprite();
+    // Swap to the cached retired/active frame (no reload). If the atlas is
+    // still loading, loadAnvilSprite() picks the right frame on completion.
+    this.refreshGateFrame();
     if (this.container.destroyed) return;
     if (disabled) {
       if (this.hintContainer) this.hintContainer.visible = false;
@@ -628,6 +666,9 @@ export class Anvil {
   }
 
   update(dt: number): void {
+    // Keep the gate texture in sync with active/used/retired state.
+    this.refreshGateFrame();
+
     this.timer += dt;
     const t = this.timer / 1000;
 

@@ -37,6 +37,7 @@
 
 - **월드 마스터 (상위 SSoT):** `Documents/Design/Design_World_Master.md` (D-20 — 구역 §3, 게이트 §4, 위협 §6, 내러티브 §9, 폐기 §10)
 - **월드 맵 구조:** `Documents/System/System_World_MapStructure.md` (보스 배치 규칙, 구역 정체성, 진입 조건)
+- **보스 아키타입 (분류 SSoT):** `Documents/System/System_Enemy_BossArchetype.md` (SYS-ENM-BARC — 보스 형태/등급/패턴 아키타입 공유 분류. 본 문서는 그 인스턴스)
 - **적 AI 시스템:** `Documents/System/System_Enemy_AI.md` (Tell 시스템, 상태 머신 공통 구조)
 - **전투 액션:** `Documents/System/System_Combat_Action.md` (히트스탑, 콤보, 대시)
 - **전투 데미지:** `Documents/System/System_Combat_Damage.md` (데미지 공식, 속성 저항)

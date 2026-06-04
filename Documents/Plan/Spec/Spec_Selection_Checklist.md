@@ -91,7 +91,7 @@
 | 항목 | 상태 | 확정값 / 권장값 | 보유 문서 |
 | :--- | :--- | :--- | :--- |
 | 적 종류 수 | P | 현재 2종 → 권장 Target 30-50 (1.0), 데모 10-12 | Spec, Digest §2 |
-| 행동 아키타입 | C | 10종 확정 (A-01~A-10, A-07 흡수) | System_Enemy_MonsterArchetype (SSoT) |
+| 행동 아키타입 | C | 11종 확정 (A-01~A-10) | System_Enemy_MonsterArchetype (SSoT) |
 | 핵심 AI 구현 수 | G | 권장 8 핵심 AI 구현 → 속성 스태킹으로 40-60 체감 | Digest §7.3 |
 | 적 스탯 CSV | G | Content_Stats_Enemy 필드 대부분 공란 | Enemy CSV |
 | 적 원소 약점/저항 | G | 권장 보스·엘리트만, 잡몹 중립 | 미작성 |

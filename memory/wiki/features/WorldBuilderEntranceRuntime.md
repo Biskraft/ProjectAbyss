@@ -15,5 +15,6 @@ Prevention rules:
 - Do not reintroduce `BuilderEntrance` / `BuilderEntity` glow construction in `LdtkWorldScene.spawnBuilderEntities()`.
 - Keep glow spec parsing in `WorldExitGlowRuntime`; keep builder transform sync here.
 - Do not reparent entrance glow containers into `GiantBuilder.container`, because `ExitGlow` owns world-space anchor updates.
+- ORDER CONTRACT (2026-06-03 fix): in `LdtkWorldScene.loadLevel()`, call `exitGlowRuntime.loadLevel(level)` BEFORE `spawnBuilderFromSpawner()`. `exitGlowRuntime.loadLevel()` runs `clearAll()`, which empties `builderEntranceGlows`; the builder spawn creates those glows via `spawnBuilderEntities()`, so it must run AFTER the clear or the glows are wiped the same frame and never display. Do not move the builder spawn before `exitGlowRuntime.loadLevel()` again.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.

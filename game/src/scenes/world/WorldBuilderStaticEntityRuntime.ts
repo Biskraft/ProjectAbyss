@@ -1,6 +1,6 @@
 import type { Container } from 'pixi.js';
 import type { GiantBuilder } from '@entities/GiantBuilder';
-import { Breakable, isBreakableSpriteId, type BreakableSpriteId } from '@entities/Breakable';
+import { Breakable } from '@entities/Breakable';
 import { CollapsingPlatform } from '@entities/CollapsingPlatform';
 import { Spike } from '@entities/Spike';
 import type { LdtkEntity } from '@level/LdtkLoader';
@@ -55,10 +55,8 @@ export class WorldBuilderStaticEntityRuntime {
     const localX = entity.px[0];
     const localY = entity.px[1];
     const rawSprite = (entity.fields['Sprite'] ?? entity.fields['sprite']) as string | undefined;
-    const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
-      ? rawSprite
-      : 'SignBoard_Save';
-    const breakable = new Breakable(localX, localY, spriteId);
+    const spriteName = rawSprite && rawSprite.length > 0 ? rawSprite : 'signboard_save_01';
+    const breakable = new Breakable(localX, localY, spriteName);
     this.deps.breakableRegistry.add(breakable, this.deps.getEntityLayer());
     this.deps.attachments.attachSizedWorldPositioned(
       builder,

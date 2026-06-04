@@ -29,6 +29,12 @@ export class ItemWorldMemoryRoomPlacementRuntime {
     return this.placements;
   }
 
+  /** 강제 placement 주입 (프롤로그 다이브 — compute() 대신 고정 사슬). */
+  inject(forced: Map<string, LdtkLevel>): void {
+    this.placements.clear();
+    for (const [key, level] of forced) this.placements.set(key, level);
+  }
+
   has(col: number, absRow: number): boolean {
     return this.placements.has(`${col}:${absRow}`);
   }

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECHORIS — HUD Layout Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0f14; --panel:#161a22; --panel2:#1d222c; --line:#2a3140;
+    --txt:#d6dbe5; --muted:#8a93a6; --accent:#ff8833; --accent2:#5b9dff;
+    --ok:#3ec96b; --warn:#e0b020; --danger:#e0504a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--txt); font:13px/1.4 "Segoe UI",system-ui,sans-serif;
+    display:flex; height:100vh; overflow:hidden;
+  }
+  /* ---- stage ---- */
+  .stage{flex:1; display:flex; flex-direction:column; min-width:0}
+  .stage-head{
+    display:flex; align-items:center; gap:14px; padding:10px 16px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .stage-head h1{font-size:14px; margin:0; letter-spacing:.5px}
+  .stage-head .tag{color:var(--muted); font-size:12px}
+  .stage-head .status{margin-left:auto; font-size:12px; color:var(--muted)}
+  .stage-wrap{flex:1; display:flex; align-items:center; justify-content:center; overflow:auto; padding:24px}
+  .screen{
+    position:relative; background:#05070b; border:1px solid var(--line);
+    box-shadow:0 0 0 1px #000, 0 18px 60px rgba(0,0,0,.6); flex:none;
+    background-image:linear-gradient(#0e1420 1px,transparent 1px),linear-gradient(90deg,#0e1420 1px,transparent 1px);
+  }
+  .el{
+    position:absolute; border:1px solid rgba(255,255,255,.28);
+    background:rgba(91,157,255,.10); cursor:grab; user-select:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .el .lbl{
+    font-size:10px; color:#cdd5e3; padding:0 3px; pointer-events:none;
+    white-space:nowrap; text-shadow:0 1px 2px #000;
+  }
+  .el.skin{background:rgba(255,136,51,.10); border-color:rgba(255,136,51,.35)}
+  .el.graphics{background:rgba(91,157,255,.10); border-color:rgba(91,157,255,.35)}
+  .el.hasart{background:transparent !important; border-color:rgba(255,255,255,.16)}
+  .el.hasart .lbl{opacity:0; transition:opacity .12s}
+  .el.hasart:hover .lbl, .el.hasart.sel .lbl{opacity:1; background:rgba(0,0,0,.5); border-radius:3px}
+  .art{position:absolute; inset:0; pointer-events:none}
+  .art .spr{position:absolute; image-rendering:pixelated; background-repeat:no-repeat}
+  .art .txt{position:absolute; font-family:'Press Start 2P',monospace; white-space:nowrap;
+    line-height:1; text-shadow:1px 1px 0 #000; top:50%; transform:translateY(-50%)}
+  .el.hidden{opacity:.28; border-style:dashed}
+  .el.sel{outline:2px solid var(--accent); outline-offset:-1px; z-index:50; background:rgba(255,136,51,.22)}
+  .el.sel{cursor:grabbing}
+  .handle{
+    position:absolute; right:-5px; bottom:-5px; width:11px; height:11px;
+    background:var(--accent); border:1px solid #000; cursor:nwse-resize; z-index:60;
+  }
+  .pivot-dot{position:absolute; width:7px; height:7px; margin:-4px 0 0 -4px; border-radius:50%;
+    background:var(--accent); border:1px solid #000; z-index:61; pointer-events:none}
+
+  /* ---- side panel ---- */
+  .side{width:330px; flex:none; background:var(--panel); border-left:1px solid var(--line);
+    display:flex; flex-direction:column}
+  .side .actions{display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  button{
+    font:inherit; color:var(--txt); background:var(--panel2); border:1px solid var(--line);
+    padding:7px 11px; border-radius:6px; cursor:pointer;
+  }
+  button:hover{border-color:var(--muted)}
+  button.primary{background:var(--accent); color:#1a1206; border-color:var(--accent); font-weight:600}
+  button.primary:hover{filter:brightness(1.08)}
+  button.ghost{background:transparent}
+  button.danger{color:var(--danger); border-color:#3a2222}
+  .scroll{flex:1; overflow:auto}
+  .sect{padding:12px 14px; border-bottom:1px solid var(--line)}
+  .sect h3{margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted)}
+  .grp-h{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin:10px 0 4px}
+  .row{display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:5px; cursor:pointer}
+  .row:hover{background:var(--panel2)}
+  .row.sel{background:rgba(255,136,51,.16); outline:1px solid rgba(255,136,51,.4)}
+  .row .name{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .row .eye{width:20px; text-align:center; opacity:.85; cursor:pointer; font-size:14px}
+  .row .kind{font-size:9px; color:var(--muted); border:1px solid var(--line); padding:0 4px; border-radius:3px}
+  .row.dim .name{color:var(--muted); text-decoration:line-through}
+  .badge{font-size:9px; color:var(--accent); margin-left:4px}
+
+  .field{display:flex; align-items:center; gap:8px; margin:7px 0}
+  .field label{width:64px; color:var(--muted); font-size:12px}
+  .field input[type=number]{width:72px; background:#0c0f15; border:1px solid var(--line); color:var(--txt);
+    padding:5px 6px; border-radius:5px; font:inherit}
+  .field input[type=range]{flex:1}
+  .field .unit{color:var(--muted); font-size:11px}
+  .pivot-grid{display:grid; grid-template-columns:repeat(3,26px); grid-template-rows:repeat(3,26px); gap:4px}
+  .pivot-grid button{padding:0; width:26px; height:26px; border-radius:5px}
+  .pivot-grid button.on{background:var(--accent); border-color:var(--accent)}
+  .empty{color:var(--muted); padding:20px 14px; font-style:italic}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:#1c2230; border:1px solid var(--line); padding:9px 16px; border-radius:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5); opacity:0; transition:opacity .2s; pointer-events:none}
+  .toast.show{opacity:1}
+  .toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--danger)}
+  kbd{background:#0c0f15;border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <h1>HUD Layout Tool</h1>
+      <span class="tag">640 × 360 base · drag to move · <kbd>Esc</kbd> deselect</span>
+      <label class="toggle" style="margin-left:auto;color:var(--muted);cursor:pointer;user-select:none">
+        <input type="checkbox" id="show-art" checked> skin art
+      </label>
+      <span class="status" id="status">connecting…</span>
+    </div>
+    <div class="stage-wrap">
+      <div class="screen" id="screen"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="actions">
+      <button class="primary" id="btn-save">Save → game</button>
+      <button id="btn-export">Export</button>
+      <button class="ghost" id="btn-reload">Reload</button>
+      <button class="ghost danger" id="btn-reset-all">Reset all</button>
+    </div>
+    <div class="scroll">
+      <div class="sect" id="inspector">
+        <h3>Selection</h3>
+        <div class="empty" id="insp-empty">Select a HUD element on the canvas or list.</div>
+        <div id="insp-body" style="display:none">
+          <div class="field"><label>Element</label><strong id="i-name"></strong><span class="badge" id="i-kind"></span></div>
+          <div class="field"><label>Offset X</label><input type="number" id="i-ox" step="1"><span class="unit">px</span></div>
+          <div class="field"><label>Offset Y</label><input type="number" id="i-oy" step="1"><span class="unit">px</span></div>
+          <div class="field"><label>Scale</label>
+            <input type="range" id="i-scale-r" min="0.2" max="3" step="0.05">
+            <input type="number" id="i-scale" step="0.05" style="width:60px">
+          </div>
+          <div class="field" style="align-items:flex-start">
+            <label>Pivot</label>
+            <div class="pivot-grid" id="pivot-grid"></div>
+          </div>
+          <div class="field"><label>Pivot X</label><input type="number" id="i-px" step="0.05" min="0" max="1"></div>
+          <div class="field"><label>Pivot Y</label><input type="number" id="i-py" step="0.05" min="0" max="1"></div>
+          <div class="field"><label>Visible</label><input type="checkbox" id="i-vis" checked></div>
+          <div class="field"><label></label><button class="ghost" id="i-reset">Reset element</button></div>
+        </div>
+      </div>
+      <div class="sect">
+        <h3>Elements</h3>
+        <div id="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const API = location.origin;
+let DISPLAY = 1.8;             // px per base unit; recomputed to fit the stage
+// Fit the 640×360 canvas inside the stage area so no scrollbars appear.
+function fitDisplay(){
+  const wrap = document.querySelector('.stage-wrap');
+  const padX = 56, padY = 56;  // .stage-wrap padding (24×2) + rounding slack
+  const availW = wrap.clientWidth  - padX;
+  const availH = wrap.clientHeight - padY;
+  DISPLAY = Math.max(0.5, Math.min(2.6,
+    Math.min(availW/manifest.baseW, availH/manifest.baseH)));
+}
+let manifest = { baseW:640, baseH:360, elements:[], slices:{}, atlasW:640, atlasH:360 };
+let layout = { version:1, elements:{} };
+let selId = null;
+let showArt = true;
+
+// Element id → skin atlas slice(s). Mirrors the placements in HUD.applySkin().
+// Elements absent here have no skin sprite (Graphics/text) → colored box only.
+const SKIN_ART = {
+  statusFrame:   { slice:'hud_status_frame' },
+  portraitFrame: { slice:'hud_status_portrait_frame' },
+  hpBar:         { slice:'hud_status_hp_frame' },
+  flaskKey:      { slice:'hud_status_key_flask' },
+  // repeat: native slice size, laid out at `stride` (base px) from the box's
+  // left edge, `yOff` (base px) down. Matches HUD.applySkin() exactly.
+  flaskIcons:    { repeat:{ slice:'hud_status_flask_fill', n:3, stride:12, yOff:0 } },
+  mapFrame:      { slice:'hud_map_frame' },
+  itemKey:       { slice:'hud_map_key_item_normal' },
+  mapKey:        { slice:'hud_map_key_inv_normal' },
+  actionKeys:    { repeat:{ slice:'hud_action_key', n:3, stride:42, yOff:3 } },
+  depthFrame:    { slice:'hud_depth_indicator' },
+};
+
+// Text/number elements rendered as pixel-font text to match the live HUD.
+// size = base px font (matches HUD.ts skin-mode font sizes); align l/r/c.
+const TEXT_ART = {
+  hpText:       { text:'140',        size:12, color:'#ffffff', align:'l' },
+  atkText:      { text:'ATK 35',     size:16, color:'#ff8833', align:'l' },
+  gold:         { text:'G 0',        size:8,  color:'#ffd24a', align:'r' },
+  itemExitHint: { text:'[ESC] Exit', size:10, color:'#ffffff', align:'r' },
+};
+
+const DEF = { offsetX:0, offsetY:0, scale:1, pivotX:0.5, pivotY:0.5, visible:true };
+const $ = (s)=>document.querySelector(s);
+const screenEl = $('#screen');
+
+function ov(id){                       // get-or-create override (in-memory)
+  if(!layout.elements[id]) layout.elements[id] = {};
+  const o = layout.elements[id];
+  return {
+    offsetX:o.offsetX??0, offsetY:o.offsetY??0, scale:o.scale??1,
+    pivotX:o.pivotX??0.5, pivotY:o.pivotY??0.5, visible:o.visible!==false,
+  };
+}
+function setOv(id, patch){
+  const cur = ov(id);
+  layout.elements[id] = { ...cur, ...patch };
+}
+function isDefault(o){
+  return o.offsetX===0 && o.offsetY===0 && o.scale===1 &&
+         o.pivotX===0.5 && o.pivotY===0.5 && o.visible!==false;
+}
+function box(id){ return manifest.elements.find(e=>e.id===id); }
+
+// displayed rect (base units) — mirrors HUD.applyLayout()
+function rect(b, o){
+  const pxx = b.x + b.w*o.pivotX, pyy = b.y + b.h*o.pivotY;
+  return {
+    x: pxx + (b.x - pxx)*o.scale + o.offsetX,
+    y: pyy + (b.y - pyy)*o.scale + o.offsetY,
+    w: b.w*o.scale, h: b.h*o.scale,
+    px: pxx + o.offsetX, py: pyy + o.offsetY,
+  };
+}
+
+/* ---------- skin sprite rendering ---------- */
+// Build CSS that crops the atlas PNG to `slice` and fits it into wPx×hPx.
+function sprStyle(sliceName, wPx, hPx){
+  const s = manifest.slices[sliceName];
+  if(!s) return null;
+  const fx = wPx/s.w, fy = hPx/s.h;
+  return { left:0, top:0, width:wPx+'px', height:hPx+'px',
+    backgroundImage:`url(${API}/atlas.png)`,
+    backgroundSize:`${manifest.atlasW*fx}px ${manifest.atlasH*fy}px`,
+    backgroundPosition:`${-s.x*fx}px ${-s.y*fy}px` };
+}
+function renderArt(elDiv, b, r){
+  let art = elDiv.querySelector('.art');
+  const def = SKIN_ART[b.id];
+  const txt = TEXT_ART[b.id];
+  if(!showArt || (!def && !txt)){ if(art) art.remove(); elDiv.classList.remove('hasart'); return; }
+  if(!art){ art = document.createElement('div'); art.className='art'; elDiv.insertBefore(art, elDiv.firstChild); }
+  art.innerHTML='';
+  elDiv.classList.add('hasart');
+  const dispW=r.w*DISPLAY, dispH=r.h*DISPLAY;
+  // override scale factor (rect grows/shrinks vs the default box)
+  const k = (b.w ? r.w/b.w : 1) * DISPLAY;
+  if(txt){
+    const t=document.createElement('div'); t.className='txt'; t.textContent=txt.text;
+    t.style.color=txt.color; t.style.fontSize=(txt.size*k)+'px';
+    if(txt.align==='r'){ t.style.right='0'; } else { t.style.left='0'; }
+    art.appendChild(t);
+    return;
+  }
+  if(def.slice){
+    const st=sprStyle(def.slice, dispW, dispH); if(!st){ elDiv.classList.remove('hasart'); return; }
+    const spr=document.createElement('div'); spr.className='spr'; Object.assign(spr.style, st); art.appendChild(spr);
+  } else if(def.repeat){
+    const {slice,n,stride,yOff}=def.repeat; const s=manifest.slices[slice];
+    if(!s){ elDiv.classList.remove('hasart'); return; }
+    // native slice size, laid out at `stride` from box-left, `yOff` down,
+    // both scaled by the override factor k so nothing clips or stretches.
+    const iw=s.w*k, ih=s.h*k;
+    for(let i=0;i<n;i++){
+      const spr=document.createElement('div'); spr.className='spr';
+      Object.assign(spr.style, sprStyle(slice, iw, ih));
+      spr.style.left=(i*stride*k)+'px';
+      spr.style.top=((yOff||0)*k)+'px';
+      art.appendChild(spr);
+    }
+  }
+}
+
+/* ---------- render canvas ---------- */
+function buildCanvas(){
+  screenEl.style.width  = manifest.baseW*DISPLAY+'px';
+  screenEl.style.height = manifest.baseH*DISPLAY+'px';
+  screenEl.style.backgroundSize = (32*DISPLAY)+'px '+(32*DISPLAY)+'px';
+  screenEl.innerHTML='';
+  for(const b of manifest.elements){
+    const d = document.createElement('div');
+    d.className = 'el '+b.kind;
+    d.dataset.id = b.id;
+    d.innerHTML = '<span class="lbl">'+b.label+'</span>';
+    d.addEventListener('pointerdown', onElDown);
+    screenEl.appendChild(d);
+  }
+  // selection handle + pivot dot live in screen, repositioned per-render
+  const h = document.createElement('div'); h.className='handle'; h.id='handle'; h.style.display='none';
+  h.addEventListener('pointerdown', onHandleDown);
+  screenEl.appendChild(h);
+  const p = document.createElement('div'); p.className='pivot-dot'; p.id='pivotdot'; p.style.display='none';
+  screenEl.appendChild(p);
+}
+function paint(){
+  for(const b of manifest.elements){
+    const o = ov(b.id);
+    const r = rect(b,o);
+    const d = screenEl.querySelector('.el[data-id="'+b.id+'"]');
+    d.style.left=r.x*DISPLAY+'px'; d.style.top=r.y*DISPLAY+'px';
+    d.style.width=r.w*DISPLAY+'px'; d.style.height=r.h*DISPLAY+'px';
+    d.classList.toggle('hidden', !o.visible);
+    d.classList.toggle('sel', b.id===selId);
+    renderArt(d, b, r);
+  }
+  const h=$('#handle'), pd=$('#pivotdot');
+  if(selId){
+    const b=box(selId), o=ov(selId), r=rect(b,o);
+    h.style.display='block';
+    h.style.left=(r.x+r.w)*DISPLAY+'px'; h.style.top=(r.y+r.h)*DISPLAY+'px';
+    pd.style.display='block';
+    pd.style.left=r.px*DISPLAY+'px'; pd.style.top=r.py*DISPLAY+'px';
+  } else { h.style.display='none'; pd.style.display='none'; }
+}
+
+/* ---------- drag move ---------- */
+let drag=null;
+function onElDown(e){
+  const id=e.currentTarget.dataset.id;
+  select(id);
+  const o=ov(id);
+  drag={ id, sx:e.clientX, sy:e.clientY, ox:o.offsetX, oy:o.offsetY };
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp);
+  e.preventDefault();
+}
+function onDragMove(e){
+  if(!drag) return;
+  const dx=(e.clientX-drag.sx)/DISPLAY, dy=(e.clientY-drag.sy)/DISPLAY;
+  setOv(drag.id,{ offsetX:Math.round(drag.ox+dx), offsetY:Math.round(drag.oy+dy) });
+  paint(); syncInspector();
+}
+function onDragUp(){ drag=null;
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragUp);
+}
+
+/* ---------- resize (scale) ---------- */
+let rez=null;
+function onHandleDown(e){
+  if(!selId) return;
+  const b=box(selId), o=ov(selId), r=rect(b,o);
+  const d0=Math.hypot((r.x+r.w-r.px), (r.y+r.h-r.py))||1;  // pivot→corner dist
+  rez={ id:selId, sx:e.clientX, sy:e.clientY, s0:o.scale, d0, b, o };
+  window.addEventListener('pointermove', onRezMove);
+  window.addEventListener('pointerup', onRezUp);
+  e.stopPropagation(); e.preventDefault();
+}
+function onRezMove(e){
+  if(!rez) return;
+  const dx=(e.clientX-rez.sx)/DISPLAY, dy=(e.clientY-rez.sy)/DISPLAY;
+  // grow factor from how much the corner moved away from pivot
+  const grow=(rez.d0 + Math.hypot(dx,dy)*Math.sign(dx+dy))/rez.d0;
+  let s=Math.max(0.2, Math.min(3, +(rez.s0*grow).toFixed(2)));
+  setOv(rez.id,{ scale:s }); paint(); syncInspector();
+}
+function onRezUp(){ rez=null;
+  window.removeEventListener('pointermove', onRezMove);
+  window.removeEventListener('pointerup', onRezUp);
+}
+
+/* ---------- selection + inspector ---------- */
+function select(id){ selId=id; paint(); buildList(); syncInspector(); }
+function syncInspector(){
+  const empty=$('#insp-empty'), body=$('#insp-body');
+  if(!selId){ empty.style.display='block'; body.style.display='none'; return; }
+  empty.style.display='none'; body.style.display='block';
+  const b=box(selId), o=ov(selId);
+  $('#i-name').textContent=b.label;
+  $('#i-kind').textContent=b.kind;
+  $('#i-ox').value=o.offsetX; $('#i-oy').value=o.offsetY;
+  $('#i-scale').value=o.scale; $('#i-scale-r').value=o.scale;
+  $('#i-px').value=o.pivotX; $('#i-py').value=o.pivotY;
+  $('#i-vis').checked=o.visible;
+  [...document.querySelectorAll('#pivot-grid button')].forEach(btn=>{
+    btn.classList.toggle('on', +btn.dataset.x===o.pivotX && +btn.dataset.y===o.pivotY);
+  });
+}
+function buildPivotGrid(){
+  const g=$('#pivot-grid'); g.innerHTML='';
+  for(const y of [0,0.5,1]) for(const x of [0,0.5,1]){
+    const btn=document.createElement('button');
+    btn.dataset.x=x; btn.dataset.y=y;
+    btn.onclick=()=>{ if(!selId)return; setOv(selId,{pivotX:x,pivotY:y}); paint(); syncInspector(); };
+    g.appendChild(btn);
+  }
+}
+
+/* ---------- element list ---------- */
+function buildList(){
+  const list=$('#list'); list.innerHTML='';
+  const groups={};
+  for(const e of manifest.elements){ (groups[e.group]=groups[e.group]||[]).push(e); }
+  for(const gName of Object.keys(groups)){
+    const h=document.createElement('div'); h.className='grp-h'; h.textContent=gName; list.appendChild(h);
+    for(const b of groups[gName]){
+      const o=ov(b.id);
+      const row=document.createElement('div');
+      row.className='row'+(b.id===selId?' sel':'')+(!o.visible?' dim':'');
+      const edited=!isDefault(o);
+      row.innerHTML=
+        '<span class="eye" title="toggle visible">'+(o.visible?'◉':'○')+'</span>'+
+        '<span class="name">'+b.label+(edited?'<span class="badge">●</span>':'')+'</span>'+
+        '<span class="kind">'+b.kind+'</span>';
+      row.querySelector('.name').onclick=()=>select(b.id);
+      row.querySelector('.kind').onclick=()=>select(b.id);
+      row.querySelector('.eye').onclick=(ev)=>{ ev.stopPropagation();
+        setOv(b.id,{visible:!o.visible}); paint(); buildList(); syncInspector(); };
+      list.appendChild(row);
+    }
+  }
+}
+
+/* ---------- inspector inputs ---------- */
+function bindInputs(){
+  const upd=(patch)=>{ if(selId){ setOv(selId,patch); paint(); buildList(); } };
+  $('#i-ox').oninput=e=>upd({offsetX:+e.target.value||0});
+  $('#i-oy').oninput=e=>upd({offsetY:+e.target.value||0});
+  $('#i-scale').oninput=e=>{ const v=+e.target.value||1; $('#i-scale-r').value=v; upd({scale:v}); };
+  $('#i-scale-r').oninput=e=>{ const v=+e.target.value; $('#i-scale').value=v; upd({scale:v}); };
+  $('#i-px').oninput=e=>upd({pivotX:Math.max(0,Math.min(1,+e.target.value||0))});
+  $('#i-py').oninput=e=>upd({pivotY:Math.max(0,Math.min(1,+e.target.value||0))});
+  $('#i-vis').onchange=e=>upd({visible:e.target.checked});
+  $('#i-reset').onclick=()=>{ if(!selId)return; delete layout.elements[selId]; paint(); buildList(); syncInspector(); };
+}
+
+/* ---------- save / export / reset ---------- */
+function pruned(){
+  const out={ version:manifest.version||1, elements:{} };
+  for(const id of Object.keys(layout.elements)){
+    const o=ov(id);
+    if(isDefault(o)) continue;
+    const e={};
+    if(o.offsetX) e.offsetX=o.offsetX;
+    if(o.offsetY) e.offsetY=o.offsetY;
+    if(o.scale!==1) e.scale=o.scale;
+    if(o.pivotX!==0.5) e.pivotX=o.pivotX;
+    if(o.pivotY!==0.5) e.pivotY=o.pivotY;
+    if(!o.visible) e.visible=false;
+    out.elements[id]=e;
+  }
+  return out;
+}
+async function save(){
+  try{
+    const r=await fetch(API+'/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pruned())});
+    const j=await r.json();
+    if(j.ok) toast('Saved '+j.count+' override(s) → reload the game to see it','ok');
+    else toast('Save failed: '+j.error,'err');
+  }catch(e){ toast('Save failed: '+e,'err'); }
+}
+function exportJson(){
+  const blob=new Blob([JSON.stringify(pruned(),null,2)+'\n'],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hud_layout.json'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+function resetAll(){
+  if(!confirm('Clear ALL overrides? (does not save until you press Save)')) return;
+  layout.elements={}; selId=null; paint(); buildList(); syncInspector();
+}
+
+function toast(msg,kind){
+  const t=$('#toast'); t.textContent=msg; t.className='toast show '+(kind||'');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.className='toast',2600);
+}
+
+/* ---------- boot ---------- */
+async function boot(){
+  try{
+    manifest=await (await fetch(API+'/api/manifest')).json();
+    layout=await (await fetch(API+'/api/layout')).json();
+    if(!layout.elements) layout.elements={};
+    $('#status').textContent=manifest.elements.length+' elements · server connected';
+  }catch(e){
+    $('#status').textContent='server offline — run: npm run hud-tool';
+    toast('Cannot reach server. Start it with: npm run hud-tool','err');
+    return;
+  }
+  fitDisplay();
+  buildCanvas(); buildPivotGrid(); bindInputs(); paint(); buildList(); syncInspector();
+}
+let _resizeT;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(()=>{ if(!manifest.elements.length) return; fitDisplay(); buildCanvas(); paint(); }, 80);
+});
+$('#btn-save').onclick=save;
+$('#btn-export').onclick=exportJson;
+$('#btn-reload').onclick=boot;
+$('#btn-reset-all').onclick=resetAll;
+$('#show-art').onchange=e=>{ showArt=e.target.checked; paint(); };
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'){ selId=null; paint(); buildList(); syncInspector(); }});
+screenEl.addEventListener('pointerdown',e=>{ if(e.target===screenEl){ selId=null; paint(); buildList(); syncInspector(); }});
+boot();
+</script>
+</body>
+</html>

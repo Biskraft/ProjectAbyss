@@ -4,6 +4,10 @@ import type { LdtkLevel } from '@level/LdtkLoader';
 export const ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE = 64;
 
 const GHOST_X_OFFSET_TILES = -12;
+// 다이브 착지(Level36 스트림 프리뷰)가 카메라 뷰 하단 밖으로 파묻히지 않도록
+// 스트림 레벨을 위로 올린다 — 캐릭터가 화면 좌측-세로중앙에 서게.
+// 음수 y 는 prepareGhostWorldCollision 이 음수 행을 스킵하므로 안전(상단 air).
+const GHOST_Y_OFFSET_TILES = -14;
 
 export interface ItemWorldEntryBirthGeometry {
   originX: number;
@@ -44,10 +48,13 @@ export class ItemWorldEntryStreamRuntime {
     const x = snapWorldCoordToTile(
       birth.originX - builtPxW * 0.5 + GHOST_X_OFFSET_TILES * TILE_SIZE,
     );
-    const y = snapWorldCoordToTile(birth.originY - builtPxH * 0.5);
+    const y = snapWorldCoordToTile(
+      birth.originY - builtPxH * 0.5 + GHOST_Y_OFFSET_TILES * TILE_SIZE,
+    );
     return {
       x: Math.max(0, x),
-      y: Math.max(0, y),
+      // 음수 y 허용 — 스트림 레벨 상단(air)이 월드 위로 올라가도 collision 안전.
+      y,
     };
   }
 

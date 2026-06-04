@@ -10,6 +10,7 @@ import type { RoomGraphData } from '@level/RoomGraph';
 import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
 import { generateUnifiedGridFromGraph } from '@level/RoomGraphAdapter';
 import { archetypeFor } from '@level/RoomGraphArchetypes';
+import { buildPrologueDive } from '@level/PrologueDive';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import { type LdtkLevel, type LdtkTile } from '@level/LdtkLoader';
 import { collectLdtkTilesetPaths } from '@level/LdtkTilesetPaths';
@@ -51,7 +52,6 @@ import { BgmController } from '@audio/BgmController';
 import { PRNG } from '@utils/PRNG';
 import { getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, RARITY_COLOR, grantBossStageJump, getDisplayName, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
 import { sacredSave } from '@save/PlayerSave';
-import { removeBeginnerGraceFromStats } from '@systems/PlayerBuffSystem';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, TOPOLOGY_VALUES, type StrataConfig, type StratumDef, type TopologyKind } from '@data/StrataConfig';
 import { ArcTether } from '@effects/ArcTether';
@@ -151,6 +151,7 @@ import { ItemWorldProjectileRuntime } from './itemworld/ItemWorldProjectileRunti
 import { ItemWorldEnemyContactRuntime } from './itemworld/ItemWorldEnemyContactRuntime';
 import { ItemWorldStaticEntityRuntime } from './itemworld/ItemWorldStaticEntityRuntime';
 import { ItemWorldMemoryTriggerRuntime } from './itemworld/ItemWorldMemoryTriggerRuntime';
+import { ItemWorldPrologueEndRuntime } from './itemworld/ItemWorldPrologueEndRuntime';
 import { ItemWorldResidentRuntime } from './itemworld/ItemWorldResidentRuntime';
 import { ItemWorldEnemyCombatRuntime } from './itemworld/ItemWorldEnemyCombatRuntime';
 import { ItemWorldTileHazardRuntime } from './itemworld/ItemWorldTileHazardRuntime';
@@ -385,6 +386,7 @@ export class ItemWorldScene extends Scene {
   private enemyContactRuntime!: ItemWorldEnemyContactRuntime;
   private staticEntityRuntime!: ItemWorldStaticEntityRuntime;
   private memoryTriggerRuntime!: ItemWorldMemoryTriggerRuntime;
+  private prologueEndRuntime!: ItemWorldPrologueEndRuntime;
   private residentRuntime!: ItemWorldResidentRuntime;
   private enemyCombatRuntime!: ItemWorldEnemyCombatRuntime;
   private tileHazardRuntime!: ItemWorldTileHazardRuntime;
@@ -508,6 +510,8 @@ export class ItemWorldScene extends Scene {
 
   // Callback when done
   onComplete: (() => void) | null = null;
+  // 프롤로그 종료 시퀀스 완료 → Ch.1 전환(앵빌 복귀 대신). 미설정 시 onComplete fallback.
+  onPrologueEnd: (() => void) | null = null;
 
   /** Set to true if the global Item World tutorial has already been completed. */
   itemWorldTutorialDone = false;
@@ -747,6 +751,22 @@ export class ItemWorldScene extends Scene {
       getPlayer: () => this.player,
       getLoreDisplay: () => this.loreDisplay,
     });
+    this.prologueEndRuntime = new ItemWorldPrologueEndRuntime({
+      getPlayer: () => this.player,
+      getFadeOverlay: () => this.fadeOverlay,
+      getEntityLayer: () => this.entityLayer,
+      isPrologue: () => sacredSave.getScene() === 'prologue',
+      shake: (intensity) => this.game.camera.shake(intensity),
+      flash: () => this.screenFlash.flash(0xffffff, 0.5, 90),
+      onDone: () => {
+        // 아이템계를 빠져나가 Ch.1 로. onPrologueEnd 미설정 시 일반 종료로 fallback.
+        if (this.onPrologueEnd) {
+          this.exitItemWorldToPrologueEnd();
+        } else {
+          this.exitItemWorld();
+        }
+      },
+    });
     this.residentRuntime = new ItemWorldResidentRuntime({
       getResidentsLayer: () => this.residentsLayer,
       getPlayer: () => this.player,
@@ -928,6 +948,9 @@ export class ItemWorldScene extends Scene {
       spawnMemoryFromEntity: (entity, offX, offY) => {
         this.memoryTriggerRuntime.spawnFromEntity(entity, offX, offY);
       },
+      registerPrologueEndTrigger: (entity, offX, offY) => {
+        this.prologueEndRuntime.register(entity, offX, offY);
+      },
       addCameraZone: (zone) => this.cameraZoneRuntime.addZone(zone),
       spawnAnvil: (x, y) => {
         this.itemWorldAnvilRuntime.spawn(x, y);
@@ -1094,6 +1117,12 @@ export class ItemWorldScene extends Scene {
 
     // Memory Strata setup
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
+    // 프롤로그 강제 다이브는 단일 지층(보스 04 = 최종). totalStrata 가 1 이어야
+    // 보스 처치 = 아이템계 완료로 처리된다.
+    const forcePrologue = sacredSave.getScene() === 'prologue';
+    if (forcePrologue) {
+      this.strataConfig = { ...this.strataConfig, strata: [this.strataConfig.strata[0]] };
+    }
     this.progress = getOrCreateWorldProgress(this.item);
     // If the item was previously fully cleared, this entry is a "re-dive":
     // reset all per-cycle progress (cleared rooms, deepest unlocked, etc.)
@@ -1134,12 +1163,18 @@ export class ItemWorldScene extends Scene {
       ? (urlArchRaw as ReturnType<typeof archetypeFor>)
       : archetypeFor(this.item.def.temperamentPrimary, this.item.def.temperamentSecondary);
     Debug.log(`[ItemWorld] archetype: ${archetype} (primary=${this.item.def.temperamentPrimary ?? '-'} secondary=${this.item.def.temperamentSecondary ?? '-'})`);
-    const adapterResult = generateUnifiedGridFromGraph(
-      this.strataConfig.strata,
-      this.item.uid,
-      urlTopology ?? this.item.def.topologyOverride,
-      archetype,
-    );
+    // 프롤로그: 손으로 authoring 한 4 룸 사슬(01→02→03→04)을 강제. 실패(템플릿
+    // 누락) 시 절차 생성으로 자연 fallback.
+    const forcedDive = forcePrologue ? buildPrologueDive(this.ldtkTemplates) : null;
+    const adapterResult = forcedDive
+      ? { unifiedGrid: forcedDive.unifiedGrid, graphs: forcedDive.graphs }
+      : generateUnifiedGridFromGraph(
+          this.strataConfig.strata,
+          this.item.uid,
+          urlTopology ?? this.item.def.topologyOverride,
+          archetype,
+        );
+    if (forcedDive) Debug.log('[ItemWorld] PROLOGUE forced dive (01→02→03→04)');
 
     // Dev: persistent topology label (top-left). Shows which source picked the topology.
     this.unifiedGrid = adapterResult.unifiedGrid;
@@ -1151,13 +1186,18 @@ export class ItemWorldScene extends Scene {
     // Dev: Shift+L = cycle ?topology= and reload (디버그 전용).
 
     // Pre-compute Memory Room placements per stratum (from CSV lookup).
-    this.memoryRoomPlacementRuntime.compute({
-      templates: this.ldtkTemplates,
-      unifiedGrid: this.unifiedGrid,
-      strataCount: this.strataConfig.strata.length,
-      weaponId: this.item.def.id,
-      itemUid: this.item.uid,
-    });
+    // 프롤로그는 고정 placement 사슬을 직접 주입 (memory-room 로직 우회).
+    if (forcedDive) {
+      this.memoryRoomPlacementRuntime.inject(forcedDive.placements);
+    } else {
+      this.memoryRoomPlacementRuntime.compute({
+        templates: this.ldtkTemplates,
+        unifiedGrid: this.unifiedGrid,
+        strataCount: this.strataConfig.strata.length,
+        weaponId: this.item.def.id,
+        itemUid: this.item.uid,
+      });
+    }
 
     // Determine starting position based on progress
     const startStratumIndex = Math.min(
@@ -2164,6 +2204,7 @@ export class ItemWorldScene extends Scene {
     this.staticEntityRegistry.clear();
     this.cameraZoneRuntime.clear();
     this.memoryTriggerRuntime.clear();
+    this.prologueEndRuntime.clear();
     this.residentRuntime.clear();
     // DEC-039 Trapdoor 도 buildFullMap 시 함께 정리한다.
     if (this.trapdoor) {
@@ -2214,6 +2255,10 @@ export class ItemWorldScene extends Scene {
 
   update(dt: number): void {
     if (!this.initialized) return;
+
+    // Commit last frame's interaction-prompt accumulation before any player
+    // update reads it (attack suppression buffer; once per frame).
+    this.game.input.beginInteractionFrame();
 
     // Ambient stratum weather animates in every state (gameplay, modals,
     // transitions) so the residue field never freezes mid-dive.
@@ -2281,6 +2326,18 @@ export class ItemWorldScene extends Scene {
     }
 
     if (this.escapeRuntime.updateInput()) {
+      return;
+    }
+
+    // 프롤로그 종료 시퀀스 — prologue_end 트리거 터치 시 말소자 등장 → 위상 찢김
+    // → 암전 → Ch.1 전환. 시퀀스 중 게임플레이를 멈춘다(흔들림·플래시는 유지).
+    if (this.prologueEndRuntime.update(dt)) {
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.savePrevPosition();
+      this.screenFlash.update(dt);
+      this.hud.update(dt);
+      this.game.camera.update(dt);
       return;
     }
 
@@ -2434,12 +2491,6 @@ export class ItemWorldScene extends Scene {
         // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
         if (!sacredSave.isFirstItemWorldBossDefeated()) {
           sacredSave.markFirstItemWorldBossDefeated();
-          const unbuffed = removeBeginnerGraceFromStats({
-            atk: this.player.atk,
-            def: this.player.def,
-          });
-          this.player.atk = unbuffed.atk;
-          this.player.def = unbuffed.def;
         }
 
         // Analytics: stratum boss defeated
@@ -2609,6 +2660,21 @@ export class ItemWorldScene extends Scene {
     const playerRoomCol = Math.max(0, Math.min(totalCols - 1, Math.floor(this.player.x / IW_ROOM_W_PX)));
     const playerAbsRow = Math.max(0, Math.min(totalRows - 1, Math.floor(this.player.y / IW_ROOM_H_PX)));
     const roomKey = `${playerRoomCol},${playerAbsRow}`;
+
+    // 현재 방을 플레이어 실제 셀과 동기화한다. spawn-once 게이트와 분리 — 작은
+    // 그리드(프롤로그 4방)는 이웃 전부가 pre-spawn 되므로, 갱신을 아래 spawn
+    // 블록에만 의존하면 currentCol/Row 가 진입 셀에 고정되어 isFinalEndRoom(보스
+    // 최종방 판정)·미니맵 추적이 깨진다.
+    if ((playerRoomCol !== this.currentCol || playerAbsRow !== this.currentRow)
+        && this.unifiedGrid.cells[playerAbsRow]?.[playerRoomCol]) {
+      this.currentCol = playerRoomCol;
+      this.currentRow = playerAbsRow;
+      const syncedCell = this.unifiedGrid.cells[playerAbsRow][playerRoomCol];
+      if (syncedCell && !syncedCell.visited) {
+        syncedCell.visited = true;
+        this.persistRoomState();
+      }
+    }
 
     // DEC-039 — A: stratum 전환 시 토스트로 알리고
     // stratumIndex 갱신 + DEPTH 표시 + progress 저장.
@@ -2920,6 +2986,17 @@ export class ItemWorldScene extends Scene {
   }
 
   private exitItemWorld(): void {
+    this.cleanupForExit();
+    this.onComplete?.();
+  }
+
+  /** 프롤로그 종료 — 앵빌 복귀 대신 Ch.1(Start_Room_01)로 전환. */
+  private exitItemWorldToPrologueEnd(): void {
+    this.cleanupForExit();
+    this.onPrologueEnd?.();
+  }
+
+  private cleanupForExit(): void {
     // Analytics: guard against double-fire (death path tracks exit earlier)
     if (this.exitTelemetryState.tryMarkExitTracked()) {
       trackItemWorldExit(this.progressController.getExitReason(), this.currentStratumIndex);
@@ -2936,8 +3013,6 @@ export class ItemWorldScene extends Scene {
     // Remove any lingering damage numbers / prompts from uiContainer
     // (keep only persistent items ? world scene re-adds its own in enter())
     this.game.uiContainer.removeChildren();
-
-    this.onComplete?.();
   }
 
   private placePlayerForRoomTransition(col: number, row: number): void {

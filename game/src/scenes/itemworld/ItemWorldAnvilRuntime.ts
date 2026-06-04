@@ -61,6 +61,8 @@ export class ItemWorldAnvilRuntime {
 
     const anchor = nearest.getFloorPlateCenterWorld();
     this.prompt.show(anchor.x, anchor.y, 'prompt.return');
+    // Prompt up → player ignores its ATTACK press (re-enter, don't swing).
+    this.deps.game.input.markInteractionPrompt();
 
     if (this.deps.game.input.isJustPressed(GameAction.ATTACK)) {
       this.deps.game.input.consumeJustPressed(GameAction.ATTACK);

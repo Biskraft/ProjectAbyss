@@ -8,16 +8,21 @@ const TILE_SIZE = 16;
  */
 export class WorldTransitionController {
   /**
-   * Find the LDtk level that contains a Player entity.
+   * Find the LDtk level that contains a Player spawn for the given scene.
+   * Prefers a level whose Player entity's `Scene` field matches `scene`
+   * (e.g. 'prologue' → Prologue_01, 'chapter01' → Start_Room_01); falls back
+   * to the first level with any Player entity, then to `fallback`.
    */
-  findPlayerSpawnLevel(loader: LdtkLoader, fallback: string): string {
+  findPlayerSpawnLevel(loader: LdtkLoader, fallback: string, scene?: string): string {
+    let anyPlayerLevel: string | null = null;
     for (const id of loader.getLevelIds()) {
       const level = loader.getLevel(id);
-      if (level?.entities.some((e) => e.type === 'Player')) {
-        return id;
-      }
+      const spawns = level?.entities.filter((e) => e.type === 'Player') ?? [];
+      if (spawns.length === 0) continue;
+      if (anyPlayerLevel === null) anyPlayerLevel = id;
+      if (scene && spawns.some((e) => e.fields['Scene'] === scene)) return id;
     }
-    return fallback;
+    return anyPlayerLevel ?? fallback;
   }
 
   /**

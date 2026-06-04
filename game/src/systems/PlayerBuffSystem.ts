@@ -1,6 +1,3 @@
-import { sacredSave } from '@save/PlayerSave';
-import { BuffConst } from '@data/constData';
-
 export interface PlayerStatBlock {
   atk: number;
   def: number;
@@ -14,18 +11,10 @@ export interface PlayerStatBuff {
   defMul?: number;
 }
 
-export const BEGINNER_GRACE_BUFF: PlayerStatBuff = {
-  id: 'beginner_grace',
-  atkFlat: BuffConst.BeginnerGraceAtkFlat,
-  defFlat: BuffConst.BeginnerGraceDefFlat,
-};
-
-export function isBeginnerGraceActive(): boolean {
-  return !sacredSave.isFirstItemWorldBossDefeated();
-}
-
+// No player buffs are currently active (the beginner-grace buff was removed).
+// The generic stat-buff framework below stays so future buffs can register.
 export function getActivePlayerBuffs(): PlayerStatBuff[] {
-  return isBeginnerGraceActive() ? [BEGINNER_GRACE_BUFF] : [];
+  return [];
 }
 
 export function formatActivePlayerBuffsDebug(): string {
@@ -53,14 +42,5 @@ export function applyPlayerStatBuffs(base: PlayerStatBlock): PlayerStatBlock {
   return {
     atk: Math.max(1, Math.floor(atk)),
     def: Math.max(0, Math.floor(def)),
-  };
-}
-
-export function removeBeginnerGraceFromStats(stats: PlayerStatBlock): PlayerStatBlock {
-  const atkMul = BEGINNER_GRACE_BUFF.atkMul ?? 1;
-  const defMul = BEGINNER_GRACE_BUFF.defMul ?? 1;
-  return {
-    atk: Math.max(1, Math.floor(stats.atk / atkMul - (BEGINNER_GRACE_BUFF.atkFlat ?? 0))),
-    def: Math.max(0, Math.floor(stats.def / defMul - (BEGINNER_GRACE_BUFF.defFlat ?? 0))),
   };
 }

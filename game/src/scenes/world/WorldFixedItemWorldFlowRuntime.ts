@@ -40,9 +40,11 @@ export class WorldFixedItemWorldFlowRuntime {
     this.deps.fixedItemWorld.clear();
   }
 
-  enter(item: ItemInstance): void {
+  enter(item: ItemInstance, levelIdOverride?: string): void {
     this.deps.restoreUiAfterDiveTransition();
-    const levelId = item.fixedLevelId;
+    // Override routes a fixed dive without permanently tagging the item
+    // (scene-driven prologue dive); falls back to the item's own fixedLevelId.
+    const levelId = levelIdOverride ?? item.fixedLevelId;
     if (!levelId) return;
 
     if (!this.deps.hasLevel(levelId)) {

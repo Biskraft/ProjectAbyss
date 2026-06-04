@@ -382,7 +382,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Abilities (unlocked by relic pickups)
   abilities = {
-    dash: true,           // 기본 능력 — 처음부터 보유
+    dash: false,          // 렐릭 획득 전까지 비활성 (나중에 획득)
     diveAttack: false,
     surge: false,
     waterBreathing: false,
@@ -781,7 +781,11 @@ export class Player extends Entity implements CombatEntity {
     // memory expects from action games.
     // No weapon equipped → attack disabled entirely, except when cheat is on
     // (cheat already grants +99999 ATK so C should always swing for testing).
-    const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK);
+    // Suppress the swing when an interaction prompt is up (or a dialogue is
+    // open) — the same key press is claimed by the interaction. Not consumed
+    // here, so the interaction runtime (which runs later) still receives it.
+    const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK)
+      && !this.game.input.interactionPromptActive;
     const attackStateAllowed =
       !this.isLifting && state !== 'dive' && state !== 'hit' && state !== 'death';
     if (attackPressedThisFrame && attackStateAllowed &&

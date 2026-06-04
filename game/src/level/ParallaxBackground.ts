@@ -59,6 +59,7 @@ export class ParallaxBackground {
     levelW: number,
     levelH: number,
     paletteAtlas?: { texture: Texture; rowCount: number; row: number },
+    opts?: { nearNativeScale?: boolean },
   ): Promise<void> {
     this.clear();
 
@@ -92,12 +93,15 @@ export class ParallaxBackground {
       );
     }
 
-    // L3: Near image
+    // L3: Near image. nearNativeScale renders it 1:1 (scale 1.0) so a
+    // full-screen-sized backdrop (e.g. prologue 640x360) maps pixel-for-pixel
+    // instead of the default 1.5x fit zoom.
     if (entry.parallaxImageNear) {
       await this.addImageLayer(
         entry.parallaxImageNear,
         entry.parallaxFactorNear || ParallaxConst.FactorNear,
         levelW, levelH, entry, paletteAtlas,
+        opts?.nearNativeScale ? 1.0 : undefined,
       );
     }
     this.isReady = true;
@@ -177,6 +181,7 @@ export class ParallaxBackground {
     levelH: number,
     entry: AreaPaletteEntry,
     paletteAtlas?: { texture: Texture; rowCount: number; row: number },
+    scaleOverride?: number,
   ): Promise<void> {
     try {
       const tex = await Assets.load<Texture>(assetPath(`assets/parallax/${imageName}.png`));
@@ -184,7 +189,7 @@ export class ParallaxBackground {
       tex.source.addressMode = 'clamp-to-edge';
       tex.source.style.update();
 
-      const fitScale = (360 / tex.height) * 1.5;
+      const fitScale = scaleOverride ?? (360 / tex.height) * 1.5;
       const tileW = Math.max(1, tex.width * fitScale);
       const tileH = Math.max(1, tex.height * fitScale);
 

@@ -324,6 +324,8 @@ export class InputManager {
   private resetAll(): void {
     this.keyState.clear();
     this.prevKeyState.clear();
+    this._promptAccum = false;
+    this._promptActive = false;
   }
 
   /** Called by VirtualPad on touchstart */
@@ -410,5 +412,30 @@ export class InputManager {
     return this.keyState.get(code) === true
       && this.prevKeyState.get(code) !== true
       && !this.consumed.has(code);
+  }
+
+  // Interaction-prompt gate. When an interaction prompt is on screen (or a
+  // dialogue is open), the Player ignores its ATTACK press so the same key is
+  // claimed by the interaction instead of swinging the weapon.
+  //
+  // Double-buffered so multiple prompt owners (NPC dialogue, item-world anvil,
+  // trapdoor, …) can OR-in their state each frame without racing:
+  //   - beginInteractionFrame(): once per scene update, BEFORE player.update().
+  //     Commits last frame's accumulation (what Player reads) and resets.
+  //   - markInteractionPrompt(): owners call when their prompt is up (runs
+  //     AFTER player.update()).
+  // The 1-frame lag between mark and read is the suppression buffer; prompts
+  // are stable across frames so it is invisible.
+  private _promptAccum = false;
+  private _promptActive = false;
+  beginInteractionFrame(): void {
+    this._promptActive = this._promptAccum;
+    this._promptAccum = false;
+  }
+  markInteractionPrompt(): void {
+    this._promptAccum = true;
+  }
+  get interactionPromptActive(): boolean {
+    return this._promptActive;
   }
 }

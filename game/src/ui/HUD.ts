@@ -13,6 +13,52 @@ import type { UISkin } from './UISkin';
 import { HudConst } from '@data/constData';
 import { hpBarColor, hpRatio, shouldPulseFlask } from './hud/HudVitals';
 import { expFillRatio, expFlashAlpha, expLevelBounce, expLevelLabel } from './hud/HudExp';
+import { getHudElement, type HudLayout } from './hud/hudLayout';
+
+// ----- HUD layout override (edited by game/tools/hud-tool) -----
+// Loaded once at boot from public/data/hud_layout.json. Null = no overrides,
+// HUD renders at its hand-coded default positions (pixel-identical to before).
+let cachedHudLayout: HudLayout | null = null;
+
+/**
+ * Fetch hud_layout.json once at boot. Call before scenes construct their HUD.
+ * Missing/invalid file silently leaves the HUD at its default layout.
+ */
+export async function loadHudLayout(): Promise<void> {
+  if (cachedHudLayout) return;
+  try {
+    const res = await fetch(assetPath('data/hud_layout.json'), { cache: 'no-cache' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && typeof json === 'object' && json.elements) cachedHudLayout = json as HudLayout;
+    }
+  } catch { /* no layout file → defaults */ }
+}
+
+/**
+ * Apply a single element's layout override to an arbitrary Container — used by
+ * UI components that live outside the HUD (TutorialHint, LoreDisplay) but are
+ * still editable in the HUD tool. `mult` converts base-640 override units into
+ * the target's local space: pass uiScale for native-space parents, 1 for a
+ * parent already scaled by uiScale. No override for `id` leaves the target
+ * untouched (pixel-identical default).
+ */
+export function applyLayoutToContainer(
+  target: Container,
+  id: string,
+  mult: number,
+  layout: HudLayout | null = cachedHudLayout,
+): void {
+  const ov = layout?.elements?.[id];
+  const box = getHudElement(id);
+  if (!ov || !box) return;
+  const px = (box.x + box.w * (ov.pivotX ?? 0.5)) * mult;
+  const py = (box.y + box.h * (ov.pivotY ?? 0.5)) * mult;
+  target.pivot.set(px, py);
+  target.position.set(px + (ov.offsetX ?? 0) * mult, py + (ov.offsetY ?? 0) * mult);
+  target.scale.set(ov.scale ?? 1);
+  if (ov.visible === false) target.visible = false;
+}
 
 // Base values at 640x360. Multiplied by uiScale for native resolution.
 const BASE_W = 640;
@@ -213,6 +259,15 @@ export class HUD {
   private skinFlaskIconH = 0;
   private skinFlaskGap = 0;
 
+  // ----- Layout override (hud-tool) -----
+  // Each editable HUD element's display object(s) live under a wrapper
+  // Container keyed by HudElement.id. applyLayout() shifts/scales/hides the
+  // wrapper. Populated in the constructor (Graphics path) and applySkin()
+  // (skin path, which overwrites the entries it replaces).
+  private layoutWrappers = new Map<string, Container>();
+  // Parent for dynamically-recreated skin flask icons (set in applySkin).
+  private flaskIconLayer: Container | null = null;
+
   constructor(uiScale = 1) {
     this.s = uiScale;
     this.container = new Container();
@@ -282,8 +337,12 @@ export class HUD {
     this.goldTextShadow.y = this.MARGIN + s;
     this.goldText.x = this.SW - this.MARGIN;
     this.goldText.y = this.MARGIN;
-    this.container.addChild(this.goldTextShadow);
-    this.container.addChild(this.goldText);
+    // Wrap gold in a layout-editable container (id 'gold').
+    const goldWrap = new Container();
+    goldWrap.addChild(this.goldTextShadow);
+    goldWrap.addChild(this.goldText);
+    this.container.addChild(goldWrap);
+    this.layoutWrappers.set('gold', goldWrap);
 
     // --- Key icon shared sizes ---
     const KEY_ICON = 12 * s;  // icon box size
@@ -500,9 +559,49 @@ export class HUD {
       this.container.addChild(dbgShadow);
       this.container.addChild(dbgText);
     }
+
+    // Register the Graphics-path editable elements (already Containers).
+    // applySkin() overwrites 'actionKeys' with its skin wrapper and adds the
+    // skin-only element wrappers (statusFrame, hpBar, ...).
+    this.layoutWrappers.set('bossBar', this.bossBarContainer);
+    this.layoutWrappers.set('expBar', this.expBarContainer);
+    this.layoutWrappers.set('statusIcons', this.statusIconContainer);
+    this.layoutWrappers.set('egoShards', this.egoShardContainer);
+    this.layoutWrappers.set('itemExitHint', this.itemExitHintContainer);
+    this.layoutWrappers.set('actionKeys', this.actionKeyBar);
+    this.applyLayout();
   }
 
   // ----- Public API -----
+
+  /**
+   * Apply the layout override (hud_layout.json) to the registered element
+   * wrappers. Each override shifts/scales/hides a wrapper around the element's
+   * default box center (from the manifest). With no override for an id the
+   * wrapper is left untouched, so the default build is pixel-identical.
+   *
+   * Idempotent — called at the end of the constructor (Graphics wrappers) and
+   * again at the end of applySkin() (skin wrappers). Only `visible: false` is
+   * acted on; a true/undefined value never force-shows an element so game logic
+   * (boss bar, EXP bar appearing on demand) keeps control of visibility.
+   */
+  applyLayout(layout: HudLayout | null = cachedHudLayout): void {
+    if (!layout?.elements) return;
+    const s = this.s;
+    for (const [id, ov] of Object.entries(layout.elements)) {
+      const wrapper = this.layoutWrappers.get(id);
+      const box = getHudElement(id);
+      if (!wrapper || !box) continue;
+      const pivotX = (box.x + box.w * (ov.pivotX ?? 0.5)) * s;
+      const pivotY = (box.y + box.h * (ov.pivotY ?? 0.5)) * s;
+      // pivot == position cancels out at scale 1 → visually identity when the
+      // override is only a hide/scale. offset shifts on top.
+      wrapper.pivot.set(pivotX, pivotY);
+      wrapper.position.set(pivotX + (ov.offsetX ?? 0) * s, pivotY + (ov.offsetY ?? 0) * s);
+      wrapper.scale.set(ov.scale ?? 1);
+      if (ov.visible === false) wrapper.visible = false;
+    }
+  }
 
   /**
    * 저체력 관련 시각 효과(Flask R pulse, glow, HP bar pulse, 데미지 vignette)를
@@ -620,12 +719,11 @@ export class HUD {
     this.vignetteTimer = 100;
   }
 
-  setGoldBelowMinimap(below: boolean): void {
-    // When minimap visible: gold goes below minimap + [I][M] row
-    // minimap=72*s, gap=6*s, keyIcon=10*s, gap=4*s
-    const y = below ? (this.MARGIN + 72 * this.s + 6 * this.s + 10 * this.s + 4 * this.s) : this.MARGIN;
-    this.goldText.y = y;
-    this.goldTextShadow.y = y + this.s;
+  setGoldBelowMinimap(_below: boolean): void {
+    // No-op: gold position is now owned by the layout system (hud_layout.json,
+    // applied via the 'gold' wrapper). Previously this nudged gold below the
+    // minimap in the world but not the item world, making the same layout land
+    // in two different spots. Position gold once in the HUD tool instead.
   }
 
   setMinimapFrameVisible(visible: boolean): void {
@@ -1019,7 +1117,7 @@ export class HUD {
         icon.y = this.skinFlaskStartY;
         icon.width = iconW;
         icon.height = iconH;
-        this.skinLayer!.addChild(icon);
+        (this.flaskIconLayer ?? this.skinLayer)!.addChild(icon);
         this.skinFlaskIcons.push(icon);
       }
       return;
@@ -1277,8 +1375,23 @@ export class HUD {
     this.skinLayer.sortableChildren = true;
     this.container.addChildAt(this.skinLayer, 0);
 
-    // Helper: create a sprite from a slice, positioned at its 640x360 bounds * uiScale
-    const place = (name: string): Sprite | null => {
+    // Per-element layout wrapper inside skinLayer (id = HudElement.id). Lazily
+    // created; skin sprites get parented here so applyLayout() can move them.
+    const wrap = (id: string, parent: Container = this.skinLayer!): Container => {
+      let w = this.layoutWrappers.get(id);
+      if (!w) {
+        w = new Container();
+        w.sortableChildren = true;
+        parent.addChild(w);
+        this.layoutWrappers.set(id, w);
+      }
+      return w;
+    };
+
+    // Helper: create a sprite from a slice, positioned at its 640x360 bounds.
+    // `into` is the element wrapper the sprite belongs to (defaults to skinLayer
+    // for slices that are not individually editable, e.g. floor indicator).
+    const place = (name: string, into: Container = this.skinLayer!): Sprite | null => {
       const tex = skin.getTexture(name);
       const bounds = skin.getBounds(name);
       if (!tex || !bounds) return null;
@@ -1288,15 +1401,18 @@ export class HUD {
       sprite.y = bounds.y * s;
       sprite.width = bounds.w * s;
       sprite.height = bounds.h * s;
-      this.skinLayer!.addChild(sprite);
+      into.addChild(sprite);
       return sprite;
     };
 
     // --- Static frames ---
-    place('hud_status_frame');
-    this.skinHpFrame = place('hud_status_hp_frame');
+    place('hud_status_frame', wrap('statusFrame'));
+    const hpWrap = wrap('hpBar');
+    hpWrap.zIndex = 20; // HP fill historically drew on top (zIndex 20)
+    this.skinHpFrame = place('hud_status_hp_frame', hpWrap);
     if (this.skinHpFrame) this.skinHpFrame.zIndex = 10;
-    place('hud_status_portrait_frame');
+    const portraitWrap = wrap('portraitFrame');
+    place('hud_status_portrait_frame', portraitWrap);
 
     // Portrait image inside portrait frame — sized to fill the inner
     // diamond. The portrait PNG is 128×128 with the character centered in
@@ -1316,15 +1432,16 @@ export class HUD {
           sprite.scale.set(scale);
           sprite.x = (pBounds.x + pBounds.w / 2) * s;
           sprite.y = (pBounds.y + pBounds.h / 2 + 2) * s;
-          this.skinLayer!.addChild(sprite);
+          // Late add: inherits portraitWrap's layout transform if already set.
+          portraitWrap.addChild(sprite);
           this.portraitSprite = sprite;
         });
       }
     }
 
-    place('hud_status_atk_frame');
+    place('hud_status_atk_frame'); // slice absent in current atlas → no-op
     place('hud_floor_indicator');
-    this.skinMapFrame = place('hud_map_frame');
+    this.skinMapFrame = place('hud_map_frame', wrap('mapFrame'));
     if (this.skinMapFrame) this.skinMapFrame.visible = this.minimapFrameVisible;
 
     // --- Depth indicator (item world only, hidden by default) ---
@@ -1334,13 +1451,14 @@ export class HUD {
       const depthFillTex = skin.getTexture('hud_depth_indicator_fill');
       const depthFillBounds = skin.getBounds('hud_depth_indicator_fill');
       if (depthFrameTex && depthFrameBounds && depthFillTex && depthFillBounds) {
+        const depthWrap = wrap('depthFrame');
         this.skinDepthFrame = new Sprite(depthFrameTex);
         this.skinDepthFrame.x = depthFrameBounds.x * s;
         this.skinDepthFrame.y = depthFrameBounds.y * s;
         this.skinDepthFrame.width = depthFrameBounds.w * s;
         this.skinDepthFrame.height = depthFrameBounds.h * s;
         this.skinDepthFrame.visible = false;
-        this.skinLayer!.addChild(this.skinDepthFrame);
+        depthWrap.addChild(this.skinDepthFrame);
 
         // Position fill INSIDE the frame, using fill texture height as gauge length.
         // 2026-05-18: magic "+9" 보정 제거. fill 은 frame 의 (w, h) 차이의 절반만큼만 inset.
@@ -1359,12 +1477,12 @@ export class HUD {
         this.skinDepthFill.width = this.skinDepthFillW;
         this.skinDepthFill.height = 0; // starts empty
         this.skinDepthFill.visible = false;
-        this.skinLayer!.addChild(this.skinDepthFill);
+        depthWrap.addChild(this.skinDepthFill);
 
         // Tick container for depth marks
         this.skinDepthTickContainer = new Container();
         this.skinDepthTickContainer.visible = false;
-        this.skinLayer!.addChild(this.skinDepthTickContainer);
+        depthWrap.addChild(this.skinDepthTickContainer);
       }
     }
 
@@ -1391,13 +1509,13 @@ export class HUD {
         : Math.round(hpFillBounds.h * 0.85)) * s;
       this.skinHpFill.width = this.skinHpFillMaxW;
       this.skinHpFill.zIndex = 20;
-      this.skinLayer.addChild(this.skinHpFill);
+      hpWrap.addChild(this.skinHpFill);
 
       this.skinHpFillMask = new Graphics();
       this.skinHpFillMask.x = this.skinHpFill.x;
       this.skinHpFillMask.y = this.skinHpFill.y;
       this.skinHpFillMask.zIndex = 20;
-      this.skinLayer.addChild(this.skinHpFillMask);
+      hpWrap.addChild(this.skinHpFillMask);
       this.skinHpFill.mask = this.skinHpFillMask;
     }
 
@@ -1420,8 +1538,8 @@ export class HUD {
       refresh();
       onDeviceChange(refresh);
     };
-    const placeKey = (name: string, action: GameAction) => {
-      const sprite = place(name);
+    const placeKey = (name: string, action: GameAction, into: Container = this.skinLayer!) => {
+      const sprite = place(name, into);
       if (!sprite) return;
       const bounds = skin.getBounds(name)!;
       const txt = new BitmapText({
@@ -1432,7 +1550,7 @@ export class HUD {
       txt.anchor.set(0.5, 0.5);
       txt.x = (bounds.x + bounds.w / 2) * s;
       txt.y = (bounds.y + bounds.h / 2) * s;
-      this.skinLayer!.addChild(txt);
+      into.addChild(txt);
     };
     // Action keys: reuse a single `hud_action_key` atlas slice (the atlas
     // collapsed the old per-action sprites into one shared key sprite).
@@ -1446,6 +1564,7 @@ export class HUD {
       label: string,
       keyGlyphYOffset = 0,
       keyFontSize = 8 * s,
+      into: Container = this.skinLayer!,
     ) => {
       const tex = skin.getTexture(sliceName);
       const bounds = skin.getBounds(sliceName);
@@ -1455,7 +1574,7 @@ export class HUD {
       sprite.y = worldY * s;
       sprite.width = bounds.w * s;
       sprite.height = bounds.h * s;
-      this.skinLayer!.addChild(sprite);
+      into.addChild(sprite);
       // Key letter — placed inside the SMALL bottom diamond (≈ 70% down the
       // sprite). Atlas sprite has two stacked diamonds; the large upper
       // one stays decorative, the small lower one carries the key glyph.
@@ -1467,7 +1586,7 @@ export class HUD {
       keyTxt.anchor.set(0.5, 0.5);
       keyTxt.x = (worldX + bounds.w / 2) * s;
       keyTxt.y = (worldY + bounds.h * 0.70 + 2 + keyGlyphYOffset) * s;
-      this.skinLayer!.addChild(keyTxt);
+      into.addChild(keyTxt);
       // Action name — below box
       const actionTxt = new BitmapText({
         text: label,
@@ -1476,11 +1595,12 @@ export class HUD {
       actionTxt.anchor.set(0.5, 0);
       actionTxt.x = (worldX + bounds.w / 2) * s;
       actionTxt.y = (worldY + bounds.h + 2) * s;
-      this.skinLayer!.addChild(actionTxt);
+      into.addChild(actionTxt);
     };
     // Flask key — 25% larger font + store pulse position
     {
-      const sprite = place('hud_status_key_flask');
+      const flaskKeyWrap = wrap('flaskKey');
+      const sprite = place('hud_status_key_flask', flaskKeyWrap);
       const bounds = skin.getBounds('hud_status_key_flask');
       if (sprite && bounds) {
         const txt = new BitmapText({
@@ -1491,7 +1611,7 @@ export class HUD {
         txt.anchor.set(0.5, 0.5);
         txt.x = (bounds.x + bounds.w / 2) * s;
         txt.y = (bounds.y + bounds.h / 2) * s;
-        this.skinLayer!.addChild(txt);
+        flaskKeyWrap.addChild(txt);
         // Store center for pulse glow
         this.skinFlaskCx = txt.x;
         this.skinFlaskCy = txt.y;
@@ -1513,11 +1633,13 @@ export class HUD {
         // Start right of [R] key with 2px gap
         this.skinFlaskStartX = (flaskKeyBounds.x - 1) * s;
         this.skinFlaskStartY = (flaskKeyBounds.y + (flaskKeyBounds.h - fillBounds.h) / 2) * s;
+        // redrawFlask() reparents its icons here so they move with the element.
+        this.flaskIconLayer = wrap('flaskIcons');
       }
     }
     // I key — store position for pulse glow
     {
-      placeKey('hud_map_key_item_normal', GameAction.INVENTORY);
+      placeKey('hud_map_key_item_normal', GameAction.INVENTORY, wrap('itemKey'));
       const iBounds = skin.getBounds('hud_map_key_item_normal');
       if (iBounds) {
         this.skinItemKeyCx = (iBounds.x + iBounds.w / 2) * s;
@@ -1525,16 +1647,22 @@ export class HUD {
         this.skinItemKeyR = Math.max(iBounds.w, iBounds.h) / 2 * s;
       }
     }
-    placeKey('hud_map_key_inv_normal', GameAction.MAP);
+    placeKey('hud_map_key_inv_normal', GameAction.MAP, wrap('mapKey'));
     // Three action keys share the single `hud_action_key` atlas slice.
     // Horizontal layout preserves the ~39 px stride from the old atlas,
     // but lifted ~30 px upward so the JUMP label no longer clips the
     // bottom of the screen (GAME_HEIGHT 360 leaves no room at y=309+43).
     // Y aligned across all three for a clean row.
     // sprite w=38 + 4 px gap → stride 42. Row stays at y=300.
-    placeActionKey('hud_action_key',  9, 300, GameAction.JUMP,   'JUMP');
-    placeActionKey('hud_action_key', 51, 300, GameAction.DASH,   'DASH');
-    placeActionKey('hud_action_key', 93, 300, GameAction.ATTACK, 'ATK');
+    // Fresh skin wrapper — overwrites the Graphics actionKeyBar entry the
+    // constructor registered (that bar is hidden below in skin mode).
+    const actionKeysWrap = new Container();
+    actionKeysWrap.sortableChildren = true;
+    this.skinLayer!.addChild(actionKeysWrap);
+    this.layoutWrappers.set('actionKeys', actionKeysWrap);
+    placeActionKey('hud_action_key',  9, 300, GameAction.JUMP,   'JUMP', 0, 8 * s, actionKeysWrap);
+    placeActionKey('hud_action_key', 51, 300, GameAction.DASH,   'DASH', 0, 8 * s, actionKeysWrap);
+    placeActionKey('hud_action_key', 93, 300, GameAction.ATTACK, 'ATK',  0, 8 * s, actionKeysWrap);
 
     // Hide old Graphics-based elements that the skin replaces
     this.hpBar.visible = false;
@@ -1581,6 +1709,21 @@ export class HUD {
       this.atkTextShadow.y = this.atkText.y + s;
     }
 
+    // Wrap the HP/ATK number labels into editable container-level wrappers
+    // (they live in this.container, on top of skinLayer). Local coords are
+    // preserved, so this is visually identity until applyLayout shifts them.
+    const hpTextWrap = new Container();
+    hpTextWrap.addChild(this.hpTextShadow);
+    hpTextWrap.addChild(this.hpText);
+    this.container.addChild(hpTextWrap);
+    this.layoutWrappers.set('hpText', hpTextWrap);
+
+    const atkTextWrap = new Container();
+    atkTextWrap.addChild(this.atkTextShadow);
+    atkTextWrap.addChild(this.atkText);
+    this.container.addChild(atkTextWrap);
+    this.layoutWrappers.set('atkText', atkTextWrap);
+
     this.hasSkin = true;
     // Trigger a redraw with skin HP fill
     this.redrawHpBar();
@@ -1598,6 +1741,9 @@ export class HUD {
     if (this.expBarContainer.visible) {
       this.redrawExpBar();
     }
+
+    // Re-apply layout overrides now that the skin wrappers exist.
+    this.applyLayout();
   }
 
   /** Update skin HP fill mask to match current HP ratio. Called from redrawHpBar. */

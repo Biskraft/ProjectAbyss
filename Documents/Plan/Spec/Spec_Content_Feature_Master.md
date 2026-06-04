@@ -154,21 +154,22 @@ Blade 전 레어리티 + Cleaver/Shiv/Railbow 중 2-3 타입. 원거리 1종 필
 - 데모: 10-12 종 (T2-T4 테마).
 - 현재: 2종 (Skeleton 근접, Ghost 원거리).
 
-### 6.2 아키타입 (제작 단위) — 10종 (SSoT 확정), 7 핵심 AI 구현
+### 6.2 아키타입 (제작 단위) — 11종 (SSoT 확정), 8 핵심 AI 구현
 
-아키타입 분류 SSoT = `Documents/System/System_Enemy_MonsterArchetype.md` (2026-06-03 정합으로 10종 확정. 구 A-07 앰부시형은 스텔스 제거로 A-01 급습 변형에 흡수, Tier 진화 폐기). 본 스펙은 7 핵심 AI를 구현 대상으로 잡고, 속성 스태킹(속도 3 x 사이즈 2 x 원소 4 x 발사체 2)으로 40-60 체감 다양성을 확보한다.
+아키타입 분류 SSoT = `Documents/System/System_Enemy_MonsterArchetype.md` (2026-06-03 정합으로 11종 확정. A-07 앰부시형(적 은신)은 유지, 플레이어 스텔스(FoV/LoS)·Tier 진화만 폐기). 본 스펙은 8 핵심 AI를 구현 대상으로 잡고, 속성 스태킹(속도 3 x 사이즈 2 x 원소 4 x 발사체 2)으로 40-60 체감 다양성을 확보한다.
 
 | ID | 아키타입 | 행동 | 구현 |
 | :--- | :--- | :--- | :--- |
-| A-01 | Charger (근접 추격, +급습 변형) | 감지 → 접근 → 공격. 급습은 가속 진입 강타(은신 없음) | Skeleton 구현됨 |
+| A-01 | Charger (근접 추격) | 감지 → 접근 → 공격 | Skeleton 구현됨 |
 | A-03a | Shooter (원거리 견제) | 거리 유지 → 사격 → 회피 | Ghost 구현됨 |
 | A-02 | Jumper (돌진/도약) | 차징 → 도약 궤적 | 신규 |
 | A-05 | Flier (비행) | 사인파 → 급강하 | 신규 |
 | A-04 | Shielder (방패) | 정면 방어 → 후방 약점 | 신규 (스탯 게이트 교육) |
 | A-06 | Swarmer/Splitter (군집/분열) | 처치 시 분열 / 떼 밀집 | 신규 (아이템계 밀집) |
+| A-07 | Ambusher (앰부시/은신) | HIDDEN 은신·위장 → 기습 반경 진입 시 출현 1타 | 신규 |
 | A-10 | Sentinel (고정 포탑) | 이동 없음, 고정 발사 | 신규 (환경 적) |
 
-> 구 A-07 앰부시형은 폐기 → A-01 급습 변형(파라미터, 신규 AI 불요)으로 흡수. 잔여 A-03b Bombardier / A-08 Summoner / A-09 Elite는 1.0 확장. Phase 1 최소 로스터는 7-9종(Research 권장).
+> A-07 앰부시형(적 은신)은 유지 — 화면 안 단서 노출 + 출현 Tell 필수, 화면 밖 기습 금지(`System_Enemy_AI.md` §2.2-C). 잔여 A-03b Bombardier / A-08 Summoner / A-09 Elite는 1.0 확장. Phase 1 최소 로스터는 7-9종(Research 권장).
 
 ### 6.3 제작 방식
 
@@ -439,7 +440,7 @@ CSV ThemeID 기준 이미 정의됨: T-HABITAT, T-MALFUNCTION, T-FOUNDRY, T-COMM
 
 | 항목 | 안1 | 안2 (교정) | 근거 |
 | :--- | :--- | :--- | :--- |
-| 적 아키타입 | 7종 신규 정의 | 10종 확정(A-01~A-10, A-07 흡수), 7 핵심 AI 구현 | System_Enemy_MonsterArchetype (SSoT) |
+| 적 아키타입 | 7종 신규 정의 | 11종 확정(A-01~A-10), 8 핵심 AI 구현 | System_Enemy_MonsterArchetype (SSoT) |
 | 적 종류 1.0 | 36-42 | 30-50 (Target 밴드 유지) | Digest §2 |
 | 보스 1.0 | 16-18 | 메인 8-12 + 서브 4-8 = 12-20 | Digest §2 |
 | 드랍률 | 미기재 | 55/20/7/2.5/0.5 + no_drop 15% (확정값) | Content_Rarity CSV |

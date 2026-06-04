@@ -3,7 +3,7 @@ import type { Game } from '../../Game';
 import { aabbOverlap } from '@core/Physics';
 import { SFX } from '@audio/Sfx';
 import type { Player } from '@entities/Player';
-import { Breakable, isBreakableSpriteId, type BreakableSpriteId } from '@entities/Breakable';
+import { Breakable } from '@entities/Breakable';
 import { GoldPickup } from '@entities/GoldPickup';
 import type { HitSparkManager } from '@effects/HitSpark';
 import type { PropShatterManager } from '@effects/PropShatter';
@@ -29,14 +29,17 @@ export class WorldBreakableRuntime {
     const registry = this.deps.getRegistry();
     registry.clear();
 
+    const layer = this.deps.getEntityLayer();
+    const playerContainer = this.deps.getPlayer().container;
     const entities = level.entities.filter(entity => entity.type === 'Breakable');
     for (const entity of entities) {
       const rawSprite = (entity.fields['Sprite'] ?? entity.fields['sprite']) as string | undefined;
-      const spriteId: BreakableSpriteId = rawSprite && isBreakableSpriteId(rawSprite)
-        ? rawSprite
-        : 'SignBoard_Save';
-      const breakable = new Breakable(entity.px[0], entity.px[1], spriteId);
-      registry.add(breakable, this.deps.getEntityLayer());
+      const spriteName = rawSprite && rawSprite.length > 0 ? rawSprite : 'signboard_save_01';
+      const breakable = new Breakable(entity.px[0], entity.px[1], spriteName);
+      registry.add(breakable);
+      // Insert behind the player so the character is never hidden by the prop.
+      const playerIdx = layer.children.indexOf(playerContainer);
+      layer.addChildAt(breakable.container, playerIdx >= 0 ? playerIdx : 0);
     }
   }
 

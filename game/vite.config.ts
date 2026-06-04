@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { spawnSync } from 'node:child_process';
 
 /**
  * Serve docs/ui-components.html at /docs/ui-components (and /docs/ui-components.html)
@@ -50,6 +51,38 @@ function ldtkFullReloadPlugin(): Plugin {
         reloadTimer = setTimeout(() => {
           server.config.logger.info(`[ldtk] World_ProjectAbyss.ldtk changed - ${summarizeBuilderLevels(ldtkPath)} - full reload`);
           server.ws.send({ type: 'full-reload', path: '*' });
+        }, 250);
+      });
+    },
+  };
+}
+
+/**
+ * Watch Sheets/Content_Localization.csv (the i18n SSoT) and regenerate the
+ * locale bundles on save, then full-reload — so adding/editing keys shows up
+ * in-game without manually running csv_to_locale.mjs or restarting the server.
+ */
+function localeCsvWatchPlugin(): Plugin {
+  const csvPath = path.resolve(__dirname, '../Sheets/Content_Localization.csv');
+  const normalizedCsvPath = path.normalize(csvPath);
+  const scriptPath = path.resolve(__dirname, '../Sheets/tools/csv_to_locale.mjs');
+  let timer: NodeJS.Timeout | null = null;
+  return {
+    name: 'echoris-locale-csv-watch',
+    configureServer(server) {
+      server.watcher.add(csvPath);
+      server.watcher.on('all', (eventName, changedPath) => {
+        if (path.normalize(path.resolve(changedPath)) !== normalizedCsvPath) return;
+        if (!['add', 'change'].includes(eventName)) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          const r = spawnSync('node', [scriptPath], { encoding: 'utf8' });
+          if (r.status === 0) {
+            server.config.logger.info(`[locale] Content_Localization.csv changed - regenerated bundles, reloading`);
+            server.ws.send({ type: 'full-reload', path: '*' });
+          } else {
+            server.config.logger.error(`[locale] csv_to_locale failed: ${(r.stderr || r.stdout || '').trim()}`);
+          }
         }, 250);
       });
     },
@@ -144,7 +177,7 @@ export default defineConfig(({ mode }) => {
   const LOCALE = resolveLocale(mode);
   const OFFLINE = isOfflineMode(mode);
   return {
-    plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin(), localeFontsPlugin(LOCALE), offlineIndexPlugin(OFFLINE)],
+    plugins: [uiCatalogPlugin(), ldtkFullReloadPlugin(), localeCsvWatchPlugin(), localeFontsPlugin(LOCALE), offlineIndexPlugin(OFFLINE)],
     define: {
       __LOCALE__: JSON.stringify(LOCALE),
     },

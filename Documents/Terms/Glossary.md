@@ -131,7 +131,8 @@
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
 | Registration | 등재 | 빌더의 블루프린트 안에 한 항목으로 다시 기록되는 행위. 인덱서의 신앙이나 실제로는 작동하지 않는다(빌더가 인지하지 않으므로). 등재의 대가는 자기 음성의 상실. 결말 B(등재) 의 핵심. | `Documents/Content/Content_Story_Synopsis.md` |
 | Resident | 잔존자 | 단절(Cascade) 이후 블루프린트 바깥에 잔존하며 점점 사라져 가는 인간. 빈 공동에 흩어져 산다. 인덱서·솔로 잔존자 등으로 분화. | `Documents/Content/Content_Story_Synopsis.md` |
-| Rustborn | 러스트본 | "부식에서 태어난 자". 에르다의 시작 무기 에코 안에 의식이 온전히 응결된 특이 에코. 시작 후 약 5분에 그녀에게 자기 이름을 가르친다. 에르다와 시각 친연성(붉은 머리·청록 눈) — 자기 이전 고리의 한 인물 해석이 시각 캐논. | `Documents/Content/Content_Characters.md`, `Documents/Design/Design_Art_Direction.md` |
+| Rustborn | 러스트본 | "부식에서 태어난 자". 프롤로그의 실험 동료. Cascade 때 죽으며 에르다의 절개도(Scalpel) 안으로 의식이 응결 → 수천 년 부식하여 녹날(Rustedge, 시작 검) 의 에코가 됨. 시작 후 약 5분 첫 다이브에서 그녀에게 자기 이름을 가르친다. 에르다 이름을 아는 이유 = 동료(정체성 미스터리 아님). 시각 친연성(붉은 머리·청록 눈) = 같은 연구소 동료. | `Documents/Content/Content_Characters.md`, `Documents/Design/Design_Art_Direction.md` |
+| Rustedge | 녹날 | 에르다의 시작 검. 프롤로그의 절개도(Scalpel) 가 수천 년 부식 + 죽어가는 러스트본 의식 응결로 변한 것. 멸균 도구가 녹과 영혼을 얻은 유물. 에셋 sword_rustborn. 에코 누적으로 형태 변화(D-15 검 시각화). | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Design/Design_Art_Direction.md` |
 | Room Grid | 룸 그리드 | 절차적 생성 시 사용하는 룸 배치 격자. 아이템계는 4×4 고정, 월드 구역은 난이도에 따라 3×3-5×5. 각 셀에 Room Type이 배정되고 Chunk가 조립된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Template | 룸 템플릿 | 절차적 생성의 기본 단위가 되는 사전 제작된 방 구조. Tiled Map Editor로 제작되며, 출입구 방향에 따라 분류된다. 각 템플릿에 Chunk가 채워져 최종 룸이 완성된다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 | Room Type | 룸 타입 | Room Grid 내 각 셀의 역할 분류. 전투룸·보상룸·함정룸·빈 룸 등으로 나뉘며, Critical Path 상의 룸과 분기 룸을 구분한다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
@@ -142,6 +143,7 @@
 
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
+| Scalpel | 절개도 | 切開刀. 프롤로그에서 과학자 에르다가 소지한 연구 규격 도구. 에코를 가르고 들어가는 멸균 다이브 인터페이스 — 영혼·사연 없는 깨끗한 도구. Cascade 때 죽어가는 러스트본 의식이 이 안으로 응결 → 수천 년 부식 → 녹날(Rustedge, 시작 검). 멸균(절개도) ↔ 부식(녹날) 의 전후 대비. | `Documents/Content/Content_Story_Synopsis.md` |
 | Skill Slot | 스킬 슬롯 | 캐릭터가 전투에 장착할 수 있는 스킬 칸. 총 4개 슬롯이 존재하며, 각 슬롯에 하나의 스킬을 장착한다. 장착 변경은 세이브 포인트에서만 가능하다. 슬롯 제한이 빌드 선택의 전략성을 만든다. | `Documents/System/System_3C_Control.md`, `Documents/System/System_3C_Character.md` |
 | SkillCast | 스킬 시전 | 스킬 슬롯에 장착된 스킬을 발동하는 행동. 쿨다운 기반으로 발동되며, 스킬 카테고리(근접·원거리·범위·버프·소환)에 따라 발동 중 이동 가능 여부가 다르다. 자동 조준이 적용된다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
 | ~~SPD~~ | ~~속도 스탯~~ | ~~DEPRECATED. 기존 이동/공격 속도 스탯. ATK/INT/HP 3스탯 체계 전환으로 삭제. 이동/공격 속도는 무기 유형별 고정값으로 정의.~~ | — |

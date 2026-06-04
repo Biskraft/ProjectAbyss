@@ -5,23 +5,23 @@
 > **최종 개정:** 2026-06-03 (아키타입 정합 라운드)
 > **문서 상태:** Draft
 > **2-Space:** World + Item World
-> **설계 의도:** 7카테고리 무기 x 7축 패시브 프레임워크(300무기)에 대응하는 몬스터 아키타입 시스템. 10개 BASE 아키타입이 속성·MOD·조우 조합으로 다양성을 만들며, 아키타입 조합이 특정 무기 패시브 축(A-G)을 검증하는 전술 상황을 생성한다.
+> **설계 의도:** 7카테고리 무기 x 7축 패시브 프레임워크(300무기)에 대응하는 몬스터 아키타입 시스템. 11개 BASE 아키타입이 속성·MOD·조우 조합으로 다양성을 만들며, 아키타입 조합이 특정 무기 패시브 축(A-G)을 검증하는 전술 상황을 생성한다.
 > **이 문서가 아키타입 분류의 SSoT다.** 학술/리서치 출처는 `Documents/Research/EnemyDesign_MobArchetype_Research.md` 이며, 본 문서가 그 11종 분류를 게임 캐논으로 확정한다.
 
 ---
 
 ## 0. 개정 이력 (Consolidation Note)
 
-> **2026-06-03 — 아키타입 정합 라운드.** 분산돼 있던 3개 분류 버전(본 문서 8 ARC / `System_Enemy_AI.md` 9 A-series / Research 11 A-series)을 **10종 단일 체계**로 통합했다.
+> **2026-06-03 — 아키타입 정합 라운드.** 분산돼 있던 3개 분류 버전(본 문서 8 ARC / `System_Enemy_AI.md` 9 A-series / Research 11 A-series)을 **11종 단일 체계**로 통합했다.
 
 | 결정 | 내용 |
 | :--- | :--- |
-| **기준 분류** | Research 11종(A-01~A-10 + A-03b)을 캐논 기반으로 채택. ARC- 넘버링 폐기, **A- 넘버링으로 통일.** |
-| **A-07 앰부시형 흡수** | 스텔스 제거 결정에 따라 독립 아키타입 A-07(천장/벽 은신)을 폐기하고, 그 "빠른 접근 + 강한 1타" 위협을 **A-01 Charger의 급습 변형**으로 흡수. → 10종. |
-| **스텔스·엄폐 메커닉 전면 제거** | 적 은신/위장, 플레이어 측 은신·엄폐(시야각 사각, 시선 차단 회피)를 전부 제거. 감지는 **반경 단독**으로 단순화(코드 현실과 일치). 상세는 `System_Enemy_AI.md` §2.3. |
+| **기준 분류** | Research 11종(A-01~A-10 + A-03b)을 캐논으로 확정. ARC- 넘버링 폐기, **A- 넘버링으로 통일.** |
+| **A-07 앰부시형 유지** | A-07(은신·위장 후 기습)을 독립 아키타입으로 유지. 적의 은신은 *위협 수단*이며 살린다. 은신은 FoV/LoS가 아닌 **반경 기반**으로 동작(은신 상태 → 기습 반경 진입 시 발현). 화면 밖 기습은 금지(§1.3). |
+| **플레이어 스텔스(FoV/LoS)만 제거** | 적이 시야각·시선을 가져 플레이어가 사각·엄폐물로 적 시야를 회피하던 *플레이어 측 스텔스*는 제거. 감지는 **반경 단독**으로 단순화(코드 현실과 일치). 적 은신 위협과는 별개. 상세는 `System_Enemy_AI.md` §2.3. |
 | **Tier 진화(T1~T4) 제거** | 같은 아키타입을 4단계로 진화시키던 Tier 레이어를 폐기. 강도 스케일링은 **지층 × 레어리티 수치 계수**로만 처리(`System_Enemy_AI.md` §2.8). 체감 다양성은 속성 × MOD × 조우 조합이 담당. |
 
-**10종 최종 목록:** A-01 Charger · A-02 Jumper · A-03a Shooter · A-03b Bombardier · A-04 Shielder · A-05 Flier · A-06 Swarmer · A-08 Summoner · A-09 Elite · A-10 Sentinel.
+**11종 최종 목록:** A-01 Charger · A-02 Jumper · A-03a Shooter · A-03b Bombardier · A-04 Shielder · A-05 Flier · A-06 Swarmer · A-07 Ambusher · A-08 Summoner · A-09 Elite · A-10 Sentinel.
 
 ---
 
@@ -36,7 +36,8 @@
 | 적 스폰 시스템 | `Documents/System/System_Enemy_Spawning.md` |
 | 아이템계 지층 생성 | `Documents/System/System_ItemWorld_FloorGen.md` |
 | 전투 철학 | `Documents/Design/Design_Combat_Philosophy.md` |
-| 보스 설계 | `Documents/System/System_ItemWorld_Boss.md` |
+| 보스 아키타입 (분류 SSoT) | `Documents/System/System_Enemy_BossArchetype.md` |
+| 보스 인스턴스 (아이템계) | `Documents/System/System_ItemWorld_Boss.md` |
 | 화학 반응 매트릭스 (속성) | `Documents/Design/Design_ChemicalReactions_FullMatrix.md` |
 
 ---
@@ -66,12 +67,12 @@
 
 ### 1.3. 설계 제약
 
-1. **BASE 아키타입은 10종.** 이상 추가 금지 — 추가하려면 슈터 4 base 패턴(Soldier/Aggressor/Carrier/Tank)에 없는 새 위협 축을 입증해야 한다. 다양성은 아키타입 조합 + 속성 + MOD가 만든다.
+1. **BASE 아키타입은 11종.** 이상 추가 금지 — 추가하려면 슈터 4 base 패턴(Soldier/Aggressor/Carrier/Tank)에 없는 새 위협 축을 입증해야 한다. 다양성은 아키타입 조합 + 속성 + MOD가 만든다.
 2. **새 위협 축 발명 금지.** 스케일링(지층/레어리티)은 기존 행동의 강도/빈도/윈도우만 조정한다. 완전히 새로운 공격 패턴을 수치 스케일링으로 추가하지 않는다.
-3. **아트 자산 = 기본 실루엣 10종 + 테마 팔레트 스왑 + 속성 이펙트.** 신규 스프라이트 최소화.
+3. **아트 자산 = 기본 실루엣 11종 + 테마 팔레트 스왑 + 속성 이펙트.** 신규 스프라이트 최소화.
 4. **4x4 Room Grid 기준 설계.** 방당 최대 적 수 6, 최대 아키타입 조합 3.
 5. **모든 몬스터는 속성을 가진다 (예외 없음).** 무속성 몬스터 금지. 속성 = fluid 물질 1종, 기본은 테마 자동 바인딩. 몬스터 정의·스폰 데이터에 속성 필드가 비면 검증 실패로 처리한다 (§2.11).
-6. **스텔스·은신·위장 금지.** 적은 플레이어에게 보이지 않는 상태에서 출현하거나 기습하지 않는다. 모든 적은 화면 안에서 인지 가능한 상태로 행동하며, 공격은 Tell로 예고된다. (구 A-07 앰부시형 폐기.)
+6. **적 은신은 허용, 플레이어 스텔스는 불가.** 적(A-07 앰부시형)은 은신·위장 후 기습할 수 있다 — 단 화면 *안*에서 미세 단서를 노출하고, 출현은 반드시 Tell(출현 모션 4f)을 거치며, 화면 *밖* 기습은 금지한다. 반대로 플레이어가 적의 시야(FoV/LoS)를 피해 숨는 *플레이어 측 스텔스*는 설계에서 제외한다(감지는 반경 단독).
 
 ---
 
@@ -79,7 +80,7 @@
 
 ### 10 BASE 아키타입
 
-> 분류 출처: Research 11종(Rivera et al. 2012 슈터 NPC 패턴 통합). A-07 앰부시형은 스텔스 제거로 A-01에 흡수. 슈터 family = A-03a Shooter(기동 사격) + A-03b Bombardier(범위 포격) + A-10 Sentinel(고정 포대).
+> 분류 출처: Research 11종(Rivera et al. 2012 슈터 NPC 패턴 통합). 슈터 family = A-03a Shooter(기동 사격) + A-03b Bombardier(범위 포격) + A-10 Sentinel(고정 포대). A-07 앰부시형은 적 은신 위협으로 유지(플레이어 스텔스 메커닉과 별개).
 
 ---
 
@@ -95,18 +96,15 @@
 - Attack Cooldown 후 재추적
 - 지상 이동만. 점프는 1-2타일 단차에서만 사용
 
-**급습 변형 (Rusher) — 구 A-07 흡수:**
-스텔스 없이, 화면 가장자리나 원거리에서 **빠른 가속으로 진입해 강한 1타**를 노리는 변형. 은신·위장은 사용하지 않으며, 가속 구간 자체가 시각적 Tell(돌진 자세 + 잔상)이 된다. 1타 후 짧은 경직 → 일반 Charger 추적으로 복귀. MOD-06(광분)과 결합하면 "기습 압박" 조우를 구성한다.
-
 **패시브 축 검증:**
 
 | 축 | 왜 유효한가 | 구체적 예시 |
 |:---|:---|:---|
-| A (Critical Condition) | 직선 접근으로 배후 노출이 잦다. 급습 변형은 피격 후 카운터 보너스 유효 | Shiv 배후 강타(x3.0), Counter Rhythm(피격 후 0.3초 내 x2.0) |
+| A (Critical Condition) | 직선 접근으로 배후 노출이 잦다 | Shiv 배후 강타(x3.0), Blade Critical Eye(x3.0) |
 | E (Combo Variation) | 정지 후 공격하므로 콤보 윈도우가 예측 가능 | Blade Finisher's Edge(3타 x1.8), Combo Breaker(대시 캔슬) |
-| F (Movement) | 추적-멈춤·급습 패턴이 대시 후 공격을 보상 | Momentum Blade(이동 후 x1.5), Blink Cut(대시 무적) |
+| F (Movement) | 추적-멈춤 패턴이 대시 후 공격을 보상 | Momentum Blade(이동 후 x1.5), Blink Cut(대시 무적) |
 
-**비주얼:** 테마 팔레트 스왑 + 속성 이펙트(magma=잔열 궤적 / cyro=결빙 발자국 등). 급습 변형은 돌진 시 속도선.
+**비주얼:** 테마 팔레트 스왑 + 속성 이펙트(magma=잔열 궤적 / cyro=결빙 발자국 등).
 
 ---
 
@@ -252,6 +250,32 @@
 
 ---
 
+#### A-07: Ambusher (앰부시형)
+
+**컨셉:** 벽/천장/바닥 또는 환경 구조물에 은신·위장하다가, 플레이어가 기습 반경에 진입하면 출현하여 강한 1타를 가하는 매복형 위협. 지속전 능력은 낮고 1회 기습이 핵심.
+**실루엣:** 평상시 환경 타일과 유사한 위장 형태(미세 단서만 노출). 출현 시 절지동물형. 16x20px 기본 캔버스.
+**Rivera 대응:** -- (횡스크롤 고유, Flanking Intensive).
+
+**핵심 행동:**
+- 초기 상태: 환경에 은신·위장(비활성). 화면 안에서 미세한 단서 노출(벽 질감 변화, 깜빡이는 눈)
+- 플레이어가 기습 반경(짧음, ~2.5타일) 진입 시 출현 애니메이션(4f) + 강한 1타 (Tell: 출현 모션 자체)
+- 기습 후 짧은 경직 → 도주 또는 재은신 시도
+- 낮은 HP. 1회 기습이 핵심 위협
+
+> **공정성 주석:** 은신은 *적의 위협 수단*이며 플레이어 측 스텔스/엄폐와 별개다. 출현은 반드시 4f 출현 모션(Tell)을 거치고, 화면 *밖* 출현·기습은 금지(§1.3 화면 밖 공격 금지 준수). 감지는 FoV/LoS가 아닌 **반경 기반**(은신 상태 → 기습 반경 진입 시 발현)이다.
+
+**패시브 축 검증:**
+
+| 축 | 왜 유효한가 | 구체적 예시 |
+|:---|:---|:---|
+| C (State-Change) | 기습 피격으로 HP 급락 → 저HP 패시브 빈발 | Berserker's Fury(HP 30% 이하 공속+ATK), Last Stand(HP 20% 이하 x2.0+치사 방지 1회) |
+| A (Critical Condition) | 출현 직후 무방비 경직 → 카운터 보너스 적용 | Counter Rhythm(피격 후 0.3초 내 x2.0), Revenge Strike(피격 후 2초 내 x1.8) |
+| D (Kill Bonus) | 낮은 HP로 빠른 처치 → Kill Bonus 발동 용이 | No Mercy(처치 후 0.5초 내 크리 확정), Hungry Edge(처치 시 이속+20%) |
+
+**비주얼:** 은신 시 환경 위장 팔레트. 출현 시 속성 파티클(보라/검은 연기) + 단서 발광.
+
+---
+
 #### A-08: Summoner (지원/소환형)
 
 **컨셉:** 직접 교전을 피하고 후방에서 아군을 강화하거나 소환물을 생산하여 전장 위협을 증폭하는 위협. 우선 제거 대상.
@@ -322,13 +346,14 @@
 
 | ID | 아키타입 | 위협 축 | 핵심 패시브 검증 | 구현된 적 매핑 |
 |:---|:---------|:--------|:-----------------|:--------------|
-| A-01 | Charger | 거리 압박 (+급습) | A / E / F | Skeleton |
+| A-01 | Charger | 거리 압박 | A / E / F | Skeleton |
 | A-02 | Jumper | 불규칙 궤도 | F / A / E | Slime |
 | A-03a | Shooter | 기동 사격(카이팅) | F / D / E | Ghost |
 | A-03b | Bombardier | 지역 거부(범위 포격) | F / A / G | (신규 필요) |
 | A-04 | Shielder | 정면 무효화 | A / F / E | (신규 필요) |
 | A-05 | Flier | 수직 위협 | A / F / B | Spark Bat (계획) |
 | A-06 | Swarmer | 수량 압도 | B / D / E | Cinder Imp (계획) |
+| A-07 | Ambusher | 기습/은신 | C / A / D | (신규 필요) |
 | A-08 | Summoner | 전장 증폭 | D / B / G | (신규 필요) |
 | A-09 | Elite | 다층 위협 | 전 축 종합 | GoldenMonster |
 | A-10 | Sentinel | 고정 고화력 | F / A / C | (신규 필요) |
@@ -345,7 +370,7 @@
 
 | 레이어 | 정의 | 출처 시스템 | 필수 |
 | :--- | :--- | :--- | :---: |
-| **행동 (Archetype)** | 이동·공격 패턴 | A-01~A-10 (10종) | 필수 |
+| **행동 (Archetype)** | 이동·공격 패턴 | A-01~A-10 (11종) | 필수 |
 | **속성 (Fluid)** | 무엇으로 이뤄졌나 / 무엇을 남기나 / 어떻게 반응하나 | `System_World_Fluid`, 화학 매트릭스 | **필수(예외 없음)** |
 | **껍질 (Container)** | 부서지는 용기/내용물 (선택) | `ThrowableContainer`, `ContainerPools` | 선택 |
 | **거동 변형 (MOD)** | 행동 모디파이어 | 8 MOD (§5.x) | 선택 |
@@ -402,7 +427,8 @@
 | Swarmer + Flier | **전방위 압박** : 지상 군집 + 공중 급강하가 수직/수평 동시 위협 | 위를 보면 아래에서 당하고, 아래를 보면 위에서 당함 | Blade(3타 넓은 범위), Chain(가변 리치로 상하 커버) | B, D, F |
 | Shielder + Sentinel | **요새** : Shielder가 전면 차단, 뒤에서 Sentinel이 포격 | 정면 돌파 불가. 반드시 측면/상단 우회 필요 | Shiv(Shadow Step 배후), Emitter(후방 Sentinel 처리) | A, F, E |
 | Charger + Swarmer | **추격 군집** : Charger가 플레이어를 한 방향으로 몰고 Swarmer가 포위 | 도주하면 Swarmer에 포위. 맞서면 Charger에 압박 | Cleaver(AoE 정리), Harpoon(관통 직선 정리) | D, E, B |
-| Charger(급습) + Shooter | **기습-카이팅** : 급습 Charger가 패닉을 만들면 Shooter가 도망치며 사격 | 한쪽을 쫓으면 다른 쪽에 노출. 회복 창 없음 | Blade(빠른 반격), Blink Cut(대시로 거리 압축) | C, A, F |
+| Ambusher + Charger | **기습-추격** : 은신한 Ambusher가 출현 1타로 패닉을 만들고, Charger가 즉시 압박. 회복 창 없음 | Blade(빠른 반격), Shiv(기동으로 Ambusher 회피) | C, A, F |
+| Ambusher + Shielder | **은폐 방벽** : Shielder 뒤에 Ambusher가 은신. 배후로 돌아가면 Ambusher 기습 | Chain(리치로 Shielder 너머 타격), Shiv(빠른 기동) | A, C, F |
 | Shielder + Bombardier | **요새 포격** : Shielder가 전면을 막는 동안 후방 Bombardier가 발판에 범위 착탄 | 정면은 못 뚫고, 멈춰서 우회하면 착탄에 맞음. 이동하며 우회 필수 | Shiv(배후 침투), Railbow(후방 Bombardier 저격) | F, A, G |
 | Charger + Shooter(A-03a) | **추격 카이팅** : Charger가 한 방향으로 몰고 Shooter가 반대로 도망치며 사격 | 한쪽을 쫓으면 다른 쪽에 노출. 두 거리 축을 동시에 못 잡음 | Chain(리치로 Shooter 견제), Blink Cut(대시로 거리 압축) | F, D, E |
 | Summoner + Swarmer | **소환 군집** : Summoner가 Swarmer를 지속 생산. 소환사 우선 제거 강제 | 소환사를 두면 군집이 무한 보충. 군집을 뚫고 후방 진입해야 함 | Shiv(후방 침투), Cleaver(군집 AoE) | D, B |
@@ -411,15 +437,15 @@
 
 각 칸은 해당 무기가 해당 아키타입에 대해 갖는 상대적 유불리를 표시한다.
 
-| 무기 \ 아키타입 | Charger | Jumper | Shooter | Bombardier | Shielder | Flier | Swarmer | Summoner | Sentinel |
-|:----------------|:-------:|:------:|:-------:|:----------:|:--------:|:-----:|:-------:|:--------:|:--------:|
-| **Blade** (3타 콤보) | **강** | 보통 | 약 | 보통 | 보통 | 보통 | 보통 | 보통 | 약 |
-| **Cleaver** (2타 충격파) | 보통 | **강** | 약 | 보통 | **강** | 약 | **강** | 보통 | 약 |
-| **Shiv** (4타 배후) | **강** | 보통 | **강** | **강** | **강** | 보통 | 약 | **강** | 약 |
-| **Harpoon** (관통) | 보통 | 보통 | 보통 | **강** | **강** | 약 | **강** | 보통 | 보통 |
-| **Chain** (가변 리치) | 보통 | **강** | **강** | **강** | 보통 | **강** | **강** | 보통 | **강** |
-| **Railbow** (원거리 물리) | 약 | 약 | **강** | **강** | 약 | **강** | 보통 | **강** | **강** |
-| **Emitter** (원거리 INT) | 약 | **강** | 보통 | **강** | 약 | **강** | **강** | **강** | **강** |
+| 무기 \ 아키타입 | Charger | Jumper | Shooter | Bombardier | Shielder | Flier | Swarmer | Ambusher | Summoner | Sentinel |
+|:----------------|:-------:|:------:|:-------:|:----------:|:--------:|:-----:|:-------:|:--------:|:--------:|:--------:|
+| **Blade** (3타 콤보) | **강** | 보통 | 약 | 보통 | 보통 | 보통 | 보통 | **강** | 보통 | 약 |
+| **Cleaver** (2타 충격파) | 보통 | **강** | 약 | 보통 | **강** | 약 | **강** | 보통 | 보통 | 약 |
+| **Shiv** (4타 배후) | **강** | 보통 | **강** | **강** | **강** | 보통 | 약 | **강** | **강** | 약 |
+| **Harpoon** (관통) | 보통 | 보통 | 보통 | **강** | **강** | 약 | **강** | 보통 | 보통 | 보통 |
+| **Chain** (가변 리치) | 보통 | **강** | **강** | **강** | 보통 | **강** | **강** | 보통 | 보통 | **강** |
+| **Railbow** (원거리 물리) | 약 | 약 | **강** | **강** | 약 | **강** | 보통 | 약 | **강** | **강** |
+| **Emitter** (원거리 INT) | 약 | **강** | 보통 | **강** | 약 | **강** | **강** | 보통 | **강** | **강** |
 
 **상성 해설:**
 - Charger는 근접 교전이므로 근접 무기(Blade/Shiv)가 유리. 원거리는 사거리 낭비
@@ -429,6 +455,7 @@
 - Shielder는 배후가 핵심이므로 Shiv(배후 강타)/Harpoon(관통)/Cleaver(충격파 방어 관통)가 유리
 - Flier는 공중이므로 리치가 긴 Chain/원거리(Railbow/Emitter)가 유리
 - Swarmer는 군집이므로 AoE(Cleaver 충격파, Emitter 원소, Harpoon 관통, Chain 광역)가 유리
+- Ambusher는 출현 직후 빠른 반격이 핵심이므로 속도가 빠른 Blade/Shiv가 유리. 원거리(Railbow)는 근접 출현으로 사거리 낭비
 - Summoner는 후방 우선 제거 대상이므로 빠른 침투(Shiv)·원거리 저격(Railbow/Emitter)이 유리
 - Sentinel은 고정 위치이므로 원거리(Railbow/Emitter/Chain)가 안전하게 처리 가능
 
@@ -468,7 +495,7 @@
 | **Flat Arena** | 평평한 넓은 공간. 장애물 없음 | Cleaver, Harpoon | Shiv(장애물 부재) | Charger + Swarmer |
 | **Vertical Shaft** | 높은 천장. 3-4단 플랫폼 | Railbow, Chain, Emitter | Cleaver(상하 이동 느림) | Flier + Sentinel |
 | **Tight Corridor** | 좁고 긴 수평 통로 | Harpoon, Railbow | Cleaver(후딜 위험) | Charger + Shooter |
-| **Pillared Hall** | 기둥/장애물 다수. 시야 차단 | Shiv, Chain | Railbow(시야 방해) | Shielder + Summoner |
+| **Pillared Hall** | 기둥/장애물 다수. 은신처 많음 | Shiv, Chain | Railbow(시야 방해) | Shielder + Ambusher |
 | **Elevated Perch** | 높은 위치 + 하단 넓은 공간 | Railbow, Emitter | Blade(리치 부족) | Swarmer + Sentinel |
 | **Pit Room** | 중앙 함정/구덩이 | Chain, Blade | Harpoon(직선 제한) | Flier + Swarmer |
 
@@ -512,16 +539,16 @@
 +----------------------------------+
 |                                  |
 |    ██    ██    ██    ██          |  S = Shielder
-|    ██    ██    ██    ██          |  U = Summoner
+|    ██    ██    ██    ██          |  L = Ambusher (은신)
 |         S                        |
 |    ██    ██    ██    ██          |
-|    ██  U ██    ██    ██          |
+|    ██  L ██    ██  L ██          |
 |                                  |
 |    ██    ██    ██    ██          |
 |                                  |
 |  ████████████████████████████    |
 +----------------------------------+
-    기둥 사이 시야 차단. Shiv/Chain 최적
+    기둥 사이 은신처. Shiv/Chain 최적
 ```
 
 #### Tight Corridor (좁은 통로방)
@@ -592,10 +619,10 @@
 ---
 
 **ENC-05: Pincer (양면 협공)**
-- **아키타입:** Charger x2 (좌우) + Charger(급습) x1 (중앙)
+- **아키타입:** Charger x2 (좌우) + Ambusher x1 (중앙 은신)
 - **지형:** Flat Arena
-- **상황:** 양쪽에서 Charger가 접근하는 동안 중앙에서 급습 변형이 가속 진입
-- **최적 무기:** Blade (빠른 반격 + 3타 피니셔), Shiv (기동으로 급습 회피)
+- **상황:** 양쪽에서 Charger가 접근하는 동안 중앙에 Ambusher가 은신. 중앙 진입 시 기습 출현
+- **최적 무기:** Blade (빠른 반격 + 3타 피니셔), Shiv (기동으로 Ambusher 회피)
 - **검증 패시브 축:** C (피격 후 상태 변화), A (카운터 공격)
 
 ---
@@ -677,7 +704,7 @@
 | **MOD-06** | 광분 (Enrage) | HP 50% 이하에서 속도/ATK 급증 | T-HUNT, T-WAR |
 | **MOD-08** | 디버프 부여 | 공격 시 이동속도 감소 등 | T-SHADOW, T-NATURE |
 
-> 구 MOD-07(속박)·MOD-09(패턴 전환)는 보류. 속박은 플레이어 통제권 박탈 리스크로 재검토 대상, 패턴 전환은 Tier 폐기와 함께 보스 위상 전환(§7)으로 이관.
+> 구 MOD-07(속박)·MOD-09(패턴 전환)는 보류. 속박은 플레이어 통제권 박탈 리스크로 재검토 대상, 패턴 전환은 Tier 폐기와 함께 보스 위상 전환(`System_Enemy_BossArchetype.md` §4)으로 이관.
 
 ---
 
@@ -712,104 +739,11 @@ ATK 스케일이 HP 스케일보다 완만한 이유: HP 증가는 전투 시간
 
 ---
 
-## 7. 보스 패턴 원칙 (Section 6)
+## 7. 보스 — 분리됨 (Bosses — Separated)
 
-### 7.1. 보스 = 아키타입 매시업 + 위상 전환
-
-아이템계 보스(기억의 문)는 기본 아키타입의 행동을 조합한 존재다. 보스는 새로운 행동 유형을 발명하지 않는다. 대신 2-3개 아키타입의 핵심 행동을 하나의 개체에 통합하고, 위상(Phase) 전환이라는 고유 메커닉을 추가한다.
-
-### 7.2. 보스 등급별 아키타입 구성
-
-| 보스 등급 | 출현 조건 | 아키타입 조합 수 | 위상(Phase) 수 | 패시브 축 검증 깊이 |
-|:----------|:---------|:---------------:|:-------------:|:------------------|
-| **아이템 장군** (Item General) | Normal-Magic 최종 지층 | 2 아키타입 | 2 위상 | 단일 축 검증 (A or E) |
-| **아이템 왕** (Item King) | Rare 최종 지층 | 2-3 아키타입 | 2-3 위상 | 2축 동시 검증 (A+F, B+D 등) |
-| **아이템 신** (Item God) | Legendary 최종 지층 | 3 아키타입 | 3 위상 | 3축 동시 검증 |
-| **아이템 대신** (Item Great God) | Ancient 심연 지층 | 4+ 아키타입 전환 | 4 위상 | 전 축 종합 검증 |
-
-### 7.3. 보스 설계 원칙
-
-**원칙 1: 아키타입 위상 전환.** 보스는 HP 임계값에 따라 아키타입 행동 모드를 전환한다.
-
-```
-예시: 아이템 왕 (Rare 보스)
-  Phase 1 (HP 100-60%): Charger 모드 — 직선 추적 + 근접 콤보
-  Phase 2 (HP 60-30%):  Sentinel 모드 — 후퇴 + 투사체 연사
-  Phase 3 (HP 30-0%):   Charger+Sentinel 동시 — 추적하면서 투사체 발사
-```
-
-**원칙 2: 아키타입 약점 계승.** 보스가 특정 아키타입 모드일 때, 해당 아키타입의 약점이 그대로 적용된다.
-- Charger 모드: 배후 노출 (A축 검증)
-- Sentinel 모드: 이동으로 회피 가능 (F축 검증)
-- Shielder 모드: 정면 방어 (관통/배후 필요)
-- Flier 모드: 공중 체류 (리치/원거리 필요)
-
-**원칙 3: 처벌 윈도우 보장.** 모든 보스 패턴은 Tell(예고) → Action(행동) → Recovery(경직) 구조를 따르며, Recovery 시간은 최소 500ms를 보장한다. 이 구간이 플레이어의 "무기 패시브가 빛나는 순간"이다.
-
-```
-Tell      Action     Recovery
- |           |          |
- v           v          v
-[예고 3-6f] [공격 수행] [경직 8-16f = 패시브 검증 윈도우]
-```
-
-### 7.4. 보스별 아키타입 구성 예시
-
-#### 아이템 장군 (Item General) — Boss01 확장
-
-```
-기본 아키타입: Charger + Sentinel
-
-Phase 1 (HP 100-50%): Charger 주도
-  - 직선 추적 → Swipe(근접 스윙)
-  - 가끔 후퇴 → 단발 투사체 1회 (Sentinel 전조)
-
-Phase 2 (HP 50-0%): Enrage + Charger-Sentinel 혼합
-  - Charge(돌진) 후 정지 → 투사체 3연발
-  - Slam(점프 슬램) 착지 시 충격파 + 방사형 투사체 4발
-  - Attack Cooldown x0.6
-
-검증 축: A(돌진 후 배후 노출), E(Recovery 윈도우에서 콤보 완성)
-```
-
-#### 아이템 왕 (Item King) — 신규
-
-```
-기본 아키타입: Shielder + Flier + Sentinel
-
-Phase 1 (HP 100-60%): Shielder 주도 — 전면 방패 전진. 약점: 배후
-Phase 2 (HP 60-30%):  Flier 전환 — 비행 + 급강하 x2. 약점: 착지 경직
-Phase 3 (HP 30-0%):   Sentinel + Flier 혼합 — 체공 투사체 연사. 약점: 패턴 사이 윈도우
-
-검증 축: A(배후) + F(이동/체공) + B(착지 경직 집중 타격)
-```
-
-#### 아이템 신 (Item God) — 신규
-
-```
-기본 아키타입: Charger + Shielder + Flier (3 아키타입 순환 전환)
-
-Phase 1 (HP 100-66%): Charger
-Phase 2 (HP 66-33%):  Shielder
-Phase 3 (HP 33-0%):   Flier + 이전 Phase 패턴 랜덤 삽입
-
-각 Phase 전환 시 rage_transition 연출(3f 무적 + 팔레트 전환)
-검증 축: A+E+F (전환 패턴 읽기 + 즉시 대응)
-```
-
-#### 아이템 대신 (Item Great God) — 신규 (Ancient 심연 전용)
-
-```
-기본 아키타입: 다수 아키타입 행동을 Phase별로 전환
-
-Phase 1: Charger + Swarmer (추적 + 소환물)
-Phase 2: Shielder + Sentinel (방어 + 포격)
-Phase 3: Flier + Bombardier (비행 + 범위 착탄)
-Phase 4 (HP 10%): 전 Phase 패턴 무작위 혼합 + Attack Cooldown 최소
-
-화면 절반 이상 차지하는 대형 보스
-야리코미 최종 도전 목표. 전 축 종합 검증
-```
+> **2026-06-03 분리.** 보스(및 그 이상) 분류는 본 몹 아키타입 문서에서 분리됐다. **보스 아키타입 + 보스 패턴 아키타입 SSoT = `Documents/System/System_Enemy_BossArchetype.md` (SYS-ENM-BARC).**
+>
+> 본 문서는 일반 몹 11종(A-01~A-10)만 다룬다. 보스는 이 11종을 *재료*로 매시업하며(보스 = 아키타입 매시업 + 위상 전환), 그 등급 계층·형태·패턴 분류는 위 문서를 참조한다. Elite(A-09)는 보상방 미니보스로 본 문서에 남는다(보스 아님).
 
 ---
 
@@ -818,9 +752,9 @@ Phase 4 (HP 10%): 전 Phase 패턴 무작위 혼합 + Attack Cooldown 최소
 | Phase | 구현 대상 | 근거 |
 |:------|:---------|:-----|
 | Phase 1 | A-01 Charger, A-02 Jumper, A-03a Shooter, A-05 Flier, A-06 Swarmer + 기억 단편 1종 | 기존 Skeleton/Slime/Ghost + Spark Bat/Cinder Imp 매핑. 비행·군집 포함 핵심 루프 검증 |
-| Phase 2 | A-03b Bombardier, A-04 Shielder, A-10 Sentinel, A-01 급습 변형 | 범위 포격/배후/고정 포대 축 추가. 7 무기 카테고리 전체 상성 검증 |
-| Phase 3 | A-08 Summoner, 아이템 왕/신 보스 | 우선순위 판단 + 심층 지층 + 높은 레어리티 콘텐츠 |
-| Phase 4 | 아이템 대신, 시즌 이벤트 변형, 코옵 전용 조우 패턴 | 장기 운영 |
+| Phase 2 | A-03b Bombardier, A-04 Shielder, A-07 Ambusher, A-10 Sentinel | 범위 포격/배후/기습/고정 포대 축 추가. 7 무기 카테고리 전체 상성 검증 |
+| Phase 3 | A-08 Summoner | 우선순위 판단 + 심층 지층 + 높은 레어리티 콘텐츠 (보스는 `System_Enemy_BossArchetype.md` 참조) |
+| Phase 4 | 시즌 이벤트 변형, 코옵 전용 조우 패턴 | 장기 운영 (심연 보스는 보스 문서 참조) |
 
 ---
 
@@ -832,7 +766,8 @@ Phase 4 (HP 10%): 전 Phase 패턴 무작위 혼합 + Attack Cooldown 최소
 | Summoner가 보스방에 배치 | 금지. 보스방은 보스 단독 |
 | Swarmer 개체 수가 방 최대 적 수를 초과 | Swarmer는 개별 카운트에서 제외. "Swarmer 1세트 = 적 1카운트"로 계산 |
 | Bombardier 착탄 마커가 좁은 발판 전체를 덮음 | 마커 반경 캡 적용. 발판 폭의 70%를 초과하지 않음 (회피 경로 보장) |
-| 원거리 무기만 보유한 플레이어 vs Charger 급습 | 급습 가속 구간을 시각 Tell로 보장. 원거리로도 가속 중 반격 가능 |
+| 원거리 무기만 보유한 플레이어 vs Ambusher 기습 | 출현 모션(4f)을 Tell로 보장. 원거리로도 출현 직후 반격 가능 |
+| Ambusher가 보스방에 배치 | 금지. 보스방은 보스 단독 |
 | 코옵 시 적 스탯 스케일링 | 기존 규칙 유지: HP x(1 + 0.5 x (playerCount - 1)) |
 
 ---

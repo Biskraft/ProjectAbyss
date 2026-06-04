@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
 import type { LoreDisplay } from '@ui/LoreDisplay';
+import { t } from '@i18n';
 
 interface MemoryTriggerParticle {
   x: number;
@@ -183,9 +184,11 @@ export class ItemWorldMemoryTriggerRuntime {
         && pcy < trigger.y + trigger.h;
       if (inside && !trigger.active) {
         trigger.active = true;
+        // trigger.text/speaker are locale KEYS — resolve via t() (unknown
+        // keys fall back to the literal string).
         loreDisplay.showDialogue([{
-          text: trigger.text,
-          speaker: trigger.speaker,
+          text: t(trigger.text),
+          speaker: trigger.speaker ? t(trigger.speaker) : undefined,
           portrait: trigger.portrait,
         }], false);
         break;

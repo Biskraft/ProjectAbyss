@@ -160,7 +160,6 @@ export class WorldMinimapRuntime {
 
       const isCurrent = room.id === currentLevel.identifier;
       const visited = visitedIds.has(room.id);
-      const cleared = clearedIds.has(room.id);
       const adjacent = adjacentIds.has(room.id);
       if (!isCurrent && !visited && !adjacent) continue;
 
@@ -178,10 +177,6 @@ export class WorldMinimapRuntime {
       if (isCurrent) {
         roomGraphics.rect(projected.rx, projected.ry, projected.rw, projected.rh)
           .stroke({ color: 0xffffff, width: 2 * uiScale });
-      }
-      if (cleared && visited) {
-        roomGraphics.rect(projected.rx + projected.rw - 3 * uiScale, projected.ry + 2 * uiScale, 1.5 * uiScale, 1.5 * uiScale)
-          .fill({ color: 0xcceeff, alpha: 0.85 });
       }
       content.addChild(roomGraphics);
     }

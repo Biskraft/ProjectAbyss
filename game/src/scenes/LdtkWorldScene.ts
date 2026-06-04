@@ -129,6 +129,7 @@ import { WorldIntroHandoffRuntime } from './world/WorldIntroHandoffRuntime';
 import { WorldBossLockRuntime } from './world/WorldBossLockRuntime';
 import { WorldEndingRuntime } from './world/WorldEndingRuntime';
 import { WorldDialogueTriggerRuntime } from './world/WorldDialogueTriggerRuntime';
+import { WorldPrologueEndRuntime } from './world/WorldPrologueEndRuntime';
 import { WorldVoidRuntime } from './world/WorldVoidRuntime';
 import { WorldVoidReturnRuntime } from './world/WorldVoidReturnRuntime';
 import { WorldExitGlowRuntime } from './world/WorldExitGlowRuntime';
@@ -267,6 +268,18 @@ const BUILDER_WORLD_ID = 'Builder';
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
+// Parallax BG area per level. The prologue levels use their own pre-colored
+// near art (world_prologue_bg in Content_System_Area_Palette.csv); every other
+// level falls back to the shaft tone. SSoT for the tones is the CSV.
+const DEFAULT_BG_AREA_ID = 'world_shaft_bg';
+const PROLOGUE_BG_AREA_ID = 'world_prologue_bg';
+function bgAreaIdForLevel(identifier: string): string {
+  return identifier.startsWith('Prologue') ? PROLOGUE_BG_AREA_ID : DEFAULT_BG_AREA_ID;
+}
+
+// Hand-authored levels that opt out of procedural decoration entirely.
+const NO_PROCEDURAL_DECOR_LEVELS = new Set<string>(['Prologue_01']);
+
 // ---------------------------------------------------------------------------
 // LdtkWorldScene
 // ---------------------------------------------------------------------------
@@ -309,6 +322,8 @@ export class LdtkWorldScene extends Scene {
   private builderDoorSwitchRuntime!: WorldBuilderDoorSwitchRuntime;
   private builderEntranceRuntime!: WorldBuilderEntranceRuntime;
   private parallaxBG!: ParallaxBackground;
+  /** BG area id the parallax was last built for — triggers rebuild on change. */
+  private parallaxAreaId: string | null = null;
   private atlas!: Texture;
   /** Per-tileset atlas map keyed by LDtk __tilesetRelPath. */
   private atlases: Record<string, Texture> = {};
@@ -542,6 +557,7 @@ export class LdtkWorldScene extends Scene {
   private exitGlowRuntime!: WorldExitGlowRuntime;
   private loreDisplay: LoreDisplay | null = null;
   private dialogueTriggerRuntime!: WorldDialogueTriggerRuntime;
+  private prologueEndRuntime!: WorldPrologueEndRuntime;
   private worldEgoDialogueRuntime!: WorldEgoDialogueRuntime;
 
   /** Pattern D (proximity-interaction) — 근접 상호작용 우선순위 라우터. */
@@ -1171,6 +1187,7 @@ export class LdtkWorldScene extends Scene {
       retireAfterBossClear: (hadFirstBossClear) => {
         this.anvilRetirementRuntime.retireAfterBossClear(hadFirstBossClear);
       },
+      enterChapter1FromPrologue: () => this.enterChapter1FromPrologue(),
     });
     this.portalItemWorldFlowRuntime = new WorldPortalItemWorldFlowRuntime({
       portalEntryRuntime: this.portalEntryRuntime,
@@ -1274,11 +1291,17 @@ export class LdtkWorldScene extends Scene {
       game: this.game,
       getPlayer: () => this.player,
     });
+    this.prologueEndRuntime = new WorldPrologueEndRuntime({
+      getFadeOverlay: () => this.fadeOverlay,
+      loadLevel: (levelId, enterFrom) => { this.loadLevel(levelId, enterFrom); },
+      showToast: (message, color) => this.toast.show(message, color),
+    });
     this.dialogueTriggerRuntime = new WorldDialogueTriggerRuntime({
       game: this.game,
       getPlayer: () => this.player,
       getLoreDisplay: () => this.loreDisplay,
       getUnlockedEvents: () => this.unlockedEvents,
+      getEntityLayer: () => this.entityLayer,
     });
     this.worldEgoDialogueRuntime = new WorldEgoDialogueRuntime({
       getPlayer: () => this.player,
@@ -1549,18 +1572,24 @@ export class LdtkWorldScene extends Scene {
       this.worldPlayerProgressionState.replaceFromSave(saveData);
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // 신규 세이브 (2026-05-03): Broken Sword 를 들고 시작. 인벤토리에 넣고 장착하면 Builder
-      // 의 ItemDrop 픽업 컷신과 동일한 픽업 cutscene + "Open Inventory" hint
+      // 신규 세이브: 프롤로그 기본 무기 Scalpel 을 들고 시작. 인벤토리에 넣고 장착하면
+      // Builder 의 ItemDrop 픽업 컷신과 동일한 픽업 cutscene + "Open Inventory" hint
       // 흐름을 탄다 (sacredSave flags 를 set 하여 firstEver 픽업으로 처리).
       // IW 진입 전까지 인벤토리 키 hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) 는
       // 첫 픽업 직후 인벤토리를 열도록 유도한다.
       this.inventory = new Inventory();
-      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
+      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_scalpel') ?? SWORD_DEFS[0];
       const starterSword = createItem(starterDef, 'normal');
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid, true);
+      // Second starting item: Halfblade (carried, not equipped).
+      const halfbladeDef = SWORD_DEFS.find(d => d.id === 'sword_halfblade');
+      if (halfbladeDef) {
+        this.inventory.add(createItem(halfbladeDef, 'normal'));
+        sacredSave.markItemSeen('sword_halfblade');
+      }
       sacredSave.markFirstPickupDone();
-      sacredSave.markItemSeen('sword_broken');
+      sacredSave.markItemSeen('sword_scalpel');
     }
 
     // Lazy-load only the tilesets this area needs. Driven by the Tileset
@@ -2325,6 +2354,9 @@ export class LdtkWorldScene extends Scene {
 
     if (this.endingRuntime.update(dt)) return;
 
+    // Ch.0 prologue end sequence (P2.1~P6). Blocks gameplay while running.
+    if (this.prologueEndRuntime.update(dt)) return;
+
     if (this.acquireOverlayRuntime.update(dt)) {
       this.game.camera.update(dt);
       this.worldWeatherRuntime.update(dt);
@@ -2627,6 +2659,9 @@ export class LdtkWorldScene extends Scene {
     if (this.worldContainerPhysicsRuntime.isPlayerStandingOnTop()) {
       this.player.forceGrounded(true, 'container');
     }
+    // Commit last frame's interaction-prompt accumulation before the player
+    // reads it (attack suppression buffer).
+    this.game.input.beginInteractionFrame();
     this.player.update(dt);
     this.worldDoorSwitchInteractionRuntime.resolvePlayerCollision();
     this.builderPlayerStateRuntime.update(dt);
@@ -2967,9 +3002,11 @@ export class LdtkWorldScene extends Scene {
     this.hud.setFloorText(this.currentLevel?.identifier ?? '');
     this.areaTitle.update(dt);
 
-    // Hide minimap + adjust gold in item tunnel
-    if (this.itemWorldEntryState.inTunnel) this.worldMinimap.setVisible(false);
-    this.hud.setGoldBelowMinimap(!this.itemWorldEntryState.inTunnel && this.worldMinimap.isVisible);
+    // Hide minimap + adjust gold in item tunnel and in the fixed item world
+    // (prologue stratum is an item world — no overworld minimap).
+    const hideMinimap = this.itemWorldEntryState.inTunnel || this.fixedItemWorld.isActive;
+    if (hideMinimap) this.worldMinimap.setVisible(false);
+    this.hud.setGoldBelowMinimap(!hideMinimap && this.worldMinimap.isVisible);
 
     // Minimap: real-time dot tracking + blink + combat opacity
     this.worldMinimap.update(dt);
@@ -3121,6 +3158,7 @@ export class LdtkWorldScene extends Scene {
     this.altarController.destroyUi();
     this.deployBlurRuntime.clear();
     this.dialogueTriggerRuntime.clear();
+    this.prologueEndRuntime.clear();
     // 백그라운드로 내려가는 동안 진단 라벨이 화면에 잔류하지 않도록 숨김.
     if (this.collisionDebug) this.collisionDebug.hud.visible = false;
     this.oxygenOverlay.hide();
@@ -3153,6 +3191,7 @@ export class LdtkWorldScene extends Scene {
     this.introHandoffRuntime.destroy();
     this.endingRuntime.destroy();
     this.dialogueTriggerRuntime.clear();
+    this.prologueEndRuntime.clear();
     this.worldWeatherRuntime.destroy();
     this.worldUpdraftRuntime.destroy();
     this.voidFogRuntime.destroy();
@@ -3276,14 +3315,18 @@ export class LdtkWorldScene extends Scene {
       // Only apply theme if explicitly requested via URL (?theme=T-FOUNDRY)
       const themeParam = new URLSearchParams(window.location.search).get('theme');
       if (themeParam) procDecorator.setTheme(themeParam);
+      // clear() always runs so entering an opted-out level wipes any decor
+      // carried over from the previous level; generate() is what we skip.
       procDecorator.clear();
       this.grassFireRuntime.clearGrass();
-      procDecorator.generate(this.collisionGrid, hashString(level.identifier));
-      for (const prop of this.grassFireRuntime.registerProceduralClumps(procDecorator.getGrassClumpsWithCells())) {
-        this.tileMutator.registerBurnable(prop);
-      }
-      if (this.terrainPaletteRuntime.applyProceduralDecorFilters(this.proceduralDecorRuntime)) {
-        this.terrainPaletteRuntime.applyWorldFilterAreas(level.pxWid, level.pxHei, this.renderer, this.proceduralDecorRuntime);
+      if (!NO_PROCEDURAL_DECOR_LEVELS.has(level.identifier)) {
+        procDecorator.generate(this.collisionGrid, hashString(level.identifier));
+        for (const prop of this.grassFireRuntime.registerProceduralClumps(procDecorator.getGrassClumpsWithCells())) {
+          this.tileMutator.registerBurnable(prop);
+        }
+        if (this.terrainPaletteRuntime.applyProceduralDecorFilters(this.proceduralDecorRuntime)) {
+          this.terrainPaletteRuntime.applyWorldFilterAreas(level.pxWid, level.pxHei, this.renderer, this.proceduralDecorRuntime);
+        }
       }
       const structIdx = this.renderer.container.getChildIndex(this.renderer.wallLayer);
       this.renderer.container.addChildAt(procDecorator.structureLayer, structIdx);
@@ -3292,16 +3335,19 @@ export class LdtkWorldScene extends Scene {
       this.renderer.container.addChildAt(procDecorator.artificialLayer, detailIdx + 1);
     }
 
-    // Parallax background — only rebuild on first load (skip on room transitions
-    // within the same area to prevent jarring position resets).
-    if (!this.parallaxBG.isReady) {
-      const bgEntry = getAreaPalette('world_shaft_bg');
+    // Parallax background — rebuild on first load or when the BG area changes
+    // (e.g. prologue ↔ shaft). Room transitions within the same area skip the
+    // rebuild to prevent jarring position resets.
+    const bgAreaId = bgAreaIdForLevel(level.identifier);
+    if (!this.parallaxBG.isReady || this.parallaxAreaId !== bgAreaId) {
+      const bgEntry = getAreaPalette(bgAreaId);
       const atlas = getAreaPaletteAtlas();
       this.parallaxBG.setup(bgEntry, level.pxWid, level.pxHei, {
         texture: atlas.texture,
         rowCount: atlas.rowCount,
         row: getAreaPaletteRow(bgEntry.id),
-      });
+      }, { nearNativeScale: bgAreaId === PROLOGUE_BG_AREA_ID });
+      this.parallaxAreaId = bgAreaId;
     }
 
     // Camera bounds
@@ -3353,10 +3399,17 @@ export class LdtkWorldScene extends Scene {
     this.worldSpikeRuntime.spawn(level);
     this.worldCollapsingPlatformRuntime.spawn(level);
     this.dialogueTriggerRuntime.loadLevel(level);
+    this.prologueEndRuntime.loadLevel(level);
 
     this.cameraZoneRuntime.loadLevel(level, { resetToDefaults: true });
 
     this.worldHandPlacedItemRuntime.loadLevel(level);
+
+    // Exit Light Bleed — 출구 방향 빛 번짐 효과를 현재 방에 맞게 로드한다.
+    // 빌더 스폰보다 *먼저* 호출한다: loadLevel() 내부 clearAll() 이 모든 글로우를
+    // 비우므로, 빌더 진입구 글로우(spawnBuilderEntities)는 그 *이후* 생성돼야
+    // 살아남는다. (순서가 뒤바뀌면 진입구 글로우가 즉시 지워져 표시되지 않음.)
+    this.exitGlowRuntime.loadLevel(level);
 
     const builderSpawner = level.entities.find((e) => e.type === 'BuilderSpawner' && e.fields.Enabled !== false);
     if (builderSpawner) {
@@ -3373,9 +3426,6 @@ export class LdtkWorldScene extends Scene {
       this.hud.container.visible = true;
       if (this.minimap) this.minimap.visible = true;
     }
-
-    // Exit Light Bleed — 출구 방향 빛 번짐 효과를 현재 방에 맞게 로드한다.
-    this.exitGlowRuntime.loadLevel(level);
 
     // Settle player physics (gravity snap to floor) before camera snap
     for (let i = 0; i < 5; i++) {
@@ -3394,8 +3444,9 @@ export class LdtkWorldScene extends Scene {
     // This prevents a 1-frame jump when transitioning from snap to normal update.
     cam.update(16.667);
 
-    // Update minimap + world map (skip in item tunnel)
-    if (!this.itemWorldEntryState.inTunnel) {
+    // Update minimap + world map (skip in item tunnel AND in the fixed item
+    // world — the prologue stratum is an item world, not the overworld map).
+    if (!this.itemWorldEntryState.inTunnel && !this.fixedItemWorld.isActive) {
       this.worldMinimap.draw();
     } else if (this.minimap) {
       this.minimap.visible = false;
@@ -3583,6 +3634,23 @@ export class LdtkWorldScene extends Scene {
   private startItemWorldReturnFadeIn(): void {
     this.normalizeWorldVisualsAfterItemWorldReturn();
     this.itemWorldReturnFade.start();
+  }
+
+  /**
+   * 프롤로그 종료(P6) — 아이템계의 말소자 컷신이 암전으로 끝난 뒤 호출된다.
+   * 아이템계 씬을 pop 하고 앵빌 복귀 대신 Ch.1(Start_Room_01, 침수 바닥층)을
+   * 로드한다. scene='chapter_01' 로 전환해 chapter_01 스폰을 선택하게 한다.
+   * 컷신 암전 → return 페이드인(검정→클리어)으로 자연 연결되며, 그 사이 월드는
+   * 보이지 않으므로 프롤로그 랩이 노출되지 않는다.
+   */
+  private enterChapter1FromPrologue(): void {
+    this.itemWorldEntryState.inTunnel = false;
+    this.itemWorldEntryState.item = null;
+    this.game.sceneManager.pop();
+    sacredSave.setScene('chapter_01');
+    this.loadLevel('Start_Room_01', 'down');
+    this.startItemWorldReturnFadeIn();
+    this.toast.show(t('ui.prologue.backup_restored'), 0xaaccff);
   }
 
   private normalizeWorldVisualsAfterItemWorldReturn(): void {

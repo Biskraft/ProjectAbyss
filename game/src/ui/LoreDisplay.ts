@@ -27,6 +27,7 @@ import { GameAction } from '@core/InputManager';
 import type { InputManager } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
 import { TEXT_SECONDARY, TEXT_WARNING } from './ModalPanel';
+import { applyLayoutToContainer } from './HUD';
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
@@ -114,13 +115,20 @@ export class LoreDisplay {
   /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
   constructor(input: InputManager, uiScale: number = 1) {
     this.input = input;
+    // Outer container is the layout-editable target (HUD tool, id 'dialogue').
+    // It lives in the unscaled uiContainer, so the inner container carries the
+    // uiScale and the override offsets are in base-640 units × uiScale.
     this.container = new Container();
-    this.container.scale.set(uiScale);
     this.container.visible = false;
+    const inner = new Container();
+    inner.scale.set(uiScale);
+    this.container.addChild(inner);
 
     this.boxContainer = new Container();
     this.boxContainer.y = BOX_Y_HIDDEN;
-    this.container.addChild(this.boxContainer);
+    inner.addChild(this.boxContainer);
+
+    applyLayoutToContainer(this.container, 'dialogue', uiScale);
 
     // Background — dark with slight transparency
     this.bg = new Graphics();

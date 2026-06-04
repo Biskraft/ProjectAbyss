@@ -161,6 +161,18 @@ CSV 작성 규칙:
 | `memory_shard.*` | 기억 단편 표시명/설명 | `memory_shard.gladiator.name` |
 | `enemy.*` | 적/보스 표시명 | `enemy.pig_warrior.name` |
 | `itemworld.*` | 아이템계 전용 표기 | `itemworld.boss.general` |
+| `dialogue.*` | LDtk `Dialogue` 엔티티 본문 | `dialogue.shaft.01` |
+| `memory.*` | LDtk `Memory` 엔티티 본문 | `memory.sword_normal.01` |
+| `speaker.*` | 화자 표시명 (고유명은 리터럴도 허용) | `speaker.erda` |
+
+#### 4.3.1 LDtk 텍스트 = 로케일 키 (LOC-DIALOGUE)
+
+LDtk `Dialogue`/`Memory` 엔티티의 `text`·`speaker` 필드에는 **원문이 아니라 로케일 키**를 입력한다. 런타임이 `LoreLine` 을 구성하는 시점에 `t()` 로 해석한다.
+
+- 작성 흐름: LDtk 에디터에서 `text = dialogue.shaft.01` 입력 → `Content_Localization.csv` 에 `dialogue.shaft.01, "EN…", "KO…"` 등록 → `csv_to_locale.mjs` 빌드.
+- 해석 지점: `WorldDialogueTriggerRuntime` (월드 Dialogue·Memory), `ItemWorldMemoryTriggerRuntime` (아이템계 Memory). 두 곳 모두 `t(textKey)` / `speakerKey ? t(speakerKey) : undefined`.
+- 폴백: 미등록 키는 `t()` 가 입력 문자열을 그대로 반환하므로, 마이그레이션 중 남은 raw 항목도 깨지지 않고 표시된다 (단 다국어 전환은 안 됨 — 키로 전환해야 번역 적용).
+- 멀티라인: `|` 구분자는 로케일 값 안에서 사용한다 (키 자체가 아님).
 
 ### 4.4 게임 데이터 CSV 마이그레이션 (LOC-04)
 

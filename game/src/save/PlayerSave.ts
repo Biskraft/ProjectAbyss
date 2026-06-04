@@ -33,6 +33,11 @@ export interface SacredSaveState {
   firstItemWorldBossDefeated: boolean;
   /** itemDefId → 누적 DIVE 횟수. */
   diveCount: Record<string, number>;
+  /**
+   * 현재 진행 씬/챕터 (LDtk Player 엔티티의 `Scene` 필드와 매칭). 같은 레벨/월드에서
+   * 씬에 따라 다른 Player 스폰 지점을 고른다. 신규 게임 = 'prologue'.
+   */
+  scene: string;
   settings: SacredSettings;
 }
 
@@ -46,6 +51,7 @@ function makeEmptyState(): SacredSaveState {
     firstDiveDone: false,
     firstItemWorldBossDefeated: false,
     diveCount: {},
+    scene: 'prologue',
     settings: {
       alwaysShowLore: false,
       skipDive: false,
@@ -68,6 +74,7 @@ class SacredSaveImpl {
       if (data.diveCount && typeof data.diveCount === 'object') {
         next.diveCount = { ...data.diveCount };
       }
+      if (typeof data.scene === 'string' && data.scene) next.scene = data.scene;
       if (data.settings) {
         next.settings = {
           alwaysShowLore: !!data.settings.alwaysShowLore,
@@ -88,6 +95,7 @@ class SacredSaveImpl {
       firstDiveDone: this.state.firstDiveDone,
       firstItemWorldBossDefeated: this.state.firstItemWorldBossDefeated,
       diveCount: { ...this.state.diveCount },
+      scene: this.state.scene,
       settings: { ...this.state.settings },
     };
   }
@@ -123,6 +131,15 @@ class SacredSaveImpl {
 
   isFirstItemWorldBossDefeated(): boolean { return this.state.firstItemWorldBossDefeated; }
   markFirstItemWorldBossDefeated(): void { this.state.firstItemWorldBossDefeated = true; }
+
+  // ---------------------------------------------------------------------------
+  // Scene / chapter — drives Player spawn selection (LDtk Player.Scene field)
+  // ---------------------------------------------------------------------------
+
+  /** 현재 씬/챕터 (기본 'prologue'). Player 스폰 선택에 사용. */
+  getScene(): string { return this.state.scene; }
+  /** 씬/챕터 전환 시 호출 (예: 프롤로그 종료 → 'chapter01'). */
+  setScene(scene: string): void { this.state.scene = scene; }
 
   // ---------------------------------------------------------------------------
   // Dive counter

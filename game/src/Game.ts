@@ -218,6 +218,21 @@ export class Game {
     this.camera = new Camera(GAME_WIDTH, GAME_HEIGHT);
     this.sceneManager = new SceneManager(this);
 
+    // DEV 전용 디버그 브리지 — Playwright/콘솔에서 현재 씬·세이브 introspection.
+    // (window.__inputTracker 와 동일한 패턴; 프로덕션 번들에는 포함되지 않음.)
+    if (import.meta.env.DEV) {
+      void Promise.all([
+        import('@save/PlayerSave'),
+        import('@level/ItemWorldTemplatePool'),
+      ]).then(([{ sacredSave }, { prepareItemWorldTemplates }]) => {
+        (window as unknown as { __echoris?: unknown }).__echoris = {
+          sceneManager: this.sceneManager,
+          save: sacredSave,
+          loadTemplates: prepareItemWorldTemplates,
+        };
+      });
+    }
+
     // Debug FPS / sprite count overlay — Shift+I 토글 (Debug.infoVisible).
     // app.stage 직속 — ItemWorldScene 등 씬 전환 시 uiContainer.removeChildren()
     // 의 영향을 받지 않도록 stage 의 가장 위 layer 로.

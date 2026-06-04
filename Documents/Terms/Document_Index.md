@@ -462,6 +462,8 @@ graph TD
 | RES-MKT-01 | Web Game Marketing Discovery | `Research/WebGameMarketing_Discovery_Research.md` | 웹게임 마케팅/발견성 |
 | RES-NRR-01 | Procedural Narrative Item Story | `Research/ProceduralNarrative_ItemStory_Research.md` | 절차적 서사/아이템 스토리 |
 | RES-OPT-01 | Web Game Feel Optimization | `Research/WebGameFeel_Optimization_Research.md` | 웹게임 게임필 최적화 |
+| RES-PSY-01 | Freud — Anal Stage & Anal Eroticism | `Research/Research_Freud_AnalStage.md` | 항문기·통제 심리 → 등재/도면 강박·에코 축적·결말 보유/배출 (은유·비-성적 차용) |
+| RES-PWX-01 | Power Exchange & False-Faith Sacrifice | `Research/Research_PowerExchange_FalseFaith.md` | 지배-복종 3작품 분석 → 등재 의례·묵정·복종=해방 반전 (항봉무녀↔등재 1:1) |
 | RES-PXL-01 | Pixel Art Animation Principles | `Research/PixelArt_Animation_Principles_Research.md` | 픽셀아트 애니메이션 원칙 |
 | RES-RET-01 | Retention Hour 1 to 10 | `Research/Retention_Hour1to10_Research.md` | 1-10시간 리텐션 |
 | RES-TUT-01 | Silent Tutorial Environmental Teaching | `Research/SilentTutorial_EnvironmentalTeaching_Research.md` | 무언 튜토리얼/환경 교육 |
