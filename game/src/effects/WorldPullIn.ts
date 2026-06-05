@@ -1,5 +1,7 @@
 import { Container, Graphics, Rectangle, RenderTexture, Sprite, Texture } from 'pixi.js';
 import { GAME_HEIGHT, GAME_WIDTH } from '../Game';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 interface PullFragment {
   sprite: Sprite;
@@ -24,16 +26,12 @@ export interface WorldPullInCapture {
 const DEFAULT_COLS = 7;
 const DEFAULT_ROWS = 4;
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
 function easeInCubic(t: number): number {
   return t * t * t;
 }
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = clamp01((x - edge0) / (edge1 - edge0));
+  const t = clampEffect01((x - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
 }
 
@@ -86,7 +84,7 @@ export class WorldPullIn {
   update(dtMs: number): boolean {
     this.elapsedMs += dtMs;
     for (const f of this.fragments) {
-      const t = clamp01((this.elapsedMs - f.startMs) / f.durationMs);
+      const t = clampEffect01((this.elapsedMs - f.startMs) / f.durationMs);
       const e = easeInCubic(t);
       const inv = 1 - e;
       f.sprite.x = inv * inv * f.homeX + 2 * inv * e * f.ctrlX + e * e * this.sinkX;
@@ -97,12 +95,12 @@ export class WorldPullIn {
       f.sprite.visible = this.elapsedMs >= f.startMs - 1 && t < 1;
     }
 
-    this.redrawCore(clamp01(this.elapsedMs / Math.max(1, this.totalMs)));
+    this.redrawCore(clampEffect01(this.elapsedMs / Math.max(1, this.totalMs)));
     return this.elapsedMs >= this.totalMs;
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
     for (const rt of this.textures) rt.destroy(true);
     this.textures.length = 0;
     this.fragments.length = 0;

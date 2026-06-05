@@ -21,6 +21,7 @@ import { GameAction, actionKey } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
 import { GlowFilter } from '@effects/GlowFilter';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /** Anvil halo glow — brand key color orange (#FFA41B 2026-05-20). */
 const ANVIL_HALO_GLOW_COLOR = 0xffa41b;
@@ -362,8 +363,7 @@ export class Anvil {
     if (disabled) {
       if (this.hintContainer) this.hintContainer.visible = false;
       for (const s of this.sparks) {
-        this.particleLayer.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
       }
       this.sparks = [];
       // 빛기둥 즉시 제거 — disabled 상태는 비활성 시그널이므로 표시 금지.
@@ -458,8 +458,7 @@ export class Anvil {
     this.used = false;
     this.resetPlacedItemEffect();
     if (this.itemIcon) {
-      this.container.removeChild(this.itemIcon);
-      this.itemIcon.destroy();
+      destroyDisplayObject(this.itemIcon);
       this.itemIcon = null;
     }
     this.refreshSymbolPrompt();
@@ -467,8 +466,7 @@ export class Anvil {
 
   private showItemIcon(item: ItemInstance): void {
     if (this.itemIcon) {
-      this.container.removeChild(this.itemIcon);
-      this.itemIcon.destroy();
+      destroyDisplayObject(this.itemIcon);
     }
     // Load item sprite as icon at anvil gate center (the transparent hole)
     const iconPath = assetPath(`assets/items/${item.def.id}.png`);
@@ -570,8 +568,7 @@ export class Anvil {
     if (this.fxFrames.length === 0) return;
 
     if (this.fxSprite) {
-      this.container.removeChild(this.fxSprite);
-      this.fxSprite.destroy();
+      destroyDisplayObject(this.fxSprite);
     }
     this.fxSprite = new Sprite(this.fxFrames[0]);
     this.fxSprite.anchor.set(0.5, 0.5);
@@ -618,8 +615,7 @@ export class Anvil {
         if (this.fxFrameIndex >= totalFrames) {
           // FX complete
           this.fxPlaying = false;
-          if (this.fxSprite.parent) this.fxSprite.parent.removeChild(this.fxSprite);
-          this.fxSprite.destroy();
+          destroyDisplayObject(this.fxSprite);
           this.fxSprite = null;
           // Notify scene that FX is done — trigger warp
           this.onFxComplete?.();
@@ -779,8 +775,7 @@ export class Anvil {
       const k = s.life / s.maxLife;
       s.gfx.alpha = Math.max(0, Math.min(1, k));
       if (s.life <= 0) {
-        this.particleLayer.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.sparks.splice(i, 1);
       }
     }
@@ -838,12 +833,9 @@ export class Anvil {
 
   destroy(): void {
     for (const s of this.sparks) {
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.sparks = [];
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

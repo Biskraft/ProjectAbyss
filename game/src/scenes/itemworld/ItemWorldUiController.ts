@@ -12,6 +12,14 @@ import { ReturnResult, type DiveResult } from '@ui/ReturnResult';
 import { StratumClearOverlay, type StratumClearData } from '@ui/StratumClearOverlay';
 import { GameAction, actionKey } from '@core/InputManager';
 import { createItemWorldLeaveConfirmPanel } from '@ui/ItemWorldLeaveConfirmPanel';
+import {
+  attachDisplayObjectIfMissing,
+  detachDisplayObject,
+  detachNullableDisplayObject,
+  destroyDisplayObject,
+  destroyNullableDisplayObject,
+  hideDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import type { Game } from '../../Game';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../Game';
 
@@ -42,18 +50,8 @@ interface OnboardingOptions {
   messages: string[];
 }
 
-interface StratumClearSnapshot {
-  beforeAtk: number;
-  afterAtk: number;
-  beforeLevel: number;
-  afterLevel: number;
-  beforeInnocents: number;
-  afterInnocents: number;
-}
-
 interface PromptSuppressionOptions {
-  hasStratumClearPanel: boolean;
-  transitionState: string;
+  isTransitionActive: boolean;
 }
 
 export class ItemWorldUiController {
@@ -65,7 +63,6 @@ export class ItemWorldUiController {
   private onboardingStep = 0;
   private onboardingDone = true;
   private returnResult: ReturnResult | null = null;
-  private stratumClearPanel: { container: Container; confirmed: boolean } | null = null;
   private stratumClearOverlay: StratumClearOverlay | null = null;
 
   constructor(private readonly game: Game) {}
@@ -80,10 +77,6 @@ export class ItemWorldUiController {
 
   isOnboardingDone(): boolean {
     return this.onboardingDone;
-  }
-
-  hasStratumClearPanel(): boolean {
-    return this.stratumClearPanel !== null;
   }
 
   isReturnResultVisible(): boolean {
@@ -112,9 +105,7 @@ export class ItemWorldUiController {
     // before show() so the modal actually renders. (Without this the user
     // sees the game freeze on death — modal is "shown" but lives outside
     // the scene graph.)
-    if (!this.returnResult.container.parent) {
-      this.game.uiContainer.addChild(this.returnResult.container);
-    }
+    attachDisplayObjectIfMissing(this.game.uiContainer, this.returnResult.container);
     this.returnResult.onDismiss = onDismiss;
     this.returnResult.show(result);
     return true;
@@ -131,120 +122,16 @@ export class ItemWorldUiController {
     this.showOnboardingStep(options);
   }
 
-  showStratumClearPanel(snapshot: StratumClearSnapshot, hudSkin: UISkin | null, autoConfirmed: boolean): void {
-    if (this.stratumClearPanel) {
-      const panel = this.stratumClearPanel;
-      if (panel.container.parent) panel.container.parent.removeChild(panel.container);
-      panel.container.destroy({ children: true });
-      this.stratumClearPanel = null;
-    }
-
-    const W = 320;
-    const H = 164;
-    const x = Math.floor((GAME_WIDTH - W) / 2);
-    const y = Math.floor((GAME_HEIGHT - H) / 2) - 12;
-
-    const container = new Container();
-    const frame = hudSkin?.isLoaded ? create9SlicePanel(hudSkin, W, H) : null;
-    if (frame) {
-      container.addChild(frame);
-    } else {
-      const bg = new Graphics();
-      bg.rect(0, 0, W, H).fill({ color: MODAL_BG, alpha: 0.96 });
-      bg.rect(0, 0, W, H).stroke({ color: MODAL_BORDER, width: 1 });
-      container.addChild(bg);
-    }
-
-    const title = createUiText(
-      autoConfirmed ? t('ui.iw.stratum_cleared') : t('ui.iw.progress_banked'),
-      { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_INFO_WARM },
-    );
-    title.x = Math.floor((W - title.width) / 2);
-    title.y = 12;
-    container.addChild(title);
-
-    const rows: Array<[string, number, number]> = [
-      [t('ui.iw.row_atk'), snapshot.beforeAtk, snapshot.afterAtk],
-      [t('ui.iw.row_item_lv'), snapshot.beforeLevel, snapshot.afterLevel],
-      [t('ui.iw.row_innocents'), snapshot.beforeInnocents, snapshot.afterInnocents],
-    ];
-
-    let ry = 48;
-    for (const [label, before, after] of rows) {
-      const delta = after - before;
-      const hasDelta = delta !== 0;
-      const deltaColor = delta > 0 ? TEXT_DELTA_POSITIVE : delta < 0 ? TEXT_DELTA_NEGATIVE : TEXT_DELTA_NEUTRAL;
-
-      const lbl = createUiText(label, { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_LABEL_MUTED });
-      lbl.x = 20;
-      lbl.y = ry;
-      container.addChild(lbl);
-
-      const bef = createUiText(String(before), { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL });
-      bef.x = 120;
-      bef.y = ry;
-      container.addChild(bef);
-
-      const arrow = createUiText('→', { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL });
-      arrow.x = 160;
-      arrow.y = ry;
-      container.addChild(arrow);
-
-      const aft = createUiText(String(after), {
-        fontFamily: PIXEL_FONT, fontSize: 16, fill: hasDelta ? TEXT_PRIMARY : TEXT_DELTA_NEUTRAL,
-      });
-      aft.x = 196;
-      aft.y = ry;
-      container.addChild(aft);
-
-      if (hasDelta) {
-        const d = createUiText(
-          `${delta > 0 ? '+' : ''}${delta}`,
-          { fontFamily: PIXEL_FONT, fontSize: 16, fill: deltaColor },
-        );
-        d.x = 244;
-        d.y = ry;
-        container.addChild(d);
-      }
-
-      ry += 28;
-    }
-
-    const hint = createUiText(
-      t('ui.iw.continue_hint', { key: actionKey(GameAction.ATTACK) }),
-      { fontFamily: PIXEL_FONT, fontSize: 16, fill: TEXT_DELTA_NEUTRAL },
-    );
-    hint.x = Math.floor((W - hint.width) / 2);
-    hint.y = H - 28;
-    container.addChild(hint);
-
-    container.x = x;
-    container.y = y;
-    this.game.legacyUIContainer.addChild(container);
-    this.stratumClearPanel = { container, confirmed: false };
-  }
-
-  updateStratumClearPanel(confirmPressed: boolean): void {
-    const panel = this.stratumClearPanel;
-    if (!panel) return;
-    if (!confirmPressed) return;
-
-    panel.confirmed = true;
-    if (panel.container.parent) panel.container.parent.removeChild(panel.container);
-    panel.container.destroy({ children: true });
-    this.stratumClearPanel = null;
-  }
-
   hideWorldPrompts(prompts: PromptRefs): void {
-    if (prompts.exitPrompt) prompts.exitPrompt.visible = false;
+    hideDisplayObject(prompts.exitPrompt);
   }
 
   shouldSuppressWorldPrompts(options: PromptSuppressionOptions): boolean {
     return (
       this.bossChoiceVisible ||
       this.escapeConfirmVisible ||
-      options.hasStratumClearPanel ||
-      options.transitionState !== 'none'
+      this.stratumClearOverlay !== null ||
+      options.isTransitionActive
     );
   }
 
@@ -264,9 +151,7 @@ export class ItemWorldUiController {
 
   hideEscapeConfirm(): void {
     this.escapeConfirmVisible = false;
-    if (this.escapeConfirm?.parent) {
-      this.escapeConfirm.parent.removeChild(this.escapeConfirm);
-    }
+    detachNullableDisplayObject(this.escapeConfirm);
     this.escapeConfirm = null;
   }
 
@@ -327,11 +212,7 @@ export class ItemWorldUiController {
   }
 
   hideBossChoice(): void {
-    if (this.bossChoicePanel) {
-      if (this.bossChoicePanel.parent) this.bossChoicePanel.parent.removeChild(this.bossChoicePanel);
-      this.bossChoicePanel.destroy({ children: true });
-      this.bossChoicePanel = null;
-    }
+    this.bossChoicePanel = destroyNullableDisplayObject(this.bossChoicePanel, { children: true });
     this.bossChoiceVisible = false;
   }
 
@@ -357,15 +238,9 @@ export class ItemWorldUiController {
     return this.stratumClearOverlay !== null;
   }
 
-  destroyStratumClearOverlayPublic(): void {
-    this.destroyStratumClearOverlay();
-  }
-
-  private destroyStratumClearOverlay(): void {
+  destroyStratumClearOverlay(): void {
     if (this.stratumClearOverlay) {
-      if (this.stratumClearOverlay.container.parent) {
-        this.stratumClearOverlay.container.parent.removeChild(this.stratumClearOverlay.container);
-      }
+      detachDisplayObject(this.stratumClearOverlay.container);
       this.stratumClearOverlay.destroy();
       this.stratumClearOverlay = null;
     }
@@ -376,14 +251,11 @@ export class ItemWorldUiController {
     this.hideBossChoice();
     this.destroyOnboarding();
     this.destroyReturnResult();
-    this.destroyStratumClearPanel();
     this.destroyStratumClearOverlay();
   }
 
   private showOnboardingStep(options: OnboardingOptions): void {
-    if (this.onboardingPanel?.parent) {
-      this.onboardingPanel.parent.removeChild(this.onboardingPanel);
-    }
+    detachNullableDisplayObject(this.onboardingPanel);
 
     if (this.onboardingStep >= options.messages.length) {
       this.onboardingPanel = null;
@@ -437,30 +309,16 @@ export class ItemWorldUiController {
   }
 
   private destroyOnboarding(): void {
-    if (this.onboardingPanel?.parent) {
-      this.onboardingPanel.parent.removeChild(this.onboardingPanel);
-    }
+    detachNullableDisplayObject(this.onboardingPanel);
     this.onboardingPanel = null;
     this.onboardingDone = true;
   }
 
   private destroyReturnResult(): void {
     if (this.returnResult) {
-      if (this.returnResult.container.parent) {
-        this.returnResult.container.parent.removeChild(this.returnResult.container);
-      }
-      this.returnResult.container.destroy({ children: true });
+      destroyDisplayObject(this.returnResult.container, { children: true });
       this.returnResult = null;
     }
   }
 
-  private destroyStratumClearPanel(): void {
-    if (this.stratumClearPanel) {
-      if (this.stratumClearPanel.container.parent) {
-        this.stratumClearPanel.container.parent.removeChild(this.stratumClearPanel.container);
-      }
-      this.stratumClearPanel.container.destroy({ children: true });
-      this.stratumClearPanel = null;
-    }
-  }
 }

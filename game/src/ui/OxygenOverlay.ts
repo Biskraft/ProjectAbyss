@@ -1,6 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../Game';
 import type { Player } from '@entities/Player';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export class OxygenOverlay {
   private vignette: Graphics | null = null;
@@ -27,12 +28,10 @@ export class OxygenOverlay {
   }
 
   destroy(): void {
-    this.vignette?.parent?.removeChild(this.vignette);
-    this.vignette?.destroy();
+    if (this.vignette) destroyDisplayObject(this.vignette);
     this.vignette = null;
 
-    this.bar?.parent?.removeChild(this.bar);
-    this.bar?.destroy();
+    if (this.bar) destroyDisplayObject(this.bar);
     this.bar = null;
   }
 

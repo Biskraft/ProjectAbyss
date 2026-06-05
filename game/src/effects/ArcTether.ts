@@ -18,6 +18,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type ArcPhase = 'hover' | 'pull' | 'hold';
 
@@ -80,8 +81,7 @@ export class ArcTether {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   // ── draw routines ────────────────────────────────────────────────────────

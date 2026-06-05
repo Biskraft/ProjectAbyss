@@ -5,6 +5,7 @@
 import { Container, Sprite, Texture, Rectangle, Graphics } from 'pixi.js';
 import { TILE_SIZE, type LdtkTile, type LdtkEntity } from './LdtkLoader';
 import { isSpecialVisualTile, TILE_OIL, TILE_ACID, TILE_MAGMA, TILE_WATER, TILE_CYRO, TILE_UPDRAFT } from '@core/Physics';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const DEFAULT_SHADOW_OPACITY = 0.53;
 
@@ -257,7 +258,7 @@ export class LdtkRenderer {
           child.y >= y && child.y < y + h
         ) {
           const child = layer.removeChildAt(i);
-          child.destroy({ children: true, texture: false, textureSource: false, context: true });
+          destroyDisplayObject(child, { children: true, texture: false, textureSource: false, context: true });
         }
       }
     };
@@ -284,14 +285,13 @@ export class LdtkRenderer {
 
   destroy(): void {
     this.clear();
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true, context: true });
+    destroyDisplayObject(this.container, { children: true, context: true });
   }
 
   private destroyLayerChildren(layer: Container): void {
     const children = layer.removeChildren();
     for (const child of children) {
-      child.destroy({ children: true, texture: false, textureSource: false, context: true });
+      destroyDisplayObject(child, { children: true, texture: false, textureSource: false, context: true });
     }
   }
 

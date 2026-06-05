@@ -10,6 +10,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export class HealthShard {
   container: Container;
@@ -117,8 +118,6 @@ export class HealthShard {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

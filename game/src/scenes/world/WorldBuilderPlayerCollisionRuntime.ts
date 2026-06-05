@@ -28,18 +28,10 @@ export interface WorldBuilderPlayerCollisionDeps {
 export class WorldBuilderPlayerCollisionRuntime {
   constructor(private readonly deps: WorldBuilderPlayerCollisionDeps) {}
 
-  private get player(): Player {
-    return this.deps.getPlayer();
-  }
-
-  private get collisionGrid(): number[][] {
-    return this.deps.getCollisionGrid();
-  }
-
   carryPlayerWithBuilderY(deltaY: number): void {
     // Drop-through 중에는 carrier가 플레이어를 끌어올리지 않는다. one-way platform
     // 위에서 DOWN+JUMP로 빠질 때 dropThroughTimer가 살아있으면 carry를 건너뛴다.
-    const player = this.player;
+    const player = this.deps.getPlayer();
     if (player.dropThroughTimer > 0) return;
     const colOffX = (player.width - player.collisionW) / 2;
     const colOffY = player.height - player.collisionH;
@@ -77,7 +69,7 @@ export class WorldBuilderPlayerCollisionRuntime {
   snapPlayerToBuilderSurface(): boolean {
     const b = this.deps.getActiveBuilder();
     if (!b) return false;
-    const player = this.player;
+    const player = this.deps.getPlayer();
     // 아이템계 진입 연출 중에는 빌더 표면 스냅을 전부 끈다 (사용자 요청 2026-06-02).
     if (this.deps.isEntryCinematicActive()) return false;
     // A real jump should detach from the carrier. Snapping only while falling
@@ -135,7 +127,8 @@ export class WorldBuilderPlayerCollisionRuntime {
   }
 
   playerCollisionOverlapsSolidAt(playerX: number, playerY: number): boolean {
-    const player = this.player;
+    const player = this.deps.getPlayer();
+    const collisionGrid = this.deps.getCollisionGrid();
     const colOffX = (player.width - player.collisionW) / 2;
     const colOffY = player.height - player.collisionH;
     const x = playerX + colOffX;
@@ -148,7 +141,7 @@ export class WorldBuilderPlayerCollisionRuntime {
     const bottomRow = Math.floor((y + h - 1) / TILE_SIZE);
     for (let row = topRow; row <= bottomRow; row++) {
       for (let col = leftCol; col <= rightCol; col++) {
-        if (isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL)) return true;
+        if (isSolid(collisionGrid[row]?.[col] ?? TILE_WALL)) return true;
       }
     }
     return false;
@@ -158,7 +151,7 @@ export class WorldBuilderPlayerCollisionRuntime {
     preferredDirs: Array<{ x: number; y: number }>,
     maxDist = TILE_SIZE,
   ): boolean {
-    const player = this.player;
+    const player = this.deps.getPlayer();
     if (!this.playerCollisionOverlapsSolidAt(player.x, player.y)) return false;
 
     for (let dist = 1; dist <= maxDist; dist++) {
@@ -186,11 +179,12 @@ export class WorldBuilderPlayerCollisionRuntime {
   }
 
   private isStaticSolidCell(col: number, row: number, builderStampSet: Set<number>): boolean {
-    const gridW = this.collisionGrid[0]?.length ?? 0;
+    const collisionGrid = this.deps.getCollisionGrid();
+    const gridW = collisionGrid[0]?.length ?? 0;
     if (gridW <= 0) return true;
-    if (row < 0 || row >= this.collisionGrid.length || col < 0 || col >= gridW) return true;
+    if (row < 0 || row >= collisionGrid.length || col < 0 || col >= gridW) return true;
     if (builderStampSet.has(row * gridW + col)) return false;
-    return isSolid(this.collisionGrid[row]?.[col] ?? TILE_WALL);
+    return isSolid(collisionGrid[row]?.[col] ?? TILE_WALL);
   }
 
   /**
@@ -201,7 +195,7 @@ export class WorldBuilderPlayerCollisionRuntime {
   isPlayerInBuilderVolume(): boolean {
     const b = this.deps.getActiveBuilder();
     if (!b) return false;
-    const player = this.player;
+    const player = this.deps.getPlayer();
     const bx = b.container.x;
     const by = b.container.y;
     const px = player.x;

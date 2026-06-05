@@ -1,6 +1,7 @@
 import type { Container } from 'pixi.js';
 import { LockedDoor } from '@entities/LockedDoor';
 import { trackBossFight } from '@utils/Analytics';
+import { addEntityToLayer } from '@scenes/shared/EntityLifecycleHelpers';
 
 interface BossLockLevel {
   identifier: string;
@@ -57,8 +58,7 @@ export class WorldBossLockRuntime {
       );
       door.injectCollision(collisionGrid);
       door.container.visible = false;
-      this.doors.push(door);
-      entityLayer.addChild(door.container);
+      addEntityToLayer(this.doors, door, entityLayer);
     }
   }
 

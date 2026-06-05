@@ -1,10 +1,11 @@
+import { hudRatio } from './HudNumeric';
+
 export const HP_COLOR_SAFE = 0x22aa22;
 export const HP_COLOR_WARN = 0xaaaa22;
 export const HP_COLOR_DANGER = 0xaa2222;
 
 export function hpRatio(hp: number, maxHp: number): number {
-  if (maxHp <= 0) return 1;
-  return Math.max(0, Math.min(1, hp / maxHp));
+  return hudRatio(hp, maxHp);
 }
 
 export function hpBarColor(

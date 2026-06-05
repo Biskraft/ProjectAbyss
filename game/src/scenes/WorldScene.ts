@@ -1,19 +1,16 @@
-import { Container, Graphics, BitmapText } from 'pixi.js';
+﻿import { Container, Graphics } from 'pixi.js';
 import { Scene } from '@core/Scene';
-import { GameAction, actionKey } from '@core/InputManager';
+import { GameAction } from '@core/InputManager';
 import { t } from '@i18n';
-import { createUiText } from '@ui/factories';
 import { MODAL_BG, MODAL_BORDER, TEXT_PRIMARY } from '@ui/ModalPanel';
 import { trackItemDrop } from '@utils/Analytics';
-import { aabbOverlap } from '@core/Physics';
 import { TilemapRenderer } from '@level/TilemapRenderer';
 import { createBoundsGuard } from '@level/BoundsGuard';
 import { generateRoomGrid, type RoomGridData, type RoomCell } from '@level/RoomGrid';
 import { assembleRoom, getSpawnPosition, getDoorTriggers } from '@level/ChunkAssembler';
 import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
-import { GoldenMonster, getDifficultyTier } from '@entities/GoldenMonster';
-import { Ghost } from '@entities/Ghost';
+import { GoldenMonster } from '@entities/GoldenMonster';
 import { Projectile } from '@entities/Projectile';
 import { Portal, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
@@ -22,11 +19,67 @@ import { HUD } from '@ui/HUD';
 import { InventoryUI } from '@ui/InventoryUI';
 import { Inventory } from '@items/Inventory';
 import { ItemDropEntity, rollDrop, rollGoldenDrop } from '@items/ItemDrop';
+import { createBrokenSwordStarterItem } from '@items/StarterItemFactory';
 import { resolveItemDropSpawn } from '@items/DropSpawn';
-import { SWORD_DEFS, STARTER_ONLY_IDS } from '@data/weapons';
-import { createItem } from '@items/ItemInstance';
+import { getDisplayName } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
 import { ItemWorldScene } from './ItemWorldScene';
+import { spawnEnemyDeathParticles } from '@scenes/shared/EnemyDeathFeedbackHelpers';
+import { applyEnemyMeleeAttackDamageForPlayer } from '@scenes/shared/EnemyMeleeAttackDamageHelpers';
+import { applyPlayerAttackHitFeedback } from '@scenes/shared/PlayerAttackHitFeedbackHelpers';
+import { processPickupsForPlayerCollection } from '@scenes/shared/PickupCollectionHelpers';
+import {
+  addEnemyToRegistry,
+  clearEnemies as clearEnemyRegistry,
+  getAliveEnemiesAsCombatTargets,
+  removeEnemyAt,
+  renderEnemies,
+} from '@scenes/shared/EnemyRegistryHelpers';
+import { updateEnemyDefeatLifecycle } from '@scenes/shared/EnemyDefeatProcessingHelpers';
+import { createLegacyWorldRoomEnemies } from '@scenes/shared/LegacyWorldEnemySpawnHelpers';
+import { markRoomClearedWhenNoAliveEnemies } from '@scenes/shared/WorldRoomClearHelpers';
+import { createLegacyWorldDoorMarkers } from '@scenes/shared/LegacyWorldDoorMarkerHelpers';
+import { getLegacyWorldAltarSpawnCandidate } from '@scenes/shared/LegacyWorldAltarSpawnHelpers';
+import { createLegacyWorldPortalTransition } from '@scenes/shared/LegacyWorldPortalTransitionHelpers';
+import { prepareLegacyWorldPortalDungeonEntry } from '@scenes/shared/LegacyWorldPortalPayloadHelpers';
+import {
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import {
+  collectPendingGhostProjectiles,
+  updateProjectileCollection,
+} from '@scenes/shared/ProjectileCollectionHelpers';
+import {
+  updateAltarInteractions,
+  updatePortalInteractions,
+} from '@scenes/shared/ProximityInteractionHelpers';
+import { updateItemSelectionInput } from '@scenes/shared/ItemSelectionInputHelpers';
+import {
+  handleInventoryUiToggle,
+  updateInventoryUiInput,
+} from '@scenes/shared/InventoryUiInputHelpers';
+import {
+  addAltarItemRows,
+  createAltarItemSelectionShell,
+} from '@scenes/shared/AltarItemSelectionUiHelpers';
+import { placePlayerAt, respawnPlayerAt } from '@scenes/shared/PlayerPlacementHelpers';
+import {
+  updateEnemyKinematicVfx,
+  updateCommonMovementVfxManagers,
+  updatePlayerKinematicVfx,
+} from '@scenes/shared/MovementVfxHelpers';
+import {
+  findDoorTransitionCandidate,
+  stepLegacyWorldTransition,
+} from '@scenes/shared/WorldTransitionHelpers';
+import { drawLegacyWorldMiniMap } from '@scenes/shared/WorldMiniMapHelpers';
+import { tryHitPlayerWithProjectile } from '@scenes/shared/ProjectileCollisionHelpers';
+import {
+  destroyDisplayObject,
+  detachAndClearDisplayObjects,
+  detachDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import { applyPlayerStatBuffs } from '@systems/PlayerBuffSystem';
 import { PortalTransition } from '@effects/PortalTransition';
 import { HitSparkManager } from '@effects/HitSpark';
@@ -62,8 +115,18 @@ import { PRNG } from '@utils/PRNG';
 import type { Rarity } from '@data/weapons';
 import { SaveManager } from '@utils/SaveManager';
 import type { Enemy } from '@entities/Enemy';
-import type { CombatEntity } from '@combat/HitManager';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
+import { ItemWorldEntryPushTransition } from './world/ItemWorldEntryPushTransition';
+import { WorldScenePortalItemWorldFlowRuntime } from './world/WorldScenePortalItemWorldFlowRuntime';
+import { WorldItemWorldSceneTransitionRuntime } from './world/WorldItemWorldSceneTransitionRuntime';
+import {
+  createLegacyItemWorldSceneSaveAccess,
+  type WorldSceneSaveAccess,
+} from './shared/SceneSaveAccess';
+import {
+  createLegacyWorldGameOverOverlay,
+} from '@scenes/shared/LegacyWorldGameOverHelpers';
+import { isGameOverRespawnPressed } from '@scenes/shared/GameOverInputHelpers';
 
 const TILE_SIZE = 16;
 const ROOM_W = 60;
@@ -75,6 +138,7 @@ const GRID_H = 6;
 type TransitionState = 'none' | 'fade_out' | 'fade_in';
 
 export class WorldScene extends Scene {
+  private readonly saveAccess: WorldSceneSaveAccess;
   private tilemap!: TilemapRenderer;
   private boundsGuard: Graphics | null = null;
   private player!: Player;
@@ -111,7 +175,7 @@ export class WorldScene extends Scene {
 
   // Toast & damage numbers & Sakurai effects
   private toast!: ToastManager;
-  /** Gamepad hot-plug 토스트 unsubscribe — exit 시 호출. */
+  /** Gamepad hot-plug ?좎뒪??unsubscribe ??exit ???몄텧. */
   private _gpUnsub: (() => void) | null = null;
   private dmgNumbers!: DamageNumberManager;
   private hitSparks!: HitSparkManager;
@@ -155,22 +219,25 @@ export class WorldScene extends Scene {
   private altarUI: Container | null = null;
   private worldSeed = 12345;
   private playtime = 0;
+  private itemWorldEntryTransition!: ItemWorldEntryPushTransition;
+  private itemWorldSceneTransitionRuntime!: WorldItemWorldSceneTransitionRuntime;
+  private portalItemWorldFlowRuntime!: WorldScenePortalItemWorldFlowRuntime;
 
-  constructor(game: Game) {
+  constructor(game: Game, saveAccess: WorldSceneSaveAccess) {
     super(game);
+    this.saveAccess = saveAccess;
   }
 
   init(): void {
     this.hitManager = new HitManager(this.game);
 
-    // Procgen mode — no save/load, fresh start
+    // Procgen mode ??no save/load, fresh start
     {
       this.worldSeed = 12345;
       this.rng = new PRNG(this.worldSeed);
       this.dropRng = new PRNG(99999);
       this.inventory = new Inventory();
-      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_broken') ?? SWORD_DEFS[0];
-      const starterSword = createItem(starterDef);
+      const starterSword = createBrokenSwordStarterItem();
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid, true);
       this.gridData = generateRoomGrid(GRID_W, GRID_H, this.rng);
@@ -209,7 +276,7 @@ export class WorldScene extends Scene {
 
     // Toast, damage numbers & Sakurai hit effects
     this.toast = new ToastManager(this.game.legacyUIContainer);
-    // Gamepad hot-plug → 토스트 (System_Input_Gamepad §8.1 Stage 3).
+    // Gamepad hot-plug ???좎뒪??(System_Input_Gamepad 짠8.1 Stage 3).
     this._gpUnsub = attachGamepadToast(this.game, this.toast);
     this.dmgNumbers = new DamageNumberManager(this.game.uiContainer, this.game.camera, this.game.uiScale);
     this.hitSparks = new HitSparkManager(this.entityLayer);
@@ -236,11 +303,59 @@ export class WorldScene extends Scene {
     this.lowHpVignette.setViewport(GAME_WIDTH, GAME_HEIGHT);
     this.screenFlash = new ScreenFlash();
     this.game.legacyUIContainer.addChild(this.screenFlash.overlay);
+    this.itemWorldEntryTransition = new ItemWorldEntryPushTransition(this.game);
+    this.itemWorldSceneTransitionRuntime = new WorldItemWorldSceneTransitionRuntime({
+      hideSceneDuringTransition: () => {
+        this.container.visible = false;
+      },
+      detachSharedUiForItemWorld: () => {
+        if (this.inventoryUI) {
+          if (this.inventoryUI.visible) {
+            this.inventoryUI.close();
+          }
+          detachDisplayObject(this.inventoryUI.container);
+        }
+        if (this.altarUI) detachDisplayObject(this.altarUI);
+        if (this.miniMapContainer) detachDisplayObject(this.miniMapContainer);
+        if (this.hud) detachDisplayObject(this.hud.container);
+      },
+    });
+    this.portalItemWorldFlowRuntime = new WorldScenePortalItemWorldFlowRuntime({
+      createItemWorldScene: this.createLegacyItemWorldScene.bind(this),
+      pushTransition: this.itemWorldEntryTransition,
+      preparePush: () => this.itemWorldSceneTransitionRuntime.preparePush(),
+      popScene: () => this.game.sceneManager.pop(),
+      updatePlayerAtk: () => {
+        this.updatePlayerAtk();
+      },
+      getPlayerAtk: () => this.player.atk,
+      isFirstItemWorldBossDefeated: () => this.saveAccess.isFirstItemWorldBossDefeated(),
+      grantDungeonItem: (item) => this.inventory.add(item),
+      awardWeaponLevelUpToast: (item) => {
+        this.toast.show(t('toast.weapon_level_up', { name: getDisplayName(item), level: item.level }), 0xff88ff);
+        SFX.play('upgrade');
+      },
+      awardDungeonItemToast: (item) => {
+        this.toast.show(
+          t('toast.item_acquired', {
+            name: getDisplayName(item),
+            rarity: item.rarity.toUpperCase(),
+          }),
+          0xffcc44,
+        );
+      },
+      awardAtkChangeToast: (prevAtk, nextAtk) => {
+        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: nextAtk }), 0xffff44);
+      },
+      saveProgress: () => {
+        // Procgen mode: no save persistence
+      },
+    });
 
-    // Inventory UI — uiContainer(native) 직속 (UI native 마이그레이션 1단계)
-    this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale);
+    // Inventory UI ??uiContainer(native) 吏곸냽 (UI native 留덉씠洹몃젅?댁뀡 1?④퀎)
+    this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale, this.saveAccess);
     this.game.uiContainer.addChild(this.inventoryUI.container);
-    // 인벤토리 열림 시 HUD 숨김 (사용자 결정 2026-05-24).
+    // ?몃깽?좊━ ?대┝ ??HUD ?④? (?ъ슜??寃곗젙 2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
       this.hud.container.visible = !vis;
     };
@@ -255,7 +370,7 @@ export class WorldScene extends Scene {
       this.player.y + this.player.height / 2,
     );
 
-    // Tier 3 ambient bed demo (Plan_Audio_Demo §3-1 #1A + #1C, DEC-040 §13-2.4 진척)
+    // Tier 3 ambient bed demo (Plan_Audio_Demo 짠3-1 #1A + #1C, DEC-040 짠13-2.4 吏꾩쿃)
     AmbientLayer.startWorldTier3Demo();
   }
 
@@ -274,9 +389,6 @@ export class WorldScene extends Scene {
     this.player.attackHitboxMul = eq ? eq.def.hitboxW / BASE_HITBOX_W : 1;
   }
 
-  private autoSave(): void {
-    // Procgen mode — no save
-  }
 
   private loadRoom(enterFrom: 'left' | 'right' | 'up' | 'down'): void {
     const cell = this.gridData.cells[this.currentRow][this.currentCol];
@@ -284,20 +396,20 @@ export class WorldScene extends Scene {
     this.roomData = assembleRoom(cell, roomRng);
     this.tilemap.loadRoom(this.roomData);
 
-    this.player.roomData = this.roomData;
     const spawnSide = this.getOppositeDirection(enterFrom);
     const spawn = getSpawnPosition(spawnSide);
-    this.player.x = spawn.x;
-    this.player.y = spawn.y;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.player.savePrevPosition();
+    placePlayerAt(this.player, spawn.x, spawn.y, {
+      collisionGrid: this.roomData,
+      resetVelocity: true,
+      savePreviousPosition: true,
+    });
 
     this.doorTriggers = getDoorTriggers(cell);
-    this.clearEnemies();
-    this.clearDrops();
-    this.clearPortals();
-    this.clearAltars();
+    clearEnemyRegistry(this.enemies);
+    destroyAndClearEntities(this.projectiles);
+    destroyAndClearEntities(this.drops);
+    destroyAndClearEntities(this.portals);
+    destroyAndClearEntities(this.altars);
 
     if (!cell.cleared) {
       this.spawnEnemies(cell);
@@ -310,7 +422,14 @@ export class WorldScene extends Scene {
       this.player.y + this.player.height / 2,
     );
     cell.visited = true;
-    this.drawMiniMap();
+    drawLegacyWorldMiniMap({
+      container: this.miniMapContainer,
+      gridData: this.gridData,
+      currentCol: this.currentCol,
+      currentRow: this.currentRow,
+      mapCols: GRID_W,
+      mapRows: GRID_H,
+    });
   }
 
   private getOppositeDirection(dir: 'left' | 'right' | 'up' | 'down'): 'left' | 'right' | 'up' | 'down' {
@@ -324,158 +443,64 @@ export class WorldScene extends Scene {
 
   private showGameOver(): void {
     this.gameOverActive = true;
-    // 저체력 경고 VFX 즉시 초기화 — gameOverActive 동안 hud.update(dt) 가
-    // 호출되지 않아 잔상이 얼어붙는 것을 방지 (LdtkWorldScene 과 동일 패턴).
+    // ?泥대젰 寃쎄퀬 VFX 利됱떆 珥덇린????gameOverActive ?숈븞 hud.update(dt) 媛
+    // ?몄텧?섏? ?딆븘 ?붿긽???쇱뼱遺숇뒗 寃껋쓣 諛⑹? (LdtkWorldScene 怨??숈씪 ?⑦꽩).
     this.hud.resetLowHpEffects();
-    const overlay = new Container();
-
-    const bg = new Graphics();
-    bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill({ color: 0x000000, alpha: 0.7 });
-    overlay.addChild(bg);
-
-    const title = createUiText(t('ui.world.game_over'), { fontFamily: PIXEL_FONT, fontSize: 12, fill: 0xff4444 });
-    title.anchor.set(0.5);
-    title.x = 240;
-    title.y = 120;
-    overlay.addChild(title);
-
-    const hint = createUiText(
-      t('ui.world.respawn_hint', { jump: actionKey(GameAction.JUMP), dash: actionKey(GameAction.DASH) }),
-      { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaaaaa },
-    );
-    hint.anchor.set(0.5);
-    hint.x = 240;
-    hint.y = 150;
-    overlay.addChild(hint);
-
+    const overlay = createLegacyWorldGameOverOverlay();
     this.gameOverOverlay = overlay;
     this.game.legacyUIContainer.addChild(overlay);
+  }
+
+  private createLegacyItemWorldScene(item: ItemInstance, entryCorridor: boolean): ItemWorldScene {
+    return new ItemWorldScene(
+      this.game,
+      item,
+      this.inventory,
+      this.player,
+      { entryCorridor },
+      createLegacyItemWorldSceneSaveAccess(this.saveAccess),
+    );
   }
 
   private respawnPlayer(): void {
     this.gameOverActive = false;
     if (this.gameOverOverlay?.parent) {
-      this.gameOverOverlay.parent.removeChild(this.gameOverOverlay);
+      detachDisplayObject(this.gameOverOverlay);
     }
     this.gameOverOverlay = null;
 
     const spawn = getSpawnPosition('down');
-    this.player.x = spawn.x;
-    this.player.y = spawn.y;
-    this.player.respawn();
-    this.player.savePrevPosition();
+    respawnPlayerAt(this.player, spawn.x, spawn.y, { savePreviousPosition: true });
     this.game.camera.snap(this.player.x, this.player.y);
   }
 
   private drawDoorMarkers(cell: RoomCell): void {
-    for (const m of this.doorMarkers) {
-      if (m.parent) m.parent.removeChild(m);
-    }
-    this.doorMarkers = [];
+    detachAndClearDisplayObjects(this.doorMarkers);
 
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
-    const doorH = 4 * TILE_SIZE;
-    const markerW = 4;
-
-    if (cell.exits.left) {
-      const marker = new Graphics();
-      marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(-6, doorH / 2 - 3, 6, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = 0;
-      marker.y = floorY - doorH;
+    for (const marker of createLegacyWorldDoorMarkers(cell, {
+      roomWidth: ROOM_W,
+      roomHeight: ROOM_H,
+      tileSize: TILE_SIZE,
+    })) {
       this.entityLayer.addChild(marker);
       this.doorMarkers.push(marker);
     }
-
-    if (cell.exits.right) {
-      const marker = new Graphics();
-      marker.rect(0, 0, markerW, doorH).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(markerW, doorH / 2 - 3, 6, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = (ROOM_W - 1) * TILE_SIZE;
-      marker.y = floorY - doorH;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-
-    if (cell.exits.down) {
-      const cx = Math.floor(ROOM_W / 2) * TILE_SIZE;
-      const marker = new Graphics();
-      marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(TILE_SIZE, markerW, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = cx - TILE_SIZE;
-      marker.y = (ROOM_H - 1) * TILE_SIZE - markerW;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-
-    if (cell.exits.up) {
-      const cx = Math.floor(ROOM_W / 2) * TILE_SIZE;
-      const marker = new Graphics();
-      marker.rect(0, 0, 3 * TILE_SIZE, markerW).fill({ color: 0x44ff44, alpha: 0.6 });
-      marker.rect(TILE_SIZE, -6, TILE_SIZE, 6).fill({ color: 0x44ff44, alpha: 0.8 });
-      marker.x = cx - TILE_SIZE;
-      marker.y = 0;
-      this.entityLayer.addChild(marker);
-      this.doorMarkers.push(marker);
-    }
-  }
-
-  private clearEnemies(): void {
-    for (const e of this.enemies) {
-      if (e.container.parent) e.container.parent.removeChild(e.container);
-    }
-    this.enemies = [];
-    for (const p of this.projectiles) p.destroy();
-    this.projectiles = [];
-  }
-
-  private clearDrops(): void {
-    for (const d of this.drops) d.destroy();
-    this.drops = [];
   }
 
   private spawnEnemies(cell: RoomCell): void {
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
-    const count = cell.onCriticalPath ? 2 : 3;
-
-    // Distance from start room → difficulty scaling
-    const dist = Math.abs(this.currentCol - this.gridData.startRoom.col)
-               + Math.abs(this.currentRow - this.gridData.startRoom.row);
-    const scale = 1 + dist * 0.15; // +15% per tile distance
-    const tier = getDifficultyTier(dist);
-
-    for (let i = 0; i < count; i++) {
-      const spawnRng = new PRNG(this.currentCol * 777 + this.currentRow * 333 + i * 111);
-      // ~30% chance to spawn Ghost instead of Skeleton
-      const isGhost = spawnRng.next() < 0.3;
-      const enemy = isGhost ? new Ghost() : new Skeleton();
-      enemy.hp = enemy.maxHp = Math.floor(enemy.maxHp * scale);
-      enemy.atk = Math.floor(enemy.atk * scale);
-
-      enemy.x = spawnRng.nextInt(4, ROOM_W - 5) * TILE_SIZE;
-      enemy.y = floorY - enemy.height;
-      enemy.roomData = this.roomData;
-      enemy.target = this.player;
-      this.enemies.push(enemy);
-      this.entityLayer.addChild(enemy.container);
-    }
-
-    // Golden Monster: 0~1 per room, ~20% chance
-    const goldenRng = new PRNG(this.currentCol * 555 + this.currentRow * 222 + 77);
-    if (goldenRng.next() < 0.2) {
-      const golden = new GoldenMonster(tier);
-      golden.hp = golden.maxHp = Math.floor(golden.maxHp * scale);
-      golden.atk = Math.floor(golden.atk * scale);
-      golden.x = goldenRng.nextInt(6, ROOM_W - 7) * TILE_SIZE;
-      golden.y = floorY - golden.height;
-      golden.roomData = this.roomData;
-      golden.target = this.player;
-      // 필드 GoldenMonster 처치 시 포탈 스폰 — 사용자 요청으로 비활성.
-      // golden.onDeathCallback = (x, y, rarity) => {
-      //   this.spawnPortal(x, y, rarity, 'monster');
-      // };
-      this.enemies.push(golden);
-      this.entityLayer.addChild(golden.container);
+    for (const enemy of createLegacyWorldRoomEnemies({
+      currentCol: this.currentCol,
+      currentRow: this.currentRow,
+      startCol: this.gridData.startRoom.col,
+      startRow: this.gridData.startRoom.row,
+      onCriticalPath: cell.onCriticalPath,
+      roomWidth: ROOM_W,
+      roomHeight: ROOM_H,
+      tileSize: TILE_SIZE,
+      collisionGrid: this.roomData,
+      player: this.player,
+    })) {
+      addEnemyToRegistry(this.enemies, enemy, this.entityLayer);
     }
 
     // Altar: spawn in some rooms
@@ -501,24 +526,6 @@ export class WorldScene extends Scene {
     );
   }
 
-  private detachSharedUiForItemWorld(): void {
-    if (this.inventoryUI) {
-      if (this.inventoryUI.visible) this.inventoryUI.close();
-      if (this.inventoryUI.container.parent) {
-        this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
-      }
-    }
-    if (this.altarUI?.parent) {
-      this.altarUI.parent.removeChild(this.altarUI);
-    }
-    if (this.miniMapContainer?.parent) {
-      this.miniMapContainer.parent.removeChild(this.miniMapContainer);
-    }
-    if (this.hud?.container.parent) {
-      this.hud.container.parent.removeChild(this.hud.container);
-    }
-  }
-
   update(dt: number): void {
     this.playtime += dt;
 
@@ -537,8 +544,7 @@ export class WorldScene extends Scene {
 
     // Game Over state
     if (this.gameOverActive) {
-      if (this.game.input.isJustPressed(GameAction.ATTACK) ||
-          this.game.input.isJustPressed(GameAction.JUMP)) {
+      if (isGameOverRespawnPressed(this.game.input)) {
         this.respawnPlayer();
       }
       return;
@@ -551,10 +557,11 @@ export class WorldScene extends Scene {
     }
 
     // Inventory UI
-    if (this.game.input.isJustPressed(GameAction.INVENTORY)) {
-      this.game.input.consumeJustPressed(GameAction.INVENTORY);
-      this.inventoryUI.toggle();
-    }
+    handleInventoryUiToggle({
+      input: this.game.input,
+      canToggle: true,
+      toggle: () => this.inventoryUI.toggle(),
+    });
 
     if (this.inventoryUI.visible) {
       this.updateInventoryInput();
@@ -575,187 +582,56 @@ export class WorldScene extends Scene {
       return;
     }
 
-    // Update enemies
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const enemy = this.enemies[i];
-      const wasAlive = enemy.alive;
-      enemy.update(dt);
+    this.updateEnemies(dt);
 
-      // Enemy just died — roll drop
-      if (wasAlive && !enemy.alive) {
-        // A11: death particle burst
-        this.deathParticles.spawn(
-          enemy.x + enemy.width / 2,
-          enemy.y + enemy.height / 2,
-          false,
+    this.updatePlayerAttackHitFeedback();
+
+    this.updateProjectiles(dt);
+
+    applyEnemyMeleeAttackDamageForPlayer({
+      player: this.player,
+      enemies: this.enemies,
+      game: this.game,
+      hitSparks: this.hitSparks,
+      screenFlash: this.screenFlash,
+      isMeleeAttacking: (enemy) => (
+        (enemy instanceof Skeleton || enemy instanceof GoldenMonster) && enemy.isAttackActive()
+      ),
+    });
+
+    processPickupsForPlayerCollection({
+      pickups: this.drops,
+      player: this.player,
+      dtMs: dt,
+      isNearPlayer: (drop, player) => (
+        drop.overlapsPlayer(player.x, player.y, player.width, player.height)
+      ),
+      onPickup: (drop) => {
+        if (!this.inventory.add(drop.item)) return false;
+        this.toast.show(
+          t('toast.item_acquired', { name: drop.item.def.name, rarity: drop.item.rarity.toUpperCase() }),
+          0xffcc44,
         );
-        const isGolden = enemy instanceof GoldenMonster;
-        const drop = isGolden
-          ? rollGoldenDrop(this.dropRng)    // guaranteed rare+ drop
-          : rollDrop(this.dropRng);         // normal drop chance
-        if (drop) {
-          const spawn = resolveItemDropSpawn(
-            enemy.x + enemy.width / 2,
-            enemy.y + enemy.height - 4,
-            this.roomData,
-          );
-          const dropEntity = new ItemDropEntity(
-            spawn.x,
-            spawn.y,
-            drop,
-          );
-          this.drops.push(dropEntity);
-          this.entityLayer.addChild(dropEntity.container);
-          trackItemDrop({
-            source: isGolden ? 'golden' : 'enemy',
-            item_id: drop.def.id,
-            item_rarity: drop.rarity,
-          });
-        }
-      }
-
-      if (enemy.shouldRemove) {
-        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
-        this.enemies.splice(i, 1);
-      }
-    }
-
-    // Player attacks — Sakurai full feedback chain
-    if (this.player.isAttackActive()) {
-      const targets = this.enemies.filter(e => e.alive) as CombatEntity[];
-      const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
-      for (const hit of hits) {
-        this.dmgNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
-        this.hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-        SFX.play('attack_hit');
-        if (hit.heavy) {
-          this.screenFlash.flashHit(true);
-        }
-        if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
-          this.screenFlash.flashHit(true);
-          this.dmgNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
-        }
-      }
-    }
-
-    // Collect Ghost projectiles
-    for (const enemy of this.enemies) {
-      if (enemy instanceof Ghost && enemy.alive) {
-        for (const proj of enemy.pendingProjectiles) {
-          this.projectiles.push(proj);
-          this.entityLayer.addChild(proj.container);
-        }
-        enemy.pendingProjectiles.length = 0;
-      }
-    }
-
-    // Update projectiles & check player collision
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const proj = this.projectiles[i];
-      proj.update(dt);
-      if (!proj.alive) {
-        proj.destroy();
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      // Hit player?
-      if (!this.player.invincible && this.player.hp > 0) {
-        const overlap = aabbOverlap(
-          { x: proj.x, y: proj.y, width: proj.width, height: proj.height },
-          { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
-        );
-        if (overlap) {
-          const dir = proj.vx > 0 ? 1 : -1;
-          const dmg = Math.max(1, proj.atk - this.player.def * 0.5);
-          this.player.onHit(dir * 80, -40, 150);
-          this.player.hp -= dmg;
-          this.player.invincible = true;
-          this.player.invincibleTimer = 1000;
-          this.player.startVibrate(3, 4, true);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 2;
-          this.game.camera.shakeDirectional(2, dir, -0.2);
-          this.screenFlash.flashDamage(false);
-          const hitX = this.player.x + this.player.width / 2;
-          const hitY = this.player.y + this.player.height * 0.4;
-          this.hitSparks.spawn(hitX, hitY, false, -dir);
-          this.dmgNumbers.spawn(hitX, hitY - 8, dmg, false);
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-          proj.alive = false;
-          proj.destroy();
-          this.projectiles.splice(i, 1);
-        }
-      }
-    }
-
-    // Enemy attacks — Sakurai: player hit feedback (vibration + flash + directional shake)
-    for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
-      const isAttacking = (enemy instanceof Skeleton || enemy instanceof GoldenMonster) && enemy.isAttackActive();
-      if (isAttacking) {
-        if (this.player.invincible || this.player.hp <= 0) continue;
-        const dx = Math.abs((enemy.x + enemy.width / 2) - (this.player.x + this.player.width / 2));
-        const dy = Math.abs((enemy.y + enemy.height / 2) - (this.player.y + this.player.height / 2));
-        if (dx < enemy.width + this.player.width && dy < Math.max(enemy.height, this.player.height)) {
-          const dir = enemy.facingRight ? 1 : -1;
-          const dmg = Math.max(1, enemy.atk - this.player.def * 0.5);
-          this.player.onHit(dir * 100, -50, 200);
-          this.player.hp -= dmg;
-          this.player.invincible = true;
-          this.player.invincibleTimer = 1000;
-
-          // Sakurai feedback: victim vibrates, flash, directional shake
-          this.player.startVibrate(4, 5, this.player.vy === 0);
-          this.player.triggerFlash();
-          this.game.hitstopFrames = 3;
-          this.game.camera.shakeDirectional(3, dir, -0.3);
-          this.screenFlash.flashDamage(dmg > 20);
-
-          // Hit spark at player position
-          const hitX = this.player.x + this.player.width / 2;
-          const hitY = this.player.y + this.player.height * 0.4;
-          this.hitSparks.spawn(hitX, hitY, false, -dir);
-
-          if (this.player.hp <= 0) {
-            this.player.hp = 0;
-            this.player.onDeath();
-            // Kill = extra hitstop + heavy screen flash
-            this.game.hitstopFrames = 8;
-            this.screenFlash.flashDamage(true);
-          }
-        }
-      }
-    }
-
-    // Item pickups
-    for (let i = this.drops.length - 1; i >= 0; i--) {
-      const drop = this.drops[i];
-      drop.update(dt);
-      if (drop.overlapsPlayer(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.inventory.add(drop.item)) {
-          this.toast.show(t('toast.item_acquired', { name: drop.item.def.name, rarity: drop.item.rarity.toUpperCase() }), 0xffcc44);
-          this.itemPickupGlow.spawn(drop.x, drop.y, getRarityConfig(drop.item.rarity).fxTint);
-          drop.destroy();
-          this.drops.splice(i, 1);
-        }
-      }
-    }
+        this.itemPickupGlow.spawn(drop.x, drop.y, getRarityConfig(drop.item.rarity).fxTint);
+      },
+    });
 
     // Room cleared
-    const aliveCount = this.enemies.filter(e => e.alive).length;
-    if (aliveCount === 0) {
-      const cell = this.gridData.cells[this.currentRow][this.currentCol];
-      if (!cell.cleared) {
-        cell.cleared = true;
+    markRoomClearedWhenNoAliveEnemies({
+      enemies: this.enemies,
+      cell: this.gridData.cells[this.currentRow][this.currentCol],
+      onCleared: () => {
         this.toast.show(t('toast.room_clear'), 0x44ff44);
-        this.drawMiniMap();
-      }
-    }
+        drawLegacyWorldMiniMap({
+          container: this.miniMapContainer,
+          gridData: this.gridData,
+          currentCol: this.currentCol,
+          currentRow: this.currentRow,
+          mapCols: GRID_W,
+          mapRows: GRID_H,
+        });
+      },
+    });
 
     // Portal & Altar interactions (portals take priority over altars)
     const portalEntered = this.updatePortals(dt);
@@ -794,58 +670,93 @@ export class WorldScene extends Scene {
    * Drain player VFX one-shot events and tick the per-frame trails
    * (landing dust / dash afterimage / dash boost / double jump / wall jump).
    */
+  private updateProjectiles(dt: number): void {
+    collectPendingGhostProjectiles(this.enemies, this.projectiles, this.entityLayer);
+
+    updateProjectileCollection({
+      projectiles: this.projectiles,
+      dtMs: dt,
+      tryHitPlayer: (projectile) => tryHitPlayerWithProjectile({
+        projectile,
+        player: this.player,
+        game: this.game,
+        hud: this.hud,
+        screenFlash: this.screenFlash,
+        damageNumbers: this.dmgNumbers,
+        hitSparks: this.hitSparks,
+        flashHud: false,
+        setLastDamageSource: false,
+        floorDamage: false,
+      }),
+    });
+  }
+
+  private updatePlayerAttackHitFeedback(): void {
+    if (!this.player.isAttackActive()) return;
+
+    const targets = getAliveEnemiesAsCombatTargets(this.enemies);
+    const hits = this.hitManager.checkHits(this.player, this.player.comboIndex, this.player.hitList, targets);
+    applyPlayerAttackHitFeedback({
+      hits,
+      damageNumbers: this.dmgNumbers,
+      hitSparks: this.hitSparks,
+      screenFlash: this.screenFlash,
+      enableMilestone100: true,
+    });
+  }
+
+  private updateEnemies(dt: number): void {
+    updateEnemyDefeatLifecycle({
+      enemies: this.enemies,
+      dtMs: dt,
+      processNewDefeat: (enemy) => this.processEnemyJustDied(enemy),
+      removeEnemyAt: (index) => removeEnemyAt(this.enemies, index),
+    });
+  }
+
+  private processEnemyJustDied(enemy: Enemy<string>): void {
+    // A11: death particle burst
+    spawnEnemyDeathParticles(this.deathParticles, enemy, false);
+    const isGolden = enemy instanceof GoldenMonster;
+    const drop = isGolden
+      ? rollGoldenDrop(this.dropRng)    // guaranteed rare+ drop
+      : rollDrop(this.dropRng);         // normal drop chance
+    if (!drop) return;
+
+    const spawn = resolveItemDropSpawn(
+      enemy.x + enemy.width / 2,
+      enemy.y + enemy.height - 4,
+      this.roomData,
+    );
+    const dropEntity = new ItemDropEntity(
+      spawn.x,
+      spawn.y,
+      drop,
+    );
+    this.drops.push(dropEntity);
+    this.entityLayer.addChild(dropEntity.container);
+    trackItemDrop({
+      source: isGolden ? 'golden' : 'enemy',
+      item_id: drop.def.id,
+      item_rarity: drop.rarity,
+    });
+  }
+
   private updateMovementVfx(dt: number): void {
     const p = this.player;
 
-    const landedSpeed = p.consumeLandedEvent();
-    if (landedSpeed !== null) {
-      this.landingDust.spawn(p.x + p.width / 2, p.y + p.height, landedSpeed);
-    }
-    const dashDir = p.consumeDashedEvent();
-    if (dashDir !== null) {
-      this.dashBoostPuff.spawn(p.x + p.width / 2, p.y + p.height, dashDir);
-    }
-    if (p.consumeDoubleJumpEvent()) {
-      this.doubleJumpRing.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-    const kickDir = p.consumeWallJumpEvent();
-    if (kickDir !== null) {
-      const wallX = kickDir > 0 ? p.x : p.x + p.width;
-      const wallY = p.y + p.height * 0.45;
-      this.wallJumpDust.spawn(wallX, wallY, kickDir);
-    }
-
-    this.dashAfterimage.tick(dt, p.isDashing(), () => ({
-      x: p.x, y: p.y, w: p.width, h: p.height,
-      facingRight: p.facingRight,
-      texture: p.getCurrentErdaTexture(),
-      spriteCenterX: p.x + p.width / 2,
-      spriteFootY: p.y + p.height,
-    }));
-
-    // --- Batch B ---
-    if (p.consumeGroundJumpEvent()) {
-      this.jumpTakeoff.spawn(p.x + p.width / 2, p.y + p.height);
-    }
-    // (Drop-through handled in Batch D section below)
-    if (p.isWallSliding()) {
-      const wallSide = p.wallContactDir();
-      const wallX = wallSide < 0 ? p.x : p.x + p.width;
-      const outDir = -wallSide;
-      this.wallSlideDust.emit(wallX, p.y + p.height * 0.55, outDir, dt);
-    }
-    this.footstepPuff.stepIfMoving(
-      dt, p.isGrounded(),
-      p.x + p.width / 2, p.y + p.height,
-      p.getVx(), p.facingRight,
-    );
-    if (p.isSurgeCharging()) {
-      this.surgeVfx.tickCharge(dt, p.x + p.width / 2, p.y + p.height, p.getSurgeChargeRatio());
-    } else if (p.isSurgeFlying()) {
-      this.surgeVfx.tickFly(dt, p.x + p.width / 2, p.y + p.height / 2);
-    } else {
-      this.surgeVfx.idleTick(dt);
-    }
+    updatePlayerKinematicVfx(dt, p, {
+      landingDust: this.landingDust,
+      dashAfterimage: this.dashAfterimage,
+      dashBoostPuff: this.dashBoostPuff,
+      doubleJumpRing: this.doubleJumpRing,
+      wallJumpDust: this.wallJumpDust,
+      jumpTakeoff: this.jumpTakeoff,
+      wallSlideDust: this.wallSlideDust,
+      footstepPuff: this.footstepPuff,
+      surgeVfx: this.surgeVfx,
+      diveLandImpact: this.diveLandImpact,
+    }, { playSfx: false });
 
     // --- Batch C ---
     const hitDir = p.consumePlayerHitEvent();
@@ -854,12 +765,6 @@ export class WorldScene extends Scene {
     }
 
     // --- Batch D ---
-    if (p.diveLanded) {
-      const severity = Math.max(0.8, Math.min(1.6, p.diveFallDistance / 240));
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, severity);
-    } else if (landedSpeed !== null && landedSpeed > 520) {
-      this.diveLandImpact.spawn(p.x + p.width / 2, p.y + p.height, 0.9);
-    }
     const waterT = p.consumeWaterTransitionEvent();
     if (waterT !== null) {
       const strength = waterT > 0 ? 1.0 : 0.8;
@@ -871,36 +776,28 @@ export class WorldScene extends Scene {
     }
     this.iceSkidStreak.emit(dt, p.isStandingOnIce(), p.x + p.width / 2, p.y + p.height, p.getVx());
 
-    // --- Enemies: 환경 VFX 재사용 (water/ice + land/jump dust) ---
-    for (let i = 0; i < this.enemies.length; i++) {
-      const e = this.enemies[i];
-      if (!e.alive) continue;
-      const ex = e.x + e.width / 2;
-      const ey = e.y + e.height;
-      if (e.waterTransition !== 0) {
-        const strength = e.waterTransition > 0 ? 1.0 : 0.8;
-        this.waterSplash.spawn(ex, ey, strength);
-      }
-      const key = `enemy_${i}`;
-      this.waterBubbles.emit(ex, e.y + e.height * 0.35, dt, e.submerged, key);
-      this.iceSkidStreak.emit(dt, e.isStandingOnIce(), ex, ey, e.getVx(), key);
-      const eLanded = e.consumeLandedEvent();
-      if (eLanded !== null) this.landingDust.spawn(ex, ey, eLanded);
-      if (e.consumeGroundJumpEvent()) this.jumpTakeoff.spawn(ex, ey);
-    }
+    updateEnemyKinematicVfx(dt, this.enemies, {
+      waterSplash: this.waterSplash,
+      waterBubbles: this.waterBubbles,
+      iceSkidStreak: this.iceSkidStreak,
+      landingDust: this.landingDust,
+      jumpTakeoff: this.jumpTakeoff,
+    });
 
-    this.landingDust.update(dt);
-    this.dashBoostPuff.update(dt);
-    this.doubleJumpRing.update(dt);
-    this.wallJumpDust.update(dt);
-    this.jumpTakeoff.update(dt);
-    this.wallSlideDust.update(dt);
-    this.footstepPuff.update(dt);
-    this.flaskBurst.update(dt);
-    this.criticalHighlight.update(dt);
-    this.hitBloodSpray.update(dt);
-    this.diveLandImpact.update(dt);
-    this.waterSplash.update(dt);
+    updateCommonMovementVfxManagers(dt, {
+      landingDust: this.landingDust,
+      dashBoostPuff: this.dashBoostPuff,
+      doubleJumpRing: this.doubleJumpRing,
+      wallJumpDust: this.wallJumpDust,
+      jumpTakeoff: this.jumpTakeoff,
+      wallSlideDust: this.wallSlideDust,
+      footstepPuff: this.footstepPuff,
+      flaskBurst: this.flaskBurst,
+      criticalHighlight: this.criticalHighlight,
+      hitBloodSpray: this.hitBloodSpray,
+      diveLandImpact: this.diveLandImpact,
+      waterSplash: this.waterSplash,
+    });
     this.waterBubbles.update(dt);
     this.dropThroughDust.update(dt);
     this.iceSkidStreak.update(dt);
@@ -910,18 +807,17 @@ export class WorldScene extends Scene {
   }
 
   private updateInventoryInput(): void {
-    const input = this.game.input;
-    if (input.isJustPressed(GameAction.STATUS)) this.inventoryUI.cycleFilter();
-    if (input.isJustPressed(GameAction.MOVE_LEFT)) this.inventoryUI.navigate('left');
-    if (input.isJustPressed(GameAction.MOVE_RIGHT)) this.inventoryUI.navigate('right');
-    if (input.isJustPressed(GameAction.LOOK_UP)) this.inventoryUI.navigate('up');
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) this.inventoryUI.navigate('down');
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      this.inventoryUI.equipSelected();
+    const inputResult = updateInventoryUiInput({
+      input: this.game.input,
+      target: this.inventoryUI,
+      onAttack: () => this.inventoryUI.handleAttackInput(),
+      onMenu: () => this.inventoryUI.handleMenuInput(),
+    });
+
+    if (inputResult.attackResult === 'confirmed_equipment_change') {
       this.updatePlayerAtk();
-      this.hud.setFloorText(`Items:${this.inventory.items.length}`);
+      this.hud.setFloorText(t('ui.hud.items_count', { count: this.inventory.items.length }));
     }
-    if (input.isJustPressed(GameAction.MENU)) this.inventoryUI.close();
   }
 
   // --- Portal System ---
@@ -945,15 +841,7 @@ export class WorldScene extends Scene {
     // Close altar UI if open
     this.closeAltarUI();
 
-    // Calculate portal screen position for transition
-    const cam = this.game.camera;
-    const screenX = portal.x - cam.renderX + GAME_WIDTH / 2;
-    const screenY = portal.y - cam.renderY + GAME_HEIGHT / 2;
-
-    const transition = new PortalTransition(
-      screenX, screenY,
-      portal.rarity, portal.sourceType, portal.sourceItem,
-    );
+    const transition = createLegacyWorldPortalTransition(portal, this.game.camera);
     this.portalTransition = transition;
     this.game.legacyUIContainer.addChild(transition.container);
 
@@ -962,8 +850,7 @@ export class WorldScene extends Scene {
 
     // Remove portal from world
     const idx = this.portals.indexOf(portal);
-    if (idx >= 0) this.portals.splice(idx, 1);
-    portal.destroy();
+    if (idx >= 0) removeEntityAt(this.portals, idx);
 
     // Store portal info for scene transition
     this.pendingPortalData = {
@@ -978,19 +865,13 @@ export class WorldScene extends Scene {
     if (!data) return;
     this.pendingPortalData = null;
 
-    const isAltar = data.sourceType === 'altar';
-
-    // For monster portals, create the dungeon reward item
-    let dungeonItem: ItemInstance | undefined;
-    if (!isAltar) {
-      const defs = SWORD_DEFS.filter(d => d.rarity === data.rarity && !STARTER_ONLY_IDS.has(d.id));
-      const def = defs.length > 0 ? defs[0] : (SWORD_DEFS.find(d => !STARTER_ONLY_IDS.has(d.id)) ?? SWORD_DEFS[0]);
-      dungeonItem = createItem(def, data.rarity);
-    }
-
-    const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
-    const prevLevel = targetItem.level;
-    const prevAtk = this.player.atk;
+    const {
+      targetItem,
+      dungeonItem,
+      isAltar,
+      prevLevel,
+      prevAtk,
+    } = prepareLegacyWorldPortalDungeonEntry(data, this.player.atk);
 
     // Clean up transition
     if (this.portalTransition) {
@@ -998,45 +879,30 @@ export class WorldScene extends Scene {
       this.portalTransition = null;
     }
 
-    // Hide world and detach any shared UI owned by this scene.
-    this.container.visible = false;
-    this.detachSharedUiForItemWorld();
-
-    const itemWorldScene = new ItemWorldScene(this.game, targetItem, this.inventory, this.player, {
-      entryCorridor: true,
-    });
-    itemWorldScene.onComplete = () => {
-      this.game.sceneManager.pop();
-      this.updatePlayerAtk();
-
-      if (isAltar) {
-        if (targetItem.level > prevLevel) {
-          this.toast.show(t('toast.weapon_level_up', { name: targetItem.def.name, level: targetItem.level }), 0xff88ff);
-          SFX.play('upgrade');
-        }
-      } else {
-        if (this.inventory.add(dungeonItem!)) {
-          this.toast.show(t('toast.item_acquired', { name: dungeonItem!.def.name, rarity: dungeonItem!.rarity.toUpperCase() }), 0xffcc44);
-        }
-      }
-      if (this.player.atk !== prevAtk) {
-        this.toast.show(t('toast.atk_change', { prev: prevAtk, next: this.player.atk }), 0xffff44);
-      }
-      this.autoSave(); // persist worldProgress changes
-    };
-
-    this.game.sceneManager.push(itemWorldScene, true);
+    this.portalItemWorldFlowRuntime.enterPortalDungeon(
+      targetItem,
+      dungeonItem,
+      isAltar,
+      prevLevel,
+      prevAtk,
+      {
+        alreadyBlack: true,
+        revealMs: 0,
+      },
+    );
   }
 
   private spawnAltarInRoom(): void {
     // Spawn altar in ~30% of rooms (capped at 2 total in the grid)
-    const totalAltars = this.altars.length;
-    if (totalAltars >= 2) return;
-    if (Math.random() > 0.3) return;
+    const spawn = getLegacyWorldAltarSpawnCandidate({
+      existingAltarCount: this.altars.length,
+      roomWidth: ROOM_W,
+      roomHeight: ROOM_H,
+      tileSize: TILE_SIZE,
+    });
+    if (!spawn) return;
 
-    const floorY = (ROOM_H - 3) * TILE_SIZE;
-    const altarX = (ROOM_W / 2) * TILE_SIZE + (Math.random() - 0.5) * 6 * TILE_SIZE;
-    const altar = new Altar(altarX, floorY);
+    const altar = new Altar(spawn.x, spawn.y);
     this.altars.push(altar);
     this.entityLayer.addChild(altar.container);
   }
@@ -1055,73 +921,55 @@ export class WorldScene extends Scene {
   private drawAltarUI(): void {
     // Destroy previous UI completely before creating new one
     if (this.altarUI) {
-      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
-      this.altarUI.destroy({ children: true });
+      destroyDisplayObject(this.altarUI, { children: true });
       this.altarUI = null;
     }
 
     const items = this.inventory.items;
-    const ui = new Container();
+    const ui = createAltarItemSelectionShell({
+      itemCount: items.length,
+      titleText: t('ui.world.offer_item'),
+      titleFill: 0xaaccff,
+      backgroundFill: MODAL_BG,
+      backgroundAlpha: 0.95,
+      borderFill: MODAL_BORDER,
+    });
 
-    const bg = new Graphics();
-    const panelW = 260;
-    const panelH = 20 + items.length * 12;
-    const px = Math.floor((GAME_WIDTH - panelW) / 2);
-    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: 0.95 });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: MODAL_BORDER, width: 1 });
-    bg.x = px;
-    bg.y = py;
-    ui.addChild(bg);
+    addAltarItemRows({
+      container: ui.container,
+      items,
+      selectedIndex: this.altarSelectIndex,
+      equippedUid: this.inventory.equipped?.uid,
+      x: ui.rowX,
+      y: ui.rowY,
+      rowHeight: ui.rowHeight,
+      selectedFill: 0xffff44,
+      normalFill: TEXT_PRIMARY,
+    });
 
-    const title = createUiText(t('ui.world.offer_item'), { fontFamily: PIXEL_FONT, fontSize: 8, fill: 0xaaccff });
-    title.x = px + 6;
-    title.y = py + 4;
-    ui.addChild(title);
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const selected = i === this.altarSelectIndex;
-      const prefix = selected ? '> ' : '  ';
-      const equipped = this.inventory.equipped?.uid === item.uid ? ' [E]' : '';
-      const label = `${prefix}${item.def.name} Lv${item.level} ${item.rarity.toUpperCase()}${equipped}`;
-      const t = new BitmapText({ text: label, style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffff44 : TEXT_PRIMARY } });
-      t.x = px + 6;
-      t.y = py + 16 + i * 12;
-      ui.addChild(t);
-    }
-
-    this.altarUI = ui;
-    this.game.legacyUIContainer.addChild(ui);
+    this.altarUI = ui.container;
+    this.game.legacyUIContainer.addChild(ui.container);
   }
 
   private closeAltarUI(): void {
     this.altarSelectActive = false;
     this.activeAltar = null;
     if (this.altarUI) {
-      if (this.altarUI.parent) this.altarUI.parent.removeChild(this.altarUI);
-      this.altarUI.destroy({ children: true });
+      destroyDisplayObject(this.altarUI, { children: true });
       this.altarUI = null;
     }
   }
 
   private updateAltarInput(): void {
-    const input = this.game.input;
     const items = this.inventory.items;
-
-    if (input.isJustPressed(GameAction.LOOK_UP)) {
-      this.altarSelectIndex = Math.max(0, this.altarSelectIndex - 1);
-      this.drawAltarUI();
-      return;
-    }
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-      this.altarSelectIndex = Math.min(items.length - 1, this.altarSelectIndex + 1);
-      this.drawAltarUI();
-      return;
-    }
-    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
-      const item = items[this.altarSelectIndex];
-      if (item && this.activeAltar) {
+    updateItemSelectionInput({
+      input: this.game.input,
+      items,
+      selectedIndex: this.altarSelectIndex,
+      setSelectedIndex: (index) => { this.altarSelectIndex = index; },
+      redraw: () => this.drawAltarUI(),
+      onConfirm: (item) => {
+        if (this.activeAltar) {
         const altar = this.activeAltar;
         altar.used = true; // prevent re-opening
         this.closeAltarUI();
@@ -1129,192 +977,89 @@ export class WorldScene extends Scene {
       } else {
         this.closeAltarUI();
       }
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
-      this.closeAltarUI();
-      return;
-    }
+      },
+      onEmptyConfirm: () => this.closeAltarUI(),
+      onCancel: () => this.closeAltarUI(),
+    });
   }
 
   /** Returns true if player entered a portal this frame */
   private updatePortals(dt: number): boolean {
-    for (const portal of this.portals) {
-      portal.update(dt);
-
-      // Check proximity for hint
-      const near = portal.overlaps(
-        this.player.x - 8, this.player.y - 8,
-        this.player.width + 16, this.player.height + 16,
-      );
-      portal.setShowHint(near);
-
-      // Check enter
-      if (portal.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.game.input.isJustPressed(GameAction.LOOK_UP)) {
-          this.enterPortal(portal);
-          return true;
-        }
-      }
-    }
-    return false;
+    return updatePortalInteractions({
+      portals: this.portals,
+      actor: this.player,
+      dtMs: dt,
+      isInteractPressed: () => this.game.input.isJustPressed(GameAction.LOOK_UP),
+      onEnter: (portal) => this.enterPortal(portal),
+    });
   }
 
   private updateAltars(dt: number): void {
-    for (const altar of this.altars) {
-      altar.update(dt);
-
-      // Skip used altars (already spawned a portal)
-      if (altar.used) {
-        altar.setShowHint(false);
-        continue;
-      }
-
-      const near = altar.overlaps(
-        this.player.x - 8, this.player.y - 8,
-        this.player.width + 16, this.player.height + 16,
-      );
-      altar.setShowHint(near);
-
-      if (altar.overlaps(this.player.x, this.player.y, this.player.width, this.player.height)) {
-        if (this.game.input.isJustPressed(GameAction.LOOK_UP) && !this.altarSelectActive) {
-          this.openAltarUI(altar);
-          return;
-        }
-      }
-    }
-  }
-
-  private clearPortals(): void {
-    for (const p of this.portals) p.destroy();
-    this.portals = [];
-  }
-
-  private clearAltars(): void {
-    for (const a of this.altars) a.destroy();
-    this.altars = [];
+    updateAltarInteractions({
+      altars: this.altars,
+      actor: this.player,
+      dtMs: dt,
+      isInteractPressed: () => this.game.input.isJustPressed(GameAction.LOOK_UP),
+      isSelectActive: () => this.altarSelectActive,
+      onOpen: (altar) => this.openAltarUI(altar),
+    });
   }
 
   private checkDoorTriggers(): void {
-    const pb = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height };
-    for (const trigger of this.doorTriggers) {
-      if (aabbOverlap(pb, trigger)) {
-        const nextCol = this.currentCol + (trigger.direction === 'right' ? 1 : trigger.direction === 'left' ? -1 : 0);
-        const nextRow = this.currentRow + (trigger.direction === 'down' ? 1 : trigger.direction === 'up' ? -1 : 0);
-        if (nextRow >= 0 && nextRow < this.gridData.height && nextCol >= 0 && nextCol < this.gridData.width) {
-          const nextCell = this.gridData.cells[nextRow][nextCol];
-          if (nextCell.type !== 0) {
-            this.startTransition(trigger.direction, nextCol, nextRow);
-            return;
-          }
-        }
-      }
-    }
-  }
+    const transition = findDoorTransitionCandidate({
+      triggers: this.doorTriggers,
+      actorBounds: { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height },
+      currentCol: this.currentCol,
+      currentRow: this.currentRow,
+      gridWidth: this.gridData.width,
+      gridHeight: this.gridData.height,
+      getCell: (col, row) => this.gridData.cells[row]?.[col],
+    });
 
-  private startTransition(direction: 'left' | 'right' | 'up' | 'down', nextCol: number, nextRow: number): void {
+    if (!transition) return;
+
     this.transitionState = 'fade_out';
     this.transitionTimer = FADE_DURATION;
-    this.pendingDirection = direction;
-    this.currentCol = nextCol;
-    this.currentRow = nextRow;
+    this.pendingDirection = transition.direction;
+    this.currentCol = transition.nextCol;
+    this.currentRow = transition.nextRow;
   }
 
   private updateTransition(dt: number): void {
-    this.transitionTimer -= dt;
-    if (this.transitionState === 'fade_out') {
-      this.fadeOverlay.alpha = Math.min(1, 1 - this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        this.loadRoom(this.pendingDirection!);
-        this.transitionState = 'fade_in';
-        this.transitionTimer = FADE_DURATION;
-        this.fadeOverlay.alpha = 1;
-      }
-    } else if (this.transitionState === 'fade_in') {
-      this.fadeOverlay.alpha = Math.max(0, this.transitionTimer / FADE_DURATION);
-      if (this.transitionTimer <= 0) {
-        this.transitionState = 'none';
-        this.fadeOverlay.alpha = 0;
-        this.autoSave();
-        this.pendingDirection = null;
-      }
+    const transition = stepLegacyWorldTransition({
+      state: this.transitionState,
+      timer: this.transitionTimer,
+      pendingDirection: this.pendingDirection,
+      dtMs: dt,
+      durationMs: FADE_DURATION,
+    });
+
+    if (transition.loadDirection) {
+      this.loadRoom(transition.loadDirection);
     }
+
+    this.transitionState = transition.state;
+    this.transitionTimer = transition.timer;
+    this.pendingDirection = transition.pendingDirection;
+    this.fadeOverlay.alpha = transition.fadeAlpha;
   }
 
   render(alpha: number): void {
     if (this.boundsGuard) this.boundsGuard.visible = this.game.camera.isShaking;
     this.player.render(alpha);
-    for (const enemy of this.enemies) enemy.render(alpha);
+    renderEnemies(this.enemies, alpha);
     // Portals and altars are static, no interpolation needed
   }
 
   exit(): void {
     if (this._gpUnsub) { this._gpUnsub(); this._gpUnsub = null; }
     this.toast.clear();
-    if (this.miniMapContainer?.parent) this.miniMapContainer.parent.removeChild(this.miniMapContainer);
-    if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.inventoryUI?.container.parent) this.inventoryUI.container.parent.removeChild(this.inventoryUI.container);
-    if (this.altarUI?.parent) this.altarUI.parent.removeChild(this.altarUI);
+    if (this.miniMapContainer) detachDisplayObject(this.miniMapContainer);
+    if (this.hud) detachDisplayObject(this.hud.container);
+    if (this.inventoryUI) detachDisplayObject(this.inventoryUI.container);
+    if (this.altarUI) detachDisplayObject(this.altarUI);
     if (this.portalTransition) { this.portalTransition.destroy(); this.portalTransition = null; }
   }
 
-  private drawMiniMap(): void {
-    this.miniMapContainer.removeChildren();
-    const cellSize = 8;
-    const gap = 1;
-    const padding = 4;
-
-    const bg = new Graphics();
-    const bgW = GRID_W * (cellSize + gap) + gap + padding * 2;
-    const bgH = GRID_H * (cellSize + gap) + gap + padding * 2;
-    bg.rect(0, 0, bgW, bgH).fill({ color: 0x000000, alpha: 0.6 });
-    this.miniMapContainer.addChild(bg);
-
-    for (let row = 0; row < this.gridData.height; row++) {
-      for (let col = 0; col < this.gridData.width; col++) {
-        const cell = this.gridData.cells[row][col];
-        const x = padding + col * (cellSize + gap);
-        const y = padding + row * (cellSize + gap);
-
-        let color = 0x333333;
-        let a = 0.3;
-        if (cell.visited) {
-          a = 1;
-          if (cell.type === 0) color = 0x333333;
-          else if (cell.cleared) color = 0x2a6a2a;
-          else color = 0x4a4a6a;
-        }
-        if (col === this.currentCol && row === this.currentRow) {
-          color = 0xe74c3c;
-          a = 1;
-        }
-
-        const cellGfx = new Graphics();
-        cellGfx.rect(0, 0, cellSize, cellSize).fill({ color, alpha: a });
-        cellGfx.x = x;
-        cellGfx.y = y;
-        this.miniMapContainer.addChild(cellGfx);
-
-        if (cell.visited && cell.type !== 0) {
-          if (cell.exits.right && col < GRID_W - 1) {
-            const line = new Graphics();
-            line.rect(0, 0, gap, 2).fill(0x666666);
-            line.x = x + cellSize;
-            line.y = y + cellSize / 2 - 1;
-            this.miniMapContainer.addChild(line);
-          }
-          if (cell.exits.down && row < GRID_H - 1) {
-            const line = new Graphics();
-            line.rect(0, 0, 2, gap).fill(0x666666);
-            line.x = x + cellSize / 2 - 1;
-            line.y = y + cellSize;
-            this.miniMapContainer.addChild(line);
-          }
-        }
-      }
-    }
-
-    this.miniMapContainer.x = 4;
-    this.miniMapContainer.y = 4;
-  }
 }
+

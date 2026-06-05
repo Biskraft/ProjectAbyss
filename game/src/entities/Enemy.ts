@@ -17,6 +17,8 @@ import { getEnemyStats, type MovementType } from '@data/enemyStats';
 import { EnemyConst } from '@data/constData';
 import { type ElementAffinity, elementGroup } from '@combat/ElementAffinity';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
+import { isBossEnemy } from '@entities/EnemyMetadata';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
@@ -167,6 +169,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   // Target reference
   target: CombatEntity | null = null;
   roomData: number[][] = [];
+
+  bindSpawnContext(collisionGrid: number[][], target: CombatEntity): void {
+    this.roomData = collisionGrid;
+    this.target = target;
+  }
 
   // Hit
   private _hitstunTimer = 0;
@@ -471,8 +478,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
           // Sprite-shaped flash
           if (!(this.flashOverlay instanceof Sprite)) {
             if (this.flashOverlay) {
-              this.container.removeChild(this.flashOverlay);
-              this.flashOverlay.destroy();
+              destroyDisplayObject(this.flashOverlay);
             }
             const flash = new Sprite(this.mainSprite.texture);
             flash.anchor.copyFrom(this.mainSprite.anchor);
@@ -492,8 +498,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
           // Graphics rect fallback
           if (!(this.flashOverlay instanceof Graphics)) {
             if (this.flashOverlay) {
-              this.container.removeChild(this.flashOverlay);
-              this.flashOverlay.destroy();
+              destroyDisplayObject(this.flashOverlay);
             }
             this.flashOverlay = new Graphics();
             this.container.addChild(this.flashOverlay);
@@ -522,7 +527,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     }
 
     // Show HP bar on hit (skip for bosses — HUD bar handles it)
-    if (!(this as any)._isBoss) {
+    if (!isBossEnemy(this)) {
       this.hpBarVisible = true;
       this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
       this.hpBarContainer.visible = true;
@@ -537,7 +542,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    * visual feedback that the elemental damage is landing on the enemy.
    */
   showHpBarFlash(): void {
-    if ((this as any)._isBoss) return; // bosses use the HUD bar
+    if (isBossEnemy(this)) return; // bosses use the HUD bar
     this.hpBarVisible = true;
     this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
     this.hpBarContainer.visible = true;

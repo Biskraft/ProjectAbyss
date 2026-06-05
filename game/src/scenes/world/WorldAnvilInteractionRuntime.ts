@@ -16,10 +16,6 @@ interface WorldAnvilInteractionRuntimeDeps {
 export class WorldAnvilInteractionRuntime {
   constructor(private readonly deps: WorldAnvilInteractionRuntimeDeps) {}
 
-  get isPromptSuppressed(): boolean {
-    return this.deps.getPrompts()?.isSuppressed ?? false;
-  }
-
   isPlayerNearAnvil(promptRange = 16): boolean {
     const anvil = this.deps.getAnvil();
     if (!anvil) return false;
@@ -71,7 +67,8 @@ export class WorldAnvilInteractionRuntime {
     prompts?.hideDisabled();
 
     anvil.setShowHint(false);
-    if (this.isPlayerNearAnvil() && !this.isPromptSuppressed) {
+    const isPromptSuppressed = prompts?.isSuppressed ?? false;
+    if (this.isPlayerNearAnvil() && !isPromptSuppressed) {
       const promptKey = anvil.hasItem() ? 'prompt.acquire_item' : 'prompt.place_weapon';
       prompts?.showAction(anvil, promptKey);
     } else {

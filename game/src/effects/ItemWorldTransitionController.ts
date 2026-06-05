@@ -8,6 +8,7 @@ import { PortalRingEffect } from '@effects/PortalRingEffect';
 import { RealityPeelingEffect } from '@effects/RealityPeelingEffect';
 import { TransitionOverlay } from '@effects/TransitionOverlay';
 import { BgmController } from '@audio/BgmController';
+import { clampEffect01 } from './EffectNumeric';
 
 export type ItemWorldTransitionState =
   | 'idle'
@@ -222,10 +223,11 @@ export class ItemWorldTransitionController {
   }
 
   private fadeIsolatedTarget(t: number): void {
+    const alphaT = clampEffect01(t);
     if (this.target?.container) {
-      this.target.container.alpha = 1 - Math.max(0, Math.min(1, t));
+      this.target.container.alpha = 1 - alphaT;
     }
-    this.deps.player.container.alpha = this.originalPlayerAlpha * (1 - Math.max(0, Math.min(1, t)));
+    this.deps.player.container.alpha = this.originalPlayerAlpha * (1 - alphaT);
   }
 
   private restoreIsolatedEntities(): void {

@@ -1,26 +1,32 @@
 import type { Container } from 'pixi.js';
 import type { ThrowableContainer } from '@entities/ThrowableContainer';
+import {
+  addContainersToRegistry,
+  addContainerToRegistry,
+  clearContainers,
+  removeContainerAt,
+} from '@scenes/shared/ContainerRegistryHelpers';
 
 export class WorldContainerRegistry {
-  readonly containers: ThrowableContainer[] = [];
+  private readonly containers: ThrowableContainer[] = [];
 
   add(container: ThrowableContainer, entityLayer?: Container): void {
-    this.containers.push(container);
-    if (entityLayer && !container.container.parent) entityLayer.addChild(container.container);
+    addContainerToRegistry(this.containers, container, entityLayer);
   }
 
   addMany(containers: Iterable<ThrowableContainer>, entityLayer?: Container): void {
-    for (const container of containers) this.add(container, entityLayer);
+    addContainersToRegistry(this.containers, containers, entityLayer);
+  }
+
+  getContainers(): ThrowableContainer[] {
+    return this.containers;
   }
 
   removeAt(index: number): void {
-    const container = this.containers[index];
-    container.destroy();
-    this.containers.splice(index, 1);
+    removeContainerAt(this.containers, index);
   }
 
   clear(): void {
-    for (const container of this.containers) container.destroy();
-    this.containers.length = 0;
+    clearContainers(this.containers);
   }
 }

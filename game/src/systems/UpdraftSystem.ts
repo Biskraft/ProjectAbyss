@@ -33,6 +33,7 @@ import { Graphics, type Container } from 'pixi.js';
 import { isInUpdraft, TILE_UPDRAFT, TILE_SIZE } from '@core/Physics';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import type { Camera } from '@core/Camera';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import type { Player } from '@entities/Player';
 
 interface Streak {
@@ -508,8 +509,8 @@ export class UpdraftSystem {
   }
 
   destroy(): void {
-    if (this.gfxBg?.parent) this.gfxBg.parent.removeChild(this.gfxBg);
-    if (this.gfxFg?.parent) this.gfxFg.parent.removeChild(this.gfxFg);
+    if (this.gfxBg) detachDisplayObject(this.gfxBg);
+    if (this.gfxFg) detachDisplayObject(this.gfxFg);
     this.gfxBg = null;
     this.gfxFg = null;
     this.streaks = [];

@@ -1,16 +1,16 @@
 import type { Game } from '../../Game';
 import { aabbOverlap } from '@core/Physics';
-import { SWORD_DEFS } from '@data/weapons';
 import { SecretWall } from '@entities/SecretWall';
 import type { Player } from '@entities/Player';
 import { ItemDropEntity } from '@items/ItemDrop';
-import { createItem } from '@items/ItemInstance';
+import { createRandomRareOrBetterRewardItem } from '@items/ItemRewardFactory';
 import { resolveItemDropSpawn } from '@items/DropSpawn';
 import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { LdtkRenderer } from '@level/LdtkRenderer';
 import { t } from '@i18n';
 import { trackSecretWallBreak } from '@utils/Analytics';
+import { getWallRuntimeItemId, getWallRuntimeKey, setWallRuntimeItemId, setWallRuntimeKey } from '@entities/WallMetadata';
 import type { WorldSecretWallRegistry } from './WorldSecretWallRegistry';
 
 interface WorldSecretWallRuntimeDeps {
@@ -54,8 +54,8 @@ export class WorldSecretWallRuntime {
         mode,
         hintAlpha,
       });
-      (wall as any)._key = key;
-      (wall as any)._itemId = itemId;
+      setWallRuntimeKey(wall, key);
+      setWallRuntimeItemId(wall, itemId);
       wall.recordCollision(this.deps.getCollisionGrid());
       registry.add(wall, this.deps.getRenderer().wallLayer);
     }
@@ -106,13 +106,13 @@ export class WorldSecretWallRuntime {
   }
 
   private handleBrokenWall(wall: SecretWall, index: number): void {
-    const key = (wall as any)._key as string;
+    const key = getWallRuntimeKey(wall);
     if (key) this.deps.getUnlockedEvents().add(key);
 
     trackSecretWallBreak({
       mode: wall.mode,
       level_id: this.deps.getCurrentLevelId(),
-      item_id: wall.mode === 'item' ? ((wall as any)._itemId as string | undefined) : undefined,
+      item_id: wall.mode === 'item' ? getWallRuntimeItemId(wall) ?? undefined : undefined,
     });
 
     this.deps.getRenderer().clearTilesInRect(
@@ -124,7 +124,7 @@ export class WorldSecretWallRuntime {
     );
 
     if (wall.mode === 'item') {
-      const itemId = (wall as any)._itemId as string | null;
+      const itemId = getWallRuntimeItemId(wall);
       if (itemId) {
         this.deps.spawnFixedItem(wall.centerX, wall.centerY, itemId);
       } else {
@@ -139,9 +139,7 @@ export class WorldSecretWallRuntime {
   }
 
   private spawnRandomSecretWallWeapon(x: number, y: number): void {
-    const pool = SWORD_DEFS.filter(def => def.rarity !== 'normal');
-    const def = pool[Math.floor(Math.random() * pool.length)] ?? SWORD_DEFS[0];
-    const item = createItem(def, def.rarity);
+    const item = createRandomRareOrBetterRewardItem();
     const spawn = resolveItemDropSpawn(x, y, this.deps.getCollisionGrid());
     this.deps.addItemDrop(new ItemDropEntity(spawn.x, spawn.y, item));
   }

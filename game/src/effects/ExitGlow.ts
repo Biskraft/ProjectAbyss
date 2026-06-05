@@ -24,6 +24,8 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 const GLOW_COLOR_DEFAULT = 0xe07028;
 // 2026-05-23 사용자 결정: 길이 / intensity / 파티클 모두 2배. 오렌지 출구 시그널
@@ -182,7 +184,7 @@ export class ExitGlow {
    */
   setPlayer(playerX: number, playerY: number): void {
     const dist = this.pointToSegmentDist(playerX, playerY);
-    const t = clamp01((DUST_FAR_DIST - dist) / (DUST_FAR_DIST - DUST_CLOSE_DIST));
+    const t = clampEffect01((DUST_FAR_DIST - dist) / (DUST_FAR_DIST - DUST_CLOSE_DIST));
     this.dustTargetAlpha = DUST_MAX_ALPHA * t;
     this.proximityFactor = t;
   }
@@ -315,7 +317,7 @@ export class ExitGlow {
       if (lifeT < 0.15) lifeAlpha = lifeT / 0.15;
       else if (lifeT > 0.85) lifeAlpha = (1 - lifeT) / 0.15;
       else lifeAlpha = 1;
-      lifeAlpha = clamp01(lifeAlpha);
+      lifeAlpha = clampEffect01(lifeAlpha);
       // baseCount 이후의 예비 파티클은 proximity 에 비례해 페이드인 →
       // 멀리 있을 땐 기본 밀도, 가까워지면 DUST_DENSITY_BOOST 배까지 증가.
       const densityMask = i < this.baseCount ? 1 : this.proximityFactor;
@@ -332,7 +334,7 @@ export class ExitGlow {
     const dy = this.by - this.ay;
     const len2 = dx * dx + dy * dy;
     if (len2 === 0) return Math.hypot(px - this.ax, py - this.ay);
-    const t = clamp01(((px - this.ax) * dx + (py - this.ay) * dy) / len2);
+    const t = clampEffect01(((px - this.ax) * dx + (py - this.ay) * dy) / len2);
     const cx = this.ax + t * dx;
     const cy = this.ay + t * dy;
     return Math.hypot(px - cx, py - cy);
@@ -347,7 +349,7 @@ export class ExitGlow {
       // Band 0 sits closest to the edge (brightest); band N-1 is the furthest
       // inward band (dimmest). Quadratic falloff reads as a soft gradient.
       const t = i / (GLOW_BANDS - 1 || 1);
-      const bandAlpha = clamp01(baseAlpha * (1 - t) * (1 - t));
+      const bandAlpha = clampEffect01(baseAlpha * (1 - t) * (1 - t));
       let rx = 0, ry = 0, rw = 0, rh = 0;
       if (this.dir === 'right') {
         rx = -step * (i + 1);
@@ -375,13 +377,8 @@ export class ExitGlow {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
-}
-
-function clamp01(v: number): number {
-  return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

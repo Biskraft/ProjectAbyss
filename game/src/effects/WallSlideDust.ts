@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Wall slide dust — continuous trickle of small particles streaming down the
@@ -64,14 +65,14 @@ export class WallSlideDustManager {
       const t = Math.max(0, p.life / p.maxLife);
       p.gfx.alpha = t * 0.8;
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.parts.splice(i, 1);
       }
     }
   }
 
   clear(): void {
-    for (const p of this.parts) if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+    for (const p of this.parts) detachDisplayObject(p.gfx);
     this.parts.length = 0;
     this.emitTimer = 0;
   }

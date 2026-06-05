@@ -16,3 +16,5 @@
 ## Verification
 
 - 2026-06-02: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings after removing the remaining scene minimap wrappers.
+
+- 2026-06-05: Minimap detach/destroy now uses DisplayObjectLifecycleHelpers.detachDisplayObject()/destroyDisplayObject(..., { children: true }); detach remains non-destructive for UI hide/reattach flows.

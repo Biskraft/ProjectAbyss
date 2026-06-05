@@ -7,8 +7,22 @@ import type { ScreenFlash } from '@effects/ScreenFlash';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { t } from '@i18n';
 import { trackRelicAcquire } from '@utils/Analytics';
+import { setPersistedKey, getPersistedKey } from '@scenes/world/PickupMetadata';
 import type { Game } from '../../Game';
 import type { WorldAcquireOverlayRuntime } from './WorldAcquireOverlayRuntime';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import {
+  destroyDisplayObject,
+  destroyDisplayObjectAt,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import {
+  isPickupNearPlayer,
+  isPointNearPlayer,
+} from '@scenes/shared/PickupCollectionHelpers';
 
 interface AbilityRelicMarker {
   gfx: Graphics;
@@ -37,8 +51,7 @@ export class WorldRelicPickupRuntime {
   constructor(private readonly deps: WorldRelicPickupRuntimeDeps) {}
 
   addHealthShard(shard: HealthShard): void {
-    this.healthShards.push(shard);
-    if (!shard.container.parent) this.deps.getEntityLayer().addChild(shard.container);
+    addEntityToLayer(this.healthShards, shard, this.deps.getEntityLayer(), { onlyAttachIfUnparented: true });
   }
 
   addAbilityRelic(x: number, y: number, abilityName: string, relicKey: string): void {
@@ -59,7 +72,7 @@ export class WorldRelicPickupRuntime {
         if (collectedRelics.has(key)) continue;
         const hpBonus = (entity.fields['HpBonus'] ?? entity.fields['hpBonus'] ?? 10) as number;
         const shard = new HealthShard(entity.px[0], entity.px[1], hpBonus);
-        (shard as unknown as { _key?: string })._key = key;
+        setPersistedKey(shard, key);
         this.addHealthShard(shard);
       } else if (entity.type === 'AbilityRelic') {
         const abilityName = (entity.fields['ability'] as string | undefined) ?? 'wallJump';
@@ -70,11 +83,9 @@ export class WorldRelicPickupRuntime {
   }
 
   clear(): void {
-    for (const shard of this.healthShards) shard.destroy();
-    this.healthShards.length = 0;
+    destroyAndClearEntities(this.healthShards);
     for (const relic of this.abilityRelics) {
-      if (relic.gfx.parent) relic.gfx.parent.removeChild(relic.gfx);
-      relic.gfx.destroy();
+      destroyDisplayObject(relic.gfx);
     }
     this.abilityRelics.length = 0;
   }
@@ -91,15 +102,12 @@ export class WorldRelicPickupRuntime {
       if (shard.collected) continue;
 
       shard.update(dtMs);
-      const dx = Math.abs((player.x + player.width / 2) - (shard.x + shard.width / 2));
-      const dy = Math.abs((player.y + player.height / 2) - (shard.y + shard.height / 2));
-      if (dx >= 16 || dy >= 16) continue;
+      if (!isPickupNearPlayer(shard, player)) continue;
 
-      const key = (shard as unknown as { _key?: string })._key ?? '';
+      const key = getPersistedKey(shard) ?? '';
       shard.collect();
       this.applyHealthShardReward(shard, key);
-      shard.destroy();
-      this.healthShards.splice(i, 1);
+      removeEntityAt(this.healthShards, i);
     }
   }
 
@@ -107,16 +115,12 @@ export class WorldRelicPickupRuntime {
     const player = this.deps.getPlayer();
     for (let i = this.abilityRelics.length - 1; i >= 0; i--) {
       const relic = this.abilityRelics[i];
-      const dx = Math.abs((player.x + player.width / 2) - relic.gfx.x);
-      const dy = Math.abs((player.y + player.height / 2) - relic.gfx.y);
-      if (dx >= 16 || dy >= 16) continue;
+      if (!isPointNearPlayer(relic.gfx, player)) continue;
 
       this.applyAbilityRelicReward(relic.abilityName, relic.relicKey);
       const relicTint = relic.abilityName === 'waterBreathing' ? 0x4488ff : 0xffd700;
       this.deps.getRelicAuraBurst().spawn(relic.gfx.x, relic.gfx.y, relicTint);
-      if (relic.gfx.parent) relic.gfx.parent.removeChild(relic.gfx);
-      relic.gfx.destroy();
-      this.abilityRelics.splice(i, 1);
+      destroyDisplayObjectAt(this.abilityRelics, i, item => item.gfx);
     }
   }
 

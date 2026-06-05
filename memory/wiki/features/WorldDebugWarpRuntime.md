@@ -15,3 +15,6 @@
 ## Verification
 
 - 2026-06-02: `npx tsc --noEmit`, `npm run build`, and browser smoke at `/play/?debug=1` passed after extracting `WorldDebugWarpRuntime`; the smoke exercised Backquote, click-to-warp, ESC, and Shift+M with no console/page errors.
+
+- 2026-06-05: Warp hint teardown now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject()`; pointer listener and cursor cleanup remain owned by `deactivate()`.
+- 2026-06-05: Shift+M debug world-map entry and MENU cancel now use `InputPressHelpers.consumeJustPressedAction()` for the press/consume gate; debug-enabled, item-tunnel, active-state, and world-map visibility guards remain runtime-owned.

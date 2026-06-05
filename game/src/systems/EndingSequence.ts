@@ -16,6 +16,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import type { InputManager } from '@core/InputManager';
 import type { Camera } from '@core/Camera';
 import type { Container } from 'pixi.js';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const FREEZE_END_MS = 2000;
 const FADE_END_MS   = 3000;
@@ -91,8 +92,7 @@ export class EndingSequence {
   }
 
   dispose(): void {
-    this.overlay?.parent?.removeChild(this.overlay);
-    this.overlay?.destroy();
+    if (this.overlay) destroyDisplayObject(this.overlay);
     this.overlay = null;
   }
 }

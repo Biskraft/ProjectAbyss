@@ -1,9 +1,11 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import type { ItemInstance } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject, destroyNullableDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import { generateItemWorldGrid } from '@level/ItemWorldGridGen';
 import { resolveTiles, TEMPLATE_H, TEMPLATE_W } from '@level/ItemWorldTemplates';
 import { PRNG } from '@utils/PRNG';
+import { clampEffect01 } from './EffectNumeric';
 
 type BirthPhase = 'forming' | 'interior' | 'struck' | 'shattering' | 'floating' | 'building' | 'built' | 'done';
 
@@ -65,22 +67,18 @@ const SHARD_SHRINK_START_T = 0.8;
 const SHARD_FLOAT_SPREAD_MUL = 0.62;
 const VOID_BLACK = 0x030409;
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
 function easeOutCubic(t: number): number {
-  const inv = 1 - clamp01(t);
+  const inv = 1 - clampEffect01(t);
   return 1 - inv * inv * inv;
 }
 
 function easeInOut(t: number): number {
-  const c = clamp01(t);
+  const c = clampEffect01(t);
   return c * c * (3 - 2 * c);
 }
 
 function grayTint(t: number): number {
-  const v = Math.round(255 * (1 - clamp01(t)));
+  const v = Math.round(255 * (1 - clampEffect01(t)));
   return (v << 16) | (v << 8) | v;
 }
 
@@ -193,8 +191,7 @@ export class ItemWorldForgeBirth {
   }
 
   destroy(): void {
-    this.container.parent?.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   private async loadItemTexture(): Promise<void> {
@@ -213,8 +210,8 @@ export class ItemWorldForgeBirth {
   }
 
   private createItemSprites(texture: Texture): void {
-    this.itemSprite?.destroy();
-    this.maskSprite?.destroy();
+    this.itemSprite = destroyNullableDisplayObject(this.itemSprite);
+    this.maskSprite = destroyNullableDisplayObject(this.maskSprite);
     this.itemTexture = texture;
 
     const sprite = new Sprite(texture);
@@ -460,7 +457,7 @@ export class ItemWorldForgeBirth {
     this.interiorGrid.clear();
     this.whiteShardLayer.clear();
 
-    const formingT = clamp01(this.elapsed / FORM_MS);
+    const formingT = clampEffect01(this.elapsed / FORM_MS);
     const pulse = 0.5 + Math.sin(this.flickerSeed) * 0.5;
     const scalePulse = 1 + (this.phase === 'struck' ? 0.2 : 0.035 * pulse);
     const visibleItem = this.itemRevealed && this.phase !== 'shattering' && this.phase !== 'floating' && this.phase !== 'building' && this.phase !== 'built' && this.phase !== 'done';
@@ -503,7 +500,7 @@ export class ItemWorldForgeBirth {
     const interior = this.interiorGrid;
     const cx = this.options.x;
     const cy = this.options.y;
-    const s = (0.42 + 0.58 * easeOutCubic(clamp01(this.elapsed / FORM_MS))) * scalePulse;
+    const s = (0.42 + 0.58 * easeOutCubic(clampEffect01(this.elapsed / FORM_MS))) * scalePulse;
     const flicker = this.phase === 'struck' ? 1 : 0.78 + Math.sin(this.flickerSeed * 0.8) * 0.16;
     for (const cell of this.gridCells) {
       const x = cx + (cell.x - cx) * s;
@@ -534,11 +531,11 @@ export class ItemWorldForgeBirth {
         shard.sprite.rotation = state.rot;
         shard.sprite.alpha = state.alpha;
         shard.sprite.tint = grayTint(state.buildT);
-        const shrinkT = clamp01((state.buildT - SHARD_SHRINK_START_T) / (1 - SHARD_SHRINK_START_T));
+        const shrinkT = clampEffect01((state.buildT - SHARD_SHRINK_START_T) / (1 - SHARD_SHRINK_START_T));
         shard.sprite.scale.set(ITEM_SCALE * (1 - easeInOut(shrinkT)));
       } else {
         const tint = grayTint(state.buildT);
-        const shrinkT = clamp01((state.buildT - SHARD_SHRINK_START_T) / (1 - SHARD_SHRINK_START_T));
+        const shrinkT = clampEffect01((state.buildT - SHARD_SHRINK_START_T) / (1 - SHARD_SHRINK_START_T));
         const scale = 1 - easeInOut(shrinkT);
         this.drawShardPolygon(this.whiteShardLayer, state.x, state.y, shard.w * scale, shard.h * scale, state.rot, tint, 0.82 * state.alpha, 0x0b0e18, 0.3 * state.alpha);
       }
@@ -564,7 +561,7 @@ export class ItemWorldForgeBirth {
     const buildT = this.phase === 'built'
       ? 1
       : this.phase === 'building'
-        ? clamp01(floatTime / shard.duration)
+        ? clampEffect01(floatTime / shard.duration)
         : 0;
     const eased = easeInOut(buildT);
     const floatPhase = this.elapsed * 0.0011 + shard.seed;

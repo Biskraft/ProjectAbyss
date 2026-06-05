@@ -2,6 +2,10 @@ import { Container, BitmapText } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import type { Camera } from '@core/Camera';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import {
+  destroyDisplayObject,
+  detachDisplayObject,
+} from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const FLOAT_SPEED = 50; // px/s upward (in base 640 space)
 const LIFETIME = 900; // ms
@@ -156,8 +160,7 @@ export class DamageNumberManager {
    */
   clear(): void {
     for (const e of this.entries) {
-      if (e.text.parent) e.text.parent.removeChild(e.text);
-      e.text.destroy();
+      destroyDisplayObject(e.text);
     }
     this.entries.length = 0;
   }
@@ -187,7 +190,7 @@ export class DamageNumberManager {
       }
 
       if (entry.timer <= 0) {
-        if (entry.text.parent) entry.text.parent.removeChild(entry.text);
+        detachDisplayObject(entry.text);
         this.entries.splice(i, 1);
       }
     }

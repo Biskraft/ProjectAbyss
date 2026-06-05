@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Critical highlight — golden starburst overlay spawned on top of a hit spark
@@ -49,8 +50,7 @@ export class CriticalHighlightManager {
       s.gfx.scale.set(0.5 + (1 - t) * 1.0);
       s.gfx.rotation += dt * 0.008;
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.stars.splice(i, 1);
       }
     }
@@ -58,8 +58,7 @@ export class CriticalHighlightManager {
 
   clear(): void {
     for (const s of this.stars) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.stars.length = 0;
   }

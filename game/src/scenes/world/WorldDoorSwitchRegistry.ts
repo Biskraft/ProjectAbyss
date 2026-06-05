@@ -1,6 +1,10 @@
 import type { Container } from 'pixi.js';
 import type { LockedDoor } from '@entities/LockedDoor';
 import type { Switch } from '@entities/Switch';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export class WorldDoorSwitchRegistry {
   readonly doors: LockedDoor[] = [];
@@ -10,25 +14,21 @@ export class WorldDoorSwitchRegistry {
   private readonly switchCollisionGrids = new WeakMap<Switch, number[][]>();
 
   addDoor(door: LockedDoor, collisionGrid: number[][], entityLayer?: Container): void {
-    this.doors.push(door);
+    addEntityToLayer(this.doors, door, entityLayer, { onlyAttachIfUnparented: true });
     this.doorCollisionGrids.set(door, collisionGrid);
-    if (entityLayer && !door.container.parent) entityLayer.addChild(door.container);
   }
 
   addSwitch(sw: Switch, collisionGrid: number[][], entityLayer?: Container): void {
-    this.switches.push(sw);
+    addEntityToLayer(this.switches, sw, entityLayer, { onlyAttachIfUnparented: true });
     this.switchCollisionGrids.set(sw, collisionGrid);
-    if (entityLayer && !sw.container.parent) entityLayer.addChild(sw.container);
   }
 
   clearDoors(): void {
-    for (const door of this.doors) door.destroy();
-    this.doors.length = 0;
+    destroyAndClearEntities(this.doors);
   }
 
   clearSwitches(): void {
-    for (const sw of this.switches) sw.destroy();
-    this.switches.length = 0;
+    destroyAndClearEntities(this.switches);
   }
 
   getDoorCollisionGrid(door: LockedDoor, fallback: number[][]): number[][] {

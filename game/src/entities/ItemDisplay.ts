@@ -31,6 +31,7 @@ import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
 import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import { GlowFilter } from '@effects/GlowFilter';
 
 // 호흡 펄스 — 주기/진폭
@@ -233,7 +234,7 @@ export class ItemDisplay {
       const sp = this.sparkles[i];
       sp.ageMs += dt;
       if (sp.ageMs >= sp.lifeMs) {
-        sp.gfx.destroy();
+        destroyDisplayObject(sp.gfx);
         this.sparkles.splice(i, 1);
         continue;
       }
@@ -250,10 +251,9 @@ export class ItemDisplay {
 
   destroy(): void {
     this.destroyed = true;
-    for (const sp of this.sparkles) sp.gfx.destroy();
+    for (const sp of this.sparkles) destroyDisplayObject(sp.gfx);
     this.sparkles = [];
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
     this.sprite = null;
     this.innerGlow = null;
     this.outerGlow = null;

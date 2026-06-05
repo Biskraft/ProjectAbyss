@@ -4,6 +4,7 @@ import type { Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
 import type { Game } from '../../Game';
+import { addEntityToLayer } from '@scenes/shared/EntityLifecycleHelpers';
 
 interface ItemWorldDebugInputRuntimeDeps {
   game: Game;
@@ -23,7 +24,7 @@ export class ItemWorldDebugInputRuntime {
     const input = this.deps.game.input;
     const player = this.deps.getPlayer();
 
-    if (this.isDebugEnabled() && input.shiftDown) {
+    if (new URLSearchParams(window.location.search).has('debug') && input.shiftDown) {
       if (input.isJustPressed(GameAction.DEBUG_FIRE)) this.deps.onDebugIgniteAtPlayer();
       if (input.isJustPressed(GameAction.DEBUG_ICE)) this.deps.onDebugFreezeAtPlayer();
       if (input.isJustPressed(GameAction.DEBUG_THUNDER)) this.deps.onDebugThunderAtPlayer();
@@ -46,10 +47,6 @@ export class ItemWorldDebugInputRuntime {
     }
   }
 
-  private isDebugEnabled(): boolean {
-    return new URLSearchParams(window.location.search).has('debug');
-  }
-
   private spawnDebugContainers(): void {
     const player = this.deps.getPlayer();
     const baseX = Math.floor(player.x / 16) * 16 + 32;
@@ -57,8 +54,7 @@ export class ItemWorldDebugInputRuntime {
     const kinds: ContainerKind[] = ['OilDrum', 'WaterBarrel', 'MagmaCrucible', 'AcidVial'];
     for (let i = 0; i < kinds.length; i++) {
       const container = new ThrowableContainer(kinds[i], baseX + i * 20, baseY);
-      this.deps.getContainers().push(container);
-      this.deps.getEntityLayer().addChild(container.container);
+      addEntityToLayer(this.deps.getContainers(), container, this.deps.getEntityLayer());
     }
   }
 }

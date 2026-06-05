@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Low-HP vignette — subtle red pulse around the viewport edges when the player
@@ -73,7 +74,6 @@ export class LowHpVignetteManager {
   }
 
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
+    destroyDisplayObject(this.gfx);
   }
 }

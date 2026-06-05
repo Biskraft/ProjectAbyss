@@ -1,7 +1,6 @@
 import { GameAction, actionKey } from '@core/InputManager';
 import { t } from '@i18n';
 import type { Inventory } from '@items/Inventory';
-import { sacredSave } from '@save/PlayerSave';
 import type { HUD } from '@ui/HUD';
 import type { TutorialHint } from '@ui/TutorialHint';
 
@@ -18,6 +17,7 @@ interface InventoryTutorialHintRuntimeDeps {
   getUnlockedEvents: () => Set<string>;
   getRetireAfterFirstBoss: () => boolean;
   hasBlockingAnvilItem: () => boolean;
+  isFirstItemWorldBossDefeated: () => boolean;
 }
 
 export class InventoryTutorialHintRuntime {
@@ -29,7 +29,7 @@ export class InventoryTutorialHintRuntime {
 
   requestFirstItemWorldReturnHint(hadFirstBossClear: boolean, delayMs = 0): void {
     const firstBossClearedThisRun =
-      !hadFirstBossClear && sacredSave.isFirstItemWorldBossDefeated();
+      !hadFirstBossClear && this.deps.isFirstItemWorldBossDefeated();
     if (!firstBossClearedThisRun) return;
     if (!this.deps.getRetireAfterFirstBoss()) return;
     const unlockedEvents = this.deps.getUnlockedEvents();

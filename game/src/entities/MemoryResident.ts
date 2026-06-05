@@ -19,6 +19,7 @@
 
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const OUTLINE_COLOR = 0x4cd6c1; // §4.1 청록 — 인터랙티브 변별 신호
 const SILHOUETTE_COLOR = 0x0a0a14; // 검은 실루엣 베이스
@@ -241,9 +242,6 @@ export class MemoryResident {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

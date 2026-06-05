@@ -1,6 +1,5 @@
 import type { Graphics } from 'pixi.js';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { sacredSave } from '@save/PlayerSave';
 import { t } from '@i18n';
 
 /**
@@ -29,6 +28,8 @@ interface WorldPrologueEndRuntimeDeps {
   getFadeOverlay: () => Graphics;
   loadLevel: (levelId: string, enterFrom: 'left' | 'right' | 'up' | 'down') => void;
   showToast: (message: string, color: number) => void;
+  isPrologueScene: () => boolean;
+  setScene: (scene: string) => void;
 }
 
 type Phase = 'idle' | 'arm' | 'threat' | 'fade';
@@ -42,7 +43,7 @@ export class WorldPrologueEndRuntime {
   loadLevel(level: LdtkLevel): void {
     this.phase = 'idle';
     this.timer = 0;
-    if (sacredSave.getScene() === 'prologue' && level.identifier === PROLOGUE_END_LEVEL) {
+    if (this.deps.isPrologueScene() && level.identifier === PROLOGUE_END_LEVEL) {
       this.phase = 'arm';
     }
   }
@@ -77,7 +78,7 @@ export class WorldPrologueEndRuntime {
       this.phase = 'idle';
       this.timer = 0;
       // P6: 백업 복원 → Ch.1 기상. scene 전환으로 Start_Room_01 의 chapter_01 스폰 선택.
-      sacredSave.setScene('chapter_01');
+      this.deps.setScene('chapter_01');
       this.deps.loadLevel('Start_Room_01', 'down');
       this.deps.showToast(t('ui.prologue.backup_restored'), 0xaaccff);
       fade.alpha = 0;

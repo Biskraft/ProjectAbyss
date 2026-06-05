@@ -2,7 +2,6 @@ import { Debug } from '@core/Debug';
 import type { Player } from '@entities/Player';
 import type { ItemInstance } from '@items/ItemInstance';
 import type { LdtkLoader, LdtkLevel } from '@level/LdtkLoader';
-import { sacredSave } from '@save/PlayerSave';
 import {
   ITEM_WORLD_TRANSITION_LEVEL_ID,
   WorldEdgeTransitionRuntime,
@@ -40,6 +39,7 @@ interface WorldEdgeTransitionFlowRuntimeDeps {
   isInTunnel: () => boolean;
   isEntryTransitionActive: () => boolean;
   isDebugMode: () => boolean;
+  isPrologueScene: () => boolean;
   prestreamItemWorldEntry: (item: ItemInstance, reason: string) => void;
   enterItemWorld: (entryCorridor: boolean) => void;
   loadLevelForTransition: (levelId: string, enterFrom: WorldEdgeTransitionDirection) => void;
@@ -47,10 +47,6 @@ interface WorldEdgeTransitionFlowRuntimeDeps {
 
 export class WorldEdgeTransitionFlowRuntime {
   constructor(private readonly deps: WorldEdgeTransitionFlowRuntimeDeps) {}
-
-  get isActive(): boolean {
-    return this.deps.edgeTransitionRuntime.isActive;
-  }
 
   checkLevelEdges(): void {
     if (this.deps.edgeTransitionRuntime.isActive) return;
@@ -65,12 +61,14 @@ export class WorldEdgeTransitionFlowRuntime {
     if (direction === null) return;
 
     // Prologue chain: forward-only (no backtrack / branch); 04 blocks all.
-    if (sacredSave.getScene() === 'prologue' && level.identifier.startsWith('ItemStratum_Prologue_')) {
+    if (this.deps.isPrologueScene() && level.identifier.startsWith('ItemStratum_Prologue_')) {
       if (direction !== PROLOGUE_FORWARD_DIR[level.identifier]) return;
     }
 
     if (this.deps.isInTunnel() && direction === 'down') {
-      this.startTunnelExitTransition();
+      const item = this.deps.getEntryItem();
+      if (item) this.deps.prestreamItemWorldEntry(item, 'item-tunnel-exit');
+      this.startTransition('down', ITEM_WORLD_TRANSITION_LEVEL_ID, { entryCorridor: true });
       return;
     }
 
@@ -178,9 +176,4 @@ export class WorldEdgeTransitionFlowRuntime {
     return true;
   }
 
-  private startTunnelExitTransition(): void {
-    const item = this.deps.getEntryItem();
-    if (item) this.deps.prestreamItemWorldEntry(item, 'item-tunnel-exit');
-    this.startTransition('down', ITEM_WORLD_TRANSITION_LEVEL_ID, { entryCorridor: true });
-  }
 }

@@ -13,6 +13,7 @@
 - Scene wiring: `game/src/scenes/LdtkWorldScene.ts`.
 - Weather renders in a world-space `weatherLayer` above fluid/above-fluid VFX and below deployment/vivid layers.
 - The camera view passed to `WeatherSystem.update` is level-local (`renderX/renderY`, `GAME_WIDTH / zoom`, `GAME_HEIGHT / zoom`), matching the rest of `LdtkWorldScene` coordinates.
+- Weather density/intensity values are 0..1 visual-effect inputs and use `clampEffect01(...)`; keep generic `clamp(v, lo, hi)` local for wind and non-0..1 ranges.
 
 ## Item World Weather
 

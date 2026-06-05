@@ -1,3 +1,5 @@
+import { Container } from 'pixi.js';
+
 /**
  * HUD Layout Manifest — SSoT for per-element HUD layout editing.
  *
@@ -64,6 +66,38 @@ export interface HudLayout {
   version: number;
   /** Overrides keyed by HudElement.id. Missing keys = default. */
   elements: Record<string, HudElementOverride>;
+}
+
+export function applyHudElementLayout(
+  target: Container,
+  box: HudElement,
+  override: HudElementOverride,
+  mult: number,
+): void {
+  const pivotX = (box.x + box.w * (override.pivotX ?? 0.5)) * mult;
+  const pivotY = (box.y + box.h * (override.pivotY ?? 0.5)) * mult;
+  target.pivot.set(pivotX, pivotY);
+  target.position.set(
+    pivotX + (override.offsetX ?? 0) * mult,
+    pivotY + (override.offsetY ?? 0) * mult,
+  );
+  target.scale.set(override.scale ?? 1);
+  if (override.visible === false) target.visible = false;
+}
+
+export function createOrGetHudLayoutWrapper(
+  wrappers: Map<string, Container>,
+  id: string,
+  parent: Container,
+): Container {
+  let wrapper = wrappers.get(id);
+  if (!wrapper) {
+    wrapper = new Container();
+    wrapper.sortableChildren = true;
+    parent.addChild(wrapper);
+    wrappers.set(id, wrapper);
+  }
+  return wrapper;
 }
 
 /** Canonical base screen dimensions the boxes are authored against. */

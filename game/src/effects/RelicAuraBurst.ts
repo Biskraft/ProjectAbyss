@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Relic aura burst — reserved for Metroidvania ability unlocks (Dash, Wall
@@ -95,8 +96,7 @@ export class RelicAuraBurstManager {
       c.gfx.alpha = alpha;
       c.gfx.scale.x = 1 + (1 - t) * 0.2;
       if (c.life <= 0) {
-        if (c.gfx.parent) c.gfx.parent.removeChild(c.gfx);
-        c.gfx.destroy();
+        destroyDisplayObject(c.gfx);
         this.columns.splice(i, 1);
       }
     }
@@ -117,8 +117,7 @@ export class RelicAuraBurstManager {
         r.gfx.alpha = 1;
       }
       if (r.life <= 0) {
-        if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-        r.gfx.destroy();
+        destroyDisplayObject(r.gfx);
         this.rings.splice(i, 1);
       }
     }
@@ -131,8 +130,7 @@ export class RelicAuraBurstManager {
       ray.gfx.scale.set(0.5 + (1 - t) * 1.8);
       ray.gfx.rotation += dt * 0.002;
       if (ray.life <= 0) {
-        if (ray.gfx.parent) ray.gfx.parent.removeChild(ray.gfx);
-        ray.gfx.destroy();
+        destroyDisplayObject(ray.gfx);
         this.rays.splice(i, 1);
       }
     }
@@ -140,16 +138,13 @@ export class RelicAuraBurstManager {
 
   clear(): void {
     for (const c of this.columns) {
-      if (c.gfx.parent) c.gfx.parent.removeChild(c.gfx);
-      c.gfx.destroy();
+      destroyDisplayObject(c.gfx);
     }
     for (const r of this.rings) {
-      if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-      r.gfx.destroy();
+      destroyDisplayObject(r.gfx);
     }
     for (const ray of this.rays) {
-      if (ray.gfx.parent) ray.gfx.parent.removeChild(ray.gfx);
-      ray.gfx.destroy();
+      destroyDisplayObject(ray.gfx);
     }
     this.columns.length = 0;
     this.rings.length = 0;

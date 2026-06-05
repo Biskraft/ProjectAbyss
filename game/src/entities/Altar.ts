@@ -14,6 +14,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { GameAction, actionKey } from '@core/InputManager';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface Spark {
   gfx: Graphics;
@@ -157,8 +158,7 @@ export class Altar {
       const k = s.life / s.maxLife;
       s.gfx.alpha = Math.max(0, Math.min(1, k));
       if (s.life <= 0) {
-        this.particleLayer.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.sparks.splice(i, 1);
       }
     }
@@ -196,12 +196,9 @@ export class Altar {
 
   destroy(): void {
     for (const s of this.sparks) {
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.sparks = [];
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

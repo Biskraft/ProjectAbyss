@@ -1,81 +1,48 @@
-type ExitReason = 'escape' | 'clear' | 'death';
-
-interface StratumSnapshot {
-  beforeAtk: number;
-  afterAtk: number;
-  beforeLevel: number;
-  afterLevel: number;
-  beforeInnocents: number;
-  afterInnocents: number;
-}
+import type { ItemWorldExitReason } from './ItemWorldExitReason';
 
 interface PendingSnapshot {
   a6BeforeAtk: number;
   a6AfterAtk: number;
-  a16: StratumSnapshot;
+}
+
+interface PrepareStratumTransitionOptions {
+  currentStratumIndex: number;
+  a6BeforeAtk: number;
+  a6AfterAtk: number;
 }
 
 interface ControllerCallbacks {
-  jumpToStratum: (stratumIndex: number) => void;
-  persistRoomState: () => void;
-  showBossChoice: (nextStratumIndex: number) => void;
   showA6DmgToast: (beforeAtk: number, afterAtk: number) => void;
-  showStratumClearPanel: (snapshot: StratumSnapshot, isFinal: boolean) => void;
-  startPostClearHold: () => void;
-  startExitFade: () => void;
-  showToast: (message: string, color: number) => void;
-}
-
-interface HandleStratumExitOptions {
-  currentStratumIndex: number;
-  hasNextStratum: boolean;
-  itemName: string;
-  itemLevel: number;
-  a6BeforeAtk: number;
-  a6AfterAtk: number;
-  a16Snapshot: StratumSnapshot;
-}
-
-interface ExitWithProgressOptions {
-  currentStratumIndex: number;
-  itemName: string;
-  itemLevel: number;
+  onContinueToNextStratum: (nextStratumIndex: number) => void;
+  onExitFromStratumClear: (reason: ItemWorldExitReason) => void;
 }
 
 export class ItemWorldProgressController {
   private pendingSnapshot: PendingSnapshot | null = null;
   private pendingNextStratumIndex = -1;
-  private exitReason: ExitReason = 'escape';
+  private exitReason: ItemWorldExitReason = 'escape';
+  private exitReasonLocked = false;
 
   constructor(private readonly callbacks: ControllerCallbacks) {}
 
-  getExitReason(): ExitReason {
+  getExitReason(): ItemWorldExitReason {
     return this.exitReason;
   }
 
-  setExitReason(reason: ExitReason): void {
+  requestExitWithReason(reason: ItemWorldExitReason): void {
+    if (this.exitReasonLocked) return;
     this.exitReason = reason;
+    if (reason !== 'escape') {
+      this.exitReasonLocked = true;
+    }
   }
 
-  handleStratumExit(options: HandleStratumExitOptions): void {
-    if (!options.hasNextStratum) {
-      this.exitReason = 'clear';
-      this.callbacks.persistRoomState();
-      this.callbacks.showToast(`${options.itemName} Lv${options.itemLevel} Strata Complete!`, 0xffaa00);
-      this.callbacks.showA6DmgToast(options.a6BeforeAtk, options.a6AfterAtk);
-      this.callbacks.showStratumClearPanel(options.a16Snapshot, true);
-      this.callbacks.startPostClearHold();
-      return;
-    }
-
-    const nextStratumIndex = options.currentStratumIndex + 1;
+  prepareStratumClearTransition(options: PrepareStratumTransitionOptions): void {
     this.pendingSnapshot = {
       a6BeforeAtk: options.a6BeforeAtk,
       a6AfterAtk: options.a6AfterAtk,
-      a16: options.a16Snapshot,
     };
-    this.pendingNextStratumIndex = nextStratumIndex;
-    this.callbacks.showBossChoice(nextStratumIndex);
+    this.pendingNextStratumIndex = options.currentStratumIndex + 1;
   }
 
   continueToNextStratum(): void {
@@ -86,24 +53,20 @@ export class ItemWorldProgressController {
 
     if (snapshot) {
       this.callbacks.showA6DmgToast(snapshot.a6BeforeAtk, snapshot.a6AfterAtk);
-      this.callbacks.showStratumClearPanel(snapshot.a16, false);
     }
     if (next >= 0) {
-      this.callbacks.jumpToStratum(next);
+      this.callbacks.onContinueToNextStratum(next);
     }
   }
 
-  exitAfterBoss(options: ExitWithProgressOptions): void {
+  exitFromStratumClear(reason: ItemWorldExitReason): void {
+    this.requestExitWithReason(reason);
     const snapshot = this.pendingSnapshot;
     this.pendingSnapshot = null;
     this.pendingNextStratumIndex = -1;
-
-    this.callbacks.persistRoomState();
-    this.callbacks.showToast(`${options.itemName} Lv${options.itemLevel} Returning with progress...`, 0xffaa00);
     if (snapshot) {
       this.callbacks.showA6DmgToast(snapshot.a6BeforeAtk, snapshot.a6AfterAtk);
-      this.callbacks.showStratumClearPanel(snapshot.a16, false);
     }
-    this.callbacks.startPostClearHold();
+    this.callbacks.onExitFromStratumClear(reason);
   }
 }

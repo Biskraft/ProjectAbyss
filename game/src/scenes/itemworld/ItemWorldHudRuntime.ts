@@ -9,6 +9,7 @@ import {
 import type { StrataConfig } from '@data/StrataConfig';
 import { formatActivePlayerBuffsDebug } from '@systems/PlayerBuffSystem';
 import type { HUD } from '@ui/HUD';
+import { getClearedStrataFlags } from '@scenes/shared/ItemWorldHudHelpers';
 
 interface ItemWorldHudRuntimeDeps {
   getHud: () => HUD;
@@ -24,27 +25,11 @@ export class ItemWorldHudRuntime {
   constructor(private readonly deps: ItemWorldHudRuntimeDeps) {}
 
   getClearedStrataFlags(): boolean[] {
-    const strataConfig = this.deps.getStrataConfig();
-    const unifiedGrid = this.deps.getUnifiedGrid();
-    const progress = this.deps.getProgress();
-    const totalStrata = strataConfig.strata.length;
-    const cleared: boolean[] = [];
-
-    for (let i = 0; i < totalStrata; i++) {
-      const endRoom = unifiedGrid.stratumEndRooms.find(e => e.stratumIndex === i);
-      if (endRoom) {
-        const cell = unifiedGrid.cells[endRoom.absoluteRow]?.[endRoom.col];
-        cleared.push(
-          (cell?.cleared ?? false) ||
-          !!progress.bossPortals?.[String(i)] ||
-          progress.deepestUnlocked > i,
-        );
-      } else {
-        cleared.push(false);
-      }
-    }
-
-    return cleared;
+    return getClearedStrataFlags({
+      strataConfig: this.deps.getStrataConfig(),
+      unifiedGrid: this.deps.getUnifiedGrid(),
+      progress: this.deps.getProgress(),
+    });
   }
 
   showGameplayHud(): void {

@@ -10,3 +10,5 @@ Invariants:
 - `LdtkWorldScene` still owns level-specific visibility rules such as `Shaft_DemoEnd`; the runtime only owns the first world-entry handoff.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, and `/play/?debug=1` browser smoke on `127.0.0.1:5178` passed.
+
+- 2026-06-05: Title handoff overlay teardown now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject()` from both fade completion and runtime destroy paths; HUD/minimap intro gating remains unchanged.

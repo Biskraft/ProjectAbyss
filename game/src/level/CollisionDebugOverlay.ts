@@ -22,6 +22,7 @@ import { Container, Graphics, Text } from 'pixi.js';
 import { Debug } from '@core/Debug';
 import type { Camera } from '@core/Camera';
 import { GameRenderConst } from '@data/constData';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import {
   TILE_SIZE,
   TILE_WALL, TILE_WATER, TILE_PLATFORM, TILE_UPDRAFT, TILE_SPIKE, TILE_MAGMA,
@@ -255,7 +256,7 @@ export class CollisionDebugOverlay {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
-    this.hud.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
+    destroyDisplayObject(this.hud, { children: true });
   }
 }

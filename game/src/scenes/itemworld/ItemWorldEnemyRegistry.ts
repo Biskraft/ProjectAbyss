@@ -1,30 +1,43 @@
 import type { Enemy } from '@entities/Enemy';
+import type { Container } from 'pixi.js';
+import {
+  addEnemyToRegistry,
+  clearEnemies,
+  countDefeatedEnemies,
+  hasAnyEnemy,
+  removeEnemyAt,
+  renderEnemies,
+  updateEnemies,
+} from '@scenes/shared/EnemyRegistryHelpers';
 
 export class ItemWorldEnemyRegistry {
   readonly enemies: Enemy<string>[] = [];
 
+  add(enemy: Enemy<string>, entityLayer?: Container): void {
+    addEnemyToRegistry(this.enemies, enemy, entityLayer);
+  }
+
+  removeAt(index: number): void {
+    removeEnemyAt(this.enemies, index);
+  }
+
   clear(): void {
-    for (const enemy of this.enemies) {
-      if (enemy.container.parent) {
-        enemy.container.parent.removeChild(enemy.container);
-      }
-    }
-    this.enemies.length = 0;
+    clearEnemies(this.enemies);
   }
 
   defeatedCount(): number {
-    return this.enemies.filter(enemy => !enemy.alive).length;
+    return countDefeatedEnemies(this.enemies);
   }
 
   hasAny(): boolean {
-    return this.enemies.length > 0;
+    return hasAnyEnemy(this.enemies);
   }
 
   update(dtMs: number): void {
-    for (const enemy of this.enemies) enemy.update(dtMs);
+    updateEnemies(this.enemies, dtMs);
   }
 
   render(alpha: number): void {
-    for (const enemy of this.enemies) enemy.render(alpha);
+    renderEnemies(this.enemies, alpha);
   }
 }

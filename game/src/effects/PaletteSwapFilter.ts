@@ -6,6 +6,22 @@
 
 import { Filter, GlProgram, Texture, UniformGroup } from 'pixi.js';
 
+interface PaletteSwapUniforms {
+  uPaletteRow: number;
+  uPaletteRowCount: number;
+  uStrength: number;
+  uDepthBias: number;
+  uDepthCenter: number;
+  uBrightness: number;
+  uTint: Float32Array;
+}
+
+interface PaletteSwapFilterResources {
+  paletteUniforms: {
+    uniforms: PaletteSwapUniforms;
+  };
+}
+
 const vertex = /* glsl */ `
 in vec2 aPosition;
 out vec2 vTextureCoord;
@@ -121,30 +137,30 @@ export class PaletteSwapFilter extends Filter {
   }
 
   setRow(row: number): void {
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uPaletteRow = Math.max(0, Math.min(row, this._rowCount - 1));
   }
 
   setStrength(strength: number): void {
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uStrength = Math.max(0, Math.min(strength, 1));
   }
 
   /** Set the Dead Cells-style depth gradient magnitude (0 = off, ~0.35 = default). */
   setDepthBias(bias: number): void {
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uDepthBias = bias;
   }
 
   /** Scale the palette-sampled color (>1 brightens, <1 darkens). */
   setBrightness(brightness: number): void {
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uBrightness = brightness;
   }
 
   /** Per-channel tint multiplier from a 0xRRGGBB constant. */
   setTint(tint: number): void {
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uTint = unpackTintUniform(tint);
   }
 
@@ -152,14 +168,30 @@ export class PaletteSwapFilter extends Filter {
   setPalette(paletteTex: Texture, rowCount: number): void {
     this._paletteTex = paletteTex;
     this._rowCount = rowCount;
-    (this.resources as any).uPaletteTex = paletteTex.source;
-    (this.resources as any).uPaletteSampler = paletteTex.source.style;
-    const uniforms = (this.resources.paletteUniforms as any).uniforms;
+    const resources = this.resources as PaletteSwapFilterResources & {
+      uPaletteTex?: unknown;
+      uPaletteSampler?: unknown;
+    };
+    resources.uPaletteTex = paletteTex.source;
+    resources.uPaletteSampler = paletteTex.source.style;
+    const uniforms = this.getPaletteUniforms();
     uniforms.uPaletteRowCount = rowCount;
   }
 
   get rowCount(): number {
     return this._rowCount;
+  }
+
+  getBrightness(): number {
+    return this.getPaletteUniforms().uBrightness;
+  }
+
+  getDepthBias(): number {
+    return this.getPaletteUniforms().uDepthBias;
+  }
+
+  private getPaletteUniforms(): PaletteSwapUniforms {
+    return (this.resources as PaletteSwapFilterResources).paletteUniforms.uniforms;
   }
 }
 
@@ -272,4 +304,3 @@ export function buildPaletteTexture(palettes: PaletteDefinition[]): Texture {
 // The palette atlas is now defined in Sheets/Content_System_Area_Palette.csv
 // and loaded by game/src/data/areaPalettes.ts. Use `getAreaPaletteAtlas()` +
 // `getAreaPaletteRow(id)` from that module to drive this filter.
-

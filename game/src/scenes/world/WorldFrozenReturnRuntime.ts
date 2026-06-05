@@ -6,6 +6,17 @@ import { KeyPrompt } from '@ui/KeyPrompt';
 import { createItemWorldLeaveConfirmPanel } from '@ui/ItemWorldLeaveConfirmPanel';
 import type { UISkin } from '@ui/UISkin';
 import { t } from '@i18n';
+import {
+  destroyDisplayObject,
+  destroyNullableDisplayObject,
+  hideDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import {
+  consumeAnyJustPressedAction,
+  consumeJustPressedAction,
+} from '@scenes/shared/InputPressHelpers';
+import { getDistanceSquared } from '@scenes/shared/DistanceHelpers';
+import { projectWorldToUi } from '@scenes/shared/WorldPromptProjection';
 import type { Game } from '../../Game';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../Game';
 
@@ -26,6 +37,12 @@ const NEAR_DISTANCE_PX = 64;
 const RETURN_FADE_IN_MS = 600;
 const RETURN_FADE_OUT_MS = 600;
 const RETURN_FADE_PEAK_ALPHA = 0.85;
+const CONFIRM_CANCEL_ACTIONS = [
+  GameAction.JUMP,
+  GameAction.DASH,
+  GameAction.MENU,
+  GameAction.CANCEL,
+] as const;
 
 export class WorldFrozenReturnRuntime {
   private promptContainer: Container | null = null;
@@ -79,9 +96,7 @@ export class WorldFrozenReturnRuntime {
       return;
     }
 
-    const dx = playerContainer.x - snapshot.x;
-    const dy = playerContainer.y - snapshot.y;
-    const distSq = dx * dx + dy * dy;
+    const distSq = getDistanceSquared(playerContainer.x, playerContainer.y, snapshot.x, snapshot.y);
     const armDistanceSq = this.deps.armDistancePx * this.deps.armDistancePx;
     if (!this.interactionArmed && distSq >= armDistanceSq) {
       this.interactionArmed = true;
@@ -92,36 +107,29 @@ export class WorldFrozenReturnRuntime {
     prompt.visible = near;
     if (!near) return;
 
-    const us = this.deps.game.uiScale;
     const cam = this.deps.game.camera;
     const promptWorldY = snapshot.y - 48;
-    const sx = (snapshot.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
-    const sy = (promptWorldY - cam.renderY + GAME_HEIGHT / 2) * us;
-    prompt.x = Math.round(sx);
-    prompt.y = Math.round(sy);
+    const p = projectWorldToUi({
+      camera: cam,
+      uiScale: this.deps.game.uiScale,
+      worldX: snapshot.x,
+      worldY: promptWorldY,
+    });
+    prompt.x = Math.round(p.x - prompt.width / 2);
+    prompt.y = Math.round(p.y);
   }
 
   updateConfirmInput(): boolean {
     if (!this.confirmOpen) return false;
 
     const input = this.deps.game.input;
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
+    if (consumeJustPressedAction(input, GameAction.ATTACK)) {
       this.hideConfirm();
       this.beginReturnToWorld();
       return true;
     }
 
-    if (
-      input.isJustPressed(GameAction.JUMP) ||
-      input.isJustPressed(GameAction.DASH) ||
-      input.isJustPressed(GameAction.MENU) ||
-      input.isJustPressed(GameAction.CANCEL)
-    ) {
-      input.consumeJustPressed(GameAction.JUMP);
-      input.consumeJustPressed(GameAction.DASH);
-      input.consumeJustPressed(GameAction.MENU);
-      input.consumeJustPressed(GameAction.CANCEL);
+    if (consumeAnyJustPressedAction(input, CONFIRM_CANCEL_ACTIONS)) {
       this.hideConfirm();
       return true;
     }
@@ -135,11 +143,7 @@ export class WorldFrozenReturnRuntime {
       this.deps.proximity.unregister(this.proximityHandler);
       this.proximityHandler = null;
     }
-    if (this.promptContainer) {
-      this.promptContainer.parent?.removeChild(this.promptContainer);
-      this.promptContainer.destroy({ children: true });
-      this.promptContainer = null;
-    }
+    this.promptContainer = destroyNullableDisplayObject(this.promptContainer, { children: true });
     this.hideConfirm();
   }
 
@@ -154,9 +158,8 @@ export class WorldFrozenReturnRuntime {
     const snapshot = this.deps.getSnapshot();
     const playerContainer = this.deps.getPlayerContainer();
     if (!snapshot || !playerContainer) return false;
-    const dx = playerContainer.x - snapshot.x;
-    const dy = playerContainer.y - snapshot.y;
-    return dx * dx + dy * dy <= NEAR_DISTANCE_PX * NEAR_DISTANCE_PX;
+    return getDistanceSquared(playerContainer.x, playerContainer.y, snapshot.x, snapshot.y)
+      <= NEAR_DISTANCE_PX * NEAR_DISTANCE_PX;
   }
 
   private showConfirm(): void {
@@ -179,15 +182,12 @@ export class WorldFrozenReturnRuntime {
     this.confirmPanel = panel;
     this.deps.game.legacyUIContainer.addChild(panel);
 
-    if (this.promptContainer) this.promptContainer.visible = false;
+    hideDisplayObject(this.promptContainer);
   }
 
   private hideConfirm(): void {
     this.confirmOpen = false;
-    if (!this.confirmPanel) return;
-    this.confirmPanel.parent?.removeChild(this.confirmPanel);
-    this.confirmPanel.destroy({ children: true });
-    this.confirmPanel = null;
+    this.confirmPanel = destroyNullableDisplayObject(this.confirmPanel, { children: true });
   }
 
   private beginReturnToWorld(): void {
@@ -237,10 +237,6 @@ export class WorldFrozenReturnRuntime {
       this.deps.game.app.ticker.remove(this.returnTicker);
       this.returnTicker = null;
     }
-    if (this.returnOverlay) {
-      this.returnOverlay.parent?.removeChild(this.returnOverlay);
-      this.returnOverlay.destroy();
-      this.returnOverlay = null;
-    }
+    this.returnOverlay = destroyNullableDisplayObject(this.returnOverlay);
   }
 }

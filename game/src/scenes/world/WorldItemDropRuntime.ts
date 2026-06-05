@@ -5,6 +5,12 @@ import type { Inventory } from '@items/Inventory';
 import { getDisplayName } from '@items/ItemInstance';
 import { getRarityConfig } from '@data/rarityConfig';
 import { t } from '@i18n';
+import { getDropItemKey } from '@scenes/world/PickupMetadata';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 interface WorldItemDropRuntimeDeps {
   getPlayer: () => Player;
@@ -31,8 +37,7 @@ export class WorldItemDropRuntime {
   }
 
   add(drop: ItemDropEntity): void {
-    this.drops.push(drop);
-    if (!drop.container.parent) this.deps.getEntityLayer().addChild(drop.container);
+    addEntityToLayer(this.drops, drop, this.deps.getEntityLayer(), { onlyAttachIfUnparented: true });
   }
 
   latest(): ItemDropEntity | null {
@@ -44,8 +49,7 @@ export class WorldItemDropRuntime {
   }
 
   clear(): void {
-    for (const drop of this.drops) drop.destroy();
-    this.drops.length = 0;
+    destroyAndClearEntities(this.drops);
   }
 
   update(dtMs: number): void {
@@ -55,8 +59,7 @@ export class WorldItemDropRuntime {
       drop.update(dtMs);
       if (!drop.overlapsPlayer(player.x, player.y, player.width, player.height)) continue;
       if (!this.collect(drop)) continue;
-      drop.destroy();
-      this.drops.splice(i, 1);
+      removeEntityAt(this.drops, i);
     }
   }
 
@@ -71,7 +74,7 @@ export class WorldItemDropRuntime {
       }),
       0xffcc44,
     );
-    const key = (drop as unknown as { _itemKey?: string })._itemKey;
+    const key = getDropItemKey(drop);
     if (key) this.deps.addCollectedItem(key);
 
     const pickupX = drop.x;

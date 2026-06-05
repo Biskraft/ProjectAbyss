@@ -1,17 +1,21 @@
 import type { Container } from 'pixi.js';
 import type { Breakable } from '@entities/Breakable';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+  updateEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export class WorldBreakableRegistry {
   readonly breakables: Breakable[] = [];
 
   add(breakable: Breakable, entityLayer?: Container): void {
-    this.breakables.push(breakable);
-    if (entityLayer && !breakable.container.parent) entityLayer.addChild(breakable.container);
+    addEntityToLayer(this.breakables, breakable, entityLayer, { onlyAttachIfUnparented: true });
   }
 
   clear(): void {
-    for (const breakable of this.breakables) breakable.destroy();
-    this.breakables.length = 0;
+    destroyAndClearEntities(this.breakables);
   }
 
   includes(breakable: Breakable): boolean {
@@ -19,12 +23,10 @@ export class WorldBreakableRegistry {
   }
 
   removeAt(index: number): void {
-    const breakable = this.breakables[index];
-    breakable.destroy();
-    this.breakables.splice(index, 1);
+    removeEntityAt(this.breakables, index);
   }
 
   update(dtMs: number): void {
-    for (const breakable of this.breakables) breakable.update(dtMs);
+    updateEntities(this.breakables, dtMs);
   }
 }

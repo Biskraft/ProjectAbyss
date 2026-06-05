@@ -5,15 +5,15 @@ import { getDisplayName, resetItemForNextCycle } from '@items/ItemInstance';
 import { t } from '@i18n';
 import { MODAL_BG, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, FONT_HINT } from '@ui/ModalPanel';
 import { PIXEL_FONT } from '@ui/fonts';
+import { updateConfirmCancelInput } from '@scenes/shared/ConfirmCancelInputHelpers';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
 
 interface AnvilCyclePromptRuntimeDeps {
   game: Game;
   showToast: (message: string, color: number) => void;
   placeItem: (item: ItemInstance) => void;
-  refreshAnvilInventory: () => void;
-  reopenAltarSelect: () => void;
-  isAnvilInventoryOpen: () => boolean;
+  closeMenu: () => void;
 }
 
 export class AnvilCyclePromptRuntime {
@@ -80,32 +80,26 @@ export class AnvilCyclePromptRuntime {
   close(): void {
     this.activeItem = null;
     if (!this.ui) return;
-    this.ui.parent?.removeChild(this.ui);
-    this.ui.destroy({ children: true });
+    destroyDisplayObject(this.ui, { children: true });
     this.ui = null;
   }
 
   updateInput(): void {
     const item = this.activeItem;
     if (!item) return;
-    const input = this.deps.game.input;
-
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      resetItemForNextCycle(item);
-      this.close();
-      this.deps.showToast(t('toast.cycle_rewind', { n: item.worldProgress?.cycle ?? 0 }), 0xff8844);
-      this.deps.placeItem(item);
-      return;
-    }
-
-    if (input.isJustPressed(GameAction.MENU)) {
-      this.close();
-      if (this.deps.isAnvilInventoryOpen()) {
-        this.deps.refreshAnvilInventory();
-      } else {
-        this.deps.reopenAltarSelect();
-      }
-    }
+    updateConfirmCancelInput({
+      input: this.deps.game.input,
+      onConfirm: () => {
+        resetItemForNextCycle(item);
+        this.close();
+        this.deps.showToast(t('toast.cycle_rewind', { n: item.worldProgress?.cycle ?? 0 }), 0xff8844);
+        this.deps.placeItem(item);
+      },
+      onCancel: () => {
+        this.close();
+        this.deps.closeMenu();
+      },
+    });
   }
 
   destroy(): void {

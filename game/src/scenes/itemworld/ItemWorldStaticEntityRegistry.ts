@@ -7,6 +7,7 @@ import type { ItemDisplay } from '@entities/ItemDisplay';
 import type { LockedDoor } from '@entities/LockedDoor';
 import type { Spike } from '@entities/Spike';
 import type { Switch } from '@entities/Switch';
+import { destroyAndClearStaticEntities } from '@scenes/shared/StaticEntityRegistryHelpers';
 
 export class ItemWorldStaticEntityRegistry {
   readonly spikes: Spike[] = [];
@@ -20,19 +21,14 @@ export class ItemWorldStaticEntityRegistry {
   readonly itemDisplays: ItemDisplay[] = [];
 
   clear(): void {
-    this.destroyAll(this.spikes);
-    this.destroyAll(this.crackedFloors);
-    this.destroyAll(this.breakableProps);
-    this.destroyAll(this.collapsingPlatforms);
-    this.destroyAll(this.growingWalls);
-    this.destroyAll(this.switches);
-    this.destroyAll(this.lockedDoors);
-    this.destroyAll(this.buildings);
-    this.destroyAll(this.itemDisplays);
-  }
-
-  private destroyAll(items: Array<{ destroy: () => void }>): void {
-    for (const item of items) item.destroy();
-    items.length = 0;
+    destroyAndClearStaticEntities(this.spikes);
+    destroyAndClearStaticEntities(this.crackedFloors);
+    destroyAndClearStaticEntities(this.breakableProps);
+    destroyAndClearStaticEntities(this.collapsingPlatforms);
+    destroyAndClearStaticEntities(this.growingWalls);
+    destroyAndClearStaticEntities(this.switches);
+    destroyAndClearStaticEntities(this.lockedDoors);
+    destroyAndClearStaticEntities(this.buildings);
+    destroyAndClearStaticEntities(this.itemDisplays);
   }
 }

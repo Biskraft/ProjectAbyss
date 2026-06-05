@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Steam puff — soft white cloud bursts upward when fire meets water,
@@ -106,8 +107,7 @@ export class SteamPuffManager {
       p.gfx.x = p.x;
       p.gfx.y = p.y;
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.puffs.splice(i, 1);
       }
     }
@@ -115,8 +115,7 @@ export class SteamPuffManager {
 
   clear(): void {
     for (const p of this.puffs) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy();
+      destroyDisplayObject(p.gfx);
     }
     this.puffs.length = 0;
   }

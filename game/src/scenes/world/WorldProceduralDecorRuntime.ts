@@ -1,16 +1,9 @@
 import type { Container } from 'pixi.js';
 import { ProceduralDecorator } from '@level/ProceduralDecorator';
-
-function detachDecoratorLayers(decorator: ProceduralDecorator | null): void {
-  if (!decorator) return;
-  for (const layer of [
-    decorator.naturalLayer,
-    decorator.artificialLayer,
-    decorator.structureLayer,
-  ]) {
-    if (layer.parent) layer.parent.removeChild(layer);
-  }
-}
+import {
+  detachProceduralDecorLayers,
+  getProceduralDecorLayers,
+} from '@scenes/shared/ProceduralDecorLayerHelpers';
 
 export class WorldProceduralDecorRuntime {
   private primaryDecorator: ProceduralDecorator | null = null;
@@ -37,22 +30,18 @@ export class WorldProceduralDecorRuntime {
   }
 
   get layers(): Container[] {
-    return [
-      this.primaryDecorator?.naturalLayer,
-      this.primaryDecorator?.artificialLayer,
-      this.primaryDecorator?.structureLayer,
-    ].filter((layer): layer is Container => !!layer);
+    return getProceduralDecorLayers(this.primaryDecorator);
   }
 
   preparePrimary(): ProceduralDecorator {
-    detachDecoratorLayers(this.primaryDecorator);
+    detachProceduralDecorLayers(this.primaryDecorator);
     this.clearExtras();
     this.primaryDecorator ??= new ProceduralDecorator();
     return this.primaryDecorator;
   }
 
   clearAll(): void {
-    detachDecoratorLayers(this.primaryDecorator);
+    detachProceduralDecorLayers(this.primaryDecorator);
     this.primaryDecorator?.clear();
     this.clearExtras();
   }
@@ -70,7 +59,7 @@ export class WorldProceduralDecorRuntime {
 
   private clearExtras(): void {
     for (const decorator of this.extraDecorators) {
-      detachDecoratorLayers(decorator);
+      detachProceduralDecorLayers(decorator);
       decorator.clear();
     }
     this.extraDecorators = [];

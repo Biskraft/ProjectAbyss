@@ -4,19 +4,14 @@ import type { ThrowableContainer } from '@entities/ThrowableContainer';
 import type { Container } from 'pixi.js';
 import { ArcTether } from '@effects/ArcTether';
 import {
-  updateContainerArcTether,
-  updateContainerGrabInput,
   updateContainerPrompt,
-  updateHeldContainerCarry,
 } from '@systems/ContainerInteraction';
-
-interface CarryState {
-  pullStartX: number;
-  pullStartY: number;
-  pullElapsedMs: number;
-  pullingContainer: ThrowableContainer | null;
-  heldContainer: ThrowableContainer | null;
-}
+import {
+  createEmptyContainerCarryState,
+  updateContainerCarryState,
+  updateContainerCarryTether,
+  type ContainerCarryState,
+} from '@scenes/shared/ContainerCarryStateHelpers';
 
 interface UpdateDeps {
   dtMs: number;
@@ -28,15 +23,11 @@ interface UpdateDeps {
 
 export class WorldContainerCarryRuntime {
   private containerPrompt: Container | null = null;
-  private pullingContainer: ThrowableContainer | null = null;
-  private held: ThrowableContainer | null = null;
-  private pullStartX = 0;
-  private pullStartY = 0;
-  private pullElapsedMs = 0;
+  private state: ContainerCarryState = createEmptyContainerCarryState();
   private arcTether: ArcTether | null = null;
 
   get heldContainer(): ThrowableContainer | null {
-    return this.held;
+    return this.state.heldContainer;
   }
 
   initialize(entityLayer: Container): void {
@@ -46,57 +37,32 @@ export class WorldContainerCarryRuntime {
   }
 
   reset(): void {
-    this.held = null;
-    this.pullingContainer = null;
-    this.pullElapsedMs = 0;
+    this.state = createEmptyContainerCarryState();
     this.arcTether?.hide();
   }
 
   update({ dtMs, game, player, findTarget, promptText }: UpdateDeps): void {
-    this.applyState(updateContainerGrabInput({
+    this.state = updateContainerCarryState({
+      dtMs,
       input: game.input,
       player,
       arcTether: this.arcTether,
-      state: this.getState(),
+      state: this.state,
       findTarget,
-    }));
-    this.applyState(updateHeldContainerCarry({
-      dtMs,
-      player,
-      state: this.getState(),
-    }));
+    });
     this.containerPrompt = updateContainerPrompt({
       game,
       prompt: this.containerPrompt,
-      heldContainer: this.held,
+      heldContainer: this.state.heldContainer,
       findTarget,
       promptText,
     });
-    updateContainerArcTether({
+    updateContainerCarryTether({
       dtMs,
       player,
       arcTether: this.arcTether,
-      heldContainer: this.held,
-      pullingContainer: this.pullingContainer,
+      state: this.state,
       findHover: findTarget,
     });
-  }
-
-  private getState(): CarryState {
-    return {
-      pullStartX: this.pullStartX,
-      pullStartY: this.pullStartY,
-      pullElapsedMs: this.pullElapsedMs,
-      pullingContainer: this.pullingContainer,
-      heldContainer: this.held,
-    };
-  }
-
-  private applyState(state: CarryState): void {
-    this.pullStartX = state.pullStartX;
-    this.pullStartY = state.pullStartY;
-    this.pullElapsedMs = state.pullElapsedMs;
-    this.pullingContainer = state.pullingContainer;
-    this.held = state.heldContainer;
   }
 }

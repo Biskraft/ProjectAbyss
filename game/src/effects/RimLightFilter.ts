@@ -3,6 +3,15 @@
 // can flip it to bottom edges for scenes lit from below.
 
 import { Filter, GlProgram, UniformGroup } from 'pixi.js';
+import { clampEffect01 } from './EffectNumeric';
+
+type RimLightUniforms = {
+  uRimColor: Float32Array;
+  uRimAlpha: number;
+  uRimThickness: number;
+  uEdgeGuardPixels: number;
+  uRimDirection: number;
+};
 
 const vertex = /* glsl */ `
 in vec2 aPosition;
@@ -97,6 +106,7 @@ export interface RimLightOptions {
 }
 
 export class RimLightFilter extends Filter {
+  private readonly rimUniforms: UniformGroup;
   constructor(opts: RimLightOptions = {}) {
     const c = opts.color ?? 0xff4422;
     const rgb: Float32Array = new Float32Array([
@@ -122,10 +132,11 @@ export class RimLightFilter extends Filter {
       resources: { rimUniforms },
       padding: Math.ceil(opts.thickness ?? 1) + 1,
     });
+    this.rimUniforms = rimUniforms;
   }
 
   setColor(color: number): void {
-    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    const uniforms = this.rimUniforms.uniforms as RimLightUniforms;
     uniforms.uRimColor = new Float32Array([
       ((color >> 16) & 0xff) / 255,
       ((color >> 8) & 0xff) / 255,
@@ -134,17 +145,17 @@ export class RimLightFilter extends Filter {
   }
 
   setAlpha(alpha: number): void {
-    const uniforms = (this.resources.rimUniforms as any).uniforms;
-    uniforms.uRimAlpha = Math.max(0, Math.min(1, alpha));
+    const uniforms = this.rimUniforms.uniforms as RimLightUniforms;
+    uniforms.uRimAlpha = clampEffect01(alpha);
   }
 
   setThickness(thickness: number): void {
-    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    const uniforms = this.rimUniforms.uniforms as RimLightUniforms;
     uniforms.uRimThickness = Math.max(1, Math.min(3, thickness));
   }
 
   setEdgeGuardPixels(pixels: number): void {
-    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    const uniforms = this.rimUniforms.uniforms as RimLightUniforms;
     uniforms.uEdgeGuardPixels = Math.max(1, pixels);
   }
 
@@ -153,7 +164,7 @@ export class RimLightFilter extends Filter {
   }
 
   setDirection(direction: RimLightDirection): void {
-    const uniforms = (this.resources.rimUniforms as any).uniforms;
+    const uniforms = this.rimUniforms.uniforms as RimLightUniforms;
     uniforms.uRimDirection = direction === 'bottom' ? 1 : -1;
   }
 }

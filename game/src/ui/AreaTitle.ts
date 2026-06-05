@@ -14,6 +14,7 @@ import { Container, BitmapText, Text, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TITLE_FONT } from './fonts';
 import { createUiText } from './factories';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 type Phase = 'idle' | 'fadeIn' | 'hold' | 'fadeOut';
 
@@ -129,7 +130,7 @@ export class AreaTitle {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   // ---------------------------------------------------------------------------

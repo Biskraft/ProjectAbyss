@@ -10,7 +10,7 @@ import type { ItemWorldSpawnController } from './ItemWorldSpawnController';
 
 interface ItemWorldSafeRoomResidentSpawnRuntimeDeps {
   getItemUid: () => number;
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   createPrng: (seed: number) => PRNG;
   getSpawnController: () => ItemWorldSpawnController;
   getResidentRuntime: () => ItemWorldResidentRuntime;
@@ -26,7 +26,7 @@ export class ItemWorldSafeRoomResidentSpawnRuntime {
     const offY = absRow * IW_ROOM_H_PX;
     const roomTopRow = Math.floor(offY / TILE_SIZE);
     const roomTopCol = Math.floor(offX / TILE_SIZE);
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     const rawPoints = this.deps.getSpawnController().computeSpawnPoints(fullGrid, roomTopCol, roomTopRow);
     const points = rawPoints.filter(point => {
       const tcBelow = Math.floor(point.x / TILE_SIZE);

@@ -17,3 +17,5 @@ Scene-owned boundaries:
 - `spawnStaticEntitiesForRoom()` should delegate `Memory` entities to this runtime; avoid reintroducing a scene-owned `memoryTriggers` collection.
 
 Verification after extraction: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed. `git diff --check` only reported existing line-ending warnings.
+
+- 2026-06-05: Trigger particle/shard/glow/container cleanup now uses DisplayObjectLifecycleHelpers and explicitly destroys Graphics on clear/particle expiry instead of detach-only cleanup.

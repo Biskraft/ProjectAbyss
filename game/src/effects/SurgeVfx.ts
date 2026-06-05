@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Counter-Current Surge VFX — two phases:
@@ -95,8 +96,7 @@ export class SurgeVfxManager {
   tickFly(dt: number, centerX: number, centerY: number): void {
     if (this.aura) {
       this.aura.clear();
-      if (this.aura.parent) this.aura.parent.removeChild(this.aura);
-      this.aura.destroy();
+      destroyDisplayObject(this.aura);
       this.aura = null;
     }
 
@@ -131,8 +131,7 @@ export class SurgeVfxManager {
       e.gfx.alpha = 1 - k;
       void dtSec;
       if (e.life <= 0) {
-        if (e.gfx.parent) e.gfx.parent.removeChild(e.gfx);
-        e.gfx.destroy();
+        destroyDisplayObject(e.gfx);
         this.embers.splice(i, 1);
       }
     }
@@ -146,8 +145,7 @@ export class SurgeVfxManager {
       s.gfx.alpha = t * 0.85;
       s.gfx.scale.y = t;
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.streaks.splice(i, 1);
       }
     }
@@ -158,25 +156,21 @@ export class SurgeVfxManager {
     this.updateEmbers(dt);
     this.updateStreaks(dt);
     if (this.aura) {
-      if (this.aura.parent) this.aura.parent.removeChild(this.aura);
-      this.aura.destroy();
+      destroyDisplayObject(this.aura);
       this.aura = null;
     }
   }
 
   clear(): void {
     if (this.aura) {
-      if (this.aura.parent) this.aura.parent.removeChild(this.aura);
-      this.aura.destroy();
+      destroyDisplayObject(this.aura);
       this.aura = null;
     }
     for (const e of this.embers) {
-      if (e.gfx.parent) e.gfx.parent.removeChild(e.gfx);
-      e.gfx.destroy();
+      destroyDisplayObject(e.gfx);
     }
     for (const s of this.streaks) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.embers.length = 0;
     this.streaks.length = 0;

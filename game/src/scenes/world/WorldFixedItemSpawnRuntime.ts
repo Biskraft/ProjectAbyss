@@ -5,6 +5,7 @@ import { ItemDropEntity } from '@items/ItemDrop';
 import { resolveItemDropSpawn } from '@items/DropSpawn';
 import { GoldPickup } from '@entities/GoldPickup';
 import { t } from '@i18n';
+import { setDropItemKey, setPersistedKey } from '@scenes/world/PickupMetadata';
 
 interface WorldFixedItemSpawnRuntimeDeps {
   getCollisionGrid: () => number[][];
@@ -43,7 +44,7 @@ export class WorldFixedItemSpawnRuntime {
     const item = createItem(def, def.rarity);
     const spawn = resolveItemDropSpawn(x, y, this.deps.getCollisionGrid());
     const drop = new ItemDropEntity(spawn.x, spawn.y, item);
-    if (itemKey) (drop as unknown as { _itemKey?: string })._itemKey = itemKey;
+    if (itemKey) setDropItemKey(drop, itemKey);
     this.deps.addItemDrop(drop);
   }
 
@@ -52,7 +53,7 @@ export class WorldFixedItemSpawnRuntime {
     const amount = Math.max(1, Math.floor((idMatch ? parseInt(idMatch[1], 10) : 100) * 0.1));
     const pickup = new GoldPickup(x, y, amount);
     pickup.enableTerrainPhysics(this.deps.getCollisionGrid());
-    if (itemKey) (pickup as unknown as { _key?: string })._key = itemKey;
+    if (itemKey) setPersistedKey(pickup, itemKey);
     this.deps.addGoldPickup(pickup);
   }
 }

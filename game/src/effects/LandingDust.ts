@@ -1,4 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
+import {
+  destroyDisplayObject,
+  detachDisplayObject,
+} from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Landing dust — soft puff of kicked-up dust when the player lands on ground.
@@ -145,7 +149,7 @@ export class LandingDustManager {
       p.gfx.scale.set(1 + (1 - t) * 0.6); // expand slightly as it fades
 
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.puffs.splice(i, 1);
       }
     }
@@ -153,8 +157,7 @@ export class LandingDustManager {
 
   clear(): void {
     for (const p of this.puffs) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy({ children: true, context: true });
+      destroyDisplayObject(p.gfx, { children: true, context: true });
     }
     this.puffs.length = 0;
   }

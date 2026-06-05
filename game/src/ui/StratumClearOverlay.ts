@@ -32,6 +32,7 @@ import {
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
 import type { Rarity } from '@data/weapons';
 import { HudConst } from '@data/constData';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Rarity-driven enhancement burst tuning.
@@ -203,8 +204,7 @@ export class StratumClearOverlay {
 
     this.itemImage = new ItemImage(data.item, ICON_SIZE);
     // Remove border by hiding it
-    const border = (this.itemImage as any).border as Graphics | undefined;
-    if (border) border.visible = false;
+    this.itemImage.setBorderVisible(false);
     this.itemImage.container.x = -ICON_SIZE / 2;
     this.itemImage.container.y = -ICON_SIZE / 2;
     this.iconContainer.addChild(this.itemImage.container);
@@ -503,7 +503,7 @@ export class StratumClearOverlay {
       const p = this.particles[i];
       p.life -= dt;
       if (p.life <= 0) {
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.particles.splice(i, 1);
         continue;
       }
@@ -668,9 +668,9 @@ export class StratumClearOverlay {
   }
 
   destroy(): void {
-    for (const p of this.particles) p.gfx.destroy();
+    for (const p of this.particles) destroyDisplayObject(p.gfx);
     this.particles = [];
     this.itemImage.destroy();
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

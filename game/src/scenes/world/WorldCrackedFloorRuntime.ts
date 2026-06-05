@@ -7,7 +7,9 @@ import type { ScreenFlash } from '@effects/ScreenFlash';
 import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { t } from '@i18n';
+import { getWallRuntimeKey, setWallRuntimeKey } from '@entities/WallMetadata';
 import type { WorldCrackedFloorRegistry } from './WorldCrackedFloorRegistry';
+import { applyCrackedFloorShatterFeedback } from '@scenes/shared/StaticEntityFeedbackHelpers';
 
 interface WorldCrackedFloorRuntimeDeps {
   game: Game;
@@ -35,7 +37,7 @@ export class WorldCrackedFloorRuntime {
       if (this.deps.getUnlockedEvents().has(key)) continue;
 
       const floor = new CrackedFloor(entity.px[0], entity.px[1], entity.width, entity.height);
-      (floor as any)._key = key;
+      setWallRuntimeKey(floor, key);
       floor.injectCollision(this.deps.getCollisionGrid());
       registry.add(floor, this.deps.getEntityLayer());
     }
@@ -71,7 +73,7 @@ export class WorldCrackedFloorRuntime {
       if (!aabbOverlap(hitbox, floor.getAABB())) continue;
 
       floor.shatter(this.deps.getCollisionGrid());
-      const key = (floor as any)._key as string;
+      const key = getWallRuntimeKey(floor);
       if (key) this.deps.getUnlockedEvents().add(key);
       this.playBreakFeedback(style);
       registry.removeAt(i);
@@ -79,12 +81,16 @@ export class WorldCrackedFloorRuntime {
   }
 
   private playBreakFeedback(style: BreakStyle): void {
-    this.deps.game.hitstopFrames += 4;
-    this.deps.getScreenFlash().flash(0xffffff, 0.4, 150);
-    this.deps.game.camera.shake(style === 'attack' ? 6 : 10);
-    this.deps.showToast(
-      style === 'attack' ? t('toast.wall_destroyed') : t('toast.floor_destroyed'),
-      0xffaa44,
-    );
+    applyCrackedFloorShatterFeedback({
+      game: this.deps.game,
+      screenFlash: this.deps.getScreenFlash(),
+      cameraShake: style === 'attack' ? 6 : 10,
+      showToast: () => {
+        this.deps.showToast(
+          style === 'attack' ? t('toast.wall_destroyed') : t('toast.floor_destroyed'),
+          0xffaa44,
+        );
+      },
+    });
   }
 }

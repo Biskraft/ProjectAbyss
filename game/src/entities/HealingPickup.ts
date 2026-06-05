@@ -16,6 +16,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type HealingTier = 'small' | 'medium' | 'large';
 
@@ -99,9 +100,7 @@ export class HealingPickup {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }
 

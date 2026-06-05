@@ -1,5 +1,6 @@
 import { ColorMatrixFilter, type Container, type Filter } from 'pixi.js';
 import { WorldPullInTransitionController } from '@effects/WorldPullInTransitionController';
+import { appendFilterIfMissing } from '@scenes/shared/FilterLifecycleHelpers';
 import type { Game } from '../../Game';
 
 type AbsorbDissolveState = 'none' | 'absorbing' | 'dissolving';
@@ -39,10 +40,6 @@ export class ItemWorldAbsorbDissolveRuntime {
 
   get isActive(): boolean {
     return this.state !== 'none';
-  }
-
-  get suppressionState(): AbsorbDissolveState {
-    return this.state;
   }
 
   prepareFilter(): void {
@@ -89,17 +86,11 @@ export class ItemWorldAbsorbDissolveRuntime {
 
     const fullMapContainer = this.deps.getFullMapContainer();
     if (fullMapContainer) {
-      const filters = (fullMapContainer.filters as Filter[] | null) ?? [];
-      if (!filters.includes(this.absorbFilter)) {
-        fullMapContainer.filters = [...filters, this.absorbFilter];
-      }
+      appendFilterIfMissing(fullMapContainer, this.absorbFilter);
     }
 
     const background = this.deps.game.backgroundContainer;
-    const bgFilters = (background.filters as Filter[] | null) ?? [];
-    if (!bgFilters.includes(this.absorbFilter)) {
-      background.filters = [...bgFilters, this.absorbFilter];
-    }
+    appendFilterIfMissing(background, this.absorbFilter);
   }
 
   private removeAbsorbFilter(): void {

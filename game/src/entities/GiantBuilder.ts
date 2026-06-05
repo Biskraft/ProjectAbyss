@@ -10,7 +10,7 @@ import { Container, Graphics, Rectangle } from 'pixi.js';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import type { Texture } from 'pixi.js';
-import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
+import { applyDefaultWorldAreaRetags } from '@level/LdtkAreaRetagHelpers';
 import { ProceduralDecorator, hashString } from '@level/ProceduralDecorator';
 import { LegRig, type LegMount, type LegRigSnapshot } from './LegRig';
 import { GlowFilter } from '@effects/GlowFilter';
@@ -237,11 +237,13 @@ export class GiantBuilder {
     const bgTiles = [...level.backgroundTiles];
     const wallTiles = [...level.wallTiles];
     const shadowTiles = [...level.shadowTiles];
-    const defaultWallTileset = 'atlas/world_01.png';
-    const defaultBgTileset = 'atlas/world_01.png';
-    applyAreaTilesetToLdtkTiles(bgAreaId, bgTiles.filter(t => t.tilesetPath === defaultBgTileset));
-    applyAreaTilesetToLdtkTiles(wallAreaId, wallTiles.filter(t => t.tilesetPath === defaultWallTileset));
-    applyAreaTilesetToLdtkTiles(wallAreaId, shadowTiles.filter(t => t.tilesetPath === defaultWallTileset));
+    applyDefaultWorldAreaRetags({
+      bgAreaId,
+      wallAreaId,
+      bgTiles,
+      wallTiles,
+      shadowTiles,
+    });
     this.wallTiles = wallTiles;
 
     // BuilderInterior tiles are handled separately (dissolve layer) — exclude

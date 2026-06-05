@@ -16,3 +16,5 @@
 - 2026-06-02: Extracted full-map aggregate container creation, render order, palette/rim filters, depth transform, and mutation-mask graphics reset from `ItemWorldScene.buildFullMap()`.
 - 2026-06-02: Moved mutation/solidified-wall overlay cell sets and repaint methods from `ItemWorldScene` into this runtime.
 - Checks: `npx tsc --noEmit`, `npm run build`, `/play/?debug=1` Puppeteer smoke, `git diff --check` with only existing line-ending warnings.
+
+- 2026-06-05: Previous full-map container teardown now uses DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true }); mutation/solidified overlay reuse policy remains unchanged.

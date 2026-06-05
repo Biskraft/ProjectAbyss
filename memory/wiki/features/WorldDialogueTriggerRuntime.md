@@ -11,3 +11,7 @@ Invariants:
 - Call `clear()` on scene exit/destroy so prompt containers cannot leak into Item World or another scene.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, and `/play/?debug=1` browser smoke on `127.0.0.1:5178` passed.
+
+- 2026-06-05: Interact prompt cleanup now uses DisplayObjectLifecycleHelpers.detachDisplayObject(); prompts remain detach-only to preserve the existing non-destroy cleanup semantics.
+- 2026-06-05: Interact dialogue `ATTACK` press/consume gating now uses `InputPressHelpers.consumeJustPressedAction()` after the in-trigger check, preserving the previous range-only consume policy.
+- 2026-06-05: Interact prompt positioning now uses the shared `WorldPromptProjection.projectWorldToUi()` helper so UI-container prompts stay aligned with world anchors during camera zoom in/out.

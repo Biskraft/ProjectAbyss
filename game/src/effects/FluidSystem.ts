@@ -1,3 +1,4 @@
+import { clampEffect01 } from './EffectNumeric';
 /**
  * FluidSystem.ts — Dynamic fluid (water / lava / ...) — V1 구현
  *
@@ -20,6 +21,7 @@
 import { Container, Graphics, BlurFilter } from 'pixi.js';
 import type { LdtkLevel, LdtkEntity } from '@level/LdtkLoader';
 import { getFluidDef, type FluidType, type FluidTypeDef } from '@data/FluidTypes';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * IntGrid cell value → default FluidType id. Each value flood-fills into
@@ -292,23 +294,19 @@ export class FluidSystem {
   /** 룸 떠날 때 호출. 모든 body 의 mesh 제거. */
   detach(): void {
     for (const body of this.bodies) {
-      if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
-      body.gfx.destroy();
+      destroyDisplayObject(body.gfx);
       if (body.haloGfx) {
-        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
-        body.haloGfx.destroy();
+        destroyDisplayObject(body.haloGfx);
       }
       if (body.arcGfx) {
-        if (body.arcGfx.parent) body.arcGfx.parent.removeChild(body.arcGfx);
-        body.arcGfx.destroy();
+        destroyDisplayObject(body.arcGfx);
       }
     }
     this.bodies = [];
     // Also clean up any in-flight evaporation droplets so they don't dangle
     // across level reloads.
     for (const d of this.evaporatingDrops) {
-      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-      d.gfx.destroy();
+      destroyDisplayObject(d.gfx);
     }
     this.evaporatingDrops.length = 0;
   }
@@ -702,7 +700,7 @@ export class FluidSystem {
     // Body-size scaling — small puddles need calmer behaviour to avoid
     // looking like they shimmer forever. Threshold around 8 surface columns
     // (≈ 4 tiles wide) where ambient becomes negligible.
-    const sizeFactor = Math.max(0, Math.min(1, (n - 4) / 8)); // 0 for n≤4, 1 for n≥12
+    const sizeFactor = clampEffect01((n - 4) / 8); // 0 for n≤4, 1 for n≥12
     // Damping ramps UP as body shrinks so leftover spring energy dies fast.
     const damp = def.surfaceDamping + (1 - sizeFactor) * 0.35;
 
@@ -1022,11 +1020,9 @@ export class FluidSystem {
     body.cells.delete(key);
     if (body.cells.size === 0) {
       // destroy
-      if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
-      body.gfx.destroy();
+      destroyDisplayObject(body.gfx);
       if (body.haloGfx) {
-        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
-        body.haloGfx.destroy();
+        destroyDisplayObject(body.haloGfx);
       }
       this.bodies = this.bodies.filter(b => b !== body);
       return;
@@ -1074,11 +1070,9 @@ export class FluidSystem {
     // Split: destroy old body, create new ones per component, transfer wave.
     const oldSurface = body.surface;
     const oldAmbient = body.ambientPhase;
-    if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
-    body.gfx.destroy();
+    destroyDisplayObject(body.gfx);
     if (body.haloGfx) {
-      if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
-      body.haloGfx.destroy();
+      destroyDisplayObject(body.haloGfx);
     }
     this.bodies = this.bodies.filter(b => b !== body);
     for (const compCells of components) {
@@ -1095,21 +1089,17 @@ export class FluidSystem {
     const newBody = this.makeBodyFromCells(body.type, body.cells);
     if (!newBody) {
       // shouldn't happen unless cells empty
-      if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
-      body.gfx.destroy();
+      destroyDisplayObject(body.gfx);
       if (body.haloGfx) {
-        if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
-        body.haloGfx.destroy();
+        destroyDisplayObject(body.haloGfx);
       }
       this.bodies = this.bodies.filter(b => b !== body);
       return;
     }
     // newBody was pushed to this.bodies; remove old, transfer wave state.
-    if (body.gfx.parent) body.gfx.parent.removeChild(body.gfx);
-    body.gfx.destroy();
+    destroyDisplayObject(body.gfx);
     if (body.haloGfx) {
-      if (body.haloGfx.parent) body.haloGfx.parent.removeChild(body.haloGfx);
-      body.haloGfx.destroy();
+      destroyDisplayObject(body.haloGfx);
     }
     this.bodies = this.bodies.filter(b => b !== body);
     this.transferWaveState(newBody, oldSurface, oldAmbient);
@@ -1384,8 +1374,7 @@ export class FluidSystem {
       // Rect anchored: x from -w/2..+w/2, y from -h..0 (bottom edge at y=0).
       d.gfx.rect(-w / 2, -h, w, h).fill({ color: d.color, alpha });
       if (d.age >= d.life) {
-        if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-        d.gfx.destroy();
+        destroyDisplayObject(d.gfx);
         this.evaporatingDrops.splice(i, 1);
       }
     }
@@ -1496,11 +1485,9 @@ export class FluidSystem {
 
     // Now safe to destroy old graphics
     for (const oldBody of oldBodies) {
-      if (oldBody.gfx.parent) oldBody.gfx.parent.removeChild(oldBody.gfx);
-      oldBody.gfx.destroy();
+      destroyDisplayObject(oldBody.gfx);
       if (oldBody.haloGfx) {
-        if (oldBody.haloGfx.parent) oldBody.haloGfx.parent.removeChild(oldBody.haloGfx);
-        oldBody.haloGfx.destroy();
+        destroyDisplayObject(oldBody.haloGfx);
       }
     }
   }

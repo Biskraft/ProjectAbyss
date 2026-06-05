@@ -1,9 +1,10 @@
 import type { Container } from 'pixi.js';
 import type { Game } from '../../Game';
 import { aabbOverlap } from '@core/Physics';
-import { SFX } from '@audio/Sfx';
 import { BreakableProp } from '@entities/BreakableProp';
-import { GoldPickup } from '@entities/GoldPickup';
+import type { GoldPickup } from '@entities/GoldPickup';
+import type { BreakableDestroySource } from '@scenes/shared/BreakableFeedbackHelpers';
+import { applyBreakablePropBreakConsequences } from '@scenes/shared/BreakablePropDestructionHelpers';
 import type { Player } from '@entities/Player';
 import type { HitSparkManager } from '@effects/HitSpark';
 import type { PropShatterManager } from '@effects/PropShatter';
@@ -12,9 +13,8 @@ import { spawnBreakableProps } from '@systems/BreakablePropSpawner';
 import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
 import type { TileMutator } from '@systems/TileMutator';
 import { hashString } from '@level/ProceduralDecorator';
+import { addCellExclusionRadius } from '@scenes/shared/CellExclusionHelpers';
 import type { WorldBreakablePropRegistry } from './WorldBreakablePropRegistry';
-
-export type WorldBreakablePropDestroySource = 'sword' | 'fire';
 
 type EdgeDirection = 'left' | 'right' | 'up' | 'down';
 
@@ -89,60 +89,34 @@ export class WorldBreakablePropRuntime {
     this.deps.getRegistry().clear();
   }
 
-  private destroyWithEffects(prop: BreakableProp, source: WorldBreakablePropDestroySource): void {
+  private destroyWithEffects(prop: BreakableProp, source: BreakableDestroySource): void {
     const player = this.deps.getPlayer();
     const drop = prop.break();
-    if (source === 'sword') {
-      this.deps.game.hitstopFrames += 4;
-      this.deps.game.camera.shake(4);
-    }
-
-    this.deps.getPropShatter().spawn(
-      prop.x,
-      prop.y,
-      prop.width,
-      prop.height,
-      prop.getParticleColor(),
-      prop.getAccentColor(),
-      prop.getArtifactTexture(),
-    );
-    SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-
-    if (source === 'sword') {
-      this.deps.getHitSparks().spawn(
-        prop.x + prop.width / 2,
-        prop.y + prop.height / 2,
-        false,
-        player.facingRight ? 1 : -1,
-      );
-    }
-
-    if (drop.type === 'gold' && drop.amount > 0) {
-      const burstX = prop.x + prop.width / 2 - 8;
-      const burstY = prop.y + prop.height;
-      for (const pickup of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-        pickup.roomData = this.deps.getCollisionGrid();
-        this.deps.addGoldPickup(pickup);
-      }
-    } else if (drop.type === 'flask') {
-      player.flaskCharges = Math.min(player.flaskCharges + 1, player.flaskMaxCharges);
-    }
+    applyBreakablePropBreakConsequences({
+      prop,
+      drop,
+      source,
+      player,
+      game: this.deps.game,
+      propShatter: this.deps.getPropShatter(),
+      hitSparks: this.deps.getHitSparks(),
+      collisionGrid: this.deps.getCollisionGrid(),
+      addGoldPickup: this.deps.addGoldPickup,
+    });
   }
 
   private buildLevelExclusion(level: LdtkLevel): Set<string> {
     const exclude = new Set<string>();
     const radius = 8;
-    const addRadius = (col: number, row: number) => {
-      for (let dr = -radius; dr <= radius; dr++) {
-        for (let dc = -radius; dc <= radius; dc++) {
-          exclude.add(`${col + dc},${row + dr}`);
-        }
-      }
-    };
 
     for (const entity of level.entities) {
       if (entity.type === 'GameSaver' || entity.type === 'Player') {
-        addRadius(Math.floor(entity.px[0] / 16), Math.floor(entity.px[1] / 16));
+        addCellExclusionRadius(
+          exclude,
+          Math.floor(entity.px[0] / 16),
+          Math.floor(entity.px[1] / 16),
+          radius,
+        );
       }
     }
 
@@ -150,13 +124,13 @@ export class WorldBreakablePropRuntime {
     const cols = grid[0]?.length ?? 0;
     const rows = grid.length;
     const leftPassage = this.deps.findEdgePassage(grid, 'left', -1);
-    if (leftPassage >= 0) addRadius(0, leftPassage);
+    if (leftPassage >= 0) addCellExclusionRadius(exclude, 0, leftPassage, radius);
     const rightPassage = this.deps.findEdgePassage(grid, 'right', -1);
-    if (rightPassage >= 0) addRadius(cols - 1, rightPassage);
+    if (rightPassage >= 0) addCellExclusionRadius(exclude, cols - 1, rightPassage, radius);
     const upPassage = this.deps.findEdgePassage(grid, 'up', -1);
-    if (upPassage >= 0) addRadius(upPassage, 0);
+    if (upPassage >= 0) addCellExclusionRadius(exclude, upPassage, 0, radius);
     const downPassage = this.deps.findEdgePassage(grid, 'down', -1);
-    if (downPassage >= 0) addRadius(downPassage, rows - 1);
+    if (downPassage >= 0) addCellExclusionRadius(exclude, downPassage, rows - 1, radius);
 
     return exclude;
   }

@@ -1,11 +1,18 @@
 import { Container, Graphics } from 'pixi.js';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { Anvil } from '@entities/Anvil';
-import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import type { Game } from '../../Game';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { createUiText } from '@ui/factories';
 import { PIXEL_FONT } from '@ui/fonts';
 import { t } from '@i18n';
+import {
+  attachDisplayObjectIfMissing,
+  destroyDisplayObject,
+  destroyNullableDisplayObject,
+  hideDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { projectWorldToUi } from '@scenes/shared/WorldPromptProjection';
 
 export class AnvilPromptController {
   private actionPrompt: Container | null = null;
@@ -30,14 +37,11 @@ export class AnvilPromptController {
 
   showAction(anvil: Anvil, promptKey: string): void {
     if (!this.actionPrompt || this.actionPromptKey !== promptKey) {
-      this.actionPrompt?.parent?.removeChild(this.actionPrompt);
-      this.actionPrompt?.destroy({ children: true });
+      this.actionPrompt = destroyNullableDisplayObject(this.actionPrompt, { children: true });
       this.actionPrompt = KeyPrompt.createPrompt(actionKey(GameAction.ATTACK), t(promptKey), this.game.uiScale);
       this.actionPromptKey = promptKey;
     }
-    if (!this.actionPrompt.parent) {
-      this.game.uiContainer.addChild(this.actionPrompt);
-    }
+    attachDisplayObjectIfMissing(this.game.uiContainer, this.actionPrompt);
     this.actionPrompt.visible = true;
     this.positionPrompt(this.actionPrompt, anvil, -56);
   }
@@ -60,19 +64,17 @@ export class AnvilPromptController {
       prompt.addChild(bg, label);
       this.disabledPrompt = prompt;
     }
-    if (!this.disabledPrompt.parent) {
-      this.game.uiContainer.addChild(this.disabledPrompt);
-    }
+    attachDisplayObjectIfMissing(this.game.uiContainer, this.disabledPrompt);
     this.disabledPrompt.visible = true;
     this.positionPrompt(this.disabledPrompt, anvil, -56);
   }
 
   hideAction(): void {
-    if (this.actionPrompt) this.actionPrompt.visible = false;
+    hideDisplayObject(this.actionPrompt);
   }
 
   hideDisabled(): void {
-    if (this.disabledPrompt) this.disabledPrompt.visible = false;
+    hideDisplayObject(this.disabledPrompt);
   }
 
   hideAll(): void {
@@ -81,23 +83,22 @@ export class AnvilPromptController {
   }
 
   destroy(): void {
-    this.actionPrompt?.parent?.removeChild(this.actionPrompt);
-    this.actionPrompt?.destroy({ children: true });
-    this.actionPrompt = null;
-    this.disabledPrompt?.parent?.removeChild(this.disabledPrompt);
-    this.disabledPrompt?.destroy({ children: true });
-    this.disabledPrompt = null;
+    this.actionPrompt = destroyNullableDisplayObject(this.actionPrompt, { children: true });
+    this.disabledPrompt = destroyNullableDisplayObject(this.disabledPrompt, { children: true });
     this.actionPromptKey = '';
     this.suppressMs = 0;
   }
 
   private positionPrompt(prompt: Container, anvil: Anvil, yOffset: number): void {
-    const us = this.game.uiScale;
     const cam = this.game.camera;
     const anchor = anvil.getFloorPlateCenterWorld();
-    const sx = (anchor.x - cam.renderX + GAME_WIDTH / 2) * us - prompt.width / 2;
-    const sy = (anvil.y - cam.renderY + GAME_HEIGHT / 2 + yOffset) * us;
-    prompt.x = Math.round(sx);
-    prompt.y = Math.round(sy);
+    const p = projectWorldToUi({
+      camera: cam,
+      uiScale: this.game.uiScale,
+      worldX: anchor.x,
+      worldY: anvil.y + yOffset,
+    });
+    prompt.x = Math.round(p.x - prompt.width / 2);
+    prompt.y = Math.round(p.y);
   }
 }

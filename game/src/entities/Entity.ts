@@ -1,4 +1,5 @@
 import { Container } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Sakurai Hit Stop Techniques applied at Entity level:
@@ -122,9 +123,6 @@ export abstract class Entity {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

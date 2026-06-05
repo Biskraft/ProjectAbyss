@@ -6,6 +6,11 @@ import { Portal, type PortalSourceType } from '@entities/Portal';
 import type { Rarity } from '@data/weapons';
 import type { ItemInstance } from '@items/ItemInstance';
 import { t } from '@i18n';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import { updatePortalInteractions } from '@scenes/shared/ProximityInteractionHelpers';
 
 interface PortalRuntimeDeps {
   game: Game;
@@ -28,8 +33,7 @@ export class PortalRuntime {
     sourceItem?: ItemInstance,
   ): void {
     const portal = new Portal(x, y, rarity, sourceType, sourceItem);
-    this.portals.push(portal);
-    this.deps.getEntityLayer().addChild(portal.container);
+    addEntityToLayer(this.portals, portal, this.deps.getEntityLayer());
 
     this.deps.game.hitstopFrames += portal.spawnHitstop;
     this.deps.game.camera.shake(portal.spawnShake);
@@ -41,26 +45,17 @@ export class PortalRuntime {
 
   update(deltaMS: number): boolean {
     const player = this.deps.getPlayer();
-    for (const portal of this.portals) {
-      portal.update(deltaMS);
-
-      const near = portal.overlaps(
-        player.x - 8,
-        player.y - 8,
-        player.width + 16,
-        player.height + 16,
-      );
-      portal.setShowHint(near);
-
-      if (portal.overlaps(player.x, player.y, player.width, player.height)
-          && this.deps.game.input.isJustPressed(GameAction.LOOK_UP)) {
+    return updatePortalInteractions({
+      portals: this.portals,
+      actor: player,
+      dtMs: deltaMS,
+      isInteractPressed: () => this.deps.game.input.isJustPressed(GameAction.LOOK_UP),
+      onEnter: (portal) => {
         this.detach(portal);
         portal.setShowHint(false);
         this.deps.onEnter(portal);
-        return true;
-      }
-    }
-    return false;
+      },
+    });
   }
 
   detach(portal: Portal): void {
@@ -69,9 +64,6 @@ export class PortalRuntime {
   }
 
   clear(): void {
-    for (const portal of this.portals) {
-      portal.destroy();
-    }
-    this.portals = [];
+    destroyAndClearEntities(this.portals);
   }
 }

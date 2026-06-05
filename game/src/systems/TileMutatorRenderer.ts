@@ -21,6 +21,7 @@ import type { TileMutator } from './TileMutator';
 import { TILE_OIL, TILE_GRASS, TILE_WATER, TILE_ACID, TILE_CHARGED, getTile } from '../core/Physics';
 import { EmberRiseManager } from '../effects/EmberRise';
 import { SmokeWispManager } from '../effects/SmokeWisp';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Build a procedural displacement map for the heat-shimmer DisplacementFilter.
@@ -234,20 +235,15 @@ export class TileMutatorRenderer {
   }
 
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
-    if (this.aboveFluidGfx.parent) this.aboveFluidGfx.parent.removeChild(this.aboveFluidGfx);
-    this.aboveFluidGfx.destroy();
-    if (this.fireHaloGfx.parent) this.fireHaloGfx.parent.removeChild(this.fireHaloGfx);
-    this.fireHaloGfx.destroy();
-    if (this.fireSpriteLayer.parent) this.fireSpriteLayer.parent.removeChild(this.fireSpriteLayer);
-    this.fireSpriteLayer.destroy({ children: true });
+    destroyDisplayObject(this.gfx);
+    destroyDisplayObject(this.aboveFluidGfx);
+    destroyDisplayObject(this.fireHaloGfx);
+    destroyDisplayObject(this.fireSpriteLayer, { children: true });
     this.fireSpritePool.length = 0;
     if (this.embers) { this.embers.destroy(); this.embers = null; }
     if (this.smoke)  { this.smoke.destroy();  this.smoke = null; }
     if (this.heatDispSprite) {
-      if (this.heatDispSprite.parent) this.heatDispSprite.parent.removeChild(this.heatDispSprite);
-      this.heatDispSprite.destroy();
+      destroyDisplayObject(this.heatDispSprite);
       this.heatDispSprite = null;
     }
     this.heatShimmerFilter = null;

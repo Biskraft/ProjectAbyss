@@ -19,6 +19,7 @@
 import { Assets, Container, Sprite, Texture } from 'pixi.js';
 import type { AABB } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import type { PropDrop } from './BreakableProp';
 
 // PropShatter fleck 기본 색 (카탈로그 제거 후 공용 기본값).
@@ -125,8 +126,7 @@ export class Breakable {
 
   destroy(): void {
     this.destroyed = true;
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   /** Sprite 카탈로그 + drop 테이블 — 단순 gold weight. BreakableProp 와 동일 분포. */

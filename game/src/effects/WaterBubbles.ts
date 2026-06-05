@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Water bubbles — trickling bubbles that rise from the player while submerged.
@@ -75,8 +76,7 @@ export class WaterBubblesManager {
       const t = Math.max(0, b.life / b.maxLife);
       b.gfx.alpha = t;
       if (b.life <= 0) {
-        if (b.gfx.parent) b.gfx.parent.removeChild(b.gfx);
-        b.gfx.destroy();
+        destroyDisplayObject(b.gfx);
         this.bubbles.splice(i, 1);
       }
     }
@@ -84,8 +84,7 @@ export class WaterBubblesManager {
 
   clear(): void {
     for (const b of this.bubbles) {
-      if (b.gfx.parent) b.gfx.parent.removeChild(b.gfx);
-      b.gfx.destroy();
+      destroyDisplayObject(b.gfx);
     }
     this.bubbles.length = 0;
     this.timers.clear();

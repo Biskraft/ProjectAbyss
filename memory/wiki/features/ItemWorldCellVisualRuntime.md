@@ -18,3 +18,5 @@
 - 2026-06-02: Moved the reusable viewport `Rectangle` cache from `ItemWorldScene` into this runtime.
 - 2026-06-02: Removed dead `ItemWorldScene.rebuildRoomVisuals()` and the now-unused aggregate-child destruction helper.
 - Checks: `npx tsc --noEmit`, `npm run build`, `/play/?debug=1` Puppeteer smoke, `git diff --check` with only existing line-ending warnings.
+
+- 2026-06-05: Per-cell rendered layer teardown now uses DisplayObjectLifecycleHelpers.destroyDisplayObject(), preserving children/texture/context destroy options.

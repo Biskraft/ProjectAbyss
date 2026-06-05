@@ -5,6 +5,7 @@ import { applyAreaTilesetToLdtkTiles } from '@data/areaPalettes';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import { isLdtkWallSlope2x1Tile, type LdtkLevel, type LdtkTile } from '@level/LdtkLoader';
 import { addLdtkVisualBoundsBleed } from '@level/VisualBoundsBleed';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import {
   IW_ROOM_H_PX,
   IW_ROOM_H_TILES,
@@ -36,7 +37,7 @@ interface CameraLike {
 }
 
 interface ItemWorldCellVisualRuntimeDeps {
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getAtlases: () => Record<string, Texture>;
   getThemeSlug: () => string;
   getTemperament: () => string | undefined;
@@ -129,7 +130,7 @@ export class ItemWorldCellVisualRuntime {
       const tr = Math.floor(tile.px[1] / TILE_SIZE);
       const tc = Math.floor(tile.px[0] / TILE_SIZE);
       if (isLdtkWallSlope2x1Tile(tile)) return true;
-      return (this.deps.getFullGrid()[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? TILE_WALL) !== TILE_AIR;
+      return (this.deps.getCollisionGrid()[absRow * IW_ROOM_H_TILES + tr]?.[col * IW_ROOM_W_TILES + tc] ?? TILE_WALL) !== TILE_AIR;
     });
     const shadowTiles = ldtkLevel.shadowTiles.filter(inBounds);
     const interiorTiles = this.getInteriorTilesForRoom(ldtkLevel, inBounds);
@@ -212,16 +213,16 @@ export class ItemWorldCellVisualRuntime {
     this.cellLayerGroups.push({ col, row: absRow, layers });
   }
 
-  private renderedEntries(): Array<[string, RenderedCellVisual]> {
-    return Array.from(this.rendered);
-  }
-
   private destroyCellVisual(key: string): void {
     const rendered = this.rendered.get(key);
     if (!rendered) return;
     for (const layer of rendered.layers) {
-      if (layer.parent) layer.parent.removeChild(layer);
-      layer.destroy({ children: true, texture: false, textureSource: false, context: true });
+      destroyDisplayObject(layer, {
+        children: true,
+        texture: false,
+        textureSource: false,
+        context: true,
+      });
     }
     this.rendered.delete(key);
     this.cellLayerGroups = this.cellLayerGroups.filter(group => group.layers !== rendered.layers);
@@ -256,7 +257,7 @@ export class ItemWorldCellVisualRuntime {
     const destroyMaxCol = maxCol + 1;
     const destroyMinRow = minRow - 1;
     const destroyMaxRow = maxRow + 1;
-    for (const [key, rendered] of this.renderedEntries()) {
+    for (const [key, rendered] of Array.from(this.rendered)) {
       const visible =
         rendered.col >= minCol &&
         rendered.col <= maxCol &&

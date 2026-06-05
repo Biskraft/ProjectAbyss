@@ -3,6 +3,7 @@ import { SaveManager } from '@utils/SaveManager';
 import type { Player } from '@entities/Player';
 import type { Game } from '../../Game';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { stopPlayerMotion } from '@scenes/shared/PlayerPlacementHelpers';
 
 interface WorldEndingRuntimeDeps {
   game: Game;
@@ -22,19 +23,11 @@ export class WorldEndingRuntime {
     });
   }
 
-  private clearTriggers(): void {
-    this.triggers.length = 0;
-  }
-
-  private addTrigger(trigger: EndingTrigger): void {
-    this.triggers.push(trigger);
-  }
-
   loadLevel(level: LdtkLevel): void {
-    this.clearTriggers();
+    this.triggers.length = 0;
     for (const entity of level.entities) {
       if (entity.type !== 'EndingTrigger') continue;
-      this.addTrigger({
+      this.triggers.push({
         x: entity.px[0],
         y: entity.px[1] - entity.height,
         w: entity.width,
@@ -62,9 +55,7 @@ export class WorldEndingRuntime {
     const pcy = player.y + player.height / 2;
     this.sequence.checkTrigger(pcx, pcy, this.triggers);
     if (this.sequence.isActive) {
-      player.vx = 0;
-      player.vy = 0;
-      player.savePrevPosition();
+      stopPlayerMotion(player, { savePreviousPosition: true });
     }
   }
 

@@ -1,4 +1,4 @@
-import type { Container } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import type { PendingGhostTunnelParams } from './WorldItemWorldEntryState';
 import type { WorldDungeonAtmosphereRuntime } from './WorldDungeonAtmosphereRuntime';
@@ -18,6 +18,18 @@ interface WorldItemDeploymentAtmosphereFlowRuntimeDeps {
   getPendingGhostTunnelParams: () => PendingGhostTunnelParams | null;
   clearPendingGhostTunnelParams: () => void;
   scheduleGhostTunnel: (params: PendingGhostTunnelParams) => void;
+  getCollisionGrid: () => number[][];
+  getFadeOverlay: () => Graphics | null;
+  getParallaxContainer: () => Container | null | undefined;
+  getReturnVisualTargets: () => Array<Container | null | undefined>;
+  destroyTunnelVisuals: () => void;
+  restoreDeploymentTunnel: (rerender: boolean) => void;
+  destroyDeployment: () => void;
+  clearInputLock: () => void;
+  clearAnvilPlacement: () => void;
+  restoreAnvilDeploymentState: () => void;
+  clearItem: () => void;
+  setPlayerRoomData: (grid: number[][]) => void;
 }
 
 export class WorldItemDeploymentAtmosphereFlowRuntime {
@@ -71,5 +83,36 @@ export class WorldItemDeploymentAtmosphereFlowRuntime {
     if (player && vividLayer && entityLayer && player.container.parent === vividLayer) {
       entityLayer.addChild(player.container);
     }
+  }
+
+  prepareWorldVisualsAfterItemWorldReturn(): void {
+    this.deactivateDungeonAtmosphere();
+    this.deps.destroyTunnelVisuals();
+    this.deps.restoreDeploymentTunnel(true);
+    this.deps.clearPendingGhostTunnelParams();
+
+    const fadeOverlay = this.deps.getFadeOverlay();
+    if (fadeOverlay) fadeOverlay.alpha = 0;
+
+    const parallax = this.deps.getParallaxContainer();
+    if (parallax) parallax.alpha = 1;
+
+    const targets = this.deps.getReturnVisualTargets().filter((layer): layer is Container => !!layer);
+    if (targets.length > 0) {
+      this.deps.getDungeonAtmosphereRuntime().removeKnownFiltersFrom(targets);
+      this.deps.getLaserDesaturationRuntime().removeFromTargets(targets);
+    }
+  }
+
+  cancelFrozenReturnDeploymentState(): void {
+    this.deps.destroyDeployment();
+    this.deps.clearInputLock();
+    this.deps.clearAnvilPlacement();
+    this.deps.restoreAnvilDeploymentState();
+    this.deps.clearItem();
+    this.deps.destroyTunnelVisuals();
+    this.deps.restoreDeploymentTunnel(true);
+    this.deps.clearPendingGhostTunnelParams();
+    this.deps.setPlayerRoomData(this.deps.getCollisionGrid());
   }
 }

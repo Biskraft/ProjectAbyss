@@ -1,4 +1,4 @@
-# Player Movement
+﻿# Player Movement
 
 ## Jump Physics
 
@@ -8,11 +8,13 @@
 - Grounded jumps inherit only upward carrier velocity from moving platforms. Descending platforms must not reduce jump height.
 - Early jump release uses `Player.Jump.VarJumpCutMult` from `Sheets/Content_Player.csv`; as of 2026-05-28 it is `0.55` for a clearer tap short-hop.
 - Down+Jump drop-through must require `Player.isOnOneWayPlatform()`. Do not trigger drop-through from generic `grounded`, or solid floors can be treated like one-way platforms by nudging the player down.
+- `Player.attackInputEnabled` gates player attack and dive-attack input at the entity level. LDtk world starts with it disabled; Item World sets it enabled when cloning the source player so combat becomes available after entering Item World.
 
 ## Ground Locomotion Animation
 
 - `game/src/entities/Player.ts` treats grounded locomotion as active when movement input is held or `|vx| > 10`. Do not switch idle/run purely from `vx`: wall collision can zero horizontal velocity while the player is still pressing into the wall, causing walk animation stutter.
 - Non-grid supports such as `ThrowableContainer` tops must refresh external grounding before `Player.update()` when the player is already standing on the top face. Post-update overlap resolution alone misses the exact-touch frame, causing repeated air/land pose churn. Use `forceGrounded(true)` for container-top support when the visual should snap directly to idle/run instead of playing the landing recovery pose.
+- Shared placement helpers bind player terrain through `Player.bindCollisionGrid(...)`; do not add new helper-side `player.roomData = ...` writes.
 
 ## 2x1 Virtual Slopes
 
@@ -30,3 +32,4 @@
 - The `uid=2156` slope stamp tiles intentionally render over air cells. Runtime wall-tile filters in `LdtkWorldScene` and `ItemWorldScene` must preserve `isLdtkWallSlope2x1Tile()` before checking `collisionGrid[row][col] !== 0`; otherwise every slope visual is culled even though the LDtk `autoLayerTiles` cache contains it.
 - `game/src/level/ProceduralDecorator.ts` suppresses all procedural edge decorations on inferred 2x1 slope support cells. Grass/moss/surface-overlay/micro passes are grid-edge based and will produce right-angle artifacts if they are allowed on the low/low/high or high/low/low support cells.
 - `game/src/systems/BreakablePropSpawner.ts` excludes 2x1 slope support cells from procedural breakable prop floor candidates. Do not place breakable props on the virtual slope footprint.
+

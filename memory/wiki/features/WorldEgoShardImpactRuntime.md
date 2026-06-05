@@ -6,6 +6,7 @@ Current responsibilities:
 
 - Apply fire/ice/thunder Ego Shard terrain impact effects against the active `player.roomData` grid.
 - Preserve the World path's 2x2 nearest-corner impact footprint and 24px fire hit box.
+- Reuse `game/src/scenes/shared/EgoShardImpactHelpers.ts` for impact footprint cells, 24px fire footprint collection, debug hitbox geometry, AABB cell iteration, adjacent-air magma growth, and grass cell bounds.
 - Handle fire melt/evaporate/toxic flash/magma surge/heat-metal/ignition behavior, including fluid residue ignition and procedural grass ignition.
 - Handle ice freeze/freeze-metal behavior.
 - Handle thunder magma detonation, ice shatter pulse, and thunder-chain application.
@@ -16,5 +17,6 @@ Scene-owned boundaries:
 - `LdtkWorldScene` still owns debug key routing and debug enchant switching.
 - `WorldEgoShardProjectileRuntime` owns the projectile update and calls this runtime for terrain impacts.
 - `WorldEgoShardCombatRuntime` owns enemy/container shard hits; do not merge combat hit policy into this terrain-impact runtime.
+- World-specific debug toasts and `refreshFromGrid(getCollisionGrid())` fluid refresh policy remain in this runtime; do not move them into shared helpers.
 
 Verification: 2026-06-03 `npx tsc --noEmit`, `npm run build`, Puppeteer smoke against `http://localhost:3000/play/?debug=1`, and `git diff --check` passed. `git diff --check` only printed existing line-ending warnings.

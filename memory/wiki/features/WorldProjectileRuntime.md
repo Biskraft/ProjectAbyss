@@ -7,6 +7,8 @@ Current state:
 - The runtime owns the world projectile array, entity-layer attachment, per-frame update, player-attack deflection overlap checks, player-hit overlap checks, deflect hit sparks, player projectile damage/knockback/invincibility, HUD damage flash, hitstop/camera shake/screen flash, damage numbers, death handling, destroy/splice cleanup, and scene-clear cleanup.
 - Ghost enemies still create `pendingProjectiles`; `WorldProjectileRuntime` drains those pending arrays each update and attaches the projectile containers.
 - `LdtkWorldScene` supplies current player/HUD/feedback managers through getters and should not keep scene-local projectile hit callbacks.
+- Projectile list attachment, Ghost pending-drain, clear, and destroy/splice operations are shared through `game/src/scenes/shared/ProjectileCollectionHelpers.ts`.
+- Projectile AABB construction, deflect spark placement, and projectile-on-player hit feedback are shared through `game/src/scenes/shared/ProjectileCollisionHelpers.ts`; world-specific attack hitbox source remains in this runtime.
 
 Prevention rules:
 

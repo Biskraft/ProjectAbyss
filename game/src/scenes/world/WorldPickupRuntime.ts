@@ -1,4 +1,3 @@
-import { t } from '@i18n';
 import type { Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import { GoldPickup } from '@entities/GoldPickup';
@@ -7,6 +6,14 @@ import type { DamageNumberManager } from '@ui/DamageNumber';
 import type { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import type { ScreenFlash } from '@effects/ScreenFlash';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { getPersistedKey, setPersistedKey } from '@scenes/world/PickupMetadata';
+import {
+  addPickupToLayer,
+  applyGoldPickupReward,
+  applyHealingPickupReward,
+  clearPickups,
+  processPickupsForPlayerCollection,
+} from '@scenes/shared/PickupCollectionHelpers';
 
 interface WorldPickupRuntimeDeps {
   getPlayer: () => Player;
@@ -42,13 +49,11 @@ export class WorldPickupRuntime {
   }
 
   addGoldPickup(pickup: GoldPickup): void {
-    this.gold.push(pickup);
-    if (!pickup.container.parent) this.deps.getEntityLayer().addChild(pickup.container);
+    addPickupToLayer(this.gold, pickup, this.deps.getEntityLayer());
   }
 
   addHealingPickup(pickup: HealingPickup): void {
-    this.healing.push(pickup);
-    if (!pickup.container.parent) this.deps.getEntityLayer().addChild(pickup.container);
+    addPickupToLayer(this.healing, pickup, this.deps.getEntityLayer());
   }
 
   latestGoldPickup(): GoldPickup | null {
@@ -76,24 +81,22 @@ export class WorldPickupRuntime {
         const amount = Math.max(1, Math.floor(((entity.fields['Amount'] ?? entity.fields['amount'] ?? 10) as number) * 0.1));
         const pickup = new GoldPickup(entity.px[0], entity.px[1], amount);
         pickup.enableTerrainPhysics(collisionGrid);
-        (pickup as unknown as { _key?: string })._key = key;
+        setPersistedKey(pickup, key);
         this.addGoldPickup(pickup);
       } else if (entity.type === 'HealingPickup') {
         const key = `heal_${level.identifier}_${entity.px[0]}_${entity.px[1]}`;
         if (collectedItems.has(key)) continue;
         const healAmount = (entity.fields['HealAmount'] ?? entity.fields['healAmount'] ?? 30) as number;
         const pickup = new HealingPickup(entity.px[0], entity.px[1], healAmount);
-        (pickup as unknown as { _key?: string })._key = key;
+        setPersistedKey(pickup, key);
         this.addHealingPickup(pickup);
       }
     }
   }
 
   clear(): void {
-    for (const pickup of this.healing) pickup.destroy();
-    this.healing.length = 0;
-    for (const pickup of this.gold) pickup.destroy();
-    this.gold.length = 0;
+    clearPickups(this.healing);
+    clearPickups(this.gold);
   }
 
   update(dtMs: number): void {
@@ -103,46 +106,37 @@ export class WorldPickupRuntime {
 
   private updateGold(dtMs: number): void {
     const player = this.deps.getPlayer();
-    for (let i = this.gold.length - 1; i >= 0; i--) {
-      const pickup = this.gold[i];
-      if (pickup.collected) continue;
-
-      pickup.update(dtMs);
-      const dx = Math.abs((player.x + player.width / 2) - (pickup.x + pickup.width / 2));
-      const dy = Math.abs((player.y + player.height / 2) - (pickup.y + pickup.height / 2));
-      if (dx >= 16 || dy >= 16) continue;
-
-      const key = (pickup as unknown as { _key?: string })._key;
-      if (key) this.deps.addCollectedItem(key);
-      pickup.collect();
-      this.deps.addGold(pickup.amount);
-      this.deps.getDamageNumbers().spawnEXP(pickup.x + pickup.width / 2, pickup.y - 16, `+${pickup.amount} G`);
-      this.deps.getItemPickupGlow().spawn(pickup.x + pickup.width / 2, pickup.y + pickup.height / 2, 0xffd700);
-      pickup.destroy();
-      this.gold.splice(i, 1);
-    }
+    processPickupsForPlayerCollection({
+      pickups: this.gold,
+      player,
+      dtMs,
+      onPickup: pickup => {
+        const key = getPersistedKey(pickup);
+        if (key) this.deps.addCollectedItem(key);
+        applyGoldPickupReward(pickup, {
+          damageNumbers: this.deps.getDamageNumbers(),
+          itemPickupGlow: this.deps.getItemPickupGlow(),
+          addGold: this.deps.addGold,
+        });
+      },
+    });
   }
 
   private updateHealing(dtMs: number): void {
     const player = this.deps.getPlayer();
-    for (let i = this.healing.length - 1; i >= 0; i--) {
-      const pickup = this.healing[i];
-      if (pickup.collected) continue;
-
-      pickup.update(dtMs);
-      const dx = Math.abs((player.x + player.width / 2) - (pickup.x + pickup.width / 2));
-      const dy = Math.abs((player.y + player.height / 2) - (pickup.y + pickup.height / 2));
-      if (dx >= 16 || dy >= 16) continue;
-
-      const key = (pickup as unknown as { _key?: string })._key;
-      if (key) this.deps.addCollectedItem(key);
-      pickup.collect();
-      const healed = Math.min(pickup.healAmount, player.maxHp - player.hp);
-      player.hp = Math.min(player.maxHp, player.hp + pickup.healAmount);
-      this.deps.getScreenFlash().flash(0x44ff44, 0.3, 150);
-      this.deps.showToast(t('toast.hp_gain', { amount: healed }), 0x44ff44);
-      pickup.destroy();
-      this.healing.splice(i, 1);
-    }
+    processPickupsForPlayerCollection({
+      pickups: this.healing,
+      player,
+      dtMs,
+      onPickup: pickup => {
+        const key = getPersistedKey(pickup);
+        if (key) this.deps.addCollectedItem(key);
+        applyHealingPickupReward(pickup, {
+          player,
+          screenFlash: this.deps.getScreenFlash(),
+          showToast: this.deps.showToast,
+        });
+      },
+    });
   }
 }

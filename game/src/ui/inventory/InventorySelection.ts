@@ -11,14 +11,46 @@ export interface SelectionState {
   scrollRowOffset: number;
 }
 
+export interface FilterSelectionState extends SelectionState {
+  filter: FilterTab;
+}
+
 export function itemMatchesFilter(item: ItemInstance, filter: FilterTab): boolean {
   if (filter === 'ALL' || filter === 'WPN') return true;
   return false;
 }
 
+export function filterInventoryItems(items: readonly ItemInstance[], filter: FilterTab): ItemInstance[] {
+  return items.filter(item => itemMatchesFilter(item, filter));
+}
+
+export function selectedInventoryItem(
+  items: readonly ItemInstance[],
+  selectedIndex: number,
+): ItemInstance | undefined {
+  return items[selectedIndex];
+}
+
 export function nextFilterTab(filter: FilterTab): FilterTab {
   const idx = FILTER_TABS.indexOf(filter);
   return FILTER_TABS[(idx + 1) % FILTER_TABS.length];
+}
+
+export function firstInventorySelectionIndex(count: number): number {
+  return count > 0 ? 0 : -1;
+}
+
+export function cycleInventoryFilterSelection(
+  items: readonly ItemInstance[],
+  filter: FilterTab,
+): FilterSelectionState {
+  const nextFilter = nextFilterTab(filter);
+  const count = filterInventoryItems(items, nextFilter).length;
+  return {
+    filter: nextFilter,
+    selectedIndex: firstInventorySelectionIndex(count),
+    scrollRowOffset: 0,
+  };
 }
 
 export function moveGridSelection(

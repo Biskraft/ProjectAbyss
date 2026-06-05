@@ -2,7 +2,8 @@
 
 ## Current State
 
-- `game/src/scenes/world/WorldGameOverRuntime.ts` owns the LDtk world custom game-over overlay, active state, ATTACK/JUMP respawn input, low-HP HUD reset before the overlay, and overlay teardown.
+- `game/src/scenes/world/WorldGameOverRuntime.ts` owns the LDtk world custom game-over overlay, active state, respawn callback timing, low-HP HUD reset before the overlay, and overlay teardown.
+- ATTACK/JUMP respawn input predicate is shared through `GameOverInputHelpers.isGameOverRespawnPressed()`.
 - `LdtkWorldScene` calls `WorldGameOverRuntime.show()` directly from death/drown handling; do not add a scene-local `showGameOver()` wrapper back.
 - `LdtkWorldScene` still owns actual respawn/save-load recovery: inventory replacement, level reload, ability/progress restoration, player stat recalculation, and save point snapping.
 - Debug warp receives game-over state through `WorldGameOverRuntime.isActive` and clears the overlay through the scene's `reviveFromGameOver()` callback.
@@ -16,3 +17,5 @@
 ## Verification
 
 - 2026-06-02: `npx tsc --noEmit`, `npm run build`, and browser smoke at `/play/?debug=1` passed after extracting `WorldGameOverRuntime`; the smoke also exercised debug warp input with no console/page errors.
+
+- 2026-06-05: Game-over overlay cleanup now uses DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true }) while preserving HUD/minimap reattachment in show().

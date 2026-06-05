@@ -15,6 +15,10 @@ import { Container, Graphics } from 'pixi.js';
 import type { Rarity } from '@data/weapons';
 import { RARITY_COLOR } from '@items/ItemInstance';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import {
+  destroyDisplayObject,
+  detachDisplayObject,
+} from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type DivePhase = 'idle' | 'ritual' | 'dissolve' | 'absorb' | 'flash' | 'done';
 
@@ -347,7 +351,7 @@ export class MemoryDive {
       p.gfx.alpha = Math.max(0, p.life / 800);
 
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.particles.splice(i, 1);
       }
     }
@@ -355,12 +359,9 @@ export class MemoryDive {
 
   destroy(): void {
     for (const p of this.particles) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+      detachDisplayObject(p.gfx);
     }
     this.particles = [];
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

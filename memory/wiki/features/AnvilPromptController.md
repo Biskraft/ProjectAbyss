@@ -9,3 +9,5 @@
 - `LdtkWorldScene` still owns inventory opening, placement, deployment, and reclaim behavior.
 
 Verification: 2026-06-03 `npx tsc --noEmit`, `npm run build`, Puppeteer smoke against `http://localhost:3000/play/?debug=1`, and `git diff --check` passed. `git diff --check` only printed existing line-ending warnings.
+
+- 2026-06-05: Action/disabled prompt replacement and destroy paths now route through `DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true })`; prompt visibility/proximity policy remains split between this controller and `WorldAnvilInteractionRuntime`.

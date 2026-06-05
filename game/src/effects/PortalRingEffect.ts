@@ -1,4 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 interface SuctionParticle {
   /** 현재 위치 (링 로컬 좌표 — container 가 portal 중심에 anchor). */
@@ -41,7 +43,7 @@ export class PortalRingEffect {
 
   update(dt: number, intensity: number): void {
     this.timer += dt;
-    const p = Math.max(0, Math.min(1, intensity));
+    const p = clampEffect01(intensity);
     const pulse = 1 + Math.sin(this.timer * 0.018) * 0.08 + p * 0.18;
     const radius = 18 + p * 14;
     this.gfx.clear();
@@ -64,8 +66,7 @@ export class PortalRingEffect {
       this.portalContainer.alpha = 1;
     }
     this.particles = [];
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   /**

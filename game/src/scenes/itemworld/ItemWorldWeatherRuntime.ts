@@ -1,15 +1,20 @@
 import type { Container } from 'pixi.js';
-import { isOneWay, isSolid } from '@core/Physics';
 import { getAreaPalette, getAreaPaletteAtlas } from '@data/areaPalettes';
 import { WeatherSystem, type StratumProfileInput } from '@effects/WeatherSystem';
-import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import {
+  attachWeatherToLayer,
+  destroyWeather,
+  isWeatherCollisionSolid,
+  updateWeatherForCamera,
+} from '@scenes/shared/WeatherRuntimeHelpers';
+import type { Game } from '../../Game';
 
 interface ItemWorldWeatherRuntimeOptions {
   game: Game;
   tileSize: number;
   getWeatherLayer: () => Container;
   getThemeSlug: () => string;
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getTemperament: () => string | null | undefined;
 }
 
@@ -32,30 +37,21 @@ export class ItemWorldWeatherRuntime {
       stratumProfile: this.resolveProfile(entry.weatherProfile),
       coverageCheckTiles: 0,
       collision: {
-        grid: this.options.getFullGrid(),
+        grid: this.options.getCollisionGrid(),
         tileSize: this.options.tileSize,
-        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
+        isSolid: isWeatherCollisionSolid,
       },
     });
-    this.options.getWeatherLayer().addChild(this.weather.container);
+    attachWeatherToLayer(this.weather, this.options.getWeatherLayer());
   }
 
   update(dt: number): void {
     if (!this.weather) return;
-    const cam = this.options.game.camera;
-    const width = GAME_WIDTH / cam.zoom;
-    const height = GAME_HEIGHT / cam.zoom;
-    this.weather.update(dt, {
-      x: cam.renderX - width / 2,
-      y: cam.renderY - height / 2,
-      width,
-      height,
-    });
+    updateWeatherForCamera(this.weather, this.options.game, dt);
   }
 
   destroy(): void {
-    this.weather?.destroy();
-    this.weather = null;
+    this.weather = destroyWeather(this.weather);
   }
 
   private resolveProfile(fallback: StratumProfileInput): StratumProfileInput {

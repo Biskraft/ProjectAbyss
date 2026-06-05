@@ -4,6 +4,7 @@ import { substituteSolidGenericSprites } from '@data/ItemWorldFluidMapping';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import type { LdtkTile } from '@level/LdtkLoader';
 import { addLdtkVisualBoundsBleed } from '@level/VisualBoundsBleed';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import type { EntryCorridorComposite } from './ItemWorldEntryCorridorLayout';
 import { ItemWorldEntryCorridorRevealRuntime } from './ItemWorldEntryCorridorRevealRuntime';
 
@@ -74,10 +75,7 @@ export class ItemWorldEntryCorridorVisualRuntime {
 
   destroy(): void {
     if (this.container) {
-      if (this.container.parent) {
-        this.container.parent.removeChild(this.container);
-      }
-      this.container.destroy({ children: true });
+      destroyDisplayObject(this.container, { children: true });
       this.container = null;
     }
     this.options.revealRuntime.clear();

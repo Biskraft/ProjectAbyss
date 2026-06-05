@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Ice skid streak — bluish skid mark + tiny shards that linger briefly behind
@@ -59,8 +60,7 @@ export class IceSkidStreakManager {
       const t = Math.max(0, s.life / s.maxLife);
       s.gfx.alpha = t;
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.streaks.splice(i, 1);
       }
     }
@@ -68,8 +68,7 @@ export class IceSkidStreakManager {
 
   clear(): void {
     for (const s of this.streaks) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.streaks.length = 0;
     this.timers.clear();

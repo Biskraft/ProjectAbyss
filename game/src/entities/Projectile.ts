@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Simple projectile entity used by Ghost enemies.
@@ -63,9 +64,6 @@ export class Projectile {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

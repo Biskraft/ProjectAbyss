@@ -13,6 +13,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 type P = {
   gfx: Graphics;
@@ -30,6 +31,7 @@ type P = {
 export class DeathParticleManager {
   private parent: Container;
   private particles: P[] = [];
+  private ringMaxRadii = new WeakMap<Graphics, number>();
 
   constructor(parent: Container) {
     this.parent = parent;
@@ -55,7 +57,7 @@ export class DeathParticleManager {
       life: 180, maxLife: 180, fade: 'linear', rotSpeed: 0,
     });
     // Track ring growth via a stashed size on life ratio
-    (ring as any)._ringMaxR = ringSize;
+    this.ringMaxRadii.set(ring, ringSize);
 
     // 2. Shards (stone fragments)
     for (let i = 0; i < shardCount; i++) {
@@ -122,7 +124,7 @@ export class DeathParticleManager {
       const k = Math.max(0, p.life / p.maxLife);
 
       // Ring grows
-      const ringMaxR = (p.gfx as any)._ringMaxR as number | undefined;
+      const ringMaxR = this.ringMaxRadii.get(p.gfx);
       if (ringMaxR) {
         const scale = 1 + (1 - k) * (ringMaxR / 6);
         p.gfx.scale.set(scale);
@@ -135,8 +137,8 @@ export class DeathParticleManager {
       }
 
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        this.ringMaxRadii.delete(p.gfx);
+        destroyDisplayObject(p.gfx);
         this.particles.splice(i, 1);
       }
     }
@@ -144,8 +146,8 @@ export class DeathParticleManager {
 
   clear(): void {
     for (const p of this.particles) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy();
+      this.ringMaxRadii.delete(p.gfx);
+      destroyDisplayObject(p.gfx);
     }
     this.particles = [];
   }

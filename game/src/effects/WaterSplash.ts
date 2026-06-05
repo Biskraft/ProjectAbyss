@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Water splash — crown-shape droplet burst when entering or exiting water
@@ -115,8 +116,7 @@ export class WaterSplashManager {
       c.gfx.ellipse(0, 0, radius, radius * 0.22)
         .stroke({ color: c.palette.crown, width: 2, alpha });
       if (c.life <= 0) {
-        if (c.gfx.parent) c.gfx.parent.removeChild(c.gfx);
-        c.gfx.destroy();
+        destroyDisplayObject(c.gfx);
         this.crowns.splice(i, 1);
       }
     }
@@ -131,8 +131,7 @@ export class WaterSplashManager {
       const t = Math.max(0, d.life / d.maxLife);
       d.gfx.alpha = t;
       if (d.life <= 0) {
-        if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-        d.gfx.destroy();
+        destroyDisplayObject(d.gfx);
         this.drops.splice(i, 1);
       }
     }
@@ -140,12 +139,10 @@ export class WaterSplashManager {
 
   clear(): void {
     for (const c of this.crowns) {
-      if (c.gfx.parent) c.gfx.parent.removeChild(c.gfx);
-      c.gfx.destroy();
+      destroyDisplayObject(c.gfx);
     }
     for (const d of this.drops) {
-      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-      d.gfx.destroy();
+      destroyDisplayObject(d.gfx);
     }
     this.crowns.length = 0;
     this.drops.length = 0;

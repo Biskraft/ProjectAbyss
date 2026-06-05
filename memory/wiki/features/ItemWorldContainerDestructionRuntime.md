@@ -1,6 +1,6 @@
-# ItemWorldContainerDestructionRuntime
+# ContainerDestructionRuntime
 
-`game/src/scenes/itemworld/ItemWorldContainerDestructionRuntime.ts` owns the Item World throwable-container destruction VFX/SFX bundle.
+`game/src/scenes/shared/ContainerDestructionRuntime.ts` owns the shared throwable-container destruction VFX/SFX bundle used by LDtk World and Item World.
 
 Current responsibilities:
 
@@ -9,10 +9,11 @@ Current responsibilities:
 - Apply the existing container break hitstop and camera shake.
 - Destroy the container after side effects are emitted.
 
-Scene-owned boundaries:
+Item World boundaries:
 
 - `ItemWorldContainerFluidRuntime` still owns container fluid painting/effects and dirty flushes.
 - `ItemWorldContainerPhysicsRuntime`, `ItemWorldStaticEntityRuntime`, and `ItemWorldEgoShardCombatRuntime` still decide when a container breaks.
 - `ItemWorldScene.destroyContainerWithVFX()` remains as the callback adapter used by existing runtimes.
+- Do not recreate an Item World-local destruction runtime unless behavior intentionally diverges.
 
 Verification after extraction: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed. `git diff --check` only reported existing line-ending warnings.

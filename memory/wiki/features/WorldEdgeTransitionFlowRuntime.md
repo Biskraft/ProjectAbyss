@@ -6,6 +6,7 @@ Current state:
 - The flow runtime detects when the player crosses passable level edges, chooses a normal neighbor, item-world corridor, or tunnel-exit transition, and starts `WorldEdgeTransitionRuntime`.
 - It delegates pure neighbor geometry to `WorldTransitionController`.
 - It delegates fade state to `WorldEdgeTransitionRuntime`.
+- Prologue-edge suppression is controlled by injected `isPrologueScene()` callback (instead of scene-level save checks), keeping transition policy in the runtime boundary.
 - `LdtkWorldScene` still owns `loadLevel()`, parallax room handoff, actual `ItemWorldScene` creation/push, and post-transition camera snap.
 
 Prevention rules:

@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * SmokeWisp — dark gray cloud puffs that drift upward from burning tiles,
@@ -38,8 +39,7 @@ export class SmokeWispManager {
   }
 
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
+    destroyDisplayObject(this.gfx);
     this.wisps.length = 0;
   }
 

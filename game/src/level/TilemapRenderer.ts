@@ -1,4 +1,5 @@
 import { Container, Graphics, type Texture, Sprite, Texture as PixiTexture, Rectangle } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 
@@ -89,7 +90,7 @@ export class TilemapRenderer {
   clear(): void {
     const children = this.container.removeChildren();
     for (const child of children) {
-      child.destroy({ children: true, texture: true, textureSource: false, context: true });
+      destroyDisplayObject(child, { children: true, texture: true, textureSource: false, context: true });
     }
   }
 }

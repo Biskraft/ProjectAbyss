@@ -1,5 +1,4 @@
 import type { LdtkLoader } from '@level/LdtkLoader';
-import { sacredSave } from '@save/PlayerSave';
 import type { WorldTransitionController } from './WorldTransitionController';
 
 interface WorldSpawnStateDeps {
@@ -7,6 +6,7 @@ interface WorldSpawnStateDeps {
   transitionController: WorldTransitionController;
   fallbackLevelId: string;
   isDebugMode: () => boolean;
+  getScene: () => string;
 }
 
 export class WorldSpawnState {
@@ -26,7 +26,7 @@ export class WorldSpawnState {
     return this.deps.transitionController.findPlayerSpawnLevel(
       this.deps.loader,
       this.deps.fallbackLevelId,
-      sacredSave.getScene(),
+      this.deps.getScene(),
     );
   }
 

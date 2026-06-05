@@ -8,3 +8,4 @@ Invariants:
 - Saved level IDs are accepted only if the LDtk loader can resolve them and Debug rooms are allowed by `?debug=1`.
 - Missing, stale, or inaccessible saved level IDs fall back to `WorldTransitionController.findPlayerSpawnLevel()` with `FALLBACK_ENTRANCE_LEVEL`.
 - `LdtkWorldScene` still owns actual `loadLevel()` execution and save-point snapping; `WorldPlayerSpawnRuntime` owns player placement after a level is loaded.
+- Scene-context access for spawn fallback checks uses injected `getScene()` callback (scene string from save state is read in `LdtkWorldScene`, not runtime-local).

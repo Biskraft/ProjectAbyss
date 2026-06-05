@@ -1,7 +1,7 @@
-import type { Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import type { Enemy } from '@entities/Enemy';
-import { setEnemyRoomKey } from '@systems/EntityRuntimeMeta';
+import { initializeEnemySpawnedEntity, type EnemySpawnInitializationDeps } from '@scenes/shared/EnemySpawnHelpers';
+import { setEnemyRoomKey } from '@entities/EnemyMetadata';
 import {
   IW_ROOM_H_PX,
   IW_ROOM_W_PX,
@@ -20,16 +20,22 @@ export interface ItemWorldEnemySpawnContext {
 }
 
 interface ItemWorldEnemySpawnRuntimeDeps {
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getPlayer: () => Player;
-  getEnemies: () => Enemy<string>[];
-  getEntityLayer: () => Container;
+  addEnemy: (enemy: Enemy<string>) => void;
   getRoomEnemyCount: () => Map<string, number>;
   getSpawnController: () => ItemWorldSpawnController;
 }
 
 export class ItemWorldEnemySpawnRuntime {
-  constructor(private readonly deps: ItemWorldEnemySpawnRuntimeDeps) {}
+  private readonly spawnInitializationDeps: EnemySpawnInitializationDeps;
+
+  constructor(private readonly deps: ItemWorldEnemySpawnRuntimeDeps) {
+    this.spawnInitializationDeps = {
+      getCollisionGrid: () => this.deps.getCollisionGrid(),
+      getPlayer: () => this.deps.getPlayer(),
+    };
+  }
 
   createContext(col: number, absRow: number, isBossRoom: boolean): ItemWorldEnemySpawnContext | null {
     const offX = col * IW_ROOM_W_PX;
@@ -37,7 +43,7 @@ export class ItemWorldEnemySpawnRuntime {
     const roomTopRow = Math.floor(offY / TILE_SIZE);
     const roomTopCol = Math.floor(offX / TILE_SIZE);
     const spawnPoints = this.deps.getSpawnController()
-      .computeSpawnPoints(this.deps.getFullGrid(), roomTopCol, roomTopRow);
+      .computeSpawnPoints(this.deps.getCollisionGrid(), roomTopCol, roomTopRow);
 
     if (spawnPoints.length === 0 && !isBossRoom) return null;
 
@@ -60,29 +66,13 @@ export class ItemWorldEnemySpawnRuntime {
     return { x: point.x, y: point.y - entityHeight };
   }
 
-  findFlatFloorCenter(
-    context: ItemWorldEnemySpawnContext,
-    minLen: number,
-  ): { x: number; y: number } | null {
-    return this.deps.getSpawnController().findFlatFloorCenter(
-      this.deps.getFullGrid(),
-      context.roomTopCol,
-      context.roomTopRow,
-      minLen,
-    );
-  }
-
   spawnAt(
     enemy: Enemy<string>,
     roomKey: string,
     position: { x: number; y: number },
   ): void {
-    enemy.x = position.x;
-    enemy.y = position.y;
-    enemy.roomData = this.deps.getFullGrid();
-    enemy.target = this.deps.getPlayer();
-    this.deps.getEnemies().push(enemy);
-    this.deps.getEntityLayer().addChild(enemy.container);
+    initializeEnemySpawnedEntity(enemy, position.x, position.y, this.spawnInitializationDeps);
+    this.deps.addEnemy(enemy);
     this.trackEnemy(enemy, roomKey);
   }
 

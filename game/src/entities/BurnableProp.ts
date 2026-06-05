@@ -15,6 +15,7 @@
  */
 
 import { Container, Graphics, BlurFilter } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type BurnableAnchor = 'floor' | 'ceiling' | 'free';
 
@@ -189,8 +190,7 @@ export class BurnableProp {
   /** Caller (scene) invokes after detecting destroyed=true. Removes graphics. */
   destroy(): void {
     this.destroyed = true;
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   // === Visuals (placeholder until sprite atlas lands) ===

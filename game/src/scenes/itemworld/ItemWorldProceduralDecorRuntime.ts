@@ -2,6 +2,7 @@ import type { Container } from 'pixi.js';
 import { ProceduralDecorator } from '@level/ProceduralDecorator';
 import type { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import type { TileMutator } from '@systems/TileMutator';
+import { attachProceduralDecorLayers } from '@scenes/shared/ProceduralDecorLayerHelpers';
 
 const ITEM_WORLD_SURFACE_OVERLAY_ENABLED = true;
 
@@ -46,9 +47,7 @@ export class ItemWorldProceduralDecorRuntime {
 
     const seed = options.itemUid * 10000 + options.currentStratumIndex * 7919 + 777;
     decorator.generate(options.fullGrid, seed);
-    naturalAggregate.addChild(decorator.naturalLayer);
-    artificialAggregate.addChild(decorator.artificialLayer);
-    structureAggregate.addChild(decorator.structureLayer);
+    attachProceduralDecorLayers(decorator, naturalAggregate, artificialAggregate, structureAggregate);
 
     for (const prop of this.deps.getGrassClumpFire().register(decorator.getGrassClumpsWithCells())) {
       this.deps.getTileMutator().registerBurnable(prop);

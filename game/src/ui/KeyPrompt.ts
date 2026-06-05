@@ -13,6 +13,15 @@ import { onDeviceChange } from '@core/input/InputDeviceTracker';
 import { PAD_BINDINGS } from '@core/input/padBindings';
 import { getButtonGlyph } from '@core/input/padGlyphs';
 import type { ControllerBrand } from '@core/input/gamepadStandard';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+
+interface KeyIconData {
+  size: number;
+  gauge: Graphics;
+  label: BitmapText;
+}
+
+const keyIconData = new WeakMap<Container, KeyIconData>();
 
 // Dark box visual constants (640x360 base)
 const KEY_BOX_SIZE = 7;
@@ -70,9 +79,7 @@ export class KeyPrompt {
     // size 를 컨테이너에 stash 해 setKeyIconProgress 가 reflect 없이 사용한다.
     // _keyIconLabel 도 stash — createKeyIconForAction 의 hot-swap 핸들러가
     // children.find 없이 직접 BitmapText 갱신할 수 있도록.
-    (c as any)._keyIconSize = size;
-    (c as any)._keyIconGauge = gauge;
-    (c as any)._keyIconLabel = label;
+    keyIconData.set(c, { size, gauge, label });
 
     return c;
   }
@@ -88,8 +95,9 @@ export class KeyPrompt {
    * @param progress 0..1 (clamp). 0 이하면 clear 만 하고 숨김.
    */
   static setKeyIconProgress(icon: Container, progress: number): void {
-    const gauge = (icon as any)._keyIconGauge as Graphics | undefined;
-    const size = (icon as any)._keyIconSize as number | undefined;
+    const data = keyIconData.get(icon);
+    if (!data) return;
+    const { gauge, size } = data;
     if (!gauge || !size) return;
     gauge.clear();
     if (progress <= 0) return;
@@ -179,9 +187,8 @@ export class KeyPrompt {
    * 있도록 inner 의 stash 를 wrapper 에도 미러링.
    */
   private static _mirrorIconStash(wrapper: Container, inner: Container): void {
-    (wrapper as any)._keyIconSize = (inner as any)._keyIconSize;
-    (wrapper as any)._keyIconGauge = (inner as any)._keyIconGauge;
-    (wrapper as any)._keyIconLabel = (inner as any)._keyIconLabel;
+    const data = keyIconData.get(inner);
+    if (data) keyIconData.set(wrapper, data);
   }
 
   /**
@@ -228,15 +235,16 @@ export class KeyPrompt {
   static createPromptForAction(action: GameAction, label: string, scale = 1, keyGlyphYOffset = 0): Container {
     const c = KeyPrompt.createPrompt(actionKey(action), label, scale);
     const keyIcon = c.children[1] as Container | undefined;
-    const size = keyIcon ? (keyIcon as any)._keyIconSize as number | undefined : undefined;
+    const size = keyIcon ? keyIconData.get(keyIcon)?.size : undefined;
     if (!keyIcon || !size) return c;
     const fontSize = Math.max(4, Math.floor(size * 0.65));
     const offsetY = keyGlyphYOffset * scale;
-    const initialLabel = (keyIcon as any)._keyIconLabel as BitmapText | undefined;
+    const initialLabel = keyIconData.get(keyIcon)?.label;
     if (initialLabel) initialLabel.y += offsetY;
     onDeviceChange(() => {
       const newText = actionKey(action).toUpperCase();
-      const oldLabel = (keyIcon as any)._keyIconLabel as BitmapText | undefined;
+      const data = keyIconData.get(keyIcon);
+      const oldLabel = data?.label;
       if (oldLabel && oldLabel.text === newText) return;
       const newLabel = new BitmapText({
         text: newText,
@@ -245,8 +253,10 @@ export class KeyPrompt {
       keyIcon.addChild(newLabel);
       newLabel.x = Math.floor((size - newLabel.width) / 2);
       newLabel.y = Math.floor((size - newLabel.height) / 2) + offsetY;
-      if (oldLabel) keyIcon.removeChild(oldLabel);
-      (keyIcon as any)._keyIconLabel = newLabel;
+      if (oldLabel) detachDisplayObject(oldLabel);
+      if (data) {
+        keyIconData.set(keyIcon, { ...data, label: newLabel });
+      }
     });
     return c;
   }

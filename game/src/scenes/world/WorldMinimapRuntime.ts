@@ -3,6 +3,10 @@ import type { Game } from '../../Game';
 import { isOneWay, isSolid, TILE_SIZE, TILE_SPIKE, TILE_WATER } from '@core/Physics';
 import type { LdtkLevel, LdtkLoader } from '@level/LdtkLoader';
 import type { GiantBuilder } from '@entities/GiantBuilder';
+import {
+  destroyDisplayObject,
+  detachDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface WorldMinimapRoom {
   id: string;
@@ -88,14 +92,13 @@ export class WorldMinimapRuntime {
 
   detach(): void {
     if (!this.minimap) return;
-    if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
+    detachDisplayObject(this.minimap);
     this.minimap.visible = false;
   }
 
   destroy(): void {
     if (!this.minimap) return;
-    if (this.minimap.parent) this.minimap.parent.removeChild(this.minimap);
-    this.minimap.destroy({ children: true });
+    destroyDisplayObject(this.minimap, { children: true });
     this.minimap = null;
     this.minimapDot = null;
     this.builderLayer = null;
@@ -192,7 +195,7 @@ export class WorldMinimapRuntime {
     this.minimap.scale.set(1);
     this.minimap.x = (515 + 6) * uiScale;
     this.minimap.y = (6 + 5 - 3) * uiScale;
-    this.minimap.alpha = this.isInCombat() ? 0.4 : 0.7;
+    this.minimap.alpha = this.deps.getEnemies().some((enemy) => enemy.hp > 0 && !enemy.shouldRemove) ? 0.4 : 0.7;
     if (this.deps.isIntroHidden()) this.minimap.visible = false;
 
     this.deps.game.uiContainer.addChild(this.minimap);
@@ -222,7 +225,7 @@ export class WorldMinimapRuntime {
       this.minimapDot.y = py - dotSize / 2;
     }
 
-    this.minimap.alpha = this.isInCombat() ? 0.4 : 0.7;
+    this.minimap.alpha = this.deps.getEnemies().some((enemy) => enemy.hp > 0 && !enemy.shouldRemove) ? 0.4 : 0.7;
   }
 
   updateBuilderLayer(): void {
@@ -420,7 +423,4 @@ export class WorldMinimapRuntime {
     content.addChild(dot);
   }
 
-  private isInCombat(): boolean {
-    return this.deps.getEnemies().some((enemy) => enemy.hp > 0 && !enemy.shouldRemove);
-  }
 }

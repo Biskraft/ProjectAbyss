@@ -34,7 +34,8 @@ export class WorldAnvilSpawnRuntime {
         this.deps.shouldSpawnDisabled(retireFlag),
       );
       anvil.retireAfterFirstBoss = retireFlag;
-      this.attach(anvil);
+      this.deps.setAnvil(anvil);
+      this.deps.getEntityLayer().addChildAt(anvil.container, 0);
       return;
     }
 
@@ -42,7 +43,10 @@ export class WorldAnvilSpawnRuntime {
     if (!altarEnt) return;
 
     console.warn(`[LdtkWorldScene] No Anvil entity in "${level.identifier}" - using first Altar position as fallback`);
-    this.attach(new Anvil(altarEnt.px[0], altarEnt.px[1], false));
+    const fallbackAnvil = new Anvil(altarEnt.px[0], altarEnt.px[1], false);
+    this.deps.setAnvil(fallbackAnvil);
+    this.deps.getEntityLayer().addChildAt(fallbackAnvil.container, 0);
+    return;
   }
 
   spawnBuilderMounted(
@@ -66,10 +70,5 @@ export class WorldAnvilSpawnRuntime {
     this.deps.setAnvil(anvil);
     attachments.attach(builder, anvil, localX, localY, () => this.deps.getAnvil() === anvil);
     return true;
-  }
-
-  private attach(anvil: Anvil): void {
-    this.deps.setAnvil(anvil);
-    this.deps.getEntityLayer().addChildAt(anvil.container, 0);
   }
 }

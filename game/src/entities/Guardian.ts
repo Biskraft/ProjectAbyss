@@ -14,6 +14,7 @@
 
 import { Enemy } from './Enemy';
 import { Graphics } from 'pixi.js';
+import { markBossEnemy } from '@entities/EnemyMetadata';
 
 export type GuardianState = 'idle' | 'detect' | 'chase' | 'telegraph' | 'charge' | 'slam_rise' | 'slam_fall' | 'slam_land' | 'swipe' | 'attack' | 'cooldown' | 'hit' | 'death';
 
@@ -25,6 +26,7 @@ const SLAM_RISE_SPEED = -520;   // px/s (upward) — higher jump
 const SLAM_RISE_DURATION = 500; // ms — longer hang time
 const SLAM_FALL_SPEED = 750;    // px/s (downward) — faster slam
 const SLAM_LAND_DURATION = 500; // ms — longer recovery (punish window)
+const SLAM_LAND_ACTIVE_DURATION = 100;
 const SWIPE_TELEGRAPH = 250;    // ms — shorter telegraph, more reactive
 const SWIPE_DURATION = 300;     // ms — quick melee swing
 const SWIPE_KNOCKBACK = 200;    // px/s — pushes player away
@@ -40,14 +42,12 @@ export class Guardian extends Enemy<GuardianState> {
   private slamTargetX = 0;
   private enraged = false;
   private telegraphFlashTimer = 0;
+  private slamLandActiveTimer = 0;
 
   /** When true, 50% HP enrage is suppressed (first Normal entry special). */
   noEnrage = false;
   /** When true, only use charge pattern (first Normal entry special). */
   chargeOnly = false;
-
-  /** Marker for boss kill handling in scene. */
-  readonly _isBoss = true;
 
   constructor(level = 1) {
     super({
@@ -60,6 +60,7 @@ export class Guardian extends Enemy<GuardianState> {
     });
     this.applyStats('Guardian', level);
     this.superArmor = true;
+    markBossEnemy(this);
   }
 
   protected setupStates(): void {
@@ -235,14 +236,20 @@ export class Guardian extends Enemy<GuardianState> {
       name: 'slam_land',
       enter: () => {
         this.attackTimer = SLAM_LAND_DURATION;
+        this.slamLandActiveTimer = SLAM_LAND_ACTIVE_DURATION;
         this.vx = 0;
         this.vy = 0;
         // Brief attack active on landing
         this.attackActive = true;
-        setTimeout(() => { this.attackActive = false; }, 100);
       },
       update: (dt) => {
         this.attackTimer -= dt;
+        if (this.attackActive) {
+          this.slamLandActiveTimer -= dt;
+          if (this.slamLandActiveTimer <= 0) {
+            this.attackActive = false;
+          }
+        }
         if (this.attackTimer <= 0) {
           this.cooldownTimer = this.enraged ? COOLDOWN_ENRAGED : COOLDOWN_NORMAL;
           this.fsm.transition('cooldown');

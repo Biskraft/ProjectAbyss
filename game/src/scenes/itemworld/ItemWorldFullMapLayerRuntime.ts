@@ -1,6 +1,7 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, type Filter } from 'pixi.js';
 import type { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import { RimLightFilter } from '@effects/RimLightFilter';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export interface ItemWorldFullMapLayerSet {
   fullMapContainer: Container;
@@ -63,7 +64,7 @@ export class ItemWorldFullMapLayerRuntime {
     fullMapContainer.addChild(sealAggregate);
 
     bgAggregate.filters = [options.bgPaletteFilter];
-    const wallFilters: any[] = [options.wallPaletteFilter];
+    const wallFilters: Filter[] = [options.wallPaletteFilter];
     wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16, direction: 'bottom' }));
     wallAggregate.filters = wallFilters;
     decoAggregate.filters = [options.naturalPaletteFilter];
@@ -106,8 +107,7 @@ export class ItemWorldFullMapLayerRuntime {
 
   private destroyPrevious(container: Container | null): void {
     if (!container) return;
-    if (container.parent) container.parent.removeChild(container);
-    container.destroy({ children: true });
+    destroyDisplayObject(container, { children: true });
   }
 
   private reusableGraphics(gfx: Graphics | null): Graphics {
@@ -122,13 +122,13 @@ export class ItemWorldFullMapLayerRuntime {
     depthRatio: number,
   ): void {
     bgPaletteFilter.setBrightness(
-      (bgPaletteFilter as any).resources.paletteUniforms.uniforms.uBrightness * (1.0 - depthRatio * 0.3),
+      bgPaletteFilter.getBrightness() * (1.0 - depthRatio * 0.3),
     );
     wallPaletteFilter.setBrightness(
-      (wallPaletteFilter as any).resources.paletteUniforms.uniforms.uBrightness * (1.0 - depthRatio * 0.25),
+      wallPaletteFilter.getBrightness() * (1.0 - depthRatio * 0.25),
     );
     bgPaletteFilter.setDepthBias(
-      (bgPaletteFilter as any).resources.paletteUniforms.uniforms.uDepthBias + depthRatio * 0.15,
+      bgPaletteFilter.getDepthBias() + depthRatio * 0.15,
     );
   }
 

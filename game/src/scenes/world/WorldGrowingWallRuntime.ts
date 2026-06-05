@@ -8,6 +8,8 @@ import type { HitSparkManager } from '@effects/HitSpark';
 import type { ScreenFlash } from '@effects/ScreenFlash';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { t } from '@i18n';
+import { getWallRuntimeKey, setWallRuntimeKey } from '@entities/WallMetadata';
+import { initializeEnemySpawnedEntity } from '@scenes/shared/EnemySpawnHelpers';
 import type { WorldGrowingWallRegistry } from './WorldGrowingWallRegistry';
 
 interface WorldGrowingWallRuntimeDeps {
@@ -38,7 +40,7 @@ export class WorldGrowingWallRuntime {
       if (this.deps.getUnlockedEvents().has(key)) continue;
 
       const wall = new GrowingWall(entity.px[0], entity.px[1], entity.width, entity.height);
-      (wall as any)._key = key;
+      setWallRuntimeKey(wall, key);
       wall.injectCollision(this.deps.getCollisionGrid());
       registry.add(wall, this.deps.getEntityLayer());
     }
@@ -48,8 +50,10 @@ export class WorldGrowingWallRuntime {
     for (const wall of this.deps.getRegistry().walls) {
       wall.update(dt);
       for (const slime of wall.pendingSlimes) {
-        slime.roomData = this.deps.getCollisionGrid();
-        slime.target = this.deps.getPlayer();
+        initializeEnemySpawnedEntity(slime, slime.x, slime.y, {
+          getCollisionGrid: () => this.deps.getCollisionGrid(),
+          getPlayer: () => this.deps.getPlayer(),
+        });
         this.deps.addSpawnedSlime(slime);
       }
       wall.pendingSlimes.length = 0;
@@ -77,7 +81,7 @@ export class WorldGrowingWallRuntime {
       if (!aabbOverlap(hitbox, wall.getAABB())) continue;
       if (!wall.shatter(this.deps.getCollisionGrid())) continue;
 
-      const key = (wall as any)._key as string;
+      const key = getWallRuntimeKey(wall);
       if (key) this.deps.getUnlockedEvents().add(key);
       this.playBreakFeedback(wall, style);
       registry.removeAt(i);

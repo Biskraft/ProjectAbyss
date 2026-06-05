@@ -13,6 +13,18 @@ Current state:
 - `WorldAnvilDeploymentRuntime` owns creating/storing the active anvil deployment sequence, but this state remains the storage owner.
 - Deployment cleanup should use `destroyDeployment()` so active deployment effects are destroyed before the reference is cleared.
 
+Deployment API contract:
+
+- `WorldItemWorldEntryState` owns the `ItemWorldEntrySequence` reference and exposes explicit methods for read/update:
+  - `setDeployment()`
+  - `isDeploymentActive()`
+  - `isDeploymentBlocking()`
+  - `isDeploymentGrowing()`
+  - `updateDeployment()`
+  - `releaseDeploymentBirthPieces()`
+  - `destroyDeployment()`
+- `LdtkWorldScene` and runtimes must not read `deployment` directly. All deployment lifecycle and state checks go through the above methods.
+
 Prevention rules:
 
 - Do not add direct `collapseItem`, `itemDeployment`, `inItemTunnel`, `preTunnelLevelId`, or `worldVisualsReleasedForItemWorld` fields back to `LdtkWorldScene`.

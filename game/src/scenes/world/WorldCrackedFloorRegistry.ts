@@ -1,22 +1,23 @@
 import type { Container } from 'pixi.js';
 import type { CrackedFloor } from '@entities/CrackedFloor';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export class WorldCrackedFloorRegistry {
   readonly floors: CrackedFloor[] = [];
 
   add(floor: CrackedFloor, entityLayer?: Container): void {
-    this.floors.push(floor);
-    if (entityLayer && !floor.container.parent) entityLayer.addChild(floor.container);
+    addEntityToLayer(this.floors, floor, entityLayer, { onlyAttachIfUnparented: true });
   }
 
   clear(): void {
-    for (const floor of this.floors) floor.destroy();
-    this.floors.length = 0;
+    destroyAndClearEntities(this.floors);
   }
 
   removeAt(index: number): void {
-    const floor = this.floors[index];
-    floor.destroy();
-    this.floors.splice(index, 1);
+    removeEntityAt(this.floors, index);
   }
 }

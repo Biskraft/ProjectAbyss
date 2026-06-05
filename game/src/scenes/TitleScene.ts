@@ -22,6 +22,9 @@ import { requestFullscreenSafely, isInIframe, isFullscreenActive } from '@core/F
 import { drawSelectionRow, drawSelectionPulse, ROW_SELECTED_GLOW_ALPHA, TEXT_SECONDARY, CARD_BG, CARD_BORDER, TEXT_KEY } from '@ui/ModalPanel';
 import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
+import { createLdtkSceneSaveAccess } from './shared/SceneSaveAccess';
+import { destroyDisplayObject } from './shared/DisplayObjectLifecycleHelpers';
+import { TITLE_FADE_OVERLAY_LABEL } from './shared/TitleHandoffLabels';
 
 // Logo asset path — synced with ui-components.html §title-screen spec.
 // assets/ui/ui_title_01.png is the official ECHORIS title logo:
@@ -37,7 +40,6 @@ const COL_WHITE = 0xf0f0f0;
 const COL_DIM = 0x3a3a48;
 
 const FADE_OUT_MS = 500;
-export const TITLE_FADE_OVERLAY_LABEL = '__title_fade_overlay__';
 
 type TitlePhase = 'logo' | 'presskey' | 'presets' | 'confirm' | 'fadeout';
 
@@ -611,7 +613,7 @@ export class TitleScene extends Scene {
         const t = Math.min(1, this.fadeTimer / FADE_OUT_MS);
         this.fadeOverlay.alpha = t;
         if (t >= 1) {
-          this.game.sceneManager.replace(new LdtkWorldScene(this.game));
+          this.game.sceneManager.replace(new LdtkWorldScene(this.game, createLdtkSceneSaveAccess()));
         }
         break;
     }
@@ -767,8 +769,7 @@ export class TitleScene extends Scene {
   exit(): void {
     window.removeEventListener('gamepadconnected', this._onGamepadConnect);
     if (this.uiRoot) {
-      if (this.uiRoot.parent) this.uiRoot.parent.removeChild(this.uiRoot);
-      this.uiRoot.destroy({ children: true });
+      destroyDisplayObject(this.uiRoot, { children: true });
     }
   }
 }

@@ -4,6 +4,8 @@ import { createEnemy } from '@entities/EnemyFactory';
 import type { Player } from '@entities/Player';
 import { Slime } from '@entities/Slime';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { initializeEnemySpawnedEntity, type EnemySpawnInitializationDeps } from '@scenes/shared/EnemySpawnHelpers';
+import { markBossEnemy, setBossKey, setUnlockTargetIids } from '@entities/EnemyMetadata';
 
 interface WorldEnemySpawnRuntimeDeps {
   getPlayer: () => Player;
@@ -14,7 +16,14 @@ interface WorldEnemySpawnRuntimeDeps {
 }
 
 export class WorldEnemySpawnRuntime {
-  constructor(private readonly deps: WorldEnemySpawnRuntimeDeps) {}
+  private readonly spawnInitializationDeps: EnemySpawnInitializationDeps;
+
+  constructor(private readonly deps: WorldEnemySpawnRuntimeDeps) {
+    this.spawnInitializationDeps = {
+      getCollisionGrid: () => this.deps.getCollisionGrid(),
+      getPlayer: () => this.deps.getPlayer(),
+    };
+  }
 
   spawnFromLevel(level: LdtkLevel): void {
     this.spawnDirectSlimes(level);
@@ -26,7 +35,12 @@ export class WorldEnemySpawnRuntime {
     const directEnemies = level.entities.filter((entity) => entity.type === 'Slime');
     for (const entity of directEnemies) {
       const enemy = new Slime();
-      this.placeEnemy(enemy, entity.px[0], entity.px[1] - enemy.height);
+      initializeEnemySpawnedEntity(
+        enemy,
+        entity.px[0],
+        entity.px[1] - enemy.height,
+        this.spawnInitializationDeps,
+      );
       this.deps.addEnemy(enemy);
     }
   }
@@ -38,9 +52,14 @@ export class WorldEnemySpawnRuntime {
       if (this.deps.getUnlockedEvents().has(bossKey)) continue;
 
       const boss = new Boss01();
-      (boss as any)._isBoss = true;
-      (boss as any)._bossKey = bossKey;
-      this.placeEnemy(boss, entity.px[0] - boss.width / 2, entity.px[1] - boss.height);
+      markBossEnemy(boss);
+      setBossKey(boss, bossKey);
+      initializeEnemySpawnedEntity(
+        boss,
+        entity.px[0] - boss.width / 2,
+        entity.px[1] - boss.height,
+        this.spawnInitializationDeps,
+      );
       this.deps.addEnemy(boss);
       this.deps.activateBossLock(level, bossKey);
     }
@@ -54,7 +73,12 @@ export class WorldEnemySpawnRuntime {
       const enemy = this.createSpawnerEnemy(level, spawner, enemyType, enemyLevel);
       if (!enemy) continue;
 
-      this.placeEnemy(enemy, spawner.px[0], spawner.px[1] - enemy.height);
+      initializeEnemySpawnedEntity(
+        enemy,
+        spawner.px[0],
+        spawner.px[1] - enemy.height,
+        this.spawnInitializationDeps,
+      );
       this.linkTargetDoors(enemy, spawner.fields['TargetDoor'] ?? spawner.fields['targetDoor']);
       this.deps.addEnemy(enemy);
     }
@@ -72,16 +96,9 @@ export class WorldEnemySpawnRuntime {
     if (this.deps.getUnlockedEvents().has(bossKey)) return null;
 
     const enemy = createEnemy('Boss', enemyLevel);
-    (enemy as any)._bossKey = bossKey;
+    setBossKey(enemy, bossKey);
     this.deps.activateBossLock(level, bossKey);
     return enemy;
-  }
-
-  private placeEnemy(enemy: Enemy<string>, x: number, y: number): void {
-    enemy.x = x;
-    enemy.y = y;
-    enemy.roomData = this.deps.getCollisionGrid();
-    enemy.target = this.deps.getPlayer();
   }
 
   private linkTargetDoors(enemy: Enemy<string>, targetField: unknown): void {
@@ -94,7 +111,7 @@ export class WorldEnemySpawnRuntime {
       targetRefs.push((targetField as { entityIid: string }).entityIid);
     }
     if (targetRefs.length > 0) {
-      (enemy as any)._unlockTargetIids = targetRefs;
+      setUnlockTargetIids(enemy, targetRefs);
     }
   }
 }

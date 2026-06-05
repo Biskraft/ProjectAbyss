@@ -18,6 +18,9 @@ import type { ControllerBrand } from './gamepadStandard';
 export type InputDevice = 'keyboard' | 'gamepad';
 
 type Listener = (device: InputDevice, brand: ControllerBrand) => void;
+interface WindowWithInputTracker extends Window {
+  __inputTracker?: Tracker;
+}
 
 /** 동시 입력 시 깜빡임 차단 (System_Input_Gamepad §8.1 100~250ms 권장 — 중간값 채택). */
 const DEBOUNCE_MS = 150;
@@ -62,7 +65,7 @@ const tracker = new Tracker();
 //   window.__inputTracker.device
 //   window.__inputTracker.listeners.size
 if (typeof window !== 'undefined') {
-  (window as any).__inputTracker = tracker;
+  (window as WindowWithInputTracker).__inputTracker = tracker;
 }
 
 export function getInputDevice(): InputDevice { return tracker.device; }

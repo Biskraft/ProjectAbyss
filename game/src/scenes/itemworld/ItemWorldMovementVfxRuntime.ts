@@ -10,7 +10,6 @@ import {
 } from '@entities/Player';
 import type { Enemy } from '@entities/Enemy';
 import type { DamageNumberManager } from '@ui/DamageNumber';
-import { SFX } from '@audio/Sfx';
 import type { DashAfterimageManager } from '@effects/DashAfterimage';
 import type { DashBoostPuffManager } from '@effects/DashBoostPuff';
 import type { DiveLandImpactManager } from '@effects/DiveLandImpact';
@@ -32,11 +31,16 @@ import type { WallSlideDustManager } from '@effects/WallSlideDust';
 import type { WaterBubblesManager } from '@effects/WaterBubbles';
 import type { WaterSplashManager } from '@effects/WaterSplash';
 import type { FluidSpawnerManager } from '@systems/FluidSpawner';
+import {
+  updateCommonMovementVfxManagers,
+  updateEnemyKinematicVfx,
+  updatePlayerKinematicVfx,
+} from '@scenes/shared/MovementVfxHelpers';
 
 interface ItemWorldMovementVfxRuntimeDeps {
   getPlayer: () => Player;
   getEnemies: () => Enemy<string>[];
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getFluidSystem: () => FluidSystem;
   getFluidSpawners: () => FluidSpawnerManager;
   getDamageNumbers: () => DamageNumberManager;
@@ -79,78 +83,11 @@ export class ItemWorldMovementVfxRuntime {
   private updatePlayerVfx(dtMs: number, player: Player): void {
     const { managers } = this.deps;
 
-    const landedSpeed = player.consumeLandedEvent();
-    if (landedSpeed !== null) {
-      managers.landingDust.spawn(player.x + player.width / 2, player.y + player.height, landedSpeed);
-      if (landedSpeed > 120) {
-        const t = Math.min(1, (landedSpeed - 120) / 380);
-        SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
-      }
-    }
-
-    const dashDir = player.consumeDashedEvent();
-    if (dashDir !== null) {
-      managers.dashBoostPuff.spawn(player.x + player.width / 2, player.y + player.height, dashDir);
-    }
-    if (player.consumeDoubleJumpEvent()) {
-      managers.doubleJumpRing.spawn(player.x + player.width / 2, player.y + player.height);
-    }
-
-    const kickDir = player.consumeWallJumpEvent();
-    if (kickDir !== null) {
-      const wallX = kickDir > 0 ? player.x : player.x + player.width;
-      const wallY = player.y + player.height * 0.45;
-      managers.wallJumpDust.spawn(wallX, wallY, kickDir);
-    }
-
-    managers.dashAfterimage.tick(dtMs, player.isDashing(), () => ({
-      x: player.x,
-      y: player.y,
-      w: player.width,
-      h: player.height,
-      facingRight: player.facingRight,
-      texture: player.getCurrentErdaTexture(),
-      spriteCenterX: player.x + player.width / 2,
-      spriteFootY: player.y + player.height,
-    }));
-
-    if (player.consumeGroundJumpEvent()) {
-      managers.jumpTakeoff.spawn(player.x + player.width / 2, player.y + player.height);
-    }
-    if (player.isWallSliding()) {
-      const wallSide = player.wallContactDir();
-      const wallX = wallSide < 0 ? player.x : player.x + player.width;
-      managers.wallSlideDust.emit(wallX, player.y + player.height * 0.55, -wallSide, dtMs);
-    }
-    if (managers.footstepPuff.stepIfMoving(
-      dtMs,
-      player.isGrounded(),
-      player.x + player.width / 2,
-      player.y + player.height,
-      player.getVx(),
-      player.facingRight,
-    )) {
-      SFX.play('footstep', 0, { speed: 0.92 + Math.random() * 0.16 });
-    }
-
-    if (player.isSurgeCharging()) {
-      managers.surgeVfx.tickCharge(dtMs, player.x + player.width / 2, player.y + player.height, player.getSurgeChargeRatio());
-    } else if (player.isSurgeFlying()) {
-      managers.surgeVfx.tickFly(dtMs, player.x + player.width / 2, player.y + player.height / 2);
-    } else {
-      managers.surgeVfx.idleTick(dtMs);
-    }
+    updatePlayerKinematicVfx(dtMs, player, managers);
 
     const hitDir = player.consumePlayerHitEvent();
     if (hitDir !== null) {
       managers.hitBloodSpray.spawn(player.x + player.width / 2, player.y + player.height * 0.4, hitDir);
-    }
-
-    if (player.diveLanded) {
-      const severity = Math.max(0.8, Math.min(1.6, player.diveFallDistance / 240));
-      managers.diveLandImpact.spawn(player.x + player.width / 2, player.y + player.height, severity);
-    } else if (landedSpeed !== null && landedSpeed > 520) {
-      managers.diveLandImpact.spawn(player.x + player.width / 2, player.y + player.height, 0.9);
     }
 
     const waterTransition = player.consumeWaterTransitionEvent();
@@ -172,7 +109,7 @@ export class ItemWorldMovementVfxRuntime {
 
   private updatePlayerFluidResidue(dtMs: number, player: Player): void {
     const { managers } = this.deps;
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     const waterfallType = this.deps.getFluidSpawners().queryFluidAtAabb(player.x, player.y, player.width, player.height, fullGrid);
     const inOil = isInOil(player.x, player.y, player.width, player.height, fullGrid) || waterfallType === 'oil';
     const inAcid = isInAcid(player.x, player.y, player.width, player.height, fullGrid) || waterfallType === 'acid';
@@ -266,7 +203,7 @@ export class ItemWorldMovementVfxRuntime {
 
   private updateEnemyVfx(dtMs: number): void {
     const { managers } = this.deps;
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     const enemies = this.deps.getEnemies();
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i];
@@ -274,12 +211,14 @@ export class ItemWorldMovementVfxRuntime {
       const ex = enemy.x + enemy.width / 2;
       const ey = enemy.y + enemy.height;
 
-      if (enemy.waterTransition !== 0) {
-        const strength = enemy.waterTransition > 0 ? 1.0 : 0.8;
-        managers.waterSplash.spawn(ex, ey, strength, 'water');
-        const impulseVy = enemy.waterTransition > 0 ? 150 : -100;
-        this.deps.getFluidSystem().applyImpulse(ex, ey, impulseVy);
-      }
+      updateEnemyKinematicVfx(dtMs, [enemy], managers, {
+        splashType: 'water',
+        getKey: () => `enemy_${i}`,
+        onWaterTransition: (_enemy, footX, footY, transition) => {
+          const impulseVy = transition > 0 ? 150 : -100;
+          this.deps.getFluidSystem().applyImpulse(footX, footY, impulseVy);
+        },
+      });
 
       const inOther = isInMagma(enemy.x, enemy.y, enemy.width, enemy.height, fullGrid)
         || isInOil(enemy.x, enemy.y, enemy.width, enemy.height, fullGrid)
@@ -295,13 +234,6 @@ export class ItemWorldMovementVfxRuntime {
         this.deps.getFluidSystem().applyImpulse(ex, ey, impulseVy);
         this.prevEnemyInOtherFluid[i] = inOther;
       }
-
-      const key = `enemy_${i}`;
-      managers.waterBubbles.emit(ex, enemy.y + enemy.height * 0.35, dtMs, enemy.submerged, key);
-      managers.iceSkidStreak.emit(dtMs, enemy.isStandingOnIce(), ex, ey, enemy.getVx(), key);
-      const landed = enemy.consumeLandedEvent();
-      if (landed !== null) managers.landingDust.spawn(ex, ey, landed);
-      if (enemy.consumeGroundJumpEvent()) managers.jumpTakeoff.spawn(ex, ey);
 
       this.applyEnemyResidueDamage(dtMs, enemy);
     }
@@ -360,19 +292,6 @@ export class ItemWorldMovementVfxRuntime {
 
   private updateManagers(dtMs: number): void {
     const { managers } = this.deps;
-    managers.landingDust.update(dtMs);
-    managers.dashBoostPuff.update(dtMs);
-    managers.doubleJumpRing.update(dtMs);
-    managers.wallJumpDust.update(dtMs);
-    managers.jumpTakeoff.update(dtMs);
-    managers.wallSlideDust.update(dtMs);
-    managers.footstepPuff.update(dtMs);
-    managers.flaskBurst.update(dtMs);
-    managers.criticalHighlight.update(dtMs);
-    managers.hitBloodSpray.update(dtMs);
-    managers.diveLandImpact.update(dtMs);
-    managers.waterSplash.update(dtMs);
-    managers.steamPuff.update(dtMs);
-    managers.fluidResidue.update(dtMs);
+    updateCommonMovementVfxManagers(dtMs, managers);
   }
 }

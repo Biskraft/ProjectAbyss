@@ -28,12 +28,12 @@ export class EgoShardRuntime {
 
   /** The underlying manager, for callers that still operate on it directly. */
   get managerInstance(): EgoShardManager {
-    return this.manager;
+    return this.requireManager();
   }
 
   /** The underlying aim preview, for callers that still operate on it directly. */
   get previewInstance(): EgoShardPreview {
-    return this.preview;
+    return this.requirePreview();
   }
 
   initialize(entityLayer: Container): void {
@@ -55,7 +55,7 @@ export class EgoShardRuntime {
   }
 
   spawn(x: number, y: number, vx: number, vy: number, element: ShardElement): void {
-    this.manager.spawn(x, y, vx, vy, element);
+    this.requireManager().spawn(x, y, vx, vy, element);
   }
 
   update(
@@ -64,19 +64,19 @@ export class EgoShardRuntime {
     isSolidAt: ShardUpdateParams[2],
     checkEnemyHit?: ShardUpdateParams[3],
   ): void {
-    this.manager.update(dtMs, onImpact, isSolidAt, checkEnemyHit);
+    this.requireManager().update(dtMs, onImpact, isSolidAt, checkEnemyHit);
   }
 
   retrieveInAABB(ax: number, ay: number, aw: number, ah: number, maxRetrieve?: number): number {
-    return this.manager.retrieveInAABB(ax, ay, aw, ah, maxRetrieve);
+    return this.requireManager().retrieveInAABB(ax, ay, aw, ah, maxRetrieve);
   }
 
   removeOldestShard(): boolean {
-    return this.manager.removeOldestShard();
+    return this.requireManager().removeOldestShard();
   }
 
   showPreview(...args: PreviewShowParams): void {
-    this.preview.show(...args);
+    this.requirePreview().show(...args);
   }
 
   hidePreview(): void {
@@ -89,12 +89,12 @@ export class EgoShardRuntime {
     this.resetCharge();
   }
 
-  private get manager(): EgoShardManager {
+  private requireManager(): EgoShardManager {
     if (!this.shardManager) throw new Error('EgoShardRuntime.manager used before initialize()');
     return this.shardManager;
   }
 
-  private get preview(): EgoShardPreview {
+  private requirePreview(): EgoShardPreview {
     if (!this.shardPreview) throw new Error('EgoShardRuntime.preview used before initialize()');
     return this.shardPreview;
   }

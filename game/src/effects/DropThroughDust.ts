@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Drop-through dust — thin horizontal dust streak left behind when the player
@@ -42,8 +43,7 @@ export class DropThroughDustManager {
       s.gfx.scale.x = 1 + (1 - t) * 0.25;
       s.gfx.scale.y = 1 + (1 - t) * 2.2; // dust puffs vertically as it fades
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.streaks.splice(i, 1);
       }
     }
@@ -51,8 +51,7 @@ export class DropThroughDustManager {
 
   clear(): void {
     for (const s of this.streaks) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.streaks.length = 0;
   }

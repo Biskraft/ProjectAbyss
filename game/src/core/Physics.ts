@@ -693,6 +693,16 @@ function overlapsSolidAabb(
   return false;
 }
 
+export function isAabbClearOfSolidTiles(
+  roomData: number[][],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): boolean {
+  return !overlapsSolidAabb(x, y, width, height, roomData);
+}
+
 function isSlopeSupportCell(slope: SlopeSegment2x1, col: number, row: number): boolean {
   const startCol = Math.floor(slope.x0 / TILE_SIZE);
   const endCol = Math.floor(slope.x1 / TILE_SIZE);

@@ -31,6 +31,7 @@ import {
   ROW_SELECTED_GLOW,
 } from './ModalPanel';
 import { t } from '@i18n';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 // ── Public types ────────────────────────────────────────────────────────────
 
@@ -213,8 +214,7 @@ export class AcquireOverlay {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   // ── Internals ─────────────────────────────────────────────────────────────
@@ -234,8 +234,7 @@ export class AcquireOverlay {
   private draw(config: AcquireConfig): void {
     // Reset center stack
     for (const c of [...this.centerStack.children]) {
-      this.centerStack.removeChild(c);
-      c.destroy?.({ children: true });
+      destroyDisplayObject(c, { children: true });
     }
     this.iconHaloOuter = null;
     this.iconHaloInner = null;

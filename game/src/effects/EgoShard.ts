@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Ego Shard — Hades-style cast projectile fired from the player's Ego sword.
@@ -166,10 +167,8 @@ export class Shard {
   }
 
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
-    if (this.trailGfx.parent) this.trailGfx.parent.removeChild(this.trailGfx);
-    this.trailGfx.destroy();
+    destroyDisplayObject(this.gfx);
+    destroyDisplayObject(this.trailGfx);
   }
 }
 
@@ -229,8 +228,7 @@ export class EgoShardPreview {
     g.circle(tip.x, tip.y, 3).stroke({ color: pal.core, width: 1.5, alpha: 0.9 });
   }
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
+    destroyDisplayObject(this.gfx);
   }
 }
 
@@ -326,8 +324,7 @@ export class EgoShardManager {
       r.gfx.circle(0, 0, radius).stroke({ color: pal.core, width: 2, alpha });
       r.gfx.circle(0, 0, radius * 0.55).stroke({ color: pal.trail, width: 1, alpha: alpha * 0.7 });
       if (r.age >= r.life) {
-        if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-        r.gfx.destroy();
+        destroyDisplayObject(r.gfx);
         this.rings.splice(i, 1);
       }
     }
@@ -387,8 +384,7 @@ export class EgoShardManager {
     for (const s of this.shards) s.destroy();
     this.shards.length = 0;
     for (const r of this.rings) {
-      if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-      r.gfx.destroy();
+      destroyDisplayObject(r.gfx);
     }
     this.rings.length = 0;
   }

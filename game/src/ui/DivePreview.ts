@@ -4,7 +4,7 @@
  * Sacred Pickup T5/S6 — 다이브 확정 직전에 무기/지층/보상을 한 번 더 보여주는
  * 모달(풀 패널) 또는 하단 스트립(요약) UI.
  *
- *   - showFull:    첫 다이브(sacredSave.isFirstDiveDone === false)에서 사용.
+ *   - showFull:    첫 다이브 미확인 상태에서 사용.
  *                  260×180 중앙 모달, [C] DIVE / [ESC] CANCEL.
  *   - showCompact: 이후 다이브. 화면 하단 1줄 스트립, [C] OK / [ESC] CANCEL.
  */
@@ -21,6 +21,7 @@ import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, createModalPanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 /** Floors per rarity — matches LorePopup STRATA_BY_RARITY table. */
 const STRATA_BY_RARITY: Record<string, number> = {
@@ -102,8 +103,7 @@ export class DivePreview {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   // ---------------------------------------------------------------------------
@@ -112,8 +112,7 @@ export class DivePreview {
 
   private clearChildren(c: Container): void {
     for (const child of [...c.children]) {
-      c.removeChild(child);
-      child.destroy?.({ children: true });
+      destroyDisplayObject(child, { children: true });
     }
   }
 

@@ -5,6 +5,8 @@ import { PIXEL_FONT } from '@ui/fonts';
 import { createUiText } from '@ui/factories';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
 import type { HUD } from '@ui/HUD';
+import { destroyNullableDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { isGameOverRespawnPressed } from '@scenes/shared/GameOverInputHelpers';
 
 interface WorldGameOverRuntimeDeps {
   game: Game;
@@ -64,8 +66,7 @@ export class WorldGameOverRuntime {
 
   updateInput(): boolean {
     if (!this.active) return false;
-    const input = this.deps.game.input;
-    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
+    if (isGameOverRespawnPressed(this.deps.game.input)) {
       this.deps.onRespawn();
     }
     return true;
@@ -73,11 +74,7 @@ export class WorldGameOverRuntime {
 
   clear(): void {
     this.active = false;
-    if (this.overlay?.parent) {
-      this.overlay.parent.removeChild(this.overlay);
-    }
-    this.overlay?.destroy({ children: true });
-    this.overlay = null;
+    this.overlay = destroyNullableDisplayObject(this.overlay, { children: true });
   }
 
   destroy(): void {

@@ -11,3 +11,6 @@
 - Do not reintroduce `cyclePromptItem`, `cyclePromptUI`, or cycle-prompt draw/input methods directly into `LdtkWorldScene`.
 - Keep player-facing prompt strings on localization keys; the runtime should use `t()` and existing key labels from `InputManager`.
 - Destroy or close the runtime when the world scene exits because the modal is attached to `legacyUIContainer`, which outlives the scene container.
+
+- 2026-06-05: Owned modal cleanup now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true })`; active-item/input/callback ownership remains runtime-local.
+- 2026-06-05: Confirm/cancel input now routes through `ConfirmCancelInputHelpers.updateConfirmCancelInput()`; active-item, cycle reset, toast, placement, and close-menu callbacks remain runtime-owned.

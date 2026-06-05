@@ -5,6 +5,8 @@
 Current responsibilities:
 
 - Keep the world Ego Shard shipping gate debug-only via `?debug`.
+- Shared cast state progression lives in `game/src/scenes/shared/EgoShardCastHelpers.ts`, including debug gating, charge/preview/release sequencing, launch point math, cooldown recovery, and preview solid-tile predicate.
+- Runtime-level input/getter adaptation is shared through `EgoShardCastHelpers.updateEgoShardCastRuntime()`; world remains a mode-specific wiring shell.
 - Suppress cast/aim while the player holds a throwable container.
 - Use `WorldEgoShardRuntime` charge helpers for hold-to-charge, preview velocity, release spawn, and preview hiding.
 - Spend one shard on release, push `SHARD_RECOVERY_MS`, and enforce `CAST_MIN_GAP_MS`.
@@ -14,6 +16,7 @@ Current responsibilities:
 Scene-owned boundaries:
 
 - `WorldEgoShardRuntime` still owns manager/preview lifetime and charge timer storage.
+- `WorldEgoShardCastRuntime` still owns held-container dependency wiring, while the shared runtime helper owns the `GameAction.CAST` read from the provided input adapter.
 - `WorldEgoShardProjectileRuntime` owns shard flight update dispatch and player retrieval scanning.
 - `WorldEgoShardCombatRuntime` owns shard enemy/container hit policy.
 - `WorldEgoShardImpactRuntime` owns elemental terrain impact effects and debug elemental sweeps.

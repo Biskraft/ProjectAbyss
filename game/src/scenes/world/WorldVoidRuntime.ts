@@ -1,6 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { isInVoid } from '@core/Physics';
 import type { Player } from '@entities/Player';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
 import type { Game } from '../../Game';
 
 const VOID_FADE_OUT_DURATION = 200;
@@ -83,7 +84,7 @@ export class WorldVoidRuntime {
     const player = this.deps.getPlayer();
 
     if (this.fadePhase === 'out') {
-      const t = Math.min(1, this.fadeTimer / VOID_FADE_OUT_DURATION);
+      const t = getProgress01(this.fadeTimer, VOID_FADE_OUT_DURATION);
       overlay.alpha = t;
       if (t >= 1) {
         if (!this.teleported) {
@@ -101,7 +102,7 @@ export class WorldVoidRuntime {
         this.fadeTimer = 0;
       }
     } else if (this.fadePhase === 'in') {
-      const t = Math.min(1, this.fadeTimer / VOID_FADE_IN_DURATION);
+      const t = getProgress01(this.fadeTimer, VOID_FADE_IN_DURATION);
       overlay.alpha = 1 - t;
       player.forceGrounded(false, 'void-fade');
       if (t >= 1) {

@@ -3,6 +3,7 @@ import { t } from '@i18n';
 import type { ThrowableContainer } from '@entities/ThrowableContainer';
 import { updateContainerPrompt as updateContainerPromptUi } from '@systems/ContainerInteraction';
 import type { Game } from '../../Game';
+import { destroyNullableDisplayObject, hideDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface ItemWorldContainerPromptRuntimeDeps {
   game: Game;
@@ -26,13 +27,10 @@ export class ItemWorldContainerPromptRuntime {
   }
 
   hide(): void {
-    if (this.prompt) this.prompt.visible = false;
+    hideDisplayObject(this.prompt);
   }
 
   destroy(): void {
-    if (!this.prompt) return;
-    if (this.prompt.parent) this.prompt.parent.removeChild(this.prompt);
-    this.prompt.destroy({ children: true });
-    this.prompt = null;
+    this.prompt = destroyNullableDisplayObject(this.prompt, { children: true });
   }
 }

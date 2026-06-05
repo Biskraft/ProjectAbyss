@@ -11,6 +11,7 @@
 
 import { Container, Graphics } from 'pixi.js';
 import { Slime } from './Slime';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 const WALL_COLOR = 0x8a8a7a;
@@ -181,7 +182,7 @@ export class GrowingWall {
       d.gfx.y = d.y;
       d.gfx.alpha = Math.max(0, d.life / DUST_LIFETIME);
       if (d.life <= 0) {
-        if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
+        detachDisplayObject(d.gfx);
         this.dusts.splice(i, 1);
       }
     }
@@ -306,11 +307,9 @@ export class GrowingWall {
 
   destroy(): void {
     for (const d of this.dusts) {
-      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
+      detachDisplayObject(d.gfx);
     }
     this.dusts = [];
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

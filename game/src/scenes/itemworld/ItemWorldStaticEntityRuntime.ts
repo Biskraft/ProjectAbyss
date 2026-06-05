@@ -17,11 +17,19 @@ import type { HUD } from '@ui/HUD';
 import type { DamageNumberManager } from '@ui/DamageNumber';
 import type { HitSparkManager } from '@effects/HitSpark';
 import type { ScreenFlash } from '@effects/ScreenFlash';
+import { addEntityToLayer } from '@scenes/shared/EntityLifecycleHelpers';
+import { initializeEnemySpawnedEntity } from '@scenes/shared/EnemySpawnHelpers';
+import { applyPlayerSpikeHitFeedback } from '@scenes/shared/TileHazardRuntimeHelpers';
+import {
+  applyCrackedFloorShatterFeedback,
+  applyGateUnlockFeedback,
+  applySwitchActivationFeedback,
+} from '@scenes/shared/StaticEntityFeedbackHelpers';
 
 interface ItemWorldStaticEntityRuntimeDeps {
   game: Game;
   getPlayer: () => Player;
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getEnemies: () => Enemy<string>[];
   getEntityLayer: () => Container;
   getCollapsingPlatforms: () => CollapsingPlatform[];
@@ -41,6 +49,7 @@ interface ItemWorldStaticEntityRuntimeDeps {
   destroyBreakablePropWithEffects: (prop: BreakableProp, reason: 'sword') => void;
   paintContainerImpact: (kind: ThrowableContainer['kind'], gx: number, gy: number, volume: number) => void;
   destroyContainerWithVFX: (container: ThrowableContainer) => void;
+  removeContainerAt: (index: number) => void;
   updateCameraZones: () => void;
 }
 
@@ -61,33 +70,15 @@ export class ItemWorldStaticEntityRuntime {
   private applySpikeDamage(): void {
     const player = this.deps.getPlayer();
     if (player.invincible || player.hp <= 0) return;
-    if (!isInSpike(player.x, player.y, player.width, player.height, this.deps.getFullGrid())) return;
+    if (!isInSpike(player.x, player.y, player.width, player.height, this.deps.getCollisionGrid())) return;
 
-    const dmg = Math.max(1, Math.floor(player.maxHp * 0.2));
-    player.lastDamageSource = 'spike';
-    player.hp -= dmg;
-    this.deps.getHud().flashDamage();
-    player.invincible = true;
-    player.invincibleTimer = 1000;
-    this.deps.game.hitstopFrames = 16;
-    this.deps.game.camera.shake(5);
-    this.deps.getScreenFlash().flashDamage(true);
-    player.triggerFlash();
-    this.deps.getDamageNumbers().spawn(
-      player.x + player.width / 2,
-      player.y - 8,
-      dmg,
-      true,
-    );
-    player.x = player.lastSafeX;
-    player.y = player.lastSafeY;
-    player.vx = 0;
-    player.vy = 0;
-    player.savePrevPosition();
-    if (player.hp <= 0) {
-      player.hp = 0;
-      player.onDeath();
-    }
+    applyPlayerSpikeHitFeedback({
+      player,
+      game: this.deps.game,
+      hud: this.deps.getHud(),
+      damageNumbers: this.deps.getDamageNumbers(),
+      screenFlash: this.deps.getScreenFlash(),
+    });
   }
 
   private updateCollapsingPlatforms(dtMs: number): void {
@@ -108,10 +99,11 @@ export class ItemWorldStaticEntityRuntime {
       wall.update(dtMs);
       if (wall.pendingSlimes.length === 0) continue;
       for (const slime of wall.pendingSlimes) {
-        slime.roomData = this.deps.getFullGrid();
-        slime.target = player;
-        enemies.push(slime);
-        entityLayer.addChild(slime.container);
+        initializeEnemySpawnedEntity(slime, slime.x, slime.y, {
+          getCollisionGrid: () => this.deps.getCollisionGrid(),
+          getPlayer: () => player,
+        });
+        addEntityToLayer(enemies, slime, entityLayer);
       }
       wall.pendingSlimes.length = 0;
     }
@@ -128,7 +120,7 @@ export class ItemWorldStaticEntityRuntime {
     for (const door of this.deps.getLockedDoors()) {
       door.update(dtMs);
       if (!door.locked) continue;
-      door.ensureCollision(this.deps.getFullGrid());
+      door.ensureCollision(this.deps.getCollisionGrid());
       const aabb = door.getHitAABB();
       const px0 = player.x;
       const py0 = player.y;
@@ -170,10 +162,12 @@ export class ItemWorldStaticEntityRuntime {
       const floor = crackedFloors[i];
       if (floor.destroyed) continue;
       if (!aabbOverlap(hitbox, floor.getAABB())) continue;
-      floor.shatter(this.deps.getFullGrid());
-      this.deps.game.hitstopFrames += 4;
-      this.deps.getScreenFlash().flash(0xffffff, 0.4, 150);
-      this.deps.game.camera.shake(6);
+      floor.shatter(this.deps.getCollisionGrid());
+      applyCrackedFloorShatterFeedback({
+        game: this.deps.game,
+        screenFlash: this.deps.getScreenFlash(),
+        cameraShake: 6,
+      });
       floor.destroy();
       crackedFloors.splice(i, 1);
     }
@@ -194,9 +188,11 @@ export class ItemWorldStaticEntityRuntime {
     for (const sw of this.deps.getSwitches()) {
       if (sw.activated) continue;
       if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
-      if (sw.activate(this.deps.getFullGrid())) {
-        this.deps.game.camera.shake(3);
-        this.deps.getScreenFlash().flashHit(false);
+      if (sw.activate(this.deps.getCollisionGrid())) {
+        applySwitchActivationFeedback({
+          game: this.deps.game,
+          screenFlash: this.deps.getScreenFlash(),
+        });
         this.unlockDoorByIidLocal(sw.targetDoorIid);
       }
     }
@@ -208,10 +204,14 @@ export class ItemWorldStaticEntityRuntime {
       const door = lockedDoors[i];
       if (door.iid !== iid) continue;
 
-      door.unlock(this.deps.getFullGrid());
-      this.deps.game.camera.shake(6);
-      this.deps.getScreenFlash().flashHit(true);
-      this.deps.showToast(t('toast.gate_opened'), 0x44ffaa);
+      door.unlock(this.deps.getCollisionGrid());
+      applyGateUnlockFeedback({
+        game: this.deps.game,
+        screenFlash: this.deps.getScreenFlash(),
+        showToast: () => {
+          this.deps.showToast(t('toast.gate_opened'), 0x44ffaa);
+        },
+      });
       door.destroy();
       lockedDoors.splice(i, 1);
       return;
@@ -234,7 +234,7 @@ export class ItemWorldStaticEntityRuntime {
       if (impact) {
         this.deps.paintContainerImpact(container.kind, impact.gx, impact.gy, container.fluidVolume);
         this.deps.destroyContainerWithVFX(container);
-        containers.splice(i, 1);
+        this.deps.removeContainerAt(i);
       }
     }
   }

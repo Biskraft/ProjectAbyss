@@ -8,7 +8,9 @@ Current responsibilities:
 - Preserve the non-boss guard that skips spawning when no valid spawn points exist.
 - Pick deterministic spawn positions from an existing `PRNG`.
 - Delegate boss flat-floor lookup through `ItemWorldSpawnController.findFlatFloorCenter()`.
-- Register spawned enemies by setting room metadata, assigning `roomData`/target, adding them to the scene-owned enemy list/layer, and incrementing `roomEnemyCount`.
+- Register spawned enemies by setting room metadata, assigning `roomData`/target through shared spawn helpers, and registering via injected `addEnemy` callback that owns list/container attachment while this runtime increments `roomEnemyCount`.
+- Reuse the runtime-level `EnemySpawnInitializationDeps` adapter when calling `initializeEnemySpawnedEntity()` so position/grid/target initialization stays aligned with world spawns.
+- Enemy placement/grid/target setup goes through `Enemy.bindSpawnContext(...)` via the shared spawn helper; do not reintroduce direct helper-side `enemy.roomData = ...` writes.
 
 Scene-owned boundaries:
 

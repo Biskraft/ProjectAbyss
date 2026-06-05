@@ -6,7 +6,7 @@ Current state:
 
 - Wraps `FixedItemWorldRuntime`, which still stores the active fixed item and first-boss-clear snapshot.
 - Enters a fixed Item World when an entry item has `fixedLevelId`: restores hidden anvil-dive UI, validates the LDtk level, records fixed Item World state, clears tunnel mode, and loads the authored fixed level.
-- If the fixed level is missing, falls back to procedural Item World by keeping the entry item in `WorldItemWorldEntryState`, creating/pushing an `ItemWorldScene` through `WorldItemWorldSceneFlowRuntime`, and applying return dialogue/anvil retirement after the common return block.
+- If the fixed level is missing, falls back to procedural Item World by keeping the entry item in `WorldItemWorldEntryState`, creating/pushing an `ItemWorldScene` through `WorldItemWorldSceneFlowRuntime`, and applying shared return processing through `applyItemWorldSceneCompletionLifecycle` before return dialogue/anvil retirement.
 - Exits fixed Item World back to the forge: consumes fixed state, clears the entry item, resets edge transition, resolves the anvil/pre-tunnel/fallback return level, reloads it, clears released-world state, places the player at the anvil return point, applies first-boss tutorial hint state, fires return dialogue, and runs anvil retirement policy.
 
 Boundaries:

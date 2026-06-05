@@ -1,4 +1,5 @@
 import { Container, Sprite, Graphics, type Texture } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Dash afterimage — leaves a trail of fading silhouettes behind the player
@@ -109,8 +110,7 @@ export class DashAfterimageManager {
       const k = Math.max(0, t.life / t.maxLife);
       t.node.alpha = k * 0.55;
       if (t.life <= 0) {
-        if (t.node.parent) t.node.parent.removeChild(t.node);
-        t.node.destroy();
+        destroyDisplayObject(t.node);
         this.trails.splice(i, 1);
       }
     }
@@ -118,8 +118,7 @@ export class DashAfterimageManager {
 
   clear(): void {
     for (const t of this.trails) {
-      if (t.node.parent) t.node.parent.removeChild(t.node);
-      t.node.destroy();
+      destroyDisplayObject(t.node);
     }
     this.trails.length = 0;
     this.spawnTimer = 0;

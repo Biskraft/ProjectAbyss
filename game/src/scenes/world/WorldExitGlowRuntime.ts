@@ -1,6 +1,11 @@
 import type { Container } from 'pixi.js';
 import { ExitGlow, type ExitGlowDir } from '@effects/ExitGlow';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export interface EntranceGlowSpec {
   dir: ExitGlowDir;
@@ -55,8 +60,11 @@ export class WorldExitGlowRuntime {
   clearBuilderEntranceGlows(): void {
     for (const glow of this.builderEntranceGlows) {
       const idx = this.glows.indexOf(glow);
-      if (idx >= 0) this.glows.splice(idx, 1);
-      glow.destroy();
+      if (idx >= 0) {
+        removeEntityAt(this.glows, idx);
+      } else {
+        glow.destroy();
+      }
     }
     this.builderEntranceGlows = [];
   }
@@ -71,8 +79,7 @@ export class WorldExitGlowRuntime {
   }
 
   clearAll(): void {
-    for (const glow of this.glows) glow.destroy();
-    this.glows = [];
+    destroyAndClearEntities(this.glows);
     this.builderEntranceGlows = [];
   }
 
@@ -147,8 +154,7 @@ export class WorldExitGlowRuntime {
 
   private addGlow(spec: EntranceGlowSpec): ExitGlow {
     const glow = new ExitGlow(spec.dir, spec.x, spec.y, spec.span);
-    this.deps.getEntityLayer().addChild(glow.container);
-    this.glows.push(glow);
+    addEntityToLayer(this.glows, glow, this.deps.getEntityLayer());
     return glow;
   }
 }

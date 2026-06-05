@@ -13,6 +13,7 @@
 import { Container, Graphics, Sprite, Texture, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { RARITY_COLOR, type ItemInstance } from '@items/ItemInstance';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const itemTextureCache = new Map<string, Texture>();
 
@@ -105,8 +106,11 @@ export class ItemImage {
     this.container.addChild(sprite);
   }
 
+  setBorderVisible(visible: boolean): void {
+    this.border.visible = visible;
+  }
+
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

@@ -2,11 +2,16 @@ import type { Container } from 'pixi.js';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { applyBurnableZones } from '@level/BurnableZonePass';
 import { BurnableProp } from '@entities/BurnableProp';
-import { ThrowableContainer, parseContainerKind } from '@entities/ThrowableContainer';
-import { resolveContainerSlotKind } from '@data/ContainerPools';
+import { ThrowableContainer } from '@entities/ThrowableContainer';
 import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
 import { readFluidSpawnerEntities, type FluidSpawnerManager } from '@systems/FluidSpawner';
+import {
+  buildContainerOccupiedCells,
+  settleContainersAtSpawnFromIndex,
+} from '@scenes/shared/ContainerSpawnSettleHelpers';
+import { resolveRuntimeContainerKind } from '@scenes/shared/ContainerKindHelpers';
 import type { TileMutator } from '@systems/TileMutator';
+import { addEntityToLayer } from '@scenes/shared/EntityLifecycleHelpers';
 
 interface RuntimeCellRecord {
   ldtkLevel: LdtkLevel;
@@ -16,7 +21,7 @@ interface RuntimeCellRecord {
 
 interface ItemWorldRuntimeCellSpawnerDeps {
   getCellRecord: (key: string) => RuntimeCellRecord | undefined;
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getContainers: () => ThrowableContainer[];
   getBurnableProps: () => BurnableProp[];
   getFluidSpawners: () => FluidSpawnerManager;
@@ -56,7 +61,7 @@ export class ItemWorldRuntimeCellSpawner {
     this.spawnFluidSpawners(ldtkLevel, offGx, offGy);
     this.spawnBurnableProps(ldtkLevel, roomX, roomY);
     this.deps.spawnStaticEntitiesForRoom(ldtkLevel, roomX, roomY);
-    this.settleContainersFrom(beforeContainers);
+    settleContainersAtSpawnFromIndex(this.deps.getContainers(), beforeContainers, this.deps.getCollisionGrid());
   }
 
   private spawnPlacedContainers(level: LdtkLevel, offGx: number, offGy: number): void {
@@ -65,7 +70,7 @@ export class ItemWorldRuntimeCellSpawner {
     for (const ent of level.entities) {
       if (ent.type !== 'Container') continue;
 
-      const kind = this.resolveContainerKind(ent.fields?.['Kind']);
+      const kind = resolveRuntimeContainerKind(ent.fields?.['Kind'], this.deps.getTemperament());
       if (!kind) continue;
 
       const fvRaw = ent.fields?.['FluidVolume'];
@@ -76,8 +81,7 @@ export class ItemWorldRuntimeCellSpawner {
         (ent.grid[1] + offGy) * TILE_SIZE,
         fluidVolume,
       );
-      containers.push(container);
-      entityLayer.addChild(container.container);
+      addEntityToLayer(containers, container, entityLayer);
     }
   }
 
@@ -89,7 +93,7 @@ export class ItemWorldRuntimeCellSpawner {
     roomY: number,
   ): void {
     const containers = this.deps.getContainers();
-    const occupied = this.collectContainerOccupiedCells(containers);
+    const occupied = buildContainerOccupiedCells(containers);
 
     for (const ent of level.entities) {
       if (ent.type !== 'ContainerSpawner') continue;
@@ -105,7 +109,7 @@ export class ItemWorldRuntimeCellSpawner {
           w: opts.rect.w,
           h: opts.rect.h,
         },
-        collisionGrid: this.deps.getFullGrid(),
+        collisionGrid: this.deps.getCollisionGrid(),
         existing: containers,
         occupiedCells: occupied,
         pool: opts.pool,
@@ -118,8 +122,7 @@ export class ItemWorldRuntimeCellSpawner {
       });
 
       for (const container of spawned) {
-        containers.push(container);
-        this.deps.getEntityLayer().addChild(container.container);
+        addEntityToLayer(containers, container, this.deps.getEntityLayer());
         occupied.add(`${Math.floor(container.x / TILE_SIZE)},${Math.floor(container.y / TILE_SIZE)}`);
       }
     }
@@ -140,64 +143,12 @@ export class ItemWorldRuntimeCellSpawner {
   }
 
   private spawnBurnableProps(level: LdtkLevel, roomX: number, roomY: number): void {
-    const specs = applyBurnableZones(this.deps.getFullGrid(), level.entities, TILE_SIZE, roomX, roomY);
+    const specs = applyBurnableZones(this.deps.getCollisionGrid(), level.entities, TILE_SIZE, roomX, roomY);
     for (const spec of specs) {
       const prop = new BurnableProp(spec.id, spec.gx, spec.gy);
-      this.deps.getBurnableProps().push(prop);
+      addEntityToLayer(this.deps.getBurnableProps(), prop, this.deps.getEntityLayer());
       this.deps.getTileMutator().registerBurnable(prop);
-      this.deps.getEntityLayer().addChild(prop.container);
     }
   }
 
-  private settleContainersFrom(startIndex: number): void {
-    const containers = this.deps.getContainers();
-    if (startIndex >= containers.length) return;
-
-    const sorted = containers.slice(startIndex).sort((a, b) => b.y - a.y);
-    for (const container of sorted) {
-      if (container.skipSettle) continue;
-      container.settleAtSpawn(
-        (gx, gy) => this.isContainerSolidCellFor(container, gx, gy),
-        containers,
-        1024,
-        (gx, gy) => this.isContainerFluidCell(gx, gy),
-      );
-    }
-  }
-
-  private resolveContainerKind(rawKind: unknown): ThrowableContainer['kind'] | null {
-    const direct = parseContainerKind(rawKind);
-    if (direct) return direct;
-
-    const slot = typeof rawKind === 'string' ? rawKind.toLowerCase() : '';
-    if (slot === 'generic_a' || slot === 'generic_b' || slot === 'generic_c') {
-      return resolveContainerSlotKind(slot, this.deps.getTemperament());
-    }
-    return null;
-  }
-
-  private collectContainerOccupiedCells(containers: readonly ThrowableContainer[]): Set<string> {
-    const occupied = new Set<string>();
-    for (const container of containers) {
-      const gx0 = Math.floor(container.x / TILE_SIZE);
-      const gx1 = Math.floor((container.x + container.spec.width - 1) / TILE_SIZE);
-      const gy0 = Math.floor(container.y / TILE_SIZE);
-      const gy1 = Math.floor((container.y + container.spec.height - 1) / TILE_SIZE);
-      for (let gy = gy0; gy <= gy1; gy++) {
-        for (let gx = gx0; gx <= gx1; gx++) occupied.add(`${gx},${gy}`);
-      }
-    }
-    return occupied;
-  }
-
-  private isContainerSolidCellFor(container: ThrowableContainer, gx: number, gy: number): boolean {
-    const tile = this.deps.getFullGrid()[gy]?.[gx] ?? 0;
-    if (tile === 1 || tile === 3 || tile === 7 || tile === 9 || tile === 12 || tile === 15) return true;
-    return container.isWoodFamily() && this.isContainerFluidCell(gx, gy);
-  }
-
-  private isContainerFluidCell(gx: number, gy: number): boolean {
-    const tile = this.deps.getFullGrid()[gy]?.[gx] ?? 0;
-    return tile === 2 || tile === 6 || tile === 8 || tile === 11 || tile === 13 || tile === 20;
-  }
 }

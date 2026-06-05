@@ -13,6 +13,7 @@ import { t } from '@i18n';
 import { createModalPanel, MODAL_BG, MODAL_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_NEGATIVE, TEXT_ACCENT } from './ModalPanel';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { UISkin } from './UISkin';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const PANEL_W = 320;
 const PANEL_H = 240;
@@ -307,8 +308,7 @@ export class SaveLoadUI {
   private hideDelete(): void {
     this.deleteStage = 0;
     if (this.deletePanel) {
-      this.container.removeChild(this.deletePanel);
-      this.deletePanel.destroy({ children: true });
+      destroyDisplayObject(this.deletePanel, { children: true });
       this.deletePanel = null;
     }
   }

@@ -1,4 +1,5 @@
 import { ColorMatrixFilter, type Container, type Filter } from 'pixi.js';
+import { removeFilterAndClearIfEmpty } from '@scenes/shared/FilterLifecycleHelpers';
 
 interface WorldLaserDesaturationRuntimeDeps {
   getTargets: () => Container[];
@@ -41,9 +42,7 @@ export class WorldLaserDesaturationRuntime {
     }
 
     for (const target of targets) {
-      if (!target.filters) continue;
-      const next = target.filters.filter(f => f !== filter);
-      target.filters = next.length ? next : null;
+      removeFilterAndClearIfEmpty(target, filter);
     }
     this.previousFilters.clear();
   }

@@ -9,6 +9,11 @@ import {
   EGO_GATEKEEPER_FIRST,
   EGO_EVENT,
 } from '@data/EgoDialogue';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  updateEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 interface ItemWorldResidentRuntimeDeps {
   getResidentsLayer: () => Container;
@@ -25,22 +30,16 @@ export class ItemWorldResidentRuntime {
 
   spawnAmbient(x: number, y: number, variant: number): void {
     const resident = new MemoryResident(x, y, 'ambient', variant);
-    this.residents.push(resident);
-    this.deps.getResidentsLayer().addChild(resident.container);
+    addEntityToLayer(this.residents, resident, this.deps.getResidentsLayer());
   }
 
   update(dtMs: number): void {
-    for (const resident of this.residents) {
-      resident.update(dtMs);
-    }
+    updateEntities(this.residents, dtMs);
     this.updateEgoTriggers();
   }
 
   clear(): void {
-    for (const resident of this.residents) {
-      resident.destroy();
-    }
-    this.residents = [];
+    destroyAndClearEntities(this.residents);
   }
 
   private updateEgoTriggers(): void {

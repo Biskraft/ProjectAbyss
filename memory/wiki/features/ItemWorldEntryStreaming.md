@@ -30,11 +30,12 @@
 - Level 36 ghost reveal movement tracking lives in `ItemWorldGhostRevealRuntime`; it owns last-player-position and activated state, then calls back once to release item-birth pieces when the player starts moving.
 - Legacy deployment tunnel tile/collision clearing lives in `ItemDeploymentTunnelRuntime`. It owns the overworld restore cells and active-builder tunnel restore cells; `LdtkWorldScene` only asks it to clear or restore. When the active builder tunnel changes, the runtime restamps through `WorldBuilderStampRuntime.restamp()` instead of receiving scene-level stamp callbacks.
 - Item World entry asset warming lives in `ItemWorldEntryPreloader`, which coalesces duplicate work by theme slug and loads the `item_world` bundle, theme area tilesets, ItemStratum templates, and authored tilesets into the shared atlas map.
-- LDtk-authored tileset path collection lives in `@level/LdtkTilesetPaths`. Use it from both `ItemWorldEntryPreloader` and `ItemWorldScene` so entry prewarm and final scene load preserve the same non-default tilesets.
+- LDtk-authored tileset path collection and missing-atlas preloading live in `@level/LdtkTilesetPaths`. Use them from preload/load paths so entry prewarm and final scene load preserve the same non-default tilesets.
 - The black fade around pushing/revealing `ItemWorldScene` lives in `ItemWorldEntryPushTransition`. Use its `isActive` guard for edge/cinematic checks instead of adding new transition booleans to `LdtkWorldScene`.
 - Common LDtk world-to-`ItemWorldScene` construction, prestream delegation, prepared push, and base return handling live in `WorldItemWorldSceneFlowRuntime`. Portal/altar/anvil/fixed-fallback paths may still add their path-specific reward/dialogue handling after `completeReturn()`.
 - After Level 36 is loaded, the controller immediately unlocks movement in `Deployed`. `ItemWorldGhostOverlay` reveals tiles within 6 tiles of the moving player by scaling each tile from 0 to 1, while the player walks to the right-edge trigger and then enters `ItemWorldScene`.
 - The growth reference starts with a 500 ms `Anticipation` beat that shakes the camera before the actual zoom/world-birth begins. Snapshot and ghost scale use a smootherstep growth curve: very slow at the beginning, fastest in the middle, and very slow near completion.
+- During the default growth entry tunnel, `ItemWorldEntrySequence` locks camera zoom at 1.0 from start through the final handoff fade. It unlocks immediately before pushing `ItemWorldScene`, preserving 1.0 as the current zoom value.
 - The default growth path locks player input during zoom. `PlatformReady` loads Level 36 collision and immediately advances to `Deployed`; only the final `EnteringWorld` fade reports `isBlocking`.
 - Level 36 tile fills are solid; do not draw per-tile top/bottom strokes because scaled tiles read as visible horizontal scan lines.
 - Runtime grid extension for the streamed ghost room must initialize new cells as air before stamping Level 36's IntGrid. The pre-existing overworld collision is also cleared to air during the deployment and restored on cleanup/return.
@@ -84,7 +85,7 @@
 - Keep deployment-tunnel restore arrays inside `ItemDeploymentTunnelRuntime`; do not put overworld/builder tunnel restore cell arrays back on `LdtkWorldScene`.
 - Keep active-builder restamping for deployment tunnels wired through `WorldBuilderStampRuntime.restamp()`; do not add `stampBuilder`/`unstampBuilder` callbacks back to `LdtkWorldScene`.
 - Keep item-world bundle/theme/template/authored-tileset prestreaming in `ItemWorldEntryPreloader`.
-- Keep LDtk-authored tileset path collection shared through `@level/LdtkTilesetPaths`; do not add a second local loop when adding a new ItemStratum preload/load path.
+- Keep LDtk-authored tileset path collection and missing-atlas preload shared through `@level/LdtkTilesetPaths`; do not add a second local loop when adding a new ItemStratum preload/load path.
 - Keep `ItemWorldScene` push/reveal fade ownership in `ItemWorldEntryPushTransition`.
 - Do not duplicate procedural `ItemWorldScene.onComplete` base return logic or the prepared-scene push closure. Use `WorldItemWorldSceneFlowRuntime.completeReturn()` first, then apply only path-specific toasts, item acquisition, dialogue, or anvil retirement; use `WorldItemWorldSceneFlowRuntime.pushPrepared()` for the shared push prep.
 - Reveal the Level 36 spawn neighborhood immediately when activating collision; proximity reveal can still animate farther tiles as the player moves.

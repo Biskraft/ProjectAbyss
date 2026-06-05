@@ -6,6 +6,7 @@ Current responsibilities:
 
 - Store LDtk-authored static entity lists: spikes, cracked floors, breakable props, collapsing platforms, growing walls, switches, locked doors, buildings, and item displays.
 - Destroy and empty those lists during floor rebuild, stratum transition, and scene cleanup through `clear()`.
+- Destroy-and-clear list lifecycle is shared through `game/src/scenes/shared/StaticEntityRegistryHelpers.ts`.
 
 Boundaries:
 

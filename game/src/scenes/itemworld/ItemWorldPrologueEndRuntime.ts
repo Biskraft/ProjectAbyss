@@ -1,6 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
 
 /**
  * ItemWorldPrologueEndRuntime — Ch.0 프롤로그 종료 시퀀스(P2.1~P5).
@@ -63,7 +65,7 @@ export class ItemWorldPrologueEndRuntime {
   }
 
   clear(): void {
-    if (this.malsoja?.parent) this.malsoja.parent.removeChild(this.malsoja);
+    if (this.malsoja) detachDisplayObject(this.malsoja);
     this.malsoja = null;
     this.trigger = null;
     this.phase = 'idle';
@@ -89,7 +91,7 @@ export class ItemWorldPrologueEndRuntime {
     const fade = this.deps.getFadeOverlay();
 
     if (this.phase === 'malsoja') {
-      const k = Math.min(1, this.timer / MALSOJA_MS);
+      const k = getProgress01(this.timer, MALSOJA_MS);
       if (this.malsoja) {
         this.malsoja.alpha = k;
         // 천천히 솟아오르며 미세 진동(언캐니).
@@ -104,7 +106,7 @@ export class ItemWorldPrologueEndRuntime {
     }
 
     if (this.phase === 'threat') {
-      const k = Math.min(1, this.timer / THREAT_MS);
+      const k = getProgress01(this.timer, THREAT_MS);
       fade.alpha = THREAT_MAX_ALPHA * k;
       // 위상 찢김 — 흔들림 + 간헐 플래시 + 말소자 격한 진동.
       this.deps.shake(2 + k * 4);
@@ -127,7 +129,7 @@ export class ItemWorldPrologueEndRuntime {
     }
 
     // cinematic — 완전 암전으로 빨려든다.
-    const k = Math.min(1, this.timer / CINEMATIC_MS);
+    const k = getProgress01(this.timer, CINEMATIC_MS);
     fade.alpha = THREAT_MAX_ALPHA + (1 - THREAT_MAX_ALPHA) * k;
     if (this.malsoja) this.malsoja.alpha = 1 - k;
     if (this.timer >= CINEMATIC_MS) {

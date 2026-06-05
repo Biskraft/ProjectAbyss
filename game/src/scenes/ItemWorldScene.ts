@@ -51,7 +51,12 @@ import { SFX } from '@audio/Sfx';
 import { BgmController } from '@audio/BgmController';
 import { PRNG } from '@utils/PRNG';
 import { getOrCreateWorldProgress, markItemCleared, resetItemForNextCycle, RARITY_COLOR, grantBossStageJump, getDisplayName, type ItemInstance, type ItemWorldProgress } from '@items/ItemInstance';
-import { sacredSave } from '@save/PlayerSave';
+import {
+  sacredSave,
+  isLowHpHealToastFired,
+  markLowHpHealToastFired,
+} from '@save/PlayerSave';
+import type { ItemWorldSceneSaveAccess } from '@scenes/shared/SceneSaveAccess';
 import type { Inventory } from '@items/Inventory';
 import { STRATA_BY_RARITY, TOPOLOGY_VALUES, type StrataConfig, type StratumDef, type TopologyKind } from '@data/StrataConfig';
 import { ArcTether } from '@effects/ArcTether';
@@ -77,7 +82,7 @@ import { SteamPuffManager, PUFF_TINT_TOXIC, PUFF_TINT_PLASMA } from '@effects/St
 import { AshRemnantManager } from '@effects/AshRemnant';
 import { GrassClumpFireSystem } from '@effects/GrassClumpFire';
 import { FluidResidueManager } from '@effects/FluidResidue';
-import { FluidSystem, type ArcLink } from '@effects/FluidSystem';
+import { FluidSystem } from '@effects/FluidSystem';
 import { applyFluidGenericResolution } from '@data/ItemWorldFluidMapping';
 import { FluidSpawnerManager } from '@systems/FluidSpawner';
 import { FluidCrestFoamManager } from '@effects/FluidCrestFoam';
@@ -109,6 +114,9 @@ import { ParallaxBackground } from '@level/ParallaxBackground';
 import { ItemWorldConst } from '@data/constData';
 import { ItemWorldUiController } from './itemworld/ItemWorldUiController';
 import { ItemWorldProgressController } from './itemworld/ItemWorldProgressController';
+import { bindPlayerCollisionGrid } from './shared/PlayerPlacementHelpers';
+import { FluidReactionRuntime } from './shared/FluidReactionRuntime';
+import { detachDisplayObject } from './shared/DisplayObjectLifecycleHelpers';
 import { ItemWorldRoomTransitionRuntime } from './itemworld/ItemWorldRoomTransitionRuntime';
 import { ItemWorldAbsorbDissolveRuntime } from './itemworld/ItemWorldAbsorbDissolveRuntime';
 import { ItemWorldEntryCorridorVisibilityRuntime } from './itemworld/ItemWorldEntryCorridorVisibilityRuntime';
@@ -138,7 +146,7 @@ import { ItemWorldOnboardingRuntime } from './itemworld/ItemWorldOnboardingRunti
 import { ItemWorldEscapeRuntime } from './itemworld/ItemWorldEscapeRuntime';
 import { ItemWorldBossChoiceRuntime } from './itemworld/ItemWorldBossChoiceRuntime';
 import { ItemWorldStratumClearRuntime } from './itemworld/ItemWorldStratumClearRuntime';
-import { ItemWorldStratumClearPanelRuntime } from './itemworld/ItemWorldStratumClearPanelRuntime';
+import { ItemWorldBossClearRuntime } from './itemworld/ItemWorldBossClearRuntime';
 import { ItemWorldExitFadeRuntime } from './itemworld/ItemWorldExitFadeRuntime';
 import { ItemWorldEgoShardCastRuntime } from './itemworld/ItemWorldEgoShardCastRuntime';
 import { ItemWorldEgoShardProjectileRuntime } from './itemworld/ItemWorldEgoShardProjectileRuntime';
@@ -415,13 +423,14 @@ export class ItemWorldScene extends Scene {
   private escapeRuntime!: ItemWorldEscapeRuntime;
   private bossChoiceRuntime!: ItemWorldBossChoiceRuntime;
   private stratumClearRuntime!: ItemWorldStratumClearRuntime;
-  private stratumClearPanelRuntime!: ItemWorldStratumClearPanelRuntime;
+  private bossClearRuntime!: ItemWorldBossClearRuntime;
   private exitFadeRuntime!: ItemWorldExitFadeRuntime;
   // Item being explored
   private item!: ItemInstance;
   private inventory!: Inventory;
   private sourcePlayer!: Player;
   private sceneOptions!: ItemWorldSceneOptions;
+  private saveAccess!: ItemWorldSceneSaveAccess;
 
   // Memory Strata state
   private strataConfig!: StrataConfig;
@@ -529,12 +538,20 @@ export class ItemWorldScene extends Scene {
     inventory: Inventory,
     sourcePlayer: Player,
     options: ItemWorldSceneOptions = {},
+    saveAccess: ItemWorldSceneSaveAccess = {
+      isPrologue: () => sacredSave.getScene() === 'prologue',
+      isFirstItemWorldBossDefeated: () => sacredSave.isFirstItemWorldBossDefeated(),
+      markFirstItemWorldBossDefeated: () => sacredSave.markFirstItemWorldBossDefeated(),
+      isLowHpHealToastFired: () => isLowHpHealToastFired(),
+      markLowHpHealToastFired: () => markLowHpHealToastFired(),
+    },
   ) {
     super(game);
     this.item = item;
     this.inventory = inventory;
     this.sourcePlayer = sourcePlayer;
     this.sceneOptions = options;
+    this.saveAccess = saveAccess;
     this.wireTransitionAndCameraRuntimes();
     this.wireStratumAndPanelRuntimes();
     this.wireMemoryAndTriggerRuntimes();
@@ -559,7 +576,7 @@ export class ItemWorldScene extends Scene {
     this.containerCarryRuntime = new ItemWorldContainerCarryRuntime({
       game: this.game,
       getPlayer: () => this.player,
-      getContainers: () => this.containerRegistry.containers,
+      getContainers: () => this.containerRegistry.getContainers(),
       getArcTether: () => this.arcTether,
     });
     this.trapdoorRuntime = new ItemWorldTrapdoorRuntime({
@@ -567,7 +584,8 @@ export class ItemWorldScene extends Scene {
       getPlayer: () => this.player,
       getTrapdoor: () => this.trapdoor,
       isInteractionSuppressed: () => (
-        this.flowState.isActive
+        this.flowState.isExitFade
+        || this.flowState.isPostClearHold
         || this.roomTransitionRuntime.isActive
       ),
       onActivate: () => this.startTrapdoorDescent(),
@@ -579,8 +597,9 @@ export class ItemWorldScene extends Scene {
       getPlayer: () => this.player,
       isInteractionSuppressed: () => (
         this.shouldSuppressWorldPrompts()
-        || this.escapeRuntime.isVisible()
-        || this.flowState.isActive
+        || this.uiController.isEscapeConfirmVisible()
+        || this.flowState.isExitFade
+        || this.flowState.isPostClearHold
         || this.roomTransitionRuntime.isActive
       ),
       onReturnRequest: () => this.escapeRuntime.show(),
@@ -608,8 +627,11 @@ export class ItemWorldScene extends Scene {
       getTotalRooms: () => this.runStats.totalRooms,
       getEarnedExp: () => this.runStats.earnedExp,
       getEarnedGold: () => this.runStats.earnedGold,
-      getTransitionState: () => this.flowState.value,
-      onExitConfirmed: () => this.startExitFade(),
+      isPostClearHold: () => this.flowState.isPostClearHold,
+      onExitConfirmed: () => {
+        this.flowState.startExitFade();
+        this.exitFadeRuntime.start();
+      },
     });
     this.bossChoiceRuntime = new ItemWorldBossChoiceRuntime({
       game: this.game,
@@ -626,21 +648,20 @@ export class ItemWorldScene extends Scene {
       getAfterAtk: () => this.item.finalAtk,
       getBeforeInnocents: () => this.stratumStartSnapshot.innocentCount,
       getAfterInnocents: () => this.item.innocents.length,
-      onHoldStarted: () => this.startPostClearHold(),
+      onHoldStarted: () => this.flowState.startPostClearHold(),
       onContinue: () => this._continueToNextStratum(),
       onExit: () => {
         this.cleanupForReturnResult();
-        this.startExitFade();
+        this.flowState.startExitFade();
+        this.exitFadeRuntime.start();
       },
+    });
+    this.bossClearRuntime = new ItemWorldBossClearRuntime({
+      getTimeScale: () => 1,
     });
   }
 
   private wireStratumAndPanelRuntimes(): void {
-    this.stratumClearPanelRuntime = new ItemWorldStratumClearPanelRuntime({
-      game: this.game,
-      getUiController: () => this.uiController,
-      getHudSkin: () => this.hudSkin,
-    });
     this.exitFadeRuntime = new ItemWorldExitFadeRuntime({
       getFadeOverlay: () => this.fadeOverlay,
       durationMs: FADE_DURATION * 2,
@@ -655,14 +676,15 @@ export class ItemWorldScene extends Scene {
     this.egoShardCombatRuntime = new ItemWorldEgoShardCombatRuntime({
       getPlayer: () => this.player,
       getEnemies: () => this.enemyRegistry.enemies,
-      getContainers: () => this.containerRegistry.containers,
-      getFullGrid: () => this.fullGrid,
+      getContainers: () => this.containerRegistry.getContainers(),
+      getCollisionGrid: () => this.fullGrid,
       getTileMutator: () => this.tileMutator,
-      getShardManager: () => this.egoShardRuntime.managerInstance,
       getDamageNumbers: () => this.dmgNumbers,
       getHitSparks: () => this.hitSparks,
+      retrieveShardsInAABB: (x, y, width, height) => this.egoShardRuntime.retrieveInAABB(x, y, width, height),
       paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
       destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.containerRegistry.removeAt(index),
     });
     this.egoShardProjectileRuntime = new ItemWorldEgoShardProjectileRuntime({
       getPlayer: () => this.player,
@@ -689,7 +711,10 @@ export class ItemWorldScene extends Scene {
       getPlayerContainer: () => this.player.container,
       getTrapdoor: () => this.trapdoor,
       getFadeOverlayParent: () => this.fadeOverlay.parent ?? null,
-      onComplete: () => this.startExitFade(),
+      onComplete: () => {
+        this.flowState.startExitFade();
+        this.exitFadeRuntime.start();
+      },
     });
     this.entryCorridorVisibilityRuntime = new ItemWorldEntryCorridorVisibilityRuntime({
       game: this.game,
@@ -755,7 +780,7 @@ export class ItemWorldScene extends Scene {
       getPlayer: () => this.player,
       getFadeOverlay: () => this.fadeOverlay,
       getEntityLayer: () => this.entityLayer,
-      isPrologue: () => sacredSave.getScene() === 'prologue',
+      isPrologue: () => this.saveAccess.isPrologue(),
       shake: (intensity) => this.game.camera.shake(intensity),
       flash: () => this.screenFlash.flash(0xffffff, 0.5, 90),
       onDone: () => {
@@ -776,7 +801,7 @@ export class ItemWorldScene extends Scene {
     });
     this.safeRoomResidentSpawnRuntime = new ItemWorldSafeRoomResidentSpawnRuntime({
       getItemUid: () => this.item.uid,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       createPrng: (seed) => new PRNG(seed),
       getSpawnController: () => this.spawnController,
       getResidentRuntime: () => this.residentRuntime,
@@ -799,14 +824,20 @@ export class ItemWorldScene extends Scene {
       fireEgoFirstKill: () => this.egoDialogueRuntime.fireFirstKill(),
       addEarnedExp: (amount) => this.runStats.addEarnedExp(amount),
       incrementRoomsCleared: () => this.runStats.incrementRoomsCleared(),
-      persistRoomState: () => this.persistRoomState(),
+      persistRoomState: () => this.roomStateRuntime.persistRoomState(
+        this.unifiedGrid,
+        this.progress,
+        this.roomSpawnState.spawnedRooms,
+      ),
+      removeEnemyAt: (index) => this.enemyRegistry.removeAt(index),
       rollDrop: () => this.dropRng.next(),
       addHealingPickup: (pickup) => this.pickupRuntime.addHealingPickup(pickup),
       addGoldPickup: (pickup) => this.pickupRuntime.addGoldPickup(pickup),
+      onBossDefeated: () => {},
     });
     this.tileHazardRuntime = new ItemWorldTileHazardRuntime({
       game: this.game,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getCurrentRoom: () => ({ col: this.currentCol, row: this.currentRow }),
       getTileMutator: () => this.tileMutator,
       getTileMutatorRenderer: () => this.tileMutatorRenderer,
@@ -826,18 +857,18 @@ export class ItemWorldScene extends Scene {
     });
     this.containerFluidRuntime = new ItemWorldContainerFluidRuntime({
       game: this.game,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getTileMutator: () => this.tileMutator,
       getFluidSystem: () => this.fluidSystem,
       getActiveTileBounds: () => this.tileHazardRuntime.getActiveTileBounds(),
-      getContainers: () => this.containerRegistry.containers,
+      getContainers: () => this.containerRegistry.getContainers(),
       getEnemies: () => this.enemyRegistry.enemies,
       getSteamPuff: () => this.steamPuff,
     });
     this.egoShardImpactRuntime = new ItemWorldEgoShardImpactRuntime({
       game: this.game,
       getPlayer: () => this.player,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getTileMutator: () => this.tileMutator,
       getFluidSystem: () => this.fluidSystem,
       getActiveTileBounds: () => this.tileHazardRuntime.getActiveTileBounds(),
@@ -862,7 +893,7 @@ export class ItemWorldScene extends Scene {
   private wireRoomStateAndSpawnRuntimes(): void {
     this.roomStateRuntime = new ItemWorldRoomStateRuntime();
     this.playerSpawnRuntime = new ItemWorldPlayerSpawnRuntime({
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getPlayerSize: () => ({ width: this.player.width, height: this.player.height }),
       computeSpawnPoints: (grid, roomLeftTile, roomTopTile) => (
         this.spawnController.computeSpawnPoints(grid, roomLeftTile, roomTopTile)
@@ -876,9 +907,13 @@ export class ItemWorldScene extends Scene {
       getSpawnedRooms: () => this.roomSpawnState.spawnedRooms,
       getEnemyCount: () => this.enemyRegistry.enemies.length,
       spawnRuntimeCell: (col, absRow) => this.runtimeCellSpawner.spawnForCell(col, absRow),
-      spawnEnemiesInRoom: (col, absRow) => this.spawnEnemiesInRoom(col, absRow),
+      spawnEnemiesInRoom: (col, absRow) => this.roomSpawnRuntime.spawnForRoom(col, absRow),
       getRoomDebugLabel: (col, absRow) => this.roomTypeRuntime.getDebugLabel(col, absRow),
-      persistRoomState: () => this.persistRoomState(),
+      persistRoomState: () => this.roomStateRuntime.persistRoomState(
+        this.unifiedGrid,
+        this.progress,
+        this.roomSpawnState.spawnedRooms,
+      ),
     });
     this.roomSpawnRuntime = new ItemWorldRoomSpawnRuntime({
       getUnifiedGrid: () => this.unifiedGrid,
@@ -902,7 +937,7 @@ export class ItemWorldScene extends Scene {
       getTileMutator: () => this.tileMutator,
     });
     this.cellVisualRuntime = new ItemWorldCellVisualRuntime({
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getAtlases: () => this.atlases,
       getThemeSlug: () => this._themeSlug,
       getTemperament: () => this.item.def.temperamentPrimary,
@@ -921,8 +956,8 @@ export class ItemWorldScene extends Scene {
     });
     this.runtimeCellSpawner = new ItemWorldRuntimeCellSpawner({
       getCellRecord: (key) => this.cellVisualRuntime.getRecord(key),
-      getFullGrid: () => this.fullGrid,
-      getContainers: () => this.containerRegistry.containers,
+      getCollisionGrid: () => this.fullGrid,
+      getContainers: () => this.containerRegistry.getContainers(),
       getBurnableProps: () => this.burnablePropRegistry.props,
       getFluidSpawners: () => this.fluidSpawners,
       getTileMutator: () => this.tileMutator,
@@ -932,7 +967,7 @@ export class ItemWorldScene extends Scene {
       spawnStaticEntitiesForRoom: (level, roomX, roomY) => this.staticEntitySpawner.spawnForRoom(level, roomX, roomY),
     });
     this.staticEntitySpawner = new ItemWorldStaticEntitySpawner({
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getEntityLayer: () => this.entityLayer,
       getBuildingLayer: () => this.buildingLayer,
       getWallPaletteFilter: () => this.wallPaletteFilter,
@@ -983,10 +1018,9 @@ export class ItemWorldScene extends Scene {
 
   private wireEnemyAndHudRuntimes(): void {
     this.enemySpawnRuntime = new ItemWorldEnemySpawnRuntime({
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getPlayer: () => this.player,
-      getEnemies: () => this.enemyRegistry.enemies,
-      getEntityLayer: () => this.entityLayer,
+      addEnemy: (enemy) => this.enemyRegistry.add(enemy, this.entityLayer),
       getRoomEnemyCount: () => this.roomSpawnState.roomEnemyCount,
       getSpawnController: () => this.spawnController,
     });
@@ -995,6 +1029,7 @@ export class ItemWorldScene extends Scene {
       getCycle: () => this.progress?.cycle ?? 0,
       getStrataConfig: () => this.strataConfig,
       getStartRoom: () => this.unifiedGrid.startRoom,
+      getCollisionGrid: () => this.fullGrid,
       getSpawnController: () => this.spawnController,
       getEnemySpawnRuntime: () => this.enemySpawnRuntime,
       getMemoryShardSpawnRuntime: () => this.memoryShardSpawnRuntime,
@@ -1002,7 +1037,11 @@ export class ItemWorldScene extends Scene {
     this.roomClearRuntime = new ItemWorldRoomClearRuntime({
       getItem: () => this.item,
       incrementRoomsCleared: () => this.runStats.incrementRoomsCleared(),
-      persistRoomState: () => this.persistRoomState(),
+      persistRoomState: () => this.roomStateRuntime.persistRoomState(
+        this.unifiedGrid,
+        this.progress,
+        this.roomSpawnState.spawnedRooms,
+      ),
     });
     this.memoryShardSpawnRuntime = new ItemWorldMemoryShardSpawnRuntime({
       getItem: () => this.item,
@@ -1026,7 +1065,7 @@ export class ItemWorldScene extends Scene {
       game: this.game,
       getPlayer: () => this.player,
       getEntityLayer: () => this.entityLayer,
-      getContainers: () => this.containerRegistry.containers,
+      getContainers: () => this.containerRegistry.getContainers(),
       showToast: (message, color) => this.toast.show(message, color),
       onDebugIgniteAtPlayer: () => this.egoShardImpactRuntime.debugIgniteAtPlayer(),
       onDebugFreezeAtPlayer: () => this.egoShardImpactRuntime.debugFreezeAtPlayer(),
@@ -1037,7 +1076,7 @@ export class ItemWorldScene extends Scene {
       tileSize: TILE_SIZE,
       getWeatherLayer: () => this.weatherLayer,
       getThemeSlug: () => this._themeSlug,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getTemperament: () => this.item.def.temperamentPrimary,
     });
     this.stratumPickerRuntime = new ItemWorldStratumPickerRuntime({
@@ -1119,7 +1158,7 @@ export class ItemWorldScene extends Scene {
     this.strataConfig = STRATA_BY_RARITY[this.item.rarity];
     // 프롤로그 강제 다이브는 단일 지층(보스 04 = 최종). totalStrata 가 1 이어야
     // 보스 처치 = 아이템계 완료로 처리된다.
-    const forcePrologue = sacredSave.getScene() === 'prologue';
+    const forcePrologue = this.saveAccess.isPrologue();
     if (forcePrologue) {
       this.strataConfig = { ...this.strataConfig, strata: [this.strataConfig.strata[0]] };
     }
@@ -1357,6 +1396,7 @@ export class ItemWorldScene extends Scene {
 
     // Player (clone stats from world player)
     this.player = new Player(this.game);
+    this.player.attackInputEnabled = true;
     this.player.fluidOverlayQuery = (x, y, w, h) => this.fluidSpawners.queryTileAtAabb(x, y, w, h, this.fullGrid);
     this.player.hp = this.sourcePlayer.hp;
     this.player.maxHp = this.sourcePlayer.maxHp;
@@ -1417,179 +1457,19 @@ export class ItemWorldScene extends Scene {
     this.ashRemnant = new AshRemnantManager(this.entityLayer);
     this.fluidResidue = new FluidResidueManager(this.entityLayer);
     this.egoShardRuntime.initialize(this.entityLayer);
-    // Fluid evaporation — drop residue stain (mirrors LdtkWorldScene).
-    this.fluidSystem.onEvaporated = (gx, gy, type) => {
-      if (type !== 'oil' && type !== 'acid' && type !== 'magma') return;
-      const px = (gx + 0.5) * 16;
-      const py = (gy + 1) * 16;
-      this.fluidResidue.dropAt(type, px, py, 1.0);
-    };
-
-    // ----- Arc Scan Cycle (R-NEW-031 v2) ----------------------------------
-    // charged FluidBody + electrified water FluidBody 가 주변 도체를
-    // 스캔한다 (player / enemies / metal containers / water cells / metal cells)
-    // 반경 내 도체에 thunder chain + charged 버프를 적용하고
-    // VFX + chain trigger 한다.
-    this.fluidSystem.onArcScanRequest = (originX, originY, radiusPx): ArcLink[] => {
-      const links: ArcLink[] = [];
-      const r2 = radiusPx * radiusPx;
-      // 1) Player
-      {
-        const px = this.player.x + this.player.width / 2;
-        const py = this.player.y + this.player.height / 2;
-        const dx = px - originX, dy = py - originY;
-        if (dx * dx + dy * dy < r2) {
-          links.push({ worldX: px, worldY: py, kind: 'entity', ref: this.player });
-        }
-      }
-      // 2) Enemies
-      for (const e of this.enemyRegistry.enemies) {
-        if (!e.alive) continue;
-        const ex = e.x + e.width / 2;
-        const ey = e.y + e.height / 2;
-        const dx = ex - originX, dy = ey - originY;
-        if (dx * dx + dy * dy < r2) {
-          links.push({ worldX: ex, worldY: ey, kind: 'entity', ref: e });
-        }
-      }
-      // 3) Metal containers (MetalCrate)
-      for (const c of this.containerRegistry.containers) {
-        if (c.destroyed || c.held) continue;
-        if (c.kind !== 'MetalCrate') continue;
-        const ccx = c.colX + c.colW / 2;
-        const ccy = c.colY + c.colH / 2;
-        const dx = ccx - originX, dy = ccy - originY;
-        if (dx * dx + dy * dy < r2) {
-          links.push({ worldX: ccx, worldY: ccy, kind: 'container', ref: c });
-        }
-      }
-      // 4) Grid conductor cells (water / metal / acid) — origin 주변 셀 스캔
-      const ogx = Math.floor(originX / 16);
-      const ogy = Math.floor(originY / 16);
-      const radCells = Math.ceil(radiusPx / 16) + 1;
-      for (let dy = -radCells; dy <= radCells; dy++) {
-        for (let dx = -radCells; dx <= radCells; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const gx = ogx + dx, gy = ogy + dy;
-          if (gy < 0 || gy >= this.fullGrid.length) continue;
-          const row = this.fullGrid[gy];
-          if (!row || gx < 0 || gx >= row.length) continue;
-          const t = row[gx];
-          if (t !== TILE_WATER && t !== TILE_METAL && t !== TILE_ACID) continue;
-          const cx = (gx + 0.5) * 16;
-          const cy = (gy + 0.5) * 16;
-          const ddx = cx - originX, ddy = cy - originY;
-          if (ddx * ddx + ddy * ddy > r2) continue;
-          links.push({
-            worldX: cx, worldY: cy,
-            kind: t === TILE_WATER ? 'fluid' : 'cell',
-            ref: { gx, gy, tile: t },
-          });
-        }
-      }
-      // 가장 가까운 6 link 로 제한한다 (VFX + discharge 비용 절감).
-      if (links.length > 6) {
-        links.sort((a, b) => {
-          const da = (a.worldX - originX) ** 2 + (a.worldY - originY) ** 2;
-          const db = (b.worldX - originX) ** 2 + (b.worldY - originY) ** 2;
-          return da - db;
-        });
-        links.length = 6;
-      }
-      return links;
-    };
-
-    this.fluidSystem.onArcDischarge = (_originX, _originY, links) => {
-      if (links.length === 0) return;
-      this.game.camera.shake(3);
-      for (const link of links) {
-        if (link.kind === 'entity') {
-          const ent = link.ref as { hp: number; maxHp: number; chargedStateMs?: number; alive?: boolean };
-          if (!ent) continue;
-          if (ent.alive === false) continue;
-          const dmg = Math.max(1, Math.floor(ent.maxHp * FluidSystem.ARC_DAMAGE_PCT));
-          ent.hp = Math.max(0, ent.hp - dmg);
-          ent.chargedStateMs = Math.max(ent.chargedStateMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
-          this.dmgNumbers.spawn(link.worldX, link.worldY - 8, dmg, false);
-        } else if (link.kind === 'container') {
-          // Capacitor 도 충전 상태로 만들어 thunder 전파 대상에 포함한다 (도체 취급).
-          const c = link.ref as { electricChargedMs?: number };
-          if (c) c.electricChargedMs = Math.max(c.electricChargedMs ?? 0, FluidSystem.ARC_CHARGED_BUFF_MS);
-        } else if (link.kind === 'fluid' || link.kind === 'cell') {
-          // water / metal / acid 셀 — thunder chain BFS trigger.
-          const cellRef = link.ref as { gx: number; gy: number } | undefined;
-          if (cellRef) {
-            this.tileMutator.applyThunderChain(this.fullGrid, cellRef.gx, cellRef.gy);
-          }
-        }
-      }
-    };
-    this.tileMutator.onSteamEvent = (gx, gy) => {
-      this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 1.0);
-    };
-    this.tileMutator.onSteamBurst = (gx, gy) => {
-      const cx = (gx + 0.5) * 16;
-      const cy = (gy + 0.5) * 16;
-      this.steamPuff.spawn(cx, cy, 2.1);
-      this.steamPuff.spawn(cx - 10, cy - 6, 1.6);
-      this.steamPuff.spawn(cx + 10, cy - 6, 1.6);
-      this.steamPuff.spawn(cx, cy - 18, 1.4, PUFF_TINT_PLASMA);
-      this.game.camera.shake(4);
-    };
-    this.tileMutator.onElectricInsulated = (gx, gy) => {
-      this.hitSparks.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, false, 0);
-    };
-    this.tileMutator.onElectricAcidPulse = (gx, gy) => {
-      this.steamPuff.spawn((gx + 0.5) * 16, (gy + 0.5) * 16, 0.8, PUFF_TINT_TOXIC);
-    };
-    // R-NEW-001 Exothermic Steam: acid+water 반응으로 독성 증기 폭발(steam burst) + vertical
-    // burst. Horizontal 24px, vertical 64px 범위의 entity / 컨테이너에 영향.
-    this.tileMutator.onAcidSteamBurst = (gx, gy) => {
-      const cx = (gx + 0.5) * 16;
-      const cy = (gy + 0.5) * 16;
-      // 발생 위치에서 독성 증기(steam) 분출 (onSteamEvent 보다 강한 1.0 강도).
-      const steamBaseY = (gy + 1) * 16;
-      this.steamPuff.spawn(cx, steamBaseY - 12, 1.1, PUFF_TINT_TOXIC);
-      this.game.camera.shake(2);
-      const radiusX = 24;
-      const radiusY = 64;
-      const inSteamBurst = (x: number, y: number): boolean => {
-        const dx = (x - cx) / radiusX;
-        const dy = (y - cy) / radiusY;
-        return dx * dx + dy * dy < 1;
-      };
-      // Player 데미지 + Burn
-      const px = this.player.x + this.player.width / 2;
-      const py = this.player.y + this.player.height / 2;
-      if (inSteamBurst(px, py)) {
-        const dmg = Math.max(1, Math.floor(this.player.maxHp * 0.05));
-        this.player.hp = Math.max(0, this.player.hp - dmg);
-        this.player.burnRemainingMs = Math.max(this.player.burnRemainingMs ?? 0, 5000);
-        this.player.vy = Math.min(this.player.getVy(), -220);
-      }
-      // Enemies 데미지 + Burn + 넓백.
-      for (const e of this.enemyRegistry.enemies) {
-        if (!e.alive) continue;
-        const ex = e.x + e.width / 2;
-        const ey = e.y + e.height / 2;
-        if (inSteamBurst(ex, ey)) {
-          const dmg = Math.max(1, Math.floor(e.maxHp * 0.05));
-          e.hp -= dmg;
-          e.burnRemainingMs = Math.max(e.burnRemainingMs ?? 0, 5000);
-          e.onHit(0, -260, 120);
-          this.dmgNumbers.spawn(ex, e.y - 8, dmg, false);
-        }
-      }
-      // 주변 컨테이너 부양 (3s steam lift)
-      for (const c of this.containerRegistry.containers) {
-        if (c.destroyed || c.held) continue;
-        const ccx = c.colX + c.colW / 2;
-        const ccy = c.colY + c.colH / 2;
-        if (inSteamBurst(ccx, ccy)) {
-          c.applySteamLift(3000);
-        }
-      }
-    };
+    new FluidReactionRuntime({
+      getPlayer: () => this.player,
+      getEnemies: () => this.enemyRegistry.enemies,
+      getContainers: () => this.containerRegistry.getContainers(),
+      getCollisionGrid: () => this.fullGrid,
+      getFluidSystem: () => this.fluidSystem,
+      getFluidResidue: () => this.fluidResidue,
+      getTileMutator: () => this.tileMutator,
+      getSteamPuff: () => this.steamPuff,
+      getDamageNumbers: () => this.dmgNumbers,
+      getHitSparks: () => this.hitSparks,
+      shakeCamera: (strength) => this.game.camera.shake(strength),
+    }).bind();
     // Wall-tile mutations (ice -> 물로 melt, acid -> 벽 corrode, oil/wood
     // burnout) invalidate the static tile layer AND can introduce new
     // fluid cells (ice melt -> water). Coalesce same-frame events into a
@@ -1619,7 +1499,7 @@ export class ItemWorldScene extends Scene {
     this.movementVfxRuntime = new ItemWorldMovementVfxRuntime({
       getPlayer: () => this.player,
       getEnemies: () => this.enemyRegistry.enemies,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getFluidSystem: () => this.fluidSystem,
       getFluidSpawners: () => this.fluidSpawners,
       getDamageNumbers: () => this.dmgNumbers,
@@ -1648,14 +1528,15 @@ export class ItemWorldScene extends Scene {
     this.containerPhysicsRuntime = new ItemWorldContainerPhysicsRuntime({
       getPlayer: () => this.player,
       getEnemies: () => this.enemyRegistry.enemies,
-      getContainers: () => this.containerRegistry.containers,
-      getFullGrid: () => this.fullGrid,
+      getContainers: () => this.containerRegistry.getContainers(),
+      getCollisionGrid: () => this.fullGrid,
       getTileMutator: () => this.tileMutator,
       getDamageNumbers: () => this.dmgNumbers,
       getHitSparks: () => this.hitSparks,
       paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
       applyContainerEffectToFluid: (container) => this.containerFluidRuntime.applyContainerEffect(container),
       destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.containerRegistry.removeAt(index),
       flushContainerFluidChanges: () => this.containerFluidRuntime.flush(),
     });
     this.pickupRuntime = new ItemWorldPickupRuntime({
@@ -1692,7 +1573,7 @@ export class ItemWorldScene extends Scene {
     this.staticEntityRuntime = new ItemWorldStaticEntityRuntime({
       game: this.game,
       getPlayer: () => this.player,
-      getFullGrid: () => this.fullGrid,
+      getCollisionGrid: () => this.fullGrid,
       getEnemies: () => this.enemyRegistry.enemies,
       getEntityLayer: () => this.entityLayer,
       getCollapsingPlatforms: () => this.staticEntityRegistry.collapsingPlatforms,
@@ -1702,7 +1583,7 @@ export class ItemWorldScene extends Scene {
       getCrackedFloors: () => this.staticEntityRegistry.crackedFloors,
       getBreakableProps: () => this.staticEntityRegistry.breakableProps,
       getSwitches: () => this.staticEntityRegistry.switches,
-      getContainers: () => this.containerRegistry.containers,
+      getContainers: () => this.containerRegistry.getContainers(),
       getHud: () => this.hud,
       getDamageNumbers: () => this.dmgNumbers,
       getHitSparks: () => this.hitSparks,
@@ -1712,6 +1593,7 @@ export class ItemWorldScene extends Scene {
       destroyBreakablePropWithEffects: (prop, reason) => this.breakablePropRuntime.destroyWithEffects(prop, reason),
       paintContainerImpact: (kind, gx, gy, volume) => this.containerFluidRuntime.paintImpact(kind, gx, gy, volume),
       destroyContainerWithVFX: (container) => this.containerDestructionRuntime.destroyWithVfx(container),
+      removeContainerAt: (index) => this.containerRegistry.removeAt(index),
       updateCameraZones: () => this.cameraZoneRuntime.update(),
     });
     this.screenFlash = new ScreenFlash();
@@ -1742,14 +1624,13 @@ export class ItemWorldScene extends Scene {
     this.uiController = new ItemWorldUiController(this.game);
     this.spawnController = new ItemWorldSpawnController();
     this.progressController = new ItemWorldProgressController({
-      jumpToStratum: (stratumIndex) => this.jumpToStratum(stratumIndex),
-      persistRoomState: () => this.persistRoomState(),
-      showBossChoice: (nextStratumIndex) => this.bossChoiceRuntime.show(nextStratumIndex),
       showA6DmgToast: (beforeAtk, afterAtk) => this._showA6DmgToast(beforeAtk, afterAtk),
-      showStratumClearPanel: (snapshot, isFinal) => this.stratumClearPanelRuntime.show(snapshot, isFinal),
-      startPostClearHold: () => this.startPostClearHold(),
-      startExitFade: () => this.startExitFade(),
-      showToast: (message, color) => this.toast.show(message, color),
+      onContinueToNextStratum: () => this._continueToNextStratum(),
+      onExitFromStratumClear: () => {
+        this.cleanupForReturnResult();
+        this.flowState.startExitFade();
+        this.exitFadeRuntime.start();
+      },
     });
 
     await hudSkinLoad;
@@ -1770,11 +1651,20 @@ export class ItemWorldScene extends Scene {
     this.lowHpHealHint = new LowHpHealHintRuntime({
       tutorialHint: this.tutorialHint,
       getHp: () => ({ hp: this.player.hp, maxHp: this.player.maxHp }),
+      saveAccess: {
+        isLowHpHealToastFired: () => this.saveAccess.isLowHpHealToastFired(),
+        markLowHpHealToastFired: () => this.saveAccess.markLowHpHealToastFired(),
+      },
     });
 
     // Restore persistent exploration state & count rooms
-    this.restoreRoomState();
-    this.countTotalRooms();
+    const restoredRoomState = this.roomStateRuntime.restoreRoomState(
+      this.unifiedGrid,
+      this.progress,
+      this.roomSpawnState.spawnedRooms,
+    );
+    this.runStats.setRoomsCleared(restoredRoomState.roomsCleared);
+    this.runStats.setTotalRooms(this.roomStateRuntime.countTotalRooms(this.unifiedGrid));
 
     // Build full map (all rooms rendered into a single continuous grid)
     // Spawner state must be cleared BEFORE buildFullMap because the room
@@ -1843,7 +1733,7 @@ export class ItemWorldScene extends Scene {
     //   1) startSpawnDone=true 로 마킹 후 spawnEnemiesInRoom 으로 현재 방을 spawn
     //   2) 일정 freeze(500ms) 후 player 입력을 받는다.
     this.roomSpawnState.markSpawned(`${this.currentCol},${this.currentRow}`);
-    this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
+    this.roomSpawnRuntime.spawnForRoom(this.currentCol, this.currentRow);
     // Entry banner ? item name handled by AreaTitle; announce stratum only.
     const rarityColor = RARITY_COLOR[this.item.rarity];
     const stratumLabel = t('iw.stratum_banner', { n: this.currentStratumIndex + 1 });
@@ -1863,10 +1753,13 @@ export class ItemWorldScene extends Scene {
       return;
     }
     if (!this.egoDialogueRuntime.tryMarkEntryDialogueStarted()) return;
-    setTimeout(() => {
-      if (!this.initialized) return;
-      void this.fireEgoEnterAsync();
-    }, 250);
+    this.bossClearRuntime.startDelay({
+      delayMs: 250,
+      action: () => {
+        if (!this.initialized) return;
+        void this.egoDialogueRuntime.fireEnterAsync();
+      },
+    });
   }
 
   private activateEntryCorridor(): void {
@@ -1890,7 +1783,7 @@ export class ItemWorldScene extends Scene {
       isAabbClear: (x, y, w, h) => this.isAabbClearInGrid(composite.grid, x, y, w, h),
     });
     this.roomData = composite.grid;
-    this.player.roomData = composite.grid;
+    bindPlayerCollisionGrid(this.player, composite.grid);
     this.player.x = spawn.x;
     this.player.y = spawn.y;
     this.player.vx = 0;
@@ -1916,7 +1809,7 @@ export class ItemWorldScene extends Scene {
   }
 
   private updateEntryCorridor(dt: number): void {
-    if (this.containerRegistry.isPlayerStandingOnTop(this.player)) {
+    if (this.containerPhysicsRuntime.isPlayerStandingOnTop()) {
       this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
@@ -1950,7 +1843,7 @@ export class ItemWorldScene extends Scene {
   private completeEntryCorridor(): void {
     this.entryCorridorState.complete();
     this.roomData = this.fullGrid;
-    this.player.roomData = this.fullGrid;
+    bindPlayerCollisionGrid(this.player, this.fullGrid);
     this.entryCorridorVisibilityRuntime.restoreWorld();
     this.entryCorridorVisualRuntime.destroy();
 
@@ -1997,27 +1890,6 @@ export class ItemWorldScene extends Scene {
       }
     }
     return true;
-  }
-
-  private countTotalRooms(): void {
-    this.runStats.setTotalRooms(this.roomStateRuntime.countTotalRooms(this.unifiedGrid));
-  }
-
-  private getCell(col: number, row: number): UnifiedRoomCell | null {
-    return this.roomStateRuntime.getCell(this.unifiedGrid, col, row);
-  }
-
-  private getCurrentCell(): UnifiedRoomCell {
-    return this.roomStateRuntime.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
-  }
-
-  private restoreRoomState(): void {
-    const restored = this.roomStateRuntime.restoreRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
-    this.runStats.setRoomsCleared(restored.roomsCleared);
-  }
-
-  private persistRoomState(): void {
-    this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
   }
 
   /** Check if a cell is a stratum end room (boss room) */
@@ -2156,10 +2028,10 @@ export class ItemWorldScene extends Scene {
     this.updateCellVisibility();
     // Set collision and camera to the active stratum size.
     this.roomData = this.fullGrid;
-    this.player.roomData = this.fullGrid;
+    bindPlayerCollisionGrid(this.player, this.fullGrid);
     this.game.camera.setBounds(0, 0, totalCols * IW_ROOM_W_PX, totalRows * IW_ROOM_H_PX, VISUAL_BOUNDS_BLEED_PX);
 
-    this.persistRoomState();
+    this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
     this.breakablePropRuntime.resetAndSpawnProcedural({
       currentStratumIndex: this.currentStratumIndex,
       itemIdLength: this.item.def.id.length,
@@ -2171,13 +2043,6 @@ export class ItemWorldScene extends Scene {
     // stratum 경계를 넘으면 down exit 로 처리한다.
   }
 
-  /**
-   * Spawn enemies in the given room cell (lazy ? triggered on first player entry).
-   * Full-map room spawning: the legacy per-room loadRoom path was removed.
-   */
-  private spawnEnemiesInRoom(col: number, row: number): void {
-    this.roomSpawnRuntime.spawnForRoom(col, row);
-  }
   // DEC-039 — A: spawnBossPortal / restorePortalIfStratumCleared /
   // getBossPortalFallbackPosition 은 제거됨. down exit 로 대체.
   // stratum 전환은 down exit 로 처리한다.
@@ -2192,11 +2057,6 @@ export class ItemWorldScene extends Scene {
     this.residentRuntime.clear();
     // Reset pre-spawn cascade tracker so new stratum's neighbors get pre-spawned
     this.roomSpawnState.resetNeighborPreSpawn();
-  }
-
-  /** Apply updraft force when player stands on IntGrid value 4, + render particles */
-  private applyUpdrafts(dt: number): void {
-    this.updraftSystem.update(dt, this.player, this.fullGrid, this.game.camera);
   }
 
   /** Destroy and clear all LDtk-placed static entities. Called on rebuild + exit. */
@@ -2368,7 +2228,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    if (this.flowState.isActive) {
+    if (this.flowState.isExitFade || this.flowState.isPostClearHold) {
       this.updateTransition(dt);
       return;
     }
@@ -2379,7 +2239,7 @@ export class ItemWorldScene extends Scene {
     // consume 되어 UI 가 열리지 않는다.
     this.unavailableInputRuntime.update();
 
-    if (this.containerRegistry.isPlayerStandingOnTop(this.player)) {
+    if (this.containerPhysicsRuntime.isPlayerStandingOnTop()) {
       this.player.forceGrounded(true, 'container');
     }
     this.player.update(dt);
@@ -2388,7 +2248,7 @@ export class ItemWorldScene extends Scene {
     this.tutorialHint.update(dt);
 
     // Updraft wind zones (IntGrid value 4 in fullGrid)
-    this.applyUpdrafts(dt);
+    this.updraftSystem.update(dt, this.player, this.fullGrid, this.game.camera);
 
     this.debugInputRuntime.update();
 
@@ -2407,19 +2267,19 @@ export class ItemWorldScene extends Scene {
     if (this.player.isDead) {
 
       // Analytics: death in item world
-      const cell = this.getCurrentCell();
+      const cell = this.roomStateRuntime.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
       trackPlayerDeath({
         area: 'itemworld',
         room_col: cell?.col ?? 0,
         room_row: cell?.row ?? 0,
         enemy_type: this.player.lastDamageSource,
       });
-      this.progressController.setExitReason('death');
+      this.progressController.requestExitWithReason('death');
       trackItemWorldExit('death', this.currentStratumIndex);
       this.exitTelemetryState.markExitTracked();
 
       // ----- Ego T11: player death -----
-      this.fireEgoPlayerDeath();
+      this.egoDialogueRuntime.firePlayerDeath();
 
       // Clear all UI overlays on death
       this.hud.hideBossHP();
@@ -2431,7 +2291,7 @@ export class ItemWorldScene extends Scene {
       if (this.currentStratumIndex > 0) {
         this.progress.lastSafeStratum = this.currentStratumIndex - 1;
       }
-      this.persistRoomState();
+      this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       this.player.respawn();
 
       // Show death result modal before exiting
@@ -2470,8 +2330,7 @@ export class ItemWorldScene extends Scene {
     this.enemyCombatRuntime.processDefeatedEnemies();
     this.pickupRuntime.updateHealing(dt);
 
-    // Breakable props (sway animation)
-    for (const bp of this.staticEntityRegistry.breakableProps) bp.update(dt);
+    this.breakablePropRuntime.update(dt);
 
     this.pickupRuntime.updateGold(dt);
     this.projectileRuntime.update(dt);
@@ -2480,17 +2339,17 @@ export class ItemWorldScene extends Scene {
 
     // Boss killed check ? spawn exit portal at boss death location
     // Check ALL dead bosses regardless of exitTrigger state
-    for (const enemy of this.enemyRegistry.enemies) {
-      if (!enemy.alive && (enemy as any)._isBoss && !(enemy as any)._portalSpawned) {
-        (enemy as any)._portalSpawned = true;
+    const defeatedBoss = this.bossClearRuntime.consumeDefeatedBoss(this.enemyRegistry.enemies);
+    if (defeatedBoss) {
+        const enemy = defeatedBoss;
         this.hud.hideBossHP();
-        const cell = this.getCurrentCell();
+        const cell = this.roomStateRuntime.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
         cell.cleared = true;
 
         // Playtest 2026-04-26 #1: anvil retires after first IW boss clear
         // (any rarity, any weapon). One-shot — repeat boss kills do nothing.
-        if (!sacredSave.isFirstItemWorldBossDefeated()) {
-          sacredSave.markFirstItemWorldBossDefeated();
+        if (!this.saveAccess.isFirstItemWorldBossDefeated()) {
+          this.saveAccess.markFirstItemWorldBossDefeated();
         }
 
         // Analytics: stratum boss defeated
@@ -2543,7 +2402,7 @@ export class ItemWorldScene extends Scene {
         cell.bossPortalX = px;
         cell.bossPortalY = py;
         this.progress.bossPortals[String(this.currentStratumIndex)] = { x: px, y: py };
-        this.persistRoomState();
+        this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
 
         // A12 (playtest 2026-04-17): boss kills previously used the same
         // feedback as regular kills (hitstop 12, shake 4, small toast). Upgrade
@@ -2557,12 +2416,11 @@ export class ItemWorldScene extends Scene {
         this.game.camera.shake(9);
         this.screenFlash.flash(0xffffff, 0.55, 180);
         this.toast.showBig(t('toast.boss_defeated'), 0xffd35a, 2200);
-        // Follow-up burst: ember-gold flash + second particle layer
-        setTimeout(() => {
+        const runFollowupBurst = (): void => {
           this.screenFlash.flash(0xffaa22, 0.35, 220);
           this.deathParticles.spawn(bossCx, bossCy, true);
           this.game.camera.shake(5);
-        }, 160);
+        };
 
         // ----- DEC-039 — D: Trapdoor 처리 -----
         // D-down 이 'no_down' 으로 표시된 방(RoomGraphAdapter)
@@ -2633,22 +2491,17 @@ export class ItemWorldScene extends Scene {
         // First-clear (boss never killed before): clear FX -> Ego dialogue
         //   (freeze) -> Trapdoor spawn. 진입(2026-05-02) 의 Trapdoor 는
         //   Rustborn 보스 처치 후 생성된다.
-        const wasOnboarding = this.isFirstBossOnboarding();
-        if (wasOnboarding) {
-          this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
-          setTimeout(async () => {
-            await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
+        const wasOnboarding = this.egoDialogueRuntime.isFirstBossOnboarding();
+        this.bossClearRuntime.start({
+          onFollowupBurst: runFollowupBurst,
+          onSpawnTrapdoor: async () => {
+            if (wasOnboarding) {
+              this.egoUnlockedEvents.add(EGO_EVENT.BOSS_KILLED);
+              await this.loreDisplay?.showDialogue(EGO_BOSS_KILLED, true);
+            }
             spawnTrapdoorEntity();
-          }, 2500);
-        } else {
-          // Non-onboarding: ego dialogue 없이 cinematic (BOSS DEFEATED
-          // 2.2초) 후 trapdoor spawn 한다.
-          setTimeout(() => {
-            spawnTrapdoorEntity();
-          }, 2500);
-        }
-        break;
-      }
+          },
+        });
     }
 
     // DEC-039 — A: 플레이어가 stratum 경계를 넘으면 down exit
@@ -2672,7 +2525,7 @@ export class ItemWorldScene extends Scene {
       const syncedCell = this.unifiedGrid.cells[playerAbsRow][playerRoomCol];
       if (syncedCell && !syncedCell.visited) {
         syncedCell.visited = true;
-        this.persistRoomState();
+        this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       }
     }
 
@@ -2694,7 +2547,7 @@ export class ItemWorldScene extends Scene {
         // (2026-05-04): progress 가 갱신되면 stratum
         // picker 의 deepestUnlocked 선택 범위가 늘어난다.
         // stratum 1 plaza 로의 hole 진행을 막지 않는다.
-        this.persistRoomState();
+        this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       }
     }
 
@@ -2703,16 +2556,16 @@ export class ItemWorldScene extends Scene {
       this.roomSpawnState.markSpawned(roomKey);
       this.currentCol = playerRoomCol;
       this.currentRow = playerAbsRow;
-      const enteredCell = this.getCurrentCell();
+      const enteredCell = this.roomStateRuntime.getCurrentCell(this.unifiedGrid, this.currentCol, this.currentRow);
       if (enteredCell) {
         enteredCell.visited = true;
-        this.persistRoomState();
+        this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       }
-      this.spawnEnemiesInRoom(this.currentCol, this.currentRow);
+      this.roomSpawnRuntime.spawnForRoom(this.currentCol, this.currentRow);
 
       // ----- Ego T05: first monster visible (fire on first room with enemies) -----
       if (this.enemyRegistry.hasAny()) {
-        this.fireEgoMonsterVisible();
+        this.egoDialogueRuntime.fireMonsterVisible();
       }
     }
 
@@ -2740,7 +2593,7 @@ export class ItemWorldScene extends Scene {
     this.propShatter.update(dt);
     this.deathParticles.update(dt);
     this.captureOrbRuntime.update(dt);
-    this.stratumClearPanelRuntime.updateInput();
+    this.bossClearRuntime.update(dt);
     this.screenFlash.update(dt);
 
     // Movement VFX (consume player one-shot events + trail updates)
@@ -2794,7 +2647,7 @@ export class ItemWorldScene extends Scene {
         this.progress.deepestUnlocked = stratumIndex;
       }
       this.progress.lastSafeStratum = stratumIndex;
-      this.persistRoomState();
+      this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
     }
 
     // 새 stratum 진입 시 Trapdoor spawn 관련 flag 를 초기화한다.
@@ -2819,7 +2672,7 @@ export class ItemWorldScene extends Scene {
     const hubKey = `${startCol},${startRow}`;
     if (!this.roomSpawnState.hasSpawned(hubKey)) {
       this.roomSpawnState.markSpawned(hubKey);
-      this.spawnEnemiesInRoom(startCol, startRow);
+      this.roomSpawnRuntime.spawnForRoom(startCol, startRow);
     }
 
     // Stratum 2+ 진입 시 DEPTH 토스트 (ULTRAKILL 스타일).
@@ -2847,12 +2700,10 @@ export class ItemWorldScene extends Scene {
   /** 월드-스페이스 prompt 를 숨겨야 하는지 (modal/전환 상태 기준) 판정한다. */
   private shouldSuppressWorldPrompts(): boolean {
     return this.uiController.shouldSuppressWorldPrompts({
-      hasStratumClearPanel: this.uiController.hasStratumClearPanel(),
-      transitionState: this.roomTransitionRuntime.isActive
-        ? this.roomTransitionRuntime.suppressionState
-        : this.absorbDissolveRuntime.isActive
-          ? this.absorbDissolveRuntime.suppressionState
-          : this.flowState.value,
+      isTransitionActive: this.roomTransitionRuntime.isActive
+        || this.absorbDissolveRuntime.isActive
+        || this.flowState.isExitFade
+        || this.flowState.isPostClearHold,
     });
   }
 
@@ -2866,12 +2717,12 @@ export class ItemWorldScene extends Scene {
     if (hasNextStratum) {
       this.progress.deepestUnlocked = Math.max(this.progress.deepestUnlocked, nextStratumIndex);
     }
-    this.persistRoomState();
+    this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
 
     if (isFinal) {
-      this.progressController.setExitReason('clear');
+      this.progressController.requestExitWithReason('clear');
       markItemCleared(this.item);
-      this.persistRoomState();
+      this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
     }
 
     // Hide HUD during cinematic
@@ -2939,11 +2790,11 @@ export class ItemWorldScene extends Scene {
   /** A17: player chose to exit ? bank progress, leave the item world. */
   private _exitAfterBoss(): void {
     this.progress.lastSafeStratum = this.currentStratumIndex;
-    this.progressController.exitAfterBoss({
-      currentStratumIndex: this.currentStratumIndex,
-      itemName: getDisplayName(this.item),
-      itemLevel: this.item.level,
-    });
+    this.progressController.requestExitWithReason('escape');
+    this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
+    this.cleanupForReturnResult();
+    this.flowState.startExitFade();
+    this.exitFadeRuntime.start();
   }
 
   /** Hide all gameplay UI before showing the return result modal. */
@@ -2955,34 +2806,17 @@ export class ItemWorldScene extends Scene {
     this.toast.clear();
     this.uiController.hideWorldPrompts({ exitPrompt: null });
     // Hide stratum clear panel if still showing
-    if (this.uiController.hasStratumClearPanel()) {
-      this.stratumClearPanelRuntime.forceClose();
+    if (this.uiController.hasStratumClearOverlay()) {
+      this.uiController.destroyStratumClearOverlay();
     }
     // Hide boss choice if showing
-    if (this.bossChoiceRuntime.isVisible()) {
-      this.bossChoiceRuntime.hide();
+    if (this.uiController.isBossChoiceVisible()) {
+      this.uiController.hideBossChoice();
     }
     // Hide escape confirm if showing
-    if (this.escapeRuntime.isVisible()) {
-      this.escapeRuntime.hide();
+    if (this.uiController.isEscapeConfirmVisible()) {
+      this.uiController.hideEscapeConfirm();
     }
-  }
-
-  private startExitFade(): void {
-    this.flowState.startExitFade();
-    this.exitFadeRuntime.start();
-  }
-
-  private startAbsorbSequence(): void {
-    this.absorbDissolveRuntime.start();
-  }
-
-  /**
-   * Hold on the StratumClearPanel until the player presses X to confirm,
-   * then kick off the exit fade.
-   */
-  private startPostClearHold(): void {
-    this.flowState.startPostClearHold();
   }
 
   private exitItemWorld(): void {
@@ -3004,12 +2838,12 @@ export class ItemWorldScene extends Scene {
 
     this.sourcePlayer.hp = this.player.hp;
 
-    this.escapeRuntime.hide();
+    this.uiController.hideEscapeConfirm();
     this.absorbDissolveRuntime.cleanup(true);
     // Clean up all UI owned by this scene
     this.hud.hideDepthGauge();
     this.hud.hideItemExp();
-    if (this.hud.container.parent) this.hud.container.parent.removeChild(this.hud.container);
+    detachDisplayObject(this.hud.container);
     // Remove any lingering damage numbers / prompts from uiContainer
     // (keep only persistent items ? world scene re-adds its own in enter())
     this.game.uiContainer.removeChildren();
@@ -3074,12 +2908,12 @@ export class ItemWorldScene extends Scene {
 
     // 최종 지층이면 markItemCleared / progress / exitReason 을 처리한다.
     if (this.trapdoorState.descentToWorld) {
-      this.progressController.setExitReason('clear');
+      this.progressController.requestExitWithReason('clear');
       markItemCleared(this.item);
-      this.persistRoomState();
+      this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       // Step 2 (2026-05-25): 흡수 연출 grayscale 100% + intensity 0.5,
       // 1000ms tween. 이후 startExitFade 한다 (update 에서 진행).
-      this.startAbsorbSequence();
+      this.absorbDissolveRuntime.start();
       return;
     }
 
@@ -3151,15 +2985,13 @@ export class ItemWorldScene extends Scene {
     this.clearStaticEntities();
     if (this.loreDisplay) {
       this.loreDisplay.close();
-      if (this.loreDisplay.container.parent) {
-        this.loreDisplay.container.parent.removeChild(this.loreDisplay.container);
-      }
+      detachDisplayObject(this.loreDisplay.container);
       this.loreDisplay = null;
     }
-    if (this.hud?.container.parent) this.hud.container.parent.removeChild(this.hud.container);
-    if (this.areaTitle?.container.parent) this.areaTitle.container.parent.removeChild(this.areaTitle.container);
+    detachDisplayObject(this.hud.container);
+    if (this.areaTitle) detachDisplayObject(this.areaTitle.container);
     this.areaTitle?.destroy();
-    if (this.screenFlash?.overlay.parent) this.screenFlash.overlay.parent.removeChild(this.screenFlash.overlay);
+    if (this.screenFlash) detachDisplayObject(this.screenFlash.overlay);
     // LowHpVignette 는 legacyUIContainer 에 attach 되므로 scene exit 시 직접 destroy.
     // WORLD 복귀 시 vignette 가 남지 않도록 정리한다.
     if (this.lowHpVignette) {
@@ -3169,6 +3001,7 @@ export class ItemWorldScene extends Scene {
       this.tutorialHint.destroy();
     }
     this.devOverlayRuntime.destroy();
+    this.bossClearRuntime.destroy();
     this.weatherRuntime.destroy();
     this.stratumPickerRuntime.destroy();
   }
@@ -3179,6 +3012,7 @@ export class ItemWorldScene extends Scene {
     this.weatherRuntime.destroy();
     this.oxygenOverlay.destroy();
     this.devOverlayRuntime.destroy();
+    this.bossClearRuntime.destroy();
     this.captureOrbRuntime.clear();
     this.stratumPickerRuntime.destroy();
     this.containerCarryRuntime.destroy();
@@ -3190,49 +3024,4 @@ export class ItemWorldScene extends Scene {
     super.destroy();
   }
 
-  // ----- Ego dialogue helpers -----
-
-  private isFirstBossOnboarding(): boolean {
-    return this.egoDialogueRuntime.isFirstBossOnboarding();
-  }
-
-  fireEgoEnter(): void {
-    this.egoDialogueRuntime.fireEnter();
-  }
-
-  async fireEgoEnterAsync(): Promise<void> {
-    await this.egoDialogueRuntime.fireEnterAsync();
-  }
-
-  fireEgoMonsterVisible(): void {
-    this.egoDialogueRuntime.fireMonsterVisible();
-  }
-
-  fireEgoFirstKill(): void {
-    this.egoDialogueRuntime.fireFirstKill();
-  }
-
-  fireEgoRoomClear(roomIndex: number): void {
-    this.egoDialogueRuntime.fireRoomClear(roomIndex);
-  }
-
-  fireEgoInnocentFound(): void {
-    this.egoDialogueRuntime.fireInnocentFound();
-  }
-
-  fireEgoInnocentStable(): void {
-    this.egoDialogueRuntime.fireInnocentStable();
-  }
-
-  fireEgoPlayerDeath(): void {
-    this.egoDialogueRuntime.firePlayerDeath();
-  }
-
-  fireEgoBossKilled(): void {
-    this.egoDialogueRuntime.fireBossKilled();
-  }
-
-  fireEgoAffinityMax(): void {
-    this.egoDialogueRuntime.fireAffinityMax();
-  }
 }

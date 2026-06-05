@@ -1,9 +1,8 @@
-import { Assets, Texture } from 'pixi.js';
-import { assetPath } from '@core/AssetLoader';
+import type { Texture } from 'pixi.js';
 import { Debug } from '@core/Debug';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
-import { collectLdtkTilesetPaths } from '@level/LdtkTilesetPaths';
+import { preloadMissingLdtkTilesets } from '@level/LdtkTilesetPaths';
 import { loadBundleOnce } from '@data/assetBundles';
 import { ensureAreaTilesetsLoaded } from '@data/areaPalettes';
 import type { ItemInstance } from '@items/ItemInstance';
@@ -49,17 +48,12 @@ export class ItemWorldEntryPreloader {
   }
 
   private async preloadAuthoredTilesets(templates: readonly LdtkLevel[]): Promise<void> {
-    const extraTilesets = collectLdtkTilesetPaths(templates);
-    await Promise.all(
-      Array.from(extraTilesets)
-        .filter(relPath => !this.atlases[relPath])
-        .map(async (relPath) => {
-          try {
-            this.atlases[relPath] = (await Assets.load(assetPath(`assets/${relPath}`))) as Texture;
-          } catch (err) {
-            console.warn(`[ItemWorld] failed to prestream authored tileset "${relPath}":`, err);
-          }
-        }),
-    );
+    await preloadMissingLdtkTilesets({
+      levels: templates,
+      atlases: this.atlases,
+      onLoadError: (relPath, err) => {
+        console.warn(`[ItemWorld] failed to prestream authored tileset "${relPath}":`, err);
+      },
+    });
   }
 }

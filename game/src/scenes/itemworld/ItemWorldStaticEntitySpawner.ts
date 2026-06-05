@@ -11,9 +11,10 @@ import { Switch } from '@entities/Switch';
 import type { ItemInstance } from '@items/ItemInstance';
 import type { LdtkEntity, LdtkLevel } from '@level/LdtkLoader';
 import type { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
+import { addEntityToLayer } from '@scenes/shared/EntityLifecycleHelpers';
 
 interface ItemWorldStaticEntitySpawnerDeps {
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getEntityLayer: () => Container;
   getBuildingLayer: () => Container;
   getWallPaletteFilter: () => PaletteSwapFilter | null;
@@ -106,37 +107,32 @@ export class ItemWorldStaticEntitySpawner {
     if (wallPaletteFilter) {
       building.container.filters = [wallPaletteFilter];
     }
-    this.deps.getBuildings().push(building);
-    this.deps.getBuildingLayer().addChild(building.container);
+    addEntityToLayer(this.deps.getBuildings(), building, this.deps.getBuildingLayer());
   }
 
   private spawnSpike(entity: LdtkEntity, ax: number, ay: number): void {
     const spike = new Spike(ax, ay, entity.width, entity.height);
-    this.deps.getSpikes().push(spike);
-    this.deps.getEntityLayer().addChild(spike.container);
+    addEntityToLayer(this.deps.getSpikes(), spike, this.deps.getEntityLayer());
   }
 
   private spawnCrackedFloor(entity: LdtkEntity, ax: number, ay: number): void {
     const crackedFloor = new CrackedFloor(ax, ay, entity.width, entity.height);
-    crackedFloor.injectCollision(this.deps.getFullGrid());
-    this.deps.getCrackedFloors().push(crackedFloor);
-    this.deps.getEntityLayer().addChild(crackedFloor.container);
+      crackedFloor.injectCollision(this.deps.getCollisionGrid());
+    addEntityToLayer(this.deps.getCrackedFloors(), crackedFloor, this.deps.getEntityLayer());
   }
 
   private spawnCollapsingPlatform(entity: LdtkEntity, ax: number, ay: number): void {
     const respawns = (entity.fields['Respawn'] ?? entity.fields['respawn'] ?? true) as boolean;
     const respawnTime = (entity.fields['RespawnTime'] ?? entity.fields['respawnTime'] ?? 3.0) as number;
     const platform = new CollapsingPlatform(ax, ay, entity.width, entity.height, respawns, respawnTime);
-    platform.injectCollision(this.deps.getFullGrid());
-    this.deps.getCollapsingPlatforms().push(platform);
-    this.deps.getEntityLayer().addChild(platform.container);
+      platform.injectCollision(this.deps.getCollisionGrid());
+    addEntityToLayer(this.deps.getCollapsingPlatforms(), platform, this.deps.getEntityLayer());
   }
 
   private spawnGrowingWall(entity: LdtkEntity, ax: number, ay: number): void {
     const wall = new GrowingWall(ax, ay, entity.width, entity.height);
-    wall.injectCollision(this.deps.getFullGrid());
-    this.deps.getGrowingWalls().push(wall);
-    this.deps.getEntityLayer().addChild(wall.container);
+      wall.injectCollision(this.deps.getCollisionGrid());
+    addEntityToLayer(this.deps.getGrowingWalls(), wall, this.deps.getEntityLayer());
   }
 
   private spawnSwitch(entity: LdtkEntity, ax: number, ay: number, roomPrefix: string): void {
@@ -144,9 +140,8 @@ export class ItemWorldStaticEntitySpawner {
     if (!ref?.entityIid) return;
 
     const switchEntity = new Switch(ax, ay, entity.width, entity.height, roomPrefix + ref.entityIid);
-    switchEntity.injectCollision(this.deps.getFullGrid());
-    this.deps.getSwitches().push(switchEntity);
-    this.deps.getEntityLayer().addChild(switchEntity.container);
+      switchEntity.injectCollision(this.deps.getCollisionGrid());
+    addEntityToLayer(this.deps.getSwitches(), switchEntity, this.deps.getEntityLayer());
   }
 
   private spawnLockedDoor(entity: LdtkEntity, ax: number, ay: number, roomPrefix: string): void {
@@ -168,9 +163,8 @@ export class ItemWorldStaticEntitySpawner {
       statType,
       statThreshold,
     );
-    door.injectCollision(this.deps.getFullGrid());
-    this.deps.getLockedDoors().push(door);
-    this.deps.getEntityLayer().addChild(door.container);
+    door.injectCollision(this.deps.getCollisionGrid());
+    addEntityToLayer(this.deps.getLockedDoors(), door, this.deps.getEntityLayer());
   }
 
   private spawnCameraZone(entity: LdtkEntity, ax: number, ay: number): void {
@@ -194,7 +188,6 @@ export class ItemWorldStaticEntitySpawner {
     const scaleFactor = (typeof sizeRaw === 'number' && sizeRaw > 0) ? sizeRaw : 4;
     const rotate = ((entity.fields['Rotate'] ?? entity.fields['rotate']) as boolean | undefined) ?? false;
     const display = new ItemDisplay(ax, ay, scaleFactor, this.deps.getItem(), rotate);
-    this.deps.getItemDisplays().push(display);
-    this.deps.getEntityLayer().addChild(display.container);
+    addEntityToLayer(this.deps.getItemDisplays(), display, this.deps.getEntityLayer());
   }
 }

@@ -22,3 +22,5 @@ Prevention rules:
 - Do not put `ItemWorldScene` creation or anvil return toasts/dialogue into this runtime; delegate handoff to `WorldAnvilItemWorldFlowRuntime`.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, and `http://localhost:3000/play/?debug=1` Puppeteer smoke passed.
+
+- 2026-06-05: Item World growth snapshot display cleanup now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject()` for the vignette and snapshot container; render texture destruction and hidden-source restoration remain owned by `ItemWorldGrowthSnapshotController`.

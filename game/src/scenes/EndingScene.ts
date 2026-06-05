@@ -22,6 +22,7 @@ import { t } from '@i18n';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { TitleScene } from './TitleScene';
 import type { Game } from '../Game';
+import { destroyDisplayObject } from './shared/DisplayObjectLifecycleHelpers';
 
 const STEAM_URL   = 'https://store.steampowered.com/app/4756940/ECHORIS/';
 const DISCORD_URL = 'https://discord.gg/nqEcnZbS2c';
@@ -242,7 +243,6 @@ export class EndingScene extends Scene {
   render(_alpha: number): void { /* static */ }
 
   exit(): void {
-    if (this.uiRoot?.parent) this.uiRoot.parent.removeChild(this.uiRoot);
-    this.uiRoot?.destroy({ children: true });
+    if (this.uiRoot) destroyDisplayObject(this.uiRoot, { children: true });
   }
 }

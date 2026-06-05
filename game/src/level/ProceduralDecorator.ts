@@ -17,6 +17,7 @@ import {
 } from './ProceduralPrimitives';
 import { DecoratorConst } from '@data/constData';
 import { isSlope2x1SupportCell } from '@core/Physics';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -360,7 +361,7 @@ export class ProceduralDecorator {
     for (const layer of [this.naturalLayer, this.artificialLayer, this.structureLayer]) {
       const children = layer.removeChildren();
       for (const child of children) {
-        child.destroy({ children: true, texture: true, textureSource: false, context: true });
+        destroyDisplayObject(child, { children: true, texture: true, textureSource: false, context: true });
       }
     }
     this.grassClumps = [];

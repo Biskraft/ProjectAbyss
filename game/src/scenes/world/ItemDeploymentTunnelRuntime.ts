@@ -71,7 +71,7 @@ export class ItemDeploymentTunnelRuntime {
     if (activeBuilder && this.builderTunnelRestoreCells.length > 0) {
       activeBuilder.restoreTunnelCells(this.builderTunnelRestoreCells);
       this.builderTunnelRestoreCells = [];
-      this.restampActiveBuilder();
+      this.deps.builderStampRuntime.restamp(this.deps.getActiveBuilder(), this.deps.getCollisionGrid());
     } else {
       this.builderTunnelRestoreCells = [];
     }
@@ -101,10 +101,6 @@ export class ItemDeploymentTunnelRuntime {
     }
 
     activeBuilder.digTunnel(x, y, h);
-    this.restampActiveBuilder();
-  }
-
-  private restampActiveBuilder(): void {
     this.deps.builderStampRuntime.restamp(this.deps.getActiveBuilder(), this.deps.getCollisionGrid());
   }
 }

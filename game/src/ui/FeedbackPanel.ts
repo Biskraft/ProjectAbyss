@@ -54,6 +54,7 @@ import {
 } from '../utils/FeedbackContext';
 import { FEEDBACK_LIMITS } from '../data/feedbackConfig';
 import type { Game } from '../Game';
+import { deferElementFocus } from './DeferredFocus';
 
 const PANEL_W = 480;
 const PANEL_H = 320;
@@ -241,7 +242,7 @@ export class FeedbackPanel {
         this.currentCategory = cat.value;
         this.refreshCategoryDisplay();
         // Refocus textarea — click would otherwise blur it and break input.
-        setTimeout(() => this.hiddenInput.focus(), 0);
+        deferElementFocus(this.hiddenInput);
       });
       this.container.addChild(bg);
       this.categoryBgs.push(bg);
@@ -293,7 +294,7 @@ export class FeedbackPanel {
     this.sendButtonBg.on('pointerout', () => { this.sendButtonHovered = false; this.refreshSendButton(); });
     this.sendButtonBg.on('pointerdown', () => {
       this.attemptSubmit();
-      setTimeout(() => this.hiddenInput.focus(), 0);
+      deferElementFocus(this.hiddenInput);
     });
     this.container.addChild(this.sendButtonBg);
     this.sendLabel = createUiText(t('ui.feedback.button_send'), { fontSize: FONT_HINT, fill: TEXT_PRIMARY });
@@ -430,7 +431,7 @@ export class FeedbackPanel {
     this.refreshInputDisplay();
     this.refreshCategoryDisplay();
     this.refreshSendButton();
-    setTimeout(() => this.hiddenInput.focus(), 0);
+    deferElementFocus(this.hiddenInput);
 
     trackFeedbackOpened({
       area: this.getCurrentArea(),

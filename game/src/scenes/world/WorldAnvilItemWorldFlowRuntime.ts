@@ -4,12 +4,17 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { getDisplayName } from '@items/ItemInstance';
 import { t } from '@i18n';
 import type { WorldFixedItemWorldFlowRuntime } from './WorldFixedItemWorldFlowRuntime';
-import type { WorldItemWorldSceneFlowRuntime } from './WorldItemWorldSceneFlowRuntime';
+import type { ItemWorldSceneLike, WorldItemWorldSceneFlowRuntime } from './WorldItemWorldSceneFlowRuntime';
+import {
+  applyItemWorldSceneCompletionLifecycle,
+  createOneShotHandler,
+} from './ItemWorldSceneCompletionHelpers';
 
 type TunnelEnterFrom = 'up' | 'down';
 
 interface WorldAnvilItemWorldFlowRuntimeDeps {
   itemWorldSceneFlow: WorldItemWorldSceneFlowRuntime;
+  createItemWorldScene: (item: ItemInstance, entryCorridor: boolean) => ItemWorldSceneLike;
   fixedItemWorldFlow: WorldFixedItemWorldFlowRuntime;
   getEntryItem: () => ItemInstance | null;
   getPlayer: () => Player;
@@ -25,7 +30,7 @@ interface WorldAnvilItemWorldFlowRuntimeDeps {
   showToast: (message: string, color: number) => void;
   fireWorldReturnDialogue: (weaponDefId: string) => void;
   retireAfterBossClear: (hadFirstBossClear: boolean) => void;
-  /** 프롤로그 종료 — 아이템계 pop 후 Start_Room_01(chapter_01) 로 전환. */
+  /** Prologue end transition target for the next chapter (Start_Room_01 when coming from prologue flow). */
   enterChapter1FromPrologue: () => void;
 }
 
@@ -69,15 +74,12 @@ export class WorldAnvilItemWorldFlowRuntime {
     if (!targetItem) return;
 
     this.deps.restoreUiAfterDiveTransition();
-    // 진입 통로(entry corridor) 기능 제거 (사용자 요청) — 아이템계로 직접 진입.
-    void options;
-    const entryCorridor = false;
+    // Use edge-transition entry-corridor option when entering an Item World from a tunnel/corridor path.
+    const entryCorridor = options.entryCorridor ?? false;
 
     this.deps.itemWorldSceneFlow.prestream(targetItem, 'entry-final');
-
-    // 프롤로그 다이브는 절차 ItemWorldScene 으로 들어가며, 그 안에서
-    // scene='prologue' 게이트가 그래프·방을 강제한다(PrologueDive). 별도 고정
-    // 레벨 라우팅은 두지 않는다 — 진짜 fixedLevelId 가 박힌 아이템만 고정 경로.
+    // Prologue return flow can enter the Item World scene directly when needed.
+    // scene='prologue' path uses this callback ordering only for configured prologue handoff.
     const fixedLevelId = targetItem.fixedLevelId;
     if (fixedLevelId) {
       this.deps.fixedItemWorldFlow.enter(targetItem, fixedLevelId);
@@ -91,27 +93,45 @@ export class WorldAnvilItemWorldFlowRuntime {
 
     this.deps.clearDamageNumbers();
 
-    const itemWorldScene = this.deps.itemWorldSceneFlow.createScene(targetItem, entryCorridor);
-    itemWorldScene.onComplete = () => {
-      this.deps.itemWorldSceneFlow.completeReturn(itemWorldScene, hadFirstBossClear, { restoreAtAnvil: true });
+    const itemWorldScene = this.deps.createItemWorldScene(targetItem, entryCorridor);
+    itemWorldScene.onComplete = createOneShotHandler(() => {
+      applyItemWorldSceneCompletionLifecycle({
+        targetItem,
+        prevLevel,
+        prevAtk,
+        isAltar: true,
+        dungeonItem: undefined,
+        getCurrentAtk: () => this.deps.getPlayer().atk,
+        onAwardWeaponLevelUp: (item) => {
+          this.deps.showToast(
+            t('toast.weapon_level_up', { name: getDisplayName(item), level: item.level }),
+            0xff88ff,
+          );
+        },
+        onAwardDungeonItemToast: () => {
+          // no-op for anvil return path
+        },
+        onAwardAtkDeltaToast: (before, after) => {
+          this.deps.showToast(t('toast.atk_change', { prev: before, next: after }), 0xffff44);
+        },
+        hadFirstBossClear,
+        onAfterCompletion: () => {
+          this.deps.fireWorldReturnDialogue(targetItem.def.id);
+          this.deps.retireAfterBossClear(hadFirstBossClear);
+        },
+        completeReturn: () => this.deps.itemWorldSceneFlow.completeReturn(
+          itemWorldScene,
+          hadFirstBossClear,
+          true,
+        ),
+      });
+    });
 
-      if (targetItem.level > prevLevel) {
-        this.deps.showToast(
-          t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }),
-          0xff88ff,
-        );
-      }
-
-      if (this.deps.getPlayer().atk !== prevAtk) {
-        this.deps.showToast(t('toast.atk_change', { prev: prevAtk, next: this.deps.getPlayer().atk }), 0xffff44);
-      }
-
-      this.deps.fireWorldReturnDialogue(targetItem.def.id);
-      this.deps.retireAfterBossClear(hadFirstBossClear);
-    };
-
-    // 프롤로그 종료 시퀀스 완료 시 — 앵빌 복귀 대신 Ch.1(Start_Room_01)로 전환.
+    // Prologue-end fallback: return to Ch.1(Start_Room_01) when chapter handoff is configured.
+    let prologueEnded = false;
     itemWorldScene.onPrologueEnd = () => {
+      if (prologueEnded) return;
+      prologueEnded = true;
       this.deps.enterChapter1FromPrologue();
     };
 

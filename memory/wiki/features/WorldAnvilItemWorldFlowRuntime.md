@@ -5,11 +5,14 @@
 Current state:
 
 - Enters procedural Item World from the anvil growth deployment and from edge/tunnel transitions.
-- Preserves the current default growth path by entering directly with `entryCorridor: false`; non-deployment tunnel/right-edge paths can still request the corridor.
+- Preserves the default growth path by entering direct prologue flow with `entryCorridor: false`, while allowing tunnel/right-edge callers to request corridor entry via `enterFromTunnel({ entryCorridor })`.
 - Preserves the archived `ItemTunnel_*` rarity-mapped descent path in this runtime for future restoration.
 - Routes fixed-level override items through `WorldFixedItemWorldFlowRuntime.enter()`.
 - Uses `WorldItemWorldSceneFlowRuntime` for prestreaming, `ItemWorldScene` construction, prepared push, and common return handling.
-- Applies anvil-path return side effects after common return: weapon level-up toast, attack-change toast, world-return dialogue, and anvil retirement policy.
+- Applies anvil-path return side effects after common return and shared completion processing:
+  - shared completion processing is centralized through `applyItemWorldSceneCompletionLifecycle`.
+  - weapon level-up toast, attack-change toast, world-return dialogue, and anvil retirement policy.
+  - Prologue-end handoff is now guarded to be one-shot (`onPrologueEnd`) so duplicate callbacks cannot trigger multiple world chapter transitions.
 
 Boundaries:
 

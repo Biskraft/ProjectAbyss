@@ -1,5 +1,6 @@
 import type { Container } from 'pixi.js';
 import type { GiantBuilder } from '@entities/GiantBuilder';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export interface BuilderInteriorTargets {
   builderInteriorLayer: Container;
@@ -19,20 +20,20 @@ export class WorldBuilderLayerRuntime {
 
   attach(root: Container, builder: GiantBuilder): void {
     root.addChild(builder.builderInteriorLayer);
-    this.syncLayer(builder.builderInteriorLayer, builder);
+    builder.builderInteriorLayer.position.copyFrom(builder.container.position);
 
     root.addChild(builder.lightContainer);
-    this.syncLayer(builder.lightContainer, builder);
+    builder.lightContainer.position.copyFrom(builder.container.position);
 
     root.addChild(builder.legFrontLayer);
-    this.syncLayer(builder.legFrontLayer, builder);
+    builder.legFrontLayer.position.copyFrom(builder.container.position);
   }
 
   sync(builder: GiantBuilder | null): void {
     if (!builder) return;
-    this.syncLayer(builder.builderInteriorLayer, builder);
-    this.syncLayer(builder.lightContainer, builder);
-    this.syncLayer(builder.legFrontLayer, builder);
+    builder.builderInteriorLayer.position.copyFrom(builder.container.position);
+    builder.lightContainer.position.copyFrom(builder.container.position);
+    builder.legFrontLayer.position.copyFrom(builder.container.position);
   }
 
   getAuxiliaryTargets(builder: GiantBuilder | null): Container[] {
@@ -70,18 +71,10 @@ export class WorldBuilderLayerRuntime {
   }
 
   destroy(builder: GiantBuilder): void {
-    this.destroyLayer(builder.builderInteriorLayer);
-    this.destroyLayer(builder.lightContainer);
-    this.destroyLayer(builder.legBackLayer);
-    this.destroyLayer(builder.legFrontLayer);
+    destroyDisplayObject(builder.builderInteriorLayer, { children: true });
+    destroyDisplayObject(builder.lightContainer, { children: true });
+    destroyDisplayObject(builder.legBackLayer, { children: true });
+    destroyDisplayObject(builder.legFrontLayer, { children: true });
   }
 
-  private syncLayer(layer: Container, builder: GiantBuilder): void {
-    layer.position.copyFrom(builder.container.position);
-  }
-
-  private destroyLayer(layer: Container): void {
-    layer.parent?.removeChild(layer);
-    layer.destroy({ children: true });
-  }
 }

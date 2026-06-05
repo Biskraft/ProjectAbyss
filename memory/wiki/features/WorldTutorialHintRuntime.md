@@ -11,3 +11,7 @@
 - Do not reintroduce `dropThroughHintHandled`, `jumpHintHandled`, `hasMovedHorizontally`, `attackHintHandled`, or dash/jump delay fields directly into `LdtkWorldScene`.
 - Keep save persistence in the shared `TutorialHint` completed-ID set; runtimes should drive `tryShow()`/`dismissAfter()` but not write save payloads.
 - Route player drop-through completion through `WorldTutorialHintRuntime.handleDropThroughEvent()` so the hint and handled flag stay in sync.
+- Jump/attack hint dismiss now routes through the runtime-local `dismissHandledHintWhenPressed()` helper so hint visibility checks, input checks, `dismissAfter()`, and handled-flag mutation stay paired.
+
+- 2026-06-05: The jump hint is no longer gated by authored spawn-room climb coordinates. In the current start level, the first horizontal movement input starts a 1000ms runtime delay, then `hint_jump` is shown through the shared `TutorialHint`; keep this state inside `WorldTutorialHintRuntime`.
+

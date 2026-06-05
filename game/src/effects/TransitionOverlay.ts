@@ -1,5 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { GAME_HEIGHT, GAME_WIDTH } from '../Game';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 export class TransitionOverlay {
   readonly container = new Container();
@@ -20,7 +22,7 @@ export class TransitionOverlay {
   }
 
   setDarkness(alpha: number): void {
-    this.black.alpha = Math.max(0, Math.min(1, alpha));
+    this.black.alpha = clampEffect01(alpha);
   }
 
   /**
@@ -32,7 +34,7 @@ export class TransitionOverlay {
    *   color: rarity 색
    */
   updateSignalCut(t: number, portalX: number, portalY: number, color: number): void {
-    const p = Math.max(0, Math.min(1, t));
+    const p = clampEffect01(t);
     this.setDarkness(1);
     this.scanlines.clear();
     this.scanlines.alpha = 0;
@@ -73,7 +75,6 @@ export class TransitionOverlay {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

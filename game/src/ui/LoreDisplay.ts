@@ -28,6 +28,7 @@ import type { InputManager } from '@core/InputManager';
 import { KeyPrompt } from './KeyPrompt';
 import { TEXT_SECONDARY, TEXT_WARNING } from './ModalPanel';
 import { applyLayoutToContainer } from './HUD';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 
@@ -384,7 +385,7 @@ export class LoreDisplay {
     this.currentPortraitKey = key;
 
     if (this.portraitSprite) {
-      this.portraitContainer.removeChild(this.portraitSprite);
+      detachDisplayObject(this.portraitSprite);
       this.portraitSprite = null;
     }
 

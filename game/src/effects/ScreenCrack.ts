@@ -13,6 +13,7 @@
 
 import { Container, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const T_SPREAD_END = 250;
 const T_SHATTER_END = 375;
@@ -233,9 +234,6 @@ export class ScreenCrack {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

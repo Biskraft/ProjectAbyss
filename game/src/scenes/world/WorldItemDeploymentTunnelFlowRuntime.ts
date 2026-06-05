@@ -7,6 +7,7 @@ import type { ItemWorldGhostStreamRuntime } from './ItemWorldGhostStreamRuntime'
 import type { ItemWorldGrowthSnapshotController } from './ItemWorldGrowthSnapshotController';
 import type { PendingGhostTunnelParams } from './WorldItemWorldEntryState';
 import type { WorldItemDeploymentCollisionRuntime } from './WorldItemDeploymentCollisionRuntime';
+import { bindPlayerCollisionGrid } from '@scenes/shared/PlayerPlacementHelpers';
 
 interface WorldItemDeploymentTunnelFlowRuntimeDeps {
   getAnvil: () => Anvil | null;
@@ -80,13 +81,13 @@ export class WorldItemDeploymentTunnelFlowRuntime {
   clearWorldCollisionForItemDeployment(): void {
     const grid = this.deps.getCollisionGrid();
     if (!this.deps.getCollisionRuntime().clearWorld(grid, TILE_AIR)) return;
-    this.deps.getPlayer().roomData = grid;
+    bindPlayerCollisionGrid(this.deps.getPlayer(), grid);
   }
 
   restoreWorldCollisionForItemDeployment(): void {
     const grid = this.deps.getCollisionGrid();
     if (!this.deps.getCollisionRuntime().restore()) return;
-    this.deps.getPlayer().roomData = grid;
+    bindPlayerCollisionGrid(this.deps.getPlayer(), grid);
   }
 
   clearGhostStreamState(restoreGrid: boolean): void {

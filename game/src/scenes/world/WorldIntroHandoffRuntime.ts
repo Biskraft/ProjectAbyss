@@ -2,7 +2,9 @@ import { Graphics } from 'pixi.js';
 import type { Game } from '../../Game';
 import type { AreaTitle } from '@ui/AreaTitle';
 import type { HUD } from '@ui/HUD';
-import { TITLE_FADE_OVERLAY_LABEL } from '../TitleScene';
+import { destroyDisplayObject, destroyNullableDisplayObject, hideDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
+import { TITLE_FADE_OVERLAY_LABEL } from '@scenes/shared/TitleHandoffLabels';
 
 const TITLE_FADE_IN_MS = 1400;
 const HUD_REVEAL_DELAY_MS = 5000;
@@ -63,7 +65,7 @@ export class WorldIntroHandoffRuntime {
 
   applyInitialHudGate(hideHud: boolean): void {
     if (hideHud) {
-      if (this.hud) this.hud.container.visible = false;
+      hideDisplayObject(this.hud?.container);
       this.deps.game.hudReady = false;
     } else {
       this.deps.game.hudReady = true;
@@ -80,7 +82,7 @@ export class WorldIntroHandoffRuntime {
 
   hideHudForIntroIfNeeded(): void {
     if (!this.isHudSuppressed) return;
-    if (this.hud) this.hud.container.visible = false;
+    hideDisplayObject(this.hud?.container);
     this.deps.setMinimapVisible(false);
   }
 
@@ -90,21 +92,18 @@ export class WorldIntroHandoffRuntime {
   }
 
   destroy(): void {
-    this.titleFadeInOverlay?.parent?.removeChild(this.titleFadeInOverlay);
-    this.titleFadeInOverlay?.destroy();
-    this.titleFadeInOverlay = null;
+    this.titleFadeInOverlay = destroyNullableDisplayObject(this.titleFadeInOverlay);
   }
 
   private updateTitleFade(dt: number): void {
     if (!this.titleFadeInOverlay) return;
 
     this.titleFadeInTimer += dt;
-    const t = Math.min(1, this.titleFadeInTimer / TITLE_FADE_IN_MS);
+    const t = getProgress01(this.titleFadeInTimer, TITLE_FADE_IN_MS);
     this.titleFadeInOverlay.alpha = 1 - t;
     if (t < 1) return;
 
-    this.titleFadeInOverlay.parent?.removeChild(this.titleFadeInOverlay);
-    this.titleFadeInOverlay.destroy();
+    destroyDisplayObject(this.titleFadeInOverlay);
     this.titleFadeInOverlay = null;
 
     if (this.introPhase !== 'fadeIn') return;

@@ -25,6 +25,8 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { Enemy } from './Enemy';
 import { assetPath } from '@core/AssetLoader';
+import { markBossEnemy } from '@entities/EnemyMetadata';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 // ── Atlas 사양 (boss_01_atlas.json 과 1:1) ─────────────────────────
 const BOSS01_ATLAS_PATH = 'assets/characters/boss_01_atlas.png';
@@ -98,6 +100,7 @@ const SLAM_RISE_SPEED = -520;          // px/s (upward)
 const SLAM_RISE_DURATION = 500;        // ms — legacy (max safety timer 재도입 시 활용)
 const SLAM_FALL_SPEED = 750;           // px/s (downward)
 const SLAM_LAND_DURATION = 400;        // ms — anim 14→15→16→17 (각 100ms) 와 동기. hold 제거
+const SLAM_LAND_ACTIVE_DURATION = 100;
 // SLAM_FALL_MIN_MS: slam_fall 진입 후 최소 표시 시간. grounded=true 여도 이 시간
 // 동안은 slam_land 로 전이 금지. frame 14 (낙하 포즈) 가 시각적으로 충분히
 // 인지되도록 보장. 천장 bump 케이스에서 보스가 일찍 floor 도달 시 ~300ms 정도
@@ -147,7 +150,7 @@ export type Boss01State = 'idle' | 'detect' | 'chase' | 'telegraph' | 'charge'
 
 export class Boss01 extends Enemy<Boss01State> {
   /** HUD 의 보스 HP 바 라우팅. */
-  readonly _isBoss = true;
+  
 
   // FSM 보조 (Guardian 1:1)
   private attackTimer = 0;
@@ -158,6 +161,7 @@ export class Boss01 extends Enemy<Boss01State> {
   private slamTargetX = 0;
   private enraged = false;
   private telegraphFlashTimer = 0;
+  private slamLandActiveTimer = 0;
 
   // Dust effects (charge trail + slam burst)
   private dustPuffs: BossPuff[] = [];
@@ -196,6 +200,7 @@ export class Boss01 extends Enemy<Boss01State> {
     });
     this.applyStats('Guardian', level); // CSV 'Guardian' 행 재사용 (HP 720 / ATK 21 Lv1)
     this.superArmor = true;             // 플레이어 공격에 hitstun 안 걸림 (Guardian 동일)
+    markBossEnemy(this);
     void this.loadBossSprite();
   }
 
@@ -409,8 +414,7 @@ export class Boss01 extends Enemy<Boss01State> {
       p.gfx.alpha = t * 0.85;
       p.gfx.scale.set(1 + (1 - t) * 0.6);
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.dustPuffs.splice(i, 1);
       }
     }
@@ -588,14 +592,20 @@ export class Boss01 extends Enemy<Boss01State> {
       name: 'slam_land',
       enter: () => {
         this.attackTimer = SLAM_LAND_DURATION;
+        this.slamLandActiveTimer = SLAM_LAND_ACTIVE_DURATION;
         this.vx = 0;
         this.vy = 0;
         this.attackActive = true;
-        setTimeout(() => { this.attackActive = false; }, 100);
         this.spawnSlamLandDust();
       },
       update: (dt) => {
         this.attackTimer -= dt;
+        if (this.attackActive) {
+          this.slamLandActiveTimer -= dt;
+          if (this.slamLandActiveTimer <= 0) {
+            this.attackActive = false;
+          }
+        }
         if (this.attackTimer <= 0) {
           this.cooldownTimer = this.enraged ? COOLDOWN_ENRAGED : COOLDOWN_NORMAL;
           this.fsm.transition('cooldown');

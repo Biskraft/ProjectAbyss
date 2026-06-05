@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Hit blood spray — deep-crimson shard particles sprayed in the knockback
@@ -69,8 +70,7 @@ export class HitBloodSprayManager {
       s.gfx.alpha = t;
       s.gfx.scale.set(0.6 + t * 0.6);
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.shards.splice(i, 1);
       }
     }
@@ -78,8 +78,7 @@ export class HitBloodSprayManager {
 
   clear(): void {
     for (const s of this.shards) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.shards.length = 0;
   }

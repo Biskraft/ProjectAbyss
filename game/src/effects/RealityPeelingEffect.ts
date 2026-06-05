@@ -1,4 +1,5 @@
 import type { Container } from 'pixi.js';
+import { clampEffect01 } from './EffectNumeric';
 
 interface LayerSnapshot {
   layer: Container;
@@ -34,11 +35,11 @@ export class RealityPeelingEffect {
   }
 
   update(t: number): void {
-    const p = Math.max(0, Math.min(1, t));
+    const p = clampEffect01(t);
     for (let groupIndex = 0; groupIndex < this.groups.length; groupIndex++) {
       const start = groupIndex / this.groups.length;
       const end = (groupIndex + 1) / this.groups.length;
-      const local = Math.max(0, Math.min(1, (p - start) / (end - start)));
+      const local = clampEffect01((p - start) / (end - start));
       const eased = local * local * (3 - 2 * local);
       const drift = groupIndex === 0 ? 8 : groupIndex === 1 ? 4 : 0;
       const scaleAdd = groupIndex === this.groups.length - 1 ? 0.01 : 0;

@@ -1,4 +1,8 @@
 import type { Graphics } from 'pixi.js';
+import {
+  getFadeInAlphaFromRemaining,
+  getFadeOutAlphaFromRemaining,
+} from '@scenes/shared/TransitionFadeHelpers';
 
 interface ItemWorldRoomTransitionRuntimeDeps {
   getFadeOverlay: () => Graphics;
@@ -28,10 +32,6 @@ export class ItemWorldRoomTransitionRuntime {
     return this.state !== 'none';
   }
 
-  get suppressionState(): string {
-    return this.isActive ? this.state : 'none';
-  }
-
   start(options: StartOptions): void {
     this.state = 'fade_out';
     this.timerMs = this.deps.fadeDurationMs;
@@ -47,7 +47,7 @@ export class ItemWorldRoomTransitionRuntime {
     const fadeDuration = this.deps.fadeDurationMs;
 
     if (this.state === 'fade_out') {
-      fadeOverlay.alpha = Math.min(1, 1 - this.timerMs / fadeDuration);
+      fadeOverlay.alpha = getFadeOutAlphaFromRemaining(this.timerMs, fadeDuration);
       if (this.timerMs > 0) return false;
 
       handlers.placePlayerInRoom(this.pendingCol, this.pendingRow);
@@ -57,7 +57,7 @@ export class ItemWorldRoomTransitionRuntime {
       return false;
     }
 
-    fadeOverlay.alpha = Math.max(0, this.timerMs / fadeDuration);
+    fadeOverlay.alpha = getFadeInAlphaFromRemaining(this.timerMs, fadeDuration);
     if (this.timerMs > 0) return false;
 
     this.reset();

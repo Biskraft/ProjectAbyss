@@ -1,10 +1,10 @@
 import type { BurnableProp } from '@entities/BurnableProp';
+import { clearBurnableProps } from '@scenes/shared/BurnablePropRegistryHelpers';
 
 export class ItemWorldBurnablePropRegistry {
   readonly props: BurnableProp[] = [];
 
   clear(): void {
-    for (const prop of this.props) prop.destroy();
-    this.props.length = 0;
+    clearBurnableProps(this.props);
   }
 }

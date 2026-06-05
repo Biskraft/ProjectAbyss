@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Hollow Knight—style hit effect.
@@ -284,8 +285,7 @@ export class HitSparkManager {
       }
 
       if (f.age >= f.maxLife) {
-        if (f.gfx.parent) f.gfx.parent.removeChild(f.gfx);
-        f.gfx.destroy();
+        destroyDisplayObject(f.gfx);
         this.fx.splice(i, 1);
       }
     }

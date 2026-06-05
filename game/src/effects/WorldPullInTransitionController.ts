@@ -1,6 +1,7 @@
 import { Container, RenderTexture, Sprite } from 'pixi.js';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../Game';
 import { WorldPullIn, type WorldPullInCapture } from './WorldPullIn';
+import { detachDisplayObject, destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface PullTarget {
   container: Container;
@@ -165,7 +166,7 @@ export class WorldPullInTransitionController {
     c.scale.set(state.sx, state.sy);
     c.visible = state.visible;
     if (state.parent) state.parent.addChild(c);
-    else if (c.parent) c.parent.removeChild(c);
+    else detachDisplayObject(c);
     this.promotedTrapdoorState = null;
   }
 
@@ -186,10 +187,7 @@ export class WorldPullInTransitionController {
 
   private destroyCharacterOverlay(): void {
     if (this.characterOverlay) {
-      if (this.characterOverlay.parent) {
-        this.characterOverlay.parent.removeChild(this.characterOverlay);
-      }
-      this.characterOverlay.destroy();
+      destroyDisplayObject(this.characterOverlay);
       this.characterOverlay = null;
     }
     if (this.characterOverlayTexture) {

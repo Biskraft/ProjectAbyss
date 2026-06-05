@@ -17,3 +17,5 @@
 - Do not add BGM volume-factor fields back to `LdtkWorldScene`; save-room audio policy belongs in `SaveRoomAudioRuntime`.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.
+
+- 2026-06-05: Save point marker/sprite/prompt clear now uses `DisplayObjectLifecycleHelpers.detachDisplayObject()`, preserving the existing detach-only cleanup semantics while `SavepointPulseManager` aura cleanup remains separate.

@@ -1,5 +1,5 @@
-import { GameAction } from '@core/InputManager';
 import type { UISkin } from '@ui/UISkin';
+import { updateConfirmCancelInput } from '@scenes/shared/ConfirmCancelInputHelpers';
 import type { Game } from '../../Game';
 import type { ItemWorldUiController } from './ItemWorldUiController';
 
@@ -21,28 +21,23 @@ export class ItemWorldBossChoiceRuntime {
     });
   }
 
-  hide(): void {
-    this.deps.getUiController().hideBossChoice();
-  }
-
-  isVisible(): boolean {
-    return this.deps.getUiController().isBossChoiceVisible();
-  }
-
   updateInput(): boolean {
-    if (!this.isVisible()) return false;
+    const uiController = this.deps.getUiController();
 
-    const input = this.deps.game.input;
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      this.hide();
-      this.deps.onContinue();
-      return true;
-    }
-    if (input.isJustPressed(GameAction.MENU)) {
-      this.hide();
-      this.deps.onExit();
-      return true;
-    }
+    if (!uiController.isBossChoiceVisible()) return false;
+
+    updateConfirmCancelInput({
+      input: this.deps.game.input,
+      onConfirm: () => {
+        uiController.hideBossChoice();
+        this.deps.onContinue();
+      },
+      onCancel: () => {
+        uiController.hideBossChoice();
+        this.deps.onExit();
+      },
+    });
+
     return true;
   }
 }

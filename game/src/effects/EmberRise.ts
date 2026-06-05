@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * EmberRise — small luminous particles drifting upward from every burning
@@ -40,8 +41,7 @@ export class EmberRiseManager {
   }
 
   destroy(): void {
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
+    destroyDisplayObject(this.gfx);
     this.embers.length = 0;
   }
 

@@ -21,6 +21,7 @@
 
 import { Container, Sprite, Texture, Assets, Rectangle } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface AtlasFrame {
   frame: { x: number; y: number; w: number; h: number };
@@ -152,8 +153,7 @@ export class NPC {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
     this.sprite = null; // guard late restoreFlip() after a level change
   }
 }

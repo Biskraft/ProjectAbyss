@@ -20,6 +20,7 @@
 
 import { Container, Graphics } from 'pixi.js';
 import type { Game } from '../Game';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 
@@ -232,9 +233,7 @@ export class SecretWall {
   // ---------------------------------------------------------------------------
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 
   /** Center position — useful for spawning items/particles. */

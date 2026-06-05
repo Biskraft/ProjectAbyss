@@ -9,6 +9,7 @@ Current responsibilities:
 - Own per-entry Ego trigger flags so one-shot lines do not repeat within the same run.
 - Gate first-boss-onboarding lines on `EGO_EVENT.BOSS_KILLED`.
 - Fire entry, monster-visible, first-kill, room-clear, innocent, player-death, boss-kill, re-entry, weapon-swap-return, and affinity-max dialogue lines through the scene-owned `LoreDisplay`.
+- The active/flagged/idle `LoreDisplay` dialogue fire gate is shared through `game/src/scenes/shared/EgoDialogueRuntimeHelpers.ts`; this runtime still owns which Ego lines are eligible and when.
 
 Scene-owned boundaries:
 

@@ -1,15 +1,17 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 /**
- * Fluid residue — small blots dropped on the floor by:
+ * Fluid residue ??small blots dropped on the floor by:
  *   1. Entity footsteps after leaving an oil / acid / magma pool
  *   2. Cell evaporation (FluidSystem thin-strip dry-up)
  *
  * Each blot is a per-pixel artifact (not cell-aligned). While alive, any
  * entity AABB-overlapping a blot receives the residue's effect:
- *   - oil   → refresh slip debuff
- *   - acid  → acid tick DOT
- *   - magma → magma burn DOT (Burn refresh)
+ *   - oil   ??refresh slip debuff
+ *   - acid  ??acid tick DOT
+ *   - magma ??magma burn DOT (Burn refresh)
  *
  * Oil blots are flammable: a fire attack covering the blot ignites it; once
  * burning, it emits flame VFX + fire DOT until consumed.
@@ -25,7 +27,7 @@ interface Blot {
   y: number;
   type: ResidueType;
   age: number;
-  /** Random base radius — small variation so prints don't look stamped. */
+  /** Random base radius ??small variation so prints don't look stamped. */
   r: number;
   /**
    * 0..1 scalar baked at drop time. Captures how concentrated the residue
@@ -61,7 +63,7 @@ const PALETTE: Record<ResidueType, Palette> = {
 };
 
 /**
- * AABB hit test — does an entity AABB cover this blot's pixel center?
+ * AABB hit test ??does an entity AABB cover this blot's pixel center?
  *
  * Uses INCLUSIVE bottom/right edges because blots are dropped exactly at
  * the entity's foot Y (= player.y + player.height). A strict `<` would miss
@@ -97,7 +99,7 @@ export class FluidResidueManager {
    * Per-frame emit while a residue source is "wet" (slipping / acid-coated /
    * magma-coated). Pass `active=false` when the source is dry or in mid-air.
    *
-   * `intensity` 0..1 — pass `residueRemainingMs / sourceDurationMs` so first
+   * `intensity` 0..1 ??pass `residueRemainingMs / sourceDurationMs` so first
    * prints right after fluid exit are vivid and later ones fade.
    */
   emit(
@@ -121,7 +123,7 @@ export class FluidResidueManager {
   }
 
   /**
-   * Direct drop — used by FluidSystem evaporation (cell center + bottom),
+   * Direct drop ??used by FluidSystem evaporation (cell center + bottom),
    * and by `emit()` when the step distance gate clears.
    */
   dropAt(type: ResidueType, x: number, y: number, intensity = 1.0): void {
@@ -136,15 +138,14 @@ export class FluidResidueManager {
       type,
       age: 0,
       r,
-      intensity: Math.max(0, Math.min(1, intensity)),
+      intensity: clampEffect01(intensity),
       burning: false,
       burnRemaining: 0,
     });
     while (this.blots.length > MAX_BLOTS) {
       const old = this.blots.shift();
       if (old) {
-        if (old.gfx.parent) old.gfx.parent.removeChild(old.gfx);
-        old.gfx.destroy();
+        destroyDisplayObject(old.gfx);
       }
     }
   }
@@ -157,17 +158,15 @@ export class FluidResidueManager {
         p.burnRemaining -= dtMs;
         this.drawBurningBlot(p);
         if (p.burnRemaining <= 0) {
-          // Consumed by fire — vanish completely.
-          if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-          p.gfx.destroy();
+          // Consumed by fire ??vanish completely.
+          destroyDisplayObject(p.gfx);
           this.blots.splice(i, 1);
         }
         continue;
       }
       this.drawIdleBlot(p);
       if (p.age >= idleLifeFor(p)) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.blots.splice(i, 1);
       }
     }
@@ -186,26 +185,26 @@ export class FluidResidueManager {
     const r = p.r;
     p.gfx.clear();
 
-    // Cyro: 작은 6-spoke ice 결정 (puddle 대신). 결정 핵 + 별 모양 6 spoke.
+    // Cyro: ?��? 6-spoke ice 결정 (puddle ?�??. 결정 ??+ �?모양 6 spoke.
     if (p.type === 'cyro') {
       const s = r * 0.9;
       // halo
       p.gfx.circle(0, 0, r * 0.9)
         .fill({ color: pal.halo, alpha: Math.max(0, alpha * 0.35) });
-      // 6-spoke star (수직 + 2 대각선)
+      // 6-spoke star (?�직 + 2 ?�각선)
       p.gfx.moveTo(0, -s).lineTo(0, s)
         .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
       p.gfx.moveTo(-s * 0.866, -s * 0.5).lineTo(s * 0.866, s * 0.5)
         .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
       p.gfx.moveTo(-s * 0.866, s * 0.5).lineTo(s * 0.866, -s * 0.5)
         .stroke({ color: pal.sheen, width: 0.9, alpha: Math.max(0, alpha) });
-      // 중앙 핵
+      // center dot
       p.gfx.circle(0, 0, r * 0.3)
         .fill({ color: pal.outer, alpha: Math.max(0, alpha * 0.9) });
       return;
     }
 
-    // 기본 — water/oil/acid/magma 공용 puddle.
+    // 기본 ??water/oil/acid/magma 공용 puddle.
     p.gfx.ellipse(0, 0, r * 1.6, r * 0.85)
       .fill({ color: pal.halo, alpha: Math.max(0, alpha * 0.45) });
     p.gfx.ellipse(0, 0, r, r * 0.55)
@@ -224,7 +223,7 @@ export class FluidResidueManager {
     // Charred base (always visible while burning)
     p.gfx.ellipse(0, 0, r * 1.3, r * 0.6)
       .fill({ color: 0x0a0604, alpha: 0.95 });
-    // ── Teardrop flame above the blot, single strand (small blot footprint) ──
+    // ?�?� Teardrop flame above the blot, single strand (small blot footprint) ?�?�
     const phase = p.age * 0.018;
     const wobble = 0.85 + Math.sin(phase) * 0.25;
     const flameH = r * 3.0 * wobble * lifeRatio;
@@ -305,8 +304,7 @@ export class FluidResidueManager {
 
   clear(): void {
     for (const p of this.blots) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy();
+      destroyDisplayObject(p.gfx);
     }
     this.blots.length = 0;
     for (const k of Object.keys(this.lastDrop) as ResidueType[]) {
@@ -314,3 +312,5 @@ export class FluidResidueManager {
     }
   }
 }
+
+

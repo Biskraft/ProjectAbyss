@@ -1,15 +1,5 @@
-export type ItemWorldFlowTransitionState = 'none' | 'exit_fade' | 'post_clear_hold';
-
 export class ItemWorldFlowState {
-  private state: ItemWorldFlowTransitionState = 'none';
-
-  get value(): ItemWorldFlowTransitionState {
-    return this.state;
-  }
-
-  get isActive(): boolean {
-    return this.state !== 'none';
-  }
+  private state: 'none' | 'exit_fade' | 'post_clear_hold' = 'none';
 
   get isExitFade(): boolean {
     return this.state === 'exit_fade';

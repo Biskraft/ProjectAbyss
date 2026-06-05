@@ -1,5 +1,9 @@
 import { Filter, GlProgram, UniformGroup } from 'pixi.js';
 
+type RGBSplitUniforms = {
+  uOffsetPx: number;
+};
+
 const vertex = /* glsl */ `
 in vec2 aPosition;
 out vec2 vTextureCoord;
@@ -46,6 +50,7 @@ void main() {
 
 export class RGBSplitFilter extends Filter {
   private static readonly MAX_PADDING = 24;
+  private readonly rgbUniforms: UniformGroup;
 
   constructor() {
     const glProgram = GlProgram.from({ vertex, fragment, name: 'rgb-split' });
@@ -53,10 +58,11 @@ export class RGBSplitFilter extends Filter {
       uOffsetPx: { value: 0, type: 'f32' },
     });
     super({ glProgram, resources: { rgbUniforms }, padding: RGBSplitFilter.MAX_PADDING });
+    this.rgbUniforms = rgbUniforms;
   }
 
   /** Set horizontal RGB offset in pixels. */
   setOffset(px: number): void {
-    (this.resources.rgbUniforms as any).uniforms.uOffsetPx = px;
+    (this.rgbUniforms.uniforms as RGBSplitUniforms).uOffsetPx = px;
   }
 }

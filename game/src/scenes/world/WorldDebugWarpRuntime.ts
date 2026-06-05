@@ -7,6 +7,9 @@ import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
 import type { ToastManager } from '@ui/Toast';
 import type { WorldMapRuntime } from './WorldMapRuntime';
+import { placePlayerAt } from '@scenes/shared/PlayerPlacementHelpers';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
 
 interface WorldDebugWarpRuntimeDeps {
   game: Game;
@@ -36,8 +39,7 @@ export class WorldDebugWarpRuntime {
     const input = this.deps.game.input;
     const worldMap = this.deps.worldMapRuntime.overlay;
 
-    if (input.shiftDown && input.isJustPressed(GameAction.MAP) && !this.deps.isInItemTunnel()) {
-      input.consumeJustPressed(GameAction.MAP);
+    if (input.shiftDown && !this.deps.isInItemTunnel() && consumeJustPressedAction(input, GameAction.MAP)) {
       if (this.active) this.deactivate();
       this.openDebugWorldMap();
     }
@@ -47,8 +49,7 @@ export class WorldDebugWarpRuntime {
       this.toggle();
     }
 
-    if (this.active && !worldMap.visible && input.isJustPressed(GameAction.MENU)) {
-      input.consumeJustPressed(GameAction.MENU);
+    if (this.active && !worldMap.visible && consumeJustPressedAction(input, GameAction.MENU)) {
       this.deactivate();
     }
   }
@@ -96,8 +97,7 @@ export class WorldDebugWarpRuntime {
     this.active = false;
 
     if (this.hintText) {
-      this.hintText.parent?.removeChild(this.hintText);
-      this.hintText.destroy();
+      destroyDisplayObject(this.hintText);
       this.hintText = null;
     }
     if (this.clickHandler) {
@@ -154,11 +154,10 @@ export class WorldDebugWarpRuntime {
       }
     }
 
-    player.x = clickX - player.width / 2;
-    player.y = footY - player.height;
-    player.vx = 0;
-    player.vy = 0;
-    player.savePrevPosition();
+    placePlayerAt(player, clickX - player.width / 2, footY - player.height, {
+      resetVelocity: true,
+      savePreviousPosition: true,
+    });
 
     for (let i = 0; i < 5; i++) {
       player.update(16.667);

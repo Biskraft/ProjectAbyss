@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import type { GiantBuilder } from '@entities/GiantBuilder';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const EXTEND_MS = 100;
 const RETRACT_MS = 100;
@@ -85,6 +86,6 @@ export class PileDriver {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

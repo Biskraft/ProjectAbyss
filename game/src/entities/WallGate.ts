@@ -1,4 +1,5 @@
 import { Container } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Invisible exit trigger at the far end of the deployment tunnel.
@@ -32,6 +33,6 @@ export class WallGate {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

@@ -12,6 +12,7 @@
  */
 
 import { Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 type Node = Container;
 
@@ -178,8 +179,7 @@ export class PropShatterManager {
       c.node.alpha = c.fade === 'linear' ? k : (k < 0.4 ? k / 0.4 : 1);
 
       if (c.life <= 0) {
-        if (c.node.parent) c.node.parent.removeChild(c.node);
-        c.node.destroy();
+        destroyDisplayObject(c.node);
         this.chunks.splice(i, 1);
       }
     }
@@ -187,8 +187,7 @@ export class PropShatterManager {
 
   clear(): void {
     for (const c of this.chunks) {
-      if (c.node.parent) c.node.parent.removeChild(c.node);
-      c.node.destroy();
+      destroyDisplayObject(c.node);
     }
     this.chunks = [];
   }

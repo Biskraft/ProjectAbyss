@@ -1,9 +1,14 @@
 import { Debug } from '@core/Debug';
-import { isOneWay, isSolid } from '@core/Physics';
 import { WeatherSystem, type WeatherDynamicCollider, type WeatherMode } from '@effects/WeatherSystem';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Container } from 'pixi.js';
-import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import {
+  attachWeatherToLayer,
+  destroyWeather,
+  isWeatherCollisionSolid,
+  updateWeatherForCamera,
+} from '@scenes/shared/WeatherRuntimeHelpers';
+import type { Game } from '../../Game';
 
 interface WorldWeatherRuntimeOptions {
   game: Game;
@@ -28,7 +33,8 @@ export class WorldWeatherRuntime {
     if (!ent) return;
 
     const fields = ent.fields ?? {};
-    const mode = this.readMode(fields['WeatherType']);
+    const weatherModeRaw = fields['WeatherType'];
+    const mode = typeof weatherModeRaw === 'string' && weatherModeRaw.toLowerCase() === 'snow' ? 'snow' : 'rain';
     const density = this.readNumber(fields, 'Density', 0.5, 0, 1);
     const wind = this.readNumber(fields, 'Wind', mode === 'rain' ? -0.18 : 0, -1, 1);
     const streakLength = this.readNumber(fields, 'StreakLength', 6, 1, 64);
@@ -44,11 +50,11 @@ export class WorldWeatherRuntime {
       collision: {
         grid: this.options.getCollisionGrid(),
         tileSize: this.options.tileSize,
-        isSolid: (tile) => isSolid(tile) || isOneWay(tile),
+        isSolid: isWeatherCollisionSolid,
         ignoreCell: (col, row) => this.options.isIgnoredCell(col, row),
       },
     });
-    this.options.getWeatherLayer().addChild(this.weather.container);
+    attachWeatherToLayer(this.weather, this.options.getWeatherLayer());
 
     if (weatherEnts.length > 1) {
       console.warn(`[Weather] level="${level.identifier}" has ${weatherEnts.length} Weather entities; using the first one.`);
@@ -62,15 +68,7 @@ export class WorldWeatherRuntime {
     if (!this.weather) return;
 
     this.weather.setDynamicColliders(this.options.getDynamicColliders());
-    const cam = this.options.game.camera;
-    const width = GAME_WIDTH / cam.zoom;
-    const height = GAME_HEIGHT / cam.zoom;
-    this.weather.update(dt, {
-      x: cam.renderX - width / 2,
-      y: cam.renderY - height / 2,
-      width,
-      height,
-    });
+    updateWeatherForCamera(this.weather, this.options.game, dt);
   }
 
   clearDynamicColliders(): void {
@@ -78,12 +76,7 @@ export class WorldWeatherRuntime {
   }
 
   destroy(): void {
-    this.weather?.destroy();
-    this.weather = null;
-  }
-
-  private readMode(value: unknown): WeatherMode {
-    return typeof value === 'string' && value.toLowerCase() === 'snow' ? 'snow' : 'rain';
+    this.weather = destroyWeather(this.weather);
   }
 
   private readNumber(

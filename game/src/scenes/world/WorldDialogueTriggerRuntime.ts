@@ -6,7 +6,15 @@ import { t } from '@i18n';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import type { LoreDisplay, LoreLine } from '@ui/LoreDisplay';
 import { NPC } from '@entities/NPC';
-import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import type { Game } from '../../Game';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  updateEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
+import { projectWorldToUi } from '@scenes/shared/WorldPromptProjection';
 
 /** Normalise a LDtk text field (Array<String> or String) to a list of non-empty locale keys. */
 function toKeyList(field: unknown): string[] {
@@ -178,8 +186,7 @@ export class WorldDialogueTriggerRuntime {
       const character = (ent.fields['character'] ?? '') as string;
       const npc = new NPC(ent.px[0], ent.px[1], character);
       npc.setBaseFlip((ent.fields['flipX'] ?? false) as boolean);
-      this.deps.getEntityLayer().addChild(npc.container);
-      this.npcs.push(npc);
+      addEntityToLayer(this.npcs, npc, this.deps.getEntityLayer());
 
       const lines = buildDialogueLines(
         ent.fields['text'],
@@ -224,7 +231,7 @@ export class WorldDialogueTriggerRuntime {
 
   update(dt: number): void {
     // Idle animations run regardless of dialogue state.
-    for (const npc of this.npcs) npc.update(dt);
+    updateEntities(this.npcs, dt);
 
     const loreDisplay = this.deps.getLoreDisplay();
     if (!loreDisplay) return;
@@ -262,8 +269,7 @@ export class WorldDialogueTriggerRuntime {
       }
 
       this.updateInteractPrompt(trigger, inside);
-      if (inside && this.deps.game.input.isJustPressed(GameAction.ATTACK)) {
-        this.deps.game.input.consumeJustPressed(GameAction.ATTACK);
+      if (inside && consumeJustPressedAction(this.deps.game.input, GameAction.ATTACK)) {
         this.startDialogue(loreDisplay, trigger, pcx);
         this.markTriggered(trigger, unlockedEvents);
         break;
@@ -294,19 +300,18 @@ export class WorldDialogueTriggerRuntime {
 
   clear(): void {
     for (const trigger of this.triggers) {
-      if (trigger.prompt?.parent) trigger.prompt.parent.removeChild(trigger.prompt);
+      if (trigger.prompt) detachDisplayObject(trigger.prompt);
     }
     this.triggers = [];
-    for (const npc of this.npcs) npc.destroy();
-    this.npcs = [];
+    destroyAndClearEntities(this.npcs);
   }
 
   private markTriggered(trigger: DialogueTrigger, unlockedEvents: Set<string>): void {
     if (trigger.once) {
       trigger.fired = true;
       if (trigger.eventName) unlockedEvents.add(trigger.eventName);
-      if (trigger.prompt?.parent) {
-        trigger.prompt.parent.removeChild(trigger.prompt);
+      if (trigger.prompt) {
+        detachDisplayObject(trigger.prompt);
         trigger.prompt = null;
       }
     } else {
@@ -319,11 +324,14 @@ export class WorldDialogueTriggerRuntime {
     trigger.prompt.visible = inside;
     if (!inside) return;
 
-    const us = this.deps.game.uiScale;
     const cam = this.deps.game.camera;
-    const sx = (trigger.x + trigger.w / 2 - cam.renderX + GAME_WIDTH / 2) * us - trigger.prompt.width / 2;
-    const sy = (trigger.y - cam.renderY + GAME_HEIGHT / 2 - 16) * us;
-    trigger.prompt.x = Math.round(sx);
-    trigger.prompt.y = Math.round(sy);
+    const p = projectWorldToUi({
+      camera: cam,
+      uiScale: this.deps.game.uiScale,
+      worldX: trigger.x + trigger.w / 2,
+      worldY: trigger.y - 16,
+    });
+    trigger.prompt.x = Math.round(p.x - trigger.prompt.width / 2);
+    trigger.prompt.y = Math.round(p.y);
   }
 }

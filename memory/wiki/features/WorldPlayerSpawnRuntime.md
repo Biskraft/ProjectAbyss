@@ -8,6 +8,7 @@ Current state:
 - Uses the runtime collision grid, not raw LDtk `level.collisionGrid`, so broken SecretWalls/CrackedFloors can open valid edge passages before placement.
 - Converts `WorldEdgeTransitionRuntime` pending world-tile hints to local level hints, then uses `WorldTransitionController.findEdgePassage()` / `snapToFloor()` for edge-entry placement.
 - Uses the LDtk `Player` entity for default down-entry/fresh spawn, and falls back to a bottom-edge passage when no Player entity exists.
+- Reads scene via injected `getScene()` callback before using `Player.Scene` fallbacks.
 - Updates player position, velocity, `roomData`, previous position, and `WorldVoidRuntime` safe position through callbacks.
 
 Boundaries:

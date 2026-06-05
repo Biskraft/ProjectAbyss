@@ -1,5 +1,6 @@
 import type { Container } from 'pixi.js';
 import type { GiantBuilder } from '@entities/GiantBuilder';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export interface BuilderAttachable {
   x: number;
@@ -39,7 +40,7 @@ export class WorldBuilderAttachmentRuntime {
   ): void {
     const reparent = options.reparent ?? true;
     if (reparent) {
-      entity.container.parent?.removeChild(entity.container);
+      detachDisplayObject(entity.container);
       builder.container.addChild(entity.container);
       entity.container.x = localX;
       entity.container.y = localY;

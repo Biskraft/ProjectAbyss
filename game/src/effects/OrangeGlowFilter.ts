@@ -12,6 +12,13 @@
 
 import { Filter, GlProgram, UniformGroup } from 'pixi.js';
 
+type GlowUniforms = {
+  uGlowColor: Float32Array;
+  uRadius: number;
+  uIntensity: number;
+  uCoreBoost: number;
+};
+
 const vertex = /* glsl */ `
 in vec2 aPosition;
 out vec2 vTextureCoord;
@@ -112,6 +119,7 @@ export interface OrangeGlowOptions {
 }
 
 export class OrangeGlowFilter extends Filter {
+  private readonly glowUniforms: UniformGroup;
   constructor(opts: OrangeGlowOptions = {}) {
     const c = opts.color ?? 0xFF7000;
     const rgb = new Float32Array([
@@ -135,10 +143,11 @@ export class OrangeGlowFilter extends Filter {
       resources: { glowUniforms },
       padding: radius + 2,
     });
+    this.glowUniforms = glowUniforms;
   }
 
   /** Mutate intensity at runtime — used for slow pulse animation. */
   setIntensity(v: number): void {
-    (this.resources.glowUniforms as any).uniforms.uIntensity = v;
+    (this.glowUniforms.uniforms as GlowUniforms).uIntensity = v;
   }
 }

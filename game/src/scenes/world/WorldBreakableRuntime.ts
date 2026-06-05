@@ -1,10 +1,11 @@
 import type { Container } from 'pixi.js';
 import type { Game } from '../../Game';
 import { aabbOverlap } from '@core/Physics';
-import { SFX } from '@audio/Sfx';
 import type { Player } from '@entities/Player';
 import { Breakable } from '@entities/Breakable';
-import { GoldPickup } from '@entities/GoldPickup';
+import type { GoldPickup } from '@entities/GoldPickup';
+import { applyBreakableDrop } from '@scenes/shared/BreakableDropHelpers';
+import { applyBreakableDestroyFeedback } from '@scenes/shared/BreakableFeedbackHelpers';
 import type { HitSparkManager } from '@effects/HitSpark';
 import type { PropShatterManager } from '@effects/PropShatter';
 import type { LdtkLevel } from '@level/LdtkLoader';
@@ -60,35 +61,22 @@ export class WorldBreakableRuntime {
       if (!aabbOverlap(hitbox, breakable.getAABB())) continue;
 
       const drop = breakable.break();
-      this.deps.game.hitstopFrames += 4;
-      this.deps.game.camera.shake(4);
-      this.deps.getPropShatter().spawn(
-        breakable.x,
-        breakable.y,
-        breakable.width,
-        breakable.height,
-        breakable.getParticleColor(),
-        breakable.getAccentColor(),
-        breakable.getArtifactTexture(),
-      );
-      SFX.play('breakable_destroy', 0, { speed: 1 / (1 + Math.random() * 0.5) });
-      this.deps.getHitSparks().spawn(
-        breakable.x + breakable.width / 2,
-        breakable.y + breakable.height / 2,
-        false,
-        player.facingRight ? 1 : -1,
-      );
+      applyBreakableDestroyFeedback({
+        prop: breakable,
+        source: 'sword',
+        player,
+        game: this.deps.game,
+        propShatter: this.deps.getPropShatter(),
+        hitSparks: this.deps.getHitSparks(),
+      });
 
-      if (drop.type === 'gold' && drop.amount > 0) {
-        const burstX = breakable.x + breakable.width / 2 - 8;
-        const burstY = breakable.y + breakable.height;
-        for (const pickup of GoldPickup.spawnBurst(burstX, burstY, drop.amount)) {
-          pickup.roomData = this.deps.getCollisionGrid();
-          this.deps.addGoldPickup(pickup);
-        }
-      } else if (drop.type === 'flask') {
-        player.flaskCharges = Math.min(player.flaskCharges + 1, player.flaskMaxCharges);
-      }
+      applyBreakableDrop({
+        prop: breakable,
+        drop,
+        player,
+        collisionGrid: this.deps.getCollisionGrid(),
+        addGoldPickup: this.deps.addGoldPickup,
+      });
 
       this.deps.getRegistry().removeAt(i);
     }

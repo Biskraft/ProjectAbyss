@@ -4,6 +4,7 @@
 
 Current state:
 - The registry owns the active `BreakableProp[]` list, entity-layer attachment, per-frame prop update, room-clear cleanup, and remove-at cleanup.
+- Breakable prop list add/attach, clear/destroy, remove-at destroy/splice, and update iteration are shared through `game/src/scenes/shared/BreakablePropRegistryHelpers.ts`.
 - `WorldBreakablePropRuntime` owns procedural placement exclusions, `spawnBreakableProps()` invocation, `TileMutator` registration/unregistration, sword/fire hit policy, shatter VFX/SFX, and pickup side effects.
 - Runtime destruction performs break/drop/VFX side effects only; callers remove the prop through `WorldBreakablePropRegistry.removeAt()`.
 
@@ -11,5 +12,6 @@ Prevention rules:
 - Do not add a scene-owned `breakableProps` array back to `LdtkWorldScene`.
 - Register props with `TileMutator` before adding them to the registry, and unregister before every registry removal path.
 - Do not call `BreakableProp.destroy()` inside runtime destruction side effects; registry removal owns final Pixi cleanup.
+- Do not move procedural placement, `TileMutator`, sword/fire hit policy, or drop/feedback side effects into `BreakablePropRegistryHelpers`; it should stay a list/container lifecycle helper.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.

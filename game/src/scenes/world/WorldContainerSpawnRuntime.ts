@@ -1,9 +1,13 @@
 import { Graphics, type Container as PixiContainer } from 'pixi.js';
 import { Debug } from '@core/Debug';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { ThrowableContainer, parseContainerKind, type ContainerKind } from '@entities/ThrowableContainer';
+import { ThrowableContainer, type ContainerKind } from '@entities/ThrowableContainer';
 import { readSpawnerEntity, runContainerSpawner } from '@systems/ContainerSpawner';
-import { resolveContainerSlotKind } from '@data/ContainerPools';
+import {
+  buildContainerOccupiedCells,
+  settleContainersAtSpawnFromIndex,
+} from '@scenes/shared/ContainerSpawnSettleHelpers';
+import { resolveRuntimeContainerKind } from '@scenes/shared/ContainerKindHelpers';
 import type { WorldContainerRegistry } from './WorldContainerRegistry';
 import type { WorldMaintainedContainerSpawnerRuntime } from './WorldMaintainedContainerSpawnerRuntime';
 
@@ -15,9 +19,6 @@ interface WorldContainerSpawnRuntimeDeps {
   isDebugMode: () => boolean;
 }
 
-const SOLID_TILE_VALUES = new Set<number>([1, 3, 7, 9, 12, 15]);
-const FLUID_TILE_VALUES = new Set<number>([2, 6, 8, 11, 13, 20]);
-
 export class WorldContainerSpawnRuntime {
   constructor(private readonly deps: WorldContainerSpawnRuntimeDeps) {}
 
@@ -28,7 +29,7 @@ export class WorldContainerSpawnRuntime {
 
     for (const entity of containerEnts) {
       const fields = entity.fields ?? {};
-      const kind = this.resolveExplicitContainerKind(fields['Kind']);
+      const kind = resolveRuntimeContainerKind(fields['Kind'], null);
       if (!kind) {
         // eslint-disable-next-line no-console
         console.warn(`[Container] level="${level.identifier}" Kind="${String(fields['Kind'])}" at (${entity.px[0]}, ${entity.px[1]}) is invalid, skipped. Valid values: Crate / MetalCrate / OilDrum / WaterBarrel / MagmaCrucible / AcidVial / Generic_A / Generic_B / Generic_C`);
@@ -48,7 +49,8 @@ export class WorldContainerSpawnRuntime {
     }
 
     const spawnerEnts = level.entities.filter((entity) => entity.type === 'ContainerSpawner');
-    const occupiedCells = this.buildOccupiedCells();
+    const containers = this.deps.registry.getContainers();
+    const occupiedCells = buildContainerOccupiedCells(containers);
     let spawnerSpawned = 0;
 
     this.deps.maintainedSpawnerRuntime.clear();
@@ -59,13 +61,16 @@ export class WorldContainerSpawnRuntime {
       const spawned = runContainerSpawner({
         rect: opts.rect,
         collisionGrid: this.deps.getCollisionGrid(),
-        existing: this.deps.registry.containers,
+        existing: containers,
         occupiedCells,
         pool: opts.pool,
         minCount: opts.minCount,
         maxCount: opts.maxCount,
         bias: opts.bias,
-        seed: opts.seed >= 0 ? opts.seed : this.stableLevelSeed(level.identifier),
+        seed: opts.seed >= 0 ? opts.seed : level.identifier.split('').reduce(
+          (hash, char) => (hash * 31 + char.charCodeAt(0)) | 0,
+          0,
+        ),
         avoidEntity: opts.avoidEntity,
         fluidVolumeOverride: opts.fluidVolumeOverride,
       });
@@ -78,7 +83,7 @@ export class WorldContainerSpawnRuntime {
       this.deps.maintainedSpawnerRuntime.register(opts, spawned);
     }
 
-    this.settleSpawnedContainers();
+    settleContainersAtSpawnFromIndex(containers, 0, this.deps.getCollisionGrid());
     Debug.log(`[Container] level="${level.identifier}" explicit=${explicitSpawned}/${containerEnts.length} spawner=${spawnerSpawned} (from ${spawnerEnts.length} spawners)\n${spawnLog.join('\n')}`);
   }
 
@@ -92,31 +97,6 @@ export class WorldContainerSpawnRuntime {
     }
   }
 
-  private resolveExplicitContainerKind(rawKind: unknown): ConstructorParameters<typeof ThrowableContainer>[0] | null {
-    const parsed = parseContainerKind(rawKind);
-    if (parsed) return parsed;
-
-    const slot = typeof rawKind === 'string' ? rawKind.toLowerCase() : '';
-    if (slot === 'generic_a' || slot === 'generic_b' || slot === 'generic_c') {
-      return resolveContainerSlotKind(slot, null);
-    }
-    return null;
-  }
-
-  private buildOccupiedCells(): Set<string> {
-    const occupiedCells = new Set<string>();
-    for (const container of this.deps.registry.containers) {
-      const gx0 = Math.floor(container.x / 16);
-      const gx1 = Math.floor((container.x + container.spec.width - 1) / 16);
-      const gy0 = Math.floor(container.y / 16);
-      const gy1 = Math.floor((container.y + container.spec.height - 1) / 16);
-      for (let gy = gy0; gy <= gy1; gy++) {
-        for (let gx = gx0; gx <= gx1; gx++) occupiedCells.add(`${gx},${gy}`);
-      }
-    }
-    return occupiedCells;
-  }
-
   private addDebugSpawnerRect(rect: { x: number; y: number; w: number; h: number }): void {
     const debugRect = new Graphics();
     debugRect.rect(rect.x, rect.y, rect.w, rect.h)
@@ -124,33 +104,4 @@ export class WorldContainerSpawnRuntime {
     this.deps.getEntityLayer().addChild(debugRect);
   }
 
-  private stableLevelSeed(levelId: string): number {
-    return levelId.split('').reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0);
-  }
-
-  private settleSpawnedContainers(): void {
-    const sorted = [...this.deps.registry.containers].sort((a, b) => b.y - a.y);
-    for (const container of sorted) {
-      if (container.skipSettle) continue;
-      container.settleAtSpawn(
-        this.isContainerSolidCellFor(container),
-        this.deps.registry.containers,
-        1024,
-        (gx, gy) => this.isFluidCell(gx, gy),
-      );
-    }
-  }
-
-  private isContainerSolidCellFor(container: ThrowableContainer): (gx: number, gy: number) => boolean {
-    return (gx, gy) => {
-      const tile = this.deps.getCollisionGrid()[gy]?.[gx] ?? 0;
-      if (SOLID_TILE_VALUES.has(tile)) return true;
-      return container.isWoodFamily() && FLUID_TILE_VALUES.has(tile);
-    };
-  }
-
-  private isFluidCell(gx: number, gy: number): boolean {
-    const tile = this.deps.getCollisionGrid()[gy]?.[gx] ?? 0;
-    return FLUID_TILE_VALUES.has(tile);
-  }
 }

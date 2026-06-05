@@ -1,4 +1,5 @@
 import { Container, Sprite } from 'pixi.js';
+import { getDistanceSquared } from '@scenes/shared/DistanceHelpers';
 
 interface EntryCorridorTileVisual {
   node: Container;
@@ -53,9 +54,7 @@ export class ItemWorldEntryCorridorRevealRuntime {
 
     for (const tile of this.tiles) {
       if (!tile.target) {
-        const dx = tile.cx - playerCenterX;
-        const dy = tile.cy - playerCenterY;
-        if (dx * dx + dy * dy <= radiusSq) tile.target = true;
+        if (getDistanceSquared(tile.cx, tile.cy, playerCenterX, playerCenterY) <= radiusSq) tile.target = true;
       }
       if (!tile.target || tile.reveal >= 1) continue;
       tile.reveal = Math.min(1, tile.reveal + step);

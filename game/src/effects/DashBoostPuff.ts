@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Dash boost puff — a quick fan-shaped burst of dust behind the player at
@@ -75,7 +76,7 @@ export class DashBoostPuffManager {
       p.gfx.scale.set(1 + (1 - t) * 0.7);
 
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.puffs.splice(i, 1);
       }
     }
@@ -83,7 +84,7 @@ export class DashBoostPuffManager {
 
   clear(): void {
     for (const p of this.puffs) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+      detachDisplayObject(p.gfx);
     }
     this.puffs.length = 0;
   }

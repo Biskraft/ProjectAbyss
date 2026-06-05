@@ -14,13 +14,10 @@ import type { FluidSpawnerManager } from '@systems/FluidSpawner';
 import type { TileMutator } from '@systems/TileMutator';
 import type { TileMutatorRenderer } from '@systems/TileMutatorRenderer';
 import {
-  applyTileHazards,
-  CYRO_FROZEN_MS,
-  CYRO_TICK_MS,
-  CYRO_TICK_PCT,
-  MAGMA_BURN_DURATION_MS,
-} from '@systems/TileHazards';
-import { hazardToElement } from '@combat/ElementAffinity';
+  applyEnemyTileHazardsWithFeedback,
+  applyPlayerTileHazardsWithFeedback,
+  applyPlayerWaterfallHazardsWithFeedback,
+} from '@scenes/shared/TileHazardRuntimeHelpers';
 import {
   IW_ROOM_H_PX,
   IW_ROOM_H_TILES,
@@ -30,7 +27,7 @@ import {
 
 interface ItemWorldTileHazardRuntimeDeps {
   game: Game;
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getCurrentRoom: () => { col: number; row: number };
   getTileMutator: () => TileMutator;
   getTileMutatorRenderer: () => TileMutatorRenderer | null | undefined;
@@ -59,7 +56,7 @@ export class ItemWorldTileHazardRuntime {
   }
 
   getActiveTileBounds(roomBuffer = 2): FluidCellBounds {
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     const gridH = fullGrid.length;
     const gridW = fullGrid[0]?.length ?? 0;
     if (!gridH || !gridW) return { minGx: 0, minGy: 0, maxGx: 0, maxGy: 0 };
@@ -106,11 +103,11 @@ export class ItemWorldTileHazardRuntime {
   }
 
   update(dtMs: number): void {
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     if (!fullGrid || !fullGrid.length) return;
 
     const tileMutator = this.deps.getTileMutator();
-    const activeTileBounds = this.getActiveTileBounds();
+      const activeTileBounds = this.getActiveTileBounds();
     tileMutator.tick(fullGrid, dtMs, activeTileBounds);
 
     this.updateBurnableProps(dtMs);
@@ -175,118 +172,37 @@ export class ItemWorldTileHazardRuntime {
     const player = this.deps.getPlayer();
     if (player.hp <= 0) return;
 
-    const fullGrid = this.deps.getFullGrid();
-    const tileMutator = this.deps.getTileMutator();
-    applyTileHazards(player, fullGrid, tileMutator, dtMs, {
-      onDamage: (amount, src) => {
-        if (player.invincible) return;
-        const dmg = Math.max(1, Math.floor(amount));
-        player.hp -= dmg;
-        player.lastDamageSource = src;
-        this.deps.getHud().flashDamage();
-        this.deps.getDamageNumbers().spawn(
-          player.x + player.width / 2,
-          player.y - 8,
-          dmg,
-          src === 'thunder',
-        );
-        if (src === 'thunder') {
-          this.deps.game.camera.shake(6);
-          this.deps.game.hitstopFrames = 8;
-          this.deps.getScreenFlash().flashDamage(true);
-        } else if (src === 'magma' || src === 'fire') {
-          this.deps.game.camera.shake(2);
-        }
-        if (player.hp <= 0) {
-          player.hp = 0;
-          player.onDeath();
-          this.deps.getScreenFlash().flashDamage(true);
-        }
-      },
-      onBurnApplied: () => player.triggerFlash(),
+    const fullGrid = this.deps.getCollisionGrid();
+    applyPlayerTileHazardsWithFeedback({
+      player,
+      grid: fullGrid,
+      tileMutator: this.deps.getTileMutator(),
+      dtMs,
+      game: this.deps.game,
+      hud: this.deps.getHud(),
+      damageNumbers: this.deps.getDamageNumbers(),
+      screenFlash: this.deps.getScreenFlash(),
     });
 
-    this.applyWaterfallHazards(player, fullGrid, dtMs);
-    if (player.hp <= 0) {
-      player.hp = 0;
-      player.onDeath();
-      this.deps.getScreenFlash().flashDamage(true);
-    }
-  }
-
-  private applyWaterfallHazards(player: Player, fullGrid: number[][], dtMs: number): void {
-    const waterfallType = this.deps.getFluidSpawners().queryFluidAtAabb(
-      player.x,
-      player.y,
-      player.width,
-      player.height,
-      fullGrid,
-    );
-    if (waterfallType === 'water') {
-      player.extinguishFireDebuffs();
-    } else if (waterfallType === 'acid' && !player.invincible) {
-      let acc = player.acidTickAccum ?? 0;
-      acc += dtMs;
-      while (acc >= 100) {
-        acc -= 100;
-        const dmg = Math.max(1, Math.floor(player.maxHp * 0.005));
-        player.hp -= dmg;
-        player.lastDamageSource = 'acid';
-        this.deps.getHud().flashDamage();
-        this.deps.getDamageNumbers().spawn(player.x + player.width / 2, player.y - 8, dmg, false);
-      }
-      player.acidTickAccum = acc;
-    } else if (waterfallType === 'magma') {
-      const wasBurning = (player.burnRemainingMs ?? 0) > 0;
-      player.burnRemainingMs = MAGMA_BURN_DURATION_MS;
-      if (!wasBurning && !player.invincible) {
-        const dmg = Math.max(1, Math.floor(player.maxHp * 0.10));
-        player.hp -= dmg;
-        player.lastDamageSource = 'magma';
-        this.deps.getHud().flashDamage();
-        this.deps.getDamageNumbers().spawn(player.x + player.width / 2, player.y - 8, dmg, false);
-        this.deps.game.camera.shake(2);
-        player.triggerFlash();
-      }
-    } else if (waterfallType === 'cyro') {
-      player.extinguishFireDebuffs();
-      player.cyroSlowRemainingMs = CYRO_FROZEN_MS;
-      let acc = player.cyroTickAccum ?? 0;
-      acc += dtMs;
-      while (acc >= CYRO_TICK_MS) {
-        acc -= CYRO_TICK_MS;
-        if (!player.invincible) {
-          const dmg = Math.max(1, Math.floor(player.maxHp * CYRO_TICK_PCT));
-          player.hp -= dmg;
-          player.lastDamageSource = 'cyro';
-          this.deps.getHud().flashDamage();
-          this.deps.getDamageNumbers().spawn(player.x + player.width / 2, player.y - 8, dmg, false);
-        }
-      }
-      player.cyroTickAccum = acc;
-    }
+    applyPlayerWaterfallHazardsWithFeedback({
+      player,
+      grid: fullGrid,
+      fluidSpawners: this.deps.getFluidSpawners(),
+      dtMs,
+      game: this.deps.game,
+      hud: this.deps.getHud(),
+      damageNumbers: this.deps.getDamageNumbers(),
+      screenFlash: this.deps.getScreenFlash(),
+    });
   }
 
   private applyEnemyHazards(dtMs: number): void {
-    const fullGrid = this.deps.getFullGrid();
-    const tileMutator = this.deps.getTileMutator();
-    const damageNumbers = this.deps.getDamageNumbers();
-    for (const enemy of this.deps.getEnemies()) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
-      applyTileHazards(enemy, fullGrid, tileMutator, dtMs, {
-        onDamage: (amount, src) => {
-          const mult = enemy.elementMultiplier(hazardToElement(src));
-          if (mult <= 0) return;
-          const dmg = Math.max(1, Math.floor(amount * mult));
-          enemy.hp -= dmg;
-          enemy.showHpBarFlash();
-          damageNumbers.spawn(enemy.x + enemy.width / 2, enemy.y - 8, dmg, src === 'thunder');
-          if (enemy.hp <= 0) {
-            enemy.hp = 0;
-            enemy.onDeath();
-          }
-        },
-      });
-    }
+    applyEnemyTileHazardsWithFeedback({
+      enemies: this.deps.getEnemies(),
+      grid: this.deps.getCollisionGrid(),
+      tileMutator: this.deps.getTileMutator(),
+      damageNumbers: this.deps.getDamageNumbers(),
+      dtMs,
+    });
   }
 }

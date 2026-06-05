@@ -1,8 +1,6 @@
 import type { Game } from '../../Game';
 import { aabbOverlap } from '@core/Physics';
-import type { LockedDoor } from '@entities/LockedDoor';
 import type { Player } from '@entities/Player';
-import type { Switch } from '@entities/Switch';
 import type { ScreenFlash } from '@effects/ScreenFlash';
 import { t } from '@i18n';
 import { getActivePlayerAttackHitbox } from '@systems/PlayerAttackHitbox';
@@ -10,6 +8,7 @@ import { trackGateBreak } from '@utils/Analytics';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import type { WorldDoorAttackState } from './WorldDoorAttackState';
 import type { WorldDoorSwitchRegistry } from './WorldDoorSwitchRegistry';
+import { applyGateUnlockFeedback, applySwitchActivationFeedback } from '@scenes/shared/StaticEntityFeedbackHelpers';
 
 interface Aabb {
   x: number;
@@ -61,7 +60,7 @@ export class WorldDoorSwitchInteractionRuntime {
   maintainCollisions(): void {
     for (const door of this.deps.getRegistry().doors) {
       if (!door.locked) continue;
-      const grid = this.getDoorCollisionGrid(door);
+      const grid = this.deps.getRegistry().getDoorCollisionGrid(door, this.deps.getCollisionGrid());
       if (door.ensureCollision(grid)) {
         this.deps.refreshBuilderGrid(grid);
       }
@@ -125,7 +124,7 @@ export class WorldDoorSwitchInteractionRuntime {
     this.deps.getUnlockedEvents().add(eventName);
     for (const door of this.deps.getRegistry().doors) {
       if (door.unlockEvent !== eventName) continue;
-      const grid = this.getDoorCollisionGrid(door);
+      const grid = this.deps.getRegistry().getDoorCollisionGrid(door, this.deps.getCollisionGrid());
       door.unlock(grid);
       this.deps.refreshBuilderGrid(grid);
       trackGateBreak({
@@ -139,17 +138,23 @@ export class WorldDoorSwitchInteractionRuntime {
     this.deps.getUnlockedEvents().add(iid);
     for (const door of this.deps.getRegistry().doors) {
       if (door.iid !== iid) continue;
-      const grid = this.getDoorCollisionGrid(door);
+      const grid = this.deps.getRegistry().getDoorCollisionGrid(door, this.deps.getCollisionGrid());
       door.unlock(grid);
       this.deps.refreshBuilderGrid(grid);
       trackGateBreak({
         gate_type: door.unlockCondition === 'switch' ? 'switch' : 'event',
         level_id: this.deps.getCurrentLevelId(),
       });
-      this.deps.game.camera.shake(6);
-      rumbleGamepad(180, 0.6, 1.0);
-      this.deps.getScreenFlash().flashHit(true);
-      this.deps.showToast(t('toast.gate_opened'), 0x44ffaa);
+      applyGateUnlockFeedback({
+        game: this.deps.game,
+        screenFlash: this.deps.getScreenFlash(),
+        onRumble: () => {
+          rumbleGamepad(180, 0.6, 1.0);
+        },
+        showToast: () => {
+          this.deps.showToast(t('toast.gate_opened'), 0x44ffaa);
+        },
+      });
       return;
     }
   }
@@ -173,7 +178,7 @@ export class WorldDoorSwitchInteractionRuntime {
         atk: player.atk,
         def: player.def,
       };
-      const grid = this.getDoorCollisionGrid(door);
+      const grid = this.deps.getRegistry().getDoorCollisionGrid(door, this.deps.getCollisionGrid());
       const result = door.tryAttackUnlock(playerStats, grid);
 
       if (result === 'unlocked') {
@@ -185,10 +190,16 @@ export class WorldDoorSwitchInteractionRuntime {
           stat_threshold: door.statThreshold,
           level_id: this.deps.getCurrentLevelId(),
         });
-        this.deps.game.camera.shake(6);
-        rumbleGamepad(180, 0.6, 1.0);
-        this.deps.getScreenFlash().flashHit(true);
-        this.deps.showToast(t('toast.gate_destroyed'), 0x44ffaa);
+        applyGateUnlockFeedback({
+          game: this.deps.game,
+          screenFlash: this.deps.getScreenFlash(),
+          onRumble: () => {
+            rumbleGamepad(180, 0.6, 1.0);
+          },
+          showToast: () => {
+            this.deps.showToast(t('toast.gate_destroyed'), 0x44ffaa);
+          },
+        });
         continue;
       }
 
@@ -218,21 +229,16 @@ export class WorldDoorSwitchInteractionRuntime {
       if (sw.activated) continue;
       if (!aabbOverlap(hitbox, sw.getHitAABB())) continue;
 
-      const grid = this.getSwitchCollisionGrid(sw);
+      const grid = this.deps.getRegistry().getSwitchCollisionGrid(sw, this.deps.getCollisionGrid());
       if (!sw.activate(grid)) continue;
       this.deps.refreshBuilderGrid(grid);
-      this.deps.game.camera.shake(3);
-      this.deps.getScreenFlash().flashHit(false);
+      applySwitchActivationFeedback({
+        game: this.deps.game,
+        screenFlash: this.deps.getScreenFlash(),
+      });
       this.unlockDoorByIid(sw.targetDoorIid);
       this.deps.showToast(t('toast.switch_destroyed'), 0x44ffaa);
     }
   }
 
-  private getDoorCollisionGrid(door: LockedDoor): number[][] {
-    return this.deps.getRegistry().getDoorCollisionGrid(door, this.deps.getCollisionGrid());
-  }
-
-  private getSwitchCollisionGrid(sw: Switch): number[][] {
-    return this.deps.getRegistry().getSwitchCollisionGrid(sw, this.deps.getCollisionGrid());
-  }
 }

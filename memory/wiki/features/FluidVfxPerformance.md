@@ -13,3 +13,7 @@ Dense acid-water contact zones spawned generic steam plus three extra acid burst
 
 The current acid-water scene effect keeps the generic steam signal and adds only one toxic puff for the acid-specific burst.
 
+
+## 2026-06-05
+
+- game/src/effects/FluidSystem.ts uses clampEffect01(...) for the small-body ambient spring sizeFactor; do not change DEC-041 crest foam SSoT or the separated foam manager while doing numeric cleanup.

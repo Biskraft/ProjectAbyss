@@ -1,11 +1,13 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import type { Player } from '@entities/Player';
+import { destroyDisplayObject, destroyNullableDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-/** Echo 워크 중 3회 글리치 포인트 (진행도 기준) — alpha/x jitter + tint flicker. */
+/** Echo ?�크 �?3??글리치 ?�인??(진행??기�?) ??alpha/x jitter + tint flicker. */
 const GLITCH_POINTS = [0.22, 0.52, 0.80];
 const GLITCH_HALF_WIDTH = 0.035;
 const TINT_NORMAL = 0xffb06a;
@@ -72,12 +74,10 @@ export class EchoPlayer {
   }
 
   separateFromPlayer(t: number): void {
-    const p = Math.max(0, Math.min(1, t));
+    const p = clampEffect01(t);
     const eased = p * p * (3 - 2 * p);
-    // 분리 단계에서는 옆 이동 없이 fade-in 만. walkIntoPortal 이 시작될 때
-    // container.x 가 startX 그대로여야 startX → portalX 단일 이동만 보인다.
-    // (이전 버전은 dir*10 만큼 옆으로 어긋난 후 walkIntoPortal 이 startX 로
-    // 점프해 "분신이 2번 들어감" 으로 인식됨.)
+    // 분리 ?�계?�서?????�동 ?�이 fade-in �? walkIntoPortal ???�작????    // container.x 가 startX 그�?로여??startX ??portalX ?�일 ?�동�?보인??
+    // (?�전 버전?� dir*10 만큼 ?�으�??�긋????walkIntoPortal ??startX �?    // ?�프??"분신??2�??�어�? ?�로 ?�식??)
     this.container.x = this.startX;
     this.container.y = this.startY - 2 * Math.sin(eased * Math.PI);
     this.container.scale.set(1);
@@ -92,7 +92,7 @@ export class EchoPlayer {
   }
 
   walkIntoPortal(portalX: number, portalY: number, t: number): void {
-    const p = Math.max(0, Math.min(1, t));
+    const p = clampEffect01(t);
     const eased = p * p * (3 - 2 * p);
     const targetX = portalX - this.width / 2;
     const targetY = portalY - this.height / 2;
@@ -100,7 +100,7 @@ export class EchoPlayer {
     this.container.x = lerp(this.startX, targetX, eased);
     this.container.y = lerp(this.startY, targetY, eased);
     this.container.scale.set(1);
-    this.container.alpha = lerp(1, 0, Math.max(0, (p - 0.72) / 0.28));
+    this.container.alpha = lerp(1, 0, clampEffect01((p - 0.72) / 0.28));
 
     const walk = Math.sin(p * Math.PI * 8);
     const bob = Math.abs(walk) * -1.5;
@@ -117,8 +117,8 @@ export class EchoPlayer {
       this.aura.scale.x = movingRight ? 1 : -1;
     }
 
-    // Signal glitch — 진행도 22/52/80% 지점에서 ±35‰ 구간 동안 활성.
-    // jitter(x), alpha pulse, tint flicker 로 "전송 중 신호 오류" 표현.
+    // Signal glitch ??진행??22/52/80% 지?�에??±35??구간 ?�안 ?�성.
+    // jitter(x), alpha pulse, tint flicker �?"?�송 �??�호 ?�류" ?�현.
     let inGlitch = false;
     let glitchIntensity = 0;
     for (const gp of GLITCH_POINTS) {
@@ -149,13 +149,13 @@ export class EchoPlayer {
 
   destroy(): void {
     this.destroySprites();
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   private destroySprites(): void {
     this.container.removeChildren();
-    this.sprite?.destroy();
-    this.aura?.destroy();
+    destroyNullableDisplayObject(this.sprite);
+    destroyNullableDisplayObject(this.aura);
     this.generatedTexture?.destroy(true);
     this.generatedTexture = null;
     this.sprite = null;

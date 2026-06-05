@@ -9,6 +9,8 @@ Current state:
 - `isInventoryHintBlocked()` centralizes the cutscene/modal conditions that delay inventory tutorial hints.
 - `applyCameraZoomOverride()` applies the active pickup pulse zoom while the scene keeps camera/weather/update ordering.
 - The runtime uses getters for player, drops, lore UI, and unlocked events so respawn/save-load replacement remains visible.
+- First-time pickup/first-seen bookkeeping are injected through callbacks (`isFirstPickupDone`, `markFirstPickupDone`, `hasSeenItem`, `markItemSeen`) to avoid save import coupling.
+- LorePopup and DivePreview `ATTACK` press/consume gates use `InputPressHelpers.consumeJustPressedAction()`; LorePopup still checks `canConfirm()` before confirm side effects, and DivePreview `MENU/DASH` cancel uses `InputPressHelpers.isAnyJustPressedAction()` so it remains non-consuming.
 
 Prevention rules:
 

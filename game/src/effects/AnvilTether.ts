@@ -16,6 +16,7 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Rarity } from '@data/weapons';
 import { RARITY_COLOR } from '@items/ItemInstance';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const DASH_ON = 4;
 const DASH_OFF = 3;
@@ -130,7 +131,6 @@ export class AnvilTether {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

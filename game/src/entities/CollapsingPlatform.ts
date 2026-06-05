@@ -10,6 +10,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 const SHAKE_DURATION = 500;   // ms of warning shake before collapse
@@ -168,8 +169,6 @@ export class CollapsingPlatform {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

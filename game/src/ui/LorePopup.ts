@@ -26,9 +26,10 @@ import { ItemImage } from './ItemImage';
 import { RARITY_COLOR, getDisplayName, type ItemInstance } from '@items/ItemInstance';
 import { RARITY_DISPLAY_NAME } from '@data/weapons';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
-import { sacredSave, getWeaponLore } from '@save/PlayerSave';
+import { getWeaponLore } from '@save/PlayerSave';
 import { MODAL_BG, MODAL_BG_ALPHA, MODAL_OVERLAY, MODAL_OVERLAY_ALPHA, MODAL_BORDER, MODAL_BORDER_W, TEXT_PRIMARY, TEXT_SECONDARY, createModalPanel } from './ModalPanel';
 import type { UISkin } from './UISkin';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 /** 레어리티별 기억의 지층 개수 — GDD §레어리티 체계 기준. */
 const STRATA_BY_RARITY: Record<string, number> = {
@@ -56,6 +57,12 @@ const PROMPT_DIM_ALPHA = 0.3;
 /** 잠금 해제 시 프롬프트 기본 알파. */
 const PROMPT_NORMAL_ALPHA = 1.0;
 
+interface LorePopupSaveAccess {
+  hasSeenItem: (itemDefId: string) => boolean;
+  markItemSeen: (itemDefId: string) => void;
+  shouldAlwaysShowLore: () => boolean;
+}
+
 export class LorePopup {
   readonly container: Container;
   private overlay: Graphics;
@@ -67,13 +74,15 @@ export class LorePopup {
   /** 이번 show() 에서 설정한 총 잠금 길이(ms). 프로그레스 아크 비율 계산용. */
   private totalLockMs = INPUT_LOCK_FIRST_MS;
   private skin: UISkin | null = null;
+  private readonly saveAccess: LorePopupSaveAccess;
 
   // [C] CLOSE 프롬프트 — dim 갱신용 참조. 게이지는 KeyPrompt.setKeyIconProgress 가 관리.
   private closePrompt: Container | null = null;
   private closeLabel: BitmapText | Text | null = null;
 
   /** UI native 마이그레이션 1단계: uiContainer(scale=1) 직속 마운트용 자체 scale. */
-  constructor(skin?: UISkin | null, uiScale: number = 1) {
+  constructor(saveAccess: LorePopupSaveAccess, skin?: UISkin | null, uiScale: number = 1) {
+    this.saveAccess = saveAccess;
     this.skin = skin ?? null;
     this.container = new Container();
     this.container.scale.set(uiScale);
@@ -135,7 +144,7 @@ export class LorePopup {
    * @returns true = 팝업을 띄움, false = 스킵
    */
   showIfNew(item: ItemInstance, onClose?: () => void): boolean {
-    const mustShow = !sacredSave.hasSeenItem(item.def.id) || sacredSave.getSettings().alwaysShowLore;
+    const mustShow = !this.saveAccess.hasSeenItem(item.def.id) || this.saveAccess.shouldAlwaysShowLore();
     if (!mustShow) return false;
     this.show(item, onClose);
     return true;
@@ -148,7 +157,7 @@ export class LorePopup {
     this.visible_ = true;
     this.container.visible = true;
     // 처음 보는 아이템은 1초, 이미 본 아이템(알림 반복 모드)은 0.3초만 잠금.
-    const isFirstView = !sacredSave.hasSeenItem(item.def.id);
+    const isFirstView = !this.saveAccess.hasSeenItem(item.def.id);
     const duration = isFirstView ? INPUT_LOCK_FIRST_MS : INPUT_LOCK_REPEAT_MS;
     this.inputLockMs = duration;
     this.totalLockMs = duration;
@@ -166,7 +175,7 @@ export class LorePopup {
 
   /** Confirm(X) 키 처리. 호출 측에서 입력 체크 후 호출. */
   confirm(item: ItemInstance): void {
-    sacredSave.markItemSeen(item.def.id);
+    this.saveAccess.markItemSeen(item.def.id);
     this.close();
   }
 
@@ -276,7 +285,6 @@ export class LorePopup {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

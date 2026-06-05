@@ -26,6 +26,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { IgnitableEntity, TileMutator } from '../systems/TileMutator';
 import type { AshRemnantManager } from './AshRemnant';
 import { TILE_GRASS, TILE_MAGMA, getTile } from '../core/Physics';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const BURN_DURATION_MS = 5000;
 const ACTIVE_FIRE_RATIO = 0.80;
@@ -104,8 +105,7 @@ export class GrassClumpFireSystem {
 
   clear(): void {
     for (const c of this.clumps) {
-      if (c.fireGfx && c.fireGfx.parent) c.fireGfx.parent.removeChild(c.fireGfx);
-      c.fireGfx?.destroy();
+      if (c.fireGfx) destroyDisplayObject(c.fireGfx);
     }
     this.clumps.length = 0;
   }
@@ -275,8 +275,7 @@ export class GrassClumpFireSystem {
   }
 
   private destroyClump(c: ClumpEntry, _ash: AshRemnantManager, _tileSize: number): void {
-    if (c.container.parent) c.container.parent.removeChild(c.container);
-    c.container.destroy({ children: true });
+    destroyDisplayObject(c.container, { children: true });
     c.destroyed = true;
   }
 }

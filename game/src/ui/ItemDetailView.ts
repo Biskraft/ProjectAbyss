@@ -108,20 +108,25 @@ export class ItemDetailView {
     // Innocents
     const maxSlots = { normal: 2, magic: 3, rare: 4, legendary: 6, ancient: 8 }[item.rarity] ?? 2;
     add(t('ui.detail.innocents_header', { count: item.innocents.length, max: maxSlots }), 16, COL_DIM, 7);
-    for (let i = 0; i < maxSlots; i++) {
-      const inn = item.innocents[i];
-      if (inn) {
-        const isSubdued = (inn as any).subdued;
-        const symbol = isSubdued ? '[O]' : '[!]';
-        const color = isSubdued ? COL_SUBDUED : COL_WILD;
-        const state = isSubdued ? t('ui.detail.subdued') : t('ui.detail.wild');
-        const statName = (inn as any).stat ?? 'atk';
-        const lv = (inn as any).level ?? 1;
-        add(t('ui.detail.innocent_row', { symbol, stat: statName.toUpperCase(), lv, state }), 24, color, 7);
-      } else {
-        add(t('ui.detail.empty_slot'), 24, COL_LOCKED, 7);
+      for (let i = 0; i < maxSlots; i++) {
+        const inn = item.innocents[i];
+        if (inn) {
+          const innocence = inn as {
+            subdued?: boolean;
+            stat?: InnocentStatKey;
+            level?: number;
+          };
+          const isSubdued = innocence.subdued;
+          const symbol = isSubdued ? '[O]' : '[!]';
+          const color = isSubdued ? COL_SUBDUED : COL_WILD;
+          const state = isSubdued ? t('ui.detail.subdued') : t('ui.detail.wild');
+          const statName = innocence.stat ?? 'atk';
+          const lv = innocence.level ?? 1;
+          add(t('ui.detail.innocent_row', { symbol, stat: statName.toUpperCase(), lv, state }), 24, color, 7);
+        } else {
+          add(t('ui.detail.empty_slot'), 24, COL_LOCKED, 7);
+        }
       }
-    }
 
     addDiv();
 

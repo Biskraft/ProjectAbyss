@@ -1,6 +1,8 @@
 import type { Container } from 'pixi.js';
 import { GameAction } from '@core/InputManager';
 import { AcquireOverlay, type AcquireConfig } from '@ui/AcquireOverlay';
+import { detachDisplayObject, destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
 import type { Game } from '../../Game';
 
 interface WorldAcquireOverlayRuntimeDeps {
@@ -19,16 +21,12 @@ export class WorldAcquireOverlayRuntime {
     return this.overlay?.isBlocking() ?? false;
   }
 
-  attach(): void {
-    this.ensureOverlay();
-  }
-
   show(config: AcquireConfig): void {
     const overlay = this.ensureOverlay();
     const overlayContainer = overlay.container;
     const uiContainer = this.deps.game.uiContainer;
     if (overlayContainer.parent !== uiContainer) {
-      overlayContainer.parent?.removeChild(overlayContainer);
+      detachDisplayObject(overlayContainer);
       uiContainer.addChild(overlayContainer);
     }
     uiContainer.setChildIndex(overlayContainer, uiContainer.children.length - 1);
@@ -48,9 +46,7 @@ export class WorldAcquireOverlayRuntime {
   update(dt: number): boolean {
     if (!this.overlay?.isBlocking()) return false;
     this.overlay.update(dt);
-    const input = this.deps.game.input;
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
+    if (consumeJustPressedAction(this.deps.game.input, GameAction.ATTACK)) {
       if (this.overlay.canConfirm()) {
         this.overlay.confirm();
       }
@@ -60,8 +56,7 @@ export class WorldAcquireOverlayRuntime {
 
   destroy(): void {
     if (!this.overlay) return;
-    this.overlay.container.parent?.removeChild(this.overlay.container);
-    this.overlay.container.destroy({ children: true });
+    destroyDisplayObject(this.overlay.container, { children: true });
     this.overlay = null;
   }
 

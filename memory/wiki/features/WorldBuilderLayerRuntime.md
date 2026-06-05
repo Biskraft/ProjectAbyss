@@ -14,3 +14,5 @@ Invariants:
 - Do not reintroduce manual builder body or auxiliary layer add/sync/destroy blocks to `LdtkWorldScene`.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.
+
+- 2026-06-05: Builder auxiliary layer teardown now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true })`; layer sync and target-list ownership remain unchanged.

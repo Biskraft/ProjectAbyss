@@ -14,6 +14,8 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Rarity } from '@data/weapons';
 import { RARITY_COLOR } from '@items/ItemInstance';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 export type PulseMode = 'T2_FULL_CUTSCENE' | 'T2_QUICK_CUTSCENE' | 'S4_IN_PLACE';
 
@@ -165,7 +167,7 @@ export class WeaponPulse {
   }
 
   private drawRing(g: Graphics, phase: number): void {
-    const p = Math.max(0, Math.min(1, phase));
+    const p = clampEffect01(phase);
     const radius = RING_START_RADIUS + (RING_END_RADIUS - RING_START_RADIUS) * p;
     const alpha = 0.85 * (1 - p);
     const width = 2 * (1 - p * 0.5);
@@ -181,7 +183,6 @@ export class WeaponPulse {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

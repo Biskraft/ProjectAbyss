@@ -13,6 +13,7 @@
 
 import { Assets, Container, Rectangle, Sprite, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject, destroyNullableDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const textureCache = new Map<string, Texture>();
 const loadingPromises = new Map<string, Promise<Texture>>();
@@ -86,10 +87,7 @@ export class Building {
 
   destroy(): void {
     this.destroyed = true;
-    if (this.spriteNode) {
-      this.spriteNode.destroy();
-      this.spriteNode = null;
-    }
-    this.container.destroy({ children: true });
+    this.spriteNode = destroyNullableDisplayObject(this.spriteNode);
+    destroyDisplayObject(this.container, { children: true });
   }
 }

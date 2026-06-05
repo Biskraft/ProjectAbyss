@@ -5,6 +5,7 @@ import type { RoomGraphData } from '@level/RoomGraph';
 import { TOPOLOGY_VALUES, type StrataConfig, type TopologyKind } from '@data/StrataConfig';
 import { PIXEL_FONT } from '@ui/fonts';
 import type { Game } from '../../Game';
+import { destroyNullableDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface ItemWorldDevOverlayRuntimeOptions {
   game: Game;
@@ -34,7 +35,7 @@ export class ItemWorldDevOverlayRuntime {
   destroy(): void {
     this.destroyRoomGraphDebug();
     this.destroyTopologyCycleKey();
-    this.destroyTopologyLabel();
+    this.topologyLabel = destroyNullableDisplayObject(this.topologyLabel);
   }
 
   private maybeInitRoomGraphDebug(): void {
@@ -74,11 +75,7 @@ export class ItemWorldDevOverlayRuntime {
       window.removeEventListener('keydown', this.roomGraphDebugKeyHandler, true);
       this.roomGraphDebugKeyHandler = null;
     }
-    if (this.roomGraphDebugContainer?.parent) {
-      this.roomGraphDebugContainer.parent.removeChild(this.roomGraphDebugContainer);
-    }
-    this.roomGraphDebugContainer?.destroy({ children: true });
-    this.roomGraphDebugContainer = null;
+    this.roomGraphDebugContainer = destroyNullableDisplayObject(this.roomGraphDebugContainer, { children: true });
     this.roomGraphDebugVisible = false;
   }
 
@@ -135,9 +132,4 @@ export class ItemWorldDevOverlayRuntime {
     this.options.game.uiContainer.addChild(this.topologyLabel);
   }
 
-  private destroyTopologyLabel(): void {
-    if (this.topologyLabel?.parent) this.topologyLabel.parent.removeChild(this.topologyLabel);
-    this.topologyLabel?.destroy();
-    this.topologyLabel = null;
-  }
 }

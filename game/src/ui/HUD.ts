@@ -1,19 +1,87 @@
-import { Container, Graphics, BitmapText, Text, Sprite, Assets, Texture } from 'pixi.js';
+﻿import { Container, Graphics, BitmapText, Text, Sprite } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
-import { createUiText } from './factories';
 import { t } from '@i18n';
 import { KeyPrompt } from './KeyPrompt';
 import {
-  TEXT_PRIMARY, TEXT_SECONDARY, TEXT_NEGATIVE, TEXT_POSITIVE, TEXT_GOLD,
+  TEXT_PRIMARY, TEXT_NEGATIVE, TEXT_POSITIVE, TEXT_GOLD,
 } from './ModalPanel';
-import { GameAction, actionKey } from '@core/InputManager';
-import { onDeviceChange } from '@core/input/InputDeviceTracker';
 import type { UISkin } from './UISkin';
-import { HudConst } from '@data/constData';
-import { hpBarColor, hpRatio, shouldPulseFlask } from './hud/HudVitals';
-import { expFillRatio, expFlashAlpha, expLevelBounce, expLevelLabel } from './hud/HudExp';
-import { getHudElement, type HudLayout } from './hud/hudLayout';
+import {
+  createEgoShardCounter,
+  createHudStatusIcons,
+  drawBurnIcon,
+  drawEgoShards,
+  isEgoShardHudEnabled,
+  type EgoShardElement,
+} from './hud/HudStatusIndicators';
+import {
+  createHudItemExpDisplay,
+  redrawHudItemExpBar,
+  type HudItemExpDisplayParts,
+} from './hud/HudItemExpDisplay';
+import {
+  createHudActionKeyBar,
+  createHudFlaskKeyLabel,
+  createHudItemExitHint,
+  createHudSideKeyBar,
+} from './hud/HudKeyPromptBars';
+import { createHudBossHpDisplay, drawHudBossHpBar } from './hud/HudBossHpDisplay';
+import {
+  createHudDepthGaugeDisplay,
+  drawHudDepthGauge,
+  updateHudDepthGaugePulse,
+} from './hud/HudDepthGaugeDisplay';
+import { createHudDamageVignette, drawHudDamageVignette } from './hud/HudDamageVignetteDisplay';
+import {
+  advanceHudHpBarTimers,
+  createHudHpBarGraphics,
+  redrawHudHpBar,
+} from './hud/HudHpBarDisplay';
+import {
+  createHudFlaskGraphics,
+  redrawHudFlasks,
+} from './hud/HudFlaskDisplay';
+import { createHudPulseGlow } from './hud/HudPulseGlowDisplay';
+import { createHudDebugLabel } from './hud/HudDebugLabel';
+import { createSkinHudFrameParts } from './hud/HudSkinFrameDisplay';
+import { createSkinHudKeyPromptParts } from './hud/HudSkinKeyPromptDisplay';
+import { advanceHudFlaskPulse, advanceHudItemKeyPulse } from './hud/HudPulseAnimations';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import {
+  applyHudSkinAtkTextLayout,
+  applyHudSkinHpTextLayout,
+  createHudAtkText,
+  createHudFloorText,
+  createHudGoldText,
+  createHudHpText,
+  wrapHudTextPair,
+} from './hud/HudTextDisplays';
+import {
+  BASE_BOSS_H,
+  BASE_BOSS_W,
+  BASE_FLASK_GAP,
+  BASE_FLASK_SIZE,
+  BASE_FONT,
+  BASE_H,
+  BASE_HP_FONT,
+  BASE_HP_H,
+  BASE_HP_W,
+  BASE_MARGIN,
+  BASE_W,
+  BOSS_HEAL_FLASH_DURATION,
+  EXP_LERP_DURATION,
+  EXP_LEVELUP_FLASH_DURATION,
+  FLASK_MAX_DISPLAY,
+  GHOST_BAR_DURATION,
+  HEAL_FLASH_DURATION,
+  HP_TEXT_FLASH_DURATION,
+} from './hud/HudConstants';
+import {
+  applyHudElementLayout,
+  getHudElement,
+  type HudLayout,
+} from './hud/hudLayout';
 
 // ----- HUD layout override (edited by game/tools/hud-tool) -----
 // Loaded once at boot from public/data/hud_layout.json. Null = no overrides,
@@ -32,11 +100,11 @@ export async function loadHudLayout(): Promise<void> {
       const json = await res.json();
       if (json && typeof json === 'object' && json.elements) cachedHudLayout = json as HudLayout;
     }
-  } catch { /* no layout file → defaults */ }
+  } catch { /* no layout file ??defaults */ }
 }
 
 /**
- * Apply a single element's layout override to an arbitrary Container — used by
+ * Apply a single element's layout override to an arbitrary Container ??used by
  * UI components that live outside the HUD (TutorialHint, LoreDisplay) but are
  * still editable in the HUD tool. `mult` converts base-640 override units into
  * the target's local space: pass uiScale for native-space parents, 1 for a
@@ -52,53 +120,8 @@ export function applyLayoutToContainer(
   const ov = layout?.elements?.[id];
   const box = getHudElement(id);
   if (!ov || !box) return;
-  const px = (box.x + box.w * (ov.pivotX ?? 0.5)) * mult;
-  const py = (box.y + box.h * (ov.pivotY ?? 0.5)) * mult;
-  target.pivot.set(px, py);
-  target.position.set(px + (ov.offsetX ?? 0) * mult, py + (ov.offsetY ?? 0) * mult);
-  target.scale.set(ov.scale ?? 1);
-  if (ov.visible === false) target.visible = false;
+  applyHudElementLayout(target, box, ov, mult);
 }
-
-// Base values at 640x360. Multiplied by uiScale for native resolution.
-const BASE_W = 640;
-const BASE_H = 360;
-const BASE_MARGIN = 8;
-const BASE_HP_W = 180;
-const BASE_HP_H = 16;
-const BASE_FLASK_SIZE = 20;
-const BASE_FLASK_GAP = 3;
-const BASE_FONT = 8;
-// HP text uses its own larger font (Playtest 2026-04-27: max HP visibility).
-const BASE_HP_FONT = 16;
-const BASE_BOSS_W = 140;
-const BASE_BOSS_H = 8;
-
-const HP_BORDER_COLOR = 0x444444;
-const HP_BG_COLOR = 0x222222;
-const FLASK_FULL_COLOR = 0xff8833;
-const FLASK_EMPTY_COLOR = 0x444444;
-const FLASK_MAX_DISPLAY = 8;
-
-// SSoT: Sheets/Content_ConstData.csv (HUD.Timing.*)
-const GHOST_BAR_DURATION = HudConst.Timing.GhostBarFadeMs;
-const HEAL_FLASH_DURATION = HudConst.Timing.HealFlashMs;
-const BOSS_HEAL_FLASH_DURATION = HudConst.Timing.BossHealFlashMs;
-const LOW_HP_PULSE_PERIOD = HudConst.Timing.LowHpPulsePeriodMs;
-const HP_TEXT_FLASH_DURATION = HudConst.Timing.HpTextFlashMs;
-/** HP 비율이 이 값 이하로 떨어지면 [R] Flask 키가 pulse 하여 사용을 유도. */
-const FLASK_LOW_HP_THRESHOLD = HudConst.Timing.FlaskLowHpThreshold;
-/** Flask 키 pulse 1 사이클(scale 저점→고점→저점) 길이. */
-const FLASK_PULSE_PERIOD = HudConst.Timing.FlaskPulsePeriodMs;
-
-// Item EXP bar
-const BASE_EXP_W = 60;
-const BASE_EXP_H = 4;
-const EXP_BG_COLOR = 0x222222;
-const EXP_BAR_COLOR = TEXT_GOLD;
-const EXP_BAR_MAX_COLOR = 0xff8833;
-const EXP_LERP_DURATION = HudConst.Timing.ExpLerpMs;
-const EXP_LEVELUP_FLASH_DURATION = HudConst.Timing.ExpLevelupFlashMs;
 
 export class HUD {
   container: Container;
@@ -113,7 +136,7 @@ export class HUD {
   private FLASK_Y: number;
   private FONT: number;
   private HP_FONT: number;
-  /** EXP/level label font — larger than base FONT so weapon name + Lv.X
+  /** EXP/level label font ??larger than base FONT so weapon name + Lv.X
    *  remain legible at 640x360 inside the Item World. */
   private EXP_FONT: number;
   private BOSS_W: number; private BOSS_H: number;
@@ -149,7 +172,7 @@ export class HUD {
   private actionKeyBar: Container;
   private sideKeyBar: Container;
 
-  // [I]tem 키 강조 — 첫 아이템계 클리어 후 플레이어가 인벤토리를 열 때까지 flask 와 동일하게 펄스.
+  // [I]tem ??媛뺤“ ??泥??꾩씠?쒓퀎 ?대━?????뚮젅?댁뼱媛 ?몃깽?좊━瑜????뚭퉴吏 flask ? ?숈씪?섍쾶 ?꾩뒪.
   private itemKeyIcon: Container | null = null;
   private itemKeyPulseGlow: Graphics;
   private itemKeyPulseTimer = 0;
@@ -183,11 +206,7 @@ export class HUD {
 
   // Item EXP bar (item world only)
   private expBarContainer: Container;
-  private expBarGfx: Graphics;
-  private expNameText: BitmapText;
-  private expNameShadow: BitmapText;
-  private expLevelText: BitmapText;
-  private expLevelShadow: BitmapText;
+  private expDisplayParts!: HudItemExpDisplayParts;
   private expItemName = '';
   private expItemRarityColor = TEXT_PRIMARY;
   private expLevel = 0;
@@ -199,7 +218,7 @@ export class HUD {
   private expLevelUpFlash = 0;
   private expIsMax = false;
 
-  // Status effects (burn / poison / etc.) — currently only burn is wired.
+  // Status effects (burn / poison / etc.) ??currently only burn is wired.
   private statusIconContainer!: Container;
   private burnIconGfx!: Graphics;
   private burnGaugeGfx!: Graphics;
@@ -213,12 +232,12 @@ export class HUD {
   private egoShardGfx!: Graphics;
   private egoShardCount = 0;
   private egoShardMax = 3;
-  private egoShardElement: 'fire' | 'ice' | 'thunder' = 'fire';
+  private egoShardElement: EgoShardElement = 'fire';
 
   // Portrait
   private portraitSprite: Sprite | null = null;
 
-  // Skin sprites — populated by applySkin()
+  // Skin sprites ??populated by applySkin()
   private skinLayer: Container | null = null;
   private skinMapFrame: Sprite | null = null;
   private minimapFrameVisible = true;
@@ -290,274 +309,135 @@ export class HUD {
     this.BOSS_W = BASE_BOSS_W * s;
     this.BOSS_H = BASE_BOSS_H * s;
     this.BOSS_X = (this.SW - this.BOSS_W) / 2;
-    // 보스 바를 화면 상단으로 이동. BOSS_Y 아래에 막대가 그려지고
-    // 보스 이름은 BOSS_Y - 10*s 에 배치되므로 최소 10*s 위 여백 필요.
+    // 蹂댁뒪 諛붾? ?붾㈃ ?곷떒?쇰줈 ?대룞. BOSS_Y ?꾨옒??留됰?媛 洹몃젮吏怨?    // 蹂댁뒪 ?대쫫? BOSS_Y - 10*s ??諛곗튂?섎?濡?理쒖냼 10*s ???щ갚 ?꾩슂.
     this.BOSS_Y = 24 * s;
 
     // --- HP bar ---
-    this.hpBar = new Graphics();
-    this.hpBar.x = this.HP_X;
-    this.hpBar.y = this.HP_Y;
+    this.hpBar = createHudHpBarGraphics(this.HP_X, this.HP_Y);
     this.container.addChild(this.hpBar);
 
     // --- Flask icons ---
-    this.flaskGfx = new Graphics();
-    this.flaskGfx.x = this.HP_X;
-    this.flaskGfx.y = this.FLASK_Y;
+    this.flaskGfx = createHudFlaskGraphics(this.HP_X, this.FLASK_Y);
     this.container.addChild(this.flaskGfx);
 
     // --- HP text with shadow ---
-    this.hpTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: 0x000000 } });
-    this.hpText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.HP_FONT, fill: TEXT_PRIMARY } });
-    this.hpTextShadow.x = this.HP_X + 44 * s + s;
-    this.hpTextShadow.y = this.FLASK_Y + s;
-    this.hpText.x = this.HP_X + 44 * s;
-    this.hpText.y = this.FLASK_Y;
+    const hpText = createHudHpText(s, this.HP_FONT, this.HP_X, this.FLASK_Y);
+    this.hpTextShadow = hpText.shadow;
+    this.hpText = hpText.text;
     this.container.addChild(this.hpTextShadow);
     this.container.addChild(this.hpText);
 
-    // --- ATK text — below flask row, 2x font size ---
+    // --- ATK text ??below flask row, 2x font size ---
     const ATK_FONT = 16 * s;
     const ATK_Y = this.FLASK_Y + this.FLASK_SIZE + 4 * s;
-    this.atkTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: ATK_FONT, fill: 0x000000 } });
-    this.atkText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: ATK_FONT, fill: 0xff8833 } });
-    this.atkTextShadow.x = this.HP_X + s;
-    this.atkTextShadow.y = ATK_Y + s;
-    this.atkText.x = this.HP_X;
-    this.atkText.y = ATK_Y;
+    const atkText = createHudAtkText(s, ATK_FONT, this.HP_X, ATK_Y);
+    this.atkTextShadow = atkText.shadow;
+    this.atkText = atkText.text;
     this.container.addChild(this.atkTextShadow);
     this.container.addChild(this.atkText);
 
-    // --- Gold text — right-aligned ---
-    this.goldTextShadow = new BitmapText({ text: 'G 0', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.goldText = new BitmapText({ text: 'G 0', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: TEXT_GOLD } });
-    this.goldTextShadow.anchor.set(1, 0);
-    this.goldText.anchor.set(1, 0);
-    this.goldTextShadow.x = this.SW - this.MARGIN + s;
-    this.goldTextShadow.y = this.MARGIN + s;
-    this.goldText.x = this.SW - this.MARGIN;
-    this.goldText.y = this.MARGIN;
+    // --- Gold text ??right-aligned ---
+    const goldText = createHudGoldText(s, this.FONT, this.SW, this.MARGIN);
+    this.goldTextShadow = goldText.shadow;
+    this.goldText = goldText.text;
     // Wrap gold in a layout-editable container (id 'gold').
-    const goldWrap = new Container();
-    goldWrap.addChild(this.goldTextShadow);
-    goldWrap.addChild(this.goldText);
-    this.container.addChild(goldWrap);
-    this.layoutWrappers.set('gold', goldWrap);
+    this.container.addChild(goldText.container);
+    this.layoutWrappers.set('gold', goldText.container);
 
     // --- Key icon shared sizes ---
     const KEY_ICON = 12 * s;  // icon box size
     const KEY_FONT = 8 * s;   // label font next to icon
-    const KEY_LABEL_COLOR = TEXT_SECONDARY;
 
-    // --- Action key bar: [Z]Jump [X]Dash [C]Atk — bottom-left (above floor text) ---
-    this.actionKeyBar = new Container();
+    // --- Action key bar: [Z]Jump [X]Dash [C]Atk ??bottom-left (above floor text) ---
     const ACTION_BAR_Y = this.SH - this.MARGIN - this.FONT - 4 * s - KEY_ICON;
-    // 패드 hot-swap 자동 반영을 위해 GameAction 직접 보관 (createKeyIconForAction).
-    const actions: Array<{ action: GameAction; label: string }> = [
-      { action: GameAction.JUMP,   label: t('ui.hud.label_jump') },
-      { action: GameAction.DASH,   label: t('ui.hud.label_dash') },
-      { action: GameAction.ATTACK, label: t('ui.hud.label_atk') },
-    ];
-    let actionX = this.MARGIN;
-    for (const a of actions) {
-      const icon = KeyPrompt.createKeyIconForAction(a.action, KEY_ICON);
-      icon.x = actionX;
-      icon.y = ACTION_BAR_Y;
-      this.actionKeyBar.addChild(icon);
-
-      const text = createUiText(a.label, { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR });
-      text.x = actionX + KEY_ICON + 2 * s;
-      text.y = ACTION_BAR_Y + Math.floor((KEY_ICON - text.height) / 2);
-      this.actionKeyBar.addChild(text);
-
-      actionX += KEY_ICON + 2 * s + text.width + 8 * s;
-    }
+    this.actionKeyBar = createHudActionKeyBar(s, this.MARGIN, ACTION_BAR_Y, KEY_ICON, KEY_FONT);
     this.container.addChild(this.actionKeyBar);
 
-    // --- Floor/Item text — debug only (Shift+I to toggle) ---
-    this.floorTextShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: 0x000000 } });
-    this.floorText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.FONT, fill: TEXT_PRIMARY } });
-    this.floorTextShadow.x = this.MARGIN + s;
-    this.floorTextShadow.y = this.SH - this.MARGIN - this.FONT + s;
-    this.floorText.x = this.MARGIN;
-    this.floorText.y = this.SH - this.MARGIN - this.FONT;
-    this.floorText.visible = false;
-    this.floorTextShadow.visible = false;
+    // --- Floor/Item text ??debug only (Shift+I to toggle) ---
+    const floorText = createHudFloorText(s, this.FONT, this.SH, this.MARGIN);
+    this.floorTextShadow = floorText.shadow;
+    this.floorText = floorText.text;
     this.container.addChild(this.floorTextShadow);
     this.container.addChild(this.floorText);
 
-    // --- Status icons (burn etc.) — placed to the right of the HP bar. ---
+    // --- Status icons (burn etc.) ??placed to the right of the HP bar. ---
     // Layout: [HP bar][HP text]  [statusIconContainer]
     // Each icon is roughly KEY_ICON sized; container holds a single burn icon
     // for now, easy to extend with more statuses later.
-    this.statusIconContainer = new Container();
-    this.statusIconContainer.x = this.HP_X + this.HP_W + 8 * s + 60 * s; // HP_W + gap + reserved HP text width
-    this.statusIconContainer.y = this.HP_Y;
-    this.statusIconContainer.visible = false;
-    this.burnIconGfx = new Graphics();
-    this.burnGaugeGfx = new Graphics();
-    this.statusIconContainer.addChild(this.burnGaugeGfx);
-    this.statusIconContainer.addChild(this.burnIconGfx);
+    const statusIcons = createHudStatusIcons(
+      this.HP_X + this.HP_W + 8 * s + 60 * s,
+      this.HP_Y,
+    );
+    this.statusIconContainer = statusIcons.container;
+    this.burnIconGfx = statusIcons.burnIconGfx;
+    this.burnGaugeGfx = statusIcons.burnGaugeGfx;
     this.container.addChild(this.statusIconContainer);
 
-    // Ego Shard counter — under the flask row, aligned with HP bar left edge.
+    // Ego Shard counter ??under the flask row, aligned with HP bar left edge.
     // Shard ability is debug-only (Victor 2026-05-15): hide the HUD widget
     // entirely in shipping builds. ?debug gate matches the LdtkWorldScene /
     // ItemWorldScene cast gate so the counter and the ability stay in sync.
-    this.egoShardContainer = new Container();
-    this.egoShardContainer.x = this.HP_X + 44 * s + 70 * s; // right of HP text
-    this.egoShardContainer.y = this.FLASK_Y;
-    this.egoShardGfx = new Graphics();
-    this.egoShardContainer.addChild(this.egoShardGfx);
+    const egoShards = createEgoShardCounter(
+      this.HP_X + 44 * s + 70 * s,
+      this.FLASK_Y,
+    );
+    this.egoShardContainer = egoShards.container;
+    this.egoShardGfx = egoShards.gfx;
     this.container.addChild(this.egoShardContainer);
-    const _shardHudOn = typeof window !== 'undefined'
-      && new URLSearchParams(window.location.search).has('debug');
-    this.egoShardContainer.visible = _shardHudOn;
-    this.redrawEgoShards();
+    this.egoShardContainer.visible = isEgoShardHudEnabled();
+    drawEgoShards(this.egoShardGfx, this.s, this.egoShardCount, this.egoShardMax, this.egoShardElement);
 
     // --- Damage vignette ---
-    this.vignette = new Graphics();
-    this.vignette.alpha = 0;
+    this.vignette = createHudDamageVignette();
     this.container.addChild(this.vignette);
 
     // --- Flask [R] key label (same height as flask icons) ---
     // Pulse glow sits behind the icon so low-HP animation reads clearly.
-    this.flaskPulseGlow = new Graphics();
-    this.flaskPulseGlow.alpha = 0;
+    this.flaskPulseGlow = createHudPulseGlow();
     this.container.addChild(this.flaskPulseGlow);
 
-    this.flaskKeyLabel = KeyPrompt.createKeyIconForAction(GameAction.FLASK, this.FLASK_SIZE);
-    // Center pivot so pulse scales in place (position stays anchored to HP_X,FLASK_Y).
-    this.flaskKeyLabel.pivot.set(this.FLASK_SIZE / 2, this.FLASK_SIZE / 2);
-    this.flaskKeyLabel.x = this.HP_X + this.FLASK_SIZE / 2;
-    this.flaskKeyLabel.y = this.FLASK_Y + this.FLASK_SIZE / 2;
+    this.flaskKeyLabel = createHudFlaskKeyLabel(this.FLASK_SIZE, this.HP_X, this.FLASK_Y);
     this.container.addChild(this.flaskKeyLabel);
 
-    // --- [I]Item [M]Map — top-right, below minimap ---
-    this.sideKeyBar = new Container();
+    // --- [I]Item [M]Map ??top-right, below minimap ---
     const sideKeyY = this.MARGIN + 72 * s + 6 * s; // below minimap
-    const sideActions: Array<{ label: string; action: GameAction }> = [
-      { label: t('ui.hud.label_item'), action: GameAction.INVENTORY },
-      { label: t('ui.hud.label_map'),  action: GameAction.MAP },
-    ];
-    // [I] 키 펄스 glow 는 아이콘 뒤에 그려야 하므로 루프보다 먼저 추가.
-    this.itemKeyPulseGlow = new Graphics();
-    this.itemKeyPulseGlow.alpha = 0;
-    this.sideKeyBar.addChild(this.itemKeyPulseGlow);
-    let sideX = this.SW - this.MARGIN;
-    for (let i = sideActions.length - 1; i >= 0; i--) {
-      const a = sideActions[i];
-      const lbl = createUiText(a.label, { fontFamily: PIXEL_FONT, fontSize: KEY_FONT, fill: KEY_LABEL_COLOR });
-      sideX -= lbl.width;
-      lbl.x = sideX;
-      lbl.y = sideKeyY + Math.floor((KEY_ICON - lbl.height) / 2);
-      this.sideKeyBar.addChild(lbl);
-
-      sideX -= 2 * s + KEY_ICON;
-      const icon = KeyPrompt.createKeyIconForAction(a.action, KEY_ICON);
-      icon.x = sideX;
-      icon.y = sideKeyY;
-      // Flask 키처럼 in-place 스케일을 위해 center pivot 으로 재배치.
-      if (a.action === GameAction.INVENTORY) {
-        icon.pivot.set(KEY_ICON / 2, KEY_ICON / 2);
-        icon.x = sideX + KEY_ICON / 2;
-        icon.y = sideKeyY + KEY_ICON / 2;
-        this.itemKeyIcon = icon;
-        this.itemKeyCenterX = icon.x;
-        this.itemKeyCenterY = icon.y;
-        this.itemKeySize = KEY_ICON;
-      }
-      this.sideKeyBar.addChild(icon);
-
-      sideX -= 8 * s;
-    }
+    const sideKeyBar = createHudSideKeyBar(s, this.SW - this.MARGIN, sideKeyY, KEY_ICON, KEY_FONT);
+    this.sideKeyBar = sideKeyBar.container;
+    this.itemKeyPulseGlow = sideKeyBar.pulseGlow;
+    this.itemKeyIcon = sideKeyBar.itemKeyIcon;
+    this.itemKeyCenterX = sideKeyBar.itemKeyCenterX;
+    this.itemKeyCenterY = sideKeyBar.itemKeyCenterY;
+    this.itemKeySize = sideKeyBar.itemKeySize;
     this.container.addChild(this.sideKeyBar);
 
     // --- Boss HP bar (hidden by default) ---
-    this.bossBarContainer = new Container();
-    this.bossBarContainer.visible = false;
-    this.bossBar = new Graphics();
-    this.bossBar.x = this.BOSS_X;
-    this.bossBar.y = this.BOSS_Y;
-    this.bossNameShadow = createUiText('', { fontSize: this.FONT, fill: 0x000000 }, this.s);
-    this.bossNameText = createUiText('', { fontSize: this.FONT, fill: TEXT_PRIMARY }, this.s);
-    this.bossNameShadow.anchor.set(0.5, 0);
-    this.bossNameText.anchor.set(0.5, 0);
-    this.bossNameShadow.x = this.SW / 2 + s;
-    this.bossNameShadow.y = this.BOSS_Y - 10 * s + s;
-    this.bossNameText.x = this.SW / 2;
-    this.bossNameText.y = this.BOSS_Y - 10 * s;
-    this.bossBarContainer.addChild(this.bossBar);
-    this.bossBarContainer.addChild(this.bossNameShadow);
-    this.bossBarContainer.addChild(this.bossNameText);
+    const bossHpDisplay = createHudBossHpDisplay(s, this.SW, this.BOSS_X, this.BOSS_Y, this.FONT);
+    this.bossBarContainer = bossHpDisplay.container;
+    this.bossBar = bossHpDisplay.bar;
+    this.bossNameShadow = bossHpDisplay.nameShadow;
+    this.bossNameText = bossHpDisplay.nameText;
     this.container.addChild(this.bossBarContainer);
 
     // --- Depth Gauge (hidden by default, shown in item world) ---
-    this.depthGauge = new Container();
-    this.depthGauge.visible = false;
-    this.depthGaugeGfx = new Graphics();
-    this.depthGauge.addChild(this.depthGaugeGfx);
+    const depthGauge = createHudDepthGaugeDisplay();
+    this.depthGauge = depthGauge.container;
+    this.depthGaugeGfx = depthGauge.gfx;
     this.container.addChild(this.depthGauge);
 
     // --- Item world exit hint ([ESC] Exit, top-right, hidden by default) ---
     // Tied to showItemExp / hideItemExp lifecycle so it only appears while
     // the player is inside an item world stratum.
-    this.itemExitHintContainer = new Container();
-    this.itemExitHintContainer.visible = false;
-    {
-      const KEY_SIZE = 14 * s;
-      const LABEL_FONT = 10 * s;
-      const escIcon = KeyPrompt.createKeyIconForAction(GameAction.MENU, KEY_SIZE);
-      const exitLabelShadow = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: 0x000000 }, this.s);
-      const exitLabel = createUiText(t('ui.hud.exit'), { fontSize: LABEL_FONT, fill: TEXT_PRIMARY }, this.s);
-      // Right-align the cluster: place icon, then label to its right.
-      // Gold text sits at MARGIN (y); place hint a row below.
-      const HINT_Y = this.MARGIN + this.FONT + 6 * s;
-      const GAP = 4 * s;
-      // Compute total width to right-align: icon + gap + label.width
-      const totalW = KEY_SIZE + GAP + exitLabel.width;
-      const startX = this.SW - this.MARGIN - totalW;
-      escIcon.x = startX;
-      escIcon.y = HINT_Y;
-      exitLabelShadow.x = startX + KEY_SIZE + GAP + s;
-      exitLabelShadow.y = HINT_Y + Math.floor((KEY_SIZE - exitLabel.height) / 2) + s;
-      exitLabel.x = startX + KEY_SIZE + GAP;
-      exitLabel.y = HINT_Y + Math.floor((KEY_SIZE - exitLabel.height) / 2);
-      this.itemExitHintContainer.addChild(escIcon);
-      this.itemExitHintContainer.addChild(exitLabelShadow);
-      this.itemExitHintContainer.addChild(exitLabel);
-    }
+    this.itemExitHintContainer = createHudItemExitHint(s, this.SW, this.MARGIN, this.FONT);
     this.container.addChild(this.itemExitHintContainer);
 
     // --- Item EXP bar (hidden by default, shown in item world) ---
-    this.expBarContainer = new Container();
-    this.expBarContainer.visible = false;
-    this.expBarGfx = new Graphics();
-    this.expBarContainer.addChild(this.expBarGfx);
-    this.expNameShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
-    this.expNameText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: TEXT_PRIMARY } });
-    this.expLevelShadow = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: 0x000000 } });
-    this.expLevelText = new BitmapText({ text: '', style: { fontFamily: PIXEL_FONT, fontSize: this.EXP_FONT, fill: TEXT_PRIMARY } });
-    this.expBarContainer.addChild(this.expNameShadow);
-    this.expBarContainer.addChild(this.expNameText);
-    this.expBarContainer.addChild(this.expLevelShadow);
-    this.expBarContainer.addChild(this.expLevelText);
+    this.expDisplayParts = createHudItemExpDisplay(this.EXP_FONT);
+    this.expBarContainer = this.expDisplayParts.container;
     this.container.addChild(this.expBarContainer);
 
-    // DEBUG label — bottom-left, only when ?debug in URL
+    // DEBUG label ??bottom-left, only when ?debug in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
-      const dbgShadow = new BitmapText({ text: 'DEBUG', style: { fontFamily: PIXEL_FONT, fontSize: 16 * s, fill: 0x000000 } });
-      const dbgText = new BitmapText({ text: 'DEBUG', style: { fontFamily: PIXEL_FONT, fontSize: 16 * s, fill: 0xff2222 } });
-      dbgShadow.anchor.set(1, 0);
-      dbgText.anchor.set(1, 0);
-      dbgShadow.x = this.SW - this.MARGIN + s;
-      dbgShadow.y = this.SH - this.MARGIN - 16 * s + s;
-      dbgText.x = this.SW - this.MARGIN;
-      dbgText.y = this.SH - this.MARGIN - 16 * s;
-      dbgText.alpha = 0.7;
-      dbgShadow.alpha = 0.7;
-      this.container.addChild(dbgShadow);
-      this.container.addChild(dbgText);
+      this.container.addChild(createHudDebugLabel(s, this.SW, this.SH, this.MARGIN));
     }
 
     // Register the Graphics-path editable elements (already Containers).
@@ -580,7 +460,7 @@ export class HUD {
    * default box center (from the manifest). With no override for an id the
    * wrapper is left untouched, so the default build is pixel-identical.
    *
-   * Idempotent — called at the end of the constructor (Graphics wrappers) and
+   * Idempotent ??called at the end of the constructor (Graphics wrappers) and
    * again at the end of applySkin() (skin wrappers). Only `visible: false` is
    * acted on; a true/undefined value never force-shows an element so game logic
    * (boss bar, EXP bar appearing on demand) keeps control of visibility.
@@ -592,21 +472,14 @@ export class HUD {
       const wrapper = this.layoutWrappers.get(id);
       const box = getHudElement(id);
       if (!wrapper || !box) continue;
-      const pivotX = (box.x + box.w * (ov.pivotX ?? 0.5)) * s;
-      const pivotY = (box.y + box.h * (ov.pivotY ?? 0.5)) * s;
-      // pivot == position cancels out at scale 1 → visually identity when the
+      // pivot == position cancels out at scale 1 ??visually identity when the
       // override is only a hide/scale. offset shifts on top.
-      wrapper.pivot.set(pivotX, pivotY);
-      wrapper.position.set(pivotX + (ov.offsetX ?? 0) * s, pivotY + (ov.offsetY ?? 0) * s);
-      wrapper.scale.set(ov.scale ?? 1);
-      if (ov.visible === false) wrapper.visible = false;
+      applyHudElementLayout(wrapper, box, ov, s);
     }
   }
 
   /**
-   * 저체력 관련 시각 효과(Flask R pulse, glow, HP bar pulse, 데미지 vignette)를
-   * 즉시 초기화. 사망 후 리스폰/아이템계에서 월드 복귀 시 호출하여 잔상이
-   * 새 프레임까지 남지 않도록 보장한다.
+   * ?泥대젰 愿???쒓컖 ?④낵(Flask R pulse, glow, HP bar pulse, ?곕?吏 vignette)瑜?   * 利됱떆 珥덇린?? ?щ쭩 ??由ъ뒪???꾩씠?쒓퀎?먯꽌 ?붾뱶 蹂듦? ???몄텧?섏뿬 ?붿긽??   * ???꾨젅?꾧퉴吏 ?⑥? ?딅룄濡?蹂댁옣?쒕떎.
    */
   resetLowHpEffects(): void {
     this.lowHpTimer = 0;
@@ -619,7 +492,25 @@ export class HUD {
     this.vignetteTimer = 0;
     this.vignette.alpha = 0;
     this.vignette.clear();
-    this.redrawHpBar();
+    redrawHudHpBar(this.hpBar, {
+      s: this.s,
+      width: this.HP_W,
+      height: this.HP_H,
+      currentHp: this.currentHp,
+      maxHp: this.currentMaxHp,
+      ghostHp: this.ghostHp,
+      ghostTimer: this.ghostTimer,
+      healFlashTimer: this.healFlashTimer,
+      healFlashColor: this.healFlashColor,
+      healFlashRatio: this.healFlashRatio,
+      healFlashStartRatio: this.healFlashStartRatio,
+      lowHpTimer: this.lowHpTimer,
+      skinFill: this.skinHpFill,
+      skinFillMask: this.skinHpFillMask,
+      skinFillMaxW: this.skinHpFillMaxW,
+      skinFillMaxH: this.skinHpFillMaxH,
+      skinFillSlashW: this.skinHpFillSlashW,
+    });
   }
 
   updateHP(hp: number, maxHp: number): void {
@@ -638,7 +529,25 @@ export class HUD {
       this.healFlashColor = TEXT_POSITIVE;
     }
 
-    this.redrawHpBar();
+    redrawHudHpBar(this.hpBar, {
+      s: this.s,
+      width: this.HP_W,
+      height: this.HP_H,
+      currentHp: this.currentHp,
+      maxHp: this.currentMaxHp,
+      ghostHp: this.ghostHp,
+      ghostTimer: this.ghostTimer,
+      healFlashTimer: this.healFlashTimer,
+      healFlashColor: this.healFlashColor,
+      healFlashRatio: this.healFlashRatio,
+      healFlashStartRatio: this.healFlashStartRatio,
+      lowHpTimer: this.lowHpTimer,
+      skinFill: this.skinHpFill,
+      skinFillMask: this.skinHpFillMask,
+      skinFillMaxW: this.skinHpFillMaxW,
+      skinFillMaxH: this.skinHpFillMaxH,
+      skinFillSlashW: this.skinHpFillSlashW,
+    });
     const hpStr = this.hasSkin ? `${Math.ceil(hp)}` : `${Math.ceil(hp)}/${maxHp}`;
     this.hpText.text = hpStr;
     this.hpTextShadow.text = hpStr;
@@ -652,17 +561,35 @@ export class HUD {
   updateFlask(current: number, max: number): void {
     this.flaskCurrent = current;
     this.flaskMax = max;
-    this.redrawFlask();
+    this.skinFlaskIcons = redrawHudFlasks({
+      gfx: this.flaskGfx,
+      s: this.s,
+      maxDisplay: FLASK_MAX_DISPLAY,
+      max: this.flaskMax,
+      current: this.flaskCurrent,
+      fallbackSize: this.FLASK_SIZE,
+      fallbackGap: this.FLASK_GAP,
+      hasSkin: this.hasSkin,
+      skinFillTexture: this.skinFlaskFillTex,
+      skinEmptyTexture: this.skinFlaskEmptyTex,
+      skinIconW: this.skinFlaskIconW,
+      skinIconH: this.skinFlaskIconH,
+      skinGap: this.skinFlaskGap,
+      skinStartX: this.skinFlaskStartX,
+      skinStartY: this.skinFlaskStartY,
+      skinParent: this.flaskIconLayer ?? this.skinLayer,
+      previousSkinIcons: this.skinFlaskIcons,
+    });
 
     const totalFlaskW = Math.min(max, FLASK_MAX_DISPLAY) * (this.FLASK_SIZE + this.FLASK_GAP);
     // [R] key label sits right of the flask icons.
-    // Pivot is centered so the low-HP pulse scales in place — we compensate
+    // Pivot is centered so the low-HP pulse scales in place ??we compensate
     // here by +FLASK_SIZE/2 so the icon's bounding box still occupies the
     // same row as the flasks (top at FLASK_Y).
     const flaskKeyLeft = this.HP_X + totalFlaskW + 2 * this.s;
     this.flaskKeyLabel.x = flaskKeyLeft + this.FLASK_SIZE / 2;
     this.flaskKeyLabel.y = this.FLASK_Y + this.FLASK_SIZE / 2;
-    // HP text follows after the [R] label — skip if skin controls position
+    // HP text follows after the [R] label ??skip if skin controls position
     if (!this.hasSkin) {
       this.hpText.x = flaskKeyLeft + this.FLASK_SIZE + 4 * this.s;
       this.hpText.y = this.FLASK_Y + (this.FLASK_SIZE - this.HP_FONT) / 2;
@@ -738,12 +665,24 @@ export class HUD {
     this.bossNameText.text = name;
     this.bossNameShadow.text = name;
     this.bossBarContainer.visible = true;
-    this.redrawBossBar();
+    drawHudBossHpBar(this.bossBar, {
+      s: this.s,
+      width: this.BOSS_W,
+      height: this.BOSS_H,
+      hp: this.bossHp,
+      maxHp: this.bossMaxHp,
+    });
   }
 
   updateBossHP(hp: number): void {
     this.bossHp = Math.max(0, hp);
-    this.redrawBossBar();
+    drawHudBossHpBar(this.bossBar, {
+      s: this.s,
+      width: this.BOSS_W,
+      height: this.BOSS_H,
+      hp: this.bossHp,
+      maxHp: this.bossMaxHp,
+    });
   }
 
   hideBossHP(): void {
@@ -762,14 +701,46 @@ export class HUD {
     if (this.skinDepthFrame) this.skinDepthFrame.visible = true;
     if (this.skinDepthFill) this.skinDepthFill.visible = true;
     if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = true;
-    this.redrawDepthGauge();
+    this.depthLabels = drawHudDepthGauge({
+      s: this.s,
+      total: this.depthTotal,
+      current: this.depthCurrent,
+      cleared: this.depthCleared,
+      pulseTimer: this.depthPulseTimer,
+      hasSkin: this.hasSkin,
+      fallbackContainer: this.depthGauge,
+      fallbackGfx: this.depthGaugeGfx,
+      fallbackLabels: this.depthLabels,
+      skinFill: this.skinDepthFill,
+      skinTickContainer: this.skinDepthTickContainer,
+      skinFillX: this.skinDepthFillX,
+      skinFillY: this.skinDepthFillY,
+      skinFillW: this.skinDepthFillW,
+      skinFillMaxH: this.skinDepthFillMaxH,
+    });
   }
 
   /** Update current stratum (0-based). */
   updateDepthGauge(currentStratum: number, clearedStrata: boolean[]): void {
     this.depthCurrent = currentStratum;
     this.depthCleared = [...clearedStrata];
-    this.redrawDepthGauge();
+    this.depthLabels = drawHudDepthGauge({
+      s: this.s,
+      total: this.depthTotal,
+      current: this.depthCurrent,
+      cleared: this.depthCleared,
+      pulseTimer: this.depthPulseTimer,
+      hasSkin: this.hasSkin,
+      fallbackContainer: this.depthGauge,
+      fallbackGfx: this.depthGaugeGfx,
+      fallbackLabels: this.depthLabels,
+      skinFill: this.skinDepthFill,
+      skinTickContainer: this.skinDepthTickContainer,
+      skinFillX: this.skinDepthFillX,
+      skinFillY: this.skinDepthFillY,
+      skinFillW: this.skinDepthFillW,
+      skinFillMaxH: this.skinDepthFillMaxH,
+    });
   }
 
   /** Hide when leaving item world. */
@@ -796,12 +767,21 @@ export class HUD {
     this.expLevelUpFlash = 0;
     this.expBarContainer.visible = true;
     this.itemExitHintContainer.visible = true;
-    this.redrawExpBar();
+    redrawHudItemExpBar(this.expDisplayParts, {
+      s: this.s,
+      expFont: this.EXP_FONT,
+      atkText: this.atkText,
+      itemName: this.expItemName,
+      itemRarityColor: this.expItemRarityColor,
+      level: this.expLevel,
+      displayRatio: this.expDisplayRatio,
+      levelUpFlash: this.expLevelUpFlash,
+      isMax: this.expIsMax,
+    });
   }
 
   /** Update EXP bar (call on EXP gain / level up). */
   updateItemExp(level: number, exp: number, maxExp: number, leveled = false): void {
-    const prevLevel = this.expLevel;
     this.expLevel = level;
     this.expCurrent = exp;
     this.expMax = maxExp;
@@ -816,7 +796,17 @@ export class HUD {
 
     // Start lerp animation
     this.expLerpTimer = EXP_LERP_DURATION;
-    this.redrawExpBar();
+    redrawHudItemExpBar(this.expDisplayParts, {
+      s: this.s,
+      expFont: this.EXP_FONT,
+      atkText: this.atkText,
+      itemName: this.expItemName,
+      itemRarityColor: this.expItemRarityColor,
+      level: this.expLevel,
+      displayRatio: this.expDisplayRatio,
+      levelUpFlash: this.expLevelUpFlash,
+      isMax: this.expIsMax,
+    });
   }
 
   /** Hide item EXP bar (call on leaving item world). */
@@ -830,39 +820,14 @@ export class HUD {
    * `element` decides the dot color so the player sees which enchant is
    * currently bound to the next cast.
    */
-  setEgoShards(count: number, max: number, element: 'fire' | 'ice' | 'thunder'): void {
+  setEgoShards(count: number, max: number, element: EgoShardElement): void {
     if (this.egoShardCount === count && this.egoShardMax === max && this.egoShardElement === element) return;
     this.egoShardCount = count;
     this.egoShardMax = max;
     this.egoShardElement = element;
-    this.redrawEgoShards();
+    drawEgoShards(this.egoShardGfx, this.s, this.egoShardCount, this.egoShardMax, this.egoShardElement);
   }
 
-  private redrawEgoShards(): void {
-    const s = this.s;
-    const g = this.egoShardGfx;
-    g.clear();
-    const filled = this.egoShardElement === 'fire' ? 0xff7733
-                 : this.egoShardElement === 'ice'  ? 0x88ccff
-                 : 0xffee44;
-    const empty = 0x333333;
-    const dotR = 3 * s;
-    const gap = 4 * s;
-    for (let i = 0; i < this.egoShardMax; i++) {
-      const cx = i * (dotR * 2 + gap) + dotR;
-      const cy = dotR;
-      const isFilled = i < this.egoShardCount;
-      // Outer diamond
-      g.moveTo(cx + dotR, cy).lineTo(cx, cy - dotR).lineTo(cx - dotR, cy).lineTo(cx, cy + dotR).closePath();
-      g.fill({ color: isFilled ? filled : empty, alpha: isFilled ? 0.95 : 0.5 });
-      // Inner core (filled only)
-      if (isFilled) {
-        const r2 = dotR * 0.5;
-        g.moveTo(cx + r2, cy).lineTo(cx, cy - r2).lineTo(cx - r2, cy).lineTo(cx, cy + r2).closePath();
-        g.fill({ color: 0xffffff, alpha: 0.85 });
-      }
-    }
-  }
 
   /**
    * Set the player's burn status. Pass remainingMs=0 to hide.
@@ -883,52 +848,7 @@ export class HUD {
     }
   }
 
-  private redrawBurnIcon(): void {
-    if (this.burnRemainingMs <= 0) return;
-    const s = this.s;
-    const size = 14 * s;        // icon box
-    const cx = size / 2;
-    const cy = size / 2;
-    const ratio = Math.max(0, Math.min(1, this.burnRemainingMs / this.burnTotalMs));
-    const flicker = 0.85 + Math.sin(this.burnFlickerT * 0.018) * 0.15;
-
-    // Background ring — full circle dim, then drop arc for elapsed portion.
-    this.burnGaugeGfx.clear();
-    this.burnGaugeGfx
-      .circle(cx, cy, size * 0.62).fill({ color: 0x000000, alpha: 0.45 });
-    // Remaining arc (clockwise from top).
-    const startA = -Math.PI / 2;
-    const endA = startA + Math.PI * 2 * ratio;
-    this.burnGaugeGfx
-      .moveTo(cx, cy)
-      .arc(cx, cy, size * 0.55, startA, endA)
-      .lineTo(cx, cy)
-      .closePath()
-      .fill({ color: 0xff8844, alpha: 0.55 });
-
-    // Flame icon — 3-tongued teardrop.
-    const fg = this.burnIconGfx;
-    fg.clear();
-    const tipY = cy - size * 0.45 * flicker;
-    const baseY = cy + size * 0.30;
-    const leftX = cx - size * 0.22;
-    const rightX = cx + size * 0.22;
-    // outer flame
-    fg.moveTo(cx, tipY)
-      .quadraticCurveTo(rightX, cy - size * 0.05, rightX - size * 0.05, baseY)
-      .quadraticCurveTo(cx, baseY + size * 0.08, leftX + size * 0.05, baseY)
-      .quadraticCurveTo(leftX, cy - size * 0.05, cx, tipY)
-      .closePath()
-      .fill({ color: 0xff7733, alpha: 0.95 });
-    // inner core
-    fg.moveTo(cx, tipY + size * 0.10)
-      .quadraticCurveTo(rightX - size * 0.06, cy, cx, baseY - size * 0.05)
-      .quadraticCurveTo(leftX + size * 0.06, cy, cx, tipY + size * 0.10)
-      .closePath()
-      .fill({ color: 0xffdd66, alpha: 0.95 * flicker });
-  }
-
-  /** [I]tem 키 강조 on/off — 첫 아이템계 클리어 유도 후 I 입력까지만 true. */
+  /** [I]tem ??媛뺤“ on/off ??泥??꾩씠?쒓퀎 ?대━???좊룄 ??I ?낅젰源뚯?留?true. */
   setItemKeyHighlight(active: boolean): void {
     this.itemKeyPulseActive = active;
     if (!active) {
@@ -940,84 +860,86 @@ export class HUD {
   }
 
   update(dt: number): void {
-    // Burn status flicker — only redraws while burning.
+    // Burn status flicker ??only redraws while burning.
     if (this.burnRemainingMs > 0) {
       this.burnFlickerT += dt;
-      this.redrawBurnIcon();
+      drawBurnIcon(
+        this.burnGaugeGfx,
+        this.burnIconGfx,
+        this.s,
+        this.burnRemainingMs,
+        this.burnTotalMs,
+        this.burnFlickerT,
+      );
     }
 
-    if (this.ghostTimer > 0) {
-      this.ghostTimer -= dt;
-      if (this.ghostTimer <= 0) { this.ghostHp = 0; this.ghostTimer = 0; }
-      this.redrawHpBar();
-    }
-    if (this.healFlashTimer > 0) {
-      this.healFlashTimer -= dt;
-      if (this.healFlashTimer <= 0) this.healFlashTimer = 0;
-      this.redrawHpBar();
-    }
-    const ratio = hpRatio(this.currentHp, this.currentMaxHp);
-    if (ratio > 0 && ratio < 0.25) {
-      this.lowHpTimer = (this.lowHpTimer + dt) % LOW_HP_PULSE_PERIOD;
-      this.redrawHpBar();
-    } else {
-      this.lowHpTimer = 0;
-    }
-
-    // --- Flask [R] pulse: HP <= 40% → 키가 커졌다 작아졌다 + 뒤에 붉은 glow ring ---
-    if (shouldPulseFlask(this.currentHp, this.currentMaxHp, this.flaskCurrent, FLASK_LOW_HP_THRESHOLD)) {
-      this.flaskPulseTimer = (this.flaskPulseTimer + dt) % FLASK_PULSE_PERIOD;
-      const phase = (this.flaskPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
-      const pulse = 0.5 + 0.5 * Math.sin(phase); // 0..1
-      const scale = 1.0 + pulse * 1.8;           // 1.0..2.8
-      this.flaskKeyLabel.scale.set(scale);
-
-      // Glow ring — red halo grows/fades with the pulse.
-      this.flaskPulseGlow.clear();
-      const cx = this.hasSkin ? this.skinFlaskCx : (this.HP_X + this.FLASK_SIZE / 2);
-      const cy = this.hasSkin ? this.skinFlaskCy : (this.FLASK_Y + this.FLASK_SIZE / 2);
-      const glowSize = this.hasSkin ? this.skinFlaskR : this.FLASK_SIZE;
-      const baseR = glowSize * 0.7;
-      const r = baseR + pulse * glowSize * 3.2;
-      this.flaskPulseGlow
-        .circle(cx, cy, r).fill({ color: 0xff4444, alpha: 0.25 + pulse * 0.35 });
-      this.flaskPulseGlow
-        .circle(cx, cy, r * 0.6).fill({ color: 0xffaa66, alpha: 0.35 + pulse * 0.35 });
-      this.flaskPulseGlow.alpha = 1;
-    } else if (this.flaskPulseTimer !== 0 || this.flaskKeyLabel.scale.x !== 1) {
-      // Reset on recovery.
-      this.flaskPulseTimer = 0;
-      this.flaskKeyLabel.scale.set(1);
-      this.flaskPulseGlow.clear();
-      this.flaskPulseGlow.alpha = 0;
+    const hpBarTimers = advanceHudHpBarTimers({
+      dt,
+      currentHp: this.currentHp,
+      maxHp: this.currentMaxHp,
+      ghostHp: this.ghostHp,
+      ghostTimer: this.ghostTimer,
+      healFlashTimer: this.healFlashTimer,
+      lowHpTimer: this.lowHpTimer,
+    });
+    this.ghostHp = hpBarTimers.ghostHp;
+    this.ghostTimer = hpBarTimers.ghostTimer;
+    this.healFlashTimer = hpBarTimers.healFlashTimer;
+    this.lowHpTimer = hpBarTimers.lowHpTimer;
+    if (hpBarTimers.shouldRedraw) {
+      redrawHudHpBar(this.hpBar, {
+        s: this.s,
+        width: this.HP_W,
+        height: this.HP_H,
+        currentHp: this.currentHp,
+        maxHp: this.currentMaxHp,
+        ghostHp: this.ghostHp,
+        ghostTimer: this.ghostTimer,
+        healFlashTimer: this.healFlashTimer,
+        healFlashColor: this.healFlashColor,
+        healFlashRatio: this.healFlashRatio,
+        healFlashStartRatio: this.healFlashStartRatio,
+        lowHpTimer: this.lowHpTimer,
+        skinFill: this.skinHpFill,
+        skinFillMask: this.skinHpFillMask,
+        skinFillMaxW: this.skinHpFillMaxW,
+        skinFillMaxH: this.skinHpFillMaxH,
+        skinFillSlashW: this.skinHpFillSlashW,
+      });
     }
 
-    // --- [I]tem 키 펄스 — 첫 아이템계 클리어 후 플레이어가 I 를 누를 때까지. ---
-    if (this.itemKeyPulseActive) {
-      this.itemKeyPulseTimer = (this.itemKeyPulseTimer + dt) % FLASK_PULSE_PERIOD;
-      const phase = (this.itemKeyPulseTimer / FLASK_PULSE_PERIOD) * Math.PI * 2;
-      const pulse = 0.5 + 0.5 * Math.sin(phase);
-      // Scale only if old icon exists and is visible
-      if (this.itemKeyIcon && !this.hasSkin) {
-        this.itemKeyIcon.scale.set(1.0 + pulse * 0.45);
-      }
+    const flaskPulseState = { timer: this.flaskPulseTimer };
+    advanceHudFlaskPulse({
+      dt,
+      currentHp: this.currentHp,
+      maxHp: this.currentMaxHp,
+      flaskCurrent: this.flaskCurrent,
+      state: flaskPulseState,
+      pulseGlow: this.flaskPulseGlow,
+      keyLabel: this.flaskKeyLabel,
+      hasSkin: this.hasSkin,
+      hpX: this.HP_X,
+      flaskY: this.FLASK_Y,
+      flaskSize: this.FLASK_SIZE,
+      skinFlaskCx: this.skinFlaskCx,
+      skinFlaskCy: this.skinFlaskCy,
+      skinFlaskR: this.skinFlaskR,
+    });
+    this.flaskPulseTimer = flaskPulseState.timer;
 
-      this.itemKeyPulseGlow.clear();
-      const cx = this.itemKeyCenterX;
-      const cy = this.itemKeyCenterY;
-      const baseR = this.itemKeySize * 0.7;
-      const r = baseR + pulse * this.itemKeySize * 0.8;
-      this.itemKeyPulseGlow
-        .circle(cx, cy, r).fill({ color: 0xffaa44, alpha: 0.18 + pulse * 0.22 });
-      this.itemKeyPulseGlow
-        .circle(cx, cy, r * 0.6).fill({ color: 0xffee88, alpha: 0.25 + pulse * 0.25 });
-      this.itemKeyPulseGlow.alpha = 1;
-    } else if (this.itemKeyPulseTimer !== 0) {
-      this.itemKeyPulseTimer = 0;
-      if (this.itemKeyIcon) this.itemKeyIcon.scale.set(1);
-      this.itemKeyPulseGlow.clear();
-      this.itemKeyPulseGlow.alpha = 0;
-    }
+    const itemKeyPulseState = { timer: this.itemKeyPulseTimer };
+    advanceHudItemKeyPulse({
+      dt,
+      active: this.itemKeyPulseActive,
+      state: itemKeyPulseState,
+      pulseGlow: this.itemKeyPulseGlow,
+      itemKeyIcon: this.itemKeyIcon,
+      itemKeyCenterX: this.itemKeyCenterX,
+      itemKeyCenterY: this.itemKeyCenterY,
+      itemKeySize: this.itemKeySize,
+      hasSkin: this.hasSkin,
+    });
+    this.itemKeyPulseTimer = itemKeyPulseState.timer;
     if (this.hpTextFlashTimer > 0) {
       this.hpTextFlashTimer -= dt;
       if (this.hpTextFlashTimer <= 0) { this.hpTextFlashTimer = 0; this.hpText.tint = TEXT_PRIMARY; }
@@ -1025,19 +947,36 @@ export class HUD {
     if (this.vignetteTimer > 0) {
       this.vignetteTimer -= dt;
       const a = Math.max(0, this.vignetteTimer / 100) * 0.3;
-      this.drawVignette(a);
+      drawHudDamageVignette(this.vignette, a, this.SW, this.SH, this.MARGIN);
     } else if (this.vignette.alpha > 0) {
       this.vignette.alpha = 0;
     }
-    // Depth gauge pulse — frame stays static, fill + ticks sparkle
+    // Depth gauge pulse ??frame stays static, fill + ticks sparkle
     if (this.depthGauge.visible || (this.skinDepthFrame && this.skinDepthFrame.visible)) {
-      this.depthPulseTimer = (this.depthPulseTimer + dt) % 3000;
-      const t = this.depthPulseTimer / 3000 * Math.PI * 2;
-      const flash = 0.5 + 0.5 * Math.abs(Math.sin(t * 2)); // sharp double-pulse shimmer
-      if (this.skinDepthFill) this.skinDepthFill.alpha = flash;
-      if (this.skinDepthTickContainer) this.skinDepthTickContainer.alpha = flash;
-      this.depthGaugeGfx.alpha = flash;
-      this.redrawDepthGauge();
+      this.depthPulseTimer = updateHudDepthGaugePulse({
+        pulseTimer: this.depthPulseTimer,
+        dt,
+        fallbackGfx: this.depthGaugeGfx,
+        skinFill: this.skinDepthFill,
+        skinTickContainer: this.skinDepthTickContainer,
+      });
+      this.depthLabels = drawHudDepthGauge({
+        s: this.s,
+        total: this.depthTotal,
+        current: this.depthCurrent,
+        cleared: this.depthCleared,
+        pulseTimer: this.depthPulseTimer,
+        hasSkin: this.hasSkin,
+        fallbackContainer: this.depthGauge,
+        fallbackGfx: this.depthGaugeGfx,
+        fallbackLabels: this.depthLabels,
+        skinFill: this.skinDepthFill,
+        skinTickContainer: this.skinDepthTickContainer,
+        skinFillX: this.skinDepthFillX,
+        skinFillY: this.skinDepthFillY,
+        skinFillW: this.skinDepthFillW,
+        skinFillMaxH: this.skinDepthFillMaxH,
+      });
     }
     // Item EXP bar lerp + level-up flash
     if (this.expBarContainer.visible) {
@@ -1045,318 +984,34 @@ export class HUD {
         this.expLerpTimer -= dt;
         const t = 1 - Math.max(0, this.expLerpTimer) / EXP_LERP_DURATION;
         this.expDisplayRatio += (this.expTargetRatio - this.expDisplayRatio) * Math.min(1, t * 2);
-        this.redrawExpBar();
+        redrawHudItemExpBar(this.expDisplayParts, {
+          s: this.s,
+          expFont: this.EXP_FONT,
+          atkText: this.atkText,
+          itemName: this.expItemName,
+          itemRarityColor: this.expItemRarityColor,
+          level: this.expLevel,
+          displayRatio: this.expDisplayRatio,
+          levelUpFlash: this.expLevelUpFlash,
+          isMax: this.expIsMax,
+        });
       }
       if (this.expLevelUpFlash > 0) {
         this.expLevelUpFlash -= dt;
         if (this.expLevelUpFlash <= 0) this.expLevelUpFlash = 0;
-        this.redrawExpBar();
-      }
-    }
-  }
-
-  // ----- Private -----
-
-  private redrawHpBar(): void {
-    const g = this.hpBar;
-    g.clear();
-    const W = this.HP_W;
-    const H = this.HP_H;
-    const maxHp = this.currentMaxHp || 1;
-    const ratio = hpRatio(this.currentHp, maxHp);
-
-    g.rect(-this.s, -this.s, W + 2 * this.s, H + 2 * this.s).fill(HP_BORDER_COLOR);
-    g.rect(0, 0, W, H).fill(HP_BG_COLOR);
-
-    if (this.ghostTimer > 0 && this.ghostHp > this.currentHp) {
-      const ghostRatio = Math.min(1, this.ghostHp / maxHp);
-      const ghostAlpha = this.ghostTimer / GHOST_BAR_DURATION;
-      g.rect(0, 0, W * ghostRatio, H).fill({ color: 0xaa2222, alpha: ghostAlpha * 0.8 });
-    }
-    if (this.healFlashTimer > 0) {
-      const dur = this.healFlashColor === TEXT_GOLD ? BOSS_HEAL_FLASH_DURATION : HEAL_FLASH_DURATION;
-      const flashAlpha = this.healFlashTimer / dur;
-      const x0 = W * Math.max(0, this.healFlashStartRatio);
-      const x1 = W * Math.min(1, this.healFlashRatio);
-      if (x1 > x0) g.rect(x0, 0, x1 - x0, H).fill({ color: this.healFlashColor, alpha: flashAlpha * 0.9 });
-    }
-
-    const hpColor = hpBarColor(ratio, this.lowHpTimer, LOW_HP_PULSE_PERIOD);
-    let fillAlpha = 1;
-    if (ratio > 0 && ratio < 0.25 && this.lowHpTimer > 0) {
-      const pulse = Math.sin((this.lowHpTimer / LOW_HP_PULSE_PERIOD) * Math.PI * 2);
-      fillAlpha = 0.7 + 0.3 * ((pulse + 1) / 2);
-    }
-    g.rect(0, 0, W * ratio, H).fill({ color: hpColor, alpha: fillAlpha });
-
-    // Sync skin HP fill sprite
-    this.updateSkinHpFill();
-  }
-
-  private redrawFlask(): void {
-    const g = this.flaskGfx;
-    g.clear();
-    const count = Math.min(this.flaskMax, FLASK_MAX_DISPLAY);
-
-    // Skin flask icons
-    if (this.hasSkin && this.skinFlaskFillTex && this.skinFlaskEmptyTex) {
-      // Remove old icons
-      for (const icon of this.skinFlaskIcons) {
-        if (icon.parent) icon.parent.removeChild(icon);
-      }
-      this.skinFlaskIcons = [];
-      const iconW = this.skinFlaskIconW * this.s;
-      const iconH = this.skinFlaskIconH * this.s;
-      const gap = this.skinFlaskGap * this.s;
-      const totalW = count * iconW + Math.max(0, count - 1) * gap;
-      const startX = this.skinFlaskStartX - totalW;
-      for (let i = 0; i < count; i++) {
-        const tex = i < this.flaskCurrent ? this.skinFlaskFillTex : this.skinFlaskEmptyTex;
-        const icon = new Sprite(tex);
-        icon.x = startX + i * (iconW + gap);
-        icon.y = this.skinFlaskStartY;
-        icon.width = iconW;
-        icon.height = iconH;
-        (this.flaskIconLayer ?? this.skinLayer)!.addChild(icon);
-        this.skinFlaskIcons.push(icon);
-      }
-      return;
-    }
-
-    // Fallback: old Graphics circles
-    for (let i = 0; i < count; i++) {
-      const x = i * (this.FLASK_SIZE + this.FLASK_GAP);
-      const color = i < this.flaskCurrent ? FLASK_FULL_COLOR : FLASK_EMPTY_COLOR;
-      const cx = x + this.FLASK_SIZE / 2;
-      const cy = this.FLASK_SIZE / 2;
-      g.circle(cx, cy, this.FLASK_SIZE / 2).fill(color);
-    }
-  }
-
-  private redrawBossBar(): void {
-    const g = this.bossBar;
-    g.clear();
-    const W = this.BOSS_W;
-    const H = this.BOSS_H;
-    const maxHp = this.bossMaxHp || 1;
-    const ratio = Math.max(0, Math.min(1, this.bossHp / maxHp));
-
-    // Outer border (black) + inner bezel for contrast on any background.
-    g.rect(-2 * this.s, -2 * this.s, W + 4 * this.s, H + 4 * this.s).fill(0x000000);
-    g.rect(-this.s, -this.s, W + 2 * this.s, H + 2 * this.s).fill(0xbbbbbb);
-    g.rect(0, 0, W, H).fill(HP_BG_COLOR);
-
-    // 주황/빨강 배경에 묻히지 않도록 magenta → violet 스펙트럼. 체력이 깎일수록
-    // 어두워지면서도 주황 월드 타일에 섞이지 않는 채도를 유지.
-    const fillColor = ratio > 0.5 ? 0xff3388 : ratio > 0.25 ? 0xcc2277 : 0x882266;
-    const fillW = W * ratio;
-    g.rect(0, 0, fillW, H).fill(fillColor);
-    // Top-edge highlight — 바가 두꺼워진 만큼 입체감 한 줄.
-    const highlight = ratio > 0.5 ? 0xffaacc : ratio > 0.25 ? 0xff88bb : 0xcc66aa;
-    g.rect(0, 0, fillW, Math.max(1, Math.floor(this.s))).fill({ color: highlight, alpha: 0.8 });
-  }
-
-  private drawVignette(alpha: number): void {
-    this.vignette.clear();
-    if (alpha <= 0) { this.vignette.alpha = 0; return; }
-    this.vignette.alpha = 1;
-    const M = this.MARGIN;
-    const c = { color: 0xaa0000, alpha };
-    this.vignette.rect(0, 0, this.SW, M).fill(c);
-    this.vignette.rect(0, this.SH - M, this.SW, M).fill(c);
-    this.vignette.rect(0, 0, M, this.SH).fill(c);
-    this.vignette.rect(this.SW - M, 0, M, this.SH).fill(c);
-  }
-
-  // Depth gradient: shallow (orange) → deep (dark red)
-  private static readonly DEPTH_COLORS = [0xFF8833, 0xCC6622, 0x993311, 0x661100];
-
-  private depthColor(index: number): number {
-    const t = this.depthTotal <= 1 ? 0 : index / (this.depthTotal - 1);
-    const colors = HUD.DEPTH_COLORS;
-    const pos = t * (colors.length - 1);
-    const lo = Math.floor(pos);
-    const hi = Math.min(lo + 1, colors.length - 1);
-    const frac = pos - lo;
-    // Lerp RGB
-    const r = ((colors[lo] >> 16) & 0xff) + (((colors[hi] >> 16) & 0xff) - ((colors[lo] >> 16) & 0xff)) * frac;
-    const g = ((colors[lo] >> 8) & 0xff) + (((colors[hi] >> 8) & 0xff) - ((colors[lo] >> 8) & 0xff)) * frac;
-    const b = (colors[lo] & 0xff) + ((colors[hi] & 0xff) - (colors[lo] & 0xff)) * frac;
-    return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
-  }
-
-  private redrawDepthGauge(): void {
-    const s = this.s;
-    const total = this.depthTotal;
-    if (total <= 0) return;
-
-    // --- Skin depth indicator mode ---
-    if (this.hasSkin && this.skinDepthFill && this.skinDepthTickContainer) {
-      // Clear old ticks/labels
-      this.skinDepthTickContainer.removeChildren();
-
-      // How many strata are cleared (including current)
-      const filledCount = Math.min(this.depthCurrent + 1, total);
-      const fillRatio = filledCount / total;
-
-      // Fill grows top → bottom
-      this.skinDepthFill.y = this.skinDepthFillY;
-      this.skinDepthFill.height = this.skinDepthFillMaxH * fillRatio;
-
-      // Draw tick marks for each stratum boundary
-      const tickGfx = new Graphics();
-      const segH = this.skinDepthFillMaxH / total;
-      const frameX = this.skinDepthFillX;
-      const frameW = this.skinDepthFillW;
-      const pulseAlpha = 0.4 + 0.6 * ((Math.sin(this.depthPulseTimer / 2000 * Math.PI * 2) + 1) / 2);
-
-      for (let i = 0; i < total; i++) {
-        const tickY = this.skinDepthFillY + i * segH;
-        const isCurrent = i === this.depthCurrent;
-        const isCleared = this.depthCleared[i] ?? false;
-        const tickColor = (isCleared || isCurrent) ? 0xffffff : 0x555555;
-
-        // Tick line
-        tickGfx.rect(frameX - 2 * s, tickY, frameW + 4 * s, s).fill({ color: tickColor, alpha: 0.6 });
-
-        // Depth label: >N for all strata
-        const numColor = isCurrent ? 0xffffff : (isCleared ? 0xaaaaaa : 0x555555);
-        const label = new BitmapText({
-          text: `\u27A4${i + 1}`,
-          style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: numColor },
+        redrawHudItemExpBar(this.expDisplayParts, {
+          s: this.s,
+          expFont: this.EXP_FONT,
+          atkText: this.atkText,
+          itemName: this.expItemName,
+          itemRarityColor: this.expItemRarityColor,
+          level: this.expLevel,
+          displayRatio: this.expDisplayRatio,
+          levelUpFlash: this.expLevelUpFlash,
+          isMax: this.expIsMax,
         });
-        if (isCurrent) {
-          label.alpha = pulseAlpha;
-        }
-        label.x = frameX + frameW + 3 * s;
-        label.y = tickY + (segH - label.height) / 2;
-        this.skinDepthTickContainer.addChild(label);
       }
-
-      // Bottom closing tick
-      tickGfx.rect(frameX - 2 * s, this.skinDepthFillY + this.skinDepthFillMaxH, frameW + 4 * s, s)
-        .fill({ color: 0x555555, alpha: 0.6 });
-
-      this.skinDepthTickContainer.addChild(tickGfx);
-      return;
     }
-
-    // --- Fallback: old Graphics-based depth gauge ---
-    const g = this.depthGaugeGfx;
-    g.clear();
-    for (const l of this.depthLabels) { if (l.parent) l.parent.removeChild(l); }
-    this.depthLabels = [];
-
-    const railX = 4 * s;
-    const railW = 3 * s;
-    const topY = 80 * s;
-    const bottomY = 280 * s;
-    const railH = bottomY - topY;
-    const tickW = 8 * s;
-    const tickH = 2 * s;
-    const pulseAlpha = 0.4 + 0.6 * ((Math.sin(this.depthPulseTimer / 2000 * Math.PI * 2) + 1) / 2);
-
-    g.rect(railX, topY, railW, railH).fill({ color: 0x222222, alpha: 0.8 });
-    const segH = railH / total;
-
-    for (let i = 0; i < total; i++) {
-      const segY = topY + i * segH;
-      const isCurrent = i === this.depthCurrent;
-      const isCleared = this.depthCleared[i] ?? false;
-
-      if (isCleared || isCurrent) {
-        const color = this.depthColor(i);
-        const alpha = isCurrent ? pulseAlpha : 0.9;
-        g.rect(railX, segY, railW, segH).fill({ color, alpha });
-      }
-
-      const tickColor = (isCleared || isCurrent) ? 0xffffff : 0x444444;
-      g.rect(railX, segY, tickW, tickH).fill({ color: tickColor, alpha: 0.7 });
-
-      if (isCurrent) {
-        const arrowX = railX + tickW + 2 * s;
-        const arrowY = segY + segH / 2;
-        g.moveTo(arrowX, arrowY - 3 * s)
-          .lineTo(arrowX + 4 * s, arrowY)
-          .lineTo(arrowX, arrowY + 3 * s)
-          .fill({ color: 0xffffff, alpha: pulseAlpha });
-      }
-
-      const numColor = (isCleared || isCurrent) ? this.depthColor(i) : 0x444444;
-      const label = new BitmapText({
-        text: `${i + 1}`,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: isCurrent ? 0xffffff : numColor },
-      });
-      label.x = railX + tickW + (isCurrent ? 8 * s : 2 * s);
-      label.y = segY + (segH - label.height) / 2;
-      this.depthGauge.addChild(label);
-      this.depthLabels.push(label);
-    }
-    g.rect(railX, bottomY, tickW, tickH).fill({ color: 0x444444, alpha: 0.7 });
-  }
-
-  private redrawExpBar(): void {
-    const g = this.expBarGfx;
-    g.clear();
-
-    const s = this.s;
-    const barW = BASE_EXP_W * s;
-    const barH = BASE_EXP_H * s;
-
-    // Position: below ATK text
-    const startX = this.atkText.x;
-    const startY = this.atkText.y + (this.atkText.style.fontSize as number) + 4 * s;
-
-    // Item name (rarity colored)
-    this.expNameText.style.fill = this.expItemRarityColor;
-    this.expNameText.text = this.expItemName;
-    this.expNameShadow.text = this.expItemName;
-    this.expNameText.x = startX;
-    this.expNameText.y = startY;
-    this.expNameShadow.x = startX + s;
-    this.expNameShadow.y = startY + s;
-
-    // Level text (right of name)
-    const lvText = expLevelLabel(this.expLevel, this.expIsMax);
-    this.expLevelText.text = lvText;
-    this.expLevelShadow.text = lvText;
-    this.expLevelText.style.fill = this.expIsMax ? EXP_BAR_MAX_COLOR : TEXT_PRIMARY;
-    const lvX = startX + this.expNameText.width + 4 * s;
-    this.expLevelText.x = lvX;
-    this.expLevelText.y = startY;
-    this.expLevelShadow.x = lvX + s;
-    this.expLevelShadow.y = startY + s;
-
-    // EXP bar background
-    const barY = startY + this.EXP_FONT + 2 * s;
-    g.rect(startX - s, barY - s, barW + 2 * s, barH + 2 * s).fill(0x444444);
-    g.rect(startX, barY, barW, barH).fill(EXP_BG_COLOR);
-
-    // EXP bar fill (lerped)
-    const fillW = barW * expFillRatio(this.expDisplayRatio);
-    const barColor = this.expIsMax ? EXP_BAR_MAX_COLOR : EXP_BAR_COLOR;
-    if (fillW > 0) {
-      g.rect(startX, barY, fillW, barH).fill(barColor);
-    }
-
-    // Level-up flash overlay
-    if (this.expLevelUpFlash > 0) {
-      const flashAlpha = expFlashAlpha(this.expLevelUpFlash, EXP_LEVELUP_FLASH_DURATION);
-      g.rect(startX, barY, barW, barH).fill({ color: 0xffffff, alpha: flashAlpha * 0.8 });
-      // Scale bounce on level text
-      const bounce = expLevelBounce(flashAlpha);
-      this.expLevelText.scale.set(bounce);
-      this.expLevelShadow.scale.set(bounce);
-    } else {
-      this.expLevelText.scale.set(1);
-      this.expLevelShadow.scale.set(1);
-    }
-
-    // EXP fraction text (below bar, small)
-    const expStr = this.expIsMax ? 'MAX' : `${this.expCurrent}/${this.expMax}`;
-    // Draw as part of graphics to avoid extra BitmapText allocation
-    // Just reuse level text area — place EXP fraction right-aligned under bar
-    // (keeping it simple: no extra text object, info is in the floor text already)
   }
 
   // ===== Skin System =====
@@ -1375,294 +1030,43 @@ export class HUD {
     this.skinLayer.sortableChildren = true;
     this.container.addChildAt(this.skinLayer, 0);
 
-    // Per-element layout wrapper inside skinLayer (id = HudElement.id). Lazily
-    // created; skin sprites get parented here so applyLayout() can move them.
-    const wrap = (id: string, parent: Container = this.skinLayer!): Container => {
-      let w = this.layoutWrappers.get(id);
-      if (!w) {
-        w = new Container();
-        w.sortableChildren = true;
-        parent.addChild(w);
-        this.layoutWrappers.set(id, w);
-      }
-      return w;
-    };
+    const skinFrames = createSkinHudFrameParts(skin, s, this.skinLayer, this.layoutWrappers, this.minimapFrameVisible);
+    this.skinMapFrame = skinFrames.mapFrame;
+    this.skinHpFrame = skinFrames.hpFrame;
+    this.skinHpFill = skinFrames.hpFill;
+    this.skinHpFillMask = skinFrames.hpFillMask;
+    this.skinHpFillMaxW = skinFrames.hpFillMaxW;
+    this.skinHpFillMaxH = skinFrames.hpFillMaxH;
+    this.skinHpFillSlashW = skinFrames.hpFillSlashW;
+    this.skinFloorFill = skinFrames.floorFill;
+    this.skinFloorFillMaxH = skinFrames.floorFillMaxH;
+    this.skinDepthFrame = skinFrames.depthFrame;
+    this.skinDepthFill = skinFrames.depthFill;
+    this.skinDepthFillTex = skinFrames.depthFillTexture;
+    this.skinDepthFillX = skinFrames.depthFillX;
+    this.skinDepthFillY = skinFrames.depthFillY;
+    this.skinDepthFillW = skinFrames.depthFillW;
+    this.skinDepthFillMaxH = skinFrames.depthFillMaxH;
+    this.skinDepthTickContainer = skinFrames.depthTickContainer;
+    skinFrames.portraitSpritePromise?.then(sprite => {
+      this.portraitSprite = sprite;
+    });
 
-    // Helper: create a sprite from a slice, positioned at its 640x360 bounds.
-    // `into` is the element wrapper the sprite belongs to (defaults to skinLayer
-    // for slices that are not individually editable, e.g. floor indicator).
-    const place = (name: string, into: Container = this.skinLayer!): Sprite | null => {
-      const tex = skin.getTexture(name);
-      const bounds = skin.getBounds(name);
-      if (!tex || !bounds) return null;
-
-      const sprite = new Sprite(tex);
-      sprite.x = bounds.x * s;
-      sprite.y = bounds.y * s;
-      sprite.width = bounds.w * s;
-      sprite.height = bounds.h * s;
-      into.addChild(sprite);
-      return sprite;
-    };
-
-    // --- Static frames ---
-    place('hud_status_frame', wrap('statusFrame'));
-    const hpWrap = wrap('hpBar');
-    hpWrap.zIndex = 20; // HP fill historically drew on top (zIndex 20)
-    this.skinHpFrame = place('hud_status_hp_frame', hpWrap);
-    if (this.skinHpFrame) this.skinHpFrame.zIndex = 10;
-    const portraitWrap = wrap('portraitFrame');
-    place('hud_status_portrait_frame', portraitWrap);
-
-    // Portrait image inside portrait frame — sized to fill the inner
-    // diamond. The portrait PNG is 128×128 with the character centered in
-    // a transparent canvas, so sizing it to the frame bounds straight-up
-    // makes the character look tiny. We scale so the portrait's display
-    // size is ~1.3× the frame bounds (slight overshoot fills the inner
-    // diamond cleanly) and center-anchor it on the frame.
-    {
-      const pBounds = skin.getBounds('hud_status_portrait_frame');
-      if (pBounds) {
-        Assets.load<Texture>(assetPath('assets/portraits/erda.png')).then(tex => {
-          tex.source.scaleMode = 'nearest';
-          const sprite = new Sprite(tex);
-          sprite.anchor.set(0.5, 0.5);
-          const targetSize = Math.max(pBounds.w, pBounds.h) * 1.3; // logical px
-          const scale = (targetSize / tex.width) * s;
-          sprite.scale.set(scale);
-          sprite.x = (pBounds.x + pBounds.w / 2) * s;
-          sprite.y = (pBounds.y + pBounds.h / 2 + 2) * s;
-          // Late add: inherits portraitWrap's layout transform if already set.
-          portraitWrap.addChild(sprite);
-          this.portraitSprite = sprite;
-        });
-      }
-    }
-
-    place('hud_status_atk_frame'); // slice absent in current atlas → no-op
-    place('hud_floor_indicator');
-    this.skinMapFrame = place('hud_map_frame', wrap('mapFrame'));
-    if (this.skinMapFrame) this.skinMapFrame.visible = this.minimapFrameVisible;
-
-    // --- Depth indicator (item world only, hidden by default) ---
-    {
-      const depthFrameTex = skin.getTexture('hud_depth_indicator');
-      const depthFrameBounds = skin.getBounds('hud_depth_indicator');
-      const depthFillTex = skin.getTexture('hud_depth_indicator_fill');
-      const depthFillBounds = skin.getBounds('hud_depth_indicator_fill');
-      if (depthFrameTex && depthFrameBounds && depthFillTex && depthFillBounds) {
-        const depthWrap = wrap('depthFrame');
-        this.skinDepthFrame = new Sprite(depthFrameTex);
-        this.skinDepthFrame.x = depthFrameBounds.x * s;
-        this.skinDepthFrame.y = depthFrameBounds.y * s;
-        this.skinDepthFrame.width = depthFrameBounds.w * s;
-        this.skinDepthFrame.height = depthFrameBounds.h * s;
-        this.skinDepthFrame.visible = false;
-        depthWrap.addChild(this.skinDepthFrame);
-
-        // Position fill INSIDE the frame, using fill texture height as gauge length.
-        // 2026-05-18: magic "+9" 보정 제거. fill 은 frame 의 (w, h) 차이의 절반만큼만 inset.
-        // 추가로 사용자 요청: fill 만 8px (640×360 base) 위로 — frame 은 무이동.
-        const FILL_Y_OFFSET = -8;
-        const topPad = (depthFrameBounds.h - depthFillBounds.h) / 2;
-        this.skinDepthFillTex = depthFillTex;
-        this.skinDepthFillX = (depthFrameBounds.x + (depthFrameBounds.w - depthFillBounds.w) / 2) * s;
-        this.skinDepthFillY = (depthFrameBounds.y + topPad + FILL_Y_OFFSET) * s;
-        this.skinDepthFillW = depthFillBounds.w * s;
-        this.skinDepthFillMaxH = depthFillBounds.h * s;
-
-        this.skinDepthFill = new Sprite(depthFillTex);
-        this.skinDepthFill.x = this.skinDepthFillX;
-        this.skinDepthFill.y = this.skinDepthFillY;
-        this.skinDepthFill.width = this.skinDepthFillW;
-        this.skinDepthFill.height = 0; // starts empty
-        this.skinDepthFill.visible = false;
-        depthWrap.addChild(this.skinDepthFill);
-
-        // Tick container for depth marks
-        this.skinDepthTickContainer = new Container();
-        this.skinDepthTickContainer.visible = false;
-        depthWrap.addChild(this.skinDepthTickContainer);
-      }
-    }
-
-    // --- HP fill (dynamic width). Sprite shape comes from
-    // `hud_status_hp_fill` (size + 9-slice corners), but the on-screen
-    // position is anchored to `hud_status_hp_frame` — the fill draws
-    // ON TOP of the frame at the same X/Y, then the frame shows as the
-    // border once the fill width shrinks. 9-slice keeps the diagonal caps.
-    const hpFillTex = skin.getTexture('hud_status_hp_fill');
-    const hpFillBounds = skin.getBounds('hud_status_hp_fill');
-    const hpFillCenter = skin.getCenter('hud_status_hp_fill');
-    const hpFrameBoundsForFill = skin.getBounds('hud_status_hp_frame');
-    if (hpFillTex && hpFillBounds && hpFrameBoundsForFill) {
-      this.skinHpFill = new Sprite(hpFillTex);
-      // Anchor on the frame's pixel rect — atlas might place fill anywhere
-      // in the source PNG, but display position must match the frame.
-      this.skinHpFill.x = hpFrameBoundsForFill.x * s;
-      this.skinHpFill.y = hpFrameBoundsForFill.y * s;
-      this.skinHpFill.height = hpFrameBoundsForFill.h * s;
-      this.skinHpFillMaxW = hpFrameBoundsForFill.w * s;
-      this.skinHpFillMaxH = hpFrameBoundsForFill.h * s;
-      this.skinHpFillSlashW = ((hpFillCenter)
-        ? hpFillBounds.w - (hpFillCenter.x + hpFillCenter.w)
-        : Math.round(hpFillBounds.h * 0.85)) * s;
-      this.skinHpFill.width = this.skinHpFillMaxW;
-      this.skinHpFill.zIndex = 20;
-      hpWrap.addChild(this.skinHpFill);
-
-      this.skinHpFillMask = new Graphics();
-      this.skinHpFillMask.x = this.skinHpFill.x;
-      this.skinHpFillMask.y = this.skinHpFill.y;
-      this.skinHpFillMask.zIndex = 20;
-      hpWrap.addChild(this.skinHpFillMask);
-      this.skinHpFill.mask = this.skinHpFillMask;
-    }
-
-    // --- Floor indicator fill (dynamic height) ---
-    const floorFillTex = skin.getTexture('hud_floor_indicator_fill');
-    const floorFillBounds = skin.getBounds('hud_floor_indicator_fill');
-    if (floorFillTex && floorFillBounds) {
-      this.skinFloorFill = new Sprite(floorFillTex);
-      this.skinFloorFill.x = floorFillBounds.x * s;
-      this.skinFloorFill.y = floorFillBounds.y * s;
-      this.skinFloorFillMaxH = floorFillBounds.h * s;
-      this.skinFloorFill.width = floorFillBounds.w * s;
-      this.skinFloorFill.height = this.skinFloorFillMaxH;
-      this.skinLayer.addChild(this.skinFloorFill);
-    }
-
-    // --- Key hint sprites (skin background) + text labels on top ---
-    const bindActionText = (txt: BitmapText, action: GameAction): void => {
-      const refresh = () => { txt.text = actionKey(action).toUpperCase(); };
-      refresh();
-      onDeviceChange(refresh);
-    };
-    const placeKey = (name: string, action: GameAction, into: Container = this.skinLayer!) => {
-      const sprite = place(name, into);
-      if (!sprite) return;
-      const bounds = skin.getBounds(name)!;
-      const txt = new BitmapText({
-        text: actionKey(action),
-        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xffffff },
-      });
-      bindActionText(txt, action);
-      txt.anchor.set(0.5, 0.5);
-      txt.x = (bounds.x + bounds.w / 2) * s;
-      txt.y = (bounds.y + bounds.h / 2) * s;
-      into.addChild(txt);
-    };
-    // Action keys: reuse a single `hud_action_key` atlas slice (the atlas
-    // collapsed the old per-action sprites into one shared key sprite).
-    // We pass per-instance world coords so JUMP / DASH / ATK can sit at
-    // their original horizontal layout.
-    const placeActionKey = (
-      sliceName: string,
-      worldX: number,
-      worldY: number,
-      action: GameAction,
-      label: string,
-      keyGlyphYOffset = 0,
-      keyFontSize = 8 * s,
-      into: Container = this.skinLayer!,
-    ) => {
-      const tex = skin.getTexture(sliceName);
-      const bounds = skin.getBounds(sliceName);
-      if (!tex || !bounds) return;
-      const sprite = new Sprite(tex);
-      sprite.x = worldX * s;
-      sprite.y = worldY * s;
-      sprite.width = bounds.w * s;
-      sprite.height = bounds.h * s;
-      into.addChild(sprite);
-      // Key letter — placed inside the SMALL bottom diamond (≈ 70% down the
-      // sprite). Atlas sprite has two stacked diamonds; the large upper
-      // one stays decorative, the small lower one carries the key glyph.
-      const keyTxt = new BitmapText({
-        text: actionKey(action),
-        style: { fontFamily: PIXEL_FONT, fontSize: keyFontSize, fill: 0xffffff },
-      });
-      bindActionText(keyTxt, action);
-      keyTxt.anchor.set(0.5, 0.5);
-      keyTxt.x = (worldX + bounds.w / 2) * s;
-      keyTxt.y = (worldY + bounds.h * 0.70 + 2 + keyGlyphYOffset) * s;
-      into.addChild(keyTxt);
-      // Action name — below box
-      const actionTxt = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8 * s, fill: 0xaaaaaa },
-      });
-      actionTxt.anchor.set(0.5, 0);
-      actionTxt.x = (worldX + bounds.w / 2) * s;
-      actionTxt.y = (worldY + bounds.h + 2) * s;
-      into.addChild(actionTxt);
-    };
-    // Flask key — 25% larger font + store pulse position
-    {
-      const flaskKeyWrap = wrap('flaskKey');
-      const sprite = place('hud_status_key_flask', flaskKeyWrap);
-      const bounds = skin.getBounds('hud_status_key_flask');
-      if (sprite && bounds) {
-        const txt = new BitmapText({
-          text: actionKey(GameAction.FLASK),
-          style: { fontFamily: PIXEL_FONT, fontSize: 10 * s, fill: 0xffffff },
-        });
-        bindActionText(txt, GameAction.FLASK);
-        txt.anchor.set(0.5, 0.5);
-        txt.x = (bounds.x + bounds.w / 2) * s;
-        txt.y = (bounds.y + bounds.h / 2) * s;
-        flaskKeyWrap.addChild(txt);
-        // Store center for pulse glow
-        this.skinFlaskCx = txt.x;
-        this.skinFlaskCy = txt.y;
-        this.skinFlaskR = Math.max(bounds.w, bounds.h) / 2 * s;
-      }
-    }
-    // Flask fill/empty icons — positioned right of [R] key
-    {
-      const fillTex = skin.getTexture('hud_status_flask_fill');
-      const emptyTex = skin.getTexture('hud_status_flask_empty');
-      const fillBounds = skin.getBounds('hud_status_flask_fill');
-      const flaskKeyBounds = skin.getBounds('hud_status_key_flask');
-      if (fillTex && emptyTex && fillBounds && flaskKeyBounds) {
-        this.skinFlaskFillTex = fillTex;
-        this.skinFlaskEmptyTex = emptyTex;
-        this.skinFlaskIconW = fillBounds.w;
-        this.skinFlaskIconH = fillBounds.h;
-        this.skinFlaskGap = -5;
-        // Start right of [R] key with 2px gap
-        this.skinFlaskStartX = (flaskKeyBounds.x - 1) * s;
-        this.skinFlaskStartY = (flaskKeyBounds.y + (flaskKeyBounds.h - fillBounds.h) / 2) * s;
-        // redrawFlask() reparents its icons here so they move with the element.
-        this.flaskIconLayer = wrap('flaskIcons');
-      }
-    }
-    // I key — store position for pulse glow
-    {
-      placeKey('hud_map_key_item_normal', GameAction.INVENTORY, wrap('itemKey'));
-      const iBounds = skin.getBounds('hud_map_key_item_normal');
-      if (iBounds) {
-        this.skinItemKeyCx = (iBounds.x + iBounds.w / 2) * s;
-        this.skinItemKeyCy = (iBounds.y + iBounds.h / 2) * s;
-        this.skinItemKeyR = Math.max(iBounds.w, iBounds.h) / 2 * s;
-      }
-    }
-    placeKey('hud_map_key_inv_normal', GameAction.MAP, wrap('mapKey'));
-    // Three action keys share the single `hud_action_key` atlas slice.
-    // Horizontal layout preserves the ~39 px stride from the old atlas,
-    // but lifted ~30 px upward so the JUMP label no longer clips the
-    // bottom of the screen (GAME_HEIGHT 360 leaves no room at y=309+43).
-    // Y aligned across all three for a clean row.
-    // sprite w=38 + 4 px gap → stride 42. Row stays at y=300.
-    // Fresh skin wrapper — overwrites the Graphics actionKeyBar entry the
-    // constructor registered (that bar is hidden below in skin mode).
-    const actionKeysWrap = new Container();
-    actionKeysWrap.sortableChildren = true;
-    this.skinLayer!.addChild(actionKeysWrap);
-    this.layoutWrappers.set('actionKeys', actionKeysWrap);
-    placeActionKey('hud_action_key',  9, 300, GameAction.JUMP,   'JUMP', 0, 8 * s, actionKeysWrap);
-    placeActionKey('hud_action_key', 51, 300, GameAction.DASH,   'DASH', 0, 8 * s, actionKeysWrap);
-    placeActionKey('hud_action_key', 93, 300, GameAction.ATTACK, 'ATK',  0, 8 * s, actionKeysWrap);
+    const skinKeyPrompts = createSkinHudKeyPromptParts(skin, s, this.skinLayer, this.layoutWrappers);
+    this.skinFlaskCx = skinKeyPrompts.skinFlaskCx;
+    this.skinFlaskCy = skinKeyPrompts.skinFlaskCy;
+    this.skinFlaskR = skinKeyPrompts.skinFlaskR;
+    this.skinFlaskFillTex = skinKeyPrompts.skinFlaskFillTex;
+    this.skinFlaskEmptyTex = skinKeyPrompts.skinFlaskEmptyTex;
+    this.skinFlaskIconW = skinKeyPrompts.skinFlaskIconW;
+    this.skinFlaskIconH = skinKeyPrompts.skinFlaskIconH;
+    this.skinFlaskGap = skinKeyPrompts.skinFlaskGap;
+    this.skinFlaskStartX = skinKeyPrompts.skinFlaskStartX;
+    this.skinFlaskStartY = skinKeyPrompts.skinFlaskStartY;
+    this.flaskIconLayer = skinKeyPrompts.flaskIconLayer;
+    this.skinItemKeyCx = skinKeyPrompts.skinItemKeyCx;
+    this.skinItemKeyCy = skinKeyPrompts.skinItemKeyCy;
+    this.skinItemKeyR = skinKeyPrompts.skinItemKeyR;
 
     // Hide old Graphics-based elements that the skin replaces
     this.hpBar.visible = false;
@@ -1672,7 +1076,7 @@ export class HUD {
     this.sideKeyBar.visible = false;
 
     // Move [I] pulse glow from hidden sideKeyBar to main container
-    if (this.itemKeyPulseGlow.parent) this.itemKeyPulseGlow.parent.removeChild(this.itemKeyPulseGlow);
+    detachDisplayObject(this.itemKeyPulseGlow);
     this.container.addChild(this.itemKeyPulseGlow);
     // Update pulse center to skin I key position
     this.itemKeyCenterX = this.skinItemKeyCx;
@@ -1683,50 +1087,54 @@ export class HUD {
     const hpFrameBounds = skin.getBounds('hud_status_hp_frame');
     const portraitBounds = skin.getBounds('hud_status_portrait_frame');
     if (hpFrameBounds) {
-      // HP text: current HP only, placed beside the portrait.
       const skinHpFont = this.HP_FONT * 0.75;
-      this.hpText.style.fontSize = skinHpFont;
-      this.hpTextShadow.style.fontSize = skinHpFont;
-      this.hpText.text = `${Math.ceil(this.currentHp)}`;
-      this.hpTextShadow.text = this.hpText.text;
-      const hpTextX = portraitBounds
-        ? (portraitBounds.x + portraitBounds.w + 2) * s
-        : (hpFrameBounds.x + hpFrameBounds.w + 2) * s;
-      this.hpText.x = hpTextX + 4 * s;
-      this.hpText.y = hpFrameBounds.y * s + (hpFrameBounds.h * s - skinHpFont) / 2 - 1 * s;
-      this.hpTextShadow.x = this.hpText.x + s;
-      this.hpTextShadow.y = this.hpText.y + s;
+      applyHudSkinHpTextLayout(
+        { shadow: this.hpTextShadow, text: this.hpText },
+        { s, fontSize: skinHpFont, currentHp: this.currentHp, hpFrameBounds, portraitBounds },
+      );
     }
 
     // ATK text: below flask key, same font size as flask labels
     const flaskKeyBounds = skin.getBounds('hud_status_key_flask');
     if (flaskKeyBounds) {
-      this.atkText.style.fontSize = 16 * s;
-      this.atkTextShadow.style.fontSize = 16 * s;
-      this.atkText.x = flaskKeyBounds.x * s;
-      this.atkText.y = (flaskKeyBounds.y + flaskKeyBounds.h + 6) * s;
-      this.atkTextShadow.x = this.atkText.x + s;
-      this.atkTextShadow.y = this.atkText.y + s;
+      applyHudSkinAtkTextLayout(
+        { shadow: this.atkTextShadow, text: this.atkText },
+        { s, fontSize: 16 * s, flaskKeyBounds },
+      );
     }
 
     // Wrap the HP/ATK number labels into editable container-level wrappers
     // (they live in this.container, on top of skinLayer). Local coords are
     // preserved, so this is visually identity until applyLayout shifts them.
-    const hpTextWrap = new Container();
-    hpTextWrap.addChild(this.hpTextShadow);
-    hpTextWrap.addChild(this.hpText);
+    const hpTextWrap = wrapHudTextPair({ shadow: this.hpTextShadow, text: this.hpText });
     this.container.addChild(hpTextWrap);
     this.layoutWrappers.set('hpText', hpTextWrap);
 
-    const atkTextWrap = new Container();
-    atkTextWrap.addChild(this.atkTextShadow);
-    atkTextWrap.addChild(this.atkText);
+    const atkTextWrap = wrapHudTextPair({ shadow: this.atkTextShadow, text: this.atkText });
     this.container.addChild(atkTextWrap);
     this.layoutWrappers.set('atkText', atkTextWrap);
 
     this.hasSkin = true;
     // Trigger a redraw with skin HP fill
-    this.redrawHpBar();
+    redrawHudHpBar(this.hpBar, {
+      s: this.s,
+      width: this.HP_W,
+      height: this.HP_H,
+      currentHp: this.currentHp,
+      maxHp: this.currentMaxHp,
+      ghostHp: this.ghostHp,
+      ghostTimer: this.ghostTimer,
+      healFlashTimer: this.healFlashTimer,
+      healFlashColor: this.healFlashColor,
+      healFlashRatio: this.healFlashRatio,
+      healFlashStartRatio: this.healFlashStartRatio,
+      lowHpTimer: this.lowHpTimer,
+      skinFill: this.skinHpFill,
+      skinFillMask: this.skinHpFillMask,
+      skinFillMaxW: this.skinHpFillMaxW,
+      skinFillMaxH: this.skinHpFillMaxH,
+      skinFillSlashW: this.skinHpFillSlashW,
+    });
 
     // If depth gauge was already showing (async skin load), switch to skin mode
     if (this.depthGauge.visible) {
@@ -1734,36 +1142,47 @@ export class HUD {
       if (this.skinDepthFrame) this.skinDepthFrame.visible = true;
       if (this.skinDepthFill) this.skinDepthFill.visible = true;
       if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = true;
-      this.redrawDepthGauge();
+      this.depthLabels = drawHudDepthGauge({
+        s: this.s,
+        total: this.depthTotal,
+        current: this.depthCurrent,
+        cleared: this.depthCleared,
+        pulseTimer: this.depthPulseTimer,
+        hasSkin: this.hasSkin,
+        fallbackContainer: this.depthGauge,
+        fallbackGfx: this.depthGaugeGfx,
+        fallbackLabels: this.depthLabels,
+        skinFill: this.skinDepthFill,
+        skinTickContainer: this.skinDepthTickContainer,
+        skinFillX: this.skinDepthFillX,
+        skinFillY: this.skinDepthFillY,
+        skinFillW: this.skinDepthFillW,
+        skinFillMaxH: this.skinDepthFillMaxH,
+      });
     }
 
     // Force EXP bar redraw at new ATK position
     if (this.expBarContainer.visible) {
-      this.redrawExpBar();
+      redrawHudItemExpBar(this.expDisplayParts, {
+        s: this.s,
+        expFont: this.EXP_FONT,
+        atkText: this.atkText,
+        itemName: this.expItemName,
+        itemRarityColor: this.expItemRarityColor,
+        level: this.expLevel,
+        displayRatio: this.expDisplayRatio,
+        levelUpFlash: this.expLevelUpFlash,
+        isMax: this.expIsMax,
+      });
     }
 
     // Re-apply layout overrides now that the skin wrappers exist.
     this.applyLayout();
   }
 
-  /** Update skin HP fill mask to match current HP ratio. Called from redrawHpBar. */
-  private updateSkinHpFill(): void {
-    if (!this.skinHpFill || !this.skinHpFillMask) return;
-    const maxHp = this.currentMaxHp || 1;
-    const ratio = Math.max(0, Math.min(1, this.currentHp / maxHp));
-    this.skinHpFill.visible = ratio > 0;
-    this.skinHpFillMask.clear();
-    if (ratio <= 0) return;
 
-    const w = this.skinHpFillMaxW;
-    const h = this.skinHpFillMaxH;
-    const slash = Math.max(this.s, this.skinHpFillSlashW);
-    const front = w * ratio;
-    const topRight = Math.min(w, front + slash * 0.5);
-    const bottomRight = Math.max(0, front - slash * 0.5);
 
-    this.skinHpFillMask
-      .poly([0, 0, topRight, 0, bottomRight, h, 0, h])
-      .fill(0xffffff);
-  }
 }
+
+
+

@@ -1,3 +1,5 @@
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+
 /**
  * LegRig ??Procedural N-leg IK rig for the GiantBuilder, driven by
  * author-placed mount points and rendered with sprites from the
@@ -650,8 +652,7 @@ export class LegRig {
       if (!this.debugGfx) this.debugGfx = new Graphics();
       parent.addChild(this.debugGfx);
     } else if (this.debugGfx) {
-      if (this.debugGfx.parent) this.debugGfx.parent.removeChild(this.debugGfx);
-      this.debugGfx.destroy();
+      destroyDisplayObject(this.debugGfx);
       this.debugGfx = null;
     }
   }

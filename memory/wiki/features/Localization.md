@@ -43,3 +43,8 @@ ECHORIS의 모든 게임 텍스트를 SSoT 기반 KR/EN 양국어로 분리. SSo
 - 게임 내 텍스트/대사/UI/코드 = 영문 1순위 (`feedback_english_only.md`)
 - 한국어 = 개발 내부 기준
 - 마케팅 카피 = 영문 SSoT, 국문은 별도 전환
+
+- 2026-06-05: Legacy WorldScene inventory-count HUD paths use ui.hud.items_count; do not reintroduce hardcoded Items:{count} strings.
+- 2026-06-05: 100-damage milestone combat VFX uses `ui.combat.milestone_100_damage`; do not hardcode `100 DMG!` in scene/runtime damage-number calls.
+
+- 2026-06-05: Legacy WorldAltarController draw path uses existing ui.world.offer_item; do not reintroduce hardcoded altar title strings.

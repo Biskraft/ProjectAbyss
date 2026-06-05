@@ -15,6 +15,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const PARTICLE_COLOR_INNER = 0xfff2c4;    // 따뜻한 연한 골드
 const PARTICLE_COLOR_OUTER = 0xffa41b;    // 브랜드 키 오렌지
@@ -99,8 +100,7 @@ export class AbsorbParticles {
       p.gfx.alpha = alphaMul;
       p.gfx.scale.set(scale);
       if (t >= 1) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.particles.splice(i, 1);
       }
     }
@@ -113,11 +113,9 @@ export class AbsorbParticles {
 
   destroy(): void {
     for (const p of this.particles) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy();
+      destroyDisplayObject(p.gfx);
     }
     this.particles.length = 0;
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

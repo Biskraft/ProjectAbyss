@@ -7,8 +7,15 @@ Current state:
 - Consumes pending portal data from `PortalEntryRuntime` and destroys the pending portal entity.
 - Routes fixed Item World portals back through `WorldFixedItemWorldFlowRuntime.exit()`.
 - Creates random dungeon items for non-altar portals by rarity, or reuses the source altar item.
-- Uses `WorldItemWorldSceneFlowRuntime` for prestreaming, `ItemWorldScene` construction, prepared push, and common return handling.
-- Applies portal/altar path-specific return side effects after common return: world-return dialogue, anvil retirement policy, weapon level-up toast, item acquisition toast/pickup flow, and attack-change toast.
+- `transition` 객체를 통해 준비(push)와 (Ldtk는 해당 없음) 반환-연출 훅을 위임해 씬 의존도를 낮췄다.
+- Uses `WorldItemWorldSceneFlowRuntime` for prestreaming, `ItemWorldScene` construction, prepared push, return fade, and common return handling.
+- Applies portal/altar path-specific return side effects after common return:
+  - shared completion processing is handled through `applyItemWorldSceneCompletionLifecycle`.
+  - world-return dialogue, anvil retirement policy, weapon level-up toast, item acquisition toast/pickup flow, and attack-change toast.
+
+Progress note:
+
+- 2026-06-04: `isFirstItemWorldBossDefeated` is now injected via dependency contract (`isFirstItemWorldBossDefeated`) instead of reading `sacredSave` directly. This matches the same save-state contract pattern used by `WorldAnvilItemWorldFlowRuntime` and `WorldFixedItemWorldFlowRuntime`.
 
 Boundaries:
 
@@ -24,3 +31,5 @@ Prevention rules:
 - Keep pending portal fields out of `LdtkWorldScene`; use `PortalEntryRuntime`.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed; diff check only printed existing line-ending warnings.
+
+- 2026-06-05: Non-altar portal dungeon item creation now uses `@items/ItemRewardFactory.createDungeonRewardItemByRarity(...)`, matching legacy procedural portal rewards and excluding starter-only weapons from reward pools.

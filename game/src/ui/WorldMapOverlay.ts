@@ -19,6 +19,7 @@ import { PIXEL_FONT } from './fonts';
 import { createUiText } from './factories';
 import { t } from '@i18n';
 import type { LdtkLoader } from '@level/LdtkLoader';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const GAME_WIDTH = 640;
 const GAME_HEIGHT = 360;
@@ -558,7 +559,6 @@ export class WorldMapOverlay {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

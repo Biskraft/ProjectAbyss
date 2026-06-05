@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ECHORIS · Spec Canvas</title>
+
+<!-- Fonts: Pretendard (UI + Korean labels) · JetBrains Mono (spec IDs) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="icon" href="data:," />
+
+<!-- JointJS 3.7.7 + required globals (jQuery, Lodash, Backbone) — the min build is not self-bundled -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jointjs@3.7.7/dist/joint.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/backbone@1.4.1/backbone-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jointjs@3.7.7/dist/joint.min.js"></script>
+
+<style>
+  /* ============ ECHORIS Spec Canvas — "Abyssal Observation Console" theme ============ */
+  :root {
+    --bg-void:    #0a0e12;
+    --bg-canvas:  #0e141a;
+    --grid-dot:   #1a2832;
+    --panel:      #111922;
+    --panel-2:    #16212b;
+    --panel-3:    #1c2935;
+    --border:     #233039;
+    --border-2:   #2d3e49;
+    --text-hi:    #e8eff4;
+    --text:       #aebcc6;
+    --text-dim:   #6d7d88;
+    --accent:     #ff8a3d;   /* ember */
+    --accent-soft:#ffb582;
+    --accent-glow:rgba(255,138,61,.22);
+    --sel:        #46c6e0;   /* selection cyan */
+    --sel-glow:   rgba(70,198,224,.18);
+    --st-todo:    #7c8a96;
+    --st-prog:    #e8b13a;
+    --st-block:   #ef5d6c;
+    --st-done:    #5bd47e;
+    --sans: 'Pretendard', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --radius: 9px;
+    --shadow: 0 8px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    background: var(--bg-void);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- App frame ---- */
+  .app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
+
+  /* ---- Top toolbar ---- */
+  .toolbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border-bottom: 1px solid var(--border);
+    z-index: 20;
+    animation: fadeDown .5s ease both;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 9px; user-select: none; }
+  .wordmark .mark {
+    font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 3px;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .wordmark .mark::before { content: "◇ "; color: var(--accent-soft); }
+  .wordmark .sub { font-size: 11.5px; color: var(--text-dim); letter-spacing: .5px; }
+
+  .tdiv { width: 1px; height: 24px; background: var(--border-2); }
+
+  .group { display: flex; align-items: center; gap: 6px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 32px; padding: 0 12px;
+    background: var(--panel-3); color: var(--text);
+    border: 1px solid var(--border-2); border-radius: 7px;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; transition: all .14s ease; white-space: nowrap;
+  }
+  .btn:hover { background: #243240; color: var(--text-hi); border-color: #3a4d59; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+  .btn .ico { width: 14px; height: 14px; display: inline-block; }
+  .btn.toggle.on {
+    background: var(--accent-glow); border-color: var(--accent); color: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent-glow), 0 0 14px var(--accent-glow);
+  }
+  .spacer { flex: 1; }
+
+  .save-pill {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    padding: 0 10px; height: 30px; border-radius: 16px;
+    border: 1px solid var(--border); background: var(--panel);
+  }
+  .save-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st-done); transition: background .2s; }
+  .save-pill.saving .dot { background: var(--st-prog); animation: pulse 1s infinite; }
+  .save-pill.saving { color: var(--accent-soft); }
+
+  /* ---- Stage ---- */
+  .stage { position: relative; overflow: hidden; background: var(--bg-canvas); }
+  #canvas { position: absolute; inset: 0; }
+  #canvas svg { display: block; }
+
+  /* JointJS link styling polish */
+  .joint-link .connection-wrap { stroke-width: 14; }
+
+  /* ---- Semantic zoom (LOD): hide detail as you zoom out ---- */
+  #canvas.lod-mid .sc-id, #canvas.lod-mid .sc-img { display: none; }
+  #canvas.lod-far .sc-id, #canvas.lod-far .sc-img,
+  #canvas.lod-far .sc-label, #canvas.lod-far .sc-dot { display: none; }
+
+  /* Category labels (shown only when zoomed far) */
+  #catLabels { position: absolute; inset: 0; pointer-events: none; z-index: 8; overflow: hidden; display: none; }
+  .cat-label {
+    position: absolute; transform: translate(-50%, -50%);
+    display: flex; gap: 7px; align-items: baseline; white-space: nowrap;
+    color: var(--cc, #aab8c2); text-shadow: 0 1px 10px #000, 0 0 28px var(--cc, transparent);
+  }
+  .cat-label .cn { font-family: var(--sans); font-weight: 700; letter-spacing: .4px; }
+  .cat-label .cc { font-family: var(--mono); opacity: .55; }
+  .cat-label.lvl1 .cn { font-size: 23px; font-weight: 800; }
+  .cat-label.lvl1 .cc { font-size: 14px; }
+  .cat-label.lvl2 .cn { font-size: 15px; font-weight: 700; }
+  .cat-label.lvl2 .cc { font-size: 11px; }
+  .cat-label.lvl3 .cn { font-size: 11px; font-weight: 600; opacity: .9; }
+  .cat-label.lvl3 .cc { font-size: 9px; }
+
+  /* vignette + scanline atmosphere */
+  .stage::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    box-shadow: inset 0 0 160px rgba(0,0,0,.55);
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay; z-index: 2;
+  }
+
+  /* ---- Inspector ---- */
+  .inspector {
+    position: absolute; top: 16px; right: 16px; width: 244px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--border-2); border-radius: var(--radius);
+    box-shadow: var(--shadow); z-index: 15;
+    padding: 14px; opacity: 0; transform: translateY(-6px) scale(.98);
+    transition: opacity .18s ease, transform .18s ease; pointer-events: none;
+  }
+  .inspector.show { opacity: 1; transform: none; pointer-events: auto; }
+  .insp-id { font-family: var(--mono); font-size: 11px; color: var(--accent-soft); letter-spacing: 1px; margin-bottom: 12px; }
+  .insp-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--text-dim); margin: 14px 0 7px; }
+  .insp-name {
+    width: 100%; background: var(--bg-void); color: var(--text-hi);
+    border: 1px solid var(--border-2); border-radius: 6px; padding: 8px 10px;
+    font-family: var(--sans); font-size: 13px; resize: none;
+  }
+  .insp-name:focus { outline: none; border-color: var(--sel); box-shadow: 0 0 0 2px var(--sel-glow); }
+  .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .st-btn {
+    display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 9px;
+    background: var(--bg-void); border: 1px solid var(--border); border-radius: 6px;
+    font-size: 11.5px; color: var(--text); cursor: pointer; transition: all .12s;
+  }
+  .st-btn:hover { border-color: var(--border-2); }
+  .st-btn.on { border-color: currentColor; background: rgba(255,255,255,.04); }
+  .st-btn .sw { width: 9px; height: 9px; border-radius: 50%; }
+  .st-btn[data-s="todo"]      { --c: var(--st-todo);  }
+  .st-btn[data-s="in-progress"]{ --c: var(--st-prog); }
+  .st-btn[data-s="blocked"]   { --c: var(--st-block); }
+  .st-btn[data-s="done"]      { --c: var(--st-done);  }
+  .st-btn .sw { background: var(--c); }
+  .st-btn.on { color: var(--c); }
+  .insp-actions { display: flex; gap: 6px; margin-top: 14px; }
+  .insp-actions .btn { flex: 1; justify-content: center; height: 30px; }
+  .btn.danger:hover { background: rgba(239,93,108,.14); border-color: var(--st-block); color: #ff9aa6; }
+
+  /* ---- Hint footer ---- */
+  .hint {
+    position: absolute; left: 16px; bottom: 14px; z-index: 12;
+    font-size: 11.5px; color: var(--text-dim);
+    display: flex; gap: 14px; align-items: center;
+    background: rgba(14,20,26,.7); border: 1px solid var(--border);
+    padding: 7px 13px; border-radius: 18px; backdrop-filter: blur(6px);
+  }
+  .hint b { color: var(--text); font-weight: 500; }
+  .hint kbd {
+    font-family: var(--mono); font-size: 10px; background: var(--panel-3);
+    border: 1px solid var(--border-2); border-bottom-width: 2px; border-radius: 4px;
+    padding: 1px 5px; color: var(--text);
+  }
+  .zoom-pill {
+    position: absolute; right: 16px; bottom: 14px; z-index: 12;
+    font-family: var(--mono); font-size: 11px; color: var(--text);
+    background: rgba(14,20,26,.7); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 16px; backdrop-filter: blur(6px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .zoom-pill button {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 0 2px;
+  }
+  .zoom-pill button:hover { color: var(--accent-soft); }
+
+  /* ---- Inline label editor ---- */
+  #editor {
+    position: fixed; z-index: 40; display: none;
+    background: var(--bg-void); color: var(--text-hi);
+    border: 1.5px solid var(--sel); border-radius: 6px;
+    box-shadow: 0 0 0 3px var(--sel-glow), var(--shadow);
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    text-align: center; resize: none; padding: 6px 8px; outline: none;
+  }
+
+  /* ---- toast / fallback ---- */
+  #fallback {
+    position: absolute; inset: 0; display: none; place-items: center;
+    background: var(--bg-void); color: var(--text); z-index: 50; text-align: center;
+    font-size: 13px; padding: 40px;
+  }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  .ico { stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===================== TOOLBAR ===================== -->
+  <header class="toolbar">
+    <div class="wordmark">
+      <span class="mark">Spec&nbsp;Canvas</span>
+      <span class="sub">ECHORIS · v1</span>
+    </div>
+    <div class="tdiv"></div>
+
+    <div class="group">
+      <button class="btn" id="undoBtn" title="실행 취소 (Ctrl+Z)" disabled>↶ 실행취소</button>
+      <button class="btn" id="redoBtn" title="다시 실행 (Ctrl+Y)" disabled>↷</button>
+    </div>
+    <div class="tdiv"></div>
+
+    <div class="group">
+      <button class="btn" data-add="rect" title="사각 노드 추가">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/></svg>사각
+      </button>
+      <button class="btn" data-add="rounded" title="둥근 노드 추가">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="3.5"/></svg>둥근
+      </button>
+      <button class="btn" data-add="ellipse" title="타원 노드 추가">
+        <svg class="ico" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="6" ry="4.5"/></svg>타원
+      </button>
+    </div>
+    <div class="tdiv"></div>
+
+    <div class="group">
+      <button class="btn toggle" id="linkBtn" title="연결 모드: 두 노드를 차례로 클릭">
+        <svg class="ico" viewBox="0 0 16 16"><path d="M6 10 10 6"/><path d="M9 3.5a2.5 2.5 0 0 1 3.5 3.5L11 8.5"/><path d="M7 12.5a2.5 2.5 0 0 1-3.5-3.5L5 7.5"/></svg>연결
+      </button>
+      <button class="btn" id="imgBtn" title="선택한 노드에 이미지 채우기">
+        <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/><circle cx="5.5" cy="6.5" r="1"/><path d="M3 11l3-2.5 3 2 2-1.5 2 2"/></svg>이미지
+      </button>
+      <button class="btn toggle" id="gridBtn" title="그리드 스냅 (기본 off)">
+        <svg class="ico" viewBox="0 0 16 16"><path d="M2 6h12M2 10h12M6 2v12M10 2v12"/></svg>그리드
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="save-pill" id="savePill"><span class="dot"></span><span id="saveTxt">저장됨</span></div>
+  </header>
+
+  <!-- ===================== STAGE ===================== -->
+  <div class="stage">
+    <div id="canvas"></div>
+    <div id="catLabels"></div>
+
+    <!-- Inspector -->
+    <aside class="inspector" id="inspector">
+      <div class="insp-id" id="inspId">—</div>
+      <div class="insp-label">이름</div>
+      <textarea class="insp-name" id="inspName" rows="2" placeholder="노드 이름"></textarea>
+      <div class="insp-label">상태</div>
+      <div class="status-row">
+        <div class="st-btn" data-s="todo"><span class="sw"></span>대기</div>
+        <div class="st-btn" data-s="in-progress"><span class="sw"></span>진행</div>
+        <div class="st-btn" data-s="blocked"><span class="sw"></span>막힘</div>
+        <div class="st-btn" data-s="done"><span class="sw"></span>완료</div>
+      </div>
+      <div class="insp-actions">
+        <button class="btn" id="inspImg" style="flex:1;justify-content:center">이미지</button>
+        <button class="btn danger" id="inspDel" style="flex:1;justify-content:center">삭제</button>
+      </div>
+    </aside>
+
+    <div class="hint">
+      <span><b>드래그</b> 이동</span>
+      <span><b>우하단 핸들</b> 크기</span>
+      <span><b>더블클릭</b> 접기/펼치기</span>
+      <span><b>휠</b> 줌 (멀어지면 카테고리)</span>
+      <span><kbd>Del</kbd> 삭제</span>
+    </div>
+
+    <div class="zoom-pill">
+      <button id="zOut">−</button>
+      <span id="zoomTxt">100%</span>
+      <button id="zIn">+</button>
+      <button id="zFit" title="맞춤" style="font-size:11px">⤢</button>
+    </div>
+
+    <div id="fallback">JointJS 로드에 실패했습니다. 네트워크(CDN) 연결을 확인하고 새로고침하세요.</div>
+  </div>
+</div>
+
+<textarea id="editor" spellcheck="false"></textarea>
+<input type="file" id="fileInput" accept="image/*" style="display:none" />
+
+<script>
+(function () {
+  "use strict";
+  if (typeof joint === "undefined") { document.getElementById("fallback").style.display = "grid"; return; }
+
+  /* ---- SVG-side theme (presentation attrs can't read CSS vars) ---- */
+  var T = {
+    nodeFill: "#16212b", nodeStroke: "#34454f", sel: "#46c6e0",
+    text: "#e8eff4", labelStroke: "#0a0e12", id: "#ffb582",
+    link: "#5b6c77", linkArrow: "#7d8e99",
+    status: { "todo": "#7c8a96", "in-progress": "#e8b13a", "blocked": "#ef5d6c", "done": "#5bd47e" }
+  };
+  var MIN_W = 130, MIN_H = 84;
+
+  /* SSoT type -> border tint (emergent grouping by colour) */
+  var TYPE_COLOR = {
+    System: "#4a86b0", Content: "#56b06a", Design: "#c79a4a", UI: "#9a6cc0",
+    Spec: "#ff8a3d", Plan: "#d06a86", CSV: "#3fb0a8", Terms: "#7c8a96",
+    Research: "#8a9a55", Feedback: "#b0644a", Idea: "#c0b04a"
+  };
+
+  /* ============ Custom elements ============ */
+  joint.shapes.spec = {};
+
+  var baseAttrs = {
+    body:  { fill: T.nodeFill, stroke: T.nodeStroke, strokeWidth: 1.5 },
+    image: {
+      "xlink:href": "", visibility: "hidden",
+      x: 5, y: 5, width: "calc(w-10)", height: "calc(h-10)",
+      preserveAspectRatio: "xMidYMid meet", opacity: 1
+    },
+    idText: {
+      text: "", fill: T.id, fontFamily: "'JetBrains Mono', monospace",
+      fontSize: 10.5, "letter-spacing": 0.6, x: 13, y: 21, textAnchor: "start"
+    },
+    label: {
+      text: "", fill: T.text, fontFamily: "'Pretendard', sans-serif",
+      fontSize: 14, fontWeight: 600, textAnchor: "middle", textVerticalAnchor: "bottom",
+      x: "calc(0.5*w)", y: "calc(h-11)",
+      stroke: T.labelStroke, strokeWidth: 3.2, "paint-order": "stroke",
+      textWrap: { width: "calc(w-22)", maxLineCount: 2, ellipsis: true }
+    },
+    statusDot: { r: 5, cx: "calc(w-14)", cy: 14, fill: T.status.todo, stroke: T.labelStroke, strokeWidth: 1.5 }
+  };
+  var sharedMarkup = [
+    { tagName: "image", selector: "image", className: "sc-img" },
+    { tagName: "text",  selector: "idText", className: "sc-id" },
+    { tagName: "text",  selector: "label", className: "sc-label" },
+    { tagName: "circle", selector: "statusDot", className: "sc-dot" }
+  ];
+
+  joint.shapes.spec.Box = joint.dia.Element.define("spec.Box", {
+    size: { width: 200, height: 130 }, status: "todo", shapeKind: "rect", specId: "", specType: "",
+    attrs: Object.assign({ body: Object.assign({ width: "calc(w)", height: "calc(h)", rx: 6, ry: 6 }, baseAttrs.body) },
+      { image: baseAttrs.image, idText: baseAttrs.idText, label: baseAttrs.label, statusDot: baseAttrs.statusDot })
+  }, {
+    markup: [{ tagName: "rect", selector: "body" }].concat(sharedMarkup)
+  });
+
+  joint.shapes.spec.Ellipse = joint.dia.Element.define("spec.Ellipse", {
+    size: { width: 200, height: 140 }, status: "todo", shapeKind: "ellipse", specId: "", specType: "",
+    attrs: Object.assign({ body: Object.assign({ cx: "calc(0.5*w)", cy: "calc(0.5*h)", rx: "calc(0.5*w)", ry: "calc(0.5*h)" }, baseAttrs.body) },
+      { image: baseAttrs.image, idText: baseAttrs.idText, label: baseAttrs.label, statusDot: baseAttrs.statusDot })
+  }, {
+    markup: [{ tagName: "ellipse", selector: "body" }].concat(sharedMarkup)
+  });
+
+  /* ============ Graph + Paper ============ */
+  var graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
+  var canvasEl = document.getElementById("canvas");
+
+  var paper = new joint.dia.Paper({
+    el: canvasEl, model: graph,
+    width: canvasEl.clientWidth, height: canvasEl.clientHeight,
+    async: false, cellViewNamespace: joint.shapes,
+    gridSize: 1,
+    drawGrid: false,
+    background: { color: "#0e141a" },
+    linkPinning: false, multiLinks: false,
+    defaultConnector: { name: "rounded" },
+    defaultRouter: { name: "normal" },
+    interactive: { linkMove: true, labelMove: false },
+    preventDefaultBlankAction: false
+  });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    paper.setDimensions(canvasEl.clientWidth, canvasEl.clientHeight);
+    scheduleLOD();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { if (graph.getElements().length) fitContent(); }, 220);
+  });
+
+  /* ============ Resize tool (official Control extension) ============ */
+  var ResizeHandle = joint.elementTools.Control.extend({
+    children: [{
+      tagName: "rect",
+      selector: "handle",
+      attributes: {
+        width: 11, height: 11, x: -5.5, y: -5.5, rx: 2,
+        fill: T.sel, stroke: "#0a0e12", "stroke-width": 1.5, cursor: "nwse-resize"
+      }
+    }],
+    getPosition: function (view) { var s = view.model.size(); return { x: s.width, y: s.height }; },
+    setPosition: function (view, coords) {
+      view.model.resize(Math.max(MIN_W, Math.round(coords.x)), Math.max(MIN_H, Math.round(coords.y)));
+    }
+  });
+
+  /* ============ Selection ============ */
+  var selected = null;        // a cellView (element or link)
+  var editing = false;
+
+  function clearSelection() {
+    if (selected) { selected.removeTools(); joint.highlighters.stroke.remove(selected, "sel"); }
+    selected = null;
+    inspector.classList.remove("show");
+  }
+
+  function selectElement(view) {
+    if (selected === view) return;
+    clearSelection();
+    selected = view;
+    joint.highlighters.stroke.add(view, "body", "sel", {
+      padding: 4, rx: 8, ry: 8, attrs: { stroke: T.sel, "stroke-width": 2 }
+    });
+    view.addTools(new joint.dia.ToolsView({
+      tools: [ new ResizeHandle({ selector: "body" }), new joint.elementTools.Remove({ x: "100%", y: 0, offset: { x: 6, y: -6 } }) ]
+    }));
+    showInspector(view.model);
+  }
+
+  function selectLink(view) {
+    clearSelection();
+    selected = view;
+    view.addTools(new joint.dia.ToolsView({
+      tools: [
+        new joint.linkTools.Vertices(),
+        new joint.linkTools.TargetArrowhead(),
+        new joint.linkTools.Remove({ distance: 24 })
+      ]
+    }));
+  }
+
+  /* ============ Link (connect) mode ============ */
+  var linkMode = false, linkSrc = null;
+  var linkBtn = document.getElementById("linkBtn");
+  linkBtn.addEventListener("click", function () {
+    linkMode = !linkMode;
+    linkBtn.classList.toggle("on", linkMode);
+    linkSrc = null; clearPending();
+    paper.setInteractivity(linkMode ? false : { linkMove: true, labelMove: false });
+    canvasEl.style.cursor = linkMode ? "crosshair" : "";
+  });
+  function clearPending() {
+    graph.getElements().forEach(function (el) {
+      var v = el.findView(paper); if (v) joint.highlighters.stroke.remove(v, "pending");
+    });
+  }
+  function markPending(view) {
+    joint.highlighters.stroke.add(view, "body", "pending", { padding: 4, rx: 8, ry: 8, attrs: { stroke: T.status["in-progress"], "stroke-width": 2, "stroke-dasharray": "5,4" } });
+  }
+  function createLink(s, t) {
+    new joint.shapes.standard.Link({
+      source: { id: s }, target: { id: t },
+      attrs: { line: {
+        stroke: T.link, strokeWidth: 2, strokeLinecap: "round",
+        targetMarker: { type: "path", d: "M 11 -5 0 0 11 5 Z", fill: T.linkArrow, stroke: "none" }
+      } },
+      router: { name: "normal" }, connector: { name: "rounded" }, z: -1
+    }).addTo(graph);
+  }
+
+  /* ============ Paper events ============ */
+  paper.on("element:pointerclick", function (view) {
+    if (linkMode) {
+      if (!linkSrc) { linkSrc = view.model; markPending(view); }
+      else if (linkSrc.id !== view.model.id) { createLink(linkSrc.id, view.model.id); clearPending(); linkSrc = null; }
+      return;
+    }
+    selectElement(view);
+  });
+  paper.on("link:pointerclick", function (view) { if (!linkMode) selectLink(view); });
+  paper.on("blank:pointerclick", function () { if (linkMode) { linkSrc = null; clearPending(); } else clearSelection(); });
+  paper.on("element:pointerdblclick", function (view) {
+    if (linkMode) return;
+    var nid = view.model.get("nodeId");
+    if (nid && findNode(H, nid) && findNode(H, nid).children) toggleCollapse(nid);
+    else openEditor(view);
+  });
+
+  /* ---- Pan (blank drag) + zoom (wheel) ---- */
+  var panning = false, panStart = null;
+  paper.on("blank:pointerdown", function (evt) {
+    panning = true;
+    var tr = paper.translate();
+    panStart = { x: evt.clientX, y: evt.clientY, tx: tr.tx, ty: tr.ty };
+    canvasEl.style.cursor = "grabbing";
+  });
+  document.addEventListener("mousemove", function (e) {
+    if (!panning) return;
+    paper.translate(panStart.tx + (e.clientX - panStart.x), panStart.ty + (e.clientY - panStart.y));
+    scheduleLOD();
+  });
+  document.addEventListener("mouseup", function () {
+    if (panning) { panning = false; canvasEl.style.cursor = linkMode ? "crosshair" : ""; }
+  });
+  canvasEl.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.09 : 1 / 1.09);
+  }, { passive: false });
+
+  function zoomAt(px, py, factor) {
+    var s = paper.scale().sx;
+    var ns = Math.min(2.6, Math.max(0.03, s * factor));
+    var tr = paper.translate();
+    var lx = (px - tr.tx) / s, ly = (py - tr.ty) / s;
+    paper.scale(ns);
+    paper.translate(px - lx * ns, py - ly * ns);
+    document.getElementById("zoomTxt").textContent = Math.round(ns * 100) + "%";
+    scheduleLOD();
+  }
+
+  /* ---- Semantic zoom (LOD): progressive DEPTH reveal — zoom in shows one more level each step.
+     depth 1 = pillars, 2 = categories, 3 = groups, 4+ = detail (units). ---- */
+  var currentTier = "", currentMaxDepth = -99, lodRAF = 0, catLabelEls = {};
+  function scheduleLOD() { if (lodRAF) return; lodRAF = requestAnimationFrame(function () { lodRAF = 0; applyLOD(); }); }
+  function depthForScale(s) { return s < 0.08 ? 1 : (s < 0.14 ? 2 : (s < 0.22 ? 3 : 99)); }
+  function applyLOD() {
+    var s = paper.scale().sx;
+    var md = depthForScale(s);
+    // ALL nodes (incl. end/leaf) always render; only the LABELS abstract by zoom level.
+    // abstraction tier: while abstracted (md<=3) hide in-node labels and use big overlay labels;
+    // at detail (md=99) show in-node labels and drop overlay.
+    var tier = (md <= 3) ? "far" : "near";
+    if (tier !== currentTier) {
+      currentTier = tier;
+      canvasEl.classList.remove("lod-far", "lod-mid", "lod-near");
+      canvasEl.classList.add("lod-" + tier);
+    }
+    updateCatLabels(md);
+  }
+  // Layered abstraction labels: show a big overlay label for every visible node from
+  // depth 1 .. md (capped at 3), sized by depth (1 big, 2 medium, 3 small).
+  function updateCatLabels(md) {
+    var box = document.getElementById("catLabels");
+    if (!md || md > 3) {
+      box.style.display = "none";
+      Object.keys(catLabelEls).forEach(function (k) { catLabelEls[k].remove(); delete catLabelEls[k]; });
+      return;
+    }
+    box.style.display = "block";
+    var seen = {};
+    graph.getElements().forEach(function (el) {
+      var d = el.get("depth");
+      if (d == null || d < 1 || d > md) return;
+      var id = el.get("nodeId"); if (!id) return;
+      var node = H ? findNode(H, id) : null;
+      var nm = node ? node.name.split(" (")[0].split(" —")[0] : id;
+      var b = el.getBBox(), p = paper.localToPaperPoint(b.x + b.width / 2, b.y + b.height / 2);
+      var div = catLabelEls[id];
+      if (!div) { div = document.createElement("div"); box.appendChild(div); catLabelEls[id] = div; }
+      div.className = "cat-label lvl" + d;
+      div.style.setProperty("--cc", PILLAR_COLOR[el.get("specType")] || "#aab8c2");
+      var lc = node ? leafCount(node) : 0;
+      div.innerHTML = '<span class="cn">' + nm + '</span>' + (lc ? '<span class="cc">' + lc + '</span>' : '');
+      div.style.left = p.x + "px"; div.style.top = p.y + "px";
+      seen[id] = 1;
+    });
+    Object.keys(catLabelEls).forEach(function (k) { if (!seen[k]) { catLabelEls[k].remove(); delete catLabelEls[k]; } });
+  }
+  document.getElementById("zIn").addEventListener("click", function () { var r = canvasEl.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.18); });
+  document.getElementById("zOut").addEventListener("click", function () { var r = canvasEl.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.18); });
+  document.getElementById("zFit").addEventListener("click", fitContent);
+  function fitContent() {
+    if (graph.getElements().length === 0) { paper.scale(1); paper.translate(0, 0); document.getElementById("zoomTxt").textContent = "100%"; scheduleLOD(); return; }
+    paper.scaleContentToFit({ padding: 120, minScale: 0.03, maxScale: 1.6 });
+    document.getElementById("zoomTxt").textContent = Math.round(paper.scale().sx * 100) + "%";
+    scheduleLOD();
+  }
+
+  /* ============ Add nodes ============ */
+  function viewportCenterLocal() {
+    var r = canvasEl.getBoundingClientRect();
+    return paper.clientToLocalPoint({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  }
+  var addCount = 0;
+  function addNode(kind) {
+    pushUndo();
+    var c = viewportCenterLocal();
+    var el = (kind === "ellipse")
+      ? new joint.shapes.spec.Ellipse({ size: { width: 200, height: 140 } })
+      : new joint.shapes.spec.Box({ size: { width: 200, height: 130 } });
+    // cascade new nodes around the viewport center so they never overlap
+    var ox = (addCount % 4) * 234 - 351;
+    var oy = (Math.floor(addCount / 4) % 3) * 178 - 178;
+    addCount++;
+    el.position(c.x - el.size().width / 2 + ox, c.y - el.size().height / 2 + oy);
+    el.set("shapeKind", kind);
+    el.set("status", "todo");
+    if (kind === "rect") el.attr("body/rx", 6), el.attr("body/ry", 6);
+    if (kind === "rounded") el.attr("body/rx", 22), el.attr("body/ry", 22);
+    el.attr("label/text", "새 노드");
+    el.attr("statusDot/fill", T.status.todo);
+    el.addTo(graph);
+    el.attr("idText/text", String(el.id).replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase());
+    selectElement(el.findView(paper));
+  }
+  document.querySelectorAll("[data-add]").forEach(function (b) {
+    b.addEventListener("click", function () { addNode(b.getAttribute("data-add")); });
+  });
+
+  /* ============ Images (drop + picker) with auto-fit ============ */
+  function applyEllipseClip(model) {
+    if (model.get("shapeKind") !== "ellipse") return;
+    var v = model.findView(paper); if (!v) return;
+    var img = v.el.querySelector("image");
+    if (img) img.style.clipPath = "ellipse(50% 50% at 50% 50%)";
+  }
+  function setImage(model, href) {
+    pushUndo();
+    // preserveAspectRatio "meet" => contain => image auto-shrinks to fit the shape.
+    model.attr("image/xlink:href", href);
+    model.attr("image/visibility", "visible");
+    model.attr("label/y", "calc(h+16)"); // push label below image-filled body? keep inside:
+    model.attr("label/y", "calc(h-11)");
+    applyEllipseClip(model);
+  }
+  var fileInput = document.getElementById("fileInput");
+  var pendingImgModel = null;
+  function pickImageFor(model) {
+    pendingImgModel = model; fileInput.value = ""; fileInput.click();
+  }
+  fileInput.addEventListener("change", function () {
+    var f = fileInput.files && fileInput.files[0]; if (!f || !pendingImgModel) return;
+    var reader = new FileReader();
+    reader.onload = function () { setImage(pendingImgModel, reader.result); pendingImgModel = null; };
+    reader.readAsDataURL(f);
+  });
+  document.getElementById("imgBtn").addEventListener("click", function () {
+    if (selected && selected.model && selected.model.isElement()) pickImageFor(selected.model);
+    else flashSave("노드를 먼저 선택하세요");
+  });
+
+  /* ---- Grid snap toggle (default off) ---- */
+  var gridOn = false;
+  document.getElementById("gridBtn").addEventListener("click", function () {
+    gridOn = !gridOn;
+    document.getElementById("gridBtn").classList.toggle("on", gridOn);
+    if (gridOn) { paper.setGridSize(24); paper.drawGrid({ name: "dot", args: { color: "#1a2832", thickness: 1.8 } }); }
+    else { paper.options.gridSize = 1; paper.clearGrid(); }
+  });
+
+  canvasEl.addEventListener("dragover", function (e) { e.preventDefault(); });
+  canvasEl.addEventListener("drop", function (e) {
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f || f.type.indexOf("image/") !== 0) return;
+    var pt = paper.clientToLocalPoint({ x: e.clientX, y: e.clientY });
+    var hits = graph.findModelsFromPoint(pt);
+    var model = hits.length ? hits[hits.length - 1] : null;
+    if (!model) { flashSave("도형 위에 드롭하세요"); return; }
+    var reader = new FileReader();
+    reader.onload = function () { setImage(model, reader.result); };
+    reader.readAsDataURL(f);
+  });
+
+  /* ============ Inspector ============ */
+  var inspector = document.getElementById("inspector");
+  var inspName = document.getElementById("inspName");
+  function showInspector(model) {
+    inspector.classList.add("show");
+    document.getElementById("inspId").textContent = model.attr("idText/text") || "—";
+    inspName.value = model.attr("label/text") || "";
+    var st = model.get("status") || "todo";
+    document.querySelectorAll(".st-btn").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-s") === st); });
+  }
+  inspName.addEventListener("input", function () {
+    if (selected && selected.model && selected.model.isElement()) selected.model.attr("label/text", inspName.value);
+  });
+  document.querySelectorAll(".st-btn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (!selected || !selected.model.isElement()) return;
+      var st = b.getAttribute("data-s");
+      selected.model.set("status", st);
+      selected.model.attr("statusDot/fill", T.status[st]);
+      document.querySelectorAll(".st-btn").forEach(function (x) { x.classList.toggle("on", x === b); });
+    });
+  });
+  document.getElementById("inspImg").addEventListener("click", function () { if (selected && selected.model.isElement()) pickImageFor(selected.model); });
+  document.getElementById("inspDel").addEventListener("click", function () { if (selected) { pushUndo(); selected.model.remove(); clearSelection(); } });
+
+  /* ============ Inline label editor ============ */
+  var editorEl = document.getElementById("editor");
+  var editTarget = null;
+  function openEditor(view) {
+    editing = true; editTarget = view.model;
+    var r = view.el.getBoundingClientRect();
+    editorEl.style.display = "block";
+    editorEl.style.left = r.left + "px";
+    editorEl.style.top = (r.top + r.height / 2 - 16) + "px";
+    editorEl.style.width = r.width + "px";
+    editorEl.value = view.model.attr("label/text") || "";
+    editorEl.focus(); editorEl.select();
+  }
+  function commitEditor() {
+    if (!editing) return;
+    if (editTarget) editTarget.attr("label/text", editorEl.value);
+    editing = false; editTarget = null; editorEl.style.display = "none";
+    if (selected && selected.model === editTarget) showInspector(selected.model);
+  }
+  editorEl.addEventListener("blur", commitEditor);
+  editorEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEditor(); }
+    if (e.key === "Escape") { editing = false; editTarget = null; editorEl.style.display = "none"; }
+  });
+
+  /* ---- Delete key ---- */
+  document.addEventListener("keydown", function (e) {
+    if (editing) return;
+    if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+      if (document.activeElement === inspName) return;
+      e.preventDefault(); pushUndo(); selected.model.remove(); clearSelection();
+    }
+  });
+
+  /* ============ Persistence (auto-save) ============ */
+  var savePill = document.getElementById("savePill");
+  var saveTxt = document.getElementById("saveTxt");
+  var saveTimer = null, loading = true;
+  function flashSave(msg) { saveTxt.textContent = msg; setTimeout(function () { saveTxt.textContent = "저장됨"; }, 1400); }
+
+  function scheduleSave() {
+    if (loading) return;
+    savePill.classList.add("saving"); saveTxt.textContent = "저장 중";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 450);
+  }
+  function doSave() {
+    var col = Object.keys(collapsed).filter(function (k) { return collapsed[k]; });
+    fetch("/patch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collapsed: col }) })
+      .then(function (r) { return r.json(); })
+      .then(function () { savePill.classList.remove("saving"); saveTxt.textContent = "저장됨"; })
+      .catch(function () { savePill.classList.remove("saving"); saveTxt.textContent = "저장 실패"; });
+  }
+  graph.on("add remove change", scheduleSave);
+
+  /* ============ Hierarchy tree model ============ */
+  var H = null;            // hierarchy root
+  var collapsed = {};      // nodeId -> true (subtree hidden)
+  var nodeEls = {};        // nodeId -> element
+
+  var PILLAR_COLOR = {
+    character: "#4a86b0", abilities: "#56b06a", world: "#c79a4a", itemworld: "#3fb0a8",
+    gear: "#d06a86", hub: "#9a6cc0", narrative: "#b0644a", interface: "#8a9a55"
+  };
+  function findNode(root, id) {
+    if (root.id === id) return root;
+    var ch = root.children || [], r = null;
+    for (var i = 0; i < ch.length && !r; i++) r = findNode(ch[i], id);
+    return r;
+  }
+  function leafCount(node) {
+    if (!node.children || !node.children.length) return node.kind === "unit" ? 1 : 0;
+    var c = 0; node.children.forEach(function (ch) { c += leafCount(ch); }); return c;
+  }
+  function colorByPillar(el, node) {
+    el.attr("body/stroke", PILLAR_COLOR[node._pillar] || (node.kind === "game" ? "#ffb582" : T.nodeStroke));
+    el.attr("body/strokeWidth", (node.kind === "pillar" || node.kind === "game") ? 2.4 : 1.4);
+  }
+
+  /* Radial mind-map layout: root at centre, children fan out in rings.
+     Each node's angular sector is proportional to its leaf weight. */
+  function buildTree() {
+    clearSelection();
+    graph.clear();
+    nodeEls = {};
+    currentMaxDepth = -99;   // force depth-LOD to re-apply after rebuild
+    var CX = 0, CY = 0;
+    function weight(node) {
+      if (collapsed[node.id] || !node.children || !node.children.length) return 1;
+      var w = 0; node.children.forEach(function (c) { w += weight(c); }); return w;
+    }
+    function dia(node) { return node.kind === "game" ? 148 : (node.kind === "pillar" ? 122 : (node.kind === "unit" ? 84 : 100)); }
+    var flat = [];
+    (function assign(node, a0, a1, depth, pillar) {
+      node._depth = depth; node._pillar = pillar;
+      node._angle = (a0 + a1) / 2; node._span = a1 - a0;
+      flat.push(node);
+      var kids = (node.children && !collapsed[node.id]) ? node.children : [];
+      if (kids.length) {
+        var tot = 0; kids.forEach(function (k) { tot += weight(k); });
+        var a = a0;
+        kids.forEach(function (k) { var span = (a1 - a0) * weight(k) / tot; assign(k, a, a + span, depth + 1, depth === 0 ? k.id : pillar); a += span; });
+      }
+    })(H, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI, 0, null);
+    // auto radius-step: tightest angular slice in each ring must fit its node => no tangential overlap
+    var GAP = 26, RSTEP = 320;
+    flat.forEach(function (n) { if (n._depth > 0 && n._span > 0) { var need = (dia(n) + GAP) / (n._span * n._depth); if (need > RSTEP) RSTEP = need; } });
+    RSTEP = Math.min(RSTEP, 1150);
+    flat.forEach(function (n) { n._r = n._depth * RSTEP; n._x = CX + n._r * Math.cos(n._angle); n._y = CY + n._r * Math.sin(n._angle); });
+
+    function createEl(node) {
+      var unit = node.kind === "unit", big = node.kind === "pillar" || node.kind === "game";
+      var d = dia(node);
+      var el = new joint.shapes.spec.Ellipse({ size: { width: d, height: d } });
+      el.position(node._x - d / 2, node._y - d / 2);
+      el.set("nodeId", node.id);
+      el.set("specType", node._pillar || node.id);
+      el.set("status", node.status || "todo");
+      el.set("shapeKind", "ellipse");
+      el.set("depth", node._depth);
+      var hasKids = node.children && node.children.length;
+      var lc = leafCount(node);
+      el.attr("label/text", node.name + (hasKids && collapsed[node.id] ? "  ▸ " + lc : ""));
+      el.attr("label/textVerticalAnchor", "middle");
+      el.attr("label/y", "calc(0.5*h)");
+      el.attr("label/fontSize", unit ? 11 : 13);
+      el.attr("label/textWrap", { width: "calc(w-26)", maxLineCount: 3, ellipsis: true });
+      el.attr("idText/text", unit ? (node.tag || "") : (node.kind.toUpperCase() + (lc ? " · " + lc : "")));
+      el.attr("idText/y", 16);
+      el.attr("statusDot/fill", T.status[node.status || "todo"]);
+      colorByPillar(el, node);
+      el.addTo(graph);
+      nodeEls[node.id] = el;
+    }
+    createEl(H);
+    H.children.forEach(function (p) { (function cr(n) { createEl(n); if (n.children && !collapsed[n.id]) n.children.forEach(cr); })(p); });
+
+    function linkPair(parent, child) {
+      if (!nodeEls[parent.id] || !nodeEls[child.id]) return;
+      new joint.shapes.standard.Link({
+        source: { id: nodeEls[parent.id].id }, target: { id: nodeEls[child.id].id },
+        attrs: { line: { stroke: T.link, strokeWidth: 1.4, targetMarker: { type: "none" } } },
+        router: { name: "normal" }, connector: { name: "straight" }, z: -1
+      }).addTo(graph);
+    }
+    H.children.forEach(function (p) { linkPair(H, p); });
+    H.children.forEach(function (p) { (function lk(n) { if (collapsed[n.id] || !n.children) return; n.children.forEach(function (ch) { linkPair(n, ch); lk(ch); }); })(p); });
+
+    // embed so dragging a parent (or root) moves its whole subtree
+    H.children.forEach(function (p) {
+      if (nodeEls[H.id] && nodeEls[p.id]) nodeEls[H.id].embed(nodeEls[p.id]);
+      (function emb(n) { if (collapsed[n.id] || !n.children) return; n.children.forEach(function (ch) { if (nodeEls[n.id] && nodeEls[ch.id]) nodeEls[n.id].embed(nodeEls[ch.id]); emb(ch); }); })(p);
+    });
+  }
+
+  function toggleCollapse(id) {
+    var node = findNode(H, id);
+    if (!node || !node.children || !node.children.length) return;
+    pushUndo();
+    collapsed[id] = !collapsed[id];
+    buildTree();
+    scheduleLOD();
+    scheduleSave();
+  }
+
+  function load() {
+    Promise.all([
+      fetch("/hierarchy").then(function (r) { return r.json(); }).catch(function () { return null; }),
+      fetch("/board").then(function (r) { return r.json(); }).catch(function () { return {}; })
+    ]).then(function (out) {
+      H = out[0]; var board = out[1] || {};
+      if (!H || !H.id) { loading = false; return; }
+      collapsed = {};
+      if (board && Array.isArray(board.collapsed)) board.collapsed.forEach(function (id) { collapsed[id] = true; });
+      // default: fully expanded
+      buildTree();
+      loading = false;
+      fitContent();
+      scheduleLOD();
+    });
+  }
+
+  /* re-apply ellipse clip when shapes get views/attrs */
+  paper.on("render:done", function () { graph.getElements().forEach(applyEllipseClip); });
+
+  /* ============ Undo / Redo ============ */
+  var undoStack = [], redoStack = [], MAXUNDO = 50, restoring = false, dragMoved = false, preDrag = null;
+  function snapshot() { return { collapsed: JSON.parse(JSON.stringify(collapsed)), graph: graph.toJSON() }; }
+  function commitUndo(s) { undoStack.push(s); if (undoStack.length > MAXUNDO) undoStack.shift(); redoStack = []; updateUndoBtns(); }
+  function pushUndo() { if (restoring) return; commitUndo(snapshot()); }
+  function restoreState(s) {
+    restoring = true;
+    collapsed = JSON.parse(JSON.stringify(s.collapsed));
+    try { graph.fromJSON(s.graph); } catch (e) { console.warn("undo restore:", e); }
+    graph.getElements().forEach(applyEllipseClip);
+    currentMaxDepth = -99; restoring = false;
+    scheduleLOD(); scheduleSave(); updateUndoBtns();
+  }
+  function doUndo() { if (!undoStack.length) return; redoStack.push(snapshot()); restoreState(undoStack.pop()); }
+  function doRedo() { if (!redoStack.length) return; undoStack.push(snapshot()); restoreState(redoStack.pop()); }
+  function updateUndoBtns() {
+    var u = document.getElementById("undoBtn"), r = document.getElementById("redoBtn");
+    if (u) u.disabled = !undoStack.length; if (r) r.disabled = !redoStack.length;
+  }
+  paper.on("element:pointerdown", function () { if (!linkMode) { preDrag = snapshot(); dragMoved = false; } });
+  paper.on("element:pointermove", function () { dragMoved = true; });
+  paper.on("element:pointerup", function () { if (!linkMode && dragMoved && preDrag) commitUndo(preDrag); dragMoved = false; preDrag = null; });
+  document.getElementById("undoBtn").addEventListener("click", doUndo);
+  document.getElementById("redoBtn").addEventListener("click", doRedo);
+  document.addEventListener("keydown", function (e) {
+    if (editing || document.activeElement === inspName) return;
+    var ctrl = e.ctrlKey || e.metaKey; if (!ctrl) return;
+    var z = (e.key === "z" || e.key === "Z");
+    if (z && !e.shiftKey) { e.preventDefault(); doUndo(); }
+    else if ((z && e.shiftKey) || e.key === "y" || e.key === "Y") { e.preventDefault(); doRedo(); }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

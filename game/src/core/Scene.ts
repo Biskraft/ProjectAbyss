@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
 import type { Game } from '../Game';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export abstract class Scene {
   protected game: Game;
@@ -17,6 +18,6 @@ export abstract class Scene {
   abstract exit(): void;
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

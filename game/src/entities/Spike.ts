@@ -11,6 +11,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 const SPIKE_COLOR = 0x884444;
@@ -72,8 +73,6 @@ export class Spike {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

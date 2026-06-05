@@ -1,4 +1,4 @@
-import { BitmapText, Container, Graphics } from 'pixi.js';
+import { Container } from 'pixi.js';
 import { Altar } from '@entities/Altar';
 import { GameAction } from '@core/InputManager';
 import type { LdtkLevel } from '@level/LdtkLoader';
@@ -11,11 +11,21 @@ import {
   type ItemInstance,
 } from '@items/ItemInstance';
 import { STARTER_ONLY_IDS } from '@data/weapons';
-import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import type { Game } from '../../Game';
 import { MODAL_BG, MODAL_BG_ALPHA } from '@ui/ModalPanel';
-import { PIXEL_FONT } from '@ui/fonts';
 import type { ToastManager } from '@ui/Toast';
 import { t } from '@i18n';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { updateAltarInteractions } from '@scenes/shared/ProximityInteractionHelpers';
+import { updateItemSelectionInput } from '@scenes/shared/ItemSelectionInputHelpers';
+import {
+  addAltarItemRows,
+  createAltarItemSelectionShell,
+} from '@scenes/shared/AltarItemSelectionUiHelpers';
 
 interface WorldAltarControllerDeps {
   game: Game;
@@ -44,36 +54,19 @@ export class WorldAltarController {
     const altarEnts = level.entities.filter(e => e.type === 'Altar');
     for (const ent of altarEnts) {
       const altar = new Altar(ent.px[0], ent.px[1]);
-      this.altars.push(altar);
-      this.deps.entityLayer.addChild(altar.container);
+      addEntityToLayer(this.altars, altar, this.deps.entityLayer);
     }
   }
 
   updateAltars(dt: number): void {
-    const player = this.deps.player;
-    for (const altar of this.altars) {
-      altar.update(dt);
-
-      if (altar.used) {
-        altar.setShowHint(false);
-        continue;
-      }
-
-      const near = altar.overlaps(
-        player.x - 8,
-        player.y - 8,
-        player.width + 16,
-        player.height + 16,
-      );
-      altar.setShowHint(near);
-
-      if (altar.overlaps(player.x, player.y, player.width, player.height)) {
-        if (this.deps.game.input.isJustPressed(GameAction.LOOK_UP) && !this.selectActive) {
-          this.open(altar);
-          return;
-        }
-      }
-    }
+    updateAltarInteractions({
+      altars: this.altars,
+      actor: this.deps.player,
+      dtMs: dt,
+      isInteractPressed: () => this.deps.game.input.isJustPressed(GameAction.LOOK_UP),
+      isSelectActive: () => this.selectActive,
+      onOpen: (altar) => this.open(altar),
+    });
   }
 
   open(altar: Altar): void {
@@ -90,70 +83,52 @@ export class WorldAltarController {
   close(): void {
     this.selectActive = false;
     this.activeAltar = null;
-    if (this.ui) {
-      if (this.ui.parent) this.ui.parent.removeChild(this.ui);
-      this.ui.destroy({ children: true });
-      this.ui = null;
-    }
+    this.destroyUiContainer();
     this.deps.closeCyclePrompt();
   }
 
   drawAltarUI(): void {
-    this.drawItemSelectUI('Offer item to altar:', 0xaaccff);
+    this.drawItemSelectUI(t('ui.world.offer_item'), 0xaaccff);
   }
 
   drawItemSelectUI(titleText: string, accentColor: number): void {
-    if (this.ui) {
-      if (this.ui.parent) this.ui.parent.removeChild(this.ui);
-      this.ui.destroy({ children: true });
-      this.ui = null;
-    }
+    this.destroyUiContainer();
 
     const inventory = this.deps.inventory();
     const items = inventory.items;
-    const ui = new Container();
-
-    const bg = new Graphics();
-    const panelW = 260;
-    const panelH = 20 + items.length * 12;
-    const px = Math.floor((GAME_WIDTH - panelW) / 2);
-    const py = Math.floor((GAME_HEIGHT - panelH) / 2);
-    bg.rect(0, 0, panelW, panelH).fill({ color: MODAL_BG, alpha: MODAL_BG_ALPHA });
-    bg.rect(0, 0, panelW, panelH).stroke({ color: accentColor, width: 1 });
-    bg.x = px;
-    bg.y = py;
-    ui.addChild(bg);
-
-    const title = new BitmapText({
-      text: titleText,
-      style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: accentColor },
+    const ui = createAltarItemSelectionShell({
+      itemCount: items.length,
+      titleText,
+      titleFill: accentColor,
+      backgroundFill: MODAL_BG,
+      backgroundAlpha: MODAL_BG_ALPHA,
+      borderFill: accentColor,
     });
-    title.x = px + 6;
-    title.y = py + 4;
-    ui.addChild(title);
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const selected = i === this.selectIndex;
-      const prefix = selected ? '> ' : '  ';
-      const equipped = inventory.equipped?.uid === item.uid ? t('ui.altar.equipped_suffix') : '';
-      const label = `${prefix}${t('ui.altar.item_row', { name: getDisplayName(item), level: item.level, rarity: item.rarity.toUpperCase(), equipped })}`;
-      const txt = new BitmapText({
-        text: label,
-        style: { fontFamily: PIXEL_FONT, fontSize: 8, fill: selected ? 0xffcc44 : 0xffffff },
-      });
-      txt.x = px + 6;
-      txt.y = py + 16 + i * 12;
-      ui.addChild(txt);
-    }
+    addAltarItemRows({
+      container: ui.container,
+      items,
+      selectedIndex: this.selectIndex,
+      equippedUid: inventory.equipped?.uid,
+      x: ui.rowX,
+      y: ui.rowY,
+      rowHeight: ui.rowHeight,
+      selectedFill: 0xffcc44,
+      normalFill: 0xffffff,
+    });
 
-    this.ui = ui;
-    this.deps.game.legacyUIContainer.addChild(ui);
+    this.ui = ui.container;
+    this.deps.game.legacyUIContainer.addChild(ui.container);
   }
 
   updateInput(): void {
-    this.updateItemSelectInput(
-      (item) => {
+    updateItemSelectionInput({
+      input: this.deps.game.input,
+      items: this.deps.inventory().items,
+      selectedIndex: this.selectIndex,
+      setSelectedIndex: (index) => { this.selectIndex = index; },
+      redraw: () => this.drawAltarUI(),
+      onConfirm: (item) => {
         if (STARTER_ONLY_IDS.has(item.def.id)) {
           this.deps.toast.show(t('toast.cannot_dive_broken'), 0xff4444);
           return;
@@ -172,52 +147,26 @@ export class WorldAltarController {
           this.close();
         }
       },
-      () => this.drawAltarUI(),
-    );
+      onEmptyConfirm: () => this.close(),
+      onCancel: () => this.close(),
+    });
   }
 
   clear(): void {
-    for (const a of this.altars) a.destroy();
-    this.altars = [];
+    destroyAndClearEntities(this.altars);
     this.close();
   }
 
   destroyUi(): void {
-    if (this.ui?.parent) this.ui.parent.removeChild(this.ui);
-    this.ui?.destroy({ children: true });
-    this.ui = null;
+    this.destroyUiContainer();
     this.selectActive = false;
     this.activeAltar = null;
   }
 
-  private updateItemSelectInput(
-    onConfirm: (item: ItemInstance) => void,
-    redrawFn: () => void,
-  ): void {
-    const input = this.deps.game.input;
-    const items = this.deps.inventory().items;
-
-    if (input.isJustPressed(GameAction.LOOK_UP)) {
-      this.selectIndex = Math.max(0, this.selectIndex - 1);
-      redrawFn();
-      return;
-    }
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-      this.selectIndex = Math.min(items.length - 1, this.selectIndex + 1);
-      redrawFn();
-      return;
-    }
-    if (input.isJustPressed(GameAction.ATTACK) || input.isJustPressed(GameAction.JUMP)) {
-      const item = items[this.selectIndex];
-      if (item) {
-        onConfirm(item);
-      } else {
-        this.close();
-      }
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
-      this.close();
-    }
+  private destroyUiContainer(): void {
+    if (!this.ui) return;
+    destroyDisplayObject(this.ui, { children: true });
+    this.ui = null;
   }
+
 }

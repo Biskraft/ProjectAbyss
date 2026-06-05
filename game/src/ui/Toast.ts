@@ -1,6 +1,7 @@
 import { Container } from 'pixi.js';
 import { createUiText } from './factories';
 import { HudConst } from '@data/constData';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TOAST_DURATION = HudConst.Toast.DurationMs;
 const FADE_START = HudConst.Toast.FadeStartMs;
@@ -61,7 +62,7 @@ export class ToastManager {
       toast.container.y -= dt * 0.01;
 
       if (toast.timer <= 0) {
-        if (toast.container.parent) toast.container.parent.removeChild(toast.container);
+        detachDisplayObject(toast.container);
         this.toasts.splice(i, 1);
       }
     }
@@ -70,7 +71,7 @@ export class ToastManager {
   /** Remove all active toasts (call on scene exit) */
   clear(): void {
     for (const toast of this.toasts) {
-      if (toast.container.parent) toast.container.parent.removeChild(toast.container);
+      detachDisplayObject(toast.container);
     }
     this.toasts = [];
   }

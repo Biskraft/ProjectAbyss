@@ -1,5 +1,10 @@
 import type { Container } from 'pixi.js';
 import type { CollapsingPlatform } from '@entities/CollapsingPlatform';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export interface WorldCollapsingPlatformMeta {
   key?: string;
@@ -17,15 +22,13 @@ export class WorldCollapsingPlatformRegistry {
     entityLayer?: Container,
     meta: WorldCollapsingPlatformMeta = { respawns: platform.respawns },
   ): void {
-    this.platforms.push(platform);
+    addEntityToLayer(this.platforms, platform, entityLayer, { onlyAttachIfUnparented: true });
     this.collisionGrids.set(platform, collisionGrid);
     this.metadata.set(platform, meta);
-    if (entityLayer && !platform.container.parent) entityLayer.addChild(platform.container);
   }
 
   clear(): void {
-    for (const platform of this.platforms) platform.destroy();
-    this.platforms.length = 0;
+    destroyAndClearEntities(this.platforms);
   }
 
   getCollisionGrid(platform: CollapsingPlatform, fallback: number[][]): number[][] {
@@ -41,8 +44,6 @@ export class WorldCollapsingPlatformRegistry {
   }
 
   removeAt(index: number): void {
-    const platform = this.platforms[index];
-    platform.destroy();
-    this.platforms.splice(index, 1);
+    removeEntityAt(this.platforms, index);
   }
 }

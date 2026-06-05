@@ -3,6 +3,10 @@ import type { LdtkEntity } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
 import type { LoreDisplay } from '@ui/LoreDisplay';
 import { t } from '@i18n';
+import {
+  destroyDisplayObject,
+  destroyDisplayObjectAt,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface MemoryTriggerParticle {
   x: number;
@@ -99,10 +103,12 @@ export class ItemWorldMemoryTriggerRuntime {
   clear(): void {
     for (const trigger of this.triggers) {
       for (const particle of trigger.particles) {
-        if (particle.gfx.parent) particle.gfx.parent.removeChild(particle.gfx);
+        destroyDisplayObject(particle.gfx);
       }
       trigger.particles = [];
-      if (trigger.container.parent) trigger.container.parent.removeChild(trigger.container);
+      destroyDisplayObject(trigger.glowGfx);
+      destroyDisplayObject(trigger.shardGfx);
+      destroyDisplayObject(trigger.container);
     }
     this.triggers = [];
   }
@@ -164,8 +170,7 @@ export class ItemWorldMemoryTriggerRuntime {
       particle.gfx.y = particle.y;
       particle.gfx.alpha = Math.max(0, particle.life / particle.maxLife) * 0.9;
       if (particle.life <= 0) {
-        if (particle.gfx.parent) particle.gfx.parent.removeChild(particle.gfx);
-        trigger.particles.splice(i, 1);
+        destroyDisplayObjectAt(trigger.particles, i, item => item.gfx);
       }
     }
   }

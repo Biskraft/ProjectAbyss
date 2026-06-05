@@ -1,4 +1,5 @@
 import type { Graphics } from 'pixi.js';
+import { getFadeOutAlphaFromRemaining } from '@scenes/shared/TransitionFadeHelpers';
 
 interface ItemWorldExitFadeRuntimeDeps {
   getFadeOverlay: () => Graphics;
@@ -24,7 +25,7 @@ export class ItemWorldExitFadeRuntime {
 
     this.remainingMs = Math.max(0, this.remainingMs - dtMs);
     const overlay = this.deps.getFadeOverlay();
-    overlay.alpha = Math.min(1, 1 - this.remainingMs / this.deps.durationMs);
+    overlay.alpha = getFadeOutAlphaFromRemaining(this.remainingMs, this.deps.durationMs);
     return this.remainingMs <= 0;
   }
 

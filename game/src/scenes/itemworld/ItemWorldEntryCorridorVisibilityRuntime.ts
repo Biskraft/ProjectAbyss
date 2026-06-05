@@ -1,4 +1,9 @@
 import { ColorMatrixFilter, type Container, type Filter } from 'pixi.js';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
+import {
+  appendFilterIfMissing,
+  removeFilterAndClearIfEmpty,
+} from '@scenes/shared/FilterLifecycleHelpers';
 import type { Game } from '../../Game';
 
 interface ItemWorldEntryCorridorVisibilityRuntimeDeps {
@@ -57,7 +62,7 @@ export class ItemWorldEntryCorridorVisibilityRuntime {
     if (!this.colorRestoreFilter) return;
     this.colorRestoreElapsed += dt;
     const restoreElapsed = Math.max(0, this.colorRestoreElapsed - ENTRY_CORRIDOR_COLOR_HOLD_MS);
-    const t = Math.min(1, restoreElapsed / ENTRY_CORRIDOR_COLOR_RESTORE_MS);
+    const t = getProgress01(restoreElapsed, ENTRY_CORRIDOR_COLOR_RESTORE_MS);
     this.colorRestoreFilter.alpha = 1 - t;
     if (t >= 1) this.clearColorRestore();
   }
@@ -66,8 +71,7 @@ export class ItemWorldEntryCorridorVisibilityRuntime {
     const filter = this.colorRestoreFilter;
     if (!filter) return;
     for (const target of this.colorRestoreTargets) {
-      const next = ((target.filters as Filter[] | null) ?? []).filter(f => f !== filter);
-      target.filters = next.length > 0 ? next : null;
+      removeFilterAndClearIfEmpty(target, filter);
     }
     this.colorRestoreFilter = null;
     this.colorRestoreTargets = [];
@@ -111,8 +115,7 @@ export class ItemWorldEntryCorridorVisibilityRuntime {
     });
 
     for (const target of targets) {
-      const current = (target.filters as Filter[] | null) ?? [];
-      if (!current.includes(filter)) target.filters = [...current, filter];
+      appendFilterIfMissing(target, filter);
     }
 
     this.colorRestoreFilter = filter;

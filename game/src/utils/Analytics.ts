@@ -20,7 +20,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-type ExitType = 'clear' | 'escape' | 'death';
+export type ExitType = 'clear' | 'escape' | 'death';
 type Area = 'world' | 'itemworld';
 
 interface GtagParams {
@@ -47,10 +47,12 @@ const runId: string = (() => {
 })();
 
 /** Build version from Vite env. Fallback 'dev' if not injected. */
+type ImportMetaEnvLike = { MODE?: string };
+type ImportMetaLike = { env?: ImportMetaEnvLike };
+
 const buildVersion: string = (() => {
   try {
-    const mode = (import.meta as any)?.env?.MODE ?? 'dev';
-    return mode;
+    return ((import.meta as unknown as ImportMetaLike).env?.MODE) ?? 'dev';
   } catch {
     return 'dev';
   }

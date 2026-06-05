@@ -12,6 +12,13 @@
 
 import { Filter, GlProgram, UniformGroup } from 'pixi.js';
 
+type GlowUniforms = {
+  uGlowColor: Float32Array;
+  uRadius: number;
+  uIntensity: number;
+  uCoreBoost: number;
+};
+
 const vertex = /* glsl */ `
 in vec2 aPosition;
 out vec2 vTextureCoord;
@@ -100,6 +107,8 @@ export interface GlowOptions {
 }
 
 export class GlowFilter extends Filter {
+  private readonly glowUniforms: UniformGroup;
+
   constructor(opts: GlowOptions = {}) {
     const c = opts.color ?? 0xFFA41B;
     const rgb = new Float32Array([
@@ -123,14 +132,15 @@ export class GlowFilter extends Filter {
       resources: { glowUniforms },
       padding: radius + 2,
     });
+    this.glowUniforms = glowUniforms;
   }
 
   setIntensity(v: number): void {
-    (this.resources.glowUniforms as any).uniforms.uIntensity = v;
+    (this.glowUniforms.uniforms as GlowUniforms).uIntensity = v;
   }
 
   setColor(c: number): void {
-    const u = (this.resources.glowUniforms as any).uniforms;
+    const u = this.glowUniforms.uniforms as GlowUniforms;
     u.uGlowColor = new Float32Array([
       ((c >> 16) & 0xff) / 255,
       ((c >> 8) & 0xff) / 255,

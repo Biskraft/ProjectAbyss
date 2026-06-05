@@ -23,6 +23,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { getFluidDef } from '@data/FluidTypes';
 import type { WaterfallSegment } from '@systems/FluidSpawner';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface Particle {
   gfx: Graphics;
@@ -283,8 +284,7 @@ export class FluidCrestFoamManager {
   }
 
   private destroyParticle(p: Particle): void {
-    if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-    p.gfx.destroy();
+    destroyDisplayObject(p.gfx);
   }
 }
 

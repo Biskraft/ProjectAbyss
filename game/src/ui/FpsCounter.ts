@@ -21,6 +21,7 @@ import { BitmapText, Container, Graphics } from 'pixi.js';
 import { PIXEL_FONT } from './fonts';
 import { Debug } from '@core/Debug';
 import { PerfMonitor } from '@utils/PerfMonitor';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const SAMPLE_INTERVAL_MS = 500; // 0.5s 갱신
 const TEXT_COLOR = 0xffe060;
@@ -124,8 +125,7 @@ export class FpsCounter {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }
 

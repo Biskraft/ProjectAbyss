@@ -2,7 +2,7 @@
  * Trapdoor.ts — DEC-039 트랩도어 침강 (Trapdoor Descent) 포탈.
  *
  * 보스 처치 직후 보스 룸 바닥에 spawn 되는 능동 인터랙트 포탈. 공격 키 입력
- * 시 ItemWorldScene 의 descent_fall 시퀀스를 트리거한다.
+ * 시퀀스 트리거는 ItemWorldScene 런타임에서 처리한다.
  *
  * 시각:
  *   - 오렌지 단조열(forge ember) 빛기둥. 폴리시 단계에서 PixelLab 스프라이트 + 셰이더로
@@ -26,6 +26,7 @@
 
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const FORGE_EMBER_COLOR = 0xffa41b;   // brand key color orange (#FFA41B 2026-05-20)
 const EMBER_GLOW_COLOR = 0xffaa44;
@@ -43,8 +44,8 @@ interface EmberSpark {
 const SPARK_INTERVAL_MS = 130;
 const MAX_SPARKS = 12;
 
-// KeyPrompt UI 는 ItemWorldScene 의 updateTrapdoor 가 anvilPrompt 패턴으로 직접
-// 관리한다. Trapdoor 본체는 빛기둥/입자/proximity 검사만 책임.
+// KeyPrompt UI 는 ItemWorldScene 런타임에서 관리한다.
+// Trapdoor 본체는 빛기둥/입자/proximity 검사만 책임.
 
 export class Trapdoor {
   container: Container;
@@ -143,8 +144,7 @@ export class Trapdoor {
       const s = this.sparks[i];
       s.life -= dt;
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.sparks.splice(i, 1);
         continue;
       }
@@ -182,15 +182,13 @@ export class Trapdoor {
     return dx * dx + dy * dy <= this.proximity * this.proximity;
   }
 
-  // setPromptVisible / buildPrompt 폐기 — KeyPrompt UI 는 ItemWorldScene 의
-  // updateTrapdoor 가 anvilPrompt 패턴 (uiContainer 추가 + world→screen 변환)
-  // 으로 직접 관리한다. Trapdoor 본체는 빛기둥/입자/proximity 검사만.
+// KeyPrompt UI 는 Scene 런타임 레이어에서 관리하고,
+// Trapdoor 본체는 빛기둥/입자/proximity 검사만 담당한다.
 
   /**
    * 인터랙트 — Scene 측에서 ATTACK isJustPressed + isPlayerNear 가 모두 true 일 때 호출.
-   * 한번 activate 되면 prompt 영구 숨김 + active=false. Scene 가 transitionState
-   * 를 'descent_fall' 로 전환하고 시퀀스를 시작하는 책임.
-   */
+   * 한번 activate 되면 active=false. 시퀀스 시작/전환은 Scene 런타임에서 처리한다.
+  */
   activate(): void {
     if (this.consumed) return;
     this.consumed = true;
@@ -209,13 +207,9 @@ export class Trapdoor {
 
   destroy(): void {
     for (const s of this.sparks) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.sparks.length = 0;
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

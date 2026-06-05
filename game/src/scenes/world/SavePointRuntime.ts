@@ -12,6 +12,11 @@ import { GameAction, actionKey } from '@core/InputManager';
 import { KeyPrompt } from '@ui/KeyPrompt';
 import { assetPath } from '@core/AssetLoader';
 import { t } from '@i18n';
+import {
+  detachDisplayObject,
+  detachNullableDisplayObject,
+  hideDisplayObject,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type { SavePointEntry } from '@systems/SavePointInteraction';
 
@@ -85,7 +90,7 @@ export class SavePointRuntime {
     for (const sp of this.savePoints) {
       sp.gfx.alpha = 0.6;
       if (sp.sprite) sp.sprite.alpha = 1.0;
-      if (sp.prompt) sp.prompt.visible = false;
+      hideDisplayObject(sp.prompt);
     }
   }
 
@@ -120,9 +125,9 @@ export class SavePointRuntime {
     this.saveDelayTimer = 0;
     this.deps.savepointPulse.clear();
     for (const sp of this.savePoints) {
-      sp.gfx.parent?.removeChild(sp.gfx);
-      sp.sprite?.parent?.removeChild(sp.sprite);
-      sp.prompt?.parent?.removeChild(sp.prompt);
+      detachDisplayObject(sp.gfx);
+      detachNullableDisplayObject(sp.sprite);
+      detachNullableDisplayObject(sp.prompt);
     }
     this.savePoints = [];
   }

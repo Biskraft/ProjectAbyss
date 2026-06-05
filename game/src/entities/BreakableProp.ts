@@ -18,6 +18,7 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import type { AABB } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type PropVariant = 'pipe' | 'panel' | 'crate' | 'debris' | 'crystal' | 'tallgrass';
 
@@ -406,8 +407,7 @@ export class BreakableProp {
   }
 
   destroy(): void {
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }
 

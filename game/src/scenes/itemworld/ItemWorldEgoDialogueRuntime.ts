@@ -18,6 +18,7 @@ import {
   hasEgo,
 } from '@data/EgoDialogue';
 import type { LoreDisplay, LoreLine } from '@ui/LoreDisplay';
+import { tryShowFlaggedEgoDialogue } from '@scenes/shared/EgoDialogueRuntimeHelpers';
 
 interface ItemWorldEgoDialogueRuntimeDeps {
   getLoreDisplay: () => LoreDisplay | null;
@@ -29,6 +30,8 @@ export class ItemWorldEgoDialogueRuntime {
   private entryCount = 0;
   private entryDialogueStarted = false;
   private readonly flags = new Set<string>();
+  private pendingEnterCompletionResolvers: Array<() => void> = [];
+  private firstKillDelayMs = 0;
 
   constructor(private readonly deps: ItemWorldEgoDialogueRuntimeDeps) {}
 
@@ -37,6 +40,8 @@ export class ItemWorldEgoDialogueRuntime {
     this.active = hasEgo(itemDefId);
     this.entryCount = 0;
     this.entryDialogueStarted = false;
+    this.pendingEnterCompletionResolvers = [];
+    this.firstKillDelayMs = 0;
 
     if (!this.active) return;
 
@@ -88,12 +93,35 @@ export class ItemWorldEgoDialogueRuntime {
     if (!loreDisplay?.isActive) return;
 
     await new Promise<void>((resolve) => {
-      const check = () => {
-        if (!loreDisplay.isActive) resolve();
-        else setTimeout(check, 100);
-      };
-      check();
+      this.pendingEnterCompletionResolvers.push(resolve);
     });
+  }
+
+  clear(): void {
+    this.pendingEnterCompletionResolvers.length = 0;
+    this.firstKillDelayMs = 0;
+  }
+
+  update(dtMs: number): void {
+    if (this.firstKillDelayMs > 0) {
+      this.firstKillDelayMs -= dtMs;
+      if (this.firstKillDelayMs <= 0) {
+        this.firstKillDelayMs = 0;
+        const loreDisplay = this.deps.getLoreDisplay();
+        if (!loreDisplay?.isActive) {
+          void loreDisplay?.showDialogue(EGO_FIRST_KILL, false);
+        }
+      }
+    }
+
+    if (!this.pendingEnterCompletionResolvers.length) return;
+
+    const loreDisplay = this.deps.getLoreDisplay();
+    if (!loreDisplay?.isActive) {
+      const callbacks = this.pendingEnterCompletionResolvers;
+      this.pendingEnterCompletionResolvers = [];
+      for (const resolve of callbacks) resolve();
+    }
   }
 
   fireMonsterVisible(): void {
@@ -105,12 +133,7 @@ export class ItemWorldEgoDialogueRuntime {
     if (!this.isFirstBossOnboarding()) return;
     if (this.flags.has('first_kill')) return;
     this.flags.add('first_kill');
-    setTimeout(() => {
-      const loreDisplay = this.deps.getLoreDisplay();
-      if (!loreDisplay?.isActive) {
-        void loreDisplay?.showDialogue(EGO_FIRST_KILL, false);
-      }
-    }, 1000);
+    this.firstKillDelayMs = 1000;
   }
 
   fireRoomClear(roomIndex: number): void {
@@ -152,12 +175,13 @@ export class ItemWorldEgoDialogueRuntime {
   }
 
   private fire(key: string, lines: LoreLine[], freeze = false): boolean {
-    const loreDisplay = this.deps.getLoreDisplay();
-    if (!this.active) return false;
-    if (this.flags.has(key)) return false;
-    if (loreDisplay?.isActive) return false;
-    this.flags.add(key);
-    loreDisplay?.showDialogue(lines, freeze);
-    return true;
+    return tryShowFlaggedEgoDialogue({
+      active: this.active,
+      flags: this.flags,
+      key,
+      loreDisplay: this.deps.getLoreDisplay(),
+      lines,
+      freeze,
+    });
   }
 }

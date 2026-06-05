@@ -17,7 +17,9 @@ import { installBitmapFont } from '@ui/fonts';
 import { loadHudLayout } from '@ui/HUD';
 import { loadBundleOnce } from '@data/assetBundles';
 import { SFX } from '@audio/Sfx';
+import { raceWithTimeout } from '@core/AsyncTimeout';
 import { loadAndApplySettings } from '@core/SettingsStore';
+import { createWorldSceneSaveAccess } from '@scenes/shared/SceneSaveAccess';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -36,12 +38,7 @@ async function waitForFont(family: string, timeoutMs = 10000): Promise<boolean> 
   if (document.fonts.check(`8px "${family}"`)) return true;
   // Explicitly request the font load
   try {
-    await Promise.race([
-      document.fonts.load(`8px "${family}"`),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeoutMs - (Date.now() - start))
-      ),
-    ]);
+    await raceWithTimeout(document.fonts.load(`8px "${family}"`), timeoutMs - (Date.now() - start));
   } catch { /* timeout */ }
   return document.fonts.check(`8px "${family}"`);
 }
@@ -100,7 +97,7 @@ try {
   // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)
   const params = new URLSearchParams(window.location.search);
   if (params.has('procgen')) {
-    await game.sceneManager.push(new WorldScene(game));
+    await game.sceneManager.push(new WorldScene(game, createWorldSceneSaveAccess()));
   } else {
     await game.sceneManager.push(new TitleScene(game));
   }

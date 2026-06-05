@@ -5,11 +5,15 @@ import type { Player } from '@entities/Player';
 import type { ItemDropEntity } from '@items/ItemDrop';
 import type { ItemInstance } from '@items/ItemInstance';
 import { EGO_EVENT, EGO_RUSTBORN_AWAKEN, hasEgo } from '@data/EgoDialogue';
-import { sacredSave } from '@save/PlayerSave';
 import type { DivePreview } from '@ui/DivePreview';
 import type { LoreDisplay } from '@ui/LoreDisplay';
 import type { LorePopup } from '@ui/LorePopup';
 import type { Game } from '../../Game';
+import {
+  consumeJustPressedAction,
+  isAnyJustPressedAction,
+} from '@scenes/shared/InputPressHelpers';
+import { getDistanceSquared } from '@scenes/shared/DistanceHelpers';
 import type { WorldAcquireOverlayRuntime } from './WorldAcquireOverlayRuntime';
 import type { WorldSacredPickupState } from './WorldSacredPickupState';
 
@@ -25,16 +29,20 @@ interface WorldSacredPickupRuntimeDeps {
   getDivePreview: () => DivePreview | null;
   acquireOverlayRuntime: WorldAcquireOverlayRuntime;
   resolveAnvilTarget: (fromX: number, fromY: number) => { x: number; y: number } | null;
+  isFirstPickupDone: () => boolean;
+  hasSeenItem: (itemDefId: string) => boolean;
+  markFirstPickupDone: () => void;
+  markItemSeen: (itemDefId: string) => void;
 }
 
 export class WorldSacredPickupRuntime {
   constructor(private readonly deps: WorldSacredPickupRuntimeDeps) {}
 
   startPickup(item: ItemInstance, wx: number, wy: number): void {
-    const firstEver = !sacredSave.isFirstPickupDone();
-    const isFirstSeen = !sacredSave.hasSeenItem(item.def.id);
+    const firstEver = !this.deps.isFirstPickupDone();
+    const isFirstSeen = !this.deps.hasSeenItem(item.def.id);
     if (firstEver) {
-      sacredSave.markFirstPickupDone();
+      this.deps.markFirstPickupDone();
     }
 
     const state = this.deps.state;
@@ -120,9 +128,7 @@ export class WorldSacredPickupRuntime {
     const py = player.y + player.height / 2;
     for (const drop of this.deps.getItemDrops()) {
       if (drop.item.def.id !== 'sword_rustborn') continue;
-      const dx = px - drop.x;
-      const dy = py - drop.y;
-      if (dx * dx + dy * dy > proxSq) continue;
+      if (getDistanceSquared(px, py, drop.x, drop.y) > proxSq) continue;
 
       state.discoveryActive = true;
       state.discoveryDialoguePending = true;
@@ -188,7 +194,7 @@ export class WorldSacredPickupRuntime {
     if (shown) {
       state.activeLorePopupItem = item;
     } else {
-      sacredSave.markItemSeen(item.def.id);
+      this.deps.markItemSeen(item.def.id);
       state.activeLorePopupItem = null;
     }
     state.lorePopupItem = null;
@@ -200,13 +206,14 @@ export class WorldSacredPickupRuntime {
 
     lorePopup.update(dt);
     const input = this.deps.game.input;
-    if (lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
-      const item = this.deps.state.activeLorePopupItem;
-      if (item) lorePopup.confirm(item);
-      else lorePopup.close();
-    } else if (!lorePopup.canConfirm() && input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
+    if (lorePopup.canConfirm()) {
+      if (consumeJustPressedAction(input, GameAction.ATTACK)) {
+        const item = this.deps.state.activeLorePopupItem;
+        if (item) lorePopup.confirm(item);
+        else lorePopup.close();
+      }
+    } else if (consumeJustPressedAction(input, GameAction.ATTACK)) {
+      // Consume early input while the popup is blocking but not yet confirmable.
     }
     return true;
   }
@@ -216,10 +223,9 @@ export class WorldSacredPickupRuntime {
     if (!divePreview?.isBlocking()) return false;
 
     const input = this.deps.game.input;
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      input.consumeJustPressed(GameAction.ATTACK);
+    if (consumeJustPressedAction(input, GameAction.ATTACK)) {
       divePreview.confirm();
-    } else if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.DASH)) {
+    } else if (isAnyJustPressedAction(input, [GameAction.MENU, GameAction.DASH])) {
       divePreview.cancel();
     }
     return true;

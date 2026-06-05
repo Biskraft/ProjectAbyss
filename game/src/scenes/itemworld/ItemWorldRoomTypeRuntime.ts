@@ -22,19 +22,15 @@ export class ItemWorldRoomTypeRuntime {
       : cell.onCriticalPath
         ? 'Combat'
         : ldtkLevel.roomType ?? 'Combat';
-    this.roomTypes.set(this.key(col, absRow), logicalRoomType);
+    this.roomTypes.set(`${col}:${absRow}`, logicalRoomType);
     return logicalRoomType;
   }
 
   get(col: number, absRow: number): LogicalRoomType {
-    return this.roomTypes.get(this.key(col, absRow)) ?? 'Combat';
+    return this.roomTypes.get(`${col}:${absRow}`) ?? 'Combat';
   }
 
   getDebugLabel(col: number, absRow: number): string {
-    return this.roomTypes.get(this.key(col, absRow)) ?? '?';
-  }
-
-  private key(col: number, absRow: number): string {
-    return `${col}:${absRow}`;
+    return this.roomTypes.get(`${col}:${absRow}`) ?? '?';
   }
 }

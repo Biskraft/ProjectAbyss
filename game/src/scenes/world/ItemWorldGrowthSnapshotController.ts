@@ -7,6 +7,8 @@ import {
   ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE,
   type ItemWorldGrowthProjection,
 } from './ItemWorldEntryStreamRuntime';
+import { destroyDisplayObject, destroyNullableDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { clamp01, smootherstep01 } from '@scenes/shared/NumericHelpers';
 
 export interface ItemWorldGrowthSnapshotOptions {
   originX: number;
@@ -75,15 +77,6 @@ export interface ItemWorldGrowthSnapshotControllerDeps {
   getPlayer: () => Player;
   getItem: () => ItemInstance | null;
   getHiddenTargets: () => Array<Container | null | undefined>;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function growthScaleCurve(value: number): number {
-  const t = clamp01(value);
-  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 export class ItemWorldGrowthSnapshotController {
@@ -172,10 +165,10 @@ export class ItemWorldGrowthSnapshotController {
     if (!snapshot) return;
     snapshot.elapsedMs = Math.min(snapshot.durationMs, snapshot.elapsedMs + dt);
     const t = clamp01(snapshot.elapsedMs / snapshot.durationMs);
-    const scale = 1 + growthScaleCurve(t) * (ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE - 1);
+    const scale = 1 + smootherstep01(t) * (ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE - 1);
     snapshot.container.scale.set(scale);
     // 시간이 갈수록 효과 강화 — 아이템으로 빨려드는 전환감.
-    const k = growthScaleCurve(t);
+    const k = smootherstep01(t);
     snapshot.blurFilter.strength = k * SNAPSHOT_MAX_BLUR;
     // 채도 0 → 완전 그레이스케일, 대비 0 → 0.5 (시간 비례).
     snapshot.colorFilter.reset();
@@ -194,11 +187,9 @@ export class ItemWorldGrowthSnapshotController {
   destroy(restoreSources: boolean): void {
     const snapshot = this.snapshot;
     if (snapshot) {
-      snapshot.vignette.parent?.removeChild(snapshot.vignette);
-      snapshot.vignette.destroy();
+      destroyDisplayObject(snapshot.vignette);
       snapshot.vignetteTexture.destroy(true);
-      snapshot.container.parent?.removeChild(snapshot.container);
-      snapshot.container.destroy({ children: true });
+      destroyDisplayObject(snapshot.container, { children: true });
       snapshot.backgroundTexture.destroy(true);
       snapshot.worldTexture.destroy(true);
       this.snapshot = null;
@@ -265,7 +256,7 @@ export class ItemWorldGrowthSnapshotController {
     const attach = (texture: Texture) => {
       if (this.snapshot !== snapshot || snapshot.container.destroyed) return;
       texture.source.scaleMode = 'nearest';
-      snapshot.itemSprite?.destroy();
+      snapshot.itemSprite = destroyNullableDisplayObject(snapshot.itemSprite);
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
       sprite.x = originScreenX;

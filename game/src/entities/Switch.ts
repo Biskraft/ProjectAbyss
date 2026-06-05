@@ -11,6 +11,7 @@
 
 import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 
@@ -142,8 +143,6 @@ export class Switch {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

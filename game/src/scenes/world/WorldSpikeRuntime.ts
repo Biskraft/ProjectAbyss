@@ -9,6 +9,7 @@ import { rumbleGamepad } from '@utils/GamepadRumble';
 import type { DamageNumberManager } from '@ui/DamageNumber';
 import type { HUD } from '@ui/HUD';
 import type { WorldSpikeRegistry } from './WorldSpikeRegistry';
+import { applyPlayerSpikeHitFeedback } from '@scenes/shared/TileHazardRuntimeHelpers';
 
 interface WorldSpikeRuntimeDeps {
   game: Game;
@@ -43,36 +44,18 @@ export class WorldSpikeRuntime {
     const inEntitySpike = this.deps.getRegistry().overlapsAabb(playerBox);
     if (!inTileSpike && !inEntitySpike) return;
 
-    const damage = Math.max(1, Math.floor(player.maxHp * 0.2));
-    player.lastDamageSource = 'spike';
-    player.hp -= damage;
-    this.deps.getHud().flashDamage();
-    player.invincible = true;
-    player.invincibleTimer = 1000;
-
-    this.deps.game.hitstopFrames = 16;
-    this.deps.game.camera.shake(5);
-    rumbleGamepad(160, 0.55, 1.0);
-    this.deps.getScreenFlash().flashDamage(true);
-    player.triggerFlash();
-    this.deps.getDamageNumbers().spawn(
-      player.x + player.width / 2,
-      player.y - 8,
-      damage,
-      true,
-    );
-
-    player.x = player.lastSafeX;
-    player.y = player.lastSafeY;
-    player.vx = 0;
-    player.vy = 0;
-    player.savePrevPosition();
-
-    if (player.hp <= 0) {
-      player.hp = 0;
-      player.onDeath();
-      this.deps.game.hitstopFrames = 8;
-      this.deps.getScreenFlash().flashDamage(true);
-    }
+    applyPlayerSpikeHitFeedback({
+      player,
+      game: this.deps.game,
+      hud: this.deps.getHud(),
+      damageNumbers: this.deps.getDamageNumbers(),
+      screenFlash: this.deps.getScreenFlash(),
+      setDeathHitstopFrames: (frames) => {
+        this.deps.game.hitstopFrames = frames;
+      },
+      onRumble: () => {
+        rumbleGamepad(160, 0.55, 1.0);
+      },
+    });
   }
 }

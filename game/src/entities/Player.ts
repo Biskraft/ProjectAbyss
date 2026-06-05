@@ -15,6 +15,7 @@ import { PlayerConst } from '@data/constData';
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 // SSoT: Sheets/Content_Player.csv (loaded via @data/constData)
 const MOVE_SPEED = PlayerConst.MoveSpeed;
@@ -326,6 +327,7 @@ export class Player extends Entity implements CombatEntity {
    * frame to surface a "No Weapon Equipped" toast with cooldown.
    */
   attackBlockedNoWeaponPulse = false;
+  attackInputEnabled = true;
 
   /**
    * Currently equipped weapon rarity — used for rarity-tinted slash FX.
@@ -516,6 +518,10 @@ export class Player extends Entity implements CombatEntity {
 
   // Room data reference for collision
   roomData: number[][] = [];
+
+  bindCollisionGrid(collisionGrid: number[][]): void {
+    this.roomData = collisionGrid;
+  }
   fluidOverlayQuery: ((x: number, y: number, width: number, height: number) => number | null) | null = null;
 
   constructor(game: Game) {
@@ -768,7 +774,7 @@ export class Player extends Entity implements CombatEntity {
 
     // Dive attack input — air + ↓ + C
     if (!this.isLifting && this.abilities.diveAttack && !this.grounded &&
-        this.game.input.isDown(GameAction.LOOK_DOWN) &&
+        this.attackInputEnabled && this.game.input.isDown(GameAction.LOOK_DOWN) &&
         this.game.input.isJustPressed(GameAction.ATTACK) &&
         state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
       this.fsm.transition('dive');
@@ -785,6 +791,7 @@ export class Player extends Entity implements CombatEntity {
     // open) — the same key press is claimed by the interaction. Not consumed
     // here, so the interaction runtime (which runs later) still receives it.
     const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK)
+      && this.attackInputEnabled
       && !this.game.input.interactionPromptActive;
     const attackStateAllowed =
       !this.isLifting && state !== 'dive' && state !== 'hit' && state !== 'death';
@@ -1957,8 +1964,7 @@ export class Player extends Entity implements CombatEntity {
       s.visible = false;
 
       if (this.weaponSprite && !this.weaponSprite.destroyed) {
-        this.container.removeChild(this.weaponSprite);
-        this.weaponSprite.destroy();
+        destroyDisplayObject(this.weaponSprite);
       }
       const erdaIdx = this.erdaSprite ? this.container.getChildIndex(this.erdaSprite) : -1;
       this.container.addChildAt(s, erdaIdx >= 0 ? erdaIdx : 0);

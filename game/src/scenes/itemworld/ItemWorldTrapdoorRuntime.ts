@@ -3,6 +3,7 @@ import { FloatingItemDrop } from '@entities/FloatingItemDrop';
 import type { Player } from '@entities/Player';
 import type { Trapdoor } from '@entities/Trapdoor';
 import type { Game } from '../../Game';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
 import { ItemWorldWorldPromptRuntime } from './ItemWorldWorldPromptRuntime';
 
 type ItemWorldTrapdoorEntity = Trapdoor | FloatingItemDrop;
@@ -49,9 +50,7 @@ export class ItemWorldTrapdoorRuntime {
       this.prompt.hide();
     }
 
-    if (near && this.deps.game.input.isJustPressed(GameAction.ATTACK)) {
-      this.deps.game.input.consumeJustPressed(GameAction.ATTACK);
-      trapdoor.activate();
+    if (near && consumeJustPressedAction(this.deps.game.input, GameAction.ATTACK)) {
       this.prompt.hide();
       this.deps.onActivate();
     }

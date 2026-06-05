@@ -6,6 +6,7 @@ Current state:
 
 - The runtime owns the first-pickup / first-Item-World-return pending hint state and delay timer.
 - First Item World return hints are requested with `hadFirstBossClear`; the runtime reads `retireAfterFirstBoss`, blocking anvil item state, `Inventory`, and `unlockedEvents` through callbacks so respawn/save-load replacement stays visible.
+- First Item World return hints are requested with `hadFirstBossClear`; the runtime now relies on injected `isFirstItemWorldBossDefeated` dependency (instead of `sacredSave`) to determine cross-run first-clear boundaries.
 - If the anvil still has a blocking placed/return item, the runtime defers the hint and later flushes it through `flushDeferredFirstItemWorldReturnHint(delayMs)`.
 - `clearIfRustbornEquipped()` dismisses visible inventory hints, clears pending state, and stops the HUD item-key pulse when `sword_rustborn` is equipped.
 - `LdtkWorldScene` should call this runtime directly; do not add scene-local wrapper methods for request/flush/clear.
@@ -16,4 +17,4 @@ Prevention rules:
 - Do not pass long-lived `Inventory` or `unlockedEvents` object references into this runtime; keep using getters.
 - Keep the anvil retire/blocking-item predicates as callbacks into world state instead of duplicating anvil return state inside this runtime.
 
-Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.
+Verification on 2026-06-04: `WorldEgoDialogueRuntime`와 `InventoryTutorialHintRuntime`이 저장소 직접 조회(`sacredSave`)를 제거하고 `isFirstItemWorldBossDefeated`를 주입받는 계약으로 정렬.

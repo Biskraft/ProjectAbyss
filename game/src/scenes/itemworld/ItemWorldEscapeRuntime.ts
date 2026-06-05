@@ -5,6 +5,7 @@ import {
   type ItemInstance,
 } from '@items/ItemInstance';
 import type { UISkin } from '@ui/UISkin';
+import { updateConfirmCancelInput } from '@scenes/shared/ConfirmCancelInputHelpers';
 import type { Game } from '../../Game';
 import type { ItemWorldUiController } from './ItemWorldUiController';
 
@@ -17,7 +18,7 @@ interface ItemWorldEscapeRuntimeDeps {
   getTotalRooms: () => number;
   getEarnedExp: () => number;
   getEarnedGold: () => number;
-  getTransitionState: () => string;
+  isPostClearHold: () => boolean;
   onExitConfirmed: () => void;
 }
 
@@ -42,24 +43,17 @@ export class ItemWorldEscapeRuntime {
     });
   }
 
-  hide(): void {
-    this.deps.getUiController().hideEscapeConfirm();
-  }
-
-  isVisible(): boolean {
-    return this.deps.getUiController().isEscapeConfirmVisible();
-  }
-
   updateInput(): boolean {
     const uiController = this.deps.getUiController();
     const input = this.deps.game.input;
+    const isEscapeConfirmVisible = uiController.isEscapeConfirmVisible();
 
-    if (this.deps.getTransitionState() !== 'post_clear_hold'
+    if (!this.deps.isPostClearHold()
       && !uiController.isBossChoiceVisible()
       && input.isJustPressed(GameAction.MENU)
     ) {
-      if (uiController.isEscapeConfirmVisible()) {
-        this.hide();
+      if (isEscapeConfirmVisible) {
+        uiController.hideEscapeConfirm();
         return true;
       }
 
@@ -69,19 +63,17 @@ export class ItemWorldEscapeRuntime {
       return true;
     }
 
-    if (!uiController.isEscapeConfirmVisible()) return false;
+    if (!isEscapeConfirmVisible) return false;
 
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      this.hide();
-      this.deps.onExitConfirmed();
-      return true;
-    }
-
-    if (input.isJustPressed(GameAction.DASH)
-      || input.isJustPressed(GameAction.JUMP)
-    ) {
-      this.hide();
-    }
+    updateConfirmCancelInput({
+      input,
+      cancelActions: [GameAction.DASH, GameAction.JUMP],
+      onConfirm: () => {
+        uiController.hideEscapeConfirm();
+        this.deps.onExitConfirmed();
+      },
+      onCancel: () => uiController.hideEscapeConfirm(),
+    });
     return true;
   }
 }

@@ -13,6 +13,8 @@ import {
   ROW_SELECTED_GLOW_ALPHA,
 } from '@ui/ModalPanel';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
+import { destroyNullableDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { updateConfirmCancelInput } from '@scenes/shared/ConfirmCancelInputHelpers';
 
 interface ItemWorldStratumPickerRuntimeOptions {
   game: Game;
@@ -77,13 +79,7 @@ export class ItemWorldStratumPickerRuntime {
 
   hide(): void {
     this.visible = false;
-    if (this.container?.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container?.destroy({ children: true });
-    this.container = null;
-    this.pulseG = null;
-    this.pulseRect = null;
+    this.hideContainerOnly();
   }
 
   destroy(): void {
@@ -386,23 +382,20 @@ export class ItemWorldStratumPickerRuntime {
       this.draw();
       return;
     }
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      const picked = this.selection;
-      this.hide();
-      this.options.onPick(picked);
-      return;
-    }
-    if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
-      this.hide();
-    }
+    updateConfirmCancelInput({
+      input,
+      cancelActions: [GameAction.MENU, GameAction.JUMP],
+      onConfirm: () => {
+        const picked = this.selection;
+        this.hide();
+        this.options.onPick(picked);
+      },
+      onCancel: () => this.hide(),
+    });
   }
 
   private hideContainerOnly(): void {
-    if (this.container?.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container?.destroy({ children: true });
-    this.container = null;
+    this.container = destroyNullableDisplayObject(this.container, { children: true });
     this.pulseG = null;
     this.pulseRect = null;
   }

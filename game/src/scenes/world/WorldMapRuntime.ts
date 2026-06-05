@@ -32,10 +32,6 @@ export class WorldMapRuntime {
     this.overlay.setDebugRooms(deps.loader.getWorldMap().filter(room => room.roomType !== 'Cinematic'));
   }
 
-  syncForOpen(): void {
-    this.sync({ includePlayerPosition: true });
-  }
-
   syncVisibleRedraw(): void {
     if (!this.overlay.visible) return;
     this.sync({ includePlayerPosition: true, redraw: true });
@@ -56,12 +52,12 @@ export class WorldMapRuntime {
   }
 
   openDebug(onRoomClick: (roomId: string, localX: number, localY: number) => void): void {
-    this.syncForOpen();
+    this.sync({ includePlayerPosition: true });
     this.overlay.onRoomClick = onRoomClick;
     this.overlay.openDebug();
   }
 
-  private sync(options: { includePlayerPosition?: boolean; redraw?: boolean } = {}): void {
+  sync(options: { includePlayerPosition?: boolean; redraw?: boolean } = {}): void {
     const currentLevel = this.deps.getCurrentLevel();
     this.overlay.setExplorationState(this.deps.getVisitedLevels(), currentLevel?.identifier ?? '');
     this.overlay.setMarkers(this.collectMarkers());

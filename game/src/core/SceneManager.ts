@@ -1,5 +1,6 @@
 import type { Game } from '../Game';
 import type { Scene } from './Scene';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 export class SceneManager {
   private game: Game;
@@ -31,7 +32,7 @@ export class SceneManager {
     if (!current) return;
 
     current.exit();
-    this.game.gameContainer.removeChild(current.container);
+    detachDisplayObject(current.container);
     current.destroy();
     this.stack.pop();
 
@@ -46,7 +47,7 @@ export class SceneManager {
     const current = this.active;
     if (current) {
       current.exit();
-      this.game.gameContainer.removeChild(current.container);
+      detachDisplayObject(current.container);
       current.destroy();
       this.stack.pop();
     }

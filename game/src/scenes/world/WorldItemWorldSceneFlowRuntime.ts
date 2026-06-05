@@ -1,63 +1,57 @@
-import type { Game } from '../../Game';
-import type { Inventory } from '@items/Inventory';
 import type { ItemInstance } from '@items/ItemInstance';
-import type { Player } from '@entities/Player';
-import { ItemWorldScene } from '../ItemWorldScene';
 import type { ItemWorldEntryPushOptions } from './ItemWorldEntryPushTransition';
 import type { ItemWorldEntryPreloader } from './ItemWorldEntryPreloader';
 import type { ItemWorldEntryPushTransition } from './ItemWorldEntryPushTransition';
 
-interface CompleteReturnOptions {
-  restoreAtAnvil?: boolean;
+export interface ItemWorldSceneLike {
+  onComplete: (() => void) | null;
+  onPrologueEnd: (() => void) | null;
+  readonly earnedGold: number;
 }
 
 interface WorldItemWorldSceneFlowRuntimeDeps {
-  game: Game;
-  getInventory: () => Inventory;
-  getPlayer: () => Player;
+  popScene: () => void;
   getUnlockedEvents: () => Set<string>;
   preloader: ItemWorldEntryPreloader;
   pushTransition: ItemWorldEntryPushTransition;
   preparePush: () => void;
+  startReturnFade: () => void;
   restoreWorldAtAnvilReturnPoint: (resetAnvil: boolean) => void;
-  startItemWorldReturnFadeIn: () => void;
   updatePlayerAtk: () => void;
   isFirstItemWorldBossDefeated: () => boolean;
   showFirstItemWorldReturnInventoryHint: (hadFirstBossClear: boolean) => void;
   onEarnedGold: (amount: number) => void;
+  createScene: (item: ItemInstance, entryCorridor: boolean) => ItemWorldSceneLike;
 }
 
 export class WorldItemWorldSceneFlowRuntime {
+  private readonly completedReturns = new WeakSet<object>();
+
   constructor(private readonly deps: WorldItemWorldSceneFlowRuntimeDeps) {}
 
   prestream(item: ItemInstance, reason: string): void {
     this.deps.preloader.prestream(item, reason);
   }
 
-  createScene(item: ItemInstance, entryCorridor: boolean): ItemWorldScene {
-    const itemWorldScene = new ItemWorldScene(
-      this.deps.game,
-      item,
-      this.deps.getInventory(),
-      this.deps.getPlayer(),
-      { entryCorridor },
-    );
-    const unlockedEvents = this.deps.getUnlockedEvents();
-    itemWorldScene.itemWorldTutorialDone = unlockedEvents.has('__itemWorldTutorialDone');
-    itemWorldScene.egoUnlockedEvents = unlockedEvents;
-    return itemWorldScene;
+  createScene(item: ItemInstance, entryCorridor: boolean): ItemWorldSceneLike {
+    return this.deps.createScene(item, entryCorridor);
   }
 
   completeReturn(
-    itemWorldScene: ItemWorldScene,
+    itemWorldScene: ItemWorldSceneLike,
     hadFirstBossClear: boolean,
-    options: CompleteReturnOptions = {},
+    restoreAtAnvil?: boolean,
   ): void {
-    if (options.restoreAtAnvil !== undefined) {
-      this.deps.restoreWorldAtAnvilReturnPoint(options.restoreAtAnvil);
+    if (this.completedReturns.has(itemWorldScene as object)) {
+      return;
     }
-    this.deps.game.sceneManager.pop();
-    this.deps.startItemWorldReturnFadeIn();
+    this.completedReturns.add(itemWorldScene as object);
+
+    if (restoreAtAnvil !== undefined) {
+      this.deps.restoreWorldAtAnvilReturnPoint(restoreAtAnvil);
+    }
+    this.deps.popScene();
+    this.deps.startReturnFade();
     this.deps.updatePlayerAtk();
 
     if (this.deps.isFirstItemWorldBossDefeated()) {
@@ -71,12 +65,12 @@ export class WorldItemWorldSceneFlowRuntime {
   }
 
   pushPrepared(
-    itemWorldScene: ItemWorldScene,
+    itemWorldScene: ItemWorldSceneLike,
     options: ItemWorldEntryPushOptions = {},
   ): void {
     void this.deps.pushTransition.push(
       itemWorldScene,
-      () => this.deps.preparePush(),
+      this.deps.preparePush,
       options,
     );
   }

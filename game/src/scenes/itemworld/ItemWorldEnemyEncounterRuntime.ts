@@ -3,6 +3,7 @@ import type { StrataConfig } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
 import type { ItemInstance } from '@items/ItemInstance';
 import { PRNG } from '@utils/PRNG';
+import { markBossEnemy } from '@entities/EnemyMetadata';
 import { IW_ROOM_H_PX, IW_ROOM_W_PX } from './ItemWorldMapController';
 import type {
   ItemWorldEnemySpawnContext,
@@ -18,6 +19,7 @@ interface ItemWorldEnemyEncounterRuntimeDeps {
   getCycle: () => number;
   getStrataConfig: () => StrataConfig;
   getStartRoom: () => { col: number; absoluteRow: number };
+  getCollisionGrid: () => number[][];
   getSpawnController: () => ItemWorldSpawnController;
   getEnemySpawnRuntime: () => ItemWorldEnemySpawnRuntime;
   getMemoryShardSpawnRuntime: () => ItemWorldMemoryShardSpawnRuntime;
@@ -43,9 +45,10 @@ export class ItemWorldEnemyEncounterRuntime {
     const distScale = 1 + dist * 0.1;
     const spawnTable = getSpawnTable(item.rarity, args.stratumIndex + 1);
     const cycle = this.deps.getCycle();
+    const roomSeed = item.uid * 999 + args.col * 77 + args.absRow * 33;
 
     if (args.roomType === 'Treasure') {
-      this.spawnTreasure(args, cycle);
+      this.spawnTreasure(args, cycle, roomSeed);
       return;
     }
 
@@ -55,17 +58,17 @@ export class ItemWorldEnemyEncounterRuntime {
         bossEntry.enemyType,
         bossEntry.level + cycle,
       );
-      (boss as any)._isBoss = true;
+      markBossEnemy(boss);
       boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
       boss.atk = Math.max(1, Math.floor(boss.atk * stratumDef.bossAtkMul * distScale));
-      this.spawnBoss(args.spawnContext, boss, this.seedForRoom(item.uid, args.col, args.absRow));
+      this.spawnBoss(args.spawnContext, boss, roomSeed);
       return;
     }
 
     const normalEntries = spawnTable.normal;
     if (normalEntries.length === 0) return;
 
-    const pickSeed = this.seedForRoom(item.uid, args.col, args.absRow);
+    const pickSeed = roomSeed;
     const picked = pickWeightedEnemy(normalEntries, new PRNG(pickSeed).next());
     if (!picked) return;
 
@@ -103,13 +106,13 @@ export class ItemWorldEnemyEncounterRuntime {
     }
   }
 
-  private spawnTreasure(args: SpawnEncounterArgs, cycle: number): void {
+  private spawnTreasure(args: SpawnEncounterArgs, cycle: number, roomSeed: number): void {
     const item = this.deps.getItem();
     const stratumDef = this.deps.getStrataConfig().strata[args.stratumIndex];
     const gold = this.deps.getSpawnController().createEnemyFromType('GoldenMonster', 1 + cycle);
     gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul));
     gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul));
-    const goldRng = new PRNG(this.seedForRoom(item.uid, args.col, args.absRow) + 99);
+    const goldRng = new PRNG(roomSeed + 99);
     this.deps.getEnemySpawnRuntime().spawnAt(
       gold,
       args.spawnContext.roomKey,
@@ -119,7 +122,12 @@ export class ItemWorldEnemyEncounterRuntime {
 
   private spawnBoss(context: ItemWorldEnemySpawnContext, boss: Enemy<string>, seed: number): void {
     const bossRng = new PRNG(seed);
-    const flat = this.deps.getEnemySpawnRuntime().findFlatFloorCenter(context, 16);
+    const flat = this.deps.getSpawnController().findFlatFloorCenter(
+      this.deps.getCollisionGrid(),
+      context.roomTopCol,
+      context.roomTopRow,
+      16,
+    );
     let position: { x: number; y: number };
 
     if (flat) {
@@ -141,7 +149,4 @@ export class ItemWorldEnemyEncounterRuntime {
     enemy.atk = Math.max(1, Math.floor(enemy.atk * atkMul * distScale));
   }
 
-  private seedForRoom(itemUid: number, col: number, absRow: number): number {
-    return itemUid * 999 + col * 77 + absRow * 33;
-  }
 }

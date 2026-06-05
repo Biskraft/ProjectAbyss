@@ -5,11 +5,13 @@ import type { GiantBuilder } from '@entities/GiantBuilder';
 import { WallGate } from '@entities/WallGate';
 import { aabbOverlap, type AABB } from '@core/Physics';
 import { BgmController } from '@audio/BgmController';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import type { ItemInstance } from '@items/ItemInstance';
 import type {
   ItemDeploymentStreamWorldOptions,
   ItemDeploymentTunnelOpenOptions,
 } from '@effects/ItemDeploymentTypes';
+import { clampEffect01 } from './EffectNumeric';
 
 type GrowthDeployState =
   | 'Idle'
@@ -29,12 +31,8 @@ const GROWTH_ANTICIPATION_MS = 500;
 const GROWTH_PLAYER_READY_MS = 3000;
 const GROWTH_PLATFORM_READY_MS = GROWTH_PLAYER_READY_MS;
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
 function growthScaleCurve(value: number): number {
-  const t = clamp01(value);
+  const t = clampEffect01(value);
   return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
@@ -131,7 +129,7 @@ export class ItemWorldEntrySequence {
     this.anvilY = anvilY;
     this.game.input.inputLocked = true;
     this.game.camera.target = this.player;
-    this.game.camera.zoomTo(1.0, 0.025);
+    this.game.camera.lockZoom(1.0);
 
     this.tunnelLeft = anvilX + TUNNEL_OFFSET;
     this.tunnelBottom = anvilY - TUNNEL_Y_RAISE;
@@ -189,6 +187,8 @@ export class ItemWorldEntrySequence {
           this.player.container.alpha = 1;
           this.cleanupVisuals();
           this.state = 'Idle';
+          this.game.camera.unlockZoom();
+          this.game.camera.setZoom(1.0);
           this.game.input.inputLocked = false;
           this.onPushScene();
         }
@@ -253,7 +253,7 @@ export class ItemWorldEntrySequence {
   private startReferenceWorldGrowth(): void {
     if (this.tunnelOpened) return;
     this.tunnelOpened = true;
-    this.game.camera.zoomTo(1.0, 0.025);
+    this.game.camera.lockZoom(1.0);
     const origin = this.getItemGrowthOrigin();
     // 줌(성장) pivot = 무기(item focus) 위치 — 월드가 무기 지점으로 수렴하며
     // "무기 속으로 들어가는" 느낌. 무기 image(itemSprite)가 origin 에 배치되므로
@@ -322,7 +322,7 @@ export class ItemWorldEntrySequence {
   }
 
   private updatePlayerMoveToStreamStart(): void {
-    const t = clamp01(this.elapsed / GROWTH_PLAYER_READY_MS);
+    const t = clampEffect01(this.elapsed / GROWTH_PLAYER_READY_MS);
     const moveT = growthScaleCurve(t);
     const visualTarget = this.getPlatformVisualStart?.();
     const targetX = visualTarget?.x ?? this.playerTargetX;
@@ -349,8 +349,7 @@ export class ItemWorldEntrySequence {
 
   private cleanupVisuals(): void {
     if (this.fadeOverlay?.parent) {
-      this.fadeOverlay.parent.removeChild(this.fadeOverlay);
-      this.fadeOverlay.destroy();
+      destroyDisplayObject(this.fadeOverlay);
       this.fadeOverlay = null;
     }
     this.wallGate?.destroy();

@@ -1,6 +1,6 @@
 import type { Player } from '@entities/Player';
 import type { LdtkLevel } from '@level/LdtkLoader';
-import { sacredSave } from '@save/PlayerSave';
+import { placePlayerAt } from '@scenes/shared/PlayerPlacementHelpers';
 import type { WorldTransitionController } from './WorldTransitionController';
 
 const TILE_SIZE = 16;
@@ -13,6 +13,7 @@ interface WorldPlayerSpawnRuntimeDeps {
   getCollisionGrid: () => number[][];
   getPendingPlayerTileX: () => number;
   getPendingPlayerTileY: () => number;
+  getScene: () => string | null;
   recordSafePosition: (x: number, y: number) => void;
 }
 
@@ -56,7 +57,7 @@ export class WorldPlayerSpawnRuntime {
         // Pick the Player spawn tagged for the current scene (LDtk Player.Scene),
         // e.g. 'prologue' vs 'chapter01'; fall back to the first spawn.
         const spawns = level.entities.filter((e) => e.type === 'Player');
-        const scene = sacredSave.getScene();
+        const scene = this.deps.getScene();
         const playerEntity = spawns.find((e) => e.fields['Scene'] === scene) ?? spawns[0];
         if (playerEntity) {
           spawnX = playerEntity.px[0];
@@ -70,12 +71,11 @@ export class WorldPlayerSpawnRuntime {
       }
     }
 
-    player.x = spawnX;
-    player.y = spawnY;
-    player.vx = 0;
-    player.vy = 0;
-    player.roomData = grid;
-    player.savePrevPosition();
+    placePlayerAt(player, spawnX, spawnY, {
+      collisionGrid: grid,
+      resetVelocity: true,
+      savePreviousPosition: true,
+    });
     this.deps.recordSafePosition(spawnX, spawnY);
   }
 }

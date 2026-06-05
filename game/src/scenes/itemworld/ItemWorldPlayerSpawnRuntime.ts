@@ -1,5 +1,6 @@
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { UnifiedGridData } from '@level/RoomGrid';
+import { playerTopLeftFromBottomCenter } from '@scenes/shared/PlayerPlacementHelpers';
 import {
   IW_ROOM_H_PX,
   IW_ROOM_H_TILES,
@@ -19,7 +20,7 @@ interface PlayerSize {
 }
 
 interface ItemWorldPlayerSpawnRuntimeDeps {
-  getFullGrid: () => number[][];
+  getCollisionGrid: () => number[][];
   getPlayerSize: () => PlayerSize;
   computeSpawnPoints: (grid: number[][], roomLeftTile: number, roomTopTile: number) => SpawnPoint[];
 }
@@ -66,7 +67,7 @@ export class ItemWorldPlayerSpawnRuntime {
   }
 
   resolveFloorSpawn(col: number, absoluteRow: number): SpawnPoint {
-    const fullGrid = this.deps.getFullGrid();
+    const fullGrid = this.deps.getCollisionGrid();
     const playerSize = this.deps.getPlayerSize();
     const roomLeftTile = col * IW_ROOM_W_TILES;
     const roomTopTile = absoluteRow * IW_ROOM_H_TILES;
@@ -96,10 +97,10 @@ export class ItemWorldPlayerSpawnRuntime {
   ): SpawnPoint {
     const ldtkSpawn = this.ldtkSpawnByStratum.get(stratumIndex);
     if (!ldtkSpawn) return fallback();
-    return {
-      x: Math.round(ldtkSpawn.x - playerWidth / 2),
-      y: Math.round(ldtkSpawn.y - playerHeight),
-    };
+    return playerTopLeftFromBottomCenter(ldtkSpawn, {
+      width: playerWidth,
+      height: playerHeight,
+    });
   }
 
   private findFloor(

@@ -18,6 +18,8 @@
 import { Container, Graphics } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import type { Camera } from '@core/Camera';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 export type VoidPhase = 'idle' | 'freeze' | 'fall' | 'engulf' | 'black' | 'done';
 
@@ -237,7 +239,7 @@ export class VoidDrop {
       const t1 = (i + 1) / bands;
       const bandY = fogTop + fogH * t0;
       const bandH = Math.max(1, fogH / bands * 1.15);
-      const alpha = clamp01(intensity * (0.15 + t1 * 0.85));
+      const alpha = clampEffect01(intensity * (0.15 + t1 * 0.85));
       this.fogOverlay.rect(0, bandY, w, bandH).fill({ color: 0x000000, alpha });
     }
     this.fogOverlay.alpha = 1;
@@ -248,15 +250,11 @@ export class VoidDrop {
   }
 
   destroy(): void {
-    for (const s of this.silhouettes) s.gfx.destroy();
+    for (const s of this.silhouettes) destroyDisplayObject(s.gfx);
     this.silhouettes = [];
-    this.fogOverlay.destroy();
-    this.blackOverlay.destroy();
-    this.silhouetteContainer.destroy({ children: true });
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.fogOverlay);
+    destroyDisplayObject(this.blackOverlay);
+    destroyDisplayObject(this.silhouetteContainer, { children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
-}
-
-function clamp01(v: number): number {
-  return v < 0 ? 0 : v > 1 ? 1 : v;
 }

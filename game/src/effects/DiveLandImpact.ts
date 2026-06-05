@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Dive-land impact — heavy shockwave + debris when the player touches down from
@@ -84,8 +85,7 @@ export class DiveLandImpactManager {
       // Flattened ellipse (pseudo-3D ground ring)
       r.gfx.ellipse(0, 0, radius, radius * 0.35).stroke({ color: r.color, width: r.thick, alpha });
       if (r.life <= 0) {
-        if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-        r.gfx.destroy();
+        destroyDisplayObject(r.gfx);
         this.rings.splice(i, 1);
       }
     }
@@ -102,8 +102,7 @@ export class DiveLandImpactManager {
       const t = Math.max(0, d.life / d.maxLife);
       d.gfx.alpha = t;
       if (d.life <= 0) {
-        if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-        d.gfx.destroy();
+        destroyDisplayObject(d.gfx);
         this.debris.splice(i, 1);
       }
     }
@@ -111,12 +110,10 @@ export class DiveLandImpactManager {
 
   clear(): void {
     for (const r of this.rings) {
-      if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-      r.gfx.destroy();
+      destroyDisplayObject(r.gfx);
     }
     for (const d of this.debris) {
-      if (d.gfx.parent) d.gfx.parent.removeChild(d.gfx);
-      d.gfx.destroy();
+      destroyDisplayObject(d.gfx);
     }
     this.rings.length = 0;
     this.debris.length = 0;

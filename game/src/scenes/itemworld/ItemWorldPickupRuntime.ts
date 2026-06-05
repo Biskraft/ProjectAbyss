@@ -1,4 +1,3 @@
-import { t } from '@i18n';
 import type { Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import type { HealingPickup } from '@entities/HealingPickup';
@@ -6,6 +5,13 @@ import type { GoldPickup } from '@entities/GoldPickup';
 import type { DamageNumberManager } from '@ui/DamageNumber';
 import type { ItemPickupGlowManager } from '@effects/ItemPickupGlow';
 import type { ScreenFlash } from '@effects/ScreenFlash';
+import {
+  addPickupToLayer,
+  applyGoldPickupReward,
+  applyHealingPickupReward,
+  clearPickups,
+  processPickupsForPlayerCollection,
+} from '@scenes/shared/PickupCollectionHelpers';
 
 interface ItemWorldPickupRuntimeDeps {
   getPlayer: () => Player;
@@ -24,69 +30,54 @@ export class ItemWorldPickupRuntime {
   constructor(private readonly deps: ItemWorldPickupRuntimeDeps) {}
 
   addHealingPickup(pickup: HealingPickup): void {
-    this.healingPickups.push(pickup);
-    if (!pickup.container.parent) {
-      this.deps.getEntityLayer().addChild(pickup.container);
-    }
+    addPickupToLayer(this.healingPickups, pickup, this.deps.getEntityLayer());
   }
 
   addGoldPickup(pickup: GoldPickup): void {
-    this.goldPickups.push(pickup);
-    if (!pickup.container.parent) {
-      this.deps.getEntityLayer().addChild(pickup.container);
-    }
+    addPickupToLayer(this.goldPickups, pickup, this.deps.getEntityLayer());
   }
 
   clear(): void {
-    for (const pickup of this.healingPickups) pickup.destroy();
-    this.healingPickups.length = 0;
-    for (const pickup of this.goldPickups) pickup.destroy();
-    this.goldPickups.length = 0;
+    clearPickups(this.healingPickups);
+    clearPickups(this.goldPickups);
   }
 
   updateHealing(dtMs: number): void {
     const player = this.deps.getPlayer();
-    const pickups = this.healingPickups;
-    for (let i = pickups.length - 1; i >= 0; i--) {
-      const pickup = pickups[i];
-      if (pickup.collected) {
+    processPickupsForPlayerCollection({
+      pickups: this.healingPickups,
+      player,
+      dtMs,
+      onPickup: pickup => {
+        applyHealingPickupReward(pickup, {
+          player,
+          screenFlash: this.deps.getScreenFlash(),
+          showToast: this.deps.showToast,
+          itemPickupGlow: this.deps.getItemPickupGlow(),
+          showToastOnlyWhenHealed: true,
+          collectAfterFeedback: true,
+        });
+      },
+      onCollected: pickup => {
         pickup.destroy();
-        pickups.splice(i, 1);
-        continue;
-      }
-      pickup.update(dtMs);
-      const dx = Math.abs((player.x + player.width / 2) - (pickup.x + pickup.width / 2));
-      const dy = Math.abs((player.y + player.height / 2) - (pickup.y + pickup.height / 2));
-      if (dx < 16 && dy < 16) {
-        const healed = Math.min(pickup.healAmount, player.maxHp - player.hp);
-        player.hp = Math.min(player.maxHp, player.hp + pickup.healAmount);
-        this.deps.getScreenFlash().flash(0x44ff44, 0.3, 150);
-        if (healed > 0) this.deps.showToast(t('toast.hp_gain', { amount: healed }), 0x44ff44);
-        this.deps.getItemPickupGlow().spawn(pickup.x + pickup.width / 2, pickup.y + pickup.height / 2, 0x44ff44);
-        pickup.collect();
-        pickup.destroy();
-        pickups.splice(i, 1);
-      }
-    }
+      },
+      removeOnCollected: true,
+    });
   }
 
   updateGold(dtMs: number): void {
     const player = this.deps.getPlayer();
-    const pickups = this.goldPickups;
-    for (let i = pickups.length - 1; i >= 0; i--) {
-      const pickup = pickups[i];
-      if (pickup.collected) continue;
-      pickup.update(dtMs);
-      const dx = Math.abs((player.x + player.width / 2) - (pickup.x + pickup.width / 2));
-      const dy = Math.abs((player.y + player.height / 2) - (pickup.y + pickup.height / 2));
-      if (dx < 16 && dy < 16) {
-        pickup.collect();
-        this.deps.onGoldCollected(pickup.amount);
-        this.deps.getDamageNumbers().spawnEXP(pickup.x + pickup.width / 2, pickup.y - 16, `+${pickup.amount} G`);
-        this.deps.getItemPickupGlow().spawn(pickup.x + pickup.width / 2, pickup.y + pickup.height / 2, 0xffd700);
-        pickup.destroy();
-        pickups.splice(i, 1);
-      }
-    }
+    processPickupsForPlayerCollection({
+      pickups: this.goldPickups,
+      player,
+      dtMs,
+      onPickup: pickup => {
+        applyGoldPickupReward(pickup, {
+          damageNumbers: this.deps.getDamageNumbers(),
+          itemPickupGlow: this.deps.getItemPickupGlow(),
+          addGold: this.deps.onGoldCollected,
+        });
+      },
+    });
   }
 }

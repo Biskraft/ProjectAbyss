@@ -31,12 +31,8 @@ export class ItemWorldOnboardingRuntime {
     });
   }
 
-  isDone(): boolean {
-    return this.deps.getUiController().isOnboardingDone();
-  }
-
   updateBlockingInput(): boolean {
-    if (this.isDone()) return false;
+    if (this.deps.getUiController().isOnboardingDone()) return false;
     if (this.deps.game.input.isJustPressed(GameAction.ATTACK)) {
       this.deps.getUiController().advanceOnboarding({
         hudSkin: this.deps.getHudSkin(),

@@ -4,6 +4,8 @@ import { resolveTiles, TEMPLATE_W, TEMPLATE_H } from '@level/ItemWorldTemplates'
 import { PRNG } from '@utils/PRNG';
 import type { ItemInstance } from '@items/ItemInstance';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 const TILE_PX = 16;
 const HALF_TILE = TILE_PX / 2;
@@ -89,17 +91,13 @@ interface ScaleBirthState {
   durationMs: number;
 }
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
 function growthScaleCurve(value: number): number {
-  const t = clamp01(value);
+  const t = clampEffect01(value);
   return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 function grayTint(value: number): number {
-  const v = Math.round(255 * (1 - clamp01(value)));
+  const v = Math.round(255 * (1 - clampEffect01(value)));
   return (v << 16) | (v << 8) | v;
 }
 
@@ -602,7 +600,7 @@ export class ItemWorldGhostOverlay {
   private updateScaleBirth(dt: number): void {
     if (!this.scaleBirth) return;
     this.scaleBirth.elapsedMs += dt;
-    const t = clamp01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
+    const t = clampEffect01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
     this.applyScaleBirthTransform(t);
     if (t >= 1) {
       const birth = this.scaleBirth;
@@ -634,16 +632,16 @@ export class ItemWorldGhostOverlay {
     const visibleElapsed = this.scaleBirth.elapsedMs - SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS;
     if (visibleElapsed <= 0) return 0;
     const visibleDuration = Math.max(1, this.scaleBirth.durationMs - SCALE_BIRTH_TILE_VISIBILITY_DELAY_MS);
-    const t = clamp01(visibleElapsed / visibleDuration);
+    const t = clampEffect01(visibleElapsed / visibleDuration);
     const groupScale = SCALE_BIRTH_START_SCALE + growthScaleCurve(t) * (1 - SCALE_BIRTH_START_SCALE);
-    return clamp01((groupScale - SCALE_BIRTH_START_SCALE) /
+    return clampEffect01((groupScale - SCALE_BIRTH_START_SCALE) /
       (SCALE_BIRTH_TILE_ALPHA_FULL_SCALE - SCALE_BIRTH_START_SCALE));
   }
 
   private applyScaleBirthItemTint(display: GhostItemDisplay): void {
     if (!this.scaleBirth) return;
-    const t = clamp01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
-    const darkT = clamp01((t - 0.62) / 0.38);
+    const t = clampEffect01(this.scaleBirth.elapsedMs / this.scaleBirth.durationMs);
+    const darkT = clampEffect01((t - 0.62) / 0.38);
     display.container.alpha = 1 - darkT * 0.85;
     display.particleLayer.alpha = (1 - darkT) * 0.22;
     if (display.sprite) {
@@ -668,10 +666,8 @@ export class ItemWorldGhostOverlay {
     this.tiles = [];
     this.buildQueue = [];
     this.tileBuildCallback = null;
-    this.itemContainer.parent?.removeChild(this.itemContainer);
-    this.itemContainer.destroy({ children: true });
-    this.container.parent?.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.itemContainer, { children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   private _createConstructionParticles(display: GhostItemDisplay): void {
@@ -736,8 +732,7 @@ export class ItemWorldGhostOverlay {
 
   private _clearItemDisplays(): void {
     for (const display of this.itemDisplays) {
-      display.container.parent?.removeChild(display.container);
-      display.container.destroy({ children: true });
+      destroyDisplayObject(display.container, { children: true });
     }
     this.itemDisplays = [];
   }

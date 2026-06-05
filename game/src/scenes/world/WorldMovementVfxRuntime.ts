@@ -1,6 +1,5 @@
 import type { Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
-import { SFX } from '@audio/Sfx';
 import { LandingDustManager } from '@effects/LandingDust';
 import { DashAfterimageManager } from '@effects/DashAfterimage';
 import { DashBoostPuffManager } from '@effects/DashBoostPuff';
@@ -19,6 +18,7 @@ import { WaterBubblesManager } from '@effects/WaterBubbles';
 import { SteamPuffManager } from '@effects/SteamPuff';
 import { DropThroughDustManager } from '@effects/DropThroughDust';
 import { IceSkidStreakManager } from '@effects/IceSkidStreak';
+import { updateCommonMovementVfxManagers, updatePlayerKinematicVfx } from '@scenes/shared/MovementVfxHelpers';
 
 export class WorldMovementVfxRuntime {
   private landingDustManager: LandingDustManager | null = null;
@@ -81,93 +81,36 @@ export class WorldMovementVfxRuntime {
   }
 
   updateCharacterFeedback(dt: number): void {
-    this.landingDustManager?.update(dt);
-    this.dashBoostPuffManager?.update(dt);
-    this.doubleJumpRingManager?.update(dt);
-    this.wallJumpDustManager?.update(dt);
-    this.jumpTakeoffManager?.update(dt);
-    this.wallSlideDustManager?.update(dt);
-    this.footstepPuffManager?.update(dt);
-    this.flaskBurstManager?.update(dt);
-    this.criticalHighlightManager?.update(dt);
-    this.hitBloodSprayManager?.update(dt);
-    this.diveLandImpactManager?.update(dt);
-    this.waterSplashManager?.update(dt);
-    this.steamPuffManager?.update(dt);
+    updateCommonMovementVfxManagers(dt, {
+      landingDust: this.landingDust,
+      dashBoostPuff: this.dashBoostPuff,
+      doubleJumpRing: this.doubleJumpRing,
+      wallJumpDust: this.wallJumpDust,
+      jumpTakeoff: this.jumpTakeoff,
+      wallSlideDust: this.wallSlideDust,
+      footstepPuff: this.footstepPuff,
+      flaskBurst: this.flaskBurst,
+      criticalHighlight: this.criticalHighlight,
+      hitBloodSpray: this.hitBloodSpray,
+      diveLandImpact: this.diveLandImpact,
+      waterSplash: this.waterSplash,
+      steamPuff: this.steamPuff,
+    });
   }
 
   updatePlayerKinematicFeedback(dt: number, player: Player): void {
-    const landedSpeed = player.consumeLandedEvent();
-    if (landedSpeed !== null) {
-      this.landingDust.spawn(player.x + player.width / 2, player.y + player.height, landedSpeed);
-      if (landedSpeed > 120) {
-        const t = Math.min(1, (landedSpeed - 120) / 380);
-        SFX.play('land', 0, { speed: 1.1 - t * 0.25 });
-      }
-    }
-
-    const dashDir = player.consumeDashedEvent();
-    if (dashDir !== null) {
-      this.dashBoostPuff.spawn(player.x + player.width / 2, player.y + player.height, dashDir);
-    }
-
-    if (player.consumeDoubleJumpEvent()) {
-      this.doubleJumpRing.spawn(player.x + player.width / 2, player.y + player.height);
-    }
-
-    const kickDir = player.consumeWallJumpEvent();
-    if (kickDir !== null) {
-      const wallX = kickDir > 0 ? player.x : player.x + player.width;
-      const wallY = player.y + player.height * 0.45;
-      this.wallJumpDust.spawn(wallX, wallY, kickDir);
-    }
-
-    this.dashAfterimage.tick(dt, player.isDashing(), () => ({
-      x: player.x,
-      y: player.y,
-      w: player.width,
-      h: player.height,
-      facingRight: player.facingRight,
-      texture: player.getCurrentErdaTexture(),
-      spriteCenterX: player.x + player.width / 2,
-      spriteFootY: player.y + player.height,
-    }));
-
-    if (player.consumeGroundJumpEvent()) {
-      this.jumpTakeoff.spawn(player.x + player.width / 2, player.y + player.height);
-    }
-
-    if (player.isWallSliding()) {
-      const wallSide = player.wallContactDir();
-      const wallX = wallSide < 0 ? player.x : player.x + player.width;
-      this.wallSlideDust.emit(wallX, player.y + player.height * 0.55, -wallSide, dt);
-    }
-
-    if (this.footstepPuff.stepIfMoving(
-      dt,
-      player.isGrounded(),
-      player.x + player.width / 2,
-      player.y + player.height,
-      player.getVx(),
-      player.facingRight,
-    )) {
-      SFX.play('footstep', 0, { speed: 0.92 + Math.random() * 0.16 });
-    }
-
-    if (player.isSurgeCharging()) {
-      this.surgeVfx.tickCharge(dt, player.x + player.width / 2, player.y + player.height, player.getSurgeChargeRatio());
-    } else if (player.isSurgeFlying()) {
-      this.surgeVfx.tickFly(dt, player.x + player.width / 2, player.y + player.height / 2);
-    } else {
-      this.surgeVfx.idleTick(dt);
-    }
-
-    if (player.diveLanded) {
-      const severity = Math.max(0.8, Math.min(1.6, player.diveFallDistance / 240));
-      this.diveLandImpact.spawn(player.x + player.width / 2, player.y + player.height, severity);
-    } else if (landedSpeed !== null && landedSpeed > 520) {
-      this.diveLandImpact.spawn(player.x + player.width / 2, player.y + player.height, 0.9);
-    }
+    updatePlayerKinematicVfx(dt, player, {
+      landingDust: this.landingDust,
+      dashAfterimage: this.dashAfterimage,
+      dashBoostPuff: this.dashBoostPuff,
+      doubleJumpRing: this.doubleJumpRing,
+      wallJumpDust: this.wallJumpDust,
+      jumpTakeoff: this.jumpTakeoff,
+      wallSlideDust: this.wallSlideDust,
+      footstepPuff: this.footstepPuff,
+      surgeVfx: this.surgeVfx,
+      diveLandImpact: this.diveLandImpact,
+    });
   }
 
   updateLate(dt: number): void {

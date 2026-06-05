@@ -3,10 +3,14 @@ import type { Player } from '@entities/Player';
 import type { ThrowableContainer } from '@entities/ThrowableContainer';
 import {
   findNearestGrabbableContainer,
-  updateContainerArcTether,
-  updateContainerGrabInput,
-  updateHeldContainerCarry,
 } from '@systems/ContainerInteraction';
+import {
+  clearPlayerLiftPose,
+  createEmptyContainerCarryState,
+  updateContainerCarryState,
+  updateContainerCarryTether,
+  type ContainerCarryState,
+} from '@scenes/shared/ContainerCarryStateHelpers';
 import type { Game } from '../../Game';
 import { ItemWorldContainerPromptRuntime } from './ItemWorldContainerPromptRuntime';
 
@@ -17,22 +21,8 @@ interface ItemWorldContainerCarryRuntimeDeps {
   getArcTether: () => ArcTether | null;
 }
 
-interface ContainerCarryState {
-  pullStartX: number;
-  pullStartY: number;
-  pullElapsedMs: number;
-  pullingContainer: ThrowableContainer | null;
-  heldContainer: ThrowableContainer | null;
-}
-
 export class ItemWorldContainerCarryRuntime {
-  private state: ContainerCarryState = {
-    pullStartX: 0,
-    pullStartY: 0,
-    pullElapsedMs: 0,
-    pullingContainer: null,
-    heldContainer: null,
-  };
+  private state: ContainerCarryState = createEmptyContainerCarryState();
   private readonly promptRuntime: ItemWorldContainerPromptRuntime;
 
   constructor(private readonly deps: ItemWorldContainerCarryRuntimeDeps) {
@@ -52,30 +42,20 @@ export class ItemWorldContainerCarryRuntime {
   }
 
   reset(): void {
-    this.state = {
-      pullStartX: 0,
-      pullStartY: 0,
-      pullElapsedMs: 0,
-      pullingContainer: null,
-      heldContainer: null,
-    };
+    this.state = createEmptyContainerCarryState();
     this.deps.getArcTether()?.hide();
     this.promptRuntime.hide();
-    this.deps.getPlayer().isLifting = false;
+    clearPlayerLiftPose(this.deps.getPlayer());
   }
 
   update(dtMs: number): void {
-    this.state = updateContainerGrabInput({
+    this.state = updateContainerCarryState({
+      dtMs,
       input: this.deps.game.input,
       player: this.deps.getPlayer(),
       arcTether: this.deps.getArcTether(),
       state: this.state,
       findTarget: () => this.findNearestGrabbableContainer(),
-    });
-    this.state = updateHeldContainerCarry({
-      dtMs,
-      player: this.deps.getPlayer(),
-      state: this.state,
     });
     this.promptRuntime.update();
     this.updateArcTether(dtMs);
@@ -95,12 +75,11 @@ export class ItemWorldContainerCarryRuntime {
   }
 
   private updateArcTether(dtMs: number): void {
-    updateContainerArcTether({
+    updateContainerCarryTether({
       dtMs,
       player: this.deps.getPlayer(),
       arcTether: this.deps.getArcTether(),
-      heldContainer: this.state.heldContainer,
-      pullingContainer: this.state.pullingContainer,
+      state: this.state,
       findHover: () => this.findNearestGrabbableContainer(),
     });
   }

@@ -1,18 +1,23 @@
-import { SWORD_DEFS } from '@data/weapons';
 import type { Inventory } from '@items/Inventory';
-import { createItem, getDisplayName } from '@items/ItemInstance';
+import { getDisplayName } from '@items/ItemInstance';
 import type { ItemInstance } from '@items/ItemInstance';
+import { createDungeonRewardItemByRarity } from '@items/ItemRewardFactory';
 import type { Player } from '@entities/Player';
-import { sacredSave } from '@save/PlayerSave';
 import { t } from '@i18n';
 import type { PortalEntryRuntime } from './PortalEntryRuntime';
-import type { WorldFixedItemWorldFlowRuntime } from './WorldFixedItemWorldFlowRuntime';
+import type { ItemWorldSceneLike } from './WorldItemWorldSceneFlowRuntime';
 import type { WorldItemWorldSceneFlowRuntime } from './WorldItemWorldSceneFlowRuntime';
+import {
+  applyItemWorldSceneCompletionLifecycle,
+  createOneShotHandler,
+} from './ItemWorldSceneCompletionHelpers';
 
 interface WorldPortalItemWorldFlowRuntimeDeps {
   portalEntryRuntime: PortalEntryRuntime;
-  fixedItemWorldFlow: WorldFixedItemWorldFlowRuntime;
   itemWorldSceneFlow: WorldItemWorldSceneFlowRuntime;
+  createItemWorldScene: (item: ItemInstance, entryCorridor: boolean) => ItemWorldSceneLike;
+  isFixedItemWorldActive: () => boolean;
+  exitFixedItemWorldFlow: () => void;
   getInventory: () => Inventory;
   getPlayer: () => Player;
   clearDamageNumbers: () => void;
@@ -20,6 +25,7 @@ interface WorldPortalItemWorldFlowRuntimeDeps {
   sacredPickupFlow: (item: ItemInstance, x: number, y: number) => void;
   fireWorldReturnDialogue: (weaponDefId: string) => void;
   retireAfterBossClear: (hadFirstBossClear: boolean) => void;
+  isFirstItemWorldBossDefeated: () => boolean;
 }
 
 export class WorldPortalItemWorldFlowRuntime {
@@ -31,61 +37,74 @@ export class WorldPortalItemWorldFlowRuntime {
 
     this.deps.portalEntryRuntime.destroyPendingEntity();
 
-    if (this.deps.fixedItemWorldFlow.isActive) {
-      this.deps.fixedItemWorldFlow.exit();
+    if (this.deps.isFixedItemWorldActive()) {
+      this.deps.exitFixedItemWorldFlow();
       return;
     }
 
     const isAltar = data.sourceType === 'altar';
     let dungeonItem: ItemInstance | undefined;
     if (!isAltar) {
-      const defs = SWORD_DEFS.filter((d) => d.rarity === data.rarity);
-      const def = defs.length > 0 ? defs[0] : SWORD_DEFS[0];
-      dungeonItem = createItem(def, data.rarity);
+      dungeonItem = createDungeonRewardItemByRarity(data.rarity);
     }
 
     const targetItem = isAltar ? data.sourceItem! : dungeonItem!;
     this.deps.itemWorldSceneFlow.prestream(targetItem, 'portal-entry');
     const prevLevel = targetItem.level;
     const prevAtk = this.deps.getPlayer().atk;
-    const hadFirstBossClear = sacredSave.isFirstItemWorldBossDefeated();
+    const hadFirstBossClear = this.deps.isFirstItemWorldBossDefeated();
 
     this.deps.clearDamageNumbers();
 
-    const itemWorldScene = this.deps.itemWorldSceneFlow.createScene(targetItem, true);
-    itemWorldScene.onComplete = () => {
-      this.deps.itemWorldSceneFlow.completeReturn(itemWorldScene, hadFirstBossClear);
-      this.deps.fireWorldReturnDialogue(targetItem.def.id);
-      this.deps.retireAfterBossClear(hadFirstBossClear);
+    const itemWorldScene = this.deps.createItemWorldScene(targetItem, true);
+    itemWorldScene.onComplete = createOneShotHandler(() => {
+      const player = this.deps.getPlayer();
 
-      if (isAltar) {
-        if (targetItem.level > prevLevel) {
+      applyItemWorldSceneCompletionLifecycle({
+        targetItem,
+        prevLevel,
+        prevAtk,
+        isAltar,
+        dungeonItem,
+        getCurrentAtk: () => player.atk,
+        onAwardWeaponLevelUp: (item) => {
           this.deps.showToast(
-            t('toast.weapon_level_up', { name: getDisplayName(targetItem), level: targetItem.level }),
+            t('toast.weapon_level_up', { name: getDisplayName(item), level: item.level }),
             0xff88ff,
           );
-        }
-      } else if (this.deps.getInventory().add(dungeonItem!)) {
-        this.deps.showToast(
-          t('toast.item_acquired', {
-            name: getDisplayName(dungeonItem!),
-            rarity: dungeonItem!.rarity.toUpperCase(),
-          }),
-          0xffcc44,
-        );
-        const player = this.deps.getPlayer();
-        this.deps.sacredPickupFlow(
-          dungeonItem!,
-          player.x + player.width / 2,
-          player.y + player.height / 2,
-        );
-      }
-
-      const player = this.deps.getPlayer();
-      if (player.atk !== prevAtk) {
-        this.deps.showToast(t('toast.atk_change', { prev: prevAtk, next: player.atk }), 0xffff44);
-      }
-    };
+        },
+        onAwardDungeonItemToast: (item) => {
+          this.deps.showToast(
+            t('toast.item_acquired', {
+              name: getDisplayName(item),
+              rarity: item.rarity.toUpperCase(),
+            }),
+            0xffcc44,
+          );
+        },
+        onAwardAtkDeltaToast: (before, after) => {
+          this.deps.showToast(t('toast.atk_change', { prev: before, next: after }), 0xffff44);
+        },
+        onGrantDungeonItem: (item) => {
+          return this.deps.getInventory().add(item);
+        },
+        hadFirstBossClear,
+        onAfterCompletion: ({ didGrantDungeonItem }) => {
+          this.deps.fireWorldReturnDialogue(targetItem.def.id);
+          this.deps.retireAfterBossClear(hadFirstBossClear);
+          if (didGrantDungeonItem) {
+            this.deps.sacredPickupFlow(
+              dungeonItem!,
+              player.x + player.width / 2,
+              player.y + player.height / 2,
+            );
+          }
+        },
+        completeReturn: () => {
+          this.deps.itemWorldSceneFlow.completeReturn(itemWorldScene, hadFirstBossClear);
+        },
+      });
+    });
 
     this.deps.itemWorldSceneFlow.pushPrepared(itemWorldScene, { alreadyBlack: true, revealMs: 240 });
   }

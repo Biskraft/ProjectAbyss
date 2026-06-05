@@ -9,6 +9,14 @@ This repository uses `memory/wiki/` as shared long-term project memory for Claud
 - Treat the current worktree as authoritative when wiki notes and code disagree.
 - Prefer existing project patterns, data sources, and UI components over new abstractions.
 
+## Cross-Agent Wiki Access
+
+- Other LLM coding agents may search, read, and update `memory/wiki/` as part of normal project work.
+- Agents must start from `memory/wiki/WIKI_INDEX.md`, then open the relevant `decisions/`, `features/`, or `playtests/` pages before relying on wiki knowledge.
+- Agents must treat the current worktree as authoritative when wiki notes and code disagree.
+- When editing wiki pages, prefer concise appends to existing pages. Create a new page only when there is no clear owner, and update `memory/wiki/WIKI_INDEX.md`.
+- Avoid wholesale rewrites of large or legacy wiki files with encoding issues, especially `memory/wiki/features/RefactorRoadmap.md`; prefer append-only or narrow byte-safe edits.
+
 ## Durable Knowledge
 
 Update `memory/wiki/` when work creates durable project knowledge:

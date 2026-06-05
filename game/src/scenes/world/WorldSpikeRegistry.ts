@@ -1,6 +1,10 @@
 import type { Container } from 'pixi.js';
 import { aabbOverlap } from '@core/Physics';
 import type { Spike } from '@entities/Spike';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 interface Aabb {
   x: number;
@@ -13,13 +17,11 @@ export class WorldSpikeRegistry {
   readonly spikes: Spike[] = [];
 
   add(spike: Spike, entityLayer?: Container): void {
-    this.spikes.push(spike);
-    if (entityLayer && !spike.container.parent) entityLayer.addChild(spike.container);
+    addEntityToLayer(this.spikes, spike, entityLayer, { onlyAttachIfUnparented: true });
   }
 
   clear(): void {
-    for (const spike of this.spikes) spike.destroy();
-    this.spikes.length = 0;
+    destroyAndClearEntities(this.spikes);
   }
 
   includes(spike: Spike): boolean {

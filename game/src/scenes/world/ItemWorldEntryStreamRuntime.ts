@@ -1,5 +1,6 @@
 import { isOneWay, isSolid, TILE_AIR, TILE_SIZE, TILE_WALL } from '@core/Physics';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { clamp01, smootherstep01 } from '@scenes/shared/NumericHelpers';
 
 export const ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE = 64;
 
@@ -19,15 +20,6 @@ export interface ItemWorldGrowthProjection {
   durationMs: number;
   pivotX: number;
   pivotY: number;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function growthScaleCurve(value: number): number {
-  const t = clamp01(value);
-  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 function snapWorldCoordToTile(value: number): number {
@@ -93,7 +85,7 @@ export class ItemWorldEntryStreamRuntime {
   ): { x: number; y: number } {
     const t = clamp01(projection.elapsedMs / Math.max(1, projection.durationMs));
     const scale = (1 / ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE)
-      + growthScaleCurve(t) * (1 - 1 / ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE);
+      + smootherstep01(t) * (1 - 1 / ITEM_WORLD_ENTRY_SNAPSHOT_END_SCALE);
     const footX = start.x + player.width / 2;
     const footY = start.y + player.height;
     return {

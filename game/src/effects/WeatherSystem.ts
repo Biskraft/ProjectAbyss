@@ -47,6 +47,8 @@
  */
 
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { detachDisplayObject, destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { clampEffect01 } from './EffectNumeric';
 
 export type WeatherMode = 'rain' | 'snow' | 'stratum';
 
@@ -288,9 +290,9 @@ export class WeatherSystem {
 
   constructor(opts: WeatherOptions = {}) {
     this.mode = opts.mode ?? 'rain';
-    const fallback = clamp01(opts.intensity ?? 0.6);
-    this.rainIntensity = clamp01(opts.rainIntensity ?? fallback);
-    this.snowIntensity = clamp01(opts.snowIntensity ?? fallback);
+    const fallback = clampEffect01(opts.intensity ?? 0.6);
+    this.rainIntensity = clampEffect01(opts.rainIntensity ?? fallback);
+    this.snowIntensity = clampEffect01(opts.snowIntensity ?? fallback);
     this.wind = clamp(opts.wind ?? (this.mode === 'rain' ? -0.18 : this.mode === 'stratum' ? -0.12 : 0), -1, 1);
     this.maxParticles = opts.maxParticles
       ?? (this.mode === 'rain' ? 220 : this.mode === 'snow' ? 140 : STRATUM_MAX_DEFAULT);
@@ -298,7 +300,7 @@ export class WeatherSystem {
     this.streakLength = Math.max(1, opts.streakLength ?? 6);
     this.streakWidth = Math.max(0.25, opts.streakWidth ?? 0.8);
     this.coverageMask = opts.coverageMask ?? null;
-    this.stratumIntensity = clamp01(opts.stratumIntensity ?? fallback);
+    this.stratumIntensity = clampEffect01(opts.stratumIntensity ?? fallback);
     this.stratumProfile = normalizeStratumProfile(opts.stratumProfile ?? 'residue');
     this.profileCfg = STRATUM_PROFILES[this.stratumProfile];
     this.container.addChild(this.gfx);
@@ -335,22 +337,22 @@ export class WeatherSystem {
    * use `setRainIntensity` / `setSnowIntensity` directly.
    */
   setIntensity(intensity: number): void {
-    const v = clamp01(intensity);
+    const v = clampEffect01(intensity);
     if (this.mode === 'rain') this.rainIntensity = v;
     else if (this.mode === 'snow') this.snowIntensity = v;
     else this.stratumIntensity = v;
   }
 
   setRainIntensity(intensity: number): void {
-    this.rainIntensity = clamp01(intensity);
+    this.rainIntensity = clampEffect01(intensity);
   }
 
   setSnowIntensity(intensity: number): void {
-    this.snowIntensity = clamp01(intensity);
+    this.snowIntensity = clampEffect01(intensity);
   }
 
   setStratumIntensity(intensity: number): void {
-    this.stratumIntensity = clamp01(intensity);
+    this.stratumIntensity = clampEffect01(intensity);
   }
 
   /** Stratum: rise speed (0..1). Higher = faster ascent + spark convergence. */
@@ -415,10 +417,8 @@ export class WeatherSystem {
   destroy(): void {
     this.particles.length = 0;
     this.destroySplashes();
-    if (this.gfx.parent) this.gfx.parent.removeChild(this.gfx);
-    this.gfx.destroy();
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.gfx);
+    destroyDisplayObject(this.container, { children: true });
   }
 
   /**
@@ -707,22 +707,20 @@ export class WeatherSystem {
   }
 
   private recycleSplashSprite(sprite: Sprite): void {
-    if (sprite.parent) sprite.parent.removeChild(sprite);
+    detachDisplayObject(sprite);
     sprite.visible = false;
     sprite.alpha = 0;
     if (this.splashPool.length < MAX_SPLASH_SPRITES) this.splashPool.push(sprite);
-    else sprite.destroy();
+    else destroyDisplayObject(sprite);
   }
 
   private destroySplashes(): void {
     for (const s of this.splashes) {
-      if (s.sprite.parent) s.sprite.parent.removeChild(s.sprite);
-      s.sprite.destroy();
+      destroyDisplayObject(s.sprite);
     }
     this.splashes.length = 0;
     for (const sprite of this.splashPool) {
-      if (sprite.parent) sprite.parent.removeChild(sprite);
-      sprite.destroy();
+      destroyDisplayObject(sprite);
     }
     this.splashPool.length = 0;
   }
@@ -804,10 +802,6 @@ export class WeatherSystem {
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
-}
-
-function clamp01(v: number): number {
-  return clamp(v, 0, 1);
 }
 
 function normalizeStratumProfile(profile: StratumProfileInput): StratumProfile {

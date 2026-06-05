@@ -12,3 +12,5 @@ Invariants:
 - `WorldItemDeploymentAtmosphereFlowRuntime` owns player reparenting between `entityLayer` and `vividLayer` during anvil-entry dungeon atmosphere.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.
+
+- 2026-06-05: Snapshot container destroy now uses `DisplayObjectLifecycleHelpers.destroyDisplayObject(..., { children: true })`; RGB/grayscale filter references are still cleared after owned snapshot teardown.

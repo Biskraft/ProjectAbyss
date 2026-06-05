@@ -9,6 +9,7 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const TILE_SIZE = 16;
 const FLOOR_COLOR = 0x7a7a6a;
@@ -103,8 +104,6 @@ export class CrackedFloor {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

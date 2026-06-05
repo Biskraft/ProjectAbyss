@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Echo Flask heal burst — gentle green upward spiral of healing motes plus a
@@ -92,8 +93,7 @@ export class FlaskHealBurstManager {
       r.gfx.circle(0, 0, radius).stroke({ color: HEAL_COLOR, width: 2, alpha });
       r.gfx.circle(0, 0, radius * 0.6).stroke({ color: HEAL_BRIGHT, width: 1, alpha: alpha * 0.8 });
       if (r.life <= 0) {
-        if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-        r.gfx.destroy();
+        destroyDisplayObject(r.gfx);
         this.rings.splice(i, 1);
       }
     }
@@ -110,8 +110,7 @@ export class FlaskHealBurstManager {
       m.gfx.alpha = t;
       m.gfx.scale.set(0.6 + t * 0.6);
       if (m.life <= 0) {
-        if (m.gfx.parent) m.gfx.parent.removeChild(m.gfx);
-        m.gfx.destroy();
+        destroyDisplayObject(m.gfx);
         this.motes.splice(i, 1);
       }
     }
@@ -119,12 +118,10 @@ export class FlaskHealBurstManager {
 
   clear(): void {
     for (const r of this.rings) {
-      if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-      r.gfx.destroy();
+      destroyDisplayObject(r.gfx);
     }
     for (const m of this.motes) {
-      if (m.gfx.parent) m.gfx.parent.removeChild(m.gfx);
-      m.gfx.destroy();
+      destroyDisplayObject(m.gfx);
     }
     this.rings.length = 0;
     this.motes.length = 0;

@@ -1,4 +1,8 @@
 import { ColorMatrixFilter, type Container, type Filter } from 'pixi.js';
+import {
+  appendFilterIfMissing,
+  removeFilterAndClearIfEmpty,
+} from '@scenes/shared/FilterLifecycleHelpers';
 
 interface BuilderInteriorTargets {
   builderInteriorLayer: Container;
@@ -37,7 +41,7 @@ export class WorldDungeonAtmosphereRuntime {
     const parallax = this.deps.getParallaxContainer();
     if (parallax) {
       const parallaxFilter = this.getOrCreateParallaxGrayFilter();
-      this.appendFilter(parallax, parallaxFilter);
+      appendFilterIfMissing(parallax, parallaxFilter);
     }
 
     const builderInterior = this.deps.getBuilderInteriorTargets();
@@ -50,7 +54,7 @@ export class WorldDungeonAtmosphereRuntime {
 
     this.targets = Array.from(new Set(this.deps.getFilterTargets()));
     for (const target of this.targets) {
-      this.appendFilter(target, atmosphereFilter);
+      appendFilterIfMissing(target, atmosphereFilter);
     }
 
     return true;
@@ -59,26 +63,26 @@ export class WorldDungeonAtmosphereRuntime {
   addTarget(target: Container): void {
     if (!this.targets.includes(target)) this.targets.push(target);
     if (this.active && this.atmosphereFilter) {
-      this.appendFilter(target, this.atmosphereFilter);
+      appendFilterIfMissing(target, this.atmosphereFilter);
     }
   }
 
   removeTarget(target: Container): void {
     this.targets = this.targets.filter(t => t !== target);
-    if (this.atmosphereFilter) this.removeFilter(target, this.atmosphereFilter);
+    if (this.atmosphereFilter) removeFilterAndClearIfEmpty(target, this.atmosphereFilter);
   }
 
   reapply(): void {
     if (!this.active || !this.atmosphereFilter) return;
     for (const target of this.targets) {
-      this.appendFilter(target, this.atmosphereFilter);
+      appendFilterIfMissing(target, this.atmosphereFilter);
     }
   }
 
   removeKnownFiltersFrom(targets: Container[]): void {
     for (const target of targets) {
-      if (this.atmosphereFilter) this.removeFilter(target, this.atmosphereFilter);
-      if (this.parallaxGrayFilter) this.removeFilter(target, this.parallaxGrayFilter);
+      if (this.atmosphereFilter) removeFilterAndClearIfEmpty(target, this.atmosphereFilter);
+      if (this.parallaxGrayFilter) removeFilterAndClearIfEmpty(target, this.parallaxGrayFilter);
     }
   }
 
@@ -87,12 +91,12 @@ export class WorldDungeonAtmosphereRuntime {
 
     const parallax = this.deps.getParallaxContainer();
     if (parallax && this.parallaxGrayFilter) {
-      this.removeFilter(parallax, this.parallaxGrayFilter);
+      removeFilterAndClearIfEmpty(parallax, this.parallaxGrayFilter);
     }
 
     if (this.atmosphereFilter) {
       for (const target of this.targets) {
-        this.removeFilter(target, this.atmosphereFilter);
+        removeFilterAndClearIfEmpty(target, this.atmosphereFilter);
       }
     }
 
@@ -132,17 +136,5 @@ export class WorldDungeonAtmosphereRuntime {
       this.parallaxGrayFilter.brightness(2.2, true);
     }
     return this.parallaxGrayFilter;
-  }
-
-  private appendFilter(target: Container, filter: Filter): void {
-    const cur = (target.filters as Filter[] | null) ?? [];
-    if (!cur.includes(filter)) target.filters = [...cur, filter];
-  }
-
-  private removeFilter(target: Container, filter: Filter): void {
-    const cur = target.filters as Filter[] | null;
-    if (!cur) return;
-    const next = cur.filter(f => f !== filter);
-    target.filters = next.length ? next : null;
   }
 }

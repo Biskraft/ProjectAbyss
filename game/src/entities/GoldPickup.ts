@@ -15,6 +15,7 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { getTile, isSolid } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const GRAVITY = 720;        // px/s^2 — confetti fall rate
 const AIR_FRICTION = 0.965; // per ~16ms tick
@@ -462,9 +463,7 @@ export class GoldPickup {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 
   /**

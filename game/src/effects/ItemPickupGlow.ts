@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Item pickup glow — expanding halo + forge-spark ember burst when a loot drop
@@ -92,8 +93,7 @@ export class ItemPickupGlowManager {
       h.gfx.circle(0, 0, radius).stroke({ color: h.color, width: 2, alpha });
       h.gfx.circle(0, 0, radius * 0.5).fill({ color: h.color, alpha: alpha * 0.3 });
       if (h.life <= 0) {
-        if (h.gfx.parent) h.gfx.parent.removeChild(h.gfx);
-        h.gfx.destroy();
+        destroyDisplayObject(h.gfx);
         this.halos.splice(i, 1);
       }
     }
@@ -113,8 +113,7 @@ export class ItemPickupGlowManager {
       s.gfx.alpha = t;
       s.gfx.scale.set(0.6 + t * 0.6);
       if (s.life <= 0) {
-        if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-        s.gfx.destroy();
+        destroyDisplayObject(s.gfx);
         this.sparks.splice(i, 1);
       }
     }
@@ -122,12 +121,10 @@ export class ItemPickupGlowManager {
 
   clear(): void {
     for (const h of this.halos) {
-      if (h.gfx.parent) h.gfx.parent.removeChild(h.gfx);
-      h.gfx.destroy();
+      destroyDisplayObject(h.gfx);
     }
     for (const s of this.sparks) {
-      if (s.gfx.parent) s.gfx.parent.removeChild(s.gfx);
-      s.gfx.destroy();
+      destroyDisplayObject(s.gfx);
     }
     this.halos.length = 0;
     this.sparks.length = 0;

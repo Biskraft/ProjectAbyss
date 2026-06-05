@@ -4,6 +4,11 @@ import { Anvil } from '@entities/Anvil';
 import type { Player } from '@entities/Player';
 import type { Game } from '../../Game';
 import { ItemWorldWorldPromptRuntime } from './ItemWorldWorldPromptRuntime';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+} from '@scenes/shared/EntityLifecycleHelpers';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
 
 interface ItemWorldAnvilRuntimeDeps {
   game: Game;
@@ -24,8 +29,7 @@ export class ItemWorldAnvilRuntime {
   spawn(x: number, y: number): Anvil {
     const anvil = new Anvil(x, y, false);
     anvil.setShowHint(false);
-    this.anvils.push(anvil);
-    this.deps.getEntityLayer().addChild(anvil.container);
+    addEntityToLayer(this.anvils, anvil, this.deps.getEntityLayer());
     return anvil;
   }
 
@@ -64,8 +68,7 @@ export class ItemWorldAnvilRuntime {
     // Prompt up → player ignores its ATTACK press (re-enter, don't swing).
     this.deps.game.input.markInteractionPrompt();
 
-    if (this.deps.game.input.isJustPressed(GameAction.ATTACK)) {
-      this.deps.game.input.consumeJustPressed(GameAction.ATTACK);
+    if (consumeJustPressedAction(this.deps.game.input, GameAction.ATTACK)) {
       this.prompt.hide();
       this.deps.onReturnRequest();
     }
@@ -76,10 +79,7 @@ export class ItemWorldAnvilRuntime {
   }
 
   clear(): void {
-    for (const anvil of this.anvils) {
-      anvil.destroy();
-    }
-    this.anvils = [];
+    destroyAndClearEntities(this.anvils);
     this.prompt.destroy();
   }
 

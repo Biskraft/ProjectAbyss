@@ -36,6 +36,12 @@ export interface IFeedbackContextProvider {
   };
 }
 
+type FeedbackContextProviderLike = {
+  getFeedbackContext: () => unknown;
+};
+
 export function isFeedbackContextProvider(x: unknown): x is IFeedbackContextProvider {
-  return !!x && typeof (x as any).getFeedbackContext === 'function';
+  if (!x) return false;
+  const candidate = x as FeedbackContextProviderLike;
+  return typeof candidate.getFeedbackContext === 'function';
 }

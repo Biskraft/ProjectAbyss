@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 type LaserPhase = 'hold' | 'burst' | 'max_hold' | 'decay' | 'done';
 
@@ -242,6 +243,6 @@ export class LegacyAnvilGateLaser {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

@@ -3,8 +3,8 @@ import type { Player } from '@entities/Player';
 import type { Enemy } from '@entities/Enemy';
 import { GoldenMonster } from '@entities/GoldenMonster';
 import { MemoryShardNPC } from '@entities/MemoryShardNPC';
-import { createEmberShard, createForgeEmber, type HealingPickup } from '@entities/HealingPickup';
-import { GoldPickup } from '@entities/GoldPickup';
+import { type GoldPickup } from '@entities/GoldPickup';
+import type { HealingPickup } from '@entities/HealingPickup';
 import type { HitManager, CombatEntity } from '@combat/HitManager';
 import type { HUD } from '@ui/HUD';
 import type { DamageNumberManager } from '@ui/DamageNumber';
@@ -14,12 +14,19 @@ import type { ScreenFlash } from '@effects/ScreenFlash';
 import { SFX } from '@audio/Sfx';
 import type { ItemInstance } from '@items/ItemInstance';
 import { addItemExp, addRecovery, EXP_PER_LEVEL } from '@items/ItemInstance';
-import { trackEnemyKill, trackItemLevelUp } from '@utils/Analytics';
+import { trackItemLevelUp } from '@utils/Analytics';
+import { trackEnemyKillForArea } from '@scenes/shared/EnemyCombatAnalyticsHelpers';
 import {
   getEnemyRoomKey,
-  isEnemyExpGranted,
-  markEnemyExpGranted,
-} from '@systems/EntityRuntimeMeta';
+  isBossEnemy,
+} from '@entities/EnemyMetadata';
+import { processEnemyPostDefeats } from '@scenes/shared/EnemyDefeatProcessingHelpers';
+import {
+  getEnemyBottomLeftDropCoordinates,
+  spawnEnemyDrops,
+} from '@scenes/shared/EnemyCombatDropHelpers';
+import { spawnEnemyDeathParticles } from '@scenes/shared/EnemyDeathFeedbackHelpers';
+import { applyPlayerAttackHitFeedback } from '@scenes/shared/PlayerAttackHitFeedbackHelpers';
 
 interface ItemWorldEnemyCombatRuntimeDeps {
   getPlayer: () => Player;
@@ -40,9 +47,11 @@ interface ItemWorldEnemyCombatRuntimeDeps {
   addEarnedExp: (amount: number) => void;
   incrementRoomsCleared: () => void;
   persistRoomState: () => void;
+  removeEnemyAt: (index: number) => void;
   rollDrop: () => number;
   addHealingPickup: (pickup: HealingPickup) => void;
   addGoldPickup: (pickup: GoldPickup) => void;
+  onBossDefeated: (enemy: Enemy<string>) => void;
 }
 
 export class ItemWorldEnemyCombatRuntime {
@@ -59,62 +68,42 @@ export class ItemWorldEnemyCombatRuntime {
       player.hitList,
       targets,
     );
-    const damageNumbers = this.deps.getDamageNumbers();
-    const hitSparks = this.deps.getHitSparks();
-    const screenFlash = this.deps.getScreenFlash();
-    for (const hit of hits) {
-      damageNumbers.spawn(hit.hitX, hit.hitY - 8, hit.damage, hit.heavy, hit.critical);
-      hitSparks.spawn(hit.hitX, hit.hitY, hit.heavy, hit.dirX);
-      SFX.play('attack_hit');
-      if (hit.heavy) {
-        screenFlash.flashHit(true);
-      }
-      if (hit.damage >= 100 && SFX.fireMilestone100Once()) {
-        screenFlash.flashHit(true);
-        damageNumbers.spawnSpecial(hit.hitX, hit.hitY - 24, '100 DMG!', 0xffcc44);
-      }
-    }
+    applyPlayerAttackHitFeedback({
+      hits,
+      damageNumbers: this.deps.getDamageNumbers(),
+      hitSparks: this.deps.getHitSparks(),
+      screenFlash: this.deps.getScreenFlash(),
+      enableMilestone100: true,
+    });
   }
 
   processDefeatedEnemies(): void {
-    const enemies = this.deps.getEnemies();
-    for (let i = enemies.length - 1; i >= 0; i--) {
-      const enemy = enemies[i];
-      if (!enemy.alive && !isEnemyExpGranted(enemy)) {
-        markEnemyExpGranted(enemy);
-        this.processNewDefeat(enemy);
-      }
-      if (enemy.shouldRemove) {
-        if (enemy.container.parent) enemy.container.parent.removeChild(enemy.container);
-        enemies.splice(i, 1);
-      }
-    }
+    processEnemyPostDefeats({
+      enemies: this.deps.getEnemies(),
+      processNewDefeat: enemy => this.processNewDefeat(enemy),
+      removeEnemyAt: this.deps.removeEnemyAt,
+    });
   }
 
   private processNewDefeat(enemy: Enemy<string>): void {
     const isMemoryShard = enemy instanceof MemoryShardNPC;
-    const isBoss = !!(enemy as { _isBoss?: boolean })._isBoss;
+    const isBoss = isBossEnemy(enemy);
 
     if (!isMemoryShard && !isBoss) {
       this.deps.fireEgoFirstKill();
     }
 
     if (!isMemoryShard) {
-      trackEnemyKill({
-        area: 'itemworld',
-        enemy_type: enemy.constructor.name.toLowerCase(),
-        is_boss: isBoss,
-        is_elite: enemy instanceof GoldenMonster,
-      });
+      trackEnemyKillForArea('itemworld', enemy);
 
-      this.deps.getDeathParticles().spawn(
-        enemy.x + enemy.width / 2,
-        enemy.y + enemy.height / 2,
-        isBoss,
-      );
+      spawnEnemyDeathParticles(this.deps.getDeathParticles(), enemy, isBoss);
     }
 
     this.markRoomEnemyDefeated(enemy);
+
+    if (isBoss) {
+      this.deps.onBossDefeated(enemy);
+    }
 
     if (!isMemoryShard) {
       this.grantKillRewards(enemy, isBoss);
@@ -175,25 +164,25 @@ export class ItemWorldEnemyCombatRuntime {
   }
 
   private spawnDrops(enemy: Enemy<string>): void {
-    const dropX = enemy.x + enemy.width / 2 - 8;
-    const dropY = enemy.y + enemy.height;
+    const { dropX, dropY } = getEnemyBottomLeftDropCoordinates(enemy);
     const player = this.deps.getPlayer();
     const isGolden = enemy instanceof GoldenMonster;
-
-    if (isGolden && this.deps.rollDrop() < 0.5) {
-      this.deps.addHealingPickup(createForgeEmber(dropX, dropY, player.maxHp));
-    } else if (!isGolden && this.deps.rollDrop() < 0.2) {
-      this.deps.addHealingPickup(createEmberShard(dropX, dropY, player.maxHp));
-    }
-
-    const baseGold = Math.floor((enemy.exp > 0 ? enemy.exp : 40) * 0.1);
-    const goldAmount = isGolden ? baseGold * 3 : baseGold;
-    if (goldAmount <= 0) return;
-
     const roomData = this.deps.getRoomData();
-    for (const pickup of GoldPickup.spawnBurst(dropX, dropY, goldAmount)) {
-      pickup.roomData = roomData;
-      this.deps.addGoldPickup(pickup);
-    }
+    spawnEnemyDrops(
+      {
+        baseExp: enemy.exp,
+        isGolden,
+        dropX,
+        dropY,
+        collisionGrid: roomData,
+        dropOrder: ['healing', 'gold'],
+      },
+      {
+        rollDrop: this.deps.rollDrop,
+        getPlayerMaxHp: () => player.maxHp,
+        addHealingPickup: this.deps.addHealingPickup,
+        addGoldPickup: this.deps.addGoldPickup,
+      },
+    );
   }
 }

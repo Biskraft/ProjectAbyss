@@ -1,5 +1,6 @@
 import { Container, Graphics, Sprite, Texture, Rectangle, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Throwable container (Tier C volatile prop). Player picks up via GRAB,
@@ -786,8 +787,7 @@ export class ThrowableContainer {
 
   destroy(): void {
     this.destroyed = true;
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   private spriteLoaded = false;

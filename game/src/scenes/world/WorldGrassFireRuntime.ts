@@ -35,6 +35,15 @@ export class WorldGrassFireRuntime {
     return this.grassClumpFire.register(clumps);
   }
 
+  registerProceduralBurnables(
+    clumps: Parameters<GrassClumpFireSystem['register']>[0],
+    tileMutator: TileMutator,
+  ): void {
+    for (const prop of this.registerProceduralClumps(clumps)) {
+      tileMutator.registerBurnable(prop);
+    }
+  }
+
   spawnAsh(cx: number, baseY: number, footprintW: number, fadeMs?: number): void {
     this.ashRemnant.spawn(cx, baseY, footprintW, fadeMs);
   }

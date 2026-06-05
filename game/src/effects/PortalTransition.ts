@@ -5,6 +5,7 @@ import { PORTAL_COLOR, type PortalSourceType } from '@entities/Portal';
 import type { Rarity } from '@data/weapons';
 import { getDisplayName, type ItemInstance } from '@items/ItemInstance';
 import { t } from '@i18n';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Portal entry transition effect (Sakurai-inspired).
@@ -223,9 +224,6 @@ export class PortalTransition {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

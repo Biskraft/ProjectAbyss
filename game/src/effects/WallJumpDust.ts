@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Wall-jump kick dust — radial puff burst at the point of contact with the
@@ -79,7 +80,7 @@ export class WallJumpDustManager {
       p.gfx.scale.set(1 + (1 - t) * 0.6);
 
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.puffs.splice(i, 1);
       }
     }
@@ -87,7 +88,7 @@ export class WallJumpDustManager {
 
   clear(): void {
     for (const p of this.puffs) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+      detachDisplayObject(p.gfx);
     }
     this.puffs.length = 0;
   }

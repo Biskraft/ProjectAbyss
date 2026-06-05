@@ -25,6 +25,7 @@ import type { LdtkEntity } from '@level/LdtkLoader';
 import type { FluidSystem } from '@effects/FluidSystem';
 import { getFluidDef } from '@data/FluidTypes';
 import { Debug } from '@core/Debug';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type FluidSpawnerType = 'water' | 'oil' | 'magma' | 'acid' | 'charged' | 'cyro';
 
@@ -176,13 +177,11 @@ export class FluidSpawnerManager {
 
   destroy(): void {
     if (this.visualGfx) {
-      if (this.visualGfx.parent) this.visualGfx.parent.removeChild(this.visualGfx);
-      this.visualGfx.destroy();
+      destroyDisplayObject(this.visualGfx);
       this.visualGfx = null;
     }
     if (this.dbg) {
-      if (this.dbg.parent) this.dbg.parent.removeChild(this.dbg);
-      this.dbg.destroy();
+      destroyDisplayObject(this.dbg);
       this.dbg = null;
     }
     this.spawners.length = 0;

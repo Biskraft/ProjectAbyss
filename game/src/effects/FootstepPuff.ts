@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { detachDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Footstep puff — tiny single puff under the back foot as the player runs.
@@ -80,14 +81,14 @@ export class FootstepPuffManager {
       p.gfx.alpha = t * 0.65;
       p.gfx.scale.set(1 + (1 - t) * 0.5);
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+        detachDisplayObject(p.gfx);
         this.puffs.splice(i, 1);
       }
     }
   }
 
   clear(): void {
-    for (const p of this.puffs) if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
+    for (const p of this.puffs) detachDisplayObject(p.gfx);
     this.puffs.length = 0;
     this.stepTimer = 0;
   }

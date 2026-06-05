@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const FADE_MS = 300;
 // px per ms
@@ -110,7 +111,7 @@ export class ItemWorldLeakageLayer {
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 
   private makeRect(w: number, h: number, color: number): Graphics {

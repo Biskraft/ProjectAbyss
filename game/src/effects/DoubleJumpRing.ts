@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Double-jump ring — a flat expanding oval (foreshortened for a pseudo-3D
@@ -104,8 +105,7 @@ export class DoubleJumpRingManager {
       }
 
       if (r.life <= 0) {
-        if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-        r.gfx.destroy();
+        destroyDisplayObject(r.gfx);
         this.rings.splice(i, 1);
       }
     }
@@ -117,8 +117,7 @@ export class DoubleJumpRingManager {
       f.gfx.alpha = t;
       f.gfx.scale.set(0.6 + (1 - t) * 0.8);
       if (f.life <= 0) {
-        if (f.gfx.parent) f.gfx.parent.removeChild(f.gfx);
-        f.gfx.destroy();
+        destroyDisplayObject(f.gfx);
         this.flashes.splice(i, 1);
       }
     }
@@ -126,12 +125,10 @@ export class DoubleJumpRingManager {
 
   clear(): void {
     for (const r of this.rings) {
-      if (r.gfx.parent) r.gfx.parent.removeChild(r.gfx);
-      r.gfx.destroy();
+      destroyDisplayObject(r.gfx);
     }
     for (const f of this.flashes) {
-      if (f.gfx.parent) f.gfx.parent.removeChild(f.gfx);
-      f.gfx.destroy();
+      destroyDisplayObject(f.gfx);
     }
     this.rings.length = 0;
     this.flashes.length = 0;

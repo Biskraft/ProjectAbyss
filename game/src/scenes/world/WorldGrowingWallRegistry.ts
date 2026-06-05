@@ -1,22 +1,23 @@
 import type { Container } from 'pixi.js';
 import type { GrowingWall } from '@entities/GrowingWall';
+import {
+  addEntityToLayer,
+  destroyAndClearEntities,
+  removeEntityAt,
+} from '@scenes/shared/EntityLifecycleHelpers';
 
 export class WorldGrowingWallRegistry {
   readonly walls: GrowingWall[] = [];
 
   add(wall: GrowingWall, entityLayer?: Container): void {
-    this.walls.push(wall);
-    if (entityLayer && !wall.container.parent) entityLayer.addChild(wall.container);
+    addEntityToLayer(this.walls, wall, entityLayer, { onlyAttachIfUnparented: true });
   }
 
   clear(): void {
-    for (const wall of this.walls) wall.destroy();
-    this.walls.length = 0;
+    destroyAndClearEntities(this.walls);
   }
 
   removeAt(index: number): void {
-    const wall = this.walls[index];
-    wall.destroy();
-    this.walls.splice(index, 1);
+    removeEntityAt(this.walls, index);
   }
 }

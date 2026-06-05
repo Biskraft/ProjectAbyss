@@ -12,6 +12,7 @@ import { PaletteSwapFilter } from '@effects/PaletteSwapFilter';
 import type { AreaPaletteEntry } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game';
 import { ParallaxConst } from '@data/constData';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 interface ImageLayerState {
   container: Container;
@@ -160,7 +161,7 @@ export class ParallaxBackground {
     }
     this.gradientLayer.removeChildren();
     for (const layer of this.imageLayers) {
-      layer.container.destroy({ children: true });
+      destroyDisplayObject(layer.container, { children: true });
     }
     this.imageLayers = [];
   }

@@ -5,10 +5,23 @@ import type { HUD } from '@ui/HUD';
 import type { PauseMenu } from '@ui/PauseMenu';
 import type { DeathScreen } from '@ui/DeathScreen';
 import type { TutorialHint } from '@ui/TutorialHint';
-import type { InventoryUI } from '@ui/InventoryUI';
+import type { InventoryUI, InventoryAttackInputResult } from '@ui/InventoryUI';
 import type { IdentityArchive } from '@ui/IdentityArchive';
 import type { WorldMapOverlay } from '@ui/WorldMapOverlay';
 import type { ToastManager } from '@ui/Toast';
+import {
+  attachDisplayObjectIfMissing,
+  detachDisplayObject,
+  detachNullableDisplayObject,
+  hideDisplayObject,
+  setDisplayObjectVisible,
+} from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { updateVerticalFirstDirectionalInput } from '@scenes/shared/DirectionalInputHelpers';
+import {
+  handleInventoryUiToggle,
+  updateInventoryUiInput,
+} from '@scenes/shared/InventoryUiInputHelpers';
+import { consumeJustPressedAction } from '@scenes/shared/InputPressHelpers';
 
 interface WorldUiControllerDeps {
   hud: HUD;
@@ -54,8 +67,6 @@ interface InventoryToggleOptions {
   onToggled: () => void;
 }
 
-type InventoryInputResult = 'none' | 'confirmed_equipment_change';
-
 export class WorldUiController {
   constructor(
     private readonly game: Game,
@@ -66,7 +77,7 @@ export class WorldUiController {
     const { hud, getMinimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
     const minimap = getMinimap();
 
-    if (!hud.container.parent) this.game.uiContainer.addChild(hud.container);
+    attachDisplayObjectIfMissing(this.game.uiContainer, hud.container);
     hud.container.visible = true;
     hud.setGoldBelowMinimap(options.goldBelowMinimap);
     hud.resetLowHpEffects();
@@ -74,21 +85,21 @@ export class WorldUiController {
     hud.setItemKeyHighlight(options.highlightItemKey);
 
     if (minimap) {
-      if (!minimap.parent) this.game.uiContainer.addChild(minimap);
+      attachDisplayObjectIfMissing(this.game.uiContainer, minimap);
       minimap.visible = options.showMinimap;
     }
 
     if (fadeOverlay && !fadeOverlay.parent) {
       // fadeOverlay 는 일반 화면 어둡게(트랜지션) — legacyUIContainer 유지 (UI 마이그레이션 대상 아님).
-      this.game.legacyUIContainer.addChild(fadeOverlay);
+      attachDisplayObjectIfMissing(this.game.legacyUIContainer, fadeOverlay);
     }
     if (!worldMap.container.parent) {
       // uiContainer(native) 직속 — UI native 마이그레이션 1단계.
-      this.game.uiContainer.addChild(worldMap.container);
+      attachDisplayObjectIfMissing(this.game.uiContainer, worldMap.container);
     }
     if (!inventoryUI.container.parent) {
       // uiContainer(native) 직속 — UI native 마이그레이션 1단계.
-      this.game.uiContainer.addChild(inventoryUI.container);
+      attachDisplayObjectIfMissing(this.game.uiContainer, inventoryUI.container);
     }
   }
 
@@ -96,23 +107,13 @@ export class WorldUiController {
     const { hud, getMinimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
     const minimap = getMinimap();
 
-    if (hud.container.parent) {
-      hud.container.parent.removeChild(hud.container);
-    }
-    if (minimap?.parent) {
-      minimap.parent.removeChild(minimap);
-    }
-    if (fadeOverlay?.parent) {
-      fadeOverlay.parent.removeChild(fadeOverlay);
-    }
+    detachDisplayObject(hud.container);
+    detachNullableDisplayObject(minimap);
+    detachNullableDisplayObject(fadeOverlay);
     if (worldMap.visible) worldMap.close();
-    if (worldMap.container.parent) {
-      worldMap.container.parent.removeChild(worldMap.container);
-    }
+    detachDisplayObject(worldMap.container);
     if (inventoryUI.visible) inventoryUI.close();
-    if (inventoryUI.container.parent) {
-      inventoryUI.container.parent.removeChild(inventoryUI.container);
-    }
+    detachDisplayObject(inventoryUI.container);
   }
 
   updatePersistent(dt: number): void {
@@ -125,20 +126,19 @@ export class WorldUiController {
     const { worldMap, hud, getMinimap } = this.deps;
     const minimap = getMinimap();
 
-    if (!options.canToggle || !input.isJustPressed(GameAction.MAP)) return false;
+    if (!options.canToggle || !consumeJustPressedAction(input, GameAction.MAP)) return false;
 
-    input.consumeJustPressed(GameAction.MAP);
     if (worldMap.visible) {
       worldMap.close();
-      hud.container.visible = true;
-      if (minimap) minimap.visible = true;
+      setDisplayObjectVisible(hud.container, true);
+      setDisplayObjectVisible(minimap, true);
       return true;
     }
 
     options.onBeforeOpen();
     worldMap.toggle();
-    hud.container.visible = false;
-    if (minimap) minimap.visible = false;
+    hideDisplayObject(hud.container);
+    hideDisplayObject(minimap);
     return true;
   }
 
@@ -151,27 +151,25 @@ export class WorldUiController {
   }
 
   handleInventoryToggle(options: InventoryToggleOptions): boolean {
-    const input = this.game.input;
     const { inventoryUI } = this.deps;
 
-    if (!options.canToggle || !input.isJustPressed(GameAction.INVENTORY)) return false;
-
-    input.consumeJustPressed(GameAction.INVENTORY);
-    inventoryUI.toggle();
-    options.onToggled();
-    return true;
+    return handleInventoryUiToggle({
+      input: this.game.input,
+      canToggle: options.canToggle,
+      toggle: () => inventoryUI.toggle(),
+      onToggled: options.onToggled,
+    });
   }
 
-  handleInventoryInput(): InventoryInputResult {
+  handleInventoryInput(): InventoryAttackInputResult {
     const input = this.game.input;
     const { inventoryUI, identityArchive } = this.deps;
 
     // === DEC-046 Identity Archive 진입 처리 (Z 키 = JUMP 액션 매핑) ===
     // 인벤토리가 열린 상태이고 archive가 닫힌 상태에서 Z 키 입력 시 진입.
     // archive가 열린 상태에서 키 처리는 별도 (handleIdentityArchiveInput).
-    if (identityArchive && !identityArchive.visible && input.isJustPressed(GameAction.JUMP)) {
-      const item = inventoryUI.getSelectedItem?.();
-      input.consumeJustPressed(GameAction.JUMP);
+    if (identityArchive && !identityArchive.visible && consumeJustPressedAction(input, GameAction.JUMP)) {
+      const item = inventoryUI.getSelectedItem();
       if (item) identityArchive.showForItem(item);
       else identityArchive.show();
       return 'none';
@@ -181,39 +179,31 @@ export class WorldUiController {
     if (identityArchive?.visible) {
       if (input.isJustPressed(GameAction.MENU) || input.isJustPressed(GameAction.JUMP)) {
         identityArchive.hide();
-      } else if (input.isJustPressed(GameAction.LOOK_UP)) {
-        identityArchive.navigateCategory(-1);
-      } else if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-        identityArchive.navigateCategory(1);
-      } else if (input.isJustPressed(GameAction.MOVE_LEFT)) {
-        identityArchive.navigateCharacter(-1);
-      } else if (input.isJustPressed(GameAction.MOVE_RIGHT)) {
-        identityArchive.navigateCharacter(1);
+      } else {
+        updateVerticalFirstDirectionalInput(input, {
+          up: () => identityArchive.navigateCategory(-1),
+          down: () => identityArchive.navigateCategory(1),
+          left: () => identityArchive.navigateCharacter(-1),
+          right: () => identityArchive.navigateCharacter(1),
+        });
       }
       return 'none';
     }
 
-    if (input.isJustPressed(GameAction.STATUS)) inventoryUI.cycleFilter();
-    if (input.isJustPressed(GameAction.MOVE_LEFT)) inventoryUI.navigate('left');
-    if (input.isJustPressed(GameAction.MOVE_RIGHT)) inventoryUI.navigate('right');
-    if (input.isJustPressed(GameAction.LOOK_UP)) inventoryUI.navigate('up');
-    if (input.isJustPressed(GameAction.LOOK_DOWN)) inventoryUI.navigate('down');
+    const inputResult = updateInventoryUiInput<InventoryAttackInputResult>({
+      input,
+      target: inventoryUI,
+      onAttack: () => {
+        consumeJustPressedAction(input, GameAction.ATTACK);
+        return inventoryUI.handleAttackInput();
+      },
+      onMenu: () => {
+        consumeJustPressedAction(input, GameAction.MENU);
+        inventoryUI.handleMenuInput();
+      },
+    });
 
-    if (input.isJustPressed(GameAction.ATTACK)) {
-      const wasAnvilMode = inventoryUI.isAnvilMode();
-      input.consumeJustPressed(GameAction.ATTACK);
-      inventoryUI.confirmSelected();
-      if (!wasAnvilMode) return 'confirmed_equipment_change';
-    }
-
-    if (input.isJustPressed(GameAction.MENU)) {
-      input.consumeJustPressed(GameAction.MENU);
-      if (inventoryUI.isAnvilMode()) {
-        inventoryUI.cancelAnvil();
-      } else {
-        inventoryUI.close();
-      }
-    }
+    if (inputResult.attackResult === 'confirmed_equipment_change') return inputResult.attackResult;
 
     return 'none';
   }
@@ -226,14 +216,12 @@ export class WorldUiController {
       if (input.isJustPressed(GameAction.MENU)) {
         pauseMenu.cancel();
         options.onPauseClosed?.();
-      } else if (input.isJustPressed(GameAction.LOOK_UP)) {
-        pauseMenu.navigate('up');
-      } else if (input.isJustPressed(GameAction.LOOK_DOWN)) {
-        pauseMenu.navigate('down');
-      } else if (input.isJustPressed(GameAction.MOVE_LEFT)) {
-        pauseMenu.navigate('left');
-      } else if (input.isJustPressed(GameAction.MOVE_RIGHT)) {
-        pauseMenu.navigate('right');
+      } else if (updateVerticalFirstDirectionalInput(input, {
+        up: () => pauseMenu.navigate('up'),
+        down: () => pauseMenu.navigate('down'),
+        left: () => pauseMenu.navigate('left'),
+        right: () => pauseMenu.navigate('right'),
+      })) {
       } else if (input.isJustPressed(GameAction.ATTACK)) {
         pauseMenu.confirm();
       }
@@ -264,14 +252,14 @@ export class WorldUiController {
     const minimap = getMinimap();
 
     tutorialHint.destroy();
-    if (hud.container.parent) hud.container.parent.removeChild(hud.container);
-    if (minimap?.parent) minimap.parent.removeChild(minimap);
+    detachDisplayObject(hud.container);
+    detachNullableDisplayObject(minimap);
     if (worldMap.visible) worldMap.close();
-    if (worldMap.container.parent) worldMap.container.parent.removeChild(worldMap.container);
+    detachDisplayObject(worldMap.container);
     if (inventoryUI.visible) inventoryUI.close();
-    if (inventoryUI.container.parent) inventoryUI.container.parent.removeChild(inventoryUI.container);
-    if (fadeOverlay?.parent) fadeOverlay.parent.removeChild(fadeOverlay);
-    if (pauseMenu.container.parent) pauseMenu.container.parent.removeChild(pauseMenu.container);
-    if (deathScreen.container.parent) deathScreen.container.parent.removeChild(deathScreen.container);
+    detachDisplayObject(inventoryUI.container);
+    detachNullableDisplayObject(fadeOverlay);
+    detachDisplayObject(pauseMenu.container);
+    detachDisplayObject(deathScreen.container);
   }
 }

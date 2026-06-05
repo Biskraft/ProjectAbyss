@@ -2,6 +2,8 @@ import { aabbOverlap, isOneWay, isSolid, TILE_AIR, TILE_WALL } from '@core/Physi
 import type { GiantBuilder } from '@entities/GiantBuilder';
 import type { Player } from '@entities/Player';
 import type { LdtkLevel } from '@level/LdtkLoader';
+import { getDistanceSquared } from '@scenes/shared/DistanceHelpers';
+import { placePlayerAt } from '@scenes/shared/PlayerPlacementHelpers';
 import type { Game } from '../../Game';
 
 const TILE_SIZE = 16;
@@ -60,17 +62,16 @@ export class WorldVoidReturnRuntime {
     }
 
     const player = this.deps.getPlayer();
-    player.x = x;
-    player.y = y;
     player.lastSafeX = x;
     player.lastSafeY = y;
-    player.vx = 0;
-    player.vy = 0;
-    player.roomData = this.deps.getCollisionGrid();
-    player.savePrevPosition();
+    placePlayerAt(player, x, y, {
+      collisionGrid: this.deps.getCollisionGrid(),
+      resetVelocity: true,
+      savePreviousPosition: true,
+    });
     player.forceGrounded(false, 'void-fade');
-    if ((player.fsm as any).currentState !== 'idle') {
-      try { (player.fsm as any).transition('idle'); } catch {}
+    if (player.fsm.currentState !== 'idle') {
+      try { player.fsm.transition('idle'); } catch {}
     }
     this.deps.game.camera.snap(
       player.x + player.width / 2,
@@ -98,9 +99,7 @@ export class WorldVoidReturnRuntime {
         if (this.isAabbInsideActiveBuilderVolume(candidateX, candidateY, player.width, player.height)) continue;
         if (!this.isWorldBodyClearAt(candidateX, candidateY, stampSet)) continue;
 
-        const dx = candidateX + player.width / 2 - targetX;
-        const dy = candidateY + player.height - targetY;
-        const d2 = dx * dx + dy * dy;
+        const d2 = getDistanceSquared(candidateX + player.width / 2, candidateY + player.height, targetX, targetY);
         if (!best || d2 < best.d2) best = { x: candidateX, y: candidateY, d2 };
       }
     }

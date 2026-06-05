@@ -2,6 +2,7 @@ import type { Anvil } from '@entities/Anvil';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
 import type { ItemInstance } from '@items/ItemInstance';
+import { placePlayerAt } from '@scenes/shared/PlayerPlacementHelpers';
 
 export interface AnvilSnapshot {
   x: number;
@@ -61,11 +62,10 @@ export function placePlayerAtAnvilReturnPoint(
   const snap = snapshot ?? (anvil ? snapshotAnvil(anvil) : null);
   if (!snap) return;
 
-  player.x = snap.x + snap.width / 2 + 8;
-  player.y = snap.y - player.height;
-  player.vx = 0;
-  player.vy = 0;
-  player.savePrevPosition();
+  placePlayerAt(player, snap.x + snap.width / 2 + 8, snap.y - player.height, {
+    resetVelocity: true,
+    savePreviousPosition: true,
+  });
   snapCamera(player.x, player.y);
 }
 

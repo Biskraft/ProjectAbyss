@@ -1,6 +1,7 @@
 # ItemWorldContainerPhysicsRuntime
 
 - `game/src/scenes/itemworld/ItemWorldContainerPhysicsRuntime.ts` owns procedural Item World throwable-container body updates, environment impact checks, enemy/container overlap resolution, player/container overlap resolution, thrown-container enemy hit dispatch, player-pushed container X-occupancy checks, and final container-fluid flush.
+- The per-frame physics orchestration is shared with the LDtk world runtime through `game/src/scenes/shared/ContainerPhysicsRuntimeHelpers.ts`; Item World keeps only procedural dependency wiring.
 - `ItemWorldContainerRegistry` owns the shared container list and clear/settle lifecycle.
 - `ItemWorldContainerCarryRuntime` remains the grab/carry/prompt state owner. Do not merge carry state into physics; physics should read the registry-provided container list and skip held/destroyed containers.
 - `ItemWorldScene` still owns paint/destruction/fluid-effect callbacks (`paintContainerImpact`, `applyContainerEffectToFluid`, `destroyContainerWithVFX`) because those touch tile mutation, VFX, and fluid-system side effects outside the container physics boundary.

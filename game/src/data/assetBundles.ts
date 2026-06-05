@@ -1,33 +1,33 @@
 /**
- * assetBundles.ts — Pixi `Assets.addBundle / loadBundle` 기반 그룹 prefetch.
+ * assetBundles.ts ??Pixi `Assets.addBundle / loadBundle` 기반 그룹 prefetch.
  *
  * 목적
- *  - 첫 로딩 단축: 부팅 시 core 자산을 병렬로 미리 로드해 TitleScene 표시 직후
- *    실 게임 진입 시점에 대기 없이 자산이 준비되도록 한다.
- *  - Stratum 별 lazy: ItemWorldScene 진입 직전 item_world 번들을 프리페치해
- *    적/모루 스프라이트 로딩 hitch 를 회피한다.
+ *  - �?로딩 ?�축: 부????core ?�산??병렬�?미리 로드??TitleScene ?�시 직후
+ *    ??게임 진입 ?�점???��??�이 ?�산??준비되?�록 ?�다.
+ *  - Stratum �?lazy: ItemWorldScene 진입 직전 item_world 번들???�리?�치?? *    ??모루 ?�프?�이??로딩 hitch �??�피?�다.
  *
- * 동작 원칙
- *  - 번들 키(URL)는 엔티티가 실제로 호출하는 `Assets.load(url)` 경로와 100%
- *    일치해야 한다. 일치하면 entity 측 Assets.load 는 캐시에서 즉시 resolve.
- *  - 모든 URL 은 `assetPath()` 로 base 적용 — GitHub Pages (`/echoris/`) 대응.
- *  - 번들 등록은 1회, 로드는 idempotent.
+ * ?�작 ?�칙
+ *  - 번들 ??URL)???�티?��? ?�제�??�출?�는 `Assets.load(url)` 경로?� 100%
+ *    ?�치?�야 ?�다. ?�치?�면 entity �?Assets.load ??캐시?�서 즉시 resolve.
+ *  - 모든 URL ?� `assetPath()` �?base ?�용 ??GitHub Pages (`/echoris/`) ?�??
+ *  - 번들 ?�록?� 1?? 로드??idempotent.
  *
- * 추가/수정 가이드
- *  - 새 자산을 entity 가 `Assets.load(assetPath(X))` 로 부르면, 동일한 X 를
- *    아래 BUNDLES 의 적당한 그룹에 추가만 하면 된다. 코드 변경 불필요.
+ * 추�?/?�정 가?�드
+ *  - ???�산??entity 가 `Assets.load(assetPath(X))` �?부르면, ?�일??X �? *    ?�래 BUNDLES ???�당??그룹??추�?�??�면 ?�다. 코드 변�?불필??
  *
- * pixijs-references.html roadmap P1 — Asset Bundle.
+ * pixijs-references.html roadmap P1 ??Asset Bundle.
  */
 
 import { Assets, Container, Sprite, Texture, type Renderer } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
+import { raceWithTimeout } from '@core/AsyncTimeout';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export type BundleName = 'core' | 'item_world';
 
 /**
- * 부트 시 즉시 필요한 공용 자산. main.ts 에서 game.init() 직후 fire-and-forget
- * 로 prefetch 한다.
+ * 부????즉시 ?�요??공용 ?�산. main.ts ?�서 game.init() 직후 fire-and-forget
+ * �?prefetch ?�다.
  */
 const CORE_ASSETS: Record<string, string> = {
   world_ldtk: assetPath('assets/World_ProjectAbyss.ldtk'),
@@ -77,7 +77,7 @@ const CORE_ASSETS: Record<string, string> = {
 };
 
 /**
- * ItemWorldScene 진입 전 lazy prefetch. 적/주민 스프라이트.
+ * ItemWorldScene 진입 ??lazy prefetch. ??주�? ?�프?�이??
  */
 const ITEM_WORLD_ASSETS: Record<string, string> = {
   skeleton_atlas: assetPath('assets/characters/skeleton_01_atlas.png'),
@@ -96,12 +96,10 @@ const registered = new Set<BundleName>();
 const loadPromises = new Map<BundleName, Promise<void>>();
 
 /**
- * 번들을 idempotent 로 prefetch. 두 번째 호출부터는 첫 호출 Promise 를
- * 그대로 반환해 중복 IO 가 발생하지 않는다.
+ * 번들??idempotent �?prefetch. ??번째 ?�출부?�는 �??�출 Promise �? * 그�?�?반환??중복 IO 가 발생?��? ?�는??
  *
- * 실패해도 throw 하지 않는다 — 자산 누락은 entity 측 Assets.load 시점에
- * 개별 catch 로 이미 처리되며, 부트 단계에서 throw 하면 전체 게임이 중단되기
- * 때문. 콘솔 경고만 남긴다.
+ * ?�패?�도 throw ?��? ?�는?????�산 ?�락?� entity �?Assets.load ?�점?? * 개별 catch �??��? 처리?�며, 부???�계?�서 throw ?�면 ?�체 게임??중단?�기
+ * ?�문. 콘솔 경고�??�긴??
  */
 export function loadBundleOnce(name: BundleName): Promise<void> {
   const cached = loadPromises.get(name);
@@ -122,15 +120,15 @@ export function loadBundleOnce(name: BundleName): Promise<void> {
 }
 
 /**
- * Phase 1.A — GPU texture prewarm. 모든 등록 bundle 의 Texture 를 invisible
- * Sprite 로 묶어 `renderer.prepare.upload()` 로 한 번에 GPU 업로드한다.
+ * Phase 1.A ??GPU texture prewarm. 모든 ?�록 bundle ??Texture �?invisible
+ * Sprite �?묶어 `renderer.prepare.upload()` �???번에 GPU ?�로?�한??
  *
- * 효과: 게임 중 첫 sprite 등장 시 발생하는 `renderer.worldRT` spike (수십~100ms+)
- *      를 부팅 시점으로 이동 — 게임플레이 중 spike 0 목표.
+ * ?�과: 게임 �?�?sprite ?�장 ??발생?�는 `renderer.worldRT` spike (?�십~100ms+)
+ *      �?부???�점?�로 ?�동 ??게임?�레??�?spike 0 목표.
  *
- * 비용: 부팅 시간 +수백 ms (한 번). 이후 frame 모두 hot GPU 캐시.
+ * 비용: 부???�간 +?�백 ms (??�?. ?�후 frame 모두 hot GPU 캐시.
  *
- * 전제: `import 'pixi.js/prepare'` 가 main.ts 에서 한 번 import 되어 있어야 함.
+ * ?�제: `import 'pixi.js/prepare'` 가 main.ts ?�서 ??�?import ?�어 ?�어????
  */
 export async function prewarmAllBundleTextures(renderer: Renderer): Promise<{ count: number; ms: number }> {
   const start = performance.now();
@@ -154,24 +152,21 @@ export async function prewarmAllBundleTextures(renderer: Renderer): Promise<{ co
   }
   const prep = (renderer as unknown as { prepare?: { upload: (t: Container) => Promise<void> } }).prepare;
   if (!prep) {
-    tmp.destroy({ children: true });
-    console.warn('[assetBundles] renderer.prepare unavailable — pixi.js/prepare not imported?');
+    destroyDisplayObject(tmp, { children: true });
+    console.warn('[assetBundles] renderer.prepare unavailable ??pixi.js/prepare not imported?');
     return { count: 0, ms: 0 };
   }
-  // PIXI v8: prepare.upload() returns Promise (callback 인자 아님).
-  // 안전망: 5초 timeout — texture source 가 미로드 상태이면 prepare 가 hang 할 수 있다.
-  let tid: ReturnType<typeof setTimeout> | undefined;
+  // PIXI v8: prepare.upload() returns Promise (callback ?�자 ?�님).
+  // ?�전�? 5�?timeout ??texture source 가 미로???�태?�면 prepare 가 hang ?????�다.
   const uploadP = prep.upload(tmp).catch((e) => {
     console.warn('[prewarm] upload error:', e);
   });
-  const timeoutP = new Promise<void>(resolve => {
-    tid = setTimeout(() => {
-      console.warn('[prewarm] 5s timeout reached — proceeding without full prewarm.');
-      resolve();
-    }, 5000);
-  });
-  await Promise.race([uploadP, timeoutP]);
-  if (tid !== undefined) clearTimeout(tid); // 먼저 끝난 쪽 외 cleanup
-  tmp.destroy({ children: true });
+  await raceWithTimeout(
+    uploadP,
+    5000,
+    () => {
+      console.warn('[prewarm] 5s timeout reached ??proceeding without full prewarm.');
+    },
+  );  destroyDisplayObject(tmp, { children: true });
   return { count, ms: performance.now() - start };
 }

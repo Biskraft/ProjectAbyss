@@ -1,4 +1,8 @@
 import type { Graphics } from 'pixi.js';
+import {
+  getFadeInAlphaFromRemaining,
+  getFadeOutAlphaFromRemaining,
+} from '@scenes/shared/TransitionFadeHelpers';
 
 export type WorldEdgeTransitionDirection = 'left' | 'right' | 'up' | 'down';
 
@@ -76,7 +80,7 @@ export class WorldEdgeTransitionRuntime {
     const fadeDuration = this.deps.fadeDurationMs;
 
     if (this.state === 'fade_out') {
-      fadeOverlay.alpha = Math.min(1, 1 - this.timerMs / fadeDuration);
+      fadeOverlay.alpha = getFadeOutAlphaFromRemaining(this.timerMs, fadeDuration);
       if (this.timerMs > 0) return false;
 
       if (this.pendingLevelId === ITEM_WORLD_TRANSITION_LEVEL_ID) {
@@ -95,7 +99,7 @@ export class WorldEdgeTransitionRuntime {
       return false;
     }
 
-    fadeOverlay.alpha = Math.max(0, this.timerMs / fadeDuration);
+    fadeOverlay.alpha = getFadeInAlphaFromRemaining(this.timerMs, fadeDuration);
     if (this.timerMs > 0) return false;
 
     this.reset();

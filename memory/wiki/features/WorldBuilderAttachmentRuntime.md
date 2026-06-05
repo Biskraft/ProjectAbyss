@@ -14,3 +14,5 @@ Invariants:
 - Do not reintroduce a scene-owned `builderAttachments` array or one-line `attachToBuilder()` wrapper to `LdtkWorldScene`.
 
 Verification on 2026-06-02: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.
+
+- 2026-06-05: Builder-mounted entity reparent now uses `DisplayObjectLifecycleHelpers.detachDisplayObject()` before adding to `builder.container`; local-coordinate/baseY sync semantics remain unchanged.

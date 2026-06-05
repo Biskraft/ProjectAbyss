@@ -5,7 +5,8 @@
  *   "기둥이 아니라 아이템이 2배 확대되어 생성된다. 아이템은 둥실둥실 하고 있다."
  *
  * 인터랙션 인터페이스는 Trapdoor 와 동일 (isPlayerNear / activate / update / destroy)
- * 라 ItemWorldScene 의 updateTrapdoor / startTrapdoorDescent 가 호환 처리 가능.
+ * 래퍼런스는 ItemWorldScene의 아이템월드 트랩도어 하강 런타임(TrapdoorFlow) 흐름에 맞춰
+ * 동일 인터페이스만 보장하면 호환됩니다.
  *
  * 시각:
  *   - ItemImage (item.def.id 기반 sprite) 2× scale = 32px → 64px display
@@ -17,6 +18,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { ItemImage } from '@ui/ItemImage';
 import type { ItemInstance } from '@items/ItemInstance';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 const HALO_COLOR = 0xffa41b;
 const BOB_AMPLITUDE_PX = 4;
@@ -121,7 +123,6 @@ export class FloatingItemDrop {
 
   destroy(): void {
     this.itemImage.destroy();
-    if (this.container.parent) this.container.parent.removeChild(this.container);
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

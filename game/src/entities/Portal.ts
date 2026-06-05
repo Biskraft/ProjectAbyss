@@ -5,6 +5,7 @@ import type { ItemInstance } from '@items/ItemInstance';
 import { RARITY_COLOR } from '@items/ItemInstance';
 import { actionKey, GameAction } from '@core/InputManager';
 import { t } from '@i18n';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 export const PORTAL_COLOR: Record<Rarity, number> = {
   normal: 0xffffff,
@@ -208,9 +209,6 @@ export class Portal {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy({ children: true });
+    destroyDisplayObject(this.container, { children: true });
   }
 }

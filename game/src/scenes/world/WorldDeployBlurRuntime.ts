@@ -1,4 +1,9 @@
 import { BlurFilter, type Container, type Filter } from 'pixi.js';
+import {
+  appendFilterIfMissing,
+  removeFilterAndClearIfEmpty,
+} from '@scenes/shared/FilterLifecycleHelpers';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
 
 const DEPLOY_BLUR_RAMP_MS = 1200;
 const DEPLOY_BLUR_MAX_STRENGTH = 10;
@@ -26,7 +31,7 @@ export class WorldDeployBlurRuntime {
         this.active = true;
       }
       this.elapsedMs += dt;
-      const t = Math.min(1, this.elapsedMs / DEPLOY_BLUR_RAMP_MS);
+      const t = getProgress01(this.elapsedMs, DEPLOY_BLUR_RAMP_MS);
       const eased = t * t * (3 - 2 * t);
       this.filter.strength = DEPLOY_BLUR_MAX_STRENGTH * eased;
       return;
@@ -56,13 +61,10 @@ export class WorldDeployBlurRuntime {
     if (!blur) return;
 
     for (const target of this.deps.getTargets()) {
-      const cur = (target.filters as Filter[] | null) ?? [];
-      const arr: Filter[] = Array.isArray(cur) ? [...cur] : [cur];
       if (active) {
-        if (!arr.includes(blur)) target.filters = [...arr, blur];
+        appendFilterIfMissing(target, blur);
       } else {
-        const next = arr.filter(f => f !== blur);
-        target.filters = next.length ? next : null;
+        removeFilterAndClearIfEmpty(target, blur);
       }
     }
   }

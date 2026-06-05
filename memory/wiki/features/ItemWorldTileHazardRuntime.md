@@ -14,6 +14,7 @@ Current responsibilities:
 - Update `FluidSpawnerManager`, `FluidSystem`, gravity ticks, pressure drains, and crest foam.
 - Apply tile and waterfall hazards to the player, including damage feedback, death, burn/cyro/acid/magma state, and screen/camera feedback.
 - Apply tile hazards to enemies using elemental multipliers and spawn enemy hazard damage numbers.
+- Player tile-hazard feedback, waterfall hazard ticks, and enemy tile-hazard damage loops are shared with world through `game/src/scenes/shared/TileHazardRuntimeHelpers.ts`; Item World still passes the unified full grid and keeps active-bounds fluid simulation ownership.
 
 Scene-owned boundaries:
 

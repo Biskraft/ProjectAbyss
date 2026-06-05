@@ -1,15 +1,13 @@
-import { GameAction } from '@core/InputManager';
+﻿import { GameAction } from '@core/InputManager';
 import type { Player } from '@entities/Player';
 import { t } from '@i18n';
 import type { TutorialHint } from '@ui/TutorialHint';
 import type { Game } from '../../Game';
 
 const HINT_LINGER_MS = 1000;
-const TILE_SIZE = 16;
-// 점프 힌트는 아이템계 다이브 직전 — 세이브 포인트 우측 클라이밍 구간(col ≥ 36)에서
-// 플랫폼 위로 올라섰을 때(feet row ≤ 20) 표시한다.
-const JUMP_HINT_MIN_COL = 36;
-const JUMP_HINT_MAX_FEET_ROW = 20;
+const JUMP_HINT_AFTER_MOVE_MS = 1000;
+
+type TutorialHintId = 'hint_jump' | 'hint_attack';
 
 interface WorldTutorialHintRuntimeDeps {
   game: Game;
@@ -24,6 +22,7 @@ export class WorldTutorialHintRuntime {
   private dropThroughHintHandled = false;
   private jumpHintHandled = false;
   private attackHintHandled = false;
+  private jumpHintMoveDelayMs: number | null = null;
 
   constructor(private readonly deps: WorldTutorialHintRuntimeDeps) {}
 
@@ -42,24 +41,23 @@ export class WorldTutorialHintRuntime {
     }
 
     if (!this.jumpHintHandled) {
-      // 아이템계 다이브 직전 — 세이브 포인트 우측 클라이밍 구간(col ≥ 36)에서
-      // 플랫폼 위로 올라섰을 때 점프 힌트 표시.
       const isInSpawnRoom = currentLevelId === spawnLevelId;
-      const playerCol = Math.floor((player.x + player.width / 2) / TILE_SIZE);
-      const playerFeetRow = Math.floor((player.y + player.height) / TILE_SIZE);
-      const climbedAtDiveApproach =
-        isInSpawnRoom && playerCol >= JUMP_HINT_MIN_COL && playerFeetRow <= JUMP_HINT_MAX_FEET_ROW;
-      if (climbedAtDiveApproach) {
+      const movedHorizontally =
+        input.isDown(GameAction.MOVE_LEFT) || input.isDown(GameAction.MOVE_RIGHT);
+      if (isInSpawnRoom && movedHorizontally && this.jumpHintMoveDelayMs === null) {
+        this.jumpHintMoveDelayMs = JUMP_HINT_AFTER_MOVE_MS;
+      }
+      if (this.jumpHintMoveDelayMs !== null) {
+        this.jumpHintMoveDelayMs = Math.max(0, this.jumpHintMoveDelayMs - dt);
+      }
+      if (isInSpawnRoom && this.jumpHintMoveDelayMs === 0) {
         this.deps.tutorialHint.tryShow('hint_jump', {
           actions: [GameAction.JUMP],
           text: t('tutorial.jump'),
           persistent: true,
         });
       }
-      if (this.deps.tutorialHint.isShowing('hint_jump') && input.isJustPressed(GameAction.JUMP)) {
-        this.deps.tutorialHint.dismissAfter('hint_jump', HINT_LINGER_MS);
-        this.jumpHintHandled = true;
-      }
+      this.dismissHandledHintWhenPressed('hint_jump', GameAction.JUMP, input);
     }
 
     if (!this.attackHintHandled) {
@@ -70,16 +68,28 @@ export class WorldTutorialHintRuntime {
           persistent: true,
         });
       }
-      if (this.deps.tutorialHint.isShowing('hint_attack') && input.isJustPressed(GameAction.ATTACK)) {
-        this.deps.tutorialHint.dismissAfter('hint_attack', HINT_LINGER_MS);
-        this.attackHintHandled = true;
-      }
+      this.dismissHandledHintWhenPressed('hint_attack', GameAction.ATTACK, input);
     }
-
   }
 
   handleDropThroughEvent(): void {
     this.deps.tutorialHint.dismissAfter('hint_drop_through', HINT_LINGER_MS);
     this.dropThroughHintHandled = true;
+  }
+
+  private dismissHandledHintWhenPressed(
+    id: TutorialHintId,
+    action: GameAction,
+    input: Pick<Game['input'], 'isJustPressed' | 'isDown'>,
+  ): void {
+    if (!this.deps.tutorialHint.isShowing(id) || !input.isJustPressed(action)) return;
+
+    this.deps.tutorialHint.dismissAfter(id, HINT_LINGER_MS);
+    if (id === 'hint_jump') {
+      this.jumpHintHandled = true;
+      this.jumpHintMoveDelayMs = null;
+    } else {
+      this.attackHintHandled = true;
+    }
   }
 }

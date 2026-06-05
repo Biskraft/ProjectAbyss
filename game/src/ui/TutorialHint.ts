@@ -16,6 +16,7 @@ import { HudConst } from '@data/constData';
 import { create9SlicePanel } from './ModalPanel';
 import { applyLayoutToContainer } from './HUD';
 import type { UISkin } from './UISkin';
+import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 
 const DISPLAY_DURATION = HudConst.Tutorial.DisplayDurationMs;
 const FADE_DURATION = HudConst.Tutorial.FadeDurationMs;
@@ -208,7 +209,7 @@ export class TutorialHint {
    */
   dismiss(id: string): void {
     if (this.panel && this.panelId === id) {
-      this.container.removeChild(this.panel);
+      detachDisplayObject(this.panel);
       this.panel = null;
       this.panelHalo = null;
       this.panelId = null;
@@ -237,7 +238,7 @@ export class TutorialHint {
     }
 
     if (this.timer <= 0) {
-      this.container.removeChild(this.panel);
+      detachDisplayObject(this.panel);
       this.panel = null;
       this.panelHalo = null;
       this.panelId = null;
@@ -246,13 +247,11 @@ export class TutorialHint {
 
   destroy(): void {
     if (this.panel) {
-      this.container.removeChild(this.panel);
+      detachDisplayObject(this.panel);
       this.panel = null;
       this.panelHalo = null;
       this.panelId = null;
     }
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
+    detachDisplayObject(this.container);
   }
 }

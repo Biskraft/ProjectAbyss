@@ -1,7 +1,8 @@
+import { type Scene } from '@core/Scene';
 import { Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { getProgress01 } from '@scenes/shared/NumericHelpers';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../../Game';
-import type { ItemWorldScene } from '../ItemWorldScene';
-
 const ITEM_WORLD_ENTRY_FADE_MS = 350;
 
 export interface ItemWorldEntryPushOptions {
@@ -19,9 +20,10 @@ export class ItemWorldEntryPushTransition {
   }
 
   async push(
-    itemWorldScene: ItemWorldScene,
+    sceneToPush: unknown,
     preparePush: () => void,
     options: ItemWorldEntryPushOptions = {},
+    onBeginEntryDialogueAfterTransition?: () => void,
   ): Promise<void> {
     if (this.active) return;
     this.active = true;
@@ -37,12 +39,11 @@ export class ItemWorldEntryPushTransition {
         await this.tweenOverlay(overlay, 0, 1, ITEM_WORLD_ENTRY_FADE_MS);
       }
       preparePush();
-      await this.game.sceneManager.push(itemWorldScene, true);
+      await this.game.sceneManager.push(sceneToPush as Scene, true);
       await this.tweenOverlay(overlay, 1, 0, options.revealMs ?? ITEM_WORLD_ENTRY_FADE_MS);
-      itemWorldScene.beginEntryDialogueAfterTransition();
+      onBeginEntryDialogueAfterTransition?.();
     } finally {
-      overlay.parent?.removeChild(overlay);
-      overlay.destroy();
+      destroyDisplayObject(overlay);
       this.game.input.inputLocked = false;
       this.active = false;
     }
@@ -63,7 +64,7 @@ export class ItemWorldEntryPushTransition {
       let elapsed = 0;
       const onTick = (tk: { deltaMS: number }) => {
         elapsed += tk.deltaMS;
-        const t = Math.min(1, elapsed / durationMs);
+        const t = getProgress01(elapsed, durationMs);
         overlay.alpha = from + (to - from) * t;
         if (t >= 1) {
           overlay.alpha = to;

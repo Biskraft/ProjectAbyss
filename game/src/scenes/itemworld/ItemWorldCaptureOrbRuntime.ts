@@ -1,4 +1,6 @@
 import { Graphics, type Container } from 'pixi.js';
+import { destroyDisplayObjectAt } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { getDistance } from '@scenes/shared/DistanceHelpers';
 
 interface CaptureOrb {
   gfx: Graphics;
@@ -54,7 +56,7 @@ export class ItemWorldCaptureOrbRuntime {
       const homeBlend = 1 - k;
       const dx = target.x - orb.x;
       const dy = target.y - orb.y;
-      const dist = Math.max(1, Math.hypot(dx, dy));
+      const dist = Math.max(1, getDistance(target.x, target.y, orb.x, orb.y));
       const homeSpeed = 240 * homeBlend;
       orb.vx = orb.vx * 0.9 + (dx / dist) * homeSpeed * homeBlend;
       orb.vy = orb.vy * 0.9 + (dy / dist) * homeSpeed * homeBlend - 30 * k;
@@ -67,22 +69,14 @@ export class ItemWorldCaptureOrbRuntime {
       orb.gfx.alpha = k > 0.1 ? 1 : k / 0.1;
       if (orb.life <= 0 || dist < 6) {
         this.options.flashOnArrival();
-        this.destroyOrb(i);
+        destroyDisplayObjectAt(this.orbs, i, orb => orb.gfx);
       }
     }
   }
 
   clear(): void {
     for (let i = this.orbs.length - 1; i >= 0; i--) {
-      this.destroyOrb(i);
+      destroyDisplayObjectAt(this.orbs, i, orb => orb.gfx);
     }
-  }
-
-  private destroyOrb(index: number): void {
-    const orb = this.orbs[index];
-    if (!orb) return;
-    if (orb.gfx.parent) orb.gfx.parent.removeChild(orb.gfx);
-    orb.gfx.destroy();
-    this.orbs.splice(index, 1);
   }
 }

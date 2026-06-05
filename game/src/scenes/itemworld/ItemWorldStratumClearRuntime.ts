@@ -1,5 +1,6 @@
 import { GameAction } from '@core/InputManager';
 import type { ItemInstance } from '@items/ItemInstance';
+import { consumePressedActionSnapshot } from '@scenes/shared/InputPressHelpers';
 import type { Game } from '../../Game';
 import type { ItemWorldUiController } from './ItemWorldUiController';
 
@@ -42,13 +43,13 @@ export class ItemWorldStratumClearRuntime {
 
     const choice = uiController.getStratumClearChoice();
     if (choice === 'continue') {
-      if (attackPressed) input.consumeJustPressed(GameAction.ATTACK);
-      uiController.destroyStratumClearOverlayPublic();
+      consumePressedActionSnapshot(input, GameAction.ATTACK, attackPressed);
+      uiController.destroyStratumClearOverlay();
       this.deps.onContinue();
     } else if (choice === 'exit') {
-      if (menuPressed) input.consumeJustPressed(GameAction.MENU);
-      if (attackPressed) input.consumeJustPressed(GameAction.ATTACK);
-      uiController.destroyStratumClearOverlayPublic();
+      consumePressedActionSnapshot(input, GameAction.MENU, menuPressed);
+      consumePressedActionSnapshot(input, GameAction.ATTACK, attackPressed);
+      uiController.destroyStratumClearOverlay();
       this.deps.onExit();
     }
   }

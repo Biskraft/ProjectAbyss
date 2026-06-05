@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Savepoint pulse — soft breathing aura that attaches to a savepoint marker.
@@ -48,8 +49,7 @@ export class SavepointPulseManager {
 
   detach(): void {
     if (this.aura) {
-      if (this.aura.parent) this.aura.parent.removeChild(this.aura);
-      this.aura.destroy();
+      destroyDisplayObject(this.aura);
       this.aura = null;
     }
   }
@@ -88,8 +88,7 @@ export class SavepointPulseManager {
       p.gfx.clear();
       p.gfx.circle(0, 0, radius).stroke({ color: COLOR, width: 2, alpha });
       if (p.life <= 0) {
-        if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-        p.gfx.destroy();
+        destroyDisplayObject(p.gfx);
         this.pulses.splice(i, 1);
       }
     }
@@ -98,8 +97,7 @@ export class SavepointPulseManager {
   clear(): void {
     this.detach();
     for (const p of this.pulses) {
-      if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx);
-      p.gfx.destroy();
+      destroyDisplayObject(p.gfx);
     }
     this.pulses.length = 0;
   }

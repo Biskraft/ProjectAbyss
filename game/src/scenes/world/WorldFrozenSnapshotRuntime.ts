@@ -1,6 +1,9 @@
 import { ColorMatrixFilter, type Container } from 'pixi.js';
 import type { Player } from '@entities/Player';
 import { RGBSplitFilter } from '@effects/RGBSplitFilter';
+import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { getDistance } from '@scenes/shared/DistanceHelpers';
+import { clamp01 } from '@scenes/shared/NumericHelpers';
 
 export class WorldFrozenSnapshotRuntime {
   private snapshotContainer: Container | null = null;
@@ -33,14 +36,12 @@ export class WorldFrozenSnapshotRuntime {
     const snapshot = this.snapshotContainer;
     if (!snapshot || !player) return;
 
-    const dx = player.container.x - snapshot.x;
-    const dy = player.container.y - snapshot.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = getDistance(player.container.x, player.container.y, snapshot.x, snapshot.y);
 
     this.rgbFilter?.setOffset(Math.min(12, dist * 0.06));
 
     if (this.grayFilter) {
-      const t = Math.min(1, Math.max(0, (dist - 128) / 200));
+      const t = clamp01((dist - 128) / 200);
       const l = 0.2126;
       const m = 0.7152;
       const s = 0.0722;
@@ -55,8 +56,7 @@ export class WorldFrozenSnapshotRuntime {
 
   destroySnapshot(): void {
     if (this.snapshotContainer) {
-      this.snapshotContainer.parent?.removeChild(this.snapshotContainer);
-      this.snapshotContainer.destroy({ children: true });
+      destroyDisplayObject(this.snapshotContainer, { children: true });
       this.snapshotContainer = null;
     }
     this.rgbFilter = null;

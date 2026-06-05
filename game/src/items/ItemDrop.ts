@@ -9,9 +9,14 @@ import dropCsvText from '../../../Sheets/Content_Item_DropRate.csv?raw';
 import { Container, Graphics, Sprite, Texture, Assets } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { PRNG } from '@utils/PRNG';
-import { SWORD_DEFS, STARTER_ONLY_IDS, type Rarity } from '@data/weapons';
-import { createItem, RARITY_COLOR, type ItemInstance } from './ItemInstance';
+import type { Rarity } from '@data/weapons';
+import { RARITY_COLOR, type ItemInstance } from './ItemInstance';
+import {
+  createDungeonRewardItemByRarity,
+  createGoldenRewardItemByRarity,
+} from './ItemRewardFactory';
 import { DROP_CHANCE } from '@data/rarityConfig';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 // Parse CSV into weight pools
 const POOLS = new Map<string, { rarity: Rarity; weight: number }[]>();
@@ -40,10 +45,7 @@ export function rollDrop(rng: PRNG): ItemInstance | null {
     cumulative += w.weight;
     if (roll < cumulative) { rarity = w.rarity; break; }
   }
-  const def = SWORD_DEFS.find(d => d.rarity === rarity && !STARTER_ONLY_IDS.has(d.id))
-    ?? SWORD_DEFS.find(d => !STARTER_ONLY_IDS.has(d.id))
-    ?? SWORD_DEFS[0];
-  return createItem(def, rarity);
+  return createDungeonRewardItemByRarity(rarity);
 }
 
 /** Golden Monster guaranteed drop — always rare or above */
@@ -55,10 +57,7 @@ export function rollGoldenDrop(rng: PRNG): ItemInstance {
     cumulative += w.weight;
     if (roll < cumulative) { rarity = w.rarity; break; }
   }
-  const def = SWORD_DEFS.find(d => d.rarity === rarity && !STARTER_ONLY_IDS.has(d.id))
-    ?? SWORD_DEFS.find(d => d.rarity === 'rare' && !STARTER_ONLY_IDS.has(d.id))
-    ?? SWORD_DEFS[2];
-  return createItem(def, rarity);
+  return createGoldenRewardItemByRarity(rarity);
 }
 
 // --- Drop VFX config per rarity ---
@@ -210,9 +209,6 @@ export class ItemDropEntity {
   }
 
   destroy(): void {
-    if (this.container.parent) {
-      this.container.parent.removeChild(this.container);
-    }
-    this.container.destroy();
+    destroyDisplayObject(this.container);
   }
 }

@@ -1,5 +1,6 @@
 import type { Enemy } from '@entities/Enemy';
 import type { HUD } from './HUD';
+import { isBossEnemy, markBossBarShown, wasBossBarShown } from '@entities/EnemyMetadata';
 
 interface BossHpRuntimeDeps {
   getHud: () => HUD;
@@ -9,8 +10,6 @@ interface BossHpRuntimeDeps {
 }
 
 type BossEnemy = Enemy<string> & {
-  _isBoss?: boolean;
-  _bossBarShown?: boolean;
   enemyType?: string;
 };
 
@@ -19,7 +18,7 @@ export class BossHpRuntime {
 
   update(): void {
     const activeBoss = this.deps.getEnemies().find((enemy): enemy is BossEnemy =>
-      !!(enemy as BossEnemy)._isBoss && enemy.alive,
+      isBossEnemy(enemy) && enemy.alive,
     );
     if (!activeBoss) return;
 
@@ -30,8 +29,8 @@ export class BossHpRuntime {
     if (!engaged) return;
 
     const hud = this.deps.getHud();
-    if (!activeBoss._bossBarShown) {
-      activeBoss._bossBarShown = true;
+    if (!wasBossBarShown(activeBoss)) {
+      markBossBarShown(activeBoss);
       hud.showBossHP(
         activeBoss.enemyType ?? this.deps.defaultBossName,
         activeBoss.hp,

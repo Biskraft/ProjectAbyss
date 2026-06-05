@@ -1,10 +1,24 @@
 import type { ItemInstance } from '@items/ItemInstance';
+import type { Anvil } from '@entities/Anvil';
+import type { Player } from '@entities/Player';
 import type { FixedItemWorldRuntime } from './FixedItemWorldRuntime';
-import type { WorldItemWorldSceneFlowRuntime } from './WorldItemWorldSceneFlowRuntime';
+import type { ItemWorldSceneLike, WorldItemWorldSceneFlowRuntime } from './WorldItemWorldSceneFlowRuntime';
+import type { AnvilItemWorldReturnState } from './AnvilReturnState';
+import { getDisplayName } from '@items/ItemInstance';
+import { t } from '@i18n';
+import {
+  applyItemWorldSceneCompletionLifecycle,
+  createOneShotHandler,
+} from './ItemWorldSceneCompletionHelpers';
 
 interface WorldFixedItemWorldFlowRuntimeDeps {
   fixedItemWorld: FixedItemWorldRuntime;
   itemWorldSceneFlow: WorldItemWorldSceneFlowRuntime;
+  createItemWorldScene: (item: ItemInstance, entryCorridor: boolean) => ItemWorldSceneLike;
+  returnState: AnvilItemWorldReturnState;
+  getAnvil: () => Anvil | null;
+  getPlayer: () => Player;
+  snapCamera: (x: number, y: number) => void;
   restoreUiAfterDiveTransition: () => void;
   hasLevel: (levelId: string) => boolean;
   loadLevel: (levelId: string, enterFrom: 'down') => void;
@@ -17,24 +31,17 @@ interface WorldFixedItemWorldFlowRuntimeDeps {
   getFallbackLevelId: () => string;
   setWorldVisualsReleased: (released: boolean) => void;
   resetEdgeTransition: () => void;
-  placePlayerAtReturnPoint: () => void;
   isFirstItemWorldBossDefeated: () => boolean;
   getUnlockedEvents: () => Set<string>;
   showFirstItemWorldReturnInventoryHint: (hadFirstBossClear: boolean) => void;
+  showToast: (message: string, color: number) => void;
+  getPlayerAtk: () => number;
   fireWorldReturnDialogue: (weaponDefId: string) => void;
   retireAfterBossClear: (hadFirstBossClear: boolean) => void;
 }
 
 export class WorldFixedItemWorldFlowRuntime {
   constructor(private readonly deps: WorldFixedItemWorldFlowRuntimeDeps) {}
-
-  get isActive(): boolean {
-    return this.deps.fixedItemWorld.isActive;
-  }
-
-  get currentItem(): ItemInstance | null {
-    return this.deps.fixedItemWorld.currentItem;
-  }
 
   clear(): void {
     this.deps.fixedItemWorld.clear();
@@ -69,7 +76,7 @@ export class WorldFixedItemWorldFlowRuntime {
     this.deps.clearPreTunnelLevelId();
     this.deps.loadLevel(returnLevel, 'down');
     this.deps.setWorldVisualsReleased(false);
-    this.deps.placePlayerAtReturnPoint();
+    this.deps.returnState.placePlayer(this.deps.getPlayer(), this.deps.getAnvil(), this.deps.snapCamera);
 
     if (this.deps.isFirstItemWorldBossDefeated()) {
       this.deps.getUnlockedEvents().add('__itemWorldTutorialDone');
@@ -83,13 +90,44 @@ export class WorldFixedItemWorldFlowRuntime {
 
   private enterProceduralFallback(item: ItemInstance): void {
     this.deps.setEntryItem(item);
+    const prevLevel = item.level;
+    const prevAtk = this.deps.getPlayerAtk();
     const hadFirstBossClear = this.deps.isFirstItemWorldBossDefeated();
-    const itemWorldScene = this.deps.itemWorldSceneFlow.createScene(item, true);
-    itemWorldScene.onComplete = () => {
-      this.deps.itemWorldSceneFlow.completeReturn(itemWorldScene, hadFirstBossClear, { restoreAtAnvil: false });
-      this.deps.fireWorldReturnDialogue(item.def.id);
-      this.deps.retireAfterBossClear(hadFirstBossClear);
-    };
+    const itemWorldScene = this.deps.createItemWorldScene(item, true);
+    itemWorldScene.onComplete = createOneShotHandler(() => {
+      applyItemWorldSceneCompletionLifecycle({
+        targetItem: item,
+        prevLevel,
+        prevAtk,
+        isAltar: true,
+        dungeonItem: undefined,
+        getCurrentAtk: () => this.deps.getPlayerAtk(),
+        onAwardWeaponLevelUp: (awardedItem) => {
+          this.deps.showToast(
+            t('toast.weapon_level_up', { name: getDisplayName(awardedItem), level: awardedItem.level }),
+            0xff88ff,
+          );
+        },
+        onAwardDungeonItemToast: () => {
+          // no-op for fixed item world fallback
+        },
+        onAwardAtkDeltaToast: (before, after) => {
+          this.deps.showToast(t('toast.atk_change', { prev: before, next: after }), 0xffff44);
+        },
+        hadFirstBossClear,
+        onAfterCompletion: () => {
+          this.deps.fireWorldReturnDialogue(item.def.id);
+          this.deps.retireAfterBossClear(hadFirstBossClear);
+        },
+        completeReturn: () => {
+          this.deps.itemWorldSceneFlow.completeReturn(
+            itemWorldScene,
+            hadFirstBossClear,
+            false,
+          );
+        },
+      });
+    });
     this.deps.itemWorldSceneFlow.pushPrepared(itemWorldScene, { alreadyBlack: true, revealMs: 240 });
   }
 }

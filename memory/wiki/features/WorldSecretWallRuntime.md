@@ -13,6 +13,7 @@ Boundaries:
 
 - `WorldSecretWallRegistry` still owns active wall list, layer attachment, and remove-at cleanup.
 - `WorldFixedItemSpawnRuntime` owns fixed item master lookup shared by hand-placed items, secret-wall rewards, and builder-mounted item entities.
+- `ItemRewardFactory` owns random rare-or-better weapon selection for random secret-wall rewards; do not reintroduce local `SWORD_DEFS.filter(...)` policy here.
 - Keep secret-wall replay before player placement in `loadLevel()` so return spawns through opened passages do not collide with stale wall cells.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed with only existing line-ending warnings.

@@ -18,12 +18,14 @@ export class ItemWorldTemplatePickerRuntime {
     if (templates.length === 0 || !cell) return null;
 
     const required = this.getRequiredExits(cell);
+    const requiredExitsText = required.length > 0 ? required.join('') : 'none';
     const placed = this.deps.getMemoryRoomPlacements().get(`${cell.col}:${cell.absoluteRow}`);
     if (placed) {
+      const placedExitsText = placed.exits.length > 0 ? placed.exits.join('') : 'none';
       if (this.sameExitSet(placed.exits, required)) return placed;
       console.warn(
-        `[ItemWorld] memory room ${placed.identifier} exits=${this.formatExits(placed.exits)} `
-        + `does not match cell exits=${this.formatExits(required)} at (${cell.col},${cell.absoluteRow}); using normal template.`,
+        `[ItemWorld] memory room ${placed.identifier} exits=${placedExitsText} `
+        + `does not match cell exits=${requiredExitsText} at (${cell.col},${cell.absoluteRow}); using normal template.`,
       );
     }
 
@@ -47,9 +49,11 @@ export class ItemWorldTemplatePickerRuntime {
           this.exitMatchScore(b.exits, required) - this.exitMatchScore(a.exits, required),
         );
         const fallback = rankedRoleTemplates[0];
+        if (!fallback) return null;
+        const fallbackExitsText = fallback.exits.length > 0 ? fallback.exits.join('') : 'none';
         console.warn(
-          `[ItemWorld] no exact LDtk template for required role=${desiredType} exits=${this.formatExits(required)} `
-          + `at (${cell.col},${cell.absoluteRow}); using ${fallback.identifier} exits=${this.formatExits(fallback.exits)}.`,
+          `[ItemWorld] no exact LDtk template for required role=${desiredType} exits=${requiredExitsText} `
+          + `at (${cell.col},${cell.absoluteRow}); using ${fallback.identifier} exits=${fallbackExitsText}.`,
         );
         return fallback;
       }
@@ -58,7 +62,7 @@ export class ItemWorldTemplatePickerRuntime {
     const exactAnyType = pool.filter(template => this.sameExitSet(template.exits, required));
     if (exactAnyType.length > 0) {
       console.warn(
-        `[ItemWorld] no exact LDtk template for type=${desiredType} exits=${this.formatExits(required)} `
+        `[ItemWorld] no exact LDtk template for type=${desiredType} exits=${requiredExitsText} `
         + `at (${cell.col},${cell.absoluteRow}); using another room type.`,
       );
       return exactAnyType[rng.nextInt(0, exactAnyType.length - 1)];
@@ -71,10 +75,11 @@ export class ItemWorldTemplatePickerRuntime {
     const fallback = ranked[0] ?? null;
     if (!fallback) return null;
 
+    const fallbackExitsText = fallback.exits.length > 0 ? fallback.exits.join('') : 'none';
     console.warn(
-      `[ItemWorld] Missing LDtk ItemStratum template exits=${this.formatExits(required)} `
+      `[ItemWorld] Missing LDtk ItemStratum template exits=${requiredExitsText} `
       + `type=${desiredType} at (${cell.col},${cell.absoluteRow}); `
-      + `fallback=${fallback.identifier} exits=${this.formatExits(fallback.exits)}. `
+      + `fallback=${fallback.identifier} exits=${fallbackExitsText}. `
       + `Author this exit combination in LDtk to remove the fallback.`,
     );
     return fallback;
@@ -127,7 +132,4 @@ export class ItemWorldTemplatePickerRuntime {
     return matches * 10 - missing * 6 - extras * 2;
   }
 
-  private formatExits(exits: readonly ExitDir[]): string {
-    return exits.length > 0 ? exits.join('') : 'none';
-  }
 }

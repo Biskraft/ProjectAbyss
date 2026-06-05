@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 
 /**
  * Ash remnant — small charred mound left behind by a BurnableProp after its
@@ -64,8 +65,7 @@ export class AshRemnantManager {
       if (a.fadeMs === undefined || a.fadeTotalMs === undefined) continue;
       a.fadeMs -= dt;
       if (a.fadeMs <= 0) {
-        if (a.gfx.parent) a.gfx.parent.removeChild(a.gfx);
-        a.gfx.destroy();
+        destroyDisplayObject(a.gfx);
         this.items.splice(i, 1);
         continue;
       }
@@ -76,8 +76,7 @@ export class AshRemnantManager {
 
   clear(): void {
     for (const a of this.items) {
-      if (a.gfx.parent) a.gfx.parent.removeChild(a.gfx);
-      a.gfx.destroy();
+      destroyDisplayObject(a.gfx);
     }
     this.items.length = 0;
   }

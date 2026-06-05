@@ -1,22 +1,23 @@
 import type { Container } from 'pixi.js';
 import type { BurnableProp } from '@entities/BurnableProp';
+import {
+  addBurnablePropToRegistry,
+  clearBurnableProps,
+  removeBurnablePropAt,
+} from '@scenes/shared/BurnablePropRegistryHelpers';
 
 export class WorldBurnablePropRegistry {
   readonly props: BurnableProp[] = [];
 
   add(prop: BurnableProp, entityLayer?: Container): void {
-    this.props.push(prop);
-    if (entityLayer && !prop.container.parent) entityLayer.addChild(prop.container);
+    addBurnablePropToRegistry(this.props, prop, entityLayer);
   }
 
   clear(): void {
-    for (const prop of this.props) prop.destroy();
-    this.props.length = 0;
+    clearBurnableProps(this.props);
   }
 
   removeAt(index: number): void {
-    const prop = this.props[index];
-    prop.destroy();
-    this.props.splice(index, 1);
+    removeBurnablePropAt(this.props, index);
   }
 }
